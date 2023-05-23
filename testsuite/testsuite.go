@@ -7,7 +7,6 @@ import (
 	"os/exec"
 	"path"
 	"strings"
-	"time"
 
 	"github.com/gomodule/redigo/redis"
 	"github.com/jmoiron/sqlx"
@@ -89,16 +88,17 @@ func Runtime() (context.Context, *runtime.Runtime) {
 }
 
 // ReindexElastic updates elastic indexing
-func ReindexElastic() int {
+func ReindexElastic(ctx context.Context) (int, int) {
 	db := getDB()
+	es := getES()
 
 	contactsIndexer := indexers.NewContactIndexer(elasticURL, elasticContactsIndex, 1, 1, 100)
 	contactsIndexer.Index(db.DB, false, false)
-	indexed := contactsIndexer.Stats().Indexed
 
-	time.Sleep(1000 * time.Millisecond)
+	es.Refresh(elasticContactsIndex).Do(ctx)
 
-	return int(indexed)
+	s := contactsIndexer.Stats()
+	return int(s.Indexed), int(s.Deleted)
 }
 
 // returns an open test database pool
@@ -137,6 +137,13 @@ func getRC() redis.Conn {
 	_, err = conn.Do("SELECT", 0)
 	noError(err)
 	return conn
+}
+
+// returns an Elastic client
+func getES() *elastic.Client {
+	es, err := elastic.NewSimpleClient(elastic.SetURL(elasticURL), elastic.SetSniff(false))
+	noError(err)
+	return es
 }
 
 // resets our database to our base state from our RapidPro dump
@@ -199,10 +206,9 @@ func resetStorage() {
 	must(os.RemoveAll(SessionStorageDir))
 }
 
-// reset indexed data in elastic
+// reset indexed data in Elastic
 func resetElastic(ctx context.Context) (int, int) {
-	es, err := elastic.NewSimpleClient(elastic.SetURL(elasticURL), elastic.SetSniff(false))
-	noError(err)
+	es := getES()
 
 	exists, err := es.IndexExists(elasticContactsIndex).Do(ctx)
 	noError(err)
@@ -210,15 +216,14 @@ func resetElastic(ctx context.Context) (int, int) {
 	numDeleted := 0
 
 	if exists {
-		resp, err := es.DeleteByQuery(elasticContactsIndex).Refresh("true").Routing("1", "2").Query(elastic.NewMatchAllQuery().Boost(1.0)).Do(ctx)
+		resp, err := es.DeleteByQuery(elasticContactsIndex).Refresh("true").Routing("1", "2").Query(elastic.NewMatchAllQuery()).Do(ctx)
 		noError(err)
 
 		numDeleted = int(resp.Deleted)
 	}
 
-	time.Sleep(1000 * time.Millisecond)
-
-	return numDeleted, ReindexElastic()
+	numIndexed, _ := ReindexElastic(ctx)
+	return numIndexed, numDeleted
 }
 
 var sqlResetTestData = `
