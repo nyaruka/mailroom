@@ -216,6 +216,9 @@ func resetElastic(ctx context.Context) (int, int) {
 	numDeleted := 0
 
 	if exists {
+		_, err = es.Refresh(elasticContactsIndex).Do(ctx)
+		noError(err)
+
 		resp, err := es.DeleteByQuery(elasticContactsIndex).Refresh("true").Routing("1", "2").Query(elastic.NewMatchAllQuery()).Do(ctx)
 		noError(err)
 
