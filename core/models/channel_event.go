@@ -19,6 +19,8 @@ const (
 	MOMissEventType          = ChannelEventType("mo_miss")
 	MOCallEventType          = ChannelEventType("mo_call")
 	StopContactEventType     = ChannelEventType("stop_contact")
+
+	FacebookNotificationEventType = ChannelEventType("facebook_notification")
 )
 
 // ContactSeenEvents are those which count as the contact having been seen

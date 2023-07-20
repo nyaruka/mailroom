@@ -37,7 +37,15 @@ const (
 	ExpirationEventType      = "expiration_event"
 	TimeoutEventType         = "timeout_event"
 	TicketClosedEventType    = "ticket_closed"
+
+	FacebookNotificationEventType = "facebook_notification"
 )
+
+// handleFacebookNoticationEvent is called for facebook notification events
+func handleFacebookNoticationEvent(ctx context.Context, rt *runtime.Runtime, eventType string, event *FacebookNotificationEvent) error {
+
+	return nil
+}
 
 // handleTimedEvent is called for timeout events
 func handleTimedEvent(ctx context.Context, rt *runtime.Runtime, eventType string, event *TimedEvent) error {
@@ -668,6 +676,21 @@ type StopEvent struct {
 	ContactID  models.ContactID `json:"contact_id"`
 	OrgID      models.OrgID     `json:"org_id"`
 	OccurredOn time.Time        `json:"occurred_on"`
+}
+
+type FacebookNotificationEvent struct {
+	ContactID models.ContactID `json:"contact_id"`
+	OrgID     models.OrgID     `json:"org_id"`
+	ChannelID models.ChannelID `json:"channel_id"`
+	Extra     struct {
+		Title                        string `json:"title"`
+		Payload                      string `json:"payload"`
+		NotificationMessagesToken    string `json:"notification_messages_token"`
+		NotificationMessagesTimezone string `json:"notification_messages_timezone"`
+		TokenExpiryTimestamp         int64  `json:"token_expiry_timestamp"`
+		UserTokenStatus              string `json:"user_token_status"`
+		NotificationMessagesStatus   string `json:"notification_messages_status"`
+	} `json:"extra"`
 }
 
 // creates a new event task for the passed in timeout event

@@ -131,6 +131,15 @@ func (t *HandleContactEventTask) Perform(ctx context.Context, rt *runtime.Runtim
 			}
 			err = handleTimedEvent(ctx, rt, contactEvent.Type, evt)
 
+		case FacebookNotificationEventType:
+			evt := &FacebookNotificationEvent{}
+			err = json.Unmarshal(contactEvent.Task, evt)
+			if err != nil {
+				return errors.Wrapf(err, "error unmarshalling facebook notification event: %s", event)
+			}
+
+			err = handleFacebookNoticationEvent(ctx, rt, contactEvent.Type, evt)
+
 		default:
 			return errors.Errorf("unknown contact event type: %s", contactEvent.Type)
 		}
