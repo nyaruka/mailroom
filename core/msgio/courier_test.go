@@ -55,7 +55,7 @@ func TestNewCourierMsg(t *testing.T) {
 		"Hi there",
 		[]utils.Attachment{utils.Attachment("image/jpeg:https://dl-foo.com/image.jpg")},
 		[]string{"yes", "no"},
-		flows.NewMsgTemplating(assets.NewTemplateReference("9c22b594-fcab-4b29-9bcb-ce4404894a80", "revive_issue"), []string{"name"}, "tpls"),
+		flows.NewMsgTemplating(assets.NewTemplateReference("9c22b594-fcab-4b29-9bcb-ce4404894a80", "revive_issue"), map[string][]flows.TemplateParam{"body": {{Type: "text", Value: "name"}}}, "tpls"),
 		flows.MsgTopicPurchase,
 		`eng-US`,
 		flows.NilUnsendableReason,

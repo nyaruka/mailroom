@@ -40,6 +40,7 @@ func TestTemplates(t *testing.T) {
 	assert.Equal(t, i18n.Locale("eng-US"), tt.Locale())
 	assert.Equal(t, "en_US", tt.(*models.TemplateTranslation).ExternalLocale())
 	assert.Equal(t, "2d40b45c_25cd_4965_9019_f05d0124c5fa", tt.Namespace())
+	assert.Equal(t, map[string][]models.TemplateParam{"body": {{Type_: "text"}, {Type_: "text"}}}, tt.(*models.TemplateTranslation).Params())
 	assert.Equal(t, testdata.FacebookChannel.UUID, tt.Channel().UUID)
 	assert.Equal(t, "Hi {{1}}, are you still experiencing problems with {{2}}?", tt.Content())
 

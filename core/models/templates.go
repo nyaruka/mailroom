@@ -34,13 +34,19 @@ func (t *Template) FindTranslation(l i18n.Locale) *TemplateTranslation {
 	return nil
 }
 
+type TemplateParam struct {
+	Type_ string `json:"type"`
+}
+
+func (t *TemplateParam) Type() string { return t.Type_ }
+
 type TemplateTranslation struct {
-	Channel_        *assets.ChannelReference `json:"channel"`
-	Namespace_      string                   `json:"namespace"`
-	Locale_         i18n.Locale              `json:"locale"`
-	ExternalLocale_ string                   `json:"external_locale"`
-	Content_        string                   `json:"content"`
-	VariableCount_  int                      `json:"variable_count"`
+	Channel_        *assets.ChannelReference   `json:"channel"`
+	Namespace_      string                     `json:"namespace"`
+	Locale_         i18n.Locale                `json:"locale"`
+	ExternalLocale_ string                     `json:"external_locale"`
+	Content_        string                     `json:"content"`
+	Params_         map[string][]TemplateParam `json:"params"`
 }
 
 func (t *TemplateTranslation) Channel() *assets.ChannelReference { return t.Channel_ }
@@ -48,7 +54,20 @@ func (t *TemplateTranslation) Namespace() string                 { return t.Name
 func (t *TemplateTranslation) Locale() i18n.Locale               { return t.Locale_ }
 func (t *TemplateTranslation) ExternalLocale() string            { return t.ExternalLocale_ }
 func (t *TemplateTranslation) Content() string                   { return t.Content_ }
-func (t *TemplateTranslation) VariableCount() int                { return t.VariableCount_ }
+func (t *TemplateTranslation) Params() map[string][]assets.TemplateParam {
+	prs := make(map[string][]assets.TemplateParam)
+
+	for k, v := range t.Params_ {
+		tprs := make([]assets.TemplateParam, len(v))
+		for i := range v {
+			tprs[i] = assets.TemplateParam(&v[i])
+		}
+		prs[k] = tprs
+	}
+
+	return prs
+
+}
 
 // loads the templates for the passed in org
 func loadTemplates(ctx context.Context, db *sql.DB, orgID OrgID) ([]assets.Template, error) {
