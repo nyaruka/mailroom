@@ -33,10 +33,11 @@ func TestTemplates(t *testing.T) {
 	assert.Equal(t, i18n.Locale("fra"), tt.Locale())
 	assert.Equal(t, "fr", tt.(*models.TemplateTranslation).ExternalLocale())
 	assert.Equal(t, "", tt.Namespace())
+	assert.Equal(t, true, tt.Approved())
 	assert.Equal(t, testdata.FacebookChannel.UUID, tt.Channel().UUID)
 	assert.Equal(t, "Salut!", tt.Components()[0].Content())
 
-	assert.Equal(t, 1, len(templates[1].Translations()))
+	assert.Equal(t, 2, len(templates[1].Translations()))
 	tt = templates[1].Translations()[0]
 
 	tp1 := static.TemplateParam{Type_: "text"}
@@ -46,8 +47,19 @@ func TestTemplates(t *testing.T) {
 	assert.Equal(t, "en_US", tt.(*models.TemplateTranslation).ExternalLocale())
 	assert.Equal(t, []assets.TemplateParam{&tp1, &tp2}, tt.Components()[0].Params())
 	assert.Equal(t, "2d40b45c_25cd_4965_9019_f05d0124c5fa", tt.Namespace())
+	assert.Equal(t, true, tt.Approved())
 	assert.Equal(t, testdata.FacebookChannel.UUID, tt.Channel().UUID)
 	assert.Equal(t, "Hi {{1}}, are you still experiencing problems with {{2}}?", tt.Components()[0].Content())
+
+	tt = templates[1].Translations()[1]
+
+	assert.Equal(t, i18n.Locale("fra"), tt.Locale())
+	assert.Equal(t, "fr", tt.(*models.TemplateTranslation).ExternalLocale())
+	assert.Equal(t, []assets.TemplateParam{&tp1, &tp2}, tt.Components()[0].Params())
+	assert.Equal(t, "ea9cd1b3_b018_4ffe_bb0e_7cb898e527ae", tt.Namespace())
+	assert.Equal(t, false, tt.Approved())
+	assert.Equal(t, testdata.FacebookChannel.UUID, tt.Channel().UUID)
+	assert.Equal(t, "Bonjour {{1}}, a tu des problems avec {{2}}?", tt.Components()[0].Content())
 
 	mt := oa.TemplateByUUID("3b8dd151-1a91-411f-90cb-dd9065bb7a71")
 	assert.NotNil(t, mt)

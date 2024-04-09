@@ -52,6 +52,7 @@ type TemplateTranslation struct {
 		Namespace      string                      `json:"namespace"`
 		ExternalID     string                      `json:"external_id"`
 		Locale         i18n.Locale                 `json:"locale"`
+		Approved       bool                        `json:"approved"`
 		ExternalLocale string                      `json:"external_locale"`
 		Components     []*static.TemplateComponent `json:"components"`
 	}
@@ -63,6 +64,7 @@ func (t *TemplateTranslation) Channel() *assets.ChannelReference { return t.t.Ch
 func (t *TemplateTranslation) Namespace() string                 { return t.t.Namespace }
 func (t *TemplateTranslation) ExternalID() string                { return t.t.ExternalID }
 func (t *TemplateTranslation) Locale() i18n.Locale               { return t.t.Locale }
+func (t *TemplateTranslation) Approved() bool                    { return t.t.Approved }
 func (t *TemplateTranslation) ExternalLocale() string            { return t.t.ExternalLocale }
 
 func (t *TemplateTranslation) Components() []assets.TemplateComponent { return t.components }
@@ -91,10 +93,10 @@ func loadTemplates(ctx context.Context, db *sql.DB, orgID OrgID) ([]assets.Templ
 const sqlSelectTemplatesByOrg = `
 SELECT ROW_TO_JSON(r) FROM (
      SELECT t.uuid, t.name, (SELECT ARRAY_TO_JSON(ARRAY_AGG(ROW_TO_JSON(tr))) FROM (
-         SELECT tr.namespace, tr.locale, tr.external_locale, tr.external_id, tr.components, JSON_BUILD_OBJECT('uuid', c.uuid, 'name', c.name) as channel
+         SELECT tr.namespace, tr.locale, tr.external_locale, tr.external_id, tr.components, JSON_BUILD_OBJECT('uuid', c.uuid, 'name', c.name) as channel, (CASE WHEN tr.status = 'A' THEN TRUE ELSE FALSE END) AS approved
            FROM templates_templatetranslation tr
            JOIN channels_channel c ON tr.channel_id = c.id
-          WHERE tr.is_active = TRUE AND tr.status = 'A' AND tr.template_id = t.id AND c.is_active = TRUE
+          WHERE tr.is_active = TRUE AND tr.template_id = t.id AND c.is_active = TRUE
          ) tr) as translations
        FROM templates_template t
       WHERE org_id = $1 
