@@ -6,6 +6,12 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
+    container:
+      image: node:20
+    strategy:
+      matrix:
+        searchdb-host: [elastic7, elastic8]
+      fail-fast: false
 
     services:
       redis:
@@ -19,13 +25,17 @@ jobs:
         ports:
           - 5432:5432
         options: --name textit-postgres-1 --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
-      elastic:
-          image: elasticsearch:7.17.9
-          ports:
-            - 9200:9200
-            - 9300:9300
-          env:
-            discovery.type: single-node
+      elastic7:
+        image: elasticsearch:7.17.9
+        env:
+          discovery.type: single-node
+        options: --ulimit memlock=-1:-1 --ulimit nofile=65536:65536
+      elastic8:
+        image: elasticsearch:8.13.4
+        env:
+          discovery.type: single-node
+          xpack.security.enabled: false
+        options: --ulimit memlock=-1:-1 --ulimit nofile=65536:65536
   
     steps:
       - name: Checkout code
@@ -33,21 +43,26 @@ jobs:
 
       - name: Install Linux packages
         run: |
-          sudo apt-get update
-          sudo apt install -y --no-install-recommends postgresql-client
+          apt-get update
+          apt install -y --no-install-recommends postgresql-client
 
       - name: Initialize database
         # we create our test database with a different user so that we can drop everything owned by this user between tests
         run: |
           export PGPASSWORD=temba
-          psql -h localhost -U postgres --no-password -c "CREATE USER mailroom_test PASSWORD 'temba';"
-          psql -h localhost -U postgres --no-password -c "ALTER ROLE mailroom_test WITH SUPERUSER;"
-          psql -h localhost -U postgres --no-password -c "CREATE DATABASE mailroom_test;"
+          psql -h postgres -U postgres --no-password -c "CREATE USER mailroom_test PASSWORD 'temba';"
+          psql -h postgres -U postgres --no-password -c "ALTER ROLE mailroom_test WITH SUPERUSER;"
+          psql -h postgres -U postgres --no-password -c "CREATE DATABASE mailroom_test;"
 
       - name: Install Go
         uses: actions/setup-go@v5
         with:
           go-version: ${{ env.go-version }}
+
+      - name: Setup environment
+        run: |
+          echo "MAILROOM_DB=postgres://mailroom_test:temba@postgres/mailroom_test?sslmode=disable&Timezone=UTC" >> "$GITHUB_ENV"
+          echo "MAILROOM_ELASTIC=http://${{ matrix.searchdb-host }}:9200" >> "$GITHUB_ENV"
 
       - name: Run tests
         run: |

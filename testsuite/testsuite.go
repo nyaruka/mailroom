@@ -20,7 +20,6 @@ import (
 
 var _db *sqlx.DB
 
-const elasticURL = "http://localhost:9200"
 const elasticContactsIndex = "test_contacts"
 const postgresContainerName = "textit-postgres-1"
 
@@ -44,11 +43,12 @@ const (
 // Reset clears out both our database and redis DB
 func Reset(what ResetFlag) {
 	ctx := context.TODO()
+	cfg := getConfig()
 
 	if what&ResetDB > 0 {
-		resetDB()
+		resetDB(cfg)
 	} else if what&ResetData > 0 {
-		resetData()
+		resetData(cfg)
 	}
 	if what&ResetRedis > 0 {
 		resetRedis()
@@ -57,7 +57,7 @@ func Reset(what ResetFlag) {
 		resetStorage()
 	}
 	if what&ResetElastic > 0 {
-		resetElastic(ctx)
+		resetElastic(ctx, cfg)
 	}
 
 	models.FlushCache()
@@ -65,16 +65,14 @@ func Reset(what ResetFlag) {
 
 // Runtime returns the various runtime things a test might need
 func Runtime() (context.Context, *runtime.Runtime) {
-	es, err := elastic.NewSimpleClient(elastic.SetURL(elasticURL), elastic.SetSniff(false), elastic.SetTraceLog(&elasticLog{}))
+	cfg := getConfig()
+
+	es, err := elastic.NewSimpleClient(elastic.SetURL(cfg.Elastic), elastic.SetSniff(false), elastic.SetTraceLog(&elasticLog{}))
 	if err != nil {
 		panic(err)
 	}
 
-	cfg := runtime.NewDefaultConfig()
-	cfg.ElasticContactsIndex = elasticContactsIndex
-	cfg.Port = 8091
-
-	dbx := getDB()
+	dbx := getDB(cfg)
 	rt := &runtime.Runtime{
 		DB:                dbx,
 		ReadonlyDB:        dbx.DB,
@@ -93,10 +91,11 @@ func Runtime() (context.Context, *runtime.Runtime) {
 
 // reindexes data changes to Elastic
 func ReindexElastic(ctx context.Context) {
-	db := getDB()
-	es := getES()
+	cfg := getConfig()
+	db := getDB(cfg)
+	es := getES(cfg)
 
-	contactsIndexer := indexers.NewContactIndexer(elasticURL, elasticContactsIndex, 1, 1, 100)
+	contactsIndexer := indexers.NewContactIndexer(cfg.Elastic, elasticContactsIndex, 1, 1, 100)
 	contactsIndexer.Index(db.DB, false, false)
 
 	es.Refresh(elasticContactsIndex).Do(ctx)
@@ -116,16 +115,25 @@ func TraceElastic(enable bool) {
 	traceElastic = enable
 }
 
+func getConfig() *runtime.Config {
+	cfg := runtime.NewDefaultConfig()
+	cfg.DB = getenv("MAILROOM_DB", "postgres://mailroom_test:temba@localhost/mailroom_test?sslmode=disable&Timezone=UTC")
+	cfg.Elastic = getenv("MAILROOM_ELASTIC", "http://localhost:9200")
+	cfg.ElasticContactsIndex = elasticContactsIndex
+	cfg.Port = 8091
+	return cfg
+}
+
 // returns an open test database pool
-func getDB() *sqlx.DB {
+func getDB(cfg *runtime.Config) *sqlx.DB {
 	if _db == nil {
-		_db = sqlx.MustOpen("postgres", "postgres://mailroom_test:temba@localhost/mailroom_test?sslmode=disable&Timezone=UTC")
+		_db = sqlx.MustOpen("postgres", cfg.DB)
 
 		// check if we have tables and if not load test database dump
 		_, err := _db.Exec("SELECT * from orgs_org")
 		if err != nil {
 			loadTestDump()
-			return getDB()
+			return getDB(cfg)
 		}
 	}
 	return _db
@@ -146,8 +154,8 @@ func getRC() redis.Conn {
 }
 
 // returns an Elastic client
-func getES() *elastic.Client {
-	es, err := elastic.NewSimpleClient(elastic.SetURL(elasticURL), elastic.SetSniff(false))
+func getES(cfg *runtime.Config) *elastic.Client {
+	es, err := elastic.NewSimpleClient(elastic.SetURL(cfg.Elastic), elastic.SetSniff(false))
 	noError(err)
 	return es
 }
@@ -161,8 +169,8 @@ func getES() *elastic.Client {
 // then copying the mailroom_test.dump file to your mailroom root directory
 //
 //	% cp mailroom_test.dump ../mailroom
-func resetDB() {
-	db := getDB()
+func resetDB(cfg *runtime.Config) {
+	db := getDB(cfg)
 	db.MustExec("DROP OWNED BY mailroom_test CASCADE")
 
 	loadTestDump()
@@ -215,8 +223,8 @@ func resetStorage() {
 }
 
 // clears indexed data in Elastic
-func resetElastic(ctx context.Context) {
-	es := getES()
+func resetElastic(ctx context.Context, cfg *runtime.Config) {
+	es := getES(cfg)
 
 	exists, err := es.IndexExists(elasticContactsIndex).Do(ctx)
 	noError(err)
@@ -301,8 +309,8 @@ ALTER SEQUENCE campaigns_campaignevent_id_seq RESTART WITH 30000;`
 
 // removes contact data not in the test database dump. Note that this function can't
 // undo changes made to the contact data in the test database dump.
-func resetData() {
-	db := getDB()
+func resetData(cfg *runtime.Config) {
+	db := getDB(cfg)
 	db.MustExec(sqlResetTestData)
 
 	// because groups have changed
@@ -314,6 +322,14 @@ func must(err error) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func getenv(key, def string) string {
+	val := os.Getenv(key)
+	if val == "" {
+		return def
+	}
+	return val
 }
 
 // if just checking an error is nil noError(err) reads better than must(err)
