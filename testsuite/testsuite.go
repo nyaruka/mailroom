@@ -4,12 +4,14 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"net/http"
 	"os"
 	"os/exec"
 	"path"
 
 	"github.com/gomodule/redigo/redis"
 	"github.com/jmoiron/sqlx"
+	"github.com/nyaruka/gocommon/httpx"
 	"github.com/nyaruka/gocommon/storage"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/runtime"
@@ -94,12 +96,16 @@ func Runtime() (context.Context, *runtime.Runtime) {
 // reindexes data changes to Elastic
 func ReindexElastic(ctx context.Context) {
 	db := getDB()
-	es := getES()
 
 	contactsIndexer := indexers.NewContactIndexer(elasticURL, elasticContactsIndex, 1, 1, 100)
 	contactsIndexer.Index(db.DB, false, false)
 
-	es.Refresh(elasticContactsIndex).Do(ctx)
+	req, _ := http.NewRequest(http.MethodPost, fmt.Sprintf("%s/%s/_refresh", elasticURL, elasticContactsIndex), nil)
+	resp, err := httpx.Do(http.DefaultClient, req, nil, nil)
+	noError(err)
+	if resp.StatusCode != http.StatusOK {
+		panic(fmt.Sprintf("error refreshing index: %d", resp.StatusCode))
+	}
 }
 
 type elasticLog struct{}
