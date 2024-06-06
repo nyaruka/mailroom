@@ -91,8 +91,8 @@ func Runtime() (context.Context, *runtime.Runtime) {
 	return context.Background(), rt
 }
 
-// reindexes data changes to Elastic
-func ReindexElastic(ctx context.Context) {
+// ReindexElastic updates elastic indexing
+func ReindexElastic(ctx context.Context) (int, int) {
 	db := getDB()
 	es := getES()
 
@@ -100,6 +100,9 @@ func ReindexElastic(ctx context.Context) {
 	contactsIndexer.Index(db.DB, false, false)
 
 	es.Refresh(elasticContactsIndex).Do(ctx)
+
+	s := contactsIndexer.Stats()
+	return int(s.Indexed), int(s.Deleted)
 }
 
 type elasticLog struct{}
@@ -214,26 +217,27 @@ func resetStorage() {
 	must(os.RemoveAll(logStorageDir))
 }
 
-// clears indexed data in Elastic
-func resetElastic(ctx context.Context) {
+// reset indexed data in Elastic
+func resetElastic(ctx context.Context) (int, int) {
 	es := getES()
 
 	exists, err := es.IndexExists(elasticContactsIndex).Do(ctx)
 	noError(err)
 
+	numDeleted := 0
+
 	if exists {
-		// get any indexes for the contacts alias
-		ar, err := es.Aliases().Index(elasticContactsIndex).Do(ctx)
+		_, err = es.Refresh(elasticContactsIndex).Do(ctx)
 		noError(err)
 
-		// and delete them
-		for _, index := range ar.IndicesByAlias(elasticContactsIndex) {
-			_, err := es.DeleteIndex(index).Do(ctx)
-			noError(err)
-		}
+		resp, err := es.DeleteByQuery(elasticContactsIndex).Refresh("true").Routing("1", "2").Query(elastic.NewMatchAllQuery()).Do(ctx)
+		noError(err)
+
+		numDeleted = int(resp.Deleted)
 	}
 
-	ReindexElastic(ctx)
+	numIndexed, _ := ReindexElastic(ctx)
+	return numIndexed, numDeleted
 }
 
 var sqlResetTestData = `
