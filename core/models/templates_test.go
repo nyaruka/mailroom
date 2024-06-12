@@ -49,7 +49,7 @@ func TestTemplates(t *testing.T) {
 
 	if assert.Len(t, tt.Components(), 1) {
 		c1 := tt.Components()[0]
-		assert.Equal(t, "body", c1.Type())
+		assert.Equal(t, "body/text", c1.Type())
 		assert.Equal(t, "body", c1.Name())
 		assert.Equal(t, "Hi {{1}}, are you still experiencing problems with {{2}}?", c1.Content())
 		assert.Equal(t, map[string]int{"1": 0, "2": 1}, c1.Variables())

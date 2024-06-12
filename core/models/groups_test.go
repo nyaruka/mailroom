@@ -27,7 +27,7 @@ func TestLoadGroups(t *testing.T) {
 		query         string
 		expectedCount int
 	}{
-		{testdata.ActiveGroup.ID, testdata.ActiveGroup.UUID, "Active", "", 124},
+		{testdata.ActiveGroup.ID, testdata.ActiveGroup.UUID, "Active", "", 134},
 		{testdata.ArchivedGroup.ID, testdata.ArchivedGroup.UUID, "Archived", "", 0},
 		{testdata.BlockedGroup.ID, testdata.BlockedGroup.UUID, "Blocked", "", 0},
 		{testdata.DoctorsGroup.ID, testdata.DoctorsGroup.UUID, "Doctors", "", 121},

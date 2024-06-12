@@ -195,7 +195,7 @@ func TestSearch(t *testing.T) {
 			url:                  "/mr/contact/search",
 			body:                 fmt.Sprintf(`{"org_id": 1, "query": "", "group_id": %d}`, testdata.TestersGroup.ID),
 			expectedStatus:       200,
-			expectedHits:         []models.ContactID{10013, 10012, 10011, 10010, 10009, 10008, 10007, 10006, 10005, 10004},
+			expectedHits:         []models.ContactID{10133, 10132, 10131, 10130, 10129, 10128, 10127, 10126, 10125, 10124},
 			expectedQuery:        ``,
 			expectedAttributes:   []string{},
 			expectedFields:       []*assets.FieldReference{},
