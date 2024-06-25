@@ -562,6 +562,70 @@ func GetMessagesForRetry(ctx context.Context, db *sqlx.DB) ([]*Msg, error) {
 	return loadMessages(ctx, db, sqlSelectMessagesForRetry)
 }
 
+var sqlSelectOldMessagesToFail = `
+SELECT
+	m.id,
+	m.uuid,
+	m.broadcast_id,
+	m.flow_id,
+	m.ticket_id,
+	m.optin_id,
+	m.text,
+	m.attachments,
+	m.quick_replies,
+	m.locale,
+	m.templating,
+	m.created_on,
+	m.direction,
+	m.status,
+	m.visibility,
+	m.msg_count,
+	m.error_count,
+	m.next_attempt,
+	m.failed_reason,
+	m.high_priority,
+	m.external_id,
+	m.metadata,
+	m.channel_id,
+	m.contact_id,
+	m.contact_urn_id,
+	m.org_id
+FROM
+	msgs_msg m
+INNER JOIN
+	channels_channel c ON c.id = m.channel_id
+WHERE
+	m.direction = 'O' AND m.status IN ('I', 'Q', 'E') AND m.created_on < NOW() - INTERVAL '7 days' AND c.is_active = TRUE
+ORDER BY
+	m.created_on ASC`
+
+const sqlFailOldMessages = `
+UPDATE msgs_msg
+  SET status = m.status, failed_reason = m.failed_reason, modified_on = NOW()
+  FROM (VALUES(:id, :status, :failed_reason)) AS m(id, status, failed_reason)
+ WHERE msgs_msg.id = m.id::bigint`
+
+func FailOldMessages(ctx context.Context, db *sqlx.DB) ([]*Msg, error) {
+	msgs, err := loadMessages(ctx, db, sqlSelectOldMessagesToFail)
+	if err != nil {
+		return nil, err
+	}
+
+	is := make([]any, len(msgs))
+	for i, msg := range msgs {
+		m := &msg.m
+		m.Status = MsgStatusFailed
+		m.FailedReason = MsgFailedTooOld
+		is[i] = m
+	}
+	err = BulkQuery(ctx, "failing old messages", db, sqlFailOldMessages, is)
+	if err != nil {
+		return nil, err
+	}
+
+	return msgs, nil
+}
+
 func loadMessages(ctx context.Context, db *sqlx.DB, sql string, params ...any) ([]*Msg, error) {
 	rows, err := db.QueryxContext(ctx, sql, params...)
 	if err != nil {
