@@ -295,6 +295,29 @@ func ClearCourierQueues(rc redis.Conn, ch *models.Channel) error {
 	return err
 }
 
+var queueClearFailedOldMessagesScript = redis.NewScript(3, `
+-- KEYS: [QueueType, QueueName, TPS, EpochSecs]
+local queueType, queueName, tps, epochSecs = KEYS[1], KEYS[2], tonumber(KEYS[3], KEYS[4])
+
+-- first construct the base key for this queue from the type + name + tps, e.g. "msgs:0a77a158-1dcb-4c06-9aee-e15bdf64653e|10"
+local queueKey = queueType .. ":" .. queueName .. "|" .. tps
+
+-- remove the old items (lower scores) from the sorted sets for the key
+redis.call("ZREMRANGEBYSCORE", queueKey .. "/1", 0, epochSecs)
+redis.call("ZREMRANGEBYSCORE", queueKey .. "/0", 0, epochSecs)
+`)
+
+// ClearFailedOldMessages removes old messages from courier queues (priority and bulk) for the given channel
+func ClearFailedOldMessagesCourierQueues(rc redis.Conn, ch *models.Channel) error {
+	// get the time in seconds since the epoch as a floating point number
+	// e.g. 2021-11-10T15:10:49.123456+00:00 => "1636557205.123456"
+	week_ago := dates.Now().AddDate(0, 0, -7)
+	epochSeconds := strconv.FormatFloat(float64(week_ago.UnixNano()/int64(time.Microsecond))/float64(1000000), 'f', 6, 64)
+
+	_, err := queueClearFailedOldMessagesScript.Do(rc, "msgs", ch.UUID(), ch.TPS(), epochSeconds)
+	return err
+}
+
 // see https://github.com/nyaruka/courier/blob/main/attachments.go#L23
 type fetchAttachmentRequest struct {
 	ChannelType models.ChannelType `json:"channel_type"`
