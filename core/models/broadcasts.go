@@ -32,34 +32,38 @@ const (
 
 // Broadcast represents a broadcast that needs to be sent
 type Broadcast struct {
-	ID            BroadcastID                 `json:"broadcast_id,omitempty"`
-	OrgID         OrgID                       `json:"org_id"`
-	Translations  flows.BroadcastTranslations `json:"translations"`
-	TemplateState TemplateState               `json:"template_state"`
-	BaseLanguage  i18n.Language               `json:"base_language"`
-	OptInID       OptInID                     `json:"optin_id"`
-	GroupIDs      []GroupID                   `json:"group_ids,omitempty"`
-	ContactIDs    []ContactID                 `json:"contact_ids,omitempty"`
-	URNs          []urns.URN                  `json:"urns,omitempty"`
-	Query         string                      `json:"query,omitempty"`
-	Exclusions    Exclusions                  `json:"exclusions,omitempty"`
-	CreatedByID   UserID                      `json:"created_by_id,omitempty"`
-	ScheduleID    ScheduleID                  `json:"schedule_id,omitempty"`
-	ParentID      BroadcastID                 `json:"parent_id,omitempty"`
+	ID                BroadcastID                 `json:"broadcast_id,omitempty"`
+	OrgID             OrgID                       `json:"org_id"`
+	Translations      flows.BroadcastTranslations `json:"translations"`
+	TemplateState     TemplateState               `json:"template_state"`
+	BaseLanguage      i18n.Language               `json:"base_language"`
+	OptInID           OptInID                     `json:"optin_id,omitempty"`
+	TemplateID        TemplateID                  `json:"template_id,omitempty"`
+	TemplateVariables []string                    `json:"template_variables,omitempty"`
+	GroupIDs          []GroupID                   `json:"group_ids,omitempty"`
+	ContactIDs        []ContactID                 `json:"contact_ids,omitempty"`
+	URNs              []urns.URN                  `json:"urns,omitempty"`
+	Query             string                      `json:"query,omitempty"`
+	Exclusions        Exclusions                  `json:"exclusions,omitempty"`
+	CreatedByID       UserID                      `json:"created_by_id,omitempty"`
+	ScheduleID        ScheduleID                  `json:"schedule_id,omitempty"`
+	ParentID          BroadcastID                 `json:"parent_id,omitempty"`
 }
 
 type dbBroadcast struct {
-	ID           BroadcastID                        `db:"id"`
-	OrgID        OrgID                              `db:"org_id"`
-	Translations JSONB[flows.BroadcastTranslations] `db:"translations"`
-	BaseLanguage i18n.Language                      `db:"base_language"`
-	OptInID      OptInID                            `db:"optin_id"`
-	URNs         pq.StringArray                     `db:"urns"`
-	Query        null.String                        `db:"query"`
-	Exclusions   Exclusions                         `db:"exclusions"`
-	CreatedByID  UserID                             `db:"created_by_id"`
-	ScheduleID   ScheduleID                         `db:"schedule_id"`
-	ParentID     BroadcastID                        `db:"parent_id"`
+	ID                BroadcastID                        `db:"id"`
+	OrgID             OrgID                              `db:"org_id"`
+	Translations      JSONB[flows.BroadcastTranslations] `db:"translations"`
+	BaseLanguage      i18n.Language                      `db:"base_language"`
+	OptInID           OptInID                            `db:"optin_id"`
+	TemplateID        TemplateID                         `db:"template_id"`
+	TemplateVariables pq.StringArray                     `db:"template_variables"`
+	URNs              pq.StringArray                     `db:"urns"`
+	Query             null.String                        `db:"query"`
+	Exclusions        Exclusions                         `db:"exclusions"`
+	CreatedByID       UserID                             `db:"created_by_id"`
+	ScheduleID        ScheduleID                         `db:"schedule_id"`
+	ParentID          BroadcastID                        `db:"parent_id"`
 }
 
 var ErrNoRecipients = errors.New("can't create broadcast with no recipients")
@@ -137,22 +141,20 @@ func MarkBroadcastFailed(ctx context.Context, db DBorTx, id BroadcastID) error {
 
 // InsertBroadcast inserts the given broadcast into the DB
 func InsertBroadcast(ctx context.Context, db DBorTx, bcast *Broadcast) error {
-	ua := make(pq.StringArray, len(bcast.URNs))
-	for i := range bcast.URNs {
-		ua[i] = string(bcast.URNs[i])
-	}
 	dbb := &dbBroadcast{
-		ID:           bcast.ID,
-		OrgID:        bcast.OrgID,
-		Translations: JSONB[flows.BroadcastTranslations]{bcast.Translations},
-		BaseLanguage: bcast.BaseLanguage,
-		OptInID:      bcast.OptInID,
-		URNs:         ua,
-		Query:        null.String(bcast.Query),
-		Exclusions:   bcast.Exclusions,
-		CreatedByID:  bcast.CreatedByID,
-		ScheduleID:   bcast.ScheduleID,
-		ParentID:     bcast.ParentID,
+		ID:                bcast.ID,
+		OrgID:             bcast.OrgID,
+		Translations:      JSONB[flows.BroadcastTranslations]{bcast.Translations},
+		BaseLanguage:      bcast.BaseLanguage,
+		OptInID:           bcast.OptInID,
+		TemplateID:        bcast.TemplateID,
+		TemplateVariables: StringArray(bcast.TemplateVariables),
+		URNs:              StringArray(bcast.URNs),
+		Query:             null.String(bcast.Query),
+		Exclusions:        bcast.Exclusions,
+		CreatedByID:       bcast.CreatedByID,
+		ScheduleID:        bcast.ScheduleID,
+		ParentID:          bcast.ParentID,
 	}
 
 	err := BulkQuery(ctx, "inserting broadcast", db, sqlInsertBroadcast, []*dbBroadcast{dbb})
@@ -191,20 +193,22 @@ func InsertBroadcast(ctx context.Context, db DBorTx, bcast *Broadcast) error {
 
 // InsertChildBroadcast clones the passed in broadcast as a parent, then inserts that broadcast into the DB
 func InsertChildBroadcast(ctx context.Context, db DBorTx, parent *Broadcast) (*Broadcast, error) {
-	child := NewBroadcast(
-		parent.OrgID,
-		parent.Translations,
-		parent.TemplateState,
-		parent.BaseLanguage,
-		parent.OptInID,
-		parent.GroupIDs,
-		parent.ContactIDs,
-		parent.URNs,
-		parent.Query,
-		parent.Exclusions,
-		parent.CreatedByID,
-	)
-	child.ParentID = parent.ID
+	child := &Broadcast{
+		OrgID:             parent.OrgID,
+		Translations:      parent.Translations,
+		TemplateState:     parent.TemplateState,
+		BaseLanguage:      parent.BaseLanguage,
+		OptInID:           parent.OptInID,
+		TemplateID:        parent.TemplateID,
+		TemplateVariables: parent.TemplateVariables,
+		GroupIDs:          parent.GroupIDs,
+		ContactIDs:        parent.ContactIDs,
+		URNs:              parent.URNs,
+		Query:             parent.Query,
+		Exclusions:        parent.Exclusions,
+		CreatedByID:       parent.CreatedByID,
+		ParentID:          parent.ID,
+	}
 
 	return child, InsertBroadcast(ctx, db, child)
 }
@@ -221,8 +225,8 @@ type broadcastGroup struct {
 
 const sqlInsertBroadcast = `
 INSERT INTO
-	msgs_broadcast( org_id,  parent_id, created_on, modified_on, status,  translations,  base_language,  urns,  query,  exclusions,  optin_id,  schedule_id, is_active)
-			VALUES(:org_id, :parent_id, NOW()     , NOW(),       'Q',    :translations, :base_language, :urns, :query, :exclusions, :optin_id, :schedule_id,      TRUE)
+	msgs_broadcast( org_id,  parent_id, created_on, modified_on, status,  translations,  base_language,  template_id,  template_variables,  urns,  query,  exclusions,  optin_id,  schedule_id, is_active)
+			VALUES(:org_id, :parent_id, NOW()     , NOW(),       'Q',    :translations, :base_language, :template_id, :template_variables, :urns, :query, :exclusions, :optin_id, :schedule_id,      TRUE)
 RETURNING id`
 
 const sqlInsertBroadcastContacts = `INSERT INTO msgs_broadcast_contacts(broadcast_id, contact_id) VALUES(:broadcast_id, :contact_id)`
@@ -230,15 +234,17 @@ const sqlInsertBroadcastGroups = `INSERT INTO msgs_broadcast_groups(broadcast_id
 
 // BroadcastBatch represents a batch of contacts that need messages sent for
 type BroadcastBatch struct {
-	BroadcastID   BroadcastID                 `json:"broadcast_id,omitempty"`
-	OrgID         OrgID                       `json:"org_id"`
-	Translations  flows.BroadcastTranslations `json:"translations"`
-	BaseLanguage  i18n.Language               `json:"base_language"`
-	TemplateState TemplateState               `json:"template_state"`
-	OptInID       OptInID                     `json:"optin_id"`
-	ContactIDs    []ContactID                 `json:"contact_ids,omitempty"`
-	CreatedByID   UserID                      `json:"created_by_id"`
-	IsLast        bool                        `json:"is_last"`
+	BroadcastID       BroadcastID                 `json:"broadcast_id,omitempty"`
+	OrgID             OrgID                       `json:"org_id"`
+	Translations      flows.BroadcastTranslations `json:"translations"`
+	BaseLanguage      i18n.Language               `json:"base_language"`
+	TemplateState     TemplateState               `json:"template_state"`
+	OptInID           OptInID                     `json:"optin_id,omitempty"`
+	TemplateID        TemplateID                  `json:"template_id,omitempty"`
+	TemplateVariables []string                    `json:"template_variables,omitempty"`
+	ContactIDs        []ContactID                 `json:"contact_ids"`
+	CreatedByID       UserID                      `json:"created_by_id"`
+	IsLast            bool                        `json:"is_last"`
 }
 
 func (b *BroadcastBatch) CreateMessages(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets) ([]*Msg, error) {

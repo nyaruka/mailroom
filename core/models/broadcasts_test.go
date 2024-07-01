@@ -24,8 +24,8 @@ func TestInsertBroadcast(t *testing.T) {
 	defer testsuite.Reset(testsuite.ResetData)
 
 	optIn := testdata.InsertOptIn(rt, testdata.Org1, "Polls")
+	template := testdata.InsertTemplate(rt, testdata.Org1, "greeting")
 
-	// create a broadcast which doesn't actually exist in the DB
 	bcast := models.NewBroadcast(
 		testdata.Org1.ID,
 		flows.BroadcastTranslations{"eng": {Text: "Hi there"}},
@@ -35,16 +35,22 @@ func TestInsertBroadcast(t *testing.T) {
 		[]models.GroupID{testdata.DoctorsGroup.ID},
 		[]models.ContactID{testdata.Alexandria.ID, testdata.Bob.ID, testdata.Cathy.ID},
 		[]urns.URN{"tel:+593979012345"},
-		"",
+		"age > 33",
 		models.NoExclusions,
 		models.NilUserID,
 	)
+	bcast.TemplateID = template.ID
+	bcast.TemplateVariables = []string{"@contact.name"}
 
 	err := models.InsertBroadcast(ctx, rt.DB, bcast)
 	assert.NoError(t, err)
 	assert.NotEqual(t, models.NilBroadcastID, bcast.ID)
 
-	assertdb.Query(t, rt.DB, `SELECT base_language, translations->'eng'->>'text' AS text FROM msgs_broadcast WHERE id = $1`, bcast.ID).Columns(map[string]any{"base_language": "eng", "text": "Hi there"})
+	assertdb.Query(t, rt.DB, `SELECT base_language, translations->'eng'->>'text' AS text, template_variables[1] as var1, query FROM msgs_broadcast WHERE id = $1`, bcast.ID).Columns(map[string]any{
+		"base_language": "eng", "text": "Hi there", "query": "age > 33", "var1": "@contact.name",
+	})
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_broadcast_groups WHERE broadcast_id = $1`, bcast.ID).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_broadcast_contacts WHERE broadcast_id = $1`, bcast.ID).Returns(3)
 }
 
 func TestInsertChildBroadcast(t *testing.T) {
@@ -58,7 +64,7 @@ func TestInsertChildBroadcast(t *testing.T) {
 
 	var bj json.RawMessage
 	err := rt.DB.GetContext(ctx, &bj, `SELECT ROW_TO_JSON(r) FROM (
-		SELECT id, org_id, translations, base_language, optin_id, query, created_by_id, parent_id FROM msgs_broadcast WHERE id = $1
+		SELECT id, org_id, translations, base_language, optin_id, template_id, template_variables, query, created_by_id, parent_id FROM msgs_broadcast WHERE id = $1
 	) r`, bcastID)
 	require.NoError(t, err)
 
@@ -71,6 +77,8 @@ func TestInsertChildBroadcast(t *testing.T) {
 	assert.Equal(t, parent.OrgID, child.OrgID)
 	assert.Equal(t, parent.BaseLanguage, child.BaseLanguage)
 	assert.Equal(t, parent.OptInID, child.OptInID)
+	assert.Equal(t, parent.TemplateID, child.TemplateID)
+	assert.Equal(t, parent.TemplateVariables, child.TemplateVariables)
 }
 
 func TestNonPersistentBroadcasts(t *testing.T) {

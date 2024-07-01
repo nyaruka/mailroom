@@ -44,6 +44,11 @@ type OptIn struct {
 	UUID assets.OptInUUID
 }
 
+type Template struct {
+	ID   models.TemplateID
+	UUID assets.TemplateUUID
+}
+
 // InsertIncomingMsg inserts an incoming text message
 func InsertIncomingMsg(rt *runtime.Runtime, org *Org, channel *Channel, contact *Contact, text string, status models.MsgStatus) *MsgIn {
 	msgUUID := flows.MsgUUID(uuids.New())
@@ -131,4 +136,15 @@ func InsertOptIn(rt *runtime.Runtime, org *Org, name string) *OptIn {
 		VALUES($1, $2, $3, NOW(), NOW(), 1, 1, TRUE, FALSE) RETURNING id`, uuid, org.ID, name,
 	))
 	return &OptIn{ID: id, UUID: uuid}
+}
+
+// InsertTemplate inserts a template
+func InsertTemplate(rt *runtime.Runtime, org *Org, name string) *Template {
+	uuid := assets.TemplateUUID(uuids.New())
+	var id models.TemplateID
+	must(rt.DB.Get(&id,
+		`INSERT INTO templates_template(uuid, org_id, name, created_on, modified_on) 
+		VALUES($1, $2, $3, NOW(), NOW()) RETURNING id`, uuid, org.ID, name,
+	))
+	return &Template{ID: id, UUID: uuid}
 }

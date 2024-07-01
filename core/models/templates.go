@@ -3,30 +3,37 @@ package models
 import (
 	"context"
 	"database/sql"
+	"database/sql/driver"
 	"encoding/json"
 	"fmt"
 
 	"github.com/nyaruka/gocommon/i18n"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/assets/static"
+	"github.com/nyaruka/null/v3"
 )
 
+// TemplateID is our type for the database id of a template
+type TemplateID null.Int
+
+const NilTemplateID = TemplateID(0)
+
 type Template struct {
-	t struct {
-		Name         string                 `json:"name"          validate:"required"`
-		UUID         assets.TemplateUUID    `json:"uuid"          validate:"required"`
-		Translations []*TemplateTranslation `json:"translations"  validate:"dive"`
-	}
+	ID_           TemplateID             `json:"id"`
+	UUID_         assets.TemplateUUID    `json:"uuid"`
+	Name_         string                 `json:"name"`
+	Translations_ []*TemplateTranslation `json:"translations"`
 
 	translations []assets.TemplateTranslation
 }
 
-func (t *Template) UUID() assets.TemplateUUID                  { return t.t.UUID }
-func (t *Template) Name() string                               { return t.t.Name }
+func (t *Template) ID() TemplateID                             { return t.ID_ }
+func (t *Template) UUID() assets.TemplateUUID                  { return t.UUID_ }
+func (t *Template) Name() string                               { return t.Name_ }
 func (t *Template) Translations() []assets.TemplateTranslation { return t.translations }
 
 func (t *Template) FindTranslation(l i18n.Locale) *TemplateTranslation {
-	for _, tt := range t.t.Translations {
+	for _, tt := range t.Translations_ {
 		if tt.Locale() == l {
 			return tt
 		}
@@ -35,13 +42,15 @@ func (t *Template) FindTranslation(l i18n.Locale) *TemplateTranslation {
 }
 
 func (t *Template) UnmarshalJSON(d []byte) error {
-	if err := json.Unmarshal(d, &t.t); err != nil {
+	type T Template // need to alias type to avoid circular calls to this method
+
+	if err := json.Unmarshal(d, (*T)(t)); err != nil {
 		return err
 	}
 
-	t.translations = make([]assets.TemplateTranslation, len(t.t.Translations))
-	for i := range t.t.Translations {
-		t.translations[i] = t.t.Translations[i]
+	t.translations = make([]assets.TemplateTranslation, len(t.Translations_))
+	for i := range t.Translations_ {
+		t.translations[i] = t.Translations_[i]
 	}
 	return nil
 }
@@ -98,7 +107,7 @@ func loadTemplates(ctx context.Context, db *sql.DB, orgID OrgID) ([]assets.Templ
 
 const sqlSelectTemplatesByOrg = `
 SELECT ROW_TO_JSON(r) FROM (
-     SELECT t.uuid, t.name, (SELECT ARRAY_TO_JSON(ARRAY_AGG(ROW_TO_JSON(tr))) FROM (
+     SELECT t.id, t.uuid, t.name, (SELECT ARRAY_TO_JSON(ARRAY_AGG(ROW_TO_JSON(tr))) FROM (
          SELECT tr.namespace, tr.locale, tr.external_locale, tr.external_id, tr.components, tr.variables, JSON_BUILD_OBJECT('uuid', c.uuid, 'name', c.name) as channel
            FROM templates_templatetranslation tr
            JOIN channels_channel c ON tr.channel_id = c.id
@@ -108,3 +117,8 @@ SELECT ROW_TO_JSON(r) FROM (
       WHERE org_id = $1 
    ORDER BY name ASC
 ) r;`
+
+func (i *TemplateID) Scan(value any) error         { return null.ScanInt(value, i) }
+func (i TemplateID) Value() (driver.Value, error)  { return null.IntValue(i) }
+func (i *TemplateID) UnmarshalJSON(b []byte) error { return null.UnmarshalInt(b, i) }
+func (i TemplateID) MarshalJSON() ([]byte, error)  { return null.MarshalInt(i) }

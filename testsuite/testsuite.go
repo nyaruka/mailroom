@@ -257,6 +257,8 @@ DELETE FROM msgs_broadcast_contacts;
 DELETE FROM msgs_broadcastmsgcount;
 DELETE FROM msgs_broadcast;
 DELETE FROM msgs_optin;
+DELETE FROM templates_templatetranslation WHERE id >= 30000;
+DELETE FROM templates_template WHERE id >= 30000;
 DELETE FROM schedules_schedule;
 DELETE FROM campaigns_campaignevent WHERE id >= 30000;
 DELETE FROM campaigns_campaign WHERE id >= 30000;
