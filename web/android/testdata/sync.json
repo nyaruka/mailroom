@@ -1,0 +1,37 @@
+[
+    {
+        "label": "illegal method",
+        "method": "GET",
+        "path": "/mr/android/sync",
+        "status": 405,
+        "response": {
+            "error": "illegal method: GET"
+        }
+    },
+    {
+        "label": "invalid channel_id",
+        "method": "POST",
+        "path": "/mr/android/sync",
+        "body": {
+            "channel_id": 5000
+        },
+        "status": 500,
+        "response": {
+            "error": "error resolving channel: error fetching channel by id 5000: error scanning row JSON: sql: no rows in result set"
+        }
+    },
+    {
+        "label": "valid channel sync",
+        "method": "POST",
+        "path": "/mr/android/sync",
+        "body": {
+            "channel_id": $channel_id$
+        },
+        "status": 200,
+        "response": {
+            "id": $channel_id$
+        }
+    }
+
+
+]
