@@ -27,11 +27,6 @@ func handleSync(ctx context.Context, rt *runtime.Runtime, r *syncRequest) (any, 
 	}
 
 	fc := msgio.CreateFCMClient(ctx, rt.Config)
-
-	if fc == nil {
-		return nil, 0, fmt.Errorf("error missing FCM configuration")
-	}
-
 	err = msgio.SyncAndroidChannel(ctx, fc, channel)
 	if err != nil {
 		return nil, 0, fmt.Errorf("error syncing android channel: %w", err)

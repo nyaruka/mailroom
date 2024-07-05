@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"reflect"
 	"time"
 
 	"firebase.google.com/go/v4/messaging"
@@ -20,7 +21,7 @@ type FCMClient interface {
 
 // SyncAndroidChannel tries to trigger sync of the given Android channel via FCM
 func SyncAndroidChannel(ctx context.Context, fc FCMClient, channel *models.Channel) error {
-	if fc == nil {
+	if fc == nil || reflect.ValueOf(fc).IsNil() {
 		return errors.New("instance has no FCM configuration")
 	}
 

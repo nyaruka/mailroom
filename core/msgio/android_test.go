@@ -3,6 +3,7 @@ package msgio_test
 import (
 	"testing"
 
+	fcm "github.com/appleboy/go-fcm"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/msgio"
 	"github.com/nyaruka/mailroom/testsuite"
@@ -19,6 +20,8 @@ func TestSyncAndroidChannel(t *testing.T) {
 	mockFCM := testsuite.NewMockFCMService("FCMID3")
 	fc := mockFCM.GetClient(ctx)
 
+	fcmNilClient, _ := fcm.NewClient(ctx, fcm.WithCredentialsFile(""))
+
 	// create some Android channels
 	testChannel1 := testdata.InsertChannel(rt, testdata.Org1, "A", "Android 1", "123", []string{"tel"}, "SR", map[string]any{"FCM_ID": ""})       // no FCM ID
 	testChannel2 := testdata.InsertChannel(rt, testdata.Org1, "A", "Android 2", "234", []string{"tel"}, "SR", map[string]any{"FCM_ID": "FCMID2"}) // invalid FCM ID
@@ -32,6 +35,8 @@ func TestSyncAndroidChannel(t *testing.T) {
 	channel3 := oa.ChannelByID(testChannel3.ID)
 
 	err = msgio.SyncAndroidChannel(ctx, nil, channel1)
+	assert.EqualError(t, err, "instance has no FCM configuration")
+	err = msgio.SyncAndroidChannel(ctx, fcmNilClient, channel1)
 	assert.EqualError(t, err, "instance has no FCM configuration")
 	err = msgio.SyncAndroidChannel(ctx, fc, channel1)
 	assert.NoError(t, err)
