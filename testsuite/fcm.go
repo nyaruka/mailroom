@@ -32,23 +32,16 @@ type MockFCMClient struct {
 	FCMService *MockFCMService
 }
 
-func (fc *MockFCMClient) Send(ctx context.Context, messages ...*messaging.Message) (*messaging.BatchResponse, error) {
-	successCount := 0
-	failureCount := 0
-	sendResponses := make([]*messaging.SendResponse, len(messages))
+func (fc *MockFCMClient) Send(ctx context.Context, message *messaging.Message) (string, error) {
+	var result string
 	var err error
-
-	for _, message := range messages {
-		fc.FCMService.Messages = append(fc.FCMService.Messages, message)
-
-		if utils.StringSliceContains(fc.FCMService.tokens, message.Token, false) {
-			successCount += 1
-			sendResponses = append(sendResponses, &messaging.SendResponse{Success: true})
-		} else {
-			failureCount += 1
-			err = errors.New("401 error: 401 Unauthorized")
-			sendResponses = append(sendResponses, &messaging.SendResponse{Error: err})
-		}
+	fc.FCMService.Messages = append(fc.FCMService.Messages, message)
+	if utils.StringSliceContains(fc.FCMService.tokens, message.Token, false) {
+		result = "success"
+	} else {
+		result = "error"
+		err = errors.New("401 error: 401 Unauthorized")
 	}
-	return &messaging.BatchResponse{SuccessCount: successCount, FailureCount: failureCount, Responses: sendResponses}, err
+
+	return result, err
 }
