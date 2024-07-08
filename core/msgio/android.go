@@ -5,23 +5,23 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"reflect"
 	"time"
 
+	firebase "firebase.google.com/go/v4"
 	"firebase.google.com/go/v4/messaging"
-	fcm "github.com/appleboy/go-fcm"
+	"google.golang.org/api/option"
 
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/runtime"
 )
 
 type FCMClient interface {
-	Send(ctx context.Context, message ...*messaging.Message) (*messaging.BatchResponse, error)
+	Send(ctx context.Context, message *messaging.Message) (string, error)
 }
 
 // SyncAndroidChannel tries to trigger sync of the given Android channel via FCM
-func SyncAndroidChannel(ctx context.Context, fc FCMClient, channel *models.Channel) error {
-	if fc == nil || reflect.ValueOf(fc).IsNil() {
+func SyncAndroidChannel(ctx context.Context, fc FCMClient, channel *models.Channel, registrationID string) error {
+	if fc == nil {
 		return errors.New("instance has no FCM configuration")
 	}
 
@@ -29,6 +29,9 @@ func SyncAndroidChannel(ctx context.Context, fc FCMClient, channel *models.Chann
 
 	// no FCM ID for this channel, noop, we can't trigger a sync
 	fcmID := channel.ConfigValue(models.ChannelConfigFCMID, "")
+	if registrationID != "" {
+		fcmID = registrationID
+	}
 	if fcmID == "" {
 		return nil
 	}
@@ -45,6 +48,7 @@ func SyncAndroidChannel(ctx context.Context, fc FCMClient, channel *models.Chann
 	start := time.Now()
 
 	if _, err := fc.Send(ctx, sync); err != nil {
+
 		return fmt.Errorf("error syncing channel: %w", err)
 	}
 
@@ -53,11 +57,13 @@ func SyncAndroidChannel(ctx context.Context, fc FCMClient, channel *models.Chann
 }
 
 // CreateFCMClient creates an FCM client based on the configured FCM API key
-func CreateFCMClient(ctx context.Context, cfg *runtime.Config) *fcm.Client {
+func CreateFCMClient(ctx context.Context, cfg *runtime.Config) *messaging.Client {
 	if cfg.AndroidFCMServiceAccountFile == "" {
 		return nil
 	}
-	client, err := fcm.NewClient(ctx, fcm.WithCredentialsFile(cfg.AndroidFCMServiceAccountFile))
+	app, _ := firebase.NewApp(ctx, nil, option.WithCredentialsFile(cfg.AndroidFCMServiceAccountFile))
+
+	client, err := app.Messaging(ctx)
 	if err != nil {
 		panic(fmt.Errorf("unable to create FCM client: %w", err))
 	}

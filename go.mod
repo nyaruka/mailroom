@@ -5,7 +5,6 @@ go 1.22
 require (
 	firebase.google.com/go/v4 v4.14.1
 	github.com/Masterminds/semver v1.5.0
-	github.com/appleboy/go-fcm v1.2.1
 	github.com/aws/aws-sdk-go v1.54.14
 	github.com/buger/jsonparser v1.1.1
 	github.com/elastic/go-elasticsearch/v8 v8.14.0
@@ -32,6 +31,7 @@ require (
 	github.com/shopspring/decimal v1.4.0
 	github.com/stretchr/testify v1.9.0
 	golang.org/x/exp v0.0.0-20240613232115-7f521ea00fb8
+	google.golang.org/api v0.187.0
 )
 
 require (
@@ -88,7 +88,6 @@ require (
 	golang.org/x/sys v0.21.0 // indirect
 	golang.org/x/text v0.16.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
-	google.golang.org/api v0.187.0 // indirect
 	google.golang.org/appengine/v2 v2.0.6 // indirect
 	google.golang.org/genproto v0.0.0-20240701130421-f6361c86f094 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20240701130421-f6361c86f094 // indirect

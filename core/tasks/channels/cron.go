@@ -44,7 +44,7 @@ func (s *SyncAndroidChannelsCron) Run(ctx context.Context, rt *runtime.Runtime) 
 	syncedCount := 0
 
 	for _, channel := range oldSeenAndroidChannels {
-		err := msgio.SyncAndroidChannel(ctx, s.FCMClient, &channel)
+		err := msgio.SyncAndroidChannel(ctx, s.FCMClient, &channel, "")
 		if err != nil {
 			slog.Error("error syncing messages", "error", err, "channel_uuid", channel.UUID())
 			erroredCount += 1

@@ -40,7 +40,8 @@ func TestSync(t *testing.T) {
 
 	defer testsuite.Reset(testsuite.ResetData)
 
-	androidChannel1 := testdata.InsertChannel(rt, testdata.Org1, "A", "Android 1", "123", []string{"tel"}, "SR", map[string]any{"FCM_ID": "FCMID1"})
+	androidChannel1 := testdata.InsertChannel(rt, testdata.Org1, "A", "Android 1", "123", []string{"tel"}, "SR", map[string]any{})
+	androidChannel2 := testdata.InsertChannel(rt, testdata.Org1, "A", "Android 1", "456", []string{"tel"}, "SR", map[string]any{"FCM_ID": "FCMID1"})
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/sync.json", map[string]string{"channel_id": fmt.Sprintf("%d", androidChannel1.ID)})
+	testsuite.RunWebTests(t, ctx, rt, "testdata/sync.json", map[string]string{"channel_id_1": fmt.Sprintf("%d", androidChannel1.ID), "channel_id_2": fmt.Sprintf("%d", androidChannel2.ID)})
 }

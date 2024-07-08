@@ -25,13 +25,23 @@
         "method": "POST",
         "path": "/mr/android/sync",
         "body": {
-            "channel_id": $channel_id$
+            "channel_id": $channel_id_1$
+        },
+        "status": 500,
+        "response": {
+            "error": "missing android channel registration id"
+        }
+    },
+    {
+        "label": "valid channel sync",
+        "method": "POST",
+        "path": "/mr/android/sync",
+        "body": {
+            "channel_id": $channel_id_2$
         },
         "status": 200,
         "response": {
-            "id": $channel_id$
+            "id": $channel_id_2$
         }
     }
-
-
 ]

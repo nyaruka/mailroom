@@ -137,7 +137,7 @@ func tryToQueueForOrg(ctx context.Context, rt *runtime.Runtime, fc FCMClient, oa
 		}
 
 		for channel, msgs := range androidMsgs {
-			err := SyncAndroidChannel(ctx, fc, channel)
+			err := SyncAndroidChannel(ctx, fc, channel, "")
 			if err != nil {
 				slog.Error("error syncing messages", "error", err, "channel_uuid", channel.UUID())
 			}
