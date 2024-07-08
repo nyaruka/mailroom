@@ -1,6 +1,7 @@
 package runtime
 
 import (
+	"context"
 	"database/sql"
 
 	"firebase.google.com/go/v4/auth"
@@ -10,6 +11,14 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/nyaruka/gocommon/storage"
 )
+
+type FirebaseCloudMessagingClient interface {
+	Send(ctx context.Context, message *messaging.Message) (string, error)
+}
+
+type FirebaseAuthClient interface {
+	VerifyIDToken(ctx context.Context, idToken string) (*auth.Token, error)
+}
 
 // Runtime represents the set of services required to run many Mailroom functions. Used as a wrapper for
 // those services to simplify call signatures but not create a direct dependency to Mailroom or Server
@@ -23,6 +32,6 @@ type Runtime struct {
 	LogStorage        storage.Storage
 	Config            *Config
 
-	FirebaseCloudMessagingClient *messaging.Client
-	FirebaseAuthClient           *auth.Client
+	FirebaseCloudMessagingClient FirebaseCloudMessagingClient
+	FirebaseAuthClient           FirebaseAuthClient
 }

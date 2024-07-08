@@ -17,8 +17,10 @@ func TestSyncAndroidChannelsCron(t *testing.T) {
 
 	defer testsuite.Reset(testsuite.ResetData)
 
-	mockFCM := testsuite.NewMockFCMService("FCMID3", "FCMID4", "FCMID5")
-	fc := mockFCM.GetClient(ctx)
+	mockFCM := testsuite.NewMockFirebaseService("FCMID3", "FCMID4", "FCMID5")
+	fcmClient := mockFCM.GetFirebaseCloudMessagingClient(ctx)
+
+	rt.FirebaseCloudMessagingClient = fcmClient
 
 	testChannel1 := testdata.InsertChannel(rt, testdata.Org1, "A", "Android 1", "123", []string{"tel"}, "SR", map[string]any{"FCM_ID": ""})       // no FCM ID
 	testChannel2 := testdata.InsertChannel(rt, testdata.Org1, "A", "Android 2", "234", []string{"tel"}, "SR", map[string]any{"FCM_ID": "FCMID2"}) // invalid FCM ID
@@ -34,7 +36,7 @@ func TestSyncAndroidChannelsCron(t *testing.T) {
 
 	time.Sleep(5 * time.Millisecond)
 
-	cron := &channels.SyncAndroidChannelsCron{FCMClient: fc}
+	cron := &channels.SyncAndroidChannelsCron{}
 	res, err := cron.Run(ctx, rt)
 	assert.NoError(t, err)
 	assert.Equal(t, map[string]any{"synced": 2, "errored": 1}, res)

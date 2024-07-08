@@ -49,8 +49,9 @@ func TestQueueMessages(t *testing.T) {
 
 	defer testsuite.Reset(testsuite.ResetData)
 
-	mockFCM := testsuite.NewMockFCMService("FCMID3")
-	fc := mockFCM.GetClient(ctx)
+	mockFirebase := testsuite.NewMockFirebaseService("FCMID3")
+	fcmClient := mockFirebase.GetFirebaseCloudMessagingClient(ctx)
+	rt.FirebaseCloudMessagingClient = fcmClient
 
 	// create some Andoid channels
 	androidChannel1 := testdata.InsertChannel(rt, testdata.Org1, "A", "Android 1", "123", []string{"tel"}, "SR", map[string]any{"FCM_ID": "FCMID1"})
@@ -156,16 +157,16 @@ func TestQueueMessages(t *testing.T) {
 		}
 
 		rc.Do("FLUSHDB")
-		mockFCM.Messages = nil
+		mockFirebase.Messages = nil
 
-		msgio.QueueMessages(ctx, rt, rt.DB, fc, msgs)
+		msgio.QueueMessages(ctx, rt, rt.DB, msgs)
 
 		testsuite.AssertCourierQueues(t, tc.QueueSizes, "courier queue sizes mismatch in '%s'", tc.Description)
 
 		// check the FCM tokens that were synced
-		actualTokens := make([]string, len(mockFCM.Messages))
-		for i := range mockFCM.Messages {
-			actualTokens[i] = mockFCM.Messages[i].Token
+		actualTokens := make([]string, len(mockFirebase.Messages))
+		for i := range mockFirebase.Messages {
+			actualTokens[i] = mockFirebase.Messages[i].Token
 		}
 
 		assert.ElementsMatch(t, tc.FCMTokensSynced, actualTokens, "FCM tokens mismatch in '%s'", tc.Description)

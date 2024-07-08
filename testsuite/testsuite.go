@@ -8,8 +8,6 @@ import (
 	"os/exec"
 	"path"
 
-	"firebase.google.com/go/v4/auth"
-	"firebase.google.com/go/v4/messaging"
 	"github.com/elastic/go-elasticsearch/v8"
 	"github.com/gomodule/redigo/redis"
 	"github.com/jmoiron/sqlx"
@@ -140,16 +138,16 @@ func getES() *elasticsearch.TypedClient {
 	return es
 }
 
-func getFirebaseAuthClient(ctx context.Context) *auth.Client {
+func getFirebaseAuthClient(ctx context.Context) *MockFirebaseAuthClient {
 	mockFirebase := NewMockFirebaseService("FCMID3")
 	fc := mockFirebase.GetAuthClient(ctx)
-	return fc.Client
+	return fc
 }
 
-func getFirebaseCloudMessagingClient(ctx context.Context) *messaging.Client {
+func getFirebaseCloudMessagingClient(ctx context.Context) *MockFirebaseCloudMessagingClient {
 	mockFCM := NewMockFirebaseService("FCMID3")
 	fc := mockFCM.GetFirebaseCloudMessagingClient(ctx)
-	return fc.Client
+	return fc
 
 }
 
