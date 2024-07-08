@@ -133,7 +133,7 @@ func tryToQueueForOrg(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAs
 	// if we have any android messages, trigger syncs for the unique channels
 	if len(androidMsgs) > 0 {
 		for channel, msgs := range androidMsgs {
-			err := SyncAndroidChannel(ctx, rt, channel)
+			err := SyncAndroidChannel(ctx, rt, channel, "")
 			if err != nil {
 				slog.Error("error syncing messages", "error", err, "channel_uuid", channel.UUID())
 			}

@@ -34,16 +34,16 @@ func TestSyncAndroidChannel(t *testing.T) {
 
 	rt.FirebaseCloudMessagingClient = nil
 
-	err = msgio.SyncAndroidChannel(ctx, rt, channel1)
+	err = msgio.SyncAndroidChannel(ctx, rt, channel1, "")
 	assert.EqualError(t, err, "instance has no FCM configuration")
 
 	rt.FirebaseCloudMessagingClient = fcmClient
 
-	err = msgio.SyncAndroidChannel(ctx, rt, channel1)
+	err = msgio.SyncAndroidChannel(ctx, rt, channel1, "")
 	assert.NoError(t, err)
-	err = msgio.SyncAndroidChannel(ctx, rt, channel2)
-	assert.EqualError(t, err, "error syncing channel: 401 error: 401 Unauthorized")
-	err = msgio.SyncAndroidChannel(ctx, rt, channel3)
+	err = msgio.SyncAndroidChannel(ctx, rt, channel2, "")
+	assert.EqualError(t, err, "error cloud messaging id verification: invalid token")
+	err = msgio.SyncAndroidChannel(ctx, rt, channel3, "")
 	assert.NoError(t, err)
 
 	// check that we try to sync the 2 channels with FCM IDs, even tho one fails
@@ -54,4 +54,10 @@ func TestSyncAndroidChannel(t *testing.T) {
 	assert.Equal(t, "high", mockFirebase.Messages[0].Android.Priority)
 	assert.Equal(t, "sync", mockFirebase.Messages[0].Android.CollapseKey)
 	assert.Equal(t, map[string]string{"msg": "sync"}, mockFirebase.Messages[0].Data)
+
+	oa, err = models.GetOrgAssetsWithRefresh(ctx, rt, testdata.Org1.ID, models.RefreshChannels)
+	require.NoError(t, err)
+
+	channel2 = oa.ChannelByID(testChannel2.ID)
+	assert.Equal(t, "", channel2.ConfigValue(models.ChannelConfigFCMID, ""))
 }
