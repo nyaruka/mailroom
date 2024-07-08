@@ -8,6 +8,8 @@ import (
 	"os/exec"
 	"path"
 
+	"firebase.google.com/go/v4/auth"
+	"firebase.google.com/go/v4/messaging"
 	"github.com/elastic/go-elasticsearch/v8"
 	"github.com/gomodule/redigo/redis"
 	"github.com/jmoiron/sqlx"
@@ -71,20 +73,23 @@ func Runtime() (context.Context, *runtime.Runtime) {
 	cfg.Port = 8091
 
 	dbx := getDB()
+	ctx := context.Background()
 	rt := &runtime.Runtime{
-		DB:                dbx,
-		ReadonlyDB:        dbx.DB,
-		RP:                getRP(),
-		ES:                getES(),
-		AttachmentStorage: storage.NewFS(attachmentStorageDir, 0766),
-		SessionStorage:    storage.NewFS(sessionStorageDir, 0766),
-		LogStorage:        storage.NewFS(logStorageDir, 0766),
-		Config:            cfg,
+		DB:                           dbx,
+		ReadonlyDB:                   dbx.DB,
+		RP:                           getRP(),
+		ES:                           getES(),
+		AttachmentStorage:            storage.NewFS(attachmentStorageDir, 0766),
+		SessionStorage:               storage.NewFS(sessionStorageDir, 0766),
+		LogStorage:                   storage.NewFS(logStorageDir, 0766),
+		Config:                       cfg,
+		FirebaseAuthClient:           getFirebaseAuthClient(ctx),
+		FirebaseCloudMessagingClient: getFirebaseCloudMessagingClient(ctx),
 	}
 
 	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo})))
 
-	return context.Background(), rt
+	return ctx, rt
 }
 
 // reindexes data changes to Elastic
@@ -133,6 +138,19 @@ func getES() *elasticsearch.TypedClient {
 	es, err := elasticsearch.NewTypedClient(elasticsearch.Config{Addresses: []string{elasticURL}})
 	noError(err)
 	return es
+}
+
+func getFirebaseAuthClient(ctx context.Context) *auth.Client {
+	mockFirebase := NewMockFirebaseService("FCMID3")
+	fc := mockFirebase.GetAuthClient(ctx)
+	return fc.Client
+}
+
+func getFirebaseCloudMessagingClient(ctx context.Context) *messaging.Client {
+	mockFCM := NewMockFirebaseService("FCMID3")
+	fc := mockFCM.GetFirebaseCloudMessagingClient(ctx)
+	return fc.Client
+
 }
 
 // resets our database to our base state from our RapidPro dump

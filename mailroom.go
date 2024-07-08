@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	firebase "firebase.google.com/go/v4"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/elastic/go-elasticsearch/v8"
 	"github.com/jmoiron/sqlx"
@@ -17,6 +18,7 @@ import (
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/mailroom/web"
 	"github.com/nyaruka/redisx"
+	"google.golang.org/api/option"
 )
 
 // Mailroom is a service for handling RapidPro events
@@ -136,6 +138,17 @@ func (mr *Mailroom) Start() error {
 	// warn if we won't be doing FCM syncing
 	if c.AndroidFCMServiceAccountFile == "" {
 		log.Warn("fcm not configured, no android syncing")
+	} else {
+		app, _ := firebase.NewApp(mr.ctx, nil, option.WithCredentialsFile(c.AndroidFCMServiceAccountFile))
+
+		mr.rt.FirebaseAuthClient, err = app.Auth(mr.ctx)
+		if err != nil {
+			log.Error("unable to create firebase auth client", "error", err)
+		}
+		mr.rt.FirebaseCloudMessagingClient, err = app.Messaging(mr.ctx)
+		if err != nil {
+			log.Error("unable to create firebase cloud messaging client", "error", err)
+		}
 	}
 
 	// if we have a librato token, configure it

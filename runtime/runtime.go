@@ -3,6 +3,8 @@ package runtime
 import (
 	"database/sql"
 
+	"firebase.google.com/go/v4/auth"
+	"firebase.google.com/go/v4/messaging"
 	"github.com/elastic/go-elasticsearch/v8"
 	"github.com/gomodule/redigo/redis"
 	"github.com/jmoiron/sqlx"
@@ -20,4 +22,7 @@ type Runtime struct {
 	SessionStorage    storage.Storage
 	LogStorage        storage.Storage
 	Config            *Config
+
+	FirebaseCloudMessagingClient *messaging.Client
+	FirebaseAuthClient           *auth.Client
 }
