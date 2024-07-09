@@ -34,8 +34,7 @@ func (m *MockFirebaseService) GetAuthClient(ctx context.Context) *MockFirebaseAu
 }
 
 func NewMockFirebaseService(tokens ...string) *MockFirebaseService {
-	mock := &MockFirebaseService{tokens: tokens}
-	return mock
+	return &MockFirebaseService{tokens: tokens}
 }
 
 type MockFirebaseAuthClient struct {

@@ -139,7 +139,10 @@ func (mr *Mailroom) Start() error {
 	if c.AndroidFCMServiceAccountFile == "" {
 		log.Warn("fcm not configured, no android syncing")
 	} else {
-		app, _ := firebase.NewApp(mr.ctx, nil, option.WithCredentialsFile(c.AndroidFCMServiceAccountFile))
+		app, err := firebase.NewApp(mr.ctx, nil, option.WithCredentialsFile(c.AndroidFCMServiceAccountFile))
+		if err != nil {
+			log.Error("unable to create firebase app", "error", err)
+		}
 
 		mr.rt.FirebaseAuthClient, err = app.Auth(mr.ctx)
 		if err != nil {

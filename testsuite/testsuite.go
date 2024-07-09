@@ -140,15 +140,12 @@ func getES() *elasticsearch.TypedClient {
 
 func getFirebaseAuthClient(ctx context.Context) *MockFirebaseAuthClient {
 	mockFirebase := NewMockFirebaseService("FCMID3")
-	fc := mockFirebase.GetAuthClient(ctx)
-	return fc
+	return mockFirebase.GetAuthClient(ctx)
 }
 
 func getFirebaseCloudMessagingClient(ctx context.Context) *MockFirebaseCloudMessagingClient {
 	mockFCM := NewMockFirebaseService("FCMID3")
-	fc := mockFCM.GetFirebaseCloudMessagingClient(ctx)
-	return fc
-
+	return mockFCM.GetFirebaseCloudMessagingClient(ctx)
 }
 
 // resets our database to our base state from our RapidPro dump
