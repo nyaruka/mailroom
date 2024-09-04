@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"math/rand"
 	"time"
 
 	"github.com/gomodule/redigo/redis"
@@ -17,6 +18,8 @@ var HandlerQueue = queues.NewFairSorted("handler")
 var BatchQueue = queues.NewFairSorted("batch")
 
 var registeredTypes = map[string](func() Task){}
+
+var HighLoadThreshold = 1_000_000
 
 // RegisterType registers a new type of task
 func RegisterType(name string, initFunc func() Task) {
@@ -52,12 +55,50 @@ func Perform(ctx context.Context, rt *runtime.Runtime, task *queues.Task) error 
 	ctx, cancel := context.WithTimeout(ctx, typedTask.Timeout())
 	defer cancel()
 
+	if pauseUnderHighLoad(ctx, rt, task) {
+		rc := rt.RP.Get()
+		defer rc.Close()
+
+		Queue(rc, BatchQueue, oa.OrgID(), typedTask, queues.DefaultPriority)
+		return fmt.Errorf("high load for org: %d, requeued task of type %s", task.OwnerID, task.Type)
+	}
+
 	return typedTask.Perform(ctx, rt, oa)
 }
 
 // Queue adds the given task to the given queue
 func Queue(rc redis.Conn, q *queues.FairSorted, orgID models.OrgID, task Task, priority queues.Priority) error {
 	return q.Push(rc, task.Type(), int(orgID), task, priority)
+}
+
+// pauseUnderHighLoad to check whether the workspace has a high load at the moment to slow down start flows
+func pauseUnderHighLoad(ctx context.Context, rt *runtime.Runtime, task *queues.Task) bool {
+	rc := rt.RP.Get()
+	defer rc.Close()
+
+	orgLoadCount, err := redis.Int(rc.Do("GET", fmt.Sprintf("high_load:%d", task.OwnerID)))
+	if err != nil || orgLoadCount == 0 {
+
+		count := 0
+		for _, q := range []string{"batch", "handler"} {
+			size, err := redis.Int(rc.Do("ZCARD", fmt.Sprintf("%s:%d", q, task.OwnerID)))
+			if err == nil {
+				count += size
+			}
+		}
+		if count > HighLoadThreshold {
+			// expire in 10min
+			rc.Do("SET", fmt.Sprintf("high_load:%d", task.OwnerID), count, "EX", 600)
+			orgLoadCount = count
+		}
+	}
+
+	// Only 5% of tasks will be allowed to be handled under high load
+	if (orgLoadCount > HighLoadThreshold) && (task.Type == "start_flow_batch" || task.Type == "start_flow") && (rand.Intn(100) > 5) {
+		return true
+	}
+
+	return false
 }
 
 //------------------------------------------------------------------------------------------
