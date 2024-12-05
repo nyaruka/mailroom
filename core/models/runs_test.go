@@ -31,7 +31,6 @@ func TestInsertAndUpdateRuns(t *testing.T) {
 		ModifiedOn:      t2,
 		Responded:       true,
 		Results:         `{}`,
-		Path:            `[]`,
 		PathNodes:       []string{"1895cae0-d3c0-4470-83df-0b4cf9449438", "3ea3c026-e1c0-4950-bb94-d4c532b1459f"},
 		PathTimes:       pq.GenericArray{A: []interface{}{t1, t2}},
 		CurrentNodeUUID: "5f0d8d24-0178-4b10-ae35-b3ccdc785777",

@@ -48,7 +48,6 @@ type FlowRun struct {
 	ExitedOn        *time.Time      `db:"exited_on"`
 	Responded       bool            `db:"responded"`
 	Results         string          `db:"results"`
-	Path            string          `db:"path"`
 	PathNodes       pq.StringArray  `db:"path_nodes"`
 	PathTimes       pq.GenericArray `db:"path_times"`
 	CurrentNodeUUID null.String     `db:"current_node_uuid"`
@@ -102,7 +101,6 @@ func newRun(ctx context.Context, tx *sqlx.Tx, oa *OrgAssets, session *Session, f
 		OrgID:      oa.OrgID(),
 		SessionID:  session.ID(),
 		StartID:    NilStartID,
-		Path:       string(jsonx.MustMarshal(path)),
 		PathNodes:  pathNodes,
 		PathTimes:  pq.GenericArray{A: pathTimes},
 		Results:    string(jsonx.MustMarshal(fr.Results())),
@@ -127,9 +125,9 @@ func newRun(ctx context.Context, tx *sqlx.Tx, oa *OrgAssets, session *Session, f
 
 const sqlInsertRun = `
 INSERT INTO
-flows_flowrun(uuid, created_on, modified_on, exited_on, status, responded, results, path, path_nodes, path_times,
+flows_flowrun(uuid, created_on, modified_on, exited_on, status, responded, results, path_nodes, path_times,
 	          current_node_uuid, contact_id, flow_id, org_id, session_id, start_id)
-	   VALUES(:uuid, :created_on, NOW(), :exited_on, :status, :responded, :results, :path, :path_nodes, :path_times,
+	   VALUES(:uuid, :created_on, NOW(), :exited_on, :status, :responded, :results, :path_nodes, :path_times,
 	          :current_node_uuid, :contact_id, :flow_id, :org_id, :session_id, :start_id)
 RETURNING id
 `
@@ -149,15 +147,14 @@ SET
 	exited_on = r.exited_on::timestamptz,
 	responded = r.responded::bool,
 	results = r.results,
-	path = r.path::jsonb,
 	path_nodes = r.path_nodes::uuid[],
 	path_times = r.path_times::timestamptz[],
 	current_node_uuid = r.current_node_uuid::uuid,
 	modified_on = NOW()
 FROM (
-	VALUES(:uuid, :status, :exited_on, :responded, :results, :path, :path_nodes, :path_times, :current_node_uuid)
+	VALUES(:uuid, :status, :exited_on, :responded, :results, :path_nodes, :path_times, :current_node_uuid)
 ) AS
-	r(uuid, status, exited_on, responded, results, path, path_nodes, path_times, current_node_uuid)
+	r(uuid, status, exited_on, responded, results, path_nodes, path_times, current_node_uuid)
 WHERE
 	fr.uuid = r.uuid::uuid`
 
