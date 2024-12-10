@@ -11,6 +11,7 @@ import (
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/events"
+	"github.com/nyaruka/goflow/utils"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/null/v3"
 )
@@ -86,6 +87,12 @@ func newRun(ctx context.Context, tx *sqlx.Tx, oa *OrgAssets, session *Session, f
 		pathTimes[i] = p.ArrivedOn()
 	}
 
+	// build results dict keyed by snakified name
+	results := make(map[string]*flows.Result, len(fr.Results()))
+	for resultName, result := range fr.Results() {
+		results[utils.Snakify(resultName)] = result
+	}
+
 	flowID, err := FlowIDForUUID(ctx, tx, oa, fr.FlowReference().UUID)
 	if err != nil {
 		return nil, fmt.Errorf("unable to load flow with uuid: %s: %w", fr.FlowReference().UUID, err)
@@ -105,7 +112,7 @@ func newRun(ctx context.Context, tx *sqlx.Tx, oa *OrgAssets, session *Session, f
 		Path:       string(jsonx.MustMarshal(path)),
 		PathNodes:  pathNodes,
 		PathTimes:  pq.GenericArray{A: pathTimes},
-		Results:    string(jsonx.MustMarshal(fr.Results())),
+		Results:    string(jsonx.MustMarshal(results)),
 
 		run: fr,
 	}
