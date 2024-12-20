@@ -9,11 +9,11 @@ jobs:
 
     services:
       redis:
-        image: redis:6.2-alpine
+        image: valkey/valkey:8.0-alpine
         ports:
           - 6379:6379
       postgres:
-        image: postgis/postgis:15-3.3-alpine
+        image: postgis/postgis:17-3.5-alpine
         env:
           POSTGRES_PASSWORD: temba
         ports:
