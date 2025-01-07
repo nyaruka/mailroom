@@ -28,7 +28,7 @@ func (h *commitURNChangesHook) Apply(ctx context.Context, rt *runtime.Runtime, t
 		changes = append(changes, urnChange)
 
 		if urnChange.Flow != nil {
-			flowUUID = urnChange.Flow.UUID
+			flowUUID = urnChange.Flow.UUID()
 		}
 	}
 

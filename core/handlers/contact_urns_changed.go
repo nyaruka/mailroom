@@ -5,7 +5,6 @@ import (
 	"log/slog"
 
 	"github.com/jmoiron/sqlx"
-	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/mailroom/core/hooks"
@@ -23,10 +22,9 @@ func handleContactURNsChanged(ctx context.Context, rt *runtime.Runtime, tx *sqlx
 
 	slog.Debug("contact urns changed", "contact", scene.ContactUUID(), "session", scene.SessionID(), "urns", event.URNs)
 
-	var flow *assets.FlowReference
+	var flow *models.Flow
 	if scene.Session() != nil {
-		run, _ := scene.Session().FindStep(e.StepUUID())
-		flow = run.FlowReference()
+		flow, _ = scene.Session().LocateEvent(e)
 	}
 
 	// create our URN changed event

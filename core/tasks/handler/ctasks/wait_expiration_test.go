@@ -154,11 +154,11 @@ func TestTimedEvents(t *testing.T) {
 	expiration := time.Now()
 
 	// set both to be active (this requires us to disable the status change triggers)
-	rt.DB.MustExec(`ALTER TABLE flows_flowrun DISABLE TRIGGER temba_flowrun_status_change`)
+	rt.DB.MustExec(`ALTER TABLE flows_flowrun DISABLE TRIGGER temba_flowrun_on_change`)
 	rt.DB.MustExec(`ALTER TABLE flows_flowsession DISABLE TRIGGER temba_flowsession_status_change`)
 	rt.DB.MustExec(`UPDATE flows_flowrun SET status = 'W' WHERE id = $1`, runID)
 	rt.DB.MustExec(`UPDATE flows_flowsession SET status = 'W', wait_started_on = NOW(), wait_expires_on = $2 WHERE id = $1`, sessionID, expiration)
-	rt.DB.MustExec(`ALTER TABLE flows_flowrun ENABLE TRIGGER temba_flowrun_status_change`)
+	rt.DB.MustExec(`ALTER TABLE flows_flowrun ENABLE TRIGGER temba_flowrun_on_change`)
 	rt.DB.MustExec(`ALTER TABLE flows_flowsession ENABLE TRIGGER temba_flowsession_status_change`)
 
 	// try to expire the run

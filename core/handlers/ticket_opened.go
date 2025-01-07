@@ -43,11 +43,8 @@ func handleTicketOpened(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, o
 
 	var openedInID models.FlowID
 	if scene.Session() != nil {
-		run, _ := scene.Session().FindStep(e.StepUUID())
-		flowAsset, _ := oa.FlowByUUID(run.FlowReference().UUID)
-		if flowAsset != nil {
-			openedInID = flowAsset.(*models.Flow).ID()
-		}
+		flow, _ := scene.Session().LocateEvent(e)
+		openedInID = flow.ID()
 	}
 
 	ticket := models.NewTicket(

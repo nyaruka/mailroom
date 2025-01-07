@@ -26,13 +26,10 @@ func init() {
 func handleWarning(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *models.OrgAssets, scene *models.Scene, e flows.Event) error {
 	event := e.(*events.WarningEvent)
 
-	run, _ := scene.Session().FindStep(e.StepUUID())
-	flow, _ := oa.FlowByUUID(run.FlowReference().UUID)
-	if flow != nil {
-		logMsg := warningsLogs[event.Text]
-		if logMsg != "" {
-			slog.Error(logMsg, "session", scene.SessionID(), "flow", flow.UUID(), "text", event.Text)
-		}
+	flow, _ := scene.Session().LocateEvent(e)
+	logMsg := warningsLogs[event.Text]
+	if logMsg != "" {
+		slog.Error(logMsg, "session", scene.SessionID(), "flow", flow.UUID(), "text", event.Text)
 	}
 
 	return nil

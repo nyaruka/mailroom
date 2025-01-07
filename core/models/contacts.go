@@ -1347,7 +1347,7 @@ type ContactURNsChanged struct {
 	ContactID ContactID
 	OrgID     OrgID
 	URNs      []urns.URN
-	Flow      *assets.FlowReference // for logging
+	Flow      *Flow // for logging
 }
 
 func (i *URNID) Scan(value any) error         { return null.ScanInt(value, i) }

@@ -150,9 +150,11 @@ func (s *Session) Sprint() flows.Sprint {
 	return s.sprint
 }
 
-// FindStep finds the run and step with the given UUID
-func (s *Session) FindStep(uuid flows.StepUUID) (flows.Run, flows.Step) {
-	return s.findStep(uuid)
+// LocateEvent finds the flow and node UUID for an event belonging to this session
+func (s *Session) LocateEvent(e flows.Event) (*Flow, flows.NodeUUID) {
+	run, step := s.findStep(e.StepUUID())
+	flow := run.Flow().Asset().(*Flow)
+	return flow, step.NodeUUID()
 }
 
 // Timeout returns the amount of time after our last message sends that we should timeout

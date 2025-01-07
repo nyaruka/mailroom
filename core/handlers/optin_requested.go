@@ -49,12 +49,7 @@ func handleOptInRequested(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx,
 	}
 
 	// and the flow
-	var flow *models.Flow
-	run, _ := scene.Session().FindStep(e.StepUUID())
-	flowAsset, _ := oa.FlowByUUID(run.FlowReference().UUID)
-	if flowAsset != nil {
-		flow = flowAsset.(*models.Flow)
-	}
+	flow, _ := scene.Session().LocateEvent(e)
 
 	msg := models.NewOutgoingOptInMsg(rt, scene.Session(), flow, optIn, channel, urn, event.CreatedOn())
 

@@ -1,5 +1,6 @@
 # 📬 Mailroom
 
+[![tag](https://img.shields.io/github/tag/nyaruka/mailroom.svg)](https://github.com/nyaruka/mailroom/releases)
 [![Build Status](https://github.com/nyaruka/mailroom/workflows/CI/badge.svg)](https://github.com/nyaruka/mailroom/actions?query=workflow%3ACI)
 [![codecov](https://codecov.io/gh/nyaruka/mailroom/branch/main/graph/badge.svg)](https://codecov.io/gh/nyaruka/mailroom)
 
@@ -21,8 +22,6 @@ We recommend running it with no changes to the configuration and no parameters, 
 environment variables to configure it. You can use `% mailroom --help` to see a list of the
 environment variables and parameters and for more details on each option.
 
-For use with RapidPro/TextIt, you will need to configure these settings:
-
 - `MAILROOM_ADDRESS`: address to bind our web server to (default "localhost")
 - `MAILROOM_DOMAIN`: domain that mailroom is listening on
 - `MAILROOM_AUTH_TOKEN`: authentication token clients will need to for web requests (should match setting in RapidPro)
@@ -35,33 +34,27 @@ For use with RapidPro/TextIt, you will need to configure these settings:
 - `MAILROOM_ELASTIC_USERNAME`: ElasticSearch username for Basic Auth
 - `MAILROOM_ELASTIC_PASSWORD`: ElasticSearch password for Basic Auth
 - `MAILROOM_COURIER_AUTH_TOKEN`: authentication token used for requests to Courier
-
-For writing of message attachments, you need an S3 compatible service which you configure with:
-
-- `MAILROOM_AWS_ACCESS_KEY_ID`: AWS access key id used to authenticate to AWS
-- `MAILROOM_AWS_SECRET_ACCESS_KEY` AWS secret access key used to authenticate to AWS
-- `MAILROOM_S3_REGION`: region for your S3 bucket (ex: `eu-west-1`)
-- `MAILROOM_S3_ATTACHMENTS_BUCKET`: name of your S3 bucket (ex: `mailroom-attachments`)
-- `MAILROOM_S3_ATTACHMENTS_PREFIX`: prefix to use for filenames of attachments added to your bucket (ex: `attachments`)
-
-You can use S3 storage for sessions and logs as well with:
-
 - `MAILROOM_SESSION_STORAGE`: where session output is stored which must be `db` (default) or `s3`
-- `MAILROOM_S3_SESSIONS_BUCKET`: name of your S3 bucket (ex: `mailroom-sessions`)
-- `MAILROOM_S3_LOGS_BUCKET`: name of your S3 bucket (ex: `mailroom-logs`)
+ 
+### AWS services:
 
-Flow engine configuration:
+ * `MAILROOM_AWS_ACCESS_KEY_ID`: AWS access key id used to authenticate to AWS
+ * `MAILROOM_AWS_SECRET_ACCESS_KEY`: AWS secret access key used to authenticate to AWS
+ * `MAILROOM_AWS_REGION`: AWS region (ex: `eu-west-1`)
+ * `MAILROOM_S3_ATTACHMENTS_BUCKET`: name of your S3 bucket (ex: `mailroom-attachments`)
+ * `MAILROOM_S3_SESSIONS_BUCKET`: name of your S3 bucket (ex: `mailroom-sessions`)
 
-- `MAILROOM_MAX_STEPS_PER_SPRINT`: maximum number of steps allowed in a single engine sprint
-- `MAILROOM_MAX_RESUMES_PER_SESSION`: maximum number of resumes allowed in an engine session
-- `MAILROOM_MAX_VALUE_LENGTH`: maximum length in characters of contact field and run result values
+### Flow engine configuration:
 
-Recommended settings for error and performance monitoring:
+ * `MAILROOM_MAX_STEPS_PER_SPRINT`: maximum number of steps allowed in a single engine sprint
+ * `MAILROOM_MAX_RESUMES_PER_SESSION`: maximum number of resumes allowed in an engine session
+ * `MAILROOM_MAX_VALUE_LENGTH`: maximum length in characters of contact field and run result values
 
-- `MAILROOM_LIBRATO_USERNAME`: username to use for logging of events to Librato
-- `MAILROOM_LIBRATO_TOKEN`: token to use for logging of events to Librato
-- `MAILROOM_SENTRY_DSN`: DSN to use when logging errors to Sentry
-- `MAILROOM_LOG_LEVEL`: logging level mailroom should use (default is `warn`)
+### Logging and error reporting:
+
+ * `MAILROOM_DEPLOYMENT_ID`: used for metrics reporting
+ * `MAILROOM_SENTRY_DSN`: DSN to use when logging errors to Sentry
+ * `MAILROOM_LOG_LEVEL`: logging level to use (default is `warn`)
 
 ## Development
 

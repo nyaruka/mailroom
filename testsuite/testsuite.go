@@ -290,6 +290,7 @@ DELETE FROM msgs_msg;
 DELETE FROM flows_flowrun;
 DELETE FROM flows_flowcategorycount;
 DELETE FROM flows_flowactivitycount;
+DELETE FROM flows_flowresultcount;
 DELETE FROM flows_flowstartcount;
 DELETE FROM flows_flowstart_contacts;
 DELETE FROM flows_flowstart_groups;

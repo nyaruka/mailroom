@@ -88,12 +88,7 @@ func handleMsgCreated(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa 
 	}
 
 	// and the flow
-	var flow *models.Flow
-	run, _ := scene.Session().FindStep(e.StepUUID())
-	flowAsset, _ := oa.FlowByUUID(run.FlowReference().UUID)
-	if flowAsset != nil {
-		flow = flowAsset.(*models.Flow)
-	}
+	flow, _ := scene.Session().LocateEvent(e)
 
 	msg, err := models.NewOutgoingFlowMsg(rt, oa.Org(), channel, scene.Session(), flow, event.Msg, event.CreatedOn())
 	if err != nil {
