@@ -125,20 +125,20 @@ SELECT
 		SELECT 
 			DISTINCT(a.name)
 		FROM 
-			locations_boundaryalias a
+			locations_locationalias a
 		WHERE 
-			a.boundary_id = l.id AND
+			a.location_id = l.id AND
 			a.is_active = TRUE AND
 			a.org_id = $1
 		ORDER BY 
 			a.name
 	)a ) aliases
 FROM
-	locations_adminboundary l
+	locations_location l
 WHERE
-	l.lft >= (select lft from locations_adminboundary la, orgs_org o where la.id = o.country_id and o.id = $1) and 
-	l.rght <= (select rght from locations_adminboundary la, orgs_org o where la.id = o.country_id and o.id = $1) and
-	l.tree_id = (select tree_id from locations_adminboundary la, orgs_org o where la.id = o.country_id and o.id = $1)
+	l.lft >= (select lft from locations_location la, orgs_org o where la.id = o.location_id and o.id = $1) and 
+	l.rght <= (select rght from locations_location la, orgs_org o where la.id = o.location_id and o.id = $1) and
+	l.tree_id = (select tree_id from locations_location la, orgs_org o where la.id = o.location_id and o.id = $1)
 ORDER BY
 	l.level, l.id;
 `
