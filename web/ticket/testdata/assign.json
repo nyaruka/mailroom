@@ -11,7 +11,7 @@
                 2,
                 3
             ],
-            "assignee_id": 6
+            "assignee_id": 5
         },
         "status": 200,
         "response": {
@@ -22,7 +22,7 @@
         },
         "db_assertions": [
             {
-                "query": "SELECT count(*) FROM tickets_ticket WHERE assignee_id = 6",
+                "query": "SELECT count(*) FROM tickets_ticket WHERE assignee_id = 5",
                 "count": 3
             },
             {

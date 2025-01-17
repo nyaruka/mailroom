@@ -31,7 +31,6 @@ func TestLoadUsers(t *testing.T) {
 		{id: testdata.Admin.ID, email: testdata.Admin.Email, name: "Andy Admin", role: models.UserRoleAdministrator, team: nil},
 		{id: testdata.Agent.ID, email: testdata.Agent.Email, name: "Ann D'Agent", role: models.UserRoleAgent, team: partners},
 		{id: testdata.Editor.ID, email: testdata.Editor.Email, name: "Ed McEditor", role: models.UserRoleEditor, team: nil},
-		{id: testdata.Viewer.ID, email: testdata.Viewer.Email, name: "Veronica Views", role: models.UserRoleViewer, team: nil},
 	}
 
 	require.Equal(t, len(expectedUsers), len(users))

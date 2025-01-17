@@ -19,8 +19,7 @@ var AuthGroupIDs = map[string]int{
 var Org1 = &Org{1, "bf0514a5-9407-44c9-b0f9-3f36f9c18414"}
 var Admin = &User{3, "admin1@textit.com"}
 var Editor = &User{4, "editor1@textit.com"}
-var Viewer = &User{5, "viewer1@textit.com"}
-var Agent = &User{6, "agent1@textit.com"}
+var Agent = &User{5, "agent1@textit.com"}
 
 var TwilioChannel = &Channel{10000, "74729f45-7f29-4868-9dc4-90e491e3c7d8", "T"}
 var VonageChannel = &Channel{10001, "19012bfd-3ce3-4cae-9bb9-76cf92c73d49", "NX"}

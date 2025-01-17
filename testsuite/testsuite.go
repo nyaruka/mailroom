@@ -288,7 +288,6 @@ DELETE FROM channels_channelevent;
 DELETE FROM channels_channellog;
 DELETE FROM msgs_msg;
 DELETE FROM flows_flowrun;
-DELETE FROM flows_flowcategorycount;
 DELETE FROM flows_flowactivitycount;
 DELETE FROM flows_flowresultcount;
 DELETE FROM flows_flowstartcount;

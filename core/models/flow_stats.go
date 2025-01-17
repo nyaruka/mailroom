@@ -8,6 +8,8 @@ import (
 	"github.com/buger/jsonparser"
 	"github.com/nyaruka/gocommon/stringsx"
 	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/flows/events"
+	"github.com/nyaruka/goflow/utils"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/redisx"
 )
@@ -20,20 +22,43 @@ const (
 
 var storeOperandsForTypes = map[string]bool{"wait_for_response": true, "split_by_expression": true, "split_by_contact_field": true, "split_by_run_result": true}
 
-const sqlInsertFlowActivityCount = `
-INSERT INTO flows_flowactivitycount( flow_id,  scope,  count,  is_squashed)
-                             VALUES(:flow_id, :scope, :count,        FALSE)
-`
-
 type FlowActivityCount struct {
 	FlowID FlowID `db:"flow_id"`
 	Scope  string `db:"scope"`
 	Count  int    `db:"count"`
 }
 
+const sqlInsertFlowActivityCount = `
+INSERT INTO flows_flowactivitycount( flow_id,  scope,  count,  is_squashed)
+                             VALUES(:flow_id, :scope, :count,        FALSE)
+`
+
 // InsertFlowActivityCounts inserts the given flow activity counts into the database
 func InsertFlowActivityCounts(ctx context.Context, db DBorTx, counts []*FlowActivityCount) error {
 	return BulkQuery(ctx, "insert flow activity counts", db, sqlInsertFlowActivityCount, counts)
+}
+
+type FlowResultCount struct {
+	FlowID   FlowID `db:"flow_id"`
+	Result   string `db:"result"`
+	Category string `db:"category"`
+	Count    int    `db:"count"`
+}
+
+const sqlInsertFlowResultCount = `
+INSERT INTO flows_flowresultcount( flow_id,  result,  category,  count,  is_squashed)
+                           VALUES(:flow_id, :result, :category, :count,        FALSE)
+`
+
+// InsertFlowResultCounts inserts the given flow result counts into the database
+func InsertFlowResultCounts(ctx context.Context, db DBorTx, counts []*FlowResultCount) error {
+	return BulkQuery(ctx, "insert flow result counts", db, sqlInsertFlowResultCount, counts)
+}
+
+type resultInfo struct {
+	flowID   FlowID
+	result   string
+	category string
 }
 
 type segmentInfo struct {
@@ -53,6 +78,7 @@ type segmentRecentContact struct {
 func RecordFlowStatistics(ctx context.Context, rt *runtime.Runtime, db DBorTx, sessions []flows.Session, sprints []flows.Sprint) error {
 	countsBySegment := make(map[segmentInfo]int, 10)
 	recentBySegment := make(map[segmentInfo][]*segmentRecentContact, 10)
+	categoryChanges := make(map[resultInfo]int, 10)
 	nodeTypeCache := make(map[flows.NodeUUID]string)
 
 	for i, sprint := range sprints {
@@ -79,19 +105,50 @@ func RecordFlowStatistics(ctx context.Context, rt *runtime.Runtime, db DBorTx, s
 				recentBySegment[segID] = append(recentBySegment[segID], &segmentRecentContact{contact: session.Contact(), operand: operand, time: seg.Time(), rnd: redisx.RandomBase64(10)})
 			}
 		}
+
+		for _, e := range sprint.Events() {
+			switch typed := e.(type) {
+			case *events.RunResultChangedEvent:
+				run, _ := session.FindStep(e.StepUUID())
+				flow := run.Flow().Asset().(*Flow)
+				resultKey := utils.Snakify(typed.Name)
+				if typed.Previous != nil {
+					categoryChanges[resultInfo{flowID: flow.ID(), result: resultKey, category: typed.Previous.Category}]--
+				}
+				categoryChanges[resultInfo{flowID: flow.ID(), result: resultKey, category: typed.Category}]++
+			}
+		}
 	}
 
-	counts := make([]*FlowActivityCount, 0, len(countsBySegment))
-	for segID, count := range countsBySegment {
-		counts = append(counts, &FlowActivityCount{
-			FlowID: segID.flowID,
-			Scope:  fmt.Sprintf("segment:%s:%s", segID.exitUUID, segID.destUUID),
-			Count:  count,
-		})
+	activityCounts := make([]*FlowActivityCount, 0, len(countsBySegment))
+	for seg, count := range countsBySegment {
+		if count != 0 {
+			activityCounts = append(activityCounts, &FlowActivityCount{
+				FlowID: seg.flowID,
+				Scope:  fmt.Sprintf("segment:%s:%s", seg.exitUUID, seg.destUUID),
+				Count:  count,
+			})
+		}
 	}
 
-	if err := InsertFlowActivityCounts(ctx, db, counts); err != nil {
-		return fmt.Errorf("error inserting flow segment counts: %w", err)
+	if err := InsertFlowActivityCounts(ctx, db, activityCounts); err != nil {
+		return fmt.Errorf("error inserting flow activity counts: %w", err)
+	}
+
+	resultCounts := make([]*FlowResultCount, 0, len(categoryChanges))
+	for res, count := range categoryChanges {
+		if count != 0 {
+			resultCounts = append(resultCounts, &FlowResultCount{
+				FlowID:   res.flowID,
+				Result:   res.result,
+				Category: res.category,
+				Count:    count,
+			})
+		}
+	}
+
+	if err := InsertFlowResultCounts(ctx, db, resultCounts); err != nil {
+		return fmt.Errorf("error inserting flow result counts: %w", err)
 	}
 
 	rc := rt.RP.Get()

@@ -1,3 +1,14 @@
+v10.1.1 (2025-01-09)
+-------------------------
+ * Remove viewer users
+ * Remove force option from ticket clsoe endpoint which was only used for ext services
+ * Add support for new category count model
+
+v10.1.0 (2025-01-08)
+-------------------------
+ * Update to latest goflow
+ * Add support for yearly schedules
+
 v10.0.0 (2025-01-07)
 -------------------------
  * Update README.md

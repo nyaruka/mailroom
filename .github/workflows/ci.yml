@@ -13,7 +13,7 @@ jobs:
         ports:
           - 6379:6379
       postgres:
-        image: postgis/postgis:17-3.5-alpine
+        image: postgres:17-alpine
         env:
           POSTGRES_PASSWORD: temba
         ports:

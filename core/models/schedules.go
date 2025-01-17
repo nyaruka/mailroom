@@ -28,6 +28,7 @@ const (
 	RepeatPeriodDaily   = RepeatPeriod("D")
 	RepeatPeriodWeekly  = RepeatPeriod("W")
 	RepeatPeriodMonthly = RepeatPeriod("M")
+	RepeatPeriodYearly  = RepeatPeriod("Y")
 )
 
 // day of the week constants for weekly repeating schedules
@@ -89,7 +90,7 @@ func NewSchedule(oa *OrgAssets, start time.Time, repeatPeriod RepeatPeriod, repe
 		s.RepeatHourOfDay = &hour
 		s.RepeatMinuteOfHour = &minute
 
-		if repeatPeriod == RepeatPeriodDaily {
+		if repeatPeriod == RepeatPeriodDaily || repeatPeriod == RepeatPeriodYearly {
 
 		} else if repeatPeriod == RepeatPeriodWeekly {
 			if repeatDaysOfWeek == "" {
@@ -263,6 +264,12 @@ func (s *Schedule) GetNextFire(now time.Time) (*time.Time, error) {
 		}
 
 		return &next, nil
+	case RepeatPeriodYearly:
+		for !next.After(now) {
+			next = next.AddDate(1, 0, 0)
+		}
+		return &next, nil
+
 	default:
 		return nil, fmt.Errorf("unknown repeat period: %s", s.RepeatPeriod)
 	}

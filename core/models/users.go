@@ -29,9 +29,7 @@ type UserRole string
 const (
 	UserRoleAdministrator UserRole = "A"
 	UserRoleEditor        UserRole = "E"
-	UserRoleViewer        UserRole = "V"
 	UserRoleAgent         UserRole = "T"
-	UserRoleSurveyor      UserRole = "S"
 )
 
 // User is our type for a user asset

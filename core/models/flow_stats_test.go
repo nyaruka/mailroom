@@ -1,8 +1,10 @@
 package models_test
 
 import (
+	"fmt"
 	"testing"
 
+	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/gocommon/random"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/test"
@@ -42,13 +44,17 @@ func TestRecordFlowStatistics(t *testing.T) {
 	require.NoError(t, err)
 
 	// should have a single record of all 3 contacts going through the first segment
-	var counts []*models.FlowActivityCount
-	err = rt.DB.SelectContext(ctx, &counts, "SELECT flow_id, scope, count FROM flows_flowactivitycount ORDER BY flow_id, scope")
+	var activityCounts []*models.FlowActivityCount
+	err = rt.DB.SelectContext(ctx, &activityCounts, "SELECT flow_id, scope, count FROM flows_flowactivitycount ORDER BY flow_id, scope")
 	require.NoError(t, err)
-	assert.Len(t, counts, 1)
-	assert.Equal(t, &models.FlowActivityCount{flow.ID, "segment:5fd2e537-0534-4c12-8425-bef87af09d46:072b95b3-61c3-4e0e-8dd1-eb7481083f94", 3}, counts[0])
+	assert.Len(t, activityCounts, 1)
+	assert.Equal(t, &models.FlowActivityCount{flow.ID, "segment:5fd2e537-0534-4c12-8425-bef87af09d46:072b95b3-61c3-4e0e-8dd1-eb7481083f94", 3}, activityCounts[0])
+
+	// should have no result counts yet
+	assertdb.Query(t, rt.DB, "SELECT count(*) FROM flows_flowresultcount").Returns(0)
 
 	assertFlowActivityCounts(t, rt, flow.ID, map[string]int{"segment:5fd2e537-0534-4c12-8425-bef87af09d46:072b95b3-61c3-4e0e-8dd1-eb7481083f94": 3})
+	assertFlowResultCounts(t, rt, flow.ID, map[string]int{})
 
 	assertredis.Keys(t, rc, "*", []string{
 		"recent_contacts:5fd2e537-0534-4c12-8425-bef87af09d46:072b95b3-61c3-4e0e-8dd1-eb7481083f94", // "what's your fav color" -> color split
@@ -78,6 +84,7 @@ func TestRecordFlowStatistics(t *testing.T) {
 		"segment:97cd44ce-dec2-4e19-8ca2-4e20db51dc08:0e1fe072-6f03-4f29-98aa-7bedbe930dab": 2, // "X is a great color" -> split by expression
 		"segment:614e7451-e0bd-43d9-b317-2aded3c8d790:a1e649db-91e0-47c4-ab14-eba0d1475116": 2, // "you have X tickets" -> group split
 	})
+	assertFlowResultCounts(t, rt, flow.ID, map[string]int{"color/Blue": 2, "color/Other": 1})
 
 	_, session3Sprint3, err := test.ResumeSession(session3, sa3, "azure")
 	require.NoError(t, err)
@@ -94,6 +101,7 @@ func TestRecordFlowStatistics(t *testing.T) {
 		"segment:97cd44ce-dec2-4e19-8ca2-4e20db51dc08:0e1fe072-6f03-4f29-98aa-7bedbe930dab": 2, // "X is a great color" -> split by expression
 		"segment:614e7451-e0bd-43d9-b317-2aded3c8d790:a1e649db-91e0-47c4-ab14-eba0d1475116": 2, // "you have X tickets" -> group split
 	})
+	assertFlowResultCounts(t, rt, flow.ID, map[string]int{"color/Blue": 2, "color/Other": 1})
 
 	assertredis.Keys(t, rc, "*", []string{
 		"recent_contacts:5fd2e537-0534-4c12-8425-bef87af09d46:072b95b3-61c3-4e0e-8dd1-eb7481083f94", // "what's your fav color" -> color split
@@ -119,6 +127,15 @@ func TestRecordFlowStatistics(t *testing.T) {
 	assertredis.ZRange(t, rc, "recent_contacts:2b698218-87e5-4ab8-922e-e65f91d12c10:88d8bf00-51ce-4e5e-aae8-4f957a0761a0", 0, -1,
 		[]string{"PLQQFoOgV9|123|0", "/cgnkcW6vA|234|0"},
 	)
+
+	// check that category counts are updated correctly when result changes
+	_, session3Sprint4, err := test.ResumeSession(session3, sa3, "blue")
+	require.NoError(t, err)
+
+	err = models.RecordFlowStatistics(ctx, rt, rt.DB, []flows.Session{session3}, []flows.Sprint{session3Sprint4})
+	require.NoError(t, err)
+
+	assertFlowResultCounts(t, rt, flow.ID, map[string]int{"color/Blue": 3, "color/Other": 0})
 }
 
 func assertFlowActivityCounts(t *testing.T, rt *runtime.Runtime, flowID models.FlowID, expected map[string]int) {
@@ -129,6 +146,19 @@ func assertFlowActivityCounts(t *testing.T, rt *runtime.Runtime, flowID models.F
 	actual := make(map[string]int)
 	for _, c := range counts {
 		actual[c.Scope] = c.Count
+	}
+
+	assert.Equal(t, expected, actual)
+}
+
+func assertFlowResultCounts(t *testing.T, rt *runtime.Runtime, flowID models.FlowID, expected map[string]int) {
+	var counts []*models.FlowResultCount
+	err := rt.DB.Select(&counts, "SELECT flow_id, result, category, SUM(count) AS count FROM flows_flowresultcount WHERE flow_id = $1 GROUP BY flow_id, result, category", flowID)
+	require.NoError(t, err)
+
+	actual := make(map[string]int)
+	for _, c := range counts {
+		actual[fmt.Sprintf("%s/%s", c.Result, c.Category)] = c.Count
 	}
 
 	assert.Equal(t, expected, actual)

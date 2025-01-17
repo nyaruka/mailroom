@@ -114,7 +114,7 @@
         "path": "/mr/msg/send",
         "body": {
             "org_id": 1,
-            "user_id": 6,
+            "user_id": 5,
             "contact_id": 10000,
             "text": "we can help",
             "ticket_id": $cathy_ticket_id$
@@ -147,7 +147,7 @@
                 "count": 1
             },
             {
-                "query": "SELECT SUM(count) FROM tickets_ticketdailycount WHERE count_type = 'R' AND scope = 'o:1:u:6'",
+                "query": "SELECT SUM(count) FROM tickets_ticketdailycount WHERE count_type = 'R' AND scope = 'o:1:u:5'",
                 "count": 1
             },
             {

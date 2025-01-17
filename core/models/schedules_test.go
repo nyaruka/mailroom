@@ -336,6 +336,27 @@ func TestGetNextFire(t *testing.T) {
 			Schedule:      []byte(`{"repeat_period": "M", "repeat_day_of_month": 10, "repeat_hour_of_day": 12, "repeat_minute_of_hour": 30}`),
 			ExpectedNexts: []time.Time{time.Date(2019, 3, 10, 12, 30, 0, 0, la)},
 		},
+		{
+			Label:         "yearly repeat for future time",
+			Now:           time.Date(2019, 8, 20, 10, 57, 0, 0, la),
+			Timezone:      "America/Los_Angeles",
+			Schedule:      []byte(`{"repeat_period": "Y", "repeat_hour_of_day": 12, "repeat_minute_of_hour": 35}`),
+			ExpectedNexts: []time.Time{time.Date(2019, 8, 20, 12, 35, 0, 0, la)},
+		},
+		{
+			Label:         "yearly repeat on same hour minute",
+			Now:           time.Date(2019, 8, 20, 12, 35, 0, 0, la),
+			Timezone:      "America/Los_Angeles",
+			Schedule:      []byte(`{"repeat_period": "Y", "repeat_hour_of_day": 12, "repeat_minute_of_hour": 35}`),
+			ExpectedNexts: []time.Time{time.Date(2020, 8, 20, 12, 35, 0, 0, la)},
+		},
+		{
+			Label:         "yearly repeat for past time",
+			Now:           time.Date(2019, 8, 20, 13, 57, 0, 0, la),
+			Timezone:      "America/Los_Angeles",
+			Schedule:      []byte(`{"repeat_period": "Y", "repeat_hour_of_day": 12, "repeat_minute_of_hour": 35}`),
+			ExpectedNexts: []time.Time{time.Date(2020, 8, 20, 12, 35, 0, 0, la)},
+		},
 	}
 
 	for _, tc := range tcs {
