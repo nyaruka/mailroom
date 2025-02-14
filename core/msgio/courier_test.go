@@ -81,6 +81,7 @@ func TestNewCourierMsg(t *testing.T) {
 			"image/jpeg:https://dl-foo.com/image.jpg"
 		],
 		"channel_uuid": "0f661e8b-ea9d-4bd3-9953-d368340acf91",
+		"contact": {"id": 10000, "urn": "tel:+16055741111", "urn_id": 10000},
 		"contact_id": 10000,
 		"contact_urn_id": 10000,
 		"created_on": "2021-11-09T14:03:30Z",
@@ -135,6 +136,7 @@ func TestNewCourierMsg(t *testing.T) {
 
 	createAndAssertCourierMsg(t, oa, msg2, cathyURNs[0], fmt.Sprintf(`{
 		"channel_uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8",
+		"contact": {"id": 10000, "urn": "tel:+16055741111", "urn_id": 10000, "last_seen_on": "2023-04-20T10:15:00Z"},
 		"contact_id": 10000,
 		"contact_last_seen_on": "2023-04-20T10:15:00Z",
 		"contact_urn_id": 10000,
@@ -167,6 +169,7 @@ func TestNewCourierMsg(t *testing.T) {
 
 	createAndAssertCourierMsg(t, oa, msg3, fredURNs[0], fmt.Sprintf(`{
 		"channel_uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8",
+		"contact": {"id": 30000, "urn": "tel:+593979123456", "urn_id": 30000},
 		"contact_id": 30000,
 		"contact_urn_id": 30000,
 		"created_on": "%s",
@@ -188,6 +191,7 @@ func TestNewCourierMsg(t *testing.T) {
 
 	createAndAssertCourierMsg(t, oa, msg4, cathyURNs[0], fmt.Sprintf(`{
 		"channel_uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8",
+		"contact": {"id": 10000, "urn": "tel:+16055741111", "urn_id": 10000},
 		"contact_id": 10000,
 		"contact_urn_id": 10000,
 		"created_on": "2021-11-09T14:03:30Z",

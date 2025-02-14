@@ -42,6 +42,14 @@ const (
 	MsgOriginChat      MsgOrigin = "chat"
 )
 
+type Contact struct {
+	ID         models.ContactID `json:"id"`
+	URN        urns.URN         `json:"urn"`
+	URNID      models.URNID     `json:"urn_id"`
+	URNAuth    string           `json:"urn_auth,omitempty"`
+	LastSeenOn *time.Time       `json:"last_seen_on,omitempty"`
+}
+
 type OptInRef struct {
 	ID   models.OptInID `json:"id"`
 	Name string         `json:"name"`
@@ -72,6 +80,7 @@ type Msg struct {
 	UUID                 flows.MsgUUID      `json:"uuid"`
 	OrgID                models.OrgID       `json:"org_id"`
 	Origin               MsgOrigin          `json:"origin"`
+	Contact              *Contact           `json:"contact"`
 	Text                 string             `json:"text"`
 	Attachments          []utils.Attachment `json:"attachments,omitempty"`
 	QuickReplies         []string           `json:"quick_replies,omitempty"`
@@ -81,19 +90,20 @@ type Msg struct {
 	MsgCount             int                `json:"tps_cost"`
 	CreatedOn            time.Time          `json:"created_on"`
 	ChannelUUID          assets.ChannelUUID `json:"channel_uuid"`
-	ContactID            models.ContactID   `json:"contact_id"`
-	ContactURNID         models.URNID       `json:"contact_urn_id"`
-	URN                  urns.URN           `json:"urn"`
-	URNAuth              string             `json:"urn_auth,omitempty"`
 	Metadata             map[string]any     `json:"metadata,omitempty"`
 	Flow                 *FlowRef           `json:"flow,omitempty"`
 	UserID               models.UserID      `json:"user_id,omitempty"`
 	OptIn                *OptInRef          `json:"optin,omitempty"`
 	ResponseToExternalID string             `json:"response_to_external_id,omitempty"`
 	IsResend             bool               `json:"is_resend,omitempty"`
+	Session              *Session           `json:"session,omitempty"`
 
-	ContactLastSeenOn *time.Time `json:"contact_last_seen_on,omitempty"`
-	Session           *Session   `json:"session,omitempty"`
+	// deprecated
+	ContactID         models.ContactID `json:"contact_id"`
+	ContactURNID      models.URNID     `json:"contact_urn_id"`
+	ContactLastSeenOn *time.Time       `json:"contact_last_seen_on,omitempty"`
+	URN               urns.URN         `json:"urn"`
+	URNAuth           string           `json:"urn_auth,omitempty"`
 }
 
 // NewCourierMsg creates a courier message in the format it's expecting to be queued
@@ -102,20 +112,30 @@ func NewCourierMsg(oa *models.OrgAssets, m *models.Msg, u *models.ContactURN, ch
 		ID:           m.ID(),
 		UUID:         m.UUID(),
 		OrgID:        m.OrgID(),
+		Contact:      &Contact{ID: m.ContactID(), URN: u.Identity, URNID: *m.ContactURNID(), URNAuth: string(u.AuthTokens["default"])},
 		Text:         m.Text(),
 		Attachments:  m.Attachments(),
 		Locale:       m.Locale(),
 		HighPriority: m.HighPriority(),
 		MsgCount:     m.MsgCount(),
 		CreatedOn:    m.CreatedOn(),
-		ContactID:    m.ContactID(),
-		ContactURNID: *m.ContactURNID(),
 		ChannelUUID:  ch.UUID(),
 		UserID:       m.CreatedByID(),
-		URN:          u.Identity,
-		URNAuth:      string(u.AuthTokens["default"]),
 		Metadata:     m.Metadata(),
 		IsResend:     m.IsResend,
+
+		// deprecated
+		ContactID:    m.ContactID(),
+		ContactURNID: *m.ContactURNID(),
+		URN:          u.Identity,
+		URNAuth:      string(u.AuthTokens["default"]),
+	}
+
+	if m.Contact != nil && m.Contact.LastSeenOn() != nil {
+		msg.Contact.LastSeenOn = m.Contact.LastSeenOn()
+
+		// deprecated
+		msg.ContactLastSeenOn = m.Contact.LastSeenOn()
 	}
 
 	msg.QuickReplies = make([]string, len(m.QuickReplies()))
@@ -161,10 +181,6 @@ func NewCourierMsg(oa *models.OrgAssets, m *models.Msg, u *models.ContactURN, ch
 				}
 			}
 		}
-	}
-
-	if m.Contact != nil && m.Contact.LastSeenOn() != nil {
-		msg.ContactLastSeenOn = m.Contact.LastSeenOn()
 	}
 
 	if m.Session != nil {
