@@ -459,7 +459,7 @@
                 "count": 1
             },
             {
-                "query": "SELECT count(*) FROM campaigns_eventfire WHERE contact_id = 10000",
+                "query": "SELECT count(*) FROM contacts_contactfire WHERE contact_id = 10000 AND fire_type = 'C'",
                 "count": 1
             }
         ]
@@ -726,7 +726,7 @@
                 "count": 0
             },
             {
-                "query": "SELECT count(*) FROM campaigns_eventfire WHERE contact_id = 10000",
+                "query": "SELECT count(*) FROM contacts_contactfire WHERE contact_id = 10000 AND fire_type = 'C'",
                 "count": 0
             }
         ]

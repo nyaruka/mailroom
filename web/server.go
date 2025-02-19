@@ -3,6 +3,7 @@ package web
 import (
 	"compress/flate"
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -151,7 +152,7 @@ func handleTestErrors(ctx context.Context, rt *runtime.Runtime, r *testErrorsReq
 		slog.Error(r.Log)
 	}
 	if r.Return != "" {
-		return nil, http.StatusInternalServerError, fmt.Errorf(r.Return)
+		return nil, http.StatusInternalServerError, errors.New(r.Return)
 	}
 	if r.Panic != "" {
 		panic(r.Panic)

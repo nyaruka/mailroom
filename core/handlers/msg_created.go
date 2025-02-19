@@ -15,43 +15,7 @@ import (
 )
 
 func init() {
-	models.RegisterEventPreWriteHandler(events.TypeMsgCreated, handlePreMsgCreated)
 	models.RegisterEventHandler(events.TypeMsgCreated, handleMsgCreated)
-}
-
-// handlePreMsgCreated clears our timeout on our session so that courier can send it when the message is sent, that will be set by courier when sent
-func handlePreMsgCreated(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *models.OrgAssets, scene *models.Scene, e flows.Event) error {
-	event := e.(*events.MsgCreatedEvent)
-
-	// we only clear timeouts on messaging flows
-	if scene.Session().SessionType() != models.FlowTypeMessaging {
-		return nil
-	}
-
-	// get our channel
-	var channel *models.Channel
-
-	if event.Msg.Channel() != nil {
-		channel = oa.ChannelByUUID(event.Msg.Channel().UUID)
-		if channel == nil {
-			return fmt.Errorf("unable to load channel with uuid: %s", event.Msg.Channel().UUID)
-		}
-	}
-
-	// no channel? this is a no-op
-	if channel == nil {
-		return nil
-	}
-
-	// android channels get normal timeouts
-	if channel.IsAndroid() {
-		return nil
-	}
-
-	// everybody else gets their timeout cleared, will be set by courier
-	scene.Session().ClearWaitTimeout(ctx, nil)
-
-	return nil
 }
 
 // handleMsgCreated creates the db msg for the passed in event

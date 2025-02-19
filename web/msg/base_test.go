@@ -23,7 +23,7 @@ func TestSend(t *testing.T) {
 		"cathy_ticket_id": fmt.Sprintf("%d", cathyTicket.ID),
 	})
 
-	testsuite.AssertCourierQueues(t, map[string][]int{"msgs:74729f45-7f29-4868-9dc4-90e491e3c7d8|10/1": {1, 1, 1}})
+	testsuite.AssertCourierQueues(t, map[string][]int{"msgs:74729f45-7f29-4868-9dc4-90e491e3c7d8|10/1": {1, 1, 1, 1}})
 }
 
 func TestHandle(t *testing.T) {
@@ -73,7 +73,7 @@ func TestBroadcast(t *testing.T) {
 	polls := testdata.InsertOptIn(rt, testdata.Org1, "Polls")
 
 	createRun := func(org *testdata.Org, contact *testdata.Contact, nodeUUID flows.NodeUUID) {
-		sessionID := testdata.InsertFlowSession(rt, org, contact, models.FlowTypeMessaging, models.SessionStatusWaiting, testdata.Favorites, models.NilCallID)
+		sessionID := testdata.InsertFlowSession(rt, contact, models.FlowTypeMessaging, models.SessionStatusWaiting, testdata.Favorites, models.NilCallID)
 		testdata.InsertFlowRun(rt, org, sessionID, contact, testdata.Favorites, models.RunStatusWaiting, nodeUUID)
 	}
 

@@ -61,7 +61,7 @@ func handleHandle(ctx context.Context, rt *runtime.Runtime, r *handleRequest) (a
 			attachments[i] = string(m.Attachments()[i])
 		}
 
-		err = handler.QueueTask(rc, m.OrgID(), m.ContactID(), &ctasks.MsgEventTask{
+		err = handler.QueueTask(rc, m.OrgID(), m.ContactID(), &ctasks.MsgReceivedTask{
 			ChannelID:     m.ChannelID(),
 			MsgID:         m.ID(),
 			MsgUUID:       m.UUID(),

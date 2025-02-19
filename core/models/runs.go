@@ -40,47 +40,34 @@ var runStatusMap = map[flows.RunStatus]RunStatus{
 
 // FlowRun is the mailroom type for a FlowRun
 type FlowRun struct {
-	ID              FlowRunID       `db:"id"`
-	UUID            flows.RunUUID   `db:"uuid"`
-	Status          RunStatus       `db:"status"`
-	CreatedOn       time.Time       `db:"created_on"`
-	ModifiedOn      time.Time       `db:"modified_on"`
-	ExitedOn        *time.Time      `db:"exited_on"`
-	Responded       bool            `db:"responded"`
-	Results         string          `db:"results"`
-	PathNodes       pq.StringArray  `db:"path_nodes"`
-	PathTimes       pq.GenericArray `db:"path_times"`
-	CurrentNodeUUID null.String     `db:"current_node_uuid"`
-	ContactID       ContactID       `db:"contact_id"`
-	FlowID          FlowID          `db:"flow_id"`
-	OrgID           OrgID           `db:"org_id"`
-	SessionID       SessionID       `db:"session_id"`
-	StartID         StartID         `db:"start_id"`
+	ID              FlowRunID         `db:"id"`
+	UUID            flows.RunUUID     `db:"uuid"`
+	Status          RunStatus         `db:"status"`
+	CreatedOn       time.Time         `db:"created_on"`
+	ModifiedOn      time.Time         `db:"modified_on"`
+	ExitedOn        *time.Time        `db:"exited_on"`
+	Responded       bool              `db:"responded"`
+	Results         string            `db:"results"`
+	PathNodes       pq.StringArray    `db:"path_nodes"`
+	PathTimes       pq.GenericArray   `db:"path_times"`
+	CurrentNodeUUID null.String       `db:"current_node_uuid"`
+	ContactID       ContactID         `db:"contact_id"`
+	FlowID          FlowID            `db:"flow_id"`
+	OrgID           OrgID             `db:"org_id"`
+	SessionID       SessionID         `db:"session_id"`
+	SessionUUID     flows.SessionUUID `db:"session_uuid"`
+	StartID         StartID           `db:"start_id"`
 
 	// we keep a reference to the engine's run
 	run flows.Run
 }
 
-// Step represents a single step in a run, this struct is used for serialization to the steps
-type Step struct {
-	UUID      flows.StepUUID `json:"uuid"`
-	NodeUUID  flows.NodeUUID `json:"node_uuid"`
-	ArrivedOn time.Time      `json:"arrived_on"`
-	ExitUUID  flows.ExitUUID `json:"exit_uuid,omitempty"`
-}
-
 // newRun creates a flow run we can save to the database
 func newRun(ctx context.Context, tx *sqlx.Tx, oa *OrgAssets, session *Session, fr flows.Run) (*FlowRun, error) {
 	// build our path elements
-	path := make([]Step, len(fr.Path()))
 	pathNodes := make(pq.StringArray, len(fr.Path()))
 	pathTimes := make([]time.Time, len(fr.Path()))
 	for i, p := range fr.Path() {
-		path[i].UUID = p.UUID()
-		path[i].NodeUUID = p.NodeUUID()
-		path[i].ArrivedOn = p.ArrivedOn()
-		path[i].ExitUUID = p.ExitUUID()
-
 		pathNodes[i] = string(p.NodeUUID())
 		pathTimes[i] = p.ArrivedOn()
 	}
@@ -91,25 +78,26 @@ func newRun(ctx context.Context, tx *sqlx.Tx, oa *OrgAssets, session *Session, f
 	}
 
 	r := &FlowRun{
-		UUID:       fr.UUID(),
-		Status:     runStatusMap[fr.Status()],
-		CreatedOn:  fr.CreatedOn(),
-		ExitedOn:   fr.ExitedOn(),
-		ModifiedOn: fr.ModifiedOn(),
-		ContactID:  ContactID(fr.Contact().ID()),
-		FlowID:     flowID,
-		OrgID:      oa.OrgID(),
-		SessionID:  session.ID(),
-		StartID:    NilStartID,
-		PathNodes:  pathNodes,
-		PathTimes:  pq.GenericArray{A: pathTimes},
-		Results:    string(jsonx.MustMarshal(fr.Results())),
+		UUID:        fr.UUID(),
+		Status:      runStatusMap[fr.Status()],
+		CreatedOn:   fr.CreatedOn(),
+		ExitedOn:    fr.ExitedOn(),
+		ModifiedOn:  fr.ModifiedOn(),
+		ContactID:   ContactID(fr.Contact().ID()),
+		FlowID:      flowID,
+		OrgID:       oa.OrgID(),
+		SessionID:   session.ID(),
+		SessionUUID: session.UUID(),
+		StartID:     NilStartID,
+		PathNodes:   pathNodes,
+		PathTimes:   pq.GenericArray{A: pathTimes},
+		Results:     string(jsonx.MustMarshal(fr.Results())),
 
 		run: fr,
 	}
 
-	if len(path) > 0 {
-		r.CurrentNodeUUID = null.String(path[len(path)-1].NodeUUID)
+	if len(pathNodes) > 0 {
+		r.CurrentNodeUUID = null.String(pathNodes[len(pathNodes)-1])
 	}
 
 	// mark ourselves as responded if we received a message
@@ -126,9 +114,9 @@ func newRun(ctx context.Context, tx *sqlx.Tx, oa *OrgAssets, session *Session, f
 const sqlInsertRun = `
 INSERT INTO
 flows_flowrun(uuid, created_on, modified_on, exited_on, status, responded, results, path_nodes, path_times,
-	          current_node_uuid, contact_id, flow_id, org_id, session_id, start_id)
+	          current_node_uuid, contact_id, flow_id, org_id, session_id, session_uuid, start_id)
 	   VALUES(:uuid, :created_on, NOW(), :exited_on, :status, :responded, :results, :path_nodes, :path_times,
-	          :current_node_uuid, :contact_id, :flow_id, :org_id, :session_id, :start_id)
+	          :current_node_uuid, :contact_id, :flow_id, :org_id, :session_id, :session_uuid, :start_id)
 RETURNING id
 `
 

@@ -28,8 +28,6 @@ func TestScheduleCampaignEvent(t *testing.T) {
 	// give alexandria a value in the past
 	rt.DB.MustExec(`UPDATE contacts_contact SET fields = '{"d83aae24-4bbf-49d0-ab85-6bfd201eac6d": {"datetime": "2015-01-01T00:00:00Z"}}' WHERE id = $1`, testdata.Alexandria.ID)
 
-	rt.DB.MustExec(`DELETE FROM campaigns_eventfire`)
-
 	// campaign has two events configured on the joined field
 	//  1. +5 Days (12:00) start favorites flow
 	//  2. +10 Minutes send message
@@ -93,16 +91,16 @@ func TestScheduleCampaignEvent(t *testing.T) {
 func assertContactFires(t *testing.T, db *sqlx.DB, eventID models.CampaignEventID, expected map[models.ContactID]time.Time) {
 	type idAndTime struct {
 		ContactID models.ContactID `db:"contact_id"`
-		Scheduled time.Time        `db:"scheduled"`
+		FireOn    time.Time        `db:"fire_on"`
 	}
 
 	actualAsSlice := make([]idAndTime, 0)
-	err := db.Select(&actualAsSlice, `SELECT contact_id, scheduled FROM campaigns_eventfire WHERE event_id = $1`, eventID)
+	err := db.Select(&actualAsSlice, `SELECT contact_id, fire_on FROM contacts_contactfire WHERE scope = $1::text`, eventID)
 	require.NoError(t, err)
 
 	actual := make(map[models.ContactID]time.Time)
 	for _, it := range actualAsSlice {
-		actual[it.ContactID] = it.Scheduled
+		actual[it.ContactID] = it.FireOn
 	}
 
 	assert.Equal(t, expected, actual)

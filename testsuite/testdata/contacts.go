@@ -2,6 +2,7 @@ package testdata
 
 import (
 	"context"
+	"time"
 
 	"github.com/nyaruka/gocommon/i18n"
 	"github.com/nyaruka/gocommon/jsonx"
@@ -103,6 +104,16 @@ func InsertContactURN(rt *runtime.Runtime, org *Org, contact *Contact, urn urns.
 	must(rt.DB.Get(&id,
 		`INSERT INTO contacts_contacturn(org_id, contact_id, scheme, path, display, identity, priority, auth_tokens) 
 		 VALUES($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`, org.ID, contactID, scheme, path, display, urn.Identity(), priority, jsonx.MustMarshal(authTokens),
+	))
+	return id
+}
+
+// InsertContactFire inserts a contact fire
+func InsertContactFire(rt *runtime.Runtime, org *Org, contact *Contact, typ models.ContactFireType, scope string, fireOn time.Time, sessionUUID flows.SessionUUID, extra map[string]any) models.ContactFireID {
+	var id models.ContactFireID
+	must(rt.DB.Get(&id,
+		`INSERT INTO contacts_contactfire(org_id, contact_id, fire_type, scope, fire_on, session_uuid, extra) 
+		 VALUES($1, $2, $3, $4, $5, $6, $7) RETURNING id`, org.ID, contact.ID, typ, scope, fireOn, null.String(sessionUUID), jsonx.MustMarshal(extra),
 	))
 	return id
 }

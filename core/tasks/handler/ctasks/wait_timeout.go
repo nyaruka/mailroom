@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"time"
 
+	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/engine"
 	"github.com/nyaruka/goflow/flows/resumes"
 	"github.com/nyaruka/mailroom/core/models"
@@ -15,19 +15,15 @@ import (
 	"github.com/nyaruka/mailroom/runtime"
 )
 
-const TypeWaitTimeout = "timeout_event"
+const TypeWaitTimeout = "wait_timeout"
 
 func init() {
 	handler.RegisterContactTask(TypeWaitTimeout, func() handler.Task { return &WaitTimeoutTask{} })
 }
 
 type WaitTimeoutTask struct {
-	SessionID models.SessionID `json:"session_id"`
-	Time      time.Time        `json:"time"`
-}
-
-func NewWaitTimeout(sessionID models.SessionID, time time.Time) *WaitTimeoutTask {
-	return &WaitTimeoutTask{SessionID: sessionID, Time: time}
+	SessionUUID flows.SessionUUID `json:"session_uuid"`
+	SprintUUID  flows.SprintUUID  `json:"sprint_uuid"`
 }
 
 func (t *WaitTimeoutTask) Type() string {
@@ -39,7 +35,7 @@ func (t *WaitTimeoutTask) UseReadOnly() bool {
 }
 
 func (t *WaitTimeoutTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contact *models.Contact) error {
-	log := slog.With("contact_id", contact.ID(), "session_id", t.SessionID)
+	log := slog.With("ctask", "wait_timeout", "contact_id", contact.ID(), "session_uuid", t.SessionUUID)
 
 	// build our flow contact
 	flowContact, err := contact.FlowContact(oa)
@@ -48,25 +44,18 @@ func (t *WaitTimeoutTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *
 	}
 
 	// look for a waiting session for this contact
-	session, err := models.FindWaitingSessionForContact(ctx, rt, oa, models.FlowTypeMessaging, flowContact)
+	session, err := models.GetWaitingSessionForContact(ctx, rt, oa, contact, flowContact)
 	if err != nil {
 		return fmt.Errorf("error loading waiting session for contact: %w", err)
 	}
 
-	// if we didn't find a session or it is another session then this session has already been interrupted
-	if session == nil || session.ID() != t.SessionID {
+	// if we didn't find a session or it is another session or if it's been modified since, ignore this task
+	if session == nil || session.UUID() != t.SessionUUID {
+		log.Debug("skipping as waiting session has changed")
 		return nil
 	}
-
-	if session.WaitTimeoutOn() == nil {
-		log.Info("ignoring session timeout, has no timeout set")
-		return nil
-	}
-
-	// check that the timeout is the same
-	timeout := *session.WaitTimeoutOn()
-	if !timeout.Equal(t.Time) {
-		log.Info("ignoring timeout, has been updated", "event_timeout", t.Time, "session_timeout", timeout)
+	if session.LastSprintUUID() != t.SprintUUID {
+		log.Info("skipping as session has been modified since", "session_sprint", session.LastSprintUUID(), "task_sprint", t.SprintUUID)
 		return nil
 	}
 
@@ -74,16 +63,10 @@ func (t *WaitTimeoutTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *
 
 	_, err = runner.ResumeFlow(ctx, rt, oa, session, contact, resume, nil)
 	if err != nil {
-		// if we errored, and it's the wait rejecting the timeout event, it's because it no longer exists on the flow, so clear it
-		// on the session
+		// if we errored, and it's the wait rejecting the timeout event because the flow no longer has a timeout, log and ignore
 		var eerr *engine.Error
 		if errors.As(err, &eerr) && eerr.Code() == engine.ErrorResumeRejectedByWait && resume.Type() == resumes.TypeWaitTimeout {
-			log.Info("clearing session timeout which is no longer set in flow")
-
-			if err := session.ClearWaitTimeout(ctx, rt.DB); err != nil {
-				return fmt.Errorf("error clearing session timeout: %w", err)
-			}
-
+			log.Info("ignoring session timeout which is no longer set in flow")
 			return nil
 		}
 

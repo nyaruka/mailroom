@@ -98,8 +98,13 @@ func handleIncoming(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 		return nil, svc.WriteErrorResponse(w, fmt.Errorf("unable to find URN in request: %w", err))
 	}
 
+	userID, err := models.GetSystemUserID(ctx, rt.DB.DB)
+	if err != nil {
+		return nil, svc.WriteErrorResponse(w, fmt.Errorf("unable to get system user id: %w", err))
+	}
+
 	// get the contact for this URN
-	contact, _, _, err := models.GetOrCreateContact(ctx, rt.DB, oa, []urns.URN{urn}, ch.ID())
+	contact, _, _, err := models.GetOrCreateContact(ctx, rt.DB, oa, userID, []urns.URN{urn}, ch.ID())
 	if err != nil {
 		return nil, svc.WriteErrorResponse(w, fmt.Errorf("unable to get contact by urn: %w", err))
 	}
@@ -126,7 +131,7 @@ func handleIncoming(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 	}
 
 	// create an incoming call "task" and handle it to see if we have a trigger
-	task := &ctasks.ChannelEventTask{
+	task := &ctasks.EventReceivedTask{
 		EventType: models.EventTypeIncomingCall,
 		ChannelID: ch.ID(),
 		URNID:     urnID,

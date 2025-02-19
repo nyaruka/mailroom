@@ -9,6 +9,7 @@ import (
 	"github.com/nyaruka/mailroom/core/hooks"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/runtime"
+	"github.com/nyaruka/null/v3"
 )
 
 func init() {
@@ -20,11 +21,24 @@ func handleSprintEnded(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa
 
 	slog.Debug("sprint ended", "contact", scene.ContactUUID(), "session", scene.SessionID())
 
-	// if we're in a flow type that can wait then contact current flow has potentially changed
-	currentFlowChanged := scene.Session().SessionType().Interrupts() && event.Contact.CurrentFlowID() != scene.Session().CurrentFlowID()
+	currentFlowChanged := false
 
-	if currentFlowChanged {
-		scene.AppendToEventPreCommitHook(hooks.CommitFlowChangesHook, scene.Session().CurrentFlowID())
+	// if we're in a flow type that can wait then contact current flow has potentially changed
+	if scene.Session().SessionType().Interrupts() {
+		var waitingSessionUUID flows.SessionUUID
+		if scene.Session().Status() == models.SessionStatusWaiting {
+			waitingSessionUUID = scene.Session().UUID()
+		}
+
+		currentFlowChanged = event.Contact.CurrentFlowID() != scene.Session().CurrentFlowID()
+
+		if event.Contact.CurrentSessionUUID() != waitingSessionUUID || currentFlowChanged {
+			scene.AppendToEventPreCommitHook(hooks.CommitSessionChangesHook, hooks.CurrentSessionUpdate{
+				ID:                 scene.ContactID(),
+				CurrentSessionUUID: null.String(waitingSessionUUID),
+				CurrentFlowID:      scene.Session().CurrentFlowID(),
+			})
+		}
 	}
 
 	// if current flow has changed then we need to update modified_on, but also if this is a new session

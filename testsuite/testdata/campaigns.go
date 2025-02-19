@@ -1,8 +1,6 @@
 package testdata
 
 import (
-	"time"
-
 	"github.com/nyaruka/gocommon/uuids"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/runtime"
@@ -42,12 +40,4 @@ func InsertCampaignFlowEvent(rt *runtime.Runtime, campaign *Campaign, flow *Flow
 		uuid, campaign.ID, flow.ID, relativeTo.ID, offset, unit,
 	))
 	return &CampaignEvent{id, uuid}
-}
-
-func InsertEventFire(rt *runtime.Runtime, contact *Contact, event *CampaignEvent, scheduled time.Time) models.FireID {
-	var id models.FireID
-	must(rt.DB.Get(&id,
-		`INSERT INTO campaigns_eventfire(contact_id, event_id, scheduled) VALUES ($1, $2, $3) RETURNING id;`, contact.ID, event.ID, scheduled,
-	))
-	return id
 }

@@ -47,7 +47,7 @@ func TestChannelLogsOutgoing(t *testing.T) {
 	require.NoError(t, err)
 
 	clog2.HTTP(trace2)
-	clog2.Error(clogs.NewLogError("", "", "oops"))
+	clog2.Error(&clogs.LogError{Message: "oops"})
 	clog2.End()
 
 	err = models.InsertChannelLogs(ctx, rt, []*models.ChannelLog{clog1, clog2})

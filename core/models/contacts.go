@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/dbutil"
@@ -91,35 +92,37 @@ func NewURNInvalidError(index int, cause error) error {
 
 // Contact is our mailroom struct that represents a contact
 type Contact struct {
-	id            ContactID
-	orgID         OrgID
-	uuid          flows.ContactUUID
-	name          string
-	language      i18n.Language
-	status        ContactStatus
-	fields        map[string]*flows.Value
-	groups        []*Group
-	urns          []urns.URN
-	ticket        *Ticket
-	createdOn     time.Time
-	modifiedOn    time.Time
-	lastSeenOn    *time.Time
-	currentFlowID FlowID
+	id                 ContactID
+	orgID              OrgID
+	uuid               flows.ContactUUID
+	name               string
+	language           i18n.Language
+	status             ContactStatus
+	fields             map[string]*flows.Value
+	groups             []*Group
+	urns               []urns.URN
+	ticket             *Ticket
+	createdOn          time.Time
+	modifiedOn         time.Time
+	lastSeenOn         *time.Time
+	currentSessionUUID flows.SessionUUID
+	currentFlowID      FlowID
 }
 
-func (c *Contact) ID() ContactID                   { return c.id }
-func (c *Contact) UUID() flows.ContactUUID         { return c.uuid }
-func (c *Contact) Name() string                    { return c.name }
-func (c *Contact) Language() i18n.Language         { return c.language }
-func (c *Contact) Status() ContactStatus           { return c.status }
-func (c *Contact) Fields() map[string]*flows.Value { return c.fields }
-func (c *Contact) Groups() []*Group                { return c.groups }
-func (c *Contact) URNs() []urns.URN                { return c.urns }
-func (c *Contact) Ticket() *Ticket                 { return c.ticket }
-func (c *Contact) CreatedOn() time.Time            { return c.createdOn }
-func (c *Contact) ModifiedOn() time.Time           { return c.modifiedOn }
-func (c *Contact) LastSeenOn() *time.Time          { return c.lastSeenOn }
-func (c *Contact) CurrentFlowID() FlowID           { return c.currentFlowID }
+func (c *Contact) ID() ContactID                         { return c.id }
+func (c *Contact) UUID() flows.ContactUUID               { return c.uuid }
+func (c *Contact) Name() string                          { return c.name }
+func (c *Contact) Language() i18n.Language               { return c.language }
+func (c *Contact) Status() ContactStatus                 { return c.status }
+func (c *Contact) Fields() map[string]*flows.Value       { return c.fields }
+func (c *Contact) Groups() []*Group                      { return c.groups }
+func (c *Contact) URNs() []urns.URN                      { return c.urns }
+func (c *Contact) Ticket() *Ticket                       { return c.ticket }
+func (c *Contact) CreatedOn() time.Time                  { return c.createdOn }
+func (c *Contact) ModifiedOn() time.Time                 { return c.modifiedOn }
+func (c *Contact) LastSeenOn() *time.Time                { return c.lastSeenOn }
+func (c *Contact) CurrentFlowID() FlowID                 { return c.currentFlowID }
+func (c *Contact) CurrentSessionUUID() flows.SessionUUID { return c.currentSessionUUID }
 
 // URNForID returns the flow URN for the passed in URN, return NilURN if not found
 func (c *Contact) URNForID(urnID URNID) urns.URN {
@@ -146,10 +149,9 @@ func (c *Contact) Stop(ctx context.Context, db DBorTx, oa *OrgAssets) error {
 		return fmt.Errorf("error removing stopped contact from groups: %w", err)
 	}
 
-	// remove all unfired campaign event fires
-	_, err = db.ExecContext(ctx, `DELETE FROM campaigns_eventfire WHERE contact_id = $1 AND fired IS NULL`, c.id)
-	if err != nil {
-		return fmt.Errorf("error deleting unfired event fires: %w", err)
+	// remove all campaign event fires
+	if err := DeleteAllCampaignContactFires(ctx, db, []ContactID{c.id}); err != nil {
+		return fmt.Errorf("error deleting campaign event fires: %w", err)
 	}
 
 	// remove the contact from any triggers
@@ -328,16 +330,17 @@ func LoadContacts(ctx context.Context, db Queryer, oa *OrgAssets, ids []ContactI
 		}
 
 		contact := &Contact{
-			id:            e.ID,
-			orgID:         e.OrgID,
-			uuid:          e.UUID,
-			name:          e.Name,
-			language:      e.Language,
-			status:        e.Status,
-			createdOn:     e.CreatedOn,
-			modifiedOn:    e.ModifiedOn,
-			lastSeenOn:    e.LastSeenOn,
-			currentFlowID: e.CurrentFlowID,
+			id:                 e.ID,
+			orgID:              e.OrgID,
+			uuid:               e.UUID,
+			name:               e.Name,
+			language:           e.Language,
+			status:             e.Status,
+			createdOn:          e.CreatedOn,
+			modifiedOn:         e.ModifiedOn,
+			lastSeenOn:         e.LastSeenOn,
+			currentSessionUUID: flows.SessionUUID(e.CurrentSessionUUID),
+			currentFlowID:      e.CurrentFlowID,
 		}
 
 		// load our real groups (exclude status groups)
@@ -525,10 +528,11 @@ type contactEnvelope struct {
 		TopicID    TopicID          `json:"topic_id"`
 		AssigneeID UserID           `json:"assignee_id"`
 	} `json:"tickets"`
-	CreatedOn     time.Time  `json:"created_on"`
-	ModifiedOn    time.Time  `json:"modified_on"`
-	LastSeenOn    *time.Time `json:"last_seen_on"`
-	CurrentFlowID FlowID     `json:"current_flow_id"`
+	CurrentSessionUUID null.String `json:"current_session_uuid"`
+	CurrentFlowID      FlowID      `json:"current_flow_id"`
+	LastSeenOn         *time.Time  `json:"last_seen_on"`
+	CreatedOn          time.Time   `json:"created_on"`
+	ModifiedOn         time.Time   `json:"modified_on"`
 }
 
 const sqlSelectContact = `
@@ -539,15 +543,15 @@ SELECT ROW_TO_JSON(r) FROM (SELECT
 	name,
 	language,
 	status,
-	is_active,
-	created_on,
-	modified_on,
-	last_seen_on,
-	current_flow_id,
 	fields,
 	g.groups AS group_ids,
 	u.urns AS urns,
-	t.tickets AS tickets
+	t.tickets AS tickets,
+	current_session_uuid,
+	current_flow_id,
+	last_seen_on,
+	created_on,
+	modified_on
 FROM
 	contacts_contact c
 LEFT JOIN (
@@ -583,9 +587,7 @@ LEFT JOIN (
 		contact_id
 ) t ON c.id = t.contact_id
 WHERE 
-	c.id = ANY($1) AND
-	is_active = TRUE AND
-	c.org_id = $2
+	c.id = ANY($1) AND is_active = TRUE AND c.org_id = $2
 ) r;
 `
 
@@ -643,14 +645,14 @@ func CreateContact(ctx context.Context, db DB, oa *OrgAssets, userID UserID, nam
 // * If URNs exist but are orphaned it creates a new contact and assigns those URNs to them.
 // * If URNs exists and belongs to a single contact it returns that contact (other URNs are not assigned to the contact).
 // * If URNs exists and belongs to multiple contacts it will return an error.
-func GetOrCreateContact(ctx context.Context, db DB, oa *OrgAssets, urnz []urns.URN, channelID ChannelID) (*Contact, *flows.Contact, bool, error) {
+func GetOrCreateContact(ctx context.Context, db DB, oa *OrgAssets, userID UserID, urnz []urns.URN, channelID ChannelID) (*Contact, *flows.Contact, bool, error) {
 	// ensure all URNs are normalized and valid
 	urnz, err := nornalizeAndValidateURNs(urnz)
 	if err != nil {
 		return nil, nil, false, err
 	}
 
-	contactID, created, err := getOrCreateContact(ctx, db, oa.OrgID(), urnz, channelID)
+	contactID, created, err := getOrCreateContact(ctx, db, oa.OrgID(), userID, urnz, channelID)
 	if err != nil {
 		return nil, nil, false, err
 	}
@@ -679,7 +681,7 @@ func GetOrCreateContact(ctx context.Context, db DB, oa *OrgAssets, urnz []urns.U
 
 // GetOrCreateContactsFromURNs will fetch or create the contacts for the passed in URNs, returning a map of the fetched
 // contacts and another map of the created contacts.
-func GetOrCreateContactsFromURNs(ctx context.Context, db DB, oa *OrgAssets, urnz []urns.URN) (map[urns.URN]*Contact, map[urns.URN]*Contact, error) {
+func GetOrCreateContactsFromURNs(ctx context.Context, db DB, oa *OrgAssets, userID UserID, urnz []urns.URN) (map[urns.URN]*Contact, map[urns.URN]*Contact, error) {
 	// ensure all URNs are normalized and valid
 	urnz, err := nornalizeAndValidateURNs(urnz)
 	if err != nil {
@@ -698,7 +700,7 @@ func GetOrCreateContactsFromURNs(ctx context.Context, db DB, oa *OrgAssets, urnz
 	// create any contacts that are missing
 	for urn, contact := range owners {
 		if contact == nil {
-			contact, _, _, err := GetOrCreateContact(ctx, db, oa, []urns.URN{urn}, NilChannelID)
+			contact, _, _, err := GetOrCreateContact(ctx, db, oa, userID, []urns.URN{urn}, NilChannelID)
 			if err != nil {
 				return nil, nil, fmt.Errorf("error creating contact: %w", err)
 			}
@@ -775,7 +777,7 @@ func contactsFromURNs(ctx context.Context, db Queryer, oa *OrgAssets, urnz []urn
 	return byURN, nil
 }
 
-func getOrCreateContact(ctx context.Context, db DB, orgID OrgID, urnz []urns.URN, channelID ChannelID) (ContactID, bool, error) {
+func getOrCreateContact(ctx context.Context, db DB, orgID OrgID, userID UserID, urnz []urns.URN, channelID ChannelID) (ContactID, bool, error) {
 	// find current owners of these URNs
 	owners, err := GetContactIDsFromURNs(ctx, db, orgID, urnz)
 	if err != nil {
@@ -789,7 +791,7 @@ func getOrCreateContact(ctx context.Context, db DB, orgID OrgID, urnz []urns.URN
 		return uniqueOwners[0], false, nil
 	}
 
-	contactID, err := tryInsertContactAndURNs(ctx, db, orgID, UserID(1), "", i18n.NilLanguage, ContactStatusActive, urnz, channelID)
+	contactID, err := tryInsertContactAndURNs(ctx, db, orgID, userID, "", i18n.NilLanguage, ContactStatusActive, urnz, channelID)
 	if err == nil {
 		return contactID, true, nil
 	}
@@ -1035,23 +1037,20 @@ func CalculateDynamicGroups(ctx context.Context, db DBorTx, oa *OrgAssets, conta
 		}
 	}
 
-	err := AddContactsToGroups(ctx, db, groupAdds)
-	if err != nil {
+	if err := AddContactsToGroups(ctx, db, groupAdds); err != nil {
 		return fmt.Errorf("error adding contact to groups: %w", err)
 	}
-	err = RemoveContactsFromGroups(ctx, db, groupRemoves)
-	if err != nil {
+	if err := RemoveContactsFromGroups(ctx, db, groupRemoves); err != nil {
 		return fmt.Errorf("error removing contact from group: %w", err)
 	}
 
-	// clear any unfired campaign events for this contact
-	err = DeleteUnfiredContactEvents(ctx, db, contactIDs)
-	if err != nil {
-		return fmt.Errorf("error deleting unfired events: %w", err)
+	// delete any existing campaign event fires for these contacts
+	if err := DeleteAllCampaignContactFires(ctx, db, contactIDs); err != nil {
+		return fmt.Errorf("error deleting campaign event fires: %w", err)
 	}
 
-	// for each campaign figure out if we need to be added to any events
-	fireAdds := make([]*FireAdd, 0, 2*len(contacts))
+	// for each campaign calculate the new campaign event fires
+	newFires := make([]*ContactFire, 0, 2*len(contacts))
 	tz := oa.Env().Timezone()
 	now := time.Now()
 
@@ -1065,20 +1064,14 @@ func CalculateDynamicGroups(ctx context.Context, db DBorTx, oa *OrgAssets, conta
 				}
 
 				if scheduled != nil {
-					fireAdds = append(fireAdds, &FireAdd{
-						ContactID: ContactID(contact.ID()),
-						EventID:   ce.ID(),
-						Scheduled: *scheduled,
-					})
+					newFires = append(newFires, NewContactFireForCampaign(oa.OrgID(), ContactID(contact.ID()), ce.ID(), *scheduled))
 				}
 			}
 		}
 	}
 
-	// add any event adds
-	err = AddEventFires(ctx, db, fireAdds)
-	if err != nil {
-		return fmt.Errorf("unable to add new event fires for contact: %w", err)
+	if err := InsertContactFires(ctx, db, newFires); err != nil {
+		return fmt.Errorf("error inserting new campaign event fires: %w", err)
 	}
 
 	return nil
@@ -1307,6 +1300,15 @@ func UpdateContactURNs(ctx context.Context, db DBorTx, oa *OrgAssets, changes []
 
 	// NOTE: caller needs to update modified on for this contact
 	return affected, nil
+}
+
+func FilterContactIDsByNotInFlow(ctx context.Context, db *sqlx.DB, contacts []ContactID) ([]ContactID, error) {
+	var filtered []ContactID
+
+	if err := db.SelectContext(ctx, &filtered, `SELECT id FROM contacts_contact WHERE id = ANY($1) AND current_flow_id IS NULL`, pq.Array(contacts)); err != nil {
+		return nil, fmt.Errorf("error filtering contacts by not in flow: %w", err)
+	}
+	return filtered, nil
 }
 
 // urnUpdate is our object that represents a single contact URN update

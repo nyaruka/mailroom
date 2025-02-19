@@ -72,7 +72,7 @@ func TestNewOutgoingFlowMsg(t *testing.T) {
 			Contact: testdata.Cathy,
 			URN:     urns.URN(fmt.Sprintf("tel:+250700000001?id=%d", testdata.Cathy.URNID)),
 			URNID:   testdata.Cathy.URNID,
-			Content: &flows.MsgContent{Text: "test outgoing", QuickReplies: []string{"yes", "no"}},
+			Content: &flows.MsgContent{Text: "test outgoing", QuickReplies: []flows.QuickReply{{Text: "yes"}, {Text: "no"}}},
 			Templating: flows.NewMsgTemplating(
 				assets.NewTemplateReference("9c22b594-fcab-4b29-9bcb-ce4404894a80", "revive_issue"),
 				[]*flows.TemplatingComponent{{Type: "body", Name: "body", Variables: map[string]int{"1": 0}}},
@@ -163,7 +163,7 @@ func TestNewOutgoingFlowMsg(t *testing.T) {
 
 		flow, _ := oa.FlowByID(tc.Flow.ID)
 
-		session := insertTestSession(t, ctx, rt, testdata.Org1, tc.Contact)
+		session := insertTestSession(t, ctx, rt, tc.Contact)
 		if tc.ResponseTo != models.NilMsgID {
 			session.SetIncomingMsg(tc.ResponseTo, null.NullString)
 		}
@@ -177,6 +177,10 @@ func TestNewOutgoingFlowMsg(t *testing.T) {
 		if expectedAttachments == nil {
 			expectedAttachments = []utils.Attachment{}
 		}
+		expectedQuickReplies := tc.Content.QuickReplies
+		if expectedQuickReplies == nil {
+			expectedQuickReplies = []flows.QuickReply{}
+		}
 
 		err = models.InsertMessages(ctx, rt.DB, []*models.Msg{msg})
 		assert.NoError(t, err)
@@ -184,7 +188,7 @@ func TestNewOutgoingFlowMsg(t *testing.T) {
 		assert.Equal(t, tc.Content.Text, msg.Text(), "%d: text mismatch", i)
 		assert.Equal(t, models.MsgTypeText, msg.Type(), "%d: type mismatch", i)
 		assert.Equal(t, expectedAttachments, msg.Attachments(), "%d: attachments mismatch", i)
-		assert.Equal(t, tc.Content.QuickReplies, msg.QuickReplies(), "%d: quick replies mismatch", i)
+		assert.Equal(t, expectedQuickReplies, msg.QuickReplies(), "%d: quick replies mismatch", i)
 		assert.Equal(t, tc.Locale, msg.Locale(), "%d: locale mismatch", i)
 
 		if tc.Templating != nil {
@@ -222,7 +226,7 @@ func TestNewOutgoingFlowMsg(t *testing.T) {
 	require.NoError(t, err)
 	channel := oa.ChannelByUUID(testdata.TwilioChannel.UUID)
 	flow, _ := oa.FlowByID(testdata.Favorites.ID)
-	session := insertTestSession(t, ctx, rt, testdata.Org1, testdata.Cathy)
+	session := insertTestSession(t, ctx, rt, testdata.Cathy)
 
 	// check that msg loop detection triggers after 20 repeats of the same text
 	newOutgoing := func(text string) *models.Msg {
@@ -574,7 +578,7 @@ func TestMsgTemplating(t *testing.T) {
 	defer testsuite.Reset(testsuite.ResetData)
 
 	oa := testdata.Org1.Load(rt)
-	session := insertTestSession(t, ctx, rt, testdata.Org1, testdata.Cathy)
+	session := insertTestSession(t, ctx, rt, testdata.Cathy)
 	channel := oa.ChannelByUUID(testdata.FacebookChannel.UUID)
 	chRef := assets.NewChannelReference(testdata.FacebookChannel.UUID, "FB")
 	flow, _ := oa.FlowByID(testdata.Favorites.ID)
@@ -618,15 +622,15 @@ func TestMsgTemplating(t *testing.T) {
 	assert.Nil(t, s.Templating)
 }
 
-func insertTestSession(t *testing.T, ctx context.Context, rt *runtime.Runtime, org *testdata.Org, contact *testdata.Contact) *models.Session {
-	testdata.InsertWaitingSession(rt, org, contact, models.FlowTypeMessaging, testdata.Favorites, models.NilCallID, time.Now(), time.Now(), false, nil)
+func insertTestSession(t *testing.T, ctx context.Context, rt *runtime.Runtime, contact *testdata.Contact) *models.Session {
+	testdata.InsertWaitingSession(rt, contact, models.FlowTypeMessaging, testdata.Favorites, models.NilCallID)
 
 	oa, err := models.GetOrgAssets(ctx, rt, testdata.Org1.ID)
 	require.NoError(t, err)
 
-	_, flowContact, _ := contact.Load(rt, oa)
+	mc, fc, _ := contact.Load(rt, oa)
 
-	session, err := models.FindWaitingSessionForContact(ctx, rt, oa, models.FlowTypeMessaging, flowContact)
+	session, err := models.GetWaitingSessionForContact(ctx, rt, oa, mc, fc)
 	require.NoError(t, err)
 
 	return session

@@ -21,13 +21,13 @@ import (
 	"github.com/nyaruka/null/v3"
 )
 
-const TypeMsgEvent = "msg_event"
+const TypeMsgReceived = "msg_received"
 
 func init() {
-	handler.RegisterContactTask(TypeMsgEvent, func() handler.Task { return &MsgEventTask{} })
+	handler.RegisterContactTask(TypeMsgReceived, func() handler.Task { return &MsgReceivedTask{} })
 }
 
-type MsgEventTask struct {
+type MsgReceivedTask struct {
 	MsgID         models.MsgID     `json:"msg_id"`
 	MsgUUID       flows.MsgUUID    `json:"msg_uuid"`
 	MsgExternalID null.String      `json:"msg_external_id"`
@@ -39,15 +39,15 @@ type MsgEventTask struct {
 	NewContact    bool             `json:"new_contact"`
 }
 
-func (t *MsgEventTask) Type() string {
-	return TypeMsgEvent
+func (t *MsgReceivedTask) Type() string {
+	return TypeMsgReceived
 }
 
-func (t *MsgEventTask) UseReadOnly() bool {
+func (t *MsgReceivedTask) UseReadOnly() bool {
 	return !t.NewContact
 }
 
-func (t *MsgEventTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contact *models.Contact) error {
+func (t *MsgReceivedTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contact *models.Contact) error {
 	channel := oa.ChannelByID(t.ChannelID)
 
 	// fetch the attachments on the message (i.e. ask courier to fetch them)
@@ -81,10 +81,21 @@ func (t *MsgEventTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *mod
 		return nil
 	}
 
+	// flow will only see the attachments we were able to fetch
+	availableAttachments := make([]utils.Attachment, 0, len(attachments))
+	for _, att := range attachments {
+		if att.ContentType() != utils.UnavailableType {
+			availableAttachments = append(availableAttachments, att)
+		}
+	}
+
+	msgIn := flows.NewMsgIn(t.MsgUUID, t.URN, channel.Reference(), t.Text, availableAttachments)
+	msgIn.SetExternalID(string(t.MsgExternalID))
+	msgIn.SetID(flows.MsgID(t.MsgID))
+
 	// if we have URNs make sure the message URN is our highest priority (this is usually a noop)
 	if len(contact.URNs()) > 0 {
-		err := contact.UpdatePreferredURN(ctx, rt.DB, oa, t.URNID, channel)
-		if err != nil {
+		if err := contact.UpdatePreferredURN(ctx, rt.DB, oa, t.URNID, channel); err != nil {
 			return fmt.Errorf("error changing primary URN: %w", err)
 		}
 	}
@@ -92,8 +103,7 @@ func (t *MsgEventTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *mod
 	// stopped contact? they are unstopped if they send us an incoming message
 	recalcGroups := t.NewContact
 	if contact.Status() == models.ContactStatusStopped {
-		err := contact.Unstop(ctx, rt.DB)
-		if err != nil {
+		if err := contact.Unstop(ctx, rt.DB); err != nil {
 			return fmt.Errorf("error unstopping contact: %w", err)
 		}
 
@@ -124,38 +134,31 @@ func (t *MsgEventTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *mod
 	trigger, keyword := models.FindMatchingMsgTrigger(oa, channel, flowContact, t.Text)
 
 	// look for a waiting session for this contact
-	session, err := models.FindWaitingSessionForContact(ctx, rt, oa, models.FlowTypeMessaging, flowContact)
+	session, err := models.GetWaitingSessionForContact(ctx, rt, oa, contact, flowContact)
 	if err != nil {
 		return fmt.Errorf("error loading active session for contact: %w", err)
 	}
 
-	// we have a session and it has an active flow, check whether we should honor triggers
 	var flow *models.Flow
-	if session != nil && session.CurrentFlowID() != models.NilFlowID {
-		flow, err = oa.FlowByID(session.CurrentFlowID())
 
-		// flow this session is in is gone, interrupt our session and reset it
-		if err == models.ErrNotFound {
-			err = models.ExitSessions(ctx, rt.DB, []models.SessionID{session.ID()}, models.SessionStatusFailed)
+	if session != nil {
+		// if we have a waiting voice session, we want to leave it as is and let this message be handled as inbox below
+		if session.SessionType() == models.FlowTypeVoice {
 			session = nil
-		}
-
-		if err != nil {
-			return fmt.Errorf("error loading flow for session: %w", err)
+			trigger = nil
+		} else {
+			// get the flow to be resumed and if it's gone, end the session
+			flow, err = oa.FlowByID(session.CurrentFlowID())
+			if err == models.ErrNotFound {
+				if err := models.ExitSessions(ctx, rt.DB, []models.SessionID{session.ID()}, models.SessionStatusFailed); err != nil {
+					return fmt.Errorf("error ending session #%d: %w", session.ID(), err)
+				}
+				session = nil
+			} else if err != nil {
+				return fmt.Errorf("error loading flow for session: %w", err)
+			}
 		}
 	}
-
-	// flow will only see the attachments we were able to fetch
-	availableAttachments := make([]utils.Attachment, 0, len(attachments))
-	for _, att := range attachments {
-		if att.ContentType() != utils.UnavailableType {
-			availableAttachments = append(availableAttachments, att)
-		}
-	}
-
-	msgIn := flows.NewMsgIn(t.MsgUUID, t.URN, channel.Reference(), t.Text, availableAttachments)
-	msgIn.SetExternalID(string(t.MsgExternalID))
-	msgIn.SetID(flows.MsgID(t.MsgID))
 
 	// build our hook to mark a flow message as handled
 	flowMsgHook := func(ctx context.Context, tx *sqlx.Tx, rp *redis.Pool, oa *models.OrgAssets, sessions []*models.Session) error {
@@ -217,8 +220,7 @@ func (t *MsgEventTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *mod
 	}
 
 	// this message didn't trigger and new sessions or resume any existing ones, so handle as inbox
-	err = handleAsInbox(ctx, rt, oa, flowContact, msgIn, attachments, logUUIDs, ticket)
-	if err != nil {
+	if err = handleAsInbox(ctx, rt, oa, flowContact, msgIn, attachments, logUUIDs, ticket); err != nil {
 		return fmt.Errorf("error handling inbox message: %w", err)
 	}
 	return nil

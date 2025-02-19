@@ -177,7 +177,6 @@ func (m *Msg) TicketID() TicketID       { return m.m.TicketID }
 func (m *Msg) CreatedByID() UserID      { return m.m.CreatedByID }
 
 func (m *Msg) Text() string                  { return m.m.Text }
-func (m *Msg) QuickReplies() []string        { return m.m.QuickReplies }
 func (m *Msg) Locale() i18n.Locale           { return m.m.Locale }
 func (m *Msg) Templating() *Templating       { return m.m.Templating }
 func (m *Msg) HighPriority() bool            { return m.m.HighPriority }
@@ -235,6 +234,14 @@ func (m *Msg) Attachments() []utils.Attachment {
 		attachments[i] = utils.Attachment(m.m.Attachments[i])
 	}
 	return attachments
+}
+
+func (m *Msg) QuickReplies() []flows.QuickReply {
+	qrs := make([]flows.QuickReply, len(m.m.QuickReplies))
+	for i := range m.m.QuickReplies {
+		qrs[i] = flows.QuickReply{Text: m.m.QuickReplies[i]}
+	}
+	return qrs
 }
 
 // NewIncomingAndroid creates a new incoming message from an Android relayer sync.
@@ -319,11 +326,11 @@ func NewOutgoingIVR(cfg *runtime.Config, orgID OrgID, call *Call, out *flows.Msg
 }
 
 // NewOutgoingOptInMsg creates an outgoing optin message
-func NewOutgoingOptInMsg(rt *runtime.Runtime, session *Session, flow *Flow, optIn *OptIn, channel *Channel, urn urns.URN, createdOn time.Time) *Msg {
+func NewOutgoingOptInMsg(rt *runtime.Runtime, orgID OrgID, session *Session, flow *Flow, optIn *OptIn, channel *Channel, urn urns.URN, createdOn time.Time) *Msg {
 	msg := &Msg{}
 	m := &msg.m
 	m.UUID = flows.MsgUUID(uuids.NewV4())
-	m.OrgID = session.OrgID()
+	m.OrgID = orgID
 	m.ContactID = session.ContactID()
 	m.HighPriority = session.IncomingMsgID() != NilMsgID
 	m.Direction = DirectionOut
@@ -378,7 +385,6 @@ func newOutgoingTextMsg(rt *runtime.Runtime, org *Org, channel *Channel, contact
 	m.BroadcastID = broadcastID
 	m.TicketID = ticketID
 	m.Text = out.Text()
-	m.QuickReplies = out.QuickReplies()
 	m.Locale = out.Locale()
 	m.OptInID = optInID
 	m.HighPriority = false
@@ -398,10 +404,15 @@ func newOutgoingTextMsg(rt *runtime.Runtime, org *Org, channel *Channel, contact
 	msg.SetChannel(channel)
 	msg.SetURN(out.URN())
 
-	// if we have attachments, add them
+	// if we have attachments/quick replies, add them
 	if len(out.Attachments()) > 0 {
 		for _, a := range out.Attachments() {
 			m.Attachments = append(m.Attachments, string(NormalizeAttachment(rt.Config, a)))
+		}
+	}
+	if len(out.QuickReplies()) > 0 {
+		for _, qr := range out.QuickReplies() {
+			m.QuickReplies = append(m.QuickReplies, qr.Text)
 		}
 	}
 
@@ -801,7 +812,7 @@ func CreateMsgOut(rt *runtime.Runtime, oa *OrgAssets, c *flows.Contact, content 
 			content.Attachments[i] = utils.Attachment(evaluated)
 		}
 		for i := range content.QuickReplies {
-			content.QuickReplies[i], _, _ = ev.Template(oa.Env(), expressionsContext, content.QuickReplies[i], nil)
+			content.QuickReplies[i].Text, _, _ = ev.Template(oa.Env(), expressionsContext, content.QuickReplies[i].Text, nil)
 		}
 		for i := range templateVariables {
 			templateVariables[i], _, _ = ev.Template(oa.Env(), expressionsContext, templateVariables[i], nil)

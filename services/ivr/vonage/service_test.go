@@ -101,27 +101,27 @@ func TestResponseForSprint(t *testing.T) {
 		{
 			[]flows.Event{
 				events.NewIVRCreated(flows.NewIVRMsgOut(urn, channelRef, "enter a number", "", "")),
-				events.NewMsgWait(nil, nil, hints.NewFixedDigitsHint(1)),
+				events.NewMsgWait(nil, expiresOn, hints.NewFixedDigitsHint(1)),
 			},
 			`[{"action":"talk","text":"enter a number","bargeIn":true},{"action":"input","maxDigits":1,"submitOnHash":true,"timeOut":30,"eventUrl":["http://temba.io/resume?session=1\u0026wait_type=gather\u0026sig=4Yil1wUntXd%2F7AQx%2Bt0rkwihx%2Fg%3D"],"eventMethod":"POST"}]`,
 		},
 		{
 			[]flows.Event{
 				events.NewIVRCreated(flows.NewIVRMsgOut(urn, channelRef, "enter a number, then press #", "", "")),
-				events.NewMsgWait(nil, nil, hints.NewTerminatedDigitsHint("#")),
+				events.NewMsgWait(nil, expiresOn, hints.NewTerminatedDigitsHint("#")),
 			},
 			`[{"action":"talk","text":"enter a number, then press #","bargeIn":true},{"action":"input","maxDigits":20,"submitOnHash":true,"timeOut":30,"eventUrl":["http://temba.io/resume?session=1\u0026wait_type=gather\u0026sig=4Yil1wUntXd%2F7AQx%2Bt0rkwihx%2Fg%3D"],"eventMethod":"POST"}]`,
 		},
 		{
 			[]flows.Event{
 				events.NewIVRCreated(flows.NewIVRMsgOut(urn, channelRef, "say something", "", "")),
-				events.NewMsgWait(nil, nil, hints.NewAudioHint()),
+				events.NewMsgWait(nil, expiresOn, hints.NewAudioHint()),
 			},
 			`[{"action":"talk","text":"say something"},{"action":"record","endOnKey":"#","timeOut":600,"endOnSilence":5,"eventUrl":["http://temba.io/resume?session=1\u0026wait_type=recording_url\u0026recording_uuid=f3ede2d6-becc-4ea3-ae5e-88526a9f4a57\u0026sig=1M351E3KlL5x2ZHZKCdWaQYP98g%3D"],"eventMethod":"POST"},{"action":"input","submitOnHash":true,"timeOut":1,"eventUrl":["http://temba.io/resume?session=1\u0026wait_type=record\u0026recording_uuid=f3ede2d6-becc-4ea3-ae5e-88526a9f4a57\u0026sig=deq3V%2BVVIHFMwboNhIxSpnVjAUQ%3D"],"eventMethod":"POST"}]`,
 		},
 		{
 			[]flows.Event{
-				events.NewDialWait(urns.URN(`tel:+1234567890`), 60, 7200, &expiresOn),
+				events.NewDialWait(urns.URN(`tel:+1234567890`), 60, 7200, expiresOn),
 			},
 			`[{"action":"conversation","name":"8bcb9ef2-d4a6-4314-b68d-6d299761ea9e"}]`,
 		},

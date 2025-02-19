@@ -129,7 +129,7 @@ func HangupCall(ctx context.Context, rt *runtime.Runtime, call *models.Call) (*m
 		clog.HTTP(trace)
 	}
 	if err != nil {
-		clog.Error(clogs.NewLogError("", "", err.Error()))
+		clog.Error(&clogs.LogError{Message: err.Error()})
 	}
 
 	if err := call.AttachLog(ctx, rt.DB, clog); err != nil {
@@ -261,7 +261,7 @@ func RequestStartForCall(ctx context.Context, rt *runtime.Runtime, channel *mode
 		clog.HTTP(trace)
 	}
 	if err != nil {
-		clog.Error(clogs.NewLogError("", "", err.Error()))
+		clog.Error(&clogs.LogError{Message: err.Error()})
 
 		// set our status as errored
 		err := call.UpdateStatus(ctx, rt.DB, models.CallStatusFailed, 0, time.Now())
@@ -411,20 +411,20 @@ func ResumeIVRFlow(
 		return fmt.Errorf("error creating flow contact: %w", err)
 	}
 
-	session, err := models.FindWaitingSessionForContact(ctx, rt, oa, models.FlowTypeVoice, contact)
+	session, err := models.GetWaitingSessionForContact(ctx, rt, oa, c, contact)
 	if err != nil {
 		return fmt.Errorf("error loading session for contact: %w", err)
 	}
 
-	if session == nil {
+	if session == nil || session.SessionType() != models.FlowTypeVoice {
 		return HandleAsFailure(ctx, rt.DB, svc, call, w, fmt.Errorf("no active IVR session for contact"))
 	}
 
-	if session.CallID() == nil {
+	if session.CallID() == models.NilCallID {
 		return HandleAsFailure(ctx, rt.DB, svc, call, w, fmt.Errorf("active session: %d has no call", session.ID()))
 	}
-	if *session.CallID() != call.ID() {
-		return HandleAsFailure(ctx, rt.DB, svc, call, w, fmt.Errorf("active session: %d does not match call: %d", session.ID(), *session.CallID()))
+	if session.CallID() != call.ID() {
+		return HandleAsFailure(ctx, rt.DB, svc, call, w, fmt.Errorf("active session: %d does not match call: %d", session.ID(), session.CallID()))
 	}
 
 	// check if call has been marked as errored - it maybe have been updated by status callback
@@ -478,7 +478,7 @@ func ResumeIVRFlow(
 	var svcErr error
 	switch res := ivrResume.(type) {
 	case InputResume:
-		resume, svcErr, err = buildMsgResume(ctx, rt, svc, channel, contact, urn, call, oa, r, res)
+		resume, svcErr, err = buildMsgResume(ctx, rt, svc, channel, contact, urn, call, oa, res)
 		if resume != nil {
 			session.SetIncomingMsg(models.MsgID(resume.(*resumes.MsgResume).Msg().ID()), null.NullString)
 		}
@@ -530,7 +530,7 @@ func buildDialResume(oa *models.OrgAssets, contact *flows.Contact, resume DialRe
 func buildMsgResume(
 	ctx context.Context, rt *runtime.Runtime,
 	svc Service, channel *models.Channel, contact *flows.Contact, urn urns.URN,
-	call *models.Call, oa *models.OrgAssets, r *http.Request, resume InputResume) (flows.Resume, error, error) {
+	call *models.Call, oa *models.OrgAssets, resume InputResume) (flows.Resume, error, error) {
 	// our msg UUID
 	msgUUID := flows.MsgUUID(uuids.NewV4())
 

@@ -26,9 +26,9 @@ func TestChannelEvents(t *testing.T) {
 
 	defer testsuite.Reset(testsuite.ResetAll)
 
-	// schedule an event for cathy and george
-	testdata.InsertEventFire(rt, testdata.Cathy, testdata.RemindersEvent1, time.Now())
-	testdata.InsertEventFire(rt, testdata.George, testdata.RemindersEvent1, time.Now())
+	// schedule a campaign event for cathy and george
+	testdata.InsertContactFire(rt, testdata.Org1, testdata.Cathy, models.ContactFireTypeCampaign, fmt.Sprint(testdata.RemindersEvent1), time.Now(), "", map[string]any{})
+	testdata.InsertContactFire(rt, testdata.Org1, testdata.George, models.ContactFireTypeCampaign, fmt.Sprint(testdata.RemindersEvent1), time.Now(), "", map[string]any{})
 
 	// and george to doctors group, cathy is already part of it
 	rt.DB.MustExec(`INSERT INTO contacts_contactgroup_contacts(contactgroup_id, contact_id) VALUES($1, $2);`, testdata.DoctorsGroup.ID, testdata.George.ID)
@@ -60,7 +60,7 @@ func TestChannelEvents(t *testing.T) {
 	}{
 		{ // 0: new conversation on Facebook
 			contact: testdata.Cathy,
-			task: &ctasks.ChannelEventTask{
+			task: &ctasks.EventReceivedTask{
 				EventID:    eventID,
 				EventType:  models.EventTypeNewConversation,
 				ChannelID:  testdata.FacebookChannel.ID,
@@ -75,7 +75,7 @@ func TestChannelEvents(t *testing.T) {
 		},
 		{ // 1: new conversation on Vonage (no trigger)
 			contact: testdata.Cathy,
-			task: &ctasks.ChannelEventTask{
+			task: &ctasks.EventReceivedTask{
 				EventID:    eventID,
 				EventType:  models.EventTypeNewConversation,
 				ChannelID:  testdata.VonageChannel.ID,
@@ -90,7 +90,7 @@ func TestChannelEvents(t *testing.T) {
 		},
 		{ // 2: welcome message on Vonage
 			contact: testdata.Cathy,
-			task: &ctasks.ChannelEventTask{
+			task: &ctasks.EventReceivedTask{
 				EventID:    eventID,
 				EventType:  models.EventTypeWelcomeMessage,
 				ChannelID:  testdata.VonageChannel.ID,
@@ -105,7 +105,7 @@ func TestChannelEvents(t *testing.T) {
 		},
 		{ // 3: referral on Facebook
 			contact: testdata.Cathy,
-			task: &ctasks.ChannelEventTask{
+			task: &ctasks.EventReceivedTask{
 				EventID:    eventID,
 				EventType:  models.EventTypeReferral,
 				ChannelID:  testdata.FacebookChannel.ID,
@@ -120,7 +120,7 @@ func TestChannelEvents(t *testing.T) {
 		},
 		{ // 4: referral on Facebook
 			contact: testdata.Cathy,
-			task: &ctasks.ChannelEventTask{
+			task: &ctasks.EventReceivedTask{
 				EventID:    eventID,
 				EventType:  models.EventTypeReferral,
 				ChannelID:  testdata.VonageChannel.ID,
@@ -135,7 +135,7 @@ func TestChannelEvents(t *testing.T) {
 		},
 		{ // 5: optin on Vonage
 			contact: testdata.Cathy,
-			task: &ctasks.ChannelEventTask{
+			task: &ctasks.EventReceivedTask{
 				EventID:    eventID,
 				EventType:  models.EventTypeOptIn,
 				ChannelID:  testdata.VonageChannel.ID,
@@ -151,7 +151,7 @@ func TestChannelEvents(t *testing.T) {
 		},
 		{ // 6: optout on Vonage
 			contact: testdata.Cathy,
-			task: &ctasks.ChannelEventTask{
+			task: &ctasks.EventReceivedTask{
 				EventID:    eventID,
 				EventType:  models.EventTypeOptOut,
 				ChannelID:  testdata.VonageChannel.ID,
@@ -167,7 +167,7 @@ func TestChannelEvents(t *testing.T) {
 		},
 		{ // 7: missed call trigger queued by RP
 			contact: testdata.Cathy,
-			task: &ctasks.ChannelEventTask{
+			task: &ctasks.EventReceivedTask{
 				EventID:    eventID,
 				EventType:  models.EventTypeMissedCall,
 				ChannelID:  testdata.VonageChannel.ID,
@@ -183,7 +183,7 @@ func TestChannelEvents(t *testing.T) {
 		},
 		{ // 8: stop contact
 			contact: testdata.Cathy,
-			task: &ctasks.ChannelEventTask{
+			task: &ctasks.EventReceivedTask{
 				EventID:    eventID,
 				EventType:  models.EventTypeStopContact,
 				ChannelID:  testdata.VonageChannel.ID,
@@ -198,11 +198,26 @@ func TestChannelEvents(t *testing.T) {
 		},
 		{ // 9: a task against a deleted contact
 			contact: deleted,
-			task: &ctasks.ChannelEventTask{
+			task: &ctasks.EventReceivedTask{
 				EventID:    eventID,
 				EventType:  models.EventTypeNewConversation,
 				ChannelID:  testdata.VonageChannel.ID,
 				URNID:      deleted.URNID,
+				Extra:      null.Map[any]{},
+				CreatedOn:  time.Now(),
+				NewContact: false,
+			},
+			expectedTriggerType: "",
+			expectedResponse:    "",
+			updatesLastSeen:     false,
+		},
+		{ // 10: a task for a delete contact
+			contact: testdata.Cathy,
+			task: &ctasks.EventReceivedTask{
+				EventID:    eventID,
+				EventType:  models.EventTypeDeleteContact,
+				ChannelID:  testdata.VonageChannel.ID,
+				URNID:      testdata.Cathy.URNID,
 				Extra:      null.Map[any]{},
 				CreatedOn:  time.Now(),
 				NewContact: false,
@@ -257,7 +272,7 @@ func TestChannelEvents(t *testing.T) {
 			var lastSeen time.Time
 			err = rt.DB.Get(&lastSeen, `SELECT last_seen_on FROM contacts_contact WHERE id = $1`, tc.contact.ID)
 			assert.NoError(t, err)
-			assert.WithinDuration(t, lastSeen, tc.task.(*ctasks.ChannelEventTask).CreatedOn, time.Microsecond, "%d: expected last seen to be updated", i)
+			assert.WithinDuration(t, lastSeen, tc.task.(*ctasks.EventReceivedTask).CreatedOn, time.Microsecond, "%d: expected last seen to be updated", i)
 		}
 
 	}
@@ -270,6 +285,6 @@ func TestChannelEvents(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT count(*) from contacts_contactgroup_contacts WHERE contactgroup_id = $1 AND contact_id = $2`, testdata.DoctorsGroup.ID, testdata.George.ID).Returns(1)
 
 	// and she has no upcoming events
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM campaigns_eventfire WHERE contact_id = $1`, testdata.Cathy.ID).Returns(0)
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM campaigns_eventfire WHERE contact_id = $1`, testdata.George.ID).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'C'`, testdata.Cathy.ID).Returns(0)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'C'`, testdata.George.ID).Returns(1)
 }

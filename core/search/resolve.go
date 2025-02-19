@@ -20,7 +20,7 @@ type Recipients struct {
 }
 
 // ResolveRecipients resolves a set of contacts, groups, urns etc into a set of unique contacts
-func ResolveRecipients(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, flow *models.Flow, recipients *Recipients, limit int) ([]models.ContactID, error) {
+func ResolveRecipients(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, userID models.UserID, flow *models.Flow, recipients *Recipients, limit int) ([]models.ContactID, error) {
 	idsSeen := make(map[models.ContactID]bool)
 
 	// start by loading the explicitly listed contacts
@@ -37,7 +37,7 @@ func ResolveRecipients(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 
 	// resolve any raw URNs
 	if len(recipients.URNs) > 0 {
-		fetchedByURN, createdByURN, err := models.GetOrCreateContactsFromURNs(ctx, rt.DB, oa, recipients.URNs)
+		fetchedByURN, createdByURN, err := models.GetOrCreateContactsFromURNs(ctx, rt.DB, oa, userID, recipients.URNs)
 		if err != nil {
 			return nil, fmt.Errorf("error getting contact ids from urns: %w", err)
 		}

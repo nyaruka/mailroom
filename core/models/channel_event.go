@@ -5,12 +5,14 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/nyaruka/gocommon/uuids"
 	"github.com/nyaruka/null/v3"
 )
 
 type ChannelEventID int64
 type ChannelEventType string
 type ChannelEventStatus string
+type ChannelEventUUID uuids.UUID
 
 const (
 	NilChannelEventID ChannelEventID = 0
@@ -24,6 +26,7 @@ const (
 	EventTypeStopContact     ChannelEventType = "stop_contact"
 	EventTypeOptIn           ChannelEventType = "optin"
 	EventTypeOptOut          ChannelEventType = "optout"
+	EventTypeDeleteContact   ChannelEventType = "delete_contact"
 
 	// channel event statuses
 	EventStatusPending ChannelEventStatus = "P" // event created but not yet handled
@@ -44,6 +47,7 @@ var ContactSeenEvents = map[ChannelEventType]bool{
 // ChannelEvent represents an event that occurred associated with a channel, such as a referral, missed call, etc..
 type ChannelEvent struct {
 	ID         ChannelEventID     `db:"id"`
+	UUID       ChannelEventUUID   `db:"uuid"`
 	EventType  ChannelEventType   `db:"event_type"`
 	Status     ChannelEventStatus `db:"status"`
 	OrgID      OrgID              `db:"org_id"`
@@ -57,8 +61,8 @@ type ChannelEvent struct {
 }
 
 const sqlInsertChannelEvent = `
-INSERT INTO channels_channelevent( org_id,  event_type,  status,  channel_id,  contact_id,  contact_urn_id,  optin_id,  extra, created_on, occurred_on)
-	                       VALUES(:org_id, :event_type, :status, :channel_id, :contact_id, :contact_urn_id, :optin_id, :extra, NOW(),     :occurred_on)
+INSERT INTO channels_channelevent(uuid, org_id,  event_type,  status,  channel_id,  contact_id,  contact_urn_id,  optin_id,  extra, created_on, occurred_on)
+	                       VALUES(:uuid, :org_id, :event_type, :status, :channel_id, :contact_id, :contact_urn_id, :optin_id, :extra, NOW(),     :occurred_on)
   RETURNING id, created_on`
 
 // Insert inserts this channel event to our DB. The ID of the channel event will be
@@ -70,6 +74,7 @@ func (e *ChannelEvent) Insert(ctx context.Context, db DBorTx) error {
 // NewChannelEvent creates a new channel event for the passed in parameters, returning it
 func NewChannelEvent(orgID OrgID, eventType ChannelEventType, channelID ChannelID, contactID ContactID, urnID URNID, status ChannelEventStatus, extra map[string]any, occurredOn time.Time) *ChannelEvent {
 	e := &ChannelEvent{
+		UUID:       ChannelEventUUID(uuids.NewV4()),
 		OrgID:      orgID,
 		EventType:  eventType,
 		ChannelID:  channelID,

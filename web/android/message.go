@@ -66,7 +66,7 @@ func handleMessage(ctx context.Context, rt *runtime.Runtime, r *messageRequest) 
 	rc := rt.RP.Get()
 	defer rc.Close()
 
-	err = handler.QueueTask(rc, r.OrgID, m.ContactID(), &ctasks.MsgEventTask{
+	err = handler.QueueTask(rc, r.OrgID, m.ContactID(), &ctasks.MsgReceivedTask{
 		ChannelID:     m.ChannelID(),
 		MsgID:         m.ID(),
 		MsgUUID:       m.UUID(),

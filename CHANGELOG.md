@@ -1,3 +1,195 @@
+v10.1.45 (2025-02-18)
+-------------------------
+ * Tweak handling of session.call_id
+ * Add support to wait_expired ctask for voice sessions
+ * Remove aliases for old task names
+
+v10.1.44 (2025-02-18)
+-------------------------
+ * Tweak task names used for wait expirations and timeouts
+
+v10.1.43 (2025-02-18)
+-------------------------
+ * Get waiting session from Contact.current_session_uuid
+
+v10.1.42 (2025-02-17)
+-------------------------
+ * Stop writing FlowSession.org
+
+v10.1.41 (2025-02-17)
+-------------------------
+ * Stop reading FlowSession.org
+
+v10.1.40 (2025-02-17)
+-------------------------
+ * Use system user for created contacts that don't have an explicit user
+
+v10.1.39 (2025-02-14)
+-------------------------
+ * Update to latest goflow that marshals quick replies as objects
+ * Start writing channel event UUID
+ * Add delete_contact channel event and handle as noop for now
+
+v10.1.38 (2025-02-13)
+-------------------------
+ * Update to latest goflow which uses structs for quick replies
+
+v10.1.37 (2025-02-13)
+-------------------------
+ * Start updating current_session_uuid on contacts
+
+v10.1.36 (2025-02-13)
+-------------------------
+ * Add quick replies to msg send endpoint
+
+v10.1.35 (2025-02-12)
+-------------------------
+ * Remove workaround for loading users
+
+v10.1.34 (2025-02-11)
+-------------------------
+ * Allow reading of users from auth_user or users_user temporarily
+
+v10.1.33 (2025-02-10)
+-------------------------
+ * Store last 10 contacts triggered by a campaign event in redis
+ * Remove support for triggering campaigns from old event fires
+
+v10.1.32 (2025-02-06)
+-------------------------
+ * Start inserting new fires for campaign events
+
+v10.1.31 (2025-02-06)
+-------------------------
+ * Implement triggering of campaign events from new contact fires model
+ * Remove legacy ctask names
+
+v10.1.30 (2025-02-05)
+-------------------------
+ * Report handler task metrics with type as dimension
+
+v10.1.29 (2025-02-05)
+-------------------------
+ * New ctask names with support for legacy ones
+ * Remove optional cron to retry pending messages
+
+v10.1.28 (2025-02-05)
+-------------------------
+ * Stop writing from session.responded and session.modified_on
+
+v10.1.27 (2025-02-04)
+-------------------------
+ * Stop reading from session.responded and session.modified_on
+
+v10.1.26 (2025-02-04)
+-------------------------
+ * Stop clearing session.timeout_on and wait_expires_on
+ * Remove no longer needed fields from task payloads
+
+v10.1.25 (2025-02-04)
+-------------------------
+ * Use sprint UUID to validate session timed events instead of session id/modified_on
+
+v10.1.24 (2025-02-04)
+-------------------------
+ * Only delete session fires for contacts which have waiting sessions
+
+v10.1.23 (2025-02-04)
+-------------------------
+ * Start writing session UUID on flow runs
+ * Remove no longer used crons for session waits
+ * Start including session and sprint UUIDs on timed task payloads
+
+v10.1.22 (2025-02-03)
+-------------------------
+ * Delete session wait contact fires before inserting new ones for new sessions
+
+v10.1.21 (2025-01-29)
+-------------------------
+ * Add new session fields to message payloads queued to courier
+
+v10.1.20 (2025-01-29)
+-------------------------
+ * Start writing ContactFire.session_uuid and ContactFire.sprint_uuid
+ * Attempt number 5 to fix session modified on checking
+ * Start writing FlowSession.last_sprint_uuid
+
+v10.1.19 (2025-01-29)
+-------------------------
+ * Fix (third time!) how session modified_on is checked for session wait expirations and timeouts
+
+v10.1.18 (2025-01-29)
+-------------------------
+ * Add more debug level logging
+
+v10.1.17 (2025-01-28)
+-------------------------
+ * Fix (again) how session modified_on is checked for session wait expirations and timeouts
+
+v10.1.16 (2025-01-28)
+-------------------------
+ * Fix contact fires being created before sessions have ids
+ * Run contact fire cron every 30 secs
+
+v10.1.15 (2025-01-28)
+-------------------------
+ * Fix how session modified_on is checked for session wait expirations and timeouts
+
+v10.1.14 (2025-01-28)
+-------------------------
+ * Use new contact fire system to set session wait expirations/timeouts
+
+v10.1.13 (2025-01-27)
+-------------------------
+ * Stop writing session.wait_resume_on_expire and let engine figure it out
+
+v10.1.12 (2025-01-27)
+-------------------------
+ * Stop writing session.wait_started_on
+
+v10.1.11 (2025-01-27)
+-------------------------
+ * Update to latest goflow which has some changes to wait expirations
+ * Fix sentry initialization
+ * Add support for IVR session expires to new contact fire cron
+
+v10.1.10 (2025-01-24)
+-------------------------
+ * Merge the crons for expiring message and voice sessions
+
+v10.1.9 (2025-01-23)
+-------------------------
+ * Queue courier messages with session_modified_on
+
+v10.1.8 (2025-01-23)
+-------------------------
+ * Implement new cron to turn contact fires into bulk tasks for session expirations and timeouts
+
+v10.1.7 (2025-01-22)
+-------------------------
+ * Add new tasks for bulk session expires and timeouts
+
+v10.1.6 (2025-01-21)
+-------------------------
+ * Simplify timeout handling to match expiration handling
+
+v10.1.5 (2025-01-21)
+-------------------------
+ * Handle non-resumable expirations in the contact handler task to ensure correct locking
+
+v10.1.4 (2025-01-20)
+-------------------------
+ * Use session.modified_on to determine if a timed task is still valid
+
+v10.1.3 (2025-01-20)
+-------------------------
+ * Assume session.modified_on non-null and include on timed tasks
+
+v10.1.2 (2025-01-20)
+-------------------------
+ * Start writing FlowSession.modified_on
+ * Test without postgis
+
 v10.1.1 (2025-01-09)
 -------------------------
  * Remove viewer users

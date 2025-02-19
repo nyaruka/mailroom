@@ -5,13 +5,13 @@
         "path": "/mr/ticket/assign",
         "body": {
             "org_id": 1,
-            "user_id": 3,
+            "user_id": 4,
             "ticket_ids": [
                 1,
                 2,
                 3
             ],
-            "assignee_id": 5
+            "assignee_id": 6
         },
         "status": 200,
         "response": {
@@ -22,11 +22,11 @@
         },
         "db_assertions": [
             {
-                "query": "SELECT count(*) FROM tickets_ticket WHERE assignee_id = 5",
+                "query": "SELECT count(*) FROM tickets_ticket WHERE assignee_id = 6",
                 "count": 3
             },
             {
-                "query": "SELECT count(*) FROM tickets_ticketevent WHERE event_type = 'A' AND created_by_id = 3",
+                "query": "SELECT count(*) FROM tickets_ticketevent WHERE event_type = 'A' AND created_by_id = 4",
                 "count": 2
             }
         ]
@@ -37,7 +37,7 @@
         "path": "/mr/ticket/assign",
         "body": {
             "org_id": 1,
-            "user_id": 3,
+            "user_id": 4,
             "ticket_ids": [
                 1
             ],
@@ -55,7 +55,7 @@
                 "count": 1
             },
             {
-                "query": "SELECT count(*) FROM tickets_ticketevent WHERE event_type = 'A' AND created_by_id = 3",
+                "query": "SELECT count(*) FROM tickets_ticketevent WHERE event_type = 'A' AND created_by_id = 4",
                 "count": 3
             }
         ]

@@ -34,7 +34,7 @@ func TestLoadFlows(t *testing.T) {
 		name               string
 		expectedType       models.FlowType
 		expectedEngineType flows.FlowType
-		expectedExpire     int
+		expectedExpire     time.Duration
 		expectedIVRRetry   *time.Duration
 	}
 
@@ -46,7 +46,7 @@ func TestLoadFlows(t *testing.T) {
 			"Favorites",
 			models.FlowTypeMessaging,
 			flows.FlowTypeMessaging,
-			720,
+			720 * time.Minute,
 			&sixtyMinutes, // uses default
 		},
 		{
@@ -56,8 +56,8 @@ func TestLoadFlows(t *testing.T) {
 			"Pick a Number",
 			models.FlowTypeMessaging,
 			flows.FlowTypeMessaging,
-			5,             // clamped to minimum
-			&sixtyMinutes, // uses default
+			5 * time.Minute, // clamped to minimum
+			&sixtyMinutes,   // uses default
 		},
 		{
 			testdata.Org1,
@@ -66,8 +66,8 @@ func TestLoadFlows(t *testing.T) {
 			"Send All",
 			models.FlowTypeMessaging,
 			flows.FlowTypeMessaging,
-			43200,         // clamped to maximum
-			&sixtyMinutes, // uses default
+			43200 * time.Minute, // clamped to maximum
+			&sixtyMinutes,       // uses default
 		},
 		{
 			testdata.Org1,
@@ -76,7 +76,7 @@ func TestLoadFlows(t *testing.T) {
 			"IVR Flow",
 			models.FlowTypeVoice,
 			flows.FlowTypeVoice,
-			5,
+			5 * time.Minute,
 			&thirtyMinutes, // uses explicit
 		},
 	}
@@ -97,7 +97,7 @@ func TestLoadFlows(t *testing.T) {
 		assert.Equal(t, tc.uuid, flow.UUID(), "engine UUID mismatch for %s", desc)
 		assert.Equal(t, tc.name, flow.Name(), "engine name mismatch for %s", desc)
 		assert.Equal(t, tc.expectedEngineType, flow.Type(), "engine type mismatch for %s", desc)
-		assert.Equal(t, tc.expectedExpire, flow.ExpireAfterMinutes(), "engine expire mismatch for %s", desc)
+		assert.Equal(t, tc.expectedExpire, flow.ExpireAfter(), "engine expire mismatch for %s", desc)
 
 	}
 

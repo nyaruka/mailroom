@@ -61,17 +61,17 @@ func TestCampaigns(t *testing.T) {
 			},
 			SQLAssertions: []handlers.SQLAssertion{
 				{
-					SQL:   `select count(*) FROM campaigns_eventfire WHERE contact_id = $1`,
+					SQL:   `select count(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'C'`,
 					Args:  []any{testdata.Cathy.ID},
 					Count: 2,
 				},
 				{
-					SQL:   `select count(*) FROM campaigns_eventfire WHERE contact_id = $1`,
+					SQL:   `select count(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'C'`,
 					Args:  []any{testdata.Bob.ID},
 					Count: 4,
 				},
 				{
-					SQL:   `select count(*) FROM campaigns_eventfire WHERE contact_id = $1`,
+					SQL:   `select count(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'C'`,
 					Args:  []any{testdata.George.ID},
 					Count: 0,
 				},

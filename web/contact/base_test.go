@@ -95,11 +95,11 @@ func TestInterrupt(t *testing.T) {
 	defer testsuite.Reset(testsuite.ResetData)
 
 	// give Cathy an completed and a waiting session
-	testdata.InsertFlowSession(rt, testdata.Org1, testdata.Cathy, models.FlowTypeMessaging, models.SessionStatusCompleted, testdata.Favorites, models.NilCallID)
-	testdata.InsertWaitingSession(rt, testdata.Org1, testdata.Cathy, models.FlowTypeMessaging, testdata.Favorites, models.NilCallID, time.Now(), time.Now().Add(time.Hour), true, nil)
+	testdata.InsertFlowSession(rt, testdata.Cathy, models.FlowTypeMessaging, models.SessionStatusCompleted, testdata.Favorites, models.NilCallID)
+	testdata.InsertWaitingSession(rt, testdata.Cathy, models.FlowTypeMessaging, testdata.Favorites, models.NilCallID)
 
 	// give Bob a waiting session
-	testdata.InsertWaitingSession(rt, testdata.Org1, testdata.Bob, models.FlowTypeMessaging, testdata.PickANumber, models.NilCallID, time.Now(), time.Now().Add(time.Hour), true, nil)
+	testdata.InsertWaitingSession(rt, testdata.Bob, models.FlowTypeMessaging, testdata.PickANumber, models.NilCallID)
 
 	testsuite.RunWebTests(t, ctx, rt, "testdata/interrupt.json", nil)
 }

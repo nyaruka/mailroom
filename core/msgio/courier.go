@@ -59,6 +59,13 @@ type Templating struct {
 	Language   string `json:"language"`
 }
 
+type Session struct {
+	UUID       flows.SessionUUID    `json:"uuid"`
+	Status     models.SessionStatus `json:"status"`
+	SprintUUID flows.SprintUUID     `json:"sprint_uuid"`
+	Timeout    int                  `json:"timeout,omitempty"`
+}
+
 // Msg is the format of a message queued to courier
 type Msg struct {
 	ID                   models.MsgID       `json:"id"`
@@ -85,11 +92,8 @@ type Msg struct {
 	ResponseToExternalID string             `json:"response_to_external_id,omitempty"`
 	IsResend             bool               `json:"is_resend,omitempty"`
 
-	ContactLastSeenOn    *time.Time           `json:"contact_last_seen_on,omitempty"`
-	SessionID            models.SessionID     `json:"session_id,omitempty"`
-	SessionStatus        models.SessionStatus `json:"session_status,omitempty"`
-	SessionWaitStartedOn *time.Time           `json:"session_wait_started_on,omitempty"`
-	SessionTimeout       int                  `json:"session_timeout,omitempty"`
+	ContactLastSeenOn *time.Time `json:"contact_last_seen_on,omitempty"`
+	Session           *Session   `json:"session,omitempty"`
 }
 
 // NewCourierMsg creates a courier message in the format it's expecting to be queued
@@ -100,7 +104,6 @@ func NewCourierMsg(oa *models.OrgAssets, m *models.Msg, u *models.ContactURN, ch
 		OrgID:        m.OrgID(),
 		Text:         m.Text(),
 		Attachments:  m.Attachments(),
-		QuickReplies: m.QuickReplies(),
 		Locale:       m.Locale(),
 		HighPriority: m.HighPriority(),
 		MsgCount:     m.MsgCount(),
@@ -113,6 +116,11 @@ func NewCourierMsg(oa *models.OrgAssets, m *models.Msg, u *models.ContactURN, ch
 		URNAuth:      string(u.AuthTokens["default"]),
 		Metadata:     m.Metadata(),
 		IsResend:     m.IsResend,
+	}
+
+	msg.QuickReplies = make([]string, len(m.QuickReplies()))
+	for i, qr := range m.QuickReplies() {
+		msg.QuickReplies[i] = qr.Text
 	}
 
 	if m.FlowID() != models.NilFlowID {
@@ -160,16 +168,18 @@ func NewCourierMsg(oa *models.OrgAssets, m *models.Msg, u *models.ContactURN, ch
 	}
 
 	if m.Session != nil {
-		msg.SessionID = m.Session.ID()
-		msg.SessionStatus = m.Session.Status()
+		msg.Session = &Session{
+			UUID:       m.Session.UUID(),
+			Status:     m.Session.Status(),
+			SprintUUID: m.Session.LastSprintUUID(),
+		}
 		msg.ResponseToExternalID = string(m.Session.IncomingMsgExternalID())
 
-		if m.LastInSprint && m.Session.Timeout() != nil && m.Session.WaitStartedOn() != nil {
-			// These fields are set on the last outgoing message in a session's sprint. In the case
+		if m.LastInSprint && m.Session.Timeout() != nil {
+			// This field is set on the last outgoing message in a session's sprint. In the case
 			// of the session being at a wait with a timeout then the timeout will be set. It is up to
 			// Courier to update the session's timeout appropriately after sending the message.
-			msg.SessionWaitStartedOn = m.Session.WaitStartedOn()
-			msg.SessionTimeout = int(*m.Session.Timeout() / time.Second)
+			msg.Session.Timeout = int(*m.Session.Timeout() / time.Second)
 		}
 	}
 

@@ -144,7 +144,7 @@ func (b *ContactImportBatch) tryImport(ctx context.Context, rt *runtime.Runtime,
 		imports[i] = &importContact{record: b.RecordStart + i, spec: specs[i]}
 	}
 
-	if err := b.getOrCreateContacts(ctx, rt.DB, oa, imports); err != nil {
+	if err := b.getOrCreateContacts(ctx, rt.DB, oa, userID, imports); err != nil {
 		return fmt.Errorf("error getting and creating contacts: %w", err)
 	}
 
@@ -171,7 +171,7 @@ func (b *ContactImportBatch) tryImport(ctx context.Context, rt *runtime.Runtime,
 }
 
 // for each import, fetches or creates the contact, creates the modifiers needed to set fields etc
-func (b *ContactImportBatch) getOrCreateContacts(ctx context.Context, db *sqlx.DB, oa *OrgAssets, imports []*importContact) error {
+func (b *ContactImportBatch) getOrCreateContacts(ctx context.Context, db *sqlx.DB, oa *OrgAssets, userID UserID, imports []*importContact) error {
 	sa := oa.SessionAssets()
 
 	// build map of UUIDs to contacts
@@ -201,7 +201,7 @@ func (b *ContactImportBatch) getOrCreateContacts(ctx context.Context, db *sqlx.D
 			}
 
 		} else {
-			imp.contact, imp.flowContact, imp.created, err = GetOrCreateContact(ctx, db, oa, spec.URNs, NilChannelID)
+			imp.contact, imp.flowContact, imp.created, err = GetOrCreateContact(ctx, db, oa, userID, spec.URNs, NilChannelID)
 			if err != nil {
 				urnStrs := make([]string, len(spec.URNs))
 				for i := range spec.URNs {

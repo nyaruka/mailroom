@@ -98,7 +98,7 @@ func (t *HandleContactEventTask) Perform(ctx context.Context, rt *runtime.Runtim
 		err = performHandlerTask(ctx, rt, oa, t.ContactID, ctask)
 
 		// record metrics
-		rt.Stats.RecordHandlerTask(time.Since(start), time.Since(taskPayload.QueuedOn))
+		rt.Stats.RecordHandlerTask(taskPayload.Type, time.Since(start), time.Since(taskPayload.QueuedOn))
 
 		// if we get an error processing an event, requeue it for later and return our error
 		if err != nil {

@@ -59,7 +59,7 @@ func (t *SendBroadcastTask) Perform(ctx context.Context, rt *runtime.Runtime, oa
 }
 
 func createBroadcastBatches(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, bcast *models.Broadcast) error {
-	contactIDs, err := search.ResolveRecipients(ctx, rt, oa, nil, &search.Recipients{
+	contactIDs, err := search.ResolveRecipients(ctx, rt, oa, bcast.CreatedByID, nil, &search.Recipients{
 		ContactIDs:      bcast.ContactIDs,
 		GroupIDs:        bcast.GroupIDs,
 		URNs:            bcast.URNs,

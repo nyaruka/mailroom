@@ -98,7 +98,7 @@ func TestResolveRecipients(t *testing.T) {
 			flow = tc.flow.Load(rt, oa)
 		}
 
-		actualIDs, err := search.ResolveRecipients(ctx, rt, oa, flow, tc.recipients, tc.limit)
+		actualIDs, err := search.ResolveRecipients(ctx, rt, oa, testdata.Admin.ID, flow, tc.recipients, tc.limit)
 		assert.NoError(t, err)
 		assert.ElementsMatch(t, tc.expectedIDs, actualIDs, "contact ids mismatch in %d", i)
 	}

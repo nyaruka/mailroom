@@ -19,7 +19,7 @@ func TestHandleContactEvent(t *testing.T) {
 	rc := rt.RP.Get()
 	defer rc.Close()
 
-	testsuite.QueueContactTask(t, rt, testdata.Org1, testdata.Cathy, &ctasks.ChannelEventTask{
+	testsuite.QueueContactTask(t, rt, testdata.Org1, testdata.Cathy, &ctasks.EventReceivedTask{
 		EventType:  models.EventTypeNewConversation,
 		ChannelID:  testdata.FacebookChannel.ID,
 		URNID:      testdata.Cathy.URNID,
@@ -27,7 +27,7 @@ func TestHandleContactEvent(t *testing.T) {
 		CreatedOn:  time.Now(),
 		NewContact: false,
 	})
-	testsuite.QueueContactTask(t, rt, testdata.Org1, testdata.Cathy, &ctasks.ChannelEventTask{
+	testsuite.QueueContactTask(t, rt, testdata.Org1, testdata.Cathy, &ctasks.EventReceivedTask{
 		EventType:  models.EventTypeStopContact,
 		ChannelID:  testdata.FacebookChannel.ID,
 		URNID:      testdata.Cathy.URNID,

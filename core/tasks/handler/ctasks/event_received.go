@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/gomodule/redigo/redis"
@@ -18,13 +19,13 @@ import (
 	"github.com/nyaruka/null/v3"
 )
 
-const TypeChannelEvent = "channel_event"
+const TypeEventReceived = "event_received"
 
 func init() {
-	handler.RegisterContactTask(TypeChannelEvent, func() handler.Task { return &ChannelEventTask{} })
+	handler.RegisterContactTask(TypeEventReceived, func() handler.Task { return &EventReceivedTask{} })
 }
 
-type ChannelEventTask struct {
+type EventReceivedTask struct {
 	EventID    models.ChannelEventID   `json:"event_id"`
 	EventType  models.ChannelEventType `json:"event_type"`
 	ChannelID  models.ChannelID        `json:"channel_id"`
@@ -35,15 +36,15 @@ type ChannelEventTask struct {
 	CreatedOn  time.Time               `json:"created_on"`
 }
 
-func (t *ChannelEventTask) Type() string {
-	return TypeChannelEvent
+func (t *EventReceivedTask) Type() string {
+	return TypeEventReceived
 }
 
-func (t *ChannelEventTask) UseReadOnly() bool {
+func (t *EventReceivedTask) UseReadOnly() bool {
 	return !t.NewContact
 }
 
-func (t *ChannelEventTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contact *models.Contact) error {
+func (t *EventReceivedTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contact *models.Contact) error {
 	_, err := t.handle(ctx, rt, oa, contact, nil)
 	if err != nil {
 		return err
@@ -54,15 +55,21 @@ func (t *ChannelEventTask) Perform(ctx context.Context, rt *runtime.Runtime, oa 
 
 // Handle let's us reuse this task's code for handling incoming calls.. which we need to perform inline in the IVR web
 // handler rather than as a queued task.
-func (t *ChannelEventTask) Handle(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contact *models.Contact, call *models.Call) (*models.Session, error) {
+func (t *EventReceivedTask) Handle(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contact *models.Contact, call *models.Call) (*models.Session, error) {
 	return t.handle(ctx, rt, oa, contact, call)
 }
 
-func (t *ChannelEventTask) handle(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contact *models.Contact, call *models.Call) (*models.Session, error) {
+func (t *EventReceivedTask) handle(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contact *models.Contact, call *models.Call) (*models.Session, error) {
 	channel := oa.ChannelByID(t.ChannelID)
 
 	// if contact is blocked or channel no longer exists, nothing to do
 	if contact.Status() == models.ContactStatusBlocked || channel == nil {
+		return nil, nil
+	}
+
+	if t.EventType == models.EventTypeDeleteContact {
+		slog.Info(fmt.Sprintf("NOOP: Handled %s channel event %d", models.EventTypeDeleteContact, t.EventID))
+
 		return nil, nil
 	}
 
@@ -117,7 +124,7 @@ func (t *ChannelEventTask) handle(ctx context.Context, rt *runtime.Runtime, oa *
 		trigger = models.FindMatchingOptInTrigger(oa, channel)
 	case models.EventTypeOptOut:
 		trigger = models.FindMatchingOptOutTrigger(oa, channel)
-	case models.EventTypeWelcomeMessage, models.EventTypeStopContact:
+	case models.EventTypeWelcomeMessage, models.EventTypeStopContact, models.EventTypeDeleteContact:
 		trigger = nil
 	default:
 		return nil, fmt.Errorf("unknown channel event type: %s", t.EventType)

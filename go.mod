@@ -1,6 +1,6 @@
 module github.com/nyaruka/mailroom
 
-go 1.23
+go 1.24
 
 require (
 	firebase.google.com/go/v4 v4.15.1
@@ -24,7 +24,7 @@ require (
 	github.com/lib/pq v1.10.9
 	github.com/nyaruka/ezconf v0.3.0
 	github.com/nyaruka/gocommon v1.60.5
-	github.com/nyaruka/goflow v0.227.0
+	github.com/nyaruka/goflow v0.229.1
 	github.com/nyaruka/null/v3 v3.0.0
 	github.com/nyaruka/redisx v0.9.0
 	github.com/nyaruka/rp-indexer/v9 v9.3.4

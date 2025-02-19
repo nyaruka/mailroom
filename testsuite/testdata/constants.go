@@ -17,9 +17,9 @@ var AuthGroupIDs = map[string]int{
 }
 
 var Org1 = &Org{1, "bf0514a5-9407-44c9-b0f9-3f36f9c18414"}
-var Admin = &User{3, "admin1@textit.com"}
-var Editor = &User{4, "editor1@textit.com"}
-var Agent = &User{5, "agent1@textit.com"}
+var Admin = &User{4, "admin1@textit.com"}
+var Editor = &User{5, "editor1@textit.com"}
+var Agent = &User{6, "agent1@textit.com"}
 
 var TwilioChannel = &Channel{10000, "74729f45-7f29-4868-9dc4-90e491e3c7d8", "T"}
 var VonageChannel = &Channel{10001, "19012bfd-3ce3-4cae-9bb9-76cf92c73d49", "NX"}
@@ -36,6 +36,7 @@ var SingleMessage = &Flow{10004, "a7c11d68-f008-496f-b56d-2d5cf4cf16a5"}
 var IVRFlow = &Flow{10003, "2f81d0ea-4d75-4843-9371-3f7465311cce"}
 var IncomingExtraFlow = &Flow{10006, "376d3de6-7f0e-408c-80d6-b1919738bc80"}
 var ParentTimeoutFlow = &Flow{10007, "81c0f323-7e06-4e0c-a960-19c20f17117c"}
+var ChildTimeoutFlow = &Flow{10008, "7a7ab82c-9fff-49f3-a390-a2957fd60834"}
 var CampaignFlow = &Flow{10009, "3a92a964-3a8d-420b-9206-2cd9d884ac30"}
 
 var CreatedOnField = &Field{1, "606de307-a799-47fc-8802-edc9301e0e04"}

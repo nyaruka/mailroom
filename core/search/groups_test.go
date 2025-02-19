@@ -73,10 +73,10 @@ func TestSmartGroups(t *testing.T) {
 		assertdb.Query(t, rt.DB, `SELECT count(*) from contacts_contactgroup WHERE id = $1 AND status = 'R'`, testdata.DoctorsGroup.ID).
 			Returns(1, "wrong number of contacts in group for query: %s", tc.query)
 
-		assertdb.Query(t, rt.DB, `SELECT count(*) from campaigns_eventfire WHERE event_id = $1`, newEvent.ID).
+		assertdb.Query(t, rt.DB, `SELECT count(*) from contacts_contactfire WHERE fire_type = 'C' AND scope = $1::text`, newEvent.ID).
 			Returns(len(tc.expectedEventIDs), "wrong number of contacts with events for query: %s", tc.query)
 
-		assertdb.Query(t, rt.DB, `SELECT count(*) from campaigns_eventfire WHERE event_id = $1 AND contact_id = ANY($2)`, newEvent.ID, pq.Array(tc.expectedEventIDs)).
+		assertdb.Query(t, rt.DB, `SELECT count(*) from contacts_contactfire WHERE fire_type = 'C' AND scope = $1::text AND contact_id = ANY($2)`, newEvent.ID, pq.Array(tc.expectedEventIDs)).
 			Returns(len(tc.expectedEventIDs), "wrong contacts with events for query: %s", tc.query)
 	}
 }

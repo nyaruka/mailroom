@@ -74,7 +74,7 @@ const sqlSelectUsersByOrg = `
 SELECT ROW_TO_JSON(r) FROM (
            SELECT u.id, u.email, u.first_name, u.last_name, m.role_code, row_to_json(team_struct) AS team
              FROM orgs_orgmembership m
-       INNER JOIN auth_user u ON u.id = m.user_id
+       INNER JOIN users_user u ON u.id = m.user_id
 LEFT JOIN LATERAL (SELECT id, uuid, name FROM tickets_team WHERE tickets_team.id = m.team_id) AS team_struct ON True
             WHERE m.org_id = $1 AND u.is_active = TRUE
          ORDER BY u.email ASC
@@ -88,4 +88,13 @@ func loadUsers(ctx context.Context, db *sql.DB, orgID OrgID) ([]assets.User, err
 	}
 
 	return ScanJSONRows(rows, func() assets.User { return &User{} })
+}
+
+func GetSystemUserID(ctx context.Context, db *sql.DB) (UserID, error) {
+	var id UserID
+	err := db.QueryRowContext(ctx, "SELECT id FROM users_user WHERE username = 'system'").Scan(&id)
+	if err != nil {
+		return 0, fmt.Errorf("error getting system user id: %w", err)
+	}
+	return id, nil
 }

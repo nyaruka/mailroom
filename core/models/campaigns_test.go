@@ -6,10 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/mailroom/core/models"
-	"github.com/nyaruka/mailroom/testsuite"
-	"github.com/nyaruka/mailroom/testsuite/testdata"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -79,38 +76,4 @@ func TestCampaignSchedule(t *testing.T) {
 			assert.Equal(t, scheduled.Sub(tc.Start), tc.Delta, "%d: mismatch in expected delta", i)
 		}
 	}
-}
-
-func TestAddEventFires(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
-
-	defer rt.DB.MustExec(`DELETE FROM campaigns_eventfire`)
-
-	scheduled1 := time.Date(2020, 9, 8, 14, 38, 30, 123456789, time.UTC)
-
-	err := models.AddEventFires(ctx, rt.DB, []*models.FireAdd{
-		{ContactID: testdata.Cathy.ID, EventID: testdata.RemindersEvent1.ID, Scheduled: scheduled1},
-		{ContactID: testdata.Bob.ID, EventID: testdata.RemindersEvent1.ID, Scheduled: scheduled1},
-		{ContactID: testdata.Bob.ID, EventID: testdata.RemindersEvent2.ID, Scheduled: scheduled1},
-	})
-	require.NoError(t, err)
-
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM campaigns_eventfire`).Returns(3)
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM campaigns_eventfire WHERE contact_id = $1 AND event_id = $2`, testdata.Cathy.ID, testdata.RemindersEvent1.ID).Returns(1)
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM campaigns_eventfire WHERE contact_id = $1 AND event_id = $2`, testdata.Bob.ID, testdata.RemindersEvent1.ID).Returns(1)
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM campaigns_eventfire WHERE contact_id = $1 AND event_id = $2`, testdata.Bob.ID, testdata.RemindersEvent2.ID).Returns(1)
-
-	rt.DB.MustExec(`UPDATE campaigns_eventfire SET fired = NOW() WHERE contact_id = $1`, testdata.Cathy.ID)
-
-	scheduled2 := time.Date(2020, 9, 8, 14, 38, 30, 123456789, time.UTC)
-
-	err = models.AddEventFires(ctx, rt.DB, []*models.FireAdd{
-		{ContactID: testdata.Cathy.ID, EventID: testdata.RemindersEvent1.ID, Scheduled: scheduled2}, // fine because previous one now has non-null fired
-		{ContactID: testdata.Bob.ID, EventID: testdata.RemindersEvent1.ID, Scheduled: scheduled2},   // won't be added due to conflict
-	})
-	require.NoError(t, err)
-
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM campaigns_eventfire`).Returns(4)
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM campaigns_eventfire WHERE contact_id = $1 AND event_id = $2`, testdata.Cathy.ID, testdata.RemindersEvent1.ID).Returns(2)
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM campaigns_eventfire WHERE contact_id = $1`, testdata.Bob.ID).Returns(2)
 }

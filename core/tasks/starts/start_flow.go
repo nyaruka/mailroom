@@ -83,7 +83,7 @@ func createFlowStartBatches(ctx context.Context, rt *runtime.Runtime, oa *models
 			limit = 1
 		}
 
-		contactIDs, err = search.ResolveRecipients(ctx, rt, oa, flow, &search.Recipients{
+		contactIDs, err = search.ResolveRecipients(ctx, rt, oa, start.CreatedByID, flow, &search.Recipients{
 			ContactIDs:      start.ContactIDs,
 			GroupIDs:        start.GroupIDs,
 			URNs:            start.URNs,

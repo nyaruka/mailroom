@@ -161,7 +161,7 @@ const sqlSelectAndroidChannelsToSync = `
 SELECT ROW_TO_JSON(r) FROM (
     SELECT c.id, c.uuid, c.org_id, c.channel_type, c.name, c.address, COALESCE(c.tps, 10) AS tps, c.config
       FROM channels_channel c
-     WHERE c.channel_type = 'A' AND c.last_seen >= NOW() - INTERVAL '7 days' AND c.last_seen <  NOW() - INTERVAL '15 minutes' AND c.is_active
+     WHERE c.channel_type = 'A' AND c.last_seen >= NOW() - INTERVAL '7 days' AND c.last_seen <  NOW() - INTERVAL '15 minutes' AND c.is_active = TRUE AND c.is_enabled = TRUE
   ORDER BY c.last_seen DESC, c.id DESC
 ) r;`
 
@@ -177,37 +177,24 @@ func loadChannels(ctx context.Context, db *sql.DB, orgID OrgID) ([]assets.Channe
 
 const sqlSelectChannelsByOrg = `
 SELECT ROW_TO_JSON(r) FROM (SELECT
-	c.id,
-	c.uuid,
-	c.org_id,
-	c.name,
-	c.channel_type,
-	COALESCE(c.tps, 10) AS tps,
-	c.country,
-	c.address,
-	c.schemes,
-	c.config,
-	(SELECT ARRAY(
-		SELECT CASE r 
-		WHEN 'R' THEN 'receive' 
-		WHEN 'S' THEN 'send'
-		WHEN 'C' THEN 'call'
-		WHEN 'A' THEN 'answer'
-		WHEN 'U' THEN 'ussd'
-		END 
-		FROM unnest(regexp_split_to_array(c.role,'')) AS r)
-	) AS roles,
-	CASE WHEN channel_type IN ('FBA') THEN '{"optins"}'::text[] ELSE '{}'::text[] END AS features,
-	jsonb_extract_path(c.config, 'matching_prefixes') AS match_prefixes,
-	jsonb_extract_path(c.config, 'allow_international') AS allow_international,
-	jsonb_extract_path(c.config, 'machine_detection') AS machine_detection
-FROM 
-	channels_channel c
-WHERE 
-	c.org_id = $1 AND 
-	c.is_active = TRUE
-ORDER BY
-	c.created_on ASC
+      c.id,
+      c.uuid,
+      c.org_id,
+      c.name,
+      c.channel_type,
+      COALESCE(c.tps, 10) AS tps,
+      c.country,
+      c.address,
+      c.schemes,
+      c.config,
+      (SELECT ARRAY(SELECT CASE r WHEN 'R' THEN 'receive' WHEN 'S' THEN 'send' WHEN 'C' THEN 'call' WHEN 'A' THEN 'answer' END FROM unnest(regexp_split_to_array(c.role,'')) AS r)) AS roles,
+      CASE WHEN channel_type IN ('FBA') THEN '{"optins"}'::text[] ELSE '{}'::text[] END AS features,
+      jsonb_extract_path(c.config, 'matching_prefixes') AS match_prefixes,
+      jsonb_extract_path(c.config, 'allow_international') AS allow_international,
+      jsonb_extract_path(c.config, 'machine_detection') AS machine_detection
+    FROM channels_channel c
+   WHERE c.org_id = $1 AND c.is_active = TRUE AND c.is_enabled = TRUE
+ORDER BY c.created_on ASC
 ) r;`
 
 // OrgIDForChannelUUID returns the org id for the passed in channel UUID if any

@@ -169,7 +169,7 @@ func TestBroadcastBatchCreateMessage(t *testing.T) {
 		templateVariables    []string
 		expectedText         string
 		expectedAttachments  []utils.Attachment
-		expectedQuickReplies []string
+		expectedQuickReplies []flows.QuickReply
 		expectedLocale       i18n.Locale
 		expectedError        string
 	}{
@@ -181,7 +181,7 @@ func TestBroadcastBatchCreateMessage(t *testing.T) {
 			expressions:          false,
 			expectedText:         "Hi @contact",
 			expectedAttachments:  []utils.Attachment{},
-			expectedQuickReplies: nil,
+			expectedQuickReplies: []flows.QuickReply{},
 			expectedLocale:       "eng-EC",
 		},
 		{ // 1: contact language not set, uses base language
@@ -192,7 +192,7 @@ func TestBroadcastBatchCreateMessage(t *testing.T) {
 			expressions:          true,
 			expectedText:         "Hello Felix",
 			expectedAttachments:  []utils.Attachment{},
-			expectedQuickReplies: nil,
+			expectedQuickReplies: []flows.QuickReply{},
 			expectedLocale:       "eng-EC",
 		},
 		{ // 2: contact language iggnored if it isn't a valid org language, even if translation exists
@@ -203,21 +203,21 @@ func TestBroadcastBatchCreateMessage(t *testing.T) {
 			expressions:          true,
 			expectedText:         "Hello Felix",
 			expectedAttachments:  []utils.Attachment{},
-			expectedQuickReplies: nil,
+			expectedQuickReplies: []flows.QuickReply{},
 			expectedLocale:       "eng-EC",
 		},
 		{ // 3: contact language used
 			contactURN:      "tel:+593979000003",
 			contactLanguage: "fra",
 			translations: flows.BroadcastTranslations{
-				"eng": {Text: "Hello @contact.name", Attachments: []utils.Attachment{"audio/mp3:http://test.en.mp3"}, QuickReplies: []string{"yes", "no"}},
-				"fra": {Text: "Bonjour @contact.name", Attachments: []utils.Attachment{"audio/mp3:http://test.fr.mp3"}, QuickReplies: []string{"oui", "no"}},
+				"eng": {Text: "Hello @contact.name", Attachments: []utils.Attachment{"audio/mp3:http://test.en.mp3"}, QuickReplies: []flows.QuickReply{{Text: "yes"}, {Text: "no"}}},
+				"fra": {Text: "Bonjour @contact.name", Attachments: []utils.Attachment{"audio/mp3:http://test.fr.mp3"}, QuickReplies: []flows.QuickReply{{Text: "oui"}, {Text: "no"}}},
 			},
 			baseLanguage:         "eng",
 			expressions:          true,
 			expectedText:         "Bonjour Felix",
 			expectedAttachments:  []utils.Attachment{"audio/mp3:http://test.fr.mp3"},
-			expectedQuickReplies: []string{"oui", "no"},
+			expectedQuickReplies: []flows.QuickReply{{Text: "oui"}, {Text: "no"}},
 			expectedLocale:       "fra-EC",
 		},
 		{ // 5: broadcast with optin
@@ -229,7 +229,7 @@ func TestBroadcastBatchCreateMessage(t *testing.T) {
 			optInID:              polls.ID,
 			expectedText:         "Hi Felix",
 			expectedAttachments:  []utils.Attachment{},
-			expectedQuickReplies: nil,
+			expectedQuickReplies: []flows.QuickReply{},
 			expectedLocale:       "eng",
 		},
 		{ // 6: broadcast with template
@@ -242,7 +242,7 @@ func TestBroadcastBatchCreateMessage(t *testing.T) {
 			templateVariables:    []string{"@contact.name", "mice"},
 			expectedText:         "Hi Felix, are you still experiencing problems with mice?",
 			expectedAttachments:  []utils.Attachment{},
-			expectedQuickReplies: nil,
+			expectedQuickReplies: []flows.QuickReply{},
 			expectedLocale:       "eng-US",
 		},
 	}

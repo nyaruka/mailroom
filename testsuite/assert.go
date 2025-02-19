@@ -6,9 +6,11 @@ import (
 	"testing"
 
 	"github.com/gomodule/redigo/redis"
+	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/goflow/test"
 	"github.com/nyaruka/mailroom/core/models"
+	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/mailroom/testsuite/testdata"
 	"github.com/nyaruka/mailroom/utils/queues"
 	"github.com/stretchr/testify/assert"
@@ -80,4 +82,13 @@ func AssertBatchTasks(t *testing.T, orgID models.OrgID, expected map[string]int,
 	}
 
 	assert.Equal(t, expected, actual, msgAndArgs...)
+}
+
+func AssertContactInFlow(t *testing.T, rt *runtime.Runtime, contact *testdata.Contact, flow *testdata.Flow) {
+	// check contact has a single waiting session
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE contact_id = $1 AND status = 'W'`, contact.ID).Returns(1)
+
+	// check flow of the waiting session and contact is correct
+	assertdb.Query(t, rt.DB, `SELECT current_flow_id FROM flows_flowsession WHERE contact_id = $1 AND status = 'W'`, contact.ID).Returns(int64(flow.ID))
+	assertdb.Query(t, rt.DB, `SELECT current_flow_id FROM contacts_contact WHERE id = $1`, contact.ID).Returns(int64(flow.ID))
 }

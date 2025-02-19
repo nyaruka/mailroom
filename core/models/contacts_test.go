@@ -321,7 +321,7 @@ func TestGetOrCreateContact(t *testing.T) {
 	}
 
 	for i, tc := range tcs {
-		contact, flowContact, created, err := models.GetOrCreateContact(ctx, rt.DB, oa, tc.URNs, tc.ChannelID)
+		contact, flowContact, created, err := models.GetOrCreateContact(ctx, rt.DB, oa, testdata.Admin.ID, tc.URNs, tc.ChannelID)
 		assert.NoError(t, err, "%d: error creating contact", i)
 
 		assert.Equal(t, tc.ContactID, contact.ID(), "%d: contact id mismatch", i)
@@ -358,7 +358,7 @@ func TestGetOrCreateContactRace(t *testing.T) {
 	var errs [2]error
 
 	test.RunConcurrently(2, func(i int) {
-		contacts[i], _, _, errs[i] = models.GetOrCreateContact(ctx, mdb, oa, []urns.URN{urns.URN("telegram:100007")}, models.NilChannelID)
+		contacts[i], _, _, errs[i] = models.GetOrCreateContact(ctx, mdb, oa, testdata.Admin.ID, []urns.URN{urns.URN("telegram:100007")}, models.NilChannelID)
 	})
 
 	require.NoError(t, errs[0])
@@ -418,7 +418,7 @@ func TestGetOrCreateContactIDsFromURNs(t *testing.T) {
 	}
 
 	for i, tc := range tcs {
-		fetched, created, err := models.GetOrCreateContactsFromURNs(ctx, rt.DB, oa, tc.urns)
+		fetched, created, err := models.GetOrCreateContactsFromURNs(ctx, rt.DB, oa, testdata.Admin.ID, tc.urns)
 		assert.NoError(t, err, "%d: error getting contact ids", i)
 		assert.Equal(t, tc.fetched, fetched, "%d: fetched contacts mismatch", i)
 		assert.Equal(t, tc.created, slices.AppendSeq([]urns.URN{}, maps.Keys(created)), "%d: created contacts mismatch", i)
@@ -447,7 +447,7 @@ func TestGetOrCreateContactsFromURNsRace(t *testing.T) {
 
 	test.RunConcurrently(2, func(i int) {
 		var created map[urns.URN]*models.Contact
-		_, created, errs[i] = models.GetOrCreateContactsFromURNs(ctx, mdb, oa, []urns.URN{urns.URN("telegram:100007")})
+		_, created, errs[i] = models.GetOrCreateContactsFromURNs(ctx, mdb, oa, testdata.Admin.ID, []urns.URN{urns.URN("telegram:100007")})
 		contacts[i] = created[urns.URN("telegram:100007")]
 	})
 

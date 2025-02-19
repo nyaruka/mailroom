@@ -26,7 +26,12 @@ func resolveContact(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 		return nil, fmt.Errorf("URN failed validation: %w", err)
 	}
 
-	contact, flowContact, created, err := models.GetOrCreateContact(ctx, rt.DB, oa, []urns.URN{urn}, channelID)
+	userID, err := models.GetSystemUserID(ctx, rt.DB.DB)
+	if err != nil {
+		return nil, fmt.Errorf("error getting system user id: %w", err)
+	}
+
+	contact, flowContact, created, err := models.GetOrCreateContact(ctx, rt.DB, oa, userID, []urns.URN{urn}, channelID)
 	if err != nil {
 		return nil, fmt.Errorf("error getting or creating contact: %w", err)
 	}

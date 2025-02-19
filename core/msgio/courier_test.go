@@ -32,11 +32,13 @@ func TestNewCourierMsg(t *testing.T) {
 	testFred := testdata.InsertContact(rt, testdata.Org1, "", "Fred", "eng", models.ContactStatusActive)
 	testdata.InsertContactURN(rt, testdata.Org1, testFred, "tel:+593979123456", 1000, map[string]string{fmt.Sprintf("optin:%d", optInID): "sesame"})
 
+	testdata.InsertWaitingSession(rt, testdata.Cathy, models.FlowTypeMessaging, testdata.Favorites, models.NilCallID)
+
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdata.Org1.ID, models.RefreshOptIns)
 	require.NoError(t, err)
 	require.False(t, oa.Org().Suspended())
 
-	_, cathy, cathyURNs := testdata.Cathy.Load(rt, oa)
+	mCathy, fCathy, cathyURNs := testdata.Cathy.Load(rt, oa)
 	_, fred, fredURNs := testFred.Load(rt, oa)
 
 	twilio := oa.ChannelByUUID(testdata.TwilioChannel.UUID)
@@ -52,7 +54,7 @@ func TestNewCourierMsg(t *testing.T) {
 		&flows.MsgContent{
 			Text:         "Hi there",
 			Attachments:  []utils.Attachment{utils.Attachment("image/jpeg:https://dl-foo.com/image.jpg")},
-			QuickReplies: []string{"yes", "no"},
+			QuickReplies: []flows.QuickReply{{Text: "yes"}, {Text: "no"}},
 		},
 		flows.NewMsgTemplating(
 			assets.NewTemplateReference(testdata.ReviveTemplate.UUID, "revive_issue"),
@@ -65,9 +67,9 @@ func TestNewCourierMsg(t *testing.T) {
 	)
 
 	// create a non-priority flow message.. i.e. the session isn't responding to an incoming message
-	testdata.InsertWaitingSession(rt, testdata.Org1, testdata.Cathy, models.FlowTypeMessaging, testdata.Favorites, models.NilCallID, time.Now(), time.Now(), false, nil)
-	session, err := models.FindWaitingSessionForContact(ctx, rt, oa, models.FlowTypeMessaging, cathy)
+	session, err := models.GetWaitingSessionForContact(ctx, rt, oa, mCathy, fCathy)
 	require.NoError(t, err)
+	require.NotNil(t, session)
 
 	msg1, err := models.NewOutgoingFlowMsg(rt, oa.Org(), facebook, session, flow, flowMsg1, time.Date(2021, 11, 9, 14, 3, 30, 0, time.UTC))
 	require.NoError(t, err)
@@ -95,8 +97,11 @@ func TestNewCourierMsg(t *testing.T) {
 			"yes",
 			"no"
 		],
-		"session_id": %d,
-		"session_status": "W",
+		"session": {
+			"uuid": "%s",
+			"status": "W",
+			"sprint_uuid": "%s"
+        },
 		"templating": {
 			"template": {"uuid": "9c22b594-fcab-4b29-9bcb-ce4404894a80", "name": "revive_issue"},
 			"components": [{"type": "body", "name": "body", "variables": {"1": 0}}],
@@ -109,10 +114,10 @@ func TestNewCourierMsg(t *testing.T) {
 		"tps_cost": 2,
 		"urn": "tel:+16055741111",
 		"uuid": "%s"
-	}`, session.ID(), msg1.UUID()))
+	}`, session.UUID(), session.LastSprintUUID(), msg1.UUID()))
 
 	// create a priority flow message.. i.e. the session is responding to an incoming message
-	cathy.SetLastSeenOn(time.Date(2023, 4, 20, 10, 15, 0, 0, time.UTC))
+	fCathy.SetLastSeenOn(time.Date(2023, 4, 20, 10, 15, 0, 0, time.UTC))
 	flowMsg2 := flows.NewMsgOut(
 		cathyURN,
 		assets.NewChannelReference(testdata.TwilioChannel.UUID, "Test Channel"),
@@ -142,13 +147,16 @@ func TestNewCourierMsg(t *testing.T) {
 		"id": 3,
 		"org_id": 1,
 		"origin": "flow",
-		"session_id": %d,
-		"session_status": "W",
+		"session": {
+			"uuid": "%s",
+			"status": "W",
+			"sprint_uuid": "%s"
+        },
 		"text": "Hi there",
 		"tps_cost": 1,
 		"urn": "tel:+16055741111",
 		"uuid": "%s"
-	}`, session.ID(), msg2.UUID()))
+	}`, session.UUID(), session.LastSprintUUID(), msg2.UUID()))
 
 	// try a broadcast message which won't have session and flow fields set and won't be high priority
 	bcastID := testdata.InsertBroadcast(rt, testdata.Org1, `eng`, map[i18n.Language]string{`eng`: "Blast"}, nil, models.NilScheduleID, []*testdata.Contact{testFred}, nil)
@@ -172,11 +180,11 @@ func TestNewCourierMsg(t *testing.T) {
 		"tps_cost": 1,
 		"urn": "tel:+593979123456",
 		"urn_auth": "sesame",
-		"user_id": 3,
+		"user_id": %d,
 		"uuid": "%s"
-	}`, msg3.CreatedOn().Format(time.RFC3339Nano), msg3.UUID()))
+	}`, msg3.CreatedOn().Format(time.RFC3339Nano), testdata.Admin.ID, msg3.UUID()))
 
-	msg4 := models.NewOutgoingOptInMsg(rt, session, flow, optIn, twilio, "tel:+16055741111?id=10000", time.Date(2021, 11, 9, 14, 3, 30, 0, time.UTC))
+	msg4 := models.NewOutgoingOptInMsg(rt, testdata.Org1.ID, session, flow, optIn, twilio, "tel:+16055741111?id=10000", time.Date(2021, 11, 9, 14, 3, 30, 0, time.UTC))
 	err = models.InsertMessages(ctx, rt.DB, []*models.Msg{msg4})
 	require.NoError(t, err)
 
@@ -195,13 +203,16 @@ func TestNewCourierMsg(t *testing.T) {
 		"org_id": 1,
 		"origin": "flow",
 		"response_to_external_id": "EX123",
-		"session_id": %d,
-		"session_status": "W",
+		"session": {
+			"uuid": "%s",
+			"status": "W",
+			"sprint_uuid": "%s"
+        },
 		"text": "",
 		"tps_cost": 1,
 		"urn": "tel:+16055741111",
 		"uuid": "%s"
-	}`, optIn.ID(), session.ID(), msg4.UUID()))
+	}`, optIn.ID(), session.UUID(), session.LastSprintUUID(), msg4.UUID()))
 }
 
 func createAndAssertCourierMsg(t *testing.T, oa *models.OrgAssets, m *models.Msg, u *models.ContactURN, expectedJSON string) {

@@ -19,11 +19,9 @@ type updateCampaignEventsHook struct{}
 
 // Apply will update all the campaigns for the passed in scene, minimizing the number of queries to do so
 func (h *updateCampaignEventsHook) Apply(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *models.OrgAssets, scenes map[*models.Scene][]any) error {
-	// these are all the events we need to delete unfired fires for
+	// the contact fires to be deleted and inserted
 	deletes := make([]*models.FireDelete, 0, 5)
-
-	// these are all the new events we need to insert
-	inserts := make([]*models.FireAdd, 0, 5)
+	inserts := make([]*models.ContactFire, 0, 5)
 
 	for s, es := range scenes {
 		groupAdds := make(map[models.GroupID]bool)
@@ -91,10 +89,7 @@ func (h *updateCampaignEventsHook) Apply(ctx context.Context, rt *runtime.Runtim
 
 		// ok, create all our deletes
 		for e := range deleteEvents {
-			deletes = append(deletes, &models.FireDelete{
-				ContactID: s.ContactID(),
-				EventID:   e,
-			})
+			deletes = append(deletes, &models.FireDelete{ContactID: s.ContactID(), EventID: e})
 		}
 
 		// add in all the events we qualify for in campaigns we are now part of
@@ -121,24 +116,18 @@ func (h *updateCampaignEventsHook) Apply(ctx context.Context, rt *runtime.Runtim
 			}
 
 			// ok we have a new fire date, add it to our list of fires to insert
-			inserts = append(inserts, &models.FireAdd{
-				ContactID: s.ContactID(),
-				EventID:   ce.ID(),
-				Scheduled: *scheduled,
-			})
+			inserts = append(inserts, models.NewContactFireForCampaign(oa.OrgID(), s.ContactID(), ce.ID(), *scheduled))
 		}
 	}
 
-	// first delete all our removed fires
-	err := models.DeleteUnfiredEventFires(ctx, tx, deletes)
-	if err != nil {
-		return fmt.Errorf("error deleting unfired event fires: %w", err)
+	// delete the campaign event fires which are no longer valid
+	if err := models.DeleteCampaignContactFires(ctx, tx, deletes); err != nil {
+		return fmt.Errorf("error deleting campaign event fires: %w", err)
 	}
 
 	// then insert our new ones
-	err = models.AddEventFires(ctx, tx, inserts)
-	if err != nil {
-		return fmt.Errorf("error inserting new event fires: %w", err)
+	if err := models.InsertContactFires(ctx, tx, inserts); err != nil {
+		return fmt.Errorf("error inserting new campaign event fires: %w", err)
 	}
 
 	return nil
