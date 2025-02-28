@@ -22,12 +22,15 @@ func TestLoadCampaigns(t *testing.T) {
 	event1 := oa.CampaignEventByID(testdata.RemindersEvent1.ID)
 	assert.Equal(t, testdata.RemindersEvent1.ID, event1.ID())
 	assert.Equal(t, testdata.RemindersEvent1.UUID, event1.UUID())
+	assert.Equal(t, testdata.RemindersEvent1.FireUUID, event1.FireUUID())
 
 	event2 := oa.CampaignEventByID(testdata.RemindersEvent2.ID)
 	assert.Equal(t, testdata.RemindersEvent2.UUID, event2.UUID())
+	assert.Equal(t, testdata.RemindersEvent2.FireUUID, event2.FireUUID())
 
 	event3 := oa.CampaignEventByID(testdata.RemindersEvent3.ID)
 	assert.Equal(t, testdata.RemindersEvent3.UUID, event3.UUID())
+	assert.Equal(t, testdata.RemindersEvent3.FireUUID, event3.FireUUID())
 }
 
 func TestCampaignSchedule(t *testing.T) {

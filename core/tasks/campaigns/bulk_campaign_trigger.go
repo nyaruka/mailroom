@@ -33,8 +33,9 @@ func init() {
 
 // BulkCampaignTriggerTask is the task to handle triggering campaign events
 type BulkCampaignTriggerTask struct {
-	EventID    models.CampaignEventID `json:"event_id"`
-	ContactIDs []models.ContactID     `json:"contact_ids"`
+	EventID    models.CampaignEventID  `json:"event_id"` // to be replaced by fire_uuid
+	FireUUID   models.CampaignFireUUID `json:"fire_uuid"`
+	ContactIDs []models.ContactID      `json:"contact_ids"`
 }
 
 func (t *BulkCampaignTriggerTask) Type() string {
@@ -50,7 +51,13 @@ func (t *BulkCampaignTriggerTask) WithAssets() models.Refresh {
 }
 
 func (t *BulkCampaignTriggerTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets) error {
-	event := oa.CampaignEventByID(t.EventID)
+	var event *models.CampaignEvent
+	if t.EventID != 0 {
+		event = oa.CampaignEventByID(t.EventID)
+	} else {
+		event = oa.CampaignEventByFireUUID(t.FireUUID)
+	}
+
 	if event == nil {
 		slog.Info("skipping campaign trigger for event that no longer exists", "event_id", t.EventID)
 		return nil
@@ -58,7 +65,7 @@ func (t *BulkCampaignTriggerTask) Perform(ctx context.Context, rt *runtime.Runti
 
 	flow, err := oa.FlowByID(event.FlowID())
 	if err == models.ErrNotFound {
-		slog.Info("skipping campaign trigger for flow that no longer exists", "event_id", t.EventID, "flow_id", event.FlowID())
+		slog.Info("skipping campaign trigger for flow that no longer exists", "event_id", event.ID(), "flow_id", event.FlowID())
 		return nil
 	}
 	if err != nil {
@@ -99,7 +106,7 @@ func (t *BulkCampaignTriggerTask) Perform(ctx context.Context, rt *runtime.Runti
 	}
 
 	// store recent fires in redis for this event
-	recentSet := redisx.NewCappedZSet(fmt.Sprintf(recentFiresKey, t.EventID), recentFiresCap, recentFiresExpire)
+	recentSet := redisx.NewCappedZSet(fmt.Sprintf(recentFiresKey, event.ID()), recentFiresCap, recentFiresExpire)
 
 	rc := rt.RP.Get()
 	defer rc.Close()
