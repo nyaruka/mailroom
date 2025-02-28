@@ -12,8 +12,9 @@ type Campaign struct {
 }
 
 type CampaignEvent struct {
-	ID   models.CampaignEventID
-	UUID models.CampaignEventUUID
+	ID       models.CampaignEventID
+	UUID     models.CampaignEventUUID
+	FireUUID models.CampaignFireUUID
 }
 
 func InsertCampaign(rt *runtime.Runtime, org *Org, name string, group *Group) *Campaign {
@@ -28,11 +29,12 @@ func InsertCampaign(rt *runtime.Runtime, org *Org, name string, group *Group) *C
 
 func InsertCampaignFlowEvent(rt *runtime.Runtime, campaign *Campaign, flow *Flow, relativeTo *Field, offset int, unit string) *CampaignEvent {
 	uuid := models.CampaignEventUUID(uuids.NewV4())
+	fireUUID := models.CampaignFireUUID(uuids.NewV4())
 	var id models.CampaignEventID
 	must(rt.DB.Get(&id,
 		`INSERT INTO campaigns_campaignevent(uuid, fire_uuid, campaign_id, event_type, status, flow_id, relative_to_id, "offset", unit, delivery_hour, start_mode, is_active, created_on, modified_on, created_by_id, modified_by_id) 
 		VALUES($1, $2, $3, 'F', 'R', $4, $5, $6, $7, -1, 'I', TRUE, NOW(), NOW(), 1, 1) RETURNING id`,
-		uuid, uuids.NewV4(), campaign.ID, flow.ID, relativeTo.ID, offset, unit,
+		uuid, fireUUID, campaign.ID, flow.ID, relativeTo.ID, offset, unit,
 	))
-	return &CampaignEvent{id, uuid}
+	return &CampaignEvent{ID: id, UUID: uuid, FireUUID: fireUUID}
 }

@@ -65,7 +65,7 @@ func (t *BulkCampaignTriggerTask) Perform(ctx context.Context, rt *runtime.Runti
 
 	flow, err := oa.FlowByID(event.FlowID())
 	if err == models.ErrNotFound {
-		slog.Info("skipping campaign trigger for flow that no longer exists", "event_id", t.EventID, "flow_id", event.FlowID())
+		slog.Info("skipping campaign trigger for flow that no longer exists", "event_id", event.ID(), "flow_id", event.FlowID())
 		return nil
 	}
 	if err != nil {
@@ -106,7 +106,7 @@ func (t *BulkCampaignTriggerTask) Perform(ctx context.Context, rt *runtime.Runti
 	}
 
 	// store recent fires in redis for this event
-	recentSet := redisx.NewCappedZSet(fmt.Sprintf(recentFiresKey, t.EventID), recentFiresCap, recentFiresExpire)
+	recentSet := redisx.NewCappedZSet(fmt.Sprintf(recentFiresKey, event.ID()), recentFiresCap, recentFiresExpire)
 
 	rc := rt.RP.Get()
 	defer rc.Close()
