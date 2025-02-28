@@ -7,9 +7,28 @@ import (
 	"time"
 
 	"github.com/nyaruka/mailroom/core/models"
+	"github.com/nyaruka/mailroom/testsuite"
+	"github.com/nyaruka/mailroom/testsuite/testdata"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func TestLoadCampaigns(t *testing.T) {
+	ctx, rt := testsuite.Runtime()
+
+	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, 1, models.RefreshChannels)
+	require.NoError(t, err)
+
+	event1 := oa.CampaignEventByID(testdata.RemindersEvent1.ID)
+	assert.Equal(t, testdata.RemindersEvent1.ID, event1.ID())
+	assert.Equal(t, testdata.RemindersEvent1.UUID, event1.UUID())
+
+	event2 := oa.CampaignEventByID(testdata.RemindersEvent2.ID)
+	assert.Equal(t, testdata.RemindersEvent2.UUID, event2.UUID())
+
+	event3 := oa.CampaignEventByID(testdata.RemindersEvent3.ID)
+	assert.Equal(t, testdata.RemindersEvent3.UUID, event3.UUID())
+}
 
 func TestCampaignSchedule(t *testing.T) {
 	eastern, _ := time.LoadLocation("US/Eastern")

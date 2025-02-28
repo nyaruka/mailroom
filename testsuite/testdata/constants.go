@@ -74,8 +74,8 @@ var Wit = &Classifier{2, "ff2a817c-040a-4eb2-8404-7d92e8b79dd0"}
 var Bothub = &Classifier{3, "859b436d-3005-4e43-9ad5-3de5f26ede4c"}
 
 var RemindersCampaign = &Campaign{10000, "72aa12c5-cc11-4bc7-9406-044047845c70"}
-var RemindersEvent1 = &CampaignEvent{10000, "f2a3f8c5-e831-4df3-b046-8d8cdb90f178"} // Favorites flow, interrupts
-var RemindersEvent2 = &CampaignEvent{10001, "aff4b8ac-2534-420f-a353-66a3e74b6e16"} // Message event, passive
+var RemindersEvent1 = &CampaignEvent{10000, "f842414d-5787-400f-b807-17d004823c5a"} // Favorites flow, interrupts
+var RemindersEvent2 = &CampaignEvent{10001, "27e44553-ab35-482b-a4d4-6f000ec611ab"} // Message event, passive
 var RemindersEvent3 = &CampaignEvent{10002, "3e4f06c2-e04f-47ca-a047-f5252b3160ea"} // Pick A Number flow, skips
 
 // secondary org.. only a few things
