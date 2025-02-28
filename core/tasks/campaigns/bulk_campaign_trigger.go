@@ -33,8 +33,9 @@ func init() {
 
 // BulkCampaignTriggerTask is the task to handle triggering campaign events
 type BulkCampaignTriggerTask struct {
-	EventID    models.CampaignEventID `json:"event_id"`
-	ContactIDs []models.ContactID     `json:"contact_ids"`
+	EventID    models.CampaignEventID  `json:"event_id"` // to be replaced by fire_uuid
+	FireUUID   models.CampaignFireUUID `json:"fire_uuid"`
+	ContactIDs []models.ContactID      `json:"contact_ids"`
 }
 
 func (t *BulkCampaignTriggerTask) Type() string {
@@ -50,7 +51,13 @@ func (t *BulkCampaignTriggerTask) WithAssets() models.Refresh {
 }
 
 func (t *BulkCampaignTriggerTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets) error {
-	event := oa.CampaignEventByID(t.EventID)
+	var event *models.CampaignEvent
+	if t.EventID != 0 {
+		event = oa.CampaignEventByID(t.EventID)
+	} else {
+		event = oa.CampaignEventByFireUUID(t.FireUUID)
+	}
+
 	if event == nil {
 		slog.Info("skipping campaign trigger for event that no longer exists", "event_id", t.EventID)
 		return nil

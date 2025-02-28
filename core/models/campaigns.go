@@ -90,19 +90,29 @@ func (c *Campaign) GroupID() GroupID { return c.c.GroupID }
 // Events returns the list of events for this campaign
 func (c *Campaign) Events() []*CampaignEvent { return c.c.Events }
 
+type CampaignFireUUID uuids.UUID
+type CampaignEventStatus string
+
+const (
+	CampaignEventStatusScheduling = CampaignEventStatus("S")
+	CampaignEventStatusReady      = CampaignEventStatus("R")
+)
+
 // CampaignEvent is our struct for an individual campaign event
 type CampaignEvent struct {
 	e struct {
-		ID            CampaignEventID   `json:"id"`
-		UUID          CampaignEventUUID `json:"uuid"`
-		EventType     string            `json:"event_type"`
-		StartMode     StartMode         `json:"start_mode"`
-		RelativeToID  FieldID           `json:"relative_to_id"`
-		RelativeToKey string            `json:"relative_to_key"`
-		Offset        int               `json:"offset"`
-		Unit          OffsetUnit        `json:"unit"`
-		DeliveryHour  int               `json:"delivery_hour"`
-		FlowID        FlowID            `json:"flow_id"`
+		ID            CampaignEventID     `json:"id"`
+		UUID          CampaignEventUUID   `json:"uuid"`
+		FireUUID      CampaignFireUUID    `json:"fire_uuid"`
+		EventType     string              `json:"event_type"`
+		Status        CampaignEventStatus `json:"status"`
+		StartMode     StartMode           `json:"start_mode"`
+		RelativeToID  FieldID             `json:"relative_to_id"`
+		RelativeToKey string              `json:"relative_to_key"`
+		Offset        int                 `json:"offset"`
+		Unit          OffsetUnit          `json:"unit"`
+		DeliveryHour  int                 `json:"delivery_hour"`
+		FlowID        FlowID              `json:"flow_id"`
 	}
 
 	campaign *Campaign
@@ -222,34 +232,19 @@ func (e *CampaignEvent) ScheduleForTime(tz *time.Location, now time.Time, start 
 	return &scheduled, nil
 }
 
-// ID returns the database id for this campaign event
-func (e *CampaignEvent) ID() CampaignEventID { return e.e.ID }
-
-// UUID returns the UUID of this campaign event
-func (e *CampaignEvent) UUID() CampaignEventUUID { return e.e.UUID }
-
-// RelativeToID returns the ID of the field this event is relative to
-func (e *CampaignEvent) RelativeToID() FieldID { return e.e.RelativeToID }
-
-// RelativeToKey returns the key of the field this event is relative to
-func (e *CampaignEvent) RelativeToKey() string { return e.e.RelativeToKey }
-
-// Offset returns the offset for thi campaign event
-func (e *CampaignEvent) Offset() int { return e.e.Offset }
-
-// Unit returns the unit for this campaign event
-func (e *CampaignEvent) Unit() OffsetUnit { return e.e.Unit }
-
-// DeliveryHour returns the hour this event should send at, if any
-func (e *CampaignEvent) DeliveryHour() int { return e.e.DeliveryHour }
+func (e *CampaignEvent) ID() CampaignEventID        { return e.e.ID }
+func (e *CampaignEvent) UUID() CampaignEventUUID    { return e.e.UUID }
+func (e *CampaignEvent) FireUUID() CampaignFireUUID { return e.e.FireUUID }
+func (e *CampaignEvent) RelativeToID() FieldID      { return e.e.RelativeToID }
+func (e *CampaignEvent) RelativeToKey() string      { return e.e.RelativeToKey }
+func (e *CampaignEvent) Offset() int                { return e.e.Offset }
+func (e *CampaignEvent) Unit() OffsetUnit           { return e.e.Unit }
+func (e *CampaignEvent) DeliveryHour() int          { return e.e.DeliveryHour }
+func (e *CampaignEvent) StartMode() StartMode       { return e.e.StartMode }
+func (e *CampaignEvent) FlowID() FlowID             { return e.e.FlowID }
 
 // Campaign returns the campaign this event is part of
 func (e *CampaignEvent) Campaign() *Campaign { return e.campaign }
-
-// StartMode returns the start mode for this campaign event
-func (e *CampaignEvent) StartMode() StartMode { return e.e.StartMode }
-
-func (e *CampaignEvent) FlowID() FlowID { return e.e.FlowID }
 
 // loadCampaigns loads all the campaigns for the passed in org
 func loadCampaigns(ctx context.Context, db *sql.DB, orgID OrgID) ([]*Campaign, error) {
@@ -287,7 +282,7 @@ SELECT ROW_TO_JSON(r) FROM (SELECT
     c.name,
     c.group_id,
     (SELECT ARRAY_AGG(evs) FROM (
-        SELECT e.id, e.uuid, e.event_type, e.start_mode, e.relative_to_id, f.key AS relative_to_key, e.offset, e.unit, e.delivery_hour, e.flow_id
+        SELECT e.id, e.uuid, e.fire_uuid, e.event_type, e.status, e.start_mode, e.relative_to_id, f.key AS relative_to_key, e.offset, e.unit, e.delivery_hour, e.flow_id
           FROM campaigns_campaignevent e
           JOIN contacts_contactfield f ON f.id = e.relative_to_id
          WHERE e.campaign_id = c.id AND e.is_active = TRUE AND f.is_active = TRUE
@@ -305,10 +300,7 @@ func DeleteUnfiredEventsForGroupRemoval(ctx context.Context, tx DBorTx, oa *OrgA
 	for _, c := range oa.CampaignByGroupID(groupID) {
 		for _, e := range c.Events() {
 			for _, cid := range contactIDs {
-				fds = append(fds, &FireDelete{
-					EventID:   e.ID(),
-					ContactID: cid,
-				})
+				fds = append(fds, &FireDelete{ContactID: cid, Scope: fmt.Sprint(e.ID())})
 			}
 		}
 	}

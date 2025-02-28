@@ -85,7 +85,7 @@ func (h *updateCampaignEventsHook) Apply(ctx context.Context, rt *runtime.Runtim
 
 		// ok, create all our deletes
 		for e := range deleteEvents {
-			deletes = append(deletes, &models.FireDelete{ContactID: s.ContactID(), EventID: e})
+			deletes = append(deletes, &models.FireDelete{ContactID: s.ContactID(), Scope: fmt.Sprint(e)})
 		}
 
 		// add in all the events we qualify for in campaigns we are now part of

@@ -68,10 +68,11 @@ type OrgAssets struct {
 	classifiers       []assets.Classifier
 	classifiersByUUID map[assets.ClassifierUUID]*Classifier
 
-	campaigns             []*Campaign
-	campaignEventsByField map[FieldID][]*CampaignEvent
-	campaignEventsByID    map[CampaignEventID]*CampaignEvent
-	campaignsByGroup      map[GroupID][]*Campaign
+	campaigns                []*Campaign
+	campaignEventsByField    map[FieldID][]*CampaignEvent
+	campaignEventsByID       map[CampaignEventID]*CampaignEvent
+	campaignEventsByFireUUID map[CampaignFireUUID]*CampaignEvent
+	campaignsByGroup         map[GroupID][]*Campaign
 
 	fields       []assets.Field // excludes proxy fields
 	fieldsByUUID map[assets.FieldUUID]*Field
@@ -300,18 +301,21 @@ func NewOrgAssets(ctx context.Context, rt *runtime.Runtime, orgID OrgID, prev *O
 		}
 		oa.campaignEventsByField = make(map[FieldID][]*CampaignEvent)
 		oa.campaignEventsByID = make(map[CampaignEventID]*CampaignEvent)
+		oa.campaignEventsByFireUUID = make(map[CampaignFireUUID]*CampaignEvent)
 		oa.campaignsByGroup = make(map[GroupID][]*Campaign)
 		for _, c := range oa.campaigns {
 			oa.campaignsByGroup[c.GroupID()] = append(oa.campaignsByGroup[c.GroupID()], c)
 			for _, e := range c.Events() {
 				oa.campaignEventsByField[e.RelativeToID()] = append(oa.campaignEventsByField[e.RelativeToID()], e)
 				oa.campaignEventsByID[e.ID()] = e
+				oa.campaignEventsByFireUUID[e.FireUUID()] = e
 			}
 		}
 	} else {
 		oa.campaigns = prev.campaigns
 		oa.campaignEventsByField = prev.campaignEventsByField
 		oa.campaignEventsByID = prev.campaignEventsByID
+		oa.campaignEventsByFireUUID = prev.campaignEventsByFireUUID
 		oa.campaignsByGroup = prev.campaignsByGroup
 	}
 
@@ -618,6 +622,10 @@ func (a *OrgAssets) CampaignEventsByFieldID(fieldID FieldID) []*CampaignEvent {
 
 func (a *OrgAssets) CampaignEventByID(eventID CampaignEventID) *CampaignEvent {
 	return a.campaignEventsByID[eventID]
+}
+
+func (a *OrgAssets) CampaignEventByFireUUID(fireUUID CampaignFireUUID) *CampaignEvent {
+	return a.campaignEventsByFireUUID[fireUUID]
 }
 
 func (a *OrgAssets) Groups() ([]assets.Group, error) {

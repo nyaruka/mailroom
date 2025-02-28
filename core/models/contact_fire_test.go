@@ -1,6 +1,7 @@
 package models_test
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -137,7 +138,7 @@ func TestCampaignContactFires(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT COUNT(*) FROM contacts_contactfire WHERE contact_id = $1`, testdata.George.ID).Returns(3)
 
 	// test deleting specific contact/event combinations
-	err = models.DeleteCampaignContactFires(ctx, rt.DB, []*models.FireDelete{{testdata.Bob.ID, testdata.RemindersEvent1.ID}, {testdata.George.ID, testdata.RemindersEvent3.ID}})
+	err = models.DeleteCampaignContactFires(ctx, rt.DB, []*models.FireDelete{{testdata.Bob.ID, fmt.Sprint(testdata.RemindersEvent1.ID)}, {testdata.George.ID, fmt.Sprint(testdata.RemindersEvent3.ID)}})
 	assert.NoError(t, err)
 
 	assertdb.Query(t, rt.DB, `SELECT COUNT(*) FROM contacts_contactfire WHERE fire_type = 'C'`).Returns(4)

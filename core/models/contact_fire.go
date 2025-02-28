@@ -128,14 +128,14 @@ func DeleteAllCampaignContactFires(ctx context.Context, db DBorTx, contactIDs []
 
 // FireDelete is a helper struct for deleting specific campaign event fires
 type FireDelete struct {
-	ContactID ContactID       `db:"contact_id"`
-	EventID   CampaignEventID `db:"event_id"`
+	ContactID ContactID `db:"contact_id"`
+	Scope     string    `db:"scope"`
 }
 
 const sqlDeleteContactFires = `
 DELETE FROM contacts_contactfire WHERE id IN (
     SELECT cf.id FROM contacts_contactfire cf, (VALUES(:contact_id, :event_id)) AS f(contact_id, event_id)
-     WHERE cf.contact_id = f.contact_id::int AND fire_type = 'C' AND cf.scope = f.event_id::text
+     WHERE cf.contact_id = f.contact_id::int AND fire_type = 'C' AND cf.scope = f.scope
 )`
 
 // DeleteCampaignContactFires deletes *specific* campaign event fires for the given contacts
