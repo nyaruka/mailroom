@@ -29,7 +29,11 @@ func TestBulkCampaignTrigger(t *testing.T) {
 	testdata.InsertWaitingSession(rt, testdata.Org1, testdata.Cathy, models.FlowTypeVoice, testdata.IVRFlow, models.NilCallID)
 
 	// create task for event #3 (Pick A Number, start mode SKIP)
-	task := &campaigns.BulkCampaignTriggerTask{EventID: testdata.RemindersEvent3.ID, ContactIDs: []models.ContactID{testdata.Bob.ID, testdata.Cathy.ID, testdata.Alexandria.ID}}
+	task := &campaigns.BulkCampaignTriggerTask{
+		EventID:     testdata.RemindersEvent3.ID,
+		FireVersion: 1,
+		ContactIDs:  []models.ContactID{testdata.Bob.ID, testdata.Cathy.ID, testdata.Alexandria.ID},
+	}
 
 	oa := testdata.Org1.Load(rt)
 	err := task.Perform(ctx, rt, oa)
@@ -44,7 +48,11 @@ func TestBulkCampaignTrigger(t *testing.T) {
 	assertredis.ZRange(t, rc, "recent_campaign_fires:10002", 0, -1, []string{"BPV0gqT9PL|10001", "QQFoOgV99A|10003"})
 
 	// create task for event #2 (single message, start mode PASSIVE)
-	task = &campaigns.BulkCampaignTriggerTask{EventID: testdata.RemindersEvent2.ID, ContactIDs: []models.ContactID{testdata.Bob.ID, testdata.Cathy.ID, testdata.Alexandria.ID}}
+	task = &campaigns.BulkCampaignTriggerTask{
+		EventID:     testdata.RemindersEvent2.ID,
+		FireVersion: 1,
+		ContactIDs:  []models.ContactID{testdata.Bob.ID, testdata.Cathy.ID, testdata.Alexandria.ID},
+	}
 	err = task.Perform(ctx, rt, oa)
 	assert.NoError(t, err)
 
@@ -64,7 +72,11 @@ func TestBulkCampaignTrigger(t *testing.T) {
 	assertredis.ZRange(t, rc, "recent_campaign_fires:10002", 0, -1, []string{"BPV0gqT9PL|10001", "QQFoOgV99A|10003"})
 
 	// create task for event #1 (Favorites, start mode INTERRUPT)
-	task = &campaigns.BulkCampaignTriggerTask{EventID: testdata.RemindersEvent1.ID, ContactIDs: []models.ContactID{testdata.Bob.ID, testdata.Cathy.ID, testdata.Alexandria.ID}}
+	task = &campaigns.BulkCampaignTriggerTask{
+		EventID:     testdata.RemindersEvent1.ID,
+		FireVersion: 1,
+		ContactIDs:  []models.ContactID{testdata.Bob.ID, testdata.Cathy.ID, testdata.Alexandria.ID},
+	}
 	err = task.Perform(ctx, rt, oa)
 	assert.NoError(t, err)
 
@@ -83,7 +95,11 @@ func TestBulkCampaignTrigger(t *testing.T) {
 	models.FlushCache()
 	oa = testdata.Org1.Load(rt)
 
-	task = &campaigns.BulkCampaignTriggerTask{EventID: testdata.RemindersEvent1.ID, ContactIDs: []models.ContactID{testdata.Bob.ID, testdata.Cathy.ID, testdata.Alexandria.ID}}
+	task = &campaigns.BulkCampaignTriggerTask{
+		EventID:     testdata.RemindersEvent1.ID,
+		FireVersion: 1,
+		ContactIDs:  []models.ContactID{testdata.Bob.ID, testdata.Cathy.ID, testdata.Alexandria.ID},
+	}
 	err = task.Perform(ctx, rt, oa)
 	assert.NoError(t, err)
 
@@ -100,7 +116,11 @@ func TestBulkCampaignTrigger(t *testing.T) {
 	models.FlushCache()
 	oa = testdata.Org1.Load(rt)
 
-	task = &campaigns.BulkCampaignTriggerTask{EventID: testdata.RemindersEvent3.ID, ContactIDs: []models.ContactID{testdata.Bob.ID, testdata.Cathy.ID, testdata.Alexandria.ID}}
+	task = &campaigns.BulkCampaignTriggerTask{
+		EventID:     testdata.RemindersEvent3.ID,
+		ContactIDs:  []models.ContactID{testdata.Bob.ID, testdata.Cathy.ID, testdata.Alexandria.ID},
+		FireVersion: 1,
+	}
 	err = task.Perform(ctx, rt, oa)
 	assert.NoError(t, err)
 
