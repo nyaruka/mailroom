@@ -7,6 +7,7 @@ type CallRequest struct {
 	To               string `json:"to"`
 	From             string `json:"from"`
 	AnswerURL        string `json:"answerUrl"`
+	DisconnectURL    string `json:"disconnectUrl"`
 	ApplicationID    string `json:"applicationId"`
 	MachineDetection *struct {
 		Mode string `json:"mode"`
