@@ -11,6 +11,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/buger/jsonparser"
 	"github.com/nyaruka/gocommon/httpx"
@@ -21,6 +22,7 @@ import (
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/goflow/flows/routers/waits/hints"
+	"github.com/nyaruka/goflow/utils"
 	"github.com/nyaruka/mailroom/core/ivr"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/runtime"
@@ -199,6 +201,7 @@ func (s *service) RequestCall(number urns.URN, handleURL string, statusURL strin
 		To:            number.Path(),
 		From:          s.channel.Address(),
 		AnswerURL:     handleURL,
+		DisconnectURL: statusURL,
 		ApplicationID: s.applicationID,
 	}
 
@@ -229,14 +232,132 @@ func (s *service) RequestCall(number urns.URN, handleURL string, statusURL strin
 
 }
 
+type ResumeRequest struct {
+	EventType        string    `json:"eventType"`
+	EventTime        time.Time `json:"eventTime"`
+	AccountID        string    `json:"accountId"`
+	ApplicationID    string    `json:"applicationId"`
+	To               string    `json:"to"`
+	From             string    `json:"from"`
+	Direction        string    `json:"direction"`
+	CallID           string    `json:"callID"`
+	StartTime        time.Time `json:"startTime"`
+	Digits           string    `json:"digits"`
+	TerminatingDigit string    `json:"terminatingDigit"`
+	MediaURL         string    `json:"mediaUrl"`
+	Status           string    `json:"status"`
+	FileFormat       string    `json:"fileFormat"`
+}
+
 // ResumeForRequest implements ivr.Service.
 func (s *service) ResumeForRequest(r *http.Request) (ivr.Resume, error) {
-	panic("unimplemented")
+
+	// this could be a timeout, in which case we return an empty input
+	timeout := r.Form.Get("timeout")
+	if timeout == "true" {
+		return ivr.InputResume{}, nil
+	}
+
+	// this could be empty, in which case we return an empty input
+	empty := r.Form.Get("empty")
+	if empty == "true" {
+		return ivr.InputResume{}, nil
+	}
+
+	// otherwise grab the right field based on our wait type
+	waitType := r.Form.Get("wait_type")
+
+	// parse our input
+	input := &ResumeRequest{}
+	bb, err := readBody(r)
+	if err != nil {
+		return nil, fmt.Errorf("error reading request body: %w", err)
+	}
+
+	err = json.Unmarshal(bb, input)
+	if err != nil {
+		return nil, fmt.Errorf("unable to parse request body: %w", err)
+	}
+
+	switch waitType {
+
+	case "gather":
+		return ivr.InputResume{Input: input.Digits}, nil
+
+	case "record":
+		recordingURL := input.MediaURL
+		recordingStatus := input.Status
+
+		if recordingURL == "" || recordingStatus == "" {
+			return ivr.InputResume{}, nil
+		}
+		slog.Info("input found recording", "recording_url", recordingURL)
+		return ivr.InputResume{Attachment: utils.Attachment("audio:" + recordingURL)}, nil
+
+	case "dial":
+		duration := time.Now().Sub(input.StartTime).Seconds()
+
+		return ivr.DialResume{Status: flows.DialStatus("answered"), Duration: int(duration)}, nil
+
+	default:
+		return nil, fmt.Errorf("unknown wait_type: %s", waitType)
+	}
+
+}
+
+type StatusRequest struct {
+	EventType     string    `json:"eventType"`
+	EventTime     time.Time `json:"eventTime"`
+	AccountID     string    `json:"accountId"`
+	ApplicationID string    `json:"applicationId"`
+	To            string    `json:"to"`
+	From          string    `json:"from"`
+	Direction     string    `json:"direction"`
+	CallID        string    `json:"callID"`
+	StartTime     time.Time `json:"startTime"`
+	EndTime       time.Time `json:"endTime"`
+	Cause         string    `json:"cause"`
 }
 
 // StatusForRequest implements ivr.Service.
 func (s *service) StatusForRequest(r *http.Request) (models.CallStatus, models.CallError, int) {
-	panic("unimplemented")
+	body, err := readBody(r)
+	if err != nil {
+		slog.Error("error reading status request body", "error", err)
+		return models.CallStatusErrored, models.CallErrorProvider, 0
+	}
+
+	status := &StatusRequest{}
+	err = json.Unmarshal(body, status)
+	if err != nil {
+		slog.Error("error unmarshalling status request body", "error", err, "body", string(body))
+		return models.CallStatusErrored, models.CallErrorProvider, 0
+	}
+
+	if status.EventType == "disconnect" || status.EventType == "transferDisconnect" {
+		switch status.Cause {
+		case "hangup":
+			duration := status.EndTime.Sub(status.StartTime).Seconds()
+			return models.CallStatusCompleted, "", int(duration)
+		case "busy":
+			return models.CallStatusErrored, models.CallErrorBusy, 0
+		case "timeout", "rejected", "cancel":
+			return models.CallStatusErrored, models.CallErrorNoAnswer, 0
+
+		case "unknown", "error", "application-error", "invalid-bxml", "callback-error":
+			return models.CallStatusErrored, models.CallErrorProvider, 0
+
+		case "account-limit", "node-capacity-exceeded":
+			return models.CallStatusErrored, models.CallErrorProvider, 0
+
+		default:
+			slog.Error("unknown call disconnect cause in status callback", "cause", status.Cause)
+			return models.CallStatusFailed, models.CallErrorProvider, 0
+		}
+
+	}
+
+	return models.CallStatusInProgress, "", 0
 }
 
 // URNForRequest implements ivr.Service.
