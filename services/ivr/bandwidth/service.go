@@ -223,7 +223,7 @@ func (s *service) RequestCall(number urns.URN, handleURL string, statusURL strin
 	call := &CallResponse{}
 	err = json.Unmarshal(trace.ResponseBody, call)
 	if err != nil || call.CallID == "" {
-		return ivr.NilCallID, trace, fmt.Errorf("unable to read call uuid")
+		return ivr.NilCallID, trace, fmt.Errorf("unable to read call with uuid")
 	}
 
 	slog.Debug("requested call", "body", string(trace.ResponseBody), "status", trace.Response.StatusCode)
