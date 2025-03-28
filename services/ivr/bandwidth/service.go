@@ -89,10 +89,10 @@ func init() {
 
 // NewServiceFromChannel creates a new Bandwidth IVR service for the passed in username, password and accountID
 func NewServiceFromChannel(httpClient *http.Client, channel *models.Channel) (ivr.Service, error) {
-	username := channel.ConfigValue(usernameConfig, "")
-	password := channel.ConfigValue(passwordConfig, "")
-	accountId := channel.ConfigValue(accountIDConfig, "")
-	aplicationID := channel.ConfigValue(aplicationIDConfig, "")
+	username := channel.Config().GetString(usernameConfig, "")
+	password := channel.Config().GetString(passwordConfig, "")
+	accountId := channel.Config().GetString(accountIDConfig, "")
+	aplicationID := channel.Config().GetString(aplicationIDConfig, "")
 	if username == "" || password == "" || accountId == "" || aplicationID == "" {
 		return nil, fmt.Errorf("missing username, password or account_id on channel config: %v for channel: %s", channel.Config(), channel.UUID())
 	}
@@ -188,8 +188,8 @@ func (s *service) PreprocessStatus(ctx context.Context, rt *runtime.Runtime, r *
 // RedactValues implements ivr.Service.
 func (s *service) RedactValues(ch *models.Channel) []string {
 	return []string{
-		httpx.BasicAuth(ch.ConfigValue(usernameConfig, ""), ch.ConfigValue(passwordConfig, "")),
-		ch.ConfigValue(passwordConfig, ""),
+		httpx.BasicAuth(ch.Config().GetString(usernameConfig, ""), ch.Config().GetString(passwordConfig, "")),
+		ch.Config().GetString(passwordConfig, ""),
 	}
 }
 
