@@ -76,7 +76,7 @@ func handleTranslate(ctx context.Context, rt *runtime.Runtime, r *translateReque
 	llm.RecordCall(rt, time.Since(start), resp.TokensUsed)
 
 	if resp.Output == "<CANT>" {
-		return nil, 0, ai.NewReasoningError("not able to translate", instructions, r.Text, resp.Output)
+		return nil, 0, &ai.ServiceError{Message: "unable to perform translation", Code: ai.ErrorReasoning, Instructions: instructions, Input: r.Text}
 	}
 
 	return translateResponse{Text: resp.Output, TokensUsed: resp.TokensUsed}, http.StatusOK, nil

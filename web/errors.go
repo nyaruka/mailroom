@@ -44,12 +44,12 @@ func ErrorToResponse(err error) (*ErrorResponse, int) {
 		}, http.StatusUnprocessableEntity
 	}
 
-	var aerr *ai.ReasoningError
+	var aerr *ai.ServiceError
 	if errors.As(err, &aerr) {
 		return &ErrorResponse{
 			Error: aerr.Error(),
-			Code:  "ai:reasoning",
-			Extra: map[string]any{"instructions": aerr.Instructions, "input": aerr.Input, "response": aerr.Response},
+			Code:  "ai:" + aerr.Code,
+			Extra: map[string]any{"instructions": aerr.Instructions, "input": aerr.Input},
 		}, http.StatusUnprocessableEntity
 	}
 
