@@ -153,7 +153,7 @@ type Msg struct {
 		Metadata     null.Map[any] `db:"metadata"`
 		ChannelID    ChannelID     `db:"channel_id"`
 		ContactID    ContactID     `db:"contact_id"`
-		ContactURNID *URNID        `db:"contact_urn_id"`
+		ContactURNID URNID         `db:"contact_urn_id"`
 
 		SentOn       *time.Time      `db:"sent_on"`
 		ErrorCount   int             `db:"error_count"`
@@ -162,6 +162,7 @@ type Msg struct {
 	}
 
 	// transient fields set during message creation that provide extra data when queuing to courier
+	URN          urns.URN
 	Contact      *flows.Contact
 	Session      *Session
 	LastInSprint bool
@@ -198,7 +199,7 @@ func (m *Msg) OrgID() OrgID                  { return m.m.OrgID }
 
 func (m *Msg) OptInID() OptInID     { return m.m.OptInID }
 func (m *Msg) ContactID() ContactID { return m.m.ContactID }
-func (m *Msg) ContactURNID() *URNID { return m.m.ContactURNID }
+func (m *Msg) ContactURNID() URNID  { return m.m.ContactURNID }
 
 func (m *Msg) SetChannel(channel *Channel) {
 	if channel != nil {
@@ -210,22 +211,17 @@ func (m *Msg) SetChannel(channel *Channel) {
 	}
 }
 
-func (m *Msg) SetURN(urn urns.URN) error {
-	// noop for nil urn
-	if urn == urns.NilURN {
-		return nil
+func (m *Msg) SetURN(urn urns.URN, urnID URNID) {
+	m.m.ContactURNID = urnID
+	m.URN = urn
+
+	// try to extract URN id from param if we don't have it
+	if urnID == NilURNID && urn != urns.NilURN {
+		urnInt := GetURNInt(urn, "id")
+		if urnInt != 0 {
+			m.m.ContactURNID = URNID(urnInt)
+		}
 	}
-
-	// set our ID if we have one
-	urnInt := GetURNInt(urn, "id")
-	if urnInt == 0 {
-		return fmt.Errorf("missing urn id on urn: %s", urn)
-	}
-
-	urnID := URNID(urnInt)
-	m.m.ContactURNID = &urnID
-
-	return nil
 }
 
 func (m *Msg) Attachments() []utils.Attachment {
@@ -254,7 +250,7 @@ func NewIncomingAndroid(orgID OrgID, channelID ChannelID, contactID ContactID, u
 	m.OrgID = orgID
 	m.ChannelID = channelID
 	m.ContactID = contactID
-	m.ContactURNID = &urnID
+	m.ContactURNID = urnID
 	m.Text = text
 	m.Direction = DirectionIn
 	m.Status = MsgStatusPending
@@ -270,8 +266,6 @@ func NewIncomingAndroid(orgID OrgID, channelID ChannelID, contactID ContactID, u
 func NewIncomingIVR(cfg *runtime.Config, orgID OrgID, call *Call, in *flows.MsgIn, createdOn time.Time) *Msg {
 	msg := &Msg{}
 	m := &msg.m
-
-	msg.SetURN(in.URN())
 	m.UUID = in.UUID()
 	m.Text = in.Text()
 	m.Direction = DirectionIn
@@ -280,11 +274,10 @@ func NewIncomingIVR(cfg *runtime.Config, orgID OrgID, call *Call, in *flows.MsgI
 	m.MsgType = MsgTypeVoice
 	m.ContactID = call.ContactID()
 	m.CreatedOn = createdOn
-
-	urnID := call.ContactURNID()
-	m.ContactURNID = &urnID
 	m.ChannelID = call.ChannelID()
 	m.OrgID = orgID
+
+	msg.SetURN(in.URN(), call.ContactURNID())
 
 	// add any attachments
 	for _, a := range in.Attachments() {
@@ -298,7 +291,6 @@ func NewIncomingIVR(cfg *runtime.Config, orgID OrgID, call *Call, in *flows.MsgI
 func NewOutgoingIVR(cfg *runtime.Config, orgID OrgID, call *Call, out *flows.MsgOut, createdOn time.Time) *Msg {
 	msg := &Msg{}
 	m := &msg.m
-
 	m.UUID = out.UUID()
 	m.OrgID = orgID
 	m.Text = out.Text()
@@ -307,17 +299,13 @@ func NewOutgoingIVR(cfg *runtime.Config, orgID OrgID, call *Call, out *flows.Msg
 	m.Direction = DirectionOut
 	m.Visibility = VisibilityVisible
 	m.MsgType = MsgTypeVoice
-
-	msg.SetURN(out.URN())
 	m.ContactID = call.ContactID()
-
-	urnID := call.ContactURNID()
-	m.ContactURNID = &urnID
 	m.ChannelID = call.ChannelID()
-
 	m.Status = MsgStatusWired
 	m.CreatedOn = createdOn
 	m.SentOn = &createdOn
+
+	msg.SetURN(out.URN(), call.ContactURNID())
 
 	// if we have attachments, add them
 	for _, a := range out.Attachments() {
@@ -343,7 +331,7 @@ func NewOutgoingOptInMsg(rt *runtime.Runtime, orgID OrgID, session *Session, flo
 	m.CreatedOn = createdOn
 
 	msg.SetChannel(channel)
-	msg.SetURN(urn)
+	msg.SetURN(urn, NilURNID)
 
 	if flow != nil {
 		m.FlowID = flow.ID()
@@ -399,12 +387,12 @@ func newOutgoingTextMsg(rt *runtime.Runtime, org *Org, channel *Channel, contact
 	m.CreatedOn = createdOn
 	m.Metadata = null.Map[any](buildMsgMetadata(out))
 
+	msg.SetChannel(channel)
+	msg.SetURN(out.URN(), NilURNID)
+
 	if out.Templating() != nil {
 		m.Templating = &Templating{MsgTemplating: out.Templating()}
 	}
-
-	msg.SetChannel(channel)
-	msg.SetURN(out.URN())
 
 	// if we have attachments/quick replies, add them
 	if len(out.Attachments()) > 0 {
@@ -716,9 +704,9 @@ func ResendMessages(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, msg
 		var ch *flows.Channel
 		urnID := msg.ContactURNID()
 
-		if urnID != nil {
+		if urnID != NilURNID {
 			// reselect channel for this message's URN
-			urn, err := URNForID(ctx, rt.DB, oa, *urnID)
+			urn, err := URNForID(ctx, rt.DB, oa, urnID)
 			if err != nil {
 				return nil, fmt.Errorf("error loading URN: %w", err)
 			}

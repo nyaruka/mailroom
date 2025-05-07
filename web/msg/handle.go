@@ -47,11 +47,11 @@ func handleHandle(ctx context.Context, rt *runtime.Runtime, r *handleRequest) (a
 	queuedMsgIDs := make([]models.MsgID, 0, len(r.MsgIDs))
 
 	for _, m := range msgs {
-		if m.Status() != models.MsgStatusPending || m.ContactURNID() == nil {
+		if m.Status() != models.MsgStatusPending || m.ContactURNID() == models.NilURNID {
 			continue
 		}
 
-		urn, err := models.URNForID(ctx, rt.DB, oa, *m.ContactURNID())
+		urn, err := models.URNForID(ctx, rt.DB, oa, m.ContactURNID())
 		if err != nil {
 			return nil, 0, fmt.Errorf("error fetching msg URN: %w", err)
 		}
@@ -67,7 +67,7 @@ func handleHandle(ctx context.Context, rt *runtime.Runtime, r *handleRequest) (a
 			MsgUUID:       m.UUID(),
 			MsgExternalID: m.ExternalID(),
 			URN:           urn,
-			URNID:         *m.ContactURNID(),
+			URNID:         m.ContactURNID(),
 			Text:          m.Text(),
 			Attachments:   attachments,
 			NewContact:    false,

@@ -206,11 +206,7 @@ func TestNewOutgoingFlowMsg(t *testing.T) {
 
 		assert.Equal(t, tc.Contact.ID, msg.ContactID())
 		assert.Equal(t, expectedChannelID, msg.ChannelID())
-		if tc.URNID != models.NilURNID {
-			assert.Equal(t, tc.URNID, *msg.ContactURNID())
-		} else {
-			assert.Nil(t, msg.ContactURNID())
-		}
+		assert.Equal(t, tc.URNID, msg.ContactURNID())
 		assert.Equal(t, tc.Flow.ID, msg.FlowID())
 
 		assert.Equal(t, tc.ExpectedStatus, msg.Status(), "%d: status mismatch", i)

@@ -72,7 +72,7 @@ func handleMessage(ctx context.Context, rt *runtime.Runtime, r *messageRequest) 
 		MsgUUID:       m.UUID(),
 		MsgExternalID: m.ExternalID(),
 		URN:           cu.urn,
-		URNID:         *m.ContactURNID(),
+		URNID:         m.ContactURNID(),
 		Text:          m.Text(),
 		NewContact:    cu.newContact,
 	})
