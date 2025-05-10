@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/gomodule/redigo/redis"
+	"github.com/nyaruka/mailroom/core/imports"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/tasks"
 	"github.com/nyaruka/mailroom/runtime"
@@ -48,7 +49,12 @@ func (t *ImportContactBatchTask) Perform(ctx context.Context, rt *runtime.Runtim
 		return fmt.Errorf("error loading contact import: %w", err)
 	}
 
-	batchErr := batch.Import(ctx, rt, oa, imp.CreatedByID)
+	batchErr := imports.ImportBatch(ctx, rt, oa, batch, imp.CreatedByID)
+
+	// if any error occurs this batch should be marked as failed
+	if batchErr != nil {
+		batch.SetFailed(ctx, rt.DB)
+	}
 
 	// decrement the redis key that holds remaining batches to see if the overall import is now finished
 	rc := rt.RP.Get()
@@ -64,7 +70,7 @@ func (t *ImportContactBatchTask) Perform(ctx context.Context, rt *runtime.Runtim
 			}
 		}
 
-		if err := imp.MarkFinished(ctx, rt.DB, status); err != nil {
+		if err := imp.SetFinished(ctx, rt.DB, status); err != nil {
 			return fmt.Errorf("error marking import as finished: %w", err)
 		}
 

@@ -155,7 +155,7 @@ func TestNewOutgoingFlowMsg(t *testing.T) {
 	for i, tc := range tcs {
 		rt.DB.MustExec(`UPDATE orgs_org SET is_suspended = $1 WHERE id = $2`, tc.SuspendedOrg, testdata.Org1.ID)
 
-		oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdata.Org1.ID, models.RefreshOrg)
+		oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdata.Org1.ID, models.RefreshOrg|models.RefreshFlows)
 		require.NoError(t, err)
 
 		var ch *models.Channel
@@ -167,7 +167,8 @@ func TestNewOutgoingFlowMsg(t *testing.T) {
 			expectedChannelID = ch.ID()
 		}
 
-		flow, _ := oa.FlowByID(tc.Flow.ID)
+		flow, err := oa.FlowByID(tc.Flow.ID)
+		require.NoError(t, err)
 
 		session := insertTestSession(t, ctx, rt, tc.Contact)
 
@@ -200,10 +201,10 @@ func TestNewOutgoingFlowMsg(t *testing.T) {
 			assert.Nil(t, msg.Templating(), "%d: templating should be nil", i)
 		}
 
-		assert.Equal(t, tc.Contact.ID, msg.ContactID())
-		assert.Equal(t, expectedChannelID, msg.ChannelID())
-		assert.Equal(t, tc.URNID, msg.ContactURNID())
-		assert.Equal(t, tc.Flow.ID, msg.FlowID())
+		assert.Equal(t, tc.Contact.ID, msg.ContactID(), "%d: contact id mismatch", i)
+		assert.Equal(t, expectedChannelID, msg.ChannelID(), "%d: channel id mismatch", i)
+		assert.Equal(t, tc.URNID, msg.ContactURNID(), "%d: urn id mismatch", i)
+		assert.Equal(t, tc.Flow.ID, msg.FlowID(), "%d: flow id mismatch", i)
 
 		assert.Equal(t, tc.ExpectedStatus, msg.Status(), "%d: status mismatch", i)
 		assert.Equal(t, tc.ExpectedFailedReason, msg.FailedReason(), "%d: failed reason mismatch", i)

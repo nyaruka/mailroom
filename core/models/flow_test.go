@@ -140,6 +140,8 @@ func TestFlowIDForUUID(t *testing.T) {
 	tx.MustExec(`UPDATE flows_flow SET is_active = FALSE WHERE id = $1`, testdata.Favorites.ID)
 	tx.Commit()
 
+	defer rt.DB.MustExec(`UPDATE flows_flow SET is_active = TRUE WHERE id = $1`, testdata.Favorites.ID)
+
 	tx, err = rt.DB.BeginTxx(ctx, nil)
 	assert.NoError(t, err)
 	defer tx.Rollback()

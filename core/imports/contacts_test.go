@@ -1,4 +1,4 @@
-package models_test
+package imports_test
 
 import (
 	"context"
@@ -19,6 +19,7 @@ import (
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/test"
 	_ "github.com/nyaruka/mailroom/core/handlers"
+	"github.com/nyaruka/mailroom/core/imports"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/mailroom/testsuite"
@@ -48,7 +49,7 @@ func TestContactImports(t *testing.T) {
 	// give our org a country by setting country on a channel
 	rt.DB.MustExec(`UPDATE channels_channel SET country = 'US' WHERE id = $1`, testdata.TwilioChannel.ID)
 
-	testJSON := testsuite.ReadFile("testdata/imports.json")
+	testJSON := testsuite.ReadFile("testdata/contacts.json")
 
 	tcs := []struct {
 		Description string                `json:"description"`
@@ -74,7 +75,7 @@ func TestContactImports(t *testing.T) {
 		batch, err := models.LoadContactImportBatch(ctx, rt.DB, batchID)
 		require.NoError(t, err)
 
-		err = batch.Import(ctx, rt, oa, testdata.Admin.ID)
+		err = imports.ImportBatch(ctx, rt, oa, batch, testdata.Admin.ID)
 		require.NoError(t, err)
 
 		results := &struct {
@@ -181,7 +182,7 @@ func TestLoadContactImport(t *testing.T) {
 	assert.Equal(t, 0, batch1.RecordStart)
 	assert.Equal(t, 2, batch1.RecordEnd)
 
-	err = batch1.Import(ctx, rt, oa, testdata.Admin.ID)
+	err = imports.ImportBatch(ctx, rt, oa, batch1, testdata.Admin.ID)
 	require.NoError(t, err)
 
 	imp, err = models.LoadContactImport(ctx, rt.DB, importID)
