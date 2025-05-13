@@ -1,3 +1,8 @@
+v10.1.114 (2025-05-13)
+-------------------------
+ * Fix not setting call_id on sessions
+ * More refactoring of event processing code
+
 v10.1.113 (2025-05-09)
 -------------------------
  * Refactoring of session vs scene with less transient fields on session
