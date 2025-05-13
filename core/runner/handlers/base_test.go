@@ -267,7 +267,7 @@ func RunFlowAndApplyEvents(t *testing.T, ctx context.Context, rt *runtime.Runtim
 	tx, err := rt.DB.BeginTxx(ctx, nil)
 	require.NoError(t, err)
 
-	session, err := models.NewSession(ctx, tx, oa, fs, sprint, models.NilStartID)
+	session, err := models.NewSession(ctx, tx, oa, fs, sprint, models.NilStartID, models.NilCallID)
 	require.NoError(t, err)
 
 	err = tx.Commit()

@@ -204,7 +204,7 @@ func (t *MsgReceivedTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *
 			// otherwise build the trigger and start the flow directly
 			trigger := tb.Build()
 
-			_, err = runner.StartFlow(ctx, rt, oa, flow, []*models.Contact{mc}, []flows.Trigger{trigger}, flow.FlowType().Interrupts(), models.NilStartID, sceneInit, flowMsgHook)
+			_, err = runner.StartFlow(ctx, rt, oa, flow, []*models.Contact{mc}, []flows.Trigger{trigger}, flow.FlowType().Interrupts(), models.NilStartID, models.NilCallID, sceneInit, flowMsgHook)
 			if err != nil {
 				return fmt.Errorf("error starting flow for contact: %w", err)
 			}

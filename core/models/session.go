@@ -374,7 +374,7 @@ func (s *Session) UnmarshalJSON(b []byte) error {
 
 // NewSession a session objects from the passed in flow session. It does NOT
 // commit said session to the database.
-func NewSession(ctx context.Context, tx *sqlx.Tx, oa *OrgAssets, fs flows.Session, sprint flows.Sprint, startID StartID) (*Session, error) {
+func NewSession(ctx context.Context, tx *sqlx.Tx, oa *OrgAssets, fs flows.Session, sprint flows.Sprint, startID StartID, callID CallID) (*Session, error) {
 	output, err := json.Marshal(fs)
 	if err != nil {
 		return nil, fmt.Errorf("error marshalling flow session: %w", err)
@@ -406,6 +406,7 @@ func NewSession(ctx context.Context, tx *sqlx.Tx, oa *OrgAssets, fs flows.Sessio
 	s.SessionType = sessionType
 	s.Output = null.String(output)
 	s.ContactID = ContactID(fs.Contact().ID())
+	s.CallID = callID
 	s.CreatedOn = fs.Runs()[0].CreatedOn()
 
 	if s.Status != SessionStatusWaiting {
@@ -466,7 +467,7 @@ INSERT INTO
 
 // InsertSessions writes the passed in session to our database, writes any runs that need to be created
 // as well as appying any events created in the session
-func InsertSessions(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *OrgAssets, ss []flows.Session, sprints []flows.Sprint, contacts []*Contact, hook SessionCommitHook, startID StartID) ([]*Session, error) {
+func InsertSessions(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *OrgAssets, ss []flows.Session, sprints []flows.Sprint, contacts []*Contact, hook SessionCommitHook, startID StartID, callID CallID) ([]*Session, error) {
 	if len(ss) == 0 {
 		return nil, nil
 	}
@@ -480,7 +481,7 @@ func InsertSessions(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *O
 	waitingContactIDs := make([]ContactID, 0, len(ss))
 
 	for i, s := range ss {
-		session, err := NewSession(ctx, tx, oa, s, sprints[i], startID)
+		session, err := NewSession(ctx, tx, oa, s, sprints[i], startID, callID)
 		if err != nil {
 			return nil, fmt.Errorf("error creating session objects: %w", err)
 		}

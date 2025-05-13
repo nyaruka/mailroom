@@ -361,7 +361,7 @@ func StartIVRFlow(
 
 	sceneInit := func(s *runner.Scene) { s.Call = call }
 
-	sessions, err := runner.StartFlow(ctx, rt, oa, flow, []*models.Contact{c}, []flows.Trigger{trigger}, true, models.NilStartID, sceneInit, nil)
+	sessions, err := runner.StartFlow(ctx, rt, oa, flow, []*models.Contact{c}, []flows.Trigger{trigger}, true, models.NilStartID, call.ID(), sceneInit, nil)
 	if err != nil {
 		return fmt.Errorf("error starting flow: %w", err)
 	}
