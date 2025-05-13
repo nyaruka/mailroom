@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/nyaruka/gocommon/uuids"
+	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/runtime"
 )
@@ -20,8 +21,8 @@ func (o *Org) Load(rt *runtime.Runtime) *models.OrgAssets {
 }
 
 type User struct {
-	ID    models.UserID
-	Email string
+	ID   models.UserID
+	UUID assets.UserUUID
 }
 
 func (u *User) SafeID() models.UserID {

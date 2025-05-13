@@ -34,22 +34,19 @@ const (
 
 // User is our type for a user asset
 type User struct {
-	ID_        UserID   `json:"id"`
-	Email_     string   `json:"email"`
-	FirstName_ string   `json:"first_name"`
-	LastName_  string   `json:"last_name"`
-	Role_      UserRole `json:"role_code"`
-	Team_      *Team    `json:"team"`
+	ID_        UserID          `json:"id"`
+	UUID_      assets.UserUUID `json:"uuid"`
+	Email_     string          `json:"email"`
+	FirstName_ string          `json:"first_name"`
+	LastName_  string          `json:"last_name"`
+	Role_      UserRole        `json:"role_code"`
+	Team_      *Team           `json:"team"`
 }
 
-// ID returns the ID
-func (u *User) ID() UserID { return u.ID_ }
-
-// Email returns the email address
-func (u *User) Email() string { return u.Email_ }
-
-// Role returns the user's role in the current org
-func (u *User) Role() UserRole { return u.Role_ }
+func (u *User) ID() UserID            { return u.ID_ }
+func (u *User) UUID() assets.UserUUID { return u.UUID_ }
+func (u *User) Email() string         { return u.Email_ }
+func (u *User) Role() UserRole        { return u.Role_ }
 
 // Name returns the name
 func (u *User) Name() string {
@@ -72,7 +69,7 @@ var _ assets.User = (*User)(nil)
 
 const sqlSelectUsersByOrg = `
 SELECT ROW_TO_JSON(r) FROM (
-           SELECT u.id, u.email, u.first_name, u.last_name, m.role_code, row_to_json(team_struct) AS team
+           SELECT u.id, u.uuid, u.email, u.first_name, u.last_name, m.role_code, row_to_json(team_struct) AS team
              FROM orgs_orgmembership m
        INNER JOIN users_user u ON u.id = m.user_id
 LEFT JOIN LATERAL (SELECT id, uuid, name FROM tickets_team WHERE tickets_team.id = m.team_id) AS team_struct ON True
