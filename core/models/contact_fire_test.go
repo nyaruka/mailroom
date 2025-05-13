@@ -78,7 +78,7 @@ func TestSessionContactFires(t *testing.T) {
 
 	tx := rt.DB.MustBegin()
 
-	modelSessions, err := models.InsertSessions(ctx, rt, tx, oa, []flows.Session{flowSession1, flowSession2}, []flows.Sprint{sprint1, sprint2}, []*models.Contact{modelContact1, modelContact2}, nil, models.NilStartID)
+	modelSessions, err := models.InsertSessions(ctx, rt, tx, oa, []flows.Session{flowSession1, flowSession2}, []flows.Sprint{sprint1, sprint2}, []*models.Contact{modelContact1, modelContact2}, nil, models.NilStartID, models.NilCallID)
 	require.NoError(t, err)
 	require.NoError(t, tx.Commit())
 

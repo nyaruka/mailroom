@@ -179,7 +179,7 @@ func tryToStartWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 		triggers = append(triggers, trigger)
 	}
 
-	ss, err := StartFlow(ctx, rt, oa, flow, contacts, triggers, options.Interrupt, startID, sceneInit, options.CommitHook)
+	ss, err := StartFlow(ctx, rt, oa, flow, contacts, triggers, options.Interrupt, startID, models.NilCallID, sceneInit, options.CommitHook)
 	if err != nil {
 		return nil, nil, fmt.Errorf("error starting flow for contacts: %w", err)
 	}
@@ -190,7 +190,7 @@ func tryToStartWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 // StartFlow starts the given contacts in the given flow. It's assumed that the contacts are already locked.
 func StartFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 	flow *models.Flow, contacts []*models.Contact, triggers []flows.Trigger, interrupt bool,
-	startID models.StartID, sceneInit func(*Scene), hook models.SessionCommitHook) ([]*models.Session, error) {
+	startID models.StartID, callID models.CallID, sceneInit func(*Scene), hook models.SessionCommitHook) ([]*models.Session, error) {
 
 	if len(triggers) == 0 {
 		return nil, nil
@@ -245,7 +245,7 @@ func StartFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 	}
 
 	// write our session to the db
-	dbSessions, err := models.InsertSessions(txCTX, rt, tx, oa, sessions, sprints, contacts, hook, startID)
+	dbSessions, err := models.InsertSessions(txCTX, rt, tx, oa, sessions, sprints, contacts, hook, startID, callID)
 	if err != nil {
 		tx.Rollback()
 		return nil, fmt.Errorf("error interrupting contacts: %w", err)
@@ -307,7 +307,7 @@ func StartFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 				}
 			}
 
-			dbSession, err := models.InsertSessions(txCTX, rt, tx, oa, []flows.Session{session}, []flows.Sprint{sprint}, []*models.Contact{contact}, hook, startID)
+			dbSession, err := models.InsertSessions(txCTX, rt, tx, oa, []flows.Session{session}, []flows.Sprint{sprint}, []*models.Contact{contact}, hook, startID, callID)
 			if err != nil {
 				tx.Rollback()
 				log.Error("error writing session to db", "error", err, "contact", session.Contact().UUID())
