@@ -17,9 +17,9 @@ var AuthGroupIDs = map[string]int{
 }
 
 var Org1 = &Org{1, "bf0514a5-9407-44c9-b0f9-3f36f9c18414"}
-var Admin = &User{4, "admin1@textit.com"}
-var Editor = &User{5, "editor1@textit.com"}
-var Agent = &User{6, "agent1@textit.com"}
+var Admin = &User{4, "e29fdf9f-56ab-422a-b77d-e3ec26091a25"}
+var Editor = &User{5, "ea84a3d7-92e4-4a8b-b01f-db11ff83bbb6"}
+var Agent = &User{6, "27e44553-ab35-482b-a4d4-6f000ec611ab"}
 
 var TwilioChannel = &Channel{10000, "74729f45-7f29-4868-9dc4-90e491e3c7d8", "T"}
 var VonageChannel = &Channel{10001, "19012bfd-3ce3-4cae-9bb9-76cf92c73d49", "NX"}
@@ -84,7 +84,7 @@ var RemindersEvent3 = &CampaignEvent{10002, "552a7155-66bc-4323-aad0-8421f87a4e0
 
 // secondary org.. only a few things
 var Org2 = &Org{2, "3ae7cdeb-fd96-46e5-abc4-a4622f349921"}
-var Org2Admin = &User{8, "admin2@textit.com"}
+var Org2Admin = &User{8, "18afc5e7-e97b-45e5-9850-8896957fef54"}
 var Org2Channel = &Channel{20000, "a89bc872-3763-4b95-91d9-31d4e56c6651", "T"}
 var Org2Contact = &Contact{20000, "26d20b72-f7d8-44dc-87f2-aae046dbff95", "tel:+250700000005", 20000}
 var Org2Favorites = &Flow{20000, "f161bd16-3c60-40bd-8c92-228ce815b9cd"}

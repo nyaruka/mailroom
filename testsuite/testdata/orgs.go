@@ -20,8 +20,8 @@ func (o *Org) Load(rt *runtime.Runtime) *models.OrgAssets {
 }
 
 type User struct {
-	ID    models.UserID
-	Email string
+	ID   models.UserID
+	UUID models.UserUUID
 }
 
 func (u *User) SafeID() models.UserID {
