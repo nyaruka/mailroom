@@ -3,6 +3,7 @@ package models_test
 import (
 	"testing"
 
+	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/testsuite"
 	"github.com/nyaruka/mailroom/testsuite/testdata"
@@ -23,7 +24,7 @@ func TestLoadUsers(t *testing.T) {
 
 	expectedUsers := []struct {
 		id    models.UserID
-		uuid  models.UserUUID
+		uuid  assets.UserUUID
 		email string
 		name  string
 		role  models.UserRole

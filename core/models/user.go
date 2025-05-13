@@ -24,7 +24,6 @@ func (i UserID) Value() (driver.Value, error)  { return null.IntValue(i) }
 func (i *UserID) UnmarshalJSON(b []byte) error { return null.UnmarshalInt(b, i) }
 func (i UserID) MarshalJSON() ([]byte, error)  { return null.MarshalInt(i) }
 
-type UserUUID string
 type UserRole string
 
 const (
@@ -35,19 +34,19 @@ const (
 
 // User is our type for a user asset
 type User struct {
-	ID_        UserID   `json:"id"`
-	UUID_      UserUUID `json:"uuid"`
-	Email_     string   `json:"email"`
-	FirstName_ string   `json:"first_name"`
-	LastName_  string   `json:"last_name"`
-	Role_      UserRole `json:"role_code"`
-	Team_      *Team    `json:"team"`
+	ID_        UserID          `json:"id"`
+	UUID_      assets.UserUUID `json:"uuid"`
+	Email_     string          `json:"email"`
+	FirstName_ string          `json:"first_name"`
+	LastName_  string          `json:"last_name"`
+	Role_      UserRole        `json:"role_code"`
+	Team_      *Team           `json:"team"`
 }
 
-func (u *User) ID() UserID     { return u.ID_ }
-func (u *User) UUID() UserUUID { return u.UUID_ }
-func (u *User) Email() string  { return u.Email_ }
-func (u *User) Role() UserRole { return u.Role_ }
+func (u *User) ID() UserID            { return u.ID_ }
+func (u *User) UUID() assets.UserUUID { return u.UUID_ }
+func (u *User) Email() string         { return u.Email_ }
+func (u *User) Role() UserRole        { return u.Role_ }
 
 // Name returns the name
 func (u *User) Name() string {
