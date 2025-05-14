@@ -20,11 +20,11 @@ func (h *sendMessages) Execute(ctx context.Context, rt *runtime.Runtime, oa *mod
 	sends := make([]*models.Send, 0, len(scenes))
 
 	// for each scene gather all our messages
-	for _, args := range scenes {
+	for s, args := range scenes {
 		sceneSends := make([]*models.Send, 0, 1)
 
 		for _, m := range args {
-			sceneSends = append(sceneSends, &models.Send{Msg: m.(*models.Msg)})
+			sceneSends = append(sceneSends, &models.Send{Msg: m.(*models.Msg), Session: s.Session()})
 		}
 
 		// mark the last message in the sprint (used for setting timeouts)

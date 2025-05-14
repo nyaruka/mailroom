@@ -1,7 +1,6 @@
 package models_test
 
 import (
-	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -17,7 +16,6 @@ import (
 	"github.com/nyaruka/goflow/test"
 	"github.com/nyaruka/goflow/utils"
 	"github.com/nyaruka/mailroom/core/models"
-	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/mailroom/testsuite"
 	"github.com/nyaruka/mailroom/testsuite/testdata"
 	"github.com/nyaruka/redisx/assertredis"
@@ -170,10 +168,9 @@ func TestNewOutgoingFlowMsg(t *testing.T) {
 		flow, err := oa.FlowByID(tc.Flow.ID)
 		require.NoError(t, err)
 
-		session := insertTestSession(t, ctx, rt, tc.Contact)
-
+		_, fc, _ := tc.Contact.Load(rt, oa)
 		flowMsg := flows.NewMsgOut(tc.URN, chRef, tc.Content, tc.Templating, tc.Topic, tc.Locale, tc.Unsendable)
-		msg, err := models.NewOutgoingFlowMsg(rt, oa.Org(), ch, session, flow, flowMsg, tc.ResponseTo, dates.Now())
+		msg, err := models.NewOutgoingFlowMsg(rt, oa.Org(), ch, fc, flow, flowMsg, tc.ResponseTo, dates.Now())
 
 		assert.NoError(t, err)
 
@@ -230,13 +227,13 @@ func TestNewOutgoingFlowMsg(t *testing.T) {
 	require.NoError(t, err)
 	channel := oa.ChannelByUUID(testdata.TwilioChannel.UUID)
 	flow, _ := oa.FlowByID(testdata.Favorites.ID)
-	session := insertTestSession(t, ctx, rt, testdata.Cathy)
+	_, fc, _ := testdata.Cathy.Load(rt, oa)
 
 	// check that msg loop detection triggers after 20 repeats of the same text
 	newOutgoing := func(text string) *models.Msg {
 		content := &flows.MsgContent{Text: text}
 		flowMsg := flows.NewMsgOut(urns.URN(fmt.Sprintf("tel:+250700000001?id=%d", testdata.Cathy.URNID)), assets.NewChannelReference(testdata.TwilioChannel.UUID, "Twilio"), content, nil, flows.NilMsgTopic, i18n.NilLocale, flows.NilUnsendableReason)
-		msg, err := models.NewOutgoingFlowMsg(rt, oa.Org(), channel, session, flow, flowMsg, nil, dates.Now())
+		msg, err := models.NewOutgoingFlowMsg(rt, oa.Org(), channel, fc, flow, flowMsg, nil, dates.Now())
 		require.NoError(t, err)
 		return msg
 	}
@@ -605,7 +602,7 @@ func TestMsgTemplating(t *testing.T) {
 	defer testsuite.Reset(testsuite.ResetData)
 
 	oa := testdata.Org1.Load(rt)
-	session := insertTestSession(t, ctx, rt, testdata.Cathy)
+	_, fc, _ := testdata.Cathy.Load(rt, oa)
 	channel := oa.ChannelByUUID(testdata.FacebookChannel.UUID)
 	chRef := assets.NewChannelReference(testdata.FacebookChannel.UUID, "FB")
 	flow, _ := oa.FlowByID(testdata.Favorites.ID)
@@ -618,12 +615,12 @@ func TestMsgTemplating(t *testing.T) {
 
 	// create a message with templating
 	out1 := flows.NewMsgOut(testdata.Cathy.URN, chRef, &flows.MsgContent{Text: "Hello"}, templating1, flows.NilMsgTopic, i18n.NilLocale, flows.NilUnsendableReason)
-	msg1, err := models.NewOutgoingFlowMsg(rt, oa.Org(), channel, session, flow, out1, nil, dates.Now())
+	msg1, err := models.NewOutgoingFlowMsg(rt, oa.Org(), channel, fc, flow, out1, nil, dates.Now())
 	require.NoError(t, err)
 
 	// create a message without templating
 	out2 := flows.NewMsgOut(testdata.Cathy.URN, chRef, &flows.MsgContent{Text: "Hello"}, nil, flows.NilMsgTopic, i18n.NilLocale, flows.NilUnsendableReason)
-	msg2, err := models.NewOutgoingFlowMsg(rt, oa.Org(), channel, session, flow, out2, nil, dates.Now())
+	msg2, err := models.NewOutgoingFlowMsg(rt, oa.Org(), channel, fc, flow, out2, nil, dates.Now())
 	require.NoError(t, err)
 
 	err = models.InsertMessages(ctx, rt.DB, []*models.Msg{msg1, msg2})
@@ -647,18 +644,4 @@ func TestMsgTemplating(t *testing.T) {
 	err = rt.DB.Get(s, `SELECT templating FROM msgs_msg WHERE id = $1`, msg2.ID())
 	assert.NoError(t, err)
 	assert.Nil(t, s.Templating)
-}
-
-func insertTestSession(t *testing.T, ctx context.Context, rt *runtime.Runtime, contact *testdata.Contact) *models.Session {
-	testdata.InsertWaitingSession(rt, testdata.Org1, contact, models.FlowTypeMessaging, testdata.Favorites, models.NilCallID)
-
-	oa, err := models.GetOrgAssets(ctx, rt, testdata.Org1.ID)
-	require.NoError(t, err)
-
-	mc, fc, _ := contact.Load(rt, oa)
-
-	session, err := models.GetWaitingSessionForContact(ctx, rt, oa, fc, mc.CurrentSessionUUID())
-	require.NoError(t, err)
-
-	return session
 }

@@ -70,14 +70,14 @@ func TestNewCourierMsg(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, session)
 
-	msg1, err := models.NewOutgoingFlowMsg(rt, oa.Org(), facebook, session, flow, flowMsg1, nil, time.Date(2021, 11, 9, 14, 3, 30, 0, time.UTC))
+	msg1, err := models.NewOutgoingFlowMsg(rt, oa.Org(), facebook, fCathy, flow, flowMsg1, nil, time.Date(2021, 11, 9, 14, 3, 30, 0, time.UTC))
 	require.NoError(t, err)
 
 	// insert to db so that it gets an id and time field values
 	err = models.InsertMessages(ctx, rt.DB, []*models.Msg{msg1})
 	require.NoError(t, err)
 
-	createAndAssertCourierMsg(t, oa, msg1, cathyURNs[0], fmt.Sprintf(`{
+	createAndAssertCourierMsg(t, oa, msg1, cathyURNs[0], session, fmt.Sprintf(`{
 		"attachments": [
 			"image/jpeg:https://dl-foo.com/image.jpg"
 		],
@@ -124,13 +124,13 @@ func TestNewCourierMsg(t *testing.T) {
 		flows.NilUnsendableReason,
 	)
 	in1 := testdata.InsertIncomingMsg(rt, testdata.Org1, testdata.TwilioChannel, testdata.Cathy, "test", models.MsgStatusHandled)
-	msg2, err := models.NewOutgoingFlowMsg(rt, oa.Org(), twilio, session, flow, flowMsg2, &models.MsgInRef{ID: in1.ID, ExtID: "EX123"}, time.Date(2021, 11, 9, 14, 3, 30, 0, time.UTC))
+	msg2, err := models.NewOutgoingFlowMsg(rt, oa.Org(), twilio, fCathy, flow, flowMsg2, &models.MsgInRef{ID: in1.ID, ExtID: "EX123"}, time.Date(2021, 11, 9, 14, 3, 30, 0, time.UTC))
 	require.NoError(t, err)
 
 	err = models.InsertMessages(ctx, rt.DB, []*models.Msg{msg2})
 	require.NoError(t, err)
 
-	createAndAssertCourierMsg(t, oa, msg2, cathyURNs[0], fmt.Sprintf(`{
+	createAndAssertCourierMsg(t, oa, msg2, cathyURNs[0], session, fmt.Sprintf(`{
 		"channel_uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8",
 		"contact_id": 10000,
 		"contact_last_seen_on": "2023-04-20T10:15:00Z",
@@ -162,7 +162,7 @@ func TestNewCourierMsg(t *testing.T) {
 	err = models.InsertMessages(ctx, rt.DB, []*models.Msg{msg3})
 	require.NoError(t, err)
 
-	createAndAssertCourierMsg(t, oa, msg3, fredURNs[0], fmt.Sprintf(`{
+	createAndAssertCourierMsg(t, oa, msg3, fredURNs[0], nil, fmt.Sprintf(`{
 		"channel_uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8",
 		"contact_id": 30000,
 		"contact_urn_id": 30000,
@@ -179,11 +179,11 @@ func TestNewCourierMsg(t *testing.T) {
 		"uuid": "%s"
 	}`, msg3.CreatedOn().Format(time.RFC3339Nano), testdata.Admin.ID, msg3.UUID()))
 
-	msg4 := models.NewOutgoingOptInMsg(rt, testdata.Org1.ID, session, flow, optIn, twilio, "tel:+16055741111?id=10000", &models.MsgInRef{ID: in1.ID, ExtID: "EX123"}, time.Date(2021, 11, 9, 14, 3, 30, 0, time.UTC))
+	msg4 := models.NewOutgoingOptInMsg(rt, testdata.Org1.ID, fCathy, flow, optIn, twilio, "tel:+16055741111?id=10000", &models.MsgInRef{ID: in1.ID, ExtID: "EX123"}, time.Date(2021, 11, 9, 14, 3, 30, 0, time.UTC))
 	err = models.InsertMessages(ctx, rt.DB, []*models.Msg{msg4})
 	require.NoError(t, err)
 
-	createAndAssertCourierMsg(t, oa, msg4, cathyURNs[0], fmt.Sprintf(`{
+	createAndAssertCourierMsg(t, oa, msg4, cathyURNs[0], session, fmt.Sprintf(`{
 		"channel_uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8",
 		"contact_id": 10000,
 		"contact_urn_id": 10000,
@@ -210,10 +210,10 @@ func TestNewCourierMsg(t *testing.T) {
 	}`, optIn.ID(), session.UUID(), session.LastSprintUUID(), msg4.UUID()))
 }
 
-func createAndAssertCourierMsg(t *testing.T, oa *models.OrgAssets, m *models.Msg, u *models.ContactURN, expectedJSON string) {
+func createAndAssertCourierMsg(t *testing.T, oa *models.OrgAssets, m *models.Msg, u *models.ContactURN, s *models.Session, expectedJSON string) {
 	channel := oa.ChannelByID(m.ChannelID())
 
-	cmsg3, err := msgio.NewCourierMsg(oa, &models.Send{Msg: m, URN: u}, channel)
+	cmsg3, err := msgio.NewCourierMsg(oa, &models.Send{Msg: m, URN: u, Session: s}, channel)
 	assert.NoError(t, err)
 
 	marshaled := jsonx.MustMarshal(cmsg3)
