@@ -375,7 +375,7 @@ func LoadContacts(ctx context.Context, db Queryer, oa *OrgAssets, ids []ContactI
 		// finally build up our URN objects
 		contactURNs := make([]urns.URN, 0, len(e.URNs))
 		for _, u := range e.URNs {
-			urn, err := u.AsURN(oa)
+			urn, err := u.Encode(oa)
 			if err != nil {
 				slog.Warn("invalid URN, ignoring", "urn", u, "org_id", oa.OrgID(), "contact_id", contact.id)
 				continue
@@ -482,10 +482,10 @@ type ContactURN struct {
 	ChannelID  ChannelID        `json:"channel_id"  db:"channel_id"`
 }
 
-// AsURN returns a full URN representation including the query parameters needed by goflow and mailroom
-func (u *ContactURN) AsURN(oa *OrgAssets) (urns.URN, error) {
+// Encode returns a full URN representation including the query parameters needed by goflow and mailroom
+func (u *ContactURN) Encode(oa *OrgAssets) (urns.URN, error) {
 	// id needed to turn msg_created events into database messages
-	query := url.Values{"id": []string{fmt.Sprintf("%d", u.ID)}}
+	query := url.Values{"id": []string{fmt.Sprint(u.ID)}}
 
 	// channel needed by goflow URN/channel selection
 	if u.ChannelID != NilChannelID {
@@ -938,7 +938,7 @@ func URNForURN(ctx context.Context, db Queryer, oa *OrgAssets, u urns.URN) (urns
 		return urns.NilURN, fmt.Errorf("more than one URN returned for identity query: %w", err)
 	}
 
-	return urn.AsURN(oa)
+	return urn.Encode(oa)
 }
 
 // GetOrCreateURN will look up a URN by identity, creating it if needbe and associating it with the contact
@@ -969,32 +969,6 @@ func GetOrCreateURN(ctx context.Context, db DBorTx, oa *OrgAssets, contactID Con
 
 	// do a lookup once more
 	return URNForURN(ctx, db, oa, u)
-}
-
-// URNForID will return a URN for the passed in ID including all the special query parameters
-// set that goflow and mailroom depend on. Generally this URN is built when loading a contact
-// but occasionally we need to load URNs one by one and this accomplishes that
-func URNForID(ctx context.Context, db Queryer, oa *OrgAssets, urnID URNID) (urns.URN, error) {
-	urn := &ContactURN{}
-	rows, err := db.QueryContext(ctx,
-		`SELECT row_to_json(r) FROM (SELECT id, scheme, path, display, auth_tokens, channel_id, priority FROM contacts_contacturn WHERE id = $1) r;`,
-		urnID,
-	)
-	if err != nil {
-		return urns.NilURN, fmt.Errorf("error selecting URN ID: %d", urnID)
-	}
-	defer rows.Close()
-
-	if !rows.Next() {
-		return urns.NilURN, fmt.Errorf("no urn with id: %d", urnID)
-	}
-
-	err = dbutil.ScanJSON(rows, urn)
-	if err != nil {
-		return urns.NilURN, fmt.Errorf("error loading contact urn: %w", err)
-	}
-
-	return urn.AsURN(oa)
 }
 
 // CalculateDynamicGroups recalculates all the dynamic groups for the passed in contact, recalculating
@@ -1081,7 +1055,7 @@ SELECT id, org_id, contact_id, identity, priority, scheme, path, display, auth_t
   FROM contacts_contacturn 
  WHERE id = ANY($1)`
 
-// LoadContactURNs fetches contact URNs by their ids
+// LoadContactURNs fetches contact URNs by their IDs
 func LoadContactURNs(ctx context.Context, db DBorTx, ids []URNID) ([]*ContactURN, error) {
 	rows, err := db.QueryxContext(ctx, sqlSelectURNsByID, pq.Array(ids))
 	if err != nil {
@@ -1092,13 +1066,24 @@ func LoadContactURNs(ctx context.Context, db DBorTx, ids []URNID) ([]*ContactURN
 	urns := make([]*ContactURN, 0)
 	for rows.Next() {
 		u := &ContactURN{}
-		err = rows.StructScan(&u)
-		if err != nil {
+		if err := rows.StructScan(&u); err != nil {
 			return nil, fmt.Errorf("error scanning URN row: %w", err)
 		}
 		urns = append(urns, u)
 	}
 	return urns, nil
+}
+
+// LoadContactURN fetches a single contact URN by its ID
+func LoadContactURN(ctx context.Context, db DBorTx, id URNID) (*ContactURN, error) {
+	cus, err := LoadContactURNs(ctx, db, []URNID{id})
+	if err != nil {
+		return nil, err
+	}
+	if len(cus) == 0 {
+		return nil, sql.ErrNoRows
+	}
+	return cus[0], nil
 }
 
 func GetURNInt(urn urns.URN, key string) int {

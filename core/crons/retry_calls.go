@@ -69,11 +69,13 @@ func (c *RetryCallsCron) Run(ctx context.Context, rt *runtime.Runtime) (map[stri
 		}
 
 		// finally load the full URN
-		urn, err := models.URNForID(ctx, rt.DB, oa, call.ContactURNID())
+		cu, err := models.LoadContactURN(ctx, rt.DB, call.ContactURNID())
 		if err != nil {
 			log.Error("unable to load contact urn", "error", err, "urn_id", call.ContactURNID())
 			continue
 		}
+
+		urn, _ := cu.Encode(oa)
 
 		clog, err := ivr.RequestStartForCall(ctx, rt, channel, urn, call)
 		if clog != nil {

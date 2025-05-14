@@ -148,9 +148,9 @@ func TestQueueMessages(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		sends := make([]*msgio.Send, len(tc.Msgs))
+		sends := make([]*models.Send, len(tc.Msgs))
 		for i, ms := range tc.Msgs {
-			sends[i] = &msgio.Send{Msg: ms.createMsg(t, rt, oa)}
+			sends[i] = &models.Send{Msg: ms.createMsg(t, rt, oa)}
 		}
 
 		rc.Do("FLUSHDB")

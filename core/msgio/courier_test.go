@@ -44,8 +44,8 @@ func TestNewCourierMsg(t *testing.T) {
 	facebook := oa.ChannelByUUID(testdata.FacebookChannel.UUID)
 	flow, _ := oa.FlowByID(testdata.Favorites.ID)
 	optIn := oa.OptInByID(optInID)
-	cathyURN, _ := cathyURNs[0].AsURN(oa)
-	fredURN, _ := fredURNs[0].AsURN(oa)
+	cathyURN, _ := cathyURNs[0].Encode(oa)
+	fredURN, _ := fredURNs[0].Encode(oa)
 
 	flowMsg1 := flows.NewMsgOut(
 		cathyURN,
@@ -213,7 +213,7 @@ func TestNewCourierMsg(t *testing.T) {
 func createAndAssertCourierMsg(t *testing.T, oa *models.OrgAssets, m *models.Msg, u *models.ContactURN, expectedJSON string) {
 	channel := oa.ChannelByID(m.ChannelID())
 
-	cmsg3, err := msgio.NewCourierMsg(oa, &msgio.Send{Msg: m, URN: u}, channel)
+	cmsg3, err := msgio.NewCourierMsg(oa, &models.Send{Msg: m, URN: u}, channel)
 	assert.NoError(t, err)
 
 	marshaled := jsonx.MustMarshal(cmsg3)
@@ -235,11 +235,11 @@ func TestQueueCourierMessages(t *testing.T) {
 	twilio := oa.ChannelByUUID(testdata.TwilioChannel.UUID)
 
 	// noop if no messages provided
-	msgio.QueueCourierMessages(rc, oa, testdata.Cathy.ID, twilio, []*msgio.Send{})
+	msgio.QueueCourierMessages(rc, oa, testdata.Cathy.ID, twilio, []*models.Send{})
 	testsuite.AssertCourierQueues(t, map[string][]int{})
 
 	// queue 3 messages for Cathy..
-	sends := []*msgio.Send{
+	sends := []*models.Send{
 		{
 			Msg: (&msgSpec{Channel: testdata.TwilioChannel, Contact: testdata.Cathy}).createMsg(t, rt, oa),
 			URN: cathyURNs[0],
@@ -277,7 +277,7 @@ func TestClearChannelCourierQueue(t *testing.T) {
 	vonage := oa.ChannelByUUID(testdata.VonageChannel.UUID)
 
 	// queue 3 Twilio messages for Cathy..
-	msgio.QueueCourierMessages(rc, oa, testdata.Cathy.ID, twilio, []*msgio.Send{
+	msgio.QueueCourierMessages(rc, oa, testdata.Cathy.ID, twilio, []*models.Send{
 		{
 			Msg: (&msgSpec{Channel: testdata.TwilioChannel, Contact: testdata.Cathy}).createMsg(t, rt, oa),
 			URN: cathyURNs[0],
@@ -293,7 +293,7 @@ func TestClearChannelCourierQueue(t *testing.T) {
 	})
 
 	// and a Vonage message
-	msgio.QueueCourierMessages(rc, oa, testdata.Cathy.ID, vonage, []*msgio.Send{
+	msgio.QueueCourierMessages(rc, oa, testdata.Cathy.ID, vonage, []*models.Send{
 		{
 			Msg: (&msgSpec{Channel: testdata.VonageChannel, Contact: testdata.Cathy}).createMsg(t, rt, oa),
 			URN: cathyURNs[0],
@@ -335,7 +335,7 @@ func TestPushCourierBatch(t *testing.T) {
 	msg1 := (&msgSpec{Channel: testdata.TwilioChannel, Contact: testdata.Cathy}).createMsg(t, rt, oa)
 	msg2 := (&msgSpec{Channel: testdata.TwilioChannel, Contact: testdata.Cathy}).createMsg(t, rt, oa)
 
-	err = msgio.PushCourierBatch(rc, oa, channel, []*msgio.Send{{msg1, cathyURNs[0]}, {msg2, cathyURNs[0]}}, "1636557205.123456")
+	err = msgio.PushCourierBatch(rc, oa, channel, []*models.Send{{Msg: msg1, URN: cathyURNs[0]}, {Msg: msg2, URN: cathyURNs[0]}}, "1636557205.123456")
 	require.NoError(t, err)
 
 	// check that channel has been added to active list
@@ -362,7 +362,7 @@ func TestPushCourierBatch(t *testing.T) {
 
 	msg3 := (&msgSpec{Channel: testdata.TwilioChannel, Contact: testdata.Cathy}).createMsg(t, rt, oa)
 
-	err = msgio.PushCourierBatch(rc, oa, channel, []*msgio.Send{{msg3, cathyURNs[0]}}, "1636557205.234567")
+	err = msgio.PushCourierBatch(rc, oa, channel, []*models.Send{{Msg: msg3, URN: cathyURNs[0]}}, "1636557205.234567")
 	require.NoError(t, err)
 
 	queued, err = redis.ByteSlices(rc.Do("ZRANGE", "msgs:74729f45-7f29-4868-9dc4-90e491e3c7d8|10/0", 0, -1))
@@ -375,7 +375,7 @@ func TestPushCourierBatch(t *testing.T) {
 
 	msg4 := (&msgSpec{Channel: testdata.TwilioChannel, Contact: testdata.Cathy}).createMsg(t, rt, oa)
 
-	err = msgio.PushCourierBatch(rc, oa, channel, []*msgio.Send{{msg4, cathyURNs[0]}}, "1636557205.345678")
+	err = msgio.PushCourierBatch(rc, oa, channel, []*models.Send{{Msg: msg4, URN: cathyURNs[0]}}, "1636557205.345678")
 	require.NoError(t, err)
 
 	// check that channel has *not* been added to active list

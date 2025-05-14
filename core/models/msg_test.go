@@ -329,11 +329,14 @@ func TestResendMessages(t *testing.T) {
 
 	// both messages should now have a channel and be marked for resending
 	assert.True(t, resent[0].IsResend)
-	assert.Equal(t, testdata.TwilioChannel.ID, resent[0].ChannelID())
+	assert.Equal(t, testdata.TwilioChannel.ID, resent[0].Msg.ChannelID())
+	assert.NotNil(t, resent[0].URN)
 	assert.True(t, resent[1].IsResend)
-	assert.Equal(t, testdata.VonageChannel.ID, resent[1].ChannelID()) // channel changed
+	assert.Equal(t, testdata.VonageChannel.ID, resent[1].Msg.ChannelID()) // channel changed
+	assert.NotNil(t, resent[1].URN)
 	assert.True(t, resent[2].IsResend)
-	assert.Equal(t, testdata.TwilioChannel.ID, resent[2].ChannelID()) // channel added
+	assert.Equal(t, testdata.TwilioChannel.ID, resent[2].Msg.ChannelID()) // channel added
+	assert.NotNil(t, resent[2].URN)
 
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE status = 'Q' AND sent_on IS NULL`).Returns(3)
 
