@@ -70,9 +70,7 @@ type Session struct {
 	// time after our last message is sent that we should timeout
 	timeout *time.Duration
 
-	contact *flows.Contact
-	runs    []*FlowRun
-
+	runs     []*FlowRun
 	seenRuns map[flows.RunUUID]time.Time
 
 	// we keep around a reference to the sprint associated with this session
@@ -92,7 +90,7 @@ func (s *Session) CurrentFlowID() FlowID            { return s.s.CurrentFlowID }
 func (s *Session) CallID() CallID                   { return s.s.CallID }
 
 // StoragePath returns the path for the session
-func (s *Session) StoragePath(orgID OrgID) string {
+func (s *Session) StoragePath(orgID OrgID, contactUUID flows.ContactUUID) string {
 	ts := s.CreatedOn().UTC().Format(storageTSFormat)
 
 	// example output: orgs/1/c/20a5/20a5534c-b2ad-4f18-973a-f1aa3b4e6c74/20060102T150405.123Z_session_8a7fc501-177b-4567-a0aa-81c48e6de1c5_51df83ac21d3cf136d8341f0b11cb1a7.json"
@@ -100,20 +98,10 @@ func (s *Session) StoragePath(orgID OrgID) string {
 		"orgs",
 		fmt.Sprintf("%d", orgID),
 		"c",
-		string(s.ContactUUID()[:4]),
-		string(s.ContactUUID()),
+		string(contactUUID[:4]),
+		string(contactUUID),
 		fmt.Sprintf("%s_session_%s_%s.json", ts, s.UUID(), s.OutputMD5()),
 	)
-}
-
-// ContactUUID returns the UUID of our contact
-func (s *Session) ContactUUID() flows.ContactUUID {
-	return s.contact.UUID()
-}
-
-// Contact returns the contact for this session
-func (s *Session) Contact() *flows.Contact {
-	return s.contact
 }
 
 // Runs returns our flow run
@@ -295,8 +283,7 @@ func (s *Session) Update(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, 
 
 	// if writing to S3, do so
 	if rt.Config.SessionStorage == "s3" {
-		err := WriteSessionOutputsToStorage(ctx, rt, oa.OrgID(), []*Session{s})
-		if err != nil {
+		if err := writeSessionsToStorage(ctx, rt, oa.OrgID(), []*Session{s}, []*Contact{contact}); err != nil {
 			slog.Error("error writing session to s3", "error", err)
 		}
 
@@ -414,7 +401,6 @@ func NewSession(ctx context.Context, tx *sqlx.Tx, oa *OrgAssets, fs flows.Sessio
 		s.EndedOn = &now
 	}
 
-	session.contact = fs.Contact()
 	session.sprint = sprint
 
 	// now build up our runs
@@ -511,7 +497,7 @@ func InsertSessions(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *O
 
 	// if writing our sessions to S3, do so
 	if rt.Config.SessionStorage == "s3" {
-		err := WriteSessionOutputsToStorage(ctx, rt, oa.OrgID(), sessions)
+		err := writeSessionsToStorage(ctx, rt, oa.OrgID(), sessions, contacts)
 		if err != nil {
 			return nil, fmt.Errorf("error writing sessions to storage: %w", err)
 		}
@@ -578,7 +564,7 @@ func GetWaitingSessionForContact(ctx context.Context, rt *runtime.Runtime, oa *O
 	}
 
 	// scan in our session
-	session := &Session{contact: fc}
+	session := &Session{}
 
 	if err := rows.StructScan(&session.s); err != nil {
 		return nil, fmt.Errorf("error scanning session: %w", err)
@@ -615,14 +601,14 @@ func GetWaitingSessionForContact(ctx context.Context, rt *runtime.Runtime, oa *O
 
 // WriteSessionsToStorage writes the outputs of the passed in sessions to our storage (S3), updating the
 // output_url for each on success. Failure of any will cause all to fail.
-func WriteSessionOutputsToStorage(ctx context.Context, rt *runtime.Runtime, orgID OrgID, sessions []*Session) error {
+func writeSessionsToStorage(ctx context.Context, rt *runtime.Runtime, orgID OrgID, sessions []*Session, contacts []*Contact) error {
 	start := time.Now()
 
 	uploads := make([]*s3x.Upload, len(sessions))
 	for i, s := range sessions {
 		uploads[i] = &s3x.Upload{
 			Bucket:      rt.Config.S3SessionsBucket,
-			Key:         s.StoragePath(orgID),
+			Key:         s.StoragePath(orgID, contacts[i].UUID()),
 			Body:        []byte(s.Output()),
 			ContentType: "application/json",
 			ACL:         types.ObjectCannedACLPrivate,
