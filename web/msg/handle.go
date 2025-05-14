@@ -51,7 +51,7 @@ func handleHandle(ctx context.Context, rt *runtime.Runtime, r *handleRequest) (a
 			continue
 		}
 
-		urn, err := models.URNForID(ctx, rt.DB, oa, m.ContactURNID())
+		cu, err := models.LoadContactURN(ctx, rt.DB, m.ContactURNID())
 		if err != nil {
 			return nil, 0, fmt.Errorf("error fetching msg URN: %w", err)
 		}
@@ -60,6 +60,8 @@ func handleHandle(ctx context.Context, rt *runtime.Runtime, r *handleRequest) (a
 		for i := range m.Attachments() {
 			attachments[i] = string(m.Attachments()[i])
 		}
+
+		urn, _ := cu.Encode(oa)
 
 		err = handler.QueueTask(rc, m.OrgID(), m.ContactID(), &ctasks.MsgReceivedTask{
 			ChannelID:     m.ChannelID(),

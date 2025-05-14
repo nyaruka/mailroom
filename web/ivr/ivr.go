@@ -221,10 +221,12 @@ func handleCallback(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 	}
 
 	// load the URN for this call
-	urn, err := models.URNForID(ctx, rt.DB, oa, call.ContactURNID())
+	cu, err := models.LoadContactURN(ctx, rt.DB, call.ContactURNID())
 	if err != nil {
 		return call, svc.WriteErrorResponse(w, fmt.Errorf("unable to find call urn: %d", call.ContactURNID()))
 	}
+
+	urn, _ := cu.Encode(oa)
 
 	// make sure our URN is indeed present on our contact, no funny business
 	found := false

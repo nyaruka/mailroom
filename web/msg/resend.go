@@ -44,17 +44,12 @@ func handleResend(ctx context.Context, rt *runtime.Runtime, r *resendRequest) (a
 		return nil, 0, fmt.Errorf("error resending messages: %w", err)
 	}
 
-	sends := make([]*msgio.Send, len(resends))
-	for i, msg := range resends {
-		sends[i] = &msgio.Send{Msg: msg}
-	}
-
-	msgio.QueueMessages(ctx, rt, sends)
+	msgio.QueueMessages(ctx, rt, resends)
 
 	// response is the ids of the messages that were actually resent
 	resentMsgIDs := make([]models.MsgID, len(resends))
-	for i, m := range resends {
-		resentMsgIDs[i] = m.ID()
+	for i, s := range resends {
+		resentMsgIDs[i] = s.Msg.ID()
 	}
 	return map[string]any{"msg_ids": resentMsgIDs}, http.StatusOK, nil
 }

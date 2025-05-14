@@ -97,7 +97,7 @@ type Msg struct {
 }
 
 // NewCourierMsg creates a courier message in the format it's expecting to be queued
-func NewCourierMsg(oa *models.OrgAssets, s *Send, ch *models.Channel) (*Msg, error) {
+func NewCourierMsg(oa *models.OrgAssets, s *models.Send, ch *models.Channel) (*Msg, error) {
 	msg := &Msg{
 		ID:           s.Msg.ID(),
 		UUID:         s.Msg.UUID(),
@@ -116,7 +116,7 @@ func NewCourierMsg(oa *models.OrgAssets, s *Send, ch *models.Channel) (*Msg, err
 		URN:          s.URN.Identity,
 		URNAuth:      string(s.URN.AuthTokens["default"]),
 		Metadata:     s.Msg.Metadata(),
-		IsResend:     s.Msg.IsResend,
+		IsResend:     s.IsResend,
 	}
 
 	if s.Msg.FlowID() != models.NilFlowID {
@@ -172,7 +172,7 @@ func NewCourierMsg(oa *models.OrgAssets, s *Send, ch *models.Channel) (*Msg, err
 			SprintUUID: s.Msg.Session.LastSprintUUID(),
 		}
 
-		if s.Msg.LastInSprint && s.Msg.Session.Timeout() != nil {
+		if s.LastInSprint && s.Msg.Session.Timeout() != nil {
 			// This field is set on the last outgoing message in a session's sprint. In the case
 			// of the session being at a wait with a timeout then the timeout will be set. It is up to
 			// Courier to update the session's timeout appropriately after sending the message.
@@ -213,7 +213,7 @@ end
 `)
 
 // PushCourierBatch pushes a batch of messages for a single contact and channel onto the appropriate courier queue
-func PushCourierBatch(rc redis.Conn, oa *models.OrgAssets, ch *models.Channel, sends []*Send, timestamp string) error {
+func PushCourierBatch(rc redis.Conn, oa *models.OrgAssets, ch *models.Channel, sends []*models.Send, timestamp string) error {
 	priority := bulkPriority
 	if sends[0].Msg.HighPriority() {
 		priority = highPriority
@@ -235,7 +235,7 @@ func PushCourierBatch(rc redis.Conn, oa *models.OrgAssets, ch *models.Channel, s
 }
 
 // QueueCourierMessages queues messages for a single contact to Courier
-func QueueCourierMessages(rc redis.Conn, oa *models.OrgAssets, contactID models.ContactID, channel *models.Channel, sends []*Send) error {
+func QueueCourierMessages(rc redis.Conn, oa *models.OrgAssets, contactID models.ContactID, channel *models.Channel, sends []*models.Send) error {
 	if len(sends) == 0 {
 		return nil
 	}
@@ -246,7 +246,7 @@ func QueueCourierMessages(rc redis.Conn, oa *models.OrgAssets, contactID models.
 	epochSeconds := strconv.FormatFloat(float64(now.UnixNano()/int64(time.Microsecond))/float64(1000000), 'f', 6, 64)
 
 	// we batch msgs by priority
-	batch := make([]*Send, 0, len(sends))
+	batch := make([]*models.Send, 0, len(sends))
 
 	currentPriority := sends[0].Msg.HighPriority()
 
@@ -276,7 +276,7 @@ func QueueCourierMessages(rc redis.Conn, oa *models.OrgAssets, contactID models.
 			}
 
 			currentPriority = s.Msg.HighPriority()
-			batch = []*Send{s}
+			batch = []*models.Send{s}
 		}
 	}
 

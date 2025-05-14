@@ -94,6 +94,14 @@ var unsendableToFailedReason = map[flows.UnsendableReason]MsgFailedReason{
 	flows.UnsendableReasonNoDestination: MsgFailedNoDestination,
 }
 
+// Send is an outgoing message with the additional information required to queue it
+type Send struct {
+	Msg          *Msg
+	URN          *ContactURN
+	LastInSprint bool
+	IsResend     bool
+}
+
 // Templating adds db support to the engine's templating struct
 type Templating struct {
 	*flows.MsgTemplating
@@ -167,11 +175,9 @@ type Msg struct {
 	}
 
 	// transient fields set during message creation that provide extra data when queuing to courier
-	ReplyTo      *MsgInRef
-	Contact      *flows.Contact
-	Session      *Session
-	LastInSprint bool
-	IsResend     bool
+	ReplyTo *MsgInRef
+	Contact *flows.Contact
+	Session *Session
 }
 
 func (m *Msg) ID() MsgID           { return m.m.ID }
@@ -695,44 +701,49 @@ UPDATE msgs_msg m
  WHERE id = ANY($1)`
 
 // ResendMessages prepares messages for resending by reselecting a channel and marking them as PENDING
-func ResendMessages(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, msgs []*Msg) ([]*Msg, error) {
+func ResendMessages(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, msgs []*Msg) ([]*Send, error) {
 	channels := oa.SessionAssets().Channels()
 
 	// for the bulk db updates
 	resends := make([]any, 0, len(msgs))
 	refails := make([]MsgID, 0, len(msgs))
 
-	resent := make([]*Msg, 0, len(msgs))
+	resent := make([]*Send, 0, len(msgs))
 
 	for _, msg := range msgs {
-		var ch *flows.Channel
 		urnID := msg.ContactURNID()
+		var ch *Channel
+		var cu *ContactURN
 
 		if urnID != NilURNID {
+			var err error
+
 			// reselect channel for this message's URN
-			urn, err := URNForID(ctx, rt.DB, oa, urnID)
+			cu, err = LoadContactURN(ctx, rt.DB, urnID)
 			if err != nil {
 				return nil, fmt.Errorf("error loading URN: %w", err)
 			}
-			contactURN, err := flows.ParseRawURN(channels, urn, assets.IgnoreMissing)
+
+			urn, _ := cu.Encode(oa)
+			fu, err := flows.ParseRawURN(channels, urn, assets.IgnoreMissing)
 			if err != nil {
 				return nil, fmt.Errorf("error parsing URN: %w", err)
 			}
 
-			ch = channels.GetForURN(contactURN, assets.ChannelRoleSend)
+			if fch := channels.GetForURN(fu, assets.ChannelRoleSend); fch != nil {
+				ch = oa.ChannelByUUID(fch.UUID())
+			}
 		}
 
 		if ch != nil {
-			channel := oa.ChannelByUUID(ch.UUID())
-			msg.m.ChannelID = channel.ID()
+			msg.m.ChannelID = ch.ID()
 			msg.m.Status = MsgStatusPending
 			msg.m.SentOn = nil
 			msg.m.ErrorCount = 0
 			msg.m.FailedReason = ""
-			msg.IsResend = true // mark message as being a resend so it will be queued to courier as such
 
 			resends = append(resends, msg.m)
-			resent = append(resent, msg)
+			resent = append(resent, &Send{Msg: msg, URN: cu, IsResend: true})
 		} else {
 			// if we don't have channel or a URN, fail again
 			msg.m.ChannelID = NilChannelID

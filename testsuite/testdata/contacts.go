@@ -38,10 +38,10 @@ func (c *Contact) Load(rt *runtime.Runtime, oa *models.OrgAssets) (*models.Conta
 	err = rt.DB.SelectContext(ctx, &urnIDs, `SELECT id FROM contacts_contacturn WHERE contact_id = $1`, c.ID)
 	must(err)
 
-	urns, err := models.LoadContactURNs(ctx, rt.DB, urnIDs)
+	cus, err := models.LoadContactURNs(ctx, rt.DB, urnIDs)
 	must(err)
 
-	return contact, flowContact, urns
+	return contact, flowContact, cus
 }
 
 type Group struct {

@@ -40,9 +40,9 @@ func (c *RetryMessagesCron) Run(ctx context.Context, rt *runtime.Runtime) (map[s
 		return nil, fmt.Errorf("error marking messages as queued: %w", err)
 	}
 
-	sends := make([]*msgio.Send, len(msgs))
+	sends := make([]*models.Send, len(msgs))
 	for i, msg := range msgs {
-		sends[i] = &msgio.Send{Msg: msg}
+		sends[i] = &models.Send{Msg: msg}
 	}
 
 	msgio.QueueMessages(ctx, rt, sends)
