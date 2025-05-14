@@ -165,18 +165,18 @@ func NewCourierMsg(oa *models.OrgAssets, s *models.Send, ch *models.Channel) (*M
 	if s.Msg.Contact != nil && s.Msg.Contact.LastSeenOn() != nil {
 		msg.ContactLastSeenOn = s.Msg.Contact.LastSeenOn()
 	}
-	if s.Msg.Session != nil {
+	if s.Session != nil {
 		msg.Session = &Session{
-			UUID:       s.Msg.Session.UUID(),
-			Status:     s.Msg.Session.Status(),
-			SprintUUID: s.Msg.Session.LastSprintUUID(),
+			UUID:       s.Session.UUID(),
+			Status:     s.Session.Status(),
+			SprintUUID: s.Session.LastSprintUUID(),
 		}
 
-		if s.LastInSprint && s.Msg.Session.Timeout() != nil {
+		if s.LastInSprint && s.Session.Timeout() != nil {
 			// This field is set on the last outgoing message in a session's sprint. In the case
 			// of the session being at a wait with a timeout then the timeout will be set. It is up to
 			// Courier to update the session's timeout appropriately after sending the message.
-			msg.Session.Timeout = int(*s.Msg.Session.Timeout() / time.Second)
+			msg.Session.Timeout = int(*s.Session.Timeout() / time.Second)
 		}
 	}
 
