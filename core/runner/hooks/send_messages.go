@@ -24,7 +24,11 @@ func (h *sendMessages) Execute(ctx context.Context, rt *runtime.Runtime, oa *mod
 		sceneSends := make([]*models.Send, 0, 1)
 
 		for _, m := range args {
-			sceneSends = append(sceneSends, &models.Send{Msg: m.(*models.Msg), Session: s.Session()})
+			sceneSends = append(sceneSends, &models.Send{
+				Msg:        m.(*models.Msg),
+				Session:    s.ModelSession(),
+				SprintUUID: s.SprintUUID(),
+			})
 		}
 
 		// mark the last message in the sprint (used for setting timeouts)

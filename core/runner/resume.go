@@ -64,7 +64,7 @@ func ResumeFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, 
 	}
 
 	eventsToHandle = append(eventsToHandle, newSprintEndedEvent(contact, true))
-	scene := NewSceneForSession(session, fs, sceneInit)
+	scene := NewSceneForSession(session, fs, sprint, sceneInit)
 
 	if err := scene.AddEvents(ctx, rt, oa, eventsToHandle); err != nil {
 		return nil, fmt.Errorf("error handling events for session %s: %w", session.UUID(), err)

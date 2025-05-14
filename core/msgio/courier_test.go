@@ -77,7 +77,7 @@ func TestNewCourierMsg(t *testing.T) {
 	err = models.InsertMessages(ctx, rt.DB, []*models.Msg{msg1})
 	require.NoError(t, err)
 
-	createAndAssertCourierMsg(t, oa, msg1, cathyURNs[0], session, fmt.Sprintf(`{
+	createAndAssertCourierMsg(t, oa, &models.Send{Msg: msg1, URN: cathyURNs[0], Session: session, SprintUUID: session.LastSprintUUID()}, fmt.Sprintf(`{
 		"attachments": [
 			"image/jpeg:https://dl-foo.com/image.jpg"
 		],
@@ -130,7 +130,7 @@ func TestNewCourierMsg(t *testing.T) {
 	err = models.InsertMessages(ctx, rt.DB, []*models.Msg{msg2})
 	require.NoError(t, err)
 
-	createAndAssertCourierMsg(t, oa, msg2, cathyURNs[0], session, fmt.Sprintf(`{
+	createAndAssertCourierMsg(t, oa, &models.Send{Msg: msg2, URN: cathyURNs[0], Session: session, SprintUUID: session.LastSprintUUID()}, fmt.Sprintf(`{
 		"channel_uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8",
 		"contact_id": 10000,
 		"contact_last_seen_on": "2023-04-20T10:15:00Z",
@@ -162,7 +162,7 @@ func TestNewCourierMsg(t *testing.T) {
 	err = models.InsertMessages(ctx, rt.DB, []*models.Msg{msg3})
 	require.NoError(t, err)
 
-	createAndAssertCourierMsg(t, oa, msg3, fredURNs[0], nil, fmt.Sprintf(`{
+	createAndAssertCourierMsg(t, oa, &models.Send{Msg: msg3, URN: fredURNs[0]}, fmt.Sprintf(`{
 		"channel_uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8",
 		"contact_id": 30000,
 		"contact_urn_id": 30000,
@@ -183,7 +183,7 @@ func TestNewCourierMsg(t *testing.T) {
 	err = models.InsertMessages(ctx, rt.DB, []*models.Msg{msg4})
 	require.NoError(t, err)
 
-	createAndAssertCourierMsg(t, oa, msg4, cathyURNs[0], session, fmt.Sprintf(`{
+	createAndAssertCourierMsg(t, oa, &models.Send{Msg: msg4, URN: cathyURNs[0], Session: session, SprintUUID: session.LastSprintUUID()}, fmt.Sprintf(`{
 		"channel_uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8",
 		"contact_id": 10000,
 		"contact_urn_id": 10000,
@@ -210,10 +210,10 @@ func TestNewCourierMsg(t *testing.T) {
 	}`, optIn.ID(), session.UUID(), session.LastSprintUUID(), msg4.UUID()))
 }
 
-func createAndAssertCourierMsg(t *testing.T, oa *models.OrgAssets, m *models.Msg, u *models.ContactURN, s *models.Session, expectedJSON string) {
-	channel := oa.ChannelByID(m.ChannelID())
+func createAndAssertCourierMsg(t *testing.T, oa *models.OrgAssets, send *models.Send, expectedJSON string) {
+	channel := oa.ChannelByID(send.Msg.ChannelID())
 
-	cmsg3, err := msgio.NewCourierMsg(oa, &models.Send{Msg: m, URN: u, Session: s}, channel)
+	cmsg3, err := msgio.NewCourierMsg(oa, send, channel)
 	assert.NoError(t, err)
 
 	marshaled := jsonx.MustMarshal(cmsg3)
