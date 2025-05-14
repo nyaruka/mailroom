@@ -169,7 +169,7 @@ func NewCourierMsg(oa *models.OrgAssets, s *models.Send, ch *models.Channel) (*M
 		msg.Session = &Session{
 			UUID:       s.Session.UUID(),
 			Status:     s.Session.Status(),
-			SprintUUID: s.Session.LastSprintUUID(),
+			SprintUUID: s.SprintUUID,
 		}
 
 		if s.LastInSprint && s.Session.Timeout() != nil {

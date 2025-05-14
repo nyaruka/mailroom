@@ -96,11 +96,16 @@ var unsendableToFailedReason = map[flows.UnsendableReason]MsgFailedReason{
 
 // Send is an outgoing message with the additional information required to queue it
 type Send struct {
-	Msg          *Msg
-	URN          *ContactURN // provides URN identity + auth to courier
-	Session      *Session    // provides session status and last sprint UUID to courier
-	LastInSprint bool        // tells courier to create wait timeout fire if timeout set
-	IsResend     bool        // tells courier this is a resend
+	Msg *Msg
+	URN *ContactURN // provides URN identity + auth to courier
+
+	Session *Session
+
+	// info that courier needs to create a wait timeout fire
+	SprintUUID   flows.SprintUUID
+	LastInSprint bool
+
+	IsResend bool
 }
 
 // Templating adds db support to the engine's templating struct

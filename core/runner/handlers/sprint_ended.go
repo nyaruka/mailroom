@@ -24,19 +24,19 @@ func handleSprintEnded(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 	currentFlowChanged := false
 
 	// if we're in a flow type that can wait then contact current flow has potentially changed
-	if scene.Session().SessionType().Interrupts() {
+	if scene.Session().Type() != flows.FlowTypeMessagingBackground {
 		var waitingSessionUUID flows.SessionUUID
-		if scene.Session().Status() == models.SessionStatusWaiting {
+		if scene.Session().Status() == flows.SessionStatusWaiting {
 			waitingSessionUUID = scene.Session().UUID()
 		}
 
-		currentFlowChanged = event.Contact.CurrentFlowID() != scene.Session().CurrentFlowID()
+		currentFlowChanged = event.Contact.CurrentFlowID() != scene.ModelSession().CurrentFlowID()
 
 		if event.Contact.CurrentSessionUUID() != waitingSessionUUID || currentFlowChanged {
 			scene.AttachPreCommitHook(hooks.UpdateContactSession, hooks.CurrentSessionUpdate{
 				ID:                 scene.ContactID(),
 				CurrentSessionUUID: null.String(waitingSessionUUID),
-				CurrentFlowID:      scene.Session().CurrentFlowID(),
+				CurrentFlowID:      scene.ModelSession().CurrentFlowID(),
 			})
 		}
 	}
@@ -48,7 +48,7 @@ func handleSprintEnded(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 	}
 
 	// if we have a call and the session is no longer waiting, call should be completed
-	if scene.Call != nil && scene.Session().Status() != models.SessionStatusWaiting {
+	if scene.Call != nil && scene.Session().Status() != flows.SessionStatusWaiting {
 		scene.AttachPreCommitHook(hooks.UpdateCallStatus, models.CallStatusCompleted)
 	}
 
