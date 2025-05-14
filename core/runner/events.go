@@ -63,7 +63,7 @@ type Scene struct {
 // NewSceneForSession creates a new scene for the passed in session
 func NewSceneForSession(ms *models.Session, session flows.Session, sprint flows.Sprint, init func(*Scene)) *Scene {
 	s := &Scene{
-		contact: ms.Contact(),
+		contact: session.Contact(),
 		ms:      ms,
 		session: session,
 		sprint:  sprint,

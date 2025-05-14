@@ -21,7 +21,8 @@ func ResumeFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, 
 	if err != nil {
 		// if this flow just isn't available anymore, log this error
 		if err == models.ErrNotFound {
-			slog.Error("unable to find flow for resume", "contact_uuid", session.Contact().UUID(), "session_uuid", session.UUID(), "flow_id", session.CurrentFlowID())
+			slog.Error("unable to find flow for resume", "contact", contact.UUID(), "session", session.UUID(), "flow_id", session.CurrentFlowID())
+
 			return nil, models.ExitSessions(ctx, rt.DB, []flows.SessionUUID{session.UUID()}, models.SessionStatusFailed)
 		}
 		return nil, fmt.Errorf("error loading session flow: %d: %w", session.CurrentFlowID(), err)
