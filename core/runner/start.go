@@ -59,7 +59,7 @@ func StartFlowBatch(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 	if start.CreatedByID != models.NilUserID {
 		user := oa.UserByID(start.CreatedByID)
 		if user != nil {
-			flowUser = oa.SessionAssets().Users().Get(user.Email())
+			flowUser = oa.SessionAssets().Users().Get(user.UUID())
 		}
 	}
 

@@ -90,7 +90,7 @@ func (t *Ticket) FlowTicket(oa *OrgAssets) *flows.Ticket {
 	if t.AssigneeID() != NilUserID {
 		user := oa.UserByID(t.AssigneeID())
 		if user != nil {
-			assignee = oa.SessionAssets().Users().Get(user.Email())
+			assignee = oa.SessionAssets().Users().Get(user.UUID())
 		}
 	}
 

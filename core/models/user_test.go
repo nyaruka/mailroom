@@ -50,7 +50,7 @@ func TestLoadUsers(t *testing.T) {
 		assert.Equal(t, expected.team, modelUser.Team())
 
 		assert.Equal(t, modelUser, oa.UserByID(expected.id))
-		assert.Equal(t, modelUser, oa.UserByEmail(expected.email))
+		assert.Equal(t, modelUser, oa.UserByUUID(expected.uuid))
 	}
 
 	sysID, err := models.GetSystemUserID(ctx, rt.DB.DB)

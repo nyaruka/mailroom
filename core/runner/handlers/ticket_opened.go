@@ -34,9 +34,9 @@ func handleTicketOpened(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 
 	var assigneeID models.UserID
 	if event.Ticket.Assignee != nil {
-		assignee := oa.UserByEmail(event.Ticket.Assignee.Email)
+		assignee := oa.UserByUUID(event.Ticket.Assignee.UUID)
 		if assignee == nil {
-			return fmt.Errorf("unable to find user with email: %s", event.Ticket.Assignee.Email)
+			return fmt.Errorf("unable to find user with UUID: %s", event.Ticket.Assignee.UUID)
 		}
 		assigneeID = assignee.ID()
 	}

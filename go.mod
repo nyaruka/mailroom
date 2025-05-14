@@ -24,7 +24,7 @@ require (
 	github.com/lib/pq v1.10.9
 	github.com/nyaruka/ezconf v0.3.0
 	github.com/nyaruka/gocommon v1.62.1
-	github.com/nyaruka/goflow v0.245.0
+	github.com/nyaruka/goflow v0.245.1
 	github.com/nyaruka/null/v3 v3.0.0
 	github.com/nyaruka/redisx v0.9.0
 	github.com/nyaruka/rp-indexer/v10 v10.1.1
@@ -36,8 +36,8 @@ require (
 	github.com/samber/slog-sentry/v2 v2.9.3
 	github.com/shopspring/decimal v1.4.0
 	github.com/stretchr/testify v1.10.0
-	google.golang.org/api v0.231.0
-	google.golang.org/genai v1.3.0
+	google.golang.org/api v0.233.0
+	google.golang.org/genai v1.5.0
 	google.golang.org/protobuf v1.36.6
 )
 
