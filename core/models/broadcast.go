@@ -306,7 +306,7 @@ func GetBroadcastByID(ctx context.Context, db DBorTx, bcastID BroadcastID) (*Bro
 	}, nil
 }
 
-func (b *Broadcast) CreateMessages(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, batch *BroadcastBatch) ([]*Msg, error) {
+func (b *Broadcast) CreateMessages(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, batch *BroadcastBatch) ([]*Send, error) {
 	// load all our contacts
 	contacts, err := LoadContacts(ctx, rt.DB, oa, batch.ContactIDs)
 	if err != nil {
@@ -315,29 +315,29 @@ func (b *Broadcast) CreateMessages(ctx context.Context, rt *runtime.Runtime, oa 
 
 	// for each contact, build our message
 	msgs := make([]*Msg, 0, len(contacts))
+	sends := make([]*Send, 0, len(contacts))
 
 	// run through all our contacts to create our messages
 	for _, c := range contacts {
-		msg, err := b.createMessage(rt, oa, c)
+		send, err := b.createMessage(rt, oa, c)
 		if err != nil {
 			return nil, fmt.Errorf("error creating broadcast message: %w", err)
 		}
-		if msg != nil {
-			msgs = append(msgs, msg)
+		if send != nil {
+			msgs = append(msgs, send.Msg)
+			sends = append(sends, send)
 		}
 	}
 
-	// insert them in a single request
-	err = InsertMessages(ctx, rt.DB, msgs)
-	if err != nil {
+	if err := InsertMessages(ctx, rt.DB, msgs); err != nil {
 		return nil, fmt.Errorf("error inserting broadcast messages: %w", err)
 	}
 
-	return msgs, nil
+	return sends, nil
 }
 
 // creates an outgoing message for the given contact - can return nil if resultant message has no content and thus is a noop
-func (b *Broadcast) createMessage(rt *runtime.Runtime, oa *OrgAssets, c *Contact) (*Msg, error) {
+func (b *Broadcast) createMessage(rt *runtime.Runtime, oa *OrgAssets, c *Contact) (*Send, error) {
 	contact, err := c.FlowContact(oa)
 	if err != nil {
 		return nil, fmt.Errorf("error creating flow contact for broadcast message: %w", err)
@@ -368,5 +368,5 @@ func (b *Broadcast) createMessage(rt *runtime.Runtime, oa *OrgAssets, c *Contact
 		return nil, fmt.Errorf("error creating outgoing message: %w", err)
 	}
 
-	return msg, nil
+	return &Send{Msg: msg, Contact: contact}, nil
 }

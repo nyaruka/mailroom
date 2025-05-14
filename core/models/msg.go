@@ -96,8 +96,9 @@ var unsendableToFailedReason = map[flows.UnsendableReason]MsgFailedReason{
 
 // Send is an outgoing message with the additional information required to queue it
 type Send struct {
-	Msg *Msg
-	URN *ContactURN // provides URN identity + auth to courier
+	Msg     *Msg
+	Contact *flows.Contact // provides contact last seen on
+	URN     *ContactURN    // provides URN identity + auth
 
 	Session *Session
 
@@ -182,7 +183,6 @@ type Msg struct {
 
 	// TODO move these to Send
 	ReplyTo *MsgInRef
-	Contact *flows.Contact
 }
 
 func (m *Msg) ID() MsgID           { return m.m.ID }
@@ -449,7 +449,6 @@ func newOutgoingTextMsg(rt *runtime.Runtime, org *Org, channel *Channel, contact
 
 	// set transient fields which we'll use when queuing to courier
 	msg.ReplyTo = replyTo
-	msg.Contact = contact
 
 	return msg, nil
 }

@@ -148,17 +148,11 @@ func (t *BulkCampaignTriggerTask) triggerBroadcast(ctx context.Context, rt *runt
 	}
 
 	bcast := models.NewBroadcast(oa.OrgID(), ce.Translations, i18n.Language(ce.BaseLanguage), true, models.NilOptInID, nil, contactIDs, nil, "", models.NoExclusions, models.NilUserID)
-	msgs, err := bcast.CreateMessages(ctx, rt, oa, &models.BroadcastBatch{ContactIDs: contactIDs})
+	sends, err := bcast.CreateMessages(ctx, rt, oa, &models.BroadcastBatch{ContactIDs: contactIDs})
 	if err != nil {
 		return fmt.Errorf("error creating campaign event messages: %w", err)
 	}
 
-	sends := make([]*models.Send, len(msgs))
-	for i, msg := range msgs {
-		sends[i] = &models.Send{Msg: msg}
-	}
-
 	msgio.QueueMessages(ctx, rt, sends)
-
 	return nil
 }

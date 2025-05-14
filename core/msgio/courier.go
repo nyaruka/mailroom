@@ -162,8 +162,8 @@ func NewCourierMsg(oa *models.OrgAssets, s *models.Send, ch *models.Channel) (*M
 	if s.Msg.ReplyTo != nil {
 		msg.ResponseToExternalID = s.Msg.ReplyTo.ExtID
 	}
-	if s.Msg.Contact != nil && s.Msg.Contact.LastSeenOn() != nil {
-		msg.ContactLastSeenOn = s.Msg.Contact.LastSeenOn()
+	if s.Contact != nil && s.Contact.LastSeenOn() != nil {
+		msg.ContactLastSeenOn = s.Contact.LastSeenOn()
 	}
 	if s.Session != nil {
 		msg.Session = &Session{
