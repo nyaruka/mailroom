@@ -17,22 +17,22 @@ type sendMessages struct{}
 func (h *sendMessages) Order() int { return 1 }
 
 func (h *sendMessages) Execute(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scenes map[*runner.Scene][]any) error {
-	msgs := make([]*models.Msg, 0, 1)
+	sends := make([]*msgio.Send, 0, len(scenes))
 
 	// for each scene gather all our messages
 	for _, args := range scenes {
-		sceneMsgs := make([]*models.Msg, 0, 1)
+		sceneSends := make([]*msgio.Send, 0, 1)
 
 		for _, m := range args {
-			sceneMsgs = append(sceneMsgs, m.(*models.Msg))
+			sceneSends = append(sceneSends, &msgio.Send{Msg: m.(*models.Msg)})
 		}
 
 		// mark the last message in the sprint (used for setting timeouts)
-		sceneMsgs[len(sceneMsgs)-1].LastInSprint = true
+		sceneSends[len(sceneSends)-1].Msg.LastInSprint = true
 
-		msgs = append(msgs, sceneMsgs...)
+		sends = append(sends, sceneSends...)
 	}
 
-	msgio.QueueMessages(ctx, rt, msgs)
+	msgio.QueueMessages(ctx, rt, sends)
 	return nil
 }
