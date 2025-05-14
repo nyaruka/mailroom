@@ -1,3 +1,8 @@
+v10.1.115 (2025-05-14)
+-------------------------
+ * Update to latest goflow that changes user references to be by UUID
+ * Add UUID field to User
+
 v10.1.114 (2025-05-13)
 -------------------------
  * Fix not setting call_id on sessions
