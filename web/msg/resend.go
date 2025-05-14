@@ -44,7 +44,12 @@ func handleResend(ctx context.Context, rt *runtime.Runtime, r *resendRequest) (a
 		return nil, 0, fmt.Errorf("error resending messages: %w", err)
 	}
 
-	msgio.QueueMessages(ctx, rt, resends)
+	sends := make([]*msgio.Send, len(resends))
+	for i, msg := range resends {
+		sends[i] = &msgio.Send{Msg: msg}
+	}
+
+	msgio.QueueMessages(ctx, rt, sends)
 
 	// response is the ids of the messages that were actually resent
 	resentMsgIDs := make([]models.MsgID, len(resends))

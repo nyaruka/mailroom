@@ -97,60 +97,60 @@ type Msg struct {
 }
 
 // NewCourierMsg creates a courier message in the format it's expecting to be queued
-func NewCourierMsg(oa *models.OrgAssets, m *models.Msg, u *models.ContactURN, ch *models.Channel) (*Msg, error) {
+func NewCourierMsg(oa *models.OrgAssets, s *Send, ch *models.Channel) (*Msg, error) {
 	msg := &Msg{
-		ID:           m.ID(),
-		UUID:         m.UUID(),
-		OrgID:        m.OrgID(),
-		Text:         m.Text(),
-		Attachments:  m.Attachments(),
-		QuickReplies: m.QuickReplies(),
-		Locale:       m.Locale(),
-		HighPriority: m.HighPriority(),
-		MsgCount:     m.MsgCount(),
-		CreatedOn:    m.CreatedOn(),
-		ContactID:    m.ContactID(),
-		ContactURNID: m.ContactURNID(),
+		ID:           s.Msg.ID(),
+		UUID:         s.Msg.UUID(),
+		OrgID:        s.Msg.OrgID(),
+		Text:         s.Msg.Text(),
+		Attachments:  s.Msg.Attachments(),
+		QuickReplies: s.Msg.QuickReplies(),
+		Locale:       s.Msg.Locale(),
+		HighPriority: s.Msg.HighPriority(),
+		MsgCount:     s.Msg.MsgCount(),
+		CreatedOn:    s.Msg.CreatedOn(),
+		ContactID:    s.Msg.ContactID(),
+		ContactURNID: s.Msg.ContactURNID(),
 		ChannelUUID:  ch.UUID(),
-		UserID:       m.CreatedByID(),
-		URN:          u.Identity,
-		URNAuth:      string(u.AuthTokens["default"]),
-		Metadata:     m.Metadata(),
-		IsResend:     m.IsResend,
+		UserID:       s.Msg.CreatedByID(),
+		URN:          s.URN.Identity,
+		URNAuth:      string(s.URN.AuthTokens["default"]),
+		Metadata:     s.Msg.Metadata(),
+		IsResend:     s.Msg.IsResend,
 	}
 
-	if m.FlowID() != models.NilFlowID {
+	if s.Msg.FlowID() != models.NilFlowID {
 		msg.Origin = MsgOriginFlow
-		flow, _ := oa.FlowByID(m.FlowID())
+		flow, _ := oa.FlowByID(s.Msg.FlowID())
 		if flow != nil { // always a chance flow no longer exists
 			msg.Flow = &FlowRef{UUID: flow.UUID(), Name: flow.Name()}
 		}
-	} else if m.BroadcastID() != models.NilBroadcastID {
+	} else if s.Msg.BroadcastID() != models.NilBroadcastID {
 		msg.Origin = MsgOriginBroadcast
-	} else if m.TicketID() != models.NilTicketID {
+	} else if s.Msg.TicketID() != models.NilTicketID {
 		msg.Origin = MsgOriginTicket
 	} else {
 		msg.Origin = MsgOriginChat
 	}
 
-	if m.Type() == models.MsgTypeOptIn {
+	if s.Msg.Type() == models.MsgTypeOptIn {
 		// this is an optin request
-		optIn := oa.OptInByID(m.OptInID())
+		optIn := oa.OptInByID(s.Msg.OptInID())
 		if optIn != nil {
 			msg.OptIn = &OptInRef{ID: optIn.ID(), Name: optIn.Name()}
 		}
-	} else if m.OptInID() != models.NilOptInID {
+	} else if s.Msg.OptInID() != models.NilOptInID {
 		// an optin on a broadcast message means use it for authentication
-		msg.URNAuth = u.AuthTokens[fmt.Sprintf("optin:%d", m.OptInID())]
+		msg.URNAuth = s.URN.AuthTokens[fmt.Sprintf("optin:%d", s.Msg.OptInID())]
 	}
 
-	if m.Templating() != nil {
-		tpl := oa.TemplateByUUID(m.Templating().Template.UUID)
+	if s.Msg.Templating() != nil {
+		tpl := oa.TemplateByUUID(s.Msg.Templating().Template.UUID)
 		if tpl != nil {
-			tt := tpl.FindTranslation(ch, m.Locale())
+			tt := tpl.FindTranslation(ch, s.Msg.Locale())
 			if tt != nil {
 				msg.Templating = &Templating{
-					MsgTemplating: m.Templating().MsgTemplating,
+					MsgTemplating: s.Msg.Templating().MsgTemplating,
 					Namespace:     tt.Namespace(),
 					ExternalID:    tt.ExternalID(),
 					Language:      tt.ExternalLocale(), // i.e. en_US
@@ -159,24 +159,24 @@ func NewCourierMsg(oa *models.OrgAssets, m *models.Msg, u *models.ContactURN, ch
 		}
 	}
 
-	if m.ReplyTo != nil {
-		msg.ResponseToExternalID = m.ReplyTo.ExtID
+	if s.Msg.ReplyTo != nil {
+		msg.ResponseToExternalID = s.Msg.ReplyTo.ExtID
 	}
-	if m.Contact != nil && m.Contact.LastSeenOn() != nil {
-		msg.ContactLastSeenOn = m.Contact.LastSeenOn()
+	if s.Msg.Contact != nil && s.Msg.Contact.LastSeenOn() != nil {
+		msg.ContactLastSeenOn = s.Msg.Contact.LastSeenOn()
 	}
-	if m.Session != nil {
+	if s.Msg.Session != nil {
 		msg.Session = &Session{
-			UUID:       m.Session.UUID(),
-			Status:     m.Session.Status(),
-			SprintUUID: m.Session.LastSprintUUID(),
+			UUID:       s.Msg.Session.UUID(),
+			Status:     s.Msg.Session.Status(),
+			SprintUUID: s.Msg.Session.LastSprintUUID(),
 		}
 
-		if m.LastInSprint && m.Session.Timeout() != nil {
+		if s.Msg.LastInSprint && s.Msg.Session.Timeout() != nil {
 			// This field is set on the last outgoing message in a session's sprint. In the case
 			// of the session being at a wait with a timeout then the timeout will be set. It is up to
 			// Courier to update the session's timeout appropriately after sending the message.
-			msg.Session.Timeout = int(*m.Session.Timeout() / time.Second)
+			msg.Session.Timeout = int(*s.Msg.Session.Timeout() / time.Second)
 		}
 	}
 
@@ -213,7 +213,7 @@ end
 `)
 
 // PushCourierBatch pushes a batch of messages for a single contact and channel onto the appropriate courier queue
-func PushCourierBatch(rc redis.Conn, oa *models.OrgAssets, ch *models.Channel, sends []Send, timestamp string) error {
+func PushCourierBatch(rc redis.Conn, oa *models.OrgAssets, ch *models.Channel, sends []*Send, timestamp string) error {
 	priority := bulkPriority
 	if sends[0].Msg.HighPriority() {
 		priority = highPriority
@@ -222,7 +222,7 @@ func PushCourierBatch(rc redis.Conn, oa *models.OrgAssets, ch *models.Channel, s
 	batch := make([]*Msg, len(sends))
 	for i, s := range sends {
 		var err error
-		batch[i], err = NewCourierMsg(oa, s.Msg, s.URN, ch)
+		batch[i], err = NewCourierMsg(oa, s, ch)
 		if err != nil {
 			return fmt.Errorf("error creating courier message: %w", err)
 		}
@@ -235,7 +235,7 @@ func PushCourierBatch(rc redis.Conn, oa *models.OrgAssets, ch *models.Channel, s
 }
 
 // QueueCourierMessages queues messages for a single contact to Courier
-func QueueCourierMessages(rc redis.Conn, oa *models.OrgAssets, contactID models.ContactID, channel *models.Channel, sends []Send) error {
+func QueueCourierMessages(rc redis.Conn, oa *models.OrgAssets, contactID models.ContactID, channel *models.Channel, sends []*Send) error {
 	if len(sends) == 0 {
 		return nil
 	}
@@ -246,7 +246,7 @@ func QueueCourierMessages(rc redis.Conn, oa *models.OrgAssets, contactID models.
 	epochSeconds := strconv.FormatFloat(float64(now.UnixNano()/int64(time.Microsecond))/float64(1000000), 'f', 6, 64)
 
 	// we batch msgs by priority
-	batch := make([]Send, 0, len(sends))
+	batch := make([]*Send, 0, len(sends))
 
 	currentPriority := sends[0].Msg.HighPriority()
 
@@ -276,7 +276,7 @@ func QueueCourierMessages(rc redis.Conn, oa *models.OrgAssets, contactID models.
 			}
 
 			currentPriority = s.Msg.HighPriority()
-			batch = []Send{s}
+			batch = []*Send{s}
 		}
 	}
 

@@ -2,8 +2,8 @@ package msgio
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
-	"maps"
 	"slices"
 
 	"github.com/nyaruka/mailroom/core/models"
@@ -21,53 +21,39 @@ type contactAndChannel struct {
 }
 
 // QueueMessages tries to queue the given messages to courier or trigger Android channel syncs
-func QueueMessages(ctx context.Context, rt *runtime.Runtime, msgs []*models.Msg) {
-	queued := tryToQueue(ctx, rt, msgs)
+func QueueMessages(ctx context.Context, rt *runtime.Runtime, sends []*Send) {
+	queued := tryToQueue(ctx, rt, sends)
 
-	if len(queued) != len(msgs) {
-		retry := make([]*models.Msg, 0, len(msgs)-len(queued))
-		for _, m := range msgs {
-			if !slices.Contains(queued, m) {
-				retry = append(retry, m)
+	if len(queued) != len(sends) {
+		retry := make([]*models.Msg, 0, len(sends)-len(queued))
+		for _, s := range sends {
+			if !slices.Contains(queued, s) {
+				retry = append(retry, s.Msg)
 			}
 		}
 
 		// any messages that failed to queue should be moved back to initializing(I) (they are queued(Q) at creation to
 		// save an update in the common case)
-		err := models.MarkMessagesForRequeuing(ctx, rt.DB, retry)
-		if err != nil {
+		if err := models.MarkMessagesForRequeuing(ctx, rt.DB, retry); err != nil {
 			slog.Error("error marking messages as initializing", "error", err)
 		}
 	}
 }
 
-func tryToQueue(ctx context.Context, rt *runtime.Runtime, msgs []*models.Msg) []*models.Msg {
-	// messages that have been successfully queued
-	queued := make([]*models.Msg, 0, len(msgs))
-
-	// fetch URNs and organize by id
-	urnIDs := getMessageURNIDs(msgs)
-	urnsByID := make(map[models.URNID]*models.ContactURN, len(urnIDs))
-	for batch := range slices.Chunk(urnIDs, 1000) {
-		urns, err := models.LoadContactURNs(ctx, rt.DB, batch)
-		if err != nil {
-			slog.Error("error getting contact URNs", "error", err)
-			return nil
-		}
-		for _, u := range urns {
-			urnsByID[u.ID] = u
-		}
+func tryToQueue(ctx context.Context, rt *runtime.Runtime, sends []*Send) []*Send {
+	if err := fetchMissingURNs(ctx, rt, sends); err != nil {
+		slog.Error("error fetching missing contact URNs", "error", err)
+		return nil
 	}
 
+	// messages that have been successfully queued
+	queued := make([]*Send, 0, len(sends))
+
 	// organize what we have to send by org
-	sendsByOrg := make(map[models.OrgID][]Send)
-	for _, m := range msgs {
-		orgID := m.OrgID()
-		var urn *models.ContactURN
-		if m.ContactURNID() != models.NilURNID {
-			urn = urnsByID[m.ContactURNID()]
-		}
-		sendsByOrg[orgID] = append(sendsByOrg[orgID], Send{Msg: m, URN: urn})
+	sendsByOrg := make(map[models.OrgID][]*Send)
+	for _, s := range sends {
+		orgID := s.Msg.OrgID()
+		sendsByOrg[orgID] = append(sendsByOrg[orgID], s)
 	}
 
 	for orgID, orgSends := range sendsByOrg {
@@ -82,20 +68,20 @@ func tryToQueue(ctx context.Context, rt *runtime.Runtime, msgs []*models.Msg) []
 	return queued
 }
 
-func tryToQueueForOrg(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, sends []Send) []*models.Msg {
+func tryToQueueForOrg(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, sends []*Send) []*Send {
 	// sends by courier, organized by contact+channel
-	courierSends := make(map[contactAndChannel][]Send, 100)
+	courierSends := make(map[contactAndChannel][]*Send, 100)
 
 	// android channels that need to be notified to sync
-	androidMsgs := make(map[*models.Channel][]*models.Msg, 100)
+	androidMsgs := make(map[*models.Channel][]*Send, 100)
 
 	// messages that have been successfully queued
-	queued := make([]*models.Msg, 0, len(sends))
+	queued := make([]*Send, 0, len(sends))
 
 	for _, s := range sends {
 		// ignore any message already marked as failed (maybe org is suspended)
 		if s.Msg.Status() == models.MsgStatusFailed {
-			queued = append(queued, s.Msg) // so that we don't try to requeue
+			queued = append(queued, s) // so that we don't try to requeue
 			continue
 		}
 
@@ -103,7 +89,7 @@ func tryToQueueForOrg(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAs
 
 		if channel != nil {
 			if channel.IsAndroid() {
-				androidMsgs[channel] = append(androidMsgs[channel], s.Msg)
+				androidMsgs[channel] = append(androidMsgs[channel], s)
 			} else {
 				cc := contactAndChannel{s.Msg.ContactID(), channel}
 				courierSends[cc] = append(courierSends[cc], s)
@@ -123,39 +109,53 @@ func tryToQueueForOrg(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAs
 			if err != nil {
 				slog.Error("error queuing messages", "error", err, "channel_uuid", cc.channel.UUID(), "contact_id", cc.contactID)
 			} else {
-				for _, s := range contactSends {
-					queued = append(queued, s.Msg)
-				}
+				queued = append(queued, contactSends...)
 			}
 		}
 	}
 
 	// if we have any android messages, trigger syncs for the unique channels
 	if len(androidMsgs) > 0 {
-		for channel, msgs := range androidMsgs {
-			err := SyncAndroidChannel(ctx, rt, channel)
+		for ch, chSends := range androidMsgs {
+			err := SyncAndroidChannel(ctx, rt, ch)
 			if err != nil {
-				slog.Error("error syncing messages", "error", err, "channel_uuid", channel.UUID())
+				slog.Error("error syncing messages", "error", err, "channel_uuid", ch.UUID())
 			}
 
 			// even if syncing fails, we consider these messages queued because the device will try to sync by itself
-			queued = append(queued, msgs...)
+			queued = append(queued, chSends...)
 		}
 	}
 
 	return queued
 }
 
-// extracts the unique, non-nil contact URN ids for the given messages
-func getMessageURNIDs(msgs []*models.Msg) []models.URNID {
-	ids := make(map[models.URNID]bool, len(msgs))
-	for _, m := range msgs {
-		uid := m.ContactURNID()
-		if uid != models.NilURNID {
-			ids[uid] = true
+func fetchMissingURNs(ctx context.Context, rt *runtime.Runtime, sends []*Send) error {
+	// get ids of missing URNs
+	ids := make([]models.URNID, 0, len(sends))
+	for _, s := range sends {
+		if s.Msg.ContactURNID() != models.NilURNID && s.URN == nil {
+			ids = append(ids, s.Msg.ContactURNID())
 		}
 	}
-	return slices.Collect(maps.Keys(ids))
+
+	urns, err := models.LoadContactURNs(ctx, rt.DB, ids)
+	if err != nil {
+		return fmt.Errorf("error looking up unset contact URNs: %w", err)
+	}
+
+	urnsByID := make(map[models.URNID]*models.ContactURN, len(urns))
+	for _, u := range urns {
+		urnsByID[u.ID] = u
+	}
+
+	for _, s := range sends {
+		if s.Msg.ContactURNID() != models.NilURNID && s.URN == nil {
+			s.URN = urnsByID[s.Msg.ContactURNID()]
+		}
+	}
+
+	return nil
 }
 
 func assert(c bool, m string) {

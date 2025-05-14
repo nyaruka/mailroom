@@ -67,7 +67,12 @@ func (t *SendBroadcastBatchTask) Perform(ctx context.Context, rt *runtime.Runtim
 		return fmt.Errorf("error creating broadcast messages: %w", err)
 	}
 
-	msgio.QueueMessages(ctx, rt, msgs)
+	sends := make([]*msgio.Send, len(msgs))
+	for i, msg := range msgs {
+		sends[i] = &msgio.Send{Msg: msg}
+	}
+
+	msgio.QueueMessages(ctx, rt, sends)
 
 	// if this is our last batch, mark broadcast as done
 	if t.IsLast {
