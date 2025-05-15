@@ -62,14 +62,9 @@ func (t *SendBroadcastBatchTask) Perform(ctx context.Context, rt *runtime.Runtim
 	}
 
 	// create this batch of messages
-	msgs, err := bcast.CreateMessages(ctx, rt, oa, t.BroadcastBatch)
+	sends, err := bcast.CreateMessages(ctx, rt, oa, t.BroadcastBatch)
 	if err != nil {
 		return fmt.Errorf("error creating broadcast messages: %w", err)
-	}
-
-	sends := make([]*models.Send, len(msgs))
-	for i, msg := range msgs {
-		sends[i] = &models.Send{Msg: msg}
 	}
 
 	msgio.QueueMessages(ctx, rt, sends)

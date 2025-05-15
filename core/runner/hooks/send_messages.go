@@ -26,6 +26,7 @@ func (h *sendMessages) Execute(ctx context.Context, rt *runtime.Runtime, oa *mod
 		for _, m := range args {
 			sceneSends = append(sceneSends, &models.Send{
 				Msg:        m.(*models.Msg),
+				Contact:    s.Contact(),
 				Session:    s.ModelSession(),
 				SprintUUID: s.SprintUUID(),
 			})

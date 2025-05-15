@@ -77,7 +77,7 @@ func TestNewCourierMsg(t *testing.T) {
 	err = models.InsertMessages(ctx, rt.DB, []*models.Msg{msg1})
 	require.NoError(t, err)
 
-	createAndAssertCourierMsg(t, oa, &models.Send{Msg: msg1, URN: cathyURNs[0], Session: session, SprintUUID: session.LastSprintUUID()}, fmt.Sprintf(`{
+	createAndAssertCourierMsg(t, oa, &models.Send{Msg: msg1, Contact: fCathy, URN: cathyURNs[0], Session: session, SprintUUID: session.LastSprintUUID()}, fmt.Sprintf(`{
 		"attachments": [
 			"image/jpeg:https://dl-foo.com/image.jpg"
 		],
@@ -130,7 +130,7 @@ func TestNewCourierMsg(t *testing.T) {
 	err = models.InsertMessages(ctx, rt.DB, []*models.Msg{msg2})
 	require.NoError(t, err)
 
-	createAndAssertCourierMsg(t, oa, &models.Send{Msg: msg2, URN: cathyURNs[0], Session: session, SprintUUID: session.LastSprintUUID()}, fmt.Sprintf(`{
+	createAndAssertCourierMsg(t, oa, &models.Send{Msg: msg2, Contact: fCathy, URN: cathyURNs[0], Session: session, SprintUUID: session.LastSprintUUID()}, fmt.Sprintf(`{
 		"channel_uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8",
 		"contact_id": 10000,
 		"contact_last_seen_on": "2023-04-20T10:15:00Z",
@@ -162,9 +162,10 @@ func TestNewCourierMsg(t *testing.T) {
 	err = models.InsertMessages(ctx, rt.DB, []*models.Msg{msg3})
 	require.NoError(t, err)
 
-	createAndAssertCourierMsg(t, oa, &models.Send{Msg: msg3, URN: fredURNs[0]}, fmt.Sprintf(`{
+	createAndAssertCourierMsg(t, oa, &models.Send{Msg: msg3, Contact: fCathy, URN: fredURNs[0]}, fmt.Sprintf(`{
 		"channel_uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8",
 		"contact_id": 30000,
+		"contact_last_seen_on": "2023-04-20T10:15:00Z",
 		"contact_urn_id": 30000,
 		"created_on": "%s",
 		"high_priority": false,
@@ -183,9 +184,10 @@ func TestNewCourierMsg(t *testing.T) {
 	err = models.InsertMessages(ctx, rt.DB, []*models.Msg{msg4})
 	require.NoError(t, err)
 
-	createAndAssertCourierMsg(t, oa, &models.Send{Msg: msg4, URN: cathyURNs[0], Session: session, SprintUUID: session.LastSprintUUID()}, fmt.Sprintf(`{
+	createAndAssertCourierMsg(t, oa, &models.Send{Msg: msg4, Contact: fCathy, URN: cathyURNs[0], Session: session, SprintUUID: session.LastSprintUUID()}, fmt.Sprintf(`{
 		"channel_uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8",
 		"contact_id": 10000,
+		"contact_last_seen_on": "2023-04-20T10:15:00Z",
 		"contact_urn_id": 10000,
 		"created_on": "2021-11-09T14:03:30Z",
 		"flow": {"uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85", "name": "Favorites"},

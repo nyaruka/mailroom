@@ -269,17 +269,17 @@ func TestBroadcastBatchCreateMessage(t *testing.T) {
 			IsLast:      true,
 		}
 
-		msgs, err := bcast.CreateMessages(ctx, rt, oa, batch)
+		sends, err := bcast.CreateMessages(ctx, rt, oa, batch)
 		if tc.expectedError != "" {
 			assert.EqualError(t, err, tc.expectedError, "error mismatch in test case %d", i)
 		} else {
 			assert.NoError(t, err, "unexpected error in test case %d", i)
-			if assert.Len(t, msgs, 1, "msg count mismatch in test case %d", i) {
-				assert.Equal(t, tc.expectedText, msgs[0].Text(), "%d: msg text mismatch", i)
-				assert.Equal(t, tc.expectedAttachments, msgs[0].Attachments(), "%d: attachments mismatch", i)
-				assert.Equal(t, tc.expectedQuickReplies, msgs[0].QuickReplies(), "%d: quick replies mismatch", i)
-				assert.Equal(t, tc.expectedLocale, msgs[0].Locale(), "%d: msg locale mismatch", i)
-				assert.Equal(t, tc.optInID, msgs[0].OptInID(), "%d: optin id mismatch", i)
+			if assert.Len(t, sends, 1, "msg count mismatch in test case %d", i) {
+				assert.Equal(t, tc.expectedText, sends[0].Msg.Text(), "%d: msg text mismatch", i)
+				assert.Equal(t, tc.expectedAttachments, sends[0].Msg.Attachments(), "%d: attachments mismatch", i)
+				assert.Equal(t, tc.expectedQuickReplies, sends[0].Msg.QuickReplies(), "%d: quick replies mismatch", i)
+				assert.Equal(t, tc.expectedLocale, sends[0].Msg.Locale(), "%d: msg locale mismatch", i)
+				assert.Equal(t, tc.optInID, sends[0].Msg.OptInID(), "%d: optin id mismatch", i)
 			}
 		}
 	}
