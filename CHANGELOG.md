@@ -1,3 +1,8 @@
+v10.1.116 (2025-05-15)
+-------------------------
+ * Fix wait expirations in IVR flows
+ * More refactoring away of transient properties on session and msg
+
 v10.1.115 (2025-05-14)
 -------------------------
  * Update to latest goflow that changes user references to be by UUID
