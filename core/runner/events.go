@@ -3,6 +3,7 @@ package runner
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/events"
@@ -47,11 +48,12 @@ func newSprintEndedEvent(c *models.Contact, resumed bool) *SprintEndedEvent {
 
 // Scene represents the context that events are occurring in
 type Scene struct {
-	contact *flows.Contact
-	ms      *models.Session
-	session flows.Session
-	sprint  flows.Sprint
-	userID  models.UserID
+	contact     *flows.Contact
+	ms          *models.Session
+	session     flows.Session
+	sprint      flows.Sprint
+	waitTimeout time.Duration
+	userID      models.UserID
 
 	Call        *models.Call
 	IncomingMsg *models.MsgInRef
@@ -61,12 +63,13 @@ type Scene struct {
 }
 
 // NewSceneForSession creates a new scene for the passed in session
-func NewSceneForSession(ms *models.Session, session flows.Session, sprint flows.Sprint, init func(*Scene)) *Scene {
+func NewSceneForSession(ms *models.Session, session flows.Session, sprint flows.Sprint, timeout time.Duration, init func(*Scene)) *Scene {
 	s := &Scene{
-		contact: session.Contact(),
-		ms:      ms,
-		session: session,
-		sprint:  sprint,
+		contact:     session.Contact(),
+		ms:          ms,
+		session:     session,
+		sprint:      sprint,
+		waitTimeout: timeout,
 
 		preCommits:  make(map[PreCommitHook][]any),
 		postCommits: make(map[PostCommitHook][]any),
@@ -109,6 +112,7 @@ func (s *Scene) Contact() *flows.Contact        { return s.contact }
 func (s *Scene) ContactID() models.ContactID    { return models.ContactID(s.contact.ID()) }
 func (s *Scene) ContactUUID() flows.ContactUUID { return s.contact.UUID() }
 func (s *Scene) Session() flows.Session         { return s.session }
+func (s *Scene) WaitTimeout() time.Duration     { return s.waitTimeout }
 func (s *Scene) UserID() models.UserID          { return s.userID }
 
 // TODO rework remaining places using this to not

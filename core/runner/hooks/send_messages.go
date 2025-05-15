@@ -26,6 +26,7 @@ func (h *sendMessages) Execute(ctx context.Context, rt *runtime.Runtime, oa *mod
 		for _, m := range args {
 			msg := m.(*models.MsgOut)
 			msg.Session = s.ModelSession()
+			msg.WaitTimeout = s.WaitTimeout()
 			msg.SprintUUID = s.SprintUUID()
 
 			sceneMsgs = append(sceneMsgs, msg)

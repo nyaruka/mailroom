@@ -52,7 +52,8 @@ func ResumeFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, 
 	}
 
 	// write our updated session and runs
-	if err := session.Update(txCTX, rt, tx, oa, fs, sprint, contact, hook); err != nil {
+	timeout, err := session.Update(txCTX, rt, tx, oa, fs, sprint, contact, hook)
+	if err != nil {
 		tx.Rollback()
 		return nil, fmt.Errorf("error updating session for resume: %w", err)
 	}
@@ -65,7 +66,7 @@ func ResumeFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, 
 	}
 
 	eventsToHandle = append(eventsToHandle, newSprintEndedEvent(contact, true))
-	scene := NewSceneForSession(session, fs, sprint, sceneInit)
+	scene := NewSceneForSession(session, fs, sprint, timeout, sceneInit)
 
 	if err := scene.AddEvents(ctx, rt, oa, eventsToHandle); err != nil {
 		return nil, fmt.Errorf("error handling events for session %s: %w", session.UUID(), err)
