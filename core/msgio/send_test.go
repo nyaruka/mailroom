@@ -148,15 +148,15 @@ func TestQueueMessages(t *testing.T) {
 	}
 
 	for _, tc := range tests {
-		sends := make([]*models.Send, len(tc.Msgs))
+		msgs := make([]*models.MsgOut, len(tc.Msgs))
 		for i, ms := range tc.Msgs {
-			sends[i] = &models.Send{Msg: ms.createMsg(t, rt, oa)}
+			msgs[i] = &models.MsgOut{Msg: ms.createMsg(t, rt, oa)}
 		}
 
 		rc.Do("FLUSHDB")
 		mockFCM.Messages = nil
 
-		msgio.QueueMessages(ctx, rt, sends)
+		msgio.QueueMessages(ctx, rt, msgs)
 
 		testsuite.AssertCourierQueues(t, tc.QueueSizes, "courier queue sizes mismatch in '%s'", tc.Description)
 

@@ -94,12 +94,12 @@ var unsendableToFailedReason = map[flows.UnsendableReason]MsgFailedReason{
 	flows.UnsendableReasonNoDestination: MsgFailedNoDestination,
 }
 
-// Send is an outgoing message with the additional information required to queue it
-type Send struct {
-	Msg     *Msg
+// MsgOut is an outgoing message with the additional information required to queue it
+type MsgOut struct {
+	*Msg
+
 	Contact *flows.Contact // provides contact last seen on
 	URN     *ContactURN    // provides URN identity + auth
-
 	Session *Session
 
 	// info that courier needs to create a wait timeout fire
@@ -695,14 +695,14 @@ UPDATE msgs_msg m
  WHERE id = ANY($1)`
 
 // ResendMessages prepares messages for resending by reselecting a channel and marking them as PENDING
-func ResendMessages(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, msgs []*Msg) ([]*Send, error) {
+func ResendMessages(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, msgs []*Msg) ([]*MsgOut, error) {
 	channels := oa.SessionAssets().Channels()
 
 	// for the bulk db updates
 	resends := make([]any, 0, len(msgs))
 	refails := make([]MsgID, 0, len(msgs))
 
-	resent := make([]*Send, 0, len(msgs))
+	resent := make([]*MsgOut, 0, len(msgs))
 
 	for _, msg := range msgs {
 		urnID := msg.ContactURNID()
@@ -737,7 +737,7 @@ func ResendMessages(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, msg
 			msg.m.FailedReason = ""
 
 			resends = append(resends, msg.m)
-			resent = append(resent, &Send{Msg: msg, URN: cu, IsResend: true})
+			resent = append(resent, &MsgOut{Msg: msg, URN: cu, IsResend: true})
 		} else {
 			// if we don't have channel or a URN, fail again
 			msg.m.ChannelID = NilChannelID

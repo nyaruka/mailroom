@@ -49,7 +49,7 @@ func handleResend(ctx context.Context, rt *runtime.Runtime, r *resendRequest) (a
 	// response is the ids of the messages that were actually resent
 	resentMsgIDs := make([]models.MsgID, len(resends))
 	for i, s := range resends {
-		resentMsgIDs[i] = s.Msg.ID()
+		resentMsgIDs[i] = s.ID()
 	}
 	return map[string]any{"msg_ids": resentMsgIDs}, http.StatusOK, nil
 }

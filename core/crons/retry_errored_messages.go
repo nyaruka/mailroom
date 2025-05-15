@@ -40,12 +40,13 @@ func (c *RetryMessagesCron) Run(ctx context.Context, rt *runtime.Runtime) (map[s
 		return nil, fmt.Errorf("error marking messages as queued: %w", err)
 	}
 
-	sends := make([]*models.Send, len(msgs))
+	retries := make([]*models.MsgOut, len(msgs))
 	for i, msg := range msgs {
-		sends[i] = &models.Send{Msg: msg}
+		// TODO populate more fields in MsgOut
+		retries[i] = &models.MsgOut{Msg: msg}
 	}
 
-	msgio.QueueMessages(ctx, rt, sends)
+	msgio.QueueMessages(ctx, rt, retries)
 
 	return map[string]any{"retried": len(msgs)}, nil
 }
