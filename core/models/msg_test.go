@@ -183,7 +183,7 @@ func TestNewOutgoingFlowMsg(t *testing.T) {
 			expectedQuickReplies = []flows.QuickReply{}
 		}
 
-		err = models.InsertMessages(ctx, rt.DB, []*models.Msg{msg})
+		err = models.InsertMessages(ctx, rt.DB, []*models.Msg{msg.Msg})
 		assert.NoError(t, err)
 		assert.Equal(t, oa.OrgID(), msg.OrgID())
 		assert.Equal(t, tc.Content.Text, msg.Text(), "%d: text mismatch", i)
@@ -230,7 +230,7 @@ func TestNewOutgoingFlowMsg(t *testing.T) {
 	_, fc, _ := testdata.Cathy.Load(rt, oa)
 
 	// check that msg loop detection triggers after 20 repeats of the same text
-	newOutgoing := func(text string) *models.Msg {
+	newOutgoing := func(text string) *models.MsgOut {
 		content := &flows.MsgContent{Text: text}
 		flowMsg := flows.NewMsgOut(urns.URN(fmt.Sprintf("tel:+250700000001?id=%d", testdata.Cathy.URNID)), assets.NewChannelReference(testdata.TwilioChannel.UUID, "Twilio"), content, nil, flows.NilMsgTopic, i18n.NilLocale, flows.NilUnsendableReason)
 		msg, err := models.NewOutgoingFlowMsg(rt, oa.Org(), channel, fc, flow, flowMsg, nil, dates.Now())
@@ -623,7 +623,7 @@ func TestMsgTemplating(t *testing.T) {
 	msg2, err := models.NewOutgoingFlowMsg(rt, oa.Org(), channel, fc, flow, out2, nil, dates.Now())
 	require.NoError(t, err)
 
-	err = models.InsertMessages(ctx, rt.DB, []*models.Msg{msg1, msg2})
+	err = models.InsertMessages(ctx, rt.DB, []*models.Msg{msg1.Msg, msg2.Msg})
 	require.NoError(t, err)
 
 	// check non-nil and nil templating writes to db correctly

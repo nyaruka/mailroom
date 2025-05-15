@@ -64,7 +64,7 @@ func handleSend(ctx context.Context, rt *runtime.Runtime, r *sendRequest) (any, 
 		return nil, 0, fmt.Errorf("error creating outgoing message: %w", err)
 	}
 
-	if err := models.InsertMessages(ctx, rt.DB, []*models.Msg{msg}); err != nil {
+	if err := models.InsertMessages(ctx, rt.DB, []*models.Msg{msg.Msg}); err != nil {
 		return nil, 0, fmt.Errorf("error inserting outgoing message: %w", err)
 	}
 
@@ -75,7 +75,7 @@ func handleSend(ctx context.Context, rt *runtime.Runtime, r *sendRequest) (any, 
 		}
 	}
 
-	msgio.QueueMessages(ctx, rt, []*models.MsgOut{{Msg: msg, Contact: contact}})
+	msgio.QueueMessages(ctx, rt, []*models.MsgOut{msg})
 
 	return map[string]any{
 		"id":            msg.ID(),

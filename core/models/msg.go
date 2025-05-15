@@ -329,7 +329,7 @@ func NewOutgoingIVR(cfg *runtime.Config, orgID OrgID, call *Call, out *flows.Msg
 }
 
 // NewOutgoingOptInMsg creates an outgoing optin message
-func NewOutgoingOptInMsg(rt *runtime.Runtime, orgID OrgID, contact *flows.Contact, flow *Flow, optIn *OptIn, channel *Channel, urn urns.URN, replyTo *MsgInRef, createdOn time.Time) *Msg {
+func NewOutgoingOptInMsg(rt *runtime.Runtime, orgID OrgID, contact *flows.Contact, flow *Flow, optIn *OptIn, channel *Channel, urn urns.URN, replyTo *MsgInRef, createdOn time.Time) *MsgOut {
 	msg := &Msg{}
 	m := &msg.m
 	m.UUID = flows.NewMsgUUID()
@@ -356,27 +356,27 @@ func NewOutgoingOptInMsg(rt *runtime.Runtime, orgID OrgID, contact *flows.Contac
 	// set transient fields which we'll use when queuing to courier
 	msg.ReplyTo = replyTo
 
-	return msg
+	return &MsgOut{Msg: msg, Contact: contact}
 }
 
 // NewOutgoingFlowMsg creates an outgoing message for the passed in flow message
-func NewOutgoingFlowMsg(rt *runtime.Runtime, org *Org, channel *Channel, contact *flows.Contact, flow *Flow, out *flows.MsgOut, replyTo *MsgInRef, createdOn time.Time) (*Msg, error) {
+func NewOutgoingFlowMsg(rt *runtime.Runtime, org *Org, channel *Channel, contact *flows.Contact, flow *Flow, out *flows.MsgOut, replyTo *MsgInRef, createdOn time.Time) (*MsgOut, error) {
 	highPriority := replyTo != nil
 
-	return newOutgoingTextMsg(rt, org, channel, contact, out, flow, NilBroadcastID, NilTicketID, NilOptInID, NilUserID, replyTo, highPriority, createdOn)
+	return newMsgOut(rt, org, channel, contact, out, flow, NilBroadcastID, NilTicketID, NilOptInID, NilUserID, replyTo, highPriority, createdOn)
 }
 
 // NewOutgoingBroadcastMsg creates an outgoing message which is part of a broadcast
-func NewOutgoingBroadcastMsg(rt *runtime.Runtime, org *Org, channel *Channel, contact *flows.Contact, out *flows.MsgOut, b *Broadcast) (*Msg, error) {
-	return newOutgoingTextMsg(rt, org, channel, contact, out, nil, b.ID, NilTicketID, b.OptInID, b.CreatedByID, nil, false, dates.Now())
+func NewOutgoingBroadcastMsg(rt *runtime.Runtime, org *Org, channel *Channel, contact *flows.Contact, out *flows.MsgOut, b *Broadcast) (*MsgOut, error) {
+	return newMsgOut(rt, org, channel, contact, out, nil, b.ID, NilTicketID, b.OptInID, b.CreatedByID, nil, false, dates.Now())
 }
 
 // NewOutgoingChatMsg creates an outgoing message from chat
-func NewOutgoingChatMsg(rt *runtime.Runtime, org *Org, channel *Channel, contact *flows.Contact, out *flows.MsgOut, ticketID TicketID, userID UserID) (*Msg, error) {
-	return newOutgoingTextMsg(rt, org, channel, contact, out, nil, NilBroadcastID, NilTicketID, NilOptInID, userID, nil, true, dates.Now())
+func NewOutgoingChatMsg(rt *runtime.Runtime, org *Org, channel *Channel, contact *flows.Contact, out *flows.MsgOut, ticketID TicketID, userID UserID) (*MsgOut, error) {
+	return newMsgOut(rt, org, channel, contact, out, nil, NilBroadcastID, NilTicketID, NilOptInID, userID, nil, true, dates.Now())
 }
 
-func newOutgoingTextMsg(rt *runtime.Runtime, org *Org, channel *Channel, contact *flows.Contact, out *flows.MsgOut, flow *Flow, broadcastID BroadcastID, ticketID TicketID, optInID OptInID, userID UserID, replyTo *MsgInRef, highPriority bool, createdOn time.Time) (*Msg, error) {
+func newMsgOut(rt *runtime.Runtime, org *Org, channel *Channel, contact *flows.Contact, out *flows.MsgOut, flow *Flow, broadcastID BroadcastID, ticketID TicketID, optInID OptInID, userID UserID, replyTo *MsgInRef, highPriority bool, createdOn time.Time) (*MsgOut, error) {
 	msg := &Msg{}
 	m := &msg.m
 	m.UUID = out.UUID()
@@ -450,7 +450,7 @@ func newOutgoingTextMsg(rt *runtime.Runtime, org *Org, channel *Channel, contact
 	// set transient fields which we'll use when queuing to courier
 	msg.ReplyTo = replyTo
 
-	return msg, nil
+	return &MsgOut{Msg: msg, Contact: contact}, nil
 }
 
 func buildMsgMetadata(m *flows.MsgOut) map[string]any {
