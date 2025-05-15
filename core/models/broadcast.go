@@ -368,5 +368,5 @@ func (b *Broadcast) createMessage(rt *runtime.Runtime, oa *OrgAssets, c *Contact
 		return nil, fmt.Errorf("error creating outgoing message: %w", err)
 	}
 
-	return &MsgOut{Msg: msg, Contact: contact}, nil
+	return msg, nil
 }
