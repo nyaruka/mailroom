@@ -94,21 +94,6 @@ var unsendableToFailedReason = map[flows.UnsendableReason]MsgFailedReason{
 	flows.UnsendableReasonNoDestination: MsgFailedNoDestination,
 }
 
-// MsgOut is an outgoing message with the additional information required to queue it
-type MsgOut struct {
-	*Msg
-
-	Contact *flows.Contact // provides contact last seen on
-	URN     *ContactURN    // provides URN identity + auth
-	Session *Session
-
-	// info that courier needs to create a wait timeout fire
-	SprintUUID   flows.SprintUUID
-	LastInSprint bool
-
-	IsResend bool
-}
-
 // Templating adds db support to the engine's templating struct
 type Templating struct {
 	*flows.MsgTemplating
@@ -180,9 +165,6 @@ type Msg struct {
 		NextAttempt  *time.Time      `db:"next_attempt"`
 		FailedReason MsgFailedReason `db:"failed_reason"`
 	}
-
-	// TODO move these to Send
-	ReplyTo *MsgInRef
 }
 
 func (m *Msg) ID() MsgID           { return m.m.ID }
@@ -254,6 +236,21 @@ func (m *Msg) QuickReplies() []flows.QuickReply {
 		qrs[i] = qr
 	}
 	return qrs
+}
+
+// MsgOut is an outgoing message with the additional information required to queue it
+type MsgOut struct {
+	*Msg
+
+	Contact  *flows.Contact // provides contact last seen on
+	URN      *ContactURN    // provides URN identity + auth
+	Session  *Session
+	ReplyTo  *MsgInRef
+	IsResend bool
+
+	// info that courier needs to create a wait timeout fire
+	SprintUUID   flows.SprintUUID
+	LastInSprint bool
 }
 
 // NewIncomingAndroid creates a new incoming message from an Android relayer sync.
@@ -353,10 +350,7 @@ func NewOutgoingOptInMsg(rt *runtime.Runtime, orgID OrgID, contact *flows.Contac
 		m.OptInID = optIn.ID()
 	}
 
-	// set transient fields which we'll use when queuing to courier
-	msg.ReplyTo = replyTo
-
-	return &MsgOut{Msg: msg, Contact: contact}
+	return &MsgOut{Msg: msg, Contact: contact, ReplyTo: replyTo}
 }
 
 // NewOutgoingFlowMsg creates an outgoing message for the passed in flow message
@@ -447,10 +441,7 @@ func newMsgOut(rt *runtime.Runtime, org *Org, channel *Channel, contact *flows.C
 		m.FlowID = flow.ID()
 	}
 
-	// set transient fields which we'll use when queuing to courier
-	msg.ReplyTo = replyTo
-
-	return &MsgOut{Msg: msg, Contact: contact}, nil
+	return &MsgOut{Msg: msg, Contact: contact, ReplyTo: replyTo}, nil
 }
 
 func buildMsgMetadata(m *flows.MsgOut) map[string]any {

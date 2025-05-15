@@ -77,6 +77,7 @@ func TestNewCourierMsg(t *testing.T) {
 	err = models.InsertMessages(ctx, rt.DB, []*models.Msg{msg1.Msg})
 	require.NoError(t, err)
 
+	msg1.URN = cathyURNs[0]
 	msg1.Session = session
 	msg1.SprintUUID = session.LastSprintUUID()
 
@@ -133,6 +134,7 @@ func TestNewCourierMsg(t *testing.T) {
 	err = models.InsertMessages(ctx, rt.DB, []*models.Msg{msg2.Msg})
 	require.NoError(t, err)
 
+	msg2.URN = cathyURNs[0]
 	msg2.Session = session
 	msg2.SprintUUID = session.LastSprintUUID()
 
@@ -168,10 +170,11 @@ func TestNewCourierMsg(t *testing.T) {
 	err = models.InsertMessages(ctx, rt.DB, []*models.Msg{msg3.Msg})
 	require.NoError(t, err)
 
+	msg3.URN = fredURNs[0]
+
 	createAndAssertCourierMsg(t, oa, msg3, fmt.Sprintf(`{
 		"channel_uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8",
 		"contact_id": 30000,
-		"contact_last_seen_on": "2023-04-20T10:15:00Z",
 		"contact_urn_id": 30000,
 		"created_on": "%s",
 		"high_priority": false,
@@ -190,6 +193,7 @@ func TestNewCourierMsg(t *testing.T) {
 	err = models.InsertMessages(ctx, rt.DB, []*models.Msg{msg4.Msg})
 	require.NoError(t, err)
 
+	msg4.URN = cathyURNs[0]
 	msg4.Session = session
 	msg4.SprintUUID = session.LastSprintUUID()
 
