@@ -1,3 +1,8 @@
+v10.1.117 (2025-05-16)
+-------------------------
+ * Change MsgOut.session to be the flow session
+ * Replace Session.timeout transient field
+
 v10.1.116 (2025-05-15)
 -------------------------
  * Fix wait expirations in IVR flows
