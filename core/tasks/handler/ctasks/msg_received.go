@@ -231,7 +231,7 @@ func (t *MsgReceivedTask) handleNonFlow(ctx context.Context, rt *runtime.Runtime
 	contact.SetLastSeenOn(msgEvent.CreatedOn())
 	contactEvents := map[*flows.Contact][]flows.Event{contact: {msgEvent}}
 
-	err := runner.ApplyEvents(ctx, rt, oa, models.NilUserID, contactEvents, sceneInit)
+	err := runner.ProcessEvents(ctx, rt, oa, models.NilUserID, contactEvents, sceneInit)
 	if err != nil {
 		return fmt.Errorf("error handling non-flow message events: %w", err)
 	}

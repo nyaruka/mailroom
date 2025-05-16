@@ -16,6 +16,8 @@ type ordered interface {
 	Order() int
 }
 
+func orderedCmp[T ordered](a, b T) int { return cmp.Compare(a.Order(), b.Order()) }
+
 // PreCommitHook is a hook that turns the output from event handlers into database changes applied in a transaction.
 type PreCommitHook interface {
 	ordered
@@ -85,5 +87,3 @@ func ExecutePostCommitHooks(ctx context.Context, rt *runtime.Runtime, oa *models
 
 	return nil
 }
-
-func orderedCmp[T ordered](a, b T) int { return cmp.Compare(a.Order(), b.Order()) }
