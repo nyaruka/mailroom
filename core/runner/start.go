@@ -245,7 +245,7 @@ func StartFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 	}
 
 	// write our session to the db
-	dbSessions, err := models.InsertSessions(txCTX, rt, tx, oa, sessions, sprints, contacts, hook, startID, callID)
+	dbSessions, timeouts, err := models.InsertSessions(txCTX, rt, tx, oa, sessions, sprints, contacts, hook, startID, callID)
 	if err != nil {
 		tx.Rollback()
 		return nil, fmt.Errorf("error interrupting contacts: %w", err)
@@ -254,7 +254,7 @@ func StartFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 	// make scenes and add events to them
 	scenes := make([]*Scene, len(dbSessions))
 	for i, s := range dbSessions {
-		scenes[i] = NewSceneForSession(s, sessions[i], sprints[i], sceneInit)
+		scenes[i] = NewSceneForSession(s, sessions[i], sprints[i], timeouts[0], sceneInit)
 
 		var eventsToHandle []flows.Event
 
@@ -307,7 +307,7 @@ func StartFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 				}
 			}
 
-			dbSession, err := models.InsertSessions(txCTX, rt, tx, oa, []flows.Session{session}, []flows.Sprint{sprint}, []*models.Contact{contact}, hook, startID, callID)
+			dbSession, timeout, err := models.InsertSessions(txCTX, rt, tx, oa, []flows.Session{session}, []flows.Sprint{sprint}, []*models.Contact{contact}, hook, startID, callID)
 			if err != nil {
 				tx.Rollback()
 				log.Error("error writing session to db", "error", err, "contact", session.Contact().UUID())
@@ -323,7 +323,7 @@ func StartFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 
 			eventsToHandle = append(eventsToHandle, newSprintEndedEvent(contact, false))
 
-			scene := NewSceneForSession(dbSession[0], session, sprint, sceneInit)
+			scene := NewSceneForSession(dbSession[0], session, sprint, timeout[0], sceneInit)
 
 			if err := scene.AddEvents(ctx, rt, oa, eventsToHandle); err != nil {
 				return nil, fmt.Errorf("error applying events for session %s: %w", session.UUID(), err)

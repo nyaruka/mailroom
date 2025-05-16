@@ -249,6 +249,7 @@ type MsgOut struct {
 	IsResend bool
 
 	// info that courier needs to create a wait timeout fire
+	WaitTimeout  time.Duration
 	SprintUUID   flows.SprintUUID
 	LastInSprint bool
 }
