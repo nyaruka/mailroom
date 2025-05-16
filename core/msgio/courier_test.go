@@ -31,13 +31,11 @@ func TestNewCourierMsg(t *testing.T) {
 	testFred := testdata.InsertContact(rt, testdata.Org1, "", "Fred", "eng", models.ContactStatusActive)
 	testdata.InsertContactURN(rt, testdata.Org1, testFred, "tel:+593979123456", 1000, map[string]string{fmt.Sprintf("optin:%d", optInID): "sesame"})
 
-	testdata.InsertWaitingSession(rt, testdata.Org1, testdata.Cathy, models.FlowTypeMessaging, testdata.Favorites, models.NilCallID)
-
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdata.Org1.ID, models.RefreshOptIns)
 	require.NoError(t, err)
 	require.False(t, oa.Org().Suspended())
 
-	mCathy, fCathy, cathyURNs := testdata.Cathy.Load(rt, oa)
+	_, fCathy, cathyURNs := testdata.Cathy.Load(rt, oa)
 	_, fred, fredURNs := testFred.Load(rt, oa)
 
 	twilio := oa.ChannelByUUID(testdata.TwilioChannel.UUID)
@@ -65,11 +63,6 @@ func TestNewCourierMsg(t *testing.T) {
 		flows.NilUnsendableReason,
 	)
 
-	// create a non-priority flow message.. i.e. not responding to an incoming message
-	session, err := models.GetWaitingSessionForContact(ctx, rt, oa, fCathy, mCathy.CurrentSessionUUID())
-	require.NoError(t, err)
-	require.NotNil(t, session)
-
 	msg1, err := models.NewOutgoingFlowMsg(rt, oa.Org(), facebook, fCathy, flow, flowMsg1, nil, time.Date(2021, 11, 9, 14, 3, 30, 0, time.UTC))
 	require.NoError(t, err)
 
@@ -77,9 +70,12 @@ func TestNewCourierMsg(t *testing.T) {
 	err = models.InsertMessages(ctx, rt.DB, []*models.Msg{msg1.Msg})
 	require.NoError(t, err)
 
+	_, session, sprint := test.NewSessionBuilder().WithAssets(oa.SessionAssets()).WithFlow(testdata.Favorites.UUID).
+		WithContact(testdata.Cathy.UUID, flows.ContactID(testdata.Cathy.ID), "Cathy", "eng", "").MustBuild()
+
 	msg1.URN = cathyURNs[0]
 	msg1.Session = session
-	msg1.SprintUUID = session.LastSprintUUID()
+	msg1.SprintUUID = sprint.UUID()
 
 	createAndAssertCourierMsg(t, oa, msg1, fmt.Sprintf(`{
 		"attachments": [
@@ -114,7 +110,7 @@ func TestNewCourierMsg(t *testing.T) {
 		"tps_cost": 2,
 		"urn": "tel:+16055741111",
 		"uuid": "%s"
-	}`, session.UUID(), session.LastSprintUUID(), msg1.UUID()))
+	}`, session.UUID(), sprint.UUID(), msg1.UUID()))
 
 	// create a priority flow message.. i.e. the session is responding to an incoming message
 	fCathy.SetLastSeenOn(time.Date(2023, 4, 20, 10, 15, 0, 0, time.UTC))
@@ -136,7 +132,7 @@ func TestNewCourierMsg(t *testing.T) {
 
 	msg2.URN = cathyURNs[0]
 	msg2.Session = session
-	msg2.SprintUUID = session.LastSprintUUID()
+	msg2.SprintUUID = sprint.UUID()
 
 	createAndAssertCourierMsg(t, oa, msg2, fmt.Sprintf(`{
 		"channel_uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8",
@@ -159,7 +155,7 @@ func TestNewCourierMsg(t *testing.T) {
 		"tps_cost": 1,
 		"urn": "tel:+16055741111",
 		"uuid": "%s"
-	}`, session.UUID(), session.LastSprintUUID(), msg2.UUID()))
+	}`, session.UUID(), sprint.UUID(), msg2.UUID()))
 
 	// try a broadcast message which won't have session and flow fields set and won't be high priority
 	bcastID := testdata.InsertBroadcast(rt, testdata.Org1, `eng`, map[i18n.Language]string{`eng`: "Blast"}, nil, models.NilScheduleID, []*testdata.Contact{testFred}, nil)
@@ -195,7 +191,7 @@ func TestNewCourierMsg(t *testing.T) {
 
 	msg4.URN = cathyURNs[0]
 	msg4.Session = session
-	msg4.SprintUUID = session.LastSprintUUID()
+	msg4.SprintUUID = sprint.UUID()
 
 	createAndAssertCourierMsg(t, oa, msg4, fmt.Sprintf(`{
 		"channel_uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8",
@@ -222,7 +218,7 @@ func TestNewCourierMsg(t *testing.T) {
 		"tps_cost": 1,
 		"urn": "tel:+16055741111",
 		"uuid": "%s"
-	}`, optIn.ID(), session.UUID(), session.LastSprintUUID(), msg4.UUID()))
+	}`, optIn.ID(), session.UUID(), sprint.UUID(), msg4.UUID()))
 }
 
 func createAndAssertCourierMsg(t *testing.T, oa *models.OrgAssets, msg *models.MsgOut, expectedJSON string) {
