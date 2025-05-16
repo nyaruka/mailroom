@@ -32,7 +32,7 @@ func TestResume(t *testing.T) {
 	modelContact, flowContact, _ := testdata.Cathy.Load(rt, oa)
 
 	trigger := triggers.NewBuilder(oa.Env(), flow.Reference(), flowContact).Manual().Build()
-	sessions, err := runner.StartFlow(ctx, rt, oa, flow, []*models.Contact{modelContact}, []flows.Trigger{trigger}, true, models.NilStartID, models.NilCallID, nil, nil)
+	sessions, err := runner.StartFlow(ctx, rt, oa, flow, []*models.Contact{modelContact}, []flows.Trigger{trigger}, true, models.NilStartID, models.NilCallID, nil)
 	assert.NoError(t, err)
 	assert.NotNil(t, sessions)
 
@@ -64,7 +64,7 @@ func TestResume(t *testing.T) {
 		msg := flows.NewMsgIn(flows.NewMsgUUID(), testdata.Cathy.URN, nil, tc.Message, nil, "")
 		resume := resumes.NewMsg(oa.Env(), flowContact, msg)
 
-		session, err = runner.ResumeFlow(ctx, rt, oa, session, modelContact, resume, nil, nil)
+		session, err = runner.ResumeFlow(ctx, rt, oa, session, modelContact, resume, nil)
 		assert.NoError(t, err)
 		assert.NotNil(t, session)
 

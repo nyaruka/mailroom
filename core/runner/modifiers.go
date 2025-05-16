@@ -31,7 +31,7 @@ func ApplyModifiers(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 		eventsByContact[contact] = events
 	}
 
-	if err := ApplyEvents(ctx, rt, oa, userID, eventsByContact); err != nil {
+	if err := ApplyEvents(ctx, rt, oa, userID, eventsByContact, nil); err != nil {
 		return nil, fmt.Errorf("error commiting events: %w", err)
 	}
 

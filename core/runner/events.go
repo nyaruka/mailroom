@@ -61,33 +61,31 @@ type Scene struct {
 	postCommits map[PostCommitHook][]any
 }
 
-// NewSceneForSession creates a new scene for the passed in session
-func NewSceneForSession(session flows.Session, sprint flows.Sprint, timeout time.Duration, init func(*Scene)) *Scene {
+// NewSessionScene creates a new scene for the passed in session
+func NewSessionScene(session flows.Session, sprint flows.Sprint, waitTimeout time.Duration, init func(*Scene)) *Scene {
+	return newScene(session.Contact(), session, sprint, waitTimeout, models.NilUserID, init)
+}
+
+// NewNonFlowScene creates a new scene for non flow session event handling
+func NewNonFlowScene(contact *flows.Contact, userID models.UserID, init func(*Scene)) *Scene {
+	return newScene(contact, nil, nil, 0, userID, init)
+}
+
+func newScene(contact *flows.Contact, session flows.Session, sprint flows.Sprint, waitTimeout time.Duration, userID models.UserID, init func(*Scene)) *Scene {
 	s := &Scene{
-		contact:     session.Contact(),
+		contact:     contact,
 		session:     session,
 		sprint:      sprint,
-		waitTimeout: timeout,
+		waitTimeout: waitTimeout,
+		userID:      userID,
 
 		preCommits:  make(map[PreCommitHook][]any),
 		postCommits: make(map[PostCommitHook][]any),
 	}
-
 	if init != nil {
 		init(s)
 	}
 	return s
-}
-
-// NewSceneForContact creates a new scene for the passed in contact, session will be nil
-func NewSceneForContact(contact *flows.Contact, userID models.UserID) *Scene {
-	return &Scene{
-		contact: contact,
-		userID:  userID,
-
-		preCommits:  make(map[PreCommitHook][]any),
-		postCommits: make(map[PostCommitHook][]any),
-	}
 }
 
 // SessionUUID returns the session UUID for this scene if any
@@ -146,11 +144,11 @@ func (s *Scene) AddEvents(ctx context.Context, rt *runtime.Runtime, oa *models.O
 }
 
 // ApplyEvents takes a set of contacts and events, handles the events and applies any hooks, and commits everything
-func ApplyEvents(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, userID models.UserID, contactEvents map[*flows.Contact][]flows.Event) error {
+func ApplyEvents(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, userID models.UserID, contactEvents map[*flows.Contact][]flows.Event, sceneInit func(*Scene)) error {
 	// create scenes for each contact
 	scenes := make([]*Scene, 0, len(contactEvents))
 	for contact := range contactEvents {
-		scene := NewSceneForContact(contact, userID)
+		scene := NewNonFlowScene(contact, userID, sceneInit)
 		scenes = append(scenes, scene)
 	}
 

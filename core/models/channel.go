@@ -102,6 +102,9 @@ func (c *Channel) Config() Config { return c.Config_ }
 
 // Reference return a channel reference for this channel
 func (c *Channel) Reference() *assets.ChannelReference {
+	if c == nil {
+		return nil
+	}
 	return assets.NewChannelReference(c.UUID(), c.Name())
 }
 

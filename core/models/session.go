@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
-	"github.com/gomodule/redigo/redis"
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 	"github.com/nyaruka/gocommon/aws/s3x"
@@ -48,8 +47,6 @@ var sessionStatusMap = map[flows.SessionStatus]SessionStatus{
 	flows.SessionStatusCompleted: SessionStatusCompleted,
 	flows.SessionStatusFailed:    SessionStatusFailed,
 }
-
-type SessionCommitHook func(context.Context, *sqlx.Tx, *redis.Pool, *OrgAssets, []*Session) error
 
 // Session is the mailroom type for a FlowSession
 type Session struct {
@@ -220,7 +217,7 @@ WHERE
 	uuid = :uuid`
 
 // Update updates the session based on the state passed in from our engine session, this also takes care of applying any event hooks
-func (s *Session) Update(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *OrgAssets, fs flows.Session, sprint flows.Sprint, contact *Contact, hook SessionCommitHook) (time.Duration, error) {
+func (s *Session) Update(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *OrgAssets, fs flows.Session, sprint flows.Sprint, contact *Contact) (time.Duration, error) {
 	// make sure we have our seen runs
 	if s.seenRuns == nil {
 		return 0, fmt.Errorf("missing seen runs, cannot update session")
@@ -315,14 +312,6 @@ func (s *Session) Update(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, 
 		if r.ModifiedOn.After(modified) {
 			updatedRuns = append(updatedRuns, r)
 			continue
-		}
-	}
-
-	// call our global pre commit hook if present
-	if hook != nil {
-		err := hook(ctx, tx, rt.RP, oa, []*Session{s})
-		if err != nil {
-			return 0, fmt.Errorf("error calling commit hook: %v: %w", hook, err)
 		}
 	}
 
@@ -447,7 +436,7 @@ INSERT INTO
 
 // InsertSessions writes the passed in session to our database, writes any runs that need to be created
 // as well as appying any events created in the session
-func InsertSessions(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *OrgAssets, ss []flows.Session, sprints []flows.Sprint, contacts []*Contact, hook SessionCommitHook, startID StartID, callID CallID) ([]*Session, []time.Duration, error) {
+func InsertSessions(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *OrgAssets, ss []flows.Session, sprints []flows.Sprint, contacts []*Contact, startID StartID, callID CallID) ([]*Session, []time.Duration, error) {
 	if len(ss) == 0 {
 		return nil, nil, nil
 	}
@@ -478,14 +467,6 @@ func InsertSessions(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *O
 			waitingContactIDs = append(waitingContactIDs, session.s.ContactID)
 		} else {
 			endedSessionsI = append(endedSessionsI, &session.s)
-		}
-	}
-
-	// call our global pre commit hook if present
-	if hook != nil {
-		err := hook(ctx, tx, rt.RP, oa, sessions)
-		if err != nil {
-			return nil, nil, fmt.Errorf("error calling commit hook: %v: %w", hook, err)
 		}
 	}
 

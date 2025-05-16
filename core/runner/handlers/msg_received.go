@@ -22,6 +22,11 @@ func handleMsgReceived(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 
 	slog.Debug("msg received", "contact", scene.ContactUUID(), "session", scene.SessionUUID(), "text", event.Msg.Text(), "urn", event.Msg.URN())
 
+	// update the message to be handled
+	if scene.IncomingMsg != nil {
+		scene.AttachPreCommitHook(hooks.UpdateMessageHandled, event)
+	}
+
 	// update the contact's last seen date
 	scene.AttachPreCommitHook(hooks.UpdateContactLastSeenOn, event)
 	scene.AttachPreCommitHook(hooks.UpdateCampaignEvents, event)
