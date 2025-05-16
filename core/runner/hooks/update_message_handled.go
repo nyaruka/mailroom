@@ -31,7 +31,7 @@ func (h *updateMessageHandled) Execute(ctx context.Context, rt *runtime.Runtime,
 		}
 
 		visibility := models.VisibilityVisible
-		if contactBlocked {
+		if contactBlocked || evt.Msg.Channel() == nil {
 			visibility = models.VisibilityArchived
 		}
 

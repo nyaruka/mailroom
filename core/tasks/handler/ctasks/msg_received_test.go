@@ -22,6 +22,10 @@ func TestMsgReceivedTask(t *testing.T) {
 
 	defer testsuite.Reset(testsuite.ResetAll)
 
+	// create a disabled channel
+	disabled := testdata.InsertChannel(rt, testdata.Org1, "TG", "Deleted", "1234567", []string{"telegram"}, "SR", map[string]any{})
+	rt.DB.MustExec(`UPDATE channels_channel SET is_enabled = false WHERE id = $1`, disabled.ID)
+
 	testdata.InsertKeywordTrigger(rt, testdata.Org1, testdata.Favorites, []string{"start"}, models.MatchOnly, nil, nil, nil)
 	testdata.InsertKeywordTrigger(rt, testdata.Org1, testdata.IVRFlow, []string{"ivr"}, models.MatchOnly, nil, nil, nil)
 
@@ -74,26 +78,21 @@ func TestMsgReceivedTask(t *testing.T) {
 		expectedReplyStatus models.MsgStatus
 		expectedFlow        *testdata.Flow
 	}{
-		// 0:
-		{
+		{ // 0: no trigger match, inbox message
 			org:                testdata.Org1,
 			channel:            testdata.FacebookChannel,
 			contact:            testdata.Cathy,
 			text:               "noop",
 			expectedVisibility: models.VisibilityVisible,
 		},
-
-		// 1:
-		{
+		{ // 1: no trigger match, inbox message (trigger is keyword only)
 			org:                testdata.Org1,
 			channel:            testdata.FacebookChannel,
 			contact:            testdata.Cathy,
 			text:               "start other",
 			expectedVisibility: models.VisibilityVisible,
 		},
-
-		// 2:
-		{
+		{ // 2: keyword trigger match, flow message
 			org:                 testdata.Org1,
 			channel:             testdata.FacebookChannel,
 			contact:             testdata.Cathy,
@@ -103,9 +102,7 @@ func TestMsgReceivedTask(t *testing.T) {
 			expectedReplyStatus: models.MsgStatusQueued,
 			expectedFlow:        testdata.Favorites,
 		},
-
-		// 3:
-		{
+		{ // 3:
 			org:                 testdata.Org1,
 			channel:             testdata.FacebookChannel,
 			contact:             testdata.Cathy,
@@ -115,9 +112,7 @@ func TestMsgReceivedTask(t *testing.T) {
 			expectedReplyStatus: models.MsgStatusQueued,
 			expectedFlow:        testdata.Favorites,
 		},
-
-		// 4:
-		{
+		{ // 4:
 			org:                 testdata.Org1,
 			channel:             testdata.FacebookChannel,
 			contact:             testdata.Cathy,
@@ -127,9 +122,7 @@ func TestMsgReceivedTask(t *testing.T) {
 			expectedReplyStatus: models.MsgStatusQueued,
 			expectedFlow:        testdata.Favorites,
 		},
-
-		// 5:
-		{
+		{ // 5:
 			org:                 testdata.Org1,
 			channel:             testdata.FacebookChannel,
 			contact:             testdata.Cathy,
@@ -139,9 +132,7 @@ func TestMsgReceivedTask(t *testing.T) {
 			expectedReplyStatus: models.MsgStatusQueued,
 			expectedFlow:        testdata.Favorites,
 		},
-
-		// 6:
-		{
+		{ // 6:
 			org:                 testdata.Org1,
 			channel:             testdata.FacebookChannel,
 			contact:             testdata.Cathy,
@@ -151,18 +142,14 @@ func TestMsgReceivedTask(t *testing.T) {
 			expectedReplyStatus: models.MsgStatusQueued,
 			expectedFlow:        testdata.Favorites,
 		},
-
-		// 7:
-		{
+		{ // 7:
 			org:                testdata.Org1,
 			channel:            testdata.FacebookChannel,
 			contact:            testdata.Cathy,
 			text:               "noop",
 			expectedVisibility: models.VisibilityVisible,
 		},
-
-		// 8:
-		{
+		{ // 8:
 			org:                 testdata.Org2,
 			channel:             testdata.Org2Channel,
 			contact:             testdata.Org2Contact,
@@ -172,9 +159,7 @@ func TestMsgReceivedTask(t *testing.T) {
 			expectedReplyStatus: models.MsgStatusQueued,
 			expectedFlow:        testdata.Org2SingleMessage,
 		},
-
-		// 9:
-		{
+		{ // 9:
 			org:                 testdata.Org2,
 			channel:             testdata.Org2Channel,
 			contact:             testdata.Org2Contact,
@@ -184,9 +169,7 @@ func TestMsgReceivedTask(t *testing.T) {
 			expectedReplyStatus: models.MsgStatusQueued,
 			expectedFlow:        testdata.Org2Favorites,
 		},
-
-		// 10:
-		{
+		{ // 10:
 			org:                 testdata.Org2,
 			channel:             testdata.Org2Channel,
 			contact:             testdata.Org2Contact,
@@ -196,9 +179,7 @@ func TestMsgReceivedTask(t *testing.T) {
 			expectedReplyStatus: models.MsgStatusQueued,
 			expectedFlow:        testdata.Org2Favorites,
 		},
-
-		// 11:
-		{
+		{ // 11:
 			org:                 testdata.Org2,
 			channel:             testdata.Org2Channel,
 			contact:             testdata.Org2Contact,
@@ -208,9 +189,7 @@ func TestMsgReceivedTask(t *testing.T) {
 			expectedReplyStatus: models.MsgStatusQueued,
 			expectedFlow:        testdata.Org2Favorites,
 		},
-
-		// 12:
-		{
+		{ // 12:
 			org:                 testdata.Org2,
 			channel:             testdata.Org2Channel,
 			contact:             testdata.Org2Contact,
@@ -220,9 +199,7 @@ func TestMsgReceivedTask(t *testing.T) {
 			expectedReplyStatus: models.MsgStatusQueued,
 			expectedFlow:        testdata.Org2Favorites,
 		},
-
-		// 13:
-		{
+		{ // 13:
 			org:                 testdata.Org2,
 			channel:             testdata.Org2Channel,
 			contact:             testdata.Org2Contact,
@@ -232,9 +209,7 @@ func TestMsgReceivedTask(t *testing.T) {
 			expectedReplyStatus: models.MsgStatusQueued,
 			expectedFlow:        testdata.Org2SingleMessage,
 		},
-
-		// 14:
-		{
+		{ // 14:
 			org:                testdata.Org1,
 			channel:            testdata.FacebookChannel,
 			contact:            testdata.Bob,
@@ -242,9 +217,7 @@ func TestMsgReceivedTask(t *testing.T) {
 			expectedVisibility: models.VisibilityVisible,
 			expectedFlow:       testdata.IVRFlow,
 		},
-
-		// 15: stopped contact should be unstopped
-		{
+		{ // 15: stopped contact should be unstopped
 			preHook: func() {
 				rt.DB.MustExec(`UPDATE contacts_contact SET status = 'S' WHERE id = $1`, testdata.George.ID)
 			},
@@ -257,9 +230,7 @@ func TestMsgReceivedTask(t *testing.T) {
 			expectedReplyStatus: models.MsgStatusQueued,
 			expectedFlow:        testdata.Favorites,
 		},
-
-		// 16: no URN on contact but failed reply created anyway
-		{
+		{ // 16: no URN on contact but failed reply created anyway
 			org:                 testdata.Org1,
 			channel:             testdata.TwilioChannel,
 			contact:             testdata.Alexandria,
@@ -269,9 +240,7 @@ func TestMsgReceivedTask(t *testing.T) {
 			expectedReplyStatus: models.MsgStatusFailed,
 			expectedFlow:        testdata.Favorites,
 		},
-
-		// 17: start Fred back in our favorite flow, then make it inactive, will be handled by catch-all
-		{
+		{ // 17: start Fred back in our favorite flow, then make it inactive, will be handled by catch-all
 			org:                 testdata.Org2,
 			channel:             testdata.Org2Channel,
 			contact:             testdata.Org2Contact,
@@ -281,9 +250,7 @@ func TestMsgReceivedTask(t *testing.T) {
 			expectedReplyStatus: models.MsgStatusQueued,
 			expectedFlow:        testdata.Org2Favorites,
 		},
-
-		// 18:
-		{
+		{ // 18:
 			preHook: func() {
 				rt.DB.MustExec(`UPDATE flows_flow SET is_active = FALSE WHERE id = $1`, testdata.Org2Favorites.ID)
 			},
@@ -296,9 +263,7 @@ func TestMsgReceivedTask(t *testing.T) {
 			expectedReplyStatus: models.MsgStatusQueued,
 			expectedFlow:        testdata.Org2SingleMessage,
 		},
-
-		// 19: start Fred back in our favorites flow to test retries
-		{
+		{ // 19: start Fred back in our favorites flow to test retries
 			preHook: func() {
 				rt.DB.MustExec(`UPDATE flows_flow SET is_active = TRUE WHERE id = $1`, testdata.Org2Favorites.ID)
 			},
@@ -311,18 +276,23 @@ func TestMsgReceivedTask(t *testing.T) {
 			expectedReplyStatus: models.MsgStatusQueued,
 			expectedFlow:        testdata.Org2Favorites,
 		},
-		// 20: deleted contact
-		{
+		{ // 20: deleted contact
 			org:     testdata.Org1,
 			channel: testdata.TwilioChannel,
 			contact: deleted,
 			text:    "start",
 		},
-		// 21: blocked contact
-		{
+		{ // 21: blocked contact
 			org:                testdata.Org1,
 			channel:            testdata.FacebookChannel,
 			contact:            blocked,
+			text:               "start",
+			expectedVisibility: models.VisibilityArchived,
+		},
+		{ // 22: disabled channel
+			org:                testdata.Org1,
+			channel:            disabled,
+			contact:            testdata.Cathy,
 			text:               "start",
 			expectedVisibility: models.VisibilityArchived,
 		},
