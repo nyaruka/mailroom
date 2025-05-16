@@ -23,6 +23,7 @@ func (h *updateMessageHandled) Execute(ctx context.Context, rt *runtime.Runtime,
 	for scene, es := range scenes {
 		evt := es[0].(*events.MsgReceivedEvent)
 		msgIn := scene.IncomingMsg
+		contactBlocked := scene.Contact().Status() == flows.ContactStatusBlocked
 
 		var flow *models.Flow
 		if scene.Session() != nil {
@@ -30,7 +31,7 @@ func (h *updateMessageHandled) Execute(ctx context.Context, rt *runtime.Runtime,
 		}
 
 		visibility := models.VisibilityVisible
-		if scene.Contact().Status() == flows.ContactStatusBlocked {
+		if contactBlocked {
 			visibility = models.VisibilityArchived
 		}
 
@@ -39,7 +40,7 @@ func (h *updateMessageHandled) Execute(ctx context.Context, rt *runtime.Runtime,
 			return fmt.Errorf("error marking message as handled: %w", err)
 		}
 
-		if msgIn.Ticket != nil {
+		if msgIn.Ticket != nil && !contactBlocked {
 			err = models.UpdateTicketLastActivity(ctx, tx, []*models.Ticket{msgIn.Ticket})
 			if err != nil {
 				return fmt.Errorf("error updating last activity for ticket: %w", err)
