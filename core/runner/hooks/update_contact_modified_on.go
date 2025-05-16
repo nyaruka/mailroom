@@ -15,7 +15,7 @@ var UpdateContactModifiedOn runner.PreCommitHook = &updateContactModifiedOn{}
 
 type updateContactModifiedOn struct{}
 
-func (h *updateContactModifiedOn) Order() int { return 1000 } // run after all other hooks
+func (h *updateContactModifiedOn) Order() int { return 100 } // run after all other hooks
 
 func (h *updateContactModifiedOn) Execute(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *models.OrgAssets, scenes map[*runner.Scene][]any) error {
 	// our lists of contact ids
