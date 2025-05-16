@@ -267,13 +267,10 @@ func RunFlowAndApplyEvents(t *testing.T, ctx context.Context, rt *runtime.Runtim
 	tx, err := rt.DB.BeginTxx(ctx, nil)
 	require.NoError(t, err)
 
-	session, err := models.NewSession(ctx, tx, oa, fs, sprint, models.NilStartID, models.NilCallID)
-	require.NoError(t, err)
-
 	err = tx.Commit()
 	require.NoError(t, err)
 
-	scene := runner.NewSceneForSession(session, fs, sprint, 0, nil)
+	scene := runner.NewSceneForSession(fs, sprint, 0, nil)
 
 	err = scene.AddEvents(ctx, rt, oa, sprint.Events())
 	require.NoError(t, err)

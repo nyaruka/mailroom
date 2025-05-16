@@ -254,7 +254,7 @@ func StartFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 	// make scenes and add events to them
 	scenes := make([]*Scene, len(dbSessions))
 	for i, s := range dbSessions {
-		scenes[i] = NewSceneForSession(s, sessions[i], sprints[i], timeouts[0], sceneInit)
+		scenes[i] = NewSceneForSession(sessions[i], sprints[i], timeouts[0], sceneInit)
 
 		var eventsToHandle []flows.Event
 
@@ -284,8 +284,7 @@ func StartFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 		tx.Rollback()
 
 		// we failed writing our sessions in one go, try one at a time
-		for i := range sessions {
-			session := sessions[i]
+		for i, session := range sessions {
 			sprint := sprints[i]
 			contact := contacts[i]
 
@@ -317,13 +316,12 @@ func StartFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 			var eventsToHandle []flows.Event
 
 			// if session didn't fail, we need to handle this sprint's events
-			if dbSession[0].Status() != models.SessionStatusFailed {
+			if session.Status() != flows.SessionStatusFailed {
 				eventsToHandle = append(eventsToHandle, sprint.Events()...)
 			}
 
 			eventsToHandle = append(eventsToHandle, newSprintEndedEvent(contact, false))
-
-			scene := NewSceneForSession(dbSession[0], session, sprint, timeout[0], sceneInit)
+			scene := NewSceneForSession(session, sprint, timeout[0], sceneInit)
 
 			if err := scene.AddEvents(ctx, rt, oa, eventsToHandle); err != nil {
 				return nil, fmt.Errorf("error applying events for session %s: %w", session.UUID(), err)
