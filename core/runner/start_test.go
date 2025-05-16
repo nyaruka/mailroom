@@ -1,11 +1,8 @@
 package runner_test
 
 import (
-	"context"
 	"testing"
 
-	"github.com/gomodule/redigo/redis"
-	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/gocommon/i18n"
@@ -97,9 +94,6 @@ func TestStartFlowConcurrency(t *testing.T) {
 	options := &runner.StartOptions{
 		TriggerBuilder: func(contact *flows.Contact) flows.Trigger {
 			return triggers.NewBuilder(oa.Env(), flowRef, contact).Manual().Build()
-		},
-		CommitHook: func(ctx context.Context, tx *sqlx.Tx, rp *redis.Pool, oa *models.OrgAssets, session []*models.Session) error {
-			return nil
 		},
 	}
 

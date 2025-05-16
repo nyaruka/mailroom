@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/gomodule/redigo/redis"
-	"github.com/jmoiron/sqlx"
 	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/events"
@@ -47,42 +45,72 @@ func (t *MsgReceivedTask) UseReadOnly() bool {
 }
 
 func (t *MsgReceivedTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, mc *models.Contact) error {
+	result, err := t.handle(ctx, rt, oa, mc)
+	if err != nil {
+		return err
+	}
+
+	flowID := models.NilFlowID
+	if result.flow != nil {
+		flowID = result.flow.ID()
+	}
+	ticketID := models.NilTicketID
+	if result.ticket != nil {
+		ticketID = result.ticket.ID()
+	}
+
+	err = models.MarkMessageHandled(ctx, rt.DB, t.MsgID, models.MsgStatusHandled, result.visibility, flowID, ticketID, result.attachments, result.logUUIDs)
+	if err != nil {
+		return fmt.Errorf("error marking message as handled: %w", err)
+	}
+
+	if result.ticket != nil {
+		err = models.UpdateTicketLastActivity(ctx, rt.DB, []*models.Ticket{result.ticket})
+		if err != nil {
+			return fmt.Errorf("error updating last activity for open ticket: %w", err)
+		}
+	}
+
+	return nil
+}
+
+func (t *MsgReceivedTask) handle(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, mc *models.Contact) (*handleResult, error) {
 	channel := oa.ChannelByID(t.ChannelID)
 
-	// fetch the attachments on the message (i.e. ask courier to fetch them)
-	attachments := make([]utils.Attachment, 0, len(t.Attachments))
-	logUUIDs := make([]clogs.UUID, 0, len(t.Attachments))
+	result := &handleResult{
+		visibility:  models.VisibilityVisible,
+		attachments: make([]utils.Attachment, 0, len(t.Attachments)),
+		logUUIDs:    make([]clogs.UUID, 0, len(t.Attachments)),
+	}
 
+	// fetch the attachments on the message (i.e. ask courier to fetch them)
 	// no channel, no attachments
 	if channel != nil {
 		for _, attURL := range t.Attachments {
 			// if courier has already fetched this attachment, use it as is
 			if utils.Attachment(attURL).ContentType() != "" {
-				attachments = append(attachments, utils.Attachment(attURL))
+				result.attachments = append(result.attachments, utils.Attachment(attURL))
 			} else {
 				attachment, logUUID, err := msgio.FetchAttachment(ctx, rt, channel, attURL, t.MsgID)
 				if err != nil {
-					return fmt.Errorf("error fetching attachment '%s': %w", attURL, err)
+					return nil, fmt.Errorf("error fetching attachment '%s': %w", attURL, err)
 				}
 
-				attachments = append(attachments, attachment)
-				logUUIDs = append(logUUIDs, logUUID)
+				result.attachments = append(result.attachments, attachment)
+				result.logUUIDs = append(result.logUUIDs, logUUID)
 			}
 		}
 	}
 
 	// if contact is blocked, or channel no longer exists or is disabled, ignore this message but mark it as handled and archived
 	if mc.Status() == models.ContactStatusBlocked || channel == nil {
-		err := models.MarkMessageHandled(ctx, rt.DB, t.MsgID, models.MsgStatusHandled, models.VisibilityArchived, models.NilFlowID, models.NilTicketID, attachments, logUUIDs)
-		if err != nil {
-			return fmt.Errorf("error updating message for deleted contact: %w", err)
-		}
-		return nil
+		result.visibility = models.VisibilityArchived
+		return result, nil
 	}
 
 	// flow will only see the attachments we were able to fetch
-	availableAttachments := make([]utils.Attachment, 0, len(attachments))
-	for _, att := range attachments {
+	availableAttachments := make([]utils.Attachment, 0, len(result.attachments))
+	for _, att := range result.attachments {
 		if att.ContentType() != utils.UnavailableType {
 			availableAttachments = append(availableAttachments, att)
 		}
@@ -93,7 +121,7 @@ func (t *MsgReceivedTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *
 	// if we have URNs make sure the message URN is our highest priority (this is usually a noop)
 	if len(mc.URNs()) > 0 {
 		if err := mc.UpdatePreferredURN(ctx, rt.DB, oa, t.URNID, channel); err != nil {
-			return fmt.Errorf("error changing primary URN: %w", err)
+			return nil, fmt.Errorf("error changing primary URN: %w", err)
 		}
 	}
 
@@ -101,7 +129,7 @@ func (t *MsgReceivedTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *
 	recalcGroups := t.NewContact
 	if mc.Status() == models.ContactStatusStopped {
 		if err := mc.Unstop(ctx, rt.DB); err != nil {
-			return fmt.Errorf("error unstopping contact: %w", err)
+			return nil, fmt.Errorf("error unstopping contact: %w", err)
 		}
 
 		recalcGroups = true
@@ -110,22 +138,24 @@ func (t *MsgReceivedTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *
 	// build our flow contact
 	fc, err := mc.FlowContact(oa)
 	if err != nil {
-		return fmt.Errorf("error creating flow contact: %w", err)
+		return nil, fmt.Errorf("error creating flow contact: %w", err)
 	}
 
 	// if this is a new or newly unstopped contact, we need to calculate dynamic groups and campaigns
 	if recalcGroups {
 		err = models.CalculateDynamicGroups(ctx, rt.DB, oa, []*flows.Contact{fc})
 		if err != nil {
-			return fmt.Errorf("unable to initialize new contact: %w", err)
+			return nil, fmt.Errorf("unable to initialize new contact: %w", err)
 		}
 	}
 
 	// look up any open tickes for this contact and forward this message to that
 	ticket, err := models.LoadOpenTicketForContact(ctx, rt.DB, mc)
 	if err != nil {
-		return fmt.Errorf("unable to look up open tickets for contact: %w", err)
+		return nil, fmt.Errorf("unable to look up open tickets for contact: %w", err)
 	}
+
+	result.ticket = ticket // will be set on the message
 
 	// find any matching triggers
 	trigger, keyword := models.FindMatchingMsgTrigger(oa, channel, fc, t.Text)
@@ -137,7 +167,7 @@ func (t *MsgReceivedTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *
 	if mc.CurrentSessionUUID() != "" {
 		session, err = models.GetWaitingSessionForContact(ctx, rt, oa, fc, mc.CurrentSessionUUID())
 		if err != nil {
-			return fmt.Errorf("error loading waiting session for contact #%d: %w", mc.ID(), err)
+			return nil, fmt.Errorf("error loading waiting session for contact #%d: %w", mc.ID(), err)
 		}
 	}
 
@@ -151,11 +181,11 @@ func (t *MsgReceivedTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *
 			flow, err = oa.FlowByID(session.CurrentFlowID())
 			if err == models.ErrNotFound {
 				if err := models.ExitSessions(ctx, rt.DB, []flows.SessionUUID{session.UUID()}, models.SessionStatusFailed); err != nil {
-					return fmt.Errorf("error ending session %s: %w", session.UUID(), err)
+					return nil, fmt.Errorf("error ending session %s: %w", session.UUID(), err)
 				}
 				session = nil
 			} else if err != nil {
-				return fmt.Errorf("error loading flow for session: %w", err)
+				return nil, fmt.Errorf("error loading flow for session: %w", err)
 			}
 		}
 	}
@@ -164,36 +194,24 @@ func (t *MsgReceivedTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *
 		scene.IncomingMsg = &models.MsgInRef{ID: t.MsgID, ExtID: t.MsgExternalID}
 	}
 
-	// build our hook to mark a flow message as handled
-	flowMsgHook := func(ctx context.Context, tx *sqlx.Tx, rp *redis.Pool, oa *models.OrgAssets, sessions []*models.Session) error {
-		// set our incoming message event on our session
-		if len(sessions) != 1 {
-			return fmt.Errorf("handle hook called with more than one session")
-		}
-		return t.markMsgHandled(ctx, tx, flow, attachments, ticket, logUUIDs)
-	}
-
 	// we found a trigger and their session is nil or doesn't ignore keywords
 	if (trigger != nil && trigger.TriggerType() != models.CatchallTriggerType && (flow == nil || !flow.IgnoreTriggers())) ||
 		(trigger != nil && trigger.TriggerType() == models.CatchallTriggerType && (flow == nil)) {
 		// load our flow
 		flow, err = oa.FlowByID(trigger.FlowID())
 		if err != nil && err != models.ErrNotFound {
-			return fmt.Errorf("error loading flow for trigger: %w", err)
+			return nil, fmt.Errorf("error loading flow for trigger: %w", err)
 		}
 
 		// trigger flow is still active, start it
 		if flow != nil {
 			// if this is an IVR flow, we need to trigger that start (which happens in a different queue)
 			if flow.FlowType() == models.FlowTypeVoice {
-				ivrMsgHook := func(ctx context.Context, tx *sqlx.Tx) error {
-					return t.markMsgHandled(ctx, tx, flow, attachments, ticket, logUUIDs)
-				}
-				err = handler.TriggerIVRFlow(ctx, rt, oa.OrgID(), flow.ID(), []models.ContactID{mc.ID()}, ivrMsgHook)
+				err = handler.TriggerIVRFlow(ctx, rt, oa, flow, []models.ContactID{mc.ID()})
 				if err != nil {
-					return fmt.Errorf("error while triggering ivr flow: %w", err)
+					return nil, fmt.Errorf("error while triggering ivr flow: %w", err)
 				}
-				return nil
+				return result, nil
 			}
 
 			tb := triggers.NewBuilder(oa.Env(), flow.Reference(), fc).Msg(msgIn)
@@ -204,69 +222,44 @@ func (t *MsgReceivedTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *
 			// otherwise build the trigger and start the flow directly
 			trigger := tb.Build()
 
-			_, err = runner.StartFlow(ctx, rt, oa, flow, []*models.Contact{mc}, []flows.Trigger{trigger}, flow.FlowType().Interrupts(), models.NilStartID, models.NilCallID, sceneInit, flowMsgHook)
+			_, err = runner.StartFlow(ctx, rt, oa, flow, []*models.Contact{mc}, []flows.Trigger{trigger}, flow.FlowType().Interrupts(), models.NilStartID, models.NilCallID, sceneInit)
 			if err != nil {
-				return fmt.Errorf("error starting flow for contact: %w", err)
+				return nil, fmt.Errorf("error starting flow for contact: %w", err)
 			}
-			return nil
+
+			result.flow = flow
+			return result, nil
 		}
 	}
 
 	// if there is a session, resume it
 	if session != nil && flow != nil {
 		resume := resumes.NewMsg(oa.Env(), fc, msgIn)
-		_, err = runner.ResumeFlow(ctx, rt, oa, session, mc, resume, sceneInit, flowMsgHook)
+		_, err = runner.ResumeFlow(ctx, rt, oa, session, mc, resume, sceneInit)
 		if err != nil {
-			return fmt.Errorf("error resuming flow for contact: %w", err)
+			return nil, fmt.Errorf("error resuming flow for contact: %w", err)
 		}
-		return nil
+
+		result.flow = flow
+		return result, nil
 	}
 
 	// this message didn't trigger and new sessions or resume any existing ones, so handle as inbox
-	if err = t.handleAsInbox(ctx, rt, oa, fc, msgIn, attachments, logUUIDs, ticket); err != nil {
-		return fmt.Errorf("error handling inbox message: %w", err)
+	msgEvent := events.NewMsgReceived(msgIn)
+	fc.SetLastSeenOn(msgEvent.CreatedOn())
+	contactEvents := map[*flows.Contact][]flows.Event{fc: {msgEvent}}
+
+	if err := runner.ApplyEvents(ctx, rt, oa, models.NilUserID, contactEvents); err != nil {
+		return nil, fmt.Errorf("error handling inbox message events: %w", err)
 	}
-	return nil
+
+	return result, nil
 }
 
-// handles a message as an inbox message, i.e. no flow
-func (t *MsgReceivedTask) handleAsInbox(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contact *flows.Contact, msg *flows.MsgIn, attachments []utils.Attachment, logUUIDs []clogs.UUID, ticket *models.Ticket) error {
-	// usually last_seen_on is updated by handling the msg_received event in the engine sprint, but since this is an inbox
-	// message we manually create that event and handle it
-	msgEvent := events.NewMsgReceived(msg)
-	contact.SetLastSeenOn(msgEvent.CreatedOn())
-	contactEvents := map[*flows.Contact][]flows.Event{contact: {msgEvent}}
-
-	err := runner.ApplyEvents(ctx, rt, oa, models.NilUserID, contactEvents)
-	if err != nil {
-		return fmt.Errorf("error handling inbox message events: %w", err)
-	}
-
-	return t.markMsgHandled(ctx, rt.DB, nil, attachments, ticket, logUUIDs)
-}
-
-// utility to mark as message as handled and update any open contact tickets
-func (t *MsgReceivedTask) markMsgHandled(ctx context.Context, db models.DBorTx, flow *models.Flow, attachments []utils.Attachment, ticket *models.Ticket, logUUIDs []clogs.UUID) error {
-	flowID := models.NilFlowID
-	if flow != nil {
-		flowID = flow.ID()
-	}
-	ticketID := models.NilTicketID
-	if ticket != nil {
-		ticketID = ticket.ID()
-	}
-
-	err := models.MarkMessageHandled(ctx, db, t.MsgID, models.MsgStatusHandled, models.VisibilityVisible, flowID, ticketID, attachments, logUUIDs)
-	if err != nil {
-		return fmt.Errorf("error marking message as handled: %w", err)
-	}
-
-	if ticket != nil {
-		err = models.UpdateTicketLastActivity(ctx, db, []*models.Ticket{ticket})
-		if err != nil {
-			return fmt.Errorf("error updating last activity for open ticket: %w", err)
-		}
-	}
-
-	return nil
+type handleResult struct {
+	visibility  models.MsgVisibility
+	flow        *models.Flow
+	attachments []utils.Attachment
+	ticket      *models.Ticket
+	logUUIDs    []clogs.UUID
 }

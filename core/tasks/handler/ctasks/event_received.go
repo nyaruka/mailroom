@@ -142,7 +142,7 @@ func (t *EventReceivedTask) handle(ctx context.Context, rt *runtime.Runtime, oa 
 
 	// if this is an IVR flow and we don't have a call, trigger that asynchronously
 	if flow.FlowType() == models.FlowTypeVoice && call == nil {
-		err = handler.TriggerIVRFlow(ctx, rt, oa.OrgID(), flow.ID(), []models.ContactID{mc.ID()}, nil)
+		err = handler.TriggerIVRFlow(ctx, rt, oa, flow, []models.ContactID{mc.ID()})
 		if err != nil {
 			return nil, fmt.Errorf("error while triggering ivr flow: %w", err)
 		}
@@ -192,7 +192,7 @@ func (t *EventReceivedTask) handle(ctx context.Context, rt *runtime.Runtime, oa 
 		callID = call.ID()
 	}
 
-	sessions, err := runner.StartFlow(ctx, rt, oa, flow, []*models.Contact{mc}, []flows.Trigger{trig}, flow.FlowType().Interrupts(), models.NilStartID, callID, sceneInit, nil)
+	sessions, err := runner.StartFlow(ctx, rt, oa, flow, []*models.Contact{mc}, []flows.Trigger{trig}, flow.FlowType().Interrupts(), models.NilStartID, callID, sceneInit)
 	if err != nil {
 		return nil, fmt.Errorf("error starting flow for contact: %w", err)
 	}

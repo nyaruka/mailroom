@@ -1,13 +1,10 @@
 package models_test
 
 import (
-	"context"
 	"fmt"
 	"testing"
 	"time"
 
-	"github.com/gomodule/redigo/redis"
-	"github.com/jmoiron/sqlx"
 	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/gocommon/random"
@@ -44,15 +41,8 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 
 	tx := rt.DB.MustBegin()
 
-	hookCalls := 0
-	hook := func(context.Context, *sqlx.Tx, *redis.Pool, *models.OrgAssets, []*models.Session) error {
-		hookCalls++
-		return nil
-	}
-
-	modelSessions, timeouts, err := models.InsertSessions(ctx, rt, tx, oa, []flows.Session{flowSession}, []flows.Sprint{sprint1}, []*models.Contact{modelContact}, hook, models.NilStartID, models.NilCallID)
+	modelSessions, timeouts, err := models.InsertSessions(ctx, rt, tx, oa, []flows.Session{flowSession}, []flows.Sprint{sprint1}, []*models.Contact{modelContact}, models.NilStartID, models.NilCallID)
 	require.NoError(t, err)
-	assert.Equal(t, 1, hookCalls)
 
 	require.NoError(t, tx.Commit())
 
@@ -87,10 +77,9 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 
 	tx = rt.DB.MustBegin()
 
-	timeout, err := session.Update(ctx, rt, tx, oa, flowSession, sprint2, modelContact, hook)
+	timeout, err := session.Update(ctx, rt, tx, oa, flowSession, sprint2, modelContact)
 	require.NoError(t, err)
 	assert.Zero(t, timeout)
-	assert.Equal(t, 2, hookCalls)
 
 	require.NoError(t, tx.Commit())
 
@@ -111,10 +100,9 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 
 	tx = rt.DB.MustBegin()
 
-	timeout, err = session.Update(ctx, rt, tx, oa, flowSession, sprint3, modelContact, hook)
+	timeout, err = session.Update(ctx, rt, tx, oa, flowSession, sprint3, modelContact)
 	require.NoError(t, err)
 	assert.Zero(t, timeout)
-	assert.Equal(t, 3, hookCalls)
 
 	require.NoError(t, tx.Commit())
 
@@ -149,15 +137,8 @@ func TestSingleSprintSession(t *testing.T) {
 
 	tx := rt.DB.MustBegin()
 
-	hookCalls := 0
-	hook := func(context.Context, *sqlx.Tx, *redis.Pool, *models.OrgAssets, []*models.Session) error {
-		hookCalls++
-		return nil
-	}
-
-	modelSessions, timeouts, err := models.InsertSessions(ctx, rt, tx, oa, []flows.Session{flowSession}, []flows.Sprint{sprint1}, []*models.Contact{modelContact}, hook, models.NilStartID, models.NilCallID)
+	modelSessions, timeouts, err := models.InsertSessions(ctx, rt, tx, oa, []flows.Session{flowSession}, []flows.Sprint{sprint1}, []*models.Contact{modelContact}, models.NilStartID, models.NilCallID)
 	require.NoError(t, err)
-	assert.Equal(t, 1, hookCalls)
 
 	require.NoError(t, tx.Commit())
 
@@ -204,15 +185,8 @@ func TestSessionWithSubflows(t *testing.T) {
 
 	tx := rt.DB.MustBegin()
 
-	hookCalls := 0
-	hook := func(context.Context, *sqlx.Tx, *redis.Pool, *models.OrgAssets, []*models.Session) error {
-		hookCalls++
-		return nil
-	}
-
-	modelSessions, timeouts, err := models.InsertSessions(ctx, rt, tx, oa, []flows.Session{flowSession}, []flows.Sprint{sprint1}, []*models.Contact{modelContact}, hook, startID, models.NilCallID)
+	modelSessions, timeouts, err := models.InsertSessions(ctx, rt, tx, oa, []flows.Session{flowSession}, []flows.Sprint{sprint1}, []*models.Contact{modelContact}, startID, models.NilCallID)
 	require.NoError(t, err)
-	assert.Equal(t, 1, hookCalls)
 
 	require.NoError(t, tx.Commit())
 
@@ -250,10 +224,9 @@ func TestSessionWithSubflows(t *testing.T) {
 
 	tx = rt.DB.MustBegin()
 
-	timeout, err := session.Update(ctx, rt, tx, oa, flowSession, sprint2, modelContact, hook)
+	timeout, err := session.Update(ctx, rt, tx, oa, flowSession, sprint2, modelContact)
 	require.NoError(t, err)
 	assert.Zero(t, timeout)
-	assert.Equal(t, 2, hookCalls)
 
 	require.NoError(t, tx.Commit())
 
@@ -287,15 +260,8 @@ func TestSessionFailedStart(t *testing.T) {
 
 	tx := rt.DB.MustBegin()
 
-	hookCalls := 0
-	hook := func(context.Context, *sqlx.Tx, *redis.Pool, *models.OrgAssets, []*models.Session) error {
-		hookCalls++
-		return nil
-	}
-
-	modelSessions, timeouts, err := models.InsertSessions(ctx, rt, tx, oa, []flows.Session{flowSession}, []flows.Sprint{sprint1}, []*models.Contact{modelContact}, hook, models.NilStartID, models.NilCallID)
+	modelSessions, timeouts, err := models.InsertSessions(ctx, rt, tx, oa, []flows.Session{flowSession}, []flows.Sprint{sprint1}, []*models.Contact{modelContact}, models.NilStartID, models.NilCallID)
 	require.NoError(t, err)
-	assert.Equal(t, 1, hookCalls)
 
 	require.NoError(t, tx.Commit())
 

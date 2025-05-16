@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/gomodule/redigo/redis"
-	"github.com/jmoiron/sqlx"
 	"github.com/nyaruka/gocommon/dbutil"
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/mailroom/core/models"
@@ -144,28 +143,18 @@ func performHandlerTask(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 	return task.Perform(ctx, rt, oa, contact)
 }
 
-type DBHook func(ctx context.Context, tx *sqlx.Tx) error
-
 // TriggerIVRFlow will create a new flow start with the passed in flow and set of contacts. This will cause us to
 // request calls to start, which once we get the callback will trigger our actual flow to start.
-func TriggerIVRFlow(ctx context.Context, rt *runtime.Runtime, orgID models.OrgID, flowID models.FlowID, contactIDs []models.ContactID, hook DBHook) error {
+func TriggerIVRFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, flow *models.Flow, contactIDs []models.ContactID) error {
 	tx, err := rt.DB.BeginTxx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("error starting transaction for IVR flow start: %w", err)
 	}
 
-	start := models.NewFlowStart(orgID, models.StartTypeTrigger, flowID).WithContactIDs(contactIDs)
+	start := models.NewFlowStart(oa.OrgID(), models.StartTypeTrigger, flow.ID()).WithContactIDs(contactIDs)
 	if err := models.InsertFlowStarts(ctx, tx, []*models.FlowStart{start}); err != nil {
 		tx.Rollback()
 		return fmt.Errorf("error inserting ivr flow start: %w", err)
-	}
-
-	// call our hook if we have one
-	if hook != nil {
-		if err := hook(ctx, tx); err != nil {
-			tx.Rollback()
-			return fmt.Errorf("error while calling db hook: %w", err)
-		}
 	}
 
 	// commit our transaction
@@ -180,7 +169,7 @@ func TriggerIVRFlow(ctx context.Context, rt *runtime.Runtime, orgID models.OrgID
 	// queue this to our ivr starter, it will take care of creating the calls then calling back in
 	rc := rt.RP.Get()
 	defer rc.Close()
-	if err := tasks.Queue(rc, tasks.BatchQueue, orgID, task, true); err != nil {
+	if err := tasks.Queue(rc, tasks.BatchQueue, oa.OrgID(), task, true); err != nil {
 		return fmt.Errorf("error queuing ivr flow start: %w", err)
 	}
 

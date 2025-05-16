@@ -115,7 +115,7 @@ func (t *BulkCampaignTriggerTask) triggerFlow(ctx context.Context, rt *runtime.R
 
 	// if this is an ivr flow, we need to create a task to perform the start there
 	if flow.FlowType() == models.FlowTypeVoice {
-		err := handler.TriggerIVRFlow(ctx, rt, oa.OrgID(), flow.ID(), contactIDs, nil)
+		err := handler.TriggerIVRFlow(ctx, rt, oa, flow, contactIDs)
 		if err != nil {
 			return fmt.Errorf("error triggering ivr flow start: %w", err)
 		}

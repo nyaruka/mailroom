@@ -72,7 +72,7 @@ func (t *TicketClosedTask) Perform(ctx context.Context, rt *runtime.Runtime, oa 
 
 	// if this is an IVR flow, we need to trigger that start (which happens in a different queue)
 	if flow.FlowType() == models.FlowTypeVoice {
-		err = handler.TriggerIVRFlow(ctx, rt, oa.OrgID(), flow.ID(), []models.ContactID{mc.ID()}, nil)
+		err = handler.TriggerIVRFlow(ctx, rt, oa, flow, []models.ContactID{mc.ID()})
 		if err != nil {
 			return fmt.Errorf("error while triggering ivr flow: %w", err)
 		}
@@ -87,7 +87,7 @@ func (t *TicketClosedTask) Perform(ctx context.Context, rt *runtime.Runtime, oa 
 		Ticket(ticket, triggers.TicketEventTypeClosed).
 		Build()
 
-	_, err = runner.StartFlow(ctx, rt, oa, flow, []*models.Contact{mc}, []flows.Trigger{flowTrigger}, flow.FlowType().Interrupts(), models.NilStartID, models.NilCallID, nil, nil)
+	_, err = runner.StartFlow(ctx, rt, oa, flow, []*models.Contact{mc}, []flows.Trigger{flowTrigger}, flow.FlowType().Interrupts(), models.NilStartID, models.NilCallID, nil)
 	if err != nil {
 		return fmt.Errorf("error starting flow for contact: %w", err)
 	}
