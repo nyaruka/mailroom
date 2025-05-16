@@ -35,9 +35,6 @@ type StartOptions struct {
 	// Interrupt should be true if we want to interrupt the flows runs for any contact started in this flow
 	Interrupt bool
 
-	// CommitHook is the hook that will be called in the transaction where each session is written
-	CommitHook models.SessionCommitHook
-
 	// TriggerBuilder is the builder that will be used to build a trigger for each contact started in the flow
 	TriggerBuilder TriggerBuilder
 }
@@ -179,7 +176,7 @@ func tryToStartWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 		triggers = append(triggers, trigger)
 	}
 
-	ss, err := StartFlow(ctx, rt, oa, flow, contacts, triggers, options.Interrupt, startID, models.NilCallID, sceneInit, options.CommitHook)
+	ss, err := StartFlow(ctx, rt, oa, flow, contacts, triggers, options.Interrupt, startID, models.NilCallID, sceneInit)
 	if err != nil {
 		return nil, nil, fmt.Errorf("error starting flow for contacts: %w", err)
 	}
@@ -190,7 +187,7 @@ func tryToStartWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 // StartFlow starts the given contacts in the given flow. It's assumed that the contacts are already locked.
 func StartFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 	flow *models.Flow, contacts []*models.Contact, triggers []flows.Trigger, interrupt bool,
-	startID models.StartID, callID models.CallID, sceneInit func(*Scene), hook models.SessionCommitHook) ([]*models.Session, error) {
+	startID models.StartID, callID models.CallID, sceneInit func(*Scene)) ([]*models.Session, error) {
 
 	if len(triggers) == 0 {
 		return nil, nil
@@ -245,7 +242,7 @@ func StartFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 	}
 
 	// write our session to the db
-	dbSessions, timeouts, err := models.InsertSessions(txCTX, rt, tx, oa, sessions, sprints, contacts, hook, startID, callID)
+	dbSessions, timeouts, err := models.InsertSessions(txCTX, rt, tx, oa, sessions, sprints, contacts, startID, callID)
 	if err != nil {
 		tx.Rollback()
 		return nil, fmt.Errorf("error interrupting contacts: %w", err)
@@ -306,7 +303,7 @@ func StartFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 				}
 			}
 
-			dbSession, timeout, err := models.InsertSessions(txCTX, rt, tx, oa, []flows.Session{session}, []flows.Sprint{sprint}, []*models.Contact{contact}, hook, startID, callID)
+			dbSession, timeout, err := models.InsertSessions(txCTX, rt, tx, oa, []flows.Session{session}, []flows.Sprint{sprint}, []*models.Contact{contact}, startID, callID)
 			if err != nil {
 				tx.Rollback()
 				log.Error("error writing session to db", "error", err, "contact", session.Contact().UUID())
