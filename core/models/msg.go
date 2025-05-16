@@ -120,8 +120,11 @@ func (t *Templating) Value() (driver.Value, error) {
 }
 
 type MsgInRef struct {
-	ID    MsgID
-	ExtID string
+	ID          MsgID
+	ExtID       string
+	Attachments []utils.Attachment
+	Ticket      *Ticket
+	LogUUIDs    []clogs.UUID
 }
 
 // Msg is our type for mailroom messages
@@ -629,7 +632,17 @@ msgs_msg(uuid, text, attachments, quick_replies, locale, templating, high_priori
 RETURNING id, modified_on`
 
 // MarkMessageHandled updates a message after handling
-func MarkMessageHandled(ctx context.Context, tx DBorTx, msgID MsgID, status MsgStatus, visibility MsgVisibility, flowID FlowID, ticketID TicketID, attachments []utils.Attachment, logUUIDs []clogs.UUID) error {
+func MarkMessageHandled(ctx context.Context, tx DBorTx, msgID MsgID, status MsgStatus, visibility MsgVisibility, flow *Flow, ticket *Ticket, attachments []utils.Attachment, logUUIDs []clogs.UUID) error {
+	flowID := NilFlowID
+	if flow != nil {
+		flowID = flow.ID()
+	}
+
+	ticketID := NilTicketID
+	if ticket != nil {
+		ticketID = ticket.ID()
+	}
+
 	_, err := tx.ExecContext(ctx,
 		`UPDATE msgs_msg SET status = $2, visibility = $3, flow_id = $4, ticket_id = $5, attachments = $6, log_uuids = array_cat(log_uuids, $7) WHERE id = $1`,
 		msgID, status, visibility, flowID, ticketID, pq.Array(attachments), pq.Array(logUUIDs),

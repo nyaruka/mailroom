@@ -218,7 +218,7 @@ func RunTestCases(t *testing.T, ctx context.Context, rt *runtime.Runtime, tcs []
 				Events:  make([]flows.Event, 0, len(mods)),
 			}
 
-			scene := runner.NewSceneForContact(flowContact, tc.ModifierUser.SafeID())
+			scene := runner.NewNonFlowScene(flowContact, tc.ModifierUser.SafeID(), nil)
 
 			// apply our modifiers
 			for _, mod := range mods {
@@ -270,7 +270,7 @@ func RunFlowAndApplyEvents(t *testing.T, ctx context.Context, rt *runtime.Runtim
 	err = tx.Commit()
 	require.NoError(t, err)
 
-	scene := runner.NewSceneForSession(fs, sprint, 0, nil)
+	scene := runner.NewSessionScene(fs, sprint, 0, nil)
 
 	err = scene.AddEvents(ctx, rt, oa, sprint.Events())
 	require.NoError(t, err)

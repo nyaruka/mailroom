@@ -254,7 +254,7 @@ func StartFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 	// make scenes and add events to them
 	scenes := make([]*Scene, len(dbSessions))
 	for i, s := range dbSessions {
-		scenes[i] = NewSceneForSession(sessions[i], sprints[i], timeouts[0], sceneInit)
+		scenes[i] = NewSessionScene(sessions[i], sprints[i], timeouts[0], sceneInit)
 
 		var eventsToHandle []flows.Event
 
@@ -321,7 +321,7 @@ func StartFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 			}
 
 			eventsToHandle = append(eventsToHandle, newSprintEndedEvent(contact, false))
-			scene := NewSceneForSession(session, sprint, timeout[0], sceneInit)
+			scene := NewSessionScene(session, sprint, timeout[0], sceneInit)
 
 			if err := scene.AddEvents(ctx, rt, oa, eventsToHandle); err != nil {
 				return nil, fmt.Errorf("error applying events for session %s: %w", session.UUID(), err)
