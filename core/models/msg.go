@@ -242,9 +242,9 @@ func (m *Msg) QuickReplies() []flows.QuickReply {
 type MsgOut struct {
 	*Msg
 
-	Contact  *flows.Contact // provides contact last seen on
 	URN      *ContactURN    // provides URN identity + auth
-	Session  *Session
+	Contact  *flows.Contact // provides contact last seen on
+	Session  flows.Session
 	ReplyTo  *MsgInRef
 	IsResend bool
 

@@ -60,11 +60,13 @@ type Templating struct {
 }
 
 type Session struct {
-	UUID       flows.SessionUUID    `json:"uuid"`
-	Status     models.SessionStatus `json:"status"`
-	SprintUUID flows.SprintUUID     `json:"sprint_uuid"`
-	Timeout    int                  `json:"timeout,omitempty"`
+	UUID       flows.SessionUUID `json:"uuid"`
+	Status     string            `json:"status"`
+	SprintUUID flows.SprintUUID  `json:"sprint_uuid"`
+	Timeout    int               `json:"timeout,omitempty"`
 }
+
+var sessionStatusMap = map[flows.SessionStatus]string{flows.SessionStatusWaiting: "W", flows.SessionStatusCompleted: "C"}
 
 // Msg is the format of a message queued to courier
 type Msg struct {
@@ -168,7 +170,7 @@ func NewCourierMsg(oa *models.OrgAssets, mo *models.MsgOut, ch *models.Channel) 
 	if mo.Session != nil {
 		msg.Session = &Session{
 			UUID:       mo.Session.UUID(),
-			Status:     mo.Session.Status(),
+			Status:     sessionStatusMap[mo.Session.Status()],
 			SprintUUID: mo.SprintUUID,
 		}
 
