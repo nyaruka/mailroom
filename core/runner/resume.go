@@ -42,6 +42,21 @@ func ResumeFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, 
 		return nil, fmt.Errorf("error resuming flow: %w", err)
 	}
 
+	scene := NewSessionScene(fs, sprint, sceneInit)
+
+	var eventsToHandle []flows.Event
+
+	// if session didn't fail, we also need to include changes from sprint events
+	if fs.Status() != flows.SessionStatusFailed {
+		eventsToHandle = append(eventsToHandle, sprint.Events()...)
+	}
+
+	eventsToHandle = append(eventsToHandle, newSprintEndedEvent(contact, true))
+
+	if err := scene.AddEvents(ctx, rt, oa, eventsToHandle); err != nil {
+		return nil, fmt.Errorf("error handling events for session %s: %w", session.UUID(), err)
+	}
+
 	// write our updated session, applying any events in the process
 	txCTX, cancel := context.WithTimeout(ctx, commitTimeout)
 	defer cancel()
@@ -57,20 +72,8 @@ func ResumeFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, 
 		tx.Rollback()
 		return nil, fmt.Errorf("error updating session for resume: %w", err)
 	}
+	scene.WaitTimeout = timeout
 
-	var eventsToHandle []flows.Event
-
-	// if session didn't fail, we also need to include changes from sprint events
-	if fs.Status() != flows.SessionStatusFailed {
-		eventsToHandle = append(eventsToHandle, sprint.Events()...)
-	}
-
-	eventsToHandle = append(eventsToHandle, newSprintEndedEvent(contact, true))
-	scene := NewSessionScene(fs, sprint, timeout, sceneInit)
-
-	if err := scene.AddEvents(ctx, rt, oa, eventsToHandle); err != nil {
-		return nil, fmt.Errorf("error handling events for session %s: %w", session.UUID(), err)
-	}
 	if err := ExecutePreCommitHooks(ctx, rt, tx, oa, []*Scene{scene}); err != nil {
 		return nil, fmt.Errorf("error applying pre commit hooks: %w", err)
 	}

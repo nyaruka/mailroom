@@ -48,36 +48,35 @@ func newSprintEndedEvent(c *models.Contact, resumed bool) *SprintEndedEvent {
 
 // Scene represents the context that events are occurring in
 type Scene struct {
-	contact     *flows.Contact
-	session     flows.Session
-	sprint      flows.Sprint
-	waitTimeout time.Duration
-	userID      models.UserID
+	contact *flows.Contact
+	session flows.Session
+	sprint  flows.Sprint
+	userID  models.UserID
 
 	Call        *models.Call
 	IncomingMsg *models.MsgInRef
+	WaitTimeout time.Duration
 
 	preCommits  map[PreCommitHook][]any
 	postCommits map[PostCommitHook][]any
 }
 
 // NewSessionScene creates a new scene for the passed in session
-func NewSessionScene(session flows.Session, sprint flows.Sprint, waitTimeout time.Duration, init func(*Scene)) *Scene {
-	return newScene(session.Contact(), session, sprint, waitTimeout, models.NilUserID, init)
+func NewSessionScene(session flows.Session, sprint flows.Sprint, init func(*Scene)) *Scene {
+	return newScene(session.Contact(), session, sprint, models.NilUserID, init)
 }
 
 // NewNonFlowScene creates a new scene for non flow session event handling
 func NewNonFlowScene(contact *flows.Contact, userID models.UserID, init func(*Scene)) *Scene {
-	return newScene(contact, nil, nil, 0, userID, init)
+	return newScene(contact, nil, nil, userID, init)
 }
 
-func newScene(contact *flows.Contact, session flows.Session, sprint flows.Sprint, waitTimeout time.Duration, userID models.UserID, init func(*Scene)) *Scene {
+func newScene(contact *flows.Contact, session flows.Session, sprint flows.Sprint, userID models.UserID, init func(*Scene)) *Scene {
 	s := &Scene{
-		contact:     contact,
-		session:     session,
-		sprint:      sprint,
-		waitTimeout: waitTimeout,
-		userID:      userID,
+		contact: contact,
+		session: session,
+		sprint:  sprint,
+		userID:  userID,
 
 		preCommits:  make(map[PreCommitHook][]any),
 		postCommits: make(map[PostCommitHook][]any),
@@ -108,7 +107,6 @@ func (s *Scene) Contact() *flows.Contact        { return s.contact }
 func (s *Scene) ContactID() models.ContactID    { return models.ContactID(s.contact.ID()) }
 func (s *Scene) ContactUUID() flows.ContactUUID { return s.contact.UUID() }
 func (s *Scene) Session() flows.Session         { return s.session }
-func (s *Scene) WaitTimeout() time.Duration     { return s.waitTimeout }
 func (s *Scene) UserID() models.UserID          { return s.userID }
 
 // LocateEvent finds the flow and node UUID for an event belonging to this session

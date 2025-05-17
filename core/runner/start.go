@@ -198,25 +198,35 @@ func StartFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 	sa := oa.SessionAssets()
 
 	// for each trigger start the flow
-	sessions := make([]flows.Session, 0, len(triggers))
-	sprints := make([]flows.Sprint, 0, len(triggers))
+	sessions := make([]flows.Session, len(triggers))
+	sprints := make([]flows.Sprint, len(triggers))
+	scenes := make([]*Scene, len(triggers))
 
-	for _, trigger := range triggers {
+	for i, trigger := range triggers {
 		log := log.With("contact", trigger.Contact().UUID())
 
 		session, sprint, err := goflow.Engine(rt).NewSession(ctx, sa, trigger)
 		if err != nil {
-			log.Error("error starting flow", "error", err)
-			continue
+			return nil, fmt.Errorf("error starting flow session for contact %s: %w", trigger.Contact().UUID(), err)
 		}
 		log.Debug("new flow session")
 
-		sessions = append(sessions, session)
-		sprints = append(sprints, sprint)
-	}
+		sessions[i] = session
+		sprints[i] = sprint
+		scenes[i] = NewSessionScene(session, sprint, sceneInit)
 
-	if len(sessions) == 0 {
-		return nil, nil
+		var eventsToHandle []flows.Event
+
+		// if session didn't fail, we need to handle this sprint's events
+		if session.Status() != flows.SessionStatusFailed {
+			eventsToHandle = append(eventsToHandle, sprints[i].Events()...)
+		}
+
+		eventsToHandle = append(eventsToHandle, newSprintEndedEvent(contacts[i], false))
+
+		if err := scenes[i].AddEvents(ctx, rt, oa, eventsToHandle); err != nil {
+			return nil, fmt.Errorf("error applying events for session %s: %w", session.UUID(), err)
+		}
 	}
 
 	// we write our sessions and all their objects in a single transaction
@@ -247,25 +257,8 @@ func StartFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 		tx.Rollback()
 		return nil, fmt.Errorf("error interrupting contacts: %w", err)
 	}
-
-	// make scenes and add events to them
-	scenes := make([]*Scene, len(dbSessions))
-	for i, s := range dbSessions {
-		scenes[i] = NewSessionScene(sessions[i], sprints[i], timeouts[0], sceneInit)
-
-		var eventsToHandle []flows.Event
-
-		// if session didn't fail, we need to handle this sprint's events
-		if s.Status() != models.SessionStatusFailed {
-			eventsToHandle = append(eventsToHandle, sprints[i].Events()...)
-		}
-
-		eventsToHandle = append(eventsToHandle, newSprintEndedEvent(contacts[i], false))
-
-		if err := scenes[i].AddEvents(ctx, rt, oa, eventsToHandle); err != nil {
-			tx.Rollback()
-			return nil, fmt.Errorf("error applying events for session %s: %w", s.UUID(), err)
-		}
+	for i := range sessions {
+		scenes[i].WaitTimeout = timeouts[i]
 	}
 
 	// gather all our pre commit events, group them by hook
@@ -280,10 +273,11 @@ func StartFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 
 		tx.Rollback()
 
+		dbSessions = nil
+
 		// we failed writing our sessions in one go, try one at a time
 		for i, session := range sessions {
-			sprint := sprints[i]
-			contact := contacts[i]
+			contact, scene, sprint := contacts[i], scenes[i], sprints[i]
 
 			txCTX, cancel := context.WithTimeout(ctx, commitTimeout)
 			defer cancel()
@@ -309,20 +303,7 @@ func StartFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 				log.Error("error writing session to db", "error", err, "contact", session.Contact().UUID())
 				continue
 			}
-
-			var eventsToHandle []flows.Event
-
-			// if session didn't fail, we need to handle this sprint's events
-			if session.Status() != flows.SessionStatusFailed {
-				eventsToHandle = append(eventsToHandle, sprint.Events()...)
-			}
-
-			eventsToHandle = append(eventsToHandle, newSprintEndedEvent(contact, false))
-			scene := NewSessionScene(session, sprint, timeout[0], sceneInit)
-
-			if err := scene.AddEvents(ctx, rt, oa, eventsToHandle); err != nil {
-				return nil, fmt.Errorf("error applying events for session %s: %w", session.UUID(), err)
-			}
+			scene.WaitTimeout = timeout[0]
 
 			// gather all our pre commit events, group them by hook
 			if err := ExecutePreCommitHooks(ctx, rt, tx, oa, []*Scene{scene}); err != nil {
@@ -345,7 +326,7 @@ func StartFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 		return nil, fmt.Errorf("error processing post commit hooks: %w", err)
 	}
 
-	log.Debug("started sessions", "count", len(dbSessions), "elapsed", time.Since(start))
+	log.Debug("started sessions", "count", len(sessions), "elapsed", time.Since(start))
 
 	return dbSessions, nil
 }
