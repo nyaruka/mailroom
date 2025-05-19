@@ -1,3 +1,11 @@
+v10.1.118 (2025-05-19)
+-------------------------
+ * Rework runner.Start* functions to not take contacrt specific args
+ * Use Call.Trigger instead of Call.Start for calls triggered by incoming messages
+ * Remove support for FB topics
+ * Move things out of the start/resume tx that don't need to be there
+ * Mark messages handled via event and hook
+
 v10.1.117 (2025-05-16)
 -------------------------
  * Change MsgOut.session to be the flow session
