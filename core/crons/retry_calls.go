@@ -77,7 +77,7 @@ func (c *RetryCallsCron) Run(ctx context.Context, rt *runtime.Runtime) (map[stri
 
 		urn, _ := cu.Encode(oa)
 
-		clog, err := ivr.RequestStartForCall(ctx, rt, channel, urn, call)
+		clog, err := ivr.RequestCallStart(ctx, rt, channel, urn, call)
 		if clog != nil {
 			clogs = append(clogs, clog)
 		}

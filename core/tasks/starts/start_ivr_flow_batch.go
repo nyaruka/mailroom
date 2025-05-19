@@ -64,7 +64,7 @@ func (t *StartIVRFlowBatchTask) Perform(ctx context.Context, rt *runtime.Runtime
 	// for each contacts, request a call start
 	for _, contact := range contacts {
 		ctx, cancel := context.WithTimeout(ctx, time.Minute)
-		session, err := ivr.RequestCall(ctx, rt, oa, t.FlowStartBatch, contact)
+		session, err := ivr.RequestCallWithStart(ctx, rt, oa, t.FlowStartBatch, contact)
 		cancel()
 		if err != nil {
 			slog.Error(fmt.Sprintf("error starting ivr flow for contact: %d and flow: %d", contact.ID(), start.FlowID), "error", err)

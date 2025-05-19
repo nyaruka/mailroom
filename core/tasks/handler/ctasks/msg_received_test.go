@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
+	"github.com/nyaruka/mailroom/core/ivr"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/tasks"
 	"github.com/nyaruka/mailroom/core/tasks/handler"
@@ -21,6 +22,8 @@ func TestMsgReceivedTask(t *testing.T) {
 	defer rc.Close()
 
 	defer testsuite.Reset(testsuite.ResetAll)
+
+	ivr.RegisterServiceType(models.ChannelType("T"), testsuite.NewIVRServiceFactory)
 
 	// create a disabled channel
 	disabled := testdata.InsertChannel(rt, testdata.Org1, "TG", "Deleted", "1234567", []string{"telegram"}, "SR", map[string]any{})
@@ -368,15 +371,6 @@ func TestMsgReceivedTask(t *testing.T) {
 		last = time.Now()
 	}
 
-	// should have one remaining IVR task to handle for Bob
-	orgTasks := testsuite.CurrentTasks(t, rt, "batch")
-	assert.Equal(t, 1, len(orgTasks[testdata.Org1.ID]))
-
-	task, err := tasks.BatchQueue.Pop(rc)
-	assert.NoError(t, err)
-	assert.NotNil(t, task)
-	assert.Equal(t, "start_ivr_flow_batch", task.Type)
-
 	// check messages queued to courier
 	testsuite.AssertCourierQueues(t, map[string][]int{
 		fmt.Sprintf("msgs:%s|10/1", testdata.FacebookChannel.UUID): {1, 1, 1, 1, 1, 1},
@@ -392,14 +386,14 @@ func TestMsgReceivedTask(t *testing.T) {
 
 	// should get requeued three times automatically
 	for i := 0; i < 3; i++ {
-		task, _ = tasks.HandlerQueue.Pop(rc)
+		task, _ := tasks.HandlerQueue.Pop(rc)
 		assert.NotNil(t, task)
 		err := tasks.Perform(ctx, rt, task)
 		assert.NoError(t, err)
 	}
 
 	// on third error, no new task
-	task, err = tasks.HandlerQueue.Pop(rc)
+	task, err := tasks.HandlerQueue.Pop(rc)
 	assert.NoError(t, err)
 	assert.Nil(t, task)
 

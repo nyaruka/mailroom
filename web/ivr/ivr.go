@@ -243,7 +243,7 @@ func handleCallback(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 	// if this a start, start our contact
 	switch request.Action {
 	case actionStart:
-		err = ivr.StartIVRFlow(ctx, rt, svc, resumeURL, oa, ch, call, contact, urn, call.StartID(), r, w)
+		err = ivr.StartIVRFlow(ctx, rt, svc, resumeURL, oa, ch, call, contact, urn, r, w)
 	case actionResume:
 		err = ivr.ResumeIVRFlow(ctx, rt, resumeURL, svc, oa, ch, call, contact, urn, r, w)
 	case actionStatus:
