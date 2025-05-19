@@ -8,12 +8,10 @@ import (
 	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/gocommon/i18n"
-	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/excellent/types"
 	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/goflow/test"
 	"github.com/nyaruka/goflow/utils"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/testsuite"
@@ -39,7 +37,6 @@ func TestNewOutgoingFlowMsg(t *testing.T) {
 		Content      *flows.MsgContent
 		Templating   *flows.MsgTemplating
 		Locale       i18n.Locale
-		Topic        flows.MsgTopic
 		Unsendable   flows.UnsendableReason
 		Flow         *testdata.Flow
 		ResponseTo   *models.MsgInRef
@@ -47,7 +44,6 @@ func TestNewOutgoingFlowMsg(t *testing.T) {
 
 		ExpectedStatus       models.MsgStatus
 		ExpectedFailedReason models.MsgFailedReason
-		ExpectedMetadata     string
 		ExpectedMsgCount     int
 		ExpectedPriority     bool
 	}{
@@ -61,7 +57,6 @@ func TestNewOutgoingFlowMsg(t *testing.T) {
 			ResponseTo:           &models.MsgInRef{ID: 123425},
 			ExpectedStatus:       models.MsgStatusQueued,
 			ExpectedFailedReason: models.NilMsgFailedReason,
-			ExpectedMetadata:     `{}`,
 			ExpectedMsgCount:     1,
 			ExpectedPriority:     true,
 		},
@@ -83,11 +78,9 @@ func TestNewOutgoingFlowMsg(t *testing.T) {
 				[]*flows.TemplatingVariable{{Type: "text", Value: "name"}},
 			),
 			Locale:               "eng-US",
-			Topic:                flows.MsgTopicPurchase,
 			Flow:                 testdata.SingleMessage,
 			ExpectedStatus:       models.MsgStatusQueued,
 			ExpectedFailedReason: models.NilMsgFailedReason,
-			ExpectedMetadata:     `{"topic": "purchase"}`,
 			ExpectedMsgCount:     1,
 			ExpectedPriority:     false,
 		},
@@ -100,7 +93,6 @@ func TestNewOutgoingFlowMsg(t *testing.T) {
 			Flow:                 testdata.Favorites,
 			ExpectedStatus:       models.MsgStatusQueued,
 			ExpectedFailedReason: models.NilMsgFailedReason,
-			ExpectedMetadata:     `{}`,
 			ExpectedMsgCount:     2,
 			ExpectedPriority:     false,
 		},
@@ -114,7 +106,6 @@ func TestNewOutgoingFlowMsg(t *testing.T) {
 			SuspendedOrg:         true,
 			ExpectedStatus:       models.MsgStatusFailed,
 			ExpectedFailedReason: models.MsgFailedSuspended,
-			ExpectedMetadata:     `{}`,
 			ExpectedMsgCount:     1,
 			ExpectedPriority:     false,
 		},
@@ -128,7 +119,6 @@ func TestNewOutgoingFlowMsg(t *testing.T) {
 			Flow:                 testdata.Favorites,
 			ExpectedStatus:       models.MsgStatusFailed,
 			ExpectedFailedReason: models.MsgFailedNoDestination,
-			ExpectedMetadata:     `{}`,
 			ExpectedMsgCount:     1,
 			ExpectedPriority:     false,
 		},
@@ -142,7 +132,6 @@ func TestNewOutgoingFlowMsg(t *testing.T) {
 			Flow:                 testdata.Favorites,
 			ExpectedStatus:       models.MsgStatusFailed,
 			ExpectedFailedReason: models.MsgFailedContact,
-			ExpectedMetadata:     `{}`,
 			ExpectedMsgCount:     1,
 			ExpectedPriority:     false,
 		},
@@ -169,7 +158,7 @@ func TestNewOutgoingFlowMsg(t *testing.T) {
 		require.NoError(t, err)
 
 		_, fc, _ := tc.Contact.Load(rt, oa)
-		flowMsg := flows.NewMsgOut(tc.URN, chRef, tc.Content, tc.Templating, tc.Topic, tc.Locale, tc.Unsendable)
+		flowMsg := flows.NewMsgOut(tc.URN, chRef, tc.Content, tc.Templating, tc.Locale, tc.Unsendable)
 		msg, err := models.NewOutgoingFlowMsg(rt, oa.Org(), ch, fc, flow, flowMsg, tc.ResponseTo, dates.Now())
 
 		assert.NoError(t, err)
@@ -206,7 +195,6 @@ func TestNewOutgoingFlowMsg(t *testing.T) {
 		assert.Equal(t, tc.ExpectedStatus, msg.Status(), "%d: status mismatch", i)
 		assert.Equal(t, tc.ExpectedFailedReason, msg.FailedReason(), "%d: failed reason mismatch", i)
 		assert.Equal(t, tc.ExpectedMsgCount, msg.MsgCount(), "%d: msg count mismatch", i)
-		test.AssertEqualJSON(t, []byte(tc.ExpectedMetadata), jsonx.MustMarshal(msg.Metadata()), "%d: metadata mismatch", i)
 		assert.True(t, msg.ID() > 0)
 		assert.True(t, msg.CreatedOn().After(now))
 		assert.True(t, msg.ModifiedOn().After(now))
@@ -232,7 +220,7 @@ func TestNewOutgoingFlowMsg(t *testing.T) {
 	// check that msg loop detection triggers after 20 repeats of the same text
 	newOutgoing := func(text string) *models.MsgOut {
 		content := &flows.MsgContent{Text: text}
-		flowMsg := flows.NewMsgOut(urns.URN(fmt.Sprintf("tel:+250700000001?id=%d", testdata.Cathy.URNID)), assets.NewChannelReference(testdata.TwilioChannel.UUID, "Twilio"), content, nil, flows.NilMsgTopic, i18n.NilLocale, flows.NilUnsendableReason)
+		flowMsg := flows.NewMsgOut(urns.URN(fmt.Sprintf("tel:+250700000001?id=%d", testdata.Cathy.URNID)), assets.NewChannelReference(testdata.TwilioChannel.UUID, "Twilio"), content, nil, i18n.NilLocale, flows.NilUnsendableReason)
 		msg, err := models.NewOutgoingFlowMsg(rt, oa.Org(), channel, fc, flow, flowMsg, nil, dates.Now())
 		require.NoError(t, err)
 		return msg
@@ -402,10 +390,10 @@ func TestGetMsgRepetitions(t *testing.T) {
 	_, cathy, _ := testdata.Cathy.Load(rt, oa)
 	_, george, _ := testdata.George.Load(rt, oa)
 
-	msg1 := flows.NewMsgOut(testdata.Cathy.URN, nil, &flows.MsgContent{Text: "foo"}, nil, flows.NilMsgTopic, i18n.NilLocale, flows.NilUnsendableReason)
-	msg2 := flows.NewMsgOut(testdata.Cathy.URN, nil, &flows.MsgContent{Text: "FOO"}, nil, flows.NilMsgTopic, i18n.NilLocale, flows.NilUnsendableReason)
-	msg3 := flows.NewMsgOut(testdata.Cathy.URN, nil, &flows.MsgContent{Text: "bar"}, nil, flows.NilMsgTopic, i18n.NilLocale, flows.NilUnsendableReason)
-	msg4 := flows.NewMsgOut(testdata.George.URN, nil, &flows.MsgContent{Text: "foo"}, nil, flows.NilMsgTopic, i18n.NilLocale, flows.NilUnsendableReason)
+	msg1 := flows.NewMsgOut(testdata.Cathy.URN, nil, &flows.MsgContent{Text: "foo"}, nil, i18n.NilLocale, flows.NilUnsendableReason)
+	msg2 := flows.NewMsgOut(testdata.Cathy.URN, nil, &flows.MsgContent{Text: "FOO"}, nil, i18n.NilLocale, flows.NilUnsendableReason)
+	msg3 := flows.NewMsgOut(testdata.Cathy.URN, nil, &flows.MsgContent{Text: "bar"}, nil, i18n.NilLocale, flows.NilUnsendableReason)
+	msg4 := flows.NewMsgOut(testdata.George.URN, nil, &flows.MsgContent{Text: "foo"}, nil, i18n.NilLocale, flows.NilUnsendableReason)
 
 	assertRepetitions := func(contact *flows.Contact, m *flows.MsgOut, expected int) {
 		count, err := models.GetMsgRepetitions(rt.RP, contact, m)
@@ -614,12 +602,12 @@ func TestMsgTemplating(t *testing.T) {
 	)
 
 	// create a message with templating
-	out1 := flows.NewMsgOut(testdata.Cathy.URN, chRef, &flows.MsgContent{Text: "Hello"}, templating1, flows.NilMsgTopic, i18n.NilLocale, flows.NilUnsendableReason)
+	out1 := flows.NewMsgOut(testdata.Cathy.URN, chRef, &flows.MsgContent{Text: "Hello"}, templating1, i18n.NilLocale, flows.NilUnsendableReason)
 	msg1, err := models.NewOutgoingFlowMsg(rt, oa.Org(), channel, fc, flow, out1, nil, dates.Now())
 	require.NoError(t, err)
 
 	// create a message without templating
-	out2 := flows.NewMsgOut(testdata.Cathy.URN, chRef, &flows.MsgContent{Text: "Hello"}, nil, flows.NilMsgTopic, i18n.NilLocale, flows.NilUnsendableReason)
+	out2 := flows.NewMsgOut(testdata.Cathy.URN, chRef, &flows.MsgContent{Text: "Hello"}, nil, i18n.NilLocale, flows.NilUnsendableReason)
 	msg2, err := models.NewOutgoingFlowMsg(rt, oa.Org(), channel, fc, flow, out2, nil, dates.Now())
 	require.NoError(t, err)
 
