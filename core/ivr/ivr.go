@@ -181,6 +181,7 @@ func RequestCall(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 
 	// clear contact on trigger as we'll set it when call starts to ensure we have the latest changes
 	trigger.SetContact(nil)
+	trigger.SetCall(flows.NewCall(callChannel.Reference(), urn.URN().Identity()))
 
 	channel := callChannel.Asset().(*models.Channel)
 	call := models.NewOutgoingCall(oa.OrgID(), channel, contact, models.URNID(urnID), trigger)
