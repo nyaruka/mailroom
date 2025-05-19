@@ -176,7 +176,7 @@ func tryToStartWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 		triggers = append(triggers, trigger)
 	}
 
-	ss, err := StartFlow(ctx, rt, oa, flow, contacts, triggers, options.Interrupt, startID, models.NilCallID, sceneInit)
+	ss, err := StartFlow(ctx, rt, oa, flow, contacts, triggers, options.Interrupt, startID, sceneInit)
 	if err != nil {
 		return nil, nil, fmt.Errorf("error starting flow for contacts: %w", err)
 	}
@@ -185,10 +185,7 @@ func tryToStartWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 }
 
 // StartFlow starts the given contacts in the given flow. It's assumed that the contacts are already locked.
-func StartFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
-	flow *models.Flow, contacts []*models.Contact, triggers []flows.Trigger, interrupt bool,
-	startID models.StartID, callID models.CallID, sceneInit func(*Scene)) ([]*models.Session, error) {
-
+func StartFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, flow *models.Flow, contacts []*models.Contact, triggers []flows.Trigger, interrupt bool, startID models.StartID, sceneInit func(*Scene)) ([]*models.Session, error) {
 	if len(triggers) == 0 {
 		return nil, nil
 	}
@@ -251,8 +248,15 @@ func StartFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 		}
 	}
 
+	callIDs := make([]models.CallID, len(triggers))
+	for i, s := range scenes {
+		if s.Call != nil {
+			callIDs[i] = s.Call.ID()
+		}
+	}
+
 	// write our session to the db
-	dbSessions, timeouts, err := models.InsertSessions(txCTX, rt, tx, oa, sessions, sprints, contacts, startID, callID)
+	dbSessions, timeouts, err := models.InsertSessions(txCTX, rt, tx, oa, sessions, sprints, contacts, callIDs, startID)
 	if err != nil {
 		tx.Rollback()
 		return nil, fmt.Errorf("error interrupting contacts: %w", err)
@@ -277,7 +281,7 @@ func StartFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 
 		// we failed writing our sessions in one go, try one at a time
 		for i, session := range sessions {
-			contact, scene, sprint := contacts[i], scenes[i], sprints[i]
+			contact, scene, sprint, callID := contacts[i], scenes[i], sprints[i], callIDs[i]
 
 			txCTX, cancel := context.WithTimeout(ctx, commitTimeout)
 			defer cancel()
@@ -297,7 +301,7 @@ func StartFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 				}
 			}
 
-			dbSession, timeout, err := models.InsertSessions(txCTX, rt, tx, oa, []flows.Session{session}, []flows.Sprint{sprint}, []*models.Contact{contact}, startID, callID)
+			dbSession, timeout, err := models.InsertSessions(txCTX, rt, tx, oa, []flows.Session{session}, []flows.Sprint{sprint}, []*models.Contact{contact}, []models.CallID{callID}, startID)
 			if err != nil {
 				tx.Rollback()
 				log.Error("error writing session to db", "error", err, "contact", session.Contact().UUID())

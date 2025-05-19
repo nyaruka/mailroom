@@ -195,7 +195,7 @@ func (t *MsgReceivedTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *
 				return t.markMsgHandled(ctx, rt.DB, flow, attachments, ticket, logUUIDs)
 			}
 
-			_, err = runner.StartFlow(ctx, rt, oa, flow, []*models.Contact{mc}, []flows.Trigger{trigger}, flow.FlowType().Interrupts(), models.NilStartID, models.NilCallID, sceneInit)
+			_, err = runner.StartFlow(ctx, rt, oa, flow, []*models.Contact{mc}, []flows.Trigger{trigger}, flow.FlowType().Interrupts(), models.NilStartID, sceneInit)
 			if err != nil {
 				return fmt.Errorf("error starting flow for contact: %w", err)
 			}
