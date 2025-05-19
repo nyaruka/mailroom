@@ -94,37 +94,36 @@ func (c *Call) ErrorReason() CallError         { return CallError(c.c.ErrorReaso
 func (c *Call) ErrorCount() int                { return c.c.ErrorCount }
 func (c *Call) NextAttempt() *time.Time        { return c.c.NextAttempt }
 
-const sqlInsertCall = `
-INSERT INTO ivr_call
-(
-	created_on,
-	modified_on,
-	external_id,
-	status,
-	direction,
-	duration,
-	org_id,
-	channel_id,
-	contact_id,
-	contact_urn_id,
-	error_count
-)
-VALUES(
-	NOW(),
-	NOW(),
-	:external_id,
-	:status,
-	:direction,
-	0,
-	:org_id,
-	:channel_id,
-	:contact_id,
-	:contact_urn_id,
-	0
-)
-RETURNING id, NOW();`
+// NewIncomingCall creates a new incoming IVR call
+func NewIncomingCall(orgID OrgID, ch *Channel, contact *Contact, urnID URNID, externalID string) *Call {
+	call := &Call{}
+	c := &call.c
+	c.OrgID = orgID
+	c.ChannelID = ch.ID()
+	c.ContactID = contact.ID()
+	c.ContactURNID = urnID
+	c.Direction = CallDirectionIn
+	c.Status = CallStatusInProgress
+	c.ExternalID = externalID
+	return call
+}
 
-// InsertCall creates a new IVR call for the passed in org, channel and contact, inserting it
+const sqlInsertCall = `
+INSERT INTO ivr_call( org_id,  contact_id,  contact_urn_id, created_on, modified_on,  external_id,  status,  direction, duration,  channel_id, error_count)
+              VALUES(:org_id, :contact_id, :contact_urn_id, NOW(),      NOW(),       :external_id, :status, :direction, 0,        :channel_id, 0)
+  RETURNING id, created_on, modified_on;`
+
+// InsertCalls creates a new IVR call for the passed in org, channel and contact, inserting it
+func InsertCalls(ctx context.Context, db DBorTx, calls []*Call) error {
+	is := make([]any, len(calls))
+	for i, c := range calls {
+		is[i] = &c.c
+	}
+
+	return BulkQueryBatches(ctx, "inserted IVR calls", db, sqlInsertCall, 1000, is)
+}
+
+// TODO replace with NewOutgoingCall and InsertCalls
 func InsertCall(ctx context.Context, db *sqlx.DB, orgID OrgID, channelID ChannelID, startID StartID, contactID ContactID, urnID URNID, direction CallDirection, status CallStatus, externalID string) (*Call, error) {
 	call := &Call{}
 	c := &call.c
@@ -145,8 +144,7 @@ func InsertCall(ctx context.Context, db *sqlx.DB, orgID OrgID, channelID Channel
 
 	rows.Next()
 
-	now := time.Now()
-	err = rows.Scan(&c.ID, &now)
+	err = rows.Scan(&c.ID, &c.CreatedOn, &c.ModifiedOn)
 	if err != nil {
 		return nil, fmt.Errorf("unable to scan id for new call: %w", err)
 	}
@@ -162,10 +160,6 @@ func InsertCall(ctx context.Context, db *sqlx.DB, orgID OrgID, channelID Channel
 			return nil, fmt.Errorf("unable to add start association for call: %w", err)
 		}
 	}
-
-	// set our created and modified the same as the DB
-	c.CreatedOn = now
-	c.ModifiedOn = now
 
 	return call, nil
 }
