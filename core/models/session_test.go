@@ -41,7 +41,7 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 
 	tx := rt.DB.MustBegin()
 
-	modelSessions, timeouts, err := models.InsertSessions(ctx, rt, tx, oa, []flows.Session{flowSession}, []flows.Sprint{sprint1}, []*models.Contact{modelContact}, models.NilStartID, models.NilCallID)
+	modelSessions, timeouts, err := models.InsertSessions(ctx, rt, tx, oa, []flows.Session{flowSession}, []flows.Sprint{sprint1}, []*models.Contact{modelContact}, []models.CallID{models.NilCallID}, models.NilStartID)
 	require.NoError(t, err)
 
 	require.NoError(t, tx.Commit())
@@ -137,7 +137,7 @@ func TestSingleSprintSession(t *testing.T) {
 
 	tx := rt.DB.MustBegin()
 
-	modelSessions, timeouts, err := models.InsertSessions(ctx, rt, tx, oa, []flows.Session{flowSession}, []flows.Sprint{sprint1}, []*models.Contact{modelContact}, models.NilStartID, models.NilCallID)
+	modelSessions, timeouts, err := models.InsertSessions(ctx, rt, tx, oa, []flows.Session{flowSession}, []flows.Sprint{sprint1}, []*models.Contact{modelContact}, []models.CallID{models.NilCallID}, models.NilStartID)
 	require.NoError(t, err)
 
 	require.NoError(t, tx.Commit())
@@ -185,7 +185,7 @@ func TestSessionWithSubflows(t *testing.T) {
 
 	tx := rt.DB.MustBegin()
 
-	modelSessions, timeouts, err := models.InsertSessions(ctx, rt, tx, oa, []flows.Session{flowSession}, []flows.Sprint{sprint1}, []*models.Contact{modelContact}, startID, models.NilCallID)
+	modelSessions, timeouts, err := models.InsertSessions(ctx, rt, tx, oa, []flows.Session{flowSession}, []flows.Sprint{sprint1}, []*models.Contact{modelContact}, []models.CallID{models.NilCallID}, startID)
 	require.NoError(t, err)
 
 	require.NoError(t, tx.Commit())
@@ -260,7 +260,7 @@ func TestSessionFailedStart(t *testing.T) {
 
 	tx := rt.DB.MustBegin()
 
-	modelSessions, timeouts, err := models.InsertSessions(ctx, rt, tx, oa, []flows.Session{flowSession}, []flows.Sprint{sprint1}, []*models.Contact{modelContact}, models.NilStartID, models.NilCallID)
+	modelSessions, timeouts, err := models.InsertSessions(ctx, rt, tx, oa, []flows.Session{flowSession}, []flows.Sprint{sprint1}, []*models.Contact{modelContact}, []models.CallID{models.NilCallID}, models.NilStartID)
 	require.NoError(t, err)
 
 	require.NoError(t, tx.Commit())

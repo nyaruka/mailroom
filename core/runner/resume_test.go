@@ -32,7 +32,7 @@ func TestResume(t *testing.T) {
 	modelContact, flowContact, _ := testdata.Cathy.Load(rt, oa)
 
 	trigger := triggers.NewBuilder(oa.Env(), flow.Reference(), flowContact).Manual().Build()
-	sessions, err := runner.StartFlow(ctx, rt, oa, flow, []*models.Contact{modelContact}, []flows.Trigger{trigger}, true, models.NilStartID, models.NilCallID, nil)
+	sessions, err := runner.StartSessions(ctx, rt, oa, []*models.Contact{modelContact}, []flows.Trigger{trigger}, true, models.NilStartID, nil)
 	assert.NoError(t, err)
 	assert.NotNil(t, sessions)
 

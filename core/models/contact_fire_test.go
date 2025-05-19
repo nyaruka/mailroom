@@ -78,7 +78,7 @@ func TestSessionContactFires(t *testing.T) {
 
 	tx := rt.DB.MustBegin()
 
-	modelSessions, timeouts, err := models.InsertSessions(ctx, rt, tx, oa, []flows.Session{flowSession1, flowSession2}, []flows.Sprint{sprint1, sprint2}, []*models.Contact{modelContact1, modelContact2}, models.NilStartID, models.NilCallID)
+	modelSessions, timeouts, err := models.InsertSessions(ctx, rt, tx, oa, []flows.Session{flowSession1, flowSession2}, []flows.Sprint{sprint1, sprint2}, []*models.Contact{modelContact1, modelContact2}, []models.CallID{models.NilCallID, models.NilCallID}, models.NilStartID)
 	require.NoError(t, err)
 	require.NoError(t, tx.Commit())
 	assert.Len(t, modelSessions, 2)

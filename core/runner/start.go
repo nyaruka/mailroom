@@ -39,7 +39,7 @@ type StartOptions struct {
 	TriggerBuilder TriggerBuilder
 }
 
-// StartFlowBatch starts the flow for the passed in org, contacts and flow
+// StartFlowBatch starts the given flow start batch
 func StartFlowBatch(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, start *models.FlowStart, batch *models.FlowStartBatch) ([]*models.Session, error) {
 	// try to load our flow
 	flow, err := oa.FlowByID(start.FlowID)
@@ -104,7 +104,7 @@ func StartFlowBatch(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 		TriggerBuilder: triggerBuilder,
 	}
 
-	sessions, err := StartFlowWithLock(ctx, rt, oa, flow, batch.ContactIDs, options, batch.StartID, nil)
+	sessions, err := StartWithLock(ctx, rt, oa, batch.ContactIDs, options, batch.StartID, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error starting flow batch: %w", err)
 	}
@@ -112,8 +112,8 @@ func StartFlowBatch(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 	return sessions, nil
 }
 
-// StartFlowWithLock starts the given contacts in the given flow after obtaining locks for them.
-func StartFlowWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, flow *models.Flow, contactIDs []models.ContactID, options *StartOptions, startID models.StartID, sceneInit func(*Scene)) ([]*models.Session, error) {
+// StartWithLock starts the given contacts in flow sessions after obtaining locks for them.
+func StartWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contactIDs []models.ContactID, options *StartOptions, startID models.StartID, sceneInit func(*Scene)) ([]*models.Session, error) {
 	if len(contactIDs) == 0 {
 		return nil, nil
 	}
@@ -130,7 +130,7 @@ func StartFlowWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 			return sessions, ctx.Err()
 		}
 
-		ss, skipped, err := tryToStartWithLock(ctx, rt, oa, flow, remaining, options, startID, sceneInit)
+		ss, skipped, err := tryToStartWithLock(ctx, rt, oa, remaining, options, startID, sceneInit)
 		if err != nil {
 			return nil, err
 		}
@@ -148,7 +148,7 @@ func StartFlowWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 
 // tries to start the given contacts, returning sessions for those we could, and the ids that were skipped because we
 // couldn't get their locks
-func tryToStartWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, flow *models.Flow, ids []models.ContactID, options *StartOptions, startID models.StartID, sceneInit func(*Scene)) ([]*models.Session, []models.ContactID, error) {
+func tryToStartWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, ids []models.ContactID, options *StartOptions, startID models.StartID, sceneInit func(*Scene)) ([]*models.Session, []models.ContactID, error) {
 	// try to get locks for these contacts, waiting for up to a second for each contact
 	locks, skipped, err := models.LockContacts(ctx, rt, oa.OrgID(), ids, time.Second)
 	if err != nil {
@@ -176,7 +176,7 @@ func tryToStartWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 		triggers = append(triggers, trigger)
 	}
 
-	ss, err := StartFlow(ctx, rt, oa, flow, contacts, triggers, options.Interrupt, startID, models.NilCallID, sceneInit)
+	ss, err := StartSessions(ctx, rt, oa, contacts, triggers, options.Interrupt, startID, sceneInit)
 	if err != nil {
 		return nil, nil, fmt.Errorf("error starting flow for contacts: %w", err)
 	}
@@ -184,17 +184,13 @@ func tryToStartWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 	return ss, skipped, nil
 }
 
-// StartFlow starts the given contacts in the given flow. It's assumed that the contacts are already locked.
-func StartFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
-	flow *models.Flow, contacts []*models.Contact, triggers []flows.Trigger, interrupt bool,
-	startID models.StartID, callID models.CallID, sceneInit func(*Scene)) ([]*models.Session, error) {
-
+// StartSessions starts the given contacts in flow sessions. It's assumed that the contacts are already locked.
+func StartSessions(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contacts []*models.Contact, triggers []flows.Trigger, interrupt bool, startID models.StartID, sceneInit func(*Scene)) ([]*models.Session, error) {
 	if len(triggers) == 0 {
 		return nil, nil
 	}
 
 	start := time.Now()
-	log := slog.With(slog.Group("flow", "uuid", flow.UUID, "name", flow.Name))
 	sa := oa.SessionAssets()
 
 	// for each trigger start the flow
@@ -203,13 +199,10 @@ func StartFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 	scenes := make([]*Scene, len(triggers))
 
 	for i, trigger := range triggers {
-		log := log.With("contact", trigger.Contact().UUID())
-
 		session, sprint, err := goflow.Engine(rt).NewSession(ctx, sa, trigger)
 		if err != nil {
-			return nil, fmt.Errorf("error starting flow session for contact %s: %w", trigger.Contact().UUID(), err)
+			return nil, fmt.Errorf("error starting contact %s in flow %s: %w", trigger.Contact().UUID(), trigger.Flow().UUID, err)
 		}
-		log.Debug("new flow session")
 
 		sessions[i] = session
 		sprints[i] = sprint
@@ -251,8 +244,15 @@ func StartFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 		}
 	}
 
+	callIDs := make([]models.CallID, len(triggers))
+	for i, s := range scenes {
+		if s.Call != nil {
+			callIDs[i] = s.Call.ID()
+		}
+	}
+
 	// write our session to the db
-	dbSessions, timeouts, err := models.InsertSessions(txCTX, rt, tx, oa, sessions, sprints, contacts, startID, callID)
+	dbSessions, timeouts, err := models.InsertSessions(txCTX, rt, tx, oa, sessions, sprints, contacts, callIDs, startID)
 	if err != nil {
 		tx.Rollback()
 		return nil, fmt.Errorf("error interrupting contacts: %w", err)
@@ -277,7 +277,7 @@ func StartFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 
 		// we failed writing our sessions in one go, try one at a time
 		for i, session := range sessions {
-			contact, scene, sprint := contacts[i], scenes[i], sprints[i]
+			contact, scene, sprint, callID := contacts[i], scenes[i], sprints[i], callIDs[i]
 
 			txCTX, cancel := context.WithTimeout(ctx, commitTimeout)
 			defer cancel()
@@ -292,15 +292,15 @@ func StartFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 				err = models.InterruptSessionsForContactsTx(txCTX, tx, []models.ContactID{models.ContactID(session.Contact().ID())})
 				if err != nil {
 					tx.Rollback()
-					log.Error("error interrupting contact", "error", err, "contact", session.Contact().UUID())
+					slog.Error("error interrupting contact", "error", err, "contact", session.Contact().UUID())
 					continue
 				}
 			}
 
-			dbSession, timeout, err := models.InsertSessions(txCTX, rt, tx, oa, []flows.Session{session}, []flows.Sprint{sprint}, []*models.Contact{contact}, startID, callID)
+			dbSession, timeout, err := models.InsertSessions(txCTX, rt, tx, oa, []flows.Session{session}, []flows.Sprint{sprint}, []*models.Contact{contact}, []models.CallID{callID}, startID)
 			if err != nil {
 				tx.Rollback()
-				log.Error("error writing session to db", "error", err, "contact", session.Contact().UUID())
+				slog.Error("error writing session to db", "error", err, "contact", session.Contact().UUID())
 				continue
 			}
 			scene.WaitTimeout = timeout[0]
@@ -312,7 +312,7 @@ func StartFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 
 			if err := tx.Commit(); err != nil {
 				tx.Rollback()
-				log.Error("error committing session to db", "error", err, "contact", session.Contact().UUID())
+				slog.Error("error committing session to db", "error", err, "contact", session.Contact().UUID())
 				continue
 			}
 
@@ -326,7 +326,7 @@ func StartFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 		return nil, fmt.Errorf("error processing post commit hooks: %w", err)
 	}
 
-	log.Debug("started sessions", "count", len(sessions), "elapsed", time.Since(start))
+	slog.Debug("started sessions", "count", len(sessions), "elapsed", time.Since(start))
 
 	return dbSessions, nil
 }

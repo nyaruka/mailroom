@@ -177,9 +177,6 @@ func RunTestCases(t *testing.T, ctx context.Context, rt *runtime.Runtime, tcs []
 		oa, err = oa.CloneForSimulation(ctx, rt, map[assets.FlowUUID]json.RawMessage{flowUUID: flowDef}, nil)
 		assert.NoError(t, err)
 
-		flow, err := oa.FlowByUUID(flowUUID)
-		require.NoError(t, err)
-
 		options := &runner.StartOptions{
 			Interrupt: true,
 			TriggerBuilder: func(contact *flows.Contact) flows.Trigger {
@@ -198,7 +195,7 @@ func RunTestCases(t *testing.T, ctx context.Context, rt *runtime.Runtime, tcs []
 				}
 			}
 
-			_, err := runner.StartFlowWithLock(ctx, rt, oa, flow.(*models.Flow), []models.ContactID{c.ID}, options, models.NilStartID, sceneInit)
+			_, err := runner.StartWithLock(ctx, rt, oa, []models.ContactID{c.ID}, options, models.NilStartID, sceneInit)
 			require.NoError(t, err)
 		}
 

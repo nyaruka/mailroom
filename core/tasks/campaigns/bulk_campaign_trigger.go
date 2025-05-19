@@ -131,7 +131,7 @@ func (t *BulkCampaignTriggerTask) triggerFlow(ctx context.Context, rt *runtime.R
 		},
 	}
 
-	_, err = runner.StartFlowWithLock(ctx, rt, oa, flow, contactIDs, options, models.NilStartID, nil)
+	_, err = runner.StartWithLock(ctx, rt, oa, contactIDs, options, models.NilStartID, nil)
 	if err != nil {
 		return fmt.Errorf("error starting flow for campaign event #%d: %w", ce.ID, err)
 	}
