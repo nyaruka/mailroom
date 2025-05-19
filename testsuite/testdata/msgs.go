@@ -86,7 +86,7 @@ func insertOutgoingMsg(rt *runtime.Runtime, org *Org, channel *Channel, contact 
 		sentOn = &t
 	}
 
-	fm := flows.NewMsgOut(contact.URN, channelRef, &flows.MsgContent{text, attachments, nil}, nil, flows.NilMsgTopic, i18n.NilLocale, flows.NilUnsendableReason)
+	fm := flows.NewMsgOut(contact.URN, channelRef, &flows.MsgContent{text, attachments, nil}, nil, i18n.NilLocale, flows.NilUnsendableReason)
 
 	var id models.MsgID
 	must(rt.DB.Get(&id,

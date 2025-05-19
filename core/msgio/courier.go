@@ -87,7 +87,6 @@ type Msg struct {
 	ContactURNID         models.URNID       `json:"contact_urn_id"`
 	URN                  urns.URN           `json:"urn"`
 	URNAuth              string             `json:"urn_auth,omitempty"`
-	Metadata             map[string]any     `json:"metadata,omitempty"`
 	Flow                 *FlowRef           `json:"flow,omitempty"`
 	UserID               models.UserID      `json:"user_id,omitempty"`
 	OptIn                *OptInRef          `json:"optin,omitempty"`
@@ -117,7 +116,6 @@ func NewCourierMsg(oa *models.OrgAssets, mo *models.MsgOut, ch *models.Channel) 
 		UserID:       mo.CreatedByID(),
 		URN:          mo.URN.Identity,
 		URNAuth:      string(mo.URN.AuthTokens["default"]),
-		Metadata:     mo.Metadata(),
 		IsResend:     mo.IsResend,
 	}
 

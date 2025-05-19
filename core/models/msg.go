@@ -158,7 +158,6 @@ type Msg struct {
 		CreatedOn    time.Time     `db:"created_on"`
 		ModifiedOn   time.Time     `db:"modified_on"`
 		ExternalID   null.String   `db:"external_id"`
-		Metadata     null.Map[any] `db:"metadata"`
 		ChannelID    ChannelID     `db:"channel_id"`
 		ContactID    ContactID     `db:"contact_id"`
 		ContactURNID URNID         `db:"contact_urn_id"`
@@ -193,7 +192,6 @@ func (m *Msg) ErrorCount() int               { return m.m.ErrorCount }
 func (m *Msg) NextAttempt() *time.Time       { return m.m.NextAttempt }
 func (m *Msg) FailedReason() MsgFailedReason { return m.m.FailedReason }
 func (m *Msg) ExternalID() string            { return string(m.m.ExternalID) }
-func (m *Msg) Metadata() map[string]any      { return m.m.Metadata }
 func (m *Msg) MsgCount() int                 { return m.m.MsgCount }
 func (m *Msg) ChannelID() ChannelID          { return m.m.ChannelID }
 func (m *Msg) OrgID() OrgID                  { return m.m.OrgID }
@@ -393,7 +391,6 @@ func newMsgOut(rt *runtime.Runtime, org *Org, channel *Channel, contact *flows.C
 	m.MsgCount = 1
 	m.CreatedByID = userID
 	m.CreatedOn = createdOn
-	m.Metadata = null.Map[any](buildMsgMetadata(out))
 
 	msg.SetChannel(channel)
 	msg.SetURN(out.URN())
@@ -448,14 +445,6 @@ func newMsgOut(rt *runtime.Runtime, org *Org, channel *Channel, contact *flows.C
 	return &MsgOut{Msg: msg, Contact: contact, ReplyTo: replyTo}, nil
 }
 
-func buildMsgMetadata(m *flows.MsgOut) map[string]any {
-	metadata := make(map[string]any)
-	if m.Topic() != flows.NilMsgTopic {
-		metadata["topic"] = string(m.Topic())
-	}
-	return metadata
-}
-
 var msgRepetitionsScript = redis.NewScript(3, `
 local key, contact_id, text = KEYS[1], KEYS[2], KEYS[3]
 
@@ -508,7 +497,6 @@ SELECT
 	failed_reason,
 	coalesce(high_priority, FALSE) as high_priority,
 	external_id,
-	metadata,
 	channel_id,
 	contact_id,
 	contact_urn_id,
@@ -550,7 +538,6 @@ SELECT
 	m.failed_reason,
 	m.high_priority,
 	m.external_id,
-	m.metadata,
 	m.channel_id,
 	m.contact_id,
 	m.contact_urn_id,
@@ -623,10 +610,10 @@ func InsertMessages(ctx context.Context, tx DBorTx, msgs []*Msg) error {
 
 const sqlInsertMsgSQL = `
 INSERT INTO
-msgs_msg(uuid, text, attachments, quick_replies, locale, templating, high_priority, created_on, modified_on, sent_on, direction, status, metadata,
+msgs_msg(uuid, text, attachments, quick_replies, locale, templating, high_priority, created_on, modified_on, sent_on, direction, status,
 		 visibility, msg_type, msg_count, error_count, next_attempt, failed_reason, channel_id, is_android,
 		 contact_id, contact_urn_id, org_id, flow_id, broadcast_id, ticket_id, optin_id, created_by_id)
-  VALUES(:uuid, :text, :attachments, :quick_replies, :locale, :templating, :high_priority, :created_on, now(), :sent_on, :direction, :status, :metadata,
+  VALUES(:uuid, :text, :attachments, :quick_replies, :locale, :templating, :high_priority, :created_on, now(), :sent_on, :direction, :status,
 		 :visibility, :msg_type, :msg_count, :error_count, :next_attempt, :failed_reason, :channel_id, :is_android,
 		 :contact_id, :contact_urn_id, :org_id, :flow_id, :broadcast_id, :ticket_id, :optin_id, :created_by_id)
 RETURNING id, modified_on`
@@ -860,7 +847,7 @@ func CreateMsgOut(rt *runtime.Runtime, oa *OrgAssets, c *flows.Contact, content 
 		unsendableReason = flows.UnsendableReasonNoDestination
 	}
 
-	return flows.NewMsgOut(urn, channelRef, content, templating, flows.NilMsgTopic, locale, unsendableReason), channel
+	return flows.NewMsgOut(urn, channelRef, content, templating, locale, unsendableReason), channel
 }
 
 const sqlUpdateMsgDeletedBySender = `
