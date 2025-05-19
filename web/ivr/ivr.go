@@ -124,10 +124,9 @@ func handleIncoming(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 		return nil, svc.WriteErrorResponse(w, fmt.Errorf("unable to get external id from request: %w", err))
 	}
 
-	// create our call
-	call, err := models.InsertCall(ctx, rt.DB, oa.OrgID(), ch.ID(), models.NilStartID, contact.ID(), urnID, models.CallDirectionIn, models.CallStatusInProgress, externalID)
-	if err != nil {
-		return nil, svc.WriteErrorResponse(w, fmt.Errorf("error creating call: %w", err))
+	call := models.NewIncomingCall(oa.OrgID(), ch, contact, urnID, externalID)
+	if err := models.InsertCalls(ctx, rt.DB, []*models.Call{call}); err != nil {
+		return nil, svc.WriteErrorResponse(w, fmt.Errorf("error inserting incoming call: %w", err))
 	}
 
 	// create an incoming call "task" and handle it to see if we have a trigger
