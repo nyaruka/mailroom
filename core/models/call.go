@@ -8,6 +8,7 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	"github.com/nyaruka/gocommon/dates"
+	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/null/v3"
 )
@@ -61,8 +62,10 @@ const (
 type Call struct {
 	c struct {
 		ID           CallID        `db:"id"`
-		CreatedOn    time.Time     `db:"created_on"`
-		ModifiedOn   time.Time     `db:"modified_on"`
+		OrgID        OrgID         `db:"org_id"`
+		ChannelID    ChannelID     `db:"channel_id"`
+		ContactID    ContactID     `db:"contact_id"`
+		ContactURNID URNID         `db:"contact_urn_id"`
 		ExternalID   string        `db:"external_id"`
 		Status       CallStatus    `db:"status"`
 		SessionUUID  null.String   `db:"session_uuid"`
@@ -73,26 +76,26 @@ type Call struct {
 		ErrorReason  null.String   `db:"error_reason"`
 		ErrorCount   int           `db:"error_count"`
 		NextAttempt  *time.Time    `db:"next_attempt"`
-		ChannelID    ChannelID     `db:"channel_id"`
-		ContactID    ContactID     `db:"contact_id"`
-		ContactURNID URNID         `db:"contact_urn_id"`
-		OrgID        OrgID         `db:"org_id"`
 		StartID      StartID       `db:"start_id"`
+		Trigger      null.JSON     `db:"trigger"`
+		CreatedOn    time.Time     `db:"created_on"`
+		ModifiedOn   time.Time     `db:"modified_on"`
 	}
 }
 
 func (c *Call) ID() CallID                     { return c.c.ID }
-func (c *Call) Status() CallStatus             { return c.c.Status }
-func (c *Call) SessionUUID() flows.SessionUUID { return flows.SessionUUID(c.c.SessionUUID) }
-func (c *Call) ExternalID() string             { return c.c.ExternalID }
+func (c *Call) ChannelID() ChannelID           { return c.c.ChannelID }
 func (c *Call) OrgID() OrgID                   { return c.c.OrgID }
 func (c *Call) ContactID() ContactID           { return c.c.ContactID }
 func (c *Call) ContactURNID() URNID            { return c.c.ContactURNID }
-func (c *Call) ChannelID() ChannelID           { return c.c.ChannelID }
+func (c *Call) Status() CallStatus             { return c.c.Status }
+func (c *Call) SessionUUID() flows.SessionUUID { return flows.SessionUUID(c.c.SessionUUID) }
+func (c *Call) ExternalID() string             { return c.c.ExternalID }
 func (c *Call) StartID() StartID               { return c.c.StartID }
 func (c *Call) ErrorReason() CallError         { return CallError(c.c.ErrorReason) }
 func (c *Call) ErrorCount() int                { return c.c.ErrorCount }
 func (c *Call) NextAttempt() *time.Time        { return c.c.NextAttempt }
+func (c *Call) Trigger() []byte                { return c.c.Trigger }
 
 // NewIncomingCall creates a new incoming IVR call
 func NewIncomingCall(orgID OrgID, ch *Channel, contact *Contact, urnID URNID, externalID string) *Call {
@@ -108,9 +111,23 @@ func NewIncomingCall(orgID OrgID, ch *Channel, contact *Contact, urnID URNID, ex
 	return call
 }
 
+// NewOutgoingCall creates a new outgoing IVR call
+func NewOutgoingCall(orgID OrgID, ch *Channel, contact *Contact, urnID URNID, trigger flows.Trigger) *Call {
+	call := &Call{}
+	c := &call.c
+	c.OrgID = orgID
+	c.ChannelID = ch.ID()
+	c.ContactID = contact.ID()
+	c.ContactURNID = urnID
+	c.Direction = CallDirectionOut
+	c.Status = CallStatusPending
+	c.Trigger = null.JSON(jsonx.MustMarshal(trigger))
+	return call
+}
+
 const sqlInsertCall = `
-INSERT INTO ivr_call( org_id,  contact_id,  contact_urn_id, created_on, modified_on,  external_id,  status,  direction, duration,  channel_id, error_count)
-              VALUES(:org_id, :contact_id, :contact_urn_id, NOW(),      NOW(),       :external_id, :status, :direction, 0,        :channel_id, 0)
+INSERT INTO ivr_call( org_id,  channel_id,  contact_id,  contact_urn_id, created_on, modified_on,  external_id,  status,  direction,  trigger, duration, error_count)
+              VALUES(:org_id, :channel_id, :contact_id, :contact_urn_id, NOW(),      NOW(),       :external_id, :status, :direction, :trigger, 0,        0)
   RETURNING id, created_on, modified_on;`
 
 // InsertCalls creates a new IVR call for the passed in org, channel and contact, inserting it
@@ -167,6 +184,7 @@ func InsertCall(ctx context.Context, db *sqlx.DB, orgID OrgID, channelID Channel
 const sqlSelectCallByID = `
 SELECT
     cc.id,
+	cc.org_id,
     cc.created_on,
     cc.modified_on,
     cc.external_id,
@@ -182,7 +200,7 @@ SELECT
     cc.contact_id,
     cc.contact_urn_id,
     cc.session_uuid,
-    cc.org_id,
+	cc.trigger,
     fsc.flowstart_id AS start_id
            FROM ivr_call as cc
 LEFT OUTER JOIN flows_flowstart_calls fsc ON cc.id = fsc.call_id
@@ -200,7 +218,8 @@ func GetCallByID(ctx context.Context, db DBorTx, orgID OrgID, id CallID) (*Call,
 
 const sqlSelectCallByExternalID = `
 SELECT
-    cc.id, 
+    cc.id,
+	cc.org_id,
     cc.created_on,
     cc.modified_on,
     cc.external_id,
@@ -216,7 +235,7 @@ SELECT
     cc.contact_id,
     cc.contact_urn_id,
     cc.session_uuid,
-    cc.org_id,
+    cc.trigger,
     fsc.flowstart_id AS start_id
            FROM ivr_call as cc
 LEFT OUTER JOIN flows_flowstart_calls fsc ON cc.id = fsc.call_id

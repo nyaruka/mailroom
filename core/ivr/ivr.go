@@ -135,8 +135,73 @@ func HangupCall(ctx context.Context, rt *runtime.Runtime, call *models.Call) (*m
 	return clog, err
 }
 
-// RequestCall creates a new ChannelSession for the passed in flow start and contact, returning the created session
-func RequestCall(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, start *models.FlowStartBatch, contact *models.Contact) (*models.Call, error) {
+// RequestCall creates a new outgoing call and makes a request to the service to start it
+func RequestCall(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contact *models.Contact, trigger flows.Trigger) (*models.Call, error) {
+	// find a tel URL for the contact
+	telURN := urns.NilURN
+	for _, u := range contact.URNs() {
+		if u.Scheme() == urns.Phone.Prefix {
+			telURN = u
+		}
+	}
+
+	if telURN == urns.NilURN {
+		return nil, fmt.Errorf("no tel URN on contact, cannot start IVR flow")
+	}
+
+	// get the ID of our URN
+	urnID := models.GetURNInt(telURN, "id")
+	if urnID == 0 {
+		return nil, fmt.Errorf("no urn id for URN: %s, cannot start IVR flow", telURN)
+	}
+
+	// build our channel assets, we need these to calculate the preferred channel for a call
+	channels, err := oa.Channels()
+	if err != nil {
+		return nil, fmt.Errorf("unable to load channels for org: %w", err)
+	}
+	ca := flows.NewChannelAssets(channels)
+
+	urn, err := flows.ParseRawURN(ca, telURN, assets.IgnoreMissing)
+	if err != nil {
+		return nil, fmt.Errorf("unable to parse URN: %s: %w", telURN, err)
+	}
+
+	// get the channel to use for outgoing calls
+	callChannel := ca.GetForURN(urn, assets.ChannelRoleCall)
+	if callChannel == nil {
+		// can't start call, no channel that can call
+		return nil, nil
+	}
+
+	hasCall := callChannel.HasRole(assets.ChannelRoleCall)
+	if !hasCall {
+		return nil, nil
+	}
+
+	// clear contact on trigger as we'll set it when call starts to ensure we have the latest changes
+	trigger.SetContact(nil)
+
+	channel := callChannel.Asset().(*models.Channel)
+	call := models.NewOutgoingCall(oa.OrgID(), channel, contact, models.URNID(urnID), trigger)
+	if err := models.InsertCalls(ctx, rt.DB, []*models.Call{call}); err != nil {
+		return nil, fmt.Errorf("error creating outgoing call: %w", err)
+	}
+
+	clog, err := RequestCallStart(ctx, rt, channel, telURN, call)
+
+	// log any error inserting our channel log, but continue
+	if clog != nil {
+		if err := models.InsertChannelLogs(ctx, rt, []*models.ChannelLog{clog}); err != nil {
+			slog.Error("error inserting channel log", "error", err)
+		}
+	}
+
+	return call, err
+}
+
+// RequestCallWithStart creates a new ChannelSession for the passed in flow start and contact, returning the created session
+func RequestCallWithStart(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, start *models.FlowStartBatch, contact *models.Contact) (*models.Call, error) {
 	// find a tel URL for the contact
 	telURN := urns.NilURN
 	for _, u := range contact.URNs() {
@@ -191,7 +256,7 @@ func RequestCall(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 		return nil, fmt.Errorf("error creating call: %w", err)
 	}
 
-	clog, err := RequestStartForCall(ctx, rt, channel, telURN, call)
+	clog, err := RequestCallStart(ctx, rt, channel, telURN, call)
 
 	// log any error inserting our channel log, but continue
 	if clog != nil {
@@ -203,7 +268,7 @@ func RequestCall(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 	return call, err
 }
 
-func RequestStartForCall(ctx context.Context, rt *runtime.Runtime, channel *models.Channel, telURN urns.URN, call *models.Call) (*models.ChannelLog, error) {
+func RequestCallStart(ctx context.Context, rt *runtime.Runtime, channel *models.Channel, telURN urns.URN, call *models.Call) (*models.ChannelLog, error) {
 	// the domain that will be used for callbacks, can be specific for channels due to white labeling
 	domain := channel.Config().GetString(models.ChannelConfigCallbackDomain, rt.Config.Domain)
 
@@ -284,8 +349,79 @@ func HandleAsFailure(ctx context.Context, db *sqlx.DB, svc Service, call *models
 	return svc.WriteErrorResponse(w, rootErr)
 }
 
-// StartIVRFlow takes care of starting the flow in the passed in start for the passed in contact and URN
+// StartIVRFlowByStart takes care of starting the flow in the passed in start for the passed in contact and URN
 func StartIVRFlow(
+	ctx context.Context, rt *runtime.Runtime, svc Service, resumeURL string, oa *models.OrgAssets,
+	channel *models.Channel, call *models.Call, c *models.Contact, urn urns.URN,
+	r *http.Request, w http.ResponseWriter) error {
+
+	// call isn't in a wired or in-progress status then we shouldn't be here
+	if call.Status() != models.CallStatusWired && call.Status() != models.CallStatusInProgress {
+		return HandleAsFailure(ctx, rt.DB, svc, call, w, fmt.Errorf("call in invalid state: %s", call.Status()))
+	}
+
+	if call.StartID() != models.NilStartID {
+		return startIVRFlowByStart(ctx, rt, svc, resumeURL, oa, channel, call, c, urn, call.StartID(), r, w)
+	}
+
+	// if we don't have a start then we must have a trigger so read that
+	trigger, err := triggers.ReadTrigger(oa.SessionAssets(), call.Trigger(), assets.IgnoreMissing)
+	if err != nil {
+		return fmt.Errorf("error reading call trigger: %w", err)
+	}
+
+	f, err := oa.FlowByUUID(trigger.Flow().UUID)
+	if err != nil {
+		return fmt.Errorf("unable to load flow %s: %w", trigger.Flow().UUID, err)
+	}
+	flow := f.(*models.Flow)
+
+	// check that call on service side is in the state we need to continue
+	if errorReason := svc.CheckStartRequest(r); errorReason != "" {
+		err := call.SetErrored(ctx, rt.DB, dates.Now(), flow.IVRRetryWait(), errorReason)
+		if err != nil {
+			return fmt.Errorf("error marking call as errored: %w", err)
+		}
+
+		errMsg := fmt.Sprintf("status updated: %s", call.Status())
+		if call.Status() == models.CallStatusErrored {
+			errMsg = fmt.Sprintf("%s, next_attempt: %s", errMsg, call.NextAttempt())
+		}
+
+		return svc.WriteErrorResponse(w, errors.New(errMsg))
+	}
+
+	// load contact and update on trigger to ensure we're not starting with outdated contact data
+	contact, err := c.FlowContact(oa)
+	if err != nil {
+		return fmt.Errorf("error loading flow contact: %w", err)
+	}
+	trigger.SetContact(contact)
+
+	sceneInit := func(s *runner.Scene) { s.Call = call }
+
+	sessions, err := runner.StartFlow(ctx, rt, oa, flow, []*models.Contact{c}, []flows.Trigger{trigger}, true, models.NilStartID, call.ID(), sceneInit)
+	if err != nil {
+		return fmt.Errorf("error starting flow: %w", err)
+	}
+	if len(sessions) == 0 {
+		return fmt.Errorf("no ivr session created")
+	}
+
+	// mark our call as started
+	if err := call.SetInProgress(ctx, rt.DB, sessions[0].UUID(), time.Now()); err != nil {
+		return fmt.Errorf("error updating call status: %w", err)
+	}
+
+	// have our service output our session status
+	if err := svc.WriteSessionResponse(ctx, rt, oa, channel, call, sessions[0], urn, resumeURL, r, w); err != nil {
+		return fmt.Errorf("error writing ivr response for start: %w", err)
+	}
+
+	return nil
+}
+
+func startIVRFlowByStart(
 	ctx context.Context, rt *runtime.Runtime, svc Service, resumeURL string, oa *models.OrgAssets,
 	channel *models.Channel, call *models.Call, c *models.Contact, urn urns.URN, startID models.StartID,
 	r *http.Request, w http.ResponseWriter) error {

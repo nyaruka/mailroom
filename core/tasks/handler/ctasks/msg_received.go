@@ -4,13 +4,13 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/jmoiron/sqlx"
 	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/goflow/flows/resumes"
 	"github.com/nyaruka/goflow/flows/triggers"
 	"github.com/nyaruka/goflow/utils"
+	"github.com/nyaruka/mailroom/core/ivr"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/msgio"
 	"github.com/nyaruka/mailroom/core/runner"
@@ -171,34 +171,29 @@ func (t *MsgReceivedTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *
 	// we found a trigger and their session is nil or doesn't ignore keywords
 	if (trigger != nil && trigger.TriggerType() != models.CatchallTriggerType && (flow == nil || !flow.IgnoreTriggers())) ||
 		(trigger != nil && trigger.TriggerType() == models.CatchallTriggerType && (flow == nil)) {
-		// load our flow
+
+		// load flow to check it's still accessible
 		flow, err = oa.FlowByID(trigger.FlowID())
 		if err != nil && err != models.ErrNotFound {
 			return fmt.Errorf("error loading flow for trigger: %w", err)
 		}
 
-		// trigger flow is still active, start it
 		if flow != nil {
-			// if this is an IVR flow, we need to trigger that start (which happens in a different queue)
-			if flow.FlowType() == models.FlowTypeVoice {
-				// TODO rework IVR triggers so that flow handles message event
-				ivrMsgHook := func(ctx context.Context, tx *sqlx.Tx) error {
-					return t.markMsgHandled(ctx, tx, flow, attachments, ticket, logUUIDs)
-				}
-				err = handler.TriggerIVRFlow(ctx, rt, oa.OrgID(), flow.ID(), []models.ContactID{mc.ID()}, ivrMsgHook)
-				if err != nil {
-					return fmt.Errorf("error while triggering ivr flow: %w", err)
-				}
-				return nil
-			}
-
+			// create trigger from this message
 			tb := triggers.NewBuilder(oa.Env(), flow.Reference(), fc).Msg(msgIn)
 			if keyword != "" {
 				tb = tb.WithMatch(&triggers.KeywordMatch{Type: trigger.KeywordMatchType(), Keyword: keyword})
 			}
-
-			// otherwise build the trigger and start the flow directly
 			trigger := tb.Build()
+
+			// if this is a voice flow, we request a call and wait for callback
+			if flow.FlowType() == models.FlowTypeVoice {
+				if _, err := ivr.RequestCall(ctx, rt, oa, mc, trigger); err != nil {
+					return fmt.Errorf("error starting voice flow for contact: %w", err)
+				}
+
+				return t.markMsgHandled(ctx, rt.DB, flow, attachments, ticket, logUUIDs)
+			}
 
 			_, err = runner.StartFlow(ctx, rt, oa, flow, []*models.Contact{mc}, []flows.Trigger{trigger}, flow.FlowType().Interrupts(), models.NilStartID, models.NilCallID, sceneInit)
 			if err != nil {
