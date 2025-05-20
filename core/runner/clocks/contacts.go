@@ -55,9 +55,9 @@ func TryToLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, i
 }
 
 // Unlock unlocks the given contacts using the given lock values
-func Unlock(rt *runtime.Runtime, orgID models.OrgID, locks map[models.ContactID]string) error {
+func Unlock(rt *runtime.Runtime, oa *models.OrgAssets, locks map[models.ContactID]string) error {
 	for contactID, lock := range locks {
-		locker := getContactLocker(orgID, contactID)
+		locker := getContactLocker(oa.OrgID(), contactID)
 
 		err := locker.Release(rt.RP, lock)
 		if err != nil {
@@ -65,6 +65,17 @@ func Unlock(rt *runtime.Runtime, orgID models.OrgID, locks map[models.ContactID]
 		}
 	}
 	return nil
+}
+
+func IsLocked(rt *runtime.Runtime, oa *models.OrgAssets, contactID models.ContactID) (bool, error) {
+	locker := getContactLocker(oa.OrgID(), contactID)
+
+	locked, err := locker.IsLocked(rt.RP)
+	if err != nil {
+		return false, fmt.Errorf("error checking if contact locked: %w", err)
+	}
+
+	return locked, nil
 }
 
 // returns the locker for a particular contact

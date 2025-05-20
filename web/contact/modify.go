@@ -116,7 +116,7 @@ func tryToLockAndModify(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 
 	locked := slices.Collect(maps.Keys(locks))
 
-	defer clocks.Unlock(rt, oa.OrgID(), locks)
+	defer clocks.Unlock(rt, oa, locks)
 
 	// load our contacts
 	contacts, err := models.LoadContacts(ctx, rt.DB, oa, locked)
