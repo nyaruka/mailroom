@@ -1,3 +1,8 @@
+v10.1.122 (2025-05-20)
+-------------------------
+ * Move flow stat saving out of session model functions and into runner hook
+ * Add check that contacts in StartSessions are locked
+
 v10.1.121 (2025-05-20)
 -------------------------
  * Use events to handle message that triggers voice flow
