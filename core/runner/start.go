@@ -31,15 +31,6 @@ var startTypeToOrigin = map[models.StartType]string{
 // TriggerBuilder defines the interface for building a trigger for the passed in contact
 type TriggerBuilder func(contact *flows.Contact) flows.Trigger
 
-// StartOptions define the various parameters that can be used when starting a flow
-type StartOptions struct {
-	// Interrupt should be true if we want to interrupt the flows runs for any contact started in this flow
-	Interrupt bool
-
-	// TriggerBuilder is the builder that will be used to build a trigger for each contact started in the flow
-	TriggerBuilder TriggerBuilder
-}
-
 // StartFlowBatch starts the given flow start batch
 func StartFlowBatch(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, start *models.FlowStart, batch *models.FlowStartBatch) ([]*models.Session, error) {
 	// try to load our flow
