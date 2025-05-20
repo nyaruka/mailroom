@@ -124,14 +124,12 @@ func (t *BulkCampaignTriggerTask) triggerFlow(ctx context.Context, rt *runtime.R
 
 	flowRef := assets.NewFlowReference(flow.UUID(), flow.Name())
 	campaignRef := triggers.NewCampaignReference(triggers.CampaignUUID(ce.Campaign().UUID()), ce.Campaign().Name())
-	options := &runner.StartOptions{
-		Interrupt: ce.StartMode != models.CampaignEventModePassive,
-		TriggerBuilder: func(contact *flows.Contact) flows.Trigger {
-			return triggers.NewBuilder(oa.Env(), flowRef, contact).Campaign(campaignRef, triggers.CampaignEventUUID(ce.UUID)).Build()
-		},
+	interrupt := ce.StartMode != models.CampaignEventModePassive
+	triggerBuilder := func(contact *flows.Contact) flows.Trigger {
+		return triggers.NewBuilder(oa.Env(), flowRef, contact).Campaign(campaignRef, triggers.CampaignEventUUID(ce.UUID)).Build()
 	}
 
-	_, err = runner.StartWithLock(ctx, rt, oa, contactIDs, options, models.NilStartID, nil)
+	_, err = runner.StartWithLock(ctx, rt, oa, contactIDs, triggerBuilder, interrupt, models.NilStartID, nil)
 	if err != nil {
 		return fmt.Errorf("error starting flow for campaign event #%d: %w", ce.ID, err)
 	}

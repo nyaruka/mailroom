@@ -177,15 +177,12 @@ func RunTestCases(t *testing.T, ctx context.Context, rt *runtime.Runtime, tcs []
 		oa, err = oa.CloneForSimulation(ctx, rt, map[assets.FlowUUID]json.RawMessage{flowUUID: flowDef}, nil)
 		assert.NoError(t, err)
 
-		options := &runner.StartOptions{
-			Interrupt: true,
-			TriggerBuilder: func(contact *flows.Contact) flows.Trigger {
-				msg := msgsByContactID[models.ContactID(contact.ID())]
-				if msg == nil {
-					return triggers.NewBuilder(oa.Env(), testFlow.Reference(false), contact).Manual().Build()
-				}
-				return triggers.NewBuilder(oa.Env(), testFlow.Reference(false), contact).Msg(msg.FlowMsg).Build()
-			},
+		triggerBuilder := func(contact *flows.Contact) flows.Trigger {
+			msg := msgsByContactID[models.ContactID(contact.ID())]
+			if msg == nil {
+				return triggers.NewBuilder(oa.Env(), testFlow.Reference(false), contact).Manual().Build()
+			}
+			return triggers.NewBuilder(oa.Env(), testFlow.Reference(false), contact).Msg(msg.FlowMsg).Build()
 		}
 
 		for _, c := range []*testdata.Contact{testdata.Cathy, testdata.Bob, testdata.George, testdata.Alexandria} {
@@ -195,7 +192,7 @@ func RunTestCases(t *testing.T, ctx context.Context, rt *runtime.Runtime, tcs []
 				}
 			}
 
-			_, err := runner.StartWithLock(ctx, rt, oa, []models.ContactID{c.ID}, options, models.NilStartID, sceneInit)
+			_, err := runner.StartWithLock(ctx, rt, oa, []models.ContactID{c.ID}, triggerBuilder, true, models.NilStartID, sceneInit)
 			require.NoError(t, err)
 		}
 

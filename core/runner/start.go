@@ -100,12 +100,7 @@ func StartFlowBatch(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 		return tb.WithUser(flowUser).WithOrigin(startTypeToOrigin[start.StartType]).Build()
 	}
 
-	options := &StartOptions{
-		Interrupt:      flow.FlowType().Interrupts(),
-		TriggerBuilder: triggerBuilder,
-	}
-
-	sessions, err := StartWithLock(ctx, rt, oa, batch.ContactIDs, options, batch.StartID, nil)
+	sessions, err := StartWithLock(ctx, rt, oa, batch.ContactIDs, triggerBuilder, flow.FlowType().Interrupts(), batch.StartID, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error starting flow batch: %w", err)
 	}
@@ -114,7 +109,7 @@ func StartFlowBatch(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 }
 
 // StartWithLock starts the given contacts in flow sessions after obtaining locks for them.
-func StartWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contactIDs []models.ContactID, options *StartOptions, startID models.StartID, sceneInit func(*Scene)) ([]*models.Session, error) {
+func StartWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contactIDs []models.ContactID, triggerBuilder TriggerBuilder, interrupt bool, startID models.StartID, sceneInit func(*Scene)) ([]*models.Session, error) {
 	if len(contactIDs) == 0 {
 		return nil, nil
 	}
@@ -131,7 +126,7 @@ func StartWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsset
 			return sessions, ctx.Err()
 		}
 
-		ss, skipped, err := tryToStartWithLock(ctx, rt, oa, remaining, options, startID, sceneInit)
+		ss, skipped, err := tryToStartWithLock(ctx, rt, oa, remaining, triggerBuilder, interrupt, startID, sceneInit)
 		if err != nil {
 			return nil, err
 		}
@@ -149,7 +144,7 @@ func StartWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsset
 
 // tries to start the given contacts, returning sessions for those we could, and the ids that were skipped because we
 // couldn't get their locks
-func tryToStartWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, ids []models.ContactID, options *StartOptions, startID models.StartID, sceneInit func(*Scene)) ([]*models.Session, []models.ContactID, error) {
+func tryToStartWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, ids []models.ContactID, triggerBuilder TriggerBuilder, interrupt bool, startID models.StartID, sceneInit func(*Scene)) ([]*models.Session, []models.ContactID, error) {
 	// try to get locks for these contacts, waiting for up to a second for each contact
 	locks, skipped, err := clocks.TryToLock(ctx, rt, oa, ids, time.Second)
 	if err != nil {
@@ -158,7 +153,7 @@ func tryToStartWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 	locked := slices.Collect(maps.Keys(locks))
 
 	// whatever happens, we need to unlock the contacts
-	defer clocks.Unlock(rt, oa.OrgID(), locks)
+	defer clocks.Unlock(rt, oa, locks)
 
 	// load our locked contacts
 	contacts, err := models.LoadContacts(ctx, rt.ReadonlyDB, oa, locked)
@@ -173,11 +168,10 @@ func tryToStartWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 		if err != nil {
 			return nil, nil, fmt.Errorf("error creating flow contact: %w", err)
 		}
-		trigger := options.TriggerBuilder(contact)
-		triggers = append(triggers, trigger)
+		triggers = append(triggers, triggerBuilder(contact))
 	}
 
-	ss, err := StartSessions(ctx, rt, oa, contacts, triggers, options.Interrupt, startID, sceneInit)
+	ss, err := StartSessions(ctx, rt, oa, contacts, triggers, interrupt, startID, sceneInit)
 	if err != nil {
 		return nil, nil, fmt.Errorf("error starting flow for contacts: %w", err)
 	}
@@ -193,6 +187,12 @@ func StartSessions(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsset
 
 	start := time.Now()
 	sa := oa.SessionAssets()
+
+	// for sanity, check that contacts have been locked
+	lockCheck, _ := clocks.IsLocked(rt, oa, contacts[0].ID())
+	if !lockCheck {
+		slog.Error("starting session for contact that isn't locked", "contact", contacts[0].UUID())
+	}
 
 	// for each trigger start the flow
 	sessions := make([]flows.Session, len(triggers))
