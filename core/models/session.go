@@ -66,9 +66,6 @@ type Session struct {
 
 	runs     []*FlowRun
 	seenRuns map[flows.RunUUID]time.Time
-
-	// we keep around a reference to the sprint associated with this session
-	sprint flows.Sprint
 }
 
 func (s *Session) UUID() flows.SessionUUID          { return s.s.UUID }
@@ -101,11 +98,6 @@ func (s *Session) StoragePath(orgID OrgID, contactUUID flows.ContactUUID) string
 // Runs returns our flow run
 func (s *Session) Runs() []*FlowRun {
 	return s.runs
-}
-
-// Sprint returns the sprint associated with this session
-func (s *Session) Sprint() flows.Sprint {
-	return s.sprint
 }
 
 // OutputMD5 returns the md5 of the passed in session
@@ -253,11 +245,8 @@ func (s *Session) Update(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, 
 		s.runs = append(s.runs, run)
 	}
 
-	// set our sprint
-	s.sprint = sprint
-	s.s.CurrentFlowID = NilFlowID
-
 	// run through our runs to figure out our current flow
+	s.s.CurrentFlowID = NilFlowID
 	for _, r := range fs.Runs() {
 		// if this run is waiting, save it as the current flow
 		if r.Status() == flows.RunStatusWaiting {
@@ -379,8 +368,6 @@ func NewSession(ctx context.Context, tx *sqlx.Tx, oa *OrgAssets, fs flows.Sessio
 		now := time.Now()
 		s.EndedOn = &now
 	}
-
-	session.sprint = sprint
 
 	// now build up our runs
 	for i, r := range fs.Runs() {
