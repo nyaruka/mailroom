@@ -50,7 +50,7 @@ func (s *service) Response(ctx context.Context, instructions, input string, maxT
 				Role: anthropic.MessageParamRoleAssistant,
 				Content: []anthropic.ContentBlockParamUnion{
 					{
-						OfRequestTextBlock: &anthropic.TextBlockParam{Text: instructions},
+						OfText: &anthropic.TextBlockParam{Text: instructions},
 					},
 				},
 			},
@@ -58,7 +58,7 @@ func (s *service) Response(ctx context.Context, instructions, input string, maxT
 				Role: anthropic.MessageParamRoleUser,
 				Content: []anthropic.ContentBlockParamUnion{
 					{
-						OfRequestTextBlock: &anthropic.TextBlockParam{Text: input},
+						OfText: &anthropic.TextBlockParam{Text: input},
 					},
 				},
 			},

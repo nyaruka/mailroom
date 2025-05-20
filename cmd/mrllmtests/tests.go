@@ -74,7 +74,7 @@ func runPromptTests(ctx context.Context, rt *runtime.Runtime, orgID models.OrgID
 				timeTaken := time.Since(start)
 
 				fmt.Print(color(resp.Output, correct))
-				fmt.Printf(" [tokens=%d, time=%s]", resp.TokensUsed, timeTaken)
+				fmt.Printf(" [tokens=%d, time=%s]", resp.TokensUsed, color(timeTaken.String(), timeTaken < 1*time.Second))
 				if correct {
 					correctByLLM[llmName]++
 					timeTakenByLLM[llmName] += time.Since(start)
@@ -97,13 +97,13 @@ func runPromptTests(ctx context.Context, rt *runtime.Runtime, orgID models.OrgID
 
 func color(msg string, success bool) string {
 	const (
-		Reset = "\033[0m"
-		Red   = "\033[31m"
-		Green = "\033[32m"
+		reset = "\033[0m"
+		red   = "\033[31m"
+		green = "\033[32m"
 	)
 
 	if success {
-		return fmt.Sprintf("%s%s%s", Green, msg, Reset)
+		return fmt.Sprintf("%s%s%s", green, msg, reset)
 	}
-	return fmt.Sprintf("%s%s%s", Red, msg, Reset)
+	return fmt.Sprintf("%s%s%s", red, msg, reset)
 }
