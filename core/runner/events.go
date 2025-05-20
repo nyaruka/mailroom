@@ -50,7 +50,7 @@ func newSprintEndedEvent(c *models.Contact, resumed bool) *SprintEndedEvent {
 type Scene struct {
 	contact *flows.Contact
 	session flows.Session
-	sprint  flows.Sprint
+	Sprint  flows.Sprint
 	userID  models.UserID
 
 	Call        *models.Call
@@ -75,7 +75,7 @@ func newScene(contact *flows.Contact, session flows.Session, sprint flows.Sprint
 	s := &Scene{
 		contact: contact,
 		session: session,
-		sprint:  sprint,
+		Sprint:  sprint,
 		userID:  userID,
 
 		preCommits:  make(map[PreCommitHook][]any),
@@ -97,10 +97,10 @@ func (s *Scene) SessionUUID() flows.SessionUUID {
 
 // SprintUUID returns the sprint UUID for this scene if any
 func (s *Scene) SprintUUID() flows.SprintUUID {
-	if s.sprint == nil {
+	if s.Sprint == nil {
 		return ""
 	}
-	return s.sprint.UUID()
+	return s.Sprint.UUID()
 }
 
 func (s *Scene) Contact() *flows.Contact        { return s.contact }

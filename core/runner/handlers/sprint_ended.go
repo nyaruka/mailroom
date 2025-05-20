@@ -61,5 +61,6 @@ func handleSprintEnded(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 		scene.AttachPreCommitHook(hooks.UpdateCallStatus, models.CallStatusCompleted)
 	}
 
+	scene.AttachPreCommitHook(hooks.InsertFlowStats, event)
 	return nil
 }

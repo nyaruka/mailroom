@@ -1,4 +1,4 @@
-package models_test
+package hooks_test
 
 import (
 	"fmt"
@@ -6,9 +6,10 @@ import (
 
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/gocommon/random"
-	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/test"
 	"github.com/nyaruka/mailroom/core/models"
+	"github.com/nyaruka/mailroom/core/runner"
+	"github.com/nyaruka/mailroom/core/runner/hooks"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/mailroom/testsuite"
 	"github.com/nyaruka/mailroom/testsuite/testdata"
@@ -17,7 +18,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestRecordFlowStatistics(t *testing.T) {
+func TestInsertFlowStats(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
 	rc := rt.RP.Get()
 	defer rc.Close()
@@ -42,7 +43,11 @@ func TestRecordFlowStatistics(t *testing.T) {
 
 	tx := rt.DB.MustBeginTx(ctx, nil)
 
-	err = models.RecordFlowStatistics(ctx, rt, tx, []flows.Session{session1, session2, session3}, []flows.Sprint{session1Sprint1, session2Sprint1, session3Sprint1})
+	err = hooks.InsertFlowStats.Execute(ctx, rt, tx, oa, map[*runner.Scene][]any{
+		runner.NewSessionScene(session1, session1Sprint1, nil): nil,
+		runner.NewSessionScene(session2, session2Sprint1, nil): nil,
+		runner.NewSessionScene(session3, session3Sprint1, nil): nil,
+	})
 	require.NoError(t, err)
 	require.NoError(t, tx.Commit())
 
@@ -51,7 +56,7 @@ func TestRecordFlowStatistics(t *testing.T) {
 	err = rt.DB.SelectContext(ctx, &activityCounts, "SELECT flow_id, scope, count FROM flows_flowactivitycount ORDER BY flow_id, scope")
 	require.NoError(t, err)
 	assert.Len(t, activityCounts, 1)
-	assert.Equal(t, &models.FlowActivityCount{flow.ID, "segment:5fd2e537-0534-4c12-8425-bef87af09d46:072b95b3-61c3-4e0e-8dd1-eb7481083f94", 3}, activityCounts[0])
+	assert.Equal(t, &models.FlowActivityCount{FlowID: flow.ID, Scope: "segment:5fd2e537-0534-4c12-8425-bef87af09d46:072b95b3-61c3-4e0e-8dd1-eb7481083f94", Count: 3}, activityCounts[0])
 
 	// should have no result counts yet
 	assertdb.Query(t, rt.DB, "SELECT count(*) FROM flows_flowresultcount").Returns(0)
@@ -77,7 +82,11 @@ func TestRecordFlowStatistics(t *testing.T) {
 
 	tx = rt.DB.MustBeginTx(ctx, nil)
 
-	err = models.RecordFlowStatistics(ctx, rt, tx, []flows.Session{session1, session2, session3}, []flows.Sprint{session1Sprint2, session2Sprint2, session3Sprint2})
+	err = hooks.InsertFlowStats.Execute(ctx, rt, tx, oa, map[*runner.Scene][]any{
+		runner.NewSessionScene(session1, session1Sprint2, nil): nil,
+		runner.NewSessionScene(session2, session2Sprint2, nil): nil,
+		runner.NewSessionScene(session3, session3Sprint2, nil): nil,
+	})
 	require.NoError(t, err)
 	require.NoError(t, tx.Commit())
 
@@ -97,7 +106,9 @@ func TestRecordFlowStatistics(t *testing.T) {
 
 	tx = rt.DB.MustBeginTx(ctx, nil)
 
-	err = models.RecordFlowStatistics(ctx, rt, tx, []flows.Session{session3}, []flows.Sprint{session3Sprint3})
+	err = hooks.InsertFlowStats.Execute(ctx, rt, tx, oa, map[*runner.Scene][]any{
+		runner.NewSessionScene(session3, session3Sprint3, nil): nil,
+	})
 	require.NoError(t, err)
 	require.NoError(t, tx.Commit())
 
@@ -143,7 +154,9 @@ func TestRecordFlowStatistics(t *testing.T) {
 
 	tx = rt.DB.MustBeginTx(ctx, nil)
 
-	err = models.RecordFlowStatistics(ctx, rt, tx, []flows.Session{session3}, []flows.Sprint{session3Sprint4})
+	err = hooks.InsertFlowStats.Execute(ctx, rt, tx, oa, map[*runner.Scene][]any{
+		runner.NewSessionScene(session3, session3Sprint4, nil): nil,
+	})
 	require.NoError(t, err)
 	require.NoError(t, tx.Commit())
 
