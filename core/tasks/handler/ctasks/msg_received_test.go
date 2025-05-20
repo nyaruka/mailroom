@@ -218,7 +218,6 @@ func TestMsgReceivedTask(t *testing.T) {
 			contact:            testdata.Bob,
 			text:               "ivr",
 			expectedVisibility: models.VisibilityVisible,
-			expectedFlow:       testdata.IVRFlow,
 		},
 		{ // 15: stopped contact should be unstopped
 			preHook: func() {

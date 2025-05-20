@@ -8,13 +8,11 @@ import (
 	"time"
 
 	"github.com/gomodule/redigo/redis"
-	"github.com/jmoiron/sqlx"
 	"github.com/nyaruka/gocommon/dbutil"
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/runner/clocks"
 	"github.com/nyaruka/mailroom/core/tasks"
-	"github.com/nyaruka/mailroom/core/tasks/starts"
 	"github.com/nyaruka/mailroom/runtime"
 )
 
@@ -143,47 +141,4 @@ func performHandlerTask(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 	}
 
 	return task.Perform(ctx, rt, oa, contact)
-}
-
-type DBHook func(ctx context.Context, tx *sqlx.Tx) error
-
-// TriggerIVRFlow will create a new flow start with the passed in flow and set of contacts. This will cause us to
-// request calls to start, which once we get the callback will trigger our actual flow to start.
-func TriggerIVRFlow(ctx context.Context, rt *runtime.Runtime, orgID models.OrgID, flowID models.FlowID, contactIDs []models.ContactID, hook DBHook) error {
-	tx, err := rt.DB.BeginTxx(ctx, nil)
-	if err != nil {
-		return fmt.Errorf("error starting transaction for IVR flow start: %w", err)
-	}
-
-	start := models.NewFlowStart(orgID, models.StartTypeTrigger, flowID).WithContactIDs(contactIDs)
-	if err := models.InsertFlowStarts(ctx, tx, []*models.FlowStart{start}); err != nil {
-		tx.Rollback()
-		return fmt.Errorf("error inserting ivr flow start: %w", err)
-	}
-
-	// call our hook if we have one
-	if hook != nil {
-		if err := hook(ctx, tx); err != nil {
-			tx.Rollback()
-			return fmt.Errorf("error while calling db hook: %w", err)
-		}
-	}
-
-	// commit our transaction
-	if err := tx.Commit(); err != nil {
-		tx.Rollback()
-		return fmt.Errorf("error committing transaction for ivr flow starts: %w", err)
-	}
-
-	// create our batch of all our contacts
-	task := &starts.StartIVRFlowBatchTask{FlowStartBatch: start.CreateBatch(contactIDs, true, true, len(contactIDs))}
-
-	// queue this to our ivr starter, it will take care of creating the calls then calling back in
-	rc := rt.RP.Get()
-	defer rc.Close()
-	if err := tasks.Queue(rc, tasks.BatchQueue, orgID, task, true); err != nil {
-		return fmt.Errorf("error queuing ivr flow start: %w", err)
-	}
-
-	return nil
 }

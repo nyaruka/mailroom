@@ -10,6 +10,7 @@ import (
 	"github.com/nyaruka/goflow/excellent/types"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/triggers"
+	"github.com/nyaruka/mailroom/core/ivr"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/runner"
 	"github.com/nyaruka/mailroom/core/tasks/handler"
@@ -140,15 +141,6 @@ func (t *EventReceivedTask) handle(ctx context.Context, rt *runtime.Runtime, oa 
 		return nil, nil
 	}
 
-	// if this is an IVR flow and we don't have a call, trigger that asynchronously
-	if flow.FlowType() == models.FlowTypeVoice && call == nil {
-		err = handler.TriggerIVRFlow(ctx, rt, oa.OrgID(), flow.ID(), []models.ContactID{mc.ID()}, nil)
-		if err != nil {
-			return nil, fmt.Errorf("error while triggering ivr flow: %w", err)
-		}
-		return nil, nil
-	}
-
 	// create our parameters, we just convert this from JSON
 	var params *types.XObject
 	if t.Extra != nil {
@@ -171,8 +163,8 @@ func (t *EventReceivedTask) handle(ctx context.Context, rt *runtime.Runtime, oa 
 	}
 
 	// build our flow trigger
-	tb := triggers.NewBuilder(oa.Env(), flow.Reference(), flowContact)
 	var trig flows.Trigger
+	tb := triggers.NewBuilder(oa.Env(), flow.Reference(), flowContact)
 
 	if t.EventType == models.EventTypeIncomingCall {
 		urn := mc.URNForID(t.URNID)
@@ -185,6 +177,14 @@ func (t *EventReceivedTask) handle(ctx context.Context, rt *runtime.Runtime, oa 
 		trig = tb.Channel(channel.Reference(), triggers.ChannelEventType(t.EventType)).WithParams(params).Build()
 	}
 
+	// if this is a voice flow, we request a call and wait for callback
+	if flow.FlowType() == models.FlowTypeVoice && call == nil {
+		if _, err := ivr.RequestCall(ctx, rt, oa, mc, trig); err != nil {
+			return nil, fmt.Errorf("error starting voice flow for contact: %w", err)
+		}
+		return nil, nil
+	}
+
 	sceneInit := func(s *runner.Scene) { s.Call = call }
 
 	sessions, err := runner.StartSessions(ctx, rt, oa, []*models.Contact{mc}, []flows.Trigger{trig}, flow.FlowType().Interrupts(), models.NilStartID, sceneInit)
@@ -193,13 +193,6 @@ func (t *EventReceivedTask) handle(ctx context.Context, rt *runtime.Runtime, oa 
 	}
 	if len(sessions) == 0 {
 		return nil, nil
-	}
-
-	// if we started a voice session, attach it to the call so it can be resumed later
-	if sessions[0].SessionType() == models.FlowTypeVoice && call != nil {
-		if err := call.SetInProgress(ctx, rt.DB, sessions[0].UUID(), t.CreatedOn); err != nil {
-			return nil, fmt.Errorf("error updating call #%d to in progress: %w", call.ID(), err)
-		}
 	}
 
 	return sessions[0], nil
