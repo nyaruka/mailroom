@@ -64,7 +64,7 @@ type Service interface {
 
 	HangupCall(externalID string) (*httpx.Trace, error)
 
-	WriteSessionResponse(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, channel *models.Channel, call *models.Call, session *models.Session, number urns.URN, resumeURL string, req *http.Request, w http.ResponseWriter) error
+	WriteSessionResponse(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, channel *models.Channel, scene *runner.Scene, number urns.URN, resumeURL string, req *http.Request, w http.ResponseWriter) error
 	WriteRejectResponse(w http.ResponseWriter) error
 	WriteErrorResponse(w http.ResponseWriter, err error) error
 	WriteEmptyResponse(w http.ResponseWriter, msg string) error
@@ -401,21 +401,21 @@ func StartIVRFlow(
 
 	sceneInit := func(s *runner.Scene) { s.Call = call }
 
-	sessions, err := runner.StartSessions(ctx, rt, oa, []*models.Contact{c}, []flows.Trigger{trigger}, true, models.NilStartID, sceneInit)
+	scenes, err := runner.StartSessions(ctx, rt, oa, []*models.Contact{c}, []flows.Trigger{trigger}, true, models.NilStartID, sceneInit)
 	if err != nil {
 		return fmt.Errorf("error starting flow: %w", err)
 	}
-	if len(sessions) == 0 {
+	if len(scenes) == 0 {
 		return fmt.Errorf("no ivr session created")
 	}
 
 	// mark our call as started
-	if err := call.SetInProgress(ctx, rt.DB, sessions[0].UUID(), time.Now()); err != nil {
+	if err := call.SetInProgress(ctx, rt.DB, scenes[0].Session().UUID(), time.Now()); err != nil {
 		return fmt.Errorf("error updating call status: %w", err)
 	}
 
 	// have our service output our session status
-	if err := svc.WriteSessionResponse(ctx, rt, oa, channel, call, sessions[0], urn, resumeURL, r, w); err != nil {
+	if err := svc.WriteSessionResponse(ctx, rt, oa, channel, scenes[0], urn, resumeURL, r, w); err != nil {
 		return fmt.Errorf("error writing ivr response for start: %w", err)
 	}
 
@@ -498,21 +498,21 @@ func startIVRFlowByStart(
 
 	sceneInit := func(s *runner.Scene) { s.Call = call }
 
-	sessions, err := runner.StartSessions(ctx, rt, oa, []*models.Contact{c}, []flows.Trigger{trigger}, true, models.NilStartID, sceneInit)
+	scenes, err := runner.StartSessions(ctx, rt, oa, []*models.Contact{c}, []flows.Trigger{trigger}, true, models.NilStartID, sceneInit)
 	if err != nil {
 		return fmt.Errorf("error starting flow: %w", err)
 	}
-	if len(sessions) == 0 {
+	if len(scenes) == 0 {
 		return fmt.Errorf("no ivr session created")
 	}
 
 	// mark our call as started
-	if err := call.SetInProgress(ctx, rt.DB, sessions[0].UUID(), time.Now()); err != nil {
+	if err := call.SetInProgress(ctx, rt.DB, scenes[0].SessionUUID(), time.Now()); err != nil {
 		return fmt.Errorf("error updating call status: %w", err)
 	}
 
 	// have our service output our session status
-	if err := svc.WriteSessionResponse(ctx, rt, oa, channel, call, sessions[0], urn, resumeURL, r, w); err != nil {
+	if err := svc.WriteSessionResponse(ctx, rt, oa, channel, scenes[0], urn, resumeURL, r, w); err != nil {
 		return fmt.Errorf("error writing ivr response for start: %w", err)
 	}
 
@@ -612,14 +612,14 @@ func ResumeIVRFlow(
 		s.IncomingMsg = msg
 	}
 
-	session, err = runner.ResumeFlow(ctx, rt, oa, session, mc, resume, sceneInit)
+	scene, err := runner.ResumeFlow(ctx, rt, oa, session, mc, resume, sceneInit)
 	if err != nil {
 		return fmt.Errorf("error resuming ivr flow: %w", err)
 	}
 
 	// if still active, write out our response
 	if status == models.CallStatusInProgress {
-		err = svc.WriteSessionResponse(ctx, rt, oa, channel, call, session, urn, resumeURL, r, w)
+		err = svc.WriteSessionResponse(ctx, rt, oa, channel, scene, urn, resumeURL, r, w)
 		if err != nil {
 			return fmt.Errorf("error writing ivr response for resume: %w", err)
 		}

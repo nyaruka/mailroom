@@ -12,7 +12,7 @@ import (
 )
 
 // ResumeFlow resumes the passed in session using the passed in session
-func ResumeFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, session *models.Session, contact *models.Contact, resume flows.Resume, sceneInit func(*Scene)) (*models.Session, error) {
+func ResumeFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, session *models.Session, contact *models.Contact, resume flows.Resume, sceneInit func(*Scene)) (*Scene, error) {
 	start := time.Now()
 	sa := oa.SessionAssets()
 
@@ -90,5 +90,5 @@ func ResumeFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, 
 
 	slog.Debug("resumed session", "contact", resume.Contact().UUID(), "session", session.UUID(), "resume_type", resume.Type(), "elapsed", time.Since(start))
 
-	return session, nil
+	return scene, nil
 }

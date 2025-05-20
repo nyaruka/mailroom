@@ -13,6 +13,7 @@ import (
 	"github.com/nyaruka/gocommon/httpx"
 	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/goflow/assets"
+	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/core/ivr"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/tasks/handler/ctasks"
@@ -137,16 +138,16 @@ func handleIncoming(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 		Extra:     nil,
 		CreatedOn: time.Now(),
 	}
-	session, err := task.Handle(ctx, rt, oa, contact, call)
+	scene, err := task.Handle(ctx, rt, oa, contact, call)
 	if err != nil {
 		slog.Error("error handling incoming call", "error", err, "http_request", r)
 		return call, svc.WriteErrorResponse(w, fmt.Errorf("error handling incoming call: %w", err))
 	}
 
 	// if we matched with an incoming-call trigger, we'll have a session
-	if session != nil {
+	if scene != nil {
 		// that might have started a non-voice flow, in which case we need to reject this call
-		if session.SessionType() != models.FlowTypeVoice {
+		if scene.Session().Type() != flows.FlowTypeVoice {
 			return call, svc.WriteRejectResponse(w)
 		}
 
@@ -154,7 +155,7 @@ func handleIncoming(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 		resumeURL := buildResumeURL(rt.Config, ch, call, urn)
 
 		// have our client output our session status
-		err = svc.WriteSessionResponse(ctx, rt, oa, ch, call, session, urn, resumeURL, r, w)
+		err = svc.WriteSessionResponse(ctx, rt, oa, ch, scene, urn, resumeURL, r, w)
 		if err != nil {
 			return call, fmt.Errorf("error writing ivr response for start: %w", err)
 		}

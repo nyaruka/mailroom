@@ -54,11 +54,11 @@ func (t *EventReceivedTask) Perform(ctx context.Context, rt *runtime.Runtime, oa
 
 // Handle let's us reuse this task's code for handling incoming calls.. which we need to perform inline in the IVR web
 // handler rather than as a queued task.
-func (t *EventReceivedTask) Handle(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, mc *models.Contact, call *models.Call) (*models.Session, error) {
+func (t *EventReceivedTask) Handle(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, mc *models.Contact, call *models.Call) (*runner.Scene, error) {
 	return t.handle(ctx, rt, oa, mc, call)
 }
 
-func (t *EventReceivedTask) handle(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, mc *models.Contact, call *models.Call) (*models.Session, error) {
+func (t *EventReceivedTask) handle(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, mc *models.Contact, call *models.Call) (*runner.Scene, error) {
 	channel := oa.ChannelByID(t.ChannelID)
 
 	// if contact is blocked or channel no longer exists, nothing to do
@@ -187,13 +187,13 @@ func (t *EventReceivedTask) handle(ctx context.Context, rt *runtime.Runtime, oa 
 
 	sceneInit := func(s *runner.Scene) { s.Call = call }
 
-	sessions, err := runner.StartSessions(ctx, rt, oa, []*models.Contact{mc}, []flows.Trigger{trig}, flow.FlowType().Interrupts(), models.NilStartID, sceneInit)
+	scenes, err := runner.StartSessions(ctx, rt, oa, []*models.Contact{mc}, []flows.Trigger{trig}, flow.FlowType().Interrupts(), models.NilStartID, sceneInit)
 	if err != nil {
 		return nil, fmt.Errorf("error starting flow for contact: %w", err)
 	}
-	if len(sessions) == 0 {
+	if len(scenes) == 0 {
 		return nil, nil
 	}
 
-	return sessions[0], nil
+	return scenes[0], nil
 }
