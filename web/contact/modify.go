@@ -13,6 +13,7 @@ import (
 	"github.com/nyaruka/mailroom/core/goflow"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/runner"
+	"github.com/nyaruka/mailroom/core/runner/clocks"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/mailroom/web"
 )
@@ -108,14 +109,14 @@ func handleModify(ctx context.Context, rt *runtime.Runtime, r *modifyRequest) (a
 }
 
 func tryToLockAndModify(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, ids []models.ContactID, mods []flows.Modifier, userID models.UserID) (map[*flows.Contact][]flows.Event, []models.ContactID, error) {
-	locks, skipped, err := models.LockContacts(ctx, rt, oa.OrgID(), ids, time.Second)
+	locks, skipped, err := clocks.TryToLock(ctx, rt, oa, ids, time.Second)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	locked := slices.Collect(maps.Keys(locks))
 
-	defer models.UnlockContacts(rt, oa.OrgID(), locks)
+	defer clocks.Unlock(rt, oa.OrgID(), locks)
 
 	// load our contacts
 	contacts, err := models.LoadContacts(ctx, rt.DB, oa, locked)

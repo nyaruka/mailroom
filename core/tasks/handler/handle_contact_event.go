@@ -12,6 +12,7 @@ import (
 	"github.com/nyaruka/gocommon/dbutil"
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/mailroom/core/models"
+	"github.com/nyaruka/mailroom/core/runner/clocks"
 	"github.com/nyaruka/mailroom/core/tasks"
 	"github.com/nyaruka/mailroom/core/tasks/starts"
 	"github.com/nyaruka/mailroom/runtime"
@@ -46,7 +47,7 @@ func (t *HandleContactEventTask) WithAssets() models.Refresh {
 // this task ingests and handles all the events for a contact, one by one.
 func (t *HandleContactEventTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets) error {
 	// try to get the lock for this contact, waiting up to 10 seconds
-	locks, _, err := models.LockContacts(ctx, rt, oa.OrgID(), []models.ContactID{t.ContactID}, time.Second*10)
+	locks, _, err := clocks.TryToLock(ctx, rt, oa, []models.ContactID{t.ContactID}, time.Second*10)
 	if err != nil {
 		return fmt.Errorf("error acquiring lock for contact %d: %w", t.ContactID, err)
 	}
@@ -63,7 +64,7 @@ func (t *HandleContactEventTask) Perform(ctx context.Context, rt *runtime.Runtim
 		return nil
 	}
 
-	defer models.UnlockContacts(rt, oa.OrgID(), locks)
+	defer clocks.Unlock(rt, oa.OrgID(), locks)
 
 	// read all the events for this contact, one by one
 	contactQ := fmt.Sprintf("c:%d:%d", oa.OrgID(), t.ContactID)
