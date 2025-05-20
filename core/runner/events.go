@@ -50,7 +50,7 @@ func newSprintEndedEvent(c *models.Contact, resumed bool) *SprintEndedEvent {
 type Scene struct {
 	contact *flows.Contact
 	session flows.Session
-	Sprint  flows.Sprint
+	sprint  flows.Sprint
 	userID  models.UserID
 
 	Call        *models.Call
@@ -75,7 +75,7 @@ func newScene(contact *flows.Contact, session flows.Session, sprint flows.Sprint
 	s := &Scene{
 		contact: contact,
 		session: session,
-		Sprint:  sprint,
+		sprint:  sprint,
 		userID:  userID,
 
 		preCommits:  make(map[PreCommitHook][]any),
@@ -87,7 +87,14 @@ func newScene(contact *flows.Contact, session flows.Session, sprint flows.Sprint
 	return s
 }
 
-// SessionUUID returns the session UUID for this scene if any
+func (s *Scene) Contact() *flows.Contact        { return s.contact }
+func (s *Scene) ContactID() models.ContactID    { return models.ContactID(s.contact.ID()) }
+func (s *Scene) ContactUUID() flows.ContactUUID { return s.contact.UUID() }
+func (s *Scene) Session() flows.Session         { return s.session }
+func (s *Scene) Sprint() flows.Sprint           { return s.sprint }
+func (s *Scene) UserID() models.UserID          { return s.userID }
+
+// SessionUUID is a convenience utility to get the session UUID for this scene if any
 func (s *Scene) SessionUUID() flows.SessionUUID {
 	if s.session == nil {
 		return ""
@@ -95,19 +102,13 @@ func (s *Scene) SessionUUID() flows.SessionUUID {
 	return s.session.UUID()
 }
 
-// SprintUUID returns the sprint UUID for this scene if any
+// SprintUUID is a convenience utility to get the sprint UUID for this scene if any
 func (s *Scene) SprintUUID() flows.SprintUUID {
-	if s.Sprint == nil {
+	if s.sprint == nil {
 		return ""
 	}
-	return s.Sprint.UUID()
+	return s.sprint.UUID()
 }
-
-func (s *Scene) Contact() *flows.Contact        { return s.contact }
-func (s *Scene) ContactID() models.ContactID    { return models.ContactID(s.contact.ID()) }
-func (s *Scene) ContactUUID() flows.ContactUUID { return s.contact.UUID() }
-func (s *Scene) Session() flows.Session         { return s.session }
-func (s *Scene) UserID() models.UserID          { return s.userID }
 
 // LocateEvent finds the flow and node UUID for an event belonging to this session
 func (s *Scene) LocateEvent(e flows.Event) (*models.Flow, flows.NodeUUID) {

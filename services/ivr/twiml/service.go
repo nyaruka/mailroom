@@ -398,7 +398,7 @@ func (s *service) WriteSessionResponse(ctx context.Context, rt *runtime.Runtime,
 	}
 
 	// get our response
-	response, err := ResponseForSprint(rt, oa.Env(), number, resumeURL, scene.Sprint.Events(), true)
+	response, err := ResponseForSprint(rt, oa.Env(), number, resumeURL, scene.Sprint().Events(), true)
 	if err != nil {
 		return fmt.Errorf("unable to build response for IVR call: %w", err)
 	}
