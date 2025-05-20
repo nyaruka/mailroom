@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/buger/jsonparser"
+	"github.com/jmoiron/sqlx"
 	"github.com/nyaruka/gocommon/stringsx"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/events"
@@ -34,8 +35,8 @@ INSERT INTO flows_flowactivitycount( flow_id,  scope,  count,  is_squashed)
 `
 
 // InsertFlowActivityCounts inserts the given flow activity counts into the database
-func InsertFlowActivityCounts(ctx context.Context, db DBorTx, counts []*FlowActivityCount) error {
-	return BulkQuery(ctx, "insert flow activity counts", db, sqlInsertFlowActivityCount, counts)
+func InsertFlowActivityCounts(ctx context.Context, tx *sqlx.Tx, counts []*FlowActivityCount) error {
+	return BulkQuery(ctx, "insert flow activity counts", tx, sqlInsertFlowActivityCount, counts)
 }
 
 type FlowResultCount struct {
@@ -51,8 +52,8 @@ INSERT INTO flows_flowresultcount( flow_id,  result,  category,  count,  is_squa
 `
 
 // InsertFlowResultCounts inserts the given flow result counts into the database
-func InsertFlowResultCounts(ctx context.Context, db DBorTx, counts []*FlowResultCount) error {
-	return BulkQuery(ctx, "insert flow result counts", db, sqlInsertFlowResultCount, counts)
+func InsertFlowResultCounts(ctx context.Context, tx *sqlx.Tx, counts []*FlowResultCount) error {
+	return BulkQuery(ctx, "insert flow result counts", tx, sqlInsertFlowResultCount, counts)
 }
 
 type resultInfo struct {
@@ -75,7 +76,7 @@ type segmentRecentContact struct {
 }
 
 // RecordFlowStatistics records statistics from the given parallel slices of sessions and sprints
-func RecordFlowStatistics(ctx context.Context, rt *runtime.Runtime, db DBorTx, sessions []flows.Session, sprints []flows.Sprint) error {
+func RecordFlowStatistics(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, sessions []flows.Session, sprints []flows.Sprint) error {
 	countsBySegment := make(map[segmentInfo]int, 10)
 	recentBySegment := make(map[segmentInfo][]*segmentRecentContact, 10)
 	categoryChanges := make(map[resultInfo]int, 10)
@@ -131,7 +132,7 @@ func RecordFlowStatistics(ctx context.Context, rt *runtime.Runtime, db DBorTx, s
 		}
 	}
 
-	if err := InsertFlowActivityCounts(ctx, db, activityCounts); err != nil {
+	if err := InsertFlowActivityCounts(ctx, tx, activityCounts); err != nil {
 		return fmt.Errorf("error inserting flow activity counts: %w", err)
 	}
 
@@ -147,7 +148,7 @@ func RecordFlowStatistics(ctx context.Context, rt *runtime.Runtime, db DBorTx, s
 		}
 	}
 
-	if err := InsertFlowResultCounts(ctx, db, resultCounts); err != nil {
+	if err := InsertFlowResultCounts(ctx, tx, resultCounts); err != nil {
 		return fmt.Errorf("error inserting flow result counts: %w", err)
 	}
 

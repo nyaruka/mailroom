@@ -40,8 +40,11 @@ func TestRecordFlowStatistics(t *testing.T) {
 	sa3, session3, session3Sprint1 := test.NewSessionBuilder().WithAssets(oa.SessionAssets()).WithFlow(flow.UUID).
 		WithContact("367c8ef2-aac7-4264-9a03-40877371995d", 345, "Jim", "eng", "").MustBuild()
 
-	err = models.RecordFlowStatistics(ctx, rt, rt.DB, []flows.Session{session1, session2, session3}, []flows.Sprint{session1Sprint1, session2Sprint1, session3Sprint1})
+	tx := rt.DB.MustBeginTx(ctx, nil)
+
+	err = models.RecordFlowStatistics(ctx, rt, tx, []flows.Session{session1, session2, session3}, []flows.Sprint{session1Sprint1, session2Sprint1, session3Sprint1})
 	require.NoError(t, err)
+	require.NoError(t, tx.Commit())
 
 	// should have a single record of all 3 contacts going through the first segment
 	var activityCounts []*models.FlowActivityCount
@@ -72,8 +75,11 @@ func TestRecordFlowStatistics(t *testing.T) {
 	session3, session3Sprint2, err := test.ResumeSession(session3, sa3, "teal")
 	require.NoError(t, err)
 
-	err = models.RecordFlowStatistics(ctx, rt, rt.DB, []flows.Session{session1, session2, session3}, []flows.Sprint{session1Sprint2, session2Sprint2, session3Sprint2})
+	tx = rt.DB.MustBeginTx(ctx, nil)
+
+	err = models.RecordFlowStatistics(ctx, rt, tx, []flows.Session{session1, session2, session3}, []flows.Sprint{session1Sprint2, session2Sprint2, session3Sprint2})
 	require.NoError(t, err)
+	require.NoError(t, tx.Commit())
 
 	assertFlowActivityCounts(t, rt, flow.ID, map[string]int{
 		"segment:5fd2e537-0534-4c12-8425-bef87af09d46:072b95b3-61c3-4e0e-8dd1-eb7481083f94": 3, // "what's your fav color" -> color split
@@ -89,8 +95,11 @@ func TestRecordFlowStatistics(t *testing.T) {
 	_, session3Sprint3, err := test.ResumeSession(session3, sa3, "azure")
 	require.NoError(t, err)
 
-	err = models.RecordFlowStatistics(ctx, rt, rt.DB, []flows.Session{session3}, []flows.Sprint{session3Sprint3})
+	tx = rt.DB.MustBeginTx(ctx, nil)
+
+	err = models.RecordFlowStatistics(ctx, rt, tx, []flows.Session{session3}, []flows.Sprint{session3Sprint3})
 	require.NoError(t, err)
+	require.NoError(t, tx.Commit())
 
 	assertFlowActivityCounts(t, rt, flow.ID, map[string]int{
 		"segment:5fd2e537-0534-4c12-8425-bef87af09d46:072b95b3-61c3-4e0e-8dd1-eb7481083f94": 3, // "what's your fav color" -> color split
@@ -132,8 +141,11 @@ func TestRecordFlowStatistics(t *testing.T) {
 	_, session3Sprint4, err := test.ResumeSession(session3, sa3, "blue")
 	require.NoError(t, err)
 
-	err = models.RecordFlowStatistics(ctx, rt, rt.DB, []flows.Session{session3}, []flows.Sprint{session3Sprint4})
+	tx = rt.DB.MustBeginTx(ctx, nil)
+
+	err = models.RecordFlowStatistics(ctx, rt, tx, []flows.Session{session3}, []flows.Sprint{session3Sprint4})
 	require.NoError(t, err)
+	require.NoError(t, tx.Commit())
 
 	assertFlowResultCounts(t, rt, flow.ID, map[string]int{"color/Blue": 3, "color/Other": 0})
 }
