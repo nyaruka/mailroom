@@ -22,9 +22,7 @@ import (
 	"github.com/nyaruka/goflow/envs"
 	"github.com/nyaruka/goflow/excellent/types"
 	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/null/v3"
-	"github.com/nyaruka/redisx"
 )
 
 // URNID is our type for urn ids, which can be null
@@ -1410,65 +1408,3 @@ FROM (
 WHERE
 	c.id = r.id::int
 `
-
-// LockContacts tries to grab locks for the given contacts, returning the locks and the skipped contacts
-func LockContacts(ctx context.Context, rt *runtime.Runtime, orgID OrgID, ids []ContactID, retry time.Duration) (map[ContactID]string, []ContactID, error) {
-	locks := make(map[ContactID]string, len(ids))
-	skipped := make([]ContactID, 0, 5)
-
-	// this is set to true at the end of the function so the defer calls won't release the locks unless we're returning
-	// early due to an error
-	success := false
-
-	for _, contactID := range ids {
-		// error if context has finished before we have
-		select {
-		case <-ctx.Done():
-			return nil, nil, ctx.Err()
-		default:
-		}
-
-		locker := getContactLocker(orgID, contactID)
-
-		lock, err := locker.Grab(rt.RP, retry)
-		if err != nil {
-			return nil, nil, fmt.Errorf("error attempting to grab lock: %w", err)
-		}
-
-		// no error but we didn't get the lock
-		if lock == "" {
-			skipped = append(skipped, contactID)
-			continue
-		}
-
-		locks[contactID] = lock
-
-		// if we error we want to release all locks on way out
-		defer func() {
-			if !success {
-				locker.Release(rt.RP, lock)
-			}
-		}()
-	}
-
-	success = true
-	return locks, skipped, nil
-}
-
-// UnlockContacts unlocks the given contacts using the given lock values
-func UnlockContacts(rt *runtime.Runtime, orgID OrgID, locks map[ContactID]string) error {
-	for contactID, lock := range locks {
-		locker := getContactLocker(orgID, contactID)
-
-		err := locker.Release(rt.RP, lock)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-// returns the locker for a particular contact
-func getContactLocker(orgID OrgID, contactID ContactID) *redisx.Locker {
-	return redisx.NewLocker(fmt.Sprintf("lock:c:%d:%d", orgID, contactID), time.Minute*5)
-}

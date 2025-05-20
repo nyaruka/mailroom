@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/nyaruka/mailroom/core/models"
+	"github.com/nyaruka/mailroom/core/runner/clocks"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/mailroom/web"
 )
@@ -68,14 +69,14 @@ func handleReopen(ctx context.Context, rt *runtime.Runtime, r *http.Request) (an
 }
 
 func tryToLockAndReopen(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, tickets map[models.ContactID]*models.Ticket, userID models.UserID) (map[*models.Ticket]*models.TicketEvent, map[models.ContactID]*models.Ticket, error) {
-	locks, skipped, err := models.LockContacts(ctx, rt, oa.OrgID(), slices.Collect(maps.Keys(tickets)), time.Second)
+	locks, skipped, err := clocks.TryToLock(ctx, rt, oa, slices.Collect(maps.Keys(tickets)), time.Second)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	locked := slices.Collect(maps.Keys(locks))
 
-	defer models.UnlockContacts(rt, oa.OrgID(), locks)
+	defer clocks.Unlock(rt, oa.OrgID(), locks)
 
 	// load our contacts
 	contacts, err := models.LoadContacts(ctx, rt.DB, oa, locked)

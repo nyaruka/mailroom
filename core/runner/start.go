@@ -14,6 +14,7 @@ import (
 	"github.com/nyaruka/goflow/flows/triggers"
 	"github.com/nyaruka/mailroom/core/goflow"
 	"github.com/nyaruka/mailroom/core/models"
+	"github.com/nyaruka/mailroom/core/runner/clocks"
 	"github.com/nyaruka/mailroom/runtime"
 )
 
@@ -150,14 +151,14 @@ func StartWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsset
 // couldn't get their locks
 func tryToStartWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, ids []models.ContactID, options *StartOptions, startID models.StartID, sceneInit func(*Scene)) ([]*models.Session, []models.ContactID, error) {
 	// try to get locks for these contacts, waiting for up to a second for each contact
-	locks, skipped, err := models.LockContacts(ctx, rt, oa.OrgID(), ids, time.Second)
+	locks, skipped, err := clocks.TryToLock(ctx, rt, oa, ids, time.Second)
 	if err != nil {
 		return nil, nil, err
 	}
 	locked := slices.Collect(maps.Keys(locks))
 
 	// whatever happens, we need to unlock the contacts
-	defer models.UnlockContacts(rt, oa.OrgID(), locks)
+	defer clocks.Unlock(rt, oa.OrgID(), locks)
 
 	// load our locked contacts
 	contacts, err := models.LoadContacts(ctx, rt.ReadonlyDB, oa, locked)

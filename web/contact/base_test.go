@@ -9,6 +9,7 @@ import (
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/envs"
 	"github.com/nyaruka/mailroom/core/models"
+	"github.com/nyaruka/mailroom/core/runner/clocks"
 	_ "github.com/nyaruka/mailroom/core/runner/handlers"
 	"github.com/nyaruka/mailroom/testsuite"
 	"github.com/nyaruka/mailroom/testsuite/testdata"
@@ -66,6 +67,8 @@ func TestModify(t *testing.T) {
 
 	defer testsuite.Reset(testsuite.ResetAll)
 
+	oa := testdata.Org1.Load(rt)
+
 	// to be deterministic, update the creation date on cathy
 	rt.DB.MustExec(`UPDATE contacts_contact SET created_on = $1 WHERE id = $2`, time.Date(2018, 7, 6, 12, 30, 0, 123456789, time.UTC), testdata.Cathy.ID)
 
@@ -84,7 +87,7 @@ func TestModify(t *testing.T) {
 	models.FlushCache()
 
 	// lock a contact to test skipping them
-	models.LockContacts(ctx, rt, testdata.Org1.ID, []models.ContactID{testdata.Alexandria.ID}, time.Second)
+	clocks.TryToLock(ctx, rt, oa, []models.ContactID{testdata.Alexandria.ID}, time.Second)
 
 	testsuite.RunWebTests(t, ctx, rt, "testdata/modify.json", nil)
 }
