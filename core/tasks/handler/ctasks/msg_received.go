@@ -184,18 +184,18 @@ func (t *MsgReceivedTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *
 			if keyword != "" {
 				tb = tb.WithMatch(&triggers.KeywordMatch{Type: trigger.KeywordMatchType(), Keyword: keyword})
 			}
-			trigger := tb.Build()
+			flowTrigger := tb.Build()
 
 			// if this is a voice flow, we request a call and wait for callback
 			if flow.FlowType() == models.FlowTypeVoice {
-				if _, err := ivr.RequestCall(ctx, rt, oa, mc, trigger); err != nil {
+				if _, err := ivr.RequestCall(ctx, rt, oa, mc, flowTrigger); err != nil {
 					return fmt.Errorf("error starting voice flow for contact: %w", err)
 				}
 
-				return t.markMsgHandled(ctx, rt.DB, flow, attachments, ticket, logUUIDs)
+				return t.handleNonFlow(ctx, rt, oa, fc, msgIn, sceneInit)
 			}
 
-			_, err = runner.StartSessions(ctx, rt, oa, []*models.Contact{mc}, []flows.Trigger{trigger}, flow.FlowType().Interrupts(), models.NilStartID, sceneInit)
+			_, err = runner.StartSessions(ctx, rt, oa, []*models.Contact{mc}, []flows.Trigger{flowTrigger}, flow.FlowType().Interrupts(), models.NilStartID, sceneInit)
 			if err != nil {
 				return fmt.Errorf("error starting flow for contact: %w", err)
 			}
@@ -229,23 +229,6 @@ func (t *MsgReceivedTask) handleNonFlow(ctx context.Context, rt *runtime.Runtime
 	err := runner.ProcessEvents(ctx, rt, oa, models.NilUserID, contactEvents, sceneInit)
 	if err != nil {
 		return fmt.Errorf("error handling non-flow message events: %w", err)
-	}
-
-	return nil
-}
-
-// TODO remove once IVR triggering handles messages via events
-func (t *MsgReceivedTask) markMsgHandled(ctx context.Context, db models.DBorTx, flow *models.Flow, attachments []utils.Attachment, ticket *models.Ticket, logUUIDs []clogs.UUID) error {
-	err := models.MarkMessageHandled(ctx, db, t.MsgID, models.MsgStatusHandled, models.VisibilityVisible, flow, ticket, attachments, logUUIDs)
-	if err != nil {
-		return fmt.Errorf("error marking message as handled: %w", err)
-	}
-
-	if ticket != nil {
-		err = models.UpdateTicketLastActivity(ctx, db, []*models.Ticket{ticket})
-		if err != nil {
-			return fmt.Errorf("error updating last activity for open ticket: %w", err)
-		}
 	}
 
 	return nil
