@@ -25,6 +25,7 @@ import (
 	"github.com/nyaruka/goflow/utils"
 	"github.com/nyaruka/mailroom/core/ivr"
 	"github.com/nyaruka/mailroom/core/models"
+	"github.com/nyaruka/mailroom/core/runner"
 	"github.com/nyaruka/mailroom/runtime"
 )
 
@@ -411,20 +412,14 @@ func (s *service) WriteRejectResponse(w http.ResponseWriter) error {
 }
 
 // WriteSessionResponse implements ivr.Service.
-func (s *service) WriteSessionResponse(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, channel *models.Channel, call *models.Call, session *models.Session, number urns.URN, resumeURL string, req *http.Request, w http.ResponseWriter) error {
+func (s *service) WriteSessionResponse(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, channel *models.Channel, scene *runner.Scene, number urns.URN, resumeURL string, req *http.Request, w http.ResponseWriter) error {
 	// for errored sessions we should just output our error body
-	if session.Status() == models.SessionStatusFailed {
+	if scene.Session().Status() == flows.SessionStatusFailed {
 		return fmt.Errorf("cannot write IVR response for failed session")
 	}
 
-	// otherwise look for any say events
-	sprint := session.Sprint()
-	if sprint == nil {
-		return fmt.Errorf("cannot write IVR response for session with no sprint")
-	}
-
 	// get our response
-	response, err := ResponseForSprint(rt, oa.Env(), number, resumeURL, sprint.Events(), true)
+	response, err := ResponseForSprint(rt, oa.Env(), number, resumeURL, scene.Sprint.Events(), true)
 	if err != nil {
 		return fmt.Errorf("unable to build response for IVR call: %w", err)
 	}

@@ -8,6 +8,7 @@ import (
 	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/mailroom/core/ivr"
 	"github.com/nyaruka/mailroom/core/models"
+	"github.com/nyaruka/mailroom/core/runner"
 	"github.com/nyaruka/mailroom/runtime"
 )
 
@@ -30,7 +31,7 @@ func (s *MockIVRService) HangupCall(externalID string) (*httpx.Trace, error) {
 	return nil, nil
 }
 
-func (s *MockIVRService) WriteSessionResponse(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, channel *models.Channel, call *models.Call, session *models.Session, number urns.URN, resumeURL string, req *http.Request, w http.ResponseWriter) error {
+func (s *MockIVRService) WriteSessionResponse(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, channel *models.Channel, scene *runner.Scene, number urns.URN, resumeURL string, req *http.Request, w http.ResponseWriter) error {
 	return nil
 }
 

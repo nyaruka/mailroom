@@ -20,9 +20,6 @@ func TestResume(t *testing.T) {
 
 	defer testsuite.Reset(testsuite.ResetData | testsuite.ResetStorage)
 
-	// write sessions to s3 storage
-	rt.Config.SessionStorage = "s3"
-
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdata.Org1.ID, models.RefreshOrg)
 	require.NoError(t, err)
 
@@ -32,13 +29,13 @@ func TestResume(t *testing.T) {
 	modelContact, flowContact, _ := testdata.Cathy.Load(rt, oa)
 
 	trigger := triggers.NewBuilder(oa.Env(), flow.Reference(), flowContact).Manual().Build()
-	sessions, err := runner.StartSessions(ctx, rt, oa, []*models.Contact{modelContact}, []flows.Trigger{trigger}, true, models.NilStartID, nil)
+	scenes, err := runner.StartSessions(ctx, rt, oa, []*models.Contact{modelContact}, []flows.Trigger{trigger}, true, models.NilStartID, nil)
 	assert.NoError(t, err)
-	assert.NotNil(t, sessions)
+	assert.Len(t, scenes, 1)
 
 	assertdb.Query(t, rt.DB,
 		`SELECT count(*) FROM flows_flowsession WHERE contact_id = $1 AND current_flow_id = $2
-		 AND status = 'W' AND call_id IS NULL AND output IS NULL`, modelContact.ID(), flow.ID()).Returns(1)
+		 AND status = 'W' AND call_id IS NULL AND output IS NOT NULL`, modelContact.ID(), flow.ID()).Returns(1)
 
 	assertdb.Query(t, rt.DB,
 		`SELECT count(*) FROM flows_flowrun WHERE contact_id = $1 AND flow_id = $2
@@ -58,19 +55,23 @@ func TestResume(t *testing.T) {
 		{"Luke", models.SessionStatusCompleted, models.RunStatusCompleted, "%Thanks Luke%", 7},
 	}
 
-	session := sessions[0]
+	sessionUUID := scenes[0].Session().UUID()
+
 	for i, tc := range tcs {
+		session, err := models.GetWaitingSessionForContact(ctx, rt, oa, flowContact, sessionUUID)
+		require.NoError(t, err, "%d: error getting waiting session", i)
+
 		// answer our first question
 		msg := flows.NewMsgIn(flows.NewMsgUUID(), testdata.Cathy.URN, nil, tc.Message, nil, "")
 		resume := resumes.NewMsg(oa.Env(), flowContact, msg)
 
-		session, err = runner.ResumeFlow(ctx, rt, oa, session, modelContact, resume, nil)
+		scene, err := runner.ResumeFlow(ctx, rt, oa, session, modelContact, resume, nil)
 		assert.NoError(t, err)
-		assert.NotNil(t, session)
+		assert.NotNil(t, scene)
 
 		assertdb.Query(t, rt.DB,
 			`SELECT count(*) FROM flows_flowsession WHERE contact_id = $1
-			 AND status = $2 AND call_id IS NULL AND output IS NULL AND output_url IS NOT NULL`, modelContact.ID(), tc.SessionStatus).
+			 AND status = $2 AND call_id IS NULL AND output IS NOT NULL AND output_url IS NULL`, modelContact.ID(), tc.SessionStatus).
 			Returns(1, "%d: didn't find expected session", i)
 
 		runQuery := `SELECT count(*) FROM flows_flowrun WHERE contact_id = $1 AND flow_id = $2
