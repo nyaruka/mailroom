@@ -91,15 +91,13 @@ func TestStartFlowConcurrency(t *testing.T) {
 		contacts[i] = testdata.InsertContact(rt, testdata.Org1, flows.NewContactUUID(), "Jim", i18n.NilLanguage, models.ContactStatusActive)
 	}
 
-	options := &runner.StartOptions{
-		TriggerBuilder: func(contact *flows.Contact) flows.Trigger {
-			return triggers.NewBuilder(oa.Env(), flowRef, contact).Manual().Build()
-		},
+	triggerBuilder := func(contact *flows.Contact) flows.Trigger {
+		return triggers.NewBuilder(oa.Env(), flowRef, contact).Manual().Build()
 	}
 
 	// start each contact in the flow at the same time...
 	test.RunConcurrently(len(contacts), func(i int) {
-		sessions, err := runner.StartWithLock(ctx, rt, oa, []models.ContactID{contacts[i].ID}, options, models.NilStartID, nil)
+		sessions, err := runner.StartWithLock(ctx, rt, oa, []models.ContactID{contacts[i].ID}, triggerBuilder, false, models.NilStartID, nil)
 		assert.NoError(t, err)
 		assert.Equal(t, 1, len(sessions))
 	})
