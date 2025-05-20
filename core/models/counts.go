@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/jmoiron/sqlx"
 	"github.com/nyaruka/gocommon/dates"
 )
 
@@ -26,4 +27,34 @@ func InsertDailyCounts(ctx context.Context, tx DBorTx, oa *OrgAssets, when time.
 	}
 
 	return BulkQuery(ctx, "inserted daily counts", tx, sqlInsertDailyCount, counts)
+}
+
+type FlowActivityCount struct {
+	FlowID FlowID `db:"flow_id"`
+	Scope  string `db:"scope"`
+	Count  int    `db:"count"`
+}
+
+const sqlInsertFlowActivityCount = `INSERT INTO flows_flowactivitycount(flow_id, scope, count, is_squashed) VALUES(:flow_id, :scope, :count, FALSE)`
+
+// InsertFlowActivityCounts inserts the given flow activity counts into the database
+func InsertFlowActivityCounts(ctx context.Context, tx *sqlx.Tx, counts []*FlowActivityCount) error {
+	return BulkQuery(ctx, "insert flow activity counts", tx, sqlInsertFlowActivityCount, counts)
+}
+
+type FlowResultCount struct {
+	FlowID   FlowID `db:"flow_id"`
+	Result   string `db:"result"`
+	Category string `db:"category"`
+	Count    int    `db:"count"`
+}
+
+const sqlInsertFlowResultCount = `
+INSERT INTO flows_flowresultcount( flow_id,  result,  category,  count,  is_squashed)
+                           VALUES(:flow_id, :result, :category, :count,        FALSE)
+`
+
+// InsertFlowResultCounts inserts the given flow result counts into the database
+func InsertFlowResultCounts(ctx context.Context, tx *sqlx.Tx, counts []*FlowResultCount) error {
+	return BulkQuery(ctx, "insert flow result counts", tx, sqlInsertFlowResultCount, counts)
 }

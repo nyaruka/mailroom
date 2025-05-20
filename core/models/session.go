@@ -325,10 +325,6 @@ func (s *Session) Update(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, 
 		return 0, fmt.Errorf("error inserting new runs: %w", err)
 	}
 
-	if err := RecordFlowStatistics(ctx, rt, tx, []flows.Session{fs}, []flows.Sprint{sprint}); err != nil {
-		return 0, fmt.Errorf("error saving flow statistics: %w", err)
-	}
-
 	return timeout, nil
 }
 
@@ -514,10 +510,6 @@ func InsertSessions(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *O
 	// insert all our contact fires
 	if err := InsertContactFires(ctx, tx, fires); err != nil {
 		return nil, nil, fmt.Errorf("error inserting session contact fires: %w", err)
-	}
-
-	if err := RecordFlowStatistics(ctx, rt, tx, ss, sprints); err != nil {
-		return nil, nil, fmt.Errorf("error saving flow statistics: %w", err)
 	}
 
 	// return our session
