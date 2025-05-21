@@ -362,7 +362,7 @@ func NewSession(ctx context.Context, tx *sqlx.Tx, oa *OrgAssets, fs flows.Sessio
 	s.Output = null.String(output)
 	s.ContactID = ContactID(fs.Contact().ID())
 	s.CallID = callID
-	s.CreatedOn = fs.Runs()[0].CreatedOn()
+	s.CreatedOn = fs.CreatedOn()
 
 	if s.Status != SessionStatusWaiting {
 		now := time.Now()
