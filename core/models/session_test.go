@@ -64,8 +64,8 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 		})
 
 	testsuite.AssertContactFires(t, rt, testdata.Bob.ID, map[string]time.Time{
-		fmt.Sprintf("T:%s", modelSessions[0].UUID()): time.Date(2025, 2, 25, 16, 50, 11, 0, time.UTC), // 5 minutes in future
-		fmt.Sprintf("E:%s", modelSessions[0].UUID()): time.Date(2025, 2, 25, 16, 55, 7, 0, time.UTC),  // 10 minutes in future
+		fmt.Sprintf("T:%s", modelSessions[0].UUID()): time.Date(2025, 2, 25, 16, 50, 12, 0, time.UTC), // 5 minutes in future
+		fmt.Sprintf("E:%s", modelSessions[0].UUID()): time.Date(2025, 2, 25, 16, 55, 8, 0, time.UTC),  // 10 minutes in future
 		fmt.Sprintf("S:%s", modelSessions[0].UUID()): time.Date(2025, 3, 28, 9, 55, 36, 0, time.UTC),  // 30 days + rand(1 - 24 hours) in future
 	})
 
@@ -88,7 +88,7 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 
 	// check we have a new contact fire for wait expiration but not timeout (wait doesn't have a timeout)
 	testsuite.AssertContactFires(t, rt, testdata.Bob.ID, map[string]time.Time{
-		fmt.Sprintf("E:%s", modelSessions[0].UUID()): time.Date(2025, 2, 25, 16, 55, 26, 0, time.UTC), // updated
+		fmt.Sprintf("E:%s", modelSessions[0].UUID()): time.Date(2025, 2, 25, 16, 55, 27, 0, time.UTC), // updated
 		fmt.Sprintf("S:%s", modelSessions[0].UUID()): time.Date(2025, 3, 28, 9, 55, 36, 0, time.UTC),  // unchanged
 	})
 
@@ -212,7 +212,7 @@ func TestSessionWithSubflows(t *testing.T) {
 
 	// check we have a contact fire for wait expiration but not timeout
 	testsuite.AssertContactFires(t, rt, testdata.Cathy.ID, map[string]time.Time{
-		fmt.Sprintf("E:%s", modelSessions[0].UUID()): time.Date(2025, 2, 25, 16, 55, 15, 0, time.UTC), // 10 minutes in future
+		fmt.Sprintf("E:%s", modelSessions[0].UUID()): time.Date(2025, 2, 25, 16, 55, 16, 0, time.UTC), // 10 minutes in future
 		fmt.Sprintf("S:%s", modelSessions[0].UUID()): time.Date(2025, 3, 28, 9, 55, 36, 0, time.UTC),  // 30 days + rand(1 - 24 hours) in future
 	})
 
