@@ -195,5 +195,13 @@ func (t *EventReceivedTask) handle(ctx context.Context, rt *runtime.Runtime, oa 
 		return nil, nil
 	}
 
+	// TODO move to hook?
+	// if we started a voice session, attach it to the call so it can be resumed later
+	if scenes[0].Session().Type() == flows.FlowTypeVoice && call != nil {
+		if err := call.SetInProgress(ctx, rt.DB, scenes[0].SessionUUID(), t.CreatedOn); err != nil {
+			return nil, fmt.Errorf("error updating call #%d to in progress: %w", call.ID(), err)
+		}
+	}
+
 	return scenes[0], nil
 }
