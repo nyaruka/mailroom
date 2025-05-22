@@ -14,6 +14,7 @@ import (
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/goflow/flows/routers/waits/hints"
+	"github.com/nyaruka/goflow/flows/triggers"
 	"github.com/nyaruka/mailroom/core/ivr"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/testsuite"
@@ -64,8 +65,12 @@ func TestResponseForSprint(t *testing.T) {
 
 	provider := p.(*service)
 
-	call, err := models.InsertCall(ctx, rt.DB, testdata.Org1.ID, testdata.VonageChannel.ID, models.NilStartID, testdata.Bob.ID, testdata.Bob.URNID, models.DirectionOut, models.CallStatusInProgress, "EX123")
-	require.NoError(t, err)
+	bob, _, bobURNs := testdata.Bob.Load(rt, oa)
+
+	trigger := triggers.NewBuilder(oa.Env(), testdata.Favorites.Reference(), nil).Manual().Build()
+	call := models.NewOutgoingCall(testdata.Org1.ID, oa.ChannelByUUID(testdata.VonageChannel.UUID), bob, bobURNs[0].ID, trigger)
+	err = models.InsertCalls(ctx, rt.DB, []*models.Call{call})
+	assert.NoError(t, err)
 
 	indentMarshal = false
 
