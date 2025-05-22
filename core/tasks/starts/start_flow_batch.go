@@ -146,7 +146,6 @@ func (t *StartFlowBatchTask) start(ctx context.Context, rt *runtime.Runtime, oa 
 	}
 
 	if flow.FlowType() == models.FlowTypeVoice {
-		// ok, we can initiate calls for the remaining contacts
 		contacts, err := models.LoadContacts(ctx, rt.ReadonlyDB, oa, t.ContactIDs)
 		if err != nil {
 			return fmt.Errorf("error loading contacts: %w", err)
@@ -155,17 +154,16 @@ func (t *StartFlowBatchTask) start(ctx context.Context, rt *runtime.Runtime, oa 
 		// for each contacts, request a call start
 		for _, contact := range contacts {
 			ctx, cancel := context.WithTimeout(ctx, time.Minute)
-			session, err := ivr.RequestCall(ctx, rt, oa, contact, triggerBuilder(nil))
+			call, err := ivr.RequestCall(ctx, rt, oa, contact, triggerBuilder(nil))
 			cancel()
 			if err != nil {
-				slog.Error(fmt.Sprintf("error starting ivr flow for contact: %d and flow: %d", contact.ID(), start.FlowID), "error", err)
+				slog.Error("error requesting call for flow start", "contact", contact.UUID(), "start_id", start.ID, "error", err)
 				continue
 			}
-			if session == nil {
-				slog.Debug("call start skipped, no suitable channel", "contact_id", contact.ID(), "start_id", start.ID)
+			if call == nil {
+				slog.Debug("call start skipped, no suitable channel", "contact", contact.UUID(), "start_id", start.ID)
 				continue
 			}
-			slog.Debug("requested call for contact", "contact_id", contact.ID(), "status", session.Status(), "start_id", start.ID, "external_id", session.ExternalID())
 		}
 	} else {
 		_, err := runner.StartWithLock(ctx, rt, oa, t.ContactIDs, triggerBuilder, flow.FlowType().Interrupts(), t.StartID, nil)
