@@ -1,3 +1,7 @@
+v10.1.125 (2025-05-22)
+-------------------------
+ * Support IVR retries for outgoing calls without starts
+
 v10.1.124 (2025-05-22)
 -------------------------
  * Update call status to in progress via sprint_ended handler+hook
