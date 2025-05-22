@@ -44,13 +44,8 @@ func newContactFire(orgID OrgID, contactID ContactID, typ ContactFireType, scope
 	}
 }
 
-func newContactFireForSession(orgID OrgID, s *Session, typ ContactFireType, fireOn time.Time) *ContactFire {
-	var sprintUUID flows.SprintUUID
-	if typ == ContactFireTypeWaitTimeout || typ == ContactFireTypeWaitExpiration {
-		sprintUUID = s.LastSprintUUID()
-	}
-
-	return newContactFire(orgID, s.ContactID(), typ, "", fireOn, s.UUID(), sprintUUID)
+func NewFireForSession(orgID OrgID, contactID ContactID, sessionUUID flows.SessionUUID, sprintUUID flows.SprintUUID, typ ContactFireType, fireOn time.Time) *ContactFire {
+	return newContactFire(orgID, contactID, typ, "", fireOn, sessionUUID, sprintUUID)
 }
 
 func NewContactFireForCampaign(orgID OrgID, contactID ContactID, ce *CampaignEvent, fireOn time.Time) *ContactFire {

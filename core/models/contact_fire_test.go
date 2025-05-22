@@ -78,12 +78,10 @@ func TestSessionContactFires(t *testing.T) {
 
 	tx := rt.DB.MustBegin()
 
-	modelSessions, timeouts, err := models.InsertSessions(ctx, rt, tx, oa, []flows.Session{flowSession1, flowSession2}, []flows.Sprint{sprint1, sprint2}, []*models.Contact{modelContact1, modelContact2}, []models.CallID{models.NilCallID, models.NilCallID}, models.NilStartID)
+	modelSessions, err := models.InsertSessions(ctx, rt, tx, oa, []flows.Session{flowSession1, flowSession2}, []flows.Sprint{sprint1, sprint2}, []*models.Contact{modelContact1, modelContact2}, []models.CallID{models.NilCallID, models.NilCallID}, models.NilStartID)
 	require.NoError(t, err)
 	require.NoError(t, tx.Commit())
 	assert.Len(t, modelSessions, 2)
-	assert.Len(t, timeouts, 2)
-	assert.Zero(t, timeouts[0])
 
 	assertdb.Query(t, rt.DB, `SELECT COUNT(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'T' AND session_uuid = $2`, testdata.Bob.ID, modelSessions[0].UUID()).Returns(1)
 	assertdb.Query(t, rt.DB, `SELECT COUNT(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'E' AND session_uuid = $2`, testdata.Bob.ID, modelSessions[0].UUID()).Returns(1)

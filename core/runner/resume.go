@@ -67,12 +67,10 @@ func ResumeFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, 
 	}
 
 	// write our updated session and runs
-	timeout, err := session.Update(txCTX, rt, tx, oa, fs, sprint, contact)
-	if err != nil {
+	if err := session.Update(txCTX, rt, tx, oa, fs, sprint, contact); err != nil {
 		tx.Rollback()
 		return nil, fmt.Errorf("error updating session for resume: %w", err)
 	}
-	scene.WaitTimeout = timeout
 
 	if err := ExecutePreCommitHooks(ctx, rt, tx, oa, []*Scene{scene}); err != nil {
 		return nil, fmt.Errorf("error applying pre commit hooks: %w", err)

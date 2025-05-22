@@ -41,7 +41,7 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 
 	tx := rt.DB.MustBegin()
 
-	modelSessions, timeouts, err := models.InsertSessions(ctx, rt, tx, oa, []flows.Session{flowSession}, []flows.Sprint{sprint1}, []*models.Contact{modelContact}, []models.CallID{models.NilCallID}, models.NilStartID)
+	modelSessions, err := models.InsertSessions(ctx, rt, tx, oa, []flows.Session{flowSession}, []flows.Sprint{sprint1}, []*models.Contact{modelContact}, []models.CallID{models.NilCallID}, models.NilStartID)
 	require.NoError(t, err)
 
 	require.NoError(t, tx.Commit())
@@ -55,7 +55,6 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 	assert.NotZero(t, session.CreatedOn())
 	assert.NotZero(t, session.LastSprintUUID())
 	assert.Nil(t, session.EndedOn())
-	assert.Zero(t, timeouts[0]) // not used because message doesn't have a channel
 
 	// check that matches what is in the db
 	assertdb.Query(t, rt.DB, `SELECT status, session_type, current_flow_id, ended_on FROM flows_flowsession`).
@@ -77,9 +76,8 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 
 	tx = rt.DB.MustBegin()
 
-	timeout, err := session.Update(ctx, rt, tx, oa, flowSession, sprint2, modelContact)
+	err = session.Update(ctx, rt, tx, oa, flowSession, sprint2, modelContact)
 	require.NoError(t, err)
-	assert.Zero(t, timeout)
 
 	require.NoError(t, tx.Commit())
 
@@ -100,9 +98,8 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 
 	tx = rt.DB.MustBegin()
 
-	timeout, err = session.Update(ctx, rt, tx, oa, flowSession, sprint3, modelContact)
+	err = session.Update(ctx, rt, tx, oa, flowSession, sprint3, modelContact)
 	require.NoError(t, err)
-	assert.Zero(t, timeout)
 
 	require.NoError(t, tx.Commit())
 
@@ -137,7 +134,7 @@ func TestSingleSprintSession(t *testing.T) {
 
 	tx := rt.DB.MustBegin()
 
-	modelSessions, timeouts, err := models.InsertSessions(ctx, rt, tx, oa, []flows.Session{flowSession}, []flows.Sprint{sprint1}, []*models.Contact{modelContact}, []models.CallID{models.NilCallID}, models.NilStartID)
+	modelSessions, err := models.InsertSessions(ctx, rt, tx, oa, []flows.Session{flowSession}, []flows.Sprint{sprint1}, []*models.Contact{modelContact}, []models.CallID{models.NilCallID}, models.NilStartID)
 	require.NoError(t, err)
 
 	require.NoError(t, tx.Commit())
@@ -150,7 +147,6 @@ func TestSingleSprintSession(t *testing.T) {
 	assert.Equal(t, models.NilFlowID, session.CurrentFlowID())
 	assert.NotZero(t, session.CreatedOn())
 	assert.NotNil(t, session.EndedOn())
-	assert.Zero(t, timeouts[0])
 
 	// check that matches what is in the db
 	assertdb.Query(t, rt.DB, `SELECT status, session_type, current_flow_id FROM flows_flowsession`).
@@ -185,7 +181,7 @@ func TestSessionWithSubflows(t *testing.T) {
 
 	tx := rt.DB.MustBegin()
 
-	modelSessions, timeouts, err := models.InsertSessions(ctx, rt, tx, oa, []flows.Session{flowSession}, []flows.Sprint{sprint1}, []*models.Contact{modelContact}, []models.CallID{models.NilCallID}, startID)
+	modelSessions, err := models.InsertSessions(ctx, rt, tx, oa, []flows.Session{flowSession}, []flows.Sprint{sprint1}, []*models.Contact{modelContact}, []models.CallID{models.NilCallID}, startID)
 	require.NoError(t, err)
 
 	require.NoError(t, tx.Commit())
@@ -198,7 +194,6 @@ func TestSessionWithSubflows(t *testing.T) {
 	assert.Equal(t, child.ID, session.CurrentFlowID())
 	assert.NotZero(t, session.CreatedOn())
 	assert.Nil(t, session.EndedOn())
-	assert.Zero(t, timeouts[0])
 
 	require.Len(t, session.Runs(), 2)
 	assert.Equal(t, startID, session.Runs()[0].StartID)
@@ -224,9 +219,8 @@ func TestSessionWithSubflows(t *testing.T) {
 
 	tx = rt.DB.MustBegin()
 
-	timeout, err := session.Update(ctx, rt, tx, oa, flowSession, sprint2, modelContact)
+	err = session.Update(ctx, rt, tx, oa, flowSession, sprint2, modelContact)
 	require.NoError(t, err)
-	assert.Zero(t, timeout)
 
 	require.NoError(t, tx.Commit())
 
@@ -260,7 +254,7 @@ func TestSessionFailedStart(t *testing.T) {
 
 	tx := rt.DB.MustBegin()
 
-	modelSessions, timeouts, err := models.InsertSessions(ctx, rt, tx, oa, []flows.Session{flowSession}, []flows.Sprint{sprint1}, []*models.Contact{modelContact}, []models.CallID{models.NilCallID}, models.NilStartID)
+	modelSessions, err := models.InsertSessions(ctx, rt, tx, oa, []flows.Session{flowSession}, []flows.Sprint{sprint1}, []*models.Contact{modelContact}, []models.CallID{models.NilCallID}, models.NilStartID)
 	require.NoError(t, err)
 
 	require.NoError(t, tx.Commit())
@@ -272,7 +266,6 @@ func TestSessionFailedStart(t *testing.T) {
 	assert.Equal(t, models.SessionStatusFailed, session.Status())
 	assert.Equal(t, models.NilFlowID, session.CurrentFlowID())
 	assert.NotNil(t, session.EndedOn())
-	assert.Zero(t, timeouts[0])
 
 	// check that matches what is in the db
 	assertdb.Query(t, rt.DB, `SELECT status, session_type, current_flow_id FROM flows_flowsession`).
