@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
+	"github.com/nyaruka/goflow/flows/triggers"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/testsuite"
 	"github.com/nyaruka/mailroom/testsuite/testdata"
@@ -28,19 +29,27 @@ func TestCalls(t *testing.T) {
 	assert.NotEqual(t, models.NilCallID, callIn1.ID())
 	assert.NotEqual(t, models.NilCallID, callIn2.ID())
 
-	assertdb.Query(t, rt.DB, `SELECT status, external_id from ivr_call where id = $1`, callIn1.ID()).Columns(map[string]any{"status": "I", "external_id": "EXT123"})
+	assertdb.Query(t, rt.DB, `SELECT direction, status, external_id from ivr_call where id = $1`, callIn1.ID()).Columns(map[string]any{"direction": "I", "status": "I", "external_id": "EXT123"})
 
-	call, err := models.InsertCall(ctx, rt.DB, testdata.Org1.ID, testdata.TwilioChannel.ID, models.NilStartID, testdata.Cathy.ID, testdata.Cathy.URNID, models.DirectionOut, models.CallStatusPending, "")
+	trigger := triggers.NewBuilder(oa.Env(), testdata.Favorites.Reference(), nil).Manual().Build()
+	callOut := models.NewOutgoingCall(testdata.Org1.ID, oa.ChannelByUUID(testdata.TwilioChannel.UUID), cathy, cathyURNs[0].ID, trigger)
+	err = models.InsertCalls(ctx, rt.DB, []*models.Call{callOut})
 	assert.NoError(t, err)
 
-	assert.NotEqual(t, models.CallID(0), call.ID())
+	assert.NotEqual(t, models.NilCallID, callOut.ID())
 
-	err = call.UpdateExternalID(ctx, rt.DB, "test1")
+	assertdb.Query(t, rt.DB, `SELECT direction, status from ivr_call where id = $1`, callOut.ID()).Columns(map[string]any{"direction": "O", "status": "P"})
+
+	err = callOut.UpdateExternalID(ctx, rt.DB, "EXT345")
 	assert.NoError(t, err)
 
-	assertdb.Query(t, rt.DB, `SELECT count(*) from ivr_call where external_id = 'test1' AND id = $1`, call.ID()).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT external_id, status from ivr_call where id = $1`, callOut.ID()).Columns(map[string]any{"external_id": "EXT345", "status": "W"})
 
-	conn2, err := models.GetCallByID(ctx, rt.DB, testdata.Org1.ID, call.ID())
+	call, err := models.GetCallByID(ctx, rt.DB, testdata.Org1.ID, callIn1.ID())
 	assert.NoError(t, err)
-	assert.Equal(t, "test1", conn2.ExternalID())
+	assert.Equal(t, "EXT123", call.ExternalID())
+
+	call, err = models.GetCallByID(ctx, rt.DB, testdata.Org1.ID, callOut.ID())
+	assert.NoError(t, err)
+	assert.Equal(t, "EXT345", call.ExternalID())
 }

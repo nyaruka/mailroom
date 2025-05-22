@@ -39,8 +39,8 @@ func InsertChannelEvent(rt *runtime.Runtime, org *Org, eventType models.ChannelE
 func InsertCall(rt *runtime.Runtime, org *Org, channel *Channel, contact *Contact) models.CallID {
 	var id models.CallID
 	must(rt.DB.Get(&id,
-		`INSERT INTO ivr_call(created_on, modified_on, external_id, status, direction, error_count, org_id, channel_id, contact_id, contact_urn_id) 
-		VALUES(NOW(), NOW(), 'ext1', 'I', 'I', 0, $1, $2, $3, $4) RETURNING id`, org.ID, channel.ID, contact.ID, contact.URNID,
+		`INSERT INTO ivr_call(created_on, modified_on, external_id, status, direction, duration, error_count, org_id, channel_id, contact_id, contact_urn_id) 
+		VALUES(NOW(), NOW(), 'ext1', 'I', 'I', 0, 0, $1, $2, $3, $4) RETURNING id`, org.ID, channel.ID, contact.ID, contact.URNID,
 	))
 	return id
 }
