@@ -2,16 +2,13 @@ package runner
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"maps"
 	"slices"
 	"time"
 
-	"github.com/nyaruka/goflow/excellent/types"
 	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/goflow/flows/triggers"
 	"github.com/nyaruka/mailroom/core/goflow"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/runner/clocks"
@@ -22,82 +19,8 @@ const (
 	commitTimeout = time.Minute
 )
 
-var startTypeToOrigin = map[models.StartType]string{
-	models.StartTypeManual:    "ui",
-	models.StartTypeAPI:       "api",
-	models.StartTypeAPIZapier: "zapier",
-}
-
 // TriggerBuilder defines the interface for building a trigger for the passed in contact
 type TriggerBuilder func(contact *flows.Contact) flows.Trigger
-
-// StartFlowBatch starts the given flow start batch
-func StartFlowBatch(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, start *models.FlowStart, batch *models.FlowStartBatch) ([]*Scene, error) {
-	// try to load our flow
-	flow, err := oa.FlowByID(start.FlowID)
-	if err == models.ErrNotFound {
-		slog.Info("skipping flow start, flow no longer active or archived", "flow_id", start.FlowID)
-		return nil, nil
-	}
-	if err != nil {
-		return nil, fmt.Errorf("error loading flow: %d: %w", start.FlowID, err)
-	}
-
-	// get the user that created this flow start if there was one
-	var flowUser *flows.User
-	if start.CreatedByID != models.NilUserID {
-		user := oa.UserByID(start.CreatedByID)
-		if user != nil {
-			flowUser = oa.SessionAssets().Users().Get(user.UUID())
-		}
-	}
-
-	var params *types.XObject
-	if !start.Params.IsNull() {
-		params, err = types.ReadXObject(start.Params)
-		if err != nil {
-			return nil, fmt.Errorf("unable to read JSON from flow start params: %w", err)
-		}
-	}
-
-	var history *flows.SessionHistory
-	if !start.SessionHistory.IsNull() {
-		history, err = models.ReadSessionHistory(start.SessionHistory)
-		if err != nil {
-			return nil, fmt.Errorf("unable to read JSON from flow start history: %w", err)
-		}
-	}
-
-	// whether engine allows some functions is based on whether there is more than one contact being started
-	batchStart := batch.TotalContacts > 1
-
-	// this will build our trigger for each contact started
-	triggerBuilder := func(contact *flows.Contact) flows.Trigger {
-		if !start.ParentSummary.IsNull() {
-			tb := triggers.NewBuilder(oa.Env(), flow.Reference(), contact).FlowAction(history, json.RawMessage(start.ParentSummary))
-			if batchStart {
-				tb = tb.AsBatch()
-			}
-			return tb.Build()
-		}
-
-		tb := triggers.NewBuilder(oa.Env(), flow.Reference(), contact).Manual()
-		if !start.Params.IsNull() {
-			tb = tb.WithParams(params)
-		}
-		if batchStart {
-			tb = tb.AsBatch()
-		}
-		return tb.WithUser(flowUser).WithOrigin(startTypeToOrigin[start.StartType]).Build()
-	}
-
-	scenes, err := StartWithLock(ctx, rt, oa, batch.ContactIDs, triggerBuilder, flow.FlowType().Interrupts(), batch.StartID, nil)
-	if err != nil {
-		return nil, fmt.Errorf("error starting flow batch: %w", err)
-	}
-
-	return scenes, nil
-}
 
 // StartWithLock starts the given contacts in flow sessions after obtaining locks for them.
 func StartWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contactIDs []models.ContactID, triggerBuilder TriggerBuilder, interrupt bool, startID models.StartID, sceneInit func(*Scene)) ([]*Scene, error) {
