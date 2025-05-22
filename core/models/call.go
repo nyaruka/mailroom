@@ -69,7 +69,6 @@ type Call struct {
 		ErrorReason  null.String `db:"error_reason"`
 		ErrorCount   int         `db:"error_count"`
 		NextAttempt  *time.Time  `db:"next_attempt"`
-		StartID      StartID     `db:"start_id"`
 		Trigger      null.JSON   `db:"trigger"`
 		CreatedOn    time.Time   `db:"created_on"`
 		ModifiedOn   time.Time   `db:"modified_on"`
@@ -85,7 +84,6 @@ func (c *Call) Direction() Direction           { return c.c.Direction }
 func (c *Call) Status() CallStatus             { return c.c.Status }
 func (c *Call) SessionUUID() flows.SessionUUID { return flows.SessionUUID(c.c.SessionUUID) }
 func (c *Call) ExternalID() string             { return c.c.ExternalID }
-func (c *Call) StartID() StartID               { return c.c.StartID }
 func (c *Call) ErrorReason() CallError         { return CallError(c.c.ErrorReason) }
 func (c *Call) ErrorCount() int                { return c.c.ErrorCount }
 func (c *Call) NextAttempt() *time.Time        { return c.c.NextAttempt }
@@ -142,47 +140,6 @@ func InsertCalls(ctx context.Context, db DBorTx, calls []*Call) error {
 	return BulkQueryBatches(ctx, "inserted IVR calls", db, sqlInsertCall, 1000, is)
 }
 
-// TODO replace with NewOutgoingCall and InsertCalls
-func InsertCall(ctx context.Context, db *sqlx.DB, orgID OrgID, channelID ChannelID, startID StartID, contactID ContactID, urnID URNID, direction Direction, status CallStatus, externalID string) (*Call, error) {
-	call := &Call{}
-	c := &call.c
-	c.OrgID = orgID
-	c.ChannelID = channelID
-	c.ContactID = contactID
-	c.ContactURNID = urnID
-	c.Direction = direction
-	c.Status = status
-	c.ExternalID = externalID
-	c.StartID = startID
-
-	rows, err := db.NamedQueryContext(ctx, sqlInsertCall, c)
-	if err != nil {
-		return nil, fmt.Errorf("error inserting new call: %w", err)
-	}
-	defer rows.Close()
-
-	rows.Next()
-
-	err = rows.Scan(&c.ID, &c.CreatedOn, &c.ModifiedOn)
-	if err != nil {
-		return nil, fmt.Errorf("unable to scan id for new call: %w", err)
-	}
-
-	// add a many to many for our start if set
-	if startID != NilStartID {
-		_, err := db.ExecContext(
-			ctx,
-			`INSERT INTO flows_flowstart_calls(flowstart_id, call_id) VALUES($1, $2) ON CONFLICT DO NOTHING`,
-			startID, c.ID,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("unable to add start association for call: %w", err)
-		}
-	}
-
-	return call, nil
-}
-
 const sqlSelectCallByID = `
 SELECT
     cc.id,
@@ -202,10 +159,8 @@ SELECT
     cc.contact_id,
     cc.contact_urn_id,
     cc.session_uuid,
-	cc.trigger,
-    fsc.flowstart_id AS start_id
+	cc.trigger
            FROM ivr_call as cc
-LEFT OUTER JOIN flows_flowstart_calls fsc ON cc.id = fsc.call_id
           WHERE cc.org_id = $1 AND cc.id = $2`
 
 // GetCallByID loads a call by id
@@ -237,10 +192,8 @@ SELECT
     cc.contact_id,
     cc.contact_urn_id,
     cc.session_uuid,
-	cc.trigger,
-    fsc.flowstart_id AS start_id
+	cc.trigger
            FROM ivr_call as cc
-LEFT OUTER JOIN flows_flowstart_calls fsc ON cc.id = fsc.call_id
           WHERE cc.channel_id = $1 AND cc.external_id = $2
        ORDER BY cc.id DESC
           LIMIT 1`
@@ -274,10 +227,8 @@ SELECT
     cc.contact_id,
     cc.contact_urn_id,
     cc.session_uuid,
-	cc.trigger,
-    fsc.flowstart_id AS start_id
+	cc.trigger
            FROM ivr_call as cc
-LEFT OUTER JOIN flows_flowstart_calls fsc ON cc.id = fsc.call_id
           WHERE cc.status IN ('Q', 'E') AND next_attempt < NOW()
        ORDER BY cc.next_attempt ASC
           LIMIT $1`
