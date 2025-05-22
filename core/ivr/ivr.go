@@ -636,21 +636,37 @@ func HandleIVRStatus(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAss
 	// if we errored schedule a retry if appropriate
 	if status == models.CallStatusErrored {
 
-		// if this is an incoming call it won't have an associated start and we don't retry it so just fail permanently
-		if call.StartID() == models.NilStartID {
+		// if this is an incoming call don't retry it so just fail permanently
+		if call.Direction() == models.DirectionIn {
 			call.SetFailed(ctx, rt.DB)
 			return svc.WriteEmptyResponse(w, "no flow start found, status updated: F")
 		}
 
-		// on errors we need to look up the flow to know how long to wait before retrying
-		start, err := models.GetFlowStartByID(ctx, rt.DB, call.StartID())
-		if err != nil {
-			return fmt.Errorf("unable to load start: %d: %w", call.StartID(), err)
-		}
+		var flow *models.Flow
 
-		flow, err := oa.FlowByID(start.FlowID)
-		if err != nil {
-			return fmt.Errorf("unable to load flow: %d: %w", start.FlowID, err)
+		// get the associated flow from either the start or the trigger
+		if call.StartID() != models.NilStartID {
+			start, err := models.GetFlowStartByID(ctx, rt.DB, call.StartID())
+			if err != nil {
+				return fmt.Errorf("unable to load start: %d: %w", call.StartID(), err)
+			}
+
+			flow, err = oa.FlowByID(start.FlowID)
+			if err != nil {
+				return fmt.Errorf("unable to load flow: %d: %w", start.FlowID, err)
+			}
+		} else {
+			trigger, err := call.EngineTrigger(oa)
+			if err != nil {
+				return fmt.Errorf("unable to load call #%d trigger: %w", call.ID(), err)
+			}
+
+			fa, err := oa.FlowByUUID(trigger.Flow().UUID)
+			if err != nil {
+				return fmt.Errorf("unable to load flow %s: %w", trigger.Flow().UUID, err)
+			}
+
+			flow = fa.(*models.Flow)
 		}
 
 		call.SetErrored(ctx, rt.DB, dates.Now(), flow.IVRRetryWait(), errorReason)
