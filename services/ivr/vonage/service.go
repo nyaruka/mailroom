@@ -72,7 +72,7 @@ type service struct {
 }
 
 func init() {
-	ivr.RegisterServiceType(vonageChannelType, NewServiceFromChannel)
+	ivr.RegisterService(vonageChannelType, NewServiceFromChannel)
 }
 
 // NewServiceFromChannel creates a new Vonage IVR service for the passed in account and and auth token
