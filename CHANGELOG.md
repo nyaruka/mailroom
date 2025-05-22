@@ -1,3 +1,8 @@
+v10.1.126 (2025-05-22)
+-------------------------
+ * Create calls with triggers instead of start references in flow batch starts
+ * Modify StartFlowBatch task to handle voice flows as well
+
 v10.1.125 (2025-05-22)
 -------------------------
  * Support IVR retries for outgoing calls without starts
