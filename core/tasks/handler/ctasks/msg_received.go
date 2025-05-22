@@ -129,7 +129,7 @@ func (t *MsgReceivedTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *
 
 	// if contact is blocked, or channel no longer exists or is disabled, handle non-flow
 	if mc.Status() == models.ContactStatusBlocked || channel == nil {
-		if err = t.handleNonFlow(ctx, rt, oa, fc, msgIn, sceneInit); err != nil {
+		if err := t.handleNonFlow(ctx, rt, oa, fc, msgIn, sceneInit); err != nil {
 			return fmt.Errorf("error handling message for blocked contact or missing channel: %w", err)
 		}
 		return nil
@@ -214,7 +214,7 @@ func (t *MsgReceivedTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *
 	}
 
 	// this message didn't trigger and new sessions or resume any existing ones, so handle as inbox
-	if err = t.handleNonFlow(ctx, rt, oa, fc, msgIn, sceneInit); err != nil {
+	if err := t.handleNonFlow(ctx, rt, oa, fc, msgIn, sceneInit); err != nil {
 		return fmt.Errorf("error handling non-flow message: %w", err)
 	}
 	return nil

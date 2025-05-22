@@ -2,9 +2,15 @@ package starts
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"log/slog"
 	"time"
 
+	"github.com/nyaruka/goflow/excellent/types"
+	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/flows/triggers"
+	"github.com/nyaruka/mailroom/core/ivr"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/runner"
 	"github.com/nyaruka/mailroom/core/tasks"
@@ -12,6 +18,12 @@ import (
 )
 
 const TypeStartFlowBatch = "start_flow_batch"
+
+var startTypeToOrigin = map[models.StartType]string{
+	models.StartTypeManual:    "ui",
+	models.StartTypeAPI:       "api",
+	models.StartTypeAPIZapier: "zapier",
+}
 
 func init() {
 	tasks.RegisterType(TypeStartFlowBatch, func() tasks.Task { return &StartFlowBatchTask{} })
@@ -61,16 +73,106 @@ func (t *StartFlowBatchTask) Perform(ctx context.Context, rt *runtime.Runtime, o
 		}
 	}
 
-	// start these contacts in our flow
-	_, err = runner.StartFlowBatch(ctx, rt, oa, start, t.FlowStartBatch)
-	if err != nil {
-		return fmt.Errorf("error starting flow batch: %w", err)
+	if err := t.start(ctx, rt, oa, start); err != nil {
+		return err
 	}
 
 	// if this is our last batch, mark start as done
 	if t.IsLast {
 		if err := start.SetCompleted(ctx, rt.DB); err != nil {
 			return fmt.Errorf("error marking start as complete: %w", err)
+		}
+	}
+
+	return nil
+}
+
+func (t *StartFlowBatchTask) start(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, start *models.FlowStart) error {
+	flow, err := oa.FlowByID(start.FlowID)
+	if err == models.ErrNotFound {
+		slog.Info("skipping flow start, flow no longer active or archived", "flow_id", start.FlowID)
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("error loading flow for batch: %w", err)
+	}
+
+	// get the user that created this flow start if there was one
+	var flowUser *flows.User
+	if start.CreatedByID != models.NilUserID {
+		user := oa.UserByID(start.CreatedByID)
+		if user != nil {
+			flowUser = oa.SessionAssets().Users().Get(user.UUID())
+		}
+	}
+
+	var params *types.XObject
+	if !start.Params.IsNull() {
+		params, err = types.ReadXObject(start.Params)
+		if err != nil {
+			return fmt.Errorf("unable to read JSON from flow start params: %w", err)
+		}
+	}
+
+	var history *flows.SessionHistory
+	if !start.SessionHistory.IsNull() {
+		history, err = models.ReadSessionHistory(start.SessionHistory)
+		if err != nil {
+			return fmt.Errorf("unable to read JSON from flow start history: %w", err)
+		}
+	}
+
+	// whether engine allows some functions is based on whether there is more than one contact being started
+	batchStart := t.TotalContacts > 1
+
+	// this will build our trigger for each contact started
+	triggerBuilder := func(contact *flows.Contact) flows.Trigger {
+		if !start.ParentSummary.IsNull() {
+			tb := triggers.NewBuilder(oa.Env(), flow.Reference(), contact).FlowAction(history, json.RawMessage(start.ParentSummary))
+			if batchStart {
+				tb = tb.AsBatch()
+			}
+			return tb.Build()
+		}
+
+		tb := triggers.NewBuilder(oa.Env(), flow.Reference(), contact).Manual()
+		if !start.Params.IsNull() {
+			tb = tb.WithParams(params)
+		}
+		if batchStart {
+			tb = tb.AsBatch()
+		}
+		return tb.WithUser(flowUser).WithOrigin(startTypeToOrigin[start.StartType]).Build()
+	}
+
+	if flow.FlowType() == models.FlowTypeVoice {
+		// TODO rework to use ivr.RequestCall with triggerBuilder(contact)
+
+		// ok, we can initiate calls for the remaining contacts
+		contacts, err := models.LoadContacts(ctx, rt.ReadonlyDB, oa, t.ContactIDs)
+		if err != nil {
+			return fmt.Errorf("error loading contacts: %w", err)
+		}
+
+		// for each contacts, request a call start
+		for _, contact := range contacts {
+			ctx, cancel := context.WithTimeout(ctx, time.Minute)
+			session, err := ivr.RequestCallWithStart(ctx, rt, oa, t.FlowStartBatch, contact)
+			cancel()
+			if err != nil {
+				slog.Error(fmt.Sprintf("error starting ivr flow for contact: %d and flow: %d", contact.ID(), start.FlowID), "error", err)
+				continue
+			}
+			if session == nil {
+				slog.Debug("call start skipped, no suitable channel", "contact_id", contact.ID(), "start_id", start.ID)
+				continue
+			}
+			slog.Debug("requested call for contact", "contact_id", contact.ID(), "status", session.Status(), "start_id", start.ID, "external_id", session.ExternalID())
+		}
+	} else {
+		_, err := runner.StartWithLock(ctx, rt, oa, t.ContactIDs, triggerBuilder, flow.FlowType().Interrupts(), t.StartID, nil)
+		if err != nil {
+			return fmt.Errorf("error starting flow batch: %w", err)
 		}
 	}
 
