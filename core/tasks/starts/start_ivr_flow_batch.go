@@ -12,6 +12,8 @@ import (
 	"github.com/nyaruka/mailroom/runtime"
 )
 
+// TODO remove once all flow starts using StartFlowBatch tasks regardless of flow type
+
 const TypeStartIVRFlowBatch = "start_ivr_flow_batch"
 
 func init() {
