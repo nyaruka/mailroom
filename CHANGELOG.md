@@ -1,3 +1,7 @@
+v10.1.128 (2025-05-22)
+-------------------------
+ * Fix not loading trigger on calls being retried
+
 v10.1.127 (2025-05-22)
 -------------------------
  * Rework campaign events for IVR flows to use calls with triggers rather than starts
