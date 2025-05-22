@@ -48,7 +48,7 @@ func (t *TicketClosedTask) Perform(ctx context.Context, rt *runtime.Runtime, oa 
 	}
 
 	// build our flow contact
-	fc, err := mc.FlowContact(oa)
+	fc, err := mc.EngineContact(oa)
 	if err != nil {
 		return fmt.Errorf("error creating flow contact: %w", err)
 	}

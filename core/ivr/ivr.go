@@ -366,7 +366,7 @@ func StartIVRFlow(
 	}
 
 	// if we don't have a start then we must have a trigger so read that
-	trigger, err := triggers.ReadTrigger(oa.SessionAssets(), call.Trigger(), assets.IgnoreMissing)
+	trigger, err := call.EngineTrigger(oa)
 	if err != nil {
 		return fmt.Errorf("error reading call trigger: %w", err)
 	}
@@ -393,7 +393,7 @@ func StartIVRFlow(
 	}
 
 	// load contact and update on trigger to ensure we're not starting with outdated contact data
-	contact, err := c.FlowContact(oa)
+	contact, err := c.EngineContact(oa)
 	if err != nil {
 		return fmt.Errorf("error loading flow contact: %w", err)
 	}
@@ -453,7 +453,7 @@ func startIVRFlowByStart(
 	}
 
 	// our flow contact
-	contact, err := c.FlowContact(oa)
+	contact, err := c.EngineContact(oa)
 	if err != nil {
 		return fmt.Errorf("error loading flow contact: %w", err)
 	}
@@ -521,7 +521,7 @@ func ResumeIVRFlow(
 		return HandleAsFailure(ctx, rt.DB, svc, call, w, errors.New("can't resume call without session"))
 	}
 
-	fc, err := mc.FlowContact(oa)
+	fc, err := mc.EngineContact(oa)
 	if err != nil {
 		return fmt.Errorf("error creating flow contact: %w", err)
 	}

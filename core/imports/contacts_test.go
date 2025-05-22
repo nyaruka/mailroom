@@ -242,7 +242,7 @@ func loadAllContacts(t *testing.T, rt *runtime.Runtime, oa *models.OrgAssets) []
 
 	flowContacts := make([]*flows.Contact, len(contacts))
 	for i := range contacts {
-		flowContacts[i], err = contacts[i].FlowContact(oa)
+		flowContacts[i], err = contacts[i].EngineContact(oa)
 		require.NoError(t, err)
 	}
 

@@ -521,7 +521,7 @@ func recalcGroupsForTicketChanges(ctx context.Context, db DBorTx, oa *OrgAssets,
 
 	flowContacts := make([]*flows.Contact, len(contacts))
 	for i, contact := range contacts {
-		flowContacts[i], err = contact.FlowContact(oa)
+		flowContacts[i], err = contact.EngineContact(oa)
 		if err != nil {
 			return fmt.Errorf("error loading flow contact: %w", err)
 		}

@@ -127,7 +127,7 @@ func tryToLockAndModify(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 	// convert to map of flow contacts to modifiers
 	modifiersByContact := make(map[*flows.Contact][]flows.Modifier, len(contacts))
 	for _, contact := range contacts {
-		flowContact, err := contact.FlowContact(oa)
+		flowContact, err := contact.EngineContact(oa)
 		if err != nil {
 			return nil, nil, fmt.Errorf("error creating flow contact: %w", err)
 		}

@@ -69,7 +69,7 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 		fmt.Sprintf("S:%s", modelSessions[0].UUID()): time.Date(2025, 3, 28, 9, 55, 36, 0, time.UTC),  // 30 days + rand(1 - 24 hours) in future
 	})
 
-	flowSession, err = session.FlowSession(ctx, rt, oa.SessionAssets(), oa.Env())
+	flowSession, err = session.EngineSession(ctx, rt, oa.SessionAssets(), oa.Env())
 	require.NoError(t, err)
 
 	flowSession, sprint2, err := test.ResumeSession(flowSession, sa, "no")
@@ -92,7 +92,7 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 		fmt.Sprintf("S:%s", modelSessions[0].UUID()): time.Date(2025, 3, 28, 9, 55, 36, 0, time.UTC),  // unchanged
 	})
 
-	flowSession, err = session.FlowSession(ctx, rt, oa.SessionAssets(), oa.Env())
+	flowSession, err = session.EngineSession(ctx, rt, oa.SessionAssets(), oa.Env())
 	require.NoError(t, err)
 
 	flowSession, sprint3, err := test.ResumeSession(flowSession, sa, "yes")
@@ -216,7 +216,7 @@ func TestSessionWithSubflows(t *testing.T) {
 		fmt.Sprintf("S:%s", modelSessions[0].UUID()): time.Date(2025, 3, 28, 9, 55, 36, 0, time.UTC),  // 30 days + rand(1 - 24 hours) in future
 	})
 
-	flowSession, err = session.FlowSession(ctx, rt, oa.SessionAssets(), oa.Env())
+	flowSession, err = session.EngineSession(ctx, rt, oa.SessionAssets(), oa.Env())
 	require.NoError(t, err)
 
 	flowSession, sprint2, err := test.ResumeSession(flowSession, sa, "yes")

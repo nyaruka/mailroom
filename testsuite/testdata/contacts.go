@@ -31,7 +31,7 @@ func (c *Contact) Load(rt *runtime.Runtime, oa *models.OrgAssets) (*models.Conta
 	contact, err := models.LoadContact(ctx, rt.DB, oa, c.ID)
 	must(err)
 
-	flowContact, err := contact.FlowContact(oa)
+	flowContact, err := contact.EngineContact(oa)
 	must(err)
 
 	var urnIDs []models.URNID

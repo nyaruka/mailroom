@@ -155,7 +155,7 @@ func tryToStartWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 	// build our triggers
 	triggers := make([]flows.Trigger, 0, len(locked))
 	for _, c := range contacts {
-		contact, err := c.FlowContact(oa)
+		contact, err := c.EngineContact(oa)
 		if err != nil {
 			return nil, nil, fmt.Errorf("error creating flow contact: %w", err)
 		}

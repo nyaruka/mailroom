@@ -9,7 +9,9 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/jsonx"
+	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/flows/triggers"
 	"github.com/nyaruka/null/v3"
 )
 
@@ -87,7 +89,15 @@ func (c *Call) StartID() StartID               { return c.c.StartID }
 func (c *Call) ErrorReason() CallError         { return CallError(c.c.ErrorReason) }
 func (c *Call) ErrorCount() int                { return c.c.ErrorCount }
 func (c *Call) NextAttempt() *time.Time        { return c.c.NextAttempt }
-func (c *Call) Trigger() []byte                { return c.c.Trigger }
+
+func (c *Call) EngineTrigger(oa *OrgAssets) (flows.Trigger, error) {
+	trigger, err := triggers.ReadTrigger(oa.SessionAssets(), c.c.Trigger, assets.IgnoreMissing)
+	if err != nil {
+		return nil, fmt.Errorf("error reading call trigger: %w", err)
+	}
+
+	return trigger, nil
+}
 
 // NewIncomingCall creates a new incoming IVR call
 func NewIncomingCall(orgID OrgID, ch *Channel, contact *Contact, urnID URNID, externalID string) *Call {

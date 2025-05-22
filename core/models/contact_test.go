@@ -51,7 +51,7 @@ func TestContacts(t *testing.T) {
 	// convert to goflow contacts
 	contacts := make([]*flows.Contact, len(modelContacts))
 	for i := range modelContacts {
-		contacts[i], err = modelContacts[i].FlowContact(org)
+		contacts[i], err = modelContacts[i].EngineContact(org)
 		assert.NoError(t, err)
 	}
 
@@ -91,7 +91,7 @@ func TestContacts(t *testing.T) {
 	err = modelContacts[1].UpdatePreferredURN(ctx, rt.DB, org, testdata.Bob.URNID, channel)
 	assert.NoError(t, err)
 
-	bob, err = modelContacts[1].FlowContact(org)
+	bob, err = modelContacts[1].EngineContact(org)
 	assert.NoError(t, err)
 	assert.Equal(t, "tel:+16055742222?channel=74729f45-7f29-4868-9dc4-90e491e3c7d8&id=10001", bob.URNs()[0].String())
 	assert.Equal(t, "whatsapp:250788373373?id=30000", bob.URNs()[1].String())
@@ -107,7 +107,7 @@ func TestContacts(t *testing.T) {
 	err = modelContacts[0].UpdatePreferredURN(ctx, rt.DB, org, models.URNID(30001), channel)
 	assert.NoError(t, err)
 
-	bob, err = modelContacts[0].FlowContact(org)
+	bob, err = modelContacts[0].EngineContact(org)
 	assert.NoError(t, err)
 	assert.Equal(t, "tel:+250788373373?channel=74729f45-7f29-4868-9dc4-90e491e3c7d8&id=30001", bob.URNs()[0].String())
 	assert.Equal(t, "tel:+16055742222?channel=74729f45-7f29-4868-9dc4-90e491e3c7d8&id=10001", bob.URNs()[1].String())
@@ -117,7 +117,7 @@ func TestContacts(t *testing.T) {
 	err = modelContacts[0].UpdatePreferredURN(ctx, rt.DB, org, models.URNID(30001), channel)
 	assert.NoError(t, err)
 
-	bob, err = modelContacts[0].FlowContact(org)
+	bob, err = modelContacts[0].EngineContact(org)
 	assert.NoError(t, err)
 	assert.Equal(t, "tel:+250788373373?channel=74729f45-7f29-4868-9dc4-90e491e3c7d8&id=30001", bob.URNs()[0].String())
 	assert.Equal(t, "tel:+16055742222?channel=74729f45-7f29-4868-9dc4-90e491e3c7d8&id=10001", bob.URNs()[1].String())
@@ -127,7 +127,7 @@ func TestContacts(t *testing.T) {
 	err = modelContacts[0].UpdatePreferredURN(ctx, rt.DB, org, models.URNID(30001), nil)
 	assert.NoError(t, err)
 
-	bob, err = modelContacts[0].FlowContact(org)
+	bob, err = modelContacts[0].EngineContact(org)
 	assert.NoError(t, err)
 	assert.Equal(t, "tel:+250788373373?channel=74729f45-7f29-4868-9dc4-90e491e3c7d8&id=30001", bob.URNs()[0].String())
 	assert.Equal(t, "tel:+16055742222?channel=74729f45-7f29-4868-9dc4-90e491e3c7d8&id=10001", bob.URNs()[1].String())
