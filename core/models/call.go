@@ -237,7 +237,7 @@ SELECT
     cc.contact_id,
     cc.contact_urn_id,
     cc.session_uuid,
-    cc.trigger,
+	cc.trigger,
     fsc.flowstart_id AS start_id
            FROM ivr_call as cc
 LEFT OUTER JOIN flows_flowstart_calls fsc ON cc.id = fsc.call_id
@@ -257,7 +257,8 @@ func GetCallByExternalID(ctx context.Context, db DBorTx, channelID ChannelID, ex
 
 const sqlSelectRetryCalls = `
 SELECT
-    cc.id, 
+    cc.id,
+	cc.org_id,
     cc.created_on,
     cc.modified_on,
     cc.external_id,
@@ -273,7 +274,7 @@ SELECT
     cc.contact_id,
     cc.contact_urn_id,
     cc.session_uuid,
-    cc.org_id,
+	cc.trigger,
     fsc.flowstart_id AS start_id
            FROM ivr_call as cc
 LEFT OUTER JOIN flows_flowstart_calls fsc ON cc.id = fsc.call_id
