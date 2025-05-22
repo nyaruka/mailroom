@@ -1,3 +1,7 @@
+v10.1.127 (2025-05-22)
+-------------------------
+ * Rework campaign events for IVR flows to use calls with triggers rather than starts
+
 v10.1.126 (2025-05-22)
 -------------------------
  * Create calls with triggers instead of start references in flow batch starts
