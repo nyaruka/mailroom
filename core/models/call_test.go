@@ -30,7 +30,7 @@ func TestCalls(t *testing.T) {
 
 	assertdb.Query(t, rt.DB, `SELECT status, external_id from ivr_call where id = $1`, callIn1.ID()).Columns(map[string]any{"status": "I", "external_id": "EXT123"})
 
-	call, err := models.InsertCall(ctx, rt.DB, testdata.Org1.ID, testdata.TwilioChannel.ID, models.NilStartID, testdata.Cathy.ID, testdata.Cathy.URNID, models.CallDirectionOut, models.CallStatusPending, "")
+	call, err := models.InsertCall(ctx, rt.DB, testdata.Org1.ID, testdata.TwilioChannel.ID, models.NilStartID, testdata.Cathy.ID, testdata.Cathy.URNID, models.DirectionOut, models.CallStatusPending, "")
 	assert.NoError(t, err)
 
 	assert.NotEqual(t, models.CallID(0), call.ID())

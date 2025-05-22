@@ -25,15 +25,6 @@ type CallStatus string
 // CallError is the type for the reason of an errored call
 type CallError null.String
 
-// CallDirection is the type for the direction of a call
-type CallDirection string
-
-// call direction constants
-const (
-	CallDirectionIn  = CallDirection("I")
-	CallDirectionOut = CallDirection("O")
-)
-
 // call status constants
 const (
 	CallStatusPending    = CallStatus("P") // used for initial creation in database
@@ -61,25 +52,25 @@ const (
 // Call models an IVR call
 type Call struct {
 	c struct {
-		ID           CallID        `db:"id"`
-		OrgID        OrgID         `db:"org_id"`
-		ChannelID    ChannelID     `db:"channel_id"`
-		ContactID    ContactID     `db:"contact_id"`
-		ContactURNID URNID         `db:"contact_urn_id"`
-		ExternalID   string        `db:"external_id"`
-		Status       CallStatus    `db:"status"`
-		SessionUUID  null.String   `db:"session_uuid"`
-		Direction    CallDirection `db:"direction"`
-		StartedOn    *time.Time    `db:"started_on"`
-		EndedOn      *time.Time    `db:"ended_on"`
-		Duration     int           `db:"duration"`
-		ErrorReason  null.String   `db:"error_reason"`
-		ErrorCount   int           `db:"error_count"`
-		NextAttempt  *time.Time    `db:"next_attempt"`
-		StartID      StartID       `db:"start_id"`
-		Trigger      null.JSON     `db:"trigger"`
-		CreatedOn    time.Time     `db:"created_on"`
-		ModifiedOn   time.Time     `db:"modified_on"`
+		ID           CallID      `db:"id"`
+		OrgID        OrgID       `db:"org_id"`
+		ChannelID    ChannelID   `db:"channel_id"`
+		ContactID    ContactID   `db:"contact_id"`
+		ContactURNID URNID       `db:"contact_urn_id"`
+		ExternalID   string      `db:"external_id"`
+		Status       CallStatus  `db:"status"`
+		SessionUUID  null.String `db:"session_uuid"`
+		Direction    Direction   `db:"direction"`
+		StartedOn    *time.Time  `db:"started_on"`
+		EndedOn      *time.Time  `db:"ended_on"`
+		Duration     int         `db:"duration"`
+		ErrorReason  null.String `db:"error_reason"`
+		ErrorCount   int         `db:"error_count"`
+		NextAttempt  *time.Time  `db:"next_attempt"`
+		StartID      StartID     `db:"start_id"`
+		Trigger      null.JSON   `db:"trigger"`
+		CreatedOn    time.Time   `db:"created_on"`
+		ModifiedOn   time.Time   `db:"modified_on"`
 	}
 }
 
@@ -88,6 +79,7 @@ func (c *Call) ChannelID() ChannelID           { return c.c.ChannelID }
 func (c *Call) OrgID() OrgID                   { return c.c.OrgID }
 func (c *Call) ContactID() ContactID           { return c.c.ContactID }
 func (c *Call) ContactURNID() URNID            { return c.c.ContactURNID }
+func (c *Call) Direction() Direction           { return c.c.Direction }
 func (c *Call) Status() CallStatus             { return c.c.Status }
 func (c *Call) SessionUUID() flows.SessionUUID { return flows.SessionUUID(c.c.SessionUUID) }
 func (c *Call) ExternalID() string             { return c.c.ExternalID }
@@ -105,7 +97,7 @@ func NewIncomingCall(orgID OrgID, ch *Channel, contact *Contact, urnID URNID, ex
 	c.ChannelID = ch.ID()
 	c.ContactID = contact.ID()
 	c.ContactURNID = urnID
-	c.Direction = CallDirectionIn
+	c.Direction = DirectionIn
 	c.Status = CallStatusInProgress
 	c.ExternalID = externalID
 	return call
@@ -119,7 +111,7 @@ func NewOutgoingCall(orgID OrgID, ch *Channel, contact *Contact, urnID URNID, tr
 	c.ChannelID = ch.ID()
 	c.ContactID = contact.ID()
 	c.ContactURNID = urnID
-	c.Direction = CallDirectionOut
+	c.Direction = DirectionOut
 	c.Status = CallStatusPending
 	c.Trigger = null.JSON(jsonx.MustMarshal(trigger))
 	return call
@@ -141,7 +133,7 @@ func InsertCalls(ctx context.Context, db DBorTx, calls []*Call) error {
 }
 
 // TODO replace with NewOutgoingCall and InsertCalls
-func InsertCall(ctx context.Context, db *sqlx.DB, orgID OrgID, channelID ChannelID, startID StartID, contactID ContactID, urnID URNID, direction CallDirection, status CallStatus, externalID string) (*Call, error) {
+func InsertCall(ctx context.Context, db *sqlx.DB, orgID OrgID, channelID ChannelID, startID StartID, contactID ContactID, urnID URNID, direction Direction, status CallStatus, externalID string) (*Call, error) {
 	call := &Call{}
 	c := &call.c
 	c.OrgID = orgID

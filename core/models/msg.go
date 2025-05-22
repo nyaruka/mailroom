@@ -38,11 +38,11 @@ type MsgID int64
 // NilMsgID is our constant for a nil msg id
 const NilMsgID = MsgID(0)
 
-type MsgDirection string
+type Direction string
 
 const (
-	DirectionIn  = MsgDirection("I")
-	DirectionOut = MsgDirection("O")
+	DirectionIn  = Direction("I")
+	DirectionOut = Direction("O")
 )
 
 type MsgVisibility string
@@ -149,7 +149,7 @@ type Msg struct {
 		Templating   *Templating    `db:"templating"`
 
 		HighPriority bool          `db:"high_priority"`
-		Direction    MsgDirection  `db:"direction"`
+		Direction    Direction     `db:"direction"`
 		Status       MsgStatus     `db:"status"`
 		Visibility   MsgVisibility `db:"visibility"`
 		IsAndroid    bool          `db:"is_android"`
@@ -184,7 +184,7 @@ func (m *Msg) HighPriority() bool            { return m.m.HighPriority }
 func (m *Msg) CreatedOn() time.Time          { return m.m.CreatedOn }
 func (m *Msg) ModifiedOn() time.Time         { return m.m.ModifiedOn }
 func (m *Msg) SentOn() *time.Time            { return m.m.SentOn }
-func (m *Msg) Direction() MsgDirection       { return m.m.Direction }
+func (m *Msg) Direction() Direction          { return m.m.Direction }
 func (m *Msg) Status() MsgStatus             { return m.m.Status }
 func (m *Msg) Visibility() MsgVisibility     { return m.m.Visibility }
 func (m *Msg) Type() MsgType                 { return m.m.MsgType }
@@ -511,7 +511,7 @@ ORDER BY
 	id ASC`
 
 // GetMessagesByID fetches the messages with the given ids
-func GetMessagesByID(ctx context.Context, db *sqlx.DB, orgID OrgID, direction MsgDirection, msgIDs []MsgID) ([]*Msg, error) {
+func GetMessagesByID(ctx context.Context, db *sqlx.DB, orgID OrgID, direction Direction, msgIDs []MsgID) ([]*Msg, error) {
 	return loadMessages(ctx, db, sqlSelectMessagesByID, orgID, direction, pq.Array(msgIDs))
 }
 

@@ -490,7 +490,7 @@ func TestNewOutgoingIVR(t *testing.T) {
 	require.NoError(t, err)
 
 	vonage := oa.ChannelByUUID(testdata.VonageChannel.UUID)
-	call, err := models.InsertCall(ctx, rt.DB, testdata.Org1.ID, testdata.VonageChannel.ID, models.NilStartID, testdata.Cathy.ID, testdata.Cathy.URNID, models.CallDirectionOut, models.CallStatusInProgress, "")
+	call, err := models.InsertCall(ctx, rt.DB, testdata.Org1.ID, testdata.VonageChannel.ID, models.NilStartID, testdata.Cathy.ID, testdata.Cathy.URNID, models.DirectionOut, models.CallStatusInProgress, "")
 	require.NoError(t, err)
 
 	flowMsg := flows.NewIVRMsgOut(testdata.Cathy.URN, vonage.Reference(), "Hello", "http://example.com/hi.mp3", "eng-US")

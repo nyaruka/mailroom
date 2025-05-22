@@ -251,7 +251,7 @@ func RequestCallWithStart(ctx context.Context, rt *runtime.Runtime, oa *models.O
 	// create our call object
 	call, err := models.InsertCall(
 		ctx, rt.DB, oa.OrgID(), channel.ID(), start.StartID, contact.ID(), models.URNID(urnID),
-		models.CallDirectionOut, models.CallStatusPending, "",
+		models.DirectionOut, models.CallStatusPending, "",
 	)
 	if err != nil {
 		return nil, fmt.Errorf("error creating call: %w", err)

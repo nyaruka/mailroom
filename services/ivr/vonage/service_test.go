@@ -64,7 +64,7 @@ func TestResponseForSprint(t *testing.T) {
 
 	provider := p.(*service)
 
-	call, err := models.InsertCall(ctx, rt.DB, testdata.Org1.ID, testdata.VonageChannel.ID, models.NilStartID, testdata.Bob.ID, testdata.Bob.URNID, models.CallDirectionOut, models.CallStatusInProgress, "EX123")
+	call, err := models.InsertCall(ctx, rt.DB, testdata.Org1.ID, testdata.VonageChannel.ID, models.NilStartID, testdata.Bob.ID, testdata.Bob.URNID, models.DirectionOut, models.CallStatusInProgress, "EX123")
 	require.NoError(t, err)
 
 	indentMarshal = false
