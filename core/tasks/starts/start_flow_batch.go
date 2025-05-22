@@ -146,8 +146,6 @@ func (t *StartFlowBatchTask) start(ctx context.Context, rt *runtime.Runtime, oa 
 	}
 
 	if flow.FlowType() == models.FlowTypeVoice {
-		// TODO rework to use ivr.RequestCall with triggerBuilder(contact)
-
 		// ok, we can initiate calls for the remaining contacts
 		contacts, err := models.LoadContacts(ctx, rt.ReadonlyDB, oa, t.ContactIDs)
 		if err != nil {
@@ -157,7 +155,7 @@ func (t *StartFlowBatchTask) start(ctx context.Context, rt *runtime.Runtime, oa 
 		// for each contacts, request a call start
 		for _, contact := range contacts {
 			ctx, cancel := context.WithTimeout(ctx, time.Minute)
-			session, err := ivr.RequestCallWithStart(ctx, rt, oa, t.FlowStartBatch, contact)
+			session, err := ivr.RequestCall(ctx, rt, oa, contact, triggerBuilder(nil))
 			cancel()
 			if err != nil {
 				slog.Error(fmt.Sprintf("error starting ivr flow for contact: %d and flow: %d", contact.ID(), start.FlowID), "error", err)
