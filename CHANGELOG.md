@@ -1,3 +1,7 @@
+v10.1.124 (2025-05-22)
+-------------------------
+ * Update call status to in progress via sprint_ended handler+hook
+
 v10.1.123 (2025-05-21)
 -------------------------
  * Fix IVR incoming triggers
