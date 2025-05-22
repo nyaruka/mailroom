@@ -409,11 +409,6 @@ func StartIVRFlow(
 		return fmt.Errorf("no ivr session created")
 	}
 
-	// mark our call as started
-	if err := call.SetInProgress(ctx, rt.DB, scenes[0].Session().UUID(), time.Now()); err != nil {
-		return fmt.Errorf("error updating call status: %w", err)
-	}
-
 	// have our service output our session status
 	if err := svc.WriteSessionResponse(ctx, rt, oa, channel, scenes[0], urn, resumeURL, r, w); err != nil {
 		return fmt.Errorf("error writing ivr response for start: %w", err)
@@ -504,11 +499,6 @@ func startIVRFlowByStart(
 	}
 	if len(scenes) == 0 {
 		return fmt.Errorf("no ivr session created")
-	}
-
-	// mark our call as started
-	if err := call.SetInProgress(ctx, rt.DB, scenes[0].SessionUUID(), time.Now()); err != nil {
-		return fmt.Errorf("error updating call status: %w", err)
 	}
 
 	// have our service output our session status

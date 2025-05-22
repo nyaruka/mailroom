@@ -66,9 +66,12 @@ func handleSprintEnded(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 		scene.AttachPreCommitHook(hooks.UpdateContactModifiedOn, event)
 	}
 
-	// if we have a call and the session is no longer waiting, call should be completed
-	if scene.Call != nil && !sessionIsWaiting {
-		scene.AttachPreCommitHook(hooks.UpdateCallStatus, models.CallStatusCompleted)
+	if scene.Call != nil {
+		if scene.Session().Status() != flows.SessionStatusWaiting {
+			scene.AttachPreCommitHook(hooks.UpdateCallStatus, models.CallStatusCompleted)
+		} else if scene.Sprint().IsInitial() {
+			scene.AttachPreCommitHook(hooks.UpdateCallStatus, models.CallStatusInProgress)
+		}
 	}
 
 	newFires, timeout := calculateFires(oa, scene.ContactID(), scene.Session(), scene.Sprint(), scene.Sprint().IsInitial())

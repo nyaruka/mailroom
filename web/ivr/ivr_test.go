@@ -75,6 +75,8 @@ func TestTwilioIVR(t *testing.T) {
 	server.Start()
 	defer server.Stop()
 
+	testdata.InsertIncomingCallTrigger(rt, testdata.Org1, testdata.IVRFlow, []*testdata.Group{testdata.DoctorsGroup}, nil, nil)
+
 	// set callback domain and enable machine detection
 	rt.DB.MustExec(`UPDATE channels_channel SET config = config || '{"callback_domain": "localhost:8091", "machine_detection": true}'::jsonb WHERE id = $1`, testdata.TwilioChannel.ID)
 
@@ -251,27 +253,49 @@ func TestTwilioIVR(t *testing.T) {
 			expectedResponse:   `<Response><!--status D ignored, already errored--></Response>`,
 			expectedCallStatus: map[string]string{"Call1": "D", "Call2": "D", "Call3": "E"},
 		},
-		{ // 12: we don't have a call trigger so incoming call creates a missed call event
+		{ // 12: now we get an incoming call from Cathy which should match our trigger (because she is in Doctors group)
 			url: fmt.Sprintf("/ivr/c/%s/incoming", testdata.TwilioChannel.UUID),
 			form: url.Values{
 				"CallSid":    []string{"Call4"},
 				"CallStatus": []string{"ringing"},
-				"Caller":     []string{"+12065551212"},
+				"Caller":     []string{"+16055741111"},
+			},
+			expectedStatus:     200,
+			expectedContains:   []string{"Hello there. Please enter one or two."},
+			expectedCallStatus: map[string]string{"Call1": "D", "Call2": "D", "Call3": "E", "Call4": "I"},
+		},
+		{ // 13: handle resume with digits we're waiting for
+			url: fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=4", testdata.TwilioChannel.UUID),
+			form: url.Values{
+				"CallStatus": []string{"in-progress"},
+				"wait_type":  []string{"gather"},
+				"Digits":     []string{"2"},
+			},
+			expectedStatus:     200,
+			expectedContains:   []string{`<Gather timeout="30"`, `<Say language="en-US">Great! You said Two. Ok, now enter a number 1 to 100 then press pound.</Say>`},
+			expectedCallStatus: map[string]string{"Call1": "D", "Call2": "D", "Call3": "E", "Call4": "I"},
+		},
+		{ // 14: now we get an incoming call from Bob which won't match our trigger (because he is not in Doctors group)
+			url: fmt.Sprintf("/ivr/c/%s/incoming", testdata.TwilioChannel.UUID),
+			form: url.Values{
+				"CallSid":    []string{"Call5"},
+				"CallStatus": []string{"ringing"},
+				"Caller":     []string{"+16055742222"},
 			},
 			expectedStatus:     200,
 			expectedResponse:   `<Response><!--missed call handled--></Response>`,
-			expectedCallStatus: map[string]string{"Call1": "D", "Call2": "D", "Call3": "E", "Call4": "I"},
+			expectedCallStatus: map[string]string{"Call1": "D", "Call2": "D", "Call3": "E", "Call4": "I", "Call5": "I"},
 		},
-		{ // 13
+		{ // 15
 			url: fmt.Sprintf("/ivr/c/%s/status", testdata.TwilioChannel.UUID),
 			form: url.Values{
-				"CallSid":      []string{"Call4"},
+				"CallSid":      []string{"Call5"},
 				"CallStatus":   []string{"failed"},
 				"CallDuration": []string{"50"},
 			},
 			expectedStatus:     200,
 			expectedResponse:   `<Response><!--no flow start found, status updated: F--></Response>`,
-			expectedCallStatus: map[string]string{"Call1": "D", "Call2": "D", "Call3": "E", "Call4": "F"},
+			expectedCallStatus: map[string]string{"Call1": "D", "Call2": "D", "Call3": "E", "Call4": "I", "Call5": "F"},
 		},
 	}
 
@@ -298,25 +322,22 @@ func TestTwilioIVR(t *testing.T) {
 
 		for callExtID, expStatus := range tc.expectedCallStatus {
 			assertdb.Query(t, rt.DB, `SELECT status FROM ivr_call WHERE external_id = $1`, callExtID).
-				Returns(expStatus, "%d: status mismatch for call '%s'", i, callExtID)
+				Returns(expStatus, "%d: call db status mismatch for call '%s'", i, callExtID)
 		}
 	}
 
 	// check our final state of sessions, runs, msgs, calls
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE contact_id = $1 AND status = 'C'`, testdata.Cathy.ID).Returns(1)
-
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowrun WHERE contact_id = $1 AND status = 'C'`, testdata.Cathy.ID).Returns(1)
-
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE contact_id = $1 AND msg_type = 'V' AND status = 'W' AND direction = 'O'`, testdata.Cathy.ID).Returns(8)
-
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE contact_id = $1 AND msg_type = 'V' AND status = 'H' AND direction = 'I'`, testdata.Cathy.ID).Returns(5)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE contact_id = $1 AND msg_type = 'V' AND status = 'W' AND direction = 'O'`, testdata.Cathy.ID).Returns(10)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE contact_id = $1 AND msg_type = 'V' AND status = 'H' AND direction = 'I'`, testdata.Cathy.ID).Returns(6)
 
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE contact_id = $1 AND msg_type = 'V' 
 		AND ((status = 'H' AND direction = 'I') OR (status = 'W' AND direction = 'O'))`, testdata.Bob.ID).Returns(2)
 
 	// check the generated channel logs
 	logs := getCallLogs(t, ctx, rt)
-	assert.Len(t, logs, 17)
+	assert.Len(t, logs, 19)
 	for _, log := range logs {
 		for _, httpLog := range log.HttpLogs {
 			assert.NotContains(t, string(jsonx.MustMarshal(httpLog)), "sesame") // auth token redacted
