@@ -159,7 +159,7 @@ SELECT
     cc.contact_id,
     cc.contact_urn_id,
     cc.session_uuid,
-	cc.trigger,
+	cc.trigger
            FROM ivr_call as cc
           WHERE cc.org_id = $1 AND cc.id = $2`
 
@@ -192,7 +192,7 @@ SELECT
     cc.contact_id,
     cc.contact_urn_id,
     cc.session_uuid,
-    cc.trigger,
+	cc.trigger
            FROM ivr_call as cc
           WHERE cc.channel_id = $1 AND cc.external_id = $2
        ORDER BY cc.id DESC
@@ -210,7 +210,8 @@ func GetCallByExternalID(ctx context.Context, db DBorTx, channelID ChannelID, ex
 
 const sqlSelectRetryCalls = `
 SELECT
-    cc.id, 
+    cc.id,
+	cc.org_id,
     cc.created_on,
     cc.modified_on,
     cc.external_id,
@@ -226,7 +227,7 @@ SELECT
     cc.contact_id,
     cc.contact_urn_id,
     cc.session_uuid,
-    cc.org_id,
+	cc.trigger
            FROM ivr_call as cc
           WHERE cc.status IN ('Q', 'E') AND next_attempt < NOW()
        ORDER BY cc.next_attempt ASC

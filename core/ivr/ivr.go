@@ -167,8 +167,7 @@ func RequestCallStart(ctx context.Context, rt *runtime.Runtime, channel *models.
 
 	// create our callback
 	form := url.Values{
-		"connection": []string{fmt.Sprint(call.ID())}, // deprecated
-		"call":       []string{fmt.Sprint(call.ID())},
+		"connection": []string{fmt.Sprint(call.ID())},
 		"action":     []string{"start"},
 		"urn":        []string{telURN.String()},
 	}
