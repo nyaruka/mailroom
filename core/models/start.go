@@ -144,17 +144,17 @@ func (s *FlowStart) WithCreateContact(create bool) *FlowStart {
 	return s
 }
 
-func (s *FlowStart) WithParentSummary(sum json.RawMessage) *FlowStart {
-	s.ParentSummary = null.JSON(sum)
+func (s *FlowStart) WithParentSummary(summary []byte) *FlowStart {
+	s.ParentSummary = null.JSON(summary)
 	return s
 }
 
-func (s *FlowStart) WithSessionHistory(history json.RawMessage) *FlowStart {
+func (s *FlowStart) WithSessionHistory(history []byte) *FlowStart {
 	s.SessionHistory = null.JSON(history)
 	return s
 }
 
-func (s *FlowStart) WithParams(params json.RawMessage) *FlowStart {
+func (s *FlowStart) WithParams(params []byte) *FlowStart {
 	s.Params = null.JSON(params)
 	return s
 }

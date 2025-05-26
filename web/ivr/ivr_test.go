@@ -81,7 +81,7 @@ func TestTwilioIVR(t *testing.T) {
 	rt.DB.MustExec(`UPDATE channels_channel SET config = config || '{"callback_domain": "localhost:8091", "machine_detection": true}'::jsonb WHERE id = $1`, testdata.TwilioChannel.ID)
 
 	// create a flow start for cathy bob, and george
-	parentSummary := json.RawMessage(`{
+	parentSummary := []byte(`{
 		"flow": {"name": "IVR Flow", "uuid": "2f81d0ea-4d75-4843-9371-3f7465311cce"}, 
 		"uuid": "8bc73097-ac57-47fb-82e5-184f8ec6dbef", 
 		"status": "active", 
