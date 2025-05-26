@@ -101,10 +101,7 @@ func TestTwilioIVR(t *testing.T) {
 		WithContactIDs([]models.ContactID{testdata.Cathy.ID, testdata.Bob.ID, testdata.George.ID}).
 		WithParentSummary(parentSummary)
 
-	err := models.InsertFlowStarts(ctx, rt.DB, []*models.FlowStart{start})
-	require.NoError(t, err)
-
-	err = tasks.Queue(rc, tasks.BatchQueue, testdata.Org1.ID, &starts.StartFlowTask{FlowStart: start}, false)
+	err := tasks.Queue(rc, tasks.BatchQueue, testdata.Org1.ID, &starts.StartFlowTask{FlowStart: start}, false)
 	require.NoError(t, err)
 
 	testsuite.FlushTasks(t, rt)
