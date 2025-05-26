@@ -1,3 +1,20 @@
+v10.1.128 (2025-05-22)
+-------------------------
+ * Fix not loading trigger on calls being retried
+
+v10.1.127 (2025-05-22)
+-------------------------
+ * Rework campaign events for IVR flows to use calls with triggers rather than starts
+
+v10.1.126 (2025-05-22)
+-------------------------
+ * Create calls with triggers instead of start references in flow batch starts
+ * Modify StartFlowBatch task to handle voice flows as well
+
+v10.1.125 (2025-05-22)
+-------------------------
+ * Support IVR retries for outgoing calls without starts
+
 v10.1.124 (2025-05-22)
 -------------------------
  * Update call status to in progress via sprint_ended handler+hook

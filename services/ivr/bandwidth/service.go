@@ -85,7 +85,7 @@ type service struct {
 }
 
 func init() {
-	ivr.RegisterServiceType(bandwidthChannelType, NewServiceFromChannel)
+	ivr.RegisterService(bandwidthChannelType, NewServiceFromChannel)
 }
 
 // NewServiceFromChannel creates a new Bandwidth IVR service for the passed in username, password and accountID

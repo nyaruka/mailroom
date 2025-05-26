@@ -23,7 +23,7 @@ func TestMsgReceivedTask(t *testing.T) {
 
 	defer testsuite.Reset(testsuite.ResetAll)
 
-	ivr.RegisterServiceType(models.ChannelType("T"), testsuite.NewIVRServiceFactory)
+	ivr.RegisterService(models.ChannelType("T"), testsuite.NewIVRServiceFactory)
 
 	// create a disabled channel
 	disabled := testdata.InsertChannel(rt, testdata.Org1, "TG", "Deleted", "1234567", []string{"telegram"}, "SR", map[string]any{})

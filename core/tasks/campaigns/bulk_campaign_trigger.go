@@ -11,11 +11,11 @@ import (
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/triggers"
+	"github.com/nyaruka/mailroom/core/ivr"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/msgio"
 	"github.com/nyaruka/mailroom/core/runner"
 	"github.com/nyaruka/mailroom/core/tasks"
-	"github.com/nyaruka/mailroom/core/tasks/starts"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/redisx"
 )
@@ -113,25 +113,39 @@ func (t *BulkCampaignTriggerTask) triggerFlow(ctx context.Context, rt *runtime.R
 		return fmt.Errorf("error loading campaign event flow #%d: %w", ce.FlowID, err)
 	}
 
-	// if this is an ivr flow, we need to create a task to perform the start there
-	if flow.FlowType() == models.FlowTypeVoice {
-		err := triggerIVRFlow(ctx, rt, oa.OrgID(), flow.ID(), contactIDs)
-		if err != nil {
-			return fmt.Errorf("error triggering ivr flow start: %w", err)
-		}
-		return nil
-	}
-
 	flowRef := assets.NewFlowReference(flow.UUID(), flow.Name())
 	campaignRef := triggers.NewCampaignReference(triggers.CampaignUUID(ce.Campaign().UUID()), ce.Campaign().Name())
-	interrupt := ce.StartMode != models.CampaignEventModePassive
 	triggerBuilder := func(contact *flows.Contact) flows.Trigger {
 		return triggers.NewBuilder(oa.Env(), flowRef, contact).Campaign(campaignRef, triggers.CampaignEventUUID(ce.UUID)).Build()
 	}
 
-	_, err = runner.StartWithLock(ctx, rt, oa, contactIDs, triggerBuilder, interrupt, models.NilStartID, nil)
-	if err != nil {
-		return fmt.Errorf("error starting flow for campaign event #%d: %w", ce.ID, err)
+	if flow.FlowType() == models.FlowTypeVoice {
+		contacts, err := models.LoadContacts(ctx, rt.ReadonlyDB, oa, t.ContactIDs)
+		if err != nil {
+			return fmt.Errorf("error loading contacts: %w", err)
+		}
+
+		// for each contacts, request a call start
+		for _, contact := range contacts {
+			ctx, cancel := context.WithTimeout(ctx, time.Minute)
+			call, err := ivr.RequestCall(ctx, rt, oa, contact, triggerBuilder(nil))
+			cancel()
+			if err != nil {
+				slog.Error("error requesting call for campaign event", "contact", contact.UUID(), "event_id", t.EventID, "error", err)
+				continue
+			}
+			if call == nil {
+				slog.Debug("call start skipped, no suitable channel", "contact", contact.UUID(), "event_id", t.EventID)
+				continue
+			}
+		}
+	} else {
+		interrupt := ce.StartMode != models.CampaignEventModePassive
+
+		_, err = runner.StartWithLock(ctx, rt, oa, contactIDs, triggerBuilder, interrupt, models.NilStartID, nil)
+		if err != nil {
+			return fmt.Errorf("error starting flow for campaign event #%d: %w", ce.ID, err)
+		}
 	}
 
 	return nil
@@ -152,38 +166,5 @@ func (t *BulkCampaignTriggerTask) triggerBroadcast(ctx context.Context, rt *runt
 	}
 
 	msgio.QueueMessages(ctx, rt, sends)
-	return nil
-}
-
-// creates a new flow start with the passed in flow and set of contacts. This will cause us to
-// request calls to start, which once we get the callback will trigger our actual flow to start.
-func triggerIVRFlow(ctx context.Context, rt *runtime.Runtime, orgID models.OrgID, flowID models.FlowID, contactIDs []models.ContactID) error {
-	tx, err := rt.DB.BeginTxx(ctx, nil)
-	if err != nil {
-		return fmt.Errorf("error starting transaction for IVR flow start: %w", err)
-	}
-
-	start := models.NewFlowStart(orgID, models.StartTypeTrigger, flowID).WithContactIDs(contactIDs)
-	if err := models.InsertFlowStarts(ctx, tx, []*models.FlowStart{start}); err != nil {
-		tx.Rollback()
-		return fmt.Errorf("error inserting ivr flow start: %w", err)
-	}
-
-	// commit our transaction
-	if err := tx.Commit(); err != nil {
-		tx.Rollback()
-		return fmt.Errorf("error committing transaction for ivr flow starts: %w", err)
-	}
-
-	// create our batch of all our contacts
-	task := &starts.StartIVRFlowBatchTask{FlowStartBatch: start.CreateBatch(contactIDs, true, true, len(contactIDs))}
-
-	// queue this to our ivr starter, it will take care of creating the calls then calling back in
-	rc := rt.RP.Get()
-	defer rc.Close()
-	if err := tasks.Queue(rc, tasks.BatchQueue, orgID, task, true); err != nil {
-		return fmt.Errorf("error queuing ivr flow start: %w", err)
-	}
-
 	return nil
 }

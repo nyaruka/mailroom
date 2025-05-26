@@ -99,8 +99,8 @@ func (s *Session) OutputMD5() string {
 	return fmt.Sprintf("%x", md5.Sum([]byte(s.s.Output)))
 }
 
-// FlowSession creates a flow session for the passed in session object. It also populates the runs we know about
-func (s *Session) FlowSession(ctx context.Context, rt *runtime.Runtime, sa flows.SessionAssets, env envs.Environment) (flows.Session, error) {
+// EngineSession creates a flow session for the passed in session object. It also populates the runs we know about
+func (s *Session) EngineSession(ctx context.Context, rt *runtime.Runtime, sa flows.SessionAssets, env envs.Environment) (flows.Session, error) {
 	session, err := goflow.Engine(rt).ReadSession(sa, []byte(s.s.Output), assets.IgnoreMissing)
 	if err != nil {
 		return nil, fmt.Errorf("unable to unmarshal session: %w", err)

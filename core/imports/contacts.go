@@ -94,7 +94,7 @@ func getOrCreateContacts(ctx context.Context, db *sqlx.DB, oa *models.OrgAssets,
 				continue
 			}
 
-			imp.flowContact, err = imp.contact.FlowContact(oa)
+			imp.flowContact, err = imp.contact.EngineContact(oa)
 			if err != nil {
 				return fmt.Errorf("error creating flow contact for %d: %w", imp.contact.ID(), err)
 			}

@@ -50,7 +50,7 @@ func handleSend(ctx context.Context, rt *runtime.Runtime, r *sendRequest) (any, 
 		return nil, 0, fmt.Errorf("error loading contact: %w", err)
 	}
 
-	contact, err := c.FlowContact(oa)
+	contact, err := c.EngineContact(oa)
 	if err != nil {
 		return nil, 0, fmt.Errorf("error creating flow contact: %w", err)
 	}

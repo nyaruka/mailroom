@@ -250,8 +250,8 @@ func (c *Contact) UpdatePreferredURN(ctx context.Context, db DBorTx, oa *OrgAsse
 	return nil
 }
 
-// FlowContact converts our mailroom contact into a flow contact for use in the engine
-func (c *Contact) FlowContact(oa *OrgAssets) (*flows.Contact, error) {
+// EngineContact converts our mailroom contact into a contact for use in the engine
+func (c *Contact) EngineContact(oa *OrgAssets) (*flows.Contact, error) {
 	// convert our groups to a list of references
 	groups := make([]*assets.GroupReference, 0, len(c.groups))
 	for _, g := range c.groups {
@@ -623,7 +623,7 @@ func CreateContact(ctx context.Context, db DB, oa *OrgAssets, userID UserID, nam
 		return nil, nil, fmt.Errorf("error loading new contact: %w", err)
 	}
 
-	flowContact, err := contact.FlowContact(oa)
+	flowContact, err := contact.EngineContact(oa)
 	if err != nil {
 		return nil, nil, fmt.Errorf("error creating flow contact: %w", err)
 	}
@@ -660,7 +660,7 @@ func GetOrCreateContact(ctx context.Context, db DB, oa *OrgAssets, userID UserID
 		return nil, nil, false, fmt.Errorf("error loading new contact: %w", err)
 	}
 
-	flowContact, err := contact.FlowContact(oa)
+	flowContact, err := contact.EngineContact(oa)
 	if err != nil {
 		return nil, nil, false, fmt.Errorf("error creating flow contact: %w", err)
 	}
@@ -1262,7 +1262,7 @@ func UpdateContactURNs(ctx context.Context, db DBorTx, oa *OrgAssets, changes []
 			// turn them into flow contacts..
 			flowOrphans := make([]*flows.Contact, len(affected))
 			for i, c := range affected {
-				flowOrphans[i], err = c.FlowContact(oa)
+				flowOrphans[i], err = c.EngineContact(oa)
 				if err != nil {
 					return nil, fmt.Errorf("error creating orphan flow contact: %w", err)
 				}

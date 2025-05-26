@@ -140,9 +140,9 @@ type service struct {
 }
 
 func init() {
-	ivr.RegisterServiceType(twimlChannelType, NewServiceFromChannel)
-	ivr.RegisterServiceType(twilioChannelType, NewServiceFromChannel)
-	ivr.RegisterServiceType(signalWireChannelType, NewServiceFromChannel)
+	ivr.RegisterService(twimlChannelType, NewServiceFromChannel)
+	ivr.RegisterService(twilioChannelType, NewServiceFromChannel)
+	ivr.RegisterService(signalWireChannelType, NewServiceFromChannel)
 }
 
 // NewServiceFromChannel creates a new Twilio IVR service for the passed in account and and auth token

@@ -204,7 +204,7 @@ func RunTestCases(t *testing.T, ctx context.Context, rt *runtime.Runtime, tcs []
 			contact, err := models.LoadContact(ctx, rt.DB, oa, contact.ID)
 			assert.NoError(t, err)
 
-			flowContact, err := contact.FlowContact(oa)
+			flowContact, err := contact.EngineContact(oa)
 			assert.NoError(t, err)
 
 			result := modifyResult{

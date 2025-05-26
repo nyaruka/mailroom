@@ -93,7 +93,7 @@ func (t *EventReceivedTask) handle(ctx context.Context, rt *runtime.Runtime, oa 
 	}
 
 	// build our flow contact
-	flowContact, err := mc.FlowContact(oa)
+	flowContact, err := mc.EngineContact(oa)
 	if err != nil {
 		return nil, fmt.Errorf("error creating flow contact: %w", err)
 	}

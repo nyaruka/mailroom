@@ -9,7 +9,9 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/jsonx"
+	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/flows/triggers"
 	"github.com/nyaruka/null/v3"
 )
 
@@ -24,15 +26,6 @@ type CallStatus string
 
 // CallError is the type for the reason of an errored call
 type CallError null.String
-
-// CallDirection is the type for the direction of a call
-type CallDirection string
-
-// call direction constants
-const (
-	CallDirectionIn  = CallDirection("I")
-	CallDirectionOut = CallDirection("O")
-)
 
 // call status constants
 const (
@@ -61,25 +54,24 @@ const (
 // Call models an IVR call
 type Call struct {
 	c struct {
-		ID           CallID        `db:"id"`
-		OrgID        OrgID         `db:"org_id"`
-		ChannelID    ChannelID     `db:"channel_id"`
-		ContactID    ContactID     `db:"contact_id"`
-		ContactURNID URNID         `db:"contact_urn_id"`
-		ExternalID   string        `db:"external_id"`
-		Status       CallStatus    `db:"status"`
-		SessionUUID  null.String   `db:"session_uuid"`
-		Direction    CallDirection `db:"direction"`
-		StartedOn    *time.Time    `db:"started_on"`
-		EndedOn      *time.Time    `db:"ended_on"`
-		Duration     int           `db:"duration"`
-		ErrorReason  null.String   `db:"error_reason"`
-		ErrorCount   int           `db:"error_count"`
-		NextAttempt  *time.Time    `db:"next_attempt"`
-		StartID      StartID       `db:"start_id"`
-		Trigger      null.JSON     `db:"trigger"`
-		CreatedOn    time.Time     `db:"created_on"`
-		ModifiedOn   time.Time     `db:"modified_on"`
+		ID           CallID      `db:"id"`
+		OrgID        OrgID       `db:"org_id"`
+		ChannelID    ChannelID   `db:"channel_id"`
+		ContactID    ContactID   `db:"contact_id"`
+		ContactURNID URNID       `db:"contact_urn_id"`
+		ExternalID   string      `db:"external_id"`
+		Status       CallStatus  `db:"status"`
+		SessionUUID  null.String `db:"session_uuid"`
+		Direction    Direction   `db:"direction"`
+		StartedOn    *time.Time  `db:"started_on"`
+		EndedOn      *time.Time  `db:"ended_on"`
+		Duration     int         `db:"duration"`
+		ErrorReason  null.String `db:"error_reason"`
+		ErrorCount   int         `db:"error_count"`
+		NextAttempt  *time.Time  `db:"next_attempt"`
+		Trigger      null.JSON   `db:"trigger"`
+		CreatedOn    time.Time   `db:"created_on"`
+		ModifiedOn   time.Time   `db:"modified_on"`
 	}
 }
 
@@ -88,14 +80,22 @@ func (c *Call) ChannelID() ChannelID           { return c.c.ChannelID }
 func (c *Call) OrgID() OrgID                   { return c.c.OrgID }
 func (c *Call) ContactID() ContactID           { return c.c.ContactID }
 func (c *Call) ContactURNID() URNID            { return c.c.ContactURNID }
+func (c *Call) Direction() Direction           { return c.c.Direction }
 func (c *Call) Status() CallStatus             { return c.c.Status }
 func (c *Call) SessionUUID() flows.SessionUUID { return flows.SessionUUID(c.c.SessionUUID) }
 func (c *Call) ExternalID() string             { return c.c.ExternalID }
-func (c *Call) StartID() StartID               { return c.c.StartID }
 func (c *Call) ErrorReason() CallError         { return CallError(c.c.ErrorReason) }
 func (c *Call) ErrorCount() int                { return c.c.ErrorCount }
 func (c *Call) NextAttempt() *time.Time        { return c.c.NextAttempt }
-func (c *Call) Trigger() []byte                { return c.c.Trigger }
+
+func (c *Call) EngineTrigger(oa *OrgAssets) (flows.Trigger, error) {
+	trigger, err := triggers.ReadTrigger(oa.SessionAssets(), c.c.Trigger, assets.IgnoreMissing)
+	if err != nil {
+		return nil, fmt.Errorf("error reading call trigger: %w", err)
+	}
+
+	return trigger, nil
+}
 
 // NewIncomingCall creates a new incoming IVR call
 func NewIncomingCall(orgID OrgID, ch *Channel, contact *Contact, urnID URNID, externalID string) *Call {
@@ -105,7 +105,7 @@ func NewIncomingCall(orgID OrgID, ch *Channel, contact *Contact, urnID URNID, ex
 	c.ChannelID = ch.ID()
 	c.ContactID = contact.ID()
 	c.ContactURNID = urnID
-	c.Direction = CallDirectionIn
+	c.Direction = DirectionIn
 	c.Status = CallStatusInProgress
 	c.ExternalID = externalID
 	return call
@@ -119,7 +119,7 @@ func NewOutgoingCall(orgID OrgID, ch *Channel, contact *Contact, urnID URNID, tr
 	c.ChannelID = ch.ID()
 	c.ContactID = contact.ID()
 	c.ContactURNID = urnID
-	c.Direction = CallDirectionOut
+	c.Direction = DirectionOut
 	c.Status = CallStatusPending
 	c.Trigger = null.JSON(jsonx.MustMarshal(trigger))
 	return call
@@ -138,47 +138,6 @@ func InsertCalls(ctx context.Context, db DBorTx, calls []*Call) error {
 	}
 
 	return BulkQueryBatches(ctx, "inserted IVR calls", db, sqlInsertCall, 1000, is)
-}
-
-// TODO replace with NewOutgoingCall and InsertCalls
-func InsertCall(ctx context.Context, db *sqlx.DB, orgID OrgID, channelID ChannelID, startID StartID, contactID ContactID, urnID URNID, direction CallDirection, status CallStatus, externalID string) (*Call, error) {
-	call := &Call{}
-	c := &call.c
-	c.OrgID = orgID
-	c.ChannelID = channelID
-	c.ContactID = contactID
-	c.ContactURNID = urnID
-	c.Direction = direction
-	c.Status = status
-	c.ExternalID = externalID
-	c.StartID = startID
-
-	rows, err := db.NamedQueryContext(ctx, sqlInsertCall, c)
-	if err != nil {
-		return nil, fmt.Errorf("error inserting new call: %w", err)
-	}
-	defer rows.Close()
-
-	rows.Next()
-
-	err = rows.Scan(&c.ID, &c.CreatedOn, &c.ModifiedOn)
-	if err != nil {
-		return nil, fmt.Errorf("unable to scan id for new call: %w", err)
-	}
-
-	// add a many to many for our start if set
-	if startID != NilStartID {
-		_, err := db.ExecContext(
-			ctx,
-			`INSERT INTO flows_flowstart_calls(flowstart_id, call_id) VALUES($1, $2) ON CONFLICT DO NOTHING`,
-			startID, c.ID,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("unable to add start association for call: %w", err)
-		}
-	}
-
-	return call, nil
 }
 
 const sqlSelectCallByID = `
@@ -200,10 +159,8 @@ SELECT
     cc.contact_id,
     cc.contact_urn_id,
     cc.session_uuid,
-	cc.trigger,
-    fsc.flowstart_id AS start_id
+	cc.trigger
            FROM ivr_call as cc
-LEFT OUTER JOIN flows_flowstart_calls fsc ON cc.id = fsc.call_id
           WHERE cc.org_id = $1 AND cc.id = $2`
 
 // GetCallByID loads a call by id
@@ -235,10 +192,8 @@ SELECT
     cc.contact_id,
     cc.contact_urn_id,
     cc.session_uuid,
-    cc.trigger,
-    fsc.flowstart_id AS start_id
+	cc.trigger
            FROM ivr_call as cc
-LEFT OUTER JOIN flows_flowstart_calls fsc ON cc.id = fsc.call_id
           WHERE cc.channel_id = $1 AND cc.external_id = $2
        ORDER BY cc.id DESC
           LIMIT 1`
@@ -255,7 +210,8 @@ func GetCallByExternalID(ctx context.Context, db DBorTx, channelID ChannelID, ex
 
 const sqlSelectRetryCalls = `
 SELECT
-    cc.id, 
+    cc.id,
+	cc.org_id,
     cc.created_on,
     cc.modified_on,
     cc.external_id,
@@ -271,10 +227,8 @@ SELECT
     cc.contact_id,
     cc.contact_urn_id,
     cc.session_uuid,
-    cc.org_id,
-    fsc.flowstart_id AS start_id
+	cc.trigger
            FROM ivr_call as cc
-LEFT OUTER JOIN flows_flowstart_calls fsc ON cc.id = fsc.call_id
           WHERE cc.status IN ('Q', 'E') AND next_attempt < NOW()
        ORDER BY cc.next_attempt ASC
           LIMIT $1`

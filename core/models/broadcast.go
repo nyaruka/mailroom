@@ -338,7 +338,7 @@ func (b *Broadcast) CreateMessages(ctx context.Context, rt *runtime.Runtime, oa 
 
 // creates an outgoing message for the given contact - can return nil if resultant message has no content and thus is a noop
 func (b *Broadcast) createMessage(rt *runtime.Runtime, oa *OrgAssets, c *Contact) (*MsgOut, error) {
-	contact, err := c.FlowContact(oa)
+	contact, err := c.EngineContact(oa)
 	if err != nil {
 		return nil, fmt.Errorf("error creating flow contact for broadcast message: %w", err)
 	}
