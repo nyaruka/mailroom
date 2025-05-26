@@ -91,12 +91,14 @@ type FlowStart struct {
 	GroupIDs        []GroupID   `json:"group_ids,omitempty"`
 	ExcludeGroupIDs []GroupID   `json:"exclude_group_ids,omitempty"` // used when loading scheduled triggers as flow starts
 	Query           null.String `json:"query,omitempty"        db:"query"`
-	CreateContact   bool        `json:"create_contact"`
 	Exclusions      Exclusions  `json:"exclusions"             db:"exclusions"`
 
-	Params         null.JSON `json:"params,omitempty"          db:"params"`
-	ParentSummary  null.JSON `json:"parent_summary,omitempty"  db:"parent_summary"`
-	SessionHistory null.JSON `json:"session_history,omitempty" db:"session_history"`
+	Params null.JSON `json:"params,omitempty"          db:"params"`
+
+	// used for non-persistent starts from flow actions
+	CreateContact  bool      `json:"create_contact"`
+	ParentSummary  null.JSON `json:"parent_summary,omitempty"`
+	SessionHistory null.JSON `json:"session_history,omitempty"`
 }
 
 // NewFlowStart creates a new flow start objects for the passed in parameters
@@ -202,7 +204,7 @@ func (s *FlowStart) setStatus(ctx context.Context, db DBorTx, status StartStatus
 }
 
 const sqlGetFlowStartByID = `
-SELECT id, uuid, org_id, status, start_type, created_by_id, flow_id, params, parent_summary, session_history 
+SELECT id, uuid, org_id, status, start_type, created_by_id, flow_id, params
   FROM flows_flowstart 
  WHERE id = $1`
 
@@ -266,8 +268,8 @@ func InsertFlowStarts(ctx context.Context, db DBorTx, starts []*FlowStart) error
 
 const sqlInsertStart = `
 INSERT INTO
-	flows_flowstart(uuid,  org_id,  flow_id,  start_type,  created_on, modified_on, query,  exclusions,  status, params,  parent_summary,  session_history)
-			 VALUES(:uuid, :org_id, :flow_id, :start_type, NOW(),      NOW(),       :query, :exclusions, 'P',    :params, :parent_summary, :session_history)
+	flows_flowstart(uuid,  org_id,  flow_id,  start_type,  created_on, modified_on, query,  exclusions,  status, params)
+			 VALUES(:uuid, :org_id, :flow_id, :start_type, NOW(),      NOW(),       :query, :exclusions, 'P',    :params)
 RETURNING
 	id
 `
