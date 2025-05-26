@@ -1,3 +1,7 @@
+v10.1.129 (2025-05-26)
+-------------------------
+ * Remove no longer used code for calls with starts
+
 v10.1.128 (2025-05-22)
 -------------------------
  * Fix not loading trigger on calls being retried
