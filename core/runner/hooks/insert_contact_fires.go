@@ -36,16 +36,16 @@ func (h *insertContactFires) Execute(ctx context.Context, rt *runtime.Runtime, t
 	deleteAll := make([]models.ContactID, 0, len(scenes))
 	deleteWaits := make([]models.ContactID, 0, len(scenes))
 
-	for _, args := range scenes {
+	for scene, args := range scenes {
 		for _, fs := range args {
 			sc, sd := fs.(FiresSet).Create, fs.(FiresSet).Delete
 
 			create = append(create, sc...)
 
 			if sd == DeleteFiresAll {
-				deleteAll = append(deleteAll, sc[0].ContactID)
+				deleteAll = append(deleteAll, scene.ContactID())
 			} else if sd == DeleteFiresWaits {
-				deleteWaits = append(deleteWaits, sc[0].ContactID)
+				deleteWaits = append(deleteWaits, scene.ContactID())
 			}
 		}
 	}
