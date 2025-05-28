@@ -5,8 +5,6 @@ import (
 	"time"
 
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
-	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/goflow/test"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/testsuite"
 	"github.com/nyaruka/mailroom/testsuite/testdata"
@@ -62,33 +60,24 @@ func TestSessionContactFires(t *testing.T) {
 
 	testdata.InsertContactFire(rt, testdata.Org1, testdata.Bob, models.ContactFireTypeCampaignEvent, "235", time.Now().Add(2*time.Second), "")
 
-	testFlows := testdata.ImportFlows(rt, testdata.Org1, "testdata/session_test_flows.json")
-	flow := testFlows[0]
+	fires := []*models.ContactFire{
+		models.NewFireForSession(testdata.Org1.ID, testdata.Bob.ID, "6ffbe7f4-362b-439c-a253-5e09a1dd4ed6", "d973e18c-009e-4539-80f9-4f7ac60e5f3b", models.ContactFireTypeWaitTimeout, time.Now().Add(time.Minute)),
+		models.NewFireForSession(testdata.Org1.ID, testdata.Bob.ID, "6ffbe7f4-362b-439c-a253-5e09a1dd4ed6", "d973e18c-009e-4539-80f9-4f7ac60e5f3b", models.ContactFireTypeWaitExpiration, time.Now().Add(time.Hour)),
+		models.NewFireForSession(testdata.Org1.ID, testdata.Bob.ID, "6ffbe7f4-362b-439c-a253-5e09a1dd4ed6", "", models.ContactFireTypeSessionExpiration, time.Now().Add(7*24*time.Hour)),
+		models.NewFireForSession(testdata.Org1.ID, testdata.Cathy.ID, "736ee995-d246-4ccf-bdde-e9267831da95", "d0ceea41-5b38-4366-82fb-05576e244bd7", models.ContactFireTypeWaitTimeout, time.Now().Add(time.Minute)),
+		models.NewFireForSession(testdata.Org1.ID, testdata.Cathy.ID, "736ee995-d246-4ccf-bdde-e9267831da95", "d0ceea41-5b38-4366-82fb-05576e244bd7", models.ContactFireTypeWaitExpiration, time.Now().Add(time.Hour)),
+		models.NewFireForSession(testdata.Org1.ID, testdata.Cathy.ID, "736ee995-d246-4ccf-bdde-e9267831da95", "", models.ContactFireTypeSessionExpiration, time.Now().Add(7*24*time.Hour)),
+	}
 
-	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdata.Org1.ID, models.RefreshFlows)
-	require.NoError(t, err)
+	err := models.InsertContactFires(ctx, rt.DB, fires)
+	assert.NoError(t, err)
 
-	modelContact1, _, _ := testdata.Bob.Load(rt, oa)
-	modelContact2, _, _ := testdata.Cathy.Load(rt, oa)
-
-	_, flowSession1, sprint1 := test.NewSessionBuilder().WithAssets(oa.SessionAssets()).WithFlow(flow.UUID).
-		WithContact(testdata.Bob.UUID, flows.ContactID(testdata.Bob.ID), "Bob", "eng", "").MustBuild()
-	_, flowSession2, sprint2 := test.NewSessionBuilder().WithAssets(oa.SessionAssets()).WithFlow(flow.UUID).
-		WithContact(testdata.Cathy.UUID, flows.ContactID(testdata.Cathy.ID), "Cathy", "eng", "").MustBuild()
-
-	tx := rt.DB.MustBegin()
-
-	modelSessions, err := models.InsertSessions(ctx, rt, tx, oa, []flows.Session{flowSession1, flowSession2}, []flows.Sprint{sprint1, sprint2}, []*models.Contact{modelContact1, modelContact2}, []models.CallID{models.NilCallID, models.NilCallID}, models.NilStartID)
-	require.NoError(t, err)
-	require.NoError(t, tx.Commit())
-	assert.Len(t, modelSessions, 2)
-
-	assertdb.Query(t, rt.DB, `SELECT COUNT(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'T' AND session_uuid = $2`, testdata.Bob.ID, modelSessions[0].UUID()).Returns(1)
-	assertdb.Query(t, rt.DB, `SELECT COUNT(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'E' AND session_uuid = $2`, testdata.Bob.ID, modelSessions[0].UUID()).Returns(1)
-	assertdb.Query(t, rt.DB, `SELECT COUNT(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'S' AND session_uuid = $2`, testdata.Bob.ID, modelSessions[0].UUID()).Returns(1)
-	assertdb.Query(t, rt.DB, `SELECT COUNT(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'T' AND session_uuid = $2`, testdata.Cathy.ID, modelSessions[1].UUID()).Returns(1)
-	assertdb.Query(t, rt.DB, `SELECT COUNT(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'E' AND session_uuid = $2`, testdata.Cathy.ID, modelSessions[1].UUID()).Returns(1)
-	assertdb.Query(t, rt.DB, `SELECT COUNT(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'S' AND session_uuid = $2`, testdata.Cathy.ID, modelSessions[1].UUID()).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT COUNT(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'T' AND session_uuid = '6ffbe7f4-362b-439c-a253-5e09a1dd4ed6'`, testdata.Bob.ID).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT COUNT(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'E' AND session_uuid = '6ffbe7f4-362b-439c-a253-5e09a1dd4ed6'`, testdata.Bob.ID).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT COUNT(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'S' AND session_uuid = '6ffbe7f4-362b-439c-a253-5e09a1dd4ed6'`, testdata.Bob.ID).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT COUNT(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'T' AND session_uuid = '736ee995-d246-4ccf-bdde-e9267831da95'`, testdata.Cathy.ID).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT COUNT(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'E' AND session_uuid = '736ee995-d246-4ccf-bdde-e9267831da95'`, testdata.Cathy.ID).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT COUNT(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'S' AND session_uuid = '736ee995-d246-4ccf-bdde-e9267831da95'`, testdata.Cathy.ID).Returns(1)
 
 	num, err := models.DeleteSessionContactFires(ctx, rt.DB, []models.ContactID{testdata.Bob.ID}, true) // all
 	assert.NoError(t, err)
