@@ -1,3 +1,7 @@
+v10.1.130 (2025-05-28)
+-------------------------
+ * Write channel logs to new DynamoDB table
+
 v10.1.129 (2025-05-26)
 -------------------------
  * Remove no longer used code for calls with starts
