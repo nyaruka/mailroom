@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/gocommon/httpx"
 	"github.com/nyaruka/mailroom/core/models"
@@ -59,9 +58,7 @@ func TestChannelLogsOutgoing(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM channels_channellog WHERE http_logs::text LIKE '%sesame%'`).Returns(0)
 
 	// read log back from DynamoDB
-	log := &clogs.Log{}
-	err = rt.Dynamo.GetItem(ctx, "ChannelLogs", map[string]types.AttributeValue{"UUID": &types.AttributeValueMemberS{Value: string(clog1.UUID)}}, log)
+	item, err := rt.Dynamo.Main.GetItem(ctx, clog1.DynamoKey())
 	require.NoError(t, err)
-	assert.Equal(t, clog1.UUID, log.UUID)
-	assert.Equal(t, models.ChannelLogTypeIVRStart, log.Type)
+	assert.Equal(t, string(models.ChannelLogTypeIVRStart), item.Data["type"])
 }

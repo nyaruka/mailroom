@@ -13,8 +13,9 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	"github.com/nyaruka/gocommon/aws/dynamo"
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
+	"github.com/nyaruka/gocommon/httpx"
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/goflow/test"
 	"github.com/nyaruka/mailroom/core/models"
@@ -333,12 +334,10 @@ func TestTwilioIVR(t *testing.T) {
 		AND ((status = 'H' AND direction = 'I') OR (status = 'W' AND direction = 'O'))`, testdata.Bob.ID).Returns(2)
 
 	// check the generated channel logs
-	logs := getCallLogs(t, ctx, rt)
+	logs := getCallLogs(t, ctx, rt, testdata.TwilioChannel)
 	assert.Len(t, logs, 19)
 	for _, log := range logs {
-		for _, httpLog := range log.HttpLogs {
-			assert.NotContains(t, string(jsonx.MustMarshal(httpLog)), "sesame") // auth token redacted
-		}
+		assert.NotContains(t, string(jsonx.MustMarshal(log)), "sesame") // auth token redacted
 	}
 }
 
@@ -634,12 +633,10 @@ func TestVonageIVR(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM ivr_call WHERE status = 'D' AND contact_id = $1`, testdata.George.ID).Returns(1)
 
 	// check the generated channel logs
-	logs := getCallLogs(t, ctx, rt)
+	logs := getCallLogs(t, ctx, rt, testdata.VonageChannel)
 	assert.Len(t, logs, 16)
 	for _, log := range logs {
-		for _, httpLog := range log.HttpLogs {
-			assert.NotContains(t, string(jsonx.MustMarshal(httpLog)), "BEGIN PRIVATE KEY") // private key redacted
-		}
+		assert.NotContains(t, string(jsonx.MustMarshal(log)), "BEGIN PRIVATE KEY") // private key redacted
 	}
 
 	// and 2 unattached logs in the database
@@ -647,18 +644,28 @@ func TestVonageIVR(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT array_agg(log_type ORDER BY id) FROM channels_channellog WHERE channel_id = $1`, testdata.VonageChannel.ID).Returns([]byte(`{ivr_status,ivr_status}`))
 }
 
-func getCallLogs(t *testing.T, ctx context.Context, rt *runtime.Runtime) []*clogs.Log {
+func getCallLogs(t *testing.T, ctx context.Context, rt *runtime.Runtime, ch *testdata.Channel) []*httpx.Log {
 	var logUUIDs []clogs.UUID
 	err := rt.DB.Select(&logUUIDs, `SELECT unnest(log_uuids) FROM ivr_call ORDER BY id`)
 	require.NoError(t, err)
 
-	logs := make([]*clogs.Log, len(logUUIDs))
+	logs := make([]*httpx.Log, 0, len(logUUIDs))
 
-	for i, logUUID := range logUUIDs {
-		log := &clogs.Log{}
-		err = rt.Dynamo.GetItem(ctx, "ChannelLogs", map[string]types.AttributeValue{"UUID": &types.AttributeValueMemberS{Value: string(logUUID)}}, log)
+	type DataGZ struct {
+		HttpLogs []*httpx.Log   `json:"http_logs"`
+		Errors   []*clogs.Error `json:"errors"`
+	}
+
+	for _, logUUID := range logUUIDs {
+		key := runtime.DynamoKey{PK: fmt.Sprintf("cha#%s#%s", ch.UUID, logUUID[35:36]), SK: fmt.Sprintf("log#%s", logUUID)}
+		item, err := rt.Dynamo.Main.GetItem(ctx, key)
 		require.NoError(t, err)
-		logs[i] = log
+
+		var dataGZ DataGZ
+		err = dynamo.UnmarshalJSONGZ(item.DataGZ, &dataGZ)
+		require.NoError(t, err)
+
+		logs = append(logs, dataGZ.HttpLogs...)
 	}
 
 	return logs
