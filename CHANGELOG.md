@@ -1,3 +1,7 @@
+v10.1.131 (2025-05-29)
+-------------------------
+ * Create and delete session contact fires via hook
+
 v10.1.130 (2025-05-28)
 -------------------------
  * Write channel logs to new DynamoDB table
