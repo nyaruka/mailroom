@@ -167,13 +167,10 @@ func StartSessions(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsset
 	}
 
 	// write our session to the db
-	_, timeouts, err := models.InsertSessions(txCTX, rt, tx, oa, sessions, sprints, contacts, callIDs, startID)
+	_, err = models.InsertSessions(txCTX, rt, tx, oa, sessions, sprints, contacts, callIDs, startID)
 	if err != nil {
 		tx.Rollback()
 		return nil, fmt.Errorf("error interrupting contacts: %w", err)
-	}
-	for i := range sessions {
-		scenes[i].WaitTimeout = timeouts[i]
 	}
 
 	// gather all our pre commit events, group them by hook
@@ -210,13 +207,12 @@ func StartSessions(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsset
 				}
 			}
 
-			_, timeout, err := models.InsertSessions(txCTX, rt, tx, oa, []flows.Session{session}, []flows.Sprint{sprint}, []*models.Contact{contact}, []models.CallID{callID}, startID)
+			_, err = models.InsertSessions(txCTX, rt, tx, oa, []flows.Session{session}, []flows.Sprint{sprint}, []*models.Contact{contact}, []models.CallID{callID}, startID)
 			if err != nil {
 				tx.Rollback()
 				slog.Error("error writing session to db", "error", err, "contact", session.Contact().UUID())
 				continue
 			}
-			scene.WaitTimeout = timeout[0]
 
 			// gather all our pre commit events, group them by hook
 			if err := ExecutePreCommitHooks(ctx, rt, tx, oa, []*Scene{scene}); err != nil {

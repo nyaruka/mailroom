@@ -16,12 +16,9 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 	"github.com/nyaruka/gocommon/aws/s3x"
-	"github.com/nyaruka/gocommon/dates"
-	"github.com/nyaruka/gocommon/random"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/envs"
 	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/mailroom/core/goflow"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/null/v3"
@@ -35,9 +32,6 @@ const (
 	SessionStatusExpired     SessionStatus = "X"
 	SessionStatusInterrupted SessionStatus = "I"
 	SessionStatusFailed      SessionStatus = "F"
-
-	// SessionExpires is the default *overall* expiration time for a session
-	SessionExpires = 30 * 24 * time.Hour
 
 	storageTSFormat = "20060102T150405.999Z"
 )
@@ -121,68 +115,6 @@ func (s *Session) EngineSession(ctx context.Context, rt *runtime.Runtime, sa flo
 	return session, nil
 }
 
-// calculates the fires needed for this session - returns timeout separately if this session will queue messages to courier
-func (s *Session) calculateFires(oa *OrgAssets, sprint flows.Sprint, initial bool) ([]*ContactFire, time.Duration) {
-	waitExpiresOn, waitTimeout, queuesToCourier := getWaitProperties(oa, sprint.Events())
-	var waitTimeoutOn *time.Time
-	var timeout time.Duration
-
-	if waitTimeout != 0 {
-		if queuesToCourier {
-			timeout = waitTimeout
-		} else {
-			ton := dates.Now().Add(waitTimeout)
-			waitTimeoutOn = &ton
-		}
-	}
-
-	fs := make([]*ContactFire, 0, 3)
-
-	if waitTimeoutOn != nil {
-		fs = append(fs, newContactFireForSession(oa.OrgID(), s, ContactFireTypeWaitTimeout, *waitTimeoutOn))
-	}
-	if waitExpiresOn != nil {
-		fs = append(fs, newContactFireForSession(oa.OrgID(), s, ContactFireTypeWaitExpiration, *waitExpiresOn))
-	}
-	if initial && s.Status() == SessionStatusWaiting {
-		// session expiration time is the creation time + 30 days + random time between 0 and 24 hours
-		sessionExpiresOn := s.CreatedOn().Add(SessionExpires).Add(time.Duration(random.IntN(86_400)) * time.Second)
-
-		fs = append(fs, newContactFireForSession(oa.OrgID(), s, ContactFireTypeSessionExpiration, sessionExpiresOn))
-	}
-
-	return fs, timeout
-}
-
-// looks thru sprint events to figure out if we have a wait on this session and if so what is its expiration and timeout
-func getWaitProperties(oa *OrgAssets, evts []flows.Event) (*time.Time, time.Duration, bool) {
-	var expiresOn *time.Time
-	var timeout time.Duration
-	var queuesToCourier bool
-
-	for _, e := range evts {
-		switch typed := e.(type) {
-		case *events.MsgWaitEvent:
-			expiresOn = &typed.ExpiresOn
-
-			if typed.TimeoutSeconds != nil {
-				timeout = time.Duration(*typed.TimeoutSeconds) * time.Second
-			}
-		case *events.DialWaitEvent:
-			expiresOn = &typed.ExpiresOn
-		case *events.MsgCreatedEvent:
-			if typed.Msg.Channel() != nil {
-				channel := oa.ChannelByUUID(typed.Msg.Channel().UUID)
-				if channel != nil && !channel.IsAndroid() {
-					queuesToCourier = true
-				}
-			}
-		}
-	}
-
-	return expiresOn, timeout, queuesToCourier
-}
-
 const sqlUpdateSession = `
 UPDATE 
 	flows_flowsession
@@ -209,22 +141,22 @@ WHERE
 	uuid = :uuid`
 
 // Update updates the session based on the state passed in from our engine session, this also takes care of applying any event hooks
-func (s *Session) Update(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *OrgAssets, fs flows.Session, sprint flows.Sprint, contact *Contact) (time.Duration, error) {
+func (s *Session) Update(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *OrgAssets, fs flows.Session, sprint flows.Sprint, contact *Contact) error {
 	// make sure we have our seen runs
 	if s.seenRuns == nil {
-		return 0, fmt.Errorf("missing seen runs, cannot update session")
+		return fmt.Errorf("missing seen runs, cannot update session")
 	}
 
 	output, err := json.Marshal(fs)
 	if err != nil {
-		return 0, fmt.Errorf("error marshalling flow session: %w", err)
+		return fmt.Errorf("error marshalling flow session: %w", err)
 	}
 	s.s.Output = null.String(output)
 
 	// map our status over
 	status, found := sessionStatusMap[fs.Status()]
 	if !found {
-		return 0, fmt.Errorf("unknown session status: %s", fs.Status())
+		return fmt.Errorf("unknown session status: %s", fs.Status())
 	}
 	s.s.Status = status
 	s.s.LastSprintUUID = null.String(sprint.UUID())
@@ -238,7 +170,7 @@ func (s *Session) Update(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, 
 	for _, r := range fs.Runs() {
 		run, err := newRun(ctx, tx, oa, s, r)
 		if err != nil {
-			return 0, fmt.Errorf("error creating run: %s: %w", r.UUID(), err)
+			return fmt.Errorf("error creating run: %s: %w", r.UUID(), err)
 		}
 
 		// set the run on our session
@@ -252,7 +184,7 @@ func (s *Session) Update(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, 
 		if r.Status() == flows.RunStatusWaiting {
 			flowID, err := FlowIDForUUID(ctx, tx, oa, r.FlowReference().UUID)
 			if err != nil {
-				return 0, fmt.Errorf("error loading flow: %s: %w", r.FlowReference().UUID, err)
+				return fmt.Errorf("error loading flow: %s: %w", r.FlowReference().UUID, err)
 			}
 			s.s.CurrentFlowID = flowID
 		}
@@ -273,18 +205,7 @@ func (s *Session) Update(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, 
 
 	// write our new session state to the db
 	if _, err := tx.NamedExecContext(ctx, updateSQL, s.s); err != nil {
-		return 0, fmt.Errorf("error updating session: %w", err)
-	}
-
-	// clear and recreate any wait expires/timeout fires
-	if _, err := DeleteSessionContactFires(ctx, tx, []ContactID{s.ContactID()}, s.Status() != SessionStatusWaiting); err != nil {
-		return 0, fmt.Errorf("error deleting session contact fires: %w", err)
-	}
-
-	fires, timeout := s.calculateFires(oa, sprint, false)
-
-	if err := InsertContactFires(ctx, tx, fires); err != nil {
-		return 0, fmt.Errorf("error inserting session contact fires: %w", err)
+		return fmt.Errorf("error updating session: %w", err)
 	}
 
 	// figure out which runs are new and which are updated
@@ -306,15 +227,15 @@ func (s *Session) Update(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, 
 
 	// update all modified runs at once
 	if err := UpdateRuns(ctx, tx, updatedRuns); err != nil {
-		return 0, fmt.Errorf("error updating existing runs: %w", err)
+		return fmt.Errorf("error updating existing runs: %w", err)
 	}
 
 	// insert all new runs at once
 	if err := InsertRuns(ctx, tx, newRuns); err != nil {
-		return 0, fmt.Errorf("error inserting new runs: %w", err)
+		return fmt.Errorf("error inserting new runs: %w", err)
 	}
 
-	return timeout, nil
+	return nil
 }
 
 // MarshalJSON is our custom marshaller so that our inner struct get output
@@ -419,35 +340,27 @@ INSERT INTO
 
 // InsertSessions writes the passed in session to our database, writes any runs that need to be created
 // as well as appying any events created in the session
-func InsertSessions(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *OrgAssets, ss []flows.Session, sprints []flows.Sprint, contacts []*Contact, callIDs []CallID, startID StartID) ([]*Session, []time.Duration, error) {
+func InsertSessions(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *OrgAssets, ss []flows.Session, sprints []flows.Sprint, contacts []*Contact, callIDs []CallID, startID StartID) ([]*Session, error) {
 	if len(ss) == 0 {
-		return nil, nil, nil
+		return nil, nil
 	}
 
 	// create all our session objects
 	sessions := make([]*Session, 0, len(ss))
-	timeouts := make([]time.Duration, len(ss))
 	runs := make([]*FlowRun, 0, len(sessions))
 	waitingSessionsI := make([]any, 0, len(ss))
 	endedSessionsI := make([]any, 0, len(ss))
-	fires := make([]*ContactFire, 0, len(ss))
-	waitingContactIDs := make([]ContactID, 0, len(ss))
 
 	for i, s := range ss {
 		session, err := NewSession(ctx, tx, oa, s, sprints[i], startID, callIDs[i])
 		if err != nil {
-			return nil, nil, fmt.Errorf("error creating session objects: %w", err)
+			return nil, fmt.Errorf("error creating session objects: %w", err)
 		}
 		sessions = append(sessions, session)
 		runs = append(runs, session.runs...)
 
-		sfires, stimeout := session.calculateFires(oa, sprints[i], true)
-		fires = append(fires, sfires...)
-		timeouts[i] = stimeout
-
 		if session.Status() == SessionStatusWaiting {
 			waitingSessionsI = append(waitingSessionsI, &session.s)
-			waitingContactIDs = append(waitingContactIDs, session.s.ContactID)
 		} else {
 			endedSessionsI = append(endedSessionsI, &session.s)
 		}
@@ -461,7 +374,7 @@ func InsertSessions(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *O
 	if rt.Config.SessionStorage == "s3" {
 		err := writeSessionsToStorage(ctx, rt, oa.OrgID(), sessions, contacts)
 		if err != nil {
-			return nil, nil, fmt.Errorf("error writing sessions to storage: %w", err)
+			return nil, fmt.Errorf("error writing sessions to storage: %w", err)
 		}
 
 		insertEndedSQL = sqlInsertEndedSessionNoOutput
@@ -471,36 +384,23 @@ func InsertSessions(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *O
 	// insert our ended sessions first
 	err := BulkQuery(ctx, "insert ended sessions", tx, insertEndedSQL, endedSessionsI)
 	if err != nil {
-		return nil, nil, fmt.Errorf("error inserting ended sessions: %w", err)
+		return nil, fmt.Errorf("error inserting ended sessions: %w", err)
 	}
 
 	// insert waiting sessions
 	err = BulkQuery(ctx, "insert waiting sessions", tx, insertWaitingSQL, waitingSessionsI)
 	if err != nil {
-		return nil, nil, fmt.Errorf("error inserting waiting sessions: %w", err)
+		return nil, fmt.Errorf("error inserting waiting sessions: %w", err)
 	}
 
 	// insert all runs
 	err = BulkQuery(ctx, "insert runs", tx, sqlInsertRun, runs)
 	if err != nil {
-		return nil, nil, fmt.Errorf("error writing runs: %w", err)
-	}
-
-	numFiresDeleted, err := DeleteSessionContactFires(ctx, tx, waitingContactIDs, true)
-	if err != nil {
-		return nil, nil, fmt.Errorf("error deleting session contact fires: %w", err)
-	}
-	if numFiresDeleted > 0 {
-		slog.With("org_id", oa.OrgID()).Error("deleted session contact fires that shouldn't have been there", "count", numFiresDeleted)
-	}
-
-	// insert all our contact fires
-	if err := InsertContactFires(ctx, tx, fires); err != nil {
-		return nil, nil, fmt.Errorf("error inserting session contact fires: %w", err)
+		return nil, fmt.Errorf("error writing runs: %w", err)
 	}
 
 	// return our session
-	return sessions, timeouts, nil
+	return sessions, nil
 }
 
 const sqlSelectSessionByUUID = `
