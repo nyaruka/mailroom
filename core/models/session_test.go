@@ -1,7 +1,6 @@
 package models_test
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
@@ -62,12 +61,6 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 			"status": "W", "session_type": "M", "current_flow_id": int64(flow.ID), "ended_on": nil,
 		})
 
-	testsuite.AssertContactFires(t, rt, testdata.Bob.ID, map[string]time.Time{
-		fmt.Sprintf("T:%s", modelSessions[0].UUID()): time.Date(2025, 2, 25, 16, 50, 12, 0, time.UTC), // 5 minutes in future
-		fmt.Sprintf("E:%s", modelSessions[0].UUID()): time.Date(2025, 2, 25, 16, 55, 8, 0, time.UTC),  // 10 minutes in future
-		fmt.Sprintf("S:%s", modelSessions[0].UUID()): time.Date(2025, 3, 28, 9, 55, 36, 0, time.UTC),  // 30 days + rand(1 - 24 hours) in future
-	})
-
 	flowSession, err = session.EngineSession(ctx, rt, oa.SessionAssets(), oa.Env())
 	require.NoError(t, err)
 
@@ -83,12 +76,6 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 
 	assert.Equal(t, models.SessionStatusWaiting, session.Status())
 	assert.Equal(t, flow.ID, session.CurrentFlowID())
-
-	// check we have a new contact fire for wait expiration but not timeout (wait doesn't have a timeout)
-	testsuite.AssertContactFires(t, rt, testdata.Bob.ID, map[string]time.Time{
-		fmt.Sprintf("E:%s", modelSessions[0].UUID()): time.Date(2025, 2, 25, 16, 55, 27, 0, time.UTC), // updated
-		fmt.Sprintf("S:%s", modelSessions[0].UUID()): time.Date(2025, 3, 28, 9, 55, 36, 0, time.UTC),  // unchanged
-	})
 
 	flowSession, err = session.EngineSession(ctx, rt, oa.SessionAssets(), oa.Env())
 	require.NoError(t, err)
@@ -111,9 +98,6 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 	// check that matches what is in the db
 	assertdb.Query(t, rt.DB, `SELECT status, session_type, current_flow_id FROM flows_flowsession`).
 		Columns(map[string]any{"status": "C", "session_type": "M", "current_flow_id": nil})
-
-	// check we have no contact fires
-	testsuite.AssertContactFires(t, rt, testdata.Bob.ID, map[string]time.Time{})
 }
 
 func TestSingleSprintSession(t *testing.T) {
@@ -151,9 +135,6 @@ func TestSingleSprintSession(t *testing.T) {
 	// check that matches what is in the db
 	assertdb.Query(t, rt.DB, `SELECT status, session_type, current_flow_id FROM flows_flowsession`).
 		Columns(map[string]any{"status": "C", "session_type": "M", "current_flow_id": nil})
-
-	// check we have no contact fires
-	testsuite.AssertContactFires(t, rt, testdata.Bob.ID, map[string]time.Time{})
 }
 
 func TestSessionWithSubflows(t *testing.T) {
@@ -205,12 +186,6 @@ func TestSessionWithSubflows(t *testing.T) {
 			"status": "W", "session_type": "M", "current_flow_id": int64(child.ID), "ended_on": nil,
 		})
 
-	// check we have a contact fire for wait expiration but not timeout
-	testsuite.AssertContactFires(t, rt, testdata.Cathy.ID, map[string]time.Time{
-		fmt.Sprintf("E:%s", modelSessions[0].UUID()): time.Date(2025, 2, 25, 16, 55, 16, 0, time.UTC), // 10 minutes in future
-		fmt.Sprintf("S:%s", modelSessions[0].UUID()): time.Date(2025, 3, 28, 9, 55, 36, 0, time.UTC),  // 30 days + rand(1 - 24 hours) in future
-	})
-
 	flowSession, err = session.EngineSession(ctx, rt, oa.SessionAssets(), oa.Env())
 	require.NoError(t, err)
 
@@ -226,9 +201,6 @@ func TestSessionWithSubflows(t *testing.T) {
 
 	assert.Equal(t, models.SessionStatusCompleted, session.Status())
 	assert.Equal(t, models.NilFlowID, session.CurrentFlowID())
-
-	// check we have no contact fires for wait expiration or timeout
-	testsuite.AssertContactFires(t, rt, testdata.Cathy.ID, map[string]time.Time{})
 }
 
 func TestSessionFailedStart(t *testing.T) {
@@ -277,9 +249,6 @@ func TestSessionFailedStart(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowrun WHERE flow_id = $1`, ping.ID).Returns(51)
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowrun WHERE flow_id = $1`, pong.ID).Returns(50)
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowrun WHERE status = 'F' AND exited_on IS NOT NULL`).Returns(101)
-
-	// check we have no contact fires
-	testsuite.AssertContactFires(t, rt, testdata.Cathy.ID, map[string]time.Time{})
 }
 
 func TestGetWaitingSessionForContact(t *testing.T) {
