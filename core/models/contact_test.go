@@ -39,9 +39,9 @@ func TestContacts(t *testing.T) {
 
 	rt.DB.MustExec(`DELETE FROM contacts_contacturn WHERE contact_id = $1`, testdata.George.ID)
 	rt.DB.MustExec(`DELETE FROM contacts_contactgroup_contacts WHERE contact_id = $1`, testdata.George.ID)
-	rt.DB.MustExec(`UPDATE contacts_contact SET is_active = FALSE WHERE id = $1`, testdata.Alexandria.ID)
+	rt.DB.MustExec(`UPDATE contacts_contact SET is_active = FALSE WHERE id = $1`, testdata.Alexandra.ID)
 
-	modelContacts, err := models.LoadContacts(ctx, rt.DB, org, []models.ContactID{testdata.Cathy.ID, testdata.Bob.ID, testdata.George.ID, testdata.Alexandria.ID})
+	modelContacts, err := models.LoadContacts(ctx, rt.DB, org, []models.ContactID{testdata.Cathy.ID, testdata.Bob.ID, testdata.George.ID, testdata.Alexandra.ID})
 	require.NoError(t, err)
 	require.Equal(t, 3, len(modelContacts))
 
@@ -623,14 +623,14 @@ func TestUpdateContactURNs(t *testing.T) {
 	// steal a URN from Bob and give to Alexandria
 	affected, err := models.UpdateContactURNs(ctx, rt.DB, oa, []*models.ContactURNsChanged{
 		{testdata.Cathy.ID, testdata.Org1.ID, []urns.URN{"tel:+16055700001", "tel:+16055700002"}, nil},
-		{testdata.Alexandria.ID, testdata.Org1.ID, []urns.URN{"tel:+16055742222"}, nil},
+		{testdata.Alexandra.ID, testdata.Org1.ID, []urns.URN{"tel:+16055742222"}, nil},
 	})
 	assert.NoError(t, err)
 	assert.Len(t, affected, 1)
 	assert.Equal(t, testdata.Bob.ID, affected[0].ID())
 
 	assertContactURNs(testdata.Cathy.ID, []string{"tel:+16055700001", "tel:+16055700002"})
-	assertContactURNs(testdata.Alexandria.ID, []string{"tel:+16055742222"})
+	assertContactURNs(testdata.Alexandra.ID, []string{"tel:+16055742222"})
 	assertContactURNs(testdata.Bob.ID, []string(nil))
 	assertModifiedOnUpdated(testdata.Bob.ID, t1)
 	assertGroups(testdata.Bob.ID, []string{"\\Active", "No URN"})
@@ -643,7 +643,7 @@ func TestUpdateContactURNs(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	assert.Len(t, affected, 1)
-	assert.Equal(t, testdata.Alexandria.ID, affected[0].ID())
+	assert.Equal(t, testdata.Alexandra.ID, affected[0].ID())
 
 	assertContactURNs(testdata.Cathy.ID, []string{"tel:+16055700001", "tel:+16055700003"})
 	assertContactURNs(testdata.Bob.ID, []string{"tel:+16055742222", "tel:+16055700002"})

@@ -221,12 +221,12 @@ func TestFindMatchingIncomingCallTrigger(t *testing.T) {
 	require.NoError(t, err)
 
 	testdata.DoctorsGroup.Add(rt, testdata.Bob)
-	testdata.TestersGroup.Add(rt, testdata.Bob, testdata.Alexandria)
+	testdata.TestersGroup.Add(rt, testdata.Bob, testdata.Alexandra)
 
 	_, cathy, _ := testdata.Cathy.Load(rt, oa)
 	_, bob, _ := testdata.Bob.Load(rt, oa)
 	_, george, _ := testdata.George.Load(rt, oa)
-	_, alexa, _ := testdata.Alexandria.Load(rt, oa)
+	_, alexa, _ := testdata.Alexandra.Load(rt, oa)
 
 	twilioChannel, _ := models.GetChannelByID(ctx, rt.DB.DB, testdata.TwilioChannel.ID)
 	facebookChannel, _ := models.GetChannelByID(ctx, rt.DB.DB, testdata.FacebookChannel.ID)

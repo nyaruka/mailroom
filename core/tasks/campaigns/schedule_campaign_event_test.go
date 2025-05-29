@@ -19,14 +19,14 @@ func TestScheduleCampaignEvent(t *testing.T) {
 	rt.DB.MustExec(`UPDATE campaigns_campaignevent SET status = 'S' WHERE id = $1`, testdata.RemindersEvent1.ID)
 
 	// add bob, george and alexandria to doctors group which campaign is based on
-	testdata.DoctorsGroup.Add(rt, testdata.Bob, testdata.George, testdata.Alexandria)
+	testdata.DoctorsGroup.Add(rt, testdata.Bob, testdata.George, testdata.Alexandra)
 
 	// give bob and george values for joined in the future
 	rt.DB.MustExec(`UPDATE contacts_contact SET fields = '{"d83aae24-4bbf-49d0-ab85-6bfd201eac6d": {"datetime": "2030-01-01T00:00:00Z"}}' WHERE id = $1`, testdata.Bob.ID)
 	rt.DB.MustExec(`UPDATE contacts_contact SET fields = '{"d83aae24-4bbf-49d0-ab85-6bfd201eac6d": {"datetime": "2030-08-18T11:31:30Z"}}' WHERE id = $1`, testdata.George.ID)
 
 	// give alexandria a value in the past
-	rt.DB.MustExec(`UPDATE contacts_contact SET fields = '{"d83aae24-4bbf-49d0-ab85-6bfd201eac6d": {"datetime": "2015-01-01T00:00:00Z"}}' WHERE id = $1`, testdata.Alexandria.ID)
+	rt.DB.MustExec(`UPDATE contacts_contact SET fields = '{"d83aae24-4bbf-49d0-ab85-6bfd201eac6d": {"datetime": "2015-01-01T00:00:00Z"}}' WHERE id = $1`, testdata.Alexandra.ID)
 
 	// campaign has two events configured on the joined field
 	//  1. +5 Days (12:00) start favorites flow
@@ -62,10 +62,10 @@ func TestScheduleCampaignEvent(t *testing.T) {
 	})
 
 	// remove alexandria from campaign group
-	rt.DB.MustExec(`DELETE FROM contacts_contactgroup_contacts WHERE contact_id = $1`, testdata.Alexandria.ID)
+	rt.DB.MustExec(`DELETE FROM contacts_contactgroup_contacts WHERE contact_id = $1`, testdata.Alexandra.ID)
 
 	// bump created_on for cathy and alexandria
-	rt.DB.MustExec(`UPDATE contacts_contact SET created_on = '2035-01-01T00:00:00Z' WHERE id = $1 OR id = $2`, testdata.Cathy.ID, testdata.Alexandria.ID)
+	rt.DB.MustExec(`UPDATE contacts_contact SET created_on = '2035-01-01T00:00:00Z' WHERE id = $1 OR id = $2`, testdata.Cathy.ID, testdata.Alexandra.ID)
 
 	// create new campaign event based on created_on + 5 minutes
 	event3 := testdata.InsertCampaignFlowEvent(rt, testdata.RemindersCampaign, testdata.Favorites, testdata.CreatedOnField, 5, "M")
