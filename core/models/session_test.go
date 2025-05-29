@@ -327,7 +327,7 @@ func TestInterruptSessionsForContacts(t *testing.T) {
 	assertSessionAndRunStatus(t, rt, session3UUID, models.SessionStatusWaiting)
 	assertSessionAndRunStatus(t, rt, session4UUID, models.SessionStatusWaiting)
 
-	count, err = models.InterruptSessionsForContacts(ctx, rt.DB, []models.ContactID{testdata.Cathy.ID, testdata.Bob.ID, testdata.Alexandria.ID})
+	count, err = models.InterruptSessionsForContacts(ctx, rt.DB, []models.ContactID{testdata.Cathy.ID, testdata.Bob.ID, testdata.Alexandra.ID})
 	assert.NoError(t, err)
 	assert.Equal(t, 2, count)
 

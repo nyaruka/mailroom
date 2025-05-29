@@ -32,7 +32,7 @@ func TestBulkCampaignTrigger(t *testing.T) {
 	task := &campaigns.BulkCampaignTriggerTask{
 		EventID:     testdata.RemindersEvent3.ID,
 		FireVersion: 1,
-		ContactIDs:  []models.ContactID{testdata.Bob.ID, testdata.Cathy.ID, testdata.Alexandria.ID},
+		ContactIDs:  []models.ContactID{testdata.Bob.ID, testdata.Cathy.ID, testdata.Alexandra.ID},
 	}
 
 	oa := testdata.Org1.Load(rt)
@@ -41,7 +41,7 @@ func TestBulkCampaignTrigger(t *testing.T) {
 
 	testsuite.AssertContactInFlow(t, rt, testdata.Cathy, testdata.IVRFlow) // event skipped cathy because she has a waiting session
 	testsuite.AssertContactInFlow(t, rt, testdata.Bob, testdata.PickANumber)
-	testsuite.AssertContactInFlow(t, rt, testdata.Alexandria, testdata.PickANumber)
+	testsuite.AssertContactInFlow(t, rt, testdata.Alexandra, testdata.PickANumber)
 
 	// check we recorded recent triggers for this event
 	assertredis.Keys(t, rc, "recent_campaign_fires:*", []string{"recent_campaign_fires:10002"})
@@ -51,7 +51,7 @@ func TestBulkCampaignTrigger(t *testing.T) {
 	task = &campaigns.BulkCampaignTriggerTask{
 		EventID:     testdata.RemindersEvent2.ID,
 		FireVersion: 1,
-		ContactIDs:  []models.ContactID{testdata.Bob.ID, testdata.Cathy.ID, testdata.Alexandria.ID},
+		ContactIDs:  []models.ContactID{testdata.Bob.ID, testdata.Cathy.ID, testdata.Alexandra.ID},
 	}
 	err = task.Perform(ctx, rt, oa)
 	assert.NoError(t, err)
@@ -59,12 +59,12 @@ func TestBulkCampaignTrigger(t *testing.T) {
 	// everyone still in the same flows
 	testsuite.AssertContactInFlow(t, rt, testdata.Cathy, testdata.IVRFlow)
 	testsuite.AssertContactInFlow(t, rt, testdata.Bob, testdata.PickANumber)
-	testsuite.AssertContactInFlow(t, rt, testdata.Alexandria, testdata.PickANumber)
+	testsuite.AssertContactInFlow(t, rt, testdata.Alexandra, testdata.PickANumber)
 
 	// and should have a queued message
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE text = 'Hi Cathy, it is time to consult with your patients.' AND status = 'Q'`).Returns(1)
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE text = 'Hi Bob, it is time to consult with your patients.' AND status = 'Q'`).Returns(1)
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE text = 'Hi Alexandia, it is time to consult with your patients.' AND status = 'Q'`).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE text = 'Hi Alexandra, it is time to consult with your patients.' AND status = 'Q'`).Returns(1)
 
 	// check we recorded recent triggers for this event
 	assertredis.Keys(t, rc, "recent_campaign_fires:*", []string{"recent_campaign_fires:10001", "recent_campaign_fires:10002"})
@@ -75,7 +75,7 @@ func TestBulkCampaignTrigger(t *testing.T) {
 	task = &campaigns.BulkCampaignTriggerTask{
 		EventID:     testdata.RemindersEvent1.ID,
 		FireVersion: 1,
-		ContactIDs:  []models.ContactID{testdata.Bob.ID, testdata.Cathy.ID, testdata.Alexandria.ID},
+		ContactIDs:  []models.ContactID{testdata.Bob.ID, testdata.Cathy.ID, testdata.Alexandra.ID},
 	}
 	err = task.Perform(ctx, rt, oa)
 	assert.NoError(t, err)
@@ -83,12 +83,12 @@ func TestBulkCampaignTrigger(t *testing.T) {
 	// everyone should be in campaign event flow
 	testsuite.AssertContactInFlow(t, rt, testdata.Cathy, testdata.Favorites)
 	testsuite.AssertContactInFlow(t, rt, testdata.Bob, testdata.Favorites)
-	testsuite.AssertContactInFlow(t, rt, testdata.Alexandria, testdata.Favorites)
+	testsuite.AssertContactInFlow(t, rt, testdata.Alexandra, testdata.Favorites)
 
 	// and their previous waiting sessions will have been interrupted
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE contact_id = $1 AND status = 'I'`, testdata.Bob.ID).Returns(1)
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE contact_id = $1 AND status = 'I'`, testdata.Cathy.ID).Returns(1)
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE contact_id = $1 AND status = 'I'`, testdata.Alexandria.ID).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE contact_id = $1 AND status = 'I'`, testdata.Alexandra.ID).Returns(1)
 
 	// test task when campaign event has been deleted
 	rt.DB.MustExec(`UPDATE campaigns_campaignevent SET is_active = FALSE WHERE id = $1`, testdata.RemindersEvent1.ID)
@@ -98,7 +98,7 @@ func TestBulkCampaignTrigger(t *testing.T) {
 	task = &campaigns.BulkCampaignTriggerTask{
 		EventID:     testdata.RemindersEvent1.ID,
 		FireVersion: 1,
-		ContactIDs:  []models.ContactID{testdata.Bob.ID, testdata.Cathy.ID, testdata.Alexandria.ID},
+		ContactIDs:  []models.ContactID{testdata.Bob.ID, testdata.Cathy.ID, testdata.Alexandra.ID},
 	}
 	err = task.Perform(ctx, rt, oa)
 	assert.NoError(t, err)
@@ -106,10 +106,10 @@ func TestBulkCampaignTrigger(t *testing.T) {
 	// task should be a noop, no new sessions created
 	testsuite.AssertContactInFlow(t, rt, testdata.Cathy, testdata.Favorites)
 	testsuite.AssertContactInFlow(t, rt, testdata.Bob, testdata.Favorites)
-	testsuite.AssertContactInFlow(t, rt, testdata.Alexandria, testdata.Favorites)
+	testsuite.AssertContactInFlow(t, rt, testdata.Alexandra, testdata.Favorites)
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE contact_id = $1 AND status = 'I'`, testdata.Bob.ID).Returns(1)
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE contact_id = $1 AND status = 'I'`, testdata.Cathy.ID).Returns(1)
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE contact_id = $1 AND status = 'I'`, testdata.Alexandria.ID).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE contact_id = $1 AND status = 'I'`, testdata.Alexandra.ID).Returns(1)
 
 	// test task when flow has been deleted
 	rt.DB.MustExec(`UPDATE flows_flow SET is_active = FALSE WHERE id = $1`, testdata.PickANumber.ID)
@@ -118,7 +118,7 @@ func TestBulkCampaignTrigger(t *testing.T) {
 
 	task = &campaigns.BulkCampaignTriggerTask{
 		EventID:     testdata.RemindersEvent3.ID,
-		ContactIDs:  []models.ContactID{testdata.Bob.ID, testdata.Cathy.ID, testdata.Alexandria.ID},
+		ContactIDs:  []models.ContactID{testdata.Bob.ID, testdata.Cathy.ID, testdata.Alexandra.ID},
 		FireVersion: 1,
 	}
 	err = task.Perform(ctx, rt, oa)
@@ -127,8 +127,8 @@ func TestBulkCampaignTrigger(t *testing.T) {
 	// task should be a noop, no new sessions created
 	testsuite.AssertContactInFlow(t, rt, testdata.Cathy, testdata.Favorites)
 	testsuite.AssertContactInFlow(t, rt, testdata.Bob, testdata.Favorites)
-	testsuite.AssertContactInFlow(t, rt, testdata.Alexandria, testdata.Favorites)
+	testsuite.AssertContactInFlow(t, rt, testdata.Alexandra, testdata.Favorites)
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE contact_id = $1 AND status = 'I'`, testdata.Bob.ID).Returns(1)
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE contact_id = $1 AND status = 'I'`, testdata.Cathy.ID).Returns(1)
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE contact_id = $1 AND status = 'I'`, testdata.Alexandria.ID).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE contact_id = $1 AND status = 'I'`, testdata.Alexandra.ID).Returns(1)
 }

@@ -69,7 +69,7 @@ func TestSessionTriggered(t *testing.T) {
 		{
 			Actions: handlers.ContactActionMap{
 				testdata.Bob: []flows.Action{
-					actions.NewStartSession(handlers.NewActionUUID(), testdata.IVRFlow.Reference(), nil, []*flows.ContactReference{testdata.Alexandria.Reference()}, "", nil, nil, true),
+					actions.NewStartSession(handlers.NewActionUUID(), testdata.IVRFlow.Reference(), nil, []*flows.ContactReference{testdata.Alexandra.Reference()}, "", nil, nil, true),
 				},
 			},
 			SQLAssertions: []handlers.SQLAssertion{

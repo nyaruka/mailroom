@@ -70,7 +70,7 @@ func TestTicketReopen(t *testing.T) {
 	testdata.InsertClosedTicket(rt, testdata.Org1, testdata.Cathy, testdata.DefaultTopic, nil)
 
 	testdata.InsertClosedTicket(rt, testdata.Org1, testdata.Bob, testdata.DefaultTopic, testdata.Editor)
-	testdata.InsertClosedTicket(rt, testdata.Org1, testdata.Alexandria, testdata.DefaultTopic, testdata.Editor)
+	testdata.InsertClosedTicket(rt, testdata.Org1, testdata.Alexandra, testdata.DefaultTopic, testdata.Editor)
 
 	testsuite.RunWebTests(t, ctx, rt, "testdata/reopen.json", nil)
 }

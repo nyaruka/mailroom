@@ -28,7 +28,7 @@ func TestContactNameChanged(t *testing.T) {
 				testdata.Bob: []flows.Action{
 					actions.NewSetContactName(handlers.NewActionUUID(), ""),
 				},
-				testdata.Alexandria: []flows.Action{
+				testdata.Alexandra: []flows.Action{
 					actions.NewSetContactName(handlers.NewActionUUID(), "😃234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890"),
 				},
 			},
@@ -54,7 +54,7 @@ func TestContactNameChanged(t *testing.T) {
 				},
 				{
 					SQL:   "select count(*) from contacts_contact where name = '😃2345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678' and id = $1",
-					Args:  []any{testdata.Alexandria.ID},
+					Args:  []any{testdata.Alexandra.ID},
 					Count: 1,
 				},
 			},
