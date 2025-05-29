@@ -185,7 +185,7 @@ func RunTestCases(t *testing.T, ctx context.Context, rt *runtime.Runtime, tcs []
 			return triggers.NewBuilder(oa.Env(), testFlow.Reference(false), contact).Msg(msg.FlowMsg).Build()
 		}
 
-		for _, c := range []*testdata.Contact{testdata.Cathy, testdata.Bob, testdata.George, testdata.Alexandria} {
+		for _, c := range []*testdata.Contact{testdata.Cathy, testdata.Bob, testdata.George, testdata.Alexandra} {
 			sceneInit := func(scene *runner.Scene) {
 				if msg := msgsByContactID[c.ID]; msg != nil {
 					scene.IncomingMsg = &models.MsgInRef{ID: msg.ID}

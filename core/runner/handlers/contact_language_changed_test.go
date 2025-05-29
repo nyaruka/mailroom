@@ -25,7 +25,7 @@ func TestContactLanguageChanged(t *testing.T) {
 				testdata.George: []flows.Action{
 					actions.NewSetContactLanguage(handlers.NewActionUUID(), "spa"),
 				},
-				testdata.Alexandria: []flows.Action{
+				testdata.Alexandra: []flows.Action{
 					actions.NewSetContactLanguage(handlers.NewActionUUID(), ""),
 				},
 			},
@@ -47,7 +47,7 @@ func TestContactLanguageChanged(t *testing.T) {
 				},
 				{
 					SQL:   "select count(*) from contacts_contact where id = $1 and language is NULL;",
-					Args:  []any{testdata.Alexandria.ID},
+					Args:  []any{testdata.Alexandra.ID},
 					Count: 1,
 				},
 			},

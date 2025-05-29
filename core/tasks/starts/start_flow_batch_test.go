@@ -24,14 +24,14 @@ func TestStartFlowBatchTask(t *testing.T) {
 
 	// create a start
 	start1 := models.NewFlowStart(models.OrgID(1), models.StartTypeManual, testdata.SingleMessage.ID).
-		WithContactIDs([]models.ContactID{testdata.Cathy.ID, testdata.Bob.ID, testdata.George.ID, testdata.Alexandria.ID})
+		WithContactIDs([]models.ContactID{testdata.Cathy.ID, testdata.Bob.ID, testdata.George.ID, testdata.Alexandra.ID})
 	err := models.InsertFlowStarts(ctx, rt.DB, []*models.FlowStart{start1})
 	require.NoError(t, err)
 
 	assertdb.Query(t, rt.DB, `SELECT status FROM flows_flowstart WHERE id = $1`, start1.ID).Returns("P")
 
 	batch1 := start1.CreateBatch([]models.ContactID{testdata.Cathy.ID, testdata.Bob.ID}, true, false, 4)
-	batch2 := start1.CreateBatch([]models.ContactID{testdata.George.ID, testdata.Alexandria.ID}, false, true, 4)
+	batch2 := start1.CreateBatch([]models.ContactID{testdata.George.ID, testdata.Alexandra.ID}, false, true, 4)
 
 	// start the first batch...
 	err = tasks.Queue(rc, tasks.ThrottledQueue, testdata.Org1.ID, &starts.StartFlowBatchTask{FlowStartBatch: batch1}, false)
@@ -62,12 +62,12 @@ func TestStartFlowBatchTask(t *testing.T) {
 
 	// create a second start
 	start2 := models.NewFlowStart(models.OrgID(1), models.StartTypeManual, testdata.SingleMessage.ID).
-		WithContactIDs([]models.ContactID{testdata.Cathy.ID, testdata.Bob.ID, testdata.George.ID, testdata.Alexandria.ID})
+		WithContactIDs([]models.ContactID{testdata.Cathy.ID, testdata.Bob.ID, testdata.George.ID, testdata.Alexandra.ID})
 	err = models.InsertFlowStarts(ctx, rt.DB, []*models.FlowStart{start2})
 	require.NoError(t, err)
 
 	start2Batch1 := start2.CreateBatch([]models.ContactID{testdata.Cathy.ID, testdata.Bob.ID}, true, false, 4)
-	start2Batch2 := start2.CreateBatch([]models.ContactID{testdata.George.ID, testdata.Alexandria.ID}, false, true, 4)
+	start2Batch2 := start2.CreateBatch([]models.ContactID{testdata.George.ID, testdata.Alexandra.ID}, false, true, 4)
 
 	// start the first batch...
 	err = tasks.Queue(rc, tasks.ThrottledQueue, testdata.Org1.ID, &starts.StartFlowBatchTask{FlowStartBatch: start2Batch1}, false)
@@ -98,7 +98,7 @@ func TestStartFlowBatchTaskNonPersistedStart(t *testing.T) {
 
 	// create a start
 	start := models.NewFlowStart(models.OrgID(1), models.StartTypeManual, testdata.SingleMessage.ID).
-		WithContactIDs([]models.ContactID{testdata.Cathy.ID, testdata.Bob.ID, testdata.George.ID, testdata.Alexandria.ID})
+		WithContactIDs([]models.ContactID{testdata.Cathy.ID, testdata.Bob.ID, testdata.George.ID, testdata.Alexandra.ID})
 
 	batch := start.CreateBatch([]models.ContactID{testdata.Cathy.ID, testdata.Bob.ID}, true, true, 2)
 

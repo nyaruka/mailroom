@@ -32,7 +32,7 @@ func TestBroadcasts(t *testing.T) {
 		true,
 		optIn.ID,
 		[]models.GroupID{testdata.DoctorsGroup.ID},
-		[]models.ContactID{testdata.Alexandria.ID, testdata.Bob.ID, testdata.Cathy.ID},
+		[]models.ContactID{testdata.Alexandra.ID, testdata.Bob.ID, testdata.Cathy.ID},
 		[]urns.URN{"tel:+593979012345"},
 		"age > 33",
 		models.NoExclusions,
@@ -112,7 +112,7 @@ func TestNonPersistentBroadcasts(t *testing.T) {
 		true,
 		optIn.ID,
 		[]models.GroupID{testdata.DoctorsGroup.ID},
-		[]models.ContactID{testdata.Alexandria.ID, testdata.Bob.ID, testdata.Cathy.ID},
+		[]models.ContactID{testdata.Alexandra.ID, testdata.Bob.ID, testdata.Cathy.ID},
 		[]urns.URN{"tel:+593979012345"},
 		"",
 		models.NoExclusions,
@@ -125,16 +125,16 @@ func TestNonPersistentBroadcasts(t *testing.T) {
 	assert.Equal(t, translations, bcast.Translations)
 	assert.Equal(t, optIn.ID, bcast.OptInID)
 	assert.Equal(t, []models.GroupID{testdata.DoctorsGroup.ID}, bcast.GroupIDs)
-	assert.Equal(t, []models.ContactID{testdata.Alexandria.ID, testdata.Bob.ID, testdata.Cathy.ID}, bcast.ContactIDs)
+	assert.Equal(t, []models.ContactID{testdata.Alexandra.ID, testdata.Bob.ID, testdata.Cathy.ID}, bcast.ContactIDs)
 	assert.Equal(t, []urns.URN{"tel:+593979012345"}, bcast.URNs)
 	assert.Equal(t, "", bcast.Query)
 	assert.Equal(t, models.NoExclusions, bcast.Exclusions)
 
-	batch := bcast.CreateBatch([]models.ContactID{testdata.Alexandria.ID, testdata.Bob.ID}, true, false)
+	batch := bcast.CreateBatch([]models.ContactID{testdata.Alexandra.ID, testdata.Bob.ID}, true, false)
 
 	assert.Equal(t, models.NilBroadcastID, batch.BroadcastID)
 	assert.NotNil(t, testdata.Org1.ID, batch.Broadcast)
-	assert.Equal(t, []models.ContactID{testdata.Alexandria.ID, testdata.Bob.ID}, batch.ContactIDs)
+	assert.Equal(t, []models.ContactID{testdata.Alexandra.ID, testdata.Bob.ID}, batch.ContactIDs)
 
 	oa, err := models.GetOrgAssets(ctx, rt, testdata.Org1.ID)
 	require.NoError(t, err)

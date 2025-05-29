@@ -26,15 +26,15 @@ func TestChannels(t *testing.T) {
 	require.NoError(t, err)
 
 	tcs := []struct {
-		ID                 models.ChannelID
-		UUID               assets.ChannelUUID
-		Name               string
-		Address            string
-		Schemes            []string
-		Roles              []assets.ChannelRole
-		Features           []assets.ChannelFeature
-		Prefixes           []string
-		AllowInternational bool
+		id                 models.ChannelID
+		uuid               assets.ChannelUUID
+		name               string
+		address            string
+		schemes            []string
+		roles              []assets.ChannelRole
+		features           []assets.ChannelFeature
+		prefixes           []string
+		allowInternational bool
 	}{
 		{
 			testdata.TwilioChannel.ID,
@@ -69,20 +69,31 @@ func TestChannels(t *testing.T) {
 			nil,
 			false,
 		},
+		{
+			testdata.AndroidChannel.ID,
+			testdata.AndroidChannel.UUID,
+			"Android",
+			"+593123456789",
+			[]string{"tel"},
+			[]assets.ChannelRole{"send", "receive"},
+			[]assets.ChannelFeature{},
+			nil,
+			false,
+		},
 	}
 
 	assert.Equal(t, len(tcs), len(channels))
 	for i, tc := range tcs {
 		channel := channels[i].(*models.Channel)
-		assert.Equal(t, tc.UUID, channel.UUID())
-		assert.Equal(t, tc.ID, channel.ID())
-		assert.Equal(t, tc.Name, channel.Name())
-		assert.Equal(t, tc.Address, channel.Address())
-		assert.Equal(t, tc.Roles, channel.Roles())
-		assert.Equal(t, tc.Features, channel.Features())
-		assert.Equal(t, tc.Schemes, channel.Schemes())
-		assert.Equal(t, tc.Prefixes, channel.MatchPrefixes())
-		assert.Equal(t, tc.AllowInternational, channel.AllowInternational())
+		assert.Equal(t, tc.uuid, channel.UUID())
+		assert.Equal(t, tc.id, channel.ID())
+		assert.Equal(t, tc.name, channel.Name())
+		assert.Equal(t, tc.address, channel.Address())
+		assert.Equal(t, tc.roles, channel.Roles())
+		assert.Equal(t, tc.features, channel.Features())
+		assert.Equal(t, tc.schemes, channel.Schemes())
+		assert.Equal(t, tc.prefixes, channel.MatchPrefixes())
+		assert.Equal(t, tc.allowInternational, channel.AllowInternational())
 	}
 }
 

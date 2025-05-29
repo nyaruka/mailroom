@@ -86,7 +86,7 @@ func TestGetContactIDsAtNode(t *testing.T) {
 		testdata.InsertFlowRun(rt, org, sessionUUID, contact, testdata.Favorites, models.RunStatusWaiting, nodeUUID)
 	}
 
-	createRun(testdata.Org1, testdata.Alexandria, "2fe26b10-2bb1-4115-9401-33a8a0d5d52a")
+	createRun(testdata.Org1, testdata.Alexandra, "2fe26b10-2bb1-4115-9401-33a8a0d5d52a")
 	createRun(testdata.Org1, testdata.Bob, "dd79811e-a88a-4e67-bb47-a132fe8ce3f2")
 	createRun(testdata.Org1, testdata.George, "dd79811e-a88a-4e67-bb47-a132fe8ce3f2")
 	createRun(testdata.Org2, testdata.Org2Contact, "dd79811e-a88a-4e67-bb47-a132fe8ce3f2") // shouldn't be possible but..

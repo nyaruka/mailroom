@@ -63,7 +63,7 @@ func TestMsgReceivedTask(t *testing.T) {
 	rt.DB.MustExec(`UPDATE tickets_ticket SET last_activity_on = '2021-01-01T00:00:00Z'`)
 
 	// clear all of Alexandria's URNs
-	rt.DB.MustExec(`UPDATE contacts_contacturn SET contact_id = NULL WHERE contact_id = $1`, testdata.Alexandria.ID)
+	rt.DB.MustExec(`UPDATE contacts_contacturn SET contact_id = NULL WHERE contact_id = $1`, testdata.Alexandra.ID)
 
 	models.FlushCache()
 
@@ -235,7 +235,7 @@ func TestMsgReceivedTask(t *testing.T) {
 		{ // 16: no URN on contact but failed reply created anyway
 			org:                 testdata.Org1,
 			channel:             testdata.TwilioChannel,
-			contact:             testdata.Alexandria,
+			contact:             testdata.Alexandra,
 			text:                "start",
 			expectedVisibility:  models.VisibilityVisible,
 			expectedReplyText:   "What is your favorite color?",

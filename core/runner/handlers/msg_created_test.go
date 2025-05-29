@@ -32,8 +32,8 @@ func TestMsgCreated(t *testing.T) {
 	rt.DB.MustExec(`DELETE FROM contacts_contacturn WHERE contact_id = $1`, testdata.Bob.ID)
 
 	// change alexandrias URN to a facebook URN and set her language to eng so that a template gets used for her
-	rt.DB.MustExec(`UPDATE contacts_contacturn SET identity = 'facebook:12345', path='12345', scheme='facebook' WHERE contact_id = $1`, testdata.Alexandria.ID)
-	rt.DB.MustExec(`UPDATE contacts_contact SET language='eng' WHERE id = $1`, testdata.Alexandria.ID)
+	rt.DB.MustExec(`UPDATE contacts_contacturn SET identity = 'facebook:12345', path='12345', scheme='facebook' WHERE contact_id = $1`, testdata.Alexandra.ID)
+	rt.DB.MustExec(`UPDATE contacts_contact SET language='eng' WHERE id = $1`, testdata.Alexandra.ID)
 
 	msg1 := testdata.InsertIncomingMsg(rt, testdata.Org1, testdata.TwilioChannel, testdata.Cathy, "start", models.MsgStatusPending)
 
@@ -53,7 +53,7 @@ func TestMsgCreated(t *testing.T) {
 				testdata.Bob: []flows.Action{
 					actions.NewSendMsg(handlers.NewActionUUID(), "No URNs", nil, nil, false),
 				},
-				testdata.Alexandria: []flows.Action{
+				testdata.Alexandra: []flows.Action{
 					templateAction,
 				},
 			},
@@ -79,8 +79,8 @@ func TestMsgCreated(t *testing.T) {
 				{
 					SQL: "SELECT COUNT(*) FROM msgs_msg WHERE contact_id = $1 AND text = $2 AND direction = 'O' AND status = 'Q' AND channel_id = $3 AND templating->'template'->>'name' = 'revive_issue'",
 					Args: []any{
-						testdata.Alexandria.ID,
-						`Hi Alexandia, are you still experiencing problems with tooth?`,
+						testdata.Alexandra.ID,
+						`Hi Alexandra, are you still experiencing problems with tooth?`,
 						testdata.FacebookChannel.ID,
 					},
 					Count: 1,
