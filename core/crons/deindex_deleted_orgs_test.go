@@ -6,7 +6,7 @@ import (
 	"github.com/nyaruka/mailroom/core/crons"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/testsuite"
-	"github.com/nyaruka/mailroom/testsuite/testdata"
+	"github.com/nyaruka/mailroom/testsuite/testdb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -34,7 +34,7 @@ func TestDeindexDeletedOrgsCron(t *testing.T) {
 	// no orgs to deindex
 	assertRun(map[string]any{"contacts": map[models.OrgID]int{}})
 
-	err := crons.MarkOrgForDeindexing(ctx, rt, testdata.Org1.ID)
+	err := crons.MarkOrgForDeindexing(ctx, rt, testdb.Org1.ID)
 	require.NoError(t, err)
 
 	assertRun(map[string]any{"contacts": map[models.OrgID]int{1: 124}})

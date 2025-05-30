@@ -9,7 +9,7 @@ import (
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/testsuite"
-	"github.com/nyaruka/mailroom/testsuite/testdata"
+	"github.com/nyaruka/mailroom/testsuite/testdb"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -18,7 +18,7 @@ func TestInsertAndUpdateRuns(t *testing.T) {
 
 	defer testsuite.Reset(testsuite.ResetData)
 
-	sessionUUID := testdata.InsertFlowSession(rt, testdata.Cathy, models.FlowTypeMessaging, models.SessionStatusWaiting, testdata.Favorites, models.NilCallID)
+	sessionUUID := testdb.InsertFlowSession(rt, testdb.Cathy, models.FlowTypeMessaging, models.SessionStatusWaiting, testdb.Favorites, models.NilCallID)
 
 	t1 := time.Date(2024, 12, 3, 14, 29, 30, 0, time.UTC)
 	t2 := time.Date(2024, 12, 3, 15, 13, 45, 0, time.UTC)
@@ -34,9 +34,9 @@ func TestInsertAndUpdateRuns(t *testing.T) {
 		PathNodes:       []string{"1895cae0-d3c0-4470-83df-0b4cf9449438", "3ea3c026-e1c0-4950-bb94-d4c532b1459f"},
 		PathTimes:       pq.GenericArray{A: []interface{}{t1, t2}},
 		CurrentNodeUUID: "5f0d8d24-0178-4b10-ae35-b3ccdc785777",
-		ContactID:       testdata.Cathy.ID,
-		FlowID:          testdata.Favorites.ID,
-		OrgID:           testdata.Org1.ID,
+		ContactID:       testdb.Cathy.ID,
+		FlowID:          testdb.Favorites.ID,
+		OrgID:           testdb.Org1.ID,
 		SessionUUID:     sessionUUID,
 		StartID:         models.NilStartID,
 	}
@@ -81,17 +81,17 @@ func TestGetContactIDsAtNode(t *testing.T) {
 
 	defer testsuite.Reset(testsuite.ResetData)
 
-	createRun := func(org *testdata.Org, contact *testdata.Contact, nodeUUID flows.NodeUUID) {
-		sessionUUID := testdata.InsertFlowSession(rt, contact, models.FlowTypeMessaging, models.SessionStatusWaiting, testdata.Favorites, models.NilCallID)
-		testdata.InsertFlowRun(rt, org, sessionUUID, contact, testdata.Favorites, models.RunStatusWaiting, nodeUUID)
+	createRun := func(org *testdb.Org, contact *testdb.Contact, nodeUUID flows.NodeUUID) {
+		sessionUUID := testdb.InsertFlowSession(rt, contact, models.FlowTypeMessaging, models.SessionStatusWaiting, testdb.Favorites, models.NilCallID)
+		testdb.InsertFlowRun(rt, org, sessionUUID, contact, testdb.Favorites, models.RunStatusWaiting, nodeUUID)
 	}
 
-	createRun(testdata.Org1, testdata.Alexandra, "2fe26b10-2bb1-4115-9401-33a8a0d5d52a")
-	createRun(testdata.Org1, testdata.Bob, "dd79811e-a88a-4e67-bb47-a132fe8ce3f2")
-	createRun(testdata.Org1, testdata.George, "dd79811e-a88a-4e67-bb47-a132fe8ce3f2")
-	createRun(testdata.Org2, testdata.Org2Contact, "dd79811e-a88a-4e67-bb47-a132fe8ce3f2") // shouldn't be possible but..
+	createRun(testdb.Org1, testdb.Alexandra, "2fe26b10-2bb1-4115-9401-33a8a0d5d52a")
+	createRun(testdb.Org1, testdb.Bob, "dd79811e-a88a-4e67-bb47-a132fe8ce3f2")
+	createRun(testdb.Org1, testdb.George, "dd79811e-a88a-4e67-bb47-a132fe8ce3f2")
+	createRun(testdb.Org2, testdb.Org2Contact, "dd79811e-a88a-4e67-bb47-a132fe8ce3f2") // shouldn't be possible but..
 
-	contactIDs, err := models.GetContactIDsAtNode(ctx, rt, testdata.Org1.ID, "dd79811e-a88a-4e67-bb47-a132fe8ce3f2")
+	contactIDs, err := models.GetContactIDsAtNode(ctx, rt, testdb.Org1.ID, "dd79811e-a88a-4e67-bb47-a132fe8ce3f2")
 	assert.NoError(t, err)
-	assert.ElementsMatch(t, []models.ContactID{testdata.Bob.ID, testdata.George.ID}, contactIDs)
+	assert.ElementsMatch(t, []models.ContactID{testdb.Bob.ID, testdb.George.ID}, contactIDs)
 }

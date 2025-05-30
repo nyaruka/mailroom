@@ -9,7 +9,7 @@ import (
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/runner/handlers"
 	"github.com/nyaruka/mailroom/testsuite"
-	"github.com/nyaruka/mailroom/testsuite/testdata"
+	"github.com/nyaruka/mailroom/testsuite/testdb"
 )
 
 func TestMsgReceived(t *testing.T) {
@@ -22,25 +22,25 @@ func TestMsgReceived(t *testing.T) {
 	tcs := []handlers.TestCase{
 		{
 			Actions: handlers.ContactActionMap{
-				testdata.Cathy: []flows.Action{
+				testdb.Cathy: []flows.Action{
 					actions.NewSendMsg(handlers.NewActionUUID(), "Hello World", nil, nil, false),
 				},
-				testdata.George: []flows.Action{
+				testdb.George: []flows.Action{
 					actions.NewSendMsg(handlers.NewActionUUID(), "Hello world", nil, nil, false),
 				},
 			},
 			Msgs: handlers.ContactMsgMap{
-				testdata.Cathy: testdata.InsertIncomingMsg(rt, testdata.Org1, testdata.TwilioChannel, testdata.Cathy, "start", models.MsgStatusPending),
+				testdb.Cathy: testdb.InsertIncomingMsg(rt, testdb.Org1, testdb.TwilioChannel, testdb.Cathy, "start", models.MsgStatusPending),
 			},
 			SQLAssertions: []handlers.SQLAssertion{
 				{
 					SQL:   "SELECT COUNT(*) FROM contacts_contact WHERE id = $1 AND last_seen_on > $2",
-					Args:  []any{testdata.Cathy.ID, now},
+					Args:  []any{testdb.Cathy.ID, now},
 					Count: 1,
 				},
 				{
 					SQL:   "SELECT COUNT(*) FROM contacts_contact WHERE id = $1 AND last_seen_on IS NULL",
-					Args:  []any{testdata.George.ID},
+					Args:  []any{testdb.George.ID},
 					Count: 1,
 				},
 			},

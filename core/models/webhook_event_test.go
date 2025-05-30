@@ -7,7 +7,7 @@ import (
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/testsuite"
-	"github.com/nyaruka/mailroom/testsuite/testdata"
+	"github.com/nyaruka/mailroom/testsuite/testdb"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -29,7 +29,7 @@ func TestWebhookEvents(t *testing.T) {
 		ResthookID models.ResthookID
 		Data       string
 	}{
-		{testdata.Org1.ID, resthookID, `{"foo":"bar"}`},
+		{testdb.Org1.ID, resthookID, `{"foo":"bar"}`},
 	}
 
 	for _, tc := range tcs {

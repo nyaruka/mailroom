@@ -13,7 +13,7 @@ import (
 	"github.com/nyaruka/goflow/utils"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/testsuite"
-	"github.com/nyaruka/mailroom/testsuite/testdata"
+	"github.com/nyaruka/mailroom/testsuite/testdb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -23,22 +23,22 @@ func TestBroadcasts(t *testing.T) {
 
 	defer testsuite.Reset(testsuite.ResetData)
 
-	optIn := testdata.InsertOptIn(rt, testdata.Org1, "Polls")
+	optIn := testdb.InsertOptIn(rt, testdb.Org1, "Polls")
 
 	bcast := models.NewBroadcast(
-		testdata.Org1.ID,
+		testdb.Org1.ID,
 		flows.BroadcastTranslations{"eng": {Text: "Hi there"}},
 		"eng",
 		true,
 		optIn.ID,
-		[]models.GroupID{testdata.DoctorsGroup.ID},
-		[]models.ContactID{testdata.Alexandra.ID, testdata.Bob.ID, testdata.Cathy.ID},
+		[]models.GroupID{testdb.DoctorsGroup.ID},
+		[]models.ContactID{testdb.Alexandra.ID, testdb.Bob.ID, testdb.Cathy.ID},
 		[]urns.URN{"tel:+593979012345"},
 		"age > 33",
 		models.NoExclusions,
 		models.NilUserID,
 	)
-	bcast.TemplateID = testdata.GoodbyeTemplate.ID
+	bcast.TemplateID = testdb.GoodbyeTemplate.ID
 	bcast.TemplateVariables = []string{"@contact.name"}
 
 	err := models.InsertBroadcast(ctx, rt.DB, bcast)
@@ -46,7 +46,7 @@ func TestBroadcasts(t *testing.T) {
 	assert.NotEqual(t, models.NilBroadcastID, bcast.ID)
 
 	assertdb.Query(t, rt.DB, `SELECT base_language, translations->'eng'->>'text' AS text, template_id, template_variables[1] as var1, query FROM msgs_broadcast WHERE id = $1`, bcast.ID).Columns(map[string]any{
-		"base_language": "eng", "text": "Hi there", "query": "age > 33", "template_id": int64(testdata.GoodbyeTemplate.ID), "var1": "@contact.name",
+		"base_language": "eng", "text": "Hi there", "query": "age > 33", "template_id": int64(testdb.GoodbyeTemplate.ID), "var1": "@contact.name",
 	})
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_broadcast_groups WHERE broadcast_id = $1`, bcast.ID).Returns(1)
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_broadcast_contacts WHERE broadcast_id = $1`, bcast.ID).Returns(3)
@@ -73,9 +73,9 @@ func TestInsertChildBroadcast(t *testing.T) {
 
 	defer testsuite.Reset(testsuite.ResetData)
 
-	optIn := testdata.InsertOptIn(rt, testdata.Org1, "Polls")
-	schedID := testdata.InsertSchedule(rt, testdata.Org1, models.RepeatPeriodDaily, time.Now())
-	bcastID := testdata.InsertBroadcast(rt, testdata.Org1, `eng`, map[i18n.Language]string{`eng`: "Hello"}, optIn, schedID, []*testdata.Contact{testdata.Bob, testdata.Cathy}, nil)
+	optIn := testdb.InsertOptIn(rt, testdb.Org1, "Polls")
+	schedID := testdb.InsertSchedule(rt, testdb.Org1, models.RepeatPeriodDaily, time.Now())
+	bcastID := testdb.InsertBroadcast(rt, testdb.Org1, `eng`, map[i18n.Language]string{`eng`: "Hello"}, optIn, schedID, []*testdb.Contact{testdb.Bob, testdb.Cathy}, nil)
 
 	var bj json.RawMessage
 	err := rt.DB.GetContext(ctx, &bj, `SELECT ROW_TO_JSON(r) FROM (
@@ -102,17 +102,17 @@ func TestNonPersistentBroadcasts(t *testing.T) {
 	defer testsuite.Reset(testsuite.ResetData)
 
 	translations := flows.BroadcastTranslations{"eng": {Text: "Hi there"}}
-	optIn := testdata.InsertOptIn(rt, testdata.Org1, "Polls")
+	optIn := testdb.InsertOptIn(rt, testdb.Org1, "Polls")
 
 	// create a broadcast which doesn't actually exist in the DB
 	bcast := models.NewBroadcast(
-		testdata.Org1.ID,
+		testdb.Org1.ID,
 		translations,
 		"eng",
 		true,
 		optIn.ID,
-		[]models.GroupID{testdata.DoctorsGroup.ID},
-		[]models.ContactID{testdata.Alexandra.ID, testdata.Bob.ID, testdata.Cathy.ID},
+		[]models.GroupID{testdb.DoctorsGroup.ID},
+		[]models.ContactID{testdb.Alexandra.ID, testdb.Bob.ID, testdb.Cathy.ID},
 		[]urns.URN{"tel:+593979012345"},
 		"",
 		models.NoExclusions,
@@ -120,23 +120,23 @@ func TestNonPersistentBroadcasts(t *testing.T) {
 	)
 
 	assert.Equal(t, models.NilBroadcastID, bcast.ID)
-	assert.Equal(t, testdata.Org1.ID, bcast.OrgID)
+	assert.Equal(t, testdb.Org1.ID, bcast.OrgID)
 	assert.Equal(t, i18n.Language("eng"), bcast.BaseLanguage)
 	assert.Equal(t, translations, bcast.Translations)
 	assert.Equal(t, optIn.ID, bcast.OptInID)
-	assert.Equal(t, []models.GroupID{testdata.DoctorsGroup.ID}, bcast.GroupIDs)
-	assert.Equal(t, []models.ContactID{testdata.Alexandra.ID, testdata.Bob.ID, testdata.Cathy.ID}, bcast.ContactIDs)
+	assert.Equal(t, []models.GroupID{testdb.DoctorsGroup.ID}, bcast.GroupIDs)
+	assert.Equal(t, []models.ContactID{testdb.Alexandra.ID, testdb.Bob.ID, testdb.Cathy.ID}, bcast.ContactIDs)
 	assert.Equal(t, []urns.URN{"tel:+593979012345"}, bcast.URNs)
 	assert.Equal(t, "", bcast.Query)
 	assert.Equal(t, models.NoExclusions, bcast.Exclusions)
 
-	batch := bcast.CreateBatch([]models.ContactID{testdata.Alexandra.ID, testdata.Bob.ID}, true, false)
+	batch := bcast.CreateBatch([]models.ContactID{testdb.Alexandra.ID, testdb.Bob.ID}, true, false)
 
 	assert.Equal(t, models.NilBroadcastID, batch.BroadcastID)
-	assert.NotNil(t, testdata.Org1.ID, batch.Broadcast)
-	assert.Equal(t, []models.ContactID{testdata.Alexandra.ID, testdata.Bob.ID}, batch.ContactIDs)
+	assert.NotNil(t, testdb.Org1.ID, batch.Broadcast)
+	assert.Equal(t, []models.ContactID{testdb.Alexandra.ID, testdb.Bob.ID}, batch.ContactIDs)
 
-	oa, err := models.GetOrgAssets(ctx, rt, testdata.Org1.ID)
+	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 	require.NoError(t, err)
 
 	msgs, err := bcast.CreateMessages(ctx, rt, oa, batch)
@@ -152,9 +152,9 @@ func TestBroadcastBatchCreateMessage(t *testing.T) {
 
 	defer testsuite.Reset(testsuite.ResetData | testsuite.ResetRedis)
 
-	polls := testdata.InsertOptIn(rt, testdata.Org1, "Polls")
+	polls := testdb.InsertOptIn(rt, testdb.Org1, "Polls")
 
-	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdata.Org1.ID, models.RefreshOptIns)
+	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshOptIns)
 	require.NoError(t, err)
 
 	tcs := []struct {
@@ -237,7 +237,7 @@ func TestBroadcastBatchCreateMessage(t *testing.T) {
 			translations:         flows.BroadcastTranslations{"eng": {Text: "Hi @contact"}},
 			baseLanguage:         "eng",
 			expressions:          true,
-			templateID:           testdata.ReviveTemplate.ID,
+			templateID:           testdb.ReviveTemplate.ID,
 			templateVariables:    []string{"@contact.name", "mice"},
 			expectedText:         "Hi Felix, are you still experiencing problems with mice?",
 			expectedAttachments:  []utils.Attachment{},
@@ -247,11 +247,11 @@ func TestBroadcastBatchCreateMessage(t *testing.T) {
 	}
 
 	for i, tc := range tcs {
-		contact := testdata.InsertContact(rt, testdata.Org1, flows.NewContactUUID(), "Felix", tc.contactLanguage, models.ContactStatusActive)
-		testdata.InsertContactURN(rt, testdata.Org1, contact, tc.contactURN, 1000, nil)
+		contact := testdb.InsertContact(rt, testdb.Org1, flows.NewContactUUID(), "Felix", tc.contactLanguage, models.ContactStatusActive)
+		testdb.InsertContactURN(rt, testdb.Org1, contact, tc.contactURN, 1000, nil)
 
 		bcast := &models.Broadcast{
-			OrgID:             testdata.Org1.ID,
+			OrgID:             testdb.Org1.ID,
 			Translations:      tc.translations,
 			BaseLanguage:      tc.baseLanguage,
 			Expressions:       tc.expressions,

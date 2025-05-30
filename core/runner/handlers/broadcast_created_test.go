@@ -12,7 +12,7 @@ import (
 	"github.com/nyaruka/mailroom/core/tasks"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/mailroom/testsuite"
-	"github.com/nyaruka/mailroom/testsuite/testdata"
+	"github.com/nyaruka/mailroom/testsuite/testdb"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -26,14 +26,14 @@ func TestBroadcastCreated(t *testing.T) {
 	tcs := []handlers.TestCase{
 		{
 			Actions: handlers.ContactActionMap{
-				testdata.Cathy: []flows.Action{
+				testdb.Cathy: []flows.Action{
 					actions.NewSendBroadcast(handlers.NewActionUUID(), "hello world", nil, nil, nil, nil, "", []urns.URN{urns.URN("tel:+12065551212")}, nil),
 				},
 			},
 			SQLAssertions: []handlers.SQLAssertion{
 				{
 					SQL:   "select count(*) from flows_flowrun where contact_id = $1 AND status = 'C'",
-					Args:  []any{testdata.Cathy.ID},
+					Args:  []any{testdb.Cathy.ID},
 					Count: 1,
 				},
 			},

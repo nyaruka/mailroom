@@ -18,7 +18,7 @@ import (
 	"github.com/nyaruka/mailroom/core/ivr"
 	"github.com/nyaruka/mailroom/services/ivr/twiml"
 	"github.com/nyaruka/mailroom/testsuite"
-	"github.com/nyaruka/mailroom/testsuite/testdata"
+	"github.com/nyaruka/mailroom/testsuite/testdb"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -142,8 +142,8 @@ func TestURNForRequest(t *testing.T) {
 func TestRedactValues(t *testing.T) {
 	_, rt := testsuite.Runtime()
 
-	oa := testdata.Org1.Load(rt)
-	ch := oa.ChannelByUUID(testdata.TwilioChannel.UUID)
+	oa := testdb.Org1.Load(rt)
+	ch := oa.ChannelByUUID(testdb.TwilioChannel.UUID)
 	svc, _ := ivr.GetService(ch)
 
 	assert.Equal(t, []string{"U0lEMTIzNDU2Nzg5OnNlc2FtZQ==", "sesame"}, svc.RedactValues(ch))

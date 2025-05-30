@@ -1,4 +1,4 @@
-package testdata
+package testdb
 
 import (
 	"encoding/json"

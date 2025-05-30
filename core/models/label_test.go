@@ -5,7 +5,7 @@ import (
 
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/testsuite"
-	"github.com/nyaruka/mailroom/testsuite/testdata"
+	"github.com/nyaruka/mailroom/testsuite/testdb"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -14,7 +14,7 @@ import (
 func TestLabels(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
 
-	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdata.Org1.ID, models.RefreshLabels)
+	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshLabels)
 	require.NoError(t, err)
 
 	labels, err := oa.Labels()
@@ -24,8 +24,8 @@ func TestLabels(t *testing.T) {
 		ID   models.LabelID
 		Name string
 	}{
-		{testdata.ReportingLabel.ID, "Reporting"},
-		{testdata.TestingLabel.ID, "Testing"},
+		{testdb.ReportingLabel.ID, "Reporting"},
+		{testdb.TestingLabel.ID, "Testing"},
 	}
 
 	assert.Equal(t, 3, len(labels))

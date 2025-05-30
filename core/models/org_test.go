@@ -11,7 +11,7 @@ import (
 	"github.com/nyaruka/goflow/utils"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/testsuite"
-	"github.com/nyaruka/mailroom/testsuite/testdata"
+	"github.com/nyaruka/mailroom/testsuite/testdb"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -24,16 +24,16 @@ func TestLoadOrg(t *testing.T) {
 
 	tz, _ := time.LoadLocation("America/Los_Angeles")
 
-	rt.DB.MustExec("UPDATE channels_channel SET country = 'FR' WHERE id = $1;", testdata.FacebookChannel.ID)
-	rt.DB.MustExec("UPDATE channels_channel SET country = 'US' WHERE id IN ($1,$2);", testdata.TwilioChannel.ID, testdata.VonageChannel.ID)
+	rt.DB.MustExec("UPDATE channels_channel SET country = 'FR' WHERE id = $1;", testdb.FacebookChannel.ID)
+	rt.DB.MustExec("UPDATE channels_channel SET country = 'US' WHERE id IN ($1,$2);", testdb.TwilioChannel.ID, testdb.VonageChannel.ID)
 
-	rt.DB.MustExec(`UPDATE orgs_org SET flow_languages = '{"fra", "eng"}' WHERE id = $1`, testdata.Org1.ID)
-	rt.DB.MustExec(`UPDATE orgs_org SET flow_smtp = 'smtp://foo:bar' WHERE id = $1`, testdata.Org1.ID)
-	rt.DB.MustExec(`UPDATE orgs_org SET is_suspended = TRUE WHERE id = $1`, testdata.Org2.ID)
-	rt.DB.MustExec(`UPDATE orgs_org SET flow_languages = '{}' WHERE id = $1`, testdata.Org2.ID)
-	rt.DB.MustExec(`UPDATE orgs_org SET date_format = 'M' WHERE id = $1`, testdata.Org2.ID)
+	rt.DB.MustExec(`UPDATE orgs_org SET flow_languages = '{"fra", "eng"}' WHERE id = $1`, testdb.Org1.ID)
+	rt.DB.MustExec(`UPDATE orgs_org SET flow_smtp = 'smtp://foo:bar' WHERE id = $1`, testdb.Org1.ID)
+	rt.DB.MustExec(`UPDATE orgs_org SET is_suspended = TRUE WHERE id = $1`, testdb.Org2.ID)
+	rt.DB.MustExec(`UPDATE orgs_org SET flow_languages = '{}' WHERE id = $1`, testdb.Org2.ID)
+	rt.DB.MustExec(`UPDATE orgs_org SET date_format = 'M' WHERE id = $1`, testdb.Org2.ID)
 
-	org, err := models.LoadOrg(ctx, rt.DB.DB, testdata.Org1.ID)
+	org, err := models.LoadOrg(ctx, rt.DB.DB, testdb.Org1.ID)
 	assert.NoError(t, err)
 
 	assert.Equal(t, models.OrgID(1), org.ID())
@@ -49,7 +49,7 @@ func TestLoadOrg(t *testing.T) {
 	assert.Equal(t, i18n.Language("fra"), org.Environment().DefaultLanguage())
 	assert.Equal(t, i18n.Locale("fra-US"), org.Environment().DefaultLocale())
 
-	org, err = models.LoadOrg(ctx, rt.DB.DB, testdata.Org2.ID)
+	org, err = models.LoadOrg(ctx, rt.DB.DB, testdb.Org2.ID)
 	assert.NoError(t, err)
 	assert.True(t, org.Suspended())
 	assert.Equal(t, "", org.FlowSMTP())
@@ -68,14 +68,14 @@ func TestGetOrgIDFromUUID(t *testing.T) {
 	defer testsuite.Reset(testsuite.ResetAll)
 
 	// mark org 2 deleted
-	rt.DB.MustExec(`UPDATE orgs_org SET is_active = FALSE WHERE id = $1`, testdata.Org2.ID)
+	rt.DB.MustExec(`UPDATE orgs_org SET is_active = FALSE WHERE id = $1`, testdb.Org2.ID)
 	models.FlushCache()
 
-	orgID, err := models.GetOrgIDFromUUID(ctx, rt.DB.DB, models.OrgUUID(testdata.Org1.UUID))
+	orgID, err := models.GetOrgIDFromUUID(ctx, rt.DB.DB, models.OrgUUID(testdb.Org1.UUID))
 	require.NoError(t, err)
-	assert.Equal(t, testdata.Org1.ID, orgID)
+	assert.Equal(t, testdb.Org1.ID, orgID)
 
-	orgID2, err := models.GetOrgIDFromUUID(ctx, rt.DB.DB, models.OrgUUID(testdata.Org2.UUID))
+	orgID2, err := models.GetOrgIDFromUUID(ctx, rt.DB.DB, models.OrgUUID(testdb.Org2.UUID))
 	require.NoError(t, err)
 	assert.Equal(t, orgID2, models.NilOrgID)
 
@@ -87,12 +87,12 @@ func TestEmailService(t *testing.T) {
 	defer testsuite.Reset(testsuite.ResetAll)
 
 	// make org 2 a child of org 1
-	rt.DB.MustExec(`UPDATE orgs_org SET parent_id = $2 WHERE id = $1`, testdata.Org2.ID, testdata.Org1.ID)
+	rt.DB.MustExec(`UPDATE orgs_org SET parent_id = $2 WHERE id = $1`, testdb.Org2.ID, testdb.Org1.ID)
 	models.FlushCache()
 
-	org1, err := models.LoadOrg(ctx, rt.DB.DB, testdata.Org1.ID)
+	org1, err := models.LoadOrg(ctx, rt.DB.DB, testdb.Org1.ID)
 	require.NoError(t, err)
-	org2, err := models.LoadOrg(ctx, rt.DB.DB, testdata.Org2.ID)
+	org2, err := models.LoadOrg(ctx, rt.DB.DB, testdb.Org2.ID)
 	require.NoError(t, err)
 
 	// no SMTP config by default.. no email service
@@ -108,10 +108,10 @@ func TestEmailService(t *testing.T) {
 
 	// set explicitly for org 1
 	rt.Config.SMTPServer = ""
-	rt.DB.MustExec(`UPDATE orgs_org SET flow_smtp = 'smtp://zed:123@flows.com?from=foo%40flows.com' WHERE id = $1`, testdata.Org1.ID)
+	rt.DB.MustExec(`UPDATE orgs_org SET flow_smtp = 'smtp://zed:123@flows.com?from=foo%40flows.com' WHERE id = $1`, testdb.Org1.ID)
 	models.FlushCache()
 
-	org1, err = models.LoadOrg(ctx, rt.DB.DB, testdata.Org1.ID)
+	org1, err = models.LoadOrg(ctx, rt.DB.DB, testdb.Org1.ID)
 	require.NoError(t, err)
 
 	svc, err = org1.EmailService(ctx, rt, nil)
@@ -132,7 +132,7 @@ func TestStoreAttachment(t *testing.T) {
 	image, err := os.Open("testdata/test.jpg")
 	require.NoError(t, err)
 
-	org, err := models.LoadOrg(ctx, rt.DB.DB, testdata.Org1.ID)
+	org, err := models.LoadOrg(ctx, rt.DB.DB, testdb.Org1.ID)
 	assert.NoError(t, err)
 
 	attachment, err := org.StoreAttachment(context.Background(), rt, "668383ba-387c-49bc-b164-1213ac0ea7aa.jpg", "image/jpeg", image)

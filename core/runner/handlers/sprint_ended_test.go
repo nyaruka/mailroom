@@ -15,7 +15,7 @@ import (
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/runner"
 	"github.com/nyaruka/mailroom/testsuite"
-	"github.com/nyaruka/mailroom/testsuite/testdata"
+	"github.com/nyaruka/mailroom/testsuite/testdb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -30,14 +30,14 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 	defer random.SetGenerator(random.DefaultGenerator)
 	defer testsuite.Reset(testsuite.ResetData)
 
-	testFlows := testdata.ImportFlows(rt, testdata.Org1, "testdata/session_test_flows.json")
+	testFlows := testdb.ImportFlows(rt, testdb.Org1, "testdata/session_test_flows.json")
 	flow := testFlows[0]
 
-	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdata.Org1.ID, models.RefreshFlows)
+	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshFlows)
 	require.NoError(t, err)
 
-	mcBob, fcBob, _ := testdata.Bob.Load(rt, oa)
-	mcAlex, fcAlex, _ := testdata.Alexandra.Load(rt, oa)
+	mcBob, fcBob, _ := testdb.Bob.Load(rt, oa)
+	mcAlex, fcAlex, _ := testdb.Alexandra.Load(rt, oa)
 	env := envs.NewBuilder().Build()
 	trigs := []flows.Trigger{
 		triggers.NewBuilder(env, flow.Reference(), fcBob).Manual().Build(),
@@ -51,22 +51,22 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 	assert.Equal(t, time.Duration(0), scenes[1].WaitTimeout) // Alexandra's messages are being sent via Android
 
 	// check sessions in database
-	assertdb.Query(t, rt.DB, `SELECT status, session_type, current_flow_id, ended_on FROM flows_flowsession WHERE contact_id = $1`, testdata.Bob.ID).
+	assertdb.Query(t, rt.DB, `SELECT status, session_type, current_flow_id, ended_on FROM flows_flowsession WHERE contact_id = $1`, testdb.Bob.ID).
 		Columns(map[string]any{
 			"status": "W", "session_type": "M", "current_flow_id": int64(flow.ID), "ended_on": nil,
 		})
-	assertdb.Query(t, rt.DB, `SELECT status, session_type, current_flow_id, ended_on FROM flows_flowsession WHERE contact_id = $1`, testdata.Alexandra.ID).
+	assertdb.Query(t, rt.DB, `SELECT status, session_type, current_flow_id, ended_on FROM flows_flowsession WHERE contact_id = $1`, testdb.Alexandra.ID).
 		Columns(map[string]any{
 			"status": "W", "session_type": "M", "current_flow_id": int64(flow.ID), "ended_on": nil,
 		})
 
 	bobSession, alexSession := scenes[0].Session(), scenes[1].Session()
 
-	testsuite.AssertContactFires(t, rt, testdata.Bob.ID, map[string]time.Time{
+	testsuite.AssertContactFires(t, rt, testdb.Bob.ID, map[string]time.Time{
 		fmt.Sprintf("E:%s", bobSession.UUID()): time.Date(2025, 2, 25, 16, 55, 9, 0, time.UTC), // 10 minutes in future
 		fmt.Sprintf("S:%s", bobSession.UUID()): time.Date(2025, 3, 28, 9, 55, 37, 0, time.UTC), // 30 days + rand(1 - 24 hours) in future
 	})
-	testsuite.AssertContactFires(t, rt, testdata.Alexandra.ID, map[string]time.Time{
+	testsuite.AssertContactFires(t, rt, testdb.Alexandra.ID, map[string]time.Time{
 		fmt.Sprintf("T:%s", alexSession.UUID()): time.Date(2025, 2, 25, 16, 50, 28, 0, time.UTC), // 5 minutes in future
 		fmt.Sprintf("E:%s", alexSession.UUID()): time.Date(2025, 2, 25, 16, 55, 22, 0, time.UTC), // 10 minutes in future
 		fmt.Sprintf("S:%s", alexSession.UUID()): time.Date(2025, 3, 28, 12, 9, 24, 0, time.UTC),  // 30 days + rand(1 - 24 hours) in future
@@ -77,13 +77,13 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 	assert.Equal(t, bobSession.UUID(), modelSession.UUID())
 	assert.Equal(t, flow.ID, modelSession.CurrentFlowID())
 
-	msg1 := flows.NewMsgIn("0c9cd2e4-865e-40bf-92bb-3c958d5f6f0d", testdata.Bob.URN, nil, "no", nil, "")
+	msg1 := flows.NewMsgIn("0c9cd2e4-865e-40bf-92bb-3c958d5f6f0d", testdb.Bob.URN, nil, "no", nil, "")
 	scene, err := runner.ResumeFlow(ctx, rt, oa, modelSession, mcBob, resumes.NewMsg(env, fcBob, msg1), nil)
 	require.NoError(t, err)
 	assert.Equal(t, time.Duration(0), scene.WaitTimeout) // wait doesn't have a timeout
 
 	// check we have a new contact fire for wait expiration but not timeout (wait doesn't have a timeout)
-	testsuite.AssertContactFires(t, rt, testdata.Bob.ID, map[string]time.Time{
+	testsuite.AssertContactFires(t, rt, testdb.Bob.ID, map[string]time.Time{
 		fmt.Sprintf("E:%s", bobSession.UUID()): time.Date(2025, 2, 25, 16, 55, 44, 0, time.UTC), // updated
 		fmt.Sprintf("S:%s", bobSession.UUID()): time.Date(2025, 3, 28, 9, 55, 37, 0, time.UTC),  // unchanged
 	})
@@ -93,18 +93,18 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 	assert.Equal(t, bobSession.UUID(), modelSession.UUID())
 	assert.Equal(t, flow.ID, modelSession.CurrentFlowID())
 
-	msg2 := flows.NewMsgIn("330b1ff5-a95e-4034-b2e1-d0b0f93eb8b8", testdata.Bob.URN, nil, "yes", nil, "")
+	msg2 := flows.NewMsgIn("330b1ff5-a95e-4034-b2e1-d0b0f93eb8b8", testdb.Bob.URN, nil, "yes", nil, "")
 	scene, err = runner.ResumeFlow(ctx, rt, oa, modelSession, mcBob, resumes.NewMsg(env, fcBob, msg2), nil)
 	require.NoError(t, err)
 	assert.Equal(t, flows.SessionStatusCompleted, scene.Session().Status())
 	assert.Equal(t, time.Duration(0), scene.WaitTimeout) // flow has ended
 
 	// check session in the db
-	assertdb.Query(t, rt.DB, `SELECT status, session_type, current_flow_id FROM flows_flowsession WHERE contact_id = $1`, testdata.Bob.ID).
+	assertdb.Query(t, rt.DB, `SELECT status, session_type, current_flow_id FROM flows_flowsession WHERE contact_id = $1`, testdb.Bob.ID).
 		Columns(map[string]any{"status": "C", "session_type": "M", "current_flow_id": nil})
 
 	// check we have no contact fires
-	testsuite.AssertContactFires(t, rt, testdata.Bob.ID, map[string]time.Time{})
+	testsuite.AssertContactFires(t, rt, testdb.Bob.ID, map[string]time.Time{})
 }
 
 func TestSingleSprintSession(t *testing.T) {
@@ -112,13 +112,13 @@ func TestSingleSprintSession(t *testing.T) {
 
 	defer testsuite.Reset(testsuite.ResetData)
 
-	testFlows := testdata.ImportFlows(rt, testdata.Org1, "testdata/session_test_flows.json")
+	testFlows := testdb.ImportFlows(rt, testdb.Org1, "testdata/session_test_flows.json")
 	flow := testFlows[1]
 
-	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdata.Org1.ID, models.RefreshFlows)
+	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshFlows)
 	require.NoError(t, err)
 
-	mc, fc, _ := testdata.Bob.Load(rt, oa)
+	mc, fc, _ := testdb.Bob.Load(rt, oa)
 	env := envs.NewBuilder().Build()
 
 	scenes, err := runner.StartSessions(ctx, rt, oa, []*models.Contact{mc}, []flows.Trigger{triggers.NewBuilder(env, flow.Reference(), fc).Manual().Build()}, true, models.NilStartID, nil)
@@ -130,7 +130,7 @@ func TestSingleSprintSession(t *testing.T) {
 		Columns(map[string]any{"status": "C", "session_type": "M", "current_flow_id": nil})
 
 	// check we have no contact fires
-	testsuite.AssertContactFires(t, rt, testdata.Bob.ID, map[string]time.Time{})
+	testsuite.AssertContactFires(t, rt, testdb.Bob.ID, map[string]time.Time{})
 }
 
 func TestSessionWithSubflows(t *testing.T) {
@@ -143,13 +143,13 @@ func TestSessionWithSubflows(t *testing.T) {
 	defer random.SetGenerator(random.DefaultGenerator)
 	defer testsuite.Reset(testsuite.ResetData)
 
-	testFlows := testdata.ImportFlows(rt, testdata.Org1, "testdata/session_test_flows.json")
+	testFlows := testdb.ImportFlows(rt, testdb.Org1, "testdata/session_test_flows.json")
 	parent, child := testFlows[2], testFlows[3]
 
-	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdata.Org1.ID, models.RefreshFlows)
+	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshFlows)
 	require.NoError(t, err)
 
-	mc, fc, _ := testdata.Cathy.Load(rt, oa)
+	mc, fc, _ := testdb.Cathy.Load(rt, oa)
 	env := envs.NewBuilder().Build()
 
 	scenes, err := runner.StartSessions(ctx, rt, oa, []*models.Contact{mc}, []flows.Trigger{triggers.NewBuilder(env, parent.Reference(), fc).Manual().Build()}, true, models.NilStartID, nil)
@@ -166,7 +166,7 @@ func TestSessionWithSubflows(t *testing.T) {
 	session := scenes[0].Session()
 
 	// check we have a contact fire for wait expiration but not timeout
-	testsuite.AssertContactFires(t, rt, testdata.Cathy.ID, map[string]time.Time{
+	testsuite.AssertContactFires(t, rt, testdb.Cathy.ID, map[string]time.Time{
 		fmt.Sprintf("E:%s", session.UUID()): time.Date(2025, 2, 25, 16, 55, 16, 0, time.UTC), // 10 minutes in future
 		fmt.Sprintf("S:%s", session.UUID()): time.Date(2025, 3, 28, 9, 55, 36, 0, time.UTC),  // 30 days + rand(1 - 24 hours) in future
 	})
@@ -176,12 +176,12 @@ func TestSessionWithSubflows(t *testing.T) {
 	assert.Equal(t, session.UUID(), modelSession.UUID())
 	assert.Equal(t, child.ID, modelSession.CurrentFlowID())
 
-	msg2 := flows.NewMsgIn("cd476f71-34f2-42d2-ae4d-b7d1c4103bd1", testdata.Cathy.URN, nil, "yes", nil, "")
+	msg2 := flows.NewMsgIn("cd476f71-34f2-42d2-ae4d-b7d1c4103bd1", testdb.Cathy.URN, nil, "yes", nil, "")
 	scene, err := runner.ResumeFlow(ctx, rt, oa, modelSession, mc, resumes.NewMsg(env, fc, msg2), nil)
 	require.NoError(t, err)
 	assert.Equal(t, flows.SessionStatusCompleted, scene.Session().Status())
 	assert.Equal(t, time.Duration(0), scene.WaitTimeout) // flow has ended
 
 	// check we have no contact fires for wait expiration or timeout
-	testsuite.AssertContactFires(t, rt, testdata.Cathy.ID, map[string]time.Time{})
+	testsuite.AssertContactFires(t, rt, testdb.Cathy.ID, map[string]time.Time{})
 }

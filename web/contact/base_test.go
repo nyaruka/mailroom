@@ -12,7 +12,7 @@ import (
 	"github.com/nyaruka/mailroom/core/runner/clocks"
 	_ "github.com/nyaruka/mailroom/core/runner/handlers"
 	"github.com/nyaruka/mailroom/testsuite"
-	"github.com/nyaruka/mailroom/testsuite/testdata"
+	"github.com/nyaruka/mailroom/testsuite/testdb"
 	"github.com/nyaruka/mailroom/web/contact"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -24,7 +24,7 @@ func TestCreate(t *testing.T) {
 	defer testsuite.Reset(testsuite.ResetAll)
 
 	// detach Cathy's tel URN
-	rt.DB.MustExec(`UPDATE contacts_contacturn SET contact_id = NULL WHERE contact_id = $1`, testdata.Cathy.ID)
+	rt.DB.MustExec(`UPDATE contacts_contacturn SET contact_id = NULL WHERE contact_id = $1`, testdb.Cathy.ID)
 
 	rt.DB.MustExec(`ALTER SEQUENCE contacts_contact_id_seq RESTART WITH 30000`)
 
@@ -57,7 +57,7 @@ func TestInspect(t *testing.T) {
 	defer testsuite.Reset(testsuite.ResetData)
 
 	// give cathy an unsendable twitterid URN with a display value
-	testdata.InsertContactURN(rt, testdata.Org1, testdata.Cathy, urns.URN("twitterid:23145325#cathy"), 20000, nil)
+	testdb.InsertContactURN(rt, testdb.Org1, testdb.Cathy, urns.URN("twitterid:23145325#cathy"), 20000, nil)
 
 	testsuite.RunWebTests(t, ctx, rt, "testdata/inspect.json", nil)
 }
@@ -67,27 +67,27 @@ func TestModify(t *testing.T) {
 
 	defer testsuite.Reset(testsuite.ResetAll)
 
-	oa := testdata.Org1.Load(rt)
+	oa := testdb.Org1.Load(rt)
 
 	// to be deterministic, update the creation date on cathy
-	rt.DB.MustExec(`UPDATE contacts_contact SET created_on = $1 WHERE id = $2`, time.Date(2018, 7, 6, 12, 30, 0, 123456789, time.UTC), testdata.Cathy.ID)
+	rt.DB.MustExec(`UPDATE contacts_contact SET created_on = $1 WHERE id = $2`, time.Date(2018, 7, 6, 12, 30, 0, 123456789, time.UTC), testdb.Cathy.ID)
 
 	// make our campaign group dynamic
-	rt.DB.MustExec(`UPDATE contacts_contactgroup SET query = 'age > 18' WHERE id = $1`, testdata.DoctorsGroup.ID)
+	rt.DB.MustExec(`UPDATE contacts_contactgroup SET query = 'age > 18' WHERE id = $1`, testdb.DoctorsGroup.ID)
 
 	// insert an event on our campaign that is based on created on
-	testdata.InsertCampaignFlowEvent(rt, testdata.RemindersCampaign, testdata.Favorites, testdata.CreatedOnField, 1000, "W")
+	testdb.InsertCampaignFlowEvent(rt, testdb.RemindersCampaign, testdb.Favorites, testdb.CreatedOnField, 1000, "W")
 
 	// for simpler tests we clear out cathy's fields and groups to start
-	rt.DB.MustExec(`UPDATE contacts_contact SET fields = NULL WHERE id = $1`, testdata.Cathy.ID)
-	rt.DB.MustExec(`DELETE FROM contacts_contactgroup_contacts WHERE contact_id = $1`, testdata.Cathy.ID)
-	rt.DB.MustExec(`UPDATE contacts_contacturn SET contact_id = NULL WHERE contact_id = $1`, testdata.Cathy.ID)
+	rt.DB.MustExec(`UPDATE contacts_contact SET fields = NULL WHERE id = $1`, testdb.Cathy.ID)
+	rt.DB.MustExec(`DELETE FROM contacts_contactgroup_contacts WHERE contact_id = $1`, testdb.Cathy.ID)
+	rt.DB.MustExec(`UPDATE contacts_contacturn SET contact_id = NULL WHERE contact_id = $1`, testdb.Cathy.ID)
 
 	// because we made changes to a group above, need to make sure we don't use stale org assets
 	models.FlushCache()
 
 	// lock a contact to test skipping them
-	clocks.TryToLock(ctx, rt, oa, []models.ContactID{testdata.Alexandra.ID}, time.Second)
+	clocks.TryToLock(ctx, rt, oa, []models.ContactID{testdb.Alexandra.ID}, time.Second)
 
 	testsuite.RunWebTests(t, ctx, rt, "testdata/modify.json", nil)
 }
@@ -98,11 +98,11 @@ func TestInterrupt(t *testing.T) {
 	defer testsuite.Reset(testsuite.ResetData)
 
 	// give Cathy a completed and a waiting session
-	testdata.InsertFlowSession(rt, testdata.Cathy, models.FlowTypeMessaging, models.SessionStatusCompleted, testdata.Favorites, models.NilCallID)
-	testdata.InsertWaitingSession(rt, testdata.Org1, testdata.Cathy, models.FlowTypeMessaging, testdata.Favorites, models.NilCallID)
+	testdb.InsertFlowSession(rt, testdb.Cathy, models.FlowTypeMessaging, models.SessionStatusCompleted, testdb.Favorites, models.NilCallID)
+	testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Cathy, models.FlowTypeMessaging, testdb.Favorites, models.NilCallID)
 
 	// give Bob a waiting session
-	testdata.InsertWaitingSession(rt, testdata.Org1, testdata.Bob, models.FlowTypeMessaging, testdata.PickANumber, models.NilCallID)
+	testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Bob, models.FlowTypeMessaging, testdb.PickANumber, models.NilCallID)
 
 	testsuite.RunWebTests(t, ctx, rt, "testdata/interrupt.json", nil)
 }
@@ -130,7 +130,7 @@ func TestURNs(t *testing.T) {
 func TestSpecToCreation(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
 
-	oa, err := models.GetOrgAssets(ctx, rt, testdata.Org1.ID)
+	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 	require.NoError(t, err)
 
 	sa := oa.SessionAssets()

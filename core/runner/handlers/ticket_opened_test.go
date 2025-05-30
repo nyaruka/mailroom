@@ -9,7 +9,7 @@ import (
 	"github.com/nyaruka/goflow/flows/actions"
 	"github.com/nyaruka/mailroom/core/runner/handlers"
 	"github.com/nyaruka/mailroom/testsuite"
-	"github.com/nyaruka/mailroom/testsuite/testdata"
+	"github.com/nyaruka/mailroom/testsuite/testdb"
 )
 
 func TestTicketOpened(t *testing.T) {
@@ -40,15 +40,15 @@ func TestTicketOpened(t *testing.T) {
 	tcs := []handlers.TestCase{
 		{
 			Actions: handlers.ContactActionMap{
-				testdata.Cathy: []flows.Action{
+				testdb.Cathy: []flows.Action{
 					actions.NewOpenTicket(
 						handlers.NewActionUUID(),
-						assets.NewTopicReference(testdata.SupportTopic.UUID, "Support"),
+						assets.NewTopicReference(testdb.SupportTopic.UUID, "Support"),
 						"Where are my cookies?",
 						assets.NewUserReference("e29fdf9f-56ab-422a-b77d-e3ec26091a25", "Admin"),
 					),
 				},
-				testdata.Bob: []flows.Action{
+				testdb.Bob: []flows.Action{
 					actions.NewOpenTicket(
 						handlers.NewActionUUID(),
 						nil,
@@ -60,12 +60,12 @@ func TestTicketOpened(t *testing.T) {
 			SQLAssertions: []handlers.SQLAssertion{
 				{ // cathy's old ticket will still be open and cathy's new ticket will have been created
 					SQL:   "select count(*) from tickets_ticket where contact_id = $1 AND status = 'O'",
-					Args:  []any{testdata.Cathy.ID},
+					Args:  []any{testdb.Cathy.ID},
 					Count: 1,
 				},
 				{ // bob's ticket will have been created too
 					SQL:   "select count(*) from tickets_ticket where contact_id = $1 AND status = 'O'",
-					Args:  []any{testdata.Bob.ID},
+					Args:  []any{testdb.Bob.ID},
 					Count: 1,
 				},
 				{ // and we have 2 ticket opened events for the 2 tickets opened
@@ -78,12 +78,12 @@ func TestTicketOpened(t *testing.T) {
 				},
 				{ // one of our tickets is assigned to admin
 					SQL:   "select count(*) from tickets_ticket where assignee_id = $1",
-					Args:  []any{testdata.Admin.ID},
+					Args:  []any{testdb.Admin.ID},
 					Count: 1,
 				},
 				{ // admin will have a ticket assigned notification for the ticket directly assigned to them
 					SQL:   "select count(*) from notifications_notification where user_id = $1 and notification_type = 'tickets:activity'",
-					Args:  []any{testdata.Admin.ID},
+					Args:  []any{testdb.Admin.ID},
 					Count: 1,
 				},
 				{ // all assignable users will have a ticket opened notification for the unassigned ticket

@@ -9,7 +9,7 @@ import (
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/services/llm/openai_azure"
 	"github.com/nyaruka/mailroom/testsuite"
-	"github.com/nyaruka/mailroom/testsuite/testdata"
+	"github.com/nyaruka/mailroom/testsuite/testdb"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -18,11 +18,11 @@ func TestService(t *testing.T) {
 
 	defer testsuite.Reset(testsuite.ResetData)
 
-	bad := testdata.InsertLLM(rt, testdata.Org1, "c69723d8-fb37-4cf6-9ec4-bc40cb36f2cc", "openai_azure", "gpt-4", "Bad Config", map[string]any{})
-	good := testdata.InsertLLM(rt, testdata.Org1, "b86966fd-206e-4bdd-a962-06faa3af1182", "openai_azure", "gpt-4", "Good", map[string]any{"endpoint": "http://azure.com/ai", "api_key": "sesame"})
+	bad := testdb.InsertLLM(rt, testdb.Org1, "c69723d8-fb37-4cf6-9ec4-bc40cb36f2cc", "openai_azure", "gpt-4", "Bad Config", map[string]any{})
+	good := testdb.InsertLLM(rt, testdb.Org1, "b86966fd-206e-4bdd-a962-06faa3af1182", "openai_azure", "gpt-4", "Good", map[string]any{"endpoint": "http://azure.com/ai", "api_key": "sesame"})
 	models.FlushCache()
 
-	oa := testdata.Org1.Load(rt)
+	oa := testdb.Org1.Load(rt)
 	badLLM := oa.LLMByID(bad.ID)
 	goodLLM := oa.LLMByID(good.ID)
 

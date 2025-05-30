@@ -10,7 +10,7 @@ import (
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/testsuite"
-	"github.com/nyaruka/mailroom/testsuite/testdata"
+	"github.com/nyaruka/mailroom/testsuite/testdb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -18,7 +18,7 @@ import (
 func TestNewSchedule(t *testing.T) {
 	_, rt := testsuite.Runtime()
 
-	oa := testdata.Org1.Load(rt)
+	oa := testdb.Org1.Load(rt)
 
 	dates.SetNowFunc(dates.NewFixedNow(time.Date(2024, 6, 20, 14, 30, 0, 0, time.UTC)))
 	defer dates.SetNowFunc(time.Now)
@@ -29,14 +29,14 @@ func TestNewSchedule(t *testing.T) {
 	// create one off schedule
 	sched, err := models.NewSchedule(oa, time.Date(2024, 6, 20, 14, 45, 55, 0, time.UTC), models.RepeatPeriodNever, "")
 	assert.NoError(t, err)
-	assert.Equal(t, testdata.Org1.ID, sched.OrgID)
+	assert.Equal(t, testdb.Org1.ID, sched.OrgID)
 	assert.Equal(t, models.RepeatPeriodNever, sched.RepeatPeriod)
 	assert.Equal(t, time.Date(2024, 6, 20, 7, 45, 55, 0, oa.Env().Timezone()), *sched.NextFire)
 
 	// create daily schedule with start in the future
 	sched, err = models.NewSchedule(oa, time.Date(2024, 6, 20, 14, 45, 55, 0, time.UTC), models.RepeatPeriodDaily, "")
 	assert.NoError(t, err)
-	assert.Equal(t, testdata.Org1.ID, sched.OrgID)
+	assert.Equal(t, testdb.Org1.ID, sched.OrgID)
 	assert.Equal(t, models.RepeatPeriodDaily, sched.RepeatPeriod)
 	assert.Equal(t, 7, *sched.RepeatHourOfDay)
 	assert.Equal(t, 45, *sched.RepeatMinuteOfHour)
@@ -45,7 +45,7 @@ func TestNewSchedule(t *testing.T) {
 	// create daily schedule with start in the past
 	sched, err = models.NewSchedule(oa, time.Date(2024, 6, 20, 14, 15, 55, 0, time.UTC), models.RepeatPeriodDaily, "")
 	assert.NoError(t, err)
-	assert.Equal(t, testdata.Org1.ID, sched.OrgID)
+	assert.Equal(t, testdb.Org1.ID, sched.OrgID)
 	assert.Equal(t, models.RepeatPeriodDaily, sched.RepeatPeriod)
 	assert.Equal(t, 7, *sched.RepeatHourOfDay)
 	assert.Equal(t, 15, *sched.RepeatMinuteOfHour)
@@ -57,7 +57,7 @@ func TestNewSchedule(t *testing.T) {
 	// create weekly schedule with start in the future
 	sched, err = models.NewSchedule(oa, time.Date(2024, 6, 20, 14, 45, 55, 0, time.UTC), models.RepeatPeriodWeekly, "MF")
 	assert.NoError(t, err)
-	assert.Equal(t, testdata.Org1.ID, sched.OrgID)
+	assert.Equal(t, testdb.Org1.ID, sched.OrgID)
 	assert.Equal(t, models.RepeatPeriodWeekly, sched.RepeatPeriod)
 	assert.Equal(t, 7, *sched.RepeatHourOfDay)
 	assert.Equal(t, 45, *sched.RepeatMinuteOfHour)
@@ -67,7 +67,7 @@ func TestNewSchedule(t *testing.T) {
 	// create weekly schedule with start in the past
 	sched, err = models.NewSchedule(oa, time.Date(2024, 6, 20, 14, 15, 55, 0, time.UTC), models.RepeatPeriodWeekly, "MF")
 	assert.NoError(t, err)
-	assert.Equal(t, testdata.Org1.ID, sched.OrgID)
+	assert.Equal(t, testdb.Org1.ID, sched.OrgID)
 	assert.Equal(t, models.RepeatPeriodWeekly, sched.RepeatPeriod)
 	assert.Equal(t, 7, *sched.RepeatHourOfDay)
 	assert.Equal(t, 15, *sched.RepeatMinuteOfHour)
@@ -77,7 +77,7 @@ func TestNewSchedule(t *testing.T) {
 	// create monthly schedule with start in the past
 	sched, err = models.NewSchedule(oa, time.Date(2024, 6, 20, 14, 15, 55, 0, time.UTC), models.RepeatPeriodMonthly, "")
 	assert.NoError(t, err)
-	assert.Equal(t, testdata.Org1.ID, sched.OrgID)
+	assert.Equal(t, testdb.Org1.ID, sched.OrgID)
 	assert.Equal(t, models.RepeatPeriodMonthly, sched.RepeatPeriod)
 	assert.Equal(t, 7, *sched.RepeatHourOfDay)
 	assert.Equal(t, 15, *sched.RepeatMinuteOfHour)
@@ -90,21 +90,21 @@ func TestGetExpired(t *testing.T) {
 
 	defer testsuite.Reset(testsuite.ResetData)
 
-	optIn := testdata.InsertOptIn(rt, testdata.Org1, "Polls")
+	optIn := testdb.InsertOptIn(rt, testdb.Org1, "Polls")
 
 	// add a schedule and tie a broadcast to it
-	s1 := testdata.InsertSchedule(rt, testdata.Org1, models.RepeatPeriodNever, time.Now().Add(-24*time.Hour))
+	s1 := testdb.InsertSchedule(rt, testdb.Org1, models.RepeatPeriodNever, time.Now().Add(-24*time.Hour))
 
-	testdata.InsertBroadcast(rt, testdata.Org1, "eng", map[i18n.Language]string{"eng": "Test message", "fra": "Un Message"}, optIn, s1,
-		[]*testdata.Contact{testdata.Cathy, testdata.George}, []*testdata.Group{testdata.DoctorsGroup},
+	testdb.InsertBroadcast(rt, testdb.Org1, "eng", map[i18n.Language]string{"eng": "Test message", "fra": "Un Message"}, optIn, s1,
+		[]*testdb.Contact{testdb.Cathy, testdb.George}, []*testdb.Group{testdb.DoctorsGroup},
 	)
 
 	// add another and tie a trigger to it
-	s2 := testdata.InsertSchedule(rt, testdata.Org1, models.RepeatPeriodNever, time.Now().Add(-48*time.Hour))
+	s2 := testdb.InsertSchedule(rt, testdb.Org1, models.RepeatPeriodNever, time.Now().Add(-48*time.Hour))
 
-	testdata.InsertScheduledTrigger(rt, testdata.Org1, testdata.Favorites, s2, []*testdata.Group{testdata.DoctorsGroup}, nil, []*testdata.Contact{testdata.Cathy, testdata.George})
+	testdb.InsertScheduledTrigger(rt, testdb.Org1, testdb.Favorites, s2, []*testdb.Group{testdb.DoctorsGroup}, nil, []*testdb.Contact{testdb.Cathy, testdb.George})
 
-	s3 := testdata.InsertSchedule(rt, testdata.Org1, models.RepeatPeriodNever, time.Now().Add(-72*time.Hour))
+	s3 := testdb.InsertSchedule(rt, testdb.Org1, models.RepeatPeriodNever, time.Now().Add(-72*time.Hour))
 
 	// get expired schedules
 	schedules, err := models.GetUnfiredSchedules(ctx, rt.DB.DB)
@@ -122,10 +122,10 @@ func TestGetExpired(t *testing.T) {
 
 	trigger := schedules[1].Trigger
 	assert.NotNil(t, trigger)
-	assert.Equal(t, testdata.Favorites.ID, trigger.FlowID())
-	assert.Equal(t, testdata.Org1.ID, trigger.OrgID())
-	assert.Equal(t, []models.ContactID{testdata.Cathy.ID, testdata.George.ID}, trigger.ContactIDs())
-	assert.Equal(t, []models.GroupID{testdata.DoctorsGroup.ID}, trigger.IncludeGroupIDs())
+	assert.Equal(t, testdb.Favorites.ID, trigger.FlowID())
+	assert.Equal(t, testdb.Org1.ID, trigger.OrgID())
+	assert.Equal(t, []models.ContactID{testdb.Cathy.ID, testdb.George.ID}, trigger.ContactIDs())
+	assert.Equal(t, []models.GroupID{testdb.DoctorsGroup.ID}, trigger.IncludeGroupIDs())
 
 	assert.Equal(t, s1, schedules[2].ID)
 	bcast := schedules[2].Broadcast
@@ -135,9 +135,9 @@ func TestGetExpired(t *testing.T) {
 	assert.Equal(t, "Un Message", bcast.Translations["fra"].Text)
 	assert.True(t, bcast.Expressions)
 	assert.Equal(t, optIn.ID, bcast.OptInID)
-	assert.Equal(t, testdata.Org1.ID, bcast.OrgID)
-	assert.Equal(t, []models.ContactID{testdata.Cathy.ID, testdata.George.ID}, bcast.ContactIDs)
-	assert.Equal(t, []models.GroupID{testdata.DoctorsGroup.ID}, bcast.GroupIDs)
+	assert.Equal(t, testdb.Org1.ID, bcast.OrgID)
+	assert.Equal(t, []models.ContactID{testdb.Cathy.ID, testdb.George.ID}, bcast.ContactIDs)
+	assert.Equal(t, []models.GroupID{testdb.DoctorsGroup.ID}, bcast.GroupIDs)
 }
 
 func TestGetNextFire(t *testing.T) {

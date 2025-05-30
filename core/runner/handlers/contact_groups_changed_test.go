@@ -8,7 +8,7 @@ import (
 	"github.com/nyaruka/goflow/flows/actions"
 	"github.com/nyaruka/mailroom/core/runner/handlers"
 	"github.com/nyaruka/mailroom/testsuite"
-	"github.com/nyaruka/mailroom/testsuite/testdata"
+	"github.com/nyaruka/mailroom/testsuite/testdb"
 )
 
 func TestContactGroupsChanged(t *testing.T) {
@@ -16,19 +16,19 @@ func TestContactGroupsChanged(t *testing.T) {
 
 	defer testsuite.Reset(testsuite.ResetAll)
 
-	doctors := assets.NewGroupReference(testdata.DoctorsGroup.UUID, "Doctors")
-	testers := assets.NewGroupReference(testdata.TestersGroup.UUID, "Testers")
+	doctors := assets.NewGroupReference(testdb.DoctorsGroup.UUID, "Doctors")
+	testers := assets.NewGroupReference(testdb.TestersGroup.UUID, "Testers")
 
 	tcs := []handlers.TestCase{
 		{
 			Actions: handlers.ContactActionMap{
-				testdata.Cathy: []flows.Action{
+				testdb.Cathy: []flows.Action{
 					actions.NewAddContactGroups(handlers.NewActionUUID(), []*assets.GroupReference{doctors}),
 					actions.NewAddContactGroups(handlers.NewActionUUID(), []*assets.GroupReference{doctors}),
 					actions.NewRemoveContactGroups(handlers.NewActionUUID(), []*assets.GroupReference{doctors}, false),
 					actions.NewAddContactGroups(handlers.NewActionUUID(), []*assets.GroupReference{testers}),
 				},
-				testdata.George: []flows.Action{
+				testdb.George: []flows.Action{
 					actions.NewRemoveContactGroups(handlers.NewActionUUID(), []*assets.GroupReference{doctors}, false),
 					actions.NewAddContactGroups(handlers.NewActionUUID(), []*assets.GroupReference{testers}),
 				},
@@ -36,22 +36,22 @@ func TestContactGroupsChanged(t *testing.T) {
 			SQLAssertions: []handlers.SQLAssertion{
 				{
 					SQL:   "select count(*) from contacts_contactgroup_contacts where contact_id = $1 and contactgroup_id = $2",
-					Args:  []any{testdata.Cathy.ID, testdata.DoctorsGroup.ID},
+					Args:  []any{testdb.Cathy.ID, testdb.DoctorsGroup.ID},
 					Count: 0,
 				},
 				{
 					SQL:   "select count(*) from contacts_contactgroup_contacts where contact_id = $1 and contactgroup_id = $2",
-					Args:  []any{testdata.Cathy.ID, testdata.TestersGroup.ID},
+					Args:  []any{testdb.Cathy.ID, testdb.TestersGroup.ID},
 					Count: 1,
 				},
 				{
 					SQL:   "select count(*) from contacts_contactgroup_contacts where contact_id = $1 and contactgroup_id = $2",
-					Args:  []any{testdata.George.ID, testdata.TestersGroup.ID},
+					Args:  []any{testdb.George.ID, testdb.TestersGroup.ID},
 					Count: 1,
 				},
 				{
 					SQL:   "select count(*) from contacts_contactgroup_contacts where contact_id = $1 and contactgroup_id = $2",
-					Args:  []any{testdata.Bob.ID, testdata.TestersGroup.ID},
+					Args:  []any{testdb.Bob.ID, testdb.TestersGroup.ID},
 					Count: 0,
 				},
 			},

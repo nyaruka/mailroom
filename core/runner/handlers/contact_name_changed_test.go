@@ -7,7 +7,7 @@ import (
 	"github.com/nyaruka/goflow/flows/actions"
 	"github.com/nyaruka/mailroom/core/runner/handlers"
 	"github.com/nyaruka/mailroom/testsuite"
-	"github.com/nyaruka/mailroom/testsuite/testdata"
+	"github.com/nyaruka/mailroom/testsuite/testdb"
 )
 
 func TestContactNameChanged(t *testing.T) {
@@ -18,24 +18,24 @@ func TestContactNameChanged(t *testing.T) {
 	tcs := []handlers.TestCase{
 		{
 			Actions: handlers.ContactActionMap{
-				testdata.Cathy: []flows.Action{
+				testdb.Cathy: []flows.Action{
 					actions.NewSetContactName(handlers.NewActionUUID(), "Fred"),
 					actions.NewSetContactName(handlers.NewActionUUID(), "Tarzan"),
 				},
-				testdata.George: []flows.Action{
+				testdb.George: []flows.Action{
 					actions.NewSetContactName(handlers.NewActionUUID(), "Geoff Newman"),
 				},
-				testdata.Bob: []flows.Action{
+				testdb.Bob: []flows.Action{
 					actions.NewSetContactName(handlers.NewActionUUID(), ""),
 				},
-				testdata.Alexandra: []flows.Action{
+				testdb.Alexandra: []flows.Action{
 					actions.NewSetContactName(handlers.NewActionUUID(), "😃234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890"),
 				},
 			},
 			SQLAssertions: []handlers.SQLAssertion{
 				{
 					SQL:   "select count(*) from contacts_contact where name = 'Tarzan' and id = $1",
-					Args:  []any{testdata.Cathy.ID},
+					Args:  []any{testdb.Cathy.ID},
 					Count: 1,
 				},
 				{
@@ -44,17 +44,17 @@ func TestContactNameChanged(t *testing.T) {
 				},
 				{
 					SQL:   "select count(*) from contacts_contact where name IS NULL and id = $1",
-					Args:  []any{testdata.Bob.ID},
+					Args:  []any{testdb.Bob.ID},
 					Count: 1,
 				},
 				{
 					SQL:   "select count(*) from contacts_contact where name = 'Geoff Newman' and id = $1",
-					Args:  []any{testdata.George.ID},
+					Args:  []any{testdb.George.ID},
 					Count: 1,
 				},
 				{
 					SQL:   "select count(*) from contacts_contact where name = '😃2345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678' and id = $1",
-					Args:  []any{testdata.Alexandra.ID},
+					Args:  []any{testdb.Alexandra.ID},
 					Count: 1,
 				},
 			},

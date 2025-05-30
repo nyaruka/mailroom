@@ -5,7 +5,7 @@ import (
 
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/testsuite"
-	"github.com/nyaruka/mailroom/testsuite/testdata"
+	"github.com/nyaruka/mailroom/testsuite/testdb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -15,10 +15,10 @@ func TestOptIns(t *testing.T) {
 
 	defer testsuite.Reset(testsuite.ResetData)
 
-	polls := testdata.InsertOptIn(rt, testdata.Org1, "Polls")
-	offers := testdata.InsertOptIn(rt, testdata.Org1, "Offers")
+	polls := testdb.InsertOptIn(rt, testdb.Org1, "Polls")
+	offers := testdb.InsertOptIn(rt, testdb.Org1, "Offers")
 
-	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdata.Org1.ID, models.RefreshOptIns)
+	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshOptIns)
 	require.NoError(t, err)
 
 	optIns, err := oa.OptIns()

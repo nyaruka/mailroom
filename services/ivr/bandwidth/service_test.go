@@ -15,7 +15,7 @@ import (
 	"github.com/nyaruka/mailroom/core/ivr"
 	"github.com/nyaruka/mailroom/services/ivr/bandwidth"
 	"github.com/nyaruka/mailroom/testsuite"
-	"github.com/nyaruka/mailroom/testsuite/testdata"
+	"github.com/nyaruka/mailroom/testsuite/testdb"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -116,10 +116,10 @@ func TestResponseForSprint(t *testing.T) {
 func TestRedactValues(t *testing.T) {
 	_, rt := testsuite.Runtime()
 
-	bwChannel := testdata.InsertChannel(rt, testdata.Org1, "BW", "Bandwidth", "123", []string{"tel"}, "CASR",
+	bwChannel := testdb.InsertChannel(rt, testdb.Org1, "BW", "Bandwidth", "123", []string{"tel"}, "CASR",
 		map[string]any{"username": "user", "password": "pass", "voice_application_id": "app-id", "account_id": "acc-id"})
 
-	oa := testdata.Org1.Load(rt)
+	oa := testdb.Org1.Load(rt)
 	ch := oa.ChannelByUUID(bwChannel.UUID)
 	svc, _ := ivr.GetService(ch)
 

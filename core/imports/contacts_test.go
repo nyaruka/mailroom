@@ -23,7 +23,7 @@ import (
 	_ "github.com/nyaruka/mailroom/core/runner/handlers"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/mailroom/testsuite"
-	"github.com/nyaruka/mailroom/testsuite/testdata"
+	"github.com/nyaruka/mailroom/testsuite/testdb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -41,13 +41,13 @@ func TestContactImports(t *testing.T) {
 	rt.DB.MustExec(`ALTER SEQUENCE contacts_contacturn_id_seq RESTART WITH 10000`)
 
 	// add contact in other org to make sure we can't update it
-	testdata.InsertContact(rt, testdata.Org2, "f7a8016d-69a6-434b-aae7-5142ce4a98ba", "Xavier", "spa", models.ContactStatusActive)
+	testdb.InsertContact(rt, testdb.Org2, "f7a8016d-69a6-434b-aae7-5142ce4a98ba", "Xavier", "spa", models.ContactStatusActive)
 
 	// add dynamic group to test imported contacts are added to it
-	testdata.InsertContactGroup(rt, testdata.Org1, "fc32f928-ad37-477c-a88e-003d30fd7406", "Adults", "age >= 40")
+	testdb.InsertContactGroup(rt, testdb.Org1, "fc32f928-ad37-477c-a88e-003d30fd7406", "Adults", "age >= 40")
 
 	// give our org a country by setting country on a channel
-	rt.DB.MustExec(`UPDATE channels_channel SET country = 'US' WHERE id = $1`, testdata.TwilioChannel.ID)
+	rt.DB.MustExec(`UPDATE channels_channel SET country = 'US' WHERE id = $1`, testdb.TwilioChannel.ID)
 
 	testJSON := testsuite.ReadFile("testdata/contacts.json")
 
@@ -62,20 +62,20 @@ func TestContactImports(t *testing.T) {
 	}{}
 	jsonx.MustUnmarshal(testJSON, &tcs)
 
-	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdata.Org1.ID, models.RefreshOrg|models.RefreshChannels|models.RefreshGroups)
+	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshOrg|models.RefreshChannels|models.RefreshGroups)
 	require.NoError(t, err)
 
 	uuids.SetGenerator(uuids.NewSeededGenerator(12345, time.Now))
 	defer uuids.SetGenerator(uuids.DefaultGenerator)
 
 	for i, tc := range tcs {
-		importID := testdata.InsertContactImport(rt, testdata.Org1, testdata.Admin)
-		batchID := testdata.InsertContactImportBatch(rt, importID, tc.Specs)
+		importID := testdb.InsertContactImport(rt, testdb.Org1, testdb.Admin)
+		batchID := testdb.InsertContactImportBatch(rt, importID, tc.Specs)
 
 		batch, err := models.LoadContactImportBatch(ctx, rt.DB, batchID)
 		require.NoError(t, err)
 
-		err = imports.ImportBatch(ctx, rt, oa, batch, testdata.Admin.ID)
+		err = imports.ImportBatch(ctx, rt, oa, batch, testdb.Admin.ID)
 		require.NoError(t, err)
 
 		results := &struct {
@@ -153,22 +153,22 @@ func TestLoadContactImport(t *testing.T) {
 
 	defer testsuite.Reset(testsuite.ResetData)
 
-	oa := testdata.Org1.Load(rt)
+	oa := testdb.Org1.Load(rt)
 
-	importID := testdata.InsertContactImport(rt, testdata.Org1, testdata.Admin)
-	batch1ID := testdata.InsertContactImportBatch(rt, importID, []byte(`[
+	importID := testdb.InsertContactImport(rt, testdb.Org1, testdb.Admin)
+	batch1ID := testdb.InsertContactImportBatch(rt, importID, []byte(`[
 		{"name": "Norbert", "language": "eng", "urns": ["tel:+16055740001"]},
 		{"name": "Leah", "urns": ["tel:+16055740002"]}
 	]`))
-	testdata.InsertContactImportBatch(rt, importID, []byte(`[
+	testdb.InsertContactImportBatch(rt, importID, []byte(`[
 		{"name": "Rowan", "language": "spa", "urns": ["tel:+16055740003"]}
 	]`))
 
 	imp, err := models.LoadContactImport(ctx, rt.DB, importID)
 	require.NoError(t, err)
 
-	assert.Equal(t, testdata.Org1.ID, imp.OrgID)
-	assert.Equal(t, testdata.Admin.ID, imp.CreatedByID)
+	assert.Equal(t, testdb.Org1.ID, imp.OrgID)
+	assert.Equal(t, testdb.Admin.ID, imp.CreatedByID)
 	assert.Equal(t, models.ContactImportStatusProcessing, imp.Status)
 	assert.Nil(t, imp.FinishedOn)
 	assert.Equal(t, "P", imp.BatchStatuses)
@@ -182,7 +182,7 @@ func TestLoadContactImport(t *testing.T) {
 	assert.Equal(t, 0, batch1.RecordStart)
 	assert.Equal(t, 2, batch1.RecordEnd)
 
-	err = imports.ImportBatch(ctx, rt, oa, batch1, testdata.Admin.ID)
+	err = imports.ImportBatch(ctx, rt, oa, batch1, testdb.Admin.ID)
 	require.NoError(t, err)
 
 	imp, err = models.LoadContactImport(ctx, rt.DB, importID)

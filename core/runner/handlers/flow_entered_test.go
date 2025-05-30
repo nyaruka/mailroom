@@ -7,7 +7,7 @@ import (
 	"github.com/nyaruka/goflow/flows/actions"
 	"github.com/nyaruka/mailroom/core/runner/handlers"
 	"github.com/nyaruka/mailroom/testsuite"
-	"github.com/nyaruka/mailroom/testsuite/testdata"
+	"github.com/nyaruka/mailroom/testsuite/testdb"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -16,15 +16,15 @@ func TestFlowEntered(t *testing.T) {
 
 	defer testsuite.Reset(testsuite.ResetAll)
 
-	oa := testdata.Org1.Load(rt)
+	oa := testdb.Org1.Load(rt)
 
-	flow, err := oa.FlowByID(testdata.PickANumber.ID)
+	flow, err := oa.FlowByID(testdb.PickANumber.ID)
 	assert.NoError(t, err)
 
 	tcs := []handlers.TestCase{
 		{
 			Actions: handlers.ContactActionMap{
-				testdata.Cathy: []flows.Action{
+				testdb.Cathy: []flows.Action{
 					actions.NewEnterFlow(handlers.NewActionUUID(), flow.Reference(), false),
 				},
 			},

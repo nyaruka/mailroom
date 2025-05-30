@@ -9,7 +9,7 @@ import (
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/testsuite"
-	"github.com/nyaruka/mailroom/testsuite/testdata"
+	"github.com/nyaruka/mailroom/testsuite/testdb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -20,10 +20,10 @@ func TestLoadTriggers(t *testing.T) {
 	defer testsuite.Reset(testsuite.ResetAll)
 
 	rt.DB.MustExec(`DELETE FROM triggers_trigger`)
-	farmersGroup := testdata.InsertContactGroup(rt, testdata.Org1, assets.GroupUUID(uuids.NewV4()), "Farmers", "")
+	farmersGroup := testdb.InsertContactGroup(rt, testdb.Org1, assets.GroupUUID(uuids.NewV4()), "Farmers", "")
 
 	// create trigger for other org to ensure it isn't loaded
-	testdata.InsertCatchallTrigger(rt, testdata.Org2, testdata.Org2Favorites, nil, nil, nil)
+	testdb.InsertCatchallTrigger(rt, testdb.Org2, testdb.Org2Favorites, nil, nil, nil)
 
 	tcs := []struct {
 		id               models.TriggerID
@@ -38,82 +38,82 @@ func TestLoadTriggers(t *testing.T) {
 		channelID        models.ChannelID
 	}{
 		{
-			id:               testdata.InsertKeywordTrigger(rt, testdata.Org1, testdata.Favorites, []string{"join"}, models.MatchFirst, nil, nil, nil),
+			id:               testdb.InsertKeywordTrigger(rt, testdb.Org1, testdb.Favorites, []string{"join"}, models.MatchFirst, nil, nil, nil),
 			type_:            models.KeywordTriggerType,
-			flowID:           testdata.Favorites.ID,
+			flowID:           testdb.Favorites.ID,
 			keywords:         []string{"join"},
 			keywordMatchType: models.MatchFirst,
 		},
 		{
-			id:               testdata.InsertKeywordTrigger(rt, testdata.Org1, testdata.Favorites, []string{"join"}, models.MatchFirst, nil, nil, testdata.TwilioChannel),
+			id:               testdb.InsertKeywordTrigger(rt, testdb.Org1, testdb.Favorites, []string{"join"}, models.MatchFirst, nil, nil, testdb.TwilioChannel),
 			type_:            models.KeywordTriggerType,
-			flowID:           testdata.Favorites.ID,
+			flowID:           testdb.Favorites.ID,
 			keywords:         []string{"join"},
 			keywordMatchType: models.MatchFirst,
-			channelID:        testdata.TwilioChannel.ID,
+			channelID:        testdb.TwilioChannel.ID,
 		},
 		{
-			id:               testdata.InsertKeywordTrigger(rt, testdata.Org1, testdata.PickANumber, []string{"start"}, models.MatchOnly, []*testdata.Group{testdata.DoctorsGroup, testdata.TestersGroup}, []*testdata.Group{farmersGroup}, nil),
+			id:               testdb.InsertKeywordTrigger(rt, testdb.Org1, testdb.PickANumber, []string{"start"}, models.MatchOnly, []*testdb.Group{testdb.DoctorsGroup, testdb.TestersGroup}, []*testdb.Group{farmersGroup}, nil),
 			type_:            models.KeywordTriggerType,
-			flowID:           testdata.PickANumber.ID,
+			flowID:           testdb.PickANumber.ID,
 			keywords:         []string{"start"},
 			keywordMatchType: models.MatchOnly,
-			includeGroups:    []models.GroupID{testdata.DoctorsGroup.ID, testdata.TestersGroup.ID},
+			includeGroups:    []models.GroupID{testdb.DoctorsGroup.ID, testdb.TestersGroup.ID},
 			excludeGroups:    []models.GroupID{farmersGroup.ID},
 		},
 		{
-			id:            testdata.InsertIncomingCallTrigger(rt, testdata.Org1, testdata.Favorites, []*testdata.Group{testdata.DoctorsGroup, testdata.TestersGroup}, []*testdata.Group{farmersGroup}, nil),
+			id:            testdb.InsertIncomingCallTrigger(rt, testdb.Org1, testdb.Favorites, []*testdb.Group{testdb.DoctorsGroup, testdb.TestersGroup}, []*testdb.Group{farmersGroup}, nil),
 			type_:         models.IncomingCallTriggerType,
-			flowID:        testdata.Favorites.ID,
-			includeGroups: []models.GroupID{testdata.DoctorsGroup.ID, testdata.TestersGroup.ID},
+			flowID:        testdb.Favorites.ID,
+			includeGroups: []models.GroupID{testdb.DoctorsGroup.ID, testdb.TestersGroup.ID},
 			excludeGroups: []models.GroupID{farmersGroup.ID},
 		},
 		{
-			id:     testdata.InsertIncomingCallTrigger(rt, testdata.Org1, testdata.Favorites, []*testdata.Group{testdata.DoctorsGroup, testdata.TestersGroup}, []*testdata.Group{farmersGroup}, testdata.TwilioChannel),
+			id:     testdb.InsertIncomingCallTrigger(rt, testdb.Org1, testdb.Favorites, []*testdb.Group{testdb.DoctorsGroup, testdb.TestersGroup}, []*testdb.Group{farmersGroup}, testdb.TwilioChannel),
 			type_:  models.IncomingCallTriggerType,
-			flowID: testdata.Favorites.ID,
+			flowID: testdb.Favorites.ID,
 
-			includeGroups: []models.GroupID{testdata.DoctorsGroup.ID, testdata.TestersGroup.ID},
+			includeGroups: []models.GroupID{testdb.DoctorsGroup.ID, testdb.TestersGroup.ID},
 			excludeGroups: []models.GroupID{farmersGroup.ID},
-			channelID:     testdata.TwilioChannel.ID,
+			channelID:     testdb.TwilioChannel.ID,
 		},
 		{
-			id:     testdata.InsertMissedCallTrigger(rt, testdata.Org1, testdata.Favorites, nil),
+			id:     testdb.InsertMissedCallTrigger(rt, testdb.Org1, testdb.Favorites, nil),
 			type_:  models.MissedCallTriggerType,
-			flowID: testdata.Favorites.ID,
+			flowID: testdb.Favorites.ID,
 		},
 		{
-			id:        testdata.InsertNewConversationTrigger(rt, testdata.Org1, testdata.Favorites, testdata.TwilioChannel),
+			id:        testdb.InsertNewConversationTrigger(rt, testdb.Org1, testdb.Favorites, testdb.TwilioChannel),
 			type_:     models.NewConversationTriggerType,
-			flowID:    testdata.Favorites.ID,
-			channelID: testdata.TwilioChannel.ID,
+			flowID:    testdb.Favorites.ID,
+			channelID: testdb.TwilioChannel.ID,
 		},
 		{
-			id:     testdata.InsertReferralTrigger(rt, testdata.Org1, testdata.Favorites, "", nil),
+			id:     testdb.InsertReferralTrigger(rt, testdb.Org1, testdb.Favorites, "", nil),
 			type_:  models.ReferralTriggerType,
-			flowID: testdata.Favorites.ID,
+			flowID: testdb.Favorites.ID,
 		},
 		{
-			id:         testdata.InsertReferralTrigger(rt, testdata.Org1, testdata.Favorites, "3256437635", testdata.TwilioChannel),
+			id:         testdb.InsertReferralTrigger(rt, testdb.Org1, testdb.Favorites, "3256437635", testdb.TwilioChannel),
 			type_:      models.ReferralTriggerType,
-			flowID:     testdata.Favorites.ID,
+			flowID:     testdb.Favorites.ID,
 			referrerID: "3256437635",
-			channelID:  testdata.TwilioChannel.ID,
+			channelID:  testdb.TwilioChannel.ID,
 		},
 		{
-			id:     testdata.InsertCatchallTrigger(rt, testdata.Org1, testdata.Favorites, nil, nil, nil),
+			id:     testdb.InsertCatchallTrigger(rt, testdb.Org1, testdb.Favorites, nil, nil, nil),
 			type_:  models.CatchallTriggerType,
-			flowID: testdata.Favorites.ID,
+			flowID: testdb.Favorites.ID,
 		},
 		{
-			id:        testdata.InsertCatchallTrigger(rt, testdata.Org1, testdata.Favorites, nil, nil, testdata.TwilioChannel),
+			id:        testdb.InsertCatchallTrigger(rt, testdb.Org1, testdb.Favorites, nil, nil, testdb.TwilioChannel),
 			type_:     models.CatchallTriggerType,
-			flowID:    testdata.Favorites.ID,
-			channelID: testdata.TwilioChannel.ID,
+			flowID:    testdb.Favorites.ID,
+			channelID: testdb.TwilioChannel.ID,
 		},
 	}
 
-	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdata.Org1.ID, models.RefreshTriggers)
+	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshTriggers)
 	require.NoError(t, err)
 
 	require.Equal(t, len(tcs), len(oa.Triggers()))
@@ -141,32 +141,32 @@ func TestFindMatchingMsgTrigger(t *testing.T) {
 
 	rt.DB.MustExec(`DELETE FROM triggers_trigger`)
 
-	joinID := testdata.InsertKeywordTrigger(rt, testdata.Org1, testdata.Favorites, []string{"join"}, models.MatchFirst, nil, nil, nil)
-	joinTwilioOnlyID := testdata.InsertKeywordTrigger(rt, testdata.Org1, testdata.Favorites, []string{"join"}, models.MatchFirst, nil, nil, testdata.TwilioChannel)
-	startTwilioOnlyID := testdata.InsertKeywordTrigger(rt, testdata.Org1, testdata.Favorites, []string{"start"}, models.MatchFirst, nil, nil, testdata.TwilioChannel)
-	resistID := testdata.InsertKeywordTrigger(rt, testdata.Org1, testdata.SingleMessage, []string{"resist"}, models.MatchOnly, nil, nil, nil)
-	resistTwilioOnlyID := testdata.InsertKeywordTrigger(rt, testdata.Org1, testdata.SingleMessage, []string{"resist"}, models.MatchOnly, nil, nil, testdata.TwilioChannel)
-	emojiID := testdata.InsertKeywordTrigger(rt, testdata.Org1, testdata.PickANumber, []string{"👍"}, models.MatchFirst, nil, nil, nil)
-	doctorsID := testdata.InsertKeywordTrigger(rt, testdata.Org1, testdata.SingleMessage, []string{"resist"}, models.MatchOnly, []*testdata.Group{testdata.DoctorsGroup}, nil, nil)
-	doctorsAndNotTestersID := testdata.InsertKeywordTrigger(rt, testdata.Org1, testdata.SingleMessage, []string{"resist"}, models.MatchOnly, []*testdata.Group{testdata.DoctorsGroup}, []*testdata.Group{testdata.TestersGroup}, nil)
-	doctorsCatchallID := testdata.InsertCatchallTrigger(rt, testdata.Org1, testdata.SingleMessage, []*testdata.Group{testdata.DoctorsGroup}, nil, nil)
-	othersAllID := testdata.InsertCatchallTrigger(rt, testdata.Org1, testdata.SingleMessage, nil, nil, nil)
+	joinID := testdb.InsertKeywordTrigger(rt, testdb.Org1, testdb.Favorites, []string{"join"}, models.MatchFirst, nil, nil, nil)
+	joinTwilioOnlyID := testdb.InsertKeywordTrigger(rt, testdb.Org1, testdb.Favorites, []string{"join"}, models.MatchFirst, nil, nil, testdb.TwilioChannel)
+	startTwilioOnlyID := testdb.InsertKeywordTrigger(rt, testdb.Org1, testdb.Favorites, []string{"start"}, models.MatchFirst, nil, nil, testdb.TwilioChannel)
+	resistID := testdb.InsertKeywordTrigger(rt, testdb.Org1, testdb.SingleMessage, []string{"resist"}, models.MatchOnly, nil, nil, nil)
+	resistTwilioOnlyID := testdb.InsertKeywordTrigger(rt, testdb.Org1, testdb.SingleMessage, []string{"resist"}, models.MatchOnly, nil, nil, testdb.TwilioChannel)
+	emojiID := testdb.InsertKeywordTrigger(rt, testdb.Org1, testdb.PickANumber, []string{"👍"}, models.MatchFirst, nil, nil, nil)
+	doctorsID := testdb.InsertKeywordTrigger(rt, testdb.Org1, testdb.SingleMessage, []string{"resist"}, models.MatchOnly, []*testdb.Group{testdb.DoctorsGroup}, nil, nil)
+	doctorsAndNotTestersID := testdb.InsertKeywordTrigger(rt, testdb.Org1, testdb.SingleMessage, []string{"resist"}, models.MatchOnly, []*testdb.Group{testdb.DoctorsGroup}, []*testdb.Group{testdb.TestersGroup}, nil)
+	doctorsCatchallID := testdb.InsertCatchallTrigger(rt, testdb.Org1, testdb.SingleMessage, []*testdb.Group{testdb.DoctorsGroup}, nil, nil)
+	othersAllID := testdb.InsertCatchallTrigger(rt, testdb.Org1, testdb.SingleMessage, nil, nil, nil)
 
 	// trigger for other org
-	testdata.InsertCatchallTrigger(rt, testdata.Org2, testdata.Org2Favorites, nil, nil, nil)
+	testdb.InsertCatchallTrigger(rt, testdb.Org2, testdb.Org2Favorites, nil, nil, nil)
 
-	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdata.Org1.ID, models.RefreshTriggers)
+	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshTriggers)
 	require.NoError(t, err)
 
-	testdata.DoctorsGroup.Add(rt, testdata.Bob)
-	testdata.TestersGroup.Add(rt, testdata.Bob)
+	testdb.DoctorsGroup.Add(rt, testdb.Bob)
+	testdb.TestersGroup.Add(rt, testdb.Bob)
 
-	_, cathy, _ := testdata.Cathy.Load(rt, oa)
-	_, george, _ := testdata.George.Load(rt, oa)
-	_, bob, _ := testdata.Bob.Load(rt, oa)
+	_, cathy, _ := testdb.Cathy.Load(rt, oa)
+	_, george, _ := testdb.George.Load(rt, oa)
+	_, bob, _ := testdb.Bob.Load(rt, oa)
 
-	twilioChannel, _ := models.GetChannelByID(ctx, rt.DB.DB, testdata.TwilioChannel.ID)
-	facebookChannel, _ := models.GetChannelByID(ctx, rt.DB.DB, testdata.FacebookChannel.ID)
+	twilioChannel, _ := models.GetChannelByID(ctx, rt.DB.DB, testdb.TwilioChannel.ID)
+	facebookChannel, _ := models.GetChannelByID(ctx, rt.DB.DB, testdb.FacebookChannel.ID)
 
 	tcs := []struct {
 		text              string
@@ -211,25 +211,25 @@ func TestFindMatchingIncomingCallTrigger(t *testing.T) {
 
 	defer testsuite.Reset(testsuite.ResetAll)
 
-	doctorsAndNotTestersTriggerID := testdata.InsertIncomingCallTrigger(rt, testdata.Org1, testdata.Favorites, []*testdata.Group{testdata.DoctorsGroup}, []*testdata.Group{testdata.TestersGroup}, nil)
-	doctorsTriggerID := testdata.InsertIncomingCallTrigger(rt, testdata.Org1, testdata.Favorites, []*testdata.Group{testdata.DoctorsGroup}, nil, nil)
-	notTestersTriggerID := testdata.InsertIncomingCallTrigger(rt, testdata.Org1, testdata.Favorites, nil, []*testdata.Group{testdata.TestersGroup}, nil)
-	everyoneTriggerID := testdata.InsertIncomingCallTrigger(rt, testdata.Org1, testdata.Favorites, nil, nil, nil)
-	specificChannelTriggerID := testdata.InsertIncomingCallTrigger(rt, testdata.Org1, testdata.Favorites, nil, nil, testdata.TwilioChannel)
+	doctorsAndNotTestersTriggerID := testdb.InsertIncomingCallTrigger(rt, testdb.Org1, testdb.Favorites, []*testdb.Group{testdb.DoctorsGroup}, []*testdb.Group{testdb.TestersGroup}, nil)
+	doctorsTriggerID := testdb.InsertIncomingCallTrigger(rt, testdb.Org1, testdb.Favorites, []*testdb.Group{testdb.DoctorsGroup}, nil, nil)
+	notTestersTriggerID := testdb.InsertIncomingCallTrigger(rt, testdb.Org1, testdb.Favorites, nil, []*testdb.Group{testdb.TestersGroup}, nil)
+	everyoneTriggerID := testdb.InsertIncomingCallTrigger(rt, testdb.Org1, testdb.Favorites, nil, nil, nil)
+	specificChannelTriggerID := testdb.InsertIncomingCallTrigger(rt, testdb.Org1, testdb.Favorites, nil, nil, testdb.TwilioChannel)
 
-	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdata.Org1.ID, models.RefreshTriggers)
+	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshTriggers)
 	require.NoError(t, err)
 
-	testdata.DoctorsGroup.Add(rt, testdata.Bob)
-	testdata.TestersGroup.Add(rt, testdata.Bob, testdata.Alexandra)
+	testdb.DoctorsGroup.Add(rt, testdb.Bob)
+	testdb.TestersGroup.Add(rt, testdb.Bob, testdb.Alexandra)
 
-	_, cathy, _ := testdata.Cathy.Load(rt, oa)
-	_, bob, _ := testdata.Bob.Load(rt, oa)
-	_, george, _ := testdata.George.Load(rt, oa)
-	_, alexa, _ := testdata.Alexandra.Load(rt, oa)
+	_, cathy, _ := testdb.Cathy.Load(rt, oa)
+	_, bob, _ := testdb.Bob.Load(rt, oa)
+	_, george, _ := testdb.George.Load(rt, oa)
+	_, alexa, _ := testdb.Alexandra.Load(rt, oa)
 
-	twilioChannel, _ := models.GetChannelByID(ctx, rt.DB.DB, testdata.TwilioChannel.ID)
-	facebookChannel, _ := models.GetChannelByID(ctx, rt.DB.DB, testdata.FacebookChannel.ID)
+	twilioChannel, _ := models.GetChannelByID(ctx, rt.DB.DB, testdb.TwilioChannel.ID)
+	facebookChannel, _ := models.GetChannelByID(ctx, rt.DB.DB, testdb.FacebookChannel.ID)
 
 	tcs := []struct {
 		contact           *flows.Contact
@@ -256,29 +256,29 @@ func TestFindMatchingMissedCallTrigger(t *testing.T) {
 
 	defer testsuite.Reset(testsuite.ResetData)
 
-	testdata.InsertCatchallTrigger(rt, testdata.Org1, testdata.SingleMessage, nil, nil, nil)
+	testdb.InsertCatchallTrigger(rt, testdb.Org1, testdb.SingleMessage, nil, nil, nil)
 
-	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdata.Org1.ID, models.RefreshTriggers)
+	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshTriggers)
 	require.NoError(t, err)
 
 	// no missed call trigger yet
 	trigger := models.FindMatchingMissedCallTrigger(oa, nil)
 	assert.Nil(t, trigger)
 
-	triggerID := testdata.InsertMissedCallTrigger(rt, testdata.Org1, testdata.Favorites, nil)
+	triggerID := testdb.InsertMissedCallTrigger(rt, testdb.Org1, testdb.Favorites, nil)
 
-	oa, err = models.GetOrgAssetsWithRefresh(ctx, rt, testdata.Org1.ID, models.RefreshTriggers)
+	oa, err = models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshTriggers)
 	require.NoError(t, err)
 
 	trigger = models.FindMatchingMissedCallTrigger(oa, nil)
 	assertTrigger(t, triggerID, trigger)
 
-	triggerIDwithChannel := testdata.InsertMissedCallTrigger(rt, testdata.Org1, testdata.Favorites, testdata.TwilioChannel)
+	triggerIDwithChannel := testdb.InsertMissedCallTrigger(rt, testdb.Org1, testdb.Favorites, testdb.TwilioChannel)
 
-	oa, err = models.GetOrgAssetsWithRefresh(ctx, rt, testdata.Org1.ID, models.RefreshTriggers)
+	oa, err = models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshTriggers)
 	require.NoError(t, err)
 
-	channel, _ := models.GetChannelByID(ctx, rt.DB.DB, testdata.TwilioChannel.ID)
+	channel, _ := models.GetChannelByID(ctx, rt.DB.DB, testdb.TwilioChannel.ID)
 
 	trigger = models.FindMatchingMissedCallTrigger(oa, channel)
 	assertTrigger(t, triggerIDwithChannel, trigger)
@@ -290,18 +290,18 @@ func TestFindMatchingNewConversationTrigger(t *testing.T) {
 
 	defer testsuite.Reset(testsuite.ResetData)
 
-	twilioTriggerID := testdata.InsertNewConversationTrigger(rt, testdata.Org1, testdata.Favorites, testdata.TwilioChannel)
-	noChTriggerID := testdata.InsertNewConversationTrigger(rt, testdata.Org1, testdata.Favorites, nil)
+	twilioTriggerID := testdb.InsertNewConversationTrigger(rt, testdb.Org1, testdb.Favorites, testdb.TwilioChannel)
+	noChTriggerID := testdb.InsertNewConversationTrigger(rt, testdb.Org1, testdb.Favorites, nil)
 
-	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdata.Org1.ID, models.RefreshTriggers)
+	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshTriggers)
 	require.NoError(t, err)
 
 	tcs := []struct {
 		channelID         models.ChannelID
 		expectedTriggerID models.TriggerID
 	}{
-		{testdata.TwilioChannel.ID, twilioTriggerID},
-		{testdata.VonageChannel.ID, noChTriggerID},
+		{testdb.TwilioChannel.ID, twilioTriggerID},
+		{testdb.VonageChannel.ID, noChTriggerID},
 	}
 
 	for i, tc := range tcs {
@@ -317,11 +317,11 @@ func TestFindMatchingReferralTrigger(t *testing.T) {
 
 	defer testsuite.Reset(testsuite.ResetData)
 
-	fooID := testdata.InsertReferralTrigger(rt, testdata.Org1, testdata.Favorites, "foo", testdata.FacebookChannel)
-	barID := testdata.InsertReferralTrigger(rt, testdata.Org1, testdata.Favorites, "bar", nil)
-	bazID := testdata.InsertReferralTrigger(rt, testdata.Org1, testdata.Favorites, "", testdata.FacebookChannel)
+	fooID := testdb.InsertReferralTrigger(rt, testdb.Org1, testdb.Favorites, "foo", testdb.FacebookChannel)
+	barID := testdb.InsertReferralTrigger(rt, testdb.Org1, testdb.Favorites, "bar", nil)
+	bazID := testdb.InsertReferralTrigger(rt, testdb.Org1, testdb.Favorites, "", testdb.FacebookChannel)
 
-	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdata.Org1.ID, models.RefreshTriggers)
+	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshTriggers)
 	require.NoError(t, err)
 
 	tcs := []struct {
@@ -329,14 +329,14 @@ func TestFindMatchingReferralTrigger(t *testing.T) {
 		channelID         models.ChannelID
 		expectedTriggerID models.TriggerID
 	}{
-		{"", testdata.TwilioChannel.ID, models.NilTriggerID},
-		{"foo", testdata.TwilioChannel.ID, models.NilTriggerID},
-		{"foo", testdata.FacebookChannel.ID, fooID},
-		{"FOO", testdata.FacebookChannel.ID, fooID},
-		{"bar", testdata.TwilioChannel.ID, barID},
-		{"bar", testdata.FacebookChannel.ID, barID},
-		{"zap", testdata.TwilioChannel.ID, models.NilTriggerID},
-		{"zap", testdata.FacebookChannel.ID, bazID},
+		{"", testdb.TwilioChannel.ID, models.NilTriggerID},
+		{"foo", testdb.TwilioChannel.ID, models.NilTriggerID},
+		{"foo", testdb.FacebookChannel.ID, fooID},
+		{"FOO", testdb.FacebookChannel.ID, fooID},
+		{"bar", testdb.TwilioChannel.ID, barID},
+		{"bar", testdb.FacebookChannel.ID, barID},
+		{"zap", testdb.TwilioChannel.ID, models.NilTriggerID},
+		{"zap", testdb.FacebookChannel.ID, bazID},
 	}
 
 	for i, tc := range tcs {
@@ -352,18 +352,18 @@ func TestFindMatchingOptInTrigger(t *testing.T) {
 
 	defer testsuite.Reset(testsuite.ResetData)
 
-	twilioTriggerID := testdata.InsertOptInTrigger(rt, testdata.Org1, testdata.Favorites, testdata.TwilioChannel)
-	noChTriggerID := testdata.InsertOptInTrigger(rt, testdata.Org1, testdata.Favorites, nil)
+	twilioTriggerID := testdb.InsertOptInTrigger(rt, testdb.Org1, testdb.Favorites, testdb.TwilioChannel)
+	noChTriggerID := testdb.InsertOptInTrigger(rt, testdb.Org1, testdb.Favorites, nil)
 
-	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdata.Org1.ID, models.RefreshTriggers)
+	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshTriggers)
 	require.NoError(t, err)
 
 	tcs := []struct {
 		channelID         models.ChannelID
 		expectedTriggerID models.TriggerID
 	}{
-		{testdata.TwilioChannel.ID, twilioTriggerID},
-		{testdata.VonageChannel.ID, noChTriggerID},
+		{testdb.TwilioChannel.ID, twilioTriggerID},
+		{testdb.VonageChannel.ID, noChTriggerID},
 	}
 
 	for i, tc := range tcs {
@@ -379,18 +379,18 @@ func TestFindMatchingOptOutTrigger(t *testing.T) {
 
 	defer testsuite.Reset(testsuite.ResetData)
 
-	twilioTriggerID := testdata.InsertOptOutTrigger(rt, testdata.Org1, testdata.Favorites, testdata.TwilioChannel)
-	noChTriggerID := testdata.InsertOptOutTrigger(rt, testdata.Org1, testdata.Favorites, nil)
+	twilioTriggerID := testdb.InsertOptOutTrigger(rt, testdb.Org1, testdb.Favorites, testdb.TwilioChannel)
+	noChTriggerID := testdb.InsertOptOutTrigger(rt, testdb.Org1, testdb.Favorites, nil)
 
-	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdata.Org1.ID, models.RefreshTriggers)
+	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshTriggers)
 	require.NoError(t, err)
 
 	tcs := []struct {
 		channelID         models.ChannelID
 		expectedTriggerID models.TriggerID
 	}{
-		{testdata.TwilioChannel.ID, twilioTriggerID},
-		{testdata.VonageChannel.ID, noChTriggerID},
+		{testdb.TwilioChannel.ID, twilioTriggerID},
+		{testdb.VonageChannel.ID, noChTriggerID},
 	}
 
 	for i, tc := range tcs {
@@ -406,14 +406,14 @@ func TestArchiveContactTriggers(t *testing.T) {
 
 	defer testsuite.Reset(testsuite.ResetAll)
 
-	everybodyID := testdata.InsertKeywordTrigger(rt, testdata.Org1, testdata.Favorites, []string{"join"}, models.MatchFirst, nil, nil, nil)
-	cathyOnly1ID := testdata.InsertScheduledTrigger(rt, testdata.Org1, testdata.Favorites, testdata.InsertSchedule(rt, testdata.Org1, models.RepeatPeriodMonthly, time.Now()), nil, nil, []*testdata.Contact{testdata.Cathy})
-	cathyOnly2ID := testdata.InsertScheduledTrigger(rt, testdata.Org1, testdata.Favorites, testdata.InsertSchedule(rt, testdata.Org1, models.RepeatPeriodMonthly, time.Now()), nil, nil, []*testdata.Contact{testdata.Cathy})
-	cathyAndGeorgeID := testdata.InsertScheduledTrigger(rt, testdata.Org1, testdata.Favorites, testdata.InsertSchedule(rt, testdata.Org1, models.RepeatPeriodMonthly, time.Now()), nil, nil, []*testdata.Contact{testdata.Cathy, testdata.George})
-	cathyAndGroupID := testdata.InsertScheduledTrigger(rt, testdata.Org1, testdata.Favorites, testdata.InsertSchedule(rt, testdata.Org1, models.RepeatPeriodMonthly, time.Now()), []*testdata.Group{testdata.DoctorsGroup}, nil, []*testdata.Contact{testdata.Cathy})
-	georgeOnlyID := testdata.InsertScheduledTrigger(rt, testdata.Org1, testdata.Favorites, testdata.InsertSchedule(rt, testdata.Org1, models.RepeatPeriodMonthly, time.Now()), nil, nil, []*testdata.Contact{testdata.George})
+	everybodyID := testdb.InsertKeywordTrigger(rt, testdb.Org1, testdb.Favorites, []string{"join"}, models.MatchFirst, nil, nil, nil)
+	cathyOnly1ID := testdb.InsertScheduledTrigger(rt, testdb.Org1, testdb.Favorites, testdb.InsertSchedule(rt, testdb.Org1, models.RepeatPeriodMonthly, time.Now()), nil, nil, []*testdb.Contact{testdb.Cathy})
+	cathyOnly2ID := testdb.InsertScheduledTrigger(rt, testdb.Org1, testdb.Favorites, testdb.InsertSchedule(rt, testdb.Org1, models.RepeatPeriodMonthly, time.Now()), nil, nil, []*testdb.Contact{testdb.Cathy})
+	cathyAndGeorgeID := testdb.InsertScheduledTrigger(rt, testdb.Org1, testdb.Favorites, testdb.InsertSchedule(rt, testdb.Org1, models.RepeatPeriodMonthly, time.Now()), nil, nil, []*testdb.Contact{testdb.Cathy, testdb.George})
+	cathyAndGroupID := testdb.InsertScheduledTrigger(rt, testdb.Org1, testdb.Favorites, testdb.InsertSchedule(rt, testdb.Org1, models.RepeatPeriodMonthly, time.Now()), []*testdb.Group{testdb.DoctorsGroup}, nil, []*testdb.Contact{testdb.Cathy})
+	georgeOnlyID := testdb.InsertScheduledTrigger(rt, testdb.Org1, testdb.Favorites, testdb.InsertSchedule(rt, testdb.Org1, models.RepeatPeriodMonthly, time.Now()), nil, nil, []*testdb.Contact{testdb.George})
 
-	err := models.ArchiveContactTriggers(ctx, rt.DB, []models.ContactID{testdata.Cathy.ID, testdata.Bob.ID})
+	err := models.ArchiveContactTriggers(ctx, rt.DB, []models.ContactID{testdb.Cathy.ID, testdb.Bob.ID})
 	require.NoError(t, err)
 
 	assertTriggerArchived := func(id models.TriggerID, archived bool) {

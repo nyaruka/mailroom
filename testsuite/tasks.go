@@ -12,13 +12,13 @@ import (
 	"github.com/nyaruka/mailroom/core/tasks"
 	"github.com/nyaruka/mailroom/core/tasks/handler"
 	"github.com/nyaruka/mailroom/runtime"
-	"github.com/nyaruka/mailroom/testsuite/testdata"
+	"github.com/nyaruka/mailroom/testsuite/testdb"
 	"github.com/nyaruka/mailroom/utils/queues"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func QueueBatchTask(t *testing.T, rt *runtime.Runtime, org *testdata.Org, task tasks.Task) {
+func QueueBatchTask(t *testing.T, rt *runtime.Runtime, org *testdb.Org, task tasks.Task) {
 	rc := rt.RP.Get()
 	defer rc.Close()
 
@@ -26,7 +26,7 @@ func QueueBatchTask(t *testing.T, rt *runtime.Runtime, org *testdata.Org, task t
 	require.NoError(t, err)
 }
 
-func QueueContactTask(t *testing.T, rt *runtime.Runtime, org *testdata.Org, contact *testdata.Contact, ctask handler.Task) {
+func QueueContactTask(t *testing.T, rt *runtime.Runtime, org *testdb.Org, contact *testdb.Contact, ctask handler.Task) {
 	rc := rt.RP.Get()
 	defer rc.Close()
 

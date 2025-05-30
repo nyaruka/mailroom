@@ -8,7 +8,7 @@ import (
 	"github.com/nyaruka/mailroom/core/crons"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/testsuite"
-	"github.com/nyaruka/mailroom/testsuite/testdata"
+	"github.com/nyaruka/mailroom/testsuite/testdb"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -27,16 +27,16 @@ func TestRetryErroredMessages(t *testing.T) {
 	testsuite.AssertCourierQueues(t, map[string][]int{})
 
 	// a non-errored outgoing message (should be ignored)
-	testdata.InsertOutgoingMsg(rt, testdata.Org1, testdata.TwilioChannel, testdata.Cathy, "Hi", nil, models.MsgStatusDelivered, false)
+	testdb.InsertOutgoingMsg(rt, testdb.Org1, testdb.TwilioChannel, testdb.Cathy, "Hi", nil, models.MsgStatusDelivered, false)
 
 	// an errored message with a next-attempt in the future (should be ignored)
-	testdata.InsertErroredOutgoingMsg(rt, testdata.Org1, testdata.TwilioChannel, testdata.Cathy, "Hi", 2, time.Now().Add(time.Hour), false)
+	testdb.InsertErroredOutgoingMsg(rt, testdb.Org1, testdb.TwilioChannel, testdb.Cathy, "Hi", 2, time.Now().Add(time.Hour), false)
 
 	// errored messages with a next-attempt in the past
-	testdata.InsertErroredOutgoingMsg(rt, testdata.Org1, testdata.TwilioChannel, testdata.Cathy, "Hi", 1, time.Now().Add(-time.Hour), false)
-	testdata.InsertErroredOutgoingMsg(rt, testdata.Org1, testdata.VonageChannel, testdata.Bob, "Hi", 2, time.Now().Add(-time.Minute), false)
-	msg5 := testdata.InsertErroredOutgoingMsg(rt, testdata.Org1, testdata.VonageChannel, testdata.Bob, "Hi", 2, time.Now().Add(-time.Minute), false)
-	testdata.InsertErroredOutgoingMsg(rt, testdata.Org1, testdata.VonageChannel, testdata.Bob, "Hi", 2, time.Now().Add(-time.Minute), true) // high priority
+	testdb.InsertErroredOutgoingMsg(rt, testdb.Org1, testdb.TwilioChannel, testdb.Cathy, "Hi", 1, time.Now().Add(-time.Hour), false)
+	testdb.InsertErroredOutgoingMsg(rt, testdb.Org1, testdb.VonageChannel, testdb.Bob, "Hi", 2, time.Now().Add(-time.Minute), false)
+	msg5 := testdb.InsertErroredOutgoingMsg(rt, testdb.Org1, testdb.VonageChannel, testdb.Bob, "Hi", 2, time.Now().Add(-time.Minute), false)
+	testdb.InsertErroredOutgoingMsg(rt, testdb.Org1, testdb.VonageChannel, testdb.Bob, "Hi", 2, time.Now().Add(-time.Minute), true) // high priority
 
 	rt.DB.MustExec(`UPDATE msgs_msg SET status = 'I' WHERE id = $1`, msg5.ID)
 
