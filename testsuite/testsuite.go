@@ -178,7 +178,7 @@ func resetDB() {
 }
 
 func loadTestDump() {
-	dump, err := os.Open(absPath("./testsuite/testfiles/postgres.dump"))
+	dump, err := os.Open(absPath("./testsuite/testdata/postgres.dump"))
 	must(err)
 	defer dump.Close()
 
@@ -242,7 +242,7 @@ func resetElastic(ctx context.Context, rt *runtime.Runtime) {
 }
 
 func resetDynamo(ctx context.Context, rt *runtime.Runtime) {
-	tablesFile, err := os.Open(absPath("./testsuite/testfiles/dynamo.json"))
+	tablesFile, err := os.Open(absPath("./testsuite/testdata/dynamo.json"))
 	must(err)
 	defer tablesFile.Close()
 

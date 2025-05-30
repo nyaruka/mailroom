@@ -12,7 +12,7 @@ import (
 	"github.com/nyaruka/mailroom/core/runner/hooks"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/mailroom/testsuite"
-	"github.com/nyaruka/mailroom/testsuite/testdata"
+	"github.com/nyaruka/mailroom/testsuite/testdb"
 	"github.com/nyaruka/redisx/assertredis"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -28,10 +28,10 @@ func TestInsertFlowStats(t *testing.T) {
 	defer random.SetGenerator(random.DefaultGenerator)
 	random.SetGenerator(random.NewSeededGenerator(123))
 
-	testFlows := testdata.ImportFlows(rt, testdata.Org1, "testdata/flow_stats_test.json")
+	testFlows := testdb.ImportFlows(rt, testdb.Org1, "testdata/flow_stats_test.json")
 	flow := testFlows[0]
 
-	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdata.Org1.ID, models.RefreshFlows)
+	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshFlows)
 	require.NoError(t, err)
 
 	sa1, session1, session1Sprint1 := test.NewSessionBuilder().WithAssets(oa.SessionAssets()).WithFlow(flow.UUID).

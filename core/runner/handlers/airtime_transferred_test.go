@@ -8,7 +8,7 @@ import (
 	"github.com/nyaruka/goflow/flows/actions"
 	"github.com/nyaruka/mailroom/core/runner/handlers"
 	"github.com/nyaruka/mailroom/testsuite"
-	"github.com/nyaruka/mailroom/testsuite/testdata"
+	"github.com/nyaruka/mailroom/testsuite/testdb"
 	"github.com/shopspring/decimal"
 )
 
@@ -286,43 +286,43 @@ func TestAirtimeTransferred(t *testing.T) {
 		},
 	}))
 
-	rt.DB.MustExec(`UPDATE orgs_org SET config = '{"dtone_key": "key123", "dtone_secret": "sesame"}'::jsonb WHERE id = $1`, testdata.Org1.ID)
+	rt.DB.MustExec(`UPDATE orgs_org SET config = '{"dtone_key": "key123", "dtone_secret": "sesame"}'::jsonb WHERE id = $1`, testdb.Org1.ID)
 
 	tcs := []handlers.TestCase{
 		{
 			Actions: handlers.ContactActionMap{
-				testdata.Cathy: []flows.Action{
+				testdb.Cathy: []flows.Action{
 					actions.NewTransferAirtime(handlers.NewActionUUID(), map[string]decimal.Decimal{"USD": decimal.RequireFromString(`3.0`)}),
 				},
 			},
 			SQLAssertions: []handlers.SQLAssertion{
 				{
 					SQL:   `select count(*) from airtime_airtimetransfer where org_id = $1 AND contact_id = $2 AND status = 'S'`,
-					Args:  []any{testdata.Org1.ID, testdata.Cathy.ID},
+					Args:  []any{testdb.Org1.ID, testdb.Cathy.ID},
 					Count: 1,
 				},
 				{
 					SQL:   `select count(*) from request_logs_httplog where org_id = $1 AND airtime_transfer_id IS NOT NULL AND is_error = FALSE AND url LIKE 'https://dvs-api.dtone.com/v1/%'`,
-					Args:  []any{testdata.Org1.ID},
+					Args:  []any{testdb.Org1.ID},
 					Count: 3,
 				},
 			},
 		},
 		{
 			Actions: handlers.ContactActionMap{
-				testdata.George: []flows.Action{
+				testdb.George: []flows.Action{
 					actions.NewTransferAirtime(handlers.NewActionUUID(), map[string]decimal.Decimal{"USD": decimal.RequireFromString(`3`)}),
 				},
 			},
 			SQLAssertions: []handlers.SQLAssertion{
 				{
 					SQL:   `select count(*) from airtime_airtimetransfer where org_id = $1 AND contact_id = $2 AND status = 'F'`,
-					Args:  []any{testdata.Org1.ID, testdata.George.ID},
+					Args:  []any{testdb.Org1.ID, testdb.George.ID},
 					Count: 1,
 				},
 				{
 					SQL:   `select count(*) from request_logs_httplog where org_id = $1 AND airtime_transfer_id IS NOT NULL AND is_error = TRUE AND url LIKE 'https://dvs-api.dtone.com/v1/%'`,
-					Args:  []any{testdata.Org1.ID},
+					Args:  []any{testdb.Org1.ID},
 					Count: 1,
 				},
 			},

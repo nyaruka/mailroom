@@ -8,7 +8,7 @@ import (
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/tasks/contacts"
 	"github.com/nyaruka/mailroom/testsuite"
-	"github.com/nyaruka/mailroom/testsuite/testdata"
+	"github.com/nyaruka/mailroom/testsuite/testdb"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -17,13 +17,13 @@ func TestBulkSessionExpireTask(t *testing.T) {
 
 	defer testsuite.Reset(testsuite.ResetData)
 
-	twilioCallID := testdata.InsertCall(rt, testdata.Org1, testdata.TwilioChannel, testdata.Alexandra)
+	twilioCallID := testdb.InsertCall(rt, testdb.Org1, testdb.TwilioChannel, testdb.Alexandra)
 
-	session1UUID := testdata.InsertWaitingSession(rt, testdata.Org1, testdata.Alexandra, models.FlowTypeVoice, testdata.Favorites, twilioCallID)
-	session2UUID := testdata.InsertWaitingSession(rt, testdata.Org1, testdata.Bob, models.FlowTypeMessaging, testdata.PickANumber, models.NilCallID)
-	session3UUID := testdata.InsertWaitingSession(rt, testdata.Org1, testdata.Cathy, models.FlowTypeMessaging, testdata.Favorites, models.NilCallID)
+	session1UUID := testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Alexandra, models.FlowTypeVoice, testdb.Favorites, twilioCallID)
+	session2UUID := testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Bob, models.FlowTypeMessaging, testdb.PickANumber, models.NilCallID)
+	session3UUID := testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Cathy, models.FlowTypeMessaging, testdb.Favorites, models.NilCallID)
 
-	testsuite.QueueBatchTask(t, rt, testdata.Org1, &contacts.BulkSessionExpireTask{
+	testsuite.QueueBatchTask(t, rt, testdb.Org1, &contacts.BulkSessionExpireTask{
 		SessionUUIDs: []flows.SessionUUID{session1UUID, session2UUID},
 	})
 

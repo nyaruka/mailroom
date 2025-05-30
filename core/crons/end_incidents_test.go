@@ -14,7 +14,7 @@ import (
 	"github.com/nyaruka/mailroom/core/crons"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/testsuite"
-	"github.com/nyaruka/mailroom/testsuite/testdata"
+	"github.com/nyaruka/mailroom/testsuite/testdb"
 	"github.com/nyaruka/redisx/assertredis"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -27,8 +27,8 @@ func TestEndIncidents(t *testing.T) {
 
 	defer testsuite.Reset(testsuite.ResetData | testsuite.ResetRedis)
 
-	oa1 := testdata.Org1.Load(rt)
-	oa2 := testdata.Org2.Load(rt)
+	oa1 := testdb.Org1.Load(rt)
+	oa2 := testdb.Org2.Load(rt)
 
 	createWebhookEvents := func(count int, elapsed time.Duration) []*events.WebhookCalledEvent {
 		evts := make([]*events.WebhookCalledEvent, count)

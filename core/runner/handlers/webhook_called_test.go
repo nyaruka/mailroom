@@ -18,7 +18,7 @@ import (
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/runner/handlers"
 	"github.com/nyaruka/mailroom/testsuite"
-	"github.com/nyaruka/mailroom/testsuite/testdata"
+	"github.com/nyaruka/mailroom/testsuite/testdb"
 	"github.com/nyaruka/redisx"
 	"github.com/nyaruka/redisx/assertredis"
 	"github.com/stretchr/testify/assert"
@@ -55,10 +55,10 @@ func TestWebhookCalled(t *testing.T) {
 	tcs := []handlers.TestCase{
 		{
 			Actions: handlers.ContactActionMap{
-				testdata.Cathy: []flows.Action{
+				testdb.Cathy: []flows.Action{
 					actions.NewCallResthook(handlers.NewActionUUID(), "foo", "foo"), // calls both subscribers
 				},
-				testdata.George: []flows.Action{
+				testdb.George: []flows.Action{
 					actions.NewCallResthook(handlers.NewActionUUID(), "foo", "foo"), // calls both subscribers
 					actions.NewCallWebhook(handlers.NewActionUUID(), "GET", "http://rapidpro.io/?unsub=1", nil, "", ""),
 				},
@@ -87,7 +87,7 @@ func TestWebhookCalled(t *testing.T) {
 				},
 				{
 					SQL:   "select count(*) from api_webhookevent where org_id = $1",
-					Args:  []any{testdata.Org1.ID},
+					Args:  []any{testdb.Org1.ID},
 					Count: 2,
 				},
 			},
@@ -127,13 +127,13 @@ func TestUnhealthyWebhookCalls(t *testing.T) {
 	flowDef, err := os.ReadFile("testdata/webhook_flow.json")
 	require.NoError(t, err)
 
-	testdata.InsertFlow(rt, testdata.Org1, flowDef)
+	testdb.InsertFlow(rt, testdb.Org1, flowDef)
 
-	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdata.Org1.ID, models.RefreshFlows)
+	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshFlows)
 	require.NoError(t, err)
 
 	env := envs.NewBuilder().Build()
-	_, cathy, _ := testdata.Cathy.Load(rt, oa)
+	_, cathy, _ := testdb.Cathy.Load(rt, oa)
 
 	// webhook service with a 2 second delay
 	svc := &failingWebhookService{delay: 2 * time.Second}

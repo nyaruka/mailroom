@@ -10,7 +10,7 @@ import (
 	"github.com/nyaruka/mailroom/core/goflow"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/testsuite"
-	"github.com/nyaruka/mailroom/testsuite/testdata"
+	"github.com/nyaruka/mailroom/testsuite/testdb"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -19,16 +19,16 @@ func TestLoadFlows(t *testing.T) {
 
 	defer testsuite.Reset(testsuite.ResetAll)
 
-	rt.DB.MustExec(`UPDATE flows_flow SET ivr_retry = 30 WHERE id = $1`, testdata.IVRFlow.ID)
-	rt.DB.MustExec(`UPDATE flows_flow SET expires_after_minutes = 720 WHERE id = $1`, testdata.Favorites.ID)
-	rt.DB.MustExec(`UPDATE flows_flow SET expires_after_minutes = 1 WHERE id = $1`, testdata.PickANumber.ID)          // too small for messaging
-	rt.DB.MustExec(`UPDATE flows_flow SET expires_after_minutes = 12345678 WHERE id = $1`, testdata.SingleMessage.ID) // too large for messaging
+	rt.DB.MustExec(`UPDATE flows_flow SET ivr_retry = 30 WHERE id = $1`, testdb.IVRFlow.ID)
+	rt.DB.MustExec(`UPDATE flows_flow SET expires_after_minutes = 720 WHERE id = $1`, testdb.Favorites.ID)
+	rt.DB.MustExec(`UPDATE flows_flow SET expires_after_minutes = 1 WHERE id = $1`, testdb.PickANumber.ID)          // too small for messaging
+	rt.DB.MustExec(`UPDATE flows_flow SET expires_after_minutes = 12345678 WHERE id = $1`, testdb.SingleMessage.ID) // too large for messaging
 
 	sixtyMinutes := 60 * time.Minute
 	thirtyMinutes := 30 * time.Minute
 
 	type testcase struct {
-		org                *testdata.Org
+		org                *testdb.Org
 		id                 models.FlowID
 		uuid               assets.FlowUUID
 		name               string
@@ -40,9 +40,9 @@ func TestLoadFlows(t *testing.T) {
 
 	tcs := []testcase{
 		{
-			testdata.Org1,
-			testdata.Favorites.ID,
-			testdata.Favorites.UUID,
+			testdb.Org1,
+			testdb.Favorites.ID,
+			testdb.Favorites.UUID,
 			"Favorites",
 			models.FlowTypeMessaging,
 			flows.FlowTypeMessaging,
@@ -50,9 +50,9 @@ func TestLoadFlows(t *testing.T) {
 			&sixtyMinutes, // uses default
 		},
 		{
-			testdata.Org1,
-			testdata.PickANumber.ID,
-			testdata.PickANumber.UUID,
+			testdb.Org1,
+			testdb.PickANumber.ID,
+			testdb.PickANumber.UUID,
 			"Pick a Number",
 			models.FlowTypeMessaging,
 			flows.FlowTypeMessaging,
@@ -60,9 +60,9 @@ func TestLoadFlows(t *testing.T) {
 			&sixtyMinutes,   // uses default
 		},
 		{
-			testdata.Org1,
-			testdata.SingleMessage.ID,
-			testdata.SingleMessage.UUID,
+			testdb.Org1,
+			testdb.SingleMessage.ID,
+			testdb.SingleMessage.UUID,
 			"Send All",
 			models.FlowTypeMessaging,
 			flows.FlowTypeMessaging,
@@ -70,9 +70,9 @@ func TestLoadFlows(t *testing.T) {
 			&sixtyMinutes,       // uses default
 		},
 		{
-			testdata.Org1,
-			testdata.IVRFlow.ID,
-			testdata.IVRFlow.UUID,
+			testdb.Org1,
+			testdb.IVRFlow.ID,
+			testdb.IVRFlow.UUID,
 			"IVR Flow",
 			models.FlowTypeVoice,
 			flows.FlowTypeVoice,
@@ -119,7 +119,7 @@ func TestLoadFlows(t *testing.T) {
 	}
 
 	// test loading flow with wrong org
-	dbFlow, err := models.LoadFlowByID(ctx, rt.DB.DB, testdata.Org2.ID, testdata.Favorites.ID)
+	dbFlow, err := models.LoadFlowByID(ctx, rt.DB.DB, testdb.Org2.ID, testdb.Favorites.ID)
 	assert.NoError(t, err)
 	assert.Nil(t, dbFlow)
 }
@@ -127,20 +127,20 @@ func TestLoadFlows(t *testing.T) {
 func TestFlowIDForUUID(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
 
-	org, _ := models.GetOrgAssets(ctx, rt, testdata.Org1.ID)
+	org, _ := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 
 	tx, err := rt.DB.BeginTxx(ctx, nil)
 	assert.NoError(t, err)
 
-	id, err := models.FlowIDForUUID(ctx, tx, org, testdata.Favorites.UUID)
+	id, err := models.FlowIDForUUID(ctx, tx, org, testdb.Favorites.UUID)
 	assert.NoError(t, err)
-	assert.Equal(t, testdata.Favorites.ID, id)
+	assert.Equal(t, testdb.Favorites.ID, id)
 
 	// make favorite inactive
-	tx.MustExec(`UPDATE flows_flow SET is_active = FALSE WHERE id = $1`, testdata.Favorites.ID)
+	tx.MustExec(`UPDATE flows_flow SET is_active = FALSE WHERE id = $1`, testdb.Favorites.ID)
 	tx.Commit()
 
-	defer rt.DB.MustExec(`UPDATE flows_flow SET is_active = TRUE WHERE id = $1`, testdata.Favorites.ID)
+	defer rt.DB.MustExec(`UPDATE flows_flow SET is_active = TRUE WHERE id = $1`, testdb.Favorites.ID)
 
 	tx, err = rt.DB.BeginTxx(ctx, nil)
 	assert.NoError(t, err)
@@ -148,9 +148,9 @@ func TestFlowIDForUUID(t *testing.T) {
 
 	// clear our assets so it isn't cached
 	models.FlushCache()
-	org, _ = models.GetOrgAssets(ctx, rt, testdata.Org1.ID)
+	org, _ = models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 
-	id, err = models.FlowIDForUUID(ctx, tx, org, testdata.Favorites.UUID)
+	id, err = models.FlowIDForUUID(ctx, tx, org, testdb.Favorites.UUID)
 	assert.NoError(t, err)
-	assert.Equal(t, testdata.Favorites.ID, id)
+	assert.Equal(t, testdb.Favorites.ID, id)
 }

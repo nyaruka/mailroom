@@ -11,7 +11,7 @@ import (
 	"github.com/nyaruka/mailroom/core/runner"
 	_ "github.com/nyaruka/mailroom/core/runner/handlers"
 	"github.com/nyaruka/mailroom/testsuite"
-	"github.com/nyaruka/mailroom/testsuite/testdata"
+	"github.com/nyaruka/mailroom/testsuite/testdb"
 	"github.com/nyaruka/mailroom/utils/test"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -27,18 +27,18 @@ func TestStartFlowConcurrency(t *testing.T) {
 	rt.DB.MustExec(`ALTER SEQUENCE flows_flowsession_id_seq RESTART WITH 5000000000;`)
 
 	// create a flow which has a send_broadcast action which will mean handlers grabbing redis connections
-	flow := testdata.InsertFlow(rt, testdata.Org1, testsuite.ReadFile("testdata/broadcast_flow.json"))
+	flow := testdb.InsertFlow(rt, testdb.Org1, testsuite.ReadFile("testdata/broadcast_flow.json"))
 
-	oa := testdata.Org1.Load(rt)
+	oa := testdb.Org1.Load(rt)
 
 	dbFlow, err := oa.FlowByID(flow.ID)
 	require.NoError(t, err)
 	flowRef := dbFlow.Reference()
 
 	// create a lot of contacts...
-	contacts := make([]*testdata.Contact, 100)
+	contacts := make([]*testdb.Contact, 100)
 	for i := range contacts {
-		contacts[i] = testdata.InsertContact(rt, testdata.Org1, flows.NewContactUUID(), "Jim", i18n.NilLanguage, models.ContactStatusActive)
+		contacts[i] = testdb.InsertContact(rt, testdb.Org1, flows.NewContactUUID(), "Jim", i18n.NilLanguage, models.ContactStatusActive)
 	}
 
 	triggerBuilder := func(contact *flows.Contact) flows.Trigger {

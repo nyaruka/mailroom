@@ -6,7 +6,7 @@ import (
 	"github.com/nyaruka/goflow/envs"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/testsuite"
-	"github.com/nyaruka/mailroom/testsuite/testdata"
+	"github.com/nyaruka/mailroom/testsuite/testdb"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -22,7 +22,7 @@ func TestLocations(t *testing.T) {
 	rt.DB.MustExec(`INSERT INTO locations_boundaryalias(is_active, created_on, modified_on, name, boundary_id, created_by_id, modified_by_id, org_id)
 	                                          VALUES(TRUE, NOW(), NOW(), 'Sokoz', 8148, 2, 1, 2);`)
 
-	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdata.Org1.ID, models.RefreshLocations)
+	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshLocations)
 	require.NoError(t, err)
 
 	root, err := oa.Locations()

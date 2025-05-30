@@ -9,7 +9,7 @@ import (
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/runner/handlers"
 	"github.com/nyaruka/mailroom/testsuite"
-	"github.com/nyaruka/mailroom/testsuite/testdata"
+	"github.com/nyaruka/mailroom/testsuite/testdb"
 )
 
 func TestCampaigns(t *testing.T) {
@@ -17,45 +17,45 @@ func TestCampaigns(t *testing.T) {
 
 	defer testsuite.Reset(testsuite.ResetAll)
 
-	doctors := assets.NewGroupReference(testdata.DoctorsGroup.UUID, "Doctors")
+	doctors := assets.NewGroupReference(testdb.DoctorsGroup.UUID, "Doctors")
 	joined := assets.NewFieldReference("joined", "Joined")
 
 	// insert an event on our campaign that is based on created_on
-	testdata.InsertCampaignFlowEvent(rt, testdata.RemindersCampaign, testdata.Favorites, testdata.CreatedOnField, 1000, "W")
+	testdb.InsertCampaignFlowEvent(rt, testdb.RemindersCampaign, testdb.Favorites, testdb.CreatedOnField, 1000, "W")
 
 	// insert an event on our campaign that is based on last_seen_on
-	testdata.InsertCampaignFlowEvent(rt, testdata.RemindersCampaign, testdata.Favorites, testdata.LastSeenOnField, 2, "D")
+	testdb.InsertCampaignFlowEvent(rt, testdb.RemindersCampaign, testdb.Favorites, testdb.LastSeenOnField, 2, "D")
 
-	msg1 := testdata.InsertIncomingMsg(rt, testdata.Org1, testdata.TwilioChannel, testdata.Cathy, "Hi there", models.MsgStatusPending)
+	msg1 := testdb.InsertIncomingMsg(rt, testdb.Org1, testdb.TwilioChannel, testdb.Cathy, "Hi there", models.MsgStatusPending)
 
 	// init their values
 	rt.DB.MustExec(
 		`update contacts_contact set fields = fields - '8c1c1256-78d6-4a5b-9f1c-1761d5728251'
-		WHERE id = $1`, testdata.Cathy.ID)
+		WHERE id = $1`, testdb.Cathy.ID)
 
 	rt.DB.MustExec(
 		`update contacts_contact set fields = fields ||
 		'{"8c1c1256-78d6-4a5b-9f1c-1761d5728251": { "text": "2029-09-15T12:00:00+00:00", "datetime": "2029-09-15T12:00:00+00:00" }}'::jsonb
-		WHERE id = $1`, testdata.Bob.ID)
+		WHERE id = $1`, testdb.Bob.ID)
 
 	tcs := []handlers.TestCase{
 		{
 			Msgs: handlers.ContactMsgMap{
-				testdata.Cathy: msg1,
+				testdb.Cathy: msg1,
 			},
 			Actions: handlers.ContactActionMap{
-				testdata.Cathy: []flows.Action{
+				testdb.Cathy: []flows.Action{
 					actions.NewRemoveContactGroups(handlers.NewActionUUID(), []*assets.GroupReference{doctors}, false),
 					actions.NewAddContactGroups(handlers.NewActionUUID(), []*assets.GroupReference{doctors}),
 					actions.NewSetContactField(handlers.NewActionUUID(), joined, "2029-09-15T12:00:00+00:00"),
 					actions.NewSetContactField(handlers.NewActionUUID(), joined, ""),
 				},
-				testdata.Bob: []flows.Action{
+				testdb.Bob: []flows.Action{
 					actions.NewAddContactGroups(handlers.NewActionUUID(), []*assets.GroupReference{doctors}),
 					actions.NewSetContactField(handlers.NewActionUUID(), joined, "2029-09-15T12:00:00+00:00"),
 					actions.NewSetContactField(handlers.NewActionUUID(), joined, "2029-09-15T12:00:00+00:00"),
 				},
-				testdata.George: []flows.Action{
+				testdb.George: []flows.Action{
 					actions.NewAddContactGroups(handlers.NewActionUUID(), []*assets.GroupReference{doctors}),
 					actions.NewSetContactField(handlers.NewActionUUID(), joined, "2029-09-15T12:00:00+00:00"),
 					actions.NewRemoveContactGroups(handlers.NewActionUUID(), []*assets.GroupReference{doctors}, false),
@@ -64,17 +64,17 @@ func TestCampaigns(t *testing.T) {
 			SQLAssertions: []handlers.SQLAssertion{
 				{
 					SQL:   `select count(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'C'`,
-					Args:  []any{testdata.Cathy.ID},
+					Args:  []any{testdb.Cathy.ID},
 					Count: 2,
 				},
 				{
 					SQL:   `select count(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'C'`,
-					Args:  []any{testdata.Bob.ID},
+					Args:  []any{testdb.Bob.ID},
 					Count: 4,
 				},
 				{
 					SQL:   `select count(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'C'`,
-					Args:  []any{testdata.George.ID},
+					Args:  []any{testdb.George.ID},
 					Count: 0,
 				},
 			},

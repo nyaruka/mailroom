@@ -10,7 +10,7 @@ import (
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/runner"
 	"github.com/nyaruka/mailroom/testsuite"
-	"github.com/nyaruka/mailroom/testsuite/testdata"
+	"github.com/nyaruka/mailroom/testsuite/testdb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -20,13 +20,13 @@ func TestResume(t *testing.T) {
 
 	defer testsuite.Reset(testsuite.ResetData | testsuite.ResetStorage)
 
-	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdata.Org1.ID, models.RefreshOrg)
+	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshOrg)
 	require.NoError(t, err)
 
-	flow, err := oa.FlowByID(testdata.Favorites.ID)
+	flow, err := oa.FlowByID(testdb.Favorites.ID)
 	require.NoError(t, err)
 
-	modelContact, flowContact, _ := testdata.Cathy.Load(rt, oa)
+	modelContact, flowContact, _ := testdb.Cathy.Load(rt, oa)
 
 	trigger := triggers.NewBuilder(oa.Env(), flow.Reference(), flowContact).Manual().Build()
 	scenes, err := runner.StartSessions(ctx, rt, oa, []*models.Contact{modelContact}, []flows.Trigger{trigger}, true, models.NilStartID, nil)
@@ -62,7 +62,7 @@ func TestResume(t *testing.T) {
 		require.NoError(t, err, "%d: error getting waiting session", i)
 
 		// answer our first question
-		msg := flows.NewMsgIn(flows.NewMsgUUID(), testdata.Cathy.URN, nil, tc.Message, nil, "")
+		msg := flows.NewMsgIn(flows.NewMsgUUID(), testdb.Cathy.URN, nil, tc.Message, nil, "")
 		resume := resumes.NewMsg(oa.Env(), flowContact, msg)
 
 		scene, err := runner.ResumeFlow(ctx, rt, oa, session, modelContact, resume, nil)

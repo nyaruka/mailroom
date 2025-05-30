@@ -6,7 +6,7 @@ import (
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/testsuite"
-	"github.com/nyaruka/mailroom/testsuite/testdata"
+	"github.com/nyaruka/mailroom/testsuite/testdb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -14,13 +14,13 @@ import (
 func TestLoadUsers(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
 
-	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdata.Org1.ID, models.RefreshUsers)
+	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshUsers)
 	require.NoError(t, err)
 
 	users, err := oa.Users()
 	require.NoError(t, err)
 
-	partners := &models.Team{testdata.Partners.ID, testdata.Partners.UUID, "Partners"}
+	partners := &models.Team{testdb.Partners.ID, testdb.Partners.UUID, "Partners"}
 
 	expectedUsers := []struct {
 		id    models.UserID
@@ -30,9 +30,9 @@ func TestLoadUsers(t *testing.T) {
 		role  models.UserRole
 		team  *models.Team
 	}{
-		{id: testdata.Admin.ID, uuid: testdata.Admin.UUID, email: "admin1@textit.com", name: "Andy Admin", role: models.UserRoleAdministrator, team: nil},
-		{id: testdata.Agent.ID, uuid: testdata.Agent.UUID, email: "agent1@textit.com", name: "Ann D'Agent", role: models.UserRoleAgent, team: partners},
-		{id: testdata.Editor.ID, uuid: testdata.Editor.UUID, email: "editor1@textit.com", name: "Ed McEditor", role: models.UserRoleEditor, team: nil},
+		{id: testdb.Admin.ID, uuid: testdb.Admin.UUID, email: "admin1@textit.com", name: "Andy Admin", role: models.UserRoleAdministrator, team: nil},
+		{id: testdb.Agent.ID, uuid: testdb.Agent.UUID, email: "agent1@textit.com", name: "Ann D'Agent", role: models.UserRoleAgent, team: partners},
+		{id: testdb.Editor.ID, uuid: testdb.Editor.UUID, email: "editor1@textit.com", name: "Ed McEditor", role: models.UserRoleEditor, team: nil},
 	}
 
 	require.Len(t, users, len(expectedUsers))
@@ -57,12 +57,12 @@ func TestLoadUsers(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotEqual(t, sysID, models.NilUserID)
 
-	oa, err = models.GetOrgAssetsWithRefresh(ctx, rt, testdata.Org2.ID, models.RefreshUsers)
+	oa, err = models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org2.ID, models.RefreshUsers)
 	require.NoError(t, err)
 
 	users, err = oa.Users()
 	require.NoError(t, err)
 
 	require.Len(t, users, 1)
-	require.Equal(t, testdata.Org2Admin.UUID, users[0].(*models.User).UUID())
+	require.Equal(t, testdb.Org2Admin.UUID, users[0].(*models.User).UUID())
 }

@@ -6,7 +6,7 @@ import (
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/testsuite"
-	"github.com/nyaruka/mailroom/testsuite/testdata"
+	"github.com/nyaruka/mailroom/testsuite/testdb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -14,7 +14,7 @@ import (
 func TestLLMs(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
 
-	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdata.Org1.ID, models.RefreshLLMs)
+	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshLLMs)
 	require.NoError(t, err)
 
 	llms, err := oa.LLMs()
@@ -26,9 +26,9 @@ func TestLLMs(t *testing.T) {
 		name string
 		typ  string
 	}{
-		{testdata.OpenAI.ID, testdata.OpenAI.UUID, "GPT-4o", "openai"},
-		{testdata.Anthropic.ID, testdata.Anthropic.UUID, "Claude", "anthropic"},
-		{testdata.TestLLM.ID, testdata.TestLLM.UUID, "Test", "test"},
+		{testdb.OpenAI.ID, testdb.OpenAI.UUID, "GPT-4o", "openai"},
+		{testdb.Anthropic.ID, testdb.Anthropic.UUID, "Claude", "anthropic"},
+		{testdb.TestLLM.ID, testdb.TestLLM.UUID, "Test", "test"},
 	}
 
 	assert.Equal(t, len(tcs), len(llms))
@@ -40,6 +40,6 @@ func TestLLMs(t *testing.T) {
 		assert.Equal(t, tc.typ, c.Type())
 	}
 
-	assert.Equal(t, "Claude", oa.LLMByID(testdata.Anthropic.ID).Name())
+	assert.Equal(t, "Claude", oa.LLMByID(testdb.Anthropic.ID).Name())
 	assert.Nil(t, oa.LLMByID(1235))
 }

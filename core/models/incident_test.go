@@ -14,7 +14,7 @@ import (
 	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/testsuite"
-	"github.com/nyaruka/mailroom/testsuite/testdata"
+	"github.com/nyaruka/mailroom/testsuite/testdb"
 	"github.com/nyaruka/redisx/assertredis"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -27,7 +27,7 @@ func TestIncidentWebhooksUnhealthy(t *testing.T) {
 
 	defer testsuite.Reset(testsuite.ResetData)
 
-	oa := testdata.Org1.Load(rt)
+	oa := testdb.Org1.Load(rt)
 
 	id1, err := models.IncidentWebhooksUnhealthy(ctx, rt.DB, rt.RP, oa, []flows.NodeUUID{"5a2e83f1-efa8-40ba-bc0c-8873c525de7d", "aba89043-6f0a-4ccf-ba7f-0e1674b90759"})
 	require.NoError(t, err)
@@ -61,8 +61,8 @@ func TestGetOpenIncidents(t *testing.T) {
 
 	defer testsuite.Reset(testsuite.ResetData)
 
-	oa1 := testdata.Org1.Load(rt)
-	oa2 := testdata.Org2.Load(rt)
+	oa1 := testdb.Org1.Load(rt)
+	oa2 := testdb.Org2.Load(rt)
 
 	// create incident for org 1
 	id1, err := models.IncidentWebhooksUnhealthy(ctx, rt.DB, rt.RP, oa1, nil)

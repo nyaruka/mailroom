@@ -10,7 +10,7 @@ import (
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/runner/clocks"
 	"github.com/nyaruka/mailroom/testsuite"
-	"github.com/nyaruka/mailroom/testsuite/testdata"
+	"github.com/nyaruka/mailroom/testsuite/testdb"
 	"github.com/nyaruka/redisx/assertredis"
 	"github.com/stretchr/testify/assert"
 )
@@ -22,7 +22,7 @@ func TestLockContacts(t *testing.T) {
 
 	defer testsuite.Reset(testsuite.ResetRedis)
 
-	oa := testdata.Org1.Load(rt)
+	oa := testdb.Org1.Load(rt)
 
 	// grab lock for contact 102
 	locks, skipped, err := clocks.TryToLock(ctx, rt, oa, []models.ContactID{102}, time.Second)

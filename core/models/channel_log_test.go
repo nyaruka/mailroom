@@ -8,7 +8,7 @@ import (
 	"github.com/nyaruka/gocommon/httpx"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/testsuite"
-	"github.com/nyaruka/mailroom/testsuite/testdata"
+	"github.com/nyaruka/mailroom/testsuite/testdb"
 	"github.com/nyaruka/mailroom/utils/clogs"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -25,10 +25,10 @@ func TestChannelLogsOutgoing(t *testing.T) {
 		"http://ivr.com/hangup": {httpx.NewMockResponse(400, nil, []byte("Oops"))},
 	}))
 
-	oa, err := models.GetOrgAssets(ctx, rt, testdata.Org1.ID)
+	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 	require.NoError(t, err)
 
-	channel := oa.ChannelByID(testdata.TwilioChannel.ID)
+	channel := oa.ChannelByID(testdb.TwilioChannel.ID)
 	require.NotNil(t, channel)
 
 	clog1 := models.NewChannelLog(models.ChannelLogTypeIVRStart, channel, []string{"sesame"})

@@ -19,14 +19,14 @@ import (
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/runner"
 	"github.com/nyaruka/mailroom/runtime"
-	"github.com/nyaruka/mailroom/testsuite/testdata"
+	"github.com/nyaruka/mailroom/testsuite/testdb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-type ContactActionMap map[*testdata.Contact][]flows.Action
-type ContactMsgMap map[*testdata.Contact]*testdata.MsgIn
-type ContactModifierMap map[*testdata.Contact][]flows.Modifier
+type ContactActionMap map[*testdb.Contact][]flows.Action
+type ContactMsgMap map[*testdb.Contact]*testdb.MsgIn
+type ContactModifierMap map[*testdb.Contact][]flows.Modifier
 
 type modifyResult struct {
 	Contact *flows.Contact `json:"contact"`
@@ -38,7 +38,7 @@ type TestCase struct {
 	Actions       ContactActionMap
 	Msgs          ContactMsgMap
 	Modifiers     ContactModifierMap
-	ModifierUser  *testdata.User
+	ModifierUser  *testdb.User
 	Assertions    []Assertion
 	SQLAssertions []SQLAssertion
 }
@@ -161,10 +161,10 @@ func RunTestCases(t *testing.T, ctx context.Context, rt *runtime.Runtime, tcs []
 	eng := goflow.Engine(rt)
 
 	// reuse id from one of our real flows
-	flowUUID := testdata.Favorites.UUID
+	flowUUID := testdb.Favorites.UUID
 
 	for i, tc := range tcs {
-		msgsByContactID := make(map[models.ContactID]*testdata.MsgIn)
+		msgsByContactID := make(map[models.ContactID]*testdb.MsgIn)
 		for contact, msg := range tc.Msgs {
 			msgsByContactID[contact.ID] = msg
 		}
@@ -185,7 +185,7 @@ func RunTestCases(t *testing.T, ctx context.Context, rt *runtime.Runtime, tcs []
 			return triggers.NewBuilder(oa.Env(), testFlow.Reference(false), contact).Msg(msg.FlowMsg).Build()
 		}
 
-		for _, c := range []*testdata.Contact{testdata.Cathy, testdata.Bob, testdata.George, testdata.Alexandra} {
+		for _, c := range []*testdb.Contact{testdb.Cathy, testdb.Bob, testdb.George, testdb.Alexandra} {
 			sceneInit := func(scene *runner.Scene) {
 				if msg := msgsByContactID[c.ID]; msg != nil {
 					scene.IncomingMsg = &models.MsgInRef{ID: msg.ID}

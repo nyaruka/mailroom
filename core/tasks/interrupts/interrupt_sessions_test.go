@@ -9,7 +9,7 @@ import (
 	_ "github.com/nyaruka/mailroom/core/runner/handlers"
 	"github.com/nyaruka/mailroom/core/tasks/interrupts"
 	"github.com/nyaruka/mailroom/testsuite"
-	"github.com/nyaruka/mailroom/testsuite/testdata"
+	"github.com/nyaruka/mailroom/testsuite/testdb"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -18,7 +18,7 @@ func TestInterrupts(t *testing.T) {
 
 	defer testsuite.Reset(testsuite.ResetData)
 
-	oa := testdata.Org1.Load(rt)
+	oa := testdb.Org1.Load(rt)
 
 	tcs := []struct {
 		contactIDs       []models.ContactID
@@ -31,23 +31,23 @@ func TestInterrupts(t *testing.T) {
 			expectedStatuses: [4]string{"W", "W", "W", "W"},
 		},
 		{
-			contactIDs:       []models.ContactID{testdata.Cathy.ID},
+			contactIDs:       []models.ContactID{testdb.Cathy.ID},
 			flowIDs:          nil,
 			expectedStatuses: [4]string{"I", "W", "W", "W"},
 		},
 		{
-			contactIDs:       []models.ContactID{testdata.Cathy.ID, testdata.George.ID},
+			contactIDs:       []models.ContactID{testdb.Cathy.ID, testdb.George.ID},
 			flowIDs:          nil,
 			expectedStatuses: [4]string{"I", "I", "W", "W"},
 		},
 		{
 			contactIDs:       nil,
-			flowIDs:          []models.FlowID{testdata.PickANumber.ID},
+			flowIDs:          []models.FlowID{testdb.PickANumber.ID},
 			expectedStatuses: [4]string{"W", "W", "W", "I"},
 		},
 		{
-			contactIDs:       []models.ContactID{testdata.Cathy.ID, testdata.George.ID},
-			flowIDs:          []models.FlowID{testdata.PickANumber.ID},
+			contactIDs:       []models.ContactID{testdb.Cathy.ID, testdb.George.ID},
+			flowIDs:          []models.FlowID{testdb.PickANumber.ID},
 			expectedStatuses: [4]string{"I", "I", "W", "I"},
 		},
 	}
@@ -57,15 +57,15 @@ func TestInterrupts(t *testing.T) {
 		rt.DB.MustExec(`UPDATE flows_flowsession SET status='C', ended_on=NOW() WHERE status = 'W';`)
 
 		// twilio call
-		twilioCallID := testdata.InsertCall(rt, testdata.Org1, testdata.TwilioChannel, testdata.Alexandra)
+		twilioCallID := testdb.InsertCall(rt, testdb.Org1, testdb.TwilioChannel, testdb.Alexandra)
 
 		sessionUUIDs := make([]flows.SessionUUID, 4)
 
 		// insert our dummy contact sessions
-		sessionUUIDs[0] = testdata.InsertWaitingSession(rt, testdata.Org1, testdata.Cathy, models.FlowTypeMessaging, testdata.Favorites, models.NilCallID)
-		sessionUUIDs[1] = testdata.InsertWaitingSession(rt, testdata.Org1, testdata.George, models.FlowTypeMessaging, testdata.Favorites, models.NilCallID)
-		sessionUUIDs[2] = testdata.InsertWaitingSession(rt, testdata.Org1, testdata.Alexandra, models.FlowTypeVoice, testdata.Favorites, twilioCallID)
-		sessionUUIDs[3] = testdata.InsertWaitingSession(rt, testdata.Org1, testdata.Bob, models.FlowTypeMessaging, testdata.PickANumber, models.NilCallID)
+		sessionUUIDs[0] = testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Cathy, models.FlowTypeMessaging, testdb.Favorites, models.NilCallID)
+		sessionUUIDs[1] = testdb.InsertWaitingSession(rt, testdb.Org1, testdb.George, models.FlowTypeMessaging, testdb.Favorites, models.NilCallID)
+		sessionUUIDs[2] = testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Alexandra, models.FlowTypeVoice, testdb.Favorites, twilioCallID)
+		sessionUUIDs[3] = testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Bob, models.FlowTypeMessaging, testdb.PickANumber, models.NilCallID)
 
 		// create our task
 		task := &interrupts.InterruptSessionsTask{

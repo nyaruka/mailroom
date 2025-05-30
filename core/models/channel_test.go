@@ -6,7 +6,7 @@ import (
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/testsuite"
-	"github.com/nyaruka/mailroom/testsuite/testdata"
+	"github.com/nyaruka/mailroom/testsuite/testdb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -17,7 +17,7 @@ func TestChannels(t *testing.T) {
 	defer testsuite.Reset(testsuite.ResetAll)
 
 	// add some tel specific config to channel 2
-	rt.DB.MustExec(`UPDATE channels_channel SET config = '{"matching_prefixes": ["250", "251"], "allow_international": true}' WHERE id = $1`, testdata.VonageChannel.ID)
+	rt.DB.MustExec(`UPDATE channels_channel SET config = '{"matching_prefixes": ["250", "251"], "allow_international": true}' WHERE id = $1`, testdb.VonageChannel.ID)
 
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, 1, models.RefreshChannels)
 	require.NoError(t, err)
@@ -37,8 +37,8 @@ func TestChannels(t *testing.T) {
 		allowInternational bool
 	}{
 		{
-			testdata.TwilioChannel.ID,
-			testdata.TwilioChannel.UUID,
+			testdb.TwilioChannel.ID,
+			testdb.TwilioChannel.UUID,
 			"Twilio",
 			"+13605551212",
 			[]string{"tel"},
@@ -48,8 +48,8 @@ func TestChannels(t *testing.T) {
 			false,
 		},
 		{
-			testdata.VonageChannel.ID,
-			testdata.VonageChannel.UUID,
+			testdb.VonageChannel.ID,
+			testdb.VonageChannel.UUID,
 			"Vonage",
 			"5789",
 			[]string{"tel"},
@@ -59,8 +59,8 @@ func TestChannels(t *testing.T) {
 			true,
 		},
 		{
-			testdata.FacebookChannel.ID,
-			testdata.FacebookChannel.UUID,
+			testdb.FacebookChannel.ID,
+			testdb.FacebookChannel.UUID,
 			"Facebook",
 			"12345",
 			[]string{"facebook"},
@@ -70,8 +70,8 @@ func TestChannels(t *testing.T) {
 			false,
 		},
 		{
-			testdata.AndroidChannel.ID,
-			testdata.AndroidChannel.UUID,
+			testdb.AndroidChannel.ID,
+			testdb.AndroidChannel.UUID,
 			"Android",
 			"+593123456789",
 			[]string{"tel"},
@@ -102,10 +102,10 @@ func TestGetChannelByID(t *testing.T) {
 
 	defer testsuite.Reset(testsuite.ResetAll)
 
-	ch, err := models.GetChannelByID(ctx, rt.DB.DB, testdata.TwilioChannel.ID)
+	ch, err := models.GetChannelByID(ctx, rt.DB.DB, testdb.TwilioChannel.ID)
 	assert.NoError(t, err)
-	assert.Equal(t, testdata.TwilioChannel.ID, ch.ID())
-	assert.Equal(t, testdata.TwilioChannel.UUID, ch.UUID())
+	assert.Equal(t, testdb.TwilioChannel.ID, ch.ID())
+	assert.Equal(t, testdb.TwilioChannel.UUID, ch.UUID())
 
 	_, err = models.GetChannelByID(ctx, rt.DB.DB, 1234567890)
 	assert.EqualError(t, err, "error fetching channel by id 1234567890: error scanning row JSON: sql: no rows in result set")
@@ -117,11 +117,11 @@ func TestGetAndroidChannelsToSync(t *testing.T) {
 
 	defer testsuite.Reset(testsuite.ResetData)
 
-	testChannel1 := testdata.InsertChannel(rt, testdata.Org1, "A", "Android 1", "123", []string{"tel"}, "SR", map[string]any{"FCM_ID": ""})
-	testChannel2 := testdata.InsertChannel(rt, testdata.Org1, "A", "Android 2", "234", []string{"tel"}, "SR", map[string]any{"FCM_ID": "FCMID2"})
-	testChannel3 := testdata.InsertChannel(rt, testdata.Org1, "A", "Android 3", "456", []string{"tel"}, "SR", map[string]any{"FCM_ID": "FCMID3"})
-	testChannel4 := testdata.InsertChannel(rt, testdata.Org1, "A", "Android 4", "567", []string{"tel"}, "SR", map[string]any{"FCM_ID": "FCMID4"})
-	testChannel5 := testdata.InsertChannel(rt, testdata.Org1, "A", "Android 5", "678", []string{"tel"}, "SR", map[string]any{"FCM_ID": "FCMID5"})
+	testChannel1 := testdb.InsertChannel(rt, testdb.Org1, "A", "Android 1", "123", []string{"tel"}, "SR", map[string]any{"FCM_ID": ""})
+	testChannel2 := testdb.InsertChannel(rt, testdb.Org1, "A", "Android 2", "234", []string{"tel"}, "SR", map[string]any{"FCM_ID": "FCMID2"})
+	testChannel3 := testdb.InsertChannel(rt, testdb.Org1, "A", "Android 3", "456", []string{"tel"}, "SR", map[string]any{"FCM_ID": "FCMID3"})
+	testChannel4 := testdb.InsertChannel(rt, testdb.Org1, "A", "Android 4", "567", []string{"tel"}, "SR", map[string]any{"FCM_ID": "FCMID4"})
+	testChannel5 := testdb.InsertChannel(rt, testdb.Org1, "A", "Android 5", "678", []string{"tel"}, "SR", map[string]any{"FCM_ID": "FCMID5"})
 
 	rt.DB.MustExec(`UPDATE channels_channel SET last_seen = NOW() - INTERVAL '30 minutes' WHERE id = $1`, testChannel1.ID)
 	rt.DB.MustExec(`UPDATE channels_channel SET last_seen = NOW() - INTERVAL '30 minutes' WHERE id = $1`, testChannel2.ID)

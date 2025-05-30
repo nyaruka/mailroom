@@ -18,7 +18,7 @@ import (
 	"github.com/nyaruka/mailroom/core/ivr"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/testsuite"
-	"github.com/nyaruka/mailroom/testsuite/testdata"
+	"github.com/nyaruka/mailroom/testsuite/testdb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -41,23 +41,23 @@ func TestResponseForSprint(t *testing.T) {
 
 	urn := urns.URN("tel:+12067799294")
 	expiresOn := time.Now().Add(time.Hour)
-	channelRef := assets.NewChannelReference(testdata.VonageChannel.UUID, "Vonage Channel")
+	channelRef := assets.NewChannelReference(testdb.VonageChannel.UUID, "Vonage Channel")
 
 	resumeURL := "http://temba.io/resume?session=1"
 
 	// deactivate our twilio channel
-	rt.DB.MustExec(`UPDATE channels_channel SET is_active = FALSE WHERE id = $1`, testdata.TwilioChannel.ID)
+	rt.DB.MustExec(`UPDATE channels_channel SET is_active = FALSE WHERE id = $1`, testdb.TwilioChannel.ID)
 
 	// update callback domain and roles for channel
-	rt.DB.MustExec(`UPDATE channels_channel SET config = config || '{"callback_domain": "localhost:8091"}'::jsonb, role='SRCA' WHERE id = $1`, testdata.VonageChannel.ID)
+	rt.DB.MustExec(`UPDATE channels_channel SET config = config || '{"callback_domain": "localhost:8091"}'::jsonb, role='SRCA' WHERE id = $1`, testdb.VonageChannel.ID)
 
 	// set our UUID generator
 	uuids.SetGenerator(uuids.NewSeededGenerator(0, time.Now))
 
-	oa, err := models.GetOrgAssets(ctx, rt, testdata.Org1.ID)
+	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 	require.NoError(t, err)
 
-	channel := oa.ChannelByUUID(testdata.VonageChannel.UUID)
+	channel := oa.ChannelByUUID(testdb.VonageChannel.UUID)
 	assert.NotNil(t, channel)
 
 	p, err := NewServiceFromChannel(http.DefaultClient, channel)
@@ -65,10 +65,10 @@ func TestResponseForSprint(t *testing.T) {
 
 	provider := p.(*service)
 
-	bob, _, bobURNs := testdata.Bob.Load(rt, oa)
+	bob, _, bobURNs := testdb.Bob.Load(rt, oa)
 
-	trigger := triggers.NewBuilder(oa.Env(), testdata.Favorites.Reference(), nil).Manual().Build()
-	call := models.NewOutgoingCall(testdata.Org1.ID, oa.ChannelByUUID(testdata.VonageChannel.UUID), bob, bobURNs[0].ID, trigger)
+	trigger := triggers.NewBuilder(oa.Env(), testdb.Favorites.Reference(), nil).Manual().Build()
+	call := models.NewOutgoingCall(testdb.Org1.ID, oa.ChannelByUUID(testdb.VonageChannel.UUID), bob, bobURNs[0].ID, trigger)
 	err = models.InsertCalls(ctx, rt.DB, []*models.Call{call})
 	assert.NoError(t, err)
 
@@ -150,8 +150,8 @@ func TestResponseForSprint(t *testing.T) {
 func TestRedactValues(t *testing.T) {
 	_, rt := testsuite.Runtime()
 
-	oa := testdata.Org1.Load(rt)
-	ch := oa.ChannelByUUID(testdata.VonageChannel.UUID)
+	oa := testdb.Org1.Load(rt)
+	ch := oa.ChannelByUUID(testdb.VonageChannel.UUID)
 	svc, _ := ivr.GetService(ch)
 
 	assert.NotNil(t, svc)

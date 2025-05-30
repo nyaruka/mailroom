@@ -1,4 +1,4 @@
-package testdata
+package testdb
 
 // Constants used in tests, these are tied to the DB created by the RapidPro `mailroom_db` management command.
 

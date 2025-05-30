@@ -12,7 +12,7 @@ import (
 	"github.com/nyaruka/mailroom/core/tasks/handler"
 	"github.com/nyaruka/mailroom/core/tasks/handler/ctasks"
 	"github.com/nyaruka/mailroom/testsuite"
-	"github.com/nyaruka/mailroom/testsuite/testdata"
+	"github.com/nyaruka/mailroom/testsuite/testdb"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -26,281 +26,281 @@ func TestMsgReceivedTask(t *testing.T) {
 	ivr.RegisterService(models.ChannelType("T"), testsuite.NewIVRServiceFactory)
 
 	// create a disabled channel
-	disabled := testdata.InsertChannel(rt, testdata.Org1, "TG", "Deleted", "1234567", []string{"telegram"}, "SR", map[string]any{})
+	disabled := testdb.InsertChannel(rt, testdb.Org1, "TG", "Deleted", "1234567", []string{"telegram"}, "SR", map[string]any{})
 	rt.DB.MustExec(`UPDATE channels_channel SET is_enabled = false WHERE id = $1`, disabled.ID)
 
-	testdata.InsertKeywordTrigger(rt, testdata.Org1, testdata.Favorites, []string{"start"}, models.MatchOnly, nil, nil, nil)
-	testdata.InsertKeywordTrigger(rt, testdata.Org1, testdata.IVRFlow, []string{"ivr"}, models.MatchOnly, nil, nil, nil)
+	testdb.InsertKeywordTrigger(rt, testdb.Org1, testdb.Favorites, []string{"start"}, models.MatchOnly, nil, nil, nil)
+	testdb.InsertKeywordTrigger(rt, testdb.Org1, testdb.IVRFlow, []string{"ivr"}, models.MatchOnly, nil, nil, nil)
 
-	testdata.InsertKeywordTrigger(rt, testdata.Org2, testdata.Org2Favorites, []string{"start"}, models.MatchOnly, nil, nil, nil)
-	testdata.InsertCatchallTrigger(rt, testdata.Org2, testdata.Org2SingleMessage, nil, nil, nil)
+	testdb.InsertKeywordTrigger(rt, testdb.Org2, testdb.Org2Favorites, []string{"start"}, models.MatchOnly, nil, nil, nil)
+	testdb.InsertCatchallTrigger(rt, testdb.Org2, testdb.Org2SingleMessage, nil, nil, nil)
 
 	// create a blocked contact
-	blocked := testdata.InsertContact(rt, testdata.Org1, "2fc8601a-93eb-43a1-892c-9ff5fa291357", "Blocked", "eng", models.ContactStatusBlocked)
+	blocked := testdb.InsertContact(rt, testdb.Org1, "2fc8601a-93eb-43a1-892c-9ff5fa291357", "Blocked", "eng", models.ContactStatusBlocked)
 
 	// create a deleted contact
-	deleted := testdata.InsertContact(rt, testdata.Org1, "116e40b1-cecb-4be7-9dea-1a21141a05bc", "Del", "eng", models.ContactStatusActive)
+	deleted := testdb.InsertContact(rt, testdb.Org1, "116e40b1-cecb-4be7-9dea-1a21141a05bc", "Del", "eng", models.ContactStatusActive)
 	rt.DB.MustExec(`UPDATE contacts_contact SET is_active = false WHERE id = $1`, deleted.ID)
 
 	// give Cathy, Bob and the blocked contact some tickets...
-	openTickets := map[*testdata.Contact][]*testdata.Ticket{
-		testdata.Cathy: {
-			testdata.InsertOpenTicket(rt, testdata.Org1, testdata.Cathy, testdata.DefaultTopic, time.Now(), nil),
+	openTickets := map[*testdb.Contact][]*testdb.Ticket{
+		testdb.Cathy: {
+			testdb.InsertOpenTicket(rt, testdb.Org1, testdb.Cathy, testdb.DefaultTopic, time.Now(), nil),
 		},
 		blocked: {
-			testdata.InsertOpenTicket(rt, testdata.Org1, blocked, testdata.DefaultTopic, time.Now(), nil),
+			testdb.InsertOpenTicket(rt, testdb.Org1, blocked, testdb.DefaultTopic, time.Now(), nil),
 		},
 	}
-	closedTickets := map[*testdata.Contact][]*testdata.Ticket{
-		testdata.Cathy: {
-			testdata.InsertClosedTicket(rt, testdata.Org1, testdata.Cathy, testdata.DefaultTopic, nil),
+	closedTickets := map[*testdb.Contact][]*testdb.Ticket{
+		testdb.Cathy: {
+			testdb.InsertClosedTicket(rt, testdb.Org1, testdb.Cathy, testdb.DefaultTopic, nil),
 		},
-		testdata.Bob: {
-			testdata.InsertClosedTicket(rt, testdata.Org1, testdata.Bob, testdata.DefaultTopic, nil),
+		testdb.Bob: {
+			testdb.InsertClosedTicket(rt, testdb.Org1, testdb.Bob, testdb.DefaultTopic, nil),
 		},
 	}
 
 	rt.DB.MustExec(`UPDATE tickets_ticket SET last_activity_on = '2021-01-01T00:00:00Z'`)
 
 	// clear all of Alexandria's URNs
-	rt.DB.MustExec(`UPDATE contacts_contacturn SET contact_id = NULL WHERE contact_id = $1`, testdata.Alexandra.ID)
+	rt.DB.MustExec(`UPDATE contacts_contacturn SET contact_id = NULL WHERE contact_id = $1`, testdb.Alexandra.ID)
 
 	models.FlushCache()
 
 	// insert a dummy message into the database that will get the updates from handling each message event which pretends to be it
-	dbMsg := testdata.InsertIncomingMsg(rt, testdata.Org1, testdata.TwilioChannel, testdata.Cathy, "", models.MsgStatusPending)
+	dbMsg := testdb.InsertIncomingMsg(rt, testdb.Org1, testdb.TwilioChannel, testdb.Cathy, "", models.MsgStatusPending)
 
 	tcs := []struct {
 		preHook             func()
-		org                 *testdata.Org
-		channel             *testdata.Channel
-		contact             *testdata.Contact
+		org                 *testdb.Org
+		channel             *testdb.Channel
+		contact             *testdb.Contact
 		text                string
 		expectedVisibility  models.MsgVisibility
 		expectedReplyText   string
 		expectedReplyStatus models.MsgStatus
-		expectedFlow        *testdata.Flow
+		expectedFlow        *testdb.Flow
 	}{
 		{ // 0: no trigger match, inbox message
-			org:                testdata.Org1,
-			channel:            testdata.FacebookChannel,
-			contact:            testdata.Cathy,
+			org:                testdb.Org1,
+			channel:            testdb.FacebookChannel,
+			contact:            testdb.Cathy,
 			text:               "noop",
 			expectedVisibility: models.VisibilityVisible,
 		},
 		{ // 1: no trigger match, inbox message (trigger is keyword only)
-			org:                testdata.Org1,
-			channel:            testdata.FacebookChannel,
-			contact:            testdata.Cathy,
+			org:                testdb.Org1,
+			channel:            testdb.FacebookChannel,
+			contact:            testdb.Cathy,
 			text:               "start other",
 			expectedVisibility: models.VisibilityVisible,
 		},
 		{ // 2: keyword trigger match, flow message
-			org:                 testdata.Org1,
-			channel:             testdata.FacebookChannel,
-			contact:             testdata.Cathy,
+			org:                 testdb.Org1,
+			channel:             testdb.FacebookChannel,
+			contact:             testdb.Cathy,
 			text:                "start",
 			expectedVisibility:  models.VisibilityVisible,
 			expectedReplyText:   "What is your favorite color?",
 			expectedReplyStatus: models.MsgStatusQueued,
-			expectedFlow:        testdata.Favorites,
+			expectedFlow:        testdb.Favorites,
 		},
 		{ // 3:
-			org:                 testdata.Org1,
-			channel:             testdata.FacebookChannel,
-			contact:             testdata.Cathy,
+			org:                 testdb.Org1,
+			channel:             testdb.FacebookChannel,
+			contact:             testdb.Cathy,
 			text:                "purple",
 			expectedVisibility:  models.VisibilityVisible,
 			expectedReplyText:   "I don't know that color. Try again.",
 			expectedReplyStatus: models.MsgStatusQueued,
-			expectedFlow:        testdata.Favorites,
+			expectedFlow:        testdb.Favorites,
 		},
 		{ // 4:
-			org:                 testdata.Org1,
-			channel:             testdata.FacebookChannel,
-			contact:             testdata.Cathy,
+			org:                 testdb.Org1,
+			channel:             testdb.FacebookChannel,
+			contact:             testdb.Cathy,
 			text:                "blue",
 			expectedVisibility:  models.VisibilityVisible,
 			expectedReplyText:   "Good choice, I like Blue too! What is your favorite beer?",
 			expectedReplyStatus: models.MsgStatusQueued,
-			expectedFlow:        testdata.Favorites,
+			expectedFlow:        testdb.Favorites,
 		},
 		{ // 5:
-			org:                 testdata.Org1,
-			channel:             testdata.FacebookChannel,
-			contact:             testdata.Cathy,
+			org:                 testdb.Org1,
+			channel:             testdb.FacebookChannel,
+			contact:             testdb.Cathy,
 			text:                "MUTZIG",
 			expectedVisibility:  models.VisibilityVisible,
 			expectedReplyText:   "Mmmmm... delicious Mutzig. If only they made blue Mutzig! Lastly, what is your name?",
 			expectedReplyStatus: models.MsgStatusQueued,
-			expectedFlow:        testdata.Favorites,
+			expectedFlow:        testdb.Favorites,
 		},
 		{ // 6:
-			org:                 testdata.Org1,
-			channel:             testdata.FacebookChannel,
-			contact:             testdata.Cathy,
+			org:                 testdb.Org1,
+			channel:             testdb.FacebookChannel,
+			contact:             testdb.Cathy,
 			text:                "Cathy",
 			expectedVisibility:  models.VisibilityVisible,
 			expectedReplyText:   "Thanks Cathy, we are all done!",
 			expectedReplyStatus: models.MsgStatusQueued,
-			expectedFlow:        testdata.Favorites,
+			expectedFlow:        testdb.Favorites,
 		},
 		{ // 7:
-			org:                testdata.Org1,
-			channel:            testdata.FacebookChannel,
-			contact:            testdata.Cathy,
+			org:                testdb.Org1,
+			channel:            testdb.FacebookChannel,
+			contact:            testdb.Cathy,
 			text:               "noop",
 			expectedVisibility: models.VisibilityVisible,
 		},
 		{ // 8:
-			org:                 testdata.Org2,
-			channel:             testdata.Org2Channel,
-			contact:             testdata.Org2Contact,
+			org:                 testdb.Org2,
+			channel:             testdb.Org2Channel,
+			contact:             testdb.Org2Contact,
 			text:                "other",
 			expectedVisibility:  models.VisibilityVisible,
 			expectedReplyText:   "Hey, how are you?",
 			expectedReplyStatus: models.MsgStatusQueued,
-			expectedFlow:        testdata.Org2SingleMessage,
+			expectedFlow:        testdb.Org2SingleMessage,
 		},
 		{ // 9:
-			org:                 testdata.Org2,
-			channel:             testdata.Org2Channel,
-			contact:             testdata.Org2Contact,
+			org:                 testdb.Org2,
+			channel:             testdb.Org2Channel,
+			contact:             testdb.Org2Contact,
 			text:                "start",
 			expectedVisibility:  models.VisibilityVisible,
 			expectedReplyText:   "What is your favorite color?",
 			expectedReplyStatus: models.MsgStatusQueued,
-			expectedFlow:        testdata.Org2Favorites,
+			expectedFlow:        testdb.Org2Favorites,
 		},
 		{ // 10:
-			org:                 testdata.Org2,
-			channel:             testdata.Org2Channel,
-			contact:             testdata.Org2Contact,
+			org:                 testdb.Org2,
+			channel:             testdb.Org2Channel,
+			contact:             testdb.Org2Contact,
 			text:                "green",
 			expectedVisibility:  models.VisibilityVisible,
 			expectedReplyText:   "Good choice, I like Green too! What is your favorite beer?",
 			expectedReplyStatus: models.MsgStatusQueued,
-			expectedFlow:        testdata.Org2Favorites,
+			expectedFlow:        testdb.Org2Favorites,
 		},
 		{ // 11:
-			org:                 testdata.Org2,
-			channel:             testdata.Org2Channel,
-			contact:             testdata.Org2Contact,
+			org:                 testdb.Org2,
+			channel:             testdb.Org2Channel,
+			contact:             testdb.Org2Contact,
 			text:                "primus",
 			expectedVisibility:  models.VisibilityVisible,
 			expectedReplyText:   "Mmmmm... delicious Primus. If only they made green Primus! Lastly, what is your name?",
 			expectedReplyStatus: models.MsgStatusQueued,
-			expectedFlow:        testdata.Org2Favorites,
+			expectedFlow:        testdb.Org2Favorites,
 		},
 		{ // 12:
-			org:                 testdata.Org2,
-			channel:             testdata.Org2Channel,
-			contact:             testdata.Org2Contact,
+			org:                 testdb.Org2,
+			channel:             testdb.Org2Channel,
+			contact:             testdb.Org2Contact,
 			text:                "george",
 			expectedVisibility:  models.VisibilityVisible,
 			expectedReplyText:   "Thanks george, we are all done!",
 			expectedReplyStatus: models.MsgStatusQueued,
-			expectedFlow:        testdata.Org2Favorites,
+			expectedFlow:        testdb.Org2Favorites,
 		},
 		{ // 13:
-			org:                 testdata.Org2,
-			channel:             testdata.Org2Channel,
-			contact:             testdata.Org2Contact,
+			org:                 testdb.Org2,
+			channel:             testdb.Org2Channel,
+			contact:             testdb.Org2Contact,
 			text:                "blargh",
 			expectedVisibility:  models.VisibilityVisible,
 			expectedReplyText:   "Hey, how are you?",
 			expectedReplyStatus: models.MsgStatusQueued,
-			expectedFlow:        testdata.Org2SingleMessage,
+			expectedFlow:        testdb.Org2SingleMessage,
 		},
 		{ // 14:
-			org:                testdata.Org1,
-			channel:            testdata.FacebookChannel,
-			contact:            testdata.Bob,
+			org:                testdb.Org1,
+			channel:            testdb.FacebookChannel,
+			contact:            testdb.Bob,
 			text:               "ivr",
 			expectedVisibility: models.VisibilityVisible,
 		},
 		{ // 15: stopped contact should be unstopped
 			preHook: func() {
-				rt.DB.MustExec(`UPDATE contacts_contact SET status = 'S' WHERE id = $1`, testdata.George.ID)
+				rt.DB.MustExec(`UPDATE contacts_contact SET status = 'S' WHERE id = $1`, testdb.George.ID)
 			},
-			org:                 testdata.Org1,
-			channel:             testdata.FacebookChannel,
-			contact:             testdata.George,
+			org:                 testdb.Org1,
+			channel:             testdb.FacebookChannel,
+			contact:             testdb.George,
 			text:                "start",
 			expectedVisibility:  models.VisibilityVisible,
 			expectedReplyText:   "What is your favorite color?",
 			expectedReplyStatus: models.MsgStatusQueued,
-			expectedFlow:        testdata.Favorites,
+			expectedFlow:        testdb.Favorites,
 		},
 		{ // 16: no URN on contact but failed reply created anyway
-			org:                 testdata.Org1,
-			channel:             testdata.TwilioChannel,
-			contact:             testdata.Alexandra,
+			org:                 testdb.Org1,
+			channel:             testdb.TwilioChannel,
+			contact:             testdb.Alexandra,
 			text:                "start",
 			expectedVisibility:  models.VisibilityVisible,
 			expectedReplyText:   "What is your favorite color?",
 			expectedReplyStatus: models.MsgStatusFailed,
-			expectedFlow:        testdata.Favorites,
+			expectedFlow:        testdb.Favorites,
 		},
 		{ // 17: start Fred back in our favorite flow, then make it inactive, will be handled by catch-all
-			org:                 testdata.Org2,
-			channel:             testdata.Org2Channel,
-			contact:             testdata.Org2Contact,
+			org:                 testdb.Org2,
+			channel:             testdb.Org2Channel,
+			contact:             testdb.Org2Contact,
 			text:                "start",
 			expectedVisibility:  models.VisibilityVisible,
 			expectedReplyText:   "What is your favorite color?",
 			expectedReplyStatus: models.MsgStatusQueued,
-			expectedFlow:        testdata.Org2Favorites,
+			expectedFlow:        testdb.Org2Favorites,
 		},
 		{ // 18:
 			preHook: func() {
-				rt.DB.MustExec(`UPDATE flows_flow SET is_active = FALSE WHERE id = $1`, testdata.Org2Favorites.ID)
+				rt.DB.MustExec(`UPDATE flows_flow SET is_active = FALSE WHERE id = $1`, testdb.Org2Favorites.ID)
 			},
-			org:                 testdata.Org2,
-			channel:             testdata.Org2Channel,
-			contact:             testdata.Org2Contact,
+			org:                 testdb.Org2,
+			channel:             testdb.Org2Channel,
+			contact:             testdb.Org2Contact,
 			text:                "red",
 			expectedVisibility:  models.VisibilityVisible,
 			expectedReplyText:   "Hey, how are you?",
 			expectedReplyStatus: models.MsgStatusQueued,
-			expectedFlow:        testdata.Org2SingleMessage,
+			expectedFlow:        testdb.Org2SingleMessage,
 		},
 		{ // 19: start Fred back in our favorites flow to test retries
 			preHook: func() {
-				rt.DB.MustExec(`UPDATE flows_flow SET is_active = TRUE WHERE id = $1`, testdata.Org2Favorites.ID)
+				rt.DB.MustExec(`UPDATE flows_flow SET is_active = TRUE WHERE id = $1`, testdb.Org2Favorites.ID)
 			},
-			org:                 testdata.Org2,
-			channel:             testdata.Org2Channel,
-			contact:             testdata.Org2Contact,
+			org:                 testdb.Org2,
+			channel:             testdb.Org2Channel,
+			contact:             testdb.Org2Contact,
 			text:                "start",
 			expectedVisibility:  models.VisibilityVisible,
 			expectedReplyText:   "What is your favorite color?",
 			expectedReplyStatus: models.MsgStatusQueued,
-			expectedFlow:        testdata.Org2Favorites,
+			expectedFlow:        testdb.Org2Favorites,
 		},
 		{ // 20: deleted contact
-			org:     testdata.Org1,
-			channel: testdata.TwilioChannel,
+			org:     testdb.Org1,
+			channel: testdb.TwilioChannel,
 			contact: deleted,
 			text:    "start",
 		},
 		{ // 21: blocked contact
-			org:                testdata.Org1,
-			channel:            testdata.FacebookChannel,
+			org:                testdb.Org1,
+			channel:            testdb.FacebookChannel,
 			contact:            blocked,
 			text:               "start",
 			expectedVisibility: models.VisibilityArchived,
 		},
 		{ // 22: disabled channel
-			org:                testdata.Org1,
+			org:                testdb.Org1,
 			channel:            disabled,
-			contact:            testdata.Cathy,
+			contact:            testdb.Cathy,
 			text:               "start",
 			expectedVisibility: models.VisibilityArchived,
 		},
 	}
 
-	makeMsgTask := func(channel *testdata.Channel, contact *testdata.Contact, text string) handler.Task {
+	makeMsgTask := func(channel *testdb.Channel, contact *testdb.Contact, text string) handler.Task {
 		return &ctasks.MsgReceivedTask{
 			ChannelID: channel.ID,
 			MsgID:     dbMsg.ID,
@@ -372,16 +372,16 @@ func TestMsgReceivedTask(t *testing.T) {
 
 	// check messages queued to courier
 	testsuite.AssertCourierQueues(t, map[string][]int{
-		fmt.Sprintf("msgs:%s|10/1", testdata.FacebookChannel.UUID): {1, 1, 1, 1, 1, 1},
-		fmt.Sprintf("msgs:%s|10/1", testdata.Org2Channel.UUID):     {1, 1, 1, 1, 1, 1, 1, 1, 1},
+		fmt.Sprintf("msgs:%s|10/1", testdb.FacebookChannel.UUID): {1, 1, 1, 1, 1, 1},
+		fmt.Sprintf("msgs:%s|10/1", testdb.Org2Channel.UUID):     {1, 1, 1, 1, 1, 1, 1, 1, 1},
 	})
 
 	// Fred's sessions should not have a timeout because courier will set them
-	assertdb.Query(t, rt.DB, `SELECT count(*) from contacts_contactfire where contact_id = $1 and fire_type = 'T'`, testdata.Org2Contact.ID).Returns(0)
+	assertdb.Query(t, rt.DB, `SELECT count(*) from contacts_contactfire where contact_id = $1 and fire_type = 'T'`, testdb.Org2Contact.ID).Returns(0)
 
 	// force an error by marking our run for fred as complete (our session is still active so this will blow up)
-	rt.DB.MustExec(`UPDATE flows_flowrun SET status = 'C', exited_on = NOW() WHERE contact_id = $1`, testdata.Org2Contact.ID)
-	handler.QueueTask(rc, testdata.Org2.ID, testdata.Org2Contact.ID, makeMsgTask(testdata.Org2Channel, testdata.Org2Contact, "red"))
+	rt.DB.MustExec(`UPDATE flows_flowrun SET status = 'C', exited_on = NOW() WHERE contact_id = $1`, testdb.Org2Contact.ID)
+	handler.QueueTask(rc, testdb.Org2.ID, testdb.Org2Contact.ID, makeMsgTask(testdb.Org2Channel, testdb.Org2Contact, "red"))
 
 	// should get requeued three times automatically
 	for i := 0; i < 3; i++ {
@@ -397,28 +397,28 @@ func TestMsgReceivedTask(t *testing.T) {
 	assert.Nil(t, task)
 
 	// mark Fred's flow as inactive
-	rt.DB.MustExec(`UPDATE flows_flow SET is_active = FALSE where id = $1`, testdata.Org2Favorites.ID)
+	rt.DB.MustExec(`UPDATE flows_flow SET is_active = FALSE where id = $1`, testdb.Org2Favorites.ID)
 	models.FlushCache()
 
 	// try to resume now
-	handler.QueueTask(rc, testdata.Org2.ID, testdata.Org2Contact.ID, makeMsgTask(testdata.Org2Channel, testdata.Org2Contact, "red"))
+	handler.QueueTask(rc, testdb.Org2.ID, testdb.Org2Contact.ID, makeMsgTask(testdb.Org2Channel, testdb.Org2Contact, "red"))
 	task, _ = tasks.HandlerQueue.Pop(rc)
 	assert.NotNil(t, task)
 	err = tasks.Perform(ctx, rt, task)
 	assert.NoError(t, err)
 
 	// should get our catch all trigger
-	assertdb.Query(t, rt.DB, `SELECT text FROM msgs_msg WHERE contact_id = $1 AND direction = 'O' ORDER BY id DESC LIMIT 1`, testdata.Org2Contact.ID).Returns("Hey, how are you?")
+	assertdb.Query(t, rt.DB, `SELECT text FROM msgs_msg WHERE contact_id = $1 AND direction = 'O' ORDER BY id DESC LIMIT 1`, testdb.Org2Contact.ID).Returns("Hey, how are you?")
 	previous := time.Now()
 
 	// and should have failed previous session
-	assertdb.Query(t, rt.DB, `SELECT count(*) from flows_flowsession where contact_id = $1 and status = 'F'`, testdata.Org2Contact.ID).Returns(2)
+	assertdb.Query(t, rt.DB, `SELECT count(*) from flows_flowsession where contact_id = $1 and status = 'F'`, testdb.Org2Contact.ID).Returns(2)
 
 	// trigger should also not start a new session
-	handler.QueueTask(rc, testdata.Org2.ID, testdata.Org2Contact.ID, makeMsgTask(testdata.Org2Channel, testdata.Org2Contact, "start"))
+	handler.QueueTask(rc, testdb.Org2.ID, testdb.Org2Contact.ID, makeMsgTask(testdb.Org2Channel, testdb.Org2Contact, "start"))
 	task, _ = tasks.HandlerQueue.Pop(rc)
 	err = tasks.Perform(ctx, rt, task)
 	assert.NoError(t, err)
 
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE contact_id = $1 AND direction = 'O' AND created_on > $2`, testdata.Org2Contact.ID, previous).Returns(0)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE contact_id = $1 AND direction = 'O' AND created_on > $2`, testdb.Org2Contact.ID, previous).Returns(0)
 }

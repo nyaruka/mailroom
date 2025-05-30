@@ -6,7 +6,7 @@ import (
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/testsuite"
-	"github.com/nyaruka/mailroom/testsuite/testdata"
+	"github.com/nyaruka/mailroom/testsuite/testdb"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -15,7 +15,7 @@ import (
 func TestClassifiers(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
 
-	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdata.Org1.ID, models.RefreshClassifiers)
+	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshClassifiers)
 	require.NoError(t, err)
 
 	classifiers, err := oa.Classifiers()
@@ -27,9 +27,9 @@ func TestClassifiers(t *testing.T) {
 		Name    string
 		Intents []string
 	}{
-		{testdata.Luis.ID, testdata.Luis.UUID, "LUIS", []string{"book_flight", "book_car"}},
-		{testdata.Wit.ID, testdata.Wit.UUID, "Wit.ai", []string{"register"}},
-		{testdata.Bothub.ID, testdata.Bothub.UUID, "BotHub", []string{"intent"}},
+		{testdb.Luis.ID, testdb.Luis.UUID, "LUIS", []string{"book_flight", "book_car"}},
+		{testdb.Wit.ID, testdb.Wit.UUID, "Wit.ai", []string{"register"}},
+		{testdb.Bothub.ID, testdb.Bothub.UUID, "BotHub", []string{"intent"}},
 	}
 
 	assert.Equal(t, len(tcs), len(classifiers))

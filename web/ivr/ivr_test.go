@@ -26,7 +26,7 @@ import (
 	"github.com/nyaruka/mailroom/services/ivr/twiml"
 	"github.com/nyaruka/mailroom/services/ivr/vonage"
 	"github.com/nyaruka/mailroom/testsuite"
-	"github.com/nyaruka/mailroom/testsuite/testdata"
+	"github.com/nyaruka/mailroom/testsuite/testdb"
 	"github.com/nyaruka/mailroom/utils/clogs"
 	"github.com/nyaruka/mailroom/web"
 	"github.com/stretchr/testify/assert"
@@ -76,10 +76,10 @@ func TestTwilioIVR(t *testing.T) {
 	server.Start()
 	defer server.Stop()
 
-	testdata.InsertIncomingCallTrigger(rt, testdata.Org1, testdata.IVRFlow, []*testdata.Group{testdata.DoctorsGroup}, nil, nil)
+	testdb.InsertIncomingCallTrigger(rt, testdb.Org1, testdb.IVRFlow, []*testdb.Group{testdb.DoctorsGroup}, nil, nil)
 
 	// set callback domain and enable machine detection
-	rt.DB.MustExec(`UPDATE channels_channel SET config = config || '{"callback_domain": "localhost:8091", "machine_detection": true}'::jsonb WHERE id = $1`, testdata.TwilioChannel.ID)
+	rt.DB.MustExec(`UPDATE channels_channel SET config = config || '{"callback_domain": "localhost:8091", "machine_detection": true}'::jsonb WHERE id = $1`, testdb.TwilioChannel.ID)
 
 	// create a flow start for cathy bob, and george
 	parentSummary := []byte(`{
@@ -98,22 +98,22 @@ func TestTwilioIVR(t *testing.T) {
 		}, 
 		"results": {}
 	}`)
-	start := models.NewFlowStart(testdata.Org1.ID, models.StartTypeTrigger, testdata.IVRFlow.ID).
-		WithContactIDs([]models.ContactID{testdata.Cathy.ID, testdata.Bob.ID, testdata.George.ID}).
+	start := models.NewFlowStart(testdb.Org1.ID, models.StartTypeTrigger, testdb.IVRFlow.ID).
+		WithContactIDs([]models.ContactID{testdb.Cathy.ID, testdb.Bob.ID, testdb.George.ID}).
 		WithParentSummary(parentSummary)
 
-	err := tasks.Queue(rc, tasks.BatchQueue, testdata.Org1.ID, &starts.StartFlowTask{FlowStart: start}, false)
+	err := tasks.Queue(rc, tasks.BatchQueue, testdb.Org1.ID, &starts.StartFlowTask{FlowStart: start}, false)
 	require.NoError(t, err)
 
 	testsuite.FlushTasks(t, rt)
 
 	// check our 3 contacts have 3 wired calls
 	assertdb.Query(t, rt.DB, `SELECT COUNT(*) FROM ivr_call WHERE contact_id = $1 AND status = $2 AND external_id = $3`,
-		testdata.Cathy.ID, models.CallStatusWired, "Call1").Returns(1)
+		testdb.Cathy.ID, models.CallStatusWired, "Call1").Returns(1)
 	assertdb.Query(t, rt.DB, `SELECT COUNT(*) FROM ivr_call WHERE contact_id = $1 AND status = $2 AND external_id = $3`,
-		testdata.Bob.ID, models.CallStatusWired, "Call2").Returns(1)
+		testdb.Bob.ID, models.CallStatusWired, "Call2").Returns(1)
 	assertdb.Query(t, rt.DB, `SELECT COUNT(*) FROM ivr_call WHERE contact_id = $1 AND status = $2 AND external_id = $3`,
-		testdata.George.ID, models.CallStatusWired, "Call3").Returns(1)
+		testdb.George.ID, models.CallStatusWired, "Call3").Returns(1)
 
 	tcs := []struct {
 		url                string
@@ -124,14 +124,14 @@ func TestTwilioIVR(t *testing.T) {
 		expectedCallStatus map[string]string
 	}{
 		{ // 0: handle start on wired call
-			url:                fmt.Sprintf("/ivr/c/%s/handle?action=start&connection=1", testdata.TwilioChannel.UUID),
+			url:                fmt.Sprintf("/ivr/c/%s/handle?action=start&connection=1", testdb.TwilioChannel.UUID),
 			form:               nil,
 			expectedStatus:     200,
 			expectedContains:   []string{`<Gather numDigits="1" timeout="30"`, `<Say language="en-US">Hello there. Please enter one or two.  This flow was triggered by Cathy</Say>`},
 			expectedCallStatus: map[string]string{"Call1": "I", "Call2": "W", "Call3": "W"},
 		},
 		{ // 1: handle resume but without digits we're waiting for
-			url: fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=1", testdata.TwilioChannel.UUID),
+			url: fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=1", testdb.TwilioChannel.UUID),
 			form: url.Values{
 				"CallStatus": []string{"in-progress"},
 				"wait_type":  []string{"gather"},
@@ -142,7 +142,7 @@ func TestTwilioIVR(t *testing.T) {
 			expectedCallStatus: map[string]string{"Call1": "I", "Call2": "W", "Call3": "W"},
 		},
 		{ // 2: handle resume with digits we're waiting for
-			url: fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=1", testdata.TwilioChannel.UUID),
+			url: fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=1", testdb.TwilioChannel.UUID),
 			form: url.Values{
 				"CallStatus": []string{"in-progress"},
 				"wait_type":  []string{"gather"},
@@ -153,7 +153,7 @@ func TestTwilioIVR(t *testing.T) {
 			expectedCallStatus: map[string]string{"Call1": "I", "Call2": "W", "Call3": "W"},
 		},
 		{ // 3: handle resume with digits that are out of range specified in flow
-			url: fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=1", testdata.TwilioChannel.UUID),
+			url: fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=1", testdb.TwilioChannel.UUID),
 			form: url.Values{
 				"CallStatus": []string{"in-progress"},
 				"wait_type":  []string{"gather"},
@@ -164,7 +164,7 @@ func TestTwilioIVR(t *testing.T) {
 			expectedCallStatus: map[string]string{"Call1": "I", "Call2": "W", "Call3": "W"},
 		},
 		{ // 4: handle resume with digits that are in range specified in flow
-			url: fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=1", testdata.TwilioChannel.UUID),
+			url: fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=1", testdb.TwilioChannel.UUID),
 			form: url.Values{
 				"CallStatus": []string{"in-progress"},
 				"wait_type":  []string{"gather"},
@@ -175,7 +175,7 @@ func TestTwilioIVR(t *testing.T) {
 			expectedCallStatus: map[string]string{"Call1": "I", "Call2": "W", "Call3": "W"},
 		},
 		{ // 5: handle resume with missing recording that should start a call forward
-			url: fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=1", testdata.TwilioChannel.UUID),
+			url: fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=1", testdb.TwilioChannel.UUID),
 			form: url.Values{
 				"CallStatus": []string{"in-progress"},
 				"wait_type":  []string{"record"},
@@ -191,7 +191,7 @@ func TestTwilioIVR(t *testing.T) {
 			expectedCallStatus: map[string]string{"Call1": "I", "Call2": "W", "Call3": "W"},
 		},
 		{ // 6: handle resume call forwarding result
-			url: fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=1", testdata.TwilioChannel.UUID),
+			url: fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=1", testdb.TwilioChannel.UUID),
 			form: url.Values{
 				"CallStatus":     []string{"in-progress"},
 				"DialCallStatus": []string{"answered"},
@@ -202,7 +202,7 @@ func TestTwilioIVR(t *testing.T) {
 			expectedCallStatus: map[string]string{"Call1": "D", "Call2": "W", "Call3": "W"},
 		},
 		{ // 7: status update that call 1 is complete
-			url: fmt.Sprintf("/ivr/c/%s/status", testdata.TwilioChannel.UUID),
+			url: fmt.Sprintf("/ivr/c/%s/status", testdb.TwilioChannel.UUID),
 			form: url.Values{
 				"CallSid":      []string{"Call1"},
 				"CallStatus":   []string{"completed"},
@@ -213,14 +213,14 @@ func TestTwilioIVR(t *testing.T) {
 			expectedCallStatus: map[string]string{"Call1": "D", "Call2": "W", "Call3": "W"},
 		},
 		{ // 8: start call 2
-			url:                fmt.Sprintf("/ivr/c/%s/handle?action=start&connection=2", testdata.TwilioChannel.UUID),
+			url:                fmt.Sprintf("/ivr/c/%s/handle?action=start&connection=2", testdb.TwilioChannel.UUID),
 			form:               nil,
 			expectedStatus:     200,
 			expectedContains:   []string{"Hello there. Please enter one or two."},
 			expectedCallStatus: map[string]string{"Call1": "D", "Call2": "I", "Call3": "W"},
 		},
 		{ // 9: resume with status that says call completed on Twilio side
-			url: fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=2", testdata.TwilioChannel.UUID),
+			url: fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=2", testdb.TwilioChannel.UUID),
 			form: url.Values{
 				"CallStatus": []string{"completed"},
 				"wait_type":  []string{"gather"},
@@ -231,7 +231,7 @@ func TestTwilioIVR(t *testing.T) {
 			expectedCallStatus: map[string]string{"Call1": "D", "Call2": "D", "Call3": "W"},
 		},
 		{ // 10: call 3 started with answered_by telling us it's a machine
-			url: fmt.Sprintf("/ivr/c/%s/handle?action=start&connection=3", testdata.TwilioChannel.UUID),
+			url: fmt.Sprintf("/ivr/c/%s/handle?action=start&connection=3", testdb.TwilioChannel.UUID),
 			form: url.Values{
 				"CallStatus": []string{"in-progress"},
 				"AnsweredBy": []string{"machine_start"},
@@ -241,7 +241,7 @@ func TestTwilioIVR(t *testing.T) {
 			expectedCallStatus: map[string]string{"Call1": "D", "Call2": "D", "Call3": "E"},
 		},
 		{ // 11: then Twilio will call the status callback to say that we're done but don't overwrite the error status
-			url: fmt.Sprintf("/ivr/c/%s/status", testdata.TwilioChannel.UUID),
+			url: fmt.Sprintf("/ivr/c/%s/status", testdb.TwilioChannel.UUID),
 			form: url.Values{
 				"CallSid":      []string{"Call3"},
 				"CallStatus":   []string{"completed"},
@@ -252,7 +252,7 @@ func TestTwilioIVR(t *testing.T) {
 			expectedCallStatus: map[string]string{"Call1": "D", "Call2": "D", "Call3": "E"},
 		},
 		{ // 12: now we get an incoming call from Cathy which should match our trigger (because she is in Doctors group)
-			url: fmt.Sprintf("/ivr/c/%s/incoming", testdata.TwilioChannel.UUID),
+			url: fmt.Sprintf("/ivr/c/%s/incoming", testdb.TwilioChannel.UUID),
 			form: url.Values{
 				"CallSid":    []string{"Call4"},
 				"CallStatus": []string{"ringing"},
@@ -263,7 +263,7 @@ func TestTwilioIVR(t *testing.T) {
 			expectedCallStatus: map[string]string{"Call1": "D", "Call2": "D", "Call3": "E", "Call4": "I"},
 		},
 		{ // 13: handle resume with digits we're waiting for
-			url: fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=4", testdata.TwilioChannel.UUID),
+			url: fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=4", testdb.TwilioChannel.UUID),
 			form: url.Values{
 				"CallStatus": []string{"in-progress"},
 				"wait_type":  []string{"gather"},
@@ -274,7 +274,7 @@ func TestTwilioIVR(t *testing.T) {
 			expectedCallStatus: map[string]string{"Call1": "D", "Call2": "D", "Call3": "E", "Call4": "I"},
 		},
 		{ // 14: now we get an incoming call from Bob which won't match our trigger (because he is not in Doctors group)
-			url: fmt.Sprintf("/ivr/c/%s/incoming", testdata.TwilioChannel.UUID),
+			url: fmt.Sprintf("/ivr/c/%s/incoming", testdb.TwilioChannel.UUID),
 			form: url.Values{
 				"CallSid":    []string{"Call5"},
 				"CallStatus": []string{"ringing"},
@@ -285,7 +285,7 @@ func TestTwilioIVR(t *testing.T) {
 			expectedCallStatus: map[string]string{"Call1": "D", "Call2": "D", "Call3": "E", "Call4": "I", "Call5": "I"},
 		},
 		{ // 15
-			url: fmt.Sprintf("/ivr/c/%s/status", testdata.TwilioChannel.UUID),
+			url: fmt.Sprintf("/ivr/c/%s/status", testdb.TwilioChannel.UUID),
 			form: url.Values{
 				"CallSid":      []string{"Call5"},
 				"CallStatus":   []string{"failed"},
@@ -325,16 +325,16 @@ func TestTwilioIVR(t *testing.T) {
 	}
 
 	// check our final state of sessions, runs, msgs, calls
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE contact_id = $1 AND status = 'C'`, testdata.Cathy.ID).Returns(1)
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowrun WHERE contact_id = $1 AND status = 'C'`, testdata.Cathy.ID).Returns(1)
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE contact_id = $1 AND msg_type = 'V' AND status = 'W' AND direction = 'O'`, testdata.Cathy.ID).Returns(10)
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE contact_id = $1 AND msg_type = 'V' AND status = 'H' AND direction = 'I'`, testdata.Cathy.ID).Returns(6)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE contact_id = $1 AND status = 'C'`, testdb.Cathy.ID).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowrun WHERE contact_id = $1 AND status = 'C'`, testdb.Cathy.ID).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE contact_id = $1 AND msg_type = 'V' AND status = 'W' AND direction = 'O'`, testdb.Cathy.ID).Returns(10)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE contact_id = $1 AND msg_type = 'V' AND status = 'H' AND direction = 'I'`, testdb.Cathy.ID).Returns(6)
 
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE contact_id = $1 AND msg_type = 'V' 
-		AND ((status = 'H' AND direction = 'I') OR (status = 'W' AND direction = 'O'))`, testdata.Bob.ID).Returns(2)
+		AND ((status = 'H' AND direction = 'I') OR (status = 'W' AND direction = 'O'))`, testdb.Bob.ID).Returns(2)
 
 	// check the generated channel logs
-	logs := getCallLogs(t, ctx, rt, testdata.TwilioChannel)
+	logs := getCallLogs(t, ctx, rt, testdb.TwilioChannel)
 	assert.Len(t, logs, 19)
 	for _, log := range logs {
 		assert.NotContains(t, string(jsonx.MustMarshal(log)), "sesame") // auth token redacted
@@ -384,10 +384,10 @@ func TestVonageIVR(t *testing.T) {
 	defer testsuite.Reset(testsuite.ResetAll)
 
 	// deactivate our twilio channel
-	rt.DB.MustExec(`UPDATE channels_channel SET is_active = FALSE WHERE id = $1`, testdata.TwilioChannel.ID)
+	rt.DB.MustExec(`UPDATE channels_channel SET is_active = FALSE WHERE id = $1`, testdb.TwilioChannel.ID)
 
 	// update callback domain and role
-	rt.DB.MustExec(`UPDATE channels_channel SET config = config || '{"callback_domain": "localhost:8091"}'::jsonb, role='SRCA' WHERE id = $1`, testdata.VonageChannel.ID)
+	rt.DB.MustExec(`UPDATE channels_channel SET config = config || '{"callback_domain": "localhost:8091"}'::jsonb, role='SRCA' WHERE id = $1`, testdb.VonageChannel.ID)
 
 	// start test server
 	ts := httptest.NewServer(http.HandlerFunc(mockVonageHandler))
@@ -402,8 +402,8 @@ func TestVonageIVR(t *testing.T) {
 	vonage.IgnoreSignatures = true
 
 	// create a flow start for cathy and george
-	start := models.NewFlowStart(testdata.Org1.ID, models.StartTypeTrigger, testdata.IVRFlow.ID).
-		WithContactIDs([]models.ContactID{testdata.Cathy.ID, testdata.George.ID}).
+	start := models.NewFlowStart(testdb.Org1.ID, models.StartTypeTrigger, testdb.IVRFlow.ID).
+		WithContactIDs([]models.ContactID{testdb.Cathy.ID, testdb.George.ID}).
 		WithParams(json.RawMessage(`{"ref_id":"123"}`))
 
 	err := models.InsertFlowStarts(ctx, rt.DB, []*models.FlowStart{start})
@@ -412,16 +412,16 @@ func TestVonageIVR(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT COUNT(*) FROM flows_flowstart`).Returns(1)
 	assertdb.Query(t, rt.DB, `SELECT COUNT(*) FROM flows_flowstart WHERE params ->> 'ref_id' = '123'`).Returns(1)
 
-	err = tasks.Queue(rc, tasks.BatchQueue, testdata.Org1.ID, &starts.StartFlowTask{FlowStart: start}, false)
+	err = tasks.Queue(rc, tasks.BatchQueue, testdb.Org1.ID, &starts.StartFlowTask{FlowStart: start}, false)
 	require.NoError(t, err)
 
 	testsuite.FlushTasks(t, rt)
 
 	assertdb.Query(t, rt.DB, `SELECT COUNT(*) FROM ivr_call WHERE contact_id = $1 AND status = $2 AND external_id = $3`,
-		testdata.Cathy.ID, models.CallStatusWired, "Call1").Returns(1)
+		testdb.Cathy.ID, models.CallStatusWired, "Call1").Returns(1)
 
 	assertdb.Query(t, rt.DB, `SELECT COUNT(*) FROM ivr_call WHERE contact_id = $1 AND status = $2 AND external_id = $3`,
-		testdata.George.ID, models.CallStatusWired, "Call2").Returns(1)
+		testdb.George.ID, models.CallStatusWired, "Call2").Returns(1)
 
 	tcs := []struct {
 		label            string
@@ -433,7 +433,7 @@ func TestVonageIVR(t *testing.T) {
 	}{
 		{
 			label:          "handle start on wired call",
-			url:            fmt.Sprintf("/ivr/c/%s/handle?action=start&connection=1", testdata.VonageChannel.UUID),
+			url:            fmt.Sprintf("/ivr/c/%s/handle?action=start&connection=1", testdb.VonageChannel.UUID),
 			body:           `{"from":"12482780345","to":"12067799294","uuid":"80c9a606-717e-48b9-ae22-ce00269cbb08","conversation_uuid":"CON-f90649c3-cbf3-42d6-9ab1-01503befac1c"}`,
 			expectedStatus: 200,
 			expectedResponse: `[
@@ -456,76 +456,76 @@ func TestVonageIVR(t *testing.T) {
 		},
 		{
 			label:          "handle resume with invalid digit",
-			url:            fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=1&wait_type=gather", testdata.VonageChannel.UUID),
+			url:            fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=1&wait_type=gather", testdb.VonageChannel.UUID),
 			body:           `{"dtmf":"3","timed_out":false,"uuid":null,"conversation_uuid":"CON-f90649c3-cbf3-42d6-9ab1-01503befac1c","timestamp":"2019-04-01T21:08:54.680Z"}`,
 			expectedStatus: 200,
 			contains:       []string{"Sorry, that is not one or two, try again."},
 		},
 		{
 			label:          "handle resume with valid digit",
-			url:            fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=1&wait_type=gather", testdata.VonageChannel.UUID),
+			url:            fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=1&wait_type=gather", testdb.VonageChannel.UUID),
 			body:           `{"dtmf":"1","timed_out":false,"uuid":null,"conversation_uuid":"CON-f90649c3-cbf3-42d6-9ab1-01503befac1c","timestamp":"2019-04-01T21:08:54.680Z"}`,
 			expectedStatus: 200,
 			contains:       []string{"Great! You said One."},
 		},
 		{
 			label:          "handle resume with digits out of range in flow",
-			url:            fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=1&wait_type=gather", testdata.VonageChannel.UUID),
+			url:            fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=1&wait_type=gather", testdb.VonageChannel.UUID),
 			body:           `{"dtmf":"101","timed_out":false,"uuid":null,"conversation_uuid":"CON-f90649c3-cbf3-42d6-9ab1-01503befac1c","timestamp":"2019-04-01T21:08:54.680Z"}`,
 			expectedStatus: 200,
 			contains:       []string{"too big"},
 		},
 		{
 			label:          "handle resume with digits within range in flow",
-			url:            fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=1&wait_type=gather", testdata.VonageChannel.UUID),
+			url:            fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=1&wait_type=gather", testdb.VonageChannel.UUID),
 			body:           `{"dtmf":"56","timed_out":false,"uuid":null,"conversation_uuid":"CON-f90649c3-cbf3-42d6-9ab1-01503befac1c","timestamp":"2019-04-01T21:08:54.680Z"}`,
 			expectedStatus: 200,
 			contains:       []string{"You picked the number 56"},
 		},
 		{
 			label:          "recording callback",
-			url:            fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=1&wait_type=recording_url&recording_uuid=0c15f253-8e67-45c8-9980-7d38292edd3c", testdata.VonageChannel.UUID),
+			url:            fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=1&wait_type=recording_url&recording_uuid=0c15f253-8e67-45c8-9980-7d38292edd3c", testdb.VonageChannel.UUID),
 			body:           fmt.Sprintf(`{"recording_url": "%s", "end_time":"2019-04-01T21:08:56.000Z","uuid":"Call1","network":"310260","status":"answered","direction":"outbound","timestamp":"2019-04-01T21:08:56.342Z"}`, ts.URL+"?recording=true"),
 			expectedStatus: 200,
 			contains:       []string{"inserted recording url"},
 		},
 		{
 			label:          "resume with recording",
-			url:            fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=1&wait_type=record&recording_uuid=0c15f253-8e67-45c8-9980-7d38292edd3c", testdata.VonageChannel.UUID),
+			url:            fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=1&wait_type=record&recording_uuid=0c15f253-8e67-45c8-9980-7d38292edd3c", testdb.VonageChannel.UUID),
 			body:           `{"end_time":"2019-04-01T21:08:56.000Z","uuid":"Call1","network":"310260","status":"answered","direction":"outbound","timestamp":"2019-04-01T21:08:56.342Z", "recording_url": "http://foo.bar/"}`,
 			expectedStatus: 200,
 			contains:       []string{"I hope hearing that makes you feel better.", `"action": "conversation"`},
 		},
 		{
 			label:            "transfer answered",
-			url:              fmt.Sprintf("/ivr/c/%s/status", testdata.VonageChannel.UUID),
+			url:              fmt.Sprintf("/ivr/c/%s/status", testdb.VonageChannel.UUID),
 			body:             `{"uuid": "Call3", "status": "answered"}`,
 			expectedStatus:   200,
 			expectedResponse: `{"_message":"updated status for call: Call1 to: answered"}`,
 		},
 		{
 			label:            "transfer completed",
-			url:              fmt.Sprintf("/ivr/c/%s/status", testdata.VonageChannel.UUID),
+			url:              fmt.Sprintf("/ivr/c/%s/status", testdb.VonageChannel.UUID),
 			body:             `{"uuid": "Call3", "duration": "25", "status": "completed"}`,
 			expectedStatus:   200,
 			expectedResponse: `{"_message":"reconnected call: Call1 to flow with dial status: answered"}`,
 		},
 		{
 			label:          "transfer callback",
-			url:            fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=1&wait_type=dial&dial_status=answered&dial_duration=25", testdata.VonageChannel.UUID),
+			url:            fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=1&wait_type=dial&dial_status=answered&dial_duration=25", testdb.VonageChannel.UUID),
 			expectedStatus: 200,
 			contains:       []string{"Great, they answered."},
 		},
 		{
 			label:            "call complete",
-			url:              fmt.Sprintf("/ivr/c/%s/status", testdata.VonageChannel.UUID),
+			url:              fmt.Sprintf("/ivr/c/%s/status", testdb.VonageChannel.UUID),
 			body:             `{"end_time":"2019-04-01T21:08:56.000Z","uuid":"Call1","network":"310260","duration":"50","start_time":"2019-04-01T21:08:42.000Z","rate":"0.01270000","price":"0.00296333","from":"12482780345","to":"12067799294","conversation_uuid":"CON-f90649c3-cbf3-42d6-9ab1-01503befac1c","status":"completed","direction":"outbound","timestamp":"2019-04-01T21:08:56.342Z"}`,
 			expectedStatus:   200,
 			expectedResponse: `{"_message":"status updated: D"}`,
 		},
 		{
 			label:          "new call",
-			url:            fmt.Sprintf("/ivr/c/%s/handle?action=start&connection=2", testdata.VonageChannel.UUID),
+			url:            fmt.Sprintf("/ivr/c/%s/handle?action=start&connection=2", testdb.VonageChannel.UUID),
 			body:           `{"from":"12482780345","to":"12067799294","uuid":"Call2","conversation_uuid":"CON-f90649c3-cbf3-42d6-9ab1-01503befac1c"}`,
 			expectedStatus: 200,
 			expectedResponse: `[
@@ -548,7 +548,7 @@ func TestVonageIVR(t *testing.T) {
 		},
 		{
 			label:          "new call dtmf 1",
-			url:            fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=2&wait_type=gather", testdata.VonageChannel.UUID),
+			url:            fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=2&wait_type=gather", testdb.VonageChannel.UUID),
 			body:           `{"dtmf":"1","timed_out":false,"uuid":"Call2","conversation_uuid":"CON-f90649c3-cbf3-42d6-9ab1-01503befac1c","timestamp":"2019-04-01T21:08:54.680Z"}`,
 			expectedStatus: 200,
 			expectedResponse: `[
@@ -571,21 +571,21 @@ func TestVonageIVR(t *testing.T) {
 		},
 		{
 			label:            "new call ended",
-			url:              fmt.Sprintf("/ivr/c/%s/status", testdata.VonageChannel.UUID),
+			url:              fmt.Sprintf("/ivr/c/%s/status", testdb.VonageChannel.UUID),
 			body:             `{"end_time":"2019-04-01T21:08:56.000Z","uuid":"Call2","network":"310260","duration":"50","start_time":"2019-04-01T21:08:42.000Z","rate":"0.01270000","price":"0.00296333","from":"12482780345","to":"12067799294","conversation_uuid":"CON-f90649c3-cbf3-42d6-9ab1-01503befac1c","status":"completed","direction":"outbound","timestamp":"2019-04-01T21:08:56.342Z"}`,
 			expectedStatus:   200,
 			expectedResponse: `{"_message":"status updated: D"}`,
 		},
 		{
 			label:            "incoming call",
-			url:              fmt.Sprintf("/ivr/c/%s/incoming", testdata.VonageChannel.UUID),
+			url:              fmt.Sprintf("/ivr/c/%s/incoming", testdb.VonageChannel.UUID),
 			body:             `{"from":"12482780345","to":"12067799294","uuid":"Call4","conversation_uuid":"CON-f90649c3-cbf3-42d6-9ab1-01503befac1c"}`,
 			expectedStatus:   200,
 			expectedResponse: `{"_message":"missed call handled"}`,
 		},
 		{
 			label:            "failed call",
-			url:              fmt.Sprintf("/ivr/c/%s/status", testdata.VonageChannel.UUID),
+			url:              fmt.Sprintf("/ivr/c/%s/status", testdb.VonageChannel.UUID),
 			body:             `{"end_time":"2019-04-01T21:08:56.000Z","uuid":"Call4","network":"310260","duration":"50","start_time":"2019-04-01T21:08:42.000Z","rate":"0.01270000","price":"0.00296333","from":"12482780345","to":"12067799294","conversation_uuid":"CON-f90649c3-cbf3-42d6-9ab1-01503befac1c","status":"failed","direction":"outbound","timestamp":"2019-04-01T21:08:56.342Z"}`,
 			expectedStatus:   200,
 			expectedResponse: `{"_message":"no flow start found, status updated: F"}`,
@@ -617,34 +617,34 @@ func TestVonageIVR(t *testing.T) {
 	}
 
 	// check our final state of sessions, runs, msgs, calls
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE contact_id = $1 AND status = 'C'`, testdata.Cathy.ID).Returns(1)
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowrun WHERE contact_id = $1 AND status = 'C'`, testdata.Cathy.ID).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE contact_id = $1 AND status = 'C'`, testdb.Cathy.ID).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowrun WHERE contact_id = $1 AND status = 'C'`, testdb.Cathy.ID).Returns(1)
 
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM ivr_call WHERE contact_id = $1 AND status = 'D' AND duration = 50`, testdata.Cathy.ID).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM ivr_call WHERE contact_id = $1 AND status = 'D' AND duration = 50`, testdb.Cathy.ID).Returns(1)
 
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE contact_id = $1 AND msg_type = 'V' AND status = 'W' AND direction = 'O'`, testdata.Cathy.ID).Returns(9)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE contact_id = $1 AND msg_type = 'V' AND status = 'W' AND direction = 'O'`, testdb.Cathy.ID).Returns(9)
 
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM ivr_call WHERE status = 'F' AND direction = 'I'`).Returns(1)
 
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE contact_id = $1 AND msg_type = 'V' AND status = 'H' AND direction = 'I'`, testdata.Cathy.ID).Returns(5)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE contact_id = $1 AND msg_type = 'V' AND status = 'H' AND direction = 'I'`, testdb.Cathy.ID).Returns(5)
 
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE contact_id = $1 AND msg_type = 'V' AND ((status = 'H' AND direction = 'I') OR (status = 'W' AND direction = 'O'))`, testdata.George.ID).Returns(3)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE contact_id = $1 AND msg_type = 'V' AND ((status = 'H' AND direction = 'I') OR (status = 'W' AND direction = 'O'))`, testdb.George.ID).Returns(3)
 
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM ivr_call WHERE status = 'D' AND contact_id = $1`, testdata.George.ID).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM ivr_call WHERE status = 'D' AND contact_id = $1`, testdb.George.ID).Returns(1)
 
 	// check the generated channel logs
-	logs := getCallLogs(t, ctx, rt, testdata.VonageChannel)
+	logs := getCallLogs(t, ctx, rt, testdb.VonageChannel)
 	assert.Len(t, logs, 16)
 	for _, log := range logs {
 		assert.NotContains(t, string(jsonx.MustMarshal(log)), "BEGIN PRIVATE KEY") // private key redacted
 	}
 
 	// and 2 unattached logs in the database
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM channels_channellog WHERE channel_id = $1`, testdata.VonageChannel.ID).Returns(2)
-	assertdb.Query(t, rt.DB, `SELECT array_agg(log_type ORDER BY id) FROM channels_channellog WHERE channel_id = $1`, testdata.VonageChannel.ID).Returns([]byte(`{ivr_status,ivr_status}`))
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM channels_channellog WHERE channel_id = $1`, testdb.VonageChannel.ID).Returns(2)
+	assertdb.Query(t, rt.DB, `SELECT array_agg(log_type ORDER BY id) FROM channels_channellog WHERE channel_id = $1`, testdb.VonageChannel.ID).Returns([]byte(`{ivr_status,ivr_status}`))
 }
 
-func getCallLogs(t *testing.T, ctx context.Context, rt *runtime.Runtime, ch *testdata.Channel) []*httpx.Log {
+func getCallLogs(t *testing.T, ctx context.Context, rt *runtime.Runtime, ch *testdb.Channel) []*httpx.Log {
 	var logUUIDs []clogs.UUID
 	err := rt.DB.Select(&logUUIDs, `SELECT unnest(log_uuids) FROM ivr_call ORDER BY id`)
 	require.NoError(t, err)

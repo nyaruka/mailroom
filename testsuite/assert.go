@@ -12,7 +12,7 @@ import (
 	"github.com/nyaruka/goflow/test"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/runtime"
-	"github.com/nyaruka/mailroom/testsuite/testdata"
+	"github.com/nyaruka/mailroom/testsuite/testdb"
 	"github.com/nyaruka/mailroom/utils/queues"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -53,7 +53,7 @@ func AssertCourierQueues(t *testing.T, expected map[string][]int, errMsg ...any)
 }
 
 // AssertContactTasks asserts that the given contact has the given tasks queued for them
-func AssertContactTasks(t *testing.T, org *testdata.Org, contact *testdata.Contact, expected []string, msgAndArgs ...any) {
+func AssertContactTasks(t *testing.T, org *testdb.Org, contact *testdb.Contact, expected []string, msgAndArgs ...any) {
 	rc := getRC()
 	defer rc.Close()
 
@@ -85,7 +85,7 @@ func AssertBatchTasks(t *testing.T, orgID models.OrgID, expected map[string]int,
 	assert.Equal(t, expected, actual, msgAndArgs...)
 }
 
-func AssertContactInFlow(t *testing.T, rt *runtime.Runtime, contact *testdata.Contact, flow *testdata.Flow) {
+func AssertContactInFlow(t *testing.T, rt *runtime.Runtime, contact *testdb.Contact, flow *testdb.Flow) {
 	// check contact has a single waiting session
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE contact_id = $1 AND status = 'W'`, contact.ID).Returns(1)
 
@@ -114,7 +114,7 @@ func AssertContactFires(t *testing.T, rt *runtime.Runtime, contactID models.Cont
 	assert.Equal(t, expected, actual)
 }
 
-func AssertDailyCounts(t *testing.T, rt *runtime.Runtime, org *testdata.Org, expected map[string]int) {
+func AssertDailyCounts(t *testing.T, rt *runtime.Runtime, org *testdb.Org, expected map[string]int) {
 	var counts []models.DailyCount
 	err := rt.DB.Select(&counts, `SELECT day, scope, SUM(count) AS count FROM orgs_dailycount WHERE org_id = $1 GROUP BY day, scope`, org.ID)
 	require.NoError(t, err)

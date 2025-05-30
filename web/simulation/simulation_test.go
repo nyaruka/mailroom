@@ -13,7 +13,7 @@ import (
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/testsuite"
-	"github.com/nyaruka/mailroom/testsuite/testdata"
+	"github.com/nyaruka/mailroom/testsuite/testdb"
 	"github.com/nyaruka/mailroom/web"
 
 	"github.com/stretchr/testify/assert"
@@ -214,13 +214,13 @@ func TestServer(t *testing.T) {
 	var session json.RawMessage
 
 	// add a trigger for our campaign flow with 'trigger'
-	testdata.InsertKeywordTrigger(rt, testdata.Org1, testdata.BackgroundFlow, []string{"trigger"}, models.MatchOnly, nil, nil, nil)
+	testdb.InsertKeywordTrigger(rt, testdb.Org1, testdb.BackgroundFlow, []string{"trigger"}, models.MatchOnly, nil, nil, nil)
 
 	// and a trigger which will trigger an IVR flow
-	testdata.InsertKeywordTrigger(rt, testdata.Org1, testdata.IVRFlow, []string{"ivr"}, models.MatchOnly, nil, nil, nil)
+	testdb.InsertKeywordTrigger(rt, testdb.Org1, testdb.IVRFlow, []string{"ivr"}, models.MatchOnly, nil, nil, nil)
 
 	// also add a catch all
-	testdata.InsertCatchallTrigger(rt, testdata.Org1, testdata.BackgroundFlow, nil, nil, nil)
+	testdb.InsertCatchallTrigger(rt, testdb.Org1, testdb.BackgroundFlow, nil, nil, nil)
 
 	tcs := []struct {
 		URL              string

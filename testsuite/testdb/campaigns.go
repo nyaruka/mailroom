@@ -1,4 +1,4 @@
-package testdata
+package testdb
 
 import (
 	"github.com/nyaruka/gocommon/uuids"
