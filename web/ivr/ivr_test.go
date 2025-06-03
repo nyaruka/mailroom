@@ -638,10 +638,6 @@ func TestVonageIVR(t *testing.T) {
 	for _, log := range logs {
 		assert.NotContains(t, string(jsonx.MustMarshal(log)), "BEGIN PRIVATE KEY") // private key redacted
 	}
-
-	// and 2 unattached logs in the database
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM channels_channellog WHERE channel_id = $1`, testdb.VonageChannel.ID).Returns(2)
-	assertdb.Query(t, rt.DB, `SELECT array_agg(log_type ORDER BY id) FROM channels_channellog WHERE channel_id = $1`, testdb.VonageChannel.ID).Returns([]byte(`{ivr_status,ivr_status}`))
 }
 
 func getCallLogs(t *testing.T, ctx context.Context, rt *runtime.Runtime, ch *testdb.Channel) []*httpx.Log {

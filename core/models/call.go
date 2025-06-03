@@ -364,8 +364,6 @@ func (c *Call) AttachLog(ctx context.Context, db DBorTx, clog *ChannelLog) error
 	if err != nil {
 		return fmt.Errorf("error attaching log to call: %w", err)
 	}
-
-	clog.attached = true
 	return nil
 }
 

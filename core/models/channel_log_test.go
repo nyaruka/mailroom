@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/nyaruka/gocommon/dbutil/assertdb"
+	"github.com/nyaruka/gocommon/aws/dynamo"
 	"github.com/nyaruka/gocommon/httpx"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/testsuite"
@@ -52,13 +52,15 @@ func TestChannelLogsOutgoing(t *testing.T) {
 	err = models.InsertChannelLogs(ctx, rt, []*models.ChannelLog{clog1, clog2})
 	require.NoError(t, err)
 
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM channels_channellog`).Returns(2)
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM channels_channellog WHERE log_type = 'ivr_start' AND http_logs -> 0 ->> 'url' = 'http://ivr.com/start' AND is_error = FALSE AND channel_id = $1`, channel.ID()).Returns(1)
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM channels_channellog WHERE log_type = 'ivr_hangup' AND http_logs -> 0 ->> 'url' = 'http://ivr.com/hangup' AND is_error = TRUE AND channel_id = $1`, channel.ID()).Returns(1)
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM channels_channellog WHERE http_logs::text LIKE '%sesame%'`).Returns(0)
-
 	// read log back from DynamoDB
 	item, err := rt.Dynamo.Main.GetItem(ctx, clog1.DynamoKey())
 	require.NoError(t, err)
 	assert.Equal(t, string(models.ChannelLogTypeIVRStart), item.Data["type"])
+
+	var dataGZ map[string]any
+	err = dynamo.UnmarshalJSONGZ(item.DataGZ, &dataGZ)
+	require.NoError(t, err)
+	assert.Len(t, dataGZ["http_logs"], 1)
+
+	assert.NotContains(t, string(item.DataGZ), "sesame", "redacted value should not be present in DynamoDB log")
 }
