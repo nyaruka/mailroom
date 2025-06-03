@@ -52,6 +52,10 @@ func TestChannelLogsOutgoing(t *testing.T) {
 	err = models.InsertChannelLogs(ctx, rt, []*models.ChannelLog{clog1, clog2})
 	require.NoError(t, err)
 
+	count, err := rt.Dynamo.Main.Count(ctx)
+	require.NoError(t, err)
+	assert.Equal(t, 2, count)
+
 	// read log back from DynamoDB
 	item, err := rt.Dynamo.Main.GetItem(ctx, clog1.DynamoKey())
 	require.NoError(t, err)
