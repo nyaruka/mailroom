@@ -1,3 +1,8 @@
+v10.1.132 (2025-06-03)
+-------------------------
+ * Stop writing channel logs to database and add is_error data field
+ * Rename testdata package to testdb
+
 v10.1.131 (2025-05-29)
 -------------------------
  * Create and delete session contact fires via hook
