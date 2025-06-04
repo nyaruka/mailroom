@@ -51,10 +51,11 @@ func (f *Foreman) Start() {
 
 // Stop stops the foreman and all its workers, the wait group of the worker can be used to track progress
 func (f *Foreman) Stop() {
+	close(f.quit)
+	
 	for _, worker := range f.workers {
 		worker.Stop()
 	}
-	close(f.quit)
 
 	slog.Info("foreman stopping", "comp", "foreman", "queue", f.queue)
 }
