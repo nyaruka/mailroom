@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/nyaruka/gocommon/uuids"
+	"github.com/nyaruka/goflow/flows/definition"
 	"github.com/nyaruka/mailroom/core/goflow"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/mailroom/web"
@@ -37,11 +38,16 @@ func handleClone(ctx context.Context, rt *runtime.Runtime, r *cloneRequest) (any
 		return nil, 0, fmt.Errorf("unable to read flow: %w", err)
 	}
 
+	// do a JSON to JSON migration of the definition
+	migrated, err := goflow.MigrateDefinition(rt.Config, cloneJSON, definition.CurrentSpecVersion)
+	if err != nil {
+		return nil, 0, fmt.Errorf("unable to migrate flow: %w", err)
+	}
+
 	// read flow to check that cloning produced something valid
-	_, err = goflow.ReadFlow(rt.Config, cloneJSON)
+	_, err = goflow.ReadFlow(rt.Config, migrated)
 	if err != nil {
 		return nil, 0, fmt.Errorf("unable to clone flow: %w", err)
 	}
-
-	return json.RawMessage(cloneJSON), http.StatusOK, nil
+	return json.RawMessage(migrated), http.StatusOK, nil
 }
