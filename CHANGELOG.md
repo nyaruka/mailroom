@@ -1,3 +1,9 @@
+v10.1.133 (2025-06-04)
+-------------------------
+ * Update gocommon
+ * Fix prometheus endpoint to match channel count changes
+ * Fix race condition in worker shutdown to prevent 'send on closed channel' panic
+
 v10.1.132 (2025-06-03)
 -------------------------
  * Stop writing channel logs to database and add is_error data field
