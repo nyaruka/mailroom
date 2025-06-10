@@ -1,3 +1,8 @@
+v10.1.134 (2025-06-10)
+-------------------------
+ * Rework how we do message retries
+ * Update to latest redisx that requires passing of context
+
 v10.1.133 (2025-06-04)
 -------------------------
  * Update gocommon
