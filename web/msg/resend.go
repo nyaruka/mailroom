@@ -39,7 +39,7 @@ func handleResend(ctx context.Context, rt *runtime.Runtime, r *resendRequest) (a
 		return nil, 0, fmt.Errorf("error loading messages to resend: %w", err)
 	}
 
-	resends, err := models.ResendMessages(ctx, rt, oa, msgs)
+	resends, err := models.PrepareMessagesForResend(ctx, rt, oa, msgs)
 	if err != nil {
 		return nil, 0, fmt.Errorf("error resending messages: %w", err)
 	}
