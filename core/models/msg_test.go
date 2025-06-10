@@ -307,7 +307,7 @@ func TestResendMessages(t *testing.T) {
 	require.NoError(t, err)
 
 	// resend both msgs
-	resent, err := models.ResendMessages(ctx, rt, oa, msgs)
+	resent, err := models.PrepareMessagesForResend(ctx, rt, oa, msgs)
 	require.NoError(t, err)
 
 	assert.Len(t, resent, 3) // only #1, #2 and #3 can be resent
