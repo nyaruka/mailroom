@@ -42,7 +42,7 @@ func TestLockContacts(t *testing.T) {
 	assertredis.Exists(t, rc, "lock:c:1:102")
 	assertredis.Exists(t, rc, "lock:c:1:103")
 
-	err = clocks.Unlock(rt, oa, locks)
+	err = clocks.Unlock(ctx, rt, oa, locks)
 	assert.NoError(t, err)
 
 	assertredis.NotExists(t, rc, "lock:c:1:101")
@@ -68,7 +68,7 @@ func TestLockContacts(t *testing.T) {
 
 	// try to get locks for everyone.. we should get 101 instantly but we'll run out of time waiting for the rest
 	_, _, err = clocks.TryToLock(ctx2, rt, oa, []models.ContactID{101, 102, 103, 104}, time.Second)
-	assert.EqualError(t, err, "context deadline exceeded")
+	assert.EqualError(t, err, "error attempting to grab lock: error trying to get lock: context deadline exceeded")
 
 	// call should have completed in just over the context deadline
 	assert.Less(t, time.Since(start), time.Second*3)

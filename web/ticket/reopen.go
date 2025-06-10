@@ -76,7 +76,7 @@ func tryToLockAndReopen(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 
 	locked := slices.Collect(maps.Keys(locks))
 
-	defer clocks.Unlock(rt, oa, locks)
+	defer clocks.Unlock(ctx, rt, oa, locks)
 
 	// load our contacts
 	contacts, err := models.LoadContacts(ctx, rt.DB, oa, locked)

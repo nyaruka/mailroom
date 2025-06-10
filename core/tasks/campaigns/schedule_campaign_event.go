@@ -41,11 +41,11 @@ func (t *ScheduleCampaignEventTask) WithAssets() models.Refresh {
 // Perform creates the actual event fires to schedule the given campaign event
 func (t *ScheduleCampaignEventTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets) error {
 	locker := redisx.NewLocker(fmt.Sprintf(scheduleLockKey, t.CampaignEventID), time.Hour)
-	lock, err := locker.Grab(rt.RP, time.Minute*5)
+	lock, err := locker.Grab(ctx, rt.RP, time.Minute*5)
 	if err != nil {
 		return fmt.Errorf("error grabbing lock to schedule campaign event %d: %w", t.CampaignEventID, err)
 	}
-	defer locker.Release(rt.RP, lock)
+	defer locker.Release(ctx, rt.RP, lock)
 
 	err = models.ScheduleCampaignEvent(ctx, rt, oa, t.CampaignEventID)
 	if err != nil {

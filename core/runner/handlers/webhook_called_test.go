@@ -147,11 +147,11 @@ func TestUnhealthyWebhookCalls(t *testing.T) {
 	healthySeries := redisx.NewIntervalSeries("webhooks:healthy", time.Minute*5, 4)
 	unhealthySeries := redisx.NewIntervalSeries("webhooks:unhealthy", time.Minute*5, 4)
 
-	total, err := healthySeries.Total(rc, "1bff8fe4-0714-433e-96a3-437405bf21cf")
+	total, err := healthySeries.Total(ctx, rc, "1bff8fe4-0714-433e-96a3-437405bf21cf")
 	assert.NoError(t, err)
 	assert.Equal(t, int64(2), total)
 
-	total, err = unhealthySeries.Total(rc, "1bff8fe4-0714-433e-96a3-437405bf21cf")
+	total, err = unhealthySeries.Total(ctx, rc, "1bff8fe4-0714-433e-96a3-437405bf21cf")
 	assert.NoError(t, err)
 	assert.Equal(t, int64(0), total)
 
@@ -162,9 +162,9 @@ func TestUnhealthyWebhookCalls(t *testing.T) {
 	}
 
 	// still no incident tho..
-	total, _ = healthySeries.Total(rc, "1bff8fe4-0714-433e-96a3-437405bf21cf")
+	total, _ = healthySeries.Total(ctx, rc, "1bff8fe4-0714-433e-96a3-437405bf21cf")
 	assert.Equal(t, int64(2), total)
-	total, _ = unhealthySeries.Total(rc, "1bff8fe4-0714-433e-96a3-437405bf21cf")
+	total, _ = unhealthySeries.Total(ctx, rc, "1bff8fe4-0714-433e-96a3-437405bf21cf")
 	assert.Equal(t, int64(9), total)
 
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM notifications_incident WHERE incident_type = 'webhooks:unhealthy'`).Returns(0)
@@ -172,9 +172,9 @@ func TestUnhealthyWebhookCalls(t *testing.T) {
 	// however 1 more bad call means this node is considered unhealthy
 	handlers.RunFlowAndApplyEvents(t, ctx, rt, env, eng, oa, flowRef, cathy)
 
-	total, _ = healthySeries.Total(rc, "1bff8fe4-0714-433e-96a3-437405bf21cf")
+	total, _ = healthySeries.Total(ctx, rc, "1bff8fe4-0714-433e-96a3-437405bf21cf")
 	assert.Equal(t, int64(2), total)
-	total, _ = unhealthySeries.Total(rc, "1bff8fe4-0714-433e-96a3-437405bf21cf")
+	total, _ = unhealthySeries.Total(ctx, rc, "1bff8fe4-0714-433e-96a3-437405bf21cf")
 	assert.Equal(t, int64(10), total)
 
 	// and now we have an incident

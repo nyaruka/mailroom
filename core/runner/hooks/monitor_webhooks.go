@@ -38,11 +38,11 @@ func (h *monitorWebhooks) Execute(ctx context.Context, rt *runtime.Runtime, tx *
 	// record events against each node and determine if it's healthy
 	for nodeUUID, events := range eventsByNode {
 		node := &models.WebhookNode{UUID: nodeUUID}
-		if err := node.Record(rt, events); err != nil {
+		if err := node.Record(ctx, rt, events); err != nil {
 			return fmt.Errorf("error recording events for webhook node: %w", err)
 		}
 
-		healthy, err := node.Healthy(rt)
+		healthy, err := node.Healthy(ctx, rt)
 		if err != nil {
 			return fmt.Errorf("error getting health of webhook node: %w", err)
 		}

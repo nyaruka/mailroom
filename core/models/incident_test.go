@@ -98,12 +98,12 @@ func TestGetOpenIncidents(t *testing.T) {
 }
 
 func TestWebhookNode(t *testing.T) {
-	_, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime()
 
 	defer testsuite.Reset(testsuite.ResetRedis)
 
 	node := &models.WebhookNode{UUID: "3c703019-8c92-4d28-9be0-a926a934486b"}
-	healthy, err := node.Healthy(rt)
+	healthy, err := node.Healthy(ctx, rt)
 	assert.NoError(t, err)
 	assert.True(t, healthy)
 
@@ -118,26 +118,26 @@ func TestWebhookNode(t *testing.T) {
 	}
 
 	// record 10 healthy calls
-	err = node.Record(rt, createWebhookEvents(10, time.Second*1))
+	err = node.Record(ctx, rt, createWebhookEvents(10, time.Second*1))
 	assert.NoError(t, err)
 
-	healthy, err = node.Healthy(rt)
+	healthy, err = node.Healthy(ctx, rt)
 	assert.NoError(t, err)
 	assert.True(t, healthy)
 
 	// record 5 unhealthy calls
-	err = node.Record(rt, createWebhookEvents(5, time.Second*30))
+	err = node.Record(ctx, rt, createWebhookEvents(5, time.Second*30))
 	assert.NoError(t, err)
 
-	healthy, err = node.Healthy(rt)
+	healthy, err = node.Healthy(ctx, rt)
 	assert.NoError(t, err)
 	assert.True(t, healthy)
 
 	// record another 5 unhealthy calls
-	err = node.Record(rt, createWebhookEvents(5, time.Second*30))
+	err = node.Record(ctx, rt, createWebhookEvents(5, time.Second*30))
 	assert.NoError(t, err)
 
-	healthy, err = node.Healthy(rt)
+	healthy, err = node.Healthy(ctx, rt)
 	assert.NoError(t, err)
 	assert.False(t, healthy)
 }

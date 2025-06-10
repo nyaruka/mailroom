@@ -26,7 +26,7 @@ require (
 	github.com/nyaruka/gocommon v1.64.1
 	github.com/nyaruka/goflow v0.246.6
 	github.com/nyaruka/null/v3 v3.0.0
-	github.com/nyaruka/redisx v0.10.0
+	github.com/nyaruka/redisx v0.11.0
 	github.com/nyaruka/rp-indexer/v10 v10.1.1
 	github.com/openai/openai-go v1.0.0
 	github.com/patrickmn/go-cache v2.1.0+incompatible
@@ -127,12 +127,12 @@ require (
 	go.opentelemetry.io/otel/sdk/metric v1.35.0 // indirect
 	go.opentelemetry.io/otel/trace v1.35.0 // indirect
 	golang.org/x/crypto v0.38.0 // indirect
-	golang.org/x/exp v0.0.0-20250531010427-b6e5de432a8b // indirect
+	golang.org/x/exp v0.0.0-20250606033433-dcc06ee1d476 // indirect
 	golang.org/x/net v0.40.0 // indirect
 	golang.org/x/oauth2 v0.30.0 // indirect
-	golang.org/x/sync v0.14.0 // indirect
+	golang.org/x/sync v0.15.0 // indirect
 	golang.org/x/sys v0.33.0 // indirect
-	golang.org/x/text v0.25.0 // indirect
+	golang.org/x/text v0.26.0 // indirect
 	golang.org/x/time v0.11.0 // indirect
 	google.golang.org/appengine/v2 v2.0.6 // indirect
 	google.golang.org/genproto v0.0.0-20250519155744-55703ea1f237 // indirect

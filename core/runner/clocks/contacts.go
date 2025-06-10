@@ -20,16 +20,9 @@ func TryToLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, i
 	success := false
 
 	for _, contactID := range ids {
-		// error if context has finished before we have
-		select {
-		case <-ctx.Done():
-			return nil, nil, ctx.Err()
-		default:
-		}
-
 		locker := getContactLocker(oa.OrgID(), contactID)
 
-		lock, err := locker.Grab(rt.RP, retry)
+		lock, err := locker.Grab(ctx, rt.RP, retry)
 		if err != nil {
 			return nil, nil, fmt.Errorf("error attempting to grab lock: %w", err)
 		}
@@ -45,7 +38,7 @@ func TryToLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, i
 		// if we error we want to release all locks on way out
 		defer func() {
 			if !success {
-				locker.Release(rt.RP, lock)
+				locker.Release(context.Background(), rt.RP, lock)
 			}
 		}()
 	}
@@ -55,11 +48,11 @@ func TryToLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, i
 }
 
 // Unlock unlocks the given contacts using the given lock values
-func Unlock(rt *runtime.Runtime, oa *models.OrgAssets, locks map[models.ContactID]string) error {
+func Unlock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, locks map[models.ContactID]string) error {
 	for contactID, lock := range locks {
 		locker := getContactLocker(oa.OrgID(), contactID)
 
-		err := locker.Release(rt.RP, lock)
+		err := locker.Release(ctx, rt.RP, lock)
 		if err != nil {
 			return err
 		}
@@ -67,10 +60,10 @@ func Unlock(rt *runtime.Runtime, oa *models.OrgAssets, locks map[models.ContactI
 	return nil
 }
 
-func IsLocked(rt *runtime.Runtime, oa *models.OrgAssets, contactID models.ContactID) (bool, error) {
+func IsLocked(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contactID models.ContactID) (bool, error) {
 	locker := getContactLocker(oa.OrgID(), contactID)
 
-	locked, err := locker.IsLocked(rt.RP)
+	locked, err := locker.IsLocked(ctx, rt.RP)
 	if err != nil {
 		return false, fmt.Errorf("error checking if contact locked: %w", err)
 	}

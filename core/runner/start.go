@@ -67,7 +67,7 @@ func tryToStartWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 	locked := slices.Collect(maps.Keys(locks))
 
 	// whatever happens, we need to unlock the contacts
-	defer clocks.Unlock(rt, oa, locks)
+	defer clocks.Unlock(ctx, rt, oa, locks)
 
 	// load our locked contacts
 	contacts, err := models.LoadContacts(ctx, rt.ReadonlyDB, oa, locked)
@@ -103,7 +103,7 @@ func StartSessions(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsset
 	sa := oa.SessionAssets()
 
 	// for sanity, check that contacts have been locked
-	lockCheck, _ := clocks.IsLocked(rt, oa, contacts[0].ID())
+	lockCheck, _ := clocks.IsLocked(ctx, rt, oa, contacts[0].ID())
 	if !lockCheck {
 		slog.Error("starting session for contact that isn't locked", "contact", contacts[0].UUID())
 	}

@@ -61,7 +61,7 @@ func (c *EndIncidentsCron) checkWebhookIncident(ctx context.Context, rt *runtime
 
 	for _, nodeUUID := range nodeUUIDs {
 		node := models.WebhookNode{UUID: flows.NodeUUID(nodeUUID)}
-		healthy, err := node.Healthy(rt)
+		healthy, err := node.Healthy(ctx, rt)
 		if err != nil {
 			return false, fmt.Errorf("error getting health of webhook nodes: %w", err)
 		}
