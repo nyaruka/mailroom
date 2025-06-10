@@ -20,13 +20,6 @@ func TryToLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, i
 	success := false
 
 	for _, contactID := range ids {
-		// error if context has finished before we have
-		select {
-		case <-ctx.Done():
-			return nil, nil, ctx.Err()
-		default:
-		}
-
 		locker := getContactLocker(oa.OrgID(), contactID)
 
 		lock, err := locker.Grab(ctx, rt.RP, retry)
@@ -45,7 +38,7 @@ func TryToLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, i
 		// if we error we want to release all locks on way out
 		defer func() {
 			if !success {
-				locker.Release(ctx, rt.RP, lock)
+				locker.Release(context.Background(), rt.RP, lock)
 			}
 		}()
 	}

@@ -670,6 +670,40 @@ func updateMessageStatus(ctx context.Context, db DBorTx, msgs []*Msg, status Msg
 	return BulkQuery(ctx, "updating message status", db, sqlUpdateMsgStatus, is)
 }
 
+// PrepareMessagesForRetry prepares messages for retrying by fetching the URN and marking them as QUEUED
+func PrepareMessagesForRetry(ctx context.Context, db *sqlx.DB, msgs []*Msg) ([]*MsgOut, error) {
+	ids := make([]URNID, 0, len(msgs))
+	for _, s := range msgs {
+		ids = append(ids, s.ContactURNID())
+	}
+
+	cus, err := LoadContactURNs(ctx, db, ids)
+	if err != nil {
+		return nil, fmt.Errorf("error looking up contact URNs fo retries: %w", err)
+	}
+
+	urnsByID := make(map[URNID]*ContactURN, len(cus))
+	for _, u := range cus {
+		urnsByID[u.ID] = u
+	}
+
+	retries := make([]*MsgOut, len(msgs))
+
+	for i, m := range msgs {
+		retries[i] = &MsgOut{
+			Msg: m,
+			URN: urnsByID[m.ContactURNID()],
+		}
+	}
+
+	// mark messages as QUEUED
+	if err := MarkMessagesQueued(ctx, db, msgs); err != nil {
+		return nil, fmt.Errorf("error updating messages for resending: %w", err)
+	}
+
+	return retries, nil
+}
+
 const sqlUpdateMsgForResending = `
 UPDATE msgs_msg m
    SET channel_id = r.channel_id::int,
@@ -686,8 +720,8 @@ UPDATE msgs_msg m
    SET channel_id = NULL, status = 'F', error_count = 0, failed_reason = 'D', sent_on = NULL, modified_on = NOW()
  WHERE id = ANY($1)`
 
-// ResendMessages prepares messages for resending by reselecting a channel and marking them as PENDING
-func ResendMessages(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, msgs []*Msg) ([]*MsgOut, error) {
+// PrepareMessagesForResend prepares messages for resending by reselecting a channel and marking them as QUEUED
+func PrepareMessagesForResend(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, msgs []*Msg) ([]*MsgOut, error) {
 	channels := oa.SessionAssets().Channels()
 
 	// for the bulk db updates
