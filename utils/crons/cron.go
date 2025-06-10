@@ -21,6 +21,8 @@ type Function func(context.Context, *runtime.Runtime) error
 // crons may be called more often than duration as there is no inter-process
 // coordination of cron fires. (this might be a worthy addition)
 func Start(rt *runtime.Runtime, wg *sync.WaitGroup, name string, allInstances bool, cronFunc Function, next func(time.Time) time.Time, timeout time.Duration, quit chan bool) {
+	ctx := context.TODO()
+
 	wg.Add(1) // add ourselves to the wait group
 
 	lockName := fmt.Sprintf("lock:%s_lock", name) // for historical reasons...
@@ -50,7 +52,7 @@ func Start(rt *runtime.Runtime, wg *sync.WaitGroup, name string, allInstances bo
 				lastFire = time.Now()
 
 				// try to get lock but don't retry - if lock is taken then task is still running or running on another instance
-				lock, err := locker.Grab(rt.RP, 0)
+				lock, err := locker.Grab(ctx, rt.RP, 0)
 				if err != nil {
 					break
 				}
@@ -66,7 +68,7 @@ func Start(rt *runtime.Runtime, wg *sync.WaitGroup, name string, allInstances bo
 				}
 
 				// release our lock
-				err = locker.Release(rt.RP, lock)
+				err = locker.Release(ctx, rt.RP, lock)
 				if err != nil {
 					log.Error("error releasing lock", "error", err)
 				}

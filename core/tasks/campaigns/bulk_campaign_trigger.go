@@ -94,7 +94,7 @@ func (t *BulkCampaignTriggerTask) Perform(ctx context.Context, rt *runtime.Runti
 		value := fmt.Sprintf("%s|%d", redisx.RandomBase64(10), cid)
 		score := float64(dates.Now().UnixNano()) / float64(1e9) // score is UNIX time as floating point
 
-		err := recentSet.Add(rc, value, score)
+		err := recentSet.Add(ctx, rc, value, score)
 		if err != nil {
 			return fmt.Errorf("error adding recent trigger to set: %w", err)
 		}

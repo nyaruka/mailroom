@@ -62,7 +62,7 @@ func (t *HandleContactEventTask) Perform(ctx context.Context, rt *runtime.Runtim
 		return nil
 	}
 
-	defer clocks.Unlock(rt, oa, locks)
+	defer clocks.Unlock(ctx, rt, oa, locks)
 
 	// read all the events for this contact, one by one
 	contactQ := fmt.Sprintf("c:%d:%d", oa.OrgID(), t.ContactID)

@@ -42,7 +42,7 @@ func TestLockContacts(t *testing.T) {
 	assertredis.Exists(t, rc, "lock:c:1:102")
 	assertredis.Exists(t, rc, "lock:c:1:103")
 
-	err = clocks.Unlock(rt, oa, locks)
+	err = clocks.Unlock(ctx, rt, oa, locks)
 	assert.NoError(t, err)
 
 	assertredis.NotExists(t, rc, "lock:c:1:101")

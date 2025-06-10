@@ -41,14 +41,14 @@ func TestEndIncidents(t *testing.T) {
 	}
 
 	node1 := &models.WebhookNode{UUID: "3c703019-8c92-4d28-9be0-a926a934486b"}
-	node1.Record(rt, createWebhookEvents(10, time.Second*30))
+	node1.Record(ctx, rt, createWebhookEvents(10, time.Second*30))
 
 	// create incident for org 1 based on node which is still unhealthy
 	id1, err := models.IncidentWebhooksUnhealthy(ctx, rt.DB, rt.RP, oa1, []flows.NodeUUID{"3c703019-8c92-4d28-9be0-a926a934486b"})
 	require.NoError(t, err)
 
 	node2 := &models.WebhookNode{UUID: "07d69080-475b-4395-aa96-ea6c28ea6cb6"}
-	node2.Record(rt, createWebhookEvents(10, time.Second*1))
+	node2.Record(ctx, rt, createWebhookEvents(10, time.Second*1))
 
 	// create incident for org 2 based on node which is now healthy
 	id2, err := models.IncidentWebhooksUnhealthy(ctx, rt.DB, rt.RP, oa2, []flows.NodeUUID{"07d69080-475b-4395-aa96-ea6c28ea6cb6"})

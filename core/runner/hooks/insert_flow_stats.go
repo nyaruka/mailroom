@@ -120,7 +120,7 @@ func (h *insertFlowStats) Execute(ctx context.Context, rt *runtime.Runtime, tx *
 			value := fmt.Sprintf("%s|%d|%s", recent.rnd, recent.contact.ID(), stringsx.TruncateEllipsis(recent.operand, 100))
 			score := float64(recent.time.UnixNano()) / float64(1e9) // score is UNIX time as floating point
 
-			err := recentSet.Add(rc, value, score)
+			err := recentSet.Add(ctx, rc, value, score)
 			if err != nil {
 				return fmt.Errorf("error adding recent contact to set: %w", err)
 			}
