@@ -4,11 +4,12 @@ import (
 	"testing"
 
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
-	_ "github.com/nyaruka/mailroom/core/handlers"
+	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/core/models"
+	_ "github.com/nyaruka/mailroom/core/runner/handlers"
 	"github.com/nyaruka/mailroom/core/tasks/interrupts"
 	"github.com/nyaruka/mailroom/testsuite"
-	"github.com/nyaruka/mailroom/testsuite/testdata"
+	"github.com/nyaruka/mailroom/testsuite/testdb"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -17,45 +18,37 @@ func TestInterrupts(t *testing.T) {
 
 	defer testsuite.Reset(testsuite.ResetData)
 
-	oa := testdata.Org1.Load(rt)
-
-	insertSession := func(org *testdata.Org, contact *testdata.Contact, flow *testdata.Flow, connectionID models.CallID) models.SessionID {
-		sessionID := testdata.InsertWaitingSession(rt, contact, models.FlowTypeMessaging, flow, connectionID)
-
-		// give session one waiting run too
-		testdata.InsertFlowRun(rt, org, sessionID, contact, flow, models.RunStatusWaiting, "")
-		return sessionID
-	}
+	oa := testdb.Org1.Load(rt)
 
 	tcs := []struct {
 		contactIDs       []models.ContactID
 		flowIDs          []models.FlowID
-		expectedStatuses [5]string
+		expectedStatuses [4]string
 	}{
 		{
 			contactIDs:       nil,
 			flowIDs:          nil,
-			expectedStatuses: [5]string{"W", "W", "W", "W", "I"},
+			expectedStatuses: [4]string{"W", "W", "W", "W"},
 		},
 		{
-			contactIDs:       []models.ContactID{testdata.Cathy.ID},
+			contactIDs:       []models.ContactID{testdb.Cathy.ID},
 			flowIDs:          nil,
-			expectedStatuses: [5]string{"I", "W", "W", "W", "I"},
+			expectedStatuses: [4]string{"I", "W", "W", "W"},
 		},
 		{
-			contactIDs:       []models.ContactID{testdata.Cathy.ID, testdata.George.ID},
+			contactIDs:       []models.ContactID{testdb.Cathy.ID, testdb.George.ID},
 			flowIDs:          nil,
-			expectedStatuses: [5]string{"I", "I", "W", "W", "I"},
+			expectedStatuses: [4]string{"I", "I", "W", "W"},
 		},
 		{
 			contactIDs:       nil,
-			flowIDs:          []models.FlowID{testdata.PickANumber.ID},
-			expectedStatuses: [5]string{"W", "W", "W", "I", "I"},
+			flowIDs:          []models.FlowID{testdb.PickANumber.ID},
+			expectedStatuses: [4]string{"W", "W", "W", "I"},
 		},
 		{
-			contactIDs:       []models.ContactID{testdata.Cathy.ID, testdata.George.ID},
-			flowIDs:          []models.FlowID{testdata.PickANumber.ID},
-			expectedStatuses: [5]string{"I", "I", "W", "I", "I"},
+			contactIDs:       []models.ContactID{testdb.Cathy.ID, testdb.George.ID},
+			flowIDs:          []models.FlowID{testdb.PickANumber.ID},
+			expectedStatuses: [4]string{"I", "I", "W", "I"},
 		},
 	}
 
@@ -64,22 +57,18 @@ func TestInterrupts(t *testing.T) {
 		rt.DB.MustExec(`UPDATE flows_flowsession SET status='C', ended_on=NOW() WHERE status = 'W';`)
 
 		// twilio call
-		twilioCallID := testdata.InsertCall(rt, testdata.Org1, testdata.TwilioChannel, testdata.Alexandria)
+		twilioCallID := testdb.InsertCall(rt, testdb.Org1, testdb.TwilioChannel, testdb.Alexandra)
 
-		sessionIDs := make([]models.SessionID, 5)
+		sessionUUIDs := make([]flows.SessionUUID, 4)
 
 		// insert our dummy contact sessions
-		sessionIDs[0] = insertSession(testdata.Org1, testdata.Cathy, testdata.Favorites, models.NilCallID)
-		sessionIDs[1] = insertSession(testdata.Org1, testdata.George, testdata.Favorites, models.NilCallID)
-		sessionIDs[2] = insertSession(testdata.Org1, testdata.Alexandria, testdata.Favorites, twilioCallID)
-		sessionIDs[3] = insertSession(testdata.Org1, testdata.Bob, testdata.PickANumber, models.NilCallID)
-
-		// a session we always end explicitly
-		sessionIDs[4] = insertSession(testdata.Org1, testdata.Bob, testdata.Favorites, models.NilCallID)
+		sessionUUIDs[0] = testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Cathy, models.FlowTypeMessaging, testdb.Favorites, models.NilCallID)
+		sessionUUIDs[1] = testdb.InsertWaitingSession(rt, testdb.Org1, testdb.George, models.FlowTypeMessaging, testdb.Favorites, models.NilCallID)
+		sessionUUIDs[2] = testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Alexandra, models.FlowTypeVoice, testdb.Favorites, twilioCallID)
+		sessionUUIDs[3] = testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Bob, models.FlowTypeMessaging, testdb.PickANumber, models.NilCallID)
 
 		// create our task
 		task := &interrupts.InterruptSessionsTask{
-			SessionIDs: []models.SessionID{sessionIDs[4]},
 			ContactIDs: tc.contactIDs,
 			FlowIDs:    tc.flowIDs,
 		}
@@ -89,14 +78,14 @@ func TestInterrupts(t *testing.T) {
 		assert.NoError(t, err)
 
 		// check session statuses are as expected
-		for j, sID := range sessionIDs {
+		for j, sUUID := range sessionUUIDs {
 			var status string
-			err := rt.DB.Get(&status, `SELECT status FROM flows_flowsession WHERE id = $1`, sID)
+			err := rt.DB.Get(&status, `SELECT status FROM flows_flowsession WHERE uuid = $1`, sUUID)
 			assert.NoError(t, err)
 			assert.Equal(t, tc.expectedStatuses[j], status, "%d: status mismatch for session #%d", i, j)
 
 			// check for runs with a different status to the session
-			assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowrun WHERE session_id = $1 AND status != $2`, sID, tc.expectedStatuses[j]).
+			assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowrun WHERE session_uuid = $1 AND status != $2`, sUUID, tc.expectedStatuses[j]).
 				Returns(0, "%d: unexpected un-interrupted runs for session #%d", i, j)
 		}
 	}

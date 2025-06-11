@@ -7,11 +7,10 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/gomodule/redigo/redis"
-	"github.com/jmoiron/sqlx"
 	"github.com/nyaruka/goflow/excellent/types"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/triggers"
+	"github.com/nyaruka/mailroom/core/ivr"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/runner"
 	"github.com/nyaruka/mailroom/core/tasks/handler"
@@ -44,8 +43,8 @@ func (t *EventReceivedTask) UseReadOnly() bool {
 	return !t.NewContact
 }
 
-func (t *EventReceivedTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contact *models.Contact) error {
-	_, err := t.handle(ctx, rt, oa, contact, nil)
+func (t *EventReceivedTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, mc *models.Contact) error {
+	_, err := t.handle(ctx, rt, oa, mc, nil)
 	if err != nil {
 		return err
 	}
@@ -55,15 +54,15 @@ func (t *EventReceivedTask) Perform(ctx context.Context, rt *runtime.Runtime, oa
 
 // Handle let's us reuse this task's code for handling incoming calls.. which we need to perform inline in the IVR web
 // handler rather than as a queued task.
-func (t *EventReceivedTask) Handle(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contact *models.Contact, call *models.Call) (*models.Session, error) {
-	return t.handle(ctx, rt, oa, contact, call)
+func (t *EventReceivedTask) Handle(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, mc *models.Contact, call *models.Call) (*runner.Scene, error) {
+	return t.handle(ctx, rt, oa, mc, call)
 }
 
-func (t *EventReceivedTask) handle(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contact *models.Contact, call *models.Call) (*models.Session, error) {
+func (t *EventReceivedTask) handle(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, mc *models.Contact, call *models.Call) (*runner.Scene, error) {
 	channel := oa.ChannelByID(t.ChannelID)
 
 	// if contact is blocked or channel no longer exists, nothing to do
-	if contact.Status() == models.ContactStatusBlocked || channel == nil {
+	if mc.Status() == models.ContactStatusBlocked || channel == nil {
 		return nil, nil
 	}
 
@@ -74,27 +73,27 @@ func (t *EventReceivedTask) handle(ctx context.Context, rt *runtime.Runtime, oa 
 	}
 
 	if t.EventType == models.EventTypeStopContact {
-		err := contact.Stop(ctx, rt.DB, oa)
+		err := mc.Stop(ctx, rt.DB, oa)
 		if err != nil {
 			return nil, fmt.Errorf("error stopping contact: %w", err)
 		}
 	}
 
 	if models.ContactSeenEvents[t.EventType] {
-		err := contact.UpdateLastSeenOn(ctx, rt.DB, t.CreatedOn)
+		err := mc.UpdateLastSeenOn(ctx, rt.DB, t.CreatedOn)
 		if err != nil {
 			return nil, fmt.Errorf("error updating contact last_seen_on: %w", err)
 		}
 	}
 
 	// make sure this URN is our highest priority (this is usually a noop)
-	err := contact.UpdatePreferredURN(ctx, rt.DB, oa, t.URNID, channel)
+	err := mc.UpdatePreferredURN(ctx, rt.DB, oa, t.URNID, channel)
 	if err != nil {
 		return nil, fmt.Errorf("error changing primary URN: %w", err)
 	}
 
 	// build our flow contact
-	flowContact, err := contact.FlowContact(oa)
+	flowContact, err := mc.EngineContact(oa)
 	if err != nil {
 		return nil, fmt.Errorf("error creating flow contact: %w", err)
 	}
@@ -142,15 +141,6 @@ func (t *EventReceivedTask) handle(ctx context.Context, rt *runtime.Runtime, oa 
 		return nil, nil
 	}
 
-	// if this is an IVR flow and we don't have a call, trigger that asynchronously
-	if flow.FlowType() == models.FlowTypeVoice && call == nil {
-		err = handler.TriggerIVRFlow(ctx, rt, oa.OrgID(), flow.ID(), []models.ContactID{contact.ID()}, nil)
-		if err != nil {
-			return nil, fmt.Errorf("error while triggering ivr flow: %w", err)
-		}
-		return nil, nil
-	}
-
 	// create our parameters, we just convert this from JSON
 	var params *types.XObject
 	if t.Extra != nil {
@@ -173,11 +163,11 @@ func (t *EventReceivedTask) handle(ctx context.Context, rt *runtime.Runtime, oa 
 	}
 
 	// build our flow trigger
-	tb := triggers.NewBuilder(oa.Env(), flow.Reference(), flowContact)
 	var trig flows.Trigger
+	tb := triggers.NewBuilder(oa.Env(), flow.Reference(), flowContact)
 
 	if t.EventType == models.EventTypeIncomingCall {
-		urn := contact.URNForID(t.URNID)
+		urn := mc.URNForID(t.URNID)
 		trig = tb.Channel(channel.Reference(), triggers.ChannelEventTypeIncomingCall).WithCall(urn).Build()
 	} else if t.EventType == models.EventTypeOptIn && flowOptIn != nil {
 		trig = tb.OptIn(flowOptIn, triggers.OptInEventTypeStarted).Build()
@@ -187,24 +177,23 @@ func (t *EventReceivedTask) handle(ctx context.Context, rt *runtime.Runtime, oa 
 		trig = tb.Channel(channel.Reference(), triggers.ChannelEventType(t.EventType)).WithParams(params).Build()
 	}
 
-	// if we have a channel connection we set the connection on the session before our event hooks fire
-	// so that IVR messages can be created with the right connection reference
-	var hook models.SessionCommitHook
-	if flow.FlowType() == models.FlowTypeVoice && call != nil {
-		hook = func(ctx context.Context, tx *sqlx.Tx, rp *redis.Pool, oa *models.OrgAssets, sessions []*models.Session) error {
-			for _, session := range sessions {
-				session.SetCall(call)
-			}
-			return nil
+	// if this is a voice flow, we request a call and wait for callback
+	if flow.FlowType() == models.FlowTypeVoice && call == nil {
+		if _, err := ivr.RequestCall(ctx, rt, oa, mc, trig); err != nil {
+			return nil, fmt.Errorf("error starting voice flow for contact: %w", err)
 		}
+		return nil, nil
 	}
 
-	sessions, err := runner.StartFlowForContacts(ctx, rt, oa, flow, []*models.Contact{contact}, []flows.Trigger{trig}, hook, flow.FlowType().Interrupts(), models.NilStartID)
+	sceneInit := func(s *runner.Scene) { s.Call = call }
+
+	scenes, err := runner.StartSessions(ctx, rt, oa, []*models.Contact{mc}, []flows.Trigger{trig}, flow.FlowType().Interrupts(), models.NilStartID, sceneInit)
 	if err != nil {
 		return nil, fmt.Errorf("error starting flow for contact: %w", err)
 	}
-	if len(sessions) == 0 {
+	if len(scenes) == 0 {
 		return nil, nil
 	}
-	return sessions[0], nil
+
+	return scenes[0], nil
 }

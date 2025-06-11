@@ -1,0 +1,98 @@
+[
+    {
+        "label": "illegal method",
+        "method": "GET",
+        "path": "/mr/llm/translate",
+        "status": 405,
+        "response": {
+            "error": "illegal method: GET"
+        }
+    },
+    {
+        "label": "invalid org_id",
+        "method": "POST",
+        "path": "/mr/llm/translate",
+        "body": {
+            "org_id": 1234,
+            "llm_id": 10002,
+            "from_language": "eng",
+            "to_language": "spa",
+            "text": "Hello world"
+        },
+        "status": 500,
+        "response": {
+            "error": "error loading org assets: error loading environment for org 1234: no org with id: 1234"
+        }
+    },
+    {
+        "label": "invalid llm_id",
+        "method": "POST",
+        "path": "/mr/llm/translate",
+        "body": {
+            "org_id": 1,
+            "llm_id": 6789,
+            "from_language": "eng",
+            "to_language": "spa",
+            "text": "Hello world"
+        },
+        "status": 500,
+        "response": {
+            "error": "no such LLM with ID 6789"
+        }
+    },
+    {
+        "label": "eng to spa using test LLM",
+        "method": "POST",
+        "path": "/mr/llm/translate",
+        "body": {
+            "org_id": 1,
+            "llm_id": 10002,
+            "from_language": "eng",
+            "to_language": "spa",
+            "text": "Hello world"
+        },
+        "status": 200,
+        "response": {
+            "text": "You asked:\n\nTranslate the input text from the language with the ISO code \"eng\" to the language with the ISO code \"spa\".\nAn \"@\" character indicates a variable expression and should be left untranslated.\nReturn only the translated text, without additional explanations.\nReturn \"<CANT>\" if you can't translate it.\n\nHello world",
+            "tokens_used": 123
+        }
+    },
+    {
+        "label": "und to spa using test LLM",
+        "method": "POST",
+        "path": "/mr/llm/translate",
+        "body": {
+            "org_id": 1,
+            "llm_id": 10002,
+            "from_language": "und",
+            "to_language": "spa",
+            "text": "Hello world"
+        },
+        "status": 200,
+        "response": {
+            "text": "You asked:\n\nTranslate the input text to the language with the ISO code \"spa\".\nAn \"@\" character indicates a variable expression and should be left untranslated.\nReturn only the translated text, without additional explanations.\nReturn \"<CANT>\" if you can't translate it.\n\nHello world",
+            "tokens_used": 123
+        }
+    },
+    {
+        "label": "trigger failure by LLM",
+        "method": "POST",
+        "path": "/mr/llm/translate",
+        "body": {
+            "org_id": 1,
+            "llm_id": 10002,
+            "from_language": "und",
+            "to_language": "spa",
+            "text": "\\return <CANT>"
+        },
+        "status": 422,
+        "response": {
+            "error": "unable to perform translation",
+            "code": "ai:reasoning",
+            "extra": {
+                "input": "\\return <CANT>",
+                "instructions": "Translate the input text to the language with the ISO code \"spa\".\nAn \"@\" character indicates a variable expression and should be left untranslated.\nReturn only the translated text, without additional explanations.\nReturn \"<CANT>\" if you can't translate it."
+            }
+        }
+    }
+]

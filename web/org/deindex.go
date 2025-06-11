@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/nyaruka/mailroom/core/crons"
 	"github.com/nyaruka/mailroom/core/models"
-	"github.com/nyaruka/mailroom/core/tasks/search"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/mailroom/web"
 )
@@ -35,7 +35,7 @@ func handleDeindex(ctx context.Context, rt *runtime.Runtime, r *deindexRequest) 
 		return nil, 0, fmt.Errorf("can't deindex active org #%d", r.OrgID)
 	}
 
-	if err := search.MarkForDeindexing(ctx, rt, r.OrgID); err != nil {
+	if err := crons.MarkOrgForDeindexing(ctx, rt, r.OrgID); err != nil {
 		return nil, 0, fmt.Errorf("error marking org #%d for de-indexing: %w", r.OrgID, err)
 	}
 

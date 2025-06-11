@@ -8,7 +8,7 @@ import (
 	"github.com/nyaruka/goflow/assets/static"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/testsuite"
-	"github.com/nyaruka/mailroom/testsuite/testdata"
+	"github.com/nyaruka/mailroom/testsuite/testdb"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -19,14 +19,14 @@ func TestAssets(t *testing.T) {
 
 	defer models.FlushCache()
 
-	oa, err := models.GetOrgAssets(ctx, rt, testdata.Org1.ID)
+	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 	require.NoError(t, err)
 
-	flow, err := oa.FlowByUUID(testdata.Favorites.UUID) // from db
+	flow, err := oa.FlowByUUID(testdb.Favorites.UUID) // from db
 	assert.NoError(t, err)
 	assert.Equal(t, "Favorites", flow.Name())
 
-	flow, err = oa.FlowByUUID(testdata.Favorites.UUID) // from cache
+	flow, err = oa.FlowByUUID(testdb.Favorites.UUID) // from cache
 	assert.NoError(t, err)
 	assert.Equal(t, "Favorites", flow.Name())
 
@@ -46,11 +46,11 @@ func TestAssets(t *testing.T) {
 	assert.Equal(t, err, models.ErrNotFound)
 	assert.Nil(t, flow)
 
-	dbFlow, err := oa.FlowByID(testdata.IVRFlow.ID) // from db
+	dbFlow, err := oa.FlowByID(testdb.IVRFlow.ID) // from db
 	assert.NoError(t, err)
 	assert.Equal(t, "IVR Flow", dbFlow.Name())
 
-	dbFlow, err = oa.FlowByID(testdata.IVRFlow.ID) // from cache
+	dbFlow, err = oa.FlowByID(testdb.IVRFlow.ID) // from cache
 	assert.NoError(t, err)
 	assert.Equal(t, "IVR Flow", dbFlow.Name())
 
@@ -62,7 +62,7 @@ func TestAssets(t *testing.T) {
 func TestCloneForSimulation(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
 
-	oa, err := models.GetOrgAssets(ctx, rt, testdata.Org1.ID)
+	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 	require.NoError(t, err)
 
 	newFavoritesDef := `{
@@ -72,7 +72,7 @@ func TestCloneForSimulation(t *testing.T) {
 	}`
 
 	newDefs := map[assets.FlowUUID]json.RawMessage{
-		testdata.Favorites.UUID: []byte(newFavoritesDef),
+		testdb.Favorites.UUID: []byte(newFavoritesDef),
 	}
 
 	testChannels := []assets.Channel{
@@ -84,7 +84,7 @@ func TestCloneForSimulation(t *testing.T) {
 	require.NoError(t, err)
 
 	// should get new definition
-	flow, err := clone.FlowByUUID(testdata.Favorites.UUID)
+	flow, err := clone.FlowByUUID(testdb.Favorites.UUID)
 	require.NoError(t, err)
 	assert.Equal(t, newFavoritesDef, string(flow.Definition()))
 
@@ -95,11 +95,11 @@ func TestCloneForSimulation(t *testing.T) {
 	assert.Equal(t, "Test Channel 2", testChannel2.Name())
 
 	// as well as the regular channels
-	vonage := clone.SessionAssets().Channels().Get(testdata.VonageChannel.UUID)
+	vonage := clone.SessionAssets().Channels().Get(testdb.VonageChannel.UUID)
 	assert.Equal(t, "Vonage", vonage.Name())
 
 	// original assets still has original flow definition
-	flow, err = oa.FlowByUUID(testdata.Favorites.UUID)
+	flow, err = oa.FlowByUUID(testdb.Favorites.UUID)
 	require.NoError(t, err)
 	assert.Equal(t, "{\"_ui\": {\"nodes\": {\"10c9c241-777f-4010-a841-6e87abed8520\": {\"typ", string(flow.Definition())[:64])
 

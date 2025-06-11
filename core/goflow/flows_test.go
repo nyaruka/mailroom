@@ -16,7 +16,7 @@ import (
 )
 
 func TestSpecVersion(t *testing.T) {
-	assert.Equal(t, semver.MustParse("13.6.1"), goflow.SpecVersion())
+	assert.Equal(t, semver.MustParse("14.3.0"), goflow.SpecVersion())
 }
 
 func TestReadFlow(t *testing.T) {
@@ -25,7 +25,7 @@ func TestReadFlow(t *testing.T) {
 	// try to read empty definition
 	flow, err := goflow.ReadFlow(rt.Config, []byte(`{}`))
 	assert.Nil(t, flow)
-	assert.EqualError(t, err, "unable to read flow header: field 'uuid' is required, field 'spec_version' is required")
+	assert.EqualError(t, err, "unable to read flow header: field 'uuid' is required, field 'name' is required, field 'spec_version' is required")
 
 	// read legacy definition
 	flow, err = goflow.ReadFlow(rt.Config, []byte(`{"flow_type": "M", "base_language": "eng", "action_sets": [], "metadata": {"uuid": "502c3ee4-3249-4dee-8e71-c62070667d52", "name": "Legacy"}}`))
@@ -58,52 +58,23 @@ func TestMigrateDefinition(t *testing.T) {
 	uuids.SetGenerator(uuids.NewSeededGenerator(12345, time.Now))
 	defer uuids.SetGenerator(uuids.DefaultGenerator)
 
-	v13_0_0 := testsuite.ReadFile("testdata/migrate/13.0.0.json")
-	v13_1_0 := testsuite.ReadFile("testdata/migrate/13.1.0.json")
-	v13_2_0 := testsuite.ReadFile("testdata/migrate/13.2.0.json")
-	v13_3_0 := testsuite.ReadFile("testdata/migrate/13.3.0.json")
-	v13_4_0 := testsuite.ReadFile("testdata/migrate/13.4.0.json")
-	v13_5_0 := testsuite.ReadFile("testdata/migrate/13.5.0.json")
-	//v13_6_0 := testsuite.ReadFile("testdata/migrate/13.6.0.json")
-	v13_6_1 := testsuite.ReadFile("testdata/migrate/13.6.1.json")
+	versions := []string{"13.0.0", "13.1.0", "13.2.0", "13.3.0", "13.4.0", "13.5.0", "13.6.0", "13.6.1", "14.0.0", "14.1.0", "14.2.0", "14.3.0"}
+	flowDefs := make(map[string][]byte, len(versions))
+	for _, version := range versions {
+		flowDefs[version] = testsuite.ReadFile("testdata/migrate/" + version + ".json")
+	}
 
-	// 13.0 > 13.1
-	migrated, err := goflow.MigrateDefinition(rt.Config, v13_0_0, semver.MustParse("13.1.0"))
-	assert.NoError(t, err)
-	test.AssertEqualJSON(t, v13_1_0, migrated)
+	// test migrating one version at a time
+	for i, version := range versions[1:] {
+		prevVersion := versions[i]
+		migrated, err := goflow.MigrateDefinition(rt.Config, flowDefs[prevVersion], semver.MustParse(version))
+		assert.NoError(t, err)
+		test.AssertEqualJSON(t, flowDefs[version], migrated, "migrating from %s to %s", prevVersion, version)
+	}
 
-	// 13.1 > 13.2
-	migrated, err = goflow.MigrateDefinition(rt.Config, migrated, semver.MustParse("13.2.0"))
+	// test migrating from the first version to the last
+	currentVersion := versions[len(versions)-1]
+	migrated, err := goflow.MigrateDefinition(rt.Config, flowDefs[versions[0]], semver.MustParse(currentVersion))
 	assert.NoError(t, err)
-	test.AssertEqualJSON(t, v13_2_0, migrated)
-
-	// 13.2 > 13.3
-	migrated, err = goflow.MigrateDefinition(rt.Config, migrated, semver.MustParse("13.3.0"))
-	assert.NoError(t, err)
-	test.AssertEqualJSON(t, v13_3_0, migrated)
-
-	// 13.3 > 13.4
-	migrated, err = goflow.MigrateDefinition(rt.Config, migrated, semver.MustParse("13.4.0"))
-	assert.NoError(t, err)
-	test.AssertEqualJSON(t, v13_4_0, migrated)
-
-	// 13.4 > 13.5
-	migrated, err = goflow.MigrateDefinition(rt.Config, migrated, semver.MustParse("13.5.0"))
-	assert.NoError(t, err)
-	test.AssertEqualJSON(t, v13_5_0, migrated)
-
-	// 13.5 > 13.6
-	migrated, err = goflow.MigrateDefinition(rt.Config, migrated, semver.MustParse("13.6.0"))
-	assert.NoError(t, err)
-	test.AssertEqualJSON(t, v13_6_1, migrated) // because we bump to the latest patch version
-
-	// 13.6 > 13.6.1
-	migrated, err = goflow.MigrateDefinition(rt.Config, migrated, semver.MustParse("13.6.1"))
-	assert.NoError(t, err)
-	test.AssertEqualJSON(t, v13_6_1, migrated)
-
-	// 13.0 > 13.6.1
-	migrated, err = goflow.MigrateDefinition(rt.Config, v13_0_0, semver.MustParse("13.6.1"))
-	assert.NoError(t, err)
-	test.AssertEqualJSON(t, v13_6_1, migrated)
+	test.AssertEqualJSON(t, flowDefs[currentVersion], migrated)
 }

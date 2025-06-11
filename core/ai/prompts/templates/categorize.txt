@@ -1,0 +1,3 @@
+Categorize the input text into one of the following categories: {{ .arg1 }}.
+Return only the name of the most appropriate category.
+Return "<CANT>" if you can't categorize it.

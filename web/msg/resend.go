@@ -39,17 +39,17 @@ func handleResend(ctx context.Context, rt *runtime.Runtime, r *resendRequest) (a
 		return nil, 0, fmt.Errorf("error loading messages to resend: %w", err)
 	}
 
-	resends, err := models.ResendMessages(ctx, rt, oa, msgs)
+	resends, err := models.PrepareMessagesForResend(ctx, rt, oa, msgs)
 	if err != nil {
 		return nil, 0, fmt.Errorf("error resending messages: %w", err)
 	}
 
-	msgio.QueueMessages(ctx, rt, rt.DB, resends)
+	msgio.QueueMessages(ctx, rt, resends)
 
 	// response is the ids of the messages that were actually resent
 	resentMsgIDs := make([]models.MsgID, len(resends))
-	for i, m := range resends {
-		resentMsgIDs[i] = m.ID()
+	for i, s := range resends {
+		resentMsgIDs[i] = s.ID()
 	}
 	return map[string]any{"msg_ids": resentMsgIDs}, http.StatusOK, nil
 }

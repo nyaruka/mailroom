@@ -14,7 +14,7 @@ import (
 	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/testsuite"
-	"github.com/nyaruka/mailroom/testsuite/testdata"
+	"github.com/nyaruka/mailroom/testsuite/testdb"
 	"github.com/nyaruka/redisx/assertredis"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -27,7 +27,7 @@ func TestIncidentWebhooksUnhealthy(t *testing.T) {
 
 	defer testsuite.Reset(testsuite.ResetData)
 
-	oa := testdata.Org1.Load(rt)
+	oa := testdb.Org1.Load(rt)
 
 	id1, err := models.IncidentWebhooksUnhealthy(ctx, rt.DB, rt.RP, oa, []flows.NodeUUID{"5a2e83f1-efa8-40ba-bc0c-8873c525de7d", "aba89043-6f0a-4ccf-ba7f-0e1674b90759"})
 	require.NoError(t, err)
@@ -61,8 +61,8 @@ func TestGetOpenIncidents(t *testing.T) {
 
 	defer testsuite.Reset(testsuite.ResetData)
 
-	oa1 := testdata.Org1.Load(rt)
-	oa2 := testdata.Org2.Load(rt)
+	oa1 := testdb.Org1.Load(rt)
+	oa2 := testdb.Org2.Load(rt)
 
 	// create incident for org 1
 	id1, err := models.IncidentWebhooksUnhealthy(ctx, rt.DB, rt.RP, oa1, nil)
@@ -98,12 +98,12 @@ func TestGetOpenIncidents(t *testing.T) {
 }
 
 func TestWebhookNode(t *testing.T) {
-	_, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime()
 
 	defer testsuite.Reset(testsuite.ResetRedis)
 
 	node := &models.WebhookNode{UUID: "3c703019-8c92-4d28-9be0-a926a934486b"}
-	healthy, err := node.Healthy(rt)
+	healthy, err := node.Healthy(ctx, rt)
 	assert.NoError(t, err)
 	assert.True(t, healthy)
 
@@ -112,32 +112,32 @@ func TestWebhookNode(t *testing.T) {
 		for i := range evts {
 			req, _ := http.NewRequest("GET", "http://example.com", nil)
 			trace := &httpx.Trace{Request: req, StartTime: dates.Now(), EndTime: dates.Now().Add(elapsed)}
-			evts[i] = events.NewWebhookCalled(&flows.WebhookCall{Trace: trace}, flows.CallStatusSuccess, "")
+			evts[i] = events.NewWebhookCalled(trace, flows.CallStatusSuccess, "")
 		}
 		return evts
 	}
 
 	// record 10 healthy calls
-	err = node.Record(rt, createWebhookEvents(10, time.Second*1))
+	err = node.Record(ctx, rt, createWebhookEvents(10, time.Second*1))
 	assert.NoError(t, err)
 
-	healthy, err = node.Healthy(rt)
+	healthy, err = node.Healthy(ctx, rt)
 	assert.NoError(t, err)
 	assert.True(t, healthy)
 
 	// record 5 unhealthy calls
-	err = node.Record(rt, createWebhookEvents(5, time.Second*30))
+	err = node.Record(ctx, rt, createWebhookEvents(5, time.Second*30))
 	assert.NoError(t, err)
 
-	healthy, err = node.Healthy(rt)
+	healthy, err = node.Healthy(ctx, rt)
 	assert.NoError(t, err)
 	assert.True(t, healthy)
 
 	// record another 5 unhealthy calls
-	err = node.Record(rt, createWebhookEvents(5, time.Second*30))
+	err = node.Record(ctx, rt, createWebhookEvents(5, time.Second*30))
 	assert.NoError(t, err)
 
-	healthy, err = node.Healthy(rt)
+	healthy, err = node.Healthy(ctx, rt)
 	assert.NoError(t, err)
 	assert.False(t, healthy)
 }

@@ -10,12 +10,12 @@ import (
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/events"
-	_ "github.com/nyaruka/mailroom/core/handlers"
 	"github.com/nyaruka/mailroom/core/models"
+	_ "github.com/nyaruka/mailroom/core/runner/handlers"
 	"github.com/nyaruka/mailroom/core/tasks"
 	"github.com/nyaruka/mailroom/core/tasks/msgs"
 	"github.com/nyaruka/mailroom/testsuite"
-	"github.com/nyaruka/mailroom/testsuite/testdata"
+	"github.com/nyaruka/mailroom/testsuite/testdb"
 	"github.com/nyaruka/mailroom/utils/queues"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -29,7 +29,7 @@ func TestBroadcastsFromEvents(t *testing.T) {
 	rc := rt.RP.Get()
 	defer rc.Close()
 
-	oa, err := models.GetOrgAssets(ctx, rt, testdata.Org1.ID)
+	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 	require.NoError(t, err)
 
 	eng := i18n.Language("eng")
@@ -41,15 +41,15 @@ func TestBroadcastsFromEvents(t *testing.T) {
 		},
 	}
 
-	doctors := assets.NewGroupReference(testdata.DoctorsGroup.UUID, "Doctors")
-	cathy := flows.NewContactReference(testdata.Cathy.UUID, "Cathy")
+	doctors := assets.NewGroupReference(testdb.DoctorsGroup.UUID, "Doctors")
+	cathy := flows.NewContactReference(testdb.Cathy.UUID, "Cathy")
 
 	// add an extra URN fo cathy
-	testdata.InsertContactURN(rt, testdata.Org1, testdata.Cathy, urns.URN("tel:+12065551212"), 1001, nil)
+	testdb.InsertContactURN(rt, testdb.Org1, testdb.Cathy, urns.URN("tel:+12065551212"), 1001, nil)
 
 	// change george's URN to an invalid twitter URN so it can't be sent
-	rt.DB.MustExec(`UPDATE contacts_contacturn SET identity = 'twitter:invalid-urn', scheme = 'twitter', path='invalid-urn' WHERE id = $1`, testdata.George.URNID)
-	george := flows.NewContactReference(testdata.George.UUID, "George")
+	rt.DB.MustExec(`UPDATE contacts_contacturn SET identity = 'twitter:invalid-urn', scheme = 'twitter', path='invalid-urn' WHERE id = $1`, testdb.George.URNID)
+	george := flows.NewContactReference(testdb.George.UUID, "George")
 	georgeOnly := []*flows.ContactReference{george}
 
 	tcs := []struct {
@@ -164,7 +164,7 @@ func TestBroadcastsFromEvents(t *testing.T) {
 		bcast, err := models.NewBroadcastFromEvent(ctx, rt.DB, oa, event)
 		assert.NoError(t, err)
 
-		err = tasks.Queue(rc, tc.queue, testdata.Org1.ID, &msgs.SendBroadcastTask{Broadcast: bcast}, false)
+		err = tasks.Queue(rc, tc.queue, testdb.Org1.ID, &msgs.SendBroadcastTask{Broadcast: bcast}, false)
 		assert.NoError(t, err)
 
 		taskCounts := testsuite.FlushTasks(t, rt)
@@ -188,17 +188,17 @@ func TestSendBroadcastTask(t *testing.T) {
 
 	defer testsuite.Reset(testsuite.ResetAll)
 
-	polls := testdata.InsertOptIn(rt, testdata.Org1, "Polls")
+	polls := testdb.InsertOptIn(rt, testdb.Org1, "Polls")
 
-	rt.DB.MustExec(`UPDATE orgs_org SET flow_languages = '{"eng", "spa"}' WHERE id = $1`, testdata.Org1.ID)
+	rt.DB.MustExec(`UPDATE orgs_org SET flow_languages = '{"eng", "spa"}' WHERE id = $1`, testdb.Org1.ID)
 
-	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdata.Org1.ID, models.RefreshOrg|models.RefreshOptIns)
+	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshOrg|models.RefreshOptIns)
 	assert.NoError(t, err)
 
 	// add an extra URN for Cathy, change George's language to Spanish, and mark Bob as seen recently
-	testdata.InsertContactURN(rt, testdata.Org1, testdata.Cathy, urns.URN("tel:+12065551212"), 1001, nil)
-	rt.DB.MustExec(`UPDATE contacts_contact SET language = 'spa', modified_on = NOW() WHERE id = $1`, testdata.George.ID)
-	rt.DB.MustExec(`UPDATE contacts_contact SET last_seen_on = NOW() - interval '45 days', modified_on = NOW() WHERE id = $1`, testdata.Bob.ID)
+	testdb.InsertContactURN(rt, testdb.Org1, testdb.Cathy, urns.URN("tel:+12065551212"), 1001, nil)
+	rt.DB.MustExec(`UPDATE contacts_contact SET language = 'spa', modified_on = NOW() WHERE id = $1`, testdb.George.ID)
+	rt.DB.MustExec(`UPDATE contacts_contact SET last_seen_on = NOW() - interval '45 days', modified_on = NOW() WHERE id = $1`, testdb.Bob.ID)
 
 	testsuite.ReindexElastic(ctx)
 
@@ -206,7 +206,7 @@ func TestSendBroadcastTask(t *testing.T) {
 		translations    flows.BroadcastTranslations
 		baseLanguage    i18n.Language
 		expressions     bool
-		optIn           *testdata.OptIn
+		optIn           *testdb.OptIn
 		groupIDs        []models.GroupID
 		contactIDs      []models.ContactID
 		URNs            []urns.URN
@@ -224,10 +224,10 @@ func TestSendBroadcastTask(t *testing.T) {
 			baseLanguage:    "eng",
 			expressions:     false,
 			optIn:           polls,
-			groupIDs:        []models.GroupID{testdata.DoctorsGroup.ID},
-			contactIDs:      []models.ContactID{testdata.Cathy.ID},
+			groupIDs:        []models.GroupID{testdb.DoctorsGroup.ID},
+			contactIDs:      []models.ContactID{testdb.Cathy.ID},
 			exclusions:      models.NoExclusions,
-			createdByID:     testdata.Admin.ID,
+			createdByID:     testdb.Admin.ID,
 			queue:           tasks.BatchQueue,
 			expectedBatches: 2,
 			expectedMsgs:    map[string]int{"hello world": 121},
@@ -238,9 +238,9 @@ func TestSendBroadcastTask(t *testing.T) {
 			},
 			baseLanguage:    "eng",
 			expressions:     true,
-			contactIDs:      []models.ContactID{testdata.Cathy.ID},
+			contactIDs:      []models.ContactID{testdb.Cathy.ID},
 			exclusions:      models.NoExclusions,
-			createdByID:     testdata.Agent.ID,
+			createdByID:     testdb.Agent.ID,
 			queue:           tasks.HandlerQueue,
 			expectedBatches: 1,
 			expectedMsgs:    map[string]int{"hi Cathy from TextIt goflow URN: tel:+12065551212 Gender: F": 1},
@@ -288,7 +288,7 @@ func TestSendBroadcastTask(t *testing.T) {
 
 		task := &msgs.SendBroadcastTask{Broadcast: bcast}
 
-		err = tasks.Queue(rc, tasks.BatchQueue, testdata.Org1.ID, task, false)
+		err = tasks.Queue(rc, tasks.BatchQueue, testdb.Org1.ID, task, false)
 		assert.NoError(t, err)
 
 		taskCounts := testsuite.FlushTasks(t, rt)

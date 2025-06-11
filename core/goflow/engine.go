@@ -3,6 +3,7 @@ package goflow
 import (
 	"context"
 	"sync"
+	"text/template"
 
 	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/goflow/flows"
@@ -17,24 +18,38 @@ var engInit, simulatorInit sync.Once
 
 var emailFactory func(*runtime.Runtime) engine.EmailServiceFactory
 var classificationFactory func(*runtime.Runtime) engine.ClassificationServiceFactory
+var llmFactory func(*runtime.Runtime) engine.LLMServiceFactory
 var airtimeFactory func(*runtime.Runtime) engine.AirtimeServiceFactory
+var llmPrompts map[string]*template.Template
 
-// RegisterEmailServiceFactory can be used by outside callers to register a email factory
+// RegisterEmailServiceFactory can be used by outside callers to register a email service factory
 // for use by the engine
 func RegisterEmailServiceFactory(f func(*runtime.Runtime) engine.EmailServiceFactory) {
 	emailFactory = f
 }
 
-// RegisterClassificationServiceFactory can be used by outside callers to register a classification factory
+// RegisterClassificationServiceFactory can be used by outside callers to register a classification service factory
 // for use by the engine
 func RegisterClassificationServiceFactory(f func(*runtime.Runtime) engine.ClassificationServiceFactory) {
 	classificationFactory = f
 }
 
-// RegisterAirtimeServiceFactory can be used by outside callers to register a airtime factory
+// RegisterLLMServiceFactory can be used by outside callers to register an LLM service factory
+// for use by the engine
+func RegisterLLMServiceFactory(f func(*runtime.Runtime) engine.LLMServiceFactory) {
+	llmFactory = f
+}
+
+// RegisterAirtimeServiceFactory can be used by outside callers to register a airtime serivce factory
 // for use by the engine
 func RegisterAirtimeServiceFactory(f func(*runtime.Runtime) engine.AirtimeServiceFactory) {
 	airtimeFactory = f
+}
+
+// RegisterAirtimeServiceFactory can be used by outside callers to register a airtime serivce factory
+// for use by the engine
+func RegisterLLMPrompts(p map[string]*template.Template) {
+	llmPrompts = p
 }
 
 // Engine returns the global engine instance for use with real sessions
@@ -50,12 +65,14 @@ func Engine(rt *runtime.Runtime) flows.Engine {
 		eng = engine.NewBuilder().
 			WithWebhookServiceFactory(webhooks.NewServiceFactory(httpClient, httpRetries, httpAccess, webhookHeaders, rt.Config.WebhooksMaxBodyBytes)).
 			WithClassificationServiceFactory(classificationFactory(rt)).
+			WithLLMServiceFactory(llmFactory(rt)).
 			WithEmailServiceFactory(emailFactory(rt)).
 			WithAirtimeServiceFactory(airtimeFactory(rt)).
 			WithMaxStepsPerSprint(rt.Config.MaxStepsPerSprint).
 			WithMaxResumesPerSession(rt.Config.MaxResumesPerSession).
 			WithMaxFieldChars(rt.Config.MaxValueLength).
 			WithMaxResultChars(rt.Config.MaxValueLength).
+			WithLLMPrompts(llmPrompts).
 			Build()
 	})
 
@@ -75,12 +92,14 @@ func Simulator(ctx context.Context, rt *runtime.Runtime) flows.Engine {
 		simulator = engine.NewBuilder().
 			WithWebhookServiceFactory(webhooks.NewServiceFactory(httpClient, nil, httpAccess, webhookHeaders, rt.Config.WebhooksMaxBodyBytes)).
 			WithClassificationServiceFactory(classificationFactory(rt)). // simulated sessions do real classification
+			WithLLMServiceFactory(llmFactory(rt)).                       // simulated sessions do real LLM calls
 			WithEmailServiceFactory(simulatorEmailServiceFactory).       // but faked emails
 			WithAirtimeServiceFactory(simulatorAirtimeServiceFactory).   // and faked airtime transfers
 			WithMaxStepsPerSprint(rt.Config.MaxStepsPerSprint).
 			WithMaxResumesPerSession(rt.Config.MaxResumesPerSession).
 			WithMaxFieldChars(rt.Config.MaxValueLength).
 			WithMaxResultChars(rt.Config.MaxValueLength).
+			WithLLMPrompts(llmPrompts).
 			Build()
 	})
 
@@ -103,7 +122,7 @@ func simulatorAirtimeServiceFactory(flows.SessionAssets) (flows.AirtimeService, 
 
 type simulatorAirtimeService struct{}
 
-func (s *simulatorAirtimeService) Transfer(sender urns.URN, recipient urns.URN, amounts map[string]decimal.Decimal, logHTTP flows.HTTPLogCallback) (*flows.AirtimeTransfer, error) {
+func (s *simulatorAirtimeService) Transfer(ctx context.Context, sender urns.URN, recipient urns.URN, amounts map[string]decimal.Decimal, logHTTP flows.HTTPLogCallback) (*flows.AirtimeTransfer, error) {
 	transfer := &flows.AirtimeTransfer{
 		Sender:    sender,
 		Recipient: recipient,

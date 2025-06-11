@@ -6,13 +6,14 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/mailroom/web"
+	"github.com/nyaruka/null/v3"
 	dto "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
+	"google.golang.org/protobuf/proto"
 )
 
 func init() {
@@ -91,11 +92,11 @@ func calculateGroupCounts(ctx context.Context, rt *runtime.Runtime, org *models.
 }
 
 const channelCountsSQL = `
-         SELECT ch.id, ch.uuid, ch.name, ch.role, ch.channel_type, c.count_type, COALESCE(SUM(c.count), 0) as count 
+         SELECT ch.id, ch.uuid, ch.name, ch.role, ch.channel_type, c.scope, COALESCE(SUM(c.count), 0) as count 
            FROM channels_channel ch 
 LEFT OUTER JOIN channels_channelcount c ON c.channel_id = ch.id 
           WHERE ch.org_id = $1 AND ch.is_active = TRUE
-       GROUP BY ch.id, c.count_type;`
+       GROUP BY ch.id, c.scope;`
 
 type channelCountRow struct {
 	ID          models.ChannelID   `db:"id"`
@@ -103,7 +104,7 @@ type channelCountRow struct {
 	Name        string             `db:"name"`
 	Role        string             `db:"role"`
 	ChannelType string             `db:"channel_type"`
-	CountType   *string            `db:"count_type"`
+	Scope       null.String        `db:"scope"`
 	Count       int64              `db:"count"`
 }
 
@@ -114,6 +115,13 @@ type channelStats struct {
 	Role        string
 	ChannelType string
 	Counts      map[string]int64
+}
+
+var channelCountScopeToType = map[string]string{
+	"text:in":   "IM",
+	"text:out":  "OM",
+	"voice:in":  "IV",
+	"voice:out": "OV",
 }
 
 func calculateChannelCounts(ctx context.Context, rt *runtime.Runtime, org *models.Org) (*dto.MetricFamily, error) {
@@ -162,9 +170,8 @@ func calculateChannelCounts(ctx context.Context, rt *runtime.Runtime, org *model
 			}
 		}
 
-		// set our count if we have one and it isn't a channel log count
-		if row.CountType != nil {
-			channel.Counts[*row.CountType] = row.Count
+		if row.Scope != "" {
+			channel.Counts[channelCountScopeToType[string(row.Scope)]] = row.Count
 		}
 	}
 

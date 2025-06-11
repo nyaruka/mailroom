@@ -146,15 +146,7 @@
                 "count": 1
             },
             {
-                "query": "SELECT SUM(count) FROM tickets_ticketdailycount WHERE count_type = 'R' AND scope = 'o:1'",
-                "count": 1
-            },
-            {
-                "query": "SELECT SUM(count) FROM tickets_ticketdailycount WHERE count_type = 'R' AND scope = 'o:1:u:5'",
-                "count": 1
-            },
-            {
-                "query": "SELECT SUM(count) FROM tickets_ticketdailytiming WHERE count_type = 'R' AND scope = 'o:1'",
+                "query": "SELECT SUM(count) FROM orgs_dailycount WHERE scope = 'msgs:ticketreplies:0:5'",
                 "count": 1
             }
         ]
@@ -168,7 +160,17 @@
             "user_id": 3,
             "contact_id": 10000,
             "text": "What is your preferred color?",
-            "quick_replies": [{"text": "Red"}, {"text": "Green"}, {"text": "Blue"}]
+            "quick_replies": [
+                {
+                    "text": "Red"
+                },
+                {
+                    "text": "Green"
+                },
+                {
+                    "text": "Blue"
+                }
+            ]
         },
         "status": 200,
         "response": {
@@ -184,7 +186,17 @@
             "urn": "tel:+16055741111?id=10000",
             "text": "What is your preferred color?",
             "attachments": [],
-            "quick_replies": [{"text": "Red"}, {"text": "Green"}, {"text": "Blue"}],
+            "quick_replies": [
+                {
+                    "text": "Red"
+                },
+                {
+                    "text": "Green"
+                },
+                {
+                    "text": "Blue"
+                }
+            ],
             "status": "Q",
             "created_on": "2018-07-06T12:30:00.123456789Z",
             "modified_on": "$recent_timestamp$"

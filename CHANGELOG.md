@@ -1,3 +1,418 @@
+v10.1.134 (2025-06-10)
+-------------------------
+ * Rework how we do message retries
+ * Update to latest redisx that requires passing of context
+
+v10.1.133 (2025-06-04)
+-------------------------
+ * Update gocommon
+ * Fix prometheus endpoint to match channel count changes
+ * Fix race condition in worker shutdown to prevent 'send on closed channel' panic
+
+v10.1.132 (2025-06-03)
+-------------------------
+ * Stop writing channel logs to database and add is_error data field
+ * Rename testdata package to testdb
+
+v10.1.131 (2025-05-29)
+-------------------------
+ * Create and delete session contact fires via hook
+
+v10.1.130 (2025-05-28)
+-------------------------
+ * Write channel logs to new DynamoDB table
+
+v10.1.129 (2025-05-26)
+-------------------------
+ * Remove no longer used code for calls with starts
+
+v10.1.128 (2025-05-22)
+-------------------------
+ * Fix not loading trigger on calls being retried
+
+v10.1.127 (2025-05-22)
+-------------------------
+ * Rework campaign events for IVR flows to use calls with triggers rather than starts
+
+v10.1.126 (2025-05-22)
+-------------------------
+ * Create calls with triggers instead of start references in flow batch starts
+ * Modify StartFlowBatch task to handle voice flows as well
+
+v10.1.125 (2025-05-22)
+-------------------------
+ * Support IVR retries for outgoing calls without starts
+
+v10.1.124 (2025-05-22)
+-------------------------
+ * Update call status to in progress via sprint_ended handler+hook
+
+v10.1.123 (2025-05-21)
+-------------------------
+ * Fix IVR incoming triggers
+ * Update runner Start/Resume functions to return scenes and remove Session.sprint transient field
+
+v10.1.122 (2025-05-20)
+-------------------------
+ * Move flow stat saving out of session model functions and into runner hook
+ * Add check that contacts in StartSessions are locked
+
+v10.1.121 (2025-05-20)
+-------------------------
+ * Use events to handle message that triggers voice flow
+
+v10.1.120 (2025-05-19)
+-------------------------
+ * Update to latest goflow
+
+v10.1.119 (2025-05-19)
+-------------------------
+ * Update to latest goflow
+
+v10.1.118 (2025-05-19)
+-------------------------
+ * Rework runner.Start* functions to not take contacrt specific args
+ * Use Call.Trigger instead of Call.Start for calls triggered by incoming messages
+ * Remove support for FB topics
+ * Move things out of the start/resume tx that don't need to be there
+ * Mark messages handled via event and hook
+
+v10.1.117 (2025-05-16)
+-------------------------
+ * Change MsgOut.session to be the flow session
+ * Replace Session.timeout transient field
+
+v10.1.116 (2025-05-15)
+-------------------------
+ * Fix wait expirations in IVR flows
+ * More refactoring away of transient properties on session and msg
+
+v10.1.115 (2025-05-14)
+-------------------------
+ * Update to latest goflow that changes user references to be by UUID
+ * Add UUID field to User
+
+v10.1.114 (2025-05-13)
+-------------------------
+ * Fix not setting call_id on sessions
+ * More refactoring of event processing code
+
+v10.1.113 (2025-05-09)
+-------------------------
+ * Refactoring of session vs scene with less transient fields on session
+
+v10.1.112 (2025-05-08)
+-------------------------
+ * Cleanup scene event hooks
+ * Update to latest goflow which removes id from MsgIn
+
+v10.1.111 (2025-05-08)
+-------------------------
+ * Always attach contact modified on hook as pre-commit hook
+ * Add ordering to scene hooks
+
+v10.1.110 (2025-05-07)
+-------------------------
+ * Convert HandleSceneEvents function into Scene.AddEvents method
+ * Remove unused tx param from event handlers
+ * For messages to URNs added during flow sprint, defer URN creation to hook
+ * Don't use pointer for Msg.ContactURNID
+
+v10.1.109 (2025-05-07)
+-------------------------
+ * Fix returning LLM errors from translate endpoint
+
+v10.1.108 (2025-05-06)
+-------------------------
+ * Some refactoring of scene event handling code
+
+v10.1.107 (2025-05-06)
+-------------------------
+ * Use v7 UUIDs for more things: channel events, sessions, tickets, airtime transfers etc
+
+v10.1.106 (2025-05-05)
+-------------------------
+ * Update to latest goflow that switches to v7 UUIDs for runs and messages
+
+v10.1.105 (2025-05-05)
+-------------------------
+ * Fix Flow.Definition
+
+v10.1.104 (2025-05-05)
+-------------------------
+ * Update to latest goflow that relaxes version requirements on UUID fields
+ * Improve reporting of errors from LLM services
+
+v10.1.103 (2025-04-30)
+-------------------------
+ * Fix gemini LLM service
+
+v10.1.102 (2025-04-30)
+-------------------------
+ * Update to latest goflow
+ * Rework all LLM services to take http.Client as a parameter
+
+v10.1.101 (2025-04-29)
+-------------------------
+ * Update to latest goflow that adds flow spec 14.3
+ * Use go-genai instead of generative-ai-go
+ * Only allow getting org id for active orgs
+ * Update to latest goflow (adds locals inspection) and gocommon (updated locale data)
+
+v10.1.100 (2025-04-25)
+-------------------------
+ * Update to latest goflow
+
+v10.1.99 (2025-04-23)
+-------------------------
+ * Update dependencies including goflow and phonenumbers
+
+v10.1.98 (2025-04-23)
+-------------------------
+ * Track tickets opened by topic
+
+v10.1.97 (2025-04-23)
+-------------------------
+ * Update goflow which augmentas 14.2 migration to fix invalid languages
+
+v10.1.96 (2025-04-22)
+-------------------------
+ * Read from Flow.ivr_retry instead of Flow.metadata
+
+v10.1.95 (2025-04-22)
+-------------------------
+ * Only record ticket response time at workspace level and against day ticket was opened
+
+v10.1.94 (2025-04-22)
+-------------------------
+ * Update to latest goflow that add counts to inspection
+ * Update to latest goflow that adds 14.2 flow migration
+ * Update to latest goflow that changes behavior of open_ticket actions
+
+v10.1.93 (2025-04-21)
+-------------------------
+ * Stop writing old ticket daily counts and timings
+
+v10.1.92 (2025-04-21)
+-------------------------
+ * Fix flakey test
+
+v10.1.91 (2025-04-21)
+-------------------------
+ * Fix flakey test
+
+v10.1.90 (2025-04-21)
+-------------------------
+ * Fix Whatsapp template variables with expressions when used from a broadcast
+
+v10.1.89 (2025-04-16)
+-------------------------
+ * Start recording ticket daily counts in new model
+
+v10.1.88 (2025-04-15)
+-------------------------
+ * Update to latest goflow that adds trimming of quick replies to the 14.1 migration
+
+v10.1.87 (2025-04-14)
+-------------------------
+ * Flow spec 14.1.0
+
+v10.1.86 (2025-04-14)
+-------------------------
+ * Update to latest goflow
+
+v10.1.85 (2025-04-11)
+-------------------------
+ * Update to latest goflow
+
+v10.1.84 (2025-04-10)
+-------------------------
+ * Move DTOne airtime service implementation into this repo
+ * Update to latest goflow that removes all classification serivces besides wit
+ * Update to latest goflow that changes webhook services
+
+v10.1.83 (2025-04-09)
+-------------------------
+ * Update deps including goflow
+
+v10.1.82 (2025-04-08)
+-------------------------
+ * Fix categorize LLM prompt
+
+v10.1.81 (2025-04-08)
+-------------------------
+ * Improvements to LLM tests command
+ * Add support for Google GenAI as LLM service
+
+v10.1.80 (2025-04-08)
+-------------------------
+ * Read model from LLM.model instead of config and send model with metrics
+
+v10.1.79 (2025-04-08)
+-------------------------
+ * Record LLM calls by type in metrics
+ * Rename config for BW voice application ID
+
+v10.1.78 (2025-04-08)
+-------------------------
+ * Update to latest goflow
+ * Add DeepSeek as LLM type
+
+v10.1.77 (2025-04-07)
+-------------------------
+ * Tweak temperature on all LLM services to be non-zero
+ * Tweak LLM prompts and add cmd line tool to test them against real LLMs
+
+v10.1.76 (2025-04-07)
+-------------------------
+ * Update to latest goflow that adds support for LLM actions
+
+v10.1.75 (2025-04-02)
+-------------------------
+ * Use channel config max_concurent_calls key
+
+v10.1.74 (2025-04-02)
+-------------------------
+ * Add Bandwidth as IVR service
+
+v10.1.73 (2025-04-01)
+-------------------------
+ * Add LLM service implementation for OpenAI+Azure
+
+v10.1.72 (2025-04-01)
+-------------------------
+ * Specify max_tokens for LLM translation requets
+ * Stop writing http logs for all classifier requests
+ * Reorganze LLM service code so all service specific stuff is in the service package
+
+v10.1.71 (2025-03-31)
+-------------------------
+ * Update to latest goflow
+ * Use temperature zero for LLM calls
+
+v10.1.70 (2025-03-29)
+-------------------------
+ * Handle cases where LLM can't translate input
+ * Update to latest goflow
+ * Add special translation handling for und and mul source languages
+
+v10.1.69 (2025-03-27)
+-------------------------
+ * Add endpoint to translate using LLM
+ * Implement LLMService for OpenAI and Anthropic
+ * Update deps including goflow which adds LLMs
+
+v10.1.68 (2025-03-20)
+-------------------------
+ * Actually fix IVR
+
+v10.1.67 (2025-03-20)
+-------------------------
+ * Update incoming IVR call with session UUID
+
+v10.1.66 (2025-03-19)
+-------------------------
+ * Improve error messages when loading contact sessions
+
+v10.1.65 (2025-03-19)
+-------------------------
+ * Record count and avergage duration of webhook calls as metrics
+ * Load waiting session by explicit UUID for timed events and IVR
+
+v10.1.64 (2025-03-18)
+-------------------------
+ * Use constant time check for shared secret with rapidpro
+
+v10.1.63 (2025-03-12)
+-------------------------
+ * Send message type campaign events as non-persistent broadcasts
+ * Update to latest goflow
+
+v10.1.62 (2025-03-04)
+-------------------------
+ * Mark campaign events as READY when scheduling task completes
+ * No-op campaign trigger tasks where fire version doesn't match current model
+
+v10.1.61 (2025-03-04)
+-------------------------
+ * Remove deletion of campaign event fires by event id only
+
+v10.1.60 (2025-03-04)
+-------------------------
+ * Create campaign event fires with fire version in scope
+
+v10.1.59 (2025-03-03)
+-------------------------
+ * Delete campaign fires with and without fire version when re-scheduling
+
+v10.1.58 (2025-02-28)
+-------------------------
+ * Add missing import in mailroom cmd for new web package
+
+v10.1.57 (2025-02-28)
+-------------------------
+ * Add endpoint to schedule fires for a new campaign event
+ * Ensure that campaign event fires are inserted in batches
+ * Add support for extra field on quick replies
+ * Update all dependencies
+ * Stop using flowsession.id completely
+
+v10.1.56 (2025-02-26)
+-------------------------
+ * Stop writing flowrun.session_id
+ * Remove final code exiting sessions by id
+
+v10.1.55 (2025-02-26)
+-------------------------
+ * Reorganize cron tasks into a crons package
+
+v10.1.54 (2025-02-26)
+-------------------------
+ * Add random time component to session expiration fires
+ * Start writing session expiration contact fires
+
+v10.1.53 (2025-02-25)
+-------------------------
+ * Add bulk_session_expire task type to handle session expiration (S) contact fires
+ * Use more session UUID based exiting of sessions
+ * Tweak event handlers to log session UUID instead of ID
+ * Use Call.session_uuid to interrupt by channel
+
+v10.1.52 (2025-02-24)
+-------------------------
+ * Lookup system user by email instead of username
+
+v10.1.51 (2025-02-24)
+-------------------------
+ * Start writing Call.session_uuid
+
+v10.1.50 (2025-02-24)
+-------------------------
+ * Rework interrupting by channel as well
+ * Replace last places that we fetch sessions by contact and status=W
+
+v10.1.49 (2025-02-21)
+-------------------------
+ * Reduce webhook service fetch limit to 256KiB
+ * Switch how we interrupt by flow to use run.session_uuid instead of run.session_id
+ * Queue messages to courier with rich quick replies
+
+v10.1.48 (2025-02-19)
+-------------------------
+ * Stop writing contactfire.extra so we can drop it
+ * Remove old IVR hangup task
+ * Clamp flow expires after values to 2 weeks instead of 30 days
+
+v10.1.47 (2025-02-19)
+-------------------------
+ * Hangup expired voice sessions via regular expire task
+
+v10.1.46 (2025-02-19)
+-------------------------
+ * Don't error when contact current session isn't right but instead log and ignore
+ * Add channel is_enabled field and only load channels with that set to TRUE
+ * Update to go 1.24
+
 v10.1.45 (2025-02-18)
 -------------------------
  * Tweak handling of session.call_id

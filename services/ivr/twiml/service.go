@@ -26,6 +26,7 @@ import (
 	"github.com/nyaruka/goflow/utils"
 	"github.com/nyaruka/mailroom/core/ivr"
 	"github.com/nyaruka/mailroom/core/models"
+	"github.com/nyaruka/mailroom/core/runner"
 	"github.com/nyaruka/mailroom/runtime"
 )
 
@@ -139,19 +140,19 @@ type service struct {
 }
 
 func init() {
-	ivr.RegisterServiceType(twimlChannelType, NewServiceFromChannel)
-	ivr.RegisterServiceType(twilioChannelType, NewServiceFromChannel)
-	ivr.RegisterServiceType(signalWireChannelType, NewServiceFromChannel)
+	ivr.RegisterService(twimlChannelType, NewServiceFromChannel)
+	ivr.RegisterService(twilioChannelType, NewServiceFromChannel)
+	ivr.RegisterService(signalWireChannelType, NewServiceFromChannel)
 }
 
 // NewServiceFromChannel creates a new Twilio IVR service for the passed in account and and auth token
 func NewServiceFromChannel(httpClient *http.Client, channel *models.Channel) (ivr.Service, error) {
-	accountSID := channel.ConfigValue(accountSIDConfig, "")
-	authToken := channel.ConfigValue(authTokenConfig, "")
+	accountSID := channel.Config().GetString(accountSIDConfig, "")
+	authToken := channel.Config().GetString(authTokenConfig, "")
 	if accountSID == "" || authToken == "" {
 		return nil, fmt.Errorf("missing auth_token or account_sid on channel config: %v for channel: %s", channel.Config(), channel.UUID())
 	}
-	baseURL := channel.ConfigValue(baseURLConfig, channel.ConfigValue(sendURLConfig, BaseURL))
+	baseURL := channel.Config().GetString(baseURLConfig, channel.Config().GetString(sendURLConfig, BaseURL))
 
 	return &service{
 		httpClient:   httpClient,
@@ -390,20 +391,14 @@ func (s *service) ValidateRequestSignature(r *http.Request) error {
 }
 
 // WriteSessionResponse writes a TWIML response for the events in the passed in session
-func (s *service) WriteSessionResponse(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, channel *models.Channel, call *models.Call, session *models.Session, number urns.URN, resumeURL string, r *http.Request, w http.ResponseWriter) error {
+func (s *service) WriteSessionResponse(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, channel *models.Channel, scene *runner.Scene, number urns.URN, resumeURL string, r *http.Request, w http.ResponseWriter) error {
 	// for errored sessions we should just output our error body
-	if session.Status() == models.SessionStatusFailed {
+	if scene.Session().Status() == flows.SessionStatusFailed {
 		return fmt.Errorf("cannot write IVR response for failed session")
 	}
 
-	// otherwise look for any say events
-	sprint := session.Sprint()
-	if sprint == nil {
-		return fmt.Errorf("cannot write IVR response for session with no sprint")
-	}
-
 	// get our response
-	response, err := ResponseForSprint(rt, oa.Env(), number, resumeURL, sprint.Events(), true)
+	response, err := ResponseForSprint(rt, oa.Env(), number, resumeURL, scene.Sprint().Events(), true)
 	if err != nil {
 		return fmt.Errorf("unable to build response for IVR call: %w", err)
 	}
@@ -572,7 +567,7 @@ func ResponseForSprint(rt *runtime.Runtime, env envs.Environment, urn urns.URN, 
 
 func (s *service) RedactValues(ch *models.Channel) []string {
 	return []string{
-		httpx.BasicAuth(ch.ConfigValue(accountSIDConfig, ""), ch.ConfigValue(authTokenConfig, "")),
-		ch.ConfigValue(authTokenConfig, ""),
+		httpx.BasicAuth(ch.Config().GetString(accountSIDConfig, ""), ch.Config().GetString(authTokenConfig, "")),
+		ch.Config().GetString(authTokenConfig, ""),
 	}
 }

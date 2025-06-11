@@ -16,14 +16,13 @@ import (
 	"github.com/gomodule/redigo/redis"
 	"github.com/jmoiron/sqlx"
 	"github.com/nyaruka/gocommon/aws/cwatch"
-	"github.com/nyaruka/gocommon/aws/dynamo"
 	"github.com/nyaruka/gocommon/aws/s3x"
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/redisx/assertredis"
-	"github.com/nyaruka/rp-indexer/v9/indexers"
-	ixruntime "github.com/nyaruka/rp-indexer/v9/runtime"
+	"github.com/nyaruka/rp-indexer/v10/indexers"
+	ixruntime "github.com/nyaruka/rp-indexer/v10/runtime"
 )
 
 var _db *sqlx.DB
@@ -86,7 +85,7 @@ func Runtime() (context.Context, *runtime.Runtime) {
 	cfg.DynamoEndpoint = "http://localhost:6000"
 	cfg.DynamoTablePrefix = "Test"
 
-	dyna, err := dynamo.NewService(cfg.AWSAccessKeyID, cfg.AWSSecretAccessKey, cfg.AWSRegion, cfg.DynamoEndpoint, cfg.DynamoTablePrefix)
+	dytables, err := runtime.NewDynamoTables(cfg)
 	noError(err)
 
 	s3svc, err := s3x.NewService(cfg.AWSAccessKeyID, cfg.AWSSecretAccessKey, cfg.AWSRegion, cfg.S3Endpoint, cfg.S3Minio)
@@ -100,7 +99,7 @@ func Runtime() (context.Context, *runtime.Runtime) {
 		DB:         dbx,
 		ReadonlyDB: dbx.DB,
 		RP:         getRP(),
-		Dynamo:     dyna,
+		Dynamo:     dytables,
 		S3:         s3svc,
 		ES:         getES(),
 		CW:         cwSvc,
@@ -179,7 +178,7 @@ func resetDB() {
 }
 
 func loadTestDump() {
-	dump, err := os.Open(absPath("./testsuite/testfiles/postgres.dump"))
+	dump, err := os.Open(absPath("./testsuite/testdata/postgres.dump"))
 	must(err)
 	defer dump.Close()
 
@@ -243,7 +242,7 @@ func resetElastic(ctx context.Context, rt *runtime.Runtime) {
 }
 
 func resetDynamo(ctx context.Context, rt *runtime.Runtime) {
-	tablesFile, err := os.Open(absPath("./testsuite/testfiles/dynamo.json"))
+	tablesFile, err := os.Open(absPath("./testsuite/testdata/dynamo.json"))
 	must(err)
 	defer tablesFile.Close()
 
@@ -253,29 +252,29 @@ func resetDynamo(ctx context.Context, rt *runtime.Runtime) {
 	inputs := []*dynamodb.CreateTableInput{}
 	jsonx.MustUnmarshal(tablesJSON, &inputs)
 
+	client, err := runtime.NewDynamoClient(rt.Config)
+	must(err)
+
 	for _, input := range inputs {
-		input.TableName = aws.String(rt.Dynamo.TableName(*input.TableName))
+		input.TableName = aws.String(rt.Config.DynamoTablePrefix + *input.TableName)
 
 		// delete table if it exists
-		if _, err := rt.Dynamo.Client.DescribeTable(ctx, &dynamodb.DescribeTableInput{TableName: input.TableName}); err == nil {
-			_, err := rt.Dynamo.Client.DeleteTable(ctx, &dynamodb.DeleteTableInput{TableName: input.TableName})
+		if _, err := client.DescribeTable(ctx, &dynamodb.DescribeTableInput{TableName: input.TableName}); err == nil {
+			_, err := client.DeleteTable(ctx, &dynamodb.DeleteTableInput{TableName: input.TableName})
 			must(err)
 		}
 
-		_, err := rt.Dynamo.Client.CreateTable(ctx, input)
+		_, err := client.CreateTable(ctx, input)
 		must(err)
 	}
 }
 
 var sqlResetTestData = `
-UPDATE contacts_contact SET current_session_uuid = NULL, current_flow_id = NULL;
+UPDATE contacts_contact SET last_seen_on = NULL, current_session_uuid = NULL, current_flow_id = NULL;
 
-DELETE FROM tickets_ticketdailycount;
-DELETE FROM tickets_ticketdailytiming;
 DELETE FROM notifications_notification;
 DELETE FROM notifications_incident;
 DELETE FROM request_logs_httplog;
-DELETE FROM tickets_ticketdailycount;
 DELETE FROM tickets_ticketevent;
 DELETE FROM tickets_ticket;
 DELETE FROM triggers_trigger_contacts WHERE trigger_id >= 30000;
@@ -297,6 +296,7 @@ DELETE FROM flows_flowstart;
 DELETE FROM flows_flowsession;
 DELETE FROM flows_flowrevision WHERE flow_id >= 30000;
 DELETE FROM flows_flow WHERE id >= 30000;
+DELETE FROM ai_llm WHERE id >= 30000;
 DELETE FROM ivr_call;
 DELETE FROM msgs_msg_labels;
 DELETE FROM msgs_msg;
@@ -319,7 +319,9 @@ DELETE FROM contacts_contact WHERE id >= 30000;
 DELETE FROM contacts_contactgroupcount WHERE group_id >= 30000;
 DELETE FROM contacts_contactgroup WHERE id >= 30000;
 DELETE FROM orgs_itemcount;
+DELETE FROM orgs_dailycount;
 
+ALTER SEQUENCE ai_llm_id_seq RESTART WITH 30000;
 ALTER SEQUENCE flows_flow_id_seq RESTART WITH 30000;
 ALTER SEQUENCE tickets_ticket_id_seq RESTART WITH 1;
 ALTER SEQUENCE channels_channelevent_id_seq RESTART WITH 1;

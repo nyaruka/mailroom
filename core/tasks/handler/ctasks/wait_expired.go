@@ -33,19 +33,19 @@ func (t *WaitExpiredTask) UseReadOnly() bool {
 	return true
 }
 
-func (t *WaitExpiredTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contact *models.Contact) error {
-	log := slog.With("ctask", "wait_expired", "contact_id", contact.ID(), "session_uuid", t.SessionUUID)
+func (t *WaitExpiredTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, mc *models.Contact) error {
+	log := slog.With("ctask", "wait_expired", "contact_id", mc.ID(), "session_uuid", t.SessionUUID)
 
 	// build our flow contact
-	flowContact, err := contact.FlowContact(oa)
+	fc, err := mc.EngineContact(oa)
 	if err != nil {
 		return fmt.Errorf("error creating flow contact: %w", err)
 	}
 
 	// look for a waiting session for this contact
-	session, err := models.GetWaitingSessionForContact(ctx, rt, oa, contact, flowContact)
+	session, err := models.GetWaitingSessionForContact(ctx, rt, oa, fc, t.SessionUUID)
 	if err != nil {
-		return fmt.Errorf("error loading waiting session for contact: %w", err)
+		return fmt.Errorf("error loading waiting session for contact #%d: %w", mc.ID(), err)
 	}
 
 	// if we didn't find a session or it is another session or if it's been modified since, ignore this task
@@ -56,13 +56,13 @@ func (t *WaitExpiredTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *
 
 	if session.SessionType() == models.FlowTypeVoice {
 		// load our call
-		conn, err := models.GetCallByID(ctx, rt.DB, oa.OrgID(), session.CallID())
+		call, err := models.GetCallByID(ctx, rt.DB, oa.OrgID(), session.CallID())
 		if err != nil {
 			return fmt.Errorf("error loading call for voice session: %w", err)
 		}
 
 		// hang up our call
-		clog, err := ivr.HangupCall(ctx, rt, conn)
+		clog, err := ivr.HangupCall(ctx, rt, call)
 		if err != nil {
 			return fmt.Errorf("error hanging up call for voice session: %w", err)
 		}
@@ -73,14 +73,14 @@ func (t *WaitExpiredTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *
 			}
 		}
 
-		if err := models.ExitSessions(ctx, rt.DB, []models.SessionID{session.ID()}, models.SessionStatusExpired); err != nil {
+		if err := models.ExitSessions(ctx, rt.DB, []flows.SessionUUID{session.UUID()}, models.SessionStatusExpired); err != nil {
 			return fmt.Errorf("error expiring sessions for expired calls: %w", err)
 		}
 
 	} else {
-		resume := resumes.NewRunExpiration(oa.Env(), flowContact)
+		resume := resumes.NewRunExpiration(oa.Env(), fc)
 
-		_, err = runner.ResumeFlow(ctx, rt, oa, session, contact, resume, nil)
+		_, err = runner.ResumeFlow(ctx, rt, oa, session, mc, resume, nil)
 		if err != nil {
 			return fmt.Errorf("error resuming flow for expiration: %w", err)
 		}

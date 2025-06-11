@@ -62,6 +62,10 @@
         },
         "status": 200,
         "response": {
+            "counts": {
+                "languages": 0,
+                "nodes": 1
+            },
             "dependencies": [
                 {
                     "uuid": "5e9d8fab-5e7e-4f51-b533-261af5dea70d",
@@ -69,9 +73,10 @@
                     "type": "group"
                 }
             ],
-            "issues": [],
+            "locals": [],
             "results": [],
-            "parent_refs": []
+            "parent_refs": [],
+            "issues": []
         }
     },
     {
@@ -128,32 +133,28 @@
         },
         "status": 200,
         "response": {
+            "counts": {
+                "languages": 0,
+                "nodes": 1
+            },
             "dependencies": [
-                {
-                    "key": "birthdate",
-                    "name": "",
-                    "type": "field",
-                    "missing": true
-                },
                 {
                     "uuid": "1465eb20-066d-4933-a8b4-62fe7b19fd39",
                     "name": "I Don't Exist",
                     "type": "group",
                     "missing": true
+                },
+                {
+                    "key": "birthdate",
+                    "name": "",
+                    "type": "field",
+                    "missing": true
                 }
             ],
+            "locals": [],
+            "results": [],
+            "parent_refs": [],
             "issues": [
-                {
-                    "type": "missing_dependency",
-                    "node_uuid": "6fde1a09-3997-47dd-aff0-92e8aff3a642",
-                    "action_uuid": "05a5cb7c-bb8a-4ad9-af90-ef9887cc370e",
-                    "description": "missing field dependency 'birthdate'",
-                    "dependency": {
-                        "key": "birthdate",
-                        "name": "",
-                        "type": "field"
-                    }
-                },
                 {
                     "type": "missing_dependency",
                     "node_uuid": "6fde1a09-3997-47dd-aff0-92e8aff3a642",
@@ -164,10 +165,19 @@
                         "name": "I Don't Exist",
                         "type": "group"
                     }
+                },
+                {
+                    "type": "missing_dependency",
+                    "node_uuid": "6fde1a09-3997-47dd-aff0-92e8aff3a642",
+                    "action_uuid": "05a5cb7c-bb8a-4ad9-af90-ef9887cc370e",
+                    "description": "missing field dependency 'birthdate'",
+                    "dependency": {
+                        "key": "birthdate",
+                        "name": "",
+                        "type": "field"
+                    }
                 }
-            ],
-            "results": [],
-            "parent_refs": []
+            ]
         }
     },
     {
@@ -221,6 +231,10 @@
         },
         "status": 200,
         "response": {
+            "counts": {
+                "languages": 0,
+                "nodes": 1
+            },
             "dependencies": [
                 {
                     "uuid": "5e9d8fab-5e7e-4f51-b533-261af5dea70d",
@@ -228,7 +242,7 @@
                     "type": "group"
                 }
             ],
-            "issues": [],
+            "locals": [],
             "results": [
                 {
                     "key": "answer",
@@ -239,7 +253,8 @@
                     ]
                 }
             ],
-            "parent_refs": []
+            "parent_refs": [],
+            "issues": []
         }
     },
     {
@@ -330,10 +345,15 @@
         },
         "status": 200,
         "response": {
+            "counts": {
+                "languages": 0,
+                "nodes": 1
+            },
             "dependencies": [],
-            "issues": [],
+            "locals": [],
             "results": [],
-            "parent_refs": []
+            "parent_refs": [],
+            "issues": []
         }
     },
     {

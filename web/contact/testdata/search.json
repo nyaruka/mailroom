@@ -20,8 +20,8 @@
         },
         "status": 422,
         "response": {
-            "code": "query:unknown_property",
             "error": "can't resolve 'birthday' to attribute, scheme or field",
+            "code": "query:unknown_property",
             "extra": {
                 "property": "birthday"
             }
@@ -38,8 +38,8 @@
         },
         "status": 422,
         "response": {
-            "code": "query:invalid_number",
             "error": "can't convert 'tomorrow' to a number",
+            "code": "query:invalid_number",
             "extra": {
                 "value": "tomorrow"
             }
@@ -56,20 +56,20 @@
         },
         "status": 200,
         "response": {
+            "query": "name ~ \"Cathy\"",
             "contact_ids": [
                 10000
             ],
+            "total": 1,
             "metadata": {
-                "allow_as_group": true,
                 "attributes": [
                     "name"
                 ],
+                "schemes": [],
                 "fields": [],
                 "groups": [],
-                "schemes": []
-            },
-            "query": "name ~ \"Cathy\"",
-            "total": 1
+                "allow_as_group": true
+            }
         }
     },
     {
@@ -87,20 +87,20 @@
         },
         "status": 200,
         "response": {
+            "query": "name ~ \"Cathy\" OR name ~ \"George\"",
             "contact_ids": [
                 10000
             ],
+            "total": 1,
             "metadata": {
-                "allow_as_group": true,
                 "attributes": [
                     "name"
                 ],
+                "schemes": [],
                 "fields": [],
                 "groups": [],
-                "schemes": []
-            },
-            "query": "name ~ \"Cathy\" OR name ~ \"George\"",
-            "total": 1
+                "allow_as_group": true
+            }
         }
     },
     {
@@ -114,10 +114,12 @@
         },
         "status": 200,
         "response": {
+            "query": "fields.age = 10 AND fields.gender = \"M\"",
             "contact_ids": [],
+            "total": 0,
             "metadata": {
-                "allow_as_group": true,
                 "attributes": [],
+                "schemes": [],
                 "fields": [
                     {
                         "key": "age",
@@ -129,10 +131,8 @@
                     }
                 ],
                 "groups": [],
-                "schemes": []
-            },
-            "query": "fields.age = 10 AND fields.gender = \"M\"",
-            "total": 0
+                "allow_as_group": true
+            }
         }
     },
     {
@@ -146,6 +146,7 @@
         },
         "status": 200,
         "response": {
+            "query": "",
             "contact_ids": [
                 10013,
                 10012,
@@ -158,7 +159,6 @@
                 10005,
                 10004
             ],
-            "query": "",
             "total": 10
         }
     },
@@ -174,6 +174,7 @@
         },
         "status": 200,
         "response": {
+            "query": "",
             "contact_ids": [
                 10013,
                 10012,
@@ -181,7 +182,6 @@
                 10010,
                 10009
             ],
-            "query": "",
             "total": 10
         }
     },
@@ -198,6 +198,7 @@
         },
         "status": 200,
         "response": {
+            "query": "",
             "contact_ids": [
                 10004,
                 10005,
@@ -205,7 +206,6 @@
                 10007,
                 10008
             ],
-            "query": "",
             "total": 10
         }
     }

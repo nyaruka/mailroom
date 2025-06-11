@@ -9,7 +9,7 @@ import (
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/search"
 	"github.com/nyaruka/mailroom/testsuite"
-	"github.com/nyaruka/mailroom/testsuite/testdata"
+	"github.com/nyaruka/mailroom/testsuite/testdb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -20,12 +20,12 @@ func TestBuildRecipientsQuery(t *testing.T) {
 	dates.SetNowFunc(dates.NewFixedNow(time.Date(2022, 4, 20, 15, 30, 45, 0, time.UTC)))
 	defer dates.SetNowFunc(time.Now)
 
-	oa := testdata.Org1.Load(rt)
-	flow, err := oa.FlowByID(testdata.Favorites.ID)
+	oa := testdb.Org1.Load(rt)
+	flow, err := oa.FlowByID(testdb.Favorites.ID)
 	require.NoError(t, err)
 
-	doctors := oa.GroupByID(testdata.DoctorsGroup.ID)
-	testers := oa.GroupByID(testdata.TestersGroup.ID)
+	doctors := oa.GroupByID(testdb.DoctorsGroup.ID)
+	testers := oa.GroupByID(testdb.TestersGroup.ID)
 
 	tcs := []struct {
 		groups        []*models.Group
@@ -38,13 +38,13 @@ func TestBuildRecipientsQuery(t *testing.T) {
 	}{
 		{ // 0
 			groups:       []*models.Group{doctors, testers},
-			contactUUIDs: []flows.ContactUUID{testdata.Cathy.UUID, testdata.George.UUID},
+			contactUUIDs: []flows.ContactUUID{testdb.Cathy.UUID, testdb.George.UUID},
 			exclusions:   models.Exclusions{},
 			expected:     `group = "Doctors" OR group = "Testers" OR uuid = "6393abc0-283d-4c9b-a1b3-641a035c34bf" OR uuid = "8d024bcd-f473-4719-a00a-bd0bb1190135"`,
 		},
 		{ // 1
 			groups:       []*models.Group{doctors},
-			contactUUIDs: []flows.ContactUUID{testdata.Cathy.UUID},
+			contactUUIDs: []flows.ContactUUID{testdb.Cathy.UUID},
 			exclusions: models.Exclusions{
 				NonActive:         true,
 				InAFlow:           true,
@@ -55,7 +55,7 @@ func TestBuildRecipientsQuery(t *testing.T) {
 			expected:      `(group = "Doctors" OR uuid = "6393abc0-283d-4c9b-a1b3-641a035c34bf") AND status = "active" AND flow = "" AND history != "Favorites" AND last_seen_on > "20-01-2022" AND group != "Testers"`,
 		},
 		{ // 2
-			contactUUIDs: []flows.ContactUUID{testdata.Cathy.UUID},
+			contactUUIDs: []flows.ContactUUID{testdb.Cathy.UUID},
 			exclusions: models.Exclusions{
 				NonActive: true,
 			},

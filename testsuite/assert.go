@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/gomodule/redigo/redis"
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
@@ -11,7 +12,7 @@ import (
 	"github.com/nyaruka/goflow/test"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/runtime"
-	"github.com/nyaruka/mailroom/testsuite/testdata"
+	"github.com/nyaruka/mailroom/testsuite/testdb"
 	"github.com/nyaruka/mailroom/utils/queues"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -52,7 +53,7 @@ func AssertCourierQueues(t *testing.T, expected map[string][]int, errMsg ...any)
 }
 
 // AssertContactTasks asserts that the given contact has the given tasks queued for them
-func AssertContactTasks(t *testing.T, org *testdata.Org, contact *testdata.Contact, expected []string, msgAndArgs ...any) {
+func AssertContactTasks(t *testing.T, org *testdb.Org, contact *testdb.Contact, expected []string, msgAndArgs ...any) {
 	rc := getRC()
 	defer rc.Close()
 
@@ -84,11 +85,44 @@ func AssertBatchTasks(t *testing.T, orgID models.OrgID, expected map[string]int,
 	assert.Equal(t, expected, actual, msgAndArgs...)
 }
 
-func AssertContactInFlow(t *testing.T, rt *runtime.Runtime, contact *testdata.Contact, flow *testdata.Flow) {
+func AssertContactInFlow(t *testing.T, rt *runtime.Runtime, contact *testdb.Contact, flow *testdb.Flow) {
 	// check contact has a single waiting session
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE contact_id = $1 AND status = 'W'`, contact.ID).Returns(1)
 
 	// check flow of the waiting session and contact is correct
 	assertdb.Query(t, rt.DB, `SELECT current_flow_id FROM flows_flowsession WHERE contact_id = $1 AND status = 'W'`, contact.ID).Returns(int64(flow.ID))
 	assertdb.Query(t, rt.DB, `SELECT current_flow_id FROM contacts_contact WHERE id = $1`, contact.ID).Returns(int64(flow.ID))
+}
+
+func AssertContactFires(t *testing.T, rt *runtime.Runtime, contactID models.ContactID, expected map[string]time.Time) {
+	var fires []*models.ContactFire
+	err := rt.DB.Select(&fires, `SELECT * FROM contacts_contactfire WHERE contact_id = $1`, contactID)
+	require.NoError(t, err)
+
+	actual := make(map[string]time.Time, len(fires))
+	for _, f := range fires {
+		key := string(f.Type)
+		if f.Scope != "" {
+			key += "/" + f.Scope
+		}
+		if f.SessionUUID != "" {
+			key += ":" + string(f.SessionUUID)
+		}
+		actual[key] = f.FireOn
+	}
+
+	assert.Equal(t, expected, actual)
+}
+
+func AssertDailyCounts(t *testing.T, rt *runtime.Runtime, org *testdb.Org, expected map[string]int) {
+	var counts []models.DailyCount
+	err := rt.DB.Select(&counts, `SELECT day, scope, SUM(count) AS count FROM orgs_dailycount WHERE org_id = $1 GROUP BY day, scope`, org.ID)
+	require.NoError(t, err)
+
+	actual := make(map[string]int, len(counts))
+	for _, count := range counts {
+		actual[fmt.Sprintf("%s/%s", count.Day.String(), count.Scope)] = int(count.Count)
+	}
+
+	assert.Equal(t, expected, actual)
 }

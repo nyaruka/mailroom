@@ -12,6 +12,8 @@ import (
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/core/goflow"
 	"github.com/nyaruka/mailroom/core/models"
+	"github.com/nyaruka/mailroom/core/runner"
+	"github.com/nyaruka/mailroom/core/runner/clocks"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/mailroom/web"
 )
@@ -107,14 +109,14 @@ func handleModify(ctx context.Context, rt *runtime.Runtime, r *modifyRequest) (a
 }
 
 func tryToLockAndModify(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, ids []models.ContactID, mods []flows.Modifier, userID models.UserID) (map[*flows.Contact][]flows.Event, []models.ContactID, error) {
-	locks, skipped, err := models.LockContacts(ctx, rt, oa.OrgID(), ids, time.Second)
+	locks, skipped, err := clocks.TryToLock(ctx, rt, oa, ids, time.Second)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	locked := slices.Collect(maps.Keys(locks))
 
-	defer models.UnlockContacts(rt, oa.OrgID(), locks)
+	defer clocks.Unlock(ctx, rt, oa, locks)
 
 	// load our contacts
 	contacts, err := models.LoadContacts(ctx, rt.DB, oa, locked)
@@ -125,7 +127,7 @@ func tryToLockAndModify(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 	// convert to map of flow contacts to modifiers
 	modifiersByContact := make(map[*flows.Contact][]flows.Modifier, len(contacts))
 	for _, contact := range contacts {
-		flowContact, err := contact.FlowContact(oa)
+		flowContact, err := contact.EngineContact(oa)
 		if err != nil {
 			return nil, nil, fmt.Errorf("error creating flow contact: %w", err)
 		}
@@ -133,7 +135,7 @@ func tryToLockAndModify(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 		modifiersByContact[flowContact] = mods
 	}
 
-	eventsByContact, err := models.ApplyModifiers(ctx, rt, oa, userID, modifiersByContact)
+	eventsByContact, err := runner.ApplyModifiers(ctx, rt, oa, userID, modifiersByContact)
 	if err != nil {
 		return nil, nil, err
 	}

@@ -1,0 +1,4 @@
+Translate the input text from the language with the ISO code "{{ .FromLanguage }}" to the language with the ISO code "{{ .ToLanguage }}".
+An "@" character indicates a variable expression and should be left untranslated.
+Return only the translated text, without additional explanations.
+Return "<CANT>" if you can't translate it.

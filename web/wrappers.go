@@ -2,8 +2,10 @@ package web
 
 import (
 	"context"
+	"crypto/subtle"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/nyaruka/mailroom/runtime"
 )
@@ -47,8 +49,11 @@ func RequireAuthToken(handler Handler) Handler {
 	return func(ctx context.Context, rt *runtime.Runtime, r *http.Request, w http.ResponseWriter) error {
 		auth := r.Header.Get("authorization")
 
-		if rt.Config.AuthToken != "" && fmt.Sprintf("Token %s", rt.Config.AuthToken) != auth {
-			return WriteMarshalled(w, http.StatusUnauthorized, &ErrorResponse{Error: "invalid or missing authorization header"})
+		// only do check if auth token set (might not be for dev environments)
+		if rt.Config.AuthToken != "" {
+			if !strings.HasPrefix(auth, "Token ") || subtle.ConstantTimeCompare([]byte(auth[6:]), []byte(rt.Config.AuthToken)) != 1 {
+				return WriteMarshalled(w, http.StatusUnauthorized, &ErrorResponse{Error: "invalid or missing authorization header"})
+			}
 		}
 
 		// we are authenticated, call our chain

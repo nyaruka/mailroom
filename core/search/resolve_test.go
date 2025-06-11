@@ -7,7 +7,7 @@ import (
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/search"
 	"github.com/nyaruka/mailroom/testsuite"
-	"github.com/nyaruka/mailroom/testsuite/testdata"
+	"github.com/nyaruka/mailroom/testsuite/testdb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -17,14 +17,14 @@ func TestResolveRecipients(t *testing.T) {
 
 	defer testsuite.Reset(testsuite.ResetAll)
 
-	group1 := testdata.InsertContactGroup(rt, testdata.Org1, "a85acec9-3895-4ffd-87c1-c69a25781a85", "Group 1", "", testdata.George, testdata.Alexandria)
-	group2 := testdata.InsertContactGroup(rt, testdata.Org1, "eb578345-595e-4e36-a68b-6941e242cdbb", "Group 2", "", testdata.George)
+	group1 := testdb.InsertContactGroup(rt, testdb.Org1, "a85acec9-3895-4ffd-87c1-c69a25781a85", "Group 1", "", testdb.George, testdb.Alexandra)
+	group2 := testdb.InsertContactGroup(rt, testdb.Org1, "eb578345-595e-4e36-a68b-6941e242cdbb", "Group 2", "", testdb.George)
 
-	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdata.Org1.ID, models.RefreshGroups)
+	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshGroups)
 	require.NoError(t, err)
 
 	tcs := []struct {
-		flow        *testdata.Flow
+		flow        *testdb.Flow
 		recipients  *search.Recipients
 		limit       int
 		expectedIDs []models.ContactID
@@ -35,43 +35,43 @@ func TestResolveRecipients(t *testing.T) {
 		},
 		{ // 1 only explicit contacts
 			recipients: &search.Recipients{
-				ContactIDs: []models.ContactID{testdata.Bob.ID, testdata.Alexandria.ID},
+				ContactIDs: []models.ContactID{testdb.Bob.ID, testdb.Alexandra.ID},
 			},
 			limit:       -1,
-			expectedIDs: []models.ContactID{testdata.Bob.ID, testdata.Alexandria.ID},
+			expectedIDs: []models.ContactID{testdb.Bob.ID, testdb.Alexandra.ID},
 		},
 		{ // 2 explicit contacts, group and query
 			recipients: &search.Recipients{
-				ContactIDs: []models.ContactID{testdata.Bob.ID},
+				ContactIDs: []models.ContactID{testdb.Bob.ID},
 				GroupIDs:   []models.GroupID{group1.ID},
 				Query:      `name = "Cathy" OR name = "Bob"`,
 			},
 			limit:       -1,
-			expectedIDs: []models.ContactID{testdata.Bob.ID, testdata.George.ID, testdata.Alexandria.ID, testdata.Cathy.ID},
+			expectedIDs: []models.ContactID{testdb.Bob.ID, testdb.George.ID, testdb.Alexandra.ID, testdb.Cathy.ID},
 		},
 		{ // 3 exclude group
 			recipients: &search.Recipients{
-				ContactIDs:      []models.ContactID{testdata.George.ID, testdata.Bob.ID},
+				ContactIDs:      []models.ContactID{testdb.George.ID, testdb.Bob.ID},
 				ExcludeGroupIDs: []models.GroupID{group2.ID},
 			},
 			limit:       -1,
-			expectedIDs: []models.ContactID{testdata.Bob.ID},
+			expectedIDs: []models.ContactID{testdb.Bob.ID},
 		},
 		{ // 4 limit number returned
 			recipients: &search.Recipients{
 				Query: `name = "Cathy" OR name = "Bob"`,
 			},
 			limit:       1,
-			expectedIDs: []models.ContactID{testdata.Cathy.ID},
+			expectedIDs: []models.ContactID{testdb.Cathy.ID},
 		},
 		{ // 5 create new contacts from URNs
 			recipients: &search.Recipients{
-				ContactIDs: []models.ContactID{testdata.Bob.ID},
+				ContactIDs: []models.ContactID{testdb.Bob.ID},
 				URNs:       []urns.URN{"tel:+1234000001", "tel:+1234000002"},
 				Exclusions: models.Exclusions{InAFlow: true},
 			},
 			limit:       -1,
-			expectedIDs: []models.ContactID{testdata.Bob.ID, 30000, 30001},
+			expectedIDs: []models.ContactID{testdb.Bob.ID, 30000, 30001},
 		},
 		{ // 6 new contacts not included if excluding based on last seen
 			recipients: &search.Recipients{
@@ -98,7 +98,7 @@ func TestResolveRecipients(t *testing.T) {
 			flow = tc.flow.Load(rt, oa)
 		}
 
-		actualIDs, err := search.ResolveRecipients(ctx, rt, oa, testdata.Admin.ID, flow, tc.recipients, tc.limit)
+		actualIDs, err := search.ResolveRecipients(ctx, rt, oa, testdb.Admin.ID, flow, tc.recipients, tc.limit)
 		assert.NoError(t, err)
 		assert.ElementsMatch(t, tc.expectedIDs, actualIDs, "contact ids mismatch in %d", i)
 	}

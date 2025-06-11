@@ -44,7 +44,7 @@ func TestSimulatorAirtime(t *testing.T) {
 
 	amounts := map[string]decimal.Decimal{"USD": decimal.RequireFromString(`1.50`)}
 
-	transfer, err := svc.Transfer(urns.URN("tel:+593979111111"), urns.URN("tel:+593979222222"), amounts, nil)
+	transfer, err := svc.Transfer(ctx, urns.URN("tel:+593979111111"), urns.URN("tel:+593979222222"), amounts, nil)
 	assert.NoError(t, err)
 
 	assert.Equal(t, &flows.AirtimeTransfer{

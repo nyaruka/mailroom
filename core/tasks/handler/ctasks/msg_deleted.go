@@ -27,7 +27,7 @@ func (t *MsgDeletedTask) UseReadOnly() bool {
 	return true
 }
 
-func (t *MsgDeletedTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contact *models.Contact) error {
+func (t *MsgDeletedTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, mc *models.Contact) error {
 	err := models.UpdateMessageDeletedBySender(ctx, rt.DB.DB, oa.OrgID(), t.MsgID)
 	if err != nil {
 		return fmt.Errorf("error deleting message: %w", err)

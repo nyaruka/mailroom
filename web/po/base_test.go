@@ -6,7 +6,7 @@ import (
 	"github.com/nyaruka/mailroom/testsuite"
 )
 
-func TestServer(t *testing.T) {
+func TestImportAndExport(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
 
 	testsuite.RunWebTests(t, ctx, rt, "testdata/export.json", nil)

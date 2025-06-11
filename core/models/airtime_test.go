@@ -6,11 +6,9 @@ import (
 
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/gocommon/urns"
-	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/testsuite"
-	"github.com/nyaruka/mailroom/testsuite/testdata"
-
+	"github.com/nyaruka/mailroom/testsuite/testdb"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
 )
@@ -22,11 +20,11 @@ func TestAirtimeTransfers(t *testing.T) {
 
 	// insert a transfer
 	transfer := models.NewAirtimeTransfer(
-		flows.AirtimeTransferUUID("3fd9af31-0fe9-4b63-bb8f-00805355c905"),
-		testdata.Org1.ID,
+		"0196a6d0-77a9-7e72-8c62-b65988e7fc2a",
+		testdb.Org1.ID,
 		models.AirtimeTransferStatusSuccess,
 		"2237512891",
-		testdata.Cathy.ID,
+		testdb.Cathy.ID,
 		urns.URN("tel:+250700000001"),
 		urns.URN("tel:+250700000002"),
 		"RWF",
@@ -40,11 +38,11 @@ func TestAirtimeTransfers(t *testing.T) {
 
 	// insert a failed transfer with nil sender, empty currency
 	transfer = models.NewAirtimeTransfer(
-		flows.AirtimeTransferUUID("e59dbe78-a159-4027-aae9-3232b00c77d5"),
-		testdata.Org1.ID,
+		"0196a6d0-b520-7c79-bb38-508bed6e3c40",
+		testdb.Org1.ID,
 		models.AirtimeTransferStatusFailed,
 		"2237512891",
-		testdata.Cathy.ID,
+		testdb.Cathy.ID,
 		urns.NilURN,
 		urns.URN("tel:+250700000002"),
 		"",
@@ -54,5 +52,5 @@ func TestAirtimeTransfers(t *testing.T) {
 	err = models.InsertAirtimeTransfers(ctx, rt.DB, []*models.AirtimeTransfer{transfer})
 	assert.Nil(t, err)
 
-	assertdb.Query(t, rt.DB, `SELECT count(*) from airtime_airtimetransfer WHERE org_id = $1 AND status = $2`, testdata.Org1.ID, models.AirtimeTransferStatusFailed).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT count(*) from airtime_airtimetransfer WHERE org_id = $1 AND status = $2`, testdb.Org1.ID, models.AirtimeTransferStatusFailed).Returns(1)
 }

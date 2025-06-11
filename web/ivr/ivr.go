@@ -13,6 +13,7 @@ import (
 	"github.com/nyaruka/gocommon/httpx"
 	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/goflow/assets"
+	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/core/ivr"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/tasks/handler/ctasks"
@@ -29,7 +30,7 @@ func init() {
 
 type ivrHandlerFn func(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, ch *models.Channel, svc ivr.Service, r *http.Request, w http.ResponseWriter) (*models.Call, error)
 
-func newIVRHandler(handler ivrHandlerFn, logType clogs.LogType) web.Handler {
+func newIVRHandler(handler ivrHandlerFn, logType clogs.Type) web.Handler {
 	return func(ctx context.Context, rt *runtime.Runtime, r *http.Request, w http.ResponseWriter) error {
 		channelUUID := assets.ChannelUUID(r.PathValue("uuid"))
 
@@ -124,10 +125,9 @@ func handleIncoming(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 		return nil, svc.WriteErrorResponse(w, fmt.Errorf("unable to get external id from request: %w", err))
 	}
 
-	// create our call
-	call, err := models.InsertCall(ctx, rt.DB, oa.OrgID(), ch.ID(), models.NilStartID, contact.ID(), urnID, models.CallDirectionIn, models.CallStatusInProgress, externalID)
-	if err != nil {
-		return nil, svc.WriteErrorResponse(w, fmt.Errorf("error creating call: %w", err))
+	call := models.NewIncomingCall(oa.OrgID(), ch, contact, urnID, externalID)
+	if err := models.InsertCalls(ctx, rt.DB, []*models.Call{call}); err != nil {
+		return nil, svc.WriteErrorResponse(w, fmt.Errorf("error inserting incoming call: %w", err))
 	}
 
 	// create an incoming call "task" and handle it to see if we have a trigger
@@ -138,16 +138,16 @@ func handleIncoming(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 		Extra:     nil,
 		CreatedOn: time.Now(),
 	}
-	session, err := task.Handle(ctx, rt, oa, contact, call)
+	scene, err := task.Handle(ctx, rt, oa, contact, call)
 	if err != nil {
 		slog.Error("error handling incoming call", "error", err, "http_request", r)
 		return call, svc.WriteErrorResponse(w, fmt.Errorf("error handling incoming call: %w", err))
 	}
 
 	// if we matched with an incoming-call trigger, we'll have a session
-	if session != nil {
+	if scene != nil {
 		// that might have started a non-voice flow, in which case we need to reject this call
-		if session.SessionType() != models.FlowTypeVoice {
+		if scene.Session().Type() != flows.FlowTypeVoice {
 			return call, svc.WriteRejectResponse(w)
 		}
 
@@ -155,7 +155,7 @@ func handleIncoming(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 		resumeURL := buildResumeURL(rt.Config, ch, call, urn)
 
 		// have our client output our session status
-		err = svc.WriteSessionResponse(ctx, rt, oa, ch, call, session, urn, resumeURL, r, w)
+		err = svc.WriteSessionResponse(ctx, rt, oa, ch, scene, urn, resumeURL, r, w)
 		if err != nil {
 			return call, fmt.Errorf("error writing ivr response for start: %w", err)
 		}
@@ -185,7 +185,7 @@ func writeGenericErrorResponse(w http.ResponseWriter, err error) error {
 }
 
 func buildResumeURL(cfg *runtime.Config, channel *models.Channel, call *models.Call, urn urns.URN) string {
-	domain := channel.ConfigValue(models.ChannelConfigCallbackDomain, cfg.Domain)
+	domain := channel.Config().GetString(models.ChannelConfigCallbackDomain, cfg.Domain)
 	form := url.Values{
 		"action":     []string{actionResume},
 		"connection": []string{fmt.Sprintf("%d", call.ID())},
@@ -202,29 +202,31 @@ func handleCallback(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 
 	request := &IVRRequest{}
 	if err := web.DecodeAndValidateForm(request, r); err != nil {
-		return nil, fmt.Errorf("request failed validation: %w", err)
+		return nil, fmt.Errorf("IVR callback request failed validation: %w", err)
 	}
 
 	// load our call
-	conn, err := models.GetCallByID(ctx, rt.DB, oa.OrgID(), request.ConnectionID)
+	call, err := models.GetCallByID(ctx, rt.DB, oa.OrgID(), request.ConnectionID)
 	if err != nil {
-		return nil, fmt.Errorf("unable to load call with id: %d: %w", request.ConnectionID, err)
+		return nil, fmt.Errorf("unable to load call #%d: %w", request.ConnectionID, err)
 	}
 
 	// load our contact
-	contact, err := models.LoadContact(ctx, rt.ReadonlyDB, oa, conn.ContactID())
+	contact, err := models.LoadContact(ctx, rt.ReadonlyDB, oa, call.ContactID())
 	if err != nil {
-		return conn, svc.WriteErrorResponse(w, fmt.Errorf("no such contact: %w", err))
+		return call, svc.WriteErrorResponse(w, fmt.Errorf("no such contact: %w", err))
 	}
 	if contact.Status() != models.ContactStatusActive {
-		return conn, svc.WriteErrorResponse(w, fmt.Errorf("no contact with id: %d", conn.ContactID()))
+		return call, svc.WriteErrorResponse(w, fmt.Errorf("no contact with id: %d", call.ContactID()))
 	}
 
 	// load the URN for this call
-	urn, err := models.URNForID(ctx, rt.DB, oa, conn.ContactURNID())
+	cu, err := models.LoadContactURN(ctx, rt.DB, call.ContactURNID())
 	if err != nil {
-		return conn, svc.WriteErrorResponse(w, fmt.Errorf("unable to find call urn: %d", conn.ContactURNID()))
+		return call, svc.WriteErrorResponse(w, fmt.Errorf("unable to find call urn: %d", call.ContactURNID()))
 	}
+
+	urn, _ := cu.Encode(oa)
 
 	// make sure our URN is indeed present on our contact, no funny business
 	found := false
@@ -234,19 +236,19 @@ func handleCallback(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 		}
 	}
 	if !found {
-		return conn, svc.WriteErrorResponse(w, fmt.Errorf("unable to find URN: %s on contact: %d", urn, conn.ContactID()))
+		return call, svc.WriteErrorResponse(w, fmt.Errorf("unable to find URN: %s on contact: %d", urn, call.ContactID()))
 	}
 
-	resumeURL := buildResumeURL(rt.Config, ch, conn, urn)
+	resumeURL := buildResumeURL(rt.Config, ch, call, urn)
 
 	// if this a start, start our contact
 	switch request.Action {
 	case actionStart:
-		err = ivr.StartIVRFlow(ctx, rt, svc, resumeURL, oa, ch, conn, contact, urn, conn.StartID(), r, w)
+		err = ivr.StartIVRFlow(ctx, rt, svc, resumeURL, oa, ch, call, contact, urn, r, w)
 	case actionResume:
-		err = ivr.ResumeIVRFlow(ctx, rt, resumeURL, svc, oa, ch, conn, contact, urn, r, w)
+		err = ivr.ResumeIVRFlow(ctx, rt, resumeURL, svc, oa, ch, call, contact, urn, r, w)
 	case actionStatus:
-		err = ivr.HandleIVRStatus(ctx, rt, oa, svc, conn, r, w)
+		err = ivr.HandleIVRStatus(ctx, rt, oa, svc, call, r, w)
 
 	default:
 		err = svc.WriteErrorResponse(w, fmt.Errorf("unknown action: %s", request.Action))
@@ -255,10 +257,10 @@ func handleCallback(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 	// had an error? mark our call as errored and log it
 	if err != nil {
 		slog.Error("error while handling IVR", "error", err, "http_request", r)
-		return conn, ivr.HandleAsFailure(ctx, rt.DB, svc, conn, w, err)
+		return call, ivr.HandleAsFailure(ctx, rt.DB, svc, call, w, err)
 	}
 
-	return conn, nil
+	return call, nil
 }
 
 // handleStatus handles all incoming IVR events / status updates
@@ -285,7 +287,7 @@ func handleStatus(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets
 	}
 
 	// load our call
-	conn, err := models.GetCallByExternalID(ctx, rt.DB, ch.ID(), externalID)
+	call, err := models.GetCallByExternalID(ctx, rt.DB, ch.ID(), externalID)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, svc.WriteEmptyResponse(w, "unknown call, ignoring")
 	}
@@ -293,13 +295,13 @@ func handleStatus(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets
 		return nil, svc.WriteErrorResponse(w, fmt.Errorf("unable to load call with id: %s: %w", externalID, err))
 	}
 
-	err = ivr.HandleIVRStatus(ctx, rt, oa, svc, conn, r, w)
+	err = ivr.HandleIVRStatus(ctx, rt, oa, svc, call, r, w)
 
 	// had an error? mark our call as errored and log it
 	if err != nil {
 		slog.Error("error while handling status", "error", err, "http_request", r)
-		return conn, ivr.HandleAsFailure(ctx, rt.DB, svc, conn, w, err)
+		return call, ivr.HandleAsFailure(ctx, rt.DB, svc, call, w, err)
 	}
 
-	return conn, nil
+	return call, nil
 }

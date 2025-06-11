@@ -1370,7 +1370,7 @@
                     },
                     "note": "Need help",
                     "assignee": {
-                        "email": "admin1@textit.com",
+                        "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
                         "name": "Andy Admin"
                     }
                 }
@@ -1394,13 +1394,13 @@
                             }
                         ],
                         "ticket": {
-                            "uuid": "d2f852ec-7b4e-457f-ae7f-f8b243c49ff5",
+                            "uuid": "01969b47-0583-76f8-ae7f-f8b243c49ff5",
                             "topic": {
                                 "uuid": "0a8f2e00-fef6-402c-bd79-d789446ec0e0",
                                 "name": "Support"
                             },
                             "assignee": {
-                                "email": "admin1@textit.com",
+                                "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
                                 "name": "Andy Admin"
                             }
                         }
@@ -1410,13 +1410,13 @@
                             "type": "ticket_opened",
                             "created_on": "2018-07-06T12:30:00.123456789Z",
                             "ticket": {
-                                "uuid": "d2f852ec-7b4e-457f-ae7f-f8b243c49ff5",
+                                "uuid": "01969b47-0583-76f8-ae7f-f8b243c49ff5",
                                 "topic": {
                                     "uuid": "0a8f2e00-fef6-402c-bd79-d789446ec0e0",
                                     "name": "Support"
                                 },
                                 "assignee": {
-                                    "email": "admin1@textit.com",
+                                    "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
                                     "name": "Andy Admin"
                                 }
                             },
@@ -1502,13 +1502,13 @@
                             }
                         ],
                         "ticket": {
-                            "uuid": "d2f852ec-7b4e-457f-ae7f-f8b243c49ff5",
+                            "uuid": "01969b47-0583-76f8-ae7f-f8b243c49ff5",
                             "topic": {
                                 "uuid": "0a8f2e00-fef6-402c-bd79-d789446ec0e0",
                                 "name": "Support"
                             },
                             "assignee": {
-                                "email": "admin1@textit.com",
+                                "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
                                 "name": "Andy Admin"
                             }
                         }
@@ -1591,13 +1591,13 @@
                             }
                         ],
                         "ticket": {
-                            "uuid": "d2f852ec-7b4e-457f-ae7f-f8b243c49ff5",
+                            "uuid": "01969b47-0583-76f8-ae7f-f8b243c49ff5",
                             "topic": {
                                 "uuid": "0a8f2e00-fef6-402c-bd79-d789446ec0e0",
                                 "name": "Support"
                             },
                             "assignee": {
-                                "email": "admin1@textit.com",
+                                "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
                                 "name": "Andy Admin"
                             }
                         }

@@ -74,7 +74,7 @@ func (e *ChannelEvent) Insert(ctx context.Context, db DBorTx) error {
 // NewChannelEvent creates a new channel event for the passed in parameters, returning it
 func NewChannelEvent(orgID OrgID, eventType ChannelEventType, channelID ChannelID, contactID ContactID, urnID URNID, status ChannelEventStatus, extra map[string]any, occurredOn time.Time) *ChannelEvent {
 	e := &ChannelEvent{
-		UUID:       ChannelEventUUID(uuids.NewV4()),
+		UUID:       ChannelEventUUID(uuids.NewV7()),
 		OrgID:      orgID,
 		EventType:  eventType,
 		ChannelID:  channelID,

@@ -12,7 +12,6 @@ import (
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/search"
 	"github.com/nyaruka/mailroom/core/tasks"
-	"github.com/nyaruka/mailroom/core/tasks/ivr"
 	"github.com/nyaruka/mailroom/runtime"
 )
 
@@ -124,19 +123,9 @@ func createFlowStartBatches(ctx context.Context, rt *runtime.Runtime, oa *models
 	for i, idBatch := range idBatches {
 		isFirst := (i == 0)
 		isLast := (i == len(idBatches)-1)
+		batchTask := &StartFlowBatchTask{FlowStartBatch: start.CreateBatch(idBatch, isFirst, isLast, len(contactIDs))}
 
-		batch := start.CreateBatch(idBatch, isFirst, isLast, len(contactIDs))
-
-		// task is different if we are an IVR flow
-		var batchTask tasks.Task
-		if flow.FlowType() == models.FlowTypeVoice {
-			batchTask = &ivr.StartIVRFlowBatchTask{FlowStartBatch: batch}
-		} else {
-			batchTask = &StartFlowBatchTask{FlowStartBatch: batch}
-		}
-
-		err = tasks.Queue(rc, q, start.OrgID, batchTask, false)
-		if err != nil {
+		if err := tasks.Queue(rc, q, start.OrgID, batchTask, false); err != nil {
 			if i == 0 {
 				return fmt.Errorf("error queuing flow start batch: %w", err)
 			}

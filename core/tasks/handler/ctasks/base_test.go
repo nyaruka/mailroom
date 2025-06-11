@@ -12,7 +12,7 @@ import (
 	"github.com/nyaruka/mailroom/core/tasks/handler"
 	"github.com/nyaruka/mailroom/core/tasks/handler/ctasks"
 	"github.com/nyaruka/mailroom/testsuite"
-	"github.com/nyaruka/mailroom/testsuite/testdata"
+	"github.com/nyaruka/mailroom/testsuite/testdb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -25,25 +25,25 @@ func TestTimedEvents(t *testing.T) {
 	defer testsuite.Reset(testsuite.ResetAll)
 
 	// create some keyword triggers
-	testdata.InsertKeywordTrigger(rt, testdata.Org1, testdata.Favorites, []string{"start"}, models.MatchOnly, nil, nil, nil)
-	testdata.InsertKeywordTrigger(rt, testdata.Org1, testdata.PickANumber, []string{"pick"}, models.MatchOnly, nil, nil, nil)
+	testdb.InsertKeywordTrigger(rt, testdb.Org1, testdb.Favorites, []string{"start"}, models.MatchOnly, nil, nil, nil)
+	testdb.InsertKeywordTrigger(rt, testdb.Org1, testdb.PickANumber, []string{"pick"}, models.MatchOnly, nil, nil, nil)
 
-	contact := testdata.Cathy
+	contact := testdb.Cathy
 
 	tcs := []struct {
 		eventType        string
 		messageIn        string
 		expectedResponse string
-		expectedFlow     *testdata.Flow
+		expectedFlow     *testdb.Flow
 	}{
 		// 0: start the flow
-		{ctasks.TypeMsgReceived, "start", "What is your favorite color?", testdata.Favorites},
+		{ctasks.TypeMsgReceived, "start", "What is your favorite color?", testdb.Favorites},
 
 		// 1: this expiration does nothing because the times don't match
-		{ctasks.TypeWaitExpired, "bad", "", testdata.Favorites},
+		{ctasks.TypeWaitExpired, "bad", "", testdb.Favorites},
 
 		// 2: this checks that the flow wasn't expired
-		{ctasks.TypeMsgReceived, "red", "Good choice, I like Red too! What is your favorite beer?", testdata.Favorites},
+		{ctasks.TypeMsgReceived, "red", "Good choice, I like Red too! What is your favorite beer?", testdb.Favorites},
 
 		// 3: this expiration will actually take
 		{ctasks.TypeWaitExpired, "", "", nil},
@@ -52,34 +52,34 @@ func TestTimedEvents(t *testing.T) {
 		{ctasks.TypeMsgReceived, "mutzig", "", nil},
 
 		// 5: start the parent expiration flow
-		{ctasks.TypeMsgReceived, "parent", "Child", testdata.ChildTimeoutFlow},
+		{ctasks.TypeMsgReceived, "parent", "Child", testdb.ChildTimeoutFlow},
 
 		// 6: expire the child
-		{ctasks.TypeWaitExpired, "", "Expired", testdata.ParentTimeoutFlow},
+		{ctasks.TypeWaitExpired, "", "Expired", testdb.ParentTimeoutFlow},
 
 		// 7: expire the parent
 		{ctasks.TypeWaitExpired, "", "", nil},
 
 		// 8: start the parent expiration flow again
-		{ctasks.TypeMsgReceived, "parent", "Child", testdata.ChildTimeoutFlow},
+		{ctasks.TypeMsgReceived, "parent", "Child", testdb.ChildTimeoutFlow},
 
 		// 9: respond to end normally
-		{ctasks.TypeMsgReceived, "done", "Completed", testdata.ParentTimeoutFlow},
+		{ctasks.TypeMsgReceived, "done", "Completed", testdb.ParentTimeoutFlow},
 
 		// 10: start our favorite flow again
-		{ctasks.TypeMsgReceived, "start", "What is your favorite color?", testdata.Favorites},
+		{ctasks.TypeMsgReceived, "start", "What is your favorite color?", testdb.Favorites},
 
 		// 11: timeout on the color question with bad sprint UUID
-		{ctasks.TypeWaitTimeout, "bad", "", testdata.Favorites},
+		{ctasks.TypeWaitTimeout, "bad", "", testdb.Favorites},
 
 		// 12: timeout on the color question
 		{ctasks.TypeWaitTimeout, "", "Sorry you can't participate right now, I'll try again later.", nil},
 
 		// 13: start the pick a number flow
-		{ctasks.TypeMsgReceived, "pick", "Pick a number between 1-10.", testdata.PickANumber},
+		{ctasks.TypeMsgReceived, "pick", "Pick a number between 1-10.", testdb.PickANumber},
 
 		// 14: try to resume with timeout even tho flow doesn't have one set
-		{ctasks.TypeWaitTimeout, "", "", testdata.PickANumber},
+		{ctasks.TypeWaitTimeout, "", "", testdb.PickANumber},
 	}
 
 	last := time.Now()
@@ -97,9 +97,9 @@ func TestTimedEvents(t *testing.T) {
 
 		if tc.eventType == ctasks.TypeMsgReceived {
 			ctask = &ctasks.MsgReceivedTask{
-				ChannelID: testdata.FacebookChannel.ID,
+				ChannelID: testdb.FacebookChannel.ID,
 				MsgID:     models.MsgID(1),
-				MsgUUID:   flows.MsgUUID(uuids.NewV4()),
+				MsgUUID:   flows.NewMsgUUID(),
 				URN:       contact.URN,
 				URNID:     contact.URNID,
 				Text:      tc.messageIn,
@@ -110,7 +110,7 @@ func TestTimedEvents(t *testing.T) {
 			ctask = &ctasks.WaitTimeoutTask{SessionUUID: sessionUUID, SprintUUID: taskSprintUUID}
 		}
 
-		err := handler.QueueTask(rc, testdata.Org1.ID, testdata.Cathy.ID, ctask)
+		err := handler.QueueTask(rc, testdb.Org1.ID, testdb.Cathy.ID, ctask)
 		assert.NoError(t, err, "%d: error adding task", i)
 
 		task, err := tasks.HandlerQueue.Pop(rc)
@@ -142,8 +142,8 @@ func TestTimedEvents(t *testing.T) {
 	}
 
 	// should only have a single waiting session/run with no timeout
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE status = 'W' AND contact_id = $1`, testdata.Cathy.ID).Returns(1)
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowrun WHERE status = 'W' AND contact_id = $1`, testdata.Cathy.ID).Returns(1)
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'E'`, testdata.Cathy.ID).Returns(1)
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'T'`, testdata.Cathy.ID).Returns(0)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE status = 'W' AND contact_id = $1`, testdb.Cathy.ID).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowrun WHERE status = 'W' AND contact_id = $1`, testdb.Cathy.ID).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'E'`, testdb.Cathy.ID).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'T'`, testdb.Cathy.ID).Returns(0)
 }

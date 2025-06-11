@@ -37,8 +37,8 @@
         },
         "status": 200,
         "response": {
-            "id": 1,
-            "duplicate": false
+            "duplicate": false,
+            "id": 1
         },
         "db_assertions": [
             {
@@ -60,8 +60,8 @@
         },
         "status": 200,
         "response": {
-            "id": 2,
-            "duplicate": false
+            "duplicate": false,
+            "id": 2
         },
         "db_assertions": [
             {
@@ -83,8 +83,8 @@
         },
         "status": 200,
         "response": {
-            "id": 2,
-            "duplicate": true
+            "duplicate": true,
+            "id": 2
         },
         "db_assertions": [
             {

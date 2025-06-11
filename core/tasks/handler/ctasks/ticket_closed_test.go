@@ -4,13 +4,13 @@ import (
 	"testing"
 
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
-	_ "github.com/nyaruka/mailroom/core/handlers"
 	"github.com/nyaruka/mailroom/core/models"
+	_ "github.com/nyaruka/mailroom/core/runner/handlers"
 	"github.com/nyaruka/mailroom/core/tasks"
 	"github.com/nyaruka/mailroom/core/tasks/handler"
 	"github.com/nyaruka/mailroom/core/tasks/handler/ctasks"
 	"github.com/nyaruka/mailroom/testsuite"
-	"github.com/nyaruka/mailroom/testsuite/testdata"
+	"github.com/nyaruka/mailroom/testsuite/testdb"
 	"github.com/stretchr/testify/require"
 )
 
@@ -22,14 +22,14 @@ func TestTicketClosed(t *testing.T) {
 	defer testsuite.Reset(testsuite.ResetAll)
 
 	// add a ticket closed trigger
-	testdata.InsertTicketClosedTrigger(rt, testdata.Org1, testdata.Favorites)
+	testdb.InsertTicketClosedTrigger(rt, testdb.Org1, testdb.Favorites)
 
-	ticket := testdata.InsertClosedTicket(rt, testdata.Org1, testdata.Cathy, testdata.DefaultTopic, nil)
+	ticket := testdb.InsertClosedTicket(rt, testdb.Org1, testdb.Cathy, testdb.DefaultTopic, nil)
 	modelTicket := ticket.Load(rt)
 
-	models.NewTicketClosedEvent(modelTicket, testdata.Admin.ID)
+	models.NewTicketClosedEvent(modelTicket, testdb.Admin.ID)
 
-	err := handler.QueueTask(rc, testdata.Org1.ID, testdata.Cathy.ID, ctasks.NewTicketClosed(modelTicket.ID()))
+	err := handler.QueueTask(rc, testdb.Org1.ID, testdb.Cathy.ID, ctasks.NewTicketClosed(modelTicket.ID()))
 	require.NoError(t, err)
 
 	task, err := tasks.HandlerQueue.Pop(rc)
@@ -38,5 +38,5 @@ func TestTicketClosed(t *testing.T) {
 	err = tasks.Perform(ctx, rt, task)
 	require.NoError(t, err)
 
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE contact_id = $1 AND direction = 'O' AND text = 'What is your favorite color?'`, testdata.Cathy.ID).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE contact_id = $1 AND direction = 'O' AND text = 'What is your favorite color?'`, testdb.Cathy.ID).Returns(1)
 }

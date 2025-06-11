@@ -32,6 +32,7 @@ import (
 	"github.com/nyaruka/goflow/utils"
 	"github.com/nyaruka/mailroom/core/ivr"
 	"github.com/nyaruka/mailroom/core/models"
+	"github.com/nyaruka/mailroom/core/runner"
 	"github.com/nyaruka/mailroom/runtime"
 )
 
@@ -71,13 +72,13 @@ type service struct {
 }
 
 func init() {
-	ivr.RegisterServiceType(vonageChannelType, NewServiceFromChannel)
+	ivr.RegisterService(vonageChannelType, NewServiceFromChannel)
 }
 
 // NewServiceFromChannel creates a new Vonage IVR service for the passed in account and and auth token
 func NewServiceFromChannel(httpClient *http.Client, channel *models.Channel) (ivr.Service, error) {
-	appID := channel.ConfigValue(appIDConfig, "")
-	key := channel.ConfigValue(privateKeyConfig, "")
+	appID := channel.Config().GetString(appIDConfig, "")
+	key := channel.Config().GetString(privateKeyConfig, "")
 	if appID == "" || key == "" {
 		return nil, fmt.Errorf("missing %s or %s on channel config", appIDConfig, privateKeyConfig)
 	}
@@ -588,20 +589,14 @@ func (s *service) ValidateRequestSignature(r *http.Request) error {
 }
 
 // WriteSessionResponse writes a NCCO response for the events in the passed in session
-func (s *service) WriteSessionResponse(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, channel *models.Channel, call *models.Call, session *models.Session, number urns.URN, resumeURL string, r *http.Request, w http.ResponseWriter) error {
+func (s *service) WriteSessionResponse(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, channel *models.Channel, scene *runner.Scene, number urns.URN, resumeURL string, r *http.Request, w http.ResponseWriter) error {
 	// for errored sessions we should just output our error body
-	if session.Status() == models.SessionStatusFailed {
+	if scene.Session().Status() == flows.SessionStatusFailed {
 		return fmt.Errorf("cannot write IVR response for failed session")
 	}
 
-	// otherwise look for any say events
-	sprint := session.Sprint()
-	if sprint == nil {
-		return fmt.Errorf("cannot write IVR response for session with no sprint")
-	}
-
 	// get our response
-	response, err := s.responseForSprint(ctx, rt.RP, channel, call, resumeURL, sprint.Events())
+	response, err := s.responseForSprint(ctx, rt.RP, channel, scene.Call, resumeURL, scene.Sprint().Events())
 	if err != nil {
 		return fmt.Errorf("unable to build response for IVR call: %w", err)
 	}
@@ -894,5 +889,5 @@ func (s *service) responseForSprint(ctx context.Context, rp *redis.Pool, channel
 }
 
 func (s *service) RedactValues(ch *models.Channel) []string {
-	return []string{ch.ConfigValue(privateKeyConfig, "")}
+	return []string{ch.Config().GetString(privateKeyConfig, "")}
 }

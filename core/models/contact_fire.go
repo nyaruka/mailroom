@@ -15,55 +15,45 @@ type ContactFireID int64
 type ContactFireType string
 
 const (
-	ContactFireTypeWaitExpiration ContactFireType = "E"
-	ContactFireTypeWaitTimeout    ContactFireType = "T"
-	ContactFireTypeCampaign       ContactFireType = "C"
+	ContactFireTypeWaitTimeout       ContactFireType = "T"
+	ContactFireTypeWaitExpiration    ContactFireType = "E"
+	ContactFireTypeSessionExpiration ContactFireType = "S"
+	ContactFireTypeCampaignEvent     ContactFireType = "C"
 )
 
-type ContactFireExtra struct {
-	SessionID SessionID `json:"session_id,omitempty"`
-	CallID    CallID    `json:"call_id,omitempty"`
-}
-
 type ContactFire struct {
-	ID        ContactFireID   `db:"id"`
-	OrgID     OrgID           `db:"org_id"`
-	ContactID ContactID       `db:"contact_id"`
-	Type      ContactFireType `db:"fire_type"`
-	Scope     string          `db:"scope"`
-	FireOn    time.Time       `db:"fire_on"`
-
-	SessionUUID null.String `db:"session_uuid"`
-	SprintUUID  null.String `db:"sprint_uuid"`
-
-	// deprecated
-	Extra JSONB[ContactFireExtra] `db:"extra"`
+	ID          ContactFireID   `db:"id"`
+	OrgID       OrgID           `db:"org_id"`
+	ContactID   ContactID       `db:"contact_id"`
+	Type        ContactFireType `db:"fire_type"`
+	Scope       string          `db:"scope"`
+	FireOn      time.Time       `db:"fire_on"`
+	SessionUUID null.String     `db:"session_uuid"`
+	SprintUUID  null.String     `db:"sprint_uuid"` // set for wait expirations and timeouts
 }
 
-func newContactFire(orgID OrgID, contactID ContactID, typ ContactFireType, scope string, fireOn time.Time, sessionUUID flows.SessionUUID, sprintUUID flows.SprintUUID, extra ContactFireExtra) *ContactFire {
+func newContactFire(orgID OrgID, contactID ContactID, typ ContactFireType, scope string, fireOn time.Time, sessionUUID flows.SessionUUID, sprintUUID flows.SprintUUID) *ContactFire {
 	return &ContactFire{
-		OrgID:     orgID,
-		ContactID: contactID,
-		Type:      typ,
-		Scope:     scope,
-		FireOn:    fireOn,
-
+		OrgID:       orgID,
+		ContactID:   contactID,
+		Type:        typ,
+		Scope:       scope,
+		FireOn:      fireOn,
 		SessionUUID: null.String(sessionUUID),
 		SprintUUID:  null.String(sprintUUID),
-		Extra:       JSONB[ContactFireExtra]{extra},
 	}
 }
 
-func NewContactFireForSession(orgID OrgID, s *Session, typ ContactFireType, fireOn time.Time) *ContactFire {
-	return newContactFire(orgID, s.ContactID(), typ, "", fireOn, s.UUID(), s.LastSprintUUID(), ContactFireExtra{})
+func NewFireForSession(orgID OrgID, contactID ContactID, sessionUUID flows.SessionUUID, sprintUUID flows.SprintUUID, typ ContactFireType, fireOn time.Time) *ContactFire {
+	return newContactFire(orgID, contactID, typ, "", fireOn, sessionUUID, sprintUUID)
 }
 
-func NewContactFireForCampaign(orgID OrgID, contactID ContactID, eventID CampaignEventID, fireOn time.Time) *ContactFire {
-	return newContactFire(orgID, contactID, ContactFireTypeCampaign, fmt.Sprint(eventID), fireOn, "", "", ContactFireExtra{})
+func NewContactFireForCampaign(orgID OrgID, contactID ContactID, ce *CampaignEvent, fireOn time.Time) *ContactFire {
+	return newContactFire(orgID, contactID, ContactFireTypeCampaignEvent, fmt.Sprintf("%d:%d", ce.ID, ce.FireVersion), fireOn, "", "")
 }
 
 const sqlSelectDueContactFires = `
-  SELECT id, org_id, contact_id, fire_type, scope, session_uuid, sprint_uuid, fire_on, extra
+  SELECT id, org_id, contact_id, fire_type, scope, session_uuid, sprint_uuid, fire_on
     FROM contacts_contactfire
    WHERE fire_on < NOW()
 ORDER BY fire_on ASC
@@ -106,10 +96,15 @@ func DeleteContactFires(ctx context.Context, rt *runtime.Runtime, fires []*Conta
 }
 
 // DeleteSessionContactFires deletes session wait/timeout fires for the given contacts
-func DeleteSessionContactFires(ctx context.Context, db DBorTx, contactIDs []ContactID) (int, error) {
-	res, err := db.ExecContext(ctx, `DELETE FROM contacts_contactfire WHERE contact_id = ANY($1) AND fire_type IN ('E', 'T') AND scope = ''`, pq.Array(contactIDs))
+func DeleteSessionContactFires(ctx context.Context, db DBorTx, contactIDs []ContactID, incSessionExpiration bool) (int, error) {
+	types := []ContactFireType{ContactFireTypeWaitTimeout, ContactFireTypeWaitExpiration}
+	if incSessionExpiration {
+		types = append(types, ContactFireTypeSessionExpiration)
+	}
+
+	res, err := db.ExecContext(ctx, `DELETE FROM contacts_contactfire WHERE contact_id = ANY($1) AND fire_type = ANY($2) AND scope = ''`, pq.Array(contactIDs), pq.Array(types))
 	if err != nil {
-		return 0, fmt.Errorf("error deleting session wait/timeout contact fires: %w", err)
+		return 0, fmt.Errorf("error deleting session contact fires: %w", err)
 	}
 
 	numDeleted, _ := res.RowsAffected()
@@ -128,27 +123,29 @@ func DeleteAllCampaignContactFires(ctx context.Context, db DBorTx, contactIDs []
 
 // FireDelete is a helper struct for deleting specific campaign event fires
 type FireDelete struct {
-	ContactID ContactID       `db:"contact_id"`
-	EventID   CampaignEventID `db:"event_id"`
+	ContactID   ContactID       `db:"contact_id"`
+	EventID     CampaignEventID `db:"event_id"`
+	FireVersion int             `db:"fire_version"`
 }
 
-const sqlDeleteContactFires = `
+// note that : is escaped as \x3A to stop sqlx mistakenly treating it as a named variable
+const sqlDeleteCampaignContactFires = `
 DELETE FROM contacts_contactfire WHERE id IN (
-    SELECT cf.id FROM contacts_contactfire cf, (VALUES(:contact_id, :event_id)) AS f(contact_id, event_id)
-     WHERE cf.contact_id = f.contact_id::int AND fire_type = 'C' AND cf.scope = f.event_id::text
+    SELECT cf.id FROM contacts_contactfire cf, (VALUES(:contact_id, :event_id, :fire_version)) AS f(contact_id, event_id, fire_version)
+     WHERE cf.contact_id = f.contact_id::int AND fire_type = 'C' AND cf.scope = f.event_id || E'\x3A' || f.fire_version
 )`
 
 // DeleteCampaignContactFires deletes *specific* campaign event fires for the given contacts
 func DeleteCampaignContactFires(ctx context.Context, db DBorTx, deletes []*FireDelete) error {
-	return BulkQueryBatches(ctx, "deleting campaign event fires", db, sqlDeleteContactFires, 1000, deletes)
+	return BulkQueryBatches(ctx, "deleting campaign event fires", db, sqlDeleteCampaignContactFires, 1000, deletes)
 }
 
 var sqlInsertContactFires = `
-INSERT INTO contacts_contactfire( org_id,  contact_id,  fire_type,  scope,  fire_on,  session_uuid,  sprint_uuid,  extra)
-                          VALUES(:org_id, :contact_id, :fire_type, :scope, :fire_on, :session_uuid, :sprint_uuid, :extra)
+INSERT INTO contacts_contactfire( org_id,  contact_id,  fire_type,  scope,  fire_on,  session_uuid,  sprint_uuid)
+                          VALUES(:org_id, :contact_id, :fire_type, :scope, :fire_on, :session_uuid, :sprint_uuid)
 ON CONFLICT DO NOTHING`
 
 // InsertContactFires inserts the given contact fires (no error on conflict)
 func InsertContactFires(ctx context.Context, db DBorTx, fs []*ContactFire) error {
-	return BulkQuery(ctx, "inserted contact fires", db, sqlInsertContactFires, fs)
+	return BulkQueryBatches(ctx, "inserted contact fires", db, sqlInsertContactFires, 1000, fs)
 }

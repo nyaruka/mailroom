@@ -98,7 +98,7 @@ func NewDefaultConfig() *Config {
 
 		WebhooksTimeout:              15000,
 		WebhooksMaxRetries:           2,
-		WebhooksMaxBodyBytes:         1024 * 1024, // 1MB
+		WebhooksMaxBodyBytes:         256 * 1024, // 256 KiB
 		WebhooksInitialBackoff:       5000,
 		WebhooksBackoffJitter:        0.5,
 		WebhooksHealthyResponseLimit: 10000,

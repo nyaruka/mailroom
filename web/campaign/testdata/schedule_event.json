@@ -1,0 +1,35 @@
+[
+    {
+        "label": "illegal method",
+        "method": "GET",
+        "path": "/mr/campaign/schedule_event",
+        "status": 405,
+        "response": {
+            "error": "illegal method: GET"
+        }
+    },
+    {
+        "label": "invalid org_id",
+        "method": "POST",
+        "path": "/mr/campaign/schedule_event",
+        "body": {
+            "org_id": 1234,
+            "event_id": 2345
+        },
+        "status": 500,
+        "response": {
+            "error": "unable to load org assets: error loading environment for org 1234: no org with id: 1234"
+        }
+    },
+    {
+        "label": "response is empty on success",
+        "method": "POST",
+        "path": "/mr/campaign/schedule_event",
+        "body": {
+            "org_id": 1,
+            "event_id": $event1_id$
+        },
+        "status": 200,
+        "response": {}
+    }
+]

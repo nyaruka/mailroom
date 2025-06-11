@@ -2,7 +2,6 @@ package interrupts
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/nyaruka/mailroom/core/models"
@@ -19,7 +18,6 @@ func init() {
 
 // InterruptSessionsTask is our task for interrupting sessions
 type InterruptSessionsTask struct {
-	SessionIDs []models.SessionID `json:"session_ids,omitempty"`
 	ContactIDs []models.ContactID `json:"contact_ids,omitempty"`
 	FlowIDs    []models.FlowID    `json:"flow_ids,omitempty"`
 }
@@ -48,11 +46,6 @@ func (t *InterruptSessionsTask) Perform(ctx context.Context, rt *runtime.Runtime
 	if len(t.FlowIDs) > 0 {
 		if err := models.InterruptSessionsForFlows(ctx, db, t.FlowIDs); err != nil {
 			return err
-		}
-	}
-	if len(t.SessionIDs) > 0 {
-		if err := models.ExitSessions(ctx, db, t.SessionIDs, models.SessionStatusInterrupted); err != nil {
-			return fmt.Errorf("error interrupting sessions: %w", err)
 		}
 	}
 

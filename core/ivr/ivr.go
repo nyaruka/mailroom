@@ -2,33 +2,24 @@ package ivr
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"net/url"
-	"path"
-	"strconv"
 	"time"
 
-	"github.com/gomodule/redigo/redis"
 	"github.com/jmoiron/sqlx"
 	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/httpx"
 	"github.com/nyaruka/gocommon/urns"
-	"github.com/nyaruka/gocommon/uuids"
 	"github.com/nyaruka/goflow/assets"
-	"github.com/nyaruka/goflow/excellent/types"
 	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/goflow/flows/resumes"
-	"github.com/nyaruka/goflow/flows/triggers"
 	"github.com/nyaruka/goflow/utils"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/runner"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/mailroom/utils/clogs"
-	"github.com/nyaruka/null/v3"
 )
 
 type CallID string
@@ -41,66 +32,10 @@ const (
 	ErrorMessage = "An error has occurred, please try again later."
 )
 
-// our map of service constructors
-var constructors = make(map[models.ChannelType]ServiceConstructor)
-
-// ServiceConstructor defines our signature for creating a new IVR service from a channel
-type ServiceConstructor func(*http.Client, *models.Channel) (Service, error)
-
-// RegisterServiceType registers the passed in channel type with the passed in constructor
-func RegisterServiceType(channelType models.ChannelType, constructor ServiceConstructor) {
-	constructors[channelType] = constructor
-}
-
-// GetService creates the right kind of IVR service for the passed in channel
-func GetService(channel *models.Channel) (Service, error) {
-	constructor := constructors[channel.Type()]
-	if constructor == nil {
-		return nil, fmt.Errorf("no IVR service for channel type: %s", channel.Type())
-	}
-
-	return constructor(http.DefaultClient, channel)
-}
-
-// Service defines the interface IVR services must satisfy
-type Service interface {
-	RequestCall(number urns.URN, handleURL string, statusURL string, machineDetection bool) (CallID, *httpx.Trace, error)
-
-	HangupCall(externalID string) (*httpx.Trace, error)
-
-	WriteSessionResponse(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, channel *models.Channel, call *models.Call, session *models.Session, number urns.URN, resumeURL string, req *http.Request, w http.ResponseWriter) error
-	WriteRejectResponse(w http.ResponseWriter) error
-	WriteErrorResponse(w http.ResponseWriter, err error) error
-	WriteEmptyResponse(w http.ResponseWriter, msg string) error
-
-	ResumeForRequest(r *http.Request) (Resume, error)
-
-	// StatusForRequest returns the call status for the passed in request, and if it's an error the reason,
-	// and if available, the current call duration
-	StatusForRequest(r *http.Request) (models.CallStatus, models.CallError, int)
-
-	// CheckStartRequest checks the start request from the service is as we expect and if not returns an error reason
-	CheckStartRequest(r *http.Request) models.CallError
-
-	PreprocessResume(ctx context.Context, rt *runtime.Runtime, call *models.Call, r *http.Request) ([]byte, error)
-
-	PreprocessStatus(ctx context.Context, rt *runtime.Runtime, r *http.Request) ([]byte, error)
-
-	ValidateRequestSignature(r *http.Request) error
-
-	DownloadMedia(url string) (*http.Response, error)
-
-	URNForRequest(r *http.Request) (urns.URN, error)
-
-	CallIDForRequest(r *http.Request) (string, error)
-
-	RedactValues(*models.Channel) []string
-}
-
 // HangupCall hangs up the passed in call also taking care of updating the status of our call in the process
 func HangupCall(ctx context.Context, rt *runtime.Runtime, call *models.Call) (*models.ChannelLog, error) {
 	// no matter what mark our call as failed
-	defer call.MarkFailed(ctx, rt.DB, time.Now())
+	defer call.SetFailed(ctx, rt.DB)
 
 	// load our org assets
 	oa, err := models.GetOrgAssets(ctx, rt, call.OrgID())
@@ -129,7 +64,7 @@ func HangupCall(ctx context.Context, rt *runtime.Runtime, call *models.Call) (*m
 		clog.HTTP(trace)
 	}
 	if err != nil {
-		clog.Error(&clogs.LogError{Message: err.Error()})
+		clog.Error(&clogs.Error{Message: err.Error()})
 	}
 
 	if err := call.AttachLog(ctx, rt.DB, clog); err != nil {
@@ -139,8 +74,8 @@ func HangupCall(ctx context.Context, rt *runtime.Runtime, call *models.Call) (*m
 	return clog, err
 }
 
-// RequestCall creates a new ChannelSession for the passed in flow start and contact, returning the created session
-func RequestCall(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, start *models.FlowStartBatch, contact *models.Contact) (*models.Call, error) {
+// RequestCall creates a new outgoing call and makes a request to the service to start it
+func RequestCall(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contact *models.Contact, trigger flows.Trigger) (*models.Call, error) {
 	// find a tel URL for the contact
 	telURN := urns.NilURN
 	for _, u := range contact.URNs() {
@@ -183,19 +118,17 @@ func RequestCall(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 		return nil, nil
 	}
 
-	// get the channel for this URN
-	channel := callChannel.Asset().(*models.Channel)
+	// clear contact on trigger as we'll set it when call starts to ensure we have the latest changes
+	trigger.SetContact(nil)
+	trigger.SetCall(flows.NewCall(callChannel.Reference(), urn.URN().Identity()))
 
-	// create our call object
-	conn, err := models.InsertCall(
-		ctx, rt.DB, oa.OrgID(), channel.ID(), start.StartID, contact.ID(), models.URNID(urnID),
-		models.CallDirectionOut, models.CallStatusPending, "",
-	)
-	if err != nil {
-		return nil, fmt.Errorf("error creating call: %w", err)
+	channel := callChannel.Asset().(*models.Channel)
+	call := models.NewOutgoingCall(oa.OrgID(), channel, contact, models.URNID(urnID), trigger)
+	if err := models.InsertCalls(ctx, rt.DB, []*models.Call{call}); err != nil {
+		return nil, fmt.Errorf("error creating outgoing call: %w", err)
 	}
 
-	clog, err := RequestStartForCall(ctx, rt, channel, telURN, conn)
+	clog, err := RequestCallStart(ctx, rt, channel, telURN, call)
 
 	// log any error inserting our channel log, but continue
 	if clog != nil {
@@ -204,41 +137,37 @@ func RequestCall(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 		}
 	}
 
-	return conn, err
+	return call, err
 }
 
-func RequestStartForCall(ctx context.Context, rt *runtime.Runtime, channel *models.Channel, telURN urns.URN, call *models.Call) (*models.ChannelLog, error) {
+func RequestCallStart(ctx context.Context, rt *runtime.Runtime, channel *models.Channel, telURN urns.URN, call *models.Call) (*models.ChannelLog, error) {
 	// the domain that will be used for callbacks, can be specific for channels due to white labeling
-	domain := channel.ConfigValue(models.ChannelConfigCallbackDomain, rt.Config.Domain)
+	domain := channel.Config().GetString(models.ChannelConfigCallbackDomain, rt.Config.Domain)
 
-	// get max concurrent events if any
-	maxCalls := channel.ConfigValue(models.ChannelConfigMaxConcurrentEvents, "")
-	if maxCalls != "" {
-		maxCalls, _ := strconv.Atoi(maxCalls)
+	// get max concurrent calls if any
+	maxCalls := channel.Config().GetInt(models.ChannelConfigMaxConcurrentCalls, 0)
 
-		// max calls is set, lets see how many are currently active on this channel
-		if maxCalls > 0 {
-			count, err := models.ActiveCallCount(ctx, rt.DB, channel.ID())
+	// max calls is set, lets see how many are currently active on this channel
+	if maxCalls > 0 {
+		count, err := models.ActiveCallCount(ctx, rt.DB, channel.ID())
+		if err != nil {
+			return nil, fmt.Errorf("error finding number of active calls: %w", err)
+		}
+
+		// we are at max calls, do not move on
+		if count >= maxCalls {
+			slog.Info("call being queued, max concurrent reached", "channel_id", channel.ID())
+			err := call.SetThrottled(ctx, rt.DB)
 			if err != nil {
-				return nil, fmt.Errorf("error finding number of active calls: %w", err)
+				return nil, fmt.Errorf("error marking call as throttled: %w", err)
 			}
-
-			// we are at max calls, do not move on
-			if count >= maxCalls {
-				slog.Info("call being queued, max concurrent reached", "channel_id", channel.ID())
-				err := call.MarkThrottled(ctx, rt.DB, time.Now())
-				if err != nil {
-					return nil, fmt.Errorf("error marking call as throttled: %w", err)
-				}
-				return nil, nil
-			}
+			return nil, nil
 		}
 	}
 
 	// create our callback
 	form := url.Values{
-		"connection": []string{fmt.Sprintf("%d", call.ID())},
-		"start":      []string{fmt.Sprintf("%d", call.StartID())},
+		"connection": []string{fmt.Sprint(call.ID())},
 		"action":     []string{"start"},
 		"urn":        []string{telURN.String()},
 	}
@@ -261,7 +190,7 @@ func RequestStartForCall(ctx context.Context, rt *runtime.Runtime, channel *mode
 		clog.HTTP(trace)
 	}
 	if err != nil {
-		clog.Error(&clogs.LogError{Message: err.Error()})
+		clog.Error(&clogs.Error{Message: err.Error()})
 
 		// set our status as errored
 		err := call.UpdateStatus(ctx, rt.DB, models.CallStatusFailed, 0, time.Now())
@@ -284,17 +213,17 @@ func RequestStartForCall(ctx context.Context, rt *runtime.Runtime, channel *mode
 
 // HandleAsFailure marks the passed in call as errored and writes the appropriate error response to our writer
 func HandleAsFailure(ctx context.Context, db *sqlx.DB, svc Service, call *models.Call, w http.ResponseWriter, rootErr error) error {
-	err := call.MarkFailed(ctx, db, time.Now())
+	err := call.SetFailed(ctx, db)
 	if err != nil {
 		slog.Error("error marking call as failed", "error", err)
 	}
 	return svc.WriteErrorResponse(w, rootErr)
 }
 
-// StartIVRFlow takes care of starting the flow in the passed in start for the passed in contact and URN
+// StartIVRFlowByStart takes care of starting the flow in the passed in start for the passed in contact and URN
 func StartIVRFlow(
 	ctx context.Context, rt *runtime.Runtime, svc Service, resumeURL string, oa *models.OrgAssets,
-	channel *models.Channel, call *models.Call, c *models.Contact, urn urns.URN, startID models.StartID,
+	channel *models.Channel, call *models.Call, c *models.Contact, urn urns.URN,
 	r *http.Request, w http.ResponseWriter) error {
 
 	// call isn't in a wired or in-progress status then we shouldn't be here
@@ -302,21 +231,23 @@ func StartIVRFlow(
 		return HandleAsFailure(ctx, rt.DB, svc, call, w, fmt.Errorf("call in invalid state: %s", call.Status()))
 	}
 
-	// get the flow for our start
-	start, err := models.GetFlowStartByID(ctx, rt.DB, startID)
+	// if we don't have a start then we must have a trigger so read that
+	trigger, err := call.EngineTrigger(oa)
 	if err != nil {
-		return fmt.Errorf("unable to load start: %d: %w", startID, err)
+		return fmt.Errorf("error reading call trigger: %w", err)
 	}
-	flow, err := oa.FlowByID(start.FlowID)
+
+	f, err := oa.FlowByUUID(trigger.Flow().UUID)
 	if err != nil {
-		return fmt.Errorf("unable to load flow: %d: %w", startID, err)
+		return fmt.Errorf("unable to load flow %s: %w", trigger.Flow().UUID, err)
 	}
+	flow := f.(*models.Flow)
 
 	// check that call on service side is in the state we need to continue
 	if errorReason := svc.CheckStartRequest(r); errorReason != "" {
-		err := call.MarkErrored(ctx, rt.DB, dates.Now(), flow.IVRRetryWait(), errorReason)
+		err := call.SetErrored(ctx, rt.DB, dates.Now(), flow.IVRRetryWait(), errorReason)
 		if err != nil {
-			return fmt.Errorf("unable to mark call as errored: %w", err)
+			return fmt.Errorf("error marking call as errored: %w", err)
 		}
 
 		errMsg := fmt.Sprintf("status updated: %s", call.Status())
@@ -327,72 +258,25 @@ func StartIVRFlow(
 		return svc.WriteErrorResponse(w, errors.New(errMsg))
 	}
 
-	// our flow contact
-	contact, err := c.FlowContact(oa)
+	// load contact and update on trigger to ensure we're not starting with outdated contact data
+	contact, err := c.EngineContact(oa)
 	if err != nil {
 		return fmt.Errorf("error loading flow contact: %w", err)
 	}
+	trigger.SetContact(contact)
 
-	var params *types.XObject
-	if !start.Params.IsNull() {
-		params, err = types.ReadXObject(start.Params)
-		if err != nil {
-			return fmt.Errorf("unable to read JSON from flow start params: %w", err)
-		}
-	}
+	sceneInit := func(s *runner.Scene) { s.Call = call }
 
-	var history *flows.SessionHistory
-	if !start.SessionHistory.IsNull() {
-		history, err = models.ReadSessionHistory(start.SessionHistory)
-		if err != nil {
-			return fmt.Errorf("unable to read JSON from flow start history: %w", err)
-		}
-	}
-
-	// our builder for the triggers that will be created for contacts
-	flowRef := assets.NewFlowReference(flow.UUID(), flow.Name())
-
-	var trigger flows.Trigger
-	if !start.ParentSummary.IsNull() {
-		trigger = triggers.NewBuilder(oa.Env(), flowRef, contact).
-			FlowAction(history, json.RawMessage(start.ParentSummary)).
-			WithCall(channel.Reference(), urn).
-			Build()
-	} else {
-		trigger = triggers.NewBuilder(oa.Env(), flowRef, contact).
-			Manual().
-			WithCall(channel.Reference(), urn).
-			WithParams(params).
-			Build()
-	}
-
-	// mark our call as started
-	err = call.MarkStarted(ctx, rt.DB, time.Now())
-	if err != nil {
-		return fmt.Errorf("error updating call status: %w", err)
-	}
-
-	// we set the call on the session before our event hooks fire so that IVR messages can be created with the right call reference
-	hook := func(ctx context.Context, tx *sqlx.Tx, rp *redis.Pool, oa *models.OrgAssets, sessions []*models.Session) error {
-		for _, session := range sessions {
-			session.SetCall(call)
-		}
-		return nil
-	}
-
-	// start our flow
-	sessions, err := runner.StartFlowForContacts(ctx, rt, oa, flow, []*models.Contact{c}, []flows.Trigger{trigger}, hook, true, models.NilStartID)
+	scenes, err := runner.StartSessions(ctx, rt, oa, []*models.Contact{c}, []flows.Trigger{trigger}, true, models.NilStartID, sceneInit)
 	if err != nil {
 		return fmt.Errorf("error starting flow: %w", err)
 	}
-
-	if len(sessions) == 0 {
+	if len(scenes) == 0 {
 		return fmt.Errorf("no ivr session created")
 	}
 
 	// have our service output our session status
-	err = svc.WriteSessionResponse(ctx, rt, oa, channel, call, sessions[0], urn, resumeURL, r, w)
-	if err != nil {
+	if err := svc.WriteSessionResponse(ctx, rt, oa, channel, scenes[0], urn, resumeURL, r, w); err != nil {
 		return fmt.Errorf("error writing ivr response for start: %w", err)
 	}
 
@@ -403,35 +287,32 @@ func StartIVRFlow(
 func ResumeIVRFlow(
 	ctx context.Context, rt *runtime.Runtime,
 	resumeURL string, svc Service,
-	oa *models.OrgAssets, channel *models.Channel, call *models.Call, c *models.Contact, urn urns.URN,
+	oa *models.OrgAssets, channel *models.Channel, call *models.Call, mc *models.Contact, urn urns.URN,
 	r *http.Request, w http.ResponseWriter) error {
 
-	contact, err := c.FlowContact(oa)
+	// if call doesn't have an associated session then we shouldn't be here
+	if call.SessionUUID() == "" {
+		return HandleAsFailure(ctx, rt.DB, svc, call, w, errors.New("can't resume call without session"))
+	}
+
+	fc, err := mc.EngineContact(oa)
 	if err != nil {
 		return fmt.Errorf("error creating flow contact: %w", err)
 	}
 
-	session, err := models.GetWaitingSessionForContact(ctx, rt, oa, c, contact)
+	session, err := models.GetWaitingSessionForContact(ctx, rt, oa, fc, call.SessionUUID())
 	if err != nil {
-		return fmt.Errorf("error loading session for contact: %w", err)
+		return fmt.Errorf("error loading session for contact #%d and call #%d: %w", mc.ID(), call.ID(), err)
 	}
 
 	if session == nil || session.SessionType() != models.FlowTypeVoice {
 		return HandleAsFailure(ctx, rt.DB, svc, call, w, fmt.Errorf("no active IVR session for contact"))
 	}
 
-	if session.CallID() == models.NilCallID {
-		return HandleAsFailure(ctx, rt.DB, svc, call, w, fmt.Errorf("active session: %d has no call", session.ID()))
-	}
-	if session.CallID() != call.ID() {
-		return HandleAsFailure(ctx, rt.DB, svc, call, w, fmt.Errorf("active session: %d does not match call: %d", session.ID(), session.CallID()))
-	}
-
 	// check if call has been marked as errored - it maybe have been updated by status callback
 	if call.Status() == models.CallStatusErrored || call.Status() == models.CallStatusFailed {
-		err = models.ExitSessions(ctx, rt.DB, []models.SessionID{session.ID()}, models.SessionStatusInterrupted)
-		if err != nil {
-			slog.Error("error interrupting session", "error", err)
+		if err = models.ExitSessions(ctx, rt.DB, []flows.SessionUUID{session.UUID()}, models.SessionStatusInterrupted); err != nil {
+			slog.Error("error interrupting session for errored call", "error", err)
 		}
 
 		return svc.WriteErrorResponse(w, fmt.Errorf("ending call due to previous status callback"))
@@ -451,14 +332,6 @@ func ResumeIVRFlow(
 		return err
 	}
 
-	// hook to set our call on our session before our event hooks run
-	hook := func(ctx context.Context, tx *sqlx.Tx, rp *redis.Pool, oa *models.OrgAssets, sessions []*models.Session) error {
-		for _, session := range sessions {
-			session.SetCall(call)
-		}
-		return nil
-	}
-
 	// make sure our call is still happening
 	status, _, _ := svc.StatusForRequest(r)
 	if status != models.CallStatusInProgress {
@@ -474,17 +347,15 @@ func ResumeIVRFlow(
 		return HandleAsFailure(ctx, rt.DB, svc, call, w, fmt.Errorf("error finding input for request: %w", err))
 	}
 
+	var msg *models.MsgInRef
 	var resume flows.Resume
 	var svcErr error
 	switch res := ivrResume.(type) {
 	case InputResume:
-		resume, svcErr, err = buildMsgResume(ctx, rt, svc, channel, contact, urn, call, oa, res)
-		if resume != nil {
-			session.SetIncomingMsg(models.MsgID(resume.(*resumes.MsgResume).Msg().ID()), null.NullString)
-		}
+		msg, resume, svcErr, err = buildMsgResume(ctx, rt, svc, channel, fc, urn, call, oa, res)
 
 	case DialResume:
-		resume, svcErr, err = buildDialResume(oa, contact, res)
+		resume, svcErr, err = buildDialResume(oa, fc, res)
 
 	default:
 		return fmt.Errorf("unknown resume type: %vvv", ivrResume)
@@ -500,19 +371,24 @@ func ResumeIVRFlow(
 		return svc.WriteErrorResponse(w, fmt.Errorf("no resume found, ending call"))
 	}
 
-	session, err = runner.ResumeFlow(ctx, rt, oa, session, c, resume, hook)
+	sceneInit := func(s *runner.Scene) {
+		s.Call = call
+		s.IncomingMsg = msg
+	}
+
+	scene, err := runner.ResumeFlow(ctx, rt, oa, session, mc, resume, sceneInit)
 	if err != nil {
 		return fmt.Errorf("error resuming ivr flow: %w", err)
 	}
 
 	// if still active, write out our response
 	if status == models.CallStatusInProgress {
-		err = svc.WriteSessionResponse(ctx, rt, oa, channel, call, session, urn, resumeURL, r, w)
+		err = svc.WriteSessionResponse(ctx, rt, oa, channel, scene, urn, resumeURL, r, w)
 		if err != nil {
 			return fmt.Errorf("error writing ivr response for resume: %w", err)
 		}
 	} else {
-		err = models.ExitSessions(ctx, rt.DB, []models.SessionID{session.ID()}, models.SessionStatusCompleted)
+		err = models.ExitSessions(ctx, rt.DB, []flows.SessionUUID{session.UUID()}, models.SessionStatusCompleted)
 		if err != nil {
 			slog.Error("error closing session", "error", err)
 		}
@@ -521,71 +397,6 @@ func ResumeIVRFlow(
 	}
 
 	return nil
-}
-
-func buildDialResume(oa *models.OrgAssets, contact *flows.Contact, resume DialResume) (flows.Resume, error, error) {
-	return resumes.NewDial(oa.Env(), contact, flows.NewDial(resume.Status, resume.Duration)), nil, nil
-}
-
-func buildMsgResume(
-	ctx context.Context, rt *runtime.Runtime,
-	svc Service, channel *models.Channel, contact *flows.Contact, urn urns.URN,
-	call *models.Call, oa *models.OrgAssets, resume InputResume) (flows.Resume, error, error) {
-	// our msg UUID
-	msgUUID := flows.MsgUUID(uuids.NewV4())
-
-	// we have an attachment, download it locally
-	if resume.Attachment != NilAttachment {
-		var err error
-		var resp *http.Response
-		for retry := 0; retry < 45; retry++ {
-			resp, err = svc.DownloadMedia(resume.Attachment.URL())
-			if err == nil && resp.StatusCode == 200 {
-				break
-			}
-			time.Sleep(time.Second)
-
-			if resp != nil {
-				slog.Info("retrying download of attachment", "retry", retry, "status", resp.StatusCode, "url", resume.Attachment.URL())
-			} else {
-				slog.Info("retrying download of attachment", "error", err, "retry", retry, "url", resume.Attachment.URL())
-			}
-		}
-
-		if err != nil {
-			return nil, fmt.Errorf("error downloading attachment, ending call: %w", err), nil
-		}
-
-		if resp == nil {
-			return nil, fmt.Errorf("unable to download attachment, ending call"), nil
-		}
-
-		// filename is based on our org id and msg UUID
-		filename := string(msgUUID) + path.Ext(resume.Attachment.URL())
-
-		resume.Attachment, err = oa.Org().StoreAttachment(ctx, rt, filename, resume.Attachment.ContentType(), resp.Body)
-		if err != nil {
-			return nil, fmt.Errorf("unable to download and store attachment, ending call: %w", err), nil
-		}
-	}
-
-	attachments := []utils.Attachment{}
-	if resume.Attachment != NilAttachment {
-		attachments = []utils.Attachment{resume.Attachment}
-	}
-
-	msgIn := flows.NewMsgIn(msgUUID, urn, channel.Reference(), resume.Input, attachments)
-
-	// create an incoming message
-	msg := models.NewIncomingIVR(rt.Config, oa.OrgID(), call, msgIn, dates.Now())
-
-	// commit it
-	if err := models.InsertMessages(ctx, rt.DB, []*models.Msg{msg}); err != nil {
-		return nil, nil, fmt.Errorf("error committing new message: %w", err)
-	}
-
-	// create our msg resume event
-	return resumes.NewMsg(oa.Env(), contact, msgIn), nil, nil
 }
 
 // HandleIVRStatus is called on status callbacks for an IVR call. We let the service decide whether the call has
@@ -601,31 +412,33 @@ func HandleIVRStatus(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAss
 	// if we errored schedule a retry if appropriate
 	if status == models.CallStatusErrored {
 
-		// if this is an incoming call it won't have an associated start and we don't retry it so just fail permanently
-		if call.StartID() == models.NilStartID {
-			call.MarkFailed(ctx, rt.DB, time.Now())
+		// if this is an incoming call don't retry it so just fail permanently
+		if call.Direction() == models.DirectionIn {
+			call.SetFailed(ctx, rt.DB)
 			return svc.WriteEmptyResponse(w, "no flow start found, status updated: F")
 		}
 
-		// on errors we need to look up the flow to know how long to wait before retrying
-		start, err := models.GetFlowStartByID(ctx, rt.DB, call.StartID())
+		// get the associated flow from the trigger
+		trigger, err := call.EngineTrigger(oa)
 		if err != nil {
-			return fmt.Errorf("unable to load start: %d: %w", call.StartID(), err)
+			return fmt.Errorf("unable to load call #%d trigger: %w", call.ID(), err)
 		}
 
-		flow, err := oa.FlowByID(start.FlowID)
+		fa, err := oa.FlowByUUID(trigger.Flow().UUID)
 		if err != nil {
-			return fmt.Errorf("unable to load flow: %d: %w", start.FlowID, err)
+			return fmt.Errorf("unable to load flow %s: %w", trigger.Flow().UUID, err)
 		}
 
-		call.MarkErrored(ctx, rt.DB, dates.Now(), flow.IVRRetryWait(), errorReason)
+		flow := fa.(*models.Flow)
+
+		call.SetErrored(ctx, rt.DB, dates.Now(), flow.IVRRetryWait(), errorReason)
 
 		if call.Status() == models.CallStatusErrored {
 			return svc.WriteEmptyResponse(w, fmt.Sprintf("status updated: %s, next_attempt: %s", call.Status(), call.NextAttempt()))
 		}
 
 	} else if status == models.CallStatusFailed {
-		call.MarkFailed(ctx, rt.DB, time.Now())
+		call.SetFailed(ctx, rt.DB)
 	} else {
 		if status != call.Status() || duration > 0 {
 			err := call.UpdateStatus(ctx, rt.DB, status, duration, time.Now())

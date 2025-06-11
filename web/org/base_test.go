@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/nyaruka/mailroom/testsuite"
-	"github.com/nyaruka/mailroom/testsuite/testdata"
+	"github.com/nyaruka/mailroom/testsuite/testdb"
 	"github.com/nyaruka/mailroom/web"
 	"github.com/nyaruka/redisx/assertredis"
 	"github.com/stretchr/testify/assert"
@@ -19,10 +19,10 @@ func TestDeindex(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
 
 	defer func() {
-		rt.DB.MustExec(`UPDATE orgs_org SET is_active = true WHERE id = $1`, testdata.Org1.ID)
+		rt.DB.MustExec(`UPDATE orgs_org SET is_active = true WHERE id = $1`, testdb.Org1.ID)
 	}()
 
-	rt.DB.MustExec(`UPDATE orgs_org SET is_active = false WHERE id = $1`, testdata.Org1.ID)
+	rt.DB.MustExec(`UPDATE orgs_org SET is_active = false WHERE id = $1`, testdb.Org1.ID)
 
 	defer testsuite.Reset(testsuite.ResetElastic | testsuite.ResetRedis)
 
@@ -39,7 +39,7 @@ func TestMetrics(t *testing.T) {
 	defer testsuite.Reset(testsuite.ResetAll)
 
 	promToken := "2d26a50841ff48237238bbdd021150f6a33a4196"
-	rt.DB.MustExec(`UPDATE orgs_org SET prometheus_token = $1 WHERE id = $2`, promToken, testdata.Org1.ID)
+	rt.DB.MustExec(`UPDATE orgs_org SET prometheus_token = $1 WHERE id = $2`, promToken, testdb.Org1.ID)
 
 	wg := &sync.WaitGroup{}
 	server := web.NewServer(ctx, rt, wg)
@@ -59,35 +59,35 @@ func TestMetrics(t *testing.T) {
 	}{
 		{
 			Label:    "no auth provided",
-			URL:      fmt.Sprintf("http://localhost:8091/mr/org/%s/metrics", testdata.Org1.UUID),
+			URL:      fmt.Sprintf("http://localhost:8091/mr/org/%s/metrics", testdb.Org1.UUID),
 			Username: "",
 			Password: "",
 			Response: `{"error": "invalid authentication"}`,
 		},
 		{
 			Label:    "invalid password (token)",
-			URL:      fmt.Sprintf("http://localhost:8091/mr/org/%s/metrics", testdata.Org1.UUID),
+			URL:      fmt.Sprintf("http://localhost:8091/mr/org/%s/metrics", testdb.Org1.UUID),
 			Username: "metrics",
 			Password: "invalid",
 			Response: `{"error": "invalid authentication"}`,
 		},
 		{
 			Label:    "invalid username (always metrics)",
-			URL:      fmt.Sprintf("http://localhost:8091/mr/org/%s/metrics", testdata.Org1.UUID),
+			URL:      fmt.Sprintf("http://localhost:8091/mr/org/%s/metrics", testdb.Org1.UUID),
 			Username: "invalid",
 			Password: promToken,
 			Response: `{"error": "invalid authentication"}`,
 		},
 		{
 			Label:    "valid token but wrong org",
-			URL:      fmt.Sprintf("http://localhost:8091/mr/org/%s/metrics", testdata.Org2.UUID),
+			URL:      fmt.Sprintf("http://localhost:8091/mr/org/%s/metrics", testdb.Org2.UUID),
 			Username: "metrics",
 			Password: promToken,
 			Response: `{"error": "invalid authentication"}`,
 		},
 		{
 			Label:    "valid auth",
-			URL:      fmt.Sprintf("http://localhost:8091/mr/org/%s/metrics", testdata.Org1.UUID),
+			URL:      fmt.Sprintf("http://localhost:8091/mr/org/%s/metrics", testdb.Org1.UUID),
 			Username: "metrics",
 			Password: promToken,
 			Contains: []string{

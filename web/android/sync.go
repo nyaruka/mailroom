@@ -25,7 +25,7 @@ func handleSync(ctx context.Context, rt *runtime.Runtime, r *syncRequest) (any, 
 		return nil, 0, fmt.Errorf("error resolving channel: %w", err)
 	}
 
-	channelFCMID := channel.ConfigValue(models.ChannelConfigFCMID, "")
+	channelFCMID := channel.Config().GetString(models.ChannelConfigFCMID, "")
 	if channelFCMID == "" {
 		return nil, 0, fmt.Errorf("missing android channel registration id")
 	}

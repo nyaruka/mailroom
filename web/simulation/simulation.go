@@ -141,7 +141,7 @@ func handleStart(ctx context.Context, rt *runtime.Runtime, r *startRequest) (any
 // triggerFlow creates a new session with the passed in trigger, returning our standard response
 func triggerFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, trigger flows.Trigger) (any, int, error) {
 	// start our flow session
-	session, sprint, err := goflow.Simulator(ctx, rt).NewSession(oa.SessionAssets(), trigger)
+	session, sprint, err := goflow.Simulator(ctx, rt).NewSession(ctx, oa.SessionAssets(), trigger)
 	if err != nil {
 		return nil, 0, fmt.Errorf("error starting session: %w", err)
 	}
@@ -247,7 +247,7 @@ func handleResume(ctx context.Context, rt *runtime.Runtime, r *resumeRequest) (a
 	}
 
 	// resume our session
-	sprint, err := session.Resume(resume)
+	sprint, err := session.Resume(ctx, resume)
 	if err != nil {
 		return nil, 0, err
 	}

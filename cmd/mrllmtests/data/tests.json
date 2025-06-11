@@ -1,0 +1,119 @@
+[
+    {
+        "description": "Translate single word from English to Spanish",
+        "template": "translate",
+        "data": {
+            "FromLanguage": "eng",
+            "ToLanguage": "spa"
+        },
+        "input": "Hello",
+        "expected_output": [
+            "Hola"
+        ]
+    },
+    {
+        "description": "Translate from English to Spanish with simple variable expression",
+        "template": "translate",
+        "data": {
+            "FromLanguage": "eng",
+            "ToLanguage": "spa"
+        },
+        "input": "Hello @contact.name, how are you?",
+        "expected_output": [
+            "Hola @contact.name, ¿cómo estás?"
+        ]
+    },
+    {
+        "description": "Translate from English to Spanish with more complex variable expression",
+        "template": "translate",
+        "data": {
+            "FromLanguage": "eng",
+            "ToLanguage": "spa"
+        },
+        "input": "Do you still have @( fields.goats + fields.cows ) animals?",
+        "expected_output": [
+            "¿Todavía tienes @( fields.goats + fields.cows ) animales?"
+        ]
+    },
+    {
+        "description": "Translate from English to less common language",
+        "template": "translate",
+        "data": {
+            "FromLanguage": "eng",
+            "ToLanguage": "kin"
+        },
+        "input": "Hello, how are you?",
+        "expected_output": [
+            "Muraho, amakuru yawe?",
+            "Muraho, amakuru yanyu?",
+            "Muraho, amakuru?"
+        ]
+    },
+    {
+        "description": "Translate from English to non-existent language",
+        "template": "translate",
+        "data": {
+            "FromLanguage": "eng",
+            "ToLanguage": "xxx"
+        },
+        "input": "Hello, how are you?",
+        "expected_output": [
+            "<CANT>"
+        ]
+    },
+    {
+        "description": "Categorization of a positive message",
+        "template": "categorize",
+        "data": {
+            "arg1": "Positive, Negative, Neutral"
+        },
+        "input": "Thanks you've been very helpful",
+        "expected_output": [
+            "Positive"
+        ]
+    },
+    {
+        "description": "Categorization of a positive message with categories in JSON format",
+        "template": "categorize",
+        "data": {
+            "arg1": "[\"Positive\", \"Negative\", \"Neutral\"]"
+        },
+        "input": "Thanks you've been very helpful",
+        "expected_output": [
+            "Positive"
+        ]
+    },
+    {
+        "description": "Categorization of a negative message",
+        "template": "categorize",
+        "data": {
+            "arg1": "Positive, Negative, Neutral"
+        },
+        "input": "Please stop sending me these messages!",
+        "expected_output": [
+            "Negative"
+        ]
+    },
+    {
+        "description": "Categorization of a neutral message",
+        "template": "categorize",
+        "data": {
+            "arg1": "Positive, Negative, Neutral"
+        },
+        "input": "It was satisfactory I guess",
+        "expected_output": [
+            "Neutral"
+        ]
+    },
+    {
+        "description": "Categorization of a message with no clear sentiment",
+        "template": "categorize",
+        "data": {
+            "arg1": "Positive, Negative"
+        },
+        "input": "14",
+        "expected_output": [
+            "<CANT>"
+        ]
+    }
+]

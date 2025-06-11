@@ -31,25 +31,25 @@ const (
 // AirtimeTransfer is our type for an airtime transfer
 type AirtimeTransfer struct {
 	t struct {
-		ID            AirtimeTransferID         `db:"id"`
-		UUID          flows.AirtimeTransferUUID `db:"uuid"`
-		OrgID         OrgID                     `db:"org_id"`
-		Status        AirtimeTransferStatus     `db:"status"`
-		ExternalID    null.String               `db:"external_id"`
-		ContactID     ContactID                 `db:"contact_id"`
-		Sender        null.String               `db:"sender"`
-		Recipient     urns.URN                  `db:"recipient"`
-		Currency      null.String               `db:"currency"`
-		DesiredAmount decimal.Decimal           `db:"desired_amount"`
-		ActualAmount  decimal.Decimal           `db:"actual_amount"`
-		CreatedOn     time.Time                 `db:"created_on"`
+		ID            AirtimeTransferID     `db:"id"`
+		UUID          flows.TransferUUID    `db:"uuid"`
+		OrgID         OrgID                 `db:"org_id"`
+		Status        AirtimeTransferStatus `db:"status"`
+		ExternalID    null.String           `db:"external_id"`
+		ContactID     ContactID             `db:"contact_id"`
+		Sender        null.String           `db:"sender"`
+		Recipient     urns.URN              `db:"recipient"`
+		Currency      null.String           `db:"currency"`
+		DesiredAmount decimal.Decimal       `db:"desired_amount"`
+		ActualAmount  decimal.Decimal       `db:"actual_amount"`
+		CreatedOn     time.Time             `db:"created_on"`
 	}
 
 	Logs []*HTTPLog
 }
 
 // NewAirtimeTransfer creates a new airtime transfer returning the result
-func NewAirtimeTransfer(uuid flows.AirtimeTransferUUID, orgID OrgID, status AirtimeTransferStatus, externalID string, contactID ContactID, sender urns.URN, recipient urns.URN, currency string, amount decimal.Decimal, createdOn time.Time) *AirtimeTransfer {
+func NewAirtimeTransfer(uuid flows.TransferUUID, orgID OrgID, status AirtimeTransferStatus, externalID string, contactID ContactID, sender urns.URN, recipient urns.URN, currency string, amount decimal.Decimal, createdOn time.Time) *AirtimeTransfer {
 	t := &AirtimeTransfer{}
 	t.t.UUID = uuid
 	t.t.OrgID = orgID

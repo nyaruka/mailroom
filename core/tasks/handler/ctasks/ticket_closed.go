@@ -7,6 +7,7 @@ import (
 
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/triggers"
+	"github.com/nyaruka/mailroom/core/ivr"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/runner"
 	"github.com/nyaruka/mailroom/core/tasks/handler"
@@ -35,7 +36,7 @@ func (t *TicketClosedTask) UseReadOnly() bool {
 	return false
 }
 
-func (t *TicketClosedTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contact *models.Contact) error {
+func (t *TicketClosedTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, mc *models.Contact) error {
 	// load our ticket
 	tickets, err := models.LoadTickets(ctx, rt.DB, []models.TicketID{t.TicketID})
 	if err != nil {
@@ -47,13 +48,13 @@ func (t *TicketClosedTask) Perform(ctx context.Context, rt *runtime.Runtime, oa 
 	}
 
 	// build our flow contact
-	flowContact, err := contact.FlowContact(oa)
+	fc, err := mc.EngineContact(oa)
 	if err != nil {
 		return fmt.Errorf("error creating flow contact: %w", err)
 	}
 
 	// do we have associated trigger?
-	trigger := models.FindMatchingTicketClosedTrigger(oa, flowContact)
+	trigger := models.FindMatchingTicketClosedTrigger(oa, fc)
 
 	// no trigger, noop, move on
 	if trigger == nil {
@@ -70,24 +71,23 @@ func (t *TicketClosedTask) Perform(ctx context.Context, rt *runtime.Runtime, oa 
 		return fmt.Errorf("error loading flow for trigger: %w", err)
 	}
 
-	// if this is an IVR flow, we need to trigger that start (which happens in a different queue)
-	if flow.FlowType() == models.FlowTypeVoice {
-		err = handler.TriggerIVRFlow(ctx, rt, oa.OrgID(), flow.ID(), []models.ContactID{contact.ID()}, nil)
-		if err != nil {
-			return fmt.Errorf("error while triggering ivr flow: %w", err)
-		}
-		return nil
-	}
-
 	// build our flow ticket
 	ticket := tickets[0].FlowTicket(oa)
 
 	// build our flow trigger
-	flowTrigger := triggers.NewBuilder(oa.Env(), flow.Reference(), flowContact).
+	flowTrigger := triggers.NewBuilder(oa.Env(), flow.Reference(), fc).
 		Ticket(ticket, triggers.TicketEventTypeClosed).
 		Build()
 
-	_, err = runner.StartFlowForContacts(ctx, rt, oa, flow, []*models.Contact{contact}, []flows.Trigger{flowTrigger}, nil, flow.FlowType().Interrupts(), models.NilStartID)
+	// if this is a voice flow, we request a call and wait for callback
+	if flow.FlowType() == models.FlowTypeVoice {
+		if _, err := ivr.RequestCall(ctx, rt, oa, mc, flowTrigger); err != nil {
+			return fmt.Errorf("error starting voice flow for contact: %w", err)
+		}
+		return nil
+	}
+
+	_, err = runner.StartSessions(ctx, rt, oa, []*models.Contact{mc}, []flows.Trigger{flowTrigger}, flow.FlowType().Interrupts(), models.NilStartID, nil)
 	if err != nil {
 		return fmt.Errorf("error starting flow for contact: %w", err)
 	}

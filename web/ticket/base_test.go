@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/nyaruka/mailroom/testsuite"
-	"github.com/nyaruka/mailroom/testsuite/testdata"
+	"github.com/nyaruka/mailroom/testsuite/testdb"
 )
 
 func TestTicketAssign(t *testing.T) {
@@ -13,10 +13,10 @@ func TestTicketAssign(t *testing.T) {
 
 	defer testsuite.Reset(testsuite.ResetData)
 
-	testdata.InsertOpenTicket(rt, testdata.Org1, testdata.Cathy, testdata.DefaultTopic, time.Now(), testdata.Admin)
-	testdata.InsertOpenTicket(rt, testdata.Org1, testdata.Cathy, testdata.DefaultTopic, time.Now(), testdata.Agent)
-	testdata.InsertClosedTicket(rt, testdata.Org1, testdata.Cathy, testdata.DefaultTopic, nil)
-	testdata.InsertClosedTicket(rt, testdata.Org1, testdata.Bob, testdata.DefaultTopic, nil)
+	testdb.InsertOpenTicket(rt, testdb.Org1, testdb.Cathy, testdb.DefaultTopic, time.Now(), testdb.Admin)
+	testdb.InsertOpenTicket(rt, testdb.Org1, testdb.Cathy, testdb.DefaultTopic, time.Now(), testdb.Agent)
+	testdb.InsertClosedTicket(rt, testdb.Org1, testdb.Cathy, testdb.DefaultTopic, nil)
+	testdb.InsertClosedTicket(rt, testdb.Org1, testdb.Bob, testdb.DefaultTopic, nil)
 
 	testsuite.RunWebTests(t, ctx, rt, "testdata/assign.json", nil)
 }
@@ -26,9 +26,9 @@ func TestTicketAddNote(t *testing.T) {
 
 	defer testsuite.Reset(testsuite.ResetData)
 
-	testdata.InsertOpenTicket(rt, testdata.Org1, testdata.Cathy, testdata.DefaultTopic, time.Now(), testdata.Admin)
-	testdata.InsertOpenTicket(rt, testdata.Org1, testdata.Cathy, testdata.DefaultTopic, time.Now(), testdata.Agent)
-	testdata.InsertClosedTicket(rt, testdata.Org1, testdata.Cathy, testdata.DefaultTopic, nil)
+	testdb.InsertOpenTicket(rt, testdb.Org1, testdb.Cathy, testdb.DefaultTopic, time.Now(), testdb.Admin)
+	testdb.InsertOpenTicket(rt, testdb.Org1, testdb.Cathy, testdb.DefaultTopic, time.Now(), testdb.Agent)
+	testdb.InsertClosedTicket(rt, testdb.Org1, testdb.Cathy, testdb.DefaultTopic, nil)
 
 	testsuite.RunWebTests(t, ctx, rt, "testdata/add_note.json", nil)
 }
@@ -38,9 +38,9 @@ func TestTicketChangeTopic(t *testing.T) {
 
 	defer testsuite.Reset(testsuite.ResetData)
 
-	testdata.InsertOpenTicket(rt, testdata.Org1, testdata.Cathy, testdata.DefaultTopic, time.Now(), testdata.Admin)
-	testdata.InsertOpenTicket(rt, testdata.Org1, testdata.Cathy, testdata.SupportTopic, time.Now(), testdata.Agent)
-	testdata.InsertClosedTicket(rt, testdata.Org1, testdata.Cathy, testdata.SalesTopic, nil)
+	testdb.InsertOpenTicket(rt, testdb.Org1, testdb.Cathy, testdb.DefaultTopic, time.Now(), testdb.Admin)
+	testdb.InsertOpenTicket(rt, testdb.Org1, testdb.Cathy, testdb.SupportTopic, time.Now(), testdb.Agent)
+	testdb.InsertClosedTicket(rt, testdb.Org1, testdb.Cathy, testdb.SalesTopic, nil)
 
 	testsuite.RunWebTests(t, ctx, rt, "testdata/change_topic.json", nil)
 }
@@ -51,9 +51,9 @@ func TestTicketClose(t *testing.T) {
 	defer testsuite.Reset(testsuite.ResetData)
 
 	// create 2 open tickets and 1 closed one for Cathy
-	testdata.InsertOpenTicket(rt, testdata.Org1, testdata.Cathy, testdata.DefaultTopic, time.Now(), testdata.Admin)
-	testdata.InsertOpenTicket(rt, testdata.Org1, testdata.Cathy, testdata.DefaultTopic, time.Now(), nil)
-	testdata.InsertClosedTicket(rt, testdata.Org1, testdata.Cathy, testdata.DefaultTopic, testdata.Editor)
+	testdb.InsertOpenTicket(rt, testdb.Org1, testdb.Cathy, testdb.DefaultTopic, time.Now(), testdb.Admin)
+	testdb.InsertOpenTicket(rt, testdb.Org1, testdb.Cathy, testdb.DefaultTopic, time.Now(), nil)
+	testdb.InsertClosedTicket(rt, testdb.Org1, testdb.Cathy, testdb.DefaultTopic, testdb.Editor)
 
 	testsuite.RunWebTests(t, ctx, rt, "testdata/close.json", nil)
 }
@@ -64,13 +64,13 @@ func TestTicketReopen(t *testing.T) {
 	defer testsuite.Reset(testsuite.ResetData | testsuite.ResetRedis)
 
 	// we should be able to reopen ticket #1 because Cathy has no other tickets open
-	testdata.InsertClosedTicket(rt, testdata.Org1, testdata.Cathy, testdata.DefaultTopic, testdata.Admin)
+	testdb.InsertClosedTicket(rt, testdb.Org1, testdb.Cathy, testdb.DefaultTopic, testdb.Admin)
 
 	// but then we won't be able to open ticket #2
-	testdata.InsertClosedTicket(rt, testdata.Org1, testdata.Cathy, testdata.DefaultTopic, nil)
+	testdb.InsertClosedTicket(rt, testdb.Org1, testdb.Cathy, testdb.DefaultTopic, nil)
 
-	testdata.InsertClosedTicket(rt, testdata.Org1, testdata.Bob, testdata.DefaultTopic, testdata.Editor)
-	testdata.InsertClosedTicket(rt, testdata.Org1, testdata.Alexandria, testdata.DefaultTopic, testdata.Editor)
+	testdb.InsertClosedTicket(rt, testdb.Org1, testdb.Bob, testdb.DefaultTopic, testdb.Editor)
+	testdb.InsertClosedTicket(rt, testdb.Org1, testdb.Alexandra, testdb.DefaultTopic, testdb.Editor)
 
 	testsuite.RunWebTests(t, ctx, rt, "testdata/reopen.json", nil)
 }

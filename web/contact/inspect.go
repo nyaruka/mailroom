@@ -80,7 +80,7 @@ func handleInspect(ctx context.Context, rt *runtime.Runtime, r *inspectRequest) 
 	response := make(map[flows.ContactID]*contactInfo, len(contacts))
 
 	for _, c := range contacts {
-		flowContact, err := c.FlowContact(oa)
+		flowContact, err := c.EngineContact(oa)
 		if err != nil {
 			return nil, 0, fmt.Errorf("error creating flow contact: %w", err)
 		}
