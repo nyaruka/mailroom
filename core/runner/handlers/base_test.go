@@ -12,10 +12,8 @@ import (
 	"github.com/nyaruka/goflow/envs"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/definition"
-	"github.com/nyaruka/goflow/flows/modifiers"
 	"github.com/nyaruka/goflow/flows/routers"
 	"github.com/nyaruka/goflow/flows/triggers"
-	"github.com/nyaruka/mailroom/core/goflow"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/runner"
 	"github.com/nyaruka/mailroom/runtime"
@@ -158,88 +156,58 @@ func RunTestCases(t *testing.T, ctx context.Context, rt *runtime.Runtime, tcs []
 	oa, err := models.GetOrgAssets(ctx, rt, models.OrgID(1))
 	assert.NoError(t, err)
 
-	eng := goflow.Engine(rt)
-
 	// reuse id from one of our real flows
 	flowUUID := testdb.Favorites.UUID
 
 	for i, tc := range tcs {
-		msgsByContactID := make(map[models.ContactID]*testdb.MsgIn)
-		for contact, msg := range tc.Msgs {
-			msgsByContactID[contact.ID] = msg
-		}
-
-		// build our flow for this test case
-		testFlow := createTestFlow(t, flowUUID, tc)
-		flowDef, err := json.Marshal(testFlow)
-		require.NoError(t, err)
-
-		oa, err = oa.CloneForSimulation(ctx, rt, map[assets.FlowUUID]json.RawMessage{flowUUID: flowDef}, nil)
-		assert.NoError(t, err)
-
-		triggerBuilder := func(contact *flows.Contact) flows.Trigger {
-			msg := msgsByContactID[models.ContactID(contact.ID())]
-			if msg == nil {
-				return triggers.NewBuilder(oa.Env(), testFlow.Reference(false), contact).Manual().Build()
+		if tc.Actions != nil {
+			msgsByContactID := make(map[models.ContactID]*testdb.MsgIn)
+			for contact, msg := range tc.Msgs {
+				msgsByContactID[contact.ID] = msg
 			}
-			return triggers.NewBuilder(oa.Env(), testFlow.Reference(false), contact).Msg(msg.FlowMsg).Build()
-		}
 
-		for _, c := range []*testdb.Contact{testdb.Cathy, testdb.Bob, testdb.George, testdb.Alexandra} {
-			sceneInit := func(scene *runner.Scene) {
-				if msg := msgsByContactID[c.ID]; msg != nil {
-					scene.IncomingMsg = &models.MsgInRef{ID: msg.ID}
+			// create dynamic flow to test actions
+			testFlow := createTestFlow(t, flowUUID, tc)
+			flowDef, err := json.Marshal(testFlow)
+			require.NoError(t, err)
+
+			oa, err = oa.CloneForSimulation(ctx, rt, map[assets.FlowUUID]json.RawMessage{flowUUID: flowDef}, nil)
+			assert.NoError(t, err)
+
+			triggerBuilder := func(contact *flows.Contact) flows.Trigger {
+				msg := msgsByContactID[models.ContactID(contact.ID())]
+				if msg == nil {
+					return triggers.NewBuilder(oa.Env(), testFlow.Reference(false), contact).Manual().Build()
 				}
+				return triggers.NewBuilder(oa.Env(), testFlow.Reference(false), contact).Msg(msg.FlowMsg).Build()
 			}
 
-			_, err := runner.StartWithLock(ctx, rt, oa, []models.ContactID{c.ID}, triggerBuilder, true, models.NilStartID, sceneInit)
+			for _, c := range []*testdb.Contact{testdb.Cathy, testdb.Bob, testdb.George, testdb.Alexandra} {
+				sceneInit := func(scene *runner.Scene) {
+					if msg := msgsByContactID[c.ID]; msg != nil {
+						scene.IncomingMsg = &models.MsgInRef{ID: msg.ID}
+					}
+				}
+
+				_, err := runner.StartWithLock(ctx, rt, oa, []models.ContactID{c.ID}, triggerBuilder, true, models.NilStartID, sceneInit)
+				require.NoError(t, err)
+			}
+		}
+		if tc.Modifiers != nil {
+			userID := models.NilUserID
+			if tc.ModifierUser != nil {
+				userID = tc.ModifierUser.ID
+			}
+
+			modifiersByContact := make(map[*flows.Contact][]flows.Modifier)
+			for contact, mods := range tc.Modifiers {
+				_, fc, _ := contact.Load(rt, oa)
+				modifiersByContact[fc] = mods
+			}
+
+			_, err := runner.ApplyModifiers(ctx, rt, oa, userID, modifiersByContact)
 			require.NoError(t, err)
 		}
-
-		results := make(map[models.ContactID]modifyResult)
-
-		// create scenes for our contacts
-		scenes := make([]*runner.Scene, 0, len(tc.Modifiers))
-		for contact, mods := range tc.Modifiers {
-			contact, err := models.LoadContact(ctx, rt.DB, oa, contact.ID)
-			assert.NoError(t, err)
-
-			flowContact, err := contact.EngineContact(oa)
-			assert.NoError(t, err)
-
-			result := modifyResult{
-				Contact: flowContact,
-				Events:  make([]flows.Event, 0, len(mods)),
-			}
-
-			scene := runner.NewNonFlowScene(flowContact, tc.ModifierUser.SafeID(), nil)
-
-			// apply our modifiers
-			for _, mod := range mods {
-				modifiers.Apply(eng, oa.Env(), oa.SessionAssets(), flowContact, mod, func(e flows.Event) { result.Events = append(result.Events, e) })
-			}
-
-			results[contact.ID()] = result
-			scenes = append(scenes, scene)
-
-		}
-
-		for _, scene := range scenes {
-			err := scene.AddEvents(ctx, rt, oa, results[scene.ContactID()].Events)
-			assert.NoError(t, err)
-		}
-
-		tx, err := rt.DB.BeginTxx(ctx, nil)
-		assert.NoError(t, err)
-
-		err = runner.ExecutePreCommitHooks(ctx, rt, tx, oa, scenes)
-		assert.NoError(t, err)
-
-		err = tx.Commit()
-		assert.NoError(t, err)
-
-		err = runner.ExecutePostCommitHooks(ctx, rt, oa, scenes)
-		assert.NoError(t, err)
 
 		// now check our assertions
 		for j, a := range tc.SQLAssertions {
