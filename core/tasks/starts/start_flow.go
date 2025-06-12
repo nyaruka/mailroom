@@ -114,15 +114,15 @@ func createFlowStartBatches(ctx context.Context, rt *runtime.Runtime, oa *models
 		q = tasks.HandlerQueue
 	}
 
-	// split the contact ids into batches to become batch tasks
-	idBatches := slices.Collect(slices.Chunk(contactIDs, startBatchSize))
-
 	rc := rt.RP.Get()
 	defer rc.Close()
 
-	for i, idBatch := range idBatches {
+	// process contact ids in batches using iterator for better memory efficiency
+	i := 0
+	totalBatches := (len(contactIDs) + startBatchSize - 1) / startBatchSize // ceiling division
+	for idBatch := range slices.Chunk(contactIDs, startBatchSize) {
 		isFirst := (i == 0)
-		isLast := (i == len(idBatches)-1)
+		isLast := (i == totalBatches-1)
 		batchTask := &StartFlowBatchTask{FlowStartBatch: start.CreateBatch(idBatch, isFirst, isLast, len(contactIDs))}
 
 		if err := tasks.Queue(rc, q, start.OrgID, batchTask, false); err != nil {
@@ -132,6 +132,7 @@ func createFlowStartBatches(ctx context.Context, rt *runtime.Runtime, oa *models
 			// if we've already queued other batches.. we don't want to error and have the task be retried
 			slog.Error("error queuing flow start batch", "error", err)
 		}
+		i++
 	}
 
 	return nil

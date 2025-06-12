@@ -108,11 +108,12 @@ func createBroadcastBatches(ctx context.Context, rt *runtime.Runtime, oa *models
 	rc := rt.RP.Get()
 	defer rc.Close()
 
-	// create tasks for batches of contacts
-	idBatches := slices.Collect(slices.Chunk(contactIDs, startBatchSize))
-	for i, idBatch := range idBatches {
+	// process contact ids in batches using iterator for better memory efficiency
+	i := 0
+	totalBatches := (len(contactIDs) + startBatchSize - 1) / startBatchSize // ceiling division
+	for idBatch := range slices.Chunk(contactIDs, startBatchSize) {
 		isFirst := (i == 0)
-		isLast := (i == len(idBatches)-1)
+		isLast := (i == totalBatches-1)
 
 		batch := bcast.CreateBatch(idBatch, isFirst, isLast)
 		err = tasks.Queue(rc, q, bcast.OrgID, &SendBroadcastBatchTask{BroadcastBatch: batch}, false)
@@ -123,6 +124,7 @@ func createBroadcastBatches(ctx context.Context, rt *runtime.Runtime, oa *models
 			// if we've already queued other batches.. we don't want to error and have the task be retried
 			slog.Error("error queuing broadcast batch", "error", err)
 		}
+		i++
 	}
 
 	return nil
