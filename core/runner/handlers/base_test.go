@@ -9,7 +9,6 @@ import (
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/gocommon/uuids"
 	"github.com/nyaruka/goflow/assets"
-	"github.com/nyaruka/goflow/envs"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/definition"
 	"github.com/nyaruka/goflow/flows/routers"
@@ -25,11 +24,6 @@ import (
 type ContactActionMap map[*testdb.Contact][]flows.Action
 type ContactMsgMap map[*testdb.Contact]*testdb.MsgIn
 type ContactModifierMap map[*testdb.Contact][]flows.Modifier
-
-type modifyResult struct {
-	Contact *flows.Contact `json:"contact"`
-	Events  []flows.Event  `json:"events"`
-}
 
 type TestCase struct {
 	FlowType      flows.FlowType
@@ -219,30 +213,4 @@ func RunTestCases(t *testing.T, ctx context.Context, rt *runtime.Runtime, tcs []
 			assert.NoError(t, err, "%d:%d error checking assertion", i, j)
 		}
 	}
-}
-
-func RunFlowAndApplyEvents(t *testing.T, ctx context.Context, rt *runtime.Runtime, env envs.Environment, eng flows.Engine, oa *models.OrgAssets, flowRef *assets.FlowReference, contact *flows.Contact) {
-	trigger := triggers.NewBuilder(env, flowRef, contact).Manual().Build()
-	fs, sprint, err := eng.NewSession(ctx, oa.SessionAssets(), trigger)
-	require.NoError(t, err)
-
-	tx, err := rt.DB.BeginTxx(ctx, nil)
-	require.NoError(t, err)
-
-	err = tx.Commit()
-	require.NoError(t, err)
-
-	scene := runner.NewSessionScene(fs, sprint, nil)
-
-	err = scene.AddEvents(ctx, rt, oa, sprint.Events())
-	require.NoError(t, err)
-
-	tx, err = rt.DB.BeginTxx(ctx, nil)
-	require.NoError(t, err)
-
-	err = runner.ExecutePreCommitHooks(ctx, rt, tx, oa, []*runner.Scene{scene})
-	require.NoError(t, err)
-
-	err = tx.Commit()
-	require.NoError(t, err)
 }

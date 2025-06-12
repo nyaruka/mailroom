@@ -1,6 +1,7 @@
 package handlers_test
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
@@ -15,8 +16,11 @@ import (
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/actions"
 	"github.com/nyaruka/goflow/flows/engine"
+	"github.com/nyaruka/goflow/flows/triggers"
 	"github.com/nyaruka/mailroom/core/models"
+	"github.com/nyaruka/mailroom/core/runner"
 	"github.com/nyaruka/mailroom/core/runner/handlers"
+	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/mailroom/testsuite"
 	"github.com/nyaruka/mailroom/testsuite/testdb"
 	"github.com/nyaruka/vkutil"
@@ -141,8 +145,8 @@ func TestUnhealthyWebhookCalls(t *testing.T) {
 	eng := engine.NewBuilder().WithWebhookServiceFactory(func(flows.SessionAssets) (flows.WebhookService, error) { return svc, nil }).Build()
 	flowRef := assets.NewFlowReference("bc5d6b7b-3e18-4d7c-8279-50b460e74f7f", "Test")
 
-	handlers.RunFlowAndApplyEvents(t, ctx, rt, env, eng, oa, flowRef, cathy)
-	handlers.RunFlowAndApplyEvents(t, ctx, rt, env, eng, oa, flowRef, cathy)
+	runFlowAndApplyEvents(t, ctx, rt, env, eng, oa, flowRef, cathy)
+	runFlowAndApplyEvents(t, ctx, rt, env, eng, oa, flowRef, cathy)
 
 	healthySeries := vkutil.NewIntervalSeries("webhooks:healthy", time.Minute*5, 4)
 	unhealthySeries := vkutil.NewIntervalSeries("webhooks:unhealthy", time.Minute*5, 4)
@@ -158,7 +162,7 @@ func TestUnhealthyWebhookCalls(t *testing.T) {
 	// change webhook service delay to 30 seconds and re-run flow 9 times
 	svc.delay = 30 * time.Second
 	for i := 0; i < 9; i++ {
-		handlers.RunFlowAndApplyEvents(t, ctx, rt, env, eng, oa, flowRef, cathy)
+		runFlowAndApplyEvents(t, ctx, rt, env, eng, oa, flowRef, cathy)
 	}
 
 	// still no incident tho..
@@ -170,7 +174,7 @@ func TestUnhealthyWebhookCalls(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM notifications_incident WHERE incident_type = 'webhooks:unhealthy'`).Returns(0)
 
 	// however 1 more bad call means this node is considered unhealthy
-	handlers.RunFlowAndApplyEvents(t, ctx, rt, env, eng, oa, flowRef, cathy)
+	runFlowAndApplyEvents(t, ctx, rt, env, eng, oa, flowRef, cathy)
 
 	total, _ = healthySeries.Total(ctx, rc, "1bff8fe4-0714-433e-96a3-437405bf21cf")
 	assert.Equal(t, int64(2), total)
@@ -187,8 +191,36 @@ func TestUnhealthyWebhookCalls(t *testing.T) {
 	assertvk.SMembers(t, rc, fmt.Sprintf("incident:%d:nodes", incidentID), []string{"1bff8fe4-0714-433e-96a3-437405bf21cf"})
 
 	// another bad call won't create another incident..
-	handlers.RunFlowAndApplyEvents(t, ctx, rt, env, eng, oa, flowRef, cathy)
+	runFlowAndApplyEvents(t, ctx, rt, env, eng, oa, flowRef, cathy)
 
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM notifications_incident WHERE incident_type = 'webhooks:unhealthy'`).Returns(1)
 	assertvk.SMembers(t, rc, fmt.Sprintf("incident:%d:nodes", incidentID), []string{"1bff8fe4-0714-433e-96a3-437405bf21cf"})
+}
+
+// start the given contact in the given flow using a specific engine instance
+func runFlowAndApplyEvents(t *testing.T, ctx context.Context, rt *runtime.Runtime, env envs.Environment, eng flows.Engine, oa *models.OrgAssets, flowRef *assets.FlowReference, contact *flows.Contact) {
+	trigger := triggers.NewBuilder(env, flowRef, contact).Manual().Build()
+
+	fs, sprint, err := eng.NewSession(ctx, oa.SessionAssets(), trigger)
+	require.NoError(t, err)
+
+	tx, err := rt.DB.BeginTxx(ctx, nil)
+	require.NoError(t, err)
+
+	err = tx.Commit()
+	require.NoError(t, err)
+
+	scene := runner.NewSessionScene(fs, sprint, nil)
+
+	err = scene.AddEvents(ctx, rt, oa, sprint.Events())
+	require.NoError(t, err)
+
+	tx, err = rt.DB.BeginTxx(ctx, nil)
+	require.NoError(t, err)
+
+	err = runner.ExecutePreCommitHooks(ctx, rt, tx, oa, []*runner.Scene{scene})
+	require.NoError(t, err)
+
+	err = tx.Commit()
+	require.NoError(t, err)
 }
