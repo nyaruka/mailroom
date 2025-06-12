@@ -8,7 +8,7 @@ import (
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/tasks"
 	"github.com/nyaruka/mailroom/runtime"
-	"github.com/nyaruka/redisx"
+	"github.com/nyaruka/vkutil"
 )
 
 // TypeScheduleCampaignEvent is the type of the schedule event task
@@ -40,7 +40,7 @@ func (t *ScheduleCampaignEventTask) WithAssets() models.Refresh {
 
 // Perform creates the actual event fires to schedule the given campaign event
 func (t *ScheduleCampaignEventTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets) error {
-	locker := redisx.NewLocker(fmt.Sprintf(scheduleLockKey, t.CampaignEventID), time.Hour)
+	locker := vkutil.NewLocker(fmt.Sprintf(scheduleLockKey, t.CampaignEventID), time.Hour)
 	lock, err := locker.Grab(ctx, rt.RP, time.Minute*5)
 	if err != nil {
 		return fmt.Errorf("error grabbing lock to schedule campaign event %d: %w", t.CampaignEventID, err)

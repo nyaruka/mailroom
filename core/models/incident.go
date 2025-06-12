@@ -15,7 +15,7 @@ import (
 	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/null/v3"
-	"github.com/nyaruka/redisx"
+	"github.com/nyaruka/vkutil"
 )
 
 // IncidentID is our type for incident ids
@@ -193,6 +193,6 @@ func (n *WebhookNode) Healthy(ctx context.Context, rt *runtime.Runtime) (bool, e
 	return unhealthy < 10 || (100*unhealthy/(healthy+unhealthy)) < 25, nil
 }
 
-func (n *WebhookNode) series() (*redisx.IntervalSeries, *redisx.IntervalSeries) {
-	return redisx.NewIntervalSeries("webhooks:healthy", time.Minute*5, 4), redisx.NewIntervalSeries("webhooks:unhealthy", time.Minute*5, 4)
+func (n *WebhookNode) series() (*vkutil.IntervalSeries, *vkutil.IntervalSeries) {
+	return vkutil.NewIntervalSeries("webhooks:healthy", time.Minute*5, 4), vkutil.NewIntervalSeries("webhooks:unhealthy", time.Minute*5, 4)
 }

@@ -11,7 +11,7 @@ import (
 	"github.com/nyaruka/mailroom/testsuite"
 	"github.com/nyaruka/mailroom/testsuite/testdb"
 	"github.com/nyaruka/mailroom/web"
-	"github.com/nyaruka/redisx/assertredis"
+	"github.com/nyaruka/vkutil/assertvk"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -30,7 +30,7 @@ func TestDeindex(t *testing.T) {
 
 	rc := rt.RP.Get()
 	defer rc.Close()
-	assertredis.SMembers(t, rc, "deindex:contacts", []string{"1"})
+	assertvk.SMembers(t, rc, "deindex:contacts", []string{"1"})
 }
 
 func TestMetrics(t *testing.T) {

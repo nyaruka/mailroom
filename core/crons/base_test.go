@@ -9,7 +9,7 @@ import (
 	"github.com/nyaruka/mailroom/core/crons"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/mailroom/testsuite"
-	"github.com/nyaruka/redisx/assertredis"
+	"github.com/nyaruka/vkutil/assertvk"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -66,11 +66,11 @@ func TestStats(t *testing.T) {
 
 	time.Sleep(time.Millisecond * 100)
 
-	assertredis.Exists(t, rc, "cron_stats:last_start")
-	assertredis.Exists(t, rc, "cron_stats:last_time")
-	assertredis.HGet(t, rc, "cron_stats:last_result", "test1", `{"foo":123}`)
-	assertredis.HGet(t, rc, "cron_stats:call_count", "test1", "1")
-	assertredis.Exists(t, rc, "cron_stats:total_time")
+	assertvk.Exists(t, rc, "cron_stats:last_start")
+	assertvk.Exists(t, rc, "cron_stats:last_time")
+	assertvk.HGet(t, rc, "cron_stats:last_result", "test1", `{"foo":123}`)
+	assertvk.HGet(t, rc, "cron_stats:call_count", "test1", "1")
+	assertvk.Exists(t, rc, "cron_stats:total_time")
 
 	close(quit)
 }

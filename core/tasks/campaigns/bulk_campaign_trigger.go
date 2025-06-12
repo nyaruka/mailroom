@@ -17,7 +17,7 @@ import (
 	"github.com/nyaruka/mailroom/core/runner"
 	"github.com/nyaruka/mailroom/core/tasks"
 	"github.com/nyaruka/mailroom/runtime"
-	"github.com/nyaruka/redisx"
+	"github.com/nyaruka/vkutil"
 )
 
 const (
@@ -84,14 +84,14 @@ func (t *BulkCampaignTriggerTask) Perform(ctx context.Context, rt *runtime.Runti
 	}
 
 	// store recent fires in redis for this event
-	recentSet := redisx.NewCappedZSet(fmt.Sprintf(recentFiresKey, t.EventID), recentFiresCap, recentFiresExpire)
+	recentSet := vkutil.NewCappedZSet(fmt.Sprintf(recentFiresKey, t.EventID), recentFiresCap, recentFiresExpire)
 
 	rc := rt.RP.Get()
 	defer rc.Close()
 
 	for _, cid := range contactIDs[:min(recentFiresCap, len(contactIDs))] {
 		// set members need to be unique, so we include a random string
-		value := fmt.Sprintf("%s|%d", redisx.RandomBase64(10), cid)
+		value := fmt.Sprintf("%s|%d", vkutil.RandomBase64(10), cid)
 		score := float64(dates.Now().UnixNano()) / float64(1e9) // score is UNIX time as floating point
 
 		err := recentSet.Add(ctx, rc, value, score)

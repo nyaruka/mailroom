@@ -7,7 +7,7 @@ import (
 
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/runtime"
-	"github.com/nyaruka/redisx"
+	"github.com/nyaruka/vkutil"
 )
 
 // TryToLock tries to grab locks for the given contacts, returning the locks and the skipped contacts
@@ -72,6 +72,6 @@ func IsLocked(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, co
 }
 
 // returns the locker for a particular contact
-func getContactLocker(orgID models.OrgID, contactID models.ContactID) *redisx.Locker {
-	return redisx.NewLocker(fmt.Sprintf("lock:c:%d:%d", orgID, contactID), time.Minute*5)
+func getContactLocker(orgID models.OrgID, contactID models.ContactID) *vkutil.Locker {
+	return vkutil.NewLocker(fmt.Sprintf("lock:c:%d:%d", orgID, contactID), time.Minute*5)
 }

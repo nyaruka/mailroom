@@ -10,7 +10,7 @@ import (
 
 	"github.com/getsentry/sentry-go"
 	"github.com/nyaruka/mailroom/runtime"
-	"github.com/nyaruka/redisx"
+	"github.com/nyaruka/vkutil"
 )
 
 // Function is the function that will be called on our schedule
@@ -32,7 +32,7 @@ func Start(rt *runtime.Runtime, wg *sync.WaitGroup, name string, allInstances bo
 		lockName = fmt.Sprintf("%s:%s", lockName, rt.Config.InstanceID)
 	}
 
-	locker := redisx.NewLocker(lockName, timeout+time.Second*30)
+	locker := vkutil.NewLocker(lockName, timeout+time.Second*30)
 
 	wait := time.Duration(0)
 	lastFire := time.Now()

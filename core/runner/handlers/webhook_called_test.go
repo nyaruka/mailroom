@@ -19,8 +19,8 @@ import (
 	"github.com/nyaruka/mailroom/core/runner/handlers"
 	"github.com/nyaruka/mailroom/testsuite"
 	"github.com/nyaruka/mailroom/testsuite/testdb"
-	"github.com/nyaruka/redisx"
-	"github.com/nyaruka/redisx/assertredis"
+	"github.com/nyaruka/vkutil"
+	"github.com/nyaruka/vkutil/assertvk"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -144,8 +144,8 @@ func TestUnhealthyWebhookCalls(t *testing.T) {
 	handlers.RunFlowAndApplyEvents(t, ctx, rt, env, eng, oa, flowRef, cathy)
 	handlers.RunFlowAndApplyEvents(t, ctx, rt, env, eng, oa, flowRef, cathy)
 
-	healthySeries := redisx.NewIntervalSeries("webhooks:healthy", time.Minute*5, 4)
-	unhealthySeries := redisx.NewIntervalSeries("webhooks:unhealthy", time.Minute*5, 4)
+	healthySeries := vkutil.NewIntervalSeries("webhooks:healthy", time.Minute*5, 4)
+	unhealthySeries := vkutil.NewIntervalSeries("webhooks:unhealthy", time.Minute*5, 4)
 
 	total, err := healthySeries.Total(ctx, rc, "1bff8fe4-0714-433e-96a3-437405bf21cf")
 	assert.NoError(t, err)
@@ -184,11 +184,11 @@ func TestUnhealthyWebhookCalls(t *testing.T) {
 	rt.DB.Get(&incidentID, `SELECT id FROM notifications_incident`)
 
 	// and a record of the nodes
-	assertredis.SMembers(t, rc, fmt.Sprintf("incident:%d:nodes", incidentID), []string{"1bff8fe4-0714-433e-96a3-437405bf21cf"})
+	assertvk.SMembers(t, rc, fmt.Sprintf("incident:%d:nodes", incidentID), []string{"1bff8fe4-0714-433e-96a3-437405bf21cf"})
 
 	// another bad call won't create another incident..
 	handlers.RunFlowAndApplyEvents(t, ctx, rt, env, eng, oa, flowRef, cathy)
 
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM notifications_incident WHERE incident_type = 'webhooks:unhealthy'`).Returns(1)
-	assertredis.SMembers(t, rc, fmt.Sprintf("incident:%d:nodes", incidentID), []string{"1bff8fe4-0714-433e-96a3-437405bf21cf"})
+	assertvk.SMembers(t, rc, fmt.Sprintf("incident:%d:nodes", incidentID), []string{"1bff8fe4-0714-433e-96a3-437405bf21cf"})
 }

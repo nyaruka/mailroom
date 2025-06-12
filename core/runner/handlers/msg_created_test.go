@@ -12,7 +12,7 @@ import (
 	"github.com/nyaruka/mailroom/core/runner/handlers"
 	"github.com/nyaruka/mailroom/testsuite"
 	"github.com/nyaruka/mailroom/testsuite/testdb"
-	"github.com/nyaruka/redisx/assertredis"
+	"github.com/nyaruka/vkutil/assertvk"
 )
 
 func TestMsgCreated(t *testing.T) {
@@ -92,10 +92,10 @@ func TestMsgCreated(t *testing.T) {
 	handlers.RunTestCases(t, ctx, rt, tcs)
 
 	// Cathy should have 1 batch of queued messages at high priority
-	assertredis.ZCard(t, rc, fmt.Sprintf("msgs:%s|10/1", testdb.TwilioChannel.UUID), 1)
+	assertvk.ZCard(t, rc, fmt.Sprintf("msgs:%s|10/1", testdb.TwilioChannel.UUID), 1)
 
 	// One bulk for George
-	assertredis.ZCard(t, rc, fmt.Sprintf("msgs:%s|10/0", testdb.TwilioChannel.UUID), 1)
+	assertvk.ZCard(t, rc, fmt.Sprintf("msgs:%s|10/0", testdb.TwilioChannel.UUID), 1)
 }
 
 func TestNewURN(t *testing.T) {

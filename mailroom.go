@@ -18,7 +18,7 @@ import (
 	"github.com/nyaruka/mailroom/core/tasks"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/mailroom/web"
-	"github.com/nyaruka/redisx"
+	"github.com/nyaruka/vkutil"
 )
 
 // Mailroom is a service for handling RapidPro events
@@ -85,7 +85,7 @@ func (mr *Mailroom) Start() error {
 		log.Warn("no distinct readonly db configured")
 	}
 
-	mr.rt.RP, err = redisx.NewPool(c.Redis)
+	mr.rt.RP, err = vkutil.NewPool(c.Redis)
 	if err != nil {
 		log.Error("redis not reachable", "error", err)
 	} else {
