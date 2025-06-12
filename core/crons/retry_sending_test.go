@@ -20,7 +20,7 @@ func TestRetryErroredMessages(t *testing.T) {
 	defer testsuite.Reset(testsuite.ResetData | testsuite.ResetRedis)
 
 	// nothing to retry
-	cron := &crons.RetryMessagesCron{}
+	cron := &crons.RetrySendingCron{}
 	_, err := cron.Run(ctx, rt)
 	assert.NoError(t, err)
 

@@ -66,7 +66,7 @@ func TestInterruptChannel(t *testing.T) {
 	testdb.InsertErroredOutgoingMsg(rt, testdb.Org1, testdb.VonageChannel, testdb.Bob, "Hi", 2, time.Now().Add(-time.Minute), true) // high priority
 
 	// just to create courier queues
-	cron := &crons.RetryMessagesCron{}
+	cron := &crons.RetrySendingCron{}
 	_, err := cron.Run(ctx, rt)
 	require.NoError(t, err)
 

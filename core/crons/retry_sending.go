@@ -11,20 +11,20 @@ import (
 )
 
 func init() {
-	Register("retry_errored_messages", &RetryMessagesCron{})
+	Register("retry_sending", &RetrySendingCron{})
 }
 
-type RetryMessagesCron struct{}
+type RetrySendingCron struct{}
 
-func (c *RetryMessagesCron) Next(last time.Time) time.Time {
+func (c *RetrySendingCron) Next(last time.Time) time.Time {
 	return Next(last, time.Minute)
 }
 
-func (c *RetryMessagesCron) AllInstances() bool {
+func (c *RetrySendingCron) AllInstances() bool {
 	return false
 }
 
-func (c *RetryMessagesCron) Run(ctx context.Context, rt *runtime.Runtime) (map[string]any, error) {
+func (c *RetrySendingCron) Run(ctx context.Context, rt *runtime.Runtime) (map[string]any, error) {
 	rc := rt.RP.Get()
 	defer rc.Close()
 
