@@ -8,7 +8,7 @@ import (
 	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/mailroom/testsuite"
 	"github.com/nyaruka/mailroom/utils/queues"
-	"github.com/nyaruka/redisx/assertredis"
+	"github.com/nyaruka/vkutil/assertvk"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -58,14 +58,14 @@ func TestQueues(t *testing.T) {
 	q.Push(rc, "type2", 2, "task5", true)
 
 	// nobody processing any tasks so no workers assigned in active set
-	assertredis.ZGetAll(t, rc, "test:active", map[string]float64{"1": 0, "2": 0})
+	assertvk.ZGetAll(t, rc, "test:active", map[string]float64{"1": 0, "2": 0})
 
-	assertredis.ZGetAll(t, rc, "test:1", map[string]float64{
+	assertvk.ZGetAll(t, rc, "test:1", map[string]float64{
 		`{"type":"type1","task":"task2","queued_on":"2022-01-01T12:01:05.123456789Z"}`: 1631038464.123456,
 		`{"type":"type1","task":"task1","queued_on":"2022-01-01T12:01:03.123456789Z"}`: 1641038462.123456,
 		`{"type":"type2","task":"task4","queued_on":"2022-01-01T12:01:09.123456789Z"}`: 1641038468.123456,
 	})
-	assertredis.ZGetAll(t, rc, "test:2", map[string]float64{
+	assertvk.ZGetAll(t, rc, "test:2", map[string]float64{
 		`{"type":"type1","task":"task3","queued_on":"2022-01-01T12:01:07.123456789Z"}`: 1641038466.123456,
 		`{"type":"type2","task":"task5","queued_on":"2022-01-01T12:01:11.123456789Z"}`: 1631038470.123456,
 	})
@@ -73,11 +73,11 @@ func TestQueues(t *testing.T) {
 	assertSize(5)
 
 	assertPop(1, `"task2"`) // because it's highest priority for owner 1
-	assertredis.ZGetAll(t, rc, "test:active", map[string]float64{"1": 1, "2": 0})
+	assertvk.ZGetAll(t, rc, "test:active", map[string]float64{"1": 1, "2": 0})
 	assertPop(2, `"task5"`) // because it's highest priority for owner 2
-	assertredis.ZGetAll(t, rc, "test:active", map[string]float64{"1": 1, "2": 1})
+	assertvk.ZGetAll(t, rc, "test:active", map[string]float64{"1": 1, "2": 1})
 	assertPop(1, `"task1"`)
-	assertredis.ZGetAll(t, rc, "test:active", map[string]float64{"1": 2, "2": 1})
+	assertvk.ZGetAll(t, rc, "test:active", map[string]float64{"1": 2, "2": 1})
 
 	assertOwners([]int{1, 2})
 	assertSize(2)
@@ -86,7 +86,7 @@ func TestQueues(t *testing.T) {
 	q.Done(rc, 1)
 	q.Done(rc, 1)
 
-	assertredis.ZGetAll(t, rc, "test:active", map[string]float64{"1": 0, "2": 1})
+	assertvk.ZGetAll(t, rc, "test:active", map[string]float64{"1": 0, "2": 1})
 
 	assertPop(1, `"task4"`)
 	assertPop(2, `"task3"`)
@@ -94,7 +94,7 @@ func TestQueues(t *testing.T) {
 
 	assertSize(0)
 
-	assertredis.ZGetAll(t, rc, "test:active", map[string]float64{})
+	assertvk.ZGetAll(t, rc, "test:active", map[string]float64{})
 
 	q.Push(rc, "type1", 1, "task6", false)
 	q.Push(rc, "type1", 1, "task7", false)
@@ -106,7 +106,7 @@ func TestQueues(t *testing.T) {
 	q.Pause(rc, 1)
 	q.Pause(rc, 1) // no-op if already paused
 
-	assertredis.ZGetAll(t, rc, "test:active", map[string]float64{"1": 1000001, "2": 0})
+	assertvk.ZGetAll(t, rc, "test:active", map[string]float64{"1": 1000001, "2": 0})
 	assertOwners([]int{1, 2})
 
 	assertPop(2, `"task8"`)
@@ -116,7 +116,7 @@ func TestQueues(t *testing.T) {
 	q.Resume(rc, 1)
 	q.Resume(rc, 1) // no-op if already active
 
-	assertredis.ZGetAll(t, rc, "test:active", map[string]float64{"1": 1})
+	assertvk.ZGetAll(t, rc, "test:active", map[string]float64{"1": 1})
 	assertOwners([]int{1})
 
 	assertPop(1, `"task7"`)
@@ -140,5 +140,5 @@ func TestQueues(t *testing.T) {
 	q.Done(rc, 1)
 	q.Done(rc, 1)
 
-	assertredis.ZGetAll(t, rc, "test:active", map[string]float64{"1": 0})
+	assertvk.ZGetAll(t, rc, "test:active", map[string]float64{"1": 0})
 }

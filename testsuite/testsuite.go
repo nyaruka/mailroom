@@ -20,9 +20,9 @@ import (
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/runtime"
-	"github.com/nyaruka/redisx/assertredis"
 	"github.com/nyaruka/rp-indexer/v10/indexers"
 	ixruntime "github.com/nyaruka/rp-indexer/v10/runtime"
+	"github.com/nyaruka/vkutil/assertvk"
 )
 
 var _db *sqlx.DB
@@ -142,7 +142,7 @@ func getDB() *sqlx.DB {
 
 // returns a redis pool to our test database
 func getRP() *redis.Pool {
-	return assertredis.TestDB()
+	return assertvk.TestDB()
 }
 
 // returns a redis connection, Close() should be called on it when done
@@ -213,7 +213,7 @@ func absPath(p string) string {
 
 // resets our redis database
 func resetRedis() {
-	assertredis.FlushDB()
+	assertvk.FlushDB()
 }
 
 func resetStorage(ctx context.Context, rt *runtime.Runtime) {

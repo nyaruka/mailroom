@@ -13,7 +13,7 @@ import (
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/mailroom/testsuite"
 	"github.com/nyaruka/mailroom/testsuite/testdb"
-	"github.com/nyaruka/redisx/assertredis"
+	"github.com/nyaruka/vkutil/assertvk"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -64,12 +64,12 @@ func TestInsertFlowStats(t *testing.T) {
 	assertFlowActivityCounts(t, rt, flow.ID, map[string]int{"segment:5fd2e537-0534-4c12-8425-bef87af09d46:072b95b3-61c3-4e0e-8dd1-eb7481083f94": 3})
 	assertFlowResultCounts(t, rt, flow.ID, map[string]int{})
 
-	assertredis.Keys(t, rc, "*", []string{
+	assertvk.Keys(t, rc, "*", []string{
 		"recent_contacts:5fd2e537-0534-4c12-8425-bef87af09d46:072b95b3-61c3-4e0e-8dd1-eb7481083f94", // "what's your fav color" -> color split
 	})
 
 	// all 3 contacts went from first msg to the color split - no operands recorded for this segment
-	assertredis.ZRange(t, rc, "recent_contacts:5fd2e537-0534-4c12-8425-bef87af09d46:072b95b3-61c3-4e0e-8dd1-eb7481083f94", 0, -1,
+	assertvk.ZRange(t, rc, "recent_contacts:5fd2e537-0534-4c12-8425-bef87af09d46:072b95b3-61c3-4e0e-8dd1-eb7481083f94", 0, -1,
 		[]string{"LZbbzXDPJH|123|", "reuPYVP90u|234|", "qWARtWDACk|345|"},
 	)
 
@@ -123,7 +123,7 @@ func TestInsertFlowStats(t *testing.T) {
 	})
 	assertFlowResultCounts(t, rt, flow.ID, map[string]int{"color/Blue": 2, "color/Other": 1})
 
-	assertredis.Keys(t, rc, "*", []string{
+	assertvk.Keys(t, rc, "*", []string{
 		"recent_contacts:5fd2e537-0534-4c12-8425-bef87af09d46:072b95b3-61c3-4e0e-8dd1-eb7481083f94", // "what's your fav color" -> color split
 		"recent_contacts:c02fc3ba-369a-4c87-9bc4-c3b376bda6d2:57b50d33-2b5a-4726-82de-9848c61eff6e", // color split :: Blue exit -> next node
 		"recent_contacts:ea6c38dc-11e2-4616-9f3e-577e44765d44:8712db6b-25ff-4789-892c-581f24eeeb95", // color split :: Other exit -> next node
@@ -134,17 +134,17 @@ func TestInsertFlowStats(t *testing.T) {
 	})
 
 	// check recent operands for color split :: Blue exit -> next node
-	assertredis.ZRange(t, rc, "recent_contacts:c02fc3ba-369a-4c87-9bc4-c3b376bda6d2:57b50d33-2b5a-4726-82de-9848c61eff6e", 0, -1,
+	assertvk.ZRange(t, rc, "recent_contacts:c02fc3ba-369a-4c87-9bc4-c3b376bda6d2:57b50d33-2b5a-4726-82de-9848c61eff6e", 0, -1,
 		[]string{"2SS5dyuJzp|123|blue", "2MsZZ/N3TH|234|BLUE"},
 	)
 
 	// check recent operands for color split :: Other exit -> next node
-	assertredis.ZRange(t, rc, "recent_contacts:ea6c38dc-11e2-4616-9f3e-577e44765d44:8712db6b-25ff-4789-892c-581f24eeeb95", 0, -1,
+	assertvk.ZRange(t, rc, "recent_contacts:ea6c38dc-11e2-4616-9f3e-577e44765d44:8712db6b-25ff-4789-892c-581f24eeeb95", 0, -1,
 		[]string{"uI8bPiuaeA|345|teal", "2Vz/MpdX9s|345|azure"},
 	)
 
 	// check recent operands for split by expression :: Other exit -> next node
-	assertredis.ZRange(t, rc, "recent_contacts:2b698218-87e5-4ab8-922e-e65f91d12c10:88d8bf00-51ce-4e5e-aae8-4f957a0761a0", 0, -1,
+	assertvk.ZRange(t, rc, "recent_contacts:2b698218-87e5-4ab8-922e-e65f91d12c10:88d8bf00-51ce-4e5e-aae8-4f957a0761a0", 0, -1,
 		[]string{"PLQQFoOgV9|123|0", "/cgnkcW6vA|234|0"},
 	)
 

@@ -16,7 +16,7 @@ import (
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/testsuite"
 	"github.com/nyaruka/mailroom/testsuite/testdb"
-	"github.com/nyaruka/redisx/assertredis"
+	"github.com/nyaruka/vkutil/assertvk"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -413,7 +413,7 @@ func TestGetMsgRepetitions(t *testing.T) {
 	for i := 0; i < 5; i++ {
 		assertRepetitions(george, msg4, i+1)
 	}
-	assertredis.HGetAll(t, rc, "msg_repetitions:2021-11-18T12:15", map[string]string{"10000|foo": "30", "10000|bar": "5", "10002|foo": "5"})
+	assertvk.HGetAll(t, rc, "msg_repetitions:2021-11-18T12:15", map[string]string{"10000|foo": "30", "10000|bar": "5", "10002|foo": "5"})
 }
 
 func TestNormalizeAttachment(t *testing.T) {

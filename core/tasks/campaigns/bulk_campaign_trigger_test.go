@@ -10,7 +10,7 @@ import (
 	"github.com/nyaruka/mailroom/core/tasks/campaigns"
 	"github.com/nyaruka/mailroom/testsuite"
 	"github.com/nyaruka/mailroom/testsuite/testdb"
-	"github.com/nyaruka/redisx/assertredis"
+	"github.com/nyaruka/vkutil/assertvk"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -44,8 +44,8 @@ func TestBulkCampaignTrigger(t *testing.T) {
 	testsuite.AssertContactInFlow(t, rt, testdb.Alexandra, testdb.PickANumber)
 
 	// check we recorded recent triggers for this event
-	assertredis.Keys(t, rc, "recent_campaign_fires:*", []string{"recent_campaign_fires:10002"})
-	assertredis.ZRange(t, rc, "recent_campaign_fires:10002", 0, -1, []string{"BPV0gqT9PL|10001", "QQFoOgV99A|10003"})
+	assertvk.Keys(t, rc, "recent_campaign_fires:*", []string{"recent_campaign_fires:10002"})
+	assertvk.ZRange(t, rc, "recent_campaign_fires:10002", 0, -1, []string{"BPV0gqT9PL|10001", "QQFoOgV99A|10003"})
 
 	// create task for event #2 (single message, start mode PASSIVE)
 	task = &campaigns.BulkCampaignTriggerTask{
@@ -67,9 +67,9 @@ func TestBulkCampaignTrigger(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE text = 'Hi Alexandra, it is time to consult with your patients.' AND status = 'Q'`).Returns(1)
 
 	// check we recorded recent triggers for this event
-	assertredis.Keys(t, rc, "recent_campaign_fires:*", []string{"recent_campaign_fires:10001", "recent_campaign_fires:10002"})
-	assertredis.ZRange(t, rc, "recent_campaign_fires:10001", 0, -1, []string{"vWOxKKbX2M|10001", "sZZ/N3THKK|10000", "LrT60Tr9/c|10003"})
-	assertredis.ZRange(t, rc, "recent_campaign_fires:10002", 0, -1, []string{"BPV0gqT9PL|10001", "QQFoOgV99A|10003"})
+	assertvk.Keys(t, rc, "recent_campaign_fires:*", []string{"recent_campaign_fires:10001", "recent_campaign_fires:10002"})
+	assertvk.ZRange(t, rc, "recent_campaign_fires:10001", 0, -1, []string{"vWOxKKbX2M|10001", "sZZ/N3THKK|10000", "LrT60Tr9/c|10003"})
+	assertvk.ZRange(t, rc, "recent_campaign_fires:10002", 0, -1, []string{"BPV0gqT9PL|10001", "QQFoOgV99A|10003"})
 
 	// create task for event #1 (Favorites, start mode INTERRUPT)
 	task = &campaigns.BulkCampaignTriggerTask{

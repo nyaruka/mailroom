@@ -17,7 +17,7 @@ import (
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/runner"
 	"github.com/nyaruka/mailroom/runtime"
-	"github.com/nyaruka/redisx"
+	"github.com/nyaruka/vkutil"
 )
 
 const (
@@ -61,7 +61,7 @@ func (h *insertFlowStats) Execute(ctx context.Context, rt *runtime.Runtime, tx *
 				if storeOperandsForTypes[uiNodeType] {
 					operand = seg.Operand()
 				}
-				recentBySegment[segID] = append(recentBySegment[segID], &segmentRecentContact{contact: scene.Contact(), operand: operand, time: seg.Time(), rnd: redisx.RandomBase64(10)})
+				recentBySegment[segID] = append(recentBySegment[segID], &segmentRecentContact{contact: scene.Contact(), operand: operand, time: seg.Time(), rnd: vkutil.RandomBase64(10)})
 			}
 		}
 
@@ -113,7 +113,7 @@ func (h *insertFlowStats) Execute(ctx context.Context, rt *runtime.Runtime, tx *
 	defer rc.Close()
 
 	for segID, recentContacts := range recentBySegment {
-		recentSet := redisx.NewCappedZSet(fmt.Sprintf(recentContactsKey, segID.exitUUID, segID.destUUID), recentContactsCap, recentContactsExpire)
+		recentSet := vkutil.NewCappedZSet(fmt.Sprintf(recentContactsKey, segID.exitUUID, segID.destUUID), recentContactsCap, recentContactsExpire)
 
 		for _, recent := range recentContacts {
 			// set members need to be unique, so we include a random string
