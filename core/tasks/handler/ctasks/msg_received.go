@@ -42,7 +42,7 @@ func (t *MsgReceivedTask) Type() string {
 }
 
 func (t *MsgReceivedTask) UseReadOnly() bool {
-	return !t.NewContact
+	return false
 }
 
 func (t *MsgReceivedTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, mc *models.Contact) error {
