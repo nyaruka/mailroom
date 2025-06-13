@@ -1,3 +1,7 @@
+v10.1.138 (2025-06-13)
+-------------------------
+ * Never use readonly DB connection for event_received or msg_received task handling
+
 v10.1.137 (2025-06-13)
 -------------------------
  * Add metrics for handler tasks that fail to get contact lock and tasks that error
