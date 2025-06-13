@@ -25,7 +25,7 @@ type Config struct {
 	DB         string `validate:"url,startswith=postgres:"           help:"URL for your Postgres database"`
 	ReadonlyDB string `validate:"omitempty,url,startswith=postgres:" help:"URL of optional connection to readonly database instance"`
 	DBPoolSize int    `                                              help:"the size of our db pool"`
-	Redis      string `validate:"url,startswith=redis:"              help:"URL for your Redis instance"`
+	Valkey     string `validate:"url,startswith=valkey:"             help:"URL for your Valkey instance"`
 	SentryDSN  string `                                              help:"the DSN used for logging errors to Sentry"`
 
 	Address          string `help:"the address to bind our web server to"`
@@ -88,7 +88,7 @@ func NewDefaultConfig() *Config {
 		DB:         "postgres://temba:temba@localhost/temba?sslmode=disable&Timezone=UTC",
 		ReadonlyDB: "",
 		DBPoolSize: 36,
-		Redis:      "redis://localhost:6379/15",
+		Valkey:     "valkey://localhost:6379/15",
 
 		Address: "localhost",
 		Port:    8090,

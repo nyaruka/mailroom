@@ -28,7 +28,7 @@ environment variables and parameters and for more details on each option.
 - `MAILROOM_ATTACHMENT_DOMAIN`: domain that will be used for relative attachments in flows
 - `MAILROOM_DB`: URL describing how to connect to the RapidPro database (default "postgres://temba:temba@localhost/temba?sslmode=disable")
 - `MAILROOM_READONLY_DB`: URL for an additional database connection for read-only operations (optional)
-- `MAILROOM_REDIS`: URL describing how to connect to Redis (default "redis://localhost:6379/15")
+- `MAILROOM_VALKEY`: URL describing how to connect to Valkey (default "valkey://localhost:6379/15")
 - `MAILROOM_SMTP_SERVER`: SMTP configuration for sending emails ex: smtp://user%40password@server:port/?from=foo%40gmail.com
 - `MAILROOM_ANDROID_FCM_SERVICE_ACCOUNT_FILE`: FCM Service Account Credentials JSON File path used to notify Android relayers to sync
 - `MAILROOM_ELASTIC_USERNAME`: ElasticSearch username for Basic Auth
