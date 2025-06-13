@@ -15,8 +15,10 @@ type LLMTypeAndModel struct {
 
 type Stats struct {
 	HandlerTaskCount    map[string]int           // number of contact tasks handled by type
+	HandlerTaskErrors   map[string]int           // number of contact tasks that errored by type
 	HandlerTaskDuration map[string]time.Duration // total time spent handling contact tasks
 	HandlerTaskLatency  map[string]time.Duration // total time spent queuing and handling contact tasks
+	HandlerLockFails    int                      // number of times an attempt to get a contact lock failed
 
 	CronTaskCount    map[string]int           // number of cron tasks run by type
 	CronTaskDuration map[string]time.Duration // total time spent running cron tasks
@@ -31,6 +33,7 @@ type Stats struct {
 func newStats() *Stats {
 	return &Stats{
 		HandlerTaskCount:    make(map[string]int),
+		HandlerTaskErrors:   make(map[string]int),
 		HandlerTaskDuration: make(map[string]time.Duration),
 		HandlerTaskLatency:  make(map[string]time.Duration),
 
@@ -52,10 +55,15 @@ func (s *Stats) ToMetrics() []types.MetricDatum {
 
 		metrics = append(metrics,
 			cwatch.Datum("HandlerTaskCount", float64(count), types.StandardUnitCount, cwatch.Dimension("TaskType", typ)),
+			cwatch.Datum("HandlerTaskErrors", float64(s.HandlerTaskErrors[typ]), types.StandardUnitCount, cwatch.Dimension("TaskType", typ)),
 			cwatch.Datum("HandlerTaskDuration", float64(avgDuration)/float64(time.Second), types.StandardUnitCount, cwatch.Dimension("TaskType", typ)),
 			cwatch.Datum("HandlerTaskLatency", float64(avgLatency)/float64(time.Second), types.StandardUnitCount, cwatch.Dimension("TaskType", typ)),
 		)
 	}
+
+	metrics = append(metrics,
+		cwatch.Datum("HandlerLockFails", float64(s.HandlerLockFails), types.StandardUnitCount),
+	)
 
 	for name, count := range s.CronTaskCount {
 		avgTime := s.CronTaskDuration[name] / time.Duration(count)
@@ -104,6 +112,18 @@ func (c *StatsCollector) RecordHandlerTask(typ string, d, l time.Duration) {
 	c.stats.HandlerTaskCount[typ]++
 	c.stats.HandlerTaskDuration[typ] += d
 	c.stats.HandlerTaskLatency[typ] += l
+	c.mutex.Unlock()
+}
+
+func (c *StatsCollector) RecordHandlerError(typ string) {
+	c.mutex.Lock()
+	c.stats.HandlerTaskErrors[typ]++
+	c.mutex.Unlock()
+}
+
+func (c *StatsCollector) RecordHandlerLockFail() {
+	c.mutex.Lock()
+	c.stats.HandlerLockFails++
 	c.mutex.Unlock()
 }
 
