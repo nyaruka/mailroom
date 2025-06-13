@@ -40,7 +40,7 @@ func (t *EventReceivedTask) Type() string {
 }
 
 func (t *EventReceivedTask) UseReadOnly() bool {
-	return !t.NewContact
+	return false
 }
 
 func (t *EventReceivedTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, mc *models.Contact) error {
