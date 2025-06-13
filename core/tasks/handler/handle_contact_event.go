@@ -52,6 +52,8 @@ func (t *HandleContactEventTask) Perform(ctx context.Context, rt *runtime.Runtim
 
 	// we didn't get the lock.. requeue for later
 	if len(locks) == 0 {
+		rt.Stats.RecordHandlerLockFail()
+
 		rc := rt.RP.Get()
 		defer rc.Close()
 		err = tasks.Queue(rc, tasks.HandlerQueue, oa.OrgID(), &HandleContactEventTask{ContactID: t.ContactID}, false)
@@ -101,6 +103,8 @@ func (t *HandleContactEventTask) Perform(ctx context.Context, rt *runtime.Runtim
 
 		// if we get an error processing an event, requeue it for later and return our error
 		if err != nil {
+			rt.Stats.RecordHandlerError(taskPayload.Type)
+
 			if qerr := dbutil.AsQueryError(err); qerr != nil {
 				query, params := qerr.Query()
 				log = log.With("sql", query, "sql_params", params)
