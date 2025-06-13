@@ -85,11 +85,11 @@ func (mr *Mailroom) Start() error {
 		log.Warn("no distinct readonly db configured")
 	}
 
-	mr.rt.RP, err = vkutil.NewPool(c.Redis)
+	mr.rt.RP, err = vkutil.NewPool(c.Valkey)
 	if err != nil {
-		log.Error("redis not reachable", "error", err)
+		log.Error("valkey not reachable", "error", err)
 	} else {
-		log.Info("redis ok")
+		log.Info("valkey ok")
 	}
 
 	if c.AndroidCredentialsFile != "" {

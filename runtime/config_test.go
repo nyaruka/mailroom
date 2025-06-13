@@ -15,15 +15,15 @@ func TestValidate(t *testing.T) {
 
 	c.DB = "??"
 	c.ReadonlyDB = "??"
-	c.Redis = "??"
+	c.Valkey = "??"
 	c.Elastic = "??"
 	c.SessionStorage = "??"
-	assert.EqualError(t, c.Validate(), "field 'DB' is not a valid URL, field 'ReadonlyDB' is not a valid URL, field 'Redis' is not a valid URL, field 'SessionStorage' is not a valid session storage mode, field 'Elastic' is not a valid URL")
+	assert.EqualError(t, c.Validate(), "field 'DB' is not a valid URL, field 'ReadonlyDB' is not a valid URL, field 'Valkey' is not a valid URL, field 'SessionStorage' is not a valid session storage mode, field 'Elastic' is not a valid URL")
 
 	c = runtime.NewDefaultConfig()
 	c.DB = "mysql://temba:temba@localhost/temba"
-	c.Redis = "bluedis://localhost:6379/15"
-	assert.EqualError(t, c.Validate(), "field 'DB' must start with 'postgres:', field 'Redis' must start with 'redis:'")
+	c.Valkey = "bluedis://localhost:6379/15"
+	assert.EqualError(t, c.Validate(), "field 'DB' must start with 'postgres:', field 'Valkey' must start with 'valkey:'")
 }
 
 func TestParseDisallowedNetworks(t *testing.T) {

@@ -270,7 +270,7 @@ func (s *service) PreprocessStatus(ctx context.Context, rt *runtime.Runtime, r *
 		redisKey := fmt.Sprintf("dial_status_%s", callUUID)
 		_, err = rc.Do("setex", redisKey, 300, status)
 		if err != nil {
-			return nil, fmt.Errorf("error inserting recording URL into redis: %w", err)
+			return nil, fmt.Errorf("error inserting recording URL into valkey: %w", err)
 		}
 
 		slog.Debug("saved intermediary dial status for call", "callUUID", callUUID, "status", status, "redisKey", redisKey)
@@ -297,7 +297,7 @@ func (s *service) PreprocessResume(ctx context.Context, rt *runtime.Runtime, cal
 		redisKey := fmt.Sprintf("recording_%s", recordingUUID)
 		recordingURL, err := redis.String(rc.Do("get", redisKey))
 		if err != nil && err != redis.ErrNil {
-			return nil, fmt.Errorf("error getting recording url from redis: %w", err)
+			return nil, fmt.Errorf("error getting recording url from valkey: %w", err)
 		}
 
 		// found a URL, stuff it in our request and move on
@@ -352,7 +352,7 @@ func (s *service) PreprocessResume(ctx context.Context, rt *runtime.Runtime, cal
 		redisKey := fmt.Sprintf("recording_%s", recordingUUID)
 		_, err = rc.Do("setex", redisKey, 300, recordingURL)
 		if err != nil {
-			return nil, fmt.Errorf("error inserting recording URL into redis: %w", err)
+			return nil, fmt.Errorf("error inserting recording URL into valkey: %w", err)
 		}
 
 		msgBody := map[string]string{
@@ -837,13 +837,13 @@ func (s *service) responseForSprint(ctx context.Context, rp *redis.Pool, channel
 			defer rc.Close()
 
 			eventURL := resumeURL + "&wait_type=dial"
-			redisKey := fmt.Sprintf("dial_%s", transferUUID)
-			redisValue := fmt.Sprintf("%s:%s", call.ExternalID(), eventURL)
-			_, err = rc.Do("setex", redisKey, 3600, redisValue)
+			vkKey := fmt.Sprintf("dial_%s", transferUUID)
+			vkValue := fmt.Sprintf("%s:%s", call.ExternalID(), eventURL)
+			_, err = rc.Do("setex", vkKey, 3600, vkValue)
 			if err != nil {
-				return "", fmt.Errorf("error inserting transfer ID into redis: %w", err)
+				return "", fmt.Errorf("error inserting transfer ID into valkey: %w", err)
 			}
-			slog.Debug("saved away call", "transferUUID", transferUUID, "callID", call.ExternalID(), "redisKey", redisKey, "redisValue", redisValue)
+			slog.Debug("saved away call", "transferUUID", transferUUID, "call", call.ExternalID(), "valkey_key", vkKey, "valkey_value", vkValue)
 		}
 	}
 
