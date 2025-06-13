@@ -1,3 +1,7 @@
+v10.1.137 (2025-06-13)
+-------------------------
+ * Add metrics for handler tasks that fail to get contact lock and tasks that error
+
 v10.1.136 (2025-06-13)
 -------------------------
  * Update name of valkey config var
