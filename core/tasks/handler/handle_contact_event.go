@@ -99,12 +99,10 @@ func (t *HandleContactEventTask) Perform(ctx context.Context, rt *runtime.Runtim
 		err = performHandlerTask(ctx, rt, oa, t.ContactID, ctask)
 
 		// record metrics
-		rt.Stats.RecordHandlerTask(taskPayload.Type, time.Since(start), time.Since(taskPayload.QueuedOn))
+		rt.Stats.RecordHandlerTask(taskPayload.Type, time.Since(start), time.Since(taskPayload.QueuedOn), err != nil)
 
 		// if we get an error processing an event, requeue it for later and return our error
 		if err != nil {
-			rt.Stats.RecordHandlerError(taskPayload.Type)
-
 			if qerr := dbutil.AsQueryError(err); qerr != nil {
 				query, params := qerr.Query()
 				log = log.With("sql", query, "sql_params", params)

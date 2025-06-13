@@ -107,17 +107,14 @@ func NewStatsCollector() *StatsCollector {
 	return &StatsCollector{stats: newStats()}
 }
 
-func (c *StatsCollector) RecordHandlerTask(typ string, d, l time.Duration) {
+func (c *StatsCollector) RecordHandlerTask(typ string, d, l time.Duration, errored bool) {
 	c.mutex.Lock()
 	c.stats.HandlerTaskCount[typ]++
 	c.stats.HandlerTaskDuration[typ] += d
 	c.stats.HandlerTaskLatency[typ] += l
-	c.mutex.Unlock()
-}
-
-func (c *StatsCollector) RecordHandlerError(typ string) {
-	c.mutex.Lock()
-	c.stats.HandlerTaskErrors[typ]++
+	if errored {
+		c.stats.HandlerTaskErrors[typ]++
+	}
 	c.mutex.Unlock()
 }
 
