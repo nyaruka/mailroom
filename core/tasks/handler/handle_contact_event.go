@@ -96,7 +96,7 @@ func (t *HandleContactEventTask) Perform(ctx context.Context, rt *runtime.Runtim
 		}
 
 		start := time.Now()
-		log := slog.With("contact", t.ContactID, "type", taskPayload.Type, "error_count", taskPayload.ErrorCount)
+		log := slog.With("contact", t.ContactID, "type", taskPayload.Type, "queued_on", taskPayload.QueuedOn, "error_count", taskPayload.ErrorCount)
 		log.Warn("popped ctask")
 
 		err = performHandlerTask(ctx, rt, oa, t.ContactID, ctask)
