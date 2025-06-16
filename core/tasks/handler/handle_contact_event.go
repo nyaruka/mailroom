@@ -94,7 +94,8 @@ func (t *HandleContactEventTask) Perform(ctx context.Context, rt *runtime.Runtim
 		}
 
 		start := time.Now()
-		log := slog.With("org_id", oa.OrgID(), "contact_id", t.ContactID, "type", taskPayload.Type)
+		log := slog.With("contact", t.ContactID, "type", taskPayload.Type, "error_count", taskPayload.ErrorCount)
+		log.Warn("popped ctask")
 
 		err = performHandlerTask(ctx, rt, oa, t.ContactID, ctask)
 
@@ -124,7 +125,7 @@ func (t *HandleContactEventTask) Perform(ctx context.Context, rt *runtime.Runtim
 			return nil
 		}
 
-		log.Debug("handler task completed", "elapsed", time.Since(start))
+		log.Warn("ctask completed", "elapsed", time.Since(start))
 	}
 }
 
