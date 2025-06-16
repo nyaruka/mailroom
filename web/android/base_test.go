@@ -12,7 +12,7 @@ import (
 func TestEvent(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
 
-	defer testsuite.Reset(testsuite.ResetData | testsuite.ResetRedis)
+	defer testsuite.Reset(testsuite.ResetData | testsuite.ResetValkey)
 
 	testsuite.RunWebTests(t, ctx, rt, "testdata/event.json", nil)
 
@@ -24,7 +24,7 @@ func TestEvent(t *testing.T) {
 func TestMessage(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
 
-	defer testsuite.Reset(testsuite.ResetData | testsuite.ResetRedis)
+	defer testsuite.Reset(testsuite.ResetData | testsuite.ResetValkey)
 
 	testsuite.RunWebTests(t, ctx, rt, "testdata/message.json", nil)
 

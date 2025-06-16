@@ -15,7 +15,7 @@ import (
 func TestSend(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
 
-	defer testsuite.Reset(testsuite.ResetData | testsuite.ResetRedis)
+	defer testsuite.Reset(testsuite.ResetData | testsuite.ResetValkey)
 
 	cathyTicket := testdb.InsertOpenTicket(rt, testdb.Org1, testdb.Cathy, testdb.DefaultTopic, time.Date(2015, 1, 1, 12, 30, 45, 0, time.UTC), nil)
 
@@ -29,7 +29,7 @@ func TestSend(t *testing.T) {
 func TestHandle(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
 
-	defer testsuite.Reset(testsuite.ResetData | testsuite.ResetRedis)
+	defer testsuite.Reset(testsuite.ResetData | testsuite.ResetValkey)
 
 	cathyIn1 := testdb.InsertIncomingMsg(rt, testdb.Org1, testdb.TwilioChannel, testdb.Cathy, "hello", models.MsgStatusHandled)
 	cathyIn2 := testdb.InsertIncomingMsg(rt, testdb.Org1, testdb.TwilioChannel, testdb.Cathy, "hello", models.MsgStatusPending)
@@ -68,7 +68,7 @@ func TestResend(t *testing.T) {
 func TestBroadcast(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
 
-	defer testsuite.Reset(testsuite.ResetData | testsuite.ResetRedis)
+	defer testsuite.Reset(testsuite.ResetData | testsuite.ResetValkey)
 
 	polls := testdb.InsertOptIn(rt, testdb.Org1, "Polls")
 

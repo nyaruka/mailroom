@@ -20,7 +20,7 @@ func TestStartFlowBatchTask(t *testing.T) {
 	rc := rt.RP.Get()
 	defer rc.Close()
 
-	defer testsuite.Reset(testsuite.ResetData | testsuite.ResetRedis)
+	defer testsuite.Reset(testsuite.ResetData | testsuite.ResetValkey)
 
 	// create a start
 	start1 := models.NewFlowStart(models.OrgID(1), models.StartTypeManual, testdb.SingleMessage.ID).

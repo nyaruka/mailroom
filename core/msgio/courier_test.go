@@ -234,7 +234,7 @@ func TestQueueCourierMessages(t *testing.T) {
 	rc := rt.RP.Get()
 	defer rc.Close()
 
-	defer testsuite.Reset(testsuite.ResetData | testsuite.ResetRedis)
+	defer testsuite.Reset(testsuite.ResetData | testsuite.ResetValkey)
 
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshOrg|models.RefreshChannels)
 	require.NoError(t, err)
@@ -275,7 +275,7 @@ func TestClearChannelCourierQueue(t *testing.T) {
 	rc := rt.RP.Get()
 	defer rc.Close()
 
-	defer testsuite.Reset(testsuite.ResetData | testsuite.ResetRedis)
+	defer testsuite.Reset(testsuite.ResetData | testsuite.ResetValkey)
 
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshOrg|models.RefreshChannels)
 	require.NoError(t, err)
@@ -332,7 +332,7 @@ func TestPushCourierBatch(t *testing.T) {
 	rc := rt.RP.Get()
 	defer rc.Close()
 
-	defer testsuite.Reset(testsuite.ResetData | testsuite.ResetRedis)
+	defer testsuite.Reset(testsuite.ResetData | testsuite.ResetValkey)
 
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshChannels)
 	require.NoError(t, err)

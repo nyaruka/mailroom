@@ -11,7 +11,7 @@ import (
 func TestSchedule_event(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
 
-	defer testsuite.Reset(testsuite.ResetData | testsuite.ResetRedis)
+	defer testsuite.Reset(testsuite.ResetData | testsuite.ResetValkey)
 
 	testsuite.RunWebTests(t, ctx, rt, "testdata/schedule_event.json", map[string]string{
 		"event1_id": fmt.Sprint(testdb.RemindersEvent1.ID),
