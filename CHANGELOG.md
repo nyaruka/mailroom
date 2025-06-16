@@ -1,3 +1,7 @@
+v10.1.139 (2025-06-16)
+-------------------------
+ * Temporary logging changes
+
 v10.1.138 (2025-06-13)
 -------------------------
  * Never use readonly DB connection for event_received or msg_received task handling
