@@ -24,7 +24,7 @@ import (
 func TestNewOutgoingFlowMsg(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
 
-	defer testsuite.Reset(testsuite.ResetData | testsuite.ResetRedis)
+	defer testsuite.Reset(testsuite.ResetData | testsuite.ResetValkey)
 
 	blake := testdb.InsertContact(rt, testdb.Org1, "79b94a23-6d13-43f4-95fe-c733ee457857", "Blake", i18n.NilLanguage, models.ContactStatusBlocked)
 	blakeURNID := testdb.InsertContactURN(rt, testdb.Org1, blake, "tel:++250700000007", 1, nil)
@@ -381,7 +381,7 @@ func TestGetMsgRepetitions(t *testing.T) {
 	rc := rt.RP.Get()
 	defer rc.Close()
 
-	defer testsuite.Reset(testsuite.ResetRedis)
+	defer testsuite.Reset(testsuite.ResetValkey)
 	defer dates.SetNowFunc(time.Now)
 
 	dates.SetNowFunc(dates.NewFixedNow(time.Date(2021, 11, 18, 12, 13, 3, 234567, time.UTC)))

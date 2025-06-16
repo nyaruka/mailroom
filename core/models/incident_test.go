@@ -100,7 +100,7 @@ func TestGetOpenIncidents(t *testing.T) {
 func TestWebhookNode(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
 
-	defer testsuite.Reset(testsuite.ResetRedis)
+	defer testsuite.Reset(testsuite.ResetValkey)
 
 	node := &models.WebhookNode{UUID: "3c703019-8c92-4d28-9be0-a926a934486b"}
 	healthy, err := node.Healthy(ctx, rt)

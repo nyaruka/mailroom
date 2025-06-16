@@ -123,7 +123,7 @@ func TestUnhealthyWebhookCalls(t *testing.T) {
 	rc := rt.RP.Get()
 	defer rc.Close()
 
-	defer testsuite.Reset(testsuite.ResetData | testsuite.ResetRedis)
+	defer testsuite.Reset(testsuite.ResetData | testsuite.ResetValkey)
 	defer dates.SetNowFunc(time.Now)
 
 	dates.SetNowFunc(dates.NewSequentialNow(time.Date(2021, 11, 17, 7, 0, 0, 0, time.UTC), time.Second))

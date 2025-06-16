@@ -39,7 +39,7 @@ const (
 	ResetAll     = ResetFlag(^0)
 	ResetDB      = ResetFlag(1 << 1)
 	ResetData    = ResetFlag(1 << 2)
-	ResetRedis   = ResetFlag(1 << 3)
+	ResetValkey  = ResetFlag(1 << 3)
 	ResetStorage = ResetFlag(1 << 4)
 	ResetElastic = ResetFlag(1 << 5)
 	ResetDynamo  = ResetFlag(1 << 6)
@@ -54,8 +54,8 @@ func Reset(what ResetFlag) {
 	} else if what&ResetData > 0 {
 		resetData()
 	}
-	if what&ResetRedis > 0 {
-		resetRedis()
+	if what&ResetValkey > 0 {
+		resetValkey()
 	}
 	if what&ResetStorage > 0 {
 		resetStorage(ctx, rt)
@@ -211,8 +211,8 @@ func absPath(p string) string {
 	return path.Join(dir, p)
 }
 
-// resets our redis database
-func resetRedis() {
+// resets our valkey database
+func resetValkey() {
 	assertvk.FlushDB()
 }
 

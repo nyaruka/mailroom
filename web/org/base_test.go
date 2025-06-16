@@ -24,7 +24,7 @@ func TestDeindex(t *testing.T) {
 
 	rt.DB.MustExec(`UPDATE orgs_org SET is_active = false WHERE id = $1`, testdb.Org1.ID)
 
-	defer testsuite.Reset(testsuite.ResetElastic | testsuite.ResetRedis)
+	defer testsuite.Reset(testsuite.ResetElastic | testsuite.ResetValkey)
 
 	testsuite.RunWebTests(t, ctx, rt, "testdata/deindex.json", nil)
 

@@ -81,7 +81,7 @@ func recordExecution(name string, r func(context.Context, *runtime.Runtime) (map
 		}
 
 		if err := rc.Flush(); err != nil {
-			log.Error("error writing cron results to redis")
+			log.Error("error writing cron results to valkey", "error", err)
 		}
 
 		logResults := make([]any, 0, len(results)*2)

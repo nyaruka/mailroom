@@ -21,7 +21,7 @@ func TestQueues(t *testing.T) {
 	dates.SetNowFunc(dates.NewSequentialNow(time.Date(2022, 1, 1, 12, 1, 2, 123456789, time.UTC), time.Second))
 	defer dates.SetNowFunc(time.Now)
 
-	defer testsuite.Reset(testsuite.ResetRedis)
+	defer testsuite.Reset(testsuite.ResetValkey)
 
 	var q queues.Fair = queues.NewFairSorted("test")
 	assert.Equal(t, "test", fmt.Sprint(q))

@@ -203,10 +203,8 @@ func (s *service) PreprocessStatus(ctx context.Context, rt *runtime.Runtime, r *
 	rc := rt.RP.Get()
 	defer rc.Close()
 
-	redisKey := fmt.Sprintf("dial_%s", legUUID)
-	dialContinue, err := redis.String(rc.Do("get", redisKey))
-
-	slog.Debug("looking up dial continue", "error", err, "status", nxStatus, "redisKey", redisKey, "redisValue", dialContinue)
+	legKey := fmt.Sprintf("dial_%s", legUUID)
+	dialContinue, err := redis.String(rc.Do("get", legKey))
 
 	// no associated call, move on
 	if err == redis.ErrNil {
@@ -214,7 +212,7 @@ func (s *service) PreprocessStatus(ctx context.Context, rt *runtime.Runtime, r *
 	}
 
 	if err != nil {
-		return nil, fmt.Errorf("error looking up leg uuid: %s: %w", redisKey, err)
+		return nil, fmt.Errorf("error looking up leg uuid: %s: %w", legKey, err)
 	}
 
 	// transfer the call back to our handle with the dial wait type
@@ -222,7 +220,7 @@ func (s *service) PreprocessStatus(ctx context.Context, rt *runtime.Runtime, r *
 	callUUID, resumeURL := parts[0], parts[1]
 
 	// we found an associated call, if the status is complete, have it continue, we call out to
-	// redis and hand it our flow to resume on to get the next NCCO
+	// vonage and hand it our flow to resume on to get the next NCCO
 	if nxStatus == "completed" {
 		slog.Debug("found completed call, trying to finish with call", "call_uuid", callUUID)
 		statusKey := fmt.Sprintf("dial_status_%s", callUUID)
@@ -267,13 +265,14 @@ func (s *service) PreprocessStatus(ctx context.Context, rt *runtime.Runtime, r *
 
 	// only store away valid final states
 	if status != "" {
-		redisKey := fmt.Sprintf("dial_status_%s", callUUID)
-		_, err = rc.Do("setex", redisKey, 300, status)
+		callKey := fmt.Sprintf("dial_status_%s", callUUID)
+		_, err = rc.Do("setex", callKey, 300, status)
 		if err != nil {
 			return nil, fmt.Errorf("error inserting recording URL into valkey: %w", err)
 		}
 
-		slog.Debug("saved intermediary dial status for call", "callUUID", callUUID, "status", status, "redisKey", redisKey)
+		slog.Debug("saved intermediary dial status for call", "callUUID", callUUID, "status", status, "key", callKey)
+
 		return s.MakeEmptyResponseBody(fmt.Sprintf("updated status for call: %s to: %s", callUUID, status)), nil
 	}
 
@@ -294,8 +293,8 @@ func (s *service) PreprocessResume(ctx context.Context, rt *runtime.Runtime, cal
 		rc := rt.RP.Get()
 		defer rc.Close()
 
-		redisKey := fmt.Sprintf("recording_%s", recordingUUID)
-		recordingURL, err := redis.String(rc.Do("get", redisKey))
+		recordingKey := fmt.Sprintf("recording_%s", recordingUUID)
+		recordingURL, err := redis.String(rc.Do("get", recordingKey))
 		if err != nil && err != redis.ErrNil {
 			return nil, fmt.Errorf("error getting recording url from valkey: %w", err)
 		}
@@ -304,7 +303,7 @@ func (s *service) PreprocessResume(ctx context.Context, rt *runtime.Runtime, cal
 		if recordingURL != "" {
 			r.URL.RawQuery = "&recording_url=" + url.QueryEscape(recordingURL)
 			slog.Info("found recording URL", "recording_url", recordingURL)
-			rc.Do("del", redisKey)
+			rc.Do("del", recordingKey)
 			return nil, nil
 		}
 
@@ -349,8 +348,8 @@ func (s *service) PreprocessResume(ctx context.Context, rt *runtime.Runtime, cal
 		rc := rt.RP.Get()
 		defer rc.Close()
 
-		redisKey := fmt.Sprintf("recording_%s", recordingUUID)
-		_, err = rc.Do("setex", redisKey, 300, recordingURL)
+		recordingKey := fmt.Sprintf("recording_%s", recordingUUID)
+		_, err = rc.Do("setex", recordingKey, 300, recordingURL)
 		if err != nil {
 			return nil, fmt.Errorf("error inserting recording URL into valkey: %w", err)
 		}

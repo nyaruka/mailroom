@@ -16,7 +16,7 @@ func TestDeindexDeletedOrgsCron(t *testing.T) {
 	rc := rt.RP.Get()
 	defer rc.Close()
 
-	defer testsuite.Reset(testsuite.ResetElastic | testsuite.ResetRedis)
+	defer testsuite.Reset(testsuite.ResetElastic | testsuite.ResetValkey)
 
 	cron := &crons.DeindexDeletedOrgsCron{}
 

@@ -25,7 +25,7 @@ func TestEndIncidents(t *testing.T) {
 	rc := rt.RP.Get()
 	defer rc.Close()
 
-	defer testsuite.Reset(testsuite.ResetData | testsuite.ResetRedis)
+	defer testsuite.Reset(testsuite.ResetData | testsuite.ResetValkey)
 
 	oa1 := testdb.Org1.Load(rt)
 	oa2 := testdb.Org2.Load(rt)

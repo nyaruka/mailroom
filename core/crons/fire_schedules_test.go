@@ -18,7 +18,7 @@ func TestFireSchedules(t *testing.T) {
 	rc := rt.RP.Get()
 	defer rc.Close()
 
-	defer testsuite.Reset(testsuite.ResetData | testsuite.ResetRedis)
+	defer testsuite.Reset(testsuite.ResetData | testsuite.ResetValkey)
 
 	// add a one-time schedule and tie a broadcast to it
 	s1 := testdb.InsertSchedule(rt, testdb.Org1, models.RepeatPeriodNever, time.Now().Add(-2*time.Hour))

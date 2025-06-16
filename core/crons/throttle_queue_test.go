@@ -16,7 +16,7 @@ func TestThrottleQueue(t *testing.T) {
 	rc := rt.RP.Get()
 	defer rc.Close()
 
-	defer testsuite.Reset(testsuite.ResetRedis | testsuite.ResetData)
+	defer testsuite.Reset(testsuite.ResetValkey | testsuite.ResetData)
 
 	queue := queues.NewFairSorted("test")
 	cron := &crons.ThrottleQueueCron{Queue: queue}

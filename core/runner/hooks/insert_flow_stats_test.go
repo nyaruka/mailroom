@@ -23,7 +23,7 @@ func TestInsertFlowStats(t *testing.T) {
 	rc := rt.RP.Get()
 	defer rc.Close()
 
-	defer testsuite.Reset(testsuite.ResetRedis | testsuite.ResetData)
+	defer testsuite.Reset(testsuite.ResetValkey | testsuite.ResetData)
 
 	defer random.SetGenerator(random.DefaultGenerator)
 	random.SetGenerator(random.NewSeededGenerator(123))
