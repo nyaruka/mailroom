@@ -26,6 +26,12 @@ func TestCampaigns(t *testing.T) {
 	// insert an event on our campaign that is based on last_seen_on
 	testdb.InsertCampaignFlowEvent(rt, testdb.RemindersCampaign, testdb.Favorites, testdb.LastSeenOnField, 2, "D")
 
+	// created_on + 1000 weeks => Favorites
+	// last_seen_on + 2 days => Favorites
+	// joined + 1 week => Pick A Number
+	// joined + 5 days => Favorites
+	// joined + 10 minutes => "Hi @contact.name, it is time to consult with your patients."
+
 	msg1 := testdb.InsertIncomingMsg(rt, testdb.Org1, testdb.TwilioChannel, testdb.Cathy, "Hi there", models.MsgStatusPending)
 
 	// init their values
@@ -62,17 +68,17 @@ func TestCampaigns(t *testing.T) {
 				},
 			},
 			SQLAssertions: []handlers.SQLAssertion{
-				{
+				{ // 2 new events on created_on and last_seen_on
 					SQL:   `select count(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'C'`,
 					Args:  []any{testdb.Cathy.ID},
 					Count: 2,
 				},
-				{
+				{ // 3 events on joined_on + new event on created_on
 					SQL:   `select count(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'C'`,
 					Args:  []any{testdb.Bob.ID},
 					Count: 4,
 				},
-				{
+				{ // no events because removed from doctors
 					SQL:   `select count(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'C'`,
 					Args:  []any{testdb.George.ID},
 					Count: 0,
