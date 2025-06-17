@@ -113,6 +113,7 @@ func (s *Scene) AddEvents(evts []flows.Event) {
 }
 
 func (s *Scene) AddSprint(ss flows.Session, sp flows.Sprint, mc *models.Contact, resumed bool) {
+	s.contact = ss.Contact() // update contact
 	s.session = ss
 	s.sprint = sp
 
