@@ -1,3 +1,8 @@
+v10.1.142 (2025-06-17)
+-------------------------
+ * Tweak msg_received logging
+ * Update names of valkey metrics
+
 v10.1.141 (2025-06-16)
 -------------------------
  * Temporary logging
