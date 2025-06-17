@@ -26,8 +26,8 @@ func (h *updateMessageHandled) Execute(ctx context.Context, rt *runtime.Runtime,
 		contactBlocked := scene.Contact().Status() == flows.ContactStatusBlocked
 
 		var flow *models.Flow
-		if scene.Session() != nil {
-			flow, _ = scene.LocateEvent(evt)
+		if scene.Sprint() != nil && len(scene.Sprint().Flows()) > 0 {
+			flow = scene.Sprint().Flows()[0].Asset().(*models.Flow)
 		}
 
 		visibility := models.VisibilityVisible

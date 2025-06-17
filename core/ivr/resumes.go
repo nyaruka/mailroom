@@ -11,6 +11,7 @@ import (
 	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/goflow/flows/resumes"
 	"github.com/nyaruka/goflow/utils"
 	"github.com/nyaruka/mailroom/core/models"
@@ -112,5 +113,5 @@ func buildMsgResume(
 	}
 
 	// create our msg resume event
-	return &models.MsgInRef{ID: msg.ID()}, resumes.NewMsg(oa.Env(), contact, msgIn), nil, nil
+	return &models.MsgInRef{ID: msg.ID()}, resumes.NewMsg(oa.Env(), contact, events.NewMsgReceived(msgIn)), nil, nil
 }

@@ -26,6 +26,12 @@ func TestCampaigns(t *testing.T) {
 	// insert an event on our campaign that is based on last_seen_on
 	testdb.InsertCampaignFlowEvent(rt, testdb.RemindersCampaign, testdb.Favorites, testdb.LastSeenOnField, 2, "D")
 
+	// created_on + 1000 weeks => Favorites
+	// last_seen_on + 2 days => Favorites
+	// joined + 1 week => Pick A Number
+	// joined + 5 days => Favorites
+	// joined + 10 minutes => "Hi @contact.name, it is time to consult with your patients."
+
 	msg1 := testdb.InsertIncomingMsg(rt, testdb.Org1, testdb.TwilioChannel, testdb.Cathy, "Hi there", models.MsgStatusPending)
 
 	// init their values

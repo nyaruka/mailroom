@@ -130,6 +130,8 @@ func (t *MsgReceivedTask) perform(ctx context.Context, rt *runtime.Runtime, oa *
 	}
 
 	msgIn := flows.NewMsgIn(t.MsgUUID, t.URN, channel.Reference(), t.Text, availableAttachments, string(t.MsgExternalID))
+	msgEvent := events.NewMsgReceived(msgIn)
+	fc.SetLastSeenOn(msgEvent.CreatedOn())
 
 	// look up any open tickes for this contact and forward this message to that
 	ticket, err := models.LoadOpenTicketForContact(ctx, rt.DB, mc)
@@ -145,11 +147,12 @@ func (t *MsgReceivedTask) perform(ctx context.Context, rt *runtime.Runtime, oa *
 			Ticket:      ticket,
 			LogUUIDs:    logUUIDs,
 		}
+		scene.AddEvents([]flows.Event{msgEvent})
 	}
 
 	// if contact is blocked, or channel no longer exists or is disabled, handle non-flow
 	if mc.Status() == models.ContactStatusBlocked || channel == nil {
-		if err := t.handleNonFlow(ctx, rt, oa, fc, msgIn, sceneInit); err != nil {
+		if err := t.handleNonFlow(ctx, rt, oa, fc, msgEvent, sceneInit); err != nil {
 			return "", fmt.Errorf("error handling message for blocked contact or missing channel: %w", err)
 		}
 		return msgOutcomeNonFlow, nil
@@ -200,7 +203,7 @@ func (t *MsgReceivedTask) perform(ctx context.Context, rt *runtime.Runtime, oa *
 
 		if flow != nil {
 			// create trigger from this message
-			tb := triggers.NewBuilder(oa.Env(), flow.Reference(), fc).Msg(msgIn)
+			tb := triggers.NewBuilder(oa.Env(), flow.Reference(), fc).Msg(msgEvent)
 			if keyword != "" {
 				tb = tb.WithMatch(&triggers.KeywordMatch{Type: trigger.KeywordMatchType(), Keyword: keyword})
 			}
@@ -212,7 +215,7 @@ func (t *MsgReceivedTask) perform(ctx context.Context, rt *runtime.Runtime, oa *
 					return "", fmt.Errorf("error starting voice flow for contact: %w", err)
 				}
 
-				return msgOutcomeNonFlow, t.handleNonFlow(ctx, rt, oa, fc, msgIn, sceneInit)
+				return msgOutcomeNonFlow, t.handleNonFlow(ctx, rt, oa, fc, msgEvent, sceneInit)
 			}
 
 			_, err = runner.StartSessions(ctx, rt, oa, []*models.Contact{mc}, []flows.Trigger{flowTrigger}, flow.FlowType().Interrupts(), models.NilStartID, sceneInit)
@@ -225,7 +228,7 @@ func (t *MsgReceivedTask) perform(ctx context.Context, rt *runtime.Runtime, oa *
 
 	// if there is a session, resume it
 	if session != nil && flow != nil {
-		resume := resumes.NewMsg(oa.Env(), fc, msgIn)
+		resume := resumes.NewMsg(oa.Env(), fc, msgEvent)
 		_, err = runner.ResumeFlow(ctx, rt, oa, session, mc, resume, sceneInit)
 		if err != nil {
 			return "", fmt.Errorf("error resuming flow for contact: %w", err)
@@ -234,16 +237,14 @@ func (t *MsgReceivedTask) perform(ctx context.Context, rt *runtime.Runtime, oa *
 	}
 
 	// this message didn't trigger and new sessions or resume any existing ones, so handle as inbox
-	if err := t.handleNonFlow(ctx, rt, oa, fc, msgIn, sceneInit); err != nil {
+	if err := t.handleNonFlow(ctx, rt, oa, fc, msgEvent, sceneInit); err != nil {
 		return "", fmt.Errorf("error handling non-flow message: %w", err)
 	}
 	return msgOutcomeNonFlow, nil
 }
 
 // handles a message outside of a flow session
-func (t *MsgReceivedTask) handleNonFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contact *flows.Contact, msg *flows.MsgIn, sceneInit func(*runner.Scene)) error {
-	msgEvent := events.NewMsgReceived(msg)
-	contact.SetLastSeenOn(msgEvent.CreatedOn())
+func (t *MsgReceivedTask) handleNonFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contact *flows.Contact, msgEvent *events.MsgReceivedEvent, sceneInit func(*runner.Scene)) error {
 	contactEvents := map[*flows.Contact][]flows.Event{contact: {msgEvent}}
 
 	err := runner.ProcessEvents(ctx, rt, oa, models.NilUserID, contactEvents, sceneInit)

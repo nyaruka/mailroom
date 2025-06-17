@@ -42,19 +42,11 @@ func ResumeFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, 
 		return nil, fmt.Errorf("error resuming flow: %w", err)
 	}
 
-	scene := NewSessionScene(fs, sprint, sceneInit)
+	scene := NewScene(resume.Contact(), models.NilUserID, sceneInit)
+	scene.AddSprint(fs, sprint, contact, true)
 
-	var eventsToHandle []flows.Event
-
-	// if session didn't fail, we also need to include changes from sprint events
-	if fs.Status() != flows.SessionStatusFailed {
-		eventsToHandle = append(eventsToHandle, sprint.Events()...)
-	}
-
-	eventsToHandle = append(eventsToHandle, newSprintEndedEvent(contact, true))
-
-	if err := scene.AddEvents(ctx, rt, oa, eventsToHandle); err != nil {
-		return nil, fmt.Errorf("error handling events for session %s: %w", session.UUID(), err)
+	if err := scene.ProcessEvents(ctx, rt, oa); err != nil {
+		return nil, fmt.Errorf("error processing events for session %s: %w", session.UUID(), err)
 	}
 
 	// write our updated session, applying any events in the process

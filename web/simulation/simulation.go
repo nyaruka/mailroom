@@ -199,7 +199,9 @@ func handleResume(ctx context.Context, rt *runtime.Runtime, r *resumeRequest) (a
 	// if this is a msg resume we want to check whether it might be caught by a trigger
 	if resume.Type() == resumes.TypeMsg {
 		msgResume := resume.(*resumes.MsgResume)
-		trigger, keyword := models.FindMatchingMsgTrigger(oa, nil, msgResume.Contact(), msgResume.Msg().Text())
+		msgEvt := msgResume.Event().(*events.MsgReceivedEvent)
+
+		trigger, keyword := models.FindMatchingMsgTrigger(oa, nil, msgResume.Contact(), msgEvt.Msg.Text())
 		if trigger != nil {
 			var flow *models.Flow
 			for _, r := range session.Runs() {
@@ -228,7 +230,7 @@ func handleResume(ctx context.Context, rt *runtime.Runtime, r *resumeRequest) (a
 						// non-simulation IVR triggers to use that so that this is consistent.
 						sessionTrigger = tb.Manual().WithCall(testChannel, testURN).Build()
 					} else {
-						mtb := tb.Msg(msgResume.Msg())
+						mtb := tb.Msg(msgEvt)
 						if keyword != "" {
 							mtb = mtb.WithMatch(&triggers.KeywordMatch{Type: trigger.KeywordMatchType(), Keyword: keyword})
 						}
