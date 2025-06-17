@@ -68,17 +68,17 @@ func TestCampaigns(t *testing.T) {
 				},
 			},
 			SQLAssertions: []handlers.SQLAssertion{
-				{
+				{ // 2 new events on created_on and last_seen_on
 					SQL:   `select count(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'C'`,
 					Args:  []any{testdb.Cathy.ID},
 					Count: 2,
 				},
-				{
+				{ // 3 events on joined_on + new event on created_on
 					SQL:   `select count(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'C'`,
 					Args:  []any{testdb.Bob.ID},
 					Count: 4,
 				},
-				{
+				{ // no events because removed from doctors
 					SQL:   `select count(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'C'`,
 					Args:  []any{testdb.George.ID},
 					Count: 0,
