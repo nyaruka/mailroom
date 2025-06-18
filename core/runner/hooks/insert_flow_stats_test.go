@@ -43,11 +43,14 @@ func TestInsertFlowStats(t *testing.T) {
 
 	tx := rt.DB.MustBeginTx(ctx, nil)
 
-	err = hooks.InsertFlowStats.Execute(ctx, rt, tx, oa, map[*runner.Scene][]any{
-		runner.NewSessionScene(session1, session1Sprint1, nil): nil,
-		runner.NewSessionScene(session2, session2Sprint1, nil): nil,
-		runner.NewSessionScene(session3, session3Sprint1, nil): nil,
-	})
+	scene1 := runner.NewScene(session1.Contact(), models.NilUserID, nil)
+	scene1.AddSprint(session1, session1Sprint1, nil, false)
+	scene2 := runner.NewScene(session2.Contact(), models.NilUserID, nil)
+	scene2.AddSprint(session2, session2Sprint1, nil, false)
+	scene3 := runner.NewScene(session3.Contact(), models.NilUserID, nil)
+	scene3.AddSprint(session3, session3Sprint1, nil, false)
+
+	err = hooks.InsertFlowStats.Execute(ctx, rt, tx, oa, map[*runner.Scene][]any{scene1: nil, scene2: nil, scene3: nil})
 	require.NoError(t, err)
 	require.NoError(t, tx.Commit())
 
@@ -73,20 +76,23 @@ func TestInsertFlowStats(t *testing.T) {
 		[]string{"LZbbzXDPJH|123|", "reuPYVP90u|234|", "qWARtWDACk|345|"},
 	)
 
-	_, session1Sprint2, err := test.ResumeSession(session1, sa1, "blue")
+	session1, session1Sprint2, err := test.ResumeSession(session1, sa1, "blue")
 	require.NoError(t, err)
-	_, session2Sprint2, err := test.ResumeSession(session2, sa2, "BLUE")
+	session2, session2Sprint2, err := test.ResumeSession(session2, sa2, "BLUE")
 	require.NoError(t, err)
 	session3, session3Sprint2, err := test.ResumeSession(session3, sa3, "teal")
 	require.NoError(t, err)
 
+	scene4 := runner.NewScene(session1.Contact(), models.NilUserID, nil)
+	scene4.AddSprint(session1, session1Sprint2, nil, false)
+	scene5 := runner.NewScene(session2.Contact(), models.NilUserID, nil)
+	scene5.AddSprint(session2, session2Sprint2, nil, false)
+	scene6 := runner.NewScene(session3.Contact(), models.NilUserID, nil)
+	scene6.AddSprint(session3, session3Sprint2, nil, false)
+
 	tx = rt.DB.MustBeginTx(ctx, nil)
 
-	err = hooks.InsertFlowStats.Execute(ctx, rt, tx, oa, map[*runner.Scene][]any{
-		runner.NewSessionScene(session1, session1Sprint2, nil): nil,
-		runner.NewSessionScene(session2, session2Sprint2, nil): nil,
-		runner.NewSessionScene(session3, session3Sprint2, nil): nil,
-	})
+	err = hooks.InsertFlowStats.Execute(ctx, rt, tx, oa, map[*runner.Scene][]any{scene4: nil, scene5: nil, scene6: nil})
 	require.NoError(t, err)
 	require.NoError(t, tx.Commit())
 
@@ -101,14 +107,15 @@ func TestInsertFlowStats(t *testing.T) {
 	})
 	assertFlowResultCounts(t, rt, flow.ID, map[string]int{"color/Blue": 2, "color/Other": 1})
 
-	_, session3Sprint3, err := test.ResumeSession(session3, sa3, "azure")
+	session3, session3Sprint3, err := test.ResumeSession(session3, sa3, "azure")
 	require.NoError(t, err)
+
+	scene7 := runner.NewScene(session3.Contact(), models.NilUserID, nil)
+	scene7.AddSprint(session3, session3Sprint3, nil, false)
 
 	tx = rt.DB.MustBeginTx(ctx, nil)
 
-	err = hooks.InsertFlowStats.Execute(ctx, rt, tx, oa, map[*runner.Scene][]any{
-		runner.NewSessionScene(session3, session3Sprint3, nil): nil,
-	})
+	err = hooks.InsertFlowStats.Execute(ctx, rt, tx, oa, map[*runner.Scene][]any{scene7: nil})
 	require.NoError(t, err)
 	require.NoError(t, tx.Commit())
 
@@ -149,14 +156,15 @@ func TestInsertFlowStats(t *testing.T) {
 	)
 
 	// check that category counts are updated correctly when result changes
-	_, session3Sprint4, err := test.ResumeSession(session3, sa3, "blue")
+	session3, session3Sprint4, err := test.ResumeSession(session3, sa3, "blue")
 	require.NoError(t, err)
+
+	scene8 := runner.NewScene(session3.Contact(), models.NilUserID, nil)
+	scene8.AddSprint(session3, session3Sprint4, nil, false)
 
 	tx = rt.DB.MustBeginTx(ctx, nil)
 
-	err = hooks.InsertFlowStats.Execute(ctx, rt, tx, oa, map[*runner.Scene][]any{
-		runner.NewSessionScene(session3, session3Sprint4, nil): nil,
-	})
+	err = hooks.InsertFlowStats.Execute(ctx, rt, tx, oa, map[*runner.Scene][]any{scene8: nil})
 	require.NoError(t, err)
 	require.NoError(t, tx.Commit())
 

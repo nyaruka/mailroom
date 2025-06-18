@@ -57,27 +57,18 @@ type Scene struct {
 	IncomingMsg *models.MsgInRef
 	WaitTimeout time.Duration
 
+	events      []flows.Event
 	preCommits  map[PreCommitHook][]any
 	postCommits map[PostCommitHook][]any
 }
 
-// NewSessionScene creates a new scene for the passed in session
-func NewSessionScene(session flows.Session, sprint flows.Sprint, init func(*Scene)) *Scene {
-	return newScene(session.Contact(), session, sprint, models.NilUserID, init)
-}
-
-// NewNonFlowScene creates a new scene for non flow session event handling
-func NewNonFlowScene(contact *flows.Contact, userID models.UserID, init func(*Scene)) *Scene {
-	return newScene(contact, nil, nil, userID, init)
-}
-
-func newScene(contact *flows.Contact, session flows.Session, sprint flows.Sprint, userID models.UserID, init func(*Scene)) *Scene {
+// NewScene creates a new scene for the passed in contact
+func NewScene(contact *flows.Contact, userID models.UserID, init func(*Scene)) *Scene {
 	s := &Scene{
 		contact: contact,
-		session: session,
-		sprint:  sprint,
 		userID:  userID,
 
+		events:      make([]flows.Event, 0, 10),
 		preCommits:  make(map[PreCommitHook][]any),
 		postCommits: make(map[PostCommitHook][]any),
 	}
@@ -117,19 +108,26 @@ func (s *Scene) LocateEvent(e flows.Event) (*models.Flow, flows.NodeUUID) {
 	return flow, step.NodeUUID()
 }
 
-// AttachPreCommitHook adds an item to be handled by the given pre commit hook
-func (s *Scene) AttachPreCommitHook(hook PreCommitHook, item any) {
-	s.preCommits[hook] = append(s.preCommits[hook], item)
+func (s *Scene) AddEvents(evts []flows.Event) {
+	s.events = append(s.events, evts...)
 }
 
-// AttachPostCommitHook adds an item to be handled by the given post commit hook
-func (s *Scene) AttachPostCommitHook(hook PostCommitHook, item any) {
-	s.postCommits[hook] = append(s.postCommits[hook], item)
+func (s *Scene) AddSprint(ss flows.Session, sp flows.Sprint, mc *models.Contact, resumed bool) {
+	s.contact = ss.Contact() // update contact
+	s.session = ss
+	s.sprint = sp
+
+	// if session didn't fail, we need to handle this sprint's events
+	if ss.Status() != flows.SessionStatusFailed {
+		s.AddEvents(sp.Events())
+	}
+
+	s.AddEvents([]flows.Event{newSprintEndedEvent(mc, resumed)})
 }
 
-// AddEvents runs the given events through the appropriate handlers which in turn attach hooks to the scene
-func (s *Scene) AddEvents(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, events []flows.Event) error {
-	for _, e := range events {
+// ProcessEvents runs this scene's events through the appropriate handlers which in turn attach hooks to the scene
+func (s *Scene) ProcessEvents(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets) error {
+	for _, e := range s.events {
 		handler, found := eventHandlers[e.Type()]
 		if !found {
 			return fmt.Errorf("unable to find handler for event type: %s", e.Type())
@@ -142,12 +140,23 @@ func (s *Scene) AddEvents(ctx context.Context, rt *runtime.Runtime, oa *models.O
 	return nil
 }
 
+// AttachPreCommitHook adds an item to be handled by the given pre commit hook
+func (s *Scene) AttachPreCommitHook(hook PreCommitHook, item any) {
+	s.preCommits[hook] = append(s.preCommits[hook], item)
+}
+
+// AttachPostCommitHook adds an item to be handled by the given post commit hook
+func (s *Scene) AttachPostCommitHook(hook PostCommitHook, item any) {
+	s.postCommits[hook] = append(s.postCommits[hook], item)
+}
+
 // ProcessEvents allows processing of events generated outside of a flow
 func ProcessEvents(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, userID models.UserID, contactEvents map[*flows.Contact][]flows.Event, sceneInit func(*Scene)) error {
 	// create scenes for each contact
 	scenes := make([]*Scene, 0, len(contactEvents))
 	for contact := range contactEvents {
-		scene := NewNonFlowScene(contact, userID, sceneInit)
+		scene := NewScene(contact, userID, sceneInit)
+		scene.AddEvents(contactEvents[contact])
 		scenes = append(scenes, scene)
 	}
 
@@ -159,7 +168,7 @@ func ProcessEvents(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsset
 
 	// handle the events to create the hooks on each scene
 	for _, scene := range scenes {
-		if err := scene.AddEvents(ctx, rt, oa, contactEvents[scene.Contact()]); err != nil {
+		if err := scene.ProcessEvents(ctx, rt, oa); err != nil {
 			return fmt.Errorf("error applying events: %w", err)
 		}
 	}

@@ -11,6 +11,7 @@ import (
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/definition"
+	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/goflow/flows/routers"
 	"github.com/nyaruka/goflow/flows/triggers"
 	"github.com/nyaruka/mailroom/core/models"
@@ -169,17 +170,21 @@ func RunTestCases(t *testing.T, ctx context.Context, rt *runtime.Runtime, tcs []
 			assert.NoError(t, err)
 
 			triggerBuilder := func(contact *flows.Contact) flows.Trigger {
+				tb := triggers.NewBuilder(oa.Env(), testFlow.Reference(false), contact)
 				msg := msgsByContactID[models.ContactID(contact.ID())]
-				if msg == nil {
-					return triggers.NewBuilder(oa.Env(), testFlow.Reference(false), contact).Manual().Build()
+				if msg != nil {
+					msgEvt := events.NewMsgReceived(msg.FlowMsg)
+					contact.SetLastSeenOn(msgEvt.CreatedOn())
+					return tb.Msg(msgEvt).Build()
 				}
-				return triggers.NewBuilder(oa.Env(), testFlow.Reference(false), contact).Msg(msg.FlowMsg).Build()
+				return tb.Manual().Build()
 			}
 
 			for _, c := range []*testdb.Contact{testdb.Cathy, testdb.Bob, testdb.George, testdb.Alexandra} {
 				sceneInit := func(scene *runner.Scene) {
 					if msg := msgsByContactID[c.ID]; msg != nil {
 						scene.IncomingMsg = &models.MsgInRef{ID: msg.ID}
+						scene.AddEvents([]flows.Event{events.NewMsgReceived(msg.FlowMsg)})
 					}
 				}
 

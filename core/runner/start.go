@@ -114,6 +114,8 @@ func StartSessions(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsset
 	scenes := make([]*Scene, len(triggers))
 
 	for i, trigger := range triggers {
+		scenes[i] = NewScene(trigger.Contact(), models.NilUserID, sceneInit)
+
 		session, sprint, err := goflow.Engine(rt).NewSession(ctx, sa, trigger)
 		if err != nil {
 			return nil, fmt.Errorf("error starting contact %s in flow %s: %w", trigger.Contact().UUID(), trigger.Flow().UUID, err)
@@ -121,19 +123,10 @@ func StartSessions(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsset
 
 		sessions[i] = session
 		sprints[i] = sprint
-		scenes[i] = NewSessionScene(session, sprint, sceneInit)
+		scenes[i].AddSprint(session, sprint, contacts[i], false)
 
-		var eventsToHandle []flows.Event
-
-		// if session didn't fail, we need to handle this sprint's events
-		if session.Status() != flows.SessionStatusFailed {
-			eventsToHandle = append(eventsToHandle, sprints[i].Events()...)
-		}
-
-		eventsToHandle = append(eventsToHandle, newSprintEndedEvent(contacts[i], false))
-
-		if err := scenes[i].AddEvents(ctx, rt, oa, eventsToHandle); err != nil {
-			return nil, fmt.Errorf("error applying events for session %s: %w", session.UUID(), err)
+		if err := scenes[i].ProcessEvents(ctx, rt, oa); err != nil {
+			return nil, fmt.Errorf("error processing events for session %s: %w", session.UUID(), err)
 		}
 	}
 

@@ -5,6 +5,7 @@ import (
 
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/goflow/flows/resumes"
 	"github.com/nyaruka/goflow/flows/triggers"
 	"github.com/nyaruka/mailroom/core/models"
@@ -63,7 +64,7 @@ func TestResume(t *testing.T) {
 
 		// answer our first question
 		msg := flows.NewMsgIn(flows.NewMsgUUID(), testdb.Cathy.URN, nil, tc.Message, nil, "")
-		resume := resumes.NewMsg(oa.Env(), flowContact, msg)
+		resume := resumes.NewMsg(oa.Env(), flowContact, events.NewMsgReceived(msg))
 
 		scene, err := runner.ResumeFlow(ctx, rt, oa, session, modelContact, resume, nil)
 		assert.NoError(t, err)
