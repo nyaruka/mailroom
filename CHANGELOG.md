@@ -1,3 +1,7 @@
+v10.1.143 (2025-06-18)
+-------------------------
+ * Update to latest goflow which changes msg triggers and resumes to take events
+
 v10.1.142 (2025-06-17)
 -------------------------
  * Tweak msg_received logging
