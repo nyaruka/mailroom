@@ -1,3 +1,8 @@
+v10.1.144 (2025-06-18)
+-------------------------
+ * Update to latest goflow which changes ticket and optin triggers
+ * Update deps
+
 v10.1.143 (2025-06-18)
 -------------------------
  * Update to latest goflow which changes msg triggers and resumes to take events
