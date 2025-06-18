@@ -77,7 +77,7 @@ func (t *TicketClosedTask) Perform(ctx context.Context, rt *runtime.Runtime, oa 
 	event := events.NewTicketClosed(ticket)
 
 	// build our flow trigger
-	flowTrigger := triggers.NewBuilder(oa.Env(), flow.Reference(), fc).Ticket(event, ticket).Build()
+	flowTrigger := triggers.NewBuilder(oa.Env(), flow.Reference(), fc).Ticket(ticket, event).Build()
 
 	// if this is a voice flow, we request a call and wait for callback
 	if flow.FlowType() == models.FlowTypeVoice {

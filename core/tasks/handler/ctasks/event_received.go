@@ -9,6 +9,7 @@ import (
 
 	"github.com/nyaruka/goflow/excellent/types"
 	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/goflow/flows/triggers"
 	"github.com/nyaruka/mailroom/core/ivr"
 	"github.com/nyaruka/mailroom/core/models"
@@ -170,9 +171,9 @@ func (t *EventReceivedTask) handle(ctx context.Context, rt *runtime.Runtime, oa 
 		urn := mc.URNForID(t.URNID)
 		trig = tb.Channel(channel.Reference(), triggers.ChannelEventTypeIncomingCall).WithCall(urn).Build()
 	} else if t.EventType == models.EventTypeOptIn && flowOptIn != nil {
-		trig = tb.OptIn(flowOptIn, triggers.OptInEventTypeStarted).Build()
+		trig = tb.OptIn(flowOptIn, events.NewOptInStarted(flowOptIn, channel.Reference())).Build()
 	} else if t.EventType == models.EventTypeOptOut && flowOptIn != nil {
-		trig = tb.OptIn(flowOptIn, triggers.OptInEventTypeStopped).Build()
+		trig = tb.OptIn(flowOptIn, events.NewOptInStopped(flowOptIn, channel.Reference())).Build()
 	} else {
 		trig = tb.Channel(channel.Reference(), triggers.ChannelEventType(t.EventType)).WithParams(params).Build()
 	}
