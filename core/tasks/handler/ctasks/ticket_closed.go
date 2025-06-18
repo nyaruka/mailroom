@@ -6,6 +6,7 @@ import (
 	"log/slog"
 
 	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/goflow/flows/triggers"
 	"github.com/nyaruka/mailroom/core/ivr"
 	"github.com/nyaruka/mailroom/core/models"
@@ -73,11 +74,10 @@ func (t *TicketClosedTask) Perform(ctx context.Context, rt *runtime.Runtime, oa 
 
 	// build our flow ticket
 	ticket := tickets[0].FlowTicket(oa)
+	event := events.NewTicketClosed(ticket)
 
 	// build our flow trigger
-	flowTrigger := triggers.NewBuilder(oa.Env(), flow.Reference(), fc).
-		Ticket(ticket, triggers.TicketEventTypeClosed).
-		Build()
+	flowTrigger := triggers.NewBuilder(oa.Env(), flow.Reference(), fc).Ticket(event, ticket).Build()
 
 	// if this is a voice flow, we request a call and wait for callback
 	if flow.FlowType() == models.FlowTypeVoice {
