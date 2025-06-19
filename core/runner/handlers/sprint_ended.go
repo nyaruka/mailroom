@@ -74,30 +74,32 @@ func handleSprintEnded(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 		}
 	}
 
-	newFires, timeout := calculateFires(oa, scene.ContactID(), scene.Session(), scene.Sprint(), scene.Sprint().IsInitial())
+	if scene.Session().Status() != flows.SessionStatusFailed {
+		newFires, timeout := calculateFires(oa, scene.ContactID(), scene.Session(), scene.Sprint(), scene.Sprint().IsInitial())
 
-	scene.WaitTimeout = timeout // used by post commit hooks
+		scene.WaitTimeout = timeout // used by post commit hooks
 
-	delFires := hooks.DeleteFiresNone
-	if scene.Sprint().IsInitial() {
-		// we've started a new session
-		if sessionIsWaiting {
-			// and reached a wait
-			delFires = hooks.DeleteFiresAll // TODO are we over-deleting fires for new waiting sessions?
-		}
-	} else {
-		// we've resumed an existing session
-		if sessionIsWaiting {
-			// and hit another wait
-			delFires = hooks.DeleteFiresWaits
+		delFires := hooks.DeleteFiresNone
+		if scene.Sprint().IsInitial() {
+			// we've started a new session
+			if sessionIsWaiting {
+				// and reached a wait
+				delFires = hooks.DeleteFiresAll // TODO are we over-deleting fires for new waiting sessions?
+			}
 		} else {
-			// and completed
-			delFires = hooks.DeleteFiresAll
+			// we've resumed an existing session
+			if sessionIsWaiting {
+				// and hit another wait
+				delFires = hooks.DeleteFiresWaits
+			} else {
+				// and completed
+				delFires = hooks.DeleteFiresAll
+			}
 		}
-	}
 
-	scene.AttachPreCommitHook(hooks.InsertContactFires, hooks.FiresSet{Create: newFires, Delete: delFires})
-	scene.AttachPreCommitHook(hooks.InsertFlowStats, event)
+		scene.AttachPreCommitHook(hooks.InsertContactFires, hooks.FiresSet{Create: newFires, Delete: delFires})
+		scene.AttachPreCommitHook(hooks.InsertFlowStats, event)
+	}
 	return nil
 }
 
