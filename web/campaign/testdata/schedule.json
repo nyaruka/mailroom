@@ -2,7 +2,7 @@
     {
         "label": "illegal method",
         "method": "GET",
-        "path": "/mr/campaign/schedule_event",
+        "path": "/mr/campaign/schedule",
         "status": 405,
         "response": {
             "error": "illegal method: GET"
@@ -11,10 +11,10 @@
     {
         "label": "invalid org_id",
         "method": "POST",
-        "path": "/mr/campaign/schedule_event",
+        "path": "/mr/campaign/schedule",
         "body": {
             "org_id": 1234,
-            "event_id": 2345
+            "point_id": 2345
         },
         "status": 500,
         "response": {
@@ -24,10 +24,21 @@
     {
         "label": "response is empty on success",
         "method": "POST",
+        "path": "/mr/campaign/schedule",
+        "body": {
+            "org_id": 1,
+            "point_id": $point1_id$
+        },
+        "status": 200,
+        "response": {}
+    },
+    {
+        "label": "using old endpoint",
+        "method": "POST",
         "path": "/mr/campaign/schedule_event",
         "body": {
             "org_id": 1,
-            "event_id": $event1_id$
+            "event_id": $point1_id$
         },
         "status": 200,
         "response": {}

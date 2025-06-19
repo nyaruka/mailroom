@@ -30,7 +30,7 @@ func TestBulkCampaignTrigger(t *testing.T) {
 
 	// create task for event #3 (Pick A Number, start mode SKIP)
 	task := &campaigns.BulkCampaignTriggerTask{
-		PointID:     testdb.RemindersPoint3.ID,
+		EventID:     testdb.RemindersPoint3.ID,
 		FireVersion: 1,
 		ContactIDs:  []models.ContactID{testdb.Bob.ID, testdb.Cathy.ID, testdb.Alexandra.ID},
 	}
@@ -49,7 +49,7 @@ func TestBulkCampaignTrigger(t *testing.T) {
 
 	// create task for event #2 (single message, start mode PASSIVE)
 	task = &campaigns.BulkCampaignTriggerTask{
-		PointID:     testdb.RemindersPoint2.ID,
+		EventID:     testdb.RemindersPoint2.ID,
 		FireVersion: 1,
 		ContactIDs:  []models.ContactID{testdb.Bob.ID, testdb.Cathy.ID, testdb.Alexandra.ID},
 	}
@@ -73,7 +73,7 @@ func TestBulkCampaignTrigger(t *testing.T) {
 
 	// create task for event #1 (Favorites, start mode INTERRUPT)
 	task = &campaigns.BulkCampaignTriggerTask{
-		PointID:     testdb.RemindersPoint1.ID,
+		EventID:     testdb.RemindersPoint1.ID,
 		FireVersion: 1,
 		ContactIDs:  []models.ContactID{testdb.Bob.ID, testdb.Cathy.ID, testdb.Alexandra.ID},
 	}
@@ -96,7 +96,7 @@ func TestBulkCampaignTrigger(t *testing.T) {
 	oa = testdb.Org1.Load(rt)
 
 	task = &campaigns.BulkCampaignTriggerTask{
-		PointID:     testdb.RemindersPoint1.ID,
+		EventID:     testdb.RemindersPoint1.ID,
 		FireVersion: 1,
 		ContactIDs:  []models.ContactID{testdb.Bob.ID, testdb.Cathy.ID, testdb.Alexandra.ID},
 	}
@@ -117,7 +117,7 @@ func TestBulkCampaignTrigger(t *testing.T) {
 	oa = testdb.Org1.Load(rt)
 
 	task = &campaigns.BulkCampaignTriggerTask{
-		PointID:     testdb.RemindersPoint3.ID,
+		EventID:     testdb.RemindersPoint3.ID,
 		ContactIDs:  []models.ContactID{testdb.Bob.ID, testdb.Cathy.ID, testdb.Alexandra.ID},
 		FireVersion: 1,
 	}

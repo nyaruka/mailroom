@@ -71,7 +71,7 @@ func TestFireContacts(t *testing.T) {
 	jsonx.MustUnmarshal(ts[0].Task, decoded1)
 	assert.Len(t, decoded1.ContactIDs, 1)
 	assert.Equal(t, testdb.Alexandra.ID, decoded1.ContactIDs[0])
-	assert.Equal(t, models.PointID(6789), decoded1.PointID)
+	assert.Equal(t, models.PointID(6789), decoded1.EventID)
 	assert.Equal(t, 123, decoded1.FireVersion)
 
 	decoded2 := &contacts.BulkSessionExpireTask{}
