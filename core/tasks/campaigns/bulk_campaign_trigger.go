@@ -37,7 +37,6 @@ func init() {
 // BulkCampaignTriggerTask is the task to handle triggering campaign fires
 type BulkCampaignTriggerTask struct {
 	PointID     models.PointID     `json:"point_id"`
-	EventID     models.PointID     `json:"event_id"` // deprecated
 	FireVersion int                `json:"fire_version"`
 	ContactIDs  []models.ContactID `json:"contact_ids"`
 }
@@ -55,13 +54,9 @@ func (t *BulkCampaignTriggerTask) WithAssets() models.Refresh {
 }
 
 func (t *BulkCampaignTriggerTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets) error {
-	if t.EventID != 0 {
-		t.PointID = t.EventID
-	}
-
 	p := oa.CampaignPointByID(t.PointID)
 	if p == nil || p.FireVersion != t.FireVersion {
-		slog.Info("skipping campaign trigger for event that no longer exists or has been updated", "event_id", t.PointID, "fire_version", t.FireVersion)
+		slog.Info("skipping campaign trigger for point that no longer exists or has been updated", "point", t.PointID, "fire_version", t.FireVersion)
 		return nil
 	}
 
