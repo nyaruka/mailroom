@@ -25,7 +25,7 @@ func TestContactFires(t *testing.T) {
 	testdb.InsertContactFire(rt, testdb.Org2, testdb.Org2Contact, models.ContactFireTypeWaitExpiration, "", time.Now().Add(-3*time.Second), "7c73b6e4-ae33-45a6-9126-be474234b69d")
 	testdb.InsertContactFire(rt, testdb.Org2, testdb.Org2Contact, models.ContactFireTypeWaitTimeout, "", time.Now().Add(-2*time.Second), "7c73b6e4-ae33-45a6-9126-be474234b69d")
 
-	remindersEvent1 := oa.CampaignEventByID(testdb.RemindersEvent1.ID)
+	remindersEvent1 := oa.CampaignPointByID(testdb.RemindersPoint1.ID)
 
 	err = models.InsertContactFires(ctx, rt.DB, []*models.ContactFire{
 		models.NewContactFireForCampaign(testdb.Org1.ID, testdb.Bob.ID, remindersEvent1, time.Now().Add(2*time.Second)),
@@ -58,7 +58,7 @@ func TestSessionContactFires(t *testing.T) {
 
 	defer testsuite.Reset(testsuite.ResetData)
 
-	testdb.InsertContactFire(rt, testdb.Org1, testdb.Bob, models.ContactFireTypeCampaignEvent, "235", time.Now().Add(2*time.Second), "")
+	testdb.InsertContactFire(rt, testdb.Org1, testdb.Bob, models.ContactFireTypeCampaignPoint, "235", time.Now().Add(2*time.Second), "")
 
 	fires := []*models.ContactFire{
 		models.NewFireForSession(testdb.Org1.ID, testdb.Bob.ID, "6ffbe7f4-362b-439c-a253-5e09a1dd4ed6", "d973e18c-009e-4539-80f9-4f7ac60e5f3b", models.ContactFireTypeWaitTimeout, time.Now().Add(time.Minute)),
@@ -79,7 +79,7 @@ func TestSessionContactFires(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT COUNT(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'E' AND session_uuid = '736ee995-d246-4ccf-bdde-e9267831da95'`, testdb.Cathy.ID).Returns(1)
 	assertdb.Query(t, rt.DB, `SELECT COUNT(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'S' AND session_uuid = '736ee995-d246-4ccf-bdde-e9267831da95'`, testdb.Cathy.ID).Returns(1)
 
-	num, err := models.DeleteSessionContactFires(ctx, rt.DB, []models.ContactID{testdb.Bob.ID}, true) // all
+	num, err := models.DeleteSessionFires(ctx, rt.DB, []models.ContactID{testdb.Bob.ID}, true) // all
 	assert.NoError(t, err)
 	assert.Equal(t, 3, num)
 
@@ -87,7 +87,7 @@ func TestSessionContactFires(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT COUNT(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'C'`, testdb.Bob.ID).Returns(1)
 	assertdb.Query(t, rt.DB, `SELECT COUNT(*) FROM contacts_contactfire WHERE contact_id = $1`, testdb.Cathy.ID).Returns(3)
 
-	num, err = models.DeleteSessionContactFires(ctx, rt.DB, []models.ContactID{testdb.Cathy.ID}, false) // waits only
+	num, err = models.DeleteSessionFires(ctx, rt.DB, []models.ContactID{testdb.Cathy.ID}, false) // waits only
 	assert.NoError(t, err)
 	assert.Equal(t, 2, num)
 
@@ -104,9 +104,9 @@ func TestCampaignContactFires(t *testing.T) {
 	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 	require.NoError(t, err)
 
-	remindersEvent1 := oa.CampaignEventByID(testdb.RemindersEvent1.ID)
-	remindersEvent2 := oa.CampaignEventByID(testdb.RemindersEvent2.ID)
-	remindersEvent3 := oa.CampaignEventByID(testdb.RemindersEvent3.ID)
+	remindersEvent1 := oa.CampaignPointByID(testdb.RemindersPoint1.ID)
+	remindersEvent2 := oa.CampaignPointByID(testdb.RemindersPoint2.ID)
+	remindersEvent3 := oa.CampaignPointByID(testdb.RemindersPoint3.ID)
 
 	testdb.InsertContactFire(rt, testdb.Org1, testdb.Cathy, models.ContactFireTypeWaitExpiration, "", time.Now().Add(-4*time.Second), "531e84a7-d883-40a0-8e7a-b4dde4428ce1")
 
@@ -129,7 +129,7 @@ func TestCampaignContactFires(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT COUNT(*) FROM contacts_contactfire WHERE fire_type = 'C'`).Returns(9)
 
 	// test deleting all campaign fires for a contact
-	err = models.DeleteAllCampaignContactFires(ctx, rt.DB, []models.ContactID{testdb.Cathy.ID})
+	err = models.DeleteAllCampaignFires(ctx, rt.DB, []models.ContactID{testdb.Cathy.ID})
 	assert.NoError(t, err)
 
 	assertdb.Query(t, rt.DB, `SELECT COUNT(*) FROM contacts_contactfire WHERE fire_type = 'C'`).Returns(6)
@@ -139,9 +139,9 @@ func TestCampaignContactFires(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT COUNT(*) FROM contacts_contactfire WHERE contact_id = $1`, testdb.George.ID).Returns(3)
 
 	// test deleting specific contact/event combinations
-	err = models.DeleteCampaignContactFires(ctx, rt.DB, []*models.FireDelete{
-		{ContactID: testdb.Bob.ID, EventID: testdb.RemindersEvent1.ID, FireVersion: 1},
-		{ContactID: testdb.George.ID, EventID: testdb.RemindersEvent3.ID, FireVersion: 1},
+	err = models.DeleteCampaignFires(ctx, rt.DB, []*models.FireDelete{
+		{ContactID: testdb.Bob.ID, EventID: testdb.RemindersPoint1.ID, FireVersion: 1},
+		{ContactID: testdb.George.ID, EventID: testdb.RemindersPoint3.ID, FireVersion: 1},
 	})
 	assert.NoError(t, err)
 

@@ -36,7 +36,7 @@ func (c *FireContactsCron) AllInstances() bool {
 
 func (c *FireContactsCron) Run(ctx context.Context, rt *runtime.Runtime) (map[string]any, error) {
 	start := time.Now()
-	numWaitTimeouts, numWaitExpires, numSessionExpires, numCampaignEvents := 0, 0, 0, 0
+	numWaitTimeouts, numWaitExpires, numSessionExpires, numCampaignPoints := 0, 0, 0, 0
 
 	rc := rt.RP.Get()
 	defer rc.Close()
@@ -64,7 +64,7 @@ func (c *FireContactsCron) Run(ctx context.Context, rt *runtime.Runtime) (map[st
 				og.grouping = "wait_expires"
 			} else if f.Type == models.ContactFireTypeSessionExpiration {
 				og.grouping = "session_expires"
-			} else if f.Type == models.ContactFireTypeCampaignEvent {
+			} else if f.Type == models.ContactFireTypeCampaignPoint {
 				og.grouping = "campaign:" + f.Scope
 			} else {
 				return nil, fmt.Errorf("unknown contact fire type: %s", f.Type)
@@ -117,13 +117,13 @@ func (c *FireContactsCron) Run(ctx context.Context, rt *runtime.Runtime) (map[st
 						cids[i] = f.ContactID
 					}
 
-					eventID, fireVersion := c.parseCampaignEventScope(strings.TrimPrefix(og.grouping, "campaign:"))
+					pointID, fireVersion := c.parseCampaignFireScope(strings.TrimPrefix(og.grouping, "campaign:"))
 
 					// queue to throttled queue but high priority
-					if err := tasks.Queue(rc, tasks.ThrottledQueue, og.orgID, &campaigns.BulkCampaignTriggerTask{EventID: eventID, FireVersion: fireVersion, ContactIDs: cids}, true); err != nil {
+					if err := tasks.Queue(rc, tasks.ThrottledQueue, og.orgID, &campaigns.BulkCampaignTriggerTask{PointID: pointID, FireVersion: fireVersion, ContactIDs: cids}, true); err != nil {
 						return nil, fmt.Errorf("error queuing bulk campaign trigger task for org #%d: %w", og.orgID, err)
 					}
-					numCampaignEvents += len(batch)
+					numCampaignPoints += len(batch)
 				}
 
 				if err := models.DeleteContactFires(ctx, rt, batch); err != nil {
@@ -138,20 +138,20 @@ func (c *FireContactsCron) Run(ctx context.Context, rt *runtime.Runtime) (map[st
 		}
 	}
 
-	return map[string]any{"wait_timeouts": numWaitTimeouts, "wait_expires": numWaitExpires, "session_expires": numSessionExpires, "campaign_events": numCampaignEvents}, nil
+	return map[string]any{"wait_timeouts": numWaitTimeouts, "wait_expires": numWaitExpires, "session_expires": numSessionExpires, "campaign_points": numCampaignPoints}, nil
 }
 
 var campaignEventScopePattern = regexp.MustCompile(`^(\d+):(\d+)$`)
 
-func (c *FireContactsCron) parseCampaignEventScope(scope string) (models.CampaignEventID, int) {
-	var eventID, fireVersion int
+func (c *FireContactsCron) parseCampaignFireScope(scope string) (models.PointID, int) {
+	var pointID, fireVersion int
 	match := campaignEventScopePattern.FindStringSubmatch(scope)
 	if len(match) > 1 {
-		eventID, _ = strconv.Atoi(match[1])
+		pointID, _ = strconv.Atoi(match[1])
 	}
 	if len(match) > 2 {
 		fireVersion, _ = strconv.Atoi(match[2])
 	}
 
-	return models.CampaignEventID(eventID), fireVersion
+	return models.PointID(pointID), fireVersion
 }

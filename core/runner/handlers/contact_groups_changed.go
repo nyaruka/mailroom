@@ -38,7 +38,7 @@ func handleContactGroupsChanged(ctx context.Context, rt *runtime.Runtime, oa *mo
 
 		// add our add event
 		scene.AttachPreCommitHook(hooks.UpdateContactGroups, hookEvent)
-		scene.AttachPreCommitHook(hooks.UpdateCampaignEvents, hookEvent)
+		scene.AttachPreCommitHook(hooks.UpdateCampaignFires, hookEvent)
 		scene.AttachPreCommitHook(hooks.UpdateContactModifiedOn, event)
 	}
 
@@ -58,7 +58,7 @@ func handleContactGroupsChanged(ctx context.Context, rt *runtime.Runtime, oa *mo
 		}
 
 		scene.AttachPreCommitHook(hooks.UpdateContactGroups, hookEvent)
-		scene.AttachPreCommitHook(hooks.UpdateCampaignEvents, hookEvent)
+		scene.AttachPreCommitHook(hooks.UpdateCampaignFires, hookEvent)
 		scene.AttachPreCommitHook(hooks.UpdateContactModifiedOn, event)
 	}
 

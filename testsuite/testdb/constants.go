@@ -79,9 +79,9 @@ var Anthropic = &LLM{10001, "43764a92-2545-4aa0-b005-6ade894acc96"}
 var TestLLM = &LLM{10002, "e5d8900a-ef54-4d2a-8214-ff7d3e903502"}
 
 var RemindersCampaign = &Campaign{10000, "72aa12c5-cc11-4bc7-9406-044047845c70"}
-var RemindersEvent1 = &CampaignEvent{10000, "3c8eca88-a5f8-4e27-96f4-e47f19cc0de8"} // joined + 5 days => Favorites, interrupts
-var RemindersEvent2 = &CampaignEvent{10001, "f2a3f8c5-e831-4df3-b046-8d8cdb90f178"} // joined + 10 minutes => "Hi @contact...", passive
-var RemindersEvent3 = &CampaignEvent{10002, "552a7155-66bc-4323-aad0-8421f87a4e0c"} // joined + 1 week => Pick A Number, skips
+var RemindersPoint1 = &CampaignPoint{10000, "3c8eca88-a5f8-4e27-96f4-e47f19cc0de8"} // joined + 5 days => Favorites, interrupts
+var RemindersPoint2 = &CampaignPoint{10001, "f2a3f8c5-e831-4df3-b046-8d8cdb90f178"} // joined + 10 minutes => "Hi @contact...", passive
+var RemindersPoint3 = &CampaignPoint{10002, "552a7155-66bc-4323-aad0-8421f87a4e0c"} // joined + 1 week => Pick A Number, skips
 
 // secondary org.. only a few things
 var Org2 = &Org{2, "3ae7cdeb-fd96-46e5-abc4-a4622f349921"}

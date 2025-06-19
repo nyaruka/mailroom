@@ -51,13 +51,13 @@ func (h *insertContactFires) Execute(ctx context.Context, rt *runtime.Runtime, t
 	}
 
 	if len(deleteAll) > 0 {
-		_, err := models.DeleteSessionContactFires(ctx, tx, deleteAll, true)
+		_, err := models.DeleteSessionFires(ctx, tx, deleteAll, true)
 		if err != nil {
 			return fmt.Errorf("error deleting all session contact fires: %w", err)
 		}
 	}
 	if len(deleteWaits) > 0 {
-		_, err := models.DeleteSessionContactFires(ctx, tx, deleteWaits, false)
+		_, err := models.DeleteSessionFires(ctx, tx, deleteWaits, false)
 		if err != nil {
 			return fmt.Errorf("error deleting wait session contact fires: %w", err)
 		}

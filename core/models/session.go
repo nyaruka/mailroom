@@ -546,7 +546,7 @@ func exitSessionBatch(ctx context.Context, tx *sqlx.Tx, uuids []flows.SessionUUI
 	}
 
 	// delete any session related fires for these contacts
-	if _, err := DeleteSessionContactFires(ctx, tx, contactIDs, true); err != nil {
+	if _, err := DeleteSessionFires(ctx, tx, contactIDs, true); err != nil {
 		return fmt.Errorf("error deleting session contact fires: %w", err)
 	}
 

@@ -14,7 +14,7 @@ func TestSchedule_event(t *testing.T) {
 	defer testsuite.Reset(testsuite.ResetData | testsuite.ResetValkey)
 
 	testsuite.RunWebTests(t, ctx, rt, "testdata/schedule_event.json", map[string]string{
-		"event1_id": fmt.Sprint(testdb.RemindersEvent1.ID),
+		"event1_id": fmt.Sprint(testdb.RemindersPoint1.ID),
 	})
 
 	testsuite.AssertBatchTasks(t, testdb.Org1.ID, map[string]int{"schedule_campaign_event": 1})

@@ -37,13 +37,13 @@ func TestFireContacts(t *testing.T) {
 	testdb.InsertContactFire(rt, testdb.Org1, testdb.Bob, models.ContactFireTypeSessionExpiration, "", time.Now().Add(10*time.Second), "4010a3b2-d1f2-42ae-9051-47d41a3ef923")
 
 	testdb.InsertContactFire(rt, testdb.Org1, testdb.George, models.ContactFireTypeWaitTimeout, "", time.Now().Add(-time.Second), "5c1248e3-f669-4a72-83f4-a29292fdad4d")
-	testdb.InsertContactFire(rt, testdb.Org1, testdb.Alexandra, models.ContactFireTypeCampaignEvent, "6789:123", time.Now().Add(-time.Second), "")
+	testdb.InsertContactFire(rt, testdb.Org1, testdb.Alexandra, models.ContactFireTypeCampaignPoint, "6789:123", time.Now().Add(-time.Second), "")
 	testdb.InsertContactFire(rt, testdb.Org2, testdb.Org2Contact, models.ContactFireTypeWaitTimeout, "", time.Now().Add(-time.Second), "8edf3b3c-0081-4d31-b199-1502b3190eb7")
 
 	cron := &crons.FireContactsCron{FetchBatchSize: 3, TaskBatchSize: 5}
 	res, err := cron.Run(ctx, rt)
 	assert.NoError(t, err)
-	assert.Equal(t, map[string]any{"wait_timeouts": 2, "wait_expires": 2, "session_expires": 1, "campaign_events": 1}, res)
+	assert.Equal(t, map[string]any{"wait_timeouts": 2, "wait_expires": 2, "session_expires": 1, "campaign_points": 1}, res)
 
 	// should have created 5 throttled tasks.. unfortunately order is not guaranteed so we sort them
 	var ts []*queues.Task
@@ -71,7 +71,7 @@ func TestFireContacts(t *testing.T) {
 	jsonx.MustUnmarshal(ts[0].Task, decoded1)
 	assert.Len(t, decoded1.ContactIDs, 1)
 	assert.Equal(t, testdb.Alexandra.ID, decoded1.ContactIDs[0])
-	assert.Equal(t, models.CampaignEventID(6789), decoded1.EventID)
+	assert.Equal(t, models.PointID(6789), decoded1.PointID)
 	assert.Equal(t, 123, decoded1.FireVersion)
 
 	decoded2 := &contacts.BulkSessionExpireTask{}
@@ -94,5 +94,5 @@ func TestFireContacts(t *testing.T) {
 
 	res, err = cron.Run(ctx, rt)
 	assert.NoError(t, err)
-	assert.Equal(t, map[string]any{"wait_timeouts": 0, "wait_expires": 0, "session_expires": 0, "campaign_events": 0}, res)
+	assert.Equal(t, map[string]any{"wait_timeouts": 0, "wait_expires": 0, "session_expires": 0, "campaign_points": 0}, res)
 }

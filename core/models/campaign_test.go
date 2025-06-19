@@ -19,21 +19,21 @@ func TestLoadCampaigns(t *testing.T) {
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, 1, models.RefreshChannels)
 	require.NoError(t, err)
 
-	event1 := oa.CampaignEventByID(testdb.RemindersEvent1.ID)
-	assert.Equal(t, testdb.RemindersEvent1.ID, event1.ID)
-	assert.Equal(t, testdb.RemindersEvent1.UUID, event1.UUID)
+	event1 := oa.CampaignPointByID(testdb.RemindersPoint1.ID)
+	assert.Equal(t, testdb.RemindersPoint1.ID, event1.ID)
+	assert.Equal(t, testdb.RemindersPoint1.UUID, event1.UUID)
 	assert.Nil(t, event1.Translations)
 
-	event2 := oa.CampaignEventByID(testdb.RemindersEvent2.ID)
-	assert.Equal(t, testdb.RemindersEvent2.UUID, event2.UUID)
+	event2 := oa.CampaignPointByID(testdb.RemindersPoint2.ID)
+	assert.Equal(t, testdb.RemindersPoint2.UUID, event2.UUID)
 	assert.Equal(t, flows.BroadcastTranslations{
 		"eng": &flows.MsgContent{Text: "Hi @contact.name, it is time to consult with your patients."},
 		"fra": &flows.MsgContent{Text: "Bonjour @contact.name, il est temps de consulter vos patients."},
 	}, event2.Translations)
 	assert.Equal(t, null.String("eng"), event2.BaseLanguage)
 
-	event3 := oa.CampaignEventByID(testdb.RemindersEvent3.ID)
-	assert.Equal(t, testdb.RemindersEvent3.UUID, event3.UUID)
+	event3 := oa.CampaignPointByID(testdb.RemindersPoint3.ID)
+	assert.Equal(t, testdb.RemindersPoint3.UUID, event3.UUID)
 }
 
 func TestScheduleForTime(t *testing.T) {
@@ -42,7 +42,7 @@ func TestScheduleForTime(t *testing.T) {
 
 	tcs := []struct {
 		eventOffset       int
-		eventUnit         models.CampaignEventUnit
+		eventUnit         models.PointUnit
 		eventDeliveryHour int
 		timezone          *time.Location
 		now               time.Time
@@ -51,49 +51,49 @@ func TestScheduleForTime(t *testing.T) {
 		expectedDelta     time.Duration
 	}{
 		{ // 0: crosses a DST boundary, so two days is really 49 hours (fall back)
-			2, models.CampaignEventUnitDays, models.NilDeliveryHour,
+			2, models.PointUnitDays, models.NilDeliveryHour,
 			eastern, time.Now(), time.Date(2029, 11, 3, 0, 30, 0, 0, eastern),
 			time.Date(2029, 11, 5, 0, 30, 0, 0, eastern), time.Hour * 49,
 		},
 		{ // 1: also crosses a boundary but in the other direction
-			2, models.CampaignEventUnitDays, models.NilDeliveryHour,
+			2, models.PointUnitDays, models.NilDeliveryHour,
 			eastern, time.Now(), time.Date(2029, 3, 10, 2, 30, 0, 0, eastern),
 			time.Date(2029, 3, 12, 2, 30, 0, 0, eastern), time.Hour * 47,
 		},
 		{ // 2: this event is in the past, no schedule
-			2, models.CampaignEventUnitDays, models.NilDeliveryHour,
+			2, models.PointUnitDays, models.NilDeliveryHour,
 			eastern, time.Date(2018, 10, 31, 0, 0, 0, 0, eastern), time.Date(2018, 10, 15, 0, 0, 0, 0, eastern),
 			nilDate, 0,
 		},
 		{ // 3
-			2, models.CampaignEventUnitMinutes, models.NilDeliveryHour,
+			2, models.PointUnitMinutes, models.NilDeliveryHour,
 			eastern, time.Now(), time.Date(2029, 1, 1, 2, 58, 0, 0, eastern),
 			time.Date(2029, 1, 1, 3, 0, 0, 0, eastern), time.Minute * 2,
 		},
 		{ // 4
-			2, models.CampaignEventUnitMinutes, models.NilDeliveryHour,
+			2, models.PointUnitMinutes, models.NilDeliveryHour,
 			eastern, time.Now(), time.Date(2029, 1, 1, 2, 57, 32, 0, eastern),
 			time.Date(2029, 1, 1, 3, 0, 0, 0, eastern), time.Minute*2 + time.Second*28,
 		},
 		{ // 5
-			-2, models.CampaignEventUnitHours, models.NilDeliveryHour,
+			-2, models.PointUnitHours, models.NilDeliveryHour,
 			eastern, time.Now(), time.Date(2029, 1, 2, 1, 58, 0, 0, eastern),
 			time.Date(2029, 1, 1, 23, 58, 0, 0, eastern), time.Hour * -2,
 		},
 		{ // 6
-			2, models.CampaignEventUnitWeeks, models.NilDeliveryHour,
+			2, models.PointUnitWeeks, models.NilDeliveryHour,
 			eastern, time.Now(), time.Date(2029, 1, 20, 1, 58, 0, 0, eastern),
 			time.Date(2029, 2, 3, 1, 58, 0, 0, eastern), time.Hour * 24 * 14,
 		},
 		{ // 7
-			2, models.CampaignEventUnitWeeks, 14,
+			2, models.PointUnitWeeks, 14,
 			eastern, time.Now(), time.Date(2029, 1, 20, 1, 58, 0, 0, eastern),
 			time.Date(2029, 2, 3, 14, 0, 0, 0, eastern), time.Hour*24*14 + 13*time.Hour - 58*time.Minute,
 		},
 	}
 
 	for i, tc := range tcs {
-		evt := &models.CampaignEvent{
+		evt := &models.CampaignPoint{
 			Offset:       tc.eventOffset,
 			Unit:         tc.eventUnit,
 			DeliveryHour: tc.eventDeliveryHour,

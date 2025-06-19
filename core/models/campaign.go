@@ -15,11 +15,11 @@ import (
 )
 
 type CampaignID int
-type CampaignEventID int
-type CampaignEventType string
-type CampaignEventStatus string
-type CampaignEventMode string
-type CampaignEventUnit string
+type PointID int
+type PointType string
+type PointStatus string
+type PointMode string
+type PointUnit string
 
 const (
 	// CreatedOnKey is key of created on system field
@@ -31,30 +31,30 @@ const (
 	// NilDeliveryHour is our constant for not having a set delivery hour
 	NilDeliveryHour = -1
 
-	CampaignEventTypeMessage = CampaignEventType("M")
-	CampaignEventTypeFlow    = CampaignEventType("F")
+	PointTypeMessage = PointType("M")
+	PointTypeFlow    = PointType("F")
 
-	CampaignEventStatusScheduling = CampaignEventStatus("S")
-	CampaignEventStatusReady      = CampaignEventStatus("R")
+	PointStatusScheduling = PointStatus("S")
+	PointStatusReady      = PointStatus("R")
 
-	CampaignEventModeInterrupt = CampaignEventMode("I") // should interrupt other flows
-	CampaignEventModeSkip      = CampaignEventMode("S") // should be skipped if the user is in another flow
-	CampaignEventModePassive   = CampaignEventMode("P") // flow is a background flow and should run that way
+	PointModeInterrupt = PointMode("I") // should interrupt other flows
+	PointModeSkip      = PointMode("S") // should be skipped if the user is in another flow
+	PointModePassive   = PointMode("P") // flow is a background flow and should run that way
 
-	CampaignEventUnitMinutes = CampaignEventUnit("M")
-	CampaignEventUnitHours   = CampaignEventUnit("H")
-	CampaignEventUnitDays    = CampaignEventUnit("D")
-	CampaignEventUnitWeeks   = CampaignEventUnit("W")
+	PointUnitMinutes = PointUnit("M")
+	PointUnitHours   = PointUnit("H")
+	PointUnitDays    = PointUnit("D")
+	PointUnitWeeks   = PointUnit("W")
 )
 
-// Campaign is our struct for a campaign and all its events
+// Campaign is our struct for a campaign and all its point events
 type Campaign struct {
 	c struct {
 		ID      CampaignID          `json:"id"`
 		UUID    assets.CampaignUUID `json:"uuid"`
 		Name    string              `json:"name"`
 		GroupID GroupID             `json:"group_id"`
-		Events  []*CampaignEvent    `json:"events"`
+		Points  []*CampaignPoint    `json:"points"`
 	}
 	group *assets.GroupReference
 }
@@ -64,22 +64,22 @@ func (c *Campaign) UUID() assets.CampaignUUID     { return c.c.UUID }
 func (c *Campaign) Name() string                  { return c.c.Name }
 func (c *Campaign) Group() *assets.GroupReference { return c.group }
 func (c *Campaign) GroupID() GroupID              { return c.c.GroupID }
-func (c *Campaign) Events() []*CampaignEvent      { return c.c.Events }
+func (c *Campaign) Points() []*CampaignPoint      { return c.c.Points }
 
-// CampaignEvent is our struct for an individual campaign event
-type CampaignEvent struct {
-	ID          CampaignEventID          `json:"id"`
+// CampaignPoint is an individual point in time event
+type CampaignPoint struct {
+	ID          PointID                  `json:"id"`
 	UUID        assets.CampaignPointUUID `json:"uuid"`
-	EventType   CampaignEventType        `json:"event_type"`
-	Status      CampaignEventStatus      `json:"status"`
+	Type        PointType                `json:"event_type"`
+	Status      PointStatus              `json:"status"`
 	FireVersion int                      `json:"fire_version"`
-	StartMode   CampaignEventMode        `json:"start_mode"`
+	StartMode   PointMode                `json:"start_mode"`
 
-	RelativeToID  FieldID           `json:"relative_to_id"`
-	RelativeToKey string            `json:"relative_to_key"`
-	Offset        int               `json:"offset"`
-	Unit          CampaignEventUnit `json:"unit"`
-	DeliveryHour  int               `json:"delivery_hour"`
+	RelativeToID  FieldID   `json:"relative_to_id"`
+	RelativeToKey string    `json:"relative_to_key"`
+	Offset        int       `json:"offset"`
+	Unit          PointUnit `json:"unit"`
+	DeliveryHour  int       `json:"delivery_hour"`
 
 	FlowID       FlowID                      `json:"flow_id"`
 	Translations flows.BroadcastTranslations `json:"translations"`
@@ -89,9 +89,9 @@ type CampaignEvent struct {
 }
 
 // QualifiesByGroup returns whether the passed in contact qualifies for this event by group membership
-func (e *CampaignEvent) QualifiesByGroup(contact *flows.Contact) bool {
+func (p *CampaignPoint) QualifiesByGroup(contact *flows.Contact) bool {
 	for _, g := range contact.Groups().All() {
-		if g.Asset().(*Group).ID() == e.campaign.c.GroupID {
+		if g.Asset().(*Group).ID() == p.campaign.c.GroupID {
 			return true
 		}
 	}
@@ -99,28 +99,28 @@ func (e *CampaignEvent) QualifiesByGroup(contact *flows.Contact) bool {
 }
 
 // QualifiesByField returns whether the passed in contact qualifies for this event by group membership
-func (e *CampaignEvent) QualifiesByField(contact *flows.Contact) bool {
-	switch e.RelativeToKey {
+func (p *CampaignPoint) QualifiesByField(contact *flows.Contact) bool {
+	switch p.RelativeToKey {
 	case CreatedOnKey:
 		return true
 	case LastSeenOnKey:
 		return contact.LastSeenOn() != nil
 	default:
-		value := contact.Fields()[e.RelativeToKey]
+		value := contact.Fields()[p.RelativeToKey]
 		return value != nil
 	}
 }
 
 // ScheduleForContact calculates the next fire ( if any) for the passed in contact
-func (e *CampaignEvent) ScheduleForContact(tz *time.Location, now time.Time, contact *flows.Contact) (*time.Time, error) {
+func (p *CampaignPoint) ScheduleForContact(tz *time.Location, now time.Time, contact *flows.Contact) (*time.Time, error) {
 	// we aren't part of the group, move on
-	if !e.QualifiesByGroup(contact) {
+	if !p.QualifiesByGroup(contact) {
 		return nil, nil
 	}
 
 	var start time.Time
 
-	switch e.RelativeToKey {
+	switch p.RelativeToKey {
 	case CreatedOnKey:
 		start = contact.CreatedOn()
 	case LastSeenOnKey:
@@ -131,7 +131,7 @@ func (e *CampaignEvent) ScheduleForContact(tz *time.Location, now time.Time, con
 		start = *value
 	default:
 		// everything else is just a normal field
-		value := contact.Fields()[e.RelativeToKey]
+		value := contact.Fields()[p.RelativeToKey]
 
 		// no value? move on
 		if value == nil {
@@ -151,13 +151,13 @@ func (e *CampaignEvent) ScheduleForContact(tz *time.Location, now time.Time, con
 	}
 
 	// calculate our next fire
-	scheduled := e.ScheduleForTime(tz, now, start)
+	scheduled := p.ScheduleForTime(tz, now, start)
 
 	return scheduled, nil
 }
 
 // ScheduleForTime calculates the next fire (if any) for the passed in time and timezone
-func (e *CampaignEvent) ScheduleForTime(tz *time.Location, now, start time.Time) *time.Time {
+func (p *CampaignPoint) ScheduleForTime(tz *time.Location, now, start time.Time) *time.Time {
 	start = start.In(tz) // convert to our timezone
 
 	// round to next minute, floored at 0 s/ns if we aren't already at 0
@@ -167,20 +167,20 @@ func (e *CampaignEvent) ScheduleForTime(tz *time.Location, now, start time.Time)
 	}
 
 	// create our offset
-	switch e.Unit {
-	case CampaignEventUnitMinutes:
-		scheduled = scheduled.Add(time.Minute * time.Duration(e.Offset))
-	case CampaignEventUnitHours:
-		scheduled = scheduled.Add(time.Hour * time.Duration(e.Offset))
-	case CampaignEventUnitDays:
-		scheduled = scheduled.AddDate(0, 0, e.Offset)
-	case CampaignEventUnitWeeks:
-		scheduled = scheduled.AddDate(0, 0, e.Offset*7)
+	switch p.Unit {
+	case PointUnitMinutes:
+		scheduled = scheduled.Add(time.Minute * time.Duration(p.Offset))
+	case PointUnitHours:
+		scheduled = scheduled.Add(time.Hour * time.Duration(p.Offset))
+	case PointUnitDays:
+		scheduled = scheduled.AddDate(0, 0, p.Offset)
+	case PointUnitWeeks:
+		scheduled = scheduled.AddDate(0, 0, p.Offset*7)
 	}
 
 	// now set our delivery hour if set
-	if e.DeliveryHour != NilDeliveryHour {
-		scheduled = time.Date(scheduled.Year(), scheduled.Month(), scheduled.Day(), e.DeliveryHour, 0, 0, 0, tz)
+	if p.DeliveryHour != NilDeliveryHour {
+		scheduled = time.Date(scheduled.Year(), scheduled.Month(), scheduled.Day(), p.DeliveryHour, 0, 0, 0, tz)
 	}
 
 	// if this is in the past, this is a no op
@@ -191,7 +191,7 @@ func (e *CampaignEvent) ScheduleForTime(tz *time.Location, now, start time.Time)
 	return &scheduled
 }
 
-func (e *CampaignEvent) Campaign() *Campaign { return e.campaign }
+func (p *CampaignPoint) Campaign() *Campaign { return p.campaign }
 
 // loadCampaigns loads all the campaigns for the passed in org
 func loadCampaigns(ctx context.Context, db *sql.DB, orgID OrgID) ([]assets.Campaign, error) {
@@ -212,10 +212,10 @@ func loadCampaigns(ctx context.Context, db *sql.DB, orgID OrgID) ([]assets.Campa
 		campaigns = append(campaigns, campaign)
 	}
 
-	// populate the campaign pointer for each event
+	// populate the campaign for each point
 	for _, c := range campaigns {
 		camp := c.(*Campaign)
-		for _, e := range camp.Events() {
+		for _, e := range camp.Points() {
 			e.campaign = camp
 		}
 	}
@@ -235,18 +235,18 @@ SELECT ROW_TO_JSON(r) FROM (SELECT
           JOIN contacts_contactfield f ON f.id = e.relative_to_id
          WHERE e.campaign_id = c.id AND e.is_active = TRUE AND f.is_active = TRUE
       ORDER BY e.relative_to_id, e.offset
-    ) evs) AS events
+    ) evs) AS points
  FROM campaigns_campaign c
 WHERE c.org_id = $1 AND c.is_active = TRUE AND c.is_archived = FALSE
 ) r;`
 
-// DeleteUnfiredEventsForGroupRemoval deletes any unfired events for all campaigns that are
+// DeleteCampaignFiresForGroupRemoval deletes any unfired events for all campaigns that are
 // based on the passed in group id for all the passed in contacts.
-func DeleteUnfiredEventsForGroupRemoval(ctx context.Context, tx DBorTx, oa *OrgAssets, contactIDs []ContactID, groupID GroupID) error {
+func DeleteCampaignFiresForGroupRemoval(ctx context.Context, tx DBorTx, oa *OrgAssets, contactIDs []ContactID, groupID GroupID) error {
 	fds := make([]*FireDelete, 0, 10)
 
 	for _, c := range oa.CampaignByGroupID(groupID) {
-		for _, e := range c.Events() {
+		for _, e := range c.Points() {
 			for _, cid := range contactIDs {
 				fds = append(fds, &FireDelete{
 					ContactID:   cid,
@@ -257,21 +257,21 @@ func DeleteUnfiredEventsForGroupRemoval(ctx context.Context, tx DBorTx, oa *OrgA
 		}
 	}
 
-	return DeleteCampaignContactFires(ctx, tx, fds)
+	return DeleteCampaignFires(ctx, tx, fds)
 }
 
-// AddCampaignEventsForGroupAddition first removes the passed in contacts from any events that group change may effect, then recreates
-// the campaign events they qualify for.
-func AddCampaignEventsForGroupAddition(ctx context.Context, tx DBorTx, oa *OrgAssets, contacts []*flows.Contact, groupID GroupID) error {
+// AddCampaignFiresForGroupAddition first removes the passed in contacts from any points that group change may effect,
+// then recreates the fires for campaign points they qualify for.
+func AddCampaignFiresForGroupAddition(ctx context.Context, tx DBorTx, oa *OrgAssets, contacts []*flows.Contact, groupID GroupID) error {
 	cids := make([]ContactID, len(contacts))
 	for i, c := range contacts {
 		cids[i] = ContactID(c.ID())
 	}
 
-	// first remove all unfired events that may be affected by our group change
-	err := DeleteUnfiredEventsForGroupRemoval(ctx, tx, oa, cids, groupID)
+	// first remove all existing fires that may be affected by our group change
+	err := DeleteCampaignFiresForGroupRemoval(ctx, tx, oa, cids, groupID)
 	if err != nil {
-		return fmt.Errorf("error removing unfired campaign events for contacts: %w", err)
+		return fmt.Errorf("error removing campaign fires for contacts: %w", err)
 	}
 
 	// now calculate which fires need to be added
@@ -284,18 +284,18 @@ func AddCampaignEventsForGroupAddition(ctx context.Context, tx DBorTx, oa *OrgAs
 		// for each campaign that may have changed from this group change
 		for _, c := range oa.CampaignByGroupID(groupID) {
 			// check each event
-			for _, ce := range c.Events() {
+			for _, p := range c.Points() {
 				// and if we qualify by field
-				if ce.QualifiesByField(contact) {
+				if p.QualifiesByField(contact) {
 					// calculate our scheduled fire
-					scheduled, err := ce.ScheduleForContact(tz, time.Now(), contact)
+					scheduled, err := p.ScheduleForContact(tz, time.Now(), contact)
 					if err != nil {
-						return fmt.Errorf("error calculating schedule for event #%d and contact #%d: %w", ce.ID, contact.ID(), err)
+						return fmt.Errorf("error calculating schedule for event #%d and contact #%d: %w", p.ID, contact.ID(), err)
 					}
 
 					// if we have one, add it to our list for our batch commit
 					if scheduled != nil {
-						fas = append(fas, NewContactFireForCampaign(oa.OrgID(), ContactID(contact.ID()), ce, *scheduled))
+						fas = append(fas, NewContactFireForCampaign(oa.OrgID(), ContactID(contact.ID()), p, *scheduled))
 					}
 				}
 			}
@@ -306,21 +306,21 @@ func AddCampaignEventsForGroupAddition(ctx context.Context, tx DBorTx, oa *OrgAs
 	return InsertContactFires(ctx, tx, fas)
 }
 
-// ScheduleCampaignEvent calculates event fires for new or updated campaign events
-func ScheduleCampaignEvent(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, eventID CampaignEventID) error {
-	ce := oa.CampaignEventByID(eventID)
-	if ce == nil {
-		return fmt.Errorf("can't find campaign event with id %d", eventID)
+// ScheduleCampaignPoint calculates event fires for new or updated campaign points
+func ScheduleCampaignPoint(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, pointID PointID) error {
+	p := oa.CampaignPointByID(pointID)
+	if p == nil {
+		return fmt.Errorf("can't find campaign point with id %d", pointID)
 	}
 
-	field := oa.FieldByKey(ce.RelativeToKey)
+	field := oa.FieldByKey(p.RelativeToKey)
 	if field == nil {
-		return fmt.Errorf("can't find field with key %s", ce.RelativeToKey)
+		return fmt.Errorf("can't find field with key %s", p.RelativeToKey)
 	}
 
-	eligible, err := campaignEventEligibleContacts(ctx, rt.DB, ce.campaign.GroupID(), field)
+	eligible, err := campaignPointEligibleContacts(ctx, rt.DB, p.campaign.GroupID(), field)
 	if err != nil {
-		return fmt.Errorf("unable to calculate eligible contacts for event %d: %w", ce.ID, err)
+		return fmt.Errorf("unable to calculate eligible contacts for point %d: %w", p.ID, err)
 	}
 
 	fas := make([]*ContactFire, 0, len(eligible))
@@ -330,19 +330,19 @@ func ScheduleCampaignEvent(ctx context.Context, rt *runtime.Runtime, oa *OrgAsse
 		start := *el.RelToValue
 
 		// calculate next fire for this contact if any
-		if scheduled := ce.ScheduleForTime(tz, time.Now(), start); scheduled != nil {
-			fas = append(fas, NewContactFireForCampaign(oa.OrgID(), el.ContactID, ce, *scheduled))
+		if scheduled := p.ScheduleForTime(tz, time.Now(), start); scheduled != nil {
+			fas = append(fas, NewContactFireForCampaign(oa.OrgID(), el.ContactID, p, *scheduled))
 		}
 	}
 
-	// add all our new event fires
+	// add all our new point fires
 	if err := InsertContactFires(ctx, rt.DB, fas); err != nil {
-		return fmt.Errorf("error inserting new contact fires for event #%d: %w", ce.ID, err)
+		return fmt.Errorf("error inserting new contact fires for point #%d: %w", p.ID, err)
 	}
 
-	ce.Status = CampaignEventStatusReady
-	if _, err := rt.DB.ExecContext(ctx, `UPDATE campaigns_campaignevent SET status = 'R' WHERE id = $1`, ce.ID); err != nil {
-		return fmt.Errorf("error updating status for event #%d: %w", ce.ID, err)
+	p.Status = PointStatusReady
+	if _, err := rt.DB.ExecContext(ctx, `UPDATE campaigns_campaignevent SET status = 'R' WHERE id = $1`, p.ID); err != nil {
+		return fmt.Errorf("error updating status for point #%d: %w", p.ID, err)
 	}
 
 	return nil
@@ -371,7 +371,7 @@ const sqlEligibleContactsForField = `
 INNER JOIN contacts_contactgroup_contacts gc ON gc.contact_id = c.id
      WHERE gc.contactgroup_id = $1 AND c.is_active = TRUE AND (c.fields->$2->>'datetime')::timestamptz IS NOT NULL`
 
-func campaignEventEligibleContacts(ctx context.Context, db *sqlx.DB, groupID GroupID, field *Field) ([]*eligibleContact, error) {
+func campaignPointEligibleContacts(ctx context.Context, db *sqlx.DB, groupID GroupID, field *Field) ([]*eligibleContact, error) {
 	var query string
 	var params []any
 

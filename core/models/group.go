@@ -188,11 +188,10 @@ func RemoveContactsFromGroupAndCampaigns(ctx context.Context, db *sqlx.DB, oa *O
 			return fmt.Errorf("error removing contacts from group: %d: %w", groupID, err)
 		}
 
-		// remove from any campaign events
-		err = DeleteUnfiredEventsForGroupRemoval(ctx, tx, oa, batch, groupID)
+		err = DeleteCampaignFiresForGroupRemoval(ctx, tx, oa, batch, groupID)
 		if err != nil {
 			tx.Rollback()
-			return fmt.Errorf("error removing contacts from unfired campaign events for group: %d: %w", groupID, err)
+			return fmt.Errorf("error deleting campaign fires for group: %d: %w", groupID, err)
 		}
 
 		err = tx.Commit()
@@ -229,7 +228,7 @@ func RemoveContactsFromGroupAndCampaigns(ctx context.Context, db *sqlx.DB, oa *O
 // AddContactsToGroupAndCampaigns takes care of adding the passed in contacts to the passed in group, updating any
 // associated campaigns as needed
 func AddContactsToGroupAndCampaigns(ctx context.Context, db *sqlx.DB, oa *OrgAssets, groupID GroupID, contactIDs []ContactID) error {
-	// we need session assets in order to recalculate campaign events
+	// we need session assets in order to recalculate campaign fires
 	addBatch := func(batch []ContactID) error {
 		tx, err := db.BeginTxx(ctx, nil)
 
@@ -251,7 +250,7 @@ func AddContactsToGroupAndCampaigns(ctx context.Context, db *sqlx.DB, oa *OrgAss
 			return fmt.Errorf("error adding contacts to group: %d: %w", groupID, err)
 		}
 
-		// now load our contacts and add update their campaign events
+		// now load our contacts
 		contacts, err := LoadContacts(ctx, tx, oa, batch)
 		if err != nil {
 			tx.Rollback()
@@ -269,10 +268,10 @@ func AddContactsToGroupAndCampaigns(ctx context.Context, db *sqlx.DB, oa *OrgAss
 		}
 
 		// schedule any upcoming events that were affected by this group
-		err = AddCampaignEventsForGroupAddition(ctx, tx, oa, fcs, groupID)
+		err = AddCampaignFiresForGroupAddition(ctx, tx, oa, fcs, groupID)
 		if err != nil {
 			tx.Rollback()
-			return fmt.Errorf("error calculating new campaign events during group addition: %d: %w", groupID, err)
+			return fmt.Errorf("error calculating new campaign fires during group addition: %d: %w", groupID, err)
 		}
 
 		err = tx.Commit()

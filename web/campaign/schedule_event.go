@@ -16,15 +16,15 @@ func init() {
 	web.RegisterRoute(http.MethodPost, "/mr/campaign/schedule_event", web.RequireAuthToken(web.JSONPayload(handleScheduleEvent)))
 }
 
-// Request to schedule a campaign event. Triggers a background task to create the fires and returns immediately.
+// Request to schedule a campaign point. Triggers a background task to create the fires and returns immediately.
 //
 //	{
 //	  "org_id": 1,
 //	  "event_id": 123456
 //	}
 type scheduleEventRequest struct {
-	OrgID   models.OrgID           `json:"org_id"   validate:"required"`
-	EventID models.CampaignEventID `json:"event_id" validate:"required"`
+	OrgID   models.OrgID   `json:"org_id"   validate:"required"`
+	PointID models.PointID `json:"event_id" validate:"required"`
 }
 
 func handleScheduleEvent(ctx context.Context, rt *runtime.Runtime, r *scheduleEventRequest) (any, int, error) {
@@ -34,12 +34,12 @@ func handleScheduleEvent(ctx context.Context, rt *runtime.Runtime, r *scheduleEv
 		return nil, 0, fmt.Errorf("unable to load org assets: %w", err)
 	}
 
-	task := &campaigns.ScheduleCampaignEventTask{CampaignEventID: r.EventID}
+	task := &campaigns.ScheduleCampaignPointTask{PointID: r.PointID}
 
 	rc := rt.RP.Get()
 	defer rc.Close()
 	if err := tasks.Queue(rc, tasks.BatchQueue, r.OrgID, task, true); err != nil {
-		return nil, 0, fmt.Errorf("error queuing schedule campaign event task: %w", err)
+		return nil, 0, fmt.Errorf("error queuing schedule campaign point task: %w", err)
 	}
 
 	return map[string]any{}, http.StatusOK, nil
