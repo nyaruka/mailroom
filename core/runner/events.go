@@ -113,12 +113,13 @@ func (s *Scene) AddEvents(evts []flows.Event) {
 }
 
 func (s *Scene) AddSprint(ss flows.Session, sp flows.Sprint, mc *models.Contact, resumed bool) {
-	s.contact = ss.Contact() // update contact
 	s.session = ss
 	s.sprint = sp
 
-	// if session didn't fail, we need to handle this sprint's events
+	// if session didn't fail, accept it's state changes
 	if ss.Status() != flows.SessionStatusFailed {
+		s.contact = ss.Contact() // update contact
+
 		s.AddEvents(sp.Events())
 	}
 
