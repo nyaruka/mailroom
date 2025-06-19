@@ -13,14 +13,14 @@ import (
 	"github.com/nyaruka/mailroom/runtime"
 )
 
-// UpdateCampaignEvents is our hook to update any campaign events
-var UpdateCampaignEvents runner.PreCommitHook = &updateCampaignEvents{}
+// UpdateCampaignFires is our hook to update campaign fires
+var UpdateCampaignFires runner.PreCommitHook = &updateCampaignFires{}
 
-type updateCampaignEvents struct{}
+type updateCampaignFires struct{}
 
-func (h *updateCampaignEvents) Order() int { return 50 }
+func (h *updateCampaignFires) Order() int { return 50 }
 
-func (h *updateCampaignEvents) Execute(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *models.OrgAssets, scenes map[*runner.Scene][]any) error {
+func (h *updateCampaignFires) Execute(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *models.OrgAssets, scenes map[*runner.Scene][]any) error {
 	// the contact fires to be deleted and inserted
 	deletes := make([]*models.FireDelete, 0, 5)
 	inserts := make([]*models.ContactFire, 0, 5)
@@ -56,18 +56,18 @@ func (h *updateCampaignEvents) Execute(ctx context.Context, rt *runtime.Runtime,
 		}
 
 		// those events that need deleting
-		deleteEvents := make(map[*models.CampaignEvent]bool, len(groupRemoves)+len(fieldChanges))
+		pointsToRemove := make(map[*models.CampaignPoint]bool, len(groupRemoves)+len(fieldChanges))
 
-		// those events we need to add
-		addEvents := make(map[*models.CampaignEvent]bool, len(groupAdds)+len(fieldChanges))
+		// those points we need to add
+		pointsToAdd := make(map[*models.CampaignPoint]bool, len(groupAdds)+len(fieldChanges))
 
 		// for every group that was removed, we need to remove all event fires for them
 		for g := range groupRemoves {
 			for _, c := range oa.CampaignByGroupID(g) {
-				for _, e := range c.Events() {
+				for _, e := range c.Points() {
 					// only delete events that we qualify for or that were changed
 					if e.QualifiesByField(s.Contact()) || fieldChanges[e.RelativeToID] {
-						deleteEvents[e] = true
+						pointsToRemove[e] = true
 					}
 				}
 			}
@@ -75,26 +75,26 @@ func (h *updateCampaignEvents) Execute(ctx context.Context, rt *runtime.Runtime,
 
 		// for every field that was changed, we need to also remove event fires and recalculate
 		for f := range fieldChanges {
-			fieldEvents := oa.CampaignEventsByFieldID(f)
+			fieldEvents := oa.CampaignPointsByFieldID(f)
 			for _, e := range fieldEvents {
 				// only recalculate the events if this contact qualifies for this event or this group was removed
 				if e.QualifiesByGroup(s.Contact()) || groupRemoves[e.Campaign().GroupID()] {
-					deleteEvents[e] = true
-					addEvents[e] = true
+					pointsToRemove[e] = true
+					pointsToAdd[e] = true
 				}
 			}
 		}
 
 		// ok, create all our deletes
-		for e := range deleteEvents {
+		for e := range pointsToRemove {
 			deletes = append(deletes, &models.FireDelete{ContactID: s.ContactID(), EventID: e.ID, FireVersion: e.FireVersion})
 		}
 
 		// add in all the events we qualify for in campaigns we are now part of
 		for g := range groupAdds {
 			for _, c := range oa.CampaignByGroupID(g) {
-				for _, e := range c.Events() {
-					addEvents[e] = true
+				for _, e := range c.Points() {
+					pointsToAdd[e] = true
 				}
 			}
 		}
@@ -102,8 +102,8 @@ func (h *updateCampaignEvents) Execute(ctx context.Context, rt *runtime.Runtime,
 		// ok, for all the unique events we now calculate our fire date
 		tz := oa.Env().Timezone()
 		now := time.Now()
-		for ce := range addEvents {
-			scheduled, err := ce.ScheduleForContact(tz, now, s.Contact())
+		for p := range pointsToAdd {
+			scheduled, err := p.ScheduleForContact(tz, now, s.Contact())
 			if err != nil {
 				return fmt.Errorf("error calculating offset: %w", err)
 			}
@@ -114,18 +114,18 @@ func (h *updateCampaignEvents) Execute(ctx context.Context, rt *runtime.Runtime,
 			}
 
 			// ok we have a new fire date, add it to our list of fires to insert
-			inserts = append(inserts, models.NewContactFireForCampaign(oa.OrgID(), s.ContactID(), ce, *scheduled))
+			inserts = append(inserts, models.NewContactFireForCampaign(oa.OrgID(), s.ContactID(), p, *scheduled))
 		}
 	}
 
-	// delete the campaign event fires which are no longer valid
-	if err := models.DeleteCampaignContactFires(ctx, tx, deletes); err != nil {
-		return fmt.Errorf("error deleting campaign event fires: %w", err)
+	// delete the campaign fires which are no longer valid
+	if err := models.DeleteCampaignFires(ctx, tx, deletes); err != nil {
+		return fmt.Errorf("error deleting campaign fires: %w", err)
 	}
 
 	// then insert our new ones
 	if err := models.InsertContactFires(ctx, tx, inserts); err != nil {
-		return fmt.Errorf("error inserting new campaign event fires: %w", err)
+		return fmt.Errorf("error inserting new campaign fires: %w", err)
 	}
 
 	return nil

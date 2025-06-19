@@ -76,7 +76,7 @@ func TestModify(t *testing.T) {
 	rt.DB.MustExec(`UPDATE contacts_contactgroup SET query = 'age > 18' WHERE id = $1`, testdb.DoctorsGroup.ID)
 
 	// insert an event on our campaign that is based on created on
-	testdb.InsertCampaignFlowEvent(rt, testdb.RemindersCampaign, testdb.Favorites, testdb.CreatedOnField, 1000, "W")
+	testdb.InsertCampaignFlowPoint(rt, testdb.RemindersCampaign, testdb.Favorites, testdb.CreatedOnField, 1000, "W")
 
 	// for simpler tests we clear out cathy's fields and groups to start
 	rt.DB.MustExec(`UPDATE contacts_contact SET fields = NULL WHERE id = $1`, testdb.Cathy.ID)

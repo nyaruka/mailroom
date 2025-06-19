@@ -146,9 +146,9 @@ func (c *Contact) Stop(ctx context.Context, db DBorTx, oa *OrgAssets) error {
 		return fmt.Errorf("error removing stopped contact from groups: %w", err)
 	}
 
-	// remove all campaign event fires
-	if err := DeleteAllCampaignContactFires(ctx, db, []ContactID{c.id}); err != nil {
-		return fmt.Errorf("error deleting campaign event fires: %w", err)
+	// remove all campaign fires
+	if err := DeleteAllCampaignFires(ctx, db, []ContactID{c.id}); err != nil {
+		return fmt.Errorf("error deleting campaign fires: %w", err)
 	}
 
 	// remove the contact from any triggers
@@ -1015,34 +1015,34 @@ func CalculateDynamicGroups(ctx context.Context, db DBorTx, oa *OrgAssets, conta
 		return fmt.Errorf("error removing contact from group: %w", err)
 	}
 
-	// delete any existing campaign event fires for these contacts
-	if err := DeleteAllCampaignContactFires(ctx, db, contactIDs); err != nil {
-		return fmt.Errorf("error deleting campaign event fires: %w", err)
+	// delete any existing campaign fires for these contacts
+	if err := DeleteAllCampaignFires(ctx, db, contactIDs); err != nil {
+		return fmt.Errorf("error deleting campaign fires: %w", err)
 	}
 
-	// for each campaign calculate the new campaign event fires
+	// for each campaign calculate the new campaign fires
 	newFires := make([]*ContactFire, 0, 2*len(contacts))
 	tz := oa.Env().Timezone()
 	now := time.Now()
 
 	for campaign, eligibleContacts := range checkCampaigns {
-		for _, ce := range campaign.Events() {
+		for _, p := range campaign.Points() {
 
 			for _, contact := range eligibleContacts {
-				scheduled, err := ce.ScheduleForContact(tz, now, contact)
+				scheduled, err := p.ScheduleForContact(tz, now, contact)
 				if err != nil {
-					return fmt.Errorf("error calculating schedule for event: %d: %w", ce.ID, err)
+					return fmt.Errorf("error calculating schedule for event: %d: %w", p.ID, err)
 				}
 
 				if scheduled != nil {
-					newFires = append(newFires, NewContactFireForCampaign(oa.OrgID(), ContactID(contact.ID()), ce, *scheduled))
+					newFires = append(newFires, NewContactFireForCampaign(oa.OrgID(), ContactID(contact.ID()), p, *scheduled))
 				}
 			}
 		}
 	}
 
 	if err := InsertContactFires(ctx, db, newFires); err != nil {
-		return fmt.Errorf("error inserting new campaign event fires: %w", err)
+		return fmt.Errorf("error inserting new campaign fires: %w", err)
 	}
 
 	return nil

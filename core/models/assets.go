@@ -63,8 +63,8 @@ type OrgAssets struct {
 	flowCacheLock sync.RWMutex
 
 	campaigns             []assets.Campaign
-	campaignEventsByField map[FieldID][]*CampaignEvent
-	campaignEventsByID    map[CampaignEventID]*CampaignEvent
+	campaignPointsByField map[FieldID][]*CampaignPoint
+	campaignPointsByID    map[PointID]*CampaignPoint
 	campaignsByGroup      map[GroupID][]*Campaign
 
 	channels       []assets.Channel
@@ -184,21 +184,21 @@ func NewOrgAssets(ctx context.Context, rt *runtime.Runtime, orgID OrgID, prev *O
 		if err != nil {
 			return nil, fmt.Errorf("error loading campaigns for org %d: %w", orgID, err)
 		}
-		oa.campaignEventsByField = make(map[FieldID][]*CampaignEvent)
-		oa.campaignEventsByID = make(map[CampaignEventID]*CampaignEvent)
+		oa.campaignPointsByField = make(map[FieldID][]*CampaignPoint)
+		oa.campaignPointsByID = make(map[PointID]*CampaignPoint)
 		oa.campaignsByGroup = make(map[GroupID][]*Campaign)
 		for _, c := range oa.campaigns {
 			camp := c.(*Campaign)
 			oa.campaignsByGroup[camp.GroupID()] = append(oa.campaignsByGroup[camp.GroupID()], camp)
-			for _, e := range camp.Events() {
-				oa.campaignEventsByField[e.RelativeToID] = append(oa.campaignEventsByField[e.RelativeToID], e)
-				oa.campaignEventsByID[e.ID] = e
+			for _, e := range camp.Points() {
+				oa.campaignPointsByField[e.RelativeToID] = append(oa.campaignPointsByField[e.RelativeToID], e)
+				oa.campaignPointsByID[e.ID] = e
 			}
 		}
 	} else {
 		oa.campaigns = prev.campaigns
-		oa.campaignEventsByField = prev.campaignEventsByField
-		oa.campaignEventsByID = prev.campaignEventsByID
+		oa.campaignPointsByField = prev.campaignPointsByField
+		oa.campaignPointsByID = prev.campaignPointsByID
 		oa.campaignsByGroup = prev.campaignsByGroup
 	}
 
@@ -491,12 +491,12 @@ func (a *OrgAssets) CampaignByGroupID(groupID GroupID) []*Campaign {
 	return a.campaignsByGroup[groupID]
 }
 
-func (a *OrgAssets) CampaignEventsByFieldID(fieldID FieldID) []*CampaignEvent {
-	return a.campaignEventsByField[fieldID]
+func (a *OrgAssets) CampaignPointsByFieldID(fieldID FieldID) []*CampaignPoint {
+	return a.campaignPointsByField[fieldID]
 }
 
-func (a *OrgAssets) CampaignEventByID(eventID CampaignEventID) *CampaignEvent {
-	return a.campaignEventsByID[eventID]
+func (a *OrgAssets) CampaignPointByID(id PointID) *CampaignPoint {
+	return a.campaignPointsByID[id]
 }
 
 func (a *OrgAssets) Channels() ([]assets.Channel, error) {

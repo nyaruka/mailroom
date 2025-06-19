@@ -19,7 +19,7 @@ func TestSmartGroups(t *testing.T) {
 	defer testsuite.Reset(testsuite.ResetAll)
 
 	// insert an event on our campaign
-	newEvent := testdb.InsertCampaignFlowEvent(rt, testdb.RemindersCampaign, testdb.Favorites, testdb.JoinedField, 1000, "W")
+	newEvent := testdb.InsertCampaignFlowPoint(rt, testdb.RemindersCampaign, testdb.Favorites, testdb.JoinedField, 1000, "W")
 
 	// clear Cathy's value
 	rt.DB.MustExec(`update contacts_contact set fields = fields - $2 WHERE id = $1`, testdb.Cathy.ID, testdb.JoinedField.UUID)

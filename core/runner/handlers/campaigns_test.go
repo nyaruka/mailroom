@@ -21,10 +21,10 @@ func TestCampaigns(t *testing.T) {
 	joined := assets.NewFieldReference("joined", "Joined")
 
 	// insert an event on our campaign that is based on created_on
-	testdb.InsertCampaignFlowEvent(rt, testdb.RemindersCampaign, testdb.Favorites, testdb.CreatedOnField, 1000, "W")
+	testdb.InsertCampaignFlowPoint(rt, testdb.RemindersCampaign, testdb.Favorites, testdb.CreatedOnField, 1000, "W")
 
 	// insert an event on our campaign that is based on last_seen_on
-	testdb.InsertCampaignFlowEvent(rt, testdb.RemindersCampaign, testdb.Favorites, testdb.LastSeenOnField, 2, "D")
+	testdb.InsertCampaignFlowPoint(rt, testdb.RemindersCampaign, testdb.Favorites, testdb.LastSeenOnField, 2, "D")
 
 	// joined + 1 week => Pick A Number
 	// joined + 5 days => Favorites

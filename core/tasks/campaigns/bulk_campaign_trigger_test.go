@@ -30,7 +30,7 @@ func TestBulkCampaignTrigger(t *testing.T) {
 
 	// create task for event #3 (Pick A Number, start mode SKIP)
 	task := &campaigns.BulkCampaignTriggerTask{
-		EventID:     testdb.RemindersEvent3.ID,
+		PointID:     testdb.RemindersPoint3.ID,
 		FireVersion: 1,
 		ContactIDs:  []models.ContactID{testdb.Bob.ID, testdb.Cathy.ID, testdb.Alexandra.ID},
 	}
@@ -49,7 +49,7 @@ func TestBulkCampaignTrigger(t *testing.T) {
 
 	// create task for event #2 (single message, start mode PASSIVE)
 	task = &campaigns.BulkCampaignTriggerTask{
-		EventID:     testdb.RemindersEvent2.ID,
+		PointID:     testdb.RemindersPoint2.ID,
 		FireVersion: 1,
 		ContactIDs:  []models.ContactID{testdb.Bob.ID, testdb.Cathy.ID, testdb.Alexandra.ID},
 	}
@@ -73,14 +73,14 @@ func TestBulkCampaignTrigger(t *testing.T) {
 
 	// create task for event #1 (Favorites, start mode INTERRUPT)
 	task = &campaigns.BulkCampaignTriggerTask{
-		EventID:     testdb.RemindersEvent1.ID,
+		PointID:     testdb.RemindersPoint1.ID,
 		FireVersion: 1,
 		ContactIDs:  []models.ContactID{testdb.Bob.ID, testdb.Cathy.ID, testdb.Alexandra.ID},
 	}
 	err = task.Perform(ctx, rt, oa)
 	assert.NoError(t, err)
 
-	// everyone should be in campaign event flow
+	// everyone should be in campaign point flow
 	testsuite.AssertContactInFlow(t, rt, testdb.Cathy, testdb.Favorites)
 	testsuite.AssertContactInFlow(t, rt, testdb.Bob, testdb.Favorites)
 	testsuite.AssertContactInFlow(t, rt, testdb.Alexandra, testdb.Favorites)
@@ -90,13 +90,13 @@ func TestBulkCampaignTrigger(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE contact_id = $1 AND status = 'I'`, testdb.Cathy.ID).Returns(1)
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE contact_id = $1 AND status = 'I'`, testdb.Alexandra.ID).Returns(1)
 
-	// test task when campaign event has been deleted
-	rt.DB.MustExec(`UPDATE campaigns_campaignevent SET is_active = FALSE WHERE id = $1`, testdb.RemindersEvent1.ID)
+	// test task when campaign point has been deleted
+	rt.DB.MustExec(`UPDATE campaigns_campaignevent SET is_active = FALSE WHERE id = $1`, testdb.RemindersPoint1.ID)
 	models.FlushCache()
 	oa = testdb.Org1.Load(rt)
 
 	task = &campaigns.BulkCampaignTriggerTask{
-		EventID:     testdb.RemindersEvent1.ID,
+		PointID:     testdb.RemindersPoint1.ID,
 		FireVersion: 1,
 		ContactIDs:  []models.ContactID{testdb.Bob.ID, testdb.Cathy.ID, testdb.Alexandra.ID},
 	}
@@ -117,7 +117,7 @@ func TestBulkCampaignTrigger(t *testing.T) {
 	oa = testdb.Org1.Load(rt)
 
 	task = &campaigns.BulkCampaignTriggerTask{
-		EventID:     testdb.RemindersEvent3.ID,
+		PointID:     testdb.RemindersPoint3.ID,
 		ContactIDs:  []models.ContactID{testdb.Bob.ID, testdb.Cathy.ID, testdb.Alexandra.ID},
 		FireVersion: 1,
 	}

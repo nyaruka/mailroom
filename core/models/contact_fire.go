@@ -18,7 +18,7 @@ const (
 	ContactFireTypeWaitTimeout       ContactFireType = "T"
 	ContactFireTypeWaitExpiration    ContactFireType = "E"
 	ContactFireTypeSessionExpiration ContactFireType = "S"
-	ContactFireTypeCampaignEvent     ContactFireType = "C"
+	ContactFireTypeCampaignPoint     ContactFireType = "C"
 )
 
 type ContactFire struct {
@@ -48,8 +48,8 @@ func NewFireForSession(orgID OrgID, contactID ContactID, sessionUUID flows.Sessi
 	return newContactFire(orgID, contactID, typ, "", fireOn, sessionUUID, sprintUUID)
 }
 
-func NewContactFireForCampaign(orgID OrgID, contactID ContactID, ce *CampaignEvent, fireOn time.Time) *ContactFire {
-	return newContactFire(orgID, contactID, ContactFireTypeCampaignEvent, fmt.Sprintf("%d:%d", ce.ID, ce.FireVersion), fireOn, "", "")
+func NewContactFireForCampaign(orgID OrgID, contactID ContactID, ce *CampaignPoint, fireOn time.Time) *ContactFire {
+	return newContactFire(orgID, contactID, ContactFireTypeCampaignPoint, fmt.Sprintf("%d:%d", ce.ID, ce.FireVersion), fireOn, "", "")
 }
 
 const sqlSelectDueContactFires = `
@@ -95,8 +95,8 @@ func DeleteContactFires(ctx context.Context, rt *runtime.Runtime, fires []*Conta
 	return nil
 }
 
-// DeleteSessionContactFires deletes session wait/timeout fires for the given contacts
-func DeleteSessionContactFires(ctx context.Context, db DBorTx, contactIDs []ContactID, incSessionExpiration bool) (int, error) {
+// DeleteSessionFires deletes session wait/timeout fires for the given contacts
+func DeleteSessionFires(ctx context.Context, db DBorTx, contactIDs []ContactID, incSessionExpiration bool) (int, error) {
 	types := []ContactFireType{ContactFireTypeWaitTimeout, ContactFireTypeWaitExpiration}
 	if incSessionExpiration {
 		types = append(types, ContactFireTypeSessionExpiration)
@@ -111,21 +111,21 @@ func DeleteSessionContactFires(ctx context.Context, db DBorTx, contactIDs []Cont
 	return int(numDeleted), nil
 }
 
-// DeleteAllCampaignContactFires deletes *all* campaign event fires for the given contacts
-func DeleteAllCampaignContactFires(ctx context.Context, db DBorTx, contactIDs []ContactID) error {
+// DeleteAllCampaignFires deletes *all* campaign fires for the given contacts
+func DeleteAllCampaignFires(ctx context.Context, db DBorTx, contactIDs []ContactID) error {
 	_, err := db.ExecContext(ctx, `DELETE FROM contacts_contactfire WHERE contact_id = ANY($1) AND fire_type = 'C'`, pq.Array(contactIDs))
 	if err != nil {
-		return fmt.Errorf("error deleting campaign event contact fires: %w", err)
+		return fmt.Errorf("error deleting campaign fires: %w", err)
 	}
 
 	return nil
 }
 
-// FireDelete is a helper struct for deleting specific campaign event fires
+// FireDelete is a helper struct for deleting specific campaign fires
 type FireDelete struct {
-	ContactID   ContactID       `db:"contact_id"`
-	EventID     CampaignEventID `db:"event_id"`
-	FireVersion int             `db:"fire_version"`
+	ContactID   ContactID `db:"contact_id"`
+	EventID     PointID   `db:"event_id"`
+	FireVersion int       `db:"fire_version"`
 }
 
 // note that : is escaped as \x3A to stop sqlx mistakenly treating it as a named variable
@@ -135,9 +135,9 @@ DELETE FROM contacts_contactfire WHERE id IN (
      WHERE cf.contact_id = f.contact_id::int AND fire_type = 'C' AND cf.scope = f.event_id || E'\x3A' || f.fire_version
 )`
 
-// DeleteCampaignContactFires deletes *specific* campaign event fires for the given contacts
-func DeleteCampaignContactFires(ctx context.Context, db DBorTx, deletes []*FireDelete) error {
-	return BulkQueryBatches(ctx, "deleting campaign event fires", db, sqlDeleteCampaignContactFires, 1000, deletes)
+// DeleteCampaignFires deletes *specific* campaign fires for the given contacts
+func DeleteCampaignFires(ctx context.Context, db DBorTx, deletes []*FireDelete) error {
+	return BulkQueryBatches(ctx, "deleting campaign fires", db, sqlDeleteCampaignContactFires, 1000, deletes)
 }
 
 var sqlInsertContactFires = `

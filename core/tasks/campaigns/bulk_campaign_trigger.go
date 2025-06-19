@@ -33,11 +33,11 @@ func init() {
 	tasks.RegisterType(TypeBulkCampaignTrigger, func() tasks.Task { return &BulkCampaignTriggerTask{} })
 }
 
-// BulkCampaignTriggerTask is the task to handle triggering campaign events
+// BulkCampaignTriggerTask is the task to handle triggering campaign fires
 type BulkCampaignTriggerTask struct {
-	EventID     models.CampaignEventID `json:"event_id"`
-	FireVersion int                    `json:"fire_version"`
-	ContactIDs  []models.ContactID     `json:"contact_ids"`
+	PointID     models.PointID     `json:"event_id"`
+	FireVersion int                `json:"fire_version"`
+	ContactIDs  []models.ContactID `json:"contact_ids"`
 }
 
 func (t *BulkCampaignTriggerTask) Type() string {
@@ -53,16 +53,16 @@ func (t *BulkCampaignTriggerTask) WithAssets() models.Refresh {
 }
 
 func (t *BulkCampaignTriggerTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets) error {
-	ce := oa.CampaignEventByID(t.EventID)
-	if ce == nil || ce.FireVersion != t.FireVersion {
-		slog.Info("skipping campaign trigger for event that no longer exists or has been updated", "event_id", t.EventID, "fire_version", t.FireVersion)
+	p := oa.CampaignPointByID(t.PointID)
+	if p == nil || p.FireVersion != t.FireVersion {
+		slog.Info("skipping campaign trigger for event that no longer exists or has been updated", "event_id", t.PointID, "fire_version", t.FireVersion)
 		return nil
 	}
 
-	// if event start mode is skip, filter out contact ids that are already in a flow
+	// if start mode is skip, filter out contact ids that are already in a flow
 	// TODO move inside runner.StartFlow so check happens inside contact locks
 	contactIDs := t.ContactIDs
-	if ce.StartMode == models.CampaignEventModeSkip {
+	if p.StartMode == models.PointModeSkip {
 		var err error
 		contactIDs, err = models.FilterContactIDsByNotInFlow(ctx, rt.DB, contactIDs)
 		if err != nil {
@@ -73,18 +73,18 @@ func (t *BulkCampaignTriggerTask) Perform(ctx context.Context, rt *runtime.Runti
 		return nil
 	}
 
-	if ce.EventType == models.CampaignEventTypeFlow {
-		if err := t.triggerFlow(ctx, rt, oa, ce, contactIDs); err != nil {
+	if p.Type == models.PointTypeFlow {
+		if err := t.triggerFlow(ctx, rt, oa, p, contactIDs); err != nil {
 			return err
 		}
 	} else {
-		if err := t.triggerBroadcast(ctx, rt, oa, ce, contactIDs); err != nil {
+		if err := t.triggerBroadcast(ctx, rt, oa, p, contactIDs); err != nil {
 			return err
 		}
 	}
 
 	// store recent fires in redis for this event
-	recentSet := vkutil.NewCappedZSet(fmt.Sprintf(recentFiresKey, t.EventID), recentFiresCap, recentFiresExpire)
+	recentSet := vkutil.NewCappedZSet(fmt.Sprintf(recentFiresKey, t.PointID), recentFiresCap, recentFiresExpire)
 
 	rc := rt.RP.Get()
 	defer rc.Close()
@@ -103,19 +103,19 @@ func (t *BulkCampaignTriggerTask) Perform(ctx context.Context, rt *runtime.Runti
 	return nil
 }
 
-func (t *BulkCampaignTriggerTask) triggerFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, ce *models.CampaignEvent, contactIDs []models.ContactID) error {
+func (t *BulkCampaignTriggerTask) triggerFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, ce *models.CampaignPoint, contactIDs []models.ContactID) error {
 	flow, err := oa.FlowByID(ce.FlowID)
 	if err == models.ErrNotFound {
-		slog.Info("skipping campaign trigger for flow that no longer exists", "event_id", t.EventID, "flow_id", ce.FlowID)
+		slog.Info("skipping campaign trigger for flow that no longer exists", "event_id", t.PointID, "flow_id", ce.FlowID)
 		return nil
 	}
 	if err != nil {
-		return fmt.Errorf("error loading campaign event flow #%d: %w", ce.FlowID, err)
+		return fmt.Errorf("error loading campaign point flow #%d: %w", ce.FlowID, err)
 	}
 
 	campaign := oa.SessionAssets().Campaigns().Get(ce.Campaign().UUID())
 	if campaign == nil {
-		return fmt.Errorf("unable to find campaign for event #%d: %w", ce.ID, err)
+		return fmt.Errorf("unable to find campaign for point #%d: %w", ce.ID, err)
 	}
 
 	flowRef := assets.NewFlowReference(flow.UUID(), flow.Name())
@@ -135,29 +135,29 @@ func (t *BulkCampaignTriggerTask) triggerFlow(ctx context.Context, rt *runtime.R
 			call, err := ivr.RequestCall(ctx, rt, oa, contact, triggerBuilder(nil))
 			cancel()
 			if err != nil {
-				slog.Error("error requesting call for campaign event", "contact", contact.UUID(), "event_id", t.EventID, "error", err)
+				slog.Error("error requesting call for campaign point", "contact", contact.UUID(), "event_id", t.PointID, "error", err)
 				continue
 			}
 			if call == nil {
-				slog.Debug("call start skipped, no suitable channel", "contact", contact.UUID(), "event_id", t.EventID)
+				slog.Debug("call start skipped, no suitable channel", "contact", contact.UUID(), "event_id", t.PointID)
 				continue
 			}
 		}
 	} else {
-		interrupt := ce.StartMode != models.CampaignEventModePassive
+		interrupt := ce.StartMode != models.PointModePassive
 
 		_, err = runner.StartWithLock(ctx, rt, oa, contactIDs, triggerBuilder, interrupt, models.NilStartID, nil)
 		if err != nil {
-			return fmt.Errorf("error starting flow for campaign event #%d: %w", ce.ID, err)
+			return fmt.Errorf("error starting flow for campaign point #%d: %w", ce.ID, err)
 		}
 	}
 
 	return nil
 }
 
-func (t *BulkCampaignTriggerTask) triggerBroadcast(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, ce *models.CampaignEvent, contactIDs []models.ContactID) error {
+func (t *BulkCampaignTriggerTask) triggerBroadcast(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, ce *models.CampaignPoint, contactIDs []models.ContactID) error {
 	// interrupt the contacts if desired
-	if ce.StartMode != models.CampaignEventModePassive {
+	if ce.StartMode != models.PointModePassive {
 		if _, err := models.InterruptSessionsForContacts(ctx, rt.DB, contactIDs); err != nil {
 			return fmt.Errorf("error interrupting contacts: %w", err)
 		}
@@ -166,7 +166,7 @@ func (t *BulkCampaignTriggerTask) triggerBroadcast(ctx context.Context, rt *runt
 	bcast := models.NewBroadcast(oa.OrgID(), ce.Translations, i18n.Language(ce.BaseLanguage), true, models.NilOptInID, nil, contactIDs, nil, "", models.NoExclusions, models.NilUserID)
 	sends, err := bcast.CreateMessages(ctx, rt, oa, &models.BroadcastBatch{ContactIDs: contactIDs})
 	if err != nil {
-		return fmt.Errorf("error creating campaign event messages: %w", err)
+		return fmt.Errorf("error creating campaign point messages: %w", err)
 	}
 
 	msgio.QueueMessages(ctx, rt, sends)
