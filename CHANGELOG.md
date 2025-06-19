@@ -1,3 +1,10 @@
+v10.1.145 (2025-06-19)
+-------------------------
+ * Rename campaign event to point
+ * Update to latest goflow that changes campaign triggers
+ * Campaigns are now flow engine assets
+ * Only accept sprint contact changes if sprint didn't fail
+
 v10.1.144 (2025-06-18)
 -------------------------
  * Update to latest goflow which changes ticket and optin triggers
