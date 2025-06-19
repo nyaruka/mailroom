@@ -1,3 +1,7 @@
+v10.1.146 (2025-06-19)
+-------------------------
+ * Create bulk campaign trigger tasks with new field
+
 v10.1.145 (2025-06-19)
 -------------------------
  * Rename campaign event to point
