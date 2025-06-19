@@ -36,7 +36,8 @@ func init() {
 
 // BulkCampaignTriggerTask is the task to handle triggering campaign fires
 type BulkCampaignTriggerTask struct {
-	PointID     models.PointID     `json:"event_id"`
+	PointID     models.PointID     `json:"point_id"`
+	EventID     models.PointID     `json:"event_id"` // deprecated
 	FireVersion int                `json:"fire_version"`
 	ContactIDs  []models.ContactID `json:"contact_ids"`
 }
@@ -54,6 +55,10 @@ func (t *BulkCampaignTriggerTask) WithAssets() models.Refresh {
 }
 
 func (t *BulkCampaignTriggerTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets) error {
+	if t.EventID != 0 {
+		t.PointID = t.EventID
+	}
+
 	p := oa.CampaignPointByID(t.PointID)
 	if p == nil || p.FireVersion != t.FireVersion {
 		slog.Info("skipping campaign trigger for event that no longer exists or has been updated", "event_id", t.PointID, "fire_version", t.FireVersion)
@@ -156,15 +161,15 @@ func (t *BulkCampaignTriggerTask) triggerFlow(ctx context.Context, rt *runtime.R
 	return nil
 }
 
-func (t *BulkCampaignTriggerTask) triggerBroadcast(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, ce *models.CampaignPoint, contactIDs []models.ContactID) error {
+func (t *BulkCampaignTriggerTask) triggerBroadcast(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, p *models.CampaignPoint, contactIDs []models.ContactID) error {
 	// interrupt the contacts if desired
-	if ce.StartMode != models.PointModePassive {
+	if p.StartMode != models.PointModePassive {
 		if _, err := models.InterruptSessionsForContacts(ctx, rt.DB, contactIDs); err != nil {
 			return fmt.Errorf("error interrupting contacts: %w", err)
 		}
 	}
 
-	bcast := models.NewBroadcast(oa.OrgID(), ce.Translations, i18n.Language(ce.BaseLanguage), true, models.NilOptInID, nil, contactIDs, nil, "", models.NoExclusions, models.NilUserID)
+	bcast := models.NewBroadcast(oa.OrgID(), p.Translations, i18n.Language(p.BaseLanguage), true, models.NilOptInID, nil, contactIDs, nil, "", models.NoExclusions, models.NilUserID)
 	sends, err := bcast.CreateMessages(ctx, rt, oa, &models.BroadcastBatch{ContactIDs: contactIDs})
 	if err != nil {
 		return fmt.Errorf("error creating campaign point messages: %w", err)

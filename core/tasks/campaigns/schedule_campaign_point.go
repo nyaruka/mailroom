@@ -12,9 +12,9 @@ import (
 )
 
 // TypeScheduleCampaignPoint is the type of the schedule campaign point task
-const TypeScheduleCampaignPoint = "schedule_campaign_event"
+const TypeScheduleCampaignPoint = "schedule_campaign_point"
 
-const scheduleLockKey string = "lock:schedule_campaign_event_%d"
+const scheduleLockKey string = "schedule_campaign_point_%d"
 
 func init() {
 	tasks.RegisterType(TypeScheduleCampaignPoint, func() tasks.Task { return &ScheduleCampaignPointTask{} })
@@ -22,7 +22,7 @@ func init() {
 
 // ScheduleCampaignPointTask is our definition of our event recalculation task
 type ScheduleCampaignPointTask struct {
-	PointID models.PointID `json:"campaign_event_id"`
+	PointID models.PointID `json:"point_id"`
 }
 
 func (t *ScheduleCampaignPointTask) Type() string {

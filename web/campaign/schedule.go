@@ -13,25 +13,31 @@ import (
 )
 
 func init() {
-	web.RegisterRoute(http.MethodPost, "/mr/campaign/schedule_event", web.RequireAuthToken(web.JSONPayload(handleScheduleEvent)))
+	web.RegisterRoute(http.MethodPost, "/mr/campaign/schedule", web.RequireAuthToken(web.JSONPayload(handleSchedule)))
+	web.RegisterRoute(http.MethodPost, "/mr/campaign/schedule_event", web.RequireAuthToken(web.JSONPayload(handleSchedule))) // deprecated
 }
 
 // Request to schedule a campaign point. Triggers a background task to create the fires and returns immediately.
 //
 //	{
 //	  "org_id": 1,
-//	  "event_id": 123456
+//	  "point_id": 123456
 //	}
-type scheduleEventRequest struct {
+type scheduleRequest struct {
 	OrgID   models.OrgID   `json:"org_id"   validate:"required"`
-	PointID models.PointID `json:"event_id" validate:"required"`
+	PointID models.PointID `json:"point_id"`
+	EventID models.PointID `json:"event_id"` // deprecated
 }
 
-func handleScheduleEvent(ctx context.Context, rt *runtime.Runtime, r *scheduleEventRequest) (any, int, error) {
-	// dwe don't actual need the org assets in this function but load them to validate the org id is valid
+func handleSchedule(ctx context.Context, rt *runtime.Runtime, r *scheduleRequest) (any, int, error) {
+	// we don't actual need the org assets in this function but load them to validate the org id is valid
 	// and they'll probably still be cached by the time the task starts
 	if _, err := models.GetOrgAssets(ctx, rt, r.OrgID); err != nil {
 		return nil, 0, fmt.Errorf("unable to load org assets: %w", err)
+	}
+
+	if r.EventID != 0 {
+		r.PointID = r.EventID
 	}
 
 	task := &campaigns.ScheduleCampaignPointTask{PointID: r.PointID}
