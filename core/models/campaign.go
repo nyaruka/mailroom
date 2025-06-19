@@ -56,15 +56,13 @@ type Campaign struct {
 		GroupID GroupID             `json:"group_id"`
 		Points  []*CampaignPoint    `json:"points"`
 	}
-	group *assets.GroupReference
 }
 
-func (c *Campaign) ID() CampaignID                { return c.c.ID }
-func (c *Campaign) UUID() assets.CampaignUUID     { return c.c.UUID }
-func (c *Campaign) Name() string                  { return c.c.Name }
-func (c *Campaign) Group() *assets.GroupReference { return c.group }
-func (c *Campaign) GroupID() GroupID              { return c.c.GroupID }
-func (c *Campaign) Points() []*CampaignPoint      { return c.c.Points }
+func (c *Campaign) ID() CampaignID            { return c.c.ID }
+func (c *Campaign) UUID() assets.CampaignUUID { return c.c.UUID }
+func (c *Campaign) Name() string              { return c.c.Name }
+func (c *Campaign) GroupID() GroupID          { return c.c.GroupID }
+func (c *Campaign) Points() []*CampaignPoint  { return c.c.Points }
 
 // CampaignPoint is an individual point in time event
 type CampaignPoint struct {
