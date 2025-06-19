@@ -10,6 +10,7 @@ import (
 	"github.com/nyaruka/gocommon/i18n"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/goflow/flows/triggers"
 	"github.com/nyaruka/mailroom/core/ivr"
 	"github.com/nyaruka/mailroom/core/models"
@@ -103,24 +104,24 @@ func (t *BulkCampaignTriggerTask) Perform(ctx context.Context, rt *runtime.Runti
 	return nil
 }
 
-func (t *BulkCampaignTriggerTask) triggerFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, ce *models.CampaignPoint, contactIDs []models.ContactID) error {
-	flow, err := oa.FlowByID(ce.FlowID)
+func (t *BulkCampaignTriggerTask) triggerFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, p *models.CampaignPoint, contactIDs []models.ContactID) error {
+	flow, err := oa.FlowByID(p.FlowID)
 	if err == models.ErrNotFound {
-		slog.Info("skipping campaign trigger for flow that no longer exists", "event_id", t.PointID, "flow_id", ce.FlowID)
+		slog.Info("skipping campaign trigger for flow that no longer exists", "point", t.PointID, "flow", p.FlowID)
 		return nil
 	}
 	if err != nil {
-		return fmt.Errorf("error loading campaign point flow #%d: %w", ce.FlowID, err)
+		return fmt.Errorf("error loading campaign point flow #%d: %w", p.FlowID, err)
 	}
 
-	campaign := oa.SessionAssets().Campaigns().Get(ce.Campaign().UUID())
+	campaign := oa.SessionAssets().Campaigns().Get(p.Campaign().UUID())
 	if campaign == nil {
-		return fmt.Errorf("unable to find campaign for point #%d: %w", ce.ID, err)
+		return fmt.Errorf("unable to find campaign for point #%d: %w", p.ID, err)
 	}
 
 	flowRef := assets.NewFlowReference(flow.UUID(), flow.Name())
 	triggerBuilder := func(contact *flows.Contact) flows.Trigger {
-		return triggers.NewBuilder(oa.Env(), flowRef, contact).Campaign(campaign, ce.UUID).Build()
+		return triggers.NewBuilder(oa.Env(), flowRef, contact).Campaign(campaign, events.NewCampaignFired(campaign, p.UUID)).Build()
 	}
 
 	if flow.FlowType() == models.FlowTypeVoice {
@@ -135,20 +136,20 @@ func (t *BulkCampaignTriggerTask) triggerFlow(ctx context.Context, rt *runtime.R
 			call, err := ivr.RequestCall(ctx, rt, oa, contact, triggerBuilder(nil))
 			cancel()
 			if err != nil {
-				slog.Error("error requesting call for campaign point", "contact", contact.UUID(), "event_id", t.PointID, "error", err)
+				slog.Error("error requesting call for campaign point", "contact", contact.UUID(), "point", t.PointID, "error", err)
 				continue
 			}
 			if call == nil {
-				slog.Debug("call start skipped, no suitable channel", "contact", contact.UUID(), "event_id", t.PointID)
+				slog.Debug("call start skipped, no suitable channel", "contact", contact.UUID(), "point", t.PointID)
 				continue
 			}
 		}
 	} else {
-		interrupt := ce.StartMode != models.PointModePassive
+		interrupt := p.StartMode != models.PointModePassive
 
 		_, err = runner.StartWithLock(ctx, rt, oa, contactIDs, triggerBuilder, interrupt, models.NilStartID, nil)
 		if err != nil {
-			return fmt.Errorf("error starting flow for campaign point #%d: %w", ce.ID, err)
+			return fmt.Errorf("error starting flow for campaign point #%d: %w", p.ID, err)
 		}
 	}
 
