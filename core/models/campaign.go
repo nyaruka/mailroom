@@ -8,17 +8,14 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	"github.com/nyaruka/gocommon/dbutil"
-	"github.com/nyaruka/gocommon/uuids"
+	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/null/v3"
 )
 
 type CampaignID int
-type CampaignUUID uuids.UUID
-
 type CampaignEventID int
-type CampaignEventUUID uuids.UUID
 type CampaignEventType string
 type CampaignEventStatus string
 type CampaignEventMode string
@@ -53,28 +50,30 @@ const (
 // Campaign is our struct for a campaign and all its events
 type Campaign struct {
 	c struct {
-		ID      CampaignID       `json:"id"`
-		UUID    CampaignUUID     `json:"uuid"`
-		Name    string           `json:"name"`
-		GroupID GroupID          `json:"group_id"`
-		Events  []*CampaignEvent `json:"events"`
+		ID      CampaignID          `json:"id"`
+		UUID    assets.CampaignUUID `json:"uuid"`
+		Name    string              `json:"name"`
+		GroupID GroupID             `json:"group_id"`
+		Events  []*CampaignEvent    `json:"events"`
 	}
+	group *assets.GroupReference
 }
 
-func (c *Campaign) ID() CampaignID           { return c.c.ID }
-func (c *Campaign) UUID() CampaignUUID       { return c.c.UUID }
-func (c *Campaign) Name() string             { return c.c.Name }
-func (c *Campaign) GroupID() GroupID         { return c.c.GroupID }
-func (c *Campaign) Events() []*CampaignEvent { return c.c.Events }
+func (c *Campaign) ID() CampaignID                { return c.c.ID }
+func (c *Campaign) UUID() assets.CampaignUUID     { return c.c.UUID }
+func (c *Campaign) Name() string                  { return c.c.Name }
+func (c *Campaign) Group() *assets.GroupReference { return c.group }
+func (c *Campaign) GroupID() GroupID              { return c.c.GroupID }
+func (c *Campaign) Events() []*CampaignEvent      { return c.c.Events }
 
 // CampaignEvent is our struct for an individual campaign event
 type CampaignEvent struct {
-	ID          CampaignEventID     `json:"id"`
-	UUID        CampaignEventUUID   `json:"uuid"`
-	EventType   CampaignEventType   `json:"event_type"`
-	Status      CampaignEventStatus `json:"status"`
-	FireVersion int                 `json:"fire_version"`
-	StartMode   CampaignEventMode   `json:"start_mode"`
+	ID          CampaignEventID          `json:"id"`
+	UUID        assets.CampaignPointUUID `json:"uuid"`
+	EventType   CampaignEventType        `json:"event_type"`
+	Status      CampaignEventStatus      `json:"status"`
+	FireVersion int                      `json:"fire_version"`
+	StartMode   CampaignEventMode        `json:"start_mode"`
 
 	RelativeToID  FieldID           `json:"relative_to_id"`
 	RelativeToKey string            `json:"relative_to_key"`
@@ -195,14 +194,14 @@ func (e *CampaignEvent) ScheduleForTime(tz *time.Location, now, start time.Time)
 func (e *CampaignEvent) Campaign() *Campaign { return e.campaign }
 
 // loadCampaigns loads all the campaigns for the passed in org
-func loadCampaigns(ctx context.Context, db *sql.DB, orgID OrgID) ([]*Campaign, error) {
+func loadCampaigns(ctx context.Context, db *sql.DB, orgID OrgID) ([]assets.Campaign, error) {
 	rows, err := db.QueryContext(ctx, sqlSelectCampaignsByOrg, orgID)
 	if err != nil {
 		return nil, fmt.Errorf("error querying campaigns for org: %d: %w", orgID, err)
 	}
 	defer rows.Close()
 
-	campaigns := make([]*Campaign, 0, 2)
+	campaigns := make([]assets.Campaign, 0, 2)
 	for rows.Next() {
 		campaign := &Campaign{}
 		err := dbutil.ScanJSON(rows, &campaign.c)
@@ -215,8 +214,9 @@ func loadCampaigns(ctx context.Context, db *sql.DB, orgID OrgID) ([]*Campaign, e
 
 	// populate the campaign pointer for each event
 	for _, c := range campaigns {
-		for _, e := range c.Events() {
-			e.campaign = c
+		camp := c.(*Campaign)
+		for _, e := range camp.Events() {
+			e.campaign = camp
 		}
 	}
 
