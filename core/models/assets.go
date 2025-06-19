@@ -62,17 +62,17 @@ type OrgAssets struct {
 	flowByID      map[FlowID]assets.Flow
 	flowCacheLock sync.RWMutex
 
+	campaigns             []assets.Campaign
+	campaignEventsByField map[FieldID][]*CampaignEvent
+	campaignEventsByID    map[CampaignEventID]*CampaignEvent
+	campaignsByGroup      map[GroupID][]*Campaign
+
 	channels       []assets.Channel
 	channelsByID   map[ChannelID]*Channel
 	channelsByUUID map[assets.ChannelUUID]*Channel
 
 	classifiers       []assets.Classifier
 	classifiersByUUID map[assets.ClassifierUUID]*Classifier
-
-	campaigns             []*Campaign
-	campaignEventsByField map[FieldID][]*CampaignEvent
-	campaignEventsByID    map[CampaignEventID]*CampaignEvent
-	campaignsByGroup      map[GroupID][]*Campaign
 
 	fields       []assets.Field // excludes proxy fields
 	fieldsByUUID map[assets.FieldUUID]*Field
@@ -177,6 +177,29 @@ func NewOrgAssets(ctx context.Context, rt *runtime.Runtime, orgID OrgID, prev *O
 		}
 	} else {
 		oa.org = prev.org
+	}
+
+	if prev == nil || refresh&RefreshCampaigns > 0 {
+		oa.campaigns, err = loadAssetType(ctx, db, orgID, "campaigns", loadCampaigns)
+		if err != nil {
+			return nil, fmt.Errorf("error loading campaigns for org %d: %w", orgID, err)
+		}
+		oa.campaignEventsByField = make(map[FieldID][]*CampaignEvent)
+		oa.campaignEventsByID = make(map[CampaignEventID]*CampaignEvent)
+		oa.campaignsByGroup = make(map[GroupID][]*Campaign)
+		for _, c := range oa.campaigns {
+			camp := c.(*Campaign)
+			oa.campaignsByGroup[camp.GroupID()] = append(oa.campaignsByGroup[camp.GroupID()], camp)
+			for _, e := range camp.Events() {
+				oa.campaignEventsByField[e.RelativeToID] = append(oa.campaignEventsByField[e.RelativeToID], e)
+				oa.campaignEventsByID[e.ID] = e
+			}
+		}
+	} else {
+		oa.campaigns = prev.campaigns
+		oa.campaignEventsByField = prev.campaignEventsByField
+		oa.campaignEventsByID = prev.campaignEventsByID
+		oa.campaignsByGroup = prev.campaignsByGroup
 	}
 
 	if prev == nil || refresh&RefreshChannels > 0 {
@@ -309,28 +332,6 @@ func NewOrgAssets(ctx context.Context, rt *runtime.Runtime, orgID OrgID, prev *O
 		}
 	} else {
 		oa.resthooks = prev.resthooks
-	}
-
-	if prev == nil || refresh&RefreshCampaigns > 0 {
-		oa.campaigns, err = loadAssetType(ctx, db, orgID, "campaigns", loadCampaigns)
-		if err != nil {
-			return nil, fmt.Errorf("error loading campaigns for org %d: %w", orgID, err)
-		}
-		oa.campaignEventsByField = make(map[FieldID][]*CampaignEvent)
-		oa.campaignEventsByID = make(map[CampaignEventID]*CampaignEvent)
-		oa.campaignsByGroup = make(map[GroupID][]*Campaign)
-		for _, c := range oa.campaigns {
-			oa.campaignsByGroup[c.GroupID()] = append(oa.campaignsByGroup[c.GroupID()], c)
-			for _, e := range c.Events() {
-				oa.campaignEventsByField[e.RelativeToID] = append(oa.campaignEventsByField[e.RelativeToID], e)
-				oa.campaignEventsByID[e.ID] = e
-			}
-		}
-	} else {
-		oa.campaigns = prev.campaigns
-		oa.campaignEventsByField = prev.campaignEventsByField
-		oa.campaignEventsByID = prev.campaignEventsByID
-		oa.campaignsByGroup = prev.campaignsByGroup
 	}
 
 	if prev == nil || refresh&RefreshTriggers > 0 {
@@ -482,6 +483,22 @@ func (a *OrgAssets) Org() *Org { return a.org }
 
 func (a *OrgAssets) SessionAssets() flows.SessionAssets { return a.sessionAssets }
 
+func (a *OrgAssets) Campaigns() ([]assets.Campaign, error) {
+	return a.campaigns, nil
+}
+
+func (a *OrgAssets) CampaignByGroupID(groupID GroupID) []*Campaign {
+	return a.campaignsByGroup[groupID]
+}
+
+func (a *OrgAssets) CampaignEventsByFieldID(fieldID FieldID) []*CampaignEvent {
+	return a.campaignEventsByField[fieldID]
+}
+
+func (a *OrgAssets) CampaignEventByID(eventID CampaignEventID) *CampaignEvent {
+	return a.campaignEventsByID[eventID]
+}
+
 func (a *OrgAssets) Channels() ([]assets.Channel, error) {
 	return a.channels, nil
 }
@@ -620,22 +637,6 @@ func (a *OrgAssets) loadFlow(fromCache func() assets.Flow, fromDB func(context.C
 	a.flowCacheLock.Unlock()
 
 	return dbFlow, nil
-}
-
-func (a *OrgAssets) Campaigns() []*Campaign {
-	return a.campaigns
-}
-
-func (a *OrgAssets) CampaignByGroupID(groupID GroupID) []*Campaign {
-	return a.campaignsByGroup[groupID]
-}
-
-func (a *OrgAssets) CampaignEventsByFieldID(fieldID FieldID) []*CampaignEvent {
-	return a.campaignEventsByField[fieldID]
-}
-
-func (a *OrgAssets) CampaignEventByID(eventID CampaignEventID) *CampaignEvent {
-	return a.campaignEventsByID[eventID]
 }
 
 func (a *OrgAssets) Groups() ([]assets.Group, error) {

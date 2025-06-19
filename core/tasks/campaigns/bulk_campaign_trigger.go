@@ -113,10 +113,14 @@ func (t *BulkCampaignTriggerTask) triggerFlow(ctx context.Context, rt *runtime.R
 		return fmt.Errorf("error loading campaign event flow #%d: %w", ce.FlowID, err)
 	}
 
+	campaign := oa.SessionAssets().Campaigns().Get(ce.Campaign().UUID())
+	if campaign == nil {
+		return fmt.Errorf("unable to find campaign for event #%d: %w", ce.ID, err)
+	}
+
 	flowRef := assets.NewFlowReference(flow.UUID(), flow.Name())
-	campaignRef := triggers.NewCampaignReference(triggers.CampaignUUID(ce.Campaign().UUID()), ce.Campaign().Name())
 	triggerBuilder := func(contact *flows.Contact) flows.Trigger {
-		return triggers.NewBuilder(oa.Env(), flowRef, contact).Campaign(campaignRef, triggers.CampaignEventUUID(ce.UUID)).Build()
+		return triggers.NewBuilder(oa.Env(), flowRef, contact).Campaign(campaign, ce.UUID).Build()
 	}
 
 	if flow.FlowType() == models.FlowTypeVoice {
