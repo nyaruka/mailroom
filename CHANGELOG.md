@@ -1,3 +1,9 @@
+v10.1.147 (2025-06-20)
+-------------------------
+ * Update deps (includes go-chi security fix)
+ * Start writing ivr_call.uuid and passing that to engine
+ * Remove old campaign task and endpoint
+
 v10.1.146 (2025-06-19)
 -------------------------
  * Create bulk campaign trigger tasks with new field
