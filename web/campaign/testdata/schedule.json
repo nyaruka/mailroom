@@ -31,16 +31,5 @@
         },
         "status": 200,
         "response": {}
-    },
-    {
-        "label": "using old endpoint",
-        "method": "POST",
-        "path": "/mr/campaign/schedule_event",
-        "body": {
-            "org_id": 1,
-            "event_id": $point1_id$
-        },
-        "status": 200,
-        "response": {}
     }
 ]
