@@ -21,8 +21,11 @@ import (
 	"github.com/nyaruka/mailroom/web"
 )
 
-var testChannel = assets.NewChannelReference("440099cf-200c-4d45-a8e7-4a564f4a0e8b", "Test Channel")
-var testURN = urns.URN("tel:+12065551212")
+const (
+	testURN         = urns.URN("tel:+12065551212")
+	testChannelUUID = assets.ChannelUUID("440099cf-200c-4d45-a8e7-4a564f4a0e8b")
+	testCallUUID    = flows.CallUUID("86fbeea0-3d7f-47db-9f7e-0f74ff1f6a38")
+)
 
 func init() {
 	web.RegisterRoute(http.MethodPost, "/mr/sim/start", web.RequireAuthToken(web.JSONPayload(handleStart)))
@@ -226,9 +229,8 @@ func handleResume(ctx context.Context, rt *runtime.Runtime, r *resumeRequest) (a
 
 					var sessionTrigger flows.Trigger
 					if triggeredFlow.FlowType() == models.FlowTypeVoice {
-						// TODO this should trigger a msg trigger with a call but first we need to rework
-						// non-simulation IVR triggers to use that so that this is consistent.
-						sessionTrigger = tb.Manual().WithCall(testChannel, testURN).Build()
+						sessionTrigger = tb.Msg(msgEvt).Build()
+						sessionTrigger.SetCall(flows.NewCall(testCallUUID, oa.SessionAssets().Channels().Get(testChannelUUID), testURN))
 					} else {
 						mtb := tb.Msg(msgEvt)
 						if keyword != "" {

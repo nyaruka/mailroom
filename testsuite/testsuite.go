@@ -284,7 +284,6 @@ DELETE FROM triggers_trigger WHERE id >= 30000;
 DELETE FROM channels_channel WHERE id >= 30000;
 DELETE FROM channels_channelcount;
 DELETE FROM channels_channelevent;
-DELETE FROM channels_channellog;
 DELETE FROM msgs_msg;
 DELETE FROM flows_flowrun;
 DELETE FROM flows_flowactivitycount;
