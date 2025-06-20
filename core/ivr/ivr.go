@@ -120,7 +120,6 @@ func RequestCall(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 
 	// clear contact on trigger as we'll set it when call starts to ensure we have the latest changes
 	trigger.SetContact(nil)
-	trigger.SetCall(flows.NewCall(callChannel.Reference(), urn.URN().Identity()))
 
 	channel := callChannel.Asset().(*models.Channel)
 	call := models.NewOutgoingCall(oa.OrgID(), channel, contact, models.URNID(urnID), trigger)
@@ -263,7 +262,9 @@ func StartIVRFlow(
 	if err != nil {
 		return fmt.Errorf("error loading flow contact: %w", err)
 	}
+
 	trigger.SetContact(contact)
+	trigger.SetCall(flows.NewCall(call.UUID(), oa.SessionAssets().Channels().Get(channel.UUID()), urn.Identity()))
 
 	sceneInit := func(s *runner.Scene) { s.Call = call }
 

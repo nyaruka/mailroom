@@ -168,8 +168,7 @@ func (t *EventReceivedTask) handle(ctx context.Context, rt *runtime.Runtime, oa 
 	tb := triggers.NewBuilder(oa.Env(), flow.Reference(), flowContact)
 
 	if t.EventType == models.EventTypeIncomingCall {
-		urn := mc.URNForID(t.URNID)
-		trig = tb.Channel(channel.Reference(), triggers.ChannelEventTypeIncomingCall).WithCall(urn).Build()
+		trig = tb.Channel(channel.Reference(), triggers.ChannelEventTypeIncomingCall).Build()
 	} else if t.EventType == models.EventTypeOptIn && flowOptIn != nil {
 		trig = tb.OptIn(flowOptIn, events.NewOptInStarted(flowOptIn, channel.Reference())).Build()
 	} else if t.EventType == models.EventTypeOptOut && flowOptIn != nil {
@@ -178,12 +177,18 @@ func (t *EventReceivedTask) handle(ctx context.Context, rt *runtime.Runtime, oa 
 		trig = tb.Channel(channel.Reference(), triggers.ChannelEventType(t.EventType)).WithParams(params).Build()
 	}
 
-	// if this is a voice flow, we request a call and wait for callback
-	if flow.FlowType() == models.FlowTypeVoice && call == nil {
-		if _, err := ivr.RequestCall(ctx, rt, oa, mc, trig); err != nil {
-			return nil, fmt.Errorf("error starting voice flow for contact: %w", err)
+	if flow.FlowType() == models.FlowTypeVoice {
+		if call != nil {
+			// incoming call which already exists
+			urn := mc.URNForID(t.URNID)
+			trig.SetCall(flows.NewCall(call.UUID(), oa.SessionAssets().Channels().Get(channel.UUID()), urn))
+		} else {
+			// request outgoing call and wait for callback
+			if _, err := ivr.RequestCall(ctx, rt, oa, mc, trig); err != nil {
+				return nil, fmt.Errorf("error starting voice flow for contact: %w", err)
+			}
+			return nil, nil
 		}
-		return nil, nil
 	}
 
 	sceneInit := func(s *runner.Scene) { s.Call = call }

@@ -55,6 +55,7 @@ const (
 type Call struct {
 	c struct {
 		ID           CallID      `db:"id"`
+		UUID         null.String `db:"uuid"`
 		OrgID        OrgID       `db:"org_id"`
 		ChannelID    ChannelID   `db:"channel_id"`
 		ContactID    ContactID   `db:"contact_id"`
@@ -76,6 +77,7 @@ type Call struct {
 }
 
 func (c *Call) ID() CallID                     { return c.c.ID }
+func (c *Call) UUID() flows.CallUUID           { return flows.CallUUID(c.c.UUID) }
 func (c *Call) ChannelID() ChannelID           { return c.c.ChannelID }
 func (c *Call) OrgID() OrgID                   { return c.c.OrgID }
 func (c *Call) ContactID() ContactID           { return c.c.ContactID }
@@ -101,6 +103,7 @@ func (c *Call) EngineTrigger(oa *OrgAssets) (flows.Trigger, error) {
 func NewIncomingCall(orgID OrgID, ch *Channel, contact *Contact, urnID URNID, externalID string) *Call {
 	call := &Call{}
 	c := &call.c
+	c.UUID = null.String(flows.NewCallUUID())
 	c.OrgID = orgID
 	c.ChannelID = ch.ID()
 	c.ContactID = contact.ID()
@@ -115,6 +118,7 @@ func NewIncomingCall(orgID OrgID, ch *Channel, contact *Contact, urnID URNID, ex
 func NewOutgoingCall(orgID OrgID, ch *Channel, contact *Contact, urnID URNID, trigger flows.Trigger) *Call {
 	call := &Call{}
 	c := &call.c
+	c.UUID = null.String(flows.NewCallUUID())
 	c.OrgID = orgID
 	c.ChannelID = ch.ID()
 	c.ContactID = contact.ID()
@@ -143,6 +147,7 @@ func InsertCalls(ctx context.Context, db DBorTx, calls []*Call) error {
 const sqlSelectCallByID = `
 SELECT
     cc.id,
+	cc.uuid,
 	cc.org_id,
     cc.created_on,
     cc.modified_on,
@@ -176,6 +181,7 @@ func GetCallByID(ctx context.Context, db DBorTx, orgID OrgID, id CallID) (*Call,
 const sqlSelectCallByExternalID = `
 SELECT
     cc.id,
+	cc.uuid,
 	cc.org_id,
     cc.created_on,
     cc.modified_on,
@@ -211,6 +217,7 @@ func GetCallByExternalID(ctx context.Context, db DBorTx, channelID ChannelID, ex
 const sqlSelectRetryCalls = `
 SELECT
     cc.id,
+	cc.uuid,
 	cc.org_id,
     cc.created_on,
     cc.modified_on,
