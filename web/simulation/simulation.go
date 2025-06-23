@@ -63,6 +63,7 @@ func (r *sessionRequest) channels() []assets.Channel {
 
 type simulationResponse struct {
 	Session  flows.Session   `json:"session"`
+	Contact  *flows.Contact  `json:"contact"`
 	Events   []flows.Event   `json:"events"`
 	Segments []flows.Segment `json:"segments"`
 	Context  *types.XObject  `json:"context,omitempty"`
@@ -80,7 +81,13 @@ func newSimulationResponse(session flows.Session, sprint flows.Sprint) *simulati
 			})
 		}
 	}
-	return &simulationResponse{Session: session, Events: sprint.Events(), Segments: sprint.Segments(), Context: context}
+	return &simulationResponse{
+		Session:  session,
+		Contact:  session.Contact(),
+		Events:   sprint.Events(),
+		Segments: sprint.Segments(),
+		Context:  context,
+	}
 }
 
 // Starts a new engine session
