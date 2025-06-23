@@ -1,3 +1,7 @@
+v10.1.151 (2025-06-23)
+-------------------------
+ * Update to latest goflow that no longer persists contact, env or call on the session
+
 v10.1.150 (2025-06-23)
 -------------------------
  * Return simulator contact separately
