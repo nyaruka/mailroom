@@ -130,8 +130,8 @@ func NewOutgoingCall(orgID OrgID, ch *Channel, contact *Contact, urnID URNID, tr
 }
 
 const sqlInsertCall = `
-INSERT INTO ivr_call( org_id,  channel_id,  contact_id,  contact_urn_id, created_on, modified_on,  external_id,  status,  direction,  trigger, duration, error_count)
-              VALUES(:org_id, :channel_id, :contact_id, :contact_urn_id, NOW(),      NOW(),       :external_id, :status, :direction, :trigger, 0,        0)
+INSERT INTO ivr_call( uuid,  org_id,  channel_id,  contact_id,  contact_urn_id, created_on, modified_on,  external_id,  status,  direction,  trigger, duration, error_count)
+              VALUES(:uuid, :org_id, :channel_id, :contact_id, :contact_urn_id, NOW(),      NOW(),       :external_id, :status, :direction, :trigger, 0,        0)
   RETURNING id, created_on, modified_on;`
 
 // InsertCalls creates a new IVR call for the passed in org, channel and contact, inserting it
