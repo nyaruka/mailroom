@@ -1,3 +1,7 @@
+v10.1.149 (2025-06-23)
+-------------------------
+ * Fix not actually writing IVR call UUIDs
+
 v10.1.148 (2025-06-23)
 -------------------------
  * Revert "Fix race condition in worker shutdown to prevent 'send on closed channel' panic"
