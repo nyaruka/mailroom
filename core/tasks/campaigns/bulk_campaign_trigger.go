@@ -120,8 +120,8 @@ func (t *BulkCampaignTriggerTask) triggerFlow(ctx context.Context, rt *runtime.R
 	}
 
 	flowRef := assets.NewFlowReference(flow.UUID(), flow.Name())
-	triggerBuilder := func(contact *flows.Contact) flows.Trigger {
-		return triggers.NewBuilder(oa.Env(), flowRef, contact).Campaign(campaign, events.NewCampaignFired(campaign, p.UUID)).Build()
+	triggerBuilder := func(*flows.Contact) flows.Trigger {
+		return triggers.NewBuilder(flowRef).Campaign(campaign, events.NewCampaignFired(campaign, p.UUID)).Build()
 	}
 
 	if flow.FlowType() == models.FlowTypeVoice {

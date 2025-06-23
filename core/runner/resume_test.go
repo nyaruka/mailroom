@@ -29,8 +29,8 @@ func TestResume(t *testing.T) {
 
 	modelContact, flowContact, _ := testdb.Cathy.Load(rt, oa)
 
-	trigger := triggers.NewBuilder(oa.Env(), flow.Reference(), flowContact).Manual().Build()
-	scenes, err := runner.StartSessions(ctx, rt, oa, []*models.Contact{modelContact}, []flows.Trigger{trigger}, true, models.NilStartID, nil)
+	trigger := triggers.NewBuilder(flow.Reference()).Manual().Build()
+	scenes, err := runner.StartSessions(ctx, rt, oa, []*models.Contact{modelContact}, []*flows.Contact{flowContact}, nil, []flows.Trigger{trigger}, true, models.NilStartID, nil)
 	assert.NoError(t, err)
 	assert.Len(t, scenes, 1)
 
@@ -64,9 +64,9 @@ func TestResume(t *testing.T) {
 
 		// answer our first question
 		msg := flows.NewMsgIn(flows.NewMsgUUID(), testdb.Cathy.URN, nil, tc.Message, nil, "")
-		resume := resumes.NewMsg(oa.Env(), flowContact, events.NewMsgReceived(msg))
+		resume := resumes.NewMsg(events.NewMsgReceived(msg))
 
-		scene, err := runner.ResumeFlow(ctx, rt, oa, session, modelContact, resume, nil)
+		scene, err := runner.ResumeFlow(ctx, rt, oa, session, modelContact, flowContact, nil, resume, nil)
 		assert.NoError(t, err)
 		assert.NotNil(t, scene)
 

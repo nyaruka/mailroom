@@ -126,16 +126,16 @@ func (t *StartFlowBatchTask) start(ctx context.Context, rt *runtime.Runtime, oa 
 	batchStart := t.TotalContacts > 1
 
 	// this will build our trigger for each contact started
-	triggerBuilder := func(contact *flows.Contact) flows.Trigger {
+	triggerBuilder := func(*flows.Contact) flows.Trigger {
 		if !start.ParentSummary.IsNull() {
-			tb := triggers.NewBuilder(oa.Env(), flow.Reference(), contact).FlowAction(history, json.RawMessage(start.ParentSummary))
+			tb := triggers.NewBuilder(flow.Reference()).FlowAction(history, json.RawMessage(start.ParentSummary))
 			if batchStart {
 				tb = tb.AsBatch()
 			}
 			return tb.Build()
 		}
 
-		tb := triggers.NewBuilder(oa.Env(), flow.Reference(), contact).Manual()
+		tb := triggers.NewBuilder(flow.Reference()).Manual()
 		if !start.Params.IsNull() {
 			tb = tb.WithParams(params)
 		}

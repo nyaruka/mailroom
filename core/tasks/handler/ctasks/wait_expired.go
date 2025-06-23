@@ -78,9 +78,9 @@ func (t *WaitExpiredTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *
 		}
 
 	} else {
-		resume := resumes.NewRunExpiration(oa.Env(), fc)
+		resume := resumes.NewRunExpiration()
 
-		_, err = runner.ResumeFlow(ctx, rt, oa, session, mc, resume, nil)
+		_, err = runner.ResumeFlow(ctx, rt, oa, session, mc, fc, nil, resume, nil)
 		if err != nil {
 			return fmt.Errorf("error resuming flow for expiration: %w", err)
 		}

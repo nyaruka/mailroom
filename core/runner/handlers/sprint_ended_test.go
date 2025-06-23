@@ -8,7 +8,6 @@ import (
 	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/gocommon/random"
-	"github.com/nyaruka/goflow/envs"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/goflow/flows/resumes"
@@ -39,13 +38,12 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 
 	mcBob, fcBob, _ := testdb.Bob.Load(rt, oa)
 	mcAlex, fcAlex, _ := testdb.Alexandra.Load(rt, oa)
-	env := envs.NewBuilder().Build()
 	trigs := []flows.Trigger{
-		triggers.NewBuilder(env, flow.Reference(), fcBob).Manual().Build(),
-		triggers.NewBuilder(env, flow.Reference(), fcAlex).Manual().Build(),
+		triggers.NewBuilder(flow.Reference()).Manual().Build(),
+		triggers.NewBuilder(flow.Reference()).Manual().Build(),
 	}
 
-	scenes, err := runner.StartSessions(ctx, rt, oa, []*models.Contact{mcBob, mcAlex}, trigs, true, models.NilStartID, nil)
+	scenes, err := runner.StartSessions(ctx, rt, oa, []*models.Contact{mcBob, mcAlex}, []*flows.Contact{fcBob, fcAlex}, nil, trigs, true, models.NilStartID, nil)
 	require.NoError(t, err)
 	require.Len(t, scenes, 2)
 	assert.Equal(t, time.Minute*5, scenes[0].WaitTimeout)    // Bob's messages are being sent via courier
@@ -79,7 +77,7 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 	assert.Equal(t, flow.ID, modelSession.CurrentFlowID())
 
 	msg1 := flows.NewMsgIn("0c9cd2e4-865e-40bf-92bb-3c958d5f6f0d", testdb.Bob.URN, nil, "no", nil, "")
-	scene, err := runner.ResumeFlow(ctx, rt, oa, modelSession, mcBob, resumes.NewMsg(env, fcBob, events.NewMsgReceived(msg1)), nil)
+	scene, err := runner.ResumeFlow(ctx, rt, oa, modelSession, mcBob, fcBob, nil, resumes.NewMsg(events.NewMsgReceived(msg1)), nil)
 	require.NoError(t, err)
 	assert.Equal(t, time.Duration(0), scene.WaitTimeout) // wait doesn't have a timeout
 
@@ -95,7 +93,7 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 	assert.Equal(t, flow.ID, modelSession.CurrentFlowID())
 
 	msg2 := flows.NewMsgIn("330b1ff5-a95e-4034-b2e1-d0b0f93eb8b8", testdb.Bob.URN, nil, "yes", nil, "")
-	scene, err = runner.ResumeFlow(ctx, rt, oa, modelSession, mcBob, resumes.NewMsg(env, fcBob, events.NewMsgReceived(msg2)), nil)
+	scene, err = runner.ResumeFlow(ctx, rt, oa, modelSession, mcBob, fcBob, nil, resumes.NewMsg(events.NewMsgReceived(msg2)), nil)
 	require.NoError(t, err)
 	assert.Equal(t, flows.SessionStatusCompleted, scene.Session().Status())
 	assert.Equal(t, time.Duration(0), scene.WaitTimeout) // flow has ended
@@ -120,9 +118,8 @@ func TestSingleSprintSession(t *testing.T) {
 	require.NoError(t, err)
 
 	mc, fc, _ := testdb.Bob.Load(rt, oa)
-	env := envs.NewBuilder().Build()
 
-	scenes, err := runner.StartSessions(ctx, rt, oa, []*models.Contact{mc}, []flows.Trigger{triggers.NewBuilder(env, flow.Reference(), fc).Manual().Build()}, true, models.NilStartID, nil)
+	scenes, err := runner.StartSessions(ctx, rt, oa, []*models.Contact{mc}, []*flows.Contact{fc}, nil, []flows.Trigger{triggers.NewBuilder(flow.Reference()).Manual().Build()}, true, models.NilStartID, nil)
 	require.NoError(t, err)
 	require.Len(t, scenes, 1)
 
@@ -151,9 +148,8 @@ func TestSessionWithSubflows(t *testing.T) {
 	require.NoError(t, err)
 
 	mc, fc, _ := testdb.Cathy.Load(rt, oa)
-	env := envs.NewBuilder().Build()
 
-	scenes, err := runner.StartSessions(ctx, rt, oa, []*models.Contact{mc}, []flows.Trigger{triggers.NewBuilder(env, parent.Reference(), fc).Manual().Build()}, true, models.NilStartID, nil)
+	scenes, err := runner.StartSessions(ctx, rt, oa, []*models.Contact{mc}, []*flows.Contact{fc}, nil, []flows.Trigger{triggers.NewBuilder(parent.Reference()).Manual().Build()}, true, models.NilStartID, nil)
 	require.NoError(t, err)
 	require.Len(t, scenes, 1)
 	assert.Equal(t, time.Duration(0), scenes[0].WaitTimeout) // no timeout on wait
@@ -178,7 +174,7 @@ func TestSessionWithSubflows(t *testing.T) {
 	assert.Equal(t, child.ID, modelSession.CurrentFlowID())
 
 	msg2 := flows.NewMsgIn("cd476f71-34f2-42d2-ae4d-b7d1c4103bd1", testdb.Cathy.URN, nil, "yes", nil, "")
-	scene, err := runner.ResumeFlow(ctx, rt, oa, modelSession, mc, resumes.NewMsg(env, fc, events.NewMsgReceived(msg2)), nil)
+	scene, err := runner.ResumeFlow(ctx, rt, oa, modelSession, mc, fc, nil, resumes.NewMsg(events.NewMsgReceived(msg2)), nil)
 	require.NoError(t, err)
 	assert.Equal(t, flows.SessionStatusCompleted, scene.Session().Status())
 	assert.Equal(t, time.Duration(0), scene.WaitTimeout) // flow has ended

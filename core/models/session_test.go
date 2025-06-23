@@ -61,7 +61,7 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 			"status": "W", "session_type": "M", "current_flow_id": int64(flow.ID), "ended_on": nil,
 		})
 
-	flowSession, err = session.EngineSession(ctx, rt, oa.SessionAssets(), oa.Env())
+	flowSession, err = session.EngineSession(ctx, rt, oa.SessionAssets(), oa.Env(), flowSession.Contact(), nil)
 	require.NoError(t, err)
 
 	flowSession, sprint2, err := test.ResumeSession(flowSession, sa, "no")
@@ -77,7 +77,7 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 	assert.Equal(t, models.SessionStatusWaiting, session.Status())
 	assert.Equal(t, flow.ID, session.CurrentFlowID())
 
-	flowSession, err = session.EngineSession(ctx, rt, oa.SessionAssets(), oa.Env())
+	flowSession, err = session.EngineSession(ctx, rt, oa.SessionAssets(), oa.Env(), flowSession.Contact(), nil)
 	require.NoError(t, err)
 
 	flowSession, sprint3, err := test.ResumeSession(flowSession, sa, "yes")
@@ -186,7 +186,7 @@ func TestSessionWithSubflows(t *testing.T) {
 			"status": "W", "session_type": "M", "current_flow_id": int64(child.ID), "ended_on": nil,
 		})
 
-	flowSession, err = session.EngineSession(ctx, rt, oa.SessionAssets(), oa.Env())
+	flowSession, err = session.EngineSession(ctx, rt, oa.SessionAssets(), oa.Env(), flowSession.Contact(), nil)
 	require.NoError(t, err)
 
 	flowSession, sprint2, err := test.ResumeSession(flowSession, sa, "yes")

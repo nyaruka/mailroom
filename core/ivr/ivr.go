@@ -118,9 +118,6 @@ func RequestCall(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 		return nil, nil
 	}
 
-	// clear contact on trigger as we'll set it when call starts to ensure we have the latest changes
-	trigger.SetContact(nil)
-
 	channel := callChannel.Asset().(*models.Channel)
 	call := models.NewOutgoingCall(oa.OrgID(), channel, contact, models.URNID(urnID), trigger)
 	if err := models.InsertCalls(ctx, rt.DB, []*models.Call{call}); err != nil {
@@ -263,12 +260,10 @@ func StartIVRFlow(
 		return fmt.Errorf("error loading flow contact: %w", err)
 	}
 
-	trigger.SetContact(contact)
-	trigger.SetCall(flows.NewCall(call.UUID(), oa.SessionAssets().Channels().Get(channel.UUID()), urn.Identity()))
-
+	flowCall := flows.NewCall(call.UUID(), oa.SessionAssets().Channels().Get(channel.UUID()), urn.Identity())
 	sceneInit := func(s *runner.Scene) { s.Call = call }
 
-	scenes, err := runner.StartSessions(ctx, rt, oa, []*models.Contact{c}, []flows.Trigger{trigger}, true, models.NilStartID, sceneInit)
+	scenes, err := runner.StartSessions(ctx, rt, oa, []*models.Contact{c}, []*flows.Contact{contact}, flowCall, []flows.Trigger{trigger}, true, models.NilStartID, sceneInit)
 	if err != nil {
 		return fmt.Errorf("error starting flow: %w", err)
 	}
@@ -372,12 +367,13 @@ func ResumeIVRFlow(
 		return svc.WriteErrorResponse(w, fmt.Errorf("no resume found, ending call"))
 	}
 
+	flowCall := flows.NewCall(call.UUID(), oa.SessionAssets().Channels().Get(channel.UUID()), urn.Identity())
 	sceneInit := func(s *runner.Scene) {
 		s.Call = call
 		s.IncomingMsg = msg
 	}
 
-	scene, err := runner.ResumeFlow(ctx, rt, oa, session, mc, resume, sceneInit)
+	scene, err := runner.ResumeFlow(ctx, rt, oa, session, mc, fc, flowCall, resume, sceneInit)
 	if err != nil {
 		return fmt.Errorf("error resuming ivr flow: %w", err)
 	}
