@@ -23,29 +23,19 @@ const (
 	startBody = `
 	{
 		"org_id": 1,
+		"contact": {
+			"created_on": "2000-01-01T00:00:00.000000000-00:00",
+			"fields": {},
+			"id": 1234567,
+			"language": "eng",
+			"name": "Ben Haggerty",
+			"timezone": "America/Guayaquil",
+			"urns": [
+				"tel:+12065551212"
+			],
+			"uuid": "ba96bf7f-bc2a-4873-a7c7-254d1927c4e3"
+		},
 		"trigger": {
-			"contact": {
-				"created_on": "2000-01-01T00:00:00.000000000-00:00",
-				"fields": {},
-				"id": 1234567,
-				"language": "eng",
-				"name": "Ben Haggerty",
-				"timezone": "America/Guayaquil",
-				"urns": [
-					"tel:+12065551212"
-				],
-				"uuid": "ba96bf7f-bc2a-4873-a7c7-254d1927c4e3"
-			},
-			"environment": {
-				"allowed_languages": [
-					"eng",
-					"fra"
-				],
-				"date_format": "YYYY-MM-DD",
-				"default_language": "eng",
-				"time_format": "hh:mm",
-				"timezone": "America/Los_Angeles"
-			},
 			"flow": {
 				"name": "Favorites",
 				"uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85"
@@ -58,29 +48,19 @@ const (
 	resumeBody = `
 	{
 		"org_id": 1,
+		"contact": {
+			"created_on": "2000-01-01T00:00:00.000000000-00:00",
+			"fields": {},
+			"id": 1234567,
+			"language": "eng",
+			"name": "Ben Haggerty",
+			"timezone": "America/Guayaquil",
+			"urns": [
+				"tel:+12065551212"
+			],
+			"uuid": "ba96bf7f-bc2a-4873-a7c7-254d1927c4e3"
+		},
 		"resume": {
-			"contact": {
-                "created_on": "2000-01-01T00:00:00.000000000-00:00",
-                "fields": {},
-                "id": 1234567,
-                "language": "eng",
-                "name": "Ben Haggerty",
-                "timezone": "America/Guayaquil",
-                "urns": [
-                    "tel:+12065551212"
-                ],
-                "uuid": "ba96bf7f-bc2a-4873-a7c7-254d1927c4e3"
-            },
-            "environment": {
-                "allowed_languages": [
-                    "eng",
-                    "fra"
-                ],
-                "date_format": "YYYY-MM-DD",
-                "default_language": "eng",
-                "time_format": "hh:mm",
-                "timezone": "America/New_York"
-            },
 			"event": {
 				"type": "msg_received",
 				"created_on": "2000-01-01T00:00:00.000000000-00:00",
@@ -115,29 +95,19 @@ const (
 	customStartBody = `
 	{
 		"org_id": 1,
+		"contact": {
+			"created_on": "2000-01-01T00:00:00.000000000-00:00",
+			"fields": {},
+			"id": 1234567,
+			"language": "eng",
+			"name": "Ben Haggerty",
+			"timezone": "America/Guayaquil",
+			"urns": [
+				"tel:+12065551212"
+			],
+			"uuid": "ba96bf7f-bc2a-4873-a7c7-254d1927c4e3"
+		},
 		"trigger": {
-			"contact": {
-				"created_on": "2000-01-01T00:00:00.000000000-00:00",
-				"fields": {},
-				"id": 1234567,
-				"language": "eng",
-				"name": "Ben Haggerty",
-				"timezone": "America/Guayaquil",
-				"urns": [
-					"tel:+12065551212"
-				],
-				"uuid": "ba96bf7f-bc2a-4873-a7c7-254d1927c4e3"
-			},
-			"environment": {
-				"allowed_languages": [
-					"eng",
-					"fra"
-				],
-				"date_format": "YYYY-MM-DD",
-				"default_language": "eng",
-				"time_format": "hh:mm",
-				"timezone": "America/Los_Angeles"
-			},
 			"event": {
 				"type": "msg_received",
 				"created_on": "2000-01-01T00:00:00.000000000-00:00",

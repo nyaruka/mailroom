@@ -203,7 +203,7 @@ func (t *MsgReceivedTask) perform(ctx context.Context, rt *runtime.Runtime, oa *
 
 		if flow != nil {
 			// create trigger from this message
-			tb := triggers.NewBuilder(oa.Env(), flow.Reference(), fc).Msg(msgEvent)
+			tb := triggers.NewBuilder(flow.Reference()).Msg(msgEvent)
 			if keyword != "" {
 				tb = tb.WithMatch(&triggers.KeywordMatch{Type: trigger.KeywordMatchType(), Keyword: keyword})
 			}
@@ -218,7 +218,7 @@ func (t *MsgReceivedTask) perform(ctx context.Context, rt *runtime.Runtime, oa *
 				return msgOutcomeNonFlow, t.handleNonFlow(ctx, rt, oa, fc, msgEvent, sceneInit)
 			}
 
-			_, err = runner.StartSessions(ctx, rt, oa, []*models.Contact{mc}, []flows.Trigger{flowTrigger}, flow.FlowType().Interrupts(), models.NilStartID, sceneInit)
+			_, err = runner.StartSessions(ctx, rt, oa, []*models.Contact{mc}, []*flows.Contact{fc}, nil, []flows.Trigger{flowTrigger}, flow.FlowType().Interrupts(), models.NilStartID, sceneInit)
 			if err != nil {
 				return "", fmt.Errorf("error starting flow for contact: %w", err)
 			}
@@ -228,8 +228,8 @@ func (t *MsgReceivedTask) perform(ctx context.Context, rt *runtime.Runtime, oa *
 
 	// if there is a session, resume it
 	if session != nil && flow != nil {
-		resume := resumes.NewMsg(oa.Env(), fc, msgEvent)
-		_, err = runner.ResumeFlow(ctx, rt, oa, session, mc, resume, sceneInit)
+		resume := resumes.NewMsg(msgEvent)
+		_, err = runner.ResumeFlow(ctx, rt, oa, session, mc, fc, nil, resume, sceneInit)
 		if err != nil {
 			return "", fmt.Errorf("error resuming flow for contact: %w", err)
 		}

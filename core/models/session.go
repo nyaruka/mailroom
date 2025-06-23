@@ -100,8 +100,8 @@ func (s *Session) OutputMD5() string {
 }
 
 // EngineSession creates a flow session for the passed in session object. It also populates the runs we know about
-func (s *Session) EngineSession(ctx context.Context, rt *runtime.Runtime, sa flows.SessionAssets, env envs.Environment) (flows.Session, error) {
-	session, err := goflow.Engine(rt).ReadSession(sa, []byte(s.s.Output), assets.IgnoreMissing)
+func (s *Session) EngineSession(ctx context.Context, rt *runtime.Runtime, sa flows.SessionAssets, env envs.Environment, contact *flows.Contact, call *flows.Call) (flows.Session, error) {
+	session, err := goflow.Engine(rt).ReadSession(sa, []byte(s.s.Output), env, contact, call, assets.IgnoreMissing)
 	if err != nil {
 		return nil, fmt.Errorf("unable to unmarshal session: %w", err)
 	}

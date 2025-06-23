@@ -54,7 +54,7 @@ func (r DialResume) Type() ResumeType {
 }
 
 func buildDialResume(oa *models.OrgAssets, contact *flows.Contact, resume DialResume) (flows.Resume, error, error) {
-	return resumes.NewDial(oa.Env(), contact, flows.NewDial(resume.Status, resume.Duration)), nil, nil
+	return resumes.NewDial(flows.NewDial(resume.Status, resume.Duration)), nil, nil
 }
 
 func buildMsgResume(
@@ -113,5 +113,5 @@ func buildMsgResume(
 	}
 
 	// create our msg resume event
-	return &models.MsgInRef{ID: msg.ID()}, resumes.NewMsg(oa.Env(), contact, events.NewMsgReceived(msgIn)), nil, nil
+	return &models.MsgInRef{ID: msg.ID()}, resumes.NewMsg(events.NewMsgReceived(msgIn)), nil, nil
 }

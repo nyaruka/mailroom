@@ -12,7 +12,7 @@ import (
 )
 
 // ResumeFlow resumes the passed in session using the passed in session
-func ResumeFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, session *models.Session, contact *models.Contact, resume flows.Resume, sceneInit func(*Scene)) (*Scene, error) {
+func ResumeFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, session *models.Session, contact *models.Contact, fc *flows.Contact, call *flows.Call, resume flows.Resume, sceneInit func(*Scene)) (*Scene, error) {
 	start := time.Now()
 	sa := oa.SessionAssets()
 
@@ -29,7 +29,7 @@ func ResumeFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, 
 	}
 
 	// build our flow session
-	fs, err := session.EngineSession(ctx, rt, sa, oa.Env())
+	fs, err := session.EngineSession(ctx, rt, sa, oa.Env(), fc, call)
 	if err != nil {
 		return nil, fmt.Errorf("unable to create session from output: %w", err)
 	}
@@ -42,7 +42,7 @@ func ResumeFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, 
 		return nil, fmt.Errorf("error resuming flow: %w", err)
 	}
 
-	scene := NewScene(resume.Contact(), models.NilUserID, sceneInit)
+	scene := NewScene(fc, models.NilUserID, sceneInit)
 	scene.AddSprint(fs, sprint, contact, true)
 
 	if err := scene.ProcessEvents(ctx, rt, oa); err != nil {
@@ -78,7 +78,7 @@ func ResumeFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, 
 		return nil, fmt.Errorf("error processing post commit hooks: %w", err)
 	}
 
-	slog.Debug("resumed session", "contact", resume.Contact().UUID(), "session", session.UUID(), "resume_type", resume.Type(), "elapsed", time.Since(start))
+	slog.Debug("resumed session", "contact", fc.UUID(), "session", session.UUID(), "resume_type", resume.Type(), "elapsed", time.Since(start))
 
 	return scene, nil
 }

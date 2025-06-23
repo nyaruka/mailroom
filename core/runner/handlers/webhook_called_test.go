@@ -199,9 +199,9 @@ func TestUnhealthyWebhookCalls(t *testing.T) {
 
 // start the given contact in the given flow using a specific engine instance
 func runFlowAndApplyEvents(t *testing.T, ctx context.Context, rt *runtime.Runtime, env envs.Environment, eng flows.Engine, oa *models.OrgAssets, flowRef *assets.FlowReference, mc *models.Contact, fc *flows.Contact) {
-	trigger := triggers.NewBuilder(env, flowRef, fc).Manual().Build()
+	trigger := triggers.NewBuilder(flowRef).Manual().Build()
 
-	fs, sprint, err := eng.NewSession(ctx, oa.SessionAssets(), trigger)
+	fs, sprint, err := eng.NewSession(ctx, oa.SessionAssets(), oa.Env(), fc, trigger, nil)
 	require.NoError(t, err)
 
 	tx, err := rt.DB.BeginTxx(ctx, nil)

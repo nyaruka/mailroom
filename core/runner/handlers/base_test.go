@@ -170,7 +170,7 @@ func RunTestCases(t *testing.T, ctx context.Context, rt *runtime.Runtime, tcs []
 			assert.NoError(t, err)
 
 			triggerBuilder := func(contact *flows.Contact) flows.Trigger {
-				tb := triggers.NewBuilder(oa.Env(), testFlow.Reference(false), contact)
+				tb := triggers.NewBuilder(testFlow.Reference(false))
 				msg := msgsByContactID[models.ContactID(contact.ID())]
 				if msg != nil {
 					msgEvt := events.NewMsgReceived(msg.FlowMsg)

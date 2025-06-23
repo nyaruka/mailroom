@@ -165,7 +165,7 @@ func (t *EventReceivedTask) handle(ctx context.Context, rt *runtime.Runtime, oa 
 
 	// build our flow trigger
 	var trig flows.Trigger
-	tb := triggers.NewBuilder(oa.Env(), flow.Reference(), flowContact)
+	tb := triggers.NewBuilder(flow.Reference())
 
 	if t.EventType == models.EventTypeIncomingCall {
 		trig = tb.Channel(channel.Reference(), triggers.ChannelEventTypeIncomingCall).Build()
@@ -177,11 +177,13 @@ func (t *EventReceivedTask) handle(ctx context.Context, rt *runtime.Runtime, oa 
 		trig = tb.Channel(channel.Reference(), triggers.ChannelEventType(t.EventType)).WithParams(params).Build()
 	}
 
+	var flowCall *flows.Call
+
 	if flow.FlowType() == models.FlowTypeVoice {
 		if call != nil {
 			// incoming call which already exists
 			urn := mc.URNForID(t.URNID)
-			trig.SetCall(flows.NewCall(call.UUID(), oa.SessionAssets().Channels().Get(channel.UUID()), urn))
+			flowCall = flows.NewCall(call.UUID(), oa.SessionAssets().Channels().Get(channel.UUID()), urn)
 		} else {
 			// request outgoing call and wait for callback
 			if _, err := ivr.RequestCall(ctx, rt, oa, mc, trig); err != nil {
@@ -193,7 +195,7 @@ func (t *EventReceivedTask) handle(ctx context.Context, rt *runtime.Runtime, oa 
 
 	sceneInit := func(s *runner.Scene) { s.Call = call }
 
-	scenes, err := runner.StartSessions(ctx, rt, oa, []*models.Contact{mc}, []flows.Trigger{trig}, flow.FlowType().Interrupts(), models.NilStartID, sceneInit)
+	scenes, err := runner.StartSessions(ctx, rt, oa, []*models.Contact{mc}, []*flows.Contact{flowContact}, flowCall, []flows.Trigger{trig}, flow.FlowType().Interrupts(), models.NilStartID, sceneInit)
 	if err != nil {
 		return nil, fmt.Errorf("error starting flow for contact: %w", err)
 	}

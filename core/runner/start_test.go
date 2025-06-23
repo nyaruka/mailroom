@@ -42,7 +42,7 @@ func TestStartFlowConcurrency(t *testing.T) {
 	}
 
 	triggerBuilder := func(contact *flows.Contact) flows.Trigger {
-		return triggers.NewBuilder(oa.Env(), flowRef, contact).Manual().Build()
+		return triggers.NewBuilder(flowRef).Manual().Build()
 	}
 
 	// start each contact in the flow at the same time...

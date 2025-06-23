@@ -67,7 +67,7 @@ func TestResponseForSprint(t *testing.T) {
 
 	bob, _, bobURNs := testdb.Bob.Load(rt, oa)
 
-	trigger := triggers.NewBuilder(oa.Env(), testdb.Favorites.Reference(), nil).Manual().Build()
+	trigger := triggers.NewBuilder(testdb.Favorites.Reference()).Manual().Build()
 	call := models.NewOutgoingCall(testdb.Org1.ID, oa.ChannelByUUID(testdb.VonageChannel.UUID), bob, bobURNs[0].ID, trigger)
 	err = models.InsertCalls(ctx, rt.DB, []*models.Call{call})
 	assert.NoError(t, err)

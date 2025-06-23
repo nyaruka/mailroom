@@ -31,7 +31,7 @@ func TestCalls(t *testing.T) {
 
 	assertdb.Query(t, rt.DB, `SELECT direction, status, external_id from ivr_call where id = $1`, callIn1.ID()).Columns(map[string]any{"direction": "I", "status": "I", "external_id": "EXT123"})
 
-	trigger := triggers.NewBuilder(oa.Env(), testdb.Favorites.Reference(), nil).Manual().Build()
+	trigger := triggers.NewBuilder(testdb.Favorites.Reference()).Manual().Build()
 	callOut := models.NewOutgoingCall(testdb.Org1.ID, oa.ChannelByUUID(testdb.TwilioChannel.UUID), cathy, cathyURNs[0].ID, trigger)
 	err = models.InsertCalls(ctx, rt.DB, []*models.Call{callOut})
 	assert.NoError(t, err)
