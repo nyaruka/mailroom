@@ -1,3 +1,7 @@
+v10.1.150 (2025-06-23)
+-------------------------
+ * Return simulator contact separately
+
 v10.1.149 (2025-06-23)
 -------------------------
  * Fix not actually writing IVR call UUIDs
