@@ -1,3 +1,7 @@
+v10.1.148 (2025-06-23)
+-------------------------
+ * Revert "Fix race condition in worker shutdown to prevent 'send on closed channel' panic"
+
 v10.1.147 (2025-06-20)
 -------------------------
  * Update deps (includes go-chi security fix)
