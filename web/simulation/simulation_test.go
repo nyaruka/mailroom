@@ -61,15 +61,19 @@ const (
 			"uuid": "ba96bf7f-bc2a-4873-a7c7-254d1927c4e3"
 		},
 		"resume": {
-            "msg": {
-                "channel": {
-                    "name": "Twitter",
-                    "uuid": "0f661e8b-ea9d-4bd3-9953-d368340acf91"
-                },
-                "text": "$$MESSAGE$$",
-                "urn": "tel:+12065551212",
-                "uuid": "9bf91c2b-ce58-4cef-aacc-281e03f69ab5"
-            },
+			"event": {
+				"type": "msg_received",
+				"created_on": "2000-01-01T00:00:00.000000000-00:00",
+				"msg": {
+					"channel": {
+						"name": "Twitter",
+						"uuid": "0f661e8b-ea9d-4bd3-9953-d368340acf91"
+					},
+					"text": "$$MESSAGE$$",
+					"urn": "tel:+12065551212",
+					"uuid": "9bf91c2b-ce58-4cef-aacc-281e03f69ab5"
+				}
+			},
             "resumed_on": "2000-01-01T00:00:00.000000000-00:00",
             "type": "msg"
 		},
@@ -104,11 +108,15 @@ const (
 			"uuid": "ba96bf7f-bc2a-4873-a7c7-254d1927c4e3"
 		},
 		"trigger": {
-			"msg": {
-				"uuid": "2d611e17-fb22-457f-b802-b8f7ec5cda5b",
-				"channel": {"uuid": "440099cf-200c-4d45-a8e7-4a564f4a0e8b", "name": "Test Channel"},
-				"urn": "tel:+12065551212",
-				"text": "hi there"
+			"event": {
+				"type": "msg_received",
+				"created_on": "2000-01-01T00:00:00.000000000-00:00",
+				"msg": {
+					"uuid": "2d611e17-fb22-457f-b802-b8f7ec5cda5b",
+					"channel": {"uuid": "440099cf-200c-4d45-a8e7-4a564f4a0e8b", "name": "Test Channel"},
+					"urn": "tel:+12065551212",
+					"text": "hi there"
+				}
 			},
 			"flow": {
 				"name": "Favorites",
