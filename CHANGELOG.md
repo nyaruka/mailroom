@@ -1,3 +1,7 @@
+v10.1.152 (2025-06-24)
+-------------------------
+ * Update to latest goflow which converts resumes to use events
+
 v10.1.151 (2025-06-23)
 -------------------------
  * Update to latest goflow that no longer persists contact, env or call on the session
