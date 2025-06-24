@@ -42,7 +42,7 @@ func handleTicketOpened(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 	}
 
 	var openedInID models.FlowID
-	if scene.Session() != nil {
+	if scene.Session != nil {
 		flow, _ := scene.LocateEvent(e)
 		openedInID = flow.ID()
 	}
@@ -50,7 +50,7 @@ func handleTicketOpened(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 	ticket := models.NewTicket(
 		event.Ticket.UUID,
 		oa.OrgID(),
-		scene.UserID(),
+		scene.UserID,
 		openedInID,
 		scene.ContactID(),
 		topicID,

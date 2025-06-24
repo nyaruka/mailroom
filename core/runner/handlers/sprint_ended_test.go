@@ -59,7 +59,7 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 			"status": "W", "session_type": "M", "current_flow_id": int64(flow.ID), "ended_on": nil,
 		})
 
-	bobSession, alexSession := scenes[0].Session(), scenes[1].Session()
+	bobSession, alexSession := scenes[0].Session, scenes[1].Session
 
 	testsuite.AssertContactFires(t, rt, testdb.Bob.ID, map[string]time.Time{
 		fmt.Sprintf("E:%s", bobSession.UUID()): time.Date(2025, 2, 25, 16, 55, 9, 0, time.UTC), // 10 minutes in future
@@ -95,7 +95,7 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 	msg2 := flows.NewMsgIn("330b1ff5-a95e-4034-b2e1-d0b0f93eb8b8", testdb.Bob.URN, nil, "yes", nil, "")
 	scene, err = runner.ResumeFlow(ctx, rt, oa, modelSession, mcBob, fcBob, nil, resumes.NewMsg(events.NewMsgReceived(msg2)), nil)
 	require.NoError(t, err)
-	assert.Equal(t, flows.SessionStatusCompleted, scene.Session().Status())
+	assert.Equal(t, flows.SessionStatusCompleted, scene.Session.Status())
 	assert.Equal(t, time.Duration(0), scene.WaitTimeout) // flow has ended
 
 	// check session in the db
@@ -160,7 +160,7 @@ func TestSessionWithSubflows(t *testing.T) {
 			"status": "W", "session_type": "M", "current_flow_id": int64(child.ID), "ended_on": nil,
 		})
 
-	session := scenes[0].Session()
+	session := scenes[0].Session
 
 	// check we have a contact fire for wait expiration but not timeout
 	testsuite.AssertContactFires(t, rt, testdb.Cathy.ID, map[string]time.Time{
@@ -176,7 +176,7 @@ func TestSessionWithSubflows(t *testing.T) {
 	msg2 := flows.NewMsgIn("cd476f71-34f2-42d2-ae4d-b7d1c4103bd1", testdb.Cathy.URN, nil, "yes", nil, "")
 	scene, err := runner.ResumeFlow(ctx, rt, oa, modelSession, mc, fc, nil, resumes.NewMsg(events.NewMsgReceived(msg2)), nil)
 	require.NoError(t, err)
-	assert.Equal(t, flows.SessionStatusCompleted, scene.Session().Status())
+	assert.Equal(t, flows.SessionStatusCompleted, scene.Session.Status())
 	assert.Equal(t, time.Duration(0), scene.WaitTimeout) // flow has ended
 
 	// check we have no contact fires for wait expiration or timeout

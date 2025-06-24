@@ -23,11 +23,11 @@ func (h *updateMessageHandled) Execute(ctx context.Context, rt *runtime.Runtime,
 	for scene, es := range scenes {
 		evt := es[0].(*events.MsgReceivedEvent)
 		msgIn := scene.IncomingMsg
-		contactBlocked := scene.Contact().Status() == flows.ContactStatusBlocked
+		contactBlocked := scene.Contact.Status() == flows.ContactStatusBlocked
 
 		var flow *models.Flow
-		if scene.Sprint() != nil && len(scene.Sprint().Flows()) > 0 {
-			flow = scene.Sprint().Flows()[0].Asset().(*models.Flow)
+		if scene.Sprint != nil && len(scene.Sprint.Flows()) > 0 {
+			flow = scene.Sprint.Flows()[0].Asset().(*models.Flow)
 		}
 
 		visibility := models.VisibilityVisible

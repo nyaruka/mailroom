@@ -23,7 +23,7 @@ func handleContactURNsChanged(ctx context.Context, rt *runtime.Runtime, oa *mode
 	slog.Debug("contact urns changed", "contact", scene.ContactUUID(), "session", scene.SessionUUID(), "urns", event.URNs)
 
 	var flow *models.Flow
-	if scene.Session() != nil {
+	if scene.Session != nil {
 		flow, _ = scene.LocateEvent(e)
 	}
 

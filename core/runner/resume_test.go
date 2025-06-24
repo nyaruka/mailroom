@@ -56,7 +56,7 @@ func TestResume(t *testing.T) {
 		{"Luke", models.SessionStatusCompleted, models.RunStatusCompleted, "%Thanks Luke%", 7},
 	}
 
-	sessionUUID := scenes[0].Session().UUID()
+	sessionUUID := scenes[0].Session.UUID()
 
 	for i, tc := range tcs {
 		session, err := models.GetWaitingSessionForContact(ctx, rt, oa, flowContact, sessionUUID)

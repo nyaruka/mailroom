@@ -22,7 +22,7 @@ func handleMsgCreated(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAs
 	event := e.(*events.MsgCreatedEvent)
 
 	// must be in a session
-	if scene.Session() == nil {
+	if scene.Session == nil {
 		return fmt.Errorf("cannot handle msg created event without session")
 	}
 
@@ -40,7 +40,7 @@ func handleMsgCreated(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAs
 	// and the flow
 	flow, _ := scene.LocateEvent(e)
 
-	msg, err := models.NewOutgoingFlowMsg(rt, oa.Org(), channel, scene.Contact(), flow, event.Msg, scene.IncomingMsg, event.CreatedOn())
+	msg, err := models.NewOutgoingFlowMsg(rt, oa.Org(), channel, scene.Contact, flow, event.Msg, scene.IncomingMsg, event.CreatedOn())
 	if err != nil {
 		return fmt.Errorf("error creating outgoing message to %s: %w", event.Msg.URN(), err)
 	}

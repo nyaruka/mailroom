@@ -23,7 +23,7 @@ func (h *updateCallStatus) Execute(ctx context.Context, rt *runtime.Runtime, tx 
 		status := es[len(es)-1].(models.CallStatus)
 
 		if status == models.CallStatusInProgress {
-			session := scene.Session()
+			session := scene.Session
 
 			if err := scene.Call.SetInProgress(ctx, rt.DB, session.UUID(), session.CreatedOn()); err != nil {
 				return fmt.Errorf("error updating call to in progress: %w", err)
