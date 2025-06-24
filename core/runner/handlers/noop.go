@@ -20,6 +20,7 @@ func init() {
 	runner.RegisterEventHandler(events.TypeRunExpired, noopHandler)
 	runner.RegisterEventHandler(events.TypeRunResultChanged, noopHandler)
 	runner.RegisterEventHandler(events.TypeServiceCalled, noopHandler)
+	runner.RegisterEventHandler(events.TypeWaitExpired, noopHandler)
 	runner.RegisterEventHandler(events.TypeWaitTimedOut, noopHandler)
 	runner.RegisterEventHandler(events.TypeDialWait, noopHandler)
 	runner.RegisterEventHandler(events.TypeDialEnded, noopHandler)

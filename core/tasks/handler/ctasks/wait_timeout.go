@@ -8,6 +8,7 @@ import (
 
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/engine"
+	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/goflow/flows/resumes"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/runner"
@@ -59,7 +60,7 @@ func (t *WaitTimeoutTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *
 		return nil
 	}
 
-	resume := resumes.NewWaitTimeout()
+	resume := resumes.NewWaitTimeout(events.NewWaitTimedOut())
 
 	_, err = runner.ResumeFlow(ctx, rt, oa, session, mc, fc, nil, resume, nil)
 	if err != nil {
