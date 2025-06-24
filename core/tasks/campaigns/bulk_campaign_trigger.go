@@ -120,7 +120,7 @@ func (t *BulkCampaignTriggerTask) triggerFlow(ctx context.Context, rt *runtime.R
 	}
 
 	flowRef := assets.NewFlowReference(flow.UUID(), flow.Name())
-	triggerBuilder := func(*flows.Contact) flows.Trigger {
+	triggerBuilder := func() flows.Trigger {
 		return triggers.NewBuilder(flowRef).Campaign(campaign, events.NewCampaignFired(campaign, p.UUID)).Build()
 	}
 
@@ -133,7 +133,7 @@ func (t *BulkCampaignTriggerTask) triggerFlow(ctx context.Context, rt *runtime.R
 		// for each contacts, request a call start
 		for _, contact := range contacts {
 			ctx, cancel := context.WithTimeout(ctx, time.Minute)
-			call, err := ivr.RequestCall(ctx, rt, oa, contact, triggerBuilder(nil))
+			call, err := ivr.RequestCall(ctx, rt, oa, contact, triggerBuilder())
 			cancel()
 			if err != nil {
 				slog.Error("error requesting call for campaign point", "contact", contact.UUID(), "point", t.PointID, "error", err)
@@ -147,7 +147,7 @@ func (t *BulkCampaignTriggerTask) triggerFlow(ctx context.Context, rt *runtime.R
 	} else {
 		interrupt := p.StartMode != models.PointModePassive
 
-		_, err = runner.StartWithLock(ctx, rt, oa, contactIDs, triggerBuilder, interrupt, models.NilStartID, nil)
+		_, err = runner.StartWithLock(ctx, rt, oa, contactIDs, triggerBuilder, interrupt, models.NilStartID)
 		if err != nil {
 			return fmt.Errorf("error starting flow for campaign point #%d: %w", p.ID, err)
 		}

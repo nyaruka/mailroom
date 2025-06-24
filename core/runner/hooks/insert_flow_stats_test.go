@@ -43,11 +43,11 @@ func TestInsertFlowStats(t *testing.T) {
 
 	tx := rt.DB.MustBeginTx(ctx, nil)
 
-	scene1 := runner.NewScene(session1.Contact(), models.NilUserID, nil)
+	scene1 := runner.NewScene(session1.Contact(), models.NilUserID)
 	scene1.AddSprint(session1, session1Sprint1, nil, false)
-	scene2 := runner.NewScene(session2.Contact(), models.NilUserID, nil)
+	scene2 := runner.NewScene(session2.Contact(), models.NilUserID)
 	scene2.AddSprint(session2, session2Sprint1, nil, false)
-	scene3 := runner.NewScene(session3.Contact(), models.NilUserID, nil)
+	scene3 := runner.NewScene(session3.Contact(), models.NilUserID)
 	scene3.AddSprint(session3, session3Sprint1, nil, false)
 
 	err = hooks.InsertFlowStats.Execute(ctx, rt, tx, oa, map[*runner.Scene][]any{scene1: nil, scene2: nil, scene3: nil})
@@ -83,11 +83,11 @@ func TestInsertFlowStats(t *testing.T) {
 	session3, session3Sprint2, err := test.ResumeSession(session3, sa3, "teal")
 	require.NoError(t, err)
 
-	scene4 := runner.NewScene(session1.Contact(), models.NilUserID, nil)
+	scene4 := runner.NewScene(session1.Contact(), models.NilUserID)
 	scene4.AddSprint(session1, session1Sprint2, nil, false)
-	scene5 := runner.NewScene(session2.Contact(), models.NilUserID, nil)
+	scene5 := runner.NewScene(session2.Contact(), models.NilUserID)
 	scene5.AddSprint(session2, session2Sprint2, nil, false)
-	scene6 := runner.NewScene(session3.Contact(), models.NilUserID, nil)
+	scene6 := runner.NewScene(session3.Contact(), models.NilUserID)
 	scene6.AddSprint(session3, session3Sprint2, nil, false)
 
 	tx = rt.DB.MustBeginTx(ctx, nil)
@@ -110,7 +110,7 @@ func TestInsertFlowStats(t *testing.T) {
 	session3, session3Sprint3, err := test.ResumeSession(session3, sa3, "azure")
 	require.NoError(t, err)
 
-	scene7 := runner.NewScene(session3.Contact(), models.NilUserID, nil)
+	scene7 := runner.NewScene(session3.Contact(), models.NilUserID)
 	scene7.AddSprint(session3, session3Sprint3, nil, false)
 
 	tx = rt.DB.MustBeginTx(ctx, nil)
@@ -159,7 +159,7 @@ func TestInsertFlowStats(t *testing.T) {
 	session3, session3Sprint4, err := test.ResumeSession(session3, sa3, "blue")
 	require.NoError(t, err)
 
-	scene8 := runner.NewScene(session3.Contact(), models.NilUserID, nil)
+	scene8 := runner.NewScene(session3.Contact(), models.NilUserID)
 	scene8.AddSprint(session3, session3Sprint4, nil, false)
 
 	tx = rt.DB.MustBeginTx(ctx, nil)

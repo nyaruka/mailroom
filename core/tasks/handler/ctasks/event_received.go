@@ -193,15 +193,13 @@ func (t *EventReceivedTask) handle(ctx context.Context, rt *runtime.Runtime, oa 
 		}
 	}
 
-	sceneInit := func(s *runner.Scene) { s.Call = call }
+	scene := runner.NewScene(flowContact, models.NilUserID)
+	scene.Call = call
 
-	scenes, err := runner.StartSessions(ctx, rt, oa, []*models.Contact{mc}, []*flows.Contact{flowContact}, flowCall, []flows.Trigger{trig}, flow.FlowType().Interrupts(), models.NilStartID, sceneInit)
+	err = runner.StartSessions(ctx, rt, oa, []*models.Contact{mc}, []*runner.Scene{scene}, flowCall, []flows.Trigger{trig}, flow.FlowType().Interrupts(), models.NilStartID)
 	if err != nil {
 		return nil, fmt.Errorf("error starting flow for contact: %w", err)
 	}
-	if len(scenes) == 0 {
-		return nil, nil
-	}
 
-	return scenes[0], nil
+	return scene, nil
 }

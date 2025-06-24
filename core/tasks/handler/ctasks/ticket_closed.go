@@ -72,12 +72,14 @@ func (t *TicketClosedTask) Perform(ctx context.Context, rt *runtime.Runtime, oa 
 		return fmt.Errorf("error loading flow for trigger: %w", err)
 	}
 
-	// build our flow ticket
 	ticket := tickets[0].FlowTicket(oa)
-	event := events.NewTicketClosed(ticket)
+	evt := events.NewTicketClosed(ticket)
+
+	scene := runner.NewScene(fc, models.NilUserID)
+	scene.AddEvents([]flows.Event{evt})
 
 	// build our flow trigger
-	flowTrigger := triggers.NewBuilder(flow.Reference()).Ticket(ticket, event).Build()
+	flowTrigger := triggers.NewBuilder(flow.Reference()).Ticket(ticket, evt).Build()
 
 	// if this is a voice flow, we request a call and wait for callback
 	if flow.FlowType() == models.FlowTypeVoice {
@@ -87,7 +89,7 @@ func (t *TicketClosedTask) Perform(ctx context.Context, rt *runtime.Runtime, oa 
 		return nil
 	}
 
-	_, err = runner.StartSessions(ctx, rt, oa, []*models.Contact{mc}, []*flows.Contact{fc}, nil, []flows.Trigger{flowTrigger}, flow.FlowType().Interrupts(), models.NilStartID, nil)
+	err = runner.StartSessions(ctx, rt, oa, []*models.Contact{mc}, []*runner.Scene{scene}, nil, []flows.Trigger{flowTrigger}, flow.FlowType().Interrupts(), models.NilStartID)
 	if err != nil {
 		return fmt.Errorf("error starting flow for contact: %w", err)
 	}

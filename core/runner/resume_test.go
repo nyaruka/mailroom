@@ -28,11 +28,11 @@ func TestResume(t *testing.T) {
 	require.NoError(t, err)
 
 	modelContact, flowContact, _ := testdb.Cathy.Load(rt, oa)
-
 	trigger := triggers.NewBuilder(flow.Reference()).Manual().Build()
-	scenes, err := runner.StartSessions(ctx, rt, oa, []*models.Contact{modelContact}, []*flows.Contact{flowContact}, nil, []flows.Trigger{trigger}, true, models.NilStartID, nil)
+	scene := runner.NewScene(flowContact, models.NilUserID)
+
+	err = runner.StartSessions(ctx, rt, oa, []*models.Contact{modelContact}, []*runner.Scene{scene}, nil, []flows.Trigger{trigger}, true, models.NilStartID)
 	assert.NoError(t, err)
-	assert.Len(t, scenes, 1)
 
 	assertdb.Query(t, rt.DB,
 		`SELECT count(*) FROM flows_flowsession WHERE contact_id = $1 AND current_flow_id = $2
@@ -56,7 +56,7 @@ func TestResume(t *testing.T) {
 		{"Luke", models.SessionStatusCompleted, models.RunStatusCompleted, "%Thanks Luke%", 7},
 	}
 
-	sessionUUID := scenes[0].Session.UUID()
+	sessionUUID := scene.Session.UUID()
 
 	for i, tc := range tcs {
 		session, err := models.GetWaitingSessionForContact(ctx, rt, oa, flowContact, sessionUUID)
@@ -66,9 +66,10 @@ func TestResume(t *testing.T) {
 		msg := flows.NewMsgIn(flows.NewMsgUUID(), testdb.Cathy.URN, nil, tc.Message, nil, "")
 		resume := resumes.NewMsg(events.NewMsgReceived(msg))
 
-		scene, err := runner.ResumeFlow(ctx, rt, oa, session, modelContact, flowContact, nil, resume, nil)
+		scene := runner.NewScene(flowContact, models.NilUserID)
+
+		err = runner.ResumeFlow(ctx, rt, oa, session, modelContact, scene, nil, resume)
 		assert.NoError(t, err)
-		assert.NotNil(t, scene)
 
 		assertdb.Query(t, rt.DB,
 			`SELECT count(*) FROM flows_flowsession WHERE contact_id = $1

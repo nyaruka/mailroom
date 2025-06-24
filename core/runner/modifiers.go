@@ -19,18 +19,24 @@ func ApplyModifiers(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 	env := flows.NewAssetsEnvironment(oa.Env(), oa.SessionAssets())
 	eng := goflow.Engine(rt)
 
+	scenes := make([]*Scene, 0, len(modifiersByContact))
 	eventsByContact := make(map[*flows.Contact][]flows.Event, len(modifiersByContact))
 
-	// apply the modifiers to get the events for each contact
 	for contact, mods := range modifiersByContact {
+		scene := NewScene(contact, userID)
+
+		// apply the modifiers to get the events
 		events := make([]flows.Event, 0)
 		for _, mod := range mods {
 			modifiers.Apply(eng, env, oa.SessionAssets(), contact, mod, func(e flows.Event) { events = append(events, e) })
 		}
 		eventsByContact[contact] = events
+
+		scene.AddEvents(events)
+		scenes = append(scenes, scene)
 	}
 
-	if err := ProcessEvents(ctx, rt, oa, userID, eventsByContact, nil); err != nil {
+	if err := ProcessEvents(ctx, rt, oa, userID, scenes); err != nil {
 		return nil, fmt.Errorf("error commiting events: %w", err)
 	}
 
