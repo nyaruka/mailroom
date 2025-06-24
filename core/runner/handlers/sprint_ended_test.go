@@ -43,9 +43,13 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 		triggers.NewBuilder(flow.Reference()).Manual().Build(),
 	}
 
-	scenes, err := runner.StartSessions(ctx, rt, oa, []*models.Contact{mcBob, mcAlex}, []*flows.Contact{fcBob, fcAlex}, nil, trigs, true, models.NilStartID, nil)
+	scenes := []*runner.Scene{
+		runner.NewScene(fcBob, models.NilUserID),
+		runner.NewScene(fcAlex, models.NilUserID),
+	}
+
+	err = runner.StartSessions(ctx, rt, oa, []*models.Contact{mcBob, mcAlex}, scenes, nil, trigs, true, models.NilStartID)
 	require.NoError(t, err)
-	require.Len(t, scenes, 2)
 	assert.Equal(t, time.Minute*5, scenes[0].WaitTimeout)    // Bob's messages are being sent via courier
 	assert.Equal(t, time.Duration(0), scenes[1].WaitTimeout) // Alexandra's messages are being sent via Android
 
@@ -59,7 +63,7 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 			"status": "W", "session_type": "M", "current_flow_id": int64(flow.ID), "ended_on": nil,
 		})
 
-	bobSession, alexSession := scenes[0].Session(), scenes[1].Session()
+	bobSession, alexSession := scenes[0].Session, scenes[1].Session
 
 	testsuite.AssertContactFires(t, rt, testdb.Bob.ID, map[string]time.Time{
 		fmt.Sprintf("E:%s", bobSession.UUID()): time.Date(2025, 2, 25, 16, 55, 9, 0, time.UTC), // 10 minutes in future
@@ -77,7 +81,9 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 	assert.Equal(t, flow.ID, modelSession.CurrentFlowID())
 
 	msg1 := flows.NewMsgIn("0c9cd2e4-865e-40bf-92bb-3c958d5f6f0d", testdb.Bob.URN, nil, "no", nil, "")
-	scene, err := runner.ResumeFlow(ctx, rt, oa, modelSession, mcBob, fcBob, nil, resumes.NewMsg(events.NewMsgReceived(msg1)), nil)
+	scene := runner.NewScene(fcBob, models.NilUserID)
+
+	err = runner.ResumeFlow(ctx, rt, oa, modelSession, mcBob, scene, nil, resumes.NewMsg(events.NewMsgReceived(msg1)))
 	require.NoError(t, err)
 	assert.Equal(t, time.Duration(0), scene.WaitTimeout) // wait doesn't have a timeout
 
@@ -93,9 +99,11 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 	assert.Equal(t, flow.ID, modelSession.CurrentFlowID())
 
 	msg2 := flows.NewMsgIn("330b1ff5-a95e-4034-b2e1-d0b0f93eb8b8", testdb.Bob.URN, nil, "yes", nil, "")
-	scene, err = runner.ResumeFlow(ctx, rt, oa, modelSession, mcBob, fcBob, nil, resumes.NewMsg(events.NewMsgReceived(msg2)), nil)
+	scene = runner.NewScene(fcBob, models.NilUserID)
+
+	err = runner.ResumeFlow(ctx, rt, oa, modelSession, mcBob, scene, nil, resumes.NewMsg(events.NewMsgReceived(msg2)))
 	require.NoError(t, err)
-	assert.Equal(t, flows.SessionStatusCompleted, scene.Session().Status())
+	assert.Equal(t, flows.SessionStatusCompleted, scene.Session.Status())
 	assert.Equal(t, time.Duration(0), scene.WaitTimeout) // flow has ended
 
 	// check session in the db
@@ -118,10 +126,11 @@ func TestSingleSprintSession(t *testing.T) {
 	require.NoError(t, err)
 
 	mc, fc, _ := testdb.Bob.Load(rt, oa)
+	scenes := []*runner.Scene{runner.NewScene(fc, models.NilUserID)}
+	trigs := []flows.Trigger{triggers.NewBuilder(flow.Reference()).Manual().Build()}
 
-	scenes, err := runner.StartSessions(ctx, rt, oa, []*models.Contact{mc}, []*flows.Contact{fc}, nil, []flows.Trigger{triggers.NewBuilder(flow.Reference()).Manual().Build()}, true, models.NilStartID, nil)
+	err = runner.StartSessions(ctx, rt, oa, []*models.Contact{mc}, scenes, nil, trigs, true, models.NilStartID)
 	require.NoError(t, err)
-	require.Len(t, scenes, 1)
 
 	// check session in database
 	assertdb.Query(t, rt.DB, `SELECT status, session_type, current_flow_id FROM flows_flowsession`).
@@ -148,10 +157,11 @@ func TestSessionWithSubflows(t *testing.T) {
 	require.NoError(t, err)
 
 	mc, fc, _ := testdb.Cathy.Load(rt, oa)
+	scenes := []*runner.Scene{runner.NewScene(fc, models.NilUserID)}
+	trigs := []flows.Trigger{triggers.NewBuilder(parent.Reference()).Manual().Build()}
 
-	scenes, err := runner.StartSessions(ctx, rt, oa, []*models.Contact{mc}, []*flows.Contact{fc}, nil, []flows.Trigger{triggers.NewBuilder(parent.Reference()).Manual().Build()}, true, models.NilStartID, nil)
+	err = runner.StartSessions(ctx, rt, oa, []*models.Contact{mc}, scenes, nil, trigs, true, models.NilStartID)
 	require.NoError(t, err)
-	require.Len(t, scenes, 1)
 	assert.Equal(t, time.Duration(0), scenes[0].WaitTimeout) // no timeout on wait
 
 	// check session in the db
@@ -160,7 +170,7 @@ func TestSessionWithSubflows(t *testing.T) {
 			"status": "W", "session_type": "M", "current_flow_id": int64(child.ID), "ended_on": nil,
 		})
 
-	session := scenes[0].Session()
+	session := scenes[0].Session
 
 	// check we have a contact fire for wait expiration but not timeout
 	testsuite.AssertContactFires(t, rt, testdb.Cathy.ID, map[string]time.Time{
@@ -174,9 +184,11 @@ func TestSessionWithSubflows(t *testing.T) {
 	assert.Equal(t, child.ID, modelSession.CurrentFlowID())
 
 	msg2 := flows.NewMsgIn("cd476f71-34f2-42d2-ae4d-b7d1c4103bd1", testdb.Cathy.URN, nil, "yes", nil, "")
-	scene, err := runner.ResumeFlow(ctx, rt, oa, modelSession, mc, fc, nil, resumes.NewMsg(events.NewMsgReceived(msg2)), nil)
+	scene := runner.NewScene(fc, models.NilUserID)
+
+	err = runner.ResumeFlow(ctx, rt, oa, modelSession, mc, scene, nil, resumes.NewMsg(events.NewMsgReceived(msg2)))
 	require.NoError(t, err)
-	assert.Equal(t, flows.SessionStatusCompleted, scene.Session().Status())
+	assert.Equal(t, flows.SessionStatusCompleted, scene.Session.Status())
 	assert.Equal(t, time.Duration(0), scene.WaitTimeout) // flow has ended
 
 	// check we have no contact fires for wait expiration or timeout

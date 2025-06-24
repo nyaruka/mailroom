@@ -66,7 +66,7 @@ func (h *updateCampaignFires) Execute(ctx context.Context, rt *runtime.Runtime, 
 			for _, c := range oa.CampaignByGroupID(g) {
 				for _, e := range c.Points() {
 					// only delete events that we qualify for or that were changed
-					if e.QualifiesByField(s.Contact()) || fieldChanges[e.RelativeToID] {
+					if e.QualifiesByField(s.Contact) || fieldChanges[e.RelativeToID] {
 						pointsToRemove[e] = true
 					}
 				}
@@ -78,7 +78,7 @@ func (h *updateCampaignFires) Execute(ctx context.Context, rt *runtime.Runtime, 
 			fieldEvents := oa.CampaignPointsByFieldID(f)
 			for _, e := range fieldEvents {
 				// only recalculate the events if this contact qualifies for this event or this group was removed
-				if e.QualifiesByGroup(s.Contact()) || groupRemoves[e.Campaign().GroupID()] {
+				if e.QualifiesByGroup(s.Contact) || groupRemoves[e.Campaign().GroupID()] {
 					pointsToRemove[e] = true
 					pointsToAdd[e] = true
 				}
@@ -103,7 +103,7 @@ func (h *updateCampaignFires) Execute(ctx context.Context, rt *runtime.Runtime, 
 		tz := oa.Env().Timezone()
 		now := time.Now()
 		for p := range pointsToAdd {
-			scheduled, err := p.ScheduleForContact(tz, now, s.Contact())
+			scheduled, err := p.ScheduleForContact(tz, now, s.Contact)
 			if err != nil {
 				return fmt.Errorf("error calculating offset: %w", err)
 			}

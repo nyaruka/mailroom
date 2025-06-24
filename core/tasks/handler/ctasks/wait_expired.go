@@ -55,6 +55,8 @@ func (t *WaitExpiredTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *
 		return nil
 	}
 
+	evt := events.NewWaitExpired()
+
 	if session.SessionType() == models.FlowTypeVoice {
 		// load our call
 		call, err := models.GetCallByID(ctx, rt.DB, oa.OrgID(), session.CallID())
@@ -79,10 +81,12 @@ func (t *WaitExpiredTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *
 		}
 
 	} else {
-		resume := resumes.NewWaitExpiration(events.NewWaitExpired())
+		scene := runner.NewScene(fc, models.NilUserID)
+		scene.AddEvents([]flows.Event{evt})
 
-		_, err = runner.ResumeFlow(ctx, rt, oa, session, mc, fc, nil, resume, nil)
-		if err != nil {
+		resume := resumes.NewWaitExpiration(evt)
+
+		if err := runner.ResumeFlow(ctx, rt, oa, session, mc, scene, nil, resume); err != nil {
 			return fmt.Errorf("error resuming flow for expiration: %w", err)
 		}
 	}

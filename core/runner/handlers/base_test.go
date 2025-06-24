@@ -169,28 +169,31 @@ func RunTestCases(t *testing.T, ctx context.Context, rt *runtime.Runtime, tcs []
 			oa, err = oa.CloneForSimulation(ctx, rt, map[assets.FlowUUID]json.RawMessage{flowUUID: flowDef}, nil)
 			assert.NoError(t, err)
 
-			triggerBuilder := func(contact *flows.Contact) flows.Trigger {
-				tb := triggers.NewBuilder(testFlow.Reference(false))
-				msg := msgsByContactID[models.ContactID(contact.ID())]
+			mcs := make([]*models.Contact, 4)
+			scenes := make([]*runner.Scene, 4)
+			trigs := make([]flows.Trigger, 4)
+
+			for i, c := range []*testdb.Contact{testdb.Cathy, testdb.Bob, testdb.George, testdb.Alexandra} {
+				mc, fc, _ := c.Load(rt, oa)
+				mcs[i] = mc
+				scenes[i] = runner.NewScene(fc, models.NilUserID)
+				if msg := msgsByContactID[c.ID]; msg != nil {
+					scenes[i].IncomingMsg = &models.MsgInRef{ID: msg.ID}
+					scenes[i].AddEvents([]flows.Event{events.NewMsgReceived(msg.FlowMsg)})
+				}
+
+				msg := msgsByContactID[c.ID]
 				if msg != nil {
 					msgEvt := events.NewMsgReceived(msg.FlowMsg)
-					contact.SetLastSeenOn(msgEvt.CreatedOn())
-					return tb.Msg(msgEvt).Build()
+					fc.SetLastSeenOn(msgEvt.CreatedOn())
+					trigs[i] = triggers.NewBuilder(testFlow.Reference(false)).Msg(msgEvt).Build()
+				} else {
+					trigs[i] = triggers.NewBuilder(testFlow.Reference(false)).Manual().Build()
 				}
-				return tb.Manual().Build()
 			}
 
-			for _, c := range []*testdb.Contact{testdb.Cathy, testdb.Bob, testdb.George, testdb.Alexandra} {
-				sceneInit := func(scene *runner.Scene) {
-					if msg := msgsByContactID[c.ID]; msg != nil {
-						scene.IncomingMsg = &models.MsgInRef{ID: msg.ID}
-						scene.AddEvents([]flows.Event{events.NewMsgReceived(msg.FlowMsg)})
-					}
-				}
-
-				_, err := runner.StartWithLock(ctx, rt, oa, []models.ContactID{c.ID}, triggerBuilder, true, models.NilStartID, sceneInit)
-				require.NoError(t, err)
-			}
+			err = runner.StartSessions(ctx, rt, oa, mcs, scenes, nil, trigs, true, models.NilStartID)
+			require.NoError(t, err)
 		}
 		if tc.Modifiers != nil {
 			userID := models.NilUserID

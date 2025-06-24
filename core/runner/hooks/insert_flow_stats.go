@@ -43,7 +43,7 @@ func (h *insertFlowStats) Execute(ctx context.Context, rt *runtime.Runtime, tx *
 
 	// scenes are processed in order of session UUID.. solely for the sake of test determinism
 	for _, scene := range slices.SortedStableFunc(maps.Keys(scenes), func(s1, s2 *runner.Scene) int { return cmp.Compare(s1.SessionUUID(), s2.SessionUUID()) }) {
-		for _, seg := range scene.Sprint().Segments() {
+		for _, seg := range scene.Sprint.Segments() {
 			segID := segmentInfo{
 				flowID:   seg.Flow().Asset().(*models.Flow).ID(),
 				exitUUID: seg.Exit().UUID(),
@@ -61,11 +61,11 @@ func (h *insertFlowStats) Execute(ctx context.Context, rt *runtime.Runtime, tx *
 				if storeOperandsForTypes[uiNodeType] {
 					operand = seg.Operand()
 				}
-				recentBySegment[segID] = append(recentBySegment[segID], &segmentRecentContact{contact: scene.Contact(), operand: operand, time: seg.Time(), rnd: vkutil.RandomBase64(10)})
+				recentBySegment[segID] = append(recentBySegment[segID], &segmentRecentContact{contact: scene.Contact, operand: operand, time: seg.Time(), rnd: vkutil.RandomBase64(10)})
 			}
 		}
 
-		for _, e := range scene.Sprint().Events() {
+		for _, e := range scene.Sprint.Events() {
 			switch typed := e.(type) {
 			case *events.RunResultChangedEvent:
 				flow, _ := scene.LocateEvent(e)

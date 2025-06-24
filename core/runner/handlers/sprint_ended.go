@@ -30,12 +30,12 @@ func handleSprintEnded(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 
 	slog.Debug("sprint ended", "contact", scene.ContactUUID(), "session", scene.SessionUUID())
 
-	sessionIsWaiting := scene.Session().Status() == flows.SessionStatusWaiting
+	sessionIsWaiting := scene.Session.Status() == flows.SessionStatusWaiting
 	currentFlowChanged := false
 
 	// get flow that contact is now waiting in ()
 	currentFlowID := models.NilFlowID
-	for _, run := range scene.Session().Runs() {
+	for _, run := range scene.Session.Runs() {
 		if run.Status() == flows.RunStatusWaiting {
 			currentFlowID = run.Flow().Asset().(*models.Flow).ID()
 			break
@@ -43,10 +43,10 @@ func handleSprintEnded(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 	}
 
 	// if we're in a flow type that can wait then contact current flow has potentially changed
-	if scene.Session().Type() != flows.FlowTypeMessagingBackground {
+	if scene.Session.Type() != flows.FlowTypeMessagingBackground {
 		var waitingSessionUUID flows.SessionUUID
 		if sessionIsWaiting {
-			waitingSessionUUID = scene.Session().UUID()
+			waitingSessionUUID = scene.Session.UUID()
 		}
 
 		currentFlowChanged = event.Contact.CurrentFlowID() != currentFlowID
@@ -67,20 +67,20 @@ func handleSprintEnded(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 	}
 
 	if scene.Call != nil {
-		if scene.Session().Status() != flows.SessionStatusWaiting {
+		if scene.Session.Status() != flows.SessionStatusWaiting {
 			scene.AttachPreCommitHook(hooks.UpdateCallStatus, models.CallStatusCompleted)
-		} else if scene.Sprint().IsInitial() {
+		} else if scene.Sprint.IsInitial() {
 			scene.AttachPreCommitHook(hooks.UpdateCallStatus, models.CallStatusInProgress)
 		}
 	}
 
-	if scene.Session().Status() != flows.SessionStatusFailed {
-		newFires, timeout := calculateFires(oa, scene.ContactID(), scene.Session(), scene.Sprint(), scene.Sprint().IsInitial())
+	if scene.Session.Status() != flows.SessionStatusFailed {
+		newFires, timeout := calculateFires(oa, scene.ContactID(), scene.Session, scene.Sprint, scene.Sprint.IsInitial())
 
 		scene.WaitTimeout = timeout // used by post commit hooks
 
 		delFires := hooks.DeleteFiresNone
-		if scene.Sprint().IsInitial() {
+		if scene.Sprint.IsInitial() {
 			// we've started a new session
 			if sessionIsWaiting {
 				// and reached a wait
