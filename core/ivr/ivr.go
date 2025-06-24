@@ -351,7 +351,7 @@ func ResumeIVRFlow(
 		msg, resume, svcErr, err = buildMsgResume(ctx, rt, svc, channel, fc, urn, call, oa, res)
 
 	case DialResume:
-		resume, svcErr, err = buildDialResume(oa, fc, res)
+		resume, svcErr, err = buildDialResume(res)
 
 	default:
 		return fmt.Errorf("unknown resume type: %vvv", ivrResume)

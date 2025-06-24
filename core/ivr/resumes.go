@@ -53,8 +53,8 @@ func (r DialResume) Type() ResumeType {
 	return DialResumeType
 }
 
-func buildDialResume(oa *models.OrgAssets, contact *flows.Contact, resume DialResume) (flows.Resume, error, error) {
-	return resumes.NewDial(flows.NewDial(resume.Status, resume.Duration)), nil, nil
+func buildDialResume(resume DialResume) (flows.Resume, error, error) {
+	return resumes.NewDial(events.NewDialEnded(flows.NewDial(resume.Status, resume.Duration))), nil, nil
 }
 
 func buildMsgResume(
