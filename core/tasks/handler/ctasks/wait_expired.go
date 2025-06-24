@@ -6,6 +6,7 @@ import (
 	"log/slog"
 
 	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/goflow/flows/resumes"
 	"github.com/nyaruka/mailroom/core/ivr"
 	"github.com/nyaruka/mailroom/core/models"
@@ -78,7 +79,7 @@ func (t *WaitExpiredTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *
 		}
 
 	} else {
-		resume := resumes.NewRunExpiration()
+		resume := resumes.NewWaitExpiration(events.NewWaitExpired())
 
 		_, err = runner.ResumeFlow(ctx, rt, oa, session, mc, fc, nil, resume, nil)
 		if err != nil {

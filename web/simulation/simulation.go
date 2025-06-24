@@ -43,8 +43,8 @@ type sessionRequest struct {
 	Assets struct {
 		Channels []*static.Channel `json:"channels"`
 	} `json:"assets"`
-	Contact json.RawMessage     `json:"contact" validate:"required"`
-	Call    *flows.CallEnvelope `json:"call,omitempty"`
+	Contact *flows.ContactEnvelope `json:"contact" validate:"required"`
+	Call    *flows.CallEnvelope    `json:"call,omitempty"`
 }
 
 func (r *sessionRequest) flows() map[assets.FlowUUID]json.RawMessage {
@@ -64,11 +64,11 @@ func (r *sessionRequest) channels() []assets.Channel {
 }
 
 type simulationResponse struct {
-	Session  flows.Session   `json:"session"`
-	Contact  *flows.Contact  `json:"contact"`
-	Events   []flows.Event   `json:"events"`
-	Segments []flows.Segment `json:"segments"`
-	Context  *types.XObject  `json:"context,omitempty"`
+	Session  flows.Session          `json:"session"`
+	Contact  *flows.ContactEnvelope `json:"contact"`
+	Events   []flows.Event          `json:"events"`
+	Segments []flows.Segment        `json:"segments"`
+	Context  *types.XObject         `json:"context,omitempty"`
 }
 
 func newSimulationResponse(session flows.Session, sprint flows.Sprint) *simulationResponse {
@@ -85,7 +85,7 @@ func newSimulationResponse(session flows.Session, sprint flows.Sprint) *simulati
 	}
 	return &simulationResponse{
 		Session:  session,
-		Contact:  session.Contact(),
+		Contact:  session.Contact().Marshal(),
 		Events:   sprint.Events(),
 		Segments: sprint.Segments(),
 		Context:  context,
@@ -142,7 +142,7 @@ func handleStart(ctx context.Context, rt *runtime.Runtime, r *startRequest) (any
 		return nil, http.StatusBadRequest, fmt.Errorf("unable to clone org: %w", err)
 	}
 
-	contact, err := flows.ReadContact(oa.SessionAssets(), r.Contact, assets.IgnoreMissing)
+	contact, err := r.Contact.Unmarshal(oa.SessionAssets(), assets.IgnoreMissing)
 	if err != nil {
 		return nil, http.StatusBadRequest, fmt.Errorf("unable to read contact: %w", err)
 	}
@@ -208,7 +208,7 @@ func handleResume(ctx context.Context, rt *runtime.Runtime, r *resumeRequest) (a
 		return nil, http.StatusBadRequest, err
 	}
 
-	contact, err := flows.ReadContact(oa.SessionAssets(), r.Contact, assets.IgnoreMissing)
+	contact, err := r.Contact.Unmarshal(oa.SessionAssets(), assets.IgnoreMissing)
 	if err != nil {
 		return nil, http.StatusBadRequest, fmt.Errorf("unable to read contact: %w", err)
 	}
