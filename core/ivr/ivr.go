@@ -261,18 +261,17 @@ func StartIVRFlow(
 	}
 
 	flowCall := flows.NewCall(call.UUID(), oa.SessionAssets().Channels().Get(channel.UUID()), urn.Identity())
-	sceneInit := func(s *runner.Scene) { s.Call = call }
 
-	scenes, err := runner.StartSessions(ctx, rt, oa, []*models.Contact{c}, []*flows.Contact{contact}, flowCall, []flows.Trigger{trigger}, true, models.NilStartID, sceneInit)
+	scene := runner.NewScene(contact, models.NilUserID)
+	scene.Call = call
+
+	err = runner.StartSessions(ctx, rt, oa, []*models.Contact{c}, []*runner.Scene{scene}, flowCall, []flows.Trigger{trigger}, true, models.NilStartID)
 	if err != nil {
 		return fmt.Errorf("error starting flow: %w", err)
 	}
-	if len(scenes) == 0 {
-		return fmt.Errorf("no ivr session created")
-	}
 
 	// have our service output our session status
-	if err := svc.WriteSessionResponse(ctx, rt, oa, channel, scenes[0], urn, resumeURL, r, w); err != nil {
+	if err := svc.WriteSessionResponse(ctx, rt, oa, channel, scene, urn, resumeURL, r, w); err != nil {
 		return fmt.Errorf("error writing ivr response for start: %w", err)
 	}
 
@@ -369,7 +368,7 @@ func ResumeIVRFlow(
 
 	flowCall := flows.NewCall(call.UUID(), oa.SessionAssets().Channels().Get(channel.UUID()), urn.Identity())
 
-	scene := runner.NewScene(fc, models.NilUserID, nil)
+	scene := runner.NewScene(fc, models.NilUserID)
 	scene.IncomingMsg = msg
 	scene.Call = call
 

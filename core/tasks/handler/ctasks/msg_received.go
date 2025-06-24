@@ -139,7 +139,7 @@ func (t *MsgReceivedTask) perform(ctx context.Context, rt *runtime.Runtime, oa *
 		return "", fmt.Errorf("unable to look up open tickets for contact: %w", err)
 	}
 
-	scene := runner.NewScene(fc, models.NilUserID, nil)
+	scene := runner.NewScene(fc, models.NilUserID)
 	scene.IncomingMsg = &models.MsgInRef{
 		ID:          t.MsgID,
 		ExtID:       t.MsgExternalID,
@@ -148,11 +148,6 @@ func (t *MsgReceivedTask) perform(ctx context.Context, rt *runtime.Runtime, oa *
 		LogUUIDs:    logUUIDs,
 	}
 	scene.AddEvents([]flows.Event{msgEvent})
-
-	sceneInit := func(s *runner.Scene) {
-		s.IncomingMsg = scene.IncomingMsg
-		s.AddEvents([]flows.Event{msgEvent})
-	}
 
 	// if contact is blocked, or channel no longer exists or is disabled, handle non-flow
 	if mc.Status() == models.ContactStatusBlocked || channel == nil {
@@ -222,7 +217,7 @@ func (t *MsgReceivedTask) perform(ctx context.Context, rt *runtime.Runtime, oa *
 				return msgOutcomeNonFlow, t.handleNonFlow(ctx, rt, oa, scene)
 			}
 
-			_, err = runner.StartSessions(ctx, rt, oa, []*models.Contact{mc}, []*flows.Contact{fc}, nil, []flows.Trigger{flowTrigger}, flow.FlowType().Interrupts(), models.NilStartID, sceneInit)
+			err = runner.StartSessions(ctx, rt, oa, []*models.Contact{mc}, []*runner.Scene{scene}, nil, []flows.Trigger{flowTrigger}, flow.FlowType().Interrupts(), models.NilStartID)
 			if err != nil {
 				return "", fmt.Errorf("error starting flow for contact: %w", err)
 			}

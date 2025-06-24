@@ -81,7 +81,7 @@ func (t *WaitExpiredTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *
 		}
 
 	} else {
-		scene := runner.NewScene(fc, models.NilUserID, nil)
+		scene := runner.NewScene(fc, models.NilUserID)
 		scene.AddEvents([]flows.Event{evt})
 
 		resume := resumes.NewWaitExpiration(evt)

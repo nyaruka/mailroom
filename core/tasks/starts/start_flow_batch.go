@@ -126,7 +126,7 @@ func (t *StartFlowBatchTask) start(ctx context.Context, rt *runtime.Runtime, oa 
 	batchStart := t.TotalContacts > 1
 
 	// this will build our trigger for each contact started
-	triggerBuilder := func(*flows.Contact) flows.Trigger {
+	triggerBuilder := func() flows.Trigger {
 		if !start.ParentSummary.IsNull() {
 			tb := triggers.NewBuilder(flow.Reference()).FlowAction(history, json.RawMessage(start.ParentSummary))
 			if batchStart {
@@ -154,7 +154,7 @@ func (t *StartFlowBatchTask) start(ctx context.Context, rt *runtime.Runtime, oa 
 		// for each contacts, request a call start
 		for _, contact := range contacts {
 			ctx, cancel := context.WithTimeout(ctx, time.Minute)
-			call, err := ivr.RequestCall(ctx, rt, oa, contact, triggerBuilder(nil))
+			call, err := ivr.RequestCall(ctx, rt, oa, contact, triggerBuilder())
 			cancel()
 			if err != nil {
 				slog.Error("error requesting call for flow start", "contact", contact.UUID(), "start_id", start.ID, "error", err)
@@ -166,7 +166,7 @@ func (t *StartFlowBatchTask) start(ctx context.Context, rt *runtime.Runtime, oa 
 			}
 		}
 	} else {
-		_, err := runner.StartWithLock(ctx, rt, oa, t.ContactIDs, triggerBuilder, flow.FlowType().Interrupts(), t.StartID, nil)
+		_, err := runner.StartWithLock(ctx, rt, oa, t.ContactIDs, triggerBuilder, flow.FlowType().Interrupts(), t.StartID)
 		if err != nil {
 			return fmt.Errorf("error starting flow batch: %w", err)
 		}

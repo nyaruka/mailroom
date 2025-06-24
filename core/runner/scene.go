@@ -26,8 +26,8 @@ type Scene struct {
 }
 
 // NewScene creates a new scene for the passed in contact
-func NewScene(contact *flows.Contact, userID models.UserID, init func(*Scene)) *Scene {
-	s := &Scene{
+func NewScene(contact *flows.Contact, userID models.UserID) *Scene {
+	return &Scene{
 		Contact: contact,
 		UserID:  userID,
 
@@ -35,10 +35,6 @@ func NewScene(contact *flows.Contact, userID models.UserID, init func(*Scene)) *
 		preCommits:  make(map[PreCommitHook][]any),
 		postCommits: make(map[PostCommitHook][]any),
 	}
-	if init != nil {
-		init(s)
-	}
-	return s
 }
 
 func (s *Scene) ContactID() models.ContactID    { return models.ContactID(s.Contact.ID()) }

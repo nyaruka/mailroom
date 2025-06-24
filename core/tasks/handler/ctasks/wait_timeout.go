@@ -62,7 +62,7 @@ func (t *WaitTimeoutTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *
 
 	evt := events.NewWaitTimedOut()
 
-	scene := runner.NewScene(fc, models.NilUserID, nil)
+	scene := runner.NewScene(fc, models.NilUserID)
 	scene.AddEvents([]flows.Event{evt})
 
 	resume := resumes.NewWaitTimeout(evt)
