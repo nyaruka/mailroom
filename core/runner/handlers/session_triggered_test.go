@@ -61,7 +61,7 @@ func TestSessionTriggered(t *testing.T) {
 					assert.Equal(t, []models.ContactID{testdb.George.ID}, start.ContactIDs)
 					assert.Equal(t, []models.GroupID{testdb.TestersGroup.ID}, start.GroupIDs)
 					assert.Equal(t, testdb.SingleMessage.ID, start.FlowID)
-					assert.JSONEq(t, `{"parent_uuid":"01969b47-096b-76f8-bebe-b4a1f677cf4c", "ancestors":1, "ancestors_since_input":1}`, string(start.SessionHistory))
+					assert.JSONEq(t, `{"parent_uuid":"01969b47-1523-76f8-bebe-b4a1f677cf4c", "ancestors":1, "ancestors_since_input":1}`, string(start.SessionHistory))
 					return nil
 				},
 			},
