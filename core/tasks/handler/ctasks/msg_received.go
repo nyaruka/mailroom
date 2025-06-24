@@ -139,15 +139,19 @@ func (t *MsgReceivedTask) perform(ctx context.Context, rt *runtime.Runtime, oa *
 		return "", fmt.Errorf("unable to look up open tickets for contact: %w", err)
 	}
 
-	sceneInit := func(scene *runner.Scene) {
-		scene.IncomingMsg = &models.MsgInRef{
-			ID:          t.MsgID,
-			ExtID:       t.MsgExternalID,
-			Attachments: attachments,
-			Ticket:      ticket,
-			LogUUIDs:    logUUIDs,
-		}
-		scene.AddEvents([]flows.Event{msgEvent})
+	scene := runner.NewScene(fc, models.NilUserID, nil)
+	scene.IncomingMsg = &models.MsgInRef{
+		ID:          t.MsgID,
+		ExtID:       t.MsgExternalID,
+		Attachments: attachments,
+		Ticket:      ticket,
+		LogUUIDs:    logUUIDs,
+	}
+	scene.AddEvents([]flows.Event{msgEvent})
+
+	sceneInit := func(s *runner.Scene) {
+		s.IncomingMsg = scene.IncomingMsg
+		s.AddEvents([]flows.Event{msgEvent})
 	}
 
 	// if contact is blocked, or channel no longer exists or is disabled, handle non-flow
@@ -229,8 +233,8 @@ func (t *MsgReceivedTask) perform(ctx context.Context, rt *runtime.Runtime, oa *
 	// if there is a session, resume it
 	if session != nil && flow != nil {
 		resume := resumes.NewMsg(msgEvent)
-		_, err = runner.ResumeFlow(ctx, rt, oa, session, mc, fc, nil, resume, sceneInit)
-		if err != nil {
+
+		if err := runner.ResumeFlow(ctx, rt, oa, session, mc, scene, nil, resume); err != nil {
 			return "", fmt.Errorf("error resuming flow for contact: %w", err)
 		}
 		return msgOutcomeResume, nil

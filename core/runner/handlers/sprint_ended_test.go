@@ -77,7 +77,9 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 	assert.Equal(t, flow.ID, modelSession.CurrentFlowID())
 
 	msg1 := flows.NewMsgIn("0c9cd2e4-865e-40bf-92bb-3c958d5f6f0d", testdb.Bob.URN, nil, "no", nil, "")
-	scene, err := runner.ResumeFlow(ctx, rt, oa, modelSession, mcBob, fcBob, nil, resumes.NewMsg(events.NewMsgReceived(msg1)), nil)
+	scene := runner.NewScene(fcBob, models.NilUserID, nil)
+
+	err = runner.ResumeFlow(ctx, rt, oa, modelSession, mcBob, scene, nil, resumes.NewMsg(events.NewMsgReceived(msg1)))
 	require.NoError(t, err)
 	assert.Equal(t, time.Duration(0), scene.WaitTimeout) // wait doesn't have a timeout
 
@@ -93,7 +95,9 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 	assert.Equal(t, flow.ID, modelSession.CurrentFlowID())
 
 	msg2 := flows.NewMsgIn("330b1ff5-a95e-4034-b2e1-d0b0f93eb8b8", testdb.Bob.URN, nil, "yes", nil, "")
-	scene, err = runner.ResumeFlow(ctx, rt, oa, modelSession, mcBob, fcBob, nil, resumes.NewMsg(events.NewMsgReceived(msg2)), nil)
+	scene = runner.NewScene(fcBob, models.NilUserID, nil)
+
+	err = runner.ResumeFlow(ctx, rt, oa, modelSession, mcBob, scene, nil, resumes.NewMsg(events.NewMsgReceived(msg2)))
 	require.NoError(t, err)
 	assert.Equal(t, flows.SessionStatusCompleted, scene.Session.Status())
 	assert.Equal(t, time.Duration(0), scene.WaitTimeout) // flow has ended
@@ -174,7 +178,9 @@ func TestSessionWithSubflows(t *testing.T) {
 	assert.Equal(t, child.ID, modelSession.CurrentFlowID())
 
 	msg2 := flows.NewMsgIn("cd476f71-34f2-42d2-ae4d-b7d1c4103bd1", testdb.Cathy.URN, nil, "yes", nil, "")
-	scene, err := runner.ResumeFlow(ctx, rt, oa, modelSession, mc, fc, nil, resumes.NewMsg(events.NewMsgReceived(msg2)), nil)
+	scene := runner.NewScene(fc, models.NilUserID, nil)
+
+	err = runner.ResumeFlow(ctx, rt, oa, modelSession, mc, scene, nil, resumes.NewMsg(events.NewMsgReceived(msg2)))
 	require.NoError(t, err)
 	assert.Equal(t, flows.SessionStatusCompleted, scene.Session.Status())
 	assert.Equal(t, time.Duration(0), scene.WaitTimeout) // flow has ended

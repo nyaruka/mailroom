@@ -66,9 +66,10 @@ func TestResume(t *testing.T) {
 		msg := flows.NewMsgIn(flows.NewMsgUUID(), testdb.Cathy.URN, nil, tc.Message, nil, "")
 		resume := resumes.NewMsg(events.NewMsgReceived(msg))
 
-		scene, err := runner.ResumeFlow(ctx, rt, oa, session, modelContact, flowContact, nil, resume, nil)
+		scene := runner.NewScene(flowContact, models.NilUserID, nil)
+
+		err = runner.ResumeFlow(ctx, rt, oa, session, modelContact, scene, nil, resume)
 		assert.NoError(t, err)
-		assert.NotNil(t, scene)
 
 		assertdb.Query(t, rt.DB,
 			`SELECT count(*) FROM flows_flowsession WHERE contact_id = $1

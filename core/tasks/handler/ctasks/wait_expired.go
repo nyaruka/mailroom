@@ -6,6 +6,7 @@ import (
 	"log/slog"
 
 	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/goflow/flows/resumes"
 	"github.com/nyaruka/mailroom/core/ivr"
 	"github.com/nyaruka/mailroom/core/models"
@@ -54,6 +55,8 @@ func (t *WaitExpiredTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *
 		return nil
 	}
 
+	evt := events.NewWaitExpired()
+
 	if session.SessionType() == models.FlowTypeVoice {
 		// load our call
 		call, err := models.GetCallByID(ctx, rt.DB, oa.OrgID(), session.CallID())
@@ -78,10 +81,12 @@ func (t *WaitExpiredTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *
 		}
 
 	} else {
-		resume := resumes.NewRunExpiration()
+		scene := runner.NewScene(fc, models.NilUserID, nil)
+		scene.AddEvents([]flows.Event{evt})
 
-		_, err = runner.ResumeFlow(ctx, rt, oa, session, mc, fc, nil, resume, nil)
-		if err != nil {
+		resume := resumes.NewWaitExpiration(evt)
+
+		if err := runner.ResumeFlow(ctx, rt, oa, session, mc, scene, nil, resume); err != nil {
 			return fmt.Errorf("error resuming flow for expiration: %w", err)
 		}
 	}

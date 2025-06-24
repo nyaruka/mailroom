@@ -368,13 +368,12 @@ func ResumeIVRFlow(
 	}
 
 	flowCall := flows.NewCall(call.UUID(), oa.SessionAssets().Channels().Get(channel.UUID()), urn.Identity())
-	sceneInit := func(s *runner.Scene) {
-		s.Call = call
-		s.IncomingMsg = msg
-	}
 
-	scene, err := runner.ResumeFlow(ctx, rt, oa, session, mc, fc, flowCall, resume, sceneInit)
-	if err != nil {
+	scene := runner.NewScene(fc, models.NilUserID, nil)
+	scene.IncomingMsg = msg
+	scene.Call = call
+
+	if err := runner.ResumeFlow(ctx, rt, oa, session, mc, scene, flowCall, resume); err != nil {
 		return fmt.Errorf("error resuming ivr flow: %w", err)
 	}
 
