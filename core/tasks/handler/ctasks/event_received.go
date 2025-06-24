@@ -94,13 +94,13 @@ func (t *EventReceivedTask) handle(ctx context.Context, rt *runtime.Runtime, oa 
 	}
 
 	// build our flow contact
-	flowContact, err := mc.EngineContact(oa)
+	contact, err := mc.EngineContact(oa)
 	if err != nil {
 		return nil, fmt.Errorf("error creating flow contact: %w", err)
 	}
 
 	if t.NewContact {
-		err = models.CalculateDynamicGroups(ctx, rt.DB, oa, []*flows.Contact{flowContact})
+		err = models.CalculateDynamicGroups(ctx, rt.DB, oa, []*flows.Contact{contact})
 		if err != nil {
 			return nil, fmt.Errorf("unable to initialize new contact: %w", err)
 		}
@@ -119,7 +119,7 @@ func (t *EventReceivedTask) handle(ctx context.Context, rt *runtime.Runtime, oa 
 	case models.EventTypeMissedCall:
 		trigger = models.FindMatchingMissedCallTrigger(oa, channel)
 	case models.EventTypeIncomingCall:
-		trigger = models.FindMatchingIncomingCallTrigger(oa, channel, flowContact)
+		trigger = models.FindMatchingIncomingCallTrigger(oa, channel, contact)
 	case models.EventTypeOptIn:
 		trigger = models.FindMatchingOptInTrigger(oa, channel)
 	case models.EventTypeOptOut:
@@ -193,10 +193,10 @@ func (t *EventReceivedTask) handle(ctx context.Context, rt *runtime.Runtime, oa 
 		}
 	}
 
-	scene := runner.NewScene(flowContact, models.NilUserID)
+	scene := runner.NewScene(mc, contact, models.NilUserID)
 	scene.Call = call
 
-	err = runner.StartSessions(ctx, rt, oa, []*models.Contact{mc}, []*runner.Scene{scene}, flowCall, []flows.Trigger{trig}, flow.FlowType().Interrupts(), models.NilStartID)
+	err = runner.StartSessions(ctx, rt, oa, []*runner.Scene{scene}, flowCall, []flows.Trigger{trig}, flow.FlowType().Interrupts(), models.NilStartID)
 	if err != nil {
 		return nil, fmt.Errorf("error starting flow for contact: %w", err)
 	}

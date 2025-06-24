@@ -13,6 +13,7 @@ import (
 // Scene represents the context that events are occurring in
 type Scene struct {
 	Contact     *flows.Contact
+	DBContact   *models.Contact
 	Session     flows.Session
 	Sprint      flows.Sprint
 	UserID      models.UserID
@@ -26,10 +27,11 @@ type Scene struct {
 }
 
 // NewScene creates a new scene for the passed in contact
-func NewScene(contact *flows.Contact, userID models.UserID) *Scene {
+func NewScene(dbContact *models.Contact, contact *flows.Contact, userID models.UserID) *Scene {
 	return &Scene{
-		Contact: contact,
-		UserID:  userID,
+		Contact:   contact,
+		DBContact: dbContact,
+		UserID:    userID,
 
 		events:      make([]flows.Event, 0, 10),
 		preCommits:  make(map[PreCommitHook][]any),
@@ -67,7 +69,7 @@ func (s *Scene) AddEvents(evts []flows.Event) {
 	s.events = append(s.events, evts...)
 }
 
-func (s *Scene) AddSprint(ss flows.Session, sp flows.Sprint, mc *models.Contact, resumed bool) {
+func (s *Scene) AddSprint(ss flows.Session, sp flows.Sprint, resumed bool) {
 	s.Session = ss
 	s.Sprint = sp
 
@@ -78,7 +80,7 @@ func (s *Scene) AddSprint(ss flows.Session, sp flows.Sprint, mc *models.Contact,
 		s.AddEvents(sp.Events())
 	}
 
-	s.AddEvents([]flows.Event{newSprintEndedEvent(mc, resumed)})
+	s.AddEvents([]flows.Event{newSprintEndedEvent(s.DBContact, resumed)})
 }
 
 // ProcessEvents runs this scene's events through the appropriate handlers which in turn attach hooks to the scene

@@ -108,14 +108,14 @@ func (t *MsgReceivedTask) perform(ctx context.Context, rt *runtime.Runtime, oa *
 	}
 
 	// build our flow contact
-	fc, err := mc.EngineContact(oa)
+	contact, err := mc.EngineContact(oa)
 	if err != nil {
 		return "", fmt.Errorf("error creating flow contact: %w", err)
 	}
 
 	// if this is a new or newly unstopped contact, we need to calculate dynamic groups and campaigns
 	if recalcGroups {
-		err = models.CalculateDynamicGroups(ctx, rt.DB, oa, []*flows.Contact{fc})
+		err = models.CalculateDynamicGroups(ctx, rt.DB, oa, []*flows.Contact{contact})
 		if err != nil {
 			return "", fmt.Errorf("unable to initialize new contact: %w", err)
 		}
@@ -131,7 +131,7 @@ func (t *MsgReceivedTask) perform(ctx context.Context, rt *runtime.Runtime, oa *
 
 	msgIn := flows.NewMsgIn(t.MsgUUID, t.URN, channel.Reference(), t.Text, availableAttachments, string(t.MsgExternalID))
 	msgEvent := events.NewMsgReceived(msgIn)
-	fc.SetLastSeenOn(msgEvent.CreatedOn())
+	contact.SetLastSeenOn(msgEvent.CreatedOn())
 
 	// look up any open tickes for this contact and forward this message to that
 	ticket, err := models.LoadOpenTicketForContact(ctx, rt.DB, mc)
@@ -139,7 +139,7 @@ func (t *MsgReceivedTask) perform(ctx context.Context, rt *runtime.Runtime, oa *
 		return "", fmt.Errorf("unable to look up open tickets for contact: %w", err)
 	}
 
-	scene := runner.NewScene(fc, models.NilUserID)
+	scene := runner.NewScene(mc, contact, models.NilUserID)
 	scene.IncomingMsg = &models.MsgInRef{
 		ID:          t.MsgID,
 		ExtID:       t.MsgExternalID,
@@ -158,14 +158,14 @@ func (t *MsgReceivedTask) perform(ctx context.Context, rt *runtime.Runtime, oa *
 	}
 
 	// find any matching triggers
-	trigger, keyword := models.FindMatchingMsgTrigger(oa, channel, fc, t.Text)
+	trigger, keyword := models.FindMatchingMsgTrigger(oa, channel, contact, t.Text)
 
 	// look for a waiting session for this contact
 	var session *models.Session
 	var flow *models.Flow
 
 	if mc.CurrentSessionUUID() != "" {
-		session, err = models.GetWaitingSessionForContact(ctx, rt, oa, fc, mc.CurrentSessionUUID())
+		session, err = models.GetWaitingSessionForContact(ctx, rt, oa, contact, mc.CurrentSessionUUID())
 		if err != nil {
 			return "", fmt.Errorf("error loading waiting session for contact #%d: %w", mc.ID(), err)
 		}
@@ -217,7 +217,7 @@ func (t *MsgReceivedTask) perform(ctx context.Context, rt *runtime.Runtime, oa *
 				return msgOutcomeNonFlow, t.handleNonFlow(ctx, rt, oa, scene)
 			}
 
-			err = runner.StartSessions(ctx, rt, oa, []*models.Contact{mc}, []*runner.Scene{scene}, nil, []flows.Trigger{flowTrigger}, flow.FlowType().Interrupts(), models.NilStartID)
+			err = runner.StartSessions(ctx, rt, oa, []*runner.Scene{scene}, nil, []flows.Trigger{flowTrigger}, flow.FlowType().Interrupts(), models.NilStartID)
 			if err != nil {
 				return "", fmt.Errorf("error starting flow for contact: %w", err)
 			}
@@ -229,7 +229,7 @@ func (t *MsgReceivedTask) perform(ctx context.Context, rt *runtime.Runtime, oa *
 	if session != nil && flow != nil {
 		resume := resumes.NewMsg(msgEvent)
 
-		if err := runner.ResumeFlow(ctx, rt, oa, session, mc, scene, nil, resume); err != nil {
+		if err := runner.ResumeFlow(ctx, rt, oa, session, scene, nil, resume); err != nil {
 			return "", fmt.Errorf("error resuming flow for contact: %w", err)
 		}
 		return msgOutcomeResume, nil

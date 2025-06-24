@@ -210,8 +210,8 @@ func runFlowAndApplyEvents(t *testing.T, ctx context.Context, rt *runtime.Runtim
 	err = tx.Commit()
 	require.NoError(t, err)
 
-	scene := runner.NewScene(fs.Contact(), models.NilUserID)
-	scene.AddSprint(fs, sprint, mc, false)
+	scene := runner.NewScene(mc, fs.Contact(), models.NilUserID)
+	scene.AddSprint(fs, sprint, false)
 
 	err = scene.ProcessEvents(ctx, rt, oa)
 	require.NoError(t, err)

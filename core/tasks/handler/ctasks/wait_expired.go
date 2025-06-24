@@ -38,13 +38,13 @@ func (t *WaitExpiredTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *
 	log := slog.With("ctask", "wait_expired", "contact_id", mc.ID(), "session_uuid", t.SessionUUID)
 
 	// build our flow contact
-	fc, err := mc.EngineContact(oa)
+	contact, err := mc.EngineContact(oa)
 	if err != nil {
 		return fmt.Errorf("error creating flow contact: %w", err)
 	}
 
 	// look for a waiting session for this contact
-	session, err := models.GetWaitingSessionForContact(ctx, rt, oa, fc, t.SessionUUID)
+	session, err := models.GetWaitingSessionForContact(ctx, rt, oa, contact, t.SessionUUID)
 	if err != nil {
 		return fmt.Errorf("error loading waiting session for contact #%d: %w", mc.ID(), err)
 	}
@@ -81,12 +81,12 @@ func (t *WaitExpiredTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *
 		}
 
 	} else {
-		scene := runner.NewScene(fc, models.NilUserID)
+		scene := runner.NewScene(mc, contact, models.NilUserID)
 		scene.AddEvents([]flows.Event{evt})
 
 		resume := resumes.NewWaitExpiration(evt)
 
-		if err := runner.ResumeFlow(ctx, rt, oa, session, mc, scene, nil, resume); err != nil {
+		if err := runner.ResumeFlow(ctx, rt, oa, session, scene, nil, resume); err != nil {
 			return fmt.Errorf("error resuming flow for expiration: %w", err)
 		}
 	}

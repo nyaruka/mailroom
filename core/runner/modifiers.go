@@ -23,7 +23,7 @@ func ApplyModifiers(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 	eventsByContact := make(map[*flows.Contact][]flows.Event, len(modifiersByContact))
 
 	for contact, mods := range modifiersByContact {
-		scene := NewScene(contact, userID)
+		scene := NewScene(nil, contact, userID)
 
 		// apply the modifiers to get the events
 		events := make([]flows.Event, 0)

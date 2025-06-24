@@ -49,13 +49,13 @@ func (t *TicketClosedTask) Perform(ctx context.Context, rt *runtime.Runtime, oa 
 	}
 
 	// build our flow contact
-	fc, err := mc.EngineContact(oa)
+	contact, err := mc.EngineContact(oa)
 	if err != nil {
 		return fmt.Errorf("error creating flow contact: %w", err)
 	}
 
 	// do we have associated trigger?
-	trigger := models.FindMatchingTicketClosedTrigger(oa, fc)
+	trigger := models.FindMatchingTicketClosedTrigger(oa, contact)
 
 	// no trigger, noop, move on
 	if trigger == nil {
@@ -75,7 +75,7 @@ func (t *TicketClosedTask) Perform(ctx context.Context, rt *runtime.Runtime, oa 
 	ticket := tickets[0].FlowTicket(oa)
 	evt := events.NewTicketClosed(ticket)
 
-	scene := runner.NewScene(fc, models.NilUserID)
+	scene := runner.NewScene(mc, contact, models.NilUserID)
 	scene.AddEvents([]flows.Event{evt})
 
 	// build our flow trigger
@@ -89,7 +89,7 @@ func (t *TicketClosedTask) Perform(ctx context.Context, rt *runtime.Runtime, oa 
 		return nil
 	}
 
-	err = runner.StartSessions(ctx, rt, oa, []*models.Contact{mc}, []*runner.Scene{scene}, nil, []flows.Trigger{flowTrigger}, flow.FlowType().Interrupts(), models.NilStartID)
+	err = runner.StartSessions(ctx, rt, oa, []*runner.Scene{scene}, nil, []flows.Trigger{flowTrigger}, flow.FlowType().Interrupts(), models.NilStartID)
 	if err != nil {
 		return fmt.Errorf("error starting flow for contact: %w", err)
 	}
