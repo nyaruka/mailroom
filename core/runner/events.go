@@ -46,15 +46,7 @@ func newSprintEndedEvent(c *models.Contact, resumed bool) *SprintEndedEvent {
 }
 
 // ProcessEvents allows processing of events generated outside of a flow
-func ProcessEvents(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, userID models.UserID, contactEvents map[*flows.Contact][]flows.Event, sceneInit func(*Scene)) error {
-	// create scenes for each contact
-	scenes := make([]*Scene, 0, len(contactEvents))
-	for contact := range contactEvents {
-		scene := NewScene(contact, userID, sceneInit)
-		scene.AddEvents(contactEvents[contact])
-		scenes = append(scenes, scene)
-	}
-
+func ProcessEvents(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, userID models.UserID, scenes []*Scene) error {
 	// begin the transaction for pre-commit hooks
 	tx, err := rt.DB.BeginTxx(ctx, nil)
 	if err != nil {

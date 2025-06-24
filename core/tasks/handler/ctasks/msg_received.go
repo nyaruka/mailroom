@@ -156,7 +156,7 @@ func (t *MsgReceivedTask) perform(ctx context.Context, rt *runtime.Runtime, oa *
 
 	// if contact is blocked, or channel no longer exists or is disabled, handle non-flow
 	if mc.Status() == models.ContactStatusBlocked || channel == nil {
-		if err := t.handleNonFlow(ctx, rt, oa, fc, msgEvent, sceneInit); err != nil {
+		if err := t.handleNonFlow(ctx, rt, oa, scene); err != nil {
 			return "", fmt.Errorf("error handling message for blocked contact or missing channel: %w", err)
 		}
 		return msgOutcomeNonFlow, nil
@@ -219,7 +219,7 @@ func (t *MsgReceivedTask) perform(ctx context.Context, rt *runtime.Runtime, oa *
 					return "", fmt.Errorf("error starting voice flow for contact: %w", err)
 				}
 
-				return msgOutcomeNonFlow, t.handleNonFlow(ctx, rt, oa, fc, msgEvent, sceneInit)
+				return msgOutcomeNonFlow, t.handleNonFlow(ctx, rt, oa, scene)
 			}
 
 			_, err = runner.StartSessions(ctx, rt, oa, []*models.Contact{mc}, []*flows.Contact{fc}, nil, []flows.Trigger{flowTrigger}, flow.FlowType().Interrupts(), models.NilStartID, sceneInit)
@@ -241,17 +241,15 @@ func (t *MsgReceivedTask) perform(ctx context.Context, rt *runtime.Runtime, oa *
 	}
 
 	// this message didn't trigger and new sessions or resume any existing ones, so handle as inbox
-	if err := t.handleNonFlow(ctx, rt, oa, fc, msgEvent, sceneInit); err != nil {
+	if err := t.handleNonFlow(ctx, rt, oa, scene); err != nil {
 		return "", fmt.Errorf("error handling non-flow message: %w", err)
 	}
 	return msgOutcomeNonFlow, nil
 }
 
 // handles a message outside of a flow session
-func (t *MsgReceivedTask) handleNonFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contact *flows.Contact, msgEvent *events.MsgReceivedEvent, sceneInit func(*runner.Scene)) error {
-	contactEvents := map[*flows.Contact][]flows.Event{contact: {msgEvent}}
-
-	err := runner.ProcessEvents(ctx, rt, oa, models.NilUserID, contactEvents, sceneInit)
+func (t *MsgReceivedTask) handleNonFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scene *runner.Scene) error {
+	err := runner.ProcessEvents(ctx, rt, oa, models.NilUserID, []*runner.Scene{scene})
 	if err != nil {
 		return fmt.Errorf("error handling non-flow message events: %w", err)
 	}
