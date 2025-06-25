@@ -217,8 +217,9 @@ func (t *MsgReceivedTask) perform(ctx context.Context, rt *runtime.Runtime, oa *
 				return msgOutcomeNonFlow, t.handleNonFlow(ctx, rt, oa, scene)
 			}
 
-			err = runner.StartSessions(ctx, rt, oa, []*runner.Scene{scene}, []flows.Trigger{flowTrigger}, flow.FlowType().Interrupts())
-			if err != nil {
+			scene.Interrupt = flow.FlowType().Interrupts()
+
+			if err := runner.StartSessions(ctx, rt, oa, []*runner.Scene{scene}, []flows.Trigger{flowTrigger}); err != nil {
 				return "", fmt.Errorf("error starting flow for contact: %w", err)
 			}
 			return msgOutcomeStart, nil

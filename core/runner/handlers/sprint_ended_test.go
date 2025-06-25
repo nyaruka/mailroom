@@ -38,20 +38,19 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 
 	mcBob, fcBob, _ := testdb.Bob.Load(rt, oa)
 	mcAlex, fcAlex, _ := testdb.Alexandra.Load(rt, oa)
+	scBob, scAlex := runner.NewScene(mcBob, fcBob, models.NilUserID), runner.NewScene(mcAlex, fcAlex, models.NilUserID)
+	scBob.Interrupt = true
+	scAlex.Interrupt = true
+
 	trigs := []flows.Trigger{
 		triggers.NewBuilder(flow.Reference()).Manual().Build(),
 		triggers.NewBuilder(flow.Reference()).Manual().Build(),
 	}
 
-	scenes := []*runner.Scene{
-		runner.NewScene(mcBob, fcBob, models.NilUserID),
-		runner.NewScene(mcAlex, fcAlex, models.NilUserID),
-	}
-
-	err = runner.StartSessions(ctx, rt, oa, scenes, trigs, true)
+	err = runner.StartSessions(ctx, rt, oa, []*runner.Scene{scBob, scAlex}, trigs)
 	require.NoError(t, err)
-	assert.Equal(t, time.Minute*5, scenes[0].WaitTimeout)    // Bob's messages are being sent via courier
-	assert.Equal(t, time.Duration(0), scenes[1].WaitTimeout) // Alexandra's messages are being sent via Android
+	assert.Equal(t, time.Minute*5, scBob.WaitTimeout)     // Bob's messages are being sent via courier
+	assert.Equal(t, time.Duration(0), scAlex.WaitTimeout) // Alexandra's messages are being sent via Android
 
 	// check sessions in database
 	assertdb.Query(t, rt.DB, `SELECT status, session_type, current_flow_id, ended_on FROM flows_flowsession WHERE contact_id = $1`, testdb.Bob.ID).
@@ -63,7 +62,7 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 			"status": "W", "session_type": "M", "current_flow_id": int64(flow.ID), "ended_on": nil,
 		})
 
-	bobSession, alexSession := scenes[0].Session, scenes[1].Session
+	bobSession, alexSession := scBob.Session, scAlex.Session
 
 	testsuite.AssertContactFires(t, rt, testdb.Bob.ID, map[string]time.Time{
 		fmt.Sprintf("E:%s", bobSession.UUID()): time.Date(2025, 2, 25, 16, 55, 9, 0, time.UTC), // 10 minutes in future
@@ -126,10 +125,12 @@ func TestSingleSprintSession(t *testing.T) {
 	require.NoError(t, err)
 
 	mc, fc, _ := testdb.Bob.Load(rt, oa)
-	scenes := []*runner.Scene{runner.NewScene(mc, fc, models.NilUserID)}
+	scene := runner.NewScene(mc, fc, models.NilUserID)
+	scene.Interrupt = true
+
 	trigs := []flows.Trigger{triggers.NewBuilder(flow.Reference()).Manual().Build()}
 
-	err = runner.StartSessions(ctx, rt, oa, scenes, trigs, true)
+	err = runner.StartSessions(ctx, rt, oa, []*runner.Scene{scene}, trigs)
 	require.NoError(t, err)
 
 	// check session in database
@@ -157,12 +158,14 @@ func TestSessionWithSubflows(t *testing.T) {
 	require.NoError(t, err)
 
 	mc, fc, _ := testdb.Cathy.Load(rt, oa)
-	scenes := []*runner.Scene{runner.NewScene(mc, fc, models.NilUserID)}
+	scene := runner.NewScene(mc, fc, models.NilUserID)
+	scene.Interrupt = true
+
 	trigs := []flows.Trigger{triggers.NewBuilder(parent.Reference()).Manual().Build()}
 
-	err = runner.StartSessions(ctx, rt, oa, scenes, trigs, true)
+	err = runner.StartSessions(ctx, rt, oa, []*runner.Scene{scene}, trigs)
 	require.NoError(t, err)
-	assert.Equal(t, time.Duration(0), scenes[0].WaitTimeout) // no timeout on wait
+	assert.Equal(t, time.Duration(0), scene.WaitTimeout) // no timeout on wait
 
 	// check session in the db
 	assertdb.Query(t, rt.DB, `SELECT status, session_type, current_flow_id, ended_on FROM flows_flowsession`).
@@ -170,7 +173,7 @@ func TestSessionWithSubflows(t *testing.T) {
 			"status": "W", "session_type": "M", "current_flow_id": int64(child.ID), "ended_on": nil,
 		})
 
-	session := scenes[0].Session
+	session := scene.Session
 
 	// check we have a contact fire for wait expiration but not timeout
 	testsuite.AssertContactFires(t, rt, testdb.Cathy.ID, map[string]time.Time{
@@ -184,7 +187,7 @@ func TestSessionWithSubflows(t *testing.T) {
 	assert.Equal(t, child.ID, modelSession.CurrentFlowID())
 
 	msg2 := flows.NewMsgIn("cd476f71-34f2-42d2-ae4d-b7d1c4103bd1", testdb.Cathy.URN, nil, "yes", nil, "")
-	scene := runner.NewScene(mc, fc, models.NilUserID)
+	scene = runner.NewScene(mc, fc, models.NilUserID)
 
 	err = runner.ResumeSession(ctx, rt, oa, modelSession, scene, resumes.NewMsg(events.NewMsgReceived(msg2)))
 	require.NoError(t, err)

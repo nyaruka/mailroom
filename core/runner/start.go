@@ -86,12 +86,13 @@ func tryToStartWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 
 		scene := NewScene(mc, c, models.NilUserID)
 		scene.StartID = startID
-		scenes = append(scenes, scene)
+		scene.Interrupt = interrupt
 
+		scenes = append(scenes, scene)
 		triggers = append(triggers, triggerBuilder())
 	}
 
-	err = StartSessions(ctx, rt, oa, scenes, triggers, interrupt)
+	err = StartSessions(ctx, rt, oa, scenes, triggers)
 	if err != nil {
 		return nil, nil, fmt.Errorf("error starting flow for contacts: %w", err)
 	}
@@ -100,13 +101,12 @@ func tryToStartWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 }
 
 // StartSessions starts the given contacts in flow sessions. It's assumed that the contacts are already locked.
-func StartSessions(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scenes []*Scene, triggers []flows.Trigger, interrupt bool) error {
+func StartSessions(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scenes []*Scene, triggers []flows.Trigger) error {
 	if len(scenes) == 0 {
 		return nil
 	}
 
 	start := time.Now()
-	sa := oa.SessionAssets()
 
 	// for sanity, check that contacts have been locked
 	lockCheck, _ := clocks.IsLocked(ctx, rt, oa, scenes[0].DBContact.ID())
@@ -121,7 +121,7 @@ func StartSessions(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsset
 	for i, scene := range scenes {
 		trigger := triggers[i]
 
-		session, sprint, err := goflow.Engine(rt).NewSession(ctx, sa, oa.Env(), scene.Contact, trigger, scene.Call)
+		session, sprint, err := goflow.Engine(rt).NewSession(ctx, oa.SessionAssets(), oa.Env(), scene.Contact, trigger, scene.Call)
 		if err != nil {
 			return fmt.Errorf("error starting contact %s in flow %s: %w", scene.ContactUUID(), trigger.Flow().UUID, err)
 		}
@@ -144,55 +144,20 @@ func StartSessions(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsset
 		return fmt.Errorf("error starting transaction: %w", err)
 	}
 
-	contactIDs := make([]models.ContactID, len(scenes))
-	mcs := make([]*models.Contact, len(scenes))
-	callIDs := make([]models.CallID, len(triggers))
-	startIDs := make([]models.StartID, len(triggers))
-	for i, s := range scenes {
-		contactIDs[i] = s.DBContact.ID()
-		mcs[i] = s.DBContact
-		startIDs[i] = s.StartID
-		if s.DBCall != nil {
-			callIDs[i] = s.DBCall.ID()
-		}
-	}
-
-	// interrupt all our contacts if desired
-	if interrupt {
-		contactIDs := make([]models.ContactID, len(triggers))
-		for i, s := range scenes {
-			contactIDs[i] = s.DBContact.ID()
-		}
-
-		if err := models.InterruptSessionsForContactsTx(txCTX, tx, contactIDs); err != nil {
-			tx.Rollback()
-			return fmt.Errorf("error interrupting contacts: %w", err)
-		}
-	}
-
-	// write our session to the db
-	_, err = models.InsertSessions(txCTX, rt, tx, oa, sessions, sprints, mcs, callIDs, startIDs)
-	if err != nil {
-		tx.Rollback()
-		return fmt.Errorf("error interrupting contacts: %w", err)
-	}
-
 	// gather all our pre commit events, group them by hook
 	if err := ExecutePreCommitHooks(ctx, rt, tx, oa, scenes); err != nil {
 		tx.Rollback()
-		return fmt.Errorf("error applying session pre commit hooks: %w", err)
+		return fmt.Errorf("error applying scene pre commit hooks: %w", err)
 	}
 
 	if err := tx.Commit(); err != nil {
 		// retry committing our scenes one at a time
-		slog.Debug("failed committing bulk transaction, retrying one at a time", "error", err)
+		slog.Debug("failed committing scenes in bulk, retrying one at a time", "error", err)
 
 		tx.Rollback()
 
-		// we failed writing our sessions in one go, try one at a time
-		for i, scene := range scenes {
-			mc, session, sprint, callID, startID := mcs[i], sessions[i], sprints[i], callIDs[i], startIDs[i]
-
+		// we failed committing the scenes in one go, try one at a time
+		for _, scene := range scenes {
 			txCTX, cancel := context.WithTimeout(ctx, commitTimeout)
 			defer cancel()
 
@@ -201,36 +166,19 @@ func StartSessions(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsset
 				return fmt.Errorf("error starting transaction for retry: %w", err)
 			}
 
-			// interrupt this contact if appropriate
-			if interrupt {
-				err = models.InterruptSessionsForContactsTx(txCTX, tx, []models.ContactID{mc.ID()})
-				if err != nil {
-					tx.Rollback()
-					slog.Error("error interrupting contact", "error", err, "contact", session.Contact().UUID())
-					continue
-				}
-			}
-
-			_, err = models.InsertSessions(txCTX, rt, tx, oa, []flows.Session{session}, []flows.Sprint{sprint}, []*models.Contact{mc}, []models.CallID{callID}, []models.StartID{startID})
-			if err != nil {
-				tx.Rollback()
-				slog.Error("error writing session to db", "error", err, "contact", session.Contact().UUID())
-				continue
-			}
-
 			// gather all our pre commit events, group them by hook
 			if err := ExecutePreCommitHooks(ctx, rt, tx, oa, []*Scene{scene}); err != nil {
-				return fmt.Errorf("error applying session pre commit hooks: %w", err)
+				return fmt.Errorf("error applying scene pre commit hooks: %w", err)
 			}
 
 			if err := tx.Commit(); err != nil {
 				tx.Rollback()
-				slog.Error("error committing session to db", "error", err, "contact", session.Contact().UUID())
+				slog.Error("error committing scene", "error", err, "contact", scene.ContactUUID())
 				continue
 			}
 		}
 	} else {
-		slog.Debug("sessions committed", "count", len(sessions))
+		slog.Debug("scenes committed", "count", len(sessions))
 	}
 
 	if err := ExecutePostCommitHooks(ctx, rt, oa, scenes); err != nil {

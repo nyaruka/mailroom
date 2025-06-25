@@ -22,6 +22,7 @@ type Scene struct {
 	UserID      models.UserID
 	StartID     models.StartID
 	IncomingMsg *models.MsgInRef
+	Interrupt   bool
 
 	// optional state set during processing
 	Session     flows.Session

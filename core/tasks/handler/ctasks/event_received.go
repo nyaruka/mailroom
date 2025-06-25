@@ -196,9 +196,9 @@ func (t *EventReceivedTask) handle(ctx context.Context, rt *runtime.Runtime, oa 
 	scene := runner.NewScene(mc, contact, models.NilUserID)
 	scene.DBCall = call
 	scene.Call = flowCall
+	scene.Interrupt = flow.FlowType().Interrupts()
 
-	err = runner.StartSessions(ctx, rt, oa, []*runner.Scene{scene}, []flows.Trigger{trig}, flow.FlowType().Interrupts())
-	if err != nil {
+	if err := runner.StartSessions(ctx, rt, oa, []*runner.Scene{scene}, []flows.Trigger{trig}); err != nil {
 		return nil, fmt.Errorf("error starting flow for contact: %w", err)
 	}
 

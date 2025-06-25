@@ -30,8 +30,9 @@ func TestResume(t *testing.T) {
 	mc, fc, _ := testdb.Cathy.Load(rt, oa)
 	trigger := triggers.NewBuilder(flow.Reference()).Manual().Build()
 	scene := runner.NewScene(mc, fc, models.NilUserID)
+	scene.Interrupt = true
 
-	err = runner.StartSessions(ctx, rt, oa, []*runner.Scene{scene}, []flows.Trigger{trigger}, true)
+	err = runner.StartSessions(ctx, rt, oa, []*runner.Scene{scene}, []flows.Trigger{trigger})
 	assert.NoError(t, err)
 
 	assertdb.Query(t, rt.DB,
