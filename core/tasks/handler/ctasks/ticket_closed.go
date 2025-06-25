@@ -89,7 +89,7 @@ func (t *TicketClosedTask) Perform(ctx context.Context, rt *runtime.Runtime, oa 
 		return nil
 	}
 
-	err = runner.StartSessions(ctx, rt, oa, []*runner.Scene{scene}, nil, []flows.Trigger{flowTrigger}, flow.FlowType().Interrupts(), models.NilStartID)
+	err = runner.StartSessions(ctx, rt, oa, []*runner.Scene{scene}, nil, []flows.Trigger{flowTrigger}, flow.FlowType().Interrupts())
 	if err != nil {
 		return fmt.Errorf("error starting flow for contact: %w", err)
 	}

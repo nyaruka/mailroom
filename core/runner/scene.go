@@ -12,13 +12,17 @@ import (
 
 // Scene represents the context that events are occurring in
 type Scene struct {
+	// state set on creation
 	Contact     *flows.Contact
 	DBContact   *models.Contact
-	Session     flows.Session
-	Sprint      flows.Sprint
 	UserID      models.UserID
 	Call        *models.Call
+	StartID     models.StartID
 	IncomingMsg *models.MsgInRef
+
+	// state set during processing
+	Session     flows.Session
+	Sprint      flows.Sprint
 	WaitTimeout time.Duration
 
 	events      []flows.Event

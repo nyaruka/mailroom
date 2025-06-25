@@ -31,7 +31,7 @@ func TestResume(t *testing.T) {
 	trigger := triggers.NewBuilder(flow.Reference()).Manual().Build()
 	scene := runner.NewScene(mc, fc, models.NilUserID)
 
-	err = runner.StartSessions(ctx, rt, oa, []*runner.Scene{scene}, nil, []flows.Trigger{trigger}, true, models.NilStartID)
+	err = runner.StartSessions(ctx, rt, oa, []*runner.Scene{scene}, nil, []flows.Trigger{trigger}, true)
 	assert.NoError(t, err)
 
 	assertdb.Query(t, rt.DB,

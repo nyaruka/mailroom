@@ -265,7 +265,7 @@ func StartIVRFlow(
 	scene := runner.NewScene(mc, contact, models.NilUserID)
 	scene.Call = call
 
-	err = runner.StartSessions(ctx, rt, oa, []*runner.Scene{scene}, flowCall, []flows.Trigger{trigger}, true, models.NilStartID)
+	err = runner.StartSessions(ctx, rt, oa, []*runner.Scene{scene}, flowCall, []flows.Trigger{trigger}, true)
 	if err != nil {
 		return fmt.Errorf("error starting flow: %w", err)
 	}
