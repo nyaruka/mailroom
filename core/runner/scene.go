@@ -12,13 +12,20 @@ import (
 
 // Scene represents the context that events are occurring in
 type Scene struct {
-	Contact     *flows.Contact
-	DBContact   *models.Contact
+	// required state set on creation
+	DBContact *models.Contact
+	Contact   *flows.Contact
+
+	// optional state set on creation
+	DBCall      *models.Call
+	Call        *flows.Call
+	UserID      models.UserID
+	StartID     models.StartID
+	IncomingMsg *models.MsgInRef
+
+	// optional state set during processing
 	Session     flows.Session
 	Sprint      flows.Sprint
-	UserID      models.UserID
-	Call        *models.Call
-	IncomingMsg *models.MsgInRef
 	WaitTimeout time.Duration
 
 	events      []flows.Event
@@ -29,8 +36,8 @@ type Scene struct {
 // NewScene creates a new scene for the passed in contact
 func NewScene(dbContact *models.Contact, contact *flows.Contact, userID models.UserID) *Scene {
 	return &Scene{
-		Contact:   contact,
 		DBContact: dbContact,
+		Contact:   contact,
 		UserID:    userID,
 
 		events:      make([]flows.Event, 0, 10),

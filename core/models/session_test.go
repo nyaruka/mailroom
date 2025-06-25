@@ -40,7 +40,7 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 
 	tx := rt.DB.MustBegin()
 
-	modelSessions, err := models.InsertSessions(ctx, rt, tx, oa, []flows.Session{flowSession}, []flows.Sprint{sprint1}, []*models.Contact{modelContact}, []models.CallID{models.NilCallID}, models.NilStartID)
+	modelSessions, err := models.InsertSessions(ctx, rt, tx, oa, []flows.Session{flowSession}, []flows.Sprint{sprint1}, []*models.Contact{modelContact}, []models.CallID{models.NilCallID}, []models.StartID{models.NilStartID})
 	require.NoError(t, err)
 
 	require.NoError(t, tx.Commit())
@@ -118,7 +118,7 @@ func TestSingleSprintSession(t *testing.T) {
 
 	tx := rt.DB.MustBegin()
 
-	modelSessions, err := models.InsertSessions(ctx, rt, tx, oa, []flows.Session{flowSession}, []flows.Sprint{sprint1}, []*models.Contact{modelContact}, []models.CallID{models.NilCallID}, models.NilStartID)
+	modelSessions, err := models.InsertSessions(ctx, rt, tx, oa, []flows.Session{flowSession}, []flows.Sprint{sprint1}, []*models.Contact{modelContact}, []models.CallID{models.NilCallID}, []models.StartID{models.NilStartID})
 	require.NoError(t, err)
 
 	require.NoError(t, tx.Commit())
@@ -162,7 +162,7 @@ func TestSessionWithSubflows(t *testing.T) {
 
 	tx := rt.DB.MustBegin()
 
-	modelSessions, err := models.InsertSessions(ctx, rt, tx, oa, []flows.Session{flowSession}, []flows.Sprint{sprint1}, []*models.Contact{modelContact}, []models.CallID{models.NilCallID}, startID)
+	modelSessions, err := models.InsertSessions(ctx, rt, tx, oa, []flows.Session{flowSession}, []flows.Sprint{sprint1}, []*models.Contact{modelContact}, []models.CallID{models.NilCallID}, []models.StartID{startID})
 	require.NoError(t, err)
 
 	require.NoError(t, tx.Commit())
@@ -226,7 +226,7 @@ func TestSessionFailedStart(t *testing.T) {
 
 	tx := rt.DB.MustBegin()
 
-	modelSessions, err := models.InsertSessions(ctx, rt, tx, oa, []flows.Session{flowSession}, []flows.Sprint{sprint1}, []*models.Contact{modelContact}, []models.CallID{models.NilCallID}, models.NilStartID)
+	modelSessions, err := models.InsertSessions(ctx, rt, tx, oa, []flows.Session{flowSession}, []flows.Sprint{sprint1}, []*models.Contact{modelContact}, []models.CallID{models.NilCallID}, []models.StartID{models.NilStartID})
 	require.NoError(t, err)
 
 	require.NoError(t, tx.Commit())

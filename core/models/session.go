@@ -340,7 +340,7 @@ INSERT INTO
 
 // InsertSessions writes the passed in session to our database, writes any runs that need to be created
 // as well as appying any events created in the session
-func InsertSessions(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *OrgAssets, ss []flows.Session, sprints []flows.Sprint, contacts []*Contact, callIDs []CallID, startID StartID) ([]*Session, error) {
+func InsertSessions(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *OrgAssets, ss []flows.Session, sprints []flows.Sprint, contacts []*Contact, callIDs []CallID, startIDs []StartID) ([]*Session, error) {
 	if len(ss) == 0 {
 		return nil, nil
 	}
@@ -352,7 +352,7 @@ func InsertSessions(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *O
 	endedSessionsI := make([]any, 0, len(ss))
 
 	for i, s := range ss {
-		session, err := NewSession(ctx, tx, oa, s, sprints[i], startID, callIDs[i])
+		session, err := NewSession(ctx, tx, oa, s, sprints[i], startIDs[i], callIDs[i])
 		if err != nil {
 			return nil, fmt.Errorf("error creating session objects: %w", err)
 		}

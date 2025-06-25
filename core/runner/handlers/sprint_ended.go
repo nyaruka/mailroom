@@ -66,7 +66,7 @@ func handleSprintEnded(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 		scene.AttachPreCommitHook(hooks.UpdateContactModifiedOn, event)
 	}
 
-	if scene.Call != nil {
+	if scene.DBCall != nil {
 		if scene.Session.Status() != flows.SessionStatusWaiting {
 			scene.AttachPreCommitHook(hooks.UpdateCallStatus, models.CallStatusCompleted)
 		} else if scene.Sprint.IsInitial() {

@@ -263,9 +263,10 @@ func StartIVRFlow(
 	flowCall := flows.NewCall(call.UUID(), oa.SessionAssets().Channels().Get(channel.UUID()), urn.Identity())
 
 	scene := runner.NewScene(mc, contact, models.NilUserID)
-	scene.Call = call
+	scene.DBCall = call
+	scene.Call = flowCall
 
-	err = runner.StartSessions(ctx, rt, oa, []*runner.Scene{scene}, flowCall, []flows.Trigger{trigger}, true, models.NilStartID)
+	err = runner.StartSessions(ctx, rt, oa, []*runner.Scene{scene}, []flows.Trigger{trigger}, true)
 	if err != nil {
 		return fmt.Errorf("error starting flow: %w", err)
 	}
@@ -370,7 +371,7 @@ func ResumeIVRFlow(
 
 	scene := runner.NewScene(mc, contact, models.NilUserID)
 	scene.IncomingMsg = msg
-	scene.Call = call
+	scene.DBCall = call
 
 	if err := runner.ResumeFlow(ctx, rt, oa, session, scene, flowCall, resume); err != nil {
 		return fmt.Errorf("error resuming ivr flow: %w", err)
