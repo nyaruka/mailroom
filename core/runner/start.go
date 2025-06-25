@@ -156,31 +156,17 @@ func StartSessions(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsset
 		}
 	}
 
-	// interrupt contacts if desired
-	interruptIDs := make([]models.ContactID, 0, len(scenes))
-	for _, s := range scenes {
-		if s.Interrupt {
-			interruptIDs = append(interruptIDs, s.DBContact.ID())
-		}
-	}
-	if len(interruptIDs) > 0 {
-		if err := models.InterruptSessionsForContactsTx(txCTX, tx, interruptIDs); err != nil {
-			tx.Rollback()
-			return fmt.Errorf("error interrupting contacts: %w", err)
-		}
-	}
-
-	// write our session to the db
-	_, err = models.InsertSessions(txCTX, rt, tx, oa, sessions, sprints, mcs, callIDs, startIDs)
-	if err != nil {
-		tx.Rollback()
-		return fmt.Errorf("error interrupting contacts: %w", err)
-	}
-
 	// gather all our pre commit events, group them by hook
 	if err := ExecutePreCommitHooks(ctx, rt, tx, oa, scenes); err != nil {
 		tx.Rollback()
 		return fmt.Errorf("error applying session pre commit hooks: %w", err)
+	}
+
+	// TODO move this to a hook
+	_, err = models.InsertSessions(txCTX, rt, tx, oa, sessions, sprints, mcs, callIDs, startIDs)
+	if err != nil {
+		tx.Rollback()
+		return fmt.Errorf("error inserting sessions: %w", err)
 	}
 
 	if err := tx.Commit(); err != nil {
@@ -201,26 +187,16 @@ func StartSessions(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsset
 				return fmt.Errorf("error starting transaction for retry: %w", err)
 			}
 
-			// interrupt this contact if appropriate
-			if scene.Interrupt {
-				err = models.InterruptSessionsForContactsTx(txCTX, tx, []models.ContactID{mc.ID()})
-				if err != nil {
-					tx.Rollback()
-					slog.Error("error interrupting contact", "error", err, "contact", session.Contact().UUID())
-					continue
-				}
+			// gather all our pre commit events, group them by hook
+			if err := ExecutePreCommitHooks(ctx, rt, tx, oa, []*Scene{scene}); err != nil {
+				return fmt.Errorf("error applying session pre commit hooks: %w", err)
 			}
 
 			_, err = models.InsertSessions(txCTX, rt, tx, oa, []flows.Session{session}, []flows.Sprint{sprint}, []*models.Contact{mc}, []models.CallID{callID}, []models.StartID{startID})
 			if err != nil {
 				tx.Rollback()
-				slog.Error("error writing session to db", "error", err, "contact", session.Contact().UUID())
+				slog.Error("error inserting session", "error", err, "contact", session.Contact().UUID())
 				continue
-			}
-
-			// gather all our pre commit events, group them by hook
-			if err := ExecutePreCommitHooks(ctx, rt, tx, oa, []*Scene{scene}); err != nil {
-				return fmt.Errorf("error applying session pre commit hooks: %w", err)
 			}
 
 			if err := tx.Commit(); err != nil {

@@ -267,8 +267,7 @@ func StartCall(
 	scene.Call = flowCall
 	scene.Interrupt = true
 
-	err = runner.StartSessions(ctx, rt, oa, []*runner.Scene{scene}, []flows.Trigger{trigger})
-	if err != nil {
+	if err := runner.StartSessions(ctx, rt, oa, []*runner.Scene{scene}, []flows.Trigger{trigger}); err != nil {
 		return fmt.Errorf("error starting flow: %w", err)
 	}
 
