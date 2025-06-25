@@ -724,16 +724,16 @@ func (s *service) responseForSprint(ctx context.Context, rp *redis.Pool, channel
 	var waitEvent flows.Event
 	for _, e := range es {
 		switch event := e.(type) {
-		case *events.MsgWaitEvent, *events.DialWaitEvent:
+		case *events.MsgWait, *events.DialWait:
 			waitEvent = event
 		}
 	}
 
 	if waitEvent != nil {
 		switch wait := waitEvent.(type) {
-		case *events.MsgWaitEvent:
+		case *events.MsgWait:
 			switch hint := wait.Hint.(type) {
-			case *hints.DigitsHint:
+			case *hints.Digits:
 				eventURL := resumeURL + "&wait_type=gather"
 				eventURL = eventURL + "&sig=" + url.QueryEscape(s.calculateSignature(eventURL))
 				input := &Input{
@@ -751,7 +751,7 @@ func (s *service) responseForSprint(ctx context.Context, rp *redis.Pool, channel
 				}
 				waitActions = append(waitActions, input)
 
-			case *hints.AudioHint:
+			case *hints.Audio:
 				// Vonage is goofy in that they do not synchronously send us recordings. Rather the move on in
 				// the NCCO script immediately and then asynchronously call the event URL on the record URL
 				// when the recording is ready.
@@ -791,7 +791,7 @@ func (s *service) responseForSprint(ctx context.Context, rp *redis.Pool, channel
 				return "", fmt.Errorf("unable to use wait in IVR call, unknow hint type: %s", wait.Hint.Type())
 			}
 
-		case *events.DialWaitEvent:
+		case *events.DialWait:
 			// Vonage handles forwards a bit differently. We have to create a new call to the forwarded number, then
 			// join the current call with the call we are starting.
 			//
@@ -853,7 +853,7 @@ func (s *service) responseForSprint(ctx context.Context, rp *redis.Pool, channel
 
 	for _, e := range es {
 		switch event := e.(type) {
-		case *events.IVRCreatedEvent:
+		case *events.IVRCreated:
 			if len(event.Msg.Attachments()) == 0 {
 				actions = append(actions, Talk{
 					Action:  "talk",

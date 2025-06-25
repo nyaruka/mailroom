@@ -144,15 +144,15 @@ func getWaitProperties(oa *models.OrgAssets, evts []flows.Event) (*time.Time, ti
 
 	for _, e := range evts {
 		switch typed := e.(type) {
-		case *events.MsgWaitEvent:
+		case *events.MsgWait:
 			expiresOn = &typed.ExpiresOn
 
 			if typed.TimeoutSeconds != nil {
 				timeout = time.Duration(*typed.TimeoutSeconds) * time.Second
 			}
-		case *events.DialWaitEvent:
+		case *events.DialWait:
 			expiresOn = &typed.ExpiresOn
-		case *events.MsgCreatedEvent:
+		case *events.MsgCreated:
 			if typed.Msg.Channel() != nil {
 				channel := oa.ChannelByUUID(typed.Msg.Channel().UUID)
 				if channel != nil && !channel.IsAndroid() {

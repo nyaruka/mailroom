@@ -289,7 +289,7 @@ func (s *service) ResumeForRequest(r *http.Request) (ivr.Resume, error) {
 		return ivr.InputResume{Attachment: utils.Attachment("audio:" + recordingURL)}, nil
 
 	case "dial":
-		duration := time.Now().Sub(input.StartTime).Seconds()
+		duration := time.Since(input.StartTime).Seconds()
 
 		return ivr.DialResume{Status: flows.DialStatus("answered"), Duration: int(duration)}, nil
 
@@ -370,7 +370,7 @@ func (s *service) URNForRequest(r *http.Request) (urns.URN, error) {
 	if err != nil {
 		return "", fmt.Errorf("error reading body from request: %w", err)
 	}
-	tel, err := jsonparser.GetString(body, "to")
+	tel, _ := jsonparser.GetString(body, "to")
 	if tel == "" {
 		return "", errors.New("no 'to' key found in request")
 	}
@@ -460,7 +460,7 @@ func ResponseForSprint(rt *runtime.Runtime, env envs.Environment, urn urns.URN, 
 
 	for _, e := range es {
 		switch event := e.(type) {
-		case *events.IVRCreatedEvent:
+		case *events.IVRCreated:
 			if len(event.Msg.Attachments()) == 0 {
 				var locales []i18n.Locale
 				if event.Msg.Locale() != "" {
@@ -478,10 +478,10 @@ func ResponseForSprint(rt *runtime.Runtime, env envs.Environment, urn urns.URN, 
 				}
 			}
 
-		case *events.MsgWaitEvent:
+		case *events.MsgWait:
 			hasWait = true
 			switch hint := event.Hint.(type) {
-			case *hints.DigitsHint:
+			case *hints.Digits:
 				resumeURL = resumeURL + "&wait_type=gather"
 				gather := &Gather{
 					URL:      resumeURL,
@@ -495,7 +495,7 @@ func ResponseForSprint(rt *runtime.Runtime, env envs.Environment, urn urns.URN, 
 				r.Gather = gather
 				r.Commands = append(r.Commands, Redirect{URL: resumeURL + "&timeout=true"})
 
-			case *hints.AudioHint:
+			case *hints.Audio:
 				resumeURL = resumeURL + "&wait_type=record"
 				commands = append(commands, Record{URL: resumeURL, MaxDuration: recordTimeout})
 				commands = append(commands, Redirect{URL: resumeURL + "&empty=true"})
@@ -505,7 +505,7 @@ func ResponseForSprint(rt *runtime.Runtime, env envs.Environment, urn urns.URN, 
 				return "", fmt.Errorf("unable to use hint in IVR call, unknown type: %s", event.Hint.Type())
 			}
 
-		case *events.DialWaitEvent:
+		case *events.DialWait:
 			hasWait = true
 			phoneNumbers := make([]PhoneNumber, 0)
 			phoneNumbers = append(phoneNumbers, PhoneNumber{Number: event.URN.Path()})

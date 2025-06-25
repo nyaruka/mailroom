@@ -19,7 +19,7 @@ func init() {
 
 // handleTicketOpened is called for each ticket opened event
 func handleTicketOpened(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scene *runner.Scene, e flows.Event) error {
-	event := e.(*events.TicketOpenedEvent)
+	event := e.(*events.TicketOpened)
 
 	slog.Debug("ticket opened", "contact", scene.ContactUUID(), "session", scene.SessionUUID(), "ticket", event.Ticket.UUID)
 

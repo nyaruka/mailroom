@@ -97,7 +97,7 @@ func NewBroadcast(orgID OrgID, translations flows.BroadcastTranslations,
 }
 
 // NewBroadcastFromEvent creates a broadcast object from the passed in broadcast event
-func NewBroadcastFromEvent(ctx context.Context, tx DBorTx, oa *OrgAssets, event *events.BroadcastCreatedEvent) (*Broadcast, error) {
+func NewBroadcastFromEvent(ctx context.Context, tx DBorTx, oa *OrgAssets, event *events.BroadcastCreated) (*Broadcast, error) {
 	// resolve our contact references
 	contactIDs, err := GetContactIDsFromReferences(ctx, tx, oa.OrgID(), event.Contacts)
 	if err != nil {

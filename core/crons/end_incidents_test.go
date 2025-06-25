@@ -30,8 +30,8 @@ func TestEndIncidents(t *testing.T) {
 	oa1 := testdb.Org1.Load(rt)
 	oa2 := testdb.Org2.Load(rt)
 
-	createWebhookEvents := func(count int, elapsed time.Duration) []*events.WebhookCalledEvent {
-		evts := make([]*events.WebhookCalledEvent, count)
+	createWebhookEvents := func(count int, elapsed time.Duration) []*events.WebhookCalled {
+		evts := make([]*events.WebhookCalled, count)
 		for i := range evts {
 			req, _ := http.NewRequest("GET", "http://example.com", nil)
 			trace := &httpx.Trace{Request: req, StartTime: dates.Now(), EndTime: dates.Now().Add(elapsed)}

@@ -18,7 +18,7 @@ func init() {
 
 // handleContactURNsChanged is called for each contact urn changed event that is encountered
 func handleContactURNsChanged(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scene *runner.Scene, e flows.Event) error {
-	event := e.(*events.ContactURNsChangedEvent)
+	event := e.(*events.ContactURNsChanged)
 
 	slog.Debug("contact urns changed", "contact", scene.ContactUUID(), "session", scene.SessionUUID(), "urns", event.URNs)
 

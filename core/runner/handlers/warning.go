@@ -24,7 +24,7 @@ func init() {
 }
 
 func handleWarning(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scene *runner.Scene, e flows.Event) error {
-	event := e.(*events.WarningEvent)
+	event := e.(*events.Warning)
 
 	flow, _ := scene.LocateEvent(e)
 	logMsg := warningsLogs[event.Text]

@@ -18,7 +18,7 @@ func init() {
 
 // handleMsgReceived takes care of update last seen on and any campaigns based on that
 func handleMsgReceived(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scene *runner.Scene, e flows.Event) error {
-	event := e.(*events.MsgReceivedEvent)
+	event := e.(*events.MsgReceived)
 
 	slog.Debug("msg received", "contact", scene.ContactUUID(), "session", scene.SessionUUID(), "text", event.Msg.Text(), "urn", event.Msg.URN())
 

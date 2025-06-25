@@ -29,7 +29,7 @@ func (h *updateContactFields) Execute(ctx context.Context, rt *runtime.Runtime, 
 	for scene, es := range scenes {
 		updates := make(map[assets.FieldUUID]*flows.Value, len(es))
 		for _, e := range es {
-			event := e.(*events.ContactFieldChangedEvent)
+			event := e.(*events.ContactFieldChanged)
 			field := oa.FieldByKey(event.Field.Key)
 			if field == nil {
 				slog.Debug("unable to find field with key, ignoring", "session", scene.SessionUUID(), slog.Group("field", "key", event.Field.Key, "name", event.Field.Name))
