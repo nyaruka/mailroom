@@ -1,3 +1,7 @@
+v10.1.154 (2025-06-25)
+-------------------------
+ * Insert and interrupt sessions via hook
+
 v10.1.153 (2025-06-25)
 -------------------------
  * Refactor runner.Scene to carry the DB contact
