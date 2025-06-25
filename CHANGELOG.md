@@ -1,3 +1,9 @@
+v10.1.153 (2025-06-25)
+-------------------------
+ * Refactor runner.Scene to carry the DB contact
+ * Refactor flow starting and resuming to take a scene
+ * Update to latest goflow
+
 v10.1.152 (2025-06-24)
 -------------------------
  * Update to latest goflow which converts resumes to use events
