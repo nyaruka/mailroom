@@ -62,7 +62,7 @@ type FlowRun struct {
 }
 
 // newRun creates a flow run we can save to the database
-func newRun(ctx context.Context, tx *sqlx.Tx, oa *OrgAssets, session *Session, fr flows.Run) (*FlowRun, error) {
+func newRun(oa *OrgAssets, session *Session, fr flows.Run) *FlowRun {
 	// build our path elements
 	pathNodes := make(pq.StringArray, len(fr.Path()))
 	pathTimes := make([]time.Time, len(fr.Path()))
@@ -71,9 +71,10 @@ func newRun(ctx context.Context, tx *sqlx.Tx, oa *OrgAssets, session *Session, f
 		pathTimes[i] = p.ArrivedOn()
 	}
 
-	flowID, err := FlowIDForUUID(ctx, tx, oa, fr.FlowReference().UUID)
-	if err != nil {
-		return nil, fmt.Errorf("unable to load flow with uuid: %s: %w", fr.FlowReference().UUID, err)
+	// it's possible to resume a session with previous runs in now deleted flows - we don't need flow ID to update such runs
+	var flowID FlowID
+	if fr.Flow() != nil {
+		flowID = fr.Flow().Asset().(*Flow).ID()
 	}
 
 	r := &FlowRun{
@@ -106,7 +107,7 @@ func newRun(ctx context.Context, tx *sqlx.Tx, oa *OrgAssets, session *Session, f
 		}
 	}
 
-	return r, nil
+	return r
 }
 
 const sqlInsertRun = `

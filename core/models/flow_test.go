@@ -123,34 +123,3 @@ func TestLoadFlows(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Nil(t, dbFlow)
 }
-
-func TestFlowIDForUUID(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
-
-	org, _ := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
-
-	tx, err := rt.DB.BeginTxx(ctx, nil)
-	assert.NoError(t, err)
-
-	id, err := models.FlowIDForUUID(ctx, tx, org, testdb.Favorites.UUID)
-	assert.NoError(t, err)
-	assert.Equal(t, testdb.Favorites.ID, id)
-
-	// make favorite inactive
-	tx.MustExec(`UPDATE flows_flow SET is_active = FALSE WHERE id = $1`, testdb.Favorites.ID)
-	tx.Commit()
-
-	defer rt.DB.MustExec(`UPDATE flows_flow SET is_active = TRUE WHERE id = $1`, testdb.Favorites.ID)
-
-	tx, err = rt.DB.BeginTxx(ctx, nil)
-	assert.NoError(t, err)
-	defer tx.Rollback()
-
-	// clear our assets so it isn't cached
-	models.FlushCache()
-	org, _ = models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
-
-	id, err = models.FlowIDForUUID(ctx, tx, org, testdb.Favorites.UUID)
-	assert.NoError(t, err)
-	assert.Equal(t, testdb.Favorites.ID, id)
-}

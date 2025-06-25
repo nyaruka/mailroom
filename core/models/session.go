@@ -16,6 +16,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 	"github.com/nyaruka/gocommon/aws/s3x"
+	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/envs"
 	"github.com/nyaruka/goflow/flows"
@@ -58,7 +59,6 @@ type Session struct {
 		CallID         CallID            `db:"call_id"`
 	}
 
-	runs     []*FlowRun
 	seenRuns map[flows.RunUUID]time.Time
 }
 
@@ -87,11 +87,6 @@ func (s *Session) StoragePath(orgID OrgID, contactUUID flows.ContactUUID) string
 		string(contactUUID),
 		fmt.Sprintf("%s_session_%s_%s.json", ts, s.UUID(), s.OutputMD5()),
 	)
-}
-
-// Runs returns our flow run
-func (s *Session) Runs() []*FlowRun {
-	return s.runs
 }
 
 // OutputMD5 returns the md5 of the passed in session
@@ -142,23 +137,17 @@ WHERE
 
 // Update updates the session based on the state passed in from our engine session, this also takes care of applying any event hooks
 func (s *Session) Update(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *OrgAssets, fs flows.Session, sprint flows.Sprint, contact *Contact) error {
-	// make sure we have our seen runs
 	if s.seenRuns == nil {
-		return fmt.Errorf("missing seen runs, cannot update session")
+		panic("missing seen runs, cannot update session")
 	}
 
 	output, err := json.Marshal(fs)
 	if err != nil {
 		return fmt.Errorf("error marshalling flow session: %w", err)
 	}
-	s.s.Output = null.String(output)
 
-	// map our status over
-	status, found := sessionStatusMap[fs.Status()]
-	if !found {
-		return fmt.Errorf("unknown session status: %s", fs.Status())
-	}
-	s.s.Status = status
+	s.s.Output = null.String(output)
+	s.s.Status = sessionStatusMap[fs.Status()]
 	s.s.LastSprintUUID = null.String(sprint.UUID())
 
 	if s.s.Status != SessionStatusWaiting {
@@ -167,14 +156,9 @@ func (s *Session) Update(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, 
 	}
 
 	// now build up our runs
-	for _, r := range fs.Runs() {
-		run, err := newRun(ctx, tx, oa, s, r)
-		if err != nil {
-			return fmt.Errorf("error creating run: %s: %w", r.UUID(), err)
-		}
-
-		// set the run on our session
-		s.runs = append(s.runs, run)
+	runs := make([]*FlowRun, len(fs.Runs()))
+	for i, r := range fs.Runs() {
+		runs[i] = newRun(oa, s, r)
 	}
 
 	// run through our runs to figure out our current flow
@@ -182,11 +166,11 @@ func (s *Session) Update(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, 
 	for _, r := range fs.Runs() {
 		// if this run is waiting, save it as the current flow
 		if r.Status() == flows.RunStatusWaiting {
-			flowID, err := FlowIDForUUID(ctx, tx, oa, r.FlowReference().UUID)
-			if err != nil {
-				return fmt.Errorf("error loading flow: %s: %w", r.FlowReference().UUID, err)
+			if r.Flow() != nil {
+				s.s.CurrentFlowID = r.Flow().Asset().(*Flow).ID()
+			} else {
+				s.s.CurrentFlowID = NilFlowID
 			}
-			s.s.CurrentFlowID = flowID
 		}
 	}
 
@@ -212,7 +196,7 @@ func (s *Session) Update(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, 
 	updatedRuns := make([]*FlowRun, 0, 1)
 	newRuns := make([]*FlowRun, 0)
 
-	for _, r := range s.Runs() {
+	for _, r := range runs {
 		modified, found := s.seenRuns[r.UUID]
 		if !found {
 			newRuns = append(newRuns, r)
@@ -238,49 +222,15 @@ func (s *Session) Update(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, 
 	return nil
 }
 
-// MarshalJSON is our custom marshaller so that our inner struct get output
-func (s *Session) MarshalJSON() ([]byte, error) {
-	return json.Marshal(s.s)
-}
-
-// UnmarshalJSON is our custom marshaller so that our inner struct get output
-func (s *Session) UnmarshalJSON(b []byte) error {
-	return json.Unmarshal(b, &s.s)
-}
-
-// NewSession a session objects from the passed in flow session. It does NOT
-// commit said session to the database.
-func NewSession(ctx context.Context, tx *sqlx.Tx, oa *OrgAssets, fs flows.Session, sprint flows.Sprint, startID StartID, callID CallID) (*Session, error) {
-	output, err := json.Marshal(fs)
-	if err != nil {
-		return nil, fmt.Errorf("error marshalling flow session: %w", err)
-	}
-
-	// map our status over
-	sessionStatus, found := sessionStatusMap[fs.Status()]
-	if !found {
-		return nil, fmt.Errorf("unknown session status: %s", fs.Status())
-	}
-
-	// session must have at least one run
-	if len(fs.Runs()) < 1 {
-		return nil, fmt.Errorf("cannot write session that has no runs")
-	}
-
-	// figure out our type
-	sessionType, found := flowTypeMapping[fs.Type()]
-	if !found {
-		return nil, fmt.Errorf("unknown flow type: %s", fs.Type())
-	}
-
-	// create our session object
+// NewSessionAndRuns creates a db session and runs from the passed in engine session
+func NewSessionAndRuns(oa *OrgAssets, fs flows.Session, sprint flows.Sprint, startID StartID, callID CallID) (*Session, []*FlowRun) {
 	session := &Session{}
 	s := &session.s
 	s.UUID = fs.UUID()
-	s.Status = sessionStatus
+	s.Status = sessionStatusMap[fs.Status()]
 	s.LastSprintUUID = null.String(sprint.UUID())
-	s.SessionType = sessionType
-	s.Output = null.String(output)
+	s.SessionType = flowTypeMapping[fs.Type()]
+	s.Output = null.String(jsonx.MustMarshal(fs))
 	s.ContactID = ContactID(fs.Contact().ID())
 	s.CallID = callID
 	s.CreatedOn = fs.CreatedOn()
@@ -290,32 +240,30 @@ func NewSession(ctx context.Context, tx *sqlx.Tx, oa *OrgAssets, fs flows.Sessio
 		s.EndedOn = &now
 	}
 
-	// now build up our runs
+	// now create our runs
+	runs := make([]*FlowRun, len(fs.Runs()))
+
 	for i, r := range fs.Runs() {
-		run, err := newRun(ctx, tx, oa, session, r)
-		if err != nil {
-			return nil, fmt.Errorf("error creating run: %s: %w", r.UUID(), err)
-		}
+		run := newRun(oa, session, r)
 
 		// set start id if first run of session
 		if i == 0 && startID != NilStartID {
 			run.StartID = startID
 		}
 
-		// save the run to our session
-		session.runs = append(session.runs, run)
+		runs[i] = run
 
 		// if this run is waiting, save it as the current flow
 		if r.Status() == flows.RunStatusWaiting {
-			flowID, err := FlowIDForUUID(ctx, tx, oa, r.FlowReference().UUID)
-			if err != nil {
-				return nil, fmt.Errorf("error loading current flow for UUID: %s: %w", r.FlowReference().UUID, err)
+			if r.Flow() != nil {
+				s.CurrentFlowID = r.Flow().Asset().(*Flow).ID()
+			} else {
+				s.CurrentFlowID = NilFlowID
 			}
-			s.CurrentFlowID = flowID
 		}
 	}
 
-	return session, nil
+	return session, runs
 }
 
 const sqlInsertWaitingSession = `
@@ -338,8 +286,7 @@ INSERT INTO
 	flows_flowsession( uuid,  session_type,  status,  last_sprint_uuid,  output_url,  contact_id,  created_on,  ended_on,  call_id)
                VALUES(:uuid, :session_type, :status, :last_sprint_uuid, :output_url, :contact_id, :created_on, :ended_on, :call_id)`
 
-// InsertSessions writes the passed in session to our database, writes any runs that need to be created
-// as well as appying any events created in the session
+// InsertSessions inserts sessions and their runs into the database
 func InsertSessions(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *OrgAssets, ss []flows.Session, sprints []flows.Sprint, contacts []*Contact, callIDs []CallID, startIDs []StartID) ([]*Session, error) {
 	if len(ss) == 0 {
 		return nil, nil
@@ -347,22 +294,22 @@ func InsertSessions(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *O
 
 	// create all our session objects
 	sessions := make([]*Session, 0, len(ss))
-	runs := make([]*FlowRun, 0, len(sessions))
-	waitingSessionsI := make([]any, 0, len(ss))
-	endedSessionsI := make([]any, 0, len(ss))
+	runs := make([]*FlowRun, 0, len(ss))
 
 	for i, s := range ss {
-		session, err := NewSession(ctx, tx, oa, s, sprints[i], startIDs[i], callIDs[i])
-		if err != nil {
-			return nil, fmt.Errorf("error creating session objects: %w", err)
-		}
+		session, rs := NewSessionAndRuns(oa, s, sprints[i], startIDs[i], callIDs[i])
 		sessions = append(sessions, session)
-		runs = append(runs, session.runs...)
+		runs = append(runs, rs...)
+	}
 
-		if session.Status() == SessionStatusWaiting {
-			waitingSessionsI = append(waitingSessionsI, &session.s)
+	// split into waiting and ended sessions
+	waitingSessionsI := make([]any, 0, len(ss))
+	endedSessionsI := make([]any, 0, len(ss))
+	for _, s := range sessions {
+		if s.Status() == SessionStatusWaiting {
+			waitingSessionsI = append(waitingSessionsI, &s.s)
 		} else {
-			endedSessionsI = append(endedSessionsI, &session.s)
+			endedSessionsI = append(endedSessionsI, &s.s)
 		}
 	}
 
@@ -372,8 +319,7 @@ func InsertSessions(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *O
 
 	// if writing our sessions to S3, do so
 	if rt.Config.SessionStorage == "s3" {
-		err := writeSessionsToStorage(ctx, rt, oa.OrgID(), sessions, contacts)
-		if err != nil {
+		if err := writeSessionsToStorage(ctx, rt, oa.OrgID(), sessions, contacts); err != nil {
 			return nil, fmt.Errorf("error writing sessions to storage: %w", err)
 		}
 
@@ -382,20 +328,17 @@ func InsertSessions(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *O
 	}
 
 	// insert our ended sessions first
-	err := BulkQuery(ctx, "insert ended sessions", tx, insertEndedSQL, endedSessionsI)
-	if err != nil {
+	if err := BulkQuery(ctx, "insert ended sessions", tx, insertEndedSQL, endedSessionsI); err != nil {
 		return nil, fmt.Errorf("error inserting ended sessions: %w", err)
 	}
 
 	// insert waiting sessions
-	err = BulkQuery(ctx, "insert waiting sessions", tx, insertWaitingSQL, waitingSessionsI)
-	if err != nil {
+	if err := BulkQuery(ctx, "insert waiting sessions", tx, insertWaitingSQL, waitingSessionsI); err != nil {
 		return nil, fmt.Errorf("error inserting waiting sessions: %w", err)
 	}
 
 	// insert all runs
-	err = BulkQuery(ctx, "insert runs", tx, sqlInsertRun, runs)
-	if err != nil {
+	if err := InsertRuns(ctx, tx, runs); err != nil {
 		return nil, fmt.Errorf("error writing runs: %w", err)
 	}
 
