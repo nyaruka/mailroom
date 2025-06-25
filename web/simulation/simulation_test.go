@@ -24,16 +24,17 @@ const (
 	{
 		"org_id": 1,
 		"contact": {
-			"created_on": "2000-01-01T00:00:00.000000000-00:00",
-			"fields": {},
+			"uuid": "ba96bf7f-bc2a-4873-a7c7-254d1927c4e3",
 			"id": 1234567,
-			"language": "eng",
 			"name": "Ben Haggerty",
+			"status": "active",
+			"language": "eng",
 			"timezone": "America/Guayaquil",
 			"urns": [
 				"tel:+12065551212"
 			],
-			"uuid": "ba96bf7f-bc2a-4873-a7c7-254d1927c4e3"
+			"fields": {},
+			"created_on": "2000-01-01T00:00:00.000000000-00:00"
 		},
 		"trigger": {
 			"flow": {
@@ -49,16 +50,17 @@ const (
 	{
 		"org_id": 1,
 		"contact": {
-			"created_on": "2000-01-01T00:00:00.000000000-00:00",
-			"fields": {},
+			"uuid": "ba96bf7f-bc2a-4873-a7c7-254d1927c4e3",
 			"id": 1234567,
-			"language": "eng",
 			"name": "Ben Haggerty",
+			"status": "active",
+			"language": "eng",
 			"timezone": "America/Guayaquil",
 			"urns": [
 				"tel:+12065551212"
 			],
-			"uuid": "ba96bf7f-bc2a-4873-a7c7-254d1927c4e3"
+			"fields": {},
+			"created_on": "2000-01-01T00:00:00.000000000-00:00"
 		},
 		"resume": {
 			"event": {
@@ -96,16 +98,17 @@ const (
 	{
 		"org_id": 1,
 		"contact": {
-			"created_on": "2000-01-01T00:00:00.000000000-00:00",
-			"fields": {},
+			"uuid": "ba96bf7f-bc2a-4873-a7c7-254d1927c4e3",
 			"id": 1234567,
-			"language": "eng",
 			"name": "Ben Haggerty",
+			"status": "active",
+			"language": "eng",
 			"timezone": "America/Guayaquil",
 			"urns": [
 				"tel:+12065551212"
 			],
-			"uuid": "ba96bf7f-bc2a-4873-a7c7-254d1927c4e3"
+			"fields": {},
+			"created_on": "2000-01-01T00:00:00.000000000-00:00"
 		},
 		"trigger": {
 			"event": {
