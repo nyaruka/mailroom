@@ -48,7 +48,7 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 		runner.NewScene(mcAlex, fcAlex, models.NilUserID),
 	}
 
-	err = runner.StartSessions(ctx, rt, oa, scenes, nil, trigs, true)
+	err = runner.StartSessions(ctx, rt, oa, scenes, trigs, true)
 	require.NoError(t, err)
 	assert.Equal(t, time.Minute*5, scenes[0].WaitTimeout)    // Bob's messages are being sent via courier
 	assert.Equal(t, time.Duration(0), scenes[1].WaitTimeout) // Alexandra's messages are being sent via Android
@@ -129,7 +129,7 @@ func TestSingleSprintSession(t *testing.T) {
 	scenes := []*runner.Scene{runner.NewScene(mc, fc, models.NilUserID)}
 	trigs := []flows.Trigger{triggers.NewBuilder(flow.Reference()).Manual().Build()}
 
-	err = runner.StartSessions(ctx, rt, oa, scenes, nil, trigs, true)
+	err = runner.StartSessions(ctx, rt, oa, scenes, trigs, true)
 	require.NoError(t, err)
 
 	// check session in database
@@ -160,7 +160,7 @@ func TestSessionWithSubflows(t *testing.T) {
 	scenes := []*runner.Scene{runner.NewScene(mc, fc, models.NilUserID)}
 	trigs := []flows.Trigger{triggers.NewBuilder(parent.Reference()).Manual().Build()}
 
-	err = runner.StartSessions(ctx, rt, oa, scenes, nil, trigs, true)
+	err = runner.StartSessions(ctx, rt, oa, scenes, trigs, true)
 	require.NoError(t, err)
 	assert.Equal(t, time.Duration(0), scenes[0].WaitTimeout) // no timeout on wait
 

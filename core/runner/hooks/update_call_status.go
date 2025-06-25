@@ -25,11 +25,11 @@ func (h *updateCallStatus) Execute(ctx context.Context, rt *runtime.Runtime, tx 
 		if status == models.CallStatusInProgress {
 			session := scene.Session
 
-			if err := scene.Call.SetInProgress(ctx, rt.DB, session.UUID(), session.CreatedOn()); err != nil {
+			if err := scene.DBCall.SetInProgress(ctx, rt.DB, session.UUID(), session.CreatedOn()); err != nil {
 				return fmt.Errorf("error updating call to in progress: %w", err)
 			}
 		} else {
-			if err := scene.Call.UpdateStatus(ctx, tx, status, 0, time.Now()); err != nil {
+			if err := scene.DBCall.UpdateStatus(ctx, tx, status, 0, time.Now()); err != nil {
 				return fmt.Errorf("error updating call status: %w", err)
 			}
 		}

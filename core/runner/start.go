@@ -91,7 +91,7 @@ func tryToStartWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 		triggers = append(triggers, triggerBuilder())
 	}
 
-	err = StartSessions(ctx, rt, oa, scenes, nil, triggers, interrupt)
+	err = StartSessions(ctx, rt, oa, scenes, triggers, interrupt)
 	if err != nil {
 		return nil, nil, fmt.Errorf("error starting flow for contacts: %w", err)
 	}
@@ -100,7 +100,7 @@ func tryToStartWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 }
 
 // StartSessions starts the given contacts in flow sessions. It's assumed that the contacts are already locked.
-func StartSessions(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scenes []*Scene, call *flows.Call, triggers []flows.Trigger, interrupt bool) error {
+func StartSessions(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scenes []*Scene, triggers []flows.Trigger, interrupt bool) error {
 	if len(scenes) == 0 {
 		return nil
 	}
@@ -121,7 +121,7 @@ func StartSessions(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsset
 	for i, scene := range scenes {
 		trigger := triggers[i]
 
-		session, sprint, err := goflow.Engine(rt).NewSession(ctx, sa, oa.Env(), scene.Contact, trigger, call)
+		session, sprint, err := goflow.Engine(rt).NewSession(ctx, sa, oa.Env(), scene.Contact, trigger, scene.Call)
 		if err != nil {
 			return fmt.Errorf("error starting contact %s in flow %s: %w", scene.ContactUUID(), trigger.Flow().UUID, err)
 		}
@@ -152,8 +152,8 @@ func StartSessions(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsset
 		contactIDs[i] = s.DBContact.ID()
 		mcs[i] = s.DBContact
 		startIDs[i] = s.StartID
-		if s.Call != nil {
-			callIDs[i] = s.Call.ID()
+		if s.DBCall != nil {
+			callIDs[i] = s.DBCall.ID()
 		}
 	}
 

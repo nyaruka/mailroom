@@ -190,7 +190,7 @@ func RunTestCases(t *testing.T, ctx context.Context, rt *runtime.Runtime, tcs []
 				}
 			}
 
-			err = runner.StartSessions(ctx, rt, oa, scenes, nil, trigs, true)
+			err = runner.StartSessions(ctx, rt, oa, scenes, trigs, true)
 			require.NoError(t, err)
 		}
 		if tc.Modifiers != nil {
