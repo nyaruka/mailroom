@@ -68,7 +68,7 @@ func TestResume(t *testing.T) {
 
 		scene := runner.NewScene(mc, fc, models.NilUserID)
 
-		err = runner.ResumeFlow(ctx, rt, oa, session, scene, nil, resume)
+		err = runner.ResumeSession(ctx, rt, oa, session, scene, resume)
 		assert.NoError(t, err)
 
 		assertdb.Query(t, rt.DB,

@@ -216,8 +216,8 @@ func HandleAsFailure(ctx context.Context, db *sqlx.DB, svc Service, call *models
 	return svc.WriteErrorResponse(w, rootErr)
 }
 
-// StartIVRFlowByStart takes care of starting the flow in the passed in start for the passed in contact and URN
-func StartIVRFlow(
+// StartCall takes care of starting the given call
+func StartCall(
 	ctx context.Context, rt *runtime.Runtime, svc Service, resumeURL string, oa *models.OrgAssets,
 	channel *models.Channel, call *models.Call, mc *models.Contact, urn urns.URN,
 	r *http.Request, w http.ResponseWriter) error {
@@ -279,8 +279,8 @@ func StartIVRFlow(
 	return nil
 }
 
-// ResumeIVRFlow takes care of resuming the flow in the passed in start for the passed in contact and URN
-func ResumeIVRFlow(
+// ResumeCall takes care of resuming the given call
+func ResumeCall(
 	ctx context.Context, rt *runtime.Runtime,
 	resumeURL string, svc Service,
 	oa *models.OrgAssets, channel *models.Channel, call *models.Call, mc *models.Contact, urn urns.URN,
@@ -367,13 +367,12 @@ func ResumeIVRFlow(
 		return svc.WriteErrorResponse(w, fmt.Errorf("no resume found, ending call"))
 	}
 
-	flowCall := flows.NewCall(call.UUID(), oa.SessionAssets().Channels().Get(channel.UUID()), urn.Identity())
-
 	scene := runner.NewScene(mc, contact, models.NilUserID)
 	scene.IncomingMsg = msg
 	scene.DBCall = call
+	scene.Call = flows.NewCall(call.UUID(), oa.SessionAssets().Channels().Get(channel.UUID()), urn.Identity())
 
-	if err := runner.ResumeFlow(ctx, rt, oa, session, scene, flowCall, resume); err != nil {
+	if err := runner.ResumeSession(ctx, rt, oa, session, scene, resume); err != nil {
 		return fmt.Errorf("error resuming ivr flow: %w", err)
 	}
 
@@ -395,9 +394,9 @@ func ResumeIVRFlow(
 	return nil
 }
 
-// HandleIVRStatus is called on status callbacks for an IVR call. We let the service decide whether the call has
+// HandleStatus is called on status callbacks for an IVR call. We let the service decide whether the call has
 // ended for some reason and update the state of the call and session if so
-func HandleIVRStatus(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, svc Service, call *models.Call, r *http.Request, w http.ResponseWriter) error {
+func HandleStatus(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, svc Service, call *models.Call, r *http.Request, w http.ResponseWriter) error {
 	// read our status and duration from our service
 	status, errorReason, duration := svc.StatusForRequest(r)
 
