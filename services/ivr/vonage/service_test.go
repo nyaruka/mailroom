@@ -106,21 +106,21 @@ func TestResponseForSprint(t *testing.T) {
 		{
 			[]flows.Event{
 				events.NewIVRCreated(flows.NewIVRMsgOut(urn, channelRef, "enter a number", "", "")),
-				events.NewMsgWait(nil, expiresOn, hints.NewFixedDigitsHint(1)),
+				events.NewMsgWait(nil, expiresOn, hints.NewFixedDigits(1)),
 			},
 			`[{"action":"talk","text":"enter a number","bargeIn":true},{"action":"input","maxDigits":1,"submitOnHash":true,"timeOut":30,"eventUrl":["http://temba.io/resume?session=1\u0026wait_type=gather\u0026sig=4Yil1wUntXd%2F7AQx%2Bt0rkwihx%2Fg%3D"],"eventMethod":"POST"}]`,
 		},
 		{
 			[]flows.Event{
 				events.NewIVRCreated(flows.NewIVRMsgOut(urn, channelRef, "enter a number, then press #", "", "")),
-				events.NewMsgWait(nil, expiresOn, hints.NewTerminatedDigitsHint("#")),
+				events.NewMsgWait(nil, expiresOn, hints.NewTerminatedDigits("#")),
 			},
 			`[{"action":"talk","text":"enter a number, then press #","bargeIn":true},{"action":"input","maxDigits":20,"submitOnHash":true,"timeOut":30,"eventUrl":["http://temba.io/resume?session=1\u0026wait_type=gather\u0026sig=4Yil1wUntXd%2F7AQx%2Bt0rkwihx%2Fg%3D"],"eventMethod":"POST"}]`,
 		},
 		{
 			[]flows.Event{
 				events.NewIVRCreated(flows.NewIVRMsgOut(urn, channelRef, "say something", "", "")),
-				events.NewMsgWait(nil, expiresOn, hints.NewAudioHint()),
+				events.NewMsgWait(nil, expiresOn, hints.NewAudio()),
 			},
 			`[{"action":"talk","text":"say something"},{"action":"record","endOnKey":"#","timeOut":600,"endOnSilence":5,"eventUrl":["http://temba.io/resume?session=1\u0026wait_type=recording_url\u0026recording_uuid=8bcb9ef2-d4a6-4314-b68d-6d299761ea9e\u0026sig=wX%2FGxAivPgl9DU51GcFiSy1gwcE%3D"],"eventMethod":"POST"},{"action":"input","submitOnHash":true,"timeOut":1,"eventUrl":["http://temba.io/resume?session=1\u0026wait_type=record\u0026recording_uuid=8bcb9ef2-d4a6-4314-b68d-6d299761ea9e\u0026sig=zQDkXiAu33aJVKfuIrsupJMZKi0%3D"],"eventMethod":"POST"}]`,
 		},

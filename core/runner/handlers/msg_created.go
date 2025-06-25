@@ -19,7 +19,7 @@ func init() {
 
 // handleMsgCreated creates the db msg for the passed in event
 func handleMsgCreated(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scene *runner.Scene, e flows.Event) error {
-	event := e.(*events.MsgCreatedEvent)
+	event := e.(*events.MsgCreated)
 
 	// must be in a session
 	if scene.Session == nil {

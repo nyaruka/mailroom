@@ -17,7 +17,7 @@ func init() {
 }
 
 func handleSessionTriggered(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scene *runner.Scene, e flows.Event) error {
-	event := e.(*events.SessionTriggeredEvent)
+	event := e.(*events.SessionTriggered)
 
 	slog.Debug("session triggered", "contact", scene.ContactUUID(), "session", scene.SessionUUID(), slog.Group("flow", "uuid", event.Flow.UUID, "name", event.Flow.Name))
 

@@ -493,7 +493,7 @@ func ResponseForSprint(rt *runtime.Runtime, env envs.Environment, urn urns.URN, 
 
 	for _, e := range es {
 		switch event := e.(type) {
-		case *events.IVRCreatedEvent:
+		case *events.IVRCreated:
 			if len(event.Msg.Attachments()) == 0 {
 				var locales []i18n.Locale
 				if event.Msg.Locale() != "" {
@@ -510,10 +510,10 @@ func ResponseForSprint(rt *runtime.Runtime, env envs.Environment, urn urns.URN, 
 				}
 			}
 
-		case *events.MsgWaitEvent:
+		case *events.MsgWait:
 			hasWait = true
 			switch hint := event.Hint.(type) {
-			case *hints.DigitsHint:
+			case *hints.Digits:
 				resumeURL = resumeURL + "&wait_type=gather"
 				gather := &Gather{
 					Action:   resumeURL,
@@ -527,7 +527,7 @@ func ResponseForSprint(rt *runtime.Runtime, env envs.Environment, urn urns.URN, 
 				r.Gather = gather
 				r.Commands = append(r.Commands, Redirect{URL: resumeURL + "&timeout=true"})
 
-			case *hints.AudioHint:
+			case *hints.Audio:
 				resumeURL = resumeURL + "&wait_type=record"
 				commands = append(commands, Record{Action: resumeURL, MaxLength: recordTimeout})
 				commands = append(commands, Redirect{URL: resumeURL + "&empty=true"})
@@ -537,7 +537,7 @@ func ResponseForSprint(rt *runtime.Runtime, env envs.Environment, urn urns.URN, 
 				return "", fmt.Errorf("unable to use hint in IVR call, unknown type: %s", event.Hint.Type())
 			}
 
-		case *events.DialWaitEvent:
+		case *events.DialWait:
 			hasWait = true
 			dial := Dial{Action: resumeURL + "&wait_type=dial", Number: event.URN.Path(), Timeout: event.DialLimitSeconds, TimeLimit: event.CallLimitSeconds}
 			commands = append(commands, dial)

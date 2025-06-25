@@ -20,7 +20,7 @@ func init() {
 
 // handleAirtimeTransferred is called for each airtime transferred event
 func handleAirtimeTransferred(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scene *runner.Scene, e flows.Event) error {
-	event := e.(*events.AirtimeTransferredEvent)
+	event := e.(*events.AirtimeTransferred)
 
 	slog.Debug("airtime transferred", "contact", scene.ContactUUID(), "session", scene.SessionUUID(), "sender", event.Sender, "recipient", event.Recipient, "currency", event.Currency, "amount", event.Amount.String())
 

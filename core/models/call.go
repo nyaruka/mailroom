@@ -91,7 +91,7 @@ func (c *Call) ErrorCount() int                { return c.c.ErrorCount }
 func (c *Call) NextAttempt() *time.Time        { return c.c.NextAttempt }
 
 func (c *Call) EngineTrigger(oa *OrgAssets) (flows.Trigger, error) {
-	trigger, err := triggers.ReadTrigger(oa.SessionAssets(), c.c.Trigger, assets.IgnoreMissing)
+	trigger, err := triggers.Read(oa.SessionAssets(), c.c.Trigger, assets.IgnoreMissing)
 	if err != nil {
 		return nil, fmt.Errorf("error reading call trigger: %w", err)
 	}

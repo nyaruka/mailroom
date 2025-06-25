@@ -22,7 +22,7 @@ const (
 func ReadModifiers(sa flows.SessionAssets, data []json.RawMessage, missing MissingAssets) ([]flows.Modifier, error) {
 	mods := make([]flows.Modifier, 0, len(data))
 	for _, m := range data {
-		mod, err := modifiers.ReadModifier(sa, m, assets.IgnoreMissing)
+		mod, err := modifiers.Read(sa, m, assets.IgnoreMissing)
 
 		// if this modifier turned into a no-op, ignore
 		if err == modifiers.ErrNoModifier && missing == IgnoreMissing {

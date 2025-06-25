@@ -17,7 +17,7 @@ func init() {
 
 // goflow now sends email so this just logs the event
 func handleEmailSent(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scene *runner.Scene, e flows.Event) error {
-	event := e.(*events.EmailSentEvent)
+	event := e.(*events.EmailSent)
 
 	slog.Debug("email sent", "contact", scene.ContactUUID(), "session", scene.SessionUUID(), "subject", event.Subject, "body", event.Body)
 

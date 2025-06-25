@@ -41,7 +41,7 @@ func (h *updateCampaignFires) Execute(ctx context.Context, rt *runtime.Runtime, 
 				groupRemoves[event.GroupID] = true
 				delete(groupAdds, event.GroupID)
 
-			case *events.ContactFieldChangedEvent:
+			case *events.ContactFieldChanged:
 				field := oa.FieldByKey(event.Field.Key)
 				if field == nil {
 					slog.Debug("unable to find field with key, ignoring for campaign updates", "session", s.SessionUUID(), slog.Group("field", "key", event.Field.Key, "name", event.Field.Name))
@@ -49,7 +49,7 @@ func (h *updateCampaignFires) Execute(ctx context.Context, rt *runtime.Runtime, 
 				}
 				fieldChanges[field.ID()] = true
 
-			case *events.MsgReceivedEvent:
+			case *events.MsgReceived:
 				field := oa.FieldByKey(models.LastSeenOnKey)
 				fieldChanges[field.ID()] = true
 			}

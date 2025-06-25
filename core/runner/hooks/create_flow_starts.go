@@ -28,7 +28,7 @@ func (h *createFlowStarts) Execute(ctx context.Context, rt *runtime.Runtime, tx 
 	// for each of our scene
 	for _, es := range scenes {
 		for _, e := range es {
-			event := e.(*events.SessionTriggeredEvent)
+			event := e.(*events.SessionTriggered)
 
 			// look up our flow
 			f, err := oa.FlowByUUID(event.Flow.UUID)

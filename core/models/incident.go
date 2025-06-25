@@ -146,7 +146,7 @@ type WebhookNode struct {
 	UUID flows.NodeUUID
 }
 
-func (n *WebhookNode) Record(ctx context.Context, rt *runtime.Runtime, events []*events.WebhookCalledEvent) error {
+func (n *WebhookNode) Record(ctx context.Context, rt *runtime.Runtime, events []*events.WebhookCalled) error {
 	numHealthy, numUnhealthy := 0, 0
 	for _, e := range events {
 		if e.ElapsedMS <= rt.Config.WebhooksHealthyResponseLimit {

@@ -23,7 +23,7 @@ func (h *updateContactLanguage) Execute(ctx context.Context, rt *runtime.Runtime
 	updates := make([]*languageUpdate, 0, len(scenes))
 	for s, e := range scenes {
 		// we only care about the last name change
-		event := e[len(e)-1].(*events.ContactLanguageChangedEvent)
+		event := e[len(e)-1].(*events.ContactLanguageChanged)
 		updates = append(updates, &languageUpdate{s.ContactID(), null.String(event.Language)})
 	}
 

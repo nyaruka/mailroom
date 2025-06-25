@@ -116,7 +116,7 @@ func handleSimulationEvents(ctx context.Context, db models.DBorTx, oa *models.Or
 	wes := make([]*models.WebhookEvent, 0)
 	for _, e := range es {
 		if e.Type() == events.TypeResthookCalled {
-			rec := e.(*events.ResthookCalledEvent)
+			rec := e.(*events.ResthookCalled)
 			resthook := oa.ResthookBySlug(rec.Resthook)
 			if resthook != nil {
 				we := models.NewWebhookEvent(oa.OrgID(), resthook.ID(), string(rec.Payload), rec.CreatedOn())
@@ -152,7 +152,7 @@ func handleStart(ctx context.Context, rt *runtime.Runtime, r *startRequest) (any
 		call = r.Call.Unmarshal(oa.SessionAssets(), assets.IgnoreMissing)
 	}
 
-	trigger, err := triggers.ReadTrigger(oa.SessionAssets(), r.Trigger, assets.IgnoreMissing)
+	trigger, err := triggers.Read(oa.SessionAssets(), r.Trigger, assets.IgnoreMissing)
 	if err != nil {
 		return nil, http.StatusBadRequest, fmt.Errorf("unable to read trigger: %w", err)
 	}
@@ -218,7 +218,7 @@ func handleResume(ctx context.Context, rt *runtime.Runtime, r *resumeRequest) (a
 		call = r.Call.Unmarshal(oa.SessionAssets(), assets.IgnoreMissing)
 	}
 
-	resume, err := resumes.ReadResume(oa.SessionAssets(), r.Resume, assets.IgnoreMissing)
+	resume, err := resumes.Read(oa.SessionAssets(), r.Resume, assets.IgnoreMissing)
 	if err != nil {
 		return nil, http.StatusBadRequest, err
 	}
@@ -230,8 +230,8 @@ func handleResume(ctx context.Context, rt *runtime.Runtime, r *resumeRequest) (a
 
 	// if this is a msg resume we want to check whether it might be caught by a trigger
 	if resume.Type() == resumes.TypeMsg {
-		msgResume := resume.(*resumes.MsgResume)
-		msgEvt := msgResume.Event().(*events.MsgReceivedEvent)
+		msgResume := resume.(*resumes.Msg)
+		msgEvt := msgResume.Event().(*events.MsgReceived)
 
 		trigger, keyword := models.FindMatchingMsgTrigger(oa, nil, contact, msgEvt.Msg.Text())
 		if trigger != nil {

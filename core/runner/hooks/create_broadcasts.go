@@ -26,7 +26,7 @@ func (h *createBroadcasts) Execute(ctx context.Context, rt *runtime.Runtime, oa 
 	// for each of our scene
 	for _, es := range scenes {
 		for _, e := range es {
-			event := e.(*events.BroadcastCreatedEvent)
+			event := e.(*events.BroadcastCreated)
 
 			// create a non-persistent broadcast
 			bcast, err := models.NewBroadcastFromEvent(ctx, rt.DB, oa, event)

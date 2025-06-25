@@ -17,7 +17,7 @@ func init() {
 }
 
 func handleBroadcastCreated(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scene *runner.Scene, e flows.Event) error {
-	event := e.(*events.BroadcastCreatedEvent)
+	event := e.(*events.BroadcastCreated)
 
 	slog.Debug("broadcast created", "contact", scene.ContactUUID(), "session", scene.SessionUUID(), "translations", event.Translations[event.BaseLanguage])
 

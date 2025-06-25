@@ -24,7 +24,7 @@ func (h *updateContactName) Execute(ctx context.Context, rt *runtime.Runtime, tx
 	updates := make([]*nameUpdate, 0, len(scenes))
 	for s, e := range scenes {
 		// we only care about the last name change
-		event := e[len(e)-1].(*events.ContactNameChangedEvent)
+		event := e[len(e)-1].(*events.ContactNameChanged)
 		updates = append(updates, &nameUpdate{s.ContactID(), null.String(fmt.Sprintf("%.128s", event.Name))})
 	}
 
