@@ -86,12 +86,13 @@ func tryToStartWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 
 		scene := NewScene(mc, c, models.NilUserID)
 		scene.StartID = startID
-		scenes = append(scenes, scene)
+		scene.Interrupt = interrupt
 
+		scenes = append(scenes, scene)
 		triggers = append(triggers, triggerBuilder())
 	}
 
-	err = StartSessions(ctx, rt, oa, scenes, triggers, interrupt)
+	err = StartSessions(ctx, rt, oa, scenes, triggers)
 	if err != nil {
 		return nil, nil, fmt.Errorf("error starting flow for contacts: %w", err)
 	}
@@ -100,7 +101,7 @@ func tryToStartWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 }
 
 // StartSessions starts the given contacts in flow sessions. It's assumed that the contacts are already locked.
-func StartSessions(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scenes []*Scene, triggers []flows.Trigger, interrupt bool) error {
+func StartSessions(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scenes []*Scene, triggers []flows.Trigger) error {
 	if len(scenes) == 0 {
 		return nil
 	}
@@ -144,12 +145,10 @@ func StartSessions(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsset
 		return fmt.Errorf("error starting transaction: %w", err)
 	}
 
-	contactIDs := make([]models.ContactID, len(scenes))
 	mcs := make([]*models.Contact, len(scenes))
 	callIDs := make([]models.CallID, len(triggers))
 	startIDs := make([]models.StartID, len(triggers))
 	for i, s := range scenes {
-		contactIDs[i] = s.DBContact.ID()
 		mcs[i] = s.DBContact
 		startIDs[i] = s.StartID
 		if s.DBCall != nil {
@@ -157,14 +156,15 @@ func StartSessions(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsset
 		}
 	}
 
-	// interrupt all our contacts if desired
-	if interrupt {
-		contactIDs := make([]models.ContactID, len(triggers))
-		for i, s := range scenes {
-			contactIDs[i] = s.DBContact.ID()
+	// interrupt contacts if desired
+	interruptIDs := make([]models.ContactID, 0, len(scenes))
+	for _, s := range scenes {
+		if s.Interrupt {
+			interruptIDs = append(interruptIDs, s.DBContact.ID())
 		}
-
-		if err := models.InterruptSessionsForContactsTx(txCTX, tx, contactIDs); err != nil {
+	}
+	if len(interruptIDs) > 0 {
+		if err := models.InterruptSessionsForContactsTx(txCTX, tx, interruptIDs); err != nil {
 			tx.Rollback()
 			return fmt.Errorf("error interrupting contacts: %w", err)
 		}
@@ -202,7 +202,7 @@ func StartSessions(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsset
 			}
 
 			// interrupt this contact if appropriate
-			if interrupt {
+			if scene.Interrupt {
 				err = models.InterruptSessionsForContactsTx(txCTX, tx, []models.ContactID{mc.ID()})
 				if err != nil {
 					tx.Rollback()

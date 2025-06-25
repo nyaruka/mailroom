@@ -265,8 +265,9 @@ func StartCall(
 	scene := runner.NewScene(mc, contact, models.NilUserID)
 	scene.DBCall = call
 	scene.Call = flowCall
+	scene.Interrupt = true
 
-	err = runner.StartSessions(ctx, rt, oa, []*runner.Scene{scene}, []flows.Trigger{trigger}, true)
+	err = runner.StartSessions(ctx, rt, oa, []*runner.Scene{scene}, []flows.Trigger{trigger})
 	if err != nil {
 		return fmt.Errorf("error starting flow: %w", err)
 	}

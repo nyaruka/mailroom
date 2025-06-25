@@ -175,6 +175,7 @@ func RunTestCases(t *testing.T, ctx context.Context, rt *runtime.Runtime, tcs []
 			for i, c := range []*testdb.Contact{testdb.Cathy, testdb.Bob, testdb.George, testdb.Alexandra} {
 				mc, fc, _ := c.Load(rt, oa)
 				scenes[i] = runner.NewScene(mc, fc, models.NilUserID)
+				scenes[i].Interrupt = true
 				if msg := msgsByContactID[c.ID]; msg != nil {
 					scenes[i].IncomingMsg = &models.MsgInRef{ID: msg.ID}
 					scenes[i].AddEvents([]flows.Event{events.NewMsgReceived(msg.FlowMsg)})
@@ -190,7 +191,7 @@ func RunTestCases(t *testing.T, ctx context.Context, rt *runtime.Runtime, tcs []
 				}
 			}
 
-			err = runner.StartSessions(ctx, rt, oa, scenes, trigs, true)
+			err = runner.StartSessions(ctx, rt, oa, scenes, trigs)
 			require.NoError(t, err)
 		}
 		if tc.Modifiers != nil {

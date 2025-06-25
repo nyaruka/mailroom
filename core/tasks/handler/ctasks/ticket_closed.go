@@ -76,6 +76,7 @@ func (t *TicketClosedTask) Perform(ctx context.Context, rt *runtime.Runtime, oa 
 	evt := events.NewTicketClosed(ticket)
 
 	scene := runner.NewScene(mc, contact, models.NilUserID)
+	scene.Interrupt = flow.FlowType().Interrupts()
 	scene.AddEvents([]flows.Event{evt})
 
 	// build our flow trigger
@@ -89,7 +90,7 @@ func (t *TicketClosedTask) Perform(ctx context.Context, rt *runtime.Runtime, oa 
 		return nil
 	}
 
-	err = runner.StartSessions(ctx, rt, oa, []*runner.Scene{scene}, []flows.Trigger{flowTrigger}, flow.FlowType().Interrupts())
+	err = runner.StartSessions(ctx, rt, oa, []*runner.Scene{scene}, []flows.Trigger{flowTrigger})
 	if err != nil {
 		return fmt.Errorf("error starting flow for contact: %w", err)
 	}
