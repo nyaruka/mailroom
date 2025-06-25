@@ -229,7 +229,7 @@ func (t *MsgReceivedTask) perform(ctx context.Context, rt *runtime.Runtime, oa *
 	if session != nil && flow != nil {
 		resume := resumes.NewMsg(msgEvent)
 
-		if err := runner.ResumeFlow(ctx, rt, oa, session, scene, nil, resume); err != nil {
+		if err := runner.ResumeSession(ctx, rt, oa, session, scene, resume); err != nil {
 			return "", fmt.Errorf("error resuming flow for contact: %w", err)
 		}
 		return msgOutcomeResume, nil

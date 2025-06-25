@@ -11,8 +11,8 @@ import (
 	"github.com/nyaruka/mailroom/runtime"
 )
 
-// ResumeFlow resumes the passed in session using the passed in session
-func ResumeFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, session *models.Session, scene *Scene, call *flows.Call, resume flows.Resume) error {
+// ResumeSession resumes the passed in session
+func ResumeSession(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, session *models.Session, scene *Scene, resume flows.Resume) error {
 	start := time.Now()
 	sa := oa.SessionAssets()
 
@@ -29,7 +29,7 @@ func ResumeFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, 
 	}
 
 	// build our flow session
-	fs, err := session.EngineSession(ctx, rt, sa, oa.Env(), scene.Contact, call)
+	fs, err := session.EngineSession(ctx, rt, sa, oa.Env(), scene.Contact, scene.Call)
 	if err != nil {
 		return fmt.Errorf("unable to create session from output: %w", err)
 	}

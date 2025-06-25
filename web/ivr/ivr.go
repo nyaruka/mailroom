@@ -244,11 +244,11 @@ func handleCallback(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 	// if this a start, start our contact
 	switch request.Action {
 	case actionStart:
-		err = ivr.StartIVRFlow(ctx, rt, svc, resumeURL, oa, ch, call, contact, urn, r, w)
+		err = ivr.StartCall(ctx, rt, svc, resumeURL, oa, ch, call, contact, urn, r, w)
 	case actionResume:
-		err = ivr.ResumeIVRFlow(ctx, rt, resumeURL, svc, oa, ch, call, contact, urn, r, w)
+		err = ivr.ResumeCall(ctx, rt, resumeURL, svc, oa, ch, call, contact, urn, r, w)
 	case actionStatus:
-		err = ivr.HandleIVRStatus(ctx, rt, oa, svc, call, r, w)
+		err = ivr.HandleStatus(ctx, rt, oa, svc, call, r, w)
 
 	default:
 		err = svc.WriteErrorResponse(w, fmt.Errorf("unknown action: %s", request.Action))
@@ -295,7 +295,7 @@ func handleStatus(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets
 		return nil, svc.WriteErrorResponse(w, fmt.Errorf("unable to load call with id: %s: %w", externalID, err))
 	}
 
-	err = ivr.HandleIVRStatus(ctx, rt, oa, svc, call, r, w)
+	err = ivr.HandleStatus(ctx, rt, oa, svc, call, r, w)
 
 	// had an error? mark our call as errored and log it
 	if err != nil {

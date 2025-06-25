@@ -67,7 +67,7 @@ func (t *WaitTimeoutTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *
 
 	resume := resumes.NewWaitTimeout(evt)
 
-	if err := runner.ResumeFlow(ctx, rt, oa, session, scene, nil, resume); err != nil {
+	if err := runner.ResumeSession(ctx, rt, oa, session, scene, resume); err != nil {
 		// if we errored, and it's the wait rejecting the timeout event because the flow no longer has a timeout, log and ignore
 		var eerr *engine.Error
 		if errors.As(err, &eerr) && eerr.Code() == engine.ErrorResumeRejectedByWait && resume.Type() == resumes.TypeWaitTimeout {
