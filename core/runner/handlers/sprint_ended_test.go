@@ -44,11 +44,11 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 	}
 
 	scenes := []*runner.Scene{
-		runner.NewScene(fcBob, models.NilUserID),
-		runner.NewScene(fcAlex, models.NilUserID),
+		runner.NewScene(mcBob, fcBob, models.NilUserID),
+		runner.NewScene(mcAlex, fcAlex, models.NilUserID),
 	}
 
-	err = runner.StartSessions(ctx, rt, oa, []*models.Contact{mcBob, mcAlex}, scenes, nil, trigs, true, models.NilStartID)
+	err = runner.StartSessions(ctx, rt, oa, scenes, nil, trigs, true, models.NilStartID)
 	require.NoError(t, err)
 	assert.Equal(t, time.Minute*5, scenes[0].WaitTimeout)    // Bob's messages are being sent via courier
 	assert.Equal(t, time.Duration(0), scenes[1].WaitTimeout) // Alexandra's messages are being sent via Android
@@ -81,9 +81,9 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 	assert.Equal(t, flow.ID, modelSession.CurrentFlowID())
 
 	msg1 := flows.NewMsgIn("0c9cd2e4-865e-40bf-92bb-3c958d5f6f0d", testdb.Bob.URN, nil, "no", nil, "")
-	scene := runner.NewScene(fcBob, models.NilUserID)
+	scene := runner.NewScene(mcBob, fcBob, models.NilUserID)
 
-	err = runner.ResumeFlow(ctx, rt, oa, modelSession, mcBob, scene, nil, resumes.NewMsg(events.NewMsgReceived(msg1)))
+	err = runner.ResumeFlow(ctx, rt, oa, modelSession, scene, nil, resumes.NewMsg(events.NewMsgReceived(msg1)))
 	require.NoError(t, err)
 	assert.Equal(t, time.Duration(0), scene.WaitTimeout) // wait doesn't have a timeout
 
@@ -99,9 +99,9 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 	assert.Equal(t, flow.ID, modelSession.CurrentFlowID())
 
 	msg2 := flows.NewMsgIn("330b1ff5-a95e-4034-b2e1-d0b0f93eb8b8", testdb.Bob.URN, nil, "yes", nil, "")
-	scene = runner.NewScene(fcBob, models.NilUserID)
+	scene = runner.NewScene(mcBob, fcBob, models.NilUserID)
 
-	err = runner.ResumeFlow(ctx, rt, oa, modelSession, mcBob, scene, nil, resumes.NewMsg(events.NewMsgReceived(msg2)))
+	err = runner.ResumeFlow(ctx, rt, oa, modelSession, scene, nil, resumes.NewMsg(events.NewMsgReceived(msg2)))
 	require.NoError(t, err)
 	assert.Equal(t, flows.SessionStatusCompleted, scene.Session.Status())
 	assert.Equal(t, time.Duration(0), scene.WaitTimeout) // flow has ended
@@ -126,10 +126,10 @@ func TestSingleSprintSession(t *testing.T) {
 	require.NoError(t, err)
 
 	mc, fc, _ := testdb.Bob.Load(rt, oa)
-	scenes := []*runner.Scene{runner.NewScene(fc, models.NilUserID)}
+	scenes := []*runner.Scene{runner.NewScene(mc, fc, models.NilUserID)}
 	trigs := []flows.Trigger{triggers.NewBuilder(flow.Reference()).Manual().Build()}
 
-	err = runner.StartSessions(ctx, rt, oa, []*models.Contact{mc}, scenes, nil, trigs, true, models.NilStartID)
+	err = runner.StartSessions(ctx, rt, oa, scenes, nil, trigs, true, models.NilStartID)
 	require.NoError(t, err)
 
 	// check session in database
@@ -157,10 +157,10 @@ func TestSessionWithSubflows(t *testing.T) {
 	require.NoError(t, err)
 
 	mc, fc, _ := testdb.Cathy.Load(rt, oa)
-	scenes := []*runner.Scene{runner.NewScene(fc, models.NilUserID)}
+	scenes := []*runner.Scene{runner.NewScene(mc, fc, models.NilUserID)}
 	trigs := []flows.Trigger{triggers.NewBuilder(parent.Reference()).Manual().Build()}
 
-	err = runner.StartSessions(ctx, rt, oa, []*models.Contact{mc}, scenes, nil, trigs, true, models.NilStartID)
+	err = runner.StartSessions(ctx, rt, oa, scenes, nil, trigs, true, models.NilStartID)
 	require.NoError(t, err)
 	assert.Equal(t, time.Duration(0), scenes[0].WaitTimeout) // no timeout on wait
 
@@ -184,9 +184,9 @@ func TestSessionWithSubflows(t *testing.T) {
 	assert.Equal(t, child.ID, modelSession.CurrentFlowID())
 
 	msg2 := flows.NewMsgIn("cd476f71-34f2-42d2-ae4d-b7d1c4103bd1", testdb.Cathy.URN, nil, "yes", nil, "")
-	scene := runner.NewScene(fc, models.NilUserID)
+	scene := runner.NewScene(mc, fc, models.NilUserID)
 
-	err = runner.ResumeFlow(ctx, rt, oa, modelSession, mc, scene, nil, resumes.NewMsg(events.NewMsgReceived(msg2)))
+	err = runner.ResumeFlow(ctx, rt, oa, modelSession, scene, nil, resumes.NewMsg(events.NewMsgReceived(msg2)))
 	require.NoError(t, err)
 	assert.Equal(t, flows.SessionStatusCompleted, scene.Session.Status())
 	assert.Equal(t, time.Duration(0), scene.WaitTimeout) // flow has ended

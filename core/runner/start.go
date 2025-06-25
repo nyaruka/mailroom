@@ -78,16 +78,16 @@ func tryToStartWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 	// create scenes and triggers
 	scenes := make([]*Scene, 0, len(mcs))
 	triggers := make([]flows.Trigger, 0, len(locked))
-	for _, c := range mcs {
-		fc, err := c.EngineContact(oa)
+	for _, mc := range mcs {
+		c, err := mc.EngineContact(oa)
 		if err != nil {
 			return nil, nil, fmt.Errorf("error creating flow contact: %w", err)
 		}
 		triggers = append(triggers, triggerBuilder())
-		scenes = append(scenes, NewScene(fc, models.NilUserID))
+		scenes = append(scenes, NewScene(mc, c, models.NilUserID))
 	}
 
-	err = StartSessions(ctx, rt, oa, mcs, scenes, nil, triggers, interrupt, startID)
+	err = StartSessions(ctx, rt, oa, scenes, nil, triggers, interrupt, startID)
 	if err != nil {
 		return nil, nil, fmt.Errorf("error starting flow for contacts: %w", err)
 	}
@@ -96,7 +96,7 @@ func tryToStartWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 }
 
 // StartSessions starts the given contacts in flow sessions. It's assumed that the contacts are already locked.
-func StartSessions(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, mcs []*models.Contact, scenes []*Scene, call *flows.Call, triggers []flows.Trigger, interrupt bool, startID models.StartID) error {
+func StartSessions(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scenes []*Scene, call *flows.Call, triggers []flows.Trigger, interrupt bool, startID models.StartID) error {
 	if len(scenes) == 0 {
 		return nil
 	}
@@ -105,9 +105,9 @@ func StartSessions(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsset
 	sa := oa.SessionAssets()
 
 	// for sanity, check that contacts have been locked
-	lockCheck, _ := clocks.IsLocked(ctx, rt, oa, mcs[0].ID())
+	lockCheck, _ := clocks.IsLocked(ctx, rt, oa, scenes[0].DBContact.ID())
 	if !lockCheck {
-		slog.Error("starting session for contact that isn't locked", "contact", mcs[0].ID())
+		slog.Error("starting session for contact that isn't locked", "contact", scenes[0].DBContact.ID())
 	}
 
 	// for each trigger start the flow
@@ -115,7 +115,6 @@ func StartSessions(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsset
 	sprints := make([]flows.Sprint, len(triggers))
 
 	for i, scene := range scenes {
-		mc := mcs[i]
 		trigger := triggers[i]
 
 		session, sprint, err := goflow.Engine(rt).NewSession(ctx, sa, oa.Env(), scene.Contact, trigger, call)
@@ -125,7 +124,7 @@ func StartSessions(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsset
 
 		sessions[i] = session
 		sprints[i] = sprint
-		scene.AddSprint(session, sprint, mc, false)
+		scene.AddSprint(session, sprint, false)
 
 		if err := scene.ProcessEvents(ctx, rt, oa); err != nil {
 			return fmt.Errorf("error processing events for session %s: %w", session.UUID(), err)
@@ -141,11 +140,18 @@ func StartSessions(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsset
 		return fmt.Errorf("error starting transaction: %w", err)
 	}
 
+	contactIDs := make([]models.ContactID, len(scenes))
+	mcs := make([]*models.Contact, len(scenes))
+	for i, s := range scenes {
+		contactIDs[i] = s.DBContact.ID()
+		mcs[i] = s.DBContact
+	}
+
 	// interrupt all our contacts if desired
 	if interrupt {
 		contactIDs := make([]models.ContactID, len(triggers))
-		for i := range mcs {
-			contactIDs[i] = mcs[i].ID()
+		for i, s := range scenes {
+			contactIDs[i] = s.DBContact.ID()
 		}
 
 		if err := models.InterruptSessionsForContactsTx(txCTX, tx, contactIDs); err != nil {

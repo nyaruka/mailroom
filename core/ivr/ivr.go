@@ -219,7 +219,7 @@ func HandleAsFailure(ctx context.Context, db *sqlx.DB, svc Service, call *models
 // StartIVRFlowByStart takes care of starting the flow in the passed in start for the passed in contact and URN
 func StartIVRFlow(
 	ctx context.Context, rt *runtime.Runtime, svc Service, resumeURL string, oa *models.OrgAssets,
-	channel *models.Channel, call *models.Call, c *models.Contact, urn urns.URN,
+	channel *models.Channel, call *models.Call, mc *models.Contact, urn urns.URN,
 	r *http.Request, w http.ResponseWriter) error {
 
 	// call isn't in a wired or in-progress status then we shouldn't be here
@@ -255,17 +255,17 @@ func StartIVRFlow(
 	}
 
 	// load contact and update on trigger to ensure we're not starting with outdated contact data
-	contact, err := c.EngineContact(oa)
+	contact, err := mc.EngineContact(oa)
 	if err != nil {
 		return fmt.Errorf("error loading flow contact: %w", err)
 	}
 
 	flowCall := flows.NewCall(call.UUID(), oa.SessionAssets().Channels().Get(channel.UUID()), urn.Identity())
 
-	scene := runner.NewScene(contact, models.NilUserID)
+	scene := runner.NewScene(mc, contact, models.NilUserID)
 	scene.Call = call
 
-	err = runner.StartSessions(ctx, rt, oa, []*models.Contact{c}, []*runner.Scene{scene}, flowCall, []flows.Trigger{trigger}, true, models.NilStartID)
+	err = runner.StartSessions(ctx, rt, oa, []*runner.Scene{scene}, flowCall, []flows.Trigger{trigger}, true, models.NilStartID)
 	if err != nil {
 		return fmt.Errorf("error starting flow: %w", err)
 	}
@@ -290,12 +290,12 @@ func ResumeIVRFlow(
 		return HandleAsFailure(ctx, rt.DB, svc, call, w, errors.New("can't resume call without session"))
 	}
 
-	fc, err := mc.EngineContact(oa)
+	contact, err := mc.EngineContact(oa)
 	if err != nil {
 		return fmt.Errorf("error creating flow contact: %w", err)
 	}
 
-	session, err := models.GetWaitingSessionForContact(ctx, rt, oa, fc, call.SessionUUID())
+	session, err := models.GetWaitingSessionForContact(ctx, rt, oa, contact, call.SessionUUID())
 	if err != nil {
 		return fmt.Errorf("error loading session for contact #%d and call #%d: %w", mc.ID(), call.ID(), err)
 	}
@@ -347,7 +347,7 @@ func ResumeIVRFlow(
 	var svcErr error
 	switch res := ivrResume.(type) {
 	case InputResume:
-		msg, resume, svcErr, err = buildMsgResume(ctx, rt, svc, channel, fc, urn, call, oa, res)
+		msg, resume, svcErr, err = buildMsgResume(ctx, rt, svc, channel, contact, urn, call, oa, res)
 
 	case DialResume:
 		resume, svcErr, err = buildDialResume(res)
@@ -368,11 +368,11 @@ func ResumeIVRFlow(
 
 	flowCall := flows.NewCall(call.UUID(), oa.SessionAssets().Channels().Get(channel.UUID()), urn.Identity())
 
-	scene := runner.NewScene(fc, models.NilUserID)
+	scene := runner.NewScene(mc, contact, models.NilUserID)
 	scene.IncomingMsg = msg
 	scene.Call = call
 
-	if err := runner.ResumeFlow(ctx, rt, oa, session, mc, scene, flowCall, resume); err != nil {
+	if err := runner.ResumeFlow(ctx, rt, oa, session, scene, flowCall, resume); err != nil {
 		return fmt.Errorf("error resuming ivr flow: %w", err)
 	}
 

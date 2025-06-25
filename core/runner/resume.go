@@ -12,7 +12,7 @@ import (
 )
 
 // ResumeFlow resumes the passed in session using the passed in session
-func ResumeFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, session *models.Session, contact *models.Contact, scene *Scene, call *flows.Call, resume flows.Resume) error {
+func ResumeFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, session *models.Session, scene *Scene, call *flows.Call, resume flows.Resume) error {
 	start := time.Now()
 	sa := oa.SessionAssets()
 
@@ -21,7 +21,7 @@ func ResumeFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, 
 	if err != nil {
 		// if this flow just isn't available anymore, log this error
 		if err == models.ErrNotFound {
-			slog.Error("unable to find flow for resume", "contact", contact.UUID(), "session", session.UUID(), "flow_id", session.CurrentFlowID())
+			slog.Error("unable to find flow for resume", "contact", scene.ContactUUID(), "session", session.UUID(), "flow_id", session.CurrentFlowID())
 
 			return models.ExitSessions(ctx, rt.DB, []flows.SessionUUID{session.UUID()}, models.SessionStatusFailed)
 		}
@@ -42,7 +42,7 @@ func ResumeFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, 
 		return fmt.Errorf("error resuming flow: %w", err)
 	}
 
-	scene.AddSprint(fs, sprint, contact, true)
+	scene.AddSprint(fs, sprint, true)
 
 	if err := scene.ProcessEvents(ctx, rt, oa); err != nil {
 		return fmt.Errorf("error processing events for session %s: %w", session.UUID(), err)
@@ -58,7 +58,7 @@ func ResumeFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, 
 	}
 
 	// write our updated session and runs
-	if err := session.Update(txCTX, rt, tx, oa, fs, sprint, contact); err != nil {
+	if err := session.Update(txCTX, rt, tx, oa, fs, sprint, scene.DBContact); err != nil {
 		tx.Rollback()
 		return fmt.Errorf("error updating session for resume: %w", err)
 	}

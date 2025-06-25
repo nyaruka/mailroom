@@ -169,14 +169,12 @@ func RunTestCases(t *testing.T, ctx context.Context, rt *runtime.Runtime, tcs []
 			oa, err = oa.CloneForSimulation(ctx, rt, map[assets.FlowUUID]json.RawMessage{flowUUID: flowDef}, nil)
 			assert.NoError(t, err)
 
-			mcs := make([]*models.Contact, 4)
 			scenes := make([]*runner.Scene, 4)
 			trigs := make([]flows.Trigger, 4)
 
 			for i, c := range []*testdb.Contact{testdb.Cathy, testdb.Bob, testdb.George, testdb.Alexandra} {
 				mc, fc, _ := c.Load(rt, oa)
-				mcs[i] = mc
-				scenes[i] = runner.NewScene(fc, models.NilUserID)
+				scenes[i] = runner.NewScene(mc, fc, models.NilUserID)
 				if msg := msgsByContactID[c.ID]; msg != nil {
 					scenes[i].IncomingMsg = &models.MsgInRef{ID: msg.ID}
 					scenes[i].AddEvents([]flows.Event{events.NewMsgReceived(msg.FlowMsg)})
@@ -192,7 +190,7 @@ func RunTestCases(t *testing.T, ctx context.Context, rt *runtime.Runtime, tcs []
 				}
 			}
 
-			err = runner.StartSessions(ctx, rt, oa, mcs, scenes, nil, trigs, true, models.NilStartID)
+			err = runner.StartSessions(ctx, rt, oa, scenes, nil, trigs, true, models.NilStartID)
 			require.NoError(t, err)
 		}
 		if tc.Modifiers != nil {

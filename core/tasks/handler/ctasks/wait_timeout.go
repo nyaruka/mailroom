@@ -39,13 +39,13 @@ func (t *WaitTimeoutTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *
 	log := slog.With("ctask", "wait_timeout", "contact_id", mc.ID(), "session_uuid", t.SessionUUID)
 
 	// build our flow contact
-	fc, err := mc.EngineContact(oa)
+	contact, err := mc.EngineContact(oa)
 	if err != nil {
 		return fmt.Errorf("error creating flow contact: %w", err)
 	}
 
 	// look for a waiting session for this contact
-	session, err := models.GetWaitingSessionForContact(ctx, rt, oa, fc, t.SessionUUID)
+	session, err := models.GetWaitingSessionForContact(ctx, rt, oa, contact, t.SessionUUID)
 	if err != nil {
 		return fmt.Errorf("error loading waiting session for contact #%d: %w", mc.ID(), err)
 	}
@@ -62,12 +62,12 @@ func (t *WaitTimeoutTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *
 
 	evt := events.NewWaitTimedOut()
 
-	scene := runner.NewScene(fc, models.NilUserID)
+	scene := runner.NewScene(mc, contact, models.NilUserID)
 	scene.AddEvents([]flows.Event{evt})
 
 	resume := resumes.NewWaitTimeout(evt)
 
-	if err := runner.ResumeFlow(ctx, rt, oa, session, mc, scene, nil, resume); err != nil {
+	if err := runner.ResumeFlow(ctx, rt, oa, session, scene, nil, resume); err != nil {
 		// if we errored, and it's the wait rejecting the timeout event because the flow no longer has a timeout, log and ignore
 		var eerr *engine.Error
 		if errors.As(err, &eerr) && eerr.Code() == engine.ErrorResumeRejectedByWait && resume.Type() == resumes.TypeWaitTimeout {

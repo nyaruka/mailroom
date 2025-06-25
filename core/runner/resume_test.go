@@ -27,22 +27,22 @@ func TestResume(t *testing.T) {
 	flow, err := oa.FlowByID(testdb.Favorites.ID)
 	require.NoError(t, err)
 
-	modelContact, flowContact, _ := testdb.Cathy.Load(rt, oa)
+	mc, fc, _ := testdb.Cathy.Load(rt, oa)
 	trigger := triggers.NewBuilder(flow.Reference()).Manual().Build()
-	scene := runner.NewScene(flowContact, models.NilUserID)
+	scene := runner.NewScene(mc, fc, models.NilUserID)
 
-	err = runner.StartSessions(ctx, rt, oa, []*models.Contact{modelContact}, []*runner.Scene{scene}, nil, []flows.Trigger{trigger}, true, models.NilStartID)
+	err = runner.StartSessions(ctx, rt, oa, []*runner.Scene{scene}, nil, []flows.Trigger{trigger}, true, models.NilStartID)
 	assert.NoError(t, err)
 
 	assertdb.Query(t, rt.DB,
 		`SELECT count(*) FROM flows_flowsession WHERE contact_id = $1 AND current_flow_id = $2
-		 AND status = 'W' AND call_id IS NULL AND output IS NOT NULL`, modelContact.ID(), flow.ID()).Returns(1)
+		 AND status = 'W' AND call_id IS NULL AND output IS NOT NULL`, mc.ID(), flow.ID()).Returns(1)
 
 	assertdb.Query(t, rt.DB,
 		`SELECT count(*) FROM flows_flowrun WHERE contact_id = $1 AND flow_id = $2
-		 AND status = 'W' AND responded = FALSE AND org_id = 1`, modelContact.ID(), flow.ID()).Returns(1)
+		 AND status = 'W' AND responded = FALSE AND org_id = 1`, mc.ID(), flow.ID()).Returns(1)
 
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE contact_id = $1 AND direction = 'O' AND text like '%favorite color%'`, modelContact.ID()).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE contact_id = $1 AND direction = 'O' AND text like '%favorite color%'`, mc.ID()).Returns(1)
 
 	tcs := []struct {
 		Message       string
@@ -59,31 +59,31 @@ func TestResume(t *testing.T) {
 	sessionUUID := scene.Session.UUID()
 
 	for i, tc := range tcs {
-		session, err := models.GetWaitingSessionForContact(ctx, rt, oa, flowContact, sessionUUID)
+		session, err := models.GetWaitingSessionForContact(ctx, rt, oa, fc, sessionUUID)
 		require.NoError(t, err, "%d: error getting waiting session", i)
 
 		// answer our first question
 		msg := flows.NewMsgIn(flows.NewMsgUUID(), testdb.Cathy.URN, nil, tc.Message, nil, "")
 		resume := resumes.NewMsg(events.NewMsgReceived(msg))
 
-		scene := runner.NewScene(flowContact, models.NilUserID)
+		scene := runner.NewScene(mc, fc, models.NilUserID)
 
-		err = runner.ResumeFlow(ctx, rt, oa, session, modelContact, scene, nil, resume)
+		err = runner.ResumeFlow(ctx, rt, oa, session, scene, nil, resume)
 		assert.NoError(t, err)
 
 		assertdb.Query(t, rt.DB,
 			`SELECT count(*) FROM flows_flowsession WHERE contact_id = $1
-			 AND status = $2 AND call_id IS NULL AND output IS NOT NULL AND output_url IS NULL`, modelContact.ID(), tc.SessionStatus).
+			 AND status = $2 AND call_id IS NULL AND output IS NOT NULL AND output_url IS NULL`, mc.ID(), tc.SessionStatus).
 			Returns(1, "%d: didn't find expected session", i)
 
 		runQuery := `SELECT count(*) FROM flows_flowrun WHERE contact_id = $1 AND flow_id = $2
 		 AND status = $3 AND responded = TRUE AND org_id = 1 AND current_node_uuid IS NOT NULL
 		 AND array_length(path_nodes, 1) = $4 AND session_uuid IS NOT NULL`
 
-		assertdb.Query(t, rt.DB, runQuery, modelContact.ID(), flow.ID(), tc.RunStatus, tc.PathLength).
+		assertdb.Query(t, rt.DB, runQuery, mc.ID(), flow.ID(), tc.RunStatus, tc.PathLength).
 			Returns(1, "%d: didn't find expected run", i)
 
-		assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE contact_id = $1 AND direction = 'O' AND text like $2`, modelContact.ID(), tc.Substring).
+		assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE contact_id = $1 AND direction = 'O' AND text like $2`, mc.ID(), tc.Substring).
 			Returns(1, "%d: didn't find expected message", i)
 	}
 }
