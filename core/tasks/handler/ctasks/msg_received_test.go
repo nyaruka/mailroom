@@ -11,9 +11,11 @@ import (
 	"github.com/nyaruka/mailroom/core/tasks"
 	"github.com/nyaruka/mailroom/core/tasks/handler"
 	"github.com/nyaruka/mailroom/core/tasks/handler/ctasks"
+	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/mailroom/testsuite"
 	"github.com/nyaruka/mailroom/testsuite/testdb"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestMsgReceivedTask(t *testing.T) {
@@ -319,6 +321,9 @@ func TestMsgReceivedTask(t *testing.T) {
 		// reset our dummy db message into an unhandled state
 		rt.DB.MustExec(`UPDATE msgs_msg SET status = 'P', flow_id = NULL WHERE id = $1`, dbMsg.ID)
 
+		// get current last_seeon_on for this contact
+		lastSeenOn := getLastSeenOn(t, rt, tc.contact)
+
 		// run our setup hook if we have one
 		if tc.preHook != nil {
 			tc.preHook()
@@ -338,10 +343,18 @@ func TestMsgReceivedTask(t *testing.T) {
 			expectedFlowID = int64(tc.expectedFlow.ID)
 		}
 
-		// check that message is marked as handled
 		if tc.contact != deleted {
+			// check that message is marked as handled
 			assertdb.Query(t, rt.DB, `SELECT status, visibility, msg_type, flow_id FROM msgs_msg WHERE id = $1`, dbMsg.ID).
 				Columns(map[string]any{"status": "H", "visibility": string(tc.expectedVisibility), "msg_type": "T", "flow_id": expectedFlowID}, "%d: msg state mismatch", i)
+
+			// check that last_seen_on was updated
+			newLastSeenOn := getLastSeenOn(t, rt, tc.contact)
+			if lastSeenOn != nil {
+				assert.Greater(t, *newLastSeenOn, *lastSeenOn, "%d: last_seen_on should be updated", i)
+			} else {
+				assert.NotNil(t, newLastSeenOn, "%d: last_seen_on should be set", i)
+			}
 		}
 
 		// if we are meant to have a reply, check it
@@ -421,4 +434,11 @@ func TestMsgReceivedTask(t *testing.T) {
 	assert.NoError(t, err)
 
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE contact_id = $1 AND direction = 'O' AND created_on > $2`, testdb.Org2Contact.ID, previous).Returns(0)
+}
+
+func getLastSeenOn(t *testing.T, rt *runtime.Runtime, c *testdb.Contact) *time.Time {
+	var lastSeenOn *time.Time
+	err := rt.DB.Get(&lastSeenOn, `SELECT last_seen_on FROM contacts_contact WHERE id = $1`, c.ID)
+	require.NoError(t, err)
+	return lastSeenOn
 }
