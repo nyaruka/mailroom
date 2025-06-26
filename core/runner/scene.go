@@ -95,6 +95,10 @@ func (s *Scene) AddSprint(ss flows.Session, sp flows.Sprint, resumed bool) {
 
 // ProcessEvents runs this scene's events through the appropriate handlers which in turn attach hooks to the scene
 func (s *Scene) ProcessEvents(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets) error {
+	if len(s.preCommits) > 0 || len(s.postCommits) > 0 {
+		panic("scene already has pre or post commit hooks")
+	}
+
 	for _, e := range s.events {
 		handler, found := eventHandlers[e.Type()]
 		if !found {
