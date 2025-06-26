@@ -40,10 +40,8 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 
 	tx := rt.DB.MustBegin()
 
-	session, runs := models.NewSessionAndRuns(oa, flowSession, sprint1, models.NilStartID, nil)
+	session := models.NewSession(oa, flowSession, sprint1, nil)
 	err = models.InsertSessions(ctx, rt, tx, oa, []*models.Session{session}, []*models.Contact{modelContact})
-	require.NoError(t, err)
-	err = models.InsertRuns(ctx, tx, runs)
 	require.NoError(t, err)
 
 	require.NoError(t, tx.Commit())
@@ -70,7 +68,11 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 
 	tx = rt.DB.MustBegin()
 
-	err = session.Update(ctx, rt, tx, oa, flowSession, sprint2, modelContact)
+	newRuns, updatedRuns, err := session.Update(ctx, rt, tx, oa, flowSession, sprint2, modelContact)
+	require.NoError(t, err)
+	err = models.InsertRuns(ctx, tx, newRuns)
+	require.NoError(t, err)
+	err = models.UpdateRuns(ctx, tx, updatedRuns)
 	require.NoError(t, err)
 
 	require.NoError(t, tx.Commit())
@@ -86,7 +88,11 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 
 	tx = rt.DB.MustBegin()
 
-	err = session.Update(ctx, rt, tx, oa, flowSession, sprint3, modelContact)
+	newRuns, updatedRuns, err = session.Update(ctx, rt, tx, oa, flowSession, sprint3, modelContact)
+	require.NoError(t, err)
+	err = models.InsertRuns(ctx, tx, newRuns)
+	require.NoError(t, err)
+	err = models.UpdateRuns(ctx, tx, updatedRuns)
 	require.NoError(t, err)
 
 	require.NoError(t, tx.Commit())
@@ -119,10 +125,8 @@ func TestSingleSprintSession(t *testing.T) {
 
 	tx := rt.DB.MustBegin()
 
-	session, runs := models.NewSessionAndRuns(oa, flowSession, sprint1, models.NilStartID, nil)
+	session := models.NewSession(oa, flowSession, sprint1, nil)
 	err = models.InsertSessions(ctx, rt, tx, oa, []*models.Session{session}, []*models.Contact{modelContact})
-	require.NoError(t, err)
-	err = models.InsertRuns(ctx, tx, runs)
 	require.NoError(t, err)
 
 	require.NoError(t, tx.Commit())
@@ -160,14 +164,10 @@ func TestSessionWithSubflows(t *testing.T) {
 	sa, flowSession, sprint1 := test.NewSessionBuilder().WithAssets(oa.SessionAssets()).WithFlow(parent.UUID).
 		WithContact(testdb.Cathy.UUID, flows.ContactID(testdb.Cathy.ID), "Cathy", "eng", "").MustBuild()
 
-	startID := testdb.InsertFlowStart(rt, testdb.Org1, testdb.Admin, parent, []*testdb.Contact{testdb.Cathy})
-
 	tx := rt.DB.MustBegin()
 
-	session, runs := models.NewSessionAndRuns(oa, flowSession, sprint1, startID, nil)
+	session := models.NewSession(oa, flowSession, sprint1, nil)
 	err = models.InsertSessions(ctx, rt, tx, oa, []*models.Session{session}, []*models.Contact{modelContact})
-	require.NoError(t, err)
-	err = models.InsertRuns(ctx, tx, runs)
 	require.NoError(t, err)
 
 	require.NoError(t, tx.Commit())
@@ -184,9 +184,6 @@ func TestSessionWithSubflows(t *testing.T) {
 		Columns(map[string]any{
 			"status": "W", "session_type": "M", "current_flow_id": int64(child.ID), "ended_on": nil,
 		})
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowrun WHERE session_uuid = $1`, session.UUID()).Returns(2)
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowrun WHERE session_uuid = $1 AND start_id = $2`, session.UUID(), startID).Returns(1)
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowrun WHERE session_uuid = $1 AND start_id IS NULL`, session.UUID()).Returns(1)
 
 	flowSession, err = session.EngineSession(ctx, rt, oa.SessionAssets(), oa.Env(), flowSession.Contact(), nil)
 	require.NoError(t, err)
@@ -196,62 +193,17 @@ func TestSessionWithSubflows(t *testing.T) {
 
 	tx = rt.DB.MustBegin()
 
-	err = session.Update(ctx, rt, tx, oa, flowSession, sprint2, modelContact)
+	newRuns, updatedRuns, err := session.Update(ctx, rt, tx, oa, flowSession, sprint2, modelContact)
+	require.NoError(t, err)
+	err = models.InsertRuns(ctx, tx, newRuns)
+	require.NoError(t, err)
+	err = models.UpdateRuns(ctx, tx, updatedRuns)
 	require.NoError(t, err)
 
 	require.NoError(t, tx.Commit())
 
 	assert.Equal(t, models.SessionStatusCompleted, session.Status())
 	assert.Equal(t, models.NilFlowID, session.CurrentFlowID())
-}
-
-func TestSessionFailedStart(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
-
-	dates.SetNowFunc(dates.NewSequentialNow(time.Date(2025, 2, 25, 16, 45, 0, 0, time.UTC), time.Second))
-	random.SetGenerator(random.NewSeededGenerator(123))
-
-	defer dates.SetNowFunc(time.Now)
-	defer random.SetGenerator(random.DefaultGenerator)
-	defer testsuite.Reset(testsuite.ResetData)
-
-	testFlows := testdb.ImportFlows(rt, testdb.Org1, "testdata/ping_pong.json")
-	ping, pong := testFlows[0], testFlows[1]
-
-	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshFlows)
-	require.NoError(t, err)
-
-	modelContact, _, _ := testdb.Cathy.Load(rt, oa)
-
-	_, flowSession, sprint1 := test.NewSessionBuilder().WithAssets(oa.SessionAssets()).WithFlow(ping.UUID).
-		WithContact(testdb.Cathy.UUID, flows.ContactID(testdb.Cathy.ID), "Cathy", "eng", "").MustBuild()
-
-	tx := rt.DB.MustBegin()
-
-	session, runs := models.NewSessionAndRuns(oa, flowSession, sprint1, models.NilStartID, nil)
-	err = models.InsertSessions(ctx, rt, tx, oa, []*models.Session{session}, []*models.Contact{modelContact})
-	require.NoError(t, err)
-	err = models.InsertRuns(ctx, tx, runs)
-	require.NoError(t, err)
-
-	require.NoError(t, tx.Commit())
-
-	assert.Equal(t, models.FlowTypeMessaging, session.SessionType())
-	assert.Equal(t, testdb.Cathy.ID, session.ContactID())
-	assert.Equal(t, models.SessionStatusFailed, session.Status())
-	assert.Equal(t, models.NilFlowID, session.CurrentFlowID())
-	assert.NotNil(t, session.EndedOn())
-
-	// check that matches what is in the db
-	assertdb.Query(t, rt.DB, `SELECT status, session_type, current_flow_id FROM flows_flowsession`).
-		Columns(map[string]any{"status": "F", "session_type": "M", "current_flow_id": nil})
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE ended_on IS NOT NULL`).Returns(1)
-
-	// check the state of all the created runs
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowrun`).Returns(101)
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowrun WHERE flow_id = $1`, ping.ID).Returns(51)
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowrun WHERE flow_id = $1`, pong.ID).Returns(50)
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowrun WHERE status = 'F' AND exited_on IS NOT NULL`).Returns(101)
 }
 
 func TestGetWaitingSessionForContact(t *testing.T) {

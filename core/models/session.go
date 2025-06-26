@@ -3,7 +3,6 @@ package models
 import (
 	"context"
 	"crypto/md5"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net/url"
@@ -136,17 +135,12 @@ WHERE
 	uuid = :uuid`
 
 // Update updates the session based on the state passed in from our engine session, this also takes care of applying any event hooks
-func (s *Session) Update(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *OrgAssets, fs flows.Session, sprint flows.Sprint, contact *Contact) error {
+func (s *Session) Update(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *OrgAssets, fs flows.Session, sprint flows.Sprint, contact *Contact) ([]*FlowRun, []*FlowRun, error) {
 	if s.seenRuns == nil {
 		panic("missing seen runs, cannot update session")
 	}
 
-	output, err := json.Marshal(fs)
-	if err != nil {
-		return fmt.Errorf("error marshalling flow session: %w", err)
-	}
-
-	s.s.Output = null.String(output)
+	s.s.Output = null.String(jsonx.MustMarshal(fs))
 	s.s.Status = sessionStatusMap[fs.Status()]
 	s.s.LastSprintUUID = null.String(sprint.UUID())
 
@@ -158,7 +152,7 @@ func (s *Session) Update(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, 
 	// now build up our runs
 	runs := make([]*FlowRun, len(fs.Runs()))
 	for i, r := range fs.Runs() {
-		runs[i] = newRun(oa, s, r)
+		runs[i] = NewRun(oa, s, r)
 	}
 
 	// run through our runs to figure out our current flow
@@ -189,7 +183,7 @@ func (s *Session) Update(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, 
 
 	// write our new session state to the db
 	if _, err := tx.NamedExecContext(ctx, updateSQL, s.s); err != nil {
-		return fmt.Errorf("error updating session: %w", err)
+		return nil, nil, fmt.Errorf("error updating session: %w", err)
 	}
 
 	// figure out which runs are new and which are updated
@@ -209,21 +203,11 @@ func (s *Session) Update(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, 
 		}
 	}
 
-	// update all modified runs at once
-	if err := UpdateRuns(ctx, tx, updatedRuns); err != nil {
-		return fmt.Errorf("error updating existing runs: %w", err)
-	}
-
-	// insert all new runs at once
-	if err := InsertRuns(ctx, tx, newRuns); err != nil {
-		return fmt.Errorf("error inserting new runs: %w", err)
-	}
-
-	return nil
+	return newRuns, updatedRuns, nil
 }
 
-// NewSessionAndRuns creates a db session and runs from the passed in engine session
-func NewSessionAndRuns(oa *OrgAssets, fs flows.Session, sprint flows.Sprint, startID StartID, call *Call) (*Session, []*FlowRun) {
+// NewSession creates a db session from the passed in engine session
+func NewSession(oa *OrgAssets, fs flows.Session, sprint flows.Sprint, call *Call) *Session {
 	session := &Session{}
 	s := &session.s
 	s.UUID = fs.UUID()
@@ -243,19 +227,7 @@ func NewSessionAndRuns(oa *OrgAssets, fs flows.Session, sprint flows.Sprint, sta
 		s.EndedOn = &now
 	}
 
-	// now create our runs
-	runs := make([]*FlowRun, len(fs.Runs()))
-
-	for i, r := range fs.Runs() {
-		run := newRun(oa, session, r)
-
-		// set start id if first run of session
-		if i == 0 && startID != NilStartID {
-			run.StartID = startID
-		}
-
-		runs[i] = run
-
+	for _, r := range fs.Runs() {
 		// if this run is waiting, save it as the current flow
 		if r.Status() == flows.RunStatusWaiting {
 			if r.Flow() != nil {
@@ -266,7 +238,7 @@ func NewSessionAndRuns(oa *OrgAssets, fs flows.Session, sprint flows.Sprint, sta
 		}
 	}
 
-	return session, runs
+	return session
 }
 
 const sqlInsertWaitingSession = `

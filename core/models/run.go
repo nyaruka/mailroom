@@ -61,8 +61,8 @@ type FlowRun struct {
 	run flows.Run
 }
 
-// newRun creates a flow run we can save to the database
-func newRun(oa *OrgAssets, session *Session, fr flows.Run) *FlowRun {
+// NewRun creates a flow run we can save to the database
+func NewRun(oa *OrgAssets, session *Session, fr flows.Run) *FlowRun {
 	// build our path elements
 	pathNodes := make(pq.StringArray, len(fr.Path()))
 	pathTimes := make([]time.Time, len(fr.Path()))
@@ -95,7 +95,7 @@ func newRun(oa *OrgAssets, session *Session, fr flows.Run) *FlowRun {
 		run: fr,
 	}
 
-	if len(pathNodes) > 0 {
+	if len(pathNodes) > 0 && (fr.Status() == flows.RunStatusActive || fr.Status() == flows.RunStatusWaiting) {
 		r.CurrentNodeUUID = null.String(pathNodes[len(pathNodes)-1])
 	}
 

@@ -58,9 +58,17 @@ func ResumeSession(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsset
 	}
 
 	// write our updated session and runs
-	if err := session.Update(txCTX, rt, tx, oa, fs, sprint, scene.DBContact); err != nil {
+	newRuns, updatedRuns, err := session.Update(txCTX, rt, tx, oa, fs, sprint, scene.DBContact)
+	if err != nil {
 		tx.Rollback()
 		return fmt.Errorf("error updating session for resume: %w", err)
+	}
+
+	if err := models.InsertRuns(ctx, tx, newRuns); err != nil {
+		return fmt.Errorf("error inserting new runs: %w", err)
+	}
+	if err := models.UpdateRuns(ctx, tx, updatedRuns); err != nil {
+		return fmt.Errorf("error updating existing runs: %w", err)
 	}
 
 	if err := ExecutePreCommitHooks(ctx, rt, tx, oa, []*Scene{scene}); err != nil {
