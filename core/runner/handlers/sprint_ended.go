@@ -31,7 +31,9 @@ func handleSprintEnded(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 	slog.Debug("sprint ended", "contact", scene.ContactUUID(), "session", scene.SessionUUID())
 
 	if !event.Resumed {
-		scene.AttachPreCommitHook(hooks.InsertSessions, event)
+		session, runs := models.NewSessionAndRuns(oa, scene.Session, scene.Sprint, scene.StartID, scene.DBCall)
+		scene.AttachPreCommitHook(hooks.InsertSessions, session)
+		scene.AttachPreCommitHook(hooks.InsertRuns, runs)
 	}
 
 	sessionIsWaiting := scene.Session.Status() == flows.SessionStatusWaiting

@@ -223,7 +223,7 @@ func (s *Session) Update(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, 
 }
 
 // NewSessionAndRuns creates a db session and runs from the passed in engine session
-func NewSessionAndRuns(oa *OrgAssets, fs flows.Session, sprint flows.Sprint, startID StartID, callID CallID) (*Session, []*FlowRun) {
+func NewSessionAndRuns(oa *OrgAssets, fs flows.Session, sprint flows.Sprint, startID StartID, call *Call) (*Session, []*FlowRun) {
 	session := &Session{}
 	s := &session.s
 	s.UUID = fs.UUID()
@@ -232,8 +232,11 @@ func NewSessionAndRuns(oa *OrgAssets, fs flows.Session, sprint flows.Sprint, sta
 	s.SessionType = flowTypeMapping[fs.Type()]
 	s.Output = null.String(jsonx.MustMarshal(fs))
 	s.ContactID = ContactID(fs.Contact().ID())
-	s.CallID = callID
 	s.CreatedOn = fs.CreatedOn()
+
+	if call != nil {
+		s.CallID = call.ID()
+	}
 
 	if s.Status != SessionStatusWaiting {
 		now := time.Now()
@@ -287,24 +290,14 @@ INSERT INTO
                VALUES(:uuid, :session_type, :status, :last_sprint_uuid, :output_url, :contact_id, :created_on, :ended_on, :call_id)`
 
 // InsertSessions inserts sessions and their runs into the database
-func InsertSessions(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *OrgAssets, ss []flows.Session, sprints []flows.Sprint, contacts []*Contact, callIDs []CallID, startIDs []StartID) ([]*Session, error) {
-	if len(ss) == 0 {
-		return nil, nil
-	}
-
-	// create all our session objects
-	sessions := make([]*Session, 0, len(ss))
-	runs := make([]*FlowRun, 0, len(ss))
-
-	for i, s := range ss {
-		session, rs := NewSessionAndRuns(oa, s, sprints[i], startIDs[i], callIDs[i])
-		sessions = append(sessions, session)
-		runs = append(runs, rs...)
+func InsertSessions(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *OrgAssets, sessions []*Session, contacts []*Contact) error {
+	if len(sessions) == 0 {
+		return nil
 	}
 
 	// split into waiting and ended sessions
-	waitingSessionsI := make([]any, 0, len(ss))
-	endedSessionsI := make([]any, 0, len(ss))
+	waitingSessionsI := make([]any, 0, len(sessions))
+	endedSessionsI := make([]any, 0, len(sessions))
 	for _, s := range sessions {
 		if s.Status() == SessionStatusWaiting {
 			waitingSessionsI = append(waitingSessionsI, &s.s)
@@ -320,7 +313,7 @@ func InsertSessions(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *O
 	// if writing our sessions to S3, do so
 	if rt.Config.SessionStorage == "s3" {
 		if err := writeSessionsToStorage(ctx, rt, oa.OrgID(), sessions, contacts); err != nil {
-			return nil, fmt.Errorf("error writing sessions to storage: %w", err)
+			return fmt.Errorf("error writing sessions to storage: %w", err)
 		}
 
 		insertEndedSQL = sqlInsertEndedSessionNoOutput
@@ -329,21 +322,14 @@ func InsertSessions(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *O
 
 	// insert our ended sessions first
 	if err := BulkQuery(ctx, "insert ended sessions", tx, insertEndedSQL, endedSessionsI); err != nil {
-		return nil, fmt.Errorf("error inserting ended sessions: %w", err)
+		return fmt.Errorf("error inserting ended sessions: %w", err)
 	}
-
 	// insert waiting sessions
 	if err := BulkQuery(ctx, "insert waiting sessions", tx, insertWaitingSQL, waitingSessionsI); err != nil {
-		return nil, fmt.Errorf("error inserting waiting sessions: %w", err)
+		return fmt.Errorf("error inserting waiting sessions: %w", err)
 	}
 
-	// insert all runs
-	if err := InsertRuns(ctx, tx, runs); err != nil {
-		return nil, fmt.Errorf("error writing runs: %w", err)
-	}
-
-	// return our session
-	return sessions, nil
+	return nil
 }
 
 const sqlSelectSessionByUUID = `

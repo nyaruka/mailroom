@@ -40,12 +40,13 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 
 	tx := rt.DB.MustBegin()
 
-	modelSessions, err := models.InsertSessions(ctx, rt, tx, oa, []flows.Session{flowSession}, []flows.Sprint{sprint1}, []*models.Contact{modelContact}, []models.CallID{models.NilCallID}, []models.StartID{models.NilStartID})
+	session, runs := models.NewSessionAndRuns(oa, flowSession, sprint1, models.NilStartID, nil)
+	err = models.InsertSessions(ctx, rt, tx, oa, []*models.Session{session}, []*models.Contact{modelContact})
+	require.NoError(t, err)
+	err = models.InsertRuns(ctx, tx, runs)
 	require.NoError(t, err)
 
 	require.NoError(t, tx.Commit())
-
-	session := modelSessions[0]
 
 	assert.Equal(t, models.FlowTypeMessaging, session.SessionType())
 	assert.Equal(t, testdb.Bob.ID, session.ContactID())
@@ -118,12 +119,13 @@ func TestSingleSprintSession(t *testing.T) {
 
 	tx := rt.DB.MustBegin()
 
-	modelSessions, err := models.InsertSessions(ctx, rt, tx, oa, []flows.Session{flowSession}, []flows.Sprint{sprint1}, []*models.Contact{modelContact}, []models.CallID{models.NilCallID}, []models.StartID{models.NilStartID})
+	session, runs := models.NewSessionAndRuns(oa, flowSession, sprint1, models.NilStartID, nil)
+	err = models.InsertSessions(ctx, rt, tx, oa, []*models.Session{session}, []*models.Contact{modelContact})
+	require.NoError(t, err)
+	err = models.InsertRuns(ctx, tx, runs)
 	require.NoError(t, err)
 
 	require.NoError(t, tx.Commit())
-
-	session := modelSessions[0]
 
 	assert.Equal(t, models.FlowTypeMessaging, session.SessionType())
 	assert.Equal(t, testdb.Bob.ID, session.ContactID())
@@ -162,12 +164,13 @@ func TestSessionWithSubflows(t *testing.T) {
 
 	tx := rt.DB.MustBegin()
 
-	modelSessions, err := models.InsertSessions(ctx, rt, tx, oa, []flows.Session{flowSession}, []flows.Sprint{sprint1}, []*models.Contact{modelContact}, []models.CallID{models.NilCallID}, []models.StartID{startID})
+	session, runs := models.NewSessionAndRuns(oa, flowSession, sprint1, startID, nil)
+	err = models.InsertSessions(ctx, rt, tx, oa, []*models.Session{session}, []*models.Contact{modelContact})
+	require.NoError(t, err)
+	err = models.InsertRuns(ctx, tx, runs)
 	require.NoError(t, err)
 
 	require.NoError(t, tx.Commit())
-
-	session := modelSessions[0]
 
 	assert.Equal(t, models.FlowTypeMessaging, session.SessionType())
 	assert.Equal(t, testdb.Cathy.ID, session.ContactID())
@@ -225,12 +228,13 @@ func TestSessionFailedStart(t *testing.T) {
 
 	tx := rt.DB.MustBegin()
 
-	modelSessions, err := models.InsertSessions(ctx, rt, tx, oa, []flows.Session{flowSession}, []flows.Sprint{sprint1}, []*models.Contact{modelContact}, []models.CallID{models.NilCallID}, []models.StartID{models.NilStartID})
+	session, runs := models.NewSessionAndRuns(oa, flowSession, sprint1, models.NilStartID, nil)
+	err = models.InsertSessions(ctx, rt, tx, oa, []*models.Session{session}, []*models.Contact{modelContact})
+	require.NoError(t, err)
+	err = models.InsertRuns(ctx, tx, runs)
 	require.NoError(t, err)
 
 	require.NoError(t, tx.Commit())
-
-	session := modelSessions[0]
 
 	assert.Equal(t, models.FlowTypeMessaging, session.SessionType())
 	assert.Equal(t, testdb.Cathy.ID, session.ContactID())
