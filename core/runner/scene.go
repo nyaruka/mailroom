@@ -25,9 +25,10 @@ type Scene struct {
 	Interrupt   bool
 
 	// optional state set during processing
-	Session     flows.Session
-	Sprint      flows.Sprint
-	WaitTimeout time.Duration
+	Session             flows.Session
+	Sprint              flows.Sprint
+	WaitTimeout         time.Duration
+	PriorRunModifiedOns map[flows.RunUUID]time.Time
 
 	events      []flows.Event
 	preCommits  map[PreCommitHook][]any

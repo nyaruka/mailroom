@@ -57,8 +57,6 @@ type Session struct {
 		CurrentFlowID  FlowID            `db:"current_flow_id"`
 		CallID         CallID            `db:"call_id"`
 	}
-
-	seenRuns map[flows.RunUUID]time.Time
 }
 
 func (s *Session) UUID() flows.SessionUUID          { return s.s.UUID }
@@ -93,17 +91,11 @@ func (s *Session) OutputMD5() string {
 	return fmt.Sprintf("%x", md5.Sum([]byte(s.s.Output)))
 }
 
-// EngineSession creates a flow session for the passed in session object. It also populates the runs we know about
+// EngineSession creates a flow session for the passed in session object
 func (s *Session) EngineSession(ctx context.Context, rt *runtime.Runtime, sa flows.SessionAssets, env envs.Environment, contact *flows.Contact, call *flows.Call) (flows.Session, error) {
 	session, err := goflow.Engine(rt).ReadSession(sa, []byte(s.s.Output), env, contact, call, assets.IgnoreMissing)
 	if err != nil {
 		return nil, fmt.Errorf("unable to unmarshal session: %w", err)
-	}
-
-	// walk through our session, populate seen runs
-	s.seenRuns = make(map[flows.RunUUID]time.Time, len(session.Runs()))
-	for _, r := range session.Runs() {
-		s.seenRuns[r.UUID()] = r.ModifiedOn()
 	}
 
 	return session, nil
@@ -135,11 +127,7 @@ WHERE
 	uuid = :uuid`
 
 // Update updates the session based on the state passed in from our engine session, this also takes care of applying any event hooks
-func (s *Session) Update(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *OrgAssets, fs flows.Session, sprint flows.Sprint, contact *Contact) ([]*FlowRun, []*FlowRun, error) {
-	if s.seenRuns == nil {
-		panic("missing seen runs, cannot update session")
-	}
-
+func (s *Session) Update(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *OrgAssets, fs flows.Session, sprint flows.Sprint, contact *Contact) error {
 	s.s.Output = null.String(jsonx.MustMarshal(fs))
 	s.s.Status = sessionStatusMap[fs.Status()]
 	s.s.LastSprintUUID = null.String(sprint.UUID())
@@ -147,12 +135,6 @@ func (s *Session) Update(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, 
 	if s.s.Status != SessionStatusWaiting {
 		now := time.Now()
 		s.s.EndedOn = &now
-	}
-
-	// now build up our runs
-	runs := make([]*FlowRun, len(fs.Runs()))
-	for i, r := range fs.Runs() {
-		runs[i] = NewRun(oa, s, r)
 	}
 
 	// run through our runs to figure out our current flow
@@ -183,27 +165,10 @@ func (s *Session) Update(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, 
 
 	// write our new session state to the db
 	if _, err := tx.NamedExecContext(ctx, updateSQL, s.s); err != nil {
-		return nil, nil, fmt.Errorf("error updating session: %w", err)
+		return fmt.Errorf("error updating session: %w", err)
 	}
 
-	// figure out which runs are new and which are updated
-	updatedRuns := make([]*FlowRun, 0, 1)
-	newRuns := make([]*FlowRun, 0)
-
-	for _, r := range runs {
-		modified, found := s.seenRuns[r.UUID]
-		if !found {
-			newRuns = append(newRuns, r)
-			continue
-		}
-
-		if r.ModifiedOn.After(modified) {
-			updatedRuns = append(updatedRuns, r)
-			continue
-		}
-	}
-
-	return newRuns, updatedRuns, nil
+	return nil
 }
 
 // NewSession creates a db session from the passed in engine session

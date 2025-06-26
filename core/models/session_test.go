@@ -68,11 +68,7 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 
 	tx = rt.DB.MustBegin()
 
-	newRuns, updatedRuns, err := session.Update(ctx, rt, tx, oa, flowSession, sprint2, modelContact)
-	require.NoError(t, err)
-	err = models.InsertRuns(ctx, tx, newRuns)
-	require.NoError(t, err)
-	err = models.UpdateRuns(ctx, tx, updatedRuns)
+	err = session.Update(ctx, rt, tx, oa, flowSession, sprint2, modelContact)
 	require.NoError(t, err)
 
 	require.NoError(t, tx.Commit())
@@ -88,11 +84,7 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 
 	tx = rt.DB.MustBegin()
 
-	newRuns, updatedRuns, err = session.Update(ctx, rt, tx, oa, flowSession, sprint3, modelContact)
-	require.NoError(t, err)
-	err = models.InsertRuns(ctx, tx, newRuns)
-	require.NoError(t, err)
-	err = models.UpdateRuns(ctx, tx, updatedRuns)
+	err = session.Update(ctx, rt, tx, oa, flowSession, sprint3, modelContact)
 	require.NoError(t, err)
 
 	require.NoError(t, tx.Commit())
@@ -193,11 +185,7 @@ func TestSessionWithSubflows(t *testing.T) {
 
 	tx = rt.DB.MustBegin()
 
-	newRuns, updatedRuns, err := session.Update(ctx, rt, tx, oa, flowSession, sprint2, modelContact)
-	require.NoError(t, err)
-	err = models.InsertRuns(ctx, tx, newRuns)
-	require.NoError(t, err)
-	err = models.UpdateRuns(ctx, tx, updatedRuns)
+	err = session.Update(ctx, rt, tx, oa, flowSession, sprint2, modelContact)
 	require.NoError(t, err)
 
 	require.NoError(t, tx.Commit())
