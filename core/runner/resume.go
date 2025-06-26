@@ -46,34 +46,12 @@ func ResumeSession(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsset
 		return fmt.Errorf("error resuming flow: %w", err)
 	}
 
-	scene.AddSprint(fs, sprint, true)
-
-	if err := scene.ProcessEvents(ctx, rt, oa); err != nil {
+	if err := scene.AddSprint(ctx, rt, oa, fs, sprint, true); err != nil {
 		return fmt.Errorf("error processing events for session %s: %w", session.UUID(), err)
 	}
 
-	// write our updated session, applying any events in the process
-	txCTX, cancel := context.WithTimeout(ctx, commitTimeout)
-	defer cancel()
-
-	tx, err := rt.DB.BeginTxx(txCTX, nil)
-	if err != nil {
-		return fmt.Errorf("error starting transaction: %w", err)
-	}
-
-	if err := ExecutePreCommitHooks(ctx, rt, tx, oa, []*Scene{scene}); err != nil {
-		tx.Rollback()
-		return fmt.Errorf("error applying pre commit hooks: %w", err)
-	}
-
-	if err := tx.Commit(); err != nil {
-		tx.Rollback()
-		return fmt.Errorf("error committing resumption of flow: %w", err)
-	}
-
-	// now take care of any post-commit hooks
-	if err := ExecutePostCommitHooks(ctx, rt, oa, []*Scene{scene}); err != nil {
-		return fmt.Errorf("error processing post commit hooks: %w", err)
+	if err := scene.Commit(ctx, rt, oa); err != nil {
+		return fmt.Errorf("error committing scene for resumed session: %w", err)
 	}
 
 	slog.Debug("resumed session", "contact", scene.ContactUUID(), "session", session.UUID(), "resume_type", resume.Type(), "elapsed", time.Since(start))

@@ -63,7 +63,9 @@ func (t *WaitTimeoutTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *
 	evt := events.NewWaitTimedOut()
 
 	scene := runner.NewScene(mc, contact, models.NilUserID)
-	scene.AddEvents([]flows.Event{evt})
+	if err := scene.AddEvent(ctx, rt, oa, evt); err != nil {
+		return fmt.Errorf("error adding wait timeout event to scene: %w", err)
+	}
 
 	resume := resumes.NewWaitTimeout(evt)
 

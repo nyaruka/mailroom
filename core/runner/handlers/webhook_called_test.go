@@ -12,7 +12,6 @@ import (
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/gocommon/httpx"
 	"github.com/nyaruka/goflow/assets"
-	"github.com/nyaruka/goflow/envs"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/actions"
 	"github.com/nyaruka/goflow/flows/engine"
@@ -136,7 +135,6 @@ func TestUnhealthyWebhookCalls(t *testing.T) {
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshFlows)
 	require.NoError(t, err)
 
-	env := envs.NewBuilder().Build()
 	mc, cathy, _ := testdb.Cathy.Load(rt, oa)
 
 	// webhook service with a 2 second delay
@@ -145,8 +143,8 @@ func TestUnhealthyWebhookCalls(t *testing.T) {
 	eng := engine.NewBuilder().WithWebhookServiceFactory(func(flows.SessionAssets) (flows.WebhookService, error) { return svc, nil }).Build()
 	flowRef := assets.NewFlowReference("bc5d6b7b-3e18-4d7c-8279-50b460e74f7f", "Test")
 
-	runFlowAndApplyEvents(t, ctx, rt, env, eng, oa, flowRef, mc, cathy)
-	runFlowAndApplyEvents(t, ctx, rt, env, eng, oa, flowRef, mc, cathy)
+	runFlowAndApplyEvents(t, ctx, rt, eng, oa, flowRef, mc, cathy)
+	runFlowAndApplyEvents(t, ctx, rt, eng, oa, flowRef, mc, cathy)
 
 	healthySeries := vkutil.NewIntervalSeries("webhooks:healthy", time.Minute*5, 4)
 	unhealthySeries := vkutil.NewIntervalSeries("webhooks:unhealthy", time.Minute*5, 4)
@@ -162,7 +160,7 @@ func TestUnhealthyWebhookCalls(t *testing.T) {
 	// change webhook service delay to 30 seconds and re-run flow 9 times
 	svc.delay = 30 * time.Second
 	for i := 0; i < 9; i++ {
-		runFlowAndApplyEvents(t, ctx, rt, env, eng, oa, flowRef, mc, cathy)
+		runFlowAndApplyEvents(t, ctx, rt, eng, oa, flowRef, mc, cathy)
 	}
 
 	// still no incident tho..
@@ -174,7 +172,7 @@ func TestUnhealthyWebhookCalls(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM notifications_incident WHERE incident_type = 'webhooks:unhealthy'`).Returns(0)
 
 	// however 1 more bad call means this node is considered unhealthy
-	runFlowAndApplyEvents(t, ctx, rt, env, eng, oa, flowRef, mc, cathy)
+	runFlowAndApplyEvents(t, ctx, rt, eng, oa, flowRef, mc, cathy)
 
 	total, _ = healthySeries.Total(ctx, rc, "1bff8fe4-0714-433e-96a3-437405bf21cf")
 	assert.Equal(t, int64(2), total)
@@ -191,37 +189,23 @@ func TestUnhealthyWebhookCalls(t *testing.T) {
 	assertvk.SMembers(t, rc, fmt.Sprintf("incident:%d:nodes", incidentID), []string{"1bff8fe4-0714-433e-96a3-437405bf21cf"})
 
 	// another bad call won't create another incident..
-	runFlowAndApplyEvents(t, ctx, rt, env, eng, oa, flowRef, mc, cathy)
+	runFlowAndApplyEvents(t, ctx, rt, eng, oa, flowRef, mc, cathy)
 
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM notifications_incident WHERE incident_type = 'webhooks:unhealthy'`).Returns(1)
 	assertvk.SMembers(t, rc, fmt.Sprintf("incident:%d:nodes", incidentID), []string{"1bff8fe4-0714-433e-96a3-437405bf21cf"})
 }
 
 // start the given contact in the given flow using a specific engine instance
-func runFlowAndApplyEvents(t *testing.T, ctx context.Context, rt *runtime.Runtime, env envs.Environment, eng flows.Engine, oa *models.OrgAssets, flowRef *assets.FlowReference, mc *models.Contact, fc *flows.Contact) {
+func runFlowAndApplyEvents(t *testing.T, ctx context.Context, rt *runtime.Runtime, eng flows.Engine, oa *models.OrgAssets, flowRef *assets.FlowReference, mc *models.Contact, fc *flows.Contact) {
 	trigger := triggers.NewBuilder(flowRef).Manual().Build()
 
 	fs, sprint, err := eng.NewSession(ctx, oa.SessionAssets(), oa.Env(), fc, trigger, nil)
 	require.NoError(t, err)
 
-	tx, err := rt.DB.BeginTxx(ctx, nil)
-	require.NoError(t, err)
-
-	err = tx.Commit()
-	require.NoError(t, err)
-
 	scene := runner.NewScene(mc, fs.Contact(), models.NilUserID)
-	scene.AddSprint(fs, sprint, false)
-
-	err = scene.ProcessEvents(ctx, rt, oa)
+	err = scene.AddSprint(ctx, rt, oa, fs, sprint, false)
 	require.NoError(t, err)
 
-	tx, err = rt.DB.BeginTxx(ctx, nil)
-	require.NoError(t, err)
-
-	err = runner.ExecutePreCommitHooks(ctx, rt, tx, oa, []*runner.Scene{scene})
-	require.NoError(t, err)
-
-	err = tx.Commit()
+	err = scene.Commit(ctx, rt, oa)
 	require.NoError(t, err)
 }

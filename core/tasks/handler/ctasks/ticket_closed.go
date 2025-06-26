@@ -77,7 +77,10 @@ func (t *TicketClosedTask) Perform(ctx context.Context, rt *runtime.Runtime, oa 
 
 	scene := runner.NewScene(mc, contact, models.NilUserID)
 	scene.Interrupt = flow.FlowType().Interrupts()
-	scene.AddEvents([]flows.Event{evt})
+
+	if err := scene.AddEvent(ctx, rt, oa, evt); err != nil {
+		return fmt.Errorf("error adding ticket closed event to scene: %w", err)
+	}
 
 	// build our flow trigger
 	flowTrigger := triggers.NewBuilder(flow.Reference()).Ticket(ticket, evt).Build()

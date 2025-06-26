@@ -32,12 +32,17 @@ func ApplyModifiers(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 		}
 		eventsByContact[contact] = events
 
-		scene.AddEvents(events)
+		for _, e := range events {
+			if err := scene.AddEvent(ctx, rt, oa, e); err != nil {
+				return nil, fmt.Errorf("error adding events for contact %s: %w", contact.UUID(), err)
+			}
+		}
+
 		scenes = append(scenes, scene)
 	}
 
-	if err := ProcessEvents(ctx, rt, oa, userID, scenes); err != nil {
-		return nil, fmt.Errorf("error commiting events: %w", err)
+	if err := BulkCommit(ctx, rt, oa, scenes); err != nil {
+		return nil, fmt.Errorf("error committing scenes from modifiers: %w", err)
 	}
 
 	return eventsByContact, nil
