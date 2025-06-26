@@ -59,6 +59,7 @@ func handleSprintEnded(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 			}
 		}
 
+		scene.AttachPreCommitHook(hooks.UpdateSessions, scene.DBSession)
 		scene.AttachPreCommitHook(hooks.InsertRuns, insertRuns)
 		scene.AttachPreCommitHook(hooks.UpdateRuns, updateRuns)
 	}

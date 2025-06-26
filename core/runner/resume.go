@@ -35,12 +35,11 @@ func ResumeSession(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsset
 	}
 
 	// record run modified times prior to resuming so we can figure out which runs are new or updated
-	priorRunModifiedOns := make(map[flows.RunUUID]time.Time, len(fs.Runs()))
+	scene.DBSession = session
+	scene.PriorRunModifiedOns = make(map[flows.RunUUID]time.Time, len(fs.Runs()))
 	for _, r := range fs.Runs() {
-		priorRunModifiedOns[r.UUID()] = r.ModifiedOn()
+		scene.PriorRunModifiedOns[r.UUID()] = r.ModifiedOn()
 	}
-
-	scene.PriorRunModifiedOns = priorRunModifiedOns // needed in sprint_ended hook to figure out which runs are new or updated
 
 	sprint, err := fs.Resume(ctx, resume)
 	if err != nil {
@@ -60,11 +59,6 @@ func ResumeSession(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsset
 	tx, err := rt.DB.BeginTxx(txCTX, nil)
 	if err != nil {
 		return fmt.Errorf("error starting transaction: %w", err)
-	}
-
-	if err := session.Update(txCTX, rt, tx, oa, fs, sprint, scene.DBContact); err != nil {
-		tx.Rollback()
-		return fmt.Errorf("error updating session for resume: %w", err)
 	}
 
 	if err := ExecutePreCommitHooks(ctx, rt, tx, oa, []*Scene{scene}); err != nil {

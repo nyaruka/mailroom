@@ -25,6 +25,7 @@ type Scene struct {
 	Interrupt   bool
 
 	// optional state set during processing
+	DBSession           *models.Session
 	Session             flows.Session
 	Sprint              flows.Sprint
 	WaitTimeout         time.Duration
