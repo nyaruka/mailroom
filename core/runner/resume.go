@@ -34,10 +34,14 @@ func ResumeSession(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsset
 		return fmt.Errorf("unable to create session from output: %w", err)
 	}
 
-	// resume our session
-	sprint, err := fs.Resume(ctx, resume)
+	// record run modified times prior to resuming so we can figure out which runs are new or updated
+	scene.DBSession = session
+	scene.PriorRunModifiedOns = make(map[flows.RunUUID]time.Time, len(fs.Runs()))
+	for _, r := range fs.Runs() {
+		scene.PriorRunModifiedOns[r.UUID()] = r.ModifiedOn()
+	}
 
-	// had a problem resuming our flow? bail
+	sprint, err := fs.Resume(ctx, resume)
 	if err != nil {
 		return fmt.Errorf("error resuming flow: %w", err)
 	}
@@ -57,21 +61,8 @@ func ResumeSession(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsset
 		return fmt.Errorf("error starting transaction: %w", err)
 	}
 
-	// write our updated session and runs
-	newRuns, updatedRuns, err := session.Update(txCTX, rt, tx, oa, fs, sprint, scene.DBContact)
-	if err != nil {
-		tx.Rollback()
-		return fmt.Errorf("error updating session for resume: %w", err)
-	}
-
-	if err := models.InsertRuns(ctx, tx, newRuns); err != nil {
-		return fmt.Errorf("error inserting new runs: %w", err)
-	}
-	if err := models.UpdateRuns(ctx, tx, updatedRuns); err != nil {
-		return fmt.Errorf("error updating existing runs: %w", err)
-	}
-
 	if err := ExecutePreCommitHooks(ctx, rt, tx, oa, []*Scene{scene}); err != nil {
+		tx.Rollback()
 		return fmt.Errorf("error applying pre commit hooks: %w", err)
 	}
 

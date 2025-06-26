@@ -35,7 +35,7 @@ func handleSprintEnded(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 		runs := make([]*models.FlowRun, len(scene.Session.Runs()))
 
 		for i, r := range scene.Session.Runs() {
-			runs[i] = models.NewRun(oa, session, r)
+			runs[i] = models.NewRun(oa, scene.Session, r)
 
 			// set start id if first run of session
 			if i == 0 {
@@ -45,6 +45,23 @@ func handleSprintEnded(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 
 		scene.AttachPreCommitHook(hooks.InsertSessions, session)
 		scene.AttachPreCommitHook(hooks.InsertRuns, runs)
+	} else {
+		// figure out which runs are new and which are updated
+		insertRuns := make([]*models.FlowRun, 0, 1)
+		updateRuns := make([]*models.FlowRun, 0, 1)
+
+		for _, r := range scene.Session.Runs() {
+			modifiedOn, found := scene.PriorRunModifiedOns[r.UUID()]
+			if !found {
+				insertRuns = append(insertRuns, models.NewRun(oa, scene.Session, r))
+			} else if r.ModifiedOn().After(modifiedOn) {
+				updateRuns = append(updateRuns, models.NewRun(oa, scene.Session, r))
+			}
+		}
+
+		scene.AttachPreCommitHook(hooks.UpdateSessions, scene.DBSession)
+		scene.AttachPreCommitHook(hooks.InsertRuns, insertRuns)
+		scene.AttachPreCommitHook(hooks.UpdateRuns, updateRuns)
 	}
 
 	sessionIsWaiting := scene.Session.Status() == flows.SessionStatusWaiting

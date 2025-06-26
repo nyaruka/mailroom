@@ -62,7 +62,7 @@ type FlowRun struct {
 }
 
 // NewRun creates a flow run we can save to the database
-func NewRun(oa *OrgAssets, session *Session, fr flows.Run) *FlowRun {
+func NewRun(oa *OrgAssets, fs flows.Session, fr flows.Run) *FlowRun {
 	// build our path elements
 	pathNodes := make(pq.StringArray, len(fr.Path()))
 	pathTimes := make([]time.Time, len(fr.Path()))
@@ -86,7 +86,7 @@ func NewRun(oa *OrgAssets, session *Session, fr flows.Run) *FlowRun {
 		ContactID:   ContactID(fr.Contact().ID()),
 		FlowID:      flowID,
 		OrgID:       oa.OrgID(),
-		SessionUUID: session.UUID(),
+		SessionUUID: fs.UUID(),
 		StartID:     NilStartID,
 		PathNodes:   pathNodes,
 		PathTimes:   pq.GenericArray{A: pathTimes},
