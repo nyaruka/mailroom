@@ -31,7 +31,18 @@ func handleSprintEnded(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 	slog.Debug("sprint ended", "contact", scene.ContactUUID(), "session", scene.SessionUUID())
 
 	if !event.Resumed {
-		session, runs := models.NewSessionAndRuns(oa, scene.Session, scene.Sprint, scene.StartID, scene.DBCall)
+		session := models.NewSession(oa, scene.Session, scene.Sprint, scene.DBCall)
+		runs := make([]*models.FlowRun, len(scene.Session.Runs()))
+
+		for i, r := range scene.Session.Runs() {
+			runs[i] = models.NewRun(oa, session, r)
+
+			// set start id if first run of session
+			if i == 0 {
+				runs[i].StartID = scene.StartID
+			}
+		}
+
 		scene.AttachPreCommitHook(hooks.InsertSessions, session)
 		scene.AttachPreCommitHook(hooks.InsertRuns, runs)
 	}

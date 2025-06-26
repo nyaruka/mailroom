@@ -77,7 +77,7 @@ func TestResume(t *testing.T) {
 			expectedStatus:      models.SessionStatusCompleted,
 			expectedCurrentFlow: nil,
 			expectedRunStatus:   models.RunStatusCompleted,
-			expectedNodeUUID:    "5456940a-d3f7-481a-bffe-debdb02c2108",
+			expectedNodeUUID:    nil,
 			expectedMsgOut:      "Thanks Luke, we are all done!",
 			expectedPathLength:  7,
 		},
