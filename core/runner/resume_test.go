@@ -46,15 +46,41 @@ func TestResume(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE contact_id = $1 AND direction = 'O' AND text like '%favorite color%'`, mc.ID()).Returns(1)
 
 	tcs := []struct {
-		Message       string
-		SessionStatus models.SessionStatus
-		RunStatus     models.RunStatus
-		Substring     string
-		PathLength    int
+		input               string
+		expectedStatus      models.SessionStatus
+		expectedCurrentFlow any
+		expectedRunStatus   models.RunStatus
+		expectedNodeUUID    any
+		expectedMsgOut      string
+		expectedPathLength  int
 	}{
-		{"Red", models.SessionStatusWaiting, models.RunStatusWaiting, "%I like Red too%", 4},
-		{"Mutzig", models.SessionStatusWaiting, models.RunStatusWaiting, "%they made red Mutzig%", 6},
-		{"Luke", models.SessionStatusCompleted, models.RunStatusCompleted, "%Thanks Luke%", 7},
+		{ // 0
+			input:               "Red",
+			expectedStatus:      models.SessionStatusWaiting,
+			expectedCurrentFlow: int64(flow.ID()),
+			expectedRunStatus:   models.RunStatusWaiting,
+			expectedNodeUUID:    "48f2ecb3-8e8e-4f7b-9510-1ee08bd6a434",
+			expectedMsgOut:      "Good choice, I like Red too! What is your favorite beer?",
+			expectedPathLength:  4,
+		},
+		{ // 1
+			input:               "Mutzig",
+			expectedStatus:      models.SessionStatusWaiting,
+			expectedCurrentFlow: int64(flow.ID()),
+			expectedRunStatus:   models.RunStatusWaiting,
+			expectedNodeUUID:    "a84399b1-0e7b-42ee-8759-473137b510db",
+			expectedMsgOut:      "Mmmmm... delicious Mutzig. If only they made red Mutzig! Lastly, what is your name?",
+			expectedPathLength:  6,
+		},
+		{ // 2
+			input:               "Luke",
+			expectedStatus:      models.SessionStatusCompleted,
+			expectedCurrentFlow: nil,
+			expectedRunStatus:   models.RunStatusCompleted,
+			expectedNodeUUID:    "5456940a-d3f7-481a-bffe-debdb02c2108",
+			expectedMsgOut:      "Thanks Luke, we are all done!",
+			expectedPathLength:  7,
+		},
 	}
 
 	sessionUUID := scene.Session.UUID()
@@ -64,7 +90,7 @@ func TestResume(t *testing.T) {
 		require.NoError(t, err, "%d: error getting waiting session", i)
 
 		// answer our first question
-		msg := flows.NewMsgIn(flows.NewMsgUUID(), testdb.Cathy.URN, nil, tc.Message, nil, "")
+		msg := flows.NewMsgIn(flows.NewMsgUUID(), testdb.Cathy.URN, nil, tc.input, nil, "")
 		resume := resumes.NewMsg(events.NewMsgReceived(msg))
 
 		scene := runner.NewScene(mc, fc, models.NilUserID)
@@ -72,19 +98,17 @@ func TestResume(t *testing.T) {
 		err = runner.ResumeSession(ctx, rt, oa, session, scene, resume)
 		assert.NoError(t, err)
 
-		assertdb.Query(t, rt.DB,
-			`SELECT count(*) FROM flows_flowsession WHERE contact_id = $1
-			 AND status = $2 AND call_id IS NULL AND output IS NOT NULL AND output_url IS NULL`, mc.ID(), tc.SessionStatus).
-			Returns(1, "%d: didn't find expected session", i)
+		assertdb.Query(t, rt.DB, `SELECT status, current_flow_id, call_id FROM flows_flowsession WHERE uuid = $1 AND output IS NOT NULL AND output_url IS NULL`, sessionUUID).
+			Columns(map[string]any{
+				"status": string(tc.expectedStatus), "current_flow_id": tc.expectedCurrentFlow, "call_id": nil,
+			}, "%d: session mismatch", i)
 
-		runQuery := `SELECT count(*) FROM flows_flowrun WHERE contact_id = $1 AND flow_id = $2
-		 AND status = $3 AND responded = TRUE AND org_id = 1 AND current_node_uuid IS NOT NULL
-		 AND array_length(path_nodes, 1) = $4 AND session_uuid IS NOT NULL`
+		assertdb.Query(t, rt.DB, `SELECT status, responded, flow_id, current_node_uuid::text FROM flows_flowrun WHERE session_uuid = $1`, sessionUUID).
+			Columns(map[string]any{
+				"status": string(tc.expectedRunStatus), "responded": true, "flow_id": int64(flow.ID()), "current_node_uuid": tc.expectedNodeUUID,
+			}, "%d: run mismatch", i)
 
-		assertdb.Query(t, rt.DB, runQuery, mc.ID(), flow.ID(), tc.RunStatus, tc.PathLength).
-			Returns(1, "%d: didn't find expected run", i)
-
-		assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE contact_id = $1 AND direction = 'O' AND text like $2`, mc.ID(), tc.Substring).
-			Returns(1, "%d: didn't find expected message", i)
+		assertdb.Query(t, rt.DB, `SELECT text FROM msgs_msg WHERE contact_id = $1 AND direction = 'O' ORDER BY id DESC LIMIT 1`, mc.ID()).
+			Columns(map[string]any{"text": string(tc.expectedMsgOut)}, "%d: msg out mismatch", i)
 	}
 }
