@@ -176,15 +176,14 @@ func TestSessionWithSubflows(t *testing.T) {
 	assert.NotZero(t, session.CreatedOn())
 	assert.Nil(t, session.EndedOn())
 
-	require.Len(t, session.Runs(), 2)
-	assert.Equal(t, startID, session.Runs()[0].StartID)
-	assert.Equal(t, models.NilStartID, session.Runs()[1].StartID)
-
 	// check that matches what is in the db
 	assertdb.Query(t, rt.DB, `SELECT status, session_type, current_flow_id, ended_on FROM flows_flowsession`).
 		Columns(map[string]any{
 			"status": "W", "session_type": "M", "current_flow_id": int64(child.ID), "ended_on": nil,
 		})
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowrun WHERE session_uuid = $1`, session.UUID()).Returns(2)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowrun WHERE session_uuid = $1 AND start_id = $2`, session.UUID(), startID).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowrun WHERE session_uuid = $1 AND start_id IS NULL`, session.UUID()).Returns(1)
 
 	flowSession, err = session.EngineSession(ctx, rt, oa.SessionAssets(), oa.Env(), flowSession.Contact(), nil)
 	require.NoError(t, err)

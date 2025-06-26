@@ -13,8 +13,6 @@ import (
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/null/v3"
-
-	"github.com/jmoiron/sqlx"
 )
 
 // FlowID is the type for flow IDs
@@ -106,19 +104,6 @@ func (f *Flow) cloneWithNewDefinition(def []byte) *Flow {
 	c := *f
 	c.f.Definition = def
 	return &c
-}
-
-func FlowIDForUUID(ctx context.Context, tx *sqlx.Tx, oa *OrgAssets, flowUUID assets.FlowUUID) (FlowID, error) {
-	// first try to look up in our assets
-	flow, _ := oa.FlowByUUID(flowUUID)
-	if flow != nil {
-		return flow.(*Flow).ID(), nil
-	}
-
-	// flow may be inactive, try to look up the ID only
-	var flowID FlowID
-	err := tx.GetContext(ctx, &flowID, `SELECT id FROM flows_flow WHERE org_id = $1 AND uuid = $2;`, oa.OrgID(), flowUUID)
-	return flowID, err
 }
 
 func LoadFlowByUUID(ctx context.Context, db *sql.DB, orgID OrgID, flowUUID assets.FlowUUID) (*Flow, error) {
