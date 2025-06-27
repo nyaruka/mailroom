@@ -17,7 +17,7 @@ func init() {
 }
 
 // handleContactStatusChanged updates contact status
-func handleContactStatusChanged(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scene *runner.Scene, e flows.Event) error {
+func handleContactStatusChanged(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scene *runner.Scene, e flows.Event, userID models.UserID) error {
 	event := e.(*events.ContactStatusChanged)
 
 	slog.Debug("contact status changed", "contact", scene.ContactUUID(), "session", scene.SessionUUID(), "status", event.Status)

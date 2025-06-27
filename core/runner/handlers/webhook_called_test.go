@@ -202,7 +202,7 @@ func runFlowAndApplyEvents(t *testing.T, ctx context.Context, rt *runtime.Runtim
 	fs, sprint, err := eng.NewSession(ctx, oa.SessionAssets(), oa.Env(), fc, trigger, nil)
 	require.NoError(t, err)
 
-	scene := runner.NewScene(mc, fs.Contact(), models.NilUserID)
+	scene := runner.NewScene(mc, fs.Contact())
 	err = scene.AddSprint(ctx, rt, oa, fs, sprint, false)
 	require.NoError(t, err)
 

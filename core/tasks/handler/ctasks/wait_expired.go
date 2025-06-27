@@ -81,8 +81,8 @@ func (t *WaitExpiredTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *
 		}
 
 	} else {
-		scene := runner.NewScene(mc, contact, models.NilUserID)
-		if err := scene.AddEvent(ctx, rt, oa, evt); err != nil {
+		scene := runner.NewScene(mc, contact)
+		if err := scene.AddEvent(ctx, rt, oa, evt, models.NilUserID); err != nil {
 			return fmt.Errorf("error adding wait expired event to scene: %w", err)
 		}
 

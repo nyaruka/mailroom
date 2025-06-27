@@ -262,7 +262,7 @@ func StartCall(
 
 	flowCall := flows.NewCall(call.UUID(), oa.SessionAssets().Channels().Get(channel.UUID()), urn.Identity())
 
-	scene := runner.NewScene(mc, contact, models.NilUserID)
+	scene := runner.NewScene(mc, contact)
 	scene.DBCall = call
 	scene.Call = flowCall
 	scene.Interrupt = true
@@ -367,7 +367,7 @@ func ResumeCall(
 		return svc.WriteErrorResponse(w, fmt.Errorf("no resume found, ending call"))
 	}
 
-	scene := runner.NewScene(mc, contact, models.NilUserID)
+	scene := runner.NewScene(mc, contact)
 	scene.IncomingMsg = msg
 	scene.DBCall = call
 	scene.Call = flows.NewCall(call.UUID(), oa.SessionAssets().Channels().Get(channel.UUID()), urn.Identity())

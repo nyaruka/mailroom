@@ -193,7 +193,7 @@ func (t *EventReceivedTask) handle(ctx context.Context, rt *runtime.Runtime, oa 
 		}
 	}
 
-	scene := runner.NewScene(mc, contact, models.NilUserID)
+	scene := runner.NewScene(mc, contact)
 	scene.DBCall = call
 	scene.Call = flowCall
 	scene.Interrupt = flow.FlowType().Interrupts()

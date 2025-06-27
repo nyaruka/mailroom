@@ -23,7 +23,7 @@ func ApplyModifiers(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 	eventsByContact := make(map[*flows.Contact][]flows.Event, len(modifiersByContact))
 
 	for contact, mods := range modifiersByContact {
-		scene := NewScene(nil, contact, userID)
+		scene := NewScene(nil, contact)
 
 		// apply the modifiers to get the events
 		events := make([]flows.Event, 0)
@@ -32,8 +32,10 @@ func ApplyModifiers(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 		}
 		eventsByContact[contact] = events
 
+		// TODO limit use crediting to only the first event? We might have contact_groups_changed events here from changing contact fields.
+
 		for _, e := range events {
-			if err := scene.AddEvent(ctx, rt, oa, e); err != nil {
+			if err := scene.AddEvent(ctx, rt, oa, e, userID); err != nil {
 				return nil, fmt.Errorf("error adding events for contact %s: %w", contact.UUID(), err)
 			}
 		}

@@ -17,7 +17,7 @@ func init() {
 	runner.RegisterEventHandler(events.TypeOptInRequested, handleOptInRequested)
 }
 
-func handleOptInRequested(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scene *runner.Scene, e flows.Event) error {
+func handleOptInRequested(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scene *runner.Scene, e flows.Event, userID models.UserID) error {
 	event := e.(*events.OptInRequested)
 
 	slog.Debug("optin requested", "contact", scene.ContactUUID(), "session", scene.SessionUUID(), slog.Group("optin", "uuid", event.OptIn.UUID, "name", event.OptIn.Name))

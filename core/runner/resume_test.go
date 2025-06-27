@@ -29,7 +29,7 @@ func TestResume(t *testing.T) {
 
 	mc, fc, _ := testdb.Cathy.Load(rt, oa)
 	trigger := triggers.NewBuilder(flow.Reference()).Manual().Build()
-	scene := runner.NewScene(mc, fc, models.NilUserID)
+	scene := runner.NewScene(mc, fc)
 	scene.Interrupt = true
 
 	err = runner.StartSessions(ctx, rt, oa, []*runner.Scene{scene}, []flows.Trigger{trigger})
@@ -93,7 +93,7 @@ func TestResume(t *testing.T) {
 		msg := flows.NewMsgIn(flows.NewMsgUUID(), testdb.Cathy.URN, nil, tc.input, nil, "")
 		resume := resumes.NewMsg(events.NewMsgReceived(msg))
 
-		scene := runner.NewScene(mc, fc, models.NilUserID)
+		scene := runner.NewScene(mc, fc)
 
 		err = runner.ResumeSession(ctx, rt, oa, session, scene, resume)
 		assert.NoError(t, err)
