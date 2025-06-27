@@ -42,13 +42,13 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 	scBob.Interrupt = true
 	scAlex.Interrupt = true
 
-	trigs := []flows.Trigger{
-		triggers.NewBuilder(flow.Reference()).Manual().Build(),
-		triggers.NewBuilder(flow.Reference()).Manual().Build(),
-	}
-
-	err = runner.StartSessions(ctx, rt, oa, []*runner.Scene{scBob, scAlex}, trigs)
+	err = scBob.StartSession(ctx, rt, oa, triggers.NewBuilder(flow.Reference()).Manual().Build())
 	require.NoError(t, err)
+	err = scAlex.StartSession(ctx, rt, oa, triggers.NewBuilder(flow.Reference()).Manual().Build())
+	require.NoError(t, err)
+	err = runner.BulkCommit(ctx, rt, oa, []*runner.Scene{scBob, scAlex})
+	require.NoError(t, err)
+
 	assert.Equal(t, time.Minute*5, scBob.WaitTimeout)     // Bob's messages are being sent via courier
 	assert.Equal(t, time.Duration(0), scAlex.WaitTimeout) // Alexandra's messages are being sent via Android
 
@@ -157,9 +157,9 @@ func TestSingleSprintSession(t *testing.T) {
 	scene := runner.NewScene(mc, fc)
 	scene.Interrupt = true
 
-	trigs := []flows.Trigger{triggers.NewBuilder(flow.Reference()).Manual().Build()}
-
-	err = runner.StartSessions(ctx, rt, oa, []*runner.Scene{scene}, trigs)
+	err = scene.StartSession(ctx, rt, oa, triggers.NewBuilder(flow.Reference()).Manual().Build())
+	require.NoError(t, err)
+	err = scene.Commit(ctx, rt, oa)
 	require.NoError(t, err)
 
 	// check session and run in database
@@ -198,10 +198,11 @@ func TestSessionWithSubflows(t *testing.T) {
 	scene.Interrupt = true
 	scene.StartID = startID
 
-	trigs := []flows.Trigger{triggers.NewBuilder(parent.Reference()).Manual().Build()}
-
-	err = runner.StartSessions(ctx, rt, oa, []*runner.Scene{scene}, trigs)
+	err = scene.StartSession(ctx, rt, oa, triggers.NewBuilder(parent.Reference()).Manual().Build())
 	require.NoError(t, err)
+	err = scene.Commit(ctx, rt, oa)
+	require.NoError(t, err)
+
 	assert.Equal(t, time.Duration(0), scene.WaitTimeout) // no timeout on wait
 
 	// check session amd runs in the db
@@ -262,10 +263,11 @@ func TestSessionFailedStart(t *testing.T) {
 	scene := runner.NewScene(mc, fc)
 	scene.Interrupt = true
 
-	trigs := []flows.Trigger{triggers.NewBuilder(ping.Reference()).Manual().Build()}
-
-	err = runner.StartSessions(ctx, rt, oa, []*runner.Scene{scene}, trigs)
+	err = scene.StartSession(ctx, rt, oa, triggers.NewBuilder(ping.Reference()).Manual().Build())
 	require.NoError(t, err)
+	err = scene.Commit(ctx, rt, oa)
+	require.NoError(t, err)
+
 	assert.Equal(t, flows.SessionStatusFailed, scene.Session.Status())
 	assert.Len(t, scene.Session.Runs(), 201)
 

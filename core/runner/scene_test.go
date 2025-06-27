@@ -32,7 +32,9 @@ func TestResumeSession(t *testing.T) {
 	scene := runner.NewScene(mc, fc)
 	scene.Interrupt = true
 
-	err = runner.StartSessions(ctx, rt, oa, []*runner.Scene{scene}, []flows.Trigger{trigger})
+	err = scene.StartSession(ctx, rt, oa, trigger)
+	assert.NoError(t, err)
+	err = scene.Commit(ctx, rt, oa)
 	assert.NoError(t, err)
 
 	assertdb.Query(t, rt.DB,

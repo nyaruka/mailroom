@@ -198,8 +198,11 @@ func (t *EventReceivedTask) handle(ctx context.Context, rt *runtime.Runtime, oa 
 	scene.Call = flowCall
 	scene.Interrupt = flow.FlowType().Interrupts()
 
-	if err := runner.StartSessions(ctx, rt, oa, []*runner.Scene{scene}, []flows.Trigger{trig}); err != nil {
-		return nil, fmt.Errorf("error starting flow for contact: %w", err)
+	if err := scene.StartSession(ctx, rt, oa, trig); err != nil {
+		return nil, fmt.Errorf("error starting session for contact %s: %w", scene.ContactUUID(), err)
+	}
+	if err := scene.Commit(ctx, rt, oa); err != nil {
+		return nil, fmt.Errorf("error committing scene for contact %s: %w", scene.ContactUUID(), err)
 	}
 
 	return scene, nil
