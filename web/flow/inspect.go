@@ -28,7 +28,7 @@ func init() {
 type inspectRequest struct {
 	Flow    json.RawMessage `json:"flow" validate:"required"`
 	OrgID   models.OrgID    `json:"org_id"`
-	Refresh bool            `json:"refresh,omitempty"`
+	Refresh bool            `json:"refresh"`
 }
 
 func handleInspect(ctx context.Context, rt *runtime.Runtime, r *inspectRequest) (any, int, error) {
@@ -42,7 +42,7 @@ func handleInspect(ctx context.Context, rt *runtime.Runtime, r *inspectRequest) 
 	if r.OrgID != models.NilOrgID {
 		refreshFlags := models.RefreshFields | models.RefreshGroups | models.RefreshFlows
 		if r.Refresh {
-			refreshFlags = models.RefreshAll
+			refreshFlags = models.RefreshFields | models.RefreshGroups | models.RefreshFlows | models.RefreshGlobals | models.RefreshLabels | models.RefreshOptIns | models.RefreshTopics
 		}
 
 		oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, r.OrgID, refreshFlags)
