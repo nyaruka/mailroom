@@ -10,6 +10,7 @@ import (
 	"github.com/nyaruka/goflow/flows/resumes"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/runner"
+	_ "github.com/nyaruka/mailroom/core/runner/handlers"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/mailroom/testsuite/testdb"
 	"github.com/stretchr/testify/require"

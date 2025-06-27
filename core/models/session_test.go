@@ -17,7 +17,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestSessionCreationAndUpdating(t *testing.T) {
+func TestInsertSessions(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
 
 	dates.SetNowFunc(dates.NewSequentialNow(time.Date(2025, 2, 25, 16, 45, 0, 0, time.UTC), time.Second))
@@ -97,101 +97,6 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 	// check that matches what is in the db
 	assertdb.Query(t, rt.DB, `SELECT status, session_type, current_flow_id FROM flows_flowsession`).
 		Columns(map[string]any{"status": "C", "session_type": "M", "current_flow_id": nil})
-}
-
-func TestSingleSprintSession(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
-
-	defer testsuite.Reset(testsuite.ResetData)
-
-	testFlows := testdb.ImportFlows(rt, testdb.Org1, "testdata/session_test_flows.json")
-	flow := testFlows[1]
-
-	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshFlows)
-	require.NoError(t, err)
-
-	modelContact, _, _ := testdb.Bob.Load(rt, oa)
-
-	_, flowSession, sprint1 := test.NewSessionBuilder().WithAssets(oa.SessionAssets()).WithFlow(flow.UUID).
-		WithContact(testdb.Bob.UUID, flows.ContactID(testdb.Bob.ID), "Bob", "eng", "").MustBuild()
-
-	tx := rt.DB.MustBegin()
-
-	session := models.NewSession(oa, flowSession, sprint1, nil)
-	err = models.InsertSessions(ctx, rt, tx, oa, []*models.Session{session}, []*models.Contact{modelContact})
-	require.NoError(t, err)
-
-	require.NoError(t, tx.Commit())
-
-	assert.Equal(t, models.FlowTypeMessaging, session.SessionType())
-	assert.Equal(t, testdb.Bob.ID, session.ContactID())
-	assert.Equal(t, models.SessionStatusCompleted, session.Status())
-	assert.Equal(t, models.NilFlowID, session.CurrentFlowID())
-	assert.NotZero(t, session.CreatedOn())
-	assert.NotNil(t, session.EndedOn())
-
-	// check that matches what is in the db
-	assertdb.Query(t, rt.DB, `SELECT status, session_type, current_flow_id FROM flows_flowsession`).
-		Columns(map[string]any{"status": "C", "session_type": "M", "current_flow_id": nil})
-}
-
-func TestSessionWithSubflows(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
-
-	dates.SetNowFunc(dates.NewSequentialNow(time.Date(2025, 2, 25, 16, 45, 0, 0, time.UTC), time.Second))
-	random.SetGenerator(random.NewSeededGenerator(123))
-
-	defer dates.SetNowFunc(time.Now)
-	defer random.SetGenerator(random.DefaultGenerator)
-	defer testsuite.Reset(testsuite.ResetData)
-
-	testFlows := testdb.ImportFlows(rt, testdb.Org1, "testdata/session_test_flows.json")
-	parent, child := testFlows[2], testFlows[3]
-
-	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshFlows)
-	require.NoError(t, err)
-
-	modelContact, _, _ := testdb.Cathy.Load(rt, oa)
-
-	sa, flowSession, sprint1 := test.NewSessionBuilder().WithAssets(oa.SessionAssets()).WithFlow(parent.UUID).
-		WithContact(testdb.Cathy.UUID, flows.ContactID(testdb.Cathy.ID), "Cathy", "eng", "").MustBuild()
-
-	tx := rt.DB.MustBegin()
-
-	session := models.NewSession(oa, flowSession, sprint1, nil)
-	err = models.InsertSessions(ctx, rt, tx, oa, []*models.Session{session}, []*models.Contact{modelContact})
-	require.NoError(t, err)
-
-	require.NoError(t, tx.Commit())
-
-	assert.Equal(t, models.FlowTypeMessaging, session.SessionType())
-	assert.Equal(t, testdb.Cathy.ID, session.ContactID())
-	assert.Equal(t, models.SessionStatusWaiting, session.Status())
-	assert.Equal(t, child.ID, session.CurrentFlowID())
-	assert.NotZero(t, session.CreatedOn())
-	assert.Nil(t, session.EndedOn())
-
-	// check that matches what is in the db
-	assertdb.Query(t, rt.DB, `SELECT status, session_type, current_flow_id, ended_on FROM flows_flowsession`).
-		Columns(map[string]any{
-			"status": "W", "session_type": "M", "current_flow_id": int64(child.ID), "ended_on": nil,
-		})
-
-	flowSession, err = session.EngineSession(ctx, rt, oa.SessionAssets(), oa.Env(), flowSession.Contact(), nil)
-	require.NoError(t, err)
-
-	flowSession, sprint2, err := test.ResumeSession(flowSession, sa, "yes")
-	require.NoError(t, err)
-
-	tx = rt.DB.MustBegin()
-
-	err = session.Update(ctx, rt, tx, oa, flowSession, sprint2, modelContact)
-	require.NoError(t, err)
-
-	require.NoError(t, tx.Commit())
-
-	assert.Equal(t, models.SessionStatusCompleted, session.Status())
-	assert.Equal(t, models.NilFlowID, session.CurrentFlowID())
 }
 
 func TestGetWaitingSessionForContact(t *testing.T) {

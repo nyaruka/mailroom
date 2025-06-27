@@ -11,6 +11,7 @@ import (
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/flows/triggers"
 	"github.com/nyaruka/goflow/test"
 	"github.com/nyaruka/goflow/utils"
 	"github.com/nyaruka/mailroom/core/models"
@@ -24,7 +25,7 @@ import (
 func TestNewCourierMsg(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
 
-	defer testsuite.Reset(testsuite.ResetData)
+	defer testsuite.Reset(testsuite.ResetData | testsuite.ResetValkey)
 
 	// create an opt-in and a new contact with an auth token for it
 	optInID := testdb.InsertOptIn(rt, testdb.Org1, "Joke Of The Day").ID
@@ -44,6 +45,9 @@ func TestNewCourierMsg(t *testing.T) {
 	optIn := oa.OptInByID(optInID)
 	cathyURN, _ := cathyURNs[0].Encode(oa)
 	fredURN, _ := fredURNs[0].Encode(oa)
+
+	scenes := testsuite.StartSessions(t, rt, oa, []*testdb.Contact{testdb.Cathy}, triggers.NewBuilder(testdb.Favorites.Reference()).Manual().Build())
+	session, sprint := scenes[0].Session, scenes[0].Sprint
 
 	flowMsg1 := flows.NewMsgOut(
 		cathyURN,
@@ -69,9 +73,6 @@ func TestNewCourierMsg(t *testing.T) {
 	err = models.InsertMessages(ctx, rt.DB, []*models.Msg{msg1.Msg})
 	require.NoError(t, err)
 
-	_, session, sprint := test.NewSessionBuilder().WithAssets(oa.SessionAssets()).WithFlow(testdb.Favorites.UUID).
-		WithContact(testdb.Cathy.UUID, flows.ContactID(testdb.Cathy.ID), "Cathy", "eng", "").MustBuild()
-
 	msg1.URN = cathyURNs[0]
 	msg1.Session = session
 	msg1.SprintUUID = sprint.UUID()
@@ -86,7 +87,7 @@ func TestNewCourierMsg(t *testing.T) {
 		"created_on": "2021-11-09T14:03:30Z",
 		"flow": {"uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85", "name": "Favorites"},
 		"high_priority": false,
-		"id": 1,
+		"id": 2,
 		"locale": "eng-US",
 		"org_id": 1,
 		"origin": "flow",
@@ -140,7 +141,7 @@ func TestNewCourierMsg(t *testing.T) {
 		"flow": {"uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85", "name": "Favorites"},
 		"response_to_external_id": "EX123",
 		"high_priority": true,
-		"id": 3,
+		"id": 4,
 		"org_id": 1,
 		"origin": "flow",
 		"session": {
@@ -171,7 +172,7 @@ func TestNewCourierMsg(t *testing.T) {
 		"contact_urn_id": 30000,
 		"created_on": "%s",
 		"high_priority": false,
-		"id": 4,
+		"id": 5,
 		"org_id": 1,
 		"origin": "broadcast",
 		"text": "Blast",
@@ -198,7 +199,7 @@ func TestNewCourierMsg(t *testing.T) {
 		"created_on": "2021-11-09T14:03:30Z",
 		"flow": {"uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85", "name": "Favorites"},
 		"high_priority": true,
-		"id": 5,
+		"id": 6,
 		"optin": {
 			"id": %d,
 			"name": "Joke Of The Day"
