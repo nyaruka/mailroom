@@ -139,7 +139,7 @@ func (t *MsgReceivedTask) perform(ctx context.Context, rt *runtime.Runtime, oa *
 		return "", fmt.Errorf("unable to look up open tickets for contact: %w", err)
 	}
 
-	scene := runner.NewScene(mc, contact, models.NilUserID)
+	scene := runner.NewScene(mc, contact)
 	scene.IncomingMsg = &models.MsgInRef{
 		ID:          t.MsgID,
 		ExtID:       t.MsgExternalID,
@@ -147,7 +147,7 @@ func (t *MsgReceivedTask) perform(ctx context.Context, rt *runtime.Runtime, oa *
 		Ticket:      ticket,
 		LogUUIDs:    logUUIDs,
 	}
-	if err := scene.AddEvent(ctx, rt, oa, msgEvent); err != nil {
+	if err := scene.AddEvent(ctx, rt, oa, msgEvent, models.NilUserID); err != nil {
 		return "", fmt.Errorf("error adding message event to scene: %w", err)
 	}
 

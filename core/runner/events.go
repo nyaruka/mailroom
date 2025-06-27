@@ -11,7 +11,7 @@ import (
 )
 
 // EventHandler defines a call for handling events that occur in a flow
-type EventHandler func(context.Context, *runtime.Runtime, *models.OrgAssets, *Scene, flows.Event) error
+type EventHandler func(context.Context, *runtime.Runtime, *models.OrgAssets, *Scene, flows.Event, models.UserID) error
 
 // our registry of event type to internal handlers
 var eventHandlers = make(map[string]EventHandler)

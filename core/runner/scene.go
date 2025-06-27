@@ -20,7 +20,6 @@ type Scene struct {
 	// optional state set on creation
 	DBCall      *models.Call
 	Call        *flows.Call
-	UserID      models.UserID
 	StartID     models.StartID
 	IncomingMsg *models.MsgInRef
 	Interrupt   bool
@@ -32,19 +31,16 @@ type Scene struct {
 	WaitTimeout         time.Duration
 	PriorRunModifiedOns map[flows.RunUUID]time.Time
 
-	events      []flows.Event
 	preCommits  map[PreCommitHook][]any
 	postCommits map[PostCommitHook][]any
 }
 
 // NewScene creates a new scene for the passed in contact
-func NewScene(dbContact *models.Contact, contact *flows.Contact, userID models.UserID) *Scene {
+func NewScene(dbContact *models.Contact, contact *flows.Contact) *Scene {
 	return &Scene{
 		DBContact: dbContact,
 		Contact:   contact,
-		UserID:    userID,
 
-		events:      make([]flows.Event, 0, 10),
 		preCommits:  make(map[PreCommitHook][]any),
 		postCommits: make(map[PostCommitHook][]any),
 	}
@@ -76,15 +72,13 @@ func (s *Scene) LocateEvent(e flows.Event) (*models.Flow, flows.NodeUUID) {
 	return flow, step.NodeUUID()
 }
 
-func (s *Scene) AddEvent(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, e flows.Event) error {
-	s.events = append(s.events, e)
-
+func (s *Scene) AddEvent(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, e flows.Event, userID models.UserID) error {
 	handler, found := eventHandlers[e.Type()]
 	if !found {
 		return fmt.Errorf("unable to find handler for event type: %s", e.Type())
 	}
 
-	if err := handler(ctx, rt, oa, s, e); err != nil {
+	if err := handler(ctx, rt, oa, s, e, userID); err != nil {
 		return err
 	}
 
@@ -107,7 +101,7 @@ func (s *Scene) AddSprint(ctx context.Context, rt *runtime.Runtime, oa *models.O
 	evts = append(evts, newSprintEndedEvent(s.DBContact, resumed))
 
 	for _, e := range evts {
-		if err := s.AddEvent(ctx, rt, oa, e); err != nil {
+		if err := s.AddEvent(ctx, rt, oa, e, models.NilUserID); err != nil {
 			return fmt.Errorf("error adding event to scene: %w", err)
 		}
 	}

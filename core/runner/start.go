@@ -84,7 +84,7 @@ func tryToStartWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 			return nil, nil, fmt.Errorf("error creating flow contact: %w", err)
 		}
 
-		scene := NewScene(mc, c, models.NilUserID)
+		scene := NewScene(mc, c)
 		scene.StartID = startID
 		scene.Interrupt = interrupt
 

@@ -38,7 +38,7 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 
 	mcBob, fcBob, _ := testdb.Bob.Load(rt, oa)
 	mcAlex, fcAlex, _ := testdb.Alexandra.Load(rt, oa)
-	scBob, scAlex := runner.NewScene(mcBob, fcBob, models.NilUserID), runner.NewScene(mcAlex, fcAlex, models.NilUserID)
+	scBob, scAlex := runner.NewScene(mcBob, fcBob), runner.NewScene(mcAlex, fcAlex)
 	scBob.Interrupt = true
 	scAlex.Interrupt = true
 
@@ -87,7 +87,7 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 	assert.Equal(t, flow.ID, modelSession.CurrentFlowID())
 
 	msg1 := flows.NewMsgIn("0c9cd2e4-865e-40bf-92bb-3c958d5f6f0d", testdb.Bob.URN, nil, "no", nil, "")
-	scene := runner.NewScene(mcBob, fcBob, models.NilUserID)
+	scene := runner.NewScene(mcBob, fcBob)
 
 	err = runner.ResumeSession(ctx, rt, oa, modelSession, scene, resumes.NewMsg(events.NewMsgReceived(msg1)))
 	require.NoError(t, err)
@@ -116,7 +116,7 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 	assert.Equal(t, flow.ID, modelSession.CurrentFlowID())
 
 	msg2 := flows.NewMsgIn("330b1ff5-a95e-4034-b2e1-d0b0f93eb8b8", testdb.Bob.URN, nil, "yes", nil, "")
-	scene = runner.NewScene(mcBob, fcBob, models.NilUserID)
+	scene = runner.NewScene(mcBob, fcBob)
 
 	err = runner.ResumeSession(ctx, rt, oa, modelSession, scene, resumes.NewMsg(events.NewMsgReceived(msg2)))
 	require.NoError(t, err)
@@ -148,7 +148,7 @@ func TestSingleSprintSession(t *testing.T) {
 	require.NoError(t, err)
 
 	mc, fc, _ := testdb.Bob.Load(rt, oa)
-	scene := runner.NewScene(mc, fc, models.NilUserID)
+	scene := runner.NewScene(mc, fc)
 	scene.Interrupt = true
 
 	trigs := []flows.Trigger{triggers.NewBuilder(flow.Reference()).Manual().Build()}
@@ -188,7 +188,7 @@ func TestSessionWithSubflows(t *testing.T) {
 	startID := testdb.InsertFlowStart(rt, testdb.Org1, testdb.Admin, parent, []*testdb.Contact{testdb.Cathy})
 
 	mc, fc, _ := testdb.Cathy.Load(rt, oa)
-	scene := runner.NewScene(mc, fc, models.NilUserID)
+	scene := runner.NewScene(mc, fc)
 	scene.Interrupt = true
 	scene.StartID = startID
 
@@ -222,7 +222,7 @@ func TestSessionWithSubflows(t *testing.T) {
 	assert.Equal(t, child.ID, modelSession.CurrentFlowID())
 
 	msg2 := flows.NewMsgIn("cd476f71-34f2-42d2-ae4d-b7d1c4103bd1", testdb.Cathy.URN, nil, "yes", nil, "")
-	scene = runner.NewScene(mc, fc, models.NilUserID)
+	scene = runner.NewScene(mc, fc)
 
 	err = runner.ResumeSession(ctx, rt, oa, modelSession, scene, resumes.NewMsg(events.NewMsgReceived(msg2)))
 	require.NoError(t, err)
@@ -250,7 +250,7 @@ func TestSessionFailedStart(t *testing.T) {
 	require.NoError(t, err)
 
 	mc, fc, _ := testdb.Cathy.Load(rt, oa)
-	scene := runner.NewScene(mc, fc, models.NilUserID)
+	scene := runner.NewScene(mc, fc)
 	scene.Interrupt = true
 
 	trigs := []flows.Trigger{triggers.NewBuilder(ping.Reference()).Manual().Build()}

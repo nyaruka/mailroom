@@ -28,7 +28,7 @@ func init() {
 }
 
 // our hook for events we ignore in a run
-func noopHandler(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scene *runner.Scene, event flows.Event) error {
+func noopHandler(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scene *runner.Scene, event flows.Event, userID models.UserID) error {
 	slog.Debug("noop event", "contact", scene.ContactUUID(), "session", scene.SessionUUID(), "type", event.Type())
 
 	return nil

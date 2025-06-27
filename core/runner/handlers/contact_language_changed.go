@@ -17,7 +17,7 @@ func init() {
 }
 
 // handleContactLanguageChanged is called when we process a contact language change
-func handleContactLanguageChanged(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scene *runner.Scene, e flows.Event) error {
+func handleContactLanguageChanged(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scene *runner.Scene, e flows.Event, userID models.UserID) error {
 	event := e.(*events.ContactLanguageChanged)
 
 	slog.Debug("contact language changed", "contact", scene.ContactUUID(), "session", scene.SessionUUID(), "language", event.Language)

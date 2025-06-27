@@ -23,7 +23,7 @@ func init() {
 	runner.RegisterEventHandler(events.TypeWarning, handleWarning)
 }
 
-func handleWarning(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scene *runner.Scene, e flows.Event) error {
+func handleWarning(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scene *runner.Scene, e flows.Event, userID models.UserID) error {
 	event := e.(*events.Warning)
 
 	flow, _ := scene.LocateEvent(e)
