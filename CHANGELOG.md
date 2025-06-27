@@ -1,3 +1,7 @@
+v10.1.155 (2025-06-27)
+-------------------------
+ * The great refactor of session starting and resuming completed
+
 v10.1.154 (2025-06-25)
 -------------------------
  * Insert and interrupt sessions via hook
