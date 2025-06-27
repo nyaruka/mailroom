@@ -40,9 +40,9 @@ func handleInspect(ctx context.Context, rt *runtime.Runtime, r *inspectRequest) 
 	var sa flows.SessionAssets
 	// if we have an org ID, create session assets to look for missing dependencies
 	if r.OrgID != models.NilOrgID {
-		refreshFlags := models.RefreshFields | models.RefreshGroups | models.RefreshFlows
+		refreshFlags := models.RefreshFields | models.RefreshFlows | models.RefreshGroups
 		if r.Refresh {
-			refreshFlags = models.RefreshFields | models.RefreshGroups | models.RefreshFlows | models.RefreshGlobals | models.RefreshLabels | models.RefreshOptIns | models.RefreshTopics
+			refreshFlags = models.RefreshFields | models.RefreshFlows | models.RefreshGlobals | models.RefreshGroups | models.RefreshLabels | models.RefreshOptIns | models.RefreshTopics
 		}
 
 		oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, r.OrgID, refreshFlags)
