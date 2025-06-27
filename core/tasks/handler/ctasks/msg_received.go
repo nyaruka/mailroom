@@ -169,6 +169,7 @@ func (t *MsgReceivedTask) handleMsgEvent(ctx context.Context, rt *runtime.Runtim
 		if session.SessionType() == models.FlowTypeVoice {
 			return nil
 		}
+
 		// get the flow to be resumed and if it's gone, end the session
 		flow, err = oa.FlowByID(session.CurrentFlowID())
 		if err == models.ErrNotFound {
@@ -179,7 +180,6 @@ func (t *MsgReceivedTask) handleMsgEvent(ctx context.Context, rt *runtime.Runtim
 		} else if err != nil {
 			return fmt.Errorf("error loading flow for session: %w", err)
 		}
-
 	}
 
 	// find any matching triggers
