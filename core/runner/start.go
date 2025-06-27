@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/mailroom/core/goflow"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/runner/clocks"
 	"github.com/nyaruka/mailroom/runtime"
@@ -75,9 +74,8 @@ func tryToStartWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 		return nil, nil, fmt.Errorf("error loading contacts to start: %w", err)
 	}
 
-	// create scenes and triggers
 	scenes := make([]*Scene, 0, len(mcs))
-	triggers := make([]flows.Trigger, 0, len(locked))
+
 	for _, mc := range mcs {
 		c, err := mc.EngineContact(oa)
 		if err != nil {
@@ -88,57 +86,16 @@ func tryToStartWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 		scene.StartID = startID
 		scene.Interrupt = interrupt
 
+		if err := scene.StartSession(ctx, rt, oa, triggerBuilder()); err != nil {
+			return nil, nil, fmt.Errorf("error starting session for contact %s: %w", scene.ContactUUID(), err)
+		}
+
 		scenes = append(scenes, scene)
-		triggers = append(triggers, triggerBuilder())
-	}
-
-	err = StartSessions(ctx, rt, oa, scenes, triggers)
-	if err != nil {
-		return nil, nil, fmt.Errorf("error starting flow for contacts: %w", err)
-	}
-
-	return scenes, skipped, nil
-}
-
-// StartSessions starts the given contacts in flow sessions. It's assumed that the contacts are already locked.
-func StartSessions(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scenes []*Scene, triggers []flows.Trigger) error {
-	if len(scenes) == 0 {
-		return nil
-	}
-
-	start := time.Now()
-
-	// for sanity, check that contacts have been locked
-	lockCheck, _ := clocks.IsLocked(ctx, rt, oa, scenes[0].DBContact.ID())
-	if !lockCheck {
-		slog.Error("starting session for contact that isn't locked", "contact", scenes[0].DBContact.ID())
-	}
-
-	// for each trigger start the flow
-	sessions := make([]flows.Session, len(triggers))
-	sprints := make([]flows.Sprint, len(triggers))
-
-	for i, scene := range scenes {
-		trigger := triggers[i]
-
-		session, sprint, err := goflow.Engine(rt).NewSession(ctx, oa.SessionAssets(), oa.Env(), scene.Contact, trigger, scene.Call)
-		if err != nil {
-			return fmt.Errorf("error starting contact %s in flow %s: %w", scene.ContactUUID(), trigger.Flow().UUID, err)
-		}
-
-		sessions[i] = session
-		sprints[i] = sprint
-
-		if err := scene.AddSprint(ctx, rt, oa, session, sprint, false); err != nil {
-			return fmt.Errorf("error adding events for session %s: %w", session.UUID(), err)
-		}
 	}
 
 	if err := BulkCommit(ctx, rt, oa, scenes); err != nil {
-		return fmt.Errorf("error committing scenes for started sessions: %w", err)
+		return nil, nil, fmt.Errorf("error committing scenes: %w", err)
 	}
 
-	slog.Debug("started sessions", "count", len(sessions), "elapsed", time.Since(start))
-
-	return nil
+	return scenes, skipped, nil
 }

@@ -170,7 +170,6 @@ func RunTestCases(t *testing.T, ctx context.Context, rt *runtime.Runtime, tcs []
 			assert.NoError(t, err)
 
 			scenes := make([]*runner.Scene, 4)
-			trigs := make([]flows.Trigger, 4)
 
 			for i, c := range []*testdb.Contact{testdb.Cathy, testdb.Bob, testdb.George, testdb.Alexandra} {
 				mc, fc, _ := c.Load(rt, oa)
@@ -182,17 +181,21 @@ func RunTestCases(t *testing.T, ctx context.Context, rt *runtime.Runtime, tcs []
 					require.NoError(t, err)
 				}
 
+				var trig flows.Trigger
 				msg := msgsByContactID[c.ID]
 				if msg != nil {
 					msgEvt := events.NewMsgReceived(msg.FlowMsg)
 					fc.SetLastSeenOn(msgEvt.CreatedOn())
-					trigs[i] = triggers.NewBuilder(testFlow.Reference(false)).Msg(msgEvt).Build()
+					trig = triggers.NewBuilder(testFlow.Reference(false)).Msg(msgEvt).Build()
 				} else {
-					trigs[i] = triggers.NewBuilder(testFlow.Reference(false)).Manual().Build()
+					trig = triggers.NewBuilder(testFlow.Reference(false)).Manual().Build()
 				}
+
+				err = scenes[i].StartSession(ctx, rt, oa, trig)
+				require.NoError(t, err)
 			}
 
-			err = runner.StartSessions(ctx, rt, oa, scenes, trigs)
+			err = runner.BulkCommit(ctx, rt, oa, scenes)
 			require.NoError(t, err)
 		}
 		if tc.Modifiers != nil {

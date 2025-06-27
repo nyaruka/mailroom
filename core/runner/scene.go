@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/mailroom/core/goflow"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/runtime"
 )
@@ -33,6 +34,9 @@ type Scene struct {
 
 	preCommits  map[PreCommitHook][]any
 	postCommits map[PostCommitHook][]any
+
+	// can be overridden by tests
+	Engine func(*runtime.Runtime) flows.Engine
 }
 
 // NewScene creates a new scene for the passed in contact
@@ -43,6 +47,8 @@ func NewScene(dbContact *models.Contact, contact *flows.Contact) *Scene {
 
 		preCommits:  make(map[PreCommitHook][]any),
 		postCommits: make(map[PostCommitHook][]any),
+
+		Engine: goflow.Engine,
 	}
 }
 
@@ -85,7 +91,7 @@ func (s *Scene) AddEvent(ctx context.Context, rt *runtime.Runtime, oa *models.Or
 	return nil
 }
 
-func (s *Scene) AddSprint(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, ss flows.Session, sp flows.Sprint, resumed bool) error {
+func (s *Scene) addSprint(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, ss flows.Session, sp flows.Sprint, resumed bool) error {
 	s.Session = ss
 	s.Sprint = sp
 
@@ -104,6 +110,63 @@ func (s *Scene) AddSprint(ctx context.Context, rt *runtime.Runtime, oa *models.O
 		if err := s.AddEvent(ctx, rt, oa, e, models.NilUserID); err != nil {
 			return fmt.Errorf("error adding event to scene: %w", err)
 		}
+	}
+
+	return nil
+}
+
+// StartSession starts a new session.
+func (s *Scene) StartSession(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, trigger flows.Trigger) error {
+	session, sprint, err := s.Engine(rt).NewSession(ctx, oa.SessionAssets(), oa.Env(), s.Contact, trigger, s.Call)
+	if err != nil {
+		return fmt.Errorf("error starting contact %s in flow %s: %w", s.ContactUUID(), trigger.Flow().UUID, err)
+	}
+
+	if err := s.addSprint(ctx, rt, oa, session, sprint, false); err != nil {
+		return fmt.Errorf("error adding events for session %s: %w", session.UUID(), err)
+	}
+
+	return nil
+}
+
+// ResumeSession resumes the passed in session
+func (s *Scene) ResumeSession(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, session *models.Session, resume flows.Resume) error {
+	if s.Sprint != nil {
+		panic("scene already has a sprint")
+	}
+
+	// does the flow this session is part of still exist?
+	_, err := oa.FlowByID(session.CurrentFlowID())
+	if err != nil {
+		// if this flow just isn't available anymore, log this error
+		if err == models.ErrNotFound {
+			slog.Error("unable to find flow for resume", "contact", s.ContactUUID(), "session", session.UUID(), "flow_id", session.CurrentFlowID())
+
+			return models.ExitSessions(ctx, rt.DB, []flows.SessionUUID{session.UUID()}, models.SessionStatusFailed)
+		}
+		return fmt.Errorf("error loading session flow: %d: %w", session.CurrentFlowID(), err)
+	}
+
+	// build our flow session
+	fs, err := session.EngineSession(ctx, rt, oa.SessionAssets(), oa.Env(), s.Contact, s.Call)
+	if err != nil {
+		return fmt.Errorf("unable to create session from output: %w", err)
+	}
+
+	// record run modified times prior to resuming so we can figure out which runs are new or updated
+	s.DBSession = session
+	s.PriorRunModifiedOns = make(map[flows.RunUUID]time.Time, len(fs.Runs()))
+	for _, r := range fs.Runs() {
+		s.PriorRunModifiedOns[r.UUID()] = r.ModifiedOn()
+	}
+
+	sprint, err := fs.Resume(ctx, resume)
+	if err != nil {
+		return fmt.Errorf("error resuming flow: %w", err)
+	}
+
+	if err := s.addSprint(ctx, rt, oa, fs, sprint, true); err != nil {
+		return fmt.Errorf("error processing events for session %s: %w", session.UUID(), err)
 	}
 
 	return nil

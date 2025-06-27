@@ -267,8 +267,11 @@ func StartCall(
 	scene.Call = flowCall
 	scene.Interrupt = true
 
-	if err := runner.StartSessions(ctx, rt, oa, []*runner.Scene{scene}, []flows.Trigger{trigger}); err != nil {
+	if err := scene.StartSession(ctx, rt, oa, trigger); err != nil {
 		return fmt.Errorf("error starting flow: %w", err)
+	}
+	if err := scene.Commit(ctx, rt, oa); err != nil {
+		return fmt.Errorf("error committing scene: %w", err)
 	}
 
 	// have our service output our session status
@@ -372,8 +375,12 @@ func ResumeCall(
 	scene.DBCall = call
 	scene.Call = flows.NewCall(call.UUID(), oa.SessionAssets().Channels().Get(channel.UUID()), urn.Identity())
 
-	if err := runner.ResumeSession(ctx, rt, oa, session, scene, resume); err != nil {
+	if err := scene.ResumeSession(ctx, rt, oa, session, resume); err != nil {
 		return fmt.Errorf("error resuming ivr flow: %w", err)
+	}
+
+	if err := scene.Commit(ctx, rt, oa); err != nil {
+		return fmt.Errorf("error committing scene: %w", err)
 	}
 
 	// if still active, write out our response

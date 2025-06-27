@@ -221,21 +221,24 @@ func (t *MsgReceivedTask) perform(ctx context.Context, rt *runtime.Runtime, oa *
 
 			scene.Interrupt = flow.FlowType().Interrupts()
 
-			if err := runner.StartSessions(ctx, rt, oa, []*runner.Scene{scene}, []flows.Trigger{flowTrigger}); err != nil {
-				return "", fmt.Errorf("error starting flow for contact: %w", err)
+			if err := scene.StartSession(ctx, rt, oa, flowTrigger); err != nil {
+				return "", fmt.Errorf("error starting session for contact %s: %w", scene.ContactUUID(), err)
 			}
+			if err := scene.Commit(ctx, rt, oa); err != nil {
+				return "", fmt.Errorf("error committing scene for contact %s: %w", scene.ContactUUID(), err)
+			}
+
 			return msgOutcomeStart, nil
 		}
 	}
 
 	// if there is a session, resume it
 	if session != nil && flow != nil {
-		resume := resumes.NewMsg(msgEvent)
-
-		if err := runner.ResumeSession(ctx, rt, oa, session, scene, resume); err != nil {
+		if err := scene.ResumeSession(ctx, rt, oa, session, resumes.NewMsg(msgEvent)); err != nil {
 			return "", fmt.Errorf("error resuming flow for contact: %w", err)
 		}
-		return msgOutcomeResume, nil
+
+		return msgOutcomeResume, scene.Commit(ctx, rt, oa)
 	}
 
 	// this message didn't trigger and new sessions or resume any existing ones, so handle as inbox

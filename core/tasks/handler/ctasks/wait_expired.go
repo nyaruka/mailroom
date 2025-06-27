@@ -80,18 +80,18 @@ func (t *WaitExpiredTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *
 			return fmt.Errorf("error expiring sessions for expired calls: %w", err)
 		}
 
-	} else {
-		scene := runner.NewScene(mc, contact)
-		if err := scene.AddEvent(ctx, rt, oa, evt, models.NilUserID); err != nil {
-			return fmt.Errorf("error adding wait expired event to scene: %w", err)
-		}
+		return nil
 
-		resume := resumes.NewWaitExpiration(evt)
-
-		if err := runner.ResumeSession(ctx, rt, oa, session, scene, resume); err != nil {
-			return fmt.Errorf("error resuming flow for expiration: %w", err)
-		}
 	}
 
-	return nil
+	scene := runner.NewScene(mc, contact)
+	if err := scene.AddEvent(ctx, rt, oa, evt, models.NilUserID); err != nil {
+		return fmt.Errorf("error adding wait expired event to scene: %w", err)
+	}
+
+	if err := scene.ResumeSession(ctx, rt, oa, session, resumes.NewWaitExpiration(evt)); err != nil {
+		return fmt.Errorf("error resuming flow for expiration: %w", err)
+	}
+
+	return scene.Commit(ctx, rt, oa)
 }
