@@ -3,7 +3,6 @@ package ctasks
 import (
 	"context"
 	"fmt"
-	"log/slog"
 
 	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/goflow/flows"
@@ -47,25 +46,10 @@ func (t *MsgReceivedTask) UseReadOnly() bool {
 }
 
 func (t *MsgReceivedTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, mc *models.Contact) error {
-	outcome, err := t.perform(ctx, rt, oa, mc)
-
-	// TODO cleanup
-	if err == nil {
-		slog.Warn("msg_received completed", "msg", t.MsgID, "contact", mc.ID(), "outcome", outcome)
-	}
-
-	return err
+	return t.perform(ctx, rt, oa, mc)
 }
 
-type msgOutcome string
-
-const (
-	msgOutcomeNonFlow = "non-flow"
-	msgOutcomeStart   = "start"
-	msgOutcomeResume  = "resume"
-)
-
-func (t *MsgReceivedTask) perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, mc *models.Contact) (msgOutcome, error) {
+func (t *MsgReceivedTask) perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, mc *models.Contact) error {
 	channel := oa.ChannelByID(t.ChannelID)
 
 	// fetch the attachments on the message (i.e. ask courier to fetch them)
@@ -81,7 +65,7 @@ func (t *MsgReceivedTask) perform(ctx context.Context, rt *runtime.Runtime, oa *
 			} else {
 				attachment, logUUID, err := msgio.FetchAttachment(ctx, rt, channel, attURL, t.MsgID)
 				if err != nil {
-					return "", fmt.Errorf("error fetching attachment '%s': %w", attURL, err)
+					return fmt.Errorf("error fetching attachment '%s': %w", attURL, err)
 				}
 
 				attachments = append(attachments, attachment)
@@ -93,7 +77,7 @@ func (t *MsgReceivedTask) perform(ctx context.Context, rt *runtime.Runtime, oa *
 	// if we have URNs make sure the message URN is our highest priority (this is usually a noop)
 	if len(mc.URNs()) > 0 {
 		if err := mc.UpdatePreferredURN(ctx, rt.DB, oa, t.URNID, channel); err != nil {
-			return "", fmt.Errorf("error changing primary URN: %w", err)
+			return fmt.Errorf("error changing primary URN: %w", err)
 		}
 	}
 
@@ -101,7 +85,7 @@ func (t *MsgReceivedTask) perform(ctx context.Context, rt *runtime.Runtime, oa *
 	recalcGroups := t.NewContact
 	if mc.Status() == models.ContactStatusStopped {
 		if err := mc.Unstop(ctx, rt.DB); err != nil {
-			return "", fmt.Errorf("error unstopping contact: %w", err)
+			return fmt.Errorf("error unstopping contact: %w", err)
 		}
 
 		recalcGroups = true
@@ -110,14 +94,14 @@ func (t *MsgReceivedTask) perform(ctx context.Context, rt *runtime.Runtime, oa *
 	// build our flow contact
 	contact, err := mc.EngineContact(oa)
 	if err != nil {
-		return "", fmt.Errorf("error creating flow contact: %w", err)
+		return fmt.Errorf("error creating flow contact: %w", err)
 	}
 
 	// if this is a new or newly unstopped contact, we need to calculate dynamic groups and campaigns
 	if recalcGroups {
 		err = models.CalculateDynamicGroups(ctx, rt.DB, oa, []*flows.Contact{contact})
 		if err != nil {
-			return "", fmt.Errorf("unable to initialize new contact: %w", err)
+			return fmt.Errorf("unable to initialize new contact: %w", err)
 		}
 	}
 
@@ -136,7 +120,7 @@ func (t *MsgReceivedTask) perform(ctx context.Context, rt *runtime.Runtime, oa *
 	// look up any open tickes for this contact and forward this message to that
 	ticket, err := models.LoadOpenTicketForContact(ctx, rt.DB, mc)
 	if err != nil {
-		return "", fmt.Errorf("unable to look up open tickets for contact: %w", err)
+		return fmt.Errorf("unable to look up open tickets for contact: %w", err)
 	}
 
 	scene := runner.NewScene(mc, contact)
@@ -148,49 +132,58 @@ func (t *MsgReceivedTask) perform(ctx context.Context, rt *runtime.Runtime, oa *
 		LogUUIDs:    logUUIDs,
 	}
 	if err := scene.AddEvent(ctx, rt, oa, msgEvent, models.NilUserID); err != nil {
-		return "", fmt.Errorf("error adding message event to scene: %w", err)
+		return fmt.Errorf("error adding message event to scene: %w", err)
 	}
 
-	// if contact is blocked, or channel no longer exists or is disabled, handle non-flow
-	if mc.Status() == models.ContactStatusBlocked || channel == nil {
-		if err := scene.Commit(ctx, rt, oa); err != nil {
-			return "", fmt.Errorf("error handling message for blocked contact or missing channel: %w", err)
-		}
-		return msgOutcomeNonFlow, nil
+	if err := t.handleMsgEvent(ctx, rt, oa, channel, scene, msgEvent); err != nil {
+		return fmt.Errorf("error handing message event in scene: %w", err)
 	}
 
-	// find any matching triggers
-	trigger, keyword := models.FindMatchingMsgTrigger(oa, channel, contact, t.Text)
+	if err := scene.Commit(ctx, rt, oa); err != nil {
+		return fmt.Errorf("error committing scene: %w", err)
+	}
+
+	return nil
+}
+
+func (t *MsgReceivedTask) handleMsgEvent(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, channel *models.Channel, scene *runner.Scene, msgEvent *events.MsgReceived) error {
+	// if contact is blocked, or channel no longer exists or is disabled, no sessions
+	if scene.Contact.Status() == flows.ContactStatusBlocked || channel == nil {
+		return nil
+	}
 
 	// look for a waiting session for this contact
 	var session *models.Session
 	var flow *models.Flow
+	var err error
 
-	if mc.CurrentSessionUUID() != "" {
-		session, err = models.GetWaitingSessionForContact(ctx, rt, oa, contact, mc.CurrentSessionUUID())
+	if scene.DBContact.CurrentSessionUUID() != "" {
+		session, err = models.GetWaitingSessionForContact(ctx, rt, oa, scene.Contact, scene.DBContact.CurrentSessionUUID())
 		if err != nil {
-			return "", fmt.Errorf("error loading waiting session for contact #%d: %w", mc.ID(), err)
+			return fmt.Errorf("error loading waiting session for contact %s: %w", scene.ContactUUID(), err)
 		}
 	}
 
 	if session != nil {
-		// if we have a waiting voice session, we want to leave it as is and let this message be handled as inbox below
+		// if we have a waiting voice session, we want to leave it as is
 		if session.SessionType() == models.FlowTypeVoice {
-			session = nil
-			trigger = nil
-		} else {
-			// get the flow to be resumed and if it's gone, end the session
-			flow, err = oa.FlowByID(session.CurrentFlowID())
-			if err == models.ErrNotFound {
-				if err := models.ExitSessions(ctx, rt.DB, []flows.SessionUUID{session.UUID()}, models.SessionStatusFailed); err != nil {
-					return "", fmt.Errorf("error ending session %s: %w", session.UUID(), err)
-				}
-				session = nil
-			} else if err != nil {
-				return "", fmt.Errorf("error loading flow for session: %w", err)
-			}
+			return nil
 		}
+		// get the flow to be resumed and if it's gone, end the session
+		flow, err = oa.FlowByID(session.CurrentFlowID())
+		if err == models.ErrNotFound {
+			if err := models.ExitSessions(ctx, rt.DB, []flows.SessionUUID{session.UUID()}, models.SessionStatusFailed); err != nil {
+				return fmt.Errorf("error ending session %s: %w", session.UUID(), err)
+			}
+			session = nil
+		} else if err != nil {
+			return fmt.Errorf("error loading flow for session: %w", err)
+		}
+
 	}
+
+	// find any matching triggers
+	trigger, keyword := models.FindMatchingMsgTrigger(oa, channel, scene.Contact, t.Text)
 
 	// we found a trigger and their session is nil or doesn't ignore keywords
 	if (trigger != nil && trigger.TriggerType() != models.CatchallTriggerType && (flow == nil || !flow.IgnoreTriggers())) ||
@@ -199,7 +192,7 @@ func (t *MsgReceivedTask) perform(ctx context.Context, rt *runtime.Runtime, oa *
 		// load flow to check it's still accessible
 		flow, err = oa.FlowByID(trigger.FlowID())
 		if err != nil && err != models.ErrNotFound {
-			return "", fmt.Errorf("error loading flow for trigger: %w", err)
+			return fmt.Errorf("error loading flow for trigger: %w", err)
 		}
 
 		if flow != nil {
@@ -212,38 +205,27 @@ func (t *MsgReceivedTask) perform(ctx context.Context, rt *runtime.Runtime, oa *
 
 			// if this is a voice flow, we request a call and wait for callback
 			if flow.FlowType() == models.FlowTypeVoice {
-				if _, err := ivr.RequestCall(ctx, rt, oa, mc, flowTrigger); err != nil {
-					return "", fmt.Errorf("error starting voice flow for contact: %w", err)
+				if _, err := ivr.RequestCall(ctx, rt, oa, scene.DBContact, flowTrigger); err != nil {
+					return fmt.Errorf("error starting voice flow for contact: %w", err)
 				}
+			} else {
+				scene.Interrupt = flow.FlowType().Interrupts()
 
-				return msgOutcomeNonFlow, scene.Commit(ctx, rt, oa)
+				if err := scene.StartSession(ctx, rt, oa, flowTrigger); err != nil {
+					return fmt.Errorf("error starting session for contact %s: %w", scene.ContactUUID(), err)
+				}
 			}
 
-			scene.Interrupt = flow.FlowType().Interrupts()
-
-			if err := scene.StartSession(ctx, rt, oa, flowTrigger); err != nil {
-				return "", fmt.Errorf("error starting session for contact %s: %w", scene.ContactUUID(), err)
-			}
-			if err := scene.Commit(ctx, rt, oa); err != nil {
-				return "", fmt.Errorf("error committing scene for contact %s: %w", scene.ContactUUID(), err)
-			}
-
-			return msgOutcomeStart, nil
+			return nil
 		}
 	}
 
 	// if there is a session, resume it
 	if session != nil && flow != nil {
 		if err := scene.ResumeSession(ctx, rt, oa, session, resumes.NewMsg(msgEvent)); err != nil {
-			return "", fmt.Errorf("error resuming flow for contact: %w", err)
+			return fmt.Errorf("error resuming flow for contact: %w", err)
 		}
-
-		return msgOutcomeResume, scene.Commit(ctx, rt, oa)
 	}
 
-	// this message didn't trigger and new sessions or resume any existing ones, so handle as inbox
-	if err := scene.Commit(ctx, rt, oa); err != nil {
-		return "", fmt.Errorf("error handling non-flow message: %w", err)
-	}
-	return msgOutcomeNonFlow, nil
+	return nil
 }
