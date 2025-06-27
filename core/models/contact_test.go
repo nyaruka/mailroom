@@ -41,17 +41,17 @@ func TestContacts(t *testing.T) {
 	rt.DB.MustExec(`DELETE FROM contacts_contactgroup_contacts WHERE contact_id = $1`, testdb.George.ID)
 	rt.DB.MustExec(`UPDATE contacts_contact SET is_active = FALSE WHERE id = $1`, testdb.Alexandra.ID)
 
-	modelContacts, err := models.LoadContacts(ctx, rt.DB, org, []models.ContactID{testdb.Cathy.ID, testdb.Bob.ID, testdb.George.ID, testdb.Alexandra.ID})
+	mcs, err := models.LoadContacts(ctx, rt.DB, org, []models.ContactID{testdb.Cathy.ID, testdb.Bob.ID, testdb.George.ID, testdb.Alexandra.ID})
 	require.NoError(t, err)
-	require.Equal(t, 3, len(modelContacts))
+	require.Equal(t, 3, len(mcs))
 
 	// LoadContacts doesn't guarantee returned order of contacts
-	sort.Slice(modelContacts, func(i, j int) bool { return modelContacts[i].ID() < modelContacts[j].ID() })
+	sort.Slice(mcs, func(i, j int) bool { return mcs[i].ID() < mcs[j].ID() })
 
 	// convert to goflow contacts
-	contacts := make([]*flows.Contact, len(modelContacts))
-	for i := range modelContacts {
-		contacts[i], err = modelContacts[i].EngineContact(org)
+	contacts := make([]*flows.Contact, len(mcs))
+	for i := range mcs {
+		contacts[i], err = mcs[i].EngineContact(org)
 		assert.NoError(t, err)
 	}
 
@@ -88,10 +88,10 @@ func TestContacts(t *testing.T) {
 
 	// change bob to have a preferred URN and channel of our telephone
 	channel := org.ChannelByID(testdb.TwilioChannel.ID)
-	err = modelContacts[1].UpdatePreferredURN(ctx, rt.DB, org, testdb.Bob.URNID, channel)
+	err = mcs[1].UpdatePreferredURN(ctx, rt.DB, org, testdb.Bob.URNID, channel)
 	assert.NoError(t, err)
 
-	bob, err = modelContacts[1].EngineContact(org)
+	bob, err = mcs[1].EngineContact(org)
 	assert.NoError(t, err)
 	assert.Equal(t, "tel:+16055742222?channel=74729f45-7f29-4868-9dc4-90e491e3c7d8&id=10001", bob.URNs()[0].String())
 	assert.Equal(t, "whatsapp:250788373373?id=30000", bob.URNs()[1].String())
@@ -100,34 +100,34 @@ func TestContacts(t *testing.T) {
 	testdb.InsertContactURN(rt, testdb.Org1, testdb.Bob, urns.URN("tel:+250788373373"), 10, nil)
 
 	// reload the contact
-	modelContacts, err = models.LoadContacts(ctx, rt.DB, org, []models.ContactID{testdb.Bob.ID})
+	mcs, err = models.LoadContacts(ctx, rt.DB, org, []models.ContactID{testdb.Bob.ID})
 	assert.NoError(t, err)
 
 	// set our preferred channel again
-	err = modelContacts[0].UpdatePreferredURN(ctx, rt.DB, org, models.URNID(30001), channel)
+	err = mcs[0].UpdatePreferredURN(ctx, rt.DB, org, models.URNID(30001), channel)
 	assert.NoError(t, err)
 
-	bob, err = modelContacts[0].EngineContact(org)
+	bob, err = mcs[0].EngineContact(org)
 	assert.NoError(t, err)
 	assert.Equal(t, "tel:+250788373373?channel=74729f45-7f29-4868-9dc4-90e491e3c7d8&id=30001", bob.URNs()[0].String())
 	assert.Equal(t, "tel:+16055742222?channel=74729f45-7f29-4868-9dc4-90e491e3c7d8&id=10001", bob.URNs()[1].String())
 	assert.Equal(t, "whatsapp:250788373373?id=30000", bob.URNs()[2].String())
 
 	// no op this time
-	err = modelContacts[0].UpdatePreferredURN(ctx, rt.DB, org, models.URNID(30001), channel)
+	err = mcs[0].UpdatePreferredURN(ctx, rt.DB, org, models.URNID(30001), channel)
 	assert.NoError(t, err)
 
-	bob, err = modelContacts[0].EngineContact(org)
+	bob, err = mcs[0].EngineContact(org)
 	assert.NoError(t, err)
 	assert.Equal(t, "tel:+250788373373?channel=74729f45-7f29-4868-9dc4-90e491e3c7d8&id=30001", bob.URNs()[0].String())
 	assert.Equal(t, "tel:+16055742222?channel=74729f45-7f29-4868-9dc4-90e491e3c7d8&id=10001", bob.URNs()[1].String())
 	assert.Equal(t, "whatsapp:250788373373?id=30000", bob.URNs()[2].String())
 
 	// calling with no channel is a noop on the channel
-	err = modelContacts[0].UpdatePreferredURN(ctx, rt.DB, org, models.URNID(30001), nil)
+	err = mcs[0].UpdatePreferredURN(ctx, rt.DB, org, models.URNID(30001), nil)
 	assert.NoError(t, err)
 
-	bob, err = modelContacts[0].EngineContact(org)
+	bob, err = mcs[0].EngineContact(org)
 	assert.NoError(t, err)
 	assert.Equal(t, "tel:+250788373373?channel=74729f45-7f29-4868-9dc4-90e491e3c7d8&id=30001", bob.URNs()[0].String())
 	assert.Equal(t, "tel:+16055742222?channel=74729f45-7f29-4868-9dc4-90e491e3c7d8&id=10001", bob.URNs()[1].String())

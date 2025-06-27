@@ -33,7 +33,7 @@ func TestInsertSessions(t *testing.T) {
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshFlows)
 	require.NoError(t, err)
 
-	modelContact, _, _ := testdb.Bob.Load(rt, oa)
+	mc, _, _ := testdb.Bob.Load(rt, oa)
 
 	sa, flowSession, sprint1 := test.NewSessionBuilder().WithAssets(oa.SessionAssets()).WithFlow(flow.UUID).
 		WithContact(testdb.Bob.UUID, flows.ContactID(testdb.Bob.ID), "Bob", "eng", "").MustBuild()
@@ -41,7 +41,7 @@ func TestInsertSessions(t *testing.T) {
 	tx := rt.DB.MustBegin()
 
 	session := models.NewSession(oa, flowSession, sprint1, nil)
-	err = models.InsertSessions(ctx, rt, tx, oa, []*models.Session{session}, []*models.Contact{modelContact})
+	err = models.InsertSessions(ctx, rt, tx, oa, []*models.Session{session}, []*models.Contact{mc})
 	require.NoError(t, err)
 
 	require.NoError(t, tx.Commit())
@@ -68,7 +68,7 @@ func TestInsertSessions(t *testing.T) {
 
 	tx = rt.DB.MustBegin()
 
-	err = session.Update(ctx, rt, tx, oa, flowSession, sprint2, modelContact)
+	err = session.Update(ctx, rt, tx, oa, flowSession, sprint2, mc)
 	require.NoError(t, err)
 
 	require.NoError(t, tx.Commit())
@@ -84,7 +84,7 @@ func TestInsertSessions(t *testing.T) {
 
 	tx = rt.DB.MustBegin()
 
-	err = session.Update(ctx, rt, tx, oa, flowSession, sprint3, modelContact)
+	err = session.Update(ctx, rt, tx, oa, flowSession, sprint3, mc)
 	require.NoError(t, err)
 
 	require.NoError(t, tx.Commit())
@@ -109,9 +109,9 @@ func TestGetWaitingSessionForContact(t *testing.T) {
 	testdb.InsertWaitingSession(rt, testdb.Org1, testdb.George, models.FlowTypeMessaging, testdb.Favorites, models.NilCallID)
 
 	oa := testdb.Org1.Load(rt)
-	mc, fc, _ := testdb.Cathy.Load(rt, oa)
+	mc, contact, _ := testdb.Cathy.Load(rt, oa)
 
-	session, err := models.GetWaitingSessionForContact(ctx, rt, oa, fc, mc.CurrentSessionUUID())
+	session, err := models.GetWaitingSessionForContact(ctx, rt, oa, contact, mc.CurrentSessionUUID())
 	assert.NoError(t, err)
 	assert.NotNil(t, session)
 	assert.Equal(t, sessionUUID, session.UUID())

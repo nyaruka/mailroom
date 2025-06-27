@@ -157,9 +157,9 @@ func TestNewOutgoingFlowMsg(t *testing.T) {
 		flow, err := oa.FlowByID(tc.Flow.ID)
 		require.NoError(t, err)
 
-		_, fc, _ := tc.Contact.Load(rt, oa)
+		_, contact, _ := tc.Contact.Load(rt, oa)
 		flowMsg := flows.NewMsgOut(tc.URN, chRef, tc.Content, tc.Templating, tc.Locale, tc.Unsendable)
-		msg, err := models.NewOutgoingFlowMsg(rt, oa.Org(), ch, fc, flow, flowMsg, tc.ResponseTo, dates.Now())
+		msg, err := models.NewOutgoingFlowMsg(rt, oa.Org(), ch, contact, flow, flowMsg, tc.ResponseTo, dates.Now())
 
 		assert.NoError(t, err)
 
@@ -215,13 +215,13 @@ func TestNewOutgoingFlowMsg(t *testing.T) {
 	require.NoError(t, err)
 	channel := oa.ChannelByUUID(testdb.TwilioChannel.UUID)
 	flow, _ := oa.FlowByID(testdb.Favorites.ID)
-	_, fc, _ := testdb.Cathy.Load(rt, oa)
+	_, contact, _ := testdb.Cathy.Load(rt, oa)
 
 	// check that msg loop detection triggers after 20 repeats of the same text
 	newOutgoing := func(text string) *models.MsgOut {
 		content := &flows.MsgContent{Text: text}
 		flowMsg := flows.NewMsgOut(urns.URN(fmt.Sprintf("tel:+250700000001?id=%d", testdb.Cathy.URNID)), assets.NewChannelReference(testdb.TwilioChannel.UUID, "Twilio"), content, nil, i18n.NilLocale, flows.NilUnsendableReason)
-		msg, err := models.NewOutgoingFlowMsg(rt, oa.Org(), channel, fc, flow, flowMsg, nil, dates.Now())
+		msg, err := models.NewOutgoingFlowMsg(rt, oa.Org(), channel, contact, flow, flowMsg, nil, dates.Now())
 		require.NoError(t, err)
 		return msg
 	}
@@ -591,7 +591,7 @@ func TestMsgTemplating(t *testing.T) {
 	defer testsuite.Reset(testsuite.ResetData)
 
 	oa := testdb.Org1.Load(rt)
-	_, fc, _ := testdb.Cathy.Load(rt, oa)
+	_, contact, _ := testdb.Cathy.Load(rt, oa)
 	channel := oa.ChannelByUUID(testdb.FacebookChannel.UUID)
 	chRef := assets.NewChannelReference(testdb.FacebookChannel.UUID, "FB")
 	flow, _ := oa.FlowByID(testdb.Favorites.ID)
@@ -604,12 +604,12 @@ func TestMsgTemplating(t *testing.T) {
 
 	// create a message with templating
 	out1 := flows.NewMsgOut(testdb.Cathy.URN, chRef, &flows.MsgContent{Text: "Hello"}, templating1, i18n.NilLocale, flows.NilUnsendableReason)
-	msg1, err := models.NewOutgoingFlowMsg(rt, oa.Org(), channel, fc, flow, out1, nil, dates.Now())
+	msg1, err := models.NewOutgoingFlowMsg(rt, oa.Org(), channel, contact, flow, out1, nil, dates.Now())
 	require.NoError(t, err)
 
 	// create a message without templating
 	out2 := flows.NewMsgOut(testdb.Cathy.URN, chRef, &flows.MsgContent{Text: "Hello"}, nil, i18n.NilLocale, flows.NilUnsendableReason)
-	msg2, err := models.NewOutgoingFlowMsg(rt, oa.Org(), channel, fc, flow, out2, nil, dates.Now())
+	msg2, err := models.NewOutgoingFlowMsg(rt, oa.Org(), channel, contact, flow, out2, nil, dates.Now())
 	require.NoError(t, err)
 
 	err = models.InsertMessages(ctx, rt.DB, []*models.Msg{msg1.Msg, msg2.Msg})

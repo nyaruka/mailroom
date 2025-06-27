@@ -158,8 +158,8 @@ func TestSessionWithSubflows(t *testing.T) {
 
 	startID := testdb.InsertFlowStart(rt, testdb.Org1, testdb.Admin, parent, []*testdb.Contact{testdb.Cathy})
 
-	mc, fc, _ := testdb.Cathy.Load(rt, oa)
-	scene := runner.NewScene(mc, fc)
+	mc, contact, _ := testdb.Cathy.Load(rt, oa)
+	scene := runner.NewScene(mc, contact)
 	scene.Interrupt = true
 	scene.StartID = startID
 
@@ -188,13 +188,13 @@ func TestSessionWithSubflows(t *testing.T) {
 		fmt.Sprintf("S:%s", scene.Session.UUID()): time.Date(2025, 3, 28, 9, 55, 36, 0, time.UTC),  // 30 days + rand(1 - 24 hours) in future
 	})
 
-	modelSession, err := models.GetWaitingSessionForContact(ctx, rt, oa, fc, scene.Session.UUID())
+	modelSession, err := models.GetWaitingSessionForContact(ctx, rt, oa, contact, scene.Session.UUID())
 	require.NoError(t, err)
 	assert.Equal(t, scene.Session.UUID(), modelSession.UUID())
 	assert.Equal(t, child.ID, modelSession.CurrentFlowID())
 
 	msg2 := flows.NewMsgIn("cd476f71-34f2-42d2-ae4d-b7d1c4103bd1", testdb.Cathy.URN, nil, "yes", nil, "")
-	scene = runner.NewScene(mc, fc)
+	scene = runner.NewScene(mc, contact)
 
 	err = scene.ResumeSession(ctx, rt, oa, modelSession, resumes.NewMsg(events.NewMsgReceived(msg2)))
 	require.NoError(t, err)

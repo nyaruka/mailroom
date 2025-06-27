@@ -172,8 +172,8 @@ func RunTestCases(t *testing.T, ctx context.Context, rt *runtime.Runtime, tcs []
 			scenes := make([]*runner.Scene, 4)
 
 			for i, c := range []*testdb.Contact{testdb.Cathy, testdb.Bob, testdb.George, testdb.Alexandra} {
-				mc, fc, _ := c.Load(rt, oa)
-				scenes[i] = runner.NewScene(mc, fc)
+				mc, contact, _ := c.Load(rt, oa)
+				scenes[i] = runner.NewScene(mc, contact)
 				scenes[i].Interrupt = true
 				if msg := msgsByContactID[c.ID]; msg != nil {
 					scenes[i].IncomingMsg = &models.MsgInRef{ID: msg.ID}
@@ -185,7 +185,7 @@ func RunTestCases(t *testing.T, ctx context.Context, rt *runtime.Runtime, tcs []
 				msg := msgsByContactID[c.ID]
 				if msg != nil {
 					msgEvt := events.NewMsgReceived(msg.FlowMsg)
-					fc.SetLastSeenOn(msgEvt.CreatedOn())
+					contact.SetLastSeenOn(msgEvt.CreatedOn())
 					trig = triggers.NewBuilder(testFlow.Reference(false)).Msg(msgEvt).Build()
 				} else {
 					trig = triggers.NewBuilder(testFlow.Reference(false)).Manual().Build()
@@ -206,8 +206,8 @@ func RunTestCases(t *testing.T, ctx context.Context, rt *runtime.Runtime, tcs []
 
 			modifiersByContact := make(map[*flows.Contact][]flows.Modifier)
 			for contact, mods := range tc.Modifiers {
-				_, fc, _ := contact.Load(rt, oa)
-				modifiersByContact[fc] = mods
+				_, c, _ := contact.Load(rt, oa)
+				modifiersByContact[c] = mods
 			}
 
 			_, err := runner.ApplyModifiers(ctx, rt, oa, userID, modifiersByContact)

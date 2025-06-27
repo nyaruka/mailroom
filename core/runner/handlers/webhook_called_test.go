@@ -130,14 +130,14 @@ func TestUnhealthyWebhookCalls(t *testing.T) {
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshFlows)
 	require.NoError(t, err)
 
-	mc, fc, _ := testdb.Cathy.Load(rt, oa)
+	mc, contact, _ := testdb.Cathy.Load(rt, oa)
 
 	// webhook service with a 2 second delay
 	svc := &failingWebhookService{delay: 2 * time.Second}
 	eng := engine.NewBuilder().WithWebhookServiceFactory(func(flows.SessionAssets) (flows.WebhookService, error) { return svc, nil }).Build()
 
 	runFlow := func() {
-		scene := runner.NewScene(mc, fc)
+		scene := runner.NewScene(mc, contact)
 		scene.Interrupt = true
 		scene.Engine = func(r *runtime.Runtime) flows.Engine { return eng }
 
