@@ -26,8 +26,9 @@ func init() {
 //	  "org_id": 1
 //	}
 type inspectRequest struct {
-	Flow  json.RawMessage `json:"flow" validate:"required"`
-	OrgID models.OrgID    `json:"org_id"`
+	Flow    json.RawMessage `json:"flow" validate:"required"`
+	OrgID   models.OrgID    `json:"org_id"`
+	Refresh bool            `json:"refresh,omitempty"`
 }
 
 func handleInspect(ctx context.Context, rt *runtime.Runtime, r *inspectRequest) (any, int, error) {
@@ -39,7 +40,12 @@ func handleInspect(ctx context.Context, rt *runtime.Runtime, r *inspectRequest) 
 	var sa flows.SessionAssets
 	// if we have an org ID, create session assets to look for missing dependencies
 	if r.OrgID != models.NilOrgID {
-		oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, r.OrgID, models.RefreshFields|models.RefreshGroups|models.RefreshFlows)
+		refreshFlags := models.RefreshFields | models.RefreshGroups | models.RefreshFlows
+		if r.Refresh {
+			refreshFlags = models.RefreshAll
+		}
+
+		oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, r.OrgID, refreshFlags)
 		if err != nil {
 			return nil, 0, err
 		}
