@@ -34,6 +34,9 @@ type Scene struct {
 
 	preCommits  map[PreCommitHook][]any
 	postCommits map[PostCommitHook][]any
+
+	// can be overridden by tests
+	Engine func(*runtime.Runtime) flows.Engine
 }
 
 // NewScene creates a new scene for the passed in contact
@@ -44,6 +47,8 @@ func NewScene(dbContact *models.Contact, contact *flows.Contact) *Scene {
 
 		preCommits:  make(map[PreCommitHook][]any),
 		postCommits: make(map[PostCommitHook][]any),
+
+		Engine: goflow.Engine,
 	}
 }
 
@@ -86,7 +91,7 @@ func (s *Scene) AddEvent(ctx context.Context, rt *runtime.Runtime, oa *models.Or
 	return nil
 }
 
-func (s *Scene) AddSprint(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, ss flows.Session, sp flows.Sprint, resumed bool) error {
+func (s *Scene) addSprint(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, ss flows.Session, sp flows.Sprint, resumed bool) error {
 	s.Session = ss
 	s.Sprint = sp
 
@@ -112,12 +117,12 @@ func (s *Scene) AddSprint(ctx context.Context, rt *runtime.Runtime, oa *models.O
 
 // StartSession starts a new session.
 func (s *Scene) StartSession(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, trigger flows.Trigger) error {
-	session, sprint, err := goflow.Engine(rt).NewSession(ctx, oa.SessionAssets(), oa.Env(), s.Contact, trigger, s.Call)
+	session, sprint, err := s.Engine(rt).NewSession(ctx, oa.SessionAssets(), oa.Env(), s.Contact, trigger, s.Call)
 	if err != nil {
 		return fmt.Errorf("error starting contact %s in flow %s: %w", s.ContactUUID(), trigger.Flow().UUID, err)
 	}
 
-	if err := s.AddSprint(ctx, rt, oa, session, sprint, false); err != nil {
+	if err := s.addSprint(ctx, rt, oa, session, sprint, false); err != nil {
 		return fmt.Errorf("error adding events for session %s: %w", session.UUID(), err)
 	}
 
@@ -160,7 +165,7 @@ func (s *Scene) ResumeSession(ctx context.Context, rt *runtime.Runtime, oa *mode
 		return fmt.Errorf("error resuming flow: %w", err)
 	}
 
-	if err := s.AddSprint(ctx, rt, oa, fs, sprint, true); err != nil {
+	if err := s.addSprint(ctx, rt, oa, fs, sprint, true); err != nil {
 		return fmt.Errorf("error processing events for session %s: %w", session.UUID(), err)
 	}
 

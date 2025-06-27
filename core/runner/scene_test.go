@@ -4,15 +4,10 @@ import (
 	"testing"
 
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
-	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/goflow/flows/events"
-	"github.com/nyaruka/goflow/flows/resumes"
 	"github.com/nyaruka/goflow/flows/triggers"
 	"github.com/nyaruka/mailroom/core/models"
-	"github.com/nyaruka/mailroom/core/runner"
 	"github.com/nyaruka/mailroom/testsuite"
 	"github.com/nyaruka/mailroom/testsuite/testdb"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -27,25 +22,19 @@ func TestResumeSession(t *testing.T) {
 	flow, err := oa.FlowByID(testdb.Favorites.ID)
 	require.NoError(t, err)
 
-	mc, fc, _ := testdb.Cathy.Load(rt, oa)
 	trigger := triggers.NewBuilder(flow.Reference()).Manual().Build()
-	scene := runner.NewScene(mc, fc)
-	scene.Interrupt = true
-
-	err = scene.StartSession(ctx, rt, oa, trigger)
-	assert.NoError(t, err)
-	err = scene.Commit(ctx, rt, oa)
-	assert.NoError(t, err)
+	scenes := testsuite.StartSessions(t, rt, oa, []*testdb.Contact{testdb.Cathy}, trigger)
+	sessionUUID := scenes[0].SessionUUID()
 
 	assertdb.Query(t, rt.DB,
 		`SELECT count(*) FROM flows_flowsession WHERE contact_id = $1 AND current_flow_id = $2
-		 AND status = 'W' AND call_id IS NULL AND output IS NOT NULL`, mc.ID(), flow.ID()).Returns(1)
+		 AND status = 'W' AND call_id IS NULL AND output IS NOT NULL`, testdb.Cathy.ID, flow.ID()).Returns(1)
 
 	assertdb.Query(t, rt.DB,
 		`SELECT count(*) FROM flows_flowrun WHERE contact_id = $1 AND flow_id = $2
-		 AND status = 'W' AND responded = FALSE AND org_id = 1`, mc.ID(), flow.ID()).Returns(1)
+		 AND status = 'W' AND responded = FALSE AND org_id = 1`, testdb.Cathy.ID, flow.ID()).Returns(1)
 
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE contact_id = $1 AND direction = 'O' AND text like '%favorite color%'`, mc.ID()).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE contact_id = $1 AND direction = 'O' AND text like '%favorite color%'`, testdb.Cathy.ID).Returns(1)
 
 	tcs := []struct {
 		input               string
@@ -85,22 +74,8 @@ func TestResumeSession(t *testing.T) {
 		},
 	}
 
-	sessionUUID := scene.Session.UUID()
-
 	for i, tc := range tcs {
-		session, err := models.GetWaitingSessionForContact(ctx, rt, oa, fc, sessionUUID)
-		require.NoError(t, err, "%d: error getting waiting session", i)
-
-		// answer our first question
-		msg := flows.NewMsgIn(flows.NewMsgUUID(), testdb.Cathy.URN, nil, tc.input, nil, "")
-		resume := resumes.NewMsg(events.NewMsgReceived(msg))
-
-		scene := runner.NewScene(mc, fc)
-
-		err = scene.ResumeSession(ctx, rt, oa, session, resume)
-		assert.NoError(t, err)
-		err = scene.Commit(ctx, rt, oa)
-		assert.NoError(t, err)
+		testsuite.ResumeSession(t, rt, oa, testdb.Cathy, tc.input)
 
 		assertdb.Query(t, rt.DB, `SELECT status, current_flow_id, call_id FROM flows_flowsession WHERE uuid = $1 AND output IS NOT NULL AND output_url IS NULL`, sessionUUID).
 			Columns(map[string]any{
@@ -112,7 +87,7 @@ func TestResumeSession(t *testing.T) {
 				"status": string(tc.expectedRunStatus), "responded": true, "flow_id": int64(flow.ID()), "current_node_uuid": tc.expectedNodeUUID,
 			}, "%d: run mismatch", i)
 
-		assertdb.Query(t, rt.DB, `SELECT text FROM msgs_msg WHERE contact_id = $1 AND direction = 'O' ORDER BY id DESC LIMIT 1`, mc.ID()).
+		assertdb.Query(t, rt.DB, `SELECT text FROM msgs_msg WHERE contact_id = $1 AND direction = 'O' ORDER BY id DESC LIMIT 1`, testdb.Cathy.ID).
 			Columns(map[string]any{"text": string(tc.expectedMsgOut)}, "%d: msg out mismatch", i)
 	}
 }

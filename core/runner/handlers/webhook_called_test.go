@@ -1,17 +1,14 @@
 package handlers_test
 
 import (
-	"context"
 	"fmt"
 	"net/http"
-	"os"
 	"testing"
 	"time"
 
 	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/gocommon/httpx"
-	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/actions"
 	"github.com/nyaruka/goflow/flows/engine"
@@ -127,24 +124,33 @@ func TestUnhealthyWebhookCalls(t *testing.T) {
 
 	dates.SetNowFunc(dates.NewSequentialNow(time.Date(2021, 11, 17, 7, 0, 0, 0, time.UTC), time.Second))
 
-	flowDef, err := os.ReadFile("testdata/webhook_flow.json")
-	require.NoError(t, err)
-
-	testdb.InsertFlow(rt, testdb.Org1, flowDef)
+	testFlows := testdb.ImportFlows(rt, testdb.Org1, "testdata/webhook_flow.json")
+	flow := testFlows[0]
 
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshFlows)
 	require.NoError(t, err)
 
-	mc, cathy, _ := testdb.Cathy.Load(rt, oa)
+	mc, fc, _ := testdb.Cathy.Load(rt, oa)
 
 	// webhook service with a 2 second delay
 	svc := &failingWebhookService{delay: 2 * time.Second}
-
 	eng := engine.NewBuilder().WithWebhookServiceFactory(func(flows.SessionAssets) (flows.WebhookService, error) { return svc, nil }).Build()
-	flowRef := assets.NewFlowReference("bc5d6b7b-3e18-4d7c-8279-50b460e74f7f", "Test")
 
-	runFlowAndApplyEvents(t, ctx, rt, eng, oa, flowRef, mc, cathy)
-	runFlowAndApplyEvents(t, ctx, rt, eng, oa, flowRef, mc, cathy)
+	runFlow := func() {
+		scene := runner.NewScene(mc, fc)
+		scene.Interrupt = true
+		scene.Engine = func(r *runtime.Runtime) flows.Engine { return eng }
+
+		err = scene.StartSession(ctx, rt, oa, triggers.NewBuilder(flow.Reference()).Manual().Build())
+		require.NoError(t, err)
+		err = scene.Commit(ctx, rt, oa)
+		require.NoError(t, err)
+	}
+
+	// start the flow twice
+	for range 2 {
+		runFlow()
+	}
 
 	healthySeries := vkutil.NewIntervalSeries("webhooks:healthy", time.Minute*5, 4)
 	unhealthySeries := vkutil.NewIntervalSeries("webhooks:unhealthy", time.Minute*5, 4)
@@ -159,8 +165,9 @@ func TestUnhealthyWebhookCalls(t *testing.T) {
 
 	// change webhook service delay to 30 seconds and re-run flow 9 times
 	svc.delay = 30 * time.Second
-	for i := 0; i < 9; i++ {
-		runFlowAndApplyEvents(t, ctx, rt, eng, oa, flowRef, mc, cathy)
+
+	for range 9 {
+		runFlow()
 	}
 
 	// still no incident tho..
@@ -172,7 +179,7 @@ func TestUnhealthyWebhookCalls(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM notifications_incident WHERE incident_type = 'webhooks:unhealthy'`).Returns(0)
 
 	// however 1 more bad call means this node is considered unhealthy
-	runFlowAndApplyEvents(t, ctx, rt, eng, oa, flowRef, mc, cathy)
+	runFlow()
 
 	total, _ = healthySeries.Total(ctx, rc, "1bff8fe4-0714-433e-96a3-437405bf21cf")
 	assert.Equal(t, int64(2), total)
@@ -189,23 +196,8 @@ func TestUnhealthyWebhookCalls(t *testing.T) {
 	assertvk.SMembers(t, rc, fmt.Sprintf("incident:%d:nodes", incidentID), []string{"1bff8fe4-0714-433e-96a3-437405bf21cf"})
 
 	// another bad call won't create another incident..
-	runFlowAndApplyEvents(t, ctx, rt, eng, oa, flowRef, mc, cathy)
+	runFlow()
 
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM notifications_incident WHERE incident_type = 'webhooks:unhealthy'`).Returns(1)
 	assertvk.SMembers(t, rc, fmt.Sprintf("incident:%d:nodes", incidentID), []string{"1bff8fe4-0714-433e-96a3-437405bf21cf"})
-}
-
-// start the given contact in the given flow using a specific engine instance
-func runFlowAndApplyEvents(t *testing.T, ctx context.Context, rt *runtime.Runtime, eng flows.Engine, oa *models.OrgAssets, flowRef *assets.FlowReference, mc *models.Contact, fc *flows.Contact) {
-	trigger := triggers.NewBuilder(flowRef).Manual().Build()
-
-	fs, sprint, err := eng.NewSession(ctx, oa.SessionAssets(), oa.Env(), fc, trigger, nil)
-	require.NoError(t, err)
-
-	scene := runner.NewScene(mc, fs.Contact())
-	err = scene.AddSprint(ctx, rt, oa, fs, sprint, false)
-	require.NoError(t, err)
-
-	err = scene.Commit(ctx, rt, oa)
-	require.NoError(t, err)
 }
