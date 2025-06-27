@@ -128,61 +128,14 @@ func StartSessions(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsset
 
 		sessions[i] = session
 		sprints[i] = sprint
-		scene.AddSprint(session, sprint, false)
 
-		if err := scene.ProcessEvents(ctx, rt, oa); err != nil {
-			return fmt.Errorf("error processing events for session %s: %w", session.UUID(), err)
+		if err := scene.AddSprint(ctx, rt, oa, session, sprint, false); err != nil {
+			return fmt.Errorf("error adding events for session %s: %w", session.UUID(), err)
 		}
 	}
 
-	// we write our sessions and all their objects in a single transaction
-	txCTX, cancel := context.WithTimeout(ctx, commitTimeout*time.Duration(len(sessions)))
-	defer cancel()
-
-	tx, err := rt.DB.BeginTxx(txCTX, nil)
-	if err != nil {
-		return fmt.Errorf("error starting transaction: %w", err)
-	}
-
-	// gather all our pre commit events, group them by hook
-	if err := ExecutePreCommitHooks(ctx, rt, tx, oa, scenes); err != nil {
-		tx.Rollback()
-		return fmt.Errorf("error applying scene pre commit hooks: %w", err)
-	}
-
-	if err := tx.Commit(); err != nil {
-		// retry committing our scenes one at a time
-		slog.Debug("failed committing scenes in bulk, retrying one at a time", "error", err)
-
-		tx.Rollback()
-
-		// we failed committing the scenes in one go, try one at a time
-		for _, scene := range scenes {
-			txCTX, cancel := context.WithTimeout(ctx, commitTimeout)
-			defer cancel()
-
-			tx, err := rt.DB.BeginTxx(txCTX, nil)
-			if err != nil {
-				return fmt.Errorf("error starting transaction for retry: %w", err)
-			}
-
-			// gather all our pre commit events, group them by hook
-			if err := ExecutePreCommitHooks(ctx, rt, tx, oa, []*Scene{scene}); err != nil {
-				return fmt.Errorf("error applying scene pre commit hooks: %w", err)
-			}
-
-			if err := tx.Commit(); err != nil {
-				tx.Rollback()
-				slog.Error("error committing scene", "error", err, "contact", scene.ContactUUID())
-				continue
-			}
-		}
-	} else {
-		slog.Debug("scenes committed", "count", len(sessions))
-	}
-
-	if err := ExecutePostCommitHooks(ctx, rt, oa, scenes); err != nil {
-		return fmt.Errorf("error processing post commit hooks: %w", err)
+	if err := BulkCommit(ctx, rt, oa, scenes); err != nil {
+		return fmt.Errorf("error committing scenes for started sessions: %w", err)
 	}
 
 	slog.Debug("started sessions", "count", len(sessions), "elapsed", time.Since(start))

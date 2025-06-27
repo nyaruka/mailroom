@@ -44,11 +44,11 @@ func TestInsertFlowStats(t *testing.T) {
 	tx := rt.DB.MustBeginTx(ctx, nil)
 
 	scene1 := runner.NewScene(nil, session1.Contact(), models.NilUserID)
-	scene1.AddSprint(session1, session1Sprint1, false)
+	scene1.AddSprint(ctx, rt, oa, session1, session1Sprint1, false)
 	scene2 := runner.NewScene(nil, session2.Contact(), models.NilUserID)
-	scene2.AddSprint(session2, session2Sprint1, false)
+	scene2.AddSprint(ctx, rt, oa, session2, session2Sprint1, false)
 	scene3 := runner.NewScene(nil, session3.Contact(), models.NilUserID)
-	scene3.AddSprint(session3, session3Sprint1, false)
+	scene3.AddSprint(ctx, rt, oa, session3, session3Sprint1, false)
 
 	err = hooks.InsertFlowStats.Execute(ctx, rt, tx, oa, map[*runner.Scene][]any{scene1: nil, scene2: nil, scene3: nil})
 	require.NoError(t, err)
@@ -84,11 +84,11 @@ func TestInsertFlowStats(t *testing.T) {
 	require.NoError(t, err)
 
 	scene4 := runner.NewScene(nil, session1.Contact(), models.NilUserID)
-	scene4.AddSprint(session1, session1Sprint2, false)
+	scene4.AddSprint(ctx, rt, oa, session1, session1Sprint2, false)
 	scene5 := runner.NewScene(nil, session2.Contact(), models.NilUserID)
-	scene5.AddSprint(session2, session2Sprint2, false)
+	scene5.AddSprint(ctx, rt, oa, session2, session2Sprint2, false)
 	scene6 := runner.NewScene(nil, session3.Contact(), models.NilUserID)
-	scene6.AddSprint(session3, session3Sprint2, false)
+	scene6.AddSprint(ctx, rt, oa, session3, session3Sprint2, false)
 
 	tx = rt.DB.MustBeginTx(ctx, nil)
 
@@ -111,7 +111,7 @@ func TestInsertFlowStats(t *testing.T) {
 	require.NoError(t, err)
 
 	scene7 := runner.NewScene(nil, session3.Contact(), models.NilUserID)
-	scene7.AddSprint(session3, session3Sprint3, false)
+	scene7.AddSprint(ctx, rt, oa, session3, session3Sprint3, false)
 
 	tx = rt.DB.MustBeginTx(ctx, nil)
 
@@ -160,7 +160,7 @@ func TestInsertFlowStats(t *testing.T) {
 	require.NoError(t, err)
 
 	scene8 := runner.NewScene(nil, session3.Contact(), models.NilUserID)
-	scene8.AddSprint(session3, session3Sprint4, false)
+	scene8.AddSprint(ctx, rt, oa, session3, session3Sprint4, false)
 
 	tx = rt.DB.MustBeginTx(ctx, nil)
 

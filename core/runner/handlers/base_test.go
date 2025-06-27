@@ -178,7 +178,8 @@ func RunTestCases(t *testing.T, ctx context.Context, rt *runtime.Runtime, tcs []
 				scenes[i].Interrupt = true
 				if msg := msgsByContactID[c.ID]; msg != nil {
 					scenes[i].IncomingMsg = &models.MsgInRef{ID: msg.ID}
-					scenes[i].AddEvents([]flows.Event{events.NewMsgReceived(msg.FlowMsg)})
+					err := scenes[i].AddEvent(ctx, rt, oa, events.NewMsgReceived(msg.FlowMsg))
+					require.NoError(t, err)
 				}
 
 				msg := msgsByContactID[c.ID]

@@ -44,36 +44,3 @@ func newSprintEndedEvent(c *models.Contact, resumed bool) *SprintEndedEvent {
 		Resumed:   resumed,
 	}
 }
-
-// ProcessEvents allows processing of events generated outside of a flow
-func ProcessEvents(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, userID models.UserID, scenes []*Scene) error {
-	// begin the transaction for pre-commit hooks
-	tx, err := rt.DB.BeginTxx(ctx, nil)
-	if err != nil {
-		return fmt.Errorf("error beginning transaction: %w", err)
-	}
-
-	// handle the events to create the hooks on each scene
-	for _, scene := range scenes {
-		if err := scene.ProcessEvents(ctx, rt, oa); err != nil {
-			return fmt.Errorf("error applying events: %w", err)
-		}
-	}
-
-	// gather all our pre commit events, group them by hook and apply them
-	if err := ExecutePreCommitHooks(ctx, rt, tx, oa, scenes); err != nil {
-		return fmt.Errorf("error applying pre commit hooks: %w", err)
-	}
-
-	// commit the transaction
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("error committing pre commit hooks: %w", err)
-	}
-
-	// now take care of any post-commit hooks
-	if err := ExecutePostCommitHooks(ctx, rt, oa, scenes); err != nil {
-		return fmt.Errorf("error processing post commit hooks: %w", err)
-	}
-
-	return nil
-}

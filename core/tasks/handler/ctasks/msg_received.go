@@ -147,11 +147,13 @@ func (t *MsgReceivedTask) perform(ctx context.Context, rt *runtime.Runtime, oa *
 		Ticket:      ticket,
 		LogUUIDs:    logUUIDs,
 	}
-	scene.AddEvents([]flows.Event{msgEvent})
+	if err := scene.AddEvent(ctx, rt, oa, msgEvent); err != nil {
+		return "", fmt.Errorf("error adding message event to scene: %w", err)
+	}
 
 	// if contact is blocked, or channel no longer exists or is disabled, handle non-flow
 	if mc.Status() == models.ContactStatusBlocked || channel == nil {
-		if err := t.handleNonFlow(ctx, rt, oa, scene); err != nil {
+		if err := scene.Commit(ctx, rt, oa); err != nil {
 			return "", fmt.Errorf("error handling message for blocked contact or missing channel: %w", err)
 		}
 		return msgOutcomeNonFlow, nil
@@ -214,7 +216,7 @@ func (t *MsgReceivedTask) perform(ctx context.Context, rt *runtime.Runtime, oa *
 					return "", fmt.Errorf("error starting voice flow for contact: %w", err)
 				}
 
-				return msgOutcomeNonFlow, t.handleNonFlow(ctx, rt, oa, scene)
+				return msgOutcomeNonFlow, scene.Commit(ctx, rt, oa)
 			}
 
 			scene.Interrupt = flow.FlowType().Interrupts()
@@ -237,18 +239,8 @@ func (t *MsgReceivedTask) perform(ctx context.Context, rt *runtime.Runtime, oa *
 	}
 
 	// this message didn't trigger and new sessions or resume any existing ones, so handle as inbox
-	if err := t.handleNonFlow(ctx, rt, oa, scene); err != nil {
+	if err := scene.Commit(ctx, rt, oa); err != nil {
 		return "", fmt.Errorf("error handling non-flow message: %w", err)
 	}
 	return msgOutcomeNonFlow, nil
-}
-
-// handles a message outside of a flow session
-func (t *MsgReceivedTask) handleNonFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scene *runner.Scene) error {
-	err := runner.ProcessEvents(ctx, rt, oa, models.NilUserID, []*runner.Scene{scene})
-	if err != nil {
-		return fmt.Errorf("error handling non-flow message events: %w", err)
-	}
-
-	return nil
 }

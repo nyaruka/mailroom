@@ -28,7 +28,7 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 
 	defer dates.SetNowFunc(time.Now)
 	defer random.SetGenerator(random.DefaultGenerator)
-	defer testsuite.Reset(testsuite.ResetData)
+	defer testsuite.Reset(testsuite.ResetData | testsuite.ResetValkey)
 
 	testFlows := testdb.ImportFlows(rt, testdb.Org1, "testdata/session_test_flows.json")
 	flow := testFlows[0]
