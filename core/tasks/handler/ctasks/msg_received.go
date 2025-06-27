@@ -230,12 +230,11 @@ func (t *MsgReceivedTask) perform(ctx context.Context, rt *runtime.Runtime, oa *
 
 	// if there is a session, resume it
 	if session != nil && flow != nil {
-		resume := resumes.NewMsg(msgEvent)
-
-		if err := runner.ResumeSession(ctx, rt, oa, session, scene, resume); err != nil {
+		if err := scene.ResumeSession(ctx, rt, oa, session, resumes.NewMsg(msgEvent)); err != nil {
 			return "", fmt.Errorf("error resuming flow for contact: %w", err)
 		}
-		return msgOutcomeResume, nil
+
+		return msgOutcomeResume, scene.Commit(ctx, rt, oa)
 	}
 
 	// this message didn't trigger and new sessions or resume any existing ones, so handle as inbox

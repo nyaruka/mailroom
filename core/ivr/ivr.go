@@ -372,8 +372,12 @@ func ResumeCall(
 	scene.DBCall = call
 	scene.Call = flows.NewCall(call.UUID(), oa.SessionAssets().Channels().Get(channel.UUID()), urn.Identity())
 
-	if err := runner.ResumeSession(ctx, rt, oa, session, scene, resume); err != nil {
+	if err := scene.ResumeSession(ctx, rt, oa, session, resume); err != nil {
 		return fmt.Errorf("error resuming ivr flow: %w", err)
+	}
+
+	if err := scene.Commit(ctx, rt, oa); err != nil {
+		return fmt.Errorf("error committing scene: %w", err)
 	}
 
 	// if still active, write out our response

@@ -16,7 +16,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestResume(t *testing.T) {
+func TestResumeSession(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
 
 	defer testsuite.Reset(testsuite.ResetData | testsuite.ResetStorage)
@@ -95,7 +95,9 @@ func TestResume(t *testing.T) {
 
 		scene := runner.NewScene(mc, fc)
 
-		err = runner.ResumeSession(ctx, rt, oa, session, scene, resume)
+		err = scene.ResumeSession(ctx, rt, oa, session, resume)
+		assert.NoError(t, err)
+		err = scene.Commit(ctx, rt, oa)
 		assert.NoError(t, err)
 
 		assertdb.Query(t, rt.DB, `SELECT status, current_flow_id, call_id FROM flows_flowsession WHERE uuid = $1 AND output IS NOT NULL AND output_url IS NULL`, sessionUUID).
