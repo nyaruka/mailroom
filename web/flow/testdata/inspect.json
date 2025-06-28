@@ -342,7 +342,7 @@
                 "revision": 1,
                 "expire_after_minutes": 720
             },
-            "refresh": true
+            "is_import": true
         },
         "status": 200,
         "response": {
