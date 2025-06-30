@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/goflow/utils"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/msgio"
@@ -58,8 +59,9 @@ func handleSend(ctx context.Context, rt *runtime.Runtime, r *sendRequest) (any, 
 	content := &flows.MsgContent{Text: r.Text, Attachments: r.Attachments, QuickReplies: r.QuickReplies}
 
 	out, ch := models.CreateMsgOut(rt, oa, contact, content, models.NilTemplateID, nil, contact.Locale(oa.Env()), nil)
+	event := events.NewMsgCreated(out)
 
-	msg, err := models.NewOutgoingChatMsg(rt, oa.Org(), ch, contact, out, r.TicketID, r.UserID)
+	msg, err := models.NewOutgoingChatMsg(rt, oa.Org(), ch, contact, event, r.TicketID, r.UserID)
 	if err != nil {
 		return nil, 0, fmt.Errorf("error creating outgoing message: %w", err)
 	}

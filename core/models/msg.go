@@ -22,6 +22,7 @@ import (
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/excellent/types"
 	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/goflow/utils"
 	"github.com/nyaruka/mailroom/core/goflow"
 	"github.com/nyaruka/mailroom/runtime"
@@ -276,11 +277,11 @@ func NewIncomingAndroid(orgID OrgID, channelID ChannelID, contactID ContactID, u
 }
 
 // NewIncomingIVR creates a new incoming IVR message for the passed in text and attachment
-func NewIncomingIVR(cfg *runtime.Config, orgID OrgID, call *Call, in *flows.MsgIn, createdOn time.Time) *Msg {
+func NewIncomingIVR(cfg *runtime.Config, orgID OrgID, call *Call, event *events.MsgReceived) *Msg {
 	msg := &Msg{}
 	m := &msg.m
-	m.UUID = in.UUID()
-	m.Text = in.Text()
+	m.UUID = event.Msg.UUID()
+	m.Text = event.Msg.Text()
 	m.Direction = DirectionIn
 	m.Status = MsgStatusHandled
 	m.Visibility = VisibilityVisible
@@ -289,10 +290,10 @@ func NewIncomingIVR(cfg *runtime.Config, orgID OrgID, call *Call, in *flows.MsgI
 	m.ContactURNID = call.ContactURNID()
 	m.ChannelID = call.ChannelID()
 	m.OrgID = orgID
-	m.CreatedOn = createdOn
+	m.CreatedOn = event.CreatedOn()
 
 	// add any attachments
-	for _, a := range in.Attachments() {
+	for _, a := range event.Msg.Attachments() {
 		m.Attachments = append(m.Attachments, string(NormalizeAttachment(cfg, a)))
 	}
 
@@ -300,10 +301,12 @@ func NewIncomingIVR(cfg *runtime.Config, orgID OrgID, call *Call, in *flows.MsgI
 }
 
 // NewOutgoingIVR creates a new IVR message for the passed in text with the optional attachment
-func NewOutgoingIVR(cfg *runtime.Config, orgID OrgID, call *Call, out *flows.MsgOut, createdOn time.Time) *Msg {
+func NewOutgoingIVR(cfg *runtime.Config, orgID OrgID, call *Call, event *events.IVRCreated) *Msg {
+	out := event.Msg
+	createdOn := event.CreatedOn()
+
 	msg := &Msg{}
 	m := &msg.m
-
 	m.UUID = out.UUID()
 	m.OrgID = orgID
 	m.Text = out.Text()
@@ -328,7 +331,7 @@ func NewOutgoingIVR(cfg *runtime.Config, orgID OrgID, call *Call, out *flows.Msg
 }
 
 // NewOutgoingOptInMsg creates an outgoing optin message
-func NewOutgoingOptInMsg(rt *runtime.Runtime, orgID OrgID, contact *flows.Contact, flow *Flow, optIn *OptIn, channel *Channel, urn urns.URN, replyTo *MsgInRef, createdOn time.Time) *MsgOut {
+func NewOutgoingOptInMsg(rt *runtime.Runtime, orgID OrgID, contact *flows.Contact, flow *Flow, optIn *OptIn, channel *Channel, event *events.OptInRequested, replyTo *MsgInRef) *MsgOut {
 	msg := &Msg{}
 	m := &msg.m
 	m.UUID = flows.NewMsgUUID()
@@ -340,10 +343,10 @@ func NewOutgoingOptInMsg(rt *runtime.Runtime, orgID OrgID, contact *flows.Contac
 	m.Visibility = VisibilityVisible
 	m.MsgType = MsgTypeOptIn
 	m.MsgCount = 1
-	m.CreatedOn = createdOn
+	m.CreatedOn = event.CreatedOn()
 
 	msg.SetChannel(channel)
-	msg.SetURN(urn)
+	msg.SetURN(event.URN)
 
 	if flow != nil {
 		m.FlowID = flow.ID()
@@ -356,23 +359,25 @@ func NewOutgoingOptInMsg(rt *runtime.Runtime, orgID OrgID, contact *flows.Contac
 }
 
 // NewOutgoingFlowMsg creates an outgoing message for the passed in flow message
-func NewOutgoingFlowMsg(rt *runtime.Runtime, org *Org, channel *Channel, contact *flows.Contact, flow *Flow, out *flows.MsgOut, replyTo *MsgInRef, createdOn time.Time) (*MsgOut, error) {
+func NewOutgoingFlowMsg(rt *runtime.Runtime, org *Org, channel *Channel, contact *flows.Contact, flow *Flow, event *events.MsgCreated, replyTo *MsgInRef) (*MsgOut, error) {
 	highPriority := replyTo != nil
 
-	return newMsgOut(rt, org, channel, contact, out, flow, NilBroadcastID, NilTicketID, NilOptInID, NilUserID, replyTo, highPriority, createdOn)
+	return newMsgOut(rt, org, channel, contact, event, flow, NilBroadcastID, NilTicketID, NilOptInID, NilUserID, replyTo, highPriority)
 }
 
 // NewOutgoingBroadcastMsg creates an outgoing message which is part of a broadcast
-func NewOutgoingBroadcastMsg(rt *runtime.Runtime, org *Org, channel *Channel, contact *flows.Contact, out *flows.MsgOut, b *Broadcast) (*MsgOut, error) {
-	return newMsgOut(rt, org, channel, contact, out, nil, b.ID, NilTicketID, b.OptInID, b.CreatedByID, nil, false, dates.Now())
+func NewOutgoingBroadcastMsg(rt *runtime.Runtime, org *Org, channel *Channel, contact *flows.Contact, event *events.MsgCreated, b *Broadcast) (*MsgOut, error) {
+	return newMsgOut(rt, org, channel, contact, event, nil, b.ID, NilTicketID, b.OptInID, b.CreatedByID, nil, false)
 }
 
 // NewOutgoingChatMsg creates an outgoing message from chat
-func NewOutgoingChatMsg(rt *runtime.Runtime, org *Org, channel *Channel, contact *flows.Contact, out *flows.MsgOut, ticketID TicketID, userID UserID) (*MsgOut, error) {
-	return newMsgOut(rt, org, channel, contact, out, nil, NilBroadcastID, NilTicketID, NilOptInID, userID, nil, true, dates.Now())
+func NewOutgoingChatMsg(rt *runtime.Runtime, org *Org, channel *Channel, contact *flows.Contact, event *events.MsgCreated, ticketID TicketID, userID UserID) (*MsgOut, error) {
+	return newMsgOut(rt, org, channel, contact, event, nil, NilBroadcastID, NilTicketID, NilOptInID, userID, nil, true)
 }
 
-func newMsgOut(rt *runtime.Runtime, org *Org, channel *Channel, contact *flows.Contact, out *flows.MsgOut, flow *Flow, broadcastID BroadcastID, ticketID TicketID, optInID OptInID, userID UserID, replyTo *MsgInRef, highPriority bool, createdOn time.Time) (*MsgOut, error) {
+func newMsgOut(rt *runtime.Runtime, org *Org, channel *Channel, contact *flows.Contact, event *events.MsgCreated, flow *Flow, broadcastID BroadcastID, ticketID TicketID, optInID OptInID, userID UserID, replyTo *MsgInRef, highPriority bool) (*MsgOut, error) {
+	out := event.Msg
+
 	msg := &Msg{}
 	m := &msg.m
 	m.UUID = out.UUID()
@@ -390,7 +395,7 @@ func newMsgOut(rt *runtime.Runtime, org *Org, channel *Channel, contact *flows.C
 	m.MsgType = MsgTypeText
 	m.MsgCount = 1
 	m.CreatedByID = userID
-	m.CreatedOn = createdOn
+	m.CreatedOn = event.CreatedOn()
 
 	msg.SetChannel(channel)
 	msg.SetURN(out.URN())

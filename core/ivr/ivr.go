@@ -351,7 +351,7 @@ func ResumeCall(
 	var svcErr error
 	switch res := ivrResume.(type) {
 	case InputResume:
-		msg, resume, svcErr, err = buildMsgResume(ctx, rt, svc, channel, contact, urn, call, oa, res)
+		msg, resume, svcErr, err = buildMsgResume(ctx, rt, oa, svc, channel, urn, call, res)
 
 	case DialResume:
 		resume, svcErr, err = buildDialResume(res)

@@ -11,6 +11,7 @@ import (
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/goflow/flows/triggers"
 	"github.com/nyaruka/goflow/test"
 	"github.com/nyaruka/goflow/utils"
@@ -49,7 +50,7 @@ func TestNewCourierMsg(t *testing.T) {
 	scenes := testsuite.StartSessions(t, rt, oa, []*testdb.Contact{testdb.Cathy}, triggers.NewBuilder(testdb.Favorites.Reference()).Manual().Build())
 	session, sprint := scenes[0].Session, scenes[0].Sprint
 
-	flowMsg1 := flows.NewMsgOut(
+	msgEvent1 := events.NewMsgCreated(flows.NewMsgOut(
 		cathyURN,
 		assets.NewChannelReference(testdb.FacebookChannel.UUID, "Facebook"),
 		&flows.MsgContent{
@@ -64,9 +65,9 @@ func TestNewCourierMsg(t *testing.T) {
 		),
 		`eng-US`,
 		flows.NilUnsendableReason,
-	)
+	))
 
-	msg1, err := models.NewOutgoingFlowMsg(rt, oa.Org(), facebook, fCathy, flow, flowMsg1, nil, time.Date(2021, 11, 9, 14, 3, 30, 0, time.UTC))
+	msg1, err := models.NewOutgoingFlowMsg(rt, oa.Org(), facebook, fCathy, flow, msgEvent1, nil)
 	require.NoError(t, err)
 
 	// insert to db so that it gets an id and time field values
@@ -84,7 +85,7 @@ func TestNewCourierMsg(t *testing.T) {
 		"channel_uuid": "0f661e8b-ea9d-4bd3-9953-d368340acf91",
 		"contact_id": 10000,
 		"contact_urn_id": 10000,
-		"created_on": "2021-11-09T14:03:30Z",
+		"created_on": %s,
 		"flow": {"uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85", "name": "Favorites"},
 		"high_priority": false,
 		"id": 2,
@@ -109,20 +110,20 @@ func TestNewCourierMsg(t *testing.T) {
 		"tps_cost": 2,
 		"urn": "tel:+16055741111",
 		"uuid": "%s"
-	}`, session.UUID(), sprint.UUID(), msg1.UUID()))
+	}`, string(jsonx.MustMarshal(msgEvent1.CreatedOn())), session.UUID(), sprint.UUID(), msg1.UUID()))
 
 	// create a priority flow message.. i.e. the session is responding to an incoming message
 	fCathy.SetLastSeenOn(time.Date(2023, 4, 20, 10, 15, 0, 0, time.UTC))
-	flowMsg2 := flows.NewMsgOut(
+	msgEvent2 := events.NewMsgCreated(flows.NewMsgOut(
 		cathyURN,
 		assets.NewChannelReference(testdb.TwilioChannel.UUID, "Test Channel"),
 		&flows.MsgContent{Text: "Hi there"},
 		nil,
 		i18n.NilLocale,
 		flows.NilUnsendableReason,
-	)
+	))
 	in1 := testdb.InsertIncomingMsg(rt, testdb.Org1, testdb.TwilioChannel, testdb.Cathy, "test", models.MsgStatusHandled)
-	msg2, err := models.NewOutgoingFlowMsg(rt, oa.Org(), twilio, fCathy, flow, flowMsg2, &models.MsgInRef{ID: in1.ID, ExtID: "EX123"}, time.Date(2021, 11, 9, 14, 3, 30, 0, time.UTC))
+	msg2, err := models.NewOutgoingFlowMsg(rt, oa.Org(), twilio, fCathy, flow, msgEvent2, &models.MsgInRef{ID: in1.ID, ExtID: "EX123"})
 	require.NoError(t, err)
 
 	err = models.InsertMessages(ctx, rt.DB, []*models.Msg{msg2.Msg})
@@ -137,7 +138,7 @@ func TestNewCourierMsg(t *testing.T) {
 		"contact_id": 10000,
 		"contact_last_seen_on": "2023-04-20T10:15:00Z",
 		"contact_urn_id": 10000,
-		"created_on": "2021-11-09T14:03:30Z",
+		"created_on": %s,
 		"flow": {"uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85", "name": "Favorites"},
 		"response_to_external_id": "EX123",
 		"high_priority": true,
@@ -153,12 +154,14 @@ func TestNewCourierMsg(t *testing.T) {
 		"tps_cost": 1,
 		"urn": "tel:+16055741111",
 		"uuid": "%s"
-	}`, session.UUID(), sprint.UUID(), msg2.UUID()))
+	}`, string(jsonx.MustMarshal(msgEvent2.CreatedOn())), session.UUID(), sprint.UUID(), msg2.UUID()))
 
 	// try a broadcast message which won't have session and flow fields set and won't be high priority
 	bcastID := testdb.InsertBroadcast(rt, testdb.Org1, `eng`, map[i18n.Language]string{`eng`: "Blast"}, nil, models.NilScheduleID, []*testdb.Contact{testFred}, nil)
-	bcastMsg1 := flows.NewMsgOut(fredURN, assets.NewChannelReference(testdb.TwilioChannel.UUID, "Test Channel"), &flows.MsgContent{Text: "Blast"}, nil, i18n.NilLocale, flows.NilUnsendableReason)
-	msg3, err := models.NewOutgoingBroadcastMsg(rt, oa.Org(), twilio, fred, bcastMsg1, &models.Broadcast{ID: bcastID, OptInID: optInID, CreatedByID: testdb.Admin.ID})
+	msgEvent3 := events.NewMsgCreated(
+		flows.NewMsgOut(fredURN, assets.NewChannelReference(testdb.TwilioChannel.UUID, "Test Channel"), &flows.MsgContent{Text: "Blast"}, nil, i18n.NilLocale, flows.NilUnsendableReason),
+	)
+	msg3, err := models.NewOutgoingBroadcastMsg(rt, oa.Org(), twilio, fred, msgEvent3, &models.Broadcast{ID: bcastID, OptInID: optInID, CreatedByID: testdb.Admin.ID})
 	require.NoError(t, err)
 
 	err = models.InsertMessages(ctx, rt.DB, []*models.Msg{msg3.Msg})
@@ -170,7 +173,7 @@ func TestNewCourierMsg(t *testing.T) {
 		"channel_uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8",
 		"contact_id": 30000,
 		"contact_urn_id": 30000,
-		"created_on": "%s",
+		"created_on": %s,
 		"high_priority": false,
 		"id": 5,
 		"org_id": 1,
@@ -181,9 +184,10 @@ func TestNewCourierMsg(t *testing.T) {
 		"urn_auth": "sesame",
 		"user_id": %d,
 		"uuid": "%s"
-	}`, msg3.CreatedOn().Format(time.RFC3339Nano), testdb.Admin.ID, msg3.UUID()))
+	}`, string(jsonx.MustMarshal(msgEvent3.CreatedOn())), testdb.Admin.ID, msg3.UUID()))
 
-	msg4 := models.NewOutgoingOptInMsg(rt, testdb.Org1.ID, fCathy, flow, optIn, twilio, "tel:+16055741111?id=10000", &models.MsgInRef{ID: in1.ID, ExtID: "EX123"}, time.Date(2021, 11, 9, 14, 3, 30, 0, time.UTC))
+	optInEvent := events.NewOptInRequested(session.Assets().OptIns().Get(optIn.UUID()), twilio.Reference(), "tel:+16055741111?id=10000")
+	msg4 := models.NewOutgoingOptInMsg(rt, testdb.Org1.ID, fCathy, flow, optIn, twilio, optInEvent, &models.MsgInRef{ID: in1.ID, ExtID: "EX123"})
 	err = models.InsertMessages(ctx, rt.DB, []*models.Msg{msg4.Msg})
 	require.NoError(t, err)
 
@@ -196,7 +200,7 @@ func TestNewCourierMsg(t *testing.T) {
 		"contact_id": 10000,
 		"contact_last_seen_on": "2023-04-20T10:15:00Z",
 		"contact_urn_id": 10000,
-		"created_on": "2021-11-09T14:03:30Z",
+		"created_on": %s,
 		"flow": {"uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85", "name": "Favorites"},
 		"high_priority": true,
 		"id": 6,
@@ -216,7 +220,7 @@ func TestNewCourierMsg(t *testing.T) {
 		"tps_cost": 1,
 		"urn": "tel:+16055741111",
 		"uuid": "%s"
-	}`, optIn.ID(), session.UUID(), sprint.UUID(), msg4.UUID()))
+	}`, string(jsonx.MustMarshal(optInEvent.CreatedOn())), optIn.ID(), session.UUID(), sprint.UUID(), msg4.UUID()))
 }
 
 func createAndAssertCourierMsg(t *testing.T, oa *models.OrgAssets, msg *models.MsgOut, expectedJSON string) {
