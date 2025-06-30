@@ -11,7 +11,6 @@ import (
 	"github.com/nyaruka/mailroom/core/runner"
 	"github.com/nyaruka/mailroom/core/runner/hooks"
 	"github.com/nyaruka/mailroom/runtime"
-	"github.com/shopspring/decimal"
 )
 
 func init() {
@@ -24,23 +23,7 @@ func handleAirtimeTransferred(ctx context.Context, rt *runtime.Runtime, oa *mode
 
 	slog.Debug("airtime transferred", "contact", scene.ContactUUID(), "session", scene.SessionUUID(), "sender", event.Sender, "recipient", event.Recipient, "currency", event.Currency, "amount", event.Amount.String())
 
-	status := models.AirtimeTransferStatusSuccess
-	if event.Amount == decimal.Zero {
-		status = models.AirtimeTransferStatusFailed
-	}
-
-	transfer := models.NewAirtimeTransfer(
-		event.TransferUUID,
-		oa.OrgID(),
-		status,
-		event.ExternalID,
-		scene.ContactID(),
-		event.Sender,
-		event.Recipient,
-		event.Currency,
-		event.Amount,
-		event.CreatedOn(),
-	)
+	transfer := models.NewAirtimeTransfer(oa.OrgID(), scene.ContactID(), event)
 
 	// add a log for each HTTP call
 	for _, httpLog := range event.HTTPLogs {

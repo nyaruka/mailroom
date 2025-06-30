@@ -362,8 +362,9 @@ func (b *Broadcast) createMessage(rt *runtime.Runtime, oa *OrgAssets, c *Contact
 
 	// create our outgoing message
 	out, ch := CreateMsgOut(rt, oa, contact, content, b.TemplateID, b.TemplateVariables, locale, expressionsContext)
+	event := events.NewMsgCreated(out)
 
-	msg, err := NewOutgoingBroadcastMsg(rt, oa.Org(), ch, contact, out, b)
+	msg, err := NewOutgoingBroadcastMsg(rt, oa.Org(), ch, contact, event, b)
 	if err != nil {
 		return nil, fmt.Errorf("error creating outgoing message: %w", err)
 	}

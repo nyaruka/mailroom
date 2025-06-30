@@ -8,7 +8,6 @@ import (
 	"path"
 	"time"
 
-	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/events"
@@ -57,10 +56,7 @@ func buildDialResume(resume DialResume) (flows.Resume, error, error) {
 	return resumes.NewDial(events.NewDialEnded(flows.NewDial(resume.Status, resume.Duration))), nil, nil
 }
 
-func buildMsgResume(
-	ctx context.Context, rt *runtime.Runtime,
-	svc Service, channel *models.Channel, contact *flows.Contact, urn urns.URN,
-	call *models.Call, oa *models.OrgAssets, resume InputResume) (*models.MsgInRef, flows.Resume, error, error) {
+func buildMsgResume(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, svc Service, channel *models.Channel, urn urns.URN, call *models.Call, resume InputResume) (*models.MsgInRef, flows.Resume, error, error) {
 	// our msg UUID
 	msgUUID := flows.NewMsgUUID()
 
@@ -106,12 +102,13 @@ func buildMsgResume(
 
 	// create and insert an incoming message
 	msgIn := flows.NewMsgIn(msgUUID, urn, channel.Reference(), resume.Input, attachments, "")
-	msg := models.NewIncomingIVR(rt.Config, oa.OrgID(), call, msgIn, dates.Now())
+	msgEvt := events.NewMsgReceived(msgIn)
 
+	msg := models.NewIncomingIVR(rt.Config, oa.OrgID(), call, msgEvt)
 	if err := models.InsertMessages(ctx, rt.DB, []*models.Msg{msg}); err != nil {
 		return nil, nil, nil, fmt.Errorf("error committing new message: %w", err)
 	}
 
 	// create our msg resume event
-	return &models.MsgInRef{ID: msg.ID()}, resumes.NewMsg(events.NewMsgReceived(msgIn)), nil, nil
+	return &models.MsgInRef{ID: msg.ID()}, resumes.NewMsg(msgEvt), nil, nil
 }

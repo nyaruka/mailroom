@@ -12,6 +12,7 @@ import (
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/excellent/types"
 	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/goflow/utils"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/testsuite"
@@ -158,9 +159,8 @@ func TestNewOutgoingFlowMsg(t *testing.T) {
 		require.NoError(t, err)
 
 		_, contact, _ := tc.Contact.Load(rt, oa)
-		flowMsg := flows.NewMsgOut(tc.URN, chRef, tc.Content, tc.Templating, tc.Locale, tc.Unsendable)
-		msg, err := models.NewOutgoingFlowMsg(rt, oa.Org(), ch, contact, flow, flowMsg, tc.ResponseTo, dates.Now())
-
+		msgEvent := events.NewMsgCreated(flows.NewMsgOut(tc.URN, chRef, tc.Content, tc.Templating, tc.Locale, tc.Unsendable))
+		msg, err := models.NewOutgoingFlowMsg(rt, oa.Org(), ch, contact, flow, msgEvent, tc.ResponseTo)
 		assert.NoError(t, err)
 
 		expectedAttachments := tc.Content.Attachments
@@ -220,8 +220,12 @@ func TestNewOutgoingFlowMsg(t *testing.T) {
 	// check that msg loop detection triggers after 20 repeats of the same text
 	newOutgoing := func(text string) *models.MsgOut {
 		content := &flows.MsgContent{Text: text}
-		flowMsg := flows.NewMsgOut(urns.URN(fmt.Sprintf("tel:+250700000001?id=%d", testdb.Cathy.URNID)), assets.NewChannelReference(testdb.TwilioChannel.UUID, "Twilio"), content, nil, i18n.NilLocale, flows.NilUnsendableReason)
-		msg, err := models.NewOutgoingFlowMsg(rt, oa.Org(), channel, contact, flow, flowMsg, nil, dates.Now())
+		msgEvent := events.NewMsgCreated(flows.NewMsgOut(
+			urns.URN(fmt.Sprintf("tel:+250700000001?id=%d", testdb.Cathy.URNID)),
+			assets.NewChannelReference(testdb.TwilioChannel.UUID, "Twilio"),
+			content, nil, i18n.NilLocale, flows.NilUnsendableReason,
+		))
+		msg, err := models.NewOutgoingFlowMsg(rt, oa.Org(), channel, contact, flow, msgEvent, nil)
 		require.NoError(t, err)
 		return msg
 	}
@@ -495,7 +499,8 @@ func TestNewOutgoingIVR(t *testing.T) {
 	require.NoError(t, err)
 
 	flowMsg := flows.NewIVRMsgOut(testdb.Cathy.URN, vonage.Reference(), "Hello", "http://example.com/hi.mp3", "eng-US")
-	dbMsg := models.NewOutgoingIVR(rt.Config, testdb.Org1.ID, call, flowMsg, dates.Now())
+	event := events.NewIVRCreated(flowMsg)
+	dbMsg := models.NewOutgoingIVR(rt.Config, testdb.Org1.ID, call, event)
 
 	assert.Equal(t, flowMsg.UUID(), dbMsg.UUID())
 	assert.Equal(t, models.MsgTypeVoice, dbMsg.Type())
@@ -603,13 +608,13 @@ func TestMsgTemplating(t *testing.T) {
 	)
 
 	// create a message with templating
-	out1 := flows.NewMsgOut(testdb.Cathy.URN, chRef, &flows.MsgContent{Text: "Hello"}, templating1, i18n.NilLocale, flows.NilUnsendableReason)
-	msg1, err := models.NewOutgoingFlowMsg(rt, oa.Org(), channel, contact, flow, out1, nil, dates.Now())
+	out1 := events.NewMsgCreated(flows.NewMsgOut(testdb.Cathy.URN, chRef, &flows.MsgContent{Text: "Hello"}, templating1, i18n.NilLocale, flows.NilUnsendableReason))
+	msg1, err := models.NewOutgoingFlowMsg(rt, oa.Org(), channel, contact, flow, out1, nil)
 	require.NoError(t, err)
 
 	// create a message without templating
-	out2 := flows.NewMsgOut(testdb.Cathy.URN, chRef, &flows.MsgContent{Text: "Hello"}, nil, i18n.NilLocale, flows.NilUnsendableReason)
-	msg2, err := models.NewOutgoingFlowMsg(rt, oa.Org(), channel, contact, flow, out2, nil, dates.Now())
+	out2 := events.NewMsgCreated(flows.NewMsgOut(testdb.Cathy.URN, chRef, &flows.MsgContent{Text: "Hello"}, nil, i18n.NilLocale, flows.NilUnsendableReason))
+	msg2, err := models.NewOutgoingFlowMsg(rt, oa.Org(), channel, contact, flow, out2, nil)
 	require.NoError(t, err)
 
 	err = models.InsertMessages(ctx, rt.DB, []*models.Msg{msg1.Msg, msg2.Msg})
