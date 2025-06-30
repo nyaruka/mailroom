@@ -1,3 +1,7 @@
+v10.1.156 (2025-06-30)
+-------------------------
+ * Add is_import field to inspect endpoint force assets refresh
+
 v10.1.155 (2025-06-27)
 -------------------------
  * The great refactor of session starting and resuming completed
