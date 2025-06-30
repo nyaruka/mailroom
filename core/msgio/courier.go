@@ -71,7 +71,7 @@ var sessionStatusMap = map[flows.SessionStatus]string{flows.SessionStatusWaiting
 // Msg is the format of a message queued to courier
 type Msg struct {
 	ID                   models.MsgID       `json:"id"`
-	UUID                 flows.MsgUUID      `json:"uuid"`
+	UUID                 flows.EventUUID    `json:"uuid"`
 	OrgID                models.OrgID       `json:"org_id"`
 	Origin               MsgOrigin          `json:"origin"`
 	Text                 string             `json:"text"`

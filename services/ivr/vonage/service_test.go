@@ -78,57 +78,57 @@ func TestResponseForSprint(t *testing.T) {
 		events   []flows.Event
 		expected string
 	}{
-		{
+		{ // 0
 			[]flows.Event{
 				events.NewIVRCreated(flows.NewIVRMsgOut(urn, channelRef, "hello world", "", "")),
 			},
 			`[{"action":"talk","text":"hello world"}]`,
 		},
-		{
+		{ // 1
 			[]flows.Event{
 				events.NewIVRCreated(flows.NewIVRMsgOut(urn, channelRef, "hello world", "/recordings/foo.wav", "")),
 			},
 			`[{"action":"stream","streamUrl":["/recordings/foo.wav"]}]`,
 		},
-		{
+		{ // 2
 			[]flows.Event{
 				events.NewIVRCreated(flows.NewIVRMsgOut(urn, channelRef, "hello world", "https://temba.io/recordings/foo.wav", "")),
 			},
 			`[{"action":"stream","streamUrl":["https://temba.io/recordings/foo.wav"]}]`,
 		},
-		{
+		{ // 3
 			[]flows.Event{
 				events.NewIVRCreated(flows.NewIVRMsgOut(urn, channelRef, "hello world", "", "")),
 				events.NewIVRCreated(flows.NewIVRMsgOut(urn, channelRef, "goodbye", "", "")),
 			},
 			`[{"action":"talk","text":"hello world"},{"action":"talk","text":"goodbye"}]`,
 		},
-		{
+		{ // 4
 			[]flows.Event{
 				events.NewIVRCreated(flows.NewIVRMsgOut(urn, channelRef, "enter a number", "", "")),
 				events.NewMsgWait(nil, expiresOn, hints.NewFixedDigits(1)),
 			},
 			`[{"action":"talk","text":"enter a number","bargeIn":true},{"action":"input","maxDigits":1,"submitOnHash":true,"timeOut":30,"eventUrl":["http://temba.io/resume?session=1\u0026wait_type=gather\u0026sig=4Yil1wUntXd%2F7AQx%2Bt0rkwihx%2Fg%3D"],"eventMethod":"POST"}]`,
 		},
-		{
+		{ // 5
 			[]flows.Event{
 				events.NewIVRCreated(flows.NewIVRMsgOut(urn, channelRef, "enter a number, then press #", "", "")),
 				events.NewMsgWait(nil, expiresOn, hints.NewTerminatedDigits("#")),
 			},
 			`[{"action":"talk","text":"enter a number, then press #","bargeIn":true},{"action":"input","maxDigits":20,"submitOnHash":true,"timeOut":30,"eventUrl":["http://temba.io/resume?session=1\u0026wait_type=gather\u0026sig=4Yil1wUntXd%2F7AQx%2Bt0rkwihx%2Fg%3D"],"eventMethod":"POST"}]`,
 		},
-		{
+		{ // 6
 			[]flows.Event{
 				events.NewIVRCreated(flows.NewIVRMsgOut(urn, channelRef, "say something", "", "")),
 				events.NewMsgWait(nil, expiresOn, hints.NewAudio()),
 			},
-			`[{"action":"talk","text":"say something"},{"action":"record","endOnKey":"#","timeOut":600,"endOnSilence":5,"eventUrl":["http://temba.io/resume?session=1\u0026wait_type=recording_url\u0026recording_uuid=8bcb9ef2-d4a6-4314-b68d-6d299761ea9e\u0026sig=wX%2FGxAivPgl9DU51GcFiSy1gwcE%3D"],"eventMethod":"POST"},{"action":"input","submitOnHash":true,"timeOut":1,"eventUrl":["http://temba.io/resume?session=1\u0026wait_type=record\u0026recording_uuid=8bcb9ef2-d4a6-4314-b68d-6d299761ea9e\u0026sig=zQDkXiAu33aJVKfuIrsupJMZKi0%3D"],"eventMethod":"POST"}]`,
+			`[{"action":"talk","text":"say something"},{"action":"record","endOnKey":"#","timeOut":600,"endOnSilence":5,"eventUrl":["http://temba.io/resume?session=1\u0026wait_type=recording_url\u0026recording_uuid=3801aaca-eedf-4d5b-9066-64e8c0e4a771\u0026sig=S9SN7OELddL6zxiZTPZsCNfKFMw%3D"],"eventMethod":"POST"},{"action":"input","submitOnHash":true,"timeOut":1,"eventUrl":["http://temba.io/resume?session=1\u0026wait_type=record\u0026recording_uuid=3801aaca-eedf-4d5b-9066-64e8c0e4a771\u0026sig=YLz9dq5KiI3sVTC9O2vrgCSdAqc%3D"],"eventMethod":"POST"}]`,
 		},
-		{
+		{ // 7
 			[]flows.Event{
 				events.NewDialWait(urns.URN(`tel:+1234567890`), 60, 7200, expiresOn),
 			},
-			`[{"action":"conversation","name":"4f5aa6ae-c3fc-48c6-aae0-81ac8120c720"}]`,
+			`[{"action":"conversation","name":"ece0b8b7-c196-4d91-8125-1b7c9c9ca520"}]`,
 		},
 	}
 

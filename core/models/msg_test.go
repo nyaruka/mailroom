@@ -502,7 +502,7 @@ func TestNewOutgoingIVR(t *testing.T) {
 	event := events.NewIVRCreated(flowMsg)
 	dbMsg := models.NewOutgoingIVR(rt.Config, testdb.Org1.ID, call, event)
 
-	assert.Equal(t, flowMsg.UUID(), dbMsg.UUID())
+	assert.Equal(t, event.UUID(), dbMsg.UUID())
 	assert.Equal(t, models.MsgTypeVoice, dbMsg.Type())
 	assert.Equal(t, "Hello", dbMsg.Text())
 	assert.Equal(t, []utils.Attachment{"audio:http://example.com/hi.mp3"}, dbMsg.Attachments())

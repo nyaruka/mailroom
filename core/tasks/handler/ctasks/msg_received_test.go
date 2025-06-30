@@ -306,7 +306,7 @@ func TestMsgReceivedTask(t *testing.T) {
 		return &ctasks.MsgReceivedTask{
 			ChannelID: channel.ID,
 			MsgID:     dbMsg.ID,
-			MsgUUID:   dbMsg.FlowMsg.UUID(),
+			MsgUUID:   dbMsg.UUID,
 			URN:       contact.URN,
 			URNID:     contact.URNID,
 			Text:      text,

@@ -131,9 +131,9 @@ type MsgInRef struct {
 // Msg is our type for mailroom messages
 type Msg struct {
 	m struct {
-		ID    MsgID         `db:"id"`
-		UUID  flows.MsgUUID `db:"uuid"`
-		OrgID OrgID         `db:"org_id"`
+		ID    MsgID           `db:"id"`
+		UUID  flows.EventUUID `db:"uuid"`
+		OrgID OrgID           `db:"org_id"`
 
 		// origin
 		BroadcastID BroadcastID `db:"broadcast_id"`
@@ -170,8 +170,8 @@ type Msg struct {
 	}
 }
 
-func (m *Msg) ID() MsgID           { return m.m.ID }
-func (m *Msg) UUID() flows.MsgUUID { return m.m.UUID }
+func (m *Msg) ID() MsgID             { return m.m.ID }
+func (m *Msg) UUID() flows.EventUUID { return m.m.UUID }
 
 func (m *Msg) BroadcastID() BroadcastID { return m.m.BroadcastID }
 func (m *Msg) FlowID() FlowID           { return m.m.FlowID }
@@ -260,7 +260,7 @@ type MsgOut struct {
 func NewIncomingAndroid(orgID OrgID, channelID ChannelID, contactID ContactID, urnID URNID, text string, receivedOn time.Time) *Msg {
 	msg := &Msg{}
 	m := &msg.m
-	m.UUID = flows.NewMsgUUID()
+	m.UUID = flows.NewEventUUID()
 	m.OrgID = orgID
 	m.ChannelID = channelID
 	m.ContactID = contactID
@@ -280,7 +280,7 @@ func NewIncomingAndroid(orgID OrgID, channelID ChannelID, contactID ContactID, u
 func NewIncomingIVR(cfg *runtime.Config, orgID OrgID, call *Call, event *events.MsgReceived) *Msg {
 	msg := &Msg{}
 	m := &msg.m
-	m.UUID = event.Msg.UUID()
+	m.UUID = event.UUID()
 	m.Text = event.Msg.Text()
 	m.Direction = DirectionIn
 	m.Status = MsgStatusHandled
@@ -307,7 +307,7 @@ func NewOutgoingIVR(cfg *runtime.Config, orgID OrgID, call *Call, event *events.
 
 	msg := &Msg{}
 	m := &msg.m
-	m.UUID = out.UUID()
+	m.UUID = event.UUID()
 	m.OrgID = orgID
 	m.Text = out.Text()
 	m.Locale = out.Locale()
@@ -334,7 +334,7 @@ func NewOutgoingIVR(cfg *runtime.Config, orgID OrgID, call *Call, event *events.
 func NewOutgoingOptInMsg(rt *runtime.Runtime, orgID OrgID, contact *flows.Contact, flow *Flow, optIn *OptIn, channel *Channel, event *events.OptInRequested, replyTo *MsgInRef) *MsgOut {
 	msg := &Msg{}
 	m := &msg.m
-	m.UUID = flows.NewMsgUUID()
+	m.UUID = event.UUID()
 	m.OrgID = orgID
 	m.ContactID = ContactID(contact.ID())
 	m.HighPriority = replyTo != nil
@@ -380,7 +380,7 @@ func newMsgOut(rt *runtime.Runtime, org *Org, channel *Channel, contact *flows.C
 
 	msg := &Msg{}
 	m := &msg.m
-	m.UUID = out.UUID()
+	m.UUID = event.UUID()
 	m.OrgID = org.ID()
 	m.ContactID = ContactID(contact.ID())
 	m.BroadcastID = broadcastID

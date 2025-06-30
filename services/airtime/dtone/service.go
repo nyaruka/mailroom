@@ -29,7 +29,6 @@ func NewService(httpClient *http.Client, httpRetries *httpx.RetryConfig, key, se
 
 func (s *service) Transfer(ctx context.Context, sender urns.URN, recipient urns.URN, amounts map[string]decimal.Decimal, logHTTP flows.HTTPLogCallback) (*flows.AirtimeTransfer, error) {
 	transfer := &flows.AirtimeTransfer{
-		UUID:      flows.NewTransferUUID(),
 		Sender:    sender,
 		Recipient: recipient,
 		Currency:  "",
@@ -88,8 +87,12 @@ func (s *service) Transfer(ctx context.Context, sender urns.URN, recipient urns.
 	transfer.Currency = product.Destination.Unit
 	transfer.Amount = product.Destination.Amount
 
+	// TODO we don't currently need this to be a real thing because we're not handling callbacks, but probably should be
+	// be the event UUID
+	transferUUID := string(flows.NewEventUUID())
+
 	// request asynchronous confirmed transaction for this product
-	tx, trace, err := s.client.TransactionAsync(ctx, string(transfer.UUID), product.ID, recipientPhoneNumber)
+	tx, trace, err := s.client.TransactionAsync(ctx, transferUUID, product.ID, recipientPhoneNumber)
 	if trace != nil {
 		logHTTP(flows.NewHTTPLog(trace, flows.HTTPStatusFromCode, s.redactor))
 	}

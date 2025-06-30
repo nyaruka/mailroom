@@ -27,7 +27,7 @@ func init() {
 
 type MsgReceivedTask struct {
 	MsgID         models.MsgID     `json:"msg_id"`
-	MsgUUID       flows.MsgUUID    `json:"msg_uuid"`
+	MsgUUID       flows.EventUUID  `json:"msg_uuid"`
 	MsgExternalID string           `json:"msg_external_id"`
 	ChannelID     models.ChannelID `json:"channel_id"`
 	URN           urns.URN         `json:"urn"`
@@ -113,8 +113,10 @@ func (t *MsgReceivedTask) perform(ctx context.Context, rt *runtime.Runtime, oa *
 		}
 	}
 
-	msgIn := flows.NewMsgIn(t.MsgUUID, t.URN, channel.Reference(), t.Text, availableAttachments, string(t.MsgExternalID))
+	msgIn := flows.NewMsgIn(t.URN, channel.Reference(), t.Text, availableAttachments, string(t.MsgExternalID))
 	msgEvent := events.NewMsgReceived(msgIn)
+	msgEvent.UUID_ = t.MsgUUID
+
 	contact.SetLastSeenOn(msgEvent.CreatedOn())
 
 	// look up any open tickes for this contact and forward this message to that
