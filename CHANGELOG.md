@@ -1,3 +1,7 @@
+v10.1.157 (2025-06-30)
+-------------------------
+ * Update to latest goflow that adds UUIDs to events
+
 v10.1.156 (2025-06-30)
 -------------------------
  * Add is_import field to inspect endpoint force assets refresh
