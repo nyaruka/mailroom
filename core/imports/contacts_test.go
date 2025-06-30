@@ -143,7 +143,7 @@ func TestContactImports(t *testing.T) {
 		testJSON, err = jsonx.MarshalPretty(tcs)
 		require.NoError(t, err)
 
-		err = os.WriteFile("testdata/imports.json", testJSON, 0600)
+		err = os.WriteFile("testdata/contacts.json", testJSON, 0600)
 		require.NoError(t, err)
 	}
 }

@@ -33,7 +33,7 @@ const (
 type AirtimeTransfer struct {
 	t struct {
 		ID            AirtimeTransferID     `db:"id"`
-		UUID          flows.TransferUUID    `db:"uuid"`
+		UUID          flows.EventUUID       `db:"uuid"`
 		OrgID         OrgID                 `db:"org_id"`
 		Status        AirtimeTransferStatus `db:"status"`
 		ExternalID    null.String           `db:"external_id"`
@@ -57,7 +57,7 @@ func NewAirtimeTransfer(orgID OrgID, contactID ContactID, event *events.AirtimeT
 	}
 
 	t := &AirtimeTransfer{}
-	t.t.UUID = event.TransferUUID
+	t.t.UUID = event.UUID()
 	t.t.OrgID = orgID
 	t.t.ContactID = contactID
 	t.t.Status = status

@@ -58,7 +58,7 @@ func buildDialResume(resume DialResume) (flows.Resume, error, error) {
 
 func buildMsgResume(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, svc Service, channel *models.Channel, urn urns.URN, call *models.Call, resume InputResume) (*models.MsgInRef, flows.Resume, error, error) {
 	// our msg UUID
-	msgUUID := flows.NewMsgUUID()
+	msgUUID := flows.NewEventUUID()
 
 	// we have an attachment, download it locally
 	if resume.Attachment != NilAttachment {
@@ -101,8 +101,9 @@ func buildMsgResume(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 	}
 
 	// create and insert an incoming message
-	msgIn := flows.NewMsgIn(msgUUID, urn, channel.Reference(), resume.Input, attachments, "")
+	msgIn := flows.NewMsgIn(urn, channel.Reference(), resume.Input, attachments, "")
 	msgEvt := events.NewMsgReceived(msgIn)
+	msgEvt.UUID_ = msgUUID
 
 	msg := models.NewIncomingIVR(rt.Config, oa.OrgID(), call, msgEvt)
 	if err := models.InsertMessages(ctx, rt.DB, []*models.Msg{msg}); err != nil {

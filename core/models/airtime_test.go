@@ -24,7 +24,6 @@ func TestAirtimeTransfers(t *testing.T) {
 		testdb.Org1.ID,
 		testdb.Cathy.ID,
 		events.NewAirtimeTransferred(&flows.AirtimeTransfer{
-			UUID:       "0196a6d0-77a9-7e72-8c62-b65988e7fc2a",
 			ExternalID: "2237512891",
 			Sender:     urns.URN("tel:+250700000001"),
 			Recipient:  urns.URN("tel:+250700000002"),
@@ -42,7 +41,6 @@ func TestAirtimeTransfers(t *testing.T) {
 		testdb.Org1.ID,
 		testdb.Cathy.ID,
 		events.NewAirtimeTransferred(&flows.AirtimeTransfer{
-			UUID:       "0196a6d0-b520-7c79-bb38-508bed6e3c40",
 			ExternalID: "2237512891",
 			Sender:     urns.NilURN,
 			Recipient:  urns.URN("tel:+250700000002"),
