@@ -29,7 +29,7 @@ func TestForemanAndWorkers(t *testing.T) {
 	wg := &sync.WaitGroup{}
 	q := queues.NewFairSorted("test")
 
-	rc := rt.RP.Get()
+	rc := rt.VK.Get()
 	defer rc.Close()
 
 	tasks.RegisterType("test", func() tasks.Task { return &testTask{} })

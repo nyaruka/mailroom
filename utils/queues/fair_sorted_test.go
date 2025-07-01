@@ -15,7 +15,7 @@ import (
 
 func TestQueues(t *testing.T) {
 	_, rt := testsuite.Runtime()
-	rc := rt.RP.Get()
+	rc := rt.VK.Get()
 	defer rc.Close()
 
 	dates.SetNowFunc(dates.NewSequentialNow(time.Date(2022, 1, 1, 12, 1, 2, 123456789, time.UTC), time.Second))

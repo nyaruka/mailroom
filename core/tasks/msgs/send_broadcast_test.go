@@ -26,7 +26,7 @@ func TestBroadcastsFromEvents(t *testing.T) {
 
 	defer testsuite.Reset(testsuite.ResetAll)
 
-	rc := rt.RP.Get()
+	rc := rt.VK.Get()
 	defer rc.Close()
 
 	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
@@ -183,7 +183,7 @@ func TestBroadcastsFromEvents(t *testing.T) {
 
 func TestSendBroadcastTask(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
-	rc := rt.RP.Get()
+	rc := rt.VK.Get()
 	defer rc.Close()
 
 	defer testsuite.Reset(testsuite.ResetAll)

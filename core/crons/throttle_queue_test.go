@@ -13,7 +13,7 @@ import (
 
 func TestThrottleQueue(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
-	rc := rt.RP.Get()
+	rc := rt.VK.Get()
 	defer rc.Close()
 
 	defer testsuite.Reset(testsuite.ResetValkey | testsuite.ResetData)

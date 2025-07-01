@@ -382,7 +382,7 @@ func TestUpdateMessageDeletedBySender(t *testing.T) {
 
 func TestGetMsgRepetitions(t *testing.T) {
 	_, rt := testsuite.Runtime()
-	rc := rt.RP.Get()
+	rc := rt.VK.Get()
 	defer rc.Close()
 
 	defer testsuite.Reset(testsuite.ResetValkey)
@@ -400,7 +400,7 @@ func TestGetMsgRepetitions(t *testing.T) {
 	msg4 := flows.NewMsgOut(testdb.George.URN, nil, &flows.MsgContent{Text: "foo"}, nil, i18n.NilLocale, flows.NilUnsendableReason)
 
 	assertRepetitions := func(contact *flows.Contact, m *flows.MsgOut, expected int) {
-		count, err := models.GetMsgRepetitions(rt.RP, contact, m)
+		count, err := models.GetMsgRepetitions(rt.VK, contact, m)
 		require.NoError(t, err)
 		assert.Equal(t, expected, count)
 	}

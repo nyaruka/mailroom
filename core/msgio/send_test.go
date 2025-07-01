@@ -43,7 +43,7 @@ func (m *msgSpec) createMsg(t *testing.T, rt *runtime.Runtime, oa *models.OrgAss
 
 func TestQueueMessages(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
-	rc := rt.RP.Get()
+	rc := rt.VK.Get()
 	defer rc.Close()
 
 	defer testsuite.Reset(testsuite.ResetData)

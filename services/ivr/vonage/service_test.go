@@ -25,7 +25,7 @@ import (
 
 func TestResponseForSprint(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
-	rc := rt.RP.Get()
+	rc := rt.VK.Get()
 	defer rc.Close()
 
 	defer testsuite.Reset(testsuite.ResetAll)
@@ -133,7 +133,7 @@ func TestResponseForSprint(t *testing.T) {
 	}
 
 	for i, tc := range tcs {
-		response, err := provider.responseForSprint(ctx, rt.RP, channel, call, resumeURL, tc.events)
+		response, err := provider.responseForSprint(ctx, rt.VK, channel, call, resumeURL, tc.events)
 		assert.NoError(t, err, "%d: unexpected error")
 		assert.Equal(t, tc.expected, response, "%d: unexpected response", i)
 	}

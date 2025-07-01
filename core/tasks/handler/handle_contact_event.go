@@ -54,7 +54,7 @@ func (t *HandleContactEventTask) Perform(ctx context.Context, rt *runtime.Runtim
 	if len(locks) == 0 {
 		rt.Stats.RecordHandlerLockFail()
 
-		rc := rt.RP.Get()
+		rc := rt.VK.Get()
 		defer rc.Close()
 		err = tasks.Queue(rc, tasks.HandlerQueue, oa.OrgID(), &HandleContactEventTask{ContactID: t.ContactID}, false)
 		if err != nil {
@@ -70,7 +70,7 @@ func (t *HandleContactEventTask) Perform(ctx context.Context, rt *runtime.Runtim
 	contactQ := fmt.Sprintf("c:%d:%d", oa.OrgID(), t.ContactID)
 	for {
 		// pop the next event off this contacts queue
-		rc := rt.RP.Get()
+		rc := rt.VK.Get()
 		event, err := redis.Bytes(rc.Do("LPOP", contactQ))
 		rc.Close()
 
@@ -110,7 +110,7 @@ func (t *HandleContactEventTask) Perform(ctx context.Context, rt *runtime.Runtim
 
 			taskPayload.ErrorCount++
 			if taskPayload.ErrorCount < 3 {
-				rc := rt.RP.Get()
+				rc := rt.VK.Get()
 				retryErr := queueTask(rc, oa.OrgID(), t.ContactID, ctask, true, taskPayload.ErrorCount)
 				if retryErr != nil {
 					log.Error("error requeuing errored contact event", "error", retryErr)

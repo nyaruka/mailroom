@@ -51,7 +51,7 @@ func (c *TestCron) Run(ctx context.Context, rt *runtime.Runtime) (map[string]any
 
 func TestStats(t *testing.T) {
 	_, rt := testsuite.Runtime()
-	rc := rt.RP.Get()
+	rc := rt.VK.Get()
 	defer rc.Close()
 
 	defer testsuite.Reset(testsuite.ResetValkey)

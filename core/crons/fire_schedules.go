@@ -35,7 +35,7 @@ func (c *FireSchedulesCron) Run(ctx context.Context, rt *runtime.Runtime) (map[s
 
 	log := slog.With("comp", "schedules_cron")
 
-	rc := rt.RP.Get()
+	rc := rt.VK.Get()
 	defer rc.Close()
 
 	// get any expired schedules

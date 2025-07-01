@@ -13,7 +13,7 @@ import (
 
 func TestImportContactBatch(t *testing.T) {
 	_, rt := testsuite.Runtime()
-	rc := rt.RP.Get()
+	rc := rt.VK.Get()
 	defer rc.Close()
 
 	defer testsuite.Reset(testsuite.ResetData)

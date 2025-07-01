@@ -109,7 +109,7 @@ func (h *insertFlowStats) Execute(ctx context.Context, rt *runtime.Runtime, tx *
 		return fmt.Errorf("error inserting flow result counts: %w", err)
 	}
 
-	rc := rt.RP.Get()
+	rc := rt.VK.Get()
 	defer rc.Close()
 
 	for segID, recentContacts := range recentBySegment {

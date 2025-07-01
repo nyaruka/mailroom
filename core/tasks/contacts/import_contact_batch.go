@@ -57,7 +57,7 @@ func (t *ImportContactBatchTask) Perform(ctx context.Context, rt *runtime.Runtim
 	}
 
 	// decrement the key that holds remaining batches to see if the overall import is now finished
-	rc := rt.RP.Get()
+	rc := rt.VK.Get()
 	defer rc.Close()
 	remaining, _ := redis.Int(rc.Do("decr", fmt.Sprintf("contact_import_batches_remaining:%d", batch.ImportID)))
 	if remaining == 0 {

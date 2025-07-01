@@ -138,7 +138,7 @@ func TestIncidentNotifications(t *testing.T) {
 
 	t0 := time.Now()
 
-	_, err = models.IncidentWebhooksUnhealthy(ctx, rt.DB, rt.RP, oa, nil)
+	_, err = models.IncidentWebhooksUnhealthy(ctx, rt.DB, rt.VK, oa, nil)
 	require.NoError(t, err)
 
 	assertNotifications(t, ctx, rt.DB, t0, map[*testdb.User][]models.NotificationType{

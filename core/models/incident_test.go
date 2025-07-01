@@ -22,14 +22,14 @@ import (
 
 func TestIncidentWebhooksUnhealthy(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
-	rc := rt.RP.Get()
+	rc := rt.VK.Get()
 	defer rc.Close()
 
 	defer testsuite.Reset(testsuite.ResetData)
 
 	oa := testdb.Org1.Load(rt)
 
-	id1, err := models.IncidentWebhooksUnhealthy(ctx, rt.DB, rt.RP, oa, []flows.NodeUUID{"5a2e83f1-efa8-40ba-bc0c-8873c525de7d", "aba89043-6f0a-4ccf-ba7f-0e1674b90759"})
+	id1, err := models.IncidentWebhooksUnhealthy(ctx, rt.DB, rt.VK, oa, []flows.NodeUUID{"5a2e83f1-efa8-40ba-bc0c-8873c525de7d", "aba89043-6f0a-4ccf-ba7f-0e1674b90759"})
 	require.NoError(t, err)
 	assert.NotEqual(t, 0, id1)
 
@@ -37,7 +37,7 @@ func TestIncidentWebhooksUnhealthy(t *testing.T) {
 	assertvk.SMembers(t, rc, fmt.Sprintf("incident:%d:nodes", id1), []string{"5a2e83f1-efa8-40ba-bc0c-8873c525de7d", "aba89043-6f0a-4ccf-ba7f-0e1674b90759"})
 
 	// raising same incident doesn't create a new one...
-	id2, err := models.IncidentWebhooksUnhealthy(ctx, rt.DB, rt.RP, oa, []flows.NodeUUID{"3b1743cd-bd8b-449e-8e8a-11a3bc479766"})
+	id2, err := models.IncidentWebhooksUnhealthy(ctx, rt.DB, rt.VK, oa, []flows.NodeUUID{"3b1743cd-bd8b-449e-8e8a-11a3bc479766"})
 	require.NoError(t, err)
 	assert.Equal(t, id1, id2)
 
@@ -48,7 +48,7 @@ func TestIncidentWebhooksUnhealthy(t *testing.T) {
 	// when the incident has ended, a new one can be created
 	rt.DB.MustExec(`UPDATE notifications_incident SET ended_on = NOW()`)
 
-	id3, err := models.IncidentWebhooksUnhealthy(ctx, rt.DB, rt.RP, oa, nil)
+	id3, err := models.IncidentWebhooksUnhealthy(ctx, rt.DB, rt.VK, oa, nil)
 	require.NoError(t, err)
 	assert.NotEqual(t, id1, id3)
 
@@ -65,7 +65,7 @@ func TestGetOpenIncidents(t *testing.T) {
 	oa2 := testdb.Org2.Load(rt)
 
 	// create incident for org 1
-	id1, err := models.IncidentWebhooksUnhealthy(ctx, rt.DB, rt.RP, oa1, nil)
+	id1, err := models.IncidentWebhooksUnhealthy(ctx, rt.DB, rt.VK, oa1, nil)
 	require.NoError(t, err)
 
 	incidents, err := models.GetOpenIncidents(ctx, rt.DB, []models.IncidentType{models.IncidentTypeWebhooksUnhealthy})
@@ -79,11 +79,11 @@ func TestGetOpenIncidents(t *testing.T) {
 	require.NoError(t, err)
 
 	// and create another one...
-	id2, err := models.IncidentWebhooksUnhealthy(ctx, rt.DB, rt.RP, oa1, nil)
+	id2, err := models.IncidentWebhooksUnhealthy(ctx, rt.DB, rt.VK, oa1, nil)
 	require.NoError(t, err)
 
 	// create an incident for org 2
-	id3, err := models.IncidentWebhooksUnhealthy(ctx, rt.DB, rt.RP, oa2, nil)
+	id3, err := models.IncidentWebhooksUnhealthy(ctx, rt.DB, rt.VK, oa2, nil)
 	require.NoError(t, err)
 
 	incidents, err = models.GetOpenIncidents(ctx, rt.DB, []models.IncidentType{models.IncidentTypeWebhooksUnhealthy})

@@ -52,7 +52,7 @@ func Start(rt *runtime.Runtime, wg *sync.WaitGroup, name string, allInstances bo
 				lastFire = time.Now()
 
 				// try to get lock but don't retry - if lock is taken then task is still running or running on another instance
-				lock, err := locker.Grab(ctx, rt.RP, 0)
+				lock, err := locker.Grab(ctx, rt.VK, 0)
 				if err != nil {
 					break
 				}
@@ -68,7 +68,7 @@ func Start(rt *runtime.Runtime, wg *sync.WaitGroup, name string, allInstances bo
 				}
 
 				// release our lock
-				err = locker.Release(ctx, rt.RP, lock)
+				err = locker.Release(ctx, rt.VK, lock)
 				if err != nil {
 					log.Error("error releasing lock", "error", err)
 				}

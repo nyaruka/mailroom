@@ -426,7 +426,7 @@ func newMsgOut(rt *runtime.Runtime, org *Org, channel *Channel, contact *flows.C
 		m.FailedReason = MsgFailedSuspended
 	} else {
 		// also fail right away if this looks like a loop
-		repetitions, err := GetMsgRepetitions(rt.RP, contact, out)
+		repetitions, err := GetMsgRepetitions(rt.VK, contact, out)
 		if err != nil {
 			return nil, fmt.Errorf("error looking up msg repetitions: %w", err)
 		}

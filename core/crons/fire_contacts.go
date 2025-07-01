@@ -38,7 +38,7 @@ func (c *FireContactsCron) Run(ctx context.Context, rt *runtime.Runtime) (map[st
 	start := time.Now()
 	numWaitTimeouts, numWaitExpires, numSessionExpires, numCampaignPoints := 0, 0, 0, 0
 
-	rc := rt.RP.Get()
+	rc := rt.VK.Get()
 	defer rc.Close()
 
 	for {

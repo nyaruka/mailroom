@@ -17,7 +17,7 @@ import (
 type Runtime struct {
 	DB         *sqlx.DB
 	ReadonlyDB *sql.DB
-	RP         *redis.Pool
+	VK         *redis.Pool
 	Dynamo     *DynamoTables
 	S3         *s3x.Service
 	ES         *elasticsearch.TypedClient

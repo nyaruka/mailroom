@@ -33,7 +33,7 @@ func (c *ThrottleQueueCron) AllInstances() bool {
 
 // Run throttles processing of starts based on that org's current outbox size
 func (c *ThrottleQueueCron) Run(ctx context.Context, rt *runtime.Runtime) (map[string]any, error) {
-	rc := rt.RP.Get()
+	rc := rt.VK.Get()
 	defer rc.Close()
 
 	owners, err := c.Queue.Owners(rc)

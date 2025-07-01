@@ -236,7 +236,7 @@ func createAndAssertCourierMsg(t *testing.T, oa *models.OrgAssets, msg *models.M
 
 func TestQueueCourierMessages(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
-	rc := rt.RP.Get()
+	rc := rt.VK.Get()
 	defer rc.Close()
 
 	defer testsuite.Reset(testsuite.ResetData | testsuite.ResetValkey)
@@ -277,7 +277,7 @@ func TestQueueCourierMessages(t *testing.T) {
 
 func TestClearChannelCourierQueue(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
-	rc := rt.RP.Get()
+	rc := rt.VK.Get()
 	defer rc.Close()
 
 	defer testsuite.Reset(testsuite.ResetData | testsuite.ResetValkey)
@@ -334,7 +334,7 @@ func TestClearChannelCourierQueue(t *testing.T) {
 
 func TestPushCourierBatch(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
-	rc := rt.RP.Get()
+	rc := rt.VK.Get()
 	defer rc.Close()
 
 	defer testsuite.Reset(testsuite.ResetData | testsuite.ResetValkey)

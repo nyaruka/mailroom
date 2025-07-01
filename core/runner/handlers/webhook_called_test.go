@@ -116,7 +116,7 @@ func (s *failingWebhookService) Call(request *http.Request) (*httpx.Trace, error
 func TestUnhealthyWebhookCalls(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
 
-	rc := rt.RP.Get()
+	rc := rt.VK.Get()
 	defer rc.Close()
 
 	defer testsuite.Reset(testsuite.ResetData | testsuite.ResetValkey)

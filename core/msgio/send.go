@@ -94,7 +94,7 @@ func tryToQueueForOrg(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAs
 
 	// if there are courier messages to queue, do so
 	if len(courierMsgs) > 0 {
-		rc := rt.RP.Get()
+		rc := rt.VK.Get()
 		defer rc.Close()
 
 		for cc, contactMsgs := range courierMsgs {

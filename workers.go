@@ -86,7 +86,7 @@ func (f *Foreman) Assign() {
 		// otherwise, grab the next task and assign it to a worker
 		case worker := <-f.availableWorkers:
 			// see if we have a task to work on
-			rc := f.rt.RP.Get()
+			rc := f.rt.VK.Get()
 			task, err := f.queue.Pop(rc)
 			rc.Close()
 
@@ -174,7 +174,7 @@ func (w *Worker) handleTask(task *queues.Task) {
 		}
 
 		// mark our task as complete
-		rc := w.foreman.rt.RP.Get()
+		rc := w.foreman.rt.VK.Get()
 		err := w.foreman.queue.Done(rc, task.OwnerID)
 		if err != nil {
 			log.Error("unable to mark task as complete", "error", err)

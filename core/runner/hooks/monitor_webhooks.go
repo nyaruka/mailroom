@@ -54,7 +54,7 @@ func (h *monitorWebhooks) Execute(ctx context.Context, rt *runtime.Runtime, tx *
 
 	// if we have unhealthy nodes, ensure we have an incident
 	if len(unhealthyNodeUUIDs) > 0 {
-		_, err := models.IncidentWebhooksUnhealthy(ctx, tx, rt.RP, oa, unhealthyNodeUUIDs)
+		_, err := models.IncidentWebhooksUnhealthy(ctx, tx, rt.VK, oa, unhealthyNodeUUIDs)
 		if err != nil {
 			return fmt.Errorf("error creating unhealthy webhooks incident: %w", err)
 		}

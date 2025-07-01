@@ -156,7 +156,7 @@ func (n *WebhookNode) Record(ctx context.Context, rt *runtime.Runtime, events []
 		}
 	}
 
-	rc := rt.RP.Get()
+	rc := rt.VK.Get()
 	defer rc.Close()
 
 	healthySeries, unhealthySeries := n.series()
@@ -176,7 +176,7 @@ func (n *WebhookNode) Record(ctx context.Context, rt *runtime.Runtime, events []
 }
 
 func (n *WebhookNode) Healthy(ctx context.Context, rt *runtime.Runtime) (bool, error) {
-	rc := rt.RP.Get()
+	rc := rt.VK.Get()
 	defer rc.Close()
 
 	healthySeries, unhealthySeries := n.series()

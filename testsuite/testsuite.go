@@ -98,7 +98,7 @@ func Runtime() (context.Context, *runtime.Runtime) {
 	rt := &runtime.Runtime{
 		DB:         dbx,
 		ReadonlyDB: dbx.DB,
-		RP:         getRP(),
+		VK:         getRP(),
 		Dynamo:     dytables,
 		S3:         s3svc,
 		ES:         getES(),

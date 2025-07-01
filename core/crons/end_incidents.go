@@ -93,7 +93,7 @@ func (c *EndIncidentsCron) checkWebhookIncident(ctx context.Context, rt *runtime
 }
 
 func (c *EndIncidentsCron) getWebhookIncidentNodes(rt *runtime.Runtime, incident *models.Incident) ([]flows.NodeUUID, error) {
-	rc := rt.RP.Get()
+	rc := rt.VK.Get()
 	defer rc.Close()
 
 	nodesKey := fmt.Sprintf("incident:%d:nodes", incident.ID)
@@ -110,7 +110,7 @@ func (c *EndIncidentsCron) getWebhookIncidentNodes(rt *runtime.Runtime, incident
 }
 
 func (c *EndIncidentsCron) removeWebhookIncidentNodes(rt *runtime.Runtime, incident *models.Incident, nodes []flows.NodeUUID) error {
-	rc := rt.RP.Get()
+	rc := rt.VK.Get()
 	defer rc.Close()
 
 	nodesKey := fmt.Sprintf("incident:%d:nodes", incident.ID)

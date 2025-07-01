@@ -39,7 +39,7 @@ func TestBroadcastCreated(t *testing.T) {
 			},
 			Assertions: []handlers.Assertion{
 				func(t *testing.T, rt *runtime.Runtime) error {
-					rc := rt.RP.Get()
+					rc := rt.VK.Get()
 					defer rc.Close()
 
 					task, err := tasks.BatchQueue.Pop(rc)
