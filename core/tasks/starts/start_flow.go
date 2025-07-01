@@ -117,7 +117,7 @@ func createFlowStartBatches(ctx context.Context, rt *runtime.Runtime, oa *models
 	// split the contact ids into batches to become batch tasks
 	idBatches := slices.Collect(slices.Chunk(contactIDs, startBatchSize))
 
-	rc := rt.RP.Get()
+	rc := rt.VK.Get()
 	defer rc.Close()
 
 	for i, idBatch := range idBatches {

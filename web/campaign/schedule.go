@@ -36,7 +36,7 @@ func handleSchedule(ctx context.Context, rt *runtime.Runtime, r *scheduleRequest
 
 	task := &campaigns.ScheduleCampaignPointTask{PointID: r.PointID}
 
-	rc := rt.RP.Get()
+	rc := rt.VK.Get()
 	defer rc.Close()
 	if err := tasks.Queue(rc, tasks.BatchQueue, r.OrgID, task, true); err != nil {
 		return nil, 0, fmt.Errorf("error queuing schedule campaign point task: %w", err)

@@ -34,7 +34,7 @@ func (t *InterruptChannelTask) WithAssets() models.Refresh {
 // Perform implements tasks.Task
 func (t *InterruptChannelTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets) error {
 	db := rt.DB
-	rc := rt.RP.Get()
+	rc := rt.VK.Get()
 	defer rc.Close()
 
 	// load channel from db instead of assets because it may already be released

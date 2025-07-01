@@ -105,7 +105,7 @@ func createBroadcastBatches(ctx context.Context, rt *runtime.Runtime, oa *models
 		q = tasks.HandlerQueue
 	}
 
-	rc := rt.RP.Get()
+	rc := rt.VK.Get()
 	defer rc.Close()
 
 	// create tasks for batches of contacts

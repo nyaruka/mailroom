@@ -46,7 +46,7 @@ func (t *BulkWaitExpireTask) WithAssets() models.Refresh {
 
 // Perform creates the actual task
 func (t *BulkWaitExpireTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets) error {
-	rc := rt.RP.Get()
+	rc := rt.VK.Get()
 	defer rc.Close()
 
 	for _, e := range t.Expirations {

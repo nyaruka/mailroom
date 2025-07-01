@@ -45,7 +45,7 @@ func handleClose(ctx context.Context, rt *runtime.Runtime, r *http.Request) (any
 		return nil, 0, fmt.Errorf("error closing tickets: %w", err)
 	}
 
-	rc := rt.RP.Get()
+	rc := rt.VK.Get()
 	defer rc.Close()
 
 	for t, e := range evts {

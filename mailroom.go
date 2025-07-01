@@ -85,7 +85,7 @@ func (mr *Mailroom) Start() error {
 		log.Warn("no distinct readonly db configured")
 	}
 
-	mr.rt.RP, err = vkutil.NewPool(c.Valkey)
+	mr.rt.VK, err = vkutil.NewPool(c.Valkey)
 	if err != nil {
 		log.Error("valkey not reachable", "error", err)
 	} else {
@@ -203,7 +203,7 @@ func (mr *Mailroom) reportMetrics(ctx context.Context) (int, error) {
 
 	// calculate DB and valkey stats
 	dbStats := mr.rt.DB.Stats()
-	vkStats := mr.rt.RP.Stats()
+	vkStats := mr.rt.VK.Stats()
 	dbWaitDurationInPeriod := dbStats.WaitDuration - mr.dbWaitDuration
 	vkWaitDurationInPeriod := vkStats.WaitDuration - mr.vkWaitDuration
 	mr.dbWaitDuration = dbStats.WaitDuration
@@ -271,7 +271,7 @@ func openAndCheckDBConnection(url string, maxOpenConns int) (*sql.DB, *sqlx.DB, 
 }
 
 func getQueueSizes(rt *runtime.Runtime) (int, int, int) {
-	rc := rt.RP.Get()
+	rc := rt.VK.Get()
 	defer rc.Close()
 
 	handler, err := tasks.HandlerQueue.Size(rc)

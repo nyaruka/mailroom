@@ -44,11 +44,11 @@ func (t *PopulateDynamicGroupTask) WithAssets() models.Refresh {
 // Perform figures out the membership for a query based group then repopulates it
 func (t *PopulateDynamicGroupTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets) error {
 	locker := vkutil.NewLocker(fmt.Sprintf(populateLockKey, t.GroupID), time.Hour)
-	lock, err := locker.Grab(ctx, rt.RP, time.Minute*5)
+	lock, err := locker.Grab(ctx, rt.VK, time.Minute*5)
 	if err != nil {
 		return fmt.Errorf("error grabbing lock to repopulate smart group: %d: %w", t.GroupID, err)
 	}
-	defer locker.Release(ctx, rt.RP, lock)
+	defer locker.Release(ctx, rt.VK, lock)
 
 	start := time.Now()
 

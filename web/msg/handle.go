@@ -40,7 +40,7 @@ func handleHandle(ctx context.Context, rt *runtime.Runtime, r *handleRequest) (a
 		return nil, 0, fmt.Errorf("error loading messages to handle: %w", err)
 	}
 
-	rc := rt.RP.Get()
+	rc := rt.VK.Get()
 	defer rc.Close()
 
 	// response is the ids of the messages that were actually queued

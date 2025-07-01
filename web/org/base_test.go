@@ -28,7 +28,7 @@ func TestDeindex(t *testing.T) {
 
 	testsuite.RunWebTests(t, ctx, rt, "testdata/deindex.json", nil)
 
-	rc := rt.RP.Get()
+	rc := rt.VK.Get()
 	defer rc.Close()
 	assertvk.SMembers(t, rc, "deindex:contacts", []string{"1"})
 }

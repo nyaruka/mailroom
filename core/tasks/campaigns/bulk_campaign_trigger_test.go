@@ -22,7 +22,7 @@ func TestBulkCampaignTrigger(t *testing.T) {
 	defer random.SetGenerator(random.DefaultGenerator)
 	random.SetGenerator(random.NewSeededGenerator(123))
 
-	rc := rt.RP.Get()
+	rc := rt.VK.Get()
 	defer rc.Close()
 
 	// create a waiting session for Cathy

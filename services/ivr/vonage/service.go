@@ -200,7 +200,7 @@ func (s *service) PreprocessStatus(ctx context.Context, rt *runtime.Runtime, r *
 	}
 
 	// look up to see whether this is a call we need to track
-	rc := rt.RP.Get()
+	rc := rt.VK.Get()
 	defer rc.Close()
 
 	legKey := fmt.Sprintf("dial_%s", legUUID)
@@ -290,7 +290,7 @@ func (s *service) PreprocessResume(ctx context.Context, rt *runtime.Runtime, cal
 			return nil, fmt.Errorf("record resume without recording_uuid")
 		}
 
-		rc := rt.RP.Get()
+		rc := rt.VK.Get()
 		defer rc.Close()
 
 		recordingKey := fmt.Sprintf("recording_%s", recordingUUID)
@@ -345,7 +345,7 @@ func (s *service) PreprocessResume(ctx context.Context, rt *runtime.Runtime, cal
 		}
 
 		// write it to redis
-		rc := rt.RP.Get()
+		rc := rt.VK.Get()
 		defer rc.Close()
 
 		recordingKey := fmt.Sprintf("recording_%s", recordingUUID)
@@ -595,7 +595,7 @@ func (s *service) WriteSessionResponse(ctx context.Context, rt *runtime.Runtime,
 	}
 
 	// get our response
-	response, err := s.responseForSprint(ctx, rt.RP, channel, scene.DBCall, resumeURL, scene.Sprint.Events())
+	response, err := s.responseForSprint(ctx, rt.VK, channel, scene.DBCall, resumeURL, scene.Sprint.Events())
 	if err != nil {
 		return fmt.Errorf("unable to build response for IVR call: %w", err)
 	}

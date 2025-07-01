@@ -41,11 +41,11 @@ func (t *ScheduleCampaignPointTask) WithAssets() models.Refresh {
 // Perform creates the actual event fires to schedule the given campaign point
 func (t *ScheduleCampaignPointTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets) error {
 	locker := vkutil.NewLocker(fmt.Sprintf(scheduleLockKey, t.PointID), time.Hour)
-	lock, err := locker.Grab(ctx, rt.RP, time.Minute*5)
+	lock, err := locker.Grab(ctx, rt.VK, time.Minute*5)
 	if err != nil {
 		return fmt.Errorf("error grabbing lock to schedule campaign point %d: %w", t.PointID, err)
 	}
-	defer locker.Release(ctx, rt.RP, lock)
+	defer locker.Release(ctx, rt.VK, lock)
 
 	err = models.ScheduleCampaignPoint(ctx, rt, oa, t.PointID)
 	if err != nil {

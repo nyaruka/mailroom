@@ -19,7 +19,7 @@ func TestStartFlowTask(t *testing.T) {
 
 	defer testsuite.Reset(testsuite.ResetAll)
 
-	rc := rt.RP.Get()
+	rc := rt.VK.Get()
 	defer rc.Close()
 
 	testdb.InsertWaitingSession(rt, testdb.Org1, testdb.George, models.FlowTypeMessaging, testdb.Favorites, models.NilCallID)
@@ -252,7 +252,7 @@ func TestStartFlowTask(t *testing.T) {
 
 func TestStartFlowTaskNonPersistedStart(t *testing.T) {
 	_, rt := testsuite.Runtime()
-	rc := rt.RP.Get()
+	rc := rt.VK.Get()
 	defer rc.Close()
 
 	defer testsuite.Reset(testsuite.ResetData)

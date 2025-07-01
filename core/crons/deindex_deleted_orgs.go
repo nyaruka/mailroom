@@ -31,7 +31,7 @@ func (c *DeindexDeletedOrgsCron) AllInstances() bool {
 }
 
 func (c *DeindexDeletedOrgsCron) Run(ctx context.Context, rt *runtime.Runtime) (map[string]any, error) {
-	rc := rt.RP.Get()
+	rc := rt.VK.Get()
 	defer rc.Close()
 
 	// get org ids that still have contacts to de-index
@@ -61,7 +61,7 @@ func (c *DeindexDeletedOrgsCron) Run(ctx context.Context, rt *runtime.Runtime) (
 
 // MarkOrgForDeindexing marks the given org for de-indexing
 func MarkOrgForDeindexing(ctx context.Context, rt *runtime.Runtime, orgID models.OrgID) error {
-	rc := rt.RP.Get()
+	rc := rt.VK.Get()
 	defer rc.Close()
 
 	if _, err := rc.Do("SADD", deindexContactsSetKey, orgID); err != nil {

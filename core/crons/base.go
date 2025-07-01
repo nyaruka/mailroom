@@ -68,7 +68,7 @@ func recordExecution(name string, r func(context.Context, *runtime.Runtime) (map
 
 		rt.Stats.RecordCronTask(name, elapsed)
 
-		rc := rt.RP.Get()
+		rc := rt.VK.Get()
 		defer rc.Close()
 
 		rc.Send("HSET", statsLastStartKey, name, started.Format(time.RFC3339))

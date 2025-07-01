@@ -87,7 +87,7 @@ func (t *BulkCampaignTriggerTask) Perform(ctx context.Context, rt *runtime.Runti
 	// store recent fires in redis for this event
 	recentSet := vkutil.NewCappedZSet(fmt.Sprintf(recentFiresKey, t.PointID), recentFiresCap, recentFiresExpire)
 
-	rc := rt.RP.Get()
+	rc := rt.VK.Get()
 	defer rc.Close()
 
 	for _, cid := range contactIDs[:min(recentFiresCap, len(contactIDs))] {
