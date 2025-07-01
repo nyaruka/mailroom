@@ -1,3 +1,7 @@
+v10.1.158 (2025-07-01)
+-------------------------
+ * Fix foreman still assigning jobs after workers have been stopped
+
 v10.1.157 (2025-06-30)
 -------------------------
  * Update to latest goflow that adds UUIDs to events
