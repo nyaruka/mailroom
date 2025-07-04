@@ -60,10 +60,10 @@ func Engine(rt *runtime.Runtime) flows.Engine {
 			"X-Mailroom-Mode": "normal",
 		}
 
-		httpClient, httpRetries, httpAccess := HTTP(rt.Config)
+		httpClient, httpAccess := HTTP(rt.Config)
 
 		eng = engine.NewBuilder().
-			WithWebhookServiceFactory(webhooks.NewServiceFactory(httpClient, httpRetries, httpAccess, webhookHeaders, rt.Config.WebhooksMaxBodyBytes)).
+			WithWebhookServiceFactory(webhooks.NewServiceFactory(httpClient, nil, httpAccess, webhookHeaders, rt.Config.WebhooksMaxBodyBytes)).
 			WithClassificationServiceFactory(classificationFactory(rt)).
 			WithLLMServiceFactory(llmFactory(rt)).
 			WithEmailServiceFactory(emailFactory(rt)).
@@ -87,7 +87,7 @@ func Simulator(ctx context.Context, rt *runtime.Runtime) flows.Engine {
 			"X-Mailroom-Mode": "simulation",
 		}
 
-		httpClient, _, httpAccess := HTTP(rt.Config) // don't do retries in simulator
+		httpClient, httpAccess := HTTP(rt.Config) // don't do retries in simulator
 
 		simulator = engine.NewBuilder().
 			WithWebhookServiceFactory(webhooks.NewServiceFactory(httpClient, nil, httpAccess, webhookHeaders, rt.Config.WebhooksMaxBodyBytes)).

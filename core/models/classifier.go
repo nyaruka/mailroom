@@ -84,7 +84,7 @@ func (c *Classifier) Type() string { return c.Type_ }
 
 // AsService builds the corresponding ClassificationService for the passed in Classifier
 func (c *Classifier) AsService(cfg *runtime.Config, classifier *flows.Classifier) (flows.ClassificationService, error) {
-	httpClient, httpRetries, _ := goflow.HTTP(cfg)
+	httpClient, _ := goflow.HTTP(cfg)
 
 	switch c.Type() {
 	case ClassifierTypeWit:
@@ -92,7 +92,7 @@ func (c *Classifier) AsService(cfg *runtime.Config, classifier *flows.Classifier
 		if accessToken == "" {
 			return nil, fmt.Errorf("missing %s for Wit classifier: %s", WitConfigAccessToken, c.UUID())
 		}
-		return wit.NewService(httpClient, httpRetries, classifier, accessToken), nil
+		return wit.NewService(httpClient, nil, classifier, accessToken), nil
 
 	default:
 		return nil, fmt.Errorf("unknown classifier type '%s' for classifier: %s", c.Type(), c.UUID())

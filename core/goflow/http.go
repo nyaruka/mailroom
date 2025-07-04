@@ -13,11 +13,10 @@ import (
 var httpInit sync.Once
 
 var httpClient *http.Client
-var httpRetries *httpx.RetryConfig
 var httpAccess *httpx.AccessConfig
 
 // HTTP returns the configuration objects for HTTP calls from the engine and its services
-func HTTP(cfg *runtime.Config) (*http.Client, *httpx.RetryConfig, *httpx.AccessConfig) {
+func HTTP(cfg *runtime.Config) (*http.Client, *httpx.AccessConfig) {
 	httpInit.Do(func() {
 		// customize the default golang transport
 		t := http.DefaultTransport.(*http.Transport).Clone()
@@ -33,14 +32,8 @@ func HTTP(cfg *runtime.Config) (*http.Client, *httpx.RetryConfig, *httpx.AccessC
 			Timeout:   time.Duration(cfg.WebhooksTimeout) * time.Millisecond,
 		}
 
-		httpRetries = httpx.NewExponentialRetries(
-			time.Duration(cfg.WebhooksInitialBackoff)*time.Millisecond,
-			cfg.WebhooksMaxRetries,
-			cfg.WebhooksBackoffJitter,
-		)
-
 		disallowedIPs, disallowedNets, _ := cfg.ParseDisallowedNetworks()
 		httpAccess = httpx.NewAccessConfig(10*time.Second, disallowedIPs, disallowedNets)
 	})
-	return httpClient, httpRetries, httpAccess
+	return httpClient, httpAccess
 }
