@@ -1,3 +1,8 @@
+v10.3.0 (2025-07-07)
+-------------------------
+ * Add context to all queue calls
+ * Disable retrying of webhook calls
+
 v10.2.0 (2025-07-01)
 -------------------------
  * Update dependencies
