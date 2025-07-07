@@ -199,7 +199,7 @@ func (mr *Mailroom) startMetricsReporter(interval time.Duration) {
 func (mr *Mailroom) reportMetrics(ctx context.Context) (int, error) {
 	metrics := mr.rt.Stats.Extract().ToMetrics()
 
-	handlerSize, batchSize, throttledSize := getQueueSizes(mr.rt)
+	handlerSize, batchSize, throttledSize := getQueueSizes(ctx, mr.rt)
 
 	// calculate DB and valkey stats
 	dbStats := mr.rt.DB.Stats()
@@ -270,19 +270,19 @@ func openAndCheckDBConnection(url string, maxOpenConns int) (*sql.DB, *sqlx.DB, 
 	return db.DB, db, err
 }
 
-func getQueueSizes(rt *runtime.Runtime) (int, int, int) {
+func getQueueSizes(ctx context.Context, rt *runtime.Runtime) (int, int, int) {
 	rc := rt.VK.Get()
 	defer rc.Close()
 
-	handler, err := tasks.HandlerQueue.Size(rc)
+	handler, err := tasks.HandlerQueue.Size(ctx, rc)
 	if err != nil {
 		slog.Error("error calculating handler queue size", "error", err)
 	}
-	batch, err := tasks.BatchQueue.Size(rc)
+	batch, err := tasks.BatchQueue.Size(ctx, rc)
 	if err != nil {
 		slog.Error("error calculating batch queue size", "error", err)
 	}
-	throttled, err := tasks.ThrottledQueue.Size(rc)
+	throttled, err := tasks.ThrottledQueue.Size(ctx, rc)
 	if err != nil {
 		slog.Error("error calculating throttled queue size", "error", err)
 	}

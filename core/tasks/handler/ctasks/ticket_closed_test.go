@@ -29,10 +29,10 @@ func TestTicketClosed(t *testing.T) {
 
 	models.NewTicketClosedEvent(modelTicket, testdb.Admin.ID)
 
-	err := handler.QueueTask(rc, testdb.Org1.ID, testdb.Cathy.ID, ctasks.NewTicketClosed(modelTicket.ID()))
+	err := handler.QueueTask(ctx, rc, testdb.Org1.ID, testdb.Cathy.ID, ctasks.NewTicketClosed(modelTicket.ID()))
 	require.NoError(t, err)
 
-	task, err := tasks.HandlerQueue.Pop(rc)
+	task, err := tasks.HandlerQueue.Pop(ctx, rc)
 	require.NoError(t, err)
 
 	err = tasks.Perform(ctx, rt, task)

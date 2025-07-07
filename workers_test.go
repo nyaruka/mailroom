@@ -25,7 +25,7 @@ func (t *testTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.
 }
 
 func TestForemanAndWorkers(t *testing.T) {
-	_, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime()
 	wg := &sync.WaitGroup{}
 	q := queues.NewFairSorted("test")
 
@@ -35,15 +35,15 @@ func TestForemanAndWorkers(t *testing.T) {
 	tasks.RegisterType("test", func() tasks.Task { return &testTask{} })
 
 	// queue up tasks of unknown type to ensure it doesn't break further processing
-	q.Push(rc, "spam", 1, "argh", false)
-	q.Push(rc, "spam", 2, "argh", false)
+	q.Push(ctx, rc, "spam", 1, "argh", false)
+	q.Push(ctx, rc, "spam", 2, "argh", false)
 
 	// queue up 5 tasks for two orgs
 	for range 5 {
-		q.Push(rc, "test", 1, &testTask{}, false)
+		q.Push(ctx, rc, "test", 1, &testTask{}, false)
 	}
 	for range 5 {
-		q.Push(rc, "test", 2, &testTask{}, false)
+		q.Push(ctx, rc, "test", 2, &testTask{}, false)
 	}
 
 	fm := mailroom.NewForeman(rt, wg, q, 2)
@@ -51,7 +51,7 @@ func TestForemanAndWorkers(t *testing.T) {
 
 	// wait for queue to empty
 	for {
-		if size, err := q.Size(rc); err != nil || size == 0 {
+		if size, err := q.Size(ctx, rc); err != nil || size == 0 {
 			break
 		}
 		time.Sleep(10 * time.Millisecond)

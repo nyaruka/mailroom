@@ -65,7 +65,7 @@ func handleEvent(ctx context.Context, rt *runtime.Runtime, r *eventRequest) (any
 		rc := rt.VK.Get()
 		defer rc.Close()
 
-		err = handler.QueueTask(rc, r.OrgID, e.ContactID, &ctasks.EventReceivedTask{
+		err = handler.QueueTask(ctx, rc, r.OrgID, e.ContactID, &ctasks.EventReceivedTask{
 			EventID:    e.ID,
 			EventType:  e.EventType,
 			ChannelID:  e.ChannelID,

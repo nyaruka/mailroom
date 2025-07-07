@@ -1,6 +1,7 @@
 package queues
 
 import (
+	"context"
 	_ "embed"
 	"encoding/json"
 	"fmt"
@@ -24,7 +25,7 @@ func (q *FairSorted) String() string {
 }
 
 // Push adds the passed in task to our queue for execution
-func (q *FairSorted) Push(rc redis.Conn, taskType string, ownerID int, task any, priority bool) error {
+func (q *FairSorted) Push(ctx context.Context, rc redis.Conn, taskType string, ownerID int, task any, priority bool) error {
 	score := q.score(priority)
 
 	taskBody, err := json.Marshal(task)
@@ -37,12 +38,12 @@ func (q *FairSorted) Push(rc redis.Conn, taskType string, ownerID int, task any,
 
 	rc.Send("ZADD", q.queueKey(ownerID), score, marshaled)
 	rc.Send("ZINCRBY", q.activeKey(), 0, ownerID) // ensure exists in active set
-	_, err = rc.Do("")
+	_, err = redis.DoContext(rc, ctx, "")
 	return err
 }
 
-func (q *FairSorted) Owners(rc redis.Conn) ([]int, error) {
-	strs, err := redis.Strings(rc.Do("ZRANGE", q.activeKey(), 0, -1))
+func (q *FairSorted) Owners(ctx context.Context, rc redis.Conn) ([]int, error) {
+	strs, err := redis.Strings(redis.DoContext(rc, ctx, "ZRANGE", q.activeKey(), 0, -1))
 	if err != nil {
 		return nil, err
 	}
@@ -80,10 +81,10 @@ var luaFSPop string
 var scriptFSPop = redis.NewScript(1, luaFSPop)
 
 // Pop pops the next task off our queue
-func (q *FairSorted) Pop(rc redis.Conn) (*Task, error) {
+func (q *FairSorted) Pop(ctx context.Context, rc redis.Conn) (*Task, error) {
 	task := &Task{}
 	for {
-		values, err := redis.Strings(scriptFSPop.Do(rc, q.activeKey(), q.keyBase))
+		values, err := redis.Strings(scriptFSPop.DoContext(ctx, rc, q.activeKey(), q.keyBase))
 		if err != nil {
 			return nil, err
 		}
@@ -118,8 +119,8 @@ var scriptFSDone = redis.NewScript(1, luaFSDone)
 
 // Done marks the passed in task as complete. Callers must call this in order
 // to maintain fair workers across orgs
-func (q *FairSorted) Done(rc redis.Conn, ownerID int) error {
-	_, err := scriptFSDone.Do(rc, q.activeKey(), strconv.FormatInt(int64(ownerID), 10))
+func (q *FairSorted) Done(ctx context.Context, rc redis.Conn, ownerID int) error {
+	_, err := scriptFSDone.DoContext(ctx, rc, q.activeKey(), strconv.FormatInt(int64(ownerID), 10))
 	return err
 }
 
@@ -128,8 +129,8 @@ var luaFSSize string
 var scriptFSSize = redis.NewScript(1, luaFSSize)
 
 // Size returns the total number of tasks for the passed in queue across all owners
-func (q *FairSorted) Size(rc redis.Conn) (int, error) {
-	return redis.Int(scriptFSSize.Do(rc, q.activeKey(), q.keyBase))
+func (q *FairSorted) Size(ctx context.Context, rc redis.Conn) (int, error) {
+	return redis.Int(scriptFSSize.DoContext(ctx, rc, q.activeKey(), q.keyBase))
 }
 
 //go:embed lua/fair_sorted_pause.lua
@@ -137,8 +138,8 @@ var luaFSPause string
 var scriptFSPause = redis.NewScript(1, luaFSPause)
 
 // Pause marks the given task owner as paused so their tasks are not popped.
-func (q *FairSorted) Pause(rc redis.Conn, ownerID int) error {
-	_, err := scriptFSPause.Do(rc, q.activeKey(), strconv.FormatInt(int64(ownerID), 10))
+func (q *FairSorted) Pause(ctx context.Context, rc redis.Conn, ownerID int) error {
+	_, err := scriptFSPause.DoContext(ctx, rc, q.activeKey(), strconv.FormatInt(int64(ownerID), 10))
 	return err
 }
 
@@ -147,7 +148,7 @@ var luaFSResume string
 var scriptFSResume = redis.NewScript(1, luaFSResume)
 
 // Resume marks the given task owner as active so their tasks will be popped.
-func (q *FairSorted) Resume(rc redis.Conn, ownerID int) error {
-	_, err := scriptFSResume.Do(rc, q.activeKey(), strconv.FormatInt(int64(ownerID), 10))
+func (q *FairSorted) Resume(ctx context.Context, rc redis.Conn, ownerID int) error {
+	_, err := scriptFSResume.DoContext(ctx, rc, q.activeKey(), strconv.FormatInt(int64(ownerID), 10))
 	return err
 }

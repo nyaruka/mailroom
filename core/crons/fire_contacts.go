@@ -82,7 +82,7 @@ func (c *FireContactsCron) Run(ctx context.Context, rt *runtime.Runtime) (map[st
 					}
 
 					// queue to throttled queue but high priority
-					if err := tasks.Queue(rc, tasks.ThrottledQueue, og.orgID, &contacts.BulkWaitTimeoutTask{Timeouts: ts}, true); err != nil {
+					if err := tasks.Queue(ctx, rc, tasks.ThrottledQueue, og.orgID, &contacts.BulkWaitTimeoutTask{Timeouts: ts}, true); err != nil {
 						return nil, fmt.Errorf("error queuing bulk wait timeout task for org #%d: %w", og.orgID, err)
 					}
 					numWaitTimeouts += len(batch)
@@ -94,7 +94,7 @@ func (c *FireContactsCron) Run(ctx context.Context, rt *runtime.Runtime) (map[st
 					}
 
 					// queue to throttled queue but high priority
-					if err := tasks.Queue(rc, tasks.ThrottledQueue, og.orgID, &contacts.BulkWaitExpireTask{Expirations: es}, true); err != nil {
+					if err := tasks.Queue(ctx, rc, tasks.ThrottledQueue, og.orgID, &contacts.BulkWaitExpireTask{Expirations: es}, true); err != nil {
 						return nil, fmt.Errorf("error queuing bulk wait expire task for org #%d: %w", og.orgID, err)
 					}
 					numWaitExpires += len(batch)
@@ -106,7 +106,7 @@ func (c *FireContactsCron) Run(ctx context.Context, rt *runtime.Runtime) (map[st
 					}
 
 					// queue to throttled queue but high priority
-					if err := tasks.Queue(rc, tasks.ThrottledQueue, og.orgID, &contacts.BulkSessionExpireTask{SessionUUIDs: ss}, true); err != nil {
+					if err := tasks.Queue(ctx, rc, tasks.ThrottledQueue, og.orgID, &contacts.BulkSessionExpireTask{SessionUUIDs: ss}, true); err != nil {
 						return nil, fmt.Errorf("error queuing bulk session expire task for org #%d: %w", og.orgID, err)
 					}
 					numSessionExpires += len(batch)
@@ -120,7 +120,7 @@ func (c *FireContactsCron) Run(ctx context.Context, rt *runtime.Runtime) (map[st
 					pointID, fireVersion := c.parseCampaignFireScope(strings.TrimPrefix(og.grouping, "campaign:"))
 
 					// queue to throttled queue but high priority
-					if err := tasks.Queue(rc, tasks.ThrottledQueue, og.orgID, &campaigns.BulkCampaignTriggerTask{PointID: pointID, FireVersion: fireVersion, ContactIDs: cids}, true); err != nil {
+					if err := tasks.Queue(ctx, rc, tasks.ThrottledQueue, og.orgID, &campaigns.BulkCampaignTriggerTask{PointID: pointID, FireVersion: fireVersion, ContactIDs: cids}, true); err != nil {
 						return nil, fmt.Errorf("error queuing bulk campaign trigger task for org #%d: %w", og.orgID, err)
 					}
 					numCampaignPoints += len(batch)

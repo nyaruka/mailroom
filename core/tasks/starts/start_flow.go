@@ -125,7 +125,7 @@ func createFlowStartBatches(ctx context.Context, rt *runtime.Runtime, oa *models
 		isLast := (i == len(idBatches)-1)
 		batchTask := &StartFlowBatchTask{FlowStartBatch: start.CreateBatch(idBatch, isFirst, isLast, len(contactIDs))}
 
-		if err := tasks.Queue(rc, q, start.OrgID, batchTask, false); err != nil {
+		if err := tasks.Queue(ctx, rc, q, start.OrgID, batchTask, false); err != nil {
 			if i == 0 {
 				return fmt.Errorf("error queuing flow start batch: %w", err)
 			}

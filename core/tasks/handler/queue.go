@@ -46,11 +46,11 @@ type payload struct {
 }
 
 // QueueTask queues a handler task for the given contact
-func QueueTask(rc redis.Conn, orgID models.OrgID, contactID models.ContactID, task Task) error {
-	return queueTask(rc, orgID, contactID, task, false, 0)
+func QueueTask(ctx context.Context, rc redis.Conn, orgID models.OrgID, contactID models.ContactID, task Task) error {
+	return queueTask(ctx, rc, orgID, contactID, task, false, 0)
 }
 
-func queueTask(rc redis.Conn, orgID models.OrgID, contactID models.ContactID, task Task, front bool, errorCount int) error {
+func queueTask(ctx context.Context, rc redis.Conn, orgID models.OrgID, contactID models.ContactID, task Task, front bool, errorCount int) error {
 	taskJSON, err := json.Marshal(task)
 	if err != nil {
 		return fmt.Errorf("error marshalling handler task: %w", err)
@@ -62,17 +62,17 @@ func queueTask(rc redis.Conn, orgID models.OrgID, contactID models.ContactID, ta
 	// first push the event on our contact queue
 	contactQ := fmt.Sprintf("c:%d:%d", orgID, contactID)
 	if front {
-		_, err = redis.Int64(rc.Do("LPUSH", contactQ, string(payloadJSON)))
+		_, err = redis.Int64(redis.DoContext(rc, ctx, "LPUSH", contactQ, string(payloadJSON)))
 
 	} else {
-		_, err = redis.Int64(rc.Do("RPUSH", contactQ, string(payloadJSON)))
+		_, err = redis.Int64(redis.DoContext(rc, ctx, "RPUSH", contactQ, string(payloadJSON)))
 	}
 	if err != nil {
 		return fmt.Errorf("error queuing handler task: %w", err)
 	}
 
 	// then add a handle task for that contact on our global handler queue to
-	err = tasks.Queue(rc, tasks.HandlerQueue, orgID, &HandleContactEventTask{ContactID: contactID}, false)
+	err = tasks.Queue(ctx, rc, tasks.HandlerQueue, orgID, &HandleContactEventTask{ContactID: contactID}, false)
 	if err != nil {
 		return fmt.Errorf("error queuing handle task: %w", err)
 	}

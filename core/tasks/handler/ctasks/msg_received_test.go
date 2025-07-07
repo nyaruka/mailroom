@@ -329,10 +329,10 @@ func TestMsgReceivedTask(t *testing.T) {
 			tc.preHook()
 		}
 
-		err := handler.QueueTask(rc, tc.org.ID, tc.contact.ID, makeMsgTask(tc.channel, tc.contact, tc.text))
+		err := handler.QueueTask(ctx, rc, tc.org.ID, tc.contact.ID, makeMsgTask(tc.channel, tc.contact, tc.text))
 		assert.NoError(t, err, "%d: error adding task", i)
 
-		task, err := tasks.HandlerQueue.Pop(rc)
+		task, err := tasks.HandlerQueue.Pop(ctx, rc)
 		assert.NoError(t, err, "%d: error popping next task", i)
 
 		err = tasks.Perform(ctx, rt, task)
@@ -394,18 +394,18 @@ func TestMsgReceivedTask(t *testing.T) {
 
 	// force an error by marking our run for fred as complete (our session is still active so this will blow up)
 	rt.DB.MustExec(`UPDATE flows_flowrun SET status = 'C', exited_on = NOW() WHERE contact_id = $1`, testdb.Org2Contact.ID)
-	handler.QueueTask(rc, testdb.Org2.ID, testdb.Org2Contact.ID, makeMsgTask(testdb.Org2Channel, testdb.Org2Contact, "red"))
+	handler.QueueTask(ctx, rc, testdb.Org2.ID, testdb.Org2Contact.ID, makeMsgTask(testdb.Org2Channel, testdb.Org2Contact, "red"))
 
 	// should get requeued three times automatically
 	for i := 0; i < 3; i++ {
-		task, _ := tasks.HandlerQueue.Pop(rc)
+		task, _ := tasks.HandlerQueue.Pop(ctx, rc)
 		assert.NotNil(t, task)
 		err := tasks.Perform(ctx, rt, task)
 		assert.NoError(t, err)
 	}
 
 	// on third error, no new task
-	task, err := tasks.HandlerQueue.Pop(rc)
+	task, err := tasks.HandlerQueue.Pop(ctx, rc)
 	assert.NoError(t, err)
 	assert.Nil(t, task)
 
@@ -414,8 +414,8 @@ func TestMsgReceivedTask(t *testing.T) {
 	models.FlushCache()
 
 	// try to resume now
-	handler.QueueTask(rc, testdb.Org2.ID, testdb.Org2Contact.ID, makeMsgTask(testdb.Org2Channel, testdb.Org2Contact, "red"))
-	task, _ = tasks.HandlerQueue.Pop(rc)
+	handler.QueueTask(ctx, rc, testdb.Org2.ID, testdb.Org2Contact.ID, makeMsgTask(testdb.Org2Channel, testdb.Org2Contact, "red"))
+	task, _ = tasks.HandlerQueue.Pop(ctx, rc)
 	assert.NotNil(t, task)
 	err = tasks.Perform(ctx, rt, task)
 	assert.NoError(t, err)
@@ -428,8 +428,8 @@ func TestMsgReceivedTask(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT count(*) from flows_flowsession where contact_id = $1 and status = 'F'`, testdb.Org2Contact.ID).Returns(2)
 
 	// trigger should also not start a new session
-	handler.QueueTask(rc, testdb.Org2.ID, testdb.Org2Contact.ID, makeMsgTask(testdb.Org2Channel, testdb.Org2Contact, "start"))
-	task, _ = tasks.HandlerQueue.Pop(rc)
+	handler.QueueTask(ctx, rc, testdb.Org2.ID, testdb.Org2Contact.ID, makeMsgTask(testdb.Org2Channel, testdb.Org2Contact, "start"))
+	task, _ = tasks.HandlerQueue.Pop(ctx, rc)
 	err = tasks.Perform(ctx, rt, task)
 	assert.NoError(t, err)
 

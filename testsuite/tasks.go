@@ -19,18 +19,22 @@ import (
 )
 
 func QueueBatchTask(t *testing.T, rt *runtime.Runtime, org *testdb.Org, task tasks.Task) {
+	ctx := context.Background()
+
 	rc := rt.VK.Get()
 	defer rc.Close()
 
-	err := tasks.Queue(rc, tasks.BatchQueue, org.ID, task, false)
+	err := tasks.Queue(ctx, rc, tasks.BatchQueue, org.ID, task, false)
 	require.NoError(t, err)
 }
 
 func QueueContactTask(t *testing.T, rt *runtime.Runtime, org *testdb.Org, contact *testdb.Contact, ctask handler.Task) {
+	ctx := context.Background()
+
 	rc := rt.VK.Get()
 	defer rc.Close()
 
-	err := handler.QueueTask(rc, org.ID, contact.ID, ctask)
+	err := handler.QueueTask(ctx, rc, org.ID, contact.ID, ctask)
 	require.NoError(t, err)
 }
 
@@ -62,6 +66,8 @@ func CurrentTasks(t *testing.T, rt *runtime.Runtime, qname string) map[models.Or
 }
 
 func FlushTasks(t *testing.T, rt *runtime.Runtime, qnames ...string) map[string]int {
+	ctx := context.Background()
+
 	rc := rt.VK.Get()
 	defer rc.Close()
 
@@ -79,7 +85,7 @@ func FlushTasks(t *testing.T, rt *runtime.Runtime, qnames ...string) map[string]
 	for {
 		// look for a task in the queues
 		for _, q := range qs {
-			task, err = q.Pop(rc)
+			task, err = q.Pop(ctx, rc)
 			require.NoError(t, err)
 
 			if task != nil {

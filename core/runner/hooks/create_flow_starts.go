@@ -75,7 +75,7 @@ func (h *createFlowStarts) Execute(ctx context.Context, rt *runtime.Runtime, tx 
 				}
 			}
 
-			err = tasks.Queue(rc, tasks.BatchQueue, oa.OrgID(), &starts.StartFlowTask{FlowStart: start}, false)
+			err = tasks.Queue(ctx, rc, tasks.BatchQueue, oa.OrgID(), &starts.StartFlowTask{FlowStart: start}, false)
 			if err != nil {
 				return fmt.Errorf("error queuing flow start: %w", err)
 			}
