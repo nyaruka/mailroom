@@ -42,20 +42,30 @@ func CurrentTasks(t *testing.T, rt *runtime.Runtime, qname string) map[models.Or
 	rc := rt.VK.Get()
 	defer rc.Close()
 
-	// get all active org queues
+	// old style
 	active, err := redis.Ints(rc.Do("ZRANGE", fmt.Sprintf("tasks:%s:active", qname), 0, -1))
 	require.NoError(t, err)
 
+	queued, err := redis.Ints(rc.Do("ZRANGE", fmt.Sprintf("{tasks:%s}:queued", qname), 0, -1))
+	require.NoError(t, err)
+
 	tasks := make(map[models.OrgID][]*queues.Task)
-	for _, orgID := range active {
-		orgTasksEncoded, err := redis.Strings(rc.Do("ZRANGE", fmt.Sprintf("tasks:%s:%d", qname, orgID), 0, -1))
+	for _, orgID := range slices.Concat(active, queued) {
+		// old style sorted set
+		tasksZ, err := redis.Strings(rc.Do("ZRANGE", fmt.Sprintf("tasks:%s:%d", qname, orgID), 0, -1))
 		require.NoError(t, err)
 
-		orgTasks := make([]*queues.Task, len(orgTasksEncoded))
+		tasks0, err := redis.Strings(rc.Do("LRANGE", fmt.Sprintf("{tasks:%s:q:%d}/0", qname, orgID), 0, -1))
+		require.NoError(t, err)
 
-		for i := range orgTasksEncoded {
+		tasks1, err := redis.Strings(rc.Do("LRANGE", fmt.Sprintf("{tasks:%s:q:%d}/1", qname, orgID), 0, -1))
+		require.NoError(t, err)
+
+		orgTasks := make([]*queues.Task, len(tasksZ)+len(tasks0)+len(tasks1))
+
+		for i, tsk := range slices.Concat(tasksZ, tasks0, tasks1) {
 			task := &queues.Task{}
-			jsonx.MustUnmarshal([]byte(orgTasksEncoded[i]), task)
+			jsonx.MustUnmarshal([]byte(tsk), task)
 			orgTasks[i] = task
 		}
 

@@ -36,25 +36,14 @@ func (q *FairV2) Push(ctx context.Context, rc redis.Conn, taskType string, owner
 	return q.base.Push(ctx, rc, fmt.Sprint(ownerID), priority, raw)
 }
 
-func (q *FairV2) Owners(ctx context.Context, rc redis.Conn) ([]int, error) {
-	strs, err := q.base.Queued(ctx, rc)
-	if err != nil {
-		return nil, err
-	}
-
-	actual := make([]int, len(strs))
-	for i, s := range strs {
-		owner, _ := strconv.ParseInt(s, 10, 64)
-		actual[i] = int(owner)
-	}
-
-	return actual, nil
-}
-
 func (q *FairV2) Pop(ctx context.Context, rc redis.Conn) (*Task, error) {
 	owner, raw, err := q.base.Pop(ctx, rc)
 	if err != nil {
 		return nil, fmt.Errorf("error popping task: %w", err)
+	}
+
+	if owner == "" || raw == nil {
+		return nil, nil // no task available
 	}
 
 	task := &Task{}
@@ -69,6 +58,21 @@ func (q *FairV2) Pop(ctx context.Context, rc redis.Conn) (*Task, error) {
 
 func (q *FairV2) Done(ctx context.Context, rc redis.Conn, ownerID int) error {
 	return q.base.Done(ctx, rc, fmt.Sprint(ownerID))
+}
+
+func (q *FairV2) Owners(ctx context.Context, rc redis.Conn) ([]int, error) {
+	strs, err := q.base.Queued(ctx, rc)
+	if err != nil {
+		return nil, err
+	}
+
+	actual := make([]int, len(strs))
+	for i, s := range strs {
+		owner, _ := strconv.ParseInt(s, 10, 64)
+		actual[i] = int(owner)
+	}
+
+	return actual, nil
 }
 
 func (q *FairV2) Size(ctx context.Context, rc redis.Conn) (int, error) {
