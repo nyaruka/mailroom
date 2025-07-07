@@ -152,8 +152,8 @@ func TestUnhealthyWebhookCalls(t *testing.T) {
 		runFlow()
 	}
 
-	healthySeries := vkutil.NewIntervalSeries("webhooks:healthy", time.Minute*5, 4)
-	unhealthySeries := vkutil.NewIntervalSeries("webhooks:unhealthy", time.Minute*5, 4)
+	healthySeries := vkutil.NewIntervalSeries("webhooks:healthy", time.Minute*5, 4, false)
+	unhealthySeries := vkutil.NewIntervalSeries("webhooks:unhealthy", time.Minute*5, 4, false)
 
 	total, err := healthySeries.Total(ctx, rc, "1bff8fe4-0714-433e-96a3-437405bf21cf")
 	assert.NoError(t, err)
