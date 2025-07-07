@@ -36,7 +36,7 @@ func (c *ThrottleQueueCron) Run(ctx context.Context, rt *runtime.Runtime) (map[s
 	rc := rt.VK.Get()
 	defer rc.Close()
 
-	owners, err := c.Queue.Owners(rc)
+	owners, err := c.Queue.Owners(ctx, rc)
 	if err != nil {
 		return nil, fmt.Errorf("error getting task owners: %w", err)
 	}
@@ -50,10 +50,10 @@ func (c *ThrottleQueueCron) Run(ctx context.Context, rt *runtime.Runtime) (map[s
 		}
 
 		if oa.Org().OutboxCount() >= throttleOutboxThreshold {
-			c.Queue.Pause(rc, ownerID)
+			c.Queue.Pause(ctx, rc, ownerID)
 			numPaused++
 		} else {
-			c.Queue.Resume(rc, ownerID)
+			c.Queue.Resume(ctx, rc, ownerID)
 			numResumed++
 		}
 	}

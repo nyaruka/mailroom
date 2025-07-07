@@ -134,7 +134,7 @@ func (c *FireSchedulesCron) Run(ctx context.Context, rt *runtime.Runtime) (map[s
 
 		// add our task if we have one
 		if task != nil {
-			err = tasks.Queue(rc, tasks.BatchQueue, s.OrgID, task, true)
+			err = tasks.Queue(ctx, rc, tasks.BatchQueue, s.OrgID, task, true)
 			if err != nil {
 				log.Error(fmt.Sprintf("error queueing %s task from schedule", task.Type()), "error", err)
 			}

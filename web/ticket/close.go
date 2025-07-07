@@ -50,7 +50,7 @@ func handleClose(ctx context.Context, rt *runtime.Runtime, r *http.Request) (any
 
 	for t, e := range evts {
 		if e.EventType() == models.TicketEventTypeClosed {
-			err = handler.QueueTask(rc, e.OrgID(), e.ContactID(), ctasks.NewTicketClosed(t.ID()))
+			err = handler.QueueTask(ctx, rc, e.OrgID(), e.ContactID(), ctasks.NewTicketClosed(t.ID()))
 			if err != nil {
 				return nil, 0, fmt.Errorf("error queueing ticket closed task %d: %w", t.ID(), err)
 			}

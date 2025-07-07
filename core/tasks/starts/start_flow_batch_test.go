@@ -34,7 +34,7 @@ func TestStartFlowBatchTask(t *testing.T) {
 	batch2 := start1.CreateBatch([]models.ContactID{testdb.George.ID, testdb.Alexandra.ID}, false, true, 4)
 
 	// start the first batch...
-	err = tasks.Queue(rc, tasks.ThrottledQueue, testdb.Org1.ID, &starts.StartFlowBatchTask{FlowStartBatch: batch1}, false)
+	err = tasks.Queue(ctx, rc, tasks.ThrottledQueue, testdb.Org1.ID, &starts.StartFlowBatchTask{FlowStartBatch: batch1}, false)
 	assert.NoError(t, err)
 	testsuite.FlushTasks(t, rt)
 
@@ -53,7 +53,7 @@ func TestStartFlowBatchTask(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT status FROM flows_flowstart WHERE id = $1`, start1.ID).Returns("S")
 
 	// start the second and final batch...
-	err = tasks.Queue(rc, tasks.ThrottledQueue, testdb.Org1.ID, &starts.StartFlowBatchTask{FlowStartBatch: batch2}, false)
+	err = tasks.Queue(ctx, rc, tasks.ThrottledQueue, testdb.Org1.ID, &starts.StartFlowBatchTask{FlowStartBatch: batch2}, false)
 	assert.NoError(t, err)
 	testsuite.FlushTasks(t, rt)
 
@@ -70,7 +70,7 @@ func TestStartFlowBatchTask(t *testing.T) {
 	start2Batch2 := start2.CreateBatch([]models.ContactID{testdb.George.ID, testdb.Alexandra.ID}, false, true, 4)
 
 	// start the first batch...
-	err = tasks.Queue(rc, tasks.ThrottledQueue, testdb.Org1.ID, &starts.StartFlowBatchTask{FlowStartBatch: start2Batch1}, false)
+	err = tasks.Queue(ctx, rc, tasks.ThrottledQueue, testdb.Org1.ID, &starts.StartFlowBatchTask{FlowStartBatch: start2Batch1}, false)
 	assert.NoError(t, err)
 	testsuite.FlushTasks(t, rt)
 
@@ -80,7 +80,7 @@ func TestStartFlowBatchTask(t *testing.T) {
 	rt.DB.MustExec(`UPDATE flows_flowstart SET status = 'I' WHERE id = $1`, start2.ID)
 
 	// start the second batch...
-	err = tasks.Queue(rc, tasks.ThrottledQueue, testdb.Org1.ID, &starts.StartFlowBatchTask{FlowStartBatch: start2Batch2}, false)
+	err = tasks.Queue(ctx, rc, tasks.ThrottledQueue, testdb.Org1.ID, &starts.StartFlowBatchTask{FlowStartBatch: start2Batch2}, false)
 	assert.NoError(t, err)
 	testsuite.FlushTasks(t, rt)
 
@@ -90,7 +90,7 @@ func TestStartFlowBatchTask(t *testing.T) {
 }
 
 func TestStartFlowBatchTaskNonPersistedStart(t *testing.T) {
-	_, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime()
 	rc := rt.VK.Get()
 	defer rc.Close()
 
@@ -103,7 +103,7 @@ func TestStartFlowBatchTaskNonPersistedStart(t *testing.T) {
 	batch := start.CreateBatch([]models.ContactID{testdb.Cathy.ID, testdb.Bob.ID}, true, true, 2)
 
 	// start the first batch...
-	err := tasks.Queue(rc, tasks.ThrottledQueue, testdb.Org1.ID, &starts.StartFlowBatchTask{FlowStartBatch: batch}, false)
+	err := tasks.Queue(ctx, rc, tasks.ThrottledQueue, testdb.Org1.ID, &starts.StartFlowBatchTask{FlowStartBatch: batch}, false)
 	assert.NoError(t, err)
 	testsuite.FlushTasks(t, rt)
 

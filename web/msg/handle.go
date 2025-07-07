@@ -63,7 +63,7 @@ func handleHandle(ctx context.Context, rt *runtime.Runtime, r *handleRequest) (a
 
 		urn, _ := cu.Encode(oa)
 
-		err = handler.QueueTask(rc, m.OrgID(), m.ContactID(), &ctasks.MsgReceivedTask{
+		err = handler.QueueTask(ctx, rc, m.OrgID(), m.ContactID(), &ctasks.MsgReceivedTask{
 			ChannelID:     m.ChannelID(),
 			MsgID:         m.ID(),
 			MsgUUID:       m.UUID(),

@@ -50,7 +50,7 @@ func (t *BulkWaitTimeoutTask) Perform(ctx context.Context, rt *runtime.Runtime, 
 	defer rc.Close()
 
 	for _, e := range t.Timeouts {
-		err := handler.QueueTask(rc, oa.OrgID(), e.ContactID, &ctasks.WaitTimeoutTask{SessionUUID: e.SessionUUID, SprintUUID: e.SprintUUID})
+		err := handler.QueueTask(ctx, rc, oa.OrgID(), e.ContactID, &ctasks.WaitTimeoutTask{SessionUUID: e.SessionUUID, SprintUUID: e.SprintUUID})
 		if err != nil {
 			return fmt.Errorf("error queuing handle task for wait timeout on session %s: %w", e.SessionUUID, err)
 		}

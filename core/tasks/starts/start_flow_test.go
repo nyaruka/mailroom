@@ -224,7 +224,7 @@ func TestStartFlowTask(t *testing.T) {
 		err := models.InsertFlowStarts(ctx, rt.DB, []*models.FlowStart{start})
 		assert.NoError(t, err, "%d: failed to insert start", i)
 
-		err = tasks.Queue(rc, tc.queue, testdb.Org1.ID, &starts.StartFlowTask{FlowStart: start}, false)
+		err = tasks.Queue(ctx, rc, tc.queue, testdb.Org1.ID, &starts.StartFlowTask{FlowStart: start}, false)
 		assert.NoError(t, err)
 
 		taskCounts := testsuite.FlushTasks(t, rt)
@@ -251,7 +251,7 @@ func TestStartFlowTask(t *testing.T) {
 }
 
 func TestStartFlowTaskNonPersistedStart(t *testing.T) {
-	_, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime()
 	rc := rt.VK.Get()
 	defer rc.Close()
 
@@ -261,7 +261,7 @@ func TestStartFlowTaskNonPersistedStart(t *testing.T) {
 	start := models.NewFlowStart(models.OrgID(1), models.StartTypeManual, testdb.SingleMessage.ID).
 		WithContactIDs([]models.ContactID{testdb.Cathy.ID, testdb.Bob.ID})
 
-	err := tasks.Queue(rc, tasks.ThrottledQueue, testdb.Org1.ID, &starts.StartFlowTask{FlowStart: start}, false)
+	err := tasks.Queue(ctx, rc, tasks.ThrottledQueue, testdb.Org1.ID, &starts.StartFlowTask{FlowStart: start}, false)
 	assert.NoError(t, err)
 	testsuite.FlushTasks(t, rt)
 

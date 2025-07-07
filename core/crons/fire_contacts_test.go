@@ -48,7 +48,7 @@ func TestFireContacts(t *testing.T) {
 	// should have created 5 throttled tasks.. unfortunately order is not guaranteed so we sort them
 	var ts []*queues.Task
 	for range 5 {
-		task, err := tasks.ThrottledQueue.Pop(rc)
+		task, err := tasks.ThrottledQueue.Pop(ctx, rc)
 		assert.NoError(t, err)
 		ts = append(ts, task)
 	}

@@ -1,6 +1,7 @@
 package queues
 
 import (
+	"context"
 	"encoding/json"
 	"time"
 
@@ -18,11 +19,11 @@ type Task struct {
 
 // Fair is a queue that supports fair distribution of tasks between owners
 type Fair interface {
-	Push(rc redis.Conn, taskType string, ownerID int, task any, priority bool) error
-	Pop(rc redis.Conn) (*Task, error)
-	Done(rc redis.Conn, ownerID int) error
-	Pause(rc redis.Conn, ownerID int) error
-	Resume(rc redis.Conn, ownerID int) error
-	Owners(rc redis.Conn) ([]int, error)
-	Size(rc redis.Conn) (int, error)
+	Push(ctx context.Context, rc redis.Conn, taskType string, ownerID int, task any, priority bool) error
+	Pop(ctx context.Context, rc redis.Conn) (*Task, error)
+	Done(ctx context.Context, rc redis.Conn, ownerID int) error
+	Pause(ctx context.Context, rc redis.Conn, ownerID int) error
+	Resume(ctx context.Context, rc redis.Conn, ownerID int) error
+	Owners(ctx context.Context, rc redis.Conn) ([]int, error)
+	Size(ctx context.Context, rc redis.Conn) (int, error)
 }

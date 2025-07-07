@@ -164,7 +164,7 @@ func TestBroadcastsFromEvents(t *testing.T) {
 		bcast, err := models.NewBroadcastFromEvent(ctx, rt.DB, oa, event)
 		assert.NoError(t, err)
 
-		err = tasks.Queue(rc, tc.queue, testdb.Org1.ID, &msgs.SendBroadcastTask{Broadcast: bcast}, false)
+		err = tasks.Queue(ctx, rc, tc.queue, testdb.Org1.ID, &msgs.SendBroadcastTask{Broadcast: bcast}, false)
 		assert.NoError(t, err)
 
 		taskCounts := testsuite.FlushTasks(t, rt)
@@ -288,7 +288,7 @@ func TestSendBroadcastTask(t *testing.T) {
 
 		task := &msgs.SendBroadcastTask{Broadcast: bcast}
 
-		err = tasks.Queue(rc, tasks.BatchQueue, testdb.Org1.ID, task, false)
+		err = tasks.Queue(ctx, rc, tasks.BatchQueue, testdb.Org1.ID, task, false)
 		assert.NoError(t, err)
 
 		taskCounts := testsuite.FlushTasks(t, rt)

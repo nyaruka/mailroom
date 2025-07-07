@@ -49,7 +49,7 @@ func TestInterruptChannel(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE status = 'F' and channel_id = $1`, testdb.TwilioChannel.ID).Returns(0)
 
 	// queue and perform a task to interrupt the Twilio channel
-	tasks.Queue(rc, tasks.BatchQueue, testdb.Org1.ID, &interrupts.InterruptChannelTask{ChannelID: testdb.TwilioChannel.ID}, false)
+	tasks.Queue(ctx, rc, tasks.BatchQueue, testdb.Org1.ID, &interrupts.InterruptChannelTask{ChannelID: testdb.TwilioChannel.ID}, false)
 	testsuite.FlushTasks(t, rt)
 
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE status = 'F' and channel_id = $1`, testdb.VonageChannel.ID).Returns(1)
@@ -77,7 +77,7 @@ func TestInterruptChannel(t *testing.T) {
 	})
 
 	// queue and perform a task to interrupt the Vonage channel
-	tasks.Queue(rc, tasks.BatchQueue, testdb.Org1.ID, &interrupts.InterruptChannelTask{ChannelID: testdb.VonageChannel.ID}, false)
+	tasks.Queue(ctx, rc, tasks.BatchQueue, testdb.Org1.ID, &interrupts.InterruptChannelTask{ChannelID: testdb.VonageChannel.ID}, false)
 	testsuite.FlushTasks(t, rt)
 
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE status = 'F' and failed_reason = 'R' and channel_id = $1`, testdb.VonageChannel.ID).Returns(6)
