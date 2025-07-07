@@ -97,10 +97,7 @@ func NewDefaultConfig() *Config {
 		HandlerWorkers: 32,
 
 		WebhooksTimeout:              15000,
-		WebhooksMaxRetries:           2,
 		WebhooksMaxBodyBytes:         256 * 1024, // 256 KiB
-		WebhooksInitialBackoff:       5000,
-		WebhooksBackoffJitter:        0.5,
 		WebhooksHealthyResponseLimit: 10000,
 
 		SMTPServer:           "",
