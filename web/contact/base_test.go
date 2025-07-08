@@ -1,6 +1,7 @@
 package contact_test
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -110,9 +111,24 @@ func TestInterrupt(t *testing.T) {
 func TestParseQuery(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
 
+	testsuite.RunWebTests(t, ctx, rt, "testdata/parse_query.json", nil)
+}
+
+func TestPopulateGroup(t *testing.T) {
+	ctx, rt := testsuite.Runtime()
+
+	// TODO TestTwilioIVR blows up without full reset so some prior test isn't cleaning up after itself
+	//defer testsuite.Reset(testsuite.ResetData | testsuite.ResetValkey | testsuite.ResetElastic)
 	defer testsuite.Reset(testsuite.ResetAll)
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/parse_query.json", nil)
+	group := testdb.InsertContactGroup(rt, testdb.Org1, "", "Dynamic", "age > 18")
+	models.FlushCache()
+
+	testsuite.RunWebTests(t, ctx, rt, "testdata/populate_group.json", map[string]string{
+		"group_id": fmt.Sprint(group.ID),
+	})
+
+	testsuite.AssertBatchTasks(t, testdb.Org1.ID, map[string]int{"populate_dynamic_group": 1})
 }
 
 func TestSearch(t *testing.T) {
