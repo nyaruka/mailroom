@@ -58,15 +58,16 @@ func (c *FireContactsCron) Run(ctx context.Context, rt *runtime.Runtime) (map[st
 		grouped := make(map[orgAndGrouping][]*models.ContactFire, 25)
 		for _, f := range fires {
 			og := orgAndGrouping{orgID: f.OrgID}
-			if f.Type == models.ContactFireTypeWaitTimeout {
+			switch f.Type {
+			case models.ContactFireTypeWaitTimeout:
 				og.grouping = "wait_timeouts"
-			} else if f.Type == models.ContactFireTypeWaitExpiration {
+			case models.ContactFireTypeWaitExpiration:
 				og.grouping = "wait_expires"
-			} else if f.Type == models.ContactFireTypeSessionExpiration {
+			case models.ContactFireTypeSessionExpiration:
 				og.grouping = "session_expires"
-			} else if f.Type == models.ContactFireTypeCampaignPoint {
+			case models.ContactFireTypeCampaignPoint:
 				og.grouping = "campaign:" + f.Scope
-			} else {
+			default:
 				return nil, fmt.Errorf("unknown contact fire type: %s", f.Type)
 			}
 			grouped[og] = append(grouped[og], f)
