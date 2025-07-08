@@ -77,6 +77,10 @@ func tryToStartWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 	scenes := make([]*Scene, 0, len(mcs))
 
 	for _, mc := range mcs {
+		if ctx.Err() != nil {
+			return nil, nil, fmt.Errorf("error starting session: %w", ctx.Err())
+		}
+
 		c, err := mc.EngineContact(oa)
 		if err != nil {
 			return nil, nil, fmt.Errorf("error creating flow contact: %w", err)
