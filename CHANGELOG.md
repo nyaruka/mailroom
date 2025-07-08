@@ -1,3 +1,9 @@
+v10.3.1 (2025-07-08)
+-------------------------
+ * Update to latest vkutil and add fair queue implementation (not yet used)
+ * Reduce size of flow start batches to 25
+ * Record when any task takes 75% of its timeout
+
 v10.3.0 (2025-07-07)
 -------------------------
  * Add context to all queue calls
