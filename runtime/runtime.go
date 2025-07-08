@@ -18,6 +18,7 @@ type Runtime struct {
 	DB         *sqlx.DB
 	ReadonlyDB *sql.DB
 	VK         *redis.Pool
+	Queues     *Queues
 	Dynamo     *DynamoTables
 	S3         *s3x.Service
 	ES         *elasticsearch.TypedClient

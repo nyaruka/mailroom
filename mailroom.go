@@ -15,7 +15,6 @@ import (
 	"github.com/nyaruka/gocommon/aws/cwatch"
 	"github.com/nyaruka/gocommon/aws/s3x"
 	"github.com/nyaruka/mailroom/core/crons"
-	"github.com/nyaruka/mailroom/core/tasks"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/mailroom/web"
 	"github.com/nyaruka/vkutil"
@@ -43,17 +42,21 @@ type Mailroom struct {
 }
 
 // NewMailroom creates and returns a new mailroom instance
-func NewMailroom(config *runtime.Config) *Mailroom {
+func NewMailroom(cfg *runtime.Config) *Mailroom {
 	mr := &Mailroom{
-		rt:   &runtime.Runtime{Config: config, Stats: runtime.NewStatsCollector()},
+		rt: &runtime.Runtime{
+			Config: cfg,
+			Queues: runtime.NewQueues(cfg),
+			Stats:  runtime.NewStatsCollector(),
+		},
 		quit: make(chan bool),
 		wg:   &sync.WaitGroup{},
 	}
 	mr.ctx, mr.cancel = context.WithCancel(context.Background())
 
-	mr.handlerForeman = NewForeman(mr.rt, mr.wg, tasks.HandlerQueue, config.HandlerWorkers)
-	mr.batchForeman = NewForeman(mr.rt, mr.wg, tasks.BatchQueue, config.BatchWorkers)
-	mr.throttledForeman = NewForeman(mr.rt, mr.wg, tasks.ThrottledQueue, config.BatchWorkers)
+	mr.handlerForeman = NewForeman(mr.rt, mr.wg, mr.rt.Queues.Handler, cfg.HandlerWorkers)
+	mr.batchForeman = NewForeman(mr.rt, mr.wg, mr.rt.Queues.Batch, cfg.BatchWorkers)
+	mr.throttledForeman = NewForeman(mr.rt, mr.wg, mr.rt.Queues.Throttled, cfg.BatchWorkers)
 
 	return mr
 }
@@ -274,15 +277,15 @@ func getQueueSizes(ctx context.Context, rt *runtime.Runtime) (int, int, int) {
 	rc := rt.VK.Get()
 	defer rc.Close()
 
-	handler, err := tasks.HandlerQueue.Size(ctx, rc)
+	handler, err := rt.Queues.Handler.Size(ctx, rc)
 	if err != nil {
 		slog.Error("error calculating handler queue size", "error", err)
 	}
-	batch, err := tasks.BatchQueue.Size(ctx, rc)
+	batch, err := rt.Queues.Batch.Size(ctx, rc)
 	if err != nil {
 		slog.Error("error calculating batch queue size", "error", err)
 	}
-	throttled, err := tasks.ThrottledQueue.Size(ctx, rc)
+	throttled, err := rt.Queues.Throttled.Size(ctx, rc)
 	if err != nil {
 		slog.Error("error calculating throttled queue size", "error", err)
 	}

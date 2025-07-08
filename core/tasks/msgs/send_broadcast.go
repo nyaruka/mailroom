@@ -100,9 +100,9 @@ func createBroadcastBatches(ctx context.Context, rt *runtime.Runtime, oa *models
 	}
 
 	// batches will be processed in the throttled queue unless we're a single contact
-	q := tasks.ThrottledQueue
+	q := rt.Queues.Throttled
 	if len(contactIDs) == 1 {
-		q = tasks.HandlerQueue
+		q = rt.Queues.Handler
 	}
 
 	rc := rt.VK.Get()

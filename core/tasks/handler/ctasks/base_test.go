@@ -110,10 +110,10 @@ func TestTimedEvents(t *testing.T) {
 			ctask = &ctasks.WaitTimeoutTask{SessionUUID: sessionUUID, SprintUUID: taskSprintUUID}
 		}
 
-		err := handler.QueueTask(ctx, rc, testdb.Org1.ID, testdb.Cathy.ID, ctask)
+		err := handler.QueueTask(ctx, rt, testdb.Org1.ID, testdb.Cathy.ID, ctask)
 		assert.NoError(t, err, "%d: error adding task", i)
 
-		task, err := tasks.HandlerQueue.Pop(ctx, rc)
+		task, err := rt.Queues.Handler.Pop(ctx, rc)
 		assert.NoError(t, err, "%d: error popping next task", i)
 
 		err = tasks.Perform(ctx, rt, task)

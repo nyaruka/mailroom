@@ -99,6 +99,7 @@ func Runtime() (context.Context, *runtime.Runtime) {
 		DB:         dbx,
 		ReadonlyDB: dbx.DB,
 		VK:         getRP(),
+		Queues:     runtime.NewQueues(cfg),
 		Dynamo:     dytables,
 		S3:         s3svc,
 		ES:         getES(),

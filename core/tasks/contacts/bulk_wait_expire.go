@@ -46,11 +46,8 @@ func (t *BulkWaitExpireTask) WithAssets() models.Refresh {
 
 // Perform creates the actual task
 func (t *BulkWaitExpireTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets) error {
-	rc := rt.VK.Get()
-	defer rc.Close()
-
 	for _, e := range t.Expirations {
-		err := handler.QueueTask(ctx, rc, oa.OrgID(), e.ContactID, &ctasks.WaitExpiredTask{SessionUUID: e.SessionUUID, SprintUUID: e.SprintUUID})
+		err := handler.QueueTask(ctx, rt, oa.OrgID(), e.ContactID, &ctasks.WaitExpiredTask{SessionUUID: e.SessionUUID, SprintUUID: e.SprintUUID})
 		if err != nil {
 			return fmt.Errorf("error queuing handle task for wait expiration on session %s: %w", e.SessionUUID, err)
 		}

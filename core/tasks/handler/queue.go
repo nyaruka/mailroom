@@ -46,11 +46,14 @@ type payload struct {
 }
 
 // QueueTask queues a handler task for the given contact
-func QueueTask(ctx context.Context, rc redis.Conn, orgID models.OrgID, contactID models.ContactID, task Task) error {
-	return queueTask(ctx, rc, orgID, contactID, task, false, 0)
+func QueueTask(ctx context.Context, rt *runtime.Runtime, orgID models.OrgID, contactID models.ContactID, task Task) error {
+	return queueTask(ctx, rt, orgID, contactID, task, false, 0)
 }
 
-func queueTask(ctx context.Context, rc redis.Conn, orgID models.OrgID, contactID models.ContactID, task Task, front bool, errorCount int) error {
+func queueTask(ctx context.Context, rt *runtime.Runtime, orgID models.OrgID, contactID models.ContactID, task Task, front bool, errorCount int) error {
+	rc := rt.VK.Get()
+	defer rc.Close()
+
 	taskJSON, err := json.Marshal(task)
 	if err != nil {
 		return fmt.Errorf("error marshalling handler task: %w", err)
@@ -72,7 +75,7 @@ func queueTask(ctx context.Context, rc redis.Conn, orgID models.OrgID, contactID
 	}
 
 	// then add a handle task for that contact on our global handler queue to
-	err = tasks.Queue(ctx, rc, tasks.HandlerQueue, orgID, &HandleContactEventTask{ContactID: contactID}, false)
+	err = tasks.Queue(ctx, rc, rt.Queues.Handler, orgID, &HandleContactEventTask{ContactID: contactID}, false)
 	if err != nil {
 		return fmt.Errorf("error queuing handle task: %w", err)
 	}

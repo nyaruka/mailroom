@@ -237,10 +237,10 @@ func TestChannelEvents(t *testing.T) {
 		// reset our dummy db event into an unhandled state
 		rt.DB.MustExec(`UPDATE channels_channelevent SET status = 'P' WHERE id = $1`, eventID)
 
-		err := handler.QueueTask(ctx, rc, testdb.Org1.ID, tc.contact.ID, tc.task)
+		err := handler.QueueTask(ctx, rt, testdb.Org1.ID, tc.contact.ID, tc.task)
 		assert.NoError(t, err, "%d: error adding task", i)
 
-		task, err := tasks.HandlerQueue.Pop(ctx, rc)
+		task, err := rt.Queues.Handler.Pop(ctx, rc)
 		assert.NoError(t, err, "%d: error popping next task", i)
 
 		err = tasks.Perform(ctx, rt, task)

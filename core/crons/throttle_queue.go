@@ -6,9 +6,7 @@ import (
 	"time"
 
 	"github.com/nyaruka/mailroom/core/models"
-	"github.com/nyaruka/mailroom/core/tasks"
 	"github.com/nyaruka/mailroom/runtime"
-	"github.com/nyaruka/mailroom/utils/queues"
 )
 
 const (
@@ -16,11 +14,10 @@ const (
 )
 
 func init() {
-	Register("throttle_queue", &ThrottleQueueCron{Queue: tasks.ThrottledQueue})
+	Register("throttle_queue", &ThrottleQueueCron{})
 }
 
 type ThrottleQueueCron struct {
-	Queue queues.Fair
 }
 
 func (c *ThrottleQueueCron) Next(last time.Time) time.Time {
@@ -36,7 +33,7 @@ func (c *ThrottleQueueCron) Run(ctx context.Context, rt *runtime.Runtime) (map[s
 	rc := rt.VK.Get()
 	defer rc.Close()
 
-	owners, err := c.Queue.Owners(ctx, rc)
+	owners, err := rt.Queues.Throttled.Owners(ctx, rc)
 	if err != nil {
 		return nil, fmt.Errorf("error getting task owners: %w", err)
 	}
@@ -50,10 +47,10 @@ func (c *ThrottleQueueCron) Run(ctx context.Context, rt *runtime.Runtime) (map[s
 		}
 
 		if oa.Org().OutboxCount() >= throttleOutboxThreshold {
-			c.Queue.Pause(ctx, rc, ownerID)
+			rt.Queues.Throttled.Pause(ctx, rc, ownerID)
 			numPaused++
 		} else {
-			c.Queue.Resume(ctx, rc, ownerID)
+			rt.Queues.Throttled.Resume(ctx, rc, ownerID)
 			numResumed++
 		}
 	}

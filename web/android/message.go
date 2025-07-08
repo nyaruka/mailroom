@@ -63,10 +63,7 @@ func handleMessage(ctx context.Context, rt *runtime.Runtime, r *messageRequest) 
 		return nil, 0, fmt.Errorf("error inserting message: %w", err)
 	}
 
-	rc := rt.VK.Get()
-	defer rc.Close()
-
-	err = handler.QueueTask(ctx, rc, r.OrgID, m.ContactID(), &ctasks.MsgReceivedTask{
+	err = handler.QueueTask(ctx, rt, r.OrgID, m.ContactID(), &ctasks.MsgReceivedTask{
 		ChannelID:     m.ChannelID(),
 		MsgID:         m.ID(),
 		MsgUUID:       m.UUID(),

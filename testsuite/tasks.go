@@ -24,17 +24,14 @@ func QueueBatchTask(t *testing.T, rt *runtime.Runtime, org *testdb.Org, task tas
 	rc := rt.VK.Get()
 	defer rc.Close()
 
-	err := tasks.Queue(ctx, rc, tasks.BatchQueue, org.ID, task, false)
+	err := tasks.Queue(ctx, rc, rt.Queues.Batch, org.ID, task, false)
 	require.NoError(t, err)
 }
 
 func QueueContactTask(t *testing.T, rt *runtime.Runtime, org *testdb.Org, contact *testdb.Contact, ctask handler.Task) {
 	ctx := context.Background()
 
-	rc := rt.VK.Get()
-	defer rc.Close()
-
-	err := handler.QueueTask(ctx, rc, org.ID, contact.ID, ctask)
+	err := handler.QueueTask(ctx, rt, org.ID, contact.ID, ctask)
 	require.NoError(t, err)
 }
 
@@ -86,7 +83,7 @@ func FlushTasks(t *testing.T, rt *runtime.Runtime, qnames ...string) map[string]
 	counts := make(map[string]int)
 
 	var qs []queues.Fair
-	for _, q := range []queues.Fair{tasks.HandlerQueue, tasks.BatchQueue, tasks.ThrottledQueue} {
+	for _, q := range []queues.Fair{rt.Queues.Handler, rt.Queues.Batch, rt.Queues.Throttled} {
 		if len(qnames) == 0 || slices.Contains(qnames, fmt.Sprint(q)[6:]) {
 			qs = append(qs, q)
 		}
