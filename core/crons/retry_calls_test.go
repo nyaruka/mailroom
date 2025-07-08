@@ -17,8 +17,6 @@ import (
 
 func TestRetryCalls(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
-	rc := rt.VK.Get()
-	defer rc.Close()
 
 	defer testsuite.Reset(testsuite.ResetAll)
 
@@ -34,7 +32,7 @@ func TestRetryCalls(t *testing.T) {
 	err := models.InsertFlowStarts(ctx, rt.DB, []*models.FlowStart{start})
 	require.NoError(t, err)
 
-	err = tasks.Queue(ctx, rc, rt.Queues.Batch, testdb.Org1.ID, &starts.StartFlowTask{FlowStart: start}, false)
+	err = tasks.Queue(ctx, rt, rt.Queues.Batch, testdb.Org1.ID, &starts.StartFlowTask{FlowStart: start}, false)
 	require.NoError(t, err)
 
 	testsuite.IVRService.CallError = nil

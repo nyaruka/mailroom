@@ -59,8 +59,6 @@ func mockTwilioHandler(w http.ResponseWriter, r *http.Request) {
 
 func TestTwilioIVR(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
-	rc := rt.VK.Get()
-	defer rc.Close()
 
 	defer testsuite.Reset(testsuite.ResetAll)
 
@@ -103,7 +101,7 @@ func TestTwilioIVR(t *testing.T) {
 		WithContactIDs([]models.ContactID{testdb.Cathy.ID, testdb.Bob.ID, testdb.George.ID}).
 		WithParentSummary(parentSummary)
 
-	err := tasks.Queue(ctx, rc, rt.Queues.Batch, testdb.Org1.ID, &starts.StartFlowTask{FlowStart: start}, false)
+	err := tasks.Queue(ctx, rt, rt.Queues.Batch, testdb.Org1.ID, &starts.StartFlowTask{FlowStart: start}, false)
 	require.NoError(t, err)
 
 	testsuite.FlushTasks(t, rt)
@@ -413,7 +411,7 @@ func TestVonageIVR(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT COUNT(*) FROM flows_flowstart`).Returns(1)
 	assertdb.Query(t, rt.DB, `SELECT COUNT(*) FROM flows_flowstart WHERE params ->> 'ref_id' = '123'`).Returns(1)
 
-	err = tasks.Queue(ctx, rc, rt.Queues.Batch, testdb.Org1.ID, &starts.StartFlowTask{FlowStart: start}, false)
+	err = tasks.Queue(ctx, rt, rt.Queues.Batch, testdb.Org1.ID, &starts.StartFlowTask{FlowStart: start}, false)
 	require.NoError(t, err)
 
 	testsuite.FlushTasks(t, rt)

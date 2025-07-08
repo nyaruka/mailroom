@@ -35,9 +35,6 @@ func (c *FireSchedulesCron) Run(ctx context.Context, rt *runtime.Runtime) (map[s
 
 	log := slog.With("comp", "schedules_cron")
 
-	rc := rt.VK.Get()
-	defer rc.Close()
-
 	// get any expired schedules
 	unfired, err := models.GetUnfiredSchedules(ctx, rt.DB.DB)
 	if err != nil {
@@ -134,7 +131,7 @@ func (c *FireSchedulesCron) Run(ctx context.Context, rt *runtime.Runtime) (map[s
 
 		// add our task if we have one
 		if task != nil {
-			err = tasks.Queue(ctx, rc, rt.Queues.Batch, s.OrgID, task, true)
+			err = tasks.Queue(ctx, rt, rt.Queues.Batch, s.OrgID, task, true)
 			if err != nil {
 				log.Error(fmt.Sprintf("error queueing %s task from schedule", task.Type()), "error", err)
 			}

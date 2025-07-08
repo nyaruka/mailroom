@@ -21,10 +21,7 @@ import (
 func QueueBatchTask(t *testing.T, rt *runtime.Runtime, org *testdb.Org, task tasks.Task) {
 	ctx := context.Background()
 
-	rc := rt.VK.Get()
-	defer rc.Close()
-
-	err := tasks.Queue(ctx, rc, rt.Queues.Batch, org.ID, task, false)
+	err := tasks.Queue(ctx, rt, rt.Queues.Batch, org.ID, task, false)
 	require.NoError(t, err)
 }
 
