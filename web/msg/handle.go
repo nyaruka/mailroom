@@ -40,9 +40,6 @@ func handleHandle(ctx context.Context, rt *runtime.Runtime, r *handleRequest) (a
 		return nil, 0, fmt.Errorf("error loading messages to handle: %w", err)
 	}
 
-	rc := rt.VK.Get()
-	defer rc.Close()
-
 	// response is the ids of the messages that were actually queued
 	queuedMsgIDs := make([]models.MsgID, 0, len(r.MsgIDs))
 
@@ -63,7 +60,7 @@ func handleHandle(ctx context.Context, rt *runtime.Runtime, r *handleRequest) (a
 
 		urn, _ := cu.Encode(oa)
 
-		err = handler.QueueTask(ctx, rc, m.OrgID(), m.ContactID(), &ctasks.MsgReceivedTask{
+		err = handler.QueueTask(ctx, rt, m.OrgID(), m.ContactID(), &ctasks.MsgReceivedTask{
 			ChannelID:     m.ChannelID(),
 			MsgID:         m.ID(),
 			MsgUUID:       m.UUID(),

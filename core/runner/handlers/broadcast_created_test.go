@@ -9,7 +9,6 @@ import (
 	"github.com/nyaruka/goflow/flows/actions"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/runner/handlers"
-	"github.com/nyaruka/mailroom/core/tasks"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/mailroom/testsuite"
 	"github.com/nyaruka/mailroom/testsuite/testdb"
@@ -42,7 +41,7 @@ func TestBroadcastCreated(t *testing.T) {
 					rc := rt.VK.Get()
 					defer rc.Close()
 
-					task, err := tasks.BatchQueue.Pop(ctx, rc)
+					task, err := rt.Queues.Batch.Pop(ctx, rc)
 					assert.NoError(t, err)
 					assert.NotNil(t, task)
 					bcast := models.Broadcast{}

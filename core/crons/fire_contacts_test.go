@@ -12,7 +12,6 @@ import (
 	"github.com/nyaruka/mailroom/core/crons"
 	"github.com/nyaruka/mailroom/core/models"
 	_ "github.com/nyaruka/mailroom/core/runner/handlers"
-	"github.com/nyaruka/mailroom/core/tasks"
 	"github.com/nyaruka/mailroom/core/tasks/campaigns"
 	"github.com/nyaruka/mailroom/core/tasks/contacts"
 	"github.com/nyaruka/mailroom/testsuite"
@@ -48,7 +47,7 @@ func TestFireContacts(t *testing.T) {
 	// should have created 5 throttled tasks.. unfortunately order is not guaranteed so we sort them
 	var ts []*queues.Task
 	for range 5 {
-		task, err := tasks.ThrottledQueue.Pop(ctx, rc)
+		task, err := rt.Queues.Throttled.Pop(ctx, rc)
 		assert.NoError(t, err)
 		ts = append(ts, task)
 	}

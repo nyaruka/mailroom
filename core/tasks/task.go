@@ -14,10 +14,6 @@ import (
 	"github.com/nyaruka/mailroom/utils/queues"
 )
 
-var HandlerQueue = queues.NewFairSorted("tasks:handler")
-var BatchQueue = queues.NewFairSorted("tasks:batch")
-var ThrottledQueue = queues.NewFairSorted("tasks:throttled")
-
 var registeredTypes = map[string](func() Task){}
 
 // RegisterType registers a new type of task

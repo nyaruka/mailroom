@@ -34,7 +34,7 @@ func (h *createBroadcasts) Execute(ctx context.Context, rt *runtime.Runtime, oa 
 				return fmt.Errorf("error creating broadcast: %w", err)
 			}
 
-			err = tasks.Queue(ctx, rc, tasks.BatchQueue, oa.OrgID(), &msgs.SendBroadcastTask{Broadcast: bcast}, false)
+			err = tasks.Queue(ctx, rc, rt.Queues.Batch, oa.OrgID(), &msgs.SendBroadcastTask{Broadcast: bcast}, false)
 			if err != nil {
 				return fmt.Errorf("error queuing broadcast task: %w", err)
 			}
