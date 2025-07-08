@@ -20,8 +20,8 @@ import (
 
 func TestMsgReceivedTask(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
-	rc := rt.VK.Get()
-	defer rc.Close()
+	vc := rt.VK.Get()
+	defer vc.Close()
 
 	defer testsuite.Reset(testsuite.ResetAll)
 
@@ -332,7 +332,7 @@ func TestMsgReceivedTask(t *testing.T) {
 		err := handler.QueueTask(ctx, rt, tc.org.ID, tc.contact.ID, makeMsgTask(tc.channel, tc.contact, tc.text))
 		assert.NoError(t, err, "%d: error adding task", i)
 
-		task, err := rt.Queues.Handler.Pop(ctx, rc)
+		task, err := rt.Queues.Handler.Pop(ctx, vc)
 		assert.NoError(t, err, "%d: error popping next task", i)
 
 		err = tasks.Perform(ctx, rt, task)
@@ -398,14 +398,14 @@ func TestMsgReceivedTask(t *testing.T) {
 
 	// should get requeued three times automatically
 	for i := 0; i < 3; i++ {
-		task, _ := rt.Queues.Handler.Pop(ctx, rc)
+		task, _ := rt.Queues.Handler.Pop(ctx, vc)
 		assert.NotNil(t, task)
 		err := tasks.Perform(ctx, rt, task)
 		assert.NoError(t, err)
 	}
 
 	// on third error, no new task
-	task, err := rt.Queues.Handler.Pop(ctx, rc)
+	task, err := rt.Queues.Handler.Pop(ctx, vc)
 	assert.NoError(t, err)
 	assert.Nil(t, task)
 
@@ -415,7 +415,7 @@ func TestMsgReceivedTask(t *testing.T) {
 
 	// try to resume now
 	handler.QueueTask(ctx, rt, testdb.Org2.ID, testdb.Org2Contact.ID, makeMsgTask(testdb.Org2Channel, testdb.Org2Contact, "red"))
-	task, _ = rt.Queues.Handler.Pop(ctx, rc)
+	task, _ = rt.Queues.Handler.Pop(ctx, vc)
 	assert.NotNil(t, task)
 	err = tasks.Perform(ctx, rt, task)
 	assert.NoError(t, err)
@@ -429,7 +429,7 @@ func TestMsgReceivedTask(t *testing.T) {
 
 	// trigger should also not start a new session
 	handler.QueueTask(ctx, rt, testdb.Org2.ID, testdb.Org2Contact.ID, makeMsgTask(testdb.Org2Channel, testdb.Org2Contact, "start"))
-	task, _ = rt.Queues.Handler.Pop(ctx, rc)
+	task, _ = rt.Queues.Handler.Pop(ctx, vc)
 	err = tasks.Perform(ctx, rt, task)
 	assert.NoError(t, err)
 

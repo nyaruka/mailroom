@@ -51,8 +51,8 @@ func (c *TestCron) Run(ctx context.Context, rt *runtime.Runtime) (map[string]any
 
 func TestStats(t *testing.T) {
 	_, rt := testsuite.Runtime()
-	rc := rt.VK.Get()
-	defer rc.Close()
+	vc := rt.VK.Get()
+	defer vc.Close()
 
 	defer testsuite.Reset(testsuite.ResetValkey)
 
@@ -66,11 +66,11 @@ func TestStats(t *testing.T) {
 
 	time.Sleep(time.Millisecond * 100)
 
-	assertvk.Exists(t, rc, "cron_stats:last_start")
-	assertvk.Exists(t, rc, "cron_stats:last_time")
-	assertvk.HGet(t, rc, "cron_stats:last_result", "test1", `{"foo":123}`)
-	assertvk.HGet(t, rc, "cron_stats:call_count", "test1", "1")
-	assertvk.Exists(t, rc, "cron_stats:total_time")
+	assertvk.Exists(t, vc, "cron_stats:last_start")
+	assertvk.Exists(t, vc, "cron_stats:last_time")
+	assertvk.HGet(t, vc, "cron_stats:last_result", "test1", `{"foo":123}`)
+	assertvk.HGet(t, vc, "cron_stats:call_count", "test1", "1")
+	assertvk.Exists(t, vc, "cron_stats:total_time")
 
 	close(quit)
 }

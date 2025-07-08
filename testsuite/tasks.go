@@ -33,26 +33,26 @@ func QueueContactTask(t *testing.T, rt *runtime.Runtime, org *testdb.Org, contac
 }
 
 func CurrentTasks(t *testing.T, rt *runtime.Runtime, qname string) map[models.OrgID][]*queues.Task {
-	rc := rt.VK.Get()
-	defer rc.Close()
+	vc := rt.VK.Get()
+	defer vc.Close()
 
 	// old style
-	active, err := redis.Ints(rc.Do("ZRANGE", fmt.Sprintf("tasks:%s:active", qname), 0, -1))
+	active, err := redis.Ints(vc.Do("ZRANGE", fmt.Sprintf("tasks:%s:active", qname), 0, -1))
 	require.NoError(t, err)
 
-	queued, err := redis.Ints(rc.Do("ZRANGE", fmt.Sprintf("{tasks:%s}:queued", qname), 0, -1))
+	queued, err := redis.Ints(vc.Do("ZRANGE", fmt.Sprintf("{tasks:%s}:queued", qname), 0, -1))
 	require.NoError(t, err)
 
 	tasks := make(map[models.OrgID][]*queues.Task)
 	for _, orgID := range slices.Concat(active, queued) {
 		// old style sorted set
-		tasksZ, err := redis.Strings(rc.Do("ZRANGE", fmt.Sprintf("tasks:%s:%d", qname, orgID), 0, -1))
+		tasksZ, err := redis.Strings(vc.Do("ZRANGE", fmt.Sprintf("tasks:%s:%d", qname, orgID), 0, -1))
 		require.NoError(t, err)
 
-		tasks0, err := redis.Strings(rc.Do("LRANGE", fmt.Sprintf("{tasks:%s:%d}/0", qname, orgID), 0, -1))
+		tasks0, err := redis.Strings(vc.Do("LRANGE", fmt.Sprintf("{tasks:%s:%d}/0", qname, orgID), 0, -1))
 		require.NoError(t, err)
 
-		tasks1, err := redis.Strings(rc.Do("LRANGE", fmt.Sprintf("{tasks:%s:%d}/1", qname, orgID), 0, -1))
+		tasks1, err := redis.Strings(vc.Do("LRANGE", fmt.Sprintf("{tasks:%s:%d}/1", qname, orgID), 0, -1))
 		require.NoError(t, err)
 
 		orgTasks := make([]*queues.Task, len(tasksZ)+len(tasks0)+len(tasks1))
@@ -72,8 +72,8 @@ func CurrentTasks(t *testing.T, rt *runtime.Runtime, qname string) map[models.Or
 func FlushTasks(t *testing.T, rt *runtime.Runtime, qnames ...string) map[string]int {
 	ctx := context.Background()
 
-	rc := rt.VK.Get()
-	defer rc.Close()
+	vc := rt.VK.Get()
+	defer vc.Close()
 
 	var task *queues.Task
 	var err error
@@ -89,7 +89,7 @@ func FlushTasks(t *testing.T, rt *runtime.Runtime, qnames ...string) map[string]
 	for {
 		// look for a task in the queues
 		for _, q := range qs {
-			task, err = q.Pop(ctx, rc)
+			task, err = q.Pop(ctx, vc)
 			require.NoError(t, err)
 
 			if task != nil {

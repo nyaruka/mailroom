@@ -68,19 +68,19 @@ func recordExecution(name string, r func(context.Context, *runtime.Runtime) (map
 
 		rt.Stats.RecordCronTask(name, elapsed)
 
-		rc := rt.VK.Get()
-		defer rc.Close()
+		vc := rt.VK.Get()
+		defer vc.Close()
 
-		rc.Send("HSET", statsLastStartKey, name, started.Format(time.RFC3339))
-		rc.Send("HSET", statsLastTimeKey, name, elapsedSeconds)
-		rc.Send("HSET", statsLastResultKey, name, jsonx.MustMarshal(results))
-		rc.Send("HINCRBY", statsCallCountKey, name, 1)
-		rc.Send("HINCRBYFLOAT", statsTotalTimeKey, name, elapsedSeconds)
+		vc.Send("HSET", statsLastStartKey, name, started.Format(time.RFC3339))
+		vc.Send("HSET", statsLastTimeKey, name, elapsedSeconds)
+		vc.Send("HSET", statsLastResultKey, name, jsonx.MustMarshal(results))
+		vc.Send("HINCRBY", statsCallCountKey, name, 1)
+		vc.Send("HINCRBYFLOAT", statsTotalTimeKey, name, elapsedSeconds)
 		for _, key := range statsKeys {
-			rc.Send("EXPIRE", key, statsExpires)
+			vc.Send("EXPIRE", key, statsExpires)
 		}
 
-		if err := rc.Flush(); err != nil {
+		if err := vc.Flush(); err != nil {
 			log.Error("error writing cron results to valkey", "error", err)
 		}
 

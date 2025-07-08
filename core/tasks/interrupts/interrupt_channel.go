@@ -34,8 +34,8 @@ func (t *InterruptChannelTask) WithAssets() models.Refresh {
 // Perform implements tasks.Task
 func (t *InterruptChannelTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets) error {
 	db := rt.DB
-	rc := rt.VK.Get()
-	defer rc.Close()
+	vc := rt.VK.Get()
+	defer vc.Close()
 
 	// load channel from db instead of assets because it may already be released
 	channel, err := models.GetChannelByID(ctx, db.DB, t.ChannelID)
@@ -47,7 +47,7 @@ func (t *InterruptChannelTask) Perform(ctx context.Context, rt *runtime.Runtime,
 		return fmt.Errorf("error interrupting sessions: %w", err)
 	}
 
-	if err = msgio.ClearCourierQueues(rc, channel); err != nil {
+	if err = msgio.ClearCourierQueues(vc, channel); err != nil {
 		return fmt.Errorf("error clearing courier queues: %w", err)
 	}
 

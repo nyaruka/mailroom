@@ -15,8 +15,8 @@ import (
 
 func TestQueues(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
-	rc := rt.VK.Get()
-	defer rc.Close()
+	vc := rt.VK.Get()
+	defer vc.Close()
 
 	dates.SetNowFunc(dates.NewSequentialNow(time.Date(2022, 1, 1, 12, 1, 2, 123456789, time.UTC), time.Second))
 	defer dates.SetNowFunc(time.Now)
@@ -27,7 +27,7 @@ func TestQueues(t *testing.T) {
 	assert.Equal(t, "test", fmt.Sprint(q))
 
 	assertPop := func(expectedOwnerID int, expectedBody string) {
-		task, err := q.Pop(ctx, rc)
+		task, err := q.Pop(ctx, vc)
 		require.NoError(t, err)
 		if expectedBody != "" {
 			assert.Equal(t, expectedOwnerID, task.OwnerID)
@@ -38,34 +38,34 @@ func TestQueues(t *testing.T) {
 	}
 
 	assertSize := func(expecting int) {
-		size, err := q.Size(ctx, rc)
+		size, err := q.Size(ctx, vc)
 		assert.NoError(t, err)
 		assert.Equal(t, expecting, size)
 	}
 
 	assertOwners := func(expected []int) {
-		actual, err := q.Owners(ctx, rc)
+		actual, err := q.Owners(ctx, vc)
 		assert.NoError(t, err)
 		assert.ElementsMatch(t, expected, actual)
 	}
 
 	assertSize(0)
 
-	q.Push(ctx, rc, "type1", 1, "task1", false)
-	q.Push(ctx, rc, "type1", 1, "task2", true)
-	q.Push(ctx, rc, "type1", 2, "task3", false)
-	q.Push(ctx, rc, "type2", 1, "task4", false)
-	q.Push(ctx, rc, "type2", 2, "task5", true)
+	q.Push(ctx, vc, "type1", 1, "task1", false)
+	q.Push(ctx, vc, "type1", 1, "task2", true)
+	q.Push(ctx, vc, "type1", 2, "task3", false)
+	q.Push(ctx, vc, "type2", 1, "task4", false)
+	q.Push(ctx, vc, "type2", 2, "task5", true)
 
 	// nobody processing any tasks so no workers assigned in active set
-	assertvk.ZGetAll(t, rc, "test:active", map[string]float64{"1": 0, "2": 0})
+	assertvk.ZGetAll(t, vc, "test:active", map[string]float64{"1": 0, "2": 0})
 
-	assertvk.ZGetAll(t, rc, "test:1", map[string]float64{
+	assertvk.ZGetAll(t, vc, "test:1", map[string]float64{
 		`{"type":"type1","task":"task2","queued_on":"2022-01-01T12:01:05.123456789Z"}`: 1631038464.123456,
 		`{"type":"type1","task":"task1","queued_on":"2022-01-01T12:01:03.123456789Z"}`: 1641038462.123456,
 		`{"type":"type2","task":"task4","queued_on":"2022-01-01T12:01:09.123456789Z"}`: 1641038468.123456,
 	})
-	assertvk.ZGetAll(t, rc, "test:2", map[string]float64{
+	assertvk.ZGetAll(t, vc, "test:2", map[string]float64{
 		`{"type":"type1","task":"task3","queued_on":"2022-01-01T12:01:07.123456789Z"}`: 1641038466.123456,
 		`{"type":"type2","task":"task5","queued_on":"2022-01-01T12:01:11.123456789Z"}`: 1631038470.123456,
 	})
@@ -73,20 +73,20 @@ func TestQueues(t *testing.T) {
 	assertSize(5)
 
 	assertPop(1, `"task2"`) // because it's highest priority for owner 1
-	assertvk.ZGetAll(t, rc, "test:active", map[string]float64{"1": 1, "2": 0})
+	assertvk.ZGetAll(t, vc, "test:active", map[string]float64{"1": 1, "2": 0})
 	assertPop(2, `"task5"`) // because it's highest priority for owner 2
-	assertvk.ZGetAll(t, rc, "test:active", map[string]float64{"1": 1, "2": 1})
+	assertvk.ZGetAll(t, vc, "test:active", map[string]float64{"1": 1, "2": 1})
 	assertPop(1, `"task1"`)
-	assertvk.ZGetAll(t, rc, "test:active", map[string]float64{"1": 2, "2": 1})
+	assertvk.ZGetAll(t, vc, "test:active", map[string]float64{"1": 2, "2": 1})
 
 	assertOwners([]int{1, 2})
 	assertSize(2)
 
 	// mark task2 and task1 (owner 1) as complete
-	q.Done(ctx, rc, 1)
-	q.Done(ctx, rc, 1)
+	q.Done(ctx, vc, 1)
+	q.Done(ctx, vc, 1)
 
-	assertvk.ZGetAll(t, rc, "test:active", map[string]float64{"1": 0, "2": 1})
+	assertvk.ZGetAll(t, vc, "test:active", map[string]float64{"1": 0, "2": 1})
 
 	assertPop(1, `"task4"`)
 	assertPop(2, `"task3"`)
@@ -94,51 +94,51 @@ func TestQueues(t *testing.T) {
 
 	assertSize(0)
 
-	assertvk.ZGetAll(t, rc, "test:active", map[string]float64{})
+	assertvk.ZGetAll(t, vc, "test:active", map[string]float64{})
 
-	q.Push(ctx, rc, "type1", 1, "task6", false)
-	q.Push(ctx, rc, "type1", 1, "task7", false)
-	q.Push(ctx, rc, "type1", 2, "task8", false)
-	q.Push(ctx, rc, "type1", 2, "task9", false)
+	q.Push(ctx, vc, "type1", 1, "task6", false)
+	q.Push(ctx, vc, "type1", 1, "task7", false)
+	q.Push(ctx, vc, "type1", 2, "task8", false)
+	q.Push(ctx, vc, "type1", 2, "task9", false)
 
 	assertPop(1, `"task6"`)
 
-	q.Pause(ctx, rc, 1)
-	q.Pause(ctx, rc, 1) // no-op if already paused
+	q.Pause(ctx, vc, 1)
+	q.Pause(ctx, vc, 1) // no-op if already paused
 
-	assertvk.ZGetAll(t, rc, "test:active", map[string]float64{"1": 1000001, "2": 0})
+	assertvk.ZGetAll(t, vc, "test:active", map[string]float64{"1": 1000001, "2": 0})
 	assertOwners([]int{1, 2})
 
 	assertPop(2, `"task8"`)
 	assertPop(2, `"task9"`)
 	assertPop(0, "") // no more tasks
 
-	q.Resume(ctx, rc, 1)
-	q.Resume(ctx, rc, 1) // no-op if already active
+	q.Resume(ctx, vc, 1)
+	q.Resume(ctx, vc, 1) // no-op if already active
 
-	assertvk.ZGetAll(t, rc, "test:active", map[string]float64{"1": 1})
+	assertvk.ZGetAll(t, vc, "test:active", map[string]float64{"1": 1})
 	assertOwners([]int{1})
 
 	assertPop(1, `"task7"`)
 
-	q.Done(ctx, rc, 1)
-	q.Done(ctx, rc, 1)
-	q.Done(ctx, rc, 2)
-	q.Done(ctx, rc, 2)
+	q.Done(ctx, vc, 1)
+	q.Done(ctx, vc, 1)
+	q.Done(ctx, vc, 2)
+	q.Done(ctx, vc, 2)
 
 	// if we somehow get into a state where an owner is in the active set but doesn't have queued tasks, pop will retry
-	q.Push(ctx, rc, "type1", 1, "task6", false)
-	q.Push(ctx, rc, "type1", 2, "task7", false)
+	q.Push(ctx, vc, "type1", 1, "task6", false)
+	q.Push(ctx, vc, "type1", 2, "task7", false)
 
-	rc.Do("ZREMRANGEBYRANK", "test:1", 0, 1)
+	vc.Do("ZREMRANGEBYRANK", "test:1", 0, 1)
 
 	assertPop(2, `"task7"`)
 	assertPop(0, "")
 
 	// if we somehow call done too many times, we never get negative workers
-	q.Push(ctx, rc, "type1", 1, "task8", false)
-	q.Done(ctx, rc, 1)
-	q.Done(ctx, rc, 1)
+	q.Push(ctx, vc, "type1", 1, "task8", false)
+	q.Done(ctx, vc, 1)
+	q.Done(ctx, vc, 1)
 
-	assertvk.ZGetAll(t, rc, "test:active", map[string]float64{"1": 0})
+	assertvk.ZGetAll(t, vc, "test:active", map[string]float64{"1": 0})
 }

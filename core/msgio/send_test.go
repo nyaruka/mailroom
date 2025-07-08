@@ -43,8 +43,8 @@ func (m *msgSpec) createMsg(t *testing.T, rt *runtime.Runtime, oa *models.OrgAss
 
 func TestQueueMessages(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
-	rc := rt.VK.Get()
-	defer rc.Close()
+	vc := rt.VK.Get()
+	defer vc.Close()
 
 	defer testsuite.Reset(testsuite.ResetData)
 
@@ -153,7 +153,7 @@ func TestQueueMessages(t *testing.T) {
 			msgs[i] = &models.MsgOut{Msg: ms.createMsg(t, rt, oa)}
 		}
 
-		rc.Do("FLUSHDB")
+		vc.Do("FLUSHDB")
 		mockFCM.Messages = nil
 
 		msgio.QueueMessages(ctx, rt, msgs)

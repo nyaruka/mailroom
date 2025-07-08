@@ -244,8 +244,8 @@ func TestSessionFailedStart(t *testing.T) {
 
 func TestFlowStats(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
-	rc := rt.VK.Get()
-	defer rc.Close()
+	vc := rt.VK.Get()
+	defer vc.Close()
 
 	defer testsuite.Reset(testsuite.ResetValkey | testsuite.ResetData)
 
@@ -280,12 +280,12 @@ func TestFlowStats(t *testing.T) {
 	})
 	assertFlowResultCounts(t, rt, flow.ID, map[string]int{})
 
-	assertvk.Keys(t, rc, "recent_contacts:*", []string{
+	assertvk.Keys(t, vc, "recent_contacts:*", []string{
 		"recent_contacts:5fd2e537-0534-4c12-8425-bef87af09d46:072b95b3-61c3-4e0e-8dd1-eb7481083f94", // "what's your fav color" -> color split
 	})
 
 	// all 3 contacts went from first msg to the color split - no operands recorded for this segment
-	assertvk.ZRange(t, rc, "recent_contacts:5fd2e537-0534-4c12-8425-bef87af09d46:072b95b3-61c3-4e0e-8dd1-eb7481083f94", 0, -1,
+	assertvk.ZRange(t, vc, "recent_contacts:5fd2e537-0534-4c12-8425-bef87af09d46:072b95b3-61c3-4e0e-8dd1-eb7481083f94", 0, -1,
 		[]string{"bzXDPJHreu|10001|", "PYVP90uqWA|10003|", "RtWDACk2SS|10002|"},
 	)
 
@@ -323,7 +323,7 @@ func TestFlowStats(t *testing.T) {
 	})
 	assertFlowResultCounts(t, rt, flow.ID, map[string]int{"color/Blue": 2, "color/Other": 1})
 
-	assertvk.Keys(t, rc, "recent_contacts:*", []string{
+	assertvk.Keys(t, vc, "recent_contacts:*", []string{
 		"recent_contacts:5fd2e537-0534-4c12-8425-bef87af09d46:072b95b3-61c3-4e0e-8dd1-eb7481083f94", // "what's your fav color" -> color split
 		"recent_contacts:c02fc3ba-369a-4c87-9bc4-c3b376bda6d2:57b50d33-2b5a-4726-82de-9848c61eff6e", // color split :: Blue exit -> next node
 		"recent_contacts:ea6c38dc-11e2-4616-9f3e-577e44765d44:8712db6b-25ff-4789-892c-581f24eeeb95", // color split :: Other exit -> next node
@@ -334,17 +334,17 @@ func TestFlowStats(t *testing.T) {
 	})
 
 	// check recent operands for color split :: Blue exit -> next node
-	assertvk.ZRange(t, rc, "recent_contacts:c02fc3ba-369a-4c87-9bc4-c3b376bda6d2:57b50d33-2b5a-4726-82de-9848c61eff6e", 0, -1,
+	assertvk.ZRange(t, vc, "recent_contacts:c02fc3ba-369a-4c87-9bc4-c3b376bda6d2:57b50d33-2b5a-4726-82de-9848c61eff6e", 0, -1,
 		[]string{"5dyuJzp6MB|10001|blue", "ZZ/N3THKKL|10003|BLUE"},
 	)
 
 	// check recent operands for color split :: Other exit -> next node
-	assertvk.ZRange(t, rc, "recent_contacts:ea6c38dc-11e2-4616-9f3e-577e44765d44:8712db6b-25ff-4789-892c-581f24eeeb95", 0, -1,
+	assertvk.ZRange(t, vc, "recent_contacts:ea6c38dc-11e2-4616-9f3e-577e44765d44:8712db6b-25ff-4789-892c-581f24eeeb95", 0, -1,
 		[]string{"bPiuaeAX6V|10002|teal", "/MpdX9skhq|10002|azure"},
 	)
 
 	// check recent operands for split by expression :: Other exit -> next node
-	assertvk.ZRange(t, rc, "recent_contacts:2b698218-87e5-4ab8-922e-e65f91d12c10:88d8bf00-51ce-4e5e-aae8-4f957a0761a0", 0, -1,
+	assertvk.ZRange(t, vc, "recent_contacts:2b698218-87e5-4ab8-922e-e65f91d12c10:88d8bf00-51ce-4e5e-aae8-4f957a0761a0", 0, -1,
 		[]string{"QFoOgV99Av|10001|0", "nkcW6vAYAn|10003|0"},
 	)
 

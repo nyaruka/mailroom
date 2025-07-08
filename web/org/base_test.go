@@ -28,9 +28,9 @@ func TestDeindex(t *testing.T) {
 
 	testsuite.RunWebTests(t, ctx, rt, "testdata/deindex.json", nil)
 
-	rc := rt.VK.Get()
-	defer rc.Close()
-	assertvk.SMembers(t, rc, "deindex:contacts", []string{"1"})
+	vc := rt.VK.Get()
+	defer vc.Close()
+	assertvk.SMembers(t, vc, "deindex:contacts", []string{"1"})
 }
 
 func TestMetrics(t *testing.T) {

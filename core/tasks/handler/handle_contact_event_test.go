@@ -16,8 +16,8 @@ import (
 
 func TestHandleContactEvent(t *testing.T) {
 	_, rt := testsuite.Runtime()
-	rc := rt.VK.Get()
-	defer rc.Close()
+	vc := rt.VK.Get()
+	defer vc.Close()
 
 	testsuite.QueueContactTask(t, rt, testdb.Org1, testdb.Cathy, &ctasks.EventReceivedTask{
 		EventType:  models.EventTypeNewConversation,

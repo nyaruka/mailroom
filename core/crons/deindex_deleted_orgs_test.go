@@ -13,8 +13,8 @@ import (
 
 func TestDeindexDeletedOrgsCron(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
-	rc := rt.VK.Get()
-	defer rc.Close()
+	vc := rt.VK.Get()
+	defer vc.Close()
 
 	defer testsuite.Reset(testsuite.ResetElastic | testsuite.ResetValkey)
 

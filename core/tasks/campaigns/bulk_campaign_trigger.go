@@ -87,15 +87,15 @@ func (t *BulkCampaignTriggerTask) Perform(ctx context.Context, rt *runtime.Runti
 	// store recent fires in redis for this event
 	recentSet := vkutil.NewCappedZSet(fmt.Sprintf(recentFiresKey, t.PointID), recentFiresCap, recentFiresExpire)
 
-	rc := rt.VK.Get()
-	defer rc.Close()
+	vc := rt.VK.Get()
+	defer vc.Close()
 
 	for _, cid := range contactIDs[:min(recentFiresCap, len(contactIDs))] {
 		// set members need to be unique, so we include a random string
 		value := fmt.Sprintf("%s|%d", vkutil.RandomBase64(10), cid)
 		score := float64(dates.Now().UnixNano()) / float64(1e9) // score is UNIX time as floating point
 
-		err := recentSet.Add(ctx, rc, value, score)
+		err := recentSet.Add(ctx, vc, value, score)
 		if err != nil {
 			return fmt.Errorf("error adding recent trigger to set: %w", err)
 		}

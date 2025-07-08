@@ -13,8 +13,8 @@ import (
 
 func TestImportContactBatch(t *testing.T) {
 	_, rt := testsuite.Runtime()
-	rc := rt.VK.Get()
-	defer rc.Close()
+	vc := rt.VK.Get()
+	defer vc.Close()
 
 	defer testsuite.Reset(testsuite.ResetData)
 
@@ -27,7 +27,7 @@ func TestImportContactBatch(t *testing.T) {
 		{"name": "Rowan", "language": "spa", "urns": ["tel:+16055740003"]}
 	]`))
 
-	rc.Do("setex", fmt.Sprintf("contact_import_batches_remaining:%d", importID), 10, 2)
+	vc.Do("setex", fmt.Sprintf("contact_import_batches_remaining:%d", importID), 10, 2)
 
 	// perform first batch task...
 	testsuite.QueueBatchTask(t, rt, testdb.Org1, &contacts.ImportContactBatchTask{ContactImportBatchID: batch1ID})

@@ -22,8 +22,8 @@ import (
 
 func TestFireContacts(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
-	rc := rt.VK.Get()
-	defer rc.Close()
+	vc := rt.VK.Get()
+	defer vc.Close()
 
 	defer testsuite.Reset(testsuite.ResetData | testsuite.ResetValkey)
 
@@ -47,7 +47,7 @@ func TestFireContacts(t *testing.T) {
 	// should have created 5 throttled tasks.. unfortunately order is not guaranteed so we sort them
 	var ts []*queues.Task
 	for range 5 {
-		task, err := rt.Queues.Throttled.Pop(ctx, rc)
+		task, err := rt.Queues.Throttled.Pop(ctx, vc)
 		assert.NoError(t, err)
 		ts = append(ts, task)
 	}

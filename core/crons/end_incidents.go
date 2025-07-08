@@ -93,11 +93,11 @@ func (c *EndIncidentsCron) checkWebhookIncident(ctx context.Context, rt *runtime
 }
 
 func (c *EndIncidentsCron) getWebhookIncidentNodes(rt *runtime.Runtime, incident *models.Incident) ([]flows.NodeUUID, error) {
-	rc := rt.VK.Get()
-	defer rc.Close()
+	vc := rt.VK.Get()
+	defer vc.Close()
 
 	nodesKey := fmt.Sprintf("incident:%d:nodes", incident.ID)
-	nodes, err := redis.Strings(rc.Do("SMEMBERS", nodesKey))
+	nodes, err := redis.Strings(vc.Do("SMEMBERS", nodesKey))
 	if err != nil {
 		return nil, err
 	}
@@ -110,11 +110,11 @@ func (c *EndIncidentsCron) getWebhookIncidentNodes(rt *runtime.Runtime, incident
 }
 
 func (c *EndIncidentsCron) removeWebhookIncidentNodes(rt *runtime.Runtime, incident *models.Incident, nodes []flows.NodeUUID) error {
-	rc := rt.VK.Get()
-	defer rc.Close()
+	vc := rt.VK.Get()
+	defer vc.Close()
 
 	nodesKey := fmt.Sprintf("incident:%d:nodes", incident.ID)
-	_, err := rc.Do("SREM", redis.Args{}.Add(nodesKey).AddFlat(nodes)...)
+	_, err := vc.Do("SREM", redis.Args{}.Add(nodesKey).AddFlat(nodes)...)
 	if err != nil {
 		return err
 	}

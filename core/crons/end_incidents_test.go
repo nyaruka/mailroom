@@ -22,8 +22,8 @@ import (
 
 func TestEndIncidents(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
-	rc := rt.VK.Get()
-	defer rc.Close()
+	vc := rt.VK.Get()
+	defer vc.Close()
 
 	defer testsuite.Reset(testsuite.ResetData | testsuite.ResetValkey)
 
@@ -62,6 +62,6 @@ func TestEndIncidents(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM notifications_incident WHERE id = $1 AND ended_on IS NULL`, id1).Returns(1)
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM notifications_incident WHERE id = $1 AND ended_on IS NOT NULL`, id2).Returns(1)
 
-	assertvk.SMembers(t, rc, fmt.Sprintf("incident:%d:nodes", id1), []string{"3c703019-8c92-4d28-9be0-a926a934486b"})
-	assertvk.SMembers(t, rc, fmt.Sprintf("incident:%d:nodes", id2), []string{}) // healthy node removed
+	assertvk.SMembers(t, vc, fmt.Sprintf("incident:%d:nodes", id1), []string{"3c703019-8c92-4d28-9be0-a926a934486b"})
+	assertvk.SMembers(t, vc, fmt.Sprintf("incident:%d:nodes", id2), []string{}) // healthy node removed
 }

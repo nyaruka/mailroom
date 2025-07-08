@@ -31,11 +31,11 @@ func (c *DeindexDeletedOrgsCron) AllInstances() bool {
 }
 
 func (c *DeindexDeletedOrgsCron) Run(ctx context.Context, rt *runtime.Runtime) (map[string]any, error) {
-	rc := rt.VK.Get()
-	defer rc.Close()
+	vc := rt.VK.Get()
+	defer vc.Close()
 
 	// get org ids that still have contacts to de-index
-	orgIDs, err := redis.Ints(rc.Do("SMEMBERS", deindexContactsSetKey))
+	orgIDs, err := redis.Ints(vc.Do("SMEMBERS", deindexContactsSetKey))
 	if err != nil {
 		return nil, err
 	}
@@ -50,7 +50,7 @@ func (c *DeindexDeletedOrgsCron) Run(ctx context.Context, rt *runtime.Runtime) (
 		contactsDeindexed[models.OrgID(orgID)] = deindexed
 
 		if deindexed == 0 {
-			if _, err := rc.Do("SREM", deindexContactsSetKey, orgID); err != nil {
+			if _, err := vc.Do("SREM", deindexContactsSetKey, orgID); err != nil {
 				return nil, fmt.Errorf("error removing org #%d from deindex set: %w", orgID, err)
 			}
 		}
@@ -61,10 +61,10 @@ func (c *DeindexDeletedOrgsCron) Run(ctx context.Context, rt *runtime.Runtime) (
 
 // MarkOrgForDeindexing marks the given org for de-indexing
 func MarkOrgForDeindexing(ctx context.Context, rt *runtime.Runtime, orgID models.OrgID) error {
-	rc := rt.VK.Get()
-	defer rc.Close()
+	vc := rt.VK.Get()
+	defer vc.Close()
 
-	if _, err := rc.Do("SADD", deindexContactsSetKey, orgID); err != nil {
+	if _, err := vc.Do("SADD", deindexContactsSetKey, orgID); err != nil {
 		return fmt.Errorf("error adding org #%d to deindex set: %w", orgID, err)
 	}
 

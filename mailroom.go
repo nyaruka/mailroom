@@ -274,18 +274,18 @@ func openAndCheckDBConnection(url string, maxOpenConns int) (*sql.DB, *sqlx.DB, 
 }
 
 func getQueueSizes(ctx context.Context, rt *runtime.Runtime) (int, int, int) {
-	rc := rt.VK.Get()
-	defer rc.Close()
+	vc := rt.VK.Get()
+	defer vc.Close()
 
-	handler, err := rt.Queues.Handler.Size(ctx, rc)
+	handler, err := rt.Queues.Handler.Size(ctx, vc)
 	if err != nil {
 		slog.Error("error calculating handler queue size", "error", err)
 	}
-	batch, err := rt.Queues.Batch.Size(ctx, rc)
+	batch, err := rt.Queues.Batch.Size(ctx, vc)
 	if err != nil {
 		slog.Error("error calculating batch queue size", "error", err)
 	}
-	throttled, err := rt.Queues.Throttled.Size(ctx, rc)
+	throttled, err := rt.Queues.Throttled.Size(ctx, vc)
 	if err != nil {
 		slog.Error("error calculating throttled queue size", "error", err)
 	}

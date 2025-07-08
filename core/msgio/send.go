@@ -94,11 +94,11 @@ func tryToQueueForOrg(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAs
 
 	// if there are courier messages to queue, do so
 	if len(courierMsgs) > 0 {
-		rc := rt.VK.Get()
-		defer rc.Close()
+		vc := rt.VK.Get()
+		defer vc.Close()
 
 		for cc, contactMsgs := range courierMsgs {
-			err := QueueCourierMessages(rc, oa, cc.contactID, cc.channel, contactMsgs)
+			err := QueueCourierMessages(vc, oa, cc.contactID, cc.channel, contactMsgs)
 
 			// just log the error and continue to try - messages that weren't queued will be retried later
 			if err != nil {

@@ -22,8 +22,8 @@ func TestBulkCampaignTrigger(t *testing.T) {
 	defer random.SetGenerator(random.DefaultGenerator)
 	random.SetGenerator(random.NewSeededGenerator(123))
 
-	rc := rt.VK.Get()
-	defer rc.Close()
+	vc := rt.VK.Get()
+	defer vc.Close()
 
 	// create a waiting session for Cathy
 	testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Cathy, models.FlowTypeVoice, testdb.IVRFlow, models.NilCallID)
@@ -44,8 +44,8 @@ func TestBulkCampaignTrigger(t *testing.T) {
 	testsuite.AssertContactInFlow(t, rt, testdb.Alexandra, testdb.PickANumber)
 
 	// check we recorded recent triggers for this event
-	assertvk.Keys(t, rc, "recent_campaign_fires:*", []string{"recent_campaign_fires:10002"})
-	assertvk.ZRange(t, rc, "recent_campaign_fires:10002", 0, -1, []string{"BPV0gqT9PL|10001", "QQFoOgV99A|10003"})
+	assertvk.Keys(t, vc, "recent_campaign_fires:*", []string{"recent_campaign_fires:10002"})
+	assertvk.ZRange(t, vc, "recent_campaign_fires:10002", 0, -1, []string{"BPV0gqT9PL|10001", "QQFoOgV99A|10003"})
 
 	// create task for event #2 (single message, start mode PASSIVE)
 	task = &campaigns.BulkCampaignTriggerTask{
@@ -67,9 +67,9 @@ func TestBulkCampaignTrigger(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE text = 'Hi Alexandra, it is time to consult with your patients.' AND status = 'Q'`).Returns(1)
 
 	// check we recorded recent triggers for this event
-	assertvk.Keys(t, rc, "recent_campaign_fires:*", []string{"recent_campaign_fires:10001", "recent_campaign_fires:10002"})
-	assertvk.ZRange(t, rc, "recent_campaign_fires:10001", 0, -1, []string{"vWOxKKbX2M|10001", "sZZ/N3THKK|10000", "LrT60Tr9/c|10003"})
-	assertvk.ZRange(t, rc, "recent_campaign_fires:10002", 0, -1, []string{"BPV0gqT9PL|10001", "QQFoOgV99A|10003"})
+	assertvk.Keys(t, vc, "recent_campaign_fires:*", []string{"recent_campaign_fires:10001", "recent_campaign_fires:10002"})
+	assertvk.ZRange(t, vc, "recent_campaign_fires:10001", 0, -1, []string{"vWOxKKbX2M|10001", "sZZ/N3THKK|10000", "LrT60Tr9/c|10003"})
+	assertvk.ZRange(t, vc, "recent_campaign_fires:10002", 0, -1, []string{"BPV0gqT9PL|10001", "QQFoOgV99A|10003"})
 
 	// create task for event #1 (Favorites, start mode INTERRUPT)
 	task = &campaigns.BulkCampaignTriggerTask{

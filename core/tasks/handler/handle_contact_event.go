@@ -68,9 +68,9 @@ func (t *HandleContactEventTask) Perform(ctx context.Context, rt *runtime.Runtim
 	contactQ := fmt.Sprintf("c:%d:%d", oa.OrgID(), t.ContactID)
 	for {
 		// pop the next event off this contacts queue
-		rc := rt.VK.Get()
-		event, err := redis.Bytes(rc.Do("LPOP", contactQ))
-		rc.Close()
+		vc := rt.VK.Get()
+		event, err := redis.Bytes(vc.Do("LPOP", contactQ))
+		vc.Close()
 
 		// out of tasks? that's ok, exit
 		if err == redis.ErrNil {

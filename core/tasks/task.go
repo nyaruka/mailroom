@@ -63,10 +63,10 @@ func Perform(ctx context.Context, rt *runtime.Runtime, task *queues.Task) error 
 
 // Queue adds the given task to the given queue
 func Queue(ctx context.Context, rt *runtime.Runtime, q queues.Fair, orgID models.OrgID, task Task, priority bool) error {
-	rc := rt.VK.Get()
-	defer rc.Close()
+	vc := rt.VK.Get()
+	defer vc.Close()
 
-	return q.Push(ctx, rc, task.Type(), int(orgID), task, priority)
+	return q.Push(ctx, vc, task.Type(), int(orgID), task, priority)
 }
 
 //------------------------------------------------------------------------------------------

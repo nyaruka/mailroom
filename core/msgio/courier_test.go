@@ -236,8 +236,8 @@ func createAndAssertCourierMsg(t *testing.T, oa *models.OrgAssets, msg *models.M
 
 func TestQueueCourierMessages(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
-	rc := rt.VK.Get()
-	defer rc.Close()
+	vc := rt.VK.Get()
+	defer vc.Close()
 
 	defer testsuite.Reset(testsuite.ResetData | testsuite.ResetValkey)
 
@@ -248,7 +248,7 @@ func TestQueueCourierMessages(t *testing.T) {
 	twilio := oa.ChannelByUUID(testdb.TwilioChannel.UUID)
 
 	// noop if no messages provided
-	msgio.QueueCourierMessages(rc, oa, testdb.Cathy.ID, twilio, []*models.MsgOut{})
+	msgio.QueueCourierMessages(vc, oa, testdb.Cathy.ID, twilio, []*models.MsgOut{})
 	testsuite.AssertCourierQueues(t, map[string][]int{})
 
 	// queue 3 messages for Cathy..
@@ -267,7 +267,7 @@ func TestQueueCourierMessages(t *testing.T) {
 		},
 	}
 
-	msgio.QueueCourierMessages(rc, oa, testdb.Cathy.ID, twilio, sends)
+	msgio.QueueCourierMessages(vc, oa, testdb.Cathy.ID, twilio, sends)
 
 	testsuite.AssertCourierQueues(t, map[string][]int{
 		"msgs:74729f45-7f29-4868-9dc4-90e491e3c7d8|10/0": {2}, // twilio, bulk priority
@@ -277,8 +277,8 @@ func TestQueueCourierMessages(t *testing.T) {
 
 func TestClearChannelCourierQueue(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
-	rc := rt.VK.Get()
-	defer rc.Close()
+	vc := rt.VK.Get()
+	defer vc.Close()
 
 	defer testsuite.Reset(testsuite.ResetData | testsuite.ResetValkey)
 
@@ -290,7 +290,7 @@ func TestClearChannelCourierQueue(t *testing.T) {
 	vonage := oa.ChannelByUUID(testdb.VonageChannel.UUID)
 
 	// queue 3 Twilio messages for Cathy..
-	msgio.QueueCourierMessages(rc, oa, testdb.Cathy.ID, twilio, []*models.MsgOut{
+	msgio.QueueCourierMessages(vc, oa, testdb.Cathy.ID, twilio, []*models.MsgOut{
 		{
 			Msg: (&msgSpec{Channel: testdb.TwilioChannel, Contact: testdb.Cathy}).createMsg(t, rt, oa),
 			URN: cathyURNs[0],
@@ -306,7 +306,7 @@ func TestClearChannelCourierQueue(t *testing.T) {
 	})
 
 	// and a Vonage message
-	msgio.QueueCourierMessages(rc, oa, testdb.Cathy.ID, vonage, []*models.MsgOut{
+	msgio.QueueCourierMessages(vc, oa, testdb.Cathy.ID, vonage, []*models.MsgOut{
 		{
 			Msg: (&msgSpec{Channel: testdb.VonageChannel, Contact: testdb.Cathy}).createMsg(t, rt, oa),
 			URN: cathyURNs[0],
@@ -320,22 +320,22 @@ func TestClearChannelCourierQueue(t *testing.T) {
 	})
 
 	twilioChannel := oa.ChannelByID(testdb.TwilioChannel.ID)
-	msgio.ClearCourierQueues(rc, twilioChannel)
+	msgio.ClearCourierQueues(vc, twilioChannel)
 
 	testsuite.AssertCourierQueues(t, map[string][]int{
 		"msgs:19012bfd-3ce3-4cae-9bb9-76cf92c73d49|10/0": {1}, // vonage, bulk priority
 	})
 
 	vonageChannel := oa.ChannelByID(testdb.VonageChannel.ID)
-	msgio.ClearCourierQueues(rc, vonageChannel)
+	msgio.ClearCourierQueues(vc, vonageChannel)
 	testsuite.AssertCourierQueues(t, map[string][]int{})
 
 }
 
 func TestPushCourierBatch(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
-	rc := rt.VK.Get()
-	defer rc.Close()
+	vc := rt.VK.Get()
+	defer vc.Close()
 
 	defer testsuite.Reset(testsuite.ResetData | testsuite.ResetValkey)
 
@@ -348,16 +348,16 @@ func TestPushCourierBatch(t *testing.T) {
 	msg1 := (&msgSpec{Channel: testdb.TwilioChannel, Contact: testdb.Cathy}).createMsg(t, rt, oa)
 	msg2 := (&msgSpec{Channel: testdb.TwilioChannel, Contact: testdb.Cathy}).createMsg(t, rt, oa)
 
-	err = msgio.PushCourierBatch(rc, oa, channel, []*models.MsgOut{{Msg: msg1, URN: cathyURNs[0]}, {Msg: msg2, URN: cathyURNs[0]}}, "1636557205.123456")
+	err = msgio.PushCourierBatch(vc, oa, channel, []*models.MsgOut{{Msg: msg1, URN: cathyURNs[0]}, {Msg: msg2, URN: cathyURNs[0]}}, "1636557205.123456")
 	require.NoError(t, err)
 
 	// check that channel has been added to active list
-	msgsActive, err := redis.Strings(rc.Do("ZRANGE", "msgs:active", 0, -1))
+	msgsActive, err := redis.Strings(vc.Do("ZRANGE", "msgs:active", 0, -1))
 	assert.NoError(t, err)
 	assert.Equal(t, []string{"msgs:74729f45-7f29-4868-9dc4-90e491e3c7d8|10"}, msgsActive)
 
 	// and that msgs were added as single batch to bulk priority (0) queue
-	queued, err := redis.ByteSlices(rc.Do("ZRANGE", "msgs:74729f45-7f29-4868-9dc4-90e491e3c7d8|10/0", 0, -1))
+	queued, err := redis.ByteSlices(vc.Do("ZRANGE", "msgs:74729f45-7f29-4868-9dc4-90e491e3c7d8|10/0", 0, -1))
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(queued))
 
@@ -371,33 +371,33 @@ func TestPushCourierBatch(t *testing.T) {
 	assert.Equal(t, int64(msg2.ID()), item2ID)
 
 	// push another batch in the same epoch second with transaction counter still below limit
-	rc.Do("SET", "msgs:74729f45-7f29-4868-9dc4-90e491e3c7d8|10:tps:1636557205", "5")
+	vc.Do("SET", "msgs:74729f45-7f29-4868-9dc4-90e491e3c7d8|10:tps:1636557205", "5")
 
 	msg3 := (&msgSpec{Channel: testdb.TwilioChannel, Contact: testdb.Cathy}).createMsg(t, rt, oa)
 
-	err = msgio.PushCourierBatch(rc, oa, channel, []*models.MsgOut{{Msg: msg3, URN: cathyURNs[0]}}, "1636557205.234567")
+	err = msgio.PushCourierBatch(vc, oa, channel, []*models.MsgOut{{Msg: msg3, URN: cathyURNs[0]}}, "1636557205.234567")
 	require.NoError(t, err)
 
-	queued, err = redis.ByteSlices(rc.Do("ZRANGE", "msgs:74729f45-7f29-4868-9dc4-90e491e3c7d8|10/0", 0, -1))
+	queued, err = redis.ByteSlices(vc.Do("ZRANGE", "msgs:74729f45-7f29-4868-9dc4-90e491e3c7d8|10/0", 0, -1))
 	assert.NoError(t, err)
 	assert.Equal(t, 2, len(queued))
 
 	// simulate channel having been throttled
-	rc.Do("ZREM", "msgs:active", "msgs:74729f45-7f29-4868-9dc4-90e491e3c7d8|10")
-	rc.Do("SET", "msgs:74729f45-7f29-4868-9dc4-90e491e3c7d8|10:tps:1636557205", "11")
+	vc.Do("ZREM", "msgs:active", "msgs:74729f45-7f29-4868-9dc4-90e491e3c7d8|10")
+	vc.Do("SET", "msgs:74729f45-7f29-4868-9dc4-90e491e3c7d8|10:tps:1636557205", "11")
 
 	msg4 := (&msgSpec{Channel: testdb.TwilioChannel, Contact: testdb.Cathy}).createMsg(t, rt, oa)
 
-	err = msgio.PushCourierBatch(rc, oa, channel, []*models.MsgOut{{Msg: msg4, URN: cathyURNs[0]}}, "1636557205.345678")
+	err = msgio.PushCourierBatch(vc, oa, channel, []*models.MsgOut{{Msg: msg4, URN: cathyURNs[0]}}, "1636557205.345678")
 	require.NoError(t, err)
 
 	// check that channel has *not* been added to active list
-	msgsActive, err = redis.Strings(rc.Do("ZRANGE", "msgs:active", 0, -1))
+	msgsActive, err = redis.Strings(vc.Do("ZRANGE", "msgs:active", 0, -1))
 	assert.NoError(t, err)
 	assert.Equal(t, []string{}, msgsActive)
 
 	// but msg was still added to queue
-	queued, err = redis.ByteSlices(rc.Do("ZRANGE", "msgs:74729f45-7f29-4868-9dc4-90e491e3c7d8|10/0", 0, -1))
+	queued, err = redis.ByteSlices(vc.Do("ZRANGE", "msgs:74729f45-7f29-4868-9dc4-90e491e3c7d8|10/0", 0, -1))
 	assert.NoError(t, err)
 	assert.Equal(t, 3, len(queued))
 }

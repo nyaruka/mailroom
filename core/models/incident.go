@@ -69,14 +69,14 @@ func IncidentWebhooksUnhealthy(ctx context.Context, db DBorTx, rp *redis.Pool, o
 	}
 
 	if len(nodes) > 0 {
-		rc := rp.Get()
-		defer rc.Close()
+		vc := rp.Get()
+		defer vc.Close()
 
 		nodesKey := fmt.Sprintf("incident:%d:nodes", id)
-		rc.Send("MULTI")
-		rc.Send("SADD", redis.Args{}.Add(nodesKey).AddFlat(nodes)...)
-		rc.Send("EXPIRE", nodesKey, 60*30) // 30 minutes
-		_, err = rc.Do("EXEC")
+		vc.Send("MULTI")
+		vc.Send("SADD", redis.Args{}.Add(nodesKey).AddFlat(nodes)...)
+		vc.Send("EXPIRE", nodesKey, 60*30) // 30 minutes
+		_, err = vc.Do("EXEC")
 		if err != nil {
 			return NilIncidentID, fmt.Errorf("error adding node uuids to incident: %w", err)
 		}
@@ -156,18 +156,18 @@ func (n *WebhookNode) Record(ctx context.Context, rt *runtime.Runtime, events []
 		}
 	}
 
-	rc := rt.VK.Get()
-	defer rc.Close()
+	vc := rt.VK.Get()
+	defer vc.Close()
 
 	healthySeries, unhealthySeries := n.series()
 
 	if numHealthy > 0 {
-		if err := healthySeries.Record(ctx, rc, string(n.UUID), int64(numHealthy)); err != nil {
+		if err := healthySeries.Record(ctx, vc, string(n.UUID), int64(numHealthy)); err != nil {
 			return fmt.Errorf("error recording healthy calls: %w", err)
 		}
 	}
 	if numUnhealthy > 0 {
-		if err := unhealthySeries.Record(ctx, rc, string(n.UUID), int64(numUnhealthy)); err != nil {
+		if err := unhealthySeries.Record(ctx, vc, string(n.UUID), int64(numUnhealthy)); err != nil {
 			return fmt.Errorf("error recording unhealthy calls: %w", err)
 		}
 	}
@@ -176,15 +176,15 @@ func (n *WebhookNode) Record(ctx context.Context, rt *runtime.Runtime, events []
 }
 
 func (n *WebhookNode) Healthy(ctx context.Context, rt *runtime.Runtime) (bool, error) {
-	rc := rt.VK.Get()
-	defer rc.Close()
+	vc := rt.VK.Get()
+	defer vc.Close()
 
 	healthySeries, unhealthySeries := n.series()
-	healthy, err := healthySeries.Total(ctx, rc, string(n.UUID))
+	healthy, err := healthySeries.Total(ctx, vc, string(n.UUID))
 	if err != nil {
 		return false, fmt.Errorf("error getting healthy series total: %w", err)
 	}
-	unhealthy, err := unhealthySeries.Total(ctx, rc, string(n.UUID))
+	unhealthy, err := unhealthySeries.Total(ctx, vc, string(n.UUID))
 	if err != nil {
 		return false, fmt.Errorf("error getting healthy series total: %w", err)
 	}

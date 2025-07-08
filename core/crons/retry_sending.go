@@ -25,8 +25,8 @@ func (c *RetrySendingCron) AllInstances() bool {
 }
 
 func (c *RetrySendingCron) Run(ctx context.Context, rt *runtime.Runtime) (map[string]any, error) {
-	rc := rt.VK.Get()
-	defer rc.Close()
+	vc := rt.VK.Get()
+	defer vc.Close()
 
 	msgs, err := models.GetMessagesForRetry(ctx, rt.DB)
 	if err != nil {

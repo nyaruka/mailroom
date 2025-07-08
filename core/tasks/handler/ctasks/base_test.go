@@ -19,8 +19,8 @@ import (
 
 func TestTimedEvents(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
-	rc := rt.VK.Get()
-	defer rc.Close()
+	vc := rt.VK.Get()
+	defer vc.Close()
 
 	defer testsuite.Reset(testsuite.ResetAll)
 
@@ -113,7 +113,7 @@ func TestTimedEvents(t *testing.T) {
 		err := handler.QueueTask(ctx, rt, testdb.Org1.ID, testdb.Cathy.ID, ctask)
 		assert.NoError(t, err, "%d: error adding task", i)
 
-		task, err := rt.Queues.Handler.Pop(ctx, rc)
+		task, err := rt.Queues.Handler.Pop(ctx, vc)
 		assert.NoError(t, err, "%d: error popping next task", i)
 
 		err = tasks.Perform(ctx, rt, task)

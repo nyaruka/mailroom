@@ -382,8 +382,8 @@ func TestUpdateMessageDeletedBySender(t *testing.T) {
 
 func TestGetMsgRepetitions(t *testing.T) {
 	_, rt := testsuite.Runtime()
-	rc := rt.VK.Get()
-	defer rc.Close()
+	vc := rt.VK.Get()
+	defer vc.Close()
 
 	defer testsuite.Reset(testsuite.ResetValkey)
 	defer dates.SetNowFunc(time.Now)
@@ -417,7 +417,7 @@ func TestGetMsgRepetitions(t *testing.T) {
 	for i := 0; i < 5; i++ {
 		assertRepetitions(george, msg4, i+1)
 	}
-	assertvk.HGetAll(t, rc, "msg_repetitions:2021-11-18T12:15", map[string]string{"10000|foo": "30", "10000|bar": "5", "10002|foo": "5"})
+	assertvk.HGetAll(t, vc, "msg_repetitions:2021-11-18T12:15", map[string]string{"10000|foo": "30", "10000|bar": "5", "10002|foo": "5"})
 }
 
 func TestNormalizeAttachment(t *testing.T) {

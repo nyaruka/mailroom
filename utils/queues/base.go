@@ -19,11 +19,11 @@ type Task struct {
 
 // Fair is a queue that supports fair distribution of tasks between owners
 type Fair interface {
-	Push(ctx context.Context, rc redis.Conn, taskType string, ownerID int, task any, priority bool) error
-	Pop(ctx context.Context, rc redis.Conn) (*Task, error)
-	Done(ctx context.Context, rc redis.Conn, ownerID int) error
-	Pause(ctx context.Context, rc redis.Conn, ownerID int) error
-	Resume(ctx context.Context, rc redis.Conn, ownerID int) error
-	Owners(ctx context.Context, rc redis.Conn) ([]int, error)
-	Size(ctx context.Context, rc redis.Conn) (int, error)
+	Push(ctx context.Context, vc redis.Conn, taskType string, ownerID int, task any, priority bool) error
+	Pop(ctx context.Context, vc redis.Conn) (*Task, error)
+	Done(ctx context.Context, vc redis.Conn, ownerID int) error
+	Pause(ctx context.Context, vc redis.Conn, ownerID int) error
+	Resume(ctx context.Context, vc redis.Conn, ownerID int) error
+	Owners(ctx context.Context, vc redis.Conn) ([]int, error)
+	Size(ctx context.Context, vc redis.Conn) (int, error)
 }

@@ -471,12 +471,12 @@ return count
 
 // GetMsgRepetitions gets the number of repetitions of this msg text for the given contact in the current 5 minute window
 func GetMsgRepetitions(rp *redis.Pool, contact *flows.Contact, msg *flows.MsgOut) (int, error) {
-	rc := rp.Get()
-	defer rc.Close()
+	vc := rp.Get()
+	defer vc.Close()
 
 	keyTime := dates.Now().UTC().Round(time.Minute * 5)
 	key := fmt.Sprintf("msg_repetitions:%s", keyTime.Format("2006-01-02T15:04"))
-	return redis.Int(msgRepetitionsScript.Do(rc, key, contact.ID(), msg.Text()))
+	return redis.Int(msgRepetitionsScript.Do(vc, key, contact.ID(), msg.Text()))
 }
 
 var sqlSelectMessagesByID = `

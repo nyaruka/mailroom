@@ -12,8 +12,8 @@ import (
 
 func TestThrottleQueue(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
-	rc := rt.VK.Get()
-	defer rc.Close()
+	vc := rt.VK.Get()
+	defer vc.Close()
 
 	defer testsuite.Reset(testsuite.ResetValkey | testsuite.ResetData)
 
@@ -22,7 +22,7 @@ func TestThrottleQueue(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, map[string]any{"paused": 0, "resumed": 0}, res)
 
-	err = rt.Queues.Throttled.Push(ctx, rc, "type1", 1, "task1", false)
+	err = rt.Queues.Throttled.Push(ctx, vc, "type1", 1, "task1", false)
 	require.NoError(t, err)
 
 	res, err = cron.Run(ctx, rt)

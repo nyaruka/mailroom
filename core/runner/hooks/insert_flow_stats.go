@@ -109,8 +109,8 @@ func (h *insertFlowStats) Execute(ctx context.Context, rt *runtime.Runtime, tx *
 		return fmt.Errorf("error inserting flow result counts: %w", err)
 	}
 
-	rc := rt.VK.Get()
-	defer rc.Close()
+	vc := rt.VK.Get()
+	defer vc.Close()
 
 	for segID, recentContacts := range recentBySegment {
 		recentSet := vkutil.NewCappedZSet(fmt.Sprintf(recentContactsKey, segID.exitUUID, segID.destUUID), recentContactsCap, recentContactsExpire)
@@ -120,7 +120,7 @@ func (h *insertFlowStats) Execute(ctx context.Context, rt *runtime.Runtime, tx *
 			value := fmt.Sprintf("%s|%d|%s", recent.rnd, recent.contact.ID(), stringsx.TruncateEllipsis(recent.operand, 100))
 			score := float64(recent.time.UnixNano()) / float64(1e9) // score is UNIX time as floating point
 
-			err := recentSet.Add(ctx, rc, value, score)
+			err := recentSet.Add(ctx, vc, value, score)
 			if err != nil {
 				return fmt.Errorf("error adding recent contact to set: %w", err)
 			}

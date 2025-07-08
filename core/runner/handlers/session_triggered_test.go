@@ -47,10 +47,10 @@ func TestSessionTriggered(t *testing.T) {
 			},
 			Assertions: []handlers.Assertion{
 				func(t *testing.T, rt *runtime.Runtime) error {
-					rc := rt.VK.Get()
-					defer rc.Close()
+					vc := rt.VK.Get()
+					defer vc.Close()
 
-					task, err := rt.Queues.Batch.Pop(ctx, rc)
+					task, err := rt.Queues.Batch.Pop(ctx, vc)
 					assert.NoError(t, err)
 					assert.NotNil(t, task)
 					start := models.FlowStart{}
@@ -104,10 +104,10 @@ func TestQuerySessionTriggered(t *testing.T) {
 			},
 			Assertions: []handlers.Assertion{
 				func(t *testing.T, rt *runtime.Runtime) error {
-					rc := rt.VK.Get()
-					defer rc.Close()
+					vc := rt.VK.Get()
+					defer vc.Close()
 
-					task, err := rt.Queues.Batch.Pop(ctx, rc)
+					task, err := rt.Queues.Batch.Pop(ctx, vc)
 					assert.NoError(t, err)
 					assert.NotNil(t, task)
 					start := models.FlowStart{}

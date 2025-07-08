@@ -51,8 +51,8 @@ func QueueTask(ctx context.Context, rt *runtime.Runtime, orgID models.OrgID, con
 }
 
 func queueTask(ctx context.Context, rt *runtime.Runtime, orgID models.OrgID, contactID models.ContactID, task Task, front bool, errorCount int) error {
-	rc := rt.VK.Get()
-	defer rc.Close()
+	vc := rt.VK.Get()
+	defer vc.Close()
 
 	taskJSON, err := json.Marshal(task)
 	if err != nil {
@@ -65,10 +65,10 @@ func queueTask(ctx context.Context, rt *runtime.Runtime, orgID models.OrgID, con
 	// first push the event on our contact queue
 	contactQ := fmt.Sprintf("c:%d:%d", orgID, contactID)
 	if front {
-		_, err = redis.Int64(redis.DoContext(rc, ctx, "LPUSH", contactQ, string(payloadJSON)))
+		_, err = redis.Int64(redis.DoContext(vc, ctx, "LPUSH", contactQ, string(payloadJSON)))
 
 	} else {
-		_, err = redis.Int64(redis.DoContext(rc, ctx, "RPUSH", contactQ, string(payloadJSON)))
+		_, err = redis.Int64(redis.DoContext(vc, ctx, "RPUSH", contactQ, string(payloadJSON)))
 	}
 	if err != nil {
 		return fmt.Errorf("error queuing handler task: %w", err)

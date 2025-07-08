@@ -17,8 +17,8 @@ import (
 
 func TestMsgCreated(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
-	rc := rt.VK.Get()
-	defer rc.Close()
+	vc := rt.VK.Get()
+	defer vc.Close()
 
 	defer testsuite.Reset(testsuite.ResetAll)
 
@@ -92,10 +92,10 @@ func TestMsgCreated(t *testing.T) {
 	handlers.RunTestCases(t, ctx, rt, tcs)
 
 	// Cathy should have 1 batch of queued messages at high priority
-	assertvk.ZCard(t, rc, fmt.Sprintf("msgs:%s|10/1", testdb.TwilioChannel.UUID), 1)
+	assertvk.ZCard(t, vc, fmt.Sprintf("msgs:%s|10/1", testdb.TwilioChannel.UUID), 1)
 
 	// One bulk for George
-	assertvk.ZCard(t, rc, fmt.Sprintf("msgs:%s|10/0", testdb.TwilioChannel.UUID), 1)
+	assertvk.ZCard(t, vc, fmt.Sprintf("msgs:%s|10/0", testdb.TwilioChannel.UUID), 1)
 }
 
 func TestNewURN(t *testing.T) {

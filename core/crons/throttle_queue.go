@@ -30,10 +30,10 @@ func (c *ThrottleQueueCron) AllInstances() bool {
 
 // Run throttles processing of starts based on that org's current outbox size
 func (c *ThrottleQueueCron) Run(ctx context.Context, rt *runtime.Runtime) (map[string]any, error) {
-	rc := rt.VK.Get()
-	defer rc.Close()
+	vc := rt.VK.Get()
+	defer vc.Close()
 
-	owners, err := rt.Queues.Throttled.Owners(ctx, rc)
+	owners, err := rt.Queues.Throttled.Owners(ctx, vc)
 	if err != nil {
 		return nil, fmt.Errorf("error getting task owners: %w", err)
 	}
@@ -47,10 +47,10 @@ func (c *ThrottleQueueCron) Run(ctx context.Context, rt *runtime.Runtime) (map[s
 		}
 
 		if oa.Org().OutboxCount() >= throttleOutboxThreshold {
-			rt.Queues.Throttled.Pause(ctx, rc, ownerID)
+			rt.Queues.Throttled.Pause(ctx, vc, ownerID)
 			numPaused++
 		} else {
-			rt.Queues.Throttled.Resume(ctx, rc, ownerID)
+			rt.Queues.Throttled.Resume(ctx, vc, ownerID)
 			numResumed++
 		}
 	}
