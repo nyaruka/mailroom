@@ -57,25 +57,6 @@ func (q *FairSorted) Owners(ctx context.Context, rc redis.Conn) ([]int, error) {
 	return actual, nil
 }
 
-func (q *FairSorted) activeKey() string {
-	return fmt.Sprintf("%s:active", q.keyBase)
-}
-
-func (q *FairSorted) queueKey(ownerID int) string {
-	return fmt.Sprintf("%s:%d", q.keyBase, ownerID)
-}
-
-func (q *FairSorted) score(priority bool) string {
-	weight := float64(0)
-	if priority {
-		weight = -10000000
-	}
-
-	s := float64(dates.Now().UnixMicro())/float64(1000000) + weight
-
-	return strconv.FormatFloat(s, 'f', 6, 64)
-}
-
 //go:embed lua/fair_sorted_pop.lua
 var luaFSPop string
 var scriptFSPop = redis.NewScript(1, luaFSPop)
@@ -152,3 +133,24 @@ func (q *FairSorted) Resume(ctx context.Context, rc redis.Conn, ownerID int) err
 	_, err := scriptFSResume.DoContext(ctx, rc, q.activeKey(), strconv.FormatInt(int64(ownerID), 10))
 	return err
 }
+
+func (q *FairSorted) activeKey() string {
+	return fmt.Sprintf("%s:active", q.keyBase)
+}
+
+func (q *FairSorted) queueKey(ownerID int) string {
+	return fmt.Sprintf("%s:%d", q.keyBase, ownerID)
+}
+
+func (q *FairSorted) score(priority bool) string {
+	weight := float64(0)
+	if priority {
+		weight = -10000000
+	}
+
+	s := float64(dates.Now().UnixMicro())/float64(1000000) + weight
+
+	return strconv.FormatFloat(s, 'f', 6, 64)
+}
+
+var _ Fair = (*FairSorted)(nil)
