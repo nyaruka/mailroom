@@ -8,7 +8,7 @@ import (
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/tasks"
 	"github.com/nyaruka/mailroom/runtime"
-	"github.com/nyaruka/vkutil"
+	"github.com/nyaruka/vkutil/locks"
 )
 
 // TypeScheduleCampaignPoint is the type of the schedule campaign point task
@@ -40,7 +40,7 @@ func (t *ScheduleCampaignPointTask) WithAssets() models.Refresh {
 
 // Perform creates the actual event fires to schedule the given campaign point
 func (t *ScheduleCampaignPointTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets) error {
-	locker := vkutil.NewLocker(fmt.Sprintf(scheduleLockKey, t.PointID), time.Hour)
+	locker := locks.NewLocker(fmt.Sprintf(scheduleLockKey, t.PointID), time.Hour)
 	lock, err := locker.Grab(ctx, rt.VK, time.Minute*5)
 	if err != nil {
 		return fmt.Errorf("error grabbing lock to schedule campaign point %d: %w", t.PointID, err)

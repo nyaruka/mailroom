@@ -10,7 +10,7 @@ import (
 	"github.com/nyaruka/mailroom/core/search"
 	"github.com/nyaruka/mailroom/core/tasks"
 	"github.com/nyaruka/mailroom/runtime"
-	"github.com/nyaruka/vkutil"
+	"github.com/nyaruka/vkutil/locks"
 )
 
 // TypePopulateDynamicGroup is the type of the populate group task
@@ -43,7 +43,7 @@ func (t *PopulateDynamicGroupTask) WithAssets() models.Refresh {
 
 // Perform figures out the membership for a query based group then repopulates it
 func (t *PopulateDynamicGroupTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets) error {
-	locker := vkutil.NewLocker(fmt.Sprintf(populateLockKey, t.GroupID), time.Hour)
+	locker := locks.NewLocker(fmt.Sprintf(populateLockKey, t.GroupID), time.Hour)
 	lock, err := locker.Grab(ctx, rt.VK, time.Minute*5)
 	if err != nil {
 		return fmt.Errorf("error grabbing lock to repopulate smart group: %d: %w", t.GroupID, err)
