@@ -40,7 +40,7 @@ func (t *StartFlowBatchTask) Type() string {
 
 // Timeout is the maximum amount of time the task can run for
 func (t *StartFlowBatchTask) Timeout() time.Duration {
-	return time.Minute * 15
+	return time.Minute * 10
 }
 
 func (t *StartFlowBatchTask) WithAssets() models.Refresh {

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/gomodule/redigo/redis"
@@ -53,7 +54,16 @@ func Perform(ctx context.Context, rt *runtime.Runtime, task *queues.Task) error 
 	ctx, cancel := context.WithTimeout(ctx, typedTask.Timeout())
 	defer cancel()
 
-	return typedTask.Perform(ctx, rt, oa)
+	start := time.Now()
+
+	err = typedTask.Perform(ctx, rt, oa)
+
+	// log if task took longer than 75% of its timeout
+	if duration := time.Since(start); duration >= (3 * typedTask.Timeout() / 4) {
+		slog.Error("task took longer than expected", "org", oa.OrgID(), "type", typedTask.Type(), "duration", duration, "limit", typedTask.Timeout())
+	}
+
+	return err
 }
 
 // Queue adds the given task to the given queue

@@ -58,7 +58,7 @@ func TestStartFlowTask(t *testing.T) {
 			excludeStartedPreviously: true,
 			queue:                    tasks.BatchQueue,
 			expectedContactCount:     121,
-			expectedBatchCount:       2,
+			expectedBatchCount:       5,
 			expectedTotalCount:       121,
 			expectedStatus:           models.StartStatusCompleted,
 			expectedActiveRuns:       map[models.FlowID]int{testdb.Favorites.ID: 122, testdb.PickANumber.ID: 0, testdb.BackgroundFlow.ID: 0},

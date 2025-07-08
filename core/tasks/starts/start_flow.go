@@ -18,7 +18,7 @@ import (
 const (
 	TypeStartFlow = "start_flow"
 
-	startBatchSize = 100
+	startBatchSize = 25
 )
 
 func init() {
