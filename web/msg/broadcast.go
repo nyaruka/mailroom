@@ -118,10 +118,7 @@ func handleBroadcast(ctx context.Context, rt *runtime.Runtime, r *broadcastReque
 	if r.Schedule == nil {
 		task := &msgs.SendBroadcastTask{Broadcast: bcast}
 
-		rc := rt.VK.Get()
-		defer rc.Close()
-
-		if err := tasks.Queue(ctx, rc, rt.Queues.Batch, bcast.OrgID, task, true); err != nil {
+		if err := tasks.Queue(ctx, rt, rt.Queues.Batch, bcast.OrgID, task, true); err != nil {
 			return nil, 0, fmt.Errorf("error queuing send broadcast task: %w", err)
 		}
 	}

@@ -26,9 +26,6 @@ func TestBroadcastsFromEvents(t *testing.T) {
 
 	defer testsuite.Reset(testsuite.ResetAll)
 
-	rc := rt.VK.Get()
-	defer rc.Close()
-
 	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 	require.NoError(t, err)
 
@@ -164,7 +161,7 @@ func TestBroadcastsFromEvents(t *testing.T) {
 		bcast, err := models.NewBroadcastFromEvent(ctx, rt.DB, oa, event)
 		assert.NoError(t, err)
 
-		err = tasks.Queue(ctx, rc, tc.queue, testdb.Org1.ID, &msgs.SendBroadcastTask{Broadcast: bcast}, false)
+		err = tasks.Queue(ctx, rt, tc.queue, testdb.Org1.ID, &msgs.SendBroadcastTask{Broadcast: bcast}, false)
 		assert.NoError(t, err)
 
 		taskCounts := testsuite.FlushTasks(t, rt)
@@ -288,7 +285,7 @@ func TestSendBroadcastTask(t *testing.T) {
 
 		task := &msgs.SendBroadcastTask{Broadcast: bcast}
 
-		err = tasks.Queue(ctx, rc, rt.Queues.Batch, testdb.Org1.ID, task, false)
+		err = tasks.Queue(ctx, rt, rt.Queues.Batch, testdb.Org1.ID, task, false)
 		assert.NoError(t, err)
 
 		taskCounts := testsuite.FlushTasks(t, rt)

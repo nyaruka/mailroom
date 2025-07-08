@@ -22,10 +22,6 @@ type createFlowStarts struct{}
 func (h *createFlowStarts) Order() int { return 1 }
 
 func (h *createFlowStarts) Execute(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *models.OrgAssets, scenes map[*runner.Scene][]any) error {
-	rc := rt.VK.Get()
-	defer rc.Close()
-
-	// for each of our scene
 	for _, es := range scenes {
 		for _, e := range es {
 			event := e.(*events.SessionTriggered)
@@ -75,7 +71,7 @@ func (h *createFlowStarts) Execute(ctx context.Context, rt *runtime.Runtime, tx 
 				}
 			}
 
-			err = tasks.Queue(ctx, rc, rt.Queues.Batch, oa.OrgID(), &starts.StartFlowTask{FlowStart: start}, false)
+			err = tasks.Queue(ctx, rt, rt.Queues.Batch, oa.OrgID(), &starts.StartFlowTask{FlowStart: start}, false)
 			if err != nil {
 				return fmt.Errorf("error queuing flow start: %w", err)
 			}

@@ -75,7 +75,7 @@ func queueTask(ctx context.Context, rt *runtime.Runtime, orgID models.OrgID, con
 	}
 
 	// then add a handle task for that contact on our global handler queue to
-	err = tasks.Queue(ctx, rc, rt.Queues.Handler, orgID, &HandleContactEventTask{ContactID: contactID}, false)
+	err = tasks.Queue(ctx, rt, rt.Queues.Handler, orgID, &HandleContactEventTask{ContactID: contactID}, false)
 	if err != nil {
 		return fmt.Errorf("error queuing handle task: %w", err)
 	}

@@ -7,7 +7,6 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/gomodule/redigo/redis"
 	"github.com/nyaruka/goflow/utils"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/runtime"
@@ -63,7 +62,10 @@ func Perform(ctx context.Context, rt *runtime.Runtime, task *queues.Task) error 
 }
 
 // Queue adds the given task to the given queue
-func Queue(ctx context.Context, rc redis.Conn, q queues.Fair, orgID models.OrgID, task Task, priority bool) error {
+func Queue(ctx context.Context, rt *runtime.Runtime, q queues.Fair, orgID models.OrgID, task Task, priority bool) error {
+	rc := rt.VK.Get()
+	defer rc.Close()
+
 	return q.Push(ctx, rc, task.Type(), int(orgID), task, priority)
 }
 
