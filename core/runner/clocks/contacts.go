@@ -7,12 +7,12 @@ import (
 
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/runtime"
-	"github.com/nyaruka/vkutil"
+	"github.com/nyaruka/vkutil/locks"
 )
 
 // TryToLock tries to grab locks for the given contacts, returning the locks and the skipped contacts
 func TryToLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, ids []models.ContactID, retry time.Duration) (map[models.ContactID]string, []models.ContactID, error) {
-	locks := make(map[models.ContactID]string, len(ids))
+	values := make(map[models.ContactID]string, len(ids))
 	skipped := make([]models.ContactID, 0, 5)
 
 	// this is set to true at the end of the function so the defer calls won't release the locks unless we're returning
@@ -33,7 +33,7 @@ func TryToLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, i
 			continue
 		}
 
-		locks[contactID] = lock
+		values[contactID] = lock
 
 		// if we error we want to release all locks on way out
 		defer func() {
@@ -44,7 +44,7 @@ func TryToLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, i
 	}
 
 	success = true
-	return locks, skipped, nil
+	return values, skipped, nil
 }
 
 // Unlock unlocks the given contacts using the given lock values
@@ -72,6 +72,6 @@ func IsLocked(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, co
 }
 
 // returns the locker for a particular contact
-func getContactLocker(orgID models.OrgID, contactID models.ContactID) *vkutil.Locker {
-	return vkutil.NewLocker(fmt.Sprintf("lock:c:%d:%d", orgID, contactID), time.Minute*5)
+func getContactLocker(orgID models.OrgID, contactID models.ContactID) *locks.Locker {
+	return locks.NewLocker(fmt.Sprintf("lock:c:%d:%d", orgID, contactID), time.Minute*5)
 }

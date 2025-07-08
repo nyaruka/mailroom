@@ -194,5 +194,5 @@ func (n *WebhookNode) Healthy(ctx context.Context, rt *runtime.Runtime) (bool, e
 }
 
 func (n *WebhookNode) series() (*vkutil.IntervalSeries, *vkutil.IntervalSeries) {
-	return vkutil.NewIntervalSeries("webhooks:healthy", time.Minute*5, 4, false), vkutil.NewIntervalSeries("webhooks:unhealthy", time.Minute*5, 4, false)
+	return vkutil.NewIntervalSeries("webhooks:healthy", time.Minute*5, 4), vkutil.NewIntervalSeries("webhooks:unhealthy", time.Minute*5, 4)
 }
