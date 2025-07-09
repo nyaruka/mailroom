@@ -1,3 +1,8 @@
+v10.3.2 (2025-07-09)
+-------------------------
+ * Add endpoint to populate dynamic group
+ * Refactor queues so they're created with the config and passed via the runtime
+
 v10.3.1 (2025-07-08)
 -------------------------
  * Update to latest vkutil and add fair queue implementation (not yet used)
