@@ -49,10 +49,10 @@ func CurrentTasks(t *testing.T, rt *runtime.Runtime, qname string) map[models.Or
 		tasksZ, err := redis.Strings(vc.Do("ZRANGE", fmt.Sprintf("tasks:%s:%d", qname, orgID), 0, -1))
 		require.NoError(t, err)
 
-		tasks0, err := redis.Strings(vc.Do("LRANGE", fmt.Sprintf("{tasks:%s:%d}/0", qname, orgID), 0, -1))
+		tasks0, err := redis.Strings(vc.Do("LRANGE", fmt.Sprintf("{tasks:%s}:o:%d/0", qname, orgID), 0, -1))
 		require.NoError(t, err)
 
-		tasks1, err := redis.Strings(vc.Do("LRANGE", fmt.Sprintf("{tasks:%s:%d}/1", qname, orgID), 0, -1))
+		tasks1, err := redis.Strings(vc.Do("LRANGE", fmt.Sprintf("{tasks:%s}:o:%d/1", qname, orgID), 0, -1))
 		require.NoError(t, err)
 
 		orgTasks := make([]*queues.Task, len(tasksZ)+len(tasks0)+len(tasks1))
