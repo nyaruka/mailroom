@@ -1,3 +1,8 @@
+v10.3.4 (2025-07-17)
+-------------------------
+ * Refresh groups on populate endpoint
+ * Add endpoint to create flow start and rework flow start creation to save raw URNs
+
 v10.3.3 (2025-07-09)
 -------------------------
  * Update to latest vkutil
