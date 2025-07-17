@@ -29,7 +29,7 @@ func TestRetryCalls(t *testing.T) {
 	// create a flow start for cathy
 	start := models.NewFlowStart(testdb.Org1.ID, models.StartTypeTrigger, testdb.IVRFlow.ID).
 		WithContactIDs([]models.ContactID{testdb.Cathy.ID})
-	err := models.InsertFlowStarts(ctx, rt.DB, []*models.FlowStart{start})
+	err := models.InsertFlowStart(ctx, rt.DB, start)
 	require.NoError(t, err)
 
 	err = tasks.Queue(ctx, rt, rt.Queues.Batch, testdb.Org1.ID, &starts.StartFlowTask{FlowStart: start}, false)

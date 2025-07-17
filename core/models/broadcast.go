@@ -205,8 +205,7 @@ func InsertBroadcast(ctx context.Context, db DBorTx, bcast *Broadcast) error {
 		ParentID:          bcast.ParentID,
 	}
 
-	err := BulkQuery(ctx, "inserting broadcast", db, sqlInsertBroadcast, []*dbBroadcast{dbb})
-	if err != nil {
+	if err := BulkQuery(ctx, "inserting broadcast", db, sqlInsertBroadcast, []*dbBroadcast{dbb}); err != nil {
 		return fmt.Errorf("error inserting broadcast: %w", err)
 	}
 
@@ -219,8 +218,7 @@ func InsertBroadcast(ctx context.Context, db DBorTx, bcast *Broadcast) error {
 	}
 
 	// insert our contacts
-	err = BulkQueryBatches(ctx, "inserting broadcast contacts", db, sqlInsertBroadcastContacts, 1000, contacts)
-	if err != nil {
+	if err := BulkQueryBatches(ctx, "inserting broadcast contacts", db, sqlInsertBroadcastContacts, 1000, contacts); err != nil {
 		return fmt.Errorf("error inserting contacts for broadcast: %w", err)
 	}
 
@@ -231,8 +229,7 @@ func InsertBroadcast(ctx context.Context, db DBorTx, bcast *Broadcast) error {
 	}
 
 	// insert our groups
-	err = BulkQuery(ctx, "inserting broadcast groups", db, sqlInsertBroadcastGroups, groups)
-	if err != nil {
+	if err := BulkQuery(ctx, "inserting broadcast groups", db, sqlInsertBroadcastGroups, groups); err != nil {
 		return fmt.Errorf("error inserting groups for broadcast: %w", err)
 	}
 

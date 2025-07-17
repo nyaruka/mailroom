@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/lib/pq"
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/gocommon/uuids"
@@ -78,27 +79,41 @@ func (e Exclusions) Value() (driver.Value, error) { return json.Marshal(e) }
 
 // FlowStart represents the top level flow start in our system
 type FlowStart struct {
-	ID          StartID     `json:"start_id"      db:"id"` // null for non-persisted tasks used by flow actions
-	UUID        uuids.UUID  `json:"-"             db:"uuid"`
-	OrgID       OrgID       `json:"org_id"        db:"org_id"`
-	Status      StartStatus `json:"-"             db:"status"`
-	StartType   StartType   `json:"start_type"    db:"start_type"`
-	CreatedByID UserID      `json:"created_by_id" db:"created_by_id"`
-	FlowID      FlowID      `json:"flow_id"       db:"flow_id"`
+	ID          StartID     `json:"start_id"` // null for non-persisted tasks used by flow actions
+	UUID        uuids.UUID  `json:"-"`
+	OrgID       OrgID       `json:"org_id"`
+	Status      StartStatus `json:"-"`
+	StartType   StartType   `json:"start_type"`
+	CreatedByID UserID      `json:"created_by_id"`
+	FlowID      FlowID      `json:"flow_id"`
 
 	URNs            []urns.URN  `json:"urns,omitempty"`
 	ContactIDs      []ContactID `json:"contact_ids,omitempty"`
 	GroupIDs        []GroupID   `json:"group_ids,omitempty"`
 	ExcludeGroupIDs []GroupID   `json:"exclude_group_ids,omitempty"` // used when loading scheduled triggers as flow starts
-	Query           null.String `json:"query,omitempty"        db:"query"`
-	Exclusions      Exclusions  `json:"exclusions"             db:"exclusions"`
+	Query           null.String `json:"query,omitempty"`
+	Exclusions      Exclusions  `json:"exclusions"`
 
-	Params null.JSON `json:"params,omitempty"          db:"params"`
+	Params null.JSON `json:"params,omitempty"`
 
 	// used for non-persistent starts from flow actions
 	CreateContact  bool      `json:"create_contact"`
 	ParentSummary  null.JSON `json:"parent_summary,omitempty"`
 	SessionHistory null.JSON `json:"session_history,omitempty"`
+}
+
+type dbFlowStart struct {
+	ID          StartID        `db:"id"`
+	UUID        uuids.UUID     `db:"uuid"`
+	OrgID       OrgID          `db:"org_id"`
+	Status      StartStatus    `db:"status"`
+	StartType   StartType      `db:"start_type"`
+	CreatedByID UserID         `db:"created_by_id"`
+	FlowID      FlowID         `db:"flow_id"`
+	URNs        pq.StringArray `db:"urns"`
+	Query       null.String    `db:"query"`
+	Exclusions  Exclusions     `db:"exclusions"`
+	Params      null.JSON      `db:"params"`
 }
 
 // NewFlowStart creates a new flow start objects for the passed in parameters
@@ -210,11 +225,20 @@ SELECT id, uuid, org_id, status, start_type, created_by_id, flow_id, params
 
 // GetFlowStartByID gets a start by it's ID - NOTE this does not load all attributes of the start
 func GetFlowStartByID(ctx context.Context, db DBorTx, startID StartID) (*FlowStart, error) {
-	s := &FlowStart{}
+	s := &dbFlowStart{}
 	if err := db.GetContext(ctx, s, sqlGetFlowStartByID, startID); err != nil {
 		return nil, fmt.Errorf("error loading flow start #%d: %w", startID, err)
 	}
-	return s, nil
+	return &FlowStart{
+		ID:          s.ID,
+		UUID:        s.UUID,
+		OrgID:       s.OrgID,
+		Status:      s.Status,
+		StartType:   s.StartType,
+		CreatedByID: s.CreatedByID,
+		FlowID:      s.FlowID,
+		Params:      s.Params,
+	}, nil
 }
 
 type startContact struct {
@@ -227,39 +251,47 @@ type startGroup struct {
 	GroupID GroupID `db:"contactgroup_id"`
 }
 
-// InsertFlowStarts inserts all the passed in starts
-func InsertFlowStarts(ctx context.Context, db DBorTx, starts []*FlowStart) error {
+// InsertFlowStart inserts the passed in start
+func InsertFlowStart(ctx context.Context, db DBorTx, start *FlowStart) error {
+	dbs := &dbFlowStart{
+		UUID:        start.UUID,
+		OrgID:       start.OrgID,
+		Status:      start.Status,
+		StartType:   start.StartType,
+		CreatedByID: start.CreatedByID,
+		FlowID:      start.FlowID,
+		URNs:        StringArray(start.URNs),
+		Query:       start.Query,
+		Exclusions:  start.Exclusions,
+		Params:      start.Params,
+	}
+
 	// insert our starts
-	err := BulkQuery(ctx, "inserting flow start", db, sqlInsertStart, starts)
-	if err != nil {
+	if err := BulkQuery(ctx, "inserting flow start", db, sqlInsertStart, []*dbFlowStart{dbs}); err != nil {
 		return fmt.Errorf("error inserting flow starts: %w", err)
 	}
 
+	start.ID = dbs.ID
+
 	// build up all our contact associations
-	contacts := make([]*startContact, 0, len(starts))
-	for _, start := range starts {
-		for _, contactID := range start.ContactIDs {
-			contacts = append(contacts, &startContact{StartID: start.ID, ContactID: contactID})
-		}
+	contacts := make([]*startContact, 0, len(start.ContactIDs))
+	for _, contactID := range start.ContactIDs {
+		contacts = append(contacts, &startContact{StartID: start.ID, ContactID: contactID})
 	}
 
 	// insert our contacts
-	err = BulkQuery(ctx, "inserting flow start contacts", db, sqlInsertStartContact, contacts)
-	if err != nil {
+	if err := BulkQueryBatches(ctx, "inserting flow start contacts", db, sqlInsertStartContact, 1000, contacts); err != nil {
 		return fmt.Errorf("error inserting flow start contacts for flow: %w", err)
 	}
 
 	// build up all our group associations
-	groups := make([]*startGroup, 0, len(starts))
-	for _, start := range starts {
-		for _, groupID := range start.GroupIDs {
-			groups = append(groups, &startGroup{StartID: start.ID, GroupID: groupID})
-		}
+	groups := make([]*startGroup, 0, len(start.GroupIDs))
+	for _, groupID := range start.GroupIDs {
+		groups = append(groups, &startGroup{StartID: start.ID, GroupID: groupID})
 	}
 
 	// insert our groups
-	err = BulkQuery(ctx, "inserting flow start groups", db, sqlInsertStartGroup, groups)
-	if err != nil {
+	if err := BulkQuery(ctx, "inserting flow start groups", db, sqlInsertStartGroup, groups); err != nil {
 		return fmt.Errorf("error inserting flow start groups for flow: %w", err)
 	}
 
@@ -268,8 +300,8 @@ func InsertFlowStarts(ctx context.Context, db DBorTx, starts []*FlowStart) error
 
 const sqlInsertStart = `
 INSERT INTO
-	flows_flowstart(uuid,  org_id,  flow_id,  start_type,  created_on, modified_on, query,  exclusions,  status, params)
-			 VALUES(:uuid, :org_id, :flow_id, :start_type, NOW(),      NOW(),       :query, :exclusions, 'P',    :params)
+	flows_flowstart( uuid,  org_id,  flow_id,  start_type, created_on, modified_on,  urns,  query,  exclusions, status,  params)
+			 VALUES(:uuid, :org_id, :flow_id, :start_type, NOW(),      NOW(),       :urns, :query, :exclusions, 'P',    :params)
 RETURNING
 	id
 `
