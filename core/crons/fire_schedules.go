@@ -88,8 +88,7 @@ func (c *FireSchedulesCron) Run(ctx context.Context, rt *runtime.Runtime) (map[s
 			start := s.Trigger.CreateStart()
 
 			// insert our flow start
-			err := models.InsertFlowStart(ctx, tx, start)
-			if err != nil {
+			if err := models.InsertFlowStart(ctx, tx, start); err != nil {
 				log.Error("error inserting new flow start for schedule", "error", err)
 				tx.Rollback()
 				continue

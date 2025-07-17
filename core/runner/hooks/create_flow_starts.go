@@ -64,15 +64,9 @@ func (h *createFlowStarts) Execute(ctx context.Context, rt *runtime.Runtime, tx 
 				WithParentSummary(event.RunSummary).
 				WithSessionHistory(historyJSON)
 
-			// TODO find another way to pass start info to new calls
-			if flow.FlowType() == models.FlowTypeVoice {
-				if err := models.InsertFlowStart(ctx, tx, start); err != nil {
-					return fmt.Errorf("error inserting flow start: %w", err)
-				}
-			}
-
-			err = tasks.Queue(ctx, rt, rt.Queues.Batch, oa.OrgID(), &starts.StartFlowTask{FlowStart: start}, false)
-			if err != nil {
+			// and a task to process it
+			task := &starts.StartFlowTask{FlowStart: start}
+			if err := tasks.Queue(ctx, rt, rt.Queues.Batch, oa.OrgID(), task, false); err != nil {
 				return fmt.Errorf("error queuing flow start: %w", err)
 			}
 		}
