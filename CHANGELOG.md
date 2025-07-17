@@ -1,3 +1,8 @@
+v10.3.5 (2025-07-17)
+-------------------------
+ * Add params field to flow start endpoint
+ * Don't persist flow starts from flow actions to IVR flows
+
 v10.3.4 (2025-07-17)
 -------------------------
  * Refresh groups on populate endpoint
