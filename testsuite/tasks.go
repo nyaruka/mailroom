@@ -104,7 +104,7 @@ func FlushTasks(t *testing.T, rt *runtime.Runtime, qnames ...string) map[string]
 		counts[task.Type]++
 
 		err = tasks.Perform(context.Background(), rt, task)
-		assert.NoError(t, err)
+		assert.NoError(t, err, "unexpected error performing task %s", task.Type)
 	}
 	return counts
 }

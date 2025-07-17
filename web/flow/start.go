@@ -2,6 +2,7 @@ package flow
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -13,7 +14,6 @@ import (
 	"github.com/nyaruka/mailroom/core/tasks/starts"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/mailroom/web"
-	"github.com/nyaruka/null/v3"
 )
 
 func init() {
@@ -41,6 +41,7 @@ type startRequest struct {
 	URNs       []urns.URN         `json:"urns"`
 	Query      string             `json:"query"`
 	Exclude    models.Exclusions  `json:"exclude"`
+	Params     json.RawMessage    `json:"params"`
 }
 
 func handleStart(ctx context.Context, rt *runtime.Runtime, r *startRequest) (any, int, error) {
@@ -62,8 +63,9 @@ func handleStart(ctx context.Context, rt *runtime.Runtime, r *startRequest) (any
 		GroupIDs:    r.GroupIDs,
 		ContactIDs:  r.ContactIDs,
 		URNs:        r.URNs,
-		Query:       null.String(r.Query),
+		Query:       r.Query,
 		Exclusions:  r.Exclude,
+		Params:      r.Params,
 		CreatedByID: r.UserID,
 	}
 
