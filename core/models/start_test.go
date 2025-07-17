@@ -14,7 +14,6 @@ import (
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/testsuite"
 	"github.com/nyaruka/mailroom/testsuite/testdb"
-	"github.com/nyaruka/null/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -26,7 +25,7 @@ func TestStarts(t *testing.T) {
 
 	startID := testdb.InsertFlowStart(rt, testdb.Org1, testdb.Admin, testdb.SingleMessage, []*testdb.Contact{testdb.Cathy, testdb.Bob})
 
-	startJSON := []byte(fmt.Sprintf(`{
+	startJSON := fmt.Appendf(nil, `{
 		"start_id": %d,
 		"start_type": "M",
 		"org_id": %d,
@@ -42,7 +41,7 @@ func TestStarts(t *testing.T) {
 		"params": {"foo": "bar"},
 		"parent_summary": {"uuid": "b65b1a22-db6d-4f5a-9b3d-7302368a82e6"},
 		"session_history": {"parent_uuid": "532a3899-492f-4ffe-aed7-e75ad524efab", "ancestors": 3, "ancestors_since_input": 1}
-	}`, startID, testdb.Org1.ID, testdb.Admin.ID, testdb.SingleMessage.ID, testdb.Cathy.ID, testdb.Bob.ID, testdb.DoctorsGroup.ID, testdb.TestersGroup.ID))
+	}`, startID, testdb.Org1.ID, testdb.Admin.ID, testdb.SingleMessage.ID, testdb.Cathy.ID, testdb.Bob.ID, testdb.DoctorsGroup.ID, testdb.TestersGroup.ID)
 
 	start := &models.FlowStart{}
 	err := json.Unmarshal(startJSON, start)
@@ -52,16 +51,16 @@ func TestStarts(t *testing.T) {
 	assert.Equal(t, testdb.Org1.ID, start.OrgID)
 	assert.Equal(t, testdb.Admin.ID, start.CreatedByID)
 	assert.Equal(t, testdb.SingleMessage.ID, start.FlowID)
-	assert.Equal(t, null.NullString, start.Query)
+	assert.Equal(t, "", start.Query)
 	assert.False(t, start.Exclusions.StartedPreviously)
 	assert.False(t, start.Exclusions.InAFlow)
 	assert.Equal(t, []models.ContactID{testdb.Cathy.ID, testdb.Bob.ID}, start.ContactIDs)
 	assert.Equal(t, []models.GroupID{testdb.DoctorsGroup.ID}, start.GroupIDs)
 	assert.Equal(t, []models.GroupID{testdb.TestersGroup.ID}, start.ExcludeGroupIDs)
 
-	assert.Equal(t, null.JSON(`{"uuid": "b65b1a22-db6d-4f5a-9b3d-7302368a82e6"}`), start.ParentSummary)
-	assert.Equal(t, null.JSON(`{"parent_uuid": "532a3899-492f-4ffe-aed7-e75ad524efab", "ancestors": 3, "ancestors_since_input": 1}`), start.SessionHistory)
-	assert.Equal(t, null.JSON(`{"foo": "bar"}`), start.Params)
+	assert.Equal(t, json.RawMessage(`{"uuid": "b65b1a22-db6d-4f5a-9b3d-7302368a82e6"}`), start.ParentSummary)
+	assert.Equal(t, json.RawMessage(`{"parent_uuid": "532a3899-492f-4ffe-aed7-e75ad524efab", "ancestors": 3, "ancestors_since_input": 1}`), start.SessionHistory)
+	assert.Equal(t, json.RawMessage(`{"foo": "bar"}`), start.Params)
 
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowstart_contacts WHERE flowstart_id = $1`, startID).Returns(2)
 
@@ -115,12 +114,12 @@ func TestStartsBuilding(t *testing.T) {
 		WithContactIDs([]models.ContactID{testdb.Cathy.ID, testdb.Bob.ID}).
 		WithQuery(`language != ""`).
 		WithCreateContact(true).
-		WithParams(json.RawMessage(`{"foo": "bar"}`))
+		WithParams([]byte(`{"foo": "bar"}`))
 
 	marshalled, err := jsonx.Marshal(start)
 	require.NoError(t, err)
 
-	test.AssertEqualJSON(t, []byte(fmt.Sprintf(`{
+	test.AssertEqualJSON(t, fmt.Appendf(nil, `{
 		"contact_ids": [%d, %d],
 		"create_contact": true,
 		"created_by_id": null,
@@ -140,5 +139,5 @@ func TestStartsBuilding(t *testing.T) {
 		"query": "language != \"\"",
 		"start_id": null,
 		"start_type": "M"
-	}`, testdb.Cathy.ID, testdb.Bob.ID, testdb.TestersGroup.ID, testdb.Favorites.ID, testdb.DoctorsGroup.ID)), marshalled)
+	}`, testdb.Cathy.ID, testdb.Bob.ID, testdb.TestersGroup.ID, testdb.Favorites.ID, testdb.DoctorsGroup.ID), marshalled)
 }

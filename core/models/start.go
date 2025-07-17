@@ -79,27 +79,26 @@ func (e Exclusions) Value() (driver.Value, error) { return json.Marshal(e) }
 
 // FlowStart represents the top level flow start in our system
 type FlowStart struct {
-	ID          StartID     `json:"start_id"` // null for non-persisted tasks used by flow actions
-	UUID        uuids.UUID  `json:"-"`
-	OrgID       OrgID       `json:"org_id"`
-	Status      StartStatus `json:"-"`
-	StartType   StartType   `json:"start_type"`
-	CreatedByID UserID      `json:"created_by_id"`
-	FlowID      FlowID      `json:"flow_id"`
+	ID          StartID         `json:"start_id"` // null for non-persisted tasks used by flow actions
+	UUID        uuids.UUID      `json:"-"`
+	OrgID       OrgID           `json:"org_id"`
+	Status      StartStatus     `json:"-"`
+	StartType   StartType       `json:"start_type"`
+	CreatedByID UserID          `json:"created_by_id"`
+	FlowID      FlowID          `json:"flow_id"`
+	Params      json.RawMessage `json:"params,omitempty"`
 
 	URNs            []urns.URN  `json:"urns,omitempty"`
 	ContactIDs      []ContactID `json:"contact_ids,omitempty"`
 	GroupIDs        []GroupID   `json:"group_ids,omitempty"`
 	ExcludeGroupIDs []GroupID   `json:"exclude_group_ids,omitempty"` // used when loading scheduled triggers as flow starts
-	Query           null.String `json:"query,omitempty"`
+	Query           string      `json:"query,omitempty"`
 	Exclusions      Exclusions  `json:"exclusions"`
 
-	Params null.JSON `json:"params,omitempty"`
-
 	// used for non-persistent starts from flow actions
-	CreateContact  bool      `json:"create_contact"`
-	ParentSummary  null.JSON `json:"parent_summary,omitempty"`
-	SessionHistory null.JSON `json:"session_history,omitempty"`
+	CreateContact  bool            `json:"create_contact"`
+	ParentSummary  json.RawMessage `json:"parent_summary,omitempty"`
+	SessionHistory json.RawMessage `json:"session_history,omitempty"`
 }
 
 type dbFlowStart struct {
@@ -110,10 +109,10 @@ type dbFlowStart struct {
 	StartType   StartType      `db:"start_type"`
 	CreatedByID UserID         `db:"created_by_id"`
 	FlowID      FlowID         `db:"flow_id"`
+	Params      null.JSON      `db:"params"`
 	URNs        pq.StringArray `db:"urns"`
 	Query       null.String    `db:"query"`
 	Exclusions  Exclusions     `db:"exclusions"`
-	Params      null.JSON      `db:"params"`
 }
 
 // NewFlowStart creates a new flow start objects for the passed in parameters
@@ -142,7 +141,7 @@ func (s *FlowStart) WithURNs(us []urns.URN) *FlowStart {
 }
 
 func (s *FlowStart) WithQuery(query string) *FlowStart {
-	s.Query = null.String(query)
+	s.Query = query
 	return s
 }
 
@@ -162,17 +161,17 @@ func (s *FlowStart) WithCreateContact(create bool) *FlowStart {
 }
 
 func (s *FlowStart) WithParentSummary(summary []byte) *FlowStart {
-	s.ParentSummary = null.JSON(summary)
+	s.ParentSummary = summary
 	return s
 }
 
 func (s *FlowStart) WithSessionHistory(history []byte) *FlowStart {
-	s.SessionHistory = null.JSON(history)
+	s.SessionHistory = history
 	return s
 }
 
 func (s *FlowStart) WithParams(params []byte) *FlowStart {
-	s.Params = null.JSON(params)
+	s.Params = params
 	return s
 }
 
@@ -229,7 +228,7 @@ func GetFlowStartByID(ctx context.Context, db DBorTx, startID StartID) (*FlowSta
 	if err := db.GetContext(ctx, s, sqlGetFlowStartByID, startID); err != nil {
 		return nil, fmt.Errorf("error loading flow start #%d: %w", startID, err)
 	}
-	return &FlowStart{
+	start := &FlowStart{
 		ID:          s.ID,
 		UUID:        s.UUID,
 		OrgID:       s.OrgID,
@@ -237,8 +236,12 @@ func GetFlowStartByID(ctx context.Context, db DBorTx, startID StartID) (*FlowSta
 		StartType:   s.StartType,
 		CreatedByID: s.CreatedByID,
 		FlowID:      s.FlowID,
-		Params:      s.Params,
-	}, nil
+	}
+	if !s.Params.IsNull() {
+		start.Params = json.RawMessage(s.Params)
+	}
+
+	return start, nil
 }
 
 type startContact struct {
@@ -261,9 +264,9 @@ func InsertFlowStart(ctx context.Context, db DBorTx, start *FlowStart) error {
 		CreatedByID: start.CreatedByID,
 		FlowID:      start.FlowID,
 		URNs:        StringArray(start.URNs),
-		Query:       start.Query,
+		Query:       null.String(start.Query),
 		Exclusions:  start.Exclusions,
-		Params:      start.Params,
+		Params:      null.JSON(start.Params),
 	}
 
 	// insert our starts

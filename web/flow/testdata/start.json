@@ -58,7 +58,10 @@
             "urns": [
                 "tel:+1234567890"
             ],
-            "query": "age > 20"
+            "query": "age > 20",
+            "params": {
+                "foo": "bar"
+            }
         },
         "status": 200,
         "response": {

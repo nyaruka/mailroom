@@ -222,7 +222,7 @@ func TestStartFlowTask(t *testing.T) {
 		assert.NoError(t, err, "%d: failed to insert start", i)
 
 		err = tasks.Queue(ctx, rt, tc.queue, testdb.Org1.ID, &starts.StartFlowTask{FlowStart: start}, false)
-		assert.NoError(t, err)
+		assert.NoError(t, err, "%d: failed to queue start task", i)
 
 		taskCounts := testsuite.FlushTasks(t, rt)
 

@@ -2,7 +2,6 @@ package starts
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"time"
@@ -107,18 +106,18 @@ func (t *StartFlowBatchTask) start(ctx context.Context, rt *runtime.Runtime, oa 
 	}
 
 	var params *types.XObject
-	if !start.Params.IsNull() {
+	if start.Params != nil {
 		params, err = types.ReadXObject(start.Params)
 		if err != nil {
-			return fmt.Errorf("unable to read JSON from flow start params: %w", err)
+			return fmt.Errorf("unable to read JSON from start params: %w", err)
 		}
 	}
 
 	var history *flows.SessionHistory
-	if !start.SessionHistory.IsNull() {
+	if start.SessionHistory != nil {
 		history, err = models.ReadSessionHistory(start.SessionHistory)
 		if err != nil {
-			return fmt.Errorf("unable to read JSON from flow start history: %w", err)
+			return fmt.Errorf("unable to read JSON from start history: %w", err)
 		}
 	}
 
@@ -127,18 +126,15 @@ func (t *StartFlowBatchTask) start(ctx context.Context, rt *runtime.Runtime, oa 
 
 	// this will build our trigger for each contact started
 	triggerBuilder := func() flows.Trigger {
-		if !start.ParentSummary.IsNull() {
-			tb := triggers.NewBuilder(flow.Reference()).FlowAction(history, json.RawMessage(start.ParentSummary))
+		if start.ParentSummary != nil {
+			tb := triggers.NewBuilder(flow.Reference()).FlowAction(history, start.ParentSummary)
 			if batchStart {
 				tb = tb.AsBatch()
 			}
 			return tb.Build()
 		}
 
-		tb := triggers.NewBuilder(flow.Reference()).Manual()
-		if !start.Params.IsNull() {
-			tb = tb.WithParams(params)
-		}
+		tb := triggers.NewBuilder(flow.Reference()).Manual().WithParams(params)
 		if batchStart {
 			tb = tb.AsBatch()
 		}
