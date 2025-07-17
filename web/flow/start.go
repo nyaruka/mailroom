@@ -76,7 +76,8 @@ func handleStart(ctx context.Context, rt *runtime.Runtime, r *startRequest) (any
 	}
 
 	// queue it up for actual starting
-	if err := tasks.Queue(ctx, rt, rt.Queues.Batch, r.OrgID, &starts.StartFlowTask{FlowStart: start}, false); err != nil {
+	task := &starts.StartFlowTask{FlowStart: start}
+	if err := tasks.Queue(ctx, rt, rt.Queues.Batch, r.OrgID, task, false); err != nil {
 		return nil, 0, fmt.Errorf("error queuing start flow task: %w", err)
 	}
 

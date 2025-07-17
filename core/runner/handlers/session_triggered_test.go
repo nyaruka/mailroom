@@ -21,9 +21,7 @@ func TestSessionTriggered(t *testing.T) {
 
 	defer testsuite.Reset(testsuite.ResetAll)
 
-	groupRef := &assets.GroupReference{
-		UUID: testdb.TestersGroup.UUID,
-	}
+	groupRef := &assets.GroupReference{UUID: testdb.TestersGroup.UUID}
 
 	test.MockUniverse()
 
@@ -40,8 +38,8 @@ func TestSessionTriggered(t *testing.T) {
 					Args:  []any{testdb.Cathy.ID},
 					Count: 1,
 				},
-				{ // check we don't create a start in the database
-					SQL:   "select count(*) from flows_flowstart where org_id = 1",
+				{ // start is non-persistent
+					SQL:   "select count(*) from flows_flowstart",
 					Count: 0,
 				},
 			},
@@ -72,10 +70,10 @@ func TestSessionTriggered(t *testing.T) {
 				},
 			},
 			SQLAssertions: []handlers.SQLAssertion{
-				{ // check that we do have a start in the database because it's an IVR flow
-					SQL:   "select count(*) from flows_flowstart where org_id = 1 AND flow_id = $1",
-					Args:  []any{testdb.IVRFlow.ID},
-					Count: 1,
+				{
+					// start is non-persistent
+					SQL:   "select count(*) from flows_flowstart",
+					Count: 0,
 				},
 			},
 		},
