@@ -30,7 +30,7 @@ type populateGroupRequest struct {
 
 // handles a request to populate a query based contact group
 func handlePopulateGroup(ctx context.Context, rt *runtime.Runtime, r *populateGroupRequest) (any, int, error) {
-	oa, err := models.GetOrgAssets(ctx, rt, r.OrgID)
+	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, r.OrgID, models.RefreshGroups)
 	if err != nil {
 		return nil, 0, fmt.Errorf("error loading org assets: %w", err)
 	}
