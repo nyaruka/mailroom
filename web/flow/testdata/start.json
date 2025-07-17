@@ -1,0 +1,82 @@
+[
+    {
+        "label": "illegal method",
+        "method": "GET",
+        "path": "/mr/flow/start",
+        "status": 405,
+        "response": {
+            "error": "illegal method: GET"
+        }
+    },
+    {
+        "label": "missing required fields",
+        "method": "POST",
+        "path": "/mr/flow/start",
+        "body": {},
+        "status": 400,
+        "response": {
+            "error": "request failed validation: field 'org_id' is required, field 'user_id' is required, field 'type' is required, field 'flow_id' is required"
+        }
+    },
+    {
+        "label": "error if no recipients",
+        "method": "POST",
+        "path": "/mr/flow/start",
+        "body": {
+            "org_id": 1,
+            "user_id": 4,
+            "type": "M",
+            "flow_id": 123
+        },
+        "status": 400,
+        "response": {
+            "error": "can't create flow start with no recipients"
+        },
+        "db_assertions": [
+            {
+                "query": "SELECT count(*) FROM flows_flowstart",
+                "count": 0
+            }
+        ]
+    },
+    {
+        "label": "create flow start and return id",
+        "method": "POST",
+        "path": "/mr/flow/start",
+        "body": {
+            "org_id": 1,
+            "user_id": 4,
+            "type": "M",
+            "flow_id": 10000,
+            "group_ids": [
+                10000
+            ],
+            "contact_ids": [
+                10002,
+                10003
+            ],
+            "urns": [
+                "tel:+1234567890"
+            ],
+            "query": "age > 20"
+        },
+        "status": 200,
+        "response": {
+            "id": 1
+        },
+        "db_assertions": [
+            {
+                "query": "SELECT count(*) FROM flows_flowstart WHERE org_id = 1 AND start_type = 'M' AND flow_id = 10000 AND status = 'P' AND urns = '{\"tel:+1234567890\"}' AND query = 'age > 20'",
+                "count": 1
+            },
+            {
+                "query": "SELECT count(*) FROM flows_flowstart_contacts WHERE flowstart_id = 1",
+                "count": 2
+            },
+            {
+                "query": "SELECT count(*) FROM flows_flowstart_groups WHERE flowstart_id = 1",
+                "count": 1
+            }
+        ]
+    }
+]

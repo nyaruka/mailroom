@@ -218,7 +218,7 @@ func TestStartFlowTask(t *testing.T) {
 			WithExcludeStartedPreviously(tc.excludeStartedPreviously).
 			WithCreateContact(tc.createContact)
 
-		err := models.InsertFlowStarts(ctx, rt.DB, []*models.FlowStart{start})
+		err := models.InsertFlowStart(ctx, rt.DB, start)
 		assert.NoError(t, err, "%d: failed to insert start", i)
 
 		err = tasks.Queue(ctx, rt, tc.queue, testdb.Org1.ID, &starts.StartFlowTask{FlowStart: start}, false)

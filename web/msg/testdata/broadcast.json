@@ -19,7 +19,7 @@
         }
     },
     {
-        "label": "error if broadcast doesn't have any recipients",
+        "label": "error if no recipients",
         "method": "POST",
         "path": "/mr/msg/broadcast",
         "body": {

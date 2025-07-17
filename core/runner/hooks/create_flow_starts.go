@@ -66,7 +66,7 @@ func (h *createFlowStarts) Execute(ctx context.Context, rt *runtime.Runtime, tx 
 
 			// TODO find another way to pass start info to new calls
 			if flow.FlowType() == models.FlowTypeVoice {
-				if err := models.InsertFlowStarts(ctx, tx, []*models.FlowStart{start}); err != nil {
+				if err := models.InsertFlowStart(ctx, tx, start); err != nil {
 					return fmt.Errorf("error inserting flow start: %w", err)
 				}
 			}

@@ -405,7 +405,7 @@ func TestVonageIVR(t *testing.T) {
 		WithContactIDs([]models.ContactID{testdb.Cathy.ID, testdb.George.ID}).
 		WithParams(json.RawMessage(`{"ref_id":"123"}`))
 
-	err := models.InsertFlowStarts(ctx, rt.DB, []*models.FlowStart{start})
+	err := models.InsertFlowStart(ctx, rt.DB, start)
 	require.NoError(t, err)
 
 	assertdb.Query(t, rt.DB, `SELECT COUNT(*) FROM flows_flowstart`).Returns(1)

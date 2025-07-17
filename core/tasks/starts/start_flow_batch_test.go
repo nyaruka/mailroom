@@ -23,7 +23,7 @@ func TestStartFlowBatchTask(t *testing.T) {
 	// create a start
 	start1 := models.NewFlowStart(models.OrgID(1), models.StartTypeManual, testdb.SingleMessage.ID).
 		WithContactIDs([]models.ContactID{testdb.Cathy.ID, testdb.Bob.ID, testdb.George.ID, testdb.Alexandra.ID})
-	err := models.InsertFlowStarts(ctx, rt.DB, []*models.FlowStart{start1})
+	err := models.InsertFlowStart(ctx, rt.DB, start1)
 	require.NoError(t, err)
 
 	assertdb.Query(t, rt.DB, `SELECT status FROM flows_flowstart WHERE id = $1`, start1.ID).Returns("P")
@@ -61,7 +61,7 @@ func TestStartFlowBatchTask(t *testing.T) {
 	// create a second start
 	start2 := models.NewFlowStart(models.OrgID(1), models.StartTypeManual, testdb.SingleMessage.ID).
 		WithContactIDs([]models.ContactID{testdb.Cathy.ID, testdb.Bob.ID, testdb.George.ID, testdb.Alexandra.ID})
-	err = models.InsertFlowStarts(ctx, rt.DB, []*models.FlowStart{start2})
+	err = models.InsertFlowStart(ctx, rt.DB, start2)
 	require.NoError(t, err)
 
 	start2Batch1 := start2.CreateBatch([]models.ContactID{testdb.Cathy.ID, testdb.Bob.ID}, true, false, 4)

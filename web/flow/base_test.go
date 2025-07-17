@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/nyaruka/mailroom/testsuite"
+	"github.com/nyaruka/mailroom/testsuite/testdb"
 )
 
 func TestChangeLanguage(t *testing.T) {
@@ -28,6 +29,16 @@ func TestMigrate(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
 
 	testsuite.RunWebTests(t, ctx, rt, "testdata/migrate.json", nil)
+}
+
+func TestStart(t *testing.T) {
+	ctx, rt := testsuite.Runtime()
+
+	defer testsuite.Reset(testsuite.ResetData | testsuite.ResetValkey)
+
+	testsuite.RunWebTests(t, ctx, rt, "testdata/start.json", nil)
+
+	testsuite.AssertBatchTasks(t, testdb.Org1.ID, map[string]int{"start_flow": 1})
 }
 
 func TestStartPreview(t *testing.T) {
