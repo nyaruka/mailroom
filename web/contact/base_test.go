@@ -1,7 +1,6 @@
 package contact_test
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
@@ -119,12 +118,10 @@ func TestPopulateGroup(t *testing.T) {
 
 	defer testsuite.Reset(testsuite.ResetData | testsuite.ResetValkey | testsuite.ResetElastic)
 
-	group := testdb.InsertContactGroup(rt, testdb.Org1, "", "Dynamic", "age > 18")
+	testdb.InsertContactGroup(rt, testdb.Org1, "", "Dynamic", "age > 18")
 	models.FlushCache()
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/populate_group.json", map[string]string{
-		"group_id": fmt.Sprint(group.ID),
-	}, testsuite.ResetNone)
+	testsuite.RunWebTests(t, ctx, rt, "testdata/populate_group.json", nil, testsuite.ResetNone)
 }
 
 func TestSearch(t *testing.T) {

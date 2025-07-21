@@ -25,7 +25,7 @@
         "method": "POST",
         "path": "/mr/android/sync",
         "body": {
-            "channel_id": $channel_id_1$
+            "channel_id": 30000
         },
         "status": 500,
         "response": {

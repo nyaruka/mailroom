@@ -41,8 +41,7 @@
                 "query": "SELECT count(*) FROM msgs_broadcast WHERE translations->'eng'->>'text' = 'Anyone?'",
                 "count": 0
             }
-        ],
-        "expected_tasks": {}
+        ]
     },
     {
         "label": "create broadcast and return id",
@@ -163,8 +162,7 @@
                 "query": "SELECT count(*) FROM schedules_schedule WHERE repeat_period = 'O' AND repeat_hour_of_day IS NULL AND repeat_minute_of_hour IS NULL AND repeat_days_of_week IS NULL AND repeat_day_of_month IS NULL AND next_fire = '2034-06-20T14:05:30Z'",
                 "count": 1
             }
-        ],
-        "expected_tasks": {}
+        ]
     },
     {
         "label": "create a daily repeating scheduled broadcast",
@@ -200,8 +198,7 @@
                 "query": "SELECT count(*) FROM schedules_schedule WHERE repeat_period = 'D' AND repeat_hour_of_day = 7 AND repeat_minute_of_hour = 5 AND repeat_days_of_week IS NULL AND repeat_day_of_month IS NULL AND next_fire = '2034-06-20T14:05:30Z'",
                 "count": 1
             }
-        ],
-        "expected_tasks": {}
+        ]
     },
     {
         "label": "create a weekly repeating scheduled broadcast",
@@ -238,8 +235,7 @@
                 "query": "SELECT count(*) FROM schedules_schedule WHERE repeat_period = 'W' AND repeat_hour_of_day = 7 AND repeat_minute_of_hour = 5 AND repeat_days_of_week = 'M' AND repeat_day_of_month IS NULL AND next_fire = '2034-06-20T14:05:30Z'",
                 "count": 1
             }
-        ],
-        "expected_tasks": {}
+        ]
     },
     {
         "label": "create a monthly repeating scheduled broadcast",
@@ -275,7 +271,6 @@
                 "query": "SELECT count(*) FROM schedules_schedule WHERE repeat_period = 'M' AND repeat_hour_of_day = 7 AND repeat_minute_of_hour = 5 AND repeat_days_of_week IS NULL AND repeat_day_of_month = 20 AND next_fire = '2034-06-20T14:05:30Z'",
                 "count": 1
             }
-        ],
-        "expected_tasks": {}
+        ]
     }
 ]

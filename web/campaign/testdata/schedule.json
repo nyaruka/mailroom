@@ -27,7 +27,7 @@
         "path": "/mr/campaign/schedule",
         "body": {
             "org_id": 1,
-            "point_id": $point1_id$
+            "point_id": 10000
         },
         "status": 200,
         "response": {},

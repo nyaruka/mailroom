@@ -1,7 +1,6 @@
 package android_test
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/nyaruka/mailroom/testsuite"
@@ -29,7 +28,7 @@ func TestSync(t *testing.T) {
 
 	defer testsuite.Reset(testsuite.ResetData)
 
-	androidChannel1 := testdb.InsertChannel(rt, testdb.Org1, "A", "Android 1", "123", []string{"tel"}, "SR", map[string]any{})
+	testdb.InsertChannel(rt, testdb.Org1, "A", "Android 1", "123", []string{"tel"}, "SR", map[string]any{})
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/sync.json", map[string]string{"channel_id_1": fmt.Sprintf("%d", androidChannel1.ID)}, testsuite.ResetNone)
+	testsuite.RunWebTests(t, ctx, rt, "testdata/sync.json", nil, testsuite.ResetNone)
 }

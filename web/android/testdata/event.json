@@ -46,8 +46,7 @@
                 "query": "SELECT count(*) FROM channels_channelevent WHERE event_type = 'mo_call' AND contact_id = 10000 AND status = 'H'",
                 "count": 1
             }
-        ],
-        "expected_tasks": {}
+        ]
     },
     {
         "label": "event created in database and queued for handling",
