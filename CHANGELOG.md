@@ -1,3 +1,8 @@
+v10.3.6 (2025-07-21)
+-------------------------
+ * Update deps
+ * Add endpoint to interrupt a channel
+
 v10.3.5 (2025-07-17)
 -------------------------
  * Add params field to flow start endpoint
