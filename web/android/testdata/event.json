@@ -69,6 +69,11 @@
                 "query": "SELECT count(*) FROM channels_channelevent WHERE event_type = 'mo_miss' AND contact_id = 10000 AND status = 'P'",
                 "count": 1
             }
-        ]
+        ],
+        "expected_tasks": {
+            "handler/1": [
+                "handle_contact_event"
+            ]
+        }
     }
 ]

@@ -30,6 +30,11 @@
                 "query": "SELECT count(*) FROM tickets_ticketevent WHERE event_type = 'C' AND created_by_id = 3",
                 "count": 1
             }
-        ]
+        ],
+        "expected_tasks": {
+            "handler/1": [
+                "handle_contact_event"
+            ]
+        }
     }
 ]

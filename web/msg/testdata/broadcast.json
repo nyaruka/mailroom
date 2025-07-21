@@ -90,7 +90,12 @@
                 "query": "SELECT count(*) FROM msgs_broadcast_groups WHERE broadcast_id = 1",
                 "count": 1
             }
-        ]
+        ],
+        "expected_tasks": {
+            "batch/1": [
+                "send_broadcast"
+            ]
+        }
     },
     {
         "label": "create broadcast for flow node uuid",
@@ -116,7 +121,12 @@
                 "query": "SELECT count(*) FROM msgs_broadcast WHERE translations->'eng'->>'text' = 'Hurry up!' AND base_language = 'eng' AND node_uuid = 'dd79811e-a88a-4e67-bb47-a132fe8ce3f2'",
                 "count": 1
             }
-        ]
+        ],
+        "expected_tasks": {
+            "batch/1": [
+                "send_broadcast"
+            ]
+        }
     },
     {
         "label": "create a one off scheduled broadcast",

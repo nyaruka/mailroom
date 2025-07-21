@@ -28,7 +28,7 @@ import (
 )
 
 // RunWebTests runs the tests in the passed in filename, optionally updating them if the update flag is set
-func RunWebTests(t *testing.T, ctx context.Context, rt *runtime.Runtime, truthFile string, substitutions map[string]string) {
+func RunWebTests(t *testing.T, ctx context.Context, rt *runtime.Runtime, truthFile string, substitutions map[string]string, reset ResetFlag) {
 	wg := &sync.WaitGroup{}
 
 	test.MockUniverse()
@@ -55,6 +55,7 @@ func RunWebTests(t *testing.T, ctx context.Context, rt *runtime.Runtime, truthFi
 			Query string `json:"query"`
 			Count int    `json:"count"`
 		} `json:"db_assertions,omitempty"`
+		ExpectedTasks map[string][]string `json:"expected_tasks,omitempty"`
 
 		actualResponse []byte
 	}
@@ -117,6 +118,7 @@ func RunWebTests(t *testing.T, ctx context.Context, rt *runtime.Runtime, truthFi
 		actual.Status = resp.StatusCode
 		actual.HTTPMocks = clonedMocks
 		actual.actualResponse, err = io.ReadAll(resp.Body)
+		actual.ExpectedTasks = getActualQueuedTasks(t, rt)
 
 		assert.NoError(t, err, "%s: error reading body", tc.Label)
 
@@ -158,8 +160,17 @@ func RunWebTests(t *testing.T, ctx context.Context, rt *runtime.Runtime, truthFi
 				assertdb.Query(t, rt.DB, dba.Query).Returns(dba.Count, "%s: '%s' returned wrong count", tc.Label, dba.Query)
 			}
 
+			if tc.ExpectedTasks == nil {
+				tc.ExpectedTasks = make(map[string][]string)
+			}
+			assert.Equal(t, tc.ExpectedTasks, actual.ExpectedTasks, "%s: unexpected tasks", tc.Label)
+
 		} else {
 			tcs[i] = actual
+		}
+
+		if reset != 0 {
+			Reset(reset)
 		}
 	}
 
@@ -192,6 +203,24 @@ func overwriteRecentTimestamps(resp []byte) []byte {
 		}
 		return b
 	})
+}
+
+func getActualQueuedTasks(t *testing.T, rt *runtime.Runtime) map[string][]string {
+	t.Helper()
+
+	actual := make(map[string][]string)
+
+	for _, qname := range []string{"handler", "batch", "throttled"} {
+		for orgID, oTasks := range CurrentTasks(t, rt, qname) {
+			types := make([]string, len(oTasks))
+			for i, task := range oTasks {
+				types[i] = task.Type
+			}
+			actual[fmt.Sprintf("%s/%d", qname, orgID)] = types
+		}
+	}
+
+	return actual
 }
 
 // MultiPartPart is a single part in a multipart encoded request

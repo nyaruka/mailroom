@@ -9,7 +9,6 @@ import (
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/testsuite"
 	"github.com/nyaruka/mailroom/testsuite/testdb"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestSend(t *testing.T) {
@@ -21,7 +20,7 @@ func TestSend(t *testing.T) {
 
 	testsuite.RunWebTests(t, ctx, rt, "testdata/send.json", map[string]string{
 		"cathy_ticket_id": fmt.Sprint(cathyTicket.ID),
-	})
+	}, testsuite.ResetNone)
 
 	testsuite.AssertCourierQueues(t, map[string][]int{"msgs:74729f45-7f29-4868-9dc4-90e491e3c7d8|10/1": {1, 1, 1, 1}})
 }
@@ -39,11 +38,7 @@ func TestHandle(t *testing.T) {
 		"cathy_msgin1_id": fmt.Sprint(cathyIn1.ID),
 		"cathy_msgin2_id": fmt.Sprint(cathyIn2.ID),
 		"cathy_msgout_id": fmt.Sprint(cathyOut.ID),
-	})
-
-	orgTasks := testsuite.CurrentTasks(t, rt, "handler")[testdb.Org1.ID]
-	assert.Len(t, orgTasks, 1)
-	assert.Equal(t, "handle_contact_event", orgTasks[0].Type)
+	}, testsuite.ResetValkey)
 }
 
 func TestResend(t *testing.T) {
@@ -62,7 +57,7 @@ func TestResend(t *testing.T) {
 		"cathy_msgout_id":  fmt.Sprint(cathyOut.ID),
 		"bob_msgout_id":    fmt.Sprint(bobOut.ID),
 		"george_msgout_id": fmt.Sprint(georgeOut.ID),
-	})
+	}, testsuite.ResetNone)
 }
 
 func TestBroadcast(t *testing.T) {
@@ -83,13 +78,11 @@ func TestBroadcast(t *testing.T) {
 
 	testsuite.RunWebTests(t, ctx, rt, "testdata/broadcast.json", map[string]string{
 		"polls_id": fmt.Sprint(polls.ID),
-	})
-
-	testsuite.AssertBatchTasks(t, testdb.Org1.ID, map[string]int{"send_broadcast": 2})
+	}, testsuite.ResetValkey)
 }
 
 func TestBroadcastPreview(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/broadcast_preview.json", nil)
+	testsuite.RunWebTests(t, ctx, rt, "testdata/broadcast_preview.json", nil, testsuite.ResetNone)
 }

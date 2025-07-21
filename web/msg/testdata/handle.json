@@ -40,6 +40,11 @@
             "msg_ids": [
                 $cathy_msgin2_id$
             ]
+        },
+        "expected_tasks": {
+            "handler/1": [
+                "handle_contact_event"
+            ]
         }
     }
 ]

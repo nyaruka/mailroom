@@ -27,9 +27,14 @@
         "path": "/mr/contact/populate_group",
         "body": {
             "org_id": 1,
-            "group_id": $group_id$
+            "group_id": 30000
         },
         "status": 200,
-        "response": {}
+        "response": {},
+        "expected_tasks": {
+            "batch/1": [
+                "populate_dynamic_group"
+            ]
+        }
     }
 ]
