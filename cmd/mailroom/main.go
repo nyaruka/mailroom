@@ -37,6 +37,7 @@ import (
 	_ "github.com/nyaruka/mailroom/services/llm/openai_azure"
 	_ "github.com/nyaruka/mailroom/web/android"
 	_ "github.com/nyaruka/mailroom/web/campaign"
+	_ "github.com/nyaruka/mailroom/web/channel"
 	_ "github.com/nyaruka/mailroom/web/contact"
 	_ "github.com/nyaruka/mailroom/web/docs"
 	_ "github.com/nyaruka/mailroom/web/flow"
