@@ -80,6 +80,11 @@
                 "query": "SELECT count(*) FROM flows_flowstart_groups WHERE flowstart_id = 1",
                 "count": 1
             }
-        ]
+        ],
+        "expected_tasks": {
+            "batch/1": [
+                "start_flow"
+            ]
+        }
     }
 ]

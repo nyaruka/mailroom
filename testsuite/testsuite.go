@@ -36,6 +36,7 @@ type ResetFlag int
 
 // refresh bit masks
 const (
+	ResetNone    = ResetFlag(0)
 	ResetAll     = ResetFlag(^0)
 	ResetDB      = ResetFlag(1 << 1)
 	ResetData    = ResetFlag(1 << 2)

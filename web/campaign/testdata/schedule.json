@@ -30,6 +30,11 @@
             "point_id": $point1_id$
         },
         "status": 200,
-        "response": {}
+        "response": {},
+        "expected_tasks": {
+            "batch/1": [
+                "schedule_campaign_point"
+            ]
+        }
     }
 ]

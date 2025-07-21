@@ -4,31 +4,30 @@ import (
 	"testing"
 
 	"github.com/nyaruka/mailroom/testsuite"
-	"github.com/nyaruka/mailroom/testsuite/testdb"
 )
 
 func TestChangeLanguage(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/change_language.json", nil)
+	testsuite.RunWebTests(t, ctx, rt, "testdata/change_language.json", nil, testsuite.ResetNone)
 }
 
 func TestClone(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/clone.json", nil)
+	testsuite.RunWebTests(t, ctx, rt, "testdata/clone.json", nil, testsuite.ResetNone)
 }
 
 func TestInspect(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/inspect.json", nil)
+	testsuite.RunWebTests(t, ctx, rt, "testdata/inspect.json", nil, testsuite.ResetNone)
 }
 
 func TestMigrate(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/migrate.json", nil)
+	testsuite.RunWebTests(t, ctx, rt, "testdata/migrate.json", nil, testsuite.ResetNone)
 }
 
 func TestStart(t *testing.T) {
@@ -38,13 +37,11 @@ func TestStart(t *testing.T) {
 	//defer testsuite.Reset(testsuite.ResetData | testsuite.ResetValkey)
 	defer testsuite.Reset(testsuite.ResetAll)
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/start.json", nil)
-
-	testsuite.AssertBatchTasks(t, testdb.Org1.ID, map[string]int{"start_flow": 1})
+	testsuite.RunWebTests(t, ctx, rt, "testdata/start.json", nil, testsuite.ResetValkey)
 }
 
 func TestStartPreview(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/start_preview.json", nil)
+	testsuite.RunWebTests(t, ctx, rt, "testdata/start_preview.json", nil, testsuite.ResetNone)
 }
