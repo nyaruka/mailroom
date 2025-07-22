@@ -13,14 +13,16 @@ import (
 func TestResthooks(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
 
+	defer testsuite.Reset(testsuite.ResetData)
+
 	rt.DB.MustExec(`INSERT INTO api_resthook(is_active, created_on, modified_on, slug, created_by_id, modified_by_id, org_id)
 								   VALUES(TRUE, NOW(), NOW(), 'registration', 1, 1, 1);`)
 	rt.DB.MustExec(`INSERT INTO api_resthook(is_active, created_on, modified_on, slug, created_by_id, modified_by_id, org_id)
 								   VALUES(TRUE, NOW(), NOW(), 'block', 1, 1, 1);`)
 	rt.DB.MustExec(`INSERT INTO api_resthooksubscriber(is_active, created_on, modified_on, target_url, created_by_id, modified_by_id, resthook_id)
-											 VALUES(TRUE, NOW(), NOW(), 'https://foo.bar', 1, 1, 2);`)
+											 VALUES(TRUE, NOW(), NOW(), 'https://foo.bar', 1, 1, 30001);`)
 	rt.DB.MustExec(`INSERT INTO api_resthooksubscriber(is_active, created_on, modified_on, target_url, created_by_id, modified_by_id, resthook_id)
-	                                         VALUES(TRUE, NOW(), NOW(), 'https://bar.foo', 1, 1, 2);`)
+	                                         VALUES(TRUE, NOW(), NOW(), 'https://bar.foo', 1, 1, 30001);`)
 
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshResthooks)
 	require.NoError(t, err)
@@ -33,8 +35,8 @@ func TestResthooks(t *testing.T) {
 		Slug        string
 		Subscribers []string
 	}{
-		{models.ResthookID(2), "block", []string{"https://bar.foo", "https://foo.bar"}},
-		{models.ResthookID(1), "registration", nil},
+		{30001, "block", []string{"https://bar.foo", "https://foo.bar"}},
+		{30000, "registration", nil},
 	}
 
 	assert.Equal(t, 2, len(resthooks))

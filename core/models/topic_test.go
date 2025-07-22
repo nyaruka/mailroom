@@ -21,8 +21,10 @@ func TestTopics(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Equal(t, 3, len(topics))
+	assert.Equal(t, testdb.DefaultTopic.ID, topics[0].(*models.Topic).ID())
 	assert.Equal(t, testdb.DefaultTopic.UUID, topics[0].UUID())
 	assert.Equal(t, "General", topics[0].Name())
+	assert.Equal(t, testdb.SalesTopic.ID, topics[1].(*models.Topic).ID())
 	assert.Equal(t, testdb.SalesTopic.UUID, topics[1].UUID())
 	assert.Equal(t, "Sales", topics[1].Name())
 	assert.Equal(t, testdb.SupportTopic.UUID, topics[2].UUID())

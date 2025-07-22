@@ -49,8 +49,8 @@ func TestFireSchedules(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowstart WHERE flow_id = $1 AND start_type = 'T' AND status = 'P'`, testdb.Favorites.ID).Returns(2)
 
 	// with the right counts of groups and contacts
-	assertdb.Query(t, rt.DB, `SELECT count(*) from flows_flowstart_contacts WHERE flowstart_id = 1`).Returns(2)
-	assertdb.Query(t, rt.DB, `SELECT count(*) from flows_flowstart_groups WHERE flowstart_id = 2`).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT count(*) from flows_flowstart_contacts WHERE flowstart_id = 30000`).Returns(2)
+	assertdb.Query(t, rt.DB, `SELECT count(*) from flows_flowstart_groups WHERE flowstart_id = 30001`).Returns(1)
 
 	// and two child broadcasts as well
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_broadcast WHERE org_id = $1 
@@ -68,8 +68,8 @@ func TestFireSchedules(t *testing.T) {
 		AND base_language = 'eng'`, testdb.Org1.ID, b2).Returns(1)
 
 	// with the right count of contacts and groups
-	assertdb.Query(t, rt.DB, `SELECT count(*) from msgs_broadcast_contacts WHERE broadcast_id = 3`).Returns(2)
-	assertdb.Query(t, rt.DB, `SELECT count(*) from msgs_broadcast_groups WHERE broadcast_id = 4`).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT count(*) from msgs_broadcast_contacts WHERE broadcast_id = 30000`).Returns(2)
+	assertdb.Query(t, rt.DB, `SELECT count(*) from msgs_broadcast_groups WHERE broadcast_id = 30001`).Returns(1)
 
 	// the one-off schedules should de deleted and their broadcast and trigger deactivated
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM schedules_schedule WHERE id = $1`, s1).Returns(0)

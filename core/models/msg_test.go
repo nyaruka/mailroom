@@ -208,8 +208,8 @@ func TestNewOutgoingFlowMsg(t *testing.T) {
 	models.FlushCache()
 
 	// check encoding of quick replies
-	assertdb.Query(t, rt.DB, `SELECT quick_replies[1] FROM msgs_msg WHERE id = 2`).Returns("yes\nif you want")
-	assertdb.Query(t, rt.DB, `SELECT quick_replies[2] FROM msgs_msg WHERE id = 2`).Returns("no")
+	assertdb.Query(t, rt.DB, `SELECT quick_replies[1] FROM msgs_msg WHERE id = 30001`).Returns("yes\nif you want")
+	assertdb.Query(t, rt.DB, `SELECT quick_replies[2] FROM msgs_msg WHERE id = 30001`).Returns("no")
 
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshOrg)
 	require.NoError(t, err)

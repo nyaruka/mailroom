@@ -26,8 +26,6 @@ func TestCreate(t *testing.T) {
 	// detach Cathy's tel URN
 	rt.DB.MustExec(`UPDATE contacts_contacturn SET contact_id = NULL WHERE contact_id = $1`, testdb.Cathy.ID)
 
-	rt.DB.MustExec(`ALTER SEQUENCE contacts_contact_id_seq RESTART WITH 30000`)
-
 	testsuite.RunWebTests(t, ctx, rt, "testdata/create.json", nil, testsuite.ResetNone)
 }
 

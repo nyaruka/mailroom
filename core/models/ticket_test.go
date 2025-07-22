@@ -64,10 +64,10 @@ func TestTickets(t *testing.T) {
 	// check counts were added
 	today := time.Now().In(oa.Env().Timezone()).Format("2006-01-02")
 	testsuite.AssertDailyCounts(t, rt, testdb.Org1, map[string]int{
-		today + "/tickets:opened:1":     1,
-		today + "/tickets:opened:2":     1,
-		today + "/tickets:opened:3":     1,
-		today + "/tickets:assigned:0:4": 2,
+		today + "/tickets:opened:10000": 1,
+		today + "/tickets:opened:10001": 1,
+		today + "/tickets:opened:10002": 1,
+		today + "/tickets:assigned:0:3": 2,
 	})
 	testsuite.AssertDailyCounts(t, rt, testdb.Org2, map[string]int{})
 
@@ -148,7 +148,7 @@ func TestTicketsAssign(t *testing.T) {
 	// and daily counts (we only count first assignments of a ticket)
 	today := time.Now().In(oa.Env().Timezone()).Format("2006-01-02")
 	testsuite.AssertDailyCounts(t, rt, testdb.Org1, map[string]int{
-		today + "/tickets:assigned:2:6": 2,
+		today + "/tickets:assigned:10001:5": 2,
 	})
 	testsuite.AssertDailyCounts(t, rt, testdb.Org2, map[string]int{})
 }
@@ -330,9 +330,9 @@ func TestTicketRecordReply(t *testing.T) {
 	openYmd := openedOn.In(oa.Env().Timezone()).Format("2006-01-02")
 	replyYmd := repliedOn.In(oa.Env().Timezone()).Format("2006-01-02")
 	testsuite.AssertDailyCounts(t, rt, testdb.Org1, map[string]int{
-		replyYmd + "/msgs:ticketreplies:2:6": 1,
-		openYmd + "/ticketresptime:total":    88740,
-		openYmd + "/ticketresptime:count":    1,
+		replyYmd + "/msgs:ticketreplies:10001:5": 1,
+		openYmd + "/ticketresptime:total":        88740,
+		openYmd + "/ticketresptime:count":        1,
 	})
 	testsuite.AssertDailyCounts(t, rt, testdb.Org2, map[string]int{})
 
@@ -350,8 +350,8 @@ func TestTicketRecordReply(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT last_activity_on FROM tickets_ticket WHERE id = $1`, ticket.ID).Returns(repliedAgainOn)
 
 	testsuite.AssertDailyCounts(t, rt, testdb.Org1, map[string]int{
-		replyYmd + "/msgs:ticketreplies:2:6": 2,
-		openYmd + "/ticketresptime:total":    88740,
-		openYmd + "/ticketresptime:count":    1,
+		replyYmd + "/msgs:ticketreplies:10001:5": 2,
+		openYmd + "/ticketresptime:total":        88740,
+		openYmd + "/ticketresptime:count":        1,
 	})
 }

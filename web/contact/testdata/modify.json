@@ -738,7 +738,7 @@
                 "count": 1
             },
             {
-                "query": "SELECT count(*) FROM contacts_contactgroup_contacts WHERE contact_id = 10000 AND contactgroup_id = 10000",
+                "query": "SELECT count(*) FROM contacts_contactgroup_contacts WHERE contact_id = 10000 AND contactgroup_id = 10005",
                 "count": 0
             },
             {
@@ -806,7 +806,7 @@
         },
         "db_assertions": [
             {
-                "query": "SELECT count(*) FROM contacts_contactgroup_contacts WHERE contact_id = 10000 AND contactgroup_id = 10001",
+                "query": "SELECT count(*) FROM contacts_contactgroup_contacts WHERE contact_id = 10000 AND contactgroup_id = 10006",
                 "count": 1
             }
         ]
@@ -858,7 +858,7 @@
         },
         "db_assertions": [
             {
-                "query": "SELECT count(*) FROM contacts_contactgroup_contacts WHERE contact_id = 10000 AND contactgroup_id = 10001",
+                "query": "SELECT count(*) FROM contacts_contactgroup_contacts WHERE contact_id = 10000 AND contactgroup_id = 10006",
                 "count": 1
             }
         ]
@@ -916,7 +916,7 @@
         },
         "db_assertions": [
             {
-                "query": "SELECT count(*) FROM contacts_contactgroup_contacts WHERE contact_id = 10000 AND contactgroup_id = 10001",
+                "query": "SELECT count(*) FROM contacts_contactgroup_contacts WHERE contact_id = 10000 AND contactgroup_id = 10006",
                 "count": 0
             }
         ]
@@ -962,7 +962,7 @@
         },
         "db_assertions": [
             {
-                "query": "SELECT count(*) FROM contacts_contactgroup_contacts WHERE contact_id = 10000 AND contactgroup_id = 10000",
+                "query": "SELECT count(*) FROM contacts_contactgroup_contacts WHERE contact_id = 10000 AND contactgroup_id = 10005",
                 "count": 0
             }
         ]
