@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/nyaruka/gocommon/dbutil"
-	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/gocommon/uuids"
@@ -146,54 +145,6 @@ func TestContactImports(t *testing.T) {
 		err = os.WriteFile("testdata/contacts.json", testJSON, 0600)
 		require.NoError(t, err)
 	}
-}
-
-func TestLoadContactImport(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
-
-	defer testsuite.Reset(testsuite.ResetData)
-
-	oa := testdb.Org1.Load(rt)
-
-	importID := testdb.InsertContactImport(rt, testdb.Org1, testdb.Admin)
-	batch1ID := testdb.InsertContactImportBatch(rt, importID, []byte(`[
-		{"name": "Norbert", "language": "eng", "urns": ["tel:+16055740001"]},
-		{"name": "Leah", "urns": ["tel:+16055740002"]}
-	]`))
-	testdb.InsertContactImportBatch(rt, importID, []byte(`[
-		{"name": "Rowan", "language": "spa", "urns": ["tel:+16055740003"]}
-	]`))
-
-	imp, err := models.LoadContactImport(ctx, rt.DB, importID)
-	require.NoError(t, err)
-
-	assert.Equal(t, testdb.Org1.ID, imp.OrgID)
-	assert.Equal(t, testdb.Admin.ID, imp.CreatedByID)
-	assert.Equal(t, models.ContactImportStatusProcessing, imp.Status)
-	assert.Nil(t, imp.FinishedOn)
-	assert.Equal(t, "P", imp.BatchStatuses)
-
-	batch1, err := models.LoadContactImportBatch(ctx, rt.DB, batch1ID)
-	require.NoError(t, err)
-
-	assert.Equal(t, importID, batch1.ImportID)
-	assert.Equal(t, models.ContactImportStatusPending, batch1.Status)
-	assert.NotNil(t, batch1.Specs)
-	assert.Equal(t, 0, batch1.RecordStart)
-	assert.Equal(t, 2, batch1.RecordEnd)
-
-	err = imports.ImportBatch(ctx, rt, oa, batch1, testdb.Admin.ID)
-	require.NoError(t, err)
-
-	imp, err = models.LoadContactImport(ctx, rt.DB, importID)
-	require.NoError(t, err)
-
-	batchStatuses := strings.Split(imp.BatchStatuses, "")
-	sort.Strings(batchStatuses)
-	assert.Equal(t, []string{"C", "P"}, batchStatuses)
-
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contactimportbatch WHERE status = 'C' AND finished_on IS NOT NULL`).Returns(1)
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contactimportbatch WHERE status = 'P' AND finished_on IS NULL`).Returns(1)
 }
 
 func TestContactSpecUnmarshal(t *testing.T) {

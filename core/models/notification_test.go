@@ -115,7 +115,7 @@ func TestImportNotifications(t *testing.T) {
 	imp, err := models.LoadContactImport(ctx, rt.DB, importID)
 	require.NoError(t, err)
 
-	err = imp.SetFinished(ctx, rt.DB, models.ContactImportStatusComplete)
+	err = imp.SetFinished(ctx, rt.DB, true)
 	require.NoError(t, err)
 
 	t0 := time.Now()
