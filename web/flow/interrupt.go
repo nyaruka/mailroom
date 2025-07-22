@@ -1,4 +1,4 @@
-package channel
+package flow
 
 import (
 	"context"
@@ -13,24 +13,24 @@ import (
 )
 
 func init() {
-	web.RegisterRoute(http.MethodPost, "/mr/channel/interrupt", web.RequireAuthToken(web.JSONPayload(handleInterrupt)))
+	web.RegisterRoute(http.MethodPost, "/mr/flow/interrupt", web.RequireAuthToken(web.JSONPayload(handleInterrupt)))
 }
 
-// Request that a channel is interrupted. Used as part of channel deletion.
+// Request that sessions using the given flow are interrupted. Used as part of flow archival.
 //
 //	{
 //	  "org_id": 1,
-//	  "channel_id": 235
+//	  "flow_id": 235
 //	}
 type interruptRequest struct {
-	OrgID     models.OrgID     `json:"org_id"     validate:"required"`
-	ChannelID models.ChannelID `json:"channel_id" validate:"required"`
+	OrgID  models.OrgID  `json:"org_id"  validate:"required"`
+	FlowID models.FlowID `json:"flow_id" validate:"required"`
 }
 
 func handleInterrupt(ctx context.Context, rt *runtime.Runtime, r *interruptRequest) (any, int, error) {
-	task := &interrupts.InterruptChannelTask{ChannelID: r.ChannelID}
+	task := &interrupts.InterruptSessionsTask{FlowIDs: []models.FlowID{r.FlowID}}
 	if err := tasks.Queue(ctx, rt, rt.Queues.Batch, r.OrgID, task, true); err != nil {
-		return nil, 0, fmt.Errorf("error queuing interrupt channel task: %w", err)
+		return nil, 0, fmt.Errorf("error queuing interrupt flow task: %w", err)
 	}
 
 	return map[string]any{}, http.StatusOK, nil
