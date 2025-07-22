@@ -24,6 +24,12 @@ func TestInspect(t *testing.T) {
 	testsuite.RunWebTests(t, ctx, rt, "testdata/inspect.json", nil, testsuite.ResetNone)
 }
 
+func TestInterrupt(t *testing.T) {
+	ctx, rt := testsuite.Runtime()
+
+	testsuite.RunWebTests(t, ctx, rt, "testdata/interrupt.json", nil, testsuite.ResetValkey)
+}
+
 func TestMigrate(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
 
