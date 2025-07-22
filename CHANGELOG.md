@@ -1,3 +1,9 @@
+v10.3.7 (2025-07-22)
+-------------------------
+ * Tweak contact/interrupt endpoint to support multiple contacts
+ * Update phonenumbers library
+ * Add endpoint to interrupt a flow
+
 v10.3.6 (2025-07-21)
 -------------------------
  * Update deps
