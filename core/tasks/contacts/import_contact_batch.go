@@ -3,6 +3,7 @@ package contacts
 import (
 	"context"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/gomodule/redigo/redis"
@@ -62,15 +63,9 @@ func (t *ImportContactBatchTask) Perform(ctx context.Context, rt *runtime.Runtim
 	remaining, _ := redis.Int(vc.Do("decr", fmt.Sprintf("contact_import_batches_remaining:%d", batch.ImportID)))
 	if remaining == 0 {
 		// if any batch failed, then import is considered failed
-		status := models.ContactImportStatusComplete
-		for _, s := range imp.BatchStatuses {
-			if models.ContactImportStatus(s) == models.ContactImportStatusFailed {
-				status = models.ContactImportStatusFailed
-				break
-			}
-		}
+		success := !slices.Contains(imp.BatchStatuses, models.ImportStatusFailed)
 
-		if err := imp.SetFinished(ctx, rt.DB, status); err != nil {
+		if err := imp.SetFinished(ctx, rt.DB, success); err != nil {
 			return fmt.Errorf("error marking import as finished: %w", err)
 		}
 

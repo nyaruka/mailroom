@@ -147,14 +147,13 @@ func NotificationsFromTicketEvents(ctx context.Context, db DBorTx, oa *OrgAssets
 	return insertNotifications(ctx, db, notifications)
 }
 
-const insertNotificationSQL = `
+const sqlInsertNotification = `
 INSERT INTO notifications_notification(org_id,  notification_type,  scope,  user_id,  medium, is_seen,  email_status, created_on,  contact_import_id,  incident_id) 
                                VALUES(:org_id, :notification_type, :scope, :user_id, :medium,   FALSE, :email_status,      NOW(), :contact_import_id, :incident_id) 
 							   ON CONFLICT DO NOTHING`
 
 func insertNotifications(ctx context.Context, db DBorTx, notifications []*Notification) error {
-	err := dbutil.BulkQuery(ctx, db, insertNotificationSQL, notifications)
-	if err != nil {
+	if err := dbutil.BulkQuery(ctx, db, sqlInsertNotification, notifications); err != nil {
 		return fmt.Errorf("error inserting notifications: %w", err)
 	}
 	return nil

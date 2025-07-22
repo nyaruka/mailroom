@@ -7,12 +7,25 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/jmoiron/sqlx"
 	"github.com/nyaruka/gocommon/dates"
+	"github.com/nyaruka/gocommon/dbutil"
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/null/v3"
+)
+
+// ImportStatus is the status of an import
+type ImportStatus string
+
+// import status constants
+const (
+	ImportStatusPending    ImportStatus = "P"
+	ImportStatusProcessing ImportStatus = "O"
+	ImportStatusComplete   ImportStatus = "C"
+	ImportStatusFailed     ImportStatus = "F"
 )
 
 // ContactImportID is the type for contact import IDs
@@ -26,56 +39,53 @@ func (i ContactImportID) MarshalJSON() ([]byte, error)  { return null.MarshalInt
 // ContactImportBatchID is the type for contact import batch IDs
 type ContactImportBatchID int
 
-// ContactImportStatus is the status of an import
-type ContactImportStatus string
-
-// import status constants
-const (
-	ContactImportStatusPending    ContactImportStatus = "P"
-	ContactImportStatusProcessing ContactImportStatus = "O"
-	ContactImportStatusComplete   ContactImportStatus = "C"
-	ContactImportStatusFailed     ContactImportStatus = "F"
-)
+func (i *ContactImportBatchID) Scan(value any) error         { return null.ScanInt(value, i) }
+func (i ContactImportBatchID) Value() (driver.Value, error)  { return null.IntValue(i) }
+func (i *ContactImportBatchID) UnmarshalJSON(b []byte) error { return null.UnmarshalInt(b, i) }
+func (i ContactImportBatchID) MarshalJSON() ([]byte, error)  { return null.MarshalInt(i) }
 
 type ContactImport struct {
-	ID          ContactImportID     `db:"id"`
-	OrgID       OrgID               `db:"org_id"`
-	Status      ContactImportStatus `db:"status"`
-	CreatedByID UserID              `db:"created_by_id"`
-	FinishedOn  *time.Time          `db:"finished_on"`
+	ID          ContactImportID `json:"id"`
+	OrgID       OrgID           `json:"org_id"`
+	Status      ImportStatus    `json:"status"`
+	CreatedByID UserID          `json:"created_by_id"`
+	FinishedOn  *time.Time      `json:"finished_on"`
 
-	// we fetch unique batch statuses concatenated as a string, see https://github.com/jmoiron/sqlx/issues/168
-	BatchStatuses string `db:"batch_statuses"`
+	BatchIDs      []ContactImportBatchID `json:"batch_ids"`      // ordered
+	BatchStatuses []ImportStatus         `json:"batch_statuses"` // unique values only
 }
 
 var sqlLoadContactImport = `
-         SELECT i.id, i.org_id, i.status, i.created_by_id, i.finished_on, array_to_string(array_agg(DISTINCT b.status), '') AS "batch_statuses"
+SELECT row_to_json(r) FROM (
+         SELECT i.id, i.org_id, i.status, i.created_by_id, i.finished_on, array_agg(b.id ORDER BY b.id) AS "batch_ids", array_agg(DISTINCT b.status) AS "batch_statuses"
            FROM contacts_contactimport i
 LEFT OUTER JOIN contacts_contactimportbatch b ON b.contact_import_id = i.id
           WHERE i.id = $1
-       GROUP BY i.id`
+       GROUP BY i.id
+) r`
 
 // LoadContactImport loads a contact import by ID
-func LoadContactImport(ctx context.Context, db DBorTx, id ContactImportID) (*ContactImport, error) {
+func LoadContactImport(ctx context.Context, db *sqlx.DB, id ContactImportID) (*ContactImport, error) {
+	row := db.QueryRowContext(ctx, sqlLoadContactImport, id)
+
 	i := &ContactImport{}
-	err := db.GetContext(ctx, i, sqlLoadContactImport, id)
-	if err != nil {
-		return nil, fmt.Errorf("error loading contact import id=%d: %w", id, err)
+	if err := dbutil.ScanJSON(row, i); err != nil {
+		return nil, fmt.Errorf("error fetching contact import by id %d: %w", id, err)
 	}
+
 	return i, nil
 }
 
-var sqlMarkContactImportFinished = `
-UPDATE contacts_contactimport
-   SET status = $2, finished_on = $3
- WHERE id = $1`
+func (i *ContactImport) SetFinished(ctx context.Context, db DBorTx, success bool) error {
+	i.Status = ImportStatusComplete
+	if !success {
+		i.Status = ImportStatusFailed
+	}
 
-func (i *ContactImport) SetFinished(ctx context.Context, db DBorTx, status ContactImportStatus) error {
 	now := dates.Now()
-	i.Status = status
 	i.FinishedOn = &now
 
-	_, err := db.ExecContext(ctx, sqlMarkContactImportFinished, i.ID, i.Status, i.FinishedOn)
+	_, err := db.ExecContext(ctx, `UPDATE contacts_contactimport SET status = $2, finished_on = $3 WHERE id = $1`, i.ID, i.Status, i.FinishedOn)
 	if err != nil {
 		return fmt.Errorf("error marking import as finished: %w", err)
 	}
@@ -86,7 +96,7 @@ func (i *ContactImport) SetFinished(ctx context.Context, db DBorTx, status Conta
 type ContactImportBatch struct {
 	ID       ContactImportBatchID `db:"id"`
 	ImportID ContactImportID      `db:"contact_import_id"`
-	Status   ContactImportStatus  `db:"status"`
+	Status   ImportStatus         `db:"status"`
 	Specs    json.RawMessage      `db:"specs"`
 
 	// the range of records from the entire import contained in this batch
@@ -102,15 +112,20 @@ type ContactImportBatch struct {
 }
 
 func (b *ContactImportBatch) SetProcessing(ctx context.Context, db DBorTx) error {
-	b.Status = ContactImportStatusProcessing
+	b.Status = ImportStatusProcessing
+
 	_, err := db.ExecContext(ctx, `UPDATE contacts_contactimportbatch SET status = $2 WHERE id = $1`, b.ID, b.Status)
+	if err != nil {
+		return fmt.Errorf("error marking import as processing: %w", err)
+	}
+
 	return err
 }
 
 func (b *ContactImportBatch) SetComplete(ctx context.Context, db DBorTx, numCreated, numUpdated, numErrored int, errs []ImportError) error {
 	now := dates.Now()
 
-	b.Status = ContactImportStatusComplete
+	b.Status = ImportStatusComplete
 	b.NumCreated = numCreated
 	b.NumUpdated = numUpdated
 	b.NumErrored = numErrored
@@ -136,13 +151,13 @@ func (b *ContactImportBatch) SetComplete(ctx context.Context, db DBorTx, numCrea
 
 func (b *ContactImportBatch) SetFailed(ctx context.Context, db DBorTx) error {
 	now := dates.Now()
-	b.Status = ContactImportStatusFailed
+	b.Status = ImportStatusFailed
 	b.FinishedOn = &now
 	_, err := db.ExecContext(ctx, `UPDATE contacts_contactimportbatch SET status = $2, finished_on = $3 WHERE id = $1`, b.ID, b.Status, b.FinishedOn)
 	return err
 }
 
-var loadContactImportBatchSQL = `
+var sqlLoadContactImportBatch = `
 SELECT 
 	id,
   	contact_import_id,
@@ -158,7 +173,7 @@ WHERE
 // LoadContactImportBatch loads a contact import batch by ID
 func LoadContactImportBatch(ctx context.Context, db DBorTx, id ContactImportBatchID) (*ContactImportBatch, error) {
 	b := &ContactImportBatch{}
-	err := db.GetContext(ctx, b, loadContactImportBatchSQL, id)
+	err := db.GetContext(ctx, b, sqlLoadContactImportBatch, id)
 	if err != nil {
 		return nil, err
 	}
