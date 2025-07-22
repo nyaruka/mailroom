@@ -104,7 +104,7 @@ func TestInterrupt(t *testing.T) {
 	// give Bob a waiting session
 	testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Bob, models.FlowTypeMessaging, testdb.PickANumber, models.NilCallID)
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/interrupt.json", nil, testsuite.ResetNone)
+	testsuite.RunWebTests(t, ctx, rt, "testdata/interrupt.json", nil, testsuite.ResetValkey)
 }
 
 func TestParseQuery(t *testing.T) {
@@ -121,7 +121,7 @@ func TestPopulateGroup(t *testing.T) {
 	testdb.InsertContactGroup(rt, testdb.Org1, "", "Dynamic", "age > 18")
 	models.FlushCache()
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/populate_group.json", nil, testsuite.ResetNone)
+	testsuite.RunWebTests(t, ctx, rt, "testdata/populate_group.json", nil, testsuite.ResetValkey)
 }
 
 func TestSearch(t *testing.T) {
