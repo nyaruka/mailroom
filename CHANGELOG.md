@@ -1,3 +1,7 @@
+v10.3.9 (2025-07-23)
+-------------------------
+ * Tweak import endpoint to work with imports with status=processing
+
 v10.3.8 (2025-07-23)
 -------------------------
  * Add endpoint to start contact import
