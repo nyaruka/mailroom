@@ -27,16 +27,11 @@ func init() {
 type interruptRequest struct {
 	OrgID      models.OrgID       `json:"org_id"      validate:"required"`
 	UserID     models.UserID      `json:"user_id"     validate:"required"`
-	ContactID  models.ContactID   `json:"contact_id"` // deprecated
-	ContactIDs []models.ContactID `json:"contact_ids"`
+	ContactIDs []models.ContactID `json:"contact_ids" validate:"required"`
 }
 
 // handles a request to interrupt a contact
 func handleInterrupt(ctx context.Context, rt *runtime.Runtime, r *interruptRequest) (any, int, error) {
-	if r.ContactID != models.NilContactID {
-		r.ContactIDs = append(r.ContactIDs, r.ContactID)
-	}
-
 	var count int
 	var err error
 
