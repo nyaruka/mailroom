@@ -36,8 +36,8 @@ func handleImport(ctx context.Context, rt *runtime.Runtime, r *importRequest) (a
 	if imp.OrgID != r.OrgID {
 		panic("request org id does not match import org id")
 	}
-	if imp.Status != models.ImportStatusPending {
-		return nil, 0, fmt.Errorf("import is not pending")
+	if imp.Status != models.ImportStatusProcessing {
+		return nil, 0, fmt.Errorf("import is not processing")
 	}
 
 	// set valkey key which batch tasks can decrement to know when import has completed

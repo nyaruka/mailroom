@@ -54,7 +54,7 @@ func TestImport(t *testing.T) {
 
 	defer testsuite.Reset(testsuite.ResetData)
 
-	import1ID := testdb.InsertContactImport(rt, testdb.Org1, models.ImportStatusPending, testdb.Admin)
+	import1ID := testdb.InsertContactImport(rt, testdb.Org1, models.ImportStatusProcessing, testdb.Admin)
 	testdb.InsertContactImportBatch(rt, import1ID, []byte(`[
 		{"name": "Norbert", "language": "eng", "urns": ["tel:+16055740001"]},
 		{"name": "Leah", "urns": ["tel:+16055740002"]}
@@ -62,7 +62,7 @@ func TestImport(t *testing.T) {
 	testdb.InsertContactImportBatch(rt, import1ID, []byte(`[
 		{"name": "Rowan", "language": "spa", "urns": ["tel:+16055740003"]}
 	]`))
-	import2ID := testdb.InsertContactImport(rt, testdb.Org1, models.ImportStatusPending, testdb.Editor)
+	import2ID := testdb.InsertContactImport(rt, testdb.Org1, models.ImportStatusProcessing, testdb.Editor)
 	testdb.InsertContactImportBatch(rt, import2ID, []byte(`[
 		{"name": "Gloria", "urns": ["tel:+16055740003"]}
 	]`))
