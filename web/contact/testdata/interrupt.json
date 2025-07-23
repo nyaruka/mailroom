@@ -6,7 +6,7 @@
         "body": {},
         "status": 400,
         "response": {
-            "error": "request failed validation: field 'org_id' is required, field 'user_id' is required"
+            "error": "request failed validation: field 'org_id' is required, field 'user_id' is required, field 'contact_ids' is required"
         }
     },
     {
