@@ -18,7 +18,7 @@ func TestTicketAssign(t *testing.T) {
 	testdb.InsertClosedTicket(rt, testdb.Org1, testdb.Cathy, testdb.DefaultTopic, nil)
 	testdb.InsertClosedTicket(rt, testdb.Org1, testdb.Bob, testdb.DefaultTopic, nil)
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/assign.json", nil, testsuite.ResetNone)
+	testsuite.RunWebTests(t, ctx, rt, "testdata/assign.json", testsuite.ResetNone)
 }
 
 func TestTicketAddNote(t *testing.T) {
@@ -30,7 +30,7 @@ func TestTicketAddNote(t *testing.T) {
 	testdb.InsertOpenTicket(rt, testdb.Org1, testdb.Cathy, testdb.DefaultTopic, time.Now(), testdb.Agent)
 	testdb.InsertClosedTicket(rt, testdb.Org1, testdb.Cathy, testdb.DefaultTopic, nil)
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/add_note.json", nil, testsuite.ResetNone)
+	testsuite.RunWebTests(t, ctx, rt, "testdata/add_note.json", testsuite.ResetNone)
 }
 
 func TestTicketChangeTopic(t *testing.T) {
@@ -42,7 +42,7 @@ func TestTicketChangeTopic(t *testing.T) {
 	testdb.InsertOpenTicket(rt, testdb.Org1, testdb.Cathy, testdb.SupportTopic, time.Now(), testdb.Agent)
 	testdb.InsertClosedTicket(rt, testdb.Org1, testdb.Cathy, testdb.SalesTopic, nil)
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/change_topic.json", nil, testsuite.ResetNone)
+	testsuite.RunWebTests(t, ctx, rt, "testdata/change_topic.json", testsuite.ResetNone)
 }
 
 func TestTicketClose(t *testing.T) {
@@ -55,7 +55,7 @@ func TestTicketClose(t *testing.T) {
 	testdb.InsertOpenTicket(rt, testdb.Org1, testdb.Cathy, testdb.DefaultTopic, time.Now(), nil)
 	testdb.InsertClosedTicket(rt, testdb.Org1, testdb.Cathy, testdb.DefaultTopic, testdb.Editor)
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/close.json", nil, testsuite.ResetValkey)
+	testsuite.RunWebTests(t, ctx, rt, "testdata/close.json", testsuite.ResetValkey)
 }
 
 func TestTicketReopen(t *testing.T) {
@@ -72,5 +72,5 @@ func TestTicketReopen(t *testing.T) {
 	testdb.InsertClosedTicket(rt, testdb.Org1, testdb.Bob, testdb.DefaultTopic, testdb.Editor)
 	testdb.InsertClosedTicket(rt, testdb.Org1, testdb.Alexandra, testdb.DefaultTopic, testdb.Editor)
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/reopen.json", nil, testsuite.ResetNone)
+	testsuite.RunWebTests(t, ctx, rt, "testdata/reopen.json", testsuite.ResetNone)
 }

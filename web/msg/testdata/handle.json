@@ -30,15 +30,15 @@
         "body": {
             "org_id": 1,
             "msg_ids": [
-                $cathy_msgin1_id$,
-                $cathy_msgin2_id$,
-                $cathy_msgout_id$
+                30000,
+                30001,
+                30002
             ]
         },
         "status": 200,
         "response": {
             "msg_ids": [
-                $cathy_msgin2_id$
+                30001
             ]
         },
         "expected_tasks": {

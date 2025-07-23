@@ -9,5 +9,5 @@ import (
 func TestTranslate(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/translate.json", nil, testsuite.ResetNone)
+	testsuite.RunWebTests(t, ctx, rt, "testdata/translate.json", testsuite.ResetNone)
 }

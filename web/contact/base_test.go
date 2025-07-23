@@ -26,7 +26,7 @@ func TestCreate(t *testing.T) {
 	// detach Cathy's tel URN
 	rt.DB.MustExec(`UPDATE contacts_contacturn SET contact_id = NULL WHERE contact_id = $1`, testdb.Cathy.ID)
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/create.json", nil, testsuite.ResetNone)
+	testsuite.RunWebTests(t, ctx, rt, "testdata/create.json", testsuite.ResetNone)
 }
 
 func TestDeindex(t *testing.T) {
@@ -34,19 +34,19 @@ func TestDeindex(t *testing.T) {
 
 	defer testsuite.Reset(testsuite.ResetElastic)
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/deindex.json", nil, testsuite.ResetNone)
+	testsuite.RunWebTests(t, ctx, rt, "testdata/deindex.json", testsuite.ResetNone)
 }
 
 func TestExport(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/export.json", nil, testsuite.ResetNone)
+	testsuite.RunWebTests(t, ctx, rt, "testdata/export.json", testsuite.ResetNone)
 }
 
 func TestExportPreview(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/export_preview.json", nil, testsuite.ResetNone)
+	testsuite.RunWebTests(t, ctx, rt, "testdata/export_preview.json", testsuite.ResetNone)
 }
 
 func TestImport(t *testing.T) {
@@ -67,7 +67,7 @@ func TestImport(t *testing.T) {
 		{"name": "Gloria", "urns": ["tel:+16055740003"]}
 	]`))
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/import.json", nil, testsuite.ResetValkey)
+	testsuite.RunWebTests(t, ctx, rt, "testdata/import.json", testsuite.ResetValkey)
 }
 
 func TestInspect(t *testing.T) {
@@ -78,7 +78,7 @@ func TestInspect(t *testing.T) {
 	// give cathy an unsendable twitterid URN with a display value
 	testdb.InsertContactURN(rt, testdb.Org1, testdb.Cathy, urns.URN("twitterid:23145325#cathy"), 20000, nil)
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/inspect.json", nil, testsuite.ResetNone)
+	testsuite.RunWebTests(t, ctx, rt, "testdata/inspect.json", testsuite.ResetNone)
 }
 
 func TestModify(t *testing.T) {
@@ -108,7 +108,7 @@ func TestModify(t *testing.T) {
 	// lock a contact to test skipping them
 	clocks.TryToLock(ctx, rt, oa, []models.ContactID{testdb.Alexandra.ID}, time.Second)
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/modify.json", nil, testsuite.ResetNone)
+	testsuite.RunWebTests(t, ctx, rt, "testdata/modify.json", testsuite.ResetNone)
 }
 
 func TestInterrupt(t *testing.T) {
@@ -123,13 +123,13 @@ func TestInterrupt(t *testing.T) {
 	// give Bob a waiting session
 	testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Bob, models.FlowTypeMessaging, testdb.PickANumber, models.NilCallID)
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/interrupt.json", nil, testsuite.ResetValkey)
+	testsuite.RunWebTests(t, ctx, rt, "testdata/interrupt.json", testsuite.ResetValkey)
 }
 
 func TestParseQuery(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/parse_query.json", nil, testsuite.ResetNone)
+	testsuite.RunWebTests(t, ctx, rt, "testdata/parse_query.json", testsuite.ResetNone)
 }
 
 func TestPopulateGroup(t *testing.T) {
@@ -140,19 +140,19 @@ func TestPopulateGroup(t *testing.T) {
 	testdb.InsertContactGroup(rt, testdb.Org1, "", "Dynamic", "age > 18")
 	models.FlushCache()
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/populate_group.json", nil, testsuite.ResetValkey)
+	testsuite.RunWebTests(t, ctx, rt, "testdata/populate_group.json", testsuite.ResetValkey)
 }
 
 func TestSearch(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/search.json", nil, testsuite.ResetNone)
+	testsuite.RunWebTests(t, ctx, rt, "testdata/search.json", testsuite.ResetNone)
 }
 
 func TestURNs(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/urns.json", nil, testsuite.ResetNone)
+	testsuite.RunWebTests(t, ctx, rt, "testdata/urns.json", testsuite.ResetNone)
 }
 
 func TestSpecToCreation(t *testing.T) {

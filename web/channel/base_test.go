@@ -11,5 +11,5 @@ func TestInterrupt(t *testing.T) {
 
 	defer testsuite.Reset(testsuite.ResetAll)
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/interrupt.json", nil, testsuite.ResetValkey)
+	testsuite.RunWebTests(t, ctx, rt, "testdata/interrupt.json", testsuite.ResetValkey)
 }

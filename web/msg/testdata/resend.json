@@ -30,17 +30,17 @@
         "body": {
             "org_id": 1,
             "msg_ids": [
-                $cathy_msgin_id$,
-                $cathy_msgout_id$,
-                $bob_msgout_id$,
-                $george_msgout_id$
+                30000,
+                30001,
+                30002,
+                30003
             ]
         },
         "status": 200,
         "response": {
             "msg_ids": [
-                $cathy_msgout_id$,
-                $bob_msgout_id$
+                30001,
+                30002
             ]
         },
         "db_assertions": [

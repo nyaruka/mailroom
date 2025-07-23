@@ -11,5 +11,5 @@ func TestSchedule(t *testing.T) {
 
 	defer testsuite.Reset(testsuite.ResetData)
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/schedule.json", nil, testsuite.ResetValkey)
+	testsuite.RunWebTests(t, ctx, rt, "testdata/schedule.json", testsuite.ResetValkey)
 }

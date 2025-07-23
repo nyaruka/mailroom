@@ -9,31 +9,31 @@ import (
 func TestChangeLanguage(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/change_language.json", nil, testsuite.ResetNone)
+	testsuite.RunWebTests(t, ctx, rt, "testdata/change_language.json", testsuite.ResetNone)
 }
 
 func TestClone(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/clone.json", nil, testsuite.ResetNone)
+	testsuite.RunWebTests(t, ctx, rt, "testdata/clone.json", testsuite.ResetNone)
 }
 
 func TestInspect(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/inspect.json", nil, testsuite.ResetNone)
+	testsuite.RunWebTests(t, ctx, rt, "testdata/inspect.json", testsuite.ResetNone)
 }
 
 func TestInterrupt(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/interrupt.json", nil, testsuite.ResetValkey)
+	testsuite.RunWebTests(t, ctx, rt, "testdata/interrupt.json", testsuite.ResetValkey)
 }
 
 func TestMigrate(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/migrate.json", nil, testsuite.ResetNone)
+	testsuite.RunWebTests(t, ctx, rt, "testdata/migrate.json", testsuite.ResetNone)
 }
 
 func TestStart(t *testing.T) {
@@ -43,11 +43,11 @@ func TestStart(t *testing.T) {
 	//defer testsuite.Reset(testsuite.ResetData | testsuite.ResetValkey)
 	defer testsuite.Reset(testsuite.ResetAll)
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/start.json", nil, testsuite.ResetValkey)
+	testsuite.RunWebTests(t, ctx, rt, "testdata/start.json", testsuite.ResetValkey)
 }
 
 func TestStartPreview(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/start_preview.json", nil, testsuite.ResetNone)
+	testsuite.RunWebTests(t, ctx, rt, "testdata/start_preview.json", testsuite.ResetNone)
 }

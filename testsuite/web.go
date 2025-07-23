@@ -28,7 +28,7 @@ import (
 )
 
 // RunWebTests runs the tests in the passed in filename, optionally updating them if the update flag is set
-func RunWebTests(t *testing.T, ctx context.Context, rt *runtime.Runtime, truthFile string, substitutions map[string]string, reset ResetFlag) {
+func RunWebTests(t *testing.T, ctx context.Context, rt *runtime.Runtime, truthFile string, reset ResetFlag) {
 	wg := &sync.WaitGroup{}
 
 	test.MockUniverse()
@@ -61,10 +61,6 @@ func RunWebTests(t *testing.T, ctx context.Context, rt *runtime.Runtime, truthFi
 	}
 	tcs := make([]TestCase, 0, 20)
 	tcJSON := ReadFile(truthFile)
-
-	for key, value := range substitutions {
-		tcJSON = bytes.ReplaceAll(tcJSON, []byte("$"+key+"$"), []byte(value))
-	}
 
 	jsonx.MustUnmarshal(tcJSON, &tcs)
 	var err error

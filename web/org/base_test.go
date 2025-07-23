@@ -26,7 +26,7 @@ func TestDeindex(t *testing.T) {
 
 	defer testsuite.Reset(testsuite.ResetElastic | testsuite.ResetValkey)
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/deindex.json", nil, testsuite.ResetNone)
+	testsuite.RunWebTests(t, ctx, rt, "testdata/deindex.json", testsuite.ResetNone)
 
 	vc := rt.VK.Get()
 	defer vc.Close()

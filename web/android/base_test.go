@@ -12,7 +12,7 @@ func TestEvent(t *testing.T) {
 
 	defer testsuite.Reset(testsuite.ResetData)
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/event.json", nil, testsuite.ResetValkey)
+	testsuite.RunWebTests(t, ctx, rt, "testdata/event.json", testsuite.ResetValkey)
 }
 
 func TestMessage(t *testing.T) {
@@ -20,7 +20,7 @@ func TestMessage(t *testing.T) {
 
 	defer testsuite.Reset(testsuite.ResetData | testsuite.ResetValkey)
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/message.json", nil, testsuite.ResetValkey)
+	testsuite.RunWebTests(t, ctx, rt, "testdata/message.json", testsuite.ResetValkey)
 }
 
 func TestSync(t *testing.T) {
@@ -30,5 +30,5 @@ func TestSync(t *testing.T) {
 
 	testdb.InsertChannel(rt, testdb.Org1, "A", "Android 1", "123", []string{"tel"}, "SR", map[string]any{})
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/sync.json", nil, testsuite.ResetNone)
+	testsuite.RunWebTests(t, ctx, rt, "testdata/sync.json", testsuite.ResetNone)
 }

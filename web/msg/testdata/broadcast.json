@@ -67,7 +67,7 @@
                 "tel:+1234567890"
             ],
             "query": "age > 20",
-            "optin_id": $polls_id$,
+            "optin_id": 30000,
             "template_id": 10000,
             "template_variables": [
                 "@contact"
@@ -79,7 +79,7 @@
         },
         "db_assertions": [
             {
-                "query": "SELECT count(*) FROM msgs_broadcast WHERE status = 'P' AND translations->'eng'->>'text' = 'Hello' AND base_language = 'eng' AND urns = '{\"tel:+1234567890\"}' AND query = 'age > 20' AND optin_id = $polls_id$ AND template_id = 10000 AND template_variables = '{\"@contact\"}'",
+                "query": "SELECT count(*) FROM msgs_broadcast WHERE status = 'P' AND translations->'eng'->>'text' = 'Hello' AND base_language = 'eng' AND urns = '{\"tel:+1234567890\"}' AND query = 'age > 20' AND optin_id = 30000 AND template_id = 10000 AND template_variables = '{\"@contact\"}'",
                 "count": 1
             },
             {
