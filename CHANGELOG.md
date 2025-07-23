@@ -1,3 +1,7 @@
+v10.3.10 (2025-07-23)
+-------------------------
+ * Update to latest goflow
+
 v10.3.9 (2025-07-23)
 -------------------------
  * Tweak import endpoint to work with imports with status=processing
