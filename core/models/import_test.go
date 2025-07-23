@@ -19,17 +19,20 @@ func TestLoadContactImport(t *testing.T) {
 
 	oa := testdb.Org1.Load(rt)
 
-	importID := testdb.InsertContactImport(rt, testdb.Org1, testdb.Admin)
-	batch1ID := testdb.InsertContactImportBatch(rt, importID, []byte(`[
+	import1ID := testdb.InsertContactImport(rt, testdb.Org1, models.ImportStatusProcessing, testdb.Admin)
+	batch1ID := testdb.InsertContactImportBatch(rt, import1ID, []byte(`[
 		{"name": "Norbert", "language": "eng", "urns": ["tel:+16055740001"]},
 		{"name": "Leah", "urns": ["tel:+16055740002"]}
 	]`))
-	batch2ID := testdb.InsertContactImportBatch(rt, importID, []byte(`[
+	batch2ID := testdb.InsertContactImportBatch(rt, import1ID, []byte(`[
 		{"name": "Rowan", "language": "spa", "urns": ["tel:+16055740003"]}
 	]`))
-	testdb.InsertContactImport(rt, testdb.Org1, testdb.Editor)
+	import2ID := testdb.InsertContactImport(rt, testdb.Org1, models.ImportStatusProcessing, testdb.Editor)
+	testdb.InsertContactImportBatch(rt, import2ID, []byte(`[
+		{"name": "Gloria", "urns": ["tel:+16055740003"]}
+	]`))
 
-	imp, err := models.LoadContactImport(ctx, rt.DB, importID)
+	imp, err := models.LoadContactImport(ctx, rt.DB, import1ID)
 	require.NoError(t, err)
 
 	assert.Equal(t, testdb.Org1.ID, imp.OrgID)
@@ -42,7 +45,7 @@ func TestLoadContactImport(t *testing.T) {
 	batch1, err := models.LoadContactImportBatch(ctx, rt.DB, batch1ID)
 	require.NoError(t, err)
 
-	assert.Equal(t, importID, batch1.ImportID)
+	assert.Equal(t, import1ID, batch1.ImportID)
 	assert.Equal(t, models.ImportStatusPending, batch1.Status)
 	assert.NotNil(t, batch1.Specs)
 	assert.Equal(t, 0, batch1.RecordStart)
@@ -51,12 +54,12 @@ func TestLoadContactImport(t *testing.T) {
 	err = imports.ImportBatch(ctx, rt, oa, batch1, testdb.Admin.ID)
 	require.NoError(t, err)
 
-	imp, err = models.LoadContactImport(ctx, rt.DB, importID)
+	imp, err = models.LoadContactImport(ctx, rt.DB, import1ID)
 	require.NoError(t, err)
 
 	assert.Equal(t, []models.ContactImportBatchID{batch1ID, batch2ID}, imp.BatchIDs)
 	assert.ElementsMatch(t, []models.ImportStatus{models.ImportStatusComplete, models.ImportStatusPending}, imp.BatchStatuses)
 
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contactimportbatch WHERE status = 'C' AND finished_on IS NOT NULL`).Returns(1)
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contactimportbatch WHERE status = 'P' AND finished_on IS NULL`).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contactimportbatch WHERE status = 'P' AND finished_on IS NULL`).Returns(2)
 }
