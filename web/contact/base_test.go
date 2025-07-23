@@ -49,6 +49,27 @@ func TestExportPreview(t *testing.T) {
 	testsuite.RunWebTests(t, ctx, rt, "testdata/export_preview.json", nil, testsuite.ResetNone)
 }
 
+func TestImport(t *testing.T) {
+	ctx, rt := testsuite.Runtime()
+
+	defer testsuite.Reset(testsuite.ResetData)
+
+	import1ID := testdb.InsertContactImport(rt, testdb.Org1, models.ImportStatusPending, testdb.Admin)
+	testdb.InsertContactImportBatch(rt, import1ID, []byte(`[
+		{"name": "Norbert", "language": "eng", "urns": ["tel:+16055740001"]},
+		{"name": "Leah", "urns": ["tel:+16055740002"]}
+	]`))
+	testdb.InsertContactImportBatch(rt, import1ID, []byte(`[
+		{"name": "Rowan", "language": "spa", "urns": ["tel:+16055740003"]}
+	]`))
+	import2ID := testdb.InsertContactImport(rt, testdb.Org1, models.ImportStatusPending, testdb.Editor)
+	testdb.InsertContactImportBatch(rt, import2ID, []byte(`[
+		{"name": "Gloria", "urns": ["tel:+16055740003"]}
+	]`))
+
+	testsuite.RunWebTests(t, ctx, rt, "testdata/import.json", nil, testsuite.ResetValkey)
+}
+
 func TestInspect(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
 

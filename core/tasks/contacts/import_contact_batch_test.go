@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
+	"github.com/nyaruka/mailroom/core/models"
 	_ "github.com/nyaruka/mailroom/core/runner/handlers"
 	"github.com/nyaruka/mailroom/core/tasks/contacts"
 	"github.com/nyaruka/mailroom/testsuite"
@@ -18,7 +19,7 @@ func TestImportContactBatch(t *testing.T) {
 
 	defer testsuite.Reset(testsuite.ResetData)
 
-	importID := testdb.InsertContactImport(rt, testdb.Org1, testdb.Admin)
+	importID := testdb.InsertContactImport(rt, testdb.Org1, models.ImportStatusProcessing, testdb.Admin)
 	batch1ID := testdb.InsertContactImportBatch(rt, importID, []byte(`[
 		{"name": "Norbert", "language": "eng", "urns": ["tel:+16055740001"]},
 		{"name": "Leah", "urns": ["tel:+16055740002"]}

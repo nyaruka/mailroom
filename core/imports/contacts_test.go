@@ -68,7 +68,7 @@ func TestContactImports(t *testing.T) {
 	defer uuids.SetGenerator(uuids.DefaultGenerator)
 
 	for i, tc := range tcs {
-		importID := testdb.InsertContactImport(rt, testdb.Org1, testdb.Admin)
+		importID := testdb.InsertContactImport(rt, testdb.Org1, models.ImportStatusProcessing, testdb.Admin)
 		batchID := testdb.InsertContactImportBatch(rt, importID, tc.Specs)
 
 		batch, err := models.LoadContactImportBatch(ctx, rt.DB, batchID)
