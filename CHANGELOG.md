@@ -1,3 +1,8 @@
+v10.3.8 (2025-07-23)
+-------------------------
+ * Add endpoint to start contact import
+ * Simplify loading of contact imports and include batch ids
+
 v10.3.7 (2025-07-22)
 -------------------------
  * Tweak contact/interrupt endpoint to support multiple contacts
