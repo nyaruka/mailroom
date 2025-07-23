@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/gomodule/redigo/redis"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/tasks"
 	"github.com/nyaruka/mailroom/core/tasks/contacts"
@@ -38,6 +39,16 @@ func handleImport(ctx context.Context, rt *runtime.Runtime, r *importRequest) (a
 	if imp.Status != models.ImportStatusPending {
 		return nil, 0, fmt.Errorf("import is not pending")
 	}
+
+	// set valkey key which batch tasks can decrement to know when import has completed
+	rc := rt.VK.Get()
+
+	_, err = redis.DoContext(rc, ctx, "SET", fmt.Sprintf("contact_import_batches_remaining:%d", imp.ID), len(imp.BatchIDs), "EX", 24*60*60)
+	if err != nil {
+		return nil, 0, fmt.Errorf("error setting import batch counter key: %w", err)
+	}
+
+	rc.Close()
 
 	// create tasks for all batches
 	for _, bID := range imp.BatchIDs {
