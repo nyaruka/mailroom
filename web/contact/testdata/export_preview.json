@@ -29,7 +29,7 @@
         "path": "/mr/contact/export_preview",
         "body": {
             "org_id": 1,
-            "group_id": 1,
+            "group_id": 10000,
             "query": ""
         },
         "status": 200,
@@ -43,7 +43,7 @@
         "path": "/mr/contact/export_preview",
         "body": {
             "org_id": 1,
-            "group_id": 10000,
+            "group_id": 10005,
             "query": ""
         },
         "status": 200,
@@ -57,7 +57,7 @@
         "path": "/mr/contact/export_preview",
         "body": {
             "org_id": 1,
-            "group_id": 1,
+            "group_id": 10000,
             "query": "name = BOB OR cathy"
         },
         "status": 200,
@@ -71,7 +71,7 @@
         "path": "/mr/contact/export_preview",
         "body": {
             "org_id": 2,
-            "group_id": 10002,
+            "group_id": 20000,
             "query": "fred"
         },
         "status": 200,
@@ -85,7 +85,7 @@
         "path": "/mr/contact/export_preview",
         "body": {
             "org_id": 1,
-            "group_id": 10000,
+            "group_id": 10005,
             "query": "cathy"
         },
         "status": 200,

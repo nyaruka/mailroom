@@ -88,7 +88,7 @@ func TestNewCourierMsg(t *testing.T) {
 		"created_on": %s,
 		"flow": {"uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85", "name": "Favorites"},
 		"high_priority": false,
-		"id": 2,
+		"id": 30001,
 		"locale": "eng-US",
 		"org_id": 1,
 		"origin": "flow",
@@ -142,7 +142,7 @@ func TestNewCourierMsg(t *testing.T) {
 		"flow": {"uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85", "name": "Favorites"},
 		"response_to_external_id": "EX123",
 		"high_priority": true,
-		"id": 4,
+		"id": 30003,
 		"org_id": 1,
 		"origin": "flow",
 		"session": {
@@ -175,7 +175,7 @@ func TestNewCourierMsg(t *testing.T) {
 		"contact_urn_id": 30000,
 		"created_on": %s,
 		"high_priority": false,
-		"id": 5,
+		"id": 30004,
 		"org_id": 1,
 		"origin": "broadcast",
 		"text": "Blast",
@@ -203,7 +203,7 @@ func TestNewCourierMsg(t *testing.T) {
 		"created_on": %s,
 		"flow": {"uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85", "name": "Favorites"},
 		"high_priority": true,
-		"id": 6,
+		"id": 30005,
 		"optin": {
 			"id": %d,
 			"name": "Joke Of The Day"

@@ -25,15 +25,15 @@ func TestFields(t *testing.T) {
 	assert.Equal(t, assets.FieldTypeNumber, fields[0].Type())
 
 	expectedFields := []struct {
-		field     testdb.Field
+		field     *testdb.Field
 		key       string
 		name      string
 		valueType assets.FieldType
 	}{
-		{*testdb.GenderField, "gender", "Gender", assets.FieldTypeText},
-		{*testdb.AgeField, "age", "Age", assets.FieldTypeNumber},
-		{*testdb.CreatedOnField, "created_on", "Created On", assets.FieldTypeDatetime},
-		{*testdb.LastSeenOnField, "last_seen_on", "Last Seen On", assets.FieldTypeDatetime},
+		{testdb.GenderField, "gender", "Gender", assets.FieldTypeText},
+		{testdb.AgeField, "age", "Age", assets.FieldTypeNumber},
+		{testdb.CreatedOnField, "created_on", "Created On", assets.FieldTypeDatetime},
+		{testdb.LastSeenOnField, "last_seen_on", "Last Seen On", assets.FieldTypeDatetime},
 	}
 	for _, tc := range expectedFields {
 		field := oa.FieldByUUID(tc.field.UUID)
@@ -43,6 +43,7 @@ func TestFields(t *testing.T) {
 		assert.Equal(t, field, fieldByKey)
 
 		assert.Equal(t, tc.field.UUID, field.UUID(), "uuid mismatch for field %s", tc.field.ID)
+		assert.Equal(t, tc.field.ID, field.ID(), "id mismatch for field %s", tc.field.ID)
 		assert.Equal(t, tc.key, field.Key())
 		assert.Equal(t, tc.name, field.Name())
 		assert.Equal(t, tc.valueType, field.Type())

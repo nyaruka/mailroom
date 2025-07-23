@@ -274,6 +274,8 @@ func resetDynamo(ctx context.Context, rt *runtime.Runtime) {
 var sqlResetTestData = `
 UPDATE contacts_contact SET last_seen_on = NULL, current_session_uuid = NULL, current_flow_id = NULL;
 
+DELETE FROM api_resthooksubscriber WHERE resthook_id >= 30000;
+DELETE FROM api_resthook WHERE id >= 30000;
 DELETE FROM notifications_notification;
 DELETE FROM notifications_incident;
 DELETE FROM request_logs_httplog;
@@ -323,17 +325,22 @@ DELETE FROM orgs_itemcount;
 DELETE FROM orgs_dailycount;
 
 ALTER SEQUENCE ai_llm_id_seq RESTART WITH 30000;
+ALTER SEQUENCE api_resthook_id_seq RESTART WITH 30000;
+ALTER SEQUENCE api_resthooksubscriber_id_seq RESTART WITH 30000;
 ALTER SEQUENCE flows_flow_id_seq RESTART WITH 30000;
-ALTER SEQUENCE tickets_ticket_id_seq RESTART WITH 1;
-ALTER SEQUENCE channels_channelevent_id_seq RESTART WITH 1;
-ALTER SEQUENCE msgs_msg_id_seq RESTART WITH 1;
-ALTER SEQUENCE msgs_broadcast_id_seq RESTART WITH 1;
-ALTER SEQUENCE flows_flowrun_id_seq RESTART WITH 1;
-ALTER SEQUENCE flows_flowstart_id_seq RESTART WITH 1;
-ALTER SEQUENCE flows_flowsession_id_seq RESTART WITH 1;
+ALTER SEQUENCE tickets_ticket_id_seq RESTART WITH 30000;
+ALTER SEQUENCE channels_channelevent_id_seq RESTART WITH 30000;
+ALTER SEQUENCE msgs_msg_id_seq RESTART WITH 30000;
+ALTER SEQUENCE msgs_broadcast_id_seq RESTART WITH 30000;
+ALTER SEQUENCE flows_flowrun_id_seq RESTART WITH 30000;
+ALTER SEQUENCE flows_flowstart_id_seq RESTART WITH 30000;
+ALTER SEQUENCE flows_flowsession_id_seq RESTART WITH 30000;
 ALTER SEQUENCE contacts_contact_id_seq RESTART WITH 30000;
 ALTER SEQUENCE contacts_contacturn_id_seq RESTART WITH 30000;
+ALTER SEQUENCE contacts_contactfield_id_seq RESTART WITH 30000;
 ALTER SEQUENCE contacts_contactgroup_id_seq RESTART WITH 30000;
+ALTER SEQUENCE contacts_contactimport_id_seq RESTART WITH 30000;
+ALTER SEQUENCE contacts_contactimportbatch_id_seq RESTART WITH 30000;
 ALTER SEQUENCE campaigns_campaign_id_seq RESTART WITH 30000;
 ALTER SEQUENCE campaigns_campaignevent_id_seq RESTART WITH 30000;`
 

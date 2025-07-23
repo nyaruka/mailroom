@@ -16,7 +16,7 @@
         "body": {
             "org_id": 1,
             "query": "birthday = tomorrow",
-            "group_id": 1
+            "group_id": 10000
         },
         "status": 422,
         "response": {
@@ -34,7 +34,7 @@
         "body": {
             "org_id": 1,
             "query": "age > tomorrow",
-            "group_id": 1
+            "group_id": 10000
         },
         "status": 422,
         "response": {
@@ -52,7 +52,7 @@
         "body": {
             "org_id": 1,
             "query": "Cathy",
-            "group_id": 1
+            "group_id": 10000
         },
         "status": 200,
         "response": {
@@ -79,7 +79,7 @@
         "body": {
             "org_id": 1,
             "query": "Cathy OR George",
-            "group_id": 1,
+            "group_id": 10000,
             "exclude_ids": [
                 10001,
                 10002
@@ -110,7 +110,7 @@
         "body": {
             "org_id": 1,
             "query": "AGE = 10 and gender = M",
-            "group_id": 1
+            "group_id": 10000
         },
         "status": 200,
         "response": {
@@ -142,7 +142,7 @@
         "body": {
             "org_id": 1,
             "query": "",
-            "group_id": 10001
+            "group_id": 10006
         },
         "status": 200,
         "response": {
@@ -169,7 +169,7 @@
         "body": {
             "org_id": 1,
             "query": "",
-            "group_id": 10001,
+            "group_id": 10006,
             "limit": 5
         },
         "status": 200,
@@ -192,7 +192,7 @@
         "body": {
             "org_id": 1,
             "query": "",
-            "group_id": 10001,
+            "group_id": 10006,
             "limit": 5,
             "sort": "id"
         },

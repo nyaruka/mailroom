@@ -65,7 +65,7 @@
         },
         "status": 200,
         "response": {
-            "id": 1
+            "id": 30000
         },
         "db_assertions": [
             {
@@ -73,11 +73,11 @@
                 "count": 1
             },
             {
-                "query": "SELECT count(*) FROM flows_flowstart_contacts WHERE flowstart_id = 1",
+                "query": "SELECT count(*) FROM flows_flowstart_contacts WHERE flowstart_id = 30000",
                 "count": 2
             },
             {
-                "query": "SELECT count(*) FROM flows_flowstart_groups WHERE flowstart_id = 1",
+                "query": "SELECT count(*) FROM flows_flowstart_groups WHERE flowstart_id = 30000",
                 "count": 1
             }
         ],

@@ -123,14 +123,14 @@ func TestTwilioIVR(t *testing.T) {
 		expectedCallStatus map[string]string
 	}{
 		{ // 0: handle start on wired call
-			url:                fmt.Sprintf("/ivr/c/%s/handle?action=start&connection=1", testdb.TwilioChannel.UUID),
+			url:                fmt.Sprintf("/ivr/c/%s/handle?action=start&connection=30000", testdb.TwilioChannel.UUID),
 			form:               nil,
 			expectedStatus:     200,
 			expectedContains:   []string{`<Gather numDigits="1" timeout="30"`, `<Say language="en-US">Hello there. Please enter one or two.  This flow was triggered by Cathy</Say>`},
 			expectedCallStatus: map[string]string{"Call1": "I", "Call2": "W", "Call3": "W"},
 		},
 		{ // 1: handle resume but without digits we're waiting for
-			url: fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=1", testdb.TwilioChannel.UUID),
+			url: fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=30000", testdb.TwilioChannel.UUID),
 			form: url.Values{
 				"CallStatus": []string{"in-progress"},
 				"wait_type":  []string{"gather"},
@@ -141,7 +141,7 @@ func TestTwilioIVR(t *testing.T) {
 			expectedCallStatus: map[string]string{"Call1": "I", "Call2": "W", "Call3": "W"},
 		},
 		{ // 2: handle resume with digits we're waiting for
-			url: fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=1", testdb.TwilioChannel.UUID),
+			url: fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=30000", testdb.TwilioChannel.UUID),
 			form: url.Values{
 				"CallStatus": []string{"in-progress"},
 				"wait_type":  []string{"gather"},
@@ -152,7 +152,7 @@ func TestTwilioIVR(t *testing.T) {
 			expectedCallStatus: map[string]string{"Call1": "I", "Call2": "W", "Call3": "W"},
 		},
 		{ // 3: handle resume with digits that are out of range specified in flow
-			url: fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=1", testdb.TwilioChannel.UUID),
+			url: fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=30000", testdb.TwilioChannel.UUID),
 			form: url.Values{
 				"CallStatus": []string{"in-progress"},
 				"wait_type":  []string{"gather"},
@@ -163,7 +163,7 @@ func TestTwilioIVR(t *testing.T) {
 			expectedCallStatus: map[string]string{"Call1": "I", "Call2": "W", "Call3": "W"},
 		},
 		{ // 4: handle resume with digits that are in range specified in flow
-			url: fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=1", testdb.TwilioChannel.UUID),
+			url: fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=30000", testdb.TwilioChannel.UUID),
 			form: url.Values{
 				"CallStatus": []string{"in-progress"},
 				"wait_type":  []string{"gather"},
@@ -174,7 +174,7 @@ func TestTwilioIVR(t *testing.T) {
 			expectedCallStatus: map[string]string{"Call1": "I", "Call2": "W", "Call3": "W"},
 		},
 		{ // 5: handle resume with missing recording that should start a call forward
-			url: fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=1", testdb.TwilioChannel.UUID),
+			url: fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=30000", testdb.TwilioChannel.UUID),
 			form: url.Values{
 				"CallStatus": []string{"in-progress"},
 				"wait_type":  []string{"record"},
@@ -190,7 +190,7 @@ func TestTwilioIVR(t *testing.T) {
 			expectedCallStatus: map[string]string{"Call1": "I", "Call2": "W", "Call3": "W"},
 		},
 		{ // 6: handle resume call forwarding result
-			url: fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=1", testdb.TwilioChannel.UUID),
+			url: fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=30000", testdb.TwilioChannel.UUID),
 			form: url.Values{
 				"CallStatus":     []string{"in-progress"},
 				"DialCallStatus": []string{"answered"},
@@ -212,14 +212,14 @@ func TestTwilioIVR(t *testing.T) {
 			expectedCallStatus: map[string]string{"Call1": "D", "Call2": "W", "Call3": "W"},
 		},
 		{ // 8: start call 2
-			url:                fmt.Sprintf("/ivr/c/%s/handle?action=start&connection=2", testdb.TwilioChannel.UUID),
+			url:                fmt.Sprintf("/ivr/c/%s/handle?action=start&connection=30001", testdb.TwilioChannel.UUID),
 			form:               nil,
 			expectedStatus:     200,
 			expectedContains:   []string{"Hello there. Please enter one or two."},
 			expectedCallStatus: map[string]string{"Call1": "D", "Call2": "I", "Call3": "W"},
 		},
 		{ // 9: resume with status that says call completed on Twilio side
-			url: fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=2", testdb.TwilioChannel.UUID),
+			url: fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=30001", testdb.TwilioChannel.UUID),
 			form: url.Values{
 				"CallStatus": []string{"completed"},
 				"wait_type":  []string{"gather"},
@@ -230,7 +230,7 @@ func TestTwilioIVR(t *testing.T) {
 			expectedCallStatus: map[string]string{"Call1": "D", "Call2": "D", "Call3": "W"},
 		},
 		{ // 10: call 3 started with answered_by telling us it's a machine
-			url: fmt.Sprintf("/ivr/c/%s/handle?action=start&connection=3", testdb.TwilioChannel.UUID),
+			url: fmt.Sprintf("/ivr/c/%s/handle?action=start&connection=30002", testdb.TwilioChannel.UUID),
 			form: url.Values{
 				"CallStatus": []string{"in-progress"},
 				"AnsweredBy": []string{"machine_start"},
@@ -262,7 +262,7 @@ func TestTwilioIVR(t *testing.T) {
 			expectedCallStatus: map[string]string{"Call1": "D", "Call2": "D", "Call3": "E", "Call4": "I"},
 		},
 		{ // 13: handle resume with digits we're waiting for
-			url: fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=4", testdb.TwilioChannel.UUID),
+			url: fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=30003", testdb.TwilioChannel.UUID),
 			form: url.Values{
 				"CallStatus": []string{"in-progress"},
 				"wait_type":  []string{"gather"},
@@ -432,7 +432,7 @@ func TestVonageIVR(t *testing.T) {
 	}{
 		{
 			label:          "handle start on wired call",
-			url:            fmt.Sprintf("/ivr/c/%s/handle?action=start&connection=1", testdb.VonageChannel.UUID),
+			url:            fmt.Sprintf("/ivr/c/%s/handle?action=start&connection=30000", testdb.VonageChannel.UUID),
 			body:           `{"from":"12482780345","to":"12067799294","uuid":"80c9a606-717e-48b9-ae22-ce00269cbb08","conversation_uuid":"CON-f90649c3-cbf3-42d6-9ab1-01503befac1c"}`,
 			expectedStatus: 200,
 			expectedResponse: `[
@@ -445,7 +445,7 @@ func TestVonageIVR(t *testing.T) {
 					"action": "input",
 					"eventMethod": "POST",
 					"eventUrl": [
-						"https://localhost:8091/mr/ivr/c/19012bfd-3ce3-4cae-9bb9-76cf92c73d49/handle?action=resume&connection=1&urn=tel%3A%2B16055741111%3Fid%3D10000&wait_type=gather&sig=9ih6a8QBjAq00QXkqAQTvFuqNqM%3D"
+						"https://localhost:8091/mr/ivr/c/19012bfd-3ce3-4cae-9bb9-76cf92c73d49/handle?action=resume&connection=30000&urn=tel%3A%2B16055741111%3Fid%3D10000&wait_type=gather&sig=cdPKil7FKIkAUeNaiiEzYQd7%2Fts%3D"
 					],
 					"maxDigits": 1,
 					"submitOnHash": true,
@@ -455,42 +455,42 @@ func TestVonageIVR(t *testing.T) {
 		},
 		{
 			label:          "handle resume with invalid digit",
-			url:            fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=1&wait_type=gather", testdb.VonageChannel.UUID),
+			url:            fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=30000&wait_type=gather", testdb.VonageChannel.UUID),
 			body:           `{"dtmf":"3","timed_out":false,"uuid":null,"conversation_uuid":"CON-f90649c3-cbf3-42d6-9ab1-01503befac1c","timestamp":"2019-04-01T21:08:54.680Z"}`,
 			expectedStatus: 200,
 			contains:       []string{"Sorry, that is not one or two, try again."},
 		},
 		{
 			label:          "handle resume with valid digit",
-			url:            fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=1&wait_type=gather", testdb.VonageChannel.UUID),
+			url:            fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=30000&wait_type=gather", testdb.VonageChannel.UUID),
 			body:           `{"dtmf":"1","timed_out":false,"uuid":null,"conversation_uuid":"CON-f90649c3-cbf3-42d6-9ab1-01503befac1c","timestamp":"2019-04-01T21:08:54.680Z"}`,
 			expectedStatus: 200,
 			contains:       []string{"Great! You said One."},
 		},
 		{
 			label:          "handle resume with digits out of range in flow",
-			url:            fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=1&wait_type=gather", testdb.VonageChannel.UUID),
+			url:            fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=30000&wait_type=gather", testdb.VonageChannel.UUID),
 			body:           `{"dtmf":"101","timed_out":false,"uuid":null,"conversation_uuid":"CON-f90649c3-cbf3-42d6-9ab1-01503befac1c","timestamp":"2019-04-01T21:08:54.680Z"}`,
 			expectedStatus: 200,
 			contains:       []string{"too big"},
 		},
 		{
 			label:          "handle resume with digits within range in flow",
-			url:            fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=1&wait_type=gather", testdb.VonageChannel.UUID),
+			url:            fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=30000&wait_type=gather", testdb.VonageChannel.UUID),
 			body:           `{"dtmf":"56","timed_out":false,"uuid":null,"conversation_uuid":"CON-f90649c3-cbf3-42d6-9ab1-01503befac1c","timestamp":"2019-04-01T21:08:54.680Z"}`,
 			expectedStatus: 200,
 			contains:       []string{"You picked the number 56"},
 		},
 		{
 			label:          "recording callback",
-			url:            fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=1&wait_type=recording_url&recording_uuid=0c15f253-8e67-45c8-9980-7d38292edd3c", testdb.VonageChannel.UUID),
+			url:            fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=30000&wait_type=recording_url&recording_uuid=0c15f253-8e67-45c8-9980-7d38292edd3c", testdb.VonageChannel.UUID),
 			body:           fmt.Sprintf(`{"recording_url": "%s", "end_time":"2019-04-01T21:08:56.000Z","uuid":"Call1","network":"310260","status":"answered","direction":"outbound","timestamp":"2019-04-01T21:08:56.342Z"}`, ts.URL+"?recording=true"),
 			expectedStatus: 200,
 			contains:       []string{"inserted recording url"},
 		},
 		{
 			label:          "resume with recording",
-			url:            fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=1&wait_type=record&recording_uuid=0c15f253-8e67-45c8-9980-7d38292edd3c", testdb.VonageChannel.UUID),
+			url:            fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=30000&wait_type=record&recording_uuid=0c15f253-8e67-45c8-9980-7d38292edd3c", testdb.VonageChannel.UUID),
 			body:           `{"end_time":"2019-04-01T21:08:56.000Z","uuid":"Call1","network":"310260","status":"answered","direction":"outbound","timestamp":"2019-04-01T21:08:56.342Z", "recording_url": "http://foo.bar/"}`,
 			expectedStatus: 200,
 			contains:       []string{"I hope hearing that makes you feel better.", `"action": "conversation"`},
@@ -511,7 +511,7 @@ func TestVonageIVR(t *testing.T) {
 		},
 		{
 			label:          "transfer callback",
-			url:            fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=1&wait_type=dial&dial_status=answered&dial_duration=25", testdb.VonageChannel.UUID),
+			url:            fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=30000&wait_type=dial&dial_status=answered&dial_duration=25", testdb.VonageChannel.UUID),
 			expectedStatus: 200,
 			contains:       []string{"Great, they answered."},
 		},
@@ -524,7 +524,7 @@ func TestVonageIVR(t *testing.T) {
 		},
 		{
 			label:          "new call",
-			url:            fmt.Sprintf("/ivr/c/%s/handle?action=start&connection=2", testdb.VonageChannel.UUID),
+			url:            fmt.Sprintf("/ivr/c/%s/handle?action=start&connection=30001", testdb.VonageChannel.UUID),
 			body:           `{"from":"12482780345","to":"12067799294","uuid":"Call2","conversation_uuid":"CON-f90649c3-cbf3-42d6-9ab1-01503befac1c"}`,
 			expectedStatus: 200,
 			expectedResponse: `[
@@ -537,7 +537,7 @@ func TestVonageIVR(t *testing.T) {
 					"action": "input",
 					"eventMethod": "POST",
 					"eventUrl": [
-						"https://localhost:8091/mr/ivr/c/19012bfd-3ce3-4cae-9bb9-76cf92c73d49/handle?action=resume&connection=2&urn=tel%3A%2B16055743333%3Fid%3D10002&wait_type=gather&sig=Y9bUZ8T5CtuY4Tbf9VsmAqEV6sY%3D"
+						"https://localhost:8091/mr/ivr/c/19012bfd-3ce3-4cae-9bb9-76cf92c73d49/handle?action=resume&connection=30001&urn=tel%3A%2B16055743333%3Fid%3D10002&wait_type=gather&sig=GLMd2cp8xQcVsJBJJAUfQ53ixGE%3D"
 					],
 					"maxDigits": 1,
 					"submitOnHash": true,
@@ -547,7 +547,7 @@ func TestVonageIVR(t *testing.T) {
 		},
 		{
 			label:          "new call dtmf 1",
-			url:            fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=2&wait_type=gather", testdb.VonageChannel.UUID),
+			url:            fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=30001&wait_type=gather", testdb.VonageChannel.UUID),
 			body:           `{"dtmf":"1","timed_out":false,"uuid":"Call2","conversation_uuid":"CON-f90649c3-cbf3-42d6-9ab1-01503befac1c","timestamp":"2019-04-01T21:08:54.680Z"}`,
 			expectedStatus: 200,
 			expectedResponse: `[
@@ -560,7 +560,7 @@ func TestVonageIVR(t *testing.T) {
 					"action": "input",
 					"eventMethod": "POST",
 					"eventUrl": [
-						"https://localhost:8091/mr/ivr/c/19012bfd-3ce3-4cae-9bb9-76cf92c73d49/handle?action=resume&connection=2&urn=tel%3A%2B16055743333%3Fid%3D10002&wait_type=gather&sig=Y9bUZ8T5CtuY4Tbf9VsmAqEV6sY%3D"
+						"https://localhost:8091/mr/ivr/c/19012bfd-3ce3-4cae-9bb9-76cf92c73d49/handle?action=resume&connection=30001&urn=tel%3A%2B16055743333%3Fid%3D10002&wait_type=gather&sig=GLMd2cp8xQcVsJBJJAUfQ53ixGE%3D"
 					],
 					"maxDigits": 20,
 					"submitOnHash": true,

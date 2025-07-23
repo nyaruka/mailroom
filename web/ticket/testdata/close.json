@@ -5,16 +5,16 @@
         "path": "/mr/ticket/close",
         "body": {
             "org_id": 1,
-            "user_id": 3,
+            "user_id": 2,
             "ticket_ids": [
-                1,
+                30000,
                 3
             ]
         },
         "status": 200,
         "response": {
             "changed_ids": [
-                1
+                30000
             ]
         },
         "db_assertions": [
@@ -27,7 +27,7 @@
                 "count": 2
             },
             {
-                "query": "SELECT count(*) FROM tickets_ticketevent WHERE event_type = 'C' AND created_by_id = 3",
+                "query": "SELECT count(*) FROM tickets_ticketevent WHERE event_type = 'C' AND created_by_id = 2",
                 "count": 1
             }
         ],
