@@ -64,6 +64,7 @@ const (
 		},
 		"resume": {
 			"event": {
+				"uuid": "019838b3-c982-7adc-a11b-c39e57005264",
 				"type": "msg_received",
 				"created_on": "2000-01-01T00:00:00.000000000-00:00",
 				"msg": {
@@ -72,8 +73,7 @@ const (
 						"uuid": "0f661e8b-ea9d-4bd3-9953-d368340acf91"
 					},
 					"text": "$$MESSAGE$$",
-					"urn": "tel:+12065551212",
-					"uuid": "9bf91c2b-ce58-4cef-aacc-281e03f69ab5"
+					"urn": "tel:+12065551212"
 				}
 			},
             "resumed_on": "2000-01-01T00:00:00.000000000-00:00",
@@ -112,6 +112,7 @@ const (
 		},
 		"trigger": {
 			"event": {
+				"uuid": "019838b2-fcda-76a1-a692-3dcba5ec4eaa",
 				"type": "msg_received",
 				"created_on": "2000-01-01T00:00:00.000000000-00:00",
 				"msg": {

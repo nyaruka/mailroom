@@ -12,12 +12,9 @@ import (
 )
 
 func init() {
-	runner.RegisterEventHandler(events.TypeContactRefreshed, noopHandler)
-	runner.RegisterEventHandler(events.TypeEnvironmentRefreshed, noopHandler)
 	runner.RegisterEventHandler(events.TypeError, noopHandler)
 	runner.RegisterEventHandler(events.TypeFailure, noopHandler)
 	runner.RegisterEventHandler(events.TypeMsgWait, noopHandler)
-	runner.RegisterEventHandler(events.TypeRunExpired, noopHandler)
 	runner.RegisterEventHandler(events.TypeRunResultChanged, noopHandler)
 	runner.RegisterEventHandler(events.TypeServiceCalled, noopHandler)
 	runner.RegisterEventHandler(events.TypeTicketClosed, noopHandler)
