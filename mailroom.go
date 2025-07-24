@@ -31,6 +31,7 @@ type Mailroom struct {
 
 	handlerForeman   *Foreman
 	batchForeman     *Foreman
+	batchOldForeman  *Foreman
 	throttledForeman *Foreman
 
 	webserver *web.Server
@@ -56,6 +57,7 @@ func NewMailroom(cfg *runtime.Config) *Mailroom {
 
 	mr.handlerForeman = NewForeman(mr.rt, mr.wg, mr.rt.Queues.Handler, cfg.HandlerWorkers)
 	mr.batchForeman = NewForeman(mr.rt, mr.wg, mr.rt.Queues.Batch, cfg.BatchWorkers)
+	mr.batchOldForeman = NewForeman(mr.rt, mr.wg, mr.rt.Queues.BatchOld, cfg.BatchWorkers)
 	mr.throttledForeman = NewForeman(mr.rt, mr.wg, mr.rt.Queues.Throttled, cfg.BatchWorkers)
 
 	return mr
@@ -152,6 +154,7 @@ func (mr *Mailroom) Start() error {
 	// init our foremen and start it
 	mr.handlerForeman.Start()
 	mr.batchForeman.Start()
+	mr.batchOldForeman.Start()
 	mr.throttledForeman.Start()
 
 	// start our web server
@@ -237,6 +240,7 @@ func (mr *Mailroom) Stop() error {
 
 	mr.handlerForeman.Stop()
 	mr.batchForeman.Stop()
+	mr.batchOldForeman.Stop()
 	mr.throttledForeman.Stop()
 
 	close(mr.quit) // tell workers and crons to stop
@@ -281,7 +285,7 @@ func getQueueSizes(ctx context.Context, rt *runtime.Runtime) (int, int, int) {
 	if err != nil {
 		slog.Error("error calculating handler queue size", "error", err)
 	}
-	batch, err := rt.Queues.Batch.Size(ctx, vc)
+	batch, err := rt.Queues.BatchOld.Size(ctx, vc)
 	if err != nil {
 		slog.Error("error calculating batch queue size", "error", err)
 	}
