@@ -51,18 +51,16 @@ func PopulateQueryGroup(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 
 	// calculate new set of ids
 	new, err := GetContactIDsForQuery(ctx, rt, oa, nil, models.ContactStatusActive, query, -1)
+	endStatus := models.GroupStatusReady
+
 	if err != nil {
 		var qerr *contactql.QueryError
 		if errors.As(err, &qerr) {
-			// if we got a query error, we mark the group as invalid
-			if err := models.UpdateGroupStatus(ctx, rt.DB, groupID, models.GroupStatusInvalid); err != nil {
-				return 0, fmt.Errorf("error marking query group as invalid: %w", err)
-			}
-
-			return 0, nil
+			new = []models.ContactID{}
+			endStatus = models.GroupStatusInvalid
+		} else {
+			return 0, fmt.Errorf("error performing query: %s for group: %d: %w", query, groupID, err)
 		}
-
-		return 0, fmt.Errorf("error performing query: %s for group: %d: %w", query, groupID, err)
 	}
 
 	// find which contacts need to be added or removed
@@ -81,21 +79,18 @@ func PopulateQueryGroup(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 	}
 
 	// first remove all the contacts
-	err = models.RemoveContactsFromGroupAndCampaigns(ctx, rt.DB, oa, groupID, removals)
-	if err != nil {
+	if err := models.RemoveContactsFromGroupAndCampaigns(ctx, rt.DB, oa, groupID, removals); err != nil {
 		return 0, fmt.Errorf("error removing contacts from group: %d: %w", groupID, err)
 	}
 
 	// then add them all
-	err = models.AddContactsToGroupAndCampaigns(ctx, rt.DB, oa, groupID, adds)
-	if err != nil {
+	if err := models.AddContactsToGroupAndCampaigns(ctx, rt.DB, oa, groupID, adds); err != nil {
 		return 0, fmt.Errorf("error adding contacts to group: %d: %w", groupID, err)
 	}
 
-	// mark our group as no longer evaluating
-	err = models.UpdateGroupStatus(ctx, rt.DB, groupID, models.GroupStatusReady)
-	if err != nil {
-		return 0, fmt.Errorf("error marking dynamic group as ready: %w", err)
+	// mark our group as either ready or invalid
+	if err := models.UpdateGroupStatus(ctx, rt.DB, groupID, endStatus); err != nil {
+		return 0, fmt.Errorf("error updating query group status: %w", err)
 	}
 
 	// finally update modified_on for all affected contacts to ensure these changes are seen by rp-indexer
@@ -103,8 +98,7 @@ func PopulateQueryGroup(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 	changed = append(changed, adds...)
 	changed = append(changed, removals...)
 
-	err = models.UpdateContactModifiedOn(ctx, rt.DB, changed)
-	if err != nil {
+	if err := models.UpdateContactModifiedOn(ctx, rt.DB, changed); err != nil {
 		return 0, fmt.Errorf("error updating contact modified_on after group population: %w", err)
 	}
 
