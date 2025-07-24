@@ -152,8 +152,13 @@ func FlushCache() {
 // NewOrgAssets creates and returns a new org assets objects, potentially using the previous
 // org assets passed in to prevent refetching locations
 func NewOrgAssets(ctx context.Context, rt *runtime.Runtime, orgID OrgID, prev *OrgAssets, refresh Refresh) (*OrgAssets, error) {
-	// assets are immutable in mailroom so safe to load from readonly database connection
-	db := rt.ReadonlyDB
+	// It's generally safe to load assets from the read replica since in mailroom they are immutable - but sometimes we're
+	// responding to asset changes in RP (e.g. populating a new group). For simplicity we assume any explicit refresh
+	// request means that we need to use the primary DB.
+	db := rt.DB.DB
+	if refresh == RefreshNone {
+		db = rt.ReadonlyDB
+	}
 
 	// build our new assets
 	oa := &OrgAssets{
