@@ -2,20 +2,21 @@ package search
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"time"
 
+	"github.com/nyaruka/goflow/contactql"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/runtime"
 )
 
-// PopulateSmartGroup calculates which members should be part of a group and populates the contacts
+// PopulateQueryGroup calculates which members should be part of a group and populates the contacts
 // for that group by performing the minimum number of inserts / deletes.
-func PopulateSmartGroup(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, groupID models.GroupID, query string) (int, error) {
-	err := models.UpdateGroupStatus(ctx, rt.DB, groupID, models.GroupStatusEvaluating)
-	if err != nil {
-		return 0, fmt.Errorf("error marking dynamic group as evaluating: %w", err)
+func PopulateQueryGroup(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, groupID models.GroupID, query string) (int, error) {
+	if err := models.UpdateGroupStatus(ctx, rt.DB, groupID, models.GroupStatusEvaluating); err != nil {
+		return 0, fmt.Errorf("error marking query group as evaluating: %w", err)
 	}
 
 	start := time.Now()
@@ -33,7 +34,7 @@ func PopulateSmartGroup(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 		// if it was more recent than 10 seconds ago, sleep until it has been 10 seconds
 		if n.Add(time.Second * 10).After(start) {
 			sleep := n.Add(time.Second * 10).Sub(start)
-			slog.Info("sleeping before evaluating dynamic group", "sleep", sleep)
+			slog.Info("sleeping before evaluating query group", "sleep", sleep)
 			time.Sleep(sleep)
 		}
 	}
@@ -51,6 +52,16 @@ func PopulateSmartGroup(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 	// calculate new set of ids
 	new, err := GetContactIDsForQuery(ctx, rt, oa, nil, models.ContactStatusActive, query, -1)
 	if err != nil {
+		var qerr *contactql.QueryError
+		if errors.As(err, &qerr) {
+			// if we got a query error, we mark the group as invalid
+			if err := models.UpdateGroupStatus(ctx, rt.DB, groupID, models.GroupStatusInvalid); err != nil {
+				return 0, fmt.Errorf("error marking query group as invalid: %w", err)
+			}
+
+			return 0, nil
+		}
+
 		return 0, fmt.Errorf("error performing query: %s for group: %d: %w", query, groupID, err)
 	}
 

@@ -12,23 +12,37 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestPopulateTask(t *testing.T) {
+func TestPopulateGroupTask(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
 
 	defer testsuite.Reset(testsuite.ResetAll)
 
 	oa := testdb.Org1.Load(rt)
-	group := testdb.InsertContactGroup(rt, testdb.Org1, "e52fee05-2f95-4445-aef6-2fe7dac2fd56", "Women", "gender = F")
+	group1 := testdb.InsertContactGroup(rt, testdb.Org1, "e52fee05-2f95-4445-aef6-2fe7dac2fd56", "Women", "gender = F")
+	group2 := testdb.InsertContactGroup(rt, testdb.Org1, "8d1c25ff-d9b3-43c4-9abe-7ef3d2fc6c1a", "Invalid", "!!!")
+
 	start := dates.Now()
 
-	task := &contacts.PopulateDynamicGroupTask{
-		GroupID: group.ID,
+	task1 := &contacts.PopulateDynamicGroupTask{
+		GroupID: group1.ID,
 		Query:   "gender = F",
 	}
-	err := task.Perform(ctx, rt, oa)
+	err := task1.Perform(ctx, rt, oa)
 	require.NoError(t, err)
 
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contactgroup_contacts WHERE contactgroup_id = $1`, group.ID).Returns(1)
-	assertdb.Query(t, rt.DB, `SELECT contact_id FROM contacts_contactgroup_contacts WHERE contactgroup_id = $1`, group.ID).Returns(int64(testdb.Cathy.ID))
+	assertdb.Query(t, rt.DB, `SELECT status FROM contacts_contactgroup WHERE id = $1`, group1.ID).Returns("R")
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contactgroup_contacts WHERE contactgroup_id = $1`, group1.ID).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT contact_id FROM contacts_contactgroup_contacts WHERE contactgroup_id = $1`, group1.ID).Returns(int64(testdb.Cathy.ID))
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contact WHERE id = $1 AND modified_on > $2`, testdb.Cathy.ID, start).Returns(1)
+
+	task2 := &contacts.PopulateDynamicGroupTask{
+		GroupID: group2.ID,
+		Query:   "!!!",
+	}
+	err = task2.Perform(ctx, rt, oa)
+	require.NoError(t, err)
+
+	assertdb.Query(t, rt.DB, `SELECT status FROM contacts_contactgroup WHERE id = $1`, group2.ID).Returns("X")
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contactgroup_contacts WHERE contactgroup_id = $1`, group2.ID).Returns(0)
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contact WHERE id = $1 AND modified_on > $2`, testdb.Cathy.ID, start).Returns(1)
 }

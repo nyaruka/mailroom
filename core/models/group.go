@@ -21,6 +21,7 @@ const (
 	GroupStatusInitializing = GroupStatus("I")
 	GroupStatusEvaluating   = GroupStatus("V")
 	GroupStatusReady        = GroupStatus("R")
+	GroupStatusInvalid      = GroupStatus("X")
 )
 
 // GroupType is the the type of a group
@@ -80,7 +81,7 @@ const sqlSelectGroupsByOrg = `
 SELECT ROW_TO_JSON(r) FROM (
       SELECT id, uuid, name, query, status, group_type
         FROM contacts_contactgroup 
-       WHERE org_id = $1 AND is_active = TRUE
+       WHERE org_id = $1 AND is_active = TRUE AND status != 'X'
     ORDER BY name ASC
 ) r;`
 

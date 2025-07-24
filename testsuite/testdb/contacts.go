@@ -72,15 +72,19 @@ func InsertContact(rt *runtime.Runtime, org *Org, uuid flows.ContactUUID, name s
 
 // InsertContactGroup inserts a contact group
 func InsertContactGroup(rt *runtime.Runtime, org *Org, uuid assets.GroupUUID, name, query string, contacts ...*Contact) *Group {
-	groupType := "M"
+	status := models.GroupStatusReady
+	groupType := models.GroupTypeManual
 	if query != "" {
-		groupType = "Q"
+		groupType = models.GroupTypeSmart
+		if query == "!!!" {
+			status = models.GroupStatusInvalid
+		}
 	}
 
 	var id models.GroupID
 	must(rt.DB.Get(&id,
 		`INSERT INTO contacts_contactgroup(uuid, org_id, group_type, name, query, status, is_system, is_active, created_by_id, created_on, modified_by_id, modified_on) 
-		 VALUES($1, $2, $3, $4, $5, 'R', FALSE, TRUE, 1, NOW(), 1, NOW()) RETURNING id`, uuid, org.ID, groupType, name, null.String(query),
+		 VALUES($1, $2, $3, $4, $5, $6, FALSE, TRUE, 1, NOW(), 1, NOW()) RETURNING id`, uuid, org.ID, groupType, name, null.String(query), status,
 	))
 
 	for _, contact := range contacts {

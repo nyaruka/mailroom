@@ -46,19 +46,19 @@ func (t *PopulateDynamicGroupTask) Perform(ctx context.Context, rt *runtime.Runt
 	locker := locks.NewLocker(fmt.Sprintf(populateLockKey, t.GroupID), time.Hour)
 	lock, err := locker.Grab(ctx, rt.VK, time.Minute*5)
 	if err != nil {
-		return fmt.Errorf("error grabbing lock to repopulate smart group: %d: %w", t.GroupID, err)
+		return fmt.Errorf("error grabbing lock to repopulate query group: %d: %w", t.GroupID, err)
 	}
 	defer locker.Release(ctx, rt.VK, lock)
 
 	start := time.Now()
 
-	slog.Info("starting population of smart group", "group_id", t.GroupID, "org_id", oa.OrgID(), "query", t.Query)
+	slog.Info("starting population of query group", "group_id", t.GroupID, "org_id", oa.OrgID(), "query", t.Query)
 
-	count, err := search.PopulateSmartGroup(ctx, rt, oa, t.GroupID, t.Query)
+	count, err := search.PopulateQueryGroup(ctx, rt, oa, t.GroupID, t.Query)
 	if err != nil {
-		return fmt.Errorf("error populating smart group: %d: %w", t.GroupID, err)
+		return fmt.Errorf("error populating query group: %d: %w", t.GroupID, err)
 	}
-	slog.Info("completed populating smart group", "elapsed", time.Since(start), "count", count)
+	slog.Info("completed populating query group", "elapsed", time.Since(start), "count", count)
 
 	return nil
 }
