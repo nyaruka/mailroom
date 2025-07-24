@@ -150,7 +150,7 @@ func (s *Scene) ResumeSession(ctx context.Context, rt *runtime.Runtime, oa *mode
 	// build our flow session
 	fs, err := session.EngineSession(ctx, rt, oa.SessionAssets(), oa.Env(), s.Contact, s.Call)
 	if err != nil {
-		return fmt.Errorf("unable to create session from output: %w", err)
+		return fmt.Errorf("unable to read session %s: %w", session.UUID(), err)
 	}
 
 	// record run modified times prior to resuming so we can figure out which runs are new or updated
