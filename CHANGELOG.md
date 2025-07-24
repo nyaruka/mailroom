@@ -1,3 +1,24 @@
+v10.3.15 (2025-07-24)
+-------------------------
+ * Remove contacts from invalid groups too
+ * Add new group status to model groups with invalid queries
+
+v10.3.14 (2025-07-24)
+-------------------------
+ * Only use read replica for loading assets if no refresh requested
+
+v10.3.13 (2025-07-24)
+-------------------------
+ * Update goflow
+
+v10.3.12 (2025-07-24)
+-------------------------
+ * Update goflow
+
+v10.3.11 (2025-07-24)
+-------------------------
+ * Tweak error message
+
 v10.3.10 (2025-07-23)
 -------------------------
  * Update to latest goflow
