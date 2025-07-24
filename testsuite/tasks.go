@@ -14,7 +14,6 @@ import (
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/mailroom/testsuite/testdb"
 	"github.com/nyaruka/mailroom/utils/queues"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -88,7 +87,8 @@ func FlushTasks(t *testing.T, rt *runtime.Runtime, qnames ...string) map[string]
 
 	for {
 		// look for a task in the queues
-		for _, q := range qs {
+		var q queues.Fair
+		for _, q = range qs {
 			task, err = q.Pop(ctx, vc)
 			require.NoError(t, err)
 
@@ -104,7 +104,10 @@ func FlushTasks(t *testing.T, rt *runtime.Runtime, qnames ...string) map[string]
 		counts[task.Type]++
 
 		err = tasks.Perform(context.Background(), rt, task)
-		assert.NoError(t, err, "unexpected error performing task %s", task.Type)
+		require.NoError(t, err, "unexpected error performing task %s", task.Type)
+
+		err = q.Done(ctx, vc, task.OwnerID)
+		require.NoError(t, err, "unexpected error marking task %s as done", task.Type)
 	}
 	return counts
 }
