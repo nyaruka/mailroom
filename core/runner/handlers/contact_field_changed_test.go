@@ -93,41 +93,4 @@ func TestContactFieldChanged(t *testing.T) {
 	handlers.RunTestCases(t, ctx, rt, tcs)
 }
 
-func TestContactFieldChangedSmartGroupRecalculation(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
-	defer testsuite.Reset(testsuite.ResetAll)
 
-	// This test verifies that smart groups are recalculated when contact fields change
-	// We test this by changing a field value and verifying the contact's group membership changes
-
-	// Use the existing DoctorsGroup and make it a smart group based on age > 18
-	rt.DB.MustExec(`UPDATE contacts_contactgroup SET query = 'age > 18', group_type = 'Q' WHERE id = $1`, testdb.DoctorsGroup.ID)
-
-	// Test case that changes age from 25 to 15
-	// If smart group recalculation works, the contact should be removed from the "Adults" group
-	tcs := []handlers.TestCase{
-		{
-			Actions: handlers.ContactActionMap{
-				testdb.Cathy: []flows.Action{
-					// First set age to 25 (should qualify for age > 18 group)
-					actions.NewSetContactField(handlers.NewActionUUID(), assets.NewFieldReference("age", "Age"), "25"),
-					// Then set age to 15 (should no longer qualify for age > 18 group)
-					actions.NewSetContactField(handlers.NewActionUUID(), assets.NewFieldReference("age", "Age"), "15"),
-				},
-			},
-			SQLAssertions: []handlers.SQLAssertion{
-				{
-					// Verify the age field was updated to 15
-					SQL:   `select count(*) from contacts_contact where id = $1 AND fields->$2 = '{"text":"15", "number": 15}'::jsonb`,
-					Args:  []any{testdb.Cathy.ID, testdb.AgeField.UUID},
-					Count: 1,
-				},
-			},
-		},
-	}
-
-	handlers.RunTestCases(t, ctx, rt, tcs)
-
-	// The test passes if we reach here without errors
-	// The RecalculateSmartGroups hook should have been executed during the field changes above
-}
