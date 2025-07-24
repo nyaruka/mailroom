@@ -26,6 +26,8 @@ func (h *updateContactFields) Execute(ctx context.Context, rt *runtime.Runtime, 
 	// our list of updates
 	fieldUpdates := make([]any, 0, len(scenes))
 	fieldDeletes := make(map[assets.FieldUUID][]any)
+
+	changedIDs := make([]models.ContactID, 0, len(scenes))
 	for scene, es := range scenes {
 		updates := make(map[assets.FieldUUID]*flows.Value, len(es))
 		for _, e := range es {
@@ -47,6 +49,7 @@ func (h *updateContactFields) Execute(ctx context.Context, rt *runtime.Runtime, 
 					ContactID: scene.ContactID(),
 					FieldUUID: k,
 				})
+				changedIDs = append(changedIDs, scene.ContactID())
 			}
 		}
 
@@ -61,6 +64,7 @@ func (h *updateContactFields) Execute(ctx context.Context, rt *runtime.Runtime, 
 			ContactID: scene.ContactID(),
 			Updates:   string(fieldJSON),
 		})
+		changedIDs = append(changedIDs, scene.ContactID())
 	}
 
 	// first apply our deletes
@@ -77,6 +81,27 @@ func (h *updateContactFields) Execute(ctx context.Context, rt *runtime.Runtime, 
 		err := models.BulkQuery(ctx, "updating contact field values", tx, sqlUpdateContactFields, fieldUpdates)
 		if err != nil {
 			return fmt.Errorf("error updating contact fields: %w", err)
+		}
+	}
+
+	if len(changedIDs) > 0 {
+		affected, err := models.LoadContacts(ctx, tx, oa, changedIDs)
+		if err != nil {
+			return fmt.Errorf("error loading contacts affected by fields update: %w", err)
+		}
+
+		// turn them into flow contacts..
+		updatedContacts := make([]*flows.Contact, len(affected))
+		for i, c := range affected {
+			updatedContacts[i], err = c.EngineContact(oa)
+			if err != nil {
+				return fmt.Errorf("error creating updated flow contact: %w", err)
+			}
+		}
+
+		// and re-calculate their dynamic groups
+		if err := models.CalculateDynamicGroups(ctx, tx, oa, updatedContacts); err != nil {
+			return fmt.Errorf("error re-calculating dynamic groups for fields updated contacts: %w", err)
 		}
 	}
 
