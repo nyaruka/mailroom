@@ -1,3 +1,8 @@
+v10.3.15 (2025-07-24)
+-------------------------
+ * Remove contacts from invalid groups too
+ * Add new group status to model groups with invalid queries
+
 v10.3.14 (2025-07-24)
 -------------------------
  * Only use read replica for loading assets if no refresh requested
