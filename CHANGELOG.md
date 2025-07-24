@@ -1,3 +1,7 @@
+v10.3.14 (2025-07-24)
+-------------------------
+ * Only use read replica for loading assets if no refresh requested
+
 v10.3.13 (2025-07-24)
 -------------------------
  * Update goflow
