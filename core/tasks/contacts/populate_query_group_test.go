@@ -8,11 +8,10 @@ import (
 	"github.com/nyaruka/mailroom/core/tasks/contacts"
 	"github.com/nyaruka/mailroom/testsuite"
 	"github.com/nyaruka/mailroom/testsuite/testdb"
-
 	"github.com/stretchr/testify/require"
 )
 
-func TestPopulateGroupTask(t *testing.T) {
+func TestPopulateQueryGroupTask(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
 
 	defer testsuite.Reset(testsuite.ResetAll)
@@ -23,7 +22,7 @@ func TestPopulateGroupTask(t *testing.T) {
 
 	start := dates.Now()
 
-	task1 := &contacts.PopulateDynamicGroupTask{
+	task1 := &contacts.PopulateQueryGroupTask{
 		GroupID: group1.ID,
 		Query:   "gender = F",
 	}
@@ -35,7 +34,7 @@ func TestPopulateGroupTask(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT contact_id FROM contacts_contactgroup_contacts WHERE contactgroup_id = $1`, group1.ID).Returns(int64(testdb.Cathy.ID))
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contact WHERE id = $1 AND modified_on > $2`, testdb.Cathy.ID, start).Returns(1)
 
-	task2 := &contacts.PopulateDynamicGroupTask{
+	task2 := &contacts.PopulateQueryGroupTask{
 		GroupID: group2.ID,
 		Query:   "!!!",
 	}

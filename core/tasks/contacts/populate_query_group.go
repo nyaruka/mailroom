@@ -13,37 +13,37 @@ import (
 	"github.com/nyaruka/vkutil/locks"
 )
 
-// TypePopulateDynamicGroup is the type of the populate group task
-const TypePopulateDynamicGroup = "populate_dynamic_group"
+// TypePopulateQueryGroup is the type of the populate group task
+const TypePopulateQueryGroup = "populate_dynamic_group"
 
-const populateLockKey string = "lock:pop_dyn_group_%d"
+const populateGroupLockKey string = "lock:pop_dyn_group_%d"
 
 func init() {
-	tasks.RegisterType(TypePopulateDynamicGroup, func() tasks.Task { return &PopulateDynamicGroupTask{} })
+	tasks.RegisterType(TypePopulateQueryGroup, func() tasks.Task { return &PopulateQueryGroupTask{} })
 }
 
-// PopulateDynamicGroupTask is our task to populate the contacts for a dynamic group
-type PopulateDynamicGroupTask struct {
+// PopulateQueryGroupTask is our task to populate the contacts for a dynamic group
+type PopulateQueryGroupTask struct {
 	GroupID models.GroupID `json:"group_id"`
 	Query   string         `json:"query"`
 }
 
-func (t *PopulateDynamicGroupTask) Type() string {
-	return TypePopulateDynamicGroup
+func (t *PopulateQueryGroupTask) Type() string {
+	return TypePopulateQueryGroup
 }
 
 // Timeout is the maximum amount of time the task can run for
-func (t *PopulateDynamicGroupTask) Timeout() time.Duration {
+func (t *PopulateQueryGroupTask) Timeout() time.Duration {
 	return time.Hour
 }
 
-func (t *PopulateDynamicGroupTask) WithAssets() models.Refresh {
+func (t *PopulateQueryGroupTask) WithAssets() models.Refresh {
 	return models.RefreshGroups
 }
 
 // Perform figures out the membership for a query based group then repopulates it
-func (t *PopulateDynamicGroupTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets) error {
-	locker := locks.NewLocker(fmt.Sprintf(populateLockKey, t.GroupID), time.Hour)
+func (t *PopulateQueryGroupTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets) error {
+	locker := locks.NewLocker(fmt.Sprintf(populateGroupLockKey, t.GroupID), time.Hour)
 	lock, err := locker.Grab(ctx, rt.VK, time.Minute*5)
 	if err != nil {
 		return fmt.Errorf("error grabbing lock to repopulate query group: %d: %w", t.GroupID, err)
@@ -54,7 +54,7 @@ func (t *PopulateDynamicGroupTask) Perform(ctx context.Context, rt *runtime.Runt
 
 	slog.Info("starting population of query group", "group_id", t.GroupID, "org_id", oa.OrgID(), "query", t.Query)
 
-	count, err := search.PopulateQueryGroup(ctx, rt, oa, t.GroupID, t.Query)
+	count, err := search.PopulateGroup(ctx, rt, oa, t.GroupID, t.Query)
 	if err != nil {
 		return fmt.Errorf("error populating query group: %d: %w", t.GroupID, err)
 	}

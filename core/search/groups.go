@@ -12,9 +12,9 @@ import (
 	"github.com/nyaruka/mailroom/runtime"
 )
 
-// PopulateQueryGroup calculates which members should be part of a group and populates the contacts
+// PopulateGroup calculates which members should be part of a group and populates the contacts
 // for that group by performing the minimum number of inserts / deletes.
-func PopulateQueryGroup(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, groupID models.GroupID, query string) (int, error) {
+func PopulateGroup(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, groupID models.GroupID, query string) (int, error) {
 	if err := models.UpdateGroupStatus(ctx, rt.DB, groupID, models.GroupStatusEvaluating); err != nil {
 		return 0, fmt.Errorf("error marking query group as evaluating: %w", err)
 	}
