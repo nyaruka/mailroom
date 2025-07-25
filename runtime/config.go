@@ -93,7 +93,7 @@ func NewDefaultConfig() *Config {
 		Address: "localhost",
 		Port:    8090,
 
-		BatchWorkers:   4,
+		BatchWorkers:   8,
 		HandlerWorkers: 32,
 
 		WebhooksTimeout:              15000,
