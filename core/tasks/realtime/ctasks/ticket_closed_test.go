@@ -7,8 +7,8 @@ import (
 	"github.com/nyaruka/mailroom/core/models"
 	_ "github.com/nyaruka/mailroom/core/runner/handlers"
 	"github.com/nyaruka/mailroom/core/tasks"
-	"github.com/nyaruka/mailroom/core/tasks/handler"
-	"github.com/nyaruka/mailroom/core/tasks/handler/ctasks"
+	"github.com/nyaruka/mailroom/core/tasks/realtime"
+	"github.com/nyaruka/mailroom/core/tasks/realtime/ctasks"
 	"github.com/nyaruka/mailroom/testsuite"
 	"github.com/nyaruka/mailroom/testsuite/testdb"
 	"github.com/stretchr/testify/require"
@@ -29,7 +29,7 @@ func TestTicketClosed(t *testing.T) {
 
 	models.NewTicketClosedEvent(modelTicket, testdb.Admin.ID)
 
-	err := handler.QueueTask(ctx, rt, testdb.Org1.ID, testdb.Cathy.ID, ctasks.NewTicketClosed(modelTicket.ID()))
+	err := realtime.QueueTask(ctx, rt, testdb.Org1.ID, testdb.Cathy.ID, ctasks.NewTicketClosed(modelTicket.ID()))
 	require.NoError(t, err)
 
 	task, err := rt.Queues.Realtime.Pop(ctx, vc)

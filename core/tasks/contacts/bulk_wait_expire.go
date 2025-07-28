@@ -8,8 +8,8 @@ import (
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/tasks"
-	"github.com/nyaruka/mailroom/core/tasks/handler"
-	"github.com/nyaruka/mailroom/core/tasks/handler/ctasks"
+	"github.com/nyaruka/mailroom/core/tasks/realtime"
+	"github.com/nyaruka/mailroom/core/tasks/realtime/ctasks"
 	"github.com/nyaruka/mailroom/runtime"
 )
 
@@ -47,7 +47,7 @@ func (t *BulkWaitExpireTask) WithAssets() models.Refresh {
 // Perform creates the actual task
 func (t *BulkWaitExpireTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets) error {
 	for _, e := range t.Expirations {
-		err := handler.QueueTask(ctx, rt, oa.OrgID(), e.ContactID, &ctasks.WaitExpiredTask{SessionUUID: e.SessionUUID, SprintUUID: e.SprintUUID})
+		err := realtime.QueueTask(ctx, rt, oa.OrgID(), e.ContactID, &ctasks.WaitExpiredTask{SessionUUID: e.SessionUUID, SprintUUID: e.SprintUUID})
 		if err != nil {
 			return fmt.Errorf("error queuing handle task for wait expiration on session %s: %w", e.SessionUUID, err)
 		}

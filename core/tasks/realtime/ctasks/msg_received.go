@@ -14,7 +14,7 @@ import (
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/msgio"
 	"github.com/nyaruka/mailroom/core/runner"
-	"github.com/nyaruka/mailroom/core/tasks/handler"
+	"github.com/nyaruka/mailroom/core/tasks/realtime"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/mailroom/utils/clogs"
 )
@@ -22,7 +22,7 @@ import (
 const TypeMsgReceived = "msg_received"
 
 func init() {
-	handler.RegisterContactTask(TypeMsgReceived, func() handler.Task { return &MsgReceivedTask{} })
+	realtime.RegisterContactTask(TypeMsgReceived, func() realtime.Task { return &MsgReceivedTask{} })
 }
 
 type MsgReceivedTask struct {

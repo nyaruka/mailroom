@@ -10,7 +10,7 @@ import (
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/tasks"
-	"github.com/nyaruka/mailroom/core/tasks/handler"
+	"github.com/nyaruka/mailroom/core/tasks/realtime"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/mailroom/testsuite/testdb"
 	"github.com/nyaruka/mailroom/utils/queues"
@@ -24,10 +24,10 @@ func QueueBatchTask(t *testing.T, rt *runtime.Runtime, org *testdb.Org, task tas
 	require.NoError(t, err)
 }
 
-func QueueRealtimeTask(t *testing.T, rt *runtime.Runtime, org *testdb.Org, contact *testdb.Contact, ctask handler.Task) {
+func QueueRealtimeTask(t *testing.T, rt *runtime.Runtime, org *testdb.Org, contact *testdb.Contact, ctask realtime.Task) {
 	ctx := context.Background()
 
-	err := handler.QueueTask(ctx, rt, org.ID, contact.ID, ctask)
+	err := realtime.QueueTask(ctx, rt, org.ID, contact.ID, ctask)
 	require.NoError(t, err)
 }
 

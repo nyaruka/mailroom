@@ -9,8 +9,8 @@ import (
 	"github.com/nyaruka/mailroom/core/ivr"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/tasks"
-	"github.com/nyaruka/mailroom/core/tasks/handler"
-	"github.com/nyaruka/mailroom/core/tasks/handler/ctasks"
+	"github.com/nyaruka/mailroom/core/tasks/realtime"
+	"github.com/nyaruka/mailroom/core/tasks/realtime/ctasks"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/mailroom/testsuite"
 	"github.com/nyaruka/mailroom/testsuite/testdb"
@@ -302,7 +302,7 @@ func TestMsgReceivedTask(t *testing.T) {
 		},
 	}
 
-	makeMsgTask := func(channel *testdb.Channel, contact *testdb.Contact, text string) handler.Task {
+	makeMsgTask := func(channel *testdb.Channel, contact *testdb.Contact, text string) realtime.Task {
 		return &ctasks.MsgReceivedTask{
 			ChannelID: channel.ID,
 			MsgID:     dbMsg.ID,
@@ -329,7 +329,7 @@ func TestMsgReceivedTask(t *testing.T) {
 			tc.preHook()
 		}
 
-		err := handler.QueueTask(ctx, rt, tc.org.ID, tc.contact.ID, makeMsgTask(tc.channel, tc.contact, tc.text))
+		err := realtime.QueueTask(ctx, rt, tc.org.ID, tc.contact.ID, makeMsgTask(tc.channel, tc.contact, tc.text))
 		assert.NoError(t, err, "%d: error adding task", i)
 
 		task, err := rt.Queues.Realtime.Pop(ctx, vc)
@@ -394,7 +394,7 @@ func TestMsgReceivedTask(t *testing.T) {
 
 	// force an error by marking our run for fred as complete (our session is still active so this will blow up)
 	rt.DB.MustExec(`UPDATE flows_flowrun SET status = 'C', exited_on = NOW() WHERE contact_id = $1`, testdb.Org2Contact.ID)
-	handler.QueueTask(ctx, rt, testdb.Org2.ID, testdb.Org2Contact.ID, makeMsgTask(testdb.Org2Channel, testdb.Org2Contact, "red"))
+	realtime.QueueTask(ctx, rt, testdb.Org2.ID, testdb.Org2Contact.ID, makeMsgTask(testdb.Org2Channel, testdb.Org2Contact, "red"))
 
 	// should get requeued three times automatically
 	for i := 0; i < 3; i++ {
@@ -414,7 +414,7 @@ func TestMsgReceivedTask(t *testing.T) {
 	models.FlushCache()
 
 	// try to resume now
-	handler.QueueTask(ctx, rt, testdb.Org2.ID, testdb.Org2Contact.ID, makeMsgTask(testdb.Org2Channel, testdb.Org2Contact, "red"))
+	realtime.QueueTask(ctx, rt, testdb.Org2.ID, testdb.Org2Contact.ID, makeMsgTask(testdb.Org2Channel, testdb.Org2Contact, "red"))
 	task, _ = rt.Queues.Realtime.Pop(ctx, vc)
 	assert.NotNil(t, task)
 	err = tasks.Perform(ctx, rt, task)
@@ -428,7 +428,7 @@ func TestMsgReceivedTask(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT count(*) from flows_flowsession where contact_id = $1 and status = 'F'`, testdb.Org2Contact.ID).Returns(2)
 
 	// trigger should also not start a new session
-	handler.QueueTask(ctx, rt, testdb.Org2.ID, testdb.Org2Contact.ID, makeMsgTask(testdb.Org2Channel, testdb.Org2Contact, "start"))
+	realtime.QueueTask(ctx, rt, testdb.Org2.ID, testdb.Org2Contact.ID, makeMsgTask(testdb.Org2Channel, testdb.Org2Contact, "start"))
 	task, _ = rt.Queues.Realtime.Pop(ctx, vc)
 	err = tasks.Perform(ctx, rt, task)
 	assert.NoError(t, err)

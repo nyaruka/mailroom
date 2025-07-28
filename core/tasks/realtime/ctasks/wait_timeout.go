@@ -12,14 +12,14 @@ import (
 	"github.com/nyaruka/goflow/flows/resumes"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/runner"
-	"github.com/nyaruka/mailroom/core/tasks/handler"
+	"github.com/nyaruka/mailroom/core/tasks/realtime"
 	"github.com/nyaruka/mailroom/runtime"
 )
 
 const TypeWaitTimeout = "wait_timeout"
 
 func init() {
-	handler.RegisterContactTask(TypeWaitTimeout, func() handler.Task { return &WaitTimeoutTask{} })
+	realtime.RegisterContactTask(TypeWaitTimeout, func() realtime.Task { return &WaitTimeoutTask{} })
 }
 
 type WaitTimeoutTask struct {

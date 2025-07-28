@@ -14,11 +14,11 @@ type LLMTypeAndModel struct {
 }
 
 type Stats struct {
-	HandlerTaskCount    map[string]int           // number of contact tasks handled by type
-	HandlerTaskErrors   map[string]int           // number of contact tasks that errored by type
-	HandlerTaskDuration map[string]time.Duration // total time spent handling contact tasks
-	HandlerTaskLatency  map[string]time.Duration // total time spent queuing and handling contact tasks
-	HandlerLockFails    int                      // number of times an attempt to get a contact lock failed
+	RealtimeTaskCount    map[string]int           // number of contact tasks handled by type
+	RealtimeTaskErrors   map[string]int           // number of contact tasks that errored by type
+	RealtimeTaskDuration map[string]time.Duration // total time spent handling contact tasks
+	RealtimeTaskLatency  map[string]time.Duration // total time spent queuing and handling contact tasks
+	RealtimeLockFails    int                      // number of times an attempt to get a contact lock failed
 
 	CronTaskCount    map[string]int           // number of cron tasks run by type
 	CronTaskDuration map[string]time.Duration // total time spent running cron tasks
@@ -32,10 +32,10 @@ type Stats struct {
 
 func newStats() *Stats {
 	return &Stats{
-		HandlerTaskCount:    make(map[string]int),
-		HandlerTaskErrors:   make(map[string]int),
-		HandlerTaskDuration: make(map[string]time.Duration),
-		HandlerTaskLatency:  make(map[string]time.Duration),
+		RealtimeTaskCount:    make(map[string]int),
+		RealtimeTaskErrors:   make(map[string]int),
+		RealtimeTaskDuration: make(map[string]time.Duration),
+		RealtimeTaskLatency:  make(map[string]time.Duration),
 
 		CronTaskCount:    make(map[string]int),
 		CronTaskDuration: make(map[string]time.Duration),
@@ -48,21 +48,21 @@ func newStats() *Stats {
 func (s *Stats) ToMetrics() []types.MetricDatum {
 	metrics := make([]types.MetricDatum, 0, 20)
 
-	for typ, count := range s.HandlerTaskCount {
-		// convert handler task timings to averages
-		avgDuration := s.HandlerTaskDuration[typ] / time.Duration(count)
-		avgLatency := s.HandlerTaskLatency[typ] / time.Duration(count)
+	for typ, count := range s.RealtimeTaskCount {
+		// convert task timings to averages
+		avgDuration := s.RealtimeTaskDuration[typ] / time.Duration(count)
+		avgLatency := s.RealtimeTaskLatency[typ] / time.Duration(count)
 
 		metrics = append(metrics,
 			cwatch.Datum("HandlerTaskCount", float64(count), types.StandardUnitCount, cwatch.Dimension("TaskType", typ)),
-			cwatch.Datum("HandlerTaskErrors", float64(s.HandlerTaskErrors[typ]), types.StandardUnitCount, cwatch.Dimension("TaskType", typ)),
+			cwatch.Datum("HandlerTaskErrors", float64(s.RealtimeTaskErrors[typ]), types.StandardUnitCount, cwatch.Dimension("TaskType", typ)),
 			cwatch.Datum("HandlerTaskDuration", float64(avgDuration)/float64(time.Second), types.StandardUnitCount, cwatch.Dimension("TaskType", typ)),
 			cwatch.Datum("HandlerTaskLatency", float64(avgLatency)/float64(time.Second), types.StandardUnitCount, cwatch.Dimension("TaskType", typ)),
 		)
 	}
 
 	metrics = append(metrics,
-		cwatch.Datum("HandlerLockFails", float64(s.HandlerLockFails), types.StandardUnitCount),
+		cwatch.Datum("HandlerLockFails", float64(s.RealtimeLockFails), types.StandardUnitCount),
 	)
 
 	for name, count := range s.CronTaskCount {
@@ -107,20 +107,20 @@ func NewStatsCollector() *StatsCollector {
 	return &StatsCollector{stats: newStats()}
 }
 
-func (c *StatsCollector) RecordHandlerTask(typ string, d, l time.Duration, errored bool) {
+func (c *StatsCollector) RecordRealtimeTask(typ string, d, l time.Duration, errored bool) {
 	c.mutex.Lock()
-	c.stats.HandlerTaskCount[typ]++
-	c.stats.HandlerTaskDuration[typ] += d
-	c.stats.HandlerTaskLatency[typ] += l
+	c.stats.RealtimeTaskCount[typ]++
+	c.stats.RealtimeTaskDuration[typ] += d
+	c.stats.RealtimeTaskLatency[typ] += l
 	if errored {
-		c.stats.HandlerTaskErrors[typ]++
+		c.stats.RealtimeTaskErrors[typ]++
 	}
 	c.mutex.Unlock()
 }
 
-func (c *StatsCollector) RecordHandlerLockFail() {
+func (c *StatsCollector) RecordRealtimeLockFail() {
 	c.mutex.Lock()
-	c.stats.HandlerLockFails++
+	c.stats.RealtimeLockFails++
 	c.mutex.Unlock()
 }
 

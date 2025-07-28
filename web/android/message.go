@@ -10,8 +10,8 @@ import (
 	"github.com/nyaruka/gocommon/dbutil"
 	"github.com/nyaruka/gocommon/stringsx"
 	"github.com/nyaruka/mailroom/core/models"
-	"github.com/nyaruka/mailroom/core/tasks/handler"
-	"github.com/nyaruka/mailroom/core/tasks/handler/ctasks"
+	"github.com/nyaruka/mailroom/core/tasks/realtime"
+	"github.com/nyaruka/mailroom/core/tasks/realtime/ctasks"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/mailroom/web"
 )
@@ -63,7 +63,7 @@ func handleMessage(ctx context.Context, rt *runtime.Runtime, r *messageRequest) 
 		return nil, 0, fmt.Errorf("error inserting message: %w", err)
 	}
 
-	err = handler.QueueTask(ctx, rt, r.OrgID, m.ContactID(), &ctasks.MsgReceivedTask{
+	err = realtime.QueueTask(ctx, rt, r.OrgID, m.ContactID(), &ctasks.MsgReceivedTask{
 		ChannelID:     m.ChannelID(),
 		MsgID:         m.ID(),
 		MsgUUID:       m.UUID(),

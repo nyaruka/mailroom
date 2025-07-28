@@ -1,4 +1,4 @@
-package handler
+package realtime
 
 import (
 	"context"
@@ -37,7 +37,7 @@ func readTask(type_ string, data []byte) (Task, error) {
 	return t, json.Unmarshal(data, t)
 }
 
-// wrapper for encoding a handler task
+// wrapper for encoding a realtime task
 type payload struct {
 	Type       string          `json:"type"`
 	Task       json.RawMessage `json:"task"`
@@ -45,7 +45,7 @@ type payload struct {
 	ErrorCount int             `json:"error_count,omitempty"`
 }
 
-// QueueTask queues a handler task for the given contact
+// QueueTask queues a realtime task for the given contact
 func QueueTask(ctx context.Context, rt *runtime.Runtime, orgID models.OrgID, contactID models.ContactID, task Task) error {
 	return queueTask(ctx, rt, orgID, contactID, task, false, 0)
 }
@@ -56,7 +56,7 @@ func queueTask(ctx context.Context, rt *runtime.Runtime, orgID models.OrgID, con
 
 	taskJSON, err := json.Marshal(task)
 	if err != nil {
-		return fmt.Errorf("error marshalling handler task: %w", err)
+		return fmt.Errorf("error marshalling realtime task: %w", err)
 	}
 
 	payload := &payload{Type: task.Type(), Task: taskJSON, QueuedOn: dates.Now(), ErrorCount: errorCount}
@@ -71,13 +71,13 @@ func queueTask(ctx context.Context, rt *runtime.Runtime, orgID models.OrgID, con
 		_, err = redis.Int64(redis.DoContext(vc, ctx, "RPUSH", contactQ, string(payloadJSON)))
 	}
 	if err != nil {
-		return fmt.Errorf("error queuing handler task: %w", err)
+		return fmt.Errorf("error queuing realtime task: %w", err)
 	}
 
-	// then add a handle task for that contact on our global handler queue to
+	// then add a task for that contact on our global realtime queue to
 	err = tasks.Queue(ctx, rt, rt.Queues.Realtime, orgID, &HandleContactEventTask{ContactID: contactID}, false)
 	if err != nil {
-		return fmt.Errorf("error queuing handle task: %w", err)
+		return fmt.Errorf("error queuing realtime task: %w", err)
 	}
 	return nil
 }

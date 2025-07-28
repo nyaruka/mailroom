@@ -5,14 +5,14 @@ import (
 	"fmt"
 
 	"github.com/nyaruka/mailroom/core/models"
-	"github.com/nyaruka/mailroom/core/tasks/handler"
+	"github.com/nyaruka/mailroom/core/tasks/realtime"
 	"github.com/nyaruka/mailroom/runtime"
 )
 
 const TypeMsgDeleted = "msg_deleted"
 
 func init() {
-	handler.RegisterContactTask(TypeMsgDeleted, func() handler.Task { return &MsgDeletedTask{} })
+	realtime.RegisterContactTask(TypeMsgDeleted, func() realtime.Task { return &MsgDeletedTask{} })
 }
 
 type MsgDeletedTask struct {

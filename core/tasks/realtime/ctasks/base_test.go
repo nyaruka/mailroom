@@ -9,8 +9,8 @@ import (
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/tasks"
-	"github.com/nyaruka/mailroom/core/tasks/handler"
-	"github.com/nyaruka/mailroom/core/tasks/handler/ctasks"
+	"github.com/nyaruka/mailroom/core/tasks/realtime"
+	"github.com/nyaruka/mailroom/core/tasks/realtime/ctasks"
 	"github.com/nyaruka/mailroom/testsuite"
 	"github.com/nyaruka/mailroom/testsuite/testdb"
 	"github.com/stretchr/testify/assert"
@@ -89,7 +89,7 @@ func TestTimedEvents(t *testing.T) {
 	for i, tc := range tcs {
 		time.Sleep(50 * time.Millisecond)
 
-		var ctask handler.Task
+		var ctask realtime.Task
 		taskSprintUUID := sprintUUID
 		if tc.messageIn == "bad" {
 			taskSprintUUID = flows.SprintUUID(uuids.NewV4())
@@ -110,7 +110,7 @@ func TestTimedEvents(t *testing.T) {
 			ctask = &ctasks.WaitTimeoutTask{SessionUUID: sessionUUID, SprintUUID: taskSprintUUID}
 		}
 
-		err := handler.QueueTask(ctx, rt, testdb.Org1.ID, testdb.Cathy.ID, ctask)
+		err := realtime.QueueTask(ctx, rt, testdb.Org1.ID, testdb.Cathy.ID, ctask)
 		assert.NoError(t, err, "%d: error adding task", i)
 
 		task, err := rt.Queues.Realtime.Pop(ctx, vc)

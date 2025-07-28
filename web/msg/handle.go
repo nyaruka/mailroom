@@ -6,8 +6,8 @@ import (
 	"net/http"
 
 	"github.com/nyaruka/mailroom/core/models"
-	"github.com/nyaruka/mailroom/core/tasks/handler"
-	"github.com/nyaruka/mailroom/core/tasks/handler/ctasks"
+	"github.com/nyaruka/mailroom/core/tasks/realtime"
+	"github.com/nyaruka/mailroom/core/tasks/realtime/ctasks"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/mailroom/web"
 )
@@ -60,7 +60,7 @@ func handleHandle(ctx context.Context, rt *runtime.Runtime, r *handleRequest) (a
 
 		urn, _ := cu.Encode(oa)
 
-		err = handler.QueueTask(ctx, rt, m.OrgID(), m.ContactID(), &ctasks.MsgReceivedTask{
+		err = realtime.QueueTask(ctx, rt, m.OrgID(), m.ContactID(), &ctasks.MsgReceivedTask{
 			ChannelID:     m.ChannelID(),
 			MsgID:         m.ID(),
 			MsgUUID:       m.UUID(),

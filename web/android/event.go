@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/nyaruka/mailroom/core/models"
-	"github.com/nyaruka/mailroom/core/tasks/handler"
-	"github.com/nyaruka/mailroom/core/tasks/handler/ctasks"
+	"github.com/nyaruka/mailroom/core/tasks/realtime"
+	"github.com/nyaruka/mailroom/core/tasks/realtime/ctasks"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/mailroom/web"
 	"github.com/nyaruka/null/v3"
@@ -62,7 +62,7 @@ func handleEvent(ctx context.Context, rt *runtime.Runtime, r *eventRequest) (any
 	}
 
 	if needsHandling {
-		err = handler.QueueTask(ctx, rt, r.OrgID, e.ContactID, &ctasks.EventReceivedTask{
+		err = realtime.QueueTask(ctx, rt, r.OrgID, e.ContactID, &ctasks.EventReceivedTask{
 			EventID:    e.ID,
 			EventType:  e.EventType,
 			ChannelID:  e.ChannelID,

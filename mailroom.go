@@ -205,7 +205,7 @@ func (mr *Mailroom) startMetricsReporter(interval time.Duration) {
 func (mr *Mailroom) reportMetrics(ctx context.Context) (int, error) {
 	metrics := mr.rt.Stats.Extract().ToMetrics()
 
-	handlerSize, batchSize, throttledSize := getQueueSizes(ctx, mr.rt)
+	realtimeSize, batchSize, throttledSize := getQueueSizes(ctx, mr.rt)
 
 	// calculate DB and valkey stats
 	dbStats := mr.rt.DB.Stats()
@@ -221,7 +221,7 @@ func (mr *Mailroom) reportMetrics(ctx context.Context) (int, error) {
 		cwatch.Datum("DBConnectionWaitDuration", float64(dbWaitDurationInPeriod)/float64(time.Second), types.StandardUnitSeconds, hostDim),
 		cwatch.Datum("ValkeyConnectionsInUse", float64(vkStats.ActiveCount), types.StandardUnitCount, hostDim),
 		cwatch.Datum("ValkeyConnectionsWaitDuration", float64(vkWaitDurationInPeriod)/float64(time.Second), types.StandardUnitSeconds, hostDim),
-		cwatch.Datum("QueuedTasks", float64(handlerSize), types.StandardUnitCount, cwatch.Dimension("QueueName", "handler")),
+		cwatch.Datum("QueuedTasks", float64(realtimeSize), types.StandardUnitCount, cwatch.Dimension("QueueName", "realtime")),
 		cwatch.Datum("QueuedTasks", float64(batchSize), types.StandardUnitCount, cwatch.Dimension("QueueName", "batch")),
 		cwatch.Datum("QueuedTasks", float64(throttledSize), types.StandardUnitCount, cwatch.Dimension("QueueName", "throttled")),
 	)
@@ -281,9 +281,9 @@ func getQueueSizes(ctx context.Context, rt *runtime.Runtime) (int, int, int) {
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	handler, err := rt.Queues.Realtime.Size(ctx, vc)
+	realtime, err := rt.Queues.Realtime.Size(ctx, vc)
 	if err != nil {
-		slog.Error("error calculating handler queue size", "error", err)
+		slog.Error("error calculating realtime queue size", "error", err)
 	}
 	batch, err := rt.Queues.Batch.Size(ctx, vc)
 	if err != nil {
@@ -294,5 +294,5 @@ func getQueueSizes(ctx context.Context, rt *runtime.Runtime) (int, int, int) {
 		slog.Error("error calculating throttled queue size", "error", err)
 	}
 
-	return handler, batch, throttled
+	return realtime, batch, throttled
 }
