@@ -54,7 +54,7 @@ func (t *HandleContactEventTask) Perform(ctx context.Context, rt *runtime.Runtim
 	if len(locks) == 0 {
 		rt.Stats.RecordHandlerLockFail()
 
-		err = tasks.Queue(ctx, rt, rt.Queues.Handler, oa.OrgID(), &HandleContactEventTask{ContactID: t.ContactID}, false)
+		err = tasks.Queue(ctx, rt, rt.Queues.Realtime, oa.OrgID(), &HandleContactEventTask{ContactID: t.ContactID}, false)
 		if err != nil {
 			return fmt.Errorf("error re-adding contact task after failing to get lock: %w", err)
 		}

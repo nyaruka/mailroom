@@ -240,7 +240,7 @@ func TestChannelEvents(t *testing.T) {
 		err := handler.QueueTask(ctx, rt, testdb.Org1.ID, tc.contact.ID, tc.task)
 		assert.NoError(t, err, "%d: error adding task", i)
 
-		task, err := rt.Queues.Handler.Pop(ctx, vc)
+		task, err := rt.Queues.Realtime.Pop(ctx, vc)
 		assert.NoError(t, err, "%d: error popping next task", i)
 
 		err = tasks.Perform(ctx, rt, task)

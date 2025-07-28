@@ -16,7 +16,7 @@ type FairV2 struct {
 	base queues.Fair
 }
 
-func NewFairV2(keyBase string, maxActivePerOwner int) *FairV2 {
+func NewFair(keyBase string, maxActivePerOwner int) *FairV2 {
 	return &FairV2{
 		name: keyBase,
 		base: *queues.NewFair(keyBase, maxActivePerOwner),
