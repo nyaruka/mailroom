@@ -29,10 +29,10 @@ type Mailroom struct {
 	wg   *sync.WaitGroup
 	quit chan bool
 
-	handlerForeman      *Foreman
-	batchForeman        *Foreman
-	throttledForeman    *Foreman
-	throttledOldForeman *Foreman
+	handlerForeman    *Foreman
+	handlerOldForeman *Foreman
+	batchForeman      *Foreman
+	throttledForeman  *Foreman
 
 	webserver *web.Server
 
@@ -56,9 +56,9 @@ func NewMailroom(cfg *runtime.Config) *Mailroom {
 	mr.ctx, mr.cancel = context.WithCancel(context.Background())
 
 	mr.handlerForeman = NewForeman(mr.rt, mr.wg, mr.rt.Queues.Handler, cfg.HandlerWorkers)
+	mr.handlerOldForeman = NewForeman(mr.rt, mr.wg, mr.rt.Queues.HandlerOld, cfg.HandlerWorkers)
 	mr.batchForeman = NewForeman(mr.rt, mr.wg, mr.rt.Queues.Batch, cfg.BatchWorkers)
 	mr.throttledForeman = NewForeman(mr.rt, mr.wg, mr.rt.Queues.Throttled, cfg.BatchWorkers)
-	mr.throttledOldForeman = NewForeman(mr.rt, mr.wg, mr.rt.Queues.ThrottledOld, cfg.BatchWorkers)
 
 	return mr
 }
@@ -153,9 +153,9 @@ func (mr *Mailroom) Start() error {
 
 	// init our foremen and start it
 	mr.handlerForeman.Start()
+	mr.handlerOldForeman.Start()
 	mr.batchForeman.Start()
 	mr.throttledForeman.Start()
-	mr.throttledOldForeman.Start()
 
 	// start our web server
 	mr.webserver = web.NewServer(mr.ctx, mr.rt, mr.wg)
@@ -239,9 +239,9 @@ func (mr *Mailroom) Stop() error {
 	log.Info("mailroom stopping")
 
 	mr.handlerForeman.Stop()
+	mr.handlerOldForeman.Stop()
 	mr.batchForeman.Stop()
 	mr.throttledForeman.Stop()
-	mr.throttledOldForeman.Stop()
 
 	close(mr.quit) // tell workers and crons to stop
 	mr.cancel()
