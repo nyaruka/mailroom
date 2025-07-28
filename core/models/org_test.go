@@ -39,7 +39,6 @@ func TestLoadOrg(t *testing.T) {
 	assert.Equal(t, models.OrgID(1), org.ID())
 	assert.False(t, org.Suspended())
 	assert.Equal(t, "smtp://foo:bar", org.FlowSMTP())
-	assert.Equal(t, 0, org.OutboxCount())
 	assert.Equal(t, envs.DateFormatDayMonthYear, org.Environment().DateFormat())
 	assert.Equal(t, envs.TimeFormatHourMinute, org.Environment().TimeFormat())
 	assert.Equal(t, envs.RedactionPolicyNone, org.Environment().RedactionPolicy())
@@ -143,4 +142,20 @@ func TestStoreAttachment(t *testing.T) {
 	// err trying to read from same reader again
 	_, err = org.StoreAttachment(context.Background(), rt, "668383ba-387c-49bc-b164-1213ac0ea7aa.jpg", "image/jpeg", image)
 	assert.EqualError(t, err, "unable to read attachment content: read testdata/test.jpg: file already closed")
+}
+
+func TestGetOutboxCounts(t *testing.T) {
+	ctx, rt := testsuite.Runtime()
+
+	defer testsuite.Reset(testsuite.ResetData)
+
+	rt.DB.MustExec(`INSERT INTO orgs_itemcount(org_id, scope, count, is_squashed) VALUES ($1, 'msgs:folder:O', -1, FALSE)`, testdb.Org1.ID)
+	rt.DB.MustExec(`INSERT INTO orgs_itemcount(org_id, scope, count, is_squashed) VALUES ($1, 'msgs:folder:O', 2, FALSE)`, testdb.Org1.ID)
+	rt.DB.MustExec(`INSERT INTO orgs_itemcount(org_id, scope, count, is_squashed) VALUES ($1, 'msgs:folder:O', 3, FALSE)`, testdb.Org1.ID)
+	rt.DB.MustExec(`INSERT INTO orgs_itemcount(org_id, scope, count, is_squashed) VALUES ($1, 'msgs:folder:S', 3, FALSE)`, testdb.Org1.ID)
+	rt.DB.MustExec(`INSERT INTO orgs_itemcount(org_id, scope, count, is_squashed) VALUES ($1, 'msgs:folder:O', 2, FALSE)`, testdb.Org2.ID)
+
+	counts, err := models.GetOutboxCounts(ctx, rt.DB.DB, []models.OrgID{testdb.Org1.ID, testdb.Org2.ID, 3})
+	assert.NoError(t, err)
+	assert.Equal(t, map[models.OrgID]int{testdb.Org1.ID: 4, testdb.Org2.ID: 2}, counts)
 }

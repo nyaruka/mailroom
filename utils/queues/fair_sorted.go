@@ -42,7 +42,7 @@ func (q *FairSorted) Push(ctx context.Context, vc redis.Conn, taskType string, o
 	return err
 }
 
-func (q *FairSorted) Owners(ctx context.Context, vc redis.Conn) ([]int, error) {
+func (q *FairSorted) Queued(ctx context.Context, vc redis.Conn) ([]int, error) {
 	strs, err := redis.Strings(redis.DoContext(vc, ctx, "ZRANGE", q.activeKey(), 0, -1))
 	if err != nil {
 		return nil, err
@@ -122,6 +122,11 @@ var scriptFSPause = redis.NewScript(1, luaFSPause)
 func (q *FairSorted) Pause(ctx context.Context, vc redis.Conn, ownerID int) error {
 	_, err := scriptFSPause.DoContext(ctx, vc, q.activeKey(), strconv.FormatInt(int64(ownerID), 10))
 	return err
+}
+
+// Paused is not supported for this queue type
+func (q *FairSorted) Paused(ctx context.Context, vc redis.Conn) ([]int, error) {
+	panic("unsupported")
 }
 
 //go:embed lua/fair_sorted_resume.lua

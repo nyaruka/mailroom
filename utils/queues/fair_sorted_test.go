@@ -44,7 +44,7 @@ func TestQueues(t *testing.T) {
 	}
 
 	assertOwners := func(expected []int) {
-		actual, err := q.Owners(ctx, vc)
+		actual, err := q.Queued(ctx, vc)
 		assert.NoError(t, err)
 		assert.ElementsMatch(t, expected, actual)
 	}

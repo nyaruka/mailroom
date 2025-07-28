@@ -60,8 +60,24 @@ func (q *FairV2) Done(ctx context.Context, vc redis.Conn, ownerID int) error {
 	return q.base.Done(ctx, vc, fmt.Sprint(ownerID))
 }
 
-func (q *FairV2) Owners(ctx context.Context, vc redis.Conn) ([]int, error) {
+func (q *FairV2) Queued(ctx context.Context, vc redis.Conn) ([]int, error) {
 	strs, err := q.base.Queued(ctx, vc)
+	if err != nil {
+		return nil, err
+	}
+
+	actual := make([]int, len(strs))
+	for i, s := range strs {
+		owner, _ := strconv.ParseInt(s, 10, 64)
+		actual[i] = int(owner)
+	}
+
+	return actual, nil
+}
+
+// Paused is not supported for this queue type
+func (q *FairV2) Paused(ctx context.Context, vc redis.Conn) ([]int, error) {
+	strs, err := q.base.Paused(ctx, vc)
 	if err != nil {
 		return nil, err
 	}
