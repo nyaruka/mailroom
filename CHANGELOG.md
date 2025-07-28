@@ -1,3 +1,8 @@
+v10.3.16 (2025-07-28)
+-------------------------
+ * Increase default batch workers to 8
+ * Start queueing to new batch queue
+
 v10.3.15 (2025-07-24)
 -------------------------
  * Remove contacts from invalid groups too
