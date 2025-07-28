@@ -1,3 +1,8 @@
+v10.3.17 (2025-07-28)
+-------------------------
+ * Rework throttling of task owners to be more efficient
+ * Switch to new queue type for throttled tasks
+
 v10.3.16 (2025-07-28)
 -------------------------
  * Increase default batch workers to 8
