@@ -10,8 +10,8 @@ import (
 	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/tasks"
-	"github.com/nyaruka/mailroom/core/tasks/handler"
-	"github.com/nyaruka/mailroom/core/tasks/handler/ctasks"
+	"github.com/nyaruka/mailroom/core/tasks/realtime"
+	"github.com/nyaruka/mailroom/core/tasks/realtime/ctasks"
 	"github.com/nyaruka/mailroom/testsuite"
 	"github.com/nyaruka/mailroom/testsuite/testdb"
 	"github.com/nyaruka/null/v3"
@@ -53,7 +53,7 @@ func TestChannelEvents(t *testing.T) {
 
 	tcs := []struct {
 		contact             *testdb.Contact
-		task                handler.Task
+		task                realtime.Task
 		expectedTriggerType string
 		expectedResponse    string
 		updatesLastSeen     bool
@@ -237,7 +237,7 @@ func TestChannelEvents(t *testing.T) {
 		// reset our dummy db event into an unhandled state
 		rt.DB.MustExec(`UPDATE channels_channelevent SET status = 'P' WHERE id = $1`, eventID)
 
-		err := handler.QueueTask(ctx, rt, testdb.Org1.ID, tc.contact.ID, tc.task)
+		err := realtime.QueueTask(ctx, rt, testdb.Org1.ID, tc.contact.ID, tc.task)
 		assert.NoError(t, err, "%d: error adding task", i)
 
 		task, err := rt.Queues.Realtime.Pop(ctx, vc)

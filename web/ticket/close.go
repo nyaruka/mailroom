@@ -6,8 +6,8 @@ import (
 	"net/http"
 
 	"github.com/nyaruka/mailroom/core/models"
-	"github.com/nyaruka/mailroom/core/tasks/handler"
-	"github.com/nyaruka/mailroom/core/tasks/handler/ctasks"
+	"github.com/nyaruka/mailroom/core/tasks/realtime"
+	"github.com/nyaruka/mailroom/core/tasks/realtime/ctasks"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/mailroom/web"
 )
@@ -47,7 +47,7 @@ func handleClose(ctx context.Context, rt *runtime.Runtime, r *http.Request) (any
 
 	for t, e := range evts {
 		if e.EventType() == models.TicketEventTypeClosed {
-			err = handler.QueueTask(ctx, rt, e.OrgID(), e.ContactID(), ctasks.NewTicketClosed(t.ID()))
+			err = realtime.QueueTask(ctx, rt, e.OrgID(), e.ContactID(), ctasks.NewTicketClosed(t.ID()))
 			if err != nil {
 				return nil, 0, fmt.Errorf("error queueing ticket closed task %d: %w", t.ID(), err)
 			}

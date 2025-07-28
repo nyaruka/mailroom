@@ -10,14 +10,14 @@ import (
 	"github.com/nyaruka/mailroom/core/ivr"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/runner"
-	"github.com/nyaruka/mailroom/core/tasks/handler"
+	"github.com/nyaruka/mailroom/core/tasks/realtime"
 	"github.com/nyaruka/mailroom/runtime"
 )
 
 const TypeTicketClosed = "ticket_closed"
 
 func init() {
-	handler.RegisterContactTask(TypeTicketClosed, func() handler.Task { return &TicketClosedTask{} })
+	realtime.RegisterContactTask(TypeTicketClosed, func() realtime.Task { return &TicketClosedTask{} })
 }
 
 type TicketClosedTask struct {

@@ -11,14 +11,14 @@ import (
 	"github.com/nyaruka/mailroom/core/ivr"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/runner"
-	"github.com/nyaruka/mailroom/core/tasks/handler"
+	"github.com/nyaruka/mailroom/core/tasks/realtime"
 	"github.com/nyaruka/mailroom/runtime"
 )
 
 const TypeWaitExpired = "wait_expired"
 
 func init() {
-	handler.RegisterContactTask(TypeWaitExpired, func() handler.Task { return &WaitExpiredTask{} })
+	realtime.RegisterContactTask(TypeWaitExpired, func() realtime.Task { return &WaitExpiredTask{} })
 }
 
 type WaitExpiredTask struct {

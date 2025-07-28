@@ -14,7 +14,7 @@ import (
 	"github.com/nyaruka/mailroom/core/ivr"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/runner"
-	"github.com/nyaruka/mailroom/core/tasks/handler"
+	"github.com/nyaruka/mailroom/core/tasks/realtime"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/null/v3"
 )
@@ -22,7 +22,7 @@ import (
 const TypeEventReceived = "event_received"
 
 func init() {
-	handler.RegisterContactTask(TypeEventReceived, func() handler.Task { return &EventReceivedTask{} })
+	realtime.RegisterContactTask(TypeEventReceived, func() realtime.Task { return &EventReceivedTask{} })
 }
 
 type EventReceivedTask struct {

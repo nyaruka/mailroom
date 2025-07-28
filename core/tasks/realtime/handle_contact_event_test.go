@@ -1,4 +1,4 @@
-package handler_test
+package realtime_test
 
 import (
 	"testing"
@@ -7,7 +7,7 @@ import (
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/mailroom/core/models"
 	_ "github.com/nyaruka/mailroom/core/runner/handlers"
-	"github.com/nyaruka/mailroom/core/tasks/handler/ctasks"
+	"github.com/nyaruka/mailroom/core/tasks/realtime/ctasks"
 	"github.com/nyaruka/mailroom/testsuite"
 	"github.com/nyaruka/mailroom/testsuite/testdb"
 	"github.com/nyaruka/null/v3"

@@ -1,4 +1,4 @@
-package handler
+package realtime
 
 import (
 	"context"
@@ -52,7 +52,7 @@ func (t *HandleContactEventTask) Perform(ctx context.Context, rt *runtime.Runtim
 
 	// we didn't get the lock.. requeue for later
 	if len(locks) == 0 {
-		rt.Stats.RecordHandlerLockFail()
+		rt.Stats.RecordRealtimeLockFail()
 
 		err = tasks.Queue(ctx, rt, rt.Queues.Realtime, oa.OrgID(), &HandleContactEventTask{ContactID: t.ContactID}, false)
 		if err != nil {
@@ -97,7 +97,7 @@ func (t *HandleContactEventTask) Perform(ctx context.Context, rt *runtime.Runtim
 		err = performHandlerTask(ctx, rt, oa, t.ContactID, ctask)
 
 		// record metrics
-		rt.Stats.RecordHandlerTask(taskPayload.Type, time.Since(start), time.Since(taskPayload.QueuedOn), err != nil)
+		rt.Stats.RecordRealtimeTask(taskPayload.Type, time.Since(start), time.Since(taskPayload.QueuedOn), err != nil)
 
 		// if we get an error processing an event, requeue it for later and return our error
 		if err != nil {
