@@ -206,7 +206,7 @@ func getActualQueuedTasks(t *testing.T, rt *runtime.Runtime) map[string][]string
 
 	actual := make(map[string][]string)
 
-	for _, qname := range []string{"handler", "batch", "throttled"} {
+	for _, qname := range []string{"realtime", "batch", "throttled"} {
 		for orgID, oTasks := range CurrentTasks(t, rt, qname) {
 			types := make([]string, len(oTasks))
 			for i, task := range oTasks {

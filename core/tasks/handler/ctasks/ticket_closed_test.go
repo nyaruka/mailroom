@@ -32,7 +32,7 @@ func TestTicketClosed(t *testing.T) {
 	err := handler.QueueTask(ctx, rt, testdb.Org1.ID, testdb.Cathy.ID, ctasks.NewTicketClosed(modelTicket.ID()))
 	require.NoError(t, err)
 
-	task, err := rt.Queues.Handler.Pop(ctx, vc)
+	task, err := rt.Queues.Realtime.Pop(ctx, vc)
 	require.NoError(t, err)
 
 	err = tasks.Perform(ctx, rt, task)

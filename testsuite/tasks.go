@@ -24,7 +24,7 @@ func QueueBatchTask(t *testing.T, rt *runtime.Runtime, org *testdb.Org, task tas
 	require.NoError(t, err)
 }
 
-func QueueContactTask(t *testing.T, rt *runtime.Runtime, org *testdb.Org, contact *testdb.Contact, ctask handler.Task) {
+func QueueRealtimeTask(t *testing.T, rt *runtime.Runtime, org *testdb.Org, contact *testdb.Contact, ctask handler.Task) {
 	ctx := context.Background()
 
 	err := handler.QueueTask(ctx, rt, org.ID, contact.ID, ctask)
@@ -71,7 +71,7 @@ func FlushTasks(t *testing.T, rt *runtime.Runtime, qnames ...string) map[string]
 	counts := make(map[string]int)
 
 	var qs []queues.Fair
-	for _, q := range []queues.Fair{rt.Queues.Handler, rt.Queues.Batch, rt.Queues.Throttled} {
+	for _, q := range []queues.Fair{rt.Queues.Realtime, rt.Queues.Batch, rt.Queues.Throttled} {
 		if len(qnames) == 0 || slices.Contains(qnames, fmt.Sprint(q)[6:]) {
 			qs = append(qs, q)
 		}

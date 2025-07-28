@@ -47,7 +47,7 @@
             }
         ],
         "expected_tasks": {
-            "handler/1": [
+            "realtime/1": [
                 "handle_contact_event"
             ]
         }
@@ -75,7 +75,7 @@
             }
         ],
         "expected_tasks": {
-            "handler/1": [
+            "realtime/1": [
                 "handle_contact_event"
             ]
         }

@@ -111,7 +111,7 @@ func createFlowStartBatches(ctx context.Context, rt *runtime.Runtime, oa *models
 	// batches will be processed in the throttled queue unless we're a single contact
 	q := rt.Queues.Throttled
 	if len(contactIDs) == 1 {
-		q = rt.Queues.Handler
+		q = rt.Queues.Realtime
 	}
 
 	// split the contact ids into batches to become batch tasks
