@@ -1,3 +1,8 @@
+v10.3.18 (2025-07-28)
+-------------------------
+ * Rename handler queue to realtime
+ * Switch to new queue type for handler tasks
+
 v10.3.17 (2025-07-28)
 -------------------------
  * Rework throttling of task owners to be more efficient
