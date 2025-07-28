@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
+	"github.com/lib/pq"
 	"github.com/nyaruka/gocommon/dbutil"
 	"github.com/nyaruka/gocommon/httpx"
 	"github.com/nyaruka/gocommon/jsonx"
@@ -86,7 +87,6 @@ type Org struct {
 		FlowSMTP        null.String   `json:"flow_smtp"`
 		PrometheusToken null.String   `json:"prometheus_token"`
 		Config          null.Map[any] `json:"config"`
-		OutboxCount     int           `json:"outbox_count"`
 	}
 	env envs.Environment
 }
@@ -108,8 +108,6 @@ func (o *Org) PrometheusToken() string { return string(o.o.PrometheusToken) }
 
 // Environment returns this org as an engine environment
 func (o *Org) Environment() envs.Environment { return o.env }
-
-func (o *Org) OutboxCount() int { return o.o.OutboxCount }
 
 // MarshalJSON is our custom marshaller so that our inner env get output
 func (o *Org) MarshalJSON() ([]byte, error) {
@@ -244,8 +242,7 @@ SELECT ROW_TO_JSON(o) FROM (SELECT
 			WHERE c.org_id = o.id AND c.is_active = TRUE AND c.country IS NOT NULL
 			GROUP BY c.country ORDER BY count(c.country) desc, country LIMIT 1
 	    ), ''
-	) AS default_country,
-	(SELECT SUM(count) FROM orgs_itemcount WHERE org_id = $1 AND scope = 'msgs:folder:O') AS outbox_count
+	) AS default_country
 	FROM orgs_org o
 	WHERE id = $1
 ) o`
@@ -279,4 +276,29 @@ func GetOrgIDFromUUID(ctx context.Context, db *sql.DB, orgUUID OrgUUID) (OrgID, 
 	}
 
 	return orgID, nil
+}
+
+const sqlSelectOutboxCounts = `
+  SELECT org_id, SUM(count) 
+    FROM orgs_itemcount 
+   WHERE org_id = ANY($1) AND scope = 'msgs:folder:O' 
+GROUP BY org_id, scope`
+
+// GetOutboxCounts returns a map of org IDs to their outbox counts
+func GetOutboxCounts(ctx context.Context, db *sql.DB, orgIDs []OrgID) (map[OrgID]int, error) {
+	counts := make(map[OrgID]int)
+	if len(orgIDs) == 0 {
+		return counts, nil
+	}
+
+	rows, err := db.QueryContext(ctx, sqlSelectOutboxCounts, pq.Array(orgIDs))
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	if err := dbutil.ScanAllMap(rows, counts); err != nil {
+		return nil, err
+	}
+	return counts, nil
 }

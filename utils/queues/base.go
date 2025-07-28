@@ -24,6 +24,7 @@ type Fair interface {
 	Done(ctx context.Context, vc redis.Conn, ownerID int) error
 	Pause(ctx context.Context, vc redis.Conn, ownerID int) error
 	Resume(ctx context.Context, vc redis.Conn, ownerID int) error
-	Owners(ctx context.Context, vc redis.Conn) ([]int, error)
+	Queued(ctx context.Context, vc redis.Conn) ([]int, error)
+	Paused(ctx context.Context, vc redis.Conn) ([]int, error)
 	Size(ctx context.Context, vc redis.Conn) (int, error)
 }
