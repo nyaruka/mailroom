@@ -75,7 +75,6 @@ func (q *FairV2) Queued(ctx context.Context, vc redis.Conn) ([]int, error) {
 	return actual, nil
 }
 
-// Paused is not supported for this queue type
 func (q *FairV2) Paused(ctx context.Context, vc redis.Conn) ([]int, error) {
 	strs, err := q.base.Paused(ctx, vc)
 	if err != nil {

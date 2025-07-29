@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestFairLegacy(t *testing.T) {
+func TestFair(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
 	vc := rt.VK.Get()
 	defer vc.Close()
@@ -23,7 +23,7 @@ func TestFairLegacy(t *testing.T) {
 
 	defer testsuite.Reset(testsuite.ResetValkey)
 
-	var q queues.Fair = queues.NewFairLegacy("test")
+	var q queues.Fair = queues.NewFair("test", 10)
 	assert.Equal(t, "test", fmt.Sprint(q))
 
 	assertPop := func(expectedOwnerID int, expectedBody string) {

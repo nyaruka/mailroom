@@ -32,7 +32,6 @@ type Mailroom struct {
 	realtimeForeman  *Foreman
 	batchForeman     *Foreman
 	throttledForeman *Foreman
-	handlerForeman   *Foreman // TODO remove
 
 	webserver *web.Server
 
@@ -58,7 +57,6 @@ func NewMailroom(cfg *runtime.Config) *Mailroom {
 	mr.realtimeForeman = NewForeman(mr.rt, mr.wg, mr.rt.Queues.Realtime, cfg.HandlerWorkers)
 	mr.batchForeman = NewForeman(mr.rt, mr.wg, mr.rt.Queues.Batch, cfg.BatchWorkers)
 	mr.throttledForeman = NewForeman(mr.rt, mr.wg, mr.rt.Queues.Throttled, cfg.BatchWorkers)
-	mr.handlerForeman = NewForeman(mr.rt, mr.wg, mr.rt.Queues.Handler, cfg.HandlerWorkers)
 
 	return mr
 }
@@ -155,7 +153,6 @@ func (mr *Mailroom) Start() error {
 	mr.realtimeForeman.Start()
 	mr.batchForeman.Start()
 	mr.throttledForeman.Start()
-	mr.handlerForeman.Start()
 
 	// start our web server
 	mr.webserver = web.NewServer(mr.ctx, mr.rt, mr.wg)
@@ -241,7 +238,6 @@ func (mr *Mailroom) Stop() error {
 	mr.realtimeForeman.Stop()
 	mr.batchForeman.Stop()
 	mr.throttledForeman.Stop()
-	mr.handlerForeman.Stop()
 
 	close(mr.quit) // tell workers and crons to stop
 	mr.cancel()
