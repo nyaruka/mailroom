@@ -44,12 +44,6 @@ environment variables and parameters and for more details on each option.
  * `MAILROOM_S3_ATTACHMENTS_BUCKET`: name of your S3 bucket (ex: `mailroom-attachments`)
  * `MAILROOM_S3_SESSIONS_BUCKET`: name of your S3 bucket (ex: `mailroom-sessions`)
 
-### Flow engine configuration:
-
- * `MAILROOM_MAX_STEPS_PER_SPRINT`: maximum number of steps allowed in a single engine sprint
- * `MAILROOM_MAX_RESUMES_PER_SESSION`: maximum number of resumes allowed in an engine session
- * `MAILROOM_MAX_VALUE_LENGTH`: maximum length in characters of contact field and run result values
-
 ### Logging and error reporting:
 
  * `MAILROOM_DEPLOYMENT_ID`: used for metrics reporting

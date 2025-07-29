@@ -34,8 +34,9 @@ type Config struct {
 	Domain           string `help:"the domain that mailroom is listening on"`
 	AttachmentDomain string `help:"the domain that will be used for relative attachment"`
 
-	BatchWorkers   int `help:"the number of go routines that will be used to handle batch events"`
-	HandlerWorkers int `help:"the number of go routines that will be used to handle messages"`
+	WorkersRealtime  int `help:"the number of workers for the realtime task queue"`
+	WorkersBatch     int `help:"the number of workers for the batch task queue"`
+	WorkersThrottled int `help:"the number of workers for the throttled task queue"`
 
 	WebhooksTimeout              int     `help:"the timeout in milliseconds for webhook calls from engine"`
 	WebhooksMaxRetries           int     `help:"the number of times to retry a failed webhook call"`
@@ -93,8 +94,9 @@ func NewDefaultConfig() *Config {
 		Address: "localhost",
 		Port:    8090,
 
-		BatchWorkers:   8,
-		HandlerWorkers: 32,
+		WorkersRealtime:  32,
+		WorkersBatch:     8,
+		WorkersThrottled: 8,
 
 		WebhooksTimeout:              15000,
 		WebhooksMaxBodyBytes:         256 * 1024, // 256 KiB
