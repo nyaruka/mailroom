@@ -54,9 +54,9 @@ func NewMailroom(cfg *runtime.Config) *Mailroom {
 	}
 	mr.ctx, mr.cancel = context.WithCancel(context.Background())
 
-	mr.realtimeForeman = NewForeman(mr.rt, mr.wg, mr.rt.Queues.Realtime, cfg.HandlerWorkers)
-	mr.batchForeman = NewForeman(mr.rt, mr.wg, mr.rt.Queues.Batch, cfg.BatchWorkers)
-	mr.throttledForeman = NewForeman(mr.rt, mr.wg, mr.rt.Queues.Throttled, cfg.BatchWorkers)
+	mr.realtimeForeman = NewForeman(mr.rt, mr.wg, mr.rt.Queues.Realtime, cfg.WorkersRealtime)
+	mr.batchForeman = NewForeman(mr.rt, mr.wg, mr.rt.Queues.Batch, cfg.WorkersBatch)
+	mr.throttledForeman = NewForeman(mr.rt, mr.wg, mr.rt.Queues.Throttled, cfg.WorkersThrottled)
 
 	return mr
 }
