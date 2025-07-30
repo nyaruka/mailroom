@@ -10,15 +10,11 @@ import (
 
 	"github.com/appleboy/go-fcm"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatch/types"
-	"github.com/elastic/go-elasticsearch/v8"
-	"github.com/jmoiron/sqlx"
 	"github.com/nyaruka/gocommon/aws/cwatch"
 	"github.com/nyaruka/gocommon/aws/dynamo"
-	"github.com/nyaruka/gocommon/aws/s3x"
 	"github.com/nyaruka/mailroom/core/crons"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/mailroom/web"
-	"github.com/nyaruka/vkutil"
 )
 
 // Mailroom is a service for handling RapidPro events
@@ -43,21 +39,17 @@ type Mailroom struct {
 }
 
 // NewMailroom creates and returns a new mailroom instance
-func NewMailroom(cfg *runtime.Config) *Mailroom {
+func NewMailroom(rt *runtime.Runtime) *Mailroom {
 	mr := &Mailroom{
-		rt: &runtime.Runtime{
-			Config: cfg,
-			Queues: runtime.NewQueues(cfg),
-			Stats:  runtime.NewStatsCollector(),
-		},
+		rt:   rt,
 		quit: make(chan bool),
 		wg:   &sync.WaitGroup{},
 	}
 	mr.ctx, mr.cancel = context.WithCancel(context.Background())
 
-	mr.realtimeForeman = NewForeman(mr.rt, mr.wg, mr.rt.Queues.Realtime, cfg.WorkersRealtime)
-	mr.batchForeman = NewForeman(mr.rt, mr.wg, mr.rt.Queues.Batch, cfg.WorkersBatch)
-	mr.throttledForeman = NewForeman(mr.rt, mr.wg, mr.rt.Queues.Throttled, cfg.WorkersThrottled)
+	mr.realtimeForeman = NewForeman(mr.rt, mr.wg, mr.rt.Queues.Realtime, rt.Config.WorkersRealtime)
+	mr.batchForeman = NewForeman(mr.rt, mr.wg, mr.rt.Queues.Batch, rt.Config.WorkersBatch)
+	mr.throttledForeman = NewForeman(mr.rt, mr.wg, mr.rt.Queues.Throttled, rt.Config.WorkersThrottled)
 
 	return mr
 }
@@ -68,58 +60,39 @@ func (mr *Mailroom) Start() error {
 
 	log := slog.With("comp", "mailroom")
 
-	var err error
-	_, mr.rt.DB, err = openAndCheckDBConnection(c.DB, c.DBPoolSize)
-	if err != nil {
-		log.Error("db not reachable", "error", err)
+	// test Postgres
+	if err := checkDBConnection(mr.rt.DB.DB); err != nil {
+		log.Error("postgres not reachable", "error", err)
 	} else {
-		log.Info("db ok")
+		log.Info("postgres ok")
 	}
-
-	if c.ReadonlyDB != "" {
-		mr.rt.ReadonlyDB, _, err = openAndCheckDBConnection(c.ReadonlyDB, c.DBPoolSize)
-		if err != nil {
+	if mr.rt.ReadonlyDB != mr.rt.DB.DB {
+		if err := checkDBConnection(mr.rt.ReadonlyDB); err != nil {
 			log.Error("readonly db not reachable", "error", err)
 		} else {
 			log.Info("readonly db ok")
 		}
 	} else {
-		// if readonly DB not specified, just use default DB again
-		mr.rt.ReadonlyDB = mr.rt.DB.DB
 		log.Warn("no distinct readonly db configured")
 	}
 
-	mr.rt.VK, err = vkutil.NewPool(c.Valkey)
-	if err != nil {
+	// test Valkey
+	vc := mr.rt.VK.Get()
+	defer vc.Close()
+	if _, err := vc.Do("PING"); err != nil {
 		log.Error("valkey not reachable", "error", err)
 	} else {
 		log.Info("valkey ok")
 	}
 
-	if c.AndroidCredentialsFile != "" {
-		mr.rt.FCM, err = fcm.NewClient(mr.ctx, fcm.WithCredentialsFile(c.AndroidCredentialsFile))
-		if err != nil {
-			log.Error("unable to create FCM client", "error", err)
-		}
-	} else {
-		log.Warn("fcm not configured, no android syncing")
-	}
-
-	// setup DynamoDB
-	mr.rt.Dynamo, err = dynamo.NewClient(c.AWSAccessKeyID, c.AWSSecretAccessKey, c.AWSRegion, c.DynamoEndpoint)
+	// test DynamoDB tables
 	if err := dynamo.Test(mr.ctx, mr.rt.Dynamo, c.DynamoTablePrefix+"Main", c.DynamoTablePrefix+"History"); err != nil {
 		log.Error("dynamodb not reachable", "error", err)
 	} else {
 		log.Info("dynamodb ok")
 	}
 
-	// setup S3 storage
-	mr.rt.S3, err = s3x.NewService(c.AWSAccessKeyID, c.AWSSecretAccessKey, c.AWSRegion, c.S3Endpoint, c.S3Minio)
-	if err != nil {
-		return err
-	}
-
-	// check buckets
+	// test S3 buckets
 	if err := mr.rt.S3.Test(mr.ctx, c.S3AttachmentsBucket); err != nil {
 		log.Error("attachments bucket not accessible", "error", err)
 	} else {
@@ -131,20 +104,23 @@ func (mr *Mailroom) Start() error {
 		log.Info("sessions bucket ok")
 	}
 
-	// initialize our elastic client
-	mr.rt.ES, err = elasticsearch.NewTypedClient(elasticsearch.Config{Addresses: []string{c.Elastic}, Username: c.ElasticUsername, Password: c.ElasticPassword})
+	// test Elasticsearch
+	ping, err := mr.rt.ES.Ping().Do(mr.ctx)
 	if err != nil {
-		log.Error("elastic search not available", "error", err)
+		log.Error("elasticsearch not available", "error", err)
+	} else if !ping {
+		log.Error("elasticsearch cluster not reachable")
 	} else {
 		log.Info("elastic ok")
 	}
 
-	// configure and start cloudwatch
-	mr.rt.CW, err = cwatch.NewService(c.AWSAccessKeyID, c.AWSSecretAccessKey, c.AWSRegion, c.CloudwatchNamespace, c.DeploymentID)
-	if err != nil {
-		log.Error("cloudwatch not available", "error", err)
+	if c.AndroidCredentialsFile != "" {
+		mr.rt.FCM, err = fcm.NewClient(mr.ctx, fcm.WithCredentialsFile(c.AndroidCredentialsFile))
+		if err != nil {
+			log.Error("unable to create FCM client", "error", err)
+		}
 	} else {
-		log.Info("cloudwatch ok")
+		log.Warn("fcm not configured, no android syncing")
 	}
 
 	// init our foremen and start it
@@ -252,23 +228,12 @@ func (mr *Mailroom) Runtime() *runtime.Runtime {
 	return mr.rt
 }
 
-func openAndCheckDBConnection(url string, maxOpenConns int) (*sql.DB, *sqlx.DB, error) {
-	db, err := sqlx.Open("postgres", url)
-	if err != nil {
-		return nil, nil, fmt.Errorf("unable to open database connection: '%s': %w", url, err)
-	}
-
-	// configure our pool
-	db.SetMaxIdleConns(8)
-	db.SetMaxOpenConns(maxOpenConns)
-	db.SetConnMaxLifetime(time.Minute * 30)
-
-	// ping database...
+func checkDBConnection(db *sql.DB) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-	err = db.PingContext(ctx)
+	err := db.PingContext(ctx)
 	cancel()
 
-	return db.DB, db, err
+	return err
 }
 
 func getQueueSizes(ctx context.Context, rt *runtime.Runtime) (int, int, int) {
