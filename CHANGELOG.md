@@ -1,3 +1,8 @@
+v10.3.19 (2025-07-30)
+-------------------------
+ * Update config vars for worker counts
+ * Remove old handler queue and foreman
+
 v10.3.18 (2025-07-28)
 -------------------------
  * Rename handler queue to realtime
