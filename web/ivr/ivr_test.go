@@ -652,8 +652,8 @@ func getCallLogs(t *testing.T, ctx context.Context, rt *runtime.Runtime, ch *tes
 	}
 
 	for _, logUUID := range logUUIDs {
-		key := runtime.DynamoKey{PK: fmt.Sprintf("cha#%s#%s", ch.UUID, logUUID[35:36]), SK: fmt.Sprintf("log#%s", logUUID)}
-		item, err := rt.Dynamo.Main.GetItem(ctx, key)
+		key := models.DynamoKey{PK: fmt.Sprintf("cha#%s#%s", ch.UUID, logUUID[35:36]), SK: fmt.Sprintf("log#%s", logUUID)}
+		item, err := dynamo.GetItem[models.DynamoKey, models.DynamoItem](ctx, rt.Dynamo, "TestMain", key)
 		require.NoError(t, err)
 
 		var dataGZ DataGZ

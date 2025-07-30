@@ -16,6 +16,7 @@ import (
 	"github.com/gomodule/redigo/redis"
 	"github.com/jmoiron/sqlx"
 	"github.com/nyaruka/gocommon/aws/cwatch"
+	"github.com/nyaruka/gocommon/aws/dynamo"
 	"github.com/nyaruka/gocommon/aws/s3x"
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/mailroom/core/models"
@@ -86,7 +87,7 @@ func Runtime() (context.Context, *runtime.Runtime) {
 	cfg.DynamoEndpoint = "http://localhost:6000"
 	cfg.DynamoTablePrefix = "Test"
 
-	dytables, err := runtime.NewDynamoTables(cfg)
+	dynClient, err := dynamo.NewClient(cfg.AWSAccessKeyID, cfg.AWSSecretAccessKey, cfg.AWSRegion, cfg.DynamoEndpoint)
 	noError(err)
 
 	s3svc, err := s3x.NewService(cfg.AWSAccessKeyID, cfg.AWSSecretAccessKey, cfg.AWSRegion, cfg.S3Endpoint, cfg.S3Minio)
@@ -101,7 +102,7 @@ func Runtime() (context.Context, *runtime.Runtime) {
 		ReadonlyDB: dbx.DB,
 		VK:         getRP(),
 		Queues:     runtime.NewQueues(cfg),
-		Dynamo:     dytables,
+		Dynamo:     dynClient,
 		S3:         s3svc,
 		ES:         getES(),
 		CW:         cwSvc,
@@ -244,18 +245,20 @@ func resetElastic(ctx context.Context, rt *runtime.Runtime) {
 }
 
 func resetDynamo(ctx context.Context, rt *runtime.Runtime) {
+	// TODO rework to use dyntest.CreateTables
+
 	tablesFile, err := os.Open(absPath("./testsuite/testdata/dynamo.json"))
-	must(err)
+	noError(err)
 	defer tablesFile.Close()
 
 	tablesJSON, err := io.ReadAll(tablesFile)
-	must(err)
+	noError(err)
 
 	inputs := []*dynamodb.CreateTableInput{}
 	jsonx.MustUnmarshal(tablesJSON, &inputs)
 
-	client, err := runtime.NewDynamoClient(rt.Config)
-	must(err)
+	client, err := dynamo.NewClient(rt.Config.AWSAccessKeyID, rt.Config.AWSSecretAccessKey, rt.Config.AWSRegion, rt.Config.DynamoEndpoint)
+	noError(err)
 
 	for _, input := range inputs {
 		input.TableName = aws.String(rt.Config.DynamoTablePrefix + *input.TableName)

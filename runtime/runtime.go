@@ -5,6 +5,7 @@ import (
 	"database/sql"
 
 	"firebase.google.com/go/v4/messaging"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/elastic/go-elasticsearch/v8"
 	"github.com/gomodule/redigo/redis"
 	"github.com/jmoiron/sqlx"
@@ -19,7 +20,7 @@ type Runtime struct {
 	ReadonlyDB *sql.DB
 	VK         *redis.Pool
 	Queues     *Queues
-	Dynamo     *DynamoTables
+	Dynamo     *dynamodb.Client
 	S3         *s3x.Service
 	ES         *elasticsearch.TypedClient
 	Stats      *StatsCollector

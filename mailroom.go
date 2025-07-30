@@ -13,6 +13,7 @@ import (
 	"github.com/elastic/go-elasticsearch/v8"
 	"github.com/jmoiron/sqlx"
 	"github.com/nyaruka/gocommon/aws/cwatch"
+	"github.com/nyaruka/gocommon/aws/dynamo"
 	"github.com/nyaruka/gocommon/aws/s3x"
 	"github.com/nyaruka/mailroom/core/crons"
 	"github.com/nyaruka/mailroom/runtime"
@@ -105,11 +106,8 @@ func (mr *Mailroom) Start() error {
 	}
 
 	// setup DynamoDB
-	mr.rt.Dynamo, err = runtime.NewDynamoTables(c)
-	if err != nil {
-		return err
-	}
-	if err := mr.rt.Dynamo.Main.Test(mr.ctx); err != nil {
+	mr.rt.Dynamo, err = dynamo.NewClient(c.AWSAccessKeyID, c.AWSSecretAccessKey, c.AWSRegion, c.DynamoEndpoint)
+	if err := dynamo.Test(mr.ctx, mr.rt.Dynamo, c.DynamoTablePrefix+"Main", c.DynamoTablePrefix+"History"); err != nil {
 		log.Error("dynamodb not reachable", "error", err)
 	} else {
 		log.Info("dynamodb ok")
