@@ -24,7 +24,7 @@ func TestChannelEvents(t *testing.T) {
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	defer testsuite.Reset(t, testsuite.ResetAll)
+	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
 	// schedule a campaign fires for cathy and george
 	testdb.InsertContactFire(rt, testdb.Org1, testdb.Cathy, models.ContactFireTypeCampaignPoint, fmt.Sprint(testdb.RemindersPoint1), time.Now(), "")

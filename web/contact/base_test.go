@@ -21,7 +21,7 @@ import (
 func TestCreate(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, testsuite.ResetAll)
+	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
 	// detach Cathy's tel URN
 	rt.DB.MustExec(`UPDATE contacts_contacturn SET contact_id = NULL WHERE contact_id = $1`, testdb.Cathy.ID)
@@ -32,7 +32,7 @@ func TestCreate(t *testing.T) {
 func TestDeindex(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, testsuite.ResetElastic)
+	defer testsuite.Reset(t, rt, testsuite.ResetElastic)
 
 	testsuite.RunWebTests(t, ctx, rt, "testdata/deindex.json", testsuite.ResetNone)
 }
@@ -52,7 +52,7 @@ func TestExportPreview(t *testing.T) {
 func TestImport(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, testsuite.ResetData)
+	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
 	import1ID := testdb.InsertContactImport(rt, testdb.Org1, models.ImportStatusProcessing, testdb.Admin)
 	testdb.InsertContactImportBatch(rt, import1ID, []byte(`[
@@ -73,7 +73,7 @@ func TestImport(t *testing.T) {
 func TestInspect(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, testsuite.ResetData)
+	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
 	// give cathy an unsendable twitterid URN with a display value
 	testdb.InsertContactURN(rt, testdb.Org1, testdb.Cathy, urns.URN("twitterid:23145325#cathy"), 20000, nil)
@@ -84,7 +84,7 @@ func TestInspect(t *testing.T) {
 func TestModify(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, testsuite.ResetAll)
+	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
 	oa := testdb.Org1.Load(rt)
 
@@ -114,7 +114,7 @@ func TestModify(t *testing.T) {
 func TestInterrupt(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, testsuite.ResetData)
+	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
 	// give Cathy a completed and a waiting session
 	testdb.InsertFlowSession(rt, testdb.Cathy, models.FlowTypeMessaging, models.SessionStatusCompleted, testdb.Favorites, models.NilCallID)
@@ -135,7 +135,7 @@ func TestParseQuery(t *testing.T) {
 func TestPopulateGroup(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, testsuite.ResetData | testsuite.ResetValkey | testsuite.ResetElastic)
+	defer testsuite.Reset(t, rt, testsuite.ResetData | testsuite.ResetValkey | testsuite.ResetElastic)
 
 	testdb.InsertContactGroup(rt, testdb.Org1, "", "Dynamic", "age > 18")
 	models.FlushCache()

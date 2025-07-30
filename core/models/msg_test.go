@@ -25,7 +25,7 @@ import (
 func TestNewOutgoingFlowMsg(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, testsuite.ResetData | testsuite.ResetValkey)
+	defer testsuite.Reset(t, rt, testsuite.ResetData | testsuite.ResetValkey)
 
 	blake := testdb.InsertContact(rt, testdb.Org1, "79b94a23-6d13-43f4-95fe-c733ee457857", "Blake", i18n.NilLanguage, models.ContactStatusBlocked)
 	blakeURNID := testdb.InsertContactURN(rt, testdb.Org1, blake, "tel:++250700000007", 1, nil)
@@ -250,7 +250,7 @@ func TestNewOutgoingFlowMsg(t *testing.T) {
 func TestGetMessagesByID(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, testsuite.ResetData)
+	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
 	msgIn1 := testdb.InsertIncomingMsg(rt, testdb.Org1, testdb.TwilioChannel, testdb.Cathy, "in 1", models.MsgStatusHandled)
 	msgOut1 := testdb.InsertOutgoingMsg(rt, testdb.Org1, testdb.TwilioChannel, testdb.Cathy, "out 1", []utils.Attachment{"image/jpeg:hi.jpg"}, models.MsgStatusSent, false)
@@ -280,7 +280,7 @@ func TestGetMessagesByID(t *testing.T) {
 func TestResendMessages(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, testsuite.ResetAll)
+	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
 	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 	require.NoError(t, err)
@@ -336,7 +336,7 @@ func TestResendMessages(t *testing.T) {
 func TestFailMessages(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, testsuite.ResetData)
+	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
 	testdb.InsertOutgoingMsg(rt, testdb.Org1, testdb.TwilioChannel, testdb.Cathy, "hi", nil, models.MsgStatusPending, false)
 	testdb.InsertOutgoingMsg(rt, testdb.Org1, testdb.TwilioChannel, testdb.Bob, "hi", nil, models.MsgStatusErrored, false)
@@ -358,7 +358,7 @@ func TestFailMessages(t *testing.T) {
 func TestUpdateMessageDeletedBySender(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, testsuite.ResetData)
+	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
 	in1 := testdb.InsertIncomingMsg(rt, testdb.Org1, testdb.TwilioChannel, testdb.Cathy, "hi", models.MsgStatusHandled)
 	in1.Label(rt, testdb.ReportingLabel, testdb.TestingLabel)
@@ -385,7 +385,7 @@ func TestGetMsgRepetitions(t *testing.T) {
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	defer testsuite.Reset(t, testsuite.ResetValkey)
+	defer testsuite.Reset(t, rt, testsuite.ResetValkey)
 	defer dates.SetNowFunc(time.Now)
 
 	dates.SetNowFunc(dates.NewFixedNow(time.Date(2021, 11, 18, 12, 13, 3, 234567, time.UTC)))
@@ -445,7 +445,7 @@ func TestNormalizeAttachment(t *testing.T) {
 func TestMarkMessages(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, testsuite.ResetData)
+	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
 	out1 := testdb.InsertOutgoingMsg(rt, testdb.Org1, testdb.TwilioChannel, testdb.Cathy, "Hello", nil, models.MsgStatusQueued, false)
 	msgs, err := models.GetMessagesByID(ctx, rt.DB, testdb.Org1.ID, models.DirectionOut, []models.MsgID{out1.ID})
@@ -519,7 +519,7 @@ func TestNewOutgoingIVR(t *testing.T) {
 func TestCreateMsgOut(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, testsuite.ResetData)
+	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
 	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 	require.NoError(t, err)
@@ -593,7 +593,7 @@ func TestCreateMsgOut(t *testing.T) {
 func TestMsgTemplating(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, testsuite.ResetData)
+	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
 	oa := testdb.Org1.Load(rt)
 	_, contact, _ := testdb.Cathy.Load(rt, oa)

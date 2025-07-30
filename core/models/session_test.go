@@ -25,7 +25,7 @@ func TestInsertSessions(t *testing.T) {
 
 	defer dates.SetNowFunc(time.Now)
 	defer random.SetGenerator(random.DefaultGenerator)
-	defer testsuite.Reset(t, testsuite.ResetData)
+	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
 	testFlows := testdb.ImportFlows(rt, testdb.Org1, "testdata/session_test_flows.json")
 	flow := testFlows[0]
@@ -102,7 +102,7 @@ func TestInsertSessions(t *testing.T) {
 func TestGetWaitingSessionForContact(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, testsuite.ResetData)
+	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
 	sessionUUID := testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Cathy, models.FlowTypeMessaging, testdb.Favorites, models.NilCallID)
 	testdb.InsertFlowSession(rt, testdb.Cathy, models.FlowTypeMessaging, models.SessionStatusCompleted, testdb.Favorites, models.NilCallID)
@@ -120,7 +120,7 @@ func TestGetWaitingSessionForContact(t *testing.T) {
 func TestInterruptSessionsForContacts(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, testsuite.ResetData)
+	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
 	session1UUID, _ := insertSessionAndRun(rt, testdb.Cathy, models.FlowTypeMessaging, models.SessionStatusCompleted, testdb.Favorites, models.NilCallID)
 	session2UUID, run2ID := insertSessionAndRun(rt, testdb.Cathy, models.FlowTypeVoice, models.SessionStatusWaiting, testdb.Favorites, models.NilCallID)
@@ -155,7 +155,7 @@ func TestInterruptSessionsForContacts(t *testing.T) {
 func TestInterruptSessionsForContactsTx(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, testsuite.ResetData)
+	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
 	session1UUID, _ := insertSessionAndRun(rt, testdb.Cathy, models.FlowTypeMessaging, models.SessionStatusCompleted, testdb.Favorites, models.NilCallID)
 	session2UUID, run2ID := insertSessionAndRun(rt, testdb.Cathy, models.FlowTypeVoice, models.SessionStatusWaiting, testdb.Favorites, models.NilCallID)
@@ -196,7 +196,7 @@ func TestInterruptSessionsForContactsTx(t *testing.T) {
 func TestInterruptSessionsForChannels(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, testsuite.ResetData)
+	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
 	cathy1CallID := testdb.InsertCall(rt, testdb.Org1, testdb.TwilioChannel, testdb.Cathy)
 	cathy2CallID := testdb.InsertCall(rt, testdb.Org1, testdb.TwilioChannel, testdb.Cathy)
@@ -229,7 +229,7 @@ func TestInterruptSessionsForChannels(t *testing.T) {
 func TestInterruptSessionsForFlows(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, testsuite.ResetData)
+	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
 	cathy1CallID := testdb.InsertCall(rt, testdb.Org1, testdb.TwilioChannel, testdb.Cathy)
 	cathy2CallID := testdb.InsertCall(rt, testdb.Org1, testdb.TwilioChannel, testdb.Cathy)

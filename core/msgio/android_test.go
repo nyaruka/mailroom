@@ -14,7 +14,7 @@ import (
 func TestSyncAndroidChannel(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, testsuite.ResetData)
+	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
 	mockFCM := rt.FCM.(*testsuite.MockFCMClient)
 
