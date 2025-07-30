@@ -13,19 +13,19 @@ import (
 func TestSend(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, testsuite.ResetData | testsuite.ResetValkey)
+	defer testsuite.Reset(t, testsuite.ResetData|testsuite.ResetValkey)
 
 	testdb.InsertOpenTicket(rt, testdb.Org1, testdb.Cathy, testdb.DefaultTopic, time.Date(2015, 1, 1, 12, 30, 45, 0, time.UTC), nil)
 
 	testsuite.RunWebTests(t, ctx, rt, "testdata/send.json", testsuite.ResetNone)
 
-	testsuite.AssertCourierQueues(t, map[string][]int{"msgs:74729f45-7f29-4868-9dc4-90e491e3c7d8|10/1": {1, 1, 1, 1}})
+	testsuite.AssertCourierQueues(t, rt, map[string][]int{"msgs:74729f45-7f29-4868-9dc4-90e491e3c7d8|10/1": {1, 1, 1, 1}})
 }
 
 func TestHandle(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, testsuite.ResetData | testsuite.ResetValkey)
+	defer testsuite.Reset(t, testsuite.ResetData|testsuite.ResetValkey)
 
 	testdb.InsertIncomingMsg(rt, testdb.Org1, testdb.TwilioChannel, testdb.Cathy, "hello", models.MsgStatusHandled)
 	testdb.InsertIncomingMsg(rt, testdb.Org1, testdb.TwilioChannel, testdb.Cathy, "hello", models.MsgStatusPending)
@@ -51,7 +51,7 @@ func TestResend(t *testing.T) {
 func TestBroadcast(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, testsuite.ResetData | testsuite.ResetValkey)
+	defer testsuite.Reset(t, testsuite.ResetData|testsuite.ResetValkey)
 
 	testdb.InsertOptIn(rt, testdb.Org1, "Polls")
 

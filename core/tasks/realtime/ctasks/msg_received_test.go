@@ -384,7 +384,7 @@ func TestMsgReceivedTask(t *testing.T) {
 	}
 
 	// check messages queued to courier
-	testsuite.AssertCourierQueues(t, map[string][]int{
+	testsuite.AssertCourierQueues(t, rt, map[string][]int{
 		fmt.Sprintf("msgs:%s|10/1", testdb.FacebookChannel.UUID): {1, 1, 1, 1, 1, 1},
 		fmt.Sprintf("msgs:%s|10/1", testdb.Org2Channel.UUID):     {1, 1, 1, 1, 1, 1, 1, 1, 1},
 	})

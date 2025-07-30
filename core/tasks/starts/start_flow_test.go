@@ -206,7 +206,7 @@ func TestStartFlowTask(t *testing.T) {
 	}
 
 	for i, tc := range tcs {
-		testsuite.ReindexElastic(t)
+		testsuite.ReindexElastic(t, rt)
 
 		// handle our start task
 		start := models.NewFlowStart(testdb.Org1.ID, models.StartTypeManual, tc.flowID).

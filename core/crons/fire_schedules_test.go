@@ -18,7 +18,7 @@ func TestFireSchedules(t *testing.T) {
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	defer testsuite.Reset(t, testsuite.ResetData | testsuite.ResetValkey)
+	defer testsuite.Reset(t, testsuite.ResetData|testsuite.ResetValkey)
 
 	// add a one-time schedule and tie a broadcast to it
 	s1 := testdb.InsertSchedule(rt, testdb.Org1, models.RepeatPeriodNever, time.Now().Add(-2*time.Hour))
@@ -82,5 +82,5 @@ func TestFireSchedules(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM schedules_schedule WHERE id = $1 AND next_fire > NOW() AND last_fire < NOW()`, s4).Returns(1)
 
 	// check the tasks created
-	testsuite.AssertBatchTasks(t, testdb.Org1.ID, map[string]int{"start_flow": 2, "send_broadcast": 2})
+	testsuite.AssertBatchTasks(t, rt, testdb.Org1.ID, map[string]int{"start_flow": 2, "send_broadcast": 2})
 }

@@ -26,7 +26,7 @@ import (
 func TestNewCourierMsg(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, testsuite.ResetData | testsuite.ResetValkey)
+	defer testsuite.Reset(t, testsuite.ResetData|testsuite.ResetValkey)
 
 	// create an opt-in and a new contact with an auth token for it
 	optInID := testdb.InsertOptIn(rt, testdb.Org1, "Joke Of The Day").ID
@@ -239,7 +239,7 @@ func TestQueueCourierMessages(t *testing.T) {
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	defer testsuite.Reset(t, testsuite.ResetData | testsuite.ResetValkey)
+	defer testsuite.Reset(t, testsuite.ResetData|testsuite.ResetValkey)
 
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshOrg|models.RefreshChannels)
 	require.NoError(t, err)
@@ -249,7 +249,7 @@ func TestQueueCourierMessages(t *testing.T) {
 
 	// noop if no messages provided
 	msgio.QueueCourierMessages(vc, oa, testdb.Cathy.ID, twilio, []*models.MsgOut{})
-	testsuite.AssertCourierQueues(t, map[string][]int{})
+	testsuite.AssertCourierQueues(t, rt, map[string][]int{})
 
 	// queue 3 messages for Cathy..
 	sends := []*models.MsgOut{
@@ -269,7 +269,7 @@ func TestQueueCourierMessages(t *testing.T) {
 
 	msgio.QueueCourierMessages(vc, oa, testdb.Cathy.ID, twilio, sends)
 
-	testsuite.AssertCourierQueues(t, map[string][]int{
+	testsuite.AssertCourierQueues(t, rt, map[string][]int{
 		"msgs:74729f45-7f29-4868-9dc4-90e491e3c7d8|10/0": {2}, // twilio, bulk priority
 		"msgs:74729f45-7f29-4868-9dc4-90e491e3c7d8|10/1": {1}, // twilio, high priority
 	})
@@ -280,7 +280,7 @@ func TestClearChannelCourierQueue(t *testing.T) {
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	defer testsuite.Reset(t, testsuite.ResetData | testsuite.ResetValkey)
+	defer testsuite.Reset(t, testsuite.ResetData|testsuite.ResetValkey)
 
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshOrg|models.RefreshChannels)
 	require.NoError(t, err)
@@ -313,7 +313,7 @@ func TestClearChannelCourierQueue(t *testing.T) {
 		},
 	})
 
-	testsuite.AssertCourierQueues(t, map[string][]int{
+	testsuite.AssertCourierQueues(t, rt, map[string][]int{
 		"msgs:74729f45-7f29-4868-9dc4-90e491e3c7d8|10/0": {2}, // twilio, bulk priority
 		"msgs:74729f45-7f29-4868-9dc4-90e491e3c7d8|10/1": {1}, // twilio, high priority
 		"msgs:19012bfd-3ce3-4cae-9bb9-76cf92c73d49|10/0": {1}, // vonage, bulk priority
@@ -322,13 +322,13 @@ func TestClearChannelCourierQueue(t *testing.T) {
 	twilioChannel := oa.ChannelByID(testdb.TwilioChannel.ID)
 	msgio.ClearCourierQueues(vc, twilioChannel)
 
-	testsuite.AssertCourierQueues(t, map[string][]int{
+	testsuite.AssertCourierQueues(t, rt, map[string][]int{
 		"msgs:19012bfd-3ce3-4cae-9bb9-76cf92c73d49|10/0": {1}, // vonage, bulk priority
 	})
 
 	vonageChannel := oa.ChannelByID(testdb.VonageChannel.ID)
 	msgio.ClearCourierQueues(vc, vonageChannel)
-	testsuite.AssertCourierQueues(t, map[string][]int{})
+	testsuite.AssertCourierQueues(t, rt, map[string][]int{})
 
 }
 
@@ -337,7 +337,7 @@ func TestPushCourierBatch(t *testing.T) {
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	defer testsuite.Reset(t, testsuite.ResetData | testsuite.ResetValkey)
+	defer testsuite.Reset(t, testsuite.ResetData|testsuite.ResetValkey)
 
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshChannels)
 	require.NoError(t, err)

@@ -158,7 +158,7 @@ func TestQueueMessages(t *testing.T) {
 
 		msgio.QueueMessages(ctx, rt, msgs)
 
-		testsuite.AssertCourierQueues(t, tc.QueueSizes, "courier queue sizes mismatch in '%s'", tc.Description)
+		testsuite.AssertCourierQueues(t, rt, tc.QueueSizes, "courier queue sizes mismatch in '%s'", tc.Description)
 
 		// check the FCM tokens that were synced
 		actualTokens := make([]string, len(mockFCM.Messages))

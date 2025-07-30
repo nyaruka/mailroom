@@ -10,22 +10,13 @@ import (
 	"path"
 	"testing"
 
-	"github.com/elastic/go-elasticsearch/v8"
-	"github.com/gomodule/redigo/redis"
-	"github.com/jmoiron/sqlx"
-	"github.com/nyaruka/gocommon/aws/cwatch"
-	"github.com/nyaruka/gocommon/aws/dynamo"
 	"github.com/nyaruka/gocommon/aws/dynamo/dyntest"
-	"github.com/nyaruka/gocommon/aws/s3x"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/rp-indexer/v10/indexers"
 	ixruntime "github.com/nyaruka/rp-indexer/v10/runtime"
-	"github.com/nyaruka/vkutil/assertvk"
 	"github.com/stretchr/testify/require"
 )
-
-var _db *sqlx.DB
 
 const elasticURL = "http://localhost:9200"
 const elasticContactsIndex = "test_contacts"
@@ -51,12 +42,12 @@ func Reset(t *testing.T, what ResetFlag) {
 	_, rt := Runtime(t) // TODO pass rt from test?
 
 	if what&ResetDB > 0 {
-		resetDB(t)
+		resetDB(t, rt)
 	} else if what&ResetData > 0 {
-		resetData(t)
+		resetData(t, rt)
 	}
 	if what&ResetValkey > 0 {
-		resetValkey(t)
+		resetValkey(t, rt)
 	}
 	if what&ResetStorage > 0 {
 		resetStorage(t, rt)
@@ -76,7 +67,9 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 	cfg := runtime.NewDefaultConfig()
 	cfg.DeploymentID = "test"
 	cfg.Port = 8091
+	cfg.DB = "postgres://mailroom_test:temba@localhost/mailroom_test?sslmode=disable&Timezone=UTC"
 	cfg.ElasticContactsIndex = elasticContactsIndex
+	cfg.Elastic = elasticURL
 	cfg.AWSAccessKeyID = "root"
 	cfg.AWSSecretAccessKey = "tembatemba"
 	cfg.S3Endpoint = "http://localhost:9000"
@@ -86,29 +79,20 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 	cfg.DynamoEndpoint = "http://localhost:6000"
 	cfg.DynamoTablePrefix = "Test"
 
-	dynClient, err := dynamo.NewClient(cfg.AWSAccessKeyID, cfg.AWSSecretAccessKey, cfg.AWSRegion, cfg.DynamoEndpoint)
+	rt, err := runtime.NewRuntime(cfg)
 	require.NoError(t, err)
 
-	s3svc, err := s3x.NewService(cfg.AWSAccessKeyID, cfg.AWSSecretAccessKey, cfg.AWSRegion, cfg.S3Endpoint, cfg.S3Minio)
-	require.NoError(t, err)
+	// check if we have tables and if not load test database dump
+	_, err = rt.DB.Exec("SELECT * from orgs_org")
+	if err != nil {
+		loadTestDump(t)
 
-	cwSvc, err := cwatch.NewService(cfg.AWSAccessKeyID, cfg.AWSSecretAccessKey, cfg.AWSRegion, cfg.CloudwatchNamespace, cfg.DeploymentID)
-	require.NoError(t, err)
-
-	dbx := getDB(t)
-	rt := &runtime.Runtime{
-		DB:         dbx,
-		ReadonlyDB: dbx.DB,
-		VK:         getRP(t),
-		Queues:     runtime.NewQueues(cfg),
-		Dynamo:     dynClient,
-		S3:         s3svc,
-		ES:         getES(t),
-		CW:         cwSvc,
-		Stats:      runtime.NewStatsCollector(),
-		FCM:        &MockFCMClient{ValidTokens: []string{"FCMID3", "FCMID4", "FCMID5"}},
-		Config:     cfg,
+		// force re-connection
+		rt, err = runtime.NewRuntime(cfg)
+		require.NoError(t, err)
 	}
+
+	rt.FCM = &MockFCMClient{ValidTokens: []string{"FCMID3", "FCMID4", "FCMID5"}}
 
 	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo})))
 
@@ -116,59 +100,15 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 }
 
 // reindexes data changes to Elastic
-func ReindexElastic(t *testing.T) {
+func ReindexElastic(t *testing.T, rt *runtime.Runtime) {
 	t.Helper()
-
-	db := getDB(t)
-	es := getES(t)
 
 	contactsIndexer := indexers.NewContactIndexer(elasticURL, elasticContactsIndex, 1, 1, 100)
-	_, err := contactsIndexer.Index(&ixruntime.Runtime{DB: db.DB}, false, false)
+	_, err := contactsIndexer.Index(&ixruntime.Runtime{DB: rt.DB.DB}, false, false)
 	require.NoError(t, err)
 
-	_, err = es.Indices.Refresh().Index(elasticContactsIndex).Do(t.Context())
+	_, err = rt.ES.Indices.Refresh().Index(elasticContactsIndex).Do(t.Context())
 	require.NoError(t, err)
-}
-
-// returns an open test database pool
-func getDB(t *testing.T) *sqlx.DB {
-	t.Helper()
-
-	if _db == nil {
-		_db = sqlx.MustOpen("postgres", "postgres://mailroom_test:temba@localhost/mailroom_test?sslmode=disable&Timezone=UTC")
-
-		// check if we have tables and if not load test database dump
-		_, err := _db.Exec("SELECT * from orgs_org")
-		if err != nil {
-			loadTestDump(t)
-			return getDB(t)
-		}
-	}
-	return _db
-}
-
-// returns a redis pool to our test database
-func getRP(t *testing.T) *redis.Pool {
-	return assertvk.TestDB()
-}
-
-// returns a redis connection, Close() should be called on it when done
-func getRC(t *testing.T) redis.Conn {
-	conn, err := redis.Dial("tcp", "localhost:6379")
-	require.NoError(t, err)
-
-	_, err = conn.Do("SELECT", 0)
-	require.NoError(t, err)
-
-	return conn
-}
-
-// returns an Elastic client
-func getES(t *testing.T) *elasticsearch.TypedClient {
-	es, err := elasticsearch.NewTypedClient(elasticsearch.Config{Addresses: []string{elasticURL}})
-	require.NoError(t, err)
-
-	return es
 }
 
 // resets our database to our base state from our RapidPro dump
@@ -180,11 +120,10 @@ func getES(t *testing.T) *elasticsearch.TypedClient {
 // then copying the mailroom_test.dump file to your mailroom root directory
 //
 //	% cp mailroom_test.dump ../mailroom
-func resetDB(t *testing.T) {
+func resetDB(t *testing.T, rt *runtime.Runtime) {
 	t.Helper()
 
-	db := getDB(t)
-	db.MustExec("DROP OWNED BY mailroom_test CASCADE")
+	rt.DB.MustExec("DROP OWNED BY mailroom_test CASCADE")
 
 	loadTestDump(t)
 }
@@ -204,12 +143,6 @@ func loadTestDump(t *testing.T) {
 	if err != nil {
 		panic(fmt.Sprintf("error restoring database: %s: %s", err, string(output)))
 	}
-
-	// force re-connection
-	if _db != nil {
-		_db.Close()
-		_db = nil
-	}
 }
 
 // Converts a project root relative path to an absolute path usable in any test. This is needed because go tests
@@ -227,10 +160,14 @@ func absPath(p string) string {
 }
 
 // resets our valkey database
-func resetValkey(t *testing.T) {
+func resetValkey(t *testing.T, rt *runtime.Runtime) {
 	t.Helper()
 
-	assertvk.FlushDB()
+	vc := rt.VK.Get()
+	defer vc.Close()
+
+	_, err := vc.Do("FLUSHDB")
+	require.NoError(t, err, "error flushing valkey db")
 }
 
 func resetStorage(t *testing.T, rt *runtime.Runtime) {
@@ -261,7 +198,7 @@ func resetElastic(t *testing.T, rt *runtime.Runtime) {
 		}
 	}
 
-	ReindexElastic(t)
+	ReindexElastic(t, rt)
 }
 
 func resetDynamo(t *testing.T, rt *runtime.Runtime) {
@@ -345,14 +282,10 @@ ALTER SEQUENCE campaigns_campaignevent_id_seq RESTART WITH 30000;`
 
 // removes contact data not in the test database dump. Note that this function can't
 // undo changes made to the contact data in the test database dump.
-func resetData(t *testing.T) {
+func resetData(t *testing.T, rt *runtime.Runtime) {
 	t.Helper()
 
-	db := getDB(t)
-	db.MustExec(sqlResetTestData)
-
-	// because groups have changed
-	models.FlushCache()
+	rt.DB.MustExec(sqlResetTestData)
 }
 
 func ReadFile(t *testing.T, path string) []byte {
