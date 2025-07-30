@@ -22,13 +22,19 @@ import (
 // go install github.com/nyaruka/mailroom/cmd/mrllmtests; mrllmtests
 func main() {
 	ctx := context.TODO()
-	config := runtime.LoadConfig()
+	cfg := runtime.LoadConfig()
 
 	slog.SetDefault(slog.New(slog.DiscardHandler)) // disable logging
 
-	mr := mailroom.NewMailroom(config)
-	err := mr.Start()
+	rt, err := runtime.NewRuntime(cfg)
 	if err != nil {
+		slog.Error("error creating runtime", "error", err)
+		os.Exit(1)
+	}
+
+	mr := mailroom.NewMailroom(rt)
+
+	if err := mr.Start(); err != nil {
 		fmt.Printf("unable to start mailroom: %s", err.Error())
 		os.Exit(1)
 	}
