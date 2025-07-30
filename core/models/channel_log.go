@@ -7,8 +7,6 @@ import (
 	"slices"
 	"time"
 
-	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
-	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/nyaruka/gocommon/aws/dynamo"
 	"github.com/nyaruka/gocommon/httpx"
@@ -50,13 +48,13 @@ func newChannelLog(t clogs.Type, ch *Channel, r *httpx.Recorder, redactVals []st
 	}
 }
 
-func (l *ChannelLog) DynamoKey() runtime.DynamoKey {
+func (l *ChannelLog) DynamoKey() DynamoKey {
 	pk := fmt.Sprintf("cha#%s#%s", l.channel.UUID(), l.UUID[35:36]) // 16 buckets for each channel
 	sk := fmt.Sprintf("log#%s", l.UUID)
-	return runtime.DynamoKey{PK: pk, SK: sk}
+	return DynamoKey{PK: pk, SK: sk}
 }
 
-func (l *ChannelLog) DynamoItem() (*runtime.DynamoItem, error) {
+func (l *ChannelLog) MarshalDynamo() (map[string]types.AttributeValue, error) {
 	type DataGZ struct {
 		HttpLogs []*httpx.Log   `json:"http_logs"`
 		Errors   []*clogs.Error `json:"errors"`
@@ -67,7 +65,7 @@ func (l *ChannelLog) DynamoItem() (*runtime.DynamoItem, error) {
 		return nil, fmt.Errorf("error encoding http logs as JSON+GZip: %w", err)
 	}
 
-	return &runtime.DynamoItem{
+	return dynamo.Marshal(&DynamoItem{
 		DynamoKey: l.DynamoKey(),
 		OrgID:     int(l.channel.OrgID()),
 		TTL:       l.CreatedOn.Add(channelLogDynamoTTL),
@@ -78,37 +76,22 @@ func (l *ChannelLog) DynamoItem() (*runtime.DynamoItem, error) {
 			"is_error":   l.IsError(),
 		},
 		DataGZ: dataGZ,
-	}, nil
+	})
 }
 
 // InsertChannelLogs writes the given channel logs to the db
 func InsertChannelLogs(ctx context.Context, rt *runtime.Runtime, logs []*ChannelLog) error {
+	// TODO rework use dynamo.Writer
+
 	// write all logs to DynamoDB
 	for batch := range slices.Chunk(logs, 25) {
-		writeReqs := make([]types.WriteRequest, len(batch))
-
-		for i, l := range batch {
-			d, err := l.DynamoItem()
-			if err != nil {
-				return fmt.Errorf("error converting log: %w", err)
-			}
-			item, err := attributevalue.MarshalMap(d)
-			if err != nil {
-				return fmt.Errorf("error marshalling log: %w", err)
-			}
-
-			writeReqs[i] = types.WriteRequest{PutRequest: &types.PutRequest{Item: item}}
-		}
-
-		resp, err := rt.Dynamo.Main.Client.BatchWriteItem(ctx, &dynamodb.BatchWriteItemInput{
-			RequestItems: map[string][]types.WriteRequest{rt.Dynamo.Main.Name(): writeReqs},
-		})
+		unprocessed, err := dynamo.BatchPutItem(ctx, rt.Dynamo, rt.Config.DynamoTablePrefix+"Main", batch)
 		if err != nil {
 			return fmt.Errorf("error writing logs to dynamo: %w", err)
 		}
-		if len(resp.UnprocessedItems) > 0 {
+		if len(unprocessed) > 0 {
 			// TODO shouldn't happend.. but need to figure out how we would retry these
-			slog.Error("unprocessed items writing logs to dynamo", "count", len(resp.UnprocessedItems))
+			slog.Error("unprocessed items writing logs to dynamo", "count", len(unprocessed))
 		}
 	}
 

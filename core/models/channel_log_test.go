@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/nyaruka/gocommon/aws/dynamo"
+	"github.com/nyaruka/gocommon/aws/dynamo/dyntest"
 	"github.com/nyaruka/gocommon/httpx"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/testsuite"
@@ -52,12 +53,10 @@ func TestChannelLogsOutgoing(t *testing.T) {
 	err = models.InsertChannelLogs(ctx, rt, []*models.ChannelLog{clog1, clog2})
 	require.NoError(t, err)
 
-	count, err := rt.Dynamo.Main.Count(ctx)
-	require.NoError(t, err)
-	assert.Equal(t, 2, count)
+	dyntest.AssertCount(t, rt.Dynamo, "TestMain", 2)
 
 	// read log back from DynamoDB
-	item, err := rt.Dynamo.Main.GetItem(ctx, clog1.DynamoKey())
+	item, err := dynamo.GetItem[models.DynamoKey, models.DynamoItem](ctx, rt.Dynamo, "TestMain", clog1.DynamoKey())
 	require.NoError(t, err)
 	assert.Equal(t, string(models.ChannelLogTypeIVRStart), item.Data["type"])
 
