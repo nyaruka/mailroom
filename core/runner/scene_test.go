@@ -23,14 +23,14 @@ import (
 )
 
 func TestSessionCreationAndUpdating(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	dates.SetNowFunc(dates.NewSequentialNow(time.Date(2025, 2, 25, 16, 45, 0, 0, time.UTC), time.Second))
 	random.SetGenerator(random.NewSeededGenerator(123))
 
 	defer dates.SetNowFunc(time.Now)
 	defer random.SetGenerator(random.DefaultGenerator)
-	defer testsuite.Reset(testsuite.ResetData | testsuite.ResetValkey)
+	defer testsuite.Reset(t, testsuite.ResetData | testsuite.ResetValkey)
 
 	testFlows := testdb.ImportFlows(rt, testdb.Org1, "testdata/session_test_flows.json")
 	flow := testFlows[0]
@@ -114,9 +114,9 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 }
 
 func TestSingleSprintSession(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(testsuite.ResetValkey | testsuite.ResetData)
+	defer testsuite.Reset(t, testsuite.ResetValkey | testsuite.ResetData)
 
 	testFlows := testdb.ImportFlows(rt, testdb.Org1, "testdata/session_test_flows.json")
 	flow := testFlows[1]
@@ -141,14 +141,14 @@ func TestSingleSprintSession(t *testing.T) {
 }
 
 func TestSessionWithSubflows(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	dates.SetNowFunc(dates.NewSequentialNow(time.Date(2025, 2, 25, 16, 45, 0, 0, time.UTC), time.Second))
 	random.SetGenerator(random.NewSeededGenerator(123))
 
 	defer dates.SetNowFunc(time.Now)
 	defer random.SetGenerator(random.DefaultGenerator)
-	defer testsuite.Reset(testsuite.ResetValkey | testsuite.ResetData)
+	defer testsuite.Reset(t, testsuite.ResetValkey | testsuite.ResetData)
 
 	testFlows := testdb.ImportFlows(rt, testdb.Org1, "testdata/session_test_flows.json")
 	parent, child := testFlows[2], testFlows[3]
@@ -209,14 +209,14 @@ func TestSessionWithSubflows(t *testing.T) {
 }
 
 func TestSessionFailedStart(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	dates.SetNowFunc(dates.NewSequentialNow(time.Date(2025, 2, 25, 16, 45, 0, 0, time.UTC), time.Second))
 	random.SetGenerator(random.NewSeededGenerator(123))
 
 	defer dates.SetNowFunc(time.Now)
 	defer random.SetGenerator(random.DefaultGenerator)
-	defer testsuite.Reset(testsuite.ResetValkey | testsuite.ResetData)
+	defer testsuite.Reset(t, testsuite.ResetValkey | testsuite.ResetData)
 
 	testFlows := testdb.ImportFlows(rt, testdb.Org1, "testdata/ping_pong.json")
 	ping, pong := testFlows[0], testFlows[1]
@@ -243,11 +243,11 @@ func TestSessionFailedStart(t *testing.T) {
 }
 
 func TestFlowStats(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	defer testsuite.Reset(testsuite.ResetValkey | testsuite.ResetData)
+	defer testsuite.Reset(t, testsuite.ResetValkey | testsuite.ResetData)
 
 	defer random.SetGenerator(random.DefaultGenerator)
 	random.SetGenerator(random.NewSeededGenerator(123))
@@ -354,9 +354,9 @@ func TestFlowStats(t *testing.T) {
 }
 
 func TestResumeSession(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(testsuite.ResetData | testsuite.ResetStorage)
+	defer testsuite.Reset(t, testsuite.ResetData | testsuite.ResetStorage)
 
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshOrg)
 	require.NoError(t, err)

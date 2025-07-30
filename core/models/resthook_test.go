@@ -11,9 +11,9 @@ import (
 )
 
 func TestResthooks(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(testsuite.ResetData)
+	defer testsuite.Reset(t, testsuite.ResetData)
 
 	rt.DB.MustExec(`INSERT INTO api_resthook(is_active, created_on, modified_on, slug, created_by_id, modified_by_id, org_id)
 								   VALUES(TRUE, NOW(), NOW(), 'registration', 1, 1, 1);`)

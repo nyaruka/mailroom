@@ -12,7 +12,7 @@ import (
 )
 
 func TestLabels(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshLabels)
 	require.NoError(t, err)

@@ -16,9 +16,9 @@ import (
 )
 
 func TestChannelLogsOutgoing(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(testsuite.ResetData | testsuite.ResetDynamo)
+	defer testsuite.Reset(t, testsuite.ResetData | testsuite.ResetDynamo)
 
 	defer httpx.SetRequestor(httpx.DefaultRequestor)
 	httpx.SetRequestor(httpx.NewMockRequestor(map[string][]*httpx.MockResponse{

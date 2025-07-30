@@ -15,9 +15,9 @@ import (
 )
 
 func TestStartFlowTask(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(testsuite.ResetAll)
+	defer testsuite.Reset(t, testsuite.ResetAll)
 
 	testdb.InsertWaitingSession(rt, testdb.Org1, testdb.George, models.FlowTypeMessaging, testdb.Favorites, models.NilCallID)
 
@@ -206,7 +206,7 @@ func TestStartFlowTask(t *testing.T) {
 	}
 
 	for i, tc := range tcs {
-		testsuite.ReindexElastic(ctx)
+		testsuite.ReindexElastic(t)
 
 		// handle our start task
 		start := models.NewFlowStart(testdb.Org1.ID, models.StartTypeManual, tc.flowID).
@@ -248,9 +248,9 @@ func TestStartFlowTask(t *testing.T) {
 }
 
 func TestStartFlowTaskNonPersistedStart(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(testsuite.ResetData)
+	defer testsuite.Reset(t, testsuite.ResetData)
 
 	// create a start and start it...
 	start := models.NewFlowStart(models.OrgID(1), models.StartTypeManual, testdb.SingleMessage.ID).

@@ -12,11 +12,11 @@ import (
 )
 
 func TestThrottleQueue(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	defer testsuite.Reset(testsuite.ResetValkey | testsuite.ResetData)
+	defer testsuite.Reset(t, testsuite.ResetValkey | testsuite.ResetData)
 
 	cron := &crons.ThrottleQueueCron{}
 	res, err := cron.Run(ctx, rt)

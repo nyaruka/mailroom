@@ -25,7 +25,7 @@ func (t *testTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.
 }
 
 func TestForemanAndWorkers(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 	wg := &sync.WaitGroup{}
 	q := queues.NewFair("test", 10)
 

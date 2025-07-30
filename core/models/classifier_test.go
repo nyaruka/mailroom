@@ -13,7 +13,7 @@ import (
 )
 
 func TestClassifiers(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshClassifiers)
 	require.NoError(t, err)

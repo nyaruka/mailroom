@@ -24,9 +24,9 @@ import (
 )
 
 func TestNewCourierMsg(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(testsuite.ResetData | testsuite.ResetValkey)
+	defer testsuite.Reset(t, testsuite.ResetData | testsuite.ResetValkey)
 
 	// create an opt-in and a new contact with an auth token for it
 	optInID := testdb.InsertOptIn(rt, testdb.Org1, "Joke Of The Day").ID
@@ -235,11 +235,11 @@ func createAndAssertCourierMsg(t *testing.T, oa *models.OrgAssets, msg *models.M
 }
 
 func TestQueueCourierMessages(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	defer testsuite.Reset(testsuite.ResetData | testsuite.ResetValkey)
+	defer testsuite.Reset(t, testsuite.ResetData | testsuite.ResetValkey)
 
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshOrg|models.RefreshChannels)
 	require.NoError(t, err)
@@ -276,11 +276,11 @@ func TestQueueCourierMessages(t *testing.T) {
 }
 
 func TestClearChannelCourierQueue(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	defer testsuite.Reset(testsuite.ResetData | testsuite.ResetValkey)
+	defer testsuite.Reset(t, testsuite.ResetData | testsuite.ResetValkey)
 
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshOrg|models.RefreshChannels)
 	require.NoError(t, err)
@@ -333,11 +333,11 @@ func TestClearChannelCourierQueue(t *testing.T) {
 }
 
 func TestPushCourierBatch(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	defer testsuite.Reset(testsuite.ResetData | testsuite.ResetValkey)
+	defer testsuite.Reset(t, testsuite.ResetData | testsuite.ResetValkey)
 
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshChannels)
 	require.NoError(t, err)

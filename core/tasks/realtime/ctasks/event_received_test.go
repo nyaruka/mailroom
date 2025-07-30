@@ -20,11 +20,11 @@ import (
 )
 
 func TestChannelEvents(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	defer testsuite.Reset(testsuite.ResetAll)
+	defer testsuite.Reset(t, testsuite.ResetAll)
 
 	// schedule a campaign fires for cathy and george
 	testdb.InsertContactFire(rt, testdb.Org1, testdb.Cathy, models.ContactFireTypeCampaignPoint, fmt.Sprint(testdb.RemindersPoint1), time.Now(), "")

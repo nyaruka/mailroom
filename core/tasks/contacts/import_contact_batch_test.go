@@ -13,11 +13,11 @@ import (
 )
 
 func TestImportContactBatch(t *testing.T) {
-	_, rt := testsuite.Runtime()
+	_, rt := testsuite.Runtime(t)
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	defer testsuite.Reset(testsuite.ResetData)
+	defer testsuite.Reset(t, testsuite.ResetData)
 
 	importID := testdb.InsertContactImport(rt, testdb.Org1, models.ImportStatusProcessing, testdb.Admin)
 	batch1ID := testdb.InsertContactImportBatch(rt, importID, []byte(`[

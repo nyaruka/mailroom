@@ -50,11 +50,11 @@ func (c *TestCron) Run(ctx context.Context, rt *runtime.Runtime) (map[string]any
 }
 
 func TestStats(t *testing.T) {
-	_, rt := testsuite.Runtime()
+	_, rt := testsuite.Runtime(t)
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	defer testsuite.Reset(testsuite.ResetValkey)
+	defer testsuite.Reset(t, testsuite.ResetValkey)
 
 	cron := &TestCron{}
 	crons.Register("test1", cron)

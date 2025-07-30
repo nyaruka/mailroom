@@ -24,11 +24,11 @@ import (
 )
 
 func TestResponseForSprint(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	defer testsuite.Reset(testsuite.ResetAll)
+	defer testsuite.Reset(t, testsuite.ResetAll)
 
 	mockVonage := httpx.NewMockRequestor(map[string][]*httpx.MockResponse{
 		"https://api.nexmo.com/v1/calls": {
@@ -148,7 +148,7 @@ func TestResponseForSprint(t *testing.T) {
 }
 
 func TestRedactValues(t *testing.T) {
-	_, rt := testsuite.Runtime()
+	_, rt := testsuite.Runtime(t)
 
 	oa := testdb.Org1.Load(rt)
 	ch := oa.ChannelByUUID(testdb.VonageChannel.UUID)

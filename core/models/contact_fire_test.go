@@ -13,9 +13,9 @@ import (
 )
 
 func TestContactFires(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(testsuite.ResetData)
+	defer testsuite.Reset(t, testsuite.ResetData)
 
 	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 	require.NoError(t, err)
@@ -54,9 +54,9 @@ func TestContactFires(t *testing.T) {
 }
 
 func TestSessionContactFires(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(testsuite.ResetData)
+	defer testsuite.Reset(t, testsuite.ResetData)
 
 	testdb.InsertContactFire(rt, testdb.Org1, testdb.Bob, models.ContactFireTypeCampaignPoint, "235", time.Now().Add(2*time.Second), "")
 
@@ -97,9 +97,9 @@ func TestSessionContactFires(t *testing.T) {
 }
 
 func TestCampaignContactFires(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(testsuite.ResetData)
+	defer testsuite.Reset(t, testsuite.ResetData)
 
 	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 	require.NoError(t, err)

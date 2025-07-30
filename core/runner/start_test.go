@@ -17,16 +17,16 @@ import (
 )
 
 func TestStartFlowConcurrency(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(testsuite.ResetData | testsuite.ResetValkey)
+	defer testsuite.Reset(t, testsuite.ResetData|testsuite.ResetValkey)
 
 	// check everything works with big ids
 	rt.DB.MustExec(`ALTER SEQUENCE flows_flowrun_id_seq RESTART WITH 5000000000;`)
 	rt.DB.MustExec(`ALTER SEQUENCE flows_flowsession_id_seq RESTART WITH 5000000000;`)
 
 	// create a flow which has a send_broadcast action which will mean handlers grabbing redis connections
-	flow := testdb.InsertFlow(rt, testdb.Org1, testsuite.ReadFile("testdata/broadcast_flow.json"))
+	flow := testdb.InsertFlow(rt, testdb.Org1, testsuite.ReadFile(t, "testdata/broadcast_flow.json"))
 
 	oa := testdb.Org1.Load(rt)
 

@@ -15,9 +15,9 @@ import (
 )
 
 func TestLoadTriggers(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(testsuite.ResetAll)
+	defer testsuite.Reset(t, testsuite.ResetAll)
 
 	rt.DB.MustExec(`DELETE FROM triggers_trigger`)
 	farmersGroup := testdb.InsertContactGroup(rt, testdb.Org1, assets.GroupUUID(uuids.NewV4()), "Farmers", "")
@@ -135,9 +135,9 @@ func TestLoadTriggers(t *testing.T) {
 }
 
 func TestFindMatchingMsgTrigger(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(testsuite.ResetAll)
+	defer testsuite.Reset(t, testsuite.ResetAll)
 
 	rt.DB.MustExec(`DELETE FROM triggers_trigger`)
 
@@ -207,9 +207,9 @@ func TestFindMatchingMsgTrigger(t *testing.T) {
 }
 
 func TestFindMatchingIncomingCallTrigger(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(testsuite.ResetAll)
+	defer testsuite.Reset(t, testsuite.ResetAll)
 
 	doctorsAndNotTestersTriggerID := testdb.InsertIncomingCallTrigger(rt, testdb.Org1, testdb.Favorites, []*testdb.Group{testdb.DoctorsGroup}, []*testdb.Group{testdb.TestersGroup}, nil)
 	doctorsTriggerID := testdb.InsertIncomingCallTrigger(rt, testdb.Org1, testdb.Favorites, []*testdb.Group{testdb.DoctorsGroup}, nil, nil)
@@ -252,9 +252,9 @@ func TestFindMatchingIncomingCallTrigger(t *testing.T) {
 }
 
 func TestFindMatchingMissedCallTrigger(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(testsuite.ResetData)
+	defer testsuite.Reset(t, testsuite.ResetData)
 
 	testdb.InsertCatchallTrigger(rt, testdb.Org1, testdb.SingleMessage, nil, nil, nil)
 
@@ -286,9 +286,9 @@ func TestFindMatchingMissedCallTrigger(t *testing.T) {
 }
 
 func TestFindMatchingNewConversationTrigger(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(testsuite.ResetData)
+	defer testsuite.Reset(t, testsuite.ResetData)
 
 	twilioTriggerID := testdb.InsertNewConversationTrigger(rt, testdb.Org1, testdb.Favorites, testdb.TwilioChannel)
 	noChTriggerID := testdb.InsertNewConversationTrigger(rt, testdb.Org1, testdb.Favorites, nil)
@@ -313,9 +313,9 @@ func TestFindMatchingNewConversationTrigger(t *testing.T) {
 }
 
 func TestFindMatchingReferralTrigger(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(testsuite.ResetData)
+	defer testsuite.Reset(t, testsuite.ResetData)
 
 	fooID := testdb.InsertReferralTrigger(rt, testdb.Org1, testdb.Favorites, "foo", testdb.FacebookChannel)
 	barID := testdb.InsertReferralTrigger(rt, testdb.Org1, testdb.Favorites, "bar", nil)
@@ -348,9 +348,9 @@ func TestFindMatchingReferralTrigger(t *testing.T) {
 }
 
 func TestFindMatchingOptInTrigger(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(testsuite.ResetData)
+	defer testsuite.Reset(t, testsuite.ResetData)
 
 	twilioTriggerID := testdb.InsertOptInTrigger(rt, testdb.Org1, testdb.Favorites, testdb.TwilioChannel)
 	noChTriggerID := testdb.InsertOptInTrigger(rt, testdb.Org1, testdb.Favorites, nil)
@@ -375,9 +375,9 @@ func TestFindMatchingOptInTrigger(t *testing.T) {
 }
 
 func TestFindMatchingOptOutTrigger(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(testsuite.ResetData)
+	defer testsuite.Reset(t, testsuite.ResetData)
 
 	twilioTriggerID := testdb.InsertOptOutTrigger(rt, testdb.Org1, testdb.Favorites, testdb.TwilioChannel)
 	noChTriggerID := testdb.InsertOptOutTrigger(rt, testdb.Org1, testdb.Favorites, nil)
@@ -402,9 +402,9 @@ func TestFindMatchingOptOutTrigger(t *testing.T) {
 }
 
 func TestArchiveContactTriggers(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(testsuite.ResetAll)
+	defer testsuite.Reset(t, testsuite.ResetAll)
 
 	everybodyID := testdb.InsertKeywordTrigger(rt, testdb.Org1, testdb.Favorites, []string{"join"}, models.MatchFirst, nil, nil, nil)
 	cathyOnly1ID := testdb.InsertScheduledTrigger(rt, testdb.Org1, testdb.Favorites, testdb.InsertSchedule(rt, testdb.Org1, models.RepeatPeriodMonthly, time.Now()), nil, nil, []*testdb.Contact{testdb.Cathy})

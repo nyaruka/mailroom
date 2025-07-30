@@ -12,9 +12,9 @@ import (
 )
 
 func TestFlowEntered(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(testsuite.ResetAll)
+	defer testsuite.Reset(t, testsuite.ResetAll)
 
 	oa := testdb.Org1.Load(rt)
 

@@ -16,7 +16,7 @@ import (
 )
 
 func TestDeindex(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer func() {
 		rt.DB.MustExec(`UPDATE orgs_org SET is_active = true WHERE id = $1`, testdb.Org1.ID)
@@ -24,7 +24,7 @@ func TestDeindex(t *testing.T) {
 
 	rt.DB.MustExec(`UPDATE orgs_org SET is_active = false WHERE id = $1`, testdb.Org1.ID)
 
-	defer testsuite.Reset(testsuite.ResetElastic | testsuite.ResetValkey)
+	defer testsuite.Reset(t, testsuite.ResetElastic | testsuite.ResetValkey)
 
 	testsuite.RunWebTests(t, ctx, rt, "testdata/deindex.json", testsuite.ResetNone)
 
@@ -34,9 +34,9 @@ func TestDeindex(t *testing.T) {
 }
 
 func TestMetrics(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(testsuite.ResetAll)
+	defer testsuite.Reset(t, testsuite.ResetAll)
 
 	promToken := "2d26a50841ff48237238bbdd021150f6a33a4196"
 	rt.DB.MustExec(`UPDATE orgs_org SET prometheus_token = $1 WHERE id = $2`, promToken, testdb.Org1.ID)

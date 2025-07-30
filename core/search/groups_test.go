@@ -14,9 +14,9 @@ import (
 )
 
 func TestSmartGroups(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(testsuite.ResetAll)
+	defer testsuite.Reset(t, testsuite.ResetAll)
 
 	// insert an event on our campaign
 	newEvent := testdb.InsertCampaignFlowPoint(rt, testdb.RemindersCampaign, testdb.Favorites, testdb.JoinedField, 1000, "W")
@@ -30,7 +30,7 @@ func TestSmartGroups(t *testing.T) {
 		testdb.Bob.ID,
 	)
 
-	testsuite.ReindexElastic(ctx)
+	testsuite.ReindexElastic(t)
 
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshCampaigns|models.RefreshGroups)
 	assert.NoError(t, err)

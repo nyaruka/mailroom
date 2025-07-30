@@ -12,9 +12,9 @@ import (
 )
 
 func TestChannels(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(testsuite.ResetAll)
+	defer testsuite.Reset(t, testsuite.ResetAll)
 
 	// add some tel specific config to channel 2
 	rt.DB.MustExec(`UPDATE channels_channel SET config = '{"matching_prefixes": ["250", "251"], "allow_international": true}' WHERE id = $1`, testdb.VonageChannel.ID)
@@ -98,9 +98,9 @@ func TestChannels(t *testing.T) {
 }
 
 func TestGetChannelByID(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(testsuite.ResetAll)
+	defer testsuite.Reset(t, testsuite.ResetAll)
 
 	ch, err := models.GetChannelByID(ctx, rt.DB.DB, testdb.TwilioChannel.ID)
 	assert.NoError(t, err)
@@ -113,9 +113,9 @@ func TestGetChannelByID(t *testing.T) {
 }
 
 func TestGetAndroidChannelsToSync(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(testsuite.ResetData)
+	defer testsuite.Reset(t, testsuite.ResetData)
 
 	testChannel1 := testdb.InsertChannel(rt, testdb.Org1, "A", "Android 1", "123", []string{"tel"}, "SR", map[string]any{"FCM_ID": ""})
 	testChannel2 := testdb.InsertChannel(rt, testdb.Org1, "A", "Android 2", "234", []string{"tel"}, "SR", map[string]any{"FCM_ID": "FCMID2"})

@@ -16,11 +16,11 @@ import (
 )
 
 func TestOptinRequested(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	defer testsuite.Reset(testsuite.ResetAll)
+	defer testsuite.Reset(t, testsuite.ResetAll)
 
 	optIn := testdb.InsertOptIn(rt, testdb.Org1, "Jokes")
 	models.FlushCache()

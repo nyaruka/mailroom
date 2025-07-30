@@ -18,9 +18,9 @@ import (
 )
 
 func TestLoadOrg(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(testsuite.ResetAll)
+	defer testsuite.Reset(t, testsuite.ResetAll)
 
 	tz, _ := time.LoadLocation("America/Los_Angeles")
 
@@ -62,9 +62,9 @@ func TestLoadOrg(t *testing.T) {
 }
 
 func TestGetOrgIDFromUUID(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(testsuite.ResetAll)
+	defer testsuite.Reset(t, testsuite.ResetAll)
 
 	// mark org 2 deleted
 	rt.DB.MustExec(`UPDATE orgs_org SET is_active = FALSE WHERE id = $1`, testdb.Org2.ID)
@@ -81,9 +81,9 @@ func TestGetOrgIDFromUUID(t *testing.T) {
 }
 
 func TestEmailService(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(testsuite.ResetAll)
+	defer testsuite.Reset(t, testsuite.ResetAll)
 
 	// make org 2 a child of org 1
 	rt.DB.MustExec(`UPDATE orgs_org SET parent_id = $2 WHERE id = $1`, testdb.Org2.ID, testdb.Org1.ID)
@@ -124,9 +124,9 @@ func TestEmailService(t *testing.T) {
 }
 
 func TestStoreAttachment(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(testsuite.ResetStorage)
+	defer testsuite.Reset(t, testsuite.ResetStorage)
 
 	image, err := os.Open("testdata/test.jpg")
 	require.NoError(t, err)
@@ -145,9 +145,9 @@ func TestStoreAttachment(t *testing.T) {
 }
 
 func TestGetOutboxCounts(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(testsuite.ResetData)
+	defer testsuite.Reset(t, testsuite.ResetData)
 
 	rt.DB.MustExec(`INSERT INTO orgs_itemcount(org_id, scope, count, is_squashed) VALUES ($1, 'msgs:folder:O', -1, FALSE)`, testdb.Org1.ID)
 	rt.DB.MustExec(`INSERT INTO orgs_itemcount(org_id, scope, count, is_squashed) VALUES ($1, 'msgs:folder:O', 2, FALSE)`, testdb.Org1.ID)

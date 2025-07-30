@@ -13,9 +13,9 @@ import (
 )
 
 func TestBulkSessionExpireTask(t *testing.T) {
-	_, rt := testsuite.Runtime()
+	_, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(testsuite.ResetData)
+	defer testsuite.Reset(t, testsuite.ResetData)
 
 	twilioCallID := testdb.InsertCall(rt, testdb.Org1, testdb.TwilioChannel, testdb.Alexandra)
 

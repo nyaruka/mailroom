@@ -12,7 +12,7 @@ import (
 )
 
 func TestBulkQueryBatches(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer rt.DB.MustExec(`DROP TABLE foo;`)
 
@@ -62,7 +62,7 @@ func TestBulkQueryBatches(t *testing.T) {
 }
 
 func TestJSONB(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer rt.DB.MustExec(`DROP TABLE foo;`)
 

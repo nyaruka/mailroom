@@ -20,7 +20,7 @@ func TestSpecVersion(t *testing.T) {
 }
 
 func TestReadFlow(t *testing.T) {
-	_, rt := testsuite.Runtime()
+	_, rt := testsuite.Runtime(t)
 
 	// try to read empty definition
 	flow, err := goflow.ReadFlow(rt.Config, []byte(`{}`))
@@ -53,7 +53,7 @@ func TestCloneDefinition(t *testing.T) {
 }
 
 func TestMigrateDefinition(t *testing.T) {
-	_, rt := testsuite.Runtime()
+	_, rt := testsuite.Runtime(t)
 
 	uuids.SetGenerator(uuids.NewSeededGenerator(12345, time.Now))
 	defer uuids.SetGenerator(uuids.DefaultGenerator)
@@ -61,7 +61,7 @@ func TestMigrateDefinition(t *testing.T) {
 	versions := []string{"13.0.0", "13.1.0", "13.2.0", "13.3.0", "13.4.0", "13.5.0", "13.6.0", "13.6.1", "14.0.0", "14.1.0", "14.2.0", "14.3.0"}
 	flowDefs := make(map[string][]byte, len(versions))
 	for _, version := range versions {
-		flowDefs[version] = testsuite.ReadFile("testdata/migrate/" + version + ".json")
+		flowDefs[version] = testsuite.ReadFile(t, "testdata/migrate/"+version+".json")
 	}
 
 	// test migrating one version at a time

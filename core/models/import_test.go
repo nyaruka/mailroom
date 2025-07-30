@@ -13,9 +13,9 @@ import (
 )
 
 func TestLoadContactImport(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(testsuite.ResetData)
+	defer testsuite.Reset(t, testsuite.ResetData)
 
 	oa := testdb.Org1.Load(rt)
 

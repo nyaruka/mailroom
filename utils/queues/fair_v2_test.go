@@ -13,14 +13,14 @@ import (
 )
 
 func TestFair(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 	vc := rt.VK.Get()
 	defer vc.Close()
 
 	dates.SetNowFunc(dates.NewSequentialNow(time.Date(2022, 1, 1, 12, 1, 2, 123456789, time.UTC), time.Second))
 	defer dates.SetNowFunc(time.Now)
 
-	defer testsuite.Reset(testsuite.ResetValkey)
+	defer testsuite.Reset(t, testsuite.ResetValkey)
 
 	var q queues.Fair = queues.NewFair("test", 10)
 	assert.Equal(t, "test", fmt.Sprint(q))

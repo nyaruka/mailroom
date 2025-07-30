@@ -22,9 +22,9 @@ import (
 )
 
 func TestBroadcastsFromEvents(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(testsuite.ResetAll)
+	defer testsuite.Reset(t, testsuite.ResetAll)
 
 	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 	require.NoError(t, err)
@@ -154,7 +154,7 @@ func TestBroadcastsFromEvents(t *testing.T) {
 	time.Sleep(10 * time.Millisecond)
 
 	for i, tc := range tcs {
-		testsuite.ReindexElastic(ctx)
+		testsuite.ReindexElastic(t)
 
 		// handle our start task
 		event := events.NewBroadcastCreated(tc.translations, tc.baseLanguage, tc.groups, tc.contacts, "", tc.urns)
@@ -179,11 +179,11 @@ func TestBroadcastsFromEvents(t *testing.T) {
 }
 
 func TestSendBroadcastTask(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	defer testsuite.Reset(testsuite.ResetAll)
+	defer testsuite.Reset(t, testsuite.ResetAll)
 
 	polls := testdb.InsertOptIn(rt, testdb.Org1, "Polls")
 
@@ -197,7 +197,7 @@ func TestSendBroadcastTask(t *testing.T) {
 	rt.DB.MustExec(`UPDATE contacts_contact SET language = 'spa', modified_on = NOW() WHERE id = $1`, testdb.George.ID)
 	rt.DB.MustExec(`UPDATE contacts_contact SET last_seen_on = NOW() - interval '45 days', modified_on = NOW() WHERE id = $1`, testdb.Bob.ID)
 
-	testsuite.ReindexElastic(ctx)
+	testsuite.ReindexElastic(t)
 
 	tcs := []struct {
 		translations    flows.BroadcastTranslations

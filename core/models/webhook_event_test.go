@@ -13,7 +13,7 @@ import (
 )
 
 func TestWebhookEvents(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer func() {
 		rt.DB.MustExec(`DELETE FROM api_webhookevent`)

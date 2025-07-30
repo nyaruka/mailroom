@@ -12,9 +12,9 @@ import (
 )
 
 func TestContactFieldChanged(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(testsuite.ResetAll)
+	defer testsuite.Reset(t, testsuite.ResetAll)
 
 	gender := assets.NewFieldReference("gender", "Gender")
 	age := assets.NewFieldReference("age", "Age")
