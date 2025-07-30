@@ -20,9 +20,9 @@ import (
 func TestDeindexContacts(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
 
-	defer testsuite.Reset(testsuite.ResetAll)
+	defer testsuite.Reset(t, testsuite.ResetAll)
 
-	testsuite.ReindexElastic(ctx)
+	testsuite.ReindexElastic(t)
 
 	// ensures changes are visible in elastic
 	refreshElastic := func() {

@@ -166,7 +166,7 @@ func RunWebTests(t *testing.T, ctx context.Context, rt *runtime.Runtime, truthFi
 		}
 
 		if reset != 0 {
-			Reset(reset)
+			Reset(t, reset)
 		}
 	}
 

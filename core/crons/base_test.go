@@ -54,7 +54,7 @@ func TestStats(t *testing.T) {
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	defer testsuite.Reset(testsuite.ResetValkey)
+	defer testsuite.Reset(t, testsuite.ResetValkey)
 
 	cron := &TestCron{}
 	crons.Register("test1", cron)

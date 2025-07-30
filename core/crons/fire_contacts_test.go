@@ -25,7 +25,7 @@ func TestFireContacts(t *testing.T) {
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	defer testsuite.Reset(testsuite.ResetData | testsuite.ResetValkey)
+	defer testsuite.Reset(t, testsuite.ResetData | testsuite.ResetValkey)
 
 	testdb.InsertContactFire(rt, testdb.Org1, testdb.Cathy, models.ContactFireTypeWaitTimeout, "", time.Now().Add(3*time.Second), "f72b48df-5f6d-4e4f-955a-f5fb29ccb97b")
 	testdb.InsertContactFire(rt, testdb.Org1, testdb.Cathy, models.ContactFireTypeWaitExpiration, "", time.Now().Add(-1*time.Second), "f72b48df-5f6d-4e4f-955a-f5fb29ccb97b")

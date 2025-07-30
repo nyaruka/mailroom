@@ -19,7 +19,7 @@ import (
 func TestSessionTriggered(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
 
-	defer testsuite.Reset(testsuite.ResetAll)
+	defer testsuite.Reset(t, testsuite.ResetAll)
 
 	groupRef := &assets.GroupReference{UUID: testdb.TestersGroup.UUID}
 
@@ -85,7 +85,7 @@ func TestSessionTriggered(t *testing.T) {
 func TestQuerySessionTriggered(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
 
-	defer testsuite.Reset(testsuite.ResetAll)
+	defer testsuite.Reset(t, testsuite.ResetAll)
 
 	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 	assert.NoError(t, err)

@@ -21,7 +21,7 @@ import (
 func TestStarts(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
 
-	defer testsuite.Reset(testsuite.ResetData)
+	defer testsuite.Reset(t, testsuite.ResetData)
 
 	startID := testdb.InsertFlowStart(rt, testdb.Org1, testdb.Admin, testdb.SingleMessage, []*testdb.Contact{testdb.Cathy, testdb.Bob})
 

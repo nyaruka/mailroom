@@ -122,7 +122,7 @@ func TestGetContactIDsForQueryPage(t *testing.T) {
 func TestGetContactIDsForQuery(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
 
-	defer testsuite.Reset(testsuite.ResetData | testsuite.ResetElastic)
+	defer testsuite.Reset(t, testsuite.ResetData|testsuite.ResetElastic)
 
 	oa, err := models.GetOrgAssets(ctx, rt, 1)
 	require.NoError(t, err)
@@ -138,7 +138,7 @@ func TestGetContactIDsForQuery(t *testing.T) {
 	testdb.InsertContact(rt, testdb.Org2, flows.NewContactUUID(), "Bob", i18n.NilLanguage, models.ContactStatusActive)
 	testdb.InsertContact(rt, testdb.Org2, flows.NewContactUUID(), "Cylon 0", i18n.NilLanguage, models.ContactStatusActive)
 
-	testsuite.ReindexElastic(ctx)
+	testsuite.ReindexElastic(t)
 
 	tcs := []struct {
 		group            *testdb.Group

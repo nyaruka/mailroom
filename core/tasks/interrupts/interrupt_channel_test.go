@@ -17,7 +17,7 @@ import (
 func TestInterruptChannel(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
 
-	defer testsuite.Reset(testsuite.ResetData | testsuite.ResetValkey)
+	defer testsuite.Reset(t, testsuite.ResetData | testsuite.ResetValkey)
 
 	// twilio call
 	twilioCallID := testdb.InsertCall(rt, testdb.Org1, testdb.TwilioChannel, testdb.Alexandra)

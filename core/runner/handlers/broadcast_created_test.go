@@ -18,7 +18,7 @@ import (
 func TestBroadcastCreated(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
 
-	defer testsuite.Reset(testsuite.ResetAll)
+	defer testsuite.Reset(t, testsuite.ResetAll)
 
 	// TODO: test contacts, groups
 

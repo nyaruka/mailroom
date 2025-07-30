@@ -28,7 +28,7 @@ func TestResponseForSprint(t *testing.T) {
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	defer testsuite.Reset(testsuite.ResetAll)
+	defer testsuite.Reset(t, testsuite.ResetAll)
 
 	mockVonage := httpx.NewMockRequestor(map[string][]*httpx.MockResponse{
 		"https://api.nexmo.com/v1/calls": {

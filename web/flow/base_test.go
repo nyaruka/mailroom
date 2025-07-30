@@ -40,8 +40,8 @@ func TestStart(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
 
 	// TODO TestTwilioIVR blows up without full reset so some prior test isn't cleaning up after itself
-	//defer testsuite.Reset(testsuite.ResetData | testsuite.ResetValkey)
-	defer testsuite.Reset(testsuite.ResetAll)
+	//defer testsuite.Reset(t, testsuite.ResetData | testsuite.ResetValkey)
+	defer testsuite.Reset(t, testsuite.ResetAll)
 
 	testsuite.RunWebTests(t, ctx, rt, "testdata/start.json", testsuite.ResetValkey)
 }

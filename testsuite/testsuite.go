@@ -3,27 +3,26 @@ package testsuite
 import (
 	"context"
 	"fmt"
-	"io"
 	"log/slog"
 	"maps"
 	"os"
 	"os/exec"
 	"path"
+	"testing"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/elastic/go-elasticsearch/v8"
 	"github.com/gomodule/redigo/redis"
 	"github.com/jmoiron/sqlx"
 	"github.com/nyaruka/gocommon/aws/cwatch"
 	"github.com/nyaruka/gocommon/aws/dynamo"
+	"github.com/nyaruka/gocommon/aws/dynamo/dyntest"
 	"github.com/nyaruka/gocommon/aws/s3x"
-	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/rp-indexer/v10/indexers"
 	ixruntime "github.com/nyaruka/rp-indexer/v10/runtime"
 	"github.com/nyaruka/vkutil/assertvk"
+	"github.com/stretchr/testify/require"
 )
 
 var _db *sqlx.DB
@@ -48,25 +47,25 @@ const (
 )
 
 // Reset clears out both our database and redis DB
-func Reset(what ResetFlag) {
-	ctx, rt := Runtime() // TODO pass rt from test?
+func Reset(t *testing.T, what ResetFlag) {
+	_, rt := Runtime() // TODO pass rt from test?
 
 	if what&ResetDB > 0 {
-		resetDB()
+		resetDB(t)
 	} else if what&ResetData > 0 {
-		resetData()
+		resetData(t)
 	}
 	if what&ResetValkey > 0 {
-		resetValkey()
+		resetValkey(t)
 	}
 	if what&ResetStorage > 0 {
-		resetStorage(ctx, rt)
+		resetStorage(t, rt)
 	}
 	if what&ResetElastic > 0 {
-		resetElastic(ctx, rt)
+		resetElastic(t, rt)
 	}
 	if what&ResetDynamo > 0 {
-		resetDynamo(ctx, rt)
+		resetDynamo(t, rt)
 	}
 
 	models.FlushCache()
@@ -117,15 +116,16 @@ func Runtime() (context.Context, *runtime.Runtime) {
 }
 
 // reindexes data changes to Elastic
-func ReindexElastic(ctx context.Context) {
+func ReindexElastic(t *testing.T) {
 	db := getDB()
 	es := getES()
 
 	contactsIndexer := indexers.NewContactIndexer(elasticURL, elasticContactsIndex, 1, 1, 100)
-	contactsIndexer.Index(&ixruntime.Runtime{DB: db.DB}, false, false)
+	_, err := contactsIndexer.Index(&ixruntime.Runtime{DB: db.DB}, false, false)
+	require.NoError(t, err)
 
-	_, err := es.Indices.Refresh().Index(elasticContactsIndex).Do(ctx)
-	noError(err)
+	_, err = es.Indices.Refresh().Index(elasticContactsIndex).Do(t.Context())
+	require.NoError(t, err)
 }
 
 // returns an open test database pool
@@ -173,7 +173,9 @@ func getES() *elasticsearch.TypedClient {
 // then copying the mailroom_test.dump file to your mailroom root directory
 //
 //	% cp mailroom_test.dump ../mailroom
-func resetDB() {
+func resetDB(t *testing.T) {
+	t.Helper()
+
 	db := getDB()
 	db.MustExec("DROP OWNED BY mailroom_test CASCADE")
 
@@ -182,7 +184,7 @@ func resetDB() {
 
 func loadTestDump() {
 	dump, err := os.Open(absPath("./testsuite/testdata/postgres.dump"))
-	must(err)
+	noError(err)
 	defer dump.Close()
 
 	cmd := exec.Command("docker", "exec", "-i", postgresContainerName, "pg_restore", "-d", "mailroom_test", "-U", "mailroom_test")
@@ -215,63 +217,47 @@ func absPath(p string) string {
 }
 
 // resets our valkey database
-func resetValkey() {
+func resetValkey(t *testing.T) {
+	t.Helper()
+
 	assertvk.FlushDB()
 }
 
-func resetStorage(ctx context.Context, rt *runtime.Runtime) {
-	rt.S3.EmptyBucket(ctx, rt.Config.S3AttachmentsBucket)
-	rt.S3.EmptyBucket(ctx, rt.Config.S3SessionsBucket)
+func resetStorage(t *testing.T, rt *runtime.Runtime) {
+	t.Helper()
+
+	err := rt.S3.EmptyBucket(t.Context(), rt.Config.S3AttachmentsBucket)
+	require.NoError(t, err)
+	err = rt.S3.EmptyBucket(t.Context(), rt.Config.S3SessionsBucket)
+	require.NoError(t, err)
 }
 
 // clears indexed data in Elastic
-func resetElastic(ctx context.Context, rt *runtime.Runtime) {
-	exists, err := rt.ES.Indices.ExistsAlias(elasticContactsIndex).Do(ctx)
-	noError(err)
+func resetElastic(t *testing.T, rt *runtime.Runtime) {
+	t.Helper()
+
+	exists, err := rt.ES.Indices.ExistsAlias(elasticContactsIndex).Do(t.Context())
+	require.NoError(t, err)
 
 	if exists {
 		// get any indexes for the contacts alias
-		ar, err := rt.ES.Indices.GetAlias().Name(elasticContactsIndex).Do(ctx)
-		noError(err)
+		ar, err := rt.ES.Indices.GetAlias().Name(elasticContactsIndex).Do(t.Context())
+		require.NoError(t, err)
 
 		// and delete them
 		for index := range maps.Keys(ar) {
-			_, err := rt.ES.Indices.Delete(index).Do(ctx)
-			noError(err)
+			_, err := rt.ES.Indices.Delete(index).Do(t.Context())
+			require.NoError(t, err)
 		}
 	}
 
-	ReindexElastic(ctx)
+	ReindexElastic(t)
 }
 
-func resetDynamo(ctx context.Context, rt *runtime.Runtime) {
-	// TODO rework to use dyntest.CreateTables
+func resetDynamo(t *testing.T, rt *runtime.Runtime) {
+	t.Helper()
 
-	tablesFile, err := os.Open(absPath("./testsuite/testdata/dynamo.json"))
-	noError(err)
-	defer tablesFile.Close()
-
-	tablesJSON, err := io.ReadAll(tablesFile)
-	noError(err)
-
-	inputs := []*dynamodb.CreateTableInput{}
-	jsonx.MustUnmarshal(tablesJSON, &inputs)
-
-	client, err := dynamo.NewClient(rt.Config.AWSAccessKeyID, rt.Config.AWSSecretAccessKey, rt.Config.AWSRegion, rt.Config.DynamoEndpoint)
-	noError(err)
-
-	for _, input := range inputs {
-		input.TableName = aws.String(rt.Config.DynamoTablePrefix + *input.TableName)
-
-		// delete table if it exists
-		if _, err := client.DescribeTable(ctx, &dynamodb.DescribeTableInput{TableName: input.TableName}); err == nil {
-			_, err := client.DeleteTable(ctx, &dynamodb.DeleteTableInput{TableName: input.TableName})
-			must(err)
-		}
-
-		_, err := client.CreateTable(ctx, input)
-		must(err)
-	}
+	dyntest.CreateTables(t, rt.Dynamo, absPath("./testsuite/testdata/dynamo.json"))
 }
 
 var sqlResetTestData = `
@@ -349,7 +335,9 @@ ALTER SEQUENCE campaigns_campaignevent_id_seq RESTART WITH 30000;`
 
 // removes contact data not in the test database dump. Note that this function can't
 // undo changes made to the contact data in the test database dump.
-func resetData() {
+func resetData(t *testing.T) {
+	t.Helper()
+
 	db := getDB()
 	db.MustExec(sqlResetTestData)
 

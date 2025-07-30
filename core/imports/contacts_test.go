@@ -30,7 +30,7 @@ import (
 func TestContactImports(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
 
-	defer testsuite.Reset(testsuite.ResetAll)
+	defer testsuite.Reset(t, testsuite.ResetAll)
 
 	// start with no contacts or URNs
 	rt.DB.MustExec(`DELETE FROM contacts_contacturn`)

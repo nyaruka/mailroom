@@ -13,7 +13,7 @@ import (
 func TestContactNameChanged(t *testing.T) {
 	ctx, rt := testsuite.Runtime()
 
-	defer testsuite.Reset(testsuite.ResetAll)
+	defer testsuite.Reset(t, testsuite.ResetAll)
 
 	tcs := []handlers.TestCase{
 		{
