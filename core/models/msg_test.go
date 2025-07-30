@@ -23,7 +23,7 @@ import (
 )
 
 func TestNewOutgoingFlowMsg(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetData | testsuite.ResetValkey)
 
@@ -248,7 +248,7 @@ func TestNewOutgoingFlowMsg(t *testing.T) {
 }
 
 func TestGetMessagesByID(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetData)
 
@@ -278,7 +278,7 @@ func TestGetMessagesByID(t *testing.T) {
 }
 
 func TestResendMessages(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetAll)
 
@@ -334,7 +334,7 @@ func TestResendMessages(t *testing.T) {
 }
 
 func TestFailMessages(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetData)
 
@@ -356,7 +356,7 @@ func TestFailMessages(t *testing.T) {
 }
 
 func TestUpdateMessageDeletedBySender(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetData)
 
@@ -381,7 +381,7 @@ func TestUpdateMessageDeletedBySender(t *testing.T) {
 }
 
 func TestGetMsgRepetitions(t *testing.T) {
-	_, rt := testsuite.Runtime()
+	_, rt := testsuite.Runtime(t)
 	vc := rt.VK.Get()
 	defer vc.Close()
 
@@ -421,7 +421,7 @@ func TestGetMsgRepetitions(t *testing.T) {
 }
 
 func TestNormalizeAttachment(t *testing.T) {
-	_, rt := testsuite.Runtime()
+	_, rt := testsuite.Runtime(t)
 
 	rt.Config.AttachmentDomain = "foo.bar.com"
 	defer func() { rt.Config.AttachmentDomain = "" }()
@@ -443,7 +443,7 @@ func TestNormalizeAttachment(t *testing.T) {
 }
 
 func TestMarkMessages(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetData)
 
@@ -488,7 +488,7 @@ func TestMarkMessages(t *testing.T) {
 }
 
 func TestNewOutgoingIVR(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 	require.NoError(t, err)
@@ -517,7 +517,7 @@ func TestNewOutgoingIVR(t *testing.T) {
 }
 
 func TestCreateMsgOut(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetData)
 
@@ -591,7 +591,7 @@ func TestCreateMsgOut(t *testing.T) {
 }
 
 func TestMsgTemplating(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetData)
 

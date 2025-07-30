@@ -11,7 +11,7 @@ import (
 )
 
 func TestScheduleCampaignEvent(t *testing.T) {
-	_, rt := testsuite.Runtime()
+	_, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetAll)
 

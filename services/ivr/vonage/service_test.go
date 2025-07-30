@@ -24,7 +24,7 @@ import (
 )
 
 func TestResponseForSprint(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 	vc := rt.VK.Get()
 	defer vc.Close()
 
@@ -148,7 +148,7 @@ func TestResponseForSprint(t *testing.T) {
 }
 
 func TestRedactValues(t *testing.T) {
-	_, rt := testsuite.Runtime()
+	_, rt := testsuite.Runtime(t)
 
 	oa := testdb.Org1.Load(rt)
 	ch := oa.ChannelByUUID(testdb.VonageChannel.UUID)

@@ -13,7 +13,7 @@ import (
 )
 
 func TestContactFires(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetData)
 
@@ -54,7 +54,7 @@ func TestContactFires(t *testing.T) {
 }
 
 func TestSessionContactFires(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetData)
 
@@ -97,7 +97,7 @@ func TestSessionContactFires(t *testing.T) {
 }
 
 func TestCampaignContactFires(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetData)
 

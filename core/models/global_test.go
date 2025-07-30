@@ -11,7 +11,7 @@ import (
 )
 
 func TestLoadGlobals(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer func() {
 		rt.DB.MustExec(`UPDATE globals_global SET value = 'Nyaruka' WHERE org_id = $1 AND key = $2`, testdb.Org1.ID, "org_name")

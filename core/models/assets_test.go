@@ -15,7 +15,7 @@ import (
 )
 
 func TestAssets(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer models.FlushCache()
 
@@ -60,7 +60,7 @@ func TestAssets(t *testing.T) {
 }
 
 func TestCloneForSimulation(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 	require.NoError(t, err)

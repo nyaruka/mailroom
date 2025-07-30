@@ -21,7 +21,7 @@ import (
 )
 
 func TestIncidentWebhooksUnhealthy(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 	vc := rt.VK.Get()
 	defer vc.Close()
 
@@ -57,7 +57,7 @@ func TestIncidentWebhooksUnhealthy(t *testing.T) {
 }
 
 func TestGetOpenIncidents(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetData)
 
@@ -98,7 +98,7 @@ func TestGetOpenIncidents(t *testing.T) {
 }
 
 func TestWebhookNode(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetValkey)
 

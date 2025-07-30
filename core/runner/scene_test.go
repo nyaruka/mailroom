@@ -23,7 +23,7 @@ import (
 )
 
 func TestSessionCreationAndUpdating(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	dates.SetNowFunc(dates.NewSequentialNow(time.Date(2025, 2, 25, 16, 45, 0, 0, time.UTC), time.Second))
 	random.SetGenerator(random.NewSeededGenerator(123))
@@ -114,7 +114,7 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 }
 
 func TestSingleSprintSession(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetValkey | testsuite.ResetData)
 
@@ -141,7 +141,7 @@ func TestSingleSprintSession(t *testing.T) {
 }
 
 func TestSessionWithSubflows(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	dates.SetNowFunc(dates.NewSequentialNow(time.Date(2025, 2, 25, 16, 45, 0, 0, time.UTC), time.Second))
 	random.SetGenerator(random.NewSeededGenerator(123))
@@ -209,7 +209,7 @@ func TestSessionWithSubflows(t *testing.T) {
 }
 
 func TestSessionFailedStart(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	dates.SetNowFunc(dates.NewSequentialNow(time.Date(2025, 2, 25, 16, 45, 0, 0, time.UTC), time.Second))
 	random.SetGenerator(random.NewSeededGenerator(123))
@@ -243,7 +243,7 @@ func TestSessionFailedStart(t *testing.T) {
 }
 
 func TestFlowStats(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 	vc := rt.VK.Get()
 	defer vc.Close()
 
@@ -354,7 +354,7 @@ func TestFlowStats(t *testing.T) {
 }
 
 func TestResumeSession(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetData | testsuite.ResetStorage)
 

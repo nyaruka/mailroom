@@ -7,37 +7,37 @@ import (
 )
 
 func TestChangeLanguage(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	testsuite.RunWebTests(t, ctx, rt, "testdata/change_language.json", testsuite.ResetNone)
 }
 
 func TestClone(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	testsuite.RunWebTests(t, ctx, rt, "testdata/clone.json", testsuite.ResetNone)
 }
 
 func TestInspect(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	testsuite.RunWebTests(t, ctx, rt, "testdata/inspect.json", testsuite.ResetNone)
 }
 
 func TestInterrupt(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	testsuite.RunWebTests(t, ctx, rt, "testdata/interrupt.json", testsuite.ResetValkey)
 }
 
 func TestMigrate(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	testsuite.RunWebTests(t, ctx, rt, "testdata/migrate.json", testsuite.ResetNone)
 }
 
 func TestStart(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	// TODO TestTwilioIVR blows up without full reset so some prior test isn't cleaning up after itself
 	//defer testsuite.Reset(t, testsuite.ResetData | testsuite.ResetValkey)
@@ -47,7 +47,7 @@ func TestStart(t *testing.T) {
 }
 
 func TestStartPreview(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	testsuite.RunWebTests(t, ctx, rt, "testdata/start_preview.json", testsuite.ResetNone)
 }

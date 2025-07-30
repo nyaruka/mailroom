@@ -12,7 +12,7 @@ import (
 )
 
 func TestPopulateQueryGroupTask(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetAll)
 

@@ -266,7 +266,7 @@ var transactionRejectedResponse = `{
 }`
 
 func TestAirtimeTransferred(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetAll)
 	defer httpx.SetRequestor(httpx.DefaultRequestor)

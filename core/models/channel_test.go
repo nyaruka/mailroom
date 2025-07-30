@@ -12,7 +12,7 @@ import (
 )
 
 func TestChannels(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetAll)
 
@@ -98,7 +98,7 @@ func TestChannels(t *testing.T) {
 }
 
 func TestGetChannelByID(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetAll)
 
@@ -113,7 +113,7 @@ func TestGetChannelByID(t *testing.T) {
 }
 
 func TestGetAndroidChannelsToSync(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetData)
 

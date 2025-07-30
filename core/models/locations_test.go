@@ -13,7 +13,7 @@ import (
 )
 
 func TestLocations(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer rt.DB.MustExec(`DELETE FROM locations_boundaryalias WHERE created_by_id = 2`)
 

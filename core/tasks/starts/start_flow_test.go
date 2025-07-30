@@ -15,7 +15,7 @@ import (
 )
 
 func TestStartFlowTask(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetAll)
 
@@ -248,7 +248,7 @@ func TestStartFlowTask(t *testing.T) {
 }
 
 func TestStartFlowTaskNonPersistedStart(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetData)
 

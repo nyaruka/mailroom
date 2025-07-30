@@ -18,7 +18,7 @@ import (
 )
 
 func TestLoadOrg(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetAll)
 
@@ -62,7 +62,7 @@ func TestLoadOrg(t *testing.T) {
 }
 
 func TestGetOrgIDFromUUID(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetAll)
 
@@ -81,7 +81,7 @@ func TestGetOrgIDFromUUID(t *testing.T) {
 }
 
 func TestEmailService(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetAll)
 
@@ -124,7 +124,7 @@ func TestEmailService(t *testing.T) {
 }
 
 func TestStoreAttachment(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetStorage)
 
@@ -145,7 +145,7 @@ func TestStoreAttachment(t *testing.T) {
 }
 
 func TestGetOutboxCounts(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetData)
 

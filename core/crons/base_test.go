@@ -50,7 +50,7 @@ func (c *TestCron) Run(ctx context.Context, rt *runtime.Runtime) (map[string]any
 }
 
 func TestStats(t *testing.T) {
-	_, rt := testsuite.Runtime()
+	_, rt := testsuite.Runtime(t)
 	vc := rt.VK.Get()
 	defer vc.Close()
 

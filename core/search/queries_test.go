@@ -15,7 +15,7 @@ import (
 )
 
 func TestBuildRecipientsQuery(t *testing.T) {
-	_, rt := testsuite.Runtime()
+	_, rt := testsuite.Runtime(t)
 
 	dates.SetNowFunc(dates.NewFixedNow(time.Date(2022, 4, 20, 15, 30, 45, 0, time.UTC)))
 	defer dates.SetNowFunc(time.Now)

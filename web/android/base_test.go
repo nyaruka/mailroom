@@ -8,7 +8,7 @@ import (
 )
 
 func TestEvent(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetData)
 
@@ -16,7 +16,7 @@ func TestEvent(t *testing.T) {
 }
 
 func TestMessage(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetData | testsuite.ResetValkey)
 
@@ -24,7 +24,7 @@ func TestMessage(t *testing.T) {
 }
 
 func TestSync(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetData)
 

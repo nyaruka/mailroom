@@ -19,7 +19,7 @@ import (
 )
 
 func TestCreate(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetAll)
 
@@ -30,7 +30,7 @@ func TestCreate(t *testing.T) {
 }
 
 func TestDeindex(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetElastic)
 
@@ -38,19 +38,19 @@ func TestDeindex(t *testing.T) {
 }
 
 func TestExport(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	testsuite.RunWebTests(t, ctx, rt, "testdata/export.json", testsuite.ResetNone)
 }
 
 func TestExportPreview(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	testsuite.RunWebTests(t, ctx, rt, "testdata/export_preview.json", testsuite.ResetNone)
 }
 
 func TestImport(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetData)
 
@@ -71,7 +71,7 @@ func TestImport(t *testing.T) {
 }
 
 func TestInspect(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetData)
 
@@ -82,7 +82,7 @@ func TestInspect(t *testing.T) {
 }
 
 func TestModify(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetAll)
 
@@ -112,7 +112,7 @@ func TestModify(t *testing.T) {
 }
 
 func TestInterrupt(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetData)
 
@@ -127,13 +127,13 @@ func TestInterrupt(t *testing.T) {
 }
 
 func TestParseQuery(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	testsuite.RunWebTests(t, ctx, rt, "testdata/parse_query.json", testsuite.ResetNone)
 }
 
 func TestPopulateGroup(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetData | testsuite.ResetValkey | testsuite.ResetElastic)
 
@@ -144,19 +144,19 @@ func TestPopulateGroup(t *testing.T) {
 }
 
 func TestSearch(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	testsuite.RunWebTests(t, ctx, rt, "testdata/search.json", testsuite.ResetNone)
 }
 
 func TestURNs(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	testsuite.RunWebTests(t, ctx, rt, "testdata/urns.json", testsuite.ResetNone)
 }
 
 func TestSpecToCreation(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 	require.NoError(t, err)

@@ -14,7 +14,7 @@ import (
 )
 
 func TestInsertAndUpdateRuns(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetData)
 
@@ -77,7 +77,7 @@ func TestInsertAndUpdateRuns(t *testing.T) {
 }
 
 func TestGetContactIDsAtNode(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetData)
 

@@ -9,7 +9,7 @@ import (
 )
 
 func TestTicketAssign(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetData)
 
@@ -22,7 +22,7 @@ func TestTicketAssign(t *testing.T) {
 }
 
 func TestTicketAddNote(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetData)
 
@@ -34,7 +34,7 @@ func TestTicketAddNote(t *testing.T) {
 }
 
 func TestTicketChangeTopic(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetData)
 
@@ -46,7 +46,7 @@ func TestTicketChangeTopic(t *testing.T) {
 }
 
 func TestTicketClose(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetData)
 
@@ -59,7 +59,7 @@ func TestTicketClose(t *testing.T) {
 }
 
 func TestTicketReopen(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetData | testsuite.ResetValkey)
 

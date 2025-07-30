@@ -15,7 +15,7 @@ import (
 )
 
 func TestAirtimeTransfers(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer rt.DB.MustExec(`DELETE FROM airtime_airtimetransfer`)
 

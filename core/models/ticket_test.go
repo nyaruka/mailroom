@@ -15,7 +15,7 @@ import (
 )
 
 func TestTickets(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetData)
 
@@ -89,7 +89,7 @@ func TestTickets(t *testing.T) {
 }
 
 func TestUpdateTicketLastActivity(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetData)
 
@@ -110,7 +110,7 @@ func TestUpdateTicketLastActivity(t *testing.T) {
 }
 
 func TestTicketsAssign(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetData)
 
@@ -154,7 +154,7 @@ func TestTicketsAssign(t *testing.T) {
 }
 
 func TestTicketsAddNote(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetData)
 
@@ -182,7 +182,7 @@ func TestTicketsAddNote(t *testing.T) {
 }
 
 func TestTicketsChangeTopic(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetData)
 
@@ -212,7 +212,7 @@ func TestTicketsChangeTopic(t *testing.T) {
 }
 
 func TestCloseTickets(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetData)
 
@@ -266,7 +266,7 @@ func TestCloseTickets(t *testing.T) {
 }
 
 func TestReopenTickets(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetData)
 
@@ -304,7 +304,7 @@ func TestReopenTickets(t *testing.T) {
 }
 
 func TestTicketRecordReply(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetData)
 

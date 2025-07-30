@@ -16,7 +16,7 @@ import (
 )
 
 func TestDeindex(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer func() {
 		rt.DB.MustExec(`UPDATE orgs_org SET is_active = true WHERE id = $1`, testdb.Org1.ID)
@@ -34,7 +34,7 @@ func TestDeindex(t *testing.T) {
 }
 
 func TestMetrics(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetAll)
 

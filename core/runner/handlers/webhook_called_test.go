@@ -26,7 +26,7 @@ import (
 )
 
 func TestWebhookCalled(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetAll)
 	defer httpx.SetRequestor(httpx.DefaultRequestor)
@@ -113,7 +113,7 @@ func (s *failingWebhookService) Call(request *http.Request) (*httpx.Trace, error
 }
 
 func TestUnhealthyWebhookCalls(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	vc := rt.VK.Get()
 	defer vc.Close()

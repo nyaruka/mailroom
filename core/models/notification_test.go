@@ -15,7 +15,7 @@ import (
 )
 
 func TestTicketNotifications(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetData)
 
@@ -107,7 +107,7 @@ func TestTicketNotifications(t *testing.T) {
 }
 
 func TestImportNotifications(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetData)
 
@@ -129,7 +129,7 @@ func TestImportNotifications(t *testing.T) {
 }
 
 func TestIncidentNotifications(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetData)
 

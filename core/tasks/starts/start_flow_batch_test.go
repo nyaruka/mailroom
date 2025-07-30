@@ -16,7 +16,7 @@ import (
 )
 
 func TestStartFlowBatchTask(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetData | testsuite.ResetValkey)
 
@@ -88,7 +88,7 @@ func TestStartFlowBatchTask(t *testing.T) {
 }
 
 func TestStartFlowBatchTaskNonPersistedStart(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetData)
 

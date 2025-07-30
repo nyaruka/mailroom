@@ -12,7 +12,7 @@ import (
 )
 
 func TestBulkSessionTimeout(t *testing.T) {
-	_, rt := testsuite.Runtime()
+	_, rt := testsuite.Runtime(t)
 	defer testsuite.Reset(t, testsuite.ResetValkey)
 
 	defer dates.SetNowFunc(time.Now)

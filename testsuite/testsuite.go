@@ -48,7 +48,7 @@ const (
 
 // Reset clears out both our database and redis DB
 func Reset(t *testing.T, what ResetFlag) {
-	_, rt := Runtime() // TODO pass rt from test?
+	_, rt := Runtime(t) // TODO pass rt from test?
 
 	if what&ResetDB > 0 {
 		resetDB(t)
@@ -72,7 +72,7 @@ func Reset(t *testing.T, what ResetFlag) {
 }
 
 // Runtime returns the various runtime things a test might need
-func Runtime() (context.Context, *runtime.Runtime) {
+func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 	cfg := runtime.NewDefaultConfig()
 	cfg.DeploymentID = "test"
 	cfg.Port = 8091
@@ -87,23 +87,23 @@ func Runtime() (context.Context, *runtime.Runtime) {
 	cfg.DynamoTablePrefix = "Test"
 
 	dynClient, err := dynamo.NewClient(cfg.AWSAccessKeyID, cfg.AWSSecretAccessKey, cfg.AWSRegion, cfg.DynamoEndpoint)
-	noError(err)
+	require.NoError(t, err)
 
 	s3svc, err := s3x.NewService(cfg.AWSAccessKeyID, cfg.AWSSecretAccessKey, cfg.AWSRegion, cfg.S3Endpoint, cfg.S3Minio)
-	noError(err)
+	require.NoError(t, err)
 
 	cwSvc, err := cwatch.NewService(cfg.AWSAccessKeyID, cfg.AWSSecretAccessKey, cfg.AWSRegion, cfg.CloudwatchNamespace, cfg.DeploymentID)
-	noError(err)
+	require.NoError(t, err)
 
-	dbx := getDB()
+	dbx := getDB(t)
 	rt := &runtime.Runtime{
 		DB:         dbx,
 		ReadonlyDB: dbx.DB,
-		VK:         getRP(),
+		VK:         getRP(t),
 		Queues:     runtime.NewQueues(cfg),
 		Dynamo:     dynClient,
 		S3:         s3svc,
-		ES:         getES(),
+		ES:         getES(t),
 		CW:         cwSvc,
 		Stats:      runtime.NewStatsCollector(),
 		FCM:        &MockFCMClient{ValidTokens: []string{"FCMID3", "FCMID4", "FCMID5"}},
@@ -112,13 +112,15 @@ func Runtime() (context.Context, *runtime.Runtime) {
 
 	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo})))
 
-	return context.Background(), rt
+	return t.Context(), rt
 }
 
 // reindexes data changes to Elastic
 func ReindexElastic(t *testing.T) {
-	db := getDB()
-	es := getES()
+	t.Helper()
+
+	db := getDB(t)
+	es := getES(t)
 
 	contactsIndexer := indexers.NewContactIndexer(elasticURL, elasticContactsIndex, 1, 1, 100)
 	_, err := contactsIndexer.Index(&ixruntime.Runtime{DB: db.DB}, false, false)
@@ -129,38 +131,43 @@ func ReindexElastic(t *testing.T) {
 }
 
 // returns an open test database pool
-func getDB() *sqlx.DB {
+func getDB(t *testing.T) *sqlx.DB {
+	t.Helper()
+
 	if _db == nil {
 		_db = sqlx.MustOpen("postgres", "postgres://mailroom_test:temba@localhost/mailroom_test?sslmode=disable&Timezone=UTC")
 
 		// check if we have tables and if not load test database dump
 		_, err := _db.Exec("SELECT * from orgs_org")
 		if err != nil {
-			loadTestDump()
-			return getDB()
+			loadTestDump(t)
+			return getDB(t)
 		}
 	}
 	return _db
 }
 
 // returns a redis pool to our test database
-func getRP() *redis.Pool {
+func getRP(t *testing.T) *redis.Pool {
 	return assertvk.TestDB()
 }
 
 // returns a redis connection, Close() should be called on it when done
-func getRC() redis.Conn {
+func getRC(t *testing.T) redis.Conn {
 	conn, err := redis.Dial("tcp", "localhost:6379")
-	noError(err)
+	require.NoError(t, err)
+
 	_, err = conn.Do("SELECT", 0)
-	noError(err)
+	require.NoError(t, err)
+
 	return conn
 }
 
 // returns an Elastic client
-func getES() *elasticsearch.TypedClient {
+func getES(t *testing.T) *elasticsearch.TypedClient {
 	es, err := elasticsearch.NewTypedClient(elasticsearch.Config{Addresses: []string{elasticURL}})
-	noError(err)
+	require.NoError(t, err)
+
 	return es
 }
 
@@ -176,15 +183,18 @@ func getES() *elasticsearch.TypedClient {
 func resetDB(t *testing.T) {
 	t.Helper()
 
-	db := getDB()
+	db := getDB(t)
 	db.MustExec("DROP OWNED BY mailroom_test CASCADE")
 
-	loadTestDump()
+	loadTestDump(t)
 }
 
-func loadTestDump() {
+func loadTestDump(t *testing.T) {
+	t.Helper()
+
 	dump, err := os.Open(absPath("./testsuite/testdata/postgres.dump"))
-	noError(err)
+	require.NoError(t, err)
+
 	defer dump.Close()
 
 	cmd := exec.Command("docker", "exec", "-i", postgresContainerName, "pg_restore", "-d", "mailroom_test", "-U", "mailroom_test")
@@ -338,25 +348,17 @@ ALTER SEQUENCE campaigns_campaignevent_id_seq RESTART WITH 30000;`
 func resetData(t *testing.T) {
 	t.Helper()
 
-	db := getDB()
+	db := getDB(t)
 	db.MustExec(sqlResetTestData)
 
 	// because groups have changed
 	models.FlushCache()
 }
 
-// convenience way to call a func and panic if it errors, e.g. must(foo())
-func must(err error) {
-	if err != nil {
-		panic(err)
-	}
-}
+func ReadFile(t *testing.T, path string) []byte {
+	t.Helper()
 
-// if just checking an error is nil noError(err) reads better than must(err)
-var noError = must
-
-func ReadFile(path string) []byte {
 	d, err := os.ReadFile(path)
-	noError(err)
+	require.NoError(t, err)
 	return d
 }

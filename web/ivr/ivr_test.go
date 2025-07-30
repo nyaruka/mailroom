@@ -58,7 +58,7 @@ func mockTwilioHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func TestTwilioIVR(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetAll)
 
@@ -376,7 +376,7 @@ func mockVonageHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func TestVonageIVR(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 	vc := rt.VK.Get()
 	defer vc.Close()
 

@@ -11,7 +11,7 @@ import (
 )
 
 func TestSend(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetData | testsuite.ResetValkey)
 
@@ -23,7 +23,7 @@ func TestSend(t *testing.T) {
 }
 
 func TestHandle(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetData | testsuite.ResetValkey)
 
@@ -35,7 +35,7 @@ func TestHandle(t *testing.T) {
 }
 
 func TestResend(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetData)
 
@@ -49,7 +49,7 @@ func TestResend(t *testing.T) {
 }
 
 func TestBroadcast(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetData | testsuite.ResetValkey)
 
@@ -68,7 +68,7 @@ func TestBroadcast(t *testing.T) {
 }
 
 func TestBroadcastPreview(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	testsuite.RunWebTests(t, ctx, rt, "testdata/broadcast_preview.json", testsuite.ResetNone)
 }

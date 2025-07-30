@@ -13,7 +13,7 @@ import (
 )
 
 func TestBulkSessionExpireTask(t *testing.T) {
-	_, rt := testsuite.Runtime()
+	_, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetData)
 

@@ -60,7 +60,7 @@ func RunWebTests(t *testing.T, ctx context.Context, rt *runtime.Runtime, truthFi
 		actualResponse []byte
 	}
 	tcs := make([]TestCase, 0, 20)
-	tcJSON := ReadFile(truthFile)
+	tcJSON := ReadFile(t, truthFile)
 
 	jsonx.MustUnmarshal(tcJSON, &tcs)
 	var err error
@@ -128,7 +128,7 @@ func RunWebTests(t *testing.T, ctx context.Context, rt *runtime.Runtime, truthFi
 			expectedIsJSON := false
 
 			if tc.ResponseFile != "" {
-				expectedResponse = ReadFile(tc.ResponseFile)
+				expectedResponse = ReadFile(t, tc.ResponseFile)
 
 				expectedIsJSON = strings.HasSuffix(tc.ResponseFile, ".json")
 			} else {

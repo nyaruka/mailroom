@@ -28,7 +28,7 @@ import (
 )
 
 func TestContactImports(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetAll)
 
@@ -48,7 +48,7 @@ func TestContactImports(t *testing.T) {
 	// give our org a country by setting country on a channel
 	rt.DB.MustExec(`UPDATE channels_channel SET country = 'US' WHERE id = $1`, testdb.TwilioChannel.ID)
 
-	testJSON := testsuite.ReadFile("testdata/contacts.json")
+	testJSON := testsuite.ReadFile(t, "testdata/contacts.json")
 
 	tcs := []struct {
 		Description string                `json:"description"`

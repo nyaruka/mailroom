@@ -11,7 +11,7 @@ import (
 )
 
 func TestSyncAndroidChannels(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	rt.Config.AndroidCredentialsFile = `testdata/android.json`
 

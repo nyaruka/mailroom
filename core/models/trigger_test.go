@@ -15,7 +15,7 @@ import (
 )
 
 func TestLoadTriggers(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetAll)
 
@@ -135,7 +135,7 @@ func TestLoadTriggers(t *testing.T) {
 }
 
 func TestFindMatchingMsgTrigger(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetAll)
 
@@ -207,7 +207,7 @@ func TestFindMatchingMsgTrigger(t *testing.T) {
 }
 
 func TestFindMatchingIncomingCallTrigger(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetAll)
 
@@ -252,7 +252,7 @@ func TestFindMatchingIncomingCallTrigger(t *testing.T) {
 }
 
 func TestFindMatchingMissedCallTrigger(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetData)
 
@@ -286,7 +286,7 @@ func TestFindMatchingMissedCallTrigger(t *testing.T) {
 }
 
 func TestFindMatchingNewConversationTrigger(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetData)
 
@@ -313,7 +313,7 @@ func TestFindMatchingNewConversationTrigger(t *testing.T) {
 }
 
 func TestFindMatchingReferralTrigger(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetData)
 
@@ -348,7 +348,7 @@ func TestFindMatchingReferralTrigger(t *testing.T) {
 }
 
 func TestFindMatchingOptInTrigger(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetData)
 
@@ -375,7 +375,7 @@ func TestFindMatchingOptInTrigger(t *testing.T) {
 }
 
 func TestFindMatchingOptOutTrigger(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetData)
 
@@ -402,7 +402,7 @@ func TestFindMatchingOptOutTrigger(t *testing.T) {
 }
 
 func TestArchiveContactTriggers(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetAll)
 

@@ -17,7 +17,7 @@ import (
 )
 
 func TestSessionTriggered(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetAll)
 
@@ -83,7 +83,7 @@ func TestSessionTriggered(t *testing.T) {
 }
 
 func TestQuerySessionTriggered(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetAll)
 

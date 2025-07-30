@@ -18,7 +18,7 @@ import (
 )
 
 func TestInsertSessions(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	dates.SetNowFunc(dates.NewSequentialNow(time.Date(2025, 2, 25, 16, 45, 0, 0, time.UTC), time.Second))
 	random.SetGenerator(random.NewSeededGenerator(123))
@@ -100,7 +100,7 @@ func TestInsertSessions(t *testing.T) {
 }
 
 func TestGetWaitingSessionForContact(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetData)
 
@@ -118,7 +118,7 @@ func TestGetWaitingSessionForContact(t *testing.T) {
 }
 
 func TestInterruptSessionsForContacts(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetData)
 
@@ -153,7 +153,7 @@ func TestInterruptSessionsForContacts(t *testing.T) {
 }
 
 func TestInterruptSessionsForContactsTx(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetData)
 
@@ -194,7 +194,7 @@ func TestInterruptSessionsForContactsTx(t *testing.T) {
 }
 
 func TestInterruptSessionsForChannels(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetData)
 
@@ -227,7 +227,7 @@ func TestInterruptSessionsForChannels(t *testing.T) {
 }
 
 func TestInterruptSessionsForFlows(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetData)
 

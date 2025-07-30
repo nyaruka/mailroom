@@ -19,7 +19,7 @@ import (
 )
 
 func TestBroadcasts(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetData)
 
@@ -69,7 +69,7 @@ func TestBroadcasts(t *testing.T) {
 }
 
 func TestInsertChildBroadcast(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetData)
 
@@ -97,7 +97,7 @@ func TestInsertChildBroadcast(t *testing.T) {
 }
 
 func TestNonPersistentBroadcasts(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetData)
 
@@ -148,7 +148,7 @@ func TestNonPersistentBroadcasts(t *testing.T) {
 }
 
 func TestBroadcastBatchCreateMessage(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetData | testsuite.ResetValkey)
 

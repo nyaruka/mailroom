@@ -15,7 +15,7 @@ import (
 )
 
 func TestEngineWebhook(t *testing.T) {
-	_, rt := testsuite.Runtime()
+	_, rt := testsuite.Runtime(t)
 
 	svc, err := goflow.Engine(rt).Services().Webhook(nil)
 	assert.NoError(t, err)
@@ -37,7 +37,7 @@ func TestEngineWebhook(t *testing.T) {
 }
 
 func TestSimulatorAirtime(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	svc, err := goflow.Simulator(ctx, rt).Services().Airtime(nil)
 	assert.NoError(t, err)
@@ -56,7 +56,7 @@ func TestSimulatorAirtime(t *testing.T) {
 }
 
 func TestSimulatorWebhook(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	svc, err := goflow.Simulator(ctx, rt).Services().Webhook(nil)
 	assert.NoError(t, err)

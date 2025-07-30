@@ -23,7 +23,7 @@ import (
 )
 
 func TestContacts(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetAll)
 
@@ -135,7 +135,7 @@ func TestContacts(t *testing.T) {
 }
 
 func TestCreateContact(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetData)
 
@@ -180,7 +180,7 @@ func TestCreateContact(t *testing.T) {
 }
 
 func TestCreateContactRace(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetData)
 
@@ -209,7 +209,7 @@ func TestCreateContactRace(t *testing.T) {
 }
 
 func TestGetOrCreateContact(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetData)
 
@@ -336,7 +336,7 @@ func TestGetOrCreateContact(t *testing.T) {
 }
 
 func TestGetOrCreateContactRace(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetData)
 
@@ -365,7 +365,7 @@ func TestGetOrCreateContactRace(t *testing.T) {
 }
 
 func TestGetOrCreateContactIDsFromURNs(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetData)
 
@@ -424,7 +424,7 @@ func TestGetOrCreateContactIDsFromURNs(t *testing.T) {
 }
 
 func TestGetOrCreateContactsFromURNsRace(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetData)
 
@@ -455,7 +455,7 @@ func TestGetOrCreateContactsFromURNsRace(t *testing.T) {
 }
 
 func TestGetContactIDsFromReferences(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	ids, err := models.GetContactIDsFromReferences(ctx, rt.DB, testdb.Org1.ID, []*flows.ContactReference{
 		flows.NewContactReference(testdb.Cathy.UUID, "Cathy"),
@@ -466,7 +466,7 @@ func TestGetContactIDsFromReferences(t *testing.T) {
 }
 
 func TestContactStop(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetAll)
 
@@ -484,7 +484,7 @@ func TestContactStop(t *testing.T) {
 }
 
 func TestUpdateContactLastSeenAndModifiedOn(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetAll)
 
@@ -528,7 +528,7 @@ func TestUpdateContactLastSeenAndModifiedOn(t *testing.T) {
 }
 
 func TestUpdateContactStatus(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetAll)
 
@@ -559,7 +559,7 @@ func TestUpdateContactStatus(t *testing.T) {
 }
 
 func TestUpdateContactURNs(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, testsuite.ResetAll)
 
@@ -653,7 +653,7 @@ func TestUpdateContactURNs(t *testing.T) {
 }
 
 func TestLoadContactURNs(t *testing.T) {
-	ctx, rt := testsuite.Runtime()
+	ctx, rt := testsuite.Runtime(t)
 
 	oa := testdb.Org1.Load(rt)
 	_, _, cathyURNs := testdb.Cathy.Load(rt, oa)
