@@ -1,3 +1,8 @@
+v10.3.20 (2025-07-30)
+-------------------------
+ * Refactor Runtime so that clients are created in NewRuntime and only tested in Mailroom.Start
+ * Update to latest gocommon dynamo package
+
 v10.3.19 (2025-07-30)
 -------------------------
  * Update config vars for worker counts
