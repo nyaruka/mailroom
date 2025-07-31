@@ -1,3 +1,8 @@
+v10.3.22 (2025-07-31)
+-------------------------
+ * Update goflow
+ * Even more logging of task workers
+
 v10.3.21 (2025-07-31)
 -------------------------
  * Update to latest vkutil which adds task ids
