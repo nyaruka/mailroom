@@ -186,7 +186,7 @@ func (w *Worker) handleTask(task *queues.Task) {
 		vc.Close()
 	}()
 
-	log.Debug("starting handling of task")
+	log.Info("task started")
 	start := time.Now()
 
 	if err := tasks.Perform(context.Background(), w.foreman.rt, task); err != nil {
