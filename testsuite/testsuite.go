@@ -148,17 +148,6 @@ func getRP(t *testing.T) *redis.Pool {
 	return assertvk.TestDB()
 }
 
-// returns a redis connection, Close() should be called on it when done
-func getRC(t *testing.T) redis.Conn {
-	conn, err := redis.Dial("tcp", "localhost:6379")
-	require.NoError(t, err)
-
-	_, err = conn.Do("SELECT", 0)
-	require.NoError(t, err)
-
-	return conn
-}
-
 // returns an Elastic client
 func getES(t *testing.T) *elasticsearch.TypedClient {
 	es, err := elasticsearch.NewTypedClient(elasticsearch.Config{Addresses: []string{elasticURL}})

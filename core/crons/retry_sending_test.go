@@ -24,7 +24,7 @@ func TestRetryErroredMessages(t *testing.T) {
 	_, err := cron.Run(ctx, rt)
 	assert.NoError(t, err)
 
-	testsuite.AssertCourierQueues(t, map[string][]int{})
+	testsuite.AssertCourierQueues(t, rt, map[string][]int{})
 
 	// a non-errored outgoing message (should be ignored)
 	testdb.InsertOutgoingMsg(rt, testdb.Org1, testdb.TwilioChannel, testdb.Cathy, "Hi", nil, models.MsgStatusDelivered, false)
@@ -52,7 +52,7 @@ func TestRetryErroredMessages(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE status = 'E'`).Returns(1)
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE status = 'Q'`).Returns(4)
 
-	testsuite.AssertCourierQueues(t, map[string][]int{
+	testsuite.AssertCourierQueues(t, rt, map[string][]int{
 		"msgs:74729f45-7f29-4868-9dc4-90e491e3c7d8|10/0": {1}, // twilio, bulk priority
 		"msgs:19012bfd-3ce3-4cae-9bb9-76cf92c73d49|10/0": {2}, // vonage, bulk priority
 		"msgs:19012bfd-3ce3-4cae-9bb9-76cf92c73d49|10/1": {1}, // vonage, high priority

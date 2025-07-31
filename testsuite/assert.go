@@ -20,8 +20,8 @@ import (
 )
 
 // AssertCourierQueues asserts the sizes of message batches in the named courier queues
-func AssertCourierQueues(t *testing.T, expected map[string][]int, errMsg ...any) {
-	vc := getRC(t)
+func AssertCourierQueues(t *testing.T, rt *runtime.Runtime, expected map[string][]int, errMsg ...any) {
+	vc := rt.VK.Get()
 	defer vc.Close()
 
 	queueKeys, err := redis.Strings(vc.Do("KEYS", "msgs:????????-*"))
@@ -54,8 +54,8 @@ func AssertCourierQueues(t *testing.T, expected map[string][]int, errMsg ...any)
 }
 
 // AssertContactTasks asserts that the given contact has the given tasks queued for them
-func AssertContactTasks(t *testing.T, org *testdb.Org, contact *testdb.Contact, expected []string, msgAndArgs ...any) {
-	vc := getRC(t)
+func AssertContactTasks(t *testing.T, rt *runtime.Runtime, org *testdb.Org, contact *testdb.Contact, expected []string, msgAndArgs ...any) {
+	vc := rt.VK.Get()
 	defer vc.Close()
 
 	tasks, err := redis.Strings(vc.Do("LRANGE", fmt.Sprintf("c:%d:%d", org.ID, contact.ID), 0, -1))
@@ -68,8 +68,8 @@ func AssertContactTasks(t *testing.T, org *testdb.Org, contact *testdb.Contact, 
 }
 
 // AssertBatchTasks asserts that the given org has the given batch tasks queued for them
-func AssertBatchTasks(t *testing.T, orgID models.OrgID, expected map[string]int, msgAndArgs ...any) {
-	vc := getRC(t)
+func AssertBatchTasks(t *testing.T, rt *runtime.Runtime, orgID models.OrgID, expected map[string]int, msgAndArgs ...any) {
+	vc := rt.VK.Get()
 	defer vc.Close()
 
 	// old style sorted set

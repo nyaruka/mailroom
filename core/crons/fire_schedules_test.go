@@ -82,5 +82,5 @@ func TestFireSchedules(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM schedules_schedule WHERE id = $1 AND next_fire > NOW() AND last_fire < NOW()`, s4).Returns(1)
 
 	// check the tasks created
-	testsuite.AssertBatchTasks(t, testdb.Org1.ID, map[string]int{"start_flow": 2, "send_broadcast": 2})
+	testsuite.AssertBatchTasks(t, rt, testdb.Org1.ID, map[string]int{"start_flow": 2, "send_broadcast": 2})
 }
