@@ -48,11 +48,6 @@ const (
 
 // Reset clears out both our database and redis DB
 func Reset(t *testing.T, rt *runtime.Runtime, what ResetFlag) {
-	if what&ResetDB > 0 {
-		resetDB(t)
-	} else if what&ResetData > 0 {
-		resetData(t)
-	}
 	if what&ResetValkey > 0 {
 		resetValkey(t)
 	}
@@ -64,6 +59,12 @@ func Reset(t *testing.T, rt *runtime.Runtime, what ResetFlag) {
 	}
 	if what&ResetDynamo > 0 {
 		resetDynamo(t, rt)
+	}
+
+	if what&ResetDB > 0 {
+		resetDB(t)
+	} else if what&ResetData > 0 {
+		resetData(t)
 	}
 
 	models.FlushCache()
