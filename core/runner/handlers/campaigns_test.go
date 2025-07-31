@@ -15,7 +15,7 @@ import (
 func TestCampaigns(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, testsuite.ResetAll)
+	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
 	doctors := assets.NewGroupReference(testdb.DoctorsGroup.UUID, "Doctors")
 	joined := assets.NewFieldReference("joined", "Joined")

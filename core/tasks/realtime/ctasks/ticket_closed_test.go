@@ -19,7 +19,7 @@ func TestTicketClosed(t *testing.T) {
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	defer testsuite.Reset(t, testsuite.ResetAll)
+	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
 	// add a ticket closed trigger
 	testdb.InsertTicketClosedTrigger(rt, testdb.Org1, testdb.Favorites)

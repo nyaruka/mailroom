@@ -20,7 +20,7 @@ func TestFair(t *testing.T) {
 	dates.SetNowFunc(dates.NewSequentialNow(time.Date(2022, 1, 1, 12, 1, 2, 123456789, time.UTC), time.Second))
 	defer dates.SetNowFunc(time.Now)
 
-	defer testsuite.Reset(t, testsuite.ResetValkey)
+	defer testsuite.Reset(t, rt, testsuite.ResetValkey)
 
 	var q queues.Fair = queues.NewFair("test", 10)
 	assert.Equal(t, "test", fmt.Sprint(q))

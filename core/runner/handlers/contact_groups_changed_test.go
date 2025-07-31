@@ -14,7 +14,7 @@ import (
 func TestContactGroupsChanged(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, testsuite.ResetAll)
+	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
 	doctors := assets.NewGroupReference(testdb.DoctorsGroup.UUID, "Doctors")
 	testers := assets.NewGroupReference(testdb.TestersGroup.UUID, "Testers")

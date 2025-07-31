@@ -88,7 +88,7 @@ func TestNewSchedule(t *testing.T) {
 func TestGetExpired(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, testsuite.ResetData)
+	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
 	optIn := testdb.InsertOptIn(rt, testdb.Org1, "Polls")
 

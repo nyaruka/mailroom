@@ -20,7 +20,7 @@ func TestLockContacts(t *testing.T) {
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	defer testsuite.Reset(t, testsuite.ResetValkey)
+	defer testsuite.Reset(t, rt, testsuite.ResetValkey)
 
 	oa := testdb.Org1.Load(rt)
 

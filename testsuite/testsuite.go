@@ -47,9 +47,7 @@ const (
 )
 
 // Reset clears out both our database and redis DB
-func Reset(t *testing.T, what ResetFlag) {
-	_, rt := Runtime(t) // TODO pass rt from test?
-
+func Reset(t *testing.T, rt *runtime.Runtime, what ResetFlag) {
 	if what&ResetDB > 0 {
 		resetDB(t)
 	} else if what&ResetData > 0 {

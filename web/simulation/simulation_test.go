@@ -181,7 +181,7 @@ const (
 func TestServer(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, testsuite.ResetData)
+	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
 	wg := &sync.WaitGroup{}
 
