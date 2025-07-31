@@ -75,7 +75,7 @@ func FlushTasks(t *testing.T, rt *runtime.Runtime, qnames ...string) map[string]
 
 	var qs []queues.Fair
 	for _, q := range []queues.Fair{rt.Queues.Realtime, rt.Queues.Batch, rt.Queues.Throttled} {
-		if len(qnames) == 0 || slices.Contains(qnames, fmt.Sprint(q)[6:]) {
+		if len(qnames) == 0 || slices.Contains(qnames, fmt.Sprint(q)) {
 			qs = append(qs, q)
 		}
 	}
