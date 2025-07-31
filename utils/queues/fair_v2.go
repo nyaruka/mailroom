@@ -27,37 +27,38 @@ func (q *FairV2) String() string {
 	return q.name
 }
 
-func (q *FairV2) Push(ctx context.Context, vc redis.Conn, taskType string, ownerID int, task any, priority bool) error {
+func (q *FairV2) Push(ctx context.Context, vc redis.Conn, taskType string, ownerID int, task any, priority bool) (queues.TaskID, error) {
 	taskJSON := jsonx.MustMarshal(task)
 
 	wrapper := &Task{Type: taskType, OwnerID: ownerID, Task: taskJSON, QueuedOn: dates.Now()}
 	raw := jsonx.MustMarshal(wrapper)
 
-	return q.base.Push(ctx, vc, fmt.Sprint(ownerID), priority, raw)
+	return q.base.Push(ctx, vc, queues.OwnerID(fmt.Sprint(ownerID)), priority, raw)
 }
 
 func (q *FairV2) Pop(ctx context.Context, vc redis.Conn) (*Task, error) {
-	owner, raw, err := q.base.Pop(ctx, vc)
+	taskID, ownerID, raw, err := q.base.Pop(ctx, vc)
 	if err != nil {
 		return nil, fmt.Errorf("error popping task: %w", err)
 	}
 
-	if owner == "" || raw == nil {
+	if ownerID == "" || raw == nil {
 		return nil, nil // no task available
 	}
 
 	task := &Task{}
 	if err := jsonx.Unmarshal(raw, task); err != nil {
-		return nil, fmt.Errorf("error unmarshaling task: %w", err)
+		return nil, fmt.Errorf("error unmarshaling task %s: %w", taskID, err)
 	}
 
-	task.OwnerID, _ = strconv.Atoi(owner)
+	task.ID = taskID
+	task.OwnerID, _ = strconv.Atoi(string(ownerID))
 
 	return task, nil
 }
 
 func (q *FairV2) Done(ctx context.Context, vc redis.Conn, ownerID int) error {
-	return q.base.Done(ctx, vc, fmt.Sprint(ownerID))
+	return q.base.Done(ctx, vc, queues.OwnerID(fmt.Sprint(ownerID)))
 }
 
 func (q *FairV2) Queued(ctx context.Context, vc redis.Conn) ([]int, error) {
@@ -68,7 +69,7 @@ func (q *FairV2) Queued(ctx context.Context, vc redis.Conn) ([]int, error) {
 
 	actual := make([]int, len(strs))
 	for i, s := range strs {
-		owner, _ := strconv.ParseInt(s, 10, 64)
+		owner, _ := strconv.ParseInt(string(s), 10, 64)
 		actual[i] = int(owner)
 	}
 
@@ -83,7 +84,7 @@ func (q *FairV2) Paused(ctx context.Context, vc redis.Conn) ([]int, error) {
 
 	actual := make([]int, len(strs))
 	for i, s := range strs {
-		owner, _ := strconv.ParseInt(s, 10, 64)
+		owner, _ := strconv.ParseInt(string(s), 10, 64)
 		actual[i] = int(owner)
 	}
 
@@ -109,11 +110,11 @@ func (q *FairV2) Size(ctx context.Context, vc redis.Conn) (int, error) {
 }
 
 func (q *FairV2) Pause(ctx context.Context, vc redis.Conn, ownerID int) error {
-	return q.base.Pause(ctx, vc, fmt.Sprint(ownerID))
+	return q.base.Pause(ctx, vc, queues.OwnerID(fmt.Sprint(ownerID)))
 }
 
 func (q *FairV2) Resume(ctx context.Context, vc redis.Conn, ownerID int) error {
-	return q.base.Resume(ctx, vc, fmt.Sprint(ownerID))
+	return q.base.Resume(ctx, vc, queues.OwnerID(fmt.Sprint(ownerID)))
 }
 
 var _ Fair = (*FairV2)(nil)
