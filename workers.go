@@ -62,7 +62,7 @@ func (f *Foreman) Stop() {
 		worker.Stop()
 	}
 
-	slog.Info("foreman stopped", "comp", "foreman", "queue", f.queue)
+	slog.Info("foreman stopped", "foreman", f.queue)
 }
 
 // Assign is our main loop for the Foreman, it takes care of popping the next outgoing task from our
@@ -70,7 +70,7 @@ func (f *Foreman) Stop() {
 func (f *Foreman) Assign() {
 	f.wg.Add(1)
 	defer f.wg.Done()
-	log := slog.With("comp", "foreman", "queue", f.queue)
+	log := slog.With("foreman", f.queue)
 
 	log.Info("workers started and waiting", "workers", len(f.workers))
 
@@ -123,14 +123,13 @@ type Worker struct {
 
 // NewWorker creates a new worker responsible for working on events
 func NewWorker(foreman *Foreman, id string, wg *sync.WaitGroup) *Worker {
-	worker := &Worker{
+	return &Worker{
 		foreman: foreman,
 		id:      id,
 		wg:      wg,
 
 		job: make(chan *queues.Task, 1),
 	}
-	return worker
 }
 
 // Start starts our Worker's goroutine and has it start waiting for tasks from the foreman
@@ -140,7 +139,7 @@ func (w *Worker) Start() {
 	go func() {
 		defer w.wg.Done()
 
-		log := slog.With("worker_id", w.id)
+		log := slog.With("worker", w.id)
 		log.Debug("worker started")
 
 		for {
@@ -167,7 +166,7 @@ func (w *Worker) Stop() {
 }
 
 func (w *Worker) handleTask(task *queues.Task) {
-	log := slog.With("worker_id", w.id, "task_id", task.ID, "task_type", task.Type, "org_id", task.OwnerID)
+	log := slog.With("worker", w.id, "org", task.OwnerID, "task_id", task.ID, "task_type", task.Type)
 
 	defer func() {
 		// catch any panics and recover
