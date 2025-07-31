@@ -39,7 +39,6 @@ const (
 
 // Reset clears out both our database and redis DB
 func Reset(t *testing.T, rt *runtime.Runtime, what ResetFlag) {
-
 	if what&ResetDB > 0 {
 		resetDB(t, rt)
 	} else if what&ResetData > 0 {
