@@ -1,6 +1,7 @@
 package testsuite
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"slices"
@@ -48,9 +49,11 @@ func CurrentTasks(t *testing.T, rt *runtime.Runtime, qname string) map[models.Or
 
 		orgTasks := make([]*queues.Task, len(tasks1)+len(tasks0))
 
-		for i, tsk := range slices.Concat(tasks1, tasks0) {
+		for i, rawTask := range slices.Concat(tasks1, tasks0) {
+			parts := bytes.SplitN([]byte(rawTask), []byte("|"), 2) // split into id and task json
+
 			task := &queues.Task{}
-			jsonx.MustUnmarshal([]byte(tsk), task)
+			jsonx.MustUnmarshal(parts[1], task)
 			orgTasks[i] = task
 		}
 

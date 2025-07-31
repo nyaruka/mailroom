@@ -163,7 +163,7 @@ func (w *Worker) Stop() {
 }
 
 func (w *Worker) handleTask(task *queues.Task) {
-	log := slog.With("queue", w.foreman.queue, "worker_id", w.id, "task_type", task.Type, "org_id", task.OwnerID)
+	log := slog.With("queue", w.foreman.queue, "worker_id", w.id, "task_id", task.ID, "task_type", task.Type, "org_id", task.OwnerID)
 
 	defer func() {
 		// catch any panics and recover

@@ -23,7 +23,7 @@ func TestThrottleQueue(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, map[string]any{"paused": 0, "resumed": 0}, res)
 
-	err = rt.Queues.Throttled.Push(ctx, vc, "type1", 1, "task1", false)
+	_, err = rt.Queues.Throttled.Push(ctx, vc, "type1", 1, "task1", false)
 	require.NoError(t, err)
 
 	res, err = cron.Run(ctx, rt)

@@ -1,6 +1,7 @@
 package testsuite
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"slices"
@@ -72,10 +73,6 @@ func AssertBatchTasks(t *testing.T, rt *runtime.Runtime, orgID models.OrgID, exp
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	// old style sorted set
-	tasksZ, err := redis.Strings(vc.Do("ZRANGE", fmt.Sprintf("tasks:batch:%d", orgID), 0, -1))
-	require.NoError(t, err)
-
 	tasks0, err := redis.Strings(vc.Do("LRANGE", fmt.Sprintf("{tasks:batch}:o:%d/0", orgID), 0, -1))
 	require.NoError(t, err)
 
@@ -83,9 +80,11 @@ func AssertBatchTasks(t *testing.T, rt *runtime.Runtime, orgID models.OrgID, exp
 	require.NoError(t, err)
 
 	actual := make(map[string]int, 5)
-	for _, taskJSON := range slices.Concat(tasksZ, tasks0, tasks1) {
+	for _, rawTask := range slices.Concat(tasks0, tasks1) {
+		parts := bytes.SplitN([]byte(rawTask), []byte("|"), 2) // split into id and task json
+
 		task := &queues.Task{}
-		jsonx.MustUnmarshal(json.RawMessage(taskJSON), task)
+		jsonx.MustUnmarshal(parts[1], task)
 
 		actual[task.Type] += 1
 	}

@@ -66,7 +66,8 @@ func Queue(ctx context.Context, rt *runtime.Runtime, q queues.Fair, orgID models
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	return q.Push(ctx, vc, task.Type(), int(orgID), task, priority)
+	_, err := q.Push(ctx, vc, task.Type(), int(orgID), task, priority)
+	return err
 }
 
 //------------------------------------------------------------------------------------------
