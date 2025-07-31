@@ -2,6 +2,7 @@ package mailroom
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"runtime/debug"
 	"sync"
@@ -16,8 +17,7 @@ import (
 // Foreman takes care of managing our set of workers and assigns msgs for each to send
 type Foreman struct {
 	rt               *runtime.Runtime
-	mrWG             *sync.WaitGroup // main mailroom wait group - workers added to this
-	fmWG             *sync.WaitGroup // foreman assignment wait group so we can wait for assignment to finish
+	wg               *sync.WaitGroup
 	queue            queues.Fair
 	workers          []*Worker
 	availableWorkers chan *Worker
@@ -28,8 +28,7 @@ type Foreman struct {
 func NewForeman(rt *runtime.Runtime, wg *sync.WaitGroup, q queues.Fair, maxWorkers int) *Foreman {
 	foreman := &Foreman{
 		rt:               rt,
-		mrWG:             wg,
-		fmWG:             &sync.WaitGroup{},
+		wg:               &sync.WaitGroup{},
 		queue:            q,
 		workers:          make([]*Worker, maxWorkers),
 		availableWorkers: make(chan *Worker, maxWorkers),
@@ -37,7 +36,7 @@ func NewForeman(rt *runtime.Runtime, wg *sync.WaitGroup, q queues.Fair, maxWorke
 	}
 
 	for i := range maxWorkers {
-		foreman.workers[i] = NewWorker(foreman, i)
+		foreman.workers[i] = NewWorker(foreman, fmt.Sprintf("%s-%d", q, i), wg)
 	}
 
 	return foreman
@@ -51,25 +50,26 @@ func (f *Foreman) Start() {
 	go f.Assign()
 }
 
-// Stop stops the foreman and all its workers, the wait group of the worker can be used to track progress
+// Stop stops the foreman, waiting for assignment to finish. The workers notify on the main mailroom wait group when they are done.
 func (f *Foreman) Stop() {
+	// tell our assignment loop to stop
 	close(f.quit)
 
-	// wait for foreman to finish assigning tasks before stopping workers
-	f.fmWG.Wait()
+	// wait for task assignment to finish before stopping workers so we don't try to assign new tasks to stopped workers
+	f.wg.Wait()
 
 	for _, worker := range f.workers {
 		worker.Stop()
 	}
 
-	slog.Info("foreman stopping", "comp", "foreman", "queue", f.queue)
+	slog.Info("foreman stopped", "comp", "foreman", "queue", f.queue)
 }
 
 // Assign is our main loop for the Foreman, it takes care of popping the next outgoing task from our
 // backend and assigning them to workers
 func (f *Foreman) Assign() {
-	f.fmWG.Add(1)
-	defer f.fmWG.Done()
+	f.wg.Add(1)
+	defer f.wg.Done()
 	log := slog.With("comp", "foreman", "queue", f.queue)
 
 	log.Info("workers started and waiting", "workers", len(f.workers))
@@ -80,7 +80,7 @@ func (f *Foreman) Assign() {
 		select {
 		// return if we have been told to stop
 		case <-f.quit:
-			log.Info("foreman stopped")
+			log.Info("foreman assignment stopped")
 			return
 
 		// otherwise, grab the next task and assign it to a worker
@@ -114,29 +114,33 @@ func (f *Foreman) Assign() {
 
 // Worker is our type for a single goroutine that is handling queued events
 type Worker struct {
-	id      int
 	foreman *Foreman
-	job     chan *queues.Task
+	id      string
+	wg      *sync.WaitGroup
+
+	job chan *queues.Task
 }
 
 // NewWorker creates a new worker responsible for working on events
-func NewWorker(foreman *Foreman, id int) *Worker {
+func NewWorker(foreman *Foreman, id string, wg *sync.WaitGroup) *Worker {
 	worker := &Worker{
-		id:      id,
 		foreman: foreman,
-		job:     make(chan *queues.Task, 1),
+		id:      id,
+		wg:      wg,
+
+		job: make(chan *queues.Task, 1),
 	}
 	return worker
 }
 
 // Start starts our Worker's goroutine and has it start waiting for tasks from the foreman
 func (w *Worker) Start() {
-	w.foreman.mrWG.Add(1)
+	w.wg.Add(1)
 
 	go func() {
-		defer w.foreman.mrWG.Done()
+		defer w.wg.Done()
 
-		log := slog.With("queue", w.foreman.queue, "worker_id", w.id)
+		log := slog.With("worker_id", w.id)
 		log.Debug("worker started")
 
 		for {
@@ -163,7 +167,7 @@ func (w *Worker) Stop() {
 }
 
 func (w *Worker) handleTask(task *queues.Task) {
-	log := slog.With("queue", w.foreman.queue, "worker_id", w.id, "task_id", task.ID, "task_type", task.Type, "org_id", task.OwnerID)
+	log := slog.With("worker_id", w.id, "task_id", task.ID, "task_type", task.Type, "org_id", task.OwnerID)
 
 	defer func() {
 		// catch any panics and recover

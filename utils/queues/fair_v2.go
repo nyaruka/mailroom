@@ -16,10 +16,10 @@ type FairV2 struct {
 	base queues.Fair
 }
 
-func NewFair(keyBase string, maxActivePerOwner int) *FairV2 {
+func NewFair(name string, maxActivePerOwner int) *FairV2 {
 	return &FairV2{
-		name: keyBase,
-		base: *queues.NewFair(keyBase, maxActivePerOwner),
+		name: name,
+		base: *queues.NewFair(fmt.Sprintf("tasks:%s", name), maxActivePerOwner),
 	}
 }
 

@@ -64,8 +64,8 @@ func TestForemanAndWorkers(t *testing.T) {
 	// give workers time to finish the last task and mark done
 	time.Sleep(150 * time.Millisecond)
 
-	assertvk.ZGetAll(t, vc, "{test}:queued", map[string]float64{})
-	assertvk.ZGetAll(t, vc, "{test}:active", map[string]float64{})
+	assertvk.ZGetAll(t, vc, "{tasks:test}:queued", map[string]float64{})
+	assertvk.ZGetAll(t, vc, "{tasks:test}:active", map[string]float64{})
 
 	// queue more tasks and immediately stop the foreman
 	for range 10 {
@@ -79,5 +79,5 @@ func TestForemanAndWorkers(t *testing.T) {
 
 	wg.Wait()
 
-	assertvk.ZGetAll(t, vc, "{test}:active", map[string]float64{})
+	assertvk.ZGetAll(t, vc, "{tasks:test}:active", map[string]float64{})
 }
