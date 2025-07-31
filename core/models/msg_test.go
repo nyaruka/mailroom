@@ -25,7 +25,7 @@ import (
 func TestNewOutgoingFlowMsg(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetData | testsuite.ResetValkey)
+	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetValkey)
 
 	blake := testdb.InsertContact(rt, testdb.Org1, "79b94a23-6d13-43f4-95fe-c733ee457857", "Blake", i18n.NilLanguage, models.ContactStatusBlocked)
 	blakeURNID := testdb.InsertContactURN(rt, testdb.Org1, blake, "tel:++250700000007", 1, nil)

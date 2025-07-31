@@ -61,7 +61,7 @@ func TestTicketClose(t *testing.T) {
 func TestTicketReopen(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetData | testsuite.ResetValkey)
+	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetValkey)
 
 	// we should be able to reopen ticket #1 because Cathy has no other tickets open
 	testdb.InsertClosedTicket(rt, testdb.Org1, testdb.Cathy, testdb.DefaultTopic, testdb.Admin)

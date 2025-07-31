@@ -135,7 +135,7 @@ func TestParseQuery(t *testing.T) {
 func TestPopulateGroup(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetData | testsuite.ResetValkey | testsuite.ResetElastic)
+	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetValkey|testsuite.ResetElastic)
 
 	testdb.InsertContactGroup(rt, testdb.Org1, "", "Dynamic", "age > 18")
 	models.FlushCache()
