@@ -12,6 +12,7 @@ import (
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/mailroom/testsuite"
 	"github.com/nyaruka/mailroom/utils/queues"
+	"github.com/nyaruka/vkutil/assertvk"
 )
 
 type testTask struct{}
@@ -26,6 +27,9 @@ func (t *testTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.
 
 func TestForemanAndWorkers(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
+
+	defer testsuite.Reset(t, rt, testsuite.ResetValkey)
+
 	wg := &sync.WaitGroup{}
 	q := queues.NewFair("test", 10)
 
@@ -57,6 +61,23 @@ func TestForemanAndWorkers(t *testing.T) {
 		time.Sleep(10 * time.Millisecond)
 	}
 
+	// give workers time to finish the last task and mark done
+	time.Sleep(150 * time.Millisecond)
+
+	assertvk.ZGetAll(t, vc, "{test}:queued", map[string]float64{})
+	assertvk.ZGetAll(t, vc, "{test}:active", map[string]float64{})
+
+	// queue more tasks and immediately stop the foreman
+	for range 10 {
+		q.Push(ctx, vc, "test", 1, &testTask{}, false)
+	}
+
+	// give workers time to pick up tasks
+	time.Sleep(300 * time.Millisecond)
+
 	fm.Stop()
+
 	wg.Wait()
+
+	assertvk.ZGetAll(t, vc, "{test}:active", map[string]float64{})
 }

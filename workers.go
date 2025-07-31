@@ -137,7 +137,7 @@ func (w *Worker) Start() {
 		defer w.foreman.mrWG.Done()
 
 		log := slog.With("queue", w.foreman.queue, "worker_id", w.id)
-		log.Debug("started")
+		log.Debug("worker started")
 
 		for {
 			// list ourselves as available for work
@@ -148,7 +148,7 @@ func (w *Worker) Start() {
 
 			// exit if we were stopped
 			if task == nil {
-				log.Debug("stopped")
+				log.Info("worker stopped")
 				return
 			}
 
