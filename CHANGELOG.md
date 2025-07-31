@@ -1,3 +1,8 @@
+v10.3.21 (2025-07-31)
+-------------------------
+ * Update to latest vkutil which adds task ids
+ * Simplify use of runtime in tests
+
 v10.3.20 (2025-07-30)
 -------------------------
  * Refactor Runtime so that clients are created in NewRuntime and only tested in Mailroom.Start
