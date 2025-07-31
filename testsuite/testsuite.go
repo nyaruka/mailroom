@@ -114,17 +114,14 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 }
 
 // reindexes data changes to Elastic
-func ReindexElastic(t *testing.T) {
+func ReindexElastic(t *testing.T, rt *runtime.Runtime) {
 	t.Helper()
 
-	db := getDB(t)
-	es := getES(t)
-
 	contactsIndexer := indexers.NewContactIndexer(elasticURL, elasticContactsIndex, 1, 1, 100)
-	_, err := contactsIndexer.Index(&ixruntime.Runtime{DB: db.DB}, false, false)
+	_, err := contactsIndexer.Index(&ixruntime.Runtime{DB: rt.DB.DB}, false, false)
 	require.NoError(t, err)
 
-	_, err = es.Indices.Refresh().Index(elasticContactsIndex).Do(t.Context())
+	_, err = rt.ES.Indices.Refresh().Index(elasticContactsIndex).Do(t.Context())
 	require.NoError(t, err)
 }
 
@@ -259,7 +256,7 @@ func resetElastic(t *testing.T, rt *runtime.Runtime) {
 		}
 	}
 
-	ReindexElastic(t)
+	ReindexElastic(t, rt)
 }
 
 func resetDynamo(t *testing.T, rt *runtime.Runtime) {

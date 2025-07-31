@@ -22,7 +22,7 @@ func TestDeindexContacts(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
-	testsuite.ReindexElastic(t)
+	testsuite.ReindexElastic(t, rt)
 
 	// ensures changes are visible in elastic
 	refreshElastic := func() {

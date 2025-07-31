@@ -138,7 +138,7 @@ func TestGetContactIDsForQuery(t *testing.T) {
 	testdb.InsertContact(rt, testdb.Org2, flows.NewContactUUID(), "Bob", i18n.NilLanguage, models.ContactStatusActive)
 	testdb.InsertContact(rt, testdb.Org2, flows.NewContactUUID(), "Cylon 0", i18n.NilLanguage, models.ContactStatusActive)
 
-	testsuite.ReindexElastic(t)
+	testsuite.ReindexElastic(t, rt)
 
 	tcs := []struct {
 		group            *testdb.Group
