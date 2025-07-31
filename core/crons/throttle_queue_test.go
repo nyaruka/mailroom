@@ -16,7 +16,7 @@ func TestThrottleQueue(t *testing.T) {
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	defer testsuite.Reset(t, rt, testsuite.ResetValkey | testsuite.ResetData)
+	defer testsuite.Reset(t, rt, testsuite.ResetValkey|testsuite.ResetData)
 
 	cron := &crons.ThrottleQueueCron{}
 	res, err := cron.Run(ctx, rt)

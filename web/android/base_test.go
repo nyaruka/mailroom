@@ -18,7 +18,7 @@ func TestEvent(t *testing.T) {
 func TestMessage(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetData | testsuite.ResetValkey)
+	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetValkey)
 
 	testsuite.RunWebTests(t, ctx, rt, "testdata/message.json", testsuite.ResetValkey)
 }

@@ -150,7 +150,7 @@ func TestNonPersistentBroadcasts(t *testing.T) {
 func TestBroadcastBatchCreateMessage(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetData | testsuite.ResetValkey)
+	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetValkey)
 
 	polls := testdb.InsertOptIn(rt, testdb.Org1, "Polls")
 
