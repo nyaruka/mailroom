@@ -95,6 +95,11 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 
 	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo})))
 
+	t.Cleanup(func() {
+		rt.DB.Close()
+		rt.VK.Close()
+	})
+
 	return t.Context(), rt
 }
 
