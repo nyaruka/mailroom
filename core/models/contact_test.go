@@ -25,7 +25,7 @@ import (
 func TestContacts(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, testsuite.ResetAll)
+	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
 	// for now it's still possible to have more than one open ticket in the database
 	testdb.InsertOpenTicket(rt, testdb.Org1, testdb.Cathy, testdb.SupportTopic, time.Now(), testdb.Agent)
@@ -137,7 +137,7 @@ func TestContacts(t *testing.T) {
 func TestCreateContact(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, testsuite.ResetData)
+	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
 	testdb.InsertContactGroup(rt, testdb.Org1, "d636c966-79c1-4417-9f1c-82ad629773a2", "Kinyarwanda", "language = kin")
 
@@ -182,7 +182,7 @@ func TestCreateContact(t *testing.T) {
 func TestCreateContactRace(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, testsuite.ResetData)
+	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
 	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 	assert.NoError(t, err)
@@ -211,7 +211,7 @@ func TestCreateContactRace(t *testing.T) {
 func TestGetOrCreateContact(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, testsuite.ResetData)
+	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
 	testdb.InsertContactGroup(rt, testdb.Org1, "dcc16d85-8274-4d19-a3c2-152d4ee99380", "Telegrammer", `telegram = 100001`)
 
@@ -338,7 +338,7 @@ func TestGetOrCreateContact(t *testing.T) {
 func TestGetOrCreateContactRace(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, testsuite.ResetData)
+	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
 	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 	assert.NoError(t, err)
@@ -367,7 +367,7 @@ func TestGetOrCreateContactRace(t *testing.T) {
 func TestGetOrCreateContactIDsFromURNs(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, testsuite.ResetData)
+	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
 	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 	assert.NoError(t, err)
@@ -426,7 +426,7 @@ func TestGetOrCreateContactIDsFromURNs(t *testing.T) {
 func TestGetOrCreateContactsFromURNsRace(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, testsuite.ResetData)
+	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
 	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 	assert.NoError(t, err)
@@ -468,7 +468,7 @@ func TestGetContactIDsFromReferences(t *testing.T) {
 func TestContactStop(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, testsuite.ResetAll)
+	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
 	oa := testdb.Org1.Load(rt)
 	contact, _, _ := testdb.Cathy.Load(rt, oa)
@@ -486,7 +486,7 @@ func TestContactStop(t *testing.T) {
 func TestUpdateContactLastSeenAndModifiedOn(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, testsuite.ResetAll)
+	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
 	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 	require.NoError(t, err)
@@ -530,7 +530,7 @@ func TestUpdateContactLastSeenAndModifiedOn(t *testing.T) {
 func TestUpdateContactStatus(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, testsuite.ResetAll)
+	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
 	err := models.UpdateContactStatus(ctx, rt.DB, []*models.ContactStatusChange{})
 	assert.NoError(t, err)
@@ -561,7 +561,7 @@ func TestUpdateContactStatus(t *testing.T) {
 func TestUpdateContactURNs(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, testsuite.ResetAll)
+	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
 	testdb.InsertContactGroup(rt, testdb.Org1, "e3374234-8131-4f65-9c51-ce84fd7f3bb5", "No URN", `urn = ""`)
 

@@ -21,7 +21,7 @@ import (
 func TestBroadcasts(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, testsuite.ResetData)
+	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
 	optIn := testdb.InsertOptIn(rt, testdb.Org1, "Polls")
 
@@ -71,7 +71,7 @@ func TestBroadcasts(t *testing.T) {
 func TestInsertChildBroadcast(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, testsuite.ResetData)
+	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
 	optIn := testdb.InsertOptIn(rt, testdb.Org1, "Polls")
 	schedID := testdb.InsertSchedule(rt, testdb.Org1, models.RepeatPeriodDaily, time.Now())
@@ -99,7 +99,7 @@ func TestInsertChildBroadcast(t *testing.T) {
 func TestNonPersistentBroadcasts(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, testsuite.ResetData)
+	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
 	translations := flows.BroadcastTranslations{"eng": {Text: "Hi there"}}
 	optIn := testdb.InsertOptIn(rt, testdb.Org1, "Polls")
@@ -150,7 +150,7 @@ func TestNonPersistentBroadcasts(t *testing.T) {
 func TestBroadcastBatchCreateMessage(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, testsuite.ResetData | testsuite.ResetValkey)
+	defer testsuite.Reset(t, rt, testsuite.ResetData | testsuite.ResetValkey)
 
 	polls := testdb.InsertOptIn(rt, testdb.Org1, "Polls")
 

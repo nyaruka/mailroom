@@ -28,7 +28,7 @@ import (
 func TestWebhookCalled(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, testsuite.ResetAll)
+	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 	defer httpx.SetRequestor(httpx.DefaultRequestor)
 
 	httpx.SetRequestor(httpx.NewMockRequestor(map[string][]*httpx.MockResponse{
@@ -118,7 +118,7 @@ func TestUnhealthyWebhookCalls(t *testing.T) {
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	defer testsuite.Reset(t, testsuite.ResetData | testsuite.ResetValkey)
+	defer testsuite.Reset(t, rt, testsuite.ResetData | testsuite.ResetValkey)
 	defer dates.SetNowFunc(time.Now)
 
 	dates.SetNowFunc(dates.NewSequentialNow(time.Date(2021, 11, 17, 7, 0, 0, 0, time.UTC), time.Second))

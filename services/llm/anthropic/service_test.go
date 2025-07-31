@@ -16,7 +16,7 @@ import (
 func TestService(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, testsuite.ResetData)
+	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
 	bad := testdb.InsertLLM(rt, testdb.Org1, "c69723d8-fb37-4cf6-9ec4-bc40cb36f2cc", "anthropic", "claude", "Bad Config", map[string]any{})
 	good := testdb.InsertLLM(rt, testdb.Org1, "b86966fd-206e-4bdd-a962-06faa3af1182", "anthropic", "claude", "Good", map[string]any{"api_key": "sesame"})

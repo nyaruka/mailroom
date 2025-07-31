@@ -14,7 +14,7 @@ import (
 func TestPopulateQueryGroupTask(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, testsuite.ResetAll)
+	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
 	oa := testdb.Org1.Load(rt)
 	group1 := testdb.InsertContactGroup(rt, testdb.Org1, "e52fee05-2f95-4445-aef6-2fe7dac2fd56", "Women", "gender = F")

@@ -24,7 +24,7 @@ import (
 func TestBroadcastsFromEvents(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, testsuite.ResetAll)
+	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
 	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 	require.NoError(t, err)
@@ -183,7 +183,7 @@ func TestSendBroadcastTask(t *testing.T) {
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	defer testsuite.Reset(t, testsuite.ResetAll)
+	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
 	polls := testdb.InsertOptIn(rt, testdb.Org1, "Polls")
 

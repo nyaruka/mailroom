@@ -20,7 +20,7 @@ func TestOptinRequested(t *testing.T) {
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	defer testsuite.Reset(t, testsuite.ResetAll)
+	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
 	optIn := testdb.InsertOptIn(rt, testdb.Org1, "Jokes")
 	models.FlushCache()

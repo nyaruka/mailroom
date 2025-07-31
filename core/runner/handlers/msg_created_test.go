@@ -20,7 +20,7 @@ func TestMsgCreated(t *testing.T) {
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	defer testsuite.Reset(t, testsuite.ResetAll)
+	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
 	rt.Config.AttachmentDomain = "foo.bar.com"
 	defer func() { rt.Config.AttachmentDomain = "" }()
@@ -101,7 +101,7 @@ func TestMsgCreated(t *testing.T) {
 func TestNewURN(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, testsuite.ResetAll)
+	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
 	// switch our twitter channel to telegram
 	telegramUUID := testdb.FacebookChannel.UUID

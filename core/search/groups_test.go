@@ -16,7 +16,7 @@ import (
 func TestSmartGroups(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, testsuite.ResetAll)
+	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
 	// insert an event on our campaign
 	newEvent := testdb.InsertCampaignFlowPoint(rt, testdb.RemindersCampaign, testdb.Favorites, testdb.JoinedField, 1000, "W")
