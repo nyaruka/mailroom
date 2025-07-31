@@ -49,7 +49,7 @@ const (
 // Reset clears out both our database and redis DB
 func Reset(t *testing.T, rt *runtime.Runtime, what ResetFlag) {
 	if what&ResetValkey > 0 {
-		resetValkey(t)
+		resetValkey(t, rt)
 	}
 	if what&ResetStorage > 0 {
 		resetStorage(t, rt)
@@ -64,7 +64,7 @@ func Reset(t *testing.T, rt *runtime.Runtime, what ResetFlag) {
 	if what&ResetDB > 0 {
 		resetDB(t)
 	} else if what&ResetData > 0 {
-		resetData(t)
+		resetData(t, rt)
 	}
 
 	models.FlushCache()
@@ -212,10 +212,14 @@ func absPath(p string) string {
 }
 
 // resets our valkey database
-func resetValkey(t *testing.T) {
+func resetValkey(t *testing.T, rt *runtime.Runtime) {
 	t.Helper()
 
-	assertvk.FlushDB()
+	vc := rt.VK.Get()
+	defer vc.Close()
+
+	_, err := vc.Do("FLUSHDB")
+	require.NoError(t, err, "error flushing valkey db")
 }
 
 func resetStorage(t *testing.T, rt *runtime.Runtime) {
@@ -330,14 +334,10 @@ ALTER SEQUENCE campaigns_campaignevent_id_seq RESTART WITH 30000;`
 
 // removes contact data not in the test database dump. Note that this function can't
 // undo changes made to the contact data in the test database dump.
-func resetData(t *testing.T) {
+func resetData(t *testing.T, rt *runtime.Runtime) {
 	t.Helper()
 
-	db := getDB(t)
-	db.MustExec(sqlResetTestData)
-
-	// because groups have changed
-	models.FlushCache()
+	rt.DB.MustExec(sqlResetTestData)
 }
 
 func ReadFile(t *testing.T, path string) []byte {
