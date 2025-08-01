@@ -21,7 +21,7 @@ func init() {
 type queuesRequest struct {
 }
 
-// handles a request to resend the given messages
+// handles a request to get queue information
 func handleQueues(ctx context.Context, rt *runtime.Runtime, r *queuesRequest) (any, int, error) {
 	vc := rt.VK.Get()
 	defer vc.Close()
