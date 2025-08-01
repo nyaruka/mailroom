@@ -1,4 +1,4 @@
-package docs
+package public
 
 import (
 	"context"

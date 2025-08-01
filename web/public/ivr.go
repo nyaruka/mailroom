@@ -1,4 +1,4 @@
-package ivr
+package public
 
 import (
 	"context"
