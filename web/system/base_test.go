@@ -6,6 +6,14 @@ import (
 	"github.com/nyaruka/mailroom/testsuite"
 )
 
+func TestErrors(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	defer testsuite.Reset(t, rt, testsuite.ResetNone)
+
+	testsuite.RunWebTests(t, ctx, rt, "testdata/errors.json", testsuite.ResetNone)
+}
+
 func TestQueues(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 

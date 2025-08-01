@@ -1,0 +1,42 @@
+[
+    {
+        "label": "test errors endpoint noop without params",
+        "method": "POST",
+        "path": "/mr/system/errors",
+        "body": {},
+        "status": 200,
+        "response": {}
+    },
+    {
+        "label": "test errors endpoint with logged error",
+        "method": "POST",
+        "path": "/mr/system/errors",
+        "body": {
+            "log": "this is a logged error"
+        },
+        "status": 200,
+        "response": {}
+    },
+    {
+        "label": "test errors endpoint with an error response",
+        "method": "POST",
+        "path": "/mr/system/errors",
+        "body": {
+            "return": "this is an error response"
+        },
+        "status": 500,
+        "response": {
+            "error": "this is an error response"
+        }
+    },
+    {
+        "label": "test errors endpoint with a panic",
+        "method": "POST",
+        "path": "/mr/system/errors",
+        "body": {
+            "panic": "this is a panic"
+        },
+        "status": 500,
+        "response": "Internal Server Error\n"
+    }
+]

@@ -47,6 +47,7 @@ import (
 	_ "github.com/nyaruka/mailroom/web/org"
 	_ "github.com/nyaruka/mailroom/web/po"
 	_ "github.com/nyaruka/mailroom/web/simulation"
+	_ "github.com/nyaruka/mailroom/web/system"
 	_ "github.com/nyaruka/mailroom/web/ticket"
 )
 
