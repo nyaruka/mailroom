@@ -166,7 +166,7 @@ func RunTestCases(t *testing.T, ctx context.Context, rt *runtime.Runtime, tcs []
 			flowDef, err := json.Marshal(testFlow)
 			require.NoError(t, err)
 
-			oa, err = oa.CloneForSimulation(ctx, rt, map[assets.FlowUUID]json.RawMessage{flowUUID: flowDef}, nil)
+			oa, err = oa.CloneForSimulation(ctx, rt, map[assets.FlowUUID][]byte{flowUUID: flowDef}, nil)
 			assert.NoError(t, err)
 
 			scenes := make([]*runner.Scene, 4)
