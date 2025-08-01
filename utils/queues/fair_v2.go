@@ -117,4 +117,8 @@ func (q *FairV2) Resume(ctx context.Context, vc redis.Conn, ownerID int) error {
 	return q.base.Resume(ctx, vc, queues.OwnerID(fmt.Sprint(ownerID)))
 }
 
+func (q *FairV2) Dump(ctx context.Context, vc redis.Conn) ([]byte, error) {
+	return q.base.Dump(ctx, vc)
+}
+
 var _ Fair = (*FairV2)(nil)
