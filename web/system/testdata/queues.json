@@ -1,0 +1,35 @@
+[
+    {
+        "label": "illegal method",
+        "method": "POST",
+        "path": "/mr/system/queues",
+        "status": 405,
+        "response": {
+            "error": "illegal method: POST"
+        }
+    },
+    {
+        "label": "returns queue information",
+        "method": "GET",
+        "path": "/mr/system/queues",
+        "body": {},
+        "status": 200,
+        "response": {
+            "batch": {
+                "active": {},
+                "paused": {},
+                "queued": {}
+            },
+            "realtime": {
+                "active": {},
+                "paused": {},
+                "queued": {}
+            },
+            "throttled": {
+                "active": {},
+                "paused": {},
+                "queued": {}
+            }
+        }
+    }
+]

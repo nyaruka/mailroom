@@ -29,4 +29,5 @@ type Fair interface {
 	Queued(ctx context.Context, vc redis.Conn) ([]int, error)
 	Paused(ctx context.Context, vc redis.Conn) ([]int, error)
 	Size(ctx context.Context, vc redis.Conn) (int, error)
+	Dump(ctx context.Context, vc redis.Conn) ([]byte, error)
 }
