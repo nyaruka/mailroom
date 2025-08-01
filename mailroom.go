@@ -164,7 +164,7 @@ func (mr *Mailroom) checkLastShutdown(ctx context.Context) error {
 		slog.Error("mailroom node did not shutdown cleanly last time")
 	} else {
 		if _, err := redis.DoContext(vc, ctx, "HSET", appNodesRunningKey, nodeID, time.Now().UTC().Format(time.RFC3339)); err != nil {
-			return fmt.Errorf("error checking last shutdown: %w", err)
+			return fmt.Errorf("error setting app node state: %w", err)
 		}
 	}
 	return nil
@@ -176,7 +176,7 @@ func (mr *Mailroom) recordShutdown(ctx context.Context) error {
 	defer vc.Close()
 
 	if _, err := redis.DoContext(vc, ctx, "HDEL", appNodesRunningKey, nodeID); err != nil {
-		return fmt.Errorf("error checking last shutdown: %w", err)
+		return fmt.Errorf("error recording shutdown: %w", err)
 	}
 	return nil
 }
