@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"os"
 
-	"github.com/nyaruka/mailroom"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/runtime"
 
@@ -32,17 +31,8 @@ func main() {
 		os.Exit(1)
 	}
 
-	mr := mailroom.NewMailroom(rt)
-
-	if err := mr.Start(); err != nil {
-		fmt.Printf("unable to start mailroom: %s", err.Error())
-		os.Exit(1)
-	}
-
-	if err := runPromptTests(ctx, mr.Runtime(), models.OrgID(1)); err != nil {
+	if err := runPromptTests(ctx, rt, models.OrgID(1)); err != nil {
 		fmt.Printf("error running LLM tests: %s", err.Error())
 		os.Exit(1)
 	}
-
-	mr.Stop()
 }

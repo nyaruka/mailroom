@@ -224,10 +224,6 @@ func (mr *Mailroom) Stop() error {
 	return nil
 }
 
-func (mr *Mailroom) Runtime() *runtime.Runtime {
-	return mr.rt
-}
-
 func checkDBConnection(db *sql.DB) error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	err := db.PingContext(ctx)
