@@ -10,11 +10,16 @@ import (
 
 	"github.com/appleboy/go-fcm"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatch/types"
+	"github.com/gomodule/redigo/redis"
 	"github.com/nyaruka/gocommon/aws/cwatch"
 	"github.com/nyaruka/gocommon/aws/dynamo"
 	"github.com/nyaruka/mailroom/core/crons"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/mailroom/web"
+)
+
+const (
+	appNodesRunningKey = "app-nodes:running"
 )
 
 // Mailroom is a service for handling RapidPro events
@@ -136,8 +141,43 @@ func (mr *Mailroom) Start() error {
 
 	mr.startMetricsReporter(time.Minute)
 
+	if err := mr.checkLastShutdown(mr.ctx); err != nil {
+		return err
+	}
+
 	log.Info("mailroom started", "domain", c.Domain)
 
+	return nil
+}
+
+func (mr *Mailroom) checkLastShutdown(ctx context.Context) error {
+	nodeID := fmt.Sprintf("mailroom:%s", mr.rt.Config.InstanceID)
+	vc := mr.rt.VK.Get()
+	defer vc.Close()
+
+	exists, err := redis.Bool(redis.DoContext(vc, ctx, "HEXISTS", appNodesRunningKey, nodeID))
+	if err != nil {
+		return fmt.Errorf("error checking last shutdown: %w", err)
+	}
+
+	if exists {
+		slog.Error("mailroom node did not shutdown cleanly last time")
+	} else {
+		if _, err := redis.DoContext(vc, ctx, "HSET", appNodesRunningKey, nodeID, time.Now().UTC().Format(time.RFC3339)); err != nil {
+			return fmt.Errorf("error checking last shutdown: %w", err)
+		}
+	}
+	return nil
+}
+
+func (mr *Mailroom) recordShutdown(ctx context.Context) error {
+	nodeID := fmt.Sprintf("mailroom:%s", mr.rt.Config.InstanceID)
+	vc := mr.rt.VK.Get()
+	defer vc.Close()
+
+	if _, err := redis.DoContext(vc, ctx, "HDEL", appNodesRunningKey, nodeID); err != nil {
+		return fmt.Errorf("error checking last shutdown: %w", err)
+	}
 	return nil
 }
 
@@ -219,6 +259,10 @@ func (mr *Mailroom) Stop() error {
 	mr.webserver.Stop()
 
 	mr.wg.Wait()
+
+	if err := mr.recordShutdown(context.TODO()); err != nil {
+		return fmt.Errorf("error recording shutdown: %w", err)
+	}
 
 	log.Info("mailroom stopped")
 	return nil
