@@ -555,8 +555,10 @@ func (a *OrgAssets) CloneForSimulation(ctx context.Context, rt *runtime.Runtime,
 		// make a clone of the flow with the provided definition
 		cf := f.cloneWithNewDefinition(newDef)
 
+		clone.flowCacheLock.Lock()
 		clone.flowByUUID[flowUUID] = cf
 		clone.flowByID[cf.ID()] = cf
+		clone.flowCacheLock.Unlock()
 	}
 
 	clone.channels = append(clone.channels, testChannels...)
