@@ -1,3 +1,8 @@
+v10.3.23 (2025-08-01)
+-------------------------
+ * Fix loading flows during simulation
+ * Remove duplicate logging of long running tasks
+
 v10.3.22 (2025-07-31)
 -------------------------
  * Update goflow
