@@ -194,9 +194,4 @@ func (w *Worker) handleTask(task *queues.Task) {
 
 	elapsed := time.Since(start)
 	log.Info("task complete", "elapsed", elapsed)
-
-	// additionally if any task took longer than 1 minute, log as warning
-	if elapsed > time.Minute {
-		log.Warn("long running task", "task", string(task.Task), "elapsed", elapsed)
-	}
 }
