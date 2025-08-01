@@ -1,7 +1,6 @@
 package models_test
 
 import (
-	"encoding/json"
 	"testing"
 
 	"github.com/nyaruka/goflow/assets"
@@ -65,13 +64,13 @@ func TestCloneForSimulation(t *testing.T) {
 	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 	require.NoError(t, err)
 
-	newFavoritesDef := `{
+	newFavoritesDef := []byte(`{
 		"uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85",
 		"name": "Favorites",
 		"nodes": []
-	}`
+	}`)
 
-	newDefs := map[assets.FlowUUID]json.RawMessage{
+	newDefs := map[assets.FlowUUID][]byte{
 		testdb.Favorites.UUID: []byte(newFavoritesDef),
 	}
 
@@ -108,6 +107,6 @@ func TestCloneForSimulation(t *testing.T) {
 	assert.Nil(t, testChannel1)
 
 	// can't override definition for a non-existent flow
-	_, err = oa.CloneForSimulation(ctx, rt, map[assets.FlowUUID]json.RawMessage{"a121f1af-7dfa-47af-9d22-9726372e2daa": []byte(newFavoritesDef)}, nil)
+	_, err = oa.CloneForSimulation(ctx, rt, map[assets.FlowUUID][]byte{"a121f1af-7dfa-47af-9d22-9726372e2daa": newFavoritesDef}, nil)
 	assert.EqualError(t, err, "unable to find flow with UUID 'a121f1af-7dfa-47af-9d22-9726372e2daa': not found")
 }

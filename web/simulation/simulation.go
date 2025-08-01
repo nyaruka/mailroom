@@ -47,8 +47,8 @@ type sessionRequest struct {
 	Call    *flows.CallEnvelope    `json:"call,omitempty"`
 }
 
-func (r *sessionRequest) flows() map[assets.FlowUUID]json.RawMessage {
-	flows := make(map[assets.FlowUUID]json.RawMessage, len(r.Flows))
+func (r *sessionRequest) flows() map[assets.FlowUUID][]byte {
+	flows := make(map[assets.FlowUUID][]byte, len(r.Flows))
 	for _, fd := range r.Flows {
 		flows[fd.UUID] = fd.Definition
 	}

@@ -3,7 +3,6 @@ package models
 import (
 	"context"
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -537,7 +536,7 @@ func (a *OrgAssets) FieldByKey(key string) *Field {
 }
 
 // CloneForSimulation clones our org assets for simulation and returns a new org assets with the given flow definitions overrided
-func (a *OrgAssets) CloneForSimulation(ctx context.Context, rt *runtime.Runtime, newDefs map[assets.FlowUUID]json.RawMessage, testChannels []assets.Channel) (*OrgAssets, error) {
+func (a *OrgAssets) CloneForSimulation(ctx context.Context, rt *runtime.Runtime, newDefs map[assets.FlowUUID][]byte, testChannels []assets.Channel) (*OrgAssets, error) {
 	// only channels and flows can be modified so only refresh those
 	clone, err := NewOrgAssets(context.Background(), a.rt, a.OrgID(), a, RefreshFlows)
 	if err != nil {
