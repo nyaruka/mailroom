@@ -85,7 +85,7 @@ func TestCloneForSimulation(t *testing.T) {
 	// should get new definition
 	flow, err := clone.FlowByUUID(testdb.Favorites.UUID)
 	require.NoError(t, err)
-	assert.Equal(t, newFavoritesDef, string(flow.Definition()))
+	assert.Equal(t, string(newFavoritesDef), string(flow.Definition()))
 
 	// test channels should be accesible to engine
 	testChannel1 := clone.SessionAssets().Channels().Get("d7be3965-4c76-4abd-af78-ebc0b84ab621")
