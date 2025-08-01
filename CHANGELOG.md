@@ -1,3 +1,8 @@
+v10.3.24 (2025-08-01)
+-------------------------
+ * Record clean shutdowns
+ * Add endpoint to dump queue data
+
 v10.3.23 (2025-08-01)
 -------------------------
  * Fix loading flows during simulation
