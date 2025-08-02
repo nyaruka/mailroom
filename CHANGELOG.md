@@ -1,3 +1,7 @@
+v10.3.26 (2025-08-02)
+-------------------------
+ * Maybe fix concurrency issue in flow loading
+
 v10.3.25 (2025-08-01)
 -------------------------
  * Move /test_errors to /system/errors and fix not importing system/ endpoints
