@@ -59,7 +59,7 @@ type OrgAssets struct {
 
 	flowByUUID    map[assets.FlowUUID]assets.Flow
 	flowByID      map[FlowID]assets.Flow
-	flowCacheLock sync.RWMutex
+	flowCacheLock *sync.RWMutex
 
 	campaigns             []assets.Campaign
 	campaignPointsByField map[FieldID][]*CampaignPoint
@@ -387,9 +387,11 @@ func NewOrgAssets(ctx context.Context, rt *runtime.Runtime, orgID OrgID, prev *O
 	if prev == nil || refresh&RefreshFlows > 0 {
 		oa.flowByUUID = make(map[assets.FlowUUID]assets.Flow)
 		oa.flowByID = make(map[FlowID]assets.Flow)
+		oa.flowCacheLock = &sync.RWMutex{}
 	} else {
 		oa.flowByUUID = prev.flowByUUID
 		oa.flowByID = prev.flowByID
+		oa.flowCacheLock = prev.flowCacheLock // same mutex for same shared maps
 	}
 
 	if prev == nil || refresh&RefreshTopics > 0 {
