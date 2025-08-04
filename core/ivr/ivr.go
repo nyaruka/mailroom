@@ -128,8 +128,8 @@ func RequestCall(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 
 	// log any error inserting our channel log, but continue
 	if clog != nil {
-		if err := models.InsertChannelLogs(ctx, rt, []*models.ChannelLog{clog}); err != nil {
-			slog.Error("error inserting channel log", "error", err)
+		if err := models.WriteChannelLogs(ctx, rt, []*models.ChannelLog{clog}); err != nil {
+			slog.Error("error writing channel log", "error", err)
 		}
 	}
 

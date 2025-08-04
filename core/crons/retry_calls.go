@@ -90,9 +90,9 @@ func (c *RetryCallsCron) Run(ctx context.Context, rt *runtime.Runtime) (map[stri
 		throttledChannels[call.ChannelID()] = true
 	}
 
-	// log any error inserting our channel logs, but continue
-	if err := models.InsertChannelLogs(ctx, rt, clogs); err != nil {
-		slog.Error("error inserting channel logs", "error", err)
+	// log any error writing our channel logs, but continue
+	if err := models.WriteChannelLogs(ctx, rt, clogs); err != nil {
+		slog.Error("error writing channel logs", "error", err)
 	}
 
 	return map[string]any{"retried": len(calls)}, nil
