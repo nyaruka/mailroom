@@ -25,7 +25,7 @@ type Foreman struct {
 }
 
 // NewForeman creates a new Foreman for the passed in server with the number of max workers
-func NewForeman(rt *runtime.Runtime, wg *sync.WaitGroup, q queues.Fair, maxWorkers int) *Foreman {
+func NewForeman(rt *runtime.Runtime, q queues.Fair, maxWorkers int) *Foreman {
 	foreman := &Foreman{
 		rt:               rt,
 		wg:               &sync.WaitGroup{},
@@ -36,16 +36,16 @@ func NewForeman(rt *runtime.Runtime, wg *sync.WaitGroup, q queues.Fair, maxWorke
 	}
 
 	for i := range maxWorkers {
-		foreman.workers[i] = NewWorker(foreman, fmt.Sprintf("%s-%d", q, i), wg)
+		foreman.workers[i] = NewWorker(foreman, fmt.Sprintf("%s-%d", q, i))
 	}
 
 	return foreman
 }
 
 // Start starts the foreman and all its workers, assigning jobs while there are some
-func (f *Foreman) Start() {
+func (f *Foreman) Start(wg *sync.WaitGroup) {
 	for _, worker := range f.workers {
-		worker.Start()
+		worker.Start(wg)
 	}
 	go f.Assign()
 }
@@ -116,28 +116,24 @@ func (f *Foreman) Assign() {
 type Worker struct {
 	foreman *Foreman
 	id      string
-	wg      *sync.WaitGroup
-
-	job chan *queues.Task
+	job     chan *queues.Task
 }
 
 // NewWorker creates a new worker responsible for working on events
-func NewWorker(foreman *Foreman, id string, wg *sync.WaitGroup) *Worker {
+func NewWorker(foreman *Foreman, id string) *Worker {
 	return &Worker{
 		foreman: foreman,
 		id:      id,
-		wg:      wg,
-
-		job: make(chan *queues.Task, 1),
+		job:     make(chan *queues.Task, 1),
 	}
 }
 
 // Start starts our Worker's goroutine and has it start waiting for tasks from the foreman
-func (w *Worker) Start() {
-	w.wg.Add(1)
+func (w *Worker) Start(wg *sync.WaitGroup) {
+	wg.Add(1)
 
 	go func() {
-		defer w.wg.Done()
+		defer wg.Done()
 
 		log := slog.With("worker", w.id)
 		log.Debug("worker started")

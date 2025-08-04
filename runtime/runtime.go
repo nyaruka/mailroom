@@ -20,7 +20,8 @@ import (
 // Runtime represents the set of services required to run many Mailroom functions. Used as a wrapper for
 // those services to simplify call signatures but not create a direct dependency to Mailroom or Server
 type Runtime struct {
-	Config     *Config
+	Config *Config
+
 	DB         *sqlx.DB
 	ReadonlyDB *sql.DB
 	Dynamo     *dynamodb.Client
@@ -29,8 +30,10 @@ type Runtime struct {
 	ES         *elasticsearch.TypedClient
 	CW         *cwatch.Service
 	FCM        FCMClient
-	Queues     *Queues
-	Stats      *StatsCollector
+
+	Writers *Writers
+	Queues  *Queues
+	Stats   *StatsCollector
 }
 
 // FCMClient is an interface to allow mocking in tests
@@ -39,11 +42,7 @@ type FCMClient interface {
 }
 
 func NewRuntime(cfg *Config) (*Runtime, error) {
-	rt := &Runtime{
-		Config: cfg,
-		Queues: NewQueues(cfg),
-		Stats:  NewStatsCollector(),
-	}
+	rt := &Runtime{Config: cfg}
 
 	var err error
 
@@ -87,6 +86,10 @@ func NewRuntime(cfg *Config) (*Runtime, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error creating Cloudwatch service: %w", err)
 	}
+
+	rt.Writers = NewWriters(cfg, rt.Dynamo)
+	rt.Queues = NewQueues(cfg)
+	rt.Stats = NewStatsCollector()
 
 	return rt, nil
 }
