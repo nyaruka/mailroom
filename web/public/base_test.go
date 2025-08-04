@@ -14,6 +14,12 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestDocs(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	testsuite.RunWebTests(t, ctx, rt, "testdata/docs.json", testsuite.ResetNone)
+}
+
 func TestMetrics(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 

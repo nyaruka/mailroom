@@ -1,0 +1,25 @@
+[
+    {
+        "label": "illegal method",
+        "method": "POST",
+        "path": "/mr/docs/",
+        "status": 405,
+        "response": {
+            "error": "illegal method: POST"
+        }
+    },
+    {
+        "label": "redirect if missing slash",
+        "method": "GET",
+        "path": "/mr/docs",
+        "status": 200,
+        "response": "This is a placeholder for tests."
+    },
+    {
+        "label": "return docs root",
+        "method": "GET",
+        "path": "/mr/docs/",
+        "status": 200,
+        "response": "This is a placeholder for tests."
+    }
+]

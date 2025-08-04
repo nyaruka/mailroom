@@ -14,13 +14,15 @@ func init() {
 	docServer = http.StripPrefix("/mr/docs", http.FileServer(http.Dir("docs")))
 
 	// redirect non slashed docs to slashed version so relative URLs work
-	web.RegisterRoute(http.MethodGet, "/mr/docs", func(ctx context.Context, rt *runtime.Runtime, r *http.Request, rawW http.ResponseWriter) error {
-		http.Redirect(rawW, r, "/mr/docs/", http.StatusMovedPermanently)
-		return nil
-	})
+	web.RegisterRoute(http.MethodGet, "/mr/docs", addSlashToDocs)
 
 	// all slashed docs are served by our static dir
 	web.RegisterRoute(http.MethodGet, "/mr/docs/*", handleDocs)
+}
+
+func addSlashToDocs(ctx context.Context, rt *runtime.Runtime, r *http.Request, rawW http.ResponseWriter) error {
+	http.Redirect(rawW, r, "/mr/docs/", http.StatusMovedPermanently)
+	return nil
 }
 
 func handleDocs(ctx context.Context, rt *runtime.Runtime, r *http.Request, rawW http.ResponseWriter) error {
