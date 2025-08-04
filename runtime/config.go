@@ -34,9 +34,10 @@ type Config struct {
 	Domain           string `help:"the domain that mailroom is listening on"`
 	AttachmentDomain string `help:"the domain that will be used for relative attachment"`
 
-	WorkersRealtime  int `help:"the number of workers for the realtime task queue"`
-	WorkersBatch     int `help:"the number of workers for the batch task queue"`
-	WorkersThrottled int `help:"the number of workers for the throttled task queue"`
+	WorkersRealtime  int     `help:"the number of workers for the realtime task queue"`
+	WorkersBatch     int     `help:"the number of workers for the batch task queue"`
+	WorkersThrottled int     `help:"the number of workers for the throttled task queue"`
+	WorkerOwnerLimit float64 `help:"the maximum number of workers, across nodes, available to a single owner, as a fraction of the per node worker counts"`
 
 	WebhooksTimeout              int     `help:"the timeout in milliseconds for webhook calls from engine"`
 	WebhooksMaxRetries           int     `help:"the number of times to retry a failed webhook call"`
@@ -97,6 +98,7 @@ func NewDefaultConfig() *Config {
 		WorkersRealtime:  32,
 		WorkersBatch:     8,
 		WorkersThrottled: 8,
+		WorkerOwnerLimit: 0.5,
 
 		WebhooksTimeout:              15000,
 		WebhooksMaxBodyBytes:         256 * 1024, // 256 KiB
