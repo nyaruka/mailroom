@@ -33,6 +33,7 @@ type Config struct {
 	AuthToken        string `help:"the token clients will need to authenticate web requests"`
 	Domain           string `help:"the domain that mailroom is listening on"`
 	AttachmentDomain string `help:"the domain that will be used for relative attachment"`
+	SpoolDir         string `help:"the directory to use for spool files"`
 
 	WorkersRealtime  int     `help:"the number of workers for the realtime task queue"`
 	WorkersBatch     int     `help:"the number of workers for the batch task queue"`
@@ -92,8 +93,9 @@ func NewDefaultConfig() *Config {
 		DBPoolSize: 36,
 		Valkey:     "valkey://localhost:6379/15",
 
-		Address: "localhost",
-		Port:    8090,
+		Address:  "localhost",
+		Port:     8090,
+		SpoolDir: "/var/spool/mailroom",
 
 		WorkersRealtime:  32,
 		WorkersBatch:     8,

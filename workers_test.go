@@ -50,8 +50,8 @@ func TestForemanAndWorkers(t *testing.T) {
 		q.Push(ctx, vc, "test", 2, &testTask{}, false)
 	}
 
-	fm := mailroom.NewForeman(rt, wg, q, 2)
-	fm.Start()
+	fm := mailroom.NewForeman(rt, q, 2)
+	fm.Start(wg)
 
 	// wait for queue to empty
 	for {

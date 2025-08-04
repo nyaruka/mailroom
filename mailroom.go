@@ -27,9 +27,10 @@ type Mailroom struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 
-	rt   *runtime.Runtime
-	wg   *sync.WaitGroup
-	quit chan bool
+	rt         *runtime.Runtime
+	workersWG  *sync.WaitGroup
+	servicesWG *sync.WaitGroup
+	quit       chan bool
 
 	realtimeForeman  *Foreman
 	batchForeman     *Foreman
@@ -46,15 +47,17 @@ type Mailroom struct {
 // NewMailroom creates and returns a new mailroom instance
 func NewMailroom(rt *runtime.Runtime) *Mailroom {
 	mr := &Mailroom{
-		rt:   rt,
-		quit: make(chan bool),
-		wg:   &sync.WaitGroup{},
+		rt: rt,
+
+		workersWG:  &sync.WaitGroup{},
+		servicesWG: &sync.WaitGroup{},
+		quit:       make(chan bool),
 	}
 	mr.ctx, mr.cancel = context.WithCancel(context.Background())
 
-	mr.realtimeForeman = NewForeman(mr.rt, mr.wg, mr.rt.Queues.Realtime, rt.Config.WorkersRealtime)
-	mr.batchForeman = NewForeman(mr.rt, mr.wg, mr.rt.Queues.Batch, rt.Config.WorkersBatch)
-	mr.throttledForeman = NewForeman(mr.rt, mr.wg, mr.rt.Queues.Throttled, rt.Config.WorkersThrottled)
+	mr.realtimeForeman = NewForeman(mr.rt, mr.rt.Queues.Realtime, rt.Config.WorkersRealtime)
+	mr.batchForeman = NewForeman(mr.rt, mr.rt.Queues.Batch, rt.Config.WorkersBatch)
+	mr.throttledForeman = NewForeman(mr.rt, mr.rt.Queues.Throttled, rt.Config.WorkersThrottled)
 
 	return mr
 }
@@ -128,16 +131,22 @@ func (mr *Mailroom) Start() error {
 		log.Warn("fcm not configured, no android syncing")
 	}
 
+	if err := mr.rt.Writers.Start(mr.servicesWG); err != nil {
+		return fmt.Errorf("error starting writers and spool: %w", err)
+	} else {
+		log.Info("dynamo writers and spool started")
+	}
+
 	// init our foremen and start it
-	mr.realtimeForeman.Start()
-	mr.batchForeman.Start()
-	mr.throttledForeman.Start()
+	mr.realtimeForeman.Start(mr.workersWG)
+	mr.batchForeman.Start(mr.workersWG)
+	mr.throttledForeman.Start(mr.workersWG)
 
 	// start our web server
-	mr.webserver = web.NewServer(mr.ctx, mr.rt, mr.wg)
+	mr.webserver = web.NewServer(mr.ctx, mr.rt, mr.workersWG)
 	mr.webserver.Start()
 
-	crons.StartAll(mr.rt, mr.wg, mr.quit)
+	crons.StartAll(mr.rt, mr.workersWG, mr.quit)
 
 	mr.startMetricsReporter(time.Minute)
 
@@ -161,7 +170,7 @@ func (mr *Mailroom) checkLastShutdown(ctx context.Context) error {
 	}
 
 	if exists {
-		slog.Error("mailroom node did not shutdown cleanly last time")
+		slog.Error("node did not shutdown cleanly last time")
 	} else {
 		if _, err := redis.DoContext(vc, ctx, "HSET", appNodesRunningKey, nodeID, time.Now().UTC().Format(time.RFC3339)); err != nil {
 			return fmt.Errorf("error setting app node state: %w", err)
@@ -182,7 +191,7 @@ func (mr *Mailroom) recordShutdown(ctx context.Context) error {
 }
 
 func (mr *Mailroom) startMetricsReporter(interval time.Duration) {
-	mr.wg.Add(1)
+	mr.workersWG.Add(1)
 
 	report := func() {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
@@ -198,7 +207,7 @@ func (mr *Mailroom) startMetricsReporter(interval time.Duration) {
 	go func() {
 		defer func() {
 			slog.Info("metrics reporter exiting")
-			mr.wg.Done()
+			mr.workersWG.Done()
 		}()
 
 		for {
@@ -258,7 +267,15 @@ func (mr *Mailroom) Stop() error {
 
 	mr.webserver.Stop()
 
-	mr.wg.Wait()
+	mr.workersWG.Wait()
+
+	log.Info("mailroom workers stopped")
+
+	mr.rt.Writers.Stop()
+
+	mr.servicesWG.Wait()
+
+	log.Info("mailroom services stopped")
 
 	if err := mr.recordShutdown(context.TODO()); err != nil {
 		return fmt.Errorf("error recording shutdown: %w", err)
