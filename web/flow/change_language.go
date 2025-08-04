@@ -13,7 +13,7 @@ import (
 )
 
 func init() {
-	web.RegisterRoute(http.MethodPost, "/mr/flow/change_language", web.RequireAuthToken(web.JSONPayload(handleChangeLanguage)))
+	web.InternalRoute(http.MethodPost, "/flow/change_language", web.JSONPayload(handleChangeLanguage))
 }
 
 // Changes the language of a flow by replacing the text with a translation.

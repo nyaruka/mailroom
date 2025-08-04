@@ -19,7 +19,7 @@ import (
 )
 
 func init() {
-	web.RegisterRoute(http.MethodPost, "/mr/contact/modify", web.RequireAuthToken(web.JSONPayload(handleModify)))
+	web.InternalRoute(http.MethodPost, "/contact/modify", web.JSONPayload(handleModify))
 }
 
 // Request that a set of contacts is modified.

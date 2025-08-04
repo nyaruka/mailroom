@@ -12,7 +12,7 @@ import (
 )
 
 func init() {
-	web.RegisterRoute(http.MethodPost, "/mr/org/deindex", web.RequireAuthToken(web.JSONPayload(handleDeindex)))
+	web.InternalRoute(http.MethodPost, "/org/deindex", web.JSONPayload(handleDeindex))
 }
 
 // Requests de-indexing of the given org from Elastic indexes.

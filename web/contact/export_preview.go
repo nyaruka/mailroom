@@ -13,7 +13,7 @@ import (
 )
 
 func init() {
-	web.RegisterRoute(http.MethodPost, "/mr/contact/export_preview", web.RequireAuthToken(web.JSONPayload(handleExportPreview)))
+	web.InternalRoute(http.MethodPost, "/contact/export_preview", web.JSONPayload(handleExportPreview))
 }
 
 // Generates a preview of which contacts will be included in an export.

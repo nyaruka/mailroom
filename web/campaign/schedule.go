@@ -13,7 +13,7 @@ import (
 )
 
 func init() {
-	web.RegisterRoute(http.MethodPost, "/mr/campaign/schedule", web.RequireAuthToken(web.JSONPayload(handleSchedule)))
+	web.InternalRoute(http.MethodPost, "/campaign/schedule", web.JSONPayload(handleSchedule))
 }
 
 // Request to schedule a campaign point. Triggers a background task to create the fires and returns immediately.

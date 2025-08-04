@@ -13,7 +13,7 @@ import (
 )
 
 func init() {
-	web.RegisterRoute(http.MethodPost, "/mr/flow/interrupt", web.RequireAuthToken(web.JSONPayload(handleInterrupt)))
+	web.InternalRoute(http.MethodPost, "/flow/interrupt", web.JSONPayload(handleInterrupt))
 }
 
 // Request that sessions using the given flow are interrupted. Used as part of flow archival.

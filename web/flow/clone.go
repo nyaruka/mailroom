@@ -13,7 +13,7 @@ import (
 )
 
 func init() {
-	web.RegisterRoute(http.MethodPost, "/mr/flow/clone", web.RequireAuthToken(web.JSONPayload(handleClone)))
+	web.InternalRoute(http.MethodPost, "/flow/clone", web.JSONPayload(handleClone))
 }
 
 // Clones a flow, replacing all UUIDs with either the given mapping or new random UUIDs.

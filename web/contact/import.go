@@ -14,7 +14,7 @@ import (
 )
 
 func init() {
-	web.RegisterRoute(http.MethodPost, "/mr/contact/import", web.RequireAuthToken(web.JSONPayload(handleImport)))
+	web.InternalRoute(http.MethodPost, "/contact/import", web.JSONPayload(handleImport))
 }
 
 // Request that a contact import is started.

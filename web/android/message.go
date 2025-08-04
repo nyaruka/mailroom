@@ -17,7 +17,7 @@ import (
 )
 
 func init() {
-	web.RegisterRoute(http.MethodPost, "/mr/android/message", web.RequireAuthToken(web.JSONPayload(handleMessage)))
+	web.InternalRoute(http.MethodPost, "/android/message", web.JSONPayload(handleMessage))
 }
 
 // Creates a new incoming message from an Android relayer sync.

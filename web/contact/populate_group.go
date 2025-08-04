@@ -14,7 +14,7 @@ import (
 )
 
 func init() {
-	web.RegisterRoute(http.MethodPost, "/mr/contact/populate_group", web.RequireAuthToken(web.JSONPayload(handlePopulateGroup)))
+	web.InternalRoute(http.MethodPost, "/contact/populate_group", web.JSONPayload(handlePopulateGroup))
 }
 
 // Triggers population of a query based group in a task.

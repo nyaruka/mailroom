@@ -13,7 +13,7 @@ import (
 )
 
 func init() {
-	web.RegisterRoute(http.MethodPost, "/mr/flow/migrate", web.RequireAuthToken(web.JSONPayload(handleMigrate)))
+	web.InternalRoute(http.MethodPost, "/flow/migrate", web.JSONPayload(handleMigrate))
 }
 
 // Migrates a flow to the latest flow specification

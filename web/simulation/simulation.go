@@ -28,8 +28,8 @@ const (
 )
 
 func init() {
-	web.RegisterRoute(http.MethodPost, "/mr/sim/start", web.RequireAuthToken(web.JSONPayload(handleStart)))
-	web.RegisterRoute(http.MethodPost, "/mr/sim/resume", web.RequireAuthToken(web.JSONPayload(handleResume)))
+	web.InternalRoute(http.MethodPost, "/sim/start", web.JSONPayload(handleStart))
+	web.InternalRoute(http.MethodPost, "/sim/resume", web.JSONPayload(handleResume))
 }
 
 type flowDefinition struct {

@@ -44,8 +44,8 @@ func MarshaledResponse(handler MarshaledHandler) Handler {
 	}
 }
 
-// RequireAuthToken wraps a handler to require that our request to have our global authorization header
-func RequireAuthToken(handler Handler) Handler {
+// wraps a handler to require that our request to have our global authorization header
+func requireAuthToken(handler Handler) Handler {
 	return func(ctx context.Context, rt *runtime.Runtime, r *http.Request, w http.ResponseWriter) error {
 		auth := r.Header.Get("authorization")
 

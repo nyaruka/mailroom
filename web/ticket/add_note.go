@@ -11,7 +11,7 @@ import (
 )
 
 func init() {
-	web.RegisterRoute(http.MethodPost, "/mr/ticket/add_note", web.RequireAuthToken(web.JSONPayload(handleAddNote)))
+	web.InternalRoute(http.MethodPost, "/ticket/add_note", web.JSONPayload(handleAddNote))
 }
 
 type addNoteRequest struct {

@@ -13,7 +13,7 @@ import (
 )
 
 func init() {
-	web.RegisterRoute(http.MethodPost, "/mr/contact/interrupt", web.RequireAuthToken(web.JSONPayload(handleInterrupt)))
+	web.InternalRoute(http.MethodPost, "/contact/interrupt", web.JSONPayload(handleInterrupt))
 }
 
 // Request that contacts are interrupted. If passed a single contact, their sessions are interrupted immediately. If

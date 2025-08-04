@@ -12,7 +12,7 @@ import (
 )
 
 func init() {
-	web.RegisterRoute(http.MethodGet, "/mr/system/queues", web.RequireAuthToken(web.JSONPayload(handleQueues)))
+	web.InternalRoute(http.MethodGet, "/system/queues", web.JSONPayload(handleQueues))
 }
 
 // Requests information about the task queues.

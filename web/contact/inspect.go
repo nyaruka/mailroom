@@ -13,7 +13,7 @@ import (
 )
 
 func init() {
-	web.RegisterRoute(http.MethodPost, "/mr/contact/inspect", web.RequireAuthToken(web.JSONPayload(handleInspect)))
+	web.InternalRoute(http.MethodPost, "/contact/inspect", web.JSONPayload(handleInspect))
 }
 
 // Inspects contacts.

@@ -11,7 +11,7 @@ import (
 )
 
 func init() {
-	web.RegisterRoute(http.MethodPost, "/mr/system/errors", web.RequireAuthToken(web.JSONPayload(handleErrors)))
+	web.InternalRoute(http.MethodPost, "/system/errors", web.JSONPayload(handleErrors))
 }
 
 type errorsRequest struct {

@@ -15,7 +15,7 @@ import (
 )
 
 func init() {
-	web.RegisterRoute(http.MethodPost, "/mr/android/event", web.RequireAuthToken(web.JSONPayload(handleEvent)))
+	web.InternalRoute(http.MethodPost, "/android/event", web.JSONPayload(handleEvent))
 }
 
 // Creates a new channel event from an Android relayer sync.

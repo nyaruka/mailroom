@@ -15,7 +15,7 @@ import (
 )
 
 func init() {
-	web.RegisterRoute(http.MethodPost, "/mr/contact/urns", web.RequireAuthToken(web.JSONPayload(handleURNs)))
+	web.InternalRoute(http.MethodPost, "/contact/urns", web.JSONPayload(handleURNs))
 }
 
 // Request to validate a set of URNs and determine ownership.

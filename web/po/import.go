@@ -14,7 +14,7 @@ import (
 )
 
 func init() {
-	web.RegisterRoute(http.MethodPost, "/mr/po/import", web.RequireAuthToken(web.MarshaledResponse(handleImport)))
+	web.InternalRoute(http.MethodPost, "/po/import", web.MarshaledResponse(handleImport))
 }
 
 // Imports translations from a PO file into the given set of flows.

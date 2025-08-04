@@ -13,7 +13,7 @@ import (
 )
 
 func init() {
-	web.RegisterRoute(http.MethodPost, "/mr/msg/handle", web.RequireAuthToken(web.JSONPayload(handleHandle)))
+	web.InternalRoute(http.MethodPost, "/msg/handle", web.JSONPayload(handleHandle))
 }
 
 // Queues the given incoming messages for handling. This is only used for recovering from failures where we might need
