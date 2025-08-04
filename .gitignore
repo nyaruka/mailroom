@@ -8,8 +8,8 @@ mailroom
 dist
 .vscode
 .envrc
-docs/*
-docs
+/docs/*
+/docs
 
 .DS_Store
 
