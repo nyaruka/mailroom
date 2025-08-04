@@ -8,6 +8,7 @@ import (
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/testsuite"
 	"github.com/nyaruka/mailroom/testsuite/testdb"
+	"github.com/nyaruka/mailroom/utils/test"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -56,6 +57,19 @@ func TestAssets(t *testing.T) {
 	dbFlow, err = oa.FlowByID(123456)
 	assert.Equal(t, err, models.ErrNotFound)
 	assert.Nil(t, dbFlow)
+}
+
+func TestFlowAssetConcurrency(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	test.RunConcurrently(100, func(i int) {
+		oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
+		require.NoError(t, err)
+
+		flow, err := oa.FlowByUUID(testdb.Favorites.UUID)
+		assert.NoError(t, err)
+		assert.Equal(t, "Favorites", flow.Name())
+	})
 }
 
 func TestCloneForSimulation(t *testing.T) {
