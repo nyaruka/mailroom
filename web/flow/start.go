@@ -17,7 +17,7 @@ import (
 )
 
 func init() {
-	web.RegisterRoute(http.MethodPost, "/mr/flow/start", web.RequireAuthToken(web.JSONPayload(handleStart)))
+	web.InternalRoute(http.MethodPost, "/flow/start", web.JSONPayload(handleStart))
 }
 
 // Request to start a flow.

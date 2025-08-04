@@ -18,7 +18,7 @@ import (
 )
 
 func init() {
-	web.RegisterRoute(http.MethodPost, "/mr/msg/broadcast", web.RequireAuthToken(web.JSONPayload(handleBroadcast)))
+	web.InternalRoute(http.MethodPost, "/msg/broadcast", web.JSONPayload(handleBroadcast))
 }
 
 // Request to send a broadcast.

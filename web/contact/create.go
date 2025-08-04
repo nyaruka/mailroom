@@ -13,7 +13,7 @@ import (
 )
 
 func init() {
-	web.RegisterRoute(http.MethodPost, "/mr/contact/create", web.RequireAuthToken(web.JSONPayload(handleCreate)))
+	web.InternalRoute(http.MethodPost, "/contact/create", web.JSONPayload(handleCreate))
 }
 
 // Request to create a new contact.

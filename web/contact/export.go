@@ -13,7 +13,7 @@ import (
 )
 
 func init() {
-	web.RegisterRoute(http.MethodPost, "/mr/contact/export", web.RequireAuthToken(web.JSONPayload(handleExport)))
+	web.InternalRoute(http.MethodPost, "/contact/export", web.JSONPayload(handleExport))
 }
 
 // Turns a search based export into a list of contact IDs.

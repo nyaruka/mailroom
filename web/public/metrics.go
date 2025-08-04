@@ -17,7 +17,7 @@ import (
 )
 
 func init() {
-	web.RegisterRoute(http.MethodGet, "/mr/org/{uuid:[0-9a-f\\-]+}/metrics", handleMetrics)
+	web.PublicRoute(http.MethodGet, "/org/{uuid:[0-9a-f\\-]+}/metrics", handleMetrics)
 }
 
 const groupCountsSQL = `

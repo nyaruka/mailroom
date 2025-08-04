@@ -12,7 +12,7 @@ import (
 )
 
 func init() {
-	web.RegisterRoute(http.MethodPost, "/mr/android/sync", web.RequireAuthToken(web.JSONPayload(handleSync)))
+	web.InternalRoute(http.MethodPost, "/android/sync", web.JSONPayload(handleSync))
 }
 
 type syncRequest struct {

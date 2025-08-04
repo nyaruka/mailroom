@@ -12,7 +12,7 @@ import (
 )
 
 func init() {
-	web.RegisterRoute(http.MethodPost, "/mr/contact/parse_query", web.RequireAuthToken(web.JSONPayload(handleParseQuery)))
+	web.InternalRoute(http.MethodPost, "/contact/parse_query", web.JSONPayload(handleParseQuery))
 }
 
 // Request to parse the passed in query

@@ -15,7 +15,7 @@ import (
 )
 
 func init() {
-	web.RegisterRoute(http.MethodPost, "/mr/llm/translate", web.RequireAuthToken(web.JSONPayload(handleTranslate)))
+	web.InternalRoute(http.MethodPost, "/llm/translate", web.JSONPayload(handleTranslate))
 }
 
 // Performs translation using an LLM.

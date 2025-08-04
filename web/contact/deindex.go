@@ -12,7 +12,7 @@ import (
 )
 
 func init() {
-	web.RegisterRoute(http.MethodPost, "/mr/contact/deindex", web.RequireAuthToken(web.JSONPayload(handleDeindex)))
+	web.InternalRoute(http.MethodPost, "/contact/deindex", web.JSONPayload(handleDeindex))
 }
 
 // Requests de-indexing of the given contacts from Elastic indexes.

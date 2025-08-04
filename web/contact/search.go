@@ -13,7 +13,7 @@ import (
 )
 
 func init() {
-	web.RegisterRoute(http.MethodPost, "/mr/contact/search", web.RequireAuthToken(web.JSONPayload(handleSearch)))
+	web.InternalRoute(http.MethodPost, "/contact/search", web.JSONPayload(handleSearch))
 }
 
 // Searches the contacts in an org

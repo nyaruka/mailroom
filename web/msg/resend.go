@@ -12,7 +12,7 @@ import (
 )
 
 func init() {
-	web.RegisterRoute(http.MethodPost, "/mr/msg/resend", web.RequireAuthToken(web.JSONPayload(handleResend)))
+	web.InternalRoute(http.MethodPost, "/msg/resend", web.JSONPayload(handleResend))
 }
 
 // Request to resend failed messages.

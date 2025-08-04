@@ -13,7 +13,7 @@ import (
 )
 
 func init() {
-	web.RegisterRoute(http.MethodPost, "/mr/ticket/close", web.RequireAuthToken(web.MarshaledResponse(handleClose)))
+	web.InternalRoute(http.MethodPost, "/ticket/close", web.MarshaledResponse(handleClose))
 }
 
 // Closes any open tickets with the given ids.

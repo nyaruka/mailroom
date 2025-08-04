@@ -14,7 +14,7 @@ import (
 )
 
 func init() {
-	web.RegisterRoute(http.MethodPost, "/mr/msg/broadcast_preview", web.RequireAuthToken(web.JSONPayload(handleBroadcastPreview)))
+	web.InternalRoute(http.MethodPost, "/msg/broadcast_preview", web.JSONPayload(handleBroadcastPreview))
 }
 
 // Generates a preview of which contacts will receive a broadcast.

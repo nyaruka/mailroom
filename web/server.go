@@ -30,8 +30,14 @@ type route struct {
 
 var routes []*route
 
-func RegisterRoute(method string, pattern string, handler Handler) {
-	routes = append(routes, &route{method, pattern, handler})
+// PublicRoute registers a route that handles direct requests from the internet
+func PublicRoute(method string, pattern string, handler Handler) {
+	routes = append(routes, &route{method, "/mr" + pattern, handler})
+}
+
+// InternalRoute registers a route that handles internal requests between components
+func InternalRoute(method string, pattern string, handler Handler) {
+	routes = append(routes, &route{method, "/mr" + pattern, requireAuthToken(handler)})
 }
 
 type Server struct {

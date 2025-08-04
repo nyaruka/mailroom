@@ -14,7 +14,7 @@ import (
 )
 
 func init() {
-	web.RegisterRoute(http.MethodPost, "/mr/po/export", web.RequireAuthToken(handleExport))
+	web.InternalRoute(http.MethodPost, "/po/export", handleExport)
 }
 
 // Exports a PO file from the given set of flows.

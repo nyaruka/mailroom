@@ -13,7 +13,7 @@ import (
 )
 
 func init() {
-	web.RegisterRoute(http.MethodPost, "/mr/channel/interrupt", web.RequireAuthToken(web.JSONPayload(handleInterrupt)))
+	web.InternalRoute(http.MethodPost, "/channel/interrupt", web.JSONPayload(handleInterrupt))
 }
 
 // Request that a channel is interrupted. Used as part of channel deletion.
