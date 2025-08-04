@@ -32,6 +32,7 @@ type Runtime struct {
 	FCM        FCMClient
 
 	Writers *Writers
+	Spool   *dynamo.Spool
 	Queues  *Queues
 	Stats   *StatsCollector
 }
@@ -87,11 +88,26 @@ func NewRuntime(cfg *Config) (*Runtime, error) {
 		return nil, fmt.Errorf("error creating Cloudwatch service: %w", err)
 	}
 
-	rt.Writers = NewWriters(cfg, rt.Dynamo)
-	rt.Queues = NewQueues(cfg)
+	rt.Spool = dynamo.NewSpool(rt.Dynamo, cfg.SpoolDir+"/dynamo", 30*time.Second)
+	rt.Writers = newWriters(cfg, rt.Dynamo, rt.Spool)
+	rt.Queues = newQueues(cfg)
 	rt.Stats = NewStatsCollector()
 
 	return rt, nil
+}
+
+func (r *Runtime) Start() error {
+	if err := r.Spool.Start(); err != nil {
+		return fmt.Errorf("error starting dynamo spool: %w", err)
+	}
+
+	r.Writers.start()
+	return nil
+}
+
+func (r *Runtime) Stop() {
+	r.Writers.stop()
+	r.Spool.Stop()
 }
 
 func createPostgresPool(url string, maxOpenConns int) (*sqlx.DB, error) {

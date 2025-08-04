@@ -1,8 +1,6 @@
 package runtime
 
 import (
-	"fmt"
-	"sync"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
@@ -12,31 +10,21 @@ import (
 type Writers struct {
 	Main    *dynamo.Writer
 	History *dynamo.Writer
-	Spool   *dynamo.Spool
 }
 
-func NewWriters(cfg *Config, cl *dynamodb.Client) *Writers {
-	spool := dynamo.NewSpool(cl, cfg.SpoolDir+"/dynamo", 30*time.Second)
-
+func newWriters(cfg *Config, cl *dynamodb.Client, spool *dynamo.Spool) *Writers {
 	return &Writers{
 		Main:    dynamo.NewWriter(cl, cfg.DynamoTablePrefix+"Main", 250*time.Millisecond, 1000, spool),
 		History: dynamo.NewWriter(cl, cfg.DynamoTablePrefix+"History", 250*time.Millisecond, 1000, spool),
-		Spool:   spool,
 	}
 }
 
-func (w *Writers) Start(wg *sync.WaitGroup) error {
-	if err := w.Spool.Start(wg); err != nil {
-		return fmt.Errorf("error starting dynamo spool: %w", err)
-	}
-
-	w.Main.Start(wg)
-	w.History.Start(wg)
-	return nil
+func (w *Writers) start() {
+	w.Main.Start()
+	w.History.Start()
 }
 
-func (w *Writers) Stop() {
+func (w *Writers) stop() {
 	w.Main.Stop()
 	w.History.Stop()
-	w.Spool.Stop()
 }

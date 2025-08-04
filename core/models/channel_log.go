@@ -47,9 +47,10 @@ func newChannelLog(t clogs.Type, ch *Channel, r *httpx.Recorder, redactVals []st
 }
 
 func (l *ChannelLog) DynamoKey() DynamoKey {
-	pk := fmt.Sprintf("cha#%s#%s", l.channel.UUID(), l.UUID[35:36]) // 16 buckets for each channel
-	sk := fmt.Sprintf("log#%s", l.UUID)
-	return DynamoKey{PK: pk, SK: sk}
+	return DynamoKey{
+		PK: fmt.Sprintf("cha#%s#%s", l.channel.UUID(), l.UUID[35:36]), // 16 buckets for each channel,
+		SK: fmt.Sprintf("log#%s", l.UUID),
+	}
 }
 
 func (l *ChannelLog) MarshalDynamo() (map[string]types.AttributeValue, error) {
@@ -65,7 +66,7 @@ func (l *ChannelLog) MarshalDynamo() (map[string]types.AttributeValue, error) {
 
 	return dynamo.Marshal(&DynamoItem{
 		DynamoKey: l.DynamoKey(),
-		OrgID:     int(l.channel.OrgID()),
+		OrgID:     l.channel.OrgID(),
 		TTL:       l.CreatedOn.Add(channelLogDynamoTTL),
 		Data: map[string]any{
 			"type":       l.Type,

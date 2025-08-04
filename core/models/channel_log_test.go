@@ -61,7 +61,9 @@ func TestChannelLogsOutgoing(t *testing.T) {
 	// read log back from DynamoDB
 	item, err := dynamo.GetItem[models.DynamoKey, models.DynamoItem](ctx, rt.Dynamo, "TestMain", clog1.DynamoKey())
 	require.NoError(t, err)
-	assert.Equal(t, string(models.ChannelLogTypeIVRStart), item.Data["type"])
+	if assert.NotNil(t, item) {
+		assert.Equal(t, string(models.ChannelLogTypeIVRStart), item.Data["type"])
+	}
 
 	var dataGZ map[string]any
 	err = dynamo.UnmarshalJSONGZ(item.DataGZ, &dataGZ)

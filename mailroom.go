@@ -27,10 +27,9 @@ type Mailroom struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 
-	rt         *runtime.Runtime
-	workersWG  *sync.WaitGroup
-	servicesWG *sync.WaitGroup
-	quit       chan bool
+	rt        *runtime.Runtime
+	workersWG *sync.WaitGroup
+	quit      chan bool
 
 	realtimeForeman  *Foreman
 	batchForeman     *Foreman
@@ -49,9 +48,8 @@ func NewMailroom(rt *runtime.Runtime) *Mailroom {
 	mr := &Mailroom{
 		rt: rt,
 
-		workersWG:  &sync.WaitGroup{},
-		servicesWG: &sync.WaitGroup{},
-		quit:       make(chan bool),
+		workersWG: &sync.WaitGroup{},
+		quit:      make(chan bool),
 	}
 	mr.ctx, mr.cancel = context.WithCancel(context.Background())
 
@@ -131,10 +129,10 @@ func (mr *Mailroom) Start() error {
 		log.Warn("fcm not configured, no android syncing")
 	}
 
-	if err := mr.rt.Writers.Start(mr.servicesWG); err != nil {
-		return fmt.Errorf("error starting writers and spool: %w", err)
+	if err := mr.rt.Start(); err != nil {
+		return fmt.Errorf("error starting runtime: %w", err)
 	} else {
-		log.Info("dynamo writers and spool started")
+		log.Info("runtime started")
 	}
 
 	// init our foremen and start it
@@ -269,13 +267,11 @@ func (mr *Mailroom) Stop() error {
 
 	mr.workersWG.Wait()
 
-	log.Info("mailroom workers stopped")
+	log.Info("workers stopped")
 
-	mr.rt.Writers.Stop()
+	mr.rt.Stop()
 
-	mr.servicesWG.Wait()
-
-	log.Info("mailroom services stopped")
+	log.Info("runtime stopped")
 
 	if err := mr.recordShutdown(context.TODO()); err != nil {
 		return fmt.Errorf("error recording shutdown: %w", err)

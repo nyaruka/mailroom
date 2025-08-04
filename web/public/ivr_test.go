@@ -12,6 +12,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/nyaruka/gocommon/aws/dynamo"
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
@@ -332,6 +333,8 @@ func TestTwilioIVR(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE contact_id = $1 AND msg_type = 'V' 
 		AND ((status = 'H' AND direction = 'I') OR (status = 'W' AND direction = 'O'))`, testdb.Bob.ID).Returns(2)
 
+	time.Sleep(time.Millisecond * 300) // give time for the channel logs to be written
+
 	// check the generated channel logs
 	logs := getCallLogs(t, ctx, rt, testdb.TwilioChannel)
 	assert.Len(t, logs, 19)
@@ -631,6 +634,8 @@ func TestVonageIVR(t *testing.T) {
 
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM ivr_call WHERE status = 'D' AND contact_id = $1`, testdb.George.ID).Returns(1)
 
+	time.Sleep(time.Millisecond * 300) // give time for the channel logs to be written
+
 	// check the generated channel logs
 	logs := getCallLogs(t, ctx, rt, testdb.VonageChannel)
 	assert.Len(t, logs, 16)
@@ -655,6 +660,7 @@ func getCallLogs(t *testing.T, ctx context.Context, rt *runtime.Runtime, ch *tes
 		key := models.DynamoKey{PK: fmt.Sprintf("cha#%s#%s", ch.UUID, logUUID[35:36]), SK: fmt.Sprintf("log#%s", logUUID)}
 		item, err := dynamo.GetItem[models.DynamoKey, models.DynamoItem](ctx, rt.Dynamo, "TestMain", key)
 		require.NoError(t, err)
+		require.NotNil(t, item, "log item not found for key %s", key)
 
 		var dataGZ DataGZ
 		err = dynamo.UnmarshalJSONGZ(item.DataGZ, &dataGZ)

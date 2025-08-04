@@ -77,6 +77,7 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 	cfg.S3Minio = true
 	cfg.DynamoEndpoint = "http://localhost:6000"
 	cfg.DynamoTablePrefix = "Test"
+	cfg.SpoolDir = absPath("./_test_spool")
 
 	rt, err := runtime.NewRuntime(cfg)
 	require.NoError(t, err)
@@ -95,7 +96,12 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 
 	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo})))
 
+	err = rt.Start()
+	require.NoError(t, err, "error starting runtime")
+
 	t.Cleanup(func() {
+		rt.Stop()
+
 		rt.DB.Close()
 		rt.VK.Close()
 	})
