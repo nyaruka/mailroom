@@ -62,6 +62,8 @@ func TestAssets(t *testing.T) {
 func TestFlowAssetConcurrency(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
+	defer models.FlushCache()
+
 	test.RunConcurrently(100, func(i int) {
 		oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 		require.NoError(t, err)
