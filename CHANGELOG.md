@@ -1,3 +1,7 @@
+v10.3.28 (2025-08-04)
+-------------------------
+ * Use DynamoDB writer to write IVR channel logs
+
 v10.3.27 (2025-08-04)
 -------------------------
  * Explicity register web routes as internal vs public
