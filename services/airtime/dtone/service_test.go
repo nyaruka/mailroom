@@ -22,7 +22,8 @@ func errorResp(code int, message string) []byte {
 func TestServiceWithSuccessfulTranfer(t *testing.T) {
 	ctx := context.Background()
 
-	test.MockUniverse()
+	reset := test.MockUniverse()
+	defer reset()
 
 	mocks := httpx.NewMockRequestor(map[string][]*httpx.MockResponse{
 		"https://dvs-api.dtone.com/v1/lookup/mobile-number": {
