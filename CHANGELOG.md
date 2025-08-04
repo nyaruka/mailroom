@@ -1,3 +1,9 @@
+v10.3.27 (2025-08-04)
+-------------------------
+ * Explicity register web routes as internal vs public
+ * Add Runtime.Writers and split mailroom waitgroup into workers and services
+ * Make the percentage of workers available to each task owner configurable
+
 v10.3.26 (2025-08-02)
 -------------------------
  * Maybe fix concurrency issue in flow loading
