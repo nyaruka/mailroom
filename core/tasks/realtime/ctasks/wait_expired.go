@@ -71,8 +71,8 @@ func (t *WaitExpiredTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *
 		}
 
 		if clog != nil {
-			if err := models.InsertChannelLogs(ctx, rt, []*models.ChannelLog{clog}); err != nil {
-				return fmt.Errorf("error inserting channel logs: %w", err)
+			if err := models.WriteChannelLogs(ctx, rt, []*models.ChannelLog{clog}); err != nil {
+				return fmt.Errorf("error writing channel logs: %w", err)
 			}
 		}
 

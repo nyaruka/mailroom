@@ -1,6 +1,7 @@
 package models
 
 import (
+	"fmt"
 	"time"
 )
 
@@ -12,11 +13,15 @@ type DynamoKey struct {
 	SK string `dynamodbav:"SK"`
 }
 
+func (k DynamoKey) String() string {
+	return fmt.Sprintf("%s[%s]", k.PK, k.SK)
+}
+
 // DynamoItem is the common structure for items stored in DynamoDB.
 type DynamoItem struct {
 	DynamoKey
 
-	OrgID  int            `dynamodbav:"OrgID"`
+	OrgID  OrgID          `dynamodbav:"OrgID"`
 	TTL    time.Time      `dynamodbav:"TTL,unixtime,omitempty"`
 	Data   map[string]any `dynamodbav:"Data"`
 	DataGZ []byte         `dynamodbav:"DataGZ,omitempty"`

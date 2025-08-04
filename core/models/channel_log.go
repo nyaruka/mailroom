@@ -3,8 +3,6 @@ package models
 import (
 	"context"
 	"fmt"
-	"log/slog"
-	"slices"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
@@ -49,9 +47,10 @@ func newChannelLog(t clogs.Type, ch *Channel, r *httpx.Recorder, redactVals []st
 }
 
 func (l *ChannelLog) DynamoKey() DynamoKey {
-	pk := fmt.Sprintf("cha#%s#%s", l.channel.UUID(), l.UUID[35:36]) // 16 buckets for each channel
-	sk := fmt.Sprintf("log#%s", l.UUID)
-	return DynamoKey{PK: pk, SK: sk}
+	return DynamoKey{
+		PK: fmt.Sprintf("cha#%s#%s", l.channel.UUID(), l.UUID[35:36]), // 16 buckets for each channel,
+		SK: fmt.Sprintf("log#%s", l.UUID),
+	}
 }
 
 func (l *ChannelLog) MarshalDynamo() (map[string]types.AttributeValue, error) {
@@ -67,7 +66,7 @@ func (l *ChannelLog) MarshalDynamo() (map[string]types.AttributeValue, error) {
 
 	return dynamo.Marshal(&DynamoItem{
 		DynamoKey: l.DynamoKey(),
-		OrgID:     int(l.channel.OrgID()),
+		OrgID:     l.channel.OrgID(),
 		TTL:       l.CreatedOn.Add(channelLogDynamoTTL),
 		Data: map[string]any{
 			"type":       l.Type,
@@ -79,21 +78,12 @@ func (l *ChannelLog) MarshalDynamo() (map[string]types.AttributeValue, error) {
 	})
 }
 
-// InsertChannelLogs writes the given channel logs to the db
-func InsertChannelLogs(ctx context.Context, rt *runtime.Runtime, logs []*ChannelLog) error {
-	// TODO rework use dynamo.Writer
-
-	// write all logs to DynamoDB
-	for batch := range slices.Chunk(logs, 25) {
-		unprocessed, err := dynamo.BatchPutItem(ctx, rt.Dynamo, rt.Config.DynamoTablePrefix+"Main", batch)
-		if err != nil {
-			return fmt.Errorf("error writing logs to dynamo: %w", err)
-		}
-		if len(unprocessed) > 0 {
-			// TODO shouldn't happend.. but need to figure out how we would retry these
-			slog.Error("unprocessed items writing logs to dynamo", "count", len(unprocessed))
+// WriteChannelLogs sends the given channel logs to their DynamoDB writer
+func WriteChannelLogs(ctx context.Context, rt *runtime.Runtime, logs []*ChannelLog) error {
+	for _, log := range logs {
+		if _, err := rt.Writers.Main.Write(log); err != nil {
+			return err
 		}
 	}
-
 	return nil
 }

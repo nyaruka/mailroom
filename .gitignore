@@ -10,6 +10,7 @@ dist
 .envrc
 /docs/*
 /docs
+/_test_spool
 
 .DS_Store
 

@@ -8,7 +8,7 @@ type Queues struct {
 	Throttled queues.Fair
 }
 
-func NewQueues(cfg *Config) *Queues {
+func newQueues(cfg *Config) *Queues {
 	// all queues are configured to allow a single owner to use up to half the workers
 	return &Queues{
 		Realtime:  queues.NewFair("realtime", int(float64(cfg.WorkersRealtime)*cfg.WorkerOwnerLimit)),
