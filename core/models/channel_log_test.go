@@ -3,7 +3,6 @@ package models_test
 import (
 	"net/http"
 	"testing"
-	"time"
 
 	"github.com/nyaruka/gocommon/aws/dynamo"
 	"github.com/nyaruka/gocommon/aws/dynamo/dyntest"
@@ -54,7 +53,7 @@ func TestChannelLogsOutgoing(t *testing.T) {
 	err = models.BulkWriterQueue(ctx, rt.Writers.Main, []*models.ChannelLog{clog1, clog2})
 	require.NoError(t, err)
 
-	time.Sleep(500 * time.Millisecond) // wait for writer to flush
+	rt.Writers.Main.Flush()
 
 	dyntest.AssertCount(t, rt.Dynamo, "TestMain", 2)
 

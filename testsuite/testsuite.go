@@ -18,9 +18,13 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const elasticURL = "http://localhost:9200"
-const elasticContactsIndex = "test_contacts"
-const postgresContainerName = "textit-postgres-1"
+const (
+	elasticURL            = "http://localhost:9200"
+	elasticContactsIndex  = "test_contacts"
+	postgresContainerName = "textit-postgres-1"
+	postgresDumpPath      = "./testsuite/testdata/postgres.dump"
+	dynamoTablesPath      = "./testsuite/testdata/dynamo.json"
+)
 
 // Refresh is our type for the pieces of org assets we want fresh (not cached)
 type ResetFlag int
@@ -82,7 +86,7 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 	rt, err := runtime.NewRuntime(cfg)
 	require.NoError(t, err)
 
-	// check if we have tables and if not load test database dump
+	// create Postgres tables if necessary
 	_, err = rt.DB.Exec("SELECT * from orgs_org")
 	if err != nil {
 		loadTestDump(t)
@@ -91,6 +95,9 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 		rt, err = runtime.NewRuntime(cfg)
 		require.NoError(t, err)
 	}
+
+	// create Dynamo tables if necessary
+	dyntest.CreateTables(t, rt.Dynamo, absPath(dynamoTablesPath), false)
 
 	rt.FCM = &MockFCMClient{ValidTokens: []string{"FCMID3", "FCMID4", "FCMID5"}}
 
@@ -141,7 +148,7 @@ func resetDB(t *testing.T, rt *runtime.Runtime) {
 func loadTestDump(t *testing.T) {
 	t.Helper()
 
-	dump, err := os.Open(absPath("./testsuite/testdata/postgres.dump"))
+	dump, err := os.Open(absPath(postgresDumpPath))
 	require.NoError(t, err)
 
 	defer dump.Close()
@@ -214,7 +221,10 @@ func resetElastic(t *testing.T, rt *runtime.Runtime) {
 func resetDynamo(t *testing.T, rt *runtime.Runtime) {
 	t.Helper()
 
-	dyntest.CreateTables(t, rt.Dynamo, absPath("./testsuite/testdata/dynamo.json"))
+	rt.Writers.Main.Stop()
+	rt.Writers.History.Stop()
+
+	dyntest.CreateTables(t, rt.Dynamo, absPath(dynamoTablesPath), true)
 }
 
 var sqlResetTestData = `

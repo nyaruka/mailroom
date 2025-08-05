@@ -33,7 +33,7 @@ type DynamoItem struct {
 // BulkWriterQueue queues multiple items to a DynamoDB writer.
 func BulkWriterQueue[T any](ctx context.Context, w *dynamo.Writer, items []T) error {
 	for _, item := range items {
-		if _, err := w.Write(item); err != nil {
+		if _, err := w.Queue(item); err != nil {
 			return fmt.Errorf("error queuing item to DynamoDB writer %s: %w", w.Table(), err)
 		}
 	}

@@ -12,7 +12,6 @@ import (
 	"strings"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/nyaruka/gocommon/aws/dynamo"
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
@@ -333,8 +332,6 @@ func TestTwilioIVR(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE contact_id = $1 AND msg_type = 'V' 
 		AND ((status = 'H' AND direction = 'I') OR (status = 'W' AND direction = 'O'))`, testdb.Bob.ID).Returns(2)
 
-	time.Sleep(time.Millisecond * 300) // give time for the channel logs to be written
-
 	// check the generated channel logs
 	logs := getCallLogs(t, ctx, rt, testdb.TwilioChannel)
 	assert.Len(t, logs, 19)
@@ -634,8 +631,6 @@ func TestVonageIVR(t *testing.T) {
 
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM ivr_call WHERE status = 'D' AND contact_id = $1`, testdb.George.ID).Returns(1)
 
-	time.Sleep(time.Millisecond * 300) // give time for the channel logs to be written
-
 	// check the generated channel logs
 	logs := getCallLogs(t, ctx, rt, testdb.VonageChannel)
 	assert.Len(t, logs, 16)
@@ -645,6 +640,8 @@ func TestVonageIVR(t *testing.T) {
 }
 
 func getCallLogs(t *testing.T, ctx context.Context, rt *runtime.Runtime, ch *testdb.Channel) []*httpx.Log {
+	rt.Writers.Main.Flush()
+
 	var logUUIDs []clogs.UUID
 	err := rt.DB.Select(&logUUIDs, `SELECT unnest(log_uuids) FROM ivr_call ORDER BY id`)
 	require.NoError(t, err)

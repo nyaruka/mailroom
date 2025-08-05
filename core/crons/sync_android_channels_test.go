@@ -2,7 +2,6 @@ package crons_test
 
 import (
 	"testing"
-	"time"
 
 	"github.com/nyaruka/mailroom/core/crons"
 	"github.com/nyaruka/mailroom/testsuite"
@@ -28,8 +27,6 @@ func TestSyncAndroidChannels(t *testing.T) {
 	rt.DB.MustExec(`UPDATE channels_channel SET last_seen = NOW() WHERE id = $1`, testChannel3.ID)
 	rt.DB.MustExec(`UPDATE channels_channel SET last_seen = NOW() - INTERVAL '20 minutes' WHERE id = $1`, testChannel4.ID)
 	rt.DB.MustExec(`UPDATE channels_channel SET last_seen = NOW() - INTERVAL '10 days' WHERE id = $1`, testChannel5.ID)
-
-	time.Sleep(5 * time.Millisecond)
 
 	cron := &crons.SyncAndroidChannelsCron{}
 	res, err := cron.Run(ctx, rt)

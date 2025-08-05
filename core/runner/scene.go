@@ -245,13 +245,15 @@ func BulkCommit(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, 
 	}
 
 	// send events to be persisted to the history table writer
+	eventsWritten := 0
 	for _, scene := range scenes {
-		for _, evt := range scene.persistEvents {
-			if _, err := rt.Writers.History.Write(evt); err != nil {
-				return fmt.Errorf("error writing event to history: %w", err)
-			}
+		if err := models.BulkWriterQueue(ctx, rt.Writers.History, scene.persistEvents); err != nil {
+			return fmt.Errorf("error writing event to history: %w", err)
 		}
+		eventsWritten += len(scene.persistEvents)
 	}
+
+	slog.Info("events queued to history writer", "count", eventsWritten)
 
 	if err := ExecutePostCommitHooks(ctx, rt, oa, scenes); err != nil {
 		return fmt.Errorf("error processing post commit hooks: %w", err)
