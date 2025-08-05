@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/nyaruka/gocommon/aws/dynamo/dyntest"
 	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/gocommon/random"
@@ -30,7 +31,7 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 
 	defer dates.SetNowFunc(time.Now)
 	defer random.SetGenerator(random.DefaultGenerator)
-	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetValkey)
+	defer testsuite.Reset(t, rt, testsuite.ResetAll) // modifies contacts
 
 	testFlows := testdb.ImportFlows(rt, testdb.Org1, "testdata/session_test_flows.json")
 	flow := testFlows[0]
@@ -64,14 +65,18 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 			"contact_id": int64(testdb.Alexandra.ID), "status": "W", "responded": false, "current_node_uuid": "cbff02b0-cd93-481d-a430-b335ab66779e",
 		})
 
+	// check events were persisted to DynamoDB
+	rt.Writers.History.Flush()
+	dyntest.AssertCount(t, rt.Dynamo, "TestHistory", 2)
+
 	testsuite.AssertContactFires(t, rt, testdb.Bob.ID, map[string]time.Time{
-		fmt.Sprintf("E:%s", scBob.Session.UUID()): time.Date(2025, 2, 25, 16, 55, 8, 0, time.UTC), // 10 minutes in future
-		fmt.Sprintf("S:%s", scBob.Session.UUID()): time.Date(2025, 3, 28, 9, 55, 36, 0, time.UTC), // 30 days + rand(1 - 24 hours) in future
+		fmt.Sprintf("E:%s", scBob.Session.UUID()): time.Date(2025, 2, 25, 16, 55, 10, 0, time.UTC), // 10 minutes in future
+		fmt.Sprintf("S:%s", scBob.Session.UUID()): time.Date(2025, 3, 28, 9, 55, 36, 0, time.UTC),  // 30 days + rand(1 - 24 hours) in future
 	})
 	testsuite.AssertContactFires(t, rt, testdb.Alexandra.ID, map[string]time.Time{
-		fmt.Sprintf("T:%s", scAlex.Session.UUID()): time.Date(2025, 2, 25, 16, 50, 27, 0, time.UTC), // 5 minutes in future
-		fmt.Sprintf("E:%s", scAlex.Session.UUID()): time.Date(2025, 2, 25, 16, 55, 21, 0, time.UTC), // 10 minutes in future
-		fmt.Sprintf("S:%s", scAlex.Session.UUID()): time.Date(2025, 3, 28, 12, 9, 23, 0, time.UTC),  // 30 days + rand(1 - 24 hours) in future
+		fmt.Sprintf("T:%s", scAlex.Session.UUID()): time.Date(2025, 2, 25, 16, 50, 31, 0, time.UTC), // 5 minutes in future
+		fmt.Sprintf("E:%s", scAlex.Session.UUID()): time.Date(2025, 2, 25, 16, 55, 25, 0, time.UTC), // 10 minutes in future
+		fmt.Sprintf("S:%s", scAlex.Session.UUID()): time.Date(2025, 3, 28, 12, 9, 25, 0, time.UTC),  // 30 days + rand(1 - 24 hours) in future
 	})
 
 	scene := testsuite.ResumeSession(t, rt, oa, testdb.Bob, "no")
@@ -91,7 +96,7 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 
 	// check we have a new contact fire for wait expiration but not timeout (wait doesn't have a timeout)
 	testsuite.AssertContactFires(t, rt, testdb.Bob.ID, map[string]time.Time{
-		fmt.Sprintf("E:%s", scBob.Session.UUID()): time.Date(2025, 2, 25, 16, 55, 43, 0, time.UTC), // updated
+		fmt.Sprintf("E:%s", scBob.Session.UUID()): time.Date(2025, 2, 25, 16, 55, 47, 0, time.UTC), // updated
 		fmt.Sprintf("S:%s", scBob.Session.UUID()): time.Date(2025, 3, 28, 9, 55, 36, 0, time.UTC),  // unchanged
 	})
 

@@ -1,14 +1,12 @@
 package models
 
 import (
-	"context"
 	"fmt"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/nyaruka/gocommon/aws/dynamo"
 	"github.com/nyaruka/gocommon/httpx"
-	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/mailroom/utils/clogs"
 )
 
@@ -76,14 +74,4 @@ func (l *ChannelLog) MarshalDynamo() (map[string]types.AttributeValue, error) {
 		},
 		DataGZ: dataGZ,
 	})
-}
-
-// WriteChannelLogs sends the given channel logs to their DynamoDB writer
-func WriteChannelLogs(ctx context.Context, rt *runtime.Runtime, logs []*ChannelLog) error {
-	for _, log := range logs {
-		if _, err := rt.Writers.Main.Write(log); err != nil {
-			return err
-		}
-	}
-	return nil
 }

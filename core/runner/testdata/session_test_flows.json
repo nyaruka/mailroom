@@ -11,6 +11,11 @@
           "uuid": "8d3e3b71-0932-4e44-b8c8-99e15bac1f15",
           "actions": [
             {
+              "uuid": "8b414115-49a2-418a-aca1-e3a0515326ad",
+              "type": "set_contact_name",
+              "name": "New"
+            },
+            {
               "attachments": [],
               "text": "Do you like dogs?",
               "type": "send_msg",

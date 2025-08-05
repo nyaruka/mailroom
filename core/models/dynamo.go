@@ -1,8 +1,11 @@
 package models
 
 import (
+	"context"
 	"fmt"
 	"time"
+
+	"github.com/nyaruka/gocommon/aws/dynamo"
 )
 
 // Describes the common format for all items stored in DynamoDB.
@@ -25,4 +28,14 @@ type DynamoItem struct {
 	TTL    time.Time      `dynamodbav:"TTL,unixtime,omitempty"`
 	Data   map[string]any `dynamodbav:"Data,omitempty"`
 	DataGZ []byte         `dynamodbav:"DataGZ,omitempty"`
+}
+
+// BulkWriterQueue queues multiple items to a DynamoDB writer.
+func BulkWriterQueue[T any](ctx context.Context, w *dynamo.Writer, items []T) error {
+	for _, item := range items {
+		if _, err := w.Queue(item); err != nil {
+			return fmt.Errorf("error queuing item to DynamoDB writer %s: %w", w.Table(), err)
+		}
+	}
+	return nil
 }

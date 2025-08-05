@@ -32,8 +32,9 @@ type Scene struct {
 	WaitTimeout         time.Duration
 	PriorRunModifiedOns map[flows.RunUUID]time.Time
 
-	preCommits  map[PreCommitHook][]any
-	postCommits map[PostCommitHook][]any
+	preCommits    map[PreCommitHook][]any
+	postCommits   map[PostCommitHook][]any
+	persistEvents []*models.Event
 
 	// can be overridden by tests
 	Engine func(*runtime.Runtime) flows.Engine
@@ -86,6 +87,15 @@ func (s *Scene) AddEvent(ctx context.Context, rt *runtime.Runtime, oa *models.Or
 
 	if err := handler(ctx, rt, oa, s, e, userID); err != nil {
 		return err
+	}
+
+	if persistEventTypes[e.Type()] {
+		s.persistEvents = append(s.persistEvents, &models.Event{
+			Event:       e,
+			OrgID:       oa.OrgID(),
+			ContactUUID: s.ContactUUID(),
+			UserID:      userID,
+		})
 	}
 
 	return nil
@@ -233,6 +243,17 @@ func BulkCommit(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, 
 			}
 		}
 	}
+
+	// send events to be persisted to the history table writer
+	eventsWritten := 0
+	for _, scene := range scenes {
+		if err := models.BulkWriterQueue(ctx, rt.Writers.History, scene.persistEvents); err != nil {
+			return fmt.Errorf("error writing event to history: %w", err)
+		}
+		eventsWritten += len(scene.persistEvents)
+	}
+
+	slog.Info("events queued to history writer", "count", eventsWritten)
 
 	if err := ExecutePostCommitHooks(ctx, rt, oa, scenes); err != nil {
 		return fmt.Errorf("error processing post commit hooks: %w", err)
