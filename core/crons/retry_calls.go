@@ -91,7 +91,7 @@ func (c *RetryCallsCron) Run(ctx context.Context, rt *runtime.Runtime) (map[stri
 	}
 
 	// log any error writing our channel logs, but continue
-	if err := models.WriteChannelLogs(ctx, rt, clogs); err != nil {
+	if err := models.BulkWriterQueue(ctx, rt.Writers.Main, clogs); err != nil {
 		slog.Error("error writing channel logs", "error", err)
 	}
 

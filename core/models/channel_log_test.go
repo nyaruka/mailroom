@@ -51,7 +51,7 @@ func TestChannelLogsOutgoing(t *testing.T) {
 	clog2.Error(&clogs.Error{Message: "oops"})
 	clog2.End()
 
-	err = models.WriteChannelLogs(ctx, rt, []*models.ChannelLog{clog1, clog2})
+	err = models.BulkWriterQueue(ctx, rt.Writers.Main, []*models.ChannelLog{clog1, clog2})
 	require.NoError(t, err)
 
 	time.Sleep(500 * time.Millisecond) // wait for writer to flush

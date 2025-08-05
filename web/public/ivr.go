@@ -84,7 +84,7 @@ func newIVRHandler(handler ivrHandlerFn, logType clogs.Type) web.Handler {
 
 		clog.End()
 
-		if err := models.WriteChannelLogs(ctx, rt, []*models.ChannelLog{clog}); err != nil {
+		if err := models.BulkWriterQueue(ctx, rt.Writers.Main, []*models.ChannelLog{clog}); err != nil {
 			slog.Error("error writing ivr channel log", "error", err, "elapsed", clog.Elapsed, "channel", ch.UUID())
 		}
 
