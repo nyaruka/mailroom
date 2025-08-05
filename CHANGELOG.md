@@ -1,3 +1,8 @@
+v10.3.29 (2025-08-05)
+-------------------------
+ * Add count of spooled items as metric
+ * Start persisting some event types to DynamoDB
+
 v10.3.28 (2025-08-04)
 -------------------------
  * Use DynamoDB writer to write IVR channel logs
