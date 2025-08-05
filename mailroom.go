@@ -37,8 +37,7 @@ type Mailroom struct {
 
 	webserver *web.Server
 
-	// both sqlx and valkey provide wait stats which are cummulative that we need to convert into increments by
-	// tracking their previous values
+	// some stats are cummulative that we need to convert into increments by tracking their previous values
 	dbWaitDuration time.Duration
 	vkWaitDuration time.Duration
 }
@@ -242,6 +241,7 @@ func (mr *Mailroom) reportMetrics(ctx context.Context) (int, error) {
 		cwatch.Datum("QueuedTasks", float64(realtimeSize), types.StandardUnitCount, cwatch.Dimension("QueueName", "realtime")),
 		cwatch.Datum("QueuedTasks", float64(batchSize), types.StandardUnitCount, cwatch.Dimension("QueueName", "batch")),
 		cwatch.Datum("QueuedTasks", float64(throttledSize), types.StandardUnitCount, cwatch.Dimension("QueueName", "throttled")),
+		cwatch.Datum("DynamoSpooledItems", float64(mr.rt.Spool.Size()), types.StandardUnitCount, hostDim),
 	)
 
 	if err := mr.rt.CW.Send(ctx, metrics...); err != nil {
