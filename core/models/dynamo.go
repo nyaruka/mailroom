@@ -23,6 +23,6 @@ type DynamoItem struct {
 
 	OrgID  OrgID          `dynamodbav:"OrgID"`
 	TTL    time.Time      `dynamodbav:"TTL,unixtime,omitempty"`
-	Data   map[string]any `dynamodbav:"Data"`
+	Data   map[string]any `dynamodbav:"Data,omitempty"`
 	DataGZ []byte         `dynamodbav:"DataGZ,omitempty"`
 }

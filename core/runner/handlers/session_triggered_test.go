@@ -23,7 +23,8 @@ func TestSessionTriggered(t *testing.T) {
 
 	groupRef := &assets.GroupReference{UUID: testdb.TestersGroup.UUID}
 
-	test.MockUniverse()
+	reset := test.MockUniverse()
+	defer reset()
 
 	tcs := []handlers.TestCase{
 		{
