@@ -300,8 +300,8 @@ func GetWaitingSessionForContact(ctx context.Context, rt *runtime.Runtime, oa *O
 	}
 
 	// ignore and log if this session somehow isn't a waiting session for this contact
-	if session.s.Status != SessionStatusWaiting || session.s.ContactID != ContactID(fc.ID()) {
-		slog.Error("current session for contact isn't a waiting session", "session_uuid", uuid, "contact_id", fc.ID())
+	if session.s.Status != SessionStatusWaiting || (session.ContactUUID() != "" && session.ContactUUID() != fc.UUID()) {
+		slog.Error("current session for contact isn't a waiting session", "session", uuid, "contact", fc.UUID())
 		return nil, nil
 	}
 
