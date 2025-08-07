@@ -47,7 +47,7 @@ func TestInsertSessions(t *testing.T) {
 	require.NoError(t, tx.Commit())
 
 	assert.Equal(t, models.FlowTypeMessaging, session.SessionType())
-	assert.Equal(t, testdb.Bob.ID, session.ContactID())
+	assert.Equal(t, testdb.Bob.UUID, session.ContactUUID())
 	assert.Equal(t, models.SessionStatusWaiting, session.Status())
 	assert.Equal(t, flow.ID, session.CurrentFlowID())
 	assert.NotZero(t, session.CreatedOn())
