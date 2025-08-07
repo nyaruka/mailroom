@@ -1,3 +1,7 @@
+v10.3.30 (2025-08-07)
+-------------------------
+ * Update deps including goflow which has fix for URNs modifier
+
 v10.3.29 (2025-08-05)
 -------------------------
  * Add count of spooled items as metric
