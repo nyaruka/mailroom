@@ -46,20 +46,24 @@ var sessionStatusMap = map[flows.SessionStatus]SessionStatus{
 type Session struct {
 	s struct {
 		UUID           flows.SessionUUID `db:"uuid"`
+		ContactUUID    null.String       `db:"contact_uuid"`
 		SessionType    FlowType          `db:"session_type"`
 		Status         SessionStatus     `db:"status"`
 		LastSprintUUID null.String       `db:"last_sprint_uuid"`
 		Output         null.String       `db:"output"`
 		OutputURL      null.String       `db:"output_url"`
-		ContactID      ContactID         `db:"contact_id"`
 		CreatedOn      time.Time         `db:"created_on"`
 		EndedOn        *time.Time        `db:"ended_on"`
 		CurrentFlowID  FlowID            `db:"current_flow_id"`
 		CallID         CallID            `db:"call_id"`
+
+		// deprecated
+		ContactID ContactID `db:"contact_id"`
 	}
 }
 
 func (s *Session) UUID() flows.SessionUUID          { return s.s.UUID }
+func (s *Session) ContactUUID() flows.ContactUUID   { return flows.ContactUUID(s.s.ContactUUID) }
 func (s *Session) ContactID() ContactID             { return s.s.ContactID }
 func (s *Session) SessionType() FlowType            { return s.s.SessionType }
 func (s *Session) Status() SessionStatus            { return s.s.Status }
@@ -176,11 +180,12 @@ func NewSession(oa *OrgAssets, fs flows.Session, sprint flows.Sprint, call *Call
 	session := &Session{}
 	s := &session.s
 	s.UUID = fs.UUID()
+	s.ContactUUID = null.String(fs.Contact().UUID())
 	s.Status = sessionStatusMap[fs.Status()]
 	s.LastSprintUUID = null.String(sprint.UUID())
 	s.SessionType = flowTypeMapping[fs.Type()]
 	s.Output = null.String(jsonx.MustMarshal(fs))
-	s.ContactID = ContactID(fs.Contact().ID())
+	s.ContactID = ContactID(fs.Contact().ID()) // deprecated
 	s.CreatedOn = fs.CreatedOn()
 
 	if call != nil {
@@ -208,23 +213,23 @@ func NewSession(oa *OrgAssets, fs flows.Session, sprint flows.Sprint, call *Call
 
 const sqlInsertWaitingSession = `
 INSERT INTO
-	flows_flowsession( uuid,  session_type,  status,  last_sprint_uuid,  output,  output_url,  contact_id,  created_on,  current_flow_id,  call_id)
-               VALUES(:uuid, :session_type, :status, :last_sprint_uuid, :output, :output_url, :contact_id, :created_on, :current_flow_id, :call_id)`
+	flows_flowsession( uuid,  contact_uuid,  session_type,  status,  last_sprint_uuid,  output,  output_url,  contact_id,  created_on,  current_flow_id,  call_id)
+               VALUES(:uuid, :contact_uuid, :session_type, :status, :last_sprint_uuid, :output, :output_url, :contact_id, :created_on, :current_flow_id, :call_id)`
 
 const sqlInsertWaitingSessionNoOutput = `
 INSERT INTO
-	flows_flowsession( uuid,  session_type,  status,  last_sprint_uuid,  output_url,  contact_id,  created_on,  current_flow_id,  call_id)
-               VALUES(:uuid, :session_type, :status, :last_sprint_uuid, :output_url, :contact_id, :created_on, :current_flow_id, :call_id)`
+	flows_flowsession( uuid,  contact_uuid,  session_type,  status,  last_sprint_uuid,  output_url,  contact_id,  created_on,  current_flow_id,  call_id)
+               VALUES(:uuid, :contact_uuid, :session_type, :status, :last_sprint_uuid, :output_url, :contact_id, :created_on, :current_flow_id, :call_id)`
 
 const sqlInsertEndedSession = `
 INSERT INTO
-	flows_flowsession( uuid,  session_type,  status,  last_sprint_uuid,  output,  output_url,  contact_id,  created_on,  ended_on,  call_id)
-               VALUES(:uuid, :session_type, :status, :last_sprint_uuid, :output, :output_url, :contact_id, :created_on, :ended_on, :call_id)`
+	flows_flowsession( uuid,  contact_uuid,  session_type,  status,  last_sprint_uuid,  output,  output_url,  contact_id,  created_on,  ended_on,  call_id)
+               VALUES(:uuid, :contact_uuid, :session_type, :status, :last_sprint_uuid, :output, :output_url, :contact_id, :created_on, :ended_on, :call_id)`
 
 const sqlInsertEndedSessionNoOutput = `
 INSERT INTO
-	flows_flowsession( uuid,  session_type,  status,  last_sprint_uuid,  output_url,  contact_id,  created_on,  ended_on,  call_id)
-               VALUES(:uuid, :session_type, :status, :last_sprint_uuid, :output_url, :contact_id, :created_on, :ended_on, :call_id)`
+	flows_flowsession( uuid,  contact_uuid,  session_type,  status,  last_sprint_uuid,  output_url,  contact_id,  created_on,  ended_on,  call_id)
+               VALUES(:uuid, :contact_uuid, :session_type, :status, :last_sprint_uuid, :output_url, :contact_id, :created_on, :ended_on, :call_id)`
 
 // InsertSessions inserts sessions and their runs into the database
 func InsertSessions(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *OrgAssets, sessions []*Session, contacts []*Contact) error {
@@ -270,7 +275,7 @@ func InsertSessions(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *O
 }
 
 const sqlSelectSessionByUUID = `
-SELECT uuid, session_type, status, last_sprint_uuid, output, output_url, contact_id, created_on, ended_on, current_flow_id, call_id
+SELECT uuid, contact_uuid, session_type, status, last_sprint_uuid, output, output_url, contact_id, created_on, ended_on, current_flow_id, call_id
   FROM flows_flowsession fs
  WHERE uuid = $1`
 
@@ -295,8 +300,8 @@ func GetWaitingSessionForContact(ctx context.Context, rt *runtime.Runtime, oa *O
 	}
 
 	// ignore and log if this session somehow isn't a waiting session for this contact
-	if session.s.Status != SessionStatusWaiting || session.s.ContactID != ContactID(fc.ID()) {
-		slog.Error("current session for contact isn't a waiting session", "session_uuid", uuid, "contact_id", fc.ID())
+	if session.s.Status != SessionStatusWaiting || (session.ContactUUID() != "" && session.ContactUUID() != fc.UUID()) {
+		slog.Error("current session for contact isn't a waiting session", "session", uuid, "contact", fc.UUID())
 		return nil, nil
 	}
 
