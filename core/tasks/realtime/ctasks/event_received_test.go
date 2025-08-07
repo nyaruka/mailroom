@@ -253,10 +253,10 @@ func TestChannelEvents(t *testing.T) {
 
 		// if we are meant to trigger a new session...
 		if tc.expectedTriggerType != "" {
-			if assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE contact_id = $1 AND created_on > $2`, tc.contact.ID, start).Returns(1, "%d: expected new session", i) {
+			if assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE contact_uuid = $1 AND created_on > $2`, tc.contact.UUID, start).Returns(1, "%d: expected new session", i) {
 				// get session output to lookup trigger type
 				var output []byte
-				err = rt.DB.Get(&output, `SELECT output FROM flows_flowsession WHERE contact_id = $1 AND created_on > $2`, tc.contact.ID, start)
+				err = rt.DB.Get(&output, `SELECT output FROM flows_flowsession WHERE contact_uuid = $1 AND created_on > $2`, tc.contact.UUID, start)
 				require.NoError(t, err)
 
 				trigType, err := jsonparser.GetString(output, "trigger", "type")

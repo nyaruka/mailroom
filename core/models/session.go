@@ -378,7 +378,7 @@ const sqlExitSessions = `
    UPDATE flows_flowsession
       SET status = $2, ended_on = NOW(), current_flow_id = NULL
     WHERE uuid = ANY($1) AND status = 'W'
-RETURNING contact_id`
+RETURNING contact_uuid`
 
 // TODO instead of having an index on session_uuid.. rework this to fetch the sessions and extract a list of run uuids?
 const sqlExitSessionRuns = `
@@ -387,17 +387,18 @@ UPDATE flows_flowrun
  WHERE session_uuid = ANY($1) AND status IN ('A', 'W')`
 
 const sqlExitSessionContacts = `
- UPDATE contacts_contact 
-    SET current_session_uuid = NULL, current_flow_id = NULL, modified_on = NOW() 
-  WHERE id = ANY($1) AND current_session_uuid = ANY($2)`
+   UPDATE contacts_contact 
+      SET current_session_uuid = NULL, current_flow_id = NULL, modified_on = NOW() 
+    WHERE uuid = ANY($1) AND current_session_uuid = ANY($2)
+RETURNING id`
 
 // exits sessions and their runs inside the given transaction
 func exitSessionBatch(ctx context.Context, tx *sqlx.Tx, uuids []flows.SessionUUID, status SessionStatus) error {
 	runStatus := RunStatus(status) // session status codes are subset of run status codes
-	contactIDs := make([]ContactID, 0, len(uuids))
+	contactUUIDs := make([]flows.ContactUUID, 0, len(uuids))
 
-	// first update the sessions themselves and get the contact ids
-	if err := tx.SelectContext(ctx, &contactIDs, sqlExitSessions, pq.Array(uuids), status); err != nil {
+	// first update the sessions themselves and get the contact UUIDs
+	if err := tx.SelectContext(ctx, &contactUUIDs, sqlExitSessions, pq.Array(uuids), status); err != nil {
 		return fmt.Errorf("error exiting sessions: %w", err)
 	}
 
@@ -407,7 +408,8 @@ func exitSessionBatch(ctx context.Context, tx *sqlx.Tx, uuids []flows.SessionUUI
 	}
 
 	// and finally the contacts from each session
-	if _, err := tx.ExecContext(ctx, sqlExitSessionContacts, pq.Array(contactIDs), pq.Array(uuids)); err != nil {
+	contactIDs := make([]ContactID, 0, len(contactUUIDs))
+	if err := tx.SelectContext(ctx, &contactIDs, sqlExitSessionContacts, pq.Array(contactUUIDs), pq.Array(uuids)); err != nil {
 		return fmt.Errorf("error exiting sessions: %w", err)
 	}
 

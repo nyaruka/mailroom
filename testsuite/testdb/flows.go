@@ -115,7 +115,7 @@ func InsertWaitingSession(rt *runtime.Runtime, org *Org, contact *Contact, sessi
 
 	rt.DB.MustExec(
 		`INSERT INTO flows_flowsession(uuid, contact_uuid, status, last_sprint_uuid, output, created_on, session_type, current_flow_id, call_id) 
-		 VALUES($1, $2, 'W', $3, '{"status":"waiting"}', NOW(), $4, $5, $6) RETURNING id`, uuid, contact.UUID, contact.ID, uuids.NewV4(), sessionType, currentFlow.ID, callID,
+		 VALUES($1, $2, 'W', $3, '{"status":"waiting"}', NOW(), $4, $5, $6) RETURNING id`, uuid, contact.UUID, uuids.NewV4(), sessionType, currentFlow.ID, callID,
 	)
 
 	InsertFlowRun(rt, org, uuid, contact, currentFlow, models.RunStatusWaiting, flows.NodeUUID(uuids.NewV4()))
