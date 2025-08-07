@@ -128,21 +128,21 @@ func TestTimedEvents(t *testing.T) {
 			assertdb.Query(t, rt.DB, `SELECT current_flow_id FROM contacts_contact WHERE id = $1`, contact.ID).Returns(int64(tc.expectedFlow.ID), "%d: flow: mismatch", i)
 
 			// check that we have a waiting session
-			assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE contact_id = $1 AND status = 'W' AND last_sprint_uuid IS NOT NULL`, contact.ID).Returns(1, "%d: session: mismatch", i)
+			assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE contact_uuid = $1 AND status = 'W' AND last_sprint_uuid IS NOT NULL`, contact.UUID).Returns(1, "%d: session: mismatch", i)
 		} else {
 			assertdb.Query(t, rt.DB, `SELECT current_flow_id FROM contacts_contact WHERE id = $1`, contact.ID).Returns(nil, "%d: flow: mismatch", i)
 		}
 
-		err = rt.DB.Get(&sessionUUID, `SELECT uuid FROM flows_flowsession WHERE contact_id = $1 ORDER BY id DESC LIMIT 1`, contact.ID)
+		err = rt.DB.Get(&sessionUUID, `SELECT uuid FROM flows_flowsession WHERE contact_uuid = $1 ORDER BY id DESC LIMIT 1`, contact.UUID)
 		require.NoError(t, err)
-		err = rt.DB.Get(&sprintUUID, `SELECT last_sprint_uuid FROM flows_flowsession WHERE contact_id = $1 ORDER BY id DESC LIMIT 1`, contact.ID)
+		err = rt.DB.Get(&sprintUUID, `SELECT last_sprint_uuid FROM flows_flowsession WHERE contact_uuid = $1 ORDER BY id DESC LIMIT 1`, contact.UUID)
 		require.NoError(t, err)
 
 		last = time.Now()
 	}
 
 	// should only have a single waiting session/run with no timeout
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE status = 'W' AND contact_id = $1`, testdb.Cathy.ID).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE status = 'W' AND contact_uuid = $1`, testdb.Cathy.UUID).Returns(1)
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowrun WHERE status = 'W' AND contact_id = $1`, testdb.Cathy.ID).Returns(1)
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'E'`, testdb.Cathy.ID).Returns(1)
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'T'`, testdb.Cathy.ID).Returns(0)

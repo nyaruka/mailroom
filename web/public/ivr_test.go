@@ -324,7 +324,7 @@ func TestTwilioIVR(t *testing.T) {
 	}
 
 	// check our final state of sessions, runs, msgs, calls
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE contact_id = $1 AND status = 'C'`, testdb.Cathy.ID).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE contact_uuid = $1 AND status = 'C'`, testdb.Cathy.UUID).Returns(1)
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowrun WHERE contact_id = $1 AND status = 'C'`, testdb.Cathy.ID).Returns(1)
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE contact_id = $1 AND msg_type = 'V' AND status = 'W' AND direction = 'O'`, testdb.Cathy.ID).Returns(10)
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE contact_id = $1 AND msg_type = 'V' AND status = 'H' AND direction = 'I'`, testdb.Cathy.ID).Returns(6)
@@ -616,7 +616,7 @@ func TestVonageIVR(t *testing.T) {
 	}
 
 	// check our final state of sessions, runs, msgs, calls
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE contact_id = $1 AND status = 'C'`, testdb.Cathy.ID).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE contact_uuid = $1 AND status = 'C'`, testdb.Cathy.UUID).Returns(1)
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowrun WHERE contact_id = $1 AND status = 'C'`, testdb.Cathy.ID).Returns(1)
 
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM ivr_call WHERE contact_id = $1 AND status = 'D' AND duration = 50`, testdb.Cathy.ID).Returns(1)

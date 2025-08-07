@@ -425,7 +425,7 @@ func TestMsgReceivedTask(t *testing.T) {
 	previous := time.Now()
 
 	// and should have failed previous session
-	assertdb.Query(t, rt.DB, `SELECT count(*) from flows_flowsession where contact_id = $1 and status = 'F'`, testdb.Org2Contact.ID).Returns(2)
+	assertdb.Query(t, rt.DB, `SELECT count(*) from flows_flowsession where contact_uuid = $1 and status = 'F'`, testdb.Org2Contact.UUID).Returns(2)
 
 	// trigger should also not start a new session
 	realtime.QueueTask(ctx, rt, testdb.Org2.ID, testdb.Org2Contact.ID, makeMsgTask(testdb.Org2Channel, testdb.Org2Contact, "start"))

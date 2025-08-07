@@ -86,9 +86,9 @@ func TestBulkCampaignTrigger(t *testing.T) {
 	testsuite.AssertContactInFlow(t, rt, testdb.Alexandra, testdb.Favorites)
 
 	// and their previous waiting sessions will have been interrupted
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE contact_id = $1 AND status = 'I'`, testdb.Bob.ID).Returns(1)
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE contact_id = $1 AND status = 'I'`, testdb.Cathy.ID).Returns(1)
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE contact_id = $1 AND status = 'I'`, testdb.Alexandra.ID).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE contact_uuid = $1 AND status = 'I'`, testdb.Bob.UUID).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE contact_uuid = $1 AND status = 'I'`, testdb.Cathy.UUID).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE contact_uuid = $1 AND status = 'I'`, testdb.Alexandra.UUID).Returns(1)
 
 	// test task when campaign point has been deleted
 	rt.DB.MustExec(`UPDATE campaigns_campaignevent SET is_active = FALSE WHERE id = $1`, testdb.RemindersPoint1.ID)
@@ -107,9 +107,9 @@ func TestBulkCampaignTrigger(t *testing.T) {
 	testsuite.AssertContactInFlow(t, rt, testdb.Cathy, testdb.Favorites)
 	testsuite.AssertContactInFlow(t, rt, testdb.Bob, testdb.Favorites)
 	testsuite.AssertContactInFlow(t, rt, testdb.Alexandra, testdb.Favorites)
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE contact_id = $1 AND status = 'I'`, testdb.Bob.ID).Returns(1)
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE contact_id = $1 AND status = 'I'`, testdb.Cathy.ID).Returns(1)
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE contact_id = $1 AND status = 'I'`, testdb.Alexandra.ID).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE contact_uuid = $1 AND status = 'I'`, testdb.Bob.UUID).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE contact_uuid = $1 AND status = 'I'`, testdb.Cathy.UUID).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE contact_uuid = $1 AND status = 'I'`, testdb.Alexandra.UUID).Returns(1)
 
 	// test task when flow has been deleted
 	rt.DB.MustExec(`UPDATE flows_flow SET is_active = FALSE WHERE id = $1`, testdb.PickANumber.ID)
@@ -128,7 +128,7 @@ func TestBulkCampaignTrigger(t *testing.T) {
 	testsuite.AssertContactInFlow(t, rt, testdb.Cathy, testdb.Favorites)
 	testsuite.AssertContactInFlow(t, rt, testdb.Bob, testdb.Favorites)
 	testsuite.AssertContactInFlow(t, rt, testdb.Alexandra, testdb.Favorites)
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE contact_id = $1 AND status = 'I'`, testdb.Bob.ID).Returns(1)
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE contact_id = $1 AND status = 'I'`, testdb.Cathy.ID).Returns(1)
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE contact_id = $1 AND status = 'I'`, testdb.Alexandra.ID).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE contact_uuid = $1 AND status = 'I'`, testdb.Bob.UUID).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE contact_uuid = $1 AND status = 'I'`, testdb.Cathy.UUID).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE contact_uuid = $1 AND status = 'I'`, testdb.Alexandra.UUID).Returns(1)
 }
