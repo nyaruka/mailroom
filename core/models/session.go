@@ -270,7 +270,7 @@ func InsertSessions(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *O
 }
 
 const sqlSelectSessionByUUID = `
-SELECT uuid, contact_uuid, session_type, status, last_sprint_uuid, output, output_url, contact_id, created_on, ended_on, current_flow_id, call_id
+SELECT uuid, contact_uuid, session_type, status, last_sprint_uuid, output, output_url, created_on, ended_on, current_flow_id, call_id
   FROM flows_flowsession fs
  WHERE uuid = $1`
 

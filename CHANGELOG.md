@@ -1,3 +1,8 @@
+v10.3.31 (2025-08-07)
+-------------------------
+ * Use contact UUID rather than ID to check waiting session ownership
+ * Add Session.contact_uuid and start writing
+
 v10.3.30 (2025-08-07)
 -------------------------
  * Update deps including goflow which has fix for URNs modifier

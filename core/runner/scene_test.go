@@ -49,20 +49,20 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 	// check sessions and runs in database
 	assertdb.Query(t, rt.DB, `SELECT contact_id, status, session_type, current_flow_id, ended_on FROM flows_flowsession WHERE uuid = $1`, scBob.SessionUUID()).
 		Columns(map[string]any{
-			"contact_id": int64(testdb.Bob.ID), "status": "W", "session_type": "M", "current_flow_id": int64(flow.ID), "ended_on": nil,
+			"contact_uuid": string(testdb.Bob.UUID), "status": "W", "session_type": "M", "current_flow_id": int64(flow.ID), "ended_on": nil,
 		})
 	assertdb.Query(t, rt.DB, `SELECT contact_id, status, session_type, current_flow_id, ended_on FROM flows_flowsession WHERE uuid = $1`, scAlex.SessionUUID()).
 		Columns(map[string]any{
-			"contact_id": int64(testdb.Alexandra.ID), "status": "W", "session_type": "M", "current_flow_id": int64(flow.ID), "ended_on": nil,
+			"contact_uuid": string(testdb.Alexandra.UUID), "status": "W", "session_type": "M", "current_flow_id": int64(flow.ID), "ended_on": nil,
 		})
 
 	assertdb.Query(t, rt.DB, `SELECT contact_id, status, responded, current_node_uuid::text FROM flows_flowrun WHERE session_uuid = $1`, scBob.SessionUUID()).
 		Columns(map[string]any{
-			"contact_id": int64(testdb.Bob.ID), "status": "W", "responded": false, "current_node_uuid": "cbff02b0-cd93-481d-a430-b335ab66779e",
+			"contact_uuid": string(testdb.Bob.UUID), "status": "W", "responded": false, "current_node_uuid": "cbff02b0-cd93-481d-a430-b335ab66779e",
 		})
 	assertdb.Query(t, rt.DB, `SELECT contact_id, status, responded, current_node_uuid::text FROM flows_flowrun WHERE session_uuid = $1`, scAlex.SessionUUID()).
 		Columns(map[string]any{
-			"contact_id": int64(testdb.Alexandra.ID), "status": "W", "responded": false, "current_node_uuid": "cbff02b0-cd93-481d-a430-b335ab66779e",
+			"contact_uuid": string(testdb.Alexandra.UUID), "status": "W", "responded": false, "current_node_uuid": "cbff02b0-cd93-481d-a430-b335ab66779e",
 		})
 
 	// check events were persisted to DynamoDB
@@ -86,12 +86,12 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 	// check session and run in database
 	assertdb.Query(t, rt.DB, `SELECT contact_id, status, session_type, current_flow_id, ended_on FROM flows_flowsession WHERE uuid = $1`, scBob.SessionUUID()).
 		Columns(map[string]any{
-			"contact_id": int64(testdb.Bob.ID), "status": "W", "session_type": "M", "current_flow_id": int64(flow.ID), "ended_on": nil,
+			"contact_uuid": string(testdb.Bob.UUID), "status": "W", "session_type": "M", "current_flow_id": int64(flow.ID), "ended_on": nil,
 		})
 
 	assertdb.Query(t, rt.DB, `SELECT contact_id, status, responded, current_node_uuid::text FROM flows_flowrun WHERE session_uuid = $1`, scBob.SessionUUID()).
 		Columns(map[string]any{
-			"contact_id": int64(testdb.Bob.ID), "status": "W", "responded": true, "current_node_uuid": "bd8de388-811e-4116-ab41-8c2260d5514e",
+			"contact_uuid": string(testdb.Bob.UUID), "status": "W", "responded": true, "current_node_uuid": "bd8de388-811e-4116-ab41-8c2260d5514e",
 		})
 
 	// check we have a new contact fire for wait expiration but not timeout (wait doesn't have a timeout)
@@ -111,7 +111,7 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 
 	assertdb.Query(t, rt.DB, `SELECT contact_id, status, responded, current_node_uuid::text FROM flows_flowrun WHERE session_uuid = $1`, scBob.SessionUUID()).
 		Columns(map[string]any{
-			"contact_id": int64(testdb.Bob.ID), "status": "C", "responded": true, "current_node_uuid": nil,
+			"contact_uuid": string(testdb.Bob.UUID), "status": "C", "responded": true, "current_node_uuid": nil,
 		})
 
 	// check we have no contact fires
@@ -138,7 +138,7 @@ func TestSingleSprintSession(t *testing.T) {
 
 	assertdb.Query(t, rt.DB, `SELECT contact_id, status, responded, current_node_uuid::text FROM flows_flowrun WHERE session_uuid = $1`, scenes[0].SessionUUID()).
 		Columns(map[string]any{
-			"contact_id": int64(testdb.Bob.ID), "status": "C", "responded": false, "current_node_uuid": nil,
+			"contact_uuid": string(testdb.Bob.UUID), "status": "C", "responded": false, "current_node_uuid": nil,
 		})
 
 	// check we have no contact fires
