@@ -69,7 +69,7 @@
         },
         "db_assertions": [
             {
-                "query": "SELECT count(*) FROM flows_flowstart WHERE org_id = 1 AND start_type = 'M' AND flow_id = 10000 AND status = 'P' AND urns = '{\"tel:+1234567890\"}' AND query = 'age > 20'",
+                "query": "SELECT count(*) FROM flows_flowstart WHERE org_id = 1 AND start_type = 'M' AND flow_id = 10000 AND status = 'P' AND urns = '{\"tel:+1234567890\"}' AND query = 'age > 20' AND created_by_id = 4",
                 "count": 1
             },
             {
