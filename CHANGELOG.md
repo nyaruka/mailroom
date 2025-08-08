@@ -1,3 +1,7 @@
+v10.3.32 (2025-08-08)
+-------------------------
+ * Fix setting created by ID for flow start
+
 v10.3.31 (2025-08-07)
 -------------------------
  * Use contact UUID rather than ID to check waiting session ownership
