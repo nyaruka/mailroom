@@ -303,8 +303,8 @@ func InsertFlowStart(ctx context.Context, db DBorTx, start *FlowStart) error {
 
 const sqlInsertStart = `
 INSERT INTO
-	flows_flowstart( uuid,  org_id,  flow_id,  start_type, created_on, modified_on,  urns,  query,  exclusions, status,  params)
-			 VALUES(:uuid, :org_id, :flow_id, :start_type, NOW(),      NOW(),       :urns, :query, :exclusions, 'P',    :params)
+	flows_flowstart( uuid,  org_id,  flow_id,  start_type, created_by_id, created_on, modified_on,  urns,  query,  exclusions, status,  params)
+			 VALUES(:uuid, :org_id, :flow_id, :start_type, :created_by_id, NOW(),       :urns, :query, :exclusions, 'P',    :params)
 RETURNING
 	id
 `
