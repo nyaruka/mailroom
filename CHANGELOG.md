@@ -1,3 +1,8 @@
+v10.3.33 (2025-08-11)
+-------------------------
+ * Allow events to have per type TTLs for dynamo persistence
+ * Persist airtime_transferred events
+
 v10.3.32 (2025-08-08)
 -------------------------
  * Fix setting created by ID for flow start
