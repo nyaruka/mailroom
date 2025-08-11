@@ -42,7 +42,7 @@ func TestTicketOpened(t *testing.T) {
 			Actions: handlers.ContactActionMap{
 				testdb.Cathy: []flows.Action{
 					actions.NewOpenTicket(
-						handlers.NewActionUUID(),
+						flows.NewActionUUID(),
 						assets.NewTopicReference(testdb.SupportTopic.UUID, "Support"),
 						"Where are my cookies?",
 						assets.NewUserReference("e29fdf9f-56ab-422a-b77d-e3ec26091a25", "Admin"),
@@ -50,7 +50,7 @@ func TestTicketOpened(t *testing.T) {
 				},
 				testdb.Bob: []flows.Action{
 					actions.NewOpenTicket(
-						handlers.NewActionUUID(),
+						flows.NewActionUUID(),
 						nil,
 						"I've found some cookies",
 						nil,
@@ -92,6 +92,7 @@ func TestTicketOpened(t *testing.T) {
 					Count: 3,
 				},
 			},
+			PersistedEvents: map[string]int{"contact_groups_changed": 2},
 		},
 	}
 

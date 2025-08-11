@@ -37,7 +37,7 @@ func TestMsgCreated(t *testing.T) {
 
 	msg1 := testdb.InsertIncomingMsg(rt, testdb.Org1, testdb.TwilioChannel, testdb.Cathy, "start", models.MsgStatusPending)
 
-	templateAction := actions.NewSendMsg(handlers.NewActionUUID(), "Template time", nil, nil, false)
+	templateAction := actions.NewSendMsg(flows.NewActionUUID(), "Template time", nil, nil, false)
 	templateAction.Template = assets.NewTemplateReference("9c22b594-fcab-4b29-9bcb-ce4404894a80", "revive_issue")
 	templateAction.TemplateVariables = []string{"@contact.name", "tooth"}
 
@@ -45,13 +45,13 @@ func TestMsgCreated(t *testing.T) {
 		{
 			Actions: handlers.ContactActionMap{
 				testdb.Cathy: []flows.Action{
-					actions.NewSendMsg(handlers.NewActionUUID(), "Hello World", nil, []string{"yes", "no"}, true),
+					actions.NewSendMsg(flows.NewActionUUID(), "Hello World", nil, []string{"yes", "no"}, true),
 				},
 				testdb.George: []flows.Action{
-					actions.NewSendMsg(handlers.NewActionUUID(), "Hello Attachments", []string{"image/png:/images/image1.png"}, nil, true),
+					actions.NewSendMsg(flows.NewActionUUID(), "Hello Attachments", []string{"image/png:/images/image1.png"}, nil, true),
 				},
 				testdb.Bob: []flows.Action{
-					actions.NewSendMsg(handlers.NewActionUUID(), "No URNs", nil, nil, false),
+					actions.NewSendMsg(flows.NewActionUUID(), "No URNs", nil, nil, false),
 				},
 				testdb.Alexandra: []flows.Action{
 					templateAction,
@@ -86,6 +86,7 @@ func TestMsgCreated(t *testing.T) {
 					Count: 1,
 				},
 			},
+			PersistedEvents: map[string]int{},
 		},
 	}
 
@@ -119,16 +120,16 @@ func TestNewURN(t *testing.T) {
 			Actions: handlers.ContactActionMap{
 				// brand new URN on Cathy
 				testdb.Cathy: []flows.Action{
-					actions.NewAddContactURN(handlers.NewActionUUID(), "telegram", "12345"),
-					actions.NewSetContactChannel(handlers.NewActionUUID(), assets.NewChannelReference(telegramUUID, "telegram")),
-					actions.NewSendMsg(handlers.NewActionUUID(), "Cathy Message", nil, nil, false),
+					actions.NewAddContactURN(flows.NewActionUUID(), "telegram", "12345"),
+					actions.NewSetContactChannel(flows.NewActionUUID(), assets.NewChannelReference(telegramUUID, "telegram")),
+					actions.NewSendMsg(flows.NewActionUUID(), "Cathy Message", nil, nil, false),
 				},
 
 				// Bob is stealing a URN previously assigned to George
 				testdb.Bob: []flows.Action{
-					actions.NewAddContactURN(handlers.NewActionUUID(), "telegram", "67890"),
-					actions.NewSetContactChannel(handlers.NewActionUUID(), assets.NewChannelReference(telegramUUID, "telegram")),
-					actions.NewSendMsg(handlers.NewActionUUID(), "Bob Message", nil, nil, false),
+					actions.NewAddContactURN(flows.NewActionUUID(), "telegram", "67890"),
+					actions.NewSetContactChannel(flows.NewActionUUID(), assets.NewChannelReference(telegramUUID, "telegram")),
+					actions.NewSendMsg(flows.NewActionUUID(), "Bob Message", nil, nil, false),
 				},
 			},
 			SQLAssertions: []handlers.SQLAssertion{
@@ -167,6 +168,7 @@ func TestNewURN(t *testing.T) {
 					Count: 1,
 				},
 			},
+			PersistedEvents: map[string]int{"contact_urns_changed": 4},
 		},
 	}
 

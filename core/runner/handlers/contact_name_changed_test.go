@@ -19,17 +19,17 @@ func TestContactNameChanged(t *testing.T) {
 		{
 			Actions: handlers.ContactActionMap{
 				testdb.Cathy: []flows.Action{
-					actions.NewSetContactName(handlers.NewActionUUID(), "Fred"),
-					actions.NewSetContactName(handlers.NewActionUUID(), "Tarzan"),
+					actions.NewSetContactName(flows.NewActionUUID(), "Fred"),
+					actions.NewSetContactName(flows.NewActionUUID(), "Tarzan"),
 				},
 				testdb.George: []flows.Action{
-					actions.NewSetContactName(handlers.NewActionUUID(), "Geoff Newman"),
+					actions.NewSetContactName(flows.NewActionUUID(), "Geoff Newman"),
 				},
 				testdb.Bob: []flows.Action{
-					actions.NewSetContactName(handlers.NewActionUUID(), ""),
+					actions.NewSetContactName(flows.NewActionUUID(), ""),
 				},
 				testdb.Alexandra: []flows.Action{
-					actions.NewSetContactName(handlers.NewActionUUID(), "😃234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890"),
+					actions.NewSetContactName(flows.NewActionUUID(), "😃234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890"),
 				},
 			},
 			SQLAssertions: []handlers.SQLAssertion{
@@ -58,6 +58,7 @@ func TestContactNameChanged(t *testing.T) {
 					Count: 1,
 				},
 			},
+			PersistedEvents: map[string]int{"contact_name_changed": 5},
 		},
 	}
 

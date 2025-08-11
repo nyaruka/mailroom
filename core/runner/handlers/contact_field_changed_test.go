@@ -26,23 +26,23 @@ func TestContactFieldChanged(t *testing.T) {
 		{
 			Actions: handlers.ContactActionMap{
 				testdb.Cathy: []flows.Action{
-					actions.NewSetContactField(handlers.NewActionUUID(), gender, "Male"),
-					actions.NewSetContactField(handlers.NewActionUUID(), gender, "Female"),
-					actions.NewSetContactField(handlers.NewActionUUID(), age, ""),
+					actions.NewSetContactField(flows.NewActionUUID(), gender, "Male"),
+					actions.NewSetContactField(flows.NewActionUUID(), gender, "Female"),
+					actions.NewSetContactField(flows.NewActionUUID(), age, ""),
 				},
 				testdb.George: []flows.Action{
-					actions.NewSetContactField(handlers.NewActionUUID(), gender, "Male"),
-					actions.NewSetContactField(handlers.NewActionUUID(), gender, ""),
-					actions.NewSetContactField(handlers.NewActionUUID(), age, "40"),
+					actions.NewSetContactField(flows.NewActionUUID(), gender, "Male"),
+					actions.NewSetContactField(flows.NewActionUUID(), gender, ""),
+					actions.NewSetContactField(flows.NewActionUUID(), age, "40"),
 				},
 				testdb.Bob: []flows.Action{
-					actions.NewSetContactField(handlers.NewActionUUID(), gender, ""),
-					actions.NewSetContactField(handlers.NewActionUUID(), gender, "Male"),
-					actions.NewSetContactField(handlers.NewActionUUID(), age, "Old"),
+					actions.NewSetContactField(flows.NewActionUUID(), gender, ""),
+					actions.NewSetContactField(flows.NewActionUUID(), gender, "Male"),
+					actions.NewSetContactField(flows.NewActionUUID(), age, "Old"),
 				},
 				testdb.Alexandra: []flows.Action{
-					actions.NewSetContactField(handlers.NewActionUUID(), age, ""),
-					actions.NewSetContactField(handlers.NewActionUUID(), gender, ""),
+					actions.NewSetContactField(flows.NewActionUUID(), age, ""),
+					actions.NewSetContactField(flows.NewActionUUID(), gender, ""),
 				},
 			},
 			SQLAssertions: []handlers.SQLAssertion{
@@ -87,6 +87,7 @@ func TestContactFieldChanged(t *testing.T) {
 					Count: 1,
 				},
 			},
+			PersistedEvents: map[string]int{"contact_field_changed": 9},
 		},
 	}
 

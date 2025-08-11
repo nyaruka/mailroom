@@ -23,10 +23,10 @@ func TestMsgReceived(t *testing.T) {
 		{
 			Actions: handlers.ContactActionMap{
 				testdb.Cathy: []flows.Action{
-					actions.NewSendMsg(handlers.NewActionUUID(), "Hello World", nil, nil, false),
+					actions.NewSendMsg(flows.NewActionUUID(), "Hello World", nil, nil, false),
 				},
 				testdb.George: []flows.Action{
-					actions.NewSendMsg(handlers.NewActionUUID(), "Hello world", nil, nil, false),
+					actions.NewSendMsg(flows.NewActionUUID(), "Hello world", nil, nil, false),
 				},
 			},
 			Msgs: handlers.ContactMsgMap{
@@ -44,6 +44,7 @@ func TestMsgReceived(t *testing.T) {
 					Count: 1,
 				},
 			},
+			PersistedEvents: map[string]int{},
 		},
 	}
 

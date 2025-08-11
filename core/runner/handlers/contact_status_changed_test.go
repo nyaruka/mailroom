@@ -27,6 +27,7 @@ func TestContactStatusChanged(t *testing.T) {
 					Count: 1,
 				},
 			},
+			PersistedEvents: map[string]int{"contact_groups_changed": 1},
 		},
 		{
 			Modifiers: handlers.ContactModifierMap{
@@ -39,6 +40,7 @@ func TestContactStatusChanged(t *testing.T) {
 					Count: 1,
 				},
 			},
+			PersistedEvents: map[string]int{},
 		},
 		{
 			Modifiers: handlers.ContactModifierMap{
@@ -56,6 +58,7 @@ func TestContactStatusChanged(t *testing.T) {
 					Count: 1,
 				},
 			},
+			PersistedEvents: map[string]int{},
 		},
 	}
 
