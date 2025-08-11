@@ -89,7 +89,7 @@ func (s *Scene) AddEvent(ctx context.Context, rt *runtime.Runtime, oa *models.Or
 		return err
 	}
 
-	if persistEventTypes[e.Type()] {
+	if _, ok := models.EventPersistence[e.Type()]; ok {
 		s.persistEvents = append(s.persistEvents, &models.Event{
 			Event:       e,
 			OrgID:       oa.OrgID(),

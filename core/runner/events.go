@@ -6,19 +6,9 @@ import (
 
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/events"
-	"github.com/nyaruka/goflow/utils"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/runtime"
 )
-
-var persistEventTypes = utils.Set([]string{
-	events.TypeAirtimeTransferred,
-	events.TypeContactFieldChanged,
-	events.TypeContactGroupsChanged,
-	events.TypeContactLanguageChanged,
-	events.TypeContactNameChanged,
-	events.TypeContactURNsChanged,
-})
 
 // EventHandler defines a call for handling events that occur in a flow
 type EventHandler func(context.Context, *runtime.Runtime, *models.OrgAssets, *Scene, flows.Event, models.UserID) error
