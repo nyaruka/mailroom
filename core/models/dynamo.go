@@ -29,7 +29,7 @@ type DynamoItem struct {
 	DynamoKey
 
 	OrgID  OrgID          `dynamodbav:"OrgID"`
-	TTL    time.Time      `dynamodbav:"TTL,unixtime,omitempty"`
+	TTL    *time.Time     `dynamodbav:"TTL,unixtime,omitempty"`
 	Data   map[string]any `dynamodbav:"Data,omitempty"`
 	DataGZ []byte         `dynamodbav:"DataGZ,omitempty"`
 }

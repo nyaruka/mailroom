@@ -3,7 +3,6 @@ package models
 import (
 	"bytes"
 	"compress/gzip"
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -12,12 +11,20 @@ import (
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/mailroom/runtime"
+	"github.com/nyaruka/goflow/flows/events"
 )
 
+var EventPersistence = map[string]time.Duration{
+	events.TypeAirtimeTransferred:     -1,                   // forever
+	events.TypeContactFieldChanged:    time.Hour * 24 * 365, // 1 year
+	events.TypeContactGroupsChanged:   time.Hour * 24 * 365, // 1 year
+	events.TypeContactLanguageChanged: time.Hour * 24 * 365, // 1 year
+	events.TypeContactNameChanged:     time.Hour * 24 * 365, // 1 year
+	events.TypeContactURNsChanged:     time.Hour * 24 * 365, // 1 year
+}
+
 const (
-	eventDynamoTTL       = 14 * 24 * time.Hour // 2 weeks
-	eventDataGZThreshold = 1024                // 1KB, if event data exceeds this, we should compress it
+	eventDataGZThreshold = 1024 // 1KB, if event data exceeds this, we should compress it
 )
 
 type Event struct {
@@ -28,15 +35,23 @@ type Event struct {
 	UserID      UserID
 }
 
-func (r *Event) DynamoKey() DynamoKey {
+func (e *Event) DynamoKey() DynamoKey {
 	return DynamoKey{
-		PK: fmt.Sprintf("con#%s", r.ContactUUID),
-		SK: fmt.Sprintf("evt#%s", r.UUID()),
+		PK: fmt.Sprintf("con#%s", e.ContactUUID),
+		SK: fmt.Sprintf("evt#%s", e.UUID()),
 	}
 }
 
-func (r *Event) MarshalDynamo() (map[string]types.AttributeValue, error) {
-	eJSON, err := json.Marshal(r.Event)
+func (e *Event) DynamoTTL() *time.Time {
+	if persistence := EventPersistence[e.Type()]; persistence > 0 {
+		ttl := e.CreatedOn().Add(persistence)
+		return &ttl
+	}
+	return nil
+}
+
+func (e *Event) MarshalDynamo() (map[string]types.AttributeValue, error) {
+	eJSON, err := json.Marshal(e.Event)
 	if err != nil {
 		return nil, fmt.Errorf("error marshaling event: %w", err)
 	}
@@ -64,22 +79,18 @@ func (r *Event) MarshalDynamo() (map[string]types.AttributeValue, error) {
 		data = make(map[string]any)
 	}
 
-	if r.UserID != NilUserID {
-		data["_user_id"] = r.UserID
+	if e.UserID != NilUserID {
+		data["_user_id"] = e.UserID
 	}
 	if len(data) == 0 {
 		data = nil
 	}
 
 	return attributevalue.MarshalMap(&DynamoItem{
-		DynamoKey: r.DynamoKey(),
-		OrgID:     r.OrgID,
-		TTL:       r.Event.CreatedOn().Add(eventDynamoTTL),
+		DynamoKey: e.DynamoKey(),
+		OrgID:     e.OrgID,
+		TTL:       e.DynamoTTL(),
 		Data:      data,
 		DataGZ:    dataGz,
 	})
-}
-
-func WriteEvents(ctx context.Context, rt *runtime.Runtime, events []*Event) error {
-	return nil // TODO
 }
