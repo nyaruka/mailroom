@@ -41,20 +41,20 @@ func TestCampaigns(t *testing.T) {
 			},
 			Actions: handlers.ContactActionMap{
 				testdb.Cathy: []flows.Action{
-					actions.NewRemoveContactGroups(handlers.NewActionUUID(), []*assets.GroupReference{doctors}, false),
-					actions.NewAddContactGroups(handlers.NewActionUUID(), []*assets.GroupReference{doctors}),
-					actions.NewSetContactField(handlers.NewActionUUID(), joined, "2029-09-15T12:00:00+00:00"),
-					actions.NewSetContactField(handlers.NewActionUUID(), joined, ""),
+					actions.NewRemoveContactGroups(flows.NewActionUUID(), []*assets.GroupReference{doctors}, false),
+					actions.NewAddContactGroups(flows.NewActionUUID(), []*assets.GroupReference{doctors}),
+					actions.NewSetContactField(flows.NewActionUUID(), joined, "2029-09-15T12:00:00+00:00"),
+					actions.NewSetContactField(flows.NewActionUUID(), joined, ""),
 				},
 				testdb.Bob: []flows.Action{
-					actions.NewAddContactGroups(handlers.NewActionUUID(), []*assets.GroupReference{doctors}),
-					actions.NewSetContactField(handlers.NewActionUUID(), joined, "2029-09-15T12:00:00+00:00"),
-					actions.NewSetContactField(handlers.NewActionUUID(), joined, "2029-09-15T12:00:00+00:00"),
+					actions.NewAddContactGroups(flows.NewActionUUID(), []*assets.GroupReference{doctors}),
+					actions.NewSetContactField(flows.NewActionUUID(), joined, "2029-09-15T12:00:00+00:00"),
+					actions.NewSetContactField(flows.NewActionUUID(), joined, "2029-09-15T12:00:00+00:00"),
 				},
 				testdb.George: []flows.Action{
-					actions.NewAddContactGroups(handlers.NewActionUUID(), []*assets.GroupReference{doctors}),
-					actions.NewSetContactField(handlers.NewActionUUID(), joined, "2029-09-15T12:00:00+00:00"),
-					actions.NewRemoveContactGroups(handlers.NewActionUUID(), []*assets.GroupReference{doctors}, false),
+					actions.NewAddContactGroups(flows.NewActionUUID(), []*assets.GroupReference{doctors}),
+					actions.NewSetContactField(flows.NewActionUUID(), joined, "2029-09-15T12:00:00+00:00"),
+					actions.NewRemoveContactGroups(flows.NewActionUUID(), []*assets.GroupReference{doctors}, false),
 				},
 			},
 			SQLAssertions: []handlers.SQLAssertion{
@@ -74,6 +74,7 @@ func TestCampaigns(t *testing.T) {
 					Count: 0,
 				},
 			},
+			PersistedEvents: map[string]int{"contact_field_changed": 4, "contact_groups_changed": 5},
 		},
 	}
 

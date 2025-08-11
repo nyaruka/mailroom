@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/nyaruka/gocommon/aws/dynamo/dyntest"
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/gocommon/uuids"
 	"github.com/nyaruka/goflow/assets"
@@ -27,13 +28,14 @@ type ContactMsgMap map[*testdb.Contact]*testdb.MsgIn
 type ContactModifierMap map[*testdb.Contact][]flows.Modifier
 
 type TestCase struct {
-	FlowType      flows.FlowType
-	Actions       ContactActionMap
-	Msgs          ContactMsgMap
-	Modifiers     ContactModifierMap
-	ModifierUser  *testdb.User
-	Assertions    []Assertion
-	SQLAssertions []SQLAssertion
+	FlowType        flows.FlowType
+	Actions         ContactActionMap
+	Msgs            ContactMsgMap
+	Modifiers       ContactModifierMap
+	ModifierUser    *testdb.User
+	Assertions      []Assertion
+	SQLAssertions   []SQLAssertion
+	PersistedEvents map[string]int
 }
 
 type Assertion func(t *testing.T, rt *runtime.Runtime) error
@@ -42,10 +44,6 @@ type SQLAssertion struct {
 	SQL   string
 	Args  []any
 	Count int
-}
-
-func NewActionUUID() flows.ActionUUID {
-	return flows.ActionUUID(uuids.NewV4())
 }
 
 // createTestFlow creates a flow that starts with a split by contact id
@@ -79,7 +77,7 @@ func createTestFlow(t *testing.T, uuid assets.FlowUUID, tc TestCase) flows.Flow 
 		)
 
 		exitNodes[i] = definition.NewNode(
-			flows.NodeUUID(uuids.NewV4()),
+			flows.NewNodeUUID(),
 			actions,
 			nil,
 			[]flows.Exit{definition.NewExit(flows.ExitUUID(uuids.NewV4()), "")},
@@ -113,7 +111,7 @@ func createTestFlow(t *testing.T, uuid assets.FlowUUID, tc TestCase) flows.Flow 
 
 	// and our entry node
 	entry := definition.NewNode(
-		flows.NodeUUID(uuids.NewV4()),
+		flows.NewNodeUUID(),
 		nil,
 		router,
 		exits,
@@ -223,5 +221,21 @@ func RunTestCases(t *testing.T, ctx context.Context, rt *runtime.Runtime, tcs []
 			err := a(t, rt)
 			assert.NoError(t, err, "%d:%d error checking assertion", i, j)
 		}
+
+		rt.Writers.History.Flush()
+
+		persistedEvents := map[string]int{}
+		for _, item := range dyntest.ScanAll[models.DynamoItem](t, rt.Dynamo, "TestHistory") {
+			data, err := item.GetData()
+			require.NoError(t, err)
+
+			if eventType, ok := data["type"].(string); ok {
+				persistedEvents[eventType]++
+			}
+		}
+
+		assert.Equal(t, tc.PersistedEvents, persistedEvents, "%d: mismatch in persisted events", i)
+
+		dyntest.Truncate(t, rt.Dynamo, "TestHistory")
 	}
 }

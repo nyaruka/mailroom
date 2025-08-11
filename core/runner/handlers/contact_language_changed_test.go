@@ -19,14 +19,14 @@ func TestContactLanguageChanged(t *testing.T) {
 		{
 			Actions: handlers.ContactActionMap{
 				testdb.Cathy: []flows.Action{
-					actions.NewSetContactLanguage(handlers.NewActionUUID(), "fra"),
-					actions.NewSetContactLanguage(handlers.NewActionUUID(), "eng"),
+					actions.NewSetContactLanguage(flows.NewActionUUID(), "fra"),
+					actions.NewSetContactLanguage(flows.NewActionUUID(), "eng"),
 				},
 				testdb.George: []flows.Action{
-					actions.NewSetContactLanguage(handlers.NewActionUUID(), "spa"),
+					actions.NewSetContactLanguage(flows.NewActionUUID(), "spa"),
 				},
 				testdb.Alexandra: []flows.Action{
-					actions.NewSetContactLanguage(handlers.NewActionUUID(), ""),
+					actions.NewSetContactLanguage(flows.NewActionUUID(), ""),
 				},
 			},
 			SQLAssertions: []handlers.SQLAssertion{
@@ -51,6 +51,7 @@ func TestContactLanguageChanged(t *testing.T) {
 					Count: 1,
 				},
 			},
+			PersistedEvents: map[string]int{"contact_language_changed": 3},
 		},
 	}
 

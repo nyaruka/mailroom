@@ -27,14 +27,14 @@ func TestInputLabelsAdded(t *testing.T) {
 		{
 			Actions: handlers.ContactActionMap{
 				testdb.Cathy: []flows.Action{
-					actions.NewAddInputLabels(handlers.NewActionUUID(), []*assets.LabelReference{reporting}),
-					actions.NewAddInputLabels(handlers.NewActionUUID(), []*assets.LabelReference{testing}),
-					actions.NewAddInputLabels(handlers.NewActionUUID(), []*assets.LabelReference{reporting}),
+					actions.NewAddInputLabels(flows.NewActionUUID(), []*assets.LabelReference{reporting}),
+					actions.NewAddInputLabels(flows.NewActionUUID(), []*assets.LabelReference{testing}),
+					actions.NewAddInputLabels(flows.NewActionUUID(), []*assets.LabelReference{reporting}),
 				},
 				testdb.Bob: []flows.Action{},
 				testdb.George: []flows.Action{
-					actions.NewAddInputLabels(handlers.NewActionUUID(), []*assets.LabelReference{testing}),
-					actions.NewAddInputLabels(handlers.NewActionUUID(), []*assets.LabelReference{reporting}),
+					actions.NewAddInputLabels(flows.NewActionUUID(), []*assets.LabelReference{testing}),
+					actions.NewAddInputLabels(flows.NewActionUUID(), []*assets.LabelReference{reporting}),
 				},
 			},
 			Msgs: handlers.ContactMsgMap{
@@ -58,6 +58,7 @@ func TestInputLabelsAdded(t *testing.T) {
 					Count: 0,
 				},
 			},
+			PersistedEvents: map[string]int{},
 		},
 	}
 

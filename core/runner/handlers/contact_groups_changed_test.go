@@ -23,14 +23,14 @@ func TestContactGroupsChanged(t *testing.T) {
 		{
 			Actions: handlers.ContactActionMap{
 				testdb.Cathy: []flows.Action{
-					actions.NewAddContactGroups(handlers.NewActionUUID(), []*assets.GroupReference{doctors}),
-					actions.NewAddContactGroups(handlers.NewActionUUID(), []*assets.GroupReference{doctors}),
-					actions.NewRemoveContactGroups(handlers.NewActionUUID(), []*assets.GroupReference{doctors}, false),
-					actions.NewAddContactGroups(handlers.NewActionUUID(), []*assets.GroupReference{testers}),
+					actions.NewAddContactGroups(flows.NewActionUUID(), []*assets.GroupReference{doctors}),
+					actions.NewAddContactGroups(flows.NewActionUUID(), []*assets.GroupReference{doctors}),
+					actions.NewRemoveContactGroups(flows.NewActionUUID(), []*assets.GroupReference{doctors}, false),
+					actions.NewAddContactGroups(flows.NewActionUUID(), []*assets.GroupReference{testers}),
 				},
 				testdb.George: []flows.Action{
-					actions.NewRemoveContactGroups(handlers.NewActionUUID(), []*assets.GroupReference{doctors}, false),
-					actions.NewAddContactGroups(handlers.NewActionUUID(), []*assets.GroupReference{testers}),
+					actions.NewRemoveContactGroups(flows.NewActionUUID(), []*assets.GroupReference{doctors}, false),
+					actions.NewAddContactGroups(flows.NewActionUUID(), []*assets.GroupReference{testers}),
 				},
 			},
 			SQLAssertions: []handlers.SQLAssertion{
@@ -55,6 +55,7 @@ func TestContactGroupsChanged(t *testing.T) {
 					Count: 0,
 				},
 			},
+			PersistedEvents: map[string]int{"contact_groups_changed": 3},
 		},
 	}
 

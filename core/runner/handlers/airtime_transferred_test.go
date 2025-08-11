@@ -292,7 +292,7 @@ func TestAirtimeTransferred(t *testing.T) {
 		{
 			Actions: handlers.ContactActionMap{
 				testdb.Cathy: []flows.Action{
-					actions.NewTransferAirtime(handlers.NewActionUUID(), map[string]decimal.Decimal{"USD": decimal.RequireFromString(`3.0`)}),
+					actions.NewTransferAirtime(flows.NewActionUUID(), map[string]decimal.Decimal{"USD": decimal.RequireFromString(`3.0`)}),
 				},
 			},
 			SQLAssertions: []handlers.SQLAssertion{
@@ -307,11 +307,12 @@ func TestAirtimeTransferred(t *testing.T) {
 					Count: 3,
 				},
 			},
+			PersistedEvents: map[string]int{"airtime_transferred": 1},
 		},
 		{
 			Actions: handlers.ContactActionMap{
 				testdb.George: []flows.Action{
-					actions.NewTransferAirtime(handlers.NewActionUUID(), map[string]decimal.Decimal{"USD": decimal.RequireFromString(`3`)}),
+					actions.NewTransferAirtime(flows.NewActionUUID(), map[string]decimal.Decimal{"USD": decimal.RequireFromString(`3`)}),
 				},
 			},
 			SQLAssertions: []handlers.SQLAssertion{
@@ -326,6 +327,7 @@ func TestAirtimeTransferred(t *testing.T) {
 					Count: 1,
 				},
 			},
+			PersistedEvents: map[string]int{"airtime_transferred": 1},
 		},
 	}
 

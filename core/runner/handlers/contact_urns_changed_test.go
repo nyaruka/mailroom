@@ -23,10 +23,10 @@ func TestContactURNsChanged(t *testing.T) {
 		{
 			Actions: handlers.ContactActionMap{
 				testdb.Cathy: []flows.Action{
-					actions.NewAddContactURN(handlers.NewActionUUID(), "tel", "12065551212"),
-					actions.NewAddContactURN(handlers.NewActionUUID(), "tel", "12065551212"),
-					actions.NewAddContactURN(handlers.NewActionUUID(), "telegram", "11551"),
-					actions.NewAddContactURN(handlers.NewActionUUID(), "tel", "+16055741111"),
+					actions.NewAddContactURN(flows.NewActionUUID(), "tel", "12065551212"),
+					actions.NewAddContactURN(flows.NewActionUUID(), "tel", "12065551212"),
+					actions.NewAddContactURN(flows.NewActionUUID(), "telegram", "11551"),
+					actions.NewAddContactURN(flows.NewActionUUID(), "tel", "+16055741111"),
 				},
 				testdb.George: []flows.Action{},
 			},
@@ -53,6 +53,7 @@ func TestContactURNsChanged(t *testing.T) {
 					Count: 1,
 				},
 			},
+			PersistedEvents: map[string]int{"contact_urns_changed": 2},
 		},
 	}
 

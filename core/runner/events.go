@@ -12,6 +12,7 @@ import (
 )
 
 var persistEventTypes = utils.Set([]string{
+	events.TypeAirtimeTransferred,
 	events.TypeContactFieldChanged,
 	events.TypeContactGroupsChanged,
 	events.TypeContactLanguageChanged,

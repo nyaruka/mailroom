@@ -1,8 +1,12 @@
 package models
 
 import (
+	"bytes"
+	"compress/gzip"
 	"context"
+	"encoding/json"
 	"fmt"
+	"maps"
 	"time"
 
 	"github.com/nyaruka/gocommon/aws/dynamo"
@@ -28,6 +32,27 @@ type DynamoItem struct {
 	TTL    time.Time      `dynamodbav:"TTL,unixtime,omitempty"`
 	Data   map[string]any `dynamodbav:"Data,omitempty"`
 	DataGZ []byte         `dynamodbav:"DataGZ,omitempty"`
+}
+
+func (i *DynamoItem) GetData() (map[string]any, error) {
+	data := map[string]any{}
+
+	if len(i.DataGZ) > 0 {
+		r, err := gzip.NewReader(bytes.NewReader(i.DataGZ))
+		if err != nil {
+			return nil, fmt.Errorf("error creating gzip reader: %w", err)
+		}
+		defer r.Close()
+
+		if err := json.NewDecoder(r).Decode(&i.Data); err != nil {
+			return nil, fmt.Errorf("error decoding gzip data: %w", err)
+		}
+	}
+	if len(i.Data) > 0 {
+		maps.Copy(data, i.Data)
+	}
+
+	return data, nil
 }
 
 // BulkWriterQueue queues multiple items to a DynamoDB writer.

@@ -25,7 +25,7 @@ func TestFlowEntered(t *testing.T) {
 		{
 			Actions: handlers.ContactActionMap{
 				testdb.Cathy: []flows.Action{
-					actions.NewEnterFlow(handlers.NewActionUUID(), flow.Reference(), false),
+					actions.NewEnterFlow(flows.NewActionUUID(), flow.Reference(), false),
 				},
 			},
 			SQLAssertions: []handlers.SQLAssertion{
@@ -35,6 +35,7 @@ func TestFlowEntered(t *testing.T) {
 					Count: 1,
 				},
 			},
+			PersistedEvents: map[string]int{},
 		},
 	}
 

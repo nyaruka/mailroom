@@ -39,13 +39,13 @@ func TestOptinRequested(t *testing.T) {
 		{
 			Actions: handlers.ContactActionMap{
 				testdb.Cathy: []flows.Action{
-					actions.NewRequestOptIn(handlers.NewActionUUID(), assets.NewOptInReference(optIn.UUID, "Jokes")),
+					actions.NewRequestOptIn(flows.NewActionUUID(), assets.NewOptInReference(optIn.UUID, "Jokes")),
 				},
 				testdb.George: []flows.Action{
-					actions.NewRequestOptIn(handlers.NewActionUUID(), assets.NewOptInReference(optIn.UUID, "Jokes")),
+					actions.NewRequestOptIn(flows.NewActionUUID(), assets.NewOptInReference(optIn.UUID, "Jokes")),
 				},
 				testdb.Bob: []flows.Action{
-					actions.NewRequestOptIn(handlers.NewActionUUID(), assets.NewOptInReference(optIn.UUID, "Jokes")),
+					actions.NewRequestOptIn(flows.NewActionUUID(), assets.NewOptInReference(optIn.UUID, "Jokes")),
 				},
 			},
 			Msgs: handlers.ContactMsgMap{
@@ -68,6 +68,7 @@ func TestOptinRequested(t *testing.T) {
 					Count: 0,
 				},
 			},
+			PersistedEvents: map[string]int{},
 		},
 	}
 

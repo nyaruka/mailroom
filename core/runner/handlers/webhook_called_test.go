@@ -56,11 +56,11 @@ func TestWebhookCalled(t *testing.T) {
 		{
 			Actions: handlers.ContactActionMap{
 				testdb.Cathy: []flows.Action{
-					actions.NewCallResthook(handlers.NewActionUUID(), "foo", "foo"), // calls both subscribers
+					actions.NewCallResthook(flows.NewActionUUID(), "foo", "foo"), // calls both subscribers
 				},
 				testdb.George: []flows.Action{
-					actions.NewCallResthook(handlers.NewActionUUID(), "foo", "foo"), // calls both subscribers
-					actions.NewCallWebhook(handlers.NewActionUUID(), "GET", "http://rapidpro.io/?unsub=1", nil, "", ""),
+					actions.NewCallResthook(flows.NewActionUUID(), "foo", "foo"), // calls both subscribers
+					actions.NewCallWebhook(flows.NewActionUUID(), "GET", "http://rapidpro.io/?unsub=1", nil, "", ""),
 				},
 			},
 			SQLAssertions: []handlers.SQLAssertion{
@@ -90,6 +90,7 @@ func TestWebhookCalled(t *testing.T) {
 					Count: 2,
 				},
 			},
+			PersistedEvents: map[string]int{},
 		},
 	}
 

@@ -26,7 +26,7 @@ func TestBroadcastCreated(t *testing.T) {
 		{
 			Actions: handlers.ContactActionMap{
 				testdb.Cathy: []flows.Action{
-					actions.NewSendBroadcast(handlers.NewActionUUID(), "hello world", nil, nil, nil, nil, "", []urns.URN{urns.URN("tel:+12065551212")}, nil),
+					actions.NewSendBroadcast(flows.NewActionUUID(), "hello world", nil, nil, nil, nil, "", []urns.URN{urns.URN("tel:+12065551212")}, nil),
 				},
 			},
 			SQLAssertions: []handlers.SQLAssertion{
@@ -54,6 +54,7 @@ func TestBroadcastCreated(t *testing.T) {
 					return nil
 				},
 			},
+			PersistedEvents: map[string]int{},
 		},
 	}
 

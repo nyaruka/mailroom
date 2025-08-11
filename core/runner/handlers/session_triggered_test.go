@@ -30,7 +30,7 @@ func TestSessionTriggered(t *testing.T) {
 		{
 			Actions: handlers.ContactActionMap{
 				testdb.Cathy: []flows.Action{
-					actions.NewStartSession(handlers.NewActionUUID(), testdb.SingleMessage.Reference(), []*assets.GroupReference{groupRef}, []*flows.ContactReference{testdb.George.Reference()}, "", nil, nil, true),
+					actions.NewStartSession(flows.NewActionUUID(), testdb.SingleMessage.Reference(), []*assets.GroupReference{groupRef}, []*flows.ContactReference{testdb.George.Reference()}, "", nil, nil, true),
 				},
 			},
 			SQLAssertions: []handlers.SQLAssertion{
@@ -63,11 +63,12 @@ func TestSessionTriggered(t *testing.T) {
 					return nil
 				},
 			},
+			PersistedEvents: map[string]int{},
 		},
 		{
 			Actions: handlers.ContactActionMap{
 				testdb.Bob: []flows.Action{
-					actions.NewStartSession(handlers.NewActionUUID(), testdb.IVRFlow.Reference(), nil, []*flows.ContactReference{testdb.Alexandra.Reference()}, "", nil, nil, true),
+					actions.NewStartSession(flows.NewActionUUID(), testdb.IVRFlow.Reference(), nil, []*flows.ContactReference{testdb.Alexandra.Reference()}, "", nil, nil, true),
 				},
 			},
 			SQLAssertions: []handlers.SQLAssertion{
@@ -77,6 +78,7 @@ func TestSessionTriggered(t *testing.T) {
 					Count: 0,
 				},
 			},
+			PersistedEvents: map[string]int{},
 		},
 	}
 
@@ -98,7 +100,7 @@ func TestQuerySessionTriggered(t *testing.T) {
 		{
 			Actions: handlers.ContactActionMap{
 				testdb.Cathy: []flows.Action{
-					actions.NewStartSession(handlers.NewActionUUID(), favoriteFlow.Reference(), nil, nil, "name ~ @contact.name", nil, nil, true),
+					actions.NewStartSession(flows.NewActionUUID(), favoriteFlow.Reference(), nil, nil, "name ~ @contact.name", nil, nil, true),
 				},
 			},
 			Assertions: []handlers.Assertion{
@@ -120,6 +122,7 @@ func TestQuerySessionTriggered(t *testing.T) {
 					return nil
 				},
 			},
+			PersistedEvents: map[string]int{},
 		},
 	}
 
