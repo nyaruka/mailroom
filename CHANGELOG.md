@@ -1,3 +1,7 @@
+v10.3.36 (2025-08-12)
+-------------------------
+ * Start reading from Session.current_flow_uuid instead of current_flow_id
+
 v10.3.35 (2025-08-12)
 -------------------------
  * Start writing current_flow_uuid for sessions
