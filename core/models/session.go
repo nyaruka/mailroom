@@ -70,7 +70,6 @@ func (s *Session) Output() string                   { return string(s.s.Output) 
 func (s *Session) OutputURL() string                { return string(s.s.OutputURL) }
 func (s *Session) CreatedOn() time.Time             { return s.s.CreatedOn }
 func (s *Session) EndedOn() *time.Time              { return s.s.EndedOn }
-func (s *Session) CurrentFlowID() FlowID            { return s.s.CurrentFlowID }
 func (s *Session) CallID() CallID                   { return s.s.CallID }
 
 // StoragePath returns the path for the session

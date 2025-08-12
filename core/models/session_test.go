@@ -50,7 +50,6 @@ func TestInsertSessions(t *testing.T) {
 	assert.Equal(t, models.FlowTypeMessaging, session.SessionType())
 	assert.Equal(t, testdb.Bob.UUID, session.ContactUUID())
 	assert.Equal(t, models.SessionStatusWaiting, session.Status())
-	assert.Equal(t, flow.ID, session.CurrentFlowID())
 	assert.Equal(t, flow.UUID, session.CurrentFlowUUID())
 	assert.NotZero(t, session.CreatedOn())
 	assert.NotZero(t, session.LastSprintUUID())
@@ -76,7 +75,6 @@ func TestInsertSessions(t *testing.T) {
 	require.NoError(t, tx.Commit())
 
 	assert.Equal(t, models.SessionStatusWaiting, session.Status())
-	assert.Equal(t, flow.ID, session.CurrentFlowID())
 	assert.Equal(t, flow.UUID, session.CurrentFlowUUID())
 
 	flowSession, err = session.EngineSession(ctx, rt, oa.SessionAssets(), oa.Env(), flowSession.Contact(), nil)
@@ -93,8 +91,7 @@ func TestInsertSessions(t *testing.T) {
 	require.NoError(t, tx.Commit())
 
 	assert.Equal(t, models.SessionStatusCompleted, session.Status())
-	assert.Equal(t, models.NilFlowID, session.CurrentFlowID()) // no longer "in" a flow
-	assert.Equal(t, assets.FlowUUID(""), session.CurrentFlowUUID())
+	assert.Equal(t, assets.FlowUUID(""), session.CurrentFlowUUID()) // no longer "in" a flow
 	assert.NotZero(t, session.CreatedOn())
 	assert.NotNil(t, session.EndedOn())
 

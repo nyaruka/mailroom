@@ -146,15 +146,15 @@ func (s *Scene) ResumeSession(ctx context.Context, rt *runtime.Runtime, oa *mode
 	}
 
 	// does the flow this session is part of still exist?
-	_, err := oa.FlowByID(session.CurrentFlowID())
+	_, err := oa.FlowByUUID(session.CurrentFlowUUID())
 	if err != nil {
 		// if this flow just isn't available anymore, log this error
 		if err == models.ErrNotFound {
-			slog.Error("unable to find flow for resume", "contact", s.ContactUUID(), "session", session.UUID(), "flow_id", session.CurrentFlowID())
+			slog.Error("unable to find flow for resume", "contact", s.ContactUUID(), "session", session.UUID(), "flow", session.CurrentFlowUUID())
 
 			return models.ExitSessions(ctx, rt.DB, []flows.SessionUUID{session.UUID()}, models.SessionStatusFailed)
 		}
-		return fmt.Errorf("error loading session flow: %d: %w", session.CurrentFlowID(), err)
+		return fmt.Errorf("error loading session flow %s: %w", session.CurrentFlowUUID(), err)
 	}
 
 	// build our flow session
