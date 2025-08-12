@@ -1,3 +1,7 @@
+v10.3.35 (2025-08-12)
+-------------------------
+ * Start writing current_flow_uuid for sessions
+
 v10.3.34 (2025-08-12)
 -------------------------
  * Use /mi/ prefix for internal endpoints with /mr/ maintained for now for backward compatibility
