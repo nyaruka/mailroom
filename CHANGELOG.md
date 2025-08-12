@@ -1,3 +1,8 @@
+v10.3.34 (2025-08-12)
+-------------------------
+ * Use /mi/ prefix for internal endpoints with /mr/ maintained for now for backward compatibility
+ * Stop writing session.contact_id
+
 v10.3.33 (2025-08-11)
 -------------------------
  * Allow events to have per type TTLs for dynamo persistence
