@@ -196,7 +196,6 @@ func TestSessionWithSubflows(t *testing.T) {
 	modelSession, err := models.GetWaitingSessionForContact(ctx, rt, oa, contact, scene.Session.UUID())
 	require.NoError(t, err)
 	assert.Equal(t, scene.Session.UUID(), modelSession.UUID())
-	assert.Equal(t, child.ID, modelSession.CurrentFlowID())
 	assert.Equal(t, child.UUID, modelSession.CurrentFlowUUID())
 
 	msg2 := flows.NewMsgIn(testdb.Cathy.URN, nil, "yes", nil, "")
