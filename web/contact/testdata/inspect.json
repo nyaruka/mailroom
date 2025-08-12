@@ -2,7 +2,7 @@
     {
         "label": "error if fields not provided",
         "method": "POST",
-        "path": "/mr/contact/inspect",
+        "path": "/mi/contact/inspect",
         "body": {},
         "status": 400,
         "response": {
@@ -12,7 +12,7 @@
     {
         "label": "return info by id",
         "method": "POST",
-        "path": "/mr/contact/inspect",
+        "path": "/mi/contact/inspect",
         "body": {
             "org_id": 1,
             "contact_ids": [

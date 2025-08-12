@@ -2,7 +2,7 @@
     {
         "label": "illegal method",
         "method": "GET",
-        "path": "/mr/flow/start_preview",
+        "path": "/mi/flow/start_preview",
         "status": 405,
         "response": {
             "error": "illegal method: GET"
@@ -11,7 +11,7 @@
     {
         "label": "missing org or flow id",
         "method": "POST",
-        "path": "/mr/flow/start_preview",
+        "path": "/mi/flow/start_preview",
         "body": {},
         "status": 400,
         "response": {
@@ -21,7 +21,7 @@
     {
         "label": "no inclusions or exclusions",
         "method": "POST",
-        "path": "/mr/flow/start_preview",
+        "path": "/mi/flow/start_preview",
         "body": {
             "org_id": 1,
             "flow_id": 10001,
@@ -36,7 +36,7 @@
     {
         "label": "manual inclusions, no exclusions",
         "method": "POST",
-        "path": "/mr/flow/start_preview",
+        "path": "/mi/flow/start_preview",
         "body": {
             "org_id": 1,
             "flow_id": 10001,
@@ -61,7 +61,7 @@
     {
         "label": "query inclusion, no exclusions",
         "method": "POST",
-        "path": "/mr/flow/start_preview",
+        "path": "/mi/flow/start_preview",
         "body": {
             "org_id": 1,
             "flow_id": 10001,
@@ -80,7 +80,7 @@
     {
         "label": "manual inclusions, all exclusions",
         "method": "POST",
-        "path": "/mr/flow/start_preview",
+        "path": "/mi/flow/start_preview",
         "body": {
             "org_id": 1,
             "flow_id": 10001,
@@ -111,7 +111,7 @@
     {
         "label": "query inclusion, all exclusions",
         "method": "POST",
-        "path": "/mr/flow/start_preview",
+        "path": "/mi/flow/start_preview",
         "body": {
             "org_id": 1,
             "flow_id": 10001,
@@ -134,7 +134,7 @@
     {
         "label": "invalid query inclusion (bad syntax)",
         "method": "POST",
-        "path": "/mr/flow/start_preview",
+        "path": "/mi/flow/start_preview",
         "body": {
             "org_id": 1,
             "flow_id": 10001,
@@ -152,7 +152,7 @@
     {
         "label": "invalid query inclusion (missing field)",
         "method": "POST",
-        "path": "/mr/flow/start_preview",
+        "path": "/mi/flow/start_preview",
         "body": {
             "org_id": 1,
             "flow_id": 10001,

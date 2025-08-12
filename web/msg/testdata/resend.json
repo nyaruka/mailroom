@@ -2,7 +2,7 @@
     {
         "label": "illegal method",
         "method": "GET",
-        "path": "/mr/msg/resend",
+        "path": "/mi/msg/resend",
         "status": 405,
         "response": {
             "error": "illegal method: GET"
@@ -11,7 +11,7 @@
     {
         "label": "invalid org_id",
         "method": "POST",
-        "path": "/mr/msg/resend",
+        "path": "/mi/msg/resend",
         "body": {
             "org_id": 1234,
             "msg_ids": [
@@ -26,7 +26,7 @@
     {
         "label": "response is the ids of the messages that were actually resent",
         "method": "POST",
-        "path": "/mr/msg/resend",
+        "path": "/mi/msg/resend",
         "body": {
             "org_id": 1,
             "msg_ids": [

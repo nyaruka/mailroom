@@ -2,7 +2,7 @@
     {
         "label": "illegal method",
         "method": "GET",
-        "path": "/mr/channel/interrupt",
+        "path": "/mi/channel/interrupt",
         "status": 405,
         "response": {
             "error": "illegal method: GET"
@@ -11,7 +11,7 @@
     {
         "label": "response is empty on success",
         "method": "POST",
-        "path": "/mr/channel/interrupt",
+        "path": "/mi/channel/interrupt",
         "body": {
             "org_id": 1,
             "channel_id": 10000

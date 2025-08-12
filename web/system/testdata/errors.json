@@ -2,7 +2,7 @@
     {
         "label": "test errors endpoint noop without params",
         "method": "POST",
-        "path": "/mr/system/errors",
+        "path": "/mi/system/errors",
         "body": {},
         "status": 200,
         "response": {}
@@ -10,7 +10,7 @@
     {
         "label": "test errors endpoint with logged error",
         "method": "POST",
-        "path": "/mr/system/errors",
+        "path": "/mi/system/errors",
         "body": {
             "log": "this is a logged error"
         },
@@ -20,7 +20,7 @@
     {
         "label": "test errors endpoint with an error response",
         "method": "POST",
-        "path": "/mr/system/errors",
+        "path": "/mi/system/errors",
         "body": {
             "return": "this is an error response"
         },
@@ -32,7 +32,7 @@
     {
         "label": "test errors endpoint with a panic",
         "method": "POST",
-        "path": "/mr/system/errors",
+        "path": "/mi/system/errors",
         "body": {
             "panic": "this is a panic"
         },

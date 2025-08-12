@@ -27,25 +27,5 @@
             "url": "/",
             "version": "Dev"
         }
-    },
-    {
-        "label": "illegal method if POST to /mr/",
-        "method": "POST",
-        "path": "/mr/",
-        "status": 405,
-        "response": {
-            "error": "illegal method: POST"
-        }
-    },
-    {
-        "label": "status page if GET /mr/",
-        "method": "GET",
-        "path": "/mr/",
-        "status": 200,
-        "response": {
-            "component": "mailroom",
-            "url": "/mr/",
-            "version": "Dev"
-        }
     }
 ]

@@ -2,7 +2,7 @@
     {
         "label": "illegal method",
         "method": "GET",
-        "path": "/mr/msg/broadcast",
+        "path": "/mi/msg/broadcast",
         "status": 405,
         "response": {
             "error": "illegal method: GET"
@@ -11,7 +11,7 @@
     {
         "label": "missing required fields",
         "method": "POST",
-        "path": "/mr/msg/broadcast",
+        "path": "/mi/msg/broadcast",
         "body": {},
         "status": 400,
         "response": {
@@ -21,7 +21,7 @@
     {
         "label": "error if no recipients",
         "method": "POST",
-        "path": "/mr/msg/broadcast",
+        "path": "/mi/msg/broadcast",
         "body": {
             "org_id": 1,
             "user_id": 4,
@@ -46,7 +46,7 @@
     {
         "label": "create broadcast and return id",
         "method": "POST",
-        "path": "/mr/msg/broadcast",
+        "path": "/mi/msg/broadcast",
         "body": {
             "org_id": 1,
             "user_id": 4,
@@ -100,7 +100,7 @@
     {
         "label": "create broadcast for flow node uuid",
         "method": "POST",
-        "path": "/mr/msg/broadcast",
+        "path": "/mi/msg/broadcast",
         "body": {
             "org_id": 1,
             "user_id": 4,
@@ -131,7 +131,7 @@
     {
         "label": "create a one off scheduled broadcast",
         "method": "POST",
-        "path": "/mr/msg/broadcast",
+        "path": "/mi/msg/broadcast",
         "body": {
             "org_id": 1,
             "user_id": 4,
@@ -167,7 +167,7 @@
     {
         "label": "create a daily repeating scheduled broadcast",
         "method": "POST",
-        "path": "/mr/msg/broadcast",
+        "path": "/mi/msg/broadcast",
         "body": {
             "org_id": 1,
             "user_id": 4,
@@ -203,7 +203,7 @@
     {
         "label": "create a weekly repeating scheduled broadcast",
         "method": "POST",
-        "path": "/mr/msg/broadcast",
+        "path": "/mi/msg/broadcast",
         "body": {
             "org_id": 1,
             "user_id": 4,
@@ -240,7 +240,7 @@
     {
         "label": "create a monthly repeating scheduled broadcast",
         "method": "POST",
-        "path": "/mr/msg/broadcast",
+        "path": "/mi/msg/broadcast",
         "body": {
             "org_id": 1,
             "user_id": 4,

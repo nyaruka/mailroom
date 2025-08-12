@@ -2,7 +2,7 @@
     {
         "label": "error if fields not provided",
         "method": "POST",
-        "path": "/mr/contact/export_preview",
+        "path": "/mi/contact/export_preview",
         "body": {},
         "status": 400,
         "response": {
@@ -12,7 +12,7 @@
     {
         "label": "error if group doesn't exist",
         "method": "POST",
-        "path": "/mr/contact/export_preview",
+        "path": "/mi/contact/export_preview",
         "body": {
             "org_id": 1,
             "group_id": 1234567,
@@ -26,7 +26,7 @@
     {
         "label": "system group without query",
         "method": "POST",
-        "path": "/mr/contact/export_preview",
+        "path": "/mi/contact/export_preview",
         "body": {
             "org_id": 1,
             "group_id": 10000,
@@ -40,7 +40,7 @@
     {
         "label": "user group without query",
         "method": "POST",
-        "path": "/mr/contact/export_preview",
+        "path": "/mi/contact/export_preview",
         "body": {
             "org_id": 1,
             "group_id": 10005,
@@ -54,7 +54,7 @@
     {
         "label": "system group with query",
         "method": "POST",
-        "path": "/mr/contact/export_preview",
+        "path": "/mi/contact/export_preview",
         "body": {
             "org_id": 1,
             "group_id": 10000,
@@ -68,7 +68,7 @@
     {
         "label": "system group with query (org 2)",
         "method": "POST",
-        "path": "/mr/contact/export_preview",
+        "path": "/mi/contact/export_preview",
         "body": {
             "org_id": 2,
             "group_id": 20000,
@@ -82,7 +82,7 @@
     {
         "label": "user group with query",
         "method": "POST",
-        "path": "/mr/contact/export_preview",
+        "path": "/mi/contact/export_preview",
         "body": {
             "org_id": 1,
             "group_id": 10005,
@@ -96,7 +96,7 @@
     {
         "label": "invalid query",
         "method": "POST",
-        "path": "/mr/contact/export_preview",
+        "path": "/mi/contact/export_preview",
         "body": {
             "org_id": 1,
             "group_id": 10000,

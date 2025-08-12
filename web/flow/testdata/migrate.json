@@ -2,7 +2,7 @@
     {
         "label": "illegal method",
         "method": "GET",
-        "path": "/mr/flow/migrate",
+        "path": "/mi/flow/migrate",
         "status": 405,
         "response": {
             "error": "illegal method: GET"
@@ -11,7 +11,7 @@
     {
         "label": "migrate minimal legacy flow",
         "method": "POST",
-        "path": "/mr/flow/migrate",
+        "path": "/mi/flow/migrate",
         "body": {
             "flow": {
                 "base_language": "eng",
@@ -91,7 +91,7 @@
     {
         "label": "migrate minimal v13 flow",
         "method": "POST",
-        "path": "/mr/flow/migrate",
+        "path": "/mi/flow/migrate",
         "body": {
             "flow": {
                 "uuid": "42362831-f376-4df1-b6d9-a80b102821d9",
@@ -177,7 +177,7 @@
     {
         "label": "migrate legacy flow to specific version",
         "method": "POST",
-        "path": "/mr/flow/migrate",
+        "path": "/mi/flow/migrate",
         "body": {
             "flow": {
                 "base_language": "eng",
@@ -258,7 +258,7 @@
     {
         "label": "migrate invalid v13 flow",
         "method": "POST",
-        "path": "/mr/flow/migrate",
+        "path": "/mi/flow/migrate",
         "body": {
             "flow": {
                 "uuid": "42362831-f376-4df1-b6d9-a80b102821d9",

@@ -2,7 +2,7 @@
     {
         "label": "error if fields not provided",
         "method": "POST",
-        "path": "/mr/contact/search",
+        "path": "/mi/contact/search",
         "body": {},
         "status": 400,
         "response": {
@@ -12,7 +12,7 @@
     {
         "label": "query error if property not resolveable",
         "method": "POST",
-        "path": "/mr/contact/search",
+        "path": "/mi/contact/search",
         "body": {
             "org_id": 1,
             "query": "birthday = tomorrow",
@@ -30,7 +30,7 @@
     {
         "label": "query error if property not convertable",
         "method": "POST",
-        "path": "/mr/contact/search",
+        "path": "/mi/contact/search",
         "body": {
             "org_id": 1,
             "query": "age > tomorrow",
@@ -48,7 +48,7 @@
     {
         "label": "valid unstructured query",
         "method": "POST",
-        "path": "/mr/contact/search",
+        "path": "/mi/contact/search",
         "body": {
             "org_id": 1,
             "query": "Cathy",
@@ -75,7 +75,7 @@
     {
         "label": "can exclude specific contacts",
         "method": "POST",
-        "path": "/mr/contact/search",
+        "path": "/mi/contact/search",
         "body": {
             "org_id": 1,
             "query": "Cathy OR George",
@@ -106,7 +106,7 @@
     {
         "label": "valid search on two fields",
         "method": "POST",
-        "path": "/mr/contact/search",
+        "path": "/mi/contact/search",
         "body": {
             "org_id": 1,
             "query": "AGE = 10 and gender = M",
@@ -138,7 +138,7 @@
     {
         "label": "empty query on different group",
         "method": "POST",
-        "path": "/mr/contact/search",
+        "path": "/mi/contact/search",
         "body": {
             "org_id": 1,
             "query": "",
@@ -165,7 +165,7 @@
     {
         "label": "empty query on different group with limit",
         "method": "POST",
-        "path": "/mr/contact/search",
+        "path": "/mi/contact/search",
         "body": {
             "org_id": 1,
             "query": "",
@@ -188,7 +188,7 @@
     {
         "label": "empty query on different group with limit and sort",
         "method": "POST",
-        "path": "/mr/contact/search",
+        "path": "/mi/contact/search",
         "body": {
             "org_id": 1,
             "query": "",
