@@ -7,6 +7,7 @@ import (
 	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/gocommon/random"
+	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/test"
 	"github.com/nyaruka/mailroom/core/models"
@@ -50,6 +51,7 @@ func TestInsertSessions(t *testing.T) {
 	assert.Equal(t, testdb.Bob.UUID, session.ContactUUID())
 	assert.Equal(t, models.SessionStatusWaiting, session.Status())
 	assert.Equal(t, flow.ID, session.CurrentFlowID())
+	assert.Equal(t, flow.UUID, session.CurrentFlowUUID())
 	assert.NotZero(t, session.CreatedOn())
 	assert.NotZero(t, session.LastSprintUUID())
 	assert.Nil(t, session.EndedOn())
@@ -75,6 +77,7 @@ func TestInsertSessions(t *testing.T) {
 
 	assert.Equal(t, models.SessionStatusWaiting, session.Status())
 	assert.Equal(t, flow.ID, session.CurrentFlowID())
+	assert.Equal(t, flow.UUID, session.CurrentFlowUUID())
 
 	flowSession, err = session.EngineSession(ctx, rt, oa.SessionAssets(), oa.Env(), flowSession.Contact(), nil)
 	require.NoError(t, err)
@@ -91,6 +94,7 @@ func TestInsertSessions(t *testing.T) {
 
 	assert.Equal(t, models.SessionStatusCompleted, session.Status())
 	assert.Equal(t, models.NilFlowID, session.CurrentFlowID()) // no longer "in" a flow
+	assert.Equal(t, assets.FlowUUID(""), session.CurrentFlowUUID())
 	assert.NotZero(t, session.CreatedOn())
 	assert.NotNil(t, session.EndedOn())
 
