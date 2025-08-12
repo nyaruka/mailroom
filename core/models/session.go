@@ -56,15 +56,11 @@ type Session struct {
 		EndedOn        *time.Time        `db:"ended_on"`
 		CurrentFlowID  FlowID            `db:"current_flow_id"`
 		CallID         CallID            `db:"call_id"`
-
-		// deprecated
-		ContactID ContactID `db:"contact_id"`
 	}
 }
 
 func (s *Session) UUID() flows.SessionUUID          { return s.s.UUID }
 func (s *Session) ContactUUID() flows.ContactUUID   { return flows.ContactUUID(s.s.ContactUUID) }
-func (s *Session) ContactID() ContactID             { return s.s.ContactID }
 func (s *Session) SessionType() FlowType            { return s.s.SessionType }
 func (s *Session) Status() SessionStatus            { return s.s.Status }
 func (s *Session) LastSprintUUID() flows.SprintUUID { return flows.SprintUUID(s.s.LastSprintUUID) }
@@ -185,7 +181,6 @@ func NewSession(oa *OrgAssets, fs flows.Session, sprint flows.Sprint, call *Call
 	s.LastSprintUUID = null.String(sprint.UUID())
 	s.SessionType = flowTypeMapping[fs.Type()]
 	s.Output = null.String(jsonx.MustMarshal(fs))
-	s.ContactID = ContactID(fs.Contact().ID()) // deprecated
 	s.CreatedOn = fs.CreatedOn()
 
 	if call != nil {
@@ -213,23 +208,23 @@ func NewSession(oa *OrgAssets, fs flows.Session, sprint flows.Sprint, call *Call
 
 const sqlInsertWaitingSession = `
 INSERT INTO
-	flows_flowsession( uuid,  contact_uuid,  session_type,  status,  last_sprint_uuid,  output,  output_url,  contact_id,  created_on,  current_flow_id,  call_id)
-               VALUES(:uuid, :contact_uuid, :session_type, :status, :last_sprint_uuid, :output, :output_url, :contact_id, :created_on, :current_flow_id, :call_id)`
+	flows_flowsession( uuid,  contact_uuid,  session_type,  status,  last_sprint_uuid,  output,  output_url,  created_on,  current_flow_id,  call_id)
+               VALUES(:uuid, :contact_uuid, :session_type, :status, :last_sprint_uuid, :output, :output_url, :created_on, :current_flow_id, :call_id)`
 
 const sqlInsertWaitingSessionNoOutput = `
 INSERT INTO
-	flows_flowsession( uuid,  contact_uuid,  session_type,  status,  last_sprint_uuid,  output_url,  contact_id,  created_on,  current_flow_id,  call_id)
-               VALUES(:uuid, :contact_uuid, :session_type, :status, :last_sprint_uuid, :output_url, :contact_id, :created_on, :current_flow_id, :call_id)`
+	flows_flowsession( uuid,  contact_uuid,  session_type,  status,  last_sprint_uuid,  output_url,  created_on,  current_flow_id,  call_id)
+               VALUES(:uuid, :contact_uuid, :session_type, :status, :last_sprint_uuid, :output_url, :created_on, :current_flow_id, :call_id)`
 
 const sqlInsertEndedSession = `
 INSERT INTO
-	flows_flowsession( uuid,  contact_uuid,  session_type,  status,  last_sprint_uuid,  output,  output_url,  contact_id,  created_on,  ended_on,  call_id)
-               VALUES(:uuid, :contact_uuid, :session_type, :status, :last_sprint_uuid, :output, :output_url, :contact_id, :created_on, :ended_on, :call_id)`
+	flows_flowsession( uuid,  contact_uuid,  session_type,  status,  last_sprint_uuid,  output,  output_url,  created_on,  ended_on,  call_id)
+               VALUES(:uuid, :contact_uuid, :session_type, :status, :last_sprint_uuid, :output, :output_url, :created_on, :ended_on, :call_id)`
 
 const sqlInsertEndedSessionNoOutput = `
 INSERT INTO
-	flows_flowsession( uuid,  contact_uuid,  session_type,  status,  last_sprint_uuid,  output_url,  contact_id,  created_on,  ended_on,  call_id)
-               VALUES(:uuid, :contact_uuid, :session_type, :status, :last_sprint_uuid, :output_url, :contact_id, :created_on, :ended_on, :call_id)`
+	flows_flowsession( uuid,  contact_uuid,  session_type,  status,  last_sprint_uuid,  output_url,  created_on,  ended_on,  call_id)
+               VALUES(:uuid, :contact_uuid, :session_type, :status, :last_sprint_uuid, :output_url, :created_on, :ended_on, :call_id)`
 
 // InsertSessions inserts sessions and their runs into the database
 func InsertSessions(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *OrgAssets, sessions []*Session, contacts []*Contact) error {
@@ -275,7 +270,7 @@ func InsertSessions(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *O
 }
 
 const sqlSelectSessionByUUID = `
-SELECT uuid, contact_uuid, session_type, status, last_sprint_uuid, output, output_url, contact_id, created_on, ended_on, current_flow_id, call_id
+SELECT uuid, contact_uuid, session_type, status, last_sprint_uuid, output, output_url, created_on, ended_on, current_flow_id, call_id
   FROM flows_flowsession fs
  WHERE uuid = $1`
 
@@ -383,7 +378,7 @@ const sqlExitSessions = `
    UPDATE flows_flowsession
       SET status = $2, ended_on = NOW(), current_flow_id = NULL
     WHERE uuid = ANY($1) AND status = 'W'
-RETURNING contact_id`
+RETURNING contact_uuid`
 
 // TODO instead of having an index on session_uuid.. rework this to fetch the sessions and extract a list of run uuids?
 const sqlExitSessionRuns = `
@@ -392,17 +387,18 @@ UPDATE flows_flowrun
  WHERE session_uuid = ANY($1) AND status IN ('A', 'W')`
 
 const sqlExitSessionContacts = `
- UPDATE contacts_contact 
-    SET current_session_uuid = NULL, current_flow_id = NULL, modified_on = NOW() 
-  WHERE id = ANY($1) AND current_session_uuid = ANY($2)`
+   UPDATE contacts_contact 
+      SET current_session_uuid = NULL, current_flow_id = NULL, modified_on = NOW() 
+    WHERE uuid = ANY($1) AND current_session_uuid = ANY($2)
+RETURNING id`
 
 // exits sessions and their runs inside the given transaction
 func exitSessionBatch(ctx context.Context, tx *sqlx.Tx, uuids []flows.SessionUUID, status SessionStatus) error {
 	runStatus := RunStatus(status) // session status codes are subset of run status codes
-	contactIDs := make([]ContactID, 0, len(uuids))
+	contactUUIDs := make([]flows.ContactUUID, 0, len(uuids))
 
-	// first update the sessions themselves and get the contact ids
-	if err := tx.SelectContext(ctx, &contactIDs, sqlExitSessions, pq.Array(uuids), status); err != nil {
+	// first update the sessions themselves and get the contact UUIDs
+	if err := tx.SelectContext(ctx, &contactUUIDs, sqlExitSessions, pq.Array(uuids), status); err != nil {
 		return fmt.Errorf("error exiting sessions: %w", err)
 	}
 
@@ -412,7 +408,8 @@ func exitSessionBatch(ctx context.Context, tx *sqlx.Tx, uuids []flows.SessionUUI
 	}
 
 	// and finally the contacts from each session
-	if _, err := tx.ExecContext(ctx, sqlExitSessionContacts, pq.Array(contactIDs), pq.Array(uuids)); err != nil {
+	contactIDs := make([]ContactID, 0, len(contactUUIDs))
+	if err := tx.SelectContext(ctx, &contactIDs, sqlExitSessionContacts, pq.Array(contactUUIDs), pq.Array(uuids)); err != nil {
 		return fmt.Errorf("error exiting sessions: %w", err)
 	}
 
