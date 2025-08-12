@@ -2,7 +2,7 @@
     {
         "label": "illegal method",
         "method": "GET",
-        "path": "/mr/contact/deindex",
+        "path": "/mi/contact/deindex",
         "status": 405,
         "response": {
             "error": "illegal method: GET"
@@ -11,7 +11,7 @@
     {
         "label": "contacts that are inactive",
         "method": "POST",
-        "path": "/mr/contact/deindex",
+        "path": "/mi/contact/deindex",
         "body": {
             "org_id": 1,
             "contact_ids": [

@@ -2,7 +2,7 @@
     {
         "label": "illegal method",
         "method": "GET",
-        "path": "/mr/contact/populate_group",
+        "path": "/mi/contact/populate_group",
         "status": 405,
         "response": {
             "error": "illegal method: GET"
@@ -11,7 +11,7 @@
     {
         "label": "error if group doesn't exist",
         "method": "POST",
-        "path": "/mr/contact/populate_group",
+        "path": "/mi/contact/populate_group",
         "body": {
             "org_id": 1,
             "group_id": 1234567
@@ -24,7 +24,7 @@
     {
         "label": "response is empty on success",
         "method": "POST",
-        "path": "/mr/contact/populate_group",
+        "path": "/mi/contact/populate_group",
         "body": {
             "org_id": 1,
             "group_id": 30000

@@ -2,7 +2,7 @@
     {
         "label": "error if fields not provided",
         "method": "POST",
-        "path": "/mr/contact/urns",
+        "path": "/mi/contact/urns",
         "body": {},
         "status": 400,
         "response": {
@@ -12,7 +12,7 @@
     {
         "label": "normalizes, validates and resolves urns",
         "method": "POST",
-        "path": "/mr/contact/urns",
+        "path": "/mi/contact/urns",
         "body": {
             "org_id": 1,
             "urns": [

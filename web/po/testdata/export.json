@@ -2,7 +2,7 @@
     {
         "label": "illegal method",
         "method": "GET",
-        "path": "/mr/po/export",
+        "path": "/mi/po/export",
         "status": 405,
         "response": {
             "error": "illegal method: GET"
@@ -11,7 +11,7 @@
     {
         "label": "export POT from single flow",
         "method": "POST",
-        "path": "/mr/po/export",
+        "path": "/mi/po/export",
         "body": {
             "org_id": 1,
             "flow_ids": [
@@ -24,7 +24,7 @@
     {
         "label": "export Spanish PO from multiple flows",
         "method": "POST",
-        "path": "/mr/po/export",
+        "path": "/mi/po/export",
         "body": {
             "org_id": 1,
             "flow_ids": [

@@ -2,7 +2,7 @@
     {
         "label": "illegal method",
         "method": "GET",
-        "path": "/mr/flow/clone",
+        "path": "/mi/flow/clone",
         "status": 405,
         "response": {
             "error": "illegal method: GET"
@@ -11,7 +11,7 @@
     {
         "label": "clone valid flow",
         "method": "POST",
-        "path": "/mr/flow/clone",
+        "path": "/mi/flow/clone",
         "body": {
             "dependency_mapping": {
                 "8f107d42-7416-4cf2-9a51-9490361ad517": "1cf84575-ee14-4253-88b6-e3675c04a066",
@@ -121,7 +121,7 @@
     {
         "label": "clone structurally invalid flow",
         "method": "POST",
-        "path": "/mr/flow/clone",
+        "path": "/mi/flow/clone",
         "body": {
             "dependency_mapping": {
                 "8f107d42-7416-4cf2-9a51-9490361ad517": "1cf84575-ee14-4253-88b6-e3675c04a066",
@@ -157,7 +157,7 @@
     {
         "label": "clone flow with missing dependency mapping",
         "method": "POST",
-        "path": "/mr/flow/clone",
+        "path": "/mi/flow/clone",
         "body": {
             "dependency_mapping": {
                 "8f107d42-7416-4cf2-9a51-9490361ad517": "1cf84575-ee14-4253-88b6-e3675c04a066"

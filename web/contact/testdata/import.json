@@ -2,7 +2,7 @@
     {
         "label": "error if fields not provided",
         "method": "POST",
-        "path": "/mr/contact/import",
+        "path": "/mi/contact/import",
         "body": {},
         "status": 400,
         "response": {
@@ -12,7 +12,7 @@
     {
         "label": "creates tasks for all batches",
         "method": "POST",
-        "path": "/mr/contact/import",
+        "path": "/mi/contact/import",
         "body": {
             "org_id": 1,
             "import_id": 30000

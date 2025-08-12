@@ -2,7 +2,7 @@
     {
         "label": "error if fields not provided",
         "method": "POST",
-        "path": "/mr/contact/interrupt",
+        "path": "/mi/contact/interrupt",
         "body": {},
         "status": 400,
         "response": {
@@ -12,7 +12,7 @@
     {
         "label": "interrupts a single contact synchronously",
         "method": "POST",
-        "path": "/mr/contact/interrupt",
+        "path": "/mi/contact/interrupt",
         "body": {
             "org_id": 1,
             "user_id": 3,
@@ -42,7 +42,7 @@
     {
         "label": "noop if contact doesn't have a waiting session",
         "method": "POST",
-        "path": "/mr/contact/interrupt",
+        "path": "/mi/contact/interrupt",
         "body": {
             "org_id": 1,
             "user_id": 3,
@@ -72,7 +72,7 @@
     {
         "label": "queues interrupt task for multiple contacts",
         "method": "POST",
-        "path": "/mr/contact/interrupt",
+        "path": "/mi/contact/interrupt",
         "body": {
             "org_id": 1,
             "user_id": 3,

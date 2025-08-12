@@ -2,7 +2,7 @@
     {
         "label": "illegal method",
         "method": "GET",
-        "path": "/mr/po/import",
+        "path": "/mi/po/import",
         "status": 405,
         "response": {
             "error": "illegal method: GET"
@@ -11,7 +11,7 @@
     {
         "label": "import PO into single flow",
         "method": "POST",
-        "path": "/mr/po/import",
+        "path": "/mi/po/import",
         "body": [
             {
                 "name": "org_id",

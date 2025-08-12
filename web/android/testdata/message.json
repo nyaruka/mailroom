@@ -2,7 +2,7 @@
     {
         "label": "illegal method",
         "method": "GET",
-        "path": "/mr/android/message",
+        "path": "/mi/android/message",
         "status": 405,
         "response": {
             "error": "illegal method: GET"
@@ -11,7 +11,7 @@
     {
         "label": "invalid org_id",
         "method": "POST",
-        "path": "/mr/android/message",
+        "path": "/mi/android/message",
         "body": {
             "org_id": 1234,
             "channel_id": 12,
@@ -27,7 +27,7 @@
     {
         "label": "message from existing contact created in database",
         "method": "POST",
-        "path": "/mr/android/message",
+        "path": "/mi/android/message",
         "body": {
             "org_id": 1,
             "channel_id": 10000,
@@ -55,7 +55,7 @@
     {
         "label": "message from new contact created in database",
         "method": "POST",
-        "path": "/mr/android/message",
+        "path": "/mi/android/message",
         "body": {
             "org_id": 1,
             "channel_id": 10000,
@@ -83,7 +83,7 @@
     {
         "label": "duplicate message ignored",
         "method": "POST",
-        "path": "/mr/android/message",
+        "path": "/mi/android/message",
         "body": {
             "org_id": 1,
             "channel_id": 10000,
@@ -106,7 +106,7 @@
     {
         "label": "invalid phone number creates 422 response",
         "method": "POST",
-        "path": "/mr/android/message",
+        "path": "/mi/android/message",
         "body": {
             "org_id": 1,
             "channel_id": 10000,

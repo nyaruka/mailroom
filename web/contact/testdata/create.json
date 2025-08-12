@@ -2,7 +2,7 @@
     {
         "label": "error if contact not provided",
         "method": "POST",
-        "path": "/mr/contact/create",
+        "path": "/mi/contact/create",
         "body": {
             "org_id": 1,
             "user_id": 3
@@ -21,7 +21,7 @@
     {
         "label": "create empty contact",
         "method": "POST",
-        "path": "/mr/contact/create",
+        "path": "/mi/contact/create",
         "body": {
             "org_id": 1,
             "user_id": 1,
@@ -47,7 +47,7 @@
     {
         "label": "create contact with all properties",
         "method": "POST",
-        "path": "/mr/contact/create",
+        "path": "/mi/contact/create",
         "body": {
             "org_id": 1,
             "user_id": 3,
@@ -100,7 +100,7 @@
     {
         "label": "error if try to create contact with invalid language",
         "method": "POST",
-        "path": "/mr/contact/create",
+        "path": "/mi/contact/create",
         "body": {
             "org_id": 1,
             "user_id": 3,
@@ -117,7 +117,7 @@
     {
         "label": "error if try to create contact with invalid URN",
         "method": "POST",
-        "path": "/mr/contact/create",
+        "path": "/mi/contact/create",
         "body": {
             "org_id": 1,
             "user_id": 3,
@@ -141,7 +141,7 @@
     {
         "label": "error if try to create contact with taken URN",
         "method": "POST",
-        "path": "/mr/contact/create",
+        "path": "/mi/contact/create",
         "body": {
             "org_id": 1,
             "user_id": 3,
@@ -165,7 +165,7 @@
     {
         "label": "though ok to take an orphaned URN",
         "method": "POST",
-        "path": "/mr/contact/create",
+        "path": "/mi/contact/create",
         "body": {
             "org_id": 1,
             "user_id": 3,

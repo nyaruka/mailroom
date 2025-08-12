@@ -2,7 +2,7 @@
     {
         "label": "illegal method",
         "method": "POST",
-        "path": "/mr/system/queues",
+        "path": "/mi/system/queues",
         "status": 405,
         "response": {
             "error": "illegal method: POST"
@@ -11,7 +11,7 @@
     {
         "label": "returns queue information",
         "method": "GET",
-        "path": "/mr/system/queues",
+        "path": "/mi/system/queues",
         "body": {},
         "status": 200,
         "response": {

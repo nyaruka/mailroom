@@ -2,7 +2,7 @@
     {
         "label": "illegal method",
         "method": "GET",
-        "path": "/mr/msg/broadcast_preview",
+        "path": "/mi/msg/broadcast_preview",
         "status": 405,
         "response": {
             "error": "illegal method: GET"
@@ -11,7 +11,7 @@
     {
         "label": "missing org id",
         "method": "POST",
-        "path": "/mr/msg/broadcast_preview",
+        "path": "/mi/msg/broadcast_preview",
         "body": {},
         "status": 400,
         "response": {
@@ -21,7 +21,7 @@
     {
         "label": "no inclusions or exclusions",
         "method": "POST",
-        "path": "/mr/msg/broadcast_preview",
+        "path": "/mi/msg/broadcast_preview",
         "body": {
             "org_id": 1,
             "include": {}
@@ -35,7 +35,7 @@
     {
         "label": "manual inclusions, no exclusions",
         "method": "POST",
-        "path": "/mr/msg/broadcast_preview",
+        "path": "/mi/msg/broadcast_preview",
         "body": {
             "org_id": 1,
             "include": {
@@ -59,7 +59,7 @@
     {
         "label": "query inclusion, no exclusions",
         "method": "POST",
-        "path": "/mr/msg/broadcast_preview",
+        "path": "/mi/msg/broadcast_preview",
         "body": {
             "org_id": 1,
             "include": {
@@ -77,7 +77,7 @@
     {
         "label": "manual inclusions, all exclusions",
         "method": "POST",
-        "path": "/mr/msg/broadcast_preview",
+        "path": "/mi/msg/broadcast_preview",
         "body": {
             "org_id": 1,
             "include": {
@@ -110,7 +110,7 @@
     {
         "label": "query inclusion, all exclusions",
         "method": "POST",
-        "path": "/mr/msg/broadcast_preview",
+        "path": "/mi/msg/broadcast_preview",
         "body": {
             "org_id": 1,
             "include": {
@@ -131,7 +131,7 @@
     {
         "label": "invalid query inclusion (bad syntax)",
         "method": "POST",
-        "path": "/mr/msg/broadcast_preview",
+        "path": "/mi/msg/broadcast_preview",
         "body": {
             "org_id": 1,
             "include": {
@@ -148,7 +148,7 @@
     {
         "label": "invalid query inclusion (missing field)",
         "method": "POST",
-        "path": "/mr/msg/broadcast_preview",
+        "path": "/mi/msg/broadcast_preview",
         "body": {
             "org_id": 1,
             "include": {

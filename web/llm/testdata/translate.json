@@ -2,7 +2,7 @@
     {
         "label": "illegal method",
         "method": "GET",
-        "path": "/mr/llm/translate",
+        "path": "/mi/llm/translate",
         "status": 405,
         "response": {
             "error": "illegal method: GET"
@@ -11,7 +11,7 @@
     {
         "label": "invalid org_id",
         "method": "POST",
-        "path": "/mr/llm/translate",
+        "path": "/mi/llm/translate",
         "body": {
             "org_id": 1234,
             "llm_id": 10002,
@@ -27,7 +27,7 @@
     {
         "label": "invalid llm_id",
         "method": "POST",
-        "path": "/mr/llm/translate",
+        "path": "/mi/llm/translate",
         "body": {
             "org_id": 1,
             "llm_id": 6789,
@@ -43,7 +43,7 @@
     {
         "label": "eng to spa using test LLM",
         "method": "POST",
-        "path": "/mr/llm/translate",
+        "path": "/mi/llm/translate",
         "body": {
             "org_id": 1,
             "llm_id": 10002,
@@ -60,7 +60,7 @@
     {
         "label": "und to spa using test LLM",
         "method": "POST",
-        "path": "/mr/llm/translate",
+        "path": "/mi/llm/translate",
         "body": {
             "org_id": 1,
             "llm_id": 10002,
@@ -77,7 +77,7 @@
     {
         "label": "trigger failure by LLM",
         "method": "POST",
-        "path": "/mr/llm/translate",
+        "path": "/mi/llm/translate",
         "body": {
             "org_id": 1,
             "llm_id": 10002,

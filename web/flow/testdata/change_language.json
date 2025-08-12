@@ -2,7 +2,7 @@
     {
         "label": "illegal method",
         "method": "GET",
-        "path": "/mr/flow/change_language",
+        "path": "/mi/flow/change_language",
         "status": 405,
         "response": {
             "error": "illegal method: GET"
@@ -11,7 +11,7 @@
     {
         "label": "uses all base text values if translation doesn't exist in flow",
         "method": "POST",
-        "path": "/mr/flow/change_language",
+        "path": "/mi/flow/change_language",
         "body": {
             "language": "kin",
             "flow": {
@@ -357,7 +357,7 @@
     {
         "label": "mixes base text and translation values if translation is incomplete",
         "method": "POST",
-        "path": "/mr/flow/change_language",
+        "path": "/mi/flow/change_language",
         "body": {
             "language": "ara",
             "flow": {
@@ -682,7 +682,7 @@
     {
         "label": "uses only translation values if translation complete",
         "method": "POST",
-        "path": "/mr/flow/change_language",
+        "path": "/mi/flow/change_language",
         "body": {
             "language": "spa",
             "flow": {

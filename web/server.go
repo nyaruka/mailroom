@@ -37,6 +37,9 @@ func PublicRoute(method string, pattern string, handler Handler) {
 
 // InternalRoute registers a route that handles internal requests between components
 func InternalRoute(method string, pattern string, handler Handler) {
+	routes = append(routes, &route{method, "/mi" + pattern, requireAuthToken(handler)})
+
+	// for backwards compatibility
 	routes = append(routes, &route{method, "/mr" + pattern, requireAuthToken(handler)})
 }
 
@@ -67,7 +70,6 @@ func NewServer(ctx context.Context, rt *runtime.Runtime, wg *sync.WaitGroup) *Se
 	router.NotFound(handle404)
 	router.MethodNotAllowed(handle405)
 	router.Get("/", s.WrapHandler(handleIndex))
-	router.Get("/mr/", s.WrapHandler(handleIndex))
 
 	// and all registered routes
 	for _, route := range routes {

@@ -2,7 +2,7 @@
     {
         "label": "illegal method",
         "method": "GET",
-        "path": "/mr/android/event",
+        "path": "/mi/android/event",
         "status": 405,
         "response": {
             "error": "illegal method: GET"
@@ -11,7 +11,7 @@
     {
         "label": "invalid org_id",
         "method": "POST",
-        "path": "/mr/android/event",
+        "path": "/mi/android/event",
         "body": {
             "org_id": 1234,
             "channel_id": 12,
@@ -28,7 +28,7 @@
     {
         "label": "event created in database",
         "method": "POST",
-        "path": "/mr/android/event",
+        "path": "/mi/android/event",
         "body": {
             "org_id": 1,
             "channel_id": 10000,
@@ -51,7 +51,7 @@
     {
         "label": "event created in database and queued for handling",
         "method": "POST",
-        "path": "/mr/android/event",
+        "path": "/mi/android/event",
         "body": {
             "org_id": 1,
             "channel_id": 10000,

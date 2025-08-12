@@ -2,7 +2,7 @@
     {
         "label": "illegal method",
         "method": "GET",
-        "path": "/mr/contact/parse_query",
+        "path": "/mi/contact/parse_query",
         "body": "",
         "status": 405,
         "response": {
@@ -12,7 +12,7 @@
     {
         "label": "query that is syntactically invalid",
         "method": "POST",
-        "path": "/mr/contact/parse_query",
+        "path": "/mi/contact/parse_query",
         "body": {
             "org_id": 1,
             "query": "$"
@@ -26,7 +26,7 @@
     {
         "label": "query with invalid property",
         "method": "POST",
-        "path": "/mr/contact/parse_query",
+        "path": "/mi/contact/parse_query",
         "body": {
             "org_id": 1,
             "query": "birthday = tomorrow"
@@ -43,7 +43,7 @@
     {
         "label": "query with invalid property but parse_only = true",
         "method": "POST",
-        "path": "/mr/contact/parse_query",
+        "path": "/mi/contact/parse_query",
         "body": {
             "org_id": 1,
             "query": "birthday = tomorrow AND tel = 12345",
@@ -71,7 +71,7 @@
     {
         "label": "valid query without group",
         "method": "POST",
-        "path": "/mr/contact/parse_query",
+        "path": "/mi/contact/parse_query",
         "body": {
             "org_id": 1,
             "query": "AGE>10"
@@ -96,7 +96,7 @@
     {
         "label": "valid query with group in query",
         "method": "POST",
-        "path": "/mr/contact/parse_query",
+        "path": "/mi/contact/parse_query",
         "body": {
             "org_id": 1,
             "query": "group = \"Testers\""
