@@ -47,13 +47,13 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 	assert.Equal(t, time.Duration(0), scAlex.WaitTimeout) // Alexandra's messages are being sent via Android
 
 	// check sessions and runs in database
-	assertdb.Query(t, rt.DB, `SELECT contact_uuid::text, status, session_type, current_flow_id, ended_on FROM flows_flowsession WHERE uuid = $1`, scBob.SessionUUID()).
+	assertdb.Query(t, rt.DB, `SELECT contact_uuid::text, status, session_type, current_flow_uuid::text, ended_on FROM flows_flowsession WHERE uuid = $1`, scBob.SessionUUID()).
 		Columns(map[string]any{
-			"contact_uuid": string(testdb.Bob.UUID), "status": "W", "session_type": "M", "current_flow_id": int64(flow.ID), "ended_on": nil,
+			"contact_uuid": string(testdb.Bob.UUID), "status": "W", "session_type": "M", "current_flow_uuid": string(flow.UUID), "ended_on": nil,
 		})
-	assertdb.Query(t, rt.DB, `SELECT contact_uuid::text, status, session_type, current_flow_id, ended_on FROM flows_flowsession WHERE uuid = $1`, scAlex.SessionUUID()).
+	assertdb.Query(t, rt.DB, `SELECT contact_uuid::text, status, session_type, current_flow_uuid::text, ended_on FROM flows_flowsession WHERE uuid = $1`, scAlex.SessionUUID()).
 		Columns(map[string]any{
-			"contact_uuid": string(testdb.Alexandra.UUID), "status": "W", "session_type": "M", "current_flow_id": int64(flow.ID), "ended_on": nil,
+			"contact_uuid": string(testdb.Alexandra.UUID), "status": "W", "session_type": "M", "current_flow_uuid": string(flow.UUID), "ended_on": nil,
 		})
 
 	assertdb.Query(t, rt.DB, `SELECT contact_id, status, responded, current_node_uuid::text FROM flows_flowrun WHERE session_uuid = $1`, scBob.SessionUUID()).
@@ -84,9 +84,9 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 	assert.Equal(t, time.Duration(0), scene.WaitTimeout) // wait doesn't have a timeout
 
 	// check session and run in database
-	assertdb.Query(t, rt.DB, `SELECT contact_uuid::text, status, session_type, current_flow_id, ended_on FROM flows_flowsession WHERE uuid = $1`, scBob.SessionUUID()).
+	assertdb.Query(t, rt.DB, `SELECT contact_uuid::text, status, session_type, current_flow_uuid::text, ended_on FROM flows_flowsession WHERE uuid = $1`, scBob.SessionUUID()).
 		Columns(map[string]any{
-			"contact_uuid": string(testdb.Bob.UUID), "status": "W", "session_type": "M", "current_flow_id": int64(flow.ID), "ended_on": nil,
+			"contact_uuid": string(testdb.Bob.UUID), "status": "W", "session_type": "M", "current_flow_uuid": string(flow.UUID), "ended_on": nil,
 		})
 
 	assertdb.Query(t, rt.DB, `SELECT contact_id, status, responded, current_node_uuid::text FROM flows_flowrun WHERE session_uuid = $1`, scBob.SessionUUID()).
@@ -106,8 +106,8 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 	assert.Equal(t, time.Duration(0), scene.WaitTimeout) // flow has ended
 
 	// check session and run in database
-	assertdb.Query(t, rt.DB, `SELECT status, session_type, current_flow_id FROM flows_flowsession WHERE uuid = $1`, scBob.SessionUUID()).
-		Columns(map[string]any{"status": "C", "session_type": "M", "current_flow_id": nil})
+	assertdb.Query(t, rt.DB, `SELECT status, session_type, current_flow_uuid::text FROM flows_flowsession WHERE uuid = $1`, scBob.SessionUUID()).
+		Columns(map[string]any{"status": "C", "session_type": "M", "current_flow_uuid": nil})
 
 	assertdb.Query(t, rt.DB, `SELECT contact_id, status, responded, current_node_uuid::text FROM flows_flowrun WHERE session_uuid = $1`, scBob.SessionUUID()).
 		Columns(map[string]any{
@@ -133,8 +133,8 @@ func TestSingleSprintSession(t *testing.T) {
 	scenes := testsuite.StartSessions(t, rt, oa, []*testdb.Contact{testdb.Bob}, trig)
 
 	// check session and run in database
-	assertdb.Query(t, rt.DB, `SELECT status, session_type, current_flow_id FROM flows_flowsession WHERE uuid = $1`, scenes[0].SessionUUID()).
-		Columns(map[string]any{"status": "C", "session_type": "M", "current_flow_id": nil})
+	assertdb.Query(t, rt.DB, `SELECT status, session_type, current_flow_uuid FROM flows_flowsession WHERE uuid = $1`, scenes[0].SessionUUID()).
+		Columns(map[string]any{"status": "C", "session_type": "M", "current_flow_uuid": nil})
 
 	assertdb.Query(t, rt.DB, `SELECT contact_id, status, responded, current_node_uuid::text FROM flows_flowrun WHERE session_uuid = $1`, scenes[0].SessionUUID()).
 		Columns(map[string]any{
@@ -176,9 +176,9 @@ func TestSessionWithSubflows(t *testing.T) {
 	assert.Equal(t, time.Duration(0), scene.WaitTimeout) // no timeout on wait
 
 	// check session amd runs in the db
-	assertdb.Query(t, rt.DB, `SELECT status, session_type, current_flow_id, ended_on FROM flows_flowsession WHERE uuid = $1`, scene.SessionUUID()).
+	assertdb.Query(t, rt.DB, `SELECT status, session_type, current_flow_uuid::text, ended_on FROM flows_flowsession WHERE uuid = $1`, scene.SessionUUID()).
 		Columns(map[string]any{
-			"status": "W", "session_type": "M", "current_flow_id": int64(child.ID), "ended_on": nil,
+			"status": "W", "session_type": "M", "current_flow_uuid": string(child.UUID), "ended_on": nil,
 		})
 
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowrun WHERE session_uuid = $1`, scene.SessionUUID()).Returns(2)
@@ -236,8 +236,8 @@ func TestSessionFailedStart(t *testing.T) {
 	assert.Len(t, scenes[0].Session.Runs(), 201)
 
 	// check session in database
-	assertdb.Query(t, rt.DB, `SELECT status, session_type, current_flow_id FROM flows_flowsession`).
-		Columns(map[string]any{"status": "F", "session_type": "M", "current_flow_id": nil})
+	assertdb.Query(t, rt.DB, `SELECT status, session_type, current_flow_uuid FROM flows_flowsession`).
+		Columns(map[string]any{"status": "F", "session_type": "M", "current_flow_uuid": nil})
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE ended_on IS NOT NULL`).Returns(1)
 
 	// check the state of all the created runs
@@ -374,8 +374,8 @@ func TestResumeSession(t *testing.T) {
 	sessionUUID := scenes[0].SessionUUID()
 
 	assertdb.Query(t, rt.DB,
-		`SELECT count(*) FROM flows_flowsession WHERE contact_uuid = $1 AND current_flow_id = $2
-		 AND status = 'W' AND call_id IS NULL AND output IS NOT NULL`, testdb.Cathy.UUID, flow.ID()).Returns(1)
+		`SELECT count(*) FROM flows_flowsession WHERE contact_uuid = $1 AND current_flow_uuid = $2
+		 AND status = 'W' AND call_id IS NULL AND output IS NOT NULL`, testdb.Cathy.UUID, flow.UUID()).Returns(1)
 
 	assertdb.Query(t, rt.DB,
 		`SELECT count(*) FROM flows_flowrun WHERE contact_id = $1 AND flow_id = $2
@@ -395,7 +395,7 @@ func TestResumeSession(t *testing.T) {
 		{ // 0
 			input:               "Red",
 			expectedStatus:      models.SessionStatusWaiting,
-			expectedCurrentFlow: int64(flow.ID()),
+			expectedCurrentFlow: string(flow.UUID()),
 			expectedRunStatus:   models.RunStatusWaiting,
 			expectedNodeUUID:    "48f2ecb3-8e8e-4f7b-9510-1ee08bd6a434",
 			expectedMsgOut:      "Good choice, I like Red too! What is your favorite beer?",
@@ -404,7 +404,7 @@ func TestResumeSession(t *testing.T) {
 		{ // 1
 			input:               "Mutzig",
 			expectedStatus:      models.SessionStatusWaiting,
-			expectedCurrentFlow: int64(flow.ID()),
+			expectedCurrentFlow: string(flow.UUID()),
 			expectedRunStatus:   models.RunStatusWaiting,
 			expectedNodeUUID:    "a84399b1-0e7b-42ee-8759-473137b510db",
 			expectedMsgOut:      "Mmmmm... delicious Mutzig. If only they made red Mutzig! Lastly, what is your name?",
@@ -424,9 +424,9 @@ func TestResumeSession(t *testing.T) {
 	for i, tc := range tcs {
 		testsuite.ResumeSession(t, rt, oa, testdb.Cathy, tc.input)
 
-		assertdb.Query(t, rt.DB, `SELECT status, current_flow_id, call_id FROM flows_flowsession WHERE uuid = $1 AND output IS NOT NULL AND output_url IS NULL`, sessionUUID).
+		assertdb.Query(t, rt.DB, `SELECT status, current_flow_uuid::text, call_id FROM flows_flowsession WHERE uuid = $1 AND output IS NOT NULL AND output_url IS NULL`, sessionUUID).
 			Columns(map[string]any{
-				"status": string(tc.expectedStatus), "current_flow_id": tc.expectedCurrentFlow, "call_id": nil,
+				"status": string(tc.expectedStatus), "current_flow_uuid": tc.expectedCurrentFlow, "call_id": nil,
 			}, "%d: session mismatch", i)
 
 		assertdb.Query(t, rt.DB, `SELECT status, responded, flow_id, current_node_uuid::text FROM flows_flowrun WHERE session_uuid = $1`, sessionUUID).

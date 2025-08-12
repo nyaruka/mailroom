@@ -103,8 +103,8 @@ func InsertFlowSession(rt *runtime.Runtime, contact *Contact, sessionType models
 	}
 
 	rt.DB.MustExec(
-		`INSERT INTO flows_flowsession(uuid, contact_uuid, status, output, created_on, session_type, current_flow_id, call_id, ended_on) 
-		 VALUES($1, $2, $3, '{}', NOW(), $4, $5, $6, $7) RETURNING id`, uuid, contact.UUID, status, sessionType, currentFlow.ID, callID, endedOn,
+		`INSERT INTO flows_flowsession(uuid, contact_uuid, status, output, created_on, session_type, current_flow_uuid, call_id, ended_on) 
+		 VALUES($1, $2, $3, '{}', NOW(), $4, $5, $6, $7) RETURNING id`, uuid, contact.UUID, status, sessionType, currentFlow.UUID, callID, endedOn,
 	)
 	return uuid
 }
@@ -114,8 +114,8 @@ func InsertWaitingSession(rt *runtime.Runtime, org *Org, contact *Contact, sessi
 	uuid := flows.NewSessionUUID()
 
 	rt.DB.MustExec(
-		`INSERT INTO flows_flowsession(uuid, contact_uuid, status, last_sprint_uuid, output, created_on, session_type, current_flow_id, call_id) 
-		 VALUES($1, $2, 'W', $3, '{"status":"waiting"}', NOW(), $4, $5, $6) RETURNING id`, uuid, contact.UUID, uuids.NewV4(), sessionType, currentFlow.ID, callID,
+		`INSERT INTO flows_flowsession(uuid, contact_uuid, status, last_sprint_uuid, output, created_on, session_type, current_flow_uuid, call_id) 
+		 VALUES($1, $2, 'W', $3, '{"status":"waiting"}', NOW(), $4, $5, $6) RETURNING id`, uuid, contact.UUID, uuids.NewV4(), sessionType, currentFlow.UUID, callID,
 	)
 
 	InsertFlowRun(rt, org, uuid, contact, currentFlow, models.RunStatusWaiting, flows.NodeUUID(uuids.NewV4()))

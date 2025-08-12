@@ -56,9 +56,9 @@ func TestInsertSessions(t *testing.T) {
 	assert.Nil(t, session.EndedOn())
 
 	// check that matches what is in the db
-	assertdb.Query(t, rt.DB, `SELECT status, session_type, current_flow_id, ended_on FROM flows_flowsession`).
+	assertdb.Query(t, rt.DB, `SELECT status, session_type, current_flow_uuid::text, ended_on FROM flows_flowsession`).
 		Columns(map[string]any{
-			"status": "W", "session_type": "M", "current_flow_id": int64(flow.ID), "ended_on": nil,
+			"status": "W", "session_type": "M", "current_flow_uuid": string(flow.UUID), "ended_on": nil,
 		})
 
 	flowSession, err = session.EngineSession(ctx, rt, oa.SessionAssets(), oa.Env(), flowSession.Contact(), nil)
@@ -96,8 +96,8 @@ func TestInsertSessions(t *testing.T) {
 	assert.NotNil(t, session.EndedOn())
 
 	// check that matches what is in the db
-	assertdb.Query(t, rt.DB, `SELECT status, session_type, current_flow_id FROM flows_flowsession`).
-		Columns(map[string]any{"status": "C", "session_type": "M", "current_flow_id": nil})
+	assertdb.Query(t, rt.DB, `SELECT status, session_type, current_flow_uuid FROM flows_flowsession`).
+		Columns(map[string]any{"status": "C", "session_type": "M", "current_flow_uuid": nil})
 }
 
 func TestGetWaitingSessionForContact(t *testing.T) {
@@ -148,7 +148,7 @@ func TestInterruptSessionsForContacts(t *testing.T) {
 	assertSessionAndRunStatus(t, rt, session4UUID, models.SessionStatusWaiting) // contact not included
 
 	// check other columns are correct on interrupted session, run and contact
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE ended_on IS NOT NULL AND current_flow_id IS NULL AND uuid = $1`, session2UUID).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE ended_on IS NOT NULL AND current_flow_uuid IS NULL AND uuid = $1`, session2UUID).Returns(1)
 	assertdb.Query(t, rt.DB, `SELECT status FROM flows_flowrun WHERE id = $1`, run2ID).Columns(map[string]any{"status": "I"})
 	assertdb.Query(t, rt.DB, `SELECT current_session_uuid, current_flow_id FROM contacts_contact WHERE id = $1`, testdb.Cathy.ID).Columns(map[string]any{"current_session_uuid": nil, "current_flow_id": nil})
 }
@@ -189,7 +189,7 @@ func TestInterruptSessionsForContactsTx(t *testing.T) {
 	assertSessionAndRunStatus(t, rt, session4UUID, models.SessionStatusWaiting) // contact not included
 
 	// check other columns are correct on interrupted session, run and contact
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE ended_on IS NOT NULL AND current_flow_id IS NULL AND uuid = $1`, session2UUID).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE ended_on IS NOT NULL AND current_flow_uuid IS NULL AND uuid = $1`, session2UUID).Returns(1)
 	assertdb.Query(t, rt.DB, `SELECT status FROM flows_flowrun WHERE id = $1`, run2ID).Columns(map[string]any{"status": "I"})
 	assertdb.Query(t, rt.DB, `SELECT current_session_uuid, current_flow_id FROM contacts_contact WHERE id = $1`, testdb.Cathy.ID).Columns(map[string]any{"current_session_uuid": nil, "current_flow_id": nil})
 }
@@ -223,7 +223,7 @@ func TestInterruptSessionsForChannels(t *testing.T) {
 	assertSessionAndRunStatus(t, rt, session4UUID, models.SessionStatusWaiting) // channel not included
 
 	// check other columns are correct on interrupted session and contact
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE ended_on IS NOT NULL AND current_flow_id IS NULL AND uuid = $1`, session2UUID).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE ended_on IS NOT NULL AND current_flow_uuid IS NULL AND uuid = $1`, session2UUID).Returns(1)
 	assertdb.Query(t, rt.DB, `SELECT current_session_uuid, current_flow_id FROM contacts_contact WHERE id = $1`, testdb.Cathy.ID).Columns(map[string]any{"current_session_uuid": nil, "current_flow_id": nil})
 }
 
@@ -260,7 +260,7 @@ func TestInterruptSessionsForFlows(t *testing.T) {
 	assertSessionAndRunStatus(t, rt, session4UUID, models.SessionStatusWaiting) // flow not included
 
 	// check other columns are correct on interrupted session and contact
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE ended_on IS NOT NULL AND current_flow_id IS NULL AND uuid = $1`, session2UUID).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE ended_on IS NOT NULL AND current_flow_uuid IS NULL AND uuid = $1`, session2UUID).Returns(1)
 	assertdb.Query(t, rt.DB, `SELECT current_session_uuid, current_flow_id FROM contacts_contact WHERE id = $1`, testdb.Cathy.ID).Columns(map[string]any{"current_session_uuid": nil, "current_flow_id": nil})
 }
 
