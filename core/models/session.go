@@ -55,7 +55,8 @@ type Session struct {
 		OutputURL       null.String       `db:"output_url"`
 		CreatedOn       time.Time         `db:"created_on"`
 		EndedOn         *time.Time        `db:"ended_on"`
-		CallID          CallID            `db:"call_id"`
+		CallUUID        null.String       `db:"call_uuid"`
+		CallID          CallID            `db:"call_id"` // deprecated
 	}
 }
 
@@ -69,6 +70,7 @@ func (s *Session) Output() string                   { return string(s.s.Output) 
 func (s *Session) OutputURL() string                { return string(s.s.OutputURL) }
 func (s *Session) CreatedOn() time.Time             { return s.s.CreatedOn }
 func (s *Session) EndedOn() *time.Time              { return s.s.EndedOn }
+func (s *Session) CallUUID() flows.CallUUID         { return flows.CallUUID(s.s.CallUUID) }
 func (s *Session) CallID() CallID                   { return s.s.CallID }
 
 // StoragePath returns the path for the session
@@ -183,6 +185,7 @@ func NewSession(oa *OrgAssets, fs flows.Session, sprint flows.Sprint, call *Call
 
 	if call != nil {
 		s.CallID = call.ID()
+		s.CallUUID = null.String(call.UUID())
 	}
 
 	if s.Status != SessionStatusWaiting {
@@ -203,23 +206,23 @@ func NewSession(oa *OrgAssets, fs flows.Session, sprint flows.Sprint, call *Call
 
 const sqlInsertWaitingSession = `
 INSERT INTO
-	flows_flowsession( uuid,  contact_uuid,  session_type,  status,  last_sprint_uuid,  current_flow_uuid, output,  output_url,  created_on,  call_id)
-               VALUES(:uuid, :contact_uuid, :session_type, :status, :last_sprint_uuid, :current_flow_uuid, :output, :output_url, :created_on, :call_id)`
+	flows_flowsession( uuid,  contact_uuid,  session_type,  status,  last_sprint_uuid,  current_flow_uuid,  output,  output_url,  created_on,  call_uuid,  call_id)
+               VALUES(:uuid, :contact_uuid, :session_type, :status, :last_sprint_uuid, :current_flow_uuid, :output, :output_url, :created_on, :call_uuid, :call_id)`
 
 const sqlInsertWaitingSessionNoOutput = `
 INSERT INTO
-	flows_flowsession( uuid,  contact_uuid,  session_type,  status,  last_sprint_uuid,  current_flow_uuid,  output_url,  created_on,  call_id)
-               VALUES(:uuid, :contact_uuid, :session_type, :status, :last_sprint_uuid, :current_flow_uuid, :output_url, :created_on, :call_id)`
+	flows_flowsession( uuid,  contact_uuid,  session_type,  status,  last_sprint_uuid,  current_flow_uuid,  output_url,  created_on,  call_uuid,  call_id)
+               VALUES(:uuid, :contact_uuid, :session_type, :status, :last_sprint_uuid, :current_flow_uuid, :output_url, :created_on, :call_uuid, :call_id)`
 
 const sqlInsertEndedSession = `
 INSERT INTO
-	flows_flowsession( uuid,  contact_uuid,  session_type,  status,  last_sprint_uuid,  current_flow_uuid,  output,  output_url,  created_on,  ended_on,  call_id)
-               VALUES(:uuid, :contact_uuid, :session_type, :status, :last_sprint_uuid, :current_flow_uuid, :output, :output_url, :created_on, :ended_on, :call_id)`
+	flows_flowsession( uuid,  contact_uuid,  session_type,  status,  last_sprint_uuid,  current_flow_uuid,  output,  output_url,  created_on,  ended_on,  call_uuid,  call_id)
+               VALUES(:uuid, :contact_uuid, :session_type, :status, :last_sprint_uuid, :current_flow_uuid, :output, :output_url, :created_on, :ended_on, :call_uuid, :call_id)`
 
 const sqlInsertEndedSessionNoOutput = `
 INSERT INTO
-	flows_flowsession( uuid,  contact_uuid,  session_type,  status,  last_sprint_uuid,  current_flow_uuid,  output_url,  created_on,  ended_on,  call_id)
-               VALUES(:uuid, :contact_uuid, :session_type, :status, :last_sprint_uuid, :current_flow_uuid, :output_url, :created_on, :ended_on, :call_id)`
+	flows_flowsession( uuid,  contact_uuid,  session_type,  status,  last_sprint_uuid,  current_flow_uuid,  output_url,  created_on,  ended_on,  call_uuid,  call_id)
+               VALUES(:uuid, :contact_uuid, :session_type, :status, :last_sprint_uuid, :current_flow_uuid, :output_url, :created_on, :ended_on, :call_uuid, :call_id)`
 
 // InsertSessions inserts sessions and their runs into the database
 func InsertSessions(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *OrgAssets, sessions []*Session, contacts []*Contact) error {
@@ -265,7 +268,7 @@ func InsertSessions(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *O
 }
 
 const sqlSelectSessionByUUID = `
-SELECT uuid, contact_uuid, session_type, status, last_sprint_uuid, current_flow_uuid, output, output_url, created_on, ended_on, call_id
+SELECT uuid, contact_uuid, session_type, status, last_sprint_uuid, current_flow_uuid, output, output_url, created_on, ended_on, call_uuid, call_id
   FROM flows_flowsession fs
  WHERE uuid = $1`
 

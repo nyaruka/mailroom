@@ -43,7 +43,7 @@ func (c *RetryCallsCron) Run(ctx context.Context, rt *runtime.Runtime) (map[stri
 
 	// schedules requests for each call
 	for _, call := range calls {
-		log = log.With("call_id", call.ID())
+		log = log.With("call", call.UUID())
 
 		// if the channel for this call is throttled, move on
 		if throttledChannels[call.ChannelID()] {
