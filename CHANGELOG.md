@@ -1,3 +1,8 @@
+v10.3.40 (2025-08-13)
+-------------------------
+ * Stop writing Session.call_id completely
+ * Stop including connection ID in IRV callback URLs
+
 v10.3.39 (2025-08-13)
 -------------------------
  * Start using call UUID from IVR callback URLs instead of connection id
