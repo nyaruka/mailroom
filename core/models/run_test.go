@@ -18,7 +18,7 @@ func TestInsertAndUpdateRuns(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
-	sessionUUID := testdb.InsertFlowSession(rt, testdb.Cathy, models.FlowTypeMessaging, models.SessionStatusWaiting, testdb.Favorites, models.NilCallID)
+	sessionUUID := testdb.InsertFlowSession(rt, testdb.Cathy, models.FlowTypeMessaging, models.SessionStatusWaiting, testdb.Favorites, nil)
 
 	t1 := time.Date(2024, 12, 3, 14, 29, 30, 0, time.UTC)
 	t2 := time.Date(2024, 12, 3, 15, 13, 45, 0, time.UTC)
@@ -82,7 +82,7 @@ func TestGetContactIDsAtNode(t *testing.T) {
 	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
 	createRun := func(org *testdb.Org, contact *testdb.Contact, nodeUUID flows.NodeUUID) {
-		sessionUUID := testdb.InsertFlowSession(rt, contact, models.FlowTypeMessaging, models.SessionStatusWaiting, testdb.Favorites, models.NilCallID)
+		sessionUUID := testdb.InsertFlowSession(rt, contact, models.FlowTypeMessaging, models.SessionStatusWaiting, testdb.Favorites, nil)
 		testdb.InsertFlowRun(rt, org, sessionUUID, contact, testdb.Favorites, models.RunStatusWaiting, nodeUUID)
 	}
 

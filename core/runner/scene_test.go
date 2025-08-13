@@ -375,7 +375,7 @@ func TestResumeSession(t *testing.T) {
 
 	assertdb.Query(t, rt.DB,
 		`SELECT count(*) FROM flows_flowsession WHERE contact_uuid = $1 AND current_flow_uuid = $2
-		 AND status = 'W' AND call_uuid IS NULL AND call_id IS NULL AND output IS NOT NULL`, testdb.Cathy.UUID, flow.UUID()).Returns(1)
+		 AND status = 'W' AND call_uuid IS NULL AND output IS NOT NULL`, testdb.Cathy.UUID, flow.UUID()).Returns(1)
 
 	assertdb.Query(t, rt.DB,
 		`SELECT count(*) FROM flows_flowrun WHERE contact_id = $1 AND flow_id = $2
