@@ -495,7 +495,7 @@ func TestNewOutgoingIVR(t *testing.T) {
 
 	vonage := oa.ChannelByUUID(testdb.VonageChannel.UUID)
 	cl := testdb.InsertCall(rt, testdb.Org1, testdb.VonageChannel, testdb.Cathy)
-	call, err := models.GetCallByID(ctx, rt.DB, testdb.Org1.ID, cl.ID)
+	call, err := models.GetCallByUUID(ctx, rt.DB, testdb.Org1.ID, cl.UUID)
 	require.NoError(t, err)
 
 	flowMsg := flows.NewIVRMsgOut(testdb.Cathy.URN, vonage.Reference(), "Hello", "http://example.com/hi.mp3", "eng-US")

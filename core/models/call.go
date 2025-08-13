@@ -144,72 +144,70 @@ func InsertCalls(ctx context.Context, db DBorTx, calls []*Call) error {
 	return BulkQueryBatches(ctx, "inserted IVR calls", db, sqlInsertCall, 1000, is)
 }
 
-const sqlSelectCallByID = `
+const sqlSelectCallByUUID = `
 SELECT
-    cc.id,
-	cc.uuid,
-	cc.org_id,
-    cc.created_on,
-    cc.modified_on,
-    cc.external_id,
-    cc.status,
-    cc.direction,
-    cc.started_on,
-    cc.ended_on,
-    cc.duration,
-    cc.error_reason,
-    cc.error_count,
-    cc.next_attempt,
-    cc.channel_id,
-    cc.contact_id,
-    cc.contact_urn_id,
-    cc.session_uuid,
-	cc.trigger
-           FROM ivr_call as cc
-          WHERE cc.org_id = $1 AND cc.id = $2`
+    id,
+    uuid,
+    org_id,
+    created_on,
+    modified_on,
+    external_id,
+    status,
+    direction,
+    started_on,
+    ended_on,
+    duration,
+    error_reason,
+    error_count,
+    next_attempt,
+    channel_id,
+    contact_id,
+    contact_urn_id,
+    session_uuid,
+    trigger
+           FROM ivr_call
+          WHERE org_id = $1 AND uuid = $2`
 
-// GetCallByID loads a call by id
-func GetCallByID(ctx context.Context, db DBorTx, orgID OrgID, id CallID) (*Call, error) {
+// GetCallByUUID loads a call by its UUID
+func GetCallByUUID(ctx context.Context, db DBorTx, orgID OrgID, uuid flows.CallUUID) (*Call, error) {
 	c := &Call{}
-	err := db.GetContext(ctx, &c.c, sqlSelectCallByID, orgID, id)
-	if err != nil {
-		return nil, fmt.Errorf("unable to load call with id: %d: %w", id, err)
+	if err := db.GetContext(ctx, &c.c, sqlSelectCallByUUID, orgID, uuid); err != nil {
+		return nil, fmt.Errorf("error loading call %s: %w", uuid, err)
 	}
 	return c, nil
 }
 
 const sqlSelectCallByExternalID = `
 SELECT
-    cc.id,
-	cc.uuid,
-	cc.org_id,
-    cc.created_on,
-    cc.modified_on,
-    cc.external_id,
-    cc.status,
-    cc.direction,
-    cc.started_on,
-    cc.ended_on,
-    cc.duration,
-    cc.error_reason,
-    cc.error_count,
-    cc.next_attempt,
-    cc.channel_id,
-    cc.contact_id,
-    cc.contact_urn_id,
-    cc.session_uuid,
-	cc.trigger
-           FROM ivr_call as cc
-          WHERE cc.channel_id = $1 AND cc.external_id = $2
-       ORDER BY cc.id DESC
+    id,
+    uuid,
+    org_id,
+    created_on,
+    modified_on,
+    external_id,
+    status,
+    direction,
+    started_on,
+    ended_on,
+    duration,
+    error_reason,
+    error_count,
+    next_attempt,
+    channel_id,
+    contact_id,
+    contact_urn_id,
+    session_uuid,
+    trigger
+           FROM ivr_call
+          WHERE channel_id = $1 AND external_id = $2
+       ORDER BY id DESC
           LIMIT 1`
 
 // GetCallByExternalID loads a call by its external ID
 func GetCallByExternalID(ctx context.Context, db DBorTx, channelID ChannelID, externalID string) (*Call, error) {
 	c := &Call{}
-	err := db.GetContext(ctx, &c.c, sqlSelectCallByExternalID, channelID, externalID)
-	if err != nil {
-		return nil, fmt.Errorf("unable to load call with external id: %s: %w", externalID, err)
+	if err := db.GetContext(ctx, &c.c, sqlSelectCallByExternalID, channelID, externalID); err != nil {
+		return nil, fmt.Errorf("error loading call with external id: %s: %w", externalID, err)
 	}
 	return c, nil
 }

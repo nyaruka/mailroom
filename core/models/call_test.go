@@ -45,11 +45,15 @@ func TestCalls(t *testing.T) {
 
 	assertdb.Query(t, rt.DB, `SELECT external_id, status from ivr_call where id = $1`, callOut.ID()).Columns(map[string]any{"external_id": "EXT345", "status": "W"})
 
-	call, err := models.GetCallByID(ctx, rt.DB, testdb.Org1.ID, callIn1.ID())
+	call, err := models.GetCallByUUID(ctx, rt.DB, testdb.Org1.ID, callIn1.UUID())
 	assert.NoError(t, err)
 	assert.Equal(t, "EXT123", call.ExternalID())
 
-	call, err = models.GetCallByID(ctx, rt.DB, testdb.Org1.ID, callOut.ID())
+	call, err = models.GetCallByUUID(ctx, rt.DB, testdb.Org1.ID, callOut.UUID())
+	assert.NoError(t, err)
+	assert.Equal(t, "EXT345", call.ExternalID())
+
+	call, err = models.GetCallByExternalID(ctx, rt.DB, testdb.TwilioChannel.ID, "EXT345")
 	assert.NoError(t, err)
 	assert.Equal(t, "EXT345", call.ExternalID())
 }
