@@ -30,7 +30,26 @@ const (
 
 	// ErrorMessage that is spoken to an IVR user if an error occurs
 	ErrorMessage = "An error has occurred, please try again later."
+
+	ActionStart  = "start"
+	ActionResume = "resume"
+	ActionStatus = "status"
 )
+
+// CallbackParams is our form for what fields we expect in IVR callbacks
+type CallbackParams struct {
+	Action       string         `form:"action"     validate:"required"`
+	CallUUID     flows.CallUUID `form:"call"`
+	ConnectionID models.CallID  `form:"connection"` // // TODO replace by CallUUID
+}
+
+func (p *CallbackParams) Encode() string {
+	return url.Values{
+		"action":     []string{p.Action},
+		"call":       []string{string(p.CallUUID)},
+		"connection": []string{fmt.Sprint(p.ConnectionID)},
+	}.Encode()
+}
 
 // HangupCall hangs up the passed in call also taking care of updating the status of our call in the process
 func HangupCall(ctx context.Context, rt *runtime.Runtime, call *models.Call) (*models.ChannelLog, error) {
@@ -162,13 +181,9 @@ func RequestCallStart(ctx context.Context, rt *runtime.Runtime, channel *models.
 	}
 
 	// create our callback
-	form := url.Values{
-		"connection": []string{fmt.Sprint(call.ID())},
-		"action":     []string{"start"},
-		"urn":        []string{telURN.String()},
-	}
+	params := &CallbackParams{Action: ActionStart, CallUUID: call.UUID(), ConnectionID: call.ID()}
 
-	resumeURL := fmt.Sprintf("https://%s/mr/ivr/c/%s/handle?%s", domain, channel.UUID(), form.Encode())
+	resumeURL := fmt.Sprintf("https://%s/mr/ivr/c/%s/handle?%s", domain, channel.UUID(), params.Encode())
 	statusURL := fmt.Sprintf("https://%s/mr/ivr/c/%s/status", domain, channel.UUID())
 
 	// create the right service

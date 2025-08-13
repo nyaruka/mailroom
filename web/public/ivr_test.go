@@ -39,16 +39,17 @@ func mockTwilioHandler(w http.ResponseWriter, r *http.Request) {
 	slog.Info("test server called", "method", r.Method, "url", r.URL.String(), "form", r.Form)
 	if strings.HasSuffix(r.URL.String(), "Calls.json") {
 		to := r.Form.Get("To")
-		if to == "+16055741111" {
+		switch to {
+		case "+16055741111":
 			w.WriteHeader(http.StatusCreated)
 			w.Write([]byte(`{"sid": "Call1"}`))
-		} else if to == "+16055742222" {
+		case "+16055742222":
 			w.WriteHeader(http.StatusCreated)
 			w.Write([]byte(`{"sid": "Call2"}`))
-		} else if to == "+16055743333" {
+		case "+16055743333":
 			w.WriteHeader(http.StatusCreated)
 			w.Write([]byte(`{"sid": "Call3"}`))
-		} else {
+		default:
 			w.WriteHeader(http.StatusNotFound)
 		}
 	}
@@ -380,6 +381,8 @@ func TestVonageIVR(t *testing.T) {
 	vc := rt.VK.Get()
 	defer vc.Close()
 
+	test.MockUniverse()
+
 	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
 	// deactivate our twilio channel
@@ -422,6 +425,9 @@ func TestVonageIVR(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT COUNT(*) FROM ivr_call WHERE contact_id = $1 AND status = $2 AND external_id = $3`,
 		testdb.George.ID, models.CallStatusWired, "Call2").Returns(1)
 
+	assertdb.Query(t, rt.DB, `SELECT uuid::text FROM ivr_call WHERE id = 30000`).Returns("01969b47-190b-76f8-92a3-d648ab64bccb")
+	assertdb.Query(t, rt.DB, `SELECT uuid::text FROM ivr_call WHERE id = 30001`).Returns("01969b47-2c93-76f8-8f41-6b2d9f33d623")
+
 	tcs := []struct {
 		label            string
 		url              string
@@ -432,7 +438,7 @@ func TestVonageIVR(t *testing.T) {
 	}{
 		{
 			label:          "handle start on wired call",
-			url:            fmt.Sprintf("/ivr/c/%s/handle?action=start&connection=30000", testdb.VonageChannel.UUID),
+			url:            fmt.Sprintf("/ivr/c/%s/handle?action=start&call=01969b47-190b-76f8-92a3-d648ab64bccb&connection=30000", testdb.VonageChannel.UUID),
 			body:           `{"from":"12482780345","to":"12067799294","uuid":"80c9a606-717e-48b9-ae22-ce00269cbb08","conversation_uuid":"CON-f90649c3-cbf3-42d6-9ab1-01503befac1c"}`,
 			expectedStatus: 200,
 			expectedResponse: `[
@@ -445,7 +451,7 @@ func TestVonageIVR(t *testing.T) {
 					"action": "input",
 					"eventMethod": "POST",
 					"eventUrl": [
-						"https://localhost:8091/mr/ivr/c/19012bfd-3ce3-4cae-9bb9-76cf92c73d49/handle?action=resume&connection=30000&urn=tel%3A%2B16055741111%3Fid%3D10000&wait_type=gather&sig=cdPKil7FKIkAUeNaiiEzYQd7%2Fts%3D"
+						"https://localhost:8091/mr/ivr/c/19012bfd-3ce3-4cae-9bb9-76cf92c73d49/handle?action=resume&call=01969b47-190b-76f8-92a3-d648ab64bccb&connection=30000&wait_type=gather&sig=rBr4r7g%2FgcSG%2FhKTH7tpW%2B6Z9NE%3D"
 					],
 					"maxDigits": 1,
 					"submitOnHash": true,
@@ -455,42 +461,42 @@ func TestVonageIVR(t *testing.T) {
 		},
 		{
 			label:          "handle resume with invalid digit",
-			url:            fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=30000&wait_type=gather", testdb.VonageChannel.UUID),
+			url:            fmt.Sprintf("/ivr/c/%s/handle?action=resume&call=01969b47-190b-76f8-92a3-d648ab64bccb&connection=30000&wait_type=gather", testdb.VonageChannel.UUID),
 			body:           `{"dtmf":"3","timed_out":false,"uuid":null,"conversation_uuid":"CON-f90649c3-cbf3-42d6-9ab1-01503befac1c","timestamp":"2019-04-01T21:08:54.680Z"}`,
 			expectedStatus: 200,
 			contains:       []string{"Sorry, that is not one or two, try again."},
 		},
 		{
 			label:          "handle resume with valid digit",
-			url:            fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=30000&wait_type=gather", testdb.VonageChannel.UUID),
+			url:            fmt.Sprintf("/ivr/c/%s/handle?action=resume&call=01969b47-190b-76f8-92a3-d648ab64bccb&connection=30000&wait_type=gather", testdb.VonageChannel.UUID),
 			body:           `{"dtmf":"1","timed_out":false,"uuid":null,"conversation_uuid":"CON-f90649c3-cbf3-42d6-9ab1-01503befac1c","timestamp":"2019-04-01T21:08:54.680Z"}`,
 			expectedStatus: 200,
 			contains:       []string{"Great! You said One."},
 		},
 		{
 			label:          "handle resume with digits out of range in flow",
-			url:            fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=30000&wait_type=gather", testdb.VonageChannel.UUID),
+			url:            fmt.Sprintf("/ivr/c/%s/handle?action=resume&call=01969b47-190b-76f8-92a3-d648ab64bccb&connection=30000&wait_type=gather", testdb.VonageChannel.UUID),
 			body:           `{"dtmf":"101","timed_out":false,"uuid":null,"conversation_uuid":"CON-f90649c3-cbf3-42d6-9ab1-01503befac1c","timestamp":"2019-04-01T21:08:54.680Z"}`,
 			expectedStatus: 200,
 			contains:       []string{"too big"},
 		},
 		{
 			label:          "handle resume with digits within range in flow",
-			url:            fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=30000&wait_type=gather", testdb.VonageChannel.UUID),
+			url:            fmt.Sprintf("/ivr/c/%s/handle?action=resume&call=01969b47-190b-76f8-92a3-d648ab64bccb&connection=30000&wait_type=gather", testdb.VonageChannel.UUID),
 			body:           `{"dtmf":"56","timed_out":false,"uuid":null,"conversation_uuid":"CON-f90649c3-cbf3-42d6-9ab1-01503befac1c","timestamp":"2019-04-01T21:08:54.680Z"}`,
 			expectedStatus: 200,
 			contains:       []string{"You picked the number 56"},
 		},
 		{
 			label:          "recording callback",
-			url:            fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=30000&wait_type=recording_url&recording_uuid=0c15f253-8e67-45c8-9980-7d38292edd3c", testdb.VonageChannel.UUID),
+			url:            fmt.Sprintf("/ivr/c/%s/handle?action=resume&call=01969b47-190b-76f8-92a3-d648ab64bccb&connection=30000&wait_type=recording_url&recording_uuid=0c15f253-8e67-45c8-9980-7d38292edd3c", testdb.VonageChannel.UUID),
 			body:           fmt.Sprintf(`{"recording_url": "%s", "end_time":"2019-04-01T21:08:56.000Z","uuid":"Call1","network":"310260","status":"answered","direction":"outbound","timestamp":"2019-04-01T21:08:56.342Z"}`, ts.URL+"?recording=true"),
 			expectedStatus: 200,
 			contains:       []string{"inserted recording url"},
 		},
 		{
 			label:          "resume with recording",
-			url:            fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=30000&wait_type=record&recording_uuid=0c15f253-8e67-45c8-9980-7d38292edd3c", testdb.VonageChannel.UUID),
+			url:            fmt.Sprintf("/ivr/c/%s/handle?action=resume&call=01969b47-190b-76f8-92a3-d648ab64bccb&connection=30000&wait_type=record&recording_uuid=0c15f253-8e67-45c8-9980-7d38292edd3c", testdb.VonageChannel.UUID),
 			body:           `{"end_time":"2019-04-01T21:08:56.000Z","uuid":"Call1","network":"310260","status":"answered","direction":"outbound","timestamp":"2019-04-01T21:08:56.342Z", "recording_url": "http://foo.bar/"}`,
 			expectedStatus: 200,
 			contains:       []string{"I hope hearing that makes you feel better.", `"action": "conversation"`},
@@ -511,7 +517,7 @@ func TestVonageIVR(t *testing.T) {
 		},
 		{
 			label:          "transfer callback",
-			url:            fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=30000&wait_type=dial&dial_status=answered&dial_duration=25", testdb.VonageChannel.UUID),
+			url:            fmt.Sprintf("/ivr/c/%s/handle?action=resume&call=01969b47-190b-76f8-92a3-d648ab64bccb&connection=30000&wait_type=dial&dial_status=answered&dial_duration=25", testdb.VonageChannel.UUID),
 			expectedStatus: 200,
 			contains:       []string{"Great, they answered."},
 		},
@@ -524,7 +530,7 @@ func TestVonageIVR(t *testing.T) {
 		},
 		{
 			label:          "new call",
-			url:            fmt.Sprintf("/ivr/c/%s/handle?action=start&connection=30001", testdb.VonageChannel.UUID),
+			url:            fmt.Sprintf("/ivr/c/%s/handle?action=start&call=01969b47-2c93-76f8-8f41-6b2d9f33d623&connection=30001", testdb.VonageChannel.UUID),
 			body:           `{"from":"12482780345","to":"12067799294","uuid":"Call2","conversation_uuid":"CON-f90649c3-cbf3-42d6-9ab1-01503befac1c"}`,
 			expectedStatus: 200,
 			expectedResponse: `[
@@ -537,7 +543,7 @@ func TestVonageIVR(t *testing.T) {
 					"action": "input",
 					"eventMethod": "POST",
 					"eventUrl": [
-						"https://localhost:8091/mr/ivr/c/19012bfd-3ce3-4cae-9bb9-76cf92c73d49/handle?action=resume&connection=30001&urn=tel%3A%2B16055743333%3Fid%3D10002&wait_type=gather&sig=GLMd2cp8xQcVsJBJJAUfQ53ixGE%3D"
+						"https://localhost:8091/mr/ivr/c/19012bfd-3ce3-4cae-9bb9-76cf92c73d49/handle?action=resume&call=01969b47-2c93-76f8-8f41-6b2d9f33d623&connection=30001&wait_type=gather&sig=xyzgEZEaQlKh8nj%2BwQzklPXOo30%3D"
 					],
 					"maxDigits": 1,
 					"submitOnHash": true,
@@ -547,7 +553,7 @@ func TestVonageIVR(t *testing.T) {
 		},
 		{
 			label:          "new call dtmf 1",
-			url:            fmt.Sprintf("/ivr/c/%s/handle?action=resume&connection=30001&wait_type=gather", testdb.VonageChannel.UUID),
+			url:            fmt.Sprintf("/ivr/c/%s/handle?action=resume&call=01969b47-2c93-76f8-8f41-6b2d9f33d623&connection=30001&wait_type=gather", testdb.VonageChannel.UUID),
 			body:           `{"dtmf":"1","timed_out":false,"uuid":"Call2","conversation_uuid":"CON-f90649c3-cbf3-42d6-9ab1-01503befac1c","timestamp":"2019-04-01T21:08:54.680Z"}`,
 			expectedStatus: 200,
 			expectedResponse: `[
@@ -560,7 +566,7 @@ func TestVonageIVR(t *testing.T) {
 					"action": "input",
 					"eventMethod": "POST",
 					"eventUrl": [
-						"https://localhost:8091/mr/ivr/c/19012bfd-3ce3-4cae-9bb9-76cf92c73d49/handle?action=resume&connection=30001&urn=tel%3A%2B16055743333%3Fid%3D10002&wait_type=gather&sig=GLMd2cp8xQcVsJBJJAUfQ53ixGE%3D"
+						"https://localhost:8091/mr/ivr/c/19012bfd-3ce3-4cae-9bb9-76cf92c73d49/handle?action=resume&call=01969b47-2c93-76f8-8f41-6b2d9f33d623&connection=30001&wait_type=gather&sig=xyzgEZEaQlKh8nj%2BwQzklPXOo30%3D"
 					],
 					"maxDigits": 20,
 					"submitOnHash": true,
