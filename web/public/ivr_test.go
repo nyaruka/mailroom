@@ -129,7 +129,7 @@ func TestTwilioIVR(t *testing.T) {
 		expectedNewCall    flows.CallUUID
 	}{
 		{ // 0: handle start on wired call
-			url:                fmt.Sprintf("/ivr/c/%s/handle?action=start&call=01969b47-190b-76f8-92a3-d648ab64bccb&call=01969b47-190b-76f8-92a3-d648ab64bccb&connection=30000", testdb.TwilioChannel.UUID),
+			url:                fmt.Sprintf("/ivr/c/%s/handle?action=start&call=01969b47-190b-76f8-92a3-d648ab64bccb&connection=30000", testdb.TwilioChannel.UUID),
 			form:               nil,
 			expectedStatus:     200,
 			expectedContains:   []string{`<Gather numDigits="1" timeout="30"`, `<Say language="en-US">Hello there. Please enter one or two.  This flow was triggered by Cathy</Say>`},
