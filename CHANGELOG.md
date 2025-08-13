@@ -1,3 +1,7 @@
+v10.3.39 (2025-08-13)
+-------------------------
+ * Start using call UUID from IVR callback URLs instead of connection id
+
 v10.3.38 (2025-08-13)
 -------------------------
  * Start including call UUID in IVR callbacks and remove urn since it's not used
