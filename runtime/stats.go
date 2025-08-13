@@ -45,7 +45,7 @@ func newStats() *Stats {
 	}
 }
 
-func (s *Stats) ToMetrics() []types.MetricDatum {
+func (s *Stats) ToMetrics(advanced bool) []types.MetricDatum {
 	metrics := make([]types.MetricDatum, 0, 20)
 
 	for typ, count := range s.RealtimeTaskCount {
@@ -58,19 +58,6 @@ func (s *Stats) ToMetrics() []types.MetricDatum {
 			cwatch.Datum("HandlerTaskErrors", float64(s.RealtimeTaskErrors[typ]), types.StandardUnitCount, cwatch.Dimension("TaskType", typ)),
 			cwatch.Datum("HandlerTaskDuration", float64(avgDuration)/float64(time.Second), types.StandardUnitCount, cwatch.Dimension("TaskType", typ)),
 			cwatch.Datum("HandlerTaskLatency", float64(avgLatency)/float64(time.Second), types.StandardUnitCount, cwatch.Dimension("TaskType", typ)),
-		)
-	}
-
-	metrics = append(metrics,
-		cwatch.Datum("HandlerLockFails", float64(s.RealtimeLockFails), types.StandardUnitCount),
-	)
-
-	for name, count := range s.CronTaskCount {
-		avgTime := s.CronTaskDuration[name] / time.Duration(count)
-
-		metrics = append(metrics,
-			cwatch.Datum("CronTaskCount", float64(count), types.StandardUnitCount, cwatch.Dimension("TaskType", name)),
-			cwatch.Datum("CronTaskDuration", float64(avgTime)/float64(time.Second), types.StandardUnitSeconds, cwatch.Dimension("TaskType", name)),
 		)
 	}
 
@@ -92,6 +79,21 @@ func (s *Stats) ToMetrics() []types.MetricDatum {
 		cwatch.Datum("WebhookCallCount", float64(s.WebhookCallCount), types.StandardUnitCount),
 		cwatch.Datum("WebhookCallDuration", float64(avgWebhookDuration)/float64(time.Second), types.StandardUnitSeconds),
 	)
+
+	if advanced {
+		metrics = append(metrics,
+			cwatch.Datum("HandlerLockFails", float64(s.RealtimeLockFails), types.StandardUnitCount),
+		)
+
+		for name, count := range s.CronTaskCount {
+			avgTime := s.CronTaskDuration[name] / time.Duration(count)
+
+			metrics = append(metrics,
+				cwatch.Datum("CronTaskCount", float64(count), types.StandardUnitCount, cwatch.Dimension("TaskType", name)),
+				cwatch.Datum("CronTaskDuration", float64(avgTime)/float64(time.Second), types.StandardUnitSeconds, cwatch.Dimension("TaskType", name)),
+			)
+		}
+	}
 
 	return metrics
 }

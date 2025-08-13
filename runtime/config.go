@@ -71,6 +71,7 @@ type Config struct {
 	S3SessionsBucket    string `help:"S3 bucket to write flow sessions to"`
 	S3Minio             bool   `help:"S3 is actually Minio or other compatible service"`
 
+	MetricsReporting    string `validate:"eq=off|eq=basic|eq=advanced"     help:"the level of metrics reporting"`
 	CloudwatchNamespace string `help:"the namespace to use for cloudwatch metrics"`
 	DeploymentID        string `help:"the deployment identifier to use for metrics"`
 	InstanceID          string `help:"the instance identifier to use for metrics"`
@@ -129,6 +130,7 @@ func NewDefaultConfig() *Config {
 		S3AttachmentsBucket: "temba-attachments",
 		S3SessionsBucket:    "temba-sessions",
 
+		MetricsReporting:    "off",
 		CloudwatchNamespace: "Temba/Mailroom",
 		DeploymentID:        "dev",
 		InstanceID:          hostname,

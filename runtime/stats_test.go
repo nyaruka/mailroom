@@ -23,6 +23,9 @@ func TestStats(t *testing.T) {
 	assert.Equal(t, 1, stats.LLMCallCount[LLMTypeAndModel{"anthropic", "claude-3.7"}])
 	assert.Equal(t, 4*time.Second, stats.LLMCallDuration[LLMTypeAndModel{"anthropic", "claude-3.7"}])
 
-	datums := stats.ToMetrics()
+	datums := stats.ToMetrics(true)
 	assert.Len(t, datums, 9)
+
+	datums = stats.ToMetrics(false)
+	assert.Len(t, datums, 6)
 }

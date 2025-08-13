@@ -220,7 +220,11 @@ func (mr *Mailroom) startMetricsReporter(interval time.Duration) {
 }
 
 func (mr *Mailroom) reportMetrics(ctx context.Context) (int, error) {
-	metrics := mr.rt.Stats.Extract().ToMetrics()
+	if mr.rt.Config.MetricsReporting == "off" {
+		return 0, nil
+	}
+
+	metrics := mr.rt.Stats.Extract().ToMetrics(mr.rt.Config.MetricsReporting == "advanced")
 
 	realtimeSize, batchSize, throttledSize := getQueueSizes(ctx, mr.rt)
 
