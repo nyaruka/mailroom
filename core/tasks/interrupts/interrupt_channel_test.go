@@ -20,17 +20,17 @@ func TestInterruptChannel(t *testing.T) {
 	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetValkey)
 
 	// twilio call
-	twilioCallID := testdb.InsertCall(rt, testdb.Org1, testdb.TwilioChannel, testdb.Alexandra)
+	twilioCall := testdb.InsertCall(rt, testdb.Org1, testdb.TwilioChannel, testdb.Alexandra)
 
 	// vonage call
-	vonageCallID := testdb.InsertCall(rt, testdb.Org1, testdb.VonageChannel, testdb.George)
+	vonageCall := testdb.InsertCall(rt, testdb.Org1, testdb.VonageChannel, testdb.George)
 
 	sessionUUID1 := testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Cathy, models.FlowTypeMessaging, testdb.Favorites, models.NilCallID)
-	sessionUUID2 := testdb.InsertWaitingSession(rt, testdb.Org1, testdb.George, models.FlowTypeVoice, testdb.Favorites, vonageCallID)
-	sessionUUID3 := testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Alexandra, models.FlowTypeVoice, testdb.Favorites, twilioCallID)
+	sessionUUID2 := testdb.InsertWaitingSession(rt, testdb.Org1, testdb.George, models.FlowTypeVoice, testdb.Favorites, vonageCall.ID)
+	sessionUUID3 := testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Alexandra, models.FlowTypeVoice, testdb.Favorites, twilioCall.ID)
 
-	rt.DB.MustExec(`UPDATE ivr_call SET session_uuid = $2 WHERE id = $1`, vonageCallID, sessionUUID2)
-	rt.DB.MustExec(`UPDATE ivr_call SET session_uuid = $2 WHERE id = $1`, twilioCallID, sessionUUID3)
+	rt.DB.MustExec(`UPDATE ivr_call SET session_uuid = $2 WHERE id = $1`, vonageCall.ID, sessionUUID2)
+	rt.DB.MustExec(`UPDATE ivr_call SET session_uuid = $2 WHERE id = $1`, twilioCall.ID, sessionUUID3)
 
 	testdb.InsertOutgoingMsg(rt, testdb.Org1, testdb.TwilioChannel, testdb.Cathy, "how can we help", nil, models.MsgStatusPending, false)
 	testdb.InsertOutgoingMsg(rt, testdb.Org1, testdb.VonageChannel, testdb.Bob, "this failed", nil, models.MsgStatusQueued, false)
