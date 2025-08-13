@@ -1,3 +1,7 @@
+v10.3.38 (2025-08-13)
+-------------------------
+ * Start including call UUID in IVR callbacks and remove urn since it's not used
+
 v10.3.37 (2025-08-13)
 -------------------------
  * Start writing Session.call_uuid
