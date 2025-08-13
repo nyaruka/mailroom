@@ -191,7 +191,7 @@ func handleCallback(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 	// load our call
 	call, err := models.GetCallByUUID(ctx, rt.DB, oa.OrgID(), request.CallUUID)
 	if err != nil {
-		return nil, fmt.Errorf("unable to load call #%d: %w", request.ConnectionID, err)
+		return nil, fmt.Errorf("unable to load call with UUID %s: %w", request.CallUUID, err)
 	}
 
 	// load our contact
