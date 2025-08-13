@@ -38,7 +38,7 @@ func TestStartFlowBatchTask(t *testing.T) {
 	testsuite.FlushTasks(t, rt)
 
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE contact_uuid = ANY($1) 
-		AND status = 'C' AND call_id IS NULL AND output IS NOT NULL`, pq.Array([]flows.ContactUUID{testdb.Cathy.UUID, testdb.Bob.UUID})).
+		AND status = 'C' AND call_uuid IS NULL AND call_id IS NULL AND output IS NOT NULL`, pq.Array([]flows.ContactUUID{testdb.Cathy.UUID, testdb.Bob.UUID})).
 		Returns(2)
 
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowrun WHERE contact_id = ANY($1) and flow_id = $2 AND responded = FALSE AND org_id = 1 AND status = 'C'
