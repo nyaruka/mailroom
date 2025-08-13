@@ -54,30 +54,30 @@ const (
 // Call models an IVR call
 type Call struct {
 	c struct {
-		ID           CallID      `db:"id"`
-		UUID         null.String `db:"uuid"`
-		OrgID        OrgID       `db:"org_id"`
-		ChannelID    ChannelID   `db:"channel_id"`
-		ContactID    ContactID   `db:"contact_id"`
-		ContactURNID URNID       `db:"contact_urn_id"`
-		ExternalID   string      `db:"external_id"`
-		Status       CallStatus  `db:"status"`
-		SessionUUID  null.String `db:"session_uuid"`
-		Direction    Direction   `db:"direction"`
-		StartedOn    *time.Time  `db:"started_on"`
-		EndedOn      *time.Time  `db:"ended_on"`
-		Duration     int         `db:"duration"`
-		ErrorReason  null.String `db:"error_reason"`
-		ErrorCount   int         `db:"error_count"`
-		NextAttempt  *time.Time  `db:"next_attempt"`
-		Trigger      null.JSON   `db:"trigger"`
-		CreatedOn    time.Time   `db:"created_on"`
-		ModifiedOn   time.Time   `db:"modified_on"`
+		ID           CallID         `db:"id"`
+		UUID         flows.CallUUID `db:"uuid"`
+		OrgID        OrgID          `db:"org_id"`
+		ChannelID    ChannelID      `db:"channel_id"`
+		ContactID    ContactID      `db:"contact_id"`
+		ContactURNID URNID          `db:"contact_urn_id"`
+		ExternalID   string         `db:"external_id"`
+		Status       CallStatus     `db:"status"`
+		SessionUUID  null.String    `db:"session_uuid"`
+		Direction    Direction      `db:"direction"`
+		StartedOn    *time.Time     `db:"started_on"`
+		EndedOn      *time.Time     `db:"ended_on"`
+		Duration     int            `db:"duration"`
+		ErrorReason  null.String    `db:"error_reason"`
+		ErrorCount   int            `db:"error_count"`
+		NextAttempt  *time.Time     `db:"next_attempt"`
+		Trigger      null.JSON      `db:"trigger"`
+		CreatedOn    time.Time      `db:"created_on"`
+		ModifiedOn   time.Time      `db:"modified_on"`
 	}
 }
 
 func (c *Call) ID() CallID                     { return c.c.ID }
-func (c *Call) UUID() flows.CallUUID           { return flows.CallUUID(c.c.UUID) }
+func (c *Call) UUID() flows.CallUUID           { return c.c.UUID }
 func (c *Call) ChannelID() ChannelID           { return c.c.ChannelID }
 func (c *Call) OrgID() OrgID                   { return c.c.OrgID }
 func (c *Call) ContactID() ContactID           { return c.c.ContactID }
@@ -103,7 +103,7 @@ func (c *Call) EngineTrigger(oa *OrgAssets) (flows.Trigger, error) {
 func NewIncomingCall(orgID OrgID, ch *Channel, contact *Contact, urnID URNID, externalID string) *Call {
 	call := &Call{}
 	c := &call.c
-	c.UUID = null.String(flows.NewCallUUID())
+	c.UUID = flows.NewCallUUID()
 	c.OrgID = orgID
 	c.ChannelID = ch.ID()
 	c.ContactID = contact.ID()
@@ -118,7 +118,7 @@ func NewIncomingCall(orgID OrgID, ch *Channel, contact *Contact, urnID URNID, ex
 func NewOutgoingCall(orgID OrgID, ch *Channel, contact *Contact, urnID URNID, trigger flows.Trigger) *Call {
 	call := &Call{}
 	c := &call.c
-	c.UUID = null.String(flows.NewCallUUID())
+	c.UUID = flows.NewCallUUID()
 	c.OrgID = orgID
 	c.ChannelID = ch.ID()
 	c.ContactID = contact.ID()

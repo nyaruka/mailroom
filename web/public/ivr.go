@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"net/url"
 	"time"
 
 	"github.com/nyaruka/gocommon/httpx"
@@ -152,7 +151,7 @@ func handleIncoming(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 		}
 
 		// build our resume URL
-		resumeURL := buildResumeURL(rt.Config, ch, call, urn)
+		resumeURL := buildResumeURL(rt.Config, ch, call)
 
 		// have our client output our session status
 		err = svc.WriteSessionResponse(ctx, rt, oa, ch, scene, urn, resumeURL, r, w)
@@ -167,32 +166,16 @@ func handleIncoming(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 	return call, svc.WriteEmptyResponse(w, "missed call handled")
 }
 
-const (
-	actionStart  = "start"
-	actionResume = "resume"
-	actionStatus = "status"
-)
-
-// IVRRequest is our form for what fields we expect in IVR callbacks
-type IVRRequest struct {
-	ConnectionID models.CallID `form:"connection" validate:"required"`
-	Action       string        `form:"action"     validate:"required"`
-}
-
 // writeGenericErrorResponse is just a small utility method to write out a simple JSON error when we don't have a client yet
 func writeGenericErrorResponse(w http.ResponseWriter, err error) error {
 	return web.WriteMarshalled(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
 }
 
-func buildResumeURL(cfg *runtime.Config, channel *models.Channel, call *models.Call, urn urns.URN) string {
+func buildResumeURL(cfg *runtime.Config, channel *models.Channel, call *models.Call) string {
 	domain := channel.Config().GetString(models.ChannelConfigCallbackDomain, cfg.Domain)
-	form := url.Values{
-		"action":     []string{actionResume},
-		"connection": []string{fmt.Sprintf("%d", call.ID())},
-		"urn":        []string{urn.String()},
-	}
+	params := &ivr.CallbackParams{Action: ivr.ActionResume, CallUUID: call.UUID(), ConnectionID: call.ID()}
 
-	return fmt.Sprintf("https://%s/mr/ivr/c/%s/handle?%s", domain, channel.UUID(), form.Encode())
+	return fmt.Sprintf("https://%s/mr/ivr/c/%s/handle?%s", domain, channel.UUID(), params.Encode())
 }
 
 // handles all incoming IVR requests related to a flow (status is handled elsewhere)
@@ -200,7 +183,7 @@ func handleCallback(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 	ctx, cancel := context.WithTimeout(ctx, time.Second*55)
 	defer cancel()
 
-	request := &IVRRequest{}
+	request := &ivr.CallbackParams{}
 	if err := web.DecodeAndValidateForm(request, r); err != nil {
 		return nil, fmt.Errorf("IVR callback request failed validation: %w", err)
 	}
@@ -239,15 +222,15 @@ func handleCallback(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 		return call, svc.WriteErrorResponse(w, fmt.Errorf("unable to find URN: %s on contact: %d", urn, call.ContactID()))
 	}
 
-	resumeURL := buildResumeURL(rt.Config, ch, call, urn)
+	resumeURL := buildResumeURL(rt.Config, ch, call)
 
 	// if this a start, start our contact
 	switch request.Action {
-	case actionStart:
+	case ivr.ActionStart:
 		err = ivr.StartCall(ctx, rt, svc, resumeURL, oa, ch, call, contact, urn, r, w)
-	case actionResume:
+	case ivr.ActionResume:
 		err = ivr.ResumeCall(ctx, rt, resumeURL, svc, oa, ch, call, contact, urn, r, w)
-	case actionStatus:
+	case ivr.ActionStatus:
 		err = ivr.HandleStatus(ctx, rt, oa, svc, call, r, w)
 
 	default:
