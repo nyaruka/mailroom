@@ -62,10 +62,10 @@ func TestInterrupts(t *testing.T) {
 		sessionUUIDs := make([]flows.SessionUUID, 4)
 
 		// insert our dummy contact sessions
-		sessionUUIDs[0] = testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Cathy, models.FlowTypeMessaging, testdb.Favorites, models.NilCallID)
-		sessionUUIDs[1] = testdb.InsertWaitingSession(rt, testdb.Org1, testdb.George, models.FlowTypeMessaging, testdb.Favorites, models.NilCallID)
-		sessionUUIDs[2] = testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Alexandra, models.FlowTypeVoice, testdb.Favorites, twilioCall.ID)
-		sessionUUIDs[3] = testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Bob, models.FlowTypeMessaging, testdb.PickANumber, models.NilCallID)
+		sessionUUIDs[0] = testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Cathy, models.FlowTypeMessaging, testdb.Favorites, nil)
+		sessionUUIDs[1] = testdb.InsertWaitingSession(rt, testdb.Org1, testdb.George, models.FlowTypeMessaging, testdb.Favorites, nil)
+		sessionUUIDs[2] = testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Alexandra, models.FlowTypeVoice, testdb.Favorites, twilioCall)
+		sessionUUIDs[3] = testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Bob, models.FlowTypeMessaging, testdb.PickANumber, nil)
 
 		// create our task
 		task := &interrupts.InterruptSessionsTask{

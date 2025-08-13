@@ -26,7 +26,7 @@ func TestBulkCampaignTrigger(t *testing.T) {
 	defer vc.Close()
 
 	// create a waiting session for Cathy
-	testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Cathy, models.FlowTypeVoice, testdb.IVRFlow, models.NilCallID)
+	testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Cathy, models.FlowTypeVoice, testdb.IVRFlow, nil)
 
 	// create task for event #3 (Pick A Number, start mode SKIP)
 	task := &campaigns.BulkCampaignTriggerTask{

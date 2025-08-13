@@ -25,9 +25,9 @@ func TestInterruptChannel(t *testing.T) {
 	// vonage call
 	vonageCall := testdb.InsertCall(rt, testdb.Org1, testdb.VonageChannel, testdb.George)
 
-	sessionUUID1 := testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Cathy, models.FlowTypeMessaging, testdb.Favorites, models.NilCallID)
-	sessionUUID2 := testdb.InsertWaitingSession(rt, testdb.Org1, testdb.George, models.FlowTypeVoice, testdb.Favorites, vonageCall.ID)
-	sessionUUID3 := testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Alexandra, models.FlowTypeVoice, testdb.Favorites, twilioCall.ID)
+	sessionUUID1 := testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Cathy, models.FlowTypeMessaging, testdb.Favorites, nil)
+	sessionUUID2 := testdb.InsertWaitingSession(rt, testdb.Org1, testdb.George, models.FlowTypeVoice, testdb.Favorites, vonageCall)
+	sessionUUID3 := testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Alexandra, models.FlowTypeVoice, testdb.Favorites, twilioCall)
 
 	rt.DB.MustExec(`UPDATE ivr_call SET session_uuid = $2 WHERE id = $1`, vonageCall.ID, sessionUUID2)
 	rt.DB.MustExec(`UPDATE ivr_call SET session_uuid = $2 WHERE id = $1`, twilioCall.ID, sessionUUID3)
