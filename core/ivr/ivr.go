@@ -39,7 +39,7 @@ const (
 // CallbackParams is our form for what fields we expect in IVR callbacks
 type CallbackParams struct {
 	Action       string         `form:"action"     validate:"required"`
-	CallUUID     flows.CallUUID `form:"call"`
+	CallUUID     flows.CallUUID `form:"call"       validate:"required"`
 	ConnectionID models.CallID  `form:"connection"` // // TODO replace by CallUUID
 }
 
