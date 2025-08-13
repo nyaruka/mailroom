@@ -173,7 +173,7 @@ func writeGenericErrorResponse(w http.ResponseWriter, err error) error {
 
 func buildResumeURL(cfg *runtime.Config, channel *models.Channel, call *models.Call) string {
 	domain := channel.Config().GetString(models.ChannelConfigCallbackDomain, cfg.Domain)
-	params := &ivr.CallbackParams{Action: ivr.ActionResume, CallUUID: call.UUID(), ConnectionID: call.ID()}
+	params := &ivr.CallbackParams{Action: ivr.ActionResume, CallUUID: call.UUID()}
 
 	return fmt.Sprintf("https://%s/mr/ivr/c/%s/handle?%s", domain, channel.UUID(), params.Encode())
 }

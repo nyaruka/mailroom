@@ -38,17 +38,12 @@ const (
 
 // CallbackParams is our form for what fields we expect in IVR callbacks
 type CallbackParams struct {
-	Action       string         `form:"action"     validate:"required"`
-	CallUUID     flows.CallUUID `form:"call"       validate:"required"`
-	ConnectionID models.CallID  `form:"connection"` // // TODO replace by CallUUID
+	Action   string         `form:"action"     validate:"required"`
+	CallUUID flows.CallUUID `form:"call"       validate:"required"`
 }
 
 func (p *CallbackParams) Encode() string {
-	return url.Values{
-		"action":     []string{p.Action},
-		"call":       []string{string(p.CallUUID)},
-		"connection": []string{fmt.Sprint(p.ConnectionID)},
-	}.Encode()
+	return url.Values{"action": []string{p.Action}, "call": []string{string(p.CallUUID)}}.Encode()
 }
 
 // HangupCall hangs up the passed in call also taking care of updating the status of our call in the process
@@ -181,7 +176,7 @@ func RequestCallStart(ctx context.Context, rt *runtime.Runtime, channel *models.
 	}
 
 	// create our callback
-	params := &CallbackParams{Action: ActionStart, CallUUID: call.UUID(), ConnectionID: call.ID()}
+	params := &CallbackParams{Action: ActionStart, CallUUID: call.UUID()}
 
 	resumeURL := fmt.Sprintf("https://%s/mr/ivr/c/%s/handle?%s", domain, channel.UUID(), params.Encode())
 	statusURL := fmt.Sprintf("https://%s/mr/ivr/c/%s/status", domain, channel.UUID())
