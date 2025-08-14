@@ -1,3 +1,7 @@
+v10.3.41 (2025-08-14)
+-------------------------
+ * Allow metrics reporting to be off, basic or advanced
+
 v10.3.40 (2025-08-13)
 -------------------------
  * Stop writing Session.call_id completely
