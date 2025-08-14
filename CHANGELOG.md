@@ -1,3 +1,7 @@
+v10.3.42 (2025-08-14)
+-------------------------
+ * Clear session.output_url when storage mode changes to db
+
 v10.3.41 (2025-08-14)
 -------------------------
  * Allow metrics reporting to be off, basic or advanced
