@@ -202,22 +202,22 @@ func NewSession(oa *OrgAssets, fs flows.Session, sprint flows.Sprint, call *Call
 	return session
 }
 
-const sqlInsertWaitingSession = `
+const sqlInsertWaitingSessionDB = `
 INSERT INTO
-	flows_flowsession( uuid,  contact_uuid,  session_type,  status,  last_sprint_uuid,  current_flow_uuid,  output,  output_url,  created_on,  call_uuid)
-               VALUES(:uuid, :contact_uuid, :session_type, :status, :last_sprint_uuid, :current_flow_uuid, :output, :output_url, :created_on, :call_uuid)`
+	flows_flowsession( uuid,  contact_uuid,  session_type,  status,  last_sprint_uuid,  current_flow_uuid,  output,  created_on,  call_uuid)
+               VALUES(:uuid, :contact_uuid, :session_type, :status, :last_sprint_uuid, :current_flow_uuid, :output, :created_on, :call_uuid)`
 
-const sqlInsertWaitingSessionNoOutput = `
+const sqlInsertWaitingSessionS3 = `
 INSERT INTO
 	flows_flowsession( uuid,  contact_uuid,  session_type,  status,  last_sprint_uuid,  current_flow_uuid,  output_url,  created_on,  call_uuid)
                VALUES(:uuid, :contact_uuid, :session_type, :status, :last_sprint_uuid, :current_flow_uuid, :output_url, :created_on, :call_uuid)`
 
-const sqlInsertEndedSession = `
+const sqlInsertEndedSessionDB = `
 INSERT INTO
-	flows_flowsession( uuid,  contact_uuid,  session_type,  status,  last_sprint_uuid,  current_flow_uuid,  output,  output_url,  created_on,  ended_on,  call_uuid)
-               VALUES(:uuid, :contact_uuid, :session_type, :status, :last_sprint_uuid, :current_flow_uuid, :output, :output_url, :created_on, :ended_on, :call_uuid)`
+	flows_flowsession( uuid,  contact_uuid,  session_type,  status,  last_sprint_uuid,  current_flow_uuid,  output,  created_on,  ended_on,  call_uuid)
+               VALUES(:uuid, :contact_uuid, :session_type, :status, :last_sprint_uuid, :current_flow_uuid, :output, :created_on, :ended_on, :call_uuid)`
 
-const sqlInsertEndedSessionNoOutput = `
+const sqlInsertEndedSessionS3 = `
 INSERT INTO
 	flows_flowsession( uuid,  contact_uuid,  session_type,  status,  last_sprint_uuid,  current_flow_uuid,  output_url,  created_on,  ended_on,  call_uuid)
                VALUES(:uuid, :contact_uuid, :session_type, :status, :last_sprint_uuid, :current_flow_uuid, :output_url, :created_on, :ended_on, :call_uuid)`
@@ -240,8 +240,8 @@ func InsertSessions(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *O
 	}
 
 	// the SQL we'll use to do our insert of sessions
-	insertEndedSQL := sqlInsertEndedSession
-	insertWaitingSQL := sqlInsertWaitingSession
+	insertEndedSQL := sqlInsertEndedSessionDB
+	insertWaitingSQL := sqlInsertWaitingSessionDB
 
 	// if writing our sessions to S3, do so
 	if rt.Config.SessionStorage == "s3" {
@@ -249,8 +249,8 @@ func InsertSessions(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *O
 			return fmt.Errorf("error writing sessions to storage: %w", err)
 		}
 
-		insertEndedSQL = sqlInsertEndedSessionNoOutput
-		insertWaitingSQL = sqlInsertWaitingSessionNoOutput
+		insertEndedSQL = sqlInsertEndedSessionS3
+		insertWaitingSQL = sqlInsertWaitingSessionS3
 	}
 
 	// insert our ended sessions first
