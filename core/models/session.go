@@ -101,12 +101,12 @@ func (s *Session) EngineSession(ctx context.Context, rt *runtime.Runtime, sa flo
 	return session, nil
 }
 
-const sqlUpdateSession = `
+const sqlUpdateSessionDB = `
 UPDATE 
 	flows_flowsession
 SET 
 	output = :output, 
-	output_url = :output_url,
+	output_url = NULL,
 	status = :status,
 	last_sprint_uuid = :last_sprint_uuid,
 	ended_on = :ended_on,
@@ -114,10 +114,11 @@ SET
 WHERE 
 	uuid = :uuid`
 
-const sqlUpdateSessionNoOutput = `
+const sqlUpdateSessionS3 = `
 UPDATE 
 	flows_flowsession
 SET 
+	output = NULL,
 	output_url = :output_url,
 	status = :status, 
 	last_sprint_uuid = :last_sprint_uuid,
@@ -149,7 +150,7 @@ func (s *Session) Update(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, 
 	}
 
 	// the SQL statement we'll use to update this session
-	updateSQL := sqlUpdateSession
+	updateSQL := sqlUpdateSessionDB
 
 	// if writing to S3, do so
 	if rt.Config.SessionStorage == "s3" {
@@ -158,7 +159,7 @@ func (s *Session) Update(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, 
 		}
 
 		// don't write output in our SQL
-		updateSQL = sqlUpdateSessionNoOutput
+		updateSQL = sqlUpdateSessionS3
 	}
 
 	// write our new session state to the db
