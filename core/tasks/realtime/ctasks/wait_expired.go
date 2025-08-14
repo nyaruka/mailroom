@@ -50,16 +50,16 @@ func (t *WaitExpiredTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *
 	}
 
 	// if we didn't find a session or it is another session or if it's been modified since, ignore this task
-	if session == nil || session.UUID() != t.SessionUUID || session.LastSprintUUID() != t.SprintUUID {
+	if session == nil || session.UUID != t.SessionUUID || session.LastSprintUUID != t.SprintUUID {
 		log.Debug("skipping as waiting session has changed")
 		return nil
 	}
 
 	evt := events.NewWaitExpired()
 
-	if session.SessionType() == models.FlowTypeVoice {
+	if session.SessionType == models.FlowTypeVoice {
 		// load our call
-		call, err := models.GetCallByUUID(ctx, rt.DB, oa.OrgID(), session.CallUUID())
+		call, err := models.GetCallByUUID(ctx, rt.DB, oa.OrgID(), session.CallUUID)
 		if err != nil {
 			return fmt.Errorf("error loading call for voice session: %w", err)
 		}
@@ -76,7 +76,7 @@ func (t *WaitExpiredTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *
 			}
 		}
 
-		if err := models.ExitSessions(ctx, rt.DB, []flows.SessionUUID{session.UUID()}, models.SessionStatusExpired); err != nil {
+		if err := models.ExitSessions(ctx, rt.DB, []flows.SessionUUID{session.UUID}, models.SessionStatusExpired); err != nil {
 			return fmt.Errorf("error expiring sessions for expired calls: %w", err)
 		}
 

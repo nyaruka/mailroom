@@ -47,13 +47,13 @@ func TestInsertSessions(t *testing.T) {
 
 	require.NoError(t, tx.Commit())
 
-	assert.Equal(t, models.FlowTypeMessaging, session.SessionType())
-	assert.Equal(t, testdb.Bob.UUID, session.ContactUUID())
-	assert.Equal(t, models.SessionStatusWaiting, session.Status())
-	assert.Equal(t, flow.UUID, session.CurrentFlowUUID())
-	assert.NotZero(t, session.CreatedOn())
-	assert.NotZero(t, session.LastSprintUUID())
-	assert.Nil(t, session.EndedOn())
+	assert.Equal(t, models.FlowTypeMessaging, session.SessionType)
+	assert.Equal(t, testdb.Bob.UUID, session.ContactUUID)
+	assert.Equal(t, models.SessionStatusWaiting, session.Status)
+	assert.Equal(t, flow.UUID, session.CurrentFlowUUID)
+	assert.NotZero(t, session.CreatedOn)
+	assert.NotZero(t, session.LastSprintUUID)
+	assert.Nil(t, session.EndedOn)
 
 	// check that matches what is in the db
 	assertdb.Query(t, rt.DB, `SELECT status, session_type, current_flow_uuid::text, ended_on FROM flows_flowsession`).
@@ -74,8 +74,8 @@ func TestInsertSessions(t *testing.T) {
 
 	require.NoError(t, tx.Commit())
 
-	assert.Equal(t, models.SessionStatusWaiting, session.Status())
-	assert.Equal(t, flow.UUID, session.CurrentFlowUUID())
+	assert.Equal(t, models.SessionStatusWaiting, session.Status)
+	assert.Equal(t, flow.UUID, session.CurrentFlowUUID)
 
 	flowSession, err = session.EngineSession(ctx, rt, oa.SessionAssets(), oa.Env(), flowSession.Contact(), nil)
 	require.NoError(t, err)
@@ -90,10 +90,10 @@ func TestInsertSessions(t *testing.T) {
 
 	require.NoError(t, tx.Commit())
 
-	assert.Equal(t, models.SessionStatusCompleted, session.Status())
-	assert.Equal(t, assets.FlowUUID(""), session.CurrentFlowUUID()) // no longer "in" a flow
-	assert.NotZero(t, session.CreatedOn())
-	assert.NotNil(t, session.EndedOn())
+	assert.Equal(t, models.SessionStatusCompleted, session.Status)
+	assert.Equal(t, assets.FlowUUID(""), session.CurrentFlowUUID) // no longer "in" a flow
+	assert.NotZero(t, session.CreatedOn)
+	assert.NotNil(t, session.EndedOn)
 
 	// check that matches what is in the db
 	assertdb.Query(t, rt.DB, `SELECT status, session_type, current_flow_uuid FROM flows_flowsession`).
@@ -115,7 +115,7 @@ func TestGetWaitingSessionForContact(t *testing.T) {
 	session, err := models.GetWaitingSessionForContact(ctx, rt, oa, contact, mc.CurrentSessionUUID())
 	assert.NoError(t, err)
 	assert.NotNil(t, session)
-	assert.Equal(t, sessionUUID, session.UUID())
+	assert.Equal(t, sessionUUID, session.UUID)
 }
 
 func TestInterruptSessionsForContacts(t *testing.T) {

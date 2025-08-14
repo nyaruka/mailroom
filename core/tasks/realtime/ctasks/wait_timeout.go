@@ -51,12 +51,12 @@ func (t *WaitTimeoutTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *
 	}
 
 	// if we didn't find a session or it is another session or if it's been modified since, ignore this task
-	if session == nil || session.UUID() != t.SessionUUID {
+	if session == nil || session.UUID != t.SessionUUID {
 		log.Debug("skipping as waiting session has changed")
 		return nil
 	}
-	if session.LastSprintUUID() != t.SprintUUID {
-		log.Info("skipping as session has been modified since", "session_sprint", session.LastSprintUUID(), "task_sprint", t.SprintUUID)
+	if session.LastSprintUUID != t.SprintUUID {
+		log.Info("skipping as session has been modified since", "session_sprint", session.LastSprintUUID, "task_sprint", t.SprintUUID)
 		return nil
 	}
 
