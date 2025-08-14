@@ -146,21 +146,21 @@ func (s *Scene) ResumeSession(ctx context.Context, rt *runtime.Runtime, oa *mode
 	}
 
 	// does the flow this session is part of still exist?
-	_, err := oa.FlowByUUID(session.CurrentFlowUUID())
+	_, err := oa.FlowByUUID(session.CurrentFlowUUID)
 	if err != nil {
 		// if this flow just isn't available anymore, log this error
 		if err == models.ErrNotFound {
-			slog.Error("unable to find flow for resume", "contact", s.ContactUUID(), "session", session.UUID(), "flow", session.CurrentFlowUUID())
+			slog.Error("unable to find flow for resume", "contact", s.ContactUUID(), "session", session.UUID, "flow", session.CurrentFlowUUID)
 
-			return models.ExitSessions(ctx, rt.DB, []flows.SessionUUID{session.UUID()}, models.SessionStatusFailed)
+			return models.ExitSessions(ctx, rt.DB, []flows.SessionUUID{session.UUID}, models.SessionStatusFailed)
 		}
-		return fmt.Errorf("error loading session flow %s: %w", session.CurrentFlowUUID(), err)
+		return fmt.Errorf("error loading session flow %s: %w", session.CurrentFlowUUID, err)
 	}
 
 	// build our flow session
 	fs, err := session.EngineSession(ctx, rt, oa.SessionAssets(), oa.Env(), s.Contact, s.Call)
 	if err != nil {
-		return fmt.Errorf("unable to read session %s: %w", session.UUID(), err)
+		return fmt.Errorf("unable to read session %s: %w", session.UUID, err)
 	}
 
 	// record run modified times prior to resuming so we can figure out which runs are new or updated
@@ -176,7 +176,7 @@ func (s *Scene) ResumeSession(ctx context.Context, rt *runtime.Runtime, oa *mode
 	}
 
 	if err := s.addSprint(ctx, rt, oa, fs, sprint, true); err != nil {
-		return fmt.Errorf("error processing events for session %s: %w", session.UUID(), err)
+		return fmt.Errorf("error processing events for session %s: %w", session.UUID, err)
 	}
 
 	return nil

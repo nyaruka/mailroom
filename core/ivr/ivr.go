@@ -314,13 +314,13 @@ func ResumeCall(
 		return fmt.Errorf("error loading session for contact #%d and call #%d: %w", mc.ID(), call.ID(), err)
 	}
 
-	if session == nil || session.SessionType() != models.FlowTypeVoice {
+	if session == nil || session.SessionType != models.FlowTypeVoice {
 		return HandleAsFailure(ctx, rt.DB, svc, call, w, fmt.Errorf("no active IVR session for contact"))
 	}
 
 	// check if call has been marked as errored - it maybe have been updated by status callback
 	if call.Status() == models.CallStatusErrored || call.Status() == models.CallStatusFailed {
-		if err = models.ExitSessions(ctx, rt.DB, []flows.SessionUUID{session.UUID()}, models.SessionStatusInterrupted); err != nil {
+		if err = models.ExitSessions(ctx, rt.DB, []flows.SessionUUID{session.UUID}, models.SessionStatusInterrupted); err != nil {
 			slog.Error("error interrupting session for errored call", "error", err)
 		}
 
@@ -400,7 +400,7 @@ func ResumeCall(
 			return fmt.Errorf("error writing ivr response for resume: %w", err)
 		}
 	} else {
-		err = models.ExitSessions(ctx, rt.DB, []flows.SessionUUID{session.UUID()}, models.SessionStatusCompleted)
+		err = models.ExitSessions(ctx, rt.DB, []flows.SessionUUID{session.UUID}, models.SessionStatusCompleted)
 		if err != nil {
 			slog.Error("error closing session", "error", err)
 		}

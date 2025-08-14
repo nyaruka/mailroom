@@ -168,15 +168,15 @@ func (t *MsgReceivedTask) handleMsgEvent(ctx context.Context, rt *runtime.Runtim
 
 	if session != nil {
 		// if we have a waiting voice session, we want to leave it as is
-		if session.SessionType() == models.FlowTypeVoice {
+		if session.SessionType == models.FlowTypeVoice {
 			return nil
 		}
 
 		// get the flow to be resumed and if it's gone, end the session
-		flowAsset, err := oa.FlowByUUID(session.CurrentFlowUUID())
+		flowAsset, err := oa.FlowByUUID(session.CurrentFlowUUID)
 		if err == models.ErrNotFound {
-			if err := models.ExitSessions(ctx, rt.DB, []flows.SessionUUID{session.UUID()}, models.SessionStatusFailed); err != nil {
-				return fmt.Errorf("error ending session %s: %w", session.UUID(), err)
+			if err := models.ExitSessions(ctx, rt.DB, []flows.SessionUUID{session.UUID}, models.SessionStatusFailed); err != nil {
+				return fmt.Errorf("error ending session %s: %w", session.UUID, err)
 			}
 			session = nil
 		} else if err != nil {
