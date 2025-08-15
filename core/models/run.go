@@ -10,7 +10,6 @@ import (
 	"github.com/lib/pq"
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/null/v3"
 )
@@ -38,7 +37,7 @@ var runStatusMap = map[flows.RunStatus]RunStatus{
 	flows.RunStatusFailed:    RunStatusFailed,
 }
 
-// FlowRun is the mailroom type for a FlowRun
+// FlowRun is the type for a run of a flow
 type FlowRun struct {
 	ID              FlowRunID         `db:"id"`
 	UUID            flows.RunUUID     `db:"uuid"`
@@ -56,9 +55,6 @@ type FlowRun struct {
 	OrgID           OrgID             `db:"org_id"`
 	SessionUUID     flows.SessionUUID `db:"session_uuid"`
 	StartID         StartID           `db:"start_id"`
-
-	// we keep a reference to the engine's run
-	run flows.Run
 }
 
 // NewRun creates a flow run we can save to the database
@@ -91,20 +87,11 @@ func NewRun(oa *OrgAssets, fs flows.Session, fr flows.Run) *FlowRun {
 		PathNodes:   pathNodes,
 		PathTimes:   pq.GenericArray{A: pathTimes},
 		Results:     string(jsonx.MustMarshal(fr.Results())),
-
-		run: fr,
+		Responded:   fr.HadInput(),
 	}
 
 	if len(pathNodes) > 0 && (fr.Status() == flows.RunStatusActive || fr.Status() == flows.RunStatusWaiting) {
 		r.CurrentNodeUUID = null.String(pathNodes[len(pathNodes)-1])
-	}
-
-	// mark ourselves as responded if we received a message
-	for _, e := range fr.Events() {
-		if e.Type() == events.TypeMsgReceived {
-			r.Responded = true
-			break
-		}
 	}
 
 	return r
