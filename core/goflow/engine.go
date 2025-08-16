@@ -69,7 +69,7 @@ func Engine(rt *runtime.Runtime) flows.Engine {
 			WithEmailServiceFactory(emailFactory(rt)).
 			WithAirtimeServiceFactory(airtimeFactory(rt)).
 			WithMaxStepsPerSprint(rt.Config.MaxStepsPerSprint).
-			WithMaxResumesPerSession(rt.Config.MaxResumesPerSession).
+			WithMaxSprintsPerSession(rt.Config.MaxSprintsPerSession).
 			WithMaxFieldChars(rt.Config.MaxValueLength).
 			WithMaxResultChars(rt.Config.MaxValueLength).
 			WithLLMPrompts(llmPrompts).
@@ -96,7 +96,7 @@ func Simulator(ctx context.Context, rt *runtime.Runtime) flows.Engine {
 			WithEmailServiceFactory(simulatorEmailServiceFactory).       // but faked emails
 			WithAirtimeServiceFactory(simulatorAirtimeServiceFactory).   // and faked airtime transfers
 			WithMaxStepsPerSprint(rt.Config.MaxStepsPerSprint).
-			WithMaxResumesPerSession(rt.Config.MaxResumesPerSession).
+			WithMaxSprintsPerSession(rt.Config.MaxSprintsPerSession).
 			WithMaxFieldChars(rt.Config.MaxValueLength).
 			WithMaxResultChars(rt.Config.MaxValueLength).
 			WithLLMPrompts(llmPrompts).
