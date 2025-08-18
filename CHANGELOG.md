@@ -1,3 +1,8 @@
+v10.3.43 (2025-08-18)
+-------------------------
+ * Update to latest goflow that limits events on runs
+ * Refactor models.Session so that it's independent of storage and use new envelope type for Postgres storage
+
 v10.3.42 (2025-08-14)
 -------------------------
  * Clear session.output_url when storage mode changes to db
