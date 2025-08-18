@@ -1,3 +1,7 @@
+v10.3.44 (2025-08-18)
+-------------------------
+ * Update to latest goflow that removes Run.events altogether
+
 v10.3.43 (2025-08-18)
 -------------------------
  * Update to latest goflow that limits events on runs
