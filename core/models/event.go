@@ -14,7 +14,7 @@ import (
 	"github.com/nyaruka/goflow/flows/events"
 )
 
-var EventPersistence = map[string]time.Duration{
+var eventPersistence = map[string]time.Duration{
 	events.TypeAirtimeTransferred:     -1,                   // forever
 	events.TypeContactFieldChanged:    time.Hour * 24 * 365, // 1 year
 	events.TypeContactGroupsChanged:   time.Hour * 24 * 365, // 1 year
@@ -43,7 +43,7 @@ func (e *Event) DynamoKey() DynamoKey {
 }
 
 func (e *Event) DynamoTTL() *time.Time {
-	if persistence := EventPersistence[e.Type()]; persistence > 0 {
+	if persistence := eventPersistence[e.Type()]; persistence > 0 {
 		ttl := e.CreatedOn().Add(persistence)
 		return &ttl
 	}
@@ -93,4 +93,14 @@ func (e *Event) MarshalDynamo() (map[string]types.AttributeValue, error) {
 		Data:      data,
 		DataGZ:    dataGz,
 	})
+}
+
+// PersistEvent returns whether an event should be persisted
+func PersistEvent(e flows.Event) bool {
+	if e.Type() == events.TypeRunStarted || e.Type() == events.TypeRunEnded {
+		return e.CreatedOn().After(time.Date(2025, 8, 19, 18, 0, 0, 0, time.UTC)) // TEMP: to help with backfilling
+	}
+
+	_, ok := eventPersistence[e.Type()]
+	return ok
 }
