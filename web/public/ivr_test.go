@@ -266,10 +266,10 @@ func TestTwilioIVR(t *testing.T) {
 			expectedStatus:     200,
 			expectedContains:   []string{"Hello there. Please enter one or two."},
 			expectedCallStatus: map[string]string{"Call1": "D", "Call2": "D", "Call3": "E", "Call4": "I"},
-			expectedNewCall:    "01969b4b-187b-76f8-9676-22cd6062f002",
+			expectedNewCall:    "01969b4a-b2eb-76f8-b19f-d98753239d65",
 		},
 		{ // 13: handle resume with digits we're waiting for
-			url: fmt.Sprintf("/ivr/c/%s/handle?action=resume&call=01969b4b-187b-76f8-9676-22cd6062f002", testdb.TwilioChannel.UUID),
+			url: fmt.Sprintf("/ivr/c/%s/handle?action=resume&call=01969b4a-b2eb-76f8-b19f-d98753239d65", testdb.TwilioChannel.UUID),
 			form: url.Values{
 				"CallStatus": []string{"in-progress"},
 				"wait_type":  []string{"gather"},
