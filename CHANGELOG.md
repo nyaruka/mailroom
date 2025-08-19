@@ -1,3 +1,7 @@
+v10.3.47 (2025-08-19)
+-------------------------
+ * Persisted run_started / run_ended events have no TTLs
+
 v10.3.46 (2025-08-19)
 -------------------------
  * Always include event type in uncompressed Data attribute
