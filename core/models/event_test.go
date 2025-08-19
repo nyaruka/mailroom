@@ -49,7 +49,7 @@ func TestEvent(t *testing.T) {
 		assert.NoError(t, err, "%d: error marshaling event to JSON", i)
 
 		if !test.UpdateSnapshots {
-			test.AssertEqualJSON(t, tc.Dynamo, actual.Dynamo, "%d: dynamo mismatch")
+			test.AssertEqualJSON(t, tc.Dynamo, actual.Dynamo, "%d: dynamo mismatch", i)
 		} else {
 			tcs[i] = actual
 		}

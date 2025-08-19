@@ -76,14 +76,12 @@ func (e *Event) MarshalDynamo() (map[string]types.AttributeValue, error) {
 
 		w.Close()
 		dataGz = buf.Bytes()
-		data = make(map[string]any)
+		data = make(map[string]any, 2)
+		data["type"] = e.Type() // always have type in uncompressed data
 	}
 
 	if e.UserID != NilUserID {
 		data["_user_id"] = e.UserID
-	}
-	if len(data) == 0 {
-		data = nil
 	}
 
 	return attributevalue.MarshalMap(&DynamoItem{
