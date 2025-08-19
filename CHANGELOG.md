@@ -1,3 +1,8 @@
+v10.3.45 (2025-08-19)
+-------------------------
+ * Persist run_started / run_ended events
+ * Update to latest goflow that adds run_started and run_ended events
+
 v10.3.44 (2025-08-18)
 -------------------------
  * Update to latest goflow that removes Run.events altogether
