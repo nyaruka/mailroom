@@ -21,6 +21,8 @@ var eventPersistence = map[string]time.Duration{
 	events.TypeContactLanguageChanged: time.Hour * 24 * 365, // 1 year
 	events.TypeContactNameChanged:     time.Hour * 24 * 365, // 1 year
 	events.TypeContactURNsChanged:     time.Hour * 24 * 365, // 1 year
+	events.TypeRunStarted:             -1,                   // forever
+	events.TypeRunEnded:               -1,                   // forever
 }
 
 const (
