@@ -1,3 +1,7 @@
+v10.3.46 (2025-08-19)
+-------------------------
+ * Always include event type in uncompressed Data attribute
+
 v10.3.45 (2025-08-19)
 -------------------------
  * Persist run_started / run_ended events
