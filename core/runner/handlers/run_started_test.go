@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestFlowEntered(t *testing.T) {
+func TestRunStarted(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, rt, testsuite.ResetAll)
@@ -35,7 +35,7 @@ func TestFlowEntered(t *testing.T) {
 					Count: 1,
 				},
 			},
-			PersistedEvents: map[string]int{},
+			PersistedEvents: map[string]int{"run_started": 5, "run_ended": 3},
 		},
 	}
 

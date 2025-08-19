@@ -74,7 +74,7 @@ func TestCampaigns(t *testing.T) {
 					Count: 0,
 				},
 			},
-			PersistedEvents: map[string]int{"contact_field_changed": 4, "contact_groups_changed": 5},
+			PersistedEvents: map[string]int{"contact_field_changed": 4, "contact_groups_changed": 5, "run_started": 4, "run_ended": 4},
 		},
 	}
 

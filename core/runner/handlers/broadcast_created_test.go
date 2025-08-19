@@ -54,7 +54,7 @@ func TestBroadcastCreated(t *testing.T) {
 					return nil
 				},
 			},
-			PersistedEvents: map[string]int{},
+			PersistedEvents: map[string]int{"run_started": 4, "run_ended": 4},
 		},
 	}
 

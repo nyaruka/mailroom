@@ -86,7 +86,7 @@ func TestMsgCreated(t *testing.T) {
 					Count: 1,
 				},
 			},
-			PersistedEvents: map[string]int{},
+			PersistedEvents: map[string]int{"run_started": 4, "run_ended": 4},
 		},
 	}
 
@@ -99,7 +99,7 @@ func TestMsgCreated(t *testing.T) {
 	assertvk.ZCard(t, vc, fmt.Sprintf("msgs:%s|10/0", testdb.TwilioChannel.UUID), 1)
 }
 
-func TestNewURN(t *testing.T) {
+func TestMsgCreatedNewURN(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, rt, testsuite.ResetAll)
@@ -168,7 +168,7 @@ func TestNewURN(t *testing.T) {
 					Count: 1,
 				},
 			},
-			PersistedEvents: map[string]int{"contact_urns_changed": 4},
+			PersistedEvents: map[string]int{"contact_urns_changed": 4, "run_started": 4, "run_ended": 4},
 		},
 	}
 

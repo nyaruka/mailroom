@@ -307,7 +307,7 @@ func TestAirtimeTransferred(t *testing.T) {
 					Count: 3,
 				},
 			},
-			PersistedEvents: map[string]int{"airtime_transferred": 1},
+			PersistedEvents: map[string]int{"airtime_transferred": 1, "run_started": 4, "run_ended": 4},
 		},
 		{
 			Actions: handlers.ContactActionMap{
@@ -327,7 +327,7 @@ func TestAirtimeTransferred(t *testing.T) {
 					Count: 1,
 				},
 			},
-			PersistedEvents: map[string]int{"airtime_transferred": 1},
+			PersistedEvents: map[string]int{"airtime_transferred": 1, "run_started": 4, "run_ended": 4},
 		},
 	}
 

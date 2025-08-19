@@ -67,7 +67,7 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 
 	// check events were persisted to DynamoDB
 	rt.Writers.History.Flush()
-	dyntest.AssertCount(t, rt.Dynamo, "TestHistory", 2)
+	dyntest.AssertCount(t, rt.Dynamo, "TestHistory", 4)
 
 	testsuite.AssertContactFires(t, rt, testdb.Bob.ID, map[string]time.Time{
 		fmt.Sprintf("E:%s", scBob.Session.UUID()): time.Date(2025, 2, 25, 16, 55, 9, 0, time.UTC), // 10 minutes in future

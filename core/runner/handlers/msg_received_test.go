@@ -44,7 +44,7 @@ func TestMsgReceived(t *testing.T) {
 					Count: 1,
 				},
 			},
-			PersistedEvents: map[string]int{},
+			PersistedEvents: map[string]int{"run_started": 4, "run_ended": 4},
 		},
 	}
 

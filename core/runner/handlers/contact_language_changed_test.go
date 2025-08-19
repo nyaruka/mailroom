@@ -51,7 +51,7 @@ func TestContactLanguageChanged(t *testing.T) {
 					Count: 1,
 				},
 			},
-			PersistedEvents: map[string]int{"contact_language_changed": 3},
+			PersistedEvents: map[string]int{"contact_language_changed": 3, "run_started": 4, "run_ended": 4},
 		},
 	}
 
