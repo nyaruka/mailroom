@@ -124,7 +124,7 @@ func TestInterruptSessionsForContacts(t *testing.T) {
 	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
 	session1UUID, _ := insertSessionAndRun(rt, testdb.Cathy, models.FlowTypeMessaging, models.SessionStatusCompleted, testdb.Favorites, nil)
-	session2UUID, run2ID := insertSessionAndRun(rt, testdb.Cathy, models.FlowTypeVoice, models.SessionStatusWaiting, testdb.Favorites, nil)
+	session2UUID, run2UUID := insertSessionAndRun(rt, testdb.Cathy, models.FlowTypeVoice, models.SessionStatusWaiting, testdb.Favorites, nil)
 	session3UUID, _ := insertSessionAndRun(rt, testdb.Bob, models.FlowTypeMessaging, models.SessionStatusWaiting, testdb.Favorites, nil)
 	session4UUID, _ := insertSessionAndRun(rt, testdb.George, models.FlowTypeMessaging, models.SessionStatusWaiting, testdb.Favorites, nil)
 
@@ -149,48 +149,7 @@ func TestInterruptSessionsForContacts(t *testing.T) {
 
 	// check other columns are correct on interrupted session, run and contact
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE ended_on IS NOT NULL AND current_flow_uuid IS NULL AND uuid = $1`, session2UUID).Returns(1)
-	assertdb.Query(t, rt.DB, `SELECT status FROM flows_flowrun WHERE id = $1`, run2ID).Columns(map[string]any{"status": "I"})
-	assertdb.Query(t, rt.DB, `SELECT current_session_uuid, current_flow_id FROM contacts_contact WHERE id = $1`, testdb.Cathy.ID).Columns(map[string]any{"current_session_uuid": nil, "current_flow_id": nil})
-}
-
-func TestInterruptSessions(t *testing.T) {
-	ctx, rt := testsuite.Runtime(t)
-
-	defer testsuite.Reset(t, rt, testsuite.ResetData)
-
-	session1UUID, _ := insertSessionAndRun(rt, testdb.Cathy, models.FlowTypeMessaging, models.SessionStatusCompleted, testdb.Favorites, nil)
-	session2UUID, run2ID := insertSessionAndRun(rt, testdb.Cathy, models.FlowTypeVoice, models.SessionStatusWaiting, testdb.Favorites, nil)
-	session3UUID, _ := insertSessionAndRun(rt, testdb.Bob, models.FlowTypeMessaging, models.SessionStatusWaiting, testdb.Favorites, nil)
-	session4UUID, _ := insertSessionAndRun(rt, testdb.George, models.FlowTypeMessaging, models.SessionStatusWaiting, testdb.Favorites, nil)
-
-	tx := rt.DB.MustBegin()
-
-	// noop if no sessions
-	err := models.InterruptSessions(ctx, tx, []flows.SessionUUID{})
-	require.NoError(t, err)
-
-	require.NoError(t, tx.Commit())
-
-	assertSessionAndRunStatus(t, rt, session1UUID, models.SessionStatusCompleted)
-	assertSessionAndRunStatus(t, rt, session2UUID, models.SessionStatusWaiting)
-	assertSessionAndRunStatus(t, rt, session3UUID, models.SessionStatusWaiting)
-	assertSessionAndRunStatus(t, rt, session4UUID, models.SessionStatusWaiting)
-
-	tx = rt.DB.MustBegin()
-
-	err = models.InterruptSessions(ctx, tx, []flows.SessionUUID{session2UUID, session3UUID})
-	require.NoError(t, err)
-
-	require.NoError(t, tx.Commit())
-
-	assertSessionAndRunStatus(t, rt, session1UUID, models.SessionStatusCompleted) // wasn't waiting
-	assertSessionAndRunStatus(t, rt, session2UUID, models.SessionStatusInterrupted)
-	assertSessionAndRunStatus(t, rt, session3UUID, models.SessionStatusInterrupted)
-	assertSessionAndRunStatus(t, rt, session4UUID, models.SessionStatusWaiting) // contact not included
-
-	// check other columns are correct on interrupted session, run and contact
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE ended_on IS NOT NULL AND current_flow_uuid IS NULL AND uuid = $1`, session2UUID).Returns(1)
-	assertdb.Query(t, rt.DB, `SELECT status FROM flows_flowrun WHERE id = $1`, run2ID).Columns(map[string]any{"status": "I"})
+	assertdb.Query(t, rt.DB, `SELECT status FROM flows_flowrun WHERE uuid = $1`, run2UUID).Columns(map[string]any{"status": "I"})
 	assertdb.Query(t, rt.DB, `SELECT current_session_uuid, current_flow_id FROM contacts_contact WHERE id = $1`, testdb.Cathy.ID).Columns(map[string]any{"current_session_uuid": nil, "current_flow_id": nil})
 }
 
@@ -264,17 +223,17 @@ func TestInterruptSessionsForFlows(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT current_session_uuid, current_flow_id FROM contacts_contact WHERE id = $1`, testdb.Cathy.ID).Columns(map[string]any{"current_session_uuid": nil, "current_flow_id": nil})
 }
 
-func insertSessionAndRun(rt *runtime.Runtime, contact *testdb.Contact, sessionType models.FlowType, status models.SessionStatus, flow *testdb.Flow, call *testdb.Call) (flows.SessionUUID, models.FlowRunID) {
+func insertSessionAndRun(rt *runtime.Runtime, contact *testdb.Contact, sessionType models.FlowType, status models.SessionStatus, flow *testdb.Flow, call *testdb.Call) (flows.SessionUUID, flows.RunUUID) {
 	// create session and add a run with same status
 	sessionUUID := testdb.InsertFlowSession(rt, contact, sessionType, status, call, flow)
-	runID := testdb.InsertFlowRun(rt, testdb.Org1, sessionUUID, contact, flow, models.RunStatus(status), "")
+	runUUID := testdb.InsertFlowRun(rt, testdb.Org1, sessionUUID, contact, flow, models.RunStatus(status), "")
 
 	if status == models.SessionStatusWaiting {
 		// mark contact as being in that flow
 		rt.DB.MustExec(`UPDATE contacts_contact SET current_session_uuid = $2, current_flow_id = $3 WHERE id = $1`, contact.ID, sessionUUID, flow.ID)
 	}
 
-	return sessionUUID, runID
+	return sessionUUID, runUUID
 }
 
 func assertSessionAndRunStatus(t *testing.T, rt *runtime.Runtime, sessionUUID flows.SessionUUID, status models.SessionStatus) {

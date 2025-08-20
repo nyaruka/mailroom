@@ -12,6 +12,7 @@ import (
 	"github.com/nyaruka/mailroom/testsuite"
 	"github.com/nyaruka/mailroom/testsuite/testdb"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestInsertAndUpdateRuns(t *testing.T) {
@@ -114,4 +115,44 @@ func TestGetActiveAndWaitingRuns(t *testing.T) {
 	assert.Equal(t, assets.NewFlowReference(testdb.PickANumber.UUID, "Pick a Number"), runRefs[session1UUID][1].Flow)
 	assert.Len(t, runRefs[session2UUID], 1)
 	assert.Equal(t, assets.NewFlowReference(testdb.PickANumber.UUID, "Pick a Number"), runRefs[session2UUID][0].Flow)
+}
+
+func TestInterruptRuns(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	defer testsuite.Reset(t, rt, testsuite.ResetData)
+
+	session1UUID, _ := insertSessionAndRun(rt, testdb.Cathy, models.FlowTypeMessaging, models.SessionStatusCompleted, testdb.Favorites, nil)
+	session2UUID, run2UUID := insertSessionAndRun(rt, testdb.Cathy, models.FlowTypeVoice, models.SessionStatusWaiting, testdb.Favorites, nil)
+	session3UUID, run3UUID := insertSessionAndRun(rt, testdb.Bob, models.FlowTypeMessaging, models.SessionStatusWaiting, testdb.Favorites, nil)
+	session4UUID, _ := insertSessionAndRun(rt, testdb.George, models.FlowTypeMessaging, models.SessionStatusWaiting, testdb.Favorites, nil)
+
+	tx := rt.DB.MustBegin()
+
+	// noop if no sessions
+	err := models.InterruptRuns(ctx, tx, []flows.RunUUID{})
+	require.NoError(t, err)
+
+	require.NoError(t, tx.Commit())
+
+	assertSessionAndRunStatus(t, rt, session1UUID, models.SessionStatusCompleted)
+	assertSessionAndRunStatus(t, rt, session2UUID, models.SessionStatusWaiting)
+	assertSessionAndRunStatus(t, rt, session3UUID, models.SessionStatusWaiting)
+	assertSessionAndRunStatus(t, rt, session4UUID, models.SessionStatusWaiting)
+
+	tx = rt.DB.MustBegin()
+
+	err = models.InterruptRuns(ctx, tx, []flows.RunUUID{run2UUID, run3UUID})
+	require.NoError(t, err)
+
+	require.NoError(t, tx.Commit())
+
+	assertSessionAndRunStatus(t, rt, session1UUID, models.SessionStatusCompleted) // wasn't waiting
+	assertSessionAndRunStatus(t, rt, session2UUID, models.SessionStatusInterrupted)
+	assertSessionAndRunStatus(t, rt, session3UUID, models.SessionStatusInterrupted)
+	assertSessionAndRunStatus(t, rt, session4UUID, models.SessionStatusWaiting) // contact not included
+
+	// check other columns are correct on interrupted session and run
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE ended_on IS NOT NULL AND uuid = $1`, session2UUID).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT status FROM flows_flowrun WHERE uuid = $1`, run2UUID).Columns(map[string]any{"status": "I"})
 }

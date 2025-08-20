@@ -145,7 +145,8 @@ func InsertWaitingSession(rt *runtime.Runtime, org *Org, contact *Contact, sessi
 }
 
 // InsertFlowRun inserts a flow run
-func InsertFlowRun(rt *runtime.Runtime, org *Org, sessionUUID flows.SessionUUID, contact *Contact, flow *Flow, status models.RunStatus, currentNodeUUID flows.NodeUUID) models.FlowRunID {
+func InsertFlowRun(rt *runtime.Runtime, org *Org, sessionUUID flows.SessionUUID, contact *Contact, flow *Flow, status models.RunStatus, currentNodeUUID flows.NodeUUID) flows.RunUUID {
+	uuid := flows.NewRunUUID()
 	now := time.Now()
 
 	var exitedOn *time.Time
@@ -153,10 +154,9 @@ func InsertFlowRun(rt *runtime.Runtime, org *Org, sessionUUID flows.SessionUUID,
 		exitedOn = &now
 	}
 
-	var id models.FlowRunID
-	must(rt.DB.Get(&id,
+	rt.DB.MustExec(
 		`INSERT INTO flows_flowrun(uuid, org_id, session_uuid, contact_id, flow_id, status, responded, current_node_uuid, created_on, modified_on, exited_on) 
-		 VALUES($1, $2, $3, $4, $5, $6, TRUE, $7, NOW(), NOW(), $8) RETURNING id`, uuids.NewV4(), org.ID, sessionUUID, contact.ID, flow.ID, status, null.String(currentNodeUUID), exitedOn,
-	))
-	return id
+		 VALUES($1, $2, $3, $4, $5, $6, TRUE, $7, NOW(), NOW(), $8) RETURNING id`, uuid, org.ID, sessionUUID, contact.ID, flow.ID, status, null.String(currentNodeUUID), exitedOn,
+	)
+	return uuid
 }
