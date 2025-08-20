@@ -117,11 +117,11 @@ func TestInterrupt(t *testing.T) {
 	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
 	// give Cathy a completed and a waiting session
-	testdb.InsertFlowSession(rt, testdb.Cathy, models.FlowTypeMessaging, models.SessionStatusCompleted, testdb.Favorites, nil)
-	testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Cathy, models.FlowTypeMessaging, testdb.Favorites, nil)
+	testdb.InsertFlowSession(rt, testdb.Cathy, models.FlowTypeMessaging, models.SessionStatusCompleted, nil, testdb.Favorites)
+	testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Cathy, models.FlowTypeMessaging, nil, testdb.Favorites)
 
 	// give Bob a waiting session
-	testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Bob, models.FlowTypeMessaging, testdb.PickANumber, nil)
+	testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Bob, models.FlowTypeMessaging, nil, testdb.PickANumber)
 
 	testsuite.RunWebTests(t, ctx, rt, "testdata/interrupt.json", testsuite.ResetValkey)
 }
