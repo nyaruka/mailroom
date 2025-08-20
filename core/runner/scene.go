@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/mailroom/core/goflow"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/runtime"
@@ -127,11 +128,17 @@ func (s *Scene) addSprint(ctx context.Context, rt *runtime.Runtime, oa *models.O
 // StartSession starts a new session.
 func (s *Scene) StartSession(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, trigger flows.Trigger, interrupt bool) error {
 	if interrupt && s.DBContact.CurrentSessionUUID() != "" {
+		// TODO optimize the bulk start case so we're not looking up each session individually
 
-		// TODO generate run_ended events and handle them to create interrupt hooks
+		runRefs, err := models.GetActiveAndWaitingRuns(ctx, rt, []flows.SessionUUID{s.DBContact.CurrentSessionUUID()})
+		if err != nil {
+			return fmt.Errorf("error getting active runs for contact %s: %w", s.ContactUUID(), err)
+		}
 
-		if err := s.AddEvent(ctx, rt, oa, newSessionInterruptedEvent(s.DBContact.CurrentSessionUUID()), models.NilUserID); err != nil {
-			return fmt.Errorf("error adding session interrupted event: %w", err)
+		for _, run := range runRefs[s.DBContact.CurrentSessionUUID()] {
+			if err := s.AddEvent(ctx, rt, oa, events.NewRunEnded(run.UUID, run.Flow, flows.RunStatusInterrupted), models.NilUserID); err != nil {
+				return fmt.Errorf("error adding session interrupted event: %w", err)
+			}
 		}
 	}
 
