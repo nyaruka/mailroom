@@ -165,10 +165,9 @@ func TestSessionWithSubflows(t *testing.T) {
 
 	mc, contact, _ := testdb.Cathy.Load(rt, oa)
 	scene := runner.NewScene(mc, contact)
-	scene.Interrupt = true
 	scene.StartID = startID
 
-	err = scene.StartSession(ctx, rt, oa, triggers.NewBuilder(parent.Reference()).Manual().Build())
+	err = scene.StartSession(ctx, rt, oa, triggers.NewBuilder(parent.Reference()).Manual().Build(), true)
 	require.NoError(t, err)
 	err = scene.Commit(ctx, rt, oa)
 	require.NoError(t, err)

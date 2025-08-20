@@ -10,26 +10,14 @@ import (
 	"github.com/nyaruka/mailroom/runtime"
 )
 
-// InsertSessions is our hook for interrupting existing sessions and inserting new ones
+// InsertSessions is our hook for inserting new sessions
 var InsertSessions runner.PreCommitHook = &insertSessions{}
 
 type insertSessions struct{}
 
-func (h *insertSessions) Order() int { return 0 } // run before everything else
+func (h *insertSessions) Order() int { return 1 } // after interrupts
 
 func (h *insertSessions) Execute(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *models.OrgAssets, scenes map[*runner.Scene][]any) error {
-	interruptIDs := make([]models.ContactID, 0, len(scenes))
-	for s := range scenes {
-		if s.Interrupt {
-			interruptIDs = append(interruptIDs, s.ContactID())
-		}
-	}
-	if len(interruptIDs) > 0 {
-		if err := models.InterruptSessionsForContactsTx(ctx, tx, interruptIDs); err != nil {
-			return fmt.Errorf("error interrupting contacts: %w", err)
-		}
-	}
-
 	sessions := make([]*models.Session, 0, len(scenes))
 	contacts := make([]*models.Contact, 0, len(scenes))
 

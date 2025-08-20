@@ -275,9 +275,8 @@ func StartCall(
 	scene := runner.NewScene(mc, contact)
 	scene.DBCall = call
 	scene.Call = flowCall
-	scene.Interrupt = true
 
-	if err := scene.StartSession(ctx, rt, oa, trigger); err != nil {
+	if err := scene.StartSession(ctx, rt, oa, trigger, true); err != nil {
 		return fmt.Errorf("error starting flow: %w", err)
 	}
 	if err := scene.Commit(ctx, rt, oa); err != nil {

@@ -23,7 +23,6 @@ type Scene struct {
 	Call        *flows.Call
 	StartID     models.StartID
 	IncomingMsg *models.MsgInRef
-	Interrupt   bool
 
 	// optional state set during processing
 	DBSession           *models.Session
@@ -126,7 +125,16 @@ func (s *Scene) addSprint(ctx context.Context, rt *runtime.Runtime, oa *models.O
 }
 
 // StartSession starts a new session.
-func (s *Scene) StartSession(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, trigger flows.Trigger) error {
+func (s *Scene) StartSession(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, trigger flows.Trigger, interrupt bool) error {
+	if interrupt && s.DBContact.CurrentSessionUUID() != "" {
+
+		// TODO generate run_ended events and handle them to create interrupt hooks
+
+		if err := s.AddEvent(ctx, rt, oa, newSessionInterruptedEvent(s.DBContact.CurrentSessionUUID()), models.NilUserID); err != nil {
+			return fmt.Errorf("error adding session interrupted event: %w", err)
+		}
+	}
+
 	session, sprint, err := s.Engine(rt).NewSession(ctx, oa.SessionAssets(), oa.Env(), s.Contact, trigger, s.Call)
 	if err != nil {
 		return fmt.Errorf("error starting contact %s in flow %s: %w", s.ContactUUID(), trigger.Flow().UUID, err)

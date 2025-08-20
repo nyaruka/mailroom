@@ -196,9 +196,8 @@ func (t *EventReceivedTask) handle(ctx context.Context, rt *runtime.Runtime, oa 
 	scene := runner.NewScene(mc, contact)
 	scene.DBCall = call
 	scene.Call = flowCall
-	scene.Interrupt = flow.FlowType().Interrupts()
 
-	if err := scene.StartSession(ctx, rt, oa, trig); err != nil {
+	if err := scene.StartSession(ctx, rt, oa, trig, flow.FlowType().Interrupts()); err != nil {
 		return nil, fmt.Errorf("error starting session for contact %s: %w", scene.ContactUUID(), err)
 	}
 	if err := scene.Commit(ctx, rt, oa); err != nil {
