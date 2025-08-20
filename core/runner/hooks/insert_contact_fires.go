@@ -28,7 +28,7 @@ var InsertContactFires runner.PreCommitHook = &insertContactFires{}
 
 type insertContactFires struct{}
 
-func (h *insertContactFires) Order() int { return 1 }
+func (h *insertContactFires) Order() int { return 10 }
 
 func (h *insertContactFires) Execute(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *models.OrgAssets, scenes map[*runner.Scene][]any) error {
 	// gather all our fires

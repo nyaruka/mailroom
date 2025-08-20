@@ -16,7 +16,7 @@ var UpdateCallStatus runner.PreCommitHook = &updateCallStatus{}
 
 type updateCallStatus struct{}
 
-func (h *updateCallStatus) Order() int { return 1 }
+func (h *updateCallStatus) Order() int { return 10 }
 
 func (h *updateCallStatus) Execute(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *models.OrgAssets, scenes map[*runner.Scene][]any) error {
 	for scene, es := range scenes {

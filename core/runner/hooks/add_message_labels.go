@@ -15,7 +15,7 @@ var AddMessageLabels runner.PreCommitHook = &addMessageLabels{}
 
 type addMessageLabels struct{}
 
-func (h *addMessageLabels) Order() int { return 1 }
+func (h *addMessageLabels) Order() int { return 10 }
 
 func (h *addMessageLabels) Execute(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *models.OrgAssets, scenes map[*runner.Scene][]any) error {
 	// build our list of msg label adds, we dedupe these so we never double add in the same transaction

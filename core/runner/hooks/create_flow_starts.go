@@ -19,7 +19,7 @@ var CreateFlowStarts runner.PreCommitHook = &createFlowStarts{}
 
 type createFlowStarts struct{}
 
-func (h *createFlowStarts) Order() int { return 1 }
+func (h *createFlowStarts) Order() int { return 10 }
 
 func (h *createFlowStarts) Execute(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *models.OrgAssets, scenes map[*runner.Scene][]any) error {
 	for _, es := range scenes {

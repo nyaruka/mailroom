@@ -17,7 +17,7 @@ var UpdateContactName runner.PreCommitHook = &updateContactName{}
 
 type updateContactName struct{}
 
-func (h *updateContactName) Order() int { return 1 }
+func (h *updateContactName) Order() int { return 10 }
 
 func (h *updateContactName) Execute(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *models.OrgAssets, scenes map[*runner.Scene][]any) error {
 	// build up our list of pairs of contact id and contact name

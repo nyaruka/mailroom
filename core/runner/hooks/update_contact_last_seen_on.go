@@ -16,7 +16,7 @@ var UpdateContactLastSeenOn runner.PreCommitHook = &updateContactLastSeenOn{}
 
 type updateContactLastSeenOn struct{}
 
-func (h *updateContactLastSeenOn) Order() int { return 1 }
+func (h *updateContactLastSeenOn) Order() int { return 10 }
 
 func (h *updateContactLastSeenOn) Execute(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *models.OrgAssets, scenes map[*runner.Scene][]any) error {
 	for scene, evts := range scenes {

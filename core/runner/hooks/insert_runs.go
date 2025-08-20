@@ -15,7 +15,7 @@ var InsertRuns runner.PreCommitHook = &insertRuns{}
 
 type insertRuns struct{}
 
-func (h *insertRuns) Order() int { return 1 }
+func (h *insertRuns) Order() int { return 10 }
 
 func (h *insertRuns) Execute(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *models.OrgAssets, scenes map[*runner.Scene][]any) error {
 	runs := make([]*models.FlowRun, 0, len(scenes))

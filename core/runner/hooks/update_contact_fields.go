@@ -20,7 +20,7 @@ var UpdateContactFields runner.PreCommitHook = &updateContactFields{}
 
 type updateContactFields struct{}
 
-func (h *updateContactFields) Order() int { return 1 }
+func (h *updateContactFields) Order() int { return 10 }
 
 func (h *updateContactFields) Execute(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *models.OrgAssets, scenes map[*runner.Scene][]any) error {
 	// our list of updates

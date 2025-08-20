@@ -15,7 +15,7 @@ var InsertHTTPLogs runner.PreCommitHook = &insertHTTPLogs{}
 
 type insertHTTPLogs struct{}
 
-func (h *insertHTTPLogs) Order() int { return 1 }
+func (h *insertHTTPLogs) Order() int { return 10 }
 
 func (h *insertHTTPLogs) Execute(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *models.OrgAssets, scenes map[*runner.Scene][]any) error {
 	// gather all our logs

@@ -16,7 +16,7 @@ var UpdateContactStatus runner.PreCommitHook = &updateContactStatus{}
 
 type updateContactStatus struct{}
 
-func (h *updateContactStatus) Order() int { return 1 }
+func (h *updateContactStatus) Order() int { return 10 }
 
 func (h *updateContactStatus) Execute(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *models.OrgAssets, scenes map[*runner.Scene][]any) error {
 	statusChanges := make([]*models.ContactStatusChange, 0, len(scenes))

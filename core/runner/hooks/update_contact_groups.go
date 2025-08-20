@@ -15,7 +15,7 @@ var UpdateContactGroups runner.PreCommitHook = &updateContactGroups{}
 
 type updateContactGroups struct{}
 
-func (h *updateContactGroups) Order() int { return 1 }
+func (h *updateContactGroups) Order() int { return 10 }
 
 func (h *updateContactGroups) Execute(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *models.OrgAssets, scenes map[*runner.Scene][]any) error {
 	// build up our list of all adds and removes

@@ -16,7 +16,7 @@ var UpdateContactLanguage runner.PreCommitHook = &updateContactLanguage{}
 
 type updateContactLanguage struct{}
 
-func (h *updateContactLanguage) Order() int { return 1 }
+func (h *updateContactLanguage) Order() int { return 10 }
 
 func (h *updateContactLanguage) Execute(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *models.OrgAssets, scenes map[*runner.Scene][]any) error {
 	// build up our list of pairs of contact id and language name

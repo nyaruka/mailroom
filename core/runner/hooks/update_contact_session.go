@@ -15,7 +15,7 @@ var UpdateContactSession runner.PreCommitHook = &updateContactSession{}
 
 type updateContactSession struct{}
 
-func (h *updateContactSession) Order() int { return 1 }
+func (h *updateContactSession) Order() int { return 10 }
 
 func (h *updateContactSession) Execute(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *models.OrgAssets, scenes map[*runner.Scene][]any) error {
 	updates := make([]CurrentSessionUpdate, 0, len(scenes))

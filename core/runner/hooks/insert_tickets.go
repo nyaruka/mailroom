@@ -20,7 +20,7 @@ var InsertTickets runner.PreCommitHook = &insertTickets{}
 
 type insertTickets struct{}
 
-func (h *insertTickets) Order() int { return 1 }
+func (h *insertTickets) Order() int { return 10 }
 
 func (h *insertTickets) Execute(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *models.OrgAssets, scenes map[*runner.Scene][]any) error {
 	// gather all our tickets and notes

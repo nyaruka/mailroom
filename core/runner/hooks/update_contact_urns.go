@@ -17,7 +17,7 @@ var UpdateContactURNs runner.PreCommitHook = &updateContactURNs{}
 
 type updateContactURNs struct{}
 
-func (h *updateContactURNs) Order() int { return 1 }
+func (h *updateContactURNs) Order() int { return 10 }
 
 func (h *updateContactURNs) Execute(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *models.OrgAssets, scenes map[*runner.Scene][]any) error {
 	var flowUUID assets.FlowUUID

@@ -33,7 +33,7 @@ var InsertFlowStats runner.PreCommitHook = &insertFlowStats{}
 
 type insertFlowStats struct{}
 
-func (h *insertFlowStats) Order() int { return 1 }
+func (h *insertFlowStats) Order() int { return 10 }
 
 func (h *insertFlowStats) Execute(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *models.OrgAssets, scenes map[*runner.Scene][]any) error {
 	countsBySegment := make(map[segmentInfo]int, 10)

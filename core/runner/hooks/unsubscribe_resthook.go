@@ -15,7 +15,7 @@ var UnsubscribeResthook runner.PreCommitHook = &unsubscribeResthook{}
 
 type unsubscribeResthook struct{}
 
-func (h *unsubscribeResthook) Order() int { return 1 }
+func (h *unsubscribeResthook) Order() int { return 10 }
 
 func (h *unsubscribeResthook) Execute(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *models.OrgAssets, scene map[*runner.Scene][]any) error {
 	// gather all our unsubscribes

@@ -14,7 +14,7 @@ var SendMessages runner.PostCommitHook = &sendMessages{}
 
 type sendMessages struct{}
 
-func (h *sendMessages) Order() int { return 1 }
+func (h *sendMessages) Order() int { return 10 }
 
 func (h *sendMessages) Execute(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scenes map[*runner.Scene][]any) error {
 	msgs := make([]*models.MsgOut, 0, len(scenes))

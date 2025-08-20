@@ -16,7 +16,7 @@ var InsertMessages runner.PreCommitHook = &insertMessages{}
 
 type insertMessages struct{}
 
-func (h *insertMessages) Order() int { return 1 }
+func (h *insertMessages) Order() int { return 10 }
 
 func (h *insertMessages) Execute(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *models.OrgAssets, scenes map[*runner.Scene][]any) error {
 	msgs := make([]*models.Msg, 0, len(scenes))
