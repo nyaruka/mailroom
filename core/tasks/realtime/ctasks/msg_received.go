@@ -213,9 +213,7 @@ func (t *MsgReceivedTask) handleMsgEvent(ctx context.Context, rt *runtime.Runtim
 					return fmt.Errorf("error starting voice flow for contact: %w", err)
 				}
 			} else {
-				scene.Interrupt = flow.FlowType().Interrupts()
-
-				if err := scene.StartSession(ctx, rt, oa, flowTrigger); err != nil {
+				if err := scene.StartSession(ctx, rt, oa, flowTrigger, flow.FlowType().Interrupts()); err != nil {
 					return fmt.Errorf("error starting session for contact %s: %w", scene.ContactUUID(), err)
 				}
 			}

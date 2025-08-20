@@ -138,10 +138,9 @@ func TestUnhealthyWebhookCalls(t *testing.T) {
 
 	runFlow := func() {
 		scene := runner.NewScene(mc, contact)
-		scene.Interrupt = true
 		scene.Engine = func(r *runtime.Runtime) flows.Engine { return eng }
 
-		err = scene.StartSession(ctx, rt, oa, triggers.NewBuilder(flow.Reference()).Manual().Build())
+		err = scene.StartSession(ctx, rt, oa, triggers.NewBuilder(flow.Reference()).Manual().Build(), true)
 		require.NoError(t, err)
 		err = scene.Commit(ctx, rt, oa)
 		require.NoError(t, err)

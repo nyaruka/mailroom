@@ -33,9 +33,8 @@ func StartSessions(t *testing.T, rt *runtime.Runtime, oa *models.OrgAssets, cont
 	for i, contact := range contacts {
 		mc, fc, _ := contact.Load(rt, oa)
 		scenes[i] = runner.NewScene(mc, fc)
-		scenes[i].Interrupt = true
 
-		err := scenes[i].StartSession(ctx, rt, oa, triggers[i])
+		err := scenes[i].StartSession(ctx, rt, oa, triggers[i], true)
 		require.NoError(t, err)
 	}
 

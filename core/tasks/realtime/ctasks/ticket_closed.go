@@ -75,7 +75,6 @@ func (t *TicketClosedTask) Perform(ctx context.Context, rt *runtime.Runtime, oa 
 	evt := events.NewTicketClosed(ticket)
 
 	scene := runner.NewScene(mc, contact)
-	scene.Interrupt = flow.FlowType().Interrupts()
 
 	if err := scene.AddEvent(ctx, rt, oa, evt, models.NilUserID); err != nil {
 		return fmt.Errorf("error adding ticket closed event to scene: %w", err)
@@ -92,7 +91,7 @@ func (t *TicketClosedTask) Perform(ctx context.Context, rt *runtime.Runtime, oa 
 		return nil
 	}
 
-	if err := scene.StartSession(ctx, rt, oa, flowTrigger); err != nil {
+	if err := scene.StartSession(ctx, rt, oa, flowTrigger, flow.FlowType().Interrupts()); err != nil {
 		return fmt.Errorf("error starting session for contact %s: %w", scene.ContactUUID(), err)
 	}
 	if err := scene.Commit(ctx, rt, oa); err != nil {

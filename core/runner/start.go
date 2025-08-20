@@ -88,9 +88,8 @@ func tryToStartWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 
 		scene := NewScene(mc, c)
 		scene.StartID = startID
-		scene.Interrupt = interrupt
 
-		if err := scene.StartSession(ctx, rt, oa, triggerBuilder()); err != nil {
+		if err := scene.StartSession(ctx, rt, oa, triggerBuilder(), interrupt); err != nil {
 			return nil, nil, fmt.Errorf("error starting session for contact %s: %w", scene.ContactUUID(), err)
 		}
 

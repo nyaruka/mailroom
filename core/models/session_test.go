@@ -153,7 +153,7 @@ func TestInterruptSessionsForContacts(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT current_session_uuid, current_flow_id FROM contacts_contact WHERE id = $1`, testdb.Cathy.ID).Columns(map[string]any{"current_session_uuid": nil, "current_flow_id": nil})
 }
 
-func TestInterruptSessionsForContactsTx(t *testing.T) {
+func TestInterruptSessions(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, rt, testsuite.ResetData)
@@ -165,8 +165,8 @@ func TestInterruptSessionsForContactsTx(t *testing.T) {
 
 	tx := rt.DB.MustBegin()
 
-	// noop if no contacts
-	err := models.InterruptSessionsForContactsTx(ctx, tx, []models.ContactID{})
+	// noop if no sessions
+	err := models.InterruptSessions(ctx, tx, []flows.SessionUUID{})
 	require.NoError(t, err)
 
 	require.NoError(t, tx.Commit())
@@ -178,7 +178,7 @@ func TestInterruptSessionsForContactsTx(t *testing.T) {
 
 	tx = rt.DB.MustBegin()
 
-	err = models.InterruptSessionsForContactsTx(ctx, tx, []models.ContactID{testdb.Cathy.ID, testdb.Bob.ID})
+	err = models.InterruptSessions(ctx, tx, []flows.SessionUUID{session2UUID, session3UUID})
 	require.NoError(t, err)
 
 	require.NoError(t, tx.Commit())
