@@ -5,6 +5,7 @@ import (
 	"crypto/md5"
 	"fmt"
 	"log/slog"
+	"maps"
 	"net/url"
 	"path"
 	"slices"
@@ -15,6 +16,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 	"github.com/nyaruka/gocommon/aws/s3x"
+	"github.com/nyaruka/gocommon/dbutil"
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/envs"
@@ -271,7 +273,7 @@ func InterruptSessionsForContacts(ctx context.Context, db *sqlx.DB, contactIDs [
 		return 0, err
 	}
 
-	if err := ExitSessions(ctx, db, sessionUUIDs, SessionStatusInterrupted); err != nil {
+	if err := ExitSessions(ctx, db, slices.Collect(maps.Values(sessionUUIDs)), SessionStatusInterrupted); err != nil {
 		return 0, fmt.Errorf("error exiting sessions: %w", err)
 	}
 
@@ -287,7 +289,7 @@ func InterruptSessionsForContactsTx(ctx context.Context, tx *sqlx.Tx, contactIDs
 	}
 
 	if len(sessionUUIDs) > 0 {
-		if err := exitSessionBatch(ctx, tx, sessionUUIDs, SessionStatusInterrupted); err != nil {
+		if err := exitSessionBatch(ctx, tx, slices.Collect(maps.Values(sessionUUIDs)), SessionStatusInterrupted); err != nil {
 			return fmt.Errorf("error exiting sessions: %w", err)
 		}
 	}
@@ -296,13 +298,17 @@ func InterruptSessionsForContactsTx(ctx context.Context, tx *sqlx.Tx, contactIDs
 }
 
 const sqlSelectWaitingSessionsForContacts = `
-SELECT current_session_uuid FROM contacts_contact WHERE id = ANY($1) AND current_session_uuid IS NOT NULL`
+SELECT id, current_session_uuid FROM contacts_contact WHERE id = ANY($1) AND current_session_uuid IS NOT NULL`
 
-func getWaitingSessionsForContacts(ctx context.Context, db DBorTx, contactIDs []ContactID) ([]flows.SessionUUID, error) {
-	sessionUUIDs := make([]flows.SessionUUID, 0, len(contactIDs))
-
-	if err := db.SelectContext(ctx, &sessionUUIDs, sqlSelectWaitingSessionsForContacts, pq.Array(contactIDs)); err != nil {
+func getWaitingSessionsForContacts(ctx context.Context, db DBorTx, contactIDs []ContactID) (map[ContactID]flows.SessionUUID, error) {
+	rows, err := db.QueryContext(ctx, sqlSelectWaitingSessionsForContacts, pq.Array(contactIDs))
+	if err != nil {
 		return nil, fmt.Errorf("error selecting current sessions for contacts: %w", err)
+	}
+
+	sessionUUIDs := make(map[ContactID]flows.SessionUUID, len(contactIDs))
+	if err = dbutil.ScanAllMap(rows, sessionUUIDs); err != nil {
+		return nil, fmt.Errorf("error scanning current sessions for contacts: %w", err)
 	}
 
 	return sessionUUIDs, nil
@@ -348,6 +354,46 @@ func InterruptSessionsForFlows(ctx context.Context, db *sqlx.DB, flowIDs []FlowI
 	}
 
 	return nil
+}
+
+type RunReference struct {
+	UUID flows.RunUUID
+	Flow *assets.FlowReference
+}
+
+const sqlSelectOngoingRuns = `
+    SELECT r.session_uuid, r.uuid AS uuid, f.uuid AS flow_uuid, f.name AS flow_name
+      FROM flows_flowrun r
+INNER JOIN flows_flow f ON f.id = r.flow_id
+     WHERE session_uuid = ANY($1) AND status IN ('A', 'W')
+	 ORDER BY r.id`
+
+// GetWaitingSessionsAndRuns gets waiting sesssions with information about their active/waiting runs
+func GetWaitingSessionsAndRuns(ctx context.Context, rt *runtime.Runtime, contactIDs []ContactID) (map[ContactID]flows.SessionUUID, map[flows.SessionUUID][]*RunReference, error) {
+	sessionUUIDs, err := getWaitingSessionsForContacts(ctx, rt.DB, contactIDs)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	type envelope struct {
+		SessionUUID flows.SessionUUID `db:"session_uuid"`
+		UUID        flows.RunUUID     `db:"uuid"`
+		FlowUUID    assets.FlowUUID   `db:"flow_uuid"`
+		FlowName    string            `db:"flow_name"`
+	}
+
+	var all []*envelope
+
+	if err := rt.DB.SelectContext(ctx, &all, sqlSelectOngoingRuns, pq.Array(slices.Collect(maps.Values(sessionUUIDs)))); err != nil {
+		return nil, nil, fmt.Errorf("error fetching ongoing runs: %w", err)
+	}
+
+	runRefs := make(map[flows.SessionUUID][]*RunReference, len(sessionUUIDs))
+	for _, r := range all {
+		runRefs[r.SessionUUID] = append(runRefs[r.SessionUUID], &RunReference{UUID: r.UUID, Flow: assets.NewFlowReference(r.FlowUUID, r.FlowName)})
+	}
+
+	return sessionUUIDs, runRefs, nil
 }
 
 const (

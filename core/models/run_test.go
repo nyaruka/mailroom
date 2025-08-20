@@ -6,7 +6,6 @@ import (
 
 	"github.com/lib/pq"
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
-	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/testsuite"
@@ -95,25 +94,4 @@ func TestGetContactIDsAtNode(t *testing.T) {
 	contactIDs, err := models.GetContactIDsAtNode(ctx, rt, testdb.Org1.ID, "dd79811e-a88a-4e67-bb47-a132fe8ce3f2")
 	assert.NoError(t, err)
 	assert.ElementsMatch(t, []models.ContactID{testdb.Bob.ID, testdb.George.ID}, contactIDs)
-}
-
-func TestGetInterruptableRuns(t *testing.T) {
-	ctx, rt := testsuite.Runtime(t)
-
-	defer testsuite.Reset(t, rt, testsuite.ResetData)
-
-	testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Cathy, models.FlowTypeMessaging, nil, testdb.Favorites, testdb.PickANumber)
-	testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Bob, models.FlowTypeMessaging, nil, testdb.PickANumber)
-	testdb.InsertFlowSession(rt, testdb.George, models.FlowTypeMessaging, models.SessionStatusCompleted, nil, testdb.Favorites)
-
-	interrupts, err := models.GetOngoingRuns(ctx, rt, []models.ContactID{testdb.Cathy.ID, testdb.Bob.ID, testdb.George.ID})
-	assert.NoError(t, err)
-
-	assert.Len(t, interrupts, 2)
-	assert.Len(t, interrupts[testdb.Cathy.ID], 2)
-	assert.Equal(t, assets.NewFlowReference(testdb.Favorites.UUID, "Favorites"), interrupts[testdb.Cathy.ID][0].Flow())
-	assert.Equal(t, assets.NewFlowReference(testdb.PickANumber.UUID, "Pick a Number"), interrupts[testdb.Cathy.ID][1].Flow())
-	assert.Len(t, interrupts[testdb.Bob.ID], 1)
-	assert.Equal(t, assets.NewFlowReference(testdb.PickANumber.UUID, "Pick a Number"), interrupts[testdb.Bob.ID][0].Flow())
-	assert.Empty(t, interrupts[testdb.George.ID])
 }

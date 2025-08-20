@@ -264,6 +264,30 @@ func TestInterruptSessionsForFlows(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT current_session_uuid, current_flow_id FROM contacts_contact WHERE id = $1`, testdb.Cathy.ID).Columns(map[string]any{"current_session_uuid": nil, "current_flow_id": nil})
 }
 
+func TestGetWaitingSessionsAndRuns(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	defer testsuite.Reset(t, rt, testsuite.ResetData)
+
+	session1UUID := testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Cathy, models.FlowTypeMessaging, nil, testdb.Favorites, testdb.PickANumber)
+	session2UUID := testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Bob, models.FlowTypeMessaging, nil, testdb.PickANumber)
+	testdb.InsertFlowSession(rt, testdb.George, models.FlowTypeMessaging, models.SessionStatusCompleted, nil, testdb.Favorites)
+
+	sessionUUIDs, runRefs, err := models.GetWaitingSessionsAndRuns(ctx, rt, []models.ContactID{testdb.Cathy.ID, testdb.Bob.ID, testdb.George.ID})
+	assert.NoError(t, err)
+
+	assert.Equal(t, map[models.ContactID]flows.SessionUUID{
+		testdb.Cathy.ID: session1UUID,
+		testdb.Bob.ID:   session2UUID,
+	}, sessionUUIDs)
+
+	assert.Len(t, runRefs[session1UUID], 2)
+	assert.Equal(t, assets.NewFlowReference(testdb.Favorites.UUID, "Favorites"), runRefs[session1UUID][0].Flow)
+	assert.Equal(t, assets.NewFlowReference(testdb.PickANumber.UUID, "Pick a Number"), runRefs[session1UUID][1].Flow)
+	assert.Len(t, runRefs[session2UUID], 1)
+	assert.Equal(t, assets.NewFlowReference(testdb.PickANumber.UUID, "Pick a Number"), runRefs[session2UUID][0].Flow)
+}
+
 func insertSessionAndRun(rt *runtime.Runtime, contact *testdb.Contact, sessionType models.FlowType, status models.SessionStatus, flow *testdb.Flow, call *testdb.Call) (flows.SessionUUID, models.FlowRunID) {
 	// create session and add a run with same status
 	sessionUUID := testdb.InsertFlowSession(rt, contact, sessionType, status, call, flow)
