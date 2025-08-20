@@ -19,7 +19,7 @@ func TestStartFlowTask(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
-	testdb.InsertWaitingSession(rt, testdb.Org1, testdb.George, models.FlowTypeMessaging, testdb.Favorites, nil)
+	testdb.InsertWaitingSession(rt, testdb.Org1, testdb.George, models.FlowTypeMessaging, nil, testdb.Favorites)
 
 	tcs := []struct {
 		flowID                   models.FlowID

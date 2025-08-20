@@ -19,9 +19,9 @@ func TestBulkSessionExpireTask(t *testing.T) {
 
 	twilioCall := testdb.InsertCall(rt, testdb.Org1, testdb.TwilioChannel, testdb.Alexandra)
 
-	session1UUID := testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Alexandra, models.FlowTypeVoice, testdb.Favorites, twilioCall)
-	session2UUID := testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Bob, models.FlowTypeMessaging, testdb.PickANumber, nil)
-	session3UUID := testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Cathy, models.FlowTypeMessaging, testdb.Favorites, nil)
+	session1UUID := testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Alexandra, models.FlowTypeVoice, twilioCall, testdb.Favorites)
+	session2UUID := testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Bob, models.FlowTypeMessaging, nil, testdb.PickANumber)
+	session3UUID := testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Cathy, models.FlowTypeMessaging, nil, testdb.Favorites)
 
 	testsuite.QueueBatchTask(t, rt, testdb.Org1, &contacts.BulkSessionExpireTask{
 		SessionUUIDs: []flows.SessionUUID{session1UUID, session2UUID},

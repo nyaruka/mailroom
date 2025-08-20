@@ -9,6 +9,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 	"github.com/nyaruka/gocommon/jsonx"
+	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/null/v3"
@@ -160,4 +161,43 @@ func GetContactIDsAtNode(ctx context.Context, rt *runtime.Runtime, orgID OrgID, 
 	}
 
 	return contactIDs, nil
+}
+
+type OngoingRun struct {
+	ContactID ContactID       `db:"contact_id"`
+	RunUUID   flows.RunUUID   `db:"run_uuid"`
+	FlowUUID  assets.FlowUUID `db:"flow_uuid"`
+	FlowName  string          `db:"flow_name"`
+}
+
+func (i *OngoingRun) Flow() *assets.FlowReference {
+	return assets.NewFlowReference(i.FlowUUID, i.FlowName)
+}
+
+const sqlSelectOngoingRuns = `
+    SELECT r.contact_id, r.uuid AS run_uuid, f.uuid AS flow_uuid, f.name AS flow_name
+      FROM flows_flowrun r
+INNER JOIN flows_flow f ON f.id = r.flow_id
+     WHERE session_uuid = ANY($1) AND status IN ('A', 'W')
+	 ORDER BY r.id`
+
+// GetOngoingRuns gets all active or waiting runs for the given contacts
+func GetOngoingRuns(ctx context.Context, rt *runtime.Runtime, contactIDs []ContactID) (map[ContactID][]*OngoingRun, error) {
+	sessionUUIDs, err := getWaitingSessionsForContacts(ctx, rt.DB, contactIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	var all []*OngoingRun
+
+	if err := rt.DB.SelectContext(ctx, &all, sqlSelectOngoingRuns, pq.Array(sessionUUIDs)); err != nil {
+		return nil, fmt.Errorf("error fetching ongoing runs: %w", err)
+	}
+
+	byContact := make(map[ContactID][]*OngoingRun, len(contactIDs))
+	for _, r := range all {
+		byContact[r.ContactID] = append(byContact[r.ContactID], r)
+	}
+
+	return byContact, nil
 }

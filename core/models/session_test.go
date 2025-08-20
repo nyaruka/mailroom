@@ -105,9 +105,9 @@ func TestGetWaitingSessionForContact(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
-	sessionUUID := testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Cathy, models.FlowTypeMessaging, testdb.Favorites, nil)
-	testdb.InsertFlowSession(rt, testdb.Cathy, models.FlowTypeMessaging, models.SessionStatusCompleted, testdb.Favorites, nil)
-	testdb.InsertWaitingSession(rt, testdb.Org1, testdb.George, models.FlowTypeMessaging, testdb.Favorites, nil)
+	sessionUUID := testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Cathy, models.FlowTypeMessaging, nil, testdb.Favorites)
+	testdb.InsertFlowSession(rt, testdb.Cathy, models.FlowTypeMessaging, models.SessionStatusCompleted, nil, testdb.Favorites)
+	testdb.InsertWaitingSession(rt, testdb.Org1, testdb.George, models.FlowTypeMessaging, nil, testdb.Favorites)
 
 	oa := testdb.Org1.Load(rt)
 	mc, contact, _ := testdb.Cathy.Load(rt, oa)
@@ -266,7 +266,7 @@ func TestInterruptSessionsForFlows(t *testing.T) {
 
 func insertSessionAndRun(rt *runtime.Runtime, contact *testdb.Contact, sessionType models.FlowType, status models.SessionStatus, flow *testdb.Flow, call *testdb.Call) (flows.SessionUUID, models.FlowRunID) {
 	// create session and add a run with same status
-	sessionUUID := testdb.InsertFlowSession(rt, contact, sessionType, status, flow, call)
+	sessionUUID := testdb.InsertFlowSession(rt, contact, sessionType, status, call, flow)
 	runID := testdb.InsertFlowRun(rt, testdb.Org1, sessionUUID, contact, flow, models.RunStatus(status), "")
 
 	if status == models.SessionStatusWaiting {
