@@ -46,7 +46,7 @@ func TestQueueMessages(t *testing.T) {
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	defer testsuite.Reset(t, rt, testsuite.ResetData)
+	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetValkey)
 
 	mockFCM := rt.FCM.(*testsuite.MockFCMClient)
 
