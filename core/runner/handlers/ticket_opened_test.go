@@ -92,7 +92,7 @@ func TestTicketOpened(t *testing.T) {
 					Count: 3,
 				},
 			},
-			PersistedEvents: map[string]int{"contact_groups_changed": 2},
+			PersistedEvents: map[string]int{"contact_groups_changed": 2, "run_started": 4, "run_ended": 4},
 		},
 	}
 

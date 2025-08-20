@@ -97,10 +97,6 @@ func (e *Event) MarshalDynamo() (map[string]types.AttributeValue, error) {
 
 // PersistEvent returns whether an event should be persisted
 func PersistEvent(e flows.Event) bool {
-	if e.Type() == events.TypeRunStarted || e.Type() == events.TypeRunEnded {
-		return e.CreatedOn().After(time.Date(2025, 8, 19, 18, 0, 0, 0, time.UTC)) // TEMP: to help with backfilling
-	}
-
 	_, ok := eventPersistence[e.Type()]
 	return ok
 }

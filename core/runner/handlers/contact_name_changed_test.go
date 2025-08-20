@@ -58,7 +58,7 @@ func TestContactNameChanged(t *testing.T) {
 					Count: 1,
 				},
 			},
-			PersistedEvents: map[string]int{"contact_name_changed": 5},
+			PersistedEvents: map[string]int{"contact_name_changed": 5, "run_started": 4, "run_ended": 4},
 		},
 	}
 

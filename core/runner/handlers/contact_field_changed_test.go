@@ -87,7 +87,7 @@ func TestContactFieldChanged(t *testing.T) {
 					Count: 1,
 				},
 			},
-			PersistedEvents: map[string]int{"contact_field_changed": 9},
+			PersistedEvents: map[string]int{"contact_field_changed": 9, "run_started": 4, "run_ended": 4},
 		},
 	}
 
