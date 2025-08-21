@@ -118,7 +118,7 @@ func TestGetWaitingSessionForContact(t *testing.T) {
 	assert.Equal(t, sessionUUID, session.UUID)
 }
 
-func TestInterruptSessionsForContacts(t *testing.T) {
+func TestInterruptSessionsForContactsTx(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, rt, testsuite.ResetData)
@@ -128,19 +128,25 @@ func TestInterruptSessionsForContacts(t *testing.T) {
 	session3UUID, _ := insertSessionAndRun(rt, testdb.Bob, models.FlowTypeMessaging, models.SessionStatusWaiting, testdb.Favorites, nil)
 	session4UUID, _ := insertSessionAndRun(rt, testdb.George, models.FlowTypeMessaging, models.SessionStatusWaiting, testdb.Favorites, nil)
 
+	tx := rt.DB.MustBegin()
+
 	// noop if no contacts
-	count, err := models.InterruptSessionsForContacts(ctx, rt.DB, []models.ContactID{})
-	assert.NoError(t, err)
-	assert.Equal(t, 0, count)
+	err := models.InterruptSessionsForContactsTx(ctx, tx, []models.ContactID{})
+	require.NoError(t, err)
+
+	require.NoError(t, tx.Commit())
 
 	assertSessionAndRunStatus(t, rt, session1UUID, models.SessionStatusCompleted)
 	assertSessionAndRunStatus(t, rt, session2UUID, models.SessionStatusWaiting)
 	assertSessionAndRunStatus(t, rt, session3UUID, models.SessionStatusWaiting)
 	assertSessionAndRunStatus(t, rt, session4UUID, models.SessionStatusWaiting)
 
-	count, err = models.InterruptSessionsForContacts(ctx, rt.DB, []models.ContactID{testdb.Cathy.ID, testdb.Bob.ID, testdb.Alexandra.ID})
-	assert.NoError(t, err)
-	assert.Equal(t, 2, count)
+	tx = rt.DB.MustBegin()
+
+	err = models.InterruptSessionsForContactsTx(ctx, tx, []models.ContactID{testdb.Cathy.ID, testdb.Bob.ID})
+	require.NoError(t, err)
+
+	require.NoError(t, tx.Commit())
 
 	assertSessionAndRunStatus(t, rt, session1UUID, models.SessionStatusCompleted) // wasn't waiting
 	assertSessionAndRunStatus(t, rt, session2UUID, models.SessionStatusInterrupted)
