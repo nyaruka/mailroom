@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"maps"
+	"slices"
 	"time"
 
 	"github.com/nyaruka/goflow/flows"
@@ -125,20 +127,40 @@ func (s *Scene) addSprint(ctx context.Context, rt *runtime.Runtime, oa *models.O
 	return nil
 }
 
+func BulkInterrupt(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scenes []*Scene) error {
+	sessions := make(map[flows.SessionUUID]*Scene, len(scenes))
+	for _, s := range scenes {
+		if s.DBContact.CurrentSessionUUID() != "" {
+			sessions[s.DBContact.CurrentSessionUUID()] = s
+		}
+	}
+	if len(sessions) == 0 {
+		return nil // nothing to do
+	}
+
+	runRefs, err := models.GetActiveAndWaitingRuns(ctx, rt, slices.Collect(maps.Keys(sessions)))
+	if err != nil {
+		return fmt.Errorf("error getting active runs for waiting sessions: %w", err)
+	}
+
+	for _, s := range scenes {
+		if s.DBContact.CurrentSessionUUID() != "" {
+			for _, run := range runRefs[s.DBContact.CurrentSessionUUID()] {
+				if err := s.AddEvent(ctx, rt, oa, events.NewRunEnded(run.UUID, run.Flow, flows.RunStatusInterrupted), models.NilUserID); err != nil {
+					return fmt.Errorf("error adding session interrupted event: %w", err)
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
 // StartSession starts a new session.
 func (s *Scene) StartSession(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, trigger flows.Trigger, interrupt bool) error {
-	if interrupt && s.DBContact.CurrentSessionUUID() != "" {
-		// TODO optimize the bulk start case so we're not looking up each session individually
-
-		runRefs, err := models.GetActiveAndWaitingRuns(ctx, rt, []flows.SessionUUID{s.DBContact.CurrentSessionUUID()})
-		if err != nil {
-			return fmt.Errorf("error getting active runs for contact %s: %w", s.ContactUUID(), err)
-		}
-
-		for _, run := range runRefs[s.DBContact.CurrentSessionUUID()] {
-			if err := s.AddEvent(ctx, rt, oa, events.NewRunEnded(run.UUID, run.Flow, flows.RunStatusInterrupted), models.NilUserID); err != nil {
-				return fmt.Errorf("error adding session interrupted event: %w", err)
-			}
+	if interrupt {
+		if err := BulkInterrupt(ctx, rt, oa, []*Scene{s}); err != nil {
+			return fmt.Errorf("error interrupting existing session: %w", err)
 		}
 	}
 

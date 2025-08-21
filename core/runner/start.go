@@ -75,7 +75,6 @@ func tryToStartWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 	}
 
 	scenes := make([]*Scene, 0, len(mcs))
-
 	for _, mc := range mcs {
 		if ctx.Err() != nil {
 			return nil, nil, fmt.Errorf("error starting session: %w", ctx.Err())
@@ -88,12 +87,19 @@ func tryToStartWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 
 		scene := NewScene(mc, c)
 		scene.StartID = startID
+		scenes = append(scenes, scene)
+	}
 
-		if err := scene.StartSession(ctx, rt, oa, triggerBuilder(), interrupt); err != nil {
+	if interrupt {
+		if err := BulkInterrupt(ctx, rt, oa, scenes); err != nil {
+			return nil, nil, fmt.Errorf("error interrupting existing sessions: %w", err)
+		}
+	}
+
+	for _, scene := range scenes {
+		if err := scene.StartSession(ctx, rt, oa, triggerBuilder(), false); err != nil {
 			return nil, nil, fmt.Errorf("error starting session for contact %s: %w", scene.ContactUUID(), err)
 		}
-
-		scenes = append(scenes, scene)
 	}
 
 	if err := BulkCommit(ctx, rt, oa, scenes); err != nil {
