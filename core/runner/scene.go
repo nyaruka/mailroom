@@ -4,12 +4,9 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"maps"
-	"slices"
 	"time"
 
 	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/mailroom/core/goflow"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/runtime"
@@ -127,43 +124,10 @@ func (s *Scene) addSprint(ctx context.Context, rt *runtime.Runtime, oa *models.O
 	return nil
 }
 
-func BulkInterrupt(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scenes []*Scene) error {
-	sessions := make(map[flows.SessionUUID]*Scene, len(scenes))
-	for _, s := range scenes {
-		if s.DBContact.CurrentSessionUUID() != "" {
-			sessions[s.DBContact.CurrentSessionUUID()] = s
-		}
-	}
-	if len(sessions) == 0 {
-		return nil // nothing to do
-	}
-
-	runRefs, err := models.GetActiveAndWaitingRuns(ctx, rt, slices.Collect(maps.Keys(sessions)))
-	if err != nil {
-		return fmt.Errorf("error getting active runs for waiting sessions: %w", err)
-	}
-
-	for _, s := range scenes {
-		if s.DBContact.CurrentSessionUUID() != "" {
-			if err := s.AddEvent(ctx, rt, oa, newContactInterruptedEvent(), models.NilUserID); err != nil {
-				return fmt.Errorf("error adding contact interrupted event: %w", err)
-			}
-
-			for _, run := range runRefs[s.DBContact.CurrentSessionUUID()] {
-				if err := s.AddEvent(ctx, rt, oa, events.NewRunEnded(run.UUID, run.Flow, flows.RunStatusInterrupted), models.NilUserID); err != nil {
-					return fmt.Errorf("error adding run ended event: %w", err)
-				}
-			}
-		}
-	}
-
-	return nil
-}
-
 // StartSession starts a new session.
 func (s *Scene) StartSession(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, trigger flows.Trigger, interrupt bool) error {
 	if interrupt {
-		if err := BulkInterrupt(ctx, rt, oa, []*Scene{s}); err != nil {
+		if err := interruptScenes(ctx, rt, oa, []*Scene{s}); err != nil {
 			return fmt.Errorf("error interrupting existing session: %w", err)
 		}
 	}
