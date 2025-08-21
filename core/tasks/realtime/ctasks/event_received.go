@@ -163,12 +163,17 @@ func (t *EventReceivedTask) handle(ctx context.Context, rt *runtime.Runtime, oa 
 		}
 	}
 
-	// build our flow trigger
+	var flowCall *flows.Call
+	if call != nil {
+		flowCall = flows.NewCall(call.UUID(), oa.SessionAssets().Channels().Get(channel.UUID()), mc.URNForID(t.URNID))
+	}
+
+	// build initial event and flow trigger
 	var trig flows.Trigger
 	tb := triggers.NewBuilder(flow.Reference())
 
 	if t.EventType == models.EventTypeIncomingCall {
-		trig = tb.Channel(channel.Reference(), triggers.ChannelEventTypeIncomingCall).Build()
+		trig = tb.Call(events.NewCallStarted(flowCall)).Build()
 	} else if t.EventType == models.EventTypeOptIn && flowOptIn != nil {
 		trig = tb.OptIn(flowOptIn, events.NewOptInStarted(flowOptIn, channel.Reference())).Build()
 	} else if t.EventType == models.EventTypeOptOut && flowOptIn != nil {
@@ -177,14 +182,8 @@ func (t *EventReceivedTask) handle(ctx context.Context, rt *runtime.Runtime, oa 
 		trig = tb.Channel(channel.Reference(), triggers.ChannelEventType(t.EventType)).WithParams(params).Build()
 	}
 
-	var flowCall *flows.Call
-
 	if flow.FlowType() == models.FlowTypeVoice {
-		if call != nil {
-			// incoming call which already exists
-			urn := mc.URNForID(t.URNID)
-			flowCall = flows.NewCall(call.UUID(), oa.SessionAssets().Channels().Get(channel.UUID()), urn)
-		} else {
+		if call == nil {
 			// request outgoing call and wait for callback
 			if _, err := ivr.RequestCall(ctx, rt, oa, mc, trig); err != nil {
 				return nil, fmt.Errorf("error starting voice flow for contact: %w", err)
@@ -196,6 +195,12 @@ func (t *EventReceivedTask) handle(ctx context.Context, rt *runtime.Runtime, oa 
 	scene := runner.NewScene(mc, contact)
 	scene.DBCall = call
 	scene.Call = flowCall
+
+	if event := trig.Event(); event != nil {
+		if err := scene.AddEvent(ctx, rt, oa, event, models.NilUserID); err != nil {
+			return nil, fmt.Errorf("error adding trigger event to scene: %w", err)
+		}
+	}
 
 	if err := scene.StartSession(ctx, rt, oa, trig, flow.FlowType().Interrupts()); err != nil {
 		return nil, fmt.Errorf("error starting session for contact %s: %w", scene.ContactUUID(), err)
