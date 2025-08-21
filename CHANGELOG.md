@@ -1,3 +1,8 @@
+v10.3.48 (2025-08-21)
+-------------------------
+ * Use run_ended events to interrupt runs
+ * Remove time gating of persisting run_started / run_ended events
+
 v10.3.47 (2025-08-19)
 -------------------------
  * Persisted run_started / run_ended events have no TTLs
