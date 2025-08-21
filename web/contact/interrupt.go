@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/runner"
 	"github.com/nyaruka/mailroom/core/tasks"
@@ -39,7 +40,7 @@ func handleInterrupt(ctx context.Context, rt *runtime.Runtime, r *interruptReque
 			return nil, 0, fmt.Errorf("error loading org assets: %w", err)
 		}
 
-		if err := runner.Interrupt(ctx, rt, oa, r.ContactIDs); err != nil {
+		if err := runner.Interrupt(ctx, rt, oa, r.ContactIDs, flows.SessionStatusInterrupted); err != nil {
 			return nil, 0, fmt.Errorf("unable to interrupt contact: %w", err)
 		}
 

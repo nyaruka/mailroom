@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/runner"
 	"github.com/nyaruka/mailroom/core/tasks"
@@ -38,7 +39,7 @@ func (t *InterruptSessionsTask) WithAssets() models.Refresh {
 
 func (t *InterruptSessionsTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets) error {
 	if len(t.ContactIDs) > 0 {
-		if err := runner.Interrupt(ctx, rt, oa, t.ContactIDs); err != nil {
+		if err := runner.Interrupt(ctx, rt, oa, t.ContactIDs, flows.SessionStatusInterrupted); err != nil {
 			return err
 		}
 	}
