@@ -12,7 +12,7 @@ import (
 	"github.com/nyaruka/mailroom/runtime"
 )
 
-// InteruptRuns is our hook for interrupting runs from prior sessions
+// InterruptRuns is our hook for interrupting runs from prior sessions
 var InterruptRuns runner.PreCommitHook = &interruptRuns{}
 
 type interruptRuns struct{}
