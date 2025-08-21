@@ -173,7 +173,7 @@ func (t *EventReceivedTask) handle(ctx context.Context, rt *runtime.Runtime, oa 
 	tb := triggers.NewBuilder(flow.Reference())
 
 	if t.EventType == models.EventTypeIncomingCall {
-		trig = tb.Call(events.NewCallStarted(flowCall)).Build()
+		trig = tb.Call(events.NewCallReceived(flowCall)).Build()
 	} else if t.EventType == models.EventTypeOptIn && flowOptIn != nil {
 		trig = tb.OptIn(flowOptIn, events.NewOptInStarted(flowOptIn, channel.Reference())).Build()
 	} else if t.EventType == models.EventTypeOptOut && flowOptIn != nil {
