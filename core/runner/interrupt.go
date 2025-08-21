@@ -16,24 +16,12 @@ import (
 // TODO rework to share contact locking code with bulk starts?
 func Interrupt(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contactIDs []models.ContactID) error {
 	// load our contacts
-	mcs, err := models.LoadContacts(ctx, rt.ReadonlyDB, oa, contactIDs)
+	scenes, err := createScenes(ctx, rt, oa, contactIDs)
 	if err != nil {
-		return fmt.Errorf("error loading contacts to start: %w", err)
+		return fmt.Errorf("error creating scenes for contacts: %w", err)
 	}
 
-	// make scenes
-	scenes := make([]*Scene, 0, len(mcs))
-	for _, mc := range mcs {
-		c, err := mc.EngineContact(oa)
-		if err != nil {
-			return fmt.Errorf("error creating flow contact: %w", err)
-		}
-
-		scene := NewScene(mc, c)
-		scenes = append(scenes, scene)
-	}
-
-	if err := interruptScenes(ctx, rt, oa, scenes); err != nil {
+	if err := addInterruptEvents(ctx, rt, oa, scenes, flows.SessionStatusInterrupted); err != nil {
 		return fmt.Errorf("error interrupting existing sessions: %w", err)
 	}
 
@@ -45,7 +33,7 @@ func Interrupt(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, c
 }
 
 // adds contact interruption to the given scenes
-func interruptScenes(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scenes []*Scene) error {
+func addInterruptEvents(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scenes []*Scene, status flows.SessionStatus) error {
 	sessions := make(map[flows.SessionUUID]*Scene, len(scenes))
 	for _, s := range scenes {
 		if s.DBContact.CurrentSessionUUID() != "" {
@@ -63,12 +51,12 @@ func interruptScenes(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAss
 
 	for _, s := range scenes {
 		if s.DBContact.CurrentSessionUUID() != "" {
-			if err := s.AddEvent(ctx, rt, oa, newContactInterruptedEvent(), models.NilUserID); err != nil {
+			if err := s.AddEvent(ctx, rt, oa, newContactInterruptedEvent(status), models.NilUserID); err != nil {
 				return fmt.Errorf("error adding contact interrupted event: %w", err)
 			}
 
 			for _, run := range runRefs[s.DBContact.CurrentSessionUUID()] {
-				if err := s.AddEvent(ctx, rt, oa, events.NewRunEnded(run.UUID, run.Flow, flows.RunStatusInterrupted), models.NilUserID); err != nil {
+				if err := s.AddEvent(ctx, rt, oa, events.NewRunEnded(run.UUID, run.Flow, flows.RunStatus(status)), models.NilUserID); err != nil {
 					return fmt.Errorf("error adding run ended event: %w", err)
 				}
 			}

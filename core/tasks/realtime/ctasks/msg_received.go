@@ -175,7 +175,7 @@ func (t *MsgReceivedTask) handleMsgEvent(ctx context.Context, rt *runtime.Runtim
 		// get the flow to be resumed and if it's gone, end the session
 		flowAsset, err := oa.FlowByUUID(session.CurrentFlowUUID)
 		if err == models.ErrNotFound {
-			if err := models.ExitSessions(ctx, rt.DB, []flows.SessionUUID{session.UUID}, models.SessionStatusFailed); err != nil {
+			if err := scene.Interrupt(ctx, rt, oa, flows.SessionStatusFailed); err != nil {
 				return fmt.Errorf("error ending session %s: %w", session.UUID, err)
 			}
 			session = nil

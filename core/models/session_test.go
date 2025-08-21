@@ -125,13 +125,13 @@ func TestInterruptSessionsForContactsTx(t *testing.T) {
 
 	session1UUID, _ := insertSessionAndRun(rt, testdb.Cathy, models.FlowTypeMessaging, models.SessionStatusCompleted, testdb.Favorites, nil)
 	session2UUID, run2UUID := insertSessionAndRun(rt, testdb.Cathy, models.FlowTypeVoice, models.SessionStatusWaiting, testdb.Favorites, nil)
-	session3UUID, _ := insertSessionAndRun(rt, testdb.Bob, models.FlowTypeMessaging, models.SessionStatusWaiting, testdb.Favorites, nil)
+	session3UUID, run3UUID := insertSessionAndRun(rt, testdb.Bob, models.FlowTypeMessaging, models.SessionStatusWaiting, testdb.Favorites, nil)
 	session4UUID, _ := insertSessionAndRun(rt, testdb.George, models.FlowTypeMessaging, models.SessionStatusWaiting, testdb.Favorites, nil)
 
 	tx := rt.DB.MustBegin()
 
 	// noop if no contacts
-	err := models.InterruptContacts(ctx, tx, []models.ContactID{})
+	err := models.InterruptContacts(ctx, tx, map[models.ContactID]flows.SessionStatus{})
 	require.NoError(t, err)
 
 	require.NoError(t, tx.Commit())
@@ -143,19 +143,21 @@ func TestInterruptSessionsForContactsTx(t *testing.T) {
 
 	tx = rt.DB.MustBegin()
 
-	err = models.InterruptContacts(ctx, tx, []models.ContactID{testdb.Cathy.ID, testdb.Bob.ID})
+	err = models.InterruptContacts(ctx, tx, map[models.ContactID]flows.SessionStatus{testdb.Cathy.ID: flows.SessionStatusFailed, testdb.Bob.ID: flows.SessionStatusInterrupted})
 	require.NoError(t, err)
 
 	require.NoError(t, tx.Commit())
 
 	assertSessionAndRunStatus(t, rt, session1UUID, models.SessionStatusCompleted) // wasn't waiting
-	assertSessionAndRunStatus(t, rt, session2UUID, models.SessionStatusInterrupted)
+	assertSessionAndRunStatus(t, rt, session2UUID, models.SessionStatusFailed)
 	assertSessionAndRunStatus(t, rt, session3UUID, models.SessionStatusInterrupted)
 	assertSessionAndRunStatus(t, rt, session4UUID, models.SessionStatusWaiting) // contact not included
 
 	// check other columns are correct on interrupted session, run and contact
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE ended_on IS NOT NULL AND current_flow_uuid IS NULL AND uuid = $1`, session2UUID).Returns(1)
-	assertdb.Query(t, rt.DB, `SELECT status FROM flows_flowrun WHERE uuid = $1`, run2UUID).Columns(map[string]any{"status": "I"})
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE ended_on IS NOT NULL AND current_flow_uuid IS NULL AND uuid = $1 AND status = 'F'`, session2UUID).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE ended_on IS NOT NULL AND current_flow_uuid IS NULL AND uuid = $1 AND status = 'I'`, session3UUID).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT status FROM flows_flowrun WHERE uuid = $1`, run2UUID).Columns(map[string]any{"status": "F"})
+	assertdb.Query(t, rt.DB, `SELECT status FROM flows_flowrun WHERE uuid = $1`, run3UUID).Columns(map[string]any{"status": "I"})
 	assertdb.Query(t, rt.DB, `SELECT current_session_uuid, current_flow_id FROM contacts_contact WHERE id = $1`, testdb.Cathy.ID).Columns(map[string]any{"current_session_uuid": nil, "current_flow_id": nil})
 }
 

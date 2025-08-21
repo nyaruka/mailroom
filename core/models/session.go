@@ -37,9 +37,10 @@ const (
 )
 
 var sessionStatusMap = map[flows.SessionStatus]SessionStatus{
-	flows.SessionStatusWaiting:   SessionStatusWaiting,
-	flows.SessionStatusCompleted: SessionStatusCompleted,
-	flows.SessionStatusFailed:    SessionStatusFailed,
+	flows.SessionStatusWaiting:     SessionStatusWaiting,
+	flows.SessionStatusCompleted:   SessionStatusCompleted,
+	flows.SessionStatusFailed:      SessionStatusFailed,
+	flows.SessionStatusInterrupted: SessionStatusInterrupted,
 }
 
 // Session is the mailroom type for a FlowSession
@@ -267,15 +268,23 @@ func exitSessionBatch(ctx context.Context, tx *sqlx.Tx, uuids []flows.SessionUUI
 }
 
 // InterruptContacts interrupts any waiting sessions for the given contacts which are assumed to be batched.
-func InterruptContacts(ctx context.Context, tx *sqlx.Tx, contactIDs []ContactID) error {
-	sessionUUIDs, err := getWaitingSessionsForContacts(ctx, tx, contactIDs)
-	if err != nil {
-		return err
+func InterruptContacts(ctx context.Context, tx *sqlx.Tx, contacts map[ContactID]flows.SessionStatus) error {
+	// re-org into contact IDs by status
+	statuses := make(map[flows.SessionStatus][]ContactID)
+	for contactID, status := range contacts {
+		statuses[status] = append(statuses[status], contactID)
 	}
 
-	if len(sessionUUIDs) > 0 {
-		if err := exitSessionBatch(ctx, tx, slices.Collect(maps.Values(sessionUUIDs)), SessionStatusInterrupted); err != nil {
-			return fmt.Errorf("error exiting sessions: %w", err)
+	for status, contactIDs := range statuses {
+		sessionUUIDs, err := getWaitingSessionsForContacts(ctx, tx, contactIDs)
+		if err != nil {
+			return err
+		}
+
+		if len(sessionUUIDs) > 0 {
+			if err := exitSessionBatch(ctx, tx, slices.Collect(maps.Values(sessionUUIDs)), sessionStatusMap[status]); err != nil {
+				return fmt.Errorf("error exiting sessions: %w", err)
+			}
 		}
 	}
 
