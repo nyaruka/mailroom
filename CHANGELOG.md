@@ -1,3 +1,7 @@
+v10.3.49 (2025-08-21)
+-------------------------
+ * Add runner.Interrupt and use anywhere we interrupt by contact
+
 v10.3.48 (2025-08-21)
 -------------------------
  * Use run_ended events to interrupt runs
