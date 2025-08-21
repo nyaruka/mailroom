@@ -4,11 +4,13 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 	"github.com/nyaruka/gocommon/jsonx"
+	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/null/v3"
@@ -160,4 +162,67 @@ func GetContactIDsAtNode(ctx context.Context, rt *runtime.Runtime, orgID OrgID, 
 	}
 
 	return contactIDs, nil
+}
+
+type RunReference struct {
+	UUID flows.RunUUID
+	Flow *assets.FlowReference
+}
+
+const sqlSelectActiveAndWaitingRuns = `
+    SELECT r.session_uuid, r.uuid AS uuid, f.uuid AS flow_uuid, f.name AS flow_name
+      FROM flows_flowrun r
+INNER JOIN flows_flow f ON f.id = r.flow_id
+     WHERE session_uuid = ANY($1) AND status IN ('A', 'W')
+	 ORDER BY r.id`
+
+// GetActiveAndWaitingRuns gets references to the active/waiting runs for the given sessions
+func GetActiveAndWaitingRuns(ctx context.Context, rt *runtime.Runtime, sessionUUIDs []flows.SessionUUID) (map[flows.SessionUUID][]*RunReference, error) {
+	type envelope struct {
+		SessionUUID flows.SessionUUID `db:"session_uuid"`
+		UUID        flows.RunUUID     `db:"uuid"`
+		FlowUUID    assets.FlowUUID   `db:"flow_uuid"`
+		FlowName    string            `db:"flow_name"`
+	}
+
+	var all []*envelope
+
+	if err := rt.DB.SelectContext(ctx, &all, sqlSelectActiveAndWaitingRuns, pq.Array(sessionUUIDs)); err != nil {
+		return nil, fmt.Errorf("error fetching ongoing runs: %w", err)
+	}
+
+	runRefs := make(map[flows.SessionUUID][]*RunReference, len(sessionUUIDs))
+	for _, r := range all {
+		runRefs[r.SessionUUID] = append(runRefs[r.SessionUUID], &RunReference{UUID: r.UUID, Flow: assets.NewFlowReference(r.FlowUUID, r.FlowName)})
+	}
+
+	return runRefs, nil
+}
+
+const sqlInterruptRuns = `
+   UPDATE flows_flowrun
+      SET exited_on = NOW(), status = 'I', modified_on = NOW()
+    WHERE uuid = ANY($1) AND status IN ('A', 'W')
+RETURNING session_uuid`
+
+const sqlInterruptRunSessions = `
+UPDATE flows_flowsession SET status = 'I', ended_on = NOW() WHERE uuid = ANY($1) AND status = 'W'`
+
+// InterruptRuns marks the given runs as interrupted. Note that it doesn't update contact.current_session_uuid as this
+// function is only used when starting new sessions which means contact.current_session_uuid will be updated with a new
+// session anyway.
+func InterruptRuns(ctx context.Context, tx *sqlx.Tx, runUUIDs []flows.RunUUID) error {
+	// get the session UUIDs for the interrupted runs so we can mark the sessions as interrupted too so they're cleaned
+	// up - this won't be necessary when sessions move into DynamoDB with TTLs
+	sessionUUIDs := make([]flows.SessionUUID, 0, len(runUUIDs))
+
+	if err := tx.SelectContext(ctx, &sessionUUIDs, sqlInterruptRuns, pq.Array(runUUIDs)); err != nil {
+		return fmt.Errorf("error interrupting runs: %w", err)
+	}
+
+	if _, err := tx.ExecContext(ctx, sqlInterruptRunSessions, pq.Array(slices.Compact(sessionUUIDs))); err != nil {
+		return fmt.Errorf("error interrupting run sessions: %w", err)
+	}
+
+	return nil
 }

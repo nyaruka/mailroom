@@ -280,16 +280,6 @@ func InterruptSessionsForContacts(ctx context.Context, db *sqlx.DB, contactIDs [
 	return len(sessionUUIDs), nil
 }
 
-// InterruptSessions interrupts any waiting sessions for the given contacts inside the given transaction.
-// This version is used for interrupting during flow starts where contacts are already batched and we have an open transaction.
-func InterruptSessions(ctx context.Context, tx *sqlx.Tx, sessionUUIDs []flows.SessionUUID) error {
-	if err := exitSessionBatch(ctx, tx, sessionUUIDs, SessionStatusInterrupted); err != nil {
-		return fmt.Errorf("error interrupting sessions: %w", err)
-	}
-
-	return nil
-}
-
 const sqlSelectWaitingSessionsForContacts = `
 SELECT id, current_session_uuid FROM contacts_contact WHERE id = ANY($1) AND current_session_uuid IS NOT NULL`
 
@@ -347,46 +337,6 @@ func InterruptSessionsForFlows(ctx context.Context, db *sqlx.DB, flowIDs []FlowI
 	}
 
 	return nil
-}
-
-type RunReference struct {
-	UUID flows.RunUUID
-	Flow *assets.FlowReference
-}
-
-const sqlSelectOngoingRuns = `
-    SELECT r.session_uuid, r.uuid AS uuid, f.uuid AS flow_uuid, f.name AS flow_name
-      FROM flows_flowrun r
-INNER JOIN flows_flow f ON f.id = r.flow_id
-     WHERE session_uuid = ANY($1) AND status IN ('A', 'W')
-	 ORDER BY r.id`
-
-// GetWaitingSessionsAndRuns gets waiting sesssions with information about their active/waiting runs
-func GetWaitingSessionsAndRuns(ctx context.Context, rt *runtime.Runtime, contactIDs []ContactID) (map[ContactID]flows.SessionUUID, map[flows.SessionUUID][]*RunReference, error) {
-	sessionUUIDs, err := getWaitingSessionsForContacts(ctx, rt.DB, contactIDs)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	type envelope struct {
-		SessionUUID flows.SessionUUID `db:"session_uuid"`
-		UUID        flows.RunUUID     `db:"uuid"`
-		FlowUUID    assets.FlowUUID   `db:"flow_uuid"`
-		FlowName    string            `db:"flow_name"`
-	}
-
-	var all []*envelope
-
-	if err := rt.DB.SelectContext(ctx, &all, sqlSelectOngoingRuns, pq.Array(slices.Collect(maps.Values(sessionUUIDs)))); err != nil {
-		return nil, nil, fmt.Errorf("error fetching ongoing runs: %w", err)
-	}
-
-	runRefs := make(map[flows.SessionUUID][]*RunReference, len(sessionUUIDs))
-	for _, r := range all {
-		runRefs[r.SessionUUID] = append(runRefs[r.SessionUUID], &RunReference{UUID: r.UUID, Flow: assets.NewFlowReference(r.FlowUUID, r.FlowName)})
-	}
-
-	return sessionUUIDs, runRefs, nil
 }
 
 const (

@@ -44,19 +44,3 @@ func newSprintEndedEvent(c *models.Contact, resumed bool) *SprintEndedEvent {
 		Resumed:   resumed,
 	}
 }
-
-// TypeSessionInterrupted is a pseudo event to interrupt a session
-const TypeSessionInterrupted string = "session_interrupted"
-
-type SessionInterruptedEvent struct {
-	events.BaseEvent
-
-	SessionUUID flows.SessionUUID
-}
-
-func newSessionInterruptedEvent(sessionUUID flows.SessionUUID) *SessionInterruptedEvent {
-	return &SessionInterruptedEvent{
-		BaseEvent:   events.NewBaseEvent(TypeSessionInterrupted),
-		SessionUUID: sessionUUID,
-	}
-}
