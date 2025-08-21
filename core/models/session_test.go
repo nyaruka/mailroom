@@ -131,7 +131,7 @@ func TestInterruptSessionsForContactsTx(t *testing.T) {
 	tx := rt.DB.MustBegin()
 
 	// noop if no contacts
-	err := models.InterruptSessionsForContactsTx(ctx, tx, []models.ContactID{})
+	err := models.InterruptContacts(ctx, tx, []models.ContactID{})
 	require.NoError(t, err)
 
 	require.NoError(t, tx.Commit())
@@ -143,7 +143,7 @@ func TestInterruptSessionsForContactsTx(t *testing.T) {
 
 	tx = rt.DB.MustBegin()
 
-	err = models.InterruptSessionsForContactsTx(ctx, tx, []models.ContactID{testdb.Cathy.ID, testdb.Bob.ID})
+	err = models.InterruptContacts(ctx, tx, []models.ContactID{testdb.Cathy.ID, testdb.Bob.ID})
 	require.NoError(t, err)
 
 	require.NoError(t, tx.Commit())

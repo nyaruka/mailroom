@@ -266,23 +266,8 @@ func exitSessionBatch(ctx context.Context, tx *sqlx.Tx, uuids []flows.SessionUUI
 	return nil
 }
 
-// InterruptSessionsForContacts interrupts any waiting sessions for the given contacts, returning the number of sessions interrupted
-func InterruptSessionsForContacts(ctx context.Context, db *sqlx.DB, contactIDs []ContactID) (int, error) {
-	sessionUUIDs, err := getWaitingSessionsForContacts(ctx, db, contactIDs)
-	if err != nil {
-		return 0, err
-	}
-
-	if err := ExitSessions(ctx, db, slices.Collect(maps.Values(sessionUUIDs)), SessionStatusInterrupted); err != nil {
-		return 0, fmt.Errorf("error exiting sessions: %w", err)
-	}
-
-	return len(sessionUUIDs), nil
-}
-
-// InterruptSessionsForContactsTx interrupts any waiting sessions for the given contacts inside the given transaction.
-// This version is used for interrupting during flow starts where contacts are already batched and we have an open transaction.
-func InterruptSessionsForContactsTx(ctx context.Context, tx *sqlx.Tx, contactIDs []ContactID) error {
+// InterruptContacts interrupts any waiting sessions for the given contacts which are assumed to be batched.
+func InterruptContacts(ctx context.Context, tx *sqlx.Tx, contactIDs []ContactID) error {
 	sessionUUIDs, err := getWaitingSessionsForContacts(ctx, tx, contactIDs)
 	if err != nil {
 		return err

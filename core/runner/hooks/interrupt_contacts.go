@@ -24,7 +24,7 @@ func (h *interruptContacts) Execute(ctx context.Context, rt *runtime.Runtime, tx
 		contactIDs = append(contactIDs, scene.DBContact.ID())
 	}
 
-	if err := models.InterruptSessionsForContactsTx(ctx, tx, contactIDs); err != nil {
+	if err := models.InterruptContacts(ctx, tx, contactIDs); err != nil {
 		return fmt.Errorf("error interrupting contacts: %w", err)
 	}
 
