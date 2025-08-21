@@ -124,8 +124,13 @@ func (s *Scene) addSprint(ctx context.Context, rt *runtime.Runtime, oa *models.O
 	return nil
 }
 
+func (s *Scene) Interrupt(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, status flows.SessionStatus) error {
+	return addInterruptEvents(ctx, rt, oa, []*Scene{s}, status)
+}
+
 // StartSession starts a new session.
 func (s *Scene) StartSession(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, trigger flows.Trigger, interrupt bool) error {
+	// interrupting supported from here as a convenience
 	if interrupt {
 		if err := addInterruptEvents(ctx, rt, oa, []*Scene{s}, flows.SessionStatusInterrupted); err != nil {
 			return fmt.Errorf("error interrupting existing session: %w", err)
@@ -153,11 +158,15 @@ func (s *Scene) ResumeSession(ctx context.Context, rt *runtime.Runtime, oa *mode
 	// does the flow this session is part of still exist?
 	_, err := oa.FlowByUUID(session.CurrentFlowUUID)
 	if err != nil {
-		// if this flow just isn't available anymore, log this error
 		if err == models.ErrNotFound {
-			slog.Error("unable to find flow for resume", "contact", s.ContactUUID(), "session", session.UUID, "flow", session.CurrentFlowUUID)
+			// if flow doesn't exist, we can't resume, so fail the session
+			slog.Debug("unable to find flow for resume", "contact", s.ContactUUID(), "session", session.UUID, "flow", session.CurrentFlowUUID)
 
-			return models.ExitSessions(ctx, rt.DB, []flows.SessionUUID{session.UUID}, models.SessionStatusFailed)
+			if err := s.Interrupt(ctx, rt, oa, flows.SessionStatusFailed); err != nil {
+				return fmt.Errorf("error adding interrupt events for unresumable session %s: %w", session.UUID, err)
+			}
+
+			return nil
 		}
 		return fmt.Errorf("error loading session flow %s: %w", session.CurrentFlowUUID, err)
 	}
@@ -200,6 +209,25 @@ func (s *Scene) AttachPostCommitHook(hook PostCommitHook, item any) {
 // Commit commits this scene's events
 func (s *Scene) Commit(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets) error {
 	return BulkCommit(ctx, rt, oa, []*Scene{s})
+}
+
+func createScenes(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contactIDs []models.ContactID) ([]*Scene, error) {
+	mcs, err := models.LoadContacts(ctx, rt.ReadonlyDB, oa, contactIDs)
+	if err != nil {
+		return nil, fmt.Errorf("error loading contacts for new scenes: %w", err)
+	}
+
+	scenes := make([]*Scene, len(mcs))
+	for i, mc := range mcs {
+		c, err := mc.EngineContact(oa)
+		if err != nil {
+			return nil, fmt.Errorf("error creating engine contact for %s: %w", mc.UUID(), err)
+		}
+
+		scenes[i] = NewScene(mc, c)
+	}
+
+	return scenes, nil
 }
 
 // BulkCommit commits the passed in scenes in a single transaction. If that fails, it retries committing each scene one at a time.

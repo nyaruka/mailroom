@@ -16,21 +16,9 @@ import (
 // TODO rework to share contact locking code with bulk starts?
 func Interrupt(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contactIDs []models.ContactID) error {
 	// load our contacts
-	mcs, err := models.LoadContacts(ctx, rt.ReadonlyDB, oa, contactIDs)
+	scenes, err := createScenes(ctx, rt, oa, contactIDs)
 	if err != nil {
-		return fmt.Errorf("error loading contacts to start: %w", err)
-	}
-
-	// make scenes
-	scenes := make([]*Scene, 0, len(mcs))
-	for _, mc := range mcs {
-		c, err := mc.EngineContact(oa)
-		if err != nil {
-			return fmt.Errorf("error creating flow contact: %w", err)
-		}
-
-		scene := NewScene(mc, c)
-		scenes = append(scenes, scene)
+		return fmt.Errorf("error creating scenes for contacts: %w", err)
 	}
 
 	if err := addInterruptEvents(ctx, rt, oa, scenes, flows.SessionStatusInterrupted); err != nil {

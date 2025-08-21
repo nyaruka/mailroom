@@ -68,26 +68,10 @@ func tryToStartWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 	// whatever happens, we need to unlock the contacts
 	defer clocks.Unlock(ctx, rt, oa, locks)
 
-	// load our locked contacts
-	mcs, err := models.LoadContacts(ctx, rt.ReadonlyDB, oa, locked)
+	// create scenes for the locked contacts
+	scenes, err := createScenes(ctx, rt, oa, locked)
 	if err != nil {
-		return nil, nil, fmt.Errorf("error loading contacts to start: %w", err)
-	}
-
-	scenes := make([]*Scene, 0, len(mcs))
-	for _, mc := range mcs {
-		if ctx.Err() != nil {
-			return nil, nil, fmt.Errorf("error starting session: %w", ctx.Err())
-		}
-
-		c, err := mc.EngineContact(oa)
-		if err != nil {
-			return nil, nil, fmt.Errorf("error creating flow contact: %w", err)
-		}
-
-		scene := NewScene(mc, c)
-		scene.StartID = startID
-		scenes = append(scenes, scene)
+		return nil, nil, fmt.Errorf("error creating scenes for bulk start: %w", err)
 	}
 
 	if interrupt {
@@ -97,6 +81,12 @@ func tryToStartWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 	}
 
 	for _, scene := range scenes {
+		if ctx.Err() != nil {
+			return nil, nil, fmt.Errorf("error starting session: %w", ctx.Err())
+		}
+
+		scene.StartID = startID
+
 		if err := scene.StartSession(ctx, rt, oa, triggerBuilder(), false); err != nil {
 			return nil, nil, fmt.Errorf("error starting session for contact %s: %w", scene.ContactUUID(), err)
 		}
