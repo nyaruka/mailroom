@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"slices"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -197,32 +196,4 @@ func GetActiveAndWaitingRuns(ctx context.Context, rt *runtime.Runtime, sessionUU
 	}
 
 	return runRefs, nil
-}
-
-const sqlInterruptRuns = `
-   UPDATE flows_flowrun
-      SET exited_on = NOW(), status = 'I', modified_on = NOW()
-    WHERE uuid = ANY($1) AND status IN ('A', 'W')
-RETURNING session_uuid`
-
-const sqlInterruptRunSessions = `
-UPDATE flows_flowsession SET status = 'I', ended_on = NOW() WHERE uuid = ANY($1) AND status = 'W'`
-
-// InterruptRuns marks the given runs as interrupted. Note that it doesn't update contact.current_session_uuid as this
-// function is only used when starting new sessions which means contact.current_session_uuid will be updated with a new
-// session anyway.
-func InterruptRuns(ctx context.Context, tx *sqlx.Tx, runUUIDs []flows.RunUUID) error {
-	// get the session UUIDs for the interrupted runs so we can mark the sessions as interrupted too so they're cleaned
-	// up - this won't be necessary when sessions move into DynamoDB with TTLs
-	sessionUUIDs := make([]flows.SessionUUID, 0, len(runUUIDs))
-
-	if err := tx.SelectContext(ctx, &sessionUUIDs, sqlInterruptRuns, pq.Array(runUUIDs)); err != nil {
-		return fmt.Errorf("error interrupting runs: %w", err)
-	}
-
-	if _, err := tx.ExecContext(ctx, sqlInterruptRunSessions, pq.Array(slices.Compact(sessionUUIDs))); err != nil {
-		return fmt.Errorf("error interrupting run sessions: %w", err)
-	}
-
-	return nil
 }
