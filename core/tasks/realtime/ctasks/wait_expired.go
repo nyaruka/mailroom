@@ -76,7 +76,7 @@ func (t *WaitExpiredTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *
 			}
 		}
 
-		if err := models.ExitSessions(ctx, rt.DB, []flows.SessionUUID{session.UUID}, models.SessionStatusExpired); err != nil {
+		if err := runner.Interrupt(ctx, rt, oa, []models.ContactID{mc.ID()}, flows.SessionStatusExpired); err != nil {
 			return fmt.Errorf("error expiring sessions for expired calls: %w", err)
 		}
 

@@ -14,14 +14,14 @@ import (
 
 // Interrupt interrupts the sessions for the given contacts
 // TODO rework to share contact locking code with bulk starts?
-func Interrupt(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contactIDs []models.ContactID) error {
+func Interrupt(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contactIDs []models.ContactID, status flows.SessionStatus) error {
 	// load our contacts
 	scenes, err := createScenes(ctx, rt, oa, contactIDs)
 	if err != nil {
 		return fmt.Errorf("error creating scenes for contacts: %w", err)
 	}
 
-	if err := addInterruptEvents(ctx, rt, oa, scenes, flows.SessionStatusInterrupted); err != nil {
+	if err := addInterruptEvents(ctx, rt, oa, scenes, status); err != nil {
 		return fmt.Errorf("error interrupting existing sessions: %w", err)
 	}
 
