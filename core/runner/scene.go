@@ -127,7 +127,7 @@ func (s *Scene) addSprint(ctx context.Context, rt *runtime.Runtime, oa *models.O
 // StartSession starts a new session.
 func (s *Scene) StartSession(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, trigger flows.Trigger, interrupt bool) error {
 	if interrupt {
-		if err := interruptScenes(ctx, rt, oa, []*Scene{s}); err != nil {
+		if err := addInterruptEvents(ctx, rt, oa, []*Scene{s}, flows.SessionStatusInterrupted); err != nil {
 			return fmt.Errorf("error interrupting existing session: %w", err)
 		}
 	}

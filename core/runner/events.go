@@ -31,10 +31,15 @@ const TypeContactInterrupted string = "contact_interrupted"
 
 type ContactInterruptedEvent struct {
 	events.BaseEvent
+
+	Status flows.SessionStatus
 }
 
-func newContactInterruptedEvent() *ContactInterruptedEvent {
-	return &ContactInterruptedEvent{BaseEvent: events.NewBaseEvent(TypeContactInterrupted)}
+func newContactInterruptedEvent(status flows.SessionStatus) *ContactInterruptedEvent {
+	return &ContactInterruptedEvent{
+		BaseEvent: events.NewBaseEvent(TypeContactInterrupted),
+		Status:    status,
+	}
 }
 
 // TypeSprintEnded is a pseudo event that lets add hooks for changes to a contacts current flow or flow history
