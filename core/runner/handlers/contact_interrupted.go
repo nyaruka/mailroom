@@ -18,7 +18,7 @@ func init() {
 func handleContactInterrupted(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scene *runner.Scene, e flows.Event, userID models.UserID) error {
 	event := e.(*runner.ContactInterruptedEvent)
 
-	slog.Debug("session interrupted", "contact", scene.ContactUUID())
+	slog.Debug("contact interrupted", "contact", scene.ContactUUID())
 
 	scene.AttachPreCommitHook(hooks.InterruptContacts, event)
 

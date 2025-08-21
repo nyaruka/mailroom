@@ -91,7 +91,7 @@ func tryToStartWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 	}
 
 	if interrupt {
-		if err := BulkInterrupt(ctx, rt, oa, scenes); err != nil {
+		if err := interruptScenes(ctx, rt, oa, scenes); err != nil {
 			return nil, nil, fmt.Errorf("error interrupting existing sessions: %w", err)
 		}
 	}

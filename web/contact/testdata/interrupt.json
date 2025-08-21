@@ -22,7 +22,7 @@
         },
         "status": 200,
         "response": {
-            "sessions": 1
+            "sessions": 0
         },
         "db_assertions": [
             {

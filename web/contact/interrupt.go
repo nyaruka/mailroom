@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/nyaruka/mailroom/core/models"
+	"github.com/nyaruka/mailroom/core/runner"
 	"github.com/nyaruka/mailroom/core/tasks"
 	"github.com/nyaruka/mailroom/core/tasks/interrupts"
 	"github.com/nyaruka/mailroom/runtime"
@@ -32,14 +33,16 @@ type interruptRequest struct {
 
 // handles a request to interrupt a contact
 func handleInterrupt(ctx context.Context, rt *runtime.Runtime, r *interruptRequest) (any, int, error) {
-	var count int
-	var err error
-
 	if len(r.ContactIDs) == 1 {
-		count, err = models.InterruptSessionsForContacts(ctx, rt.DB, r.ContactIDs)
+		oa, err := models.GetOrgAssets(ctx, rt, r.OrgID)
 		if err != nil {
+			return nil, 0, fmt.Errorf("error loading org assets: %w", err)
+		}
+
+		if err := runner.Interrupt(ctx, rt, oa, r.ContactIDs); err != nil {
 			return nil, 0, fmt.Errorf("unable to interrupt contact: %w", err)
 		}
+
 	} else if len(r.ContactIDs) > 0 {
 		task := &interrupts.InterruptSessionsTask{ContactIDs: r.ContactIDs}
 		if err := tasks.Queue(ctx, rt, rt.Queues.Batch, r.OrgID, task, true); err != nil {
@@ -47,5 +50,5 @@ func handleInterrupt(ctx context.Context, rt *runtime.Runtime, r *interruptReque
 		}
 	}
 
-	return map[string]any{"sessions": count}, http.StatusOK, nil
+	return map[string]any{"sessions": 0}, http.StatusOK, nil
 }
