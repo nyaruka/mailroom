@@ -96,19 +96,19 @@ func main() {
 		os.Exit(1)
 	}
 
-	mr := mailroom.NewMailroom(rt)
+	svc := mailroom.NewService(rt)
 
-	if err := mr.Start(); err != nil {
+	if err := svc.Start(); err != nil {
 		log.Error("unable to start server", "error", err)
 		os.Exit(1)
 	}
 
 	// handle our signals
-	handleSignals(mr)
+	handleSignals(svc)
 }
 
 // handleSignals takes care of trapping quit, interrupt or terminate signals and doing the right thing
-func handleSignals(mr *mailroom.Mailroom) {
+func handleSignals(svc *mailroom.Service) {
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 
@@ -124,7 +124,7 @@ func handleSignals(mr *mailroom.Mailroom) {
 			ulog.Printf("\n%s", buf[:stacklen])
 		case syscall.SIGINT, syscall.SIGTERM:
 			log.Info("received exit signal, exiting")
-			mr.Stop()
+			svc.Stop()
 			return
 		}
 	}

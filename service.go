@@ -22,8 +22,7 @@ const (
 	appNodesRunningKey = "app-nodes:running"
 )
 
-// Mailroom is a service for handling RapidPro events
-type Mailroom struct {
+type Service struct {
 	ctx    context.Context
 	cancel context.CancelFunc
 
@@ -42,37 +41,36 @@ type Mailroom struct {
 	vkWaitDuration time.Duration
 }
 
-// NewMailroom creates and returns a new mailroom instance
-func NewMailroom(rt *runtime.Runtime) *Mailroom {
-	mr := &Mailroom{
+// NewService creates and returns a new mailroom service
+func NewService(rt *runtime.Runtime) *Service {
+	s := &Service{
 		rt: rt,
 
 		workersWG: &sync.WaitGroup{},
 		quit:      make(chan bool),
 	}
-	mr.ctx, mr.cancel = context.WithCancel(context.Background())
+	s.ctx, s.cancel = context.WithCancel(context.Background())
 
-	mr.realtimeForeman = NewForeman(mr.rt, mr.rt.Queues.Realtime, rt.Config.WorkersRealtime)
-	mr.batchForeman = NewForeman(mr.rt, mr.rt.Queues.Batch, rt.Config.WorkersBatch)
-	mr.throttledForeman = NewForeman(mr.rt, mr.rt.Queues.Throttled, rt.Config.WorkersThrottled)
+	s.realtimeForeman = NewForeman(s.rt, s.rt.Queues.Realtime, rt.Config.WorkersRealtime)
+	s.batchForeman = NewForeman(s.rt, s.rt.Queues.Batch, rt.Config.WorkersBatch)
+	s.throttledForeman = NewForeman(s.rt, s.rt.Queues.Throttled, rt.Config.WorkersThrottled)
 
-	return mr
+	return s
 }
 
-// Start starts the mailroom service
-func (mr *Mailroom) Start() error {
-	c := mr.rt.Config
+func (s *Service) Start() error {
+	c := s.rt.Config
 
 	log := slog.With("comp", "mailroom")
 
 	// test Postgres
-	if err := checkDBConnection(mr.rt.DB.DB); err != nil {
+	if err := checkDBConnection(s.rt.DB.DB); err != nil {
 		log.Error("postgres not reachable", "error", err)
 	} else {
 		log.Info("postgres ok")
 	}
-	if mr.rt.ReadonlyDB != mr.rt.DB.DB {
-		if err := checkDBConnection(mr.rt.ReadonlyDB); err != nil {
+	if s.rt.ReadonlyDB != s.rt.DB.DB {
+		if err := checkDBConnection(s.rt.ReadonlyDB); err != nil {
 			log.Error("readonly db not reachable", "error", err)
 		} else {
 			log.Info("readonly db ok")
@@ -82,7 +80,7 @@ func (mr *Mailroom) Start() error {
 	}
 
 	// test Valkey
-	vc := mr.rt.VK.Get()
+	vc := s.rt.VK.Get()
 	defer vc.Close()
 	if _, err := vc.Do("PING"); err != nil {
 		log.Error("valkey not reachable", "error", err)
@@ -91,26 +89,26 @@ func (mr *Mailroom) Start() error {
 	}
 
 	// test DynamoDB tables
-	if err := dynamo.Test(mr.ctx, mr.rt.Dynamo, c.DynamoTablePrefix+"Main", c.DynamoTablePrefix+"History"); err != nil {
+	if err := dynamo.Test(s.ctx, s.rt.Dynamo, c.DynamoTablePrefix+"Main", c.DynamoTablePrefix+"History"); err != nil {
 		log.Error("dynamodb not reachable", "error", err)
 	} else {
 		log.Info("dynamodb ok")
 	}
 
 	// test S3 buckets
-	if err := mr.rt.S3.Test(mr.ctx, c.S3AttachmentsBucket); err != nil {
+	if err := s.rt.S3.Test(s.ctx, c.S3AttachmentsBucket); err != nil {
 		log.Error("attachments bucket not accessible", "error", err)
 	} else {
 		log.Info("attachments bucket ok")
 	}
-	if err := mr.rt.S3.Test(mr.ctx, c.S3SessionsBucket); err != nil {
+	if err := s.rt.S3.Test(s.ctx, c.S3SessionsBucket); err != nil {
 		log.Error("sessions bucket not accessible", "error", err)
 	} else {
 		log.Info("sessions bucket ok")
 	}
 
 	// test Elasticsearch
-	ping, err := mr.rt.ES.Ping().Do(mr.ctx)
+	ping, err := s.rt.ES.Ping().Do(s.ctx)
 	if err != nil {
 		log.Error("elasticsearch not available", "error", err)
 	} else if !ping {
@@ -120,7 +118,7 @@ func (mr *Mailroom) Start() error {
 	}
 
 	if c.AndroidCredentialsFile != "" {
-		mr.rt.FCM, err = fcm.NewClient(mr.ctx, fcm.WithCredentialsFile(c.AndroidCredentialsFile))
+		s.rt.FCM, err = fcm.NewClient(s.ctx, fcm.WithCredentialsFile(c.AndroidCredentialsFile))
 		if err != nil {
 			log.Error("unable to create FCM client", "error", err)
 		}
@@ -128,26 +126,26 @@ func (mr *Mailroom) Start() error {
 		log.Warn("fcm not configured, no android syncing")
 	}
 
-	if err := mr.rt.Start(); err != nil {
+	if err := s.rt.Start(); err != nil {
 		return fmt.Errorf("error starting runtime: %w", err)
 	} else {
 		log.Info("runtime started")
 	}
 
 	// init our foremen and start it
-	mr.realtimeForeman.Start(mr.workersWG)
-	mr.batchForeman.Start(mr.workersWG)
-	mr.throttledForeman.Start(mr.workersWG)
+	s.realtimeForeman.Start(s.workersWG)
+	s.batchForeman.Start(s.workersWG)
+	s.throttledForeman.Start(s.workersWG)
 
 	// start our web server
-	mr.webserver = web.NewServer(mr.ctx, mr.rt, mr.workersWG)
-	mr.webserver.Start()
+	s.webserver = web.NewServer(s.ctx, s.rt, s.workersWG)
+	s.webserver.Start()
 
-	crons.StartAll(mr.rt, mr.workersWG, mr.quit)
+	crons.StartAll(s.rt, s.workersWG, s.quit)
 
-	mr.startMetricsReporter(time.Minute)
+	s.startMetricsReporter(time.Minute)
 
-	if err := mr.checkLastShutdown(mr.ctx); err != nil {
+	if err := s.checkLastShutdown(s.ctx); err != nil {
 		return err
 	}
 
@@ -156,9 +154,9 @@ func (mr *Mailroom) Start() error {
 	return nil
 }
 
-func (mr *Mailroom) checkLastShutdown(ctx context.Context) error {
-	nodeID := fmt.Sprintf("mailroom:%s", mr.rt.Config.InstanceID)
-	vc := mr.rt.VK.Get()
+func (s *Service) checkLastShutdown(ctx context.Context) error {
+	nodeID := fmt.Sprintf("mailroom:%s", s.rt.Config.InstanceID)
+	vc := s.rt.VK.Get()
 	defer vc.Close()
 
 	exists, err := redis.Bool(redis.DoContext(vc, ctx, "HEXISTS", appNodesRunningKey, nodeID))
@@ -176,9 +174,9 @@ func (mr *Mailroom) checkLastShutdown(ctx context.Context) error {
 	return nil
 }
 
-func (mr *Mailroom) recordShutdown(ctx context.Context) error {
-	nodeID := fmt.Sprintf("mailroom:%s", mr.rt.Config.InstanceID)
-	vc := mr.rt.VK.Get()
+func (s *Service) recordShutdown(ctx context.Context) error {
+	nodeID := fmt.Sprintf("mailroom:%s", s.rt.Config.InstanceID)
+	vc := s.rt.VK.Get()
 	defer vc.Close()
 
 	if _, err := redis.DoContext(vc, ctx, "HDEL", appNodesRunningKey, nodeID); err != nil {
@@ -187,12 +185,12 @@ func (mr *Mailroom) recordShutdown(ctx context.Context) error {
 	return nil
 }
 
-func (mr *Mailroom) startMetricsReporter(interval time.Duration) {
-	mr.workersWG.Add(1)
+func (s *Service) startMetricsReporter(interval time.Duration) {
+	s.workersWG.Add(1)
 
 	report := func() {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
-		count, err := mr.reportMetrics(ctx)
+		count, err := s.reportMetrics(ctx)
 		cancel()
 		if err != nil {
 			slog.Error("error reporting metrics", "error", err)
@@ -204,12 +202,12 @@ func (mr *Mailroom) startMetricsReporter(interval time.Duration) {
 	go func() {
 		defer func() {
 			slog.Info("metrics reporter exiting")
-			mr.workersWG.Done()
+			s.workersWG.Done()
 		}()
 
 		for {
 			select {
-			case <-mr.quit:
+			case <-s.quit:
 				report()
 				return
 			case <-time.After(interval): // TODO align to half minute marks for queue sizes?
@@ -219,24 +217,24 @@ func (mr *Mailroom) startMetricsReporter(interval time.Duration) {
 	}()
 }
 
-func (mr *Mailroom) reportMetrics(ctx context.Context) (int, error) {
-	if mr.rt.Config.MetricsReporting == "off" {
+func (s *Service) reportMetrics(ctx context.Context) (int, error) {
+	if s.rt.Config.MetricsReporting == "off" {
 		return 0, nil
 	}
 
-	metrics := mr.rt.Stats.Extract().ToMetrics(mr.rt.Config.MetricsReporting == "advanced")
+	metrics := s.rt.Stats.Extract().ToMetrics(s.rt.Config.MetricsReporting == "advanced")
 
-	realtimeSize, batchSize, throttledSize := getQueueSizes(ctx, mr.rt)
+	realtimeSize, batchSize, throttledSize := getQueueSizes(ctx, s.rt)
 
 	// calculate DB and valkey stats
-	dbStats := mr.rt.DB.Stats()
-	vkStats := mr.rt.VK.Stats()
-	dbWaitDurationInPeriod := dbStats.WaitDuration - mr.dbWaitDuration
-	vkWaitDurationInPeriod := vkStats.WaitDuration - mr.vkWaitDuration
-	mr.dbWaitDuration = dbStats.WaitDuration
-	mr.vkWaitDuration = vkStats.WaitDuration
+	dbStats := s.rt.DB.Stats()
+	vkStats := s.rt.VK.Stats()
+	dbWaitDurationInPeriod := dbStats.WaitDuration - s.dbWaitDuration
+	vkWaitDurationInPeriod := vkStats.WaitDuration - s.vkWaitDuration
+	s.dbWaitDuration = dbStats.WaitDuration
+	s.vkWaitDuration = vkStats.WaitDuration
 
-	hostDim := cwatch.Dimension("Host", mr.rt.Config.InstanceID)
+	hostDim := cwatch.Dimension("Host", s.rt.Config.InstanceID)
 	metrics = append(metrics,
 		cwatch.Datum("DBConnectionsInUse", float64(dbStats.InUse), types.StandardUnitCount, hostDim),
 		cwatch.Datum("DBConnectionWaitDuration", float64(dbWaitDurationInPeriod)/float64(time.Second), types.StandardUnitSeconds, hostDim),
@@ -245,10 +243,10 @@ func (mr *Mailroom) reportMetrics(ctx context.Context) (int, error) {
 		cwatch.Datum("QueuedTasks", float64(realtimeSize), types.StandardUnitCount, cwatch.Dimension("QueueName", "realtime")),
 		cwatch.Datum("QueuedTasks", float64(batchSize), types.StandardUnitCount, cwatch.Dimension("QueueName", "batch")),
 		cwatch.Datum("QueuedTasks", float64(throttledSize), types.StandardUnitCount, cwatch.Dimension("QueueName", "throttled")),
-		cwatch.Datum("DynamoSpooledItems", float64(mr.rt.Spool.Size()), types.StandardUnitCount, hostDim),
+		cwatch.Datum("DynamoSpooledItems", float64(s.rt.Spool.Size()), types.StandardUnitCount, hostDim),
 	)
 
-	if err := mr.rt.CW.Send(ctx, metrics...); err != nil {
+	if err := s.rt.CW.Send(ctx, metrics...); err != nil {
 		return 0, fmt.Errorf("error sending metrics: %w", err)
 	}
 
@@ -256,28 +254,28 @@ func (mr *Mailroom) reportMetrics(ctx context.Context) (int, error) {
 }
 
 // Stop stops the mailroom service
-func (mr *Mailroom) Stop() error {
+func (s *Service) Stop() error {
 	log := slog.With("comp", "mailroom")
 	log.Info("mailroom stopping")
 
-	mr.realtimeForeman.Stop()
-	mr.batchForeman.Stop()
-	mr.throttledForeman.Stop()
+	s.realtimeForeman.Stop()
+	s.batchForeman.Stop()
+	s.throttledForeman.Stop()
 
-	close(mr.quit) // tell workers and crons to stop
-	mr.cancel()
+	close(s.quit) // tell workers and crons to stop
+	s.cancel()
 
-	mr.webserver.Stop()
+	s.webserver.Stop()
 
-	mr.workersWG.Wait()
+	s.workersWG.Wait()
 
 	log.Info("workers stopped")
 
-	mr.rt.Stop()
+	s.rt.Stop()
 
 	log.Info("runtime stopped")
 
-	if err := mr.recordShutdown(context.TODO()); err != nil {
+	if err := s.recordShutdown(context.TODO()); err != nil {
 		return fmt.Errorf("error recording shutdown: %w", err)
 	}
 
