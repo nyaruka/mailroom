@@ -1,3 +1,9 @@
+v10.3.50 (2025-08-22)
+-------------------------
+ * Use CallCreated events when starting outgoing calls
+ * Rework event received tasks to use new call trigger and include trigger event in scene
+ * Use runner.Interrupt for IVR expirations as well
+
 v10.3.49 (2025-08-21)
 -------------------------
  * Add runner.Interrupt and use anywhere we interrupt by contact
