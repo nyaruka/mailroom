@@ -15,6 +15,7 @@ import (
 	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/goflow/utils"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/runner"
@@ -271,10 +272,15 @@ func StartCall(
 	}
 
 	flowCall := flows.NewCall(call.UUID(), oa.SessionAssets().Channels().Get(channel.UUID()), urn.Identity())
+	callEvt := events.NewCallCreated(flowCall)
 
 	scene := runner.NewScene(mc, contact)
 	scene.DBCall = call
 	scene.Call = flowCall
+
+	if err := scene.AddEvent(ctx, rt, oa, callEvt, models.NilUserID); err != nil {
+		return fmt.Errorf("error adding call created event: %w", err)
+	}
 
 	if err := scene.StartSession(ctx, rt, oa, trigger, true); err != nil {
 		return fmt.Errorf("error starting flow: %w", err)

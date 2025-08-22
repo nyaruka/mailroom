@@ -12,6 +12,7 @@ import (
 )
 
 func init() {
+	runner.RegisterEventHandler(events.TypeCallCreated, noopHandler)
 	runner.RegisterEventHandler(events.TypeCallReceived, noopHandler)
 	runner.RegisterEventHandler(events.TypeDialEnded, noopHandler)
 	runner.RegisterEventHandler(events.TypeDialWait, noopHandler)
