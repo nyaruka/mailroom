@@ -15,7 +15,9 @@ import (
 )
 
 var eventPersistence = map[string]time.Duration{
-	events.TypeAirtimeTransferred:     -1,                   // forever
+	events.TypeAirtimeTransferred: -1, // forever
+	//events.TypeCallCreated:            -1,                   // forever
+	//events.TypeCallReceived:           -1,                   // forever
 	events.TypeContactFieldChanged:    time.Hour * 24 * 365, // 1 year
 	events.TypeContactGroupsChanged:   time.Hour * 24 * 365, // 1 year
 	events.TypeContactLanguageChanged: time.Hour * 24 * 365, // 1 year
