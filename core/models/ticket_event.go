@@ -6,9 +6,11 @@ import (
 	"time"
 
 	"github.com/nyaruka/gocommon/dates"
+	"github.com/nyaruka/gocommon/uuids"
 	"github.com/nyaruka/null/v3"
 )
 
+type TicketEventUUID uuids.UUID
 type TicketEventID int
 type TicketEventType string
 
@@ -23,6 +25,7 @@ const (
 
 type TicketEvent struct {
 	e struct {
+		UUID        TicketEventUUID `json:"uuid"                    db:"uuid"`
 		ID          TicketEventID   `json:"id"                      db:"id"`
 		OrgID       OrgID           `json:"org_id"                  db:"org_id"`
 		ContactID   ContactID       `json:"contact_id"              db:"contact_id"`
@@ -63,6 +66,7 @@ func NewTicketReopenedEvent(t *Ticket, userID UserID) *TicketEvent {
 func newTicketEvent(t *Ticket, userID UserID, eventType TicketEventType, note string, topicID TopicID, assigneeID UserID) *TicketEvent {
 	event := &TicketEvent{}
 	e := &event.e
+	e.UUID = TicketEventUUID(uuids.NewV7())
 	e.OrgID = t.OrgID()
 	e.ContactID = t.ContactID()
 	e.TicketID = t.ID()
@@ -97,8 +101,8 @@ func (e *TicketEvent) UnmarshalJSON(b []byte) error {
 
 const sqlInsertTicketEvents = `
 INSERT INTO
-	tickets_ticketevent(org_id,  contact_id,  ticket_id,  event_type,  note,  topic_id,  assignee_id,  created_on,  created_by_id)
-	            VALUES(:org_id, :contact_id, :ticket_id, :event_type, :note, :topic_id, :assignee_id, :created_on, :created_by_id)
+	tickets_ticketevent(uuid,  org_id,  contact_id,  ticket_id,  event_type,  note,  topic_id,  assignee_id,  created_on,  created_by_id)
+	            VALUES(:uuid, :org_id, :contact_id, :ticket_id, :event_type, :note, :topic_id, :assignee_id, :created_on, :created_by_id)
 RETURNING
 	id
 `
