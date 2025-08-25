@@ -1,3 +1,7 @@
+v10.3.51 (2025-08-25)
+-------------------------
+ * Start writing TicketEvent.uuid
+
 v10.3.50 (2025-08-22)
 -------------------------
  * Use CallCreated events when starting outgoing calls
