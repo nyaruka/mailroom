@@ -30,7 +30,8 @@ var eventPersistence = map[string]time.Duration{
 }
 
 const (
-	eventDataGZThreshold = 1024 // 1KB, if event data exceeds this, we should compress it
+	// If event .Data exceeds this number of bytes we compress it - aim is to get as many events written for 1 WCU (1KB)
+	eventDataGZThreshold = 900
 )
 
 type Event struct {
@@ -101,12 +102,6 @@ func (e *Event) MarshalDynamo() (map[string]types.AttributeValue, error) {
 
 // PersistEvent returns whether an event should be persisted
 func PersistEvent(e flows.Event) bool {
-	// time gate events types we need to backfill
-	// TODO remove
-	if e.Type() == events.TypeCallCreated || e.Type() == events.TypeCallReceived || e.Type() == events.TypeOptInStarted || e.Type() == events.TypeOptInStopped {
-		return e.CreatedOn().After(time.Date(2025, 8, 25, 20, 0, 0, 0, time.UTC))
-	}
-
 	_, ok := eventPersistence[e.Type()]
 	return ok
 }
