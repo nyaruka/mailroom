@@ -132,9 +132,9 @@ func TestTicketsAssign(t *testing.T) {
 	evts, err := models.TicketsAssign(ctx, rt.DB, oa, testdb.Admin.ID, []*models.Ticket{modelTicket1, modelTicket2, modelTicket3}, testdb.Agent.ID)
 	require.NoError(t, err)
 	assert.Equal(t, 3, len(evts))
-	assert.Equal(t, models.TicketEventTypeAssigned, evts[modelTicket1].EventType())
-	assert.Equal(t, models.TicketEventTypeAssigned, evts[modelTicket2].EventType())
-	assert.Equal(t, models.TicketEventTypeAssigned, evts[modelTicket3].EventType())
+	assert.Equal(t, models.TicketEventTypeAssigned, evts[modelTicket1].Type)
+	assert.Equal(t, models.TicketEventTypeAssigned, evts[modelTicket2].Type)
+	assert.Equal(t, models.TicketEventTypeAssigned, evts[modelTicket3].Type)
 
 	// check tickets are now assigned
 	assertdb.Query(t, rt.DB, `SELECT assignee_id FROM tickets_ticket WHERE id = $1`, ticket1.ID).Columns(map[string]any{"assignee_id": int64(testdb.Agent.ID)})
@@ -172,8 +172,8 @@ func TestTicketsAddNote(t *testing.T) {
 	evts, err := models.TicketsAddNote(ctx, rt.DB, oa, testdb.Admin.ID, []*models.Ticket{modelTicket1, modelTicket2}, "spam")
 	require.NoError(t, err)
 	assert.Equal(t, 2, len(evts))
-	assert.Equal(t, models.TicketEventTypeNoteAdded, evts[modelTicket1].EventType())
-	assert.Equal(t, models.TicketEventTypeNoteAdded, evts[modelTicket2].EventType())
+	assert.Equal(t, models.TicketEventTypeNoteAdded, evts[modelTicket1].Type)
+	assert.Equal(t, models.TicketEventTypeNoteAdded, evts[modelTicket2].Type)
 
 	// check there are new note events
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM tickets_ticketevent WHERE event_type = 'N' AND note = 'spam'`).Returns(2)
@@ -203,8 +203,8 @@ func TestTicketsChangeTopic(t *testing.T) {
 	evts, err := models.TicketsChangeTopic(ctx, rt.DB, oa, testdb.Admin.ID, []*models.Ticket{modelTicket1, modelTicket2, modelTicket3}, testdb.SupportTopic.ID)
 	require.NoError(t, err)
 	assert.Equal(t, 2, len(evts)) // ticket 2 not included as already has that topic
-	assert.Equal(t, models.TicketEventTypeTopicChanged, evts[modelTicket1].EventType())
-	assert.Equal(t, models.TicketEventTypeTopicChanged, evts[modelTicket3].EventType())
+	assert.Equal(t, models.TicketEventTypeTopicChanged, evts[modelTicket1].Type)
+	assert.Equal(t, models.TicketEventTypeTopicChanged, evts[modelTicket3].Type)
 
 	// check tickets are updated and we have events
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM tickets_ticket WHERE topic_id = $1`, testdb.SupportTopic.ID).Returns(3)
@@ -236,7 +236,7 @@ func TestCloseTickets(t *testing.T) {
 	evts, err := models.CloseTickets(ctx, rt, oa, testdb.Admin.ID, []*models.Ticket{modelTicket1, modelTicket2})
 	require.NoError(t, err)
 	assert.Equal(t, 1, len(evts))
-	assert.Equal(t, models.TicketEventTypeClosed, evts[modelTicket1].EventType())
+	assert.Equal(t, models.TicketEventTypeClosed, evts[modelTicket1].Type)
 
 	// check ticket #1 is now closed
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM tickets_ticket WHERE id = $1 AND status = 'C' AND closed_on IS NOT NULL`, ticket1.ID).Returns(1)
@@ -260,7 +260,7 @@ func TestCloseTickets(t *testing.T) {
 	evts, err = models.CloseTickets(ctx, rt, oa, models.NilUserID, []*models.Ticket{modelTicket3})
 	require.NoError(t, err)
 	assert.Equal(t, 1, len(evts))
-	assert.Equal(t, models.TicketEventTypeClosed, evts[modelTicket3].EventType())
+	assert.Equal(t, models.TicketEventTypeClosed, evts[modelTicket3].Type)
 
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM tickets_ticketevent WHERE ticket_id = $1 AND event_type = 'C' AND created_by_id IS NULL`, ticket3.ID).Returns(1)
 }
@@ -282,7 +282,7 @@ func TestReopenTickets(t *testing.T) {
 	evts, err := models.ReopenTickets(ctx, rt, oa, testdb.Admin.ID, []*models.Ticket{modelTicket1, modelTicket2})
 	require.NoError(t, err)
 	assert.Equal(t, 1, len(evts))
-	assert.Equal(t, models.TicketEventTypeReopened, evts[modelTicket1].EventType())
+	assert.Equal(t, models.TicketEventTypeReopened, evts[modelTicket1].Type)
 
 	// check ticket #1 is now closed
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM tickets_ticket WHERE id = $1 AND status = 'O' AND closed_on IS NULL`, ticket1.ID).Returns(1)

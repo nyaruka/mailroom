@@ -95,26 +95,26 @@ func NotificationsFromTicketEvents(ctx context.Context, db DBorTx, oa *OrgAssets
 	assignableUsers := usersWithRoles(oa, ticketAssignableToles)
 
 	for ticket, evt := range events {
-		switch evt.EventType() {
+		switch evt.Type {
 		case TicketEventTypeOpened:
 			// if ticket is unassigned notify all possible assignees
-			if evt.AssigneeID() == NilUserID {
+			if evt.AssigneeID == NilUserID {
 				for _, user := range assignableUsers {
-					if evt.CreatedByID() != user.ID() {
+					if evt.CreatedByID != user.ID() {
 						notifyTicketsOpened[user.ID()] = true
 					}
 				}
-			} else if evt.AssigneeID() != evt.CreatedByID() {
-				notifyTicketsActivity[evt.AssigneeID()] = true
+			} else if evt.AssigneeID != evt.CreatedByID {
+				notifyTicketsActivity[evt.AssigneeID] = true
 			}
 		case TicketEventTypeAssigned:
 			// notify new ticket assignee if they didn't self-assign
-			if evt.AssigneeID() != NilUserID && evt.AssigneeID() != evt.CreatedByID() {
-				notifyTicketsActivity[evt.AssigneeID()] = true
+			if evt.AssigneeID != NilUserID && evt.AssigneeID != evt.CreatedByID {
+				notifyTicketsActivity[evt.AssigneeID] = true
 			}
 		case TicketEventTypeNoteAdded:
 			// notify ticket assignee if they didn't add note themselves
-			if ticket.AssigneeID() != NilUserID && ticket.AssigneeID() != evt.CreatedByID() {
+			if ticket.AssigneeID() != NilUserID && ticket.AssigneeID() != evt.CreatedByID {
 				notifyTicketsActivity[ticket.AssigneeID()] = true
 			}
 		}

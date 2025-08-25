@@ -2,7 +2,6 @@ package models
 
 import (
 	"context"
-	"encoding/json"
 	"time"
 
 	"github.com/nyaruka/gocommon/dates"
@@ -24,19 +23,17 @@ const (
 )
 
 type TicketEvent struct {
-	e struct {
-		UUID        TicketEventUUID `json:"uuid"                    db:"uuid"`
-		ID          TicketEventID   `json:"id"                      db:"id"`
-		OrgID       OrgID           `json:"org_id"                  db:"org_id"`
-		ContactID   ContactID       `json:"contact_id"              db:"contact_id"`
-		TicketID    TicketID        `json:"ticket_id"               db:"ticket_id"`
-		EventType   TicketEventType `json:"event_type"              db:"event_type"`
-		Note        null.String     `json:"note,omitempty"          db:"note"`
-		TopicID     TopicID         `json:"topic_id,omitempty"      db:"topic_id"`
-		AssigneeID  UserID          `json:"assignee_id,omitempty"   db:"assignee_id"`
-		CreatedByID UserID          `json:"created_by_id,omitempty" db:"created_by_id"`
-		CreatedOn   time.Time       `json:"created_on"              db:"created_on"`
-	}
+	UUID        TicketEventUUID `json:"uuid"                    db:"uuid"`
+	ID          TicketEventID   `json:"id"                      db:"id"`
+	OrgID       OrgID           `json:"org_id"                  db:"org_id"`
+	ContactID   ContactID       `json:"contact_id"              db:"contact_id"`
+	TicketID    TicketID        `json:"ticket_id"               db:"ticket_id"`
+	Type        TicketEventType `json:"event_type"              db:"event_type"`
+	Note        null.String     `json:"note,omitempty"          db:"note"`
+	TopicID     TopicID         `json:"topic_id,omitempty"      db:"topic_id"`
+	AssigneeID  UserID          `json:"assignee_id,omitempty"   db:"assignee_id"`
+	CreatedByID UserID          `json:"created_by_id,omitempty" db:"created_by_id"`
+	CreatedOn   time.Time       `json:"created_on"              db:"created_on"`
 }
 
 func NewTicketOpenedEvent(t *Ticket, userID UserID, assigneeID UserID, note string) *TicketEvent {
@@ -64,39 +61,18 @@ func NewTicketReopenedEvent(t *Ticket, userID UserID) *TicketEvent {
 }
 
 func newTicketEvent(t *Ticket, userID UserID, eventType TicketEventType, note string, topicID TopicID, assigneeID UserID) *TicketEvent {
-	event := &TicketEvent{}
-	e := &event.e
-	e.UUID = TicketEventUUID(uuids.NewV7())
-	e.OrgID = t.OrgID()
-	e.ContactID = t.ContactID()
-	e.TicketID = t.ID()
-	e.EventType = eventType
-	e.Note = null.String(note)
-	e.TopicID = topicID
-	e.AssigneeID = assigneeID
-	e.CreatedOn = dates.Now()
-	e.CreatedByID = userID
-	return event
-}
-
-func (e *TicketEvent) ID() TicketEventID          { return e.e.ID }
-func (e *TicketEvent) OrgID() OrgID               { return e.e.OrgID }
-func (e *TicketEvent) ContactID() ContactID       { return e.e.ContactID }
-func (e *TicketEvent) TicketID() TicketID         { return e.e.TicketID }
-func (e *TicketEvent) EventType() TicketEventType { return e.e.EventType }
-func (e *TicketEvent) Note() null.String          { return e.e.Note }
-func (e *TicketEvent) TopicID() TopicID           { return e.e.TopicID }
-func (e *TicketEvent) AssigneeID() UserID         { return e.e.AssigneeID }
-func (e *TicketEvent) CreatedByID() UserID        { return e.e.CreatedByID }
-
-// MarshalJSON is our custom marshaller so that our inner struct get output
-func (e *TicketEvent) MarshalJSON() ([]byte, error) {
-	return json.Marshal(e.e)
-}
-
-// UnmarshalJSON is our custom marshaller so that our inner struct get output
-func (e *TicketEvent) UnmarshalJSON(b []byte) error {
-	return json.Unmarshal(b, &e.e)
+	return &TicketEvent{
+		UUID:        TicketEventUUID(uuids.NewV7()),
+		OrgID:       t.OrgID(),
+		ContactID:   t.ContactID(),
+		TicketID:    t.ID(),
+		Type:        eventType,
+		Note:        null.String(note),
+		TopicID:     topicID,
+		AssigneeID:  assigneeID,
+		CreatedOn:   dates.Now(),
+		CreatedByID: userID,
+	}
 }
 
 const sqlInsertTicketEvents = `
@@ -108,11 +84,5 @@ RETURNING
 `
 
 func InsertTicketEvents(ctx context.Context, db DBorTx, evts []*TicketEvent) error {
-	// convert to interface arrray
-	is := make([]any, len(evts))
-	for i := range evts {
-		is[i] = &evts[i].e
-	}
-
-	return BulkQuery(ctx, "inserting ticket events", db, sqlInsertTicketEvents, is)
+	return BulkQuery(ctx, "inserting ticket events", db, sqlInsertTicketEvents, evts)
 }
