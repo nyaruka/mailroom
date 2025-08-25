@@ -1542,19 +1542,19 @@
                     },
                     "events": [
                         {
-                            "uuid": "01969b47-72e3-76f8-bef6-3979f99a96f9",
+                            "uuid": "01969b47-76cb-76f8-ba91-c48ad8c50e6b",
                             "type": "contact_name_changed",
                             "created_on": "2018-07-06T12:30:00.123456789Z",
                             "name": "Juan"
                         },
                         {
-                            "uuid": "01969b47-76cb-76f8-ba91-c48ad8c50e6b",
+                            "uuid": "01969b47-7ab3-76f8-be24-6164105d48f2",
                             "type": "contact_language_changed",
                             "created_on": "2018-07-06T12:30:01.123456789Z",
                             "language": "spa"
                         },
                         {
-                            "uuid": "01969b47-7ab3-76f8-be24-6164105d48f2",
+                            "uuid": "01969b47-7e9b-76f8-8768-7d0ba4d4f3e8",
                             "type": "contact_groups_changed",
                             "created_on": "2018-07-06T12:30:02.123456789Z",
                             "groups_added": [
@@ -1565,7 +1565,7 @@
                             ]
                         },
                         {
-                            "uuid": "01969b47-7e9b-76f8-8768-7d0ba4d4f3e8",
+                            "uuid": "01969b47-8283-76f8-b63d-c8dcc2fa9de0",
                             "type": "contact_urns_changed",
                             "created_on": "2018-07-06T12:30:03.123456789Z",
                             "urns": [
@@ -1635,7 +1635,7 @@
                     },
                     "events": [
                         {
-                            "uuid": "01969b47-8283-76f8-b63d-c8dcc2fa9de0",
+                            "uuid": "01969b47-866b-76f8-8f9d-465efd6fbb5e",
                             "type": "contact_language_changed",
                             "created_on": "2018-07-06T12:30:00.123456789Z",
                             "language": "eng"
