@@ -15,16 +15,18 @@ import (
 )
 
 var eventPersistence = map[string]time.Duration{
-	events.TypeAirtimeTransferred: -1, // forever
-	//events.TypeCallCreated:            -1,                   // forever
-	//events.TypeCallReceived:           -1,                   // forever
+	events.TypeAirtimeTransferred:     -1,                   // forever
+	events.TypeCallCreated:            -1,                   // forever
+	events.TypeCallReceived:           -1,                   // forever
 	events.TypeContactFieldChanged:    time.Hour * 24 * 365, // 1 year
 	events.TypeContactGroupsChanged:   time.Hour * 24 * 365, // 1 year
 	events.TypeContactLanguageChanged: time.Hour * 24 * 365, // 1 year
 	events.TypeContactNameChanged:     time.Hour * 24 * 365, // 1 year
 	events.TypeContactURNsChanged:     time.Hour * 24 * 365, // 1 year
-	events.TypeRunStarted:             -1,                   // forever
+	events.TypeOptInStarted:           -1,                   // forever
+	events.TypeOptInStopped:           -1,                   // forever
 	events.TypeRunEnded:               -1,                   // forever
+	events.TypeRunStarted:             -1,                   // forever
 }
 
 const (
@@ -99,6 +101,12 @@ func (e *Event) MarshalDynamo() (map[string]types.AttributeValue, error) {
 
 // PersistEvent returns whether an event should be persisted
 func PersistEvent(e flows.Event) bool {
+	// time gate events types we need to backfill
+	// TODO remove
+	if e.Type() == events.TypeCallCreated || e.Type() == events.TypeCallReceived || e.Type() == events.TypeOptInStarted || e.Type() == events.TypeOptInStopped {
+		return e.CreatedOn().After(time.Date(2025, 8, 25, 20, 0, 0, 0, time.UTC))
+	}
+
 	_, ok := eventPersistence[e.Type()]
 	return ok
 }
