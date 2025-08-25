@@ -1,3 +1,7 @@
+v10.3.52 (2025-08-25)
+-------------------------
+ * Start persisting call and optin events
+
 v10.3.51 (2025-08-25)
 -------------------------
  * Start writing TicketEvent.uuid
