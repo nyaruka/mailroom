@@ -1,3 +1,7 @@
+v10.3.54 (2025-08-26)
+-------------------------
+ * Persist call_missed and chat_started events
+
 v10.3.53 (2025-08-26)
 -------------------------
  * Update to latest goflow which adds new event types for channel "events"
