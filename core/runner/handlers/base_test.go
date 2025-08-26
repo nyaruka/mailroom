@@ -183,7 +183,7 @@ func RunTestCases(t *testing.T, ctx context.Context, rt *runtime.Runtime, tcs []
 				if msg != nil {
 					msgEvt := events.NewMsgReceived(msg.FlowMsg)
 					contact.SetLastSeenOn(msgEvt.CreatedOn())
-					trig = triggers.NewBuilder(testFlow.Reference(false)).Msg(msgEvt).Build()
+					trig = triggers.NewBuilder(testFlow.Reference(false)).MsgReceived(msgEvt).Build()
 				} else {
 					trig = triggers.NewBuilder(testFlow.Reference(false)).Manual().Build()
 				}
