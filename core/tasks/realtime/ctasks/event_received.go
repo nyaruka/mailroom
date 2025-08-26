@@ -160,7 +160,7 @@ func (t *EventReceivedTask) handle(ctx context.Context, rt *runtime.Runtime, oa 
 	if t.EventType == models.EventTypeIncomingCall {
 		trig = tb.CallReceived(events.NewCallReceived(flowCall)).Build()
 	} else if t.EventType == models.EventTypeMissedCall {
-		trig = tb.CallMissed(events.NewCallMissed()).Build()
+		trig = tb.CallMissed(events.NewCallMissed(channel.Reference())).Build()
 	} else if t.EventType == models.EventTypeOptIn && flowOptIn != nil {
 		trig = tb.OptInStarted(events.NewOptInStarted(flowOptIn, channel.Reference()), flowOptIn).Build()
 	} else if t.EventType == models.EventTypeOptOut && flowOptIn != nil {
