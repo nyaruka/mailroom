@@ -186,7 +186,7 @@ func TestNewCourierMsg(t *testing.T) {
 		"uuid": "%s"
 	}`, string(jsonx.MustMarshal(msgEvent3.CreatedOn())), testdb.Admin.ID, msg3.UUID()))
 
-	optInEvent := events.NewOptInRequested(session.Assets().OptIns().Get(optIn.UUID()), twilio.Reference(), "tel:+16055741111?id=10000")
+	optInEvent := events.NewOptInRequested(session.Assets().OptIns().Get(optIn.UUID()).Reference(), twilio.Reference(), "tel:+16055741111?id=10000")
 	msg4 := models.NewOutgoingOptInMsg(rt, testdb.Org1.ID, fCathy, flow, optIn, twilio, optInEvent, &models.MsgInRef{ID: in1.ID, ExtID: "EX123"})
 	err = models.InsertMessages(ctx, rt.DB, []*models.Msg{msg4.Msg})
 	require.NoError(t, err)
