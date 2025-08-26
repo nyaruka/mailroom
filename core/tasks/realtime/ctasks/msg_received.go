@@ -201,7 +201,7 @@ func (t *MsgReceivedTask) handleMsgEvent(ctx context.Context, rt *runtime.Runtim
 
 		if flow != nil {
 			// create trigger from this message
-			tb := triggers.NewBuilder(flow.Reference()).Msg(msgEvent)
+			tb := triggers.NewBuilder(flow.Reference()).MsgReceived(msgEvent)
 			if keyword != "" {
 				tb = tb.WithMatch(&triggers.KeywordMatch{Type: trigger.KeywordMatchType(), Keyword: keyword})
 			}

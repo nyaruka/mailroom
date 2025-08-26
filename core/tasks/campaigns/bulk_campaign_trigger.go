@@ -121,7 +121,7 @@ func (t *BulkCampaignTriggerTask) triggerFlow(ctx context.Context, rt *runtime.R
 
 	flowRef := assets.NewFlowReference(flow.UUID(), flow.Name())
 	triggerBuilder := func() flows.Trigger {
-		return triggers.NewBuilder(flowRef).Campaign(campaign, events.NewCampaignFired(campaign, p.UUID)).Build()
+		return triggers.NewBuilder(flowRef).CampaignFired(events.NewCampaignFired(campaign, p.UUID), campaign).Build()
 	}
 
 	if flow.FlowType() == models.FlowTypeVoice {

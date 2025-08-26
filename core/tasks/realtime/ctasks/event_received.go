@@ -2,12 +2,10 @@ package ctasks
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"time"
 
-	"github.com/nyaruka/goflow/excellent/types"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/goflow/flows/triggers"
@@ -142,19 +140,6 @@ func (t *EventReceivedTask) handle(ctx context.Context, rt *runtime.Runtime, oa 
 		return nil, nil
 	}
 
-	// create our parameters, we just convert this from JSON
-	var params *types.XObject
-	if t.Extra != nil {
-		asJSON, err := json.Marshal(map[string]any(t.Extra))
-		if err != nil {
-			return nil, fmt.Errorf("unable to marshal extra from channel event: %w", err)
-		}
-		params, err = types.ReadXObject(asJSON)
-		if err != nil {
-			return nil, fmt.Errorf("unable to read extra from channel event: %w", err)
-		}
-	}
-
 	var flowOptIn *flows.OptIn
 	if t.EventType == models.EventTypeOptIn || t.EventType == models.EventTypeOptOut {
 		optIn := oa.OptInByID(t.OptInID)
@@ -173,13 +158,26 @@ func (t *EventReceivedTask) handle(ctx context.Context, rt *runtime.Runtime, oa 
 	tb := triggers.NewBuilder(flow.Reference())
 
 	if t.EventType == models.EventTypeIncomingCall {
-		trig = tb.Call(events.NewCallReceived(flowCall)).Build()
+		trig = tb.CallReceived(events.NewCallReceived(flowCall)).Build()
+	} else if t.EventType == models.EventTypeMissedCall {
+		trig = tb.CallMissed(events.NewCallMissed()).Build()
 	} else if t.EventType == models.EventTypeOptIn && flowOptIn != nil {
-		trig = tb.OptIn(flowOptIn, events.NewOptInStarted(flowOptIn, channel.Reference())).Build()
+		trig = tb.OptInStarted(events.NewOptInStarted(flowOptIn, channel.Reference()), flowOptIn).Build()
 	} else if t.EventType == models.EventTypeOptOut && flowOptIn != nil {
-		trig = tb.OptIn(flowOptIn, events.NewOptInStopped(flowOptIn, channel.Reference())).Build()
-	} else {
-		trig = tb.Channel(channel.Reference(), triggers.ChannelEventType(t.EventType)).WithParams(params).Build()
+		trig = tb.OptInStopped(events.NewOptInStopped(flowOptIn, channel.Reference()), flowOptIn).Build()
+	} else if t.EventType == models.EventTypeNewConversation {
+		trig = tb.ChatStarted(events.NewChatStarted(channel.Reference(), nil)).Build()
+	} else if t.EventType == models.EventTypeReferral {
+		var params map[string]string
+		if t.Extra != nil {
+			params = make(map[string]string, len(t.Extra))
+			for k, v := range t.Extra {
+				if vs, ok := v.(string); ok {
+					params[k] = vs
+				}
+			}
+		}
+		trig = tb.ChatStarted(events.NewChatStarted(channel.Reference(), params)).Build()
 	}
 
 	if flow.FlowType() == models.FlowTypeVoice {

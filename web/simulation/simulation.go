@@ -259,10 +259,10 @@ func handleResume(ctx context.Context, rt *runtime.Runtime, r *resumeRequest) (a
 					var sessionTrigger flows.Trigger
 					var call *flows.Call
 					if triggeredFlow.FlowType() == models.FlowTypeVoice {
-						sessionTrigger = tb.Msg(msgEvt).Build()
+						sessionTrigger = tb.MsgReceived(msgEvt).Build()
 						call = flows.NewCall(testCallUUID, oa.SessionAssets().Channels().Get(testChannelUUID), testURN)
 					} else {
-						mtb := tb.Msg(msgEvt)
+						mtb := tb.MsgReceived(msgEvt)
 						if keyword != "" {
 							mtb = mtb.WithMatch(&triggers.KeywordMatch{Type: trigger.KeywordMatchType(), Keyword: keyword})
 						}
