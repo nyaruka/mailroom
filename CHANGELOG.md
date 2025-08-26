@@ -1,3 +1,8 @@
+v10.3.53 (2025-08-26)
+-------------------------
+ * Update to latest goflow which adds new event types for channel "events"
+ * Remove time gating of call/optin events and tweak eventDataGZThreshold
+
 v10.3.52 (2025-08-25)
 -------------------------
  * Start persisting call and optin events
