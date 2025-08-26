@@ -1,3 +1,8 @@
+v10.3.55 (2025-08-26)
+-------------------------
+ * Remove time gating on chat_started / call_missed events
+ * Include channel on call_missed events
+
 v10.3.54 (2025-08-26)
 -------------------------
  * Persist call_missed and chat_started events
