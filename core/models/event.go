@@ -17,7 +17,9 @@ import (
 var eventPersistence = map[string]time.Duration{
 	events.TypeAirtimeTransferred:     -1,                   // forever
 	events.TypeCallCreated:            -1,                   // forever
+	events.TypeCallMissed:             -1,                   // forever
 	events.TypeCallReceived:           -1,                   // forever
+	events.TypeChatStarted:            -1,                   // forever
 	events.TypeContactFieldChanged:    time.Hour * 24 * 365, // 1 year
 	events.TypeContactGroupsChanged:   time.Hour * 24 * 365, // 1 year
 	events.TypeContactLanguageChanged: time.Hour * 24 * 365, // 1 year
@@ -102,6 +104,10 @@ func (e *Event) MarshalDynamo() (map[string]types.AttributeValue, error) {
 
 // PersistEvent returns whether an event should be persisted
 func PersistEvent(e flows.Event) bool {
+	if e.Type() == events.TypeCallMissed || e.Type() == events.TypeChatStarted {
+		return e.CreatedOn().After(time.Date(2025, 8, 26, 20, 0, 0, 0, time.UTC))
+	}
+
 	_, ok := eventPersistence[e.Type()]
 	return ok
 }
