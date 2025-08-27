@@ -1733,9 +1733,9 @@
                     },
                     "events": [
                         {
-                            "uuid": "01969b47-8a53-76f8-9566-6fb2598c32d6",
+                            "uuid": "01969b47-866b-76f8-8f9d-465efd6fbb5e",
                             "type": "contact_language_changed",
-                            "created_on": "2018-07-06T12:30:01.123456789Z",
+                            "created_on": "2018-07-06T12:30:00.123456789Z",
                             "language": "eng"
                         }
                     ]
@@ -1755,9 +1755,9 @@
                     },
                     "events": [
                         {
-                            "uuid": "01969b47-866b-76f8-8f9d-465efd6fbb5e",
+                            "uuid": "01969b47-8a53-76f8-9566-6fb2598c32d6",
                             "type": "contact_language_changed",
-                            "created_on": "2018-07-06T12:30:00.123456789Z",
+                            "created_on": "2018-07-06T12:30:01.123456789Z",
                             "language": "eng"
                         }
                     ]

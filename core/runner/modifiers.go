@@ -1,8 +1,11 @@
 package runner
 
 import (
+	"cmp"
 	"context"
 	"fmt"
+	"maps"
+	"slices"
 
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/core/models"
@@ -16,11 +19,14 @@ func BulkModify(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, 
 	scenes := make([]*Scene, 0, len(modifiersByContact))
 	eventsByContact := make(map[*flows.Contact][]flows.Event, len(modifiersByContact))
 
-	for contact, mods := range modifiersByContact {
+	// until go has an easier way to iterate a map in a stable order, we need this to make tests deterministic
+	contactsByID := slices.SortedFunc(maps.Keys(modifiersByContact), func(a, b *flows.Contact) int { return cmp.Compare(a.ID(), b.ID()) })
+
+	for _, contact := range contactsByID {
 		scene := NewScene(nil, contact)
 		eventsByContact[contact] = make([]flows.Event, 0)
 
-		for _, mod := range mods {
+		for _, mod := range modifiersByContact[contact] {
 			evts, err := scene.ApplyModifier(ctx, rt, oa, mod, userID)
 			if err != nil {
 				return nil, fmt.Errorf("error applying modifier %T to contact %s: %w", mod, contact.UUID(), err)
