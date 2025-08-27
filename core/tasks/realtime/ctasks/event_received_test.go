@@ -58,7 +58,6 @@ func TestChannelEvents(t *testing.T) {
 		task                realtime.Task
 		expectedTriggerType string
 		expectedResponse    string
-		updatesLastSeen     bool
 		persistedEvents     map[flows.ContactUUID][]string
 	}{
 		{ // 0: new conversation on Facebook
@@ -74,7 +73,6 @@ func TestChannelEvents(t *testing.T) {
 			},
 			expectedTriggerType: "chat",
 			expectedResponse:    "What is your favorite color?",
-			updatesLastSeen:     true,
 			persistedEvents:     map[flows.ContactUUID][]string{testdb.Cathy.UUID: {"chat_started", "run_started"}},
 		},
 		{ // 1: new conversation on Vonage (no trigger)
@@ -90,7 +88,6 @@ func TestChannelEvents(t *testing.T) {
 			},
 			expectedTriggerType: "",
 			expectedResponse:    "",
-			updatesLastSeen:     true,
 			persistedEvents:     map[flows.ContactUUID][]string{},
 		},
 		{ // 2: welcome message on Vonage
@@ -106,7 +103,6 @@ func TestChannelEvents(t *testing.T) {
 			},
 			expectedTriggerType: "",
 			expectedResponse:    "",
-			updatesLastSeen:     false,
 			persistedEvents:     map[flows.ContactUUID][]string{},
 		},
 		{ // 3: referral on Facebook
@@ -122,7 +118,6 @@ func TestChannelEvents(t *testing.T) {
 			},
 			expectedTriggerType: "",
 			expectedResponse:    "",
-			updatesLastSeen:     true,
 			persistedEvents:     map[flows.ContactUUID][]string{},
 		},
 		{ // 4: referral on Facebook
@@ -138,7 +133,6 @@ func TestChannelEvents(t *testing.T) {
 			},
 			expectedTriggerType: "chat",
 			expectedResponse:    "Pick a number between 1-10.",
-			updatesLastSeen:     true,
 			persistedEvents:     map[flows.ContactUUID][]string{testdb.Cathy.UUID: {"chat_started", "run_ended", "run_started"}},
 		},
 		{ // 5: optin on Vonage
@@ -155,7 +149,6 @@ func TestChannelEvents(t *testing.T) {
 			},
 			expectedTriggerType: "optin",
 			expectedResponse:    "What is your favorite color?",
-			updatesLastSeen:     true,
 			persistedEvents:     map[flows.ContactUUID][]string{testdb.Cathy.UUID: {"optin_started", "run_ended", "run_started"}},
 		},
 		{ // 6: optout on Vonage
@@ -172,7 +165,6 @@ func TestChannelEvents(t *testing.T) {
 			},
 			expectedTriggerType: "optin",
 			expectedResponse:    "Pick a number between 1-10.",
-			updatesLastSeen:     true,
 			persistedEvents:     map[flows.ContactUUID][]string{testdb.Cathy.UUID: {"optin_stopped", "run_ended", "run_started"}},
 		},
 		{ // 7: missed call trigger queued by RP
@@ -189,7 +181,6 @@ func TestChannelEvents(t *testing.T) {
 			},
 			expectedTriggerType: "",
 			expectedResponse:    "",
-			updatesLastSeen:     true,
 			persistedEvents:     map[flows.ContactUUID][]string{},
 		},
 		{ // 8: stop contact
@@ -205,7 +196,6 @@ func TestChannelEvents(t *testing.T) {
 			},
 			expectedTriggerType: "",
 			expectedResponse:    "",
-			updatesLastSeen:     true,
 			persistedEvents:     map[flows.ContactUUID][]string{},
 		},
 		{ // 9: a task against a deleted contact
@@ -221,7 +211,6 @@ func TestChannelEvents(t *testing.T) {
 			},
 			expectedTriggerType: "",
 			expectedResponse:    "",
-			updatesLastSeen:     false,
 			persistedEvents:     map[flows.ContactUUID][]string{},
 		},
 		{ // 10: a task for a delete contact
@@ -237,7 +226,6 @@ func TestChannelEvents(t *testing.T) {
 			},
 			expectedTriggerType: "",
 			expectedResponse:    "",
-			updatesLastSeen:     false,
 			persistedEvents:     map[flows.ContactUUID][]string{},
 		},
 	}
@@ -282,15 +270,16 @@ func TestChannelEvents(t *testing.T) {
 				Returns(tc.expectedResponse, "%d: response mismatch", i)
 		}
 
-		if tc.updatesLastSeen {
+		// check last_seen_on was updated
+		if tc.contact != deleted {
 			var lastSeen time.Time
 			err = rt.DB.Get(&lastSeen, `SELECT last_seen_on FROM contacts_contact WHERE id = $1`, tc.contact.ID)
 			assert.NoError(t, err)
 			assert.WithinDuration(t, lastSeen, tc.task.(*ctasks.EventReceivedTask).CreatedOn, time.Microsecond, "%d: expected last seen to be updated", i)
 		}
 
+		// check persisted events
 		persistedEvents := testsuite.GetHistoryEvents(t, rt)
-
 		assert.Equal(t, tc.persistedEvents, persistedEvents, "%d: mismatch in persisted events", i)
 
 		dyntest.Truncate(t, rt.Dynamo, "TestHistory")
