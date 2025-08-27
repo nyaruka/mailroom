@@ -5,7 +5,6 @@ import (
 
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/actions"
-	"github.com/nyaruka/mailroom/core/runner/handlers"
 	"github.com/nyaruka/mailroom/testsuite"
 	"github.com/nyaruka/mailroom/testsuite/testdb"
 )
@@ -15,9 +14,9 @@ func TestContactLanguageChanged(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
-	tcs := []handlers.TestCase{
+	tcs := []TestCase{
 		{
-			Actions: handlers.ContactActionMap{
+			Actions: ContactActionMap{
 				testdb.Cathy: []flows.Action{
 					actions.NewSetContactLanguage(flows.NewActionUUID(), "fra"),
 					actions.NewSetContactLanguage(flows.NewActionUUID(), "eng"),
@@ -29,7 +28,7 @@ func TestContactLanguageChanged(t *testing.T) {
 					actions.NewSetContactLanguage(flows.NewActionUUID(), ""),
 				},
 			},
-			SQLAssertions: []handlers.SQLAssertion{
+			SQLAssertions: []SQLAssertion{
 				{
 					SQL:   "select count(*) from contacts_contact where id = $1 and language = 'eng'",
 					Args:  []any{testdb.Cathy.ID},
@@ -60,5 +59,5 @@ func TestContactLanguageChanged(t *testing.T) {
 		},
 	}
 
-	handlers.RunTestCases(t, ctx, rt, tcs)
+	runTestCases(t, ctx, rt, tcs)
 }

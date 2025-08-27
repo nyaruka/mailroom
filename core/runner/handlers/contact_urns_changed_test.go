@@ -6,7 +6,6 @@ import (
 	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/actions"
-	"github.com/nyaruka/mailroom/core/runner/handlers"
 	"github.com/nyaruka/mailroom/testsuite"
 	"github.com/nyaruka/mailroom/testsuite/testdb"
 )
@@ -19,9 +18,9 @@ func TestContactURNsChanged(t *testing.T) {
 	// add a URN to george that cathy will steal
 	testdb.InsertContactURN(rt, testdb.Org1, testdb.George, urns.URN("tel:+12065551212"), 100, nil)
 
-	tcs := []handlers.TestCase{
+	tcs := []TestCase{
 		{
-			Actions: handlers.ContactActionMap{
+			Actions: ContactActionMap{
 				testdb.Cathy: []flows.Action{
 					actions.NewAddContactURN(flows.NewActionUUID(), "tel", "12065551212"),
 					actions.NewAddContactURN(flows.NewActionUUID(), "tel", "12065551212"),
@@ -30,7 +29,7 @@ func TestContactURNsChanged(t *testing.T) {
 				},
 				testdb.George: []flows.Action{},
 			},
-			SQLAssertions: []handlers.SQLAssertion{
+			SQLAssertions: []SQLAssertion{
 				{
 					SQL:   "select count(*) from contacts_contacturn where contact_id = $1 and scheme = 'telegram' and path = '11551' and priority = 998",
 					Args:  []any{testdb.Cathy.ID},
@@ -62,5 +61,5 @@ func TestContactURNsChanged(t *testing.T) {
 		},
 	}
 
-	handlers.RunTestCases(t, ctx, rt, tcs)
+	runTestCases(t, ctx, rt, tcs)
 }

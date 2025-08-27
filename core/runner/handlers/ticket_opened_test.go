@@ -7,7 +7,6 @@ import (
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/actions"
-	"github.com/nyaruka/mailroom/core/runner/handlers"
 	"github.com/nyaruka/mailroom/testsuite"
 	"github.com/nyaruka/mailroom/testsuite/testdb"
 )
@@ -37,9 +36,9 @@ func TestTicketOpened(t *testing.T) {
 		},
 	}))
 
-	tcs := []handlers.TestCase{
+	tcs := []TestCase{
 		{
-			Actions: handlers.ContactActionMap{
+			Actions: ContactActionMap{
 				testdb.Cathy: []flows.Action{
 					actions.NewOpenTicket(
 						flows.NewActionUUID(),
@@ -57,7 +56,7 @@ func TestTicketOpened(t *testing.T) {
 					),
 				},
 			},
-			SQLAssertions: []handlers.SQLAssertion{
+			SQLAssertions: []SQLAssertion{
 				{ // cathy's old ticket will still be open and cathy's new ticket will have been created
 					SQL:   "select count(*) from tickets_ticket where contact_id = $1 AND status = 'O'",
 					Args:  []any{testdb.Cathy.ID},
@@ -101,5 +100,5 @@ func TestTicketOpened(t *testing.T) {
 		},
 	}
 
-	handlers.RunTestCases(t, ctx, rt, tcs)
+	runTestCases(t, ctx, rt, tcs)
 }

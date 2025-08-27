@@ -9,7 +9,6 @@ import (
 	"github.com/nyaruka/goflow/flows/actions"
 	"github.com/nyaruka/goflow/test"
 	"github.com/nyaruka/mailroom/core/models"
-	"github.com/nyaruka/mailroom/core/runner/handlers"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/mailroom/testsuite"
 	"github.com/nyaruka/mailroom/testsuite/testdb"
@@ -26,14 +25,14 @@ func TestSessionTriggered(t *testing.T) {
 	reset := test.MockUniverse()
 	defer reset()
 
-	tcs := []handlers.TestCase{
+	tcs := []TestCase{
 		{
-			Actions: handlers.ContactActionMap{
+			Actions: ContactActionMap{
 				testdb.Cathy: []flows.Action{
 					actions.NewStartSession(flows.NewActionUUID(), testdb.SingleMessage.Reference(), []*assets.GroupReference{groupRef}, []*flows.ContactReference{testdb.George.Reference()}, "", nil, nil, true),
 				},
 			},
-			SQLAssertions: []handlers.SQLAssertion{
+			SQLAssertions: []SQLAssertion{
 				{
 					SQL:   "select count(*) from flows_flowrun where contact_id = $1 AND status = 'C'",
 					Args:  []any{testdb.Cathy.ID},
@@ -44,7 +43,7 @@ func TestSessionTriggered(t *testing.T) {
 					Count: 0,
 				},
 			},
-			Assertions: []handlers.Assertion{
+			Assertions: []Assertion{
 				func(t *testing.T, rt *runtime.Runtime) error {
 					vc := rt.VK.Get()
 					defer vc.Close()
@@ -71,12 +70,12 @@ func TestSessionTriggered(t *testing.T) {
 			},
 		},
 		{
-			Actions: handlers.ContactActionMap{
+			Actions: ContactActionMap{
 				testdb.Bob: []flows.Action{
 					actions.NewStartSession(flows.NewActionUUID(), testdb.IVRFlow.Reference(), nil, []*flows.ContactReference{testdb.Alexandra.Reference()}, "", nil, nil, true),
 				},
 			},
-			SQLAssertions: []handlers.SQLAssertion{
+			SQLAssertions: []SQLAssertion{
 				{
 					// start is non-persistent
 					SQL:   "select count(*) from flows_flowstart",
@@ -92,7 +91,7 @@ func TestSessionTriggered(t *testing.T) {
 		},
 	}
 
-	handlers.RunTestCases(t, ctx, rt, tcs)
+	runTestCases(t, ctx, rt, tcs)
 }
 
 func TestQuerySessionTriggered(t *testing.T) {
@@ -106,14 +105,14 @@ func TestQuerySessionTriggered(t *testing.T) {
 	favoriteFlow, err := oa.FlowByID(testdb.Favorites.ID)
 	assert.NoError(t, err)
 
-	tcs := []handlers.TestCase{
+	tcs := []TestCase{
 		{
-			Actions: handlers.ContactActionMap{
+			Actions: ContactActionMap{
 				testdb.Cathy: []flows.Action{
 					actions.NewStartSession(flows.NewActionUUID(), favoriteFlow.Reference(), nil, nil, "name ~ @contact.name", nil, nil, true),
 				},
 			},
-			Assertions: []handlers.Assertion{
+			Assertions: []Assertion{
 				func(t *testing.T, rt *runtime.Runtime) error {
 					vc := rt.VK.Get()
 					defer vc.Close()
@@ -141,5 +140,5 @@ func TestQuerySessionTriggered(t *testing.T) {
 		},
 	}
 
-	handlers.RunTestCases(t, ctx, rt, tcs)
+	runTestCases(t, ctx, rt, tcs)
 }

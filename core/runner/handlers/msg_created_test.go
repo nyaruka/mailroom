@@ -9,7 +9,6 @@ import (
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/actions"
 	"github.com/nyaruka/mailroom/core/models"
-	"github.com/nyaruka/mailroom/core/runner/handlers"
 	"github.com/nyaruka/mailroom/testsuite"
 	"github.com/nyaruka/mailroom/testsuite/testdb"
 	"github.com/nyaruka/vkutil/assertvk"
@@ -41,9 +40,9 @@ func TestMsgCreated(t *testing.T) {
 	templateAction.Template = assets.NewTemplateReference("9c22b594-fcab-4b29-9bcb-ce4404894a80", "revive_issue")
 	templateAction.TemplateVariables = []string{"@contact.name", "tooth"}
 
-	tcs := []handlers.TestCase{
+	tcs := []TestCase{
 		{
-			Actions: handlers.ContactActionMap{
+			Actions: ContactActionMap{
 				testdb.Cathy: []flows.Action{
 					actions.NewSendMsg(flows.NewActionUUID(), "Hello World", nil, []string{"yes", "no"}, true),
 				},
@@ -57,10 +56,10 @@ func TestMsgCreated(t *testing.T) {
 					templateAction,
 				},
 			},
-			Msgs: handlers.ContactMsgMap{
+			Msgs: ContactMsgMap{
 				testdb.Cathy: msg1,
 			},
-			SQLAssertions: []handlers.SQLAssertion{
+			SQLAssertions: []SQLAssertion{
 				{
 					SQL:   `SELECT COUNT(*) FROM msgs_msg WHERE text='Hello World' AND contact_id = $1 AND quick_replies[1] = 'yes' AND quick_replies[2] = 'no' AND high_priority = TRUE`,
 					Args:  []any{testdb.Cathy.ID},
@@ -95,7 +94,7 @@ func TestMsgCreated(t *testing.T) {
 		},
 	}
 
-	handlers.RunTestCases(t, ctx, rt, tcs)
+	runTestCases(t, ctx, rt, tcs)
 
 	// Cathy should have 1 batch of queued messages at high priority
 	assertvk.ZCard(t, vc, fmt.Sprintf("msgs:%s|10/1", testdb.TwilioChannel.UUID), 1)
@@ -120,9 +119,9 @@ func TestMsgCreatedNewURN(t *testing.T) {
 	// give George a URN that Bob will steal
 	testdb.InsertContactURN(rt, testdb.Org1, testdb.George, urns.URN("telegram:67890"), 1, nil)
 
-	tcs := []handlers.TestCase{
+	tcs := []TestCase{
 		{
-			Actions: handlers.ContactActionMap{
+			Actions: ContactActionMap{
 				// brand new URN on Cathy
 				testdb.Cathy: []flows.Action{
 					actions.NewAddContactURN(flows.NewActionUUID(), "telegram", "12345"),
@@ -137,7 +136,7 @@ func TestMsgCreatedNewURN(t *testing.T) {
 					actions.NewSendMsg(flows.NewActionUUID(), "Bob Message", nil, nil, false),
 				},
 			},
-			SQLAssertions: []handlers.SQLAssertion{
+			SQLAssertions: []SQLAssertion{
 				{
 					SQL: `
 					SELECT 
@@ -182,5 +181,5 @@ func TestMsgCreatedNewURN(t *testing.T) {
 		},
 	}
 
-	handlers.RunTestCases(t, ctx, rt, tcs)
+	runTestCases(t, ctx, rt, tcs)
 }

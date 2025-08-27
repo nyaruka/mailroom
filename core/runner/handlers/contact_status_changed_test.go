@@ -5,7 +5,6 @@ import (
 
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/modifiers"
-	"github.com/nyaruka/mailroom/core/runner/handlers"
 	"github.com/nyaruka/mailroom/testsuite"
 	"github.com/nyaruka/mailroom/testsuite/testdb"
 )
@@ -15,12 +14,12 @@ func TestContactStatusChanged(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
-	tcs := []handlers.TestCase{
+	tcs := []TestCase{
 		{
-			Modifiers: handlers.ContactModifierMap{
+			Modifiers: ContactModifierMap{
 				testdb.Cathy: []flows.Modifier{modifiers.NewStatus(flows.ContactStatusBlocked)},
 			},
-			SQLAssertions: []handlers.SQLAssertion{
+			SQLAssertions: []SQLAssertion{
 				{
 					SQL:   `select count(*) from contacts_contact where id = $1 AND status = 'B'`,
 					Args:  []any{testdb.Cathy.ID},
@@ -32,10 +31,10 @@ func TestContactStatusChanged(t *testing.T) {
 			},
 		},
 		{
-			Modifiers: handlers.ContactModifierMap{
+			Modifiers: ContactModifierMap{
 				testdb.Cathy: []flows.Modifier{modifiers.NewStatus(flows.ContactStatusStopped)},
 			},
-			SQLAssertions: []handlers.SQLAssertion{
+			SQLAssertions: []SQLAssertion{
 				{
 					SQL:   `select count(*) from contacts_contact where id = $1 AND status = 'S'`,
 					Args:  []any{testdb.Cathy.ID},
@@ -45,10 +44,10 @@ func TestContactStatusChanged(t *testing.T) {
 			PersistedEvents: map[flows.ContactUUID][]string{},
 		},
 		{
-			Modifiers: handlers.ContactModifierMap{
+			Modifiers: ContactModifierMap{
 				testdb.Cathy: []flows.Modifier{modifiers.NewStatus(flows.ContactStatusActive)},
 			},
-			SQLAssertions: []handlers.SQLAssertion{
+			SQLAssertions: []SQLAssertion{
 				{
 					SQL:   `select count(*) from contacts_contact where id = $1 AND status = 'A'`,
 					Args:  []any{testdb.Cathy.ID},
@@ -64,5 +63,5 @@ func TestContactStatusChanged(t *testing.T) {
 		},
 	}
 
-	handlers.RunTestCases(t, ctx, rt, tcs)
+	runTestCases(t, ctx, rt, tcs)
 }

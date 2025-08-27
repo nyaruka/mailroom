@@ -7,7 +7,6 @@ import (
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/actions"
 	"github.com/nyaruka/mailroom/core/models"
-	"github.com/nyaruka/mailroom/core/runner/handlers"
 	"github.com/nyaruka/mailroom/testsuite"
 	"github.com/nyaruka/mailroom/testsuite/testdb"
 )
@@ -23,9 +22,9 @@ func TestInputLabelsAdded(t *testing.T) {
 	msg1 := testdb.InsertIncomingMsg(rt, testdb.Org1, testdb.TwilioChannel, testdb.Cathy, "start", models.MsgStatusHandled)
 	msg2 := testdb.InsertIncomingMsg(rt, testdb.Org1, testdb.TwilioChannel, testdb.Bob, "start", models.MsgStatusHandled)
 
-	tcs := []handlers.TestCase{
+	tcs := []TestCase{
 		{
-			Actions: handlers.ContactActionMap{
+			Actions: ContactActionMap{
 				testdb.Cathy: []flows.Action{
 					actions.NewAddInputLabels(flows.NewActionUUID(), []*assets.LabelReference{reporting}),
 					actions.NewAddInputLabels(flows.NewActionUUID(), []*assets.LabelReference{testing}),
@@ -37,11 +36,11 @@ func TestInputLabelsAdded(t *testing.T) {
 					actions.NewAddInputLabels(flows.NewActionUUID(), []*assets.LabelReference{reporting}),
 				},
 			},
-			Msgs: handlers.ContactMsgMap{
+			Msgs: ContactMsgMap{
 				testdb.Cathy: msg1,
 				testdb.Bob:   msg2,
 			},
-			SQLAssertions: []handlers.SQLAssertion{
+			SQLAssertions: []SQLAssertion{
 				{
 					SQL:   "select count(*) from msgs_msg_labels WHERE msg_id = $1",
 					Args:  []any{msg1.ID},
@@ -67,5 +66,5 @@ func TestInputLabelsAdded(t *testing.T) {
 		},
 	}
 
-	handlers.RunTestCases(t, ctx, rt, tcs)
+	runTestCases(t, ctx, rt, tcs)
 }

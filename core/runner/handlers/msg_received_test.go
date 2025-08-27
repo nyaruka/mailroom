@@ -7,7 +7,6 @@ import (
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/actions"
 	"github.com/nyaruka/mailroom/core/models"
-	"github.com/nyaruka/mailroom/core/runner/handlers"
 	"github.com/nyaruka/mailroom/testsuite"
 	"github.com/nyaruka/mailroom/testsuite/testdb"
 )
@@ -19,9 +18,9 @@ func TestMsgReceived(t *testing.T) {
 
 	now := time.Now()
 
-	tcs := []handlers.TestCase{
+	tcs := []TestCase{
 		{
-			Actions: handlers.ContactActionMap{
+			Actions: ContactActionMap{
 				testdb.Cathy: []flows.Action{
 					actions.NewSendMsg(flows.NewActionUUID(), "Hello World", nil, nil, false),
 				},
@@ -29,10 +28,10 @@ func TestMsgReceived(t *testing.T) {
 					actions.NewSendMsg(flows.NewActionUUID(), "Hello world", nil, nil, false),
 				},
 			},
-			Msgs: handlers.ContactMsgMap{
+			Msgs: ContactMsgMap{
 				testdb.Cathy: testdb.InsertIncomingMsg(rt, testdb.Org1, testdb.TwilioChannel, testdb.Cathy, "start", models.MsgStatusPending),
 			},
-			SQLAssertions: []handlers.SQLAssertion{
+			SQLAssertions: []SQLAssertion{
 				{
 					SQL:   "SELECT COUNT(*) FROM contacts_contact WHERE id = $1 AND last_seen_on > $2",
 					Args:  []any{testdb.Cathy.ID, now},
@@ -53,5 +52,5 @@ func TestMsgReceived(t *testing.T) {
 		},
 	}
 
-	handlers.RunTestCases(t, ctx, rt, tcs)
+	runTestCases(t, ctx, rt, tcs)
 }

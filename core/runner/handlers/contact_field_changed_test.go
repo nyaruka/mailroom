@@ -6,7 +6,6 @@ import (
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/actions"
-	"github.com/nyaruka/mailroom/core/runner/handlers"
 	"github.com/nyaruka/mailroom/testsuite"
 	"github.com/nyaruka/mailroom/testsuite/testdb"
 )
@@ -22,9 +21,9 @@ func TestContactFieldChanged(t *testing.T) {
 	// populate some field values on alexandria
 	rt.DB.MustExec(`UPDATE contacts_contact SET fields = '{"903f51da-2717-47c7-a0d3-f2f32877013d": {"text":"34"}, "3a5891e4-756e-4dc9-8e12-b7a766168824": {"text":"female"}}' WHERE id = $1`, testdb.Alexandra.ID)
 
-	tcs := []handlers.TestCase{
+	tcs := []TestCase{
 		{
-			Actions: handlers.ContactActionMap{
+			Actions: ContactActionMap{
 				testdb.Cathy: []flows.Action{
 					actions.NewSetContactField(flows.NewActionUUID(), gender, "Male"),
 					actions.NewSetContactField(flows.NewActionUUID(), gender, "Female"),
@@ -45,7 +44,7 @@ func TestContactFieldChanged(t *testing.T) {
 					actions.NewSetContactField(flows.NewActionUUID(), gender, ""),
 				},
 			},
-			SQLAssertions: []handlers.SQLAssertion{
+			SQLAssertions: []SQLAssertion{
 				{
 					SQL:   `select count(*) from contacts_contact where id = $1 AND fields->$2 = '{"text":"Female"}'::jsonb`,
 					Args:  []any{testdb.Cathy.ID, testdb.GenderField.UUID},
@@ -96,5 +95,5 @@ func TestContactFieldChanged(t *testing.T) {
 		},
 	}
 
-	handlers.RunTestCases(t, ctx, rt, tcs)
+	runTestCases(t, ctx, rt, tcs)
 }
