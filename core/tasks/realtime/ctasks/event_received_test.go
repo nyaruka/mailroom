@@ -68,7 +68,6 @@ func TestChannelEvents(t *testing.T) {
 				ChannelID:  testdb.FacebookChannel.ID,
 				URNID:      testdb.Cathy.URNID,
 				Extra:      null.Map[any]{},
-				CreatedOn:  time.Now(),
 				NewContact: false,
 			},
 			expectedTriggerType: "chat",
@@ -83,7 +82,6 @@ func TestChannelEvents(t *testing.T) {
 				ChannelID:  testdb.VonageChannel.ID,
 				URNID:      testdb.Cathy.URNID,
 				Extra:      null.Map[any]{},
-				CreatedOn:  time.Now(),
 				NewContact: false,
 			},
 			expectedTriggerType: "",
@@ -98,7 +96,6 @@ func TestChannelEvents(t *testing.T) {
 				ChannelID:  testdb.VonageChannel.ID,
 				URNID:      testdb.Cathy.URNID,
 				Extra:      null.Map[any]{},
-				CreatedOn:  time.Now(),
 				NewContact: false,
 			},
 			expectedTriggerType: "",
@@ -113,7 +110,6 @@ func TestChannelEvents(t *testing.T) {
 				ChannelID:  testdb.FacebookChannel.ID,
 				URNID:      testdb.Cathy.URNID,
 				Extra:      null.Map[any]{},
-				CreatedOn:  time.Now(),
 				NewContact: false,
 			},
 			expectedTriggerType: "",
@@ -128,7 +124,6 @@ func TestChannelEvents(t *testing.T) {
 				ChannelID:  testdb.VonageChannel.ID,
 				URNID:      testdb.Cathy.URNID,
 				Extra:      null.Map[any]{},
-				CreatedOn:  time.Now(),
 				NewContact: false,
 			},
 			expectedTriggerType: "chat",
@@ -144,7 +139,6 @@ func TestChannelEvents(t *testing.T) {
 				URNID:      testdb.Cathy.URNID,
 				OptInID:    polls.ID,
 				Extra:      map[string]any{"title": "Polls", "payload": fmt.Sprint(polls.ID)},
-				CreatedOn:  time.Now(),
 				NewContact: false,
 			},
 			expectedTriggerType: "optin",
@@ -160,7 +154,6 @@ func TestChannelEvents(t *testing.T) {
 				URNID:      testdb.Cathy.URNID,
 				OptInID:    polls.ID,
 				Extra:      map[string]any{"title": "Polls", "payload": fmt.Sprint(polls.ID)},
-				CreatedOn:  time.Now(),
 				NewContact: false,
 			},
 			expectedTriggerType: "optin",
@@ -176,7 +169,6 @@ func TestChannelEvents(t *testing.T) {
 				URNID:      testdb.Cathy.URNID,
 				OptInID:    polls.ID,
 				Extra:      map[string]any{"duration": 123},
-				CreatedOn:  time.Now(),
 				NewContact: false,
 			},
 			expectedTriggerType: "",
@@ -191,7 +183,6 @@ func TestChannelEvents(t *testing.T) {
 				ChannelID:  testdb.VonageChannel.ID,
 				URNID:      testdb.Cathy.URNID,
 				Extra:      null.Map[any]{},
-				CreatedOn:  time.Now(),
 				NewContact: false,
 			},
 			expectedTriggerType: "",
@@ -206,14 +197,13 @@ func TestChannelEvents(t *testing.T) {
 				ChannelID:  testdb.VonageChannel.ID,
 				URNID:      deleted.URNID,
 				Extra:      null.Map[any]{},
-				CreatedOn:  time.Now(),
 				NewContact: false,
 			},
 			expectedTriggerType: "",
 			expectedResponse:    "",
 			persistedEvents:     map[flows.ContactUUID][]string{},
 		},
-		{ // 10: a task for a delete contact
+		{ // 10: task to delete contact
 			contact: testdb.Cathy,
 			task: &ctasks.EventReceivedTask{
 				EventID:    eventID,
@@ -221,7 +211,6 @@ func TestChannelEvents(t *testing.T) {
 				ChannelID:  testdb.VonageChannel.ID,
 				URNID:      testdb.Cathy.URNID,
 				Extra:      null.Map[any]{},
-				CreatedOn:  time.Now(),
 				NewContact: false,
 			},
 			expectedTriggerType: "",
@@ -232,7 +221,12 @@ func TestChannelEvents(t *testing.T) {
 
 	models.FlushCache()
 
+	lastLastSeenOn := time.Now().In(time.UTC).Add(-time.Hour)
+	rt.DB.MustExec(`UPDATE contacts_contact SET last_seen_on = $2 WHERE id = $1`, testdb.Cathy.ID, lastLastSeenOn)
+
 	for i, tc := range tcs {
+		tc.task.(*ctasks.EventReceivedTask).CreatedOn = time.Now()
+
 		start := time.Now()
 		time.Sleep(time.Millisecond * 5)
 
@@ -275,7 +269,8 @@ func TestChannelEvents(t *testing.T) {
 			var lastSeen time.Time
 			err = rt.DB.Get(&lastSeen, `SELECT last_seen_on FROM contacts_contact WHERE id = $1`, tc.contact.ID)
 			assert.NoError(t, err)
-			assert.WithinDuration(t, lastSeen, tc.task.(*ctasks.EventReceivedTask).CreatedOn, time.Microsecond, "%d: expected last seen to be updated", i)
+			assert.Greater(t, lastSeen, lastLastSeenOn, "%d: expected last seen to be updated", i)
+			lastLastSeenOn = lastSeen
 		}
 
 		// check persisted events
