@@ -65,10 +65,15 @@ func (t *EventReceivedTask) handle(ctx context.Context, rt *runtime.Runtime, oa 
 		return nil, nil
 	}
 
-	if t.EventType == models.EventTypeDeleteContact {
-		slog.Info(fmt.Sprintf("NOOP: Handled %s channel event %d", models.EventTypeDeleteContact, t.EventID))
+	if err := mc.UpdateLastSeenOn(ctx, rt.DB, t.CreatedOn); err != nil {
+		return nil, fmt.Errorf("error updating contact last_seen_on: %w", err)
+	}
 
-		return nil, nil
+	// make sure this URN is our highest priority (this is usually a noop)
+	if t.URNID != models.NilURNID {
+		if err := mc.UpdatePreferredURN(ctx, rt.DB, oa, t.URNID, channel); err != nil {
+			return nil, fmt.Errorf("error changing primary URN: %w", err)
+		}
 	}
 
 	if t.EventType == models.EventTypeStopContact {
@@ -78,14 +83,10 @@ func (t *EventReceivedTask) handle(ctx context.Context, rt *runtime.Runtime, oa 
 		}
 	}
 
-	if err := mc.UpdateLastSeenOn(ctx, rt.DB, t.CreatedOn); err != nil {
-		return nil, fmt.Errorf("error updating contact last_seen_on: %w", err)
-	}
+	if t.EventType == models.EventTypeDeleteContact {
+		slog.Info(fmt.Sprintf("NOOP: Handled %s channel event %d", models.EventTypeDeleteContact, t.EventID))
 
-	// make sure this URN is our highest priority (this is usually a noop)
-	err := mc.UpdatePreferredURN(ctx, rt.DB, oa, t.URNID, channel)
-	if err != nil {
-		return nil, fmt.Errorf("error changing primary URN: %w", err)
+		return nil, nil
 	}
 
 	// build our flow contact
@@ -111,16 +112,6 @@ func (t *EventReceivedTask) handle(ctx context.Context, rt *runtime.Runtime, oa 
 		return nil, err
 	}
 
-	if trig != nil && flowType == models.FlowTypeVoice {
-		if call == nil {
-			// request outgoing call and wait for callback
-			if _, err := ivr.RequestCall(ctx, rt, oa, mc, trig); err != nil {
-				return nil, fmt.Errorf("error starting voice flow for contact: %w", err)
-			}
-			return nil, nil
-		}
-	}
-
 	scene := runner.NewScene(mc, contact)
 	scene.DBCall = call
 	scene.Call = flowCall
@@ -132,13 +123,23 @@ func (t *EventReceivedTask) handle(ctx context.Context, rt *runtime.Runtime, oa 
 			}
 		}
 
-		if err := scene.StartSession(ctx, rt, oa, trig, flowType.Interrupts()); err != nil {
-			return nil, fmt.Errorf("error starting session for contact %s: %w", scene.ContactUUID(), err)
+		// only start IVR session if we have a call, if not we request one below
+		if flowType != models.FlowTypeVoice || call != nil {
+			if err := scene.StartSession(ctx, rt, oa, trig, flowType.Interrupts()); err != nil {
+				return nil, fmt.Errorf("error starting session for contact %s: %w", scene.ContactUUID(), err)
+			}
 		}
 	}
 
 	if err := scene.Commit(ctx, rt, oa); err != nil {
 		return nil, fmt.Errorf("error committing scene for contact %s: %w", scene.ContactUUID(), err)
+	}
+
+	if trig != nil && flowType == models.FlowTypeVoice && call == nil {
+		// request outgoing call and wait for callback
+		if _, err := ivr.RequestCall(ctx, rt, oa, mc, trig); err != nil {
+			return nil, fmt.Errorf("error starting voice flow for contact: %w", err)
+		}
 	}
 
 	return scene, nil
