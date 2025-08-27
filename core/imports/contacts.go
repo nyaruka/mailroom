@@ -57,7 +57,7 @@ func ImportBatch(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 	}
 
 	// and apply in bulk
-	_, err := runner.ApplyModifiers(ctx, rt, oa, userID, modifiersByContact)
+	_, err := runner.BulkModify(ctx, rt, oa, userID, modifiersByContact)
 	if err != nil {
 		return fmt.Errorf("error applying modifiers: %w", err)
 	}
