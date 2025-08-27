@@ -8,7 +8,6 @@ import (
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/actions"
 	"github.com/nyaruka/mailroom/core/models"
-	"github.com/nyaruka/mailroom/core/runner/handlers"
 	"github.com/nyaruka/mailroom/testsuite"
 	"github.com/nyaruka/mailroom/testsuite/testdb"
 	"github.com/nyaruka/vkutil/assertvk"
@@ -35,9 +34,9 @@ func TestOptinRequested(t *testing.T) {
 	assert.Equal(t, models.ChannelType("FBA"), ch.Type())
 	assert.Equal(t, []assets.ChannelFeature{assets.ChannelFeatureOptIns}, ch.Features())
 
-	tcs := []handlers.TestCase{
+	tcs := []TestCase{
 		{
-			Actions: handlers.ContactActionMap{
+			Actions: ContactActionMap{
 				testdb.Cathy: []flows.Action{
 					actions.NewRequestOptIn(flows.NewActionUUID(), assets.NewOptInReference(optIn.UUID, "Jokes")),
 				},
@@ -48,10 +47,10 @@ func TestOptinRequested(t *testing.T) {
 					actions.NewRequestOptIn(flows.NewActionUUID(), assets.NewOptInReference(optIn.UUID, "Jokes")),
 				},
 			},
-			Msgs: handlers.ContactMsgMap{
+			Msgs: ContactMsgMap{
 				testdb.Cathy: msg1,
 			},
-			SQLAssertions: []handlers.SQLAssertion{
+			SQLAssertions: []SQLAssertion{
 				{
 					SQL:   `SELECT COUNT(*) FROM msgs_msg WHERE direction = 'O' AND text = '' AND high_priority = true AND contact_id = $1 AND optin_id = $2`,
 					Args:  []any{testdb.Cathy.ID, optIn.ID},
@@ -68,11 +67,16 @@ func TestOptinRequested(t *testing.T) {
 					Count: 0,
 				},
 			},
-			PersistedEvents: map[string]int{"run_started": 4, "run_ended": 4},
+			PersistedEvents: map[flows.ContactUUID][]string{
+				testdb.Cathy.UUID:     {"run_started", "run_ended"},
+				testdb.Bob.UUID:       {"run_started", "run_ended"},
+				testdb.George.UUID:    {"run_started", "run_ended"},
+				testdb.Alexandra.UUID: {"run_started", "run_ended"},
+			},
 		},
 	}
 
-	handlers.RunTestCases(t, ctx, rt, tcs)
+	runTestCases(t, ctx, rt, tcs)
 
 	// Cathy should have 1 batch of queued messages at high priority
 	assertvk.ZCard(t, vc, fmt.Sprintf("msgs:%s|10/1", testdb.FacebookChannel.UUID), 1)

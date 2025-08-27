@@ -5,7 +5,6 @@ import (
 
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/modifiers"
-	"github.com/nyaruka/mailroom/core/runner/handlers"
 	"github.com/nyaruka/mailroom/testsuite"
 	"github.com/nyaruka/mailroom/testsuite/testdb"
 )
@@ -15,38 +14,40 @@ func TestContactStatusChanged(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
-	tcs := []handlers.TestCase{
+	tcs := []TestCase{
 		{
-			Modifiers: handlers.ContactModifierMap{
+			Modifiers: ContactModifierMap{
 				testdb.Cathy: []flows.Modifier{modifiers.NewStatus(flows.ContactStatusBlocked)},
 			},
-			SQLAssertions: []handlers.SQLAssertion{
+			SQLAssertions: []SQLAssertion{
 				{
 					SQL:   `select count(*) from contacts_contact where id = $1 AND status = 'B'`,
 					Args:  []any{testdb.Cathy.ID},
 					Count: 1,
 				},
 			},
-			PersistedEvents: map[string]int{"contact_groups_changed": 1},
+			PersistedEvents: map[flows.ContactUUID][]string{
+				testdb.Cathy.UUID: {"contact_groups_changed"},
+			},
 		},
 		{
-			Modifiers: handlers.ContactModifierMap{
+			Modifiers: ContactModifierMap{
 				testdb.Cathy: []flows.Modifier{modifiers.NewStatus(flows.ContactStatusStopped)},
 			},
-			SQLAssertions: []handlers.SQLAssertion{
+			SQLAssertions: []SQLAssertion{
 				{
 					SQL:   `select count(*) from contacts_contact where id = $1 AND status = 'S'`,
 					Args:  []any{testdb.Cathy.ID},
 					Count: 1,
 				},
 			},
-			PersistedEvents: map[string]int{},
+			PersistedEvents: map[flows.ContactUUID][]string{},
 		},
 		{
-			Modifiers: handlers.ContactModifierMap{
+			Modifiers: ContactModifierMap{
 				testdb.Cathy: []flows.Modifier{modifiers.NewStatus(flows.ContactStatusActive)},
 			},
-			SQLAssertions: []handlers.SQLAssertion{
+			SQLAssertions: []SQLAssertion{
 				{
 					SQL:   `select count(*) from contacts_contact where id = $1 AND status = 'A'`,
 					Args:  []any{testdb.Cathy.ID},
@@ -58,9 +59,9 @@ func TestContactStatusChanged(t *testing.T) {
 					Count: 1,
 				},
 			},
-			PersistedEvents: map[string]int{},
+			PersistedEvents: map[flows.ContactUUID][]string{},
 		},
 	}
 
-	handlers.RunTestCases(t, ctx, rt, tcs)
+	runTestCases(t, ctx, rt, tcs)
 }

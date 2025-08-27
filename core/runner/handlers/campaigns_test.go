@@ -7,7 +7,6 @@ import (
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/actions"
 	"github.com/nyaruka/mailroom/core/models"
-	"github.com/nyaruka/mailroom/core/runner/handlers"
 	"github.com/nyaruka/mailroom/testsuite"
 	"github.com/nyaruka/mailroom/testsuite/testdb"
 )
@@ -34,12 +33,12 @@ func TestCampaigns(t *testing.T) {
 
 	msg1 := testdb.InsertIncomingMsg(rt, testdb.Org1, testdb.TwilioChannel, testdb.Cathy, "Hi there", models.MsgStatusPending)
 
-	tcs := []handlers.TestCase{
+	tcs := []TestCase{
 		{
-			Msgs: handlers.ContactMsgMap{
+			Msgs: ContactMsgMap{
 				testdb.Cathy: msg1,
 			},
-			Actions: handlers.ContactActionMap{
+			Actions: ContactActionMap{
 				testdb.Cathy: []flows.Action{
 					actions.NewRemoveContactGroups(flows.NewActionUUID(), []*assets.GroupReference{doctors}, false),
 					actions.NewAddContactGroups(flows.NewActionUUID(), []*assets.GroupReference{doctors}),
@@ -57,7 +56,7 @@ func TestCampaigns(t *testing.T) {
 					actions.NewRemoveContactGroups(flows.NewActionUUID(), []*assets.GroupReference{doctors}, false),
 				},
 			},
-			SQLAssertions: []handlers.SQLAssertion{
+			SQLAssertions: []SQLAssertion{
 				{ // 2 new events on created_on and last_seen_on
 					SQL:   `SELECT count(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'C'`,
 					Args:  []any{testdb.Cathy.ID},
@@ -74,9 +73,14 @@ func TestCampaigns(t *testing.T) {
 					Count: 0,
 				},
 			},
-			PersistedEvents: map[string]int{"contact_field_changed": 4, "contact_groups_changed": 5, "run_started": 4, "run_ended": 4},
+			PersistedEvents: map[flows.ContactUUID][]string{
+				testdb.Cathy.UUID:     {"run_started", "contact_groups_changed", "contact_groups_changed", "contact_field_changed", "contact_field_changed", "run_ended"},
+				testdb.Bob.UUID:       {"run_started", "contact_groups_changed", "contact_field_changed", "run_ended"},
+				testdb.George.UUID:    {"run_started", "contact_groups_changed", "contact_field_changed", "contact_groups_changed", "run_ended"},
+				testdb.Alexandra.UUID: {"run_started", "run_ended"},
+			},
 		},
 	}
 
-	handlers.RunTestCases(t, ctx, rt, tcs)
+	runTestCases(t, ctx, rt, tcs)
 }

@@ -5,7 +5,6 @@ import (
 
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/actions"
-	"github.com/nyaruka/mailroom/core/runner/handlers"
 	"github.com/nyaruka/mailroom/testsuite"
 	"github.com/nyaruka/mailroom/testsuite/testdb"
 	"github.com/stretchr/testify/assert"
@@ -21,23 +20,28 @@ func TestRunStarted(t *testing.T) {
 	flow, err := oa.FlowByID(testdb.PickANumber.ID)
 	assert.NoError(t, err)
 
-	tcs := []handlers.TestCase{
+	tcs := []TestCase{
 		{
-			Actions: handlers.ContactActionMap{
+			Actions: ContactActionMap{
 				testdb.Cathy: []flows.Action{
 					actions.NewEnterFlow(flows.NewActionUUID(), flow.Reference(), false),
 				},
 			},
-			SQLAssertions: []handlers.SQLAssertion{
+			SQLAssertions: []SQLAssertion{
 				{
 					SQL:   `SELECT count(*) FROM contacts_contact WHERE current_flow_id = $1`,
 					Args:  []any{flow.ID()},
 					Count: 1,
 				},
 			},
-			PersistedEvents: map[string]int{"run_started": 5, "run_ended": 3},
+			PersistedEvents: map[flows.ContactUUID][]string{
+				testdb.Cathy.UUID:     {"run_started", "run_started"},
+				testdb.Bob.UUID:       {"run_started", "run_ended"},
+				testdb.George.UUID:    {"run_started", "run_ended"},
+				testdb.Alexandra.UUID: {"run_started", "run_ended"},
+			},
 		},
 	}
 
-	handlers.RunTestCases(t, ctx, rt, tcs)
+	runTestCases(t, ctx, rt, tcs)
 }

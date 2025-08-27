@@ -8,7 +8,9 @@ import (
 	"testing"
 
 	"github.com/gomodule/redigo/redis"
+	"github.com/nyaruka/gocommon/aws/dynamo/dyntest"
 	"github.com/nyaruka/gocommon/jsonx"
+	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/tasks"
 	"github.com/nyaruka/mailroom/core/tasks/realtime"
@@ -105,4 +107,22 @@ func FlushTasks(t *testing.T, rt *runtime.Runtime, qnames ...string) map[string]
 		require.NoError(t, err, "unexpected error marking task %s as done", task.Type)
 	}
 	return counts
+}
+
+func GetHistoryEvents(t *testing.T, rt *runtime.Runtime) map[flows.ContactUUID][]string {
+	rt.Writers.History.Flush()
+
+	evtTypes := make(map[flows.ContactUUID][]string, 4)
+	for _, item := range dyntest.ScanAll[models.DynamoItem](t, rt.Dynamo, "TestHistory") {
+		contactUUID := flows.ContactUUID(item.PK[4:])
+
+		data, err := item.GetData()
+		require.NoError(t, err)
+
+		if eventType, ok := data["type"].(string); ok {
+			evtTypes[contactUUID] = append(evtTypes[contactUUID], eventType)
+		}
+	}
+
+	return evtTypes
 }

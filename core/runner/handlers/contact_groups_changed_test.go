@@ -6,7 +6,6 @@ import (
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/actions"
-	"github.com/nyaruka/mailroom/core/runner/handlers"
 	"github.com/nyaruka/mailroom/testsuite"
 	"github.com/nyaruka/mailroom/testsuite/testdb"
 )
@@ -19,9 +18,9 @@ func TestContactGroupsChanged(t *testing.T) {
 	doctors := assets.NewGroupReference(testdb.DoctorsGroup.UUID, "Doctors")
 	testers := assets.NewGroupReference(testdb.TestersGroup.UUID, "Testers")
 
-	tcs := []handlers.TestCase{
+	tcs := []TestCase{
 		{
-			Actions: handlers.ContactActionMap{
+			Actions: ContactActionMap{
 				testdb.Cathy: []flows.Action{
 					actions.NewAddContactGroups(flows.NewActionUUID(), []*assets.GroupReference{doctors}),
 					actions.NewAddContactGroups(flows.NewActionUUID(), []*assets.GroupReference{doctors}),
@@ -33,7 +32,7 @@ func TestContactGroupsChanged(t *testing.T) {
 					actions.NewAddContactGroups(flows.NewActionUUID(), []*assets.GroupReference{testers}),
 				},
 			},
-			SQLAssertions: []handlers.SQLAssertion{
+			SQLAssertions: []SQLAssertion{
 				{
 					SQL:   "select count(*) from contacts_contactgroup_contacts where contact_id = $1 and contactgroup_id = $2",
 					Args:  []any{testdb.Cathy.ID, testdb.DoctorsGroup.ID},
@@ -55,9 +54,14 @@ func TestContactGroupsChanged(t *testing.T) {
 					Count: 0,
 				},
 			},
-			PersistedEvents: map[string]int{"contact_groups_changed": 3, "run_started": 4, "run_ended": 4},
+			PersistedEvents: map[flows.ContactUUID][]string{
+				testdb.Cathy.UUID:     {"run_started", "contact_groups_changed", "contact_groups_changed", "run_ended"},
+				testdb.Bob.UUID:       {"run_started", "run_ended"},
+				testdb.George.UUID:    {"run_started", "contact_groups_changed", "run_ended"},
+				testdb.Alexandra.UUID: {"run_started", "run_ended"},
+			},
 		},
 	}
 
-	handlers.RunTestCases(t, ctx, rt, tcs)
+	runTestCases(t, ctx, rt, tcs)
 }

@@ -8,7 +8,6 @@ import (
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/actions"
 	"github.com/nyaruka/mailroom/core/models"
-	"github.com/nyaruka/mailroom/core/runner/handlers"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/mailroom/testsuite"
 	"github.com/nyaruka/mailroom/testsuite/testdb"
@@ -20,23 +19,21 @@ func TestBroadcastCreated(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
-	// TODO: test contacts, groups
-
-	tcs := []handlers.TestCase{
+	tcs := []TestCase{
 		{
-			Actions: handlers.ContactActionMap{
+			Actions: ContactActionMap{
 				testdb.Cathy: []flows.Action{
 					actions.NewSendBroadcast(flows.NewActionUUID(), "hello world", nil, nil, nil, nil, "", []urns.URN{urns.URN("tel:+12065551212")}, nil),
 				},
 			},
-			SQLAssertions: []handlers.SQLAssertion{
+			SQLAssertions: []SQLAssertion{
 				{
 					SQL:   "select count(*) from flows_flowrun where contact_id = $1 AND status = 'C'",
 					Args:  []any{testdb.Cathy.ID},
 					Count: 1,
 				},
 			},
-			Assertions: []handlers.Assertion{
+			Assertions: []Assertion{
 				func(t *testing.T, rt *runtime.Runtime) error {
 					vc := rt.VK.Get()
 					defer vc.Close()
@@ -54,9 +51,14 @@ func TestBroadcastCreated(t *testing.T) {
 					return nil
 				},
 			},
-			PersistedEvents: map[string]int{"run_started": 4, "run_ended": 4},
+			PersistedEvents: map[flows.ContactUUID][]string{
+				testdb.Cathy.UUID:     {"run_started", "run_ended"},
+				testdb.Bob.UUID:       {"run_started", "run_ended"},
+				testdb.George.UUID:    {"run_started", "run_ended"},
+				testdb.Alexandra.UUID: {"run_started", "run_ended"},
+			},
 		},
 	}
 
-	handlers.RunTestCases(t, ctx, rt, tcs)
+	runTestCases(t, ctx, rt, tcs)
 }

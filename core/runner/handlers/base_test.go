@@ -1,4 +1,4 @@
-package handlers
+package handlers_test
 
 import (
 	"context"
@@ -18,6 +18,7 @@ import (
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/runner"
 	"github.com/nyaruka/mailroom/runtime"
+	"github.com/nyaruka/mailroom/testsuite"
 	"github.com/nyaruka/mailroom/testsuite/testdb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -35,7 +36,7 @@ type TestCase struct {
 	ModifierUser    *testdb.User
 	Assertions      []Assertion
 	SQLAssertions   []SQLAssertion
-	PersistedEvents map[string]int
+	PersistedEvents map[flows.ContactUUID][]string
 }
 
 type Assertion func(t *testing.T, rt *runtime.Runtime) error
@@ -143,7 +144,7 @@ func createTestFlow(t *testing.T, uuid assets.FlowUUID, tc TestCase) flows.Flow 
 	return flow
 }
 
-func RunTestCases(t *testing.T, ctx context.Context, rt *runtime.Runtime, tcs []TestCase) {
+func runTestCases(t *testing.T, ctx context.Context, rt *runtime.Runtime, tcs []TestCase) {
 	models.FlushCache()
 
 	oa, err := models.GetOrgAssets(ctx, rt, models.OrgID(1))
@@ -221,17 +222,7 @@ func RunTestCases(t *testing.T, ctx context.Context, rt *runtime.Runtime, tcs []
 			assert.NoError(t, err, "%d:%d error checking assertion", i, j)
 		}
 
-		rt.Writers.History.Flush()
-
-		persistedEvents := map[string]int{}
-		for _, item := range dyntest.ScanAll[models.DynamoItem](t, rt.Dynamo, "TestHistory") {
-			data, err := item.GetData()
-			require.NoError(t, err)
-
-			if eventType, ok := data["type"].(string); ok {
-				persistedEvents[eventType]++
-			}
-		}
+		persistedEvents := testsuite.GetHistoryEvents(t, rt)
 
 		assert.Equal(t, tc.PersistedEvents, persistedEvents, "%d: mismatch in persisted events", i)
 

@@ -6,7 +6,6 @@ import (
 	"github.com/nyaruka/gocommon/httpx"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/actions"
-	"github.com/nyaruka/mailroom/core/runner/handlers"
 	"github.com/nyaruka/mailroom/testsuite"
 	"github.com/nyaruka/mailroom/testsuite/testdb"
 	"github.com/shopspring/decimal"
@@ -288,14 +287,14 @@ func TestAirtimeTransferred(t *testing.T) {
 
 	rt.DB.MustExec(`UPDATE orgs_org SET config = '{"dtone_key": "key123", "dtone_secret": "sesame"}'::jsonb WHERE id = $1`, testdb.Org1.ID)
 
-	tcs := []handlers.TestCase{
+	tcs := []TestCase{
 		{
-			Actions: handlers.ContactActionMap{
+			Actions: ContactActionMap{
 				testdb.Cathy: []flows.Action{
 					actions.NewTransferAirtime(flows.NewActionUUID(), map[string]decimal.Decimal{"USD": decimal.RequireFromString(`3.0`)}),
 				},
 			},
-			SQLAssertions: []handlers.SQLAssertion{
+			SQLAssertions: []SQLAssertion{
 				{
 					SQL:   `select count(*) from airtime_airtimetransfer where org_id = $1 AND contact_id = $2 AND status = 'S'`,
 					Args:  []any{testdb.Org1.ID, testdb.Cathy.ID},
@@ -307,15 +306,20 @@ func TestAirtimeTransferred(t *testing.T) {
 					Count: 3,
 				},
 			},
-			PersistedEvents: map[string]int{"airtime_transferred": 1, "run_started": 4, "run_ended": 4},
+			PersistedEvents: map[flows.ContactUUID][]string{
+				testdb.Cathy.UUID:     {"run_started", "airtime_transferred", "run_ended"},
+				testdb.Bob.UUID:       {"run_started", "run_ended"},
+				testdb.George.UUID:    {"run_started", "run_ended"},
+				testdb.Alexandra.UUID: {"run_started", "run_ended"},
+			},
 		},
 		{
-			Actions: handlers.ContactActionMap{
+			Actions: ContactActionMap{
 				testdb.George: []flows.Action{
 					actions.NewTransferAirtime(flows.NewActionUUID(), map[string]decimal.Decimal{"USD": decimal.RequireFromString(`3`)}),
 				},
 			},
-			SQLAssertions: []handlers.SQLAssertion{
+			SQLAssertions: []SQLAssertion{
 				{
 					SQL:   `select count(*) from airtime_airtimetransfer where org_id = $1 AND contact_id = $2 AND status = 'F'`,
 					Args:  []any{testdb.Org1.ID, testdb.George.ID},
@@ -327,9 +331,14 @@ func TestAirtimeTransferred(t *testing.T) {
 					Count: 1,
 				},
 			},
-			PersistedEvents: map[string]int{"airtime_transferred": 1, "run_started": 4, "run_ended": 4},
+			PersistedEvents: map[flows.ContactUUID][]string{
+				testdb.Cathy.UUID:     {"run_started", "run_ended"},
+				testdb.Bob.UUID:       {"run_started", "run_ended"},
+				testdb.George.UUID:    {"run_started", "airtime_transferred", "run_ended"},
+				testdb.Alexandra.UUID: {"run_started", "run_ended"},
+			},
 		},
 	}
 
-	handlers.RunTestCases(t, ctx, rt, tcs)
+	runTestCases(t, ctx, rt, tcs)
 }

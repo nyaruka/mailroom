@@ -81,7 +81,12 @@
                 "query": "SELECT count(*) FROM contacts_contact WHERE id = 10000 AND name = 'Kathy'",
                 "count": 1
             }
-        ]
+        ],
+        "persisted_events": {
+            "6393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                "contact_name_changed"
+            ]
+        }
     },
     {
         "label": "set name",
@@ -129,7 +134,12 @@
                 "query": "SELECT count(*) FROM contacts_contact WHERE id = 10000 AND name = 'Nate'",
                 "count": 1
             }
-        ]
+        ],
+        "persisted_events": {
+            "6393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                "contact_name_changed"
+            ]
+        }
     },
     {
         "label": "clear name",
@@ -176,7 +186,12 @@
                 "query": "SELECT count(*) FROM contacts_contact WHERE id = 10000 AND name IS NULL",
                 "count": 1
             }
-        ]
+        ],
+        "persisted_events": {
+            "6393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                "contact_name_changed"
+            ]
+        }
     },
     {
         "label": "set status to blocked",
@@ -379,7 +394,12 @@
                 "query": "SELECT count(*) FROM contacts_contact WHERE id = 10000 AND fields = '{\"3a5891e4-756e-4dc9-8e12-b7a766168824\": {\"text\": \"M\"}}'",
                 "count": 1
             }
-        ]
+        ],
+        "persisted_events": {
+            "6393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                "contact_field_changed"
+            ]
+        }
     },
     {
         "label": "set numeric field with valid value",
@@ -471,7 +491,13 @@
                 "query": "SELECT count(*) FROM contacts_contactfire WHERE contact_id = 10000 AND fire_type = 'C'",
                 "count": 1
             }
-        ]
+        ],
+        "persisted_events": {
+            "6393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                "contact_field_changed",
+                "contact_groups_changed"
+            ]
+        }
     },
     {
         "label": "set date field with valid value",
@@ -542,6 +568,11 @@
                 }
             },
             "skipped": []
+        },
+        "persisted_events": {
+            "6393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                "contact_field_changed"
+            ]
         }
     },
     {
@@ -617,6 +648,11 @@
                 }
             },
             "skipped": []
+        },
+        "persisted_events": {
+            "6393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                "contact_field_changed"
+            ]
         }
     },
     {
@@ -745,7 +781,16 @@
                 "query": "SELECT count(*) FROM contacts_contactfire WHERE contact_id = 10000 AND fire_type = 'C'",
                 "count": 0
             }
-        ]
+        ],
+        "persisted_events": {
+            "6393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                "contact_field_changed",
+                "contact_field_changed",
+                "contact_groups_changed",
+                "contact_field_changed",
+                "contact_field_changed"
+            ]
+        }
     },
     {
         "label": "add group",
@@ -809,7 +854,12 @@
                 "query": "SELECT count(*) FROM contacts_contactgroup_contacts WHERE contact_id = 10000 AND contactgroup_id = 10006",
                 "count": 1
             }
-        ]
+        ],
+        "persisted_events": {
+            "6393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                "contact_groups_changed"
+            ]
+        }
     },
     {
         "label": "add group contact already in",
@@ -919,7 +969,12 @@
                 "query": "SELECT count(*) FROM contacts_contactgroup_contacts WHERE contact_id = 10000 AND contactgroup_id = 10006",
                 "count": 0
             }
-        ]
+        ],
+        "persisted_events": {
+            "6393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                "contact_groups_changed"
+            ]
+        }
     },
     {
         "label": "remove group contact isn't part of",
@@ -1013,7 +1068,12 @@
                 "query": "SELECT count(*) FROM contacts_contact WHERE language = 'fra' and id = 10000",
                 "count": 1
             }
-        ]
+        ],
+        "persisted_events": {
+            "6393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                "contact_language_changed"
+            ]
+        }
     },
     {
         "label": "add URN",
@@ -1069,7 +1129,12 @@
                 "query": "SELECT count(*) FROM contacts_contacturn WHERE contact_id = 10000 AND path = '+255788555111'",
                 "count": 1
             }
-        ]
+        ],
+        "persisted_events": {
+            "6393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                "contact_urns_changed"
+            ]
+        }
     },
     {
         "label": "add an invalid URN",
@@ -1182,7 +1247,12 @@
                 "query": "SELECT count(*) FROM contacts_contacturn WHERE contact_id = 10000 AND path = '+255788555111'",
                 "count": 1
             }
-        ]
+        ],
+        "persisted_events": {
+            "6393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                "contact_urns_changed"
+            ]
+        }
     },
     {
         "label": "remove a URN",
@@ -1242,7 +1312,12 @@
                 "query": "SELECT count(*) FROM contacts_contacturn WHERE contact_id = 10000 AND path = '+255788555222'",
                 "count": 0
             }
-        ]
+        ],
+        "persisted_events": {
+            "6393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                "contact_urns_changed"
+            ]
+        }
     },
     {
         "label": "set URNs",
@@ -1313,7 +1388,12 @@
                 "query": "SELECT count(*) FROM contacts_contacturn WHERE contact_id = 10000 AND path = '+255788555333'",
                 "count": 1
             }
-        ]
+        ],
+        "persisted_events": {
+            "6393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                "contact_urns_changed"
+            ]
+        }
     },
     {
         "label": "clear URNs",
@@ -1374,7 +1454,12 @@
                 "query": "SELECT count(*) FROM contacts_contacturn WHERE contact_id = 10000 AND path = '+255788555333'",
                 "count": 0
             }
-        ]
+        ],
+        "persisted_events": {
+            "6393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                "contact_urns_changed"
+            ]
+        }
     },
     {
         "label": "open ticket",
@@ -1463,6 +1548,11 @@
                 }
             },
             "skipped": []
+        },
+        "persisted_events": {
+            "6393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                "contact_groups_changed"
+            ]
         }
     },
     {
@@ -1576,6 +1666,14 @@
                 }
             },
             "skipped": []
+        },
+        "persisted_events": {
+            "6393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                "contact_name_changed",
+                "contact_language_changed",
+                "contact_groups_changed",
+                "contact_urns_changed"
+            ]
         }
     },
     {
@@ -1635,6 +1733,28 @@
                     },
                     "events": [
                         {
+                            "uuid": "01969b47-8a53-76f8-9566-6fb2598c32d6",
+                            "type": "contact_language_changed",
+                            "created_on": "2018-07-06T12:30:01.123456789Z",
+                            "language": "eng"
+                        }
+                    ]
+                },
+                "10003": {
+                    "contact": {
+                        "uuid": "9709c157-4606-4d41-9df3-9e9c9b4ae2d4",
+                        "id": 10003,
+                        "name": "Alexandra",
+                        "language": "eng",
+                        "status": "active",
+                        "timezone": "America/Los_Angeles",
+                        "created_on": "2020-12-31T16:45:30Z",
+                        "urns": [
+                            "tel:+593999123456?id=10003"
+                        ]
+                    },
+                    "events": [
+                        {
                             "uuid": "01969b47-866b-76f8-8f9d-465efd6fbb5e",
                             "type": "contact_language_changed",
                             "created_on": "2018-07-06T12:30:00.123456789Z",
@@ -1643,8 +1763,14 @@
                     ]
                 }
             },
-            "skipped": [
-                10003
+            "skipped": []
+        },
+        "persisted_events": {
+            "6393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                "contact_language_changed"
+            ],
+            "9709c157-4606-4d41-9df3-9e9c9b4ae2d4": [
+                "contact_language_changed"
             ]
         }
     }
