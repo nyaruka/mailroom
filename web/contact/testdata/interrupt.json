@@ -37,7 +37,12 @@
                 "query": "SELECT count(*) FROM flows_flowsession WHERE status = 'I' AND contact_uuid = '6393abc0-283d-4c9b-a1b3-641a035c34bf'",
                 "count": 1
             }
-        ]
+        ],
+        "persisted_events": {
+            "6393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                "run_ended"
+            ]
+        }
     },
     {
         "label": "noop if contact doesn't have a waiting session",

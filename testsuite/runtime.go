@@ -221,8 +221,8 @@ func resetElastic(t *testing.T, rt *runtime.Runtime) {
 func resetDynamo(t *testing.T, rt *runtime.Runtime) {
 	t.Helper()
 
-	rt.Writers.Main.Stop()
-	rt.Writers.History.Stop()
+	rt.Writers.Main.Flush()
+	rt.Writers.History.Flush()
 
 	dyntest.CreateTables(t, rt.Dynamo, absPath(dynamoTablesPath), true)
 }

@@ -95,6 +95,13 @@
                     }
                 }
             }
+        },
+        "persisted_events": {
+            "692926ea-09d6-4942-bd38-d266ec8d3716": [
+                "contact_field_changed",
+                "contact_field_changed",
+                "contact_groups_changed"
+            ]
         }
     },
     {

@@ -20,6 +20,7 @@ import (
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/gocommon/httpx"
 	"github.com/nyaruka/gocommon/jsonx"
+	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/test"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/mailroom/web"
@@ -55,7 +56,8 @@ func RunWebTests(t *testing.T, ctx context.Context, rt *runtime.Runtime, truthFi
 			Query string `json:"query"`
 			Count int    `json:"count"`
 		} `json:"db_assertions,omitempty"`
-		ExpectedTasks map[string][]string `json:"expected_tasks,omitempty"`
+		ExpectedTasks   map[string][]string            `json:"expected_tasks,omitempty"`
+		PersistedEvents map[flows.ContactUUID][]string `json:"persisted_events,omitempty"`
 
 		actualResponse []byte
 	}
@@ -115,6 +117,7 @@ func RunWebTests(t *testing.T, ctx context.Context, rt *runtime.Runtime, truthFi
 		actual.HTTPMocks = clonedMocks
 		actual.actualResponse, err = io.ReadAll(resp.Body)
 		actual.ExpectedTasks = getActualQueuedTasks(t, rt)
+		actual.PersistedEvents = GetHistoryEvents(t, rt)
 
 		assert.NoError(t, err, "%s: error reading body", tc.Label)
 
@@ -160,6 +163,11 @@ func RunWebTests(t *testing.T, ctx context.Context, rt *runtime.Runtime, truthFi
 				tc.ExpectedTasks = make(map[string][]string)
 			}
 			assert.Equal(t, tc.ExpectedTasks, actual.ExpectedTasks, "%s: unexpected tasks", tc.Label)
+
+			if tc.PersistedEvents == nil {
+				tc.PersistedEvents = make(map[flows.ContactUUID][]string)
+			}
+			assert.Equal(t, tc.PersistedEvents, actual.PersistedEvents, "%s: unexpected persisted events", tc.Label)
 
 		} else {
 			tcs[i] = actual
