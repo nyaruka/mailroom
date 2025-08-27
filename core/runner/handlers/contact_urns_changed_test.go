@@ -53,7 +53,12 @@ func TestContactURNsChanged(t *testing.T) {
 					Count: 1,
 				},
 			},
-			PersistedEvents: map[string]int{"contact_urns_changed": 2, "run_started": 4, "run_ended": 4},
+			PersistedEvents: map[flows.ContactUUID][]string{
+				testdb.Cathy.UUID:     {"run_started", "contact_urns_changed", "contact_urns_changed", "run_ended"},
+				testdb.Bob.UUID:       {"run_started", "run_ended"},
+				testdb.George.UUID:    {"run_started", "run_ended"},
+				testdb.Alexandra.UUID: {"run_started", "run_ended"},
+			},
 		},
 	}
 

@@ -27,7 +27,9 @@ func TestContactStatusChanged(t *testing.T) {
 					Count: 1,
 				},
 			},
-			PersistedEvents: map[string]int{"contact_groups_changed": 1},
+			PersistedEvents: map[flows.ContactUUID][]string{
+				testdb.Cathy.UUID: {"contact_groups_changed"},
+			},
 		},
 		{
 			Modifiers: handlers.ContactModifierMap{
@@ -40,7 +42,7 @@ func TestContactStatusChanged(t *testing.T) {
 					Count: 1,
 				},
 			},
-			PersistedEvents: map[string]int{},
+			PersistedEvents: map[flows.ContactUUID][]string{},
 		},
 		{
 			Modifiers: handlers.ContactModifierMap{
@@ -58,7 +60,7 @@ func TestContactStatusChanged(t *testing.T) {
 					Count: 1,
 				},
 			},
-			PersistedEvents: map[string]int{},
+			PersistedEvents: map[flows.ContactUUID][]string{},
 		},
 	}
 

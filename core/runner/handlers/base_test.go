@@ -35,7 +35,7 @@ type TestCase struct {
 	ModifierUser    *testdb.User
 	Assertions      []Assertion
 	SQLAssertions   []SQLAssertion
-	PersistedEvents map[string]int
+	PersistedEvents map[flows.ContactUUID][]string
 }
 
 type Assertion func(t *testing.T, rt *runtime.Runtime) error
@@ -221,20 +221,28 @@ func RunTestCases(t *testing.T, ctx context.Context, rt *runtime.Runtime, tcs []
 			assert.NoError(t, err, "%d:%d error checking assertion", i, j)
 		}
 
-		rt.Writers.History.Flush()
-
-		persistedEvents := map[string]int{}
-		for _, item := range dyntest.ScanAll[models.DynamoItem](t, rt.Dynamo, "TestHistory") {
-			data, err := item.GetData()
-			require.NoError(t, err)
-
-			if eventType, ok := data["type"].(string); ok {
-				persistedEvents[eventType]++
-			}
-		}
+		persistedEvents := GetHistoryEvents(t, rt)
 
 		assert.Equal(t, tc.PersistedEvents, persistedEvents, "%d: mismatch in persisted events", i)
 
 		dyntest.Truncate(t, rt.Dynamo, "TestHistory")
 	}
+}
+
+func GetHistoryEvents(t *testing.T, rt *runtime.Runtime) map[flows.ContactUUID][]string {
+	rt.Writers.History.Flush()
+
+	evtTypes := make(map[flows.ContactUUID][]string, 4)
+	for _, item := range dyntest.ScanAll[models.DynamoItem](t, rt.Dynamo, "TestHistory") {
+		contactUUID := flows.ContactUUID(item.PK[4:])
+
+		data, err := item.GetData()
+		require.NoError(t, err)
+
+		if eventType, ok := data["type"].(string); ok {
+			evtTypes[contactUUID] = append(evtTypes[contactUUID], eventType)
+		}
+	}
+
+	return evtTypes
 }

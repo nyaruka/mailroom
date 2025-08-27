@@ -92,7 +92,12 @@ func TestTicketOpened(t *testing.T) {
 					Count: 3,
 				},
 			},
-			PersistedEvents: map[string]int{"contact_groups_changed": 2, "run_started": 4, "run_ended": 4},
+			PersistedEvents: map[flows.ContactUUID][]string{
+				testdb.Cathy.UUID:     {"run_started", "contact_groups_changed", "run_ended"},
+				testdb.Bob.UUID:       {"run_started", "contact_groups_changed", "run_ended"},
+				testdb.George.UUID:    {"run_started", "run_ended"},
+				testdb.Alexandra.UUID: {"run_started", "run_ended"},
+			},
 		},
 	}
 

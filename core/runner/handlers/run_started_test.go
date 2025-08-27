@@ -35,7 +35,12 @@ func TestRunStarted(t *testing.T) {
 					Count: 1,
 				},
 			},
-			PersistedEvents: map[string]int{"run_started": 5, "run_ended": 3},
+			PersistedEvents: map[flows.ContactUUID][]string{
+				testdb.Cathy.UUID:     {"run_started", "run_started"},
+				testdb.Bob.UUID:       {"run_started", "run_ended"},
+				testdb.George.UUID:    {"run_started", "run_ended"},
+				testdb.Alexandra.UUID: {"run_started", "run_ended"},
+			},
 		},
 	}
 
