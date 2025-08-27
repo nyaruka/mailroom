@@ -78,11 +78,8 @@ func (t *EventReceivedTask) handle(ctx context.Context, rt *runtime.Runtime, oa 
 		}
 	}
 
-	if models.ContactSeenEvents[t.EventType] {
-		err := mc.UpdateLastSeenOn(ctx, rt.DB, t.CreatedOn)
-		if err != nil {
-			return nil, fmt.Errorf("error updating contact last_seen_on: %w", err)
-		}
+	if err := mc.UpdateLastSeenOn(ctx, rt.DB, t.CreatedOn); err != nil {
+		return nil, fmt.Errorf("error updating contact last_seen_on: %w", err)
 	}
 
 	// make sure this URN is our highest priority (this is usually a noop)
