@@ -207,7 +207,7 @@ func RunTestCases(t *testing.T, ctx context.Context, rt *runtime.Runtime, tcs []
 				modifiersByContact[c] = mods
 			}
 
-			_, err := runner.ApplyModifiers(ctx, rt, oa, userID, modifiersByContact)
+			_, err := runner.BulkModify(ctx, rt, oa, userID, modifiersByContact)
 			require.NoError(t, err)
 		}
 

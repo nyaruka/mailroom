@@ -135,7 +135,7 @@ func tryToLockAndModify(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 		modifiersByContact[flowContact] = mods
 	}
 
-	eventsByContact, err := runner.ApplyModifiers(ctx, rt, oa, userID, modifiersByContact)
+	eventsByContact, err := runner.BulkModify(ctx, rt, oa, userID, modifiersByContact)
 	if err != nil {
 		return nil, nil, err
 	}

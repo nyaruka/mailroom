@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/flows/modifiers"
 	"github.com/nyaruka/mailroom/core/goflow"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/runtime"
@@ -194,6 +195,24 @@ func (s *Scene) ResumeSession(ctx context.Context, rt *runtime.Runtime, oa *mode
 	}
 
 	return nil
+}
+
+func (s *Scene) ApplyModifier(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, mod flows.Modifier, userID models.UserID) ([]flows.Event, error) {
+	env := flows.NewAssetsEnvironment(oa.Env(), oa.SessionAssets())
+	eng := goflow.Engine(rt)
+
+	evts := make([]flows.Event, 0)
+	modifiers.Apply(eng, env, oa.SessionAssets(), s.Contact, mod, func(e flows.Event) { evts = append(evts, e) })
+
+	// TODO limit user crediting to only the first event? We might have contact_groups_changed events here from changing contact fields etc.
+
+	for _, e := range evts {
+		if err := s.AddEvent(ctx, rt, oa, e, userID); err != nil {
+			return nil, fmt.Errorf("error adding modifier events for contact %s: %w", s.Contact.UUID(), err)
+		}
+	}
+
+	return evts, nil
 }
 
 // AttachPreCommitHook adds an item to be handled by the given pre commit hook
