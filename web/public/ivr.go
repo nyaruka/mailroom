@@ -144,7 +144,7 @@ func handleIncoming(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 	}
 
 	// if we matched with an incoming-call trigger, we'll have a session
-	if scene != nil {
+	if scene != nil && scene.Session != nil {
 		// that might have started a non-voice flow, in which case we need to reject this call
 		if scene.Session.Type() != flows.FlowTypeVoice {
 			return call, svc.WriteRejectResponse(w)
