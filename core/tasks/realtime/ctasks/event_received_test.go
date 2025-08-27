@@ -6,8 +6,10 @@ import (
 	"time"
 
 	"github.com/buger/jsonparser"
+	"github.com/nyaruka/gocommon/aws/dynamo/dyntest"
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/gocommon/urns"
+	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/tasks"
 	"github.com/nyaruka/mailroom/core/tasks/realtime"
@@ -57,6 +59,7 @@ func TestChannelEvents(t *testing.T) {
 		expectedTriggerType string
 		expectedResponse    string
 		updatesLastSeen     bool
+		persistedEvents     map[flows.ContactUUID][]string
 	}{
 		{ // 0: new conversation on Facebook
 			contact: testdb.Cathy,
@@ -72,6 +75,7 @@ func TestChannelEvents(t *testing.T) {
 			expectedTriggerType: "chat",
 			expectedResponse:    "What is your favorite color?",
 			updatesLastSeen:     true,
+			persistedEvents:     map[flows.ContactUUID][]string{testdb.Cathy.UUID: {"chat_started", "run_started"}},
 		},
 		{ // 1: new conversation on Vonage (no trigger)
 			contact: testdb.Cathy,
@@ -87,6 +91,7 @@ func TestChannelEvents(t *testing.T) {
 			expectedTriggerType: "",
 			expectedResponse:    "",
 			updatesLastSeen:     true,
+			persistedEvents:     map[flows.ContactUUID][]string{},
 		},
 		{ // 2: welcome message on Vonage
 			contact: testdb.Cathy,
@@ -102,6 +107,7 @@ func TestChannelEvents(t *testing.T) {
 			expectedTriggerType: "",
 			expectedResponse:    "",
 			updatesLastSeen:     false,
+			persistedEvents:     map[flows.ContactUUID][]string{},
 		},
 		{ // 3: referral on Facebook
 			contact: testdb.Cathy,
@@ -117,6 +123,7 @@ func TestChannelEvents(t *testing.T) {
 			expectedTriggerType: "",
 			expectedResponse:    "",
 			updatesLastSeen:     true,
+			persistedEvents:     map[flows.ContactUUID][]string{},
 		},
 		{ // 4: referral on Facebook
 			contact: testdb.Cathy,
@@ -132,6 +139,7 @@ func TestChannelEvents(t *testing.T) {
 			expectedTriggerType: "chat",
 			expectedResponse:    "Pick a number between 1-10.",
 			updatesLastSeen:     true,
+			persistedEvents:     map[flows.ContactUUID][]string{testdb.Cathy.UUID: {"chat_started", "run_ended", "run_started"}},
 		},
 		{ // 5: optin on Vonage
 			contact: testdb.Cathy,
@@ -148,6 +156,7 @@ func TestChannelEvents(t *testing.T) {
 			expectedTriggerType: "optin",
 			expectedResponse:    "What is your favorite color?",
 			updatesLastSeen:     true,
+			persistedEvents:     map[flows.ContactUUID][]string{testdb.Cathy.UUID: {"optin_started", "run_ended", "run_started"}},
 		},
 		{ // 6: optout on Vonage
 			contact: testdb.Cathy,
@@ -164,6 +173,7 @@ func TestChannelEvents(t *testing.T) {
 			expectedTriggerType: "optin",
 			expectedResponse:    "Pick a number between 1-10.",
 			updatesLastSeen:     true,
+			persistedEvents:     map[flows.ContactUUID][]string{testdb.Cathy.UUID: {"optin_stopped", "run_ended", "run_started"}},
 		},
 		{ // 7: missed call trigger queued by RP
 			contact: testdb.Cathy,
@@ -180,6 +190,7 @@ func TestChannelEvents(t *testing.T) {
 			expectedTriggerType: "",
 			expectedResponse:    "",
 			updatesLastSeen:     true,
+			persistedEvents:     map[flows.ContactUUID][]string{},
 		},
 		{ // 8: stop contact
 			contact: testdb.Cathy,
@@ -195,6 +206,7 @@ func TestChannelEvents(t *testing.T) {
 			expectedTriggerType: "",
 			expectedResponse:    "",
 			updatesLastSeen:     true,
+			persistedEvents:     map[flows.ContactUUID][]string{},
 		},
 		{ // 9: a task against a deleted contact
 			contact: deleted,
@@ -210,6 +222,7 @@ func TestChannelEvents(t *testing.T) {
 			expectedTriggerType: "",
 			expectedResponse:    "",
 			updatesLastSeen:     false,
+			persistedEvents:     map[flows.ContactUUID][]string{},
 		},
 		{ // 10: a task for a delete contact
 			contact: testdb.Cathy,
@@ -225,6 +238,7 @@ func TestChannelEvents(t *testing.T) {
 			expectedTriggerType: "",
 			expectedResponse:    "",
 			updatesLastSeen:     false,
+			persistedEvents:     map[flows.ContactUUID][]string{},
 		},
 	}
 
@@ -275,6 +289,11 @@ func TestChannelEvents(t *testing.T) {
 			assert.WithinDuration(t, lastSeen, tc.task.(*ctasks.EventReceivedTask).CreatedOn, time.Microsecond, "%d: expected last seen to be updated", i)
 		}
 
+		persistedEvents := testsuite.GetHistoryEvents(t, rt)
+
+		assert.Equal(t, tc.persistedEvents, persistedEvents, "%d: mismatch in persisted events", i)
+
+		dyntest.Truncate(t, rt.Dynamo, "TestHistory")
 	}
 
 	// last event was a stop_contact so check that cathy is stopped
