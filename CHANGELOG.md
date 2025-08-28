@@ -1,3 +1,8 @@
+v10.3.56 (2025-08-28)
+-------------------------
+ * Fix handling channel events that don't match triggers so that events are still persisted
+ * Tweak handling of channel events so that all event types update last_seen_on
+
 v10.3.55 (2025-08-26)
 -------------------------
  * Remove time gating on chat_started / call_missed events
