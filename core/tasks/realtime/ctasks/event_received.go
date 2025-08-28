@@ -8,6 +8,7 @@ import (
 
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/events"
+	"github.com/nyaruka/goflow/flows/modifiers"
 	"github.com/nyaruka/goflow/flows/triggers"
 	"github.com/nyaruka/mailroom/core/ivr"
 	"github.com/nyaruka/mailroom/core/models"
@@ -45,7 +46,7 @@ func (t *EventReceivedTask) UseReadOnly() bool {
 func (t *EventReceivedTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, mc *models.Contact) error {
 	_, err := t.handle(ctx, rt, oa, mc, nil)
 	if err != nil {
-		return err
+		return fmt.Errorf("error handling channel event %d: %w", t.EventID, err)
 	}
 
 	return models.MarkChannelEventHandled(ctx, rt.DB, t.EventID)
@@ -73,13 +74,6 @@ func (t *EventReceivedTask) handle(ctx context.Context, rt *runtime.Runtime, oa 
 	if t.URNID != models.NilURNID {
 		if err := mc.UpdatePreferredURN(ctx, rt.DB, oa, t.URNID, channel); err != nil {
 			return nil, fmt.Errorf("error changing primary URN: %w", err)
-		}
-	}
-
-	if t.EventType == models.EventTypeStopContact {
-		err := mc.Stop(ctx, rt.DB, oa)
-		if err != nil {
-			return nil, fmt.Errorf("error stopping contact: %w", err)
 		}
 	}
 
@@ -135,18 +129,24 @@ func (t *EventReceivedTask) handle(ctx context.Context, rt *runtime.Runtime, oa 
 			if flowType == models.FlowTypeVoice && call == nil {
 				// request outgoing call and wait for callback
 				if _, err := ivr.RequestCall(ctx, rt, oa, mc, trig); err != nil {
-					return nil, fmt.Errorf("error starting voice flow for contact: %w", err)
+					return nil, fmt.Errorf("error requesting call: %w", err)
 				}
 			} else {
 				if err := scene.StartSession(ctx, rt, oa, trig, flowType.Interrupts()); err != nil {
-					return nil, fmt.Errorf("error starting session for contact %s: %w", scene.ContactUUID(), err)
+					return nil, fmt.Errorf("error starting session: %w", err)
 				}
 			}
 		}
 	}
 
+	if t.EventType == models.EventTypeStopContact {
+		if _, err := scene.ApplyModifier(ctx, rt, oa, modifiers.NewStatus(flows.ContactStatusStopped), models.NilUserID); err != nil {
+			return nil, fmt.Errorf("error applying stop modifier: %w", err)
+		}
+	}
+
 	if err := scene.Commit(ctx, rt, oa); err != nil {
-		return nil, fmt.Errorf("error committing scene for contact %s: %w", scene.ContactUUID(), err)
+		return nil, fmt.Errorf("error committing scene: %w", err)
 	}
 
 	return scene, nil

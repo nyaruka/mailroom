@@ -465,24 +465,6 @@ func TestGetContactIDsFromReferences(t *testing.T) {
 	assert.ElementsMatch(t, []models.ContactID{testdb.Cathy.ID, testdb.Bob.ID}, ids)
 }
 
-func TestContactStop(t *testing.T) {
-	ctx, rt := testsuite.Runtime(t)
-
-	defer testsuite.Reset(t, rt, testsuite.ResetAll)
-
-	oa := testdb.Org1.Load(rt)
-	contact, _, _ := testdb.Cathy.Load(rt, oa)
-
-	err := contact.Stop(ctx, rt.DB, oa)
-	assert.NoError(t, err)
-	assert.Equal(t, models.ContactStatusStopped, contact.Status())
-	assert.Len(t, contact.Groups(), 0)
-
-	// verify that matches the database state
-	assertdb.Query(t, rt.DB, `SELECT status FROM contacts_contact WHERE id = $1`, testdb.Cathy.ID).Returns("S")
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contactgroup_contacts WHERE contact_id = $1`, testdb.Cathy.ID).Returns(1)
-}
-
 func TestUpdateContactLastSeenAndModifiedOn(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 

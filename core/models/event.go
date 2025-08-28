@@ -15,20 +15,21 @@ import (
 )
 
 var eventPersistence = map[string]time.Duration{
-	events.TypeAirtimeTransferred:     -1,                   // forever
-	events.TypeCallCreated:            -1,                   // forever
-	events.TypeCallMissed:             -1,                   // forever
-	events.TypeCallReceived:           -1,                   // forever
-	events.TypeChatStarted:            -1,                   // forever
+	events.TypeAirtimeTransferred:     -1,
+	events.TypeCallCreated:            -1,
+	events.TypeCallMissed:             -1,
+	events.TypeCallReceived:           -1,
+	events.TypeChatStarted:            -1,
 	events.TypeContactFieldChanged:    time.Hour * 24 * 365, // 1 year
 	events.TypeContactGroupsChanged:   time.Hour * 24 * 365, // 1 year
 	events.TypeContactLanguageChanged: time.Hour * 24 * 365, // 1 year
 	events.TypeContactNameChanged:     time.Hour * 24 * 365, // 1 year
+	events.TypeContactStatusChanged:   -1,
 	events.TypeContactURNsChanged:     time.Hour * 24 * 365, // 1 year
-	events.TypeOptInStarted:           -1,                   // forever
-	events.TypeOptInStopped:           -1,                   // forever
-	events.TypeRunEnded:               -1,                   // forever
-	events.TypeRunStarted:             -1,                   // forever
+	events.TypeOptInStarted:           -1,
+	events.TypeOptInStopped:           -1,
+	events.TypeRunEnded:               -1,
+	events.TypeRunStarted:             -1,
 }
 
 const (
