@@ -12,7 +12,7 @@ import (
 func TestContactStatusChanged(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetData)
+	defer testsuite.Reset(t, rt, testsuite.ResetDB)
 
 	tcs := []TestCase{
 		{
@@ -21,13 +21,13 @@ func TestContactStatusChanged(t *testing.T) {
 			},
 			SQLAssertions: []SQLAssertion{
 				{
-					SQL:   `select count(*) from contacts_contact where id = $1 AND status = 'B'`,
+					SQL:   `SELECT count(*) FROM contacts_contact WHERE id = $1 AND status = 'B'`,
 					Args:  []any{testdb.Cathy.ID},
 					Count: 1,
 				},
 			},
 			PersistedEvents: map[flows.ContactUUID][]string{
-				testdb.Cathy.UUID: {"contact_groups_changed"},
+				testdb.Cathy.UUID: {"contact_status_changed", "contact_groups_changed"},
 			},
 		},
 		{
@@ -36,12 +36,12 @@ func TestContactStatusChanged(t *testing.T) {
 			},
 			SQLAssertions: []SQLAssertion{
 				{
-					SQL:   `select count(*) from contacts_contact where id = $1 AND status = 'S'`,
+					SQL:   `SELECT count(*) FROM contacts_contact WHERE id = $1 AND status = 'S'`,
 					Args:  []any{testdb.Cathy.ID},
 					Count: 1,
 				},
 			},
-			PersistedEvents: map[flows.ContactUUID][]string{},
+			PersistedEvents: map[flows.ContactUUID][]string{testdb.Cathy.UUID: {"contact_status_changed"}},
 		},
 		{
 			Modifiers: ContactModifierMap{
@@ -49,17 +49,17 @@ func TestContactStatusChanged(t *testing.T) {
 			},
 			SQLAssertions: []SQLAssertion{
 				{
-					SQL:   `select count(*) from contacts_contact where id = $1 AND status = 'A'`,
+					SQL:   `SELECT count(*) FROM contacts_contact WHERE id = $1 AND status = 'A'`,
 					Args:  []any{testdb.Cathy.ID},
 					Count: 1,
 				},
 				{
-					SQL:   `select count(*) from contacts_contact where id = $1 AND status = 'A'`,
+					SQL:   `SELECT count(*) FROM contacts_contact WHERE id = $1 AND status = 'A'`,
 					Args:  []any{testdb.Cathy.ID},
 					Count: 1,
 				},
 			},
-			PersistedEvents: map[flows.ContactUUID][]string{},
+			PersistedEvents: map[flows.ContactUUID][]string{testdb.Cathy.UUID: {"contact_status_changed"}},
 		},
 	}
 

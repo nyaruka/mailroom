@@ -191,7 +191,7 @@ func TestChannelEvents(t *testing.T) {
 			},
 			expectedTriggerType: "",
 			expectedResponse:    "",
-			persistedEvents:     map[flows.ContactUUID][]string{testdb.Cathy.UUID: {"contact_groups_changed"}},
+			persistedEvents:     map[flows.ContactUUID][]string{testdb.Cathy.UUID: {"contact_status_changed", "contact_groups_changed"}},
 		},
 		{ // 9: a task against a deleted contact
 			contact: deleted,

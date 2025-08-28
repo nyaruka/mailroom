@@ -238,7 +238,12 @@
                 "query": "SELECT count(*) FROM contacts_contact WHERE id = 10000 AND status = 'B'",
                 "count": 1
             }
-        ]
+        ],
+        "persisted_events": {
+            "6393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                "contact_status_changed"
+            ]
+        }
     },
     {
         "label": "set status to archived",
@@ -285,7 +290,12 @@
                 "query": "SELECT count(*) FROM contacts_contact WHERE id = 10000 AND status = 'V'",
                 "count": 1
             }
-        ]
+        ],
+        "persisted_events": {
+            "6393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                "contact_status_changed"
+            ]
+        }
     },
     {
         "label": "set status to active",
@@ -332,7 +342,12 @@
                 "query": "SELECT count(*) FROM contacts_contact WHERE id = 10000 AND status = 'A'",
                 "count": 1
             }
-        ]
+        ],
+        "persisted_events": {
+            "6393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                "contact_status_changed"
+            ]
+        }
     },
     {
         "label": "set text field with valid value",
