@@ -29,8 +29,12 @@ func TestChannelEvents(t *testing.T) {
 	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
 	// schedule a campaign fires for cathy and george
-	testdb.InsertContactFire(rt, testdb.Org1, testdb.Cathy, models.ContactFireTypeCampaignPoint, fmt.Sprint(testdb.RemindersPoint1), time.Now(), "")
-	testdb.InsertContactFire(rt, testdb.Org1, testdb.George, models.ContactFireTypeCampaignPoint, fmt.Sprint(testdb.RemindersPoint1), time.Now(), "")
+	rt.DB.MustExec(
+		fmt.Sprintf(`UPDATE contacts_contact SET fields = fields || '{"%s": { "text": "2029-09-15T12:00:00+00:00", "datetime": "2029-09-15T12:00:00+00:00" }}'::jsonb WHERE id = $1 OR id = $2`, testdb.JoinedField.UUID),
+		testdb.Cathy.ID, testdb.George.ID,
+	)
+	testdb.InsertContactFire(rt, testdb.Org1, testdb.Cathy, models.ContactFireTypeCampaignPoint, fmt.Sprintf("%d:1", testdb.RemindersPoint1.ID), time.Now(), "")
+	testdb.InsertContactFire(rt, testdb.Org1, testdb.George, models.ContactFireTypeCampaignPoint, fmt.Sprintf("%d:1", testdb.RemindersPoint1.ID), time.Now(), "")
 
 	// and george to doctors group, cathy is already part of it
 	rt.DB.MustExec(`INSERT INTO contacts_contactgroup_contacts(contactgroup_id, contact_id) VALUES($1, $2);`, testdb.DoctorsGroup.ID, testdb.George.ID)
@@ -187,7 +191,7 @@ func TestChannelEvents(t *testing.T) {
 			},
 			expectedTriggerType: "",
 			expectedResponse:    "",
-			persistedEvents:     map[flows.ContactUUID][]string{},
+			persistedEvents:     map[flows.ContactUUID][]string{testdb.Cathy.UUID: {"contact_groups_changed"}},
 		},
 		{ // 9: a task against a deleted contact
 			contact: deleted,
@@ -287,7 +291,7 @@ func TestChannelEvents(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT count(*) from contacts_contactgroup_contacts WHERE contactgroup_id = $1 AND contact_id = $2`, testdb.DoctorsGroup.ID, testdb.Cathy.ID).Returns(0)
 	assertdb.Query(t, rt.DB, `SELECT count(*) from contacts_contactgroup_contacts WHERE contactgroup_id = $1 AND contact_id = $2`, testdb.DoctorsGroup.ID, testdb.George.ID).Returns(1)
 
-	// and she has no upcoming events
+	// and she has no upcoming campaign events
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'C'`, testdb.Cathy.ID).Returns(0)
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'C'`, testdb.George.ID).Returns(1)
 }

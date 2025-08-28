@@ -132,43 +132,6 @@ func (c *Contact) URNForID(urnID URNID) urns.URN {
 	return urns.NilURN
 }
 
-const sqlDeleteAllContactGroups = `
-DELETE FROM contacts_contactgroup_contacts
-      WHERE contact_id = $2 AND contactgroup_id = ANY(
-		  SELECT id from contacts_contactgroup WHERE org_id = $1 and group_type IN ('M', 'Q')
-	  )`
-
-// Stop stops this contact, removing them from all groups and setting their state to stopped.
-func (c *Contact) Stop(ctx context.Context, db DBorTx, oa *OrgAssets) error {
-	// delete the contact from all groups
-	_, err := db.ExecContext(ctx, sqlDeleteAllContactGroups, c.orgID, c.id)
-	if err != nil {
-		return fmt.Errorf("error removing stopped contact from groups: %w", err)
-	}
-
-	// remove all campaign fires
-	if err := DeleteAllCampaignFires(ctx, db, []ContactID{c.id}); err != nil {
-		return fmt.Errorf("error deleting campaign fires: %w", err)
-	}
-
-	// remove the contact from any triggers
-	// TODO: this could leave a trigger with no contacts or groups
-	_, err = db.ExecContext(ctx, `DELETE FROM triggers_trigger_contacts WHERE contact_id = $1`, c.id)
-	if err != nil {
-		return fmt.Errorf("error removing contact from triggers: %w", err)
-	}
-
-	// mark as stopped
-	_, err = db.ExecContext(ctx, `UPDATE contacts_contact SET status = 'S', modified_on = NOW() WHERE id = $1`, c.id)
-	if err != nil {
-		return fmt.Errorf("error marking contact as stopped: %w", err)
-	}
-
-	c.groups = []*Group{} // currently groups always implicitly exclude non-active contacts
-	c.status = ContactStatusStopped
-	return nil
-}
-
 // Unstop sets the status to stopped for this contact
 func (c *Contact) Unstop(ctx context.Context, db DBorTx) error {
 	_, err := db.ExecContext(ctx, `UPDATE contacts_contact SET status = 'A', modified_on = NOW() WHERE id = $1`, c.id)
