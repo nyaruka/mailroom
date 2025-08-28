@@ -1,3 +1,8 @@
+v10.3.57 (2025-08-28)
+-------------------------
+ * Persist contact_status_changed events
+ * Use modifier to stop contacts when handling stop events
+
 v10.3.56 (2025-08-28)
 -------------------------
  * Fix handling channel events that don't match triggers so that events are still persisted
