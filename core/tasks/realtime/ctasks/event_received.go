@@ -102,31 +102,45 @@ func (t *EventReceivedTask) handle(ctx context.Context, rt *runtime.Runtime, oa 
 		}
 	}
 
+	var flowOptIn *flows.OptIn
+	if t.EventType == models.EventTypeOptIn || t.EventType == models.EventTypeOptOut {
+		optIn := oa.OptInByID(t.OptInID)
+		if optIn != nil {
+			flowOptIn = oa.SessionAssets().OptIns().Get(optIn.UUID())
+		}
+	}
+
 	var flowCall *flows.Call
 	if call != nil {
 		flowCall = flows.NewCall(call.UUID(), oa.SessionAssets().Channels().Get(channel.UUID()), mc.URNForID(t.URNID))
-	}
-
-	trig, flowType, err := t.findTrigger(oa, channel, contact, flowCall)
-	if err != nil {
-		return nil, err
 	}
 
 	scene := runner.NewScene(mc, contact)
 	scene.DBCall = call
 	scene.Call = flowCall
 
-	if trig != nil {
-		if event := trig.Event(); event != nil {
-			if err := scene.AddEvent(ctx, rt, oa, event, models.NilUserID); err != nil {
-				return nil, fmt.Errorf("error adding trigger event to scene: %w", err)
-			}
+	// convert to real event
+	event := t.toEvent(channel, flowCall, flowOptIn)
+	if event != nil {
+		if err := scene.AddEvent(ctx, rt, oa, event, models.NilUserID); err != nil {
+			return nil, fmt.Errorf("error adding channel event to scene: %w", err)
 		}
 
-		// only start IVR session if we have a call, if not we request one below
-		if flowType != models.FlowTypeVoice || call != nil {
-			if err := scene.StartSession(ctx, rt, oa, trig, flowType.Interrupts()); err != nil {
-				return nil, fmt.Errorf("error starting session for contact %s: %w", scene.ContactUUID(), err)
+		trig, flowType, err := findEventTrigger(oa, event, channel, contact, flowOptIn)
+		if err != nil {
+			return nil, err
+		}
+
+		if trig != nil {
+			if flowType == models.FlowTypeVoice && call == nil {
+				// request outgoing call and wait for callback
+				if _, err := ivr.RequestCall(ctx, rt, oa, mc, trig); err != nil {
+					return nil, fmt.Errorf("error starting voice flow for contact: %w", err)
+				}
+			} else {
+				if err := scene.StartSession(ctx, rt, oa, trig, flowType.Interrupts()); err != nil {
+					return nil, fmt.Errorf("error starting session for contact %s: %w", scene.ContactUUID(), err)
+				}
 			}
 		}
 	}
@@ -135,37 +149,61 @@ func (t *EventReceivedTask) handle(ctx context.Context, rt *runtime.Runtime, oa 
 		return nil, fmt.Errorf("error committing scene for contact %s: %w", scene.ContactUUID(), err)
 	}
 
-	if trig != nil && flowType == models.FlowTypeVoice && call == nil {
-		// request outgoing call and wait for callback
-		if _, err := ivr.RequestCall(ctx, rt, oa, mc, trig); err != nil {
-			return nil, fmt.Errorf("error starting voice flow for contact: %w", err)
-		}
-	}
-
 	return scene, nil
 }
 
-func (t *EventReceivedTask) findTrigger(oa *models.OrgAssets, ch *models.Channel, c *flows.Contact, call *flows.Call) (flows.Trigger, models.FlowType, error) {
+// convert to a real engine event
+func (t *EventReceivedTask) toEvent(ch *models.Channel, call *flows.Call, optIn *flows.OptIn) flows.Event {
+	switch t.EventType {
+	case models.EventTypeMissedCall:
+		return events.NewCallMissed(ch.Reference())
+	case models.EventTypeIncomingCall:
+		return events.NewCallReceived(call)
+	case models.EventTypeNewConversation:
+		return events.NewChatStarted(ch.Reference(), nil)
+	case models.EventTypeReferral:
+		var params map[string]string
+		if t.Extra != nil {
+			params = make(map[string]string, len(t.Extra))
+			for k, v := range t.Extra {
+				if vs, ok := v.(string); ok {
+					params[k] = vs
+				}
+			}
+		}
+		return events.NewChatStarted(ch.Reference(), params)
+	case models.EventTypeOptIn:
+		if optIn != nil {
+			return events.NewOptInStarted(optIn.Reference(), ch.Reference())
+		}
+	case models.EventTypeOptOut:
+		if optIn != nil {
+			return events.NewOptInStopped(optIn.Reference(), ch.Reference())
+		}
+	}
+	return nil
+}
+
+func findEventTrigger(oa *models.OrgAssets, evt flows.Event, ch *models.Channel, c *flows.Contact, optIn *flows.OptIn) (flows.Trigger, models.FlowType, error) {
 	var mtrig *models.Trigger
 
-	switch t.EventType {
-	case models.EventTypeNewConversation:
-		mtrig = models.FindMatchingNewConversationTrigger(oa, ch)
-	case models.EventTypeReferral:
-		referrerID, _ := t.Extra["referrer_id"].(string)
-		mtrig = models.FindMatchingReferralTrigger(oa, ch, referrerID)
-	case models.EventTypeMissedCall:
+	switch typed := evt.(type) {
+	case *events.CallMissed:
 		mtrig = models.FindMatchingMissedCallTrigger(oa, ch)
-	case models.EventTypeIncomingCall:
+	case *events.CallReceived:
 		mtrig = models.FindMatchingIncomingCallTrigger(oa, ch, c)
-	case models.EventTypeOptIn:
+	case *events.ChatStarted:
+		if len(typed.Params) > 0 {
+			mtrig = models.FindMatchingReferralTrigger(oa, ch, typed.Params["referrer_id"])
+		} else {
+			mtrig = models.FindMatchingNewConversationTrigger(oa, ch)
+		}
+	case *events.OptInStarted:
 		mtrig = models.FindMatchingOptInTrigger(oa, ch)
-	case models.EventTypeOptOut:
+	case *events.OptInStopped:
 		mtrig = models.FindMatchingOptOutTrigger(oa, ch)
-	case models.EventTypeWelcomeMessage, models.EventTypeStopContact, models.EventTypeDeleteContact:
-		return nil, "", nil
 	default:
-		return nil, "", fmt.Errorf("unknown channel event type: %s", t.EventType)
+		panic(fmt.Sprintf("unknown event type: %T", evt))
 	}
 
 	// check flow still exists
@@ -183,39 +221,23 @@ func (t *EventReceivedTask) findTrigger(oa *models.OrgAssets, ch *models.Channel
 		return nil, "", nil
 	}
 
-	var flowOptIn *flows.OptIn
-	if t.EventType == models.EventTypeOptIn || t.EventType == models.EventTypeOptOut {
-		optIn := oa.OptInByID(t.OptInID)
-		if optIn != nil {
-			flowOptIn = oa.SessionAssets().OptIns().Get(optIn.UUID())
-		}
-	}
-
 	// build engine trigger
 	var trig flows.Trigger
 	tb := triggers.NewBuilder(flow.Reference())
 
-	if t.EventType == models.EventTypeIncomingCall {
-		trig = tb.CallReceived(events.NewCallReceived(call)).Build()
-	} else if t.EventType == models.EventTypeMissedCall {
-		trig = tb.CallMissed(events.NewCallMissed(ch.Reference())).Build()
-	} else if t.EventType == models.EventTypeOptIn && flowOptIn != nil {
-		trig = tb.OptInStarted(events.NewOptInStarted(flowOptIn.Reference(), ch.Reference()), flowOptIn).Build()
-	} else if t.EventType == models.EventTypeOptOut && flowOptIn != nil {
-		trig = tb.OptInStopped(events.NewOptInStopped(flowOptIn.Reference(), ch.Reference()), flowOptIn).Build()
-	} else if t.EventType == models.EventTypeNewConversation {
-		trig = tb.ChatStarted(events.NewChatStarted(ch.Reference(), nil)).Build()
-	} else if t.EventType == models.EventTypeReferral {
-		var params map[string]string
-		if t.Extra != nil {
-			params = make(map[string]string, len(t.Extra))
-			for k, v := range t.Extra {
-				if vs, ok := v.(string); ok {
-					params[k] = vs
-				}
-			}
-		}
-		trig = tb.ChatStarted(events.NewChatStarted(ch.Reference(), params)).Build()
+	switch typed := evt.(type) {
+	case *events.CallMissed:
+		trig = tb.CallMissed(typed).Build()
+	case *events.CallReceived:
+		trig = tb.CallReceived(typed).Build()
+	case *events.ChatStarted:
+		trig = tb.ChatStarted(typed).Build()
+	case *events.OptInStarted:
+		trig = tb.OptInStarted(typed, optIn).Build()
+	case *events.OptInStopped:
+		trig = tb.OptInStopped(typed, optIn).Build()
+	default:
+		panic(fmt.Sprintf("unknown event type: %T", evt))
 	}
 
 	return trig, flow.FlowType(), nil
