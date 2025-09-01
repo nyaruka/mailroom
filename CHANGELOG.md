@@ -1,3 +1,8 @@
+v10.3.58 (2025-09-01)
+-------------------------
+ * Update ticket topics by event handling
+ * Update to latest goflow that changes ticket triggers
+
 v10.3.57 (2025-08-28)
 -------------------------
  * Persist contact_status_changed events
