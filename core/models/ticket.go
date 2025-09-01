@@ -334,7 +334,7 @@ func TicketsAssign(ctx context.Context, db DBorTx, oa *OrgAssets, userID UserID,
 		return nil, fmt.Errorf("error inserting ticket events: %w", err)
 	}
 
-	if err := NotificationsFromTicketEvents(ctx, db, oa, eventsByTicket); err != nil {
+	if err := NotificationsFromTicketEvents(ctx, db, oa, events); err != nil {
 		return nil, fmt.Errorf("error inserting notifications: %w", err)
 	}
 

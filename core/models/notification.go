@@ -62,7 +62,7 @@ func NotifyImportFinished(ctx context.Context, db DBorTx, imp *ContactImport) er
 		ContactImportID: imp.ID,
 	}
 
-	return insertNotifications(ctx, db, []*Notification{n})
+	return InsertNotifications(ctx, db, []*Notification{n})
 }
 
 // NotifyIncidentStarted notifies administrators that an incident has started
@@ -82,19 +82,19 @@ func NotifyIncidentStarted(ctx context.Context, db DBorTx, oa *OrgAssets, incide
 		}
 	}
 
-	return insertNotifications(ctx, db, notifications)
+	return InsertNotifications(ctx, db, notifications)
 }
 
 var ticketAssignableToles = []UserRole{UserRoleAdministrator, UserRoleEditor, UserRoleAgent}
 
 // NotificationsFromTicketEvents logs the opening of new tickets and notifies all assignable users if tickets is not already assigned
-func NotificationsFromTicketEvents(ctx context.Context, db DBorTx, oa *OrgAssets, events map[*Ticket]*TicketEvent) error {
+func NotificationsFromTicketEvents(ctx context.Context, db DBorTx, oa *OrgAssets, events []*TicketEvent) error {
 	notifyTicketsOpened := make(map[UserID]bool)
 	notifyTicketsActivity := make(map[UserID]bool)
 
 	assignableUsers := usersWithRoles(oa, ticketAssignableToles)
 
-	for ticket, evt := range events {
+	for _, evt := range events {
 		switch evt.Type {
 		case TicketEventTypeOpened:
 			// if ticket is unassigned notify all possible assignees
@@ -111,11 +111,6 @@ func NotificationsFromTicketEvents(ctx context.Context, db DBorTx, oa *OrgAssets
 			// notify new ticket assignee if they didn't self-assign
 			if evt.AssigneeID != NilUserID && evt.AssigneeID != evt.CreatedByID {
 				notifyTicketsActivity[evt.AssigneeID] = true
-			}
-		case TicketEventTypeNoteAdded:
-			// notify ticket assignee if they didn't add note themselves
-			if ticket.AssigneeID() != NilUserID && ticket.AssigneeID() != evt.CreatedByID {
-				notifyTicketsActivity[ticket.AssigneeID()] = true
 			}
 		}
 	}
@@ -134,17 +129,21 @@ func NotificationsFromTicketEvents(ctx context.Context, db DBorTx, oa *OrgAssets
 	}
 
 	for userID := range notifyTicketsActivity {
-		notifications = append(notifications, &Notification{
-			OrgID:       oa.OrgID(),
-			Type:        NotificationTypeTicketsActivity,
-			Scope:       "",
-			UserID:      userID,
-			Medium:      MediumUI,
-			EmailStatus: EmailStatusNone,
-		})
+		notifications = append(notifications, NewTicketActivityNotification(oa.OrgID(), userID))
 	}
 
-	return insertNotifications(ctx, db, notifications)
+	return InsertNotifications(ctx, db, notifications)
+}
+
+func NewTicketActivityNotification(orgID OrgID, userID UserID) *Notification {
+	return &Notification{
+		OrgID:       orgID,
+		Type:        NotificationTypeTicketsActivity,
+		Scope:       "",
+		UserID:      userID,
+		Medium:      MediumUI,
+		EmailStatus: EmailStatusNone,
+	}
 }
 
 const sqlInsertNotification = `
@@ -152,7 +151,7 @@ INSERT INTO notifications_notification(org_id,  notification_type,  scope,  user
                                VALUES(:org_id, :notification_type, :scope, :user_id, :medium,   FALSE, :email_status,      NOW(), :contact_import_id, :incident_id) 
 							   ON CONFLICT DO NOTHING`
 
-func insertNotifications(ctx context.Context, db DBorTx, notifications []*Notification) error {
+func InsertNotifications(ctx context.Context, db DBorTx, notifications []*Notification) error {
 	if err := dbutil.BulkQuery(ctx, db, sqlInsertNotification, notifications); err != nil {
 		return fmt.Errorf("error inserting notifications: %w", err)
 	}

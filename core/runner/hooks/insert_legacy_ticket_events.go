@@ -10,11 +10,6 @@ import (
 	"github.com/nyaruka/mailroom/runtime"
 )
 
-type TicketAndEvent struct {
-	Ticket *models.Ticket
-	Event  *models.TicketEvent
-}
-
 var InsertLegacyTicketEvents runner.PreCommitHook = &insertLegacyTicketEvents{}
 
 type insertLegacyTicketEvents struct{}
@@ -23,22 +18,15 @@ func (h *insertLegacyTicketEvents) Order() int { return 10 }
 
 func (h *insertLegacyTicketEvents) Execute(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *models.OrgAssets, scenes map[*runner.Scene][]any) error {
 	events := make([]*models.TicketEvent, 0, len(scenes))
-	eventsByTicket := make(map[*models.Ticket]*models.TicketEvent)
 
 	for _, es := range scenes {
 		for _, e := range es {
-			te := e.(TicketAndEvent)
-			events = append(events, te.Event)
-			eventsByTicket[te.Ticket] = te.Event
+			events = append(events, e.(*models.TicketEvent))
 		}
 	}
 
 	if err := models.InsertLegacyTicketEvents(ctx, tx, events); err != nil {
 		return fmt.Errorf("error inserting legacy ticket events: %w", err)
-	}
-
-	if err := models.NotificationsFromTicketEvents(ctx, tx, oa, eventsByTicket); err != nil {
-		return fmt.Errorf("error inserting notifications for ticket events: %w", err)
 	}
 
 	return nil

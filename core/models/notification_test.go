@@ -28,7 +28,7 @@ func TestTicketNotifications(t *testing.T) {
 	// open unassigned tickets by a flow (i.e. no user)
 	ticket1, openedEvent1 := openTicket(t, ctx, rt, nil, nil)
 	ticket2, openedEvent2 := openTicket(t, ctx, rt, nil, nil)
-	err = models.NotificationsFromTicketEvents(ctx, rt.DB, oa, map[*models.Ticket]*models.TicketEvent{ticket1: openedEvent1, ticket2: openedEvent2})
+	err = models.NotificationsFromTicketEvents(ctx, rt.DB, oa, []*models.TicketEvent{openedEvent1, openedEvent2})
 	require.NoError(t, err)
 
 	// check that all assignable users are notified once
@@ -42,7 +42,7 @@ func TestTicketNotifications(t *testing.T) {
 
 	// another ticket opened won't create new notifications
 	ticket3, openedEvent3 := openTicket(t, ctx, rt, nil, nil)
-	err = models.NotificationsFromTicketEvents(ctx, rt.DB, oa, map[*models.Ticket]*models.TicketEvent{ticket3: openedEvent3})
+	err = models.NotificationsFromTicketEvents(ctx, rt.DB, oa, []*models.TicketEvent{openedEvent3})
 	require.NoError(t, err)
 
 	assertNotifications(t, ctx, rt.DB, t1, map[*testdb.User][]models.NotificationType{})
@@ -51,8 +51,8 @@ func TestTicketNotifications(t *testing.T) {
 	rt.DB.MustExec(`UPDATE notifications_notification SET is_seen = TRUE`)
 
 	// open an unassigned ticket by a user
-	ticket4, openedEvent4 := openTicket(t, ctx, rt, testdb.Editor, nil)
-	err = models.NotificationsFromTicketEvents(ctx, rt.DB, oa, map[*models.Ticket]*models.TicketEvent{ticket4: openedEvent4})
+	_, openedEvent4 := openTicket(t, ctx, rt, testdb.Editor, nil)
+	err = models.NotificationsFromTicketEvents(ctx, rt.DB, oa, []*models.TicketEvent{openedEvent4})
 	require.NoError(t, err)
 
 	// check that all assignable users are notified except the user that opened the ticket
@@ -65,8 +65,8 @@ func TestTicketNotifications(t *testing.T) {
 	rt.DB.MustExec(`UPDATE notifications_notification SET is_seen = TRUE`)
 
 	// open an already assigned ticket
-	ticket5, openedEvent5 := openTicket(t, ctx, rt, nil, testdb.Agent)
-	err = models.NotificationsFromTicketEvents(ctx, rt.DB, oa, map[*models.Ticket]*models.TicketEvent{ticket5: openedEvent5})
+	_, openedEvent5 := openTicket(t, ctx, rt, nil, testdb.Agent)
+	err = models.NotificationsFromTicketEvents(ctx, rt.DB, oa, []*models.TicketEvent{openedEvent5})
 	require.NoError(t, err)
 
 	// check that the assigned user gets a ticket activity notification
@@ -77,8 +77,8 @@ func TestTicketNotifications(t *testing.T) {
 	t3 := time.Now()
 
 	// however if a user opens a ticket which is assigned to themselves, no notification
-	ticket6, openedEvent6 := openTicket(t, ctx, rt, testdb.Admin, testdb.Admin)
-	err = models.NotificationsFromTicketEvents(ctx, rt.DB, oa, map[*models.Ticket]*models.TicketEvent{ticket6: openedEvent6})
+	_, openedEvent6 := openTicket(t, ctx, rt, testdb.Admin, testdb.Admin)
+	err = models.NotificationsFromTicketEvents(ctx, rt.DB, oa, []*models.TicketEvent{openedEvent6})
 	require.NoError(t, err)
 
 	// check that the assigned user gets a ticket activity notification

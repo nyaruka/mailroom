@@ -43,12 +43,9 @@ func (h *insertTickets) Execute(ctx context.Context, rt *runtime.Runtime, tx *sq
 
 	// generate legacy opened events for each ticket
 	legacyEvents := make([]*models.TicketEvent, len(tickets))
-	eventsByTicket := make(map[*models.Ticket]*models.TicketEvent, len(tickets))
 	for i, ticket := range tickets {
 		event := events[ticket]
-		evt := models.NewTicketOpenedEvent(event.UUID(), ticket, ticket.OpenedByID(), ticket.AssigneeID(), event.Note)
-		legacyEvents[i] = evt
-		eventsByTicket[ticket] = evt
+		legacyEvents[i] = models.NewTicketOpenedEvent(event.UUID(), ticket, ticket.OpenedByID(), ticket.AssigneeID(), event.Note)
 	}
 
 	// and insert those too
@@ -57,7 +54,7 @@ func (h *insertTickets) Execute(ctx context.Context, rt *runtime.Runtime, tx *sq
 	}
 
 	// and insert logs/notifications for those
-	if err := models.NotificationsFromTicketEvents(ctx, tx, oa, eventsByTicket); err != nil {
+	if err := models.NotificationsFromTicketEvents(ctx, tx, oa, legacyEvents); err != nil {
 		return fmt.Errorf("error inserting notifications: %w", err)
 	}
 
