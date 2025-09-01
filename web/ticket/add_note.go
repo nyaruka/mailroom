@@ -44,5 +44,5 @@ func handleAddNote(ctx context.Context, rt *runtime.Runtime, r *addNoteRequest) 
 		return nil, 0, fmt.Errorf("error adding notes to tickets: %w", err)
 	}
 
-	return newBulkResponse(evts), http.StatusOK, nil
+	return newLegacyBulkResponse(evts), http.StatusOK, nil
 }

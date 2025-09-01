@@ -170,7 +170,7 @@ func openTicket(t *testing.T, ctx context.Context, rt *runtime.Runtime, openedBy
 	modelTicket := ticket.Load(rt)
 
 	openedEvent := models.NewTicketOpenedEvent(modelTicket, openedBy.SafeID(), assignee.SafeID(), "")
-	err := models.InsertTicketEvents(ctx, rt.DB, []*models.TicketEvent{openedEvent})
+	err := models.InsertLegacyTicketEvents(ctx, rt.DB, []*models.TicketEvent{openedEvent})
 	require.NoError(t, err)
 
 	return modelTicket, openedEvent

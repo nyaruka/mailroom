@@ -44,5 +44,5 @@ func handleAssign(ctx context.Context, rt *runtime.Runtime, r *assignRequest) (a
 		return nil, 0, fmt.Errorf("error assigning tickets: %w", err)
 	}
 
-	return newBulkResponse(evts), http.StatusOK, nil
+	return newLegacyBulkResponse(evts), http.StatusOK, nil
 }

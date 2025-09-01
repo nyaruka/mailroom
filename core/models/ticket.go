@@ -330,7 +330,7 @@ func TicketsAssign(ctx context.Context, db DBorTx, oa *OrgAssets, userID UserID,
 		return nil, fmt.Errorf("error updating tickets: %w", err)
 	}
 
-	if err := InsertTicketEvents(ctx, db, events); err != nil {
+	if err := InsertLegacyTicketEvents(ctx, db, events); err != nil {
 		return nil, fmt.Errorf("error inserting ticket events: %w", err)
 	}
 
@@ -361,7 +361,7 @@ func TicketsAddNote(ctx context.Context, db DBorTx, oa *OrgAssets, userID UserID
 		return nil, fmt.Errorf("error updating ticket activity: %w", err)
 	}
 
-	err = InsertTicketEvents(ctx, db, events)
+	err = InsertLegacyTicketEvents(ctx, db, events)
 	if err != nil {
 		return nil, fmt.Errorf("error inserting ticket events: %w", err)
 	}
@@ -380,38 +380,13 @@ UPDATE tickets_ticket
  WHERE id = ANY($1)`
 
 // TicketsChangeTopic changes the topic of the passed in tickets
-func TicketsChangeTopic(ctx context.Context, db DBorTx, oa *OrgAssets, userID UserID, tickets []*Ticket, topicID TopicID) (map[*Ticket]*TicketEvent, error) {
-	ids := make([]TicketID, 0, len(tickets))
-	events := make([]*TicketEvent, 0, len(tickets))
-	eventsByTicket := make(map[*Ticket]*TicketEvent, len(tickets))
-	now := dates.Now()
-
-	for _, ticket := range tickets {
-		if ticket.TopicID() != topicID {
-			ids = append(ids, ticket.ID())
-			t := &ticket.t
-			t.TopicID = topicID
-			t.ModifiedOn = now
-			t.LastActivityOn = now
-
-			e := NewTicketTopicChangedEvent(ticket, userID, topicID)
-			events = append(events, e)
-			eventsByTicket[ticket] = e
-		}
-	}
-
-	// mark the tickets as assigned in the db
-	_, err := db.ExecContext(ctx, sqlUpdateTicketsTopic, pq.Array(ids), topicID, now)
+func TicketsChangeTopic(ctx context.Context, db DBorTx, oa *OrgAssets, userID UserID, ticketIDs []TicketID, topicID TopicID) error {
+	_, err := db.ExecContext(ctx, sqlUpdateTicketsTopic, pq.Array(ticketIDs), topicID, time.Now())
 	if err != nil {
-		return nil, fmt.Errorf("error updating tickets: %w", err)
+		return fmt.Errorf("error updating tickets topic: %w", err)
 	}
 
-	err = InsertTicketEvents(ctx, db, events)
-	if err != nil {
-		return nil, fmt.Errorf("error inserting ticket events: %w", err)
-	}
-
-	return eventsByTicket, nil
+	return nil
 }
 
 const sqlCloseTickets = `
@@ -449,7 +424,7 @@ func CloseTickets(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, userI
 		return nil, fmt.Errorf("error updating tickets: %w", err)
 	}
 
-	if err := InsertTicketEvents(ctx, rt.DB, events); err != nil {
+	if err := InsertLegacyTicketEvents(ctx, rt.DB, events); err != nil {
 		return nil, fmt.Errorf("error inserting ticket events: %w", err)
 	}
 
@@ -495,7 +470,7 @@ func ReopenTickets(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, user
 		return nil, fmt.Errorf("error updating tickets: %w", err)
 	}
 
-	err = InsertTicketEvents(ctx, rt.DB, events)
+	err = InsertLegacyTicketEvents(ctx, rt.DB, events)
 	if err != nil {
 		return nil, fmt.Errorf("error inserting ticket events: %w", err)
 	}

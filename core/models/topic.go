@@ -34,6 +34,10 @@ func (t *Topic) Name() string { return t.Name_ }
 // Type returns the type
 func (t *Topic) IsDefault() bool { return t.IsDefault_ }
 
+func (t *Topic) Reference() *assets.TopicReference {
+	return assets.NewTopicReference(t.UUID(), t.Name())
+}
+
 const sqlSelectTopicsByOrg = `
 SELECT ROW_TO_JSON(r) FROM (
       SELECT t.id as id, t.uuid as uuid, t.org_id as org_id, t.name as name, t.is_default as is_default

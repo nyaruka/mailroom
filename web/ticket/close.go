@@ -54,5 +54,5 @@ func handleClose(ctx context.Context, rt *runtime.Runtime, r *http.Request) (any
 		}
 	}
 
-	return newBulkResponse(evts), http.StatusOK, nil
+	return newLegacyBulkResponse(evts), http.StatusOK, nil
 }
