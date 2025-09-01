@@ -50,7 +50,7 @@ func (h *insertTickets) Execute(ctx context.Context, rt *runtime.Runtime, tx *sq
 	}
 
 	// and insert those too
-	if err := models.InsertTicketEvents(ctx, tx, openEvents); err != nil {
+	if err := models.InsertLegacyTicketEvents(ctx, tx, openEvents); err != nil {
 		return fmt.Errorf("error inserting ticket opened events: %w", err)
 	}
 

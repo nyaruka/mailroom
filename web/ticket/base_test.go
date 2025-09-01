@@ -42,7 +42,7 @@ func TestTicketChangeTopic(t *testing.T) {
 	testdb.InsertOpenTicket(rt, testdb.Org1, testdb.Cathy, testdb.SupportTopic, time.Now(), testdb.Agent)
 	testdb.InsertClosedTicket(rt, testdb.Org1, testdb.Cathy, testdb.SalesTopic, nil)
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/change_topic.json", testsuite.ResetNone)
+	testsuite.RunWebTests(t, ctx, rt, "testdata/change_topic.json", testsuite.ResetDynamo)
 }
 
 func TestTicketClose(t *testing.T) {

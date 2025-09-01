@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
+	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/testsuite"
 	"github.com/nyaruka/mailroom/testsuite/testdb"
@@ -47,12 +48,13 @@ func TestTicketEvents(t *testing.T) {
 	assert.Equal(t, models.TicketEventTypeReopened, e5.Type)
 	assert.Equal(t, testdb.Editor.ID, e5.CreatedByID)
 
-	e6 := models.NewTicketTopicChangedEvent(modelTicket, testdb.Agent.ID, testdb.SupportTopic.ID)
+	e6 := models.NewTicketTopicChangedEvent("019906d9-1483-75a4-8bdb-1eed30036909", modelTicket, testdb.Agent.ID, testdb.SupportTopic.ID)
+	assert.Equal(t, flows.EventUUID("019906d9-1483-75a4-8bdb-1eed30036909"), e6.UUID)
 	assert.Equal(t, models.TicketEventTypeTopicChanged, e6.Type)
 	assert.Equal(t, testdb.SupportTopic.ID, e6.TopicID)
 	assert.Equal(t, testdb.Agent.ID, e6.CreatedByID)
 
-	err := models.InsertTicketEvents(ctx, rt.DB, []*models.TicketEvent{e1, e2, e3, e4, e5})
+	err := models.InsertLegacyTicketEvents(ctx, rt.DB, []*models.TicketEvent{e1, e2, e3, e4, e5})
 	require.NoError(t, err)
 
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM tickets_ticketevent`).Returns(5)

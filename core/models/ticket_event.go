@@ -5,11 +5,10 @@ import (
 	"time"
 
 	"github.com/nyaruka/gocommon/dates"
-	"github.com/nyaruka/gocommon/uuids"
+	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/null/v3"
 )
 
-type TicketEventUUID uuids.UUID
 type TicketEventID int
 type TicketEventType string
 
@@ -23,7 +22,7 @@ const (
 )
 
 type TicketEvent struct {
-	UUID        TicketEventUUID `json:"uuid"                    db:"uuid"`
+	UUID        flows.EventUUID `json:"uuid"                    db:"uuid"`
 	ID          TicketEventID   `json:"id"                      db:"id"`
 	OrgID       OrgID           `json:"org_id"                  db:"org_id"`
 	ContactID   ContactID       `json:"contact_id"              db:"contact_id"`
@@ -37,35 +36,35 @@ type TicketEvent struct {
 }
 
 func NewTicketOpenedEvent(t *Ticket, userID UserID, assigneeID UserID, note string) *TicketEvent {
-	return newTicketEvent(t, userID, TicketEventTypeOpened, note, NilTopicID, assigneeID)
+	return newTicketEvent(flows.NewEventUUID(), t.OrgID(), t.ContactID(), t.ID(), userID, TicketEventTypeOpened, note, NilTopicID, assigneeID)
 }
 
 func NewTicketAssignedEvent(t *Ticket, userID UserID, assigneeID UserID) *TicketEvent {
-	return newTicketEvent(t, userID, TicketEventTypeAssigned, "", NilTopicID, assigneeID)
+	return newTicketEvent(flows.NewEventUUID(), t.OrgID(), t.ContactID(), t.ID(), userID, TicketEventTypeAssigned, "", NilTopicID, assigneeID)
 }
 
 func NewTicketNoteAddedEvent(t *Ticket, userID UserID, note string) *TicketEvent {
-	return newTicketEvent(t, userID, TicketEventTypeNoteAdded, note, NilTopicID, NilUserID)
+	return newTicketEvent(flows.NewEventUUID(), t.OrgID(), t.ContactID(), t.ID(), userID, TicketEventTypeNoteAdded, note, NilTopicID, NilUserID)
 }
 
-func NewTicketTopicChangedEvent(t *Ticket, userID UserID, topicID TopicID) *TicketEvent {
-	return newTicketEvent(t, userID, TicketEventTypeTopicChanged, "", topicID, NilUserID)
+func NewTicketTopicChangedEvent(uuid flows.EventUUID, t *Ticket, userID UserID, topicID TopicID) *TicketEvent {
+	return newTicketEvent(uuid, t.OrgID(), t.ContactID(), t.ID(), userID, TicketEventTypeTopicChanged, "", topicID, NilUserID)
 }
 
 func NewTicketClosedEvent(t *Ticket, userID UserID) *TicketEvent {
-	return newTicketEvent(t, userID, TicketEventTypeClosed, "", NilTopicID, NilUserID)
+	return newTicketEvent(flows.NewEventUUID(), t.OrgID(), t.ContactID(), t.ID(), userID, TicketEventTypeClosed, "", NilTopicID, NilUserID)
 }
 
 func NewTicketReopenedEvent(t *Ticket, userID UserID) *TicketEvent {
-	return newTicketEvent(t, userID, TicketEventTypeReopened, "", NilTopicID, NilUserID)
+	return newTicketEvent(flows.NewEventUUID(), t.OrgID(), t.ContactID(), t.ID(), userID, TicketEventTypeReopened, "", NilTopicID, NilUserID)
 }
 
-func newTicketEvent(t *Ticket, userID UserID, eventType TicketEventType, note string, topicID TopicID, assigneeID UserID) *TicketEvent {
+func newTicketEvent(uuid flows.EventUUID, orgID OrgID, contactID ContactID, ticketID TicketID, userID UserID, eventType TicketEventType, note string, topicID TopicID, assigneeID UserID) *TicketEvent {
 	return &TicketEvent{
-		UUID:        TicketEventUUID(uuids.NewV7()),
-		OrgID:       t.OrgID(),
-		ContactID:   t.ContactID(),
-		TicketID:    t.ID(),
+		UUID:        uuid,
+		OrgID:       orgID,
+		ContactID:   contactID,
+		TicketID:    ticketID,
 		Type:        eventType,
 		Note:        null.String(note),
 		TopicID:     topicID,
@@ -79,10 +78,8 @@ const sqlInsertTicketEvents = `
 INSERT INTO
 	tickets_ticketevent(uuid,  org_id,  contact_id,  ticket_id,  event_type,  note,  topic_id,  assignee_id,  created_on,  created_by_id)
 	            VALUES(:uuid, :org_id, :contact_id, :ticket_id, :event_type, :note, :topic_id, :assignee_id, :created_on, :created_by_id)
-RETURNING
-	id
-`
+RETURNING id`
 
-func InsertTicketEvents(ctx context.Context, db DBorTx, evts []*TicketEvent) error {
+func InsertLegacyTicketEvents(ctx context.Context, db DBorTx, evts []*TicketEvent) error {
 	return BulkQuery(ctx, "inserting ticket events", db, sqlInsertTicketEvents, evts)
 }

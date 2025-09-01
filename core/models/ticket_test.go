@@ -190,25 +190,15 @@ func TestTicketsChangeTopic(t *testing.T) {
 	require.NoError(t, err)
 
 	ticket1 := testdb.InsertClosedTicket(rt, testdb.Org1, testdb.Cathy, testdb.SalesTopic, nil)
-	modelTicket1 := ticket1.Load(rt)
-
-	ticket2 := testdb.InsertOpenTicket(rt, testdb.Org1, testdb.Cathy, testdb.SupportTopic, time.Now(), nil)
-	modelTicket2 := ticket2.Load(rt)
-
-	ticket3 := testdb.InsertOpenTicket(rt, testdb.Org1, testdb.Cathy, testdb.DefaultTopic, time.Now(), nil)
-	modelTicket3 := ticket3.Load(rt)
-
+	ticket2 := testdb.InsertOpenTicket(rt, testdb.Org1, testdb.Cathy, testdb.SalesTopic, time.Now(), nil)
 	testdb.InsertOpenTicket(rt, testdb.Org1, testdb.Cathy, testdb.DefaultTopic, time.Now(), nil)
 
-	evts, err := models.TicketsChangeTopic(ctx, rt.DB, oa, testdb.Admin.ID, []*models.Ticket{modelTicket1, modelTicket2, modelTicket3}, testdb.SupportTopic.ID)
-	require.NoError(t, err)
-	assert.Equal(t, 2, len(evts)) // ticket 2 not included as already has that topic
-	assert.Equal(t, models.TicketEventTypeTopicChanged, evts[modelTicket1].Type)
-	assert.Equal(t, models.TicketEventTypeTopicChanged, evts[modelTicket3].Type)
+	err = models.TicketsChangeTopic(ctx, rt.DB, oa, testdb.Admin.ID, []models.TicketID{ticket1.ID, ticket2.ID}, testdb.SupportTopic.ID)
+	assert.NoError(t, err)
 
-	// check tickets are updated and we have events
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM tickets_ticket WHERE topic_id = $1`, testdb.SupportTopic.ID).Returns(3)
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM tickets_ticketevent WHERE event_type = 'T' AND topic_id = $1`, testdb.SupportTopic.ID).Returns(2)
+	// check tickets 1 and 2 are updated and that we have events
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM tickets_ticket WHERE topic_id = $1`, testdb.SupportTopic.ID).Returns(2)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM tickets_ticket WHERE topic_id = $1`, testdb.DefaultTopic.ID).Returns(1)
 }
 
 func TestCloseTickets(t *testing.T) {

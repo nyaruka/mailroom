@@ -65,7 +65,7 @@ func handleReopen(ctx context.Context, rt *runtime.Runtime, r *http.Request) (an
 		remaining = skipped
 	}
 
-	return newBulkResponse(results), http.StatusOK, nil
+	return newLegacyBulkResponse(results), http.StatusOK, nil
 }
 
 func tryToLockAndReopen(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, tickets map[models.ContactID]*models.Ticket, userID models.UserID) (map[*models.Ticket]*models.TicketEvent, map[models.ContactID]*models.Ticket, error) {

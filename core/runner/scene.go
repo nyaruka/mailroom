@@ -24,6 +24,7 @@ type Scene struct {
 	Call        *flows.Call
 	StartID     models.StartID
 	IncomingMsg *models.MsgInRef
+	Tickets     []*models.Ticket
 
 	// optional state set during processing
 	DBSession           *models.Session
@@ -70,6 +71,15 @@ func (s *Scene) SprintUUID() flows.SprintUUID {
 		return ""
 	}
 	return s.Sprint.UUID()
+}
+
+func (s *Scene) FindTicket(uuid flows.TicketUUID) *models.Ticket {
+	for _, t := range s.Tickets {
+		if t.UUID() == uuid {
+			return t
+		}
+	}
+	return nil
 }
 
 // LocateEvent finds the flow and node UUID for an event belonging to this session
@@ -230,7 +240,8 @@ func (s *Scene) Commit(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 	return BulkCommit(ctx, rt, oa, []*Scene{s})
 }
 
-func createScenes(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contactIDs []models.ContactID) ([]*Scene, error) {
+// CreateScenes creates scenes for the given contact ids
+func CreateScenes(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contactIDs []models.ContactID) ([]*Scene, error) {
 	mcs, err := models.LoadContacts(ctx, rt.ReadonlyDB, oa, contactIDs)
 	if err != nil {
 		return nil, fmt.Errorf("error loading contacts for new scenes: %w", err)
