@@ -40,6 +40,10 @@
             {
                 "query": "SELECT count(*) FROM tickets_ticketevent WHERE event_type = 'N' AND created_by_id = 2 AND note = 'please handle'",
                 "count": 2
+            },
+            {
+                "query": "SELECT count(*) FROM notifications_notification",
+                "count": 1
             }
         ]
     }
