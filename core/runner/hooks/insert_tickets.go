@@ -5,14 +5,15 @@ import (
 	"fmt"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/runner"
 	"github.com/nyaruka/mailroom/runtime"
 )
 
 type TicketAndNote struct {
+	Event  *events.TicketOpened
 	Ticket *models.Ticket
-	Note   string
 }
 
 // InsertTickets is our hook for inserting tickets
@@ -25,13 +26,13 @@ func (h *insertTickets) Order() int { return 10 }
 func (h *insertTickets) Execute(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *models.OrgAssets, scenes map[*runner.Scene][]any) error {
 	// gather all our tickets and notes
 	tickets := make([]*models.Ticket, 0, len(scenes))
-	notes := make(map[*models.Ticket]string, len(scenes))
+	events := make(map[*models.Ticket]*events.TicketOpened, len(scenes))
 
 	for _, ts := range scenes {
 		for _, t := range ts {
 			open := t.(TicketAndNote)
 			tickets = append(tickets, open.Ticket)
-			notes[open.Ticket] = open.Note
+			events[open.Ticket] = open.Event
 		}
 	}
 
@@ -40,17 +41,18 @@ func (h *insertTickets) Execute(ctx context.Context, rt *runtime.Runtime, tx *sq
 		return fmt.Errorf("error inserting tickets: %w", err)
 	}
 
-	// generate opened events for each ticket
-	openEvents := make([]*models.TicketEvent, len(tickets))
+	// generate legacy opened events for each ticket
+	legacyEvents := make([]*models.TicketEvent, len(tickets))
 	eventsByTicket := make(map[*models.Ticket]*models.TicketEvent, len(tickets))
 	for i, ticket := range tickets {
-		evt := models.NewTicketOpenedEvent(ticket, ticket.OpenedByID(), ticket.AssigneeID(), notes[ticket])
-		openEvents[i] = evt
+		event := events[ticket]
+		evt := models.NewTicketOpenedEvent(event.UUID(), ticket, ticket.OpenedByID(), ticket.AssigneeID(), event.Note)
+		legacyEvents[i] = evt
 		eventsByTicket[ticket] = evt
 	}
 
 	// and insert those too
-	if err := models.InsertLegacyTicketEvents(ctx, tx, openEvents); err != nil {
+	if err := models.InsertLegacyTicketEvents(ctx, tx, legacyEvents); err != nil {
 		return fmt.Errorf("error inserting ticket opened events: %w", err)
 	}
 

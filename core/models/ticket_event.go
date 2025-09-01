@@ -35,28 +35,28 @@ type TicketEvent struct {
 	CreatedOn   time.Time       `json:"created_on"              db:"created_on"`
 }
 
-func NewTicketOpenedEvent(t *Ticket, userID UserID, assigneeID UserID, note string) *TicketEvent {
-	return newTicketEvent(flows.NewEventUUID(), t.OrgID(), t.ContactID(), t.ID(), userID, TicketEventTypeOpened, note, NilTopicID, assigneeID)
+func NewTicketOpenedEvent(uuid flows.EventUUID, t *Ticket, userID UserID, assigneeID UserID, note string) *TicketEvent {
+	return newTicketEvent(uuid, t.OrgID(), t.ContactID(), t.ID(), userID, TicketEventTypeOpened, note, NilTopicID, assigneeID)
 }
 
-func NewTicketAssignedEvent(t *Ticket, userID UserID, assigneeID UserID) *TicketEvent {
-	return newTicketEvent(flows.NewEventUUID(), t.OrgID(), t.ContactID(), t.ID(), userID, TicketEventTypeAssigned, "", NilTopicID, assigneeID)
+func NewTicketAssignedEvent(uuid flows.EventUUID, t *Ticket, userID UserID, assigneeID UserID) *TicketEvent {
+	return newTicketEvent(uuid, t.OrgID(), t.ContactID(), t.ID(), userID, TicketEventTypeAssigned, "", NilTopicID, assigneeID)
 }
 
-func NewTicketNoteAddedEvent(t *Ticket, userID UserID, note string) *TicketEvent {
-	return newTicketEvent(flows.NewEventUUID(), t.OrgID(), t.ContactID(), t.ID(), userID, TicketEventTypeNoteAdded, note, NilTopicID, NilUserID)
+func NewTicketNoteAddedEvent(uuid flows.EventUUID, t *Ticket, userID UserID, note string) *TicketEvent {
+	return newTicketEvent(uuid, t.OrgID(), t.ContactID(), t.ID(), userID, TicketEventTypeNoteAdded, note, NilTopicID, NilUserID)
 }
 
 func NewTicketTopicChangedEvent(uuid flows.EventUUID, t *Ticket, userID UserID, topicID TopicID) *TicketEvent {
 	return newTicketEvent(uuid, t.OrgID(), t.ContactID(), t.ID(), userID, TicketEventTypeTopicChanged, "", topicID, NilUserID)
 }
 
-func NewTicketClosedEvent(t *Ticket, userID UserID) *TicketEvent {
-	return newTicketEvent(flows.NewEventUUID(), t.OrgID(), t.ContactID(), t.ID(), userID, TicketEventTypeClosed, "", NilTopicID, NilUserID)
+func NewTicketClosedEvent(uuid flows.EventUUID, t *Ticket, userID UserID) *TicketEvent {
+	return newTicketEvent(uuid, t.OrgID(), t.ContactID(), t.ID(), userID, TicketEventTypeClosed, "", NilTopicID, NilUserID)
 }
 
-func NewTicketReopenedEvent(t *Ticket, userID UserID) *TicketEvent {
-	return newTicketEvent(flows.NewEventUUID(), t.OrgID(), t.ContactID(), t.ID(), userID, TicketEventTypeReopened, "", NilTopicID, NilUserID)
+func NewTicketReopenedEvent(uuid flows.EventUUID, t *Ticket, userID UserID) *TicketEvent {
+	return newTicketEvent(uuid, t.OrgID(), t.ContactID(), t.ID(), userID, TicketEventTypeReopened, "", NilTopicID, NilUserID)
 }
 
 func newTicketEvent(uuid flows.EventUUID, orgID OrgID, contactID ContactID, ticketID TicketID, userID UserID, eventType TicketEventType, note string, topicID TopicID, assigneeID UserID) *TicketEvent {

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/mailroom/testsuite"
@@ -169,7 +170,7 @@ func openTicket(t *testing.T, ctx context.Context, rt *runtime.Runtime, openedBy
 	ticket := testdb.InsertOpenTicket(rt, testdb.Org1, testdb.Cathy, testdb.SupportTopic, time.Now(), assignee)
 	modelTicket := ticket.Load(rt)
 
-	openedEvent := models.NewTicketOpenedEvent(modelTicket, openedBy.SafeID(), assignee.SafeID(), "")
+	openedEvent := models.NewTicketOpenedEvent(flows.NewEventUUID(), modelTicket, openedBy.SafeID(), assignee.SafeID(), "")
 	err := models.InsertLegacyTicketEvents(ctx, rt.DB, []*models.TicketEvent{openedEvent})
 	require.NoError(t, err)
 

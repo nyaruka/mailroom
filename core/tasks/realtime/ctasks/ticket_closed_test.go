@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
+	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/core/models"
 	_ "github.com/nyaruka/mailroom/core/runner/handlers"
 	"github.com/nyaruka/mailroom/core/tasks"
@@ -27,7 +28,7 @@ func TestTicketClosed(t *testing.T) {
 	ticket := testdb.InsertClosedTicket(rt, testdb.Org1, testdb.Cathy, testdb.DefaultTopic, nil)
 	modelTicket := ticket.Load(rt)
 
-	models.NewTicketClosedEvent(modelTicket, testdb.Admin.ID)
+	models.NewTicketClosedEvent(flows.NewEventUUID(), modelTicket, testdb.Admin.ID)
 
 	err := realtime.QueueTask(ctx, rt, testdb.Org1.ID, testdb.Cathy.ID, ctasks.NewTicketClosed(modelTicket.ID()))
 	require.NoError(t, err)

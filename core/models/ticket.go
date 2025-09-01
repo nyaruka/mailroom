@@ -318,7 +318,7 @@ func TicketsAssign(ctx context.Context, db DBorTx, oa *OrgAssets, userID UserID,
 			t.ModifiedOn = now
 			t.LastActivityOn = now
 
-			e := NewTicketAssignedEvent(ticket, userID, assigneeID)
+			e := NewTicketAssignedEvent(flows.NewEventUUID(), ticket, userID, assigneeID)
 			events = append(events, e)
 			eventsByTicket[ticket] = e
 		}
@@ -351,7 +351,7 @@ func TicketsAddNote(ctx context.Context, db DBorTx, oa *OrgAssets, userID UserID
 	eventsByTicket := make(map[*Ticket]*TicketEvent, len(tickets))
 
 	for _, ticket := range tickets {
-		e := NewTicketNoteAddedEvent(ticket, userID, note)
+		e := NewTicketNoteAddedEvent(flows.NewEventUUID(), ticket, userID, note)
 		events = append(events, e)
 		eventsByTicket[ticket] = e
 	}
@@ -411,7 +411,7 @@ func CloseTickets(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, userI
 			t.ClosedOn = &now
 			t.LastActivityOn = now
 
-			e := NewTicketClosedEvent(ticket, userID)
+			e := NewTicketClosedEvent(flows.NewEventUUID(), ticket, userID)
 			events = append(events, e)
 			eventsByTicket[ticket] = e
 			contactIDs[ticket.ContactID()] = true
@@ -457,7 +457,7 @@ func ReopenTickets(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, user
 			t.ClosedOn = nil
 			t.LastActivityOn = now
 
-			e := NewTicketReopenedEvent(ticket, userID)
+			e := NewTicketReopenedEvent(flows.NewEventUUID(), ticket, userID)
 			events = append(events, e)
 			eventsByTicket[ticket] = e
 			contactIDs[ticket.ContactID()] = true
