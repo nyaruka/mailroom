@@ -2,6 +2,7 @@ package hooks
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/nyaruka/mailroom/core/models"
@@ -25,7 +26,7 @@ func (h *insertLegacyTicketEvents) Execute(ctx context.Context, rt *runtime.Runt
 	}
 
 	if err := models.InsertLegacyTicketEvents(ctx, tx, events); err != nil {
-		return err
+		return fmt.Errorf("error inserting legacy ticket events: %w", err)
 	}
 
 	return nil

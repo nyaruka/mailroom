@@ -334,41 +334,12 @@ func TicketsAssign(ctx context.Context, db DBorTx, oa *OrgAssets, userID UserID,
 		return nil, fmt.Errorf("error inserting ticket events: %w", err)
 	}
 
-	if err := NotificationsFromTicketEvents(ctx, db, oa, eventsByTicket); err != nil {
+	if err := NotificationsFromTicketEvents(ctx, db, oa, events); err != nil {
 		return nil, fmt.Errorf("error inserting notifications: %w", err)
 	}
 
 	if err := InsertDailyCounts(ctx, db, oa, dates.Now(), dailyCounts); err != nil {
 		return nil, fmt.Errorf("error inserting daily counts: %w", err)
-	}
-
-	return eventsByTicket, nil
-}
-
-// TicketsAddNote adds a note to the passed in tickets
-func TicketsAddNote(ctx context.Context, db DBorTx, oa *OrgAssets, userID UserID, tickets []*Ticket, note string) (map[*Ticket]*TicketEvent, error) {
-	events := make([]*TicketEvent, 0, len(tickets))
-	eventsByTicket := make(map[*Ticket]*TicketEvent, len(tickets))
-
-	for _, ticket := range tickets {
-		e := NewTicketNoteAddedEvent(flows.NewEventUUID(), ticket, userID, note)
-		events = append(events, e)
-		eventsByTicket[ticket] = e
-	}
-
-	err := UpdateTicketLastActivity(ctx, db, tickets)
-	if err != nil {
-		return nil, fmt.Errorf("error updating ticket activity: %w", err)
-	}
-
-	err = InsertLegacyTicketEvents(ctx, db, events)
-	if err != nil {
-		return nil, fmt.Errorf("error inserting ticket events: %w", err)
-	}
-
-	err = NotificationsFromTicketEvents(ctx, db, oa, eventsByTicket)
-	if err != nil {
-		return nil, fmt.Errorf("error inserting notifications: %w", err)
 	}
 
 	return eventsByTicket, nil
