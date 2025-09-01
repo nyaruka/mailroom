@@ -28,7 +28,10 @@ func handleTicketTopicChanged(ctx context.Context, rt *runtime.Runtime, oa *mode
 	}
 
 	scene.AttachPreCommitHook(hooks.UpdateTicketTopic, hooks.TicketTopicUpdate{Ticket: ticket, Topic: topic, UserID: userID})
-	scene.AttachPreCommitHook(hooks.InsertLegacyTicketEvents, models.NewTicketTopicChangedEvent(event.UUID(), ticket, userID, topic.ID()))
+	scene.AttachPreCommitHook(hooks.InsertLegacyTicketEvents, hooks.TicketAndEvent{
+		Ticket: ticket,
+		Event:  models.NewTicketTopicChangedEvent(event.UUID(), ticket, userID, topic.ID()),
+	})
 
 	return nil
 }

@@ -30,7 +30,7 @@ func TestTicketAddNote(t *testing.T) {
 	testdb.InsertOpenTicket(rt, testdb.Org1, testdb.Cathy, testdb.DefaultTopic, time.Now(), testdb.Agent)
 	testdb.InsertClosedTicket(rt, testdb.Org1, testdb.Cathy, testdb.DefaultTopic, nil)
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/add_note.json", testsuite.ResetNone)
+	testsuite.RunWebTests(t, ctx, rt, "testdata/add_note.json", testsuite.ResetDynamo)
 }
 
 func TestTicketChangeTopic(t *testing.T) {

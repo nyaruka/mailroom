@@ -345,35 +345,6 @@ func TicketsAssign(ctx context.Context, db DBorTx, oa *OrgAssets, userID UserID,
 	return eventsByTicket, nil
 }
 
-// TicketsAddNote adds a note to the passed in tickets
-func TicketsAddNote(ctx context.Context, db DBorTx, oa *OrgAssets, userID UserID, tickets []*Ticket, note string) (map[*Ticket]*TicketEvent, error) {
-	events := make([]*TicketEvent, 0, len(tickets))
-	eventsByTicket := make(map[*Ticket]*TicketEvent, len(tickets))
-
-	for _, ticket := range tickets {
-		e := NewTicketNoteAddedEvent(flows.NewEventUUID(), ticket, userID, note)
-		events = append(events, e)
-		eventsByTicket[ticket] = e
-	}
-
-	err := UpdateTicketLastActivity(ctx, db, tickets)
-	if err != nil {
-		return nil, fmt.Errorf("error updating ticket activity: %w", err)
-	}
-
-	err = InsertLegacyTicketEvents(ctx, db, events)
-	if err != nil {
-		return nil, fmt.Errorf("error inserting ticket events: %w", err)
-	}
-
-	err = NotificationsFromTicketEvents(ctx, db, oa, eventsByTicket)
-	if err != nil {
-		return nil, fmt.Errorf("error inserting notifications: %w", err)
-	}
-
-	return eventsByTicket, nil
-}
-
 const sqlUpdateTicketsTopic = `
 UPDATE tickets_ticket
    SET topic_id = $2, modified_on = $3, last_activity_on = $3

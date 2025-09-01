@@ -153,34 +153,6 @@ func TestTicketsAssign(t *testing.T) {
 	testsuite.AssertDailyCounts(t, rt, testdb.Org2, map[string]int{})
 }
 
-func TestTicketsAddNote(t *testing.T) {
-	ctx, rt := testsuite.Runtime(t)
-
-	defer testsuite.Reset(t, rt, testsuite.ResetData)
-
-	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
-	require.NoError(t, err)
-
-	ticket1 := testdb.InsertClosedTicket(rt, testdb.Org1, testdb.Cathy, testdb.DefaultTopic, nil)
-	modelTicket1 := ticket1.Load(rt)
-
-	ticket2 := testdb.InsertOpenTicket(rt, testdb.Org1, testdb.Cathy, testdb.DefaultTopic, time.Now(), testdb.Agent)
-	modelTicket2 := ticket2.Load(rt)
-
-	testdb.InsertOpenTicket(rt, testdb.Org1, testdb.Cathy, testdb.DefaultTopic, time.Now(), nil)
-
-	evts, err := models.TicketsAddNote(ctx, rt.DB, oa, testdb.Admin.ID, []*models.Ticket{modelTicket1, modelTicket2}, "spam")
-	require.NoError(t, err)
-	assert.Equal(t, 2, len(evts))
-	assert.Equal(t, models.TicketEventTypeNoteAdded, evts[modelTicket1].Type)
-	assert.Equal(t, models.TicketEventTypeNoteAdded, evts[modelTicket2].Type)
-
-	// check there are new note events
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM tickets_ticketevent WHERE event_type = 'N' AND note = 'spam'`).Returns(2)
-
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM notifications_notification WHERE user_id = $1 AND notification_type = 'tickets:activity'`, testdb.Agent.ID).Returns(1)
-}
-
 func TestTicketsChangeTopic(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
