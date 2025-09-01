@@ -59,5 +59,17 @@ func handleTicketOpened(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 
 	scene.AttachPreCommitHook(hooks.InsertTickets, hooks.TicketAndNote{Event: event, Ticket: ticket})
 
+	if assigneeID == models.NilUserID {
+		// ticket is unassigned so notify all possible assignees except the user who opened the ticket
+		for _, user := range models.GetTicketAssignableUsers(oa) {
+			if userID != user.ID() {
+				scene.AttachPreCommitHook(hooks.InsertNotifications, models.NewTicketsOpenedNotification(oa.OrgID(), user.ID()))
+			}
+		}
+	} else if assigneeID != userID {
+		// ticket is assigned so just notify the assignee if they didn't self-assign
+		scene.AttachPreCommitHook(hooks.InsertNotifications, models.NewTicketActivityNotification(oa.OrgID(), assigneeID))
+	}
+
 	return nil
 }

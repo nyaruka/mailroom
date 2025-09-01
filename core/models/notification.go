@@ -3,6 +3,7 @@ package models
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strconv"
 	"time"
 
@@ -85,28 +86,18 @@ func NotifyIncidentStarted(ctx context.Context, db DBorTx, oa *OrgAssets, incide
 	return InsertNotifications(ctx, db, notifications)
 }
 
-var ticketAssignableToles = []UserRole{UserRoleAdministrator, UserRoleEditor, UserRoleAgent}
+var ticketAssignableRoles = []UserRole{UserRoleAdministrator, UserRoleEditor, UserRoleAgent}
+
+func GetTicketAssignableUsers(oa *OrgAssets) []*User {
+	return usersWithRoles(oa, ticketAssignableRoles)
+}
 
 // NotificationsFromTicketEvents logs the opening of new tickets and notifies all assignable users if tickets is not already assigned
 func NotificationsFromTicketEvents(ctx context.Context, db DBorTx, oa *OrgAssets, events []*TicketEvent) error {
-	notifyTicketsOpened := make(map[UserID]bool)
 	notifyTicketsActivity := make(map[UserID]bool)
-
-	assignableUsers := usersWithRoles(oa, ticketAssignableToles)
 
 	for _, evt := range events {
 		switch evt.Type {
-		case TicketEventTypeOpened:
-			// if ticket is unassigned notify all possible assignees
-			if evt.AssigneeID == NilUserID {
-				for _, user := range assignableUsers {
-					if evt.CreatedByID != user.ID() {
-						notifyTicketsOpened[user.ID()] = true
-					}
-				}
-			} else if evt.AssigneeID != evt.CreatedByID {
-				notifyTicketsActivity[evt.AssigneeID] = true
-			}
 		case TicketEventTypeAssigned:
 			// notify new ticket assignee if they didn't self-assign
 			if evt.AssigneeID != NilUserID && evt.AssigneeID != evt.CreatedByID {
@@ -117,22 +108,22 @@ func NotificationsFromTicketEvents(ctx context.Context, db DBorTx, oa *OrgAssets
 
 	notifications := make([]*Notification, 0, len(events))
 
-	for userID := range notifyTicketsOpened {
-		notifications = append(notifications, &Notification{
-			OrgID:       oa.OrgID(),
-			Type:        NotificationTypeTicketsOpened,
-			Scope:       "",
-			UserID:      userID,
-			Medium:      MediumUI,
-			EmailStatus: EmailStatusNone,
-		})
-	}
-
 	for userID := range notifyTicketsActivity {
 		notifications = append(notifications, NewTicketActivityNotification(oa.OrgID(), userID))
 	}
 
 	return InsertNotifications(ctx, db, notifications)
+}
+
+func NewTicketsOpenedNotification(orgID OrgID, userID UserID) *Notification {
+	return &Notification{
+		OrgID:       orgID,
+		Type:        NotificationTypeTicketsOpened,
+		Scope:       "",
+		UserID:      userID,
+		Medium:      MediumUI,
+		EmailStatus: EmailStatusNone,
+	}
 }
 
 func NewTicketActivityNotification(orgID OrgID, userID UserID) *Notification {
@@ -170,10 +161,5 @@ func usersWithRoles(oa *OrgAssets, roles []UserRole) []*User {
 }
 
 func hasAnyRole(user *User, roles []UserRole) bool {
-	for _, r := range roles {
-		if user.Role() == r {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(roles, user.Role())
 }

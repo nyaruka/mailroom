@@ -53,10 +53,5 @@ func (h *insertTickets) Execute(ctx context.Context, rt *runtime.Runtime, tx *sq
 		return fmt.Errorf("error inserting ticket opened events: %w", err)
 	}
 
-	// and insert logs/notifications for those
-	if err := models.NotificationsFromTicketEvents(ctx, tx, oa, legacyEvents); err != nil {
-		return fmt.Errorf("error inserting notifications: %w", err)
-	}
-
 	return nil
 }
