@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/runner"
@@ -37,12 +36,7 @@ func handleAssign(ctx context.Context, rt *runtime.Runtime, r *assignRequest) (a
 		return nil, 0, fmt.Errorf("unable to load org assets: %w", err)
 	}
 
-	var assigneeRef *assets.UserReference // nil means unassigned
-	if r.AssigneeID != models.NilUserID {
-		if assignee := oa.UserByID(r.AssigneeID); assignee != nil {
-			assigneeRef = assignee.Reference()
-		}
-	}
+	newAssignee := getOrgUser(oa, r.AssigneeID)
 
 	scenes, err := createTicketScenes(ctx, rt, oa, r.TicketIDs)
 	if err != nil {
@@ -54,7 +48,11 @@ func handleAssign(ctx context.Context, rt *runtime.Runtime, r *assignRequest) (a
 	for _, scene := range scenes {
 		for _, ticket := range scene.Tickets {
 			if ticket.AssigneeID != r.AssigneeID {
-				if err := scene.AddEvent(ctx, rt, oa, events.NewTicketAssigneeChanged(ticket.UUID, assigneeRef), r.UserID); err != nil {
+				prevAssignee := getOrgUser(oa, ticket.AssigneeID)
+				ticket.AssigneeID = r.AssigneeID
+				evt := events.NewTicketAssigneeChanged(ticket.UUID, newAssignee.Reference(), prevAssignee.Reference())
+
+				if err := scene.AddEvent(ctx, rt, oa, evt, r.UserID); err != nil {
 					return nil, 0, fmt.Errorf("error adding assignee change event to scene: %w", err)
 				}
 
@@ -68,4 +66,11 @@ func handleAssign(ctx context.Context, rt *runtime.Runtime, r *assignRequest) (a
 	}
 
 	return newBulkResponse(changed), http.StatusOK, nil
+}
+
+func getOrgUser(oa *models.OrgAssets, id models.UserID) *models.User {
+	if id != models.NilUserID {
+		return oa.UserByID(id)
+	}
+	return nil
 }

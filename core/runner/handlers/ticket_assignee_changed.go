@@ -36,7 +36,7 @@ func handleTicketAssigneeChanged(ctx context.Context, rt *runtime.Runtime, oa *m
 		}
 	}
 
-	scene.AttachPreCommitHook(hooks.UpdateTicketTopic, hooks.TicketAssigneeUpdate{Ticket: ticket, AssigneeID: assigneeID, UserID: userID})
+	scene.AttachPreCommitHook(hooks.UpdateTicketAssignee, hooks.TicketAssigneeUpdate{Ticket: ticket, AssigneeID: assigneeID, UserID: userID})
 	scene.AttachPreCommitHook(hooks.InsertLegacyTicketEvents, models.NewTicketAssignedEvent(event.UUID(), ticket, userID, assigneeID))
 
 	// notify ticket assignee if they didn't self-assign
@@ -45,7 +45,7 @@ func handleTicketAssigneeChanged(ctx context.Context, rt *runtime.Runtime, oa *m
 	}
 
 	// if this is an initial assignment record count for user
-	if ticket.AssigneeID == models.NilUserID && assignee != nil {
+	if event.Previous == nil && assignee != nil {
 		teamID := models.NilTeamID
 		if assignee.Team() != nil {
 			teamID = assignee.Team().ID

@@ -45,7 +45,9 @@ func handleAddNote(ctx context.Context, rt *runtime.Runtime, r *addNoteRequest) 
 
 	for _, scene := range scenes {
 		for _, ticket := range scene.Tickets {
-			if err := scene.AddEvent(ctx, rt, oa, events.NewTicketNoteAdded(ticket.UUID, r.Note), r.UserID); err != nil {
+			evt := events.NewTicketNoteAdded(ticket.UUID, r.Note)
+
+			if err := scene.AddEvent(ctx, rt, oa, evt, r.UserID); err != nil {
 				return nil, 0, fmt.Errorf("error adding note added event to scene: %w", err)
 			}
 
