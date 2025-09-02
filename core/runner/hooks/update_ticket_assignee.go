@@ -33,7 +33,7 @@ func (h *updateTicketAssignee) Execute(ctx context.Context, rt *runtime.Runtime,
 
 	for assigneeAndUser, ticketIDs := range byChange {
 		if err := models.TicketsChangeAssignee(ctx, tx, oa, assigneeAndUser.userID, ticketIDs, assigneeAndUser.assigneeID); err != nil {
-			return fmt.Errorf("error changing ticket topics: %w", err)
+			return fmt.Errorf("error changing ticket assignees: %w", err)
 		}
 	}
 
