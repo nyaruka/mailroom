@@ -632,7 +632,7 @@ func MarkMessageHandled(ctx context.Context, tx DBorTx, msgID MsgID, status MsgS
 
 	ticketID := NilTicketID
 	if ticket != nil {
-		ticketID = ticket.ID()
+		ticketID = ticket.ID
 	}
 
 	_, err := tx.ExecContext(ctx,

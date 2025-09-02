@@ -30,7 +30,7 @@ func TestTicketClosed(t *testing.T) {
 
 	models.NewTicketClosedEvent(flows.NewEventUUID(), modelTicket, testdb.Admin.ID)
 
-	err := realtime.QueueTask(ctx, rt, testdb.Org1.ID, testdb.Cathy.ID, ctasks.NewTicketClosed(modelTicket.ID()))
+	err := realtime.QueueTask(ctx, rt, testdb.Org1.ID, testdb.Cathy.ID, ctasks.NewTicketClosed(modelTicket.ID))
 	require.NoError(t, err)
 
 	task, err := rt.Queues.Realtime.Pop(ctx, vc)

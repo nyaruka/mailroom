@@ -30,8 +30,8 @@ func handleTicketNoteAdded(ctx context.Context, rt *runtime.Runtime, oa *models.
 	scene.AttachPreCommitHook(hooks.InsertLegacyTicketEvents, models.NewTicketNoteAddedEvent(event.UUID(), ticket, userID, event.Note))
 
 	// notify ticket assignee if they didn't add note themselves
-	if ticket.AssigneeID() != models.NilUserID && ticket.AssigneeID() != userID {
-		scene.AttachPreCommitHook(hooks.InsertNotifications, models.NewTicketActivityNotification(oa.OrgID(), ticket.AssigneeID()))
+	if ticket.AssigneeID != models.NilUserID && ticket.AssigneeID != userID {
+		scene.AttachPreCommitHook(hooks.InsertNotifications, models.NewTicketActivityNotification(oa.OrgID(), ticket.AssigneeID))
 	}
 
 	return nil

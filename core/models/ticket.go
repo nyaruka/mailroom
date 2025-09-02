@@ -34,67 +34,54 @@ const (
 )
 
 type Ticket struct {
-	t struct {
-		ID             TicketID         `db:"id"`
-		UUID           flows.TicketUUID `db:"uuid"`
-		OrgID          OrgID            `db:"org_id"`
-		ContactID      ContactID        `db:"contact_id"`
-		Status         TicketStatus     `db:"status"`
-		TopicID        TopicID          `db:"topic_id"`
-		AssigneeID     UserID           `db:"assignee_id"`
-		OpenedOn       time.Time        `db:"opened_on"`
-		OpenedByID     UserID           `db:"opened_by_id"`
-		OpenedInID     FlowID           `db:"opened_in_id"`
-		RepliedOn      *time.Time       `db:"replied_on"`
-		ModifiedOn     time.Time        `db:"modified_on"`
-		ClosedOn       *time.Time       `db:"closed_on"`
-		LastActivityOn time.Time        `db:"last_activity_on"`
-	}
+	ID             TicketID         `db:"id"`
+	UUID           flows.TicketUUID `db:"uuid"`
+	OrgID          OrgID            `db:"org_id"`
+	ContactID      ContactID        `db:"contact_id"`
+	Status         TicketStatus     `db:"status"`
+	TopicID        TopicID          `db:"topic_id"`
+	AssigneeID     UserID           `db:"assignee_id"`
+	OpenedOn       time.Time        `db:"opened_on"`
+	OpenedByID     UserID           `db:"opened_by_id"`
+	OpenedInID     FlowID           `db:"opened_in_id"`
+	RepliedOn      *time.Time       `db:"replied_on"`
+	ModifiedOn     time.Time        `db:"modified_on"`
+	ClosedOn       *time.Time       `db:"closed_on"`
+	LastActivityOn time.Time        `db:"last_activity_on"`
 }
 
 // NewTicket creates a new open ticket
 func NewTicket(uuid flows.TicketUUID, orgID OrgID, userID UserID, flowID FlowID, contactID ContactID, topicID TopicID, assigneeID UserID) *Ticket {
-	t := &Ticket{}
-	t.t.UUID = uuid
-	t.t.OrgID = orgID
-	t.t.OpenedByID = userID
-	t.t.OpenedInID = flowID
-	t.t.ContactID = contactID
-	t.t.Status = TicketStatusOpen
-	t.t.TopicID = topicID
-	t.t.AssigneeID = assigneeID
-	return t
+	return &Ticket{
+		UUID:       uuid,
+		OrgID:      orgID,
+		OpenedByID: userID,
+		OpenedInID: flowID,
+		ContactID:  contactID,
+		Status:     TicketStatusOpen,
+		TopicID:    topicID,
+		AssigneeID: assigneeID,
+	}
 }
-
-func (t *Ticket) ID() TicketID              { return t.t.ID }
-func (t *Ticket) UUID() flows.TicketUUID    { return t.t.UUID }
-func (t *Ticket) OrgID() OrgID              { return t.t.OrgID }
-func (t *Ticket) ContactID() ContactID      { return t.t.ContactID }
-func (t *Ticket) Status() TicketStatus      { return t.t.Status }
-func (t *Ticket) TopicID() TopicID          { return t.t.TopicID }
-func (t *Ticket) AssigneeID() UserID        { return t.t.AssigneeID }
-func (t *Ticket) RepliedOn() *time.Time     { return t.t.RepliedOn }
-func (t *Ticket) LastActivityOn() time.Time { return t.t.LastActivityOn }
-func (t *Ticket) OpenedByID() UserID        { return t.t.OpenedByID }
 
 func (t *Ticket) FlowTicket(oa *OrgAssets) *flows.Ticket {
 	var topic *flows.Topic
-	if t.TopicID() != NilTopicID {
-		dbTopic := oa.TopicByID(t.TopicID())
+	if t.TopicID != NilTopicID {
+		dbTopic := oa.TopicByID(t.TopicID)
 		if dbTopic != nil {
 			topic = oa.SessionAssets().Topics().Get(dbTopic.UUID())
 		}
 	}
 
 	var assignee *flows.User
-	if t.AssigneeID() != NilUserID {
-		user := oa.UserByID(t.AssigneeID())
+	if t.AssigneeID != NilUserID {
+		user := oa.UserByID(t.AssigneeID)
 		if user != nil {
 			assignee = oa.SessionAssets().Users().Get(user.UUID())
 		}
 	}
 
-	return flows.NewTicket(t.UUID(), topic, assignee)
+	return flows.NewTicket(t.UUID, topic, assignee)
 }
 
 const sqlSelectLastOpenTicket = `
@@ -164,12 +151,11 @@ func loadTickets(ctx context.Context, db *sqlx.DB, query string, params ...any) 
 
 	tickets := make([]*Ticket, 0, 2)
 	for rows.Next() {
-		ticket := &Ticket{}
-		err = rows.StructScan(&ticket.t)
-		if err != nil {
+		t := &Ticket{}
+		if err := rows.StructScan(t); err != nil {
 			return nil, fmt.Errorf("error unmarshalling ticket: %w", err)
 		}
-		tickets = append(tickets, ticket)
+		tickets = append(tickets, t)
 	}
 
 	return tickets, nil
@@ -212,22 +198,19 @@ func lookupTicket(ctx context.Context, db *sqlx.DB, query string, params ...any)
 		return nil, nil
 	}
 
-	ticket := &Ticket{}
-	err = rows.StructScan(&ticket.t)
-	if err != nil {
+	t := &Ticket{}
+	if err := rows.StructScan(t); err != nil {
 		return nil, err
 	}
 
-	return ticket, nil
+	return t, nil
 }
 
 const sqlInsertTicket = `
 INSERT INTO 
   tickets_ticket(uuid,  org_id,  contact_id,  status,  topic_id,  assignee_id,  opened_on, opened_by_id,  opened_in_id,  modified_on, last_activity_on)
   VALUES(       :uuid, :org_id, :contact_id, :status, :topic_id, :assignee_id,  NOW(),    :opened_by_id, :opened_in_id,  NOW()      , NOW())
-RETURNING
-  id
-`
+RETURNING id`
 
 // InsertTickets inserts the passed in tickets returning any errors encountered
 func InsertTickets(ctx context.Context, tx DBorTx, oa *OrgAssets, tickets []*Ticket) error {
@@ -237,14 +220,11 @@ func InsertTickets(ctx context.Context, tx DBorTx, oa *OrgAssets, tickets []*Tic
 
 	dailyCounts := make(map[string]int, len(tickets))
 
-	ts := make([]any, len(tickets))
-	for i, t := range tickets {
-		dailyCounts[fmt.Sprintf("tickets:opened:%d", t.TopicID())]++
+	for _, t := range tickets {
+		dailyCounts[fmt.Sprintf("tickets:opened:%d", t.TopicID)]++
 
-		ts[i] = &t.t
-
-		if t.AssigneeID() != NilUserID {
-			assignee := oa.UserByID(t.AssigneeID())
+		if t.AssigneeID != NilUserID {
+			assignee := oa.UserByID(t.AssigneeID)
 			if assignee != nil {
 				teamID := NilTeamID
 				if assignee.Team() != nil {
@@ -255,7 +235,7 @@ func InsertTickets(ctx context.Context, tx DBorTx, oa *OrgAssets, tickets []*Tic
 		}
 	}
 
-	if err := BulkQuery(ctx, "inserted tickets", tx, sqlInsertTicket, ts); err != nil {
+	if err := BulkQuery(ctx, "inserted tickets", tx, sqlInsertTicket, tickets); err != nil {
 		return err
 	}
 
@@ -271,8 +251,8 @@ func UpdateTicketLastActivity(ctx context.Context, db DBorTx, tickets []*Ticket)
 	now := dates.Now()
 	ids := make([]TicketID, len(tickets))
 	for i, t := range tickets {
-		t.t.LastActivityOn = now
-		ids[i] = t.ID()
+		t.LastActivityOn = now
+		ids[i] = t.ID
 	}
 	return updateTicketLastActivity(ctx, db, ids, now)
 }
@@ -296,11 +276,11 @@ func TicketsChangeAssignee(ctx context.Context, db DBorTx, oa *OrgAssets, userID
 
 	dailyCounts := make(map[string]int)
 
-	for _, ticket := range tickets {
-		if ticket.AssigneeID() != assigneeID {
+	for _, t := range tickets {
+		if t.AssigneeID != assigneeID {
 
 			// if this is an initial assignment record count for user
-			if ticket.AssigneeID() == NilUserID && assigneeID != NilUserID {
+			if t.AssigneeID == NilUserID && assigneeID != NilUserID {
 				assignee := oa.UserByID(assigneeID)
 				if assignee != nil {
 					teamID := NilTeamID
@@ -312,15 +292,14 @@ func TicketsChangeAssignee(ctx context.Context, db DBorTx, oa *OrgAssets, userID
 				}
 			}
 
-			ids = append(ids, ticket.ID())
-			t := &ticket.t
+			ids = append(ids, t.ID)
 			t.AssigneeID = assigneeID
 			t.ModifiedOn = now
 			t.LastActivityOn = now
 
-			e := NewTicketAssignedEvent(flows.NewEventUUID(), ticket, userID, assigneeID)
+			e := NewTicketAssignedEvent(flows.NewEventUUID(), t, userID, assigneeID)
 			events = append(events, e)
-			eventsByTicket[ticket] = e
+			eventsByTicket[t] = e
 		}
 	}
 
@@ -373,19 +352,18 @@ func CloseTickets(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, userI
 	contactIDs := make(map[ContactID]bool, len(tickets))
 	now := dates.Now()
 
-	for _, ticket := range tickets {
-		if ticket.Status() != TicketStatusClosed {
-			ids = append(ids, ticket.ID())
-			t := &ticket.t
+	for _, t := range tickets {
+		if t.Status != TicketStatusClosed {
+			ids = append(ids, t.ID)
 			t.Status = TicketStatusClosed
 			t.ModifiedOn = now
 			t.ClosedOn = &now
 			t.LastActivityOn = now
 
-			e := NewTicketClosedEvent(flows.NewEventUUID(), ticket, userID)
+			e := NewTicketClosedEvent(flows.NewEventUUID(), t, userID)
 			events = append(events, e)
-			eventsByTicket[ticket] = e
-			contactIDs[ticket.ContactID()] = true
+			eventsByTicket[t] = e
+			contactIDs[t.ContactID] = true
 		}
 	}
 
@@ -419,19 +397,18 @@ func ReopenTickets(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, user
 	contactIDs := make(map[ContactID]bool, len(tickets))
 	now := dates.Now()
 
-	for _, ticket := range tickets {
-		if ticket.Status() != TicketStatusOpen {
-			ids = append(ids, ticket.ID())
-			t := &ticket.t
+	for _, t := range tickets {
+		if t.Status != TicketStatusOpen {
+			ids = append(ids, t.ID)
 			t.Status = TicketStatusOpen
 			t.ModifiedOn = now
 			t.ClosedOn = nil
 			t.LastActivityOn = now
 
-			e := NewTicketReopenedEvent(flows.NewEventUUID(), ticket, userID)
+			e := NewTicketReopenedEvent(flows.NewEventUUID(), t, userID)
 			events = append(events, e)
-			eventsByTicket[ticket] = e
-			contactIDs[ticket.ContactID()] = true
+			eventsByTicket[t] = e
+			contactIDs[t.ContactID] = true
 		}
 	}
 

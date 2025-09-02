@@ -45,8 +45,8 @@ func handleReopen(ctx context.Context, rt *runtime.Runtime, r *http.Request) (an
 	// organize last opened ticket by contact (we know we can't open more than one ticket per contact)
 	ticketByContact := make(map[models.ContactID]*models.Ticket, len(request.TicketIDs))
 	for _, t := range tickets {
-		if ticketByContact[t.ContactID()] == nil {
-			ticketByContact[t.ContactID()] = t
+		if ticketByContact[t.ContactID] == nil {
+			ticketByContact[t.ContactID] = t
 		}
 	}
 

@@ -50,8 +50,8 @@ func handleChangeTopic(ctx context.Context, rt *runtime.Runtime, r *changeTopicR
 
 	for _, scene := range scenes {
 		for _, ticket := range scene.Tickets {
-			if ticket.TopicID() != r.TopicID {
-				if err := scene.AddEvent(ctx, rt, oa, events.NewTicketTopicChanged(ticket.UUID(), topic.Reference()), r.UserID); err != nil {
+			if ticket.TopicID != r.TopicID {
+				if err := scene.AddEvent(ctx, rt, oa, events.NewTicketTopicChanged(ticket.UUID, topic.Reference()), r.UserID); err != nil {
 					return nil, 0, fmt.Errorf("error adding topic change event to scene: %w", err)
 				}
 

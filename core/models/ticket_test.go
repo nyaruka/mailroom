@@ -49,11 +49,11 @@ func TestTickets(t *testing.T) {
 		testdb.Admin.ID,
 	)
 
-	assert.Equal(t, flows.TicketUUID("2ef57efc-d85f-4291-b330-e4afe68af5fe"), ticket1.UUID())
-	assert.Equal(t, testdb.Org1.ID, ticket1.OrgID())
-	assert.Equal(t, testdb.Cathy.ID, ticket1.ContactID())
-	assert.Equal(t, testdb.DefaultTopic.ID, ticket1.TopicID())
-	assert.Equal(t, testdb.Admin.ID, ticket1.AssigneeID())
+	assert.Equal(t, flows.TicketUUID("2ef57efc-d85f-4291-b330-e4afe68af5fe"), ticket1.UUID)
+	assert.Equal(t, testdb.Org1.ID, ticket1.OrgID)
+	assert.Equal(t, testdb.Cathy.ID, ticket1.ContactID)
+	assert.Equal(t, testdb.DefaultTopic.ID, ticket1.TopicID)
+	assert.Equal(t, testdb.Admin.ID, ticket1.AssigneeID)
 
 	err := models.InsertTickets(ctx, rt.DB, oa, []*models.Ticket{ticket1, ticket2, ticket3})
 	assert.NoError(t, err)
@@ -74,8 +74,8 @@ func TestTickets(t *testing.T) {
 	// can lookup a ticket by UUID
 	tk, err := models.LookupTicketByUUID(ctx, rt.DB, "64f81be1-00ff-48ef-9e51-97d6f924c1a4")
 	assert.NoError(t, err)
-	assert.Equal(t, flows.TicketUUID("64f81be1-00ff-48ef-9e51-97d6f924c1a4"), tk.UUID())
-	assert.Equal(t, testdb.Bob.ID, tk.ContactID())
+	assert.Equal(t, flows.TicketUUID("64f81be1-00ff-48ef-9e51-97d6f924c1a4"), tk.UUID)
+	assert.Equal(t, testdb.Bob.ID, tk.ContactID)
 
 	// can lookup open tickets by contact
 	org1, _ := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
@@ -84,8 +84,8 @@ func TestTickets(t *testing.T) {
 
 	tk, err = models.LoadOpenTicketForContact(ctx, rt.DB, cathy)
 	assert.NoError(t, err)
-	assert.Equal(t, flows.TicketUUID("2ef57efc-d85f-4291-b330-e4afe68af5fe"), tk.UUID())
-	assert.Equal(t, testdb.Cathy.ID, tk.ContactID())
+	assert.Equal(t, flows.TicketUUID("2ef57efc-d85f-4291-b330-e4afe68af5fe"), tk.UUID)
+	assert.Equal(t, testdb.Cathy.ID, tk.ContactID)
 }
 
 func TestUpdateTicketLastActivity(t *testing.T) {
@@ -103,9 +103,9 @@ func TestUpdateTicketLastActivity(t *testing.T) {
 
 	models.UpdateTicketLastActivity(ctx, rt.DB, []*models.Ticket{modelTicket})
 
-	assert.Equal(t, now, modelTicket.LastActivityOn())
+	assert.Equal(t, now, modelTicket.LastActivityOn)
 
-	assertdb.Query(t, rt.DB, `SELECT last_activity_on FROM tickets_ticket WHERE id = $1`, ticket.ID).Returns(modelTicket.LastActivityOn())
+	assertdb.Query(t, rt.DB, `SELECT last_activity_on FROM tickets_ticket WHERE id = $1`, ticket.ID).Returns(modelTicket.LastActivityOn)
 
 }
 
@@ -282,8 +282,8 @@ func TestTicketRecordReply(t *testing.T) {
 	assert.NoError(t, err)
 
 	modelTicket := ticket.Load(rt)
-	assert.Equal(t, repliedOn, *modelTicket.RepliedOn())
-	assert.Equal(t, repliedOn, modelTicket.LastActivityOn())
+	assert.Equal(t, repliedOn, *modelTicket.RepliedOn)
+	assert.Equal(t, repliedOn, modelTicket.LastActivityOn)
 
 	assertdb.Query(t, rt.DB, `SELECT replied_on FROM tickets_ticket WHERE id = $1`, ticket.ID).Returns(repliedOn)
 	assertdb.Query(t, rt.DB, `SELECT last_activity_on FROM tickets_ticket WHERE id = $1`, ticket.ID).Returns(repliedOn)
@@ -305,8 +305,8 @@ func TestTicketRecordReply(t *testing.T) {
 	assert.NoError(t, err)
 
 	modelTicket = ticket.Load(rt)
-	assert.Equal(t, repliedOn, *modelTicket.RepliedOn())
-	assert.Equal(t, repliedAgainOn, modelTicket.LastActivityOn())
+	assert.Equal(t, repliedOn, *modelTicket.RepliedOn)
+	assert.Equal(t, repliedAgainOn, modelTicket.LastActivityOn)
 
 	assertdb.Query(t, rt.DB, `SELECT replied_on FROM tickets_ticket WHERE id = $1`, ticket.ID).Returns(repliedOn)
 	assertdb.Query(t, rt.DB, `SELECT last_activity_on FROM tickets_ticket WHERE id = $1`, ticket.ID).Returns(repliedAgainOn)
