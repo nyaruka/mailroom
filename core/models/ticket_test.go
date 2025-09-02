@@ -129,21 +129,13 @@ func TestTicketsAssign(t *testing.T) {
 
 	testdb.InsertOpenTicket(rt, testdb.Org1, testdb.Cathy, testdb.DefaultTopic, time.Now(), nil)
 
-	evts, err := models.TicketsChangeAssignee(ctx, rt.DB, oa, testdb.Admin.ID, []*models.Ticket{modelTicket1, modelTicket2, modelTicket3}, testdb.Agent.ID)
-	require.NoError(t, err)
-	assert.Equal(t, 3, len(evts))
-	assert.Equal(t, models.TicketEventTypeAssigned, evts[modelTicket1].Type)
-	assert.Equal(t, models.TicketEventTypeAssigned, evts[modelTicket2].Type)
-	assert.Equal(t, models.TicketEventTypeAssigned, evts[modelTicket3].Type)
+	err = models.TicketsChangeAssignee(ctx, rt.DB, oa, testdb.Admin.ID, []*models.Ticket{modelTicket1, modelTicket2, modelTicket3}, testdb.Agent.ID)
+	assert.NoError(t, err)
 
 	// check tickets are now assigned
 	assertdb.Query(t, rt.DB, `SELECT assignee_id FROM tickets_ticket WHERE id = $1`, ticket1.ID).Columns(map[string]any{"assignee_id": int64(testdb.Agent.ID)})
 	assertdb.Query(t, rt.DB, `SELECT assignee_id FROM tickets_ticket WHERE id = $1`, ticket2.ID).Columns(map[string]any{"assignee_id": int64(testdb.Agent.ID)})
 	assertdb.Query(t, rt.DB, `SELECT assignee_id FROM tickets_ticket WHERE id = $1`, ticket3.ID).Columns(map[string]any{"assignee_id": int64(testdb.Agent.ID)})
-
-	// and there are new assigned events with notifications
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM tickets_ticketevent WHERE event_type = 'A'`).Returns(3)
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM notifications_notification WHERE user_id = $1 AND notification_type = 'tickets:activity'`, testdb.Agent.ID).Returns(1)
 
 	// and daily counts (we only count first assignments of a ticket)
 	today := time.Now().In(oa.Env().Timezone()).Format("2006-01-02")

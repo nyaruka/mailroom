@@ -48,6 +48,10 @@ func (u *User) UUID() assets.UserUUID { return u.UUID_ }
 func (u *User) Email() string         { return u.Email_ }
 func (u *User) Role() UserRole        { return u.Role_ }
 
+func (u *User) Reference() *assets.UserReference {
+	return assets.NewUserReference(u.UUID(), u.Name())
+}
+
 // Name returns the name
 func (u *User) Name() string {
 	names := make([]string, 0, 2)

@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/nyaruka/goflow/assets"
+	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/mailroom/core/models"
+	"github.com/nyaruka/mailroom/core/runner"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/mailroom/web"
 )
@@ -34,15 +37,35 @@ func handleAssign(ctx context.Context, rt *runtime.Runtime, r *assignRequest) (a
 		return nil, 0, fmt.Errorf("unable to load org assets: %w", err)
 	}
 
-	tickets, err := models.LoadTickets(ctx, rt.DB, r.TicketIDs)
-	if err != nil {
-		return nil, 0, fmt.Errorf("error loading tickets for org: %d: %w", r.OrgID, err)
+	var assigneeRef *assets.UserReference // nil means unassigned
+	if r.AssigneeID != models.NilUserID {
+		if assignee := oa.UserByID(r.AssigneeID); assignee != nil {
+			assigneeRef = assignee.Reference()
+		}
 	}
 
-	evts, err := models.TicketsChangeAssignee(ctx, rt.DB, oa, r.UserID, tickets, r.AssigneeID)
+	scenes, err := createTicketScenes(ctx, rt, oa, r.TicketIDs)
 	if err != nil {
-		return nil, 0, fmt.Errorf("error assigning tickets: %w", err)
+		return nil, 0, fmt.Errorf("error creating scenes for tickets: %w", err)
 	}
 
-	return newLegacyBulkResponse(evts), http.StatusOK, nil
+	changed := make([]*models.Ticket, 0, len(scenes))
+
+	for _, scene := range scenes {
+		for _, ticket := range scene.Tickets {
+			if ticket.AssigneeID != r.AssigneeID {
+				if err := scene.AddEvent(ctx, rt, oa, events.NewTicketAssigneeChanged(ticket.UUID, assigneeRef), r.UserID); err != nil {
+					return nil, 0, fmt.Errorf("error adding assignee change event to scene: %w", err)
+				}
+
+				changed = append(changed, ticket)
+			}
+		}
+	}
+
+	if err := runner.BulkCommit(ctx, rt, oa, scenes); err != nil {
+		return nil, 0, fmt.Errorf("error committing scenes for tickets: %w", err)
+	}
+
+	return newBulkResponse(changed), http.StatusOK, nil
 }
