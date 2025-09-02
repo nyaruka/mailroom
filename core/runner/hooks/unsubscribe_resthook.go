@@ -20,8 +20,8 @@ func (h *unsubscribeResthook) Order() int { return 10 }
 func (h *unsubscribeResthook) Execute(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *models.OrgAssets, scene map[*runner.Scene][]any) error {
 	// gather all our unsubscribes
 	unsubs := make([]*models.ResthookUnsubscribe, 0, len(scene))
-	for _, us := range scene {
-		for _, u := range us {
+	for _, args := range scene {
+		for _, u := range args {
 			unsubs = append(unsubs, u.(*models.ResthookUnsubscribe))
 		}
 	}

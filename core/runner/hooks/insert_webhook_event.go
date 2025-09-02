@@ -19,8 +19,8 @@ func (h *insertWebhookEventHook) Order() int { return 10 }
 
 func (h *insertWebhookEventHook) Execute(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *models.OrgAssets, scenes map[*runner.Scene][]any) error {
 	events := make([]*models.WebhookEvent, 0, len(scenes))
-	for _, rs := range scenes {
-		for _, r := range rs {
+	for _, args := range scenes {
+		for _, r := range args {
 			events = append(events, r.(*models.WebhookEvent))
 		}
 	}

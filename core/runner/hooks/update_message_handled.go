@@ -20,8 +20,8 @@ type updateMessageHandled struct{}
 func (h *updateMessageHandled) Order() int { return 90 }
 
 func (h *updateMessageHandled) Execute(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *models.OrgAssets, scenes map[*runner.Scene][]any) error {
-	for scene, es := range scenes {
-		evt := es[0].(*events.MsgReceived)
+	for scene, args := range scenes {
+		evt := args[0].(*events.MsgReceived)
 		msgIn := scene.IncomingMsg
 		contactBlocked := scene.Contact.Status() == flows.ContactStatusBlocked
 

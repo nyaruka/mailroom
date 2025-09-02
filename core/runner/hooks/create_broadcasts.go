@@ -21,8 +21,8 @@ func (h *createBroadcasts) Order() int { return 10 }
 
 func (h *createBroadcasts) Execute(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scenes map[*runner.Scene][]any) error {
 	// for each of our scene
-	for _, es := range scenes {
-		for _, e := range es {
+	for _, args := range scenes {
+		for _, e := range args {
 			event := e.(*events.BroadcastCreated)
 
 			// create a non-persistent broadcast

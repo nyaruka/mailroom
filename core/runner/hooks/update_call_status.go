@@ -19,8 +19,8 @@ type updateCallStatus struct{}
 func (h *updateCallStatus) Order() int { return 10 }
 
 func (h *updateCallStatus) Execute(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *models.OrgAssets, scenes map[*runner.Scene][]any) error {
-	for scene, es := range scenes {
-		status := es[len(es)-1].(models.CallStatus)
+	for scene, args := range scenes {
+		status := args[len(args)-1].(models.CallStatus)
 
 		if status == models.CallStatusInProgress {
 			session := scene.Session

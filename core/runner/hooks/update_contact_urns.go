@@ -24,8 +24,8 @@ func (h *updateContactURNs) Execute(ctx context.Context, rt *runtime.Runtime, tx
 
 	// gather all our urn changes, we only care about the last change for each scene
 	changes := make([]*models.ContactURNsChanged, 0, len(scenes))
-	for _, sessionChanges := range scenes {
-		urnChange := sessionChanges[len(sessionChanges)-1].(*models.ContactURNsChanged)
+	for _, args := range scenes {
+		urnChange := args[len(args)-1].(*models.ContactURNsChanged)
 		changes = append(changes, urnChange)
 
 		if urnChange.Flow != nil {

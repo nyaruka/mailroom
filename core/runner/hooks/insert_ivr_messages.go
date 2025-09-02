@@ -19,8 +19,8 @@ func (h *insertIVRMessages) Order() int { return 10 }
 
 func (h *insertIVRMessages) Execute(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *models.OrgAssets, scenes map[*runner.Scene][]any) error {
 	msgs := make([]*models.Msg, 0, len(scenes))
-	for _, s := range scenes {
-		for _, m := range s {
+	for _, args := range scenes {
+		for _, m := range args {
 			msgs = append(msgs, m.(*models.Msg))
 		}
 	}

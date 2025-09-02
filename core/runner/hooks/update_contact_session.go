@@ -19,9 +19,9 @@ func (h *updateContactSession) Order() int { return 10 }
 
 func (h *updateContactSession) Execute(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *models.OrgAssets, scenes map[*runner.Scene][]any) error {
 	updates := make([]CurrentSessionUpdate, 0, len(scenes))
-	for _, evts := range scenes {
+	for _, args := range scenes {
 		// there is only ever one of these events per scene
-		update := evts[len(evts)-1].(CurrentSessionUpdate)
+		update := args[len(args)-1].(CurrentSessionUpdate)
 		updates = append(updates, update)
 	}
 

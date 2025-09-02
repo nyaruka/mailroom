@@ -25,12 +25,12 @@ func (h *updateCampaignFires) Execute(ctx context.Context, rt *runtime.Runtime, 
 	deletes := make([]*models.FireDelete, 0, 5)
 	inserts := make([]*models.ContactFire, 0, 5)
 
-	for s, es := range scenes {
+	for s, args := range scenes {
 		groupAdds := make(map[models.GroupID]bool)
 		groupRemoves := make(map[models.GroupID]bool)
 		fieldChanges := make(map[models.FieldID]bool)
 
-		for _, e := range es {
+		for _, e := range args {
 			switch event := e.(type) {
 
 			case *models.GroupAdd:

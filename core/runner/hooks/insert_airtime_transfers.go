@@ -20,8 +20,8 @@ func (h *insertAirtimeTransfers) Order() int { return 10 }
 func (h *insertAirtimeTransfers) Execute(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *models.OrgAssets, scenes map[*runner.Scene][]any) error {
 	// gather all our transfers
 	transfers := make([]*models.AirtimeTransfer, 0, len(scenes))
-	for _, ts := range scenes {
-		for _, t := range ts {
+	for _, args := range scenes {
+		for _, t := range args {
 			transfer := t.(*models.AirtimeTransfer)
 			transfers = append(transfers, transfer)
 		}

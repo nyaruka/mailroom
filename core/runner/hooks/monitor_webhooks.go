@@ -26,8 +26,8 @@ func (h *monitorWebhooks) Order() int { return 10 }
 func (h *monitorWebhooks) Execute(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *models.OrgAssets, scenes map[*runner.Scene][]any) error {
 	// organize events by nodes
 	eventsByNode := make(map[flows.NodeUUID][]*events.WebhookCalled)
-	for _, es := range scenes {
-		for _, e := range es {
+	for _, args := range scenes {
+		for _, e := range args {
 			wc := e.(*WebhookCall)
 			eventsByNode[wc.NodeUUID] = append(eventsByNode[wc.NodeUUID], wc.Event)
 		}

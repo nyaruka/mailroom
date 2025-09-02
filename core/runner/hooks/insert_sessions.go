@@ -21,8 +21,8 @@ func (h *insertSessions) Execute(ctx context.Context, rt *runtime.Runtime, tx *s
 	sessions := make([]*models.Session, 0, len(scenes))
 	contacts := make([]*models.Contact, 0, len(scenes))
 
-	for s, items := range scenes {
-		sessions = append(sessions, items[0].(*models.Session))
+	for s, args := range scenes {
+		sessions = append(sessions, args[0].(*models.Session))
 		contacts = append(contacts, s.DBContact)
 	}
 

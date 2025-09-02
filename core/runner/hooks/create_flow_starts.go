@@ -22,8 +22,8 @@ type createFlowStarts struct{}
 func (h *createFlowStarts) Order() int { return 10 }
 
 func (h *createFlowStarts) Execute(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *models.OrgAssets, scenes map[*runner.Scene][]any) error {
-	for _, es := range scenes {
-		for _, e := range es {
+	for _, args := range scenes {
+		for _, e := range args {
 			event := e.(*events.SessionTriggered)
 
 			// look up our flow

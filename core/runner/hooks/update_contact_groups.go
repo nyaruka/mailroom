@@ -24,12 +24,12 @@ func (h *updateContactGroups) Execute(ctx context.Context, rt *runtime.Runtime, 
 	changed := make(map[models.ContactID]bool, len(scenes))
 
 	// we remove from our groups at once, build up our list
-	for _, events := range scenes {
+	for _, args := range scenes {
 		// we use these sets to track what our final add or remove should be
 		seenAdds := make(map[models.GroupID]*models.GroupAdd)
 		seenRemoves := make(map[models.GroupID]*models.GroupRemove)
 
-		for _, e := range events {
+		for _, e := range args {
 			switch event := e.(type) {
 			case *models.GroupAdd:
 				seenAdds[event.GroupID] = event

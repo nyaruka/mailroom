@@ -24,8 +24,8 @@ func (h *updateTicketTopic) Order() int { return 10 }
 
 func (h *updateTicketTopic) Execute(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *models.OrgAssets, scenes map[*runner.Scene][]any) error {
 	byChange := make(map[topicAndUser][]models.TicketID)
-	for _, es := range scenes {
-		for _, e := range es {
+	for _, args := range scenes {
+		for _, e := range args {
 			u := e.(TicketTopicUpdate)
 			byChange[topicAndUser{u.Topic, u.UserID}] = append(byChange[topicAndUser{u.Topic, u.UserID}], u.Ticket.ID)
 		}

@@ -20,8 +20,8 @@ func (h *updateContactStatus) Order() int { return 10 }
 
 func (h *updateContactStatus) Execute(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *models.OrgAssets, scenes map[*runner.Scene][]any) error {
 	statusChanges := make([]*models.ContactStatusChange, 0, len(scenes))
-	for scene, es := range scenes {
-		event := es[len(es)-1].(*events.ContactStatusChanged)
+	for scene, args := range scenes {
+		event := args[len(args)-1].(*events.ContactStatusChanged)
 		statusChanges = append(statusChanges, &models.ContactStatusChange{ContactID: scene.ContactID(), Status: event.Status})
 	}
 

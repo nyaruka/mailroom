@@ -22,8 +22,8 @@ func (h *addMessageLabels) Execute(ctx context.Context, rt *runtime.Runtime, tx 
 	seen := make(map[string]bool)
 	adds := make([]*models.MsgLabelAdd, 0, len(scenes))
 
-	for _, as := range scenes {
-		for _, a := range as {
+	for _, args := range scenes {
+		for _, a := range args {
 			add := a.(*models.MsgLabelAdd)
 			key := fmt.Sprintf("%d:%d", add.LabelID, add.MsgID)
 			if !seen[key] {

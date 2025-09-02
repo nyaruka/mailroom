@@ -21,8 +21,8 @@ func (h *insertNotifications) Order() int { return 10 }
 func (h *insertNotifications) Execute(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *models.OrgAssets, scenes map[*runner.Scene][]any) error {
 	// de-dupe notifications by user, type and scope
 	notifications := make(map[string]*models.Notification)
-	for _, es := range scenes {
-		for _, e := range es {
+	for _, args := range scenes {
+		for _, e := range args {
 			n := e.(*models.Notification)
 			notifications[fmt.Sprintf("%d|%s|%s", n.UserID, n.Type, n.Scope)] = n
 		}

@@ -28,8 +28,8 @@ func (h *insertTickets) Execute(ctx context.Context, rt *runtime.Runtime, tx *sq
 	tickets := make([]*models.Ticket, 0, len(scenes))
 	events := make(map[*models.Ticket]*events.TicketOpened, len(scenes))
 
-	for _, ts := range scenes {
-		for _, t := range ts {
+	for _, args := range scenes {
+		for _, t := range args {
 			open := t.(TicketAndNote)
 			tickets = append(tickets, open.Ticket)
 			events[open.Ticket] = open.Event

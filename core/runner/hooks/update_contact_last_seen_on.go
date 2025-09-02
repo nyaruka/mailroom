@@ -19,8 +19,8 @@ type updateContactLastSeenOn struct{}
 func (h *updateContactLastSeenOn) Order() int { return 10 }
 
 func (h *updateContactLastSeenOn) Execute(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *models.OrgAssets, scenes map[*runner.Scene][]any) error {
-	for scene, evts := range scenes {
-		lastEvent := evts[len(evts)-1].(flows.Event)
+	for scene, args := range scenes {
+		lastEvent := args[len(args)-1].(flows.Event)
 		lastSeenOn := lastEvent.CreatedOn()
 
 		if err := models.UpdateContactLastSeenOn(ctx, tx, scene.ContactID(), lastSeenOn); err != nil {

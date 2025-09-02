@@ -21,9 +21,9 @@ func (h *updateContactLanguage) Order() int { return 10 }
 func (h *updateContactLanguage) Execute(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *models.OrgAssets, scenes map[*runner.Scene][]any) error {
 	// build up our list of pairs of contact id and language name
 	updates := make([]*languageUpdate, 0, len(scenes))
-	for s, e := range scenes {
+	for s, args := range scenes {
 		// we only care about the last name change
-		event := e[len(e)-1].(*events.ContactLanguageChanged)
+		event := args[len(args)-1].(*events.ContactLanguageChanged)
 		updates = append(updates, &languageUpdate{s.ContactID(), null.String(event.Language)})
 	}
 

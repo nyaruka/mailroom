@@ -26,9 +26,9 @@ func (h *updateContactFields) Execute(ctx context.Context, rt *runtime.Runtime, 
 	// our list of updates
 	fieldUpdates := make([]any, 0, len(scenes))
 	fieldDeletes := make(map[assets.FieldUUID][]any)
-	for scene, es := range scenes {
-		updates := make(map[assets.FieldUUID]*flows.Value, len(es))
-		for _, e := range es {
+	for scene, args := range scenes {
+		updates := make(map[assets.FieldUUID]*flows.Value, len(args))
+		for _, e := range args {
 			event := e.(*events.ContactFieldChanged)
 			field := oa.FieldByKey(event.Field.Key)
 			if field == nil {

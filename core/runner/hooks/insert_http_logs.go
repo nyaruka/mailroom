@@ -20,8 +20,8 @@ func (h *insertHTTPLogs) Order() int { return 10 }
 func (h *insertHTTPLogs) Execute(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *models.OrgAssets, scenes map[*runner.Scene][]any) error {
 	// gather all our logs
 	logs := make([]*models.HTTPLog, 0, len(scenes))
-	for _, ls := range scenes {
-		for _, l := range ls {
+	for _, args := range scenes {
+		for _, l := range args {
 			logs = append(logs, l.(*models.HTTPLog))
 		}
 	}

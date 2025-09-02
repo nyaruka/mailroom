@@ -21,8 +21,8 @@ func (h *interruptContacts) Order() int { return 0 } // run before everything el
 func (h *interruptContacts) Execute(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *models.OrgAssets, scenes map[*runner.Scene][]any) error {
 	// gather contacts by session status
 	contacts := make(map[models.ContactID]flows.SessionStatus)
-	for scene, es := range scenes {
-		contacts[scene.DBContact.ID()] = es[0].(*runner.ContactInterruptedEvent).Status
+	for scene, args := range scenes {
+		contacts[scene.DBContact.ID()] = args[0].(*runner.ContactInterruptedEvent).Status
 	}
 
 	if err := models.InterruptContacts(ctx, tx, contacts); err != nil {
