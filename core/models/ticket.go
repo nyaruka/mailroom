@@ -258,66 +258,19 @@ func UpdateTicketLastActivity(ctx context.Context, db DBorTx, tickets []*Ticket)
 	return err
 }
 
-const sqlUpdateTicketsAssignment = `
+const sqlUpdateTicketsAssignee = `
 UPDATE tickets_ticket
    SET assignee_id = $2, modified_on = $3, last_activity_on = $3
  WHERE id = ANY($1)`
 
 // TicketsChangeAssignee assigns or unassigns the passed in tickets
-func TicketsChangeAssignee(ctx context.Context, db DBorTx, oa *OrgAssets, userID UserID, tickets []*Ticket, assigneeID UserID) (map[*Ticket]*TicketEvent, error) {
-	ids := make([]TicketID, 0, len(tickets))
-	events := make([]*TicketEvent, 0, len(tickets))
-	eventsByTicket := make(map[*Ticket]*TicketEvent, len(tickets))
-	now := dates.Now()
-
-	dailyCounts := make(map[string]int)
-
-	for _, t := range tickets {
-		if t.AssigneeID != assigneeID {
-
-			// if this is an initial assignment record count for user
-			if t.AssigneeID == NilUserID && assigneeID != NilUserID {
-				assignee := oa.UserByID(assigneeID)
-				if assignee != nil {
-					teamID := NilTeamID
-					if assignee.Team() != nil {
-						teamID = assignee.Team().ID
-					}
-
-					dailyCounts[fmt.Sprintf("tickets:assigned:%d:%d", teamID, assignee.ID())]++
-				}
-			}
-
-			ids = append(ids, t.ID)
-			t.AssigneeID = assigneeID
-			t.ModifiedOn = now
-			t.LastActivityOn = now
-
-			e := NewTicketAssignedEvent(flows.NewEventUUID(), t, userID, assigneeID)
-			events = append(events, e)
-			eventsByTicket[t] = e
-		}
-	}
-
-	// mark the tickets as assigned in the db
-	_, err := db.ExecContext(ctx, sqlUpdateTicketsAssignment, pq.Array(ids), assigneeID, now)
+func TicketsChangeAssignee(ctx context.Context, db DBorTx, oa *OrgAssets, userID UserID, ticketIDs []TicketID, assigneeID UserID) error {
+	_, err := db.ExecContext(ctx, sqlUpdateTicketsAssignee, pq.Array(ticketIDs), assigneeID, dates.Now())
 	if err != nil {
-		return nil, fmt.Errorf("error updating tickets: %w", err)
+		return fmt.Errorf("error updating tickets assignee: %w", err)
 	}
 
-	if err := InsertLegacyTicketEvents(ctx, db, events); err != nil {
-		return nil, fmt.Errorf("error inserting ticket events: %w", err)
-	}
-
-	if err := NotificationsFromTicketEvents(ctx, db, oa, events); err != nil {
-		return nil, fmt.Errorf("error inserting notifications: %w", err)
-	}
-
-	if err := InsertDailyCounts(ctx, db, oa, dates.Now(), dailyCounts); err != nil {
-		return nil, fmt.Errorf("error inserting daily counts: %w", err)
-	}
-
-	return eventsByTicket, nil
+	return nil
 }
 
 const sqlUpdateTicketsTopic = `
@@ -327,7 +280,7 @@ UPDATE tickets_ticket
 
 // TicketsChangeTopic changes the topic of the passed in tickets
 func TicketsChangeTopic(ctx context.Context, db DBorTx, oa *OrgAssets, userID UserID, ticketIDs []TicketID, topicID TopicID) error {
-	_, err := db.ExecContext(ctx, sqlUpdateTicketsTopic, pq.Array(ticketIDs), topicID, time.Now())
+	_, err := db.ExecContext(ctx, sqlUpdateTicketsTopic, pq.Array(ticketIDs), topicID, dates.Now())
 	if err != nil {
 		return fmt.Errorf("error updating tickets topic: %w", err)
 	}

@@ -48,6 +48,14 @@ func (u *User) UUID() assets.UserUUID { return u.UUID_ }
 func (u *User) Email() string         { return u.Email_ }
 func (u *User) Role() UserRole        { return u.Role_ }
 
+// Reference returns a user reference for this user and can be used with nil pointers
+func (u *User) Reference() *assets.UserReference {
+	if u == nil {
+		return nil
+	}
+	return assets.NewUserReference(u.UUID(), u.Name())
+}
+
 // Name returns the name
 func (u *User) Name() string {
 	names := make([]string, 0, 2)
