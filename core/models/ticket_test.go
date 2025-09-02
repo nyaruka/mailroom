@@ -129,7 +129,7 @@ func TestTicketsAssign(t *testing.T) {
 
 	testdb.InsertOpenTicket(rt, testdb.Org1, testdb.Cathy, testdb.DefaultTopic, time.Now(), nil)
 
-	evts, err := models.TicketsAssign(ctx, rt.DB, oa, testdb.Admin.ID, []*models.Ticket{modelTicket1, modelTicket2, modelTicket3}, testdb.Agent.ID)
+	evts, err := models.TicketsChangeAssignee(ctx, rt.DB, oa, testdb.Admin.ID, []*models.Ticket{modelTicket1, modelTicket2, modelTicket3}, testdb.Agent.ID)
 	require.NoError(t, err)
 	assert.Equal(t, 3, len(evts))
 	assert.Equal(t, models.TicketEventTypeAssigned, evts[modelTicket1].Type)

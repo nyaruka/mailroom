@@ -39,7 +39,7 @@ func handleAssign(ctx context.Context, rt *runtime.Runtime, r *assignRequest) (a
 		return nil, 0, fmt.Errorf("error loading tickets for org: %d: %w", r.OrgID, err)
 	}
 
-	evts, err := models.TicketsAssign(ctx, rt.DB, oa, r.UserID, tickets, r.AssigneeID)
+	evts, err := models.TicketsChangeAssignee(ctx, rt.DB, oa, r.UserID, tickets, r.AssigneeID)
 	if err != nil {
 		return nil, 0, fmt.Errorf("error assigning tickets: %w", err)
 	}

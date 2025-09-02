@@ -287,8 +287,8 @@ UPDATE tickets_ticket
    SET assignee_id = $2, modified_on = $3, last_activity_on = $3
  WHERE id = ANY($1)`
 
-// TicketsAssign assigns the passed in tickets
-func TicketsAssign(ctx context.Context, db DBorTx, oa *OrgAssets, userID UserID, tickets []*Ticket, assigneeID UserID) (map[*Ticket]*TicketEvent, error) {
+// TicketsChangeAssignee assigns or unassigns the passed in tickets
+func TicketsChangeAssignee(ctx context.Context, db DBorTx, oa *OrgAssets, userID UserID, tickets []*Ticket, assigneeID UserID) (map[*Ticket]*TicketEvent, error) {
 	ids := make([]TicketID, 0, len(tickets))
 	events := make([]*TicketEvent, 0, len(tickets))
 	eventsByTicket := make(map[*Ticket]*TicketEvent, len(tickets))
