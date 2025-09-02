@@ -1,3 +1,8 @@
+v10.3.59 (2025-09-02)
+-------------------------
+ * Do ticket assignment, note adding and topic changing via event handling
+ * Create legacy ticket opened events with engine event UUID
+
 v10.3.58 (2025-09-01)
 -------------------------
  * Update ticket topics by event handling
