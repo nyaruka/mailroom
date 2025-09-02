@@ -106,10 +106,9 @@ func TestUpdateTicketLastActivity(t *testing.T) {
 	assert.Equal(t, now, modelTicket.LastActivityOn)
 
 	assertdb.Query(t, rt.DB, `SELECT last_activity_on FROM tickets_ticket WHERE id = $1`, ticket.ID).Returns(modelTicket.LastActivityOn)
-
 }
 
-func TestTicketsAssign(t *testing.T) {
+func TestTicketsChangeAssignee(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, rt, testsuite.ResetData)
@@ -118,31 +117,20 @@ func TestTicketsAssign(t *testing.T) {
 	require.NoError(t, err)
 
 	ticket1 := testdb.InsertClosedTicket(rt, testdb.Org1, testdb.Cathy, testdb.DefaultTopic, nil)
-	modelTicket1 := ticket1.Load(rt)
-
 	ticket2 := testdb.InsertOpenTicket(rt, testdb.Org1, testdb.Cathy, testdb.DefaultTopic, time.Now(), nil)
-	modelTicket2 := ticket2.Load(rt)
 
 	// create ticket already assigned to a user
 	ticket3 := testdb.InsertOpenTicket(rt, testdb.Org1, testdb.Cathy, testdb.DefaultTopic, time.Now(), testdb.Admin)
-	modelTicket3 := ticket3.Load(rt)
 
 	testdb.InsertOpenTicket(rt, testdb.Org1, testdb.Cathy, testdb.DefaultTopic, time.Now(), nil)
 
-	err = models.TicketsChangeAssignee(ctx, rt.DB, oa, testdb.Admin.ID, []*models.Ticket{modelTicket1, modelTicket2, modelTicket3}, testdb.Agent.ID)
+	err = models.TicketsChangeAssignee(ctx, rt.DB, oa, testdb.Admin.ID, []models.TicketID{ticket1.ID, ticket2.ID, ticket3.ID}, testdb.Agent.ID)
 	assert.NoError(t, err)
 
 	// check tickets are now assigned
 	assertdb.Query(t, rt.DB, `SELECT assignee_id FROM tickets_ticket WHERE id = $1`, ticket1.ID).Columns(map[string]any{"assignee_id": int64(testdb.Agent.ID)})
 	assertdb.Query(t, rt.DB, `SELECT assignee_id FROM tickets_ticket WHERE id = $1`, ticket2.ID).Columns(map[string]any{"assignee_id": int64(testdb.Agent.ID)})
 	assertdb.Query(t, rt.DB, `SELECT assignee_id FROM tickets_ticket WHERE id = $1`, ticket3.ID).Columns(map[string]any{"assignee_id": int64(testdb.Agent.ID)})
-
-	// and daily counts (we only count first assignments of a ticket)
-	today := time.Now().In(oa.Env().Timezone()).Format("2006-01-02")
-	testsuite.AssertDailyCounts(t, rt, testdb.Org1, map[string]int{
-		today + "/tickets:assigned:10001:5": 2,
-	})
-	testsuite.AssertDailyCounts(t, rt, testdb.Org2, map[string]int{})
 }
 
 func TestTicketsChangeTopic(t *testing.T) {

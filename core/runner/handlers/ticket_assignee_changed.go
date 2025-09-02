@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 
 	"github.com/nyaruka/goflow/flows"
@@ -26,9 +27,11 @@ func handleTicketAssigneeChanged(ctx context.Context, rt *runtime.Runtime, oa *m
 		return nil
 	}
 
-	assigneeID := models.NilUserID
+	var assignee *models.User
+	var assigneeID models.UserID
 	if event.Assignee != nil {
-		if assignee := oa.UserByUUID(event.Assignee.UUID); assignee != nil {
+		assignee = oa.UserByUUID(event.Assignee.UUID)
+		if assignee != nil {
 			assigneeID = assignee.ID()
 		}
 	}
@@ -39,6 +42,18 @@ func handleTicketAssigneeChanged(ctx context.Context, rt *runtime.Runtime, oa *m
 	// notify ticket assignee if they didn't self-assign
 	if ticket.AssigneeID != models.NilUserID && ticket.AssigneeID != userID {
 		scene.AttachPreCommitHook(hooks.InsertNotifications, models.NewTicketActivityNotification(oa.OrgID(), ticket.AssigneeID))
+	}
+
+	// if this is an initial assignment record count for user
+	if ticket.AssigneeID == models.NilUserID && assignee != nil {
+		teamID := models.NilTeamID
+		if assignee.Team() != nil {
+			teamID = assignee.Team().ID
+		}
+
+		scene.AttachPreCommitHook(hooks.InsertDailyCounts, map[string]int{
+			fmt.Sprintf("tickets:assigned:%d:%d", teamID, assignee.ID()): 1,
+		})
 	}
 
 	return nil

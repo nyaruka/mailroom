@@ -264,40 +264,10 @@ UPDATE tickets_ticket
  WHERE id = ANY($1)`
 
 // TicketsChangeAssignee assigns or unassigns the passed in tickets
-func TicketsChangeAssignee(ctx context.Context, db DBorTx, oa *OrgAssets, userID UserID, tickets []*Ticket, assigneeID UserID) error {
-	ids := make([]TicketID, 0, len(tickets))
-	now := dates.Now()
-
-	dailyCounts := make(map[string]int)
-
-	for _, t := range tickets {
-		// if this is an initial assignment record count for user
-		if t.AssigneeID == NilUserID && assigneeID != NilUserID {
-			assignee := oa.UserByID(assigneeID)
-			if assignee != nil {
-				teamID := NilTeamID
-				if assignee.Team() != nil {
-					teamID = assignee.Team().ID
-				}
-
-				dailyCounts[fmt.Sprintf("tickets:assigned:%d:%d", teamID, assignee.ID())]++
-			}
-		}
-
-		ids = append(ids, t.ID)
-		t.AssigneeID = assigneeID
-		t.ModifiedOn = now
-		t.LastActivityOn = now
-	}
-
-	// mark the tickets as assigned in the db
-	_, err := db.ExecContext(ctx, sqlUpdateTicketsAssignee, pq.Array(ids), assigneeID, now)
+func TicketsChangeAssignee(ctx context.Context, db DBorTx, oa *OrgAssets, userID UserID, ticketIDs []TicketID, assigneeID UserID) error {
+	_, err := db.ExecContext(ctx, sqlUpdateTicketsAssignee, pq.Array(ticketIDs), assigneeID, dates.Now())
 	if err != nil {
-		return fmt.Errorf("error updating tickets: %w", err)
-	}
-
-	if err := InsertDailyCounts(ctx, db, oa, dates.Now(), dailyCounts); err != nil {
-		return fmt.Errorf("error inserting daily counts: %w", err)
+		return fmt.Errorf("error updating tickets assignee: %w", err)
 	}
 
 	return nil
@@ -310,7 +280,7 @@ UPDATE tickets_ticket
 
 // TicketsChangeTopic changes the topic of the passed in tickets
 func TicketsChangeTopic(ctx context.Context, db DBorTx, oa *OrgAssets, userID UserID, ticketIDs []TicketID, topicID TopicID) error {
-	_, err := db.ExecContext(ctx, sqlUpdateTicketsTopic, pq.Array(ticketIDs), topicID, time.Now())
+	_, err := db.ExecContext(ctx, sqlUpdateTicketsTopic, pq.Array(ticketIDs), topicID, dates.Now())
 	if err != nil {
 		return fmt.Errorf("error updating tickets topic: %w", err)
 	}

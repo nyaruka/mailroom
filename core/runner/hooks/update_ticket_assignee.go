@@ -23,16 +23,16 @@ type updateTicketAssignee struct{}
 func (h *updateTicketAssignee) Order() int { return 10 }
 
 func (h *updateTicketAssignee) Execute(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *models.OrgAssets, scenes map[*runner.Scene][]any) error {
-	byChange := make(map[assigneeAndUser][]*models.Ticket)
+	byChange := make(map[assigneeAndUser][]models.TicketID)
 	for _, es := range scenes {
 		for _, e := range es {
 			u := e.(TicketAssigneeUpdate)
-			byChange[assigneeAndUser{u.AssigneeID, u.UserID}] = append(byChange[assigneeAndUser{u.AssigneeID, u.UserID}], u.Ticket)
+			byChange[assigneeAndUser{u.AssigneeID, u.UserID}] = append(byChange[assigneeAndUser{u.AssigneeID, u.UserID}], u.Ticket.ID)
 		}
 	}
 
-	for assigneeAndUser, tickets := range byChange {
-		if err := models.TicketsChangeAssignee(ctx, tx, oa, assigneeAndUser.userID, tickets, assigneeAndUser.assigneeID); err != nil {
+	for assigneeAndUser, ticketIDs := range byChange {
+		if err := models.TicketsChangeAssignee(ctx, tx, oa, assigneeAndUser.userID, ticketIDs, assigneeAndUser.assigneeID); err != nil {
 			return fmt.Errorf("error changing ticket topics: %w", err)
 		}
 	}

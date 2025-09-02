@@ -88,31 +88,10 @@ func NotifyIncidentStarted(ctx context.Context, db DBorTx, oa *OrgAssets, incide
 
 var ticketAssignableRoles = []UserRole{UserRoleAdministrator, UserRoleEditor, UserRoleAgent}
 
+// GetTicketAssignableUsers returns all users that can be assigned tickets
+// TODO make this part of org assets?
 func GetTicketAssignableUsers(oa *OrgAssets) []*User {
 	return usersWithRoles(oa, ticketAssignableRoles)
-}
-
-// NotificationsFromTicketEvents logs the opening of new tickets and notifies all assignable users if tickets is not already assigned
-func NotificationsFromTicketEvents(ctx context.Context, db DBorTx, oa *OrgAssets, events []*TicketEvent) error {
-	notifyTicketsActivity := make(map[UserID]bool)
-
-	for _, evt := range events {
-		switch evt.Type {
-		case TicketEventTypeAssigned:
-			// notify new ticket assignee if they didn't self-assign
-			if evt.AssigneeID != NilUserID && evt.AssigneeID != evt.CreatedByID {
-				notifyTicketsActivity[evt.AssigneeID] = true
-			}
-		}
-	}
-
-	notifications := make([]*Notification, 0, len(events))
-
-	for userID := range notifyTicketsActivity {
-		notifications = append(notifications, NewTicketActivityNotification(oa.OrgID(), userID))
-	}
-
-	return InsertNotifications(ctx, db, notifications)
 }
 
 func NewTicketsOpenedNotification(orgID OrgID, userID UserID) *Notification {
