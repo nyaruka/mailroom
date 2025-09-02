@@ -25,7 +25,6 @@ func (i TicketID) Value() (driver.Value, error)  { return null.IntValue(i) }
 func (i *TicketID) UnmarshalJSON(b []byte) error { return null.UnmarshalInt(b, i) }
 func (i TicketID) MarshalJSON() ([]byte, error)  { return null.MarshalInt(i) }
 
-type TicketerID int
 type TicketStatus string
 
 const (
@@ -64,7 +63,7 @@ func NewTicket(uuid flows.TicketUUID, orgID OrgID, userID UserID, flowID FlowID,
 	}
 }
 
-func (t *Ticket) FlowTicket(oa *OrgAssets) *flows.Ticket {
+func (t *Ticket) EngineTicket(oa *OrgAssets) *flows.Ticket {
 	var topic *flows.Topic
 	if t.TopicID != NilTopicID {
 		dbTopic := oa.TopicByID(t.TopicID)
@@ -236,7 +235,7 @@ func InsertTickets(ctx context.Context, tx DBorTx, oa *OrgAssets, tickets []*Tic
 	}
 
 	if err := BulkQuery(ctx, "inserted tickets", tx, sqlInsertTicket, tickets); err != nil {
-		return err
+		return fmt.Errorf("error inserting tickets: %w", err)
 	}
 
 	if err := InsertDailyCounts(ctx, tx, oa, dates.Now(), dailyCounts); err != nil {
@@ -254,10 +253,7 @@ func UpdateTicketLastActivity(ctx context.Context, db DBorTx, tickets []*Ticket)
 		t.LastActivityOn = now
 		ids[i] = t.ID
 	}
-	return updateTicketLastActivity(ctx, db, ids, now)
-}
 
-func updateTicketLastActivity(ctx context.Context, db DBorTx, ids []TicketID, now time.Time) error {
 	_, err := db.ExecContext(ctx, `UPDATE tickets_ticket SET last_activity_on = $2 WHERE id = ANY($1)`, pq.Array(ids), now)
 	return err
 }
@@ -418,8 +414,7 @@ func ReopenTickets(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, user
 		return nil, fmt.Errorf("error updating tickets: %w", err)
 	}
 
-	err = InsertLegacyTicketEvents(ctx, rt.DB, events)
-	if err != nil {
+	if err := InsertLegacyTicketEvents(ctx, rt.DB, events); err != nil {
 		return nil, fmt.Errorf("error inserting ticket events: %w", err)
 	}
 

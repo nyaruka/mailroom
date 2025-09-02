@@ -71,7 +71,7 @@ func (t *TicketClosedTask) Perform(ctx context.Context, rt *runtime.Runtime, oa 
 		return fmt.Errorf("error loading flow for trigger: %w", err)
 	}
 
-	ticket := tickets[0].FlowTicket(oa)
+	ticket := tickets[0].EngineTicket(oa)
 	evt := events.NewTicketClosed(ticket)
 
 	scene := runner.NewScene(mc, contact)

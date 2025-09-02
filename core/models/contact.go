@@ -227,7 +227,7 @@ func (c *Contact) EngineContact(oa *OrgAssets) (*flows.Contact, error) {
 	// convert our ticket to a flow ticket
 	var ticket *flows.Ticket
 	if c.ticket != nil {
-		ticket = c.ticket.FlowTicket(oa)
+		ticket = c.ticket.EngineTicket(oa)
 	}
 
 	// create our flow contact
