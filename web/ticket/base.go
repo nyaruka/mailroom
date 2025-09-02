@@ -7,8 +7,10 @@ import (
 	"slices"
 	"sort"
 
+	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/runner"
+	"github.com/nyaruka/mailroom/core/tickets"
 	"github.com/nyaruka/mailroom/runtime"
 )
 
@@ -65,4 +67,21 @@ func createTicketScenes(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 	}
 
 	return scenes, nil
+}
+
+func ApplyTicketModifier(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scene *runner.Scene, mod tickets.TicketModifier, userID models.UserID) (changed []*models.Ticket, err error) {
+	for _, ticket := range scene.Tickets {
+		evts := make([]flows.Event, 0)
+
+		if mod(ticket, func(e flows.Event) { evts = append(evts, e) }) {
+			changed = append(changed, ticket)
+		}
+
+		for _, evt := range evts {
+			if err := scene.AddEvent(ctx, rt, oa, evt, userID); err != nil {
+				return nil, fmt.Errorf("error adding event to scene: %w", err)
+			}
+		}
+	}
+	return changed, nil
 }
