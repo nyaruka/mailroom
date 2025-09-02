@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/runner"
+	"github.com/nyaruka/mailroom/core/tickets"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/mailroom/web"
 )
@@ -36,9 +36,9 @@ func handleChangeTopic(ctx context.Context, rt *runtime.Runtime, r *changeTopicR
 		return nil, 0, fmt.Errorf("unable to load org assets: %w", err)
 	}
 
-	topic := oa.TopicByID(r.TopicID)
-	if topic == nil {
-		return nil, 0, fmt.Errorf("no such topic with id: %d", r.TopicID)
+	mod, err := tickets.NewTopicModifier(oa, r.TopicID)
+	if err != nil {
+		return nil, 0, fmt.Errorf("error creating topic modifier: %w", err)
 	}
 
 	scenes, err := createTicketScenes(ctx, rt, oa, r.TicketIDs)
@@ -49,18 +49,12 @@ func handleChangeTopic(ctx context.Context, rt *runtime.Runtime, r *changeTopicR
 	changed := make([]*models.Ticket, 0, len(scenes))
 
 	for _, scene := range scenes {
-		for _, ticket := range scene.Tickets {
-			if ticket.TopicID != r.TopicID {
-				ticket.TopicID = r.TopicID
-				evt := events.NewTicketTopicChanged(ticket.UUID, topic.Reference())
-
-				if err := scene.AddEvent(ctx, rt, oa, evt, r.UserID); err != nil {
-					return nil, 0, fmt.Errorf("error adding topic change event to scene: %w", err)
-				}
-
-				changed = append(changed, ticket)
-			}
+		chg, err := ApplyTicketModifier(ctx, rt, oa, scene, mod, r.UserID)
+		if err != nil {
+			return nil, 0, fmt.Errorf("error applying ticket modifier to scene: %w", err)
 		}
+
+		changed = append(changed, chg...)
 	}
 
 	if err := runner.BulkCommit(ctx, rt, oa, scenes); err != nil {
