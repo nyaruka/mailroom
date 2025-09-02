@@ -27,7 +27,7 @@ func (h *updateTicketTopic) Execute(ctx context.Context, rt *runtime.Runtime, tx
 	for _, es := range scenes {
 		for _, e := range es {
 			u := e.(TicketTopicUpdate)
-			byChange[topicAndUser{u.Topic, u.UserID}] = append(byChange[topicAndUser{u.Topic, u.UserID}], u.Ticket.ID())
+			byChange[topicAndUser{u.Topic, u.UserID}] = append(byChange[topicAndUser{u.Topic, u.UserID}], u.Ticket.ID)
 		}
 	}
 

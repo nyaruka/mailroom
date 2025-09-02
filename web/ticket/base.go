@@ -25,7 +25,7 @@ type bulkTicketResponse struct {
 func newLegacyBulkResponse(changed map[*models.Ticket]*models.TicketEvent) *bulkTicketResponse {
 	ids := make([]models.TicketID, 0, len(changed))
 	for t := range changed {
-		ids = append(ids, t.ID())
+		ids = append(ids, t.ID)
 	}
 
 	sort.Slice(ids, func(i, j int) bool { return ids[i] < ids[j] })
@@ -36,7 +36,7 @@ func newLegacyBulkResponse(changed map[*models.Ticket]*models.TicketEvent) *bulk
 func newBulkResponse(changed []*models.Ticket) *bulkTicketResponse {
 	ids := make([]models.TicketID, len(changed))
 	for i, t := range changed {
-		ids[i] = t.ID()
+		ids[i] = t.ID
 	}
 
 	slices.Sort(ids)
@@ -52,7 +52,7 @@ func createTicketScenes(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 
 	byContact := make(map[models.ContactID][]*models.Ticket, 10)
 	for _, t := range tickets {
-		byContact[t.ContactID()] = append(byContact[t.ContactID()], t)
+		byContact[t.ContactID] = append(byContact[t.ContactID], t)
 	}
 
 	scenes, err := runner.CreateScenes(ctx, rt, oa, slices.Collect(maps.Keys(byContact)))

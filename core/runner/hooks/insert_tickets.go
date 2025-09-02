@@ -45,7 +45,7 @@ func (h *insertTickets) Execute(ctx context.Context, rt *runtime.Runtime, tx *sq
 	legacyEvents := make([]*models.TicketEvent, len(tickets))
 	for i, ticket := range tickets {
 		event := events[ticket]
-		legacyEvents[i] = models.NewTicketOpenedEvent(event.UUID(), ticket, ticket.OpenedByID(), ticket.AssigneeID(), event.Note)
+		legacyEvents[i] = models.NewTicketOpenedEvent(event.UUID(), ticket, ticket.OpenedByID, ticket.AssigneeID, event.Note)
 	}
 
 	// and insert those too

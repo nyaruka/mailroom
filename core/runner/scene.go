@@ -75,7 +75,7 @@ func (s *Scene) SprintUUID() flows.SprintUUID {
 
 func (s *Scene) FindTicket(uuid flows.TicketUUID) *models.Ticket {
 	for _, t := range s.Tickets {
-		if t.UUID() == uuid {
+		if t.UUID == uuid {
 			return t
 		}
 	}
