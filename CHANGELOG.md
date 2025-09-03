@@ -1,3 +1,7 @@
+v10.3.60 (2025-09-03)
+-------------------------
+ * Introducing ticket modifiers
+
 v10.3.59 (2025-09-02)
 -------------------------
  * Do ticket assignment, note adding and topic changing via event handling
