@@ -3,6 +3,7 @@ package tickets
 import (
 	"fmt"
 
+	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/mailroom/core/models"
@@ -15,8 +16,12 @@ func NewAssignmentModifier(oa *models.OrgAssets, assigneeID models.UserID) Ticke
 
 	return func(ticket *models.Ticket, log flows.EventCallback) bool {
 		if ticket.AssigneeID != assigneeID {
+			now := dates.Now()
 			prevAssignee := oa.UserByID(ticket.AssigneeID)
+
 			ticket.AssigneeID = assigneeID
+			ticket.ModifiedOn = now
+
 			log(events.NewTicketAssigneeChanged(ticket.UUID, newAssignee.Reference(), prevAssignee.Reference()))
 			return true
 		}
@@ -26,6 +31,11 @@ func NewAssignmentModifier(oa *models.OrgAssets, assigneeID models.UserID) Ticke
 
 func NewNoteModifier(oa *models.OrgAssets, note string) TicketModifier {
 	return func(ticket *models.Ticket, log flows.EventCallback) bool {
+		now := dates.Now()
+
+		ticket.ModifiedOn = now
+		ticket.LastActivityOn = now
+
 		log(events.NewTicketNoteAdded(ticket.UUID, note))
 		return true
 	}
@@ -39,7 +49,11 @@ func NewTopicModifier(oa *models.OrgAssets, topicID models.TopicID) (TicketModif
 
 	return func(ticket *models.Ticket, log flows.EventCallback) bool {
 		if ticket.TopicID != topicID {
+			now := dates.Now()
+
 			ticket.TopicID = topicID
+			ticket.ModifiedOn = now
+
 			log(events.NewTicketTopicChanged(ticket.UUID, topic.Reference()))
 			return true
 		}
