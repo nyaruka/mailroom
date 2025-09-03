@@ -108,49 +108,43 @@ func TestUpdateTicketLastActivity(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT last_activity_on FROM tickets_ticket WHERE id = $1`, ticket.ID).Returns(modelTicket.LastActivityOn)
 }
 
-func TestTicketsChangeAssignee(t *testing.T) {
+func TestUpdateTickets(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
-	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
-	require.NoError(t, err)
+	ticket1 := testdb.InsertClosedTicket(rt, testdb.Org1, testdb.Cathy, testdb.SalesTopic, nil).Load(rt)
+	ticket2 := testdb.InsertOpenTicket(rt, testdb.Org1, testdb.Cathy, testdb.SalesTopic, time.Now(), nil).Load(rt)
+	ticket3 := testdb.InsertOpenTicket(rt, testdb.Org1, testdb.Cathy, testdb.DefaultTopic, time.Now(), testdb.Admin).Load(rt)
 
-	ticket1 := testdb.InsertClosedTicket(rt, testdb.Org1, testdb.Cathy, testdb.DefaultTopic, nil)
-	ticket2 := testdb.InsertOpenTicket(rt, testdb.Org1, testdb.Cathy, testdb.DefaultTopic, time.Now(), nil)
+	assertTicket := func(tk *models.Ticket, cols map[string]any) {
+		assertdb.Query(t, rt.DB, `SELECT status, assignee_id, topic_id FROM tickets_ticket WHERE id = $1`, tk.ID).Columns(cols)
+	}
 
-	// create ticket already assigned to a user
-	ticket3 := testdb.InsertOpenTicket(rt, testdb.Org1, testdb.Cathy, testdb.DefaultTopic, time.Now(), testdb.Admin)
+	assertTicket(ticket1, map[string]any{"status": "C", "assignee_id": nil, "topic_id": int64(testdb.SalesTopic.ID)})
+	assertTicket(ticket2, map[string]any{"status": "O", "assignee_id": nil, "topic_id": int64(testdb.SalesTopic.ID)})
+	assertTicket(ticket3, map[string]any{"status": "O", "assignee_id": int64(testdb.Admin.ID), "topic_id": int64(testdb.DefaultTopic.ID)})
 
-	testdb.InsertOpenTicket(rt, testdb.Org1, testdb.Cathy, testdb.DefaultTopic, time.Now(), nil)
-
-	err = models.TicketsChangeAssignee(ctx, rt.DB, oa, testdb.Admin.ID, []models.TicketID{ticket1.ID, ticket2.ID, ticket3.ID}, testdb.Agent.ID)
+	// update with no changes
+	err := models.UpdateTickets(ctx, rt.DB, []*models.Ticket{ticket1, ticket2, ticket3})
 	assert.NoError(t, err)
 
-	// check tickets are now assigned
-	assertdb.Query(t, rt.DB, `SELECT assignee_id FROM tickets_ticket WHERE id = $1`, ticket1.ID).Columns(map[string]any{"assignee_id": int64(testdb.Agent.ID)})
-	assertdb.Query(t, rt.DB, `SELECT assignee_id FROM tickets_ticket WHERE id = $1`, ticket2.ID).Columns(map[string]any{"assignee_id": int64(testdb.Agent.ID)})
-	assertdb.Query(t, rt.DB, `SELECT assignee_id FROM tickets_ticket WHERE id = $1`, ticket3.ID).Columns(map[string]any{"assignee_id": int64(testdb.Agent.ID)})
-}
+	assertTicket(ticket1, map[string]any{"status": "C", "assignee_id": nil, "topic_id": int64(testdb.SalesTopic.ID)})
+	assertTicket(ticket2, map[string]any{"status": "O", "assignee_id": nil, "topic_id": int64(testdb.SalesTopic.ID)})
+	assertTicket(ticket3, map[string]any{"status": "O", "assignee_id": int64(testdb.Admin.ID), "topic_id": int64(testdb.DefaultTopic.ID)})
 
-func TestTicketsChangeTopic(t *testing.T) {
-	ctx, rt := testsuite.Runtime(t)
+	ticket1.AssigneeID = testdb.Agent.ID
+	ticket2.TopicID = testdb.SupportTopic.ID
+	ticket3.Status = models.TicketStatusClosed
+	ticket3.AssigneeID = models.NilUserID
+	ticket3.LastActivityOn = time.Date(2025, 9, 3, 16, 0, 0, 0, time.UTC)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetData)
-
-	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
-	require.NoError(t, err)
-
-	ticket1 := testdb.InsertClosedTicket(rt, testdb.Org1, testdb.Cathy, testdb.SalesTopic, nil)
-	ticket2 := testdb.InsertOpenTicket(rt, testdb.Org1, testdb.Cathy, testdb.SalesTopic, time.Now(), nil)
-	testdb.InsertOpenTicket(rt, testdb.Org1, testdb.Cathy, testdb.DefaultTopic, time.Now(), nil)
-
-	err = models.TicketsChangeTopic(ctx, rt.DB, oa, testdb.Admin.ID, []models.TicketID{ticket1.ID, ticket2.ID}, testdb.SupportTopic.ID)
+	err = models.UpdateTickets(ctx, rt.DB, []*models.Ticket{ticket1, ticket2, ticket3})
 	assert.NoError(t, err)
 
-	// check tickets 1 and 2 are updated and that we have events
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM tickets_ticket WHERE topic_id = $1`, testdb.SupportTopic.ID).Returns(2)
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM tickets_ticket WHERE topic_id = $1`, testdb.DefaultTopic.ID).Returns(1)
+	assertTicket(ticket1, map[string]any{"status": "C", "assignee_id": int64(testdb.Agent.ID), "topic_id": int64(testdb.SalesTopic.ID)})
+	assertTicket(ticket2, map[string]any{"status": "O", "assignee_id": nil, "topic_id": int64(testdb.SupportTopic.ID)})
+	assertTicket(ticket3, map[string]any{"status": "C", "assignee_id": nil, "topic_id": int64(testdb.DefaultTopic.ID)})
 }
 
 func TestCloseTickets(t *testing.T) {

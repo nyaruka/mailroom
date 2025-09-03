@@ -258,33 +258,21 @@ func UpdateTicketLastActivity(ctx context.Context, db DBorTx, tickets []*Ticket)
 	return err
 }
 
-const sqlUpdateTicketsAssignee = `
-UPDATE tickets_ticket
-   SET assignee_id = $2, modified_on = $3, last_activity_on = $3
- WHERE id = ANY($1)`
+const sqlUpdateTicket = `
+UPDATE tickets_ticket t
+   SET status = r.status,
+       assignee_id = r.assignee_id::int,
+       topic_id = r.topic_id::int,
+       last_activity_on = r.last_activity_on::timestamptz,
+       modified_on = NOW()
+  FROM (VALUES(:id, :status, :assignee_id, :topic_id, :last_activity_on)) AS r(id, status, assignee_id, topic_id, last_activity_on)
+ WHERE t.id = r.id::int`
 
-// TicketsChangeAssignee assigns or unassigns the passed in tickets
-func TicketsChangeAssignee(ctx context.Context, db DBorTx, oa *OrgAssets, userID UserID, ticketIDs []TicketID, assigneeID UserID) error {
-	_, err := db.ExecContext(ctx, sqlUpdateTicketsAssignee, pq.Array(ticketIDs), assigneeID, dates.Now())
-	if err != nil {
-		return fmt.Errorf("error updating tickets assignee: %w", err)
+// UpdateTickets updates the passed in tickets in the database
+func UpdateTickets(ctx context.Context, tx DBorTx, tickets []*Ticket) error {
+	if err := BulkQuery(ctx, "update tickets", tx, sqlUpdateTicket, tickets); err != nil {
+		return fmt.Errorf("error updating tickets: %w", err)
 	}
-
-	return nil
-}
-
-const sqlUpdateTicketsTopic = `
-UPDATE tickets_ticket
-   SET topic_id = $2, modified_on = $3, last_activity_on = $3
- WHERE id = ANY($1)`
-
-// TicketsChangeTopic changes the topic of the passed in tickets
-func TicketsChangeTopic(ctx context.Context, db DBorTx, oa *OrgAssets, userID UserID, ticketIDs []TicketID, topicID TopicID) error {
-	_, err := db.ExecContext(ctx, sqlUpdateTicketsTopic, pq.Array(ticketIDs), topicID, dates.Now())
-	if err != nil {
-		return fmt.Errorf("error updating tickets topic: %w", err)
-	}
-
 	return nil
 }
 
