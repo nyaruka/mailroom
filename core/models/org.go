@@ -91,7 +91,7 @@ type Org struct {
 	env envs.Environment
 }
 
-// Enviroment allows overriding values from config
+// Environment adds values from config
 type Environment struct {
 	envs.Environment
 
