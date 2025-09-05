@@ -1,3 +1,7 @@
+v10.3.61 (2025-09-05)
+-------------------------
+ * Support contact queries by ref
+
 v10.3.60 (2025-09-03)
 -------------------------
  * Introducing ticket modifiers
