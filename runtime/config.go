@@ -2,6 +2,7 @@ package runtime
 
 import (
 	"encoding/csv"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"log"
@@ -78,6 +79,7 @@ type Config struct {
 
 	CourierAuthToken       string `help:"the authentication token used for requests to Courier"`
 	AndroidCredentialsFile string `help:"path to JSON file with FCM service account credentials used to sync Android relayers"`
+	IDObfuscationKey       string `help:"key used to decode obfuscated IDs, as 4 comma separated integers" validate:"omitempty,hexadecimal,len=32"`
 
 	LogLevel slog.Level `help:"the logging level courier should use"`
 	UUIDSeed int        `help:"seed to use for UUID generation in a testing environment"`
@@ -135,6 +137,8 @@ func NewDefaultConfig() *Config {
 		DeploymentID:        "dev",
 		InstanceID:          hostname,
 
+		IDObfuscationKey: "000A3B1C000D2E3F0001A2B300C0FFEE",
+
 		LogLevel: slog.LevelWarn,
 		UUIDSeed: 0,
 		Version:  "Dev",
@@ -174,4 +178,19 @@ func (c *Config) ParseDisallowedNetworks() ([]net.IP, []*net.IPNet, error) {
 	}
 
 	return httpx.ParseNetworks(addrs...)
+}
+
+func (c *Config) ParseIDObfuscationKey() [4]uint32 {
+	bytes, err := hex.DecodeString(c.IDObfuscationKey)
+	if err != nil {
+		panic(fmt.Sprintf("invalid hex string: %v", err))
+	}
+
+	var key [4]uint32
+	for i := range 4 {
+		// Convert 4 bytes to uint32 (big endian)
+		key[i] = uint32(bytes[i*4])<<24 | uint32(bytes[i*4+1])<<16 | uint32(bytes[i*4+2])<<8 | uint32(bytes[i*4+3])
+	}
+
+	return key
 }

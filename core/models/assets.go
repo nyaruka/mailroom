@@ -175,7 +175,7 @@ func NewOrgAssets(ctx context.Context, rt *runtime.Runtime, orgID OrgID, prev *O
 	var err error
 
 	if prev == nil || refresh&RefreshOrg > 0 {
-		oa.org, err = LoadOrg(ctx, db, orgID)
+		oa.org, err = LoadOrg(ctx, rt.Config, db, orgID)
 		if err != nil {
 			return nil, fmt.Errorf("error loading environment for org %d: %w", orgID, err)
 		}
