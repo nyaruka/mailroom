@@ -54,3 +54,30 @@ func TestParseDisallowedNetworks(t *testing.T) {
 	_, _, err = cfg.ParseDisallowedNetworks()
 	assert.EqualError(t, err, `parse error on line 1, column 11: extraneous or missing " in quoted-field`)
 }
+
+func TestParseIDObfuscationKey(t *testing.T) {
+	cfg := runtime.NewDefaultConfig()
+
+	// Test with default key
+	cfg.IDObfuscationKey = "000A3B1C000D2E3F0001A2B300C0FFEE"
+	key := cfg.ParseIDObfuscationKey()
+	expected := [4]uint32{
+		0x000A3B1C, // first 4 bytes
+		0x000D2E3F, // second 4 bytes
+		0x0001A2B3, // third 4 bytes
+		0x00C0FFEE, // fourth 4 bytes
+	}
+	assert.Equal(t, expected, key)
+
+	// Test with all zeros
+	cfg.IDObfuscationKey = "00000000000000000000000000000000"
+	key = cfg.ParseIDObfuscationKey()
+	expected = [4]uint32{0, 0, 0, 0}
+	assert.Equal(t, expected, key)
+
+	// Test with all FFs
+	cfg.IDObfuscationKey = "FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"
+	key = cfg.ParseIDObfuscationKey()
+	expected = [4]uint32{0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF}
+	assert.Equal(t, expected, key)
+}

@@ -91,6 +91,22 @@ type Org struct {
 	env envs.Environment
 }
 
+// Enviroment allows overriding values from config
+type Environment struct {
+	envs.Environment
+
+	obfuscationKey [4]uint32
+}
+
+func newEnvironment(base envs.Environment, cfg *runtime.Config) envs.Environment {
+	return &Environment{
+		Environment:    base,
+		obfuscationKey: cfg.ParseIDObfuscationKey(),
+	}
+}
+
+func (e *Environment) ObfuscationKey() [4]uint32 { return e.obfuscationKey }
+
 // ID returns the id of the org
 func (o *Org) ID() OrgID { return o.o.ID }
 
@@ -125,6 +141,7 @@ func (o *Org) UnmarshalJSON(b []byte) error {
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 
@@ -248,8 +265,8 @@ SELECT ROW_TO_JSON(o) FROM (SELECT
 ) o`
 
 // LoadOrg loads the org for the passed in id, returning any error encountered
-func LoadOrg(ctx context.Context, db *sql.DB, orgID OrgID) (*Org, error) {
-	org := &Org{}
+func LoadOrg(ctx context.Context, cfg *runtime.Config, db *sql.DB, orgID OrgID) (*Org, error) {
+	o := &Org{}
 	rows, err := db.QueryContext(ctx, sqlSelectOrgByID, orgID)
 	if err != nil {
 		return nil, fmt.Errorf("error loading org: %d: %w", orgID, err)
@@ -259,12 +276,12 @@ func LoadOrg(ctx context.Context, db *sql.DB, orgID OrgID) (*Org, error) {
 		return nil, fmt.Errorf("no org with id: %d", orgID)
 	}
 
-	err = dbutil.ScanJSON(rows, org)
-	if err != nil {
+	if err := dbutil.ScanJSON(rows, o); err != nil {
 		return nil, fmt.Errorf("error unmarshalling org: %w", err)
 	}
 
-	return org, nil
+	o.env = newEnvironment(o.env, cfg)
+	return o, nil
 }
 
 // GetOrgIDFromUUID gets an org ID from a UUID (returns NilOrgID if not found)
