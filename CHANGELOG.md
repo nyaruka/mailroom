@@ -1,3 +1,7 @@
+v10.3.63 (2025-09-08)
+-------------------------
+ * Update to latest goflow that deprecates contact.id
+
 v10.3.62 (2025-09-08)
 -------------------------
  * Rework config loading so that parsing of derived values happens at load time
