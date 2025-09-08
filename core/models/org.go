@@ -101,7 +101,7 @@ type Environment struct {
 func newEnvironment(base envs.Environment, cfg *runtime.Config) envs.Environment {
 	return &Environment{
 		Environment:    base,
-		obfuscationKey: cfg.ParseIDObfuscationKey(),
+		obfuscationKey: cfg.IDObfuscationKeyParsed,
 	}
 }
 

@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"io"
-	"log"
 	"log/slog"
 	"net"
 	"os"
@@ -84,6 +83,11 @@ type Config struct {
 	LogLevel slog.Level `help:"the logging level courier should use"`
 	UUIDSeed int        `help:"seed to use for UUID generation in a testing environment"`
 	Version  string     `help:"the version of this mailroom install"`
+
+	// parsed values that can't be set directly
+	DisallowedIPs          []net.IP
+	DisallowedNets         []*net.IPNet
+	IDObfuscationKeyParsed [4]uint32
 }
 
 // NewDefaultConfig returns a new default configuration object
@@ -145,52 +149,61 @@ func NewDefaultConfig() *Config {
 	}
 }
 
-func LoadConfig() *Config {
-	config := NewDefaultConfig()
-	loader := ezconf.NewLoader(config, "mailroom", "Mailroom - handler for RapidPro", []string{"mailroom.toml"})
-	loader.MustLoad()
+func LoadConfig(args ...string) (*Config, error) {
+	c := NewDefaultConfig()
+	loader := ezconf.NewLoader(c, "mailroom", "Mailroom - handler for RapidPro", []string{"mailroom.toml"})
+	if len(args) > 0 { // allow tests to pass in args
+		loader.SetArgs(args...)
+	}
+	if err := loader.Load(); err != nil {
+		return nil, fmt.Errorf("error loading configuration: %w", err)
+	}
 
+	if err := c.Parse(); err != nil {
+		return nil, err
+	}
+
+	return c, nil
+}
+
+func (c *Config) Parse() error {
 	// ensure config is valid
-	if err := config.Validate(); err != nil {
-		log.Fatalf("invalid config: %s", err)
-	}
-
-	return config
-}
-
-// Validate validates the config
-func (c *Config) Validate() error {
 	if err := utils.Validate(c); err != nil {
-		return err
+		return fmt.Errorf("invalid configuration: %w", err)
 	}
 
-	if _, _, err := c.ParseDisallowedNetworks(); err != nil {
-		return fmt.Errorf("unable to parse 'DisallowedNetworks': %w", err)
-	}
-	return nil
-}
-
-// ParseDisallowedNetworks parses the list of IPs and IP networks (written in CIDR notation)
-func (c *Config) ParseDisallowedNetworks() ([]net.IP, []*net.IPNet, error) {
-	addrs, err := csv.NewReader(strings.NewReader(c.DisallowedNetworks)).Read()
-	if err != nil && err != io.EOF {
-		return nil, nil, err
+	// parse our disallowed networks
+	if err := c.parseDisallowedNetworks(); err != nil {
+		return fmt.Errorf("invalid disallowed networks: %w", err)
 	}
 
-	return httpx.ParseNetworks(addrs...)
-}
-
-func (c *Config) ParseIDObfuscationKey() [4]uint32 {
+	// parse our ID obfuscation key
 	bytes, err := hex.DecodeString(c.IDObfuscationKey)
 	if err != nil {
-		panic(fmt.Sprintf("invalid hex string: %v", err))
+		return fmt.Errorf("invalid hex string: %v", err)
 	}
 
 	var key [4]uint32
-	for i := range 4 {
-		// Convert 4 bytes to uint32 (big endian)
+	for i := range 4 { // convert 4 bytes to uint32 (big endian)
 		key[i] = uint32(bytes[i*4])<<24 | uint32(bytes[i*4+1])<<16 | uint32(bytes[i*4+2])<<8 | uint32(bytes[i*4+3])
 	}
+	c.IDObfuscationKeyParsed = key
 
-	return key
+	return nil
+}
+
+// parses the list of IPs and IP networks (written in CIDR notation)
+func (c *Config) parseDisallowedNetworks() error {
+	addrs, err := csv.NewReader(strings.NewReader(c.DisallowedNetworks)).Read()
+	if err != nil && err != io.EOF {
+		return err
+	}
+
+	ips, nets, err := httpx.ParseNetworks(addrs...)
+	if err != nil {
+		return err
+	}
+	c.DisallowedIPs = ips
+	c.DisallowedNets = nets
+	return nil
 }

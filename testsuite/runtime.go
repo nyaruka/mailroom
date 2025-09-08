@@ -83,6 +83,9 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 	cfg.DynamoTablePrefix = "Test"
 	cfg.SpoolDir = absPath("./_test_spool")
 
+	err := cfg.Parse()
+	require.NoError(t, err)
+
 	rt, err := runtime.NewRuntime(cfg)
 	require.NoError(t, err)
 

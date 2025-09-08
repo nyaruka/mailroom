@@ -57,7 +57,11 @@ var (
 )
 
 func main() {
-	cfg := runtime.LoadConfig()
+	cfg, err := runtime.LoadConfig()
+	if err != nil {
+		slog.Error("error creating runtime", "error", err)
+		os.Exit(1)
+	}
 	cfg.Version = version
 
 	// configure our logger
