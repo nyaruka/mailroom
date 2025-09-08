@@ -1,3 +1,7 @@
+v10.3.62 (2025-09-08)
+-------------------------
+ * Rework config loading so that parsing of derived values happens at load time
+
 v10.3.61 (2025-09-05)
 -------------------------
  * Support contact queries by ref
