@@ -24,7 +24,8 @@ type Scene struct {
 	Call        *flows.Call
 	StartID     models.StartID
 	IncomingMsg *models.MsgInRef
-	Tickets     []*models.Ticket
+	DBTickets   []*models.Ticket
+	Tickets     []*flows.Ticket
 
 	// optional state set during processing
 	DBSession           *models.Session
@@ -73,13 +74,13 @@ func (s *Scene) SprintUUID() flows.SprintUUID {
 	return s.Sprint.UUID()
 }
 
-func (s *Scene) FindTicket(uuid flows.TicketUUID) *models.Ticket {
-	for _, t := range s.Tickets {
+func (s *Scene) FindTicket(uuid flows.TicketUUID) (*models.Ticket, *flows.Ticket) {
+	for i, t := range s.DBTickets {
 		if t.UUID == uuid {
-			return t
+			return t, s.Tickets[i]
 		}
 	}
-	return nil
+	return nil, nil
 }
 
 // LocateEvent finds the flow and node UUID for an event belonging to this session
@@ -223,6 +224,31 @@ func (s *Scene) ApplyModifier(ctx context.Context, rt *runtime.Runtime, oa *mode
 	}
 
 	return evts, nil
+}
+
+func (s *Scene) ApplyTicketModifier(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, mod flows.TicketModifier, userID models.UserID) ([]*models.Ticket, error) {
+	env := flows.NewAssetsEnvironment(oa.Env(), oa.SessionAssets())
+	eng := goflow.Engine(rt)
+
+	evts := make([]flows.Event, 0)
+	eventLog := func(e flows.Event) { evts = append(evts, e) }
+	changed := make([]*models.Ticket, 0, len(s.Tickets))
+
+	for i, ticket := range s.Tickets {
+		if mod.Apply(eng, env, oa.SessionAssets(), s.Contact, ticket, eventLog) {
+			changed = append(changed, s.DBTickets[i])
+		}
+	}
+
+	// TODO limit user crediting to only the first event? We might have contact_groups_changed events here from changing contact fields etc.
+
+	for _, e := range evts {
+		if err := s.AddEvent(ctx, rt, oa, e, userID); err != nil {
+			return nil, fmt.Errorf("error adding modifier events for contact %s: %w", s.Contact.UUID(), err)
+		}
+	}
+
+	return changed, nil
 }
 
 // AttachPreCommitHook adds an item to be handled by the given pre commit hook

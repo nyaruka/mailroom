@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/nyaruka/goflow/flows/modifiers/tickets"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/runner"
-	"github.com/nyaruka/mailroom/core/tickets"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/mailroom/web"
 )
@@ -36,7 +36,7 @@ func handleAddNote(ctx context.Context, rt *runtime.Runtime, r *addNoteRequest) 
 		return nil, 0, fmt.Errorf("unable to load org assets: %w", err)
 	}
 
-	mod := tickets.NewNoteModifier(oa, r.Note)
+	mod := tickets.NewNote(r.Note)
 
 	scenes, err := createTicketScenes(ctx, rt, oa, r.TicketIDs)
 	if err != nil {
@@ -46,7 +46,7 @@ func handleAddNote(ctx context.Context, rt *runtime.Runtime, r *addNoteRequest) 
 	changed := make([]*models.Ticket, 0, len(scenes))
 
 	for _, scene := range scenes {
-		chg, err := ApplyTicketModifier(ctx, rt, oa, scene, mod, r.UserID)
+		chg, err := scene.ApplyTicketModifier(ctx, rt, oa, mod, r.UserID)
 		if err != nil {
 			return nil, 0, fmt.Errorf("error applying ticket modifier to scene: %w", err)
 		}

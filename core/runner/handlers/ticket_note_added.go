@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 
+	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/mailroom/core/models"
@@ -21,17 +22,19 @@ func handleTicketNoteAdded(ctx context.Context, rt *runtime.Runtime, oa *models.
 
 	slog.Debug("ticket note added", "contact", scene.ContactUUID(), "session", scene.SessionUUID(), "ticket", event.TicketUUID)
 
-	ticket := scene.FindTicket(event.TicketUUID)
+	dbTicket, ticket := scene.FindTicket(event.TicketUUID)
 	if ticket == nil {
 		return nil
 	}
 
-	scene.AttachPreCommitHook(hooks.UpdateTickets, ticket) // last_activity_on will have been updated
-	scene.AttachPreCommitHook(hooks.InsertLegacyTicketEvents, models.NewTicketNoteAddedEvent(event.UUID(), ticket, userID, event.Note))
+	dbTicket.LastActivityOn = dates.Now()
+
+	scene.AttachPreCommitHook(hooks.UpdateTickets, dbTicket)
+	scene.AttachPreCommitHook(hooks.InsertLegacyTicketEvents, models.NewTicketNoteAddedEvent(event.UUID(), dbTicket, userID, event.Note))
 
 	// notify ticket assignee if they didn't add note themselves
-	if ticket.AssigneeID != models.NilUserID && ticket.AssigneeID != userID {
-		scene.AttachPreCommitHook(hooks.InsertNotifications, models.NewTicketActivityNotification(oa.OrgID(), ticket.AssigneeID))
+	if dbTicket.AssigneeID != models.NilUserID && dbTicket.AssigneeID != userID {
+		scene.AttachPreCommitHook(hooks.InsertNotifications, models.NewTicketActivityNotification(oa.OrgID(), dbTicket.AssigneeID))
 	}
 
 	return nil

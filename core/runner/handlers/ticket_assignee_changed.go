@@ -22,7 +22,7 @@ func handleTicketAssigneeChanged(ctx context.Context, rt *runtime.Runtime, oa *m
 
 	slog.Debug("ticket assignee changed", "contact", scene.ContactUUID(), "session", scene.SessionUUID(), "ticket", event.TicketUUID)
 
-	ticket := scene.FindTicket(event.TicketUUID)
+	dbTicket, ticket := scene.FindTicket(event.TicketUUID)
 	if ticket == nil {
 		return nil
 	}
@@ -36,12 +36,14 @@ func handleTicketAssigneeChanged(ctx context.Context, rt *runtime.Runtime, oa *m
 		}
 	}
 
-	scene.AttachPreCommitHook(hooks.UpdateTickets, ticket)
-	scene.AttachPreCommitHook(hooks.InsertLegacyTicketEvents, models.NewTicketAssignedEvent(event.UUID(), ticket, userID, assigneeID))
+	dbTicket.AssigneeID = assigneeID
+
+	scene.AttachPreCommitHook(hooks.UpdateTickets, dbTicket)
+	scene.AttachPreCommitHook(hooks.InsertLegacyTicketEvents, models.NewTicketAssignedEvent(event.UUID(), dbTicket, userID, assigneeID))
 
 	// notify ticket assignee if they didn't self-assign
-	if ticket.AssigneeID != models.NilUserID && ticket.AssigneeID != userID {
-		scene.AttachPreCommitHook(hooks.InsertNotifications, models.NewTicketActivityNotification(oa.OrgID(), ticket.AssigneeID))
+	if dbTicket.AssigneeID != models.NilUserID && dbTicket.AssigneeID != userID {
+		scene.AttachPreCommitHook(hooks.InsertNotifications, models.NewTicketActivityNotification(oa.OrgID(), dbTicket.AssigneeID))
 	}
 
 	// if this is an initial assignment record count for user
