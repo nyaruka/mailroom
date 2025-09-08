@@ -32,7 +32,7 @@ func HTTP(cfg *runtime.Config) (*http.Client, *httpx.AccessConfig) {
 			Timeout:   time.Duration(cfg.WebhooksTimeout) * time.Millisecond,
 		}
 
-		disallowedIPs, disallowedNets, _ := cfg.ParseDisallowedNetworks()
+		disallowedIPs, disallowedNets := cfg.DisallowedIPs, cfg.DisallowedNets
 		httpAccess = httpx.NewAccessConfig(10*time.Second, disallowedIPs, disallowedNets)
 	})
 	return httpClient, httpAccess

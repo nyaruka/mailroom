@@ -21,7 +21,11 @@ import (
 // go install github.com/nyaruka/mailroom/cmd/mrllmtests; mrllmtests
 func main() {
 	ctx := context.TODO()
-	cfg := runtime.LoadConfig()
+	cfg, err := runtime.LoadConfig()
+	if err != nil {
+		slog.Error("error creating runtime", "error", err)
+		os.Exit(1)
+	}
 
 	slog.SetDefault(slog.New(slog.DiscardHandler)) // disable logging
 
