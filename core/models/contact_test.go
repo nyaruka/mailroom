@@ -28,11 +28,11 @@ func TestContacts(t *testing.T) {
 	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
 	// for now it's still possible to have more than one open ticket in the database
-	testdb.InsertOpenTicket(rt, testdb.Org1, testdb.Cathy, testdb.SupportTopic, time.Now(), testdb.Agent)
-	testdb.InsertOpenTicket(rt, testdb.Org1, testdb.Cathy, testdb.SalesTopic, time.Now(), nil)
+	testdb.InsertOpenTicket(rt, "01992f54-5ab6-717a-a39e-e8ca91fb7262", testdb.Org1, testdb.Cathy, testdb.SupportTopic, time.Now(), testdb.Agent)
+	testdb.InsertOpenTicket(rt, "01992f54-5ab6-725e-be9c-0c6407efd755", testdb.Org1, testdb.Cathy, testdb.SalesTopic, time.Now(), nil)
 
 	testdb.InsertContactURN(rt, testdb.Org1, testdb.Bob, "whatsapp:250788373373", 999, nil)
-	testdb.InsertOpenTicket(rt, testdb.Org1, testdb.Bob, testdb.DefaultTopic, time.Now(), testdb.Editor)
+	testdb.InsertOpenTicket(rt, "01992f54-5ab6-7498-a7f2-6aa246e45cfe", testdb.Org1, testdb.Bob, testdb.DefaultTopic, time.Now(), testdb.Editor)
 
 	org, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshAll)
 	assert.NoError(t, err)

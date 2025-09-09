@@ -51,7 +51,7 @@ type Group struct {
 
 func (g *Group) Add(rt *runtime.Runtime, contacts ...*Contact) {
 	for _, c := range contacts {
-		rt.DB.MustExec(`INSERT INTO contacts_contactgroup_contacts(contactgroup_id, contact_id) VALUES($1, $2)`, g.ID, c.ID)
+		rt.DB.MustExec(`INSERT INTO contacts_contactgroup_contacts(contactgroup_id, contact_id) VALUES($1, $2) ON CONFLICT DO NOTHING`, g.ID, c.ID)
 	}
 }
 

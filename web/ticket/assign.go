@@ -6,7 +6,8 @@ import (
 	"net/http"
 
 	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/goflow/flows/modifiers/tickets"
+	"github.com/nyaruka/goflow/flows/events"
+	"github.com/nyaruka/goflow/flows/modifiers"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/runner"
 	"github.com/nyaruka/mailroom/runtime"
@@ -44,22 +45,27 @@ func handleAssign(ctx context.Context, rt *runtime.Runtime, r *assignRequest) (a
 		}
 	}
 
-	mod := tickets.NewAssignee(user)
+	mod := modifiers.NewTicketAssignee(user)
 
 	scenes, err := createTicketScenes(ctx, rt, oa, r.TicketIDs)
 	if err != nil {
 		return nil, 0, fmt.Errorf("error creating scenes for tickets: %w", err)
 	}
 
-	changed := make([]*models.Ticket, 0, len(scenes))
+	changed := make([]flows.TicketUUID, 0, len(scenes))
 
 	for _, scene := range scenes {
-		chg, err := scene.ApplyTicketModifier(ctx, rt, oa, mod, r.UserID)
+		evts, err := scene.ApplyModifier(ctx, rt, oa, mod, r.UserID)
 		if err != nil {
 			return nil, 0, fmt.Errorf("error applying ticket modifier to scene: %w", err)
 		}
 
-		changed = append(changed, chg...)
+		for _, e := range evts {
+			switch typed := e.(type) {
+			case *events.TicketAssigneeChanged:
+				changed = append(changed, typed.TicketUUID)
+			}
+		}
 	}
 
 	if err := runner.BulkCommit(ctx, rt, oa, scenes); err != nil {

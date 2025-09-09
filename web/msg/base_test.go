@@ -15,7 +15,7 @@ func TestSend(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetValkey)
 
-	testdb.InsertOpenTicket(rt, testdb.Org1, testdb.Cathy, testdb.DefaultTopic, time.Date(2015, 1, 1, 12, 30, 45, 0, time.UTC), nil)
+	testdb.InsertOpenTicket(rt, "01992f54-5ab6-717a-a39e-e8ca91fb7262", testdb.Org1, testdb.Cathy, testdb.DefaultTopic, time.Date(2015, 1, 1, 12, 30, 45, 0, time.UTC), nil)
 
 	testsuite.RunWebTests(t, ctx, rt, "testdata/send.json", testsuite.ResetNone)
 

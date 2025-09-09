@@ -20,7 +20,8 @@ type bulkTicketRequest struct {
 }
 
 type bulkTicketResponse struct {
-	ChangedIDs []models.TicketID `json:"changed_ids"`
+	ChangedUUIDs []flows.TicketUUID `json:"changed_uuids,omitempty"`
+	ChangedIDs   []models.TicketID  `json:"changed_ids,omitempty"` // deprecated
 }
 
 func newLegacyBulkResponse(changed map[*models.Ticket]*models.TicketEvent) *bulkTicketResponse {
@@ -34,15 +35,10 @@ func newLegacyBulkResponse(changed map[*models.Ticket]*models.TicketEvent) *bulk
 	return &bulkTicketResponse{ChangedIDs: ids}
 }
 
-func newBulkResponse(changed []*models.Ticket) *bulkTicketResponse {
-	ids := make([]models.TicketID, len(changed))
-	for i, t := range changed {
-		ids[i] = t.ID
-	}
+func newBulkResponse(changed []flows.TicketUUID) *bulkTicketResponse {
+	slices.Sort(changed)
 
-	slices.Sort(ids)
-
-	return &bulkTicketResponse{ChangedIDs: ids}
+	return &bulkTicketResponse{ChangedUUIDs: changed}
 }
 
 func createTicketScenes(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, ticketIDs []models.TicketID) ([]*runner.Scene, error) {

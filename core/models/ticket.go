@@ -85,7 +85,7 @@ func (t *Ticket) EngineTicket(oa *OrgAssets) *flows.Ticket {
 		}
 	}
 
-	return flows.NewTicket(t.UUID, ticketStatusMap[t.Status], topic, assignee, t.LastActivityOn)
+	return flows.NewTicket(t.UUID, ticketStatusMap[t.Status], topic, assignee)
 }
 
 const sqlSelectLastOpenTicket = `

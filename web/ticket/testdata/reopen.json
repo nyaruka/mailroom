@@ -46,9 +46,7 @@
             ]
         },
         "status": 200,
-        "response": {
-            "changed_ids": []
-        },
+        "response": {},
         "db_assertions": [
             {
                 "query": "SELECT count(*) FROM tickets_ticket WHERE status = 'O'",

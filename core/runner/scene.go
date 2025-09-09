@@ -213,7 +213,17 @@ func (s *Scene) ApplyModifier(ctx context.Context, rt *runtime.Runtime, oa *mode
 	eng := goflow.Engine(rt)
 
 	evts := make([]flows.Event, 0)
-	modifiers.Apply(eng, env, oa.SessionAssets(), s.Contact, mod, func(e flows.Event) { evts = append(evts, e) })
+	evtLog := func(e flows.Event) { evts = append(evts, e) }
+
+	if s.Tickets != nil {
+		// if we have tickets, apply modifier to each one individually
+		for _, t := range s.Tickets {
+			modifiers.Apply(eng, env, oa.SessionAssets(), s.Contact, t, mod, evtLog)
+		}
+	} else {
+		// otherwise apply modifier to contact only
+		modifiers.Apply(eng, env, oa.SessionAssets(), s.Contact, nil, mod, evtLog)
+	}
 
 	// TODO limit user crediting to only the first event? We might have contact_groups_changed events here from changing contact fields etc.
 
@@ -224,31 +234,6 @@ func (s *Scene) ApplyModifier(ctx context.Context, rt *runtime.Runtime, oa *mode
 	}
 
 	return evts, nil
-}
-
-func (s *Scene) ApplyTicketModifier(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, mod flows.TicketModifier, userID models.UserID) ([]*models.Ticket, error) {
-	env := flows.NewAssetsEnvironment(oa.Env(), oa.SessionAssets())
-	eng := goflow.Engine(rt)
-
-	evts := make([]flows.Event, 0)
-	eventLog := func(e flows.Event) { evts = append(evts, e) }
-	changed := make([]*models.Ticket, 0, len(s.Tickets))
-
-	for i, ticket := range s.Tickets {
-		if mod.Apply(eng, env, oa.SessionAssets(), s.Contact, ticket, eventLog) {
-			changed = append(changed, s.DBTickets[i])
-		}
-	}
-
-	// TODO limit user crediting to only the first event? We might have contact_groups_changed events here from changing contact fields etc.
-
-	for _, e := range evts {
-		if err := s.AddEvent(ctx, rt, oa, e, userID); err != nil {
-			return nil, fmt.Errorf("error adding modifier events for contact %s: %w", s.Contact.UUID(), err)
-		}
-	}
-
-	return changed, nil
 }
 
 // AttachPreCommitHook adds an item to be handled by the given pre commit hook

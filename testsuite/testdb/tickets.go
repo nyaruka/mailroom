@@ -33,18 +33,16 @@ func (k *Ticket) Load(rt *runtime.Runtime) *models.Ticket {
 }
 
 // InsertOpenTicket inserts an open ticket
-func InsertOpenTicket(rt *runtime.Runtime, org *Org, contact *Contact, topic *Topic, openedOn time.Time, assignee *User) *Ticket {
-	return insertTicket(rt, org, contact, models.TicketStatusOpen, topic, openedOn, assignee)
+func InsertOpenTicket(rt *runtime.Runtime, uuid flows.TicketUUID, org *Org, contact *Contact, topic *Topic, openedOn time.Time, assignee *User) *Ticket {
+	return insertTicket(rt, uuid, org, contact, models.TicketStatusOpen, topic, openedOn, assignee)
 }
 
 // InsertClosedTicket inserts a closed ticket
-func InsertClosedTicket(rt *runtime.Runtime, org *Org, contact *Contact, topic *Topic, assignee *User) *Ticket {
-	return insertTicket(rt, org, contact, models.TicketStatusClosed, topic, dates.Now(), assignee)
+func InsertClosedTicket(rt *runtime.Runtime, uuid flows.TicketUUID, org *Org, contact *Contact, topic *Topic, assignee *User) *Ticket {
+	return insertTicket(rt, uuid, org, contact, models.TicketStatusClosed, topic, dates.Now(), assignee)
 }
 
-func insertTicket(rt *runtime.Runtime, org *Org, contact *Contact, status models.TicketStatus, topic *Topic, openedOn time.Time, assignee *User) *Ticket {
-	uuid := flows.NewTicketUUID()
-
+func insertTicket(rt *runtime.Runtime, uuid flows.TicketUUID, org *Org, contact *Contact, status models.TicketStatus, topic *Topic, openedOn time.Time, assignee *User) *Ticket {
 	lastActivityOn := openedOn
 	var closedOn *time.Time
 	if status == models.TicketStatusClosed {
