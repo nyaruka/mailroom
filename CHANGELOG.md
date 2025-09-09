@@ -1,3 +1,8 @@
+v10.3.64 (2025-09-09)
+-------------------------
+ * Tweak loading contacts to load all open tickets
+ * Switch to ticket modifiers in goflow itself
+
 v10.3.63 (2025-09-08)
 -------------------------
  * Update to latest goflow that deprecates contact.id
