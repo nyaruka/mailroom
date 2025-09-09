@@ -88,39 +88,6 @@ func (t *Ticket) EngineTicket(oa *OrgAssets) *flows.Ticket {
 	return flows.NewTicket(t.UUID, ticketStatusMap[t.Status], topic, assignee)
 }
 
-const sqlSelectLastOpenTicket = `
-SELECT
-  id,
-  uuid,
-  org_id,
-  contact_id,
-  status,
-  topic_id,
-  assignee_id,
-  opened_on,
-  opened_by_id,
-  opened_in_id,
-  replied_on,
-  modified_on,
-  closed_on,
-  last_activity_on
-    FROM tickets_ticket
-   WHERE contact_id = $1 AND status = 'O'
-ORDER BY opened_on DESC
-   LIMIT 1`
-
-// LoadOpenTicketForContact looks up the last opened open ticket for the passed in contact
-func LoadOpenTicketForContact(ctx context.Context, db *sqlx.DB, contact *Contact) (*Ticket, error) {
-	tickets, err := loadTickets(ctx, db, sqlSelectLastOpenTicket, contact.ID())
-	if err != nil {
-		return nil, err
-	}
-	if len(tickets) > 0 {
-		return tickets[0], nil
-	}
-	return nil, nil
-}
-
 const sqlSelectTicketsByID = `
 SELECT
   id,

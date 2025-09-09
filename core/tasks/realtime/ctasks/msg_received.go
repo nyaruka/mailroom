@@ -119,18 +119,11 @@ func (t *MsgReceivedTask) perform(ctx context.Context, rt *runtime.Runtime, oa *
 
 	contact.SetLastSeenOn(msgEvent.CreatedOn())
 
-	// look up any open tickes for this contact and forward this message to that
-	ticket, err := models.LoadOpenTicketForContact(ctx, rt.DB, mc)
-	if err != nil {
-		return fmt.Errorf("unable to look up open tickets for contact: %w", err)
-	}
-
 	scene := runner.NewScene(mc, contact)
 	scene.IncomingMsg = &models.MsgInRef{
 		ID:          t.MsgID,
 		ExtID:       t.MsgExternalID,
 		Attachments: attachments,
-		Ticket:      ticket,
 		LogUUIDs:    logUUIDs,
 	}
 	if err := scene.AddEvent(ctx, rt, oa, msgEvent, models.NilUserID); err != nil {

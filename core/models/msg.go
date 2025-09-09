@@ -124,7 +124,6 @@ type MsgInRef struct {
 	ID          MsgID
 	ExtID       string
 	Attachments []utils.Attachment
-	Ticket      *Ticket
 	LogUUIDs    []clogs.UUID
 }
 
