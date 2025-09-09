@@ -24,7 +24,8 @@ type Scene struct {
 	Call        *flows.Call
 	StartID     models.StartID
 	IncomingMsg *models.MsgInRef
-	Tickets     []*models.Ticket
+	DBTickets   []*models.Ticket
+	Tickets     []*flows.Ticket
 
 	// optional state set during processing
 	DBSession           *models.Session
@@ -73,13 +74,13 @@ func (s *Scene) SprintUUID() flows.SprintUUID {
 	return s.Sprint.UUID()
 }
 
-func (s *Scene) FindTicket(uuid flows.TicketUUID) *models.Ticket {
-	for _, t := range s.Tickets {
+func (s *Scene) FindTicket(uuid flows.TicketUUID) (*models.Ticket, *flows.Ticket) {
+	for i, t := range s.DBTickets {
 		if t.UUID == uuid {
-			return t
+			return t, s.Tickets[i]
 		}
 	}
-	return nil
+	return nil, nil
 }
 
 // LocateEvent finds the flow and node UUID for an event belonging to this session
@@ -212,7 +213,17 @@ func (s *Scene) ApplyModifier(ctx context.Context, rt *runtime.Runtime, oa *mode
 	eng := goflow.Engine(rt)
 
 	evts := make([]flows.Event, 0)
-	modifiers.Apply(eng, env, oa.SessionAssets(), s.Contact, mod, func(e flows.Event) { evts = append(evts, e) })
+	evtLog := func(e flows.Event) { evts = append(evts, e) }
+
+	if s.Tickets != nil {
+		// if we have tickets, apply modifier to each one individually
+		for _, t := range s.Tickets {
+			modifiers.Apply(eng, env, oa.SessionAssets(), s.Contact, t, mod, evtLog)
+		}
+	} else {
+		// otherwise apply modifier to contact only
+		modifiers.Apply(eng, env, oa.SessionAssets(), s.Contact, nil, mod, evtLog)
+	}
 
 	// TODO limit user crediting to only the first event? We might have contact_groups_changed events here from changing contact fields etc.
 

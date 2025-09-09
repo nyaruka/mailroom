@@ -32,6 +32,11 @@ const (
 	TicketStatusClosed = TicketStatus("C")
 )
 
+var ticketStatusMap = map[TicketStatus]flows.TicketStatus{
+	TicketStatusOpen:   flows.TicketStatusOpen,
+	TicketStatusClosed: flows.TicketStatusClosed,
+}
+
 type Ticket struct {
 	ID             TicketID         `db:"id"`
 	UUID           flows.TicketUUID `db:"uuid"`
@@ -80,7 +85,7 @@ func (t *Ticket) EngineTicket(oa *OrgAssets) *flows.Ticket {
 		}
 	}
 
-	return flows.NewTicket(t.UUID, topic, assignee)
+	return flows.NewTicket(t.UUID, ticketStatusMap[t.Status], topic, assignee)
 }
 
 const sqlSelectLastOpenTicket = `

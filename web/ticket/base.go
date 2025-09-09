@@ -10,7 +10,6 @@ import (
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/runner"
-	"github.com/nyaruka/mailroom/core/tickets"
 	"github.com/nyaruka/mailroom/runtime"
 )
 
@@ -21,7 +20,8 @@ type bulkTicketRequest struct {
 }
 
 type bulkTicketResponse struct {
-	ChangedIDs []models.TicketID `json:"changed_ids"`
+	ChangedUUIDs []flows.TicketUUID `json:"changed_uuids,omitempty"`
+	ChangedIDs   []models.TicketID  `json:"changed_ids,omitempty"` // deprecated
 }
 
 func newLegacyBulkResponse(changed map[*models.Ticket]*models.TicketEvent) *bulkTicketResponse {
@@ -35,15 +35,10 @@ func newLegacyBulkResponse(changed map[*models.Ticket]*models.TicketEvent) *bulk
 	return &bulkTicketResponse{ChangedIDs: ids}
 }
 
-func newBulkResponse(changed []*models.Ticket) *bulkTicketResponse {
-	ids := make([]models.TicketID, len(changed))
-	for i, t := range changed {
-		ids[i] = t.ID
-	}
+func newBulkResponse(changed []flows.TicketUUID) *bulkTicketResponse {
+	slices.Sort(changed)
 
-	slices.Sort(ids)
-
-	return &bulkTicketResponse{ChangedIDs: ids}
+	return &bulkTicketResponse{ChangedUUIDs: changed}
 }
 
 func createTicketScenes(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, ticketIDs []models.TicketID) ([]*runner.Scene, error) {
@@ -52,9 +47,12 @@ func createTicketScenes(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 		return nil, fmt.Errorf("error loading tickets: %w", err)
 	}
 
-	byContact := make(map[models.ContactID][]*models.Ticket, 10)
+	dbByContact := make(map[models.ContactID][]*models.Ticket, 10)
+	byContact := make(map[models.ContactID][]*flows.Ticket, 10)
+
 	for _, t := range tickets {
-		byContact[t.ContactID] = append(byContact[t.ContactID], t)
+		dbByContact[t.ContactID] = append(dbByContact[t.ContactID], t)
+		byContact[t.ContactID] = append(byContact[t.ContactID], t.EngineTicket(oa))
 	}
 
 	scenes, err := runner.CreateScenes(ctx, rt, oa, slices.Collect(maps.Keys(byContact)))
@@ -63,25 +61,9 @@ func createTicketScenes(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 	}
 
 	for _, s := range scenes {
+		s.DBTickets = dbByContact[s.ContactID()]
 		s.Tickets = byContact[s.ContactID()]
 	}
 
 	return scenes, nil
-}
-
-func ApplyTicketModifier(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scene *runner.Scene, mod tickets.TicketModifier, userID models.UserID) (changed []*models.Ticket, err error) {
-	for _, ticket := range scene.Tickets {
-		evts := make([]flows.Event, 0)
-
-		if mod(ticket, func(e flows.Event) { evts = append(evts, e) }) {
-			changed = append(changed, ticket)
-		}
-
-		for _, evt := range evts {
-			if err := scene.AddEvent(ctx, rt, oa, evt, userID); err != nil {
-				return nil, fmt.Errorf("error adding event to scene: %w", err)
-			}
-		}
-	}
-	return changed, nil
 }

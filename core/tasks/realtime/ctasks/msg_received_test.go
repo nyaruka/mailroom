@@ -47,18 +47,18 @@ func TestMsgReceivedTask(t *testing.T) {
 	// give Cathy, Bob and the blocked contact some tickets...
 	openTickets := map[*testdb.Contact][]*testdb.Ticket{
 		testdb.Cathy: {
-			testdb.InsertOpenTicket(rt, testdb.Org1, testdb.Cathy, testdb.DefaultTopic, time.Now(), nil),
+			testdb.InsertOpenTicket(rt, "01992f54-5ab6-717a-a39e-e8ca91fb7262", testdb.Org1, testdb.Cathy, testdb.DefaultTopic, time.Now(), nil),
 		},
 		blocked: {
-			testdb.InsertOpenTicket(rt, testdb.Org1, blocked, testdb.DefaultTopic, time.Now(), nil),
+			testdb.InsertOpenTicket(rt, "01992f54-5ab6-725e-be9c-0c6407efd755", testdb.Org1, blocked, testdb.DefaultTopic, time.Now(), nil),
 		},
 	}
 	closedTickets := map[*testdb.Contact][]*testdb.Ticket{
 		testdb.Cathy: {
-			testdb.InsertClosedTicket(rt, testdb.Org1, testdb.Cathy, testdb.DefaultTopic, nil),
+			testdb.InsertClosedTicket(rt, "01992f54-5ab6-7498-a7f2-6aa246e45cfe", testdb.Org1, testdb.Cathy, testdb.DefaultTopic, nil),
 		},
 		testdb.Bob: {
-			testdb.InsertClosedTicket(rt, testdb.Org1, testdb.Bob, testdb.DefaultTopic, nil),
+			testdb.InsertClosedTicket(rt, "01992f54-5ab6-7658-a5d4-bdb05863ec56", testdb.Org1, testdb.Bob, testdb.DefaultTopic, nil),
 		},
 	}
 

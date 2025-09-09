@@ -98,7 +98,7 @@ func TestUpdateTicketLastActivity(t *testing.T) {
 	defer dates.SetNowFunc(time.Now)
 	dates.SetNowFunc(dates.NewFixedNow(now))
 
-	ticket := testdb.InsertOpenTicket(rt, testdb.Org1, testdb.Cathy, testdb.DefaultTopic, time.Now(), nil)
+	ticket := testdb.InsertOpenTicket(rt, "01992f54-5ab6-717a-a39e-e8ca91fb7262", testdb.Org1, testdb.Cathy, testdb.DefaultTopic, time.Now(), nil)
 	modelTicket := ticket.Load(rt)
 
 	models.UpdateTicketLastActivity(ctx, rt.DB, []*models.Ticket{modelTicket})
@@ -113,9 +113,9 @@ func TestUpdateTickets(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
-	ticket1 := testdb.InsertClosedTicket(rt, testdb.Org1, testdb.Cathy, testdb.SalesTopic, nil).Load(rt)
-	ticket2 := testdb.InsertOpenTicket(rt, testdb.Org1, testdb.Cathy, testdb.SalesTopic, time.Now(), nil).Load(rt)
-	ticket3 := testdb.InsertOpenTicket(rt, testdb.Org1, testdb.Cathy, testdb.DefaultTopic, time.Now(), testdb.Admin).Load(rt)
+	ticket1 := testdb.InsertClosedTicket(rt, "01992f54-5ab6-717a-a39e-e8ca91fb7262", testdb.Org1, testdb.Cathy, testdb.SalesTopic, nil).Load(rt)
+	ticket2 := testdb.InsertOpenTicket(rt, "01992f54-5ab6-725e-be9c-0c6407efd755", testdb.Org1, testdb.Cathy, testdb.SalesTopic, time.Now(), nil).Load(rt)
+	ticket3 := testdb.InsertOpenTicket(rt, "01992f54-5ab6-7498-a7f2-6aa246e45cfe", testdb.Org1, testdb.Cathy, testdb.DefaultTopic, time.Now(), testdb.Admin).Load(rt)
 
 	assertTicket := func(tk *models.Ticket, cols map[string]any) {
 		assertdb.Query(t, rt.DB, `SELECT status, assignee_id, topic_id FROM tickets_ticket WHERE id = $1`, tk.ID).Columns(cols)
@@ -155,10 +155,10 @@ func TestCloseTickets(t *testing.T) {
 	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 	require.NoError(t, err)
 
-	ticket1 := testdb.InsertOpenTicket(rt, testdb.Org1, testdb.Cathy, testdb.DefaultTopic, time.Now(), nil)
+	ticket1 := testdb.InsertOpenTicket(rt, "01992f54-5ab6-717a-a39e-e8ca91fb7262", testdb.Org1, testdb.Cathy, testdb.DefaultTopic, time.Now(), nil)
 	modelTicket1 := ticket1.Load(rt)
 
-	ticket2 := testdb.InsertClosedTicket(rt, testdb.Org1, testdb.Cathy, testdb.DefaultTopic, nil)
+	ticket2 := testdb.InsertClosedTicket(rt, "01992f54-5ab6-725e-be9c-0c6407efd755", testdb.Org1, testdb.Cathy, testdb.DefaultTopic, nil)
 	modelTicket2 := ticket2.Load(rt)
 
 	_, cathy, _ := testdb.Cathy.Load(rt, oa)
@@ -190,7 +190,7 @@ func TestCloseTickets(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM tickets_ticketevent WHERE ticket_id = $1 AND event_type = 'C'`, ticket2.ID).Returns(0)
 
 	// can close tickets without a user
-	ticket3 := testdb.InsertOpenTicket(rt, testdb.Org1, testdb.Cathy, testdb.DefaultTopic, time.Now(), nil)
+	ticket3 := testdb.InsertOpenTicket(rt, "01992f54-5ab6-7498-a7f2-6aa246e45cfe", testdb.Org1, testdb.Cathy, testdb.DefaultTopic, time.Now(), nil)
 	modelTicket3 := ticket3.Load(rt)
 
 	evts, err = models.CloseTickets(ctx, rt, oa, models.NilUserID, []*models.Ticket{modelTicket3})
@@ -209,10 +209,10 @@ func TestReopenTickets(t *testing.T) {
 	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 	require.NoError(t, err)
 
-	ticket1 := testdb.InsertClosedTicket(rt, testdb.Org1, testdb.Cathy, testdb.DefaultTopic, nil)
+	ticket1 := testdb.InsertClosedTicket(rt, "01992f54-5ab6-717a-a39e-e8ca91fb7262", testdb.Org1, testdb.Cathy, testdb.DefaultTopic, nil)
 	modelTicket1 := ticket1.Load(rt)
 
-	ticket2 := testdb.InsertOpenTicket(rt, testdb.Org1, testdb.Cathy, testdb.DefaultTopic, time.Now(), nil)
+	ticket2 := testdb.InsertOpenTicket(rt, "01992f54-5ab6-725e-be9c-0c6407efd755", testdb.Org1, testdb.Cathy, testdb.DefaultTopic, time.Now(), nil)
 	modelTicket2 := ticket2.Load(rt)
 
 	evts, err := models.ReopenTickets(ctx, rt, oa, testdb.Admin.ID, []*models.Ticket{modelTicket1, modelTicket2})
@@ -250,7 +250,7 @@ func TestTicketRecordReply(t *testing.T) {
 	openedOn := time.Date(2022, 5, 17, 14, 21, 0, 0, time.UTC)
 	repliedOn := time.Date(2022, 5, 18, 15, 0, 0, 0, time.UTC)
 
-	ticket := testdb.InsertOpenTicket(rt, testdb.Org1, testdb.Cathy, testdb.DefaultTopic, openedOn, nil)
+	ticket := testdb.InsertOpenTicket(rt, "01992f54-5ab6-717a-a39e-e8ca91fb7262", testdb.Org1, testdb.Cathy, testdb.DefaultTopic, openedOn, nil)
 
 	err = models.RecordTicketReply(ctx, rt.DB, oa, ticket.ID, testdb.Agent.ID, repliedOn)
 	assert.NoError(t, err)

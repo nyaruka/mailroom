@@ -25,7 +25,7 @@ func TestTicketClosed(t *testing.T) {
 	// add a ticket closed trigger
 	testdb.InsertTicketClosedTrigger(rt, testdb.Org1, testdb.Favorites)
 
-	ticket := testdb.InsertClosedTicket(rt, testdb.Org1, testdb.Cathy, testdb.DefaultTopic, nil)
+	ticket := testdb.InsertClosedTicket(rt, "01992f54-5ab6-717a-a39e-e8ca91fb7262", testdb.Org1, testdb.Cathy, testdb.DefaultTopic, nil)
 	modelTicket := ticket.Load(rt)
 
 	models.NewTicketClosedEvent(flows.NewEventUUID(), modelTicket, testdb.Admin.ID)

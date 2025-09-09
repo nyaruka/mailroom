@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 
+	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/mailroom/core/models"
@@ -21,14 +22,17 @@ func handleTicketTopicChanged(ctx context.Context, rt *runtime.Runtime, oa *mode
 
 	slog.Debug("ticket topic changed", "contact", scene.ContactUUID(), "session", scene.SessionUUID(), "ticket", event.TicketUUID)
 
-	ticket := scene.FindTicket(event.TicketUUID)
+	dbTicket, ticket := scene.FindTicket(event.TicketUUID)
 	topic := oa.TopicByUUID(event.Topic.UUID)
 	if ticket == nil || topic == nil {
 		return nil
 	}
 
-	scene.AttachPreCommitHook(hooks.UpdateTickets, ticket)
-	scene.AttachPreCommitHook(hooks.InsertLegacyTicketEvents, models.NewTicketTopicChangedEvent(event.UUID(), ticket, userID, topic.ID()))
+	dbTicket.TopicID = topic.ID()
+	dbTicket.LastActivityOn = dates.Now()
+
+	scene.AttachPreCommitHook(hooks.UpdateTickets, dbTicket)
+	scene.AttachPreCommitHook(hooks.InsertLegacyTicketEvents, models.NewTicketTopicChangedEvent(event.UUID(), dbTicket, userID, topic.ID()))
 
 	return nil
 }
