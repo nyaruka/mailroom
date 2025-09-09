@@ -224,10 +224,9 @@ func (c *Contact) EngineContact(oa *OrgAssets) (*flows.Contact, error) {
 		}
 	}
 
-	// engine contacts only have a single open ticket
-	var ticket *flows.Ticket
-	if len(c.openTickets) > 0 {
-		ticket = c.openTickets[0].EngineTicket(oa)
+	tickets := make([]*flows.Ticket, len(c.openTickets))
+	for i, t := range c.openTickets {
+		tickets[i] = t.EngineTicket(oa)
 	}
 
 	// create our flow contact
@@ -244,7 +243,7 @@ func (c *Contact) EngineContact(oa *OrgAssets) (*flows.Contact, error) {
 		c.urns,
 		groups,
 		c.fields,
-		ticket,
+		tickets,
 		assets.IgnoreMissing,
 	)
 	if err != nil {
@@ -345,7 +344,15 @@ func LoadContacts(ctx context.Context, db Queryer, oa *OrgAssets, ids []ContactI
 
 		contact.openTickets = make([]*Ticket, len(e.Tickets))
 		for i, t := range e.Tickets {
-			contact.openTickets[i] = NewTicket(t.UUID, oa.OrgID(), NilUserID, NilFlowID, contact.ID(), t.TopicID, t.AssigneeID)
+			contact.openTickets[i] = &Ticket{
+				ID:         t.ID,
+				UUID:       t.UUID,
+				OrgID:      oa.OrgID(),
+				ContactID:  contact.ID(),
+				Status:     TicketStatusOpen,
+				TopicID:    t.TopicID,
+				AssigneeID: t.AssigneeID,
+			}
 		}
 
 		contacts = append(contacts, contact)
@@ -481,6 +488,7 @@ type contactEnvelope struct {
 	GroupIDs []GroupID    `json:"group_ids"`
 	URNs     []ContactURN `json:"urns"`
 	Tickets  []struct {
+		ID         TicketID         `json:"id"`
 		UUID       flows.TicketUUID `json:"uuid"`
 		TopicID    TopicID          `json:"topic_id"`
 		AssigneeID UserID           `json:"assignee_id"`
@@ -534,7 +542,7 @@ LEFT JOIN (
 	SELECT
 		contact_id,
 		array_agg(
-			json_build_object('uuid', t.uuid, 'topic_id', t.topic_id, 'assignee_id', t.assignee_id) ORDER BY t.opened_on DESC, t.id DESC
+			json_build_object('id', t.id, 'uuid', t.uuid, 'topic_id', t.topic_id, 'assignee_id', t.assignee_id) ORDER BY t.opened_on
 		) as tickets
 	FROM
 		tickets_ticket t

@@ -1518,18 +1518,20 @@
                                 "name": "Open Tickets"
                             }
                         ],
-                        "ticket": {
-                            "uuid": "01969b47-672b-76f8-aaa3-04d3fbce5f9a",
-                            "status": "open",
-                            "topic": {
-                                "uuid": "0a8f2e00-fef6-402c-bd79-d789446ec0e0",
-                                "name": "Support"
-                            },
-                            "assignee": {
-                                "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
-                                "name": "Andy Admin"
+                        "tickets": [
+                            {
+                                "uuid": "01969b47-672b-76f8-aaa3-04d3fbce5f9a",
+                                "status": "open",
+                                "topic": {
+                                    "uuid": "0a8f2e00-fef6-402c-bd79-d789446ec0e0",
+                                    "name": "Support"
+                                },
+                                "assignee": {
+                                    "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
+                                    "name": "Andy Admin"
+                                }
                             }
-                        }
+                        ]
                     },
                     "events": [
                         {
@@ -1635,18 +1637,20 @@
                                 "name": "Testers"
                             }
                         ],
-                        "ticket": {
-                            "uuid": "01969b47-672b-76f8-aaa3-04d3fbce5f9a",
-                            "status": "open",
-                            "topic": {
-                                "uuid": "0a8f2e00-fef6-402c-bd79-d789446ec0e0",
-                                "name": "Support"
-                            },
-                            "assignee": {
-                                "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
-                                "name": "Andy Admin"
+                        "tickets": [
+                            {
+                                "uuid": "01969b47-672b-76f8-aaa3-04d3fbce5f9a",
+                                "status": "open",
+                                "topic": {
+                                    "uuid": "0a8f2e00-fef6-402c-bd79-d789446ec0e0",
+                                    "name": "Support"
+                                },
+                                "assignee": {
+                                    "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
+                                    "name": "Andy Admin"
+                                }
                             }
-                        }
+                        ]
                     },
                     "events": [
                         {
@@ -1737,18 +1741,20 @@
                                 "name": "Testers"
                             }
                         ],
-                        "ticket": {
-                            "uuid": "01969b47-672b-76f8-aaa3-04d3fbce5f9a",
-                            "status": "open",
-                            "topic": {
-                                "uuid": "0a8f2e00-fef6-402c-bd79-d789446ec0e0",
-                                "name": "Support"
-                            },
-                            "assignee": {
-                                "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
-                                "name": "Andy Admin"
+                        "tickets": [
+                            {
+                                "uuid": "01969b47-672b-76f8-aaa3-04d3fbce5f9a",
+                                "status": "open",
+                                "topic": {
+                                    "uuid": "0a8f2e00-fef6-402c-bd79-d789446ec0e0",
+                                    "name": "Support"
+                                },
+                                "assignee": {
+                                    "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
+                                    "name": "Andy Admin"
+                                }
                             }
-                        }
+                        ]
                     },
                     "events": [
                         {

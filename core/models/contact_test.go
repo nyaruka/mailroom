@@ -61,9 +61,9 @@ func TestContacts(t *testing.T) {
 	assert.Equal(t, len(cathy.URNs()), 1)
 	assert.Equal(t, cathy.URNs()[0].String(), "tel:+16055741111?id=10000")
 	assert.Equal(t, 1, cathy.Groups().Count())
-	assert.NotNil(t, cathy.Ticket())
+	assert.Equal(t, 2, cathy.Tickets().OpenCount())
 
-	cathyTicket := cathy.Ticket()
+	cathyTicket := cathy.Tickets().LastOpen()
 	assert.Equal(t, "Sales", cathyTicket.Topic().Name())
 	assert.Nil(t, cathyTicket.Assignee())
 
@@ -78,13 +78,13 @@ func TestContacts(t *testing.T) {
 	assert.Equal(t, "tel:+16055742222?id=10001", bob.URNs()[0].String())
 	assert.Equal(t, "whatsapp:250788373373?id=30000", bob.URNs()[1].String())
 	assert.Equal(t, 0, bob.Groups().Count())
-	assert.NotNil(t, bob.Ticket())
+	assert.NotNil(t, bob.Tickets().LastOpen())
 
 	assert.Equal(t, "George", george.Name())
 	assert.Equal(t, decimal.RequireFromString("30"), george.Fields()["age"].QueryValue())
 	assert.Equal(t, 0, len(george.URNs()))
 	assert.Equal(t, 0, george.Groups().Count())
-	assert.Nil(t, george.Ticket())
+	assert.Nil(t, george.Tickets().LastOpen())
 
 	// change bob to have a preferred URN and channel of our telephone
 	channel := org.ChannelByID(testdb.TwilioChannel.ID)

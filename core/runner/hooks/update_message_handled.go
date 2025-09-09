@@ -35,14 +35,19 @@ func (h *updateMessageHandled) Execute(ctx context.Context, rt *runtime.Runtime,
 			visibility = models.VisibilityArchived
 		}
 
-		err := models.MarkMessageHandled(ctx, tx, msgIn.ID, models.MsgStatusHandled, visibility, flow, msgIn.Ticket, msgIn.Attachments, msgIn.LogUUIDs)
+		// associate this message with the last open ticket for this contact
+		var ticket *models.Ticket
+		if tks := scene.DBContact.OpenTickets(); len(tks) > 0 {
+			ticket = tks[len(tks)-1]
+		}
+
+		err := models.MarkMessageHandled(ctx, tx, msgIn.ID, models.MsgStatusHandled, visibility, flow, ticket, msgIn.Attachments, msgIn.LogUUIDs)
 		if err != nil {
 			return fmt.Errorf("error marking message as handled: %w", err)
 		}
 
-		if msgIn.Ticket != nil && !contactBlocked {
-			err = models.UpdateTicketLastActivity(ctx, tx, []*models.Ticket{msgIn.Ticket})
-			if err != nil {
+		if ticket != nil && !contactBlocked {
+			if err := models.UpdateTicketLastActivity(ctx, tx, []*models.Ticket{ticket}); err != nil {
 				return fmt.Errorf("error updating last activity for ticket: %w", err)
 			}
 		}

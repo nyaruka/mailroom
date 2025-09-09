@@ -76,16 +76,6 @@ func TestTickets(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, flows.TicketUUID("64f81be1-00ff-48ef-9e51-97d6f924c1a4"), tk.UUID)
 	assert.Equal(t, testdb.Bob.ID, tk.ContactID)
-
-	// can lookup open tickets by contact
-	org1, _ := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
-	cathy, err := models.LoadContact(ctx, rt.DB, org1, testdb.Cathy.ID)
-	require.NoError(t, err)
-
-	tk, err = models.LoadOpenTicketForContact(ctx, rt.DB, cathy)
-	assert.NoError(t, err)
-	assert.Equal(t, flows.TicketUUID("2ef57efc-d85f-4291-b330-e4afe68af5fe"), tk.UUID)
-	assert.Equal(t, testdb.Cathy.ID, tk.ContactID)
 }
 
 func TestUpdateTicketLastActivity(t *testing.T) {
