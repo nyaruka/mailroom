@@ -87,7 +87,7 @@ func tryToLockAndReopen(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 	// filter tickets to those belonging to contacts without an open ticket
 	reopenable := make([]*models.Ticket, 0, len(contacts))
 	for _, c := range contacts {
-		if c.Ticket() == nil {
+		if len(c.OpenTickets()) == 0 {
 			reopenable = append(reopenable, tickets[c.ID()])
 		}
 	}

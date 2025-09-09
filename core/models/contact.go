@@ -98,12 +98,12 @@ type Contact struct {
 	fields             map[string]*flows.Value
 	groups             []*Group
 	urns               []urns.URN
-	ticket             *Ticket
 	createdOn          time.Time
 	modifiedOn         time.Time
 	lastSeenOn         *time.Time
 	currentSessionUUID flows.SessionUUID
 	currentFlowID      FlowID
+	openTickets        []*Ticket
 }
 
 func (c *Contact) ID() ContactID                         { return c.id }
@@ -114,12 +114,12 @@ func (c *Contact) Status() ContactStatus                 { return c.status }
 func (c *Contact) Fields() map[string]*flows.Value       { return c.fields }
 func (c *Contact) Groups() []*Group                      { return c.groups }
 func (c *Contact) URNs() []urns.URN                      { return c.urns }
-func (c *Contact) Ticket() *Ticket                       { return c.ticket }
 func (c *Contact) CreatedOn() time.Time                  { return c.createdOn }
 func (c *Contact) ModifiedOn() time.Time                 { return c.modifiedOn }
 func (c *Contact) LastSeenOn() *time.Time                { return c.lastSeenOn }
 func (c *Contact) CurrentFlowID() FlowID                 { return c.currentFlowID }
 func (c *Contact) CurrentSessionUUID() flows.SessionUUID { return c.currentSessionUUID }
+func (c *Contact) OpenTickets() []*Ticket                { return c.openTickets }
 
 // URNForID returns the flow URN for the passed in URN, return NilURN if not found
 func (c *Contact) URNForID(urnID URNID) urns.URN {
@@ -224,10 +224,10 @@ func (c *Contact) EngineContact(oa *OrgAssets) (*flows.Contact, error) {
 		}
 	}
 
-	// convert our ticket to a flow ticket
+	// engine contacts only have a single open ticket
 	var ticket *flows.Ticket
-	if c.ticket != nil {
-		ticket = c.ticket.EngineTicket(oa)
+	if len(c.openTickets) > 0 {
+		ticket = c.openTickets[0].EngineTicket(oa)
 	}
 
 	// create our flow contact
@@ -333,22 +333,19 @@ func LoadContacts(ctx context.Context, db Queryer, oa *OrgAssets, ids []ContactI
 		}
 		contact.fields = fields
 
-		// finally build up our URN objects
-		contactURNs := make([]urns.URN, 0, len(e.URNs))
+		contact.urns = make([]urns.URN, 0, len(e.URNs))
 		for _, u := range e.URNs {
 			urn, err := u.Encode(oa)
 			if err != nil {
 				slog.Warn("invalid URN, ignoring", "urn", u, "org_id", oa.OrgID(), "contact_id", contact.id)
 				continue
 			}
-			contactURNs = append(contactURNs, urn)
+			contact.urns = append(contact.urns, urn)
 		}
-		contact.urns = contactURNs
 
-		// grab the last opened open ticket
-		if len(e.Tickets) > 0 {
-			t := e.Tickets[0]
-			contact.ticket = NewTicket(t.UUID, oa.OrgID(), NilUserID, NilFlowID, contact.ID(), t.TopicID, t.AssigneeID)
+		contact.openTickets = make([]*Ticket, len(e.Tickets))
+		for i, t := range e.Tickets {
+			contact.openTickets[i] = NewTicket(t.UUID, oa.OrgID(), NilUserID, NilFlowID, contact.ID(), t.TopicID, t.AssigneeID)
 		}
 
 		contacts = append(contacts, contact)
