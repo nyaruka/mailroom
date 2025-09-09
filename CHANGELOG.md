@@ -1,3 +1,8 @@
+v10.3.65 (2025-09-09)
+-------------------------
+ * Update to latest goflow and change how messages are associated with tickets
+ * Limit crediting of modifier events to users based on types
+
 v10.3.64 (2025-09-09)
 -------------------------
  * Tweak loading contacts to load all open tickets
