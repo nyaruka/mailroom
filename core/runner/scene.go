@@ -225,10 +225,15 @@ func (s *Scene) ApplyModifier(ctx context.Context, rt *runtime.Runtime, oa *mode
 		modifiers.Apply(eng, env, oa.SessionAssets(), s.Contact, nil, mod, evtLog)
 	}
 
-	// TODO limit user crediting to only the first event? We might have contact_groups_changed events here from changing contact fields etc.
+	userEventType := modifierUserEvents[mod.Type()]
 
 	for _, e := range evts {
-		if err := s.AddEvent(ctx, rt, oa, e, userID); err != nil {
+		creditUserID := models.NilUserID
+		if userEventType != "" && e.Type() == userEventType {
+			creditUserID = userID
+		}
+
+		if err := s.AddEvent(ctx, rt, oa, e, creditUserID); err != nil {
 			return nil, fmt.Errorf("error adding modifier events for contact %s: %w", s.Contact.UUID(), err)
 		}
 	}

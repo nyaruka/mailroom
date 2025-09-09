@@ -8,9 +8,24 @@ import (
 	"slices"
 
 	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/flows/events"
+	"github.com/nyaruka/goflow/flows/modifiers"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/runtime"
 )
+
+// mapping of modifier types to the event type they generate that should be credited to the user
+var modifierUserEvents = map[string]string{
+	modifiers.TypeField:          events.TypeContactFieldChanged,
+	modifiers.TypeGroups:         events.TypeContactGroupsChanged,
+	modifiers.TypeLanguage:       events.TypeContactLanguageChanged,
+	modifiers.TypeName:           events.TypeContactNameChanged,
+	modifiers.TypeStatus:         events.TypeContactStatusChanged,
+	modifiers.TypeTicket:         events.TypeTicketOpened,
+	modifiers.TypeTicketAssignee: events.TypeTicketAssigneeChanged,
+	modifiers.TypeTicketNote:     events.TypeTicketNoteAdded,
+	modifiers.TypeTicketTopic:    events.TypeTicketTopicChanged,
+}
 
 // BulkModify bulk modifies contacts by applying modifiers and processing the resultant events.
 //
