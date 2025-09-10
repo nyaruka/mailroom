@@ -34,7 +34,7 @@ func handleClose(ctx context.Context, rt *runtime.Runtime, r *closeRequest) (any
 		return nil, 0, fmt.Errorf("unable to load org assets: %w", err)
 	}
 
-	tickets, err := models.LoadTickets(ctx, rt.DB, r.TicketIDs)
+	tickets, err := models.LoadTickets(ctx, rt.DB, r.TicketUUIDs)
 	if err != nil {
 		return nil, 0, fmt.Errorf("error loading tickets for org: %d: %w", r.OrgID, err)
 	}
@@ -46,7 +46,7 @@ func handleClose(ctx context.Context, rt *runtime.Runtime, r *closeRequest) (any
 
 	for t, e := range evts {
 		if e.Type == models.TicketEventTypeClosed {
-			err = realtime.QueueTask(ctx, rt, e.OrgID, e.ContactID, ctasks.NewTicketClosed(t.ID))
+			err = realtime.QueueTask(ctx, rt, e.OrgID, e.ContactID, ctasks.NewTicketClosed(t.UUID))
 			if err != nil {
 				return nil, 0, fmt.Errorf("error queueing ticket closed task %d: %w", t.ID, err)
 			}

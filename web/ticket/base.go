@@ -17,7 +17,6 @@ type bulkTicketRequest struct {
 	OrgID       models.OrgID       `json:"org_id"       validate:"required"`
 	UserID      models.UserID      `json:"user_id"      validate:"required"`
 	TicketUUIDs []flows.TicketUUID `json:"ticket_uuids" validate:"required"`
-	TicketIDs   []models.TicketID  `json:"ticket_ids"` // deprecated
 }
 
 type bulkTicketResponse struct {
@@ -42,8 +41,8 @@ func newBulkResponse(changed []flows.TicketUUID) *bulkTicketResponse {
 	return &bulkTicketResponse{ChangedUUIDs: changed}
 }
 
-func createTicketScenes(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, ticketIDs []models.TicketID) ([]*runner.Scene, error) {
-	tickets, err := models.LoadTickets(ctx, rt.DB, ticketIDs)
+func createTicketScenes(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, ticketUUIDs []flows.TicketUUID) ([]*runner.Scene, error) {
+	tickets, err := models.LoadTickets(ctx, rt.DB, ticketUUIDs)
 	if err != nil {
 		return nil, fmt.Errorf("error loading tickets: %w", err)
 	}

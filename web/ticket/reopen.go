@@ -37,13 +37,13 @@ func handleReopen(ctx context.Context, rt *runtime.Runtime, r *http.Request) (an
 		return nil, 0, fmt.Errorf("unable to load org assets: %w", err)
 	}
 
-	tickets, err := models.LoadTickets(ctx, rt.DB, request.TicketIDs)
+	tickets, err := models.LoadTickets(ctx, rt.DB, request.TicketUUIDs)
 	if err != nil {
 		return nil, 0, fmt.Errorf("error loading tickets for org: %d: %w", request.OrgID, err)
 	}
 
 	// organize last opened ticket by contact (we know we can't open more than one ticket per contact)
-	ticketByContact := make(map[models.ContactID]*models.Ticket, len(request.TicketIDs))
+	ticketByContact := make(map[models.ContactID]*models.Ticket, len(request.TicketUUIDs))
 	for _, t := range tickets {
 		if ticketByContact[t.ContactID] == nil {
 			ticketByContact[t.ContactID] = t

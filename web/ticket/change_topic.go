@@ -44,7 +44,7 @@ func handleChangeTopic(ctx context.Context, rt *runtime.Runtime, r *changeTopicR
 
 	mod := modifiers.NewTicketTopic(r.TicketUUIDs, topic)
 
-	scenes, err := createTicketScenes(ctx, rt, oa, r.TicketIDs)
+	scenes, err := createTicketScenes(ctx, rt, oa, r.TicketUUIDs)
 	if err != nil {
 		return nil, 0, fmt.Errorf("error creating scenes for tickets: %w", err)
 	}

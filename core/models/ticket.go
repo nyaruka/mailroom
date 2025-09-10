@@ -88,7 +88,7 @@ func (t *Ticket) EngineTicket(oa *OrgAssets) *flows.Ticket {
 	return flows.NewTicket(t.UUID, ticketStatusMap[t.Status], topic, assignee)
 }
 
-const sqlSelectTicketsByID = `
+const sqlSelectTicketsByUUID = `
 SELECT
   id,
   uuid,
@@ -105,12 +105,12 @@ SELECT
   closed_on,
   last_activity_on
     FROM tickets_ticket
-   WHERE id = ANY($1)
+   WHERE uuid = ANY($1)
 ORDER BY opened_on DESC`
 
 // LoadTickets loads all of the tickets with the given ids
-func LoadTickets(ctx context.Context, db *sqlx.DB, ids []TicketID) ([]*Ticket, error) {
-	return loadTickets(ctx, db, sqlSelectTicketsByID, pq.Array(ids))
+func LoadTickets(ctx context.Context, db *sqlx.DB, uuids []flows.TicketUUID) ([]*Ticket, error) {
+	return loadTickets(ctx, db, sqlSelectTicketsByUUID, pq.Array(uuids))
 }
 
 func loadTickets(ctx context.Context, db *sqlx.DB, query string, params ...any) ([]*Ticket, error) {

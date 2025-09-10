@@ -40,7 +40,7 @@ func handleAddNote(ctx context.Context, rt *runtime.Runtime, r *addNoteRequest) 
 
 	mod := modifiers.NewTicketNote(r.TicketUUIDs, r.Note)
 
-	scenes, err := createTicketScenes(ctx, rt, oa, r.TicketIDs)
+	scenes, err := createTicketScenes(ctx, rt, oa, r.TicketUUIDs)
 	if err != nil {
 		return nil, 0, fmt.Errorf("error creating scenes for tickets: %w", err)
 	}
