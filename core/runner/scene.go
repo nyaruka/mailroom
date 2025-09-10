@@ -24,8 +24,6 @@ type Scene struct {
 	Call        *flows.Call
 	StartID     models.StartID
 	IncomingMsg *models.MsgInRef
-	DBTickets   []*models.Ticket
-	Tickets     []*flows.Ticket
 
 	// optional state set during processing
 	DBSession           *models.Session
@@ -72,15 +70,6 @@ func (s *Scene) SprintUUID() flows.SprintUUID {
 		return ""
 	}
 	return s.Sprint.UUID()
-}
-
-func (s *Scene) FindTicket(uuid flows.TicketUUID) (*models.Ticket, *flows.Ticket) {
-	for i, t := range s.DBTickets {
-		if t.UUID == uuid {
-			return t, s.Tickets[i]
-		}
-	}
-	return nil, nil
 }
 
 // LocateEvent finds the flow and node UUID for an event belonging to this session
@@ -215,15 +204,7 @@ func (s *Scene) ApplyModifier(ctx context.Context, rt *runtime.Runtime, oa *mode
 	evts := make([]flows.Event, 0)
 	evtLog := func(e flows.Event) { evts = append(evts, e) }
 
-	if s.Tickets != nil {
-		// if we have tickets, apply modifier to each one individually
-		for _, t := range s.Tickets {
-			modifiers.Apply(eng, env, oa.SessionAssets(), s.Contact, t, mod, evtLog)
-		}
-	} else {
-		// otherwise apply modifier to contact only
-		modifiers.Apply(eng, env, oa.SessionAssets(), s.Contact, nil, mod, evtLog)
-	}
+	modifiers.Apply(eng, env, oa.SessionAssets(), s.Contact, mod, evtLog)
 
 	userEventType := modifierUserEvents[mod.Type()]
 
@@ -257,7 +238,7 @@ func (s *Scene) Commit(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 }
 
 // CreateScenes creates scenes for the given contact ids
-func CreateScenes(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contactIDs []models.ContactID) ([]*Scene, error) {
+func CreateScenes(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contactIDs []models.ContactID, extraTickets map[models.ContactID][]*models.Ticket) ([]*Scene, error) {
 	mcs, err := models.LoadContacts(ctx, rt.ReadonlyDB, oa, contactIDs)
 	if err != nil {
 		return nil, fmt.Errorf("error loading contacts for new scenes: %w", err)
@@ -265,6 +246,10 @@ func CreateScenes(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets
 
 	scenes := make([]*Scene, len(mcs))
 	for i, mc := range mcs {
+		if extra, found := extraTickets[mc.ID()]; found {
+			mc.IncludeTickets(extra)
+		}
+
 		c, err := mc.EngineContact(oa)
 		if err != nil {
 			return nil, fmt.Errorf("error creating engine contact for %s: %w", mc.UUID(), err)

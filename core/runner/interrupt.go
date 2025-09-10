@@ -16,7 +16,7 @@ import (
 // TODO rework to share contact locking code with bulk starts?
 func Interrupt(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contactIDs []models.ContactID, status flows.SessionStatus) error {
 	// load our contacts
-	scenes, err := CreateScenes(ctx, rt, oa, contactIDs)
+	scenes, err := CreateScenes(ctx, rt, oa, contactIDs, nil)
 	if err != nil {
 		return fmt.Errorf("error creating scenes for contacts: %w", err)
 	}

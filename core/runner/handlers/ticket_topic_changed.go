@@ -22,12 +22,12 @@ func handleTicketTopicChanged(ctx context.Context, rt *runtime.Runtime, oa *mode
 
 	slog.Debug("ticket topic changed", "contact", scene.ContactUUID(), "session", scene.SessionUUID(), "ticket", event.TicketUUID)
 
-	dbTicket, ticket := scene.FindTicket(event.TicketUUID)
 	topic := oa.TopicByUUID(event.Topic.UUID)
-	if ticket == nil || topic == nil {
+	if topic == nil {
 		return nil
 	}
 
+	dbTicket := scene.DBContact.FindTicket(event.TicketUUID)
 	dbTicket.TopicID = topic.ID()
 	dbTicket.LastActivityOn = dates.Now()
 

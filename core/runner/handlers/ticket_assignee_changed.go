@@ -22,11 +22,6 @@ func handleTicketAssigneeChanged(ctx context.Context, rt *runtime.Runtime, oa *m
 
 	slog.Debug("ticket assignee changed", "contact", scene.ContactUUID(), "session", scene.SessionUUID(), "ticket", event.TicketUUID)
 
-	dbTicket, ticket := scene.FindTicket(event.TicketUUID)
-	if ticket == nil {
-		return nil
-	}
-
 	var assignee *models.User
 	var assigneeID models.UserID
 	if event.Assignee != nil {
@@ -36,6 +31,7 @@ func handleTicketAssigneeChanged(ctx context.Context, rt *runtime.Runtime, oa *m
 		}
 	}
 
+	dbTicket := scene.DBContact.FindTicket(event.TicketUUID)
 	dbTicket.AssigneeID = assigneeID
 
 	scene.AttachPreCommitHook(hooks.UpdateTickets, dbTicket)

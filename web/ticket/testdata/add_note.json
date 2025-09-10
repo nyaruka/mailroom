@@ -6,6 +6,10 @@
         "body": {
             "org_id": 1,
             "user_id": 2,
+            "ticket_uuids": [
+                "01992f54-5ab6-717a-a39e-e8ca91fb7262",
+                "01992f54-5ab6-7498-a7f2-6aa246e45cfe"
+            ],
             "ticket_ids": [
                 30000,
                 30002
@@ -23,6 +27,10 @@
         "body": {
             "org_id": 1,
             "user_id": 2,
+            "ticket_uuids": [
+                "01992f54-5ab6-717a-a39e-e8ca91fb7262",
+                "01992f54-5ab6-7498-a7f2-6aa246e45cfe"
+            ],
             "ticket_ids": [
                 30000,
                 30002

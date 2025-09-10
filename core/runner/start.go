@@ -69,7 +69,7 @@ func tryToStartWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 	defer clocks.Unlock(ctx, rt, oa, locks)
 
 	// create scenes for the locked contacts
-	scenes, err := CreateScenes(ctx, rt, oa, locked)
+	scenes, err := CreateScenes(ctx, rt, oa, locked, nil)
 	if err != nil {
 		return nil, nil, fmt.Errorf("error creating scenes for bulk start: %w", err)
 	}
