@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/goflow/flows/triggers"
 	"github.com/nyaruka/mailroom/core/ivr"
@@ -21,11 +22,11 @@ func init() {
 }
 
 type TicketClosedTask struct {
-	TicketID models.TicketID `json:"ticket_id"`
+	TicketUUID flows.TicketUUID `json:"ticket_uuid" validate:"required"`
 }
 
-func NewTicketClosed(ticketID models.TicketID) *TicketClosedTask {
-	return &TicketClosedTask{TicketID: ticketID}
+func NewTicketClosed(ticketUUID flows.TicketUUID) *TicketClosedTask {
+	return &TicketClosedTask{TicketUUID: ticketUUID}
 }
 
 func (t *TicketClosedTask) Type() string {
@@ -38,7 +39,7 @@ func (t *TicketClosedTask) UseReadOnly() bool {
 
 func (t *TicketClosedTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, mc *models.Contact) error {
 	// load our ticket
-	tickets, err := models.LoadTickets(ctx, rt.DB, []models.TicketID{t.TicketID})
+	tickets, err := models.LoadTickets(ctx, rt.DB, []flows.TicketUUID{t.TicketUUID})
 	if err != nil {
 		return fmt.Errorf("error loading ticket: %w", err)
 	}
@@ -58,7 +59,7 @@ func (t *TicketClosedTask) Perform(ctx context.Context, rt *runtime.Runtime, oa 
 
 	// no trigger, noop, move on
 	if trigger == nil {
-		slog.Info("ignoring ticket closed event, no trigger found", "ticket_id", t.TicketID)
+		slog.Debug("ignoring ticket closed event, no trigger found", "ticket", t.TicketUUID)
 		return nil
 	}
 

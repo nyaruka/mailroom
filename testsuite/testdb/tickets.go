@@ -27,7 +27,7 @@ type Team struct {
 }
 
 func (k *Ticket) Load(rt *runtime.Runtime) *models.Ticket {
-	tickets, err := models.LoadTickets(context.Background(), rt.DB, []models.TicketID{k.ID})
+	tickets, err := models.LoadTickets(context.Background(), rt.DB, []flows.TicketUUID{k.UUID})
 	must(err, len(tickets) == 1)
 	return tickets[0]
 }

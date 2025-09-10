@@ -9,10 +9,6 @@
             "ticket_uuids": [
                 "01992f54-5ab6-717a-a39e-e8ca91fb7262",
                 "01992f54-5ab6-7d45-aa0c-f95cfd7c9bc2"
-            ],
-            "ticket_ids": [
-                30000,
-                3
             ]
         },
         "status": 200,

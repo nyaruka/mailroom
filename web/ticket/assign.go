@@ -47,7 +47,7 @@ func handleAssign(ctx context.Context, rt *runtime.Runtime, r *assignRequest) (a
 
 	mod := modifiers.NewTicketAssignee(r.TicketUUIDs, user)
 
-	scenes, err := createTicketScenes(ctx, rt, oa, r.TicketIDs)
+	scenes, err := createTicketScenes(ctx, rt, oa, r.TicketUUIDs)
 	if err != nil {
 		return nil, 0, fmt.Errorf("error creating scenes for tickets: %w", err)
 	}
