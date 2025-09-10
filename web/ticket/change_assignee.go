@@ -15,7 +15,8 @@ import (
 )
 
 func init() {
-	web.InternalRoute(http.MethodPost, "/ticket/assign", web.JSONPayload(handleAssign))
+	web.InternalRoute(http.MethodPost, "/ticket/change_assignee", web.JSONPayload(handleChangeAssignee))
+	web.InternalRoute(http.MethodPost, "/ticket/assign", web.JSONPayload(handleChangeAssignee)) // deprecated
 }
 
 type assignRequest struct {
@@ -32,7 +33,7 @@ type assignRequest struct {
 //	  "ticket_uuids": ["01992f54-5ab6-717a-a39e-e8ca91fb7262", "01992f54-5ab6-725e-be9c-0c6407efd755"],
 //	  "assignee_id": 567
 //	}
-func handleAssign(ctx context.Context, rt *runtime.Runtime, r *assignRequest) (any, int, error) {
+func handleChangeAssignee(ctx context.Context, rt *runtime.Runtime, r *assignRequest) (any, int, error) {
 	oa, err := models.GetOrgAssets(ctx, rt, r.OrgID)
 	if err != nil {
 		return nil, 0, fmt.Errorf("unable to load org assets: %w", err)
