@@ -1,3 +1,9 @@
+v10.3.66 (2025-09-10)
+-------------------------
+ * Change ticket/assign endpoint to ticket/change_assignee
+ * Load tickets by their UUID instead of ID
+ * Include tickets from bulk ticket operations on the contact
+
 v10.3.65 (2025-09-09)
 -------------------------
  * Update to latest goflow and change how messages are associated with tickets
