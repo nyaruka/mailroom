@@ -29,7 +29,7 @@ type assignRequest struct {
 //	{
 //	  "org_id": 123,
 //	  "user_id": 234,
-//	  "ticket_ids": [1234, 2345],
+//	  "ticket_uuids": ["01992f54-5ab6-717a-a39e-e8ca91fb7262", "01992f54-5ab6-725e-be9c-0c6407efd755"],
 //	  "assignee_id": 567
 //	}
 func handleAssign(ctx context.Context, rt *runtime.Runtime, r *assignRequest) (any, int, error) {
@@ -45,7 +45,7 @@ func handleAssign(ctx context.Context, rt *runtime.Runtime, r *assignRequest) (a
 		}
 	}
 
-	mod := modifiers.NewTicketAssignee(user)
+	mod := modifiers.NewTicketAssignee(r.TicketUUIDs, user)
 
 	scenes, err := createTicketScenes(ctx, rt, oa, r.TicketIDs)
 	if err != nil {

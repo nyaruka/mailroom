@@ -14,14 +14,16 @@ import (
 	"github.com/nyaruka/mailroom/runtime"
 )
 
-// mapping of modifier types to the event type they generate that should be credited to the user
+// Mapping of modifier types to the primary event type they generate which is the only event that should
+// be credited to the user. For example if a user changes a field value that generates a contact_field_changed
+// event (which should be credited to the user) but potentially also a contact_groups_changed event (which should not).
 var modifierUserEvents = map[string]string{
 	modifiers.TypeField:          events.TypeContactFieldChanged,
 	modifiers.TypeGroups:         events.TypeContactGroupsChanged,
 	modifiers.TypeLanguage:       events.TypeContactLanguageChanged,
 	modifiers.TypeName:           events.TypeContactNameChanged,
 	modifiers.TypeStatus:         events.TypeContactStatusChanged,
-	modifiers.TypeTicket:         events.TypeTicketOpened,
+	modifiers.TypeTicketOpen:     events.TypeTicketOpened,
 	modifiers.TypeTicketAssignee: events.TypeTicketAssigneeChanged,
 	modifiers.TypeTicketNote:     events.TypeTicketNoteAdded,
 	modifiers.TypeTicketTopic:    events.TypeTicketTopicChanged,

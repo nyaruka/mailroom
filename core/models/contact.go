@@ -103,7 +103,7 @@ type Contact struct {
 	lastSeenOn         *time.Time
 	currentSessionUUID flows.SessionUUID
 	currentFlowID      FlowID
-	openTickets        []*Ticket
+	tickets            []*Ticket
 }
 
 func (c *Contact) ID() ContactID                         { return c.id }
@@ -119,7 +119,32 @@ func (c *Contact) ModifiedOn() time.Time                 { return c.modifiedOn }
 func (c *Contact) LastSeenOn() *time.Time                { return c.lastSeenOn }
 func (c *Contact) CurrentFlowID() FlowID                 { return c.currentFlowID }
 func (c *Contact) CurrentSessionUUID() flows.SessionUUID { return c.currentSessionUUID }
-func (c *Contact) OpenTickets() []*Ticket                { return c.openTickets }
+func (c *Contact) Tickets() []*Ticket                    { return c.tickets }
+
+// IncludeTickets includes additional tickets on this contact - by default contacts are only loaded with their open
+// tickets of which there should only ever be 1.. but for bulk ticket operations we need to include additional tickets.
+func (c *Contact) IncludeTickets(other []*Ticket) {
+	uuids := make(map[flows.TicketUUID]bool, len(c.tickets)+len(other))
+	for _, t := range c.tickets {
+		uuids[t.UUID] = true
+	}
+	for _, t := range other {
+		if !uuids[t.UUID] {
+			c.tickets = append(c.tickets, t)
+			uuids[t.UUID] = true
+		}
+	}
+	slices.SortFunc(c.tickets, func(a, b *Ticket) int { return a.OpenedOn.Compare(b.OpenedOn) })
+}
+
+func (c *Contact) FindTicket(uuid flows.TicketUUID) *Ticket {
+	for _, t := range c.tickets {
+		if t.UUID == uuid {
+			return t
+		}
+	}
+	return nil
+}
 
 // URNForID returns the flow URN for the passed in URN, return NilURN if not found
 func (c *Contact) URNForID(urnID URNID) urns.URN {
@@ -224,8 +249,8 @@ func (c *Contact) EngineContact(oa *OrgAssets) (*flows.Contact, error) {
 		}
 	}
 
-	tickets := make([]*flows.Ticket, len(c.openTickets))
-	for i, t := range c.openTickets {
+	tickets := make([]*flows.Ticket, len(c.tickets))
+	for i, t := range c.tickets {
 		tickets[i] = t.EngineTicket(oa)
 	}
 
@@ -342,9 +367,9 @@ func LoadContacts(ctx context.Context, db Queryer, oa *OrgAssets, ids []ContactI
 			contact.urns = append(contact.urns, urn)
 		}
 
-		contact.openTickets = make([]*Ticket, len(e.Tickets))
+		contact.tickets = make([]*Ticket, len(e.Tickets))
 		for i, t := range e.Tickets {
-			contact.openTickets[i] = &Ticket{
+			contact.tickets[i] = &Ticket{
 				ID:         t.ID,
 				UUID:       t.UUID,
 				OrgID:      oa.OrgID(),

@@ -29,7 +29,7 @@ type addNoteRequest struct {
 //	{
 //	  "org_id": 123,
 //	  "user_id": 234,
-//	  "ticket_ids": [1234, 2345],
+//	  "ticket_uuids": ["01992f54-5ab6-717a-a39e-e8ca91fb7262", "01992f54-5ab6-725e-be9c-0c6407efd755"],
 //	  "note": "spam"
 //	}
 func handleAddNote(ctx context.Context, rt *runtime.Runtime, r *addNoteRequest) (any, int, error) {
@@ -38,7 +38,7 @@ func handleAddNote(ctx context.Context, rt *runtime.Runtime, r *addNoteRequest) 
 		return nil, 0, fmt.Errorf("unable to load org assets: %w", err)
 	}
 
-	mod := modifiers.NewTicketNote(r.Note)
+	mod := modifiers.NewTicketNote(r.TicketUUIDs, r.Note)
 
 	scenes, err := createTicketScenes(ctx, rt, oa, r.TicketIDs)
 	if err != nil {

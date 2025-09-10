@@ -14,9 +14,10 @@ import (
 )
 
 type bulkTicketRequest struct {
-	OrgID     models.OrgID      `json:"org_id"      validate:"required"`
-	UserID    models.UserID     `json:"user_id"      validate:"required"`
-	TicketIDs []models.TicketID `json:"ticket_ids"`
+	OrgID       models.OrgID       `json:"org_id"       validate:"required"`
+	UserID      models.UserID      `json:"user_id"      validate:"required"`
+	TicketUUIDs []flows.TicketUUID `json:"ticket_uuids" validate:"required"`
+	TicketIDs   []models.TicketID  `json:"ticket_ids"` // deprecated
 }
 
 type bulkTicketResponse struct {
@@ -47,22 +48,14 @@ func createTicketScenes(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 		return nil, fmt.Errorf("error loading tickets: %w", err)
 	}
 
-	dbByContact := make(map[models.ContactID][]*models.Ticket, 10)
-	byContact := make(map[models.ContactID][]*flows.Ticket, 10)
-
+	byContact := make(map[models.ContactID][]*models.Ticket, 10)
 	for _, t := range tickets {
-		dbByContact[t.ContactID] = append(dbByContact[t.ContactID], t)
-		byContact[t.ContactID] = append(byContact[t.ContactID], t.EngineTicket(oa))
+		byContact[t.ContactID] = append(byContact[t.ContactID], t)
 	}
 
-	scenes, err := runner.CreateScenes(ctx, rt, oa, slices.Collect(maps.Keys(byContact)))
+	scenes, err := runner.CreateScenes(ctx, rt, oa, slices.Collect(maps.Keys(byContact)), byContact)
 	if err != nil {
 		return nil, err
-	}
-
-	for _, s := range scenes {
-		s.DBTickets = dbByContact[s.ContactID()]
-		s.Tickets = byContact[s.ContactID()]
 	}
 
 	return scenes, nil

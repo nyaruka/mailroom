@@ -37,7 +37,7 @@ func (h *updateMessageHandled) Execute(ctx context.Context, rt *runtime.Runtime,
 
 		// associate this message with the last open ticket for this contact
 		var ticket *models.Ticket
-		if tks := scene.DBContact.OpenTickets(); len(tks) > 0 {
+		if tks := scene.DBContact.Tickets(); len(tks) > 0 {
 			ticket = tks[len(tks)-1]
 		}
 

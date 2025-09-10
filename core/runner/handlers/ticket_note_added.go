@@ -22,11 +22,7 @@ func handleTicketNoteAdded(ctx context.Context, rt *runtime.Runtime, oa *models.
 
 	slog.Debug("ticket note added", "contact", scene.ContactUUID(), "session", scene.SessionUUID(), "ticket", event.TicketUUID)
 
-	dbTicket, ticket := scene.FindTicket(event.TicketUUID)
-	if ticket == nil {
-		return nil
-	}
-
+	dbTicket := scene.DBContact.FindTicket(event.TicketUUID)
 	dbTicket.LastActivityOn = dates.Now()
 
 	scene.AttachPreCommitHook(hooks.UpdateTickets, dbTicket)

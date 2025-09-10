@@ -29,7 +29,7 @@ type changeTopicRequest struct {
 //	{
 //	  "org_id": 123,
 //	  "user_id": 234,
-//	  "ticket_ids": [1234, 2345],
+//	  "ticket_uuids": ["01992f54-5ab6-717a-a39e-e8ca91fb7262", "01992f54-5ab6-725e-be9c-0c6407efd755"],
 //	  "topic_id": 345
 //	}
 func handleChangeTopic(ctx context.Context, rt *runtime.Runtime, r *changeTopicRequest) (any, int, error) {
@@ -42,7 +42,7 @@ func handleChangeTopic(ctx context.Context, rt *runtime.Runtime, r *changeTopicR
 	tp := oa.TopicByID(r.TopicID)
 	topic := oa.SessionAssets().Topics().Get(tp.UUID())
 
-	mod := modifiers.NewTicketTopic(topic)
+	mod := modifiers.NewTicketTopic(r.TicketUUIDs, topic)
 
 	scenes, err := createTicketScenes(ctx, rt, oa, r.TicketIDs)
 	if err != nil {
