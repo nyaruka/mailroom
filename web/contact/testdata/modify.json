@@ -82,11 +82,19 @@
                 "count": 1
             }
         ],
-        "persisted_events": {
-            "6393abc0-283d-4c9b-a1b3-641a035c34bf": [
-                "contact_name_changed"
-            ]
-        }
+        "expected_history": [
+            {
+                "event": {
+                    "uuid": "01969b47-0583-76f8-ae7f-f8b243c49ff5",
+                    "type": "contact_name_changed",
+                    "created_on": "2018-07-06T12:30:00.123456789Z",
+                    "name": "Kathy"
+                },
+                "org_id": 1,
+                "contact_uuid": "6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "user_id": 1
+            }
+        ]
     },
     {
         "label": "set name",
@@ -135,11 +143,19 @@
                 "count": 1
             }
         ],
-        "persisted_events": {
-            "6393abc0-283d-4c9b-a1b3-641a035c34bf": [
-                "contact_name_changed"
-            ]
-        }
+        "expected_history": [
+            {
+                "event": {
+                    "uuid": "01969b47-096b-76f8-bd38-d266ec8d3716",
+                    "type": "contact_name_changed",
+                    "created_on": "2018-07-06T12:30:00.123456789Z",
+                    "name": "Nate"
+                },
+                "org_id": 1,
+                "contact_uuid": "6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "user_id": 3
+            }
+        ]
     },
     {
         "label": "clear name",
@@ -187,11 +203,19 @@
                 "count": 1
             }
         ],
-        "persisted_events": {
-            "6393abc0-283d-4c9b-a1b3-641a035c34bf": [
-                "contact_name_changed"
-            ]
-        }
+        "expected_history": [
+            {
+                "event": {
+                    "uuid": "01969b47-0d53-76f8-9c0b-2014ddc77094",
+                    "type": "contact_name_changed",
+                    "created_on": "2018-07-06T12:30:00.123456789Z",
+                    "name": ""
+                },
+                "org_id": 1,
+                "contact_uuid": "6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "user_id": 3
+            }
+        ]
     },
     {
         "label": "set status to blocked",
@@ -239,11 +263,19 @@
                 "count": 1
             }
         ],
-        "persisted_events": {
-            "6393abc0-283d-4c9b-a1b3-641a035c34bf": [
-                "contact_status_changed"
-            ]
-        }
+        "expected_history": [
+            {
+                "event": {
+                    "uuid": "01969b47-113b-76f8-92a3-d648ab64bccb",
+                    "type": "contact_status_changed",
+                    "created_on": "2018-07-06T12:30:00.123456789Z",
+                    "status": "blocked"
+                },
+                "org_id": 1,
+                "contact_uuid": "6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "user_id": 3
+            }
+        ]
     },
     {
         "label": "set status to archived",
@@ -291,11 +323,19 @@
                 "count": 1
             }
         ],
-        "persisted_events": {
-            "6393abc0-283d-4c9b-a1b3-641a035c34bf": [
-                "contact_status_changed"
-            ]
-        }
+        "expected_history": [
+            {
+                "event": {
+                    "uuid": "01969b47-1523-76f8-8228-9728778b6c98",
+                    "type": "contact_status_changed",
+                    "created_on": "2018-07-06T12:30:00.123456789Z",
+                    "status": "archived"
+                },
+                "org_id": 1,
+                "contact_uuid": "6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "user_id": 3
+            }
+        ]
     },
     {
         "label": "set status to active",
@@ -343,11 +383,19 @@
                 "count": 1
             }
         ],
-        "persisted_events": {
-            "6393abc0-283d-4c9b-a1b3-641a035c34bf": [
-                "contact_status_changed"
-            ]
-        }
+        "expected_history": [
+            {
+                "event": {
+                    "uuid": "01969b47-190b-76f8-8f41-6b2d9f33d623",
+                    "type": "contact_status_changed",
+                    "created_on": "2018-07-06T12:30:00.123456789Z",
+                    "status": "active"
+                },
+                "org_id": 1,
+                "contact_uuid": "6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "user_id": 3
+            }
+        ]
     },
     {
         "label": "set text field with valid value",
@@ -410,11 +458,25 @@
                 "count": 1
             }
         ],
-        "persisted_events": {
-            "6393abc0-283d-4c9b-a1b3-641a035c34bf": [
-                "contact_field_changed"
-            ]
-        }
+        "expected_history": [
+            {
+                "event": {
+                    "uuid": "01969b47-1cf3-76f8-a17e-f85e49829fb9",
+                    "type": "contact_field_changed",
+                    "created_on": "2018-07-06T12:30:01.123456789Z",
+                    "field": {
+                        "key": "gender",
+                        "name": "Gender"
+                    },
+                    "value": {
+                        "text": "M"
+                    }
+                },
+                "org_id": 1,
+                "contact_uuid": "6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "user_id": 3
+            }
+        ]
     },
     {
         "label": "set numeric field with valid value",
@@ -507,12 +569,41 @@
                 "count": 1
             }
         ],
-        "persisted_events": {
-            "6393abc0-283d-4c9b-a1b3-641a035c34bf": [
-                "contact_field_changed",
-                "contact_groups_changed"
-            ]
-        }
+        "expected_history": [
+            {
+                "event": {
+                    "uuid": "01969b47-20db-76f8-ba00-bd7f0d08e671",
+                    "type": "contact_field_changed",
+                    "created_on": "2018-07-06T12:30:01.123456789Z",
+                    "field": {
+                        "key": "age",
+                        "name": "Age"
+                    },
+                    "value": {
+                        "text": "24",
+                        "number": 24
+                    }
+                },
+                "org_id": 1,
+                "contact_uuid": "6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "user_id": 3
+            },
+            {
+                "event": {
+                    "uuid": "01969b47-24c3-76f8-b86e-4b881f09a186",
+                    "type": "contact_groups_changed",
+                    "created_on": "2018-07-06T12:30:02.123456789Z",
+                    "groups_added": [
+                        {
+                            "uuid": "c153e265-f7c9-4539-9dbc-9b358714b638",
+                            "name": "Doctors"
+                        }
+                    ]
+                },
+                "org_id": 1,
+                "contact_uuid": "6393abc0-283d-4c9b-a1b3-641a035c34bf"
+            }
+        ]
     },
     {
         "label": "set date field with valid value",
@@ -584,11 +675,26 @@
             },
             "skipped": []
         },
-        "persisted_events": {
-            "6393abc0-283d-4c9b-a1b3-641a035c34bf": [
-                "contact_field_changed"
-            ]
-        }
+        "expected_history": [
+            {
+                "event": {
+                    "uuid": "01969b47-28ab-76f8-a691-235cbe720980",
+                    "type": "contact_field_changed",
+                    "created_on": "2018-07-06T12:30:02.123456789Z",
+                    "field": {
+                        "key": "joined",
+                        "name": "Joined"
+                    },
+                    "value": {
+                        "text": "26/06/2020",
+                        "datetime": "2020-06-26T05:30:01.123456-07:00"
+                    }
+                },
+                "org_id": 1,
+                "contact_uuid": "6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "user_id": 3
+            }
+        ]
     },
     {
         "label": "set state field with valid value",
@@ -664,11 +770,26 @@
             },
             "skipped": []
         },
-        "persisted_events": {
-            "6393abc0-283d-4c9b-a1b3-641a035c34bf": [
-                "contact_field_changed"
-            ]
-        }
+        "expected_history": [
+            {
+                "event": {
+                    "uuid": "01969b47-2c93-76f8-bebe-b4a1f677cf4c",
+                    "type": "contact_field_changed",
+                    "created_on": "2018-07-06T12:30:01.123456789Z",
+                    "field": {
+                        "key": "state",
+                        "name": "State"
+                    },
+                    "value": {
+                        "text": "BORNO",
+                        "state": "Nigeria > Borno"
+                    }
+                },
+                "org_id": 1,
+                "contact_uuid": "6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "user_id": 3
+            }
+        ]
     },
     {
         "label": "clear fields",
@@ -797,15 +918,83 @@
                 "count": 0
             }
         ],
-        "persisted_events": {
-            "6393abc0-283d-4c9b-a1b3-641a035c34bf": [
-                "contact_field_changed",
-                "contact_field_changed",
-                "contact_groups_changed",
-                "contact_field_changed",
-                "contact_field_changed"
-            ]
-        }
+        "expected_history": [
+            {
+                "event": {
+                    "uuid": "01969b47-307b-76f8-8dbf-00ecf5d03034",
+                    "type": "contact_field_changed",
+                    "created_on": "2018-07-06T12:30:00.123456789Z",
+                    "field": {
+                        "key": "gender",
+                        "name": "Gender"
+                    },
+                    "value": null
+                },
+                "org_id": 1,
+                "contact_uuid": "6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "user_id": 3
+            },
+            {
+                "event": {
+                    "uuid": "01969b47-3463-76f8-acca-bbca70987315",
+                    "type": "contact_field_changed",
+                    "created_on": "2018-07-06T12:30:01.123456789Z",
+                    "field": {
+                        "key": "age",
+                        "name": "Age"
+                    },
+                    "value": null
+                },
+                "org_id": 1,
+                "contact_uuid": "6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "user_id": 3
+            },
+            {
+                "event": {
+                    "uuid": "01969b47-384b-76f8-afcb-91a2073e5459",
+                    "type": "contact_groups_changed",
+                    "created_on": "2018-07-06T12:30:02.123456789Z",
+                    "groups_removed": [
+                        {
+                            "uuid": "c153e265-f7c9-4539-9dbc-9b358714b638",
+                            "name": "Doctors"
+                        }
+                    ]
+                },
+                "org_id": 1,
+                "contact_uuid": "6393abc0-283d-4c9b-a1b3-641a035c34bf"
+            },
+            {
+                "event": {
+                    "uuid": "01969b47-3c33-76f8-9654-8a7258fbaae4",
+                    "type": "contact_field_changed",
+                    "created_on": "2018-07-06T12:30:03.123456789Z",
+                    "field": {
+                        "key": "joined",
+                        "name": "Joined"
+                    },
+                    "value": null
+                },
+                "org_id": 1,
+                "contact_uuid": "6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "user_id": 3
+            },
+            {
+                "event": {
+                    "uuid": "01969b47-401b-76f8-8e78-3bde7b3370ae",
+                    "type": "contact_field_changed",
+                    "created_on": "2018-07-06T12:30:04.123456789Z",
+                    "field": {
+                        "key": "state",
+                        "name": "State"
+                    },
+                    "value": null
+                },
+                "org_id": 1,
+                "contact_uuid": "6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "user_id": 3
+            }
+        ]
     },
     {
         "label": "add group",
@@ -870,11 +1059,24 @@
                 "count": 1
             }
         ],
-        "persisted_events": {
-            "6393abc0-283d-4c9b-a1b3-641a035c34bf": [
-                "contact_groups_changed"
-            ]
-        }
+        "expected_history": [
+            {
+                "event": {
+                    "uuid": "01969b47-4403-76f8-b62c-3c781ca3b5da",
+                    "type": "contact_groups_changed",
+                    "created_on": "2018-07-06T12:30:00.123456789Z",
+                    "groups_added": [
+                        {
+                            "uuid": "5e9d8fab-5e7e-4f51-b533-261af5dea70d",
+                            "name": "Testers"
+                        }
+                    ]
+                },
+                "org_id": 1,
+                "contact_uuid": "6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "user_id": 3
+            }
+        ]
     },
     {
         "label": "add group contact already in",
@@ -985,11 +1187,24 @@
                 "count": 0
             }
         ],
-        "persisted_events": {
-            "6393abc0-283d-4c9b-a1b3-641a035c34bf": [
-                "contact_groups_changed"
-            ]
-        }
+        "expected_history": [
+            {
+                "event": {
+                    "uuid": "01969b47-47eb-76f8-af9c-ff2f1faac4db",
+                    "type": "contact_groups_changed",
+                    "created_on": "2018-07-06T12:30:00.123456789Z",
+                    "groups_removed": [
+                        {
+                            "uuid": "5e9d8fab-5e7e-4f51-b533-261af5dea70d",
+                            "name": "Testers"
+                        }
+                    ]
+                },
+                "org_id": 1,
+                "contact_uuid": "6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "user_id": 3
+            }
+        ]
     },
     {
         "label": "remove group contact isn't part of",
@@ -1084,11 +1299,19 @@
                 "count": 1
             }
         ],
-        "persisted_events": {
-            "6393abc0-283d-4c9b-a1b3-641a035c34bf": [
-                "contact_language_changed"
-            ]
-        }
+        "expected_history": [
+            {
+                "event": {
+                    "uuid": "01969b47-4bd3-76f8-8d9f-e51d30290005",
+                    "type": "contact_language_changed",
+                    "created_on": "2018-07-06T12:30:00.123456789Z",
+                    "language": "fra"
+                },
+                "org_id": 1,
+                "contact_uuid": "6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "user_id": 3
+            }
+        ]
     },
     {
         "label": "add URN",
@@ -1145,11 +1368,20 @@
                 "count": 1
             }
         ],
-        "persisted_events": {
-            "6393abc0-283d-4c9b-a1b3-641a035c34bf": [
-                "contact_urns_changed"
-            ]
-        }
+        "expected_history": [
+            {
+                "event": {
+                    "uuid": "01969b47-4fbb-76f8-bec9-e032f4f9af5f",
+                    "type": "contact_urns_changed",
+                    "created_on": "2018-07-06T12:30:00.123456789Z",
+                    "urns": [
+                        "tel:+255788555111"
+                    ]
+                },
+                "org_id": 1,
+                "contact_uuid": "6393abc0-283d-4c9b-a1b3-641a035c34bf"
+            }
+        ]
     },
     {
         "label": "add an invalid URN",
@@ -1263,11 +1495,21 @@
                 "count": 1
             }
         ],
-        "persisted_events": {
-            "6393abc0-283d-4c9b-a1b3-641a035c34bf": [
-                "contact_urns_changed"
-            ]
-        }
+        "expected_history": [
+            {
+                "event": {
+                    "uuid": "01969b47-578b-76f8-8ab7-4a517a86045c",
+                    "type": "contact_urns_changed",
+                    "created_on": "2018-07-06T12:30:00.123456789Z",
+                    "urns": [
+                        "tel:+255788555111?id=30000",
+                        "tel:+255788555222"
+                    ]
+                },
+                "org_id": 1,
+                "contact_uuid": "6393abc0-283d-4c9b-a1b3-641a035c34bf"
+            }
+        ]
     },
     {
         "label": "remove a URN",
@@ -1328,11 +1570,20 @@
                 "count": 0
             }
         ],
-        "persisted_events": {
-            "6393abc0-283d-4c9b-a1b3-641a035c34bf": [
-                "contact_urns_changed"
-            ]
-        }
+        "expected_history": [
+            {
+                "event": {
+                    "uuid": "01969b47-5b73-76f8-97a3-ae27459a6be4",
+                    "type": "contact_urns_changed",
+                    "created_on": "2018-07-06T12:30:00.123456789Z",
+                    "urns": [
+                        "tel:+255788555111?id=30000"
+                    ]
+                },
+                "org_id": 1,
+                "contact_uuid": "6393abc0-283d-4c9b-a1b3-641a035c34bf"
+            }
+        ]
     },
     {
         "label": "set URNs",
@@ -1404,11 +1655,21 @@
                 "count": 1
             }
         ],
-        "persisted_events": {
-            "6393abc0-283d-4c9b-a1b3-641a035c34bf": [
-                "contact_urns_changed"
-            ]
-        }
+        "expected_history": [
+            {
+                "event": {
+                    "uuid": "01969b47-5f5b-76f8-ba82-c15b24dd577f",
+                    "type": "contact_urns_changed",
+                    "created_on": "2018-07-06T12:30:00.123456789Z",
+                    "urns": [
+                        "tel:+255788555111",
+                        "tel:+255788555333"
+                    ]
+                },
+                "org_id": 1,
+                "contact_uuid": "6393abc0-283d-4c9b-a1b3-641a035c34bf"
+            }
+        ]
     },
     {
         "label": "clear URNs",
@@ -1470,11 +1731,18 @@
                 "count": 0
             }
         ],
-        "persisted_events": {
-            "6393abc0-283d-4c9b-a1b3-641a035c34bf": [
-                "contact_urns_changed"
-            ]
-        }
+        "expected_history": [
+            {
+                "event": {
+                    "uuid": "01969b47-6343-76f8-ba7e-53c2263e32f8",
+                    "type": "contact_urns_changed",
+                    "created_on": "2018-07-06T12:30:00.123456789Z",
+                    "urns": []
+                },
+                "org_id": 1,
+                "contact_uuid": "6393abc0-283d-4c9b-a1b3-641a035c34bf"
+            }
+        ]
     },
     {
         "label": "open ticket",
@@ -1568,11 +1836,23 @@
             },
             "skipped": []
         },
-        "persisted_events": {
-            "6393abc0-283d-4c9b-a1b3-641a035c34bf": [
-                "contact_groups_changed"
-            ]
-        }
+        "expected_history": [
+            {
+                "event": {
+                    "uuid": "01969b47-6efb-76f8-9014-2c868db4022e",
+                    "type": "contact_groups_changed",
+                    "created_on": "2018-07-06T12:30:01.123456789Z",
+                    "groups_added": [
+                        {
+                            "uuid": "361838c4-2866-495a-8990-9f3c222a7604",
+                            "name": "Open Tickets"
+                        }
+                    ]
+                },
+                "org_id": 1,
+                "contact_uuid": "6393abc0-283d-4c9b-a1b3-641a035c34bf"
+            }
+        ]
     },
     {
         "label": "multiple modifiers of different types",
@@ -1689,14 +1969,58 @@
             },
             "skipped": []
         },
-        "persisted_events": {
-            "6393abc0-283d-4c9b-a1b3-641a035c34bf": [
-                "contact_name_changed",
-                "contact_language_changed",
-                "contact_groups_changed",
-                "contact_urns_changed"
-            ]
-        }
+        "expected_history": [
+            {
+                "event": {
+                    "uuid": "01969b47-72e3-76f8-bef6-3979f99a96f9",
+                    "type": "contact_name_changed",
+                    "created_on": "2018-07-06T12:30:00.123456789Z",
+                    "name": "Juan"
+                },
+                "org_id": 1,
+                "contact_uuid": "6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "user_id": 3
+            },
+            {
+                "event": {
+                    "uuid": "01969b47-76cb-76f8-ba91-c48ad8c50e6b",
+                    "type": "contact_language_changed",
+                    "created_on": "2018-07-06T12:30:01.123456789Z",
+                    "language": "spa"
+                },
+                "org_id": 1,
+                "contact_uuid": "6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "user_id": 3
+            },
+            {
+                "event": {
+                    "uuid": "01969b47-7ab3-76f8-be24-6164105d48f2",
+                    "type": "contact_groups_changed",
+                    "created_on": "2018-07-06T12:30:02.123456789Z",
+                    "groups_added": [
+                        {
+                            "uuid": "5e9d8fab-5e7e-4f51-b533-261af5dea70d",
+                            "name": "Testers"
+                        }
+                    ]
+                },
+                "org_id": 1,
+                "contact_uuid": "6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "user_id": 3
+            },
+            {
+                "event": {
+                    "uuid": "01969b47-7e9b-76f8-8768-7d0ba4d4f3e8",
+                    "type": "contact_urns_changed",
+                    "created_on": "2018-07-06T12:30:03.123456789Z",
+                    "urns": [
+                        "tel:+255788555111"
+                    ]
+                },
+                "org_id": 1,
+                "contact_uuid": "6393abc0-283d-4c9b-a1b3-641a035c34bf"
+            }
+        ]
     },
     {
         "label": "locked contacts are skipped",
@@ -1790,13 +2114,29 @@
             },
             "skipped": []
         },
-        "persisted_events": {
-            "6393abc0-283d-4c9b-a1b3-641a035c34bf": [
-                "contact_language_changed"
-            ],
-            "9709c157-4606-4d41-9df3-9e9c9b4ae2d4": [
-                "contact_language_changed"
-            ]
-        }
+        "expected_history": [
+            {
+                "event": {
+                    "uuid": "01969b47-8283-76f8-b63d-c8dcc2fa9de0",
+                    "type": "contact_language_changed",
+                    "created_on": "2018-07-06T12:30:00.123456789Z",
+                    "language": "eng"
+                },
+                "org_id": 1,
+                "contact_uuid": "6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "user_id": 3
+            },
+            {
+                "event": {
+                    "uuid": "01969b47-866b-76f8-8f9d-465efd6fbb5e",
+                    "type": "contact_language_changed",
+                    "created_on": "2018-07-06T12:30:01.123456789Z",
+                    "language": "eng"
+                },
+                "org_id": 1,
+                "contact_uuid": "9709c157-4606-4d41-9df3-9e9c9b4ae2d4",
+                "user_id": 3
+            }
+        ]
     }
 ]

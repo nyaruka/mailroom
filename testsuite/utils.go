@@ -109,19 +109,16 @@ func FlushTasks(t *testing.T, rt *runtime.Runtime, qnames ...string) map[string]
 	return counts
 }
 
-func GetHistoryEvents(t *testing.T, rt *runtime.Runtime) map[flows.ContactUUID][]string {
+func GetHistoryEvents(t *testing.T, rt *runtime.Runtime) []*models.Event {
 	rt.Writers.History.Flush()
 
+	return dyntest.ScanAll[models.Event](t, rt.Dynamo, "TestHistory")
+}
+
+func GetHistoryEventTypes(t *testing.T, rt *runtime.Runtime) map[flows.ContactUUID][]string {
 	evtTypes := make(map[flows.ContactUUID][]string, 4)
-	for _, item := range dyntest.ScanAll[models.DynamoItem](t, rt.Dynamo, "TestHistory") {
-		contactUUID := flows.ContactUUID(item.PK[4:])
-
-		data, err := item.GetData()
-		require.NoError(t, err)
-
-		if eventType, ok := data["type"].(string); ok {
-			evtTypes[contactUUID] = append(evtTypes[contactUUID], eventType)
-		}
+	for _, evt := range GetHistoryEvents(t, rt) {
+		evtTypes[evt.ContactUUID] = append(evtTypes[evt.ContactUUID], evt.Event.Type())
 	}
 
 	return evtTypes

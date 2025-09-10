@@ -10,6 +10,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/events"
 )
@@ -38,11 +39,11 @@ const (
 )
 
 type Event struct {
-	flows.Event
+	flows.Event `json:"event"` // TODO would be nice to inline this with jsonv2
 
-	OrgID       OrgID
-	ContactUUID flows.ContactUUID
-	UserID      UserID
+	OrgID       OrgID             `json:"org_id"`
+	ContactUUID flows.ContactUUID `json:"contact_uuid"`
+	UserID      UserID            `json:"user_id,omitempty"`
 }
 
 func (e *Event) DynamoKey() DynamoKey {
@@ -101,6 +102,36 @@ func (e *Event) MarshalDynamo() (map[string]types.AttributeValue, error) {
 		Data:      data,
 		DataGZ:    dataGz,
 	})
+}
+
+// UnmarshalDynamo is only used in tests
+func (e *Event) UnmarshalDynamo(d map[string]types.AttributeValue) error {
+	item := &DynamoItem{}
+	if err := attributevalue.UnmarshalMap(d, item); err != nil {
+		return fmt.Errorf("error unmarshaling item: %w", err)
+	}
+
+	data, err := item.GetData()
+	if err != nil {
+		return fmt.Errorf("error extracting item data: %w", err)
+	}
+
+	e.OrgID = item.OrgID
+	e.ContactUUID = flows.ContactUUID(item.PK)[4:] // trim off con#
+	if userID, ok := data["_user_id"]; ok {
+		e.UserID = UserID(userID.(float64))
+		delete(data, "_user_id")
+	}
+
+	data["uuid"] = item.SK[4:] // trim off evt# and put event UUID back in
+
+	evt, err := events.Read(jsonx.MustMarshal(data))
+	if err != nil {
+		return fmt.Errorf("error reading event: %w", err)
+	}
+	e.Event = evt
+
+	return nil
 }
 
 // PersistEvent returns whether an event should be persisted

@@ -38,11 +38,23 @@
                 "count": 1
             }
         ],
-        "persisted_events": {
-            "6393abc0-283d-4c9b-a1b3-641a035c34bf": [
-                "run_ended"
-            ]
-        }
+        "expected_history": [
+            {
+                "event": {
+                    "uuid": "01969b47-096b-76f8-bd38-d266ec8d3716",
+                    "type": "run_ended",
+                    "created_on": "2018-07-06T12:30:01.123456789Z",
+                    "run_uuid": "01969b47-9223-76f8-92ca-6e1d7f550554",
+                    "flow": {
+                        "uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85",
+                        "name": "Favorites"
+                    },
+                    "status": "interrupted"
+                },
+                "org_id": 1,
+                "contact_uuid": "6393abc0-283d-4c9b-a1b3-641a035c34bf"
+            }
+        ]
     },
     {
         "label": "noop if contact doesn't have a waiting session",

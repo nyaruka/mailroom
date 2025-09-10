@@ -222,7 +222,7 @@ func runTestCases(t *testing.T, ctx context.Context, rt *runtime.Runtime, tcs []
 			assert.NoError(t, err, "%d:%d error checking assertion", i, j)
 		}
 
-		persistedEvents := testsuite.GetHistoryEvents(t, rt)
+		persistedEvents := testsuite.GetHistoryEventTypes(t, rt)
 
 		assert.Equal(t, tc.PersistedEvents, persistedEvents, "%d: mismatch in persisted events", i)
 
