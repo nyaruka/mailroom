@@ -4,16 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"maps"
 	"net/http"
-	"slices"
-	"time"
 
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/core/goflow"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/runner"
-	"github.com/nyaruka/mailroom/core/runner/clocks"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/mailroom/web"
 )
@@ -88,57 +84,22 @@ func handleModify(ctx context.Context, rt *runtime.Runtime, r *modifyRequest) (a
 		return nil, 0, err
 	}
 
+	// modifiers are the same for all contacts
+	byContact := make(map[models.ContactID][]flows.Modifier, len(r.ContactIDs))
+	for _, cid := range r.ContactIDs {
+		byContact[cid] = mods
+	}
+
+	eventsBycontact, skipped, err := runner.ModifyWithLock(ctx, rt, oa, r.UserID, r.ContactIDs, byContact, nil)
+	if err != nil {
+		return nil, 0, fmt.Errorf("error bulk modifying contacts: %w", err)
+	}
+
 	results := make(map[flows.ContactID]modifyResult, len(r.ContactIDs))
-	remaining := r.ContactIDs
-	start := time.Now()
 
-	for len(remaining) > 0 && time.Since(start) < time.Second*10 {
-		eventsByContact, skipped, err := tryToLockAndModify(ctx, rt, oa, remaining, mods, r.UserID)
-		if err != nil {
-			return nil, 0, err
-		}
-
-		for flowContact, contactEvents := range eventsByContact {
-			results[flowContact.ID()] = modifyResult{Contact: flowContact, Events: contactEvents}
-		}
-
-		remaining = skipped
+	for flowContact, contactEvents := range eventsBycontact {
+		results[flowContact.ID()] = modifyResult{Contact: flowContact, Events: contactEvents}
 	}
 
-	return &modifyResponse{Modified: results, Skipped: remaining}, http.StatusOK, nil
-}
-
-func tryToLockAndModify(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, ids []models.ContactID, mods []flows.Modifier, userID models.UserID) (map[*flows.Contact][]flows.Event, []models.ContactID, error) {
-	locks, skipped, err := clocks.TryToLock(ctx, rt, oa, ids, time.Second)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	locked := slices.Collect(maps.Keys(locks))
-
-	defer clocks.Unlock(ctx, rt, oa, locks)
-
-	// load our contacts
-	contacts, err := models.LoadContacts(ctx, rt.DB, oa, locked)
-	if err != nil {
-		return nil, nil, fmt.Errorf("unable to load contacts: %w", err)
-	}
-
-	// convert to map of flow contacts to modifiers
-	modifiersByContact := make(map[*flows.Contact][]flows.Modifier, len(contacts))
-	for _, contact := range contacts {
-		flowContact, err := contact.EngineContact(oa)
-		if err != nil {
-			return nil, nil, fmt.Errorf("error creating flow contact: %w", err)
-		}
-
-		modifiersByContact[flowContact] = mods
-	}
-
-	eventsByContact, err := runner.BulkModify(ctx, rt, oa, userID, modifiersByContact)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return eventsByContact, skipped, nil
+	return &modifyResponse{Modified: results, Skipped: skipped}, http.StatusOK, nil
 }

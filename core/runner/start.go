@@ -23,18 +23,14 @@ type TriggerBuilder func() flows.Trigger
 
 // StartWithLock starts the given contacts in flow sessions after obtaining locks for them.
 func StartWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contactIDs []models.ContactID, triggerBuilder TriggerBuilder, interrupt bool, startID models.StartID) ([]*Scene, error) {
-	if len(contactIDs) == 0 {
-		return nil, nil
-	}
-
 	// we now need to grab locks for our contacts so that they are never in two starts or handles at the
-	// same time we try to grab locks for up to five minutes, but do it in batches where we wait for one
+	// same time we try to grab locks for up to a minute, but do it in batches where we wait for one
 	// second per contact to prevent deadlocks
 	scenes := make([]*Scene, 0, len(contactIDs))
 	remaining := contactIDs
 	start := time.Now()
 
-	for len(remaining) > 0 && time.Since(start) < time.Minute*5 {
+	for len(remaining) > 0 && time.Since(start) < time.Minute {
 		if ctx.Err() != nil {
 			return scenes, ctx.Err()
 		}
