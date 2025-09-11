@@ -3,7 +3,9 @@ package ticket
 import (
 	"context"
 	"fmt"
+	"maps"
 	"net/http"
+	"slices"
 
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/events"
@@ -38,8 +40,6 @@ func handleAddNote(ctx context.Context, rt *runtime.Runtime, r *addNoteRequest) 
 		return nil, 0, fmt.Errorf("unable to load org assets: %w", err)
 	}
 
-	mod := modifiers.NewTicketNote(r.TicketUUIDs, r.Note)
-
 	scenes, err := createTicketScenes(ctx, rt, oa, r.TicketUUIDs)
 	if err != nil {
 		return nil, 0, fmt.Errorf("error creating scenes for tickets: %w", err)
@@ -47,21 +47,25 @@ func handleAddNote(ctx context.Context, rt *runtime.Runtime, r *addNoteRequest) 
 
 	changed := make([]flows.TicketUUID, 0, len(scenes))
 
-	for _, scene := range scenes {
-		evts, err := scene.ApplyModifier(ctx, rt, oa, mod, r.UserID)
-		if err != nil {
-			return nil, 0, fmt.Errorf("error applying ticket modifier to scene: %w", err)
-		}
+	for scene, tickets := range scenes {
+		for _, ticket := range tickets {
+			mod := modifiers.NewTicketNote(ticket.UUID, r.Note)
 
-		for _, e := range evts {
-			switch typed := e.(type) {
-			case *events.TicketNoteAdded:
-				changed = append(changed, typed.TicketUUID)
+			evts, err := scene.ApplyModifier(ctx, rt, oa, mod, r.UserID)
+			if err != nil {
+				return nil, 0, fmt.Errorf("error applying ticket modifier to scene: %w", err)
+			}
+
+			for _, e := range evts {
+				switch typed := e.(type) {
+				case *events.TicketNoteAdded:
+					changed = append(changed, typed.TicketUUID)
+				}
 			}
 		}
 	}
 
-	if err := runner.BulkCommit(ctx, rt, oa, scenes); err != nil {
+	if err := runner.BulkCommit(ctx, rt, oa, slices.Collect(maps.Keys(scenes))); err != nil {
 		return nil, 0, fmt.Errorf("error committing scenes for tickets: %w", err)
 	}
 
