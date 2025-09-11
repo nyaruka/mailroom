@@ -41,8 +41,10 @@ func (h *insertFlowStats) Execute(ctx context.Context, rt *runtime.Runtime, tx *
 	categoryChanges := make(map[resultInfo]int, 10)
 	nodeTypeCache := make(map[flows.NodeUUID]string)
 
-	// scenes are processed in order of session UUID.. solely for the sake of test determinism
-	for _, scene := range slices.SortedStableFunc(maps.Keys(scenes), func(s1, s2 *runner.Scene) int { return cmp.Compare(s1.SessionUUID(), s2.SessionUUID()) }) {
+	// for test determinism
+	scenesOrdered := slices.SortedStableFunc(maps.Keys(scenes), func(s1, s2 *runner.Scene) int { return cmp.Compare(s1.SessionUUID(), s2.SessionUUID()) })
+
+	for _, scene := range scenesOrdered {
 		for _, seg := range scene.Sprint.Segments() {
 			segID := segmentInfo{
 				flowID:   seg.Flow().Asset().(*models.Flow).ID(),

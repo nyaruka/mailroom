@@ -109,7 +109,7 @@ func BulkModify(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, 
 	scenes := make([]*Scene, 0, len(modifiersByContact))
 	eventsByContact := make(map[*flows.Contact][]flows.Event, len(modifiersByContact))
 
-	// until go has an easier way to iterate a map in a stable order, we need this to make tests deterministic
+	// for test determinism
 	contactsByID := slices.SortedFunc(maps.Keys(modifiersByContact), func(a, b *flows.Contact) int { return cmp.Compare(a.ID(), b.ID()) })
 
 	for _, contact := range contactsByID {

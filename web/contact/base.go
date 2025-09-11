@@ -51,7 +51,7 @@ func SpecToCreation(s *models.ContactSpec, env envs.Environment, sa flows.Sessio
 
 	validated.Mods = make([]flows.Modifier, 0, len(s.Fields))
 
-	for _, key := range slices.Sorted(maps.Keys(s.Fields)) { // sorted for test stability
+	for _, key := range slices.Sorted(maps.Keys(s.Fields)) { // for test determinism
 		field := sa.Fields().Get(key)
 		if field == nil {
 			return nil, fmt.Errorf("unknown contact field '%s'", key)
