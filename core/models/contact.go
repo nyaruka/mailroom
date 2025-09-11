@@ -578,8 +578,7 @@ LEFT JOIN (
 ) t ON c.id = t.contact_id
 WHERE 
 	c.id = ANY($1) AND is_active = TRUE AND c.org_id = $2
-) r
-ORDER BY id;
+) r;
 `
 
 // CreateContact creates a new contact for the passed in org with the passed in URNs

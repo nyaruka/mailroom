@@ -16,6 +16,11 @@ import (
 	"github.com/nyaruka/mailroom/runtime"
 )
 
+const (
+	// how long we will keep trying to lock contacts for modification
+	modifyLockWait = 10 * time.Second
+)
+
 // Mapping of modifier types to the primary event type they generate which is the only event that should
 // be credited to the user. For example if a user changes a field value that generates a contact_field_changed
 // event (which should be credited to the user) but potentially also a contact_groups_changed event (which should not).
@@ -36,15 +41,11 @@ var modifierUserEvents = map[string]string{
 //
 // Note we don't load the user object from org assets as it's possible that the user isn't part of the org, e.g. customer support.
 func ModifyWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, userID models.UserID, contactIDs []models.ContactID, modifiersByContact map[models.ContactID][]flows.Modifier, includeTickets map[models.ContactID][]*models.Ticket) (map[*flows.Contact][]flows.Event, []models.ContactID, error) {
-	// we now need to grab locks for our contacts so that they are never in two starts or handles at the
-	// same time we try to grab locks for up to a minute, but do it in batches where we wait for one
-	// second per contact to prevent deadlocks
 	eventsByContact := make(map[*flows.Contact][]flows.Event, len(modifiersByContact))
 	remaining := contactIDs
-
 	start := time.Now()
 
-	for len(remaining) > 0 && time.Since(start) < time.Minute {
+	for len(remaining) > 0 && time.Since(start) < modifyLockWait {
 		if ctx.Err() != nil {
 			return nil, nil, ctx.Err()
 		}
@@ -67,7 +68,7 @@ func tryToModifyWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.Or
 	if err != nil {
 		return nil, nil, err
 	}
-	locked := slices.Sorted(maps.Keys(locks))
+	locked := slices.Collect(maps.Keys(locks))
 
 	// whatever happens, we need to unlock the contacts
 	defer clocks.Unlock(ctx, rt, oa, locks)
@@ -79,6 +80,9 @@ func tryToModifyWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.Or
 	if err != nil {
 		return nil, nil, fmt.Errorf("error creating scenes for modifiers: %w", err)
 	}
+
+	// for test determinism
+	slices.SortFunc(scenes, func(a, b *Scene) int { return cmp.Compare(a.Contact.ID(), b.Contact.ID()) })
 
 	for _, scene := range scenes {
 		eventsByContact[scene.Contact] = make([]flows.Event, 0) // TODO only needed to avoid nulls until jsonv2
