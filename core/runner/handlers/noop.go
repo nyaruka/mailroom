@@ -26,7 +26,6 @@ func init() {
 	runner.RegisterEventHandler(events.TypeRunEnded, noopHandler)
 	runner.RegisterEventHandler(events.TypeRunResultChanged, noopHandler)
 	runner.RegisterEventHandler(events.TypeServiceCalled, noopHandler)
-	runner.RegisterEventHandler(events.TypeTicketClosed, noopHandler)
 	runner.RegisterEventHandler(events.TypeWaitExpired, noopHandler)
 	runner.RegisterEventHandler(events.TypeWaitTimedOut, noopHandler)
 }

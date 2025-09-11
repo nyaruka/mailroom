@@ -26,8 +26,8 @@ type Team struct {
 	UUID models.TeamUUID
 }
 
-func (k *Ticket) Load(rt *runtime.Runtime) *models.Ticket {
-	tickets, err := models.LoadTickets(context.Background(), rt.DB, []flows.TicketUUID{k.UUID})
+func (k *Ticket) Load(rt *runtime.Runtime, org *Org) *models.Ticket {
+	tickets, err := models.LoadTickets(context.Background(), rt.DB, org.ID, []flows.TicketUUID{k.UUID})
 	must(err, len(tickets) == 1)
 	return tickets[0]
 }

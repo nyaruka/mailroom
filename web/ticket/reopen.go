@@ -37,7 +37,7 @@ func handleReopen(ctx context.Context, rt *runtime.Runtime, r *http.Request) (an
 		return nil, 0, fmt.Errorf("unable to load org assets: %w", err)
 	}
 
-	tickets, err := models.LoadTickets(ctx, rt.DB, request.TicketUUIDs)
+	tickets, err := models.LoadTickets(ctx, rt.DB, oa.OrgID(), request.TicketUUIDs)
 	if err != nil {
 		return nil, 0, fmt.Errorf("error loading tickets for org: %d: %w", request.OrgID, err)
 	}

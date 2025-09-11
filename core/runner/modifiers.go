@@ -23,9 +23,10 @@ var modifierUserEvents = map[string]string{
 	modifiers.TypeLanguage:       events.TypeContactLanguageChanged,
 	modifiers.TypeName:           events.TypeContactNameChanged,
 	modifiers.TypeStatus:         events.TypeContactStatusChanged,
-	modifiers.TypeTicketOpen:     events.TypeTicketOpened,
 	modifiers.TypeTicketAssignee: events.TypeTicketAssigneeChanged,
+	modifiers.TypeTicketClose:    events.TypeTicketClosed,
 	modifiers.TypeTicketNote:     events.TypeTicketNoteAdded,
+	modifiers.TypeTicketOpen:     events.TypeTicketOpened,
 	modifiers.TypeTicketTopic:    events.TypeTicketTopicChanged,
 }
 

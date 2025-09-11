@@ -5,6 +5,7 @@ import (
 
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/mailroom/core/models"
 	_ "github.com/nyaruka/mailroom/core/runner/handlers"
 	"github.com/nyaruka/mailroom/core/tasks"
@@ -22,15 +23,19 @@ func TestTicketClosed(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
+	oa := testdb.Org1.Load(rt)
+
 	// add a ticket closed trigger
 	testdb.InsertTicketClosedTrigger(rt, testdb.Org1, testdb.Favorites)
+	models.FlushCache()
 
 	ticket := testdb.InsertClosedTicket(rt, "01992f54-5ab6-717a-a39e-e8ca91fb7262", testdb.Org1, testdb.Cathy, testdb.DefaultTopic, nil)
-	modelTicket := ticket.Load(rt)
+	modelTicket := ticket.Load(rt, testdb.Org1)
 
 	models.NewTicketClosedEvent(flows.NewEventUUID(), modelTicket, testdb.Admin.ID)
+	evt := events.NewTicketClosed(modelTicket.EngineTicket(oa))
 
-	err := realtime.QueueTask(ctx, rt, testdb.Org1.ID, testdb.Cathy.ID, ctasks.NewTicketClosed(ticket.UUID))
+	err := realtime.QueueTask(ctx, rt, testdb.Org1.ID, testdb.Cathy.ID, ctasks.NewTicketClosed(evt))
 	require.NoError(t, err)
 
 	task, err := rt.Queues.Realtime.Pop(ctx, vc)
