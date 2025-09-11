@@ -105,12 +105,12 @@ SELECT
   closed_on,
   last_activity_on
     FROM tickets_ticket
-   WHERE uuid = ANY($1)
+   WHERE org_id = $1 AND uuid = ANY($2)
 ORDER BY opened_on DESC`
 
 // LoadTickets loads all of the tickets with the given ids
-func LoadTickets(ctx context.Context, db *sqlx.DB, uuids []flows.TicketUUID) ([]*Ticket, error) {
-	return loadTickets(ctx, db, sqlSelectTicketsByUUID, pq.Array(uuids))
+func LoadTickets(ctx context.Context, db *sqlx.DB, orgID OrgID, uuids []flows.TicketUUID) ([]*Ticket, error) {
+	return loadTickets(ctx, db, sqlSelectTicketsByUUID, orgID, pq.Array(uuids))
 }
 
 func loadTickets(ctx context.Context, db *sqlx.DB, query string, params ...any) ([]*Ticket, error) {
@@ -130,51 +130,6 @@ func loadTickets(ctx context.Context, db *sqlx.DB, query string, params ...any) 
 	}
 
 	return tickets, nil
-}
-
-const sqlSelectTicketByUUID = `
-SELECT
-  t.id,
-  t.uuid,
-  t.org_id,
-  t.contact_id,
-  t.status,
-  t.topic_id,
-  t.assignee_id,
-  t.opened_on,
-  t.opened_by_id,
-  t.opened_in_id,
-  t.replied_on,
-  t.modified_on,
-  t.closed_on,
-  t.last_activity_on
-FROM
-  tickets_ticket t
-WHERE
-  t.uuid = $1`
-
-// LookupTicketByUUID looks up the ticket with the passed in UUID
-func LookupTicketByUUID(ctx context.Context, db *sqlx.DB, uuid flows.TicketUUID) (*Ticket, error) {
-	return lookupTicket(ctx, db, sqlSelectTicketByUUID, uuid)
-}
-
-func lookupTicket(ctx context.Context, db *sqlx.DB, query string, params ...any) (*Ticket, error) {
-	rows, err := db.QueryxContext(ctx, query, params...)
-	if err != nil && err != sql.ErrNoRows {
-		return nil, err
-	}
-	defer rows.Close()
-
-	if err == sql.ErrNoRows || !rows.Next() {
-		return nil, nil
-	}
-
-	t := &Ticket{}
-	if err := rows.StructScan(t); err != nil {
-		return nil, err
-	}
-
-	return t, nil
 }
 
 const sqlInsertTicket = `
@@ -236,8 +191,9 @@ UPDATE tickets_ticket t
        assignee_id = r.assignee_id::int,
        topic_id = r.topic_id::int,
        last_activity_on = r.last_activity_on::timestamptz,
+	   closed_on = r.closed_on::timestamptz,
        modified_on = NOW()
-  FROM (VALUES(:id, :status, :assignee_id, :topic_id, :last_activity_on)) AS r(id, status, assignee_id, topic_id, last_activity_on)
+  FROM (VALUES(:id, :status, :assignee_id, :topic_id, :last_activity_on, :closed_on)) AS r(id, status, assignee_id, topic_id, last_activity_on, closed_on)
  WHERE t.id = r.id::int`
 
 // UpdateTickets updates the passed in tickets in the database
@@ -246,51 +202,6 @@ func UpdateTickets(ctx context.Context, tx DBorTx, tickets []*Ticket) error {
 		return fmt.Errorf("error updating tickets: %w", err)
 	}
 	return nil
-}
-
-const sqlCloseTickets = `
-UPDATE tickets_ticket
-   SET status = 'C', modified_on = $2, closed_on = $2, last_activity_on = $2
- WHERE id = ANY($1)`
-
-// CloseTickets closes the passed in tickets
-func CloseTickets(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, userID UserID, tickets []*Ticket) (map[*Ticket]*TicketEvent, error) {
-	ids := make([]TicketID, 0, len(tickets))
-	events := make([]*TicketEvent, 0, len(tickets))
-	eventsByTicket := make(map[*Ticket]*TicketEvent, len(tickets))
-	contactIDs := make(map[ContactID]bool, len(tickets))
-	now := dates.Now()
-
-	for _, t := range tickets {
-		if t.Status != TicketStatusClosed {
-			ids = append(ids, t.ID)
-			t.Status = TicketStatusClosed
-			t.ModifiedOn = now
-			t.ClosedOn = &now
-			t.LastActivityOn = now
-
-			e := NewTicketClosedEvent(flows.NewEventUUID(), t, userID)
-			events = append(events, e)
-			eventsByTicket[t] = e
-			contactIDs[t.ContactID] = true
-		}
-	}
-
-	// mark the tickets as closed in the db
-	_, err := rt.DB.ExecContext(ctx, sqlCloseTickets, pq.Array(ids), now)
-	if err != nil {
-		return nil, fmt.Errorf("error updating tickets: %w", err)
-	}
-
-	if err := InsertLegacyTicketEvents(ctx, rt.DB, events); err != nil {
-		return nil, fmt.Errorf("error inserting ticket events: %w", err)
-	}
-
-	if err := recalcGroupsForTicketChanges(ctx, rt.DB, oa, contactIDs); err != nil {
-		return nil, fmt.Errorf("error recalculting groups: %w", err)
-	}
-
-	return eventsByTicket, nil
 }
 
 const sqlReopenTickets = `

@@ -42,7 +42,7 @@ func newBulkResponse(changed []flows.TicketUUID) *bulkTicketResponse {
 }
 
 func createTicketScenes(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, ticketUUIDs []flows.TicketUUID) ([]*runner.Scene, error) {
-	tickets, err := models.LoadTickets(ctx, rt.DB, ticketUUIDs)
+	tickets, err := models.LoadTickets(ctx, rt.DB, oa.OrgID(), ticketUUIDs)
 	if err != nil {
 		return nil, fmt.Errorf("error loading tickets: %w", err)
 	}

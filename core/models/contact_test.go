@@ -61,7 +61,7 @@ func TestContacts(t *testing.T) {
 	assert.Equal(t, len(cathy.URNs()), 1)
 	assert.Equal(t, cathy.URNs()[0].String(), "tel:+16055741111?id=10000")
 	assert.Equal(t, 1, cathy.Groups().Count())
-	assert.Equal(t, 2, cathy.Tickets().OpenCount())
+	assert.Equal(t, 2, cathy.Tickets().Open().Count())
 
 	cathyTicket := cathy.Tickets().LastOpen()
 	assert.Equal(t, "Sales", cathyTicket.Topic().Name())

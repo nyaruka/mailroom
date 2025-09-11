@@ -5,7 +5,11 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/flows/events"
+	"github.com/nyaruka/goflow/flows/modifiers"
 	"github.com/nyaruka/mailroom/core/models"
+	"github.com/nyaruka/mailroom/core/runner"
 	"github.com/nyaruka/mailroom/core/tasks/realtime"
 	"github.com/nyaruka/mailroom/core/tasks/realtime/ctasks"
 	"github.com/nyaruka/mailroom/runtime"
@@ -34,24 +38,42 @@ func handleClose(ctx context.Context, rt *runtime.Runtime, r *closeRequest) (any
 		return nil, 0, fmt.Errorf("unable to load org assets: %w", err)
 	}
 
-	tickets, err := models.LoadTickets(ctx, rt.DB, r.TicketUUIDs)
+	mod := modifiers.NewTicketClose(r.TicketUUIDs)
+
+	scenes, err := createTicketScenes(ctx, rt, oa, r.TicketUUIDs)
 	if err != nil {
-		return nil, 0, fmt.Errorf("error loading tickets for org: %d: %w", r.OrgID, err)
+		return nil, 0, fmt.Errorf("error creating scenes for tickets: %w", err)
 	}
 
-	evts, err := models.CloseTickets(ctx, rt, oa, r.UserID, tickets)
-	if err != nil {
-		return nil, 0, fmt.Errorf("error closing tickets: %w", err)
-	}
+	changed := make([]flows.TicketUUID, 0, len(scenes))
+	tasks := make(map[models.ContactID][]realtime.Task, len(scenes))
 
-	for t, e := range evts {
-		if e.Type == models.TicketEventTypeClosed {
-			err = realtime.QueueTask(ctx, rt, e.OrgID, e.ContactID, ctasks.NewTicketClosed(t.UUID))
-			if err != nil {
-				return nil, 0, fmt.Errorf("error queueing ticket closed task %d: %w", t.ID, err)
+	for _, scene := range scenes {
+		evts, err := scene.ApplyModifier(ctx, rt, oa, mod, r.UserID)
+		if err != nil {
+			return nil, 0, fmt.Errorf("error applying ticket modifier to scene: %w", err)
+		}
+
+		for _, e := range evts {
+			switch typed := e.(type) {
+			case *events.TicketClosed:
+				changed = append(changed, typed.TicketUUID)
+				tasks[scene.ContactID()] = append(tasks[scene.ContactID()], ctasks.NewTicketClosed(typed))
 			}
 		}
 	}
 
-	return newLegacyBulkResponse(evts), http.StatusOK, nil
+	if err := runner.BulkCommit(ctx, rt, oa, scenes); err != nil {
+		return nil, 0, fmt.Errorf("error committing scenes for tickets: %w", err)
+	}
+
+	for contactID, contactTasks := range tasks {
+		for _, task := range contactTasks {
+			if err := realtime.QueueTask(ctx, rt, oa.OrgID(), contactID, task); err != nil {
+				return nil, 0, fmt.Errorf("error queueing ticket closed task: %w", err)
+			}
+		}
+	}
+
+	return newBulkResponse(changed), http.StatusOK, nil
 }

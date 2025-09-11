@@ -70,12 +70,6 @@ func TestTickets(t *testing.T) {
 		today + "/tickets:assigned:0:3": 2,
 	})
 	testsuite.AssertDailyCounts(t, rt, testdb.Org2, map[string]int{})
-
-	// can lookup a ticket by UUID
-	tk, err := models.LookupTicketByUUID(ctx, rt.DB, "64f81be1-00ff-48ef-9e51-97d6f924c1a4")
-	assert.NoError(t, err)
-	assert.Equal(t, flows.TicketUUID("64f81be1-00ff-48ef-9e51-97d6f924c1a4"), tk.UUID)
-	assert.Equal(t, testdb.Bob.ID, tk.ContactID)
 }
 
 func TestUpdateTicketLastActivity(t *testing.T) {
@@ -89,7 +83,7 @@ func TestUpdateTicketLastActivity(t *testing.T) {
 	dates.SetNowFunc(dates.NewFixedNow(now))
 
 	ticket := testdb.InsertOpenTicket(rt, "01992f54-5ab6-717a-a39e-e8ca91fb7262", testdb.Org1, testdb.Cathy, testdb.DefaultTopic, time.Now(), nil)
-	modelTicket := ticket.Load(rt)
+	modelTicket := ticket.Load(rt, testdb.Org1)
 
 	models.UpdateTicketLastActivity(ctx, rt.DB, []*models.Ticket{modelTicket})
 
@@ -103,9 +97,9 @@ func TestUpdateTickets(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
-	ticket1 := testdb.InsertClosedTicket(rt, "01992f54-5ab6-717a-a39e-e8ca91fb7262", testdb.Org1, testdb.Cathy, testdb.SalesTopic, nil).Load(rt)
-	ticket2 := testdb.InsertOpenTicket(rt, "01992f54-5ab6-725e-be9c-0c6407efd755", testdb.Org1, testdb.Cathy, testdb.SalesTopic, time.Now(), nil).Load(rt)
-	ticket3 := testdb.InsertOpenTicket(rt, "01992f54-5ab6-7498-a7f2-6aa246e45cfe", testdb.Org1, testdb.Cathy, testdb.DefaultTopic, time.Now(), testdb.Admin).Load(rt)
+	ticket1 := testdb.InsertClosedTicket(rt, "01992f54-5ab6-717a-a39e-e8ca91fb7262", testdb.Org1, testdb.Cathy, testdb.SalesTopic, nil).Load(rt, testdb.Org1)
+	ticket2 := testdb.InsertOpenTicket(rt, "01992f54-5ab6-725e-be9c-0c6407efd755", testdb.Org1, testdb.Cathy, testdb.SalesTopic, time.Now(), nil).Load(rt, testdb.Org1)
+	ticket3 := testdb.InsertOpenTicket(rt, "01992f54-5ab6-7498-a7f2-6aa246e45cfe", testdb.Org1, testdb.Cathy, testdb.DefaultTopic, time.Now(), testdb.Admin).Load(rt, testdb.Org1)
 
 	assertTicket := func(tk *models.Ticket, cols map[string]any) {
 		assertdb.Query(t, rt.DB, `SELECT status, assignee_id, topic_id FROM tickets_ticket WHERE id = $1`, tk.ID).Columns(cols)
@@ -137,60 +131,6 @@ func TestUpdateTickets(t *testing.T) {
 	assertTicket(ticket3, map[string]any{"status": "C", "assignee_id": nil, "topic_id": int64(testdb.DefaultTopic.ID)})
 }
 
-func TestCloseTickets(t *testing.T) {
-	ctx, rt := testsuite.Runtime(t)
-
-	defer testsuite.Reset(t, rt, testsuite.ResetData)
-
-	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
-	require.NoError(t, err)
-
-	ticket1 := testdb.InsertOpenTicket(rt, "01992f54-5ab6-717a-a39e-e8ca91fb7262", testdb.Org1, testdb.Cathy, testdb.DefaultTopic, time.Now(), nil)
-	modelTicket1 := ticket1.Load(rt)
-
-	ticket2 := testdb.InsertClosedTicket(rt, "01992f54-5ab6-725e-be9c-0c6407efd755", testdb.Org1, testdb.Cathy, testdb.DefaultTopic, nil)
-	modelTicket2 := ticket2.Load(rt)
-
-	_, cathy, _ := testdb.Cathy.Load(rt, oa)
-
-	err = models.CalculateDynamicGroups(ctx, rt.DB, oa, []*flows.Contact{cathy})
-	require.NoError(t, err)
-
-	assert.Equal(t, "Doctors", cathy.Groups().All()[0].Name())
-	assert.Equal(t, "Open Tickets", cathy.Groups().All()[1].Name())
-
-	evts, err := models.CloseTickets(ctx, rt, oa, testdb.Admin.ID, []*models.Ticket{modelTicket1, modelTicket2})
-	require.NoError(t, err)
-	assert.Equal(t, 1, len(evts))
-	assert.Equal(t, models.TicketEventTypeClosed, evts[modelTicket1].Type)
-
-	// check ticket #1 is now closed
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM tickets_ticket WHERE id = $1 AND status = 'C' AND closed_on IS NOT NULL`, ticket1.ID).Returns(1)
-
-	// and there's closed event for it
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM tickets_ticketevent WHERE org_id = $1 AND ticket_id = $2 AND event_type = 'C'`,
-		[]any{testdb.Org1.ID, ticket1.ID}, 1)
-
-	// reload Cathy and check they're no longer in the tickets group
-	_, cathy, _ = testdb.Cathy.Load(rt, oa)
-	assert.Equal(t, 1, len(cathy.Groups().All()))
-	assert.Equal(t, "Doctors", cathy.Groups().All()[0].Name())
-
-	// but no events for ticket #2 which was already closed
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM tickets_ticketevent WHERE ticket_id = $1 AND event_type = 'C'`, ticket2.ID).Returns(0)
-
-	// can close tickets without a user
-	ticket3 := testdb.InsertOpenTicket(rt, "01992f54-5ab6-7498-a7f2-6aa246e45cfe", testdb.Org1, testdb.Cathy, testdb.DefaultTopic, time.Now(), nil)
-	modelTicket3 := ticket3.Load(rt)
-
-	evts, err = models.CloseTickets(ctx, rt, oa, models.NilUserID, []*models.Ticket{modelTicket3})
-	require.NoError(t, err)
-	assert.Equal(t, 1, len(evts))
-	assert.Equal(t, models.TicketEventTypeClosed, evts[modelTicket3].Type)
-
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM tickets_ticketevent WHERE ticket_id = $1 AND event_type = 'C' AND created_by_id IS NULL`, ticket3.ID).Returns(1)
-}
-
 func TestReopenTickets(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
@@ -200,10 +140,10 @@ func TestReopenTickets(t *testing.T) {
 	require.NoError(t, err)
 
 	ticket1 := testdb.InsertClosedTicket(rt, "01992f54-5ab6-717a-a39e-e8ca91fb7262", testdb.Org1, testdb.Cathy, testdb.DefaultTopic, nil)
-	modelTicket1 := ticket1.Load(rt)
+	modelTicket1 := ticket1.Load(rt, testdb.Org1)
 
 	ticket2 := testdb.InsertOpenTicket(rt, "01992f54-5ab6-725e-be9c-0c6407efd755", testdb.Org1, testdb.Cathy, testdb.DefaultTopic, time.Now(), nil)
-	modelTicket2 := ticket2.Load(rt)
+	modelTicket2 := ticket2.Load(rt, testdb.Org1)
 
 	evts, err := models.ReopenTickets(ctx, rt, oa, testdb.Admin.ID, []*models.Ticket{modelTicket1, modelTicket2})
 	require.NoError(t, err)
@@ -245,7 +185,7 @@ func TestTicketRecordReply(t *testing.T) {
 	err = models.RecordTicketReply(ctx, rt.DB, oa, ticket.ID, testdb.Agent.ID, repliedOn)
 	assert.NoError(t, err)
 
-	modelTicket := ticket.Load(rt)
+	modelTicket := ticket.Load(rt, testdb.Org1)
 	assert.Equal(t, repliedOn, *modelTicket.RepliedOn)
 	assert.Equal(t, repliedOn, modelTicket.LastActivityOn)
 
@@ -268,7 +208,7 @@ func TestTicketRecordReply(t *testing.T) {
 	err = models.RecordTicketReply(ctx, rt.DB, oa, ticket.ID, testdb.Agent.ID, repliedAgainOn)
 	assert.NoError(t, err)
 
-	modelTicket = ticket.Load(rt)
+	modelTicket = ticket.Load(rt, testdb.Org1)
 	assert.Equal(t, repliedOn, *modelTicket.RepliedOn)
 	assert.Equal(t, repliedAgainOn, modelTicket.LastActivityOn)
 

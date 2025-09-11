@@ -22,11 +22,15 @@ func init() {
 }
 
 type TicketClosedTask struct {
-	TicketUUID flows.TicketUUID `json:"ticket_uuid" validate:"required"`
+	Event      *events.TicketClosed `json:"event"`
+	TicketUUID flows.TicketUUID     `json:"ticket_uuid"` // deprecated
 }
 
-func NewTicketClosed(ticketUUID flows.TicketUUID) *TicketClosedTask {
-	return &TicketClosedTask{TicketUUID: ticketUUID}
+func NewTicketClosed(evt *events.TicketClosed) *TicketClosedTask {
+	return &TicketClosedTask{
+		Event:      evt,
+		TicketUUID: evt.TicketUUID,
+	}
 }
 
 func (t *TicketClosedTask) Type() string {
@@ -39,7 +43,7 @@ func (t *TicketClosedTask) UseReadOnly() bool {
 
 func (t *TicketClosedTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, mc *models.Contact) error {
 	// load our ticket
-	tickets, err := models.LoadTickets(ctx, rt.DB, []flows.TicketUUID{t.TicketUUID})
+	tickets, err := models.LoadTickets(ctx, rt.DB, oa.OrgID(), []flows.TicketUUID{t.TicketUUID})
 	if err != nil {
 		return fmt.Errorf("error loading ticket: %w", err)
 	}
@@ -73,13 +77,11 @@ func (t *TicketClosedTask) Perform(ctx context.Context, rt *runtime.Runtime, oa 
 	}
 
 	ticket := tickets[0].EngineTicket(oa)
+
+	// TODO pass event in task payload since it already exists?
 	evt := events.NewTicketClosed(ticket)
 
 	scene := runner.NewScene(mc, contact)
-
-	if err := scene.AddEvent(ctx, rt, oa, evt, models.NilUserID); err != nil {
-		return fmt.Errorf("error adding ticket closed event to scene: %w", err)
-	}
 
 	// build our flow trigger
 	flowTrigger := triggers.NewBuilder(flow.Reference()).TicketClosed(evt, ticket).Build()

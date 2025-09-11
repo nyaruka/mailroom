@@ -13,8 +13,8 @@
         },
         "status": 200,
         "response": {
-            "changed_ids": [
-                30000
+            "changed_uuids": [
+                "01992f54-5ab6-717a-a39e-e8ca91fb7262"
             ]
         },
         "db_assertions": [
