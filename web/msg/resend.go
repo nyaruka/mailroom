@@ -31,7 +31,7 @@ func handleResend(ctx context.Context, rt *runtime.Runtime, r *resendRequest) (a
 	// grab our org
 	oa, err := models.GetOrgAssets(ctx, rt, r.OrgID)
 	if err != nil {
-		return nil, 0, fmt.Errorf("unable to load org assets: %w", err)
+		return nil, 0, fmt.Errorf("error loading org assets: %w", err)
 	}
 
 	msgs, err := models.GetMessagesByID(ctx, rt.DB, r.OrgID, models.DirectionOut, r.MsgIDs)

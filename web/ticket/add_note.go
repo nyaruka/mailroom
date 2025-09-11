@@ -33,7 +33,7 @@ type addNoteRequest struct {
 func handleAddNote(ctx context.Context, rt *runtime.Runtime, r *addNoteRequest) (any, int, error) {
 	oa, err := models.GetOrgAssets(ctx, rt, r.OrgID)
 	if err != nil {
-		return nil, 0, fmt.Errorf("unable to load org assets: %w", err)
+		return nil, 0, fmt.Errorf("error loading org assets: %w", err)
 	}
 
 	mod := func(t *models.Ticket) flows.Modifier {

@@ -15,7 +15,7 @@ func loadFlows(ctx context.Context, rt *runtime.Runtime, orgID models.OrgID, flo
 	// grab our org assets
 	oa, err := models.GetOrgAssets(ctx, rt, orgID)
 	if err != nil {
-		return nil, fmt.Errorf("unable to load org assets: %w", err)
+		return nil, fmt.Errorf("error loading org assets: %w", err)
 	}
 
 	flows := make([]flows.Flow, len(flowIDs))

@@ -42,7 +42,7 @@ func handleSend(ctx context.Context, rt *runtime.Runtime, r *sendRequest) (any, 
 	// grab our org
 	oa, err := models.GetOrgAssets(ctx, rt, r.OrgID)
 	if err != nil {
-		return nil, 0, fmt.Errorf("unable to load org assets: %w", err)
+		return nil, 0, fmt.Errorf("error loading org assets: %w", err)
 	}
 
 	// load the contact and generate as a flow contact

@@ -47,7 +47,7 @@ type parseResponse struct {
 func handleParseQuery(ctx context.Context, rt *runtime.Runtime, r *parseRequest) (any, int, error) {
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, r.OrgID, models.RefreshFields|models.RefreshGroups)
 	if err != nil {
-		return nil, 0, fmt.Errorf("unable to load org assets: %w", err)
+		return nil, 0, fmt.Errorf("error loading org assets: %w", err)
 	}
 
 	env := oa.Env()

@@ -133,7 +133,7 @@ func handleSimulationEvents(ctx context.Context, db models.DBorTx, oa *models.Or
 func handleStart(ctx context.Context, rt *runtime.Runtime, r *startRequest) (any, int, error) {
 	oa, err := models.GetOrgAssets(ctx, rt, r.OrgID)
 	if err != nil {
-		return nil, http.StatusBadRequest, fmt.Errorf("unable to load org assets: %w", err)
+		return nil, http.StatusBadRequest, fmt.Errorf("error loading org assets: %w", err)
 	}
 
 	// create clone of assets for simulation
@@ -199,7 +199,7 @@ type resumeRequest struct {
 func handleResume(ctx context.Context, rt *runtime.Runtime, r *resumeRequest) (any, int, error) {
 	oa, err := models.GetOrgAssets(ctx, rt, r.OrgID)
 	if err != nil {
-		return nil, http.StatusBadRequest, err
+		return nil, http.StatusBadRequest, fmt.Errorf("error loading org assets: %w", err)
 	}
 
 	// create clone of assets for simulation
