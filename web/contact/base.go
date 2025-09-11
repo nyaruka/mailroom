@@ -2,6 +2,8 @@ package contact
 
 import (
 	"fmt"
+	"maps"
+	"slices"
 
 	"github.com/nyaruka/gocommon/i18n"
 	"github.com/nyaruka/gocommon/urns"
@@ -49,13 +51,13 @@ func SpecToCreation(s *models.ContactSpec, env envs.Environment, sa flows.Sessio
 
 	validated.Mods = make([]flows.Modifier, 0, len(s.Fields))
 
-	for key, value := range s.Fields {
+	for _, key := range slices.Sorted(maps.Keys(s.Fields)) { // sorted for test stability
 		field := sa.Fields().Get(key)
 		if field == nil {
 			return nil, fmt.Errorf("unknown contact field '%s'", key)
 		}
-		if value != "" {
-			validated.Mods = append(validated.Mods, modifiers.NewField(field, value))
+		if s.Fields[key] != "" {
+			validated.Mods = append(validated.Mods, modifiers.NewField(field, s.Fields[key]))
 		}
 	}
 

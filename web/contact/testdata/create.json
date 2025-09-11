@@ -96,13 +96,59 @@
                 }
             }
         },
-        "persisted_events": {
-            "692926ea-09d6-4942-bd38-d266ec8d3716": [
-                "contact_field_changed",
-                "contact_field_changed",
-                "contact_groups_changed"
-            ]
-        }
+        "expected_history": [
+            {
+                "event": {
+                    "uuid": "01969b47-0583-76f8-9c0b-2014ddc77094",
+                    "type": "contact_field_changed",
+                    "created_on": "2018-07-06T12:30:02.123456789Z",
+                    "field": {
+                        "key": "age",
+                        "name": "Age"
+                    },
+                    "value": {
+                        "text": "39",
+                        "number": 39
+                    }
+                },
+                "org_id": 1,
+                "contact_uuid": "692926ea-09d6-4942-bd38-d266ec8d3716",
+                "user_id": 3
+            },
+            {
+                "event": {
+                    "uuid": "01969b47-096b-76f8-92a3-d648ab64bccb",
+                    "type": "contact_field_changed",
+                    "created_on": "2018-07-06T12:30:04.123456789Z",
+                    "field": {
+                        "key": "gender",
+                        "name": "Gender"
+                    },
+                    "value": {
+                        "text": "M"
+                    }
+                },
+                "org_id": 1,
+                "contact_uuid": "692926ea-09d6-4942-bd38-d266ec8d3716",
+                "user_id": 3
+            },
+            {
+                "event": {
+                    "uuid": "01969b47-0d53-76f8-8228-9728778b6c98",
+                    "type": "contact_groups_changed",
+                    "created_on": "2018-07-06T12:30:05.123456789Z",
+                    "groups_added": [
+                        {
+                            "uuid": "c153e265-f7c9-4539-9dbc-9b358714b638",
+                            "name": "Doctors"
+                        }
+                    ]
+                },
+                "org_id": 1,
+                "contact_uuid": "692926ea-09d6-4942-bd38-d266ec8d3716",
+                "user_id": 3
+            }
+        ]
     },
     {
         "label": "error if try to create contact with invalid language",

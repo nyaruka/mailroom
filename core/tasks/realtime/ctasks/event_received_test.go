@@ -278,7 +278,7 @@ func TestChannelEvents(t *testing.T) {
 		}
 
 		// check persisted events
-		persistedEvents := testsuite.GetHistoryEvents(t, rt)
+		persistedEvents := testsuite.GetHistoryEventTypes(t, rt)
 		assert.Equal(t, tc.persistedEvents, persistedEvents, "%d: mismatch in persisted events", i)
 
 		dyntest.Truncate(t, rt.Dynamo, "TestHistory")

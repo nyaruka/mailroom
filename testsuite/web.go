@@ -20,7 +20,6 @@ import (
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/gocommon/httpx"
 	"github.com/nyaruka/gocommon/jsonx"
-	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/test"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/mailroom/web"
@@ -56,8 +55,8 @@ func RunWebTests(t *testing.T, ctx context.Context, rt *runtime.Runtime, truthFi
 			Query string `json:"query"`
 			Count int    `json:"count"`
 		} `json:"db_assertions,omitempty"`
-		ExpectedTasks   map[string][]string            `json:"expected_tasks,omitempty"`
-		PersistedEvents map[flows.ContactUUID][]string `json:"persisted_events,omitempty"`
+		ExpectedTasks   map[string][]string `json:"expected_tasks,omitempty"`
+		ExpectedHistory json.RawMessage     `json:"expected_history,omitempty"`
 
 		actualResponse []byte
 	}
@@ -117,7 +116,7 @@ func RunWebTests(t *testing.T, ctx context.Context, rt *runtime.Runtime, truthFi
 		actual.HTTPMocks = clonedMocks
 		actual.actualResponse, err = io.ReadAll(resp.Body)
 		actual.ExpectedTasks = getActualQueuedTasks(t, rt)
-		actual.PersistedEvents = GetHistoryEvents(t, rt)
+		actual.ExpectedHistory = jsonx.MustMarshal(GetHistoryEvents(t, rt))
 
 		assert.NoError(t, err, "%s: error reading body", tc.Label)
 
@@ -164,10 +163,10 @@ func RunWebTests(t *testing.T, ctx context.Context, rt *runtime.Runtime, truthFi
 			}
 			assert.Equal(t, tc.ExpectedTasks, actual.ExpectedTasks, "%s: unexpected tasks", tc.Label)
 
-			if tc.PersistedEvents == nil {
-				tc.PersistedEvents = make(map[flows.ContactUUID][]string)
+			if tc.ExpectedHistory == nil {
+				tc.ExpectedHistory = []byte(`[]`)
 			}
-			assert.Equal(t, tc.PersistedEvents, actual.PersistedEvents, "%s: unexpected persisted events", tc.Label)
+			test.AssertEqualJSON(t, tc.ExpectedHistory, actual.ExpectedHistory, "%s: unexpected persisted events", tc.Label)
 
 		} else {
 			tcs[i] = actual
@@ -186,6 +185,10 @@ func RunWebTests(t *testing.T, ctx context.Context, rt *runtime.Runtime, truthFi
 				require.NoError(t, err, "failed to update response file")
 			} else {
 				tcs[i].Response = tcs[i].actualResponse
+			}
+
+			if string(tcs[i].ExpectedHistory) == `[]` {
+				tcs[i].ExpectedHistory = nil
 			}
 		}
 
