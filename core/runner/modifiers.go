@@ -6,11 +6,13 @@ import (
 	"fmt"
 	"maps"
 	"slices"
+	"time"
 
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/goflow/flows/modifiers"
 	"github.com/nyaruka/mailroom/core/models"
+	"github.com/nyaruka/mailroom/core/runner/clocks"
 	"github.com/nyaruka/mailroom/runtime"
 )
 
@@ -30,9 +32,75 @@ var modifierUserEvents = map[string]string{
 	modifiers.TypeTicketTopic:    events.TypeTicketTopicChanged,
 }
 
-// BulkModify bulk modifies contacts by applying modifiers and processing the resultant events.
+// ModifyWithLock bulk modifies contacts by loading and locking them, applying modifiers and processing the resultant events.
 //
 // Note we don't load the user object from org assets as it's possible that the user isn't part of the org, e.g. customer support.
+func ModifyWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, userID models.UserID, contactIDs []models.ContactID, modifiersByContact map[models.ContactID][]flows.Modifier, includeTickets map[models.ContactID][]*models.Ticket) (map[*flows.Contact][]flows.Event, []models.ContactID, error) {
+	// we now need to grab locks for our contacts so that they are never in two starts or handles at the
+	// same time we try to grab locks for up to a minute, but do it in batches where we wait for one
+	// second per contact to prevent deadlocks
+	eventsByContact := make(map[*flows.Contact][]flows.Event, len(modifiersByContact))
+	remaining := contactIDs
+
+	start := time.Now()
+
+	for len(remaining) > 0 && time.Since(start) < time.Minute {
+		if ctx.Err() != nil {
+			return nil, nil, ctx.Err()
+		}
+
+		es, skipped, err := tryToModifyWithLock(ctx, rt, oa, userID, remaining, modifiersByContact, includeTickets)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		maps.Copy(eventsByContact, es)
+		remaining = skipped // skipped are now our remaining
+	}
+
+	return eventsByContact, remaining, nil
+}
+
+func tryToModifyWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, userID models.UserID, ids []models.ContactID, modifiersByContact map[models.ContactID][]flows.Modifier, includeTickets map[models.ContactID][]*models.Ticket) (map[*flows.Contact][]flows.Event, []models.ContactID, error) {
+	// try to get locks for these contacts, waiting for up to a second for each contact
+	locks, skipped, err := clocks.TryToLock(ctx, rt, oa, ids, time.Second)
+	if err != nil {
+		return nil, nil, err
+	}
+	locked := slices.Sorted(maps.Keys(locks))
+
+	// whatever happens, we need to unlock the contacts
+	defer clocks.Unlock(ctx, rt, oa, locks)
+
+	eventsByContact := make(map[*flows.Contact][]flows.Event, len(ids))
+
+	// create scenes for the locked contacts
+	scenes, err := CreateScenes(ctx, rt, oa, locked, includeTickets)
+	if err != nil {
+		return nil, nil, fmt.Errorf("error creating scenes for modifiers: %w", err)
+	}
+
+	for _, scene := range scenes {
+		eventsByContact[scene.Contact] = make([]flows.Event, 0) // TODO only needed to avoid nulls until jsonv2
+
+		for _, mod := range modifiersByContact[scene.ContactID()] {
+			evts, err := scene.ApplyModifier(ctx, rt, oa, mod, userID)
+			if err != nil {
+				return nil, nil, fmt.Errorf("error applying modifier: %w", err)
+			}
+
+			eventsByContact[scene.Contact] = append(eventsByContact[scene.Contact], evts...)
+		}
+	}
+
+	if err := BulkCommit(ctx, rt, oa, scenes); err != nil {
+		return nil, nil, fmt.Errorf("error committing scenes from modifiers: %w", err)
+	}
+
+	return eventsByContact, skipped, nil
+}
+
+// BulkModify bulk modifies contacts without locking.. used during contact creation
 func BulkModify(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, userID models.UserID, modifiersByContact map[*flows.Contact][]flows.Modifier) (map[*flows.Contact][]flows.Event, error) {
 	scenes := make([]*Scene, 0, len(modifiersByContact))
 	eventsByContact := make(map[*flows.Contact][]flows.Event, len(modifiersByContact))
