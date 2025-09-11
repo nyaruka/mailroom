@@ -1,3 +1,9 @@
+v10.3.67 (2025-09-11)
+-------------------------
+ * Update to latest goflow which changes ticket modifiers to operate on a single ticket
+ * Use modifier to close tickets
+ * Use topic UUID in ticket/change_topic requests
+
 v10.3.66 (2025-09-10)
 -------------------------
  * Change ticket/assign endpoint to ticket/change_assignee
