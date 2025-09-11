@@ -28,7 +28,6 @@ type closeRequest struct {
 //	  "ticket_uuids": ["01992f54-5ab6-717a-a39e-e8ca91fb7262", "01992f54-5ab6-725e-be9c-0c6407efd755"],
 //	}
 func handleClose(ctx context.Context, rt *runtime.Runtime, r *closeRequest) (any, int, error) {
-	// grab our org assets
 	oa, err := models.GetOrgAssets(ctx, rt, r.OrgID)
 	if err != nil {
 		return nil, 0, fmt.Errorf("unable to load org assets: %w", err)

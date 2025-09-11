@@ -34,6 +34,7 @@ var modifierUserEvents = map[string]string{
 	modifiers.TypeTicketClose:    events.TypeTicketClosed,
 	modifiers.TypeTicketNote:     events.TypeTicketNoteAdded,
 	modifiers.TypeTicketOpen:     events.TypeTicketOpened,
+	modifiers.TypeTicketReopen:   events.TypeTicketReopened,
 	modifiers.TypeTicketTopic:    events.TypeTicketTopicChanged,
 }
 

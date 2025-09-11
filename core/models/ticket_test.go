@@ -131,44 +131,6 @@ func TestUpdateTickets(t *testing.T) {
 	assertTicket(ticket3, map[string]any{"status": "C", "assignee_id": nil, "topic_id": int64(testdb.DefaultTopic.ID)})
 }
 
-func TestReopenTickets(t *testing.T) {
-	ctx, rt := testsuite.Runtime(t)
-
-	defer testsuite.Reset(t, rt, testsuite.ResetData)
-
-	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
-	require.NoError(t, err)
-
-	ticket1 := testdb.InsertClosedTicket(rt, "01992f54-5ab6-717a-a39e-e8ca91fb7262", testdb.Org1, testdb.Cathy, testdb.DefaultTopic, nil)
-	modelTicket1 := ticket1.Load(rt, testdb.Org1)
-
-	ticket2 := testdb.InsertOpenTicket(rt, "01992f54-5ab6-725e-be9c-0c6407efd755", testdb.Org1, testdb.Cathy, testdb.DefaultTopic, time.Now(), nil)
-	modelTicket2 := ticket2.Load(rt, testdb.Org1)
-
-	evts, err := models.ReopenTickets(ctx, rt, oa, testdb.Admin.ID, []*models.Ticket{modelTicket1, modelTicket2})
-	require.NoError(t, err)
-	assert.Equal(t, 1, len(evts))
-	assert.Equal(t, models.TicketEventTypeReopened, evts[modelTicket1].Type)
-
-	// check ticket #1 is now closed
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM tickets_ticket WHERE id = $1 AND status = 'O' AND closed_on IS NULL`, ticket1.ID).Returns(1)
-
-	// and there's reopened event for it
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM tickets_ticketevent WHERE org_id = $1 AND ticket_id = $2 AND event_type = 'R'`, testdb.Org1.ID, ticket1.ID).Returns(1)
-
-	// but no events for ticket #2 which waas already open
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM tickets_ticketevent WHERE ticket_id = $1 AND event_type = 'R'`, ticket2.ID).Returns(0)
-
-	// check Cathy is now in the open tickets group
-	_, cathy, _ := testdb.Cathy.Load(rt, oa)
-	assert.Equal(t, 2, len(cathy.Groups().All()))
-	assert.Equal(t, "Doctors", cathy.Groups().All()[0].Name())
-	assert.Equal(t, "Open Tickets", cathy.Groups().All()[1].Name())
-
-	// reopening doesn't change opening daily counts
-	testsuite.AssertDailyCounts(t, rt, testdb.Org1, map[string]int{})
-}
-
 func TestTicketRecordReply(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 

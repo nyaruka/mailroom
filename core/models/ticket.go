@@ -11,7 +11,6 @@ import (
 	"github.com/lib/pq"
 	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/null/v3"
 )
 
@@ -202,74 +201,6 @@ func UpdateTickets(ctx context.Context, tx DBorTx, tickets []*Ticket) error {
 		return fmt.Errorf("error updating tickets: %w", err)
 	}
 	return nil
-}
-
-const sqlReopenTickets = `
-UPDATE tickets_ticket
-   SET status = 'O', modified_on = $2, closed_on = NULL, last_activity_on = $2
- WHERE id = ANY($1)`
-
-// ReopenTickets reopens the passed in tickets
-func ReopenTickets(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, userID UserID, tickets []*Ticket) (map[*Ticket]*TicketEvent, error) {
-	ids := make([]TicketID, 0, len(tickets))
-	events := make([]*TicketEvent, 0, len(tickets))
-	eventsByTicket := make(map[*Ticket]*TicketEvent, len(tickets))
-	contactIDs := make(map[ContactID]bool, len(tickets))
-	now := dates.Now()
-
-	for _, t := range tickets {
-		if t.Status != TicketStatusOpen {
-			ids = append(ids, t.ID)
-			t.Status = TicketStatusOpen
-			t.ModifiedOn = now
-			t.ClosedOn = nil
-			t.LastActivityOn = now
-
-			e := NewTicketReopenedEvent(flows.NewEventUUID(), t, userID)
-			events = append(events, e)
-			eventsByTicket[t] = e
-			contactIDs[t.ContactID] = true
-		}
-	}
-
-	// mark the tickets as opened in the db
-	_, err := rt.DB.ExecContext(ctx, sqlReopenTickets, pq.Array(ids), now)
-	if err != nil {
-		return nil, fmt.Errorf("error updating tickets: %w", err)
-	}
-
-	if err := InsertLegacyTicketEvents(ctx, rt.DB, events); err != nil {
-		return nil, fmt.Errorf("error inserting ticket events: %w", err)
-	}
-
-	if err := recalcGroupsForTicketChanges(ctx, rt.DB, oa, contactIDs); err != nil {
-		return nil, fmt.Errorf("error recalculting groups: %w", err)
-	}
-
-	return eventsByTicket, nil
-}
-
-// because groups can be based on "tickets" need to recalculate after closing/reopening tickets
-func recalcGroupsForTicketChanges(ctx context.Context, db DBorTx, oa *OrgAssets, contactIDs map[ContactID]bool) error {
-	ids := make([]ContactID, 0, len(contactIDs))
-	for cid := range contactIDs {
-		ids = append(ids, cid)
-	}
-
-	contacts, err := LoadContacts(ctx, db, oa, ids)
-	if err != nil {
-		return fmt.Errorf("error loading contacts with ticket changes: %w", err)
-	}
-
-	flowContacts := make([]*flows.Contact, len(contacts))
-	for i, contact := range contacts {
-		flowContacts[i], err = contact.EngineContact(oa)
-		if err != nil {
-			return fmt.Errorf("error loading flow contact: %w", err)
-		}
-	}
-
-	return CalculateDynamicGroups(ctx, db, oa, flowContacts)
 }
 
 const sqlUpdateTicketRepliedOn = `
