@@ -41,7 +41,7 @@ func newBulkResponse(changed []flows.TicketUUID) *bulkTicketResponse {
 	return &bulkTicketResponse{ChangedUUIDs: changed}
 }
 
-func createTicketScenes(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, ticketUUIDs []flows.TicketUUID) ([]*runner.Scene, error) {
+func createTicketScenes(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, ticketUUIDs []flows.TicketUUID) (map[*runner.Scene][]*models.Ticket, error) {
 	tickets, err := models.LoadTickets(ctx, rt.DB, oa.OrgID(), ticketUUIDs)
 	if err != nil {
 		return nil, fmt.Errorf("error loading tickets: %w", err)
@@ -57,5 +57,10 @@ func createTicketScenes(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 		return nil, err
 	}
 
-	return scenes, nil
+	byScene := make(map[*runner.Scene][]*models.Ticket, len(scenes))
+	for _, scene := range scenes {
+		byScene[scene] = byContact[scene.ContactID()]
+	}
+
+	return byScene, nil
 }
