@@ -261,7 +261,7 @@ func handleMetrics(ctx context.Context, rt *runtime.Runtime, r *http.Request, ra
 
 	oa, err := models.GetOrgAssets(ctx, rt, orgID)
 	if err != nil {
-		return fmt.Errorf("unable to load org assets: %w", err)
+		return fmt.Errorf("error loading org assets: %w", err)
 	}
 
 	if oa.Org().PrometheusToken() != token {

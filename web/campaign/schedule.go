@@ -31,7 +31,7 @@ func handleSchedule(ctx context.Context, rt *runtime.Runtime, r *scheduleRequest
 	// we don't actual need the org assets in this function but load them to validate the org id is valid
 	// and they'll probably still be cached by the time the task starts
 	if _, err := models.GetOrgAssets(ctx, rt, r.OrgID); err != nil {
-		return nil, 0, fmt.Errorf("unable to load org assets: %w", err)
+		return nil, 0, fmt.Errorf("error loading org assets: %w", err)
 	}
 
 	task := &campaigns.ScheduleCampaignPointTask{PointID: r.PointID}

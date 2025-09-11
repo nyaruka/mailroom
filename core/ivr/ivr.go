@@ -55,7 +55,7 @@ func HangupCall(ctx context.Context, rt *runtime.Runtime, call *models.Call) (*m
 	// load our org assets
 	oa, err := models.GetOrgAssets(ctx, rt, call.OrgID())
 	if err != nil {
-		return nil, fmt.Errorf("unable to load org: %w", err)
+		return nil, fmt.Errorf("error loading org assets: %w", err)
 	}
 
 	// and our channel
