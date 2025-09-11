@@ -2,7 +2,7 @@
     {
         "label": "assigns the given tickets to the given user",
         "method": "POST",
-        "path": "/mi/ticket/assign",
+        "path": "/mi/ticket/change_assignee",
         "body": {
             "org_id": 1,
             "user_id": 3,
@@ -34,7 +34,7 @@
     {
         "label": "unassigns the given tickets if user is null",
         "method": "POST",
-        "path": "/mi/ticket/assign",
+        "path": "/mi/ticket/change_assignee",
         "body": {
             "org_id": 1,
             "user_id": 3,

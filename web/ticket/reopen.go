@@ -23,7 +23,7 @@ func init() {
 //	{
 //	  "org_id": 123,
 //	  "user_id": 234,
-//	  "ticket_ids": [1234, 2345]
+//	  "ticket_uuids": ["01992f54-5ab6-717a-a39e-e8ca91fb7262", "01992f54-5ab6-725e-be9c-0c6407efd755"],
 //	}
 func handleReopen(ctx context.Context, rt *runtime.Runtime, r *http.Request) (any, int, error) {
 	request := &bulkTicketRequest{}

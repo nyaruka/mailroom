@@ -3,22 +3,17 @@ package ticket
 import (
 	"context"
 	"fmt"
-	"maps"
 	"net/http"
-	"slices"
 
 	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/goflow/flows/modifiers"
 	"github.com/nyaruka/mailroom/core/models"
-	"github.com/nyaruka/mailroom/core/runner"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/mailroom/web"
 )
 
 func init() {
 	web.InternalRoute(http.MethodPost, "/ticket/change_assignee", web.JSONPayload(handleChangeAssignee))
-	web.InternalRoute(http.MethodPost, "/ticket/assign", web.JSONPayload(handleChangeAssignee)) // deprecated
 }
 
 type assignRequest struct {
@@ -48,33 +43,13 @@ func handleChangeAssignee(ctx context.Context, rt *runtime.Runtime, r *assignReq
 		}
 	}
 
-	scenes, err := createTicketScenes(ctx, rt, oa, r.TicketUUIDs)
+	mod := func(t *models.Ticket) flows.Modifier {
+		return modifiers.NewTicketAssignee(t.UUID, user)
+	}
+
+	changed, err := modifyTickets(ctx, rt, oa, r.UserID, r.TicketUUIDs, mod)
 	if err != nil {
-		return nil, 0, fmt.Errorf("error creating scenes for tickets: %w", err)
-	}
-
-	changed := make([]flows.TicketUUID, 0, len(scenes))
-
-	for scene, tickets := range scenes {
-		for _, ticket := range tickets {
-			mod := modifiers.NewTicketAssignee(ticket.UUID, user)
-
-			evts, err := scene.ApplyModifier(ctx, rt, oa, mod, r.UserID)
-			if err != nil {
-				return nil, 0, fmt.Errorf("error applying ticket modifier to scene: %w", err)
-			}
-
-			for _, e := range evts {
-				switch typed := e.(type) {
-				case *events.TicketAssigneeChanged:
-					changed = append(changed, typed.TicketUUID)
-				}
-			}
-		}
-	}
-
-	if err := runner.BulkCommit(ctx, rt, oa, slices.Collect(maps.Keys(scenes))); err != nil {
-		return nil, 0, fmt.Errorf("error committing scenes for tickets: %w", err)
+		return nil, 0, fmt.Errorf("error changing ticket assignee: %w", err)
 	}
 
 	return newBulkResponse(changed), http.StatusOK, nil

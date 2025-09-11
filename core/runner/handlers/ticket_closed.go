@@ -10,6 +10,7 @@ import (
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/runner"
 	"github.com/nyaruka/mailroom/core/runner/hooks"
+	"github.com/nyaruka/mailroom/core/tasks/realtime/ctasks"
 	"github.com/nyaruka/mailroom/runtime"
 )
 
@@ -29,6 +30,7 @@ func handleTicketClosed(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 
 	scene.AttachPreCommitHook(hooks.UpdateTickets, dbTicket)
 	scene.AttachPreCommitHook(hooks.InsertLegacyTicketEvents, models.NewTicketClosedEvent(event.UUID(), dbTicket, userID))
+	scene.AttachPostCommitHook(hooks.QueueContactTask, ctasks.NewTicketClosed(event))
 
 	return nil
 }

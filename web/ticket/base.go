@@ -8,6 +8,7 @@ import (
 	"sort"
 
 	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/runner"
 	"github.com/nyaruka/mailroom/runtime"
@@ -41,26 +42,45 @@ func newBulkResponse(changed []flows.TicketUUID) *bulkTicketResponse {
 	return &bulkTicketResponse{ChangedUUIDs: changed}
 }
 
-func createTicketScenes(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, ticketUUIDs []flows.TicketUUID) (map[*runner.Scene][]*models.Ticket, error) {
+func modifyTickets(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, userID models.UserID, ticketUUIDs []flows.TicketUUID, mod func(*models.Ticket) flows.Modifier) ([]flows.TicketUUID, error) {
 	tickets, err := models.LoadTickets(ctx, rt.DB, oa.OrgID(), ticketUUIDs)
 	if err != nil {
 		return nil, fmt.Errorf("error loading tickets: %w", err)
 	}
 
-	byContact := make(map[models.ContactID][]*models.Ticket, 10)
-	for _, t := range tickets {
-		byContact[t.ContactID] = append(byContact[t.ContactID], t)
+	byContact := make(map[models.ContactID][]*models.Ticket, len(ticketUUIDs))
+	modsByContact := make(map[models.ContactID][]flows.Modifier, len(ticketUUIDs))
+
+	for _, ticket := range tickets {
+		byContact[ticket.ContactID] = append(byContact[ticket.ContactID], ticket)
+		modsByContact[ticket.ContactID] = append(modsByContact[ticket.ContactID], mod(ticket))
 	}
 
-	scenes, err := runner.CreateScenes(ctx, rt, oa, slices.Collect(maps.Keys(byContact)), byContact)
+	contactDs := slices.Collect(maps.Keys(byContact))
+
+	eventsByContact, _, err := runner.ModifyWithLock(ctx, rt, oa, userID, contactDs, modsByContact, byContact)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error applying ticket modifiers: %w", err)
 	}
 
-	byScene := make(map[*runner.Scene][]*models.Ticket, len(scenes))
-	for _, scene := range scenes {
-		byScene[scene] = byContact[scene.ContactID()]
+	// get changed tickets from events
+	changed := make([]flows.TicketUUID, 0, len(ticketUUIDs))
+	for _, evts := range eventsByContact {
+		for _, e := range evts {
+			switch typed := e.(type) {
+			case *events.TicketAssigneeChanged:
+				changed = append(changed, typed.TicketUUID)
+			case *events.TicketClosed:
+				changed = append(changed, typed.TicketUUID)
+			case *events.TicketNoteAdded:
+				changed = append(changed, typed.TicketUUID)
+			case *events.TicketReopened:
+				changed = append(changed, typed.TicketUUID)
+			case *events.TicketTopicChanged:
+				changed = append(changed, typed.TicketUUID)
+			}
+		}
 	}
 
-	return byScene, nil
+	return changed, nil
 }
