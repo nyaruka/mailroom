@@ -22,7 +22,7 @@ type addNoteRequest struct {
 	Note string `json:"note" validate:"required"`
 }
 
-// Adds the given text note to the tickets with the given ids
+// Adds the given text note to the specified tickets.
 //
 //	{
 //	  "org_id": 123,

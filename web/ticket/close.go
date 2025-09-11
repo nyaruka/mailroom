@@ -20,7 +20,7 @@ type closeRequest struct {
 	bulkTicketRequest
 }
 
-// Closes any open tickets with the given ids.
+// Closes the specified tickets if they're open.
 //
 //	{
 //	  "org_id": 123,

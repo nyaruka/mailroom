@@ -18,7 +18,7 @@ func init() {
 	web.InternalRoute(http.MethodPost, "/ticket/reopen", web.MarshaledResponse(handleReopen))
 }
 
-// Reopens any closed tickets with the given ids
+// Reopens the specified tickets if they're closed.
 //
 //	{
 //	  "org_id": 123,

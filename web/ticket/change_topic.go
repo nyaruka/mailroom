@@ -23,7 +23,7 @@ type changeTopicRequest struct {
 	TopicUUID assets.TopicUUID `json:"topic_uuid" validate:"required"`
 }
 
-// Changes the topic of the tickets with the given ids
+// Changes the topic of the specified tickets.
 //
 //	{
 //	  "org_id": 123,

@@ -22,7 +22,7 @@ type assignRequest struct {
 	AssigneeID models.UserID `json:"assignee_id"`
 }
 
-// Assigns the tickets with the given ids to the given user
+// Changes the assignee of the specified tickets.
 //
 //	{
 //	  "org_id": 123,
