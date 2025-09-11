@@ -18,7 +18,7 @@
         },
         "status": 500,
         "response": {
-            "error": "unable to load org assets: error loading environment for org 1234: no org with id: 1234"
+            "error": "error loading org assets: error loading environment for org 1234: no org with id: 1234"
         }
     },
     {
