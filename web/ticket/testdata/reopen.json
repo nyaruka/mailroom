@@ -34,8 +34,11 @@
         ],
         "expected_history": [
             {
-                "contact_uuid": "b699a406-7e44-49be-9f01-1a82893e8a10",
-                "event": {
+                "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
+                "SK": "evt#01969b47-113b-76f8-92a3-d648ab64bccb",
+                "OrgID": 1,
+                "TTL": "2019-07-06T12:30:05Z",
+                "Data": {
                     "created_on": "2018-07-06T12:30:05.123456789Z",
                     "groups_added": [
                         {
@@ -43,14 +46,15 @@
                             "uuid": "361838c4-2866-495a-8990-9f3c222a7604"
                         }
                     ],
-                    "type": "contact_groups_changed",
-                    "uuid": "01969b47-113b-76f8-92a3-d648ab64bccb"
-                },
-                "org_id": 1
+                    "type": "contact_groups_changed"
+                }
             },
             {
-                "contact_uuid": "6393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "event": {
+                "PK": "con#6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01969b47-096b-76f8-bd38-d266ec8d3716",
+                "OrgID": 1,
+                "TTL": "2019-07-06T12:30:01Z",
+                "Data": {
                     "created_on": "2018-07-06T12:30:01.123456789Z",
                     "groups_added": [
                         {
@@ -58,10 +62,8 @@
                             "uuid": "361838c4-2866-495a-8990-9f3c222a7604"
                         }
                     ],
-                    "type": "contact_groups_changed",
-                    "uuid": "01969b47-096b-76f8-bd38-d266ec8d3716"
-                },
-                "org_id": 1
+                    "type": "contact_groups_changed"
+                }
             }
         ]
     },

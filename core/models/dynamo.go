@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"maps"
@@ -53,6 +54,31 @@ func (i *DynamoItem) GetData() (map[string]any, error) {
 	}
 
 	return data, nil
+}
+
+// MarshalJSON is only used for testing
+func (i *DynamoItem) MarshalJSON() ([]byte, error) {
+	var ttl *time.Time
+	if i.TTL != nil {
+		t := i.TTL.In(time.UTC)
+		ttl = &t
+	}
+
+	return json.Marshal(struct {
+		PK     string         `json:"PK"`
+		SK     string         `json:"SK"`
+		OrgID  OrgID          `json:"OrgID"`
+		TTL    *time.Time     `json:"TTL,omitempty"`
+		Data   map[string]any `json:"Data"`
+		DataGZ string         `json:"DataGZ,omitempty"`
+	}{
+		PK:     i.PK,
+		SK:     i.SK,
+		OrgID:  i.OrgID,
+		TTL:    ttl,
+		Data:   i.Data,
+		DataGZ: base64.StdEncoding.EncodeToString(i.DataGZ),
+	})
 }
 
 // BulkWriterQueue queues multiple items to a DynamoDB writer.

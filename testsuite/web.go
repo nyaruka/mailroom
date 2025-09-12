@@ -116,7 +116,7 @@ func RunWebTests(t *testing.T, ctx context.Context, rt *runtime.Runtime, truthFi
 		actual.HTTPMocks = clonedMocks
 		actual.actualResponse, err = io.ReadAll(resp.Body)
 		actual.ExpectedTasks = getActualQueuedTasks(t, rt)
-		actual.ExpectedHistory = jsonx.MustMarshal(GetHistoryEvents(t, rt))
+		actual.ExpectedHistory = jsonx.MustMarshal(GetHistoryItems(t, rt))
 
 		assert.NoError(t, err, "%s: error reading body", tc.Label)
 
