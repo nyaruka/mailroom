@@ -90,7 +90,7 @@ func TestTwilioIVR(t *testing.T) {
 		"uuid": "8bc73097-ac57-47fb-82e5-184f8ec6dbef", 
 		"status": "active", 
 		"contact": {
-			"uuid": "6393abc0-283d-4c9b-a1b3-641a035c34bf",
+			"uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
 			"id": 10000, 
 			"name": "Ann", 
 			"status": "active",

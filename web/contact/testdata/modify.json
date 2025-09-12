@@ -16,7 +16,7 @@
             "modified": {
                 "10000": {
                     "contact": {
-                        "uuid": "6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                        "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
                         "id": 10000,
                         "name": "Ann",
                         "status": "active",
@@ -57,7 +57,7 @@
             "modified": {
                 "10000": {
                     "contact": {
-                        "uuid": "6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                        "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
                         "id": 10000,
                         "name": "Kathy",
                         "status": "active",
@@ -84,7 +84,7 @@
         ],
         "expected_history": [
             {
-                "PK": "con#6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
                 "SK": "evt#01969b47-0583-76f8-ae7f-f8b243c49ff5",
                 "OrgID": 1,
                 "TTL": "2019-07-06T12:30:00Z",
@@ -119,7 +119,7 @@
             "modified": {
                 "10000": {
                     "contact": {
-                        "uuid": "6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                        "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
                         "id": 10000,
                         "name": "Nate",
                         "status": "active",
@@ -146,7 +146,7 @@
         ],
         "expected_history": [
             {
-                "PK": "con#6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
                 "SK": "evt#01969b47-096b-76f8-bd38-d266ec8d3716",
                 "OrgID": 1,
                 "TTL": "2019-07-06T12:30:00Z",
@@ -181,7 +181,7 @@
             "modified": {
                 "10000": {
                     "contact": {
-                        "uuid": "6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                        "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
                         "id": 10000,
                         "status": "active",
                         "timezone": "America/Los_Angeles",
@@ -207,7 +207,7 @@
         ],
         "expected_history": [
             {
-                "PK": "con#6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
                 "SK": "evt#01969b47-0d53-76f8-9c0b-2014ddc77094",
                 "OrgID": 1,
                 "TTL": "2019-07-06T12:30:00Z",
@@ -242,7 +242,7 @@
             "modified": {
                 "10000": {
                     "contact": {
-                        "uuid": "6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                        "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
                         "id": 10000,
                         "status": "blocked",
                         "timezone": "America/Los_Angeles",
@@ -268,7 +268,7 @@
         ],
         "expected_history": [
             {
-                "PK": "con#6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
                 "SK": "evt#01969b47-113b-76f8-92a3-d648ab64bccb",
                 "OrgID": 1,
                 "Data": {
@@ -302,7 +302,7 @@
             "modified": {
                 "10000": {
                     "contact": {
-                        "uuid": "6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                        "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
                         "id": 10000,
                         "status": "archived",
                         "timezone": "America/Los_Angeles",
@@ -328,7 +328,7 @@
         ],
         "expected_history": [
             {
-                "PK": "con#6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
                 "SK": "evt#01969b47-1523-76f8-8228-9728778b6c98",
                 "OrgID": 1,
                 "Data": {
@@ -362,7 +362,7 @@
             "modified": {
                 "10000": {
                     "contact": {
-                        "uuid": "6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                        "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
                         "id": 10000,
                         "status": "active",
                         "timezone": "America/Los_Angeles",
@@ -388,7 +388,7 @@
         ],
         "expected_history": [
             {
-                "PK": "con#6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
                 "SK": "evt#01969b47-190b-76f8-8f41-6b2d9f33d623",
                 "OrgID": 1,
                 "Data": {
@@ -426,7 +426,7 @@
             "modified": {
                 "10000": {
                     "contact": {
-                        "uuid": "6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                        "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
                         "id": 10000,
                         "status": "active",
                         "timezone": "America/Los_Angeles",
@@ -463,7 +463,7 @@
         ],
         "expected_history": [
             {
-                "PK": "con#6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
                 "SK": "evt#01969b47-1cf3-76f8-a17e-f85e49829fb9",
                 "OrgID": 1,
                 "TTL": "2019-07-06T12:30:01Z",
@@ -508,7 +508,7 @@
             "modified": {
                 "10000": {
                     "contact": {
-                        "uuid": "6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                        "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
                         "id": 10000,
                         "status": "active",
                         "timezone": "America/Los_Angeles",
@@ -575,7 +575,7 @@
         ],
         "expected_history": [
             {
-                "PK": "con#6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
                 "SK": "evt#01969b47-20db-76f8-ba00-bd7f0d08e671",
                 "OrgID": 1,
                 "TTL": "2019-07-06T12:30:01Z",
@@ -594,7 +594,7 @@
                 }
             },
             {
-                "PK": "con#6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
                 "SK": "evt#01969b47-24c3-76f8-b86e-4b881f09a186",
                 "OrgID": 1,
                 "TTL": "2019-07-06T12:30:02Z",
@@ -637,7 +637,7 @@
             "modified": {
                 "10000": {
                     "contact": {
-                        "uuid": "6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                        "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
                         "id": 10000,
                         "status": "active",
                         "timezone": "America/Los_Angeles",
@@ -683,7 +683,7 @@
         },
         "expected_history": [
             {
-                "PK": "con#6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
                 "SK": "evt#01969b47-28ab-76f8-a691-235cbe720980",
                 "OrgID": 1,
                 "TTL": "2019-07-06T12:30:02Z",
@@ -729,7 +729,7 @@
             "modified": {
                 "10000": {
                     "contact": {
-                        "uuid": "6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                        "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
                         "id": 10000,
                         "status": "active",
                         "timezone": "America/Los_Angeles",
@@ -779,7 +779,7 @@
         },
         "expected_history": [
             {
-                "PK": "con#6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
                 "SK": "evt#01969b47-2c93-76f8-bebe-b4a1f677cf4c",
                 "OrgID": 1,
                 "TTL": "2019-07-06T12:30:01Z",
@@ -849,7 +849,7 @@
             "modified": {
                 "10000": {
                     "contact": {
-                        "uuid": "6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                        "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
                         "id": 10000,
                         "status": "active",
                         "timezone": "America/Los_Angeles",
@@ -928,7 +928,7 @@
         ],
         "expected_history": [
             {
-                "PK": "con#6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
                 "SK": "evt#01969b47-307b-76f8-8dbf-00ecf5d03034",
                 "OrgID": 1,
                 "TTL": "2019-07-06T12:30:00Z",
@@ -944,7 +944,7 @@
                 }
             },
             {
-                "PK": "con#6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
                 "SK": "evt#01969b47-3463-76f8-acca-bbca70987315",
                 "OrgID": 1,
                 "TTL": "2019-07-06T12:30:01Z",
@@ -960,7 +960,7 @@
                 }
             },
             {
-                "PK": "con#6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
                 "SK": "evt#01969b47-384b-76f8-afcb-91a2073e5459",
                 "OrgID": 1,
                 "TTL": "2019-07-06T12:30:02Z",
@@ -976,7 +976,7 @@
                 }
             },
             {
-                "PK": "con#6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
                 "SK": "evt#01969b47-3c33-76f8-9654-8a7258fbaae4",
                 "OrgID": 1,
                 "TTL": "2019-07-06T12:30:03Z",
@@ -992,7 +992,7 @@
                 }
             },
             {
-                "PK": "con#6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
                 "SK": "evt#01969b47-401b-76f8-8e78-3bde7b3370ae",
                 "OrgID": 1,
                 "TTL": "2019-07-06T12:30:04Z",
@@ -1037,7 +1037,7 @@
             "modified": {
                 "10000": {
                     "contact": {
-                        "uuid": "6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                        "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
                         "id": 10000,
                         "status": "active",
                         "timezone": "America/Los_Angeles",
@@ -1074,7 +1074,7 @@
         ],
         "expected_history": [
             {
-                "PK": "con#6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
                 "SK": "evt#01969b47-4403-76f8-b62c-3c781ca3b5da",
                 "OrgID": 1,
                 "TTL": "2019-07-06T12:30:00Z",
@@ -1120,7 +1120,7 @@
             "modified": {
                 "10000": {
                     "contact": {
-                        "uuid": "6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                        "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
                         "id": 10000,
                         "status": "active",
                         "timezone": "America/Los_Angeles",
@@ -1172,7 +1172,7 @@
             "modified": {
                 "10000": {
                     "contact": {
-                        "uuid": "6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                        "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
                         "id": 10000,
                         "status": "active",
                         "timezone": "America/Los_Angeles",
@@ -1203,7 +1203,7 @@
         ],
         "expected_history": [
             {
-                "PK": "con#6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
                 "SK": "evt#01969b47-47eb-76f8-af9c-ff2f1faac4db",
                 "OrgID": 1,
                 "TTL": "2019-07-06T12:30:00Z",
@@ -1249,7 +1249,7 @@
             "modified": {
                 "10000": {
                     "contact": {
-                        "uuid": "6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                        "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
                         "id": 10000,
                         "status": "active",
                         "timezone": "America/Los_Angeles",
@@ -1289,7 +1289,7 @@
             "modified": {
                 "10000": {
                     "contact": {
-                        "uuid": "6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                        "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
                         "id": 10000,
                         "language": "fra",
                         "status": "active",
@@ -1316,7 +1316,7 @@
         ],
         "expected_history": [
             {
-                "PK": "con#6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
                 "SK": "evt#01969b47-4bd3-76f8-8d9f-e51d30290005",
                 "OrgID": 1,
                 "TTL": "2019-07-06T12:30:00Z",
@@ -1354,7 +1354,7 @@
             "modified": {
                 "10000": {
                     "contact": {
-                        "uuid": "6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                        "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
                         "id": 10000,
                         "language": "fra",
                         "status": "active",
@@ -1386,7 +1386,7 @@
         ],
         "expected_history": [
             {
-                "PK": "con#6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
                 "SK": "evt#01969b47-4fbb-76f8-bec9-e032f4f9af5f",
                 "OrgID": 1,
                 "TTL": "2019-07-06T12:30:00Z",
@@ -1425,7 +1425,7 @@
             "modified": {
                 "10000": {
                     "contact": {
-                        "uuid": "6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                        "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
                         "id": 10000,
                         "language": "fra",
                         "status": "active",
@@ -1480,7 +1480,7 @@
             "modified": {
                 "10000": {
                     "contact": {
-                        "uuid": "6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                        "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
                         "id": 10000,
                         "language": "fra",
                         "status": "active",
@@ -1514,7 +1514,7 @@
         ],
         "expected_history": [
             {
-                "PK": "con#6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
                 "SK": "evt#01969b47-578b-76f8-8ab7-4a517a86045c",
                 "OrgID": 1,
                 "TTL": "2019-07-06T12:30:00Z",
@@ -1554,7 +1554,7 @@
             "modified": {
                 "10000": {
                     "contact": {
-                        "uuid": "6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                        "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
                         "id": 10000,
                         "language": "fra",
                         "status": "active",
@@ -1590,7 +1590,7 @@
         ],
         "expected_history": [
             {
-                "PK": "con#6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
                 "SK": "evt#01969b47-5b73-76f8-97a3-ae27459a6be4",
                 "OrgID": 1,
                 "TTL": "2019-07-06T12:30:00Z",
@@ -1630,7 +1630,7 @@
             "modified": {
                 "10000": {
                     "contact": {
-                        "uuid": "6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                        "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
                         "id": 10000,
                         "language": "fra",
                         "status": "active",
@@ -1676,7 +1676,7 @@
         ],
         "expected_history": [
             {
-                "PK": "con#6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
                 "SK": "evt#01969b47-5f5b-76f8-ba82-c15b24dd577f",
                 "OrgID": 1,
                 "TTL": "2019-07-06T12:30:00Z",
@@ -1714,7 +1714,7 @@
             "modified": {
                 "10000": {
                     "contact": {
-                        "uuid": "6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                        "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
                         "id": 10000,
                         "language": "fra",
                         "status": "active",
@@ -1753,7 +1753,7 @@
         ],
         "expected_history": [
             {
-                "PK": "con#6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
                 "SK": "evt#01969b47-6343-76f8-ba7e-53c2263e32f8",
                 "OrgID": 1,
                 "TTL": "2019-07-06T12:30:00Z",
@@ -1795,7 +1795,7 @@
             "modified": {
                 "10000": {
                     "contact": {
-                        "uuid": "6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                        "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
                         "id": 10000,
                         "language": "fra",
                         "status": "active",
@@ -1859,7 +1859,7 @@
         },
         "expected_history": [
             {
-                "PK": "con#6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
                 "SK": "evt#01969b47-6efb-76f8-9014-2c868db4022e",
                 "OrgID": 1,
                 "TTL": "2019-07-06T12:30:01Z",
@@ -1919,7 +1919,7 @@
             "modified": {
                 "10000": {
                     "contact": {
-                        "uuid": "6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                        "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
                         "id": 10000,
                         "name": "Juan",
                         "language": "spa",
@@ -1993,7 +1993,7 @@
         },
         "expected_history": [
             {
-                "PK": "con#6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
                 "SK": "evt#01969b47-72e3-76f8-bef6-3979f99a96f9",
                 "OrgID": 1,
                 "TTL": "2019-07-06T12:30:00Z",
@@ -2005,7 +2005,7 @@
                 }
             },
             {
-                "PK": "con#6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
                 "SK": "evt#01969b47-76cb-76f8-ba91-c48ad8c50e6b",
                 "OrgID": 1,
                 "TTL": "2019-07-06T12:30:01Z",
@@ -2017,7 +2017,7 @@
                 }
             },
             {
-                "PK": "con#6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
                 "SK": "evt#01969b47-7ab3-76f8-be24-6164105d48f2",
                 "OrgID": 1,
                 "TTL": "2019-07-06T12:30:02Z",
@@ -2034,7 +2034,7 @@
                 }
             },
             {
-                "PK": "con#6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
                 "SK": "evt#01969b47-7e9b-76f8-8768-7d0ba4d4f3e8",
                 "OrgID": 1,
                 "TTL": "2019-07-06T12:30:03Z",
@@ -2071,7 +2071,7 @@
             "modified": {
                 "10000": {
                     "contact": {
-                        "uuid": "6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                        "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
                         "id": 10000,
                         "name": "Juan",
                         "language": "eng",
@@ -2117,7 +2117,7 @@
                 },
                 "10003": {
                     "contact": {
-                        "uuid": "9709c157-4606-4d41-9df3-9e9c9b4ae2d4",
+                        "uuid": "d709c157-4606-4d41-9df3-9e9c9b4ae2d4",
                         "id": 10003,
                         "name": "Alexandra",
                         "language": "eng",
@@ -2142,25 +2142,25 @@
         },
         "expected_history": [
             {
-                "PK": "con#6393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b47-8283-76f8-b63d-c8dcc2fa9de0",
-                "OrgID": 1,
-                "TTL": "2019-07-06T12:30:00Z",
-                "Data": {
-                    "_user_id": 3,
-                    "created_on": "2018-07-06T12:30:00.123456789Z",
-                    "language": "eng",
-                    "type": "contact_language_changed"
-                }
-            },
-            {
-                "PK": "con#9709c157-4606-4d41-9df3-9e9c9b4ae2d4",
+                "PK": "con#d709c157-4606-4d41-9df3-9e9c9b4ae2d4",
                 "SK": "evt#01969b47-866b-76f8-8f9d-465efd6fbb5e",
                 "OrgID": 1,
                 "TTL": "2019-07-06T12:30:01Z",
                 "Data": {
                     "_user_id": 3,
                     "created_on": "2018-07-06T12:30:01.123456789Z",
+                    "language": "eng",
+                    "type": "contact_language_changed"
+                }
+            },
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01969b47-8283-76f8-b63d-c8dcc2fa9de0",
+                "OrgID": 1,
+                "TTL": "2019-07-06T12:30:00Z",
+                "Data": {
+                    "_user_id": 3,
+                    "created_on": "2018-07-06T12:30:00.123456789Z",
                     "language": "eng",
                     "type": "contact_language_changed"
                 }
