@@ -98,55 +98,58 @@
         },
         "expected_history": [
             {
-                "event": {
-                    "uuid": "01969b47-0583-76f8-9c0b-2014ddc77094",
-                    "type": "contact_field_changed",
+                "PK": "con#692926ea-09d6-4942-bd38-d266ec8d3716",
+                "SK": "evt#01969b47-0583-76f8-9c0b-2014ddc77094",
+                "OrgID": 1,
+                "TTL": "2019-07-06T12:30:02Z",
+                "Data": {
+                    "_user_id": 3,
                     "created_on": "2018-07-06T12:30:02.123456789Z",
                     "field": {
                         "key": "age",
                         "name": "Age"
                     },
+                    "type": "contact_field_changed",
                     "value": {
-                        "text": "39",
-                        "number": 39
+                        "number": 39,
+                        "text": "39"
                     }
-                },
-                "org_id": 1,
-                "contact_uuid": "692926ea-09d6-4942-bd38-d266ec8d3716",
-                "user_id": 3
+                }
             },
             {
-                "event": {
-                    "uuid": "01969b47-096b-76f8-92a3-d648ab64bccb",
-                    "type": "contact_field_changed",
+                "PK": "con#692926ea-09d6-4942-bd38-d266ec8d3716",
+                "SK": "evt#01969b47-096b-76f8-92a3-d648ab64bccb",
+                "OrgID": 1,
+                "TTL": "2019-07-06T12:30:04Z",
+                "Data": {
+                    "_user_id": 3,
                     "created_on": "2018-07-06T12:30:04.123456789Z",
                     "field": {
                         "key": "gender",
                         "name": "Gender"
                     },
+                    "type": "contact_field_changed",
                     "value": {
                         "text": "M"
                     }
-                },
-                "org_id": 1,
-                "contact_uuid": "692926ea-09d6-4942-bd38-d266ec8d3716",
-                "user_id": 3
+                }
             },
             {
-                "event": {
-                    "uuid": "01969b47-0d53-76f8-8228-9728778b6c98",
-                    "type": "contact_groups_changed",
+                "PK": "con#692926ea-09d6-4942-bd38-d266ec8d3716",
+                "SK": "evt#01969b47-0d53-76f8-8228-9728778b6c98",
+                "OrgID": 1,
+                "TTL": "2019-07-06T12:30:05Z",
+                "Data": {
+                    "_user_id": 3,
                     "created_on": "2018-07-06T12:30:05.123456789Z",
                     "groups_added": [
                         {
-                            "uuid": "c153e265-f7c9-4539-9dbc-9b358714b638",
-                            "name": "Doctors"
+                            "name": "Doctors",
+                            "uuid": "c153e265-f7c9-4539-9dbc-9b358714b638"
                         }
-                    ]
-                },
-                "org_id": 1,
-                "contact_uuid": "692926ea-09d6-4942-bd38-d266ec8d3716",
-                "user_id": 3
+                    ],
+                    "type": "contact_groups_changed"
+                }
             }
         ]
     },
