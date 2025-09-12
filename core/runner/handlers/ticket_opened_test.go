@@ -92,8 +92,8 @@ func TestTicketOpened(t *testing.T) {
 				},
 			},
 			PersistedEvents: map[flows.ContactUUID][]string{
-				testdb.Cathy.UUID:     {"run_started", "contact_groups_changed", "run_ended"},
-				testdb.Bob.UUID:       {"run_started", "contact_groups_changed", "run_ended"},
+				testdb.Cathy.UUID:     {"run_started", "ticket_opened", "contact_groups_changed", "run_ended"},
+				testdb.Bob.UUID:       {"run_started", "ticket_opened", "contact_groups_changed", "run_ended"},
 				testdb.George.UUID:    {"run_started", "run_ended"},
 				testdb.Alexandra.UUID: {"run_started", "run_ended"},
 			},

@@ -45,6 +45,32 @@
                 "query": "SELECT count(*) FROM notifications_notification",
                 "count": 1
             }
+        ],
+        "expected_history": [
+            {
+                "event": {
+                    "uuid": "01969b47-0583-76f8-ae7f-f8b243c49ff5",
+                    "type": "ticket_note_added",
+                    "created_on": "2018-07-06T12:30:00.123456789Z",
+                    "ticket_uuid": "01992f54-5ab6-7498-a7f2-6aa246e45cfe",
+                    "note": "please handle"
+                },
+                "org_id": 1,
+                "contact_uuid": "6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "user_id": 2
+            },
+            {
+                "event": {
+                    "uuid": "01969b47-096b-76f8-bd38-d266ec8d3716",
+                    "type": "ticket_note_added",
+                    "created_on": "2018-07-06T12:30:03.123456789Z",
+                    "ticket_uuid": "01992f54-5ab6-717a-a39e-e8ca91fb7262",
+                    "note": "please handle"
+                },
+                "org_id": 1,
+                "contact_uuid": "6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "user_id": 2
+            }
         ]
     }
 ]

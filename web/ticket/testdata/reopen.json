@@ -34,34 +34,56 @@
         ],
         "expected_history": [
             {
-                "contact_uuid": "b699a406-7e44-49be-9f01-1a82893e8a10",
                 "event": {
+                    "uuid": "01969b47-0d53-76f8-9c0b-2014ddc77094",
+                    "type": "ticket_reopened",
+                    "created_on": "2018-07-06T12:30:04.123456789Z",
+                    "ticket_uuid": "01992f54-5ab6-7498-a7f2-6aa246e45cfe"
+                },
+                "org_id": 1,
+                "contact_uuid": "b699a406-7e44-49be-9f01-1a82893e8a10",
+                "user_id": 2
+            },
+            {
+                "event": {
+                    "uuid": "01969b47-113b-76f8-92a3-d648ab64bccb",
+                    "type": "contact_groups_changed",
                     "created_on": "2018-07-06T12:30:05.123456789Z",
                     "groups_added": [
                         {
-                            "name": "Open Tickets",
-                            "uuid": "361838c4-2866-495a-8990-9f3c222a7604"
+                            "uuid": "361838c4-2866-495a-8990-9f3c222a7604",
+                            "name": "Open Tickets"
                         }
-                    ],
-                    "type": "contact_groups_changed",
-                    "uuid": "01969b47-113b-76f8-92a3-d648ab64bccb"
+                    ]
                 },
-                "org_id": 1
+                "org_id": 1,
+                "contact_uuid": "b699a406-7e44-49be-9f01-1a82893e8a10"
             },
             {
-                "contact_uuid": "6393abc0-283d-4c9b-a1b3-641a035c34bf",
                 "event": {
+                    "uuid": "01969b47-0583-76f8-ae7f-f8b243c49ff5",
+                    "type": "ticket_reopened",
+                    "created_on": "2018-07-06T12:30:00.123456789Z",
+                    "ticket_uuid": "01992f54-5ab6-717a-a39e-e8ca91fb7262"
+                },
+                "org_id": 1,
+                "contact_uuid": "6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "user_id": 2
+            },
+            {
+                "event": {
+                    "uuid": "01969b47-096b-76f8-bd38-d266ec8d3716",
+                    "type": "contact_groups_changed",
                     "created_on": "2018-07-06T12:30:01.123456789Z",
                     "groups_added": [
                         {
-                            "name": "Open Tickets",
-                            "uuid": "361838c4-2866-495a-8990-9f3c222a7604"
+                            "uuid": "361838c4-2866-495a-8990-9f3c222a7604",
+                            "name": "Open Tickets"
                         }
-                    ],
-                    "type": "contact_groups_changed",
-                    "uuid": "01969b47-096b-76f8-bd38-d266ec8d3716"
+                    ]
                 },
-                "org_id": 1
+                "org_id": 1,
+                "contact_uuid": "6393abc0-283d-4c9b-a1b3-641a035c34bf"
             }
         ]
     },
