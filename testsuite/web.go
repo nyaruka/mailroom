@@ -166,7 +166,7 @@ func RunWebTests(t *testing.T, ctx context.Context, rt *runtime.Runtime, truthFi
 			if tc.ExpectedHistory == nil {
 				tc.ExpectedHistory = []byte(`[]`)
 			}
-			test.AssertEqualJSON(t, tc.ExpectedHistory, actual.ExpectedHistory, "%s: unexpected persisted events", tc.Label)
+			test.AssertEqualJSON(t, tc.ExpectedHistory, actual.ExpectedHistory, "%s: event history mismatch", tc.Label)
 
 		} else {
 			tcs[i] = actual

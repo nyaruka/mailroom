@@ -13,9 +13,9 @@
         },
         "status": 200,
         "response": {
-            "changed_ids": [
-                30000,
-                30002
+            "changed_uuids": [
+                "01992f54-5ab6-717a-a39e-e8ca91fb7262",
+                "01992f54-5ab6-7498-a7f2-6aa246e45cfe"
             ]
         },
         "db_assertions": [
@@ -30,6 +30,38 @@
             {
                 "query": "SELECT count(*) FROM tickets_ticketevent WHERE event_type = 'R' AND created_by_id = 2",
                 "count": 2
+            }
+        ],
+        "expected_history": [
+            {
+                "contact_uuid": "b699a406-7e44-49be-9f01-1a82893e8a10",
+                "event": {
+                    "created_on": "2018-07-06T12:30:05.123456789Z",
+                    "groups_added": [
+                        {
+                            "name": "Open Tickets",
+                            "uuid": "361838c4-2866-495a-8990-9f3c222a7604"
+                        }
+                    ],
+                    "type": "contact_groups_changed",
+                    "uuid": "01969b47-113b-76f8-92a3-d648ab64bccb"
+                },
+                "org_id": 1
+            },
+            {
+                "contact_uuid": "6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "event": {
+                    "created_on": "2018-07-06T12:30:01.123456789Z",
+                    "groups_added": [
+                        {
+                            "name": "Open Tickets",
+                            "uuid": "361838c4-2866-495a-8990-9f3c222a7604"
+                        }
+                    ],
+                    "type": "contact_groups_changed",
+                    "uuid": "01969b47-096b-76f8-bd38-d266ec8d3716"
+                },
+                "org_id": 1
             }
         ]
     },
@@ -46,7 +78,9 @@
             ]
         },
         "status": 200,
-        "response": {},
+        "response": {
+            "changed_uuids": []
+        },
         "db_assertions": [
             {
                 "query": "SELECT count(*) FROM tickets_ticket WHERE status = 'O'",
