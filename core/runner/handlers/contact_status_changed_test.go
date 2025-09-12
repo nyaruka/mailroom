@@ -17,7 +17,7 @@ func TestContactStatusChanged(t *testing.T) {
 	tcs := []TestCase{
 		{
 			Modifiers: ContactModifierMap{
-				testdb.Cathy: []flows.Modifier{modifiers.NewStatus(flows.ContactStatusBlocked)},
+				testdb.Cathy.UUID: []flows.Modifier{modifiers.NewStatus(flows.ContactStatusBlocked)},
 			},
 			SQLAssertions: []SQLAssertion{
 				{
@@ -32,7 +32,7 @@ func TestContactStatusChanged(t *testing.T) {
 		},
 		{
 			Modifiers: ContactModifierMap{
-				testdb.Cathy: []flows.Modifier{modifiers.NewStatus(flows.ContactStatusStopped)},
+				testdb.Cathy.UUID: []flows.Modifier{modifiers.NewStatus(flows.ContactStatusStopped)},
 			},
 			SQLAssertions: []SQLAssertion{
 				{
@@ -45,7 +45,7 @@ func TestContactStatusChanged(t *testing.T) {
 		},
 		{
 			Modifiers: ContactModifierMap{
-				testdb.Cathy: []flows.Modifier{modifiers.NewStatus(flows.ContactStatusActive)},
+				testdb.Cathy.UUID: []flows.Modifier{modifiers.NewStatus(flows.ContactStatusActive)},
 			},
 			SQLAssertions: []SQLAssertion{
 				{
@@ -63,5 +63,5 @@ func TestContactStatusChanged(t *testing.T) {
 		},
 	}
 
-	runTestCases(t, ctx, rt, tcs)
+	runTestCases(t, ctx, rt, tcs, testsuite.ResetDynamo)
 }

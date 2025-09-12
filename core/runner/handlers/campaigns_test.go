@@ -36,21 +36,21 @@ func TestCampaigns(t *testing.T) {
 	tcs := []TestCase{
 		{
 			Msgs: ContactMsgMap{
-				testdb.Cathy: msg1,
+				testdb.Cathy.UUID: msg1,
 			},
 			Actions: ContactActionMap{
-				testdb.Cathy: []flows.Action{
+				testdb.Cathy.UUID: []flows.Action{
 					actions.NewRemoveContactGroups(flows.NewActionUUID(), []*assets.GroupReference{doctors}, false),
 					actions.NewAddContactGroups(flows.NewActionUUID(), []*assets.GroupReference{doctors}),
 					actions.NewSetContactField(flows.NewActionUUID(), joined, "2029-09-15T12:00:00+00:00"),
 					actions.NewSetContactField(flows.NewActionUUID(), joined, ""),
 				},
-				testdb.Bob: []flows.Action{
+				testdb.Bob.UUID: []flows.Action{
 					actions.NewAddContactGroups(flows.NewActionUUID(), []*assets.GroupReference{doctors}),
 					actions.NewSetContactField(flows.NewActionUUID(), joined, "2029-09-15T12:00:00+00:00"),
 					actions.NewSetContactField(flows.NewActionUUID(), joined, "2029-09-15T12:00:00+00:00"),
 				},
-				testdb.George: []flows.Action{
+				testdb.George.UUID: []flows.Action{
 					actions.NewAddContactGroups(flows.NewActionUUID(), []*assets.GroupReference{doctors}),
 					actions.NewSetContactField(flows.NewActionUUID(), joined, "2029-09-15T12:00:00+00:00"),
 					actions.NewRemoveContactGroups(flows.NewActionUUID(), []*assets.GroupReference{doctors}, false),
@@ -82,5 +82,5 @@ func TestCampaigns(t *testing.T) {
 		},
 	}
 
-	runTestCases(t, ctx, rt, tcs)
+	runTestCases(t, ctx, rt, tcs, testsuite.ResetDynamo)
 }

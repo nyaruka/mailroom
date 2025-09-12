@@ -21,15 +21,15 @@ func TestMsgReceived(t *testing.T) {
 	tcs := []TestCase{
 		{
 			Actions: ContactActionMap{
-				testdb.Cathy: []flows.Action{
+				testdb.Cathy.UUID: []flows.Action{
 					actions.NewSendMsg(flows.NewActionUUID(), "Hello World", nil, nil, false),
 				},
-				testdb.George: []flows.Action{
+				testdb.George.UUID: []flows.Action{
 					actions.NewSendMsg(flows.NewActionUUID(), "Hello world", nil, nil, false),
 				},
 			},
 			Msgs: ContactMsgMap{
-				testdb.Cathy: testdb.InsertIncomingMsg(rt, testdb.Org1, testdb.TwilioChannel, testdb.Cathy, "start", models.MsgStatusPending),
+				testdb.Cathy.UUID: testdb.InsertIncomingMsg(rt, testdb.Org1, testdb.TwilioChannel, testdb.Cathy, "start", models.MsgStatusPending),
 			},
 			SQLAssertions: []SQLAssertion{
 				{
@@ -52,5 +52,5 @@ func TestMsgReceived(t *testing.T) {
 		},
 	}
 
-	runTestCases(t, ctx, rt, tcs)
+	runTestCases(t, ctx, rt, tcs, testsuite.ResetDynamo)
 }

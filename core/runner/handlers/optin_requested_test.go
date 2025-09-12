@@ -37,18 +37,18 @@ func TestOptinRequested(t *testing.T) {
 	tcs := []TestCase{
 		{
 			Actions: ContactActionMap{
-				testdb.Cathy: []flows.Action{
+				testdb.Cathy.UUID: []flows.Action{
 					actions.NewRequestOptIn(flows.NewActionUUID(), assets.NewOptInReference(optIn.UUID, "Jokes")),
 				},
-				testdb.George: []flows.Action{
+				testdb.George.UUID: []flows.Action{
 					actions.NewRequestOptIn(flows.NewActionUUID(), assets.NewOptInReference(optIn.UUID, "Jokes")),
 				},
-				testdb.Bob: []flows.Action{
+				testdb.Bob.UUID: []flows.Action{
 					actions.NewRequestOptIn(flows.NewActionUUID(), assets.NewOptInReference(optIn.UUID, "Jokes")),
 				},
 			},
 			Msgs: ContactMsgMap{
-				testdb.Cathy: msg1,
+				testdb.Cathy.UUID: msg1,
 			},
 			SQLAssertions: []SQLAssertion{
 				{
@@ -76,7 +76,7 @@ func TestOptinRequested(t *testing.T) {
 		},
 	}
 
-	runTestCases(t, ctx, rt, tcs)
+	runTestCases(t, ctx, rt, tcs, testsuite.ResetDynamo)
 
 	// Cathy should have 1 batch of queued messages at high priority
 	assertvk.ZCard(t, vc, fmt.Sprintf("msgs:%s|10/1", testdb.FacebookChannel.UUID), 1)

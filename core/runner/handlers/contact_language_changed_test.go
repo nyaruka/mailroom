@@ -17,14 +17,14 @@ func TestContactLanguageChanged(t *testing.T) {
 	tcs := []TestCase{
 		{
 			Actions: ContactActionMap{
-				testdb.Cathy: []flows.Action{
+				testdb.Cathy.UUID: []flows.Action{
 					actions.NewSetContactLanguage(flows.NewActionUUID(), "fra"),
 					actions.NewSetContactLanguage(flows.NewActionUUID(), "eng"),
 				},
-				testdb.George: []flows.Action{
+				testdb.George.UUID: []flows.Action{
 					actions.NewSetContactLanguage(flows.NewActionUUID(), "spa"),
 				},
-				testdb.Alexandra: []flows.Action{
+				testdb.Alexandra.UUID: []flows.Action{
 					actions.NewSetContactLanguage(flows.NewActionUUID(), ""),
 				},
 			},
@@ -59,5 +59,5 @@ func TestContactLanguageChanged(t *testing.T) {
 		},
 	}
 
-	runTestCases(t, ctx, rt, tcs)
+	runTestCases(t, ctx, rt, tcs, testsuite.ResetDynamo)
 }

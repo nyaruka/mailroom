@@ -24,22 +24,22 @@ func TestContactFieldChanged(t *testing.T) {
 	tcs := []TestCase{
 		{
 			Actions: ContactActionMap{
-				testdb.Cathy: []flows.Action{
+				testdb.Cathy.UUID: []flows.Action{
 					actions.NewSetContactField(flows.NewActionUUID(), gender, "Male"),
 					actions.NewSetContactField(flows.NewActionUUID(), gender, "Female"),
 					actions.NewSetContactField(flows.NewActionUUID(), age, ""),
 				},
-				testdb.George: []flows.Action{
+				testdb.George.UUID: []flows.Action{
 					actions.NewSetContactField(flows.NewActionUUID(), gender, "Male"),
 					actions.NewSetContactField(flows.NewActionUUID(), gender, ""),
 					actions.NewSetContactField(flows.NewActionUUID(), age, "40"),
 				},
-				testdb.Bob: []flows.Action{
+				testdb.Bob.UUID: []flows.Action{
 					actions.NewSetContactField(flows.NewActionUUID(), gender, ""),
 					actions.NewSetContactField(flows.NewActionUUID(), gender, "Male"),
 					actions.NewSetContactField(flows.NewActionUUID(), age, "Old"),
 				},
-				testdb.Alexandra: []flows.Action{
+				testdb.Alexandra.UUID: []flows.Action{
 					actions.NewSetContactField(flows.NewActionUUID(), age, ""),
 					actions.NewSetContactField(flows.NewActionUUID(), gender, ""),
 				},
@@ -95,5 +95,5 @@ func TestContactFieldChanged(t *testing.T) {
 		},
 	}
 
-	runTestCases(t, ctx, rt, tcs)
+	runTestCases(t, ctx, rt, tcs, testsuite.ResetDynamo)
 }

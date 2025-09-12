@@ -23,7 +23,7 @@ func TestRunStarted(t *testing.T) {
 	tcs := []TestCase{
 		{
 			Actions: ContactActionMap{
-				testdb.Cathy: []flows.Action{
+				testdb.Cathy.UUID: []flows.Action{
 					actions.NewEnterFlow(flows.NewActionUUID(), flow.Reference(), false),
 				},
 			},
@@ -43,5 +43,5 @@ func TestRunStarted(t *testing.T) {
 		},
 	}
 
-	runTestCases(t, ctx, rt, tcs)
+	runTestCases(t, ctx, rt, tcs, testsuite.ResetDynamo)
 }

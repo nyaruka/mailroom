@@ -17,17 +17,17 @@ func TestContactNameChanged(t *testing.T) {
 	tcs := []TestCase{
 		{
 			Actions: ContactActionMap{
-				testdb.Cathy: []flows.Action{
+				testdb.Cathy.UUID: []flows.Action{
 					actions.NewSetContactName(flows.NewActionUUID(), "Fred"),
 					actions.NewSetContactName(flows.NewActionUUID(), "Tarzan"),
 				},
-				testdb.George: []flows.Action{
+				testdb.George.UUID: []flows.Action{
 					actions.NewSetContactName(flows.NewActionUUID(), "Geoff Newman"),
 				},
-				testdb.Bob: []flows.Action{
+				testdb.Bob.UUID: []flows.Action{
 					actions.NewSetContactName(flows.NewActionUUID(), ""),
 				},
-				testdb.Alexandra: []flows.Action{
+				testdb.Alexandra.UUID: []flows.Action{
 					actions.NewSetContactName(flows.NewActionUUID(), "😃234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890"),
 				},
 			},
@@ -66,5 +66,5 @@ func TestContactNameChanged(t *testing.T) {
 		},
 	}
 
-	runTestCases(t, ctx, rt, tcs)
+	runTestCases(t, ctx, rt, tcs, testsuite.ResetDynamo)
 }
