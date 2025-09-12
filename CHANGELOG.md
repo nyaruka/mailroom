@@ -1,3 +1,7 @@
+v10.3.69 (2025-09-12)
+-------------------------
+ * Update to latest goflow which removes ticket from ticket_closed events
+
 v10.3.68 (2025-09-12)
 -------------------------
  * Rework close and reopen ticket endpoints to use modifiers
