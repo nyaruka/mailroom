@@ -23,7 +23,7 @@ func TestRunStarted(t *testing.T) {
 	tcs := []TestCase{
 		{
 			Actions: ContactActionMap{
-				testdb.Cathy: []flows.Action{
+				testdb.Ann.UUID: []flows.Action{
 					actions.NewEnterFlow(flows.NewActionUUID(), flow.Reference(), false),
 				},
 			},
@@ -35,13 +35,13 @@ func TestRunStarted(t *testing.T) {
 				},
 			},
 			PersistedEvents: map[flows.ContactUUID][]string{
-				testdb.Cathy.UUID:     {"run_started", "run_started"},
-				testdb.Bob.UUID:       {"run_started", "run_ended"},
-				testdb.George.UUID:    {"run_started", "run_ended"},
-				testdb.Alexandra.UUID: {"run_started", "run_ended"},
+				testdb.Ann.UUID: {"run_started", "run_started"},
+				testdb.Bob.UUID: {"run_started", "run_ended"},
+				testdb.Cat.UUID: {"run_started", "run_ended"},
+				testdb.Dan.UUID: {"run_started", "run_ended"},
 			},
 		},
 	}
 
-	runTestCases(t, ctx, rt, tcs)
+	runTestCases(t, ctx, rt, tcs, testsuite.ResetDynamo)
 }

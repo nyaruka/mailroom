@@ -27,13 +27,13 @@ func TestRetryErroredMessages(t *testing.T) {
 	testsuite.AssertCourierQueues(t, rt, map[string][]int{})
 
 	// a non-errored outgoing message (should be ignored)
-	testdb.InsertOutgoingMsg(rt, testdb.Org1, testdb.TwilioChannel, testdb.Cathy, "Hi", nil, models.MsgStatusDelivered, false)
+	testdb.InsertOutgoingMsg(rt, testdb.Org1, testdb.TwilioChannel, testdb.Ann, "Hi", nil, models.MsgStatusDelivered, false)
 
 	// an errored message with a next-attempt in the future (should be ignored)
-	testdb.InsertErroredOutgoingMsg(rt, testdb.Org1, testdb.TwilioChannel, testdb.Cathy, "Hi", 2, time.Now().Add(time.Hour), false)
+	testdb.InsertErroredOutgoingMsg(rt, testdb.Org1, testdb.TwilioChannel, testdb.Ann, "Hi", 2, time.Now().Add(time.Hour), false)
 
 	// errored messages with a next-attempt in the past
-	testdb.InsertErroredOutgoingMsg(rt, testdb.Org1, testdb.TwilioChannel, testdb.Cathy, "Hi", 1, time.Now().Add(-time.Hour), false)
+	testdb.InsertErroredOutgoingMsg(rt, testdb.Org1, testdb.TwilioChannel, testdb.Ann, "Hi", 1, time.Now().Add(-time.Hour), false)
 	testdb.InsertErroredOutgoingMsg(rt, testdb.Org1, testdb.VonageChannel, testdb.Bob, "Hi", 2, time.Now().Add(-time.Minute), false)
 	msg5 := testdb.InsertErroredOutgoingMsg(rt, testdb.Org1, testdb.VonageChannel, testdb.Bob, "Hi", 2, time.Now().Add(-time.Minute), false)
 	testdb.InsertErroredOutgoingMsg(rt, testdb.Org1, testdb.VonageChannel, testdb.Bob, "Hi", 2, time.Now().Add(-time.Minute), true) // high priority

@@ -44,18 +44,18 @@ func TestMsgReceivedTask(t *testing.T) {
 	deleted := testdb.InsertContact(rt, testdb.Org1, "116e40b1-cecb-4be7-9dea-1a21141a05bc", "Del", "eng", models.ContactStatusActive)
 	rt.DB.MustExec(`UPDATE contacts_contact SET is_active = false WHERE id = $1`, deleted.ID)
 
-	// give Cathy, Bob and the blocked contact some tickets...
+	// give Ann, Bob and the blocked contact some tickets...
 	openTickets := map[*testdb.Contact][]*testdb.Ticket{
-		testdb.Cathy: {
-			testdb.InsertOpenTicket(rt, "01992f54-5ab6-717a-a39e-e8ca91fb7262", testdb.Org1, testdb.Cathy, testdb.DefaultTopic, time.Now(), nil),
+		testdb.Ann: {
+			testdb.InsertOpenTicket(rt, "01992f54-5ab6-717a-a39e-e8ca91fb7262", testdb.Org1, testdb.Ann, testdb.DefaultTopic, time.Now(), nil),
 		},
 		blocked: {
 			testdb.InsertOpenTicket(rt, "01992f54-5ab6-725e-be9c-0c6407efd755", testdb.Org1, blocked, testdb.DefaultTopic, time.Now(), nil),
 		},
 	}
 	closedTickets := map[*testdb.Contact][]*testdb.Ticket{
-		testdb.Cathy: {
-			testdb.InsertClosedTicket(rt, "01992f54-5ab6-7498-a7f2-6aa246e45cfe", testdb.Org1, testdb.Cathy, testdb.DefaultTopic, nil),
+		testdb.Ann: {
+			testdb.InsertClosedTicket(rt, "01992f54-5ab6-7498-a7f2-6aa246e45cfe", testdb.Org1, testdb.Ann, testdb.DefaultTopic, nil),
 		},
 		testdb.Bob: {
 			testdb.InsertClosedTicket(rt, "01992f54-5ab6-7658-a5d4-bdb05863ec56", testdb.Org1, testdb.Bob, testdb.DefaultTopic, nil),
@@ -64,13 +64,13 @@ func TestMsgReceivedTask(t *testing.T) {
 
 	rt.DB.MustExec(`UPDATE tickets_ticket SET last_activity_on = '2021-01-01T00:00:00Z'`)
 
-	// clear all of Alexandria's URNs
-	rt.DB.MustExec(`UPDATE contacts_contacturn SET contact_id = NULL WHERE contact_id = $1`, testdb.Alexandra.ID)
+	// clear all of Dan's URNs
+	rt.DB.MustExec(`UPDATE contacts_contacturn SET contact_id = NULL WHERE contact_id = $1`, testdb.Dan.ID)
 
 	models.FlushCache()
 
 	// insert a dummy message into the database that will get the updates from handling each message event which pretends to be it
-	dbMsg := testdb.InsertIncomingMsg(rt, testdb.Org1, testdb.TwilioChannel, testdb.Cathy, "", models.MsgStatusPending)
+	dbMsg := testdb.InsertIncomingMsg(rt, testdb.Org1, testdb.TwilioChannel, testdb.Ann, "", models.MsgStatusPending)
 
 	tcs := []struct {
 		preHook             func()
@@ -86,21 +86,21 @@ func TestMsgReceivedTask(t *testing.T) {
 		{ // 0: no trigger match, inbox message
 			org:                testdb.Org1,
 			channel:            testdb.FacebookChannel,
-			contact:            testdb.Cathy,
+			contact:            testdb.Ann,
 			text:               "noop",
 			expectedVisibility: models.VisibilityVisible,
 		},
 		{ // 1: no trigger match, inbox message (trigger is keyword only)
 			org:                testdb.Org1,
 			channel:            testdb.FacebookChannel,
-			contact:            testdb.Cathy,
+			contact:            testdb.Ann,
 			text:               "start other",
 			expectedVisibility: models.VisibilityVisible,
 		},
 		{ // 2: keyword trigger match, flow message
 			org:                 testdb.Org1,
 			channel:             testdb.FacebookChannel,
-			contact:             testdb.Cathy,
+			contact:             testdb.Ann,
 			text:                "start",
 			expectedVisibility:  models.VisibilityVisible,
 			expectedReplyText:   "What is your favorite color?",
@@ -110,7 +110,7 @@ func TestMsgReceivedTask(t *testing.T) {
 		{ // 3:
 			org:                 testdb.Org1,
 			channel:             testdb.FacebookChannel,
-			contact:             testdb.Cathy,
+			contact:             testdb.Ann,
 			text:                "purple",
 			expectedVisibility:  models.VisibilityVisible,
 			expectedReplyText:   "I don't know that color. Try again.",
@@ -120,7 +120,7 @@ func TestMsgReceivedTask(t *testing.T) {
 		{ // 4:
 			org:                 testdb.Org1,
 			channel:             testdb.FacebookChannel,
-			contact:             testdb.Cathy,
+			contact:             testdb.Ann,
 			text:                "blue",
 			expectedVisibility:  models.VisibilityVisible,
 			expectedReplyText:   "Good choice, I like Blue too! What is your favorite beer?",
@@ -130,7 +130,7 @@ func TestMsgReceivedTask(t *testing.T) {
 		{ // 5:
 			org:                 testdb.Org1,
 			channel:             testdb.FacebookChannel,
-			contact:             testdb.Cathy,
+			contact:             testdb.Ann,
 			text:                "MUTZIG",
 			expectedVisibility:  models.VisibilityVisible,
 			expectedReplyText:   "Mmmmm... delicious Mutzig. If only they made blue Mutzig! Lastly, what is your name?",
@@ -140,17 +140,17 @@ func TestMsgReceivedTask(t *testing.T) {
 		{ // 6:
 			org:                 testdb.Org1,
 			channel:             testdb.FacebookChannel,
-			contact:             testdb.Cathy,
-			text:                "Cathy",
+			contact:             testdb.Ann,
+			text:                "Ann",
 			expectedVisibility:  models.VisibilityVisible,
-			expectedReplyText:   "Thanks Cathy, we are all done!",
+			expectedReplyText:   "Thanks Ann, we are all done!",
 			expectedReplyStatus: models.MsgStatusQueued,
 			expectedFlow:        testdb.Favorites,
 		},
 		{ // 7:
 			org:                testdb.Org1,
 			channel:            testdb.FacebookChannel,
-			contact:            testdb.Cathy,
+			contact:            testdb.Ann,
 			text:               "noop",
 			expectedVisibility: models.VisibilityVisible,
 		},
@@ -198,9 +198,9 @@ func TestMsgReceivedTask(t *testing.T) {
 			org:                 testdb.Org2,
 			channel:             testdb.Org2Channel,
 			contact:             testdb.Org2Contact,
-			text:                "george",
+			text:                "cat",
 			expectedVisibility:  models.VisibilityVisible,
-			expectedReplyText:   "Thanks george, we are all done!",
+			expectedReplyText:   "Thanks cat, we are all done!",
 			expectedReplyStatus: models.MsgStatusQueued,
 			expectedFlow:        testdb.Org2Favorites,
 		},
@@ -223,11 +223,11 @@ func TestMsgReceivedTask(t *testing.T) {
 		},
 		{ // 15: stopped contact should be unstopped
 			preHook: func() {
-				rt.DB.MustExec(`UPDATE contacts_contact SET status = 'S' WHERE id = $1`, testdb.George.ID)
+				rt.DB.MustExec(`UPDATE contacts_contact SET status = 'S' WHERE id = $1`, testdb.Cat.ID)
 			},
 			org:                 testdb.Org1,
 			channel:             testdb.FacebookChannel,
-			contact:             testdb.George,
+			contact:             testdb.Cat,
 			text:                "start",
 			expectedVisibility:  models.VisibilityVisible,
 			expectedReplyText:   "What is your favorite color?",
@@ -237,7 +237,7 @@ func TestMsgReceivedTask(t *testing.T) {
 		{ // 16: no URN on contact but failed reply created anyway
 			org:                 testdb.Org1,
 			channel:             testdb.TwilioChannel,
-			contact:             testdb.Alexandra,
+			contact:             testdb.Dan,
 			text:                "start",
 			expectedVisibility:  models.VisibilityVisible,
 			expectedReplyText:   "What is your favorite color?",
@@ -296,7 +296,7 @@ func TestMsgReceivedTask(t *testing.T) {
 		{ // 22: disabled channel
 			org:                testdb.Org1,
 			channel:            disabled,
-			contact:            testdb.Cathy,
+			contact:            testdb.Ann,
 			text:               "start",
 			expectedVisibility: models.VisibilityArchived,
 		},

@@ -161,9 +161,9 @@ func TestFindMatchingMsgTrigger(t *testing.T) {
 	testdb.DoctorsGroup.Add(rt, testdb.Bob)
 	testdb.TestersGroup.Add(rt, testdb.Bob)
 
-	_, cathy, _ := testdb.Cathy.Load(rt, oa)
-	_, george, _ := testdb.George.Load(rt, oa)
+	_, ann, _ := testdb.Ann.Load(rt, oa)
 	_, bob, _ := testdb.Bob.Load(rt, oa)
+	_, cat, _ := testdb.Cat.Load(rt, oa)
 
 	twilioChannel, _ := models.GetChannelByID(ctx, rt.DB.DB, testdb.TwilioChannel.ID)
 	facebookChannel, _ := models.GetChannelByID(ctx, rt.DB.DB, testdb.FacebookChannel.ID)
@@ -175,27 +175,27 @@ func TestFindMatchingMsgTrigger(t *testing.T) {
 		expectedTriggerID models.TriggerID
 		expectedKeyword   string
 	}{
-		{" join ", nil, cathy, joinID, "join"},
-		{"JOIN", nil, cathy, joinID, "join"},
-		{"JOIN", twilioChannel, cathy, joinTwilioOnlyID, "join"},
-		{"JOIN", facebookChannel, cathy, joinID, "join"},
-		{"join this", nil, cathy, joinID, "join"},
-		{"resist", nil, george, resistID, "resist"},
-		{"resist", twilioChannel, george, resistTwilioOnlyID, "resist"},
+		{" join ", nil, ann, joinID, "join"},
+		{"JOIN", nil, ann, joinID, "join"},
+		{"JOIN", twilioChannel, ann, joinTwilioOnlyID, "join"},
+		{"JOIN", facebookChannel, ann, joinID, "join"},
+		{"join this", nil, ann, joinID, "join"},
+		{"resist", nil, cat, resistID, "resist"},
+		{"resist", twilioChannel, cat, resistTwilioOnlyID, "resist"},
 		{"resist", nil, bob, doctorsID, "resist"},
-		{"resist", twilioChannel, cathy, resistTwilioOnlyID, "resist"},
-		{"resist", nil, cathy, doctorsAndNotTestersID, "resist"},
-		{"resist this", nil, cathy, doctorsCatchallID, ""},
-		{" 👍 ", nil, george, emojiID, "👍"},
-		{"👍🏾", nil, george, emojiID, "👍"}, // is 👍 + 🏾
-		{"😀👍", nil, george, othersAllID, ""},
-		{"other", nil, cathy, doctorsCatchallID, ""},
-		{"other", nil, george, othersAllID, ""},
-		{"", nil, george, othersAllID, ""},
-		{"start", twilioChannel, cathy, startTwilioOnlyID, "start"},
-		{"start", facebookChannel, cathy, doctorsCatchallID, ""},
-		{"start", twilioChannel, george, startTwilioOnlyID, "start"},
-		{"start", facebookChannel, george, othersAllID, ""},
+		{"resist", twilioChannel, ann, resistTwilioOnlyID, "resist"},
+		{"resist", nil, ann, doctorsAndNotTestersID, "resist"},
+		{"resist this", nil, ann, doctorsCatchallID, ""},
+		{" 👍 ", nil, cat, emojiID, "👍"},
+		{"👍🏾", nil, cat, emojiID, "👍"}, // is 👍 + 🏾
+		{"😀👍", nil, cat, othersAllID, ""},
+		{"other", nil, ann, doctorsCatchallID, ""},
+		{"other", nil, cat, othersAllID, ""},
+		{"", nil, cat, othersAllID, ""},
+		{"start", twilioChannel, ann, startTwilioOnlyID, "start"},
+		{"start", facebookChannel, ann, doctorsCatchallID, ""},
+		{"start", twilioChannel, cat, startTwilioOnlyID, "start"},
+		{"start", facebookChannel, cat, othersAllID, ""},
 	}
 
 	for _, tc := range tcs {
@@ -221,12 +221,12 @@ func TestFindMatchingIncomingCallTrigger(t *testing.T) {
 	require.NoError(t, err)
 
 	testdb.DoctorsGroup.Add(rt, testdb.Bob)
-	testdb.TestersGroup.Add(rt, testdb.Bob, testdb.Alexandra)
+	testdb.TestersGroup.Add(rt, testdb.Bob, testdb.Dan)
 
-	_, cathy, _ := testdb.Cathy.Load(rt, oa)
+	_, ann, _ := testdb.Ann.Load(rt, oa)
 	_, bob, _ := testdb.Bob.Load(rt, oa)
-	_, george, _ := testdb.George.Load(rt, oa)
-	_, alexa, _ := testdb.Alexandra.Load(rt, oa)
+	_, cat, _ := testdb.Cat.Load(rt, oa)
+	_, dan, _ := testdb.Dan.Load(rt, oa)
 
 	twilioChannel, _ := models.GetChannelByID(ctx, rt.DB.DB, testdb.TwilioChannel.ID)
 	facebookChannel, _ := models.GetChannelByID(ctx, rt.DB.DB, testdb.FacebookChannel.ID)
@@ -236,12 +236,12 @@ func TestFindMatchingIncomingCallTrigger(t *testing.T) {
 		channel           *models.Channel
 		expectedTriggerID models.TriggerID
 	}{
-		{cathy, twilioChannel, specificChannelTriggerID},        // specific channel
-		{cathy, facebookChannel, doctorsAndNotTestersTriggerID}, // not matching channel, get the next best scored channel
-		{cathy, nil, doctorsAndNotTestersTriggerID},             // they're in doctors and not in testers
-		{bob, nil, doctorsTriggerID},                            // they're in doctors and testers
-		{george, nil, notTestersTriggerID},                      // they're not in doctors and not in testers
-		{alexa, nil, everyoneTriggerID},                         // they're not in doctors but are in testers
+		{ann, twilioChannel, specificChannelTriggerID},        // specific channel
+		{ann, facebookChannel, doctorsAndNotTestersTriggerID}, // not matching channel, get the next best scored channel
+		{ann, nil, doctorsAndNotTestersTriggerID},             // they're in doctors and not in testers
+		{bob, nil, doctorsTriggerID},                          // they're in doctors and testers
+		{cat, nil, notTestersTriggerID},                       // they're not in doctors and not in testers
+		{dan, nil, everyoneTriggerID},                         // they're not in doctors but are in testers
 	}
 
 	for _, tc := range tcs {
@@ -407,13 +407,13 @@ func TestArchiveContactTriggers(t *testing.T) {
 	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
 	everybodyID := testdb.InsertKeywordTrigger(rt, testdb.Org1, testdb.Favorites, []string{"join"}, models.MatchFirst, nil, nil, nil)
-	cathyOnly1ID := testdb.InsertScheduledTrigger(rt, testdb.Org1, testdb.Favorites, testdb.InsertSchedule(rt, testdb.Org1, models.RepeatPeriodMonthly, time.Now()), nil, nil, []*testdb.Contact{testdb.Cathy})
-	cathyOnly2ID := testdb.InsertScheduledTrigger(rt, testdb.Org1, testdb.Favorites, testdb.InsertSchedule(rt, testdb.Org1, models.RepeatPeriodMonthly, time.Now()), nil, nil, []*testdb.Contact{testdb.Cathy})
-	cathyAndGeorgeID := testdb.InsertScheduledTrigger(rt, testdb.Org1, testdb.Favorites, testdb.InsertSchedule(rt, testdb.Org1, models.RepeatPeriodMonthly, time.Now()), nil, nil, []*testdb.Contact{testdb.Cathy, testdb.George})
-	cathyAndGroupID := testdb.InsertScheduledTrigger(rt, testdb.Org1, testdb.Favorites, testdb.InsertSchedule(rt, testdb.Org1, models.RepeatPeriodMonthly, time.Now()), []*testdb.Group{testdb.DoctorsGroup}, nil, []*testdb.Contact{testdb.Cathy})
-	georgeOnlyID := testdb.InsertScheduledTrigger(rt, testdb.Org1, testdb.Favorites, testdb.InsertSchedule(rt, testdb.Org1, models.RepeatPeriodMonthly, time.Now()), nil, nil, []*testdb.Contact{testdb.George})
+	annOnly1ID := testdb.InsertScheduledTrigger(rt, testdb.Org1, testdb.Favorites, testdb.InsertSchedule(rt, testdb.Org1, models.RepeatPeriodMonthly, time.Now()), nil, nil, []*testdb.Contact{testdb.Ann})
+	annOnly2ID := testdb.InsertScheduledTrigger(rt, testdb.Org1, testdb.Favorites, testdb.InsertSchedule(rt, testdb.Org1, models.RepeatPeriodMonthly, time.Now()), nil, nil, []*testdb.Contact{testdb.Ann})
+	annAndCatID := testdb.InsertScheduledTrigger(rt, testdb.Org1, testdb.Favorites, testdb.InsertSchedule(rt, testdb.Org1, models.RepeatPeriodMonthly, time.Now()), nil, nil, []*testdb.Contact{testdb.Ann, testdb.Cat})
+	annAndGroupID := testdb.InsertScheduledTrigger(rt, testdb.Org1, testdb.Favorites, testdb.InsertSchedule(rt, testdb.Org1, models.RepeatPeriodMonthly, time.Now()), []*testdb.Group{testdb.DoctorsGroup}, nil, []*testdb.Contact{testdb.Ann})
+	catOnlyID := testdb.InsertScheduledTrigger(rt, testdb.Org1, testdb.Favorites, testdb.InsertSchedule(rt, testdb.Org1, models.RepeatPeriodMonthly, time.Now()), nil, nil, []*testdb.Contact{testdb.Cat})
 
-	err := models.ArchiveContactTriggers(ctx, rt.DB, []models.ContactID{testdb.Cathy.ID, testdb.Bob.ID})
+	err := models.ArchiveContactTriggers(ctx, rt.DB, []models.ContactID{testdb.Ann.ID, testdb.Bob.ID})
 	require.NoError(t, err)
 
 	assertTriggerArchived := func(id models.TriggerID, archived bool) {
@@ -423,11 +423,11 @@ func TestArchiveContactTriggers(t *testing.T) {
 	}
 
 	assertTriggerArchived(everybodyID, false)
-	assertTriggerArchived(cathyOnly1ID, true)
-	assertTriggerArchived(cathyOnly2ID, true)
-	assertTriggerArchived(cathyAndGeorgeID, false)
-	assertTriggerArchived(cathyAndGroupID, false)
-	assertTriggerArchived(georgeOnlyID, false)
+	assertTriggerArchived(annOnly1ID, true)
+	assertTriggerArchived(annOnly2ID, true)
+	assertTriggerArchived(annAndCatID, false)
+	assertTriggerArchived(annAndGroupID, false)
+	assertTriggerArchived(catOnlyID, false)
 }
 
 func assertTrigger(t *testing.T, expected models.TriggerID, actual *models.Trigger, msgAndArgs ...any) {

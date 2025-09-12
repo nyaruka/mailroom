@@ -19,7 +19,7 @@ func TestStartFlowTask(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
-	testdb.InsertWaitingSession(rt, testdb.Org1, testdb.George, models.FlowTypeMessaging, nil, testdb.Favorites)
+	testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Cat, models.FlowTypeMessaging, nil, testdb.Favorites)
 
 	tcs := []struct {
 		flowID                   models.FlowID
@@ -63,7 +63,7 @@ func TestStartFlowTask(t *testing.T) {
 		{ // 2: group and contact (but all already active)
 			flowID:                   testdb.Favorites.ID,
 			groupIDs:                 []models.GroupID{testdb.DoctorsGroup.ID},
-			contactIDs:               []models.ContactID{testdb.Cathy.ID},
+			contactIDs:               []models.ContactID{testdb.Ann.ID},
 			excludeInAFlow:           true,
 			excludeStartedPreviously: true,
 			queue:                    rt.Queues.Batch,
@@ -75,7 +75,7 @@ func TestStartFlowTask(t *testing.T) {
 		},
 		{ // 3: don't exclude started previously
 			flowID:                   testdb.Favorites.ID,
-			contactIDs:               []models.ContactID{testdb.Cathy.ID},
+			contactIDs:               []models.ContactID{testdb.Ann.ID},
 			excludeInAFlow:           false,
 			excludeStartedPreviously: false,
 			queue:                    rt.Queues.Realtime,
@@ -192,8 +192,8 @@ func TestStartFlowTask(t *testing.T) {
 		},
 		{ // 13: exclude group
 			flowID:                   testdb.Favorites.ID,
-			contactIDs:               []models.ContactID{testdb.Cathy.ID, testdb.Bob.ID},
-			excludeGroupIDs:          []models.GroupID{testdb.DoctorsGroup.ID}, // should exclude Cathy
+			contactIDs:               []models.ContactID{testdb.Ann.ID, testdb.Bob.ID},
+			excludeGroupIDs:          []models.GroupID{testdb.DoctorsGroup.ID}, // should exclude Ann
 			excludeInAFlow:           false,
 			excludeStartedPreviously: false,
 			queue:                    rt.Queues.Realtime,
@@ -254,7 +254,7 @@ func TestStartFlowTaskNonPersistedStart(t *testing.T) {
 
 	// create a start and start it...
 	start := models.NewFlowStart(models.OrgID(1), models.StartTypeManual, testdb.SingleMessage.ID).
-		WithContactIDs([]models.ContactID{testdb.Cathy.ID, testdb.Bob.ID})
+		WithContactIDs([]models.ContactID{testdb.Ann.ID, testdb.Bob.ID})
 
 	err := tasks.Queue(ctx, rt, rt.Queues.Throttled, testdb.Org1.ID, &starts.StartFlowTask{FlowStart: start}, false)
 	assert.NoError(t, err)

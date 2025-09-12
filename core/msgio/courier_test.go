@@ -37,21 +37,21 @@ func TestNewCourierMsg(t *testing.T) {
 	require.NoError(t, err)
 	require.False(t, oa.Org().Suspended())
 
-	_, fCathy, cathyURNs := testdb.Cathy.Load(rt, oa)
+	_, fAnn, annURNs := testdb.Ann.Load(rt, oa)
 	_, fred, fredURNs := testFred.Load(rt, oa)
 
 	twilio := oa.ChannelByUUID(testdb.TwilioChannel.UUID)
 	facebook := oa.ChannelByUUID(testdb.FacebookChannel.UUID)
 	flow, _ := oa.FlowByID(testdb.Favorites.ID)
 	optIn := oa.OptInByID(optInID)
-	cathyURN, _ := cathyURNs[0].Encode(oa)
+	annURN, _ := annURNs[0].Encode(oa)
 	fredURN, _ := fredURNs[0].Encode(oa)
 
-	scenes := testsuite.StartSessions(t, rt, oa, []*testdb.Contact{testdb.Cathy}, triggers.NewBuilder(testdb.Favorites.Reference()).Manual().Build())
+	scenes := testsuite.StartSessions(t, rt, oa, []*testdb.Contact{testdb.Ann}, triggers.NewBuilder(testdb.Favorites.Reference()).Manual().Build())
 	session, sprint := scenes[0].Session, scenes[0].Sprint
 
 	msgEvent1 := events.NewMsgCreated(flows.NewMsgOut(
-		cathyURN,
+		annURN,
 		assets.NewChannelReference(testdb.FacebookChannel.UUID, "Facebook"),
 		&flows.MsgContent{
 			Text:         "Hi there",
@@ -67,14 +67,14 @@ func TestNewCourierMsg(t *testing.T) {
 		flows.NilUnsendableReason,
 	))
 
-	msg1, err := models.NewOutgoingFlowMsg(rt, oa.Org(), facebook, fCathy, flow, msgEvent1, nil)
+	msg1, err := models.NewOutgoingFlowMsg(rt, oa.Org(), facebook, fAnn, flow, msgEvent1, nil)
 	require.NoError(t, err)
 
 	// insert to db so that it gets an id and time field values
 	err = models.InsertMessages(ctx, rt.DB, []*models.Msg{msg1.Msg})
 	require.NoError(t, err)
 
-	msg1.URN = cathyURNs[0]
+	msg1.URN = annURNs[0]
 	msg1.Session = session
 	msg1.SprintUUID = sprint.UUID()
 
@@ -113,23 +113,23 @@ func TestNewCourierMsg(t *testing.T) {
 	}`, string(jsonx.MustMarshal(msgEvent1.CreatedOn())), session.UUID(), sprint.UUID(), msg1.UUID()))
 
 	// create a priority flow message.. i.e. the session is responding to an incoming message
-	fCathy.SetLastSeenOn(time.Date(2023, 4, 20, 10, 15, 0, 0, time.UTC))
+	fAnn.SetLastSeenOn(time.Date(2023, 4, 20, 10, 15, 0, 0, time.UTC))
 	msgEvent2 := events.NewMsgCreated(flows.NewMsgOut(
-		cathyURN,
+		annURN,
 		assets.NewChannelReference(testdb.TwilioChannel.UUID, "Test Channel"),
 		&flows.MsgContent{Text: "Hi there"},
 		nil,
 		i18n.NilLocale,
 		flows.NilUnsendableReason,
 	))
-	in1 := testdb.InsertIncomingMsg(rt, testdb.Org1, testdb.TwilioChannel, testdb.Cathy, "test", models.MsgStatusHandled)
-	msg2, err := models.NewOutgoingFlowMsg(rt, oa.Org(), twilio, fCathy, flow, msgEvent2, &models.MsgInRef{ID: in1.ID, ExtID: "EX123"})
+	in1 := testdb.InsertIncomingMsg(rt, testdb.Org1, testdb.TwilioChannel, testdb.Ann, "test", models.MsgStatusHandled)
+	msg2, err := models.NewOutgoingFlowMsg(rt, oa.Org(), twilio, fAnn, flow, msgEvent2, &models.MsgInRef{ID: in1.ID, ExtID: "EX123"})
 	require.NoError(t, err)
 
 	err = models.InsertMessages(ctx, rt.DB, []*models.Msg{msg2.Msg})
 	require.NoError(t, err)
 
-	msg2.URN = cathyURNs[0]
+	msg2.URN = annURNs[0]
 	msg2.Session = session
 	msg2.SprintUUID = sprint.UUID()
 
@@ -187,11 +187,11 @@ func TestNewCourierMsg(t *testing.T) {
 	}`, string(jsonx.MustMarshal(msgEvent3.CreatedOn())), testdb.Admin.ID, msg3.UUID()))
 
 	optInEvent := events.NewOptInRequested(session.Assets().OptIns().Get(optIn.UUID()).Reference(), twilio.Reference(), "tel:+16055741111?id=10000")
-	msg4 := models.NewOutgoingOptInMsg(rt, testdb.Org1.ID, fCathy, flow, optIn, twilio, optInEvent, &models.MsgInRef{ID: in1.ID, ExtID: "EX123"})
+	msg4 := models.NewOutgoingOptInMsg(rt, testdb.Org1.ID, fAnn, flow, optIn, twilio, optInEvent, &models.MsgInRef{ID: in1.ID, ExtID: "EX123"})
 	err = models.InsertMessages(ctx, rt.DB, []*models.Msg{msg4.Msg})
 	require.NoError(t, err)
 
-	msg4.URN = cathyURNs[0]
+	msg4.URN = annURNs[0]
 	msg4.Session = session
 	msg4.SprintUUID = sprint.UUID()
 
@@ -244,30 +244,30 @@ func TestQueueCourierMessages(t *testing.T) {
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshOrg|models.RefreshChannels)
 	require.NoError(t, err)
 
-	_, _, cathyURNs := testdb.Cathy.Load(rt, oa)
+	_, _, annURNs := testdb.Ann.Load(rt, oa)
 	twilio := oa.ChannelByUUID(testdb.TwilioChannel.UUID)
 
 	// noop if no messages provided
-	msgio.QueueCourierMessages(vc, oa, testdb.Cathy.ID, twilio, []*models.MsgOut{})
+	msgio.QueueCourierMessages(vc, oa, testdb.Ann.ID, twilio, []*models.MsgOut{})
 	testsuite.AssertCourierQueues(t, rt, map[string][]int{})
 
-	// queue 3 messages for Cathy..
+	// queue 3 messages for Ann..
 	sends := []*models.MsgOut{
 		{
-			Msg: (&msgSpec{Channel: testdb.TwilioChannel, Contact: testdb.Cathy}).createMsg(t, rt, oa),
-			URN: cathyURNs[0],
+			Msg: (&msgSpec{Channel: testdb.TwilioChannel, Contact: testdb.Ann}).createMsg(t, rt, oa),
+			URN: annURNs[0],
 		},
 		{
-			Msg: (&msgSpec{Channel: testdb.TwilioChannel, Contact: testdb.Cathy}).createMsg(t, rt, oa),
-			URN: cathyURNs[0],
+			Msg: (&msgSpec{Channel: testdb.TwilioChannel, Contact: testdb.Ann}).createMsg(t, rt, oa),
+			URN: annURNs[0],
 		},
 		{
-			Msg: (&msgSpec{Channel: testdb.TwilioChannel, Contact: testdb.Cathy, HighPriority: true}).createMsg(t, rt, oa),
-			URN: cathyURNs[0],
+			Msg: (&msgSpec{Channel: testdb.TwilioChannel, Contact: testdb.Ann, HighPriority: true}).createMsg(t, rt, oa),
+			URN: annURNs[0],
 		},
 	}
 
-	msgio.QueueCourierMessages(vc, oa, testdb.Cathy.ID, twilio, sends)
+	msgio.QueueCourierMessages(vc, oa, testdb.Ann.ID, twilio, sends)
 
 	testsuite.AssertCourierQueues(t, rt, map[string][]int{
 		"msgs:74729f45-7f29-4868-9dc4-90e491e3c7d8|10/0": {2}, // twilio, bulk priority
@@ -285,31 +285,31 @@ func TestClearChannelCourierQueue(t *testing.T) {
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshOrg|models.RefreshChannels)
 	require.NoError(t, err)
 
-	_, _, cathyURNs := testdb.Cathy.Load(rt, oa)
+	_, _, annURNs := testdb.Ann.Load(rt, oa)
 	twilio := oa.ChannelByUUID(testdb.TwilioChannel.UUID)
 	vonage := oa.ChannelByUUID(testdb.VonageChannel.UUID)
 
-	// queue 3 Twilio messages for Cathy..
-	msgio.QueueCourierMessages(vc, oa, testdb.Cathy.ID, twilio, []*models.MsgOut{
+	// queue 3 Twilio messages for Ann..
+	msgio.QueueCourierMessages(vc, oa, testdb.Ann.ID, twilio, []*models.MsgOut{
 		{
-			Msg: (&msgSpec{Channel: testdb.TwilioChannel, Contact: testdb.Cathy}).createMsg(t, rt, oa),
-			URN: cathyURNs[0],
+			Msg: (&msgSpec{Channel: testdb.TwilioChannel, Contact: testdb.Ann}).createMsg(t, rt, oa),
+			URN: annURNs[0],
 		},
 		{
-			Msg: (&msgSpec{Channel: testdb.TwilioChannel, Contact: testdb.Cathy}).createMsg(t, rt, oa),
-			URN: cathyURNs[0],
+			Msg: (&msgSpec{Channel: testdb.TwilioChannel, Contact: testdb.Ann}).createMsg(t, rt, oa),
+			URN: annURNs[0],
 		},
 		{
-			Msg: (&msgSpec{Channel: testdb.TwilioChannel, Contact: testdb.Cathy, HighPriority: true}).createMsg(t, rt, oa),
-			URN: cathyURNs[0],
+			Msg: (&msgSpec{Channel: testdb.TwilioChannel, Contact: testdb.Ann, HighPriority: true}).createMsg(t, rt, oa),
+			URN: annURNs[0],
 		},
 	})
 
 	// and a Vonage message
-	msgio.QueueCourierMessages(vc, oa, testdb.Cathy.ID, vonage, []*models.MsgOut{
+	msgio.QueueCourierMessages(vc, oa, testdb.Ann.ID, vonage, []*models.MsgOut{
 		{
-			Msg: (&msgSpec{Channel: testdb.VonageChannel, Contact: testdb.Cathy}).createMsg(t, rt, oa),
-			URN: cathyURNs[0],
+			Msg: (&msgSpec{Channel: testdb.VonageChannel, Contact: testdb.Ann}).createMsg(t, rt, oa),
+			URN: annURNs[0],
 		},
 	})
 
@@ -342,13 +342,13 @@ func TestPushCourierBatch(t *testing.T) {
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshChannels)
 	require.NoError(t, err)
 
-	_, _, cathyURNs := testdb.Cathy.Load(rt, oa)
+	_, _, annURNs := testdb.Ann.Load(rt, oa)
 	channel := oa.ChannelByID(testdb.TwilioChannel.ID)
 
-	msg1 := (&msgSpec{Channel: testdb.TwilioChannel, Contact: testdb.Cathy}).createMsg(t, rt, oa)
-	msg2 := (&msgSpec{Channel: testdb.TwilioChannel, Contact: testdb.Cathy}).createMsg(t, rt, oa)
+	msg1 := (&msgSpec{Channel: testdb.TwilioChannel, Contact: testdb.Ann}).createMsg(t, rt, oa)
+	msg2 := (&msgSpec{Channel: testdb.TwilioChannel, Contact: testdb.Ann}).createMsg(t, rt, oa)
 
-	err = msgio.PushCourierBatch(vc, oa, channel, []*models.MsgOut{{Msg: msg1, URN: cathyURNs[0]}, {Msg: msg2, URN: cathyURNs[0]}}, "1636557205.123456")
+	err = msgio.PushCourierBatch(vc, oa, channel, []*models.MsgOut{{Msg: msg1, URN: annURNs[0]}, {Msg: msg2, URN: annURNs[0]}}, "1636557205.123456")
 	require.NoError(t, err)
 
 	// check that channel has been added to active list
@@ -373,9 +373,9 @@ func TestPushCourierBatch(t *testing.T) {
 	// push another batch in the same epoch second with transaction counter still below limit
 	vc.Do("SET", "msgs:74729f45-7f29-4868-9dc4-90e491e3c7d8|10:tps:1636557205", "5")
 
-	msg3 := (&msgSpec{Channel: testdb.TwilioChannel, Contact: testdb.Cathy}).createMsg(t, rt, oa)
+	msg3 := (&msgSpec{Channel: testdb.TwilioChannel, Contact: testdb.Ann}).createMsg(t, rt, oa)
 
-	err = msgio.PushCourierBatch(vc, oa, channel, []*models.MsgOut{{Msg: msg3, URN: cathyURNs[0]}}, "1636557205.234567")
+	err = msgio.PushCourierBatch(vc, oa, channel, []*models.MsgOut{{Msg: msg3, URN: annURNs[0]}}, "1636557205.234567")
 	require.NoError(t, err)
 
 	queued, err = redis.ByteSlices(vc.Do("ZRANGE", "msgs:74729f45-7f29-4868-9dc4-90e491e3c7d8|10/0", 0, -1))
@@ -386,9 +386,9 @@ func TestPushCourierBatch(t *testing.T) {
 	vc.Do("ZREM", "msgs:active", "msgs:74729f45-7f29-4868-9dc4-90e491e3c7d8|10")
 	vc.Do("SET", "msgs:74729f45-7f29-4868-9dc4-90e491e3c7d8|10:tps:1636557205", "11")
 
-	msg4 := (&msgSpec{Channel: testdb.TwilioChannel, Contact: testdb.Cathy}).createMsg(t, rt, oa)
+	msg4 := (&msgSpec{Channel: testdb.TwilioChannel, Contact: testdb.Ann}).createMsg(t, rt, oa)
 
-	err = msgio.PushCourierBatch(vc, oa, channel, []*models.MsgOut{{Msg: msg4, URN: cathyURNs[0]}}, "1636557205.345678")
+	err = msgio.PushCourierBatch(vc, oa, channel, []*models.MsgOut{{Msg: msg4, URN: annURNs[0]}}, "1636557205.345678")
 	require.NoError(t, err)
 
 	// check that channel has *not* been added to active list

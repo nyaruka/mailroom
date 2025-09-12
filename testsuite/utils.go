@@ -65,6 +65,24 @@ func CurrentTasks(t *testing.T, rt *runtime.Runtime, qname string) map[models.Or
 	return tasks
 }
 
+func GetQueuedTasks(t *testing.T, rt *runtime.Runtime) map[string][]string {
+	t.Helper()
+
+	actual := make(map[string][]string)
+
+	for _, qname := range []string{"realtime", "batch", "throttled"} {
+		for orgID, oTasks := range CurrentTasks(t, rt, qname) {
+			types := make([]string, len(oTasks))
+			for i, task := range oTasks {
+				types[i] = task.Type
+			}
+			actual[fmt.Sprintf("%s/%d", qname, orgID)] = types
+		}
+	}
+
+	return actual
+}
+
 func FlushTasks(t *testing.T, rt *runtime.Runtime, qnames ...string) map[string]int {
 	ctx := context.Background()
 

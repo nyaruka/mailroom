@@ -19,7 +19,7 @@ func TestInsertAndUpdateRuns(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
-	sessionUUID := testdb.InsertFlowSession(rt, testdb.Cathy, models.FlowTypeMessaging, models.SessionStatusWaiting, nil, testdb.Favorites)
+	sessionUUID := testdb.InsertFlowSession(rt, testdb.Ann, models.FlowTypeMessaging, models.SessionStatusWaiting, nil, testdb.Favorites)
 
 	t1 := time.Date(2024, 12, 3, 14, 29, 30, 0, time.UTC)
 	t2 := time.Date(2024, 12, 3, 15, 13, 45, 0, time.UTC)
@@ -35,7 +35,7 @@ func TestInsertAndUpdateRuns(t *testing.T) {
 		PathNodes:       []string{"1895cae0-d3c0-4470-83df-0b4cf9449438", "3ea3c026-e1c0-4950-bb94-d4c532b1459f"},
 		PathTimes:       pq.GenericArray{A: []interface{}{t1, t2}},
 		CurrentNodeUUID: "5f0d8d24-0178-4b10-ae35-b3ccdc785777",
-		ContactID:       testdb.Cathy.ID,
+		ContactID:       testdb.Ann.ID,
 		FlowID:          testdb.Favorites.ID,
 		OrgID:           testdb.Org1.ID,
 		SessionUUID:     sessionUUID,
@@ -87,14 +87,14 @@ func TestGetContactIDsAtNode(t *testing.T) {
 		testdb.InsertFlowRun(rt, org, sessionUUID, contact, testdb.Favorites, models.RunStatusWaiting, nodeUUID)
 	}
 
-	createRun(testdb.Org1, testdb.Alexandra, "2fe26b10-2bb1-4115-9401-33a8a0d5d52a")
+	createRun(testdb.Org1, testdb.Dan, "2fe26b10-2bb1-4115-9401-33a8a0d5d52a")
 	createRun(testdb.Org1, testdb.Bob, "dd79811e-a88a-4e67-bb47-a132fe8ce3f2")
-	createRun(testdb.Org1, testdb.George, "dd79811e-a88a-4e67-bb47-a132fe8ce3f2")
+	createRun(testdb.Org1, testdb.Cat, "dd79811e-a88a-4e67-bb47-a132fe8ce3f2")
 	createRun(testdb.Org2, testdb.Org2Contact, "dd79811e-a88a-4e67-bb47-a132fe8ce3f2") // shouldn't be possible but..
 
 	contactIDs, err := models.GetContactIDsAtNode(ctx, rt, testdb.Org1.ID, "dd79811e-a88a-4e67-bb47-a132fe8ce3f2")
 	assert.NoError(t, err)
-	assert.ElementsMatch(t, []models.ContactID{testdb.Bob.ID, testdb.George.ID}, contactIDs)
+	assert.ElementsMatch(t, []models.ContactID{testdb.Bob.ID, testdb.Cat.ID}, contactIDs)
 }
 
 func TestGetActiveAndWaitingRuns(t *testing.T) {
@@ -102,9 +102,9 @@ func TestGetActiveAndWaitingRuns(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
-	session1UUID := testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Cathy, models.FlowTypeMessaging, nil, testdb.Favorites, testdb.PickANumber)
+	session1UUID := testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Ann, models.FlowTypeMessaging, nil, testdb.Favorites, testdb.PickANumber)
 	session2UUID := testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Bob, models.FlowTypeMessaging, nil, testdb.PickANumber)
-	testdb.InsertFlowSession(rt, testdb.George, models.FlowTypeMessaging, models.SessionStatusCompleted, nil, testdb.Favorites)
+	testdb.InsertFlowSession(rt, testdb.Cat, models.FlowTypeMessaging, models.SessionStatusCompleted, nil, testdb.Favorites)
 
 	runRefs, err := models.GetActiveAndWaitingRuns(ctx, rt, []flows.SessionUUID{session1UUID, session2UUID})
 	assert.NoError(t, err)

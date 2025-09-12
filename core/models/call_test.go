@@ -17,11 +17,11 @@ func TestCalls(t *testing.T) {
 	defer rt.DB.MustExec(`DELETE FROM ivr_call`)
 
 	oa := testdb.Org1.Load(rt)
-	cathy, _, cathyURNs := testdb.Cathy.Load(rt, oa)
-	george, _, georgeURNs := testdb.George.Load(rt, oa)
+	ann, _, annURNs := testdb.Ann.Load(rt, oa)
+	cat, _, catURNs := testdb.Cat.Load(rt, oa)
 
-	callIn1 := models.NewIncomingCall(testdb.Org1.ID, oa.ChannelByUUID(testdb.TwilioChannel.UUID), cathy, cathyURNs[0].ID, "EXT123")
-	callIn2 := models.NewIncomingCall(testdb.Org1.ID, oa.ChannelByUUID(testdb.VonageChannel.UUID), george, georgeURNs[0].ID, "EXT234")
+	callIn1 := models.NewIncomingCall(testdb.Org1.ID, oa.ChannelByUUID(testdb.TwilioChannel.UUID), ann, annURNs[0].ID, "EXT123")
+	callIn2 := models.NewIncomingCall(testdb.Org1.ID, oa.ChannelByUUID(testdb.VonageChannel.UUID), cat, catURNs[0].ID, "EXT234")
 
 	err := models.InsertCalls(ctx, rt.DB, []*models.Call{callIn1, callIn2})
 	assert.NoError(t, err)
@@ -32,7 +32,7 @@ func TestCalls(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT direction, status, external_id from ivr_call where id = $1`, callIn1.ID()).Columns(map[string]any{"direction": "I", "status": "I", "external_id": "EXT123"})
 
 	trigger := triggers.NewBuilder(testdb.Favorites.Reference()).Manual().Build()
-	callOut := models.NewOutgoingCall(testdb.Org1.ID, oa.ChannelByUUID(testdb.TwilioChannel.UUID), cathy, cathyURNs[0].ID, trigger)
+	callOut := models.NewOutgoingCall(testdb.Org1.ID, oa.ChannelByUUID(testdb.TwilioChannel.UUID), ann, annURNs[0].ID, trigger)
 	err = models.InsertCalls(ctx, rt.DB, []*models.Call{callOut})
 	assert.NoError(t, err)
 

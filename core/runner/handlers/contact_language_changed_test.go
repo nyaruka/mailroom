@@ -17,26 +17,26 @@ func TestContactLanguageChanged(t *testing.T) {
 	tcs := []TestCase{
 		{
 			Actions: ContactActionMap{
-				testdb.Cathy: []flows.Action{
+				testdb.Ann.UUID: []flows.Action{
 					actions.NewSetContactLanguage(flows.NewActionUUID(), "fra"),
 					actions.NewSetContactLanguage(flows.NewActionUUID(), "eng"),
 				},
-				testdb.George: []flows.Action{
+				testdb.Cat.UUID: []flows.Action{
 					actions.NewSetContactLanguage(flows.NewActionUUID(), "spa"),
 				},
-				testdb.Alexandra: []flows.Action{
+				testdb.Dan.UUID: []flows.Action{
 					actions.NewSetContactLanguage(flows.NewActionUUID(), ""),
 				},
 			},
 			SQLAssertions: []SQLAssertion{
 				{
 					SQL:   "select count(*) from contacts_contact where id = $1 and language = 'eng'",
-					Args:  []any{testdb.Cathy.ID},
+					Args:  []any{testdb.Ann.ID},
 					Count: 1,
 				},
 				{
 					SQL:   "select count(*) from contacts_contact where id = $1 and language = 'spa'",
-					Args:  []any{testdb.George.ID},
+					Args:  []any{testdb.Cat.ID},
 					Count: 1,
 				},
 				{
@@ -46,18 +46,18 @@ func TestContactLanguageChanged(t *testing.T) {
 				},
 				{
 					SQL:   "select count(*) from contacts_contact where id = $1 and language is NULL;",
-					Args:  []any{testdb.Alexandra.ID},
+					Args:  []any{testdb.Dan.ID},
 					Count: 1,
 				},
 			},
 			PersistedEvents: map[flows.ContactUUID][]string{
-				testdb.Cathy.UUID:     {"run_started", "contact_language_changed", "contact_language_changed", "run_ended"},
-				testdb.Bob.UUID:       {"run_started", "run_ended"},
-				testdb.George.UUID:    {"run_started", "contact_language_changed", "run_ended"},
-				testdb.Alexandra.UUID: {"run_started", "run_ended"},
+				testdb.Ann.UUID: {"run_started", "contact_language_changed", "contact_language_changed", "run_ended"},
+				testdb.Bob.UUID: {"run_started", "run_ended"},
+				testdb.Cat.UUID: {"run_started", "contact_language_changed", "run_ended"},
+				testdb.Dan.UUID: {"run_started", "run_ended"},
 			},
 		},
 	}
 
-	runTestCases(t, ctx, rt, tcs)
+	runTestCases(t, ctx, rt, tcs, testsuite.ResetDynamo)
 }

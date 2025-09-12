@@ -18,15 +18,15 @@ func TestScheduleCampaignEvent(t *testing.T) {
 	// set campaign point status to (S)CHEDULING (done by RP)
 	rt.DB.MustExec(`UPDATE campaigns_campaignevent SET status = 'S' WHERE id = $1`, testdb.RemindersPoint1.ID)
 
-	// add bob, george and alexandria to doctors group which campaign is based on
-	testdb.DoctorsGroup.Add(rt, testdb.Bob, testdb.George, testdb.Alexandra)
+	// add Bob, Cat and Dan to doctors group which campaign is based on
+	testdb.DoctorsGroup.Add(rt, testdb.Bob, testdb.Cat, testdb.Dan)
 
-	// give bob and george values for joined in the future
+	// give Bob and Cat values for joined in the future
 	rt.DB.MustExec(`UPDATE contacts_contact SET fields = '{"d83aae24-4bbf-49d0-ab85-6bfd201eac6d": {"datetime": "2030-01-01T00:00:00Z"}}' WHERE id = $1`, testdb.Bob.ID)
-	rt.DB.MustExec(`UPDATE contacts_contact SET fields = '{"d83aae24-4bbf-49d0-ab85-6bfd201eac6d": {"datetime": "2030-08-18T11:31:30Z"}}' WHERE id = $1`, testdb.George.ID)
+	rt.DB.MustExec(`UPDATE contacts_contact SET fields = '{"d83aae24-4bbf-49d0-ab85-6bfd201eac6d": {"datetime": "2030-08-18T11:31:30Z"}}' WHERE id = $1`, testdb.Cat.ID)
 
-	// give alexandria a value in the past
-	rt.DB.MustExec(`UPDATE contacts_contact SET fields = '{"d83aae24-4bbf-49d0-ab85-6bfd201eac6d": {"datetime": "2015-01-01T00:00:00Z"}}' WHERE id = $1`, testdb.Alexandra.ID)
+	// give Dan a value in the past
+	rt.DB.MustExec(`UPDATE contacts_contact SET fields = '{"d83aae24-4bbf-49d0-ab85-6bfd201eac6d": {"datetime": "2015-01-01T00:00:00Z"}}' WHERE id = $1`, testdb.Dan.ID)
 
 	// campaign has two events configured on the joined field
 	//  1. +5 Days (12:00) start favorites flow
@@ -36,11 +36,11 @@ func TestScheduleCampaignEvent(t *testing.T) {
 	testsuite.QueueBatchTask(t, rt, testdb.Org1, &campaigns.ScheduleCampaignPointTask{PointID: testdb.RemindersPoint1.ID})
 	testsuite.FlushTasks(t, rt)
 
-	// cathy has no value for joined and alexandia has a value too far in past, but bob and george will have values...
+	// Ann has no value for joined and Dan has a value too far in past, but Bob and Cat will have values...
 	testsuite.AssertContactFires(t, rt, testdb.Bob.ID, map[string]time.Time{
 		"C/10000:1": time.Date(2030, 1, 5, 20, 0, 0, 0, time.UTC), // 12:00 in PST
 	})
-	testsuite.AssertContactFires(t, rt, testdb.George.ID, map[string]time.Time{
+	testsuite.AssertContactFires(t, rt, testdb.Cat.ID, map[string]time.Time{
 		"C/10000:1": time.Date(2030, 8, 23, 19, 0, 0, 0, time.UTC), // 12:00 in PST with DST
 	})
 
@@ -56,16 +56,16 @@ func TestScheduleCampaignEvent(t *testing.T) {
 		"C/10000:1": time.Date(2030, 1, 5, 20, 0, 0, 0, time.UTC),
 		"C/10001:1": time.Date(2030, 1, 1, 0, 10, 0, 0, time.UTC),
 	})
-	testsuite.AssertContactFires(t, rt, testdb.George.ID, map[string]time.Time{
+	testsuite.AssertContactFires(t, rt, testdb.Cat.ID, map[string]time.Time{
 		"C/10000:1": time.Date(2030, 8, 23, 19, 0, 0, 0, time.UTC),
 		"C/10001:1": time.Date(2030, 8, 18, 11, 42, 0, 0, time.UTC),
 	})
 
-	// remove alexandria from campaign group
-	rt.DB.MustExec(`DELETE FROM contacts_contactgroup_contacts WHERE contact_id = $1`, testdb.Alexandra.ID)
+	// remove Dan from campaign group
+	rt.DB.MustExec(`DELETE FROM contacts_contactgroup_contacts WHERE contact_id = $1`, testdb.Dan.ID)
 
-	// bump created_on for cathy and alexandria
-	rt.DB.MustExec(`UPDATE contacts_contact SET created_on = '2035-01-01T00:00:00Z' WHERE id = $1 OR id = $2`, testdb.Cathy.ID, testdb.Alexandra.ID)
+	// bump created_on for Ann and Dan
+	rt.DB.MustExec(`UPDATE contacts_contact SET created_on = '2035-01-01T00:00:00Z' WHERE id = $1 OR id = $2`, testdb.Ann.ID, testdb.Dan.ID)
 
 	// create new campaign point based on created_on + 5 minutes
 	event3 := testdb.InsertCampaignFlowPoint(rt, testdb.RemindersCampaign, testdb.Favorites, testdb.CreatedOnField, 5, "M")
@@ -73,16 +73,16 @@ func TestScheduleCampaignEvent(t *testing.T) {
 	testsuite.QueueBatchTask(t, rt, testdb.Org1, &campaigns.ScheduleCampaignPointTask{PointID: event3.ID})
 	testsuite.FlushTasks(t, rt)
 
-	// only cathy is in the group and new enough to have a fire
+	// only Ann is in the group and new enough to have a fire
 	testsuite.AssertContactFires(t, rt, testdb.Bob.ID, map[string]time.Time{
 		"C/10000:1": time.Date(2030, 1, 5, 20, 0, 0, 0, time.UTC),
 		"C/10001:1": time.Date(2030, 1, 1, 0, 10, 0, 0, time.UTC),
 	})
-	testsuite.AssertContactFires(t, rt, testdb.George.ID, map[string]time.Time{
+	testsuite.AssertContactFires(t, rt, testdb.Cat.ID, map[string]time.Time{
 		"C/10000:1": time.Date(2030, 8, 23, 19, 0, 0, 0, time.UTC),
 		"C/10001:1": time.Date(2030, 8, 18, 11, 42, 0, 0, time.UTC),
 	})
-	testsuite.AssertContactFires(t, rt, testdb.Cathy.ID, map[string]time.Time{
+	testsuite.AssertContactFires(t, rt, testdb.Ann.ID, map[string]time.Time{
 		"C/30000:1": time.Date(2035, 1, 1, 0, 5, 0, 0, time.UTC),
 	})
 
