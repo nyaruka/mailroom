@@ -33,10 +33,10 @@ func TestBroadcastCreated(t *testing.T) {
 				"batch/1": {"send_broadcast"},
 			},
 			PersistedEvents: map[flows.ContactUUID][]string{
-				testdb.Ann.UUID:       {"run_started", "run_ended"},
-				testdb.Bob.UUID:       {"run_started", "run_ended"},
-				testdb.George.UUID:    {"run_started", "run_ended"},
-				testdb.Alexandra.UUID: {"run_started", "run_ended"},
+				testdb.Ann.UUID: {"run_started", "run_ended"},
+				testdb.Bob.UUID: {"run_started", "run_ended"},
+				testdb.Cat.UUID: {"run_started", "run_ended"},
+				testdb.Dan.UUID: {"run_started", "run_ended"},
 			},
 		},
 	}

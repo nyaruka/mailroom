@@ -35,8 +35,8 @@ func TestFireContacts(t *testing.T) {
 	testdb.InsertContactFire(rt, testdb.Org1, testdb.Bob, models.ContactFireTypeWaitExpiration, "", time.Now().Add(-3*time.Second), "4010a3b2-d1f2-42ae-9051-47d41a3ef923")
 	testdb.InsertContactFire(rt, testdb.Org1, testdb.Bob, models.ContactFireTypeSessionExpiration, "", time.Now().Add(10*time.Second), "4010a3b2-d1f2-42ae-9051-47d41a3ef923")
 
-	testdb.InsertContactFire(rt, testdb.Org1, testdb.George, models.ContactFireTypeWaitTimeout, "", time.Now().Add(-time.Second), "5c1248e3-f669-4a72-83f4-a29292fdad4d")
-	testdb.InsertContactFire(rt, testdb.Org1, testdb.Alexandra, models.ContactFireTypeCampaignPoint, "6789:123", time.Now().Add(-time.Second), "")
+	testdb.InsertContactFire(rt, testdb.Org1, testdb.Cat, models.ContactFireTypeWaitTimeout, "", time.Now().Add(-time.Second), "5c1248e3-f669-4a72-83f4-a29292fdad4d")
+	testdb.InsertContactFire(rt, testdb.Org1, testdb.Dan, models.ContactFireTypeCampaignPoint, "6789:123", time.Now().Add(-time.Second), "")
 	testdb.InsertContactFire(rt, testdb.Org2, testdb.Org2Contact, models.ContactFireTypeWaitTimeout, "", time.Now().Add(-time.Second), "8edf3b3c-0081-4d31-b199-1502b3190eb7")
 
 	cron := &crons.FireContactsCron{FetchBatchSize: 3, TaskBatchSize: 5}
@@ -69,7 +69,7 @@ func TestFireContacts(t *testing.T) {
 	decoded1 := &campaigns.BulkCampaignTriggerTask{}
 	jsonx.MustUnmarshal(ts[0].Task, decoded1)
 	assert.Len(t, decoded1.ContactIDs, 1)
-	assert.Equal(t, testdb.Alexandra.ID, decoded1.ContactIDs[0])
+	assert.Equal(t, testdb.Dan.ID, decoded1.ContactIDs[0])
 	assert.Equal(t, models.PointID(6789), decoded1.PointID)
 	assert.Equal(t, 123, decoded1.FireVersion)
 

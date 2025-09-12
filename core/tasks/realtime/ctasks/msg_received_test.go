@@ -64,8 +64,8 @@ func TestMsgReceivedTask(t *testing.T) {
 
 	rt.DB.MustExec(`UPDATE tickets_ticket SET last_activity_on = '2021-01-01T00:00:00Z'`)
 
-	// clear all of Alexandria's URNs
-	rt.DB.MustExec(`UPDATE contacts_contacturn SET contact_id = NULL WHERE contact_id = $1`, testdb.Alexandra.ID)
+	// clear all of Dan's URNs
+	rt.DB.MustExec(`UPDATE contacts_contacturn SET contact_id = NULL WHERE contact_id = $1`, testdb.Dan.ID)
 
 	models.FlushCache()
 
@@ -198,9 +198,9 @@ func TestMsgReceivedTask(t *testing.T) {
 			org:                 testdb.Org2,
 			channel:             testdb.Org2Channel,
 			contact:             testdb.Org2Contact,
-			text:                "george",
+			text:                "cat",
 			expectedVisibility:  models.VisibilityVisible,
-			expectedReplyText:   "Thanks george, we are all done!",
+			expectedReplyText:   "Thanks cat, we are all done!",
 			expectedReplyStatus: models.MsgStatusQueued,
 			expectedFlow:        testdb.Org2Favorites,
 		},
@@ -223,11 +223,11 @@ func TestMsgReceivedTask(t *testing.T) {
 		},
 		{ // 15: stopped contact should be unstopped
 			preHook: func() {
-				rt.DB.MustExec(`UPDATE contacts_contact SET status = 'S' WHERE id = $1`, testdb.George.ID)
+				rt.DB.MustExec(`UPDATE contacts_contact SET status = 'S' WHERE id = $1`, testdb.Cat.ID)
 			},
 			org:                 testdb.Org1,
 			channel:             testdb.FacebookChannel,
-			contact:             testdb.George,
+			contact:             testdb.Cat,
 			text:                "start",
 			expectedVisibility:  models.VisibilityVisible,
 			expectedReplyText:   "What is your favorite color?",
@@ -237,7 +237,7 @@ func TestMsgReceivedTask(t *testing.T) {
 		{ // 16: no URN on contact but failed reply created anyway
 			org:                 testdb.Org1,
 			channel:             testdb.TwilioChannel,
-			contact:             testdb.Alexandra,
+			contact:             testdb.Dan,
 			text:                "start",
 			expectedVisibility:  models.VisibilityVisible,
 			expectedReplyText:   "What is your favorite color?",

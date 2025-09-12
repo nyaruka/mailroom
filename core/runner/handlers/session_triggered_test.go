@@ -27,7 +27,7 @@ func TestSessionTriggered(t *testing.T) {
 		{
 			Actions: ContactActionMap{
 				testdb.Ann.UUID: []flows.Action{
-					actions.NewStartSession(flows.NewActionUUID(), testdb.SingleMessage.Reference(), []*assets.GroupReference{groupRef}, []*flows.ContactReference{testdb.George.Reference()}, "", nil, nil, true),
+					actions.NewStartSession(flows.NewActionUUID(), testdb.SingleMessage.Reference(), []*assets.GroupReference{groupRef}, []*flows.ContactReference{testdb.Cat.Reference()}, "", nil, nil, true),
 				},
 			},
 			SQLAssertions: []SQLAssertion{
@@ -45,16 +45,16 @@ func TestSessionTriggered(t *testing.T) {
 				"batch/1": {"start_flow"},
 			},
 			PersistedEvents: map[flows.ContactUUID][]string{
-				testdb.Ann.UUID:       {"run_started", "run_ended"},
-				testdb.Bob.UUID:       {"run_started", "run_ended"},
-				testdb.George.UUID:    {"run_started", "run_ended"},
-				testdb.Alexandra.UUID: {"run_started", "run_ended"},
+				testdb.Ann.UUID: {"run_started", "run_ended"},
+				testdb.Bob.UUID: {"run_started", "run_ended"},
+				testdb.Cat.UUID: {"run_started", "run_ended"},
+				testdb.Dan.UUID: {"run_started", "run_ended"},
 			},
 		},
 		{
 			Actions: ContactActionMap{
 				testdb.Bob.UUID: []flows.Action{
-					actions.NewStartSession(flows.NewActionUUID(), testdb.IVRFlow.Reference(), nil, []*flows.ContactReference{testdb.Alexandra.Reference()}, "", nil, nil, true),
+					actions.NewStartSession(flows.NewActionUUID(), testdb.IVRFlow.Reference(), nil, []*flows.ContactReference{testdb.Dan.Reference()}, "", nil, nil, true),
 				},
 			},
 			SQLAssertions: []SQLAssertion{
@@ -68,10 +68,10 @@ func TestSessionTriggered(t *testing.T) {
 				"batch/1": {"start_flow"},
 			},
 			PersistedEvents: map[flows.ContactUUID][]string{
-				testdb.Ann.UUID:       {"run_started", "run_ended"},
-				testdb.Bob.UUID:       {"run_started", "run_ended"},
-				testdb.George.UUID:    {"run_started", "run_ended"},
-				testdb.Alexandra.UUID: {"run_started", "run_ended"},
+				testdb.Ann.UUID: {"run_started", "run_ended"},
+				testdb.Bob.UUID: {"run_started", "run_ended"},
+				testdb.Cat.UUID: {"run_started", "run_ended"},
+				testdb.Dan.UUID: {"run_started", "run_ended"},
 			},
 		},
 	}
@@ -101,10 +101,10 @@ func TestQuerySessionTriggered(t *testing.T) {
 				"batch/1": {"start_flow"},
 			},
 			PersistedEvents: map[flows.ContactUUID][]string{
-				testdb.Ann.UUID:       {"run_started", "run_ended"},
-				testdb.Bob.UUID:       {"run_started", "run_ended"},
-				testdb.George.UUID:    {"run_started", "run_ended"},
-				testdb.Alexandra.UUID: {"run_started", "run_ended"},
+				testdb.Ann.UUID: {"run_started", "run_ended"},
+				testdb.Bob.UUID: {"run_started", "run_ended"},
+				testdb.Cat.UUID: {"run_started", "run_ended"},
+				testdb.Dan.UUID: {"run_started", "run_ended"},
 			},
 		},
 	}

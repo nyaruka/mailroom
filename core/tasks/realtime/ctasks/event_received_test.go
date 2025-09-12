@@ -28,16 +28,16 @@ func TestChannelEvents(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
-	// schedule a campaign fires for Ann and George
+	// schedule a campaign fires for Ann and Cat
 	rt.DB.MustExec(
 		fmt.Sprintf(`UPDATE contacts_contact SET fields = fields || '{"%s": { "text": "2029-09-15T12:00:00+00:00", "datetime": "2029-09-15T12:00:00+00:00" }}'::jsonb WHERE id = $1 OR id = $2`, testdb.JoinedField.UUID),
-		testdb.Ann.ID, testdb.George.ID,
+		testdb.Ann.ID, testdb.Cat.ID,
 	)
 	testdb.InsertContactFire(rt, testdb.Org1, testdb.Ann, models.ContactFireTypeCampaignPoint, fmt.Sprintf("%d:1", testdb.RemindersPoint1.ID), time.Now(), "")
-	testdb.InsertContactFire(rt, testdb.Org1, testdb.George, models.ContactFireTypeCampaignPoint, fmt.Sprintf("%d:1", testdb.RemindersPoint1.ID), time.Now(), "")
+	testdb.InsertContactFire(rt, testdb.Org1, testdb.Cat, models.ContactFireTypeCampaignPoint, fmt.Sprintf("%d:1", testdb.RemindersPoint1.ID), time.Now(), "")
 
-	// and george to doctors group, Ann is already part of it
-	rt.DB.MustExec(`INSERT INTO contacts_contactgroup_contacts(contactgroup_id, contact_id) VALUES($1, $2);`, testdb.DoctorsGroup.ID, testdb.George.ID)
+	// and Cat to doctors group, Ann is already part of it
+	rt.DB.MustExec(`INSERT INTO contacts_contactgroup_contacts(contactgroup_id, contact_id) VALUES($1, $2);`, testdb.DoctorsGroup.ID, testdb.Cat.ID)
 
 	// add some channel event triggers
 	testdb.InsertNewConversationTrigger(rt, testdb.Org1, testdb.Favorites, testdb.FacebookChannel)
@@ -287,11 +287,11 @@ func TestChannelEvents(t *testing.T) {
 	// last event was a stop_contact so check that Ann is stopped
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contact WHERE id = $1 AND status = 'S'`, testdb.Ann.ID).Returns(1)
 
-	// and that only george is left in the group
+	// and that only Cat is left in the group
 	assertdb.Query(t, rt.DB, `SELECT count(*) from contacts_contactgroup_contacts WHERE contactgroup_id = $1 AND contact_id = $2`, testdb.DoctorsGroup.ID, testdb.Ann.ID).Returns(0)
-	assertdb.Query(t, rt.DB, `SELECT count(*) from contacts_contactgroup_contacts WHERE contactgroup_id = $1 AND contact_id = $2`, testdb.DoctorsGroup.ID, testdb.George.ID).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT count(*) from contacts_contactgroup_contacts WHERE contactgroup_id = $1 AND contact_id = $2`, testdb.DoctorsGroup.ID, testdb.Cat.ID).Returns(1)
 
 	// and she has no upcoming campaign events
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'C'`, testdb.Ann.ID).Returns(0)
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'C'`, testdb.George.ID).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'C'`, testdb.Cat.ID).Returns(1)
 }

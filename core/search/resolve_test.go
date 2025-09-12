@@ -17,8 +17,8 @@ func TestResolveRecipients(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
-	group1 := testdb.InsertContactGroup(rt, testdb.Org1, "a85acec9-3895-4ffd-87c1-c69a25781a85", "Group 1", "", testdb.George, testdb.Alexandra)
-	group2 := testdb.InsertContactGroup(rt, testdb.Org1, "eb578345-595e-4e36-a68b-6941e242cdbb", "Group 2", "", testdb.George)
+	group1 := testdb.InsertContactGroup(rt, testdb.Org1, "a85acec9-3895-4ffd-87c1-c69a25781a85", "Group 1", "", testdb.Cat, testdb.Dan)
+	group2 := testdb.InsertContactGroup(rt, testdb.Org1, "eb578345-595e-4e36-a68b-6941e242cdbb", "Group 2", "", testdb.Cat)
 
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshGroups)
 	require.NoError(t, err)
@@ -35,10 +35,10 @@ func TestResolveRecipients(t *testing.T) {
 		},
 		{ // 1 only explicit contacts
 			recipients: &search.Recipients{
-				ContactIDs: []models.ContactID{testdb.Bob.ID, testdb.Alexandra.ID},
+				ContactIDs: []models.ContactID{testdb.Bob.ID, testdb.Dan.ID},
 			},
 			limit:       -1,
-			expectedIDs: []models.ContactID{testdb.Bob.ID, testdb.Alexandra.ID},
+			expectedIDs: []models.ContactID{testdb.Bob.ID, testdb.Dan.ID},
 		},
 		{ // 2 explicit contacts, group and query
 			recipients: &search.Recipients{
@@ -47,11 +47,11 @@ func TestResolveRecipients(t *testing.T) {
 				Query:      `name = "Ann" OR name = "Bob"`,
 			},
 			limit:       -1,
-			expectedIDs: []models.ContactID{testdb.Bob.ID, testdb.George.ID, testdb.Alexandra.ID, testdb.Ann.ID},
+			expectedIDs: []models.ContactID{testdb.Bob.ID, testdb.Cat.ID, testdb.Dan.ID, testdb.Ann.ID},
 		},
 		{ // 3 exclude group
 			recipients: &search.Recipients{
-				ContactIDs:      []models.ContactID{testdb.George.ID, testdb.Bob.ID},
+				ContactIDs:      []models.ContactID{testdb.Cat.ID, testdb.Bob.ID},
 				ExcludeGroupIDs: []models.GroupID{group2.ID},
 			},
 			limit:       -1,

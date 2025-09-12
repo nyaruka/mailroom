@@ -20,23 +20,23 @@ func TestInterruptChannel(t *testing.T) {
 	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetValkey)
 
 	// twilio call
-	twilioCall := testdb.InsertCall(rt, testdb.Org1, testdb.TwilioChannel, testdb.Alexandra)
+	twilioCall := testdb.InsertCall(rt, testdb.Org1, testdb.TwilioChannel, testdb.Dan)
 
 	// vonage call
-	vonageCall := testdb.InsertCall(rt, testdb.Org1, testdb.VonageChannel, testdb.George)
+	vonageCall := testdb.InsertCall(rt, testdb.Org1, testdb.VonageChannel, testdb.Cat)
 
 	sessionUUID1 := testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Ann, models.FlowTypeMessaging, nil, testdb.Favorites)
-	sessionUUID2 := testdb.InsertWaitingSession(rt, testdb.Org1, testdb.George, models.FlowTypeVoice, vonageCall, testdb.Favorites)
-	sessionUUID3 := testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Alexandra, models.FlowTypeVoice, twilioCall, testdb.Favorites)
+	sessionUUID2 := testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Cat, models.FlowTypeVoice, vonageCall, testdb.Favorites)
+	sessionUUID3 := testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Dan, models.FlowTypeVoice, twilioCall, testdb.Favorites)
 
 	rt.DB.MustExec(`UPDATE ivr_call SET session_uuid = $2 WHERE id = $1`, vonageCall.ID, sessionUUID2)
 	rt.DB.MustExec(`UPDATE ivr_call SET session_uuid = $2 WHERE id = $1`, twilioCall.ID, sessionUUID3)
 
 	testdb.InsertOutgoingMsg(rt, testdb.Org1, testdb.TwilioChannel, testdb.Ann, "how can we help", nil, models.MsgStatusPending, false)
 	testdb.InsertOutgoingMsg(rt, testdb.Org1, testdb.VonageChannel, testdb.Bob, "this failed", nil, models.MsgStatusQueued, false)
-	testdb.InsertOutgoingMsg(rt, testdb.Org1, testdb.VonageChannel, testdb.George, "no URN", nil, models.MsgStatusPending, false)
-	testdb.InsertOutgoingMsg(rt, testdb.Org1, testdb.VonageChannel, testdb.George, "no URN", nil, models.MsgStatusErrored, false)
-	testdb.InsertOutgoingMsg(rt, testdb.Org1, testdb.VonageChannel, testdb.George, "no URN", nil, models.MsgStatusFailed, false)
+	testdb.InsertOutgoingMsg(rt, testdb.Org1, testdb.VonageChannel, testdb.Cat, "no URN", nil, models.MsgStatusPending, false)
+	testdb.InsertOutgoingMsg(rt, testdb.Org1, testdb.VonageChannel, testdb.Cat, "no URN", nil, models.MsgStatusErrored, false)
+	testdb.InsertOutgoingMsg(rt, testdb.Org1, testdb.VonageChannel, testdb.Cat, "no URN", nil, models.MsgStatusFailed, false)
 
 	assertdb.Query(t, rt.DB, `SELECT status FROM flows_flowsession WHERE uuid = $1`, sessionUUID1).Returns("W")
 	assertdb.Query(t, rt.DB, `SELECT status FROM flows_flowsession WHERE uuid = $1`, sessionUUID2).Returns("W")

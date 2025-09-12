@@ -17,9 +17,9 @@ func TestBulkSessionExpireTask(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
-	twilioCall := testdb.InsertCall(rt, testdb.Org1, testdb.TwilioChannel, testdb.Alexandra)
+	twilioCall := testdb.InsertCall(rt, testdb.Org1, testdb.TwilioChannel, testdb.Dan)
 
-	session1UUID := testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Alexandra, models.FlowTypeVoice, twilioCall, testdb.Favorites)
+	session1UUID := testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Dan, models.FlowTypeVoice, twilioCall, testdb.Favorites)
 	session2UUID := testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Bob, models.FlowTypeMessaging, nil, testdb.PickANumber)
 	session3UUID := testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Ann, models.FlowTypeMessaging, nil, testdb.Favorites)
 

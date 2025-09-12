@@ -107,7 +107,7 @@ func TestGetWaitingSessionForContact(t *testing.T) {
 
 	sessionUUID := testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Ann, models.FlowTypeMessaging, nil, testdb.Favorites)
 	testdb.InsertFlowSession(rt, testdb.Ann, models.FlowTypeMessaging, models.SessionStatusCompleted, nil, testdb.Favorites)
-	testdb.InsertWaitingSession(rt, testdb.Org1, testdb.George, models.FlowTypeMessaging, nil, testdb.Favorites)
+	testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Cat, models.FlowTypeMessaging, nil, testdb.Favorites)
 
 	oa := testdb.Org1.Load(rt)
 	mc, contact, _ := testdb.Ann.Load(rt, oa)
@@ -126,7 +126,7 @@ func TestInterruptSessionsForContactsTx(t *testing.T) {
 	session1UUID, _ := insertSessionAndRun(rt, testdb.Ann, models.FlowTypeMessaging, models.SessionStatusCompleted, testdb.Favorites, nil)
 	session2UUID, run2UUID := insertSessionAndRun(rt, testdb.Ann, models.FlowTypeVoice, models.SessionStatusWaiting, testdb.Favorites, nil)
 	session3UUID, run3UUID := insertSessionAndRun(rt, testdb.Bob, models.FlowTypeMessaging, models.SessionStatusWaiting, testdb.Favorites, nil)
-	session4UUID, _ := insertSessionAndRun(rt, testdb.George, models.FlowTypeMessaging, models.SessionStatusWaiting, testdb.Favorites, nil)
+	session4UUID, _ := insertSessionAndRun(rt, testdb.Cat, models.FlowTypeMessaging, models.SessionStatusWaiting, testdb.Favorites, nil)
 
 	tx := rt.DB.MustBegin()
 
@@ -169,17 +169,17 @@ func TestInterruptSessionsForChannels(t *testing.T) {
 	ann1Call := testdb.InsertCall(rt, testdb.Org1, testdb.TwilioChannel, testdb.Ann)
 	ann2Call := testdb.InsertCall(rt, testdb.Org1, testdb.TwilioChannel, testdb.Ann)
 	bobCall := testdb.InsertCall(rt, testdb.Org1, testdb.TwilioChannel, testdb.Bob)
-	georgeCall := testdb.InsertCall(rt, testdb.Org1, testdb.VonageChannel, testdb.George)
+	catCall := testdb.InsertCall(rt, testdb.Org1, testdb.VonageChannel, testdb.Cat)
 
 	session1UUID, _ := insertSessionAndRun(rt, testdb.Ann, models.FlowTypeMessaging, models.SessionStatusCompleted, testdb.Favorites, ann1Call)
 	session2UUID, _ := insertSessionAndRun(rt, testdb.Ann, models.FlowTypeMessaging, models.SessionStatusWaiting, testdb.Favorites, ann2Call)
 	session3UUID, _ := insertSessionAndRun(rt, testdb.Bob, models.FlowTypeMessaging, models.SessionStatusWaiting, testdb.Favorites, bobCall)
-	session4UUID, _ := insertSessionAndRun(rt, testdb.George, models.FlowTypeMessaging, models.SessionStatusWaiting, testdb.Favorites, georgeCall)
+	session4UUID, _ := insertSessionAndRun(rt, testdb.Cat, models.FlowTypeMessaging, models.SessionStatusWaiting, testdb.Favorites, catCall)
 
 	rt.DB.MustExec(`UPDATE ivr_call SET session_uuid = $2 WHERE id = $1`, ann1Call.ID, session1UUID)
 	rt.DB.MustExec(`UPDATE ivr_call SET session_uuid = $2 WHERE id = $1`, ann2Call.ID, session2UUID)
 	rt.DB.MustExec(`UPDATE ivr_call SET session_uuid = $2 WHERE id = $1`, bobCall.ID, session3UUID)
-	rt.DB.MustExec(`UPDATE ivr_call SET session_uuid = $2 WHERE id = $1`, georgeCall.ID, session4UUID)
+	rt.DB.MustExec(`UPDATE ivr_call SET session_uuid = $2 WHERE id = $1`, catCall.ID, session4UUID)
 
 	err := models.InterruptSessionsForChannel(ctx, rt.DB, testdb.TwilioChannel.ID)
 	require.NoError(t, err)
@@ -202,12 +202,12 @@ func TestInterruptSessionsForFlows(t *testing.T) {
 	ann1Call := testdb.InsertCall(rt, testdb.Org1, testdb.TwilioChannel, testdb.Ann)
 	ann2Call := testdb.InsertCall(rt, testdb.Org1, testdb.TwilioChannel, testdb.Ann)
 	bobCall := testdb.InsertCall(rt, testdb.Org1, testdb.TwilioChannel, testdb.Bob)
-	georgeCall := testdb.InsertCall(rt, testdb.Org1, testdb.VonageChannel, testdb.George)
+	catCall := testdb.InsertCall(rt, testdb.Org1, testdb.VonageChannel, testdb.Cat)
 
 	session1UUID, _ := insertSessionAndRun(rt, testdb.Ann, models.FlowTypeMessaging, models.SessionStatusCompleted, testdb.Favorites, ann1Call)
 	session2UUID, _ := insertSessionAndRun(rt, testdb.Ann, models.FlowTypeMessaging, models.SessionStatusWaiting, testdb.Favorites, ann2Call)
 	session3UUID, _ := insertSessionAndRun(rt, testdb.Bob, models.FlowTypeMessaging, models.SessionStatusWaiting, testdb.Favorites, bobCall)
-	session4UUID, _ := insertSessionAndRun(rt, testdb.George, models.FlowTypeMessaging, models.SessionStatusWaiting, testdb.PickANumber, georgeCall)
+	session4UUID, _ := insertSessionAndRun(rt, testdb.Cat, models.FlowTypeMessaging, models.SessionStatusWaiting, testdb.PickANumber, catCall)
 
 	// noop if no flows
 	err := models.InterruptSessionsForFlows(ctx, rt.DB, []models.FlowID{})

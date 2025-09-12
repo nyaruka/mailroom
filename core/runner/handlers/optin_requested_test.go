@@ -25,7 +25,7 @@ func TestOptinRequested(t *testing.T) {
 	models.FlushCache()
 
 	rt.DB.MustExec(`UPDATE contacts_contacturn SET identity = 'facebook:12345', scheme='facebook', path='12345' WHERE contact_id = $1`, testdb.Ann.ID)
-	rt.DB.MustExec(`UPDATE contacts_contacturn SET identity = 'facebook:23456', scheme='facebook', path='23456' WHERE contact_id = $1`, testdb.George.ID)
+	rt.DB.MustExec(`UPDATE contacts_contacturn SET identity = 'facebook:23456', scheme='facebook', path='23456' WHERE contact_id = $1`, testdb.Cat.ID)
 
 	msg1 := testdb.InsertIncomingMsg(rt, testdb.Org1, testdb.TwilioChannel, testdb.Ann, "start", models.MsgStatusHandled)
 
@@ -40,7 +40,7 @@ func TestOptinRequested(t *testing.T) {
 				testdb.Ann.UUID: []flows.Action{
 					actions.NewRequestOptIn(flows.NewActionUUID(), assets.NewOptInReference(optIn.UUID, "Jokes")),
 				},
-				testdb.George.UUID: []flows.Action{
+				testdb.Cat.UUID: []flows.Action{
 					actions.NewRequestOptIn(flows.NewActionUUID(), assets.NewOptInReference(optIn.UUID, "Jokes")),
 				},
 				testdb.Bob.UUID: []flows.Action{
@@ -58,7 +58,7 @@ func TestOptinRequested(t *testing.T) {
 				},
 				{
 					SQL:   `SELECT COUNT(*) FROM msgs_msg WHERE direction = 'O' AND text = '' AND high_priority = false AND contact_id = $1 AND optin_id = $2`,
-					Args:  []any{testdb.George.ID, optIn.ID},
+					Args:  []any{testdb.Cat.ID, optIn.ID},
 					Count: 1,
 				},
 				{ // bob has no channel+URN that supports optins
@@ -68,10 +68,10 @@ func TestOptinRequested(t *testing.T) {
 				},
 			},
 			PersistedEvents: map[flows.ContactUUID][]string{
-				testdb.Ann.UUID:       {"run_started", "run_ended"},
-				testdb.Bob.UUID:       {"run_started", "run_ended"},
-				testdb.George.UUID:    {"run_started", "run_ended"},
-				testdb.Alexandra.UUID: {"run_started", "run_ended"},
+				testdb.Ann.UUID: {"run_started", "run_ended"},
+				testdb.Bob.UUID: {"run_started", "run_ended"},
+				testdb.Cat.UUID: {"run_started", "run_ended"},
+				testdb.Dan.UUID: {"run_started", "run_ended"},
 			},
 		},
 	}
@@ -81,6 +81,6 @@ func TestOptinRequested(t *testing.T) {
 	// Ann should have 1 batch of queued messages at high priority
 	assertvk.ZCard(t, vc, fmt.Sprintf("msgs:%s|10/1", testdb.FacebookChannel.UUID), 1)
 
-	// One bulk for George
+	// One bulk for Cat
 	assertvk.ZCard(t, vc, fmt.Sprintf("msgs:%s|10/0", testdb.FacebookChannel.UUID), 1)
 }

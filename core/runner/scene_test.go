@@ -40,29 +40,29 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 	require.NoError(t, err)
 
 	trig := triggers.NewBuilder(flow.Reference()).Manual().Build()
-	scenes := testsuite.StartSessions(t, rt, oa, []*testdb.Contact{testdb.Bob, testdb.Alexandra}, trig)
-	scBob, scAlex := scenes[0], scenes[1]
+	scenes := testsuite.StartSessions(t, rt, oa, []*testdb.Contact{testdb.Bob, testdb.Dan}, trig)
+	scBob, scDan := scenes[0], scenes[1]
 
-	assert.Equal(t, time.Minute*5, scBob.WaitTimeout)     // Bob's messages are being sent via courier
-	assert.Equal(t, time.Duration(0), scAlex.WaitTimeout) // Alexandra's messages are being sent via Android
+	assert.Equal(t, time.Minute*5, scBob.WaitTimeout)    // Bob's messages are being sent via courier
+	assert.Equal(t, time.Duration(0), scDan.WaitTimeout) // Dan's messages are being sent via Android
 
 	// check sessions and runs in database
 	assertdb.Query(t, rt.DB, `SELECT contact_uuid::text, status, session_type, current_flow_uuid::text, ended_on FROM flows_flowsession WHERE uuid = $1`, scBob.SessionUUID()).
 		Columns(map[string]any{
 			"contact_uuid": string(testdb.Bob.UUID), "status": "W", "session_type": "M", "current_flow_uuid": string(flow.UUID), "ended_on": nil,
 		})
-	assertdb.Query(t, rt.DB, `SELECT contact_uuid::text, status, session_type, current_flow_uuid::text, ended_on FROM flows_flowsession WHERE uuid = $1`, scAlex.SessionUUID()).
+	assertdb.Query(t, rt.DB, `SELECT contact_uuid::text, status, session_type, current_flow_uuid::text, ended_on FROM flows_flowsession WHERE uuid = $1`, scDan.SessionUUID()).
 		Columns(map[string]any{
-			"contact_uuid": string(testdb.Alexandra.UUID), "status": "W", "session_type": "M", "current_flow_uuid": string(flow.UUID), "ended_on": nil,
+			"contact_uuid": string(testdb.Dan.UUID), "status": "W", "session_type": "M", "current_flow_uuid": string(flow.UUID), "ended_on": nil,
 		})
 
 	assertdb.Query(t, rt.DB, `SELECT contact_id, status, responded, current_node_uuid::text FROM flows_flowrun WHERE session_uuid = $1`, scBob.SessionUUID()).
 		Columns(map[string]any{
 			"contact_id": int64(testdb.Bob.ID), "status": "W", "responded": false, "current_node_uuid": "cbff02b0-cd93-481d-a430-b335ab66779e",
 		})
-	assertdb.Query(t, rt.DB, `SELECT contact_id, status, responded, current_node_uuid::text FROM flows_flowrun WHERE session_uuid = $1`, scAlex.SessionUUID()).
+	assertdb.Query(t, rt.DB, `SELECT contact_id, status, responded, current_node_uuid::text FROM flows_flowrun WHERE session_uuid = $1`, scDan.SessionUUID()).
 		Columns(map[string]any{
-			"contact_id": int64(testdb.Alexandra.ID), "status": "W", "responded": false, "current_node_uuid": "cbff02b0-cd93-481d-a430-b335ab66779e",
+			"contact_id": int64(testdb.Dan.ID), "status": "W", "responded": false, "current_node_uuid": "cbff02b0-cd93-481d-a430-b335ab66779e",
 		})
 
 	// check events were persisted to DynamoDB
@@ -73,10 +73,10 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 		fmt.Sprintf("E:%s", scBob.Session.UUID()): time.Date(2025, 2, 25, 16, 55, 9, 0, time.UTC), // 10 minutes in future
 		fmt.Sprintf("S:%s", scBob.Session.UUID()): time.Date(2025, 3, 28, 9, 55, 36, 0, time.UTC), // 30 days + rand(1 - 24 hours) in future
 	})
-	testsuite.AssertContactFires(t, rt, testdb.Alexandra.ID, map[string]time.Time{
-		fmt.Sprintf("T:%s", scAlex.Session.UUID()): time.Date(2025, 2, 25, 16, 50, 27, 0, time.UTC), // 5 minutes in future
-		fmt.Sprintf("E:%s", scAlex.Session.UUID()): time.Date(2025, 2, 25, 16, 55, 22, 0, time.UTC), // 10 minutes in future
-		fmt.Sprintf("S:%s", scAlex.Session.UUID()): time.Date(2025, 3, 28, 12, 9, 23, 0, time.UTC),  // 30 days + rand(1 - 24 hours) in future
+	testsuite.AssertContactFires(t, rt, testdb.Dan.ID, map[string]time.Time{
+		fmt.Sprintf("T:%s", scDan.Session.UUID()): time.Date(2025, 2, 25, 16, 50, 27, 0, time.UTC), // 5 minutes in future
+		fmt.Sprintf("E:%s", scDan.Session.UUID()): time.Date(2025, 2, 25, 16, 55, 22, 0, time.UTC), // 10 minutes in future
+		fmt.Sprintf("S:%s", scDan.Session.UUID()): time.Date(2025, 3, 28, 12, 9, 23, 0, time.UTC),  // 30 days + rand(1 - 24 hours) in future
 	})
 
 	scene := testsuite.ResumeSession(t, rt, oa, testdb.Bob, "no")
@@ -263,7 +263,7 @@ func TestFlowStats(t *testing.T) {
 	require.NoError(t, err)
 
 	trig := triggers.NewBuilder(flow.Reference()).Manual().Build()
-	testsuite.StartSessions(t, rt, oa, []*testdb.Contact{testdb.Bob, testdb.Alexandra, testdb.George}, trig)
+	testsuite.StartSessions(t, rt, oa, []*testdb.Contact{testdb.Bob, testdb.Dan, testdb.Cat}, trig)
 
 	// should have a single record of all 3 contacts going through the first segment
 	var activityCounts []*models.FlowActivityCount
@@ -294,8 +294,8 @@ func TestFlowStats(t *testing.T) {
 	)
 
 	testsuite.ResumeSession(t, rt, oa, testdb.Bob, "blue")
-	testsuite.ResumeSession(t, rt, oa, testdb.Alexandra, "BLUE")
-	testsuite.ResumeSession(t, rt, oa, testdb.George, "teal")
+	testsuite.ResumeSession(t, rt, oa, testdb.Dan, "BLUE")
+	testsuite.ResumeSession(t, rt, oa, testdb.Cat, "teal")
 
 	assertFlowActivityCounts(t, rt, flow.ID, map[string]int{
 		"node:072b95b3-61c3-4e0e-8dd1-eb7481083f94":                                         1,
@@ -311,7 +311,7 @@ func TestFlowStats(t *testing.T) {
 	})
 	assertFlowResultCounts(t, rt, flow.ID, map[string]int{"color/Blue": 2, "color/Other": 1})
 
-	testsuite.ResumeSession(t, rt, oa, testdb.George, "azure")
+	testsuite.ResumeSession(t, rt, oa, testdb.Cat, "azure")
 
 	assertFlowActivityCounts(t, rt, flow.ID, map[string]int{
 		"node:072b95b3-61c3-4e0e-8dd1-eb7481083f94":                                         1,
@@ -352,7 +352,7 @@ func TestFlowStats(t *testing.T) {
 		[]string{"QFoOgV99Av|10001|0", "nkcW6vAYAn|10003|0"},
 	)
 
-	testsuite.ResumeSession(t, rt, oa, testdb.George, "blue")
+	testsuite.ResumeSession(t, rt, oa, testdb.Cat, "blue")
 
 	assertFlowResultCounts(t, rt, flow.ID, map[string]int{"color/Blue": 3, "color/Other": 0})
 }

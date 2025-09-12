@@ -117,9 +117,9 @@ func TestCampaignContactFires(t *testing.T) {
 		models.NewContactFireForCampaign(testdb.Org1.ID, testdb.Ann.ID, remindersEvent1, time.Now()),
 		models.NewContactFireForCampaign(testdb.Org1.ID, testdb.Ann.ID, remindersEvent2, time.Now()),
 		models.NewContactFireForCampaign(testdb.Org1.ID, testdb.Ann.ID, remindersEvent3, time.Now()),
-		models.NewContactFireForCampaign(testdb.Org1.ID, testdb.George.ID, remindersEvent1, time.Now()),
-		models.NewContactFireForCampaign(testdb.Org1.ID, testdb.George.ID, remindersEvent2, time.Now()),
-		models.NewContactFireForCampaign(testdb.Org1.ID, testdb.George.ID, remindersEvent3, time.Now()),
+		models.NewContactFireForCampaign(testdb.Org1.ID, testdb.Cat.ID, remindersEvent1, time.Now()),
+		models.NewContactFireForCampaign(testdb.Org1.ID, testdb.Cat.ID, remindersEvent2, time.Now()),
+		models.NewContactFireForCampaign(testdb.Org1.ID, testdb.Cat.ID, remindersEvent3, time.Now()),
 	}
 
 	err = models.InsertContactFires(ctx, rt.DB, fires)
@@ -136,16 +136,16 @@ func TestCampaignContactFires(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT COUNT(*) FROM contacts_contactfire WHERE contact_id = $1`, testdb.Bob.ID).Returns(3)
 	assertdb.Query(t, rt.DB, `SELECT COUNT(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type IN ('E', 'T')`, testdb.Ann.ID).Returns(1)
 	assertdb.Query(t, rt.DB, `SELECT COUNT(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'C'`, testdb.Ann.ID).Returns(0)
-	assertdb.Query(t, rt.DB, `SELECT COUNT(*) FROM contacts_contactfire WHERE contact_id = $1`, testdb.George.ID).Returns(3)
+	assertdb.Query(t, rt.DB, `SELECT COUNT(*) FROM contacts_contactfire WHERE contact_id = $1`, testdb.Cat.ID).Returns(3)
 
 	// test deleting specific contact/event combinations
 	err = models.DeleteCampaignFires(ctx, rt.DB, []*models.FireDelete{
 		{ContactID: testdb.Bob.ID, EventID: testdb.RemindersPoint1.ID, FireVersion: 1},
-		{ContactID: testdb.George.ID, EventID: testdb.RemindersPoint3.ID, FireVersion: 1},
+		{ContactID: testdb.Cat.ID, EventID: testdb.RemindersPoint3.ID, FireVersion: 1},
 	})
 	assert.NoError(t, err)
 
 	assertdb.Query(t, rt.DB, `SELECT COUNT(*) FROM contacts_contactfire WHERE fire_type = 'C'`).Returns(4)
 	assertdb.Query(t, rt.DB, `SELECT COUNT(*) FROM contacts_contactfire WHERE contact_id = $1`, testdb.Bob.ID).Returns(2)
-	assertdb.Query(t, rt.DB, `SELECT COUNT(*) FROM contacts_contactfire WHERE contact_id = $1`, testdb.George.ID).Returns(2)
+	assertdb.Query(t, rt.DB, `SELECT COUNT(*) FROM contacts_contactfire WHERE contact_id = $1`, testdb.Cat.ID).Returns(2)
 }

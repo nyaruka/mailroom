@@ -78,7 +78,7 @@ func TestTicketReopen(t *testing.T) {
 	testdb.InsertClosedTicket(rt, "01992f54-5ab6-725e-be9c-0c6407efd755", testdb.Org1, testdb.Ann, testdb.DefaultTopic, nil)
 
 	testdb.InsertClosedTicket(rt, "01992f54-5ab6-7498-a7f2-6aa246e45cfe", testdb.Org1, testdb.Bob, testdb.DefaultTopic, testdb.Editor)
-	testdb.InsertClosedTicket(rt, "01992f54-5ab6-7658-a5d4-bdb05863ec56", testdb.Org1, testdb.Alexandra, testdb.DefaultTopic, testdb.Editor)
+	testdb.InsertClosedTicket(rt, "01992f54-5ab6-7658-a5d4-bdb05863ec56", testdb.Org1, testdb.Dan, testdb.DefaultTopic, testdb.Editor)
 
 	testsuite.RunWebTests(t, ctx, rt, "testdata/reopen.json", testsuite.ResetDynamo)
 }

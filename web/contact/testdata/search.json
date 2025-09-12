@@ -78,7 +78,7 @@
         "path": "/mi/contact/search",
         "body": {
             "org_id": 1,
-            "query": "Ann OR George",
+            "query": "Ann OR Cat",
             "group_id": 10000,
             "exclude_ids": [
                 10001,
@@ -87,7 +87,7 @@
         },
         "status": 200,
         "response": {
-            "query": "name ~ \"Ann\" OR name ~ \"George\"",
+            "query": "name ~ \"Ann\" OR name ~ \"Cat\"",
             "contact_ids": [
                 10000
             ],

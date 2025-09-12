@@ -22,7 +22,7 @@ func TestFireSchedules(t *testing.T) {
 
 	// add a one-time schedule and tie a broadcast to it
 	s1 := testdb.InsertSchedule(rt, testdb.Org1, models.RepeatPeriodNever, time.Now().Add(-2*time.Hour))
-	b1 := testdb.InsertBroadcast(rt, testdb.Org1, "eng", map[i18n.Language]string{"eng": "Hi", "spa": "Hola"}, nil, s1, []*testdb.Contact{testdb.Ann, testdb.George}, nil)
+	b1 := testdb.InsertBroadcast(rt, testdb.Org1, "eng", map[i18n.Language]string{"eng": "Hi", "spa": "Hola"}, nil, s1, []*testdb.Contact{testdb.Ann, testdb.Cat}, nil)
 
 	// add a repeating schedule and tie another broadcast to it
 	s2 := testdb.InsertSchedule(rt, testdb.Org1, models.RepeatPeriodDaily, time.Now().Add(-time.Hour))
@@ -30,7 +30,7 @@ func TestFireSchedules(t *testing.T) {
 
 	// add a one-time schedule and tie a trigger to it
 	s3 := testdb.InsertSchedule(rt, testdb.Org1, models.RepeatPeriodNever, time.Now().Add(-2*time.Hour))
-	t1 := testdb.InsertScheduledTrigger(rt, testdb.Org1, testdb.Favorites, s3, nil, nil, []*testdb.Contact{testdb.Ann, testdb.George})
+	t1 := testdb.InsertScheduledTrigger(rt, testdb.Org1, testdb.Favorites, s3, nil, nil, []*testdb.Contact{testdb.Ann, testdb.Cat})
 
 	// add a repeating schedule and tie another trigger to it
 	s4 := testdb.InsertSchedule(rt, testdb.Org1, models.RepeatPeriodDaily, time.Now().Add(-time.Hour))

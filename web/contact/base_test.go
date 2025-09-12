@@ -106,7 +106,7 @@ func TestModify(t *testing.T) {
 	models.FlushCache()
 
 	// lock a contact to test skipping them
-	clocks.TryToLock(ctx, rt, oa, []models.ContactID{testdb.Alexandra.ID}, time.Second)
+	clocks.TryToLock(ctx, rt, oa, []models.ContactID{testdb.Dan.ID}, time.Second)
 
 	testsuite.RunWebTests(t, ctx, rt, "testdata/modify.json", testsuite.ResetDynamo|testsuite.ResetValkey)
 }

@@ -31,7 +31,7 @@ func TestInputLabelsAdded(t *testing.T) {
 					actions.NewAddInputLabels(flows.NewActionUUID(), []*assets.LabelReference{reporting}),
 				},
 				testdb.Bob.UUID: []flows.Action{},
-				testdb.George.UUID: []flows.Action{
+				testdb.Cat.UUID: []flows.Action{
 					actions.NewAddInputLabels(flows.NewActionUUID(), []*assets.LabelReference{testing}),
 					actions.NewAddInputLabels(flows.NewActionUUID(), []*assets.LabelReference{reporting}),
 				},
@@ -58,10 +58,10 @@ func TestInputLabelsAdded(t *testing.T) {
 				},
 			},
 			PersistedEvents: map[flows.ContactUUID][]string{
-				testdb.Ann.UUID:       {"run_started", "run_ended"},
-				testdb.Bob.UUID:       {"run_started", "run_ended"},
-				testdb.George.UUID:    {"run_started", "run_ended"},
-				testdb.Alexandra.UUID: {"run_started", "run_ended"},
+				testdb.Ann.UUID: {"run_started", "run_ended"},
+				testdb.Bob.UUID: {"run_started", "run_ended"},
+				testdb.Cat.UUID: {"run_started", "run_ended"},
+				testdb.Dan.UUID: {"run_started", "run_ended"},
 			},
 		},
 	}

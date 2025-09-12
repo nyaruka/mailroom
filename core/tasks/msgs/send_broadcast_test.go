@@ -44,10 +44,10 @@ func TestBroadcastsFromEvents(t *testing.T) {
 	// add an extra URN fo Ann
 	testdb.InsertContactURN(rt, testdb.Org1, testdb.Ann, urns.URN("tel:+12065551212"), 1001, nil)
 
-	// change george's URN to an invalid twitter URN so it can't be sent
-	rt.DB.MustExec(`UPDATE contacts_contacturn SET identity = 'twitter:invalid-urn', scheme = 'twitter', path='invalid-urn' WHERE id = $1`, testdb.George.URNID)
-	george := flows.NewContactReference(testdb.George.UUID, "George")
-	georgeOnly := []*flows.ContactReference{george}
+	// change Cat's URN to an invalid twitter URN so it can't be sent
+	rt.DB.MustExec(`UPDATE contacts_contacturn SET identity = 'twitter:invalid-urn', scheme = 'twitter', path='invalid-urn' WHERE id = $1`, testdb.Cat.URNID)
+	cat := flows.NewContactReference(testdb.Cat.UUID, "Cat")
+	catOnly := []*flows.ContactReference{cat}
 
 	tcs := []struct {
 		translations       flows.BroadcastTranslations
@@ -75,7 +75,7 @@ func TestBroadcastsFromEvents(t *testing.T) {
 			translations:       basic,
 			baseLanguage:       eng,
 			groups:             []*assets.GroupReference{doctors},
-			contacts:           georgeOnly,
+			contacts:           catOnly,
 			urns:               nil,
 			queue:              rt.Queues.Batch,
 			expectedBatchCount: 2,
@@ -86,7 +86,7 @@ func TestBroadcastsFromEvents(t *testing.T) {
 			translations:       basic,
 			baseLanguage:       eng,
 			groups:             nil,
-			contacts:           georgeOnly,
+			contacts:           catOnly,
 			urns:               nil,
 			queue:              rt.Queues.Realtime,
 			expectedBatchCount: 1,
@@ -192,9 +192,9 @@ func TestSendBroadcastTask(t *testing.T) {
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshOrg|models.RefreshOptIns)
 	assert.NoError(t, err)
 
-	// add an extra URN for Ann, change George's language to Spanish, and mark Bob as seen recently
+	// add an extra URN for Ann, change Cat's language to Spanish, and mark Bob as seen recently
 	testdb.InsertContactURN(rt, testdb.Org1, testdb.Ann, urns.URN("tel:+12065551212"), 1001, nil)
-	rt.DB.MustExec(`UPDATE contacts_contact SET language = 'spa', modified_on = NOW() WHERE id = $1`, testdb.George.ID)
+	rt.DB.MustExec(`UPDATE contacts_contact SET language = 'spa', modified_on = NOW() WHERE id = $1`, testdb.Cat.ID)
 	rt.DB.MustExec(`UPDATE contacts_contact SET last_seen_on = NOW() - interval '45 days', modified_on = NOW() WHERE id = $1`, testdb.Bob.ID)
 
 	testsuite.ReindexElastic(t, rt)
@@ -249,7 +249,7 @@ func TestSendBroadcastTask(t *testing.T) {
 			},
 			baseLanguage:    "eng",
 			expressions:     true,
-			query:           "name = Ann OR name = George OR name = Bob",
+			query:           "name = Ann OR name = Cat OR name = Bob",
 			exclusions:      models.NoExclusions,
 			queue:           rt.Queues.Batch,
 			expectedBatches: 1,
@@ -262,7 +262,7 @@ func TestSendBroadcastTask(t *testing.T) {
 			},
 			baseLanguage:    "eng",
 			expressions:     true,
-			query:           "name = Ann OR name = George OR name = Bob",
+			query:           "name = Ann OR name = Cat OR name = Bob",
 			exclusions:      models.Exclusions{NotSeenSinceDays: 60},
 			queue:           rt.Queues.Batch,
 			expectedBatches: 1,

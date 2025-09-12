@@ -21,13 +21,13 @@ func TestContactNameChanged(t *testing.T) {
 					actions.NewSetContactName(flows.NewActionUUID(), "Fred"),
 					actions.NewSetContactName(flows.NewActionUUID(), "Tarzan"),
 				},
-				testdb.George.UUID: []flows.Action{
+				testdb.Cat.UUID: []flows.Action{
 					actions.NewSetContactName(flows.NewActionUUID(), "Geoff Newman"),
 				},
 				testdb.Bob.UUID: []flows.Action{
 					actions.NewSetContactName(flows.NewActionUUID(), ""),
 				},
-				testdb.Alexandra.UUID: []flows.Action{
+				testdb.Dan.UUID: []flows.Action{
 					actions.NewSetContactName(flows.NewActionUUID(), "😃234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890"),
 				},
 			},
@@ -48,20 +48,20 @@ func TestContactNameChanged(t *testing.T) {
 				},
 				{
 					SQL:   "select count(*) from contacts_contact where name = 'Geoff Newman' and id = $1",
-					Args:  []any{testdb.George.ID},
+					Args:  []any{testdb.Cat.ID},
 					Count: 1,
 				},
 				{
 					SQL:   "select count(*) from contacts_contact where name = '😃2345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678' and id = $1",
-					Args:  []any{testdb.Alexandra.ID},
+					Args:  []any{testdb.Dan.ID},
 					Count: 1,
 				},
 			},
 			PersistedEvents: map[flows.ContactUUID][]string{
-				testdb.Ann.UUID:       {"run_started", "contact_name_changed", "contact_name_changed", "run_ended"},
-				testdb.Bob.UUID:       {"run_started", "contact_name_changed", "run_ended"},
-				testdb.George.UUID:    {"run_started", "contact_name_changed", "run_ended"},
-				testdb.Alexandra.UUID: {"run_started", "contact_name_changed", "run_ended"},
+				testdb.Ann.UUID: {"run_started", "contact_name_changed", "contact_name_changed", "run_ended"},
+				testdb.Bob.UUID: {"run_started", "contact_name_changed", "run_ended"},
+				testdb.Cat.UUID: {"run_started", "contact_name_changed", "run_ended"},
+				testdb.Dan.UUID: {"run_started", "contact_name_changed", "run_ended"},
 			},
 		},
 	}

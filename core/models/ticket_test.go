@@ -44,7 +44,7 @@ func TestTickets(t *testing.T) {
 		testdb.Org1.ID,
 		models.NilUserID,
 		testdb.Favorites.ID,
-		testdb.Alexandra.ID,
+		testdb.Dan.ID,
 		testdb.SupportTopic.ID,
 		testdb.Admin.ID,
 	)

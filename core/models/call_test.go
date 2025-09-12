@@ -18,10 +18,10 @@ func TestCalls(t *testing.T) {
 
 	oa := testdb.Org1.Load(rt)
 	ann, _, annURNs := testdb.Ann.Load(rt, oa)
-	george, _, georgeURNs := testdb.George.Load(rt, oa)
+	cat, _, catURNs := testdb.Cat.Load(rt, oa)
 
 	callIn1 := models.NewIncomingCall(testdb.Org1.ID, oa.ChannelByUUID(testdb.TwilioChannel.UUID), ann, annURNs[0].ID, "EXT123")
-	callIn2 := models.NewIncomingCall(testdb.Org1.ID, oa.ChannelByUUID(testdb.VonageChannel.UUID), george, georgeURNs[0].ID, "EXT234")
+	callIn2 := models.NewIncomingCall(testdb.Org1.ID, oa.ChannelByUUID(testdb.VonageChannel.UUID), cat, catURNs[0].ID, "EXT234")
 
 	err := models.InsertCalls(ctx, rt.DB, []*models.Call{callIn1, callIn2})
 	assert.NoError(t, err)

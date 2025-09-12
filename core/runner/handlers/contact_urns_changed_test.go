@@ -15,8 +15,8 @@ func TestContactURNsChanged(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
-	// add a URN to George that Ann will steal
-	testdb.InsertContactURN(rt, testdb.Org1, testdb.George, urns.URN("tel:+12065551212"), 100, nil)
+	// add a URN to Cat that Ann will steal
+	testdb.InsertContactURN(rt, testdb.Org1, testdb.Cat, urns.URN("tel:+12065551212"), 100, nil)
 
 	tcs := []TestCase{
 		{
@@ -27,7 +27,7 @@ func TestContactURNsChanged(t *testing.T) {
 					actions.NewAddContactURN(flows.NewActionUUID(), "telegram", "11551"),
 					actions.NewAddContactURN(flows.NewActionUUID(), "tel", "+16055741111"),
 				},
-				testdb.George.UUID: []flows.Action{},
+				testdb.Cat.UUID: []flows.Action{},
 			},
 			SQLAssertions: []SQLAssertion{
 				{
@@ -48,15 +48,15 @@ func TestContactURNsChanged(t *testing.T) {
 				// evan lost his 206 URN
 				{
 					SQL:   "select count(*) from contacts_contacturn where contact_id = $1",
-					Args:  []any{testdb.George.ID},
+					Args:  []any{testdb.Cat.ID},
 					Count: 1,
 				},
 			},
 			PersistedEvents: map[flows.ContactUUID][]string{
-				testdb.Ann.UUID:       {"run_started", "contact_urns_changed", "contact_urns_changed", "run_ended"},
-				testdb.Bob.UUID:       {"run_started", "run_ended"},
-				testdb.George.UUID:    {"run_started", "run_ended"},
-				testdb.Alexandra.UUID: {"run_started", "run_ended"},
+				testdb.Ann.UUID: {"run_started", "contact_urns_changed", "contact_urns_changed", "run_ended"},
+				testdb.Bob.UUID: {"run_started", "run_ended"},
+				testdb.Cat.UUID: {"run_started", "run_ended"},
+				testdb.Dan.UUID: {"run_started", "run_ended"},
 			},
 		},
 	}

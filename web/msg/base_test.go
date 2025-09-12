@@ -42,8 +42,8 @@ func TestResend(t *testing.T) {
 	testdb.InsertIncomingMsg(rt, testdb.Org1, testdb.TwilioChannel, testdb.Ann, "hello", models.MsgStatusHandled)
 	testdb.InsertOutgoingMsg(rt, testdb.Org1, testdb.TwilioChannel, testdb.Ann, "how can we help", nil, models.MsgStatusSent, false)
 	testdb.InsertOutgoingMsg(rt, testdb.Org1, testdb.VonageChannel, testdb.Bob, "this failed", nil, models.MsgStatusFailed, false)
-	georgeOut := testdb.InsertOutgoingMsg(rt, testdb.Org1, testdb.VonageChannel, testdb.George, "no URN", nil, models.MsgStatusFailed, false)
-	rt.DB.MustExec(`UPDATE msgs_msg SET contact_urn_id = NULL WHERE id = $1`, georgeOut.ID)
+	catOut := testdb.InsertOutgoingMsg(rt, testdb.Org1, testdb.VonageChannel, testdb.Cat, "no URN", nil, models.MsgStatusFailed, false)
+	rt.DB.MustExec(`UPDATE msgs_msg SET contact_urn_id = NULL WHERE id = $1`, catOut.ID)
 
 	testsuite.RunWebTests(t, ctx, rt, "testdata/resend.json", testsuite.ResetNone)
 }
@@ -60,9 +60,9 @@ func TestBroadcast(t *testing.T) {
 		testdb.InsertFlowRun(rt, org, sessionUUID, contact, testdb.Favorites, models.RunStatusWaiting, nodeUUID)
 	}
 
-	// put bob and george in a flows at different nodes
+	// put Bob and Cat in a flows at different nodes
 	createRun(testdb.Org1, testdb.Bob, "dd79811e-a88a-4e67-bb47-a132fe8ce3f2")
-	createRun(testdb.Org1, testdb.George, "a52a9e6d-34bb-4be1-8034-99e33d0862c6")
+	createRun(testdb.Org1, testdb.Cat, "a52a9e6d-34bb-4be1-8034-99e33d0862c6")
 
 	testsuite.RunWebTests(t, ctx, rt, "testdata/broadcast.json", testsuite.ResetValkey)
 }

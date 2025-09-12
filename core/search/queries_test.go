@@ -38,7 +38,7 @@ func TestBuildRecipientsQuery(t *testing.T) {
 	}{
 		{ // 0
 			groups:       []*models.Group{doctors, testers},
-			contactUUIDs: []flows.ContactUUID{testdb.Ann.UUID, testdb.George.UUID},
+			contactUUIDs: []flows.ContactUUID{testdb.Ann.UUID, testdb.Cat.UUID},
 			exclusions:   models.Exclusions{},
 			expected:     `group = "Doctors" OR group = "Testers" OR uuid = "a393abc0-283d-4c9b-a1b3-641a035c34bf" OR uuid = "cd024bcd-f473-4719-a00a-bd0bb1190135"`,
 		},

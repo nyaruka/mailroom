@@ -307,22 +307,22 @@ func TestAirtimeTransferred(t *testing.T) {
 				},
 			},
 			PersistedEvents: map[flows.ContactUUID][]string{
-				testdb.Ann.UUID:       {"run_started", "airtime_transferred", "run_ended"},
-				testdb.Bob.UUID:       {"run_started", "run_ended"},
-				testdb.George.UUID:    {"run_started", "run_ended"},
-				testdb.Alexandra.UUID: {"run_started", "run_ended"},
+				testdb.Ann.UUID: {"run_started", "airtime_transferred", "run_ended"},
+				testdb.Bob.UUID: {"run_started", "run_ended"},
+				testdb.Cat.UUID: {"run_started", "run_ended"},
+				testdb.Dan.UUID: {"run_started", "run_ended"},
 			},
 		},
 		{
 			Actions: ContactActionMap{
-				testdb.George.UUID: []flows.Action{
+				testdb.Cat.UUID: []flows.Action{
 					actions.NewTransferAirtime(flows.NewActionUUID(), map[string]decimal.Decimal{"USD": decimal.RequireFromString(`3`)}),
 				},
 			},
 			SQLAssertions: []SQLAssertion{
 				{
 					SQL:   `select count(*) from airtime_airtimetransfer where org_id = $1 AND contact_id = $2 AND status = 'F'`,
-					Args:  []any{testdb.Org1.ID, testdb.George.ID},
+					Args:  []any{testdb.Org1.ID, testdb.Cat.ID},
 					Count: 1,
 				},
 				{
@@ -332,10 +332,10 @@ func TestAirtimeTransferred(t *testing.T) {
 				},
 			},
 			PersistedEvents: map[flows.ContactUUID][]string{
-				testdb.Ann.UUID:       {"run_started", "run_ended"},
-				testdb.Bob.UUID:       {"run_started", "run_ended"},
-				testdb.George.UUID:    {"run_started", "airtime_transferred", "run_ended"},
-				testdb.Alexandra.UUID: {"run_started", "run_ended"},
+				testdb.Ann.UUID: {"run_started", "run_ended"},
+				testdb.Bob.UUID: {"run_started", "run_ended"},
+				testdb.Cat.UUID: {"run_started", "airtime_transferred", "run_ended"},
+				testdb.Dan.UUID: {"run_started", "run_ended"},
 			},
 		},
 	}

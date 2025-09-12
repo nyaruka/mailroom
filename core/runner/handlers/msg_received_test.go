@@ -24,7 +24,7 @@ func TestMsgReceived(t *testing.T) {
 				testdb.Ann.UUID: []flows.Action{
 					actions.NewSendMsg(flows.NewActionUUID(), "Hello World", nil, nil, false),
 				},
-				testdb.George.UUID: []flows.Action{
+				testdb.Cat.UUID: []flows.Action{
 					actions.NewSendMsg(flows.NewActionUUID(), "Hello world", nil, nil, false),
 				},
 			},
@@ -39,15 +39,15 @@ func TestMsgReceived(t *testing.T) {
 				},
 				{
 					SQL:   "SELECT COUNT(*) FROM contacts_contact WHERE id = $1 AND last_seen_on IS NULL",
-					Args:  []any{testdb.George.ID},
+					Args:  []any{testdb.Cat.ID},
 					Count: 1,
 				},
 			},
 			PersistedEvents: map[flows.ContactUUID][]string{
-				testdb.Ann.UUID:       {"run_started", "run_ended"},
-				testdb.Bob.UUID:       {"run_started", "run_ended"},
-				testdb.George.UUID:    {"run_started", "run_ended"},
-				testdb.Alexandra.UUID: {"run_started", "run_ended"},
+				testdb.Ann.UUID: {"run_started", "run_ended"},
+				testdb.Bob.UUID: {"run_started", "run_ended"},
+				testdb.Cat.UUID: {"run_started", "run_ended"},
+				testdb.Dan.UUID: {"run_started", "run_ended"},
 			},
 		},
 	}

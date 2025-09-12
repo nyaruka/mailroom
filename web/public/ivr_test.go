@@ -84,7 +84,7 @@ func TestTwilioIVR(t *testing.T) {
 	// set callback domain and enable machine detection
 	rt.DB.MustExec(`UPDATE channels_channel SET config = config || '{"callback_domain": "localhost:8091", "machine_detection": true}'::jsonb WHERE id = $1`, testdb.TwilioChannel.ID)
 
-	// create a flow start for Ann, Bob, and George
+	// create a flow start for Ann, Bob, and Cat
 	parentSummary := []byte(`{
 		"flow": {"name": "IVR Flow", "uuid": "2f81d0ea-4d75-4843-9371-3f7465311cce"}, 
 		"uuid": "8bc73097-ac57-47fb-82e5-184f8ec6dbef", 
@@ -103,7 +103,7 @@ func TestTwilioIVR(t *testing.T) {
 		"results": {}
 	}`)
 	start := models.NewFlowStart(testdb.Org1.ID, models.StartTypeTrigger, testdb.IVRFlow.ID).
-		WithContactIDs([]models.ContactID{testdb.Ann.ID, testdb.Bob.ID, testdb.George.ID}).
+		WithContactIDs([]models.ContactID{testdb.Ann.ID, testdb.Bob.ID, testdb.Cat.ID}).
 		WithParentSummary(parentSummary)
 
 	err := tasks.Queue(ctx, rt, rt.Queues.Batch, testdb.Org1.ID, &starts.StartFlowTask{FlowStart: start}, false)
@@ -117,7 +117,7 @@ func TestTwilioIVR(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT COUNT(*) FROM ivr_call WHERE contact_id = $1 AND status = $2 AND external_id = $3`,
 		testdb.Bob.ID, models.CallStatusWired, "Call2").Returns(1)
 	assertdb.Query(t, rt.DB, `SELECT COUNT(*) FROM ivr_call WHERE contact_id = $1 AND status = $2 AND external_id = $3`,
-		testdb.George.ID, models.CallStatusWired, "Call3").Returns(1)
+		testdb.Cat.ID, models.CallStatusWired, "Call3").Returns(1)
 
 	tcs := []struct {
 		url                string
@@ -414,9 +414,9 @@ func TestVonageIVR(t *testing.T) {
 	vonage.CallURL = ts.URL
 	vonage.IgnoreSignatures = true
 
-	// create a flow start for Ann and George
+	// create a flow start for Ann and Cat
 	start := models.NewFlowStart(testdb.Org1.ID, models.StartTypeTrigger, testdb.IVRFlow.ID).
-		WithContactIDs([]models.ContactID{testdb.Ann.ID, testdb.George.ID}).
+		WithContactIDs([]models.ContactID{testdb.Ann.ID, testdb.Cat.ID}).
 		WithParams(json.RawMessage(`{"ref_id":"123"}`))
 
 	err := models.InsertFlowStart(ctx, rt.DB, start)
@@ -434,7 +434,7 @@ func TestVonageIVR(t *testing.T) {
 		testdb.Ann.ID, models.CallStatusWired, "Call1").Returns(1)
 
 	assertdb.Query(t, rt.DB, `SELECT COUNT(*) FROM ivr_call WHERE contact_id = $1 AND status = $2 AND external_id = $3`,
-		testdb.George.ID, models.CallStatusWired, "Call2").Returns(1)
+		testdb.Cat.ID, models.CallStatusWired, "Call2").Returns(1)
 
 	tcs := []struct {
 		label            string
@@ -641,9 +641,9 @@ func TestVonageIVR(t *testing.T) {
 
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE contact_id = $1 AND msg_type = 'V' AND status = 'H' AND direction = 'I'`, testdb.Ann.ID).Returns(5)
 
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE contact_id = $1 AND msg_type = 'V' AND ((status = 'H' AND direction = 'I') OR (status = 'W' AND direction = 'O'))`, testdb.George.ID).Returns(3)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE contact_id = $1 AND msg_type = 'V' AND ((status = 'H' AND direction = 'I') OR (status = 'W' AND direction = 'O'))`, testdb.Cat.ID).Returns(3)
 
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM ivr_call WHERE status = 'D' AND contact_id = $1`, testdb.George.ID).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM ivr_call WHERE status = 'D' AND contact_id = $1`, testdb.Cat.ID).Returns(1)
 
 	// check the generated channel logs
 	logs := getCallLogs(t, ctx, rt, testdb.VonageChannel)
