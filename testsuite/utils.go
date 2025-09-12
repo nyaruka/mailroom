@@ -109,15 +109,18 @@ func FlushTasks(t *testing.T, rt *runtime.Runtime, qnames ...string) map[string]
 	return counts
 }
 
-func GetHistoryEvents(t *testing.T, rt *runtime.Runtime) []*models.Event {
+func GetHistoryItems(t *testing.T, rt *runtime.Runtime) []*models.DynamoItem {
 	rt.Writers.History.Flush()
 
-	return dyntest.ScanAll[models.Event](t, rt.Dynamo, "TestHistory")
+	return dyntest.ScanAll[models.DynamoItem](t, rt.Dynamo, "TestHistory")
 }
 
 func GetHistoryEventTypes(t *testing.T, rt *runtime.Runtime) map[flows.ContactUUID][]string {
+	rt.Writers.History.Flush()
+
 	evtTypes := make(map[flows.ContactUUID][]string, 4)
-	for _, evt := range GetHistoryEvents(t, rt) {
+
+	for _, evt := range dyntest.ScanAll[models.Event](t, rt.Dynamo, "TestHistory") {
 		evtTypes[evt.ContactUUID] = append(evtTypes[evt.ContactUUID], evt.Event.Type())
 	}
 

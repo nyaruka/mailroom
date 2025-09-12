@@ -38,15 +38,15 @@
         },
         "expected_history": [
             {
-                "event": {
-                    "uuid": "01969b47-0583-76f8-ae7f-f8b243c49ff5",
-                    "type": "ticket_closed",
+                "PK": "con#6393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01969b47-0583-76f8-ae7f-f8b243c49ff5",
+                "OrgID": 1,
+                "Data": {
+                    "_user_id": 2,
                     "created_on": "2018-07-06T12:30:00.123456789Z",
-                    "ticket_uuid": "01992f54-5ab6-717a-a39e-e8ca91fb7262"
-                },
-                "org_id": 1,
-                "contact_uuid": "6393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "user_id": 2
+                    "ticket_uuid": "01992f54-5ab6-717a-a39e-e8ca91fb7262",
+                    "type": "ticket_closed"
+                }
             }
         ]
     }
