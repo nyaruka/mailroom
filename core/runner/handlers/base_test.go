@@ -133,7 +133,7 @@ func runTestCases(t *testing.T, ctx context.Context, rt *runtime.Runtime, tcs []
 
 			scenes := make([]*runner.Scene, 4)
 
-			for i, c := range []*testdb.Contact{testdb.Cathy, testdb.Bob, testdb.George, testdb.Alexandra} {
+			for i, c := range []*testdb.Contact{testdb.Ann, testdb.Bob, testdb.George, testdb.Alexandra} {
 				mc, contact, _ := c.Load(rt, oa)
 				scenes[i] = runner.NewScene(mc, contact)
 				if msg := tc.Msgs[c.UUID]; msg != nil {
@@ -161,7 +161,7 @@ func runTestCases(t *testing.T, ctx context.Context, rt *runtime.Runtime, tcs []
 		}
 		if tc.Modifiers != nil {
 			modifiersByContact := make(map[*flows.Contact][]flows.Modifier)
-			for _, c := range []*testdb.Contact{testdb.Cathy, testdb.Bob, testdb.George, testdb.Alexandra} {
+			for _, c := range []*testdb.Contact{testdb.Ann, testdb.Bob, testdb.George, testdb.Alexandra} {
 				_, contact, _ := c.Load(rt, oa)
 
 				modifiersByContact[contact] = tc.Modifiers[c.UUID]

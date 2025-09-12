@@ -31,8 +31,8 @@ func TestPopulateQueryGroupTask(t *testing.T) {
 
 	assertdb.Query(t, rt.DB, `SELECT status FROM contacts_contactgroup WHERE id = $1`, group1.ID).Returns("R")
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contactgroup_contacts WHERE contactgroup_id = $1`, group1.ID).Returns(1)
-	assertdb.Query(t, rt.DB, `SELECT contact_id FROM contacts_contactgroup_contacts WHERE contactgroup_id = $1`, group1.ID).Returns(int64(testdb.Cathy.ID))
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contact WHERE id = $1 AND modified_on > $2`, testdb.Cathy.ID, start).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT contact_id FROM contacts_contactgroup_contacts WHERE contactgroup_id = $1`, group1.ID).Returns(int64(testdb.Ann.ID))
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contact WHERE id = $1 AND modified_on > $2`, testdb.Ann.ID, start).Returns(1)
 
 	task2 := &contacts.PopulateQueryGroupTask{
 		GroupID: group2.ID,
@@ -43,5 +43,5 @@ func TestPopulateQueryGroupTask(t *testing.T) {
 
 	assertdb.Query(t, rt.DB, `SELECT status FROM contacts_contactgroup WHERE id = $1`, group2.ID).Returns("X")
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contactgroup_contacts WHERE contactgroup_id = $1`, group2.ID).Returns(0) // bob removed
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contact WHERE id = $1 AND modified_on > $2`, testdb.Cathy.ID, start).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contact WHERE id = $1 AND modified_on > $2`, testdb.Ann.ID, start).Returns(1)
 }

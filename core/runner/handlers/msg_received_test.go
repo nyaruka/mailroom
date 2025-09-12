@@ -21,7 +21,7 @@ func TestMsgReceived(t *testing.T) {
 	tcs := []TestCase{
 		{
 			Actions: ContactActionMap{
-				testdb.Cathy.UUID: []flows.Action{
+				testdb.Ann.UUID: []flows.Action{
 					actions.NewSendMsg(flows.NewActionUUID(), "Hello World", nil, nil, false),
 				},
 				testdb.George.UUID: []flows.Action{
@@ -29,12 +29,12 @@ func TestMsgReceived(t *testing.T) {
 				},
 			},
 			Msgs: ContactMsgMap{
-				testdb.Cathy.UUID: testdb.InsertIncomingMsg(rt, testdb.Org1, testdb.TwilioChannel, testdb.Cathy, "start", models.MsgStatusPending),
+				testdb.Ann.UUID: testdb.InsertIncomingMsg(rt, testdb.Org1, testdb.TwilioChannel, testdb.Ann, "start", models.MsgStatusPending),
 			},
 			SQLAssertions: []SQLAssertion{
 				{
 					SQL:   "SELECT COUNT(*) FROM contacts_contact WHERE id = $1 AND last_seen_on > $2",
-					Args:  []any{testdb.Cathy.ID, now},
+					Args:  []any{testdb.Ann.ID, now},
 					Count: 1,
 				},
 				{
@@ -44,7 +44,7 @@ func TestMsgReceived(t *testing.T) {
 				},
 			},
 			PersistedEvents: map[flows.ContactUUID][]string{
-				testdb.Cathy.UUID:     {"run_started", "run_ended"},
+				testdb.Ann.UUID:       {"run_started", "run_ended"},
 				testdb.Bob.UUID:       {"run_started", "run_ended"},
 				testdb.George.UUID:    {"run_started", "run_ended"},
 				testdb.Alexandra.UUID: {"run_started", "run_ended"},

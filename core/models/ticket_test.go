@@ -26,7 +26,7 @@ func TestTickets(t *testing.T) {
 		testdb.Org1.ID,
 		testdb.Admin.ID,
 		models.NilFlowID,
-		testdb.Cathy.ID,
+		testdb.Ann.ID,
 		testdb.DefaultTopic.ID,
 		testdb.Admin.ID,
 	)
@@ -51,7 +51,7 @@ func TestTickets(t *testing.T) {
 
 	assert.Equal(t, flows.TicketUUID("2ef57efc-d85f-4291-b330-e4afe68af5fe"), ticket1.UUID)
 	assert.Equal(t, testdb.Org1.ID, ticket1.OrgID)
-	assert.Equal(t, testdb.Cathy.ID, ticket1.ContactID)
+	assert.Equal(t, testdb.Ann.ID, ticket1.ContactID)
 	assert.Equal(t, testdb.DefaultTopic.ID, ticket1.TopicID)
 	assert.Equal(t, testdb.Admin.ID, ticket1.AssigneeID)
 
@@ -82,7 +82,7 @@ func TestUpdateTicketLastActivity(t *testing.T) {
 	defer dates.SetNowFunc(time.Now)
 	dates.SetNowFunc(dates.NewFixedNow(now))
 
-	ticket := testdb.InsertOpenTicket(rt, "01992f54-5ab6-717a-a39e-e8ca91fb7262", testdb.Org1, testdb.Cathy, testdb.DefaultTopic, time.Now(), nil)
+	ticket := testdb.InsertOpenTicket(rt, "01992f54-5ab6-717a-a39e-e8ca91fb7262", testdb.Org1, testdb.Ann, testdb.DefaultTopic, time.Now(), nil)
 	modelTicket := ticket.Load(rt, testdb.Org1)
 
 	models.UpdateTicketLastActivity(ctx, rt.DB, []*models.Ticket{modelTicket})
@@ -97,9 +97,9 @@ func TestUpdateTickets(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
-	ticket1 := testdb.InsertClosedTicket(rt, "01992f54-5ab6-717a-a39e-e8ca91fb7262", testdb.Org1, testdb.Cathy, testdb.SalesTopic, nil).Load(rt, testdb.Org1)
-	ticket2 := testdb.InsertOpenTicket(rt, "01992f54-5ab6-725e-be9c-0c6407efd755", testdb.Org1, testdb.Cathy, testdb.SalesTopic, time.Now(), nil).Load(rt, testdb.Org1)
-	ticket3 := testdb.InsertOpenTicket(rt, "01992f54-5ab6-7498-a7f2-6aa246e45cfe", testdb.Org1, testdb.Cathy, testdb.DefaultTopic, time.Now(), testdb.Admin).Load(rt, testdb.Org1)
+	ticket1 := testdb.InsertClosedTicket(rt, "01992f54-5ab6-717a-a39e-e8ca91fb7262", testdb.Org1, testdb.Ann, testdb.SalesTopic, nil).Load(rt, testdb.Org1)
+	ticket2 := testdb.InsertOpenTicket(rt, "01992f54-5ab6-725e-be9c-0c6407efd755", testdb.Org1, testdb.Ann, testdb.SalesTopic, time.Now(), nil).Load(rt, testdb.Org1)
+	ticket3 := testdb.InsertOpenTicket(rt, "01992f54-5ab6-7498-a7f2-6aa246e45cfe", testdb.Org1, testdb.Ann, testdb.DefaultTopic, time.Now(), testdb.Admin).Load(rt, testdb.Org1)
 
 	assertTicket := func(tk *models.Ticket, cols map[string]any) {
 		assertdb.Query(t, rt.DB, `SELECT status, assignee_id, topic_id FROM tickets_ticket WHERE id = $1`, tk.ID).Columns(cols)
@@ -142,7 +142,7 @@ func TestTicketRecordReply(t *testing.T) {
 	openedOn := time.Date(2022, 5, 17, 14, 21, 0, 0, time.UTC)
 	repliedOn := time.Date(2022, 5, 18, 15, 0, 0, 0, time.UTC)
 
-	ticket := testdb.InsertOpenTicket(rt, "01992f54-5ab6-717a-a39e-e8ca91fb7262", testdb.Org1, testdb.Cathy, testdb.DefaultTopic, openedOn, nil)
+	ticket := testdb.InsertOpenTicket(rt, "01992f54-5ab6-717a-a39e-e8ca91fb7262", testdb.Org1, testdb.Ann, testdb.DefaultTopic, openedOn, nil)
 
 	err = models.RecordTicketReply(ctx, rt.DB, oa, ticket.ID, testdb.Agent.ID, repliedOn)
 	assert.NoError(t, err)

@@ -54,7 +54,7 @@ func TestWebhookCalled(t *testing.T) {
 	tcs := []TestCase{
 		{
 			Actions: ContactActionMap{
-				testdb.Cathy.UUID: []flows.Action{
+				testdb.Ann.UUID: []flows.Action{
 					actions.NewCallResthook(flows.NewActionUUID(), "foo", "foo"), // calls both subscribers
 				},
 				testdb.George.UUID: []flows.Action{
@@ -90,7 +90,7 @@ func TestWebhookCalled(t *testing.T) {
 				},
 			},
 			PersistedEvents: map[flows.ContactUUID][]string{
-				testdb.Cathy.UUID:     {"run_started", "run_ended"},
+				testdb.Ann.UUID:       {"run_started", "run_ended"},
 				testdb.Bob.UUID:       {"run_started", "run_ended"},
 				testdb.George.UUID:    {"run_started", "run_ended"},
 				testdb.Alexandra.UUID: {"run_started", "run_ended"},
@@ -134,7 +134,7 @@ func TestUnhealthyWebhookCalls(t *testing.T) {
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshFlows)
 	require.NoError(t, err)
 
-	mc, contact, _ := testdb.Cathy.Load(rt, oa)
+	mc, contact, _ := testdb.Ann.Load(rt, oa)
 
 	// webhook service with a 2 second delay
 	svc := &failingWebhookService{delay: 2 * time.Second}

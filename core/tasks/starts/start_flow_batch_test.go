@@ -23,13 +23,13 @@ func TestStartFlowBatchTask(t *testing.T) {
 
 	// create a start
 	start1 := models.NewFlowStart(models.OrgID(1), models.StartTypeManual, testdb.SingleMessage.ID).
-		WithContactIDs([]models.ContactID{testdb.Cathy.ID, testdb.Bob.ID, testdb.George.ID, testdb.Alexandra.ID})
+		WithContactIDs([]models.ContactID{testdb.Ann.ID, testdb.Bob.ID, testdb.George.ID, testdb.Alexandra.ID})
 	err := models.InsertFlowStart(ctx, rt.DB, start1)
 	require.NoError(t, err)
 
 	assertdb.Query(t, rt.DB, `SELECT status FROM flows_flowstart WHERE id = $1`, start1.ID).Returns("P")
 
-	batch1 := start1.CreateBatch([]models.ContactID{testdb.Cathy.ID, testdb.Bob.ID}, true, false, 4)
+	batch1 := start1.CreateBatch([]models.ContactID{testdb.Ann.ID, testdb.Bob.ID}, true, false, 4)
 	batch2 := start1.CreateBatch([]models.ContactID{testdb.George.ID, testdb.Alexandra.ID}, false, true, 4)
 
 	// start the first batch...
@@ -38,15 +38,15 @@ func TestStartFlowBatchTask(t *testing.T) {
 	testsuite.FlushTasks(t, rt)
 
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE contact_uuid = ANY($1) 
-		AND status = 'C' AND call_uuid IS NULL AND output IS NOT NULL`, pq.Array([]flows.ContactUUID{testdb.Cathy.UUID, testdb.Bob.UUID})).
+		AND status = 'C' AND call_uuid IS NULL AND output IS NOT NULL`, pq.Array([]flows.ContactUUID{testdb.Ann.UUID, testdb.Bob.UUID})).
 		Returns(2)
 
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowrun WHERE contact_id = ANY($1) and flow_id = $2 AND responded = FALSE AND org_id = 1 AND status = 'C'
-		AND results IS NOT NULL AND path_nodes IS NOT NULL AND session_uuid IS NOT NULL`, pq.Array([]models.ContactID{testdb.Cathy.ID, testdb.Bob.ID}), testdb.SingleMessage.ID).
+		AND results IS NOT NULL AND path_nodes IS NOT NULL AND session_uuid IS NOT NULL`, pq.Array([]models.ContactID{testdb.Ann.ID, testdb.Bob.ID}), testdb.SingleMessage.ID).
 		Returns(2)
 
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE contact_id = ANY($1) AND text = 'Hey, how are you?' AND org_id = 1 AND status = 'Q' 
-		AND direction = 'O' AND msg_type = 'T'`, pq.Array([]models.ContactID{testdb.Cathy.ID, testdb.Bob.ID})).
+		AND direction = 'O' AND msg_type = 'T'`, pq.Array([]models.ContactID{testdb.Ann.ID, testdb.Bob.ID})).
 		Returns(2)
 
 	assertdb.Query(t, rt.DB, `SELECT status FROM flows_flowstart WHERE id = $1`, start1.ID).Returns("S")
@@ -61,11 +61,11 @@ func TestStartFlowBatchTask(t *testing.T) {
 
 	// create a second start
 	start2 := models.NewFlowStart(models.OrgID(1), models.StartTypeManual, testdb.SingleMessage.ID).
-		WithContactIDs([]models.ContactID{testdb.Cathy.ID, testdb.Bob.ID, testdb.George.ID, testdb.Alexandra.ID})
+		WithContactIDs([]models.ContactID{testdb.Ann.ID, testdb.Bob.ID, testdb.George.ID, testdb.Alexandra.ID})
 	err = models.InsertFlowStart(ctx, rt.DB, start2)
 	require.NoError(t, err)
 
-	start2Batch1 := start2.CreateBatch([]models.ContactID{testdb.Cathy.ID, testdb.Bob.ID}, true, false, 4)
+	start2Batch1 := start2.CreateBatch([]models.ContactID{testdb.Ann.ID, testdb.Bob.ID}, true, false, 4)
 	start2Batch2 := start2.CreateBatch([]models.ContactID{testdb.George.ID, testdb.Alexandra.ID}, false, true, 4)
 
 	// start the first batch...
@@ -95,9 +95,9 @@ func TestStartFlowBatchTaskNonPersistedStart(t *testing.T) {
 
 	// create a start
 	start := models.NewFlowStart(models.OrgID(1), models.StartTypeManual, testdb.SingleMessage.ID).
-		WithContactIDs([]models.ContactID{testdb.Cathy.ID, testdb.Bob.ID, testdb.George.ID, testdb.Alexandra.ID})
+		WithContactIDs([]models.ContactID{testdb.Ann.ID, testdb.Bob.ID, testdb.George.ID, testdb.Alexandra.ID})
 
-	batch := start.CreateBatch([]models.ContactID{testdb.Cathy.ID, testdb.Bob.ID}, true, true, 2)
+	batch := start.CreateBatch([]models.ContactID{testdb.Ann.ID, testdb.Bob.ID}, true, true, 2)
 
 	// start the first batch...
 	err := tasks.Queue(ctx, rt, rt.Queues.Throttled, testdb.Org1.ID, &starts.StartFlowBatchTask{FlowStartBatch: batch}, false)

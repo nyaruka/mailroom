@@ -96,13 +96,13 @@ func TestGetExpired(t *testing.T) {
 	s1 := testdb.InsertSchedule(rt, testdb.Org1, models.RepeatPeriodNever, time.Now().Add(-24*time.Hour))
 
 	testdb.InsertBroadcast(rt, testdb.Org1, "eng", map[i18n.Language]string{"eng": "Test message", "fra": "Un Message"}, optIn, s1,
-		[]*testdb.Contact{testdb.Cathy, testdb.George}, []*testdb.Group{testdb.DoctorsGroup},
+		[]*testdb.Contact{testdb.Ann, testdb.George}, []*testdb.Group{testdb.DoctorsGroup},
 	)
 
 	// add another and tie a trigger to it
 	s2 := testdb.InsertSchedule(rt, testdb.Org1, models.RepeatPeriodNever, time.Now().Add(-48*time.Hour))
 
-	testdb.InsertScheduledTrigger(rt, testdb.Org1, testdb.Favorites, s2, []*testdb.Group{testdb.DoctorsGroup}, nil, []*testdb.Contact{testdb.Cathy, testdb.George})
+	testdb.InsertScheduledTrigger(rt, testdb.Org1, testdb.Favorites, s2, []*testdb.Group{testdb.DoctorsGroup}, nil, []*testdb.Contact{testdb.Ann, testdb.George})
 
 	s3 := testdb.InsertSchedule(rt, testdb.Org1, models.RepeatPeriodNever, time.Now().Add(-72*time.Hour))
 
@@ -124,7 +124,7 @@ func TestGetExpired(t *testing.T) {
 	assert.NotNil(t, trigger)
 	assert.Equal(t, testdb.Favorites.ID, trigger.FlowID())
 	assert.Equal(t, testdb.Org1.ID, trigger.OrgID())
-	assert.Equal(t, []models.ContactID{testdb.Cathy.ID, testdb.George.ID}, trigger.ContactIDs())
+	assert.Equal(t, []models.ContactID{testdb.Ann.ID, testdb.George.ID}, trigger.ContactIDs())
 	assert.Equal(t, []models.GroupID{testdb.DoctorsGroup.ID}, trigger.IncludeGroupIDs())
 
 	assert.Equal(t, s1, schedules[2].ID)
@@ -136,7 +136,7 @@ func TestGetExpired(t *testing.T) {
 	assert.True(t, bcast.Expressions)
 	assert.Equal(t, optIn.ID, bcast.OptInID)
 	assert.Equal(t, testdb.Org1.ID, bcast.OrgID)
-	assert.Equal(t, []models.ContactID{testdb.Cathy.ID, testdb.George.ID}, bcast.ContactIDs)
+	assert.Equal(t, []models.ContactID{testdb.Ann.ID, testdb.George.ID}, bcast.ContactIDs)
 	assert.Equal(t, []models.GroupID{testdb.DoctorsGroup.ID}, bcast.GroupIDs)
 }
 

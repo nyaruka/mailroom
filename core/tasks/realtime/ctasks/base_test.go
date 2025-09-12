@@ -28,7 +28,7 @@ func TestTimedEvents(t *testing.T) {
 	testdb.InsertKeywordTrigger(rt, testdb.Org1, testdb.Favorites, []string{"start"}, models.MatchOnly, nil, nil, nil)
 	testdb.InsertKeywordTrigger(rt, testdb.Org1, testdb.PickANumber, []string{"pick"}, models.MatchOnly, nil, nil, nil)
 
-	contact := testdb.Cathy
+	contact := testdb.Ann
 
 	tcs := []struct {
 		eventType        string
@@ -110,7 +110,7 @@ func TestTimedEvents(t *testing.T) {
 			ctask = &ctasks.WaitTimeoutTask{SessionUUID: sessionUUID, SprintUUID: taskSprintUUID}
 		}
 
-		err := realtime.QueueTask(ctx, rt, testdb.Org1.ID, testdb.Cathy.ID, ctask)
+		err := realtime.QueueTask(ctx, rt, testdb.Org1.ID, testdb.Ann.ID, ctask)
 		assert.NoError(t, err, "%d: error adding task", i)
 
 		task, err := rt.Queues.Realtime.Pop(ctx, vc)
@@ -142,8 +142,8 @@ func TestTimedEvents(t *testing.T) {
 	}
 
 	// should only have a single waiting session/run with no timeout
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE status = 'W' AND contact_uuid = $1`, testdb.Cathy.UUID).Returns(1)
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowrun WHERE status = 'W' AND contact_id = $1`, testdb.Cathy.ID).Returns(1)
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'E'`, testdb.Cathy.ID).Returns(1)
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'T'`, testdb.Cathy.ID).Returns(0)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE status = 'W' AND contact_uuid = $1`, testdb.Ann.UUID).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowrun WHERE status = 'W' AND contact_id = $1`, testdb.Ann.ID).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'E'`, testdb.Ann.ID).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'T'`, testdb.Ann.ID).Returns(0)
 }

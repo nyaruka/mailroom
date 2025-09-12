@@ -26,8 +26,8 @@ func TestGetContactTotal(t *testing.T) {
 		expectedTotal int64
 		expectedError string
 	}{
-		{group: nil, query: "cathy OR bob", expectedTotal: 2},
-		{group: testdb.DoctorsGroup, query: "cathy OR bob", expectedTotal: 1},
+		{group: nil, query: "ann OR bob", expectedTotal: 2},
+		{group: testdb.DoctorsGroup, query: "ann OR bob", expectedTotal: 1},
 		{group: nil, query: "george", expectedTotal: 1},
 		{group: testdb.ActiveGroup, query: "george", expectedTotal: 1},
 		{group: nil, query: "age >= 30", expectedTotal: 1},
@@ -165,9 +165,9 @@ func TestGetContactIDsForQuery(t *testing.T) {
 		{
 			group:            testdb.DoctorsGroup,
 			status:           models.ContactStatusActive,
-			query:            "name = cathy",
+			query:            "name = ann",
 			limit:            -1,
-			expectedContacts: []models.ContactID{testdb.Cathy.ID},
+			expectedContacts: []models.ContactID{testdb.Ann.ID},
 		},
 		{
 			group:            nil,
@@ -188,7 +188,7 @@ func TestGetContactIDsForQuery(t *testing.T) {
 			status:           models.NilContactStatus,
 			query:            "",
 			limit:            1,
-			expectedContacts: []models.ContactID{testdb.Cathy.ID},
+			expectedContacts: []models.ContactID{testdb.Ann.ID},
 		},
 		{
 			group:            nil,

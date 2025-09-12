@@ -38,13 +38,13 @@ func TestBuildRecipientsQuery(t *testing.T) {
 	}{
 		{ // 0
 			groups:       []*models.Group{doctors, testers},
-			contactUUIDs: []flows.ContactUUID{testdb.Cathy.UUID, testdb.George.UUID},
+			contactUUIDs: []flows.ContactUUID{testdb.Ann.UUID, testdb.George.UUID},
 			exclusions:   models.Exclusions{},
 			expected:     `group = "Doctors" OR group = "Testers" OR uuid = "6393abc0-283d-4c9b-a1b3-641a035c34bf" OR uuid = "8d024bcd-f473-4719-a00a-bd0bb1190135"`,
 		},
 		{ // 1
 			groups:       []*models.Group{doctors},
-			contactUUIDs: []flows.ContactUUID{testdb.Cathy.UUID},
+			contactUUIDs: []flows.ContactUUID{testdb.Ann.UUID},
 			exclusions: models.Exclusions{
 				NonActive:         true,
 				InAFlow:           true,
@@ -55,7 +55,7 @@ func TestBuildRecipientsQuery(t *testing.T) {
 			expected:      `(group = "Doctors" OR uuid = "6393abc0-283d-4c9b-a1b3-641a035c34bf") AND status = "active" AND flow = "" AND history != "Favorites" AND last_seen_on > "20-01-2022" AND group != "Testers"`,
 		},
 		{ // 2
-			contactUUIDs: []flows.ContactUUID{testdb.Cathy.UUID},
+			contactUUIDs: []flows.ContactUUID{testdb.Ann.UUID},
 			exclusions: models.Exclusions{
 				NonActive: true,
 			},

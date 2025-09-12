@@ -39,10 +39,10 @@ func TestBroadcastsFromEvents(t *testing.T) {
 	}
 
 	doctors := assets.NewGroupReference(testdb.DoctorsGroup.UUID, "Doctors")
-	cathy := flows.NewContactReference(testdb.Cathy.UUID, "Cathy")
+	ann := flows.NewContactReference(testdb.Ann.UUID, "Ann")
 
-	// add an extra URN fo cathy
-	testdb.InsertContactURN(rt, testdb.Org1, testdb.Cathy, urns.URN("tel:+12065551212"), 1001, nil)
+	// add an extra URN fo Ann
+	testdb.InsertContactURN(rt, testdb.Org1, testdb.Ann, urns.URN("tel:+12065551212"), 1001, nil)
 
 	// change george's URN to an invalid twitter URN so it can't be sent
 	rt.DB.MustExec(`UPDATE contacts_contacturn SET identity = 'twitter:invalid-urn', scheme = 'twitter', path='invalid-urn' WHERE id = $1`, testdb.George.URNID)
@@ -97,7 +97,7 @@ func TestBroadcastsFromEvents(t *testing.T) {
 			translations:       basic,
 			baseLanguage:       eng,
 			groups:             []*assets.GroupReference{doctors},
-			contacts:           []*flows.ContactReference{cathy},
+			contacts:           []*flows.ContactReference{ann},
 			urns:               nil,
 			queue:              rt.Queues.Batch,
 			expectedBatchCount: 2,
@@ -108,7 +108,7 @@ func TestBroadcastsFromEvents(t *testing.T) {
 			translations:       basic,
 			baseLanguage:       eng,
 			groups:             nil,
-			contacts:           []*flows.ContactReference{cathy},
+			contacts:           []*flows.ContactReference{ann},
 			urns:               nil,
 			queue:              rt.Queues.Realtime,
 			expectedBatchCount: 1,
@@ -119,7 +119,7 @@ func TestBroadcastsFromEvents(t *testing.T) {
 			translations:       basic,
 			baseLanguage:       eng,
 			groups:             nil,
-			contacts:           []*flows.ContactReference{cathy},
+			contacts:           []*flows.ContactReference{ann},
 			urns:               []urns.URN{urns.URN("tel:+12065551212")},
 			queue:              rt.Queues.Realtime,
 			expectedBatchCount: 1,
@@ -130,7 +130,7 @@ func TestBroadcastsFromEvents(t *testing.T) {
 			translations:       basic,
 			baseLanguage:       eng,
 			groups:             nil,
-			contacts:           []*flows.ContactReference{cathy},
+			contacts:           []*flows.ContactReference{ann},
 			urns:               []urns.URN{urns.URN("tel:+250700000001")},
 			queue:              rt.Queues.Realtime,
 			expectedBatchCount: 1,
@@ -192,8 +192,8 @@ func TestSendBroadcastTask(t *testing.T) {
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshOrg|models.RefreshOptIns)
 	assert.NoError(t, err)
 
-	// add an extra URN for Cathy, change George's language to Spanish, and mark Bob as seen recently
-	testdb.InsertContactURN(rt, testdb.Org1, testdb.Cathy, urns.URN("tel:+12065551212"), 1001, nil)
+	// add an extra URN for Ann, change George's language to Spanish, and mark Bob as seen recently
+	testdb.InsertContactURN(rt, testdb.Org1, testdb.Ann, urns.URN("tel:+12065551212"), 1001, nil)
 	rt.DB.MustExec(`UPDATE contacts_contact SET language = 'spa', modified_on = NOW() WHERE id = $1`, testdb.George.ID)
 	rt.DB.MustExec(`UPDATE contacts_contact SET last_seen_on = NOW() - interval '45 days', modified_on = NOW() WHERE id = $1`, testdb.Bob.ID)
 
@@ -222,7 +222,7 @@ func TestSendBroadcastTask(t *testing.T) {
 			expressions:     false,
 			optIn:           polls,
 			groupIDs:        []models.GroupID{testdb.DoctorsGroup.ID},
-			contactIDs:      []models.ContactID{testdb.Cathy.ID},
+			contactIDs:      []models.ContactID{testdb.Ann.ID},
 			exclusions:      models.NoExclusions,
 			createdByID:     testdb.Admin.ID,
 			queue:           rt.Queues.Batch,
@@ -235,12 +235,12 @@ func TestSendBroadcastTask(t *testing.T) {
 			},
 			baseLanguage:    "eng",
 			expressions:     true,
-			contactIDs:      []models.ContactID{testdb.Cathy.ID},
+			contactIDs:      []models.ContactID{testdb.Ann.ID},
 			exclusions:      models.NoExclusions,
 			createdByID:     testdb.Agent.ID,
 			queue:           rt.Queues.Realtime,
 			expectedBatches: 1,
-			expectedMsgs:    map[string]int{"hi Cathy from TextIt goflow URN: tel:+12065551212 Gender: F": 1},
+			expectedMsgs:    map[string]int{"hi Ann from TextIt goflow URN: tel:+12065551212 Gender: F": 1},
 		},
 		{
 			translations: flows.BroadcastTranslations{
@@ -249,7 +249,7 @@ func TestSendBroadcastTask(t *testing.T) {
 			},
 			baseLanguage:    "eng",
 			expressions:     true,
-			query:           "name = Cathy OR name = George OR name = Bob",
+			query:           "name = Ann OR name = George OR name = Bob",
 			exclusions:      models.NoExclusions,
 			queue:           rt.Queues.Batch,
 			expectedBatches: 1,
@@ -262,7 +262,7 @@ func TestSendBroadcastTask(t *testing.T) {
 			},
 			baseLanguage:    "eng",
 			expressions:     true,
-			query:           "name = Cathy OR name = George OR name = Bob",
+			query:           "name = Ann OR name = George OR name = Bob",
 			exclusions:      models.Exclusions{NotSeenSinceDays: 60},
 			queue:           rt.Queues.Batch,
 			expectedBatches: 1,

@@ -18,7 +18,7 @@
                     "contact": {
                         "uuid": "6393abc0-283d-4c9b-a1b3-641a035c34bf",
                         "id": 10000,
-                        "name": "Cathy",
+                        "name": "Ann",
                         "status": "active",
                         "timezone": "America/Los_Angeles",
                         "created_on": "2018-07-06T12:30:00.123457Z"
@@ -30,7 +30,7 @@
         },
         "db_assertions": [
             {
-                "query": "SELECT count(*) FROM contacts_contact WHERE id = 10000 AND name = 'Cathy'",
+                "query": "SELECT count(*) FROM contacts_contact WHERE id = 10000 AND name = 'Ann'",
                 "count": 1
             }
         ]

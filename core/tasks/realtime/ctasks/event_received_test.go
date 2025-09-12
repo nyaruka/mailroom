@@ -28,15 +28,15 @@ func TestChannelEvents(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
-	// schedule a campaign fires for cathy and george
+	// schedule a campaign fires for Ann and George
 	rt.DB.MustExec(
 		fmt.Sprintf(`UPDATE contacts_contact SET fields = fields || '{"%s": { "text": "2029-09-15T12:00:00+00:00", "datetime": "2029-09-15T12:00:00+00:00" }}'::jsonb WHERE id = $1 OR id = $2`, testdb.JoinedField.UUID),
-		testdb.Cathy.ID, testdb.George.ID,
+		testdb.Ann.ID, testdb.George.ID,
 	)
-	testdb.InsertContactFire(rt, testdb.Org1, testdb.Cathy, models.ContactFireTypeCampaignPoint, fmt.Sprintf("%d:1", testdb.RemindersPoint1.ID), time.Now(), "")
+	testdb.InsertContactFire(rt, testdb.Org1, testdb.Ann, models.ContactFireTypeCampaignPoint, fmt.Sprintf("%d:1", testdb.RemindersPoint1.ID), time.Now(), "")
 	testdb.InsertContactFire(rt, testdb.Org1, testdb.George, models.ContactFireTypeCampaignPoint, fmt.Sprintf("%d:1", testdb.RemindersPoint1.ID), time.Now(), "")
 
-	// and george to doctors group, cathy is already part of it
+	// and george to doctors group, Ann is already part of it
 	rt.DB.MustExec(`INSERT INTO contacts_contactgroup_contacts(contactgroup_id, contact_id) VALUES($1, $2);`, testdb.DoctorsGroup.ID, testdb.George.ID)
 
 	// add some channel event triggers
@@ -47,7 +47,7 @@ func TestChannelEvents(t *testing.T) {
 
 	polls := testdb.InsertOptIn(rt, testdb.Org1, "Polls")
 
-	// add a URN for cathy so we can test twitter URNs
+	// add a URN for Ann so we can test twitter URNs
 	testdb.InsertContactURN(rt, testdb.Org1, testdb.Bob, urns.URN("twitterid:123456"), 10, nil)
 
 	// create a deleted contact
@@ -55,7 +55,7 @@ func TestChannelEvents(t *testing.T) {
 	rt.DB.MustExec(`UPDATE contacts_contact SET is_active = false WHERE id = $1`, deleted.ID)
 
 	// insert a dummy event into the database that will get the updates from handling each event which pretends to be it
-	eventID := testdb.InsertChannelEvent(rt, testdb.Org1, models.EventTypeMissedCall, testdb.TwilioChannel, testdb.Cathy, models.EventStatusPending)
+	eventID := testdb.InsertChannelEvent(rt, testdb.Org1, models.EventTypeMissedCall, testdb.TwilioChannel, testdb.Ann, models.EventStatusPending)
 
 	tcs := []struct {
 		contact             *testdb.Contact
@@ -65,40 +65,40 @@ func TestChannelEvents(t *testing.T) {
 		persistedEvents     map[flows.ContactUUID][]string
 	}{
 		{ // 0: new conversation on Facebook
-			contact: testdb.Cathy,
+			contact: testdb.Ann,
 			task: &ctasks.EventReceivedTask{
 				EventID:    eventID,
 				EventType:  models.EventTypeNewConversation,
 				ChannelID:  testdb.FacebookChannel.ID,
-				URNID:      testdb.Cathy.URNID,
+				URNID:      testdb.Ann.URNID,
 				Extra:      null.Map[any]{},
 				NewContact: false,
 			},
 			expectedTriggerType: "chat",
 			expectedResponse:    "What is your favorite color?",
-			persistedEvents:     map[flows.ContactUUID][]string{testdb.Cathy.UUID: {"chat_started", "run_started"}},
+			persistedEvents:     map[flows.ContactUUID][]string{testdb.Ann.UUID: {"chat_started", "run_started"}},
 		},
 		{ // 1: new conversation on Vonage (no trigger)
-			contact: testdb.Cathy,
+			contact: testdb.Ann,
 			task: &ctasks.EventReceivedTask{
 				EventID:    eventID,
 				EventType:  models.EventTypeNewConversation,
 				ChannelID:  testdb.VonageChannel.ID,
-				URNID:      testdb.Cathy.URNID,
+				URNID:      testdb.Ann.URNID,
 				Extra:      null.Map[any]{},
 				NewContact: false,
 			},
 			expectedTriggerType: "",
 			expectedResponse:    "",
-			persistedEvents:     map[flows.ContactUUID][]string{testdb.Cathy.UUID: {"chat_started"}},
+			persistedEvents:     map[flows.ContactUUID][]string{testdb.Ann.UUID: {"chat_started"}},
 		},
 		{ // 2: welcome message on Vonage
-			contact: testdb.Cathy,
+			contact: testdb.Ann,
 			task: &ctasks.EventReceivedTask{
 				EventID:    eventID,
 				EventType:  models.EventTypeWelcomeMessage,
 				ChannelID:  testdb.VonageChannel.ID,
-				URNID:      testdb.Cathy.URNID,
+				URNID:      testdb.Ann.URNID,
 				Extra:      null.Map[any]{},
 				NewContact: false,
 			},
@@ -107,91 +107,91 @@ func TestChannelEvents(t *testing.T) {
 			persistedEvents:     map[flows.ContactUUID][]string{},
 		},
 		{ // 3: referral on Facebook
-			contact: testdb.Cathy,
+			contact: testdb.Ann,
 			task: &ctasks.EventReceivedTask{
 				EventID:    eventID,
 				EventType:  models.EventTypeReferral,
 				ChannelID:  testdb.FacebookChannel.ID,
-				URNID:      testdb.Cathy.URNID,
+				URNID:      testdb.Ann.URNID,
 				Extra:      null.Map[any]{"referrer_id": "123456"},
 				NewContact: false,
 			},
 			expectedTriggerType: "",
 			expectedResponse:    "",
-			persistedEvents:     map[flows.ContactUUID][]string{testdb.Cathy.UUID: {"chat_started"}},
+			persistedEvents:     map[flows.ContactUUID][]string{testdb.Ann.UUID: {"chat_started"}},
 		},
 		{ // 4: referral on Facebook
-			contact: testdb.Cathy,
+			contact: testdb.Ann,
 			task: &ctasks.EventReceivedTask{
 				EventID:    eventID,
 				EventType:  models.EventTypeReferral,
 				ChannelID:  testdb.VonageChannel.ID,
-				URNID:      testdb.Cathy.URNID,
+				URNID:      testdb.Ann.URNID,
 				Extra:      null.Map[any]{"referrer_id": "123456"},
 				NewContact: false,
 			},
 			expectedTriggerType: "chat",
 			expectedResponse:    "Pick a number between 1-10.",
-			persistedEvents:     map[flows.ContactUUID][]string{testdb.Cathy.UUID: {"chat_started", "run_ended", "run_started"}},
+			persistedEvents:     map[flows.ContactUUID][]string{testdb.Ann.UUID: {"chat_started", "run_ended", "run_started"}},
 		},
 		{ // 5: optin on Vonage
-			contact: testdb.Cathy,
+			contact: testdb.Ann,
 			task: &ctasks.EventReceivedTask{
 				EventID:    eventID,
 				EventType:  models.EventTypeOptIn,
 				ChannelID:  testdb.VonageChannel.ID,
-				URNID:      testdb.Cathy.URNID,
+				URNID:      testdb.Ann.URNID,
 				OptInID:    polls.ID,
 				Extra:      map[string]any{"title": "Polls", "payload": fmt.Sprint(polls.ID)},
 				NewContact: false,
 			},
 			expectedTriggerType: "optin",
 			expectedResponse:    "What is your favorite color?",
-			persistedEvents:     map[flows.ContactUUID][]string{testdb.Cathy.UUID: {"optin_started", "run_ended", "run_started"}},
+			persistedEvents:     map[flows.ContactUUID][]string{testdb.Ann.UUID: {"optin_started", "run_ended", "run_started"}},
 		},
 		{ // 6: optout on Vonage
-			contact: testdb.Cathy,
+			contact: testdb.Ann,
 			task: &ctasks.EventReceivedTask{
 				EventID:    eventID,
 				EventType:  models.EventTypeOptOut,
 				ChannelID:  testdb.VonageChannel.ID,
-				URNID:      testdb.Cathy.URNID,
+				URNID:      testdb.Ann.URNID,
 				OptInID:    polls.ID,
 				Extra:      map[string]any{"title": "Polls", "payload": fmt.Sprint(polls.ID)},
 				NewContact: false,
 			},
 			expectedTriggerType: "optin",
 			expectedResponse:    "Pick a number between 1-10.",
-			persistedEvents:     map[flows.ContactUUID][]string{testdb.Cathy.UUID: {"optin_stopped", "run_ended", "run_started"}},
+			persistedEvents:     map[flows.ContactUUID][]string{testdb.Ann.UUID: {"optin_stopped", "run_ended", "run_started"}},
 		},
 		{ // 7: missed call trigger queued by RP
-			contact: testdb.Cathy,
+			contact: testdb.Ann,
 			task: &ctasks.EventReceivedTask{
 				EventID:    eventID,
 				EventType:  models.EventTypeMissedCall,
 				ChannelID:  testdb.VonageChannel.ID,
-				URNID:      testdb.Cathy.URNID,
+				URNID:      testdb.Ann.URNID,
 				OptInID:    polls.ID,
 				Extra:      map[string]any{"duration": 123},
 				NewContact: false,
 			},
 			expectedTriggerType: "",
 			expectedResponse:    "",
-			persistedEvents:     map[flows.ContactUUID][]string{testdb.Cathy.UUID: {"call_missed"}},
+			persistedEvents:     map[flows.ContactUUID][]string{testdb.Ann.UUID: {"call_missed"}},
 		},
 		{ // 8: stop contact
-			contact: testdb.Cathy,
+			contact: testdb.Ann,
 			task: &ctasks.EventReceivedTask{
 				EventID:    eventID,
 				EventType:  models.EventTypeStopContact,
 				ChannelID:  testdb.VonageChannel.ID,
-				URNID:      testdb.Cathy.URNID,
+				URNID:      testdb.Ann.URNID,
 				Extra:      null.Map[any]{},
 				NewContact: false,
 			},
 			expectedTriggerType: "",
 			expectedResponse:    "",
-			persistedEvents:     map[flows.ContactUUID][]string{testdb.Cathy.UUID: {"contact_status_changed", "contact_groups_changed"}},
+			persistedEvents:     map[flows.ContactUUID][]string{testdb.Ann.UUID: {"contact_status_changed", "contact_groups_changed"}},
 		},
 		{ // 9: a task against a deleted contact
 			contact: deleted,
@@ -208,12 +208,12 @@ func TestChannelEvents(t *testing.T) {
 			persistedEvents:     map[flows.ContactUUID][]string{},
 		},
 		{ // 10: task to delete contact
-			contact: testdb.Cathy,
+			contact: testdb.Ann,
 			task: &ctasks.EventReceivedTask{
 				EventID:    eventID,
 				EventType:  models.EventTypeDeleteContact,
 				ChannelID:  testdb.VonageChannel.ID,
-				URNID:      testdb.Cathy.URNID,
+				URNID:      testdb.Ann.URNID,
 				Extra:      null.Map[any]{},
 				NewContact: false,
 			},
@@ -226,7 +226,7 @@ func TestChannelEvents(t *testing.T) {
 	models.FlushCache()
 
 	lastLastSeenOn := time.Now().In(time.UTC).Add(-time.Hour)
-	rt.DB.MustExec(`UPDATE contacts_contact SET last_seen_on = $2 WHERE id = $1`, testdb.Cathy.ID, lastLastSeenOn)
+	rt.DB.MustExec(`UPDATE contacts_contact SET last_seen_on = $2 WHERE id = $1`, testdb.Ann.ID, lastLastSeenOn)
 
 	for i, tc := range tcs {
 		tc.task.(*ctasks.EventReceivedTask).CreatedOn = time.Now()
@@ -284,14 +284,14 @@ func TestChannelEvents(t *testing.T) {
 		dyntest.Truncate(t, rt.Dynamo, "TestHistory")
 	}
 
-	// last event was a stop_contact so check that cathy is stopped
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contact WHERE id = $1 AND status = 'S'`, testdb.Cathy.ID).Returns(1)
+	// last event was a stop_contact so check that Ann is stopped
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contact WHERE id = $1 AND status = 'S'`, testdb.Ann.ID).Returns(1)
 
 	// and that only george is left in the group
-	assertdb.Query(t, rt.DB, `SELECT count(*) from contacts_contactgroup_contacts WHERE contactgroup_id = $1 AND contact_id = $2`, testdb.DoctorsGroup.ID, testdb.Cathy.ID).Returns(0)
+	assertdb.Query(t, rt.DB, `SELECT count(*) from contacts_contactgroup_contacts WHERE contactgroup_id = $1 AND contact_id = $2`, testdb.DoctorsGroup.ID, testdb.Ann.ID).Returns(0)
 	assertdb.Query(t, rt.DB, `SELECT count(*) from contacts_contactgroup_contacts WHERE contactgroup_id = $1 AND contact_id = $2`, testdb.DoctorsGroup.ID, testdb.George.ID).Returns(1)
 
 	// and she has no upcoming campaign events
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'C'`, testdb.Cathy.ID).Returns(0)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'C'`, testdb.Ann.ID).Returns(0)
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'C'`, testdb.George.ID).Returns(1)
 }

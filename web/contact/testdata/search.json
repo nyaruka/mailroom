@@ -51,12 +51,12 @@
         "path": "/mi/contact/search",
         "body": {
             "org_id": 1,
-            "query": "Cathy",
+            "query": "Ann",
             "group_id": 10000
         },
         "status": 200,
         "response": {
-            "query": "name ~ \"Cathy\"",
+            "query": "name ~ \"Ann\"",
             "contact_ids": [
                 10000
             ],
@@ -78,7 +78,7 @@
         "path": "/mi/contact/search",
         "body": {
             "org_id": 1,
-            "query": "Cathy OR George",
+            "query": "Ann OR George",
             "group_id": 10000,
             "exclude_ids": [
                 10001,
@@ -87,7 +87,7 @@
         },
         "status": 200,
         "response": {
-            "query": "name ~ \"Cathy\" OR name ~ \"George\"",
+            "query": "name ~ \"Ann\" OR name ~ \"George\"",
             "contact_ids": [
                 10000
             ],

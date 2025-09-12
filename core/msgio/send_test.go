@@ -77,7 +77,7 @@ func TestQueueMessages(t *testing.T) {
 			Msgs: []msgSpec{
 				{
 					Channel: testdb.TwilioChannel,
-					Contact: testdb.Cathy,
+					Contact: testdb.Ann,
 				},
 				{
 					Channel: androidChannel1,
@@ -85,7 +85,7 @@ func TestQueueMessages(t *testing.T) {
 				},
 				{
 					Channel: testdb.TwilioChannel,
-					Contact: testdb.Cathy,
+					Contact: testdb.Ann,
 				},
 				{
 					Channel:      testdb.TwilioChannel,
@@ -94,7 +94,7 @@ func TestQueueMessages(t *testing.T) {
 				},
 			},
 			QueueSizes: map[string][]int{
-				"msgs:74729f45-7f29-4868-9dc4-90e491e3c7d8|10/0": {2}, // 2 default priority messages for Cathy
+				"msgs:74729f45-7f29-4868-9dc4-90e491e3c7d8|10/0": {2}, // 2 default priority messages for Ann
 				"msgs:74729f45-7f29-4868-9dc4-90e491e3c7d8|10/1": {1}, // 1 high priority message for Bob
 			},
 			FCMTokensSynced: []string{"FCMID1"},
@@ -105,7 +105,7 @@ func TestQueueMessages(t *testing.T) {
 			Msgs: []msgSpec{
 				{
 					Channel: androidChannel1,
-					Contact: testdb.Cathy,
+					Contact: testdb.Ann,
 				},
 				{
 					Channel: androidChannel2,
@@ -113,7 +113,7 @@ func TestQueueMessages(t *testing.T) {
 				},
 				{
 					Channel: androidChannel1,
-					Contact: testdb.Cathy,
+					Contact: testdb.Ann,
 				},
 			},
 			QueueSizes:      map[string][]int{},
@@ -125,7 +125,7 @@ func TestQueueMessages(t *testing.T) {
 			Msgs: []msgSpec{
 				{
 					Channel: testdb.TwilioChannel,
-					Contact: testdb.Cathy,
+					Contact: testdb.Ann,
 					Failed:  true,
 				},
 			},
@@ -138,7 +138,7 @@ func TestQueueMessages(t *testing.T) {
 			Msgs: []msgSpec{
 				{
 					Channel: nil,
-					Contact: testdb.Cathy,
+					Contact: testdb.Ann,
 				},
 			},
 			QueueSizes:      map[string][]int{},

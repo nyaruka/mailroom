@@ -161,9 +161,9 @@ func TestSessionWithSubflows(t *testing.T) {
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshFlows)
 	require.NoError(t, err)
 
-	startID := testdb.InsertFlowStart(rt, testdb.Org1, testdb.Admin, parent, []*testdb.Contact{testdb.Cathy})
+	startID := testdb.InsertFlowStart(rt, testdb.Org1, testdb.Admin, parent, []*testdb.Contact{testdb.Ann})
 
-	mc, contact, _ := testdb.Cathy.Load(rt, oa)
+	mc, contact, _ := testdb.Ann.Load(rt, oa)
 	scene := runner.NewScene(mc, contact)
 	scene.StartID = startID
 
@@ -187,7 +187,7 @@ func TestSessionWithSubflows(t *testing.T) {
 		Columns(map[string]any{"status": "W"})
 
 	// check we have a contact fire for wait expiration but not timeout
-	testsuite.AssertContactFires(t, rt, testdb.Cathy.ID, map[string]time.Time{
+	testsuite.AssertContactFires(t, rt, testdb.Ann.ID, map[string]time.Time{
 		fmt.Sprintf("E:%s", scene.Session.UUID()): time.Date(2025, 2, 25, 16, 55, 14, 0, time.UTC), // 10 minutes in future
 		fmt.Sprintf("S:%s", scene.Session.UUID()): time.Date(2025, 3, 28, 9, 55, 36, 0, time.UTC),  // 30 days + rand(1 - 24 hours) in future
 	})
@@ -197,7 +197,7 @@ func TestSessionWithSubflows(t *testing.T) {
 	assert.Equal(t, scene.Session.UUID(), modelSession.UUID)
 	assert.Equal(t, child.UUID, modelSession.CurrentFlowUUID)
 
-	msg2 := flows.NewMsgIn(testdb.Cathy.URN, nil, "yes", nil, "")
+	msg2 := flows.NewMsgIn(testdb.Ann.URN, nil, "yes", nil, "")
 	scene = runner.NewScene(mc, contact)
 
 	err = scene.ResumeSession(ctx, rt, oa, modelSession, resumes.NewMsg(events.NewMsgReceived(msg2)))
@@ -209,7 +209,7 @@ func TestSessionWithSubflows(t *testing.T) {
 	assert.Equal(t, time.Duration(0), scene.WaitTimeout) // flow has ended
 
 	// check we have no contact fires for wait expiration or timeout
-	testsuite.AssertContactFires(t, rt, testdb.Cathy.ID, map[string]time.Time{})
+	testsuite.AssertContactFires(t, rt, testdb.Ann.ID, map[string]time.Time{})
 }
 
 func TestSessionFailedStart(t *testing.T) {
@@ -229,7 +229,7 @@ func TestSessionFailedStart(t *testing.T) {
 	require.NoError(t, err)
 
 	trig := triggers.NewBuilder(ping.Reference()).Manual().Build()
-	scenes := testsuite.StartSessions(t, rt, oa, []*testdb.Contact{testdb.Cathy}, trig)
+	scenes := testsuite.StartSessions(t, rt, oa, []*testdb.Contact{testdb.Ann}, trig)
 
 	assert.Equal(t, flows.SessionStatusFailed, scenes[0].Session.Status())
 	assert.Len(t, scenes[0].Session.Runs(), 201)
@@ -369,18 +369,18 @@ func TestResumeSession(t *testing.T) {
 	require.NoError(t, err)
 
 	trigger := triggers.NewBuilder(flow.Reference()).Manual().Build()
-	scenes := testsuite.StartSessions(t, rt, oa, []*testdb.Contact{testdb.Cathy}, trigger)
+	scenes := testsuite.StartSessions(t, rt, oa, []*testdb.Contact{testdb.Ann}, trigger)
 	sessionUUID := scenes[0].SessionUUID()
 
 	assertdb.Query(t, rt.DB,
 		`SELECT count(*) FROM flows_flowsession WHERE contact_uuid = $1 AND current_flow_uuid = $2
-		 AND status = 'W' AND call_uuid IS NULL AND output IS NOT NULL`, testdb.Cathy.UUID, flow.UUID()).Returns(1)
+		 AND status = 'W' AND call_uuid IS NULL AND output IS NOT NULL`, testdb.Ann.UUID, flow.UUID()).Returns(1)
 
 	assertdb.Query(t, rt.DB,
 		`SELECT count(*) FROM flows_flowrun WHERE contact_id = $1 AND flow_id = $2
-		 AND status = 'W' AND responded = FALSE AND org_id = 1`, testdb.Cathy.ID, flow.ID()).Returns(1)
+		 AND status = 'W' AND responded = FALSE AND org_id = 1`, testdb.Ann.ID, flow.ID()).Returns(1)
 
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE contact_id = $1 AND direction = 'O' AND text like '%favorite color%'`, testdb.Cathy.ID).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE contact_id = $1 AND direction = 'O' AND text like '%favorite color%'`, testdb.Ann.ID).Returns(1)
 
 	tcs := []struct {
 		input               string
@@ -421,7 +421,7 @@ func TestResumeSession(t *testing.T) {
 	}
 
 	for i, tc := range tcs {
-		testsuite.ResumeSession(t, rt, oa, testdb.Cathy, tc.input)
+		testsuite.ResumeSession(t, rt, oa, testdb.Ann, tc.input)
 
 		assertdb.Query(t, rt.DB, `SELECT status, current_flow_uuid::text, call_uuid FROM flows_flowsession WHERE uuid = $1 AND output IS NOT NULL AND output_url IS NULL`, sessionUUID).
 			Columns(map[string]any{
@@ -433,7 +433,7 @@ func TestResumeSession(t *testing.T) {
 				"status": string(tc.expectedRunStatus), "responded": true, "flow_id": int64(flow.ID()), "current_node_uuid": tc.expectedNodeUUID,
 			}, "%d: run mismatch", i)
 
-		assertdb.Query(t, rt.DB, `SELECT text FROM msgs_msg WHERE contact_id = $1 AND direction = 'O' ORDER BY id DESC LIMIT 1`, testdb.Cathy.ID).
+		assertdb.Query(t, rt.DB, `SELECT text FROM msgs_msg WHERE contact_id = $1 AND direction = 'O' ORDER BY id DESC LIMIT 1`, testdb.Ann.ID).
 			Columns(map[string]any{"text": string(tc.expectedMsgOut)}, "%d: msg out mismatch", i)
 	}
 }

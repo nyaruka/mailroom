@@ -21,8 +21,8 @@ func TestSmartGroups(t *testing.T) {
 	// insert an event on our campaign
 	newEvent := testdb.InsertCampaignFlowPoint(rt, testdb.RemindersCampaign, testdb.Favorites, testdb.JoinedField, 1000, "W")
 
-	// clear Cathy's value
-	rt.DB.MustExec(`update contacts_contact set fields = fields - $2 WHERE id = $1`, testdb.Cathy.ID, testdb.JoinedField.UUID)
+	// clear Ann's value
+	rt.DB.MustExec(`update contacts_contact set fields = fields - $2 WHERE id = $1`, testdb.Ann.ID, testdb.JoinedField.UUID)
 
 	// and populate Bob's
 	rt.DB.MustExec(
@@ -41,8 +41,8 @@ func TestSmartGroups(t *testing.T) {
 		expectedEventIDs   []models.ContactID
 	}{
 		{ // 0
-			query:              "cathy",
-			expectedContactIDs: []models.ContactID{testdb.Cathy.ID},
+			query:              "ann",
+			expectedContactIDs: []models.ContactID{testdb.Ann.ID},
 			expectedEventIDs:   []models.ContactID{},
 		},
 		{ // 1

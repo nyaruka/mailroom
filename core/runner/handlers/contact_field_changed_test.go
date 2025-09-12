@@ -24,7 +24,7 @@ func TestContactFieldChanged(t *testing.T) {
 	tcs := []TestCase{
 		{
 			Actions: ContactActionMap{
-				testdb.Cathy.UUID: []flows.Action{
+				testdb.Ann.UUID: []flows.Action{
 					actions.NewSetContactField(flows.NewActionUUID(), gender, "Male"),
 					actions.NewSetContactField(flows.NewActionUUID(), gender, "Female"),
 					actions.NewSetContactField(flows.NewActionUUID(), age, ""),
@@ -47,12 +47,12 @@ func TestContactFieldChanged(t *testing.T) {
 			SQLAssertions: []SQLAssertion{
 				{
 					SQL:   `select count(*) from contacts_contact where id = $1 AND fields->$2 = '{"text":"Female"}'::jsonb`,
-					Args:  []any{testdb.Cathy.ID, testdb.GenderField.UUID},
+					Args:  []any{testdb.Ann.ID, testdb.GenderField.UUID},
 					Count: 1,
 				},
 				{
 					SQL:   `select count(*) from contacts_contact where id = $1 AND NOT fields?$2`,
-					Args:  []any{testdb.Cathy.ID, testdb.AgeField.UUID},
+					Args:  []any{testdb.Ann.ID, testdb.AgeField.UUID},
 					Count: 1,
 				},
 				{
@@ -87,7 +87,7 @@ func TestContactFieldChanged(t *testing.T) {
 				},
 			},
 			PersistedEvents: map[flows.ContactUUID][]string{
-				testdb.Cathy.UUID:     {"run_started", "contact_field_changed", "contact_field_changed", "run_ended"},
+				testdb.Ann.UUID:       {"run_started", "contact_field_changed", "contact_field_changed", "run_ended"},
 				testdb.Bob.UUID:       {"run_started", "contact_field_changed", "contact_field_changed", "run_ended"},
 				testdb.George.UUID:    {"run_started", "contact_field_changed", "contact_field_changed", "contact_field_changed", "run_ended"},
 				testdb.Alexandra.UUID: {"run_started", "contact_field_changed", "contact_field_changed", "run_ended"},

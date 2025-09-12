@@ -36,7 +36,7 @@ func TestScheduleCampaignEvent(t *testing.T) {
 	testsuite.QueueBatchTask(t, rt, testdb.Org1, &campaigns.ScheduleCampaignPointTask{PointID: testdb.RemindersPoint1.ID})
 	testsuite.FlushTasks(t, rt)
 
-	// cathy has no value for joined and alexandia has a value too far in past, but bob and george will have values...
+	// Ann has no value for joined and alexandia has a value too far in past, but bob and george will have values...
 	testsuite.AssertContactFires(t, rt, testdb.Bob.ID, map[string]time.Time{
 		"C/10000:1": time.Date(2030, 1, 5, 20, 0, 0, 0, time.UTC), // 12:00 in PST
 	})
@@ -64,8 +64,8 @@ func TestScheduleCampaignEvent(t *testing.T) {
 	// remove alexandria from campaign group
 	rt.DB.MustExec(`DELETE FROM contacts_contactgroup_contacts WHERE contact_id = $1`, testdb.Alexandra.ID)
 
-	// bump created_on for cathy and alexandria
-	rt.DB.MustExec(`UPDATE contacts_contact SET created_on = '2035-01-01T00:00:00Z' WHERE id = $1 OR id = $2`, testdb.Cathy.ID, testdb.Alexandra.ID)
+	// bump created_on for Ann and alexandria
+	rt.DB.MustExec(`UPDATE contacts_contact SET created_on = '2035-01-01T00:00:00Z' WHERE id = $1 OR id = $2`, testdb.Ann.ID, testdb.Alexandra.ID)
 
 	// create new campaign point based on created_on + 5 minutes
 	event3 := testdb.InsertCampaignFlowPoint(rt, testdb.RemindersCampaign, testdb.Favorites, testdb.CreatedOnField, 5, "M")
@@ -73,7 +73,7 @@ func TestScheduleCampaignEvent(t *testing.T) {
 	testsuite.QueueBatchTask(t, rt, testdb.Org1, &campaigns.ScheduleCampaignPointTask{PointID: event3.ID})
 	testsuite.FlushTasks(t, rt)
 
-	// only cathy is in the group and new enough to have a fire
+	// only Ann is in the group and new enough to have a fire
 	testsuite.AssertContactFires(t, rt, testdb.Bob.ID, map[string]time.Time{
 		"C/10000:1": time.Date(2030, 1, 5, 20, 0, 0, 0, time.UTC),
 		"C/10001:1": time.Date(2030, 1, 1, 0, 10, 0, 0, time.UTC),
@@ -82,7 +82,7 @@ func TestScheduleCampaignEvent(t *testing.T) {
 		"C/10000:1": time.Date(2030, 8, 23, 19, 0, 0, 0, time.UTC),
 		"C/10001:1": time.Date(2030, 8, 18, 11, 42, 0, 0, time.UTC),
 	})
-	testsuite.AssertContactFires(t, rt, testdb.Cathy.ID, map[string]time.Time{
+	testsuite.AssertContactFires(t, rt, testdb.Ann.ID, map[string]time.Time{
 		"C/30000:1": time.Date(2035, 1, 1, 0, 5, 0, 0, time.UTC),
 	})
 

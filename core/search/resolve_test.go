@@ -44,10 +44,10 @@ func TestResolveRecipients(t *testing.T) {
 			recipients: &search.Recipients{
 				ContactIDs: []models.ContactID{testdb.Bob.ID},
 				GroupIDs:   []models.GroupID{group1.ID},
-				Query:      `name = "Cathy" OR name = "Bob"`,
+				Query:      `name = "Ann" OR name = "Bob"`,
 			},
 			limit:       -1,
-			expectedIDs: []models.ContactID{testdb.Bob.ID, testdb.George.ID, testdb.Alexandra.ID, testdb.Cathy.ID},
+			expectedIDs: []models.ContactID{testdb.Bob.ID, testdb.George.ID, testdb.Alexandra.ID, testdb.Ann.ID},
 		},
 		{ // 3 exclude group
 			recipients: &search.Recipients{
@@ -59,10 +59,10 @@ func TestResolveRecipients(t *testing.T) {
 		},
 		{ // 4 limit number returned
 			recipients: &search.Recipients{
-				Query: `name = "Cathy" OR name = "Bob"`,
+				Query: `name = "Ann" OR name = "Bob"`,
 			},
 			limit:       1,
-			expectedIDs: []models.ContactID{testdb.Cathy.ID},
+			expectedIDs: []models.ContactID{testdb.Ann.ID},
 		},
 		{ // 5 create new contacts from URNs
 			recipients: &search.Recipients{

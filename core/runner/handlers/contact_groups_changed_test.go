@@ -21,7 +21,7 @@ func TestContactGroupsChanged(t *testing.T) {
 	tcs := []TestCase{
 		{
 			Actions: ContactActionMap{
-				testdb.Cathy.UUID: []flows.Action{
+				testdb.Ann.UUID: []flows.Action{
 					actions.NewAddContactGroups(flows.NewActionUUID(), []*assets.GroupReference{doctors}),
 					actions.NewAddContactGroups(flows.NewActionUUID(), []*assets.GroupReference{doctors}),
 					actions.NewRemoveContactGroups(flows.NewActionUUID(), []*assets.GroupReference{doctors}, false),
@@ -35,12 +35,12 @@ func TestContactGroupsChanged(t *testing.T) {
 			SQLAssertions: []SQLAssertion{
 				{
 					SQL:   "select count(*) from contacts_contactgroup_contacts where contact_id = $1 and contactgroup_id = $2",
-					Args:  []any{testdb.Cathy.ID, testdb.DoctorsGroup.ID},
+					Args:  []any{testdb.Ann.ID, testdb.DoctorsGroup.ID},
 					Count: 0,
 				},
 				{
 					SQL:   "select count(*) from contacts_contactgroup_contacts where contact_id = $1 and contactgroup_id = $2",
-					Args:  []any{testdb.Cathy.ID, testdb.TestersGroup.ID},
+					Args:  []any{testdb.Ann.ID, testdb.TestersGroup.ID},
 					Count: 1,
 				},
 				{
@@ -55,7 +55,7 @@ func TestContactGroupsChanged(t *testing.T) {
 				},
 			},
 			PersistedEvents: map[flows.ContactUUID][]string{
-				testdb.Cathy.UUID:     {"run_started", "contact_groups_changed", "contact_groups_changed", "run_ended"},
+				testdb.Ann.UUID:       {"run_started", "contact_groups_changed", "contact_groups_changed", "run_ended"},
 				testdb.Bob.UUID:       {"run_started", "run_ended"},
 				testdb.George.UUID:    {"run_started", "contact_groups_changed", "run_ended"},
 				testdb.Alexandra.UUID: {"run_started", "run_ended"},

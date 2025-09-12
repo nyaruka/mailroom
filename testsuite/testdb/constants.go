@@ -26,7 +26,7 @@ var VonageChannel = &Channel{10001, "19012bfd-3ce3-4cae-9bb9-76cf92c73d49", "NX"
 var FacebookChannel = &Channel{10002, "0f661e8b-ea9d-4bd3-9953-d368340acf91", "FBA"}
 var AndroidChannel = &Channel{10003, "8e7b62ee-2e84-4601-8fef-2e44c490b43e", "A"}
 
-var Cathy = &Contact{10000, "6393abc0-283d-4c9b-a1b3-641a035c34bf", "tel:+16055741111", 10000}
+var Ann = &Contact{10000, "6393abc0-283d-4c9b-a1b3-641a035c34bf", "tel:+16055741111", 10000}
 var Bob = &Contact{10001, "b699a406-7e44-49be-9f01-1a82893e8a10", "tel:+16055742222", 10001}
 var George = &Contact{10002, "8d024bcd-f473-4719-a00a-bd0bb1190135", "tel:+16055743333", 10002}
 var Alexandra = &Contact{10003, "9709c157-4606-4d41-9df3-9e9c9b4ae2d4", "tel:+593999123456", 10003}
