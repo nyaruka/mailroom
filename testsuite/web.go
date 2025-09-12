@@ -115,7 +115,7 @@ func RunWebTests(t *testing.T, ctx context.Context, rt *runtime.Runtime, truthFi
 		actual.Status = resp.StatusCode
 		actual.HTTPMocks = clonedMocks
 		actual.actualResponse, err = io.ReadAll(resp.Body)
-		actual.ExpectedTasks = getActualQueuedTasks(t, rt)
+		actual.ExpectedTasks = GetQueuedTasks(t, rt)
 		actual.ExpectedHistory = jsonx.MustMarshal(GetHistoryItems(t, rt))
 
 		assert.NoError(t, err, "%s: error reading body", tc.Label)
@@ -210,24 +210,6 @@ func overwriteRecentTimestamps(resp []byte) []byte {
 		}
 		return b
 	})
-}
-
-func getActualQueuedTasks(t *testing.T, rt *runtime.Runtime) map[string][]string {
-	t.Helper()
-
-	actual := make(map[string][]string)
-
-	for _, qname := range []string{"realtime", "batch", "throttled"} {
-		for orgID, oTasks := range CurrentTasks(t, rt, qname) {
-			types := make([]string, len(oTasks))
-			for i, task := range oTasks {
-				types[i] = task.Type
-			}
-			actual[fmt.Sprintf("%s/%d", qname, orgID)] = types
-		}
-	}
-
-	return actual
 }
 
 // MultiPartPart is a single part in a multipart encoded request

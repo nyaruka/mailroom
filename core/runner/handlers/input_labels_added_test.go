@@ -25,20 +25,20 @@ func TestInputLabelsAdded(t *testing.T) {
 	tcs := []TestCase{
 		{
 			Actions: ContactActionMap{
-				testdb.Cathy: []flows.Action{
+				testdb.Cathy.UUID: []flows.Action{
 					actions.NewAddInputLabels(flows.NewActionUUID(), []*assets.LabelReference{reporting}),
 					actions.NewAddInputLabels(flows.NewActionUUID(), []*assets.LabelReference{testing}),
 					actions.NewAddInputLabels(flows.NewActionUUID(), []*assets.LabelReference{reporting}),
 				},
-				testdb.Bob: []flows.Action{},
-				testdb.George: []flows.Action{
+				testdb.Bob.UUID: []flows.Action{},
+				testdb.George.UUID: []flows.Action{
 					actions.NewAddInputLabels(flows.NewActionUUID(), []*assets.LabelReference{testing}),
 					actions.NewAddInputLabels(flows.NewActionUUID(), []*assets.LabelReference{reporting}),
 				},
 			},
 			Msgs: ContactMsgMap{
-				testdb.Cathy: msg1,
-				testdb.Bob:   msg2,
+				testdb.Cathy.UUID: msg1,
+				testdb.Bob.UUID:   msg2,
 			},
 			SQLAssertions: []SQLAssertion{
 				{
@@ -66,5 +66,5 @@ func TestInputLabelsAdded(t *testing.T) {
 		},
 	}
 
-	runTestCases(t, ctx, rt, tcs)
+	runTestCases(t, ctx, rt, tcs, testsuite.ResetDynamo)
 }

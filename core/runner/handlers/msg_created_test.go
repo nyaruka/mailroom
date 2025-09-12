@@ -43,21 +43,21 @@ func TestMsgCreated(t *testing.T) {
 	tcs := []TestCase{
 		{
 			Actions: ContactActionMap{
-				testdb.Cathy: []flows.Action{
+				testdb.Cathy.UUID: []flows.Action{
 					actions.NewSendMsg(flows.NewActionUUID(), "Hello World", nil, []string{"yes", "no"}, true),
 				},
-				testdb.George: []flows.Action{
+				testdb.George.UUID: []flows.Action{
 					actions.NewSendMsg(flows.NewActionUUID(), "Hello Attachments", []string{"image/png:/images/image1.png"}, nil, true),
 				},
-				testdb.Bob: []flows.Action{
+				testdb.Bob.UUID: []flows.Action{
 					actions.NewSendMsg(flows.NewActionUUID(), "No URNs", nil, nil, false),
 				},
-				testdb.Alexandra: []flows.Action{
+				testdb.Alexandra.UUID: []flows.Action{
 					templateAction,
 				},
 			},
 			Msgs: ContactMsgMap{
-				testdb.Cathy: msg1,
+				testdb.Cathy.UUID: msg1,
 			},
 			SQLAssertions: []SQLAssertion{
 				{
@@ -94,7 +94,7 @@ func TestMsgCreated(t *testing.T) {
 		},
 	}
 
-	runTestCases(t, ctx, rt, tcs)
+	runTestCases(t, ctx, rt, tcs, testsuite.ResetDynamo)
 
 	// Cathy should have 1 batch of queued messages at high priority
 	assertvk.ZCard(t, vc, fmt.Sprintf("msgs:%s|10/1", testdb.TwilioChannel.UUID), 1)
@@ -123,14 +123,14 @@ func TestMsgCreatedNewURN(t *testing.T) {
 		{
 			Actions: ContactActionMap{
 				// brand new URN on Cathy
-				testdb.Cathy: []flows.Action{
+				testdb.Cathy.UUID: []flows.Action{
 					actions.NewAddContactURN(flows.NewActionUUID(), "telegram", "12345"),
 					actions.NewSetContactChannel(flows.NewActionUUID(), assets.NewChannelReference(telegramUUID, "telegram")),
 					actions.NewSendMsg(flows.NewActionUUID(), "Cathy Message", nil, nil, false),
 				},
 
 				// Bob is stealing a URN previously assigned to George
-				testdb.Bob: []flows.Action{
+				testdb.Bob.UUID: []flows.Action{
 					actions.NewAddContactURN(flows.NewActionUUID(), "telegram", "67890"),
 					actions.NewSetContactChannel(flows.NewActionUUID(), assets.NewChannelReference(telegramUUID, "telegram")),
 					actions.NewSendMsg(flows.NewActionUUID(), "Bob Message", nil, nil, false),
@@ -181,5 +181,5 @@ func TestMsgCreatedNewURN(t *testing.T) {
 		},
 	}
 
-	runTestCases(t, ctx, rt, tcs)
+	runTestCases(t, ctx, rt, tcs, testsuite.ResetDynamo)
 }

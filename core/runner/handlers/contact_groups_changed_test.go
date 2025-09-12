@@ -21,13 +21,13 @@ func TestContactGroupsChanged(t *testing.T) {
 	tcs := []TestCase{
 		{
 			Actions: ContactActionMap{
-				testdb.Cathy: []flows.Action{
+				testdb.Cathy.UUID: []flows.Action{
 					actions.NewAddContactGroups(flows.NewActionUUID(), []*assets.GroupReference{doctors}),
 					actions.NewAddContactGroups(flows.NewActionUUID(), []*assets.GroupReference{doctors}),
 					actions.NewRemoveContactGroups(flows.NewActionUUID(), []*assets.GroupReference{doctors}, false),
 					actions.NewAddContactGroups(flows.NewActionUUID(), []*assets.GroupReference{testers}),
 				},
-				testdb.George: []flows.Action{
+				testdb.George.UUID: []flows.Action{
 					actions.NewRemoveContactGroups(flows.NewActionUUID(), []*assets.GroupReference{doctors}, false),
 					actions.NewAddContactGroups(flows.NewActionUUID(), []*assets.GroupReference{testers}),
 				},
@@ -63,5 +63,5 @@ func TestContactGroupsChanged(t *testing.T) {
 		},
 	}
 
-	runTestCases(t, ctx, rt, tcs)
+	runTestCases(t, ctx, rt, tcs, testsuite.ResetDynamo)
 }

@@ -54,10 +54,10 @@ func TestWebhookCalled(t *testing.T) {
 	tcs := []TestCase{
 		{
 			Actions: ContactActionMap{
-				testdb.Cathy: []flows.Action{
+				testdb.Cathy.UUID: []flows.Action{
 					actions.NewCallResthook(flows.NewActionUUID(), "foo", "foo"), // calls both subscribers
 				},
-				testdb.George: []flows.Action{
+				testdb.George.UUID: []flows.Action{
 					actions.NewCallResthook(flows.NewActionUUID(), "foo", "foo"), // calls both subscribers
 					actions.NewCallWebhook(flows.NewActionUUID(), "GET", "http://rapidpro.io/?unsub=1", nil, "", ""),
 				},
@@ -98,7 +98,7 @@ func TestWebhookCalled(t *testing.T) {
 		},
 	}
 
-	runTestCases(t, ctx, rt, tcs)
+	runTestCases(t, ctx, rt, tcs, testsuite.ResetDynamo)
 }
 
 // a webhook service which fakes slow responses

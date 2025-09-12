@@ -39,7 +39,7 @@ func TestTicketOpened(t *testing.T) {
 	tcs := []TestCase{
 		{
 			Actions: ContactActionMap{
-				testdb.Cathy: []flows.Action{
+				testdb.Cathy.UUID: []flows.Action{
 					actions.NewOpenTicket(
 						flows.NewActionUUID(),
 						assets.NewTopicReference(testdb.SupportTopic.UUID, "Support"),
@@ -47,7 +47,7 @@ func TestTicketOpened(t *testing.T) {
 						assets.NewUserReference("e29fdf9f-56ab-422a-b77d-e3ec26091a25", "Admin"),
 					),
 				},
-				testdb.Bob: []flows.Action{
+				testdb.Bob.UUID: []flows.Action{
 					actions.NewOpenTicket(
 						flows.NewActionUUID(),
 						nil,
@@ -100,5 +100,5 @@ func TestTicketOpened(t *testing.T) {
 		},
 	}
 
-	runTestCases(t, ctx, rt, tcs)
+	runTestCases(t, ctx, rt, tcs, testsuite.ResetDynamo)
 }

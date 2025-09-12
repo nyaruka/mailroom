@@ -21,13 +21,13 @@ func TestContactURNsChanged(t *testing.T) {
 	tcs := []TestCase{
 		{
 			Actions: ContactActionMap{
-				testdb.Cathy: []flows.Action{
+				testdb.Cathy.UUID: []flows.Action{
 					actions.NewAddContactURN(flows.NewActionUUID(), "tel", "12065551212"),
 					actions.NewAddContactURN(flows.NewActionUUID(), "tel", "12065551212"),
 					actions.NewAddContactURN(flows.NewActionUUID(), "telegram", "11551"),
 					actions.NewAddContactURN(flows.NewActionUUID(), "tel", "+16055741111"),
 				},
-				testdb.George: []flows.Action{},
+				testdb.George.UUID: []flows.Action{},
 			},
 			SQLAssertions: []SQLAssertion{
 				{
@@ -61,5 +61,5 @@ func TestContactURNsChanged(t *testing.T) {
 		},
 	}
 
-	runTestCases(t, ctx, rt, tcs)
+	runTestCases(t, ctx, rt, tcs, testsuite.ResetDynamo)
 }
