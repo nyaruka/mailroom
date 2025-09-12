@@ -1,3 +1,8 @@
+v10.3.68 (2025-09-12)
+-------------------------
+ * Rework close and reopen ticket endpoints to use modifiers
+ * Reduce wait time for locks during flow starts to 1 minute
+
 v10.3.67 (2025-09-11)
 -------------------------
  * Update to latest goflow which changes ticket modifiers to operate on a single ticket
