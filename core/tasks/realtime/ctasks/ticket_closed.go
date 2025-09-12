@@ -22,14 +22,12 @@ func init() {
 }
 
 type TicketClosedTask struct {
-	Event      *events.TicketClosed `json:"event"`
-	TicketUUID flows.TicketUUID     `json:"ticket_uuid"` // deprecated
+	Event *events.TicketClosed `json:"event"`
 }
 
 func NewTicketClosed(evt *events.TicketClosed) *TicketClosedTask {
 	return &TicketClosedTask{
-		Event:      evt,
-		TicketUUID: evt.TicketUUID,
+		Event: evt,
 	}
 }
 
@@ -43,7 +41,7 @@ func (t *TicketClosedTask) UseReadOnly() bool {
 
 func (t *TicketClosedTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, mc *models.Contact) error {
 	// load our ticket
-	tickets, err := models.LoadTickets(ctx, rt.DB, oa.OrgID(), []flows.TicketUUID{t.TicketUUID})
+	tickets, err := models.LoadTickets(ctx, rt.DB, oa.OrgID(), []flows.TicketUUID{t.Event.TicketUUID})
 	if err != nil {
 		return fmt.Errorf("error loading ticket: %w", err)
 	}
@@ -63,7 +61,7 @@ func (t *TicketClosedTask) Perform(ctx context.Context, rt *runtime.Runtime, oa 
 
 	// no trigger, noop, move on
 	if trigger == nil {
-		slog.Debug("ignoring ticket closed event, no trigger found", "ticket", t.TicketUUID)
+		slog.Debug("ignoring ticket closed event, no trigger found", "ticket", t.Event.TicketUUID)
 		return nil
 	}
 
@@ -78,13 +76,10 @@ func (t *TicketClosedTask) Perform(ctx context.Context, rt *runtime.Runtime, oa 
 
 	ticket := tickets[0].EngineTicket(oa)
 
-	// TODO pass event in task payload since it already exists?
-	evt := events.NewTicketClosed(ticket)
-
 	scene := runner.NewScene(mc, contact)
 
 	// build our flow trigger
-	flowTrigger := triggers.NewBuilder(flow.Reference()).TicketClosed(evt, ticket).Build()
+	flowTrigger := triggers.NewBuilder(flow.Reference()).TicketClosed(t.Event, ticket).Build()
 
 	// if this is a voice flow, we request a call and wait for callback
 	if flow.FlowType() == models.FlowTypeVoice {

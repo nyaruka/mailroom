@@ -23,8 +23,6 @@ func TestTicketClosed(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
-	oa := testdb.Org1.Load(rt)
-
 	// add a ticket closed trigger
 	testdb.InsertTicketClosedTrigger(rt, testdb.Org1, testdb.Favorites)
 	models.FlushCache()
@@ -33,7 +31,8 @@ func TestTicketClosed(t *testing.T) {
 	modelTicket := ticket.Load(rt, testdb.Org1)
 
 	models.NewTicketClosedEvent(flows.NewEventUUID(), modelTicket, testdb.Admin.ID)
-	evt := events.NewTicketClosed(modelTicket.EngineTicket(oa))
+
+	evt := events.NewTicketClosed("01992f54-5ab6-717a-a39e-e8ca91fb7262")
 
 	err := realtime.QueueTask(ctx, rt, testdb.Org1.ID, testdb.Cathy.ID, ctasks.NewTicketClosed(evt))
 	require.NoError(t, err)
