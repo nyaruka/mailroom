@@ -27,14 +27,14 @@ func TestTicketClosed(t *testing.T) {
 	testdb.InsertTicketClosedTrigger(rt, testdb.Org1, testdb.Favorites)
 	models.FlushCache()
 
-	ticket := testdb.InsertClosedTicket(rt, "01992f54-5ab6-717a-a39e-e8ca91fb7262", testdb.Org1, testdb.Cathy, testdb.DefaultTopic, nil)
+	ticket := testdb.InsertClosedTicket(rt, "01992f54-5ab6-717a-a39e-e8ca91fb7262", testdb.Org1, testdb.Ann, testdb.DefaultTopic, nil)
 	modelTicket := ticket.Load(rt, testdb.Org1)
 
 	models.NewTicketClosedEvent(flows.NewEventUUID(), modelTicket, testdb.Admin.ID)
 
 	evt := events.NewTicketClosed("01992f54-5ab6-717a-a39e-e8ca91fb7262")
 
-	err := realtime.QueueTask(ctx, rt, testdb.Org1.ID, testdb.Cathy.ID, ctasks.NewTicketClosed(evt))
+	err := realtime.QueueTask(ctx, rt, testdb.Org1.ID, testdb.Ann.ID, ctasks.NewTicketClosed(evt))
 	require.NoError(t, err)
 
 	task, err := rt.Queues.Realtime.Pop(ctx, vc)
@@ -43,5 +43,5 @@ func TestTicketClosed(t *testing.T) {
 	err = tasks.Perform(ctx, rt, task)
 	require.NoError(t, err)
 
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE contact_id = $1 AND direction = 'O' AND text = 'What is your favorite color?'`, testdb.Cathy.ID).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE contact_id = $1 AND direction = 'O' AND text = 'What is your favorite color?'`, testdb.Ann.ID).Returns(1)
 }

@@ -22,7 +22,7 @@ func TestAirtimeTransfers(t *testing.T) {
 	// insert a transfer
 	transfer := models.NewAirtimeTransfer(
 		testdb.Org1.ID,
-		testdb.Cathy.ID,
+		testdb.Ann.ID,
 		events.NewAirtimeTransferred(&flows.AirtimeTransfer{
 			ExternalID: "2237512891",
 			Sender:     urns.URN("tel:+250700000001"),
@@ -39,7 +39,7 @@ func TestAirtimeTransfers(t *testing.T) {
 	// insert a failed transfer with nil sender, empty currency
 	transfer = models.NewAirtimeTransfer(
 		testdb.Org1.ID,
-		testdb.Cathy.ID,
+		testdb.Ann.ID,
 		events.NewAirtimeTransferred(&flows.AirtimeTransfer{
 			ExternalID: "2237512891",
 			Sender:     urns.NilURN,

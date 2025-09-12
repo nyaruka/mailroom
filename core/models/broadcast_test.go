@@ -32,7 +32,7 @@ func TestBroadcasts(t *testing.T) {
 		true,
 		optIn.ID,
 		[]models.GroupID{testdb.DoctorsGroup.ID},
-		[]models.ContactID{testdb.Alexandra.ID, testdb.Bob.ID, testdb.Cathy.ID},
+		[]models.ContactID{testdb.Dan.ID, testdb.Bob.ID, testdb.Ann.ID},
 		[]urns.URN{"tel:+593979012345"},
 		"age > 33",
 		models.NoExclusions,
@@ -75,7 +75,7 @@ func TestInsertChildBroadcast(t *testing.T) {
 
 	optIn := testdb.InsertOptIn(rt, testdb.Org1, "Polls")
 	schedID := testdb.InsertSchedule(rt, testdb.Org1, models.RepeatPeriodDaily, time.Now())
-	bcastID := testdb.InsertBroadcast(rt, testdb.Org1, `eng`, map[i18n.Language]string{`eng`: "Hello"}, optIn, schedID, []*testdb.Contact{testdb.Bob, testdb.Cathy}, nil)
+	bcastID := testdb.InsertBroadcast(rt, testdb.Org1, `eng`, map[i18n.Language]string{`eng`: "Hello"}, optIn, schedID, []*testdb.Contact{testdb.Bob, testdb.Ann}, nil)
 
 	var bj json.RawMessage
 	err := rt.DB.GetContext(ctx, &bj, `SELECT ROW_TO_JSON(r) FROM (
@@ -112,7 +112,7 @@ func TestNonPersistentBroadcasts(t *testing.T) {
 		true,
 		optIn.ID,
 		[]models.GroupID{testdb.DoctorsGroup.ID},
-		[]models.ContactID{testdb.Alexandra.ID, testdb.Bob.ID, testdb.Cathy.ID},
+		[]models.ContactID{testdb.Dan.ID, testdb.Bob.ID, testdb.Ann.ID},
 		[]urns.URN{"tel:+593979012345"},
 		"",
 		models.NoExclusions,
@@ -125,16 +125,16 @@ func TestNonPersistentBroadcasts(t *testing.T) {
 	assert.Equal(t, translations, bcast.Translations)
 	assert.Equal(t, optIn.ID, bcast.OptInID)
 	assert.Equal(t, []models.GroupID{testdb.DoctorsGroup.ID}, bcast.GroupIDs)
-	assert.Equal(t, []models.ContactID{testdb.Alexandra.ID, testdb.Bob.ID, testdb.Cathy.ID}, bcast.ContactIDs)
+	assert.Equal(t, []models.ContactID{testdb.Dan.ID, testdb.Bob.ID, testdb.Ann.ID}, bcast.ContactIDs)
 	assert.Equal(t, []urns.URN{"tel:+593979012345"}, bcast.URNs)
 	assert.Equal(t, "", bcast.Query)
 	assert.Equal(t, models.NoExclusions, bcast.Exclusions)
 
-	batch := bcast.CreateBatch([]models.ContactID{testdb.Alexandra.ID, testdb.Bob.ID}, true, false)
+	batch := bcast.CreateBatch([]models.ContactID{testdb.Dan.ID, testdb.Bob.ID}, true, false)
 
 	assert.Equal(t, models.NilBroadcastID, batch.BroadcastID)
 	assert.NotNil(t, testdb.Org1.ID, batch.Broadcast)
-	assert.Equal(t, []models.ContactID{testdb.Alexandra.ID, testdb.Bob.ID}, batch.ContactIDs)
+	assert.Equal(t, []models.ContactID{testdb.Dan.ID, testdb.Bob.ID}, batch.ContactIDs)
 
 	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 	require.NoError(t, err)

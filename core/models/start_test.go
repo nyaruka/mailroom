@@ -23,7 +23,7 @@ func TestStarts(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
-	startID := testdb.InsertFlowStart(rt, testdb.Org1, testdb.Admin, testdb.SingleMessage, []*testdb.Contact{testdb.Cathy, testdb.Bob})
+	startID := testdb.InsertFlowStart(rt, testdb.Org1, testdb.Admin, testdb.SingleMessage, []*testdb.Contact{testdb.Ann, testdb.Bob})
 
 	startJSON := fmt.Appendf(nil, `{
 		"start_id": %d,
@@ -41,7 +41,7 @@ func TestStarts(t *testing.T) {
 		"params": {"foo": "bar"},
 		"parent_summary": {"uuid": "b65b1a22-db6d-4f5a-9b3d-7302368a82e6"},
 		"session_history": {"parent_uuid": "532a3899-492f-4ffe-aed7-e75ad524efab", "ancestors": 3, "ancestors_since_input": 1}
-	}`, startID, testdb.Org1.ID, testdb.Admin.ID, testdb.SingleMessage.ID, testdb.Cathy.ID, testdb.Bob.ID, testdb.DoctorsGroup.ID, testdb.TestersGroup.ID)
+	}`, startID, testdb.Org1.ID, testdb.Admin.ID, testdb.SingleMessage.ID, testdb.Ann.ID, testdb.Bob.ID, testdb.DoctorsGroup.ID, testdb.TestersGroup.ID)
 
 	start := &models.FlowStart{}
 	err := json.Unmarshal(startJSON, start)
@@ -54,7 +54,7 @@ func TestStarts(t *testing.T) {
 	assert.Equal(t, "", start.Query)
 	assert.False(t, start.Exclusions.StartedPreviously)
 	assert.False(t, start.Exclusions.InAFlow)
-	assert.Equal(t, []models.ContactID{testdb.Cathy.ID, testdb.Bob.ID}, start.ContactIDs)
+	assert.Equal(t, []models.ContactID{testdb.Ann.ID, testdb.Bob.ID}, start.ContactIDs)
 	assert.Equal(t, []models.GroupID{testdb.DoctorsGroup.ID}, start.GroupIDs)
 	assert.Equal(t, []models.GroupID{testdb.TestersGroup.ID}, start.ExcludeGroupIDs)
 
@@ -68,9 +68,9 @@ func TestStarts(t *testing.T) {
 	require.NoError(t, err)
 	assertdb.Query(t, rt.DB, `SELECT status, contact_count FROM flows_flowstart WHERE id = $1`, startID).Columns(map[string]any{"status": "Q", "contact_count": int64(5)})
 
-	batch := start.CreateBatch([]models.ContactID{testdb.Cathy.ID, testdb.Bob.ID}, true, false, 3)
+	batch := start.CreateBatch([]models.ContactID{testdb.Ann.ID, testdb.Bob.ID}, true, false, 3)
 	assert.Equal(t, startID, batch.StartID)
-	assert.Equal(t, []models.ContactID{testdb.Cathy.ID, testdb.Bob.ID}, batch.ContactIDs)
+	assert.Equal(t, []models.ContactID{testdb.Ann.ID, testdb.Bob.ID}, batch.ContactIDs)
 	assert.False(t, batch.IsLast)
 	assert.Equal(t, 3, batch.TotalContacts)
 
@@ -111,7 +111,7 @@ func TestStartsBuilding(t *testing.T) {
 	start := models.NewFlowStart(testdb.Org1.ID, models.StartTypeManual, testdb.Favorites.ID).
 		WithGroupIDs([]models.GroupID{testdb.DoctorsGroup.ID}).
 		WithExcludeGroupIDs([]models.GroupID{testdb.TestersGroup.ID}).
-		WithContactIDs([]models.ContactID{testdb.Cathy.ID, testdb.Bob.ID}).
+		WithContactIDs([]models.ContactID{testdb.Ann.ID, testdb.Bob.ID}).
 		WithQuery(`language != ""`).
 		WithCreateContact(true).
 		WithParams([]byte(`{"foo": "bar"}`))
@@ -139,5 +139,5 @@ func TestStartsBuilding(t *testing.T) {
 		"query": "language != \"\"",
 		"start_id": null,
 		"start_type": "M"
-	}`, testdb.Cathy.ID, testdb.Bob.ID, testdb.TestersGroup.ID, testdb.Favorites.ID, testdb.DoctorsGroup.ID), marshalled)
+	}`, testdb.Ann.ID, testdb.Bob.ID, testdb.TestersGroup.ID, testdb.Favorites.ID, testdb.DoctorsGroup.ID), marshalled)
 }

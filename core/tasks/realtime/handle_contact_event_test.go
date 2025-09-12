@@ -19,18 +19,18 @@ func TestHandleContactEvent(t *testing.T) {
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	testsuite.QueueRealtimeTask(t, rt, testdb.Org1, testdb.Cathy, &ctasks.EventReceivedTask{
+	testsuite.QueueRealtimeTask(t, rt, testdb.Org1, testdb.Ann, &ctasks.EventReceivedTask{
 		EventType:  models.EventTypeNewConversation,
 		ChannelID:  testdb.FacebookChannel.ID,
-		URNID:      testdb.Cathy.URNID,
+		URNID:      testdb.Ann.URNID,
 		Extra:      null.Map[any]{},
 		CreatedOn:  time.Now(),
 		NewContact: false,
 	})
-	testsuite.QueueRealtimeTask(t, rt, testdb.Org1, testdb.Cathy, &ctasks.EventReceivedTask{
+	testsuite.QueueRealtimeTask(t, rt, testdb.Org1, testdb.Ann, &ctasks.EventReceivedTask{
 		EventType:  models.EventTypeStopContact,
 		ChannelID:  testdb.FacebookChannel.ID,
-		URNID:      testdb.Cathy.URNID,
+		URNID:      testdb.Ann.URNID,
 		Extra:      null.Map[any]{},
 		CreatedOn:  time.Now(),
 		NewContact: false,
@@ -39,5 +39,5 @@ func TestHandleContactEvent(t *testing.T) {
 	tasksRan := testsuite.FlushTasks(t, rt)
 	assert.Equal(t, map[string]int{"handle_contact_event": 2}, tasksRan)
 
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contact WHERE id = $1 AND status = 'S'`, testdb.Cathy.ID).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contact WHERE id = $1 AND status = 'S'`, testdb.Ann.ID).Returns(1)
 }

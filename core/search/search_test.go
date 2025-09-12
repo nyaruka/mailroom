@@ -26,10 +26,10 @@ func TestGetContactTotal(t *testing.T) {
 		expectedTotal int64
 		expectedError string
 	}{
-		{group: nil, query: "cathy OR bob", expectedTotal: 2},
-		{group: testdb.DoctorsGroup, query: "cathy OR bob", expectedTotal: 1},
-		{group: nil, query: "george", expectedTotal: 1},
-		{group: testdb.ActiveGroup, query: "george", expectedTotal: 1},
+		{group: nil, query: "ann OR bob", expectedTotal: 2},
+		{group: testdb.DoctorsGroup, query: "ann OR bob", expectedTotal: 1},
+		{group: nil, query: "cat", expectedTotal: 1},
+		{group: testdb.ActiveGroup, query: "cat", expectedTotal: 1},
 		{group: nil, query: "age >= 30", expectedTotal: 1},
 		{
 			group:         nil,
@@ -72,13 +72,13 @@ func TestGetContactIDsForQueryPage(t *testing.T) {
 	}{
 		{ // 0
 			group:            testdb.ActiveGroup,
-			query:            "george OR bob",
-			expectedContacts: []models.ContactID{testdb.George.ID, testdb.Bob.ID},
+			query:            "cat OR bob",
+			expectedContacts: []models.ContactID{testdb.Cat.ID, testdb.Bob.ID},
 			expectedTotal:    2,
 		},
 		{ // 1
 			group:            testdb.BlockedGroup,
-			query:            "george",
+			query:            "cat",
 			expectedContacts: []models.ContactID{},
 			expectedTotal:    0,
 		},
@@ -86,12 +86,12 @@ func TestGetContactIDsForQueryPage(t *testing.T) {
 			group:            testdb.ActiveGroup,
 			query:            "age >= 30",
 			sort:             "-age",
-			expectedContacts: []models.ContactID{testdb.George.ID},
+			expectedContacts: []models.ContactID{testdb.Cat.ID},
 			expectedTotal:    1,
 		},
 		{ // 3
 			group:            testdb.ActiveGroup,
-			excludeIDs:       []models.ContactID{testdb.George.ID},
+			excludeIDs:       []models.ContactID{testdb.Cat.ID},
 			query:            "age >= 30",
 			sort:             "-age",
 			expectedContacts: []models.ContactID{},
@@ -134,7 +134,7 @@ func TestGetContactIDsForQuery(t *testing.T) {
 	}
 
 	// create some extra contacts in the other org to be sure we're filtering correctly
-	testdb.InsertContact(rt, testdb.Org2, flows.NewContactUUID(), "George", i18n.NilLanguage, models.ContactStatusActive)
+	testdb.InsertContact(rt, testdb.Org2, flows.NewContactUUID(), "Cat", i18n.NilLanguage, models.ContactStatusActive)
 	testdb.InsertContact(rt, testdb.Org2, flows.NewContactUUID(), "Bob", i18n.NilLanguage, models.ContactStatusActive)
 	testdb.InsertContact(rt, testdb.Org2, flows.NewContactUUID(), "Cylon 0", i18n.NilLanguage, models.ContactStatusActive)
 
@@ -151,23 +151,23 @@ func TestGetContactIDsForQuery(t *testing.T) {
 		{
 			group:            testdb.ActiveGroup,
 			status:           models.NilContactStatus,
-			query:            "george OR bob",
+			query:            "cat OR bob",
 			limit:            -1,
-			expectedContacts: []models.ContactID{testdb.George.ID, testdb.Bob.ID},
+			expectedContacts: []models.ContactID{testdb.Cat.ID, testdb.Bob.ID},
 		},
 		{
 			group:            nil,
 			status:           models.ContactStatusActive,
-			query:            "george OR bob",
+			query:            "cat OR bob",
 			limit:            -1,
-			expectedContacts: []models.ContactID{testdb.George.ID, testdb.Bob.ID},
+			expectedContacts: []models.ContactID{testdb.Cat.ID, testdb.Bob.ID},
 		},
 		{
 			group:            testdb.DoctorsGroup,
 			status:           models.ContactStatusActive,
-			query:            "name = cathy",
+			query:            "name = ann",
 			limit:            -1,
-			expectedContacts: []models.ContactID{testdb.Cathy.ID},
+			expectedContacts: []models.ContactID{testdb.Ann.ID},
 		},
 		{
 			group:            nil,
@@ -179,16 +179,16 @@ func TestGetContactIDsForQuery(t *testing.T) {
 		{
 			group:            nil,
 			status:           models.ContactStatusActive,
-			query:            "george",
+			query:            "cat",
 			limit:            1,
-			expectedContacts: []models.ContactID{testdb.George.ID},
+			expectedContacts: []models.ContactID{testdb.Cat.ID},
 		},
 		{
 			group:            testdb.DoctorsGroup,
 			status:           models.NilContactStatus,
 			query:            "",
 			limit:            1,
-			expectedContacts: []models.ContactID{testdb.Cathy.ID},
+			expectedContacts: []models.ContactID{testdb.Ann.ID},
 		},
 		{
 			group:            nil,

@@ -18,18 +18,18 @@ func TestContactFieldChanged(t *testing.T) {
 	gender := assets.NewFieldReference("gender", "Gender")
 	age := assets.NewFieldReference("age", "Age")
 
-	// populate some field values on alexandria
-	rt.DB.MustExec(`UPDATE contacts_contact SET fields = '{"903f51da-2717-47c7-a0d3-f2f32877013d": {"text":"34"}, "3a5891e4-756e-4dc9-8e12-b7a766168824": {"text":"female"}}' WHERE id = $1`, testdb.Alexandra.ID)
+	// populate some field values on Dan
+	rt.DB.MustExec(`UPDATE contacts_contact SET fields = '{"903f51da-2717-47c7-a0d3-f2f32877013d": {"text":"34"}, "3a5891e4-756e-4dc9-8e12-b7a766168824": {"text":"female"}}' WHERE id = $1`, testdb.Dan.ID)
 
 	tcs := []TestCase{
 		{
 			Actions: ContactActionMap{
-				testdb.Cathy.UUID: []flows.Action{
+				testdb.Ann.UUID: []flows.Action{
 					actions.NewSetContactField(flows.NewActionUUID(), gender, "Male"),
 					actions.NewSetContactField(flows.NewActionUUID(), gender, "Female"),
 					actions.NewSetContactField(flows.NewActionUUID(), age, ""),
 				},
-				testdb.George.UUID: []flows.Action{
+				testdb.Cat.UUID: []flows.Action{
 					actions.NewSetContactField(flows.NewActionUUID(), gender, "Male"),
 					actions.NewSetContactField(flows.NewActionUUID(), gender, ""),
 					actions.NewSetContactField(flows.NewActionUUID(), age, "40"),
@@ -39,7 +39,7 @@ func TestContactFieldChanged(t *testing.T) {
 					actions.NewSetContactField(flows.NewActionUUID(), gender, "Male"),
 					actions.NewSetContactField(flows.NewActionUUID(), age, "Old"),
 				},
-				testdb.Alexandra.UUID: []flows.Action{
+				testdb.Dan.UUID: []flows.Action{
 					actions.NewSetContactField(flows.NewActionUUID(), age, ""),
 					actions.NewSetContactField(flows.NewActionUUID(), gender, ""),
 				},
@@ -47,22 +47,22 @@ func TestContactFieldChanged(t *testing.T) {
 			SQLAssertions: []SQLAssertion{
 				{
 					SQL:   `select count(*) from contacts_contact where id = $1 AND fields->$2 = '{"text":"Female"}'::jsonb`,
-					Args:  []any{testdb.Cathy.ID, testdb.GenderField.UUID},
+					Args:  []any{testdb.Ann.ID, testdb.GenderField.UUID},
 					Count: 1,
 				},
 				{
 					SQL:   `select count(*) from contacts_contact where id = $1 AND NOT fields?$2`,
-					Args:  []any{testdb.Cathy.ID, testdb.AgeField.UUID},
+					Args:  []any{testdb.Ann.ID, testdb.AgeField.UUID},
 					Count: 1,
 				},
 				{
 					SQL:   `select count(*) from contacts_contact where id = $1 AND NOT fields?$2`,
-					Args:  []any{testdb.George.ID, testdb.GenderField.UUID},
+					Args:  []any{testdb.Cat.ID, testdb.GenderField.UUID},
 					Count: 1,
 				},
 				{
 					SQL:   `select count(*) from contacts_contact where id = $1 AND fields->$2 = '{"text":"40", "number": 40}'::jsonb`,
-					Args:  []any{testdb.George.ID, testdb.AgeField.UUID},
+					Args:  []any{testdb.Cat.ID, testdb.AgeField.UUID},
 					Count: 1,
 				},
 				{
@@ -82,15 +82,15 @@ func TestContactFieldChanged(t *testing.T) {
 				},
 				{
 					SQL:   `select count(*) from contacts_contact where id = $1 AND fields = '{}'`,
-					Args:  []any{testdb.Alexandra.ID},
+					Args:  []any{testdb.Dan.ID},
 					Count: 1,
 				},
 			},
 			PersistedEvents: map[flows.ContactUUID][]string{
-				testdb.Cathy.UUID:     {"run_started", "contact_field_changed", "contact_field_changed", "run_ended"},
-				testdb.Bob.UUID:       {"run_started", "contact_field_changed", "contact_field_changed", "run_ended"},
-				testdb.George.UUID:    {"run_started", "contact_field_changed", "contact_field_changed", "contact_field_changed", "run_ended"},
-				testdb.Alexandra.UUID: {"run_started", "contact_field_changed", "contact_field_changed", "run_ended"},
+				testdb.Ann.UUID: {"run_started", "contact_field_changed", "contact_field_changed", "run_ended"},
+				testdb.Bob.UUID: {"run_started", "contact_field_changed", "contact_field_changed", "run_ended"},
+				testdb.Cat.UUID: {"run_started", "contact_field_changed", "contact_field_changed", "contact_field_changed", "run_ended"},
+				testdb.Dan.UUID: {"run_started", "contact_field_changed", "contact_field_changed", "run_ended"},
 			},
 		},
 	}

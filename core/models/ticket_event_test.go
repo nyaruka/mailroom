@@ -19,13 +19,13 @@ func TestTicketEvents(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
-	ticket := testdb.InsertOpenTicket(rt, "01992f54-5ab6-717a-a39e-e8ca91fb7262", testdb.Org1, testdb.Cathy, testdb.DefaultTopic, time.Now(), nil)
+	ticket := testdb.InsertOpenTicket(rt, "01992f54-5ab6-717a-a39e-e8ca91fb7262", testdb.Org1, testdb.Ann, testdb.DefaultTopic, time.Now(), nil)
 	modelTicket := ticket.Load(rt, testdb.Org1)
 
 	e1 := models.NewTicketOpenedEvent("019906ed-d7a3-732e-9429-6c99b391c825", modelTicket, testdb.Admin.ID, testdb.Agent.ID, "this is a note")
 	assert.Equal(t, flows.EventUUID("019906ed-d7a3-732e-9429-6c99b391c825"), e1.UUID)
 	assert.Equal(t, testdb.Org1.ID, e1.OrgID)
-	assert.Equal(t, testdb.Cathy.ID, e1.ContactID)
+	assert.Equal(t, testdb.Ann.ID, e1.ContactID)
 	assert.Equal(t, ticket.ID, e1.TicketID)
 	assert.Equal(t, models.TicketEventTypeOpened, e1.Type)
 	assert.Equal(t, null.String("this is a note"), e1.Note)

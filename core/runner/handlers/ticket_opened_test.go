@@ -39,7 +39,7 @@ func TestTicketOpened(t *testing.T) {
 	tcs := []TestCase{
 		{
 			Actions: ContactActionMap{
-				testdb.Cathy.UUID: []flows.Action{
+				testdb.Ann.UUID: []flows.Action{
 					actions.NewOpenTicket(
 						flows.NewActionUUID(),
 						assets.NewTopicReference(testdb.SupportTopic.UUID, "Support"),
@@ -57,9 +57,9 @@ func TestTicketOpened(t *testing.T) {
 				},
 			},
 			SQLAssertions: []SQLAssertion{
-				{ // cathy's old ticket will still be open and cathy's new ticket will have been created
+				{ // Ann's old ticket will still be open and Ann's new ticket will have been created
 					SQL:   "select count(*) from tickets_ticket where contact_id = $1 AND status = 'O'",
-					Args:  []any{testdb.Cathy.ID},
+					Args:  []any{testdb.Ann.ID},
 					Count: 1,
 				},
 				{ // bob's ticket will have been created too
@@ -92,10 +92,10 @@ func TestTicketOpened(t *testing.T) {
 				},
 			},
 			PersistedEvents: map[flows.ContactUUID][]string{
-				testdb.Cathy.UUID:     {"run_started", "contact_groups_changed", "run_ended"},
-				testdb.Bob.UUID:       {"run_started", "contact_groups_changed", "run_ended"},
-				testdb.George.UUID:    {"run_started", "run_ended"},
-				testdb.Alexandra.UUID: {"run_started", "run_ended"},
+				testdb.Ann.UUID: {"run_started", "contact_groups_changed", "run_ended"},
+				testdb.Bob.UUID: {"run_started", "contact_groups_changed", "run_ended"},
+				testdb.Cat.UUID: {"run_started", "run_ended"},
+				testdb.Dan.UUID: {"run_started", "run_ended"},
 			},
 		},
 	}

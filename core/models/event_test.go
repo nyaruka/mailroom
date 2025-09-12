@@ -36,7 +36,7 @@ func TestEvent(t *testing.T) {
 		me := &models.Event{
 			Event:       evt,
 			OrgID:       testdb.Org1.ID,
-			ContactUUID: testdb.Cathy.UUID,
+			ContactUUID: testdb.Ann.UUID,
 			UserID:      tc.UserID,
 		}
 

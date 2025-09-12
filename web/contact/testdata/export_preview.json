@@ -58,7 +58,7 @@
         "body": {
             "org_id": 1,
             "group_id": 10000,
-            "query": "name = BOB OR cathy"
+            "query": "name = BOB OR ann"
         },
         "status": 200,
         "response": {
@@ -86,7 +86,7 @@
         "body": {
             "org_id": 1,
             "group_id": 10005,
-            "query": "cathy"
+            "query": "ann"
         },
         "status": 200,
         "response": {

@@ -31,15 +31,15 @@ func TestCampaigns(t *testing.T) {
 	// created_on + 1000 weeks => Favorites
 	// last_seen_on + 2 days => Favorites
 
-	msg1 := testdb.InsertIncomingMsg(rt, testdb.Org1, testdb.TwilioChannel, testdb.Cathy, "Hi there", models.MsgStatusPending)
+	msg1 := testdb.InsertIncomingMsg(rt, testdb.Org1, testdb.TwilioChannel, testdb.Ann, "Hi there", models.MsgStatusPending)
 
 	tcs := []TestCase{
 		{
 			Msgs: ContactMsgMap{
-				testdb.Cathy.UUID: msg1,
+				testdb.Ann.UUID: msg1,
 			},
 			Actions: ContactActionMap{
-				testdb.Cathy.UUID: []flows.Action{
+				testdb.Ann.UUID: []flows.Action{
 					actions.NewRemoveContactGroups(flows.NewActionUUID(), []*assets.GroupReference{doctors}, false),
 					actions.NewAddContactGroups(flows.NewActionUUID(), []*assets.GroupReference{doctors}),
 					actions.NewSetContactField(flows.NewActionUUID(), joined, "2029-09-15T12:00:00+00:00"),
@@ -50,7 +50,7 @@ func TestCampaigns(t *testing.T) {
 					actions.NewSetContactField(flows.NewActionUUID(), joined, "2029-09-15T12:00:00+00:00"),
 					actions.NewSetContactField(flows.NewActionUUID(), joined, "2029-09-15T12:00:00+00:00"),
 				},
-				testdb.George.UUID: []flows.Action{
+				testdb.Cat.UUID: []flows.Action{
 					actions.NewAddContactGroups(flows.NewActionUUID(), []*assets.GroupReference{doctors}),
 					actions.NewSetContactField(flows.NewActionUUID(), joined, "2029-09-15T12:00:00+00:00"),
 					actions.NewRemoveContactGroups(flows.NewActionUUID(), []*assets.GroupReference{doctors}, false),
@@ -59,7 +59,7 @@ func TestCampaigns(t *testing.T) {
 			SQLAssertions: []SQLAssertion{
 				{ // 2 new events on created_on and last_seen_on
 					SQL:   `SELECT count(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'C'`,
-					Args:  []any{testdb.Cathy.ID},
+					Args:  []any{testdb.Ann.ID},
 					Count: 2,
 				},
 				{ // 3 events on joined_on + new event on created_on
@@ -69,15 +69,15 @@ func TestCampaigns(t *testing.T) {
 				},
 				{ // no events because removed from doctors
 					SQL:   `SELECT count(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'C'`,
-					Args:  []any{testdb.George.ID},
+					Args:  []any{testdb.Cat.ID},
 					Count: 0,
 				},
 			},
 			PersistedEvents: map[flows.ContactUUID][]string{
-				testdb.Cathy.UUID:     {"run_started", "contact_groups_changed", "contact_groups_changed", "contact_field_changed", "contact_field_changed", "run_ended"},
-				testdb.Bob.UUID:       {"run_started", "contact_groups_changed", "contact_field_changed", "run_ended"},
-				testdb.George.UUID:    {"run_started", "contact_groups_changed", "contact_field_changed", "contact_groups_changed", "run_ended"},
-				testdb.Alexandra.UUID: {"run_started", "run_ended"},
+				testdb.Ann.UUID: {"run_started", "contact_groups_changed", "contact_groups_changed", "contact_field_changed", "contact_field_changed", "run_ended"},
+				testdb.Bob.UUID: {"run_started", "contact_groups_changed", "contact_field_changed", "run_ended"},
+				testdb.Cat.UUID: {"run_started", "contact_groups_changed", "contact_field_changed", "contact_groups_changed", "run_ended"},
+				testdb.Dan.UUID: {"run_started", "run_ended"},
 			},
 		},
 	}

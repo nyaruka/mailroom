@@ -31,12 +31,12 @@ func TestInterrupts(t *testing.T) {
 			expectedStatuses: [4]string{"W", "W", "W", "W"},
 		},
 		{
-			contactIDs:       []models.ContactID{testdb.Cathy.ID},
+			contactIDs:       []models.ContactID{testdb.Ann.ID},
 			flowIDs:          nil,
 			expectedStatuses: [4]string{"I", "W", "W", "W"},
 		},
 		{
-			contactIDs:       []models.ContactID{testdb.Cathy.ID, testdb.George.ID},
+			contactIDs:       []models.ContactID{testdb.Ann.ID, testdb.Cat.ID},
 			flowIDs:          nil,
 			expectedStatuses: [4]string{"I", "I", "W", "W"},
 		},
@@ -46,7 +46,7 @@ func TestInterrupts(t *testing.T) {
 			expectedStatuses: [4]string{"W", "W", "W", "I"},
 		},
 		{
-			contactIDs:       []models.ContactID{testdb.Cathy.ID, testdb.George.ID},
+			contactIDs:       []models.ContactID{testdb.Ann.ID, testdb.Cat.ID},
 			flowIDs:          []models.FlowID{testdb.PickANumber.ID},
 			expectedStatuses: [4]string{"I", "I", "W", "I"},
 		},
@@ -57,14 +57,14 @@ func TestInterrupts(t *testing.T) {
 		rt.DB.MustExec(`UPDATE flows_flowsession SET status='C', ended_on=NOW() WHERE status = 'W';`)
 
 		// twilio call
-		twilioCall := testdb.InsertCall(rt, testdb.Org1, testdb.TwilioChannel, testdb.Alexandra)
+		twilioCall := testdb.InsertCall(rt, testdb.Org1, testdb.TwilioChannel, testdb.Dan)
 
 		sessionUUIDs := make([]flows.SessionUUID, 4)
 
 		// insert our dummy contact sessions
-		sessionUUIDs[0] = testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Cathy, models.FlowTypeMessaging, nil, testdb.Favorites)
-		sessionUUIDs[1] = testdb.InsertWaitingSession(rt, testdb.Org1, testdb.George, models.FlowTypeMessaging, nil, testdb.Favorites)
-		sessionUUIDs[2] = testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Alexandra, models.FlowTypeVoice, twilioCall, testdb.Favorites)
+		sessionUUIDs[0] = testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Ann, models.FlowTypeMessaging, nil, testdb.Favorites)
+		sessionUUIDs[1] = testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Cat, models.FlowTypeMessaging, nil, testdb.Favorites)
+		sessionUUIDs[2] = testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Dan, models.FlowTypeVoice, twilioCall, testdb.Favorites)
 		sessionUUIDs[3] = testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Bob, models.FlowTypeMessaging, nil, testdb.PickANumber)
 
 		// create our task

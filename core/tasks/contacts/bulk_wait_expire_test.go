@@ -21,7 +21,7 @@ func TestBulkSessionExpire(t *testing.T) {
 	testsuite.QueueBatchTask(t, rt, testdb.Org1, &contacts.BulkWaitExpireTask{
 		Expirations: []*contacts.WaitExpiration{
 			{
-				ContactID:   testdb.Cathy.ID,
+				ContactID:   testdb.Ann.ID,
 				SessionUUID: "8e2786dc-e6d0-4a6a-bbc5-4ec321d60516",
 				SprintUUID:  "babdfd9e-241d-4d32-be5f-d821d1ecab31",
 			},
@@ -35,7 +35,7 @@ func TestBulkSessionExpire(t *testing.T) {
 
 	assert.Equal(t, map[string]int{"bulk_wait_expire": 1}, testsuite.FlushTasks(t, rt, "batch", "throttled"))
 
-	testsuite.AssertContactTasks(t, rt, testdb.Org1, testdb.Cathy, []string{
+	testsuite.AssertContactTasks(t, rt, testdb.Org1, testdb.Ann, []string{
 		`{"type":"wait_expired","task":{"session_uuid":"8e2786dc-e6d0-4a6a-bbc5-4ec321d60516","sprint_uuid":"babdfd9e-241d-4d32-be5f-d821d1ecab31"},"queued_on":"2024-11-15T13:59:00Z"}`,
 	})
 	testsuite.AssertContactTasks(t, rt, testdb.Org1, testdb.Bob, []string{
