@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/nyaruka/gocommon/jsonx"
+	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/events"
 )
@@ -39,11 +40,11 @@ const (
 )
 
 type Event struct {
-	flows.Event `json:"event"` // TODO would be nice to inline this with jsonv2
+	flows.Event
 
-	OrgID       OrgID             `json:"org_id"`
-	ContactUUID flows.ContactUUID `json:"contact_uuid"`
-	UserID      UserID            `json:"user_id,omitempty"`
+	OrgID       OrgID
+	ContactUUID flows.ContactUUID
+	UserUUID    assets.UserUUID
 }
 
 func (e *Event) DynamoKey() DynamoKey {
@@ -91,8 +92,8 @@ func (e *Event) MarshalDynamo() (map[string]types.AttributeValue, error) {
 		data["type"] = e.Type() // always have type in uncompressed data
 	}
 
-	if e.UserID != NilUserID {
-		data["_user_id"] = e.UserID
+	if e.UserUUID != "" {
+		data["_user_uuid"] = e.UserUUID
 	}
 
 	return attributevalue.MarshalMap(&DynamoItem{
@@ -118,8 +119,9 @@ func (e *Event) UnmarshalDynamo(d map[string]types.AttributeValue) error {
 
 	e.OrgID = item.OrgID
 	e.ContactUUID = flows.ContactUUID(item.PK)[4:] // trim off con#
-	if userID, ok := data["_user_id"]; ok {
-		e.UserID = UserID(userID.(float64))
+	userUUID, ok := data["_user_uuid"].(string)
+	if ok {
+		e.UserUUID = assets.UserUUID(userUUID)
 		delete(data, "_user_id")
 	}
 
