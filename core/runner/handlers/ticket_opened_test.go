@@ -67,10 +67,6 @@ func TestTicketOpened(t *testing.T) {
 					Args:  []any{testdb.Bob.ID},
 					Count: 1,
 				},
-				{ // and we have 2 ticket opened events for the 2 tickets opened
-					SQL:   "select count(*) from tickets_ticketevent where event_type = 'O'",
-					Count: 2,
-				},
 				{ // both of our tickets have a topic (one without an explicit topic get's the default)
 					SQL:   "select count(*) from tickets_ticket where topic_id is null",
 					Count: 0,

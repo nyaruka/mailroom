@@ -41,17 +41,5 @@ func (h *insertTickets) Execute(ctx context.Context, rt *runtime.Runtime, tx *sq
 		return fmt.Errorf("error inserting tickets: %w", err)
 	}
 
-	// generate legacy opened events for each ticket
-	legacyEvents := make([]*models.TicketEvent, len(tickets))
-	for i, ticket := range tickets {
-		event := events[ticket]
-		legacyEvents[i] = models.NewTicketOpenedEvent(event.UUID(), ticket, ticket.OpenedByID, ticket.AssigneeID, event.Note)
-	}
-
-	// and insert those too
-	if err := models.InsertLegacyTicketEvents(ctx, tx, legacyEvents); err != nil {
-		return fmt.Errorf("error inserting ticket opened events: %w", err)
-	}
-
 	return nil
 }

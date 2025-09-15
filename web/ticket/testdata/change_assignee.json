@@ -24,10 +24,6 @@
             {
                 "query": "SELECT count(*) FROM tickets_ticket WHERE assignee_id = 5",
                 "count": 3
-            },
-            {
-                "query": "SELECT count(*) FROM tickets_ticketevent WHERE event_type = 'A' AND created_by_id = 3",
-                "count": 2
             }
         ],
         "expected_history": [
@@ -60,7 +56,7 @@
                         "name": "Ann D'Agent",
                         "uuid": "27e44553-ab35-482b-a4d4-6f000ec611ab"
                     },
-                    "created_on": "2018-07-06T12:30:02.123456789Z",
+                    "created_on": "2018-07-06T12:30:01.123456789Z",
                     "ticket_uuid": "01992f54-5ab6-7498-a7f2-6aa246e45cfe",
                     "type": "ticket_assignee_changed"
                 }
@@ -89,10 +85,6 @@
             {
                 "query": "SELECT count(*) FROM tickets_ticket WHERE id = 30000 AND assignee_id IS NULL",
                 "count": 1
-            },
-            {
-                "query": "SELECT count(*) FROM tickets_ticketevent WHERE event_type = 'A' AND created_by_id = 3",
-                "count": 3
             }
         ],
         "expected_history": [
