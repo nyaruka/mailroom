@@ -29,6 +29,42 @@
                 "query": "SELECT count(*) FROM tickets_ticketevent WHERE event_type = 'A' AND created_by_id = 3",
                 "count": 2
             }
+        ],
+        "expected_history": [
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01969b47-0583-76f8-ae7f-f8b243c49ff5",
+                "OrgID": 1,
+                "Data": {
+                    "_user_uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
+                    "assignee": {
+                        "name": "Ann D'Agent",
+                        "uuid": "27e44553-ab35-482b-a4d4-6f000ec611ab"
+                    },
+                    "created_on": "2018-07-06T12:30:00.123456789Z",
+                    "previous": {
+                        "name": "Andy Admin",
+                        "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
+                    },
+                    "ticket_uuid": "01992f54-5ab6-717a-a39e-e8ca91fb7262",
+                    "type": "ticket_assignee_changed"
+                }
+            },
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01969b47-096b-76f8-bd38-d266ec8d3716",
+                "OrgID": 1,
+                "Data": {
+                    "_user_uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
+                    "assignee": {
+                        "name": "Ann D'Agent",
+                        "uuid": "27e44553-ab35-482b-a4d4-6f000ec611ab"
+                    },
+                    "created_on": "2018-07-06T12:30:02.123456789Z",
+                    "ticket_uuid": "01992f54-5ab6-7498-a7f2-6aa246e45cfe",
+                    "type": "ticket_assignee_changed"
+                }
+            }
         ]
     },
     {
@@ -57,6 +93,24 @@
             {
                 "query": "SELECT count(*) FROM tickets_ticketevent WHERE event_type = 'A' AND created_by_id = 3",
                 "count": 3
+            }
+        ],
+        "expected_history": [
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01969b47-0d53-76f8-9c0b-2014ddc77094",
+                "OrgID": 1,
+                "Data": {
+                    "_user_uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
+                    "assignee": null,
+                    "created_on": "2018-07-06T12:30:00.123456789Z",
+                    "previous": {
+                        "name": "Ann D'Agent",
+                        "uuid": "27e44553-ab35-482b-a4d4-6f000ec611ab"
+                    },
+                    "ticket_uuid": "01992f54-5ab6-717a-a39e-e8ca91fb7262",
+                    "type": "ticket_assignee_changed"
+                }
             }
         ]
     }

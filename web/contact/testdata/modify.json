@@ -1859,6 +1859,29 @@
         "expected_history": [
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01969b47-6b13-76f8-a13f-9238de2a0b76",
+                "OrgID": 1,
+                "Data": {
+                    "_user_uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
+                    "created_on": "2018-07-06T12:30:00.123456789Z",
+                    "note": "Need help",
+                    "ticket": {
+                        "assignee": {
+                            "name": "Andy Admin",
+                            "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
+                        },
+                        "status": "open",
+                        "topic": {
+                            "name": "Support",
+                            "uuid": "0a8f2e00-fef6-402c-bd79-d789446ec0e0"
+                        },
+                        "uuid": "01969b47-672b-76f8-aaa3-04d3fbce5f9a"
+                    },
+                    "type": "ticket_opened"
+                }
+            },
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
                 "SK": "evt#01969b47-6efb-76f8-9014-2c868db4022e",
                 "OrgID": 1,
                 "TTL": "2019-07-06T12:30:01Z",
