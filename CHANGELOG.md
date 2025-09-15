@@ -1,3 +1,8 @@
+v10.3.70 (2025-09-15)
+-------------------------
+ * Save events with user UUID instead of id
+ * Start persisting ticket events
+
 v10.3.69 (2025-09-12)
 -------------------------
  * Update to latest goflow which removes ticket from ticket_closed events
