@@ -7,6 +7,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/nyaruka/gocommon/jsonx"
+	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/goflow/test"
 	"github.com/nyaruka/mailroom/core/models"
@@ -21,9 +22,9 @@ func TestEvent(t *testing.T) {
 	defer reset()
 
 	tcs := []struct {
-		Event  json.RawMessage `json:"event"`
-		UserID models.UserID   `json:"user_id,omitempty"`
-		Dynamo json.RawMessage `json:"dynamo"`
+		Event    json.RawMessage `json:"event"`
+		UserUUID assets.UserUUID `json:"user_uuid,omitempty"`
+		Dynamo   json.RawMessage `json:"dynamo"`
 	}{}
 
 	testJSON := testsuite.ReadFile(t, "testdata/event_to_dynamo.json")
@@ -37,7 +38,7 @@ func TestEvent(t *testing.T) {
 			Event:       evt,
 			OrgID:       testdb.Org1.ID,
 			ContactUUID: testdb.Ann.UUID,
-			UserID:      tc.UserID,
+			UserUUID:    tc.UserUUID,
 		}
 
 		actual := tc

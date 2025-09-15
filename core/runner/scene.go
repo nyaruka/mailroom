@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/modifiers"
 	"github.com/nyaruka/mailroom/core/goflow"
@@ -89,12 +90,18 @@ func (s *Scene) AddEvent(ctx context.Context, rt *runtime.Runtime, oa *models.Or
 		return err
 	}
 
+	// turn our userID into a UUID
+	var userUUID assets.UserUUID
+	if u := oa.UserByID(userID); u != nil {
+		userUUID = u.UUID()
+	}
+
 	if models.PersistEvent(e) {
 		s.persistEvents = append(s.persistEvents, &models.Event{
 			Event:       e,
 			OrgID:       oa.OrgID(),
 			ContactUUID: s.ContactUUID(),
-			UserID:      userID,
+			UserUUID:    userUUID,
 		})
 	}
 

@@ -309,15 +309,15 @@
             "step_uuid": "5802813d-6c58-4292-8228-9728778b6c98",
             "name": "Bryan"
         },
-        "user_id": 3,
+        "user_uuid": "079cc793-61f3-4cf3-989b-46e751802d0c",
         "dynamo": {
             "Data": {
                 "M": {
                     "name": {
                         "S": "Bryan"
                     },
-                    "_user_id": {
-                        "N": "3"
+                    "_user_uuid": {
+                        "S": "079cc793-61f3-4cf3-989b-46e751802d0c"
                     },
                     "type": {
                         "S": "contact_name_changed"
@@ -601,7 +601,7 @@
                 "ancestors_since_input": 0
             }
         },
-        "user_id": 4,
+        "user_uuid": "2d5b55bc-747d-4695-8278-58d7fcb62b6c",
         "dynamo": {
             "PK": {
                 "S": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf"
@@ -617,8 +617,8 @@
                     "type": {
                         "S": "session_triggered"
                     },
-                    "_user_id": {
-                        "N": "4"
+                    "_user_uuid": {
+                        "S": "2d5b55bc-747d-4695-8278-58d7fcb62b6c"
                     }
                 }
             },
