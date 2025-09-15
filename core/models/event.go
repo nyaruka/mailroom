@@ -122,7 +122,7 @@ func (e *Event) UnmarshalDynamo(d map[string]types.AttributeValue) error {
 	userUUID, ok := data["_user_uuid"].(string)
 	if ok {
 		e.UserUUID = assets.UserUUID(userUUID)
-		delete(data, "_user_id")
+		delete(data, "_user_uuid")
 	}
 
 	data["uuid"] = item.SK[4:] // trim off evt# and put event UUID back in
