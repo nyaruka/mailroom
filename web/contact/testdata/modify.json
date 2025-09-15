@@ -89,7 +89,6 @@
                 "OrgID": 1,
                 "TTL": "2019-07-06T12:30:00Z",
                 "Data": {
-                    "_user_id": 1,
                     "created_on": "2018-07-06T12:30:00.123456789Z",
                     "name": "Kathy",
                     "type": "contact_name_changed"
@@ -151,7 +150,7 @@
                 "OrgID": 1,
                 "TTL": "2019-07-06T12:30:00Z",
                 "Data": {
-                    "_user_id": 3,
+                    "_user_uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
                     "created_on": "2018-07-06T12:30:00.123456789Z",
                     "name": "Nate",
                     "type": "contact_name_changed"
@@ -212,7 +211,7 @@
                 "OrgID": 1,
                 "TTL": "2019-07-06T12:30:00Z",
                 "Data": {
-                    "_user_id": 3,
+                    "_user_uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
                     "created_on": "2018-07-06T12:30:00.123456789Z",
                     "name": "",
                     "type": "contact_name_changed"
@@ -272,7 +271,7 @@
                 "SK": "evt#01969b47-113b-76f8-92a3-d648ab64bccb",
                 "OrgID": 1,
                 "Data": {
-                    "_user_id": 3,
+                    "_user_uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
                     "created_on": "2018-07-06T12:30:00.123456789Z",
                     "status": "blocked",
                     "type": "contact_status_changed"
@@ -332,7 +331,7 @@
                 "SK": "evt#01969b47-1523-76f8-8228-9728778b6c98",
                 "OrgID": 1,
                 "Data": {
-                    "_user_id": 3,
+                    "_user_uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
                     "created_on": "2018-07-06T12:30:00.123456789Z",
                     "status": "archived",
                     "type": "contact_status_changed"
@@ -392,7 +391,7 @@
                 "SK": "evt#01969b47-190b-76f8-8f41-6b2d9f33d623",
                 "OrgID": 1,
                 "Data": {
-                    "_user_id": 3,
+                    "_user_uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
                     "created_on": "2018-07-06T12:30:00.123456789Z",
                     "status": "active",
                     "type": "contact_status_changed"
@@ -468,7 +467,7 @@
                 "OrgID": 1,
                 "TTL": "2019-07-06T12:30:01Z",
                 "Data": {
-                    "_user_id": 3,
+                    "_user_uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
                     "created_on": "2018-07-06T12:30:01.123456789Z",
                     "field": {
                         "key": "gender",
@@ -580,7 +579,7 @@
                 "OrgID": 1,
                 "TTL": "2019-07-06T12:30:01Z",
                 "Data": {
-                    "_user_id": 3,
+                    "_user_uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
                     "created_on": "2018-07-06T12:30:01.123456789Z",
                     "field": {
                         "key": "age",
@@ -688,7 +687,7 @@
                 "OrgID": 1,
                 "TTL": "2019-07-06T12:30:02Z",
                 "Data": {
-                    "_user_id": 3,
+                    "_user_uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
                     "created_on": "2018-07-06T12:30:02.123456789Z",
                     "field": {
                         "key": "joined",
@@ -784,7 +783,7 @@
                 "OrgID": 1,
                 "TTL": "2019-07-06T12:30:01Z",
                 "Data": {
-                    "_user_id": 3,
+                    "_user_uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
                     "created_on": "2018-07-06T12:30:01.123456789Z",
                     "field": {
                         "key": "state",
@@ -933,7 +932,7 @@
                 "OrgID": 1,
                 "TTL": "2019-07-06T12:30:00Z",
                 "Data": {
-                    "_user_id": 3,
+                    "_user_uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
                     "created_on": "2018-07-06T12:30:00.123456789Z",
                     "field": {
                         "key": "gender",
@@ -949,7 +948,7 @@
                 "OrgID": 1,
                 "TTL": "2019-07-06T12:30:01Z",
                 "Data": {
-                    "_user_id": 3,
+                    "_user_uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
                     "created_on": "2018-07-06T12:30:01.123456789Z",
                     "field": {
                         "key": "age",
@@ -981,7 +980,7 @@
                 "OrgID": 1,
                 "TTL": "2019-07-06T12:30:03Z",
                 "Data": {
-                    "_user_id": 3,
+                    "_user_uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
                     "created_on": "2018-07-06T12:30:03.123456789Z",
                     "field": {
                         "key": "joined",
@@ -997,7 +996,7 @@
                 "OrgID": 1,
                 "TTL": "2019-07-06T12:30:04Z",
                 "Data": {
-                    "_user_id": 3,
+                    "_user_uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
                     "created_on": "2018-07-06T12:30:04.123456789Z",
                     "field": {
                         "key": "state",
@@ -1079,7 +1078,7 @@
                 "OrgID": 1,
                 "TTL": "2019-07-06T12:30:00Z",
                 "Data": {
-                    "_user_id": 3,
+                    "_user_uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
                     "created_on": "2018-07-06T12:30:00.123456789Z",
                     "groups_added": [
                         {
@@ -1208,7 +1207,7 @@
                 "OrgID": 1,
                 "TTL": "2019-07-06T12:30:00Z",
                 "Data": {
-                    "_user_id": 3,
+                    "_user_uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
                     "created_on": "2018-07-06T12:30:00.123456789Z",
                     "groups_removed": [
                         {
@@ -1321,7 +1320,7 @@
                 "OrgID": 1,
                 "TTL": "2019-07-06T12:30:00Z",
                 "Data": {
-                    "_user_id": 3,
+                    "_user_uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
                     "created_on": "2018-07-06T12:30:00.123456789Z",
                     "language": "fra",
                     "type": "contact_language_changed"
@@ -1863,7 +1862,7 @@
                 "SK": "evt#01969b47-6b13-76f8-a13f-9238de2a0b76",
                 "OrgID": 1,
                 "Data": {
-                    "_user_id": 3,
+                    "_user_uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
                     "created_on": "2018-07-06T12:30:00.123456789Z",
                     "note": "Need help",
                     "ticket": {
@@ -2021,7 +2020,7 @@
                 "OrgID": 1,
                 "TTL": "2019-07-06T12:30:00Z",
                 "Data": {
-                    "_user_id": 3,
+                    "_user_uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
                     "created_on": "2018-07-06T12:30:00.123456789Z",
                     "name": "Juan",
                     "type": "contact_name_changed"
@@ -2033,7 +2032,7 @@
                 "OrgID": 1,
                 "TTL": "2019-07-06T12:30:01Z",
                 "Data": {
-                    "_user_id": 3,
+                    "_user_uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
                     "created_on": "2018-07-06T12:30:01.123456789Z",
                     "language": "spa",
                     "type": "contact_language_changed"
@@ -2045,7 +2044,7 @@
                 "OrgID": 1,
                 "TTL": "2019-07-06T12:30:02Z",
                 "Data": {
-                    "_user_id": 3,
+                    "_user_uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
                     "created_on": "2018-07-06T12:30:02.123456789Z",
                     "groups_added": [
                         {
@@ -2170,7 +2169,7 @@
                 "OrgID": 1,
                 "TTL": "2019-07-06T12:30:01Z",
                 "Data": {
-                    "_user_id": 3,
+                    "_user_uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
                     "created_on": "2018-07-06T12:30:01.123456789Z",
                     "language": "eng",
                     "type": "contact_language_changed"
@@ -2182,7 +2181,7 @@
                 "OrgID": 1,
                 "TTL": "2019-07-06T12:30:00Z",
                 "Data": {
-                    "_user_id": 3,
+                    "_user_uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
                     "created_on": "2018-07-06T12:30:00.123456789Z",
                     "language": "eng",
                     "type": "contact_language_changed"
