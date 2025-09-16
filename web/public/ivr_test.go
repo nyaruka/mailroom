@@ -392,6 +392,8 @@ func TestVonageIVR(t *testing.T) {
 	vc := rt.VK.Get()
 	defer vc.Close()
 
+	test.MockUniverse()
+
 	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
 	// deactivate our twilio channel
@@ -429,9 +431,8 @@ func TestVonageIVR(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT COUNT(*) FROM ivr_call WHERE contact_id = $1 AND status = $2 AND external_id = $3`,
 		testdb.Cat.ID, models.CallStatusWired, "Call2").Returns(1)
 
-	// give our calls known UUIDs
-	rt.DB.MustExec(`UPDATE ivr_call SET uuid = '01969b47-190b-76f8-92a3-d648ab64bccb' WHERE external_id = 'Call1'`)
-	rt.DB.MustExec(`UPDATE ivr_call SET uuid = '01969b47-2c93-76f8-8f41-6b2d9f33d623' WHERE external_id = 'Call2'`)
+	// check run UUIDs are what we expect
+	assertdb.Query(t, rt.DB, `SELECT uuid::text FROM ivr_call ORDER BY id`).Slice([]any{"01969b47-190b-76f8-92a3-d648ab64bccb", "01969b47-2c93-76f8-8f41-6b2d9f33d623"})
 
 	testsuite.RunWebTests(t, ctx, rt, "testdata/ivr_vonage.json", testsuite.ResetDynamo)
 
