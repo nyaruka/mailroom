@@ -105,17 +105,17 @@ func TestUpdateTickets(t *testing.T) {
 		assertdb.Query(t, rt.DB, `SELECT status, assignee_id, topic_id FROM tickets_ticket WHERE id = $1`, tk.ID).Columns(cols)
 	}
 
-	assertTicket(ticket1, map[string]any{"status": "C", "assignee_id": nil, "topic_id": int64(testdb.SalesTopic.ID)})
-	assertTicket(ticket2, map[string]any{"status": "O", "assignee_id": nil, "topic_id": int64(testdb.SalesTopic.ID)})
-	assertTicket(ticket3, map[string]any{"status": "O", "assignee_id": int64(testdb.Admin.ID), "topic_id": int64(testdb.DefaultTopic.ID)})
+	assertTicket(ticket1, map[string]any{"status": "C", "assignee_id": nil, "topic_id": testdb.SalesTopic.ID})
+	assertTicket(ticket2, map[string]any{"status": "O", "assignee_id": nil, "topic_id": testdb.SalesTopic.ID})
+	assertTicket(ticket3, map[string]any{"status": "O", "assignee_id": testdb.Admin.ID, "topic_id": testdb.DefaultTopic.ID})
 
 	// update with no changes
 	err := models.UpdateTickets(ctx, rt.DB, []*models.Ticket{ticket1, ticket2, ticket3})
 	assert.NoError(t, err)
 
-	assertTicket(ticket1, map[string]any{"status": "C", "assignee_id": nil, "topic_id": int64(testdb.SalesTopic.ID)})
-	assertTicket(ticket2, map[string]any{"status": "O", "assignee_id": nil, "topic_id": int64(testdb.SalesTopic.ID)})
-	assertTicket(ticket3, map[string]any{"status": "O", "assignee_id": int64(testdb.Admin.ID), "topic_id": int64(testdb.DefaultTopic.ID)})
+	assertTicket(ticket1, map[string]any{"status": "C", "assignee_id": nil, "topic_id": testdb.SalesTopic.ID})
+	assertTicket(ticket2, map[string]any{"status": "O", "assignee_id": nil, "topic_id": testdb.SalesTopic.ID})
+	assertTicket(ticket3, map[string]any{"status": "O", "assignee_id": testdb.Admin.ID, "topic_id": testdb.DefaultTopic.ID})
 
 	ticket1.AssigneeID = testdb.Agent.ID
 	ticket2.TopicID = testdb.SupportTopic.ID
@@ -126,9 +126,9 @@ func TestUpdateTickets(t *testing.T) {
 	err = models.UpdateTickets(ctx, rt.DB, []*models.Ticket{ticket1, ticket2, ticket3})
 	assert.NoError(t, err)
 
-	assertTicket(ticket1, map[string]any{"status": "C", "assignee_id": int64(testdb.Agent.ID), "topic_id": int64(testdb.SalesTopic.ID)})
-	assertTicket(ticket2, map[string]any{"status": "O", "assignee_id": nil, "topic_id": int64(testdb.SupportTopic.ID)})
-	assertTicket(ticket3, map[string]any{"status": "C", "assignee_id": nil, "topic_id": int64(testdb.DefaultTopic.ID)})
+	assertTicket(ticket1, map[string]any{"status": "C", "assignee_id": testdb.Agent.ID, "topic_id": testdb.SalesTopic.ID})
+	assertTicket(ticket2, map[string]any{"status": "O", "assignee_id": nil, "topic_id": testdb.SupportTopic.ID})
+	assertTicket(ticket3, map[string]any{"status": "C", "assignee_id": nil, "topic_id": testdb.DefaultTopic.ID})
 }
 
 func TestTicketRecordReply(t *testing.T) {

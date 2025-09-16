@@ -435,21 +435,17 @@ func TestVonageIVR(t *testing.T) {
 
 	testsuite.RunWebTests(t, ctx, rt, "testdata/ivr_vonage.json", testsuite.ResetDynamo)
 
-	// check our final state of sessions, runs, msgs, calls
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE contact_uuid = $1 AND status = 'C'`, testdb.Ann.UUID).Returns(1)
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowrun WHERE contact_id = $1 AND status = 'C'`, testdb.Ann.ID).Returns(1)
-
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM ivr_call WHERE contact_id = $1 AND status = 'D' AND duration = 50`, testdb.Ann.ID).Returns(1)
+	// check our final state of sessions, runs, calls, msgs
+	assertdb.Query(t, rt.DB, `SELECT format('%s/%s', contact_uuid, status), count(*) FROM flows_flowsession GROUP BY 1`).
+		Map(map[string]any{"a393abc0-283d-4c9b-a1b3-641a035c34bf/C": 1, "cd024bcd-f473-4719-a00a-bd0bb1190135/W": 1})
+	assertdb.Query(t, rt.DB, `SELECT format('%s/%s', contact_id, status), count(*) FROM flows_flowrun GROUP BY 1`).
+		Map(map[string]any{"10000/C": 1, "10002/W": 1})
+	assertdb.Query(t, rt.DB, `SELECT format('%s/%s', contact_id, status), count(*) FROM ivr_call GROUP BY 1`).
+		Map(map[string]any{"10000/D": 1, "10002/D": 1, "30000/F": 1})
 
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE contact_id = $1 AND msg_type = 'V' AND status = 'W' AND direction = 'O'`, testdb.Ann.ID).Returns(9)
-
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM ivr_call WHERE status = 'F' AND direction = 'I'`).Returns(1)
-
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE contact_id = $1 AND msg_type = 'V' AND status = 'H' AND direction = 'I'`, testdb.Ann.ID).Returns(5)
-
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE contact_id = $1 AND msg_type = 'V' AND ((status = 'H' AND direction = 'I') OR (status = 'W' AND direction = 'O'))`, testdb.Cat.ID).Returns(3)
-
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM ivr_call WHERE status = 'D' AND contact_id = $1`, testdb.Cat.ID).Returns(1)
 
 	// TODO different test to check log redaction? Or only reset history between tests?
 	// check the generated channel logs

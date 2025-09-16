@@ -66,7 +66,7 @@ func TestStarts(t *testing.T) {
 
 	err = start.SetQueued(ctx, rt.DB, 5)
 	require.NoError(t, err)
-	assertdb.Query(t, rt.DB, `SELECT status, contact_count FROM flows_flowstart WHERE id = $1`, startID).Columns(map[string]any{"status": "Q", "contact_count": int64(5)})
+	assertdb.Query(t, rt.DB, `SELECT status, contact_count FROM flows_flowstart WHERE id = $1`, startID).Columns(map[string]any{"status": "Q", "contact_count": 5})
 
 	batch := start.CreateBatch([]models.ContactID{testdb.Ann.ID, testdb.Bob.ID}, true, false, 3)
 	assert.Equal(t, startID, batch.StartID)
