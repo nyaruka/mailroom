@@ -68,9 +68,9 @@ func TestOptinRequested(t *testing.T) {
 				},
 			},
 			PersistedEvents: map[flows.ContactUUID][]string{
-				testdb.Ann.UUID: {"run_started", "run_ended"},
+				testdb.Ann.UUID: {"run_started", "optin_requested", "run_ended"},
 				testdb.Bob.UUID: {"run_started", "run_ended"},
-				testdb.Cat.UUID: {"run_started", "run_ended"},
+				testdb.Cat.UUID: {"run_started", "optin_requested", "run_ended"},
 				testdb.Dan.UUID: {"run_started", "run_ended"},
 			},
 		},
