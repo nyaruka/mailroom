@@ -34,7 +34,7 @@ func TestAirtimeTransfers(t *testing.T) {
 	err := models.InsertAirtimeTransfers(ctx, rt.DB, []*models.AirtimeTransfer{transfer})
 	assert.Nil(t, err)
 
-	assertdb.Query(t, rt.DB, `SELECT org_id, status, external_id from airtime_airtimetransfer`).Columns(map[string]any{"org_id": int64(1), "status": "S", "external_id": "2237512891"})
+	assertdb.Query(t, rt.DB, `SELECT org_id, status, external_id from airtime_airtimetransfer`).Columns(map[string]any{"org_id": 1, "status": "S", "external_id": "2237512891"})
 
 	// insert a failed transfer with nil sender, empty currency
 	transfer = models.NewAirtimeTransfer(
