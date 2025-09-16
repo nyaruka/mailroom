@@ -14,7 +14,7 @@
         "db_assertions": [
             {
                 "query": "SELECT count(*) FROM contacts_contact WHERE created_by_id != 2",
-                "count": 0
+                "returns": 0
             }
         ]
     },
@@ -40,7 +40,7 @@
         "db_assertions": [
             {
                 "query": "SELECT count(*) FROM contacts_contact WHERE name IS NULL AND language IS NULL AND created_by_id != 2",
-                "count": 1
+                "returns": 1
             }
         ]
     },

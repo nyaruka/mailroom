@@ -39,7 +39,7 @@
         "db_assertions": [
             {
                 "query": "SELECT count(*) FROM msgs_broadcast WHERE translations->'eng'->>'text' = 'Anyone?'",
-                "count": 0
+                "returns": 0
             }
         ]
     },
@@ -80,15 +80,15 @@
         "db_assertions": [
             {
                 "query": "SELECT count(*) FROM msgs_broadcast WHERE status = 'P' AND translations->'eng'->>'text' = 'Hello' AND base_language = 'eng' AND urns = '{\"tel:+1234567890\"}' AND query = 'age > 20' AND optin_id = 30000 AND template_id = 10000 AND template_variables = '{\"@contact\"}'",
-                "count": 1
+                "returns": 1
             },
             {
                 "query": "SELECT count(*) FROM msgs_broadcast_contacts WHERE broadcast_id = 30000",
-                "count": 2
+                "returns": 2
             },
             {
                 "query": "SELECT count(*) FROM msgs_broadcast_groups WHERE broadcast_id = 30000",
-                "count": 1
+                "returns": 1
             }
         ],
         "expected_tasks": {
@@ -119,7 +119,7 @@
         "db_assertions": [
             {
                 "query": "SELECT count(*) FROM msgs_broadcast WHERE translations->'eng'->>'text' = 'Hurry up!' AND base_language = 'eng' AND node_uuid = 'dd79811e-a88a-4e67-bb47-a132fe8ce3f2'",
-                "count": 1
+                "returns": 1
             }
         ],
         "expected_tasks": {
@@ -156,11 +156,11 @@
         "db_assertions": [
             {
                 "query": "SELECT count(*) FROM msgs_broadcast WHERE translations->'eng'->>'text' = 'Remember' AND schedule_id IS NOT NULL",
-                "count": 1
+                "returns": 1
             },
             {
                 "query": "SELECT count(*) FROM schedules_schedule WHERE repeat_period = 'O' AND repeat_hour_of_day IS NULL AND repeat_minute_of_hour IS NULL AND repeat_days_of_week IS NULL AND repeat_day_of_month IS NULL AND next_fire = '2034-06-20T14:05:30Z'",
-                "count": 1
+                "returns": 1
             }
         ]
     },
@@ -192,11 +192,11 @@
         "db_assertions": [
             {
                 "query": "SELECT count(*) FROM msgs_broadcast WHERE translations->'spa'->>'text' = 'Buenos días' AND schedule_id IS NOT NULL",
-                "count": 1
+                "returns": 1
             },
             {
                 "query": "SELECT count(*) FROM schedules_schedule WHERE repeat_period = 'D' AND repeat_hour_of_day = 7 AND repeat_minute_of_hour = 5 AND repeat_days_of_week IS NULL AND repeat_day_of_month IS NULL AND next_fire = '2034-06-20T14:05:30Z'",
-                "count": 1
+                "returns": 1
             }
         ]
     },
@@ -229,11 +229,11 @@
         "db_assertions": [
             {
                 "query": "SELECT count(*) FROM msgs_broadcast WHERE translations->'eng'->>'text' = 'Happy Monday' AND schedule_id IS NOT NULL",
-                "count": 1
+                "returns": 1
             },
             {
                 "query": "SELECT count(*) FROM schedules_schedule WHERE repeat_period = 'W' AND repeat_hour_of_day = 7 AND repeat_minute_of_hour = 5 AND repeat_days_of_week = 'M' AND repeat_day_of_month IS NULL AND next_fire = '2034-06-20T14:05:30Z'",
-                "count": 1
+                "returns": 1
             }
         ]
     },
@@ -265,11 +265,11 @@
         "db_assertions": [
             {
                 "query": "SELECT count(*) FROM msgs_broadcast WHERE translations->'eng'->>'text' = 'Happy Month' AND schedule_id IS NOT NULL",
-                "count": 1
+                "returns": 1
             },
             {
                 "query": "SELECT count(*) FROM schedules_schedule WHERE repeat_period = 'M' AND repeat_hour_of_day = 7 AND repeat_minute_of_hour = 5 AND repeat_days_of_week IS NULL AND repeat_day_of_month = 20 AND next_fire = '2034-06-20T14:05:30Z'",
-                "count": 1
+                "returns": 1
             }
         ]
     }

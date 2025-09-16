@@ -46,7 +46,7 @@
         "db_assertions": [
             {
                 "query": "SELECT count(*) FROM msgs_msg WHERE status = 'Q'",
-                "count": 2
+                "returns": 2
             }
         ]
     }
