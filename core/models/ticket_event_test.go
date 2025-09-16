@@ -63,5 +63,5 @@ func TestTicketEvents(t *testing.T) {
 	require.NoError(t, err)
 
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM tickets_ticketevent`).Returns(5)
-	assertdb.Query(t, rt.DB, `SELECT assignee_id FROM tickets_ticketevent WHERE id = $1`, e2.ID).Columns(map[string]any{"assignee_id": int64(testdb.Agent.ID)})
+	assertdb.Query(t, rt.DB, `SELECT assignee_id FROM tickets_ticketevent WHERE id = $1`, e2.ID).Columns(map[string]any{"assignee_id": testdb.Agent.ID})
 }

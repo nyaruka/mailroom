@@ -53,7 +53,7 @@ func TestBroadcasts(t *testing.T) {
 
 	err = bcast.SetQueued(ctx, rt.DB, 5)
 	assert.NoError(t, err)
-	assertdb.Query(t, rt.DB, `SELECT status, contact_count FROM msgs_broadcast WHERE id = $1`, bcast.ID).Columns(map[string]any{"status": "Q", "contact_count": int64(5)})
+	assertdb.Query(t, rt.DB, `SELECT status, contact_count FROM msgs_broadcast WHERE id = $1`, bcast.ID).Columns(map[string]any{"status": "Q", "contact_count": 5})
 
 	err = bcast.SetStarted(ctx, rt.DB)
 	assert.NoError(t, err)
