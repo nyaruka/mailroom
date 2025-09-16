@@ -96,7 +96,7 @@ func RunWebTests(t *testing.T, ctx context.Context, rt *runtime.Runtime, truthFi
 		} else {
 			bodyReader := bytes.NewReader([]byte(tc.Body))
 			req, err = httpx.NewRequest(ctx, tc.Method, testURL, bodyReader, tc.Headers)
-			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+			req.Header.Set("Content-Type", "application/json")
 
 		}
 
