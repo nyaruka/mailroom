@@ -39,11 +39,11 @@
         "db_assertions": [
             {
                 "query": "SELECT count(*) FROM tickets_ticket WHERE topic_id = 10002",
-                "count": 3
+                "returns": 3
             },
             {
                 "query": "SELECT count(*) FROM tickets_ticketevent WHERE event_type = 'T' AND created_by_id = 3 AND topic_id = 10002",
-                "count": 2
+                "returns": 2
             }
         ],
         "expected_history": [

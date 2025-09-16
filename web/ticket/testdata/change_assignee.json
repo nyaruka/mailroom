@@ -23,11 +23,11 @@
         "db_assertions": [
             {
                 "query": "SELECT count(*) FROM tickets_ticket WHERE assignee_id = 5",
-                "count": 3
+                "returns": 3
             },
             {
                 "query": "SELECT count(*) FROM tickets_ticketevent WHERE event_type = 'A' AND created_by_id = 3",
-                "count": 2
+                "returns": 2
             }
         ],
         "expected_history": [
@@ -88,11 +88,11 @@
         "db_assertions": [
             {
                 "query": "SELECT count(*) FROM tickets_ticket WHERE id = 30000 AND assignee_id IS NULL",
-                "count": 1
+                "returns": 1
             },
             {
                 "query": "SELECT count(*) FROM tickets_ticketevent WHERE event_type = 'A' AND created_by_id = 3",
-                "count": 3
+                "returns": 3
             }
         ],
         "expected_history": [
