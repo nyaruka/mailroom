@@ -1,3 +1,7 @@
+v10.3.71 (2025-09-16)
+-------------------------
+ * Persist optin_requestesd events
+
 v10.3.70 (2025-09-15)
 -------------------------
  * Save events with user UUID instead of id
