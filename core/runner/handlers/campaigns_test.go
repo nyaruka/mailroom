@@ -3,6 +3,7 @@ package handlers_test
 import (
 	"testing"
 
+	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/actions"
@@ -56,21 +57,21 @@ func TestCampaigns(t *testing.T) {
 					actions.NewRemoveContactGroups(flows.NewActionUUID(), []*assets.GroupReference{doctors}, false),
 				},
 			},
-			SQLAssertions: []SQLAssertion{
+			DBAssertions: []assertdb.Assert{
 				{ // 2 new events on created_on and last_seen_on
-					SQL:   `SELECT count(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'C'`,
-					Args:  []any{testdb.Ann.ID},
-					Count: 2,
+					Query:   `SELECT count(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'C'`,
+					Args:    []any{testdb.Ann.ID},
+					Returns: 2,
 				},
 				{ // 3 events on joined_on + new event on created_on
-					SQL:   `SELECT count(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'C'`,
-					Args:  []any{testdb.Bob.ID},
-					Count: 4,
+					Query:   `SELECT count(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'C'`,
+					Args:    []any{testdb.Bob.ID},
+					Returns: 4,
 				},
 				{ // no events because removed from doctors
-					SQL:   `SELECT count(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'C'`,
-					Args:  []any{testdb.Cat.ID},
-					Count: 0,
+					Query:   `SELECT count(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'C'`,
+					Args:    []any{testdb.Cat.ID},
+					Returns: 0,
 				},
 			},
 			PersistedEvents: map[flows.ContactUUID][]string{

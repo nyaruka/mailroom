@@ -3,6 +3,7 @@ package handlers_test
 import (
 	"testing"
 
+	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/actions"
@@ -30,15 +31,15 @@ func TestSessionTriggered(t *testing.T) {
 					actions.NewStartSession(flows.NewActionUUID(), testdb.SingleMessage.Reference(), []*assets.GroupReference{groupRef}, []*flows.ContactReference{testdb.Cat.Reference()}, "", nil, nil, true),
 				},
 			},
-			SQLAssertions: []SQLAssertion{
+			DBAssertions: []assertdb.Assert{
 				{
-					SQL:   "select count(*) from flows_flowrun where contact_id = $1 AND status = 'C'",
-					Args:  []any{testdb.Ann.ID},
-					Count: 1,
+					Query:   "select count(*) from flows_flowrun where contact_id = $1 AND status = 'C'",
+					Args:    []any{testdb.Ann.ID},
+					Returns: 1,
 				},
 				{ // start is non-persistent
-					SQL:   "select count(*) from flows_flowstart",
-					Count: 0,
+					Query:   "select count(*) from flows_flowstart",
+					Returns: 0,
 				},
 			},
 			ExpectedTasks: map[string][]string{
@@ -57,11 +58,11 @@ func TestSessionTriggered(t *testing.T) {
 					actions.NewStartSession(flows.NewActionUUID(), testdb.IVRFlow.Reference(), nil, []*flows.ContactReference{testdb.Dan.Reference()}, "", nil, nil, true),
 				},
 			},
-			SQLAssertions: []SQLAssertion{
+			DBAssertions: []assertdb.Assert{
 				{
 					// start is non-persistent
-					SQL:   "select count(*) from flows_flowstart",
-					Count: 0,
+					Query:   "select count(*) from flows_flowstart",
+					Returns: 0,
 				},
 			},
 			ExpectedTasks: map[string][]string{

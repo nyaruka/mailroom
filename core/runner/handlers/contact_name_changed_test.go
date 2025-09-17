@@ -3,6 +3,7 @@ package handlers_test
 import (
 	"testing"
 
+	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/actions"
 	"github.com/nyaruka/mailroom/testsuite"
@@ -31,30 +32,30 @@ func TestContactNameChanged(t *testing.T) {
 					actions.NewSetContactName(flows.NewActionUUID(), "😃234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890"),
 				},
 			},
-			SQLAssertions: []SQLAssertion{
+			DBAssertions: []assertdb.Assert{
 				{
-					SQL:   "select count(*) from contacts_contact where name = 'Tarzan' and id = $1",
-					Args:  []any{testdb.Ann.ID},
-					Count: 1,
+					Query:   "select count(*) from contacts_contact where name = 'Tarzan' and id = $1",
+					Args:    []any{testdb.Ann.ID},
+					Returns: 1,
 				},
 				{
-					SQL:   "select count(*) from contacts_contact where name = 'Tarzan'",
-					Count: 1,
+					Query:   "select count(*) from contacts_contact where name = 'Tarzan'",
+					Returns: 1,
 				},
 				{
-					SQL:   "select count(*) from contacts_contact where name IS NULL and id = $1",
-					Args:  []any{testdb.Bob.ID},
-					Count: 1,
+					Query:   "select count(*) from contacts_contact where name IS NULL and id = $1",
+					Args:    []any{testdb.Bob.ID},
+					Returns: 1,
 				},
 				{
-					SQL:   "select count(*) from contacts_contact where name = 'Geoff Newman' and id = $1",
-					Args:  []any{testdb.Cat.ID},
-					Count: 1,
+					Query:   "select count(*) from contacts_contact where name = 'Geoff Newman' and id = $1",
+					Args:    []any{testdb.Cat.ID},
+					Returns: 1,
 				},
 				{
-					SQL:   "select count(*) from contacts_contact where name = '😃2345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678' and id = $1",
-					Args:  []any{testdb.Dan.ID},
-					Count: 1,
+					Query:   "select count(*) from contacts_contact where name = '😃2345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678' and id = $1",
+					Args:    []any{testdb.Dan.ID},
+					Returns: 1,
 				},
 			},
 			PersistedEvents: map[flows.ContactUUID][]string{
