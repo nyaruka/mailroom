@@ -8,27 +8,27 @@ import (
 )
 
 func TestEvent(t *testing.T) {
-	ctx, rt := testsuite.Runtime(t)
+	_, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetValkey)
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/event.json")
+	testsuite.RunWebTests(t, rt, "testdata/event.json")
 }
 
 func TestMessage(t *testing.T) {
-	ctx, rt := testsuite.Runtime(t)
+	_, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetValkey)
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/message.json")
+	testsuite.RunWebTests(t, rt, "testdata/message.json")
 }
 
 func TestSync(t *testing.T) {
-	ctx, rt := testsuite.Runtime(t)
+	_, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
 	testdb.InsertChannel(rt, testdb.Org1, "A", "Android 1", "123", []string{"tel"}, "SR", map[string]any{})
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/sync.json")
+	testsuite.RunWebTests(t, rt, "testdata/sync.json")
 }

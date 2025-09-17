@@ -15,9 +15,9 @@ import (
 )
 
 func TestDocs(t *testing.T) {
-	ctx, rt := testsuite.Runtime(t)
+	_, rt := testsuite.Runtime(t)
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/docs.json")
+	testsuite.RunWebTests(t, rt, "testdata/docs.json")
 }
 
 func TestMetrics(t *testing.T) {

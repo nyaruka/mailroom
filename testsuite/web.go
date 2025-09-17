@@ -28,11 +28,10 @@ import (
 )
 
 // RunWebTests runs the tests in the passed in filename, optionally updating them if the update flag is set
-func RunWebTests(t *testing.T, ctx context.Context, rt *runtime.Runtime, truthFile string) {
+func RunWebTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
+	ctx := t.Context()
+
 	wg := &sync.WaitGroup{}
-
-	test.MockUniverse()
-
 	server := web.NewServer(ctx, rt, wg)
 	server.Start()
 	defer server.Stop()
@@ -62,6 +61,8 @@ func RunWebTests(t *testing.T, ctx context.Context, rt *runtime.Runtime, truthFi
 
 	jsonx.MustUnmarshal(tcJSON, &tcs)
 	var err error
+
+	test.MockUniverse()
 
 	for i, tc := range tcs {
 		dates.SetNowFunc(dates.NewSequentialNow(time.Date(2018, 7, 6, 12, 30, 0, 123456789, time.UTC), time.Second))
