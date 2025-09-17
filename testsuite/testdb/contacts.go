@@ -2,6 +2,7 @@ package testdb
 
 import (
 	"context"
+	"testing"
 	"time"
 
 	"github.com/nyaruka/gocommon/i18n"
@@ -12,6 +13,7 @@ import (
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/null/v3"
+	"github.com/stretchr/testify/require"
 )
 
 type Contact struct {
@@ -25,21 +27,21 @@ func (c *Contact) Reference() *flows.ContactReference {
 	return &flows.ContactReference{UUID: c.UUID, Name: ""}
 }
 
-func (c *Contact) Load(rt *runtime.Runtime, oa *models.OrgAssets) (*models.Contact, *flows.Contact, []*models.ContactURN) {
+func (c *Contact) Load(t *testing.T, rt *runtime.Runtime, oa *models.OrgAssets) (*models.Contact, *flows.Contact, []*models.ContactURN) {
 	ctx := context.Background()
 
 	contact, err := models.LoadContact(ctx, rt.DB, oa, c.ID)
-	must(err)
+	require.NoError(t, err)
 
 	flowContact, err := contact.EngineContact(oa)
-	must(err)
+	require.NoError(t, err)
 
 	var urnIDs []models.URNID
 	err = rt.DB.SelectContext(ctx, &urnIDs, `SELECT id FROM contacts_contacturn WHERE contact_id = $1`, c.ID)
-	must(err)
+	require.NoError(t, err)
 
 	cus, err := models.LoadContactURNs(ctx, rt.DB, urnIDs)
-	must(err)
+	require.NoError(t, err)
 
 	return contact, flowContact, cus
 }
@@ -61,17 +63,18 @@ type Field struct {
 }
 
 // InsertContact inserts a contact
-func InsertContact(rt *runtime.Runtime, org *Org, uuid flows.ContactUUID, name string, language i18n.Language, status models.ContactStatus) *Contact {
+func InsertContact(t *testing.T, rt *runtime.Runtime, org *Org, uuid flows.ContactUUID, name string, language i18n.Language, status models.ContactStatus) *Contact {
 	var id models.ContactID
-	must(rt.DB.Get(&id,
+	err := rt.DB.Get(&id,
 		`INSERT INTO contacts_contact (org_id, is_active, ticket_count, uuid, name, language, status, created_on, modified_on, created_by_id, modified_by_id) 
 		VALUES($1, TRUE, 0, $2, $3, $4, $5, NOW(), NOW(), 1, 1) RETURNING id`, org.ID, uuid, name, language, status,
-	))
+	)
+	require.NoError(t, err)
 	return &Contact{id, uuid, "", models.NilURNID}
 }
 
 // InsertContactGroup inserts a contact group
-func InsertContactGroup(rt *runtime.Runtime, org *Org, uuid assets.GroupUUID, name, query string, contacts ...*Contact) *Group {
+func InsertContactGroup(t *testing.T, rt *runtime.Runtime, org *Org, uuid assets.GroupUUID, name, query string, contacts ...*Contact) *Group {
 	status := models.GroupStatusReady
 	groupType := models.GroupTypeManual
 	if query != "" {
@@ -82,10 +85,11 @@ func InsertContactGroup(rt *runtime.Runtime, org *Org, uuid assets.GroupUUID, na
 	}
 
 	var id models.GroupID
-	must(rt.DB.Get(&id,
+	err := rt.DB.Get(&id,
 		`INSERT INTO contacts_contactgroup(uuid, org_id, group_type, name, query, status, is_system, is_active, created_by_id, created_on, modified_by_id, modified_on) 
 		 VALUES($1, $2, $3, $4, $5, $6, FALSE, TRUE, 1, NOW(), 1, NOW()) RETURNING id`, uuid, org.ID, groupType, name, null.String(query), status,
-	))
+	)
+	require.NoError(t, err)
 
 	for _, contact := range contacts {
 		rt.DB.MustExec(`INSERT INTO contacts_contactgroup_contacts(contactgroup_id, contact_id) VALUES($1, $2)`, id, contact.ID)
@@ -96,7 +100,7 @@ func InsertContactGroup(rt *runtime.Runtime, org *Org, uuid assets.GroupUUID, na
 }
 
 // InsertContactURN inserts a contact URN
-func InsertContactURN(rt *runtime.Runtime, org *Org, contact *Contact, urn urns.URN, priority int, authTokens map[string]string) models.URNID {
+func InsertContactURN(t *testing.T, rt *runtime.Runtime, org *Org, contact *Contact, urn urns.URN, priority int, authTokens map[string]string) models.URNID {
 	scheme, path, _, display := urn.ToParts()
 
 	contactID := models.NilContactID
@@ -105,19 +109,21 @@ func InsertContactURN(rt *runtime.Runtime, org *Org, contact *Contact, urn urns.
 	}
 
 	var id models.URNID
-	must(rt.DB.Get(&id,
+	err := rt.DB.Get(&id,
 		`INSERT INTO contacts_contacturn(org_id, contact_id, scheme, path, display, identity, priority, auth_tokens) 
 		 VALUES($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id`, org.ID, contactID, scheme, path, display, urn.Identity(), priority, jsonx.MustMarshal(authTokens),
-	))
+	)
+	require.NoError(t, err)
 	return id
 }
 
 // InsertContactFire inserts a contact fire
-func InsertContactFire(rt *runtime.Runtime, org *Org, contact *Contact, typ models.ContactFireType, scope string, fireOn time.Time, sessionUUID flows.SessionUUID) models.ContactFireID {
+func InsertContactFire(t *testing.T, rt *runtime.Runtime, org *Org, contact *Contact, typ models.ContactFireType, scope string, fireOn time.Time, sessionUUID flows.SessionUUID) models.ContactFireID {
 	var id models.ContactFireID
-	must(rt.DB.Get(&id,
+	err := rt.DB.Get(&id,
 		`INSERT INTO contacts_contactfire(org_id, contact_id, fire_type, scope, fire_on, session_uuid) 
 		 VALUES($1, $2, $3, $4, $5, $6) RETURNING id`, org.ID, contact.ID, typ, scope, fireOn, null.String(sessionUUID),
-	))
+	)
+	require.NoError(t, err)
 	return id
 }

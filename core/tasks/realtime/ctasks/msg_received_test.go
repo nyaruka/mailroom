@@ -28,37 +28,37 @@ func TestMsgReceivedTask(t *testing.T) {
 	ivr.RegisterService(models.ChannelType("T"), testsuite.NewIVRServiceFactory)
 
 	// create a disabled channel
-	disabled := testdb.InsertChannel(rt, testdb.Org1, "TG", "Deleted", "1234567", []string{"telegram"}, "SR", map[string]any{})
+	disabled := testdb.InsertChannel(t, rt, testdb.Org1, "TG", "Deleted", "1234567", []string{"telegram"}, "SR", map[string]any{})
 	rt.DB.MustExec(`UPDATE channels_channel SET is_enabled = false WHERE id = $1`, disabled.ID)
 
-	testdb.InsertKeywordTrigger(rt, testdb.Org1, testdb.Favorites, []string{"start"}, models.MatchOnly, nil, nil, nil)
-	testdb.InsertKeywordTrigger(rt, testdb.Org1, testdb.IVRFlow, []string{"ivr"}, models.MatchOnly, nil, nil, nil)
+	testdb.InsertKeywordTrigger(t, rt, testdb.Org1, testdb.Favorites, []string{"start"}, models.MatchOnly, nil, nil, nil)
+	testdb.InsertKeywordTrigger(t, rt, testdb.Org1, testdb.IVRFlow, []string{"ivr"}, models.MatchOnly, nil, nil, nil)
 
-	testdb.InsertKeywordTrigger(rt, testdb.Org2, testdb.Org2Favorites, []string{"start"}, models.MatchOnly, nil, nil, nil)
-	testdb.InsertCatchallTrigger(rt, testdb.Org2, testdb.Org2SingleMessage, nil, nil, nil)
+	testdb.InsertKeywordTrigger(t, rt, testdb.Org2, testdb.Org2Favorites, []string{"start"}, models.MatchOnly, nil, nil, nil)
+	testdb.InsertCatchallTrigger(t, rt, testdb.Org2, testdb.Org2SingleMessage, nil, nil, nil)
 
 	// create a blocked contact
-	blocked := testdb.InsertContact(rt, testdb.Org1, "2fc8601a-93eb-43a1-892c-9ff5fa291357", "Blocked", "eng", models.ContactStatusBlocked)
+	blocked := testdb.InsertContact(t, rt, testdb.Org1, "2fc8601a-93eb-43a1-892c-9ff5fa291357", "Blocked", "eng", models.ContactStatusBlocked)
 
 	// create a deleted contact
-	deleted := testdb.InsertContact(rt, testdb.Org1, "116e40b1-cecb-4be7-9dea-1a21141a05bc", "Del", "eng", models.ContactStatusActive)
+	deleted := testdb.InsertContact(t, rt, testdb.Org1, "116e40b1-cecb-4be7-9dea-1a21141a05bc", "Del", "eng", models.ContactStatusActive)
 	rt.DB.MustExec(`UPDATE contacts_contact SET is_active = false WHERE id = $1`, deleted.ID)
 
 	// give Ann, Bob and the blocked contact some tickets...
 	openTickets := map[*testdb.Contact][]*testdb.Ticket{
 		testdb.Ann: {
-			testdb.InsertOpenTicket(rt, "01992f54-5ab6-717a-a39e-e8ca91fb7262", testdb.Org1, testdb.Ann, testdb.DefaultTopic, time.Now(), nil),
+			testdb.InsertOpenTicket(t, rt, "01992f54-5ab6-717a-a39e-e8ca91fb7262", testdb.Org1, testdb.Ann, testdb.DefaultTopic, time.Now(), nil),
 		},
 		blocked: {
-			testdb.InsertOpenTicket(rt, "01992f54-5ab6-725e-be9c-0c6407efd755", testdb.Org1, blocked, testdb.DefaultTopic, time.Now(), nil),
+			testdb.InsertOpenTicket(t, rt, "01992f54-5ab6-725e-be9c-0c6407efd755", testdb.Org1, blocked, testdb.DefaultTopic, time.Now(), nil),
 		},
 	}
 	closedTickets := map[*testdb.Contact][]*testdb.Ticket{
 		testdb.Ann: {
-			testdb.InsertClosedTicket(rt, "01992f54-5ab6-7498-a7f2-6aa246e45cfe", testdb.Org1, testdb.Ann, testdb.DefaultTopic, nil),
+			testdb.InsertClosedTicket(t, rt, "01992f54-5ab6-7498-a7f2-6aa246e45cfe", testdb.Org1, testdb.Ann, testdb.DefaultTopic, nil),
 		},
 		testdb.Bob: {
-			testdb.InsertClosedTicket(rt, "01992f54-5ab6-7658-a5d4-bdb05863ec56", testdb.Org1, testdb.Bob, testdb.DefaultTopic, nil),
+			testdb.InsertClosedTicket(t, rt, "01992f54-5ab6-7658-a5d4-bdb05863ec56", testdb.Org1, testdb.Bob, testdb.DefaultTopic, nil),
 		},
 	}
 
@@ -70,7 +70,7 @@ func TestMsgReceivedTask(t *testing.T) {
 	models.FlushCache()
 
 	// insert a dummy message into the database that will get the updates from handling each message event which pretends to be it
-	dbMsg := testdb.InsertIncomingMsg(rt, testdb.Org1, testdb.TwilioChannel, testdb.Ann, "", models.MsgStatusPending)
+	dbMsg := testdb.InsertIncomingMsg(t, rt, testdb.Org1, testdb.TwilioChannel, testdb.Ann, "", models.MsgStatusPending)
 
 	tcs := []struct {
 		preHook             func()

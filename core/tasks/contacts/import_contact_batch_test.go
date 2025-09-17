@@ -19,12 +19,12 @@ func TestImportContactBatch(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
-	importID := testdb.InsertContactImport(rt, testdb.Org1, models.ImportStatusProcessing, testdb.Admin)
-	batch1ID := testdb.InsertContactImportBatch(rt, importID, []byte(`[
+	importID := testdb.InsertContactImport(t, rt, testdb.Org1, models.ImportStatusProcessing, testdb.Admin)
+	batch1ID := testdb.InsertContactImportBatch(t, rt, importID, []byte(`[
 		{"name": "Norbert", "language": "eng", "urns": ["tel:+16055740001"]},
 		{"name": "Leah", "urns": ["tel:+16055740002"]}
 	]`))
-	batch2ID := testdb.InsertContactImportBatch(rt, importID, []byte(`[
+	batch2ID := testdb.InsertContactImportBatch(t, rt, importID, []byte(`[
 		{"name": "Rowan", "language": "spa", "urns": ["tel:+16055740003"]}
 	]`))
 

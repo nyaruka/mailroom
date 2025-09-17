@@ -20,7 +20,7 @@ func TestBuildRecipientsQuery(t *testing.T) {
 	dates.SetNowFunc(dates.NewFixedNow(time.Date(2022, 4, 20, 15, 30, 45, 0, time.UTC)))
 	defer dates.SetNowFunc(time.Now)
 
-	oa := testdb.Org1.Load(rt)
+	oa := testdb.Org1.Load(t, rt)
 	flow, err := oa.FlowByID(testdb.Favorites.ID)
 	require.NoError(t, err)
 

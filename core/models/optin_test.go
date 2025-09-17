@@ -15,8 +15,8 @@ func TestOptIns(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
-	polls := testdb.InsertOptIn(rt, testdb.Org1, "Polls")
-	offers := testdb.InsertOptIn(rt, testdb.Org1, "Offers")
+	polls := testdb.InsertOptIn(t, rt, testdb.Org1, "Polls")
+	offers := testdb.InsertOptIn(t, rt, testdb.Org1, "Offers")
 
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshOptIns)
 	require.NoError(t, err)

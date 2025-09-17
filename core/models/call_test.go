@@ -16,9 +16,9 @@ func TestCalls(t *testing.T) {
 
 	defer rt.DB.MustExec(`DELETE FROM ivr_call`)
 
-	oa := testdb.Org1.Load(rt)
-	ann, _, annURNs := testdb.Ann.Load(rt, oa)
-	cat, _, catURNs := testdb.Cat.Load(rt, oa)
+	oa := testdb.Org1.Load(t, rt)
+	ann, _, annURNs := testdb.Ann.Load(t, rt, oa)
+	cat, _, catURNs := testdb.Cat.Load(t, rt, oa)
 
 	callIn1 := models.NewIncomingCall(testdb.Org1.ID, oa.ChannelByUUID(testdb.TwilioChannel.UUID), ann, annURNs[0].ID, "EXT123")
 	callIn2 := models.NewIncomingCall(testdb.Org1.ID, oa.ChannelByUUID(testdb.VonageChannel.UUID), cat, catURNs[0].ID, "EXT234")

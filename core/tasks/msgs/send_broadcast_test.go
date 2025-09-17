@@ -42,7 +42,7 @@ func TestBroadcastsFromEvents(t *testing.T) {
 	ann := flows.NewContactReference(testdb.Ann.UUID, "Ann")
 
 	// add an extra URN fo Ann
-	testdb.InsertContactURN(rt, testdb.Org1, testdb.Ann, urns.URN("tel:+12065551212"), 1001, nil)
+	testdb.InsertContactURN(t, rt, testdb.Org1, testdb.Ann, urns.URN("tel:+12065551212"), 1001, nil)
 
 	// change Cat's URN to an invalid twitter URN so it can't be sent
 	rt.DB.MustExec(`UPDATE contacts_contacturn SET identity = 'twitter:invalid-urn', scheme = 'twitter', path='invalid-urn' WHERE id = $1`, testdb.Cat.URNID)
@@ -185,7 +185,7 @@ func TestSendBroadcastTask(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
-	polls := testdb.InsertOptIn(rt, testdb.Org1, "Polls")
+	polls := testdb.InsertOptIn(t, rt, testdb.Org1, "Polls")
 
 	rt.DB.MustExec(`UPDATE orgs_org SET flow_languages = '{"eng", "spa"}' WHERE id = $1`, testdb.Org1.ID)
 
@@ -193,7 +193,7 @@ func TestSendBroadcastTask(t *testing.T) {
 	assert.NoError(t, err)
 
 	// add an extra URN for Ann, change Cat's language to Spanish, and mark Bob as seen recently
-	testdb.InsertContactURN(rt, testdb.Org1, testdb.Ann, urns.URN("tel:+12065551212"), 1001, nil)
+	testdb.InsertContactURN(t, rt, testdb.Org1, testdb.Ann, urns.URN("tel:+12065551212"), 1001, nil)
 	rt.DB.MustExec(`UPDATE contacts_contact SET language = 'spa', modified_on = NOW() WHERE id = $1`, testdb.Cat.ID)
 	rt.DB.MustExec(`UPDATE contacts_contact SET last_seen_on = NOW() - interval '45 days', modified_on = NOW() WHERE id = $1`, testdb.Bob.ID)
 

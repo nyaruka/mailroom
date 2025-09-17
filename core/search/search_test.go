@@ -130,13 +130,13 @@ func TestGetContactIDsForQuery(t *testing.T) {
 	// so that we can test queries that span multiple responses
 	cylonIDs := make([]models.ContactID, 10003)
 	for i := range 10003 {
-		cylonIDs[i] = testdb.InsertContact(rt, testdb.Org1, flows.NewContactUUID(), fmt.Sprintf("Cylon %d", i), i18n.NilLanguage, models.ContactStatusActive).ID
+		cylonIDs[i] = testdb.InsertContact(t, rt, testdb.Org1, flows.NewContactUUID(), fmt.Sprintf("Cylon %d", i), i18n.NilLanguage, models.ContactStatusActive).ID
 	}
 
 	// create some extra contacts in the other org to be sure we're filtering correctly
-	testdb.InsertContact(rt, testdb.Org2, flows.NewContactUUID(), "Cat", i18n.NilLanguage, models.ContactStatusActive)
-	testdb.InsertContact(rt, testdb.Org2, flows.NewContactUUID(), "Bob", i18n.NilLanguage, models.ContactStatusActive)
-	testdb.InsertContact(rt, testdb.Org2, flows.NewContactUUID(), "Cylon 0", i18n.NilLanguage, models.ContactStatusActive)
+	testdb.InsertContact(t, rt, testdb.Org2, flows.NewContactUUID(), "Cat", i18n.NilLanguage, models.ContactStatusActive)
+	testdb.InsertContact(t, rt, testdb.Org2, flows.NewContactUUID(), "Bob", i18n.NilLanguage, models.ContactStatusActive)
+	testdb.InsertContact(t, rt, testdb.Org2, flows.NewContactUUID(), "Cylon 0", i18n.NilLanguage, models.ContactStatusActive)
 
 	testsuite.ReindexElastic(t, rt)
 

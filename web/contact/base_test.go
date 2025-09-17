@@ -54,16 +54,16 @@ func TestImport(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetValkey)
 
-	import1ID := testdb.InsertContactImport(rt, testdb.Org1, models.ImportStatusProcessing, testdb.Admin)
-	testdb.InsertContactImportBatch(rt, import1ID, []byte(`[
+	import1ID := testdb.InsertContactImport(t, rt, testdb.Org1, models.ImportStatusProcessing, testdb.Admin)
+	testdb.InsertContactImportBatch(t, rt, import1ID, []byte(`[
 		{"name": "Norbert", "language": "eng", "urns": ["tel:+16055740001"]},
 		{"name": "Leah", "urns": ["tel:+16055740002"]}
 	]`))
-	testdb.InsertContactImportBatch(rt, import1ID, []byte(`[
+	testdb.InsertContactImportBatch(t, rt, import1ID, []byte(`[
 		{"name": "Rowan", "language": "spa", "urns": ["tel:+16055740003"]}
 	]`))
-	import2ID := testdb.InsertContactImport(rt, testdb.Org1, models.ImportStatusProcessing, testdb.Editor)
-	testdb.InsertContactImportBatch(rt, import2ID, []byte(`[
+	import2ID := testdb.InsertContactImport(t, rt, testdb.Org1, models.ImportStatusProcessing, testdb.Editor)
+	testdb.InsertContactImportBatch(t, rt, import2ID, []byte(`[
 		{"name": "Gloria", "urns": ["tel:+16055740003"]}
 	]`))
 
@@ -76,7 +76,7 @@ func TestInspect(t *testing.T) {
 	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
 	// give Ann an unsendable twitterid URN with a display value
-	testdb.InsertContactURN(rt, testdb.Org1, testdb.Ann, urns.URN("twitterid:23145325#ann"), 20000, nil)
+	testdb.InsertContactURN(t, rt, testdb.Org1, testdb.Ann, urns.URN("twitterid:23145325#ann"), 20000, nil)
 
 	testsuite.RunWebTests(t, rt, "testdata/inspect.json")
 }
@@ -86,7 +86,7 @@ func TestModify(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
-	oa := testdb.Org1.Load(rt)
+	oa := testdb.Org1.Load(t, rt)
 
 	// to be deterministic, update the creation date on Ann
 	rt.DB.MustExec(`UPDATE contacts_contact SET created_on = $1 WHERE id = $2`, time.Date(2018, 7, 6, 12, 30, 0, 123456789, time.UTC), testdb.Ann.ID)
@@ -95,7 +95,7 @@ func TestModify(t *testing.T) {
 	rt.DB.MustExec(`UPDATE contacts_contactgroup SET query = 'age > 18' WHERE id = $1`, testdb.DoctorsGroup.ID)
 
 	// insert an event on our campaign that is based on created on
-	testdb.InsertCampaignFlowPoint(rt, testdb.RemindersCampaign, testdb.Favorites, testdb.CreatedOnField, 1000, "W")
+	testdb.InsertCampaignFlowPoint(t, rt, testdb.RemindersCampaign, testdb.Favorites, testdb.CreatedOnField, 1000, "W")
 
 	// for simpler tests we clear out Ann's fields and groups to start
 	rt.DB.MustExec(`UPDATE contacts_contact SET fields = NULL WHERE id = $1`, testdb.Ann.ID)
@@ -117,11 +117,11 @@ func TestInterrupt(t *testing.T) {
 	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetValkey)
 
 	// give Ann a completed and a waiting session
-	testdb.InsertFlowSession(rt, testdb.Ann, models.FlowTypeMessaging, models.SessionStatusCompleted, nil, testdb.Favorites)
-	testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Ann, models.FlowTypeMessaging, nil, testdb.Favorites)
+	testdb.InsertFlowSession(t, rt, testdb.Ann, models.FlowTypeMessaging, models.SessionStatusCompleted, nil, testdb.Favorites)
+	testdb.InsertWaitingSession(t, rt, testdb.Org1, testdb.Ann, models.FlowTypeMessaging, nil, testdb.Favorites)
 
 	// give Bob a waiting session
-	testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Bob, models.FlowTypeMessaging, nil, testdb.PickANumber)
+	testdb.InsertWaitingSession(t, rt, testdb.Org1, testdb.Bob, models.FlowTypeMessaging, nil, testdb.PickANumber)
 
 	testsuite.RunWebTests(t, rt, "testdata/interrupt.json")
 }
@@ -137,7 +137,7 @@ func TestPopulateGroup(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetValkey|testsuite.ResetElastic)
 
-	testdb.InsertContactGroup(rt, testdb.Org1, "", "Dynamic", "age > 18")
+	testdb.InsertContactGroup(t, rt, testdb.Org1, "", "Dynamic", "age > 18")
 	models.FlushCache()
 
 	testsuite.RunWebTests(t, rt, "testdata/populate_group.json")

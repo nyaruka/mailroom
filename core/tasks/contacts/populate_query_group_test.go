@@ -16,9 +16,9 @@ func TestPopulateQueryGroupTask(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
-	oa := testdb.Org1.Load(rt)
-	group1 := testdb.InsertContactGroup(rt, testdb.Org1, "e52fee05-2f95-4445-aef6-2fe7dac2fd56", "Women", "gender = F")
-	group2 := testdb.InsertContactGroup(rt, testdb.Org1, "8d1c25ff-d9b3-43c4-9abe-7ef3d2fc6c1a", "Invalid", "!!!", testdb.Bob)
+	oa := testdb.Org1.Load(t, rt)
+	group1 := testdb.InsertContactGroup(t, rt, testdb.Org1, "e52fee05-2f95-4445-aef6-2fe7dac2fd56", "Women", "gender = F")
+	group2 := testdb.InsertContactGroup(t, rt, testdb.Org1, "8d1c25ff-d9b3-43c4-9abe-7ef3d2fc6c1a", "Invalid", "!!!", testdb.Bob)
 
 	start := dates.Now()
 
