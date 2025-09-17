@@ -39,7 +39,7 @@
         "db_assertions": [
             {
                 "query": "SELECT count(*) FROM tickets_ticket WHERE topic_id = 10002",
-                "count": 3
+                "returns": 3
             }
         ],
         "expected_history": [

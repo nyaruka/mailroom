@@ -21,11 +21,11 @@
         "db_assertions": [
             {
                 "query": "SELECT count(*) FROM tickets_ticket WHERE status = 'O'",
-                "count": 2
+                "returns": 2
             },
             {
                 "query": "SELECT count(*) FROM tickets_ticket WHERE status = 'C'",
-                "count": 2
+                "returns": 2
             }
         ],
         "expected_history": [
@@ -104,11 +104,11 @@
         "db_assertions": [
             {
                 "query": "SELECT count(*) FROM tickets_ticket WHERE status = 'O'",
-                "count": 2
+                "returns": 2
             },
             {
                 "query": "SELECT count(*) FROM tickets_ticket WHERE status = 'C'",
-                "count": 2
+                "returns": 2
             }
         ]
     }

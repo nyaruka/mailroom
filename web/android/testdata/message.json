@@ -43,7 +43,7 @@
         "db_assertions": [
             {
                 "query": "SELECT count(*) FROM msgs_msg WHERE direction = 'I' and contact_id = 10000 AND text = 'Hello'",
-                "count": 1
+                "returns": 1
             }
         ],
         "expected_tasks": {
@@ -71,7 +71,7 @@
         "db_assertions": [
             {
                 "query": "SELECT count(*) FROM msgs_msg WHERE direction = 'I' and contact_id = 30000 AND text = 'Hola'",
-                "count": 1
+                "returns": 1
             }
         ],
         "expected_tasks": {
@@ -99,7 +99,7 @@
         "db_assertions": [
             {
                 "query": "SELECT count(*) FROM msgs_msg WHERE direction = 'I' and contact_id = 30000 AND text = 'Hola'",
-                "count": 1
+                "returns": 1
             }
         ]
     },
@@ -125,7 +125,7 @@
         "db_assertions": [
             {
                 "query": "SELECT count(*) FROM msgs_msg WHERE direction = 'I' and contact_id = 30000 AND text = 'Hola'",
-                "count": 1
+                "returns": 1
             }
         ]
     }

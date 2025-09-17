@@ -41,22 +41,19 @@ func RunWebTests(t *testing.T, ctx context.Context, rt *runtime.Runtime, truthFi
 	time.Sleep(time.Second)
 
 	type TestCase struct {
-		Label        string               `json:"label"`
-		HTTPMocks    *httpx.MockRequestor `json:"http_mocks,omitempty"`
-		Method       string               `json:"method"`
-		Path         string               `json:"path"`
-		Headers      map[string]string    `json:"headers,omitempty"`
-		Body         json.RawMessage      `json:"body,omitempty"`
-		BodyEncode   string               `json:"body_encode,omitempty"`
-		Status       int                  `json:"status"`
-		Response     json.RawMessage      `json:"response,omitempty"`
-		ResponseFile string               `json:"response_file,omitempty"`
-		DBAssertions []struct {
-			Query string `json:"query"`
-			Count int    `json:"count"`
-		} `json:"db_assertions,omitempty"`
-		ExpectedTasks   map[string][]string `json:"expected_tasks,omitempty"`
-		ExpectedHistory json.RawMessage     `json:"expected_history,omitempty"`
+		Label           string               `json:"label"`
+		HTTPMocks       *httpx.MockRequestor `json:"http_mocks,omitempty"`
+		Method          string               `json:"method"`
+		Path            string               `json:"path"`
+		Headers         map[string]string    `json:"headers,omitempty"`
+		Body            json.RawMessage      `json:"body,omitempty"`
+		BodyEncode      string               `json:"body_encode,omitempty"`
+		Status          int                  `json:"status"`
+		Response        json.RawMessage      `json:"response,omitempty"`
+		ResponseFile    string               `json:"response_file,omitempty"`
+		DBAssertions    []*assertdb.Assert   `json:"db_assertions,omitempty"`
+		ExpectedTasks   map[string][]string  `json:"expected_tasks,omitempty"`
+		ExpectedHistory json.RawMessage      `json:"expected_history,omitempty"`
 
 		actualResponse []byte
 	}
@@ -96,8 +93,7 @@ func RunWebTests(t *testing.T, ctx context.Context, rt *runtime.Runtime, truthFi
 		} else {
 			bodyReader := bytes.NewReader([]byte(tc.Body))
 			req, err = httpx.NewRequest(ctx, tc.Method, testURL, bodyReader, tc.Headers)
-			req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-
+			req.Header.Set("Content-Type", "application/json")
 		}
 
 		assert.NoError(t, err, "%s: error creating request", tc.Label)
@@ -155,7 +151,7 @@ func RunWebTests(t *testing.T, ctx context.Context, rt *runtime.Runtime, truthFi
 			}
 
 			for _, dba := range tc.DBAssertions {
-				assertdb.Query(t, rt.DB, dba.Query).Returns(dba.Count, "%s: '%s' returned wrong count", tc.Label, dba.Query)
+				dba.Run(t, rt.DB, "%s: assertion for query '%s' failed", tc.Label, dba.Query)
 			}
 
 			if tc.ExpectedTasks == nil {

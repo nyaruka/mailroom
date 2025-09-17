@@ -23,7 +23,7 @@
         "db_assertions": [
             {
                 "query": "SELECT count(*) FROM tickets_ticket WHERE assignee_id = 5",
-                "count": 3
+                "returns": 3
             }
         ],
         "expected_history": [
@@ -84,7 +84,7 @@
         "db_assertions": [
             {
                 "query": "SELECT count(*) FROM tickets_ticket WHERE id = 30000 AND assignee_id IS NULL",
-                "count": 1
+                "returns": 1
             }
         ],
         "expected_history": [

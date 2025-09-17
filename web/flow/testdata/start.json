@@ -35,7 +35,7 @@
         "db_assertions": [
             {
                 "query": "SELECT count(*) FROM flows_flowstart",
-                "count": 0
+                "returns": 0
             }
         ]
     },
@@ -70,15 +70,15 @@
         "db_assertions": [
             {
                 "query": "SELECT count(*) FROM flows_flowstart WHERE org_id = 1 AND start_type = 'M' AND flow_id = 10000 AND status = 'P' AND urns = '{\"tel:+1234567890\"}' AND query = 'age > 20' AND created_by_id = 4",
-                "count": 1
+                "returns": 1
             },
             {
                 "query": "SELECT count(*) FROM flows_flowstart_contacts WHERE flowstart_id = 30000",
-                "count": 2
+                "returns": 2
             },
             {
                 "query": "SELECT count(*) FROM flows_flowstart_groups WHERE flowstart_id = 30000",
-                "count": 1
+                "returns": 1
             }
         ],
         "expected_tasks": {
