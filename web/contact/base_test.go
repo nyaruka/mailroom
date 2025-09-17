@@ -26,7 +26,7 @@ func TestCreate(t *testing.T) {
 	// detach Ann's tel URN
 	rt.DB.MustExec(`UPDATE contacts_contacturn SET contact_id = NULL WHERE contact_id = $1`, testdb.Ann.ID)
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/create.json", testsuite.ResetNone)
+	testsuite.RunWebTests(t, ctx, rt, "testdata/create.json")
 }
 
 func TestDeindex(t *testing.T) {
@@ -34,25 +34,25 @@ func TestDeindex(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetElastic)
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/deindex.json", testsuite.ResetNone)
+	testsuite.RunWebTests(t, ctx, rt, "testdata/deindex.json")
 }
 
 func TestExport(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/export.json", testsuite.ResetNone)
+	testsuite.RunWebTests(t, ctx, rt, "testdata/export.json")
 }
 
 func TestExportPreview(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/export_preview.json", testsuite.ResetNone)
+	testsuite.RunWebTests(t, ctx, rt, "testdata/export_preview.json")
 }
 
 func TestImport(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetData)
+	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetValkey)
 
 	import1ID := testdb.InsertContactImport(rt, testdb.Org1, models.ImportStatusProcessing, testdb.Admin)
 	testdb.InsertContactImportBatch(rt, import1ID, []byte(`[
@@ -67,7 +67,7 @@ func TestImport(t *testing.T) {
 		{"name": "Gloria", "urns": ["tel:+16055740003"]}
 	]`))
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/import.json", testsuite.ResetValkey)
+	testsuite.RunWebTests(t, ctx, rt, "testdata/import.json")
 }
 
 func TestInspect(t *testing.T) {
@@ -78,7 +78,7 @@ func TestInspect(t *testing.T) {
 	// give Ann an unsendable twitterid URN with a display value
 	testdb.InsertContactURN(rt, testdb.Org1, testdb.Ann, urns.URN("twitterid:23145325#ann"), 20000, nil)
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/inspect.json", testsuite.ResetNone)
+	testsuite.RunWebTests(t, ctx, rt, "testdata/inspect.json")
 }
 
 func TestModify(t *testing.T) {
@@ -108,13 +108,13 @@ func TestModify(t *testing.T) {
 	// lock a contact to test skipping them
 	clocks.TryToLock(ctx, rt, oa, []models.ContactID{testdb.Dan.ID}, time.Second)
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/modify.json", testsuite.ResetValkey)
+	testsuite.RunWebTests(t, ctx, rt, "testdata/modify.json")
 }
 
 func TestInterrupt(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetData)
+	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetValkey)
 
 	// give Ann a completed and a waiting session
 	testdb.InsertFlowSession(rt, testdb.Ann, models.FlowTypeMessaging, models.SessionStatusCompleted, nil, testdb.Favorites)
@@ -123,13 +123,13 @@ func TestInterrupt(t *testing.T) {
 	// give Bob a waiting session
 	testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Bob, models.FlowTypeMessaging, nil, testdb.PickANumber)
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/interrupt.json", testsuite.ResetValkey)
+	testsuite.RunWebTests(t, ctx, rt, "testdata/interrupt.json")
 }
 
 func TestParseQuery(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/parse_query.json", testsuite.ResetNone)
+	testsuite.RunWebTests(t, ctx, rt, "testdata/parse_query.json")
 }
 
 func TestPopulateGroup(t *testing.T) {
@@ -140,19 +140,19 @@ func TestPopulateGroup(t *testing.T) {
 	testdb.InsertContactGroup(rt, testdb.Org1, "", "Dynamic", "age > 18")
 	models.FlushCache()
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/populate_group.json", testsuite.ResetValkey)
+	testsuite.RunWebTests(t, ctx, rt, "testdata/populate_group.json")
 }
 
 func TestSearch(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/search.json", testsuite.ResetNone)
+	testsuite.RunWebTests(t, ctx, rt, "testdata/search.json")
 }
 
 func TestURNs(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/urns.json", testsuite.ResetNone)
+	testsuite.RunWebTests(t, ctx, rt, "testdata/urns.json")
 }
 
 func TestSpecToCreation(t *testing.T) {

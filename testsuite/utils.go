@@ -83,9 +83,17 @@ func GetQueuedTasks(t *testing.T, rt *runtime.Runtime) map[string][]string {
 	return actual
 }
 
+// FlushTasks processes any queued tasks
 func FlushTasks(t *testing.T, rt *runtime.Runtime, qnames ...string) map[string]int {
-	ctx := context.Background()
+	return drainTasks(t, rt, true, qnames...)
+}
 
+// ClearTasks removes any queued tasks without processing them
+func ClearTasks(t *testing.T, rt *runtime.Runtime, qnames ...string) map[string]int {
+	return drainTasks(t, rt, false, qnames...)
+}
+
+func drainTasks(t *testing.T, rt *runtime.Runtime, perform bool, qnames ...string) map[string]int {
 	vc := rt.VK.Get()
 	defer vc.Close()
 
@@ -104,7 +112,7 @@ func FlushTasks(t *testing.T, rt *runtime.Runtime, qnames ...string) map[string]
 		// look for a task in the queues
 		var q queues.Fair
 		for _, q = range qs {
-			task, err = q.Pop(ctx, vc)
+			task, err = q.Pop(t.Context(), vc)
 			require.NoError(t, err)
 
 			if task != nil {
@@ -118,10 +126,12 @@ func FlushTasks(t *testing.T, rt *runtime.Runtime, qnames ...string) map[string]
 
 		counts[task.Type]++
 
-		err = tasks.Perform(context.Background(), rt, task)
-		require.NoError(t, err, "unexpected error performing task %s", task.Type)
+		if perform {
+			err = tasks.Perform(t.Context(), rt, task)
+			require.NoError(t, err, "unexpected error performing task %s", task.Type)
+		}
 
-		err = q.Done(ctx, vc, task.OwnerID)
+		err = q.Done(t.Context(), vc, task.OwnerID)
 		require.NoError(t, err, "unexpected error marking task %s as done", task.Type)
 	}
 	return counts

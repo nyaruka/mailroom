@@ -9,7 +9,7 @@ import (
 func TestSchedule(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetData)
+	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetValkey)
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/schedule.json", testsuite.ResetValkey)
+	testsuite.RunWebTests(t, ctx, rt, "testdata/schedule.json")
 }

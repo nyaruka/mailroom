@@ -17,7 +17,7 @@ import (
 func TestDocs(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/docs.json", testsuite.ResetNone)
+	testsuite.RunWebTests(t, ctx, rt, "testdata/docs.json")
 }
 
 func TestMetrics(t *testing.T) {
