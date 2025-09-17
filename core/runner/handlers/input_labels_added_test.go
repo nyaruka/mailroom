@@ -3,6 +3,7 @@ package handlers_test
 import (
 	"testing"
 
+	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/actions"
@@ -40,21 +41,21 @@ func TestInputLabelsAdded(t *testing.T) {
 				testdb.Ann.UUID: msg1,
 				testdb.Bob.UUID: msg2,
 			},
-			SQLAssertions: []SQLAssertion{
+			DBAssertions: []assertdb.Assert{
 				{
-					SQL:   "select count(*) from msgs_msg_labels WHERE msg_id = $1",
-					Args:  []any{msg1.ID},
-					Count: 2,
+					Query:   "select count(*) from msgs_msg_labels WHERE msg_id = $1",
+					Args:    []any{msg1.ID},
+					Returns: 2,
 				},
 				{
-					SQL:   "select count(*) from msgs_msg_labels WHERE msg_id = $1",
-					Args:  []any{msg2.ID},
-					Count: 0,
+					Query:   "select count(*) from msgs_msg_labels WHERE msg_id = $1",
+					Args:    []any{msg2.ID},
+					Returns: 0,
 				},
 				{
-					SQL:   "select count(*) from msgs_msg_labels l JOIN msgs_msg m ON l.msg_id = m.id WHERE m.contact_id = $1",
-					Args:  []any{testdb.Bob.ID},
-					Count: 0,
+					Query:   "select count(*) from msgs_msg_labels l JOIN msgs_msg m ON l.msg_id = m.id WHERE m.contact_id = $1",
+					Args:    []any{testdb.Bob.ID},
+					Returns: 0,
 				},
 			},
 			PersistedEvents: map[flows.ContactUUID][]string{

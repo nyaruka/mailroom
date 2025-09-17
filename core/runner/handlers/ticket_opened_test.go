@@ -3,6 +3,7 @@ package handlers_test
 import (
 	"testing"
 
+	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/gocommon/httpx"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/flows"
@@ -56,39 +57,39 @@ func TestTicketOpened(t *testing.T) {
 					),
 				},
 			},
-			SQLAssertions: []SQLAssertion{
+			DBAssertions: []assertdb.Assert{
 				{ // Ann's old ticket will still be open and Ann's new ticket will have been created
-					SQL:   "select count(*) from tickets_ticket where contact_id = $1 AND status = 'O'",
-					Args:  []any{testdb.Ann.ID},
-					Count: 1,
+					Query:   "select count(*) from tickets_ticket where contact_id = $1 AND status = 'O'",
+					Args:    []any{testdb.Ann.ID},
+					Returns: 1,
 				},
 				{ // bob's ticket will have been created too
-					SQL:   "select count(*) from tickets_ticket where contact_id = $1 AND status = 'O'",
-					Args:  []any{testdb.Bob.ID},
-					Count: 1,
+					Query:   "select count(*) from tickets_ticket where contact_id = $1 AND status = 'O'",
+					Args:    []any{testdb.Bob.ID},
+					Returns: 1,
 				},
 				{ // and we have 2 ticket opened events for the 2 tickets opened
-					SQL:   "select count(*) from tickets_ticketevent where event_type = 'O'",
-					Count: 2,
+					Query:   "select count(*) from tickets_ticketevent where event_type = 'O'",
+					Returns: 2,
 				},
 				{ // both of our tickets have a topic (one without an explicit topic get's the default)
-					SQL:   "select count(*) from tickets_ticket where topic_id is null",
-					Count: 0,
+					Query:   "select count(*) from tickets_ticket where topic_id is null",
+					Returns: 0,
 				},
 				{ // one of our tickets is assigned to admin
-					SQL:   "select count(*) from tickets_ticket where assignee_id = $1",
-					Args:  []any{testdb.Admin.ID},
-					Count: 1,
+					Query:   "select count(*) from tickets_ticket where assignee_id = $1",
+					Args:    []any{testdb.Admin.ID},
+					Returns: 1,
 				},
 				{ // admin will have a ticket assigned notification for the ticket directly assigned to them
-					SQL:   "select count(*) from notifications_notification where user_id = $1 and notification_type = 'tickets:activity'",
-					Args:  []any{testdb.Admin.ID},
-					Count: 1,
+					Query:   "select count(*) from notifications_notification where user_id = $1 and notification_type = 'tickets:activity'",
+					Args:    []any{testdb.Admin.ID},
+					Returns: 1,
 				},
 				{ // all assignable users will have a ticket opened notification for the unassigned ticket
-					SQL:   "select count(*) from notifications_notification where notification_type = 'tickets:opened'",
-					Args:  nil,
-					Count: 3,
+					Query:   "select count(*) from notifications_notification where notification_type = 'tickets:opened'",
+					Args:    nil,
+					Returns: 3,
 				},
 			},
 			PersistedEvents: map[flows.ContactUUID][]string{

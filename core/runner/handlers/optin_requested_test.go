@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/actions"
@@ -50,21 +51,21 @@ func TestOptinRequested(t *testing.T) {
 			Msgs: ContactMsgMap{
 				testdb.Ann.UUID: msg1,
 			},
-			SQLAssertions: []SQLAssertion{
+			DBAssertions: []assertdb.Assert{
 				{
-					SQL:   `SELECT COUNT(*) FROM msgs_msg WHERE direction = 'O' AND text = '' AND high_priority = true AND contact_id = $1 AND optin_id = $2`,
-					Args:  []any{testdb.Ann.ID, optIn.ID},
-					Count: 1,
+					Query:   `SELECT COUNT(*) FROM msgs_msg WHERE direction = 'O' AND text = '' AND high_priority = true AND contact_id = $1 AND optin_id = $2`,
+					Args:    []any{testdb.Ann.ID, optIn.ID},
+					Returns: 1,
 				},
 				{
-					SQL:   `SELECT COUNT(*) FROM msgs_msg WHERE direction = 'O' AND text = '' AND high_priority = false AND contact_id = $1 AND optin_id = $2`,
-					Args:  []any{testdb.Cat.ID, optIn.ID},
-					Count: 1,
+					Query:   `SELECT COUNT(*) FROM msgs_msg WHERE direction = 'O' AND text = '' AND high_priority = false AND contact_id = $1 AND optin_id = $2`,
+					Args:    []any{testdb.Cat.ID, optIn.ID},
+					Returns: 1,
 				},
 				{ // bob has no channel+URN that supports optins
-					SQL:   `SELECT COUNT(*) FROM msgs_msg WHERE direction = 'O' AND contact_id = $1`,
-					Args:  []any{testdb.Bob.ID},
-					Count: 0,
+					Query:   `SELECT COUNT(*) FROM msgs_msg WHERE direction = 'O' AND contact_id = $1`,
+					Args:    []any{testdb.Bob.ID},
+					Returns: 0,
 				},
 			},
 			PersistedEvents: map[flows.ContactUUID][]string{

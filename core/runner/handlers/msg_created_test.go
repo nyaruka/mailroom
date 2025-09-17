@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/flows"
@@ -59,30 +60,30 @@ func TestMsgCreated(t *testing.T) {
 			Msgs: ContactMsgMap{
 				testdb.Ann.UUID: msg1,
 			},
-			SQLAssertions: []SQLAssertion{
+			DBAssertions: []assertdb.Assert{
 				{
-					SQL:   `SELECT COUNT(*) FROM msgs_msg WHERE text='Hello World' AND contact_id = $1 AND quick_replies[1] = 'yes' AND quick_replies[2] = 'no' AND high_priority = TRUE`,
-					Args:  []any{testdb.Ann.ID},
-					Count: 2,
+					Query:   `SELECT COUNT(*) FROM msgs_msg WHERE text='Hello World' AND contact_id = $1 AND quick_replies[1] = 'yes' AND quick_replies[2] = 'no' AND high_priority = TRUE`,
+					Args:    []any{testdb.Ann.ID},
+					Returns: 2,
 				},
 				{
-					SQL:   "SELECT COUNT(*) FROM msgs_msg WHERE text='Hello Attachments' AND contact_id = $1 AND attachments[1] = $2 AND status = 'Q' AND high_priority = FALSE",
-					Args:  []any{testdb.Cat.ID, "image/png:https://foo.bar.com/images/image1.png"},
-					Count: 1,
+					Query:   "SELECT COUNT(*) FROM msgs_msg WHERE text='Hello Attachments' AND contact_id = $1 AND attachments[1] = $2 AND status = 'Q' AND high_priority = FALSE",
+					Args:    []any{testdb.Cat.ID, "image/png:https://foo.bar.com/images/image1.png"},
+					Returns: 1,
 				},
 				{
-					SQL:   "SELECT COUNT(*) FROM msgs_msg WHERE contact_id=$1 AND STATUS = 'F' AND failed_reason = 'D';",
-					Args:  []any{testdb.Bob.ID},
-					Count: 1,
+					Query:   "SELECT COUNT(*) FROM msgs_msg WHERE contact_id=$1 AND STATUS = 'F' AND failed_reason = 'D';",
+					Args:    []any{testdb.Bob.ID},
+					Returns: 1,
 				},
 				{
-					SQL: "SELECT COUNT(*) FROM msgs_msg WHERE contact_id = $1 AND text = $2 AND direction = 'O' AND status = 'Q' AND channel_id = $3 AND templating->'template'->>'name' = 'revive_issue'",
+					Query: "SELECT COUNT(*) FROM msgs_msg WHERE contact_id = $1 AND text = $2 AND direction = 'O' AND status = 'Q' AND channel_id = $3 AND templating->'template'->>'name' = 'revive_issue'",
 					Args: []any{
 						testdb.Dan.ID,
 						`Hi Dan, are you still experiencing problems with tooth?`,
 						testdb.FacebookChannel.ID,
 					},
-					Count: 1,
+					Returns: 1,
 				},
 			},
 			PersistedEvents: map[flows.ContactUUID][]string{
@@ -136,9 +137,9 @@ func TestMsgCreatedNewURN(t *testing.T) {
 					actions.NewSendMsg(flows.NewActionUUID(), "Bob Message", nil, nil, false),
 				},
 			},
-			SQLAssertions: []SQLAssertion{
+			DBAssertions: []assertdb.Assert{
 				{
-					SQL: `
+					Query: `
 					SELECT 
 					  COUNT(*) 
 					FROM 
@@ -151,11 +152,11 @@ func TestMsgCreatedNewURN(t *testing.T) {
 					  u.identity = $2 AND
 					  m.channel_id = $3 AND
 					  u.channel_id IS NULL`,
-					Args:  []any{testdb.Ann.ID, "telegram:12345", telegramID},
-					Count: 1,
+					Args:    []any{testdb.Ann.ID, "telegram:12345", telegramID},
+					Returns: 1,
 				},
 				{
-					SQL: `
+					Query: `
 					SELECT 
 					  COUNT(*) 
 					FROM 
@@ -168,8 +169,8 @@ func TestMsgCreatedNewURN(t *testing.T) {
 					  u.identity = $2 AND
 					  m.channel_id = $3 AND
 					  u.channel_id IS NULL`,
-					Args:  []any{testdb.Bob.ID, "telegram:67890", telegramID},
-					Count: 1,
+					Args:    []any{testdb.Bob.ID, "telegram:67890", telegramID},
+					Returns: 1,
 				},
 			},
 			PersistedEvents: map[flows.ContactUUID][]string{

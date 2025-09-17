@@ -3,6 +3,7 @@ package handlers_test
 import (
 	"testing"
 
+	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/actions"
 	"github.com/nyaruka/mailroom/testsuite"
@@ -28,26 +29,26 @@ func TestContactLanguageChanged(t *testing.T) {
 					actions.NewSetContactLanguage(flows.NewActionUUID(), ""),
 				},
 			},
-			SQLAssertions: []SQLAssertion{
+			DBAssertions: []assertdb.Assert{
 				{
-					SQL:   "select count(*) from contacts_contact where id = $1 and language = 'eng'",
-					Args:  []any{testdb.Ann.ID},
-					Count: 1,
+					Query:   "select count(*) from contacts_contact where id = $1 and language = 'eng'",
+					Args:    []any{testdb.Ann.ID},
+					Returns: 1,
 				},
 				{
-					SQL:   "select count(*) from contacts_contact where id = $1 and language = 'spa'",
-					Args:  []any{testdb.Cat.ID},
-					Count: 1,
+					Query:   "select count(*) from contacts_contact where id = $1 and language = 'spa'",
+					Args:    []any{testdb.Cat.ID},
+					Returns: 1,
 				},
 				{
-					SQL:   "select count(*) from contacts_contact where id = $1 and language is NULL;",
-					Args:  []any{testdb.Bob.ID},
-					Count: 1,
+					Query:   "select count(*) from contacts_contact where id = $1 and language is NULL;",
+					Args:    []any{testdb.Bob.ID},
+					Returns: 1,
 				},
 				{
-					SQL:   "select count(*) from contacts_contact where id = $1 and language is NULL;",
-					Args:  []any{testdb.Dan.ID},
-					Count: 1,
+					Query:   "select count(*) from contacts_contact where id = $1 and language is NULL;",
+					Args:    []any{testdb.Dan.ID},
+					Returns: 1,
 				},
 			},
 			PersistedEvents: map[flows.ContactUUID][]string{

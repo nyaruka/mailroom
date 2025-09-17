@@ -151,7 +151,7 @@ func RunWebTests(t *testing.T, ctx context.Context, rt *runtime.Runtime, truthFi
 			}
 
 			for _, dba := range tc.DBAssertions {
-				dba.Run(t, rt.DB, "%s: assertion for query '%s' failed", tc.Label, dba.Query)
+				dba.Check(t, rt.DB, "%s: assertion for query '%s' failed", tc.Label, dba.Query)
 			}
 
 			if tc.ExpectedTasks == nil {
