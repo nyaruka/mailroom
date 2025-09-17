@@ -19,7 +19,7 @@ func TestTicketAddNote(t *testing.T) {
 
 	testdb.OpenTicketsGroup.Add(rt, testdb.Ann)
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/add_note.json", testsuite.ResetDynamo)
+	testsuite.RunWebTests(t, ctx, rt, "testdata/add_note.json", testsuite.ResetNone)
 }
 
 func TestTicketChangeAssignee(t *testing.T) {
@@ -34,7 +34,7 @@ func TestTicketChangeAssignee(t *testing.T) {
 
 	testdb.OpenTicketsGroup.Add(rt, testdb.Ann)
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/change_assignee.json", testsuite.ResetDynamo)
+	testsuite.RunWebTests(t, ctx, rt, "testdata/change_assignee.json", testsuite.ResetNone)
 }
 
 func TestTicketChangeTopic(t *testing.T) {
@@ -48,7 +48,7 @@ func TestTicketChangeTopic(t *testing.T) {
 
 	testdb.OpenTicketsGroup.Add(rt, testdb.Ann)
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/change_topic.json", testsuite.ResetDynamo)
+	testsuite.RunWebTests(t, ctx, rt, "testdata/change_topic.json", testsuite.ResetNone)
 }
 
 func TestTicketClose(t *testing.T) {
@@ -63,7 +63,7 @@ func TestTicketClose(t *testing.T) {
 
 	testdb.OpenTicketsGroup.Add(rt, testdb.Ann)
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/close.json", testsuite.ResetValkey|testsuite.ResetDynamo)
+	testsuite.RunWebTests(t, ctx, rt, "testdata/close.json", testsuite.ResetValkey)
 }
 
 func TestTicketReopen(t *testing.T) {
@@ -80,5 +80,5 @@ func TestTicketReopen(t *testing.T) {
 	testdb.InsertClosedTicket(rt, "01992f54-5ab6-7498-a7f2-6aa246e45cfe", testdb.Org1, testdb.Bob, testdb.DefaultTopic, testdb.Editor)
 	testdb.InsertClosedTicket(rt, "01992f54-5ab6-7658-a5d4-bdb05863ec56", testdb.Org1, testdb.Dan, testdb.DefaultTopic, testdb.Editor)
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/reopen.json", testsuite.ResetDynamo)
+	testsuite.RunWebTests(t, ctx, rt, "testdata/reopen.json", testsuite.ResetNone)
 }

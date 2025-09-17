@@ -127,10 +127,16 @@ func FlushTasks(t *testing.T, rt *runtime.Runtime, qnames ...string) map[string]
 	return counts
 }
 
-func GetHistoryItems(t *testing.T, rt *runtime.Runtime) []*models.DynamoItem {
+func GetHistoryItems(t *testing.T, rt *runtime.Runtime, clear bool) []*models.DynamoItem {
 	rt.Writers.History.Flush()
 
-	return dyntest.ScanAll[models.DynamoItem](t, rt.Dynamo, "TestHistory")
+	items := dyntest.ScanAll[models.DynamoItem](t, rt.Dynamo, "TestHistory")
+
+	if clear {
+		dyntest.Truncate(t, rt.Dynamo, "TestHistory")
+	}
+
+	return items
 }
 
 func GetHistoryEventTypes(t *testing.T, rt *runtime.Runtime) map[flows.ContactUUID][]string {
