@@ -30,8 +30,8 @@
         },
         "db_assertions": [
             {
-                "query": "SELECT count(*) FROM contacts_contact WHERE id = 10000 AND name = 'Ann'",
-                "returns": 1
+                "query": "SELECT name FROM contacts_contact WHERE id = 10000",
+                "returns": "Ann"
             }
         ]
     },
@@ -78,8 +78,8 @@
         },
         "db_assertions": [
             {
-                "query": "SELECT count(*) FROM contacts_contact WHERE id = 10000 AND name = 'Kathy'",
-                "returns": 1
+                "query": "SELECT name FROM contacts_contact WHERE id = 10000",
+                "returns": "Kathy"
             }
         ],
         "expected_history": [
@@ -139,8 +139,8 @@
         },
         "db_assertions": [
             {
-                "query": "SELECT count(*) FROM contacts_contact WHERE id = 10000 AND name = 'Nate'",
-                "returns": 1
+                "query": "SELECT name FROM contacts_contact WHERE id = 10000",
+                "returns": "Nate"
             }
         ],
         "expected_history": [

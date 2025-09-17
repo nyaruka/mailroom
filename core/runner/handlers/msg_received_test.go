@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/actions"
 	"github.com/nyaruka/mailroom/core/models"
@@ -31,16 +32,16 @@ func TestMsgReceived(t *testing.T) {
 			Msgs: ContactMsgMap{
 				testdb.Ann.UUID: testdb.InsertIncomingMsg(rt, testdb.Org1, testdb.TwilioChannel, testdb.Ann, "start", models.MsgStatusPending),
 			},
-			SQLAssertions: []SQLAssertion{
+			DBAssertions: []assertdb.Assert{
 				{
-					SQL:   "SELECT COUNT(*) FROM contacts_contact WHERE id = $1 AND last_seen_on > $2",
-					Args:  []any{testdb.Ann.ID, now},
-					Count: 1,
+					Query:   "SELECT COUNT(*) FROM contacts_contact WHERE id = $1 AND last_seen_on > $2",
+					Args:    []any{testdb.Ann.ID, now},
+					Returns: 1,
 				},
 				{
-					SQL:   "SELECT COUNT(*) FROM contacts_contact WHERE id = $1 AND last_seen_on IS NULL",
-					Args:  []any{testdb.Cat.ID},
-					Count: 1,
+					Query:   "SELECT COUNT(*) FROM contacts_contact WHERE id = $1 AND last_seen_on IS NULL",
+					Args:    []any{testdb.Cat.ID},
+					Returns: 1,
 				},
 			},
 			PersistedEvents: map[flows.ContactUUID][]string{

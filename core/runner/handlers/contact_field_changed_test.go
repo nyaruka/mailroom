@@ -3,6 +3,7 @@ package handlers_test
 import (
 	"testing"
 
+	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/actions"
@@ -44,46 +45,46 @@ func TestContactFieldChanged(t *testing.T) {
 					actions.NewSetContactField(flows.NewActionUUID(), gender, ""),
 				},
 			},
-			SQLAssertions: []SQLAssertion{
+			DBAssertions: []assertdb.Assert{
 				{
-					SQL:   `select count(*) from contacts_contact where id = $1 AND fields->$2 = '{"text":"Female"}'::jsonb`,
-					Args:  []any{testdb.Ann.ID, testdb.GenderField.UUID},
-					Count: 1,
+					Query:   `select count(*) from contacts_contact where id = $1 AND fields->$2 = '{"text":"Female"}'::jsonb`,
+					Args:    []any{testdb.Ann.ID, testdb.GenderField.UUID},
+					Returns: 1,
 				},
 				{
-					SQL:   `select count(*) from contacts_contact where id = $1 AND NOT fields?$2`,
-					Args:  []any{testdb.Ann.ID, testdb.AgeField.UUID},
-					Count: 1,
+					Query:   `select count(*) from contacts_contact where id = $1 AND NOT fields?$2`,
+					Args:    []any{testdb.Ann.ID, testdb.AgeField.UUID},
+					Returns: 1,
 				},
 				{
-					SQL:   `select count(*) from contacts_contact where id = $1 AND NOT fields?$2`,
-					Args:  []any{testdb.Cat.ID, testdb.GenderField.UUID},
-					Count: 1,
+					Query:   `select count(*) from contacts_contact where id = $1 AND NOT fields?$2`,
+					Args:    []any{testdb.Cat.ID, testdb.GenderField.UUID},
+					Returns: 1,
 				},
 				{
-					SQL:   `select count(*) from contacts_contact where id = $1 AND fields->$2 = '{"text":"40", "number": 40}'::jsonb`,
-					Args:  []any{testdb.Cat.ID, testdb.AgeField.UUID},
-					Count: 1,
+					Query:   `select count(*) from contacts_contact where id = $1 AND fields->$2 = '{"text":"40", "number": 40}'::jsonb`,
+					Args:    []any{testdb.Cat.ID, testdb.AgeField.UUID},
+					Returns: 1,
 				},
 				{
-					SQL:   `select count(*) from contacts_contact where id = $1 AND fields->$2 = '{"text":"Male"}'::jsonb`,
-					Args:  []any{testdb.Bob.ID, testdb.GenderField.UUID},
-					Count: 1,
+					Query:   `select count(*) from contacts_contact where id = $1 AND fields->$2 = '{"text":"Male"}'::jsonb`,
+					Args:    []any{testdb.Bob.ID, testdb.GenderField.UUID},
+					Returns: 1,
 				},
 				{
-					SQL:   `select count(*) from contacts_contact where id = $1 AND fields->$2 = '{"text":"Old"}'::jsonb`,
-					Args:  []any{testdb.Bob.ID, testdb.AgeField.UUID},
-					Count: 1,
+					Query:   `select count(*) from contacts_contact where id = $1 AND fields->$2 = '{"text":"Old"}'::jsonb`,
+					Args:    []any{testdb.Bob.ID, testdb.AgeField.UUID},
+					Returns: 1,
 				},
 				{
-					SQL:   `select count(*) from contacts_contact where id = $1 AND NOT fields?$2`,
-					Args:  []any{testdb.Bob.ID, "unknown"},
-					Count: 1,
+					Query:   `select count(*) from contacts_contact where id = $1 AND NOT fields?$2`,
+					Args:    []any{testdb.Bob.ID, "unknown"},
+					Returns: 1,
 				},
 				{
-					SQL:   `select count(*) from contacts_contact where id = $1 AND fields = '{}'`,
-					Args:  []any{testdb.Dan.ID},
-					Count: 1,
+					Query:   `select count(*) from contacts_contact where id = $1 AND fields = '{}'`,
+					Args:    []any{testdb.Dan.ID},
+					Returns: 1,
 				},
 			},
 			PersistedEvents: map[flows.ContactUUID][]string{

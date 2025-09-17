@@ -3,6 +3,7 @@ package handlers_test
 import (
 	"testing"
 
+	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/actions"
@@ -32,26 +33,26 @@ func TestContactGroupsChanged(t *testing.T) {
 					actions.NewAddContactGroups(flows.NewActionUUID(), []*assets.GroupReference{testers}),
 				},
 			},
-			SQLAssertions: []SQLAssertion{
+			DBAssertions: []assertdb.Assert{
 				{
-					SQL:   "select count(*) from contacts_contactgroup_contacts where contact_id = $1 and contactgroup_id = $2",
-					Args:  []any{testdb.Ann.ID, testdb.DoctorsGroup.ID},
-					Count: 0,
+					Query:   "select count(*) from contacts_contactgroup_contacts where contact_id = $1 and contactgroup_id = $2",
+					Args:    []any{testdb.Ann.ID, testdb.DoctorsGroup.ID},
+					Returns: 0,
 				},
 				{
-					SQL:   "select count(*) from contacts_contactgroup_contacts where contact_id = $1 and contactgroup_id = $2",
-					Args:  []any{testdb.Ann.ID, testdb.TestersGroup.ID},
-					Count: 1,
+					Query:   "select count(*) from contacts_contactgroup_contacts where contact_id = $1 and contactgroup_id = $2",
+					Args:    []any{testdb.Ann.ID, testdb.TestersGroup.ID},
+					Returns: 1,
 				},
 				{
-					SQL:   "select count(*) from contacts_contactgroup_contacts where contact_id = $1 and contactgroup_id = $2",
-					Args:  []any{testdb.Cat.ID, testdb.TestersGroup.ID},
-					Count: 1,
+					Query:   "select count(*) from contacts_contactgroup_contacts where contact_id = $1 and contactgroup_id = $2",
+					Args:    []any{testdb.Cat.ID, testdb.TestersGroup.ID},
+					Returns: 1,
 				},
 				{
-					SQL:   "select count(*) from contacts_contactgroup_contacts where contact_id = $1 and contactgroup_id = $2",
-					Args:  []any{testdb.Bob.ID, testdb.TestersGroup.ID},
-					Count: 0,
+					Query:   "select count(*) from contacts_contactgroup_contacts where contact_id = $1 and contactgroup_id = $2",
+					Args:    []any{testdb.Bob.ID, testdb.TestersGroup.ID},
+					Returns: 0,
 				},
 			},
 			PersistedEvents: map[flows.ContactUUID][]string{
