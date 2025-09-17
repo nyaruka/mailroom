@@ -454,6 +454,8 @@ func TestVonageIVR(t *testing.T) {
 	server.Start()
 	defer server.Stop()
 
+	time.Sleep(100 * time.Millisecond)
+
 	for _, tc := range tcs {
 		mrUrl := "http://localhost:8091" + tc.Path
 

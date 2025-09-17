@@ -9,6 +9,6 @@ import (
 func TestImportAndExport(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/export.json", testsuite.ResetNone)
-	testsuite.RunWebTests(t, ctx, rt, "testdata/import.json", testsuite.ResetNone)
+	testsuite.RunWebTests(t, ctx, rt, "testdata/export.json")
+	testsuite.RunWebTests(t, ctx, rt, "testdata/import.json")
 }

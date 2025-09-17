@@ -28,7 +28,7 @@ import (
 )
 
 // RunWebTests runs the tests in the passed in filename, optionally updating them if the update flag is set
-func RunWebTests(t *testing.T, ctx context.Context, rt *runtime.Runtime, truthFile string, reset ResetFlag) {
+func RunWebTests(t *testing.T, ctx context.Context, rt *runtime.Runtime, truthFile string) {
 	wg := &sync.WaitGroup{}
 
 	test.MockUniverse()
@@ -119,6 +119,8 @@ func RunWebTests(t *testing.T, ctx context.Context, rt *runtime.Runtime, truthFi
 		// some timestamps come from db NOW() which we can't mock, so we replace them with $recent_timestamp$
 		actual.actualResponse = overwriteRecentTimestamps(actual.actualResponse)
 
+		ClearTasks(t, rt)
+
 		if !test.UpdateSnapshots {
 			assert.Equal(t, tc.Status, actual.Status, "%s: unexpected status", tc.Label)
 
@@ -166,10 +168,6 @@ func RunWebTests(t *testing.T, ctx context.Context, rt *runtime.Runtime, truthFi
 
 		} else {
 			tcs[i] = actual
-		}
-
-		if reset != 0 {
-			Reset(t, rt, reset)
 		}
 	}
 
