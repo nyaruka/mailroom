@@ -35,8 +35,7 @@ func RunWebTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 	server.Start()
 	defer server.Stop()
 
-	// give our server time to start
-	time.Sleep(time.Second)
+	time.Sleep(100 * time.Millisecond) // give server time to start
 
 	type TestCase struct {
 		Label           string               `json:"label"`
