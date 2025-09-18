@@ -103,7 +103,7 @@
         },
         "status": 200,
         "response": {
-            "query": "(group = \"Doctors\" OR group = \"Testers\" OR uuid = \"5a8345c1-514a-4d1b-aee5-6f39b2f53cfa\" OR uuid = \"bd2aab59-5e28-4db4-b6e8-bbdb75fd7a0a\") AND status = \"active\" AND flow = \"\" AND last_seen_on > \"07-04-2018\"",
+            "query": "(group = \"Doctors\" OR group = \"Testers\" OR uuid = \"5a8345c1-514a-4d1b-aee5-6f39b2f53cfa\" OR uuid = \"bd2aab59-5e28-4db4-b6e8-bbdb75fd7a0a\") AND status = \"active\" AND flow = \"\" AND last_seen_on > \"03-02-2025\"",
             "total": 0
         }
     },
@@ -124,7 +124,7 @@
         },
         "status": 200,
         "response": {
-            "query": "fields.gender = \"M\" AND status = \"active\" AND flow = \"\" AND last_seen_on > \"07-04-2018\"",
+            "query": "fields.gender = \"M\" AND status = \"active\" AND flow = \"\" AND last_seen_on > \"03-02-2025\"",
             "total": 0
         }
     },

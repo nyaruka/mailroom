@@ -1,24 +1,18 @@
 package public_test
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
-	"net/http/httptest"
-	"net/url"
 	"strings"
-	"sync"
 	"testing"
-	"time"
 
 	"github.com/nyaruka/gocommon/aws/dynamo"
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/gocommon/httpx"
 	"github.com/nyaruka/gocommon/jsonx"
-	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/test"
 	"github.com/nyaruka/mailroom/core/models"
 	_ "github.com/nyaruka/mailroom/core/runner/handlers"
@@ -30,7 +24,6 @@ import (
 	"github.com/nyaruka/mailroom/testsuite"
 	"github.com/nyaruka/mailroom/testsuite/testdb"
 	"github.com/nyaruka/mailroom/utils/clogs"
-	"github.com/nyaruka/mailroom/web"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -63,21 +56,14 @@ func mockTwilioHandler(w http.ResponseWriter, r *http.Request) {
 func TestTwilioIVR(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	test.MockUniverse()
-
 	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
-	// start test server
-	ts := httptest.NewServer(http.HandlerFunc(mockTwilioHandler))
-	defer ts.Close()
+	// start mocked API server
+	mockTwilio := test.NewHTTPServer(50001, http.HandlerFunc(mockTwilioHandler))
+	defer mockTwilio.Close()
 
-	twiml.BaseURL = ts.URL
+	twiml.BaseURL = mockTwilio.URL
 	twiml.IgnoreSignatures = true
-
-	wg := &sync.WaitGroup{}
-	server := web.NewServer(ctx, rt, wg)
-	server.Start()
-	defer server.Stop()
 
 	testdb.InsertIncomingCallTrigger(t, rt, testdb.Org1, testdb.IVRFlow, []*testdb.Group{testdb.DoctorsGroup}, nil, nil)
 
@@ -119,221 +105,12 @@ func TestTwilioIVR(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT COUNT(*) FROM ivr_call WHERE contact_id = $1 AND status = $2 AND external_id = $3`,
 		testdb.Cat.ID, models.CallStatusWired, "Call3").Returns(1)
 
-	tcs := []struct {
-		url                string
-		form               url.Values
-		expectedStatus     int
-		expectedResponse   string
-		expectedContains   []string
-		expectedCallStatus map[string]string
-		expectedNewCall    flows.CallUUID
-	}{
-		{ // 0: handle start on wired call
-			url:                fmt.Sprintf("/ivr/c/%s/handle?action=start&call=01969b47-190b-76f8-92a3-d648ab64bccb", testdb.TwilioChannel.UUID),
-			form:               nil,
-			expectedStatus:     200,
-			expectedContains:   []string{`<Gather numDigits="1" timeout="30"`, `<Say language="en-US">Hello there. Please enter one or two.  This flow was triggered by Ann</Say>`},
-			expectedCallStatus: map[string]string{"Call1": "I", "Call2": "W", "Call3": "W"},
-		},
-		{ // 1: handle resume but without digits we're waiting for
-			url: fmt.Sprintf("/ivr/c/%s/handle?action=resume&call=01969b47-190b-76f8-92a3-d648ab64bccb", testdb.TwilioChannel.UUID),
-			form: url.Values{
-				"CallStatus": []string{"in-progress"},
-				"wait_type":  []string{"gather"},
-				"timeout":    []string{"true"},
-			},
-			expectedStatus:     200,
-			expectedContains:   []string{`<Gather numDigits="1" timeout="30"`, `<Say language="en-US">Sorry, that is not one or two, try again.</Say>`},
-			expectedCallStatus: map[string]string{"Call1": "I", "Call2": "W", "Call3": "W"},
-		},
-		{ // 2: handle resume with digits we're waiting for
-			url: fmt.Sprintf("/ivr/c/%s/handle?action=resume&call=01969b47-190b-76f8-92a3-d648ab64bccb", testdb.TwilioChannel.UUID),
-			form: url.Values{
-				"CallStatus": []string{"in-progress"},
-				"wait_type":  []string{"gather"},
-				"Digits":     []string{"1"},
-			},
-			expectedStatus:     200,
-			expectedContains:   []string{`<Gather timeout="30"`, `<Say language="en-US">Great! You said One. Ok, now enter a number 1 to 100 then press pound.</Say>`},
-			expectedCallStatus: map[string]string{"Call1": "I", "Call2": "W", "Call3": "W"},
-		},
-		{ // 3: handle resume with digits that are out of range specified in flow
-			url: fmt.Sprintf("/ivr/c/%s/handle?action=resume&call=01969b47-190b-76f8-92a3-d648ab64bccb", testdb.TwilioChannel.UUID),
-			form: url.Values{
-				"CallStatus": []string{"in-progress"},
-				"wait_type":  []string{"gather"},
-				"Digits":     []string{"101"},
-			},
-			expectedStatus:     200,
-			expectedContains:   []string{`<Gather timeout="30"`, `<Say language="en-US">Sorry, that&#39;s too big. Enter a number 1 to 100 then press pound.</Say>`},
-			expectedCallStatus: map[string]string{"Call1": "I", "Call2": "W", "Call3": "W"},
-		},
-		{ // 4: handle resume with digits that are in range specified in flow
-			url: fmt.Sprintf("/ivr/c/%s/handle?action=resume&call=01969b47-190b-76f8-92a3-d648ab64bccb", testdb.TwilioChannel.UUID),
-			form: url.Values{
-				"CallStatus": []string{"in-progress"},
-				"wait_type":  []string{"gather"},
-				"Digits":     []string{"56"},
-			},
-			expectedStatus:     200,
-			expectedContains:   []string{`<Say language="en-US">You picked the number 56, excellent choice. Ok now tell me briefly why you are happy today.</Say>`, `<Record action=`},
-			expectedCallStatus: map[string]string{"Call1": "I", "Call2": "W", "Call3": "W"},
-		},
-		{ // 5: handle resume with missing recording that should start a call forward
-			url: fmt.Sprintf("/ivr/c/%s/handle?action=resume&call=01969b47-190b-76f8-92a3-d648ab64bccb", testdb.TwilioChannel.UUID),
-			form: url.Values{
-				"CallStatus": []string{"in-progress"},
-				"wait_type":  []string{"record"},
-				// no recording as we don't have S3 to back us up, flow just moves forward
-			},
-			expectedStatus: 200,
-			expectedContains: []string{
-				`<Say language="en-US">You said</Say>`,
-				`<Say language="en-US">I hope hearing that makes you feel better. Good day and good bye.</Say>`,
-				`<Dial action=`,
-				`>+12065551212</Dial>`,
-			},
-			expectedCallStatus: map[string]string{"Call1": "I", "Call2": "W", "Call3": "W"},
-		},
-		{ // 6: handle resume call forwarding result
-			url: fmt.Sprintf("/ivr/c/%s/handle?action=resume&call=01969b47-190b-76f8-92a3-d648ab64bccb", testdb.TwilioChannel.UUID),
-			form: url.Values{
-				"CallStatus":     []string{"in-progress"},
-				"DialCallStatus": []string{"answered"},
-				"wait_type":      []string{"dial"},
-			},
-			expectedStatus:     200,
-			expectedContains:   []string{`<Say language="en-US">Great, they answered.</Say>`, `<Hangup></Hangup>`},
-			expectedCallStatus: map[string]string{"Call1": "D", "Call2": "W", "Call3": "W"},
-		},
-		{ // 7: status update that call 1 is complete
-			url: fmt.Sprintf("/ivr/c/%s/status", testdb.TwilioChannel.UUID),
-			form: url.Values{
-				"CallSid":      []string{"Call1"},
-				"CallStatus":   []string{"completed"},
-				"CallDuration": []string{"50"},
-			},
-			expectedStatus:     200,
-			expectedResponse:   `<Response><!--status updated: D--></Response>`,
-			expectedCallStatus: map[string]string{"Call1": "D", "Call2": "W", "Call3": "W"},
-		},
-		{ // 8: start call 2
-			url:                fmt.Sprintf("/ivr/c/%s/handle?action=start&call=01969b47-2c93-76f8-8f41-6b2d9f33d623", testdb.TwilioChannel.UUID),
-			form:               nil,
-			expectedStatus:     200,
-			expectedContains:   []string{"Hello there. Please enter one or two."},
-			expectedCallStatus: map[string]string{"Call1": "D", "Call2": "I", "Call3": "W"},
-		},
-		{ // 9: resume with status that says call completed on Twilio side
-			url: fmt.Sprintf("/ivr/c/%s/handle?action=resume&call=01969b47-2c93-76f8-8f41-6b2d9f33d623", testdb.TwilioChannel.UUID),
-			form: url.Values{
-				"CallStatus": []string{"completed"},
-				"wait_type":  []string{"gather"},
-				"Digits":     []string{"56"},
-			},
-			expectedStatus:     200,
-			expectedResponse:   `<Response><!--call completed--><Say>An error has occurred, please try again later.</Say><Hangup></Hangup></Response>`,
-			expectedCallStatus: map[string]string{"Call1": "D", "Call2": "D", "Call3": "W"},
-		},
-		{ // 10: call 3 started with answered_by telling us it's a machine
-			url: fmt.Sprintf("/ivr/c/%s/handle?action=start&call=01969b47-401b-76f8-ba00-bd7f0d08e671", testdb.TwilioChannel.UUID),
-			form: url.Values{
-				"CallStatus": []string{"in-progress"},
-				"AnsweredBy": []string{"machine_start"},
-			},
-			expectedStatus:     200,
-			expectedContains:   []string{`<Response><!--status updated: E, next_attempt: `, `<Say>An error has occurred, please try again later.</Say><Hangup></Hangup></Response>`},
-			expectedCallStatus: map[string]string{"Call1": "D", "Call2": "D", "Call3": "E"},
-		},
-		{ // 11: then Twilio will call the status callback to say that we're done but don't overwrite the error status
-			url: fmt.Sprintf("/ivr/c/%s/status", testdb.TwilioChannel.UUID),
-			form: url.Values{
-				"CallSid":      []string{"Call3"},
-				"CallStatus":   []string{"completed"},
-				"CallDuration": []string{"50"},
-			},
-			expectedStatus:     200,
-			expectedResponse:   `<Response><!--status D ignored, already errored--></Response>`,
-			expectedCallStatus: map[string]string{"Call1": "D", "Call2": "D", "Call3": "E"},
-		},
-		{ // 12: now we get an incoming call from Ann which should match our trigger (because she is in Doctors group)
-			url: fmt.Sprintf("/ivr/c/%s/incoming", testdb.TwilioChannel.UUID),
-			form: url.Values{
-				"CallSid":    []string{"Call4"},
-				"CallStatus": []string{"ringing"},
-				"Caller":     []string{"+16055741111"},
-			},
-			expectedStatus:     200,
-			expectedContains:   []string{"Hello there. Please enter one or two."},
-			expectedCallStatus: map[string]string{"Call1": "D", "Call2": "D", "Call3": "E", "Call4": "I"},
-			expectedNewCall:    "01969b4a-c28b-76f8-b715-6b60849cfb2b",
-		},
-		{ // 13: handle resume with digits we're waiting for
-			url: fmt.Sprintf("/ivr/c/%s/handle?action=resume&call=01969b4a-c28b-76f8-b715-6b60849cfb2b", testdb.TwilioChannel.UUID),
-			form: url.Values{
-				"CallStatus": []string{"in-progress"},
-				"wait_type":  []string{"gather"},
-				"Digits":     []string{"2"},
-			},
-			expectedStatus:     200,
-			expectedContains:   []string{`<Gather timeout="30"`, `<Say language="en-US">Great! You said Two. Ok, now enter a number 1 to 100 then press pound.</Say>`},
-			expectedCallStatus: map[string]string{"Call1": "D", "Call2": "D", "Call3": "E", "Call4": "I"},
-		},
-		{ // 14: now we get an incoming call from Bob which won't match our trigger (because he is not in Doctors group)
-			url: fmt.Sprintf("/ivr/c/%s/incoming", testdb.TwilioChannel.UUID),
-			form: url.Values{
-				"CallSid":    []string{"Call5"},
-				"CallStatus": []string{"ringing"},
-				"Caller":     []string{"+16055742222"},
-			},
-			expectedStatus:     200,
-			expectedResponse:   `<Response><!--missed call handled--></Response>`,
-			expectedCallStatus: map[string]string{"Call1": "D", "Call2": "D", "Call3": "E", "Call4": "I", "Call5": "I"},
-		},
-		{ // 15
-			url: fmt.Sprintf("/ivr/c/%s/status", testdb.TwilioChannel.UUID),
-			form: url.Values{
-				"CallSid":      []string{"Call5"},
-				"CallStatus":   []string{"failed"},
-				"CallDuration": []string{"50"},
-			},
-			expectedStatus:     200,
-			expectedResponse:   `<Response><!--no flow start found, status updated: F--></Response>`,
-			expectedCallStatus: map[string]string{"Call1": "D", "Call2": "D", "Call3": "E", "Call4": "I", "Call5": "F"},
-		},
-	}
+	// give calls known UUIDs
+	rt.DB.MustExec(`UPDATE ivr_call SET uuid = '01969b47-190b-76f8-92a3-d648ab64bccb' WHERE external_id = 'Call1'`)
+	rt.DB.MustExec(`UPDATE ivr_call SET uuid = '01969b47-2c93-76f8-8f41-6b2d9f33d623' WHERE external_id = 'Call2'`)
+	rt.DB.MustExec(`UPDATE ivr_call SET uuid = '01969b47-401b-76f8-ba00-bd7f0d08e671' WHERE external_id = 'Call3'`)
 
-	for i, tc := range tcs {
-		start := time.Now()
-		mrUrl := "http://localhost:8091/mr" + tc.url
-
-		req, err := http.NewRequest(http.MethodPost, mrUrl, strings.NewReader(tc.form.Encode()))
-		assert.NoError(t, err)
-		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-
-		resp, err := http.DefaultClient.Do(req)
-		require.NoError(t, err)
-		assert.Equal(t, tc.expectedStatus, resp.StatusCode, "%d: status code mismatch", i)
-
-		body, _ := io.ReadAll(resp.Body)
-
-		if tc.expectedResponse != "" {
-			assert.Equal(t, `<?xml version="1.0" encoding="UTF-8"?>`+"\n"+tc.expectedResponse, string(body), "%d: response mismatch", i)
-		}
-
-		for _, needle := range tc.expectedContains {
-			assert.Containsf(t, string(body), needle, "%d: does not contain expected body", i)
-		}
-
-		for callExtID, expStatus := range tc.expectedCallStatus {
-			assertdb.Query(t, rt.DB, `SELECT status FROM ivr_call WHERE external_id = $1`, callExtID).
-				Returns(expStatus, "%d: call db status mismatch for call '%s'", i, callExtID)
-		}
-
-		if tc.expectedNewCall != "" {
-			assertdb.Query(t, rt.DB, `SELECT uuid::text FROM ivr_call WHERE created_on > $1`, start).Returns(string(tc.expectedNewCall), "%d: new call UUID mismatch", i)
-		}
-	}
+	testsuite.RunWebTests(t, rt, "./testdata/ivr_twilio.json")
 
 	// check our final state of sessions, runs, msgs, calls
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE contact_uuid = $1 AND status = 'C'`, testdb.Ann.UUID).Returns(1)
@@ -400,7 +177,7 @@ func TestVonageIVR(t *testing.T) {
 	// update callback domain and role
 	rt.DB.MustExec(`UPDATE channels_channel SET config = config || '{"callback_domain": "localhost:8091"}'::jsonb, role='SRCA' WHERE id = $1`, testdb.VonageChannel.ID)
 
-	// start mocked vonage API server
+	// start mocked API server
 	mockVonage := test.NewHTTPServer(50002, http.HandlerFunc(mockVonageHandler))
 	defer mockVonage.Close()
 
@@ -433,43 +210,7 @@ func TestVonageIVR(t *testing.T) {
 	rt.DB.MustExec(`UPDATE ivr_call SET uuid = '01969b47-190b-76f8-92a3-d648ab64bccb' WHERE external_id = 'Call1'`)
 	rt.DB.MustExec(`UPDATE ivr_call SET uuid = '01969b47-2c93-76f8-8f41-6b2d9f33d623' WHERE external_id = 'Call2'`)
 
-	type testCase struct {
-		Label    string          `json:"label"`
-		Method   string          `json:"method"`
-		Path     string          `json:"path"`
-		Body     json.RawMessage `json:"body"`
-		Status   int             `json:"status"`
-		Response json.RawMessage `json:"response"`
-	}
-
-	tcJSON := testsuite.ReadFile(t, "./testdata/ivr_vonage.json")
-	var tcs []testCase
-	jsonx.MustUnmarshal(tcJSON, &tcs)
-
-	test.MockUniverse()
-
-	wg := &sync.WaitGroup{}
-	server := web.NewServer(ctx, rt, wg)
-	server.Start()
-	defer server.Stop()
-
-	time.Sleep(100 * time.Millisecond)
-
-	for _, tc := range tcs {
-		mrUrl := "http://localhost:8091" + tc.Path
-
-		req, err := http.NewRequest(http.MethodPost, mrUrl, bytes.NewReader(tc.Body))
-		assert.NoError(t, err)
-		req.Header.Set("Content-Type", "application/json")
-
-		resp, err := http.DefaultClient.Do(req)
-		require.NoError(t, err)
-		assert.Equal(t, tc.Status, resp.StatusCode, "status code mismatch in %s", tc.Label)
-
-		body, _ := io.ReadAll(resp.Body)
-
-		test.AssertEqualJSON(t, tc.Response, body, "response mismatch in %s", tc.Label)
-	}
+	testsuite.RunWebTests(t, rt, "./testdata/ivr_vonage.json")
 
 	// check our final state of sessions, runs, calls, msgs
 	assertdb.Query(t, rt.DB, `SELECT format('%s/%s', contact_uuid, status), count(*) FROM flows_flowsession GROUP BY 1`).
