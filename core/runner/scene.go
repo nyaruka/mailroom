@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/modifiers"
 	"github.com/nyaruka/mailroom/core/goflow"
@@ -90,10 +89,10 @@ func (s *Scene) AddEvent(ctx context.Context, rt *runtime.Runtime, oa *models.Or
 		return err
 	}
 
-	// turn our userID into a UUID
-	var userUUID assets.UserUUID
-	if u := oa.UserByID(userID); u != nil {
-		userUUID = u.UUID()
+	// turn our userID into a reference
+	var user *models.User
+	if userID != models.NilUserID {
+		user = oa.UserByID(userID)
 	}
 
 	if models.PersistEvent(e) {
@@ -101,7 +100,7 @@ func (s *Scene) AddEvent(ctx context.Context, rt *runtime.Runtime, oa *models.Or
 			Event:       e,
 			OrgID:       oa.OrgID(),
 			ContactUUID: s.ContactUUID(),
-			UserUUID:    userUUID,
+			User:        user.Reference(),
 		})
 	}
 

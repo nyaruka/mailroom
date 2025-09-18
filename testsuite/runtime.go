@@ -10,6 +10,8 @@ import (
 	"path"
 	"testing"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/nyaruka/gocommon/aws/dynamo/dyntest"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/runtime"
@@ -88,6 +90,9 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 
 	rt, err := runtime.NewRuntime(cfg)
 	require.NoError(t, err)
+
+	createBucket(t, rt, rt.Config.S3AttachmentsBucket)
+	createBucket(t, rt, rt.Config.S3SessionsBucket)
 
 	// create Postgres tables if necessary
 	_, err = rt.DB.Exec("SELECT * from orgs_org")
@@ -195,8 +200,19 @@ func resetStorage(t *testing.T, rt *runtime.Runtime) {
 
 	err := rt.S3.EmptyBucket(t.Context(), rt.Config.S3AttachmentsBucket)
 	require.NoError(t, err)
+
 	err = rt.S3.EmptyBucket(t.Context(), rt.Config.S3SessionsBucket)
 	require.NoError(t, err)
+}
+
+func createBucket(t *testing.T, rt *runtime.Runtime, bucket string) {
+	t.Helper()
+
+	err := rt.S3.Test(t.Context(), bucket)
+	if err != nil {
+		_, err = rt.S3.Client.CreateBucket(t.Context(), &s3.CreateBucketInput{Bucket: aws.String(bucket)})
+		require.NoError(t, err)
+	}
 }
 
 // clears indexed data in Elastic
