@@ -16,7 +16,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/gocommon/httpx"
 	"github.com/nyaruka/gocommon/jsonx"
@@ -65,8 +64,6 @@ func RunWebTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 	test.MockUniverse()
 
 	for i, tc := range tcs {
-		dates.SetNowFunc(dates.NewSequentialNow(time.Date(2018, 7, 6, 12, 30, 0, 123456789, time.UTC), time.Second))
-
 		var clonedMocks *httpx.MockRequestor
 		if tc.HTTPMocks != nil {
 			tc.HTTPMocks.SetIgnoreLocal(true)
