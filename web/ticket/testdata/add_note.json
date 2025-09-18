@@ -52,7 +52,10 @@
                 "SK": "evt#01969b47-0583-76f8-ae7f-f8b243c49ff5",
                 "OrgID": 1,
                 "Data": {
-                    "_user_uuid": "ea84a3d7-92e4-4a8b-b01f-db11ff83bbb6",
+                    "_user": {
+                        "name": "Ed McEditor",
+                        "uuid": "ea84a3d7-92e4-4a8b-b01f-db11ff83bbb6"
+                    },
                     "created_on": "2018-07-06T12:30:00.123456789Z",
                     "note": "please handle",
                     "ticket_uuid": "01992f54-5ab6-7498-a7f2-6aa246e45cfe",
@@ -64,7 +67,10 @@
                 "SK": "evt#01969b47-096b-76f8-bd38-d266ec8d3716",
                 "OrgID": 1,
                 "Data": {
-                    "_user_uuid": "ea84a3d7-92e4-4a8b-b01f-db11ff83bbb6",
+                    "_user": {
+                        "name": "Ed McEditor",
+                        "uuid": "ea84a3d7-92e4-4a8b-b01f-db11ff83bbb6"
+                    },
                     "created_on": "2018-07-06T12:30:03.123456789Z",
                     "note": "please handle",
                     "ticket_uuid": "01992f54-5ab6-717a-a39e-e8ca91fb7262",
