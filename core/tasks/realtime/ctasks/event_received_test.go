@@ -33,29 +33,29 @@ func TestChannelEvents(t *testing.T) {
 		fmt.Sprintf(`UPDATE contacts_contact SET fields = fields || '{"%s": { "text": "2029-09-15T12:00:00+00:00", "datetime": "2029-09-15T12:00:00+00:00" }}'::jsonb WHERE id = $1 OR id = $2`, testdb.JoinedField.UUID),
 		testdb.Ann.ID, testdb.Cat.ID,
 	)
-	testdb.InsertContactFire(rt, testdb.Org1, testdb.Ann, models.ContactFireTypeCampaignPoint, fmt.Sprintf("%d:1", testdb.RemindersPoint1.ID), time.Now(), "")
-	testdb.InsertContactFire(rt, testdb.Org1, testdb.Cat, models.ContactFireTypeCampaignPoint, fmt.Sprintf("%d:1", testdb.RemindersPoint1.ID), time.Now(), "")
+	testdb.InsertContactFire(t, rt, testdb.Org1, testdb.Ann, models.ContactFireTypeCampaignPoint, fmt.Sprintf("%d:1", testdb.RemindersPoint1.ID), time.Now(), "")
+	testdb.InsertContactFire(t, rt, testdb.Org1, testdb.Cat, models.ContactFireTypeCampaignPoint, fmt.Sprintf("%d:1", testdb.RemindersPoint1.ID), time.Now(), "")
 
 	// and Cat to doctors group, Ann is already part of it
 	rt.DB.MustExec(`INSERT INTO contacts_contactgroup_contacts(contactgroup_id, contact_id) VALUES($1, $2);`, testdb.DoctorsGroup.ID, testdb.Cat.ID)
 
 	// add some channel event triggers
-	testdb.InsertNewConversationTrigger(rt, testdb.Org1, testdb.Favorites, testdb.FacebookChannel)
-	testdb.InsertReferralTrigger(rt, testdb.Org1, testdb.PickANumber, "", testdb.VonageChannel)
-	testdb.InsertOptInTrigger(rt, testdb.Org1, testdb.Favorites, testdb.VonageChannel)
-	testdb.InsertOptOutTrigger(rt, testdb.Org1, testdb.PickANumber, testdb.VonageChannel)
+	testdb.InsertNewConversationTrigger(t, rt, testdb.Org1, testdb.Favorites, testdb.FacebookChannel)
+	testdb.InsertReferralTrigger(t, rt, testdb.Org1, testdb.PickANumber, "", testdb.VonageChannel)
+	testdb.InsertOptInTrigger(t, rt, testdb.Org1, testdb.Favorites, testdb.VonageChannel)
+	testdb.InsertOptOutTrigger(t, rt, testdb.Org1, testdb.PickANumber, testdb.VonageChannel)
 
-	polls := testdb.InsertOptIn(rt, testdb.Org1, "Polls")
+	polls := testdb.InsertOptIn(t, rt, testdb.Org1, "Polls")
 
 	// add a URN for Ann so we can test twitter URNs
-	testdb.InsertContactURN(rt, testdb.Org1, testdb.Bob, urns.URN("twitterid:123456"), 10, nil)
+	testdb.InsertContactURN(t, rt, testdb.Org1, testdb.Bob, urns.URN("twitterid:123456"), 10, nil)
 
 	// create a deleted contact
-	deleted := testdb.InsertContact(rt, testdb.Org1, "", "Del", "eng", models.ContactStatusActive)
+	deleted := testdb.InsertContact(t, rt, testdb.Org1, "", "Del", "eng", models.ContactStatusActive)
 	rt.DB.MustExec(`UPDATE contacts_contact SET is_active = false WHERE id = $1`, deleted.ID)
 
 	// insert a dummy event into the database that will get the updates from handling each event which pretends to be it
-	eventID := testdb.InsertChannelEvent(rt, testdb.Org1, models.EventTypeMissedCall, testdb.TwilioChannel, testdb.Ann, models.EventStatusPending)
+	eventID := testdb.InsertChannelEvent(t, rt, testdb.Org1, models.EventTypeMissedCall, testdb.TwilioChannel, testdb.Ann, models.EventStatusPending)
 
 	tcs := []struct {
 		contact             *testdb.Contact

@@ -33,7 +33,7 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 	defer random.SetGenerator(random.DefaultGenerator)
 	defer testsuite.Reset(t, rt, testsuite.ResetAll) // modifies contacts
 
-	testFlows := testdb.ImportFlows(rt, testdb.Org1, "testdata/session_test_flows.json")
+	testFlows := testdb.ImportFlows(t, rt, testdb.Org1, "testdata/session_test_flows.json")
 	flow := testFlows[0]
 
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshFlows)
@@ -123,7 +123,7 @@ func TestSingleSprintSession(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetValkey|testsuite.ResetData|testsuite.ResetDynamo)
 
-	testFlows := testdb.ImportFlows(rt, testdb.Org1, "testdata/session_test_flows.json")
+	testFlows := testdb.ImportFlows(t, rt, testdb.Org1, "testdata/session_test_flows.json")
 	flow := testFlows[1]
 
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshFlows)
@@ -155,15 +155,15 @@ func TestSessionWithSubflows(t *testing.T) {
 	defer random.SetGenerator(random.DefaultGenerator)
 	defer testsuite.Reset(t, rt, testsuite.ResetValkey|testsuite.ResetData|testsuite.ResetDynamo)
 
-	testFlows := testdb.ImportFlows(rt, testdb.Org1, "testdata/session_test_flows.json")
+	testFlows := testdb.ImportFlows(t, rt, testdb.Org1, "testdata/session_test_flows.json")
 	parent, child := testFlows[2], testFlows[3]
 
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshFlows)
 	require.NoError(t, err)
 
-	startID := testdb.InsertFlowStart(rt, testdb.Org1, testdb.Admin, parent, []*testdb.Contact{testdb.Ann})
+	startID := testdb.InsertFlowStart(t, rt, testdb.Org1, testdb.Admin, parent, []*testdb.Contact{testdb.Ann})
 
-	mc, contact, _ := testdb.Ann.Load(rt, oa)
+	mc, contact, _ := testdb.Ann.Load(t, rt, oa)
 	scene := runner.NewScene(mc, contact)
 	scene.StartID = startID
 
@@ -222,7 +222,7 @@ func TestSessionFailedStart(t *testing.T) {
 	defer random.SetGenerator(random.DefaultGenerator)
 	defer testsuite.Reset(t, rt, testsuite.ResetValkey|testsuite.ResetData|testsuite.ResetDynamo)
 
-	testFlows := testdb.ImportFlows(rt, testdb.Org1, "testdata/ping_pong.json")
+	testFlows := testdb.ImportFlows(t, rt, testdb.Org1, "testdata/ping_pong.json")
 	ping, pong := testFlows[0], testFlows[1]
 
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshFlows)
@@ -256,7 +256,7 @@ func TestFlowStats(t *testing.T) {
 	defer random.SetGenerator(random.DefaultGenerator)
 	random.SetGenerator(random.NewSeededGenerator(123))
 
-	testFlows := testdb.ImportFlows(rt, testdb.Org1, "testdata/flow_stats_test.json")
+	testFlows := testdb.ImportFlows(t, rt, testdb.Org1, "testdata/flow_stats_test.json")
 	flow := testFlows[0]
 
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshFlows)

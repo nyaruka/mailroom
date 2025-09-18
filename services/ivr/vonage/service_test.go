@@ -65,7 +65,7 @@ func TestResponseForSprint(t *testing.T) {
 
 	provider := p.(*service)
 
-	bob, _, bobURNs := testdb.Bob.Load(rt, oa)
+	bob, _, bobURNs := testdb.Bob.Load(t, rt, oa)
 
 	trigger := triggers.NewBuilder(testdb.Favorites.Reference()).Manual().Build()
 	call := models.NewOutgoingCall(testdb.Org1.ID, oa.ChannelByUUID(testdb.VonageChannel.UUID), bob, bobURNs[0].ID, trigger)
@@ -150,7 +150,7 @@ func TestResponseForSprint(t *testing.T) {
 func TestRedactValues(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
 
-	oa := testdb.Org1.Load(rt)
+	oa := testdb.Org1.Load(t, rt)
 	ch := oa.ChannelByUUID(testdb.VonageChannel.UUID)
 	svc, _ := ivr.GetService(ch)
 

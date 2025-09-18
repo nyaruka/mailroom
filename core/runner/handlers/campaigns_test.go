@@ -21,10 +21,10 @@ func TestCampaigns(t *testing.T) {
 	joined := assets.NewFieldReference("joined", "Joined")
 
 	// insert an event on our campaign that is based on created_on
-	testdb.InsertCampaignFlowPoint(rt, testdb.RemindersCampaign, testdb.Favorites, testdb.CreatedOnField, 1000, "W")
+	testdb.InsertCampaignFlowPoint(t, rt, testdb.RemindersCampaign, testdb.Favorites, testdb.CreatedOnField, 1000, "W")
 
 	// insert an event on our campaign that is based on last_seen_on
-	testdb.InsertCampaignFlowPoint(rt, testdb.RemindersCampaign, testdb.Favorites, testdb.LastSeenOnField, 2, "D")
+	testdb.InsertCampaignFlowPoint(t, rt, testdb.RemindersCampaign, testdb.Favorites, testdb.LastSeenOnField, 2, "D")
 
 	// joined + 1 week => Pick A Number
 	// joined + 5 days => Favorites
@@ -32,7 +32,7 @@ func TestCampaigns(t *testing.T) {
 	// created_on + 1000 weeks => Favorites
 	// last_seen_on + 2 days => Favorites
 
-	msg1 := testdb.InsertIncomingMsg(rt, testdb.Org1, testdb.TwilioChannel, testdb.Ann, "Hi there", models.MsgStatusPending)
+	msg1 := testdb.InsertIncomingMsg(t, rt, testdb.Org1, testdb.TwilioChannel, testdb.Ann, "Hi there", models.MsgStatusPending)
 
 	tcs := []TestCase{
 		{

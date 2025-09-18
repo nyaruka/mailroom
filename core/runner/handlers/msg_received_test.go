@@ -30,7 +30,7 @@ func TestMsgReceived(t *testing.T) {
 				},
 			},
 			Msgs: ContactMsgMap{
-				testdb.Ann.UUID: testdb.InsertIncomingMsg(rt, testdb.Org1, testdb.TwilioChannel, testdb.Ann, "start", models.MsgStatusPending),
+				testdb.Ann.UUID: testdb.InsertIncomingMsg(t, rt, testdb.Org1, testdb.TwilioChannel, testdb.Ann, "start", models.MsgStatusPending),
 			},
 			DBAssertions: []assertdb.Assert{
 				{

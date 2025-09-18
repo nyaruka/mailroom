@@ -7,7 +7,7 @@ import (
 )
 
 func TestTranslate(t *testing.T) {
-	ctx, rt := testsuite.Runtime(t)
+	_, rt := testsuite.Runtime(t)
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/translate.json")
+	testsuite.RunWebTests(t, rt, "testdata/translate.json")
 }

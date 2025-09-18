@@ -116,10 +116,10 @@ func TestResponseForSprint(t *testing.T) {
 func TestRedactValues(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
 
-	bwChannel := testdb.InsertChannel(rt, testdb.Org1, "BW", "Bandwidth", "123", []string{"tel"}, "CASR",
+	bwChannel := testdb.InsertChannel(t, rt, testdb.Org1, "BW", "Bandwidth", "123", []string{"tel"}, "CASR",
 		map[string]any{"username": "user", "password": "pass", "voice_application_id": "app-id", "account_id": "acc-id"})
 
-	oa := testdb.Org1.Load(rt)
+	oa := testdb.Org1.Load(t, rt)
 	ch := oa.ChannelByUUID(bwChannel.UUID)
 	svc, _ := ivr.GetService(ch)
 

@@ -28,11 +28,11 @@ func TestContacts(t *testing.T) {
 	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
 	// for now it's still possible to have more than one open ticket in the database
-	testdb.InsertOpenTicket(rt, "01992f54-5ab6-717a-a39e-e8ca91fb7262", testdb.Org1, testdb.Ann, testdb.SupportTopic, time.Now(), testdb.Agent)
-	testdb.InsertOpenTicket(rt, "01992f54-5ab6-725e-be9c-0c6407efd755", testdb.Org1, testdb.Ann, testdb.SalesTopic, time.Now(), nil)
+	testdb.InsertOpenTicket(t, rt, "01992f54-5ab6-717a-a39e-e8ca91fb7262", testdb.Org1, testdb.Ann, testdb.SupportTopic, time.Now(), testdb.Agent)
+	testdb.InsertOpenTicket(t, rt, "01992f54-5ab6-725e-be9c-0c6407efd755", testdb.Org1, testdb.Ann, testdb.SalesTopic, time.Now(), nil)
 
-	testdb.InsertContactURN(rt, testdb.Org1, testdb.Bob, "whatsapp:250788373373", 999, nil)
-	testdb.InsertOpenTicket(rt, "01992f54-5ab6-7498-a7f2-6aa246e45cfe", testdb.Org1, testdb.Bob, testdb.DefaultTopic, time.Now(), testdb.Editor)
+	testdb.InsertContactURN(t, rt, testdb.Org1, testdb.Bob, "whatsapp:250788373373", 999, nil)
+	testdb.InsertOpenTicket(t, rt, "01992f54-5ab6-7498-a7f2-6aa246e45cfe", testdb.Org1, testdb.Bob, testdb.DefaultTopic, time.Now(), testdb.Editor)
 
 	org, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshAll)
 	assert.NoError(t, err)
@@ -97,7 +97,7 @@ func TestContacts(t *testing.T) {
 	assert.Equal(t, "whatsapp:250788373373?id=30000", bob.URNs()[1].String())
 
 	// add another tel urn to bob
-	testdb.InsertContactURN(rt, testdb.Org1, testdb.Bob, urns.URN("tel:+250788373373"), 10, nil)
+	testdb.InsertContactURN(t, rt, testdb.Org1, testdb.Bob, urns.URN("tel:+250788373373"), 10, nil)
 
 	// reload the contact
 	mcs, err = models.LoadContacts(ctx, rt.DB, org, []models.ContactID{testdb.Bob.ID})
@@ -139,10 +139,10 @@ func TestCreateContact(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
-	testdb.InsertContactGroup(rt, testdb.Org1, "d636c966-79c1-4417-9f1c-82ad629773a2", "Kinyarwanda", "language = kin")
+	testdb.InsertContactGroup(t, rt, testdb.Org1, "d636c966-79c1-4417-9f1c-82ad629773a2", "Kinyarwanda", "language = kin")
 
 	// add an orphaned URN
-	testdb.InsertContactURN(rt, testdb.Org1, nil, urns.URN("telegram:200002"), 100, nil)
+	testdb.InsertContactURN(t, rt, testdb.Org1, nil, urns.URN("telegram:200002"), 100, nil)
 
 	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 	require.NoError(t, err)
@@ -213,11 +213,11 @@ func TestGetOrCreateContact(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
-	testdb.InsertContactGroup(rt, testdb.Org1, "dcc16d85-8274-4d19-a3c2-152d4ee99380", "Telegrammer", `telegram = 100001`)
+	testdb.InsertContactGroup(t, rt, testdb.Org1, "dcc16d85-8274-4d19-a3c2-152d4ee99380", "Telegrammer", `telegram = 100001`)
 
 	// add some orphaned URNs
-	testdb.InsertContactURN(rt, testdb.Org1, nil, urns.URN("telegram:200001"), 100, nil)
-	testdb.InsertContactURN(rt, testdb.Org1, nil, urns.URN("telegram:200002"), 100, nil)
+	testdb.InsertContactURN(t, rt, testdb.Org1, nil, urns.URN("telegram:200001"), 100, nil)
+	testdb.InsertContactURN(t, rt, testdb.Org1, nil, urns.URN("telegram:200002"), 100, nil)
 
 	contactIDSeq := models.ContactID(30000)
 	newContact := func() models.ContactID { id := contactIDSeq; contactIDSeq++; return id }
@@ -373,9 +373,9 @@ func TestGetOrCreateContactIDsFromURNs(t *testing.T) {
 	assert.NoError(t, err)
 
 	// add an orphaned URN
-	testdb.InsertContactURN(rt, testdb.Org1, nil, urns.URN("telegram:200001"), 100, nil)
+	testdb.InsertContactURN(t, rt, testdb.Org1, nil, urns.URN("telegram:200001"), 100, nil)
 
-	ann, _, _ := testdb.Ann.Load(rt, oa)
+	ann, _, _ := testdb.Ann.Load(t, rt, oa)
 
 	tcs := []struct {
 		orgID   models.OrgID
@@ -545,7 +545,7 @@ func TestUpdateContactURNs(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
-	testdb.InsertContactGroup(rt, testdb.Org1, "e3374234-8131-4f65-9c51-ce84fd7f3bb5", "No URN", `urn = ""`)
+	testdb.InsertContactGroup(t, rt, testdb.Org1, "e3374234-8131-4f65-9c51-ce84fd7f3bb5", "No URN", `urn = ""`)
 
 	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 	assert.NoError(t, err)
@@ -637,9 +637,9 @@ func TestUpdateContactURNs(t *testing.T) {
 func TestLoadContactURNs(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	oa := testdb.Org1.Load(rt)
-	_, _, annURNs := testdb.Ann.Load(rt, oa)
-	_, _, bobURNs := testdb.Bob.Load(rt, oa)
+	oa := testdb.Org1.Load(t, rt)
+	_, _, annURNs := testdb.Ann.Load(t, rt, oa)
+	_, _, bobURNs := testdb.Bob.Load(t, rt, oa)
 
 	urns, err := models.LoadContactURNs(ctx, rt.DB, []models.URNID{annURNs[0].ID, bobURNs[0].ID})
 	assert.NoError(t, err)

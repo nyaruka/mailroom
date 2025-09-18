@@ -16,7 +16,7 @@ func TestRunStarted(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
-	oa := testdb.Org1.Load(rt)
+	oa := testdb.Org1.Load(t, rt)
 
 	flow, err := oa.FlowByID(testdb.PickANumber.ID)
 	assert.NoError(t, err)

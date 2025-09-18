@@ -22,7 +22,7 @@ func TestLockContacts(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetValkey)
 
-	oa := testdb.Org1.Load(rt)
+	oa := testdb.Org1.Load(t, rt)
 
 	// grab lock for contact 102
 	locks, skipped, err := clocks.TryToLock(ctx, rt, oa, []models.ContactID{102}, time.Second)

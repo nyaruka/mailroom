@@ -25,8 +25,8 @@ func TestTimedEvents(t *testing.T) {
 	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
 	// create some keyword triggers
-	testdb.InsertKeywordTrigger(rt, testdb.Org1, testdb.Favorites, []string{"start"}, models.MatchOnly, nil, nil, nil)
-	testdb.InsertKeywordTrigger(rt, testdb.Org1, testdb.PickANumber, []string{"pick"}, models.MatchOnly, nil, nil, nil)
+	testdb.InsertKeywordTrigger(t, rt, testdb.Org1, testdb.Favorites, []string{"start"}, models.MatchOnly, nil, nil, nil)
+	testdb.InsertKeywordTrigger(t, rt, testdb.Org1, testdb.PickANumber, []string{"pick"}, models.MatchOnly, nil, nil, nil)
 
 	contact := testdb.Ann
 

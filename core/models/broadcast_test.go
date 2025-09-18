@@ -23,7 +23,7 @@ func TestBroadcasts(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
-	optIn := testdb.InsertOptIn(rt, testdb.Org1, "Polls")
+	optIn := testdb.InsertOptIn(t, rt, testdb.Org1, "Polls")
 
 	bcast := models.NewBroadcast(
 		testdb.Org1.ID,
@@ -73,9 +73,9 @@ func TestInsertChildBroadcast(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
-	optIn := testdb.InsertOptIn(rt, testdb.Org1, "Polls")
-	schedID := testdb.InsertSchedule(rt, testdb.Org1, models.RepeatPeriodDaily, time.Now())
-	bcastID := testdb.InsertBroadcast(rt, testdb.Org1, `eng`, map[i18n.Language]string{`eng`: "Hello"}, optIn, schedID, []*testdb.Contact{testdb.Bob, testdb.Ann}, nil)
+	optIn := testdb.InsertOptIn(t, rt, testdb.Org1, "Polls")
+	schedID := testdb.InsertSchedule(t, rt, testdb.Org1, models.RepeatPeriodDaily, time.Now())
+	bcastID := testdb.InsertBroadcast(t, rt, testdb.Org1, `eng`, map[i18n.Language]string{`eng`: "Hello"}, optIn, schedID, []*testdb.Contact{testdb.Bob, testdb.Ann}, nil)
 
 	var bj json.RawMessage
 	err := rt.DB.GetContext(ctx, &bj, `SELECT ROW_TO_JSON(r) FROM (
@@ -102,7 +102,7 @@ func TestNonPersistentBroadcasts(t *testing.T) {
 	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
 	translations := flows.BroadcastTranslations{"eng": {Text: "Hi there"}}
-	optIn := testdb.InsertOptIn(rt, testdb.Org1, "Polls")
+	optIn := testdb.InsertOptIn(t, rt, testdb.Org1, "Polls")
 
 	// create a broadcast which doesn't actually exist in the DB
 	bcast := models.NewBroadcast(
@@ -152,7 +152,7 @@ func TestBroadcastBatchCreateMessage(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetValkey)
 
-	polls := testdb.InsertOptIn(rt, testdb.Org1, "Polls")
+	polls := testdb.InsertOptIn(t, rt, testdb.Org1, "Polls")
 
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshOptIns)
 	require.NoError(t, err)
@@ -247,8 +247,8 @@ func TestBroadcastBatchCreateMessage(t *testing.T) {
 	}
 
 	for i, tc := range tcs {
-		contact := testdb.InsertContact(rt, testdb.Org1, flows.NewContactUUID(), "Felix", tc.contactLanguage, models.ContactStatusActive)
-		testdb.InsertContactURN(rt, testdb.Org1, contact, tc.contactURN, 1000, nil)
+		contact := testdb.InsertContact(t, rt, testdb.Org1, flows.NewContactUUID(), "Felix", tc.contactLanguage, models.ContactStatusActive)
+		testdb.InsertContactURN(t, rt, testdb.Org1, contact, tc.contactURN, 1000, nil)
 
 		bcast := &models.Broadcast{
 			OrgID:             testdb.Org1.ID,

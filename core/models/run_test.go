@@ -19,7 +19,7 @@ func TestInsertAndUpdateRuns(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
-	sessionUUID := testdb.InsertFlowSession(rt, testdb.Ann, models.FlowTypeMessaging, models.SessionStatusWaiting, nil, testdb.Favorites)
+	sessionUUID := testdb.InsertFlowSession(t, rt, testdb.Ann, models.FlowTypeMessaging, models.SessionStatusWaiting, nil, testdb.Favorites)
 
 	t1 := time.Date(2024, 12, 3, 14, 29, 30, 0, time.UTC)
 	t2 := time.Date(2024, 12, 3, 15, 13, 45, 0, time.UTC)
@@ -83,8 +83,8 @@ func TestGetContactIDsAtNode(t *testing.T) {
 	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
 	createRun := func(org *testdb.Org, contact *testdb.Contact, nodeUUID flows.NodeUUID) {
-		sessionUUID := testdb.InsertFlowSession(rt, contact, models.FlowTypeMessaging, models.SessionStatusWaiting, nil, testdb.Favorites)
-		testdb.InsertFlowRun(rt, org, sessionUUID, contact, testdb.Favorites, models.RunStatusWaiting, nodeUUID)
+		sessionUUID := testdb.InsertFlowSession(t, rt, contact, models.FlowTypeMessaging, models.SessionStatusWaiting, nil, testdb.Favorites)
+		testdb.InsertFlowRun(t, rt, org, sessionUUID, contact, testdb.Favorites, models.RunStatusWaiting, nodeUUID)
 	}
 
 	createRun(testdb.Org1, testdb.Dan, "2fe26b10-2bb1-4115-9401-33a8a0d5d52a")
@@ -102,9 +102,9 @@ func TestGetActiveAndWaitingRuns(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
-	session1UUID := testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Ann, models.FlowTypeMessaging, nil, testdb.Favorites, testdb.PickANumber)
-	session2UUID := testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Bob, models.FlowTypeMessaging, nil, testdb.PickANumber)
-	testdb.InsertFlowSession(rt, testdb.Cat, models.FlowTypeMessaging, models.SessionStatusCompleted, nil, testdb.Favorites)
+	session1UUID := testdb.InsertWaitingSession(t, rt, testdb.Org1, testdb.Ann, models.FlowTypeMessaging, nil, testdb.Favorites, testdb.PickANumber)
+	session2UUID := testdb.InsertWaitingSession(t, rt, testdb.Org1, testdb.Bob, models.FlowTypeMessaging, nil, testdb.PickANumber)
+	testdb.InsertFlowSession(t, rt, testdb.Cat, models.FlowTypeMessaging, models.SessionStatusCompleted, nil, testdb.Favorites)
 
 	runRefs, err := models.GetActiveAndWaitingRuns(ctx, rt, []flows.SessionUUID{session1UUID, session2UUID})
 	assert.NoError(t, err)

@@ -26,9 +26,9 @@ func TestStartFlowConcurrency(t *testing.T) {
 	rt.DB.MustExec(`ALTER SEQUENCE flows_flowsession_id_seq RESTART WITH 5000000000;`)
 
 	// create a flow which has a send_broadcast action which will mean handlers grabbing redis connections
-	flow := testdb.InsertFlow(rt, testdb.Org1, testsuite.ReadFile(t, "testdata/broadcast_flow.json"))
+	flow := testdb.InsertFlow(t, rt, testdb.Org1, testsuite.ReadFile(t, "testdata/broadcast_flow.json"))
 
-	oa := testdb.Org1.Load(rt)
+	oa := testdb.Org1.Load(t, rt)
 
 	dbFlow, err := oa.FlowByID(flow.ID)
 	require.NoError(t, err)
@@ -37,7 +37,7 @@ func TestStartFlowConcurrency(t *testing.T) {
 	// create a lot of contacts...
 	contacts := make([]*testdb.Contact, 100)
 	for i := range contacts {
-		contacts[i] = testdb.InsertContact(rt, testdb.Org1, flows.NewContactUUID(), "Jim", i18n.NilLanguage, models.ContactStatusActive)
+		contacts[i] = testdb.InsertContact(t, rt, testdb.Org1, flows.NewContactUUID(), "Jim", i18n.NilLanguage, models.ContactStatusActive)
 	}
 
 	triggerBuilder := func() flows.Trigger {

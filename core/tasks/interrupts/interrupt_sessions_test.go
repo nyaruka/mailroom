@@ -18,7 +18,7 @@ func TestInterrupts(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
-	oa := testdb.Org1.Load(rt)
+	oa := testdb.Org1.Load(t, rt)
 
 	tcs := []struct {
 		contactIDs       []models.ContactID
@@ -57,15 +57,15 @@ func TestInterrupts(t *testing.T) {
 		rt.DB.MustExec(`UPDATE flows_flowsession SET status='C', ended_on=NOW() WHERE status = 'W';`)
 
 		// twilio call
-		twilioCall := testdb.InsertCall(rt, testdb.Org1, testdb.TwilioChannel, testdb.Dan)
+		twilioCall := testdb.InsertCall(t, rt, testdb.Org1, testdb.TwilioChannel, testdb.Dan)
 
 		sessionUUIDs := make([]flows.SessionUUID, 4)
 
 		// insert our dummy contact sessions
-		sessionUUIDs[0] = testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Ann, models.FlowTypeMessaging, nil, testdb.Favorites)
-		sessionUUIDs[1] = testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Cat, models.FlowTypeMessaging, nil, testdb.Favorites)
-		sessionUUIDs[2] = testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Dan, models.FlowTypeVoice, twilioCall, testdb.Favorites)
-		sessionUUIDs[3] = testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Bob, models.FlowTypeMessaging, nil, testdb.PickANumber)
+		sessionUUIDs[0] = testdb.InsertWaitingSession(t, rt, testdb.Org1, testdb.Ann, models.FlowTypeMessaging, nil, testdb.Favorites)
+		sessionUUIDs[1] = testdb.InsertWaitingSession(t, rt, testdb.Org1, testdb.Cat, models.FlowTypeMessaging, nil, testdb.Favorites)
+		sessionUUIDs[2] = testdb.InsertWaitingSession(t, rt, testdb.Org1, testdb.Dan, models.FlowTypeVoice, twilioCall, testdb.Favorites)
+		sessionUUIDs[3] = testdb.InsertWaitingSession(t, rt, testdb.Org1, testdb.Bob, models.FlowTypeMessaging, nil, testdb.PickANumber)
 
 		// create our task
 		task := &interrupts.InterruptSessionsTask{

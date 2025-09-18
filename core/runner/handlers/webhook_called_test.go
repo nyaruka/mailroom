@@ -128,13 +128,13 @@ func TestUnhealthyWebhookCalls(t *testing.T) {
 
 	dates.SetNowFunc(dates.NewSequentialNow(time.Date(2021, 11, 17, 7, 0, 0, 0, time.UTC), time.Second))
 
-	testFlows := testdb.ImportFlows(rt, testdb.Org1, "testdata/webhook_flow.json")
+	testFlows := testdb.ImportFlows(t, rt, testdb.Org1, "testdata/webhook_flow.json")
 	flow := testFlows[0]
 
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshFlows)
 	require.NoError(t, err)
 
-	mc, contact, _ := testdb.Ann.Load(rt, oa)
+	mc, contact, _ := testdb.Ann.Load(t, rt, oa)
 
 	// webhook service with a 2 second delay
 	svc := &failingWebhookService{delay: 2 * time.Second}

@@ -2,7 +2,6 @@ package public_test
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -80,7 +79,7 @@ func TestTwilioIVR(t *testing.T) {
 	server.Start()
 	defer server.Stop()
 
-	testdb.InsertIncomingCallTrigger(rt, testdb.Org1, testdb.IVRFlow, []*testdb.Group{testdb.DoctorsGroup}, nil, nil)
+	testdb.InsertIncomingCallTrigger(t, rt, testdb.Org1, testdb.IVRFlow, []*testdb.Group{testdb.DoctorsGroup}, nil, nil)
 
 	// set callback domain and enable machine detection
 	rt.DB.MustExec(`UPDATE channels_channel SET config = config || '{"callback_domain": "localhost:8091", "machine_detection": true}'::jsonb WHERE id = $1`, testdb.TwilioChannel.ID)
@@ -346,7 +345,7 @@ func TestTwilioIVR(t *testing.T) {
 		AND ((status = 'H' AND direction = 'I') OR (status = 'W' AND direction = 'O'))`, testdb.Bob.ID).Returns(2)
 
 	// check the generated channel logs
-	logs := getCallLogs(t, ctx, rt, testdb.TwilioChannel)
+	logs := getCallLogs(t, rt, testdb.TwilioChannel)
 	assert.Len(t, logs, 19)
 	for _, log := range logs {
 		assert.NotContains(t, string(jsonx.MustMarshal(log)), "sesame") // auth token redacted
@@ -485,14 +484,14 @@ func TestVonageIVR(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE contact_id = $1 AND msg_type = 'V' AND ((status = 'H' AND direction = 'I') OR (status = 'W' AND direction = 'O'))`, testdb.Cat.ID).Returns(3)
 
 	// check the generated channel logs
-	logs := getCallLogs(t, ctx, rt, testdb.VonageChannel)
+	logs := getCallLogs(t, rt, testdb.VonageChannel)
 	assert.Len(t, logs, 16)
 	for _, log := range logs {
 		assert.NotContains(t, string(jsonx.MustMarshal(log)), "BEGIN PRIVATE KEY") // private key redacted
 	}
 }
 
-func getCallLogs(t *testing.T, ctx context.Context, rt *runtime.Runtime, ch *testdb.Channel) []*httpx.Log {
+func getCallLogs(t *testing.T, rt *runtime.Runtime, ch *testdb.Channel) []*httpx.Log {
 	rt.Writers.Main.Flush()
 
 	var logUUIDs []clogs.UUID
@@ -508,7 +507,7 @@ func getCallLogs(t *testing.T, ctx context.Context, rt *runtime.Runtime, ch *tes
 
 	for _, logUUID := range logUUIDs {
 		key := models.DynamoKey{PK: fmt.Sprintf("cha#%s#%s", ch.UUID, logUUID[35:36]), SK: fmt.Sprintf("log#%s", logUUID)}
-		item, err := dynamo.GetItem[models.DynamoKey, models.DynamoItem](ctx, rt.Dynamo, "TestMain", key)
+		item, err := dynamo.GetItem[models.DynamoKey, models.DynamoItem](t.Context(), rt.Dynamo, "TestMain", key)
 		require.NoError(t, err)
 		require.NotNil(t, item, "log item not found for key %s", key)
 

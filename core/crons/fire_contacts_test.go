@@ -27,17 +27,17 @@ func TestFireContacts(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetValkey)
 
-	testdb.InsertContactFire(rt, testdb.Org1, testdb.Ann, models.ContactFireTypeWaitTimeout, "", time.Now().Add(3*time.Second), "f72b48df-5f6d-4e4f-955a-f5fb29ccb97b")
-	testdb.InsertContactFire(rt, testdb.Org1, testdb.Ann, models.ContactFireTypeWaitExpiration, "", time.Now().Add(-1*time.Second), "f72b48df-5f6d-4e4f-955a-f5fb29ccb97b")
-	testdb.InsertContactFire(rt, testdb.Org1, testdb.Ann, models.ContactFireTypeSessionExpiration, "", time.Now().Add(-2*time.Second), "f72b48df-5f6d-4e4f-955a-f5fb29ccb97b")
+	testdb.InsertContactFire(t, rt, testdb.Org1, testdb.Ann, models.ContactFireTypeWaitTimeout, "", time.Now().Add(3*time.Second), "f72b48df-5f6d-4e4f-955a-f5fb29ccb97b")
+	testdb.InsertContactFire(t, rt, testdb.Org1, testdb.Ann, models.ContactFireTypeWaitExpiration, "", time.Now().Add(-1*time.Second), "f72b48df-5f6d-4e4f-955a-f5fb29ccb97b")
+	testdb.InsertContactFire(t, rt, testdb.Org1, testdb.Ann, models.ContactFireTypeSessionExpiration, "", time.Now().Add(-2*time.Second), "f72b48df-5f6d-4e4f-955a-f5fb29ccb97b")
 
-	testdb.InsertContactFire(rt, testdb.Org1, testdb.Bob, models.ContactFireTypeWaitTimeout, "", time.Now().Add(3*time.Second), "4010a3b2-d1f2-42ae-9051-47d41a3ef923")
-	testdb.InsertContactFire(rt, testdb.Org1, testdb.Bob, models.ContactFireTypeWaitExpiration, "", time.Now().Add(-3*time.Second), "4010a3b2-d1f2-42ae-9051-47d41a3ef923")
-	testdb.InsertContactFire(rt, testdb.Org1, testdb.Bob, models.ContactFireTypeSessionExpiration, "", time.Now().Add(10*time.Second), "4010a3b2-d1f2-42ae-9051-47d41a3ef923")
+	testdb.InsertContactFire(t, rt, testdb.Org1, testdb.Bob, models.ContactFireTypeWaitTimeout, "", time.Now().Add(3*time.Second), "4010a3b2-d1f2-42ae-9051-47d41a3ef923")
+	testdb.InsertContactFire(t, rt, testdb.Org1, testdb.Bob, models.ContactFireTypeWaitExpiration, "", time.Now().Add(-3*time.Second), "4010a3b2-d1f2-42ae-9051-47d41a3ef923")
+	testdb.InsertContactFire(t, rt, testdb.Org1, testdb.Bob, models.ContactFireTypeSessionExpiration, "", time.Now().Add(10*time.Second), "4010a3b2-d1f2-42ae-9051-47d41a3ef923")
 
-	testdb.InsertContactFire(rt, testdb.Org1, testdb.Cat, models.ContactFireTypeWaitTimeout, "", time.Now().Add(-time.Second), "5c1248e3-f669-4a72-83f4-a29292fdad4d")
-	testdb.InsertContactFire(rt, testdb.Org1, testdb.Dan, models.ContactFireTypeCampaignPoint, "6789:123", time.Now().Add(-time.Second), "")
-	testdb.InsertContactFire(rt, testdb.Org2, testdb.Org2Contact, models.ContactFireTypeWaitTimeout, "", time.Now().Add(-time.Second), "8edf3b3c-0081-4d31-b199-1502b3190eb7")
+	testdb.InsertContactFire(t, rt, testdb.Org1, testdb.Cat, models.ContactFireTypeWaitTimeout, "", time.Now().Add(-time.Second), "5c1248e3-f669-4a72-83f4-a29292fdad4d")
+	testdb.InsertContactFire(t, rt, testdb.Org1, testdb.Dan, models.ContactFireTypeCampaignPoint, "6789:123", time.Now().Add(-time.Second), "")
+	testdb.InsertContactFire(t, rt, testdb.Org2, testdb.Org2Contact, models.ContactFireTypeWaitTimeout, "", time.Now().Add(-time.Second), "8edf3b3c-0081-4d31-b199-1502b3190eb7")
 
 	cron := &crons.FireContactsCron{FetchBatchSize: 3, TaskBatchSize: 5}
 	res, err := cron.Run(ctx, rt)

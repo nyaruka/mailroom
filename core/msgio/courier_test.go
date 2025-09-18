@@ -29,16 +29,16 @@ func TestNewCourierMsg(t *testing.T) {
 	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetValkey|testsuite.ResetDynamo)
 
 	// create an opt-in and a new contact with an auth token for it
-	optInID := testdb.InsertOptIn(rt, testdb.Org1, "Joke Of The Day").ID
-	testFred := testdb.InsertContact(rt, testdb.Org1, "", "Fred", "eng", models.ContactStatusActive)
-	testdb.InsertContactURN(rt, testdb.Org1, testFred, "tel:+593979123456", 1000, map[string]string{fmt.Sprintf("optin:%d", optInID): "sesame"})
+	optInID := testdb.InsertOptIn(t, rt, testdb.Org1, "Joke Of The Day").ID
+	testFred := testdb.InsertContact(t, rt, testdb.Org1, "", "Fred", "eng", models.ContactStatusActive)
+	testdb.InsertContactURN(t, rt, testdb.Org1, testFred, "tel:+593979123456", 1000, map[string]string{fmt.Sprintf("optin:%d", optInID): "sesame"})
 
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshOptIns)
 	require.NoError(t, err)
 	require.False(t, oa.Org().Suspended())
 
-	_, fAnn, annURNs := testdb.Ann.Load(rt, oa)
-	_, fred, fredURNs := testFred.Load(rt, oa)
+	_, fAnn, annURNs := testdb.Ann.Load(t, rt, oa)
+	_, fred, fredURNs := testFred.Load(t, rt, oa)
 
 	twilio := oa.ChannelByUUID(testdb.TwilioChannel.UUID)
 	facebook := oa.ChannelByUUID(testdb.FacebookChannel.UUID)
@@ -122,7 +122,7 @@ func TestNewCourierMsg(t *testing.T) {
 		i18n.NilLocale,
 		flows.NilUnsendableReason,
 	))
-	in1 := testdb.InsertIncomingMsg(rt, testdb.Org1, testdb.TwilioChannel, testdb.Ann, "test", models.MsgStatusHandled)
+	in1 := testdb.InsertIncomingMsg(t, rt, testdb.Org1, testdb.TwilioChannel, testdb.Ann, "test", models.MsgStatusHandled)
 	msg2, err := models.NewOutgoingFlowMsg(rt, oa.Org(), twilio, fAnn, flow, msgEvent2, &models.MsgInRef{ID: in1.ID, ExtID: "EX123"})
 	require.NoError(t, err)
 
@@ -157,7 +157,7 @@ func TestNewCourierMsg(t *testing.T) {
 	}`, string(jsonx.MustMarshal(msgEvent2.CreatedOn())), session.UUID(), sprint.UUID(), msg2.UUID()))
 
 	// try a broadcast message which won't have session and flow fields set and won't be high priority
-	bcastID := testdb.InsertBroadcast(rt, testdb.Org1, `eng`, map[i18n.Language]string{`eng`: "Blast"}, nil, models.NilScheduleID, []*testdb.Contact{testFred}, nil)
+	bcastID := testdb.InsertBroadcast(t, rt, testdb.Org1, `eng`, map[i18n.Language]string{`eng`: "Blast"}, nil, models.NilScheduleID, []*testdb.Contact{testFred}, nil)
 	msgEvent3 := events.NewMsgCreated(
 		flows.NewMsgOut(fredURN, assets.NewChannelReference(testdb.TwilioChannel.UUID, "Test Channel"), &flows.MsgContent{Text: "Blast"}, nil, i18n.NilLocale, flows.NilUnsendableReason),
 	)
@@ -244,7 +244,7 @@ func TestQueueCourierMessages(t *testing.T) {
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshOrg|models.RefreshChannels)
 	require.NoError(t, err)
 
-	_, _, annURNs := testdb.Ann.Load(rt, oa)
+	_, _, annURNs := testdb.Ann.Load(t, rt, oa)
 	twilio := oa.ChannelByUUID(testdb.TwilioChannel.UUID)
 
 	// noop if no messages provided
@@ -285,7 +285,7 @@ func TestClearChannelCourierQueue(t *testing.T) {
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshOrg|models.RefreshChannels)
 	require.NoError(t, err)
 
-	_, _, annURNs := testdb.Ann.Load(rt, oa)
+	_, _, annURNs := testdb.Ann.Load(t, rt, oa)
 	twilio := oa.ChannelByUUID(testdb.TwilioChannel.UUID)
 	vonage := oa.ChannelByUUID(testdb.VonageChannel.UUID)
 
@@ -342,7 +342,7 @@ func TestPushCourierBatch(t *testing.T) {
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshChannels)
 	require.NoError(t, err)
 
-	_, _, annURNs := testdb.Ann.Load(rt, oa)
+	_, _, annURNs := testdb.Ann.Load(t, rt, oa)
 	channel := oa.ChannelByID(testdb.TwilioChannel.ID)
 
 	msg1 := (&msgSpec{Channel: testdb.TwilioChannel, Contact: testdb.Ann}).createMsg(t, rt, oa)

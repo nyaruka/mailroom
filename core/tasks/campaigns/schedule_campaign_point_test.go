@@ -68,7 +68,7 @@ func TestScheduleCampaignEvent(t *testing.T) {
 	rt.DB.MustExec(`UPDATE contacts_contact SET created_on = '2035-01-01T00:00:00Z' WHERE id = $1 OR id = $2`, testdb.Ann.ID, testdb.Dan.ID)
 
 	// create new campaign point based on created_on + 5 minutes
-	event3 := testdb.InsertCampaignFlowPoint(rt, testdb.RemindersCampaign, testdb.Favorites, testdb.CreatedOnField, 5, "M")
+	event3 := testdb.InsertCampaignFlowPoint(t, rt, testdb.RemindersCampaign, testdb.Favorites, testdb.CreatedOnField, 5, "M")
 
 	testsuite.QueueBatchTask(t, rt, testdb.Org1, &campaigns.ScheduleCampaignPointTask{PointID: event3.ID})
 	testsuite.FlushTasks(t, rt)
@@ -87,7 +87,7 @@ func TestScheduleCampaignEvent(t *testing.T) {
 	})
 
 	// create new campaign point based on last_seen_on + 1 day
-	event4 := testdb.InsertCampaignFlowPoint(rt, testdb.RemindersCampaign, testdb.Favorites, testdb.LastSeenOnField, 1, "D")
+	event4 := testdb.InsertCampaignFlowPoint(t, rt, testdb.RemindersCampaign, testdb.Favorites, testdb.LastSeenOnField, 1, "D")
 
 	// bump last_seen_on for bob
 	rt.DB.MustExec(`UPDATE contacts_contact SET last_seen_on = '2040-01-01T00:00:00Z' WHERE id = $1`, testdb.Bob.ID)

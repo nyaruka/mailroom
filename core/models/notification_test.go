@@ -18,7 +18,7 @@ func TestImportNotifications(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
-	importID := testdb.InsertContactImport(rt, testdb.Org1, models.ImportStatusProcessing, testdb.Editor)
+	importID := testdb.InsertContactImport(t, rt, testdb.Org1, models.ImportStatusProcessing, testdb.Editor)
 	imp, err := models.LoadContactImport(ctx, rt.DB, importID)
 	require.NoError(t, err)
 
