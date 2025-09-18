@@ -1,7 +1,6 @@
 package public_test
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -433,43 +432,7 @@ func TestVonageIVR(t *testing.T) {
 	rt.DB.MustExec(`UPDATE ivr_call SET uuid = '01969b47-190b-76f8-92a3-d648ab64bccb' WHERE external_id = 'Call1'`)
 	rt.DB.MustExec(`UPDATE ivr_call SET uuid = '01969b47-2c93-76f8-8f41-6b2d9f33d623' WHERE external_id = 'Call2'`)
 
-	type testCase struct {
-		Label    string          `json:"label"`
-		Method   string          `json:"method"`
-		Path     string          `json:"path"`
-		Body     json.RawMessage `json:"body"`
-		Status   int             `json:"status"`
-		Response json.RawMessage `json:"response"`
-	}
-
-	tcJSON := testsuite.ReadFile(t, "./testdata/ivr_vonage.json")
-	var tcs []testCase
-	jsonx.MustUnmarshal(tcJSON, &tcs)
-
-	test.MockUniverse()
-
-	wg := &sync.WaitGroup{}
-	server := web.NewServer(ctx, rt, wg)
-	server.Start()
-	defer server.Stop()
-
-	time.Sleep(100 * time.Millisecond)
-
-	for _, tc := range tcs {
-		mrUrl := "http://localhost:8091" + tc.Path
-
-		req, err := http.NewRequest(http.MethodPost, mrUrl, bytes.NewReader(tc.Body))
-		assert.NoError(t, err)
-		req.Header.Set("Content-Type", "application/json")
-
-		resp, err := http.DefaultClient.Do(req)
-		require.NoError(t, err)
-		assert.Equal(t, tc.Status, resp.StatusCode, "status code mismatch in %s", tc.Label)
-
-		body, _ := io.ReadAll(resp.Body)
-
-		test.AssertEqualJSON(t, tc.Response, body, "response mismatch in %s", tc.Label)
-	}
+	testsuite.RunWebTests(t, rt, "./testdata/ivr_vonage.json")
 
 	// check our final state of sessions, runs, calls, msgs
 	assertdb.Query(t, rt.DB, `SELECT format('%s/%s', contact_uuid, status), count(*) FROM flows_flowsession GROUP BY 1`).

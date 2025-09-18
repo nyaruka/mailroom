@@ -13,18 +13,52 @@
         "response": [
             {
                 "action": "talk",
-                "bargeIn": true,
-                "text": "Hello there. Please enter one or two. Your reference id is 123"
+                "text": "Hello there. Please enter one or two. Your reference id is 123",
+                "bargeIn": true
             },
             {
                 "action": "input",
-                "eventMethod": "POST",
-                "eventUrl": [
-                    "https://localhost:8091/mr/ivr/c/19012bfd-3ce3-4cae-9bb9-76cf92c73d49/handle?action=resume&call=01969b47-190b-76f8-92a3-d648ab64bccb&wait_type=gather&sig=zRlLI%2B84luUb4KLdMN525WprJ1Q%3D"
-                ],
                 "maxDigits": 1,
                 "submitOnHash": true,
-                "timeOut": 30
+                "timeOut": 30,
+                "eventUrl": [
+                    "https://localhost:8091/mr/ivr/c/19012bfd-3ce3-4cae-9bb9-76cf92c73d49/handle?action=resume\u0026call=01969b47-190b-76f8-92a3-d648ab64bccb\u0026wait_type=gather\u0026sig=zRlLI%2B84luUb4KLdMN525WprJ1Q%3D"
+                ],
+                "eventMethod": "POST"
+            }
+        ],
+        "expected_history": [
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01969b47-0d53-76f8-bd38-d266ec8d3716",
+                "OrgID": 1,
+                "Data": {
+                    "call": {
+                        "channel": {
+                            "name": "Vonage",
+                            "uuid": "19012bfd-3ce3-4cae-9bb9-76cf92c73d49"
+                        },
+                        "urn": "tel:+16055741111",
+                        "uuid": "01969b47-190b-76f8-92a3-d648ab64bccb"
+                    },
+                    "created_on": "2025-05-04T12:30:48.123456789Z",
+                    "type": "call_created"
+                }
+            },
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01969b47-24c3-76f8-8f41-6b2d9f33d623",
+                "OrgID": 1,
+                "Data": {
+                    "created_on": "2025-05-04T12:30:54.123456789Z",
+                    "flow": {
+                        "name": "IVR Flow",
+                        "revision": 1,
+                        "uuid": "2f81d0ea-4d75-4843-9371-3f7465311cce"
+                    },
+                    "run_uuid": "01969b47-20db-76f8-8228-9728778b6c98",
+                    "type": "run_started"
+                }
             }
         ]
     },
@@ -43,18 +77,18 @@
         "response": [
             {
                 "action": "talk",
-                "bargeIn": true,
-                "text": "Sorry, that is not one or two, try again."
+                "text": "Sorry, that is not one or two, try again.",
+                "bargeIn": true
             },
             {
                 "action": "input",
-                "eventMethod": "POST",
-                "eventUrl": [
-                    "https://localhost:8091/mr/ivr/c/19012bfd-3ce3-4cae-9bb9-76cf92c73d49/handle?action=resume&call=01969b47-190b-76f8-92a3-d648ab64bccb&wait_type=gather&sig=zRlLI%2B84luUb4KLdMN525WprJ1Q%3D"
-                ],
                 "maxDigits": 1,
                 "submitOnHash": true,
-                "timeOut": 30
+                "timeOut": 30,
+                "eventUrl": [
+                    "https://localhost:8091/mr/ivr/c/19012bfd-3ce3-4cae-9bb9-76cf92c73d49/handle?action=resume\u0026call=01969b47-190b-76f8-92a3-d648ab64bccb\u0026wait_type=gather\u0026sig=zRlLI%2B84luUb4KLdMN525WprJ1Q%3D"
+                ],
+                "eventMethod": "POST"
             }
         ]
     },
@@ -73,18 +107,18 @@
         "response": [
             {
                 "action": "talk",
-                "bargeIn": true,
-                "text": "Great! You said One. Ok, now enter a number 1 to 100 then press pound."
+                "text": "Great! You said One. Ok, now enter a number 1 to 100 then press pound.",
+                "bargeIn": true
             },
             {
                 "action": "input",
-                "eventMethod": "POST",
-                "eventUrl": [
-                    "https://localhost:8091/mr/ivr/c/19012bfd-3ce3-4cae-9bb9-76cf92c73d49/handle?action=resume&call=01969b47-190b-76f8-92a3-d648ab64bccb&wait_type=gather&sig=zRlLI%2B84luUb4KLdMN525WprJ1Q%3D"
-                ],
                 "maxDigits": 20,
                 "submitOnHash": true,
-                "timeOut": 30
+                "timeOut": 30,
+                "eventUrl": [
+                    "https://localhost:8091/mr/ivr/c/19012bfd-3ce3-4cae-9bb9-76cf92c73d49/handle?action=resume\u0026call=01969b47-190b-76f8-92a3-d648ab64bccb\u0026wait_type=gather\u0026sig=zRlLI%2B84luUb4KLdMN525WprJ1Q%3D"
+                ],
+                "eventMethod": "POST"
             }
         ]
     },
@@ -103,18 +137,18 @@
         "response": [
             {
                 "action": "talk",
-                "bargeIn": true,
-                "text": "Sorry, that's too big. Enter a number 1 to 100 then press pound."
+                "text": "Sorry, that's too big. Enter a number 1 to 100 then press pound.",
+                "bargeIn": true
             },
             {
                 "action": "input",
-                "eventMethod": "POST",
-                "eventUrl": [
-                    "https://localhost:8091/mr/ivr/c/19012bfd-3ce3-4cae-9bb9-76cf92c73d49/handle?action=resume&call=01969b47-190b-76f8-92a3-d648ab64bccb&wait_type=gather&sig=zRlLI%2B84luUb4KLdMN525WprJ1Q%3D"
-                ],
                 "maxDigits": 20,
                 "submitOnHash": true,
-                "timeOut": 30
+                "timeOut": 30,
+                "eventUrl": [
+                    "https://localhost:8091/mr/ivr/c/19012bfd-3ce3-4cae-9bb9-76cf92c73d49/handle?action=resume\u0026call=01969b47-190b-76f8-92a3-d648ab64bccb\u0026wait_type=gather\u0026sig=zRlLI%2B84luUb4KLdMN525WprJ1Q%3D"
+                ],
+                "eventMethod": "POST"
             }
         ]
     },
@@ -138,21 +172,21 @@
             {
                 "action": "record",
                 "endOnKey": "#",
+                "timeOut": 600,
                 "endOnSilence": 5,
-                "eventMethod": "POST",
                 "eventUrl": [
-                    "https://localhost:8091/mr/ivr/c/19012bfd-3ce3-4cae-9bb9-76cf92c73d49/handle?action=resume&call=01969b47-190b-76f8-92a3-d648ab64bccb&wait_type=recording_url&recording_uuid=7dcaa995-4ad0-444b-8a34-b008aed3f772&sig=MRJF%2FKKawAgvUcEwcw4mijr%2Bn8U%3D"
+                    "https://localhost:8091/mr/ivr/c/19012bfd-3ce3-4cae-9bb9-76cf92c73d49/handle?action=resume\u0026call=01969b47-190b-76f8-92a3-d648ab64bccb\u0026wait_type=recording_url\u0026recording_uuid=7dcaa995-4ad0-444b-8a34-b008aed3f772\u0026sig=MRJF%2FKKawAgvUcEwcw4mijr%2Bn8U%3D"
                 ],
-                "timeOut": 600
+                "eventMethod": "POST"
             },
             {
                 "action": "input",
-                "eventMethod": "POST",
-                "eventUrl": [
-                    "https://localhost:8091/mr/ivr/c/19012bfd-3ce3-4cae-9bb9-76cf92c73d49/handle?action=resume&call=01969b47-190b-76f8-92a3-d648ab64bccb&wait_type=record&recording_uuid=7dcaa995-4ad0-444b-8a34-b008aed3f772&sig=lZjhB%2B1hdm5%2F7mTFO%2FHFR2dFA1c%3D"
-                ],
                 "submitOnHash": true,
-                "timeOut": 1
+                "timeOut": 1,
+                "eventUrl": [
+                    "https://localhost:8091/mr/ivr/c/19012bfd-3ce3-4cae-9bb9-76cf92c73d49/handle?action=resume\u0026call=01969b47-190b-76f8-92a3-d648ab64bccb\u0026wait_type=record\u0026recording_uuid=7dcaa995-4ad0-444b-8a34-b008aed3f772\u0026sig=lZjhB%2B1hdm5%2F7mTFO%2FHFR2dFA1c%3D"
+                ],
+                "eventMethod": "POST"
             }
         ]
     },
@@ -247,6 +281,24 @@
                 "action": "talk",
                 "text": "Great, they answered."
             }
+        ],
+        "expected_history": [
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01969b49-a94b-76f8-8fb7-9f7a1d1cb701",
+                "OrgID": 1,
+                "Data": {
+                    "created_on": "2025-05-04T12:33:39.123456789Z",
+                    "flow": {
+                        "name": "IVR Flow",
+                        "revision": 1,
+                        "uuid": "2f81d0ea-4d75-4843-9371-3f7465311cce"
+                    },
+                    "run_uuid": "01969b47-20db-76f8-8228-9728778b6c98",
+                    "status": "completed",
+                    "type": "run_ended"
+                }
+            }
         ]
     },
     {
@@ -287,18 +339,52 @@
         "response": [
             {
                 "action": "talk",
-                "bargeIn": true,
-                "text": "Hello there. Please enter one or two. Your reference id is 123"
+                "text": "Hello there. Please enter one or two. Your reference id is 123",
+                "bargeIn": true
             },
             {
                 "action": "input",
-                "eventMethod": "POST",
-                "eventUrl": [
-                    "https://localhost:8091/mr/ivr/c/19012bfd-3ce3-4cae-9bb9-76cf92c73d49/handle?action=resume&call=01969b47-2c93-76f8-8f41-6b2d9f33d623&wait_type=gather&sig=smTf79il%2Bj7jiRYv0EvcL9e6084%3D"
-                ],
                 "maxDigits": 1,
                 "submitOnHash": true,
-                "timeOut": 30
+                "timeOut": 30,
+                "eventUrl": [
+                    "https://localhost:8091/mr/ivr/c/19012bfd-3ce3-4cae-9bb9-76cf92c73d49/handle?action=resume\u0026call=01969b47-2c93-76f8-8f41-6b2d9f33d623\u0026wait_type=gather\u0026sig=smTf79il%2Bj7jiRYv0EvcL9e6084%3D"
+                ],
+                "eventMethod": "POST"
+            }
+        ],
+        "expected_history": [
+            {
+                "PK": "con#cd024bcd-f473-4719-a00a-bd0bb1190135",
+                "SK": "evt#01969b49-d05b-76f8-979e-17606f578787",
+                "OrgID": 1,
+                "Data": {
+                    "call": {
+                        "channel": {
+                            "name": "Vonage",
+                            "uuid": "19012bfd-3ce3-4cae-9bb9-76cf92c73d49"
+                        },
+                        "urn": "tel:+16055743333",
+                        "uuid": "01969b47-2c93-76f8-8f41-6b2d9f33d623"
+                    },
+                    "created_on": "2025-05-04T12:33:49.123456789Z",
+                    "type": "call_created"
+                }
+            },
+            {
+                "PK": "con#cd024bcd-f473-4719-a00a-bd0bb1190135",
+                "SK": "evt#01969b49-e7cb-76f8-9741-d46beab654c1",
+                "OrgID": 1,
+                "Data": {
+                    "created_on": "2025-05-04T12:33:55.123456789Z",
+                    "flow": {
+                        "name": "IVR Flow",
+                        "revision": 1,
+                        "uuid": "2f81d0ea-4d75-4843-9371-3f7465311cce"
+                    },
+                    "run_uuid": "01969b49-e3e3-76f8-9ea1-dbfb3ec798f1",
+                    "type": "run_started"
+                }
             }
         ]
     },
@@ -317,18 +403,18 @@
         "response": [
             {
                 "action": "talk",
-                "bargeIn": true,
-                "text": "Great! You said One. Ok, now enter a number 1 to 100 then press pound."
+                "text": "Great! You said One. Ok, now enter a number 1 to 100 then press pound.",
+                "bargeIn": true
             },
             {
                 "action": "input",
-                "eventMethod": "POST",
-                "eventUrl": [
-                    "https://localhost:8091/mr/ivr/c/19012bfd-3ce3-4cae-9bb9-76cf92c73d49/handle?action=resume&call=01969b47-2c93-76f8-8f41-6b2d9f33d623&wait_type=gather&sig=smTf79il%2Bj7jiRYv0EvcL9e6084%3D"
-                ],
                 "maxDigits": 20,
                 "submitOnHash": true,
-                "timeOut": 30
+                "timeOut": 30,
+                "eventUrl": [
+                    "https://localhost:8091/mr/ivr/c/19012bfd-3ce3-4cae-9bb9-76cf92c73d49/handle?action=resume\u0026call=01969b47-2c93-76f8-8f41-6b2d9f33d623\u0026wait_type=gather\u0026sig=smTf79il%2Bj7jiRYv0EvcL9e6084%3D"
+                ],
+                "eventMethod": "POST"
             }
         ]
     },
@@ -369,7 +455,26 @@
         "status": 200,
         "response": {
             "_message": "missed call handled"
-        }
+        },
+        "expected_history": [
+            {
+                "PK": "con#72e90234-071d-4188-9676-22cd6062f002",
+                "SK": "evt#01969b4a-a34b-76f8-94b4-ef0c4720292f",
+                "OrgID": 1,
+                "Data": {
+                    "call": {
+                        "channel": {
+                            "name": "Vonage",
+                            "uuid": "19012bfd-3ce3-4cae-9bb9-76cf92c73d49"
+                        },
+                        "urn": "tel:+12482780345?channel=19012bfd-3ce3-4cae-9bb9-76cf92c73d49\u0026id=30000",
+                        "uuid": "01969b4a-9f63-76f8-9c96-61ebc05df996"
+                    },
+                    "created_on": "2025-05-04T12:34:43.123456789Z",
+                    "type": "call_received"
+                }
+            }
+        ]
     },
     {
         "label": "failed call",
