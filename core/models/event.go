@@ -51,7 +51,7 @@ type Event struct {
 
 	OrgID       OrgID
 	ContactUUID flows.ContactUUID
-	UserUUID    assets.UserUUID
+	User        *assets.UserReference
 }
 
 func (e *Event) DynamoKey() DynamoKey {
@@ -99,8 +99,8 @@ func (e *Event) MarshalDynamo() (map[string]types.AttributeValue, error) {
 		data["type"] = e.Type() // always have type in uncompressed data
 	}
 
-	if e.UserUUID != "" {
-		data["_user_uuid"] = e.UserUUID
+	if e.User != nil {
+		data["_user"] = map[string]any{"uuid": e.User.UUID, "name": e.User.Name}
 	}
 
 	return attributevalue.MarshalMap(&DynamoItem{
@@ -126,10 +126,10 @@ func (e *Event) UnmarshalDynamo(d map[string]types.AttributeValue) error {
 
 	e.OrgID = item.OrgID
 	e.ContactUUID = flows.ContactUUID(item.PK)[4:] // trim off con#
-	userUUID, ok := data["_user_uuid"].(string)
+	user, ok := data["_user"].(map[string]any)
 	if ok {
-		e.UserUUID = assets.UserUUID(userUUID)
-		delete(data, "_user_uuid")
+		e.User = assets.NewUserReference(user["uuid"].(assets.UserUUID), user["name"].(string))
+		delete(data, "_user")
 	}
 
 	data["uuid"] = item.SK[4:] // trim off evt# and put event UUID back in

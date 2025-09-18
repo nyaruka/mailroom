@@ -7,7 +7,6 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/nyaruka/gocommon/jsonx"
-	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/goflow/test"
 	"github.com/nyaruka/mailroom/core/models"
@@ -18,13 +17,17 @@ import (
 )
 
 func TestEvent(t *testing.T) {
+	_, rt := testsuite.Runtime(t)
+
 	reset := test.MockUniverse()
 	defer reset()
 
+	oa := testdb.Org1.Load(t, rt)
+
 	tcs := []struct {
-		Event    json.RawMessage `json:"event"`
-		UserUUID assets.UserUUID `json:"user_uuid,omitempty"`
-		Dynamo   json.RawMessage `json:"dynamo"`
+		Event  json.RawMessage `json:"event"`
+		UserID models.UserID   `json:"user_id,omitempty"`
+		Dynamo json.RawMessage `json:"dynamo"`
 	}{}
 
 	testJSON := testsuite.ReadFile(t, "testdata/event_to_dynamo.json")
@@ -34,11 +37,16 @@ func TestEvent(t *testing.T) {
 		evt, err := events.Read(tc.Event)
 		require.NoError(t, err, "%d: error reading event in test", i)
 
+		var user *models.User
+		if tc.UserID != models.NilUserID {
+			user = oa.UserByID(tc.UserID)
+		}
+
 		me := &models.Event{
 			Event:       evt,
 			OrgID:       testdb.Org1.ID,
 			ContactUUID: testdb.Ann.UUID,
-			UserUUID:    tc.UserUUID,
+			User:        user.Reference(),
 		}
 
 		actual := tc
