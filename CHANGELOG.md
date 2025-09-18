@@ -1,3 +1,7 @@
+v10.3.72 (2025-09-18)
+-------------------------
+ * Use user refs for events credited to users
+
 v10.3.71 (2025-09-16)
 -------------------------
  * Persist optin_requestesd events
