@@ -28,7 +28,7 @@ func (m *msgSpec) createMsg(t *testing.T, rt *runtime.Runtime, oa *models.OrgAss
 		status = models.MsgStatusFailed
 	}
 
-	msgID := testdb.InsertOutgoingMsg(rt, testdb.Org1, m.Channel, m.Contact, "Hello", nil, status, m.HighPriority).ID
+	msgID := testdb.InsertOutgoingMsg(t, rt, testdb.Org1, m.Channel, m.Contact, "Hello", nil, status, m.HighPriority).ID
 	msgs, err := models.GetMessagesByID(context.Background(), rt.DB, testdb.Org1.ID, models.DirectionOut, []models.MsgID{msgID})
 	require.NoError(t, err)
 
@@ -51,9 +51,9 @@ func TestQueueMessages(t *testing.T) {
 	mockFCM := rt.FCM.(*testsuite.MockFCMClient)
 
 	// create some Andoid channels
-	androidChannel1 := testdb.InsertChannel(rt, testdb.Org1, "A", "Android 1", "123", []string{"tel"}, "SR", map[string]any{"FCM_ID": "FCMID1"})
-	androidChannel2 := testdb.InsertChannel(rt, testdb.Org1, "A", "Android 2", "234", []string{"tel"}, "SR", map[string]any{"FCM_ID": "FCMID2"})
-	testdb.InsertChannel(rt, testdb.Org1, "A", "Android 3", "456", []string{"tel"}, "SR", map[string]any{"FCM_ID": "FCMID3"})
+	androidChannel1 := testdb.InsertChannel(t, rt, testdb.Org1, "A", "Android 1", "123", []string{"tel"}, "SR", map[string]any{"FCM_ID": "FCMID1"})
+	androidChannel2 := testdb.InsertChannel(t, rt, testdb.Org1, "A", "Android 2", "234", []string{"tel"}, "SR", map[string]any{"FCM_ID": "FCMID2"})
+	testdb.InsertChannel(t, rt, testdb.Org1, "A", "Android 3", "456", []string{"tel"}, "SR", map[string]any{"FCM_ID": "FCMID3"})
 
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshChannels)
 	require.NoError(t, err)

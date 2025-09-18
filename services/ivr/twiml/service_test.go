@@ -142,7 +142,7 @@ func TestURNForRequest(t *testing.T) {
 func TestRedactValues(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
 
-	oa := testdb.Org1.Load(rt)
+	oa := testdb.Org1.Load(t, rt)
 	ch := oa.ChannelByUUID(testdb.TwilioChannel.UUID)
 	svc, _ := ivr.GetService(ch)
 

@@ -3,6 +3,7 @@ package handlers_test
 import (
 	"testing"
 
+	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/actions"
@@ -16,7 +17,7 @@ func TestContactURNsChanged(t *testing.T) {
 	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
 	// add a URN to Cat that Ann will steal
-	testdb.InsertContactURN(rt, testdb.Org1, testdb.Cat, urns.URN("tel:+12065551212"), 100, nil)
+	testdb.InsertContactURN(t, rt, testdb.Org1, testdb.Cat, urns.URN("tel:+12065551212"), 100, nil)
 
 	tcs := []TestCase{
 		{
@@ -29,27 +30,27 @@ func TestContactURNsChanged(t *testing.T) {
 				},
 				testdb.Cat.UUID: []flows.Action{},
 			},
-			SQLAssertions: []SQLAssertion{
+			DBAssertions: []assertdb.Assert{
 				{
-					SQL:   "select count(*) from contacts_contacturn where contact_id = $1 and scheme = 'telegram' and path = '11551' and priority = 998",
-					Args:  []any{testdb.Ann.ID},
-					Count: 1,
+					Query:   "select count(*) from contacts_contacturn where contact_id = $1 and scheme = 'telegram' and path = '11551' and priority = 998",
+					Args:    []any{testdb.Ann.ID},
+					Returns: 1,
 				},
 				{
-					SQL:   "select count(*) from contacts_contacturn where contact_id = $1 and scheme = 'tel' and path = '+12065551212' and priority = 999 and identity = 'tel:+12065551212'",
-					Args:  []any{testdb.Ann.ID},
-					Count: 1,
+					Query:   "select count(*) from contacts_contacturn where contact_id = $1 and scheme = 'tel' and path = '+12065551212' and priority = 999 and identity = 'tel:+12065551212'",
+					Args:    []any{testdb.Ann.ID},
+					Returns: 1,
 				},
 				{
-					SQL:   "select count(*) from contacts_contacturn where contact_id = $1 and scheme = 'tel' and path = '+16055741111' and priority = 1000",
-					Args:  []any{testdb.Ann.ID},
-					Count: 1,
+					Query:   "select count(*) from contacts_contacturn where contact_id = $1 and scheme = 'tel' and path = '+16055741111' and priority = 1000",
+					Args:    []any{testdb.Ann.ID},
+					Returns: 1,
 				},
 				// evan lost his 206 URN
 				{
-					SQL:   "select count(*) from contacts_contacturn where contact_id = $1",
-					Args:  []any{testdb.Cat.ID},
-					Count: 1,
+					Query:   "select count(*) from contacts_contacturn where contact_id = $1",
+					Args:    []any{testdb.Cat.ID},
+					Returns: 1,
 				},
 			},
 			PersistedEvents: map[flows.ContactUUID][]string{

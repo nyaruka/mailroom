@@ -20,10 +20,10 @@ func TestContactFires(t *testing.T) {
 	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 	require.NoError(t, err)
 
-	testdb.InsertContactFire(rt, testdb.Org1, testdb.Ann, models.ContactFireTypeWaitExpiration, "", time.Now().Add(-5*time.Second), "46aa1e25-9c01-44d7-8223-e43036627505")
-	testdb.InsertContactFire(rt, testdb.Org1, testdb.Bob, models.ContactFireTypeWaitExpiration, "", time.Now().Add(-4*time.Second), "531e84a7-d883-40a0-8e7a-b4dde4428ce1")
-	testdb.InsertContactFire(rt, testdb.Org2, testdb.Org2Contact, models.ContactFireTypeWaitExpiration, "", time.Now().Add(-3*time.Second), "7c73b6e4-ae33-45a6-9126-be474234b69d")
-	testdb.InsertContactFire(rt, testdb.Org2, testdb.Org2Contact, models.ContactFireTypeWaitTimeout, "", time.Now().Add(-2*time.Second), "7c73b6e4-ae33-45a6-9126-be474234b69d")
+	testdb.InsertContactFire(t, rt, testdb.Org1, testdb.Ann, models.ContactFireTypeWaitExpiration, "", time.Now().Add(-5*time.Second), "46aa1e25-9c01-44d7-8223-e43036627505")
+	testdb.InsertContactFire(t, rt, testdb.Org1, testdb.Bob, models.ContactFireTypeWaitExpiration, "", time.Now().Add(-4*time.Second), "531e84a7-d883-40a0-8e7a-b4dde4428ce1")
+	testdb.InsertContactFire(t, rt, testdb.Org2, testdb.Org2Contact, models.ContactFireTypeWaitExpiration, "", time.Now().Add(-3*time.Second), "7c73b6e4-ae33-45a6-9126-be474234b69d")
+	testdb.InsertContactFire(t, rt, testdb.Org2, testdb.Org2Contact, models.ContactFireTypeWaitTimeout, "", time.Now().Add(-2*time.Second), "7c73b6e4-ae33-45a6-9126-be474234b69d")
 
 	remindersEvent1 := oa.CampaignPointByID(testdb.RemindersPoint1.ID)
 
@@ -58,7 +58,7 @@ func TestSessionContactFires(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
-	testdb.InsertContactFire(rt, testdb.Org1, testdb.Bob, models.ContactFireTypeCampaignPoint, "235", time.Now().Add(2*time.Second), "")
+	testdb.InsertContactFire(t, rt, testdb.Org1, testdb.Bob, models.ContactFireTypeCampaignPoint, "235", time.Now().Add(2*time.Second), "")
 
 	fires := []*models.ContactFire{
 		models.NewFireForSession(testdb.Org1.ID, testdb.Bob.ID, "6ffbe7f4-362b-439c-a253-5e09a1dd4ed6", "d973e18c-009e-4539-80f9-4f7ac60e5f3b", models.ContactFireTypeWaitTimeout, time.Now().Add(time.Minute)),
@@ -108,7 +108,7 @@ func TestCampaignContactFires(t *testing.T) {
 	remindersEvent2 := oa.CampaignPointByID(testdb.RemindersPoint2.ID)
 	remindersEvent3 := oa.CampaignPointByID(testdb.RemindersPoint3.ID)
 
-	testdb.InsertContactFire(rt, testdb.Org1, testdb.Ann, models.ContactFireTypeWaitExpiration, "", time.Now().Add(-4*time.Second), "531e84a7-d883-40a0-8e7a-b4dde4428ce1")
+	testdb.InsertContactFire(t, rt, testdb.Org1, testdb.Ann, models.ContactFireTypeWaitExpiration, "", time.Now().Add(-4*time.Second), "531e84a7-d883-40a0-8e7a-b4dde4428ce1")
 
 	fires := []*models.ContactFire{
 		models.NewContactFireForCampaign(testdb.Org1.ID, testdb.Bob.ID, remindersEvent1, time.Now()),

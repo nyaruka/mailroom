@@ -9,7 +9,7 @@ import (
 )
 
 func TestDeindex(t *testing.T) {
-	ctx, rt := testsuite.Runtime(t)
+	_, rt := testsuite.Runtime(t)
 
 	defer func() {
 		rt.DB.MustExec(`UPDATE orgs_org SET is_active = true WHERE id = $1`, testdb.Org1.ID)
@@ -19,7 +19,7 @@ func TestDeindex(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetElastic|testsuite.ResetValkey)
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/deindex.json", testsuite.ResetNone)
+	testsuite.RunWebTests(t, rt, "testdata/deindex.json")
 
 	vc := rt.VK.Get()
 	defer vc.Close()

@@ -26,7 +26,7 @@ func TestBulkCampaignTrigger(t *testing.T) {
 	defer vc.Close()
 
 	// create a waiting session for Ann
-	testdb.InsertWaitingSession(rt, testdb.Org1, testdb.Ann, models.FlowTypeVoice, nil, testdb.IVRFlow)
+	testdb.InsertWaitingSession(t, rt, testdb.Org1, testdb.Ann, models.FlowTypeVoice, nil, testdb.IVRFlow)
 
 	// create task for event #3 (Pick A Number, start mode SKIP)
 	task := &campaigns.BulkCampaignTriggerTask{
@@ -35,7 +35,7 @@ func TestBulkCampaignTrigger(t *testing.T) {
 		ContactIDs:  []models.ContactID{testdb.Bob.ID, testdb.Ann.ID, testdb.Dan.ID},
 	}
 
-	oa := testdb.Org1.Load(rt)
+	oa := testdb.Org1.Load(t, rt)
 	err := task.Perform(ctx, rt, oa)
 	assert.NoError(t, err)
 
@@ -93,7 +93,7 @@ func TestBulkCampaignTrigger(t *testing.T) {
 	// test task when campaign point has been deleted
 	rt.DB.MustExec(`UPDATE campaigns_campaignevent SET is_active = FALSE WHERE id = $1`, testdb.RemindersPoint1.ID)
 	models.FlushCache()
-	oa = testdb.Org1.Load(rt)
+	oa = testdb.Org1.Load(t, rt)
 
 	task = &campaigns.BulkCampaignTriggerTask{
 		PointID:     testdb.RemindersPoint1.ID,
@@ -114,7 +114,7 @@ func TestBulkCampaignTrigger(t *testing.T) {
 	// test task when flow has been deleted
 	rt.DB.MustExec(`UPDATE flows_flow SET is_active = FALSE WHERE id = $1`, testdb.PickANumber.ID)
 	models.FlushCache()
-	oa = testdb.Org1.Load(rt)
+	oa = testdb.Org1.Load(t, rt)
 
 	task = &campaigns.BulkCampaignTriggerTask{
 		PointID:     testdb.RemindersPoint3.ID,

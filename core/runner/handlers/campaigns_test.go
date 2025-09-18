@@ -3,6 +3,7 @@ package handlers_test
 import (
 	"testing"
 
+	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/actions"
@@ -20,10 +21,10 @@ func TestCampaigns(t *testing.T) {
 	joined := assets.NewFieldReference("joined", "Joined")
 
 	// insert an event on our campaign that is based on created_on
-	testdb.InsertCampaignFlowPoint(rt, testdb.RemindersCampaign, testdb.Favorites, testdb.CreatedOnField, 1000, "W")
+	testdb.InsertCampaignFlowPoint(t, rt, testdb.RemindersCampaign, testdb.Favorites, testdb.CreatedOnField, 1000, "W")
 
 	// insert an event on our campaign that is based on last_seen_on
-	testdb.InsertCampaignFlowPoint(rt, testdb.RemindersCampaign, testdb.Favorites, testdb.LastSeenOnField, 2, "D")
+	testdb.InsertCampaignFlowPoint(t, rt, testdb.RemindersCampaign, testdb.Favorites, testdb.LastSeenOnField, 2, "D")
 
 	// joined + 1 week => Pick A Number
 	// joined + 5 days => Favorites
@@ -31,7 +32,7 @@ func TestCampaigns(t *testing.T) {
 	// created_on + 1000 weeks => Favorites
 	// last_seen_on + 2 days => Favorites
 
-	msg1 := testdb.InsertIncomingMsg(rt, testdb.Org1, testdb.TwilioChannel, testdb.Ann, "Hi there", models.MsgStatusPending)
+	msg1 := testdb.InsertIncomingMsg(t, rt, testdb.Org1, testdb.TwilioChannel, testdb.Ann, "Hi there", models.MsgStatusPending)
 
 	tcs := []TestCase{
 		{
@@ -56,21 +57,21 @@ func TestCampaigns(t *testing.T) {
 					actions.NewRemoveContactGroups(flows.NewActionUUID(), []*assets.GroupReference{doctors}, false),
 				},
 			},
-			SQLAssertions: []SQLAssertion{
+			DBAssertions: []assertdb.Assert{
 				{ // 2 new events on created_on and last_seen_on
-					SQL:   `SELECT count(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'C'`,
-					Args:  []any{testdb.Ann.ID},
-					Count: 2,
+					Query:   `SELECT count(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'C'`,
+					Args:    []any{testdb.Ann.ID},
+					Returns: 2,
 				},
 				{ // 3 events on joined_on + new event on created_on
-					SQL:   `SELECT count(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'C'`,
-					Args:  []any{testdb.Bob.ID},
-					Count: 4,
+					Query:   `SELECT count(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'C'`,
+					Args:    []any{testdb.Bob.ID},
+					Returns: 4,
 				},
 				{ // no events because removed from doctors
-					SQL:   `SELECT count(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'C'`,
-					Args:  []any{testdb.Cat.ID},
-					Count: 0,
+					Query:   `SELECT count(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'C'`,
+					Args:    []any{testdb.Cat.ID},
+					Returns: 0,
 				},
 			},
 			PersistedEvents: map[flows.ContactUUID][]string{

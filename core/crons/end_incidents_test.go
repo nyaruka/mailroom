@@ -27,8 +27,8 @@ func TestEndIncidents(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetValkey)
 
-	oa1 := testdb.Org1.Load(rt)
-	oa2 := testdb.Org2.Load(rt)
+	oa1 := testdb.Org1.Load(t, rt)
+	oa2 := testdb.Org2.Load(t, rt)
 
 	createWebhookEvents := func(count int, elapsed time.Duration) []*events.WebhookCalled {
 		evts := make([]*events.WebhookCalled, count)

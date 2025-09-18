@@ -3,6 +3,7 @@ package handlers_test
 import (
 	"testing"
 
+	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/actions"
 	"github.com/nyaruka/mailroom/testsuite"
@@ -15,7 +16,7 @@ func TestRunStarted(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
-	oa := testdb.Org1.Load(rt)
+	oa := testdb.Org1.Load(t, rt)
 
 	flow, err := oa.FlowByID(testdb.PickANumber.ID)
 	assert.NoError(t, err)
@@ -27,11 +28,11 @@ func TestRunStarted(t *testing.T) {
 					actions.NewEnterFlow(flows.NewActionUUID(), flow.Reference(), false),
 				},
 			},
-			SQLAssertions: []SQLAssertion{
+			DBAssertions: []assertdb.Assert{
 				{
-					SQL:   `SELECT count(*) FROM contacts_contact WHERE current_flow_id = $1`,
-					Args:  []any{flow.ID()},
-					Count: 1,
+					Query:   `SELECT count(*) FROM contacts_contact WHERE current_flow_id = $1`,
+					Args:    []any{flow.ID()},
+					Returns: 1,
 				},
 			},
 			PersistedEvents: map[flows.ContactUUID][]string{

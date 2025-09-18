@@ -3,6 +3,7 @@ package handlers_test
 import (
 	"testing"
 
+	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/actions"
@@ -22,11 +23,11 @@ func TestBroadcastCreated(t *testing.T) {
 					actions.NewSendBroadcast(flows.NewActionUUID(), "hello world", nil, nil, nil, nil, "", []urns.URN{urns.URN("tel:+12065551212")}, nil),
 				},
 			},
-			SQLAssertions: []SQLAssertion{
+			DBAssertions: []assertdb.Assert{
 				{
-					SQL:   "select count(*) from flows_flowrun where contact_id = $1 AND status = 'C'",
-					Args:  []any{testdb.Ann.ID},
-					Count: 1,
+					Query:   "select count(*) from flows_flowrun where contact_id = $1 AND status = 'C'",
+					Args:    []any{testdb.Ann.ID},
+					Returns: 1,
 				},
 			},
 			ExpectedTasks: map[string][]string{

@@ -21,23 +21,23 @@ func TestFireSchedules(t *testing.T) {
 	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetValkey)
 
 	// add a one-time schedule and tie a broadcast to it
-	s1 := testdb.InsertSchedule(rt, testdb.Org1, models.RepeatPeriodNever, time.Now().Add(-2*time.Hour))
-	b1 := testdb.InsertBroadcast(rt, testdb.Org1, "eng", map[i18n.Language]string{"eng": "Hi", "spa": "Hola"}, nil, s1, []*testdb.Contact{testdb.Ann, testdb.Cat}, nil)
+	s1 := testdb.InsertSchedule(t, rt, testdb.Org1, models.RepeatPeriodNever, time.Now().Add(-2*time.Hour))
+	b1 := testdb.InsertBroadcast(t, rt, testdb.Org1, "eng", map[i18n.Language]string{"eng": "Hi", "spa": "Hola"}, nil, s1, []*testdb.Contact{testdb.Ann, testdb.Cat}, nil)
 
 	// add a repeating schedule and tie another broadcast to it
-	s2 := testdb.InsertSchedule(rt, testdb.Org1, models.RepeatPeriodDaily, time.Now().Add(-time.Hour))
-	b2 := testdb.InsertBroadcast(rt, testdb.Org1, "eng", map[i18n.Language]string{"eng": "Bye", "spa": "Chau"}, nil, s2, nil, []*testdb.Group{testdb.DoctorsGroup})
+	s2 := testdb.InsertSchedule(t, rt, testdb.Org1, models.RepeatPeriodDaily, time.Now().Add(-time.Hour))
+	b2 := testdb.InsertBroadcast(t, rt, testdb.Org1, "eng", map[i18n.Language]string{"eng": "Bye", "spa": "Chau"}, nil, s2, nil, []*testdb.Group{testdb.DoctorsGroup})
 
 	// add a one-time schedule and tie a trigger to it
-	s3 := testdb.InsertSchedule(rt, testdb.Org1, models.RepeatPeriodNever, time.Now().Add(-2*time.Hour))
-	t1 := testdb.InsertScheduledTrigger(rt, testdb.Org1, testdb.Favorites, s3, nil, nil, []*testdb.Contact{testdb.Ann, testdb.Cat})
+	s3 := testdb.InsertSchedule(t, rt, testdb.Org1, models.RepeatPeriodNever, time.Now().Add(-2*time.Hour))
+	t1 := testdb.InsertScheduledTrigger(t, rt, testdb.Org1, testdb.Favorites, s3, nil, nil, []*testdb.Contact{testdb.Ann, testdb.Cat})
 
 	// add a repeating schedule and tie another trigger to it
-	s4 := testdb.InsertSchedule(rt, testdb.Org1, models.RepeatPeriodDaily, time.Now().Add(-time.Hour))
-	testdb.InsertScheduledTrigger(rt, testdb.Org1, testdb.Favorites, s4, []*testdb.Group{testdb.DoctorsGroup}, nil, nil)
+	s4 := testdb.InsertSchedule(t, rt, testdb.Org1, models.RepeatPeriodDaily, time.Now().Add(-time.Hour))
+	testdb.InsertScheduledTrigger(t, rt, testdb.Org1, testdb.Favorites, s4, []*testdb.Group{testdb.DoctorsGroup}, nil, nil)
 
 	// add a repeating orphaned schedule
-	testdb.InsertSchedule(rt, testdb.Org1, models.RepeatPeriodDaily, time.Now().Add(-time.Hour))
+	testdb.InsertSchedule(t, rt, testdb.Org1, models.RepeatPeriodDaily, time.Now().Add(-time.Hour))
 
 	// run our task
 	cron := &crons.FireSchedulesCron{}

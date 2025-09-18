@@ -32,18 +32,12 @@ type TestCase struct {
 	Msgs            ContactMsgMap
 	Modifiers       ContactModifierMap
 	UserID          models.UserID
-	SQLAssertions   []SQLAssertion
+	DBAssertions    []assertdb.Assert
 	ExpectedTasks   map[string][]string
 	PersistedEvents map[flows.ContactUUID][]string
 }
 
 type Assertion func(t *testing.T, rt *runtime.Runtime) error
-
-type SQLAssertion struct {
-	SQL   string
-	Args  []any
-	Count int
-}
 
 // createTestFlow creates a flow that starts with a split by contact id
 // and then routes the contact to a node where all the actions in the
@@ -134,7 +128,7 @@ func runTestCases(t *testing.T, ctx context.Context, rt *runtime.Runtime, tcs []
 			scenes := make([]*runner.Scene, 4)
 
 			for i, c := range []*testdb.Contact{testdb.Ann, testdb.Bob, testdb.Cat, testdb.Dan} {
-				mc, contact, _ := c.Load(rt, oa)
+				mc, contact, _ := c.Load(t, rt, oa)
 				scenes[i] = runner.NewScene(mc, contact)
 				if msg := tc.Msgs[c.UUID]; msg != nil {
 					scenes[i].IncomingMsg = &models.MsgInRef{ID: msg.ID}
@@ -162,7 +156,7 @@ func runTestCases(t *testing.T, ctx context.Context, rt *runtime.Runtime, tcs []
 		if tc.Modifiers != nil {
 			modifiersByContact := make(map[*flows.Contact][]flows.Modifier)
 			for _, c := range []*testdb.Contact{testdb.Ann, testdb.Bob, testdb.Cat, testdb.Dan} {
-				_, contact, _ := c.Load(rt, oa)
+				_, contact, _ := c.Load(t, rt, oa)
 
 				modifiersByContact[contact] = tc.Modifiers[c.UUID]
 
@@ -178,8 +172,8 @@ func runTestCases(t *testing.T, ctx context.Context, rt *runtime.Runtime, tcs []
 		actual.PersistedEvents = testsuite.GetHistoryEventTypes(t, rt)
 
 		// now check our assertions
-		for j, a := range tc.SQLAssertions {
-			assertdb.Query(t, rt.DB, a.SQL, a.Args...).Returns(a.Count, "%d:%d: mismatch in expected count for query: %s", i, j, a.SQL)
+		for j, dba := range tc.DBAssertions {
+			dba.Check(t, rt.DB, "%d:%d: mismatch in expected count for query: %s", i, j, dba.Query)
 		}
 
 		if tc.ExpectedTasks == nil {

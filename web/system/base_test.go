@@ -7,17 +7,13 @@ import (
 )
 
 func TestErrors(t *testing.T) {
-	ctx, rt := testsuite.Runtime(t)
+	_, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetNone)
-
-	testsuite.RunWebTests(t, ctx, rt, "testdata/errors.json", testsuite.ResetNone)
+	testsuite.RunWebTests(t, rt, "testdata/errors.json")
 }
 
 func TestQueues(t *testing.T) {
-	ctx, rt := testsuite.Runtime(t)
+	_, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetNone)
-
-	testsuite.RunWebTests(t, ctx, rt, "testdata/queues.json", testsuite.ResetNone)
+	testsuite.RunWebTests(t, rt, "testdata/queues.json")
 }

@@ -31,7 +31,7 @@ func StartSessions(t *testing.T, rt *runtime.Runtime, oa *models.OrgAssets, cont
 
 	scenes := make([]*runner.Scene, len(contacts))
 	for i, contact := range contacts {
-		mc, fc, _ := contact.Load(rt, oa)
+		mc, fc, _ := contact.Load(t, rt, oa)
 		scenes[i] = runner.NewScene(mc, fc)
 
 		err := scenes[i].StartSession(ctx, rt, oa, triggers[i], true)
@@ -46,7 +46,7 @@ func StartSessions(t *testing.T, rt *runtime.Runtime, oa *models.OrgAssets, cont
 func ResumeSession(t *testing.T, rt *runtime.Runtime, oa *models.OrgAssets, contact *testdb.Contact, resume any) *runner.Scene {
 	ctx := context.Background()
 
-	mc, fc, _ := contact.Load(rt, oa)
+	mc, fc, _ := contact.Load(t, rt, oa)
 
 	require.NotEqual(t, flows.SessionUUID(""), mc.CurrentSessionUUID(), "contact must have a waiting session")
 

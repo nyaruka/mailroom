@@ -196,13 +196,13 @@ func TestServer(t *testing.T) {
 	var session json.RawMessage
 
 	// add a trigger for our campaign flow with 'trigger'
-	testdb.InsertKeywordTrigger(rt, testdb.Org1, testdb.BackgroundFlow, []string{"trigger"}, models.MatchOnly, nil, nil, nil)
+	testdb.InsertKeywordTrigger(t, rt, testdb.Org1, testdb.BackgroundFlow, []string{"trigger"}, models.MatchOnly, nil, nil, nil)
 
 	// and a trigger which will trigger an IVR flow
-	testdb.InsertKeywordTrigger(rt, testdb.Org1, testdb.IVRFlow, []string{"ivr"}, models.MatchOnly, nil, nil, nil)
+	testdb.InsertKeywordTrigger(t, rt, testdb.Org1, testdb.IVRFlow, []string{"ivr"}, models.MatchOnly, nil, nil, nil)
 
 	// also add a catch all
-	testdb.InsertCatchallTrigger(rt, testdb.Org1, testdb.BackgroundFlow, nil, nil, nil)
+	testdb.InsertCatchallTrigger(t, rt, testdb.Org1, testdb.BackgroundFlow, nil, nil, nil)
 
 	tcs := []struct {
 		URL              string

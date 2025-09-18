@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/actions"
@@ -21,15 +22,15 @@ func TestOptinRequested(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
-	optIn := testdb.InsertOptIn(rt, testdb.Org1, "Jokes")
+	optIn := testdb.InsertOptIn(t, rt, testdb.Org1, "Jokes")
 	models.FlushCache()
 
 	rt.DB.MustExec(`UPDATE contacts_contacturn SET identity = 'facebook:12345', scheme='facebook', path='12345' WHERE contact_id = $1`, testdb.Ann.ID)
 	rt.DB.MustExec(`UPDATE contacts_contacturn SET identity = 'facebook:23456', scheme='facebook', path='23456' WHERE contact_id = $1`, testdb.Cat.ID)
 
-	msg1 := testdb.InsertIncomingMsg(rt, testdb.Org1, testdb.TwilioChannel, testdb.Ann, "start", models.MsgStatusHandled)
+	msg1 := testdb.InsertIncomingMsg(t, rt, testdb.Org1, testdb.TwilioChannel, testdb.Ann, "start", models.MsgStatusHandled)
 
-	oa := testdb.Org1.Load(rt)
+	oa := testdb.Org1.Load(t, rt)
 	ch := oa.ChannelByUUID("0f661e8b-ea9d-4bd3-9953-d368340acf91")
 	assert.Equal(t, models.ChannelType("FBA"), ch.Type())
 	assert.Equal(t, []assets.ChannelFeature{assets.ChannelFeatureOptIns}, ch.Features())
@@ -50,21 +51,21 @@ func TestOptinRequested(t *testing.T) {
 			Msgs: ContactMsgMap{
 				testdb.Ann.UUID: msg1,
 			},
-			SQLAssertions: []SQLAssertion{
+			DBAssertions: []assertdb.Assert{
 				{
-					SQL:   `SELECT COUNT(*) FROM msgs_msg WHERE direction = 'O' AND text = '' AND high_priority = true AND contact_id = $1 AND optin_id = $2`,
-					Args:  []any{testdb.Ann.ID, optIn.ID},
-					Count: 1,
+					Query:   `SELECT COUNT(*) FROM msgs_msg WHERE direction = 'O' AND text = '' AND high_priority = true AND contact_id = $1 AND optin_id = $2`,
+					Args:    []any{testdb.Ann.ID, optIn.ID},
+					Returns: 1,
 				},
 				{
-					SQL:   `SELECT COUNT(*) FROM msgs_msg WHERE direction = 'O' AND text = '' AND high_priority = false AND contact_id = $1 AND optin_id = $2`,
-					Args:  []any{testdb.Cat.ID, optIn.ID},
-					Count: 1,
+					Query:   `SELECT COUNT(*) FROM msgs_msg WHERE direction = 'O' AND text = '' AND high_priority = false AND contact_id = $1 AND optin_id = $2`,
+					Args:    []any{testdb.Cat.ID, optIn.ID},
+					Returns: 1,
 				},
 				{ // bob has no channel+URN that supports optins
-					SQL:   `SELECT COUNT(*) FROM msgs_msg WHERE direction = 'O' AND contact_id = $1`,
-					Args:  []any{testdb.Bob.ID},
-					Count: 0,
+					Query:   `SELECT COUNT(*) FROM msgs_msg WHERE direction = 'O' AND contact_id = $1`,
+					Args:    []any{testdb.Bob.ID},
+					Returns: 0,
 				},
 			},
 			PersistedEvents: map[flows.ContactUUID][]string{

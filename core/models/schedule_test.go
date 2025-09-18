@@ -18,7 +18,7 @@ import (
 func TestNewSchedule(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
 
-	oa := testdb.Org1.Load(rt)
+	oa := testdb.Org1.Load(t, rt)
 
 	dates.SetNowFunc(dates.NewFixedNow(time.Date(2024, 6, 20, 14, 30, 0, 0, time.UTC)))
 	defer dates.SetNowFunc(time.Now)
@@ -90,21 +90,21 @@ func TestGetExpired(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
-	optIn := testdb.InsertOptIn(rt, testdb.Org1, "Polls")
+	optIn := testdb.InsertOptIn(t, rt, testdb.Org1, "Polls")
 
 	// add a schedule and tie a broadcast to it
-	s1 := testdb.InsertSchedule(rt, testdb.Org1, models.RepeatPeriodNever, time.Now().Add(-24*time.Hour))
+	s1 := testdb.InsertSchedule(t, rt, testdb.Org1, models.RepeatPeriodNever, time.Now().Add(-24*time.Hour))
 
-	testdb.InsertBroadcast(rt, testdb.Org1, "eng", map[i18n.Language]string{"eng": "Test message", "fra": "Un Message"}, optIn, s1,
+	testdb.InsertBroadcast(t, rt, testdb.Org1, "eng", map[i18n.Language]string{"eng": "Test message", "fra": "Un Message"}, optIn, s1,
 		[]*testdb.Contact{testdb.Ann, testdb.Cat}, []*testdb.Group{testdb.DoctorsGroup},
 	)
 
 	// add another and tie a trigger to it
-	s2 := testdb.InsertSchedule(rt, testdb.Org1, models.RepeatPeriodNever, time.Now().Add(-48*time.Hour))
+	s2 := testdb.InsertSchedule(t, rt, testdb.Org1, models.RepeatPeriodNever, time.Now().Add(-48*time.Hour))
 
-	testdb.InsertScheduledTrigger(rt, testdb.Org1, testdb.Favorites, s2, []*testdb.Group{testdb.DoctorsGroup}, nil, []*testdb.Contact{testdb.Ann, testdb.Cat})
+	testdb.InsertScheduledTrigger(t, rt, testdb.Org1, testdb.Favorites, s2, []*testdb.Group{testdb.DoctorsGroup}, nil, []*testdb.Contact{testdb.Ann, testdb.Cat})
 
-	s3 := testdb.InsertSchedule(rt, testdb.Org1, models.RepeatPeriodNever, time.Now().Add(-72*time.Hour))
+	s3 := testdb.InsertSchedule(t, rt, testdb.Org1, models.RepeatPeriodNever, time.Now().Add(-72*time.Hour))
 
 	// get expired schedules
 	schedules, err := models.GetUnfiredSchedules(ctx, rt.DB.DB)

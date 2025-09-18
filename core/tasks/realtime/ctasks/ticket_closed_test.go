@@ -23,10 +23,10 @@ func TestTicketClosed(t *testing.T) {
 	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
 	// add a ticket closed trigger
-	testdb.InsertTicketClosedTrigger(rt, testdb.Org1, testdb.Favorites)
+	testdb.InsertTicketClosedTrigger(t, rt, testdb.Org1, testdb.Favorites)
 	models.FlushCache()
 
-	testdb.InsertClosedTicket(rt, "01992f54-5ab6-717a-a39e-e8ca91fb7262", testdb.Org1, testdb.Ann, testdb.DefaultTopic, nil)
+	testdb.InsertClosedTicket(t, rt, "01992f54-5ab6-717a-a39e-e8ca91fb7262", testdb.Org1, testdb.Ann, testdb.DefaultTopic, nil)
 	evt := events.NewTicketClosed("01992f54-5ab6-717a-a39e-e8ca91fb7262")
 
 	err := realtime.QueueTask(ctx, rt, testdb.Org1.ID, testdb.Ann.ID, ctasks.NewTicketClosed(evt))

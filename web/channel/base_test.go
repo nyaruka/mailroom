@@ -7,9 +7,9 @@ import (
 )
 
 func TestInterrupt(t *testing.T) {
-	ctx, rt := testsuite.Runtime(t)
+	_, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
-	testsuite.RunWebTests(t, ctx, rt, "testdata/interrupt.json", testsuite.ResetValkey)
+	testsuite.RunWebTests(t, rt, "testdata/interrupt.json")
 }

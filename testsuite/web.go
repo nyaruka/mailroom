@@ -28,11 +28,10 @@ import (
 )
 
 // RunWebTests runs the tests in the passed in filename, optionally updating them if the update flag is set
-func RunWebTests(t *testing.T, ctx context.Context, rt *runtime.Runtime, truthFile string, reset ResetFlag) {
+func RunWebTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
+	ctx := t.Context()
+
 	wg := &sync.WaitGroup{}
-
-	test.MockUniverse()
-
 	server := web.NewServer(ctx, rt, wg)
 	server.Start()
 	defer server.Stop()
@@ -62,6 +61,8 @@ func RunWebTests(t *testing.T, ctx context.Context, rt *runtime.Runtime, truthFi
 
 	jsonx.MustUnmarshal(tcJSON, &tcs)
 	var err error
+
+	test.MockUniverse()
 
 	for i, tc := range tcs {
 		dates.SetNowFunc(dates.NewSequentialNow(time.Date(2018, 7, 6, 12, 30, 0, 123456789, time.UTC), time.Second))
@@ -112,12 +113,14 @@ func RunWebTests(t *testing.T, ctx context.Context, rt *runtime.Runtime, truthFi
 		actual.HTTPMocks = clonedMocks
 		actual.actualResponse, err = io.ReadAll(resp.Body)
 		actual.ExpectedTasks = GetQueuedTasks(t, rt)
-		actual.ExpectedHistory = jsonx.MustMarshal(GetHistoryItems(t, rt))
+		actual.ExpectedHistory = jsonx.MustMarshal(GetHistoryItems(t, rt, true))
 
 		assert.NoError(t, err, "%s: error reading body", tc.Label)
 
 		// some timestamps come from db NOW() which we can't mock, so we replace them with $recent_timestamp$
 		actual.actualResponse = overwriteRecentTimestamps(actual.actualResponse)
+
+		ClearTasks(t, rt)
 
 		if !test.UpdateSnapshots {
 			assert.Equal(t, tc.Status, actual.Status, "%s: unexpected status", tc.Label)
@@ -151,7 +154,7 @@ func RunWebTests(t *testing.T, ctx context.Context, rt *runtime.Runtime, truthFi
 			}
 
 			for _, dba := range tc.DBAssertions {
-				dba.Run(t, rt.DB, "%s: assertion for query '%s' failed", tc.Label, dba.Query)
+				dba.Check(t, rt.DB, "%s: assertion for query '%s' failed", tc.Label, dba.Query)
 			}
 
 			if tc.ExpectedTasks == nil {
@@ -166,10 +169,6 @@ func RunWebTests(t *testing.T, ctx context.Context, rt *runtime.Runtime, truthFi
 
 		} else {
 			tcs[i] = actual
-		}
-
-		if reset != 0 {
-			Reset(t, rt, reset)
 		}
 	}
 

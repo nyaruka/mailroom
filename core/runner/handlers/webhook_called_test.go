@@ -62,31 +62,31 @@ func TestWebhookCalled(t *testing.T) {
 					actions.NewCallWebhook(flows.NewActionUUID(), "GET", "http://rapidpro.io/?unsub=1", nil, "", ""),
 				},
 			},
-			SQLAssertions: []SQLAssertion{
+			DBAssertions: []assertdb.Assert{
 				{
-					SQL:   "select count(*) from api_resthooksubscriber where is_active = FALSE",
-					Count: 1,
+					Query:   "select count(*) from api_resthooksubscriber where is_active = FALSE",
+					Returns: 1,
 				},
 				{
-					SQL:   "select count(*) from api_resthooksubscriber where is_active = TRUE and resthook_id = 30001",
-					Count: 1,
+					Query:   "select count(*) from api_resthooksubscriber where is_active = TRUE and resthook_id = 30001",
+					Returns: 1,
 				},
 				{
-					SQL:   "select count(*) from api_resthooksubscriber where is_active = TRUE",
-					Count: 2,
+					Query:   "select count(*) from api_resthooksubscriber where is_active = TRUE",
+					Returns: 2,
 				},
 				{
-					SQL:   "select count(*) from request_logs_httplog where log_type = 'webhook_called' AND flow_id IS NOT NULL AND status_code = 200",
-					Count: 2,
+					Query:   "select count(*) from request_logs_httplog where log_type = 'webhook_called' AND flow_id IS NOT NULL AND status_code = 200",
+					Returns: 2,
 				},
 				{
-					SQL:   "select count(*) from request_logs_httplog where log_type = 'webhook_called' AND flow_id IS NOT NULL AND status_code = 410",
-					Count: 3,
+					Query:   "select count(*) from request_logs_httplog where log_type = 'webhook_called' AND flow_id IS NOT NULL AND status_code = 410",
+					Returns: 3,
 				},
 				{
-					SQL:   "select count(*) from api_webhookevent where org_id = $1",
-					Args:  []any{testdb.Org1.ID},
-					Count: 2,
+					Query:   "select count(*) from api_webhookevent where org_id = $1",
+					Args:    []any{testdb.Org1.ID},
+					Returns: 2,
 				},
 			},
 			PersistedEvents: map[flows.ContactUUID][]string{
@@ -128,13 +128,13 @@ func TestUnhealthyWebhookCalls(t *testing.T) {
 
 	dates.SetNowFunc(dates.NewSequentialNow(time.Date(2021, 11, 17, 7, 0, 0, 0, time.UTC), time.Second))
 
-	testFlows := testdb.ImportFlows(rt, testdb.Org1, "testdata/webhook_flow.json")
+	testFlows := testdb.ImportFlows(t, rt, testdb.Org1, "testdata/webhook_flow.json")
 	flow := testFlows[0]
 
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshFlows)
 	require.NoError(t, err)
 
-	mc, contact, _ := testdb.Ann.Load(rt, oa)
+	mc, contact, _ := testdb.Ann.Load(t, rt, oa)
 
 	// webhook service with a 2 second delay
 	svc := &failingWebhookService{delay: 2 * time.Second}

@@ -2,11 +2,13 @@ package testdb
 
 import (
 	"context"
+	"testing"
 
 	"github.com/nyaruka/gocommon/uuids"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/runtime"
+	"github.com/stretchr/testify/require"
 )
 
 type Org struct {
@@ -14,9 +16,9 @@ type Org struct {
 	UUID uuids.UUID
 }
 
-func (o *Org) Load(rt *runtime.Runtime) *models.OrgAssets {
+func (o *Org) Load(t *testing.T, rt *runtime.Runtime) *models.OrgAssets {
 	oa, err := models.GetOrgAssets(context.Background(), rt, o.ID)
-	must(err)
+	require.NoError(t, err)
 	return oa
 }
 
