@@ -52,7 +52,8 @@ func RunWebTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 		ExpectedTasks   map[string][]string  `json:"expected_tasks,omitempty"`
 		ExpectedHistory json.RawMessage      `json:"expected_history,omitempty"`
 
-		actualResponse []byte
+		actualResponse  []byte
+		expectsJSONBody bool
 	}
 	tcs := make([]TestCase, 0, 20)
 	tcJSON := ReadFile(t, truthFile)
@@ -118,30 +119,33 @@ func RunWebTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 
 		ClearTasks(t, rt)
 
+		if tc.ResponseFile != "" {
+			actual.expectsJSONBody = strings.HasSuffix(tc.ResponseFile, ".json")
+		} else if bytes.HasPrefix(tc.Response, []byte(`"`)) && bytes.HasSuffix(tc.Response, []byte(`"`)) {
+			actual.expectsJSONBody = false
+		} else {
+			actual.expectsJSONBody = true
+		}
+
 		if !test.UpdateSnapshots {
 			assert.Equal(t, tc.Status, actual.Status, "%s: unexpected status", tc.Label)
 
 			var expectedResponse []byte
-			expectedIsJSON := false
 
 			if tc.ResponseFile != "" {
 				expectedResponse = ReadFile(t, tc.ResponseFile)
-
-				expectedIsJSON = strings.HasSuffix(tc.ResponseFile, ".json")
 			} else {
 				expectedResponse = tc.Response
-				expectedIsJSON = true
 
-				// if response is a single string.. treat it as a text/plain response
-				if bytes.HasPrefix(expectedResponse, []byte(`"`)) && bytes.HasSuffix(expectedResponse, []byte(`"`)) {
+				// if response is a single string.. treat it as a text/plain response, otherwise as JSON
+				if !actual.expectsJSONBody {
 					var responseText string
 					jsonx.MustUnmarshal(expectedResponse, &responseText)
 					expectedResponse = []byte(responseText)
-					expectedIsJSON = false
 				}
 			}
 
-			if expectedIsJSON {
+			if actual.expectsJSONBody {
 				assert.Equal(t, "application/json", resp.Header.Get("Content-Type"), "%s: unexpected content type", tc.Label)
 
 				test.AssertEqualJSON(t, expectedResponse, actual.actualResponse, "%s: unexpected JSON response", tc.Label)
@@ -174,8 +178,10 @@ func RunWebTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 			if tcs[i].ResponseFile != "" {
 				err = os.WriteFile(tcs[i].ResponseFile, tcs[i].actualResponse, 0644)
 				require.NoError(t, err, "failed to update response file")
-			} else {
+			} else if tcs[i].expectsJSONBody {
 				tcs[i].Response = tcs[i].actualResponse
+			} else {
+				tcs[i].Response = jsonx.MustMarshal(string(tcs[i].actualResponse))
 			}
 
 			if string(tcs[i].ExpectedHistory) == `[]` {
