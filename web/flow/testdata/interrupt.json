@@ -20,7 +20,14 @@
         "response": {},
         "expected_tasks": {
             "batch/1": [
-                "interrupt_sessions"
+                {
+                    "type": "interrupt_sessions",
+                    "payload": {
+                        "flow_ids": [
+                            10000
+                        ]
+                    }
+                }
             ]
         }
     }

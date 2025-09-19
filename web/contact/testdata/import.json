@@ -23,8 +23,18 @@
         },
         "expected_tasks": {
             "batch/1": [
-                "import_contact_batch",
-                "import_contact_batch"
+                {
+                    "type": "import_contact_batch",
+                    "payload": {
+                        "contact_import_batch_id": 1
+                    }
+                },
+                {
+                    "type": "import_contact_batch",
+                    "payload": {
+                        "contact_import_batch_id": 2
+                    }
+                }
             ]
         }
     }
