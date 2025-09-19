@@ -3,13 +3,9 @@ package handlers_test
 import (
 	"testing"
 
-	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/gocommon/httpx"
-	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/goflow/flows/actions"
 	"github.com/nyaruka/mailroom/testsuite"
 	"github.com/nyaruka/mailroom/testsuite/testdb"
-	"github.com/shopspring/decimal"
 )
 
 var lookupNumberResponse = `[
@@ -266,7 +262,7 @@ var transactionRejectedResponse = `{
 }`
 
 func TestAirtimeTransferred(t *testing.T) {
-	ctx, rt := testsuite.Runtime(t)
+	_, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 	defer httpx.SetRequestor(httpx.DefaultRequestor)
@@ -288,58 +284,5 @@ func TestAirtimeTransferred(t *testing.T) {
 
 	rt.DB.MustExec(`UPDATE orgs_org SET config = '{"dtone_key": "key123", "dtone_secret": "sesame"}'::jsonb WHERE id = $1`, testdb.Org1.ID)
 
-	tcs := []TestCase{
-		{
-			Actions: ContactActionMap{
-				testdb.Ann.UUID: []flows.Action{
-					actions.NewTransferAirtime(flows.NewActionUUID(), map[string]decimal.Decimal{"USD": decimal.RequireFromString(`3.0`)}),
-				},
-			},
-			DBAssertions: []assertdb.Assert{
-				{
-					Query:   `select count(*) from airtime_airtimetransfer where org_id = $1 AND contact_id = $2 AND status = 'S'`,
-					Args:    []any{testdb.Org1.ID, testdb.Ann.ID},
-					Returns: 1,
-				},
-				{
-					Query:   `select count(*) from request_logs_httplog where org_id = $1 AND airtime_transfer_id IS NOT NULL AND is_error = FALSE AND url LIKE 'https://dvs-api.dtone.com/v1/%'`,
-					Args:    []any{testdb.Org1.ID},
-					Returns: 3,
-				},
-			},
-			PersistedEvents: map[flows.ContactUUID][]string{
-				testdb.Ann.UUID: {"run_started", "airtime_transferred", "run_ended"},
-				testdb.Bob.UUID: {"run_started", "run_ended"},
-				testdb.Cat.UUID: {"run_started", "run_ended"},
-				testdb.Dan.UUID: {"run_started", "run_ended"},
-			},
-		},
-		{
-			Actions: ContactActionMap{
-				testdb.Cat.UUID: []flows.Action{
-					actions.NewTransferAirtime(flows.NewActionUUID(), map[string]decimal.Decimal{"USD": decimal.RequireFromString(`3`)}),
-				},
-			},
-			DBAssertions: []assertdb.Assert{
-				{
-					Query:   `select count(*) from airtime_airtimetransfer where org_id = $1 AND contact_id = $2 AND status = 'F'`,
-					Args:    []any{testdb.Org1.ID, testdb.Cat.ID},
-					Returns: 1,
-				},
-				{
-					Query:   `select count(*) from request_logs_httplog where org_id = $1 AND airtime_transfer_id IS NOT NULL AND is_error = TRUE AND url LIKE 'https://dvs-api.dtone.com/v1/%'`,
-					Args:    []any{testdb.Org1.ID},
-					Returns: 1,
-				},
-			},
-			PersistedEvents: map[flows.ContactUUID][]string{
-				testdb.Ann.UUID: {"run_started", "run_ended"},
-				testdb.Bob.UUID: {"run_started", "run_ended"},
-				testdb.Cat.UUID: {"run_started", "airtime_transferred", "run_ended"},
-				testdb.Dan.UUID: {"run_started", "run_ended"},
-			},
-		},
-	}
-
-	runTestCases(t, ctx, rt, tcs, testsuite.ResetDynamo)
+	runTests(t, rt, "testdata/airtime_transferred.json")
 }

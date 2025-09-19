@@ -77,7 +77,7 @@ func TestOptinRequested(t *testing.T) {
 		},
 	}
 
-	runTestCases(t, ctx, rt, tcs, testsuite.ResetDynamo)
+	runTestCases(t, ctx, rt, tcs)
 
 	// Ann should have 1 batch of queued messages at high priority
 	assertvk.ZCard(t, vc, fmt.Sprintf("msgs:%s|10/1", testdb.FacebookChannel.UUID), 1)
