@@ -38,19 +38,19 @@ func RunWebTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 	time.Sleep(100 * time.Millisecond) // give server time to start
 
 	type TestCase struct {
-		Label           string               `json:"label"`
-		HTTPMocks       *httpx.MockRequestor `json:"http_mocks,omitempty"`
-		Method          string               `json:"method"`
-		Path            string               `json:"path"`
-		Headers         map[string]string    `json:"headers,omitempty"`
-		Body            json.RawMessage      `json:"body,omitempty"`
-		BodyEncode      string               `json:"body_encode,omitempty"`
-		Status          int                  `json:"status"`
-		Response        json.RawMessage      `json:"response,omitempty"`
-		ResponseFile    string               `json:"response_file,omitempty"`
-		DBAssertions    []*assertdb.Assert   `json:"db_assertions,omitempty"`
-		ExpectedTasks   map[string][]string  `json:"expected_tasks,omitempty"`
-		ExpectedHistory json.RawMessage      `json:"expected_history,omitempty"`
+		Label           string                `json:"label"`
+		HTTPMocks       *httpx.MockRequestor  `json:"http_mocks,omitempty"`
+		Method          string                `json:"method"`
+		Path            string                `json:"path"`
+		Headers         map[string]string     `json:"headers,omitempty"`
+		Body            json.RawMessage       `json:"body,omitempty"`
+		BodyEncode      string                `json:"body_encode,omitempty"`
+		Status          int                   `json:"status"`
+		Response        json.RawMessage       `json:"response,omitempty"`
+		ResponseFile    string                `json:"response_file,omitempty"`
+		DBAssertions    []*assertdb.Assert    `json:"db_assertions,omitempty"`
+		ExpectedTasks   map[string][]TaskInfo `json:"expected_tasks,omitempty"`
+		ExpectedHistory json.RawMessage       `json:"expected_history,omitempty"`
 
 		actualResponse  []byte
 		expectsJSONBody bool
@@ -158,9 +158,9 @@ func RunWebTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 			}
 
 			if tc.ExpectedTasks == nil {
-				tc.ExpectedTasks = make(map[string][]string)
+				tc.ExpectedTasks = make(map[string][]TaskInfo)
 			}
-			assert.Equal(t, tc.ExpectedTasks, actual.ExpectedTasks, "%s: unexpected tasks", tc.Label)
+			test.AssertEqualJSON(t, jsonx.MustMarshal(tc.ExpectedTasks), jsonx.MustMarshal(actual.ExpectedTasks), "%s: unexpected tasks", tc.Label)
 
 			if tc.ExpectedHistory == nil {
 				tc.ExpectedHistory = []byte(`[]`)

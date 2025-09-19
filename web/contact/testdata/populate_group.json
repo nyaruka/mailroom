@@ -33,7 +33,13 @@
         "response": {},
         "expected_tasks": {
             "batch/1": [
-                "populate_dynamic_group"
+                {
+                    "type": "populate_dynamic_group",
+                    "payload": {
+                        "group_id": 30000,
+                        "query": "age > 18"
+                    }
+                }
             ]
         }
     }

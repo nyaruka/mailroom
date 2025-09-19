@@ -33,7 +33,12 @@
         "response": {},
         "expected_tasks": {
             "batch/1": [
-                "schedule_campaign_point"
+                {
+                    "type": "schedule_campaign_point",
+                    "payload": {
+                        "point_id": 10000
+                    }
+                }
             ]
         }
     }

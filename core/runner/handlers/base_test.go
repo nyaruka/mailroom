@@ -168,7 +168,7 @@ func runTestCases(t *testing.T, ctx context.Context, rt *runtime.Runtime, tcs []
 
 		// clone test case and populate with actual values
 		actual := tc
-		actual.ExpectedTasks = testsuite.GetQueuedTasks(t, rt)
+		actual.ExpectedTasks = testsuite.GetQueuedTaskTypes(t, rt)
 		actual.PersistedEvents = testsuite.GetHistoryEventTypes(t, rt)
 
 		// now check our assertions
