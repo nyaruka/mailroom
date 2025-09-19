@@ -28,7 +28,6 @@ func handleTicketReopened(ctx context.Context, rt *runtime.Runtime, oa *models.O
 	dbTicket.LastActivityOn = dates.Now()
 
 	scene.AttachPreCommitHook(hooks.UpdateTickets, dbTicket)
-	scene.AttachPreCommitHook(hooks.InsertLegacyTicketEvents, models.NewTicketReopenedEvent(event.UUID(), dbTicket, userID))
 
 	return nil
 }

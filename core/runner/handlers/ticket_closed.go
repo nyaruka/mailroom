@@ -29,7 +29,6 @@ func handleTicketClosed(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 	dbTicket.LastActivityOn = dates.Now()
 
 	scene.AttachPreCommitHook(hooks.UpdateTickets, dbTicket)
-	scene.AttachPreCommitHook(hooks.InsertLegacyTicketEvents, models.NewTicketClosedEvent(event.UUID(), dbTicket, userID))
 	scene.AttachPostCommitHook(hooks.QueueContactTask, ctasks.NewTicketClosed(event))
 
 	return nil

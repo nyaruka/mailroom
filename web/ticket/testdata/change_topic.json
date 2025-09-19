@@ -40,10 +40,6 @@
             {
                 "query": "SELECT count(*) FROM tickets_ticket WHERE topic_id = 10002",
                 "returns": 3
-            },
-            {
-                "query": "SELECT count(*) FROM tickets_ticketevent WHERE event_type = 'T' AND created_by_id = 3 AND topic_id = 10002",
-                "returns": 2
             }
         ],
         "expected_history": [
@@ -67,14 +63,14 @@
             },
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b47-1523-76f8-bd38-d266ec8d3716",
+                "SK": "evt#01969b47-113b-76f8-bd38-d266ec8d3716",
                 "OrgID": 1,
                 "Data": {
                     "_user": {
                         "name": "Andy Admin",
                         "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
                     },
-                    "created_on": "2025-05-04T12:30:50.123456789Z",
+                    "created_on": "2025-05-04T12:30:49.123456789Z",
                     "ticket_uuid": "01992f54-5ab6-7498-a7f2-6aa246e45cfe",
                     "topic": {
                         "name": "Support",

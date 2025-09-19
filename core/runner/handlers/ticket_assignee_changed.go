@@ -35,7 +35,6 @@ func handleTicketAssigneeChanged(ctx context.Context, rt *runtime.Runtime, oa *m
 	dbTicket.AssigneeID = assigneeID
 
 	scene.AttachPreCommitHook(hooks.UpdateTickets, dbTicket)
-	scene.AttachPreCommitHook(hooks.InsertLegacyTicketEvents, models.NewTicketAssignedEvent(event.UUID(), dbTicket, userID, assigneeID))
 
 	// notify ticket assignee if they didn't self-assign
 	if dbTicket.AssigneeID != models.NilUserID && dbTicket.AssigneeID != userID {

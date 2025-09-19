@@ -26,7 +26,6 @@ func handleTicketNoteAdded(ctx context.Context, rt *runtime.Runtime, oa *models.
 	dbTicket.LastActivityOn = dates.Now()
 
 	scene.AttachPreCommitHook(hooks.UpdateTickets, dbTicket)
-	scene.AttachPreCommitHook(hooks.InsertLegacyTicketEvents, models.NewTicketNoteAddedEvent(event.UUID(), dbTicket, userID, event.Note))
 
 	// notify ticket assignee if they didn't add note themselves
 	if dbTicket.AssigneeID != models.NilUserID && dbTicket.AssigneeID != userID {

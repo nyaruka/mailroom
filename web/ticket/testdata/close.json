@@ -25,10 +25,6 @@
             {
                 "query": "SELECT count(*) FROM tickets_ticket WHERE status = 'C'",
                 "returns": 2
-            },
-            {
-                "query": "SELECT count(*) FROM tickets_ticketevent WHERE event_type = 'C' AND created_by_id = 3",
-                "returns": 1
             }
         ],
         "expected_tasks": {
