@@ -93,7 +93,44 @@
         ],
         "expected_tasks": {
             "batch/1": [
-                "send_broadcast"
+                {
+                    "type": "send_broadcast",
+                    "payload": {
+                        "broadcast_id": 30000,
+                        "org_id": 1,
+                        "status": "P",
+                        "translations": {
+                            "eng": {
+                                "text": "Hello"
+                            }
+                        },
+                        "base_language": "eng",
+                        "expressions": true,
+                        "optin_id": 30000,
+                        "template_id": 10000,
+                        "template_variables": [
+                            "@contact"
+                        ],
+                        "group_ids": [
+                            10000
+                        ],
+                        "contact_ids": [
+                            10002,
+                            10003
+                        ],
+                        "urns": [
+                            "tel:+1234567890"
+                        ],
+                        "query": "age > 20",
+                        "exclusions": {
+                            "non_active": false,
+                            "in_a_flow": false,
+                            "started_previously": false,
+                            "not_seen_since_days": 0
+                        },
+                        "created_by_id": 4
+                    }
+                }
             ]
         }
     },
@@ -124,7 +161,29 @@
         ],
         "expected_tasks": {
             "batch/1": [
-                "send_broadcast"
+                {
+                    "type": "send_broadcast",
+                    "payload": {
+                        "broadcast_id": 30001,
+                        "org_id": 1,
+                        "status": "P",
+                        "translations": {
+                            "eng": {
+                                "text": "Hurry up!"
+                            }
+                        },
+                        "base_language": "eng",
+                        "expressions": true,
+                        "node_uuid": "dd79811e-a88a-4e67-bb47-a132fe8ce3f2",
+                        "exclusions": {
+                            "non_active": false,
+                            "in_a_flow": false,
+                            "started_previously": false,
+                            "not_seen_since_days": 0
+                        },
+                        "created_by_id": 4
+                    }
+                }
             ]
         }
     },

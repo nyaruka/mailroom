@@ -16,19 +16,19 @@
         "status": 200,
         "response": {
             "batch": {
-                "active": {},
                 "paused": {},
-                "queued": {}
+                "queued": {},
+                "active": {}
             },
             "realtime": {
-                "active": {},
                 "paused": {},
-                "queued": {}
+                "queued": {},
+                "active": {}
             },
             "throttled": {
-                "active": {},
                 "paused": {},
-                "queued": {}
+                "queued": {},
+                "active": {}
             }
         }
     }

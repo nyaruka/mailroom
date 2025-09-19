@@ -3,6 +3,7 @@ package testsuite
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"slices"
 	"testing"
@@ -65,19 +66,40 @@ func CurrentTasks(t *testing.T, rt *runtime.Runtime, qname string) map[models.Or
 	return tasks
 }
 
-func GetQueuedTasks(t *testing.T, rt *runtime.Runtime) map[string][]string {
+type TaskInfo struct {
+	Type    string          `json:"type"`
+	Payload json.RawMessage `json:"payload"`
+}
+
+func GetQueuedTasks(t *testing.T, rt *runtime.Runtime) map[string][]TaskInfo {
+	t.Helper()
+
+	actual := make(map[string][]TaskInfo)
+
+	for _, qname := range []string{"realtime", "batch", "throttled"} {
+		for orgID, oTasks := range CurrentTasks(t, rt, qname) {
+			key := fmt.Sprintf("%s/%d", qname, orgID)
+			actual[key] = make([]TaskInfo, len(oTasks))
+			for i, task := range oTasks {
+				actual[key][i] = TaskInfo{Type: task.Type, Payload: task.Task}
+			}
+		}
+	}
+
+	return actual
+}
+
+func GetQueuedTaskTypes(t *testing.T, rt *runtime.Runtime) map[string][]string {
 	t.Helper()
 
 	actual := make(map[string][]string)
 
-	for _, qname := range []string{"realtime", "batch", "throttled"} {
-		for orgID, oTasks := range CurrentTasks(t, rt, qname) {
-			types := make([]string, len(oTasks))
-			for i, task := range oTasks {
-				types[i] = task.Type
-			}
-			actual[fmt.Sprintf("%s/%d", qname, orgID)] = types
+	for key, tasks := range GetQueuedTasks(t, rt) {
+		types := make([]string, len(tasks))
+		for i, task := range tasks {
+			types[i] = task.Type
 		}
+		actual[key] = types
 	}
 
 	return actual

@@ -20,7 +20,12 @@
         "response": {},
         "expected_tasks": {
             "batch/1": [
-                "interrupt_channel"
+                {
+                    "type": "interrupt_channel",
+                    "payload": {
+                        "channel_id": 10000
+                    }
+                }
             ]
         }
     }

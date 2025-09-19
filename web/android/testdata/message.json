@@ -48,7 +48,12 @@
         ],
         "expected_tasks": {
             "realtime/1": [
-                "handle_contact_event"
+                {
+                    "type": "handle_contact_event",
+                    "payload": {
+                        "contact_id": 10000
+                    }
+                }
             ]
         }
     },
@@ -76,7 +81,12 @@
         ],
         "expected_tasks": {
             "realtime/1": [
-                "handle_contact_event"
+                {
+                    "type": "handle_contact_event",
+                    "payload": {
+                        "contact_id": 30000
+                    }
+                }
             ]
         }
     },

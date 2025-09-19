@@ -104,7 +104,15 @@
         },
         "expected_tasks": {
             "batch/1": [
-                "interrupt_sessions"
+                {
+                    "type": "interrupt_sessions",
+                    "payload": {
+                        "contact_ids": [
+                            10001,
+                            10002
+                        ]
+                    }
+                }
             ]
         }
     }

@@ -83,7 +83,37 @@
         ],
         "expected_tasks": {
             "batch/1": [
-                "start_flow"
+                {
+                    "type": "start_flow",
+                    "payload": {
+                        "start_id": 30000,
+                        "org_id": 1,
+                        "start_type": "M",
+                        "created_by_id": 4,
+                        "flow_id": 10000,
+                        "params": {
+                            "foo": "bar"
+                        },
+                        "urns": [
+                            "tel:+1234567890"
+                        ],
+                        "contact_ids": [
+                            10002,
+                            10003
+                        ],
+                        "group_ids": [
+                            10000
+                        ],
+                        "query": "age > 20",
+                        "exclusions": {
+                            "non_active": false,
+                            "in_a_flow": false,
+                            "started_previously": false,
+                            "not_seen_since_days": 0
+                        },
+                        "create_contact": false
+                    }
+                }
             ]
         }
     }
