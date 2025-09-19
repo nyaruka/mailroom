@@ -77,7 +77,7 @@ func TestSessionTriggered(t *testing.T) {
 		},
 	}
 
-	runTestCases(t, ctx, rt, tcs, testsuite.ResetDynamo|testsuite.ResetValkey)
+	runTestCases(t, ctx, rt, tcs)
 }
 
 func TestQuerySessionTriggered(t *testing.T) {
@@ -110,5 +110,5 @@ func TestQuerySessionTriggered(t *testing.T) {
 		},
 	}
 
-	runTestCases(t, ctx, rt, tcs, testsuite.ResetDynamo|testsuite.ResetValkey)
+	runTestCases(t, ctx, rt, tcs)
 }

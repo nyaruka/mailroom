@@ -1,0 +1,48 @@
+[
+    {
+        "actions": {
+            "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                {
+                    "type": "send_broadcast",
+                    "uuid": "4e914951-f279-4347-b65d-5c1e6a9d40d3",
+                    "urns": [
+                        "tel:+12065551212"
+                    ],
+                    "text": "hello world"
+                }
+            ]
+        },
+        "db_assertions": [
+            {
+                "query": "select count(*) from flows_flowrun where contact_id = $1 AND status = 'C'",
+                "args": [
+                    10000
+                ],
+                "returns": 1
+            }
+        ],
+        "expected_tasks": {
+            "batch/1": [
+                "send_broadcast"
+            ]
+        },
+        "persisted_events": {
+            "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                "run_started",
+                "run_ended"
+            ],
+            "b699a406-7e44-49be-9f01-1a82893e8a10": [
+                "run_started",
+                "run_ended"
+            ],
+            "cd024bcd-f473-4719-a00a-bd0bb1190135": [
+                "run_started",
+                "run_ended"
+            ],
+            "d709c157-4606-4d41-9df3-9e9c9b4ae2d4": [
+                "run_started",
+                "run_ended"
+            ]
+        }
+    }
+]

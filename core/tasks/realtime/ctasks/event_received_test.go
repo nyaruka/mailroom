@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/buger/jsonparser"
-	"github.com/nyaruka/gocommon/aws/dynamo/dyntest"
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/goflow/flows"
@@ -278,10 +277,8 @@ func TestChannelEvents(t *testing.T) {
 		}
 
 		// check persisted events
-		persistedEvents := testsuite.GetHistoryEventTypes(t, rt)
+		persistedEvents := testsuite.GetHistoryEventTypes(t, rt, true)
 		assert.Equal(t, tc.persistedEvents, persistedEvents, "%d: mismatch in persisted events", i)
-
-		dyntest.Truncate(t, rt.Dynamo, "TestHistory")
 	}
 
 	// last event was a stop_contact so check that Ann is stopped
