@@ -146,10 +146,6 @@ func runTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 	flowUUID := testdb.Favorites.UUID
 
 	for i, tc := range tcs {
-		if tc.Label == "" {
-			tc.Label = fmt.Sprintf("#%d", i+1)
-		}
-
 		if tc.Actions != nil {
 			// create dynamic flow to test actions
 			testFlow := createTestFlow(t, flowUUID, tc)
@@ -208,18 +204,17 @@ func runTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 		testsuite.ClearTasks(t, rt)
 
 		if !test.UpdateSnapshots {
-
 			// now check our assertions
-			for j, dba := range tc.DBAssertions {
-				dba.Check(t, rt.DB, "%d:%d: mismatch in expected count for query: %s", i, j, dba.Query)
+			for _, dba := range tc.DBAssertions {
+				dba.Check(t, rt.DB, "%s: assertion for query '%s' failed", tc.Label, dba.Query)
 			}
 
 			if tc.ExpectedTasks == nil {
 				tc.ExpectedTasks = make(map[string][]string)
 			}
-			assert.Equal(t, tc.ExpectedTasks, actual.ExpectedTasks, "%d: unexpected tasks", i)
+			assert.Equal(t, tc.ExpectedTasks, actual.ExpectedTasks, "%s: unexpected tasks", tc.Label)
 
-			assert.Equal(t, tc.PersistedEvents, actual.PersistedEvents, "%d: mismatch in persisted events", i)
+			assert.Equal(t, tc.PersistedEvents, actual.PersistedEvents, "%s: mismatch in persisted events", tc.Label)
 		} else {
 			tcs[i] = actual
 		}
