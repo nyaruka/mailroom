@@ -1,0 +1,205 @@
+[
+    {
+        "actions": {
+            "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                {
+                    "type": "set_contact_field",
+                    "uuid": "3f3727ac-f835-423f-9c6b-be7056220c9b",
+                    "field": {
+                        "key": "gender",
+                        "name": "Gender"
+                    },
+                    "value": "Male"
+                },
+                {
+                    "type": "set_contact_field",
+                    "uuid": "8d6b2309-b112-478d-8168-540868d3a832",
+                    "field": {
+                        "key": "gender",
+                        "name": "Gender"
+                    },
+                    "value": "Female"
+                },
+                {
+                    "type": "set_contact_field",
+                    "uuid": "ba2b0ac7-9593-4553-90d7-b1d977b44e4c",
+                    "field": {
+                        "key": "age",
+                        "name": "Age"
+                    },
+                    "value": ""
+                }
+            ],
+            "b699a406-7e44-49be-9f01-1a82893e8a10": [
+                {
+                    "type": "set_contact_field",
+                    "uuid": "92435a07-39cc-49c5-9a75-09ebb892c43e",
+                    "field": {
+                        "key": "gender",
+                        "name": "Gender"
+                    },
+                    "value": ""
+                },
+                {
+                    "type": "set_contact_field",
+                    "uuid": "7dc1bd75-078f-4296-8029-bcdc4d23efd2",
+                    "field": {
+                        "key": "gender",
+                        "name": "Gender"
+                    },
+                    "value": "Male"
+                },
+                {
+                    "type": "set_contact_field",
+                    "uuid": "2a9f6605-b492-4d2a-acb0-8a5823ca83ac",
+                    "field": {
+                        "key": "age",
+                        "name": "Age"
+                    },
+                    "value": "Old"
+                }
+            ],
+            "cd024bcd-f473-4719-a00a-bd0bb1190135": [
+                {
+                    "type": "set_contact_field",
+                    "uuid": "756ed088-f4c7-4e5f-8e95-8c52a3b8cdcc",
+                    "field": {
+                        "key": "gender",
+                        "name": "Gender"
+                    },
+                    "value": "Male"
+                },
+                {
+                    "type": "set_contact_field",
+                    "uuid": "09f12e43-6776-4b6c-a66f-0e45e3e2e888",
+                    "field": {
+                        "key": "gender",
+                        "name": "Gender"
+                    },
+                    "value": ""
+                },
+                {
+                    "type": "set_contact_field",
+                    "uuid": "c9b60530-3865-4abc-8cb9-bd6b699dffac",
+                    "field": {
+                        "key": "age",
+                        "name": "Age"
+                    },
+                    "value": "40"
+                }
+            ],
+            "d709c157-4606-4d41-9df3-9e9c9b4ae2d4": [
+                {
+                    "type": "set_contact_field",
+                    "uuid": "5e46c396-e16d-4dd8-9c2e-2a4fa015c001",
+                    "field": {
+                        "key": "age",
+                        "name": "Age"
+                    },
+                    "value": ""
+                },
+                {
+                    "type": "set_contact_field",
+                    "uuid": "3bb1610d-347b-4597-a542-450f0548e044",
+                    "field": {
+                        "key": "gender",
+                        "name": "Gender"
+                    },
+                    "value": ""
+                }
+            ]
+        },
+        "db_assertions": [
+            {
+                "query": "select count(*) from contacts_contact where id = $1 AND fields->$2 = '{\"text\":\"Female\"}'::jsonb",
+                "args": [
+                    10000,
+                    "3a5891e4-756e-4dc9-8e12-b7a766168824"
+                ],
+                "returns": 1
+            },
+            {
+                "query": "select count(*) from contacts_contact where id = $1 AND NOT fields?$2",
+                "args": [
+                    10000,
+                    "903f51da-2717-47c7-a0d3-f2f32877013d"
+                ],
+                "returns": 1
+            },
+            {
+                "query": "select count(*) from contacts_contact where id = $1 AND NOT fields?$2",
+                "args": [
+                    10002,
+                    "3a5891e4-756e-4dc9-8e12-b7a766168824"
+                ],
+                "returns": 1
+            },
+            {
+                "query": "select count(*) from contacts_contact where id = $1 AND fields->$2 = '{\"text\":\"40\", \"number\": 40}'::jsonb",
+                "args": [
+                    10002,
+                    "903f51da-2717-47c7-a0d3-f2f32877013d"
+                ],
+                "returns": 1
+            },
+            {
+                "query": "select count(*) from contacts_contact where id = $1 AND fields->$2 = '{\"text\":\"Male\"}'::jsonb",
+                "args": [
+                    10001,
+                    "3a5891e4-756e-4dc9-8e12-b7a766168824"
+                ],
+                "returns": 1
+            },
+            {
+                "query": "select count(*) from contacts_contact where id = $1 AND fields->$2 = '{\"text\":\"Old\"}'::jsonb",
+                "args": [
+                    10001,
+                    "903f51da-2717-47c7-a0d3-f2f32877013d"
+                ],
+                "returns": 1
+            },
+            {
+                "query": "select count(*) from contacts_contact where id = $1 AND NOT fields?$2",
+                "args": [
+                    10001,
+                    "unknown"
+                ],
+                "returns": 1
+            },
+            {
+                "query": "select count(*) from contacts_contact where id = $1 AND fields = '{}'",
+                "args": [
+                    10003
+                ],
+                "returns": 1
+            }
+        ],
+        "persisted_events": {
+            "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                "run_started",
+                "contact_field_changed",
+                "contact_field_changed",
+                "run_ended"
+            ],
+            "b699a406-7e44-49be-9f01-1a82893e8a10": [
+                "run_started",
+                "contact_field_changed",
+                "contact_field_changed",
+                "run_ended"
+            ],
+            "cd024bcd-f473-4719-a00a-bd0bb1190135": [
+                "run_started",
+                "contact_field_changed",
+                "contact_field_changed",
+                "contact_field_changed",
+                "run_ended"
+            ],
+            "d709c157-4606-4d41-9df3-9e9c9b4ae2d4": [
+                "run_started",
+                "contact_field_changed",
+                "contact_field_changed",
+                "run_ended"
+            ]
+        }
+    }
+]

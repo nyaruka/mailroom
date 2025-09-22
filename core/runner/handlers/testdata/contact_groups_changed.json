@@ -1,0 +1,125 @@
+[
+    {
+        "actions": {
+            "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                {
+                    "type": "add_contact_groups",
+                    "uuid": "56b55e4b-ee3e-4408-989d-ee4a7aa68cfb",
+                    "groups": [
+                        {
+                            "uuid": "c153e265-f7c9-4539-9dbc-9b358714b638",
+                            "name": "Doctors"
+                        }
+                    ]
+                },
+                {
+                    "type": "add_contact_groups",
+                    "uuid": "dcdd5b7e-2f93-4a33-9fe7-62e006603949",
+                    "groups": [
+                        {
+                            "uuid": "c153e265-f7c9-4539-9dbc-9b358714b638",
+                            "name": "Doctors"
+                        }
+                    ]
+                },
+                {
+                    "type": "remove_contact_groups",
+                    "uuid": "70a63813-254e-4fda-8ff1-79fa6e7d964f",
+                    "groups": [
+                        {
+                            "uuid": "c153e265-f7c9-4539-9dbc-9b358714b638",
+                            "name": "Doctors"
+                        }
+                    ]
+                },
+                {
+                    "type": "add_contact_groups",
+                    "uuid": "105030fe-20a0-42da-8ac9-6091d0904d1a",
+                    "groups": [
+                        {
+                            "uuid": "5e9d8fab-5e7e-4f51-b533-261af5dea70d",
+                            "name": "Testers"
+                        }
+                    ]
+                }
+            ],
+            "cd024bcd-f473-4719-a00a-bd0bb1190135": [
+                {
+                    "type": "remove_contact_groups",
+                    "uuid": "96ed5d43-65b7-45f3-be68-4e5385edec3a",
+                    "groups": [
+                        {
+                            "uuid": "c153e265-f7c9-4539-9dbc-9b358714b638",
+                            "name": "Doctors"
+                        }
+                    ]
+                },
+                {
+                    "type": "add_contact_groups",
+                    "uuid": "f8391106-6537-4385-a51a-6d114274bb33",
+                    "groups": [
+                        {
+                            "uuid": "5e9d8fab-5e7e-4f51-b533-261af5dea70d",
+                            "name": "Testers"
+                        }
+                    ]
+                }
+            ]
+        },
+        "db_assertions": [
+            {
+                "query": "select count(*) from contacts_contactgroup_contacts where contact_id = $1 and contactgroup_id = $2",
+                "args": [
+                    10000,
+                    10005
+                ],
+                "returns": 0
+            },
+            {
+                "query": "select count(*) from contacts_contactgroup_contacts where contact_id = $1 and contactgroup_id = $2",
+                "args": [
+                    10000,
+                    10006
+                ],
+                "returns": 1
+            },
+            {
+                "query": "select count(*) from contacts_contactgroup_contacts where contact_id = $1 and contactgroup_id = $2",
+                "args": [
+                    10002,
+                    10006
+                ],
+                "returns": 1
+            },
+            {
+                "query": "select count(*) from contacts_contactgroup_contacts where contact_id = $1 and contactgroup_id = $2",
+                "args": [
+                    10001,
+                    10006
+                ],
+                "returns": 0
+            }
+        ],
+        "persisted_events": {
+            "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                "run_started",
+                "contact_groups_changed",
+                "contact_groups_changed",
+                "run_ended"
+            ],
+            "b699a406-7e44-49be-9f01-1a82893e8a10": [
+                "run_started",
+                "run_ended"
+            ],
+            "cd024bcd-f473-4719-a00a-bd0bb1190135": [
+                "run_started",
+                "contact_groups_changed",
+                "run_ended"
+            ],
+            "d709c157-4606-4d41-9df3-9e9c9b4ae2d4": [
+                "run_started",
+                "run_ended"
+            ]
+        }
+    }
+]

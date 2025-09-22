@@ -7,9 +7,11 @@ import (
 	"testing"
 
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
+	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/gocommon/uuids"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/flows/actions"
 	"github.com/nyaruka/goflow/flows/definition"
 	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/goflow/flows/routers"
@@ -24,17 +26,40 @@ import (
 )
 
 type ContactActionMap map[flows.ContactUUID][]flows.Action
+
+func (m *ContactActionMap) UnmarshalJSON(d []byte) error {
+	*m = make(ContactActionMap)
+
+	var raw map[flows.ContactUUID][]json.RawMessage
+	if err := json.Unmarshal(d, &raw); err != nil {
+		return err
+	}
+
+	for contactUUID, v := range raw {
+		unmarshaled := make([]flows.Action, len(v))
+		for i := range v {
+			var err error
+			unmarshaled[i], err = actions.Read(v[i])
+			if err != nil {
+				return err
+			}
+		}
+		(*m)[contactUUID] = unmarshaled
+	}
+	return nil
+}
+
 type ContactMsgMap map[flows.ContactUUID]*testdb.MsgIn
 type ContactModifierMap map[flows.ContactUUID][]flows.Modifier
 
 type TestCase struct {
-	Actions         ContactActionMap
-	Msgs            ContactMsgMap
-	Modifiers       ContactModifierMap
-	UserID          models.UserID
-	DBAssertions    []assertdb.Assert
-	ExpectedTasks   map[string][]string
-	PersistedEvents map[flows.ContactUUID][]string
+	Actions         ContactActionMap               `json:"actions,omitempty"`
+	Msgs            ContactMsgMap                  `json:"msgs,omitempty"`
+	Modifiers       ContactModifierMap             `json:"modifiers,omitempty"`
+	UserID          models.UserID                  `json:"user_id,omitempty"`
+	DBAssertions    []assertdb.Assert              `json:"db_assertions,omitempty"`
+	ExpectedTasks   map[string][]string            `json:"expected_tasks,omitempty"`
+	PersistedEvents map[flows.ContactUUID][]string `json:"persisted_events,omitempty"`
 }
 
 type Assertion func(t *testing.T, rt *runtime.Runtime) error
@@ -106,7 +131,16 @@ func createTestFlow(t *testing.T, uuid assets.FlowUUID, tc TestCase) flows.Flow 
 	return flow
 }
 
-func runTestCases(t *testing.T, ctx context.Context, rt *runtime.Runtime, tcs []TestCase, reset testsuite.ResetFlag) {
+func runTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
+	tcs := make([]TestCase, 0, 20)
+	tcJSON := testsuite.ReadFile(t, truthFile)
+
+	jsonx.MustUnmarshal(tcJSON, &tcs)
+
+	runTestCases(t, t.Context(), rt, tcs)
+}
+
+func runTestCases(t *testing.T, ctx context.Context, rt *runtime.Runtime, tcs []TestCase) {
 	models.FlushCache()
 
 	oa, err := models.GetOrgAssets(ctx, rt, models.OrgID(1))
@@ -169,7 +203,9 @@ func runTestCases(t *testing.T, ctx context.Context, rt *runtime.Runtime, tcs []
 		// clone test case and populate with actual values
 		actual := tc
 		actual.ExpectedTasks = testsuite.GetQueuedTaskTypes(t, rt)
-		actual.PersistedEvents = testsuite.GetHistoryEventTypes(t, rt)
+		actual.PersistedEvents = testsuite.GetHistoryEventTypes(t, rt, true)
+
+		testsuite.ClearTasks(t, rt)
 
 		// now check our assertions
 		for j, dba := range tc.DBAssertions {
@@ -182,9 +218,5 @@ func runTestCases(t *testing.T, ctx context.Context, rt *runtime.Runtime, tcs []
 		assert.Equal(t, tc.ExpectedTasks, actual.ExpectedTasks, "%d: unexpected tasks", i)
 
 		assert.Equal(t, tc.PersistedEvents, actual.PersistedEvents, "%d: mismatch in persisted events", i)
-
-		if reset != 0 {
-			testsuite.Reset(t, rt, reset)
-		}
 	}
 }

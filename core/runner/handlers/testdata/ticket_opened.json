@@ -1,0 +1,93 @@
+[
+    {
+        "actions": {
+            "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                {
+                    "type": "open_ticket",
+                    "uuid": "92b125bc-1e29-4beb-bcce-af80eaedd4a1",
+                    "topic": {
+                        "uuid": "0a8f2e00-fef6-402c-bd79-d789446ec0e0",
+                        "name": "Support"
+                    },
+                    "note": "Where are my cookies?",
+                    "assignee": {
+                        "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
+                        "name": "Admin"
+                    }
+                }
+            ],
+            "b699a406-7e44-49be-9f01-1a82893e8a10": [
+                {
+                    "type": "open_ticket",
+                    "uuid": "87f7b713-2b86-4821-adad-84e58d936fc9",
+                    "topic": null,
+                    "note": "I've found some cookies"
+                }
+            ]
+        },
+        "db_assertions": [
+            {
+                "query": "select count(*) from tickets_ticket where contact_id = $1 AND status = 'O'",
+                "args": [
+                    10000
+                ],
+                "returns": 1
+            },
+            {
+                "query": "select count(*) from tickets_ticket where contact_id = $1 AND status = 'O'",
+                "args": [
+                    10001
+                ],
+                "returns": 1
+            },
+            {
+                "query": "select count(*) from tickets_ticketevent where event_type = 'O'",
+                "returns": 2
+            },
+            {
+                "query": "select count(*) from tickets_ticket where topic_id is null",
+                "returns": 0
+            },
+            {
+                "query": "select count(*) from tickets_ticket where assignee_id = $1",
+                "args": [
+                    3
+                ],
+                "returns": 1
+            },
+            {
+                "query": "select count(*) from notifications_notification where user_id = $1 and notification_type = 'tickets:activity'",
+                "args": [
+                    3
+                ],
+                "returns": 1
+            },
+            {
+                "query": "select count(*) from notifications_notification where notification_type = 'tickets:opened'",
+                "returns": 3
+            }
+        ],
+        "persisted_events": {
+            "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                "run_started",
+                "ticket_opened",
+                "contact_groups_changed",
+                "run_ended"
+            ],
+            "b699a406-7e44-49be-9f01-1a82893e8a10": [
+                "run_started",
+                "ticket_opened",
+                "contact_groups_changed",
+                "run_ended"
+            ],
+            "cd024bcd-f473-4719-a00a-bd0bb1190135": [
+                "run_started",
+                "run_ended"
+            ],
+            "d709c157-4606-4d41-9df3-9e9c9b4ae2d4": [
+                "run_started",
+                "run_ended"
+            ]
+        }
+    }
+]

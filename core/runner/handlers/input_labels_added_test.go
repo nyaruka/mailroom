@@ -67,5 +67,5 @@ func TestInputLabelsAdded(t *testing.T) {
 		},
 	}
 
-	runTestCases(t, ctx, rt, tcs, testsuite.ResetDynamo)
+	runTestCases(t, ctx, rt, tcs)
 }
