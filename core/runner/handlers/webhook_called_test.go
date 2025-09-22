@@ -10,7 +10,6 @@ import (
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/gocommon/httpx"
 	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/goflow/flows/actions"
 	"github.com/nyaruka/goflow/flows/engine"
 	"github.com/nyaruka/goflow/flows/triggers"
 	"github.com/nyaruka/mailroom/core/models"
@@ -25,7 +24,7 @@ import (
 )
 
 func TestWebhookCalled(t *testing.T) {
-	ctx, rt := testsuite.Runtime(t)
+	_, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 	defer httpx.SetRequestor(httpx.DefaultRequestor)
@@ -51,54 +50,7 @@ func TestWebhookCalled(t *testing.T) {
 	rt.DB.MustExec(`INSERT INTO api_resthooksubscriber(is_active, created_on, modified_on, target_url, created_by_id, modified_by_id, resthook_id) VALUES(TRUE, NOW(), NOW(), 'http://rapidpro.io/?unsub=1', 1, 1, 30001);`)
 	rt.DB.MustExec(`INSERT INTO api_resthooksubscriber(is_active, created_on, modified_on, target_url, created_by_id, modified_by_id, resthook_id) VALUES(TRUE, NOW(), NOW(), 'http://rapidpro.io/?unsub=1', 1, 1, 30000);`)
 
-	tcs := []TestCase{
-		{
-			Actions: ContactActionMap{
-				testdb.Ann.UUID: []flows.Action{
-					actions.NewCallResthook(flows.NewActionUUID(), "foo", "foo"), // calls both subscribers
-				},
-				testdb.Cat.UUID: []flows.Action{
-					actions.NewCallResthook(flows.NewActionUUID(), "foo", "foo"), // calls both subscribers
-					actions.NewCallWebhook(flows.NewActionUUID(), "GET", "http://rapidpro.io/?unsub=1", nil, "", ""),
-				},
-			},
-			DBAssertions: []assertdb.Assert{
-				{
-					Query:   "select count(*) from api_resthooksubscriber where is_active = FALSE",
-					Returns: 1,
-				},
-				{
-					Query:   "select count(*) from api_resthooksubscriber where is_active = TRUE and resthook_id = 30001",
-					Returns: 1,
-				},
-				{
-					Query:   "select count(*) from api_resthooksubscriber where is_active = TRUE",
-					Returns: 2,
-				},
-				{
-					Query:   "select count(*) from request_logs_httplog where log_type = 'webhook_called' AND flow_id IS NOT NULL AND status_code = 200",
-					Returns: 2,
-				},
-				{
-					Query:   "select count(*) from request_logs_httplog where log_type = 'webhook_called' AND flow_id IS NOT NULL AND status_code = 410",
-					Returns: 3,
-				},
-				{
-					Query:   "select count(*) from api_webhookevent where org_id = $1",
-					Args:    []any{testdb.Org1.ID},
-					Returns: 2,
-				},
-			},
-			PersistedEvents: map[flows.ContactUUID][]string{
-				testdb.Ann.UUID: {"run_started", "run_ended"},
-				testdb.Bob.UUID: {"run_started", "run_ended"},
-				testdb.Cat.UUID: {"run_started", "run_ended"},
-				testdb.Dan.UUID: {"run_started", "run_ended"},
-			},
-		},
-	}
-
-	runTestCases(t, ctx, rt, tcs)
+	runTests(t, rt, "testdata/webhook_called.json")
 }
 
 // a webhook service which fakes slow responses
