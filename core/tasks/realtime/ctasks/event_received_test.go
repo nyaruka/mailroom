@@ -44,7 +44,7 @@ func TestChannelEvents(t *testing.T) {
 	testdb.InsertOptInTrigger(t, rt, testdb.Org1, testdb.Favorites, testdb.VonageChannel)
 	testdb.InsertOptOutTrigger(t, rt, testdb.Org1, testdb.PickANumber, testdb.VonageChannel)
 
-	polls := testdb.InsertOptIn(t, rt, testdb.Org1, "Polls")
+	polls := testdb.InsertOptIn(t, rt, testdb.Org1, "45aec4dd-945f-4511-878f-7d8516fbd336", "Polls")
 
 	// add a URN for Ann so we can test twitter URNs
 	testdb.InsertContactURN(t, rt, testdb.Org1, testdb.Bob, urns.URN("twitterid:123456"), 10, nil)

@@ -1,0 +1,89 @@
+[
+    {
+        "label": "brand new URN on Ann, and Bob is stealing a URN previously assigned to Cat",
+        "actions": {
+            "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                {
+                    "type": "add_contact_urn",
+                    "uuid": "0b54716f-550f-4a90-8868-30a7054c2ec1",
+                    "scheme": "telegram",
+                    "path": "12345"
+                },
+                {
+                    "type": "set_contact_channel",
+                    "uuid": "b3b425f1-2a29-46eb-ac08-c32cb94fd0b8",
+                    "channel": {
+                        "uuid": "0f661e8b-ea9d-4bd3-9953-d368340acf91",
+                        "name": "telegram"
+                    }
+                },
+                {
+                    "type": "send_msg",
+                    "uuid": "3c159ef5-b077-476f-ac80-94a60be1f30f",
+                    "text": "Ann Message"
+                }
+            ],
+            "b699a406-7e44-49be-9f01-1a82893e8a10": [
+                {
+                    "type": "add_contact_urn",
+                    "uuid": "29640e73-2ed2-43e6-8ec8-c405f7e05e3d",
+                    "scheme": "telegram",
+                    "path": "67890"
+                },
+                {
+                    "type": "set_contact_channel",
+                    "uuid": "da731913-0ef1-40af-bfaa-c84822be4e0e",
+                    "channel": {
+                        "uuid": "0f661e8b-ea9d-4bd3-9953-d368340acf91",
+                        "name": "telegram"
+                    }
+                },
+                {
+                    "type": "send_msg",
+                    "uuid": "693a2b86-af60-4606-89ec-19930ffc05f9",
+                    "text": "Bob Message"
+                }
+            ]
+        },
+        "db_assertions": [
+            {
+                "query": "SELECT count(*) FROM msgs_msg m JOIN contacts_contacturn u ON m.contact_urn_id = u.id WHERE m.text = 'Ann Message' AND m.contact_id = $1 AND m.status = 'Q' AND u.identity = 'telegram:12345' AND m.channel_id = $2 AND u.channel_id IS NULL",
+                "args": [
+                    10000,
+                    10002
+                ],
+                "returns": 1
+            },
+            {
+                "query": "SELECT count(*) FROM msgs_msg m JOIN contacts_contacturn u ON m.contact_urn_id = u.id WHERE m.text = 'Bob Message' AND m.contact_id = $1 AND m.status = 'Q' AND u.identity = 'telegram:67890' AND m.channel_id = $2 AND u.channel_id IS NULL",
+                "args": [
+                    10001,
+                    10002
+                ],
+                "returns": 1
+            }
+        ],
+        "persisted_events": {
+            "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                "run_started",
+                "contact_urns_changed",
+                "contact_urns_changed",
+                "run_ended"
+            ],
+            "b699a406-7e44-49be-9f01-1a82893e8a10": [
+                "run_started",
+                "contact_urns_changed",
+                "contact_urns_changed",
+                "run_ended"
+            ],
+            "cd024bcd-f473-4719-a00a-bd0bb1190135": [
+                "run_started",
+                "run_ended"
+            ],
+            "d709c157-4606-4d41-9df3-9e9c9b4ae2d4": [
+                "run_started",
+                "run_ended"
+            ]
+        }
+    }
+]

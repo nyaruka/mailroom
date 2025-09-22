@@ -1,0 +1,168 @@
+[
+    {
+        "label": "#1",
+        "msgs": {
+            "a393abc0-283d-4c9b-a1b3-641a035c34bf": {
+                "urn": "tel:+16055741111",
+                "channel": {
+                    "uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8",
+                    "name": "Twilio"
+                },
+                "text": "Hi there"
+            }
+        },
+        "actions": {
+            "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                {
+                    "type": "remove_contact_groups",
+                    "uuid": "12e14d18-62ed-4024-8dae-8012d8e2336f",
+                    "groups": [
+                        {
+                            "uuid": "c153e265-f7c9-4539-9dbc-9b358714b638",
+                            "name": "Doctors"
+                        }
+                    ]
+                },
+                {
+                    "type": "add_contact_groups",
+                    "uuid": "904d5d70-8405-479b-8916-29275bd1c327",
+                    "groups": [
+                        {
+                            "uuid": "c153e265-f7c9-4539-9dbc-9b358714b638",
+                            "name": "Doctors"
+                        }
+                    ]
+                },
+                {
+                    "type": "set_contact_field",
+                    "uuid": "da2b7872-21e1-477c-bfc3-601367bef8bf",
+                    "field": {
+                        "key": "joined",
+                        "name": "Joined"
+                    },
+                    "value": "2029-09-15T12:00:00+00:00"
+                },
+                {
+                    "type": "set_contact_field",
+                    "uuid": "ce506737-1ccd-4756-aa13-997da4a3cc31",
+                    "field": {
+                        "key": "joined",
+                        "name": "Joined"
+                    },
+                    "value": ""
+                }
+            ],
+            "b699a406-7e44-49be-9f01-1a82893e8a10": [
+                {
+                    "type": "add_contact_groups",
+                    "uuid": "8641a385-5368-4bcf-989d-2131df5d5877",
+                    "groups": [
+                        {
+                            "uuid": "c153e265-f7c9-4539-9dbc-9b358714b638",
+                            "name": "Doctors"
+                        }
+                    ]
+                },
+                {
+                    "type": "set_contact_field",
+                    "uuid": "b4237335-a759-434e-932f-e39912acb94b",
+                    "field": {
+                        "key": "joined",
+                        "name": "Joined"
+                    },
+                    "value": "2029-09-15T12:00:00+00:00"
+                },
+                {
+                    "type": "set_contact_field",
+                    "uuid": "82894663-9e8c-4a35-845c-2113d76a2ab3",
+                    "field": {
+                        "key": "joined",
+                        "name": "Joined"
+                    },
+                    "value": "2029-09-15T12:00:00+00:00"
+                }
+            ],
+            "cd024bcd-f473-4719-a00a-bd0bb1190135": [
+                {
+                    "type": "add_contact_groups",
+                    "uuid": "f0daa040-4b3d-4315-96da-d3b7a2996aa8",
+                    "groups": [
+                        {
+                            "uuid": "c153e265-f7c9-4539-9dbc-9b358714b638",
+                            "name": "Doctors"
+                        }
+                    ]
+                },
+                {
+                    "type": "set_contact_field",
+                    "uuid": "63dc6d2f-cc89-4530-b3ca-c473960e9fb2",
+                    "field": {
+                        "key": "joined",
+                        "name": "Joined"
+                    },
+                    "value": "2029-09-15T12:00:00+00:00"
+                },
+                {
+                    "type": "remove_contact_groups",
+                    "uuid": "3ca3c699-cae7-4148-bafc-d5951296a72a",
+                    "groups": [
+                        {
+                            "uuid": "c153e265-f7c9-4539-9dbc-9b358714b638",
+                            "name": "Doctors"
+                        }
+                    ]
+                }
+            ]
+        },
+        "db_assertions": [
+            {
+                "query": "SELECT count(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'C'",
+                "args": [
+                    10000
+                ],
+                "returns": 2
+            },
+            {
+                "query": "SELECT count(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'C'",
+                "args": [
+                    10001
+                ],
+                "returns": 4
+            },
+            {
+                "query": "SELECT count(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'C'",
+                "args": [
+                    10002
+                ],
+                "returns": 0
+            }
+        ],
+        "persisted_events": {
+            "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                "run_started",
+                "contact_groups_changed",
+                "contact_groups_changed",
+                "contact_field_changed",
+                "contact_field_changed",
+                "run_ended"
+            ],
+            "b699a406-7e44-49be-9f01-1a82893e8a10": [
+                "run_started",
+                "contact_groups_changed",
+                "contact_field_changed",
+                "run_ended"
+            ],
+            "cd024bcd-f473-4719-a00a-bd0bb1190135": [
+                "run_started",
+                "contact_groups_changed",
+                "contact_field_changed",
+                "contact_groups_changed",
+                "run_ended"
+            ],
+            "d709c157-4606-4d41-9df3-9e9c9b4ae2d4": [
+                "run_started",
+                "run_ended"
+            ]
+        }
+    }
+]
