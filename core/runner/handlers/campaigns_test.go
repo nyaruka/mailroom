@@ -3,22 +3,14 @@ package handlers_test
 import (
 	"testing"
 
-	"github.com/nyaruka/gocommon/dbutil/assertdb"
-	"github.com/nyaruka/goflow/assets"
-	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/goflow/flows/actions"
-	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/testsuite"
 	"github.com/nyaruka/mailroom/testsuite/testdb"
 )
 
 func TestCampaigns(t *testing.T) {
-	ctx, rt := testsuite.Runtime(t)
+	_, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, rt, testsuite.ResetAll)
-
-	doctors := assets.NewGroupReference(testdb.DoctorsGroup.UUID, "Doctors")
-	joined := assets.NewFieldReference("joined", "Joined")
 
 	// insert an event on our campaign that is based on created_on
 	testdb.InsertCampaignFlowPoint(t, rt, testdb.RemindersCampaign, testdb.Favorites, testdb.CreatedOnField, 1000, "W")
@@ -32,56 +24,5 @@ func TestCampaigns(t *testing.T) {
 	// created_on + 1000 weeks => Favorites
 	// last_seen_on + 2 days => Favorites
 
-	msg1 := testdb.InsertIncomingMsg(t, rt, testdb.Org1, testdb.TwilioChannel, testdb.Ann, "Hi there", models.MsgStatusPending)
-
-	tcs := []TestCase{
-		{
-			Msgs: ContactMsgMap{
-				testdb.Ann.UUID: msg1,
-			},
-			Actions: ContactActionMap{
-				testdb.Ann.UUID: []flows.Action{
-					actions.NewRemoveContactGroups(flows.NewActionUUID(), []*assets.GroupReference{doctors}, false),
-					actions.NewAddContactGroups(flows.NewActionUUID(), []*assets.GroupReference{doctors}),
-					actions.NewSetContactField(flows.NewActionUUID(), joined, "2029-09-15T12:00:00+00:00"),
-					actions.NewSetContactField(flows.NewActionUUID(), joined, ""),
-				},
-				testdb.Bob.UUID: []flows.Action{
-					actions.NewAddContactGroups(flows.NewActionUUID(), []*assets.GroupReference{doctors}),
-					actions.NewSetContactField(flows.NewActionUUID(), joined, "2029-09-15T12:00:00+00:00"),
-					actions.NewSetContactField(flows.NewActionUUID(), joined, "2029-09-15T12:00:00+00:00"),
-				},
-				testdb.Cat.UUID: []flows.Action{
-					actions.NewAddContactGroups(flows.NewActionUUID(), []*assets.GroupReference{doctors}),
-					actions.NewSetContactField(flows.NewActionUUID(), joined, "2029-09-15T12:00:00+00:00"),
-					actions.NewRemoveContactGroups(flows.NewActionUUID(), []*assets.GroupReference{doctors}, false),
-				},
-			},
-			DBAssertions: []assertdb.Assert{
-				{ // 2 new events on created_on and last_seen_on
-					Query:   `SELECT count(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'C'`,
-					Args:    []any{testdb.Ann.ID},
-					Returns: 2,
-				},
-				{ // 3 events on joined_on + new event on created_on
-					Query:   `SELECT count(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'C'`,
-					Args:    []any{testdb.Bob.ID},
-					Returns: 4,
-				},
-				{ // no events because removed from doctors
-					Query:   `SELECT count(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'C'`,
-					Args:    []any{testdb.Cat.ID},
-					Returns: 0,
-				},
-			},
-			PersistedEvents: map[flows.ContactUUID][]string{
-				testdb.Ann.UUID: {"run_started", "contact_groups_changed", "contact_groups_changed", "contact_field_changed", "contact_field_changed", "run_ended"},
-				testdb.Bob.UUID: {"run_started", "contact_groups_changed", "contact_field_changed", "run_ended"},
-				testdb.Cat.UUID: {"run_started", "contact_groups_changed", "contact_field_changed", "contact_groups_changed", "run_ended"},
-				testdb.Dan.UUID: {"run_started", "run_ended"},
-			},
-		},
-	}
-
-	runTestCases(t, ctx, rt, tcs)
+	runTests(t, rt, "testdata/campaigns.json")
 }

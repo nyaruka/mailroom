@@ -1,0 +1,112 @@
+[
+    {
+        "actions": {
+            "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                {
+                    "type": "send_msg",
+                    "uuid": "088eddd3-b09c-477a-a9c2-2239445b0c48",
+                    "text": "Hello World",
+                    "quick_replies": [
+                        "yes",
+                        "no"
+                    ],
+                    "all_urns": true
+                }
+            ],
+            "b699a406-7e44-49be-9f01-1a82893e8a10": [
+                {
+                    "type": "send_msg",
+                    "uuid": "2c18d3c0-2500-4aeb-a4c3-d5d701c80809",
+                    "text": "No URNs"
+                }
+            ],
+            "cd024bcd-f473-4719-a00a-bd0bb1190135": [
+                {
+                    "type": "send_msg",
+                    "uuid": "ad680782-a90c-4a9f-b2a8-d0c8708a367b",
+                    "text": "Hello Attachments",
+                    "attachments": [
+                        "image/png:/images/image1.png"
+                    ],
+                    "all_urns": true
+                }
+            ],
+            "d709c157-4606-4d41-9df3-9e9c9b4ae2d4": [
+                {
+                    "type": "send_msg",
+                    "uuid": "64f31435-5f0a-4586-a748-156ad708e0ce",
+                    "text": "Template time",
+                    "template": {
+                        "uuid": "9c22b594-fcab-4b29-9bcb-ce4404894a80",
+                        "name": "revive_issue"
+                    },
+                    "template_variables": [
+                        "@contact.name",
+                        "tooth"
+                    ]
+                }
+            ]
+        },
+        "msgs": {
+            "a393abc0-283d-4c9b-a1b3-641a035c34bf": {
+                "urn": "tel:+16055741111",
+                "channel": {
+                    "uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8",
+                    "name": "Twilio"
+                },
+                "text": "start"
+            }
+        },
+        "db_assertions": [
+            {
+                "query": "SELECT COUNT(*) FROM msgs_msg WHERE text='Hello World' AND contact_id = $1 AND quick_replies[1] = 'yes' AND quick_replies[2] = 'no' AND high_priority = TRUE",
+                "args": [
+                    10000
+                ],
+                "returns": 2
+            },
+            {
+                "query": "SELECT COUNT(*) FROM msgs_msg WHERE text='Hello Attachments' AND contact_id = $1 AND attachments[1] = $2 AND status = 'Q' AND high_priority = FALSE",
+                "args": [
+                    10002,
+                    "image/png:https://foo.bar.com/images/image1.png"
+                ],
+                "returns": 1
+            },
+            {
+                "query": "SELECT COUNT(*) FROM msgs_msg WHERE contact_id=$1 AND STATUS = 'F' AND failed_reason = 'D';",
+                "args": [
+                    10001
+                ],
+                "returns": 1
+            },
+            {
+                "query": "SELECT COUNT(*) FROM msgs_msg WHERE contact_id = $1 AND text = $2 AND direction = 'O' AND status = 'Q' AND channel_id = $3 AND templating->'template'->>'name' = 'revive_issue'",
+                "args": [
+                    10003,
+                    "Hi Dan, are you still experiencing problems with tooth?",
+                    10002
+                ],
+                "returns": 1
+            }
+        ],
+        "persisted_events": {
+            "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                "run_started",
+                "run_ended"
+            ],
+            "b699a406-7e44-49be-9f01-1a82893e8a10": [
+                "run_started",
+                "run_ended"
+            ],
+            "cd024bcd-f473-4719-a00a-bd0bb1190135": [
+                "run_started",
+                "run_ended"
+            ],
+            "d709c157-4606-4d41-9df3-9e9c9b4ae2d4": [
+                "run_started",
+                "run_ended"
+            ]
+        }
+    }
+]

@@ -1,24 +1,27 @@
 package handlers_test
 
 import (
+	"os"
 	"testing"
 
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
+	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/goflow/flows/modifiers"
+	"github.com/nyaruka/goflow/flows/actions"
 	"github.com/nyaruka/mailroom/testsuite"
 	"github.com/nyaruka/mailroom/testsuite/testdb"
+	"github.com/stretchr/testify/require"
 )
 
 func TestContactStatusChanged(t *testing.T) {
-	ctx, rt := testsuite.Runtime(t)
+	_, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, rt, testsuite.ResetDB)
 
 	tcs := []TestCase{
 		{
-			Modifiers: ContactModifierMap{
-				testdb.Ann.UUID: []flows.Modifier{modifiers.NewStatus(flows.ContactStatusBlocked)},
+			Actions: ContactActionMap{
+				testdb.Ann.UUID: []flows.Action{actions.NewSetContactStatus(flows.NewActionUUID(), flows.ContactStatusBlocked)},
 			},
 			DBAssertions: []assertdb.Assert{
 				{
@@ -28,12 +31,15 @@ func TestContactStatusChanged(t *testing.T) {
 				},
 			},
 			PersistedEvents: map[flows.ContactUUID][]string{
-				testdb.Ann.UUID: {"contact_status_changed", "contact_groups_changed"},
+				testdb.Ann.UUID: {"run_started", "contact_status_changed", "contact_groups_changed", "run_ended"},
+				testdb.Bob.UUID: {"run_started", "run_ended"},
+				testdb.Cat.UUID: {"run_started", "run_ended"},
+				testdb.Dan.UUID: {"run_started", "run_ended"},
 			},
 		},
 		{
-			Modifiers: ContactModifierMap{
-				testdb.Ann.UUID: []flows.Modifier{modifiers.NewStatus(flows.ContactStatusStopped)},
+			Actions: ContactActionMap{
+				testdb.Ann.UUID: []flows.Action{actions.NewSetContactStatus(flows.NewActionUUID(), flows.ContactStatusStopped)},
 			},
 			DBAssertions: []assertdb.Assert{
 				{
@@ -42,11 +48,16 @@ func TestContactStatusChanged(t *testing.T) {
 					Returns: 1,
 				},
 			},
-			PersistedEvents: map[flows.ContactUUID][]string{testdb.Ann.UUID: {"contact_status_changed"}},
+			PersistedEvents: map[flows.ContactUUID][]string{
+				testdb.Ann.UUID: {"run_started", "contact_status_changed", "run_ended"},
+				testdb.Bob.UUID: {"run_started", "run_ended"},
+				testdb.Cat.UUID: {"run_started", "run_ended"},
+				testdb.Dan.UUID: {"run_started", "run_ended"},
+			},
 		},
 		{
-			Modifiers: ContactModifierMap{
-				testdb.Ann.UUID: []flows.Modifier{modifiers.NewStatus(flows.ContactStatusActive)},
+			Actions: ContactActionMap{
+				testdb.Ann.UUID: []flows.Action{actions.NewSetContactStatus(flows.NewActionUUID(), flows.ContactStatusActive)},
 			},
 			DBAssertions: []assertdb.Assert{
 				{
@@ -60,9 +71,19 @@ func TestContactStatusChanged(t *testing.T) {
 					Returns: 1,
 				},
 			},
-			PersistedEvents: map[flows.ContactUUID][]string{testdb.Ann.UUID: {"contact_status_changed"}},
+			PersistedEvents: map[flows.ContactUUID][]string{
+				testdb.Ann.UUID: {"run_started", "contact_status_changed", "run_ended"},
+				testdb.Bob.UUID: {"run_started", "run_ended"},
+				testdb.Cat.UUID: {"run_started", "run_ended"},
+				testdb.Dan.UUID: {"run_started", "run_ended"},
+			},
 		},
 	}
 
-	runTestCases(t, ctx, rt, tcs)
+	f, err := os.Create("testdata/contact_status_changed.json")
+	require.NoError(t, err)
+	defer f.Close()
+	f.Write(jsonx.MustMarshal(tcs))
+
+	runTests(t, rt, "testdata/contact_status_changed.json")
 }

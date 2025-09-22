@@ -1,9 +1,9 @@
 package handlers_test
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
@@ -16,6 +16,7 @@ import (
 	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/goflow/flows/routers"
 	"github.com/nyaruka/goflow/flows/triggers"
+	"github.com/nyaruka/goflow/test"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/runner"
 	"github.com/nyaruka/mailroom/runtime"
@@ -49,20 +50,18 @@ func (m *ContactActionMap) UnmarshalJSON(d []byte) error {
 	return nil
 }
 
-type ContactMsgMap map[flows.ContactUUID]*testdb.MsgIn
 type ContactModifierMap map[flows.ContactUUID][]flows.Modifier
 
 type TestCase struct {
-	Actions         ContactActionMap               `json:"actions,omitempty"`
-	Msgs            ContactMsgMap                  `json:"msgs,omitempty"`
-	Modifiers       ContactModifierMap             `json:"modifiers,omitempty"`
-	UserID          models.UserID                  `json:"user_id,omitempty"`
-	DBAssertions    []assertdb.Assert              `json:"db_assertions,omitempty"`
-	ExpectedTasks   map[string][]string            `json:"expected_tasks,omitempty"`
-	PersistedEvents map[flows.ContactUUID][]string `json:"persisted_events,omitempty"`
+	Label           string                             `json:"label"`
+	Msgs            map[flows.ContactUUID]*flows.MsgIn `json:"msgs,omitempty"`
+	Actions         ContactActionMap                   `json:"actions,omitempty"`
+	Modifiers       ContactModifierMap                 `json:"modifiers,omitempty"`
+	UserID          models.UserID                      `json:"user_id,omitempty"`
+	DBAssertions    []assertdb.Assert                  `json:"db_assertions,omitempty"`
+	ExpectedTasks   map[string][]string                `json:"expected_tasks,omitempty"`
+	PersistedEvents map[flows.ContactUUID][]string     `json:"persisted_events,omitempty"`
 }
-
-type Assertion func(t *testing.T, rt *runtime.Runtime) error
 
 // createTestFlow creates a flow that starts with a split by contact id
 // and then routes the contact to a node where all the actions in the
@@ -132,15 +131,12 @@ func createTestFlow(t *testing.T, uuid assets.FlowUUID, tc TestCase) flows.Flow 
 }
 
 func runTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
+	ctx := t.Context()
 	tcs := make([]TestCase, 0, 20)
 	tcJSON := testsuite.ReadFile(t, truthFile)
 
 	jsonx.MustUnmarshal(tcJSON, &tcs)
 
-	runTestCases(t, t.Context(), rt, tcs)
-}
-
-func runTestCases(t *testing.T, ctx context.Context, rt *runtime.Runtime, tcs []TestCase) {
 	models.FlushCache()
 
 	oa, err := models.GetOrgAssets(ctx, rt, models.OrgID(1))
@@ -150,6 +146,10 @@ func runTestCases(t *testing.T, ctx context.Context, rt *runtime.Runtime, tcs []
 	flowUUID := testdb.Favorites.UUID
 
 	for i, tc := range tcs {
+		if tc.Label == "" {
+			tc.Label = fmt.Sprintf("#%d", i+1)
+		}
+
 		if tc.Actions != nil {
 			// create dynamic flow to test actions
 			testFlow := createTestFlow(t, flowUUID, tc)
@@ -164,18 +164,18 @@ func runTestCases(t *testing.T, ctx context.Context, rt *runtime.Runtime, tcs []
 			for i, c := range []*testdb.Contact{testdb.Ann, testdb.Bob, testdb.Cat, testdb.Dan} {
 				mc, contact, _ := c.Load(t, rt, oa)
 				scenes[i] = runner.NewScene(mc, contact)
-				if msg := tc.Msgs[c.UUID]; msg != nil {
-					scenes[i].IncomingMsg = &models.MsgInRef{ID: msg.ID}
-					err := scenes[i].AddEvent(ctx, rt, oa, events.NewMsgReceived(msg.FlowMsg), models.NilUserID)
-					require.NoError(t, err)
-				}
 
-				var trig flows.Trigger
 				msg := tc.Msgs[c.UUID]
+				var trig flows.Trigger
+
 				if msg != nil {
-					msgEvt := events.NewMsgReceived(msg.FlowMsg)
-					contact.SetLastSeenOn(msgEvt.CreatedOn())
-					trig = triggers.NewBuilder(testFlow.Reference(false)).MsgReceived(msgEvt).Build()
+					msgEvent := events.NewMsgReceived(msg)
+					scenes[i].IncomingMsg = insertTestMessage(t, rt, oa, c, msg)
+					err := scenes[i].AddEvent(ctx, rt, oa, msgEvent, models.NilUserID)
+					require.NoError(t, err)
+
+					contact.SetLastSeenOn(msgEvent.CreatedOn())
+					trig = triggers.NewBuilder(testFlow.Reference(false)).MsgReceived(msgEvent).Build()
 				} else {
 					trig = triggers.NewBuilder(testFlow.Reference(false)).Manual().Build()
 				}
@@ -207,16 +207,38 @@ func runTestCases(t *testing.T, ctx context.Context, rt *runtime.Runtime, tcs []
 
 		testsuite.ClearTasks(t, rt)
 
-		// now check our assertions
-		for j, dba := range tc.DBAssertions {
-			dba.Check(t, rt.DB, "%d:%d: mismatch in expected count for query: %s", i, j, dba.Query)
-		}
+		if !test.UpdateSnapshots {
 
-		if tc.ExpectedTasks == nil {
-			tc.ExpectedTasks = make(map[string][]string)
-		}
-		assert.Equal(t, tc.ExpectedTasks, actual.ExpectedTasks, "%d: unexpected tasks", i)
+			// now check our assertions
+			for j, dba := range tc.DBAssertions {
+				dba.Check(t, rt.DB, "%d:%d: mismatch in expected count for query: %s", i, j, dba.Query)
+			}
 
-		assert.Equal(t, tc.PersistedEvents, actual.PersistedEvents, "%d: mismatch in persisted events", i)
+			if tc.ExpectedTasks == nil {
+				tc.ExpectedTasks = make(map[string][]string)
+			}
+			assert.Equal(t, tc.ExpectedTasks, actual.ExpectedTasks, "%d: unexpected tasks", i)
+
+			assert.Equal(t, tc.PersistedEvents, actual.PersistedEvents, "%d: mismatch in persisted events", i)
+		} else {
+			tcs[i] = actual
+		}
 	}
+
+	// update if we are meant to
+	if test.UpdateSnapshots {
+		truth, err := jsonx.MarshalPretty(tcs)
+		require.NoError(t, err)
+
+		err = os.WriteFile(truthFile, truth, 0644)
+		require.NoError(t, err, "failed to update truth file")
+	}
+}
+
+func insertTestMessage(t *testing.T, rt *runtime.Runtime, oa *models.OrgAssets, c *testdb.Contact, msg *flows.MsgIn) *models.MsgInRef {
+	ch := oa.ChannelByUUID(msg.Channel().UUID)
+	tch := &testdb.Channel{ID: ch.ID(), UUID: ch.UUID(), Type: ch.Type()}
+
+	m := testdb.InsertIncomingMsg(t, rt, testdb.Org1, tch, c, msg.Text(), models.MsgStatusPending)
+	return &models.MsgInRef{ID: m.ID}
 }

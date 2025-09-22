@@ -1,0 +1,114 @@
+[
+    {
+        "actions": {
+            "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                {
+                    "type": "add_input_labels",
+                    "uuid": "14536a12-2dbe-4aab-a0a9-2b642689af3f",
+                    "labels": [
+                        {
+                            "uuid": "ebc4dedc-91c4-4ed4-9dd6-daa05ea82698",
+                            "name": "Reporting"
+                        }
+                    ]
+                },
+                {
+                    "type": "add_input_labels",
+                    "uuid": "0c88028d-9f9b-4c7b-ba9f-941c1a8f0e62",
+                    "labels": [
+                        {
+                            "uuid": "a6338cdc-7938-4437-8b05-2d5d785e3a08",
+                            "name": "Testing"
+                        }
+                    ]
+                },
+                {
+                    "type": "add_input_labels",
+                    "uuid": "036f335b-15c1-484a-8842-e090d515ba71",
+                    "labels": [
+                        {
+                            "uuid": "ebc4dedc-91c4-4ed4-9dd6-daa05ea82698",
+                            "name": "Reporting"
+                        }
+                    ]
+                }
+            ],
+            "b699a406-7e44-49be-9f01-1a82893e8a10": [],
+            "cd024bcd-f473-4719-a00a-bd0bb1190135": [
+                {
+                    "type": "add_input_labels",
+                    "uuid": "670052b2-2fe0-4f64-b72a-eaa054fb75c7",
+                    "labels": [
+                        {
+                            "uuid": "a6338cdc-7938-4437-8b05-2d5d785e3a08",
+                            "name": "Testing"
+                        }
+                    ]
+                },
+                {
+                    "type": "add_input_labels",
+                    "uuid": "482a4b1c-7ec8-4408-bbd7-ee9fa8f9ff24",
+                    "labels": [
+                        {
+                            "uuid": "ebc4dedc-91c4-4ed4-9dd6-daa05ea82698",
+                            "name": "Reporting"
+                        }
+                    ]
+                }
+            ]
+        },
+        "msgs": {
+            "a393abc0-283d-4c9b-a1b3-641a035c34bf": {
+                "urn": "tel:+16055741111",
+                "channel": {
+                    "uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8",
+                    "name": "Twilio"
+                },
+                "text": "start"
+            },
+            "b699a406-7e44-49be-9f01-1a82893e8a10": {
+                "urn": "tel:+16055742222",
+                "channel": {
+                    "uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8",
+                    "name": "Twilio"
+                },
+                "text": "start"
+            }
+        },
+        "db_assertions": [
+            {
+                "query": "select count(*) from msgs_msg_labels WHERE msg_id = 30000",
+                "returns": 2
+            },
+            {
+                "query": "select count(*) from msgs_msg_labels WHERE msg_id = 30001",
+                "returns": 0
+            },
+            {
+                "query": "select count(*) from msgs_msg_labels l JOIN msgs_msg m ON l.msg_id = m.id WHERE m.contact_id = $1",
+                "args": [
+                    10001
+                ],
+                "returns": 0
+            }
+        ],
+        "persisted_events": {
+            "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                "run_started",
+                "run_ended"
+            ],
+            "b699a406-7e44-49be-9f01-1a82893e8a10": [
+                "run_started",
+                "run_ended"
+            ],
+            "cd024bcd-f473-4719-a00a-bd0bb1190135": [
+                "run_started",
+                "run_ended"
+            ],
+            "d709c157-4606-4d41-9df3-9e9c9b4ae2d4": [
+                "run_started",
+                "run_ended"
+            ]
+        }
+    }
+]
