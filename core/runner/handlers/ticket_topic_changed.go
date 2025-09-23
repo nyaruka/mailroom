@@ -32,7 +32,6 @@ func handleTicketTopicChanged(ctx context.Context, rt *runtime.Runtime, oa *mode
 	dbTicket.LastActivityOn = dates.Now()
 
 	scene.AttachPreCommitHook(hooks.UpdateTickets, dbTicket)
-	scene.AttachPreCommitHook(hooks.InsertLegacyTicketEvents, models.NewTicketTopicChangedEvent(event.UUID(), dbTicket, userID, topic.ID()))
 
 	return nil
 }

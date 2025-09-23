@@ -28,22 +28,12 @@
         },
         "db_assertions": [
             {
-                "query": "select count(*) from tickets_ticket where contact_id = $1 AND status = 'O'",
-                "args": [
-                    10000
-                ],
+                "query": "select count(*) from tickets_ticket where contact_id = 10000 AND status = 'O'",
                 "returns": 1
             },
             {
-                "query": "select count(*) from tickets_ticket where contact_id = $1 AND status = 'O'",
-                "args": [
-                    10001
-                ],
+                "query": "select count(*) from tickets_ticket where contact_id = 10001 AND status = 'O'",
                 "returns": 1
-            },
-            {
-                "query": "select count(*) from tickets_ticketevent where event_type = 'O'",
-                "returns": 2
             },
             {
                 "query": "select count(*) from tickets_ticket where topic_id is null",

@@ -254,7 +254,6 @@ DELETE FROM api_resthook WHERE id >= 30000;
 DELETE FROM notifications_notification;
 DELETE FROM notifications_incident;
 DELETE FROM request_logs_httplog;
-DELETE FROM tickets_ticketevent;
 DELETE FROM tickets_ticket;
 DELETE FROM triggers_trigger_contacts WHERE trigger_id >= 30000;
 DELETE FROM triggers_trigger_groups WHERE trigger_id >= 30000;

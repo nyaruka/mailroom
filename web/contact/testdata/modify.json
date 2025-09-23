@@ -2029,21 +2029,21 @@
                     },
                     "events": [
                         {
-                            "uuid": "01969b47-f7b3-76f8-bef6-3979f99a96f9",
+                            "uuid": "01969b47-f3cb-76f8-bef6-3979f99a96f9",
                             "type": "contact_name_changed",
-                            "created_on": "2025-05-04T12:31:48.123456789Z",
+                            "created_on": "2025-05-04T12:31:47.123456789Z",
                             "name": "Juan"
                         },
                         {
-                            "uuid": "01969b47-ff83-76f8-ba91-c48ad8c50e6b",
+                            "uuid": "01969b47-fb9b-76f8-ba91-c48ad8c50e6b",
                             "type": "contact_language_changed",
-                            "created_on": "2025-05-04T12:31:50.123456789Z",
+                            "created_on": "2025-05-04T12:31:49.123456789Z",
                             "language": "spa"
                         },
                         {
-                            "uuid": "01969b48-0753-76f8-be24-6164105d48f2",
+                            "uuid": "01969b48-036b-76f8-be24-6164105d48f2",
                             "type": "contact_groups_changed",
-                            "created_on": "2025-05-04T12:31:52.123456789Z",
+                            "created_on": "2025-05-04T12:31:51.123456789Z",
                             "groups_added": [
                                 {
                                     "uuid": "5e9d8fab-5e7e-4f51-b533-261af5dea70d",
@@ -2052,9 +2052,9 @@
                             ]
                         },
                         {
-                            "uuid": "01969b48-0f23-76f8-8768-7d0ba4d4f3e8",
+                            "uuid": "01969b48-0b3b-76f8-8768-7d0ba4d4f3e8",
                             "type": "contact_urns_changed",
-                            "created_on": "2025-05-04T12:31:54.123456789Z",
+                            "created_on": "2025-05-04T12:31:53.123456789Z",
                             "urns": [
                                 "tel:+255788555111"
                             ]
@@ -2067,45 +2067,45 @@
         "expected_history": [
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b47-f7b3-76f8-bef6-3979f99a96f9",
+                "SK": "evt#01969b47-f3cb-76f8-bef6-3979f99a96f9",
                 "OrgID": 1,
-                "TTL": "2026-05-04T12:31:48Z",
+                "TTL": "2026-05-04T12:31:47Z",
                 "Data": {
                     "_user": {
                         "name": "Andy Admin",
                         "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
                     },
-                    "created_on": "2025-05-04T12:31:48.123456789Z",
+                    "created_on": "2025-05-04T12:31:47.123456789Z",
                     "name": "Juan",
                     "type": "contact_name_changed"
                 }
             },
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b47-ff83-76f8-ba91-c48ad8c50e6b",
+                "SK": "evt#01969b47-fb9b-76f8-ba91-c48ad8c50e6b",
                 "OrgID": 1,
-                "TTL": "2026-05-04T12:31:50Z",
+                "TTL": "2026-05-04T12:31:49Z",
                 "Data": {
                     "_user": {
                         "name": "Andy Admin",
                         "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
                     },
-                    "created_on": "2025-05-04T12:31:50.123456789Z",
+                    "created_on": "2025-05-04T12:31:49.123456789Z",
                     "language": "spa",
                     "type": "contact_language_changed"
                 }
             },
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b48-0753-76f8-be24-6164105d48f2",
+                "SK": "evt#01969b48-036b-76f8-be24-6164105d48f2",
                 "OrgID": 1,
-                "TTL": "2026-05-04T12:31:52Z",
+                "TTL": "2026-05-04T12:31:51Z",
                 "Data": {
                     "_user": {
                         "name": "Andy Admin",
                         "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
                     },
-                    "created_on": "2025-05-04T12:31:52.123456789Z",
+                    "created_on": "2025-05-04T12:31:51.123456789Z",
                     "groups_added": [
                         {
                             "name": "Testers",
@@ -2117,11 +2117,11 @@
             },
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b48-0f23-76f8-8768-7d0ba4d4f3e8",
+                "SK": "evt#01969b48-0b3b-76f8-8768-7d0ba4d4f3e8",
                 "OrgID": 1,
-                "TTL": "2026-05-04T12:31:54Z",
+                "TTL": "2026-05-04T12:31:53Z",
                 "Data": {
-                    "created_on": "2025-05-04T12:31:54.123456789Z",
+                    "created_on": "2025-05-04T12:31:53.123456789Z",
                     "type": "contact_urns_changed",
                     "urns": [
                         "tel:+255788555111"
@@ -2190,9 +2190,9 @@
                     },
                     "events": [
                         {
-                            "uuid": "01969b48-16f3-76f8-b63d-c8dcc2fa9de0",
+                            "uuid": "01969b48-130b-76f8-b63d-c8dcc2fa9de0",
                             "type": "contact_language_changed",
-                            "created_on": "2025-05-04T12:31:56.123456789Z",
+                            "created_on": "2025-05-04T12:31:55.123456789Z",
                             "language": "eng"
                         }
                     ]
@@ -2205,15 +2205,15 @@
         "expected_history": [
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b48-16f3-76f8-b63d-c8dcc2fa9de0",
+                "SK": "evt#01969b48-130b-76f8-b63d-c8dcc2fa9de0",
                 "OrgID": 1,
-                "TTL": "2026-05-04T12:31:56Z",
+                "TTL": "2026-05-04T12:31:55Z",
                 "Data": {
                     "_user": {
                         "name": "Andy Admin",
                         "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
                     },
-                    "created_on": "2025-05-04T12:31:56.123456789Z",
+                    "created_on": "2025-05-04T12:31:55.123456789Z",
                     "language": "eng",
                     "type": "contact_language_changed"
                 }
