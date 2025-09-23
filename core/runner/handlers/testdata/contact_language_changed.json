@@ -1,0 +1,84 @@
+[
+    {
+        "label": "#1",
+        "actions": {
+            "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                {
+                    "type": "set_contact_language",
+                    "uuid": "19ca320c-c942-4ac8-a602-d6f7d15fc442",
+                    "language": "fra"
+                },
+                {
+                    "type": "set_contact_language",
+                    "uuid": "59809d31-b8f8-4cfc-be4f-08c1d58ae24c",
+                    "language": "eng"
+                }
+            ],
+            "cd024bcd-f473-4719-a00a-bd0bb1190135": [
+                {
+                    "type": "set_contact_language",
+                    "uuid": "e3e10452-65bc-4188-99a8-c7d068824453",
+                    "language": "spa"
+                }
+            ],
+            "d709c157-4606-4d41-9df3-9e9c9b4ae2d4": [
+                {
+                    "type": "set_contact_language",
+                    "uuid": "f3ead1d0-ed72-4952-8761-8db771ceb334",
+                    "language": ""
+                }
+            ]
+        },
+        "db_assertions": [
+            {
+                "query": "select count(*) from contacts_contact where id = $1 and language = 'eng'",
+                "args": [
+                    10000
+                ],
+                "returns": 1
+            },
+            {
+                "query": "select count(*) from contacts_contact where id = $1 and language = 'spa'",
+                "args": [
+                    10002
+                ],
+                "returns": 1
+            },
+            {
+                "query": "select count(*) from contacts_contact where id = $1 and language is NULL;",
+                "args": [
+                    10001
+                ],
+                "returns": 1
+            },
+            {
+                "query": "select count(*) from contacts_contact where id = $1 and language is NULL;",
+                "args": [
+                    10003
+                ],
+                "returns": 1
+            }
+        ],
+        "persisted_events": {
+            "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                "run_started",
+                "contact_language_changed",
+                "contact_language_changed",
+                "run_ended"
+            ],
+            "b699a406-7e44-49be-9f01-1a82893e8a10": [
+                "run_started",
+                "run_ended"
+            ],
+            "cd024bcd-f473-4719-a00a-bd0bb1190135": [
+                "run_started",
+                "contact_language_changed",
+                "run_ended"
+            ],
+            "d709c157-4606-4d41-9df3-9e9c9b4ae2d4": [
+                "run_started",
+                "run_ended"
+            ]
+        }
+    }
+]

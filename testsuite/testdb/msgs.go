@@ -133,8 +133,7 @@ func InsertBroadcast(t *testing.T, rt *runtime.Runtime, org *Org, baseLanguage i
 }
 
 // InsertOptIn inserts an opt in
-func InsertOptIn(t *testing.T, rt *runtime.Runtime, org *Org, name string) *OptIn {
-	uuid := assets.OptInUUID(uuids.NewV4())
+func InsertOptIn(t *testing.T, rt *runtime.Runtime, org *Org, uuid assets.OptInUUID, name string) *OptIn {
 	var id models.OptInID
 	err := rt.DB.Get(&id,
 		`INSERT INTO msgs_optin(uuid, org_id, name, created_on, modified_on, created_by_id, modified_by_id, is_active, is_system) 

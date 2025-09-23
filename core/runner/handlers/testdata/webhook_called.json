@@ -1,0 +1,76 @@
+[
+    {
+        "label": "#1",
+        "actions": {
+            "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                {
+                    "type": "call_resthook",
+                    "uuid": "9fa3f6f9-556c-4262-aabb-0499580a767d",
+                    "resthook": "foo",
+                    "result_name": "foo"
+                }
+            ],
+            "cd024bcd-f473-4719-a00a-bd0bb1190135": [
+                {
+                    "type": "call_resthook",
+                    "uuid": "3efc9d08-dba4-41aa-9c9b-205423af1be7",
+                    "resthook": "foo",
+                    "result_name": "foo"
+                },
+                {
+                    "type": "call_webhook",
+                    "uuid": "0994c577-1f8e-4590-bf61-4d56af0a56a4",
+                    "method": "GET",
+                    "url": "http://rapidpro.io/?unsub=1"
+                }
+            ]
+        },
+        "db_assertions": [
+            {
+                "query": "select count(*) from api_resthooksubscriber where is_active = FALSE",
+                "returns": 1
+            },
+            {
+                "query": "select count(*) from api_resthooksubscriber where is_active = TRUE and resthook_id = 30001",
+                "returns": 1
+            },
+            {
+                "query": "select count(*) from api_resthooksubscriber where is_active = TRUE",
+                "returns": 2
+            },
+            {
+                "query": "select count(*) from request_logs_httplog where log_type = 'webhook_called' AND flow_id IS NOT NULL AND status_code = 200",
+                "returns": 2
+            },
+            {
+                "query": "select count(*) from request_logs_httplog where log_type = 'webhook_called' AND flow_id IS NOT NULL AND status_code = 410",
+                "returns": 3
+            },
+            {
+                "query": "select count(*) from api_webhookevent where org_id = $1",
+                "args": [
+                    1
+                ],
+                "returns": 2
+            }
+        ],
+        "persisted_events": {
+            "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                "run_started",
+                "run_ended"
+            ],
+            "b699a406-7e44-49be-9f01-1a82893e8a10": [
+                "run_started",
+                "run_ended"
+            ],
+            "cd024bcd-f473-4719-a00a-bd0bb1190135": [
+                "run_started",
+                "run_ended"
+            ],
+            "d709c157-4606-4d41-9df3-9e9c9b4ae2d4": [
+                "run_started",
+                "run_ended"
+            ]
+        }
+    }
+]

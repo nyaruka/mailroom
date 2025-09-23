@@ -1,0 +1,44 @@
+[
+    {
+        "label": "#1",
+        "actions": {
+            "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                {
+                    "type": "enter_flow",
+                    "uuid": "4589f98f-cd2d-4885-94f5-a00423d8eaee",
+                    "flow": {
+                        "uuid": "5890fe3a-f204-4661-b74d-025be4ee019c",
+                        "name": "Pick a Number"
+                    }
+                }
+            ]
+        },
+        "db_assertions": [
+            {
+                "query": "SELECT count(*) FROM contacts_contact WHERE current_flow_id = $1",
+                "args": [
+                    10001
+                ],
+                "returns": 1
+            }
+        ],
+        "persisted_events": {
+            "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                "run_started",
+                "run_started"
+            ],
+            "b699a406-7e44-49be-9f01-1a82893e8a10": [
+                "run_started",
+                "run_ended"
+            ],
+            "cd024bcd-f473-4719-a00a-bd0bb1190135": [
+                "run_started",
+                "run_ended"
+            ],
+            "d709c157-4606-4d41-9df3-9e9c9b4ae2d4": [
+                "run_started",
+                "run_ended"
+            ]
+        }
+    }
+]

@@ -1,0 +1,118 @@
+[
+    {
+        "label": "#1",
+        "actions": {
+            "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                {
+                    "type": "start_session",
+                    "uuid": "d2f852ec-7b4e-457f-ae7f-f8b243c49ff5",
+                    "groups": [
+                        {
+                            "uuid": "5e9d8fab-5e7e-4f51-b533-261af5dea70d"
+                        }
+                    ],
+                    "contacts": [
+                        {
+                            "uuid": "cd024bcd-f473-4719-a00a-bd0bb1190135",
+                            "name": ""
+                        }
+                    ],
+                    "flow": {
+                        "uuid": "a7c11d68-f008-496f-b56d-2d5cf4cf16a5",
+                        "name": ""
+                    },
+                    "exclusions": {},
+                    "create_contact": true
+                }
+            ]
+        },
+        "db_assertions": [
+            {
+                "query": "select count(*) from flows_flowrun where contact_id = $1 AND status = 'C'",
+                "args": [
+                    10000
+                ],
+                "returns": 1
+            },
+            {
+                "query": "select count(*) from flows_flowstart",
+                "returns": 0
+            }
+        ],
+        "expected_tasks": {
+            "batch/1": [
+                "start_flow"
+            ]
+        },
+        "persisted_events": {
+            "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                "run_started",
+                "run_ended"
+            ],
+            "b699a406-7e44-49be-9f01-1a82893e8a10": [
+                "run_started",
+                "run_ended"
+            ],
+            "cd024bcd-f473-4719-a00a-bd0bb1190135": [
+                "run_started",
+                "run_ended"
+            ],
+            "d709c157-4606-4d41-9df3-9e9c9b4ae2d4": [
+                "run_started",
+                "run_ended"
+            ]
+        }
+    },
+    {
+        "label": "#2",
+        "actions": {
+            "b699a406-7e44-49be-9f01-1a82893e8a10": [
+                {
+                    "type": "start_session",
+                    "uuid": "692926ea-09d6-4942-bd38-d266ec8d3716",
+                    "contacts": [
+                        {
+                            "uuid": "d709c157-4606-4d41-9df3-9e9c9b4ae2d4",
+                            "name": ""
+                        }
+                    ],
+                    "flow": {
+                        "uuid": "2f81d0ea-4d75-4843-9371-3f7465311cce",
+                        "name": ""
+                    },
+                    "exclusions": {},
+                    "create_contact": true
+                }
+            ]
+        },
+        "db_assertions": [
+            {
+                "query": "select count(*) from flows_flowstart",
+                "returns": 0
+            }
+        ],
+        "expected_tasks": {
+            "batch/1": [
+                "start_flow"
+            ]
+        },
+        "persisted_events": {
+            "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                "run_started",
+                "run_ended"
+            ],
+            "b699a406-7e44-49be-9f01-1a82893e8a10": [
+                "run_started",
+                "run_ended"
+            ],
+            "cd024bcd-f473-4719-a00a-bd0bb1190135": [
+                "run_started",
+                "run_ended"
+            ],
+            "d709c157-4606-4d41-9df3-9e9c9b4ae2d4": [
+                "run_started",
+                "run_ended"
+            ]
+        }
+    }
+]

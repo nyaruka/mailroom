@@ -1,0 +1,97 @@
+[
+    {
+        "label": "#1",
+        "actions": {
+            "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                {
+                    "type": "set_contact_name",
+                    "uuid": "2b6fd6fd-f977-4f11-b1be-3e8d07551797",
+                    "name": "Fred"
+                },
+                {
+                    "type": "set_contact_name",
+                    "uuid": "d79d8a55-c3ef-4cd6-8309-481477c89a53",
+                    "name": "Tarzan"
+                }
+            ],
+            "b699a406-7e44-49be-9f01-1a82893e8a10": [
+                {
+                    "type": "set_contact_name",
+                    "uuid": "78aef3a6-64ae-4b5e-b0de-1ed915aa6650",
+                    "name": ""
+                }
+            ],
+            "cd024bcd-f473-4719-a00a-bd0bb1190135": [
+                {
+                    "type": "set_contact_name",
+                    "uuid": "642ad649-7f2b-41d7-b96b-937e08e17f45",
+                    "name": "Geoff Newman"
+                }
+            ],
+            "d709c157-4606-4d41-9df3-9e9c9b4ae2d4": [
+                {
+                    "type": "set_contact_name",
+                    "uuid": "0ca38e63-e34e-4f9b-9dd9-30007fb31dfc",
+                    "name": "😃234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890"
+                }
+            ]
+        },
+        "db_assertions": [
+            {
+                "query": "select count(*) from contacts_contact where name = 'Tarzan' and id = $1",
+                "args": [
+                    10000
+                ],
+                "returns": 1
+            },
+            {
+                "query": "select count(*) from contacts_contact where name = 'Tarzan'",
+                "returns": 1
+            },
+            {
+                "query": "select count(*) from contacts_contact where name IS NULL and id = $1",
+                "args": [
+                    10001
+                ],
+                "returns": 1
+            },
+            {
+                "query": "select count(*) from contacts_contact where name = 'Geoff Newman' and id = $1",
+                "args": [
+                    10002
+                ],
+                "returns": 1
+            },
+            {
+                "query": "select count(*) from contacts_contact where name = '😃2345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678' and id = $1",
+                "args": [
+                    10003
+                ],
+                "returns": 1
+            }
+        ],
+        "persisted_events": {
+            "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                "run_started",
+                "contact_name_changed",
+                "contact_name_changed",
+                "run_ended"
+            ],
+            "b699a406-7e44-49be-9f01-1a82893e8a10": [
+                "run_started",
+                "contact_name_changed",
+                "run_ended"
+            ],
+            "cd024bcd-f473-4719-a00a-bd0bb1190135": [
+                "run_started",
+                "contact_name_changed",
+                "run_ended"
+            ],
+            "d709c157-4606-4d41-9df3-9e9c9b4ae2d4": [
+                "run_started",
+                "contact_name_changed",
+                "run_ended"
+            ]
+        }
+    }
+]

@@ -1,0 +1,102 @@
+[
+    {
+        "label": "#1",
+        "actions": {
+            "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                {
+                    "type": "transfer_airtime",
+                    "uuid": "a7ecb359-6fd9-4dac-ac66-7278a58e0dc7",
+                    "amounts": {
+                        "USD": 3
+                    }
+                }
+            ]
+        },
+        "db_assertions": [
+            {
+                "query": "select count(*) from airtime_airtimetransfer where org_id = $1 AND contact_id = $2 AND status = 'S'",
+                "args": [
+                    1,
+                    10000
+                ],
+                "returns": 1
+            },
+            {
+                "query": "select count(*) from request_logs_httplog where org_id = $1 AND airtime_transfer_id IS NOT NULL AND is_error = FALSE AND url LIKE 'https://dvs-api.dtone.com/v1/%'",
+                "args": [
+                    1
+                ],
+                "returns": 3
+            }
+        ],
+        "persisted_events": {
+            "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                "run_started",
+                "airtime_transferred",
+                "run_ended"
+            ],
+            "b699a406-7e44-49be-9f01-1a82893e8a10": [
+                "run_started",
+                "run_ended"
+            ],
+            "cd024bcd-f473-4719-a00a-bd0bb1190135": [
+                "run_started",
+                "run_ended"
+            ],
+            "d709c157-4606-4d41-9df3-9e9c9b4ae2d4": [
+                "run_started",
+                "run_ended"
+            ]
+        }
+    },
+    {
+        "label": "#2",
+        "actions": {
+            "cd024bcd-f473-4719-a00a-bd0bb1190135": [
+                {
+                    "type": "transfer_airtime",
+                    "uuid": "d2b81ec8-f4a8-4856-a46e-22e25f7fc445",
+                    "amounts": {
+                        "USD": 3
+                    }
+                }
+            ]
+        },
+        "db_assertions": [
+            {
+                "query": "select count(*) from airtime_airtimetransfer where org_id = $1 AND contact_id = $2 AND status = 'F'",
+                "args": [
+                    1,
+                    10002
+                ],
+                "returns": 1
+            },
+            {
+                "query": "select count(*) from request_logs_httplog where org_id = $1 AND airtime_transfer_id IS NOT NULL AND is_error = TRUE AND url LIKE 'https://dvs-api.dtone.com/v1/%'",
+                "args": [
+                    1
+                ],
+                "returns": 1
+            }
+        ],
+        "persisted_events": {
+            "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                "run_started",
+                "run_ended"
+            ],
+            "b699a406-7e44-49be-9f01-1a82893e8a10": [
+                "run_started",
+                "run_ended"
+            ],
+            "cd024bcd-f473-4719-a00a-bd0bb1190135": [
+                "run_started",
+                "airtime_transferred",
+                "run_ended"
+            ],
+            "d709c157-4606-4d41-9df3-9e9c9b4ae2d4": [
+                "run_started",
+                "run_ended"
+            ]
+        }
+    }
+]

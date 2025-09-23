@@ -1,19 +1,22 @@
 package handlers_test
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"testing"
 
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
+	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/gocommon/uuids"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/flows/actions"
 	"github.com/nyaruka/goflow/flows/definition"
 	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/goflow/flows/routers"
 	"github.com/nyaruka/goflow/flows/triggers"
+	"github.com/nyaruka/goflow/test"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/runner"
 	"github.com/nyaruka/mailroom/runtime"
@@ -24,20 +27,41 @@ import (
 )
 
 type ContactActionMap map[flows.ContactUUID][]flows.Action
-type ContactMsgMap map[flows.ContactUUID]*testdb.MsgIn
+
+func (m *ContactActionMap) UnmarshalJSON(d []byte) error {
+	*m = make(ContactActionMap)
+
+	var raw map[flows.ContactUUID][]json.RawMessage
+	if err := json.Unmarshal(d, &raw); err != nil {
+		return err
+	}
+
+	for contactUUID, v := range raw {
+		unmarshaled := make([]flows.Action, len(v))
+		for i := range v {
+			var err error
+			unmarshaled[i], err = actions.Read(v[i])
+			if err != nil {
+				return err
+			}
+		}
+		(*m)[contactUUID] = unmarshaled
+	}
+	return nil
+}
+
 type ContactModifierMap map[flows.ContactUUID][]flows.Modifier
 
 type TestCase struct {
-	Actions         ContactActionMap
-	Msgs            ContactMsgMap
-	Modifiers       ContactModifierMap
-	UserID          models.UserID
-	DBAssertions    []assertdb.Assert
-	ExpectedTasks   map[string][]string
-	PersistedEvents map[flows.ContactUUID][]string
+	Label           string                             `json:"label"`
+	Msgs            map[flows.ContactUUID]*flows.MsgIn `json:"msgs,omitempty"`
+	Actions         ContactActionMap                   `json:"actions,omitempty"`
+	Modifiers       ContactModifierMap                 `json:"modifiers,omitempty"`
+	UserID          models.UserID                      `json:"user_id,omitempty"`
+	DBAssertions    []assertdb.Assert                  `json:"db_assertions,omitempty"`
+	ExpectedTasks   map[string][]string                `json:"expected_tasks,omitempty"`
+	PersistedEvents map[flows.ContactUUID][]string     `json:"persisted_events,omitempty"`
 }
-
-type Assertion func(t *testing.T, rt *runtime.Runtime) error
 
 // createTestFlow creates a flow that starts with a split by contact id
 // and then routes the contact to a node where all the actions in the
@@ -106,7 +130,13 @@ func createTestFlow(t *testing.T, uuid assets.FlowUUID, tc TestCase) flows.Flow 
 	return flow
 }
 
-func runTestCases(t *testing.T, ctx context.Context, rt *runtime.Runtime, tcs []TestCase, reset testsuite.ResetFlag) {
+func runTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
+	ctx := t.Context()
+	tcs := make([]TestCase, 0, 20)
+	tcJSON := testsuite.ReadFile(t, truthFile)
+
+	jsonx.MustUnmarshal(tcJSON, &tcs)
+
 	models.FlushCache()
 
 	oa, err := models.GetOrgAssets(ctx, rt, models.OrgID(1))
@@ -130,18 +160,18 @@ func runTestCases(t *testing.T, ctx context.Context, rt *runtime.Runtime, tcs []
 			for i, c := range []*testdb.Contact{testdb.Ann, testdb.Bob, testdb.Cat, testdb.Dan} {
 				mc, contact, _ := c.Load(t, rt, oa)
 				scenes[i] = runner.NewScene(mc, contact)
-				if msg := tc.Msgs[c.UUID]; msg != nil {
-					scenes[i].IncomingMsg = &models.MsgInRef{ID: msg.ID}
-					err := scenes[i].AddEvent(ctx, rt, oa, events.NewMsgReceived(msg.FlowMsg), models.NilUserID)
-					require.NoError(t, err)
-				}
 
-				var trig flows.Trigger
 				msg := tc.Msgs[c.UUID]
+				var trig flows.Trigger
+
 				if msg != nil {
-					msgEvt := events.NewMsgReceived(msg.FlowMsg)
-					contact.SetLastSeenOn(msgEvt.CreatedOn())
-					trig = triggers.NewBuilder(testFlow.Reference(false)).MsgReceived(msgEvt).Build()
+					msgEvent := events.NewMsgReceived(msg)
+					scenes[i].IncomingMsg = insertTestMessage(t, rt, oa, c, msg)
+					err := scenes[i].AddEvent(ctx, rt, oa, msgEvent, models.NilUserID)
+					require.NoError(t, err)
+
+					contact.SetLastSeenOn(msgEvent.CreatedOn())
+					trig = triggers.NewBuilder(testFlow.Reference(false)).MsgReceived(msgEvent).Build()
 				} else {
 					trig = triggers.NewBuilder(testFlow.Reference(false)).Manual().Build()
 				}
@@ -169,22 +199,41 @@ func runTestCases(t *testing.T, ctx context.Context, rt *runtime.Runtime, tcs []
 		// clone test case and populate with actual values
 		actual := tc
 		actual.ExpectedTasks = testsuite.GetQueuedTaskTypes(t, rt)
-		actual.PersistedEvents = testsuite.GetHistoryEventTypes(t, rt)
+		actual.PersistedEvents = testsuite.GetHistoryEventTypes(t, rt, true)
 
-		// now check our assertions
-		for j, dba := range tc.DBAssertions {
-			dba.Check(t, rt.DB, "%d:%d: mismatch in expected count for query: %s", i, j, dba.Query)
-		}
+		testsuite.ClearTasks(t, rt)
 
-		if tc.ExpectedTasks == nil {
-			tc.ExpectedTasks = make(map[string][]string)
-		}
-		assert.Equal(t, tc.ExpectedTasks, actual.ExpectedTasks, "%d: unexpected tasks", i)
+		if !test.UpdateSnapshots {
+			// now check our assertions
+			for _, dba := range tc.DBAssertions {
+				dba.Check(t, rt.DB, "%s: assertion for query '%s' failed", tc.Label, dba.Query)
+			}
 
-		assert.Equal(t, tc.PersistedEvents, actual.PersistedEvents, "%d: mismatch in persisted events", i)
+			if tc.ExpectedTasks == nil {
+				tc.ExpectedTasks = make(map[string][]string)
+			}
+			assert.Equal(t, tc.ExpectedTasks, actual.ExpectedTasks, "%s: unexpected tasks", tc.Label)
 
-		if reset != 0 {
-			testsuite.Reset(t, rt, reset)
+			assert.Equal(t, tc.PersistedEvents, actual.PersistedEvents, "%s: mismatch in persisted events", tc.Label)
+		} else {
+			tcs[i] = actual
 		}
 	}
+
+	// update if we are meant to
+	if test.UpdateSnapshots {
+		truth, err := jsonx.MarshalPretty(tcs)
+		require.NoError(t, err)
+
+		err = os.WriteFile(truthFile, truth, 0644)
+		require.NoError(t, err, "failed to update truth file")
+	}
+}
+
+func insertTestMessage(t *testing.T, rt *runtime.Runtime, oa *models.OrgAssets, c *testdb.Contact, msg *flows.MsgIn) *models.MsgInRef {
+	ch := oa.ChannelByUUID(msg.Channel().UUID)
+	tch := &testdb.Channel{ID: ch.ID(), UUID: ch.UUID(), Type: ch.Type()}
+
+	m := testdb.InsertIncomingMsg(t, rt, testdb.Org1, tch, c, msg.Text(), models.MsgStatusPending)
+	return &models.MsgInRef{ID: m.ID}
 }

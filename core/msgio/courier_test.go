@@ -29,7 +29,7 @@ func TestNewCourierMsg(t *testing.T) {
 	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetValkey|testsuite.ResetDynamo)
 
 	// create an opt-in and a new contact with an auth token for it
-	optInID := testdb.InsertOptIn(t, rt, testdb.Org1, "Joke Of The Day").ID
+	optInID := testdb.InsertOptIn(t, rt, testdb.Org1, "45aec4dd-945f-4511-878f-7d8516fbd336", "Joke Of The Day").ID
 	testFred := testdb.InsertContact(t, rt, testdb.Org1, "", "Fred", "eng", models.ContactStatusActive)
 	testdb.InsertContactURN(t, rt, testdb.Org1, testFred, "tel:+593979123456", 1000, map[string]string{fmt.Sprintf("optin:%d", optInID): "sesame"})
 

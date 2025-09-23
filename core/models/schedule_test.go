@@ -90,7 +90,7 @@ func TestGetExpired(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
-	optIn := testdb.InsertOptIn(t, rt, testdb.Org1, "Polls")
+	optIn := testdb.InsertOptIn(t, rt, testdb.Org1, "45aec4dd-945f-4511-878f-7d8516fbd336", "Polls")
 
 	// add a schedule and tie a broadcast to it
 	s1 := testdb.InsertSchedule(t, rt, testdb.Org1, models.RepeatPeriodNever, time.Now().Add(-24*time.Hour))
