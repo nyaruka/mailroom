@@ -27,6 +27,19 @@
                 "eventMethod": "POST"
             }
         ],
+        "db_assertions": [
+            {
+                "query": "SELECT external_id, status FROM ivr_call",
+                "map": {
+                    "Call1": "I",
+                    "Call2": "W"
+                }
+            },
+            {
+                "query": "SELECT last_seen_on FROM contacts_contact WHERE id = 10000",
+                "returns": null
+            }
+        ],
         "expected_history": [
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
@@ -89,6 +102,19 @@
                     "https://localhost:8091/mr/ivr/c/19012bfd-3ce3-4cae-9bb9-76cf92c73d49/handle?action=resume\u0026call=01969b47-190b-76f8-92a3-d648ab64bccb\u0026wait_type=gather\u0026sig=zRlLI%2B84luUb4KLdMN525WprJ1Q%3D"
                 ],
                 "eventMethod": "POST"
+            }
+        ],
+        "db_assertions": [
+            {
+                "query": "SELECT external_id, status FROM ivr_call",
+                "map": {
+                    "Call1": "I",
+                    "Call2": "W"
+                }
+            },
+            {
+                "query": "SELECT last_seen_on::text FROM contacts_contact WHERE id = 10000",
+                "returns": "2025-05-04 12:31:13.123457+00"
             }
         ]
     },
@@ -268,7 +294,16 @@
         "status": 200,
         "response": {
             "_message": "reconnected call: Call1 to flow with dial status: answered"
-        }
+        },
+        "db_assertions": [
+            {
+                "query": "SELECT external_id, status FROM ivr_call",
+                "map": {
+                    "Call1": "I",
+                    "Call2": "W"
+                }
+            }
+        ]
     },
     {
         "label": "transfer callback",
@@ -280,6 +315,15 @@
             {
                 "action": "talk",
                 "text": "Great, they answered."
+            }
+        ],
+        "db_assertions": [
+            {
+                "query": "SELECT external_id, status FROM ivr_call",
+                "map": {
+                    "Call1": "D",
+                    "Call2": "W"
+                }
             }
         ],
         "expected_history": [
@@ -323,7 +367,16 @@
         "status": 200,
         "response": {
             "_message": "status updated: D"
-        }
+        },
+        "db_assertions": [
+            {
+                "query": "SELECT external_id, status FROM ivr_call",
+                "map": {
+                    "Call1": "D",
+                    "Call2": "W"
+                }
+            }
+        ]
     },
     {
         "label": "new call",
@@ -351,6 +404,15 @@
                     "https://localhost:8091/mr/ivr/c/19012bfd-3ce3-4cae-9bb9-76cf92c73d49/handle?action=resume\u0026call=01969b47-2c93-76f8-8f41-6b2d9f33d623\u0026wait_type=gather\u0026sig=smTf79il%2Bj7jiRYv0EvcL9e6084%3D"
                 ],
                 "eventMethod": "POST"
+            }
+        ],
+        "db_assertions": [
+            {
+                "query": "SELECT external_id, status FROM ivr_call",
+                "map": {
+                    "Call1": "D",
+                    "Call2": "I"
+                }
             }
         ],
         "expected_history": [
@@ -416,6 +478,15 @@
                 ],
                 "eventMethod": "POST"
             }
+        ],
+        "db_assertions": [
+            {
+                "query": "SELECT external_id, status FROM ivr_call",
+                "map": {
+                    "Call1": "D",
+                    "Call2": "I"
+                }
+            }
         ]
     },
     {
@@ -440,7 +511,16 @@
         "status": 200,
         "response": {
             "_message": "status updated: D"
-        }
+        },
+        "db_assertions": [
+            {
+                "query": "SELECT external_id, status FROM ivr_call",
+                "map": {
+                    "Call1": "D",
+                    "Call2": "D"
+                }
+            }
+        ]
     },
     {
         "label": "incoming call",
@@ -456,6 +536,16 @@
         "response": {
             "_message": "missed call handled"
         },
+        "db_assertions": [
+            {
+                "query": "SELECT external_id, status FROM ivr_call",
+                "map": {
+                    "Call1": "D",
+                    "Call2": "D",
+                    "Call4": "I"
+                }
+            }
+        ],
         "expected_history": [
             {
                 "PK": "con#72e90234-071d-4188-9676-22cd6062f002",
@@ -498,6 +588,16 @@
         "status": 200,
         "response": {
             "_message": "no flow start found, status updated: F"
-        }
+        },
+        "db_assertions": [
+            {
+                "query": "SELECT external_id, status FROM ivr_call",
+                "map": {
+                    "Call1": "D",
+                    "Call2": "D",
+                    "Call4": "F"
+                }
+            }
+        ]
     }
 ]

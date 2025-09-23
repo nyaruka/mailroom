@@ -125,6 +125,7 @@ type MsgInRef struct {
 	ExtID       string
 	Attachments []utils.Attachment
 	LogUUIDs    []clogs.UUID
+	Handled     bool
 }
 
 // Msg is our type for mailroom messages

@@ -390,6 +390,10 @@ func ResumeCall(
 	scene.DBCall = call
 	scene.Call = flows.NewCall(call.UUID(), oa.SessionAssets().Channels().Get(channel.UUID()), urn.Identity())
 
+	if err := scene.AddEvent(ctx, rt, oa, resume.Event(), models.NilUserID); err != nil {
+		return fmt.Errorf("error adding event: %w", err)
+	}
+
 	if err := scene.ResumeSession(ctx, rt, oa, session, resume); err != nil {
 		return fmt.Errorf("error resuming ivr flow: %w", err)
 	}
