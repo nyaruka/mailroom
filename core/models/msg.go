@@ -277,7 +277,7 @@ func NewIncomingAndroid(orgID OrgID, channelID ChannelID, contactID ContactID, u
 }
 
 // NewIncomingIVR creates a new incoming IVR message for the passed in text and attachment
-func NewIncomingIVR(cfg *runtime.Config, orgID OrgID, call *Call, event *events.MsgReceived) *Msg {
+func NewIncomingIVR(cfg *runtime.Config, orgID OrgID, call *Call, flow *Flow, event *events.MsgReceived) *Msg {
 	msg := &Msg{}
 	m := &msg.m
 	m.UUID = event.UUID()
@@ -295,6 +295,10 @@ func NewIncomingIVR(cfg *runtime.Config, orgID OrgID, call *Call, event *events.
 	// add any attachments
 	for _, a := range event.Msg.Attachments() {
 		m.Attachments = append(m.Attachments, string(NormalizeAttachment(cfg, a)))
+	}
+
+	if flow != nil {
+		m.FlowID = flow.ID()
 	}
 
 	return msg

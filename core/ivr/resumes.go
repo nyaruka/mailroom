@@ -56,7 +56,7 @@ func buildDialResume(resume DialResume) (flows.Resume, error, error) {
 	return resumes.NewDial(events.NewDialEnded(flows.NewDial(resume.Status, resume.Duration))), nil, nil
 }
 
-func buildMsgResume(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, svc Service, channel *models.Channel, urn urns.URN, call *models.Call, resume InputResume) (*models.MsgInRef, flows.Resume, error, error) {
+func buildMsgResume(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, svc Service, channel *models.Channel, urn urns.URN, call *models.Call, flow *models.Flow, resume InputResume) (*models.MsgInRef, flows.Resume, error, error) {
 	// our msg UUID
 	msgUUID := flows.NewEventUUID()
 
@@ -105,7 +105,7 @@ func buildMsgResume(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 	msgEvt := events.NewMsgReceived(msgIn)
 	msgEvt.UUID_ = msgUUID
 
-	msg := models.NewIncomingIVR(rt.Config, oa.OrgID(), call, msgEvt)
+	msg := models.NewIncomingIVR(rt.Config, oa.OrgID(), call, flow, msgEvt)
 	if err := models.InsertMessages(ctx, rt.DB, []*models.Msg{msg}); err != nil {
 		return nil, nil, nil, fmt.Errorf("error committing new message: %w", err)
 	}

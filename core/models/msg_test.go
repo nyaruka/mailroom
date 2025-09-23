@@ -487,7 +487,7 @@ func TestMarkMessages(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE status = 'Q'`).Returns(2)
 }
 
-func TestNewOutgoingIVR(t *testing.T) {
+func TestNewIVRMessages(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
 	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
@@ -500,24 +500,39 @@ func TestNewOutgoingIVR(t *testing.T) {
 
 	flow := testdb.Favorites.Load(t, rt, oa)
 
-	flowMsg := flows.NewIVRMsgOut(testdb.Ann.URN, vonage.Reference(), "Hello", "http://example.com/hi.mp3", "eng-US")
-	event := events.NewIVRCreated(flowMsg)
-	dbMsg := models.NewOutgoingIVR(rt.Config, testdb.Org1.ID, call, flow, event)
+	flowOut := flows.NewIVRMsgOut(testdb.Ann.URN, vonage.Reference(), "Hello", "http://example.com/hi.mp3", "eng-US")
+	eventOut := events.NewIVRCreated(flowOut)
+	dbOut := models.NewOutgoingIVR(rt.Config, testdb.Org1.ID, call, flow, eventOut)
 
-	assert.Equal(t, event.UUID(), dbMsg.UUID())
-	assert.Equal(t, models.MsgTypeVoice, dbMsg.Type())
-	assert.Equal(t, "Hello", dbMsg.Text())
-	assert.Equal(t, []utils.Attachment{"audio:http://example.com/hi.mp3"}, dbMsg.Attachments())
-	assert.Equal(t, i18n.Locale("eng-US"), dbMsg.Locale())
-	assert.Equal(t, testdb.FacebookChannel.ID, dbMsg.FlowID())
-	assert.WithinDuration(t, time.Now(), dbMsg.CreatedOn(), time.Second)
-	assert.WithinDuration(t, time.Now(), *dbMsg.SentOn(), time.Second)
+	assert.Equal(t, eventOut.UUID(), dbOut.UUID())
+	assert.Equal(t, models.MsgTypeVoice, dbOut.Type())
+	assert.Equal(t, "Hello", dbOut.Text())
+	assert.Equal(t, []utils.Attachment{"audio:http://example.com/hi.mp3"}, dbOut.Attachments())
+	assert.Equal(t, i18n.Locale("eng-US"), dbOut.Locale())
+	assert.Equal(t, testdb.Favorites.ID, dbOut.FlowID())
+	assert.WithinDuration(t, time.Now(), dbOut.CreatedOn(), time.Second)
+	assert.WithinDuration(t, time.Now(), *dbOut.SentOn(), time.Second)
 
-	err = models.InsertMessages(ctx, rt.DB, []*models.Msg{dbMsg})
+	err = models.InsertMessages(ctx, rt.DB, []*models.Msg{dbOut})
 	require.NoError(t, err)
 
-	assertdb.Query(t, rt.DB, `SELECT text, status, msg_type, flow_id FROM msgs_msg WHERE uuid = $1`, dbMsg.UUID()).
+	assertdb.Query(t, rt.DB, `SELECT text, status, msg_type, flow_id FROM msgs_msg WHERE uuid = $1`, dbOut.UUID()).
 		Columns(map[string]any{"text": "Hello", "status": "W", "msg_type": "V", "flow_id": testdb.Favorites.ID})
+
+	flowIn := flows.NewMsgIn(testdb.Ann.URN, vonage.Reference(), "1", nil, "")
+	eventIn := events.NewMsgReceived(flowIn)
+	dbIn := models.NewIncomingIVR(rt.Config, testdb.Org1.ID, call, flow, eventIn)
+
+	assert.Equal(t, eventIn.UUID(), dbIn.UUID())
+	assert.Equal(t, models.MsgTypeVoice, dbIn.Type())
+	assert.Equal(t, "1", dbIn.Text())
+	assert.Equal(t, testdb.Favorites.ID, dbIn.FlowID())
+
+	err = models.InsertMessages(ctx, rt.DB, []*models.Msg{dbIn})
+	require.NoError(t, err)
+
+	assertdb.Query(t, rt.DB, `SELECT text, status, msg_type, flow_id FROM msgs_msg WHERE uuid = $1`, dbIn.UUID()).
+		Columns(map[string]any{"text": "1", "status": "H", "msg_type": "V", "flow_id": testdb.Favorites.ID})
 }
 
 func TestCreateMsgOut(t *testing.T) {
