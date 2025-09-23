@@ -323,6 +323,11 @@ func ResumeCall(
 		return HandleAsFailure(ctx, rt.DB, svc, call, w, fmt.Errorf("no active IVR session for contact"))
 	}
 
+	flow, err := oa.FlowByUUID(session.CurrentFlowUUID)
+	if err != nil {
+		return fmt.Errorf("unable to load flow %s: %w", session.CurrentFlowUUID, err)
+	}
+
 	// check if call has been marked as errored - it maybe have been updated by status callback
 	if call.Status() == models.CallStatusErrored || call.Status() == models.CallStatusFailed {
 		if err = models.ExitSessions(ctx, rt.DB, []flows.SessionUUID{session.UUID}, models.SessionStatusInterrupted); err != nil {
@@ -366,7 +371,7 @@ func ResumeCall(
 	var svcErr error
 	switch res := ivrResume.(type) {
 	case InputResume:
-		msg, resume, svcErr, err = buildMsgResume(ctx, rt, oa, svc, channel, urn, call, res)
+		msg, resume, svcErr, err = buildMsgResume(ctx, rt, oa, svc, channel, urn, call, flow.(*models.Flow), res)
 
 	case DialResume:
 		resume, svcErr, err = buildDialResume(res)

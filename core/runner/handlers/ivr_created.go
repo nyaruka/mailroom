@@ -33,7 +33,9 @@ func handleIVRCreated(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAs
 		return nil
 	}
 
-	msg := models.NewOutgoingIVR(rt.Config, oa.OrgID(), scene.DBCall, event)
+	flow, _ := scene.LocateEvent(e)
+
+	msg := models.NewOutgoingIVR(rt.Config, oa.OrgID(), scene.DBCall, flow, event)
 
 	// register to have this message committed
 	scene.AttachPreCommitHook(hooks.InsertMessages, hooks.MsgAndURN{Msg: msg})

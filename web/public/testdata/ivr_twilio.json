@@ -20,10 +20,11 @@
                 "returns": null
             },
             {
-                "query": "SELECT text, msg_type FROM msgs_msg WHERE contact_id = 10000",
+                "query": "SELECT text, msg_type, flow_id FROM msgs_msg WHERE contact_id = 10000 AND direction = 'O' ORDER BY id DESC LIMIT 1",
                 "columns": {
                     "text": "Hello there. Please enter one or two.  This flow was triggered by Ann",
-                    "msg_type": "V"
+                    "msg_type": "V",
+                    "flow_id": 10003
                 }
             }
         ],
@@ -82,6 +83,14 @@
             {
                 "query": "SELECT last_seen_on::text FROM contacts_contact WHERE id = 10000",
                 "returns": "2025-05-04 12:31:13.123457+00"
+            },
+            {
+                "query": "SELECT text, msg_type, flow_id FROM msgs_msg WHERE contact_id = 10000 AND direction = 'I' ORDER BY id DESC LIMIT 1",
+                "columns": {
+                    "text": "",
+                    "msg_type": "V",
+                    "flow_id": 10003
+                }
             }
         ]
     },
@@ -104,6 +113,14 @@
             {
                 "query": "SELECT last_seen_on::text FROM contacts_contact WHERE id = 10000",
                 "returns": "2025-05-04 12:31:38.123457+00"
+            },
+            {
+                "query": "SELECT text, msg_type, flow_id FROM msgs_msg WHERE contact_id = 10000 AND direction = 'I' ORDER BY id DESC LIMIT 1",
+                "columns": {
+                    "text": "1",
+                    "msg_type": "V",
+                    "flow_id": 10003
+                }
             }
         ]
     },
@@ -122,6 +139,14 @@
                     "Call2": "W",
                     "Call3": "W"
                 }
+            },
+            {
+                "query": "SELECT text, msg_type, flow_id FROM msgs_msg WHERE contact_id = 10000 AND direction = 'I' ORDER BY id DESC LIMIT 1",
+                "columns": {
+                    "text": "101",
+                    "msg_type": "V",
+                    "flow_id": 10003
+                }
             }
         ]
     },
@@ -139,6 +164,14 @@
                     "Call1": "I",
                     "Call2": "W",
                     "Call3": "W"
+                }
+            },
+            {
+                "query": "SELECT text, msg_type, flow_id FROM msgs_msg WHERE contact_id = 10000 AND direction = 'I' ORDER BY id DESC LIMIT 1",
+                "columns": {
+                    "text": "56",
+                    "msg_type": "V",
+                    "flow_id": 10003
                 }
             }
         ]
