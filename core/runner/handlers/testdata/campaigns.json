@@ -116,24 +116,15 @@
         },
         "db_assertions": [
             {
-                "query": "SELECT count(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'C'",
-                "args": [
-                    10000
-                ],
+                "query": "SELECT count(*) FROM contacts_contactfire WHERE contact_id = 10000 AND fire_type = 'C'",
                 "returns": 2
             },
             {
-                "query": "SELECT count(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'C'",
-                "args": [
-                    10001
-                ],
+                "query": "SELECT count(*) FROM contacts_contactfire WHERE contact_id = 10001 AND fire_type = 'C'",
                 "returns": 4
             },
             {
-                "query": "SELECT count(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'C'",
-                "args": [
-                    10002
-                ],
+                "query": "SELECT count(*) FROM contacts_contactfire WHERE contact_id = 10002 AND fire_type = 'C'",
                 "returns": 0
             }
         ],

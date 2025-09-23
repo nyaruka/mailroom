@@ -38,6 +38,13 @@
             {
                 "query": "SELECT last_seen_on FROM contacts_contact WHERE id = 10000",
                 "returns": null
+            },
+            {
+                "query": "SELECT text, msg_type FROM msgs_msg WHERE contact_id = 10000",
+                "columns": {
+                    "text": "Hello there. Please enter one or two. Your reference id is 123",
+                    "msg_type": "V"
+                }
             }
         ],
         "expected_history": [
