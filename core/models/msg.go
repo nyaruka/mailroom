@@ -301,7 +301,7 @@ func NewIncomingIVR(cfg *runtime.Config, orgID OrgID, call *Call, event *events.
 }
 
 // NewOutgoingIVR creates a new IVR message for the passed in text with the optional attachment
-func NewOutgoingIVR(cfg *runtime.Config, orgID OrgID, call *Call, event *events.IVRCreated) *Msg {
+func NewOutgoingIVR(cfg *runtime.Config, orgID OrgID, call *Call, flow *Flow, event *events.IVRCreated) *Msg {
 	out := event.Msg
 	createdOn := event.CreatedOn()
 
@@ -325,6 +325,10 @@ func NewOutgoingIVR(cfg *runtime.Config, orgID OrgID, call *Call, event *events.
 	// if we have attachments, add them
 	for _, a := range out.Attachments() {
 		m.Attachments = append(m.Attachments, string(NormalizeAttachment(cfg, a)))
+	}
+
+	if flow != nil {
+		m.FlowID = flow.ID()
 	}
 
 	return msg
