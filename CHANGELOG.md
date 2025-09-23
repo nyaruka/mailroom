@@ -1,3 +1,8 @@
+v10.3.73 (2025-09-23)
+-------------------------
+ * Stop writing legacy ticket events to database
+ * Rewrite of a lot of tests to be snapshot based
+
 v10.3.72 (2025-09-18)
 -------------------------
  * Use user refs for events credited to users
