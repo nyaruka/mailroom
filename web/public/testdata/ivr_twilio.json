@@ -14,6 +14,10 @@
                     "Call2": "W",
                     "Call3": "W"
                 }
+            },
+            {
+                "query": "SELECT last_seen_on FROM contacts_contact WHERE id = 10000",
+                "returns": null
             }
         ],
         "expected_history": [
@@ -67,6 +71,10 @@
                     "Call2": "W",
                     "Call3": "W"
                 }
+            },
+            {
+                "query": "SELECT last_seen_on::text FROM contacts_contact WHERE id = 10000",
+                "returns": "2025-05-04 12:31:13.123457+00"
             }
         ]
     },
@@ -85,6 +93,10 @@
                     "Call2": "W",
                     "Call3": "W"
                 }
+            },
+            {
+                "query": "SELECT last_seen_on::text FROM contacts_contact WHERE id = 10000",
+                "returns": "2025-05-04 12:31:38.123457+00"
             }
         ]
     },

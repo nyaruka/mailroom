@@ -111,5 +111,5 @@ func buildMsgResume(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 	}
 
 	// create our msg resume event
-	return &models.MsgInRef{ID: msg.ID()}, resumes.NewMsg(msgEvt), nil, nil
+	return &models.MsgInRef{ID: msg.ID(), Handled: true}, resumes.NewMsg(msgEvt), nil, nil
 }

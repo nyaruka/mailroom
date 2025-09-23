@@ -23,7 +23,7 @@ func handleMsgReceived(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 	slog.Debug("msg received", "contact", scene.ContactUUID(), "session", scene.SessionUUID(), "text", event.Msg.Text(), "urn", event.Msg.URN())
 
 	// update the message to be handled
-	if scene.IncomingMsg != nil {
+	if scene.IncomingMsg != nil && !scene.IncomingMsg.Handled {
 		scene.AttachPreCommitHook(hooks.UpdateMessageHandled, event)
 	}
 
