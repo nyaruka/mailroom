@@ -36,7 +36,8 @@
                 }
             },
             {
-                "query": "SELECT last_seen_on FROM contacts_contact WHERE id = 10000"
+                "query": "SELECT last_seen_on FROM contacts_contact WHERE id = 10000",
+                "returns": null
             },
             {
                 "query": "SELECT text, msg_type, flow_id FROM msgs_msg WHERE contact_id = 10000 AND direction = 'O'",
