@@ -1,3 +1,7 @@
+v10.3.75 (2025-09-24)
+-------------------------
+ * Start writing Broadcast.uuid
+
 v10.3.74 (2025-09-23)
 -------------------------
  * Fix not creating IVR messages with their flow
