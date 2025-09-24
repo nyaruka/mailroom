@@ -22,9 +22,9 @@
             {
                 "query": "SELECT text, msg_type, flow_id FROM msgs_msg WHERE contact_id = 10000 AND direction = 'O' ORDER BY id DESC LIMIT 1",
                 "columns": {
-                    "text": "Hello there. Please enter one or two.  This flow was triggered by Ann",
+                    "flow_id": 10003,
                     "msg_type": "V",
-                    "flow_id": 10003
+                    "text": "Hello there. Please enter one or two.  This flow was triggered by Ann"
                 }
             }
         ],
@@ -87,9 +87,9 @@
             {
                 "query": "SELECT text, msg_type, flow_id FROM msgs_msg WHERE contact_id = 10000 AND direction = 'I' ORDER BY id DESC LIMIT 1",
                 "columns": {
-                    "text": "",
+                    "flow_id": 10003,
                     "msg_type": "V",
-                    "flow_id": 10003
+                    "text": ""
                 }
             }
         ]
@@ -117,9 +117,9 @@
             {
                 "query": "SELECT text, msg_type, flow_id FROM msgs_msg WHERE contact_id = 10000 AND direction = 'I' ORDER BY id DESC LIMIT 1",
                 "columns": {
-                    "text": "1",
+                    "flow_id": 10003,
                     "msg_type": "V",
-                    "flow_id": 10003
+                    "text": "1"
                 }
             }
         ]
@@ -143,9 +143,9 @@
             {
                 "query": "SELECT text, msg_type, flow_id FROM msgs_msg WHERE contact_id = 10000 AND direction = 'I' ORDER BY id DESC LIMIT 1",
                 "columns": {
-                    "text": "101",
+                    "flow_id": 10003,
                     "msg_type": "V",
-                    "flow_id": 10003
+                    "text": "101"
                 }
             }
         ]
@@ -169,9 +169,9 @@
             {
                 "query": "SELECT text, msg_type, flow_id FROM msgs_msg WHERE contact_id = 10000 AND direction = 'I' ORDER BY id DESC LIMIT 1",
                 "columns": {
-                    "text": "56",
+                    "flow_id": 10003,
                     "msg_type": "V",
-                    "flow_id": 10003
+                    "text": "56"
                 }
             }
         ]
