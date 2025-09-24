@@ -52,6 +52,11 @@ type Template struct {
 	UUID assets.TemplateUUID
 }
 
+type Broadcast struct {
+	ID   models.BroadcastID
+	UUID flows.BroadcastUUID
+}
+
 // InsertIncomingMsg inserts an incoming text message
 func InsertIncomingMsg(t *testing.T, rt *runtime.Runtime, org *Org, channel *Channel, contact *Contact, text string, status models.MsgStatus) *MsgIn {
 	uuid := flows.NewEventUUID()
@@ -104,7 +109,9 @@ func insertOutgoingMsg(t *testing.T, rt *runtime.Runtime, org *Org, channel *Cha
 	return &MsgOut{Msg: Msg{ID: id, UUID: uuid}, FlowMsg: fm}
 }
 
-func InsertBroadcast(t *testing.T, rt *runtime.Runtime, org *Org, baseLanguage i18n.Language, text map[i18n.Language]string, optIn *OptIn, schedID models.ScheduleID, contacts []*Contact, groups []*Group) models.BroadcastID {
+func InsertBroadcast(t *testing.T, rt *runtime.Runtime, org *Org, baseLanguage i18n.Language, text map[i18n.Language]string, optIn *OptIn, schedID models.ScheduleID, contacts []*Contact, groups []*Group) *Broadcast {
+	uuid := flows.NewBroadcastUUID()
+
 	translations := make(flows.BroadcastTranslations)
 	for lang, t := range text {
 		translations[lang] = &flows.MsgContent{Text: t}
@@ -117,8 +124,8 @@ func InsertBroadcast(t *testing.T, rt *runtime.Runtime, org *Org, baseLanguage i
 
 	var id models.BroadcastID
 	err := rt.DB.Get(&id,
-		`INSERT INTO msgs_broadcast(org_id, base_language, translations, optin_id, schedule_id, status, created_on, modified_on, created_by_id, modified_by_id, is_active)
-		VALUES($1, $2, $3, $4, $5, 'P', NOW(), NOW(), 1, 1, TRUE) RETURNING id`, org.ID, baseLanguage, models.JSONB[flows.BroadcastTranslations]{V: translations}, optInID, schedID,
+		`INSERT INTO msgs_broadcast(uuid, org_id, base_language, translations, optin_id, schedule_id, status, created_on, modified_on, created_by_id, modified_by_id, is_active)
+		VALUES($1, $2, $3, $4, $5, $6, 'P', NOW(), NOW(), 1, 1, TRUE) RETURNING id`, uuid, org.ID, baseLanguage, models.JSONB[flows.BroadcastTranslations]{V: translations}, optInID, schedID,
 	)
 	require.NoError(t, err)
 
@@ -129,7 +136,7 @@ func InsertBroadcast(t *testing.T, rt *runtime.Runtime, org *Org, baseLanguage i
 		rt.DB.MustExec(`INSERT INTO msgs_broadcast_groups(broadcast_id, contactgroup_id) VALUES($1, $2)`, id, group.ID)
 	}
 
-	return id
+	return &Broadcast{ID: id, UUID: uuid}
 }
 
 // InsertOptIn inserts an opt in

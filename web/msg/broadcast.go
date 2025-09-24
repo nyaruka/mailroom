@@ -76,6 +76,7 @@ func handleBroadcast(ctx context.Context, rt *runtime.Runtime, r *broadcastReque
 	}
 
 	bcast := &models.Broadcast{
+		UUID:              flows.NewBroadcastUUID(),
 		OrgID:             r.OrgID,
 		Status:            models.BroadcastStatusPending,
 		Translations:      r.Translations,
