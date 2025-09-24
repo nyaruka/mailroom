@@ -16,15 +16,14 @@
                 }
             },
             {
-                "query": "SELECT last_seen_on FROM contacts_contact WHERE id = 10000",
-                "returns": null
+                "query": "SELECT last_seen_on FROM contacts_contact WHERE id = 10000"
             },
             {
                 "query": "SELECT text, msg_type, flow_id FROM msgs_msg WHERE contact_id = 10000 AND direction = 'O' ORDER BY id DESC LIMIT 1",
                 "columns": {
-                    "text": "Hello there. Please enter one or two.  This flow was triggered by Ann",
+                    "flow_id": 10003,
                     "msg_type": "V",
-                    "flow_id": 10003
+                    "text": "Hello there. Please enter one or two.  This flow was triggered by Ann"
                 }
             }
         ],
@@ -87,9 +86,28 @@
             {
                 "query": "SELECT text, msg_type, flow_id FROM msgs_msg WHERE contact_id = 10000 AND direction = 'I' ORDER BY id DESC LIMIT 1",
                 "columns": {
-                    "text": "",
+                    "flow_id": 10003,
                     "msg_type": "V",
-                    "flow_id": 10003
+                    "text": ""
+                }
+            }
+        ],
+        "expected_history": [
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01969b47-6b13-76f8-afcb-91a2073e5459",
+                "OrgID": 1,
+                "Data": {
+                    "created_on": "2025-05-04T12:31:13.123456789Z",
+                    "msg": {
+                        "channel": {
+                            "name": "Twilio",
+                            "uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8"
+                        },
+                        "text": "",
+                        "urn": "tel:+16055741111?id=10000"
+                    },
+                    "type": "msg_received"
                 }
             }
         ]
@@ -117,9 +135,28 @@
             {
                 "query": "SELECT text, msg_type, flow_id FROM msgs_msg WHERE contact_id = 10000 AND direction = 'I' ORDER BY id DESC LIMIT 1",
                 "columns": {
-                    "text": "1",
+                    "flow_id": 10003,
                     "msg_type": "V",
-                    "flow_id": 10003
+                    "text": "1"
+                }
+            }
+        ],
+        "expected_history": [
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01969b47-ccbb-76f8-ba82-c15b24dd577f",
+                "OrgID": 1,
+                "Data": {
+                    "created_on": "2025-05-04T12:31:38.123456789Z",
+                    "msg": {
+                        "channel": {
+                            "name": "Twilio",
+                            "uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8"
+                        },
+                        "text": "1",
+                        "urn": "tel:+16055741111?id=10000"
+                    },
+                    "type": "msg_received"
                 }
             }
         ]
@@ -143,9 +180,28 @@
             {
                 "query": "SELECT text, msg_type, flow_id FROM msgs_msg WHERE contact_id = 10000 AND direction = 'I' ORDER BY id DESC LIMIT 1",
                 "columns": {
-                    "text": "101",
+                    "flow_id": 10003,
                     "msg_type": "V",
-                    "flow_id": 10003
+                    "text": "101"
+                }
+            }
+        ],
+        "expected_history": [
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01969b48-2a7b-76f8-8f9d-465efd6fbb5e",
+                "OrgID": 1,
+                "Data": {
+                    "created_on": "2025-05-04T12:32:02.123456789Z",
+                    "msg": {
+                        "channel": {
+                            "name": "Twilio",
+                            "uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8"
+                        },
+                        "text": "101",
+                        "urn": "tel:+16055741111?id=10000"
+                    },
+                    "type": "msg_received"
                 }
             }
         ]
@@ -169,9 +225,28 @@
             {
                 "query": "SELECT text, msg_type, flow_id FROM msgs_msg WHERE contact_id = 10000 AND direction = 'I' ORDER BY id DESC LIMIT 1",
                 "columns": {
-                    "text": "56",
+                    "flow_id": 10003,
                     "msg_type": "V",
-                    "flow_id": 10003
+                    "text": "56"
+                }
+            }
+        ],
+        "expected_history": [
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01969b48-883b-76f8-8631-f6b52b12c734",
+                "OrgID": 1,
+                "Data": {
+                    "created_on": "2025-05-04T12:32:26.123456789Z",
+                    "msg": {
+                        "channel": {
+                            "name": "Twilio",
+                            "uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8"
+                        },
+                        "text": "56",
+                        "urn": "tel:+16055741111?id=10000"
+                    },
+                    "type": "msg_received"
                 }
             }
         ]
@@ -190,6 +265,25 @@
                     "Call1": "I",
                     "Call2": "W",
                     "Call3": "W"
+                }
+            }
+        ],
+        "expected_history": [
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01969b48-e5fb-76f8-8c15-15a7c0c5228d",
+                "OrgID": 1,
+                "Data": {
+                    "created_on": "2025-05-04T12:32:50.123456789Z",
+                    "msg": {
+                        "channel": {
+                            "name": "Twilio",
+                            "uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8"
+                        },
+                        "text": "",
+                        "urn": "tel:+16055741111?id=10000"
+                    },
+                    "type": "msg_received"
                 }
             }
         ]
@@ -317,6 +411,25 @@
                     "Call3": "W"
                 }
             }
+        ],
+        "expected_history": [
+            {
+                "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
+                "SK": "evt#01969b49-fb53-76f8-9b19-ce8a2dca70df",
+                "OrgID": 1,
+                "Data": {
+                    "created_on": "2025-05-04T12:34:01.123456789Z",
+                    "msg": {
+                        "channel": {
+                            "name": "Twilio",
+                            "uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8"
+                        },
+                        "text": "56",
+                        "urn": "tel:+16055742222?id=10001"
+                    },
+                    "type": "msg_received"
+                }
+            }
         ]
     },
     {
@@ -423,6 +536,25 @@
                     "Call2": "D",
                     "Call3": "E",
                     "Call4": "I"
+                }
+            }
+        ],
+        "expected_history": [
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01969b4a-dde3-76f8-a2a5-6b6ffeeada26",
+                "OrgID": 1,
+                "Data": {
+                    "created_on": "2025-05-04T12:34:59.123456789Z",
+                    "msg": {
+                        "channel": {
+                            "name": "Twilio",
+                            "uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8"
+                        },
+                        "text": "2",
+                        "urn": "tel:+16055741111?channel=74729f45-7f29-4868-9dc4-90e491e3c7d8\u0026id=10000"
+                    },
+                    "type": "msg_received"
                 }
             }
         ]

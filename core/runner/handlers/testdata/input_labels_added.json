@@ -95,10 +95,12 @@
         ],
         "persisted_events": {
             "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                "msg_received",
                 "run_started",
                 "run_ended"
             ],
             "b699a406-7e44-49be-9f01-1a82893e8a10": [
+                "msg_received",
                 "run_started",
                 "run_ended"
             ],
