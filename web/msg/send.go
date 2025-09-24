@@ -59,7 +59,7 @@ func handleSend(ctx context.Context, rt *runtime.Runtime, r *sendRequest) (any, 
 	content := &flows.MsgContent{Text: r.Text, Attachments: r.Attachments, QuickReplies: r.QuickReplies}
 
 	out, ch := models.CreateMsgOut(rt, oa, contact, content, models.NilTemplateID, nil, contact.Locale(oa.Env()), nil)
-	event := events.NewMsgCreated(out)
+	event := events.NewMsgCreated(out, "", "") // TODO set ticket UUID
 
 	msg, err := models.NewOutgoingChatMsg(rt, oa.Org(), ch, contact, event, r.TicketID, r.UserID)
 	if err != nil {

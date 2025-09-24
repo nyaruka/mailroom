@@ -75,12 +75,12 @@ func TestInsertChildBroadcast(t *testing.T) {
 
 	optIn := testdb.InsertOptIn(t, rt, testdb.Org1, "45aec4dd-945f-4511-878f-7d8516fbd336", "Polls")
 	schedID := testdb.InsertSchedule(t, rt, testdb.Org1, models.RepeatPeriodDaily, time.Now())
-	bcastID := testdb.InsertBroadcast(t, rt, testdb.Org1, `eng`, map[i18n.Language]string{`eng`: "Hello"}, optIn, schedID, []*testdb.Contact{testdb.Bob, testdb.Ann}, nil)
+	bcast := testdb.InsertBroadcast(t, rt, testdb.Org1, `eng`, map[i18n.Language]string{`eng`: "Hello"}, optIn, schedID, []*testdb.Contact{testdb.Bob, testdb.Ann}, nil)
 
 	var bj json.RawMessage
 	err := rt.DB.GetContext(ctx, &bj, `SELECT ROW_TO_JSON(r) FROM (
 		SELECT id, org_id, translations, base_language, optin_id, template_id, template_variables, query, created_by_id, parent_id FROM msgs_broadcast WHERE id = $1
-	) r`, bcastID)
+	) r`, bcast.ID)
 	require.NoError(t, err)
 
 	parent := &models.Broadcast{}
@@ -251,6 +251,7 @@ func TestBroadcastBatchCreateMessage(t *testing.T) {
 		testdb.InsertContactURN(t, rt, testdb.Org1, contact, tc.contactURN, 1000, nil)
 
 		bcast := &models.Broadcast{
+			UUID:              flows.NewBroadcastUUID(),
 			OrgID:             testdb.Org1.ID,
 			Translations:      tc.translations,
 			BaseLanguage:      tc.baseLanguage,

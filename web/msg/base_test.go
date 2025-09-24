@@ -8,6 +8,7 @@ import (
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/testsuite"
 	"github.com/nyaruka/mailroom/testsuite/testdb"
+	"github.com/stretchr/testify/require"
 )
 
 func TestSend(t *testing.T) {
@@ -53,7 +54,8 @@ func TestBroadcast(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetValkey)
 
-	testdb.InsertOptIn(t, rt, testdb.Org1, "45aec4dd-945f-4511-878f-7d8516fbd336", "Polls")
+	optIn := testdb.InsertOptIn(t, rt, testdb.Org1, "45aec4dd-945f-4511-878f-7d8516fbd336", "Polls")
+	require.Equal(t, models.OptInID(30000), optIn.ID)
 
 	createRun := func(org *testdb.Org, contact *testdb.Contact, nodeUUID flows.NodeUUID) {
 		sessionUUID := testdb.InsertFlowSession(t, rt, contact, models.FlowTypeMessaging, models.SessionStatusWaiting, nil, testdb.Favorites)

@@ -142,7 +142,7 @@
         },
         "db_assertions": [
             {
-                "query": "SELECT count(*) FROM tickets_ticket WHERE id = 30000 AND replied_on IS NOT NULL AND last_activity_on > '2015-01-01T12:30:45Z'",
+                "query": "SELECT count(*) FROM tickets_ticket WHERE id = 30000 AND replied_on IS NOT NULL AND last_activity_on \u003e '2015-01-01T12:30:45Z'",
                 "returns": 1
             },
             {

@@ -65,7 +65,7 @@ func TestNewCourierMsg(t *testing.T) {
 		),
 		`eng-US`,
 		flows.NilUnsendableReason,
-	))
+	), "", "")
 
 	msg1, err := models.NewOutgoingFlowMsg(rt, oa.Org(), facebook, fAnn, flow, msgEvent1, nil)
 	require.NoError(t, err)
@@ -121,7 +121,7 @@ func TestNewCourierMsg(t *testing.T) {
 		nil,
 		i18n.NilLocale,
 		flows.NilUnsendableReason,
-	))
+	), "", "")
 	in1 := testdb.InsertIncomingMsg(t, rt, testdb.Org1, testdb.TwilioChannel, testdb.Ann, "test", models.MsgStatusHandled)
 	msg2, err := models.NewOutgoingFlowMsg(rt, oa.Org(), twilio, fAnn, flow, msgEvent2, &models.MsgInRef{ID: in1.ID, ExtID: "EX123"})
 	require.NoError(t, err)
@@ -157,11 +157,13 @@ func TestNewCourierMsg(t *testing.T) {
 	}`, string(jsonx.MustMarshal(msgEvent2.CreatedOn())), session.UUID(), sprint.UUID(), msg2.UUID()))
 
 	// try a broadcast message which won't have session and flow fields set and won't be high priority
-	bcastID := testdb.InsertBroadcast(t, rt, testdb.Org1, `eng`, map[i18n.Language]string{`eng`: "Blast"}, nil, models.NilScheduleID, []*testdb.Contact{testFred}, nil)
+	bcast := testdb.InsertBroadcast(t, rt, testdb.Org1, `eng`, map[i18n.Language]string{`eng`: "Blast"}, nil, models.NilScheduleID, []*testdb.Contact{testFred}, nil)
 	msgEvent3 := events.NewMsgCreated(
 		flows.NewMsgOut(fredURN, assets.NewChannelReference(testdb.TwilioChannel.UUID, "Test Channel"), &flows.MsgContent{Text: "Blast"}, nil, i18n.NilLocale, flows.NilUnsendableReason),
+		bcast.UUID,
+		"",
 	)
-	msg3, err := models.NewOutgoingBroadcastMsg(rt, oa.Org(), twilio, fred, msgEvent3, &models.Broadcast{ID: bcastID, OptInID: optInID, CreatedByID: testdb.Admin.ID})
+	msg3, err := models.NewOutgoingBroadcastMsg(rt, oa.Org(), twilio, fred, msgEvent3, &models.Broadcast{ID: bcast.ID, OptInID: optInID, CreatedByID: testdb.Admin.ID})
 	require.NoError(t, err)
 
 	err = models.InsertMessages(ctx, rt.DB, []*models.Msg{msg3.Msg})
