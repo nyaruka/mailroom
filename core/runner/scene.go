@@ -24,6 +24,7 @@ type Scene struct {
 	Call        *flows.Call
 	StartID     models.StartID
 	IncomingMsg *models.MsgInRef
+	Broadcast   *models.Broadcast
 
 	// optional state set during processing
 	DBSession           *models.Session
