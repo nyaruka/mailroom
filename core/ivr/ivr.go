@@ -368,13 +368,21 @@ func ResumeCall(
 
 	var msg *models.MsgInRef
 	var resume flows.Resume
+	var resumeEvent flows.Event
 	var svcErr error
 	switch res := ivrResume.(type) {
 	case InputResume:
 		msg, resume, svcErr, err = buildMsgResume(ctx, rt, oa, svc, channel, urn, call, flow.(*models.Flow), res)
 
+		// TODO find a better way to model timeouts in IVR flows.. these should be timeout events not empty messages but
+		// IVR flows don't have timeout routing
+		if msg != nil {
+			resumeEvent = resume.Event()
+		}
+
 	case DialResume:
 		resume, svcErr, err = buildDialResume(res)
+		resumeEvent = resume.Event()
 
 	default:
 		return fmt.Errorf("unknown resume type: %vvv", ivrResume)
@@ -395,8 +403,10 @@ func ResumeCall(
 	scene.DBCall = call
 	scene.Call = flows.NewCall(call.UUID(), oa.SessionAssets().Channels().Get(channel.UUID()), urn.Identity())
 
-	if err := scene.AddEvent(ctx, rt, oa, resume.Event(), models.NilUserID); err != nil {
-		return fmt.Errorf("error adding event: %w", err)
+	if resumeEvent != nil {
+		if err := scene.AddEvent(ctx, rt, oa, resumeEvent, models.NilUserID); err != nil {
+			return fmt.Errorf("error adding event: %w", err)
+		}
 	}
 
 	if err := scene.ResumeSession(ctx, rt, oa, session, resume); err != nil {
