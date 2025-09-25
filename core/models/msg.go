@@ -138,7 +138,7 @@ type Msg struct {
 		// origin
 		BroadcastID BroadcastID `db:"broadcast_id"`
 		FlowID      FlowID      `db:"flow_id"`
-		TicketID    TicketID    `db:"ticket_id"`
+		TicketUUID  null.String `db:"ticket_uuid"`
 		CreatedByID UserID      `db:"created_by_id"`
 
 		// content
@@ -173,10 +173,10 @@ type Msg struct {
 func (m *Msg) ID() MsgID             { return m.m.ID }
 func (m *Msg) UUID() flows.EventUUID { return m.m.UUID }
 
-func (m *Msg) BroadcastID() BroadcastID { return m.m.BroadcastID }
-func (m *Msg) FlowID() FlowID           { return m.m.FlowID }
-func (m *Msg) TicketID() TicketID       { return m.m.TicketID }
-func (m *Msg) CreatedByID() UserID      { return m.m.CreatedByID }
+func (m *Msg) BroadcastID() BroadcastID     { return m.m.BroadcastID }
+func (m *Msg) FlowID() FlowID               { return m.m.FlowID }
+func (m *Msg) TicketUUID() flows.TicketUUID { return flows.TicketUUID(m.m.TicketUUID) }
+func (m *Msg) CreatedByID() UserID          { return m.m.CreatedByID }
 
 func (m *Msg) Text() string                  { return m.m.Text }
 func (m *Msg) Locale() i18n.Locale           { return m.m.Locale }
@@ -370,20 +370,20 @@ func NewOutgoingOptInMsg(rt *runtime.Runtime, orgID OrgID, contact *flows.Contac
 func NewOutgoingFlowMsg(rt *runtime.Runtime, org *Org, channel *Channel, contact *flows.Contact, flow *Flow, event *events.MsgCreated, replyTo *MsgInRef) (*MsgOut, error) {
 	highPriority := replyTo != nil
 
-	return newMsgOut(rt, org, channel, contact, event, flow, NilBroadcastID, NilTicketID, NilOptInID, NilUserID, replyTo, highPriority)
+	return newMsgOut(rt, org, channel, contact, event, flow, NilBroadcastID, "", NilOptInID, NilUserID, replyTo, highPriority)
 }
 
 // NewOutgoingBroadcastMsg creates an outgoing message which is part of a broadcast
 func NewOutgoingBroadcastMsg(rt *runtime.Runtime, org *Org, channel *Channel, contact *flows.Contact, event *events.MsgCreated, b *Broadcast) (*MsgOut, error) {
-	return newMsgOut(rt, org, channel, contact, event, nil, b.ID, NilTicketID, b.OptInID, b.CreatedByID, nil, false)
+	return newMsgOut(rt, org, channel, contact, event, nil, b.ID, "", b.OptInID, b.CreatedByID, nil, false)
 }
 
 // NewOutgoingChatMsg creates an outgoing message from chat
-func NewOutgoingChatMsg(rt *runtime.Runtime, org *Org, channel *Channel, contact *flows.Contact, event *events.MsgCreated, ticketID TicketID, userID UserID) (*MsgOut, error) {
-	return newMsgOut(rt, org, channel, contact, event, nil, NilBroadcastID, NilTicketID, NilOptInID, userID, nil, true)
+func NewOutgoingChatMsg(rt *runtime.Runtime, org *Org, channel *Channel, contact *flows.Contact, event *events.MsgCreated, ticketUUID flows.TicketUUID, userID UserID) (*MsgOut, error) {
+	return newMsgOut(rt, org, channel, contact, event, nil, NilBroadcastID, ticketUUID, NilOptInID, userID, nil, true)
 }
 
-func newMsgOut(rt *runtime.Runtime, org *Org, channel *Channel, contact *flows.Contact, event *events.MsgCreated, flow *Flow, broadcastID BroadcastID, ticketID TicketID, optInID OptInID, userID UserID, replyTo *MsgInRef, highPriority bool) (*MsgOut, error) {
+func newMsgOut(rt *runtime.Runtime, org *Org, channel *Channel, contact *flows.Contact, event *events.MsgCreated, flow *Flow, broadcastID BroadcastID, ticketUUID flows.TicketUUID, optInID OptInID, userID UserID, replyTo *MsgInRef, highPriority bool) (*MsgOut, error) {
 	out := event.Msg
 
 	msg := &Msg{}
@@ -392,7 +392,7 @@ func newMsgOut(rt *runtime.Runtime, org *Org, channel *Channel, contact *flows.C
 	m.OrgID = org.ID()
 	m.ContactID = ContactID(contact.ID())
 	m.BroadcastID = broadcastID
-	m.TicketID = ticketID
+	m.TicketUUID = null.String(ticketUUID)
 	m.Text = out.Text()
 	m.Locale = out.Locale()
 	m.OptInID = optInID
@@ -493,7 +493,7 @@ SELECT
 	uuid,	
 	broadcast_id,
 	flow_id,
-	ticket_id,
+	ticket_uuid,
 	optin_id,
 	text,
 	attachments,
@@ -534,7 +534,7 @@ SELECT
 	m.uuid,
 	m.broadcast_id,
 	m.flow_id,
-	m.ticket_id,
+	m.ticket_uuid,
 	m.optin_id,
 	m.text,
 	m.attachments,
@@ -625,10 +625,10 @@ const sqlInsertMsgSQL = `
 INSERT INTO
 msgs_msg(uuid, text, attachments, quick_replies, locale, templating, high_priority, created_on, modified_on, sent_on, direction, status,
 		 visibility, msg_type, msg_count, error_count, next_attempt, failed_reason, channel_id, is_android,
-		 contact_id, contact_urn_id, org_id, flow_id, broadcast_id, ticket_id, optin_id, created_by_id)
+		 contact_id, contact_urn_id, org_id, flow_id, broadcast_id, ticket_uuid, optin_id, created_by_id)
   VALUES(:uuid, :text, :attachments, :quick_replies, :locale, :templating, :high_priority, :created_on, now(), :sent_on, :direction, :status,
 		 :visibility, :msg_type, :msg_count, :error_count, :next_attempt, :failed_reason, :channel_id, :is_android,
-		 :contact_id, :contact_urn_id, :org_id, :flow_id, :broadcast_id, :ticket_id, :optin_id, :created_by_id)
+		 :contact_id, :contact_urn_id, :org_id, :flow_id, :broadcast_id, :ticket_uuid, :optin_id, :created_by_id)
 RETURNING id, modified_on`
 
 // MarkMessageHandled updates a message after handling
@@ -638,14 +638,14 @@ func MarkMessageHandled(ctx context.Context, tx DBorTx, msgID MsgID, status MsgS
 		flowID = flow.ID()
 	}
 
-	ticketID := NilTicketID
+	var ticketUUID flows.TicketUUID
 	if ticket != nil {
-		ticketID = ticket.ID
+		ticketUUID = ticket.UUID
 	}
 
 	_, err := tx.ExecContext(ctx,
-		`UPDATE msgs_msg SET status = $2, visibility = $3, flow_id = $4, ticket_id = $5, attachments = $6, log_uuids = array_cat(log_uuids, $7) WHERE id = $1`,
-		msgID, status, visibility, flowID, ticketID, pq.Array(attachments), pq.Array(logUUIDs),
+		`UPDATE msgs_msg SET status = $2, visibility = $3, flow_id = $4, ticket_uuid = $5, attachments = $6, log_uuids = array_cat(log_uuids, $7) WHERE id = $1`,
+		msgID, status, visibility, flowID, null.String(ticketUUID), pq.Array(attachments), pq.Array(logUUIDs),
 	)
 	if err != nil {
 		return fmt.Errorf("error marking msg #%d as handled: %w", msgID, err)
