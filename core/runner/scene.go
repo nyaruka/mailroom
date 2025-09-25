@@ -31,6 +31,7 @@ type Scene struct {
 	Sprint              flows.Sprint
 	WaitTimeout         time.Duration
 	PriorRunModifiedOns map[flows.RunUUID]time.Time
+	SentMsgs            []*models.MsgOut
 
 	preCommits    map[PreCommitHook][]any
 	postCommits   map[PostCommitHook][]any

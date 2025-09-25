@@ -370,20 +370,20 @@ func NewOutgoingOptInMsg(rt *runtime.Runtime, orgID OrgID, contact *flows.Contac
 func NewOutgoingFlowMsg(rt *runtime.Runtime, org *Org, channel *Channel, contact *flows.Contact, flow *Flow, event *events.MsgCreated, replyTo *MsgInRef) (*MsgOut, error) {
 	highPriority := replyTo != nil
 
-	return newMsgOut(rt, org, channel, contact, event, flow, NilBroadcastID, "", NilOptInID, NilUserID, replyTo, highPriority)
+	return newMsgOut(rt, org, channel, contact, event, flow, NilBroadcastID, NilOptInID, NilUserID, replyTo, highPriority)
 }
 
 // NewOutgoingBroadcastMsg creates an outgoing message which is part of a broadcast
 func NewOutgoingBroadcastMsg(rt *runtime.Runtime, org *Org, channel *Channel, contact *flows.Contact, event *events.MsgCreated, b *Broadcast) (*MsgOut, error) {
-	return newMsgOut(rt, org, channel, contact, event, nil, b.ID, "", b.OptInID, b.CreatedByID, nil, false)
+	return newMsgOut(rt, org, channel, contact, event, nil, b.ID, b.OptInID, b.CreatedByID, nil, false)
 }
 
 // NewOutgoingChatMsg creates an outgoing message from chat
-func NewOutgoingChatMsg(rt *runtime.Runtime, org *Org, channel *Channel, contact *flows.Contact, event *events.MsgCreated, ticketUUID flows.TicketUUID, userID UserID) (*MsgOut, error) {
-	return newMsgOut(rt, org, channel, contact, event, nil, NilBroadcastID, ticketUUID, NilOptInID, userID, nil, true)
+func NewOutgoingChatMsg(rt *runtime.Runtime, org *Org, channel *Channel, contact *flows.Contact, event *events.MsgCreated, userID UserID) (*MsgOut, error) {
+	return newMsgOut(rt, org, channel, contact, event, nil, NilBroadcastID, NilOptInID, userID, nil, true)
 }
 
-func newMsgOut(rt *runtime.Runtime, org *Org, channel *Channel, contact *flows.Contact, event *events.MsgCreated, flow *Flow, broadcastID BroadcastID, ticketUUID flows.TicketUUID, optInID OptInID, userID UserID, replyTo *MsgInRef, highPriority bool) (*MsgOut, error) {
+func newMsgOut(rt *runtime.Runtime, org *Org, channel *Channel, contact *flows.Contact, event *events.MsgCreated, flow *Flow, broadcastID BroadcastID, optInID OptInID, userID UserID, replyTo *MsgInRef, highPriority bool) (*MsgOut, error) {
 	out := event.Msg
 
 	msg := &Msg{}
@@ -392,7 +392,7 @@ func newMsgOut(rt *runtime.Runtime, org *Org, channel *Channel, contact *flows.C
 	m.OrgID = org.ID()
 	m.ContactID = ContactID(contact.ID())
 	m.BroadcastID = broadcastID
-	m.TicketUUID = null.String(ticketUUID)
+	m.TicketUUID = null.String(event.TicketUUID)
 	m.Text = out.Text()
 	m.Locale = out.Locale()
 	m.OptInID = optInID
