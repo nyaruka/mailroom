@@ -1,3 +1,7 @@
+v10.3.78 (2025-09-25)
+-------------------------
+ * Handle chat message sending via msg_created event handling
+
 v10.3.77 (2025-09-25)
 -------------------------
  * Start writing msg.ticket_uuid instead of ticket_id
