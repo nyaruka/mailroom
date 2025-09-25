@@ -82,15 +82,11 @@
             },
             {
                 "query": "SELECT last_seen_on::text FROM contacts_contact WHERE id = 10000",
-                "returns": "2025-05-04 12:31:13.123457+00"
+                "returns": null
             },
             {
-                "query": "SELECT text, msg_type, flow_id FROM msgs_msg WHERE contact_id = 10000 AND direction = 'I' ORDER BY id DESC LIMIT 1",
-                "columns": {
-                    "flow_id": 10003,
-                    "msg_type": "V",
-                    "text": ""
-                }
+                "query": "SELECT count(*) FROM msgs_msg WHERE contact_id = 10000 AND direction = 'I'",
+                "returns": 0
             }
         ]
     },
@@ -113,6 +109,10 @@
             {
                 "query": "SELECT last_seen_on::text FROM contacts_contact WHERE id = 10000",
                 "returns": "2025-05-04 12:31:38.123457+00"
+            },
+            {
+                "query": "SELECT count(*) FROM msgs_msg WHERE contact_id = 10000 AND direction = 'I'",
+                "returns": 1
             },
             {
                 "query": "SELECT text, msg_type, flow_id FROM msgs_msg WHERE contact_id = 10000 AND direction = 'I' ORDER BY id DESC LIMIT 1",
@@ -141,6 +141,10 @@
                 }
             },
             {
+                "query": "SELECT count(*) FROM msgs_msg WHERE contact_id = 10000 AND direction = 'I'",
+                "returns": 2
+            },
+            {
                 "query": "SELECT text, msg_type, flow_id FROM msgs_msg WHERE contact_id = 10000 AND direction = 'I' ORDER BY id DESC LIMIT 1",
                 "columns": {
                     "flow_id": 10003,
@@ -167,6 +171,10 @@
                 }
             },
             {
+                "query": "SELECT count(*) FROM msgs_msg WHERE contact_id = 10000 AND direction = 'I'",
+                "returns": 3
+            },
+            {
                 "query": "SELECT text, msg_type, flow_id FROM msgs_msg WHERE contact_id = 10000 AND direction = 'I' ORDER BY id DESC LIMIT 1",
                 "columns": {
                     "flow_id": 10003,
@@ -191,6 +199,10 @@
                     "Call2": "W",
                     "Call3": "W"
                 }
+            },
+            {
+                "query": "SELECT count(*) FROM msgs_msg WHERE contact_id = 10000 AND direction = 'I'",
+                "returns": 3
             }
         ]
     },
@@ -209,6 +221,10 @@
                     "Call2": "W",
                     "Call3": "W"
                 }
+            },
+            {
+                "query": "SELECT count(*) FROM msgs_msg WHERE contact_id = 10000 AND direction = 'I'",
+                "returns": 3
             }
         ],
         "expected_history": [
@@ -263,6 +279,10 @@
                     "Call2": "I",
                     "Call3": "W"
                 }
+            },
+            {
+                "query": "SELECT count(*) FROM msgs_msg WHERE contact_id = 10000 AND direction = 'I'",
+                "returns": 3
             }
         ],
         "expected_history": [
@@ -424,6 +444,10 @@
                     "Call3": "E",
                     "Call4": "I"
                 }
+            },
+            {
+                "query": "SELECT count(*) FROM msgs_msg WHERE contact_id = 10000 AND direction = 'I'",
+                "returns": 4
             }
         ]
     },
