@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"time"
 
+	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/goflow/utils"
@@ -71,7 +71,7 @@ func handleSend(ctx context.Context, rt *runtime.Runtime, r *sendRequest) (any, 
 
 	// if message was a ticket reply, update the ticket
 	if r.TicketUUID != "" {
-		if err := models.RecordTicketReply(ctx, rt.DB, oa, r.TicketUUID, r.UserID, time.Now()); err != nil {
+		if err := models.RecordTicketReply(ctx, rt.DB, oa, r.TicketUUID, r.UserID, dates.Now()); err != nil {
 			return nil, 0, fmt.Errorf("error recording ticket reply: %w", err)
 		}
 	}
