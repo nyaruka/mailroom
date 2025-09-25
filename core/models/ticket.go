@@ -207,13 +207,13 @@ const sqlUpdateTicketRepliedOn = `
    UPDATE tickets_ticket t1
       SET last_activity_on = $2, replied_on = LEAST(t1.replied_on, $2)
 	 FROM tickets_ticket t2
-    WHERE t1.id = t2.id AND t1.id = $1
+    WHERE t1.id = t2.id AND t1.uuid = $1
 RETURNING CASE WHEN t2.replied_on IS NULL THEN t1.opened_on ELSE NULL END`
 
 // TicketRecordReplied records a ticket as being replied to, updating last_activity_on. If this is the first reply
 // to this ticket then replied_on is updated and the function returns the time the ticket was opened.
-func TicketRecordReplied(ctx context.Context, db DBorTx, ticketID TicketID, when time.Time) (*time.Time, error) {
-	rows, err := db.QueryxContext(ctx, sqlUpdateTicketRepliedOn, ticketID, when)
+func TicketRecordReplied(ctx context.Context, db DBorTx, ticketUUID flows.TicketUUID, when time.Time) (*time.Time, error) {
+	rows, err := db.QueryxContext(ctx, sqlUpdateTicketRepliedOn, ticketUUID, when)
 	if err != nil && err != sql.ErrNoRows {
 		return nil, err
 	}
@@ -233,8 +233,8 @@ func TicketRecordReplied(ctx context.Context, db DBorTx, ticketID TicketID, when
 	return openedOn, nil
 }
 
-func RecordTicketReply(ctx context.Context, db DBorTx, oa *OrgAssets, ticketID TicketID, userID UserID, when time.Time) error {
-	openedOn, err := TicketRecordReplied(ctx, db, ticketID, when)
+func RecordTicketReply(ctx context.Context, db DBorTx, oa *OrgAssets, ticketUUID flows.TicketUUID, userID UserID, when time.Time) error {
+	openedOn, err := TicketRecordReplied(ctx, db, ticketUUID, when)
 	if err != nil {
 		return err
 	}

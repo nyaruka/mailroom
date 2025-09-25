@@ -100,10 +100,14 @@ func buildMsgResume(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 		attachments = []utils.Attachment{resume.Attachment}
 	}
 
-	// create and insert an incoming message
 	msgIn := flows.NewMsgIn(urn, channel.Reference(), resume.Input, attachments, "")
 	msgEvt := events.NewMsgReceived(msgIn)
 	msgEvt.UUID_ = msgUUID
+
+	// we currently model timeouts as empty messages.. if we have one of those, don't save it
+	if resume.Input == "" && len(attachments) == 0 {
+		return nil, resumes.NewMsg(msgEvt), nil, nil
+	}
 
 	msg := models.NewIncomingIVR(rt.Config, oa.OrgID(), call, flow, msgEvt)
 	if err := models.InsertMessages(ctx, rt.DB, []*models.Msg{msg}); err != nil {

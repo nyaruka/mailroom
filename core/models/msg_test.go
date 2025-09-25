@@ -159,7 +159,7 @@ func TestNewOutgoingFlowMsg(t *testing.T) {
 		require.NoError(t, err)
 
 		_, contact, _ := tc.Contact.Load(t, rt, oa)
-		msgEvent := events.NewMsgCreated(flows.NewMsgOut(tc.URN, chRef, tc.Content, tc.Templating, tc.Locale, tc.Unsendable))
+		msgEvent := events.NewMsgCreated(flows.NewMsgOut(tc.URN, chRef, tc.Content, tc.Templating, tc.Locale, tc.Unsendable), "", "")
 		msg, err := models.NewOutgoingFlowMsg(rt, oa.Org(), ch, contact, flow, msgEvent, tc.ResponseTo)
 		assert.NoError(t, err)
 
@@ -224,7 +224,7 @@ func TestNewOutgoingFlowMsg(t *testing.T) {
 			urns.URN(fmt.Sprintf("tel:+250700000001?id=%d", testdb.Ann.URNID)),
 			assets.NewChannelReference(testdb.TwilioChannel.UUID, "Twilio"),
 			content, nil, i18n.NilLocale, flows.NilUnsendableReason,
-		))
+		), "", "")
 		msg, err := models.NewOutgoingFlowMsg(rt, oa.Org(), channel, contact, flow, msgEvent, nil)
 		require.NoError(t, err)
 		return msg
@@ -627,12 +627,12 @@ func TestMsgTemplating(t *testing.T) {
 	)
 
 	// create a message with templating
-	out1 := events.NewMsgCreated(flows.NewMsgOut(testdb.Ann.URN, chRef, &flows.MsgContent{Text: "Hello"}, templating1, i18n.NilLocale, flows.NilUnsendableReason))
+	out1 := events.NewMsgCreated(flows.NewMsgOut(testdb.Ann.URN, chRef, &flows.MsgContent{Text: "Hello"}, templating1, i18n.NilLocale, flows.NilUnsendableReason), "", "")
 	msg1, err := models.NewOutgoingFlowMsg(rt, oa.Org(), channel, contact, flow, out1, nil)
 	require.NoError(t, err)
 
 	// create a message without templating
-	out2 := events.NewMsgCreated(flows.NewMsgOut(testdb.Ann.URN, chRef, &flows.MsgContent{Text: "Hello"}, nil, i18n.NilLocale, flows.NilUnsendableReason))
+	out2 := events.NewMsgCreated(flows.NewMsgOut(testdb.Ann.URN, chRef, &flows.MsgContent{Text: "Hello"}, nil, i18n.NilLocale, flows.NilUnsendableReason), "", "")
 	msg2, err := models.NewOutgoingFlowMsg(rt, oa.Org(), channel, contact, flow, out2, nil)
 	require.NoError(t, err)
 

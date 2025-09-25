@@ -58,14 +58,14 @@ func TestFireSchedules(t *testing.T) {
 		AND translations -> 'eng' ->> 'text' = 'Hi'
 		AND translations -> 'spa' ->> 'text' = 'Hola'
 		AND status = 'P' 
-		AND base_language = 'eng'`, testdb.Org1.ID, b1).Returns(1)
+		AND base_language = 'eng'`, testdb.Org1.ID, b1.ID).Returns(1)
 
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_broadcast WHERE org_id = $1 
 		AND parent_id = $2 
 		AND translations -> 'eng' ->> 'text' = 'Bye'
 		AND translations -> 'spa' ->> 'text' = 'Chau'
 		AND status = 'P' 
-		AND base_language = 'eng'`, testdb.Org1.ID, b2).Returns(1)
+		AND base_language = 'eng'`, testdb.Org1.ID, b2.ID).Returns(1)
 
 	// with the right count of contacts and groups
 	assertdb.Query(t, rt.DB, `SELECT count(*) from msgs_broadcast_contacts WHERE broadcast_id = 30000`).Returns(2)
@@ -73,7 +73,7 @@ func TestFireSchedules(t *testing.T) {
 
 	// the one-off schedules should de deleted and their broadcast and trigger deactivated
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM schedules_schedule WHERE id = $1`, s1).Returns(0)
-	assertdb.Query(t, rt.DB, `SELECT is_active FROM msgs_broadcast WHERE id = $1`, b1).Returns(false)
+	assertdb.Query(t, rt.DB, `SELECT is_active FROM msgs_broadcast WHERE id = $1`, b1.ID).Returns(false)
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM schedules_schedule WHERE id = $1`, s3).Returns(0)
 	assertdb.Query(t, rt.DB, `SELECT is_active FROM triggers_trigger WHERE id = $1`, t1).Returns(false)
 

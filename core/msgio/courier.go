@@ -127,7 +127,7 @@ func NewCourierMsg(oa *models.OrgAssets, mo *models.MsgOut, ch *models.Channel) 
 		}
 	} else if mo.BroadcastID() != models.NilBroadcastID {
 		msg.Origin = MsgOriginBroadcast
-	} else if mo.TicketID() != models.NilTicketID {
+	} else if mo.TicketUUID() != "" {
 		msg.Origin = MsgOriginTicket
 	} else {
 		msg.Origin = MsgOriginChat

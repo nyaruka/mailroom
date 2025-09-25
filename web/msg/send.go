@@ -34,7 +34,7 @@ type sendRequest struct {
 	Text         string             `json:"text"`
 	Attachments  []utils.Attachment `json:"attachments"`
 	QuickReplies []flows.QuickReply `json:"quick_replies"`
-	TicketID     models.TicketID    `json:"ticket_id"`
+	TicketUUID   flows.TicketUUID   `json:"ticket_uuid"`
 }
 
 // handles a request to resend the given messages
@@ -57,11 +57,10 @@ func handleSend(ctx context.Context, rt *runtime.Runtime, r *sendRequest) (any, 
 	}
 
 	content := &flows.MsgContent{Text: r.Text, Attachments: r.Attachments, QuickReplies: r.QuickReplies}
-
 	out, ch := models.CreateMsgOut(rt, oa, contact, content, models.NilTemplateID, nil, contact.Locale(oa.Env()), nil)
-	event := events.NewMsgCreated(out)
+	event := events.NewMsgCreated(out, "", r.TicketUUID)
 
-	msg, err := models.NewOutgoingChatMsg(rt, oa.Org(), ch, contact, event, r.TicketID, r.UserID)
+	msg, err := models.NewOutgoingChatMsg(rt, oa.Org(), ch, contact, event, r.TicketUUID, r.UserID)
 	if err != nil {
 		return nil, 0, fmt.Errorf("error creating outgoing message: %w", err)
 	}
@@ -71,8 +70,8 @@ func handleSend(ctx context.Context, rt *runtime.Runtime, r *sendRequest) (any, 
 	}
 
 	// if message was a ticket reply, update the ticket
-	if r.TicketID != models.NilTicketID {
-		if err := models.RecordTicketReply(ctx, rt.DB, oa, r.TicketID, r.UserID, time.Now()); err != nil {
+	if r.TicketUUID != "" {
+		if err := models.RecordTicketReply(ctx, rt.DB, oa, r.TicketUUID, r.UserID, time.Now()); err != nil {
 			return nil, 0, fmt.Errorf("error recording ticket reply: %w", err)
 		}
 	}

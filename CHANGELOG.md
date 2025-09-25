@@ -1,3 +1,15 @@
+v10.3.77 (2025-09-25)
+-------------------------
+ * Start writing msg.ticket_uuid instead of ticket_id
+
+v10.3.76 (2025-09-25)
+-------------------------
+ * Don't save empty messages for IVR timeouts
+
+v10.3.75 (2025-09-24)
+-------------------------
+ * Start writing Broadcast.uuid
+
 v10.3.74 (2025-09-23)
 -------------------------
  * Fix not creating IVR messages with their flow

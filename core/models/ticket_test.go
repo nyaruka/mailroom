@@ -144,7 +144,7 @@ func TestTicketRecordReply(t *testing.T) {
 
 	ticket := testdb.InsertOpenTicket(t, rt, "01992f54-5ab6-717a-a39e-e8ca91fb7262", testdb.Org1, testdb.Ann, testdb.DefaultTopic, openedOn, nil)
 
-	err = models.RecordTicketReply(ctx, rt.DB, oa, ticket.ID, testdb.Agent.ID, repliedOn)
+	err = models.RecordTicketReply(ctx, rt.DB, oa, ticket.UUID, testdb.Agent.ID, repliedOn)
 	assert.NoError(t, err)
 
 	modelTicket := ticket.Load(t, rt, testdb.Org1)
@@ -167,7 +167,7 @@ func TestTicketRecordReply(t *testing.T) {
 	repliedAgainOn := time.Date(2022, 5, 18, 15, 5, 0, 0, time.UTC)
 
 	// if we call it again, it won't change replied_on again but it will update last_activity_on
-	err = models.RecordTicketReply(ctx, rt.DB, oa, ticket.ID, testdb.Agent.ID, repliedAgainOn)
+	err = models.RecordTicketReply(ctx, rt.DB, oa, ticket.UUID, testdb.Agent.ID, repliedAgainOn)
 	assert.NoError(t, err)
 
 	modelTicket = ticket.Load(t, rt, testdb.Org1)

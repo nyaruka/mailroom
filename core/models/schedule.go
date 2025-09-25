@@ -298,6 +298,7 @@ SELECT ROW_TO_JSON(s) FROM (
         (SELECT ROW_TO_JSON(sb) FROM (
             SELECT
                 b.id AS broadcast_id,
+				b.uuid AS broadcast_uuid,
                 s.org_id,
                 b.translations,
                 b.base_language,
