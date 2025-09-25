@@ -149,31 +149,22 @@ func TestBroadcastSend(t *testing.T) {
 	test.MockUniverse()
 
 	tcs := []struct {
-		contactLanguage      i18n.Language
-		contactURN           urns.URN
-		translations         flows.BroadcastTranslations
-		baseLanguage         i18n.Language
-		expressions          bool
-		optInID              models.OptInID
-		templateID           models.TemplateID
-		templateVariables    []string
-		expected             []byte
-		expectedText         string
-		expectedAttachments  []utils.Attachment
-		expectedQuickReplies []flows.QuickReply
-		expectedLocale       i18n.Locale
-		expectedError        string
+		contactLanguage   i18n.Language
+		contactURN        urns.URN
+		translations      flows.BroadcastTranslations
+		baseLanguage      i18n.Language
+		expressions       bool
+		optInID           models.OptInID
+		templateID        models.TemplateID
+		templateVariables []string
+		expected          []byte
 	}{
 		{ // 0
-			contactURN:           "tel:+593979000000",
-			contactLanguage:      i18n.NilLanguage,
-			translations:         flows.BroadcastTranslations{"eng": {Text: "Hi @contact"}},
-			baseLanguage:         "eng",
-			expressions:          false,
-			expectedText:         "Hi @contact",
-			expectedAttachments:  []utils.Attachment{},
-			expectedQuickReplies: []flows.QuickReply{},
-			expectedLocale:       "eng-EC",
+			contactURN:      "tel:+593979000000",
+			contactLanguage: i18n.NilLanguage,
+			translations:    flows.BroadcastTranslations{"eng": {Text: "Hi @contact"}},
+			baseLanguage:    "eng",
+			expressions:     false,
 			expected: []byte(`{
 				"uuid": "01969b47-096b-76f8-9c0b-2014ddc77094",
 				"type": "msg_created",
@@ -191,15 +182,11 @@ func TestBroadcastSend(t *testing.T) {
 			}`),
 		},
 		{ // 1: contact language not set, uses base language
-			contactURN:           "tel:+593979000001",
-			contactLanguage:      i18n.NilLanguage,
-			translations:         flows.BroadcastTranslations{"eng": {Text: "Hello @contact.name"}, "spa": {Text: "Hola @contact.name"}},
-			baseLanguage:         "eng",
-			expressions:          true,
-			expectedText:         "Hello Felix",
-			expectedAttachments:  []utils.Attachment{},
-			expectedQuickReplies: []flows.QuickReply{},
-			expectedLocale:       "eng-EC",
+			contactURN:      "tel:+593979000001",
+			contactLanguage: i18n.NilLanguage,
+			translations:    flows.BroadcastTranslations{"eng": {Text: "Hello @contact.name"}, "spa": {Text: "Hola @contact.name"}},
+			baseLanguage:    "eng",
+			expressions:     true,
 			expected: []byte(`{
 				"uuid": "01969b47-1523-76f8-8f41-6b2d9f33d623",
 				"type": "msg_created",
@@ -217,15 +204,11 @@ func TestBroadcastSend(t *testing.T) {
 			}`),
 		},
 		{ // 2: contact language iggnored if it isn't a valid org language, even if translation exists
-			contactURN:           "tel:+593979000002",
-			contactLanguage:      "spa",
-			translations:         flows.BroadcastTranslations{"eng": {Text: "Hello @contact.name"}, "spa": {Text: "Hola @contact.name"}},
-			baseLanguage:         "eng",
-			expressions:          true,
-			expectedText:         "Hello Felix",
-			expectedAttachments:  []utils.Attachment{},
-			expectedQuickReplies: []flows.QuickReply{},
-			expectedLocale:       "eng-EC",
+			contactURN:      "tel:+593979000002",
+			contactLanguage: "spa",
+			translations:    flows.BroadcastTranslations{"eng": {Text: "Hello @contact.name"}, "spa": {Text: "Hola @contact.name"}},
+			baseLanguage:    "eng",
+			expressions:     true,
 			expected: []byte(`{
 				"uuid": "01969b47-20db-76f8-b86e-4b881f09a186",
 				"type": "msg_created",
@@ -249,12 +232,8 @@ func TestBroadcastSend(t *testing.T) {
 				"eng": {Text: "Hello @contact.name", Attachments: []utils.Attachment{"audio/mp3:http://test.en.mp3"}, QuickReplies: []flows.QuickReply{{Text: "yes"}, {Text: "no"}}},
 				"fra": {Text: "Bonjour @contact.name", Attachments: []utils.Attachment{"audio/mp3:http://test.fr.mp3"}, QuickReplies: []flows.QuickReply{{Text: "oui"}, {Text: "no"}}},
 			},
-			baseLanguage:         "eng",
-			expressions:          true,
-			expectedText:         "Bonjour Felix",
-			expectedAttachments:  []utils.Attachment{"audio/mp3:http://test.fr.mp3"},
-			expectedQuickReplies: []flows.QuickReply{{Text: "oui"}, {Text: "no"}},
-			expectedLocale:       "fra-EC",
+			baseLanguage: "eng",
+			expressions:  true,
 			expected: []byte(`{
 				"uuid": "01969b47-2c93-76f8-8dbf-00ecf5d03034",
 				"type": "msg_created",
@@ -283,17 +262,13 @@ func TestBroadcastSend(t *testing.T) {
 			}`),
 		},
 		{ // 4: broadcast with template
-			contactURN:           "facebook:1000000000002",
-			contactLanguage:      "eng",
-			translations:         flows.BroadcastTranslations{"eng": {Text: "Hi @contact"}},
-			baseLanguage:         "eng",
-			expressions:          true,
-			templateID:           testdb.ReviveTemplate.ID,
-			templateVariables:    []string{"@contact.name", "mice"},
-			expectedText:         "Hi Felix, are you still experiencing problems with mice?",
-			expectedAttachments:  []utils.Attachment{},
-			expectedQuickReplies: []flows.QuickReply{},
-			expectedLocale:       "eng-US",
+			contactURN:        "facebook:1000000000002",
+			contactLanguage:   "eng",
+			translations:      flows.BroadcastTranslations{"eng": {Text: "Hi @contact"}},
+			baseLanguage:      "eng",
+			expressions:       true,
+			templateID:        testdb.ReviveTemplate.ID,
+			templateVariables: []string{"@contact.name", "mice"},
 			expected: []byte(`{
 				"uuid": "01969b47-384b-76f8-9654-8a7258fbaae4",
 				"type": "msg_created",
