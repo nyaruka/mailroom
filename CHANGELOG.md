@@ -1,3 +1,7 @@
+v10.3.77 (2025-09-25)
+-------------------------
+ * Start writing msg.ticket_uuid instead of ticket_id
+
 v10.3.76 (2025-09-25)
 -------------------------
  * Don't save empty messages for IVR timeouts
