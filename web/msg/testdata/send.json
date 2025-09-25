@@ -298,10 +298,43 @@
                     "qr_3": "Blue\nlike the sky",
                     "text": "What is your preferred color?"
                 }
+            }
+        ]
+    },
+    {
+        "label": "message to an unreachable contact",
+        "method": "POST",
+        "path": "/mi/msg/send",
+        "body": {
+            "org_id": 1,
+            "user_id": 2,
+            "contact_id": 30000,
+            "text": "Come back"
+        },
+        "status": 200,
+        "response": {
+            "attachments": [],
+            "channel": null,
+            "contact": {
+                "uuid": "f5e5c595-0cba-4eb9-b1e6-41d7f7f0add6",
+                "name": "Mr Unreachable"
             },
+            "created_on": "2025-05-04T12:31:08.123456789Z",
+            "id": 30005,
+            "modified_on": "$recent_timestamp$",
+            "quick_replies": [],
+            "status": "F",
+            "text": "Come back",
+            "urn": ""
+        },
+        "db_assertions": [
             {
-                "query": "SELECT count(*) FROM msgs_msg WHERE direction = 'O' AND text = 'What is your preferred color?' AND status = 'Q' AND created_by_id = 2",
-                "returns": 1
+                "query": "SELECT text, status, failed_reason FROM msgs_msg ORDER BY id DESC LIMIT 1",
+                "columns": {
+                    "failed_reason": "D",
+                    "status": "F",
+                    "text": "Come back"
+                }
             }
         ]
     }
