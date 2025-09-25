@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/nyaruka/mailroom/core/models"
-	"github.com/nyaruka/mailroom/core/msgio"
+	"github.com/nyaruka/mailroom/core/runner"
 	"github.com/nyaruka/mailroom/core/tasks"
 	"github.com/nyaruka/mailroom/runtime"
 )
@@ -62,12 +62,9 @@ func (t *SendBroadcastBatchTask) Perform(ctx context.Context, rt *runtime.Runtim
 	}
 
 	// create this batch of messages
-	sends, err := bcast.CreateMessages(ctx, rt, oa, t.BroadcastBatch)
-	if err != nil {
+	if err := runner.Broadcast(ctx, rt, oa, bcast, t.BroadcastBatch); err != nil {
 		return fmt.Errorf("error creating broadcast messages: %w", err)
 	}
-
-	msgio.QueueMessages(ctx, rt, sends)
 
 	// if this is our last batch, mark broadcast as done
 	if t.IsLast {

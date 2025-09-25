@@ -10,6 +10,7 @@ import (
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/test"
 	"github.com/nyaruka/goflow/utils"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/testsuite"
@@ -97,7 +98,7 @@ func TestInsertChildBroadcast(t *testing.T) {
 }
 
 func TestNonPersistentBroadcasts(t *testing.T) {
-	ctx, rt := testsuite.Runtime(t)
+	_, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
@@ -135,27 +136,17 @@ func TestNonPersistentBroadcasts(t *testing.T) {
 	assert.Equal(t, models.NilBroadcastID, batch.BroadcastID)
 	assert.NotNil(t, testdb.Org1.ID, batch.Broadcast)
 	assert.Equal(t, []models.ContactID{testdb.Dan.ID, testdb.Bob.ID}, batch.ContactIDs)
-
-	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
-	require.NoError(t, err)
-
-	msgs, err := bcast.CreateMessages(ctx, rt, oa, batch)
-	require.NoError(t, err)
-
-	assert.Equal(t, 2, len(msgs))
-
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE direction = 'O' AND broadcast_id IS NULL AND text = 'Hi there'`).Returns(2)
 }
 
-func TestBroadcastBatchCreateMessage(t *testing.T) {
+func TestBroadcastSend(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetValkey)
 
-	polls := testdb.InsertOptIn(t, rt, testdb.Org1, "45aec4dd-945f-4511-878f-7d8516fbd336", "Polls")
-
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshOptIns)
 	require.NoError(t, err)
+
+	test.MockUniverse()
 
 	tcs := []struct {
 		contactLanguage      i18n.Language
@@ -166,6 +157,7 @@ func TestBroadcastBatchCreateMessage(t *testing.T) {
 		optInID              models.OptInID
 		templateID           models.TemplateID
 		templateVariables    []string
+		expected             []byte
 		expectedText         string
 		expectedAttachments  []utils.Attachment
 		expectedQuickReplies []flows.QuickReply
@@ -182,6 +174,21 @@ func TestBroadcastBatchCreateMessage(t *testing.T) {
 			expectedAttachments:  []utils.Attachment{},
 			expectedQuickReplies: []flows.QuickReply{},
 			expectedLocale:       "eng-EC",
+			expected: []byte(`{
+				"uuid": "01969b47-096b-76f8-9c0b-2014ddc77094",
+				"type": "msg_created",
+				"created_on": "2025-05-04T12:30:47.123456789Z",
+				"msg": {
+					"urn": "tel:+593979000000?id=30000",
+					"channel": {
+						"uuid": "8e7b62ee-2e84-4601-8fef-2e44c490b43e",
+						"name": "Android"
+					},
+					"text": "Hi @contact",
+					"locale": "eng-EC"
+				},
+				"broadcast_uuid": "01969b47-0583-76f8-bd38-d266ec8d3716"
+			}`),
 		},
 		{ // 1: contact language not set, uses base language
 			contactURN:           "tel:+593979000001",
@@ -193,6 +200,21 @@ func TestBroadcastBatchCreateMessage(t *testing.T) {
 			expectedAttachments:  []utils.Attachment{},
 			expectedQuickReplies: []flows.QuickReply{},
 			expectedLocale:       "eng-EC",
+			expected: []byte(`{
+				"uuid": "01969b47-1523-76f8-8f41-6b2d9f33d623",
+				"type": "msg_created",
+				"created_on": "2025-05-04T12:30:50.123456789Z",
+				"msg": {
+					"urn": "tel:+593979000001?id=30001",
+					"channel": {
+						"uuid": "8e7b62ee-2e84-4601-8fef-2e44c490b43e",
+						"name": "Android"
+					},
+					"text": "Hello Felix",
+					"locale": "eng-EC"
+				},
+				"broadcast_uuid": "01969b47-113b-76f8-8228-9728778b6c98"
+			}`),
 		},
 		{ // 2: contact language iggnored if it isn't a valid org language, even if translation exists
 			contactURN:           "tel:+593979000002",
@@ -204,6 +226,21 @@ func TestBroadcastBatchCreateMessage(t *testing.T) {
 			expectedAttachments:  []utils.Attachment{},
 			expectedQuickReplies: []flows.QuickReply{},
 			expectedLocale:       "eng-EC",
+			expected: []byte(`{
+				"uuid": "01969b47-20db-76f8-b86e-4b881f09a186",
+				"type": "msg_created",
+				"created_on": "2025-05-04T12:30:53.123456789Z",
+				"msg": {
+					"urn": "tel:+593979000002?id=30002",
+					"channel": {
+						"uuid": "8e7b62ee-2e84-4601-8fef-2e44c490b43e",
+						"name": "Android"
+					},
+					"text": "Hello Felix",
+					"locale": "eng-EC"
+				},
+				"broadcast_uuid": "01969b47-1cf3-76f8-ba00-bd7f0d08e671"
+			}`),
 		},
 		{ // 3: contact language used
 			contactURN:      "tel:+593979000003",
@@ -218,20 +255,34 @@ func TestBroadcastBatchCreateMessage(t *testing.T) {
 			expectedAttachments:  []utils.Attachment{"audio/mp3:http://test.fr.mp3"},
 			expectedQuickReplies: []flows.QuickReply{{Text: "oui"}, {Text: "no"}},
 			expectedLocale:       "fra-EC",
+			expected: []byte(`{
+				"uuid": "01969b47-2c93-76f8-8dbf-00ecf5d03034",
+				"type": "msg_created",
+				"created_on": "2025-05-04T12:30:56.123456789Z",
+				"msg": {
+					"urn": "tel:+593979000003?id=30003",
+					"channel": {
+						"uuid": "8e7b62ee-2e84-4601-8fef-2e44c490b43e",
+						"name": "Android"
+					},
+					"text": "Bonjour Felix",
+					"attachments": [
+						"audio/mp3:http://test.fr.mp3"
+					],
+					"quick_replies": [
+						{
+							"text": "oui"
+						},
+						{
+							"text": "no"
+						}
+					],
+					"locale": "fra-EC"
+				},
+				"broadcast_uuid": "01969b47-28ab-76f8-bebe-b4a1f677cf4c"
+			}`),
 		},
-		{ // 5: broadcast with optin
-			contactURN:           "facebook:1000000000001",
-			contactLanguage:      i18n.NilLanguage,
-			translations:         flows.BroadcastTranslations{"eng": {Text: "Hi @contact"}},
-			baseLanguage:         "eng",
-			expressions:          true,
-			optInID:              polls.ID,
-			expectedText:         "Hi Felix",
-			expectedAttachments:  []utils.Attachment{},
-			expectedQuickReplies: []flows.QuickReply{},
-			expectedLocale:       "eng",
-		},
-		{ // 6: broadcast with template
+		{ // 4: broadcast with template
 			contactURN:           "facebook:1000000000002",
 			contactLanguage:      "eng",
 			translations:         flows.BroadcastTranslations{"eng": {Text: "Hi @contact"}},
@@ -243,6 +294,47 @@ func TestBroadcastBatchCreateMessage(t *testing.T) {
 			expectedAttachments:  []utils.Attachment{},
 			expectedQuickReplies: []flows.QuickReply{},
 			expectedLocale:       "eng-US",
+			expected: []byte(`{
+				"uuid": "01969b47-384b-76f8-9654-8a7258fbaae4",
+				"type": "msg_created",
+				"created_on": "2025-05-04T12:30:59.123456789Z",
+				"msg": {
+					"urn": "facebook:1000000000002?id=30004",
+					"channel": {
+						"uuid": "0f661e8b-ea9d-4bd3-9953-d368340acf91",
+						"name": "Facebook"
+					},
+					"text": "Hi Felix, are you still experiencing problems with mice?",
+					"templating": {
+						"template": {
+							"uuid": "9c22b594-fcab-4b29-9bcb-ce4404894a80",
+							"name": "revive_issue"
+						},
+						"components": [
+							{
+								"name": "body",
+								"type": "body/text",
+								"variables": {
+									"1": 0,
+									"2": 1
+								}
+							}
+						],
+						"variables": [
+							{
+								"type": "text",
+								"value": "Felix"
+							},
+							{
+								"type": "text",
+								"value": "mice"
+							}
+						]
+					},
+					"locale": "eng-US"
+				},
+				"broadcast_uuid": "01969b47-3463-76f8-afcb-91a2073e5459"
+			}`),
 		},
 	}
 
@@ -263,25 +355,10 @@ func TestBroadcastBatchCreateMessage(t *testing.T) {
 		err = models.InsertBroadcast(ctx, rt.DB, bcast)
 		require.NoError(t, err)
 
-		batch := &models.BroadcastBatch{
-			BroadcastID: bcast.ID,
-			Broadcast:   bcast,
-			ContactIDs:  []models.ContactID{contact.ID},
-			IsLast:      true,
-		}
+		_, ec, _ := contact.Load(t, rt, oa)
 
-		msgs, err := bcast.CreateMessages(ctx, rt, oa, batch)
-		if tc.expectedError != "" {
-			assert.EqualError(t, err, tc.expectedError, "error mismatch in test case %d", i)
-		} else {
-			assert.NoError(t, err, "unexpected error in test case %d", i)
-			if assert.Len(t, msgs, 1, "msg count mismatch in test case %d", i) {
-				assert.Equal(t, tc.expectedText, msgs[0].Text(), "%d: msg text mismatch", i)
-				assert.Equal(t, tc.expectedAttachments, msgs[0].Attachments(), "%d: attachments mismatch", i)
-				assert.Equal(t, tc.expectedQuickReplies, msgs[0].QuickReplies(), "%d: quick replies mismatch", i)
-				assert.Equal(t, tc.expectedLocale, msgs[0].Locale(), "%d: msg locale mismatch", i)
-				assert.Equal(t, tc.optInID, msgs[0].OptInID(), "%d: optin id mismatch", i)
-			}
-		}
+		evt := bcast.Send(rt, oa, ec)
+
+		assert.JSONEq(t, string(tc.expected), string(jsonx.MustMarshal(evt)), "%d: msg json mismatch", i)
 	}
 }

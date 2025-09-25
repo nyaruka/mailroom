@@ -14,7 +14,6 @@ import (
 	"github.com/nyaruka/goflow/flows/triggers"
 	"github.com/nyaruka/mailroom/core/ivr"
 	"github.com/nyaruka/mailroom/core/models"
-	"github.com/nyaruka/mailroom/core/msgio"
 	"github.com/nyaruka/mailroom/core/runner"
 	"github.com/nyaruka/mailroom/core/tasks"
 	"github.com/nyaruka/mailroom/runtime"
@@ -165,11 +164,10 @@ func (t *BulkCampaignTriggerTask) triggerBroadcast(ctx context.Context, rt *runt
 	}
 
 	bcast := models.NewBroadcast(oa.OrgID(), p.Translations, i18n.Language(p.BaseLanguage), true, models.NilOptInID, nil, contactIDs, nil, "", models.NoExclusions, models.NilUserID)
-	sends, err := bcast.CreateMessages(ctx, rt, oa, &models.BroadcastBatch{ContactIDs: contactIDs})
-	if err != nil {
-		return fmt.Errorf("error creating campaign point messages: %w", err)
+
+	if err := runner.Broadcast(ctx, rt, oa, bcast, &models.BroadcastBatch{ContactIDs: contactIDs}); err != nil {
+		return fmt.Errorf("error running campaign point broadcast: %w", err)
 	}
 
-	msgio.QueueMessages(ctx, rt, sends)
 	return nil
 }
