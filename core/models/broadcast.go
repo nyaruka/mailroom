@@ -309,43 +309,8 @@ func GetBroadcastByID(ctx context.Context, db DBorTx, bcastID BroadcastID) (*Bro
 	}, nil
 }
 
-func (b *Broadcast) CreateMessages(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, batch *BroadcastBatch) ([]*MsgOut, error) {
-	// load all our contacts
-	contacts, err := LoadContacts(ctx, rt.DB, oa, batch.ContactIDs)
-	if err != nil {
-		return nil, fmt.Errorf("error loading contacts for broadcast: %w", err)
-	}
-
-	// for each contact, build our message
-	msgs := make([]*Msg, 0, len(contacts))
-	sends := make([]*MsgOut, 0, len(contacts))
-
-	// run through all our contacts to create our messages
-	for _, c := range contacts {
-		send, err := b.createMessage(rt, oa, c)
-		if err != nil {
-			return nil, fmt.Errorf("error creating broadcast message: %w", err)
-		}
-		if send != nil {
-			msgs = append(msgs, send.Msg)
-			sends = append(sends, send)
-		}
-	}
-
-	if err := InsertMessages(ctx, rt.DB, msgs); err != nil {
-		return nil, fmt.Errorf("error inserting broadcast messages: %w", err)
-	}
-
-	return sends, nil
-}
-
-// creates an outgoing message for the given contact - can return nil if resultant message has no content and thus is a noop
-func (b *Broadcast) createMessage(rt *runtime.Runtime, oa *OrgAssets, c *Contact) (*MsgOut, error) {
-	contact, err := c.EngineContact(oa)
-	if err != nil {
-		return nil, fmt.Errorf("error creating flow contact for broadcast message: %w", err)
-	}
-
+// Send creates a message event for the given contact - can return nil if resultant message has no content and thus is a noop
+func (b *Broadcast) Send(rt *runtime.Runtime, oa *OrgAssets, contact *flows.Contact) *events.MsgCreated {
 	content, locale := b.Translations.ForContact(oa.Env(), contact, b.BaseLanguage)
 
 	var expressionsContext *types.XObject
@@ -360,17 +325,10 @@ func (b *Broadcast) createMessage(rt *runtime.Runtime, oa *OrgAssets, c *Contact
 
 	// don't create a message if we have no content
 	if content.Empty() {
-		return nil, nil
+		return nil
 	}
 
-	// create our outgoing message
-	out, ch := CreateMsgOut(rt, oa, contact, content, b.TemplateID, b.TemplateVariables, locale, expressionsContext)
-	event := events.NewMsgCreated(out, b.UUID, "")
+	out := CreateMsgOut(rt, oa, contact, content, b.TemplateID, b.TemplateVariables, locale, expressionsContext)
 
-	msg, err := NewOutgoingBroadcastMsg(rt, oa.Org(), ch, contact, event, b)
-	if err != nil {
-		return nil, fmt.Errorf("error creating outgoing message: %w", err)
-	}
-
-	return msg, nil
+	return events.NewMsgCreated(out, b.UUID, "")
 }

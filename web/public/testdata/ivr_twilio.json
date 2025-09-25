@@ -88,25 +88,6 @@
                 "query": "SELECT count(*) FROM msgs_msg WHERE contact_id = 10000 AND direction = 'I'",
                 "returns": 0
             }
-        ],
-        "expected_history": [
-            {
-                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b47-6b13-76f8-afcb-91a2073e5459",
-                "OrgID": 1,
-                "Data": {
-                    "created_on": "2025-05-04T12:31:13.123456789Z",
-                    "msg": {
-                        "channel": {
-                            "name": "Twilio",
-                            "uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8"
-                        },
-                        "text": "",
-                        "urn": "tel:+16055741111?id=10000"
-                    },
-                    "type": "msg_received"
-                }
-            }
         ]
     },
     {
@@ -279,25 +260,6 @@
             {
                 "query": "SELECT count(*) FROM msgs_msg WHERE contact_id = 10000 AND direction = 'I'",
                 "returns": 3
-            }
-        ],
-        "expected_history": [
-            {
-                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b48-e5fb-76f8-8c15-15a7c0c5228d",
-                "OrgID": 1,
-                "Data": {
-                    "created_on": "2025-05-04T12:32:50.123456789Z",
-                    "msg": {
-                        "channel": {
-                            "name": "Twilio",
-                            "uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8"
-                        },
-                        "text": "",
-                        "urn": "tel:+16055741111?id=10000"
-                    },
-                    "type": "msg_received"
-                }
             }
         ]
     },

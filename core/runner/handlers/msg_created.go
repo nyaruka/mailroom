@@ -35,7 +35,9 @@ func handleMsgCreated(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAs
 	var msg *models.MsgOut
 	var err error
 
-	if userID != models.NilUserID {
+	if event.BroadcastUUID != "" {
+		msg, err = models.NewOutgoingBroadcastMsg(rt, oa.Org(), channel, scene.Contact, event, scene.Broadcast)
+	} else if userID != models.NilUserID {
 		msg, err = models.NewOutgoingChatMsg(rt, oa.Org(), channel, scene.Contact, event, userID)
 	} else {
 		flow, _ := scene.LocateEvent(e)
