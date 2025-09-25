@@ -1,3 +1,7 @@
+v10.3.76 (2025-09-25)
+-------------------------
+ * Don't save empty messages for IVR timeouts
+
 v10.3.75 (2025-09-24)
 -------------------------
  * Start writing Broadcast.uuid
