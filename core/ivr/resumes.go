@@ -104,7 +104,7 @@ func buildMsgResume(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 	msgEvt := events.NewMsgReceived(msgIn)
 	msgEvt.UUID_ = msgUUID
 
-	// we currently model timeouts as empty messages.. if we have one those, don't save it
+	// we currently model timeouts as empty messages.. if we have one of those, don't save it
 	if resume.Input == "" && len(attachments) == 0 {
 		return nil, resumes.NewMsg(msgEvt), nil, nil
 	}
