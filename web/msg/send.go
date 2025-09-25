@@ -10,7 +10,7 @@ import (
 	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/goflow/utils"
 	"github.com/nyaruka/mailroom/core/models"
-	"github.com/nyaruka/mailroom/core/msgio"
+	"github.com/nyaruka/mailroom/core/runner"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/mailroom/web"
 )
@@ -57,26 +57,27 @@ func handleSend(ctx context.Context, rt *runtime.Runtime, r *sendRequest) (any, 
 	}
 
 	content := &flows.MsgContent{Text: r.Text, Attachments: r.Attachments, QuickReplies: r.QuickReplies}
-	out, ch := models.CreateMsgOut(rt, oa, contact, content, models.NilTemplateID, nil, contact.Locale(oa.Env()), nil)
+	out, _ := models.CreateMsgOut(rt, oa, contact, content, models.NilTemplateID, nil, contact.Locale(oa.Env()), nil)
 	event := events.NewMsgCreated(out, "", r.TicketUUID)
 
-	msg, err := models.NewOutgoingChatMsg(rt, oa.Org(), ch, contact, event, r.TicketUUID, r.UserID)
-	if err != nil {
-		return nil, 0, fmt.Errorf("error creating outgoing message: %w", err)
+	scene := runner.NewScene(c, contact)
+
+	if err := scene.AddEvent(ctx, rt, oa, event, r.UserID); err != nil {
+		return nil, 0, fmt.Errorf("error adding message event to scene: %w", err)
+	}
+	if err := scene.Commit(ctx, rt, oa); err != nil {
+		return nil, 0, fmt.Errorf("error committing scene: %w", err)
 	}
 
-	if err := models.InsertMessages(ctx, rt.DB, []*models.Msg{msg.Msg}); err != nil {
-		return nil, 0, fmt.Errorf("error inserting outgoing message: %w", err)
-	}
+	msg := scene.SentMsgs[0]
 
+	// TODO move this into event handler?
 	// if message was a ticket reply, update the ticket
 	if r.TicketUUID != "" {
 		if err := models.RecordTicketReply(ctx, rt.DB, oa, r.TicketUUID, r.UserID, dates.Now()); err != nil {
 			return nil, 0, fmt.Errorf("error recording ticket reply: %w", err)
 		}
 	}
-
-	msgio.QueueMessages(ctx, rt, []*models.MsgOut{msg})
 
 	return map[string]any{
 		"id":            msg.ID(),

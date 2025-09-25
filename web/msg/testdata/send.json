@@ -69,8 +69,13 @@
         },
         "db_assertions": [
             {
-                "query": "SELECT count(*) FROM msgs_msg WHERE direction = 'O' AND text = 'hello' AND status = 'Q' AND created_by_id = 2",
-                "returns": 1
+                "query": "SELECT text, direction, status, created_by_id FROM msgs_msg ORDER BY id DESC LIMIT 1",
+                "columns": {
+                    "created_by_id": 2,
+                    "direction": "O",
+                    "status": "Q",
+                    "text": "hello"
+                }
             }
         ]
     },
@@ -108,7 +113,17 @@
             "status": "Q",
             "text": "",
             "urn": "tel:+16055741111?id=10000"
-        }
+        },
+        "db_assertions": [
+            {
+                "query": "SELECT text, attachments[1] AS attachment_1, attachments[2] AS attachment_2 FROM msgs_msg ORDER BY id DESC LIMIT 1",
+                "columns": {
+                    "attachment_1": "image/jpeg:https://aws.com/test/test.jpg",
+                    "attachment_2": "audio/mp3:https://aws.com/test/test.mp3",
+                    "text": ""
+                }
+            }
+        ]
     },
     {
         "label": "initial ticket reply",
@@ -152,8 +167,8 @@
             {
                 "query": "SELECT replied_on::text, last_activity_on::text FROM tickets_ticket WHERE uuid = '01992f54-5ab6-717a-a39e-e8ca91fb7262'",
                 "columns": {
-                    "last_activity_on": "2025-05-04 12:30:56.123457+00",
-                    "replied_on": "2025-05-04 12:30:56.123457+00"
+                    "last_activity_on": "2025-05-04 12:30:57.123457+00",
+                    "replied_on": "2025-05-04 12:30:57.123457+00"
                 }
             },
             {
@@ -161,7 +176,7 @@
                 "map": {
                     "msgs:ticketreplies:0:4": 1,
                     "ticketresptime:count": 1,
-                    "ticketresptime:total": 326246411
+                    "ticketresptime:total": 326246412
                 }
             }
         ]
@@ -208,8 +223,8 @@
             {
                 "query": "SELECT replied_on::text, last_activity_on::text FROM tickets_ticket WHERE uuid = '01992f54-5ab6-717a-a39e-e8ca91fb7262'",
                 "columns": {
-                    "last_activity_on": "2025-05-04 12:31:01.123457+00",
-                    "replied_on": "2025-05-04 12:30:56.123457+00"
+                    "last_activity_on": "2025-05-04 12:31:02.123457+00",
+                    "replied_on": "2025-05-04 12:30:57.123457+00"
                 }
             },
             {
@@ -217,7 +232,7 @@
                 "map": {
                     "msgs:ticketreplies:0:4": 2,
                     "ticketresptime:count": 1,
-                    "ticketresptime:total": 326246411
+                    "ticketresptime:total": 326246412
                 }
             }
         ]
@@ -239,7 +254,8 @@
                     "text": "Green"
                 },
                 {
-                    "text": "Blue"
+                    "text": "Blue",
+                    "extra": "like the sky"
                 }
             ]
         },
@@ -265,7 +281,8 @@
                     "text": "Green"
                 },
                 {
-                    "text": "Blue"
+                    "text": "Blue",
+                    "extra": "like the sky"
                 }
             ],
             "status": "Q",
@@ -274,8 +291,50 @@
         },
         "db_assertions": [
             {
-                "query": "SELECT count(*) FROM msgs_msg WHERE direction = 'O' AND text = 'What is your preferred color?' AND status = 'Q' AND created_by_id = 2",
-                "returns": 1
+                "query": "SELECT text, quick_replies[1] AS qr_1, quick_replies[2] AS qr_2, quick_replies[3] AS qr_3 FROM msgs_msg ORDER BY id DESC LIMIT 1",
+                "columns": {
+                    "qr_1": "Red",
+                    "qr_2": "Green",
+                    "qr_3": "Blue\nlike the sky",
+                    "text": "What is your preferred color?"
+                }
+            }
+        ]
+    },
+    {
+        "label": "message to an unreachable contact",
+        "method": "POST",
+        "path": "/mi/msg/send",
+        "body": {
+            "org_id": 1,
+            "user_id": 2,
+            "contact_id": 30000,
+            "text": "Come back"
+        },
+        "status": 200,
+        "response": {
+            "attachments": [],
+            "channel": null,
+            "contact": {
+                "uuid": "f5e5c595-0cba-4eb9-b1e6-41d7f7f0add6",
+                "name": "Mr Unreachable"
+            },
+            "created_on": "2025-05-04T12:31:08.123456789Z",
+            "id": 30005,
+            "modified_on": "$recent_timestamp$",
+            "quick_replies": [],
+            "status": "F",
+            "text": "Come back",
+            "urn": ""
+        },
+        "db_assertions": [
+            {
+                "query": "SELECT text, status, failed_reason FROM msgs_msg ORDER BY id DESC LIMIT 1",
+                "columns": {
+                    "failed_reason": "D",
+                    "status": "F",
+                    "text": "Come back"
+                }
             }
         ]
     }

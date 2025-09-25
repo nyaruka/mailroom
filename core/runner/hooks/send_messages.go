@@ -21,21 +21,23 @@ func (h *sendMessages) Execute(ctx context.Context, rt *runtime.Runtime, oa *mod
 
 	// for each scene gather all our messages
 	for s, args := range scenes {
-		sceneMsgs := make([]*models.MsgOut, 0, 1)
+		s.SentMsgs = make([]*models.MsgOut, len(args))
 
-		for _, m := range args {
+		for i, m := range args {
 			msg := m.(*models.MsgOut)
 			msg.Session = s.Session
 			msg.WaitTimeout = s.WaitTimeout
 			msg.SprintUUID = s.SprintUUID()
 
-			sceneMsgs = append(sceneMsgs, msg)
+			// mark the last message in the sprint (used for setting timeouts)
+			if i == len(args)-1 {
+				msg.LastInSprint = true
+			}
+
+			s.SentMsgs[i] = msg
 		}
 
-		// mark the last message in the sprint (used for setting timeouts)
-		sceneMsgs[len(sceneMsgs)-1].LastInSprint = true
-
-		msgs = append(msgs, sceneMsgs...)
+		msgs = append(msgs, s.SentMsgs...)
 	}
 
 	msgio.QueueMessages(ctx, rt, msgs)
