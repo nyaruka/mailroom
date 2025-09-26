@@ -50,7 +50,7 @@ func TestWebhookCalled(t *testing.T) {
 	rt.DB.MustExec(`INSERT INTO api_resthooksubscriber(is_active, created_on, modified_on, target_url, created_by_id, modified_by_id, resthook_id) VALUES(TRUE, NOW(), NOW(), 'http://rapidpro.io/?unsub=1', 1, 1, 30001);`)
 	rt.DB.MustExec(`INSERT INTO api_resthooksubscriber(is_active, created_on, modified_on, target_url, created_by_id, modified_by_id, resthook_id) VALUES(TRUE, NOW(), NOW(), 'http://rapidpro.io/?unsub=1', 1, 1, 30000);`)
 
-	runTests(t, rt, "testdata/webhook_called.json")
+	runTests(t, rt, "testdata/webhook_called.json", true)
 }
 
 // a webhook service which fakes slow responses

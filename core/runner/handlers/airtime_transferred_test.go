@@ -284,5 +284,5 @@ func TestAirtimeTransferred(t *testing.T) {
 
 	rt.DB.MustExec(`UPDATE orgs_org SET config = '{"dtone_key": "key123", "dtone_secret": "sesame"}'::jsonb WHERE id = $1`, testdb.Org1.ID)
 
-	runTests(t, rt, "testdata/airtime_transferred.json")
+	runTests(t, rt, "testdata/airtime_transferred.json", true)
 }

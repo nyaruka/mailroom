@@ -11,5 +11,5 @@ func TestBroadcastCreated(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
-	runTests(t, rt, "testdata/broadcast_created.json")
+	runTests(t, rt, "testdata/broadcast_created.json", true)
 }

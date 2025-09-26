@@ -30,7 +30,7 @@ func TestOptinRequested(t *testing.T) {
 	assert.Equal(t, models.ChannelType("FBA"), ch.Type())
 	assert.Equal(t, []assets.ChannelFeature{assets.ChannelFeatureOptIns}, ch.Features())
 
-	runTests(t, rt, "testdata/optin_requested.json")
+	runTests(t, rt, "testdata/optin_requested.json", true)
 
 	// Ann should have 1 batch of queued messages at high priority
 	assertvk.ZCard(t, vc, fmt.Sprintf("msgs:%s|10/1", testdb.FacebookChannel.UUID), 1)

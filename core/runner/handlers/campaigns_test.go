@@ -24,5 +24,5 @@ func TestCampaigns(t *testing.T) {
 	// created_on + 1000 weeks => Favorites
 	// last_seen_on + 2 days => Favorites
 
-	runTests(t, rt, "testdata/campaigns.json")
+	runTests(t, rt, "testdata/campaigns.json", false)
 }

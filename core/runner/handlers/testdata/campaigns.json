@@ -117,7 +117,7 @@
         "db_assertions": [
             {
                 "query": "SELECT count(*) FROM contacts_contactfire WHERE contact_id = 10000 AND fire_type = 'C'",
-                "returns": 2
+                "returns": 1
             },
             {
                 "query": "SELECT count(*) FROM contacts_contactfire WHERE contact_id = 10001 AND fire_type = 'C'",
@@ -127,33 +127,6 @@
                 "query": "SELECT count(*) FROM contacts_contactfire WHERE contact_id = 10002 AND fire_type = 'C'",
                 "returns": 0
             }
-        ],
-        "persisted_events": {
-            "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
-                "run_started",
-                "contact_groups_changed",
-                "contact_groups_changed",
-                "contact_field_changed",
-                "contact_field_changed",
-                "run_ended"
-            ],
-            "b699a406-7e44-49be-9f01-1a82893e8a10": [
-                "run_started",
-                "contact_groups_changed",
-                "contact_field_changed",
-                "run_ended"
-            ],
-            "cd024bcd-f473-4719-a00a-bd0bb1190135": [
-                "run_started",
-                "contact_groups_changed",
-                "contact_field_changed",
-                "contact_groups_changed",
-                "run_ended"
-            ],
-            "d709c157-4606-4d41-9df3-9e9c9b4ae2d4": [
-                "run_started",
-                "run_ended"
-            ]
-        }
+        ]
     }
 ]
