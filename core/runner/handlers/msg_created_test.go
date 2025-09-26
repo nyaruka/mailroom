@@ -28,7 +28,7 @@ func TestMsgCreated(t *testing.T) {
 	rt.DB.MustExec(`UPDATE contacts_contacturn SET identity = 'facebook:12345', path='12345', scheme='facebook' WHERE contact_id = $1`, testdb.Dan.ID)
 	rt.DB.MustExec(`UPDATE contacts_contact SET language='eng' WHERE id = $1`, testdb.Dan.ID)
 
-	runTests(t, rt, "testdata/msg_created.json", true)
+	runTests(t, rt, "testdata/msg_created.json")
 
 	vc := rt.VK.Get()
 	defer vc.Close()
@@ -51,5 +51,5 @@ func TestMsgCreatedNewURN(t *testing.T) {
 	// give Cat a URN that Bob will steal
 	testdb.InsertContactURN(t, rt, testdb.Org1, testdb.Cat, urns.URN("telegram:67890"), 1, nil)
 
-	runTests(t, rt, "testdata/msg_created_with_new_urn.json", true)
+	runTests(t, rt, "testdata/msg_created_with_new_urn.json")
 }
