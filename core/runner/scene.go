@@ -325,7 +325,7 @@ func BulkCommit(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, 
 		eventsWritten += len(scene.persistEvents)
 	}
 
-	slog.Info("events queued to history writer", "count", eventsWritten)
+	slog.Debug("events queued to history writer", "count", eventsWritten)
 
 	if err := ExecutePostCommitHooks(ctx, rt, oa, scenes); err != nil {
 		return fmt.Errorf("error processing post commit hooks: %w", err)
