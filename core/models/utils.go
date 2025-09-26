@@ -54,7 +54,7 @@ func BulkQuery[T any](ctx context.Context, label string, tx DBorTx, sql string, 
 		return fmt.Errorf("error making bulk query: %w", err)
 	}
 
-	slog.Info(fmt.Sprintf("%s bulk sql complete", label), "elapsed", time.Since(start), "rows", len(structs))
+	slog.Debug(fmt.Sprintf("%s bulk sql complete", label), "elapsed", time.Since(start), "rows", len(structs))
 
 	return nil
 }
@@ -70,7 +70,7 @@ func BulkQueryBatches[T any](ctx context.Context, label string, tx DBorTx, sql s
 			return fmt.Errorf("error making bulk batch query: %w", err)
 		}
 
-		slog.Info(fmt.Sprintf("%s bulk sql batch complete", label), "elapsed", time.Since(start), "rows", len(batch), "batch", i)
+		slog.Debug(fmt.Sprintf("%s bulk sql batch complete", label), "elapsed", time.Since(start), "rows", len(batch), "batch", i)
 		i++
 	}
 
