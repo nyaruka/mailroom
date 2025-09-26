@@ -19,7 +19,7 @@ func Broadcast(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, b
 		scene.Broadcast = broadcast
 
 		if event := broadcast.Send(rt, oa, scene.Contact); event != nil {
-			if err := scene.AddEvent(ctx, rt, oa, event, models.NilUserID); err != nil {
+			if err := scene.AddEvent(ctx, rt, oa, event, broadcast.CreatedByID); err != nil {
 				return fmt.Errorf("error adding message event to broadcast scene: %w", err)
 			}
 		}
