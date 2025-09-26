@@ -252,7 +252,7 @@
         },
         "db_assertions": [
             {
-                "query": "SELECT count(*) FROM msgs_broadcast WHERE translations->'spa'->>'text' = 'Buenos días' AND schedule_id IS NOT NULL",
+                "query": "SELECT count(*) FROM msgs_broadcast WHERE translations-\u003e'spa'-\u003e\u003e'text' = 'Buenos días' AND schedule_id IS NOT NULL",
                 "returns": 1
             },
             {

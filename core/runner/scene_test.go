@@ -9,11 +9,13 @@ import (
 	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/gocommon/i18n"
+	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/gocommon/random"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/goflow/flows/resumes"
 	"github.com/nyaruka/goflow/flows/triggers"
+	"github.com/nyaruka/goflow/test"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/runner"
 	"github.com/nyaruka/mailroom/runtime"
@@ -68,7 +70,7 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 
 	// check events were persisted to DynamoDB
 	rt.Writers.History.Flush()
-	dyntest.AssertCount(t, rt.Dynamo, "TestHistory", 4)
+	dyntest.AssertCount(t, rt.Dynamo, "TestHistory", 6)
 
 	testsuite.AssertContactFires(t, rt, testdb.Bob.ID, map[string]time.Time{
 		fmt.Sprintf("E:%s", scBob.Session.UUID()): time.Date(2025, 2, 25, 16, 55, 9, 0, time.UTC), // 10 minutes in future
@@ -447,16 +449,59 @@ func TestBroadcast(t *testing.T) {
 	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 	require.NoError(t, err)
 
-	b1 := testdb.InsertBroadcast(t, rt, testdb.Org1, "eng", map[i18n.Language]string{"eng": "Hi", "spa": "Hola"}, nil, models.NilScheduleID, []*testdb.Contact{testdb.Ann, testdb.Bob, testdb.Cat}, nil)
+	b1 := testdb.InsertBroadcast(t, rt, testdb.Org1, "0199877e-0ed2-790b-b474-35099cea401c", "eng", map[i18n.Language]string{"eng": "Hi", "spa": "Hola"}, nil, models.NilScheduleID, []*testdb.Contact{testdb.Ann, testdb.Bob, testdb.Cat}, nil)
 
 	bcast, err := models.GetBroadcastByID(ctx, rt.DB, b1.ID)
 	require.NoError(t, err)
+
+	test.MockUniverse()
 
 	batch1 := bcast.CreateBatch([]models.ContactID{testdb.Ann.ID, testdb.Bob.ID}, true, false)
 	batch2 := bcast.CreateBatch([]models.ContactID{testdb.Cat.ID}, false, true)
 
 	err = runner.Broadcast(ctx, rt, oa, bcast, batch1)
 	assert.NoError(t, err)
+
+	test.AssertEqualJSON(t, []byte(`[
+		{
+			"Data": {
+				"broadcast_uuid": "0199877e-0ed2-790b-b474-35099cea401c",
+				"created_on": "2025-05-04T12:30:46.123456789Z",
+				"msg": {
+					"channel": {
+						"name": "Twilio",
+						"uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8"
+					},
+					"locale": "eng-US",
+					"text": "Hi",
+					"urn": "tel:+16055742222?id=10001"
+				},
+				"type": "msg_created"
+			},
+			"OrgID": 1,
+			"PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
+			"SK": "evt#01969b47-0583-76f8-ae7f-f8b243c49ff5"
+		},
+		{
+			"Data": {
+				"broadcast_uuid": "0199877e-0ed2-790b-b474-35099cea401c",
+				"created_on": "2025-05-04T12:30:49.123456789Z",
+				"msg": {
+					"channel": {
+						"name": "Twilio",
+						"uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8"
+					},
+					"locale": "eng-US",
+					"text": "Hi",
+					"urn": "tel:+16055741111?id=10000"
+				},
+				"type": "msg_created"
+			},
+			"OrgID": 1,
+			"PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+			"SK": "evt#01969b47-113b-76f8-bd38-d266ec8d3716"
+		}
+	]`), jsonx.MustMarshal(testsuite.GetHistoryItems(t, rt, false)))
 
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE broadcast_id = $1 AND created_by_id = $2`, bcast.ID, bcast.CreatedByID).Returns(2)
 

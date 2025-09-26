@@ -109,9 +109,7 @@ func insertOutgoingMsg(t *testing.T, rt *runtime.Runtime, org *Org, channel *Cha
 	return &MsgOut{Msg: Msg{ID: id, UUID: uuid}, FlowMsg: fm}
 }
 
-func InsertBroadcast(t *testing.T, rt *runtime.Runtime, org *Org, baseLanguage i18n.Language, text map[i18n.Language]string, optIn *OptIn, schedID models.ScheduleID, contacts []*Contact, groups []*Group) *Broadcast {
-	uuid := flows.NewBroadcastUUID()
-
+func InsertBroadcast(t *testing.T, rt *runtime.Runtime, org *Org, uuid flows.BroadcastUUID, baseLanguage i18n.Language, text map[i18n.Language]string, optIn *OptIn, schedID models.ScheduleID, contacts []*Contact, groups []*Group) *Broadcast {
 	translations := make(flows.BroadcastTranslations)
 	for lang, t := range text {
 		translations[lang] = &flows.MsgContent{Text: t}

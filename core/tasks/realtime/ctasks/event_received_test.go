@@ -75,7 +75,7 @@ func TestChannelEvents(t *testing.T) {
 			},
 			expectedTriggerType: "chat",
 			expectedResponse:    "What is your favorite color?",
-			persistedEvents:     map[flows.ContactUUID][]string{testdb.Ann.UUID: {"chat_started", "run_started"}},
+			persistedEvents:     map[flows.ContactUUID][]string{testdb.Ann.UUID: {"chat_started", "run_started", "msg_created"}},
 		},
 		{ // 1: new conversation on Vonage (no trigger)
 			contact: testdb.Ann,
@@ -131,7 +131,7 @@ func TestChannelEvents(t *testing.T) {
 			},
 			expectedTriggerType: "chat",
 			expectedResponse:    "Pick a number between 1-10.",
-			persistedEvents:     map[flows.ContactUUID][]string{testdb.Ann.UUID: {"chat_started", "run_ended", "run_started"}},
+			persistedEvents:     map[flows.ContactUUID][]string{testdb.Ann.UUID: {"chat_started", "run_ended", "run_started", "msg_created"}},
 		},
 		{ // 5: optin on Vonage
 			contact: testdb.Ann,
@@ -146,7 +146,7 @@ func TestChannelEvents(t *testing.T) {
 			},
 			expectedTriggerType: "optin",
 			expectedResponse:    "What is your favorite color?",
-			persistedEvents:     map[flows.ContactUUID][]string{testdb.Ann.UUID: {"optin_started", "run_ended", "run_started"}},
+			persistedEvents:     map[flows.ContactUUID][]string{testdb.Ann.UUID: {"optin_started", "run_ended", "run_started", "msg_created"}},
 		},
 		{ // 6: optout on Vonage
 			contact: testdb.Ann,
@@ -161,7 +161,7 @@ func TestChannelEvents(t *testing.T) {
 			},
 			expectedTriggerType: "optin",
 			expectedResponse:    "Pick a number between 1-10.",
-			persistedEvents:     map[flows.ContactUUID][]string{testdb.Ann.UUID: {"optin_stopped", "run_ended", "run_started"}},
+			persistedEvents:     map[flows.ContactUUID][]string{testdb.Ann.UUID: {"optin_stopped", "run_ended", "run_started", "msg_created"}},
 		},
 		{ // 7: missed call trigger queued by RP
 			contact: testdb.Ann,

@@ -110,6 +110,24 @@
             },
             {
                 "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
+                "SK": "evt#01969b47-9223-76f8-b63d-c8dcc2fa9de0",
+                "OrgID": 1,
+                "Data": {
+                    "created_on": "2025-05-04T12:31:22.123456789Z",
+                    "msg": {
+                        "channel": {
+                            "name": "Telegram",
+                            "uuid": "0f661e8b-ea9d-4bd3-9953-d368340acf91"
+                        },
+                        "locale": "eng-US",
+                        "text": "Bob Message",
+                        "urn": "telegram:67890?channel=0f661e8b-ea9d-4bd3-9953-d368340acf91"
+                    },
+                    "type": "msg_created"
+                }
+            },
+            {
+                "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
                 "SK": "evt#01969b47-9ddb-76f8-8f9d-465efd6fbb5e",
                 "OrgID": 1,
                 "Data": {
@@ -227,6 +245,24 @@
                         "telegram:12345?channel=0f661e8b-ea9d-4bd3-9953-d368340acf91",
                         "tel:+16055741111?id=10000"
                     ]
+                }
+            },
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01969b47-3c33-76f8-8ab7-4a517a86045c",
+                "OrgID": 1,
+                "Data": {
+                    "created_on": "2025-05-04T12:31:00.123456789Z",
+                    "msg": {
+                        "channel": {
+                            "name": "Telegram",
+                            "uuid": "0f661e8b-ea9d-4bd3-9953-d368340acf91"
+                        },
+                        "locale": "eng-US",
+                        "text": "Ann Message",
+                        "urn": "telegram:12345?channel=0f661e8b-ea9d-4bd3-9953-d368340acf91"
+                    },
+                    "type": "msg_created"
                 }
             },
             {

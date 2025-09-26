@@ -22,11 +22,11 @@ func TestFireSchedules(t *testing.T) {
 
 	// add a one-time schedule and tie a broadcast to it
 	s1 := testdb.InsertSchedule(t, rt, testdb.Org1, models.RepeatPeriodNever, time.Now().Add(-2*time.Hour))
-	b1 := testdb.InsertBroadcast(t, rt, testdb.Org1, "eng", map[i18n.Language]string{"eng": "Hi", "spa": "Hola"}, nil, s1, []*testdb.Contact{testdb.Ann, testdb.Cat}, nil)
+	b1 := testdb.InsertBroadcast(t, rt, testdb.Org1, "0199877e-0ed2-790b-b474-35099cea401c", "eng", map[i18n.Language]string{"eng": "Hi", "spa": "Hola"}, nil, s1, []*testdb.Contact{testdb.Ann, testdb.Cat}, nil)
 
 	// add a repeating schedule and tie another broadcast to it
 	s2 := testdb.InsertSchedule(t, rt, testdb.Org1, models.RepeatPeriodDaily, time.Now().Add(-time.Hour))
-	b2 := testdb.InsertBroadcast(t, rt, testdb.Org1, "eng", map[i18n.Language]string{"eng": "Bye", "spa": "Chau"}, nil, s2, nil, []*testdb.Group{testdb.DoctorsGroup})
+	b2 := testdb.InsertBroadcast(t, rt, testdb.Org1, "01998781-12e7-75ff-b276-404730892c3d", "eng", map[i18n.Language]string{"eng": "Bye", "spa": "Chau"}, nil, s2, nil, []*testdb.Group{testdb.DoctorsGroup})
 
 	// add a one-time schedule and tie a trigger to it
 	s3 := testdb.InsertSchedule(t, rt, testdb.Org1, models.RepeatPeriodNever, time.Now().Add(-2*time.Hour))

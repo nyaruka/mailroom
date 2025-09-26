@@ -110,6 +110,20 @@
             },
             {
                 "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
+                "SK": "evt#01969b47-8e3b-76f8-a71b-fe4af29b871a",
+                "OrgID": 1,
+                "Data": {
+                    "created_on": "2025-05-04T12:31:21.123456789Z",
+                    "msg": {
+                        "locale": "eng",
+                        "text": "No URNs",
+                        "unsendable_reason": "no_destination"
+                    },
+                    "type": "msg_created"
+                }
+            },
+            {
+                "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
                 "SK": "evt#01969b47-99f3-76f8-bfd7-d22404241e07",
                 "OrgID": 1,
                 "Data": {
@@ -137,6 +151,50 @@
                     },
                     "run_uuid": "01969b47-ff83-76f8-9e14-020037f6ddea",
                     "type": "run_started"
+                }
+            },
+            {
+                "PK": "con#d709c157-4606-4d41-9df3-9e9c9b4ae2d4",
+                "SK": "evt#01969b48-16f3-76f8-88b2-5d345629f07f",
+                "OrgID": 1,
+                "Data": {
+                    "created_on": "2025-05-04T12:31:56.123456789Z",
+                    "msg": {
+                        "channel": {
+                            "name": "Facebook",
+                            "uuid": "0f661e8b-ea9d-4bd3-9953-d368340acf91"
+                        },
+                        "locale": "eng-US",
+                        "templating": {
+                            "components": [
+                                {
+                                    "name": "body",
+                                    "type": "body/text",
+                                    "variables": {
+                                        "1": 0,
+                                        "2": 1
+                                    }
+                                }
+                            ],
+                            "template": {
+                                "name": "revive_issue",
+                                "uuid": "9c22b594-fcab-4b29-9bcb-ce4404894a80"
+                            },
+                            "variables": [
+                                {
+                                    "type": "text",
+                                    "value": "Dan"
+                                },
+                                {
+                                    "type": "text",
+                                    "value": "tooth"
+                                }
+                            ]
+                        },
+                        "text": "Hi Dan, are you still experiencing problems with tooth?",
+                        "urn": "facebook:12345?id=10003"
+                    },
+                    "type": "msg_created"
                 }
             },
             {
@@ -172,6 +230,27 @@
             },
             {
                 "PK": "con#cd024bcd-f473-4719-a00a-bd0bb1190135",
+                "SK": "evt#01969b47-d0a3-76f8-998e-ae5bd773804a",
+                "OrgID": 1,
+                "Data": {
+                    "created_on": "2025-05-04T12:31:38.123456789Z",
+                    "msg": {
+                        "attachments": [
+                            "image/png:/images/image1.png"
+                        ],
+                        "channel": {
+                            "name": "Twilio",
+                            "uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8"
+                        },
+                        "locale": "eng-US",
+                        "text": "Hello Attachments",
+                        "urn": "tel:+16055743333?id=10002"
+                    },
+                    "type": "msg_created"
+                }
+            },
+            {
+                "PK": "con#cd024bcd-f473-4719-a00a-bd0bb1190135",
                 "SK": "evt#01969b47-dc5b-76f8-87bc-209e78511534",
                 "OrgID": 1,
                 "Data": {
@@ -188,6 +267,23 @@
             },
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01969b47-0583-76f8-ae7f-f8b243c49ff5",
+                "OrgID": 1,
+                "Data": {
+                    "created_on": "2025-05-04T12:30:46.123456789Z",
+                    "msg": {
+                        "channel": {
+                            "name": "Twilio",
+                            "uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8"
+                        },
+                        "text": "start",
+                        "urn": "tel:+16055741111"
+                    },
+                    "type": "msg_received"
+                }
+            },
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
                 "SK": "evt#01969b47-24c3-76f8-bef6-3979f99a96f9",
                 "OrgID": 1,
                 "Data": {
@@ -199,6 +295,58 @@
                     },
                     "run_uuid": "01969b47-20db-76f8-9014-2c868db4022e",
                     "type": "run_started"
+                }
+            },
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01969b47-3c33-76f8-8768-7d0ba4d4f3e8",
+                "OrgID": 1,
+                "Data": {
+                    "created_on": "2025-05-04T12:31:00.123456789Z",
+                    "msg": {
+                        "channel": {
+                            "name": "Twilio",
+                            "uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8"
+                        },
+                        "locale": "eng-US",
+                        "quick_replies": [
+                            {
+                                "text": "yes"
+                            },
+                            {
+                                "text": "no"
+                            }
+                        ],
+                        "text": "Hello World",
+                        "urn": "tel:+16055741111?id=10000"
+                    },
+                    "type": "msg_created"
+                }
+            },
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01969b47-4403-76f8-b63d-c8dcc2fa9de0",
+                "OrgID": 1,
+                "Data": {
+                    "created_on": "2025-05-04T12:31:02.123456789Z",
+                    "msg": {
+                        "channel": {
+                            "name": "Twilio",
+                            "uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8"
+                        },
+                        "locale": "eng-US",
+                        "quick_replies": [
+                            {
+                                "text": "yes"
+                            },
+                            {
+                                "text": "no"
+                            }
+                        ],
+                        "text": "Hello World",
+                        "urn": "tel:+12065551212?id=30000"
+                    },
+                    "type": "msg_created"
                 }
             },
             {
