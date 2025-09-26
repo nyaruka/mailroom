@@ -95,7 +95,7 @@ func TestGetExpired(t *testing.T) {
 	// add a schedule and tie a broadcast to it
 	s1 := testdb.InsertSchedule(t, rt, testdb.Org1, models.RepeatPeriodNever, time.Now().Add(-24*time.Hour))
 
-	testdb.InsertBroadcast(t, rt, testdb.Org1, "eng", map[i18n.Language]string{"eng": "Test message", "fra": "Un Message"}, optIn, s1,
+	testdb.InsertBroadcast(t, rt, testdb.Org1, "0199877e-0ed2-790b-b474-35099cea401c", "eng", map[i18n.Language]string{"eng": "Test message", "fra": "Un Message"}, optIn, s1,
 		[]*testdb.Contact{testdb.Ann, testdb.Cat}, []*testdb.Group{testdb.DoctorsGroup},
 	)
 

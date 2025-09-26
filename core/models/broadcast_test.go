@@ -76,7 +76,7 @@ func TestInsertChildBroadcast(t *testing.T) {
 
 	optIn := testdb.InsertOptIn(t, rt, testdb.Org1, "45aec4dd-945f-4511-878f-7d8516fbd336", "Polls")
 	schedID := testdb.InsertSchedule(t, rt, testdb.Org1, models.RepeatPeriodDaily, time.Now())
-	bcast := testdb.InsertBroadcast(t, rt, testdb.Org1, `eng`, map[i18n.Language]string{`eng`: "Hello"}, optIn, schedID, []*testdb.Contact{testdb.Bob, testdb.Ann}, nil)
+	bcast := testdb.InsertBroadcast(t, rt, testdb.Org1, "0199877e-0ed2-790b-b474-35099cea401c", `eng`, map[i18n.Language]string{`eng`: "Hello"}, optIn, schedID, []*testdb.Contact{testdb.Bob, testdb.Ann}, nil)
 
 	var bj json.RawMessage
 	err := rt.DB.GetContext(ctx, &bj, `SELECT ROW_TO_JSON(r) FROM (

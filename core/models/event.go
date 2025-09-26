@@ -28,17 +28,19 @@ var eventPersistence = map[string]time.Duration{
 	events.TypeContactNameChanged:     time.Hour * 24 * 365, // 1 year
 	events.TypeContactStatusChanged:   -1,
 	events.TypeContactURNsChanged:     time.Hour * 24 * 365, // 1 year
+	events.TypeMsgCreated:             -1,
+	events.TypeMsgReceived:            -1,
 	events.TypeOptInRequested:         -1,
 	events.TypeOptInStarted:           -1,
 	events.TypeOptInStopped:           -1,
+	events.TypeRunEnded:               -1,
+	events.TypeRunStarted:             -1,
 	events.TypeTicketAssigneeChanged:  -1,
 	events.TypeTicketClosed:           -1,
 	events.TypeTicketNoteAdded:        -1,
 	events.TypeTicketOpened:           -1,
 	events.TypeTicketReopened:         -1,
 	events.TypeTicketTopicChanged:     -1,
-	events.TypeRunEnded:               -1,
-	events.TypeRunStarted:             -1,
 }
 
 const (
