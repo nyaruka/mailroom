@@ -18,7 +18,71 @@
         },
         "expected_tasks": {
             "batch/1": [
-                "start_flow"
+                {
+                    "type": "start_flow",
+                    "payload": {
+                        "start_id": null,
+                        "org_id": 1,
+                        "start_type": "F",
+                        "created_by_id": null,
+                        "flow_id": 10000,
+                        "query": "name ~ \"Ann\"",
+                        "exclusions": {
+                            "non_active": false,
+                            "in_a_flow": false,
+                            "started_previously": false,
+                            "not_seen_since_days": 0
+                        },
+                        "create_contact": true,
+                        "parent_summary": {
+                            "uuid": "01969b47-1523-76f8-bebe-b4a1f677cf4c",
+                            "flow": {
+                                "uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85",
+                                "name": "Test Flow",
+                                "revision": 1
+                            },
+                            "contact": {
+                                "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                                "id": 10000,
+                                "name": "Ann",
+                                "status": "active",
+                                "timezone": "America/Los_Angeles",
+                                "created_on": "2021-06-01T12:29:30Z",
+                                "urns": [
+                                    "tel:+16055741111?id=10000"
+                                ],
+                                "groups": [
+                                    {
+                                        "uuid": "c153e265-f7c9-4539-9dbc-9b358714b638",
+                                        "name": "Doctors"
+                                    }
+                                ],
+                                "fields": {
+                                    "gender": {
+                                        "text": "F"
+                                    },
+                                    "state": {
+                                        "text": "Nigeria > Yobe",
+                                        "state": "Nigeria > Yobe"
+                                    },
+                                    "ward": {
+                                        "text": "Nigeria > Yobe > Gulani > Dokshi",
+                                        "state": "Nigeria > Yobe",
+                                        "district": "Nigeria > Yobe > Gulani",
+                                        "ward": "Nigeria > Yobe > Gulani > Dokshi"
+                                    }
+                                }
+                            },
+                            "status": "active",
+                            "results": {}
+                        },
+                        "session_history": {
+                            "parent_uuid": "01969b47-096b-76f8-b86e-4b881f09a186",
+                            "ancestors": 1,
+                            "ancestors_since_input": 1
+                        }
+                    }
+                }
             ]
         },
         "expected_history": [

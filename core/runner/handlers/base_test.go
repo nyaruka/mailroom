@@ -81,8 +81,8 @@ type TestCase struct {
 	Actions         ContactActionMap                   `json:"actions,omitempty"`
 	UserID          models.UserID                      `json:"user_id,omitempty"`
 	DBAssertions    []*assertdb.Assert                 `json:"db_assertions,omitempty"`
-	ExpectedTasks   map[string][]string                `json:"expected_tasks,omitempty"`
-	ExpectedHistory json.RawMessage                    `json:"expected_history,omitempty"`
+	ExpectedTasks   map[string][]testsuite.TaskInfo    `json:"expected_tasks,omitempty"`
+	ExpectedHistory []*models.DynamoItem               `json:"expected_history,omitempty"`
 }
 
 func runTests(t *testing.T, rt *runtime.Runtime, truthFile string, mockUniverse bool) {
@@ -98,8 +98,7 @@ func runTests(t *testing.T, rt *runtime.Runtime, truthFile string, mockUniverse 
 	assert.NoError(t, err)
 
 	if mockUniverse {
-		// TODO rework all tests to support this
-		test.MockUniverse()
+		test.MockUniverse() // TODO rework all tests to support this
 	}
 
 	for i, tc := range tcs {
@@ -161,11 +160,13 @@ func runTests(t *testing.T, rt *runtime.Runtime, truthFile string, mockUniverse 
 
 		// clone test case and populate with actual values
 		actual := tc
-		actual.ExpectedTasks = testsuite.GetQueuedTaskTypes(t, rt)
 		if mockUniverse {
-			actual.ExpectedHistory = jsonx.MustMarshal(testsuite.GetHistoryItems(t, rt, true))
+			actual.ExpectedTasks = testsuite.GetQueuedTasks(t, rt)
+			actual.ExpectedHistory = testsuite.GetHistoryItems(t, rt, true)
 		} else {
-			actual.ExpectedHistory = nil // can't test events without full mocking of time etc
+			// can't test these without full mocking of time etc
+			actual.ExpectedTasks = nil
+			actual.ExpectedHistory = nil
 		}
 
 		for i, dba := range actual.DBAssertions {
@@ -180,16 +181,16 @@ func runTests(t *testing.T, rt *runtime.Runtime, truthFile string, mockUniverse 
 				dba.Check(t, rt.DB, "%s: assertion for query '%s' failed", tc.Label, dba.Query)
 			}
 
-			if tc.ExpectedTasks == nil {
-				tc.ExpectedTasks = make(map[string][]string)
-			}
-			assert.Equal(t, tc.ExpectedTasks, actual.ExpectedTasks, "%s: unexpected tasks", tc.Label)
-
 			if mockUniverse {
-				if tc.ExpectedHistory == nil {
-					tc.ExpectedHistory = []byte(`[]`)
+				if tc.ExpectedTasks == nil {
+					tc.ExpectedTasks = map[string][]testsuite.TaskInfo{}
 				}
-				test.AssertEqualJSON(t, tc.ExpectedHistory, actual.ExpectedHistory, "%s: event history mismatch", tc.Label)
+				test.AssertEqualJSON(t, jsonx.MustMarshal(tc.ExpectedTasks), jsonx.MustMarshal(actual.ExpectedTasks), "%s: unexpected tasks", tc.Label)
+
+				if tc.ExpectedHistory == nil {
+					tc.ExpectedHistory = []*models.DynamoItem{}
+				}
+				test.AssertEqualJSON(t, jsonx.MustMarshal(tc.ExpectedHistory), jsonx.MustMarshal(actual.ExpectedHistory), "%s: event history mismatch", tc.Label)
 			}
 		} else {
 			tcs[i] = actual
@@ -198,12 +199,6 @@ func runTests(t *testing.T, rt *runtime.Runtime, truthFile string, mockUniverse 
 
 	// update if we are meant to
 	if test.UpdateSnapshots {
-		for i := range tcs {
-			if string(tcs[i].ExpectedHistory) == `[]` {
-				tcs[i].ExpectedHistory = nil
-			}
-		}
-
 		truth, err := jsonx.MarshalPretty(tcs)
 		require.NoError(t, err)
 

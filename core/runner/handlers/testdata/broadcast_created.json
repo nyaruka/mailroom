@@ -24,7 +24,30 @@
         ],
         "expected_tasks": {
             "batch/1": [
-                "send_broadcast"
+                {
+                    "type": "send_broadcast",
+                    "payload": {
+                        "broadcast_uuid": "01969b47-e043-76f8-92ca-6e1d7f550554",
+                        "org_id": 1,
+                        "status": "P",
+                        "translations": {
+                            "eng": {
+                                "text": "hello world"
+                            }
+                        },
+                        "base_language": "eng",
+                        "expressions": false,
+                        "urns": [
+                            "tel:+12065551212"
+                        ],
+                        "exclusions": {
+                            "non_active": false,
+                            "in_a_flow": false,
+                            "started_previously": false,
+                            "not_seen_since_days": 0
+                        }
+                    }
+                }
             ]
         },
         "expected_history": [

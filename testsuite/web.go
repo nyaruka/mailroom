@@ -20,6 +20,7 @@ import (
 	"github.com/nyaruka/gocommon/httpx"
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/goflow/test"
+	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/mailroom/web"
 	"github.com/stretchr/testify/assert"
@@ -50,7 +51,7 @@ func RunWebTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 		ResponseFile    string                `json:"response_file,omitempty"`
 		DBAssertions    []*assertdb.Assert    `json:"db_assertions,omitempty"`
 		ExpectedTasks   map[string][]TaskInfo `json:"expected_tasks,omitempty"`
-		ExpectedHistory json.RawMessage       `json:"expected_history,omitempty"`
+		ExpectedHistory []*models.DynamoItem  `json:"expected_history,omitempty"`
 
 		actualResponse  []byte
 		expectsJSONBody bool
@@ -110,7 +111,7 @@ func RunWebTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 		actual.HTTPMocks = clonedMocks
 		actual.actualResponse, err = io.ReadAll(resp.Body)
 		actual.ExpectedTasks = GetQueuedTasks(t, rt)
-		actual.ExpectedHistory = jsonx.MustMarshal(GetHistoryItems(t, rt, true))
+		actual.ExpectedHistory = GetHistoryItems(t, rt, true)
 
 		for i, dba := range actual.DBAssertions {
 			actual.DBAssertions[i] = dba.Actual(t, rt.DB)
@@ -162,14 +163,14 @@ func RunWebTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 			}
 
 			if tc.ExpectedTasks == nil {
-				tc.ExpectedTasks = make(map[string][]TaskInfo)
+				tc.ExpectedTasks = map[string][]TaskInfo{}
 			}
 			test.AssertEqualJSON(t, jsonx.MustMarshal(tc.ExpectedTasks), jsonx.MustMarshal(actual.ExpectedTasks), "%s: unexpected tasks", tc.Label)
 
 			if tc.ExpectedHistory == nil {
-				tc.ExpectedHistory = []byte(`[]`)
+				tc.ExpectedHistory = []*models.DynamoItem{}
 			}
-			test.AssertEqualJSON(t, tc.ExpectedHistory, actual.ExpectedHistory, "%s: event history mismatch", tc.Label)
+			test.AssertEqualJSON(t, jsonx.MustMarshal(tc.ExpectedHistory), jsonx.MustMarshal(actual.ExpectedHistory), "%s: event history mismatch", tc.Label)
 
 		} else {
 			tcs[i] = actual
@@ -186,10 +187,6 @@ func RunWebTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 				tcs[i].Response = tcs[i].actualResponse
 			} else {
 				tcs[i].Response = jsonx.MustMarshal(string(tcs[i].actualResponse))
-			}
-
-			if string(tcs[i].ExpectedHistory) == `[]` {
-				tcs[i].ExpectedHistory = nil
 			}
 		}
 
