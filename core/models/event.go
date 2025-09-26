@@ -128,7 +128,7 @@ func (e *Event) UnmarshalDynamo(d map[string]types.AttributeValue) error {
 	e.ContactUUID = flows.ContactUUID(item.PK)[4:] // trim off con#
 	user, ok := data["_user"].(map[string]any)
 	if ok {
-		e.User = assets.NewUserReference(user["uuid"].(assets.UserUUID), user["name"].(string))
+		e.User = assets.NewUserReference(assets.UserUUID(user["uuid"].(string)), user["name"].(string))
 		delete(data, "_user")
 	}
 

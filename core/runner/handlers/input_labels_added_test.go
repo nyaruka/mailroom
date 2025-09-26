@@ -11,5 +11,5 @@ func TestInputLabelsAdded(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
-	runTests(t, rt, "testdata/input_labels_added.json")
+	runTests(t, rt, "testdata/input_labels_added.json", true)
 }

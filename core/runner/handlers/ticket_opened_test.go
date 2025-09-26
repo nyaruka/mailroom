@@ -11,5 +11,5 @@ func TestTicketOpened(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
-	runTests(t, rt, "testdata/ticket_opened.json")
+	runTests(t, rt, "testdata/ticket_opened.json", true)
 }

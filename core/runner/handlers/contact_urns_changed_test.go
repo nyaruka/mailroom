@@ -16,5 +16,5 @@ func TestContactURNsChanged(t *testing.T) {
 	// add a URN to Cat that Ann will steal
 	testdb.InsertContactURN(t, rt, testdb.Org1, testdb.Cat, urns.URN("tel:+12065551212"), 100, nil)
 
-	runTests(t, rt, "testdata/contact_urns_changed.json")
+	runTests(t, rt, "testdata/contact_urns_changed.json", true)
 }

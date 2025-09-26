@@ -58,27 +58,203 @@
                 "returns": 3
             }
         ],
-        "persisted_events": {
-            "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
-                "run_started",
-                "ticket_opened",
-                "contact_groups_changed",
-                "run_ended"
-            ],
-            "b699a406-7e44-49be-9f01-1a82893e8a10": [
-                "run_started",
-                "ticket_opened",
-                "contact_groups_changed",
-                "run_ended"
-            ],
-            "cd024bcd-f473-4719-a00a-bd0bb1190135": [
-                "run_started",
-                "run_ended"
-            ],
-            "d709c157-4606-4d41-9df3-9e9c9b4ae2d4": [
-                "run_started",
-                "run_ended"
-            ]
-        }
+        "expected_history": [
+            {
+                "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
+                "SK": "evt#01969b47-672b-76f8-9014-2c868db4022e",
+                "OrgID": 1,
+                "Data": {
+                    "created_on": "2025-05-04T12:31:11.123456789Z",
+                    "flow": {
+                        "name": "Test Flow",
+                        "revision": 1,
+                        "uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85"
+                    },
+                    "run_uuid": "01969b47-6343-76f8-a13f-9238de2a0b76",
+                    "type": "run_started"
+                }
+            },
+            {
+                "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
+                "SK": "evt#01969b47-7e9b-76f8-8768-7d0ba4d4f3e8",
+                "OrgID": 1,
+                "Data": {
+                    "created_on": "2025-05-04T12:31:17.123456789Z",
+                    "note": "I've found some cookies",
+                    "ticket": {
+                        "status": "open",
+                        "topic": {
+                            "name": "General",
+                            "uuid": "4307df2e-b00b-42b6-922b-4a1dcfc268d8"
+                        },
+                        "uuid": "01969b47-7ab3-76f8-be24-6164105d48f2"
+                    },
+                    "type": "ticket_opened"
+                }
+            },
+            {
+                "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
+                "SK": "evt#01969b47-866b-76f8-b63d-c8dcc2fa9de0",
+                "OrgID": 1,
+                "TTL": "2026-05-04T12:31:19Z",
+                "Data": {
+                    "created_on": "2025-05-04T12:31:19.123456789Z",
+                    "groups_added": [
+                        {
+                            "name": "Open Tickets",
+                            "uuid": "361838c4-2866-495a-8990-9f3c222a7604"
+                        }
+                    ],
+                    "type": "contact_groups_changed"
+                }
+            },
+            {
+                "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
+                "SK": "evt#01969b47-9223-76f8-8f9d-465efd6fbb5e",
+                "OrgID": 1,
+                "Data": {
+                    "created_on": "2025-05-04T12:31:22.123456789Z",
+                    "flow": {
+                        "name": "Test Flow",
+                        "revision": 1,
+                        "uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85"
+                    },
+                    "run_uuid": "01969b47-6343-76f8-a13f-9238de2a0b76",
+                    "status": "completed",
+                    "type": "run_ended"
+                }
+            },
+            {
+                "PK": "con#d709c157-4606-4d41-9df3-9e9c9b4ae2d4",
+                "SK": "evt#01969b47-e813-76f8-acdc-e181352d44cc",
+                "OrgID": 1,
+                "Data": {
+                    "created_on": "2025-05-04T12:31:44.123456789Z",
+                    "flow": {
+                        "name": "Test Flow",
+                        "revision": 1,
+                        "uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85"
+                    },
+                    "run_uuid": "01969b47-e42b-76f8-9491-58ccdc93a8a8",
+                    "type": "run_started"
+                }
+            },
+            {
+                "PK": "con#d709c157-4606-4d41-9df3-9e9c9b4ae2d4",
+                "SK": "evt#01969b47-f7b3-76f8-a5ef-59cf4d9d7a5b",
+                "OrgID": 1,
+                "Data": {
+                    "created_on": "2025-05-04T12:31:48.123456789Z",
+                    "flow": {
+                        "name": "Test Flow",
+                        "revision": 1,
+                        "uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85"
+                    },
+                    "run_uuid": "01969b47-e42b-76f8-9491-58ccdc93a8a8",
+                    "status": "completed",
+                    "type": "run_ended"
+                }
+            },
+            {
+                "PK": "con#cd024bcd-f473-4719-a00a-bd0bb1190135",
+                "SK": "evt#01969b47-b54b-76f8-92ca-6e1d7f550554",
+                "OrgID": 1,
+                "Data": {
+                    "created_on": "2025-05-04T12:31:31.123456789Z",
+                    "flow": {
+                        "name": "Test Flow",
+                        "revision": 1,
+                        "uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85"
+                    },
+                    "run_uuid": "01969b47-b163-76f8-92e8-a5e406ecb2a7",
+                    "type": "run_started"
+                }
+            },
+            {
+                "PK": "con#cd024bcd-f473-4719-a00a-bd0bb1190135",
+                "SK": "evt#01969b47-c4eb-76f8-8b56-5e92bbfe0e3f",
+                "OrgID": 1,
+                "Data": {
+                    "created_on": "2025-05-04T12:31:35.123456789Z",
+                    "flow": {
+                        "name": "Test Flow",
+                        "revision": 1,
+                        "uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85"
+                    },
+                    "run_uuid": "01969b47-b163-76f8-92e8-a5e406ecb2a7",
+                    "status": "completed",
+                    "type": "run_ended"
+                }
+            },
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01969b47-190b-76f8-b62c-3c781ca3b5da",
+                "OrgID": 1,
+                "Data": {
+                    "created_on": "2025-05-04T12:30:51.123456789Z",
+                    "flow": {
+                        "name": "Test Flow",
+                        "revision": 1,
+                        "uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85"
+                    },
+                    "run_uuid": "01969b47-1523-76f8-8e78-3bde7b3370ae",
+                    "type": "run_started"
+                }
+            },
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01969b47-307b-76f8-9853-0310d032b497",
+                "OrgID": 1,
+                "Data": {
+                    "created_on": "2025-05-04T12:30:57.123456789Z",
+                    "note": "Where are my cookies?",
+                    "ticket": {
+                        "assignee": {
+                            "name": "Andy Admin",
+                            "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
+                        },
+                        "status": "open",
+                        "topic": {
+                            "name": "Support",
+                            "uuid": "0a8f2e00-fef6-402c-bd79-d789446ec0e0"
+                        },
+                        "uuid": "01969b47-2c93-76f8-bec9-e032f4f9af5f"
+                    },
+                    "type": "ticket_opened"
+                }
+            },
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01969b47-384b-76f8-8ab7-4a517a86045c",
+                "OrgID": 1,
+                "TTL": "2026-05-04T12:30:59Z",
+                "Data": {
+                    "created_on": "2025-05-04T12:30:59.123456789Z",
+                    "groups_added": [
+                        {
+                            "name": "Open Tickets",
+                            "uuid": "361838c4-2866-495a-8990-9f3c222a7604"
+                        }
+                    ],
+                    "type": "contact_groups_changed"
+                }
+            },
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01969b47-4403-76f8-97a3-ae27459a6be4",
+                "OrgID": 1,
+                "Data": {
+                    "created_on": "2025-05-04T12:31:02.123456789Z",
+                    "flow": {
+                        "name": "Test Flow",
+                        "revision": 1,
+                        "uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85"
+                    },
+                    "run_uuid": "01969b47-1523-76f8-8e78-3bde7b3370ae",
+                    "status": "completed",
+                    "type": "run_ended"
+                }
+            }
+        ]
     }
 ]

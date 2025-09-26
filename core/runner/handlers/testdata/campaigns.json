@@ -117,7 +117,7 @@
         "db_assertions": [
             {
                 "query": "SELECT count(*) FROM contacts_contactfire WHERE contact_id = 10000 AND fire_type = 'C'",
-                "returns": 2
+                "returns": 1
             },
             {
                 "query": "SELECT count(*) FROM contacts_contactfire WHERE contact_id = 10001 AND fire_type = 'C'",
