@@ -112,6 +112,10 @@ func RunWebTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 		actual.ExpectedTasks = GetQueuedTasks(t, rt)
 		actual.ExpectedHistory = jsonx.MustMarshal(GetHistoryItems(t, rt, true))
 
+		for i, dba := range actual.DBAssertions {
+			actual.DBAssertions[i] = dba.Actual(t, rt.DB)
+		}
+
 		assert.NoError(t, err, "%s: error reading body", tc.Label)
 
 		// some timestamps come from db NOW() which we can't mock, so we replace them with $recent_timestamp$

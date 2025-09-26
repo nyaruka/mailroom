@@ -58,7 +58,7 @@ type TestCase struct {
 	Actions         ContactActionMap                   `json:"actions,omitempty"`
 	Modifiers       ContactModifierMap                 `json:"modifiers,omitempty"`
 	UserID          models.UserID                      `json:"user_id,omitempty"`
-	DBAssertions    []assertdb.Assert                  `json:"db_assertions,omitempty"`
+	DBAssertions    []*assertdb.Assert                 `json:"db_assertions,omitempty"`
 	ExpectedTasks   map[string][]string                `json:"expected_tasks,omitempty"`
 	PersistedEvents map[flows.ContactUUID][]string     `json:"persisted_events,omitempty"`
 }
@@ -200,6 +200,10 @@ func runTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 		actual := tc
 		actual.ExpectedTasks = testsuite.GetQueuedTaskTypes(t, rt)
 		actual.PersistedEvents = testsuite.GetHistoryEventTypes(t, rt, true)
+
+		for i, dba := range actual.DBAssertions {
+			actual.DBAssertions[i] = dba.Actual(t, rt.DB)
+		}
 
 		testsuite.ClearTasks(t, rt)
 
