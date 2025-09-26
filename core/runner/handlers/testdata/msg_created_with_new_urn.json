@@ -1,6 +1,7 @@
 [
     {
         "label": "brand new URN on Ann, and Bob is stealing a URN previously assigned to Cat",
+        "events": {},
         "actions": {
             "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
                 {

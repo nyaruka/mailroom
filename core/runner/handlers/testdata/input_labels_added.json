@@ -19,11 +19,14 @@
                 "text": "start"
             }
         },
-        "actions": {
+        "events": {
             "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
                 {
-                    "type": "add_input_labels",
-                    "uuid": "14536a12-2dbe-4aab-a0a9-2b642689af3f",
+                    "uuid": "01969b47-47eb-76f8-bef6-3979f99a96f9",
+                    "type": "input_labels_added",
+                    "created_on": "2025-05-04T12:31:03.123456789Z",
+                    "step_uuid": "2a6725ab-4f62-4c5a-9014-2c868db4022e",
+                    "input_uuid": "01969b47-0583-76f8-ae7f-f8b243c49ff5",
                     "labels": [
                         {
                             "uuid": "ebc4dedc-91c4-4ed4-9dd6-daa05ea82698",
@@ -32,8 +35,11 @@
                     ]
                 },
                 {
-                    "type": "add_input_labels",
-                    "uuid": "0c88028d-9f9b-4c7b-ba9f-941c1a8f0e62",
+                    "uuid": "01969b47-4fbb-76f8-ba91-c48ad8c50e6b",
+                    "type": "input_labels_added",
+                    "created_on": "2025-05-04T12:31:05.123456789Z",
+                    "step_uuid": "2a6725ab-4f62-4c5a-9014-2c868db4022e",
+                    "input_uuid": "01969b47-0583-76f8-ae7f-f8b243c49ff5",
                     "labels": [
                         {
                             "uuid": "a6338cdc-7938-4437-8b05-2d5d785e3a08",
@@ -42,8 +48,11 @@
                     ]
                 },
                 {
-                    "type": "add_input_labels",
-                    "uuid": "036f335b-15c1-484a-8842-e090d515ba71",
+                    "uuid": "01969b47-578b-76f8-be24-6164105d48f2",
+                    "type": "input_labels_added",
+                    "created_on": "2025-05-04T12:31:07.123456789Z",
+                    "step_uuid": "2a6725ab-4f62-4c5a-9014-2c868db4022e",
+                    "input_uuid": "01969b47-0583-76f8-ae7f-f8b243c49ff5",
                     "labels": [
                         {
                             "uuid": "ebc4dedc-91c4-4ed4-9dd6-daa05ea82698",
@@ -52,27 +61,20 @@
                     ]
                 }
             ],
-            "b699a406-7e44-49be-9f01-1a82893e8a10": [],
             "cd024bcd-f473-4719-a00a-bd0bb1190135": [
                 {
-                    "type": "add_input_labels",
-                    "uuid": "670052b2-2fe0-4f64-b72a-eaa054fb75c7",
-                    "labels": [
-                        {
-                            "uuid": "a6338cdc-7938-4437-8b05-2d5d785e3a08",
-                            "name": "Testing"
-                        }
-                    ]
+                    "uuid": "01969b47-d873-76f8-a5ef-59cf4d9d7a5b",
+                    "type": "error",
+                    "created_on": "2025-05-04T12:31:40.123456789Z",
+                    "step_uuid": "19ebde80-3969-47d3-a09e-6806aab9f510",
+                    "text": "no input to add labels to"
                 },
                 {
-                    "type": "add_input_labels",
-                    "uuid": "482a4b1c-7ec8-4408-bbd7-ee9fa8f9ff24",
-                    "labels": [
-                        {
-                            "uuid": "ebc4dedc-91c4-4ed4-9dd6-daa05ea82698",
-                            "name": "Reporting"
-                        }
-                    ]
+                    "uuid": "01969b47-e043-76f8-8ceb-17799a976525",
+                    "type": "error",
+                    "created_on": "2025-05-04T12:31:42.123456789Z",
+                    "step_uuid": "19ebde80-3969-47d3-a09e-6806aab9f510",
+                    "text": "no input to add labels to"
                 }
             ]
         },
@@ -91,132 +93,6 @@
                     10001
                 ],
                 "returns": 0
-            }
-        ],
-        "expected_history": [
-            {
-                "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
-                "SK": "evt#01969b47-866b-76f8-977d-88574316827e",
-                "OrgID": 1,
-                "Data": {
-                    "created_on": "2025-05-04T12:31:19.123456789Z",
-                    "flow": {
-                        "name": "Test Flow",
-                        "revision": 1,
-                        "uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85"
-                    },
-                    "run_uuid": "01969b47-8283-76f8-a8fd-1537ca860f97",
-                    "type": "run_started"
-                }
-            },
-            {
-                "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
-                "SK": "evt#01969b47-a1c3-76f8-9803-f4a851d20f2b",
-                "OrgID": 1,
-                "Data": {
-                    "created_on": "2025-05-04T12:31:26.123456789Z",
-                    "flow": {
-                        "name": "Test Flow",
-                        "revision": 1,
-                        "uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85"
-                    },
-                    "run_uuid": "01969b47-8283-76f8-a8fd-1537ca860f97",
-                    "status": "completed",
-                    "type": "run_ended"
-                }
-            },
-            {
-                "PK": "con#d709c157-4606-4d41-9df3-9e9c9b4ae2d4",
-                "SK": "evt#01969b48-0f23-76f8-9c02-6222e1badc14",
-                "OrgID": 1,
-                "Data": {
-                    "created_on": "2025-05-04T12:31:54.123456789Z",
-                    "flow": {
-                        "name": "Test Flow",
-                        "revision": 1,
-                        "uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85"
-                    },
-                    "run_uuid": "01969b48-0b3b-76f8-8c15-15a7c0c5228d",
-                    "type": "run_started"
-                }
-            },
-            {
-                "PK": "con#d709c157-4606-4d41-9df3-9e9c9b4ae2d4",
-                "SK": "evt#01969b48-1ec3-76f8-bf05-63393fd408f5",
-                "OrgID": 1,
-                "Data": {
-                    "created_on": "2025-05-04T12:31:58.123456789Z",
-                    "flow": {
-                        "name": "Test Flow",
-                        "revision": 1,
-                        "uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85"
-                    },
-                    "run_uuid": "01969b48-0b3b-76f8-8c15-15a7c0c5228d",
-                    "status": "completed",
-                    "type": "run_ended"
-                }
-            },
-            {
-                "PK": "con#cd024bcd-f473-4719-a00a-bd0bb1190135",
-                "SK": "evt#01969b47-c4eb-76f8-9491-58ccdc93a8a8",
-                "OrgID": 1,
-                "Data": {
-                    "created_on": "2025-05-04T12:31:35.123456789Z",
-                    "flow": {
-                        "name": "Test Flow",
-                        "revision": 1,
-                        "uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85"
-                    },
-                    "run_uuid": "01969b47-c103-76f8-8631-f6b52b12c734",
-                    "type": "run_started"
-                }
-            },
-            {
-                "PK": "con#cd024bcd-f473-4719-a00a-bd0bb1190135",
-                "SK": "evt#01969b47-ebfb-76f8-9504-776e7d151101",
-                "OrgID": 1,
-                "Data": {
-                    "created_on": "2025-05-04T12:31:45.123456789Z",
-                    "flow": {
-                        "name": "Test Flow",
-                        "revision": 1,
-                        "uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85"
-                    },
-                    "run_uuid": "01969b47-c103-76f8-8631-f6b52b12c734",
-                    "status": "completed",
-                    "type": "run_ended"
-                }
-            },
-            {
-                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b47-307b-76f8-aaa3-04d3fbce5f9a",
-                "OrgID": 1,
-                "Data": {
-                    "created_on": "2025-05-04T12:30:57.123456789Z",
-                    "flow": {
-                        "name": "Test Flow",
-                        "revision": 1,
-                        "uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85"
-                    },
-                    "run_uuid": "01969b47-2c93-76f8-ba7e-53c2263e32f8",
-                    "type": "run_started"
-                }
-            },
-            {
-                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b47-6343-76f8-8768-7d0ba4d4f3e8",
-                "OrgID": 1,
-                "Data": {
-                    "created_on": "2025-05-04T12:31:10.123456789Z",
-                    "flow": {
-                        "name": "Test Flow",
-                        "revision": 1,
-                        "uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85"
-                    },
-                    "run_uuid": "01969b47-2c93-76f8-ba7e-53c2263e32f8",
-                    "status": "completed",
-                    "type": "run_ended"
-                }
             }
         ]
     }

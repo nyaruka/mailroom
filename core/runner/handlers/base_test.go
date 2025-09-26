@@ -77,7 +77,7 @@ func (m *ContactActionMap) UnmarshalJSON(d []byte) error {
 type TestCase struct {
 	Label           string                             `json:"label"`
 	Msgs            map[flows.ContactUUID]*flows.MsgIn `json:"msgs,omitempty"`
-	Events          ContactEventMap                    `json:"events,omitempty"`
+	Events          ContactEventMap                    `json:"events"`
 	Actions         ContactActionMap                   `json:"actions,omitempty"`
 	UserID          models.UserID                      `json:"user_id,omitempty"`
 	DBAssertions    []*assertdb.Assert                 `json:"db_assertions,omitempty"`
@@ -118,11 +118,9 @@ func runTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 				msgEvents[i] = msgEvent
 			}
 
-			if tc.Events != nil {
-				for _, e := range tc.Events[c.UUID] {
-					err := scenes[i].AddEvent(ctx, rt, oa, e, tc.UserID)
-					require.NoError(t, err)
-				}
+			for _, e := range tc.Events[c.UUID] {
+				err := scenes[i].AddEvent(ctx, rt, oa, e, tc.UserID)
+				require.NoError(t, err)
 			}
 		}
 

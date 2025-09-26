@@ -1,14 +1,50 @@
 [
     {
         "label": "#1",
-        "actions": {
+        "events": {
             "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
                 {
-                    "type": "transfer_airtime",
-                    "uuid": "a7ecb359-6fd9-4dac-ac66-7278a58e0dc7",
-                    "amounts": {
-                        "USD": 3
-                    }
+                    "uuid": "01969b47-47eb-76f8-8e78-3bde7b3370ae",
+                    "type": "airtime_transferred",
+                    "created_on": "2025-05-04T12:31:03.123456789Z",
+                    "step_uuid": "688e64f9-2456-4b42-afcb-91a2073e5459",
+                    "external_id": "2237512891",
+                    "sender": "tel:+13605551212",
+                    "recipient": "tel:+16055741111?id=10000",
+                    "currency": "USD",
+                    "amount": 3,
+                    "http_logs": [
+                        {
+                            "url": "https://dvs-api.dtone.com/v1/lookup/mobile-number",
+                            "status_code": 200,
+                            "request": "POST /v1/lookup/mobile-number HTTP/1.1\r\nHost: dvs-api.dtone.com\r\nUser-Agent: Go-http-client/1.1\r\nContent-Length: 32\r\nAuthorization: Basic a2V5MTIzOnNlc2FtZQ==\r\nContent-Type: application/json\r\nAccept-Encoding: gzip\r\n\r\n{\"mobile_number\":\"+16055741111\"}",
+                            "response": "HTTP/1.0 200 OK\r\nContent-Length: 337\r\n\r\n[\n\t{\n\t\t\"country\": {\n\t\t\"iso_code\": \"ECU\",\n\t\t\"name\": \"Ecuador\",\n\t\t\"regions\": null\n\t\t},\n\t\t\"id\": 1596,\n\t\t\"identified\": true,\n\t\t\"name\": \"Claro Ecuador\",\n\t\t\"regions\": null\n\t},\n\t{\n\t\t\"country\": {\n\t\t\"iso_code\": \"ECU\",\n\t\t\"name\": \"Ecuador\",\n\t\t\"regions\": null\n\t\t},\n\t\t\"id\": 1597,\n\t\t\"identified\": false,\n\t\t\"name\": \"CNT Ecuador\",\n\t\t\"regions\": null\n\t}\n]",
+                            "elapsed_ms": 1000,
+                            "retries": 0,
+                            "status": "success",
+                            "created_on": "2025-05-04T12:30:55.123456789Z"
+                        },
+                        {
+                            "url": "https://dvs-api.dtone.com/v1/products?type=FIXED_VALUE_RECHARGE&operator_id=1596&per_page=100",
+                            "status_code": 200,
+                            "request": "GET /v1/products?type=FIXED_VALUE_RECHARGE&operator_id=1596&per_page=100 HTTP/1.1\r\nHost: dvs-api.dtone.com\r\nUser-Agent: Go-http-client/1.1\r\nAuthorization: Basic a2V5MTIzOnNlc2FtZQ==\r\nAccept-Encoding: gzip\r\n\r\n",
+                            "response": "HTTP/1.0 200 OK\r\nContent-Length: 2686\r\n\r\n[\n\t{\n\t\t\"availability_zones\": [\n\t\t\t\"INTERNATIONAL\"\n\t\t],\n\t\t\"benefits\": [\n\t\t\t{\n\t\t\t\"additional_information\": null,\n\t\t\t\"amount\": {\n\t\t\t\t\"base\": 3,\n\t\t\t\t\"promotion_bonus\": 0,\n\t\t\t\t\"total_excluding_tax\": 3\n\t\t\t},\n\t\t\t\"type\": \"CREDITS\",\n\t\t\t\"unit\": \"USD\",\n\t\t\t\"unit_type\": \"CURRENCY\"\n\t\t\t}\n\t\t],\n\t\t\"description\": \"\",\n\t\t\"destination\": {\n\t\t\t\"amount\": 3,\n\t\t\t\"unit\": \"USD\",\n\t\t\t\"unit_type\": \"CURRENCY\"\n\t\t},\n\t\t\"id\": 6035,\n\t\t\"name\": \"3 USD\",\n\t\t\"operator\": {\n\t\t\t\"country\": {\n\t\t\t\"iso_code\": \"ECU\",\n\t\t\t\"name\": \"Ecuador\",\n\t\t\t\"regions\": null\n\t\t\t},\n\t\t\t\"id\": 1596,\n\t\t\t\"name\": \"Claro Ecuador\",\n\t\t\t\"regions\": null\n\t\t},\n\t\t\"prices\": {\n\t\t\t\"retail\": {\n\t\t\t\"amount\": 4,\n\t\t\t\"fee\": 0,\n\t\t\t\"unit\": \"USD\",\n\t\t\t\"unit_type\": \"CURRENCY\"\n\t\t\t},\n\t\t\t\"wholesale\": {\n\t\t\t\"amount\": 3.6,\n\t\t\t\"fee\": 0,\n\t\t\t\"unit\": \"USD\",\n\t\t\t\"unit_type\": \"CURRENCY\"\n\t\t\t}\n\t\t},\n\t\t\"promotions\": null,\n\t\t\"rates\": {\n\t\t\t\"base\": 0.833333333333333,\n\t\t\t\"retail\": 0.75,\n\t\t\t\"wholesale\": 0.833333333333333\n\t\t},\n\t\t\"regions\": null,\n\t\t\"required_beneficiary_fields\": null,\n\t\t\"required_credit_party_identifier_fields\": [\n\t\t\t[\n\t\t\t\"mobile_number\"\n\t\t\t]\n\t\t],\n\t\t\"required_debit_party_identifier_fields\": null,\n\t\t\"required_sender_fields\": null,\n\t\t\"service\": {\n\t\t\t\"id\": 1,\n\t\t\t\"name\": \"Mobile\"\n\t\t},\n\t\t\"source\": {\n\t\t\t\"amount\": 3.6,\n\t\t\t\"unit\": \"USD\",\n\t\t\t\"unit_type\": \"CURRENCY\"\n\t\t},\n\t\t\"type\": \"FIXED_VALUE_RECHARGE\",\n\t\t\"validity\": null\n\t\t},\n\t\t{\n\t\t\"availability_zones\": [\n\t\t\t\"INTERNATIONAL\"\n\t\t],\n\t\t\"benefits\": [\n\t\t\t{\n\t\t\t\"additional_information\": null,\n\t\t\t\"amount\": {\n\t\t\t\t\"base\": 6,\n\t\t\t\t\"promotion_bonus\": 0,\n\t\t\t\t\"total_excluding_tax\": 6\n\t\t\t},\n\t\t\t\"type\": \"CREDITS\",\n\t\t\t\"unit\": \"USD\",\n\t\t\t\"unit_type\": \"CURRENCY\"\n\t\t\t}\n\t\t],\n\t\t\"description\": \"\",\n\t\t\"destination\": {\n\t\t\t\"amount\": 6,\n\t\t\t\"unit\": \"USD\",\n\t\t\t\"unit_type\": \"CURRENCY\"\n\t\t},\n\t\t\"id\": 6036,\n\t\t\"name\": \"6 USD\",\n\t\t\"operator\": {\n\t\t\t\"country\": {\n\t\t\t\"iso_code\": \"ECU\",\n\t\t\t\"name\": \"Ecuador\",\n\t\t\t\"regions\": null\n\t\t\t},\n\t\t\t\"id\": 1596,\n\t\t\t\"name\": \"Claro Ecuador\",\n\t\t\t\"regions\": null\n\t\t},\n\t\t\"prices\": {\n\t\t\t\"retail\": {\n\t\t\t\"amount\": 7,\n\t\t\t\"fee\": 0,\n\t\t\t\"unit\": \"USD\",\n\t\t\t\"unit_type\": \"CURRENCY\"\n\t\t\t},\n\t\t\t\"wholesale\": {\n\t\t\t\"amount\": 6.3,\n\t\t\t\"fee\": 0,\n\t\t\t\"unit\": \"USD\",\n\t\t\t\"unit_type\": \"CURRENCY\"\n\t\t\t}\n\t\t},\n\t\t\"promotions\": null,\n\t\t\"rates\": {\n\t\t\t\"base\": 0.952380952380952,\n\t\t\t\"retail\": 0.857142857142857,\n\t\t\t\"wholesale\": 0.952380952380952\n\t\t},\n\t\t\"regions\": null,\n\t\t\"required_beneficiary_fields\": null,\n\t\t\"required_credit_party_identifier_fields\": [\n\t\t\t[\n\t\t\t\t\"mobile_number\"\n\t\t\t]\n\t\t],\n\t\t\"required_debit_party_identifier_fields\": null,\n\t\t\"required_sender_fields\": null,\n\t\t\"service\": {\n\t\t\t\"id\": 1,\n\t\t\t\"name\": \"Mobile\"\n\t\t},\n\t\t\"source\": {\n\t\t\t\"amount\": 6.3,\n\t\t\t\"unit\": \"USD\",\n\t\t\t\"unit_type\": \"CURRENCY\"\n\t\t},\n\t\t\"type\": \"FIXED_VALUE_RECHARGE\",\n\t\t\"validity\": null\n\t}\n]",
+                            "elapsed_ms": 1000,
+                            "retries": 0,
+                            "status": "success",
+                            "created_on": "2025-05-04T12:30:57.123456789Z"
+                        },
+                        {
+                            "url": "https://dvs-api.dtone.com/v1/async/transactions",
+                            "status_code": 200,
+                            "request": "POST /v1/async/transactions HTTP/1.1\r\nHost: dvs-api.dtone.com\r\nUser-Agent: Go-http-client/1.1\r\nContent-Length: 151\r\nAuthorization: Basic a2V5MTIzOnNlc2FtZQ==\r\nContent-Type: application/json\r\nAccept-Encoding: gzip\r\n\r\n{\"external_id\":\"01969b47-3c33-76f8-9654-8a7258fbaae4\",\"product_id\":6035,\"auto_confirm\":true,\"credit_party_identifier\":{\"mobile_number\":\"+16055741111\"}}",
+                            "response": "HTTP/1.0 200 OK\r\nContent-Length: 1296\r\n\r\n{\n\t\"benefits\": [\n\t\t{\n\t\t\t\"additional_information\": null,\n\t\t\t\"amount\": {\n\t\t\t\t\"base\": 3,\n\t\t\t\t\"promotion_bonus\": 0,\n\t\t\t\t\"total_excluding_tax\": 3\n\t\t\t},\n\t\t\t\"type\": \"CREDITS\",\n\t\t\t\"unit\": \"USD\",\n\t\t\t\"unit_type\": \"CURRENCY\"\n\t\t}\n\t],\n\t\"confirmation_date\": \"2021-03-24T20:05:06.111631000Z\",\n\t\"confirmation_expiration_date\": \"2021-03-24T21:05:05.883561000Z\",\n\t\"creation_date\": \"2021-03-24T20:05:05.883561000Z\",\n\t\"credit_party_identifier\": {\n\t\t\"mobile_number\": \"+593979123456\"\n\t},\n\t\"external_id\": \"EX12345\",\n\t\"id\": 2237512891,\n\t\"prices\": {\n\t\t\"retail\": {\n\t\t\t\"amount\": 4,\n\t\t\t\"fee\": 0,\n\t\t\t\"unit\": \"USD\",\n\t\t\t\"unit_type\": \"CURRENCY\"\n\t\t},\n\t\t\"wholesale\": {\n\t\t\t\"amount\": 3.6,\n\t\t\t\"fee\": 0,\n\t\t\t\"unit\": \"USD\",\n\t\t\t\"unit_type\": \"CURRENCY\"\n\t\t}\n\t},\n\t\"product\": {\n\t\t\"description\": \"\",\n\t\t\"id\": 6035,\n\t\t\"name\": \"3 USD\",\n\t\t\"operator\": {\n\t\t\t\"country\": {\n\t\t\t\t\"iso_code\": \"ECU\",\n\t\t\t\t\"name\": \"Ecuador\",\n\t\t\t\t\"regions\": null\n\t\t\t},\n\t\t\t\"id\": 1596,\n\t\t\t\"name\": \"Claro Ecuador\",\n\t\t\t\"regions\": null\n\t\t},\n\t\t\"regions\": null,\n\t\t\"service\": {\n\t\t\t\"id\": 1,\n\t\t\t\"name\": \"Mobile\"\n\t\t},\n\t\t\"type\": \"FIXED_VALUE_RECHARGE\"\n\t},\n\t\"promotions\": null,\n\t\"rates\": {\n\t\t\"base\": 0.833333333333333,\n\t\t\"retail\": 0.75,\n\t\t\"wholesale\": 0.833333333333333\n\t},\n\t\"status\": {\n\t\t\"class\": {\n\t\t\t\"id\": 2,\n\t\t\t\"message\": \"CONFIRMED\"\n\t\t},\n\t\t\"id\": 20000,\n\t\t\"message\": \"CONFIRMED\"\n\t}\n}",
+                            "elapsed_ms": 1000,
+                            "retries": 0,
+                            "status": "success",
+                            "created_on": "2025-05-04T12:31:00.123456789Z"
+                        }
+                    ]
                 }
             ]
         },
@@ -31,114 +67,6 @@
         ],
         "expected_history": [
             {
-                "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
-                "SK": "evt#01969b47-76cb-76f8-8ab7-4a517a86045c",
-                "OrgID": 1,
-                "Data": {
-                    "created_on": "2025-05-04T12:31:15.123456789Z",
-                    "flow": {
-                        "name": "Test Flow",
-                        "revision": 1,
-                        "uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85"
-                    },
-                    "run_uuid": "01969b47-72e3-76f8-9853-0310d032b497",
-                    "type": "run_started"
-                }
-            },
-            {
-                "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
-                "SK": "evt#01969b47-866b-76f8-ba82-c15b24dd577f",
-                "OrgID": 1,
-                "Data": {
-                    "created_on": "2025-05-04T12:31:19.123456789Z",
-                    "flow": {
-                        "name": "Test Flow",
-                        "revision": 1,
-                        "uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85"
-                    },
-                    "run_uuid": "01969b47-72e3-76f8-9853-0310d032b497",
-                    "status": "completed",
-                    "type": "run_ended"
-                }
-            },
-            {
-                "PK": "con#d709c157-4606-4d41-9df3-9e9c9b4ae2d4",
-                "SK": "evt#01969b47-dc5b-76f8-a8fd-1537ca860f97",
-                "OrgID": 1,
-                "Data": {
-                    "created_on": "2025-05-04T12:31:41.123456789Z",
-                    "flow": {
-                        "name": "Test Flow",
-                        "revision": 1,
-                        "uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85"
-                    },
-                    "run_uuid": "01969b47-d873-76f8-9566-6fb2598c32d6",
-                    "type": "run_started"
-                }
-            },
-            {
-                "PK": "con#d709c157-4606-4d41-9df3-9e9c9b4ae2d4",
-                "SK": "evt#01969b47-ebfb-76f8-92e8-a5e406ecb2a7",
-                "OrgID": 1,
-                "Data": {
-                    "created_on": "2025-05-04T12:31:45.123456789Z",
-                    "flow": {
-                        "name": "Test Flow",
-                        "revision": 1,
-                        "uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85"
-                    },
-                    "run_uuid": "01969b47-d873-76f8-9566-6fb2598c32d6",
-                    "status": "completed",
-                    "type": "run_ended"
-                }
-            },
-            {
-                "PK": "con#cd024bcd-f473-4719-a00a-bd0bb1190135",
-                "SK": "evt#01969b47-a993-76f8-bef6-3979f99a96f9",
-                "OrgID": 1,
-                "Data": {
-                    "created_on": "2025-05-04T12:31:28.123456789Z",
-                    "flow": {
-                        "name": "Test Flow",
-                        "revision": 1,
-                        "uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85"
-                    },
-                    "run_uuid": "01969b47-a5ab-76f8-9014-2c868db4022e",
-                    "type": "run_started"
-                }
-            },
-            {
-                "PK": "con#cd024bcd-f473-4719-a00a-bd0bb1190135",
-                "SK": "evt#01969b47-b933-76f8-be24-6164105d48f2",
-                "OrgID": 1,
-                "Data": {
-                    "created_on": "2025-05-04T12:31:32.123456789Z",
-                    "flow": {
-                        "name": "Test Flow",
-                        "revision": 1,
-                        "uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85"
-                    },
-                    "run_uuid": "01969b47-a5ab-76f8-9014-2c868db4022e",
-                    "status": "completed",
-                    "type": "run_ended"
-                }
-            },
-            {
-                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b47-190b-76f8-8dbf-00ecf5d03034",
-                "OrgID": 1,
-                "Data": {
-                    "created_on": "2025-05-04T12:30:51.123456789Z",
-                    "flow": {
-                        "name": "Test Flow",
-                        "revision": 1,
-                        "uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85"
-                    },
-                    "run_uuid": "01969b47-1523-76f8-bebe-b4a1f677cf4c",
-                    "type": "run_started"
-                }
-            },
-            {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
                 "SK": "evt#01969b47-47eb-76f8-8e78-3bde7b3370ae",
                 "OrgID": 1,
@@ -146,35 +74,40 @@
                     "type": "airtime_transferred"
                 },
                 "DataGZ": "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"
-            },
-            {
-                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b47-53a3-76f8-b62c-3c781ca3b5da",
-                "OrgID": 1,
-                "Data": {
-                    "created_on": "2025-05-04T12:31:06.123456789Z",
-                    "flow": {
-                        "name": "Test Flow",
-                        "revision": 1,
-                        "uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85"
-                    },
-                    "run_uuid": "01969b47-1523-76f8-bebe-b4a1f677cf4c",
-                    "status": "completed",
-                    "type": "run_ended"
-                }
             }
         ]
     },
     {
         "label": "#2",
-        "actions": {
+        "events": {
             "cd024bcd-f473-4719-a00a-bd0bb1190135": [
                 {
-                    "type": "transfer_airtime",
-                    "uuid": "d2b81ec8-f4a8-4856-a46e-22e25f7fc445",
-                    "amounts": {
-                        "USD": 3
-                    }
+                    "uuid": "01969b48-900b-76f8-a2d8-44b4f9caf25c",
+                    "type": "airtime_transferred",
+                    "created_on": "2025-05-04T12:32:27.123456789Z",
+                    "step_uuid": "c174a241-6057-41a3-874b-f17fb8365c22",
+                    "external_id": "",
+                    "sender": "tel:+13605551212",
+                    "recipient": "tel:+16055743333?id=10002",
+                    "currency": "",
+                    "amount": 0,
+                    "http_logs": [
+                        {
+                            "url": "https://dvs-api.dtone.com/v1/lookup/mobile-number",
+                            "request": "POST /v1/lookup/mobile-number HTTP/1.1\r\nHost: dvs-api.dtone.com\r\nUser-Agent: Go-http-client/1.1\r\nContent-Length: 32\r\nAuthorization: Basic a2V5MTIzOnNlc2FtZQ==\r\nContent-Type: application/json\r\nAccept-Encoding: gzip\r\n\r\n{\"mobile_number\":\"+16055743333\"}",
+                            "elapsed_ms": 1000,
+                            "retries": 0,
+                            "status": "connection_error",
+                            "created_on": "2025-05-04T12:32:24.123456789Z"
+                        }
+                    ]
+                },
+                {
+                    "uuid": "01969b48-97db-76f8-881a-ef06948e0f99",
+                    "type": "error",
+                    "created_on": "2025-05-04T12:32:29.123456789Z",
+                    "step_uuid": "c174a241-6057-41a3-874b-f17fb8365c22",
+                    "text": "number lookup failed: unable to connect to server"
                 }
             ]
         },
@@ -185,7 +118,7 @@
                     1,
                     10002
                 ],
-                "returns": 1
+                "returns": 0
             },
             {
                 "query": "select count(*) from request_logs_httplog where org_id = $1 AND airtime_transfer_id IS NOT NULL AND is_error = TRUE AND url LIKE 'https://dvs-api.dtone.com/v1/%'",
@@ -196,83 +129,6 @@
             }
         ],
         "expected_history": [
-            {
-                "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
-                "SK": "evt#01969b48-41eb-76f8-be22-6e6983962829",
-                "OrgID": 1,
-                "Data": {
-                    "created_on": "2025-05-04T12:32:07.123456789Z",
-                    "flow": {
-                        "name": "Test Flow",
-                        "revision": 1,
-                        "uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85"
-                    },
-                    "run_uuid": "01969b48-3e03-76f8-bf05-63393fd408f5",
-                    "type": "run_started"
-                }
-            },
-            {
-                "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
-                "SK": "evt#01969b48-518b-76f8-88b2-5d345629f07f",
-                "OrgID": 1,
-                "Data": {
-                    "created_on": "2025-05-04T12:32:11.123456789Z",
-                    "flow": {
-                        "name": "Test Flow",
-                        "revision": 1,
-                        "uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85"
-                    },
-                    "run_uuid": "01969b48-3e03-76f8-bf05-63393fd408f5",
-                    "status": "completed",
-                    "type": "run_ended"
-                }
-            },
-            {
-                "PK": "con#d709c157-4606-4d41-9df3-9e9c9b4ae2d4",
-                "SK": "evt#01969b48-c6bb-76f8-8fb7-9f7a1d1cb701",
-                "OrgID": 1,
-                "Data": {
-                    "created_on": "2025-05-04T12:32:41.123456789Z",
-                    "flow": {
-                        "name": "Test Flow",
-                        "revision": 1,
-                        "uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85"
-                    },
-                    "run_uuid": "01969b48-c2d3-76f8-b4c4-260cfebfde0b",
-                    "type": "run_started"
-                }
-            },
-            {
-                "PK": "con#d709c157-4606-4d41-9df3-9e9c9b4ae2d4",
-                "SK": "evt#01969b48-d65b-76f8-88a2-a356de113e34",
-                "OrgID": 1,
-                "Data": {
-                    "created_on": "2025-05-04T12:32:45.123456789Z",
-                    "flow": {
-                        "name": "Test Flow",
-                        "revision": 1,
-                        "uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85"
-                    },
-                    "run_uuid": "01969b48-c2d3-76f8-b4c4-260cfebfde0b",
-                    "status": "completed",
-                    "type": "run_ended"
-                }
-            },
-            {
-                "PK": "con#cd024bcd-f473-4719-a00a-bd0bb1190135",
-                "SK": "evt#01969b48-74b3-76f8-8556-4ba6c70c1678",
-                "OrgID": 1,
-                "Data": {
-                    "created_on": "2025-05-04T12:32:20.123456789Z",
-                    "flow": {
-                        "name": "Test Flow",
-                        "revision": 1,
-                        "uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85"
-                    },
-                    "run_uuid": "01969b48-70cb-76f8-a52e-e58736ac73ba",
-                    "type": "run_started"
-                }
-            },
             {
                 "PK": "con#cd024bcd-f473-4719-a00a-bd0bb1190135",
                 "SK": "evt#01969b48-900b-76f8-a2d8-44b4f9caf25c",
@@ -295,53 +151,6 @@
                     "recipient": "tel:+16055743333?id=10002",
                     "sender": "tel:+13605551212",
                     "type": "airtime_transferred"
-                }
-            },
-            {
-                "PK": "con#cd024bcd-f473-4719-a00a-bd0bb1190135",
-                "SK": "evt#01969b48-a393-76f8-802a-9fffea2a27fa",
-                "OrgID": 1,
-                "Data": {
-                    "created_on": "2025-05-04T12:32:32.123456789Z",
-                    "flow": {
-                        "name": "Test Flow",
-                        "revision": 1,
-                        "uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85"
-                    },
-                    "run_uuid": "01969b48-70cb-76f8-a52e-e58736ac73ba",
-                    "status": "completed",
-                    "type": "run_ended"
-                }
-            },
-            {
-                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b48-0f23-76f8-998e-ae5bd773804a",
-                "OrgID": 1,
-                "Data": {
-                    "created_on": "2025-05-04T12:31:54.123456789Z",
-                    "flow": {
-                        "name": "Test Flow",
-                        "revision": 1,
-                        "uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85"
-                    },
-                    "run_uuid": "01969b48-0b3b-76f8-9504-776e7d151101",
-                    "type": "run_started"
-                }
-            },
-            {
-                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b48-1ec3-76f8-8a34-b008aed3f772",
-                "OrgID": 1,
-                "Data": {
-                    "created_on": "2025-05-04T12:31:58.123456789Z",
-                    "flow": {
-                        "name": "Test Flow",
-                        "revision": 1,
-                        "uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85"
-                    },
-                    "run_uuid": "01969b48-0b3b-76f8-9504-776e7d151101",
-                    "status": "completed",
-                    "type": "run_ended"
                 }
             }
         ]
