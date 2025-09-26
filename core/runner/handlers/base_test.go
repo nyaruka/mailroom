@@ -85,7 +85,7 @@ type TestCase struct {
 	ExpectedHistory []*models.DynamoItem               `json:"expected_history,omitempty"`
 }
 
-func runTests(t *testing.T, rt *runtime.Runtime, truthFile string, mockUniverse bool) {
+func runTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 	ctx := t.Context()
 	tcs := make([]TestCase, 0, 20)
 	tcJSON := testsuite.ReadFile(t, truthFile)
@@ -97,9 +97,7 @@ func runTests(t *testing.T, rt *runtime.Runtime, truthFile string, mockUniverse 
 	oa, err := models.GetOrgAssets(ctx, rt, models.OrgID(1))
 	assert.NoError(t, err)
 
-	if mockUniverse {
-		test.MockUniverse() // TODO rework all tests to support this
-	}
+	test.MockUniverse()
 
 	for i, tc := range tcs {
 		scenes := make([]*runner.Scene, 4)
@@ -160,14 +158,8 @@ func runTests(t *testing.T, rt *runtime.Runtime, truthFile string, mockUniverse 
 
 		// clone test case and populate with actual values
 		actual := tc
-		if mockUniverse {
-			actual.ExpectedTasks = testsuite.GetQueuedTasks(t, rt)
-			actual.ExpectedHistory = testsuite.GetHistoryItems(t, rt, true)
-		} else {
-			// can't test these without full mocking of time etc
-			actual.ExpectedTasks = nil
-			actual.ExpectedHistory = nil
-		}
+		actual.ExpectedTasks = testsuite.GetQueuedTasks(t, rt)
+		actual.ExpectedHistory = testsuite.GetHistoryItems(t, rt, true)
 
 		for i, dba := range actual.DBAssertions {
 			actual.DBAssertions[i] = dba.Actual(t, rt.DB)
@@ -181,17 +173,15 @@ func runTests(t *testing.T, rt *runtime.Runtime, truthFile string, mockUniverse 
 				dba.Check(t, rt.DB, "%s: assertion for query '%s' failed", tc.Label, dba.Query)
 			}
 
-			if mockUniverse {
-				if tc.ExpectedTasks == nil {
-					tc.ExpectedTasks = map[string][]testsuite.TaskInfo{}
-				}
-				test.AssertEqualJSON(t, jsonx.MustMarshal(tc.ExpectedTasks), jsonx.MustMarshal(actual.ExpectedTasks), "%s: unexpected tasks", tc.Label)
-
-				if tc.ExpectedHistory == nil {
-					tc.ExpectedHistory = []*models.DynamoItem{}
-				}
-				test.AssertEqualJSON(t, jsonx.MustMarshal(tc.ExpectedHistory), jsonx.MustMarshal(actual.ExpectedHistory), "%s: event history mismatch", tc.Label)
+			if tc.ExpectedTasks == nil {
+				tc.ExpectedTasks = map[string][]testsuite.TaskInfo{}
 			}
+			test.AssertEqualJSON(t, jsonx.MustMarshal(tc.ExpectedTasks), jsonx.MustMarshal(actual.ExpectedTasks), "%s: unexpected tasks", tc.Label)
+
+			if tc.ExpectedHistory == nil {
+				tc.ExpectedHistory = []*models.DynamoItem{}
+			}
+			test.AssertEqualJSON(t, jsonx.MustMarshal(tc.ExpectedHistory), jsonx.MustMarshal(actual.ExpectedHistory), "%s: event history mismatch", tc.Label)
 		} else {
 			tcs[i] = actual
 		}

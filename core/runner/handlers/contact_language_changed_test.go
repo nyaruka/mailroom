@@ -11,5 +11,5 @@ func TestContactLanguageChanged(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
-	runTests(t, rt, "testdata/contact_language_changed.json", true)
+	runTests(t, rt, "testdata/contact_language_changed.json")
 }

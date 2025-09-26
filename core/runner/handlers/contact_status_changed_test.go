@@ -11,5 +11,5 @@ func TestContactStatusChanged(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetDB)
 
-	runTests(t, rt, "testdata/contact_status_changed.json", true)
+	runTests(t, rt, "testdata/contact_status_changed.json")
 }

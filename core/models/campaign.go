@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/dbutil"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/flows"
@@ -286,7 +287,7 @@ func AddCampaignFiresForGroupAddition(ctx context.Context, tx DBorTx, oa *OrgAss
 				// and if we qualify by field
 				if p.QualifiesByField(contact) {
 					// calculate our scheduled fire
-					scheduled, err := p.ScheduleForContact(tz, time.Now(), contact)
+					scheduled, err := p.ScheduleForContact(tz, dates.Now(), contact)
 					if err != nil {
 						return fmt.Errorf("error calculating schedule for event #%d and contact #%d: %w", p.ID, contact.ID(), err)
 					}
@@ -328,7 +329,7 @@ func ScheduleCampaignPoint(ctx context.Context, rt *runtime.Runtime, oa *OrgAsse
 		start := *el.RelToValue
 
 		// calculate next fire for this contact if any
-		if scheduled := p.ScheduleForTime(tz, time.Now(), start); scheduled != nil {
+		if scheduled := p.ScheduleForTime(tz, dates.Now(), start); scheduled != nil {
 			fas = append(fas, NewContactFireForCampaign(oa.OrgID(), el.ContactID, p, *scheduled))
 		}
 	}

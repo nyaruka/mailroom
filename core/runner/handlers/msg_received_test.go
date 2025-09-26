@@ -11,5 +11,5 @@ func TestMsgReceived(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
-	runTests(t, rt, "testdata/msg_received.json", true)
+	runTests(t, rt, "testdata/msg_received.json")
 }
