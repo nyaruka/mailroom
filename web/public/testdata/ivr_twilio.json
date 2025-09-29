@@ -61,6 +61,24 @@
                     "run_uuid": "01969b47-20db-76f8-8228-9728778b6c98",
                     "type": "run_started"
                 }
+            },
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01969b47-384b-76f8-b86e-4b881f09a186",
+                "OrgID": 1,
+                "Data": {
+                    "created_on": "2025-05-04T12:30:59.123456789Z",
+                    "msg": {
+                        "channel": {
+                            "name": "Twilio",
+                            "uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8"
+                        },
+                        "locale": "und-US",
+                        "text": "Hello there. Please enter one or two.  This flow was triggered by Ann",
+                        "urn": "tel:+16055741111"
+                    },
+                    "type": "ivr_created"
+                }
             }
         ]
     },
@@ -87,6 +105,26 @@
             {
                 "query": "SELECT count(*) FROM msgs_msg WHERE contact_id = 10000 AND direction = 'I'",
                 "returns": 0
+            }
+        ],
+        "expected_history": [
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01969b47-99f3-76f8-8d9f-e51d30290005",
+                "OrgID": 1,
+                "Data": {
+                    "created_on": "2025-05-04T12:31:24.123456789Z",
+                    "msg": {
+                        "channel": {
+                            "name": "Twilio",
+                            "uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8"
+                        },
+                        "locale": "und-US",
+                        "text": "Sorry, that is not one or two, try again.",
+                        "urn": "tel:+16055741111"
+                    },
+                    "type": "ivr_created"
+                }
             }
         ]
     },
@@ -140,6 +178,24 @@
                     },
                     "type": "msg_received"
                 }
+            },
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01969b47-f7b3-76f8-bef6-3979f99a96f9",
+                "OrgID": 1,
+                "Data": {
+                    "created_on": "2025-05-04T12:31:48.123456789Z",
+                    "msg": {
+                        "channel": {
+                            "name": "Twilio",
+                            "uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8"
+                        },
+                        "locale": "und-US",
+                        "text": "Great! You said One. Ok, now enter a number 1 to 100 then press pound.",
+                        "urn": "tel:+16055741111"
+                    },
+                    "type": "ivr_created"
+                }
             }
         ]
     },
@@ -188,6 +244,24 @@
                         "urn": "tel:+16055741111?id=10000"
                     },
                     "type": "msg_received"
+                }
+            },
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01969b48-5573-76f8-92ca-6e1d7f550554",
+                "OrgID": 1,
+                "Data": {
+                    "created_on": "2025-05-04T12:32:12.123456789Z",
+                    "msg": {
+                        "channel": {
+                            "name": "Twilio",
+                            "uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8"
+                        },
+                        "locale": "und-US",
+                        "text": "Sorry, that's too big. Enter a number 1 to 100 then press pound.",
+                        "urn": "tel:+16055741111"
+                    },
+                    "type": "ivr_created"
                 }
             }
         ]
@@ -238,6 +312,24 @@
                     },
                     "type": "msg_received"
                 }
+            },
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01969b48-b333-76f8-8ceb-17799a976525",
+                "OrgID": 1,
+                "Data": {
+                    "created_on": "2025-05-04T12:32:36.123456789Z",
+                    "msg": {
+                        "channel": {
+                            "name": "Twilio",
+                            "uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8"
+                        },
+                        "locale": "und-US",
+                        "text": "You picked the number 56, excellent choice. Ok now tell me briefly why you are happy today.",
+                        "urn": "tel:+16055741111"
+                    },
+                    "type": "ivr_created"
+                }
             }
         ]
     },
@@ -260,6 +352,44 @@
             {
                 "query": "SELECT count(*) FROM msgs_msg WHERE contact_id = 10000 AND direction = 'I'",
                 "returns": 3
+            }
+        ],
+        "expected_history": [
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01969b49-10f3-76f8-ad03-b49f80627da4",
+                "OrgID": 1,
+                "Data": {
+                    "created_on": "2025-05-04T12:33:00.123456789Z",
+                    "msg": {
+                        "channel": {
+                            "name": "Twilio",
+                            "uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8"
+                        },
+                        "locale": "und-US",
+                        "text": "You said",
+                        "urn": "tel:+16055741111"
+                    },
+                    "type": "ivr_created"
+                }
+            },
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01969b49-2093-76f8-b8ba-60d66db82e39",
+                "OrgID": 1,
+                "Data": {
+                    "created_on": "2025-05-04T12:33:04.123456789Z",
+                    "msg": {
+                        "channel": {
+                            "name": "Twilio",
+                            "uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8"
+                        },
+                        "locale": "und-US",
+                        "text": "I hope hearing that makes you feel better. Good day and good bye.",
+                        "urn": "tel:+16055741111"
+                    },
+                    "type": "ivr_created"
+                }
             }
         ]
     },
@@ -285,6 +415,24 @@
             }
         ],
         "expected_history": [
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01969b49-6acb-76f8-881a-ef06948e0f99",
+                "OrgID": 1,
+                "Data": {
+                    "created_on": "2025-05-04T12:33:23.123456789Z",
+                    "msg": {
+                        "channel": {
+                            "name": "Twilio",
+                            "uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8"
+                        },
+                        "locale": "und-US",
+                        "text": "Great, they answered.",
+                        "urn": "tel:+16055741111"
+                    },
+                    "type": "ivr_created"
+                }
+            },
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
                 "SK": "evt#01969b49-7683-76f8-802a-9fffea2a27fa",
@@ -375,6 +523,24 @@
                     "run_uuid": "01969b49-b11b-76f8-88a2-a356de113e34",
                     "type": "run_started"
                 }
+            },
+            {
+                "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
+                "SK": "evt#01969b49-c88b-76f8-b379-f167ef86d03e",
+                "OrgID": 1,
+                "Data": {
+                    "created_on": "2025-05-04T12:33:47.123456789Z",
+                    "msg": {
+                        "channel": {
+                            "name": "Twilio",
+                            "uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8"
+                        },
+                        "locale": "und-US",
+                        "text": "Hello there. Please enter one or two.  This flow was triggered by Ann",
+                        "urn": "tel:+16055742222"
+                    },
+                    "type": "ivr_created"
+                }
             }
         ]
     },
@@ -411,6 +577,24 @@
                         "urn": "tel:+16055742222?id=10001"
                     },
                     "type": "msg_received"
+                }
+            },
+            {
+                "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
+                "SK": "evt#01969b4a-2a33-76f8-8704-ab259cb52a5d",
+                "OrgID": 1,
+                "Data": {
+                    "created_on": "2025-05-04T12:34:12.123456789Z",
+                    "msg": {
+                        "channel": {
+                            "name": "Twilio",
+                            "uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8"
+                        },
+                        "locale": "und-US",
+                        "text": "Sorry, that is not one or two, try again.",
+                        "urn": "tel:+16055742222"
+                    },
+                    "type": "ivr_created"
                 }
             }
         ]
@@ -501,6 +685,24 @@
                     "run_uuid": "01969b4a-93ab-76f8-9676-22cd6062f002",
                     "type": "run_started"
                 }
+            },
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01969b4a-ab1b-76f8-9418-6d3e4ae5a100",
+                "OrgID": 1,
+                "Data": {
+                    "created_on": "2025-05-04T12:34:45.123456789Z",
+                    "msg": {
+                        "channel": {
+                            "name": "Twilio",
+                            "uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8"
+                        },
+                        "locale": "und-US",
+                        "text": "Hello there. Please enter one or two.",
+                        "urn": "tel:+16055741111?channel=74729f45-7f29-4868-9dc4-90e491e3c7d8\u0026id=10000"
+                    },
+                    "type": "ivr_created"
+                }
             }
         ]
     },
@@ -542,6 +744,24 @@
                         "urn": "tel:+16055741111?channel=74729f45-7f29-4868-9dc4-90e491e3c7d8\u0026id=10000"
                     },
                     "type": "msg_received"
+                }
+            },
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01969b4b-0cc3-76f8-85ee-f261b5a4c5a1",
+                "OrgID": 1,
+                "Data": {
+                    "created_on": "2025-05-04T12:35:10.123456789Z",
+                    "msg": {
+                        "channel": {
+                            "name": "Twilio",
+                            "uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8"
+                        },
+                        "locale": "und-US",
+                        "text": "Great! You said Two. Ok, now enter a number 1 to 100 then press pound.",
+                        "urn": "tel:+16055741111"
+                    },
+                    "type": "ivr_created"
                 }
             }
         ]
