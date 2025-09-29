@@ -183,6 +183,23 @@
             },
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01969b47-0583-76f8-ae7f-f8b243c49ff5",
+                "OrgID": 1,
+                "Data": {
+                    "created_on": "2025-05-04T12:30:46.123456789Z",
+                    "msg": {
+                        "channel": {
+                            "name": "Twilio",
+                            "uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8"
+                        },
+                        "text": "start",
+                        "urn": "tel:+16055741111"
+                    },
+                    "type": "msg_received"
+                }
+            },
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
                 "SK": "evt#01969b47-24c3-76f8-ba82-c15b24dd577f",
                 "OrgID": 1,
                 "Data": {

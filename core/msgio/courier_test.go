@@ -157,7 +157,7 @@ func TestNewCourierMsg(t *testing.T) {
 	}`, string(jsonx.MustMarshal(msgEvent2.CreatedOn())), session.UUID(), sprint.UUID(), msg2.UUID()))
 
 	// try a broadcast message which won't have session and flow fields set and won't be high priority
-	bcast := testdb.InsertBroadcast(t, rt, testdb.Org1, `eng`, map[i18n.Language]string{`eng`: "Blast"}, nil, models.NilScheduleID, []*testdb.Contact{testFred}, nil)
+	bcast := testdb.InsertBroadcast(t, rt, testdb.Org1, "0199877e-0ed2-790b-b474-35099cea401c", `eng`, map[i18n.Language]string{`eng`: "Blast"}, nil, models.NilScheduleID, []*testdb.Contact{testFred}, nil)
 	msgEvent3 := events.NewMsgCreated(
 		flows.NewMsgOut(fredURN, assets.NewChannelReference(testdb.TwilioChannel.UUID, "Test Channel"), &flows.MsgContent{Text: "Blast"}, nil, i18n.NilLocale, flows.NilUnsendableReason),
 		bcast.UUID,
