@@ -1,3 +1,8 @@
+v10.3.79 (2025-09-29)
+-------------------------
+ * Persist all message events
+ * Use event handling to send broadcast messages
+
 v10.3.78 (2025-09-25)
 -------------------------
  * Handle chat message sending via msg_created event handling
