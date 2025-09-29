@@ -77,22 +77,29 @@ const (
 	MsgStatusFailed       = MsgStatus("F") // outgoing msg which has failed permanently
 )
 
+const (
+	UnsendableReasonOrgStatus flows.UnsendableReason = "org_status"
+	UnsendableReasonLooping   flows.UnsendableReason = "looping"
+)
+
 type MsgFailedReason null.String
 
 const (
 	NilMsgFailedReason      = MsgFailedReason("")
-	MsgFailedSuspended      = MsgFailedReason("S") // workspace suspended
 	MsgFailedContact        = MsgFailedReason("C") // contact blocked, stopped or archived
+	MsgFailedNoDestination  = MsgFailedReason("D")
+	MsgFailedSuspended      = MsgFailedReason("S") // workspace suspended
 	MsgFailedLooping        = MsgFailedReason("L")
 	MsgFailedErrorLimit     = MsgFailedReason("E")
 	MsgFailedTooOld         = MsgFailedReason("O")
-	MsgFailedNoDestination  = MsgFailedReason("D")
 	MsgFailedChannelRemoved = MsgFailedReason("R")
 )
 
 var unsendableToFailedReason = map[flows.UnsendableReason]MsgFailedReason{
 	flows.UnsendableReasonContactStatus: MsgFailedContact,
 	flows.UnsendableReasonNoDestination: MsgFailedNoDestination,
+	UnsendableReasonOrgStatus:           MsgFailedSuspended,
+	UnsendableReasonLooping:             MsgFailedLooping,
 }
 
 // Templating adds db support to the engine's templating struct
@@ -425,25 +432,27 @@ func newMsgOut(rt *runtime.Runtime, org *Org, channel *Channel, contact *flows.C
 		}
 	}
 
+	// if engine didn't already flag this message as unsendable, do some additional checks...
+	if out.UnsendableReason() == flows.NilUnsendableReason {
+		if org.Suspended() {
+			event.Msg.UnsendableReason_ = UnsendableReasonOrgStatus
+		} else {
+			// does this look like a message loop?
+			repetitions, err := GetMsgRepetitions(rt.VK, contact, out)
+			if err != nil {
+				return nil, fmt.Errorf("error looking up msg repetitions: %w", err)
+			}
+			if repetitions >= msgRepetitionLimit {
+				event.Msg.UnsendableReason_ = UnsendableReasonLooping
+
+				slog.Warn("too many repetitions, failing message", "contact_id", contact.ID(), "text", out.Text(), "repetitions", repetitions)
+			}
+		}
+	}
+
 	if out.UnsendableReason() != flows.NilUnsendableReason {
 		m.Status = MsgStatusFailed
 		m.FailedReason = unsendableToFailedReason[out.UnsendableReason()]
-	} else if org.Suspended() {
-		// we fail messages for suspended orgs right away
-		m.Status = MsgStatusFailed
-		m.FailedReason = MsgFailedSuspended
-	} else {
-		// also fail right away if this looks like a loop
-		repetitions, err := GetMsgRepetitions(rt.VK, contact, out)
-		if err != nil {
-			return nil, fmt.Errorf("error looking up msg repetitions: %w", err)
-		}
-		if repetitions >= msgRepetitionLimit {
-			m.Status = MsgStatusFailed
-			m.FailedReason = MsgFailedLooping
-
-			slog.Error("too many repetitions, failing message", "contact_id", contact.ID(), "text", out.Text(), "repetitions", repetitions)
-		}
 	}
 
 	// if we're sending to a phone, message may have to be sent in multiple parts
