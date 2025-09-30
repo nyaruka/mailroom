@@ -1,6 +1,6 @@
 [
     {
-        "label": "#1",
+        "label": "messages created in a flow",
         "msgs": {
             "a393abc0-283d-4c9b-a1b3-641a035c34bf": {
                 "urn": "tel:+16055741111",
@@ -61,35 +61,39 @@
         },
         "db_assertions": [
             {
-                "query": "SELECT COUNT(*) FROM msgs_msg WHERE text='Hello World' AND contact_id = $1 AND quick_replies[1] = 'yes' AND quick_replies[2] = 'no' AND high_priority = TRUE",
-                "args": [
-                    10000
-                ],
-                "returns": 2
+                "query": "SELECT text, high_priority, quick_replies[1] AS qr1, quick_replies[2] AS qr2 FROM msgs_msg WHERE contact_id = 10000 ORDER BY id DESC LIMIT 1",
+                "columns": {
+                    "high_priority": true,
+                    "qr1": "yes",
+                    "qr2": "no",
+                    "text": "Hello World"
+                }
             },
             {
-                "query": "SELECT COUNT(*) FROM msgs_msg WHERE text='Hello Attachments' AND contact_id = $1 AND attachments[1] = $2 AND status = 'Q' AND high_priority = FALSE",
-                "args": [
-                    10002,
-                    "image/png:https://foo.bar.com/images/image1.png"
-                ],
-                "returns": 1
+                "query": "SELECT text, status, failed_reason FROM msgs_msg WHERE contact_id = 10001 ORDER BY id DESC LIMIT 1",
+                "columns": {
+                    "failed_reason": "D",
+                    "status": "F",
+                    "text": "No URNs"
+                }
             },
             {
-                "query": "SELECT COUNT(*) FROM msgs_msg WHERE contact_id=$1 AND STATUS = 'F' AND failed_reason = 'D';",
-                "args": [
-                    10001
-                ],
-                "returns": 1
+                "query": "SELECT text, attachments[1] AS att1, status, high_priority FROM msgs_msg WHERE contact_id = 10002 ORDER BY id DESC LIMIT 1",
+                "columns": {
+                    "att1": "image/png:https://foo.bar.com/images/image1.png",
+                    "high_priority": false,
+                    "status": "Q",
+                    "text": "Hello Attachments"
+                }
             },
             {
-                "query": "SELECT COUNT(*) FROM msgs_msg WHERE contact_id = $1 AND text = $2 AND direction = 'O' AND status = 'Q' AND channel_id = $3 AND templating-\u003e'template'-\u003e\u003e'name' = 'revive_issue'",
-                "args": [
-                    10003,
-                    "Hi Dan, are you still experiencing problems with tooth?",
-                    10002
-                ],
-                "returns": 1
+                "query": "SELECT text, channel_id, status, templating-\u003e'template'-\u003e\u003e'name' AS template_name FROM msgs_msg WHERE contact_id = 10003 ORDER BY id DESC LIMIT 1",
+                "columns": {
+                    "channel_id": 10002,
+                    "status": "Q",
+                    "template_name": "revive_issue",
+                    "text": "Hi Dan, are you still experiencing problems with tooth?"
+                }
             }
         ],
         "expected_history": [
@@ -363,6 +367,159 @@
                     "run_uuid": "01969b47-20db-76f8-9014-2c868db4022e",
                     "status": "completed",
                     "type": "run_ended"
+                }
+            }
+        ]
+    },
+    {
+        "label": "messages created by a broadcast",
+        "broadcast_id": 30000,
+        "events": {
+            "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                {
+                    "uuid": "01999b41-7545-7210-b17e-a89e186f0160",
+                    "type": "msg_created",
+                    "created_on": "2025-09-30T12:30:00.123456789Z",
+                    "msg": {
+                        "text": "Cats or dogs?",
+                        "quick_replies": [
+                            {
+                                "text": "Cats"
+                            },
+                            {
+                                "text": "Dogs"
+                            }
+                        ]
+                    },
+                    "broadcast_uuid": "01999b42-f414-7161-8814-fbef26d9d0d3"
+                }
+            ],
+            "b699a406-7e44-49be-9f01-1a82893e8a10": [
+                {
+                    "uuid": "01999b4d-cd1b-7bfe-853c-a56a4e373312",
+                    "type": "msg_created",
+                    "created_on": "2025-09-30T12:30:00.123456789Z",
+                    "msg": {
+                        "text": "Cats or dogs?",
+                        "quick_replies": [
+                            {
+                                "text": "Cats"
+                            },
+                            {
+                                "text": "Dogs"
+                            }
+                        ]
+                    },
+                    "broadcast_uuid": "01999b42-f414-7161-8814-fbef26d9d0d3"
+                }
+            ]
+        },
+        "db_assertions": [
+            {
+                "query": "SELECT broadcast_id, text, high_priority, quick_replies[1] AS qr1, quick_replies[2] AS qr2 FROM msgs_msg WHERE contact_id = 10000 ORDER BY id DESC LIMIT 1",
+                "columns": {
+                    "broadcast_id": 30000,
+                    "high_priority": false,
+                    "qr1": "Cats",
+                    "qr2": "Dogs",
+                    "text": "Cats or dogs?"
+                }
+            },
+            {
+                "query": "SELECT broadcast_id, text, high_priority, quick_replies[1] AS qr1, quick_replies[2] AS qr2 FROM msgs_msg WHERE contact_id = 10001 ORDER BY id DESC LIMIT 1",
+                "columns": {
+                    "broadcast_id": 30000,
+                    "high_priority": false,
+                    "qr1": "Cats",
+                    "qr2": "Dogs",
+                    "text": "Cats or dogs?"
+                }
+            }
+        ],
+        "expected_history": [
+            {
+                "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
+                "SK": "evt#01999b4d-cd1b-7bfe-853c-a56a4e373312",
+                "OrgID": 1,
+                "Data": {
+                    "broadcast_uuid": "01999b42-f414-7161-8814-fbef26d9d0d3",
+                    "created_on": "2025-09-30T12:30:00.123456789Z",
+                    "msg": {
+                        "quick_replies": [
+                            {
+                                "text": "Cats"
+                            },
+                            {
+                                "text": "Dogs"
+                            }
+                        ],
+                        "text": "Cats or dogs?"
+                    },
+                    "type": "msg_created"
+                }
+            },
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01999b41-7545-7210-b17e-a89e186f0160",
+                "OrgID": 1,
+                "Data": {
+                    "broadcast_uuid": "01999b42-f414-7161-8814-fbef26d9d0d3",
+                    "created_on": "2025-09-30T12:30:00.123456789Z",
+                    "msg": {
+                        "quick_replies": [
+                            {
+                                "text": "Cats"
+                            },
+                            {
+                                "text": "Dogs"
+                            }
+                        ],
+                        "text": "Cats or dogs?"
+                    },
+                    "type": "msg_created"
+                }
+            }
+        ]
+    },
+    {
+        "label": "chat message by user",
+        "events": {
+            "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                {
+                    "uuid": "01999b52-f8e5-75dd-b63f-5099a530d6c9",
+                    "type": "msg_created",
+                    "created_on": "2025-09-30T12:30:00.123456789Z",
+                    "msg": {
+                        "text": "How are you?"
+                    }
+                }
+            ]
+        },
+        "user_id": 3,
+        "db_assertions": [
+            {
+                "query": "SELECT text, high_priority FROM msgs_msg WHERE contact_id = 10000 ORDER BY id DESC LIMIT 1",
+                "columns": {
+                    "high_priority": true,
+                    "text": "How are you?"
+                }
+            }
+        ],
+        "expected_history": [
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01999b52-f8e5-75dd-b63f-5099a530d6c9",
+                "OrgID": 1,
+                "Data": {
+                    "_user": {
+                        "name": "Andy Admin",
+                        "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
+                    },
+                    "created_on": "2025-09-30T12:30:00.123456789Z",
+                    "msg": {
+                        "text": "How are you?"
+                    },
+                    "type": "msg_created"
                 }
             }
         ]

@@ -77,6 +77,7 @@ func (m *ContactActionMap) UnmarshalJSON(d []byte) error {
 type TestCase struct {
 	Label           string                             `json:"label"`
 	Msgs            map[flows.ContactUUID]*flows.MsgIn `json:"msgs,omitempty"`
+	BroadcastID     models.BroadcastID                 `json:"broadcast_id,omitempty"`
 	Events          ContactEventMap                    `json:"events"`
 	Actions         ContactActionMap                   `json:"actions,omitempty"`
 	UserID          models.UserID                      `json:"user_id,omitempty"`
@@ -116,6 +117,13 @@ func runTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 				contact.SetLastSeenOn(msgEvent.CreatedOn())
 
 				msgEvents[i] = msgEvent
+			}
+
+			if tc.BroadcastID != models.NilBroadcastID {
+				bcast, err := models.GetBroadcastByID(ctx, rt.DB, tc.BroadcastID)
+				require.NoError(t, err)
+
+				scenes[i].Broadcast = bcast
 			}
 
 			for _, e := range tc.Events[c.UUID] {
