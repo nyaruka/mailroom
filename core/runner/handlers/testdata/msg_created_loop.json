@@ -1,0 +1,528 @@
+[
+    {
+        "label": "repeated messages",
+        "events": {
+            "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                {
+                    "uuid": "01999b6c-d42d-746e-85f9-abb795f4fb32",
+                    "type": "msg_created",
+                    "created_on": "2025-09-30T12:30:00.123456789Z",
+                    "msg": {
+                        "text": "Yes"
+                    }
+                },
+                {
+                    "uuid": "01999b6c-d42d-746e-85f9-abb8ffbb2006",
+                    "type": "msg_created",
+                    "created_on": "2025-09-30T12:30:00.123456789Z",
+                    "msg": {
+                        "text": "Yes"
+                    }
+                },
+                {
+                    "uuid": "01999b6c-d42d-746e-85f9-abb95dbba38e",
+                    "type": "msg_created",
+                    "created_on": "2025-09-30T12:30:00.123456789Z",
+                    "msg": {
+                        "text": "Yes"
+                    }
+                },
+                {
+                    "uuid": "01999b6c-d42d-746e-85f9-abba8853b423",
+                    "type": "msg_created",
+                    "created_on": "2025-09-30T12:30:00.123456789Z",
+                    "msg": {
+                        "text": "Yes"
+                    }
+                },
+                {
+                    "uuid": "01999b6c-d42d-746e-85f9-abbbe0161a2b",
+                    "type": "msg_created",
+                    "created_on": "2025-09-30T12:30:00.123456789Z",
+                    "msg": {
+                        "text": "Yes"
+                    }
+                },
+                {
+                    "uuid": "01999b6c-d42d-746e-85f9-abbc98f2f32c",
+                    "type": "msg_created",
+                    "created_on": "2025-09-30T12:30:00.123456789Z",
+                    "msg": {
+                        "text": "Yes"
+                    }
+                },
+                {
+                    "uuid": "01999b6c-d42d-746e-85f9-abbd15074712",
+                    "type": "msg_created",
+                    "created_on": "2025-09-30T12:30:00.123456789Z",
+                    "msg": {
+                        "text": "Yes"
+                    }
+                },
+                {
+                    "uuid": "01999b6c-d42d-746e-85f9-abbe1372e058",
+                    "type": "msg_created",
+                    "created_on": "2025-09-30T12:30:00.123456789Z",
+                    "msg": {
+                        "text": "Yes"
+                    }
+                },
+                {
+                    "uuid": "01999b6c-d42d-746e-85f9-abbfdbd63d9c",
+                    "type": "msg_created",
+                    "created_on": "2025-09-30T12:30:00.123456789Z",
+                    "msg": {
+                        "text": "Yes"
+                    }
+                },
+                {
+                    "uuid": "01999b6c-d42d-746e-85f9-abc00d0c079d",
+                    "type": "msg_created",
+                    "created_on": "2025-09-30T12:30:00.123456789Z",
+                    "msg": {
+                        "text": "Yes"
+                    }
+                },
+                {
+                    "uuid": "01999b6c-d42d-746e-85f9-abc1a26834d6",
+                    "type": "msg_created",
+                    "created_on": "2025-09-30T12:30:00.123456789Z",
+                    "msg": {
+                        "text": "Yes"
+                    }
+                },
+                {
+                    "uuid": "01999b6c-d42d-746e-85f9-abc2636addc4",
+                    "type": "msg_created",
+                    "created_on": "2025-09-30T12:30:00.123456789Z",
+                    "msg": {
+                        "text": "Yes"
+                    }
+                },
+                {
+                    "uuid": "01999b6c-d42d-746e-85f9-abc34e3aea45",
+                    "type": "msg_created",
+                    "created_on": "2025-09-30T12:30:00.123456789Z",
+                    "msg": {
+                        "text": "Yes"
+                    }
+                },
+                {
+                    "uuid": "01999b6c-d42d-746e-85f9-abc425ec6703",
+                    "type": "msg_created",
+                    "created_on": "2025-09-30T12:30:00.123456789Z",
+                    "msg": {
+                        "text": "Yes"
+                    }
+                },
+                {
+                    "uuid": "01999b6c-d42d-746e-85f9-abc56545073a",
+                    "type": "msg_created",
+                    "created_on": "2025-09-30T12:30:00.123456789Z",
+                    "msg": {
+                        "text": "Yes"
+                    }
+                },
+                {
+                    "uuid": "01999b6c-d42d-746e-85f9-abc6ccb0edc9",
+                    "type": "msg_created",
+                    "created_on": "2025-09-30T12:30:00.123456789Z",
+                    "msg": {
+                        "text": "Yes"
+                    }
+                },
+                {
+                    "uuid": "01999b6c-d42d-746e-85f9-abc788a063fa",
+                    "type": "msg_created",
+                    "created_on": "2025-09-30T12:30:00.123456789Z",
+                    "msg": {
+                        "text": "Yes"
+                    }
+                },
+                {
+                    "uuid": "01999b6c-d42d-746e-85f9-abc85ef464cd",
+                    "type": "msg_created",
+                    "created_on": "2025-09-30T12:30:00.123456789Z",
+                    "msg": {
+                        "text": "Yes"
+                    }
+                },
+                {
+                    "uuid": "01999b6c-d42d-746e-85f9-abc9cabbd987",
+                    "type": "msg_created",
+                    "created_on": "2025-09-30T12:30:00.123456789Z",
+                    "msg": {
+                        "text": "Yes"
+                    }
+                },
+                {
+                    "uuid": "01999b6c-d42d-746e-85f9-abca70c02720",
+                    "type": "msg_created",
+                    "created_on": "2025-09-30T12:30:00.123456789Z",
+                    "msg": {
+                        "text": "Yes"
+                    }
+                },
+                {
+                    "uuid": "01999b6c-d42d-746e-85f9-abcb76379495",
+                    "type": "msg_created",
+                    "created_on": "2025-09-30T12:30:00.123456789Z",
+                    "msg": {
+                        "text": "Yes"
+                    }
+                }
+            ]
+        },
+        "user_id": 3,
+        "db_assertions": [
+            {
+                "label": "first 20 messages can be sent",
+                "query": "SELECT count(*) FROM msgs_msg WHERE contact_id = 10000 AND direction = 'O' AND status = 'I' AND failed_reason IS NULL",
+                "returns": 20
+            },
+            {
+                "label": "the 21st message is unsendable",
+                "query": "SELECT count(*) FROM msgs_msg WHERE contact_id = 10000 AND direction = 'O' AND status = 'F' AND failed_reason = 'L'",
+                "returns": 1
+            }
+        ],
+        "expected_history": [
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01999b6c-d42d-746e-85f9-abb795f4fb32",
+                "OrgID": 1,
+                "Data": {
+                    "_user": {
+                        "name": "Andy Admin",
+                        "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
+                    },
+                    "created_on": "2025-09-30T12:30:00.123456789Z",
+                    "msg": {
+                        "text": "Yes"
+                    },
+                    "type": "msg_created"
+                }
+            },
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01999b6c-d42d-746e-85f9-abb8ffbb2006",
+                "OrgID": 1,
+                "Data": {
+                    "_user": {
+                        "name": "Andy Admin",
+                        "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
+                    },
+                    "created_on": "2025-09-30T12:30:00.123456789Z",
+                    "msg": {
+                        "text": "Yes"
+                    },
+                    "type": "msg_created"
+                }
+            },
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01999b6c-d42d-746e-85f9-abb95dbba38e",
+                "OrgID": 1,
+                "Data": {
+                    "_user": {
+                        "name": "Andy Admin",
+                        "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
+                    },
+                    "created_on": "2025-09-30T12:30:00.123456789Z",
+                    "msg": {
+                        "text": "Yes"
+                    },
+                    "type": "msg_created"
+                }
+            },
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01999b6c-d42d-746e-85f9-abba8853b423",
+                "OrgID": 1,
+                "Data": {
+                    "_user": {
+                        "name": "Andy Admin",
+                        "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
+                    },
+                    "created_on": "2025-09-30T12:30:00.123456789Z",
+                    "msg": {
+                        "text": "Yes"
+                    },
+                    "type": "msg_created"
+                }
+            },
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01999b6c-d42d-746e-85f9-abbbe0161a2b",
+                "OrgID": 1,
+                "Data": {
+                    "_user": {
+                        "name": "Andy Admin",
+                        "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
+                    },
+                    "created_on": "2025-09-30T12:30:00.123456789Z",
+                    "msg": {
+                        "text": "Yes"
+                    },
+                    "type": "msg_created"
+                }
+            },
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01999b6c-d42d-746e-85f9-abbc98f2f32c",
+                "OrgID": 1,
+                "Data": {
+                    "_user": {
+                        "name": "Andy Admin",
+                        "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
+                    },
+                    "created_on": "2025-09-30T12:30:00.123456789Z",
+                    "msg": {
+                        "text": "Yes"
+                    },
+                    "type": "msg_created"
+                }
+            },
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01999b6c-d42d-746e-85f9-abbd15074712",
+                "OrgID": 1,
+                "Data": {
+                    "_user": {
+                        "name": "Andy Admin",
+                        "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
+                    },
+                    "created_on": "2025-09-30T12:30:00.123456789Z",
+                    "msg": {
+                        "text": "Yes"
+                    },
+                    "type": "msg_created"
+                }
+            },
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01999b6c-d42d-746e-85f9-abbe1372e058",
+                "OrgID": 1,
+                "Data": {
+                    "_user": {
+                        "name": "Andy Admin",
+                        "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
+                    },
+                    "created_on": "2025-09-30T12:30:00.123456789Z",
+                    "msg": {
+                        "text": "Yes"
+                    },
+                    "type": "msg_created"
+                }
+            },
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01999b6c-d42d-746e-85f9-abbfdbd63d9c",
+                "OrgID": 1,
+                "Data": {
+                    "_user": {
+                        "name": "Andy Admin",
+                        "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
+                    },
+                    "created_on": "2025-09-30T12:30:00.123456789Z",
+                    "msg": {
+                        "text": "Yes"
+                    },
+                    "type": "msg_created"
+                }
+            },
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01999b6c-d42d-746e-85f9-abc00d0c079d",
+                "OrgID": 1,
+                "Data": {
+                    "_user": {
+                        "name": "Andy Admin",
+                        "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
+                    },
+                    "created_on": "2025-09-30T12:30:00.123456789Z",
+                    "msg": {
+                        "text": "Yes"
+                    },
+                    "type": "msg_created"
+                }
+            },
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01999b6c-d42d-746e-85f9-abc1a26834d6",
+                "OrgID": 1,
+                "Data": {
+                    "_user": {
+                        "name": "Andy Admin",
+                        "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
+                    },
+                    "created_on": "2025-09-30T12:30:00.123456789Z",
+                    "msg": {
+                        "text": "Yes"
+                    },
+                    "type": "msg_created"
+                }
+            },
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01999b6c-d42d-746e-85f9-abc2636addc4",
+                "OrgID": 1,
+                "Data": {
+                    "_user": {
+                        "name": "Andy Admin",
+                        "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
+                    },
+                    "created_on": "2025-09-30T12:30:00.123456789Z",
+                    "msg": {
+                        "text": "Yes"
+                    },
+                    "type": "msg_created"
+                }
+            },
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01999b6c-d42d-746e-85f9-abc34e3aea45",
+                "OrgID": 1,
+                "Data": {
+                    "_user": {
+                        "name": "Andy Admin",
+                        "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
+                    },
+                    "created_on": "2025-09-30T12:30:00.123456789Z",
+                    "msg": {
+                        "text": "Yes"
+                    },
+                    "type": "msg_created"
+                }
+            },
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01999b6c-d42d-746e-85f9-abc425ec6703",
+                "OrgID": 1,
+                "Data": {
+                    "_user": {
+                        "name": "Andy Admin",
+                        "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
+                    },
+                    "created_on": "2025-09-30T12:30:00.123456789Z",
+                    "msg": {
+                        "text": "Yes"
+                    },
+                    "type": "msg_created"
+                }
+            },
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01999b6c-d42d-746e-85f9-abc56545073a",
+                "OrgID": 1,
+                "Data": {
+                    "_user": {
+                        "name": "Andy Admin",
+                        "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
+                    },
+                    "created_on": "2025-09-30T12:30:00.123456789Z",
+                    "msg": {
+                        "text": "Yes"
+                    },
+                    "type": "msg_created"
+                }
+            },
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01999b6c-d42d-746e-85f9-abc6ccb0edc9",
+                "OrgID": 1,
+                "Data": {
+                    "_user": {
+                        "name": "Andy Admin",
+                        "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
+                    },
+                    "created_on": "2025-09-30T12:30:00.123456789Z",
+                    "msg": {
+                        "text": "Yes"
+                    },
+                    "type": "msg_created"
+                }
+            },
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01999b6c-d42d-746e-85f9-abc788a063fa",
+                "OrgID": 1,
+                "Data": {
+                    "_user": {
+                        "name": "Andy Admin",
+                        "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
+                    },
+                    "created_on": "2025-09-30T12:30:00.123456789Z",
+                    "msg": {
+                        "text": "Yes"
+                    },
+                    "type": "msg_created"
+                }
+            },
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01999b6c-d42d-746e-85f9-abc85ef464cd",
+                "OrgID": 1,
+                "Data": {
+                    "_user": {
+                        "name": "Andy Admin",
+                        "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
+                    },
+                    "created_on": "2025-09-30T12:30:00.123456789Z",
+                    "msg": {
+                        "text": "Yes"
+                    },
+                    "type": "msg_created"
+                }
+            },
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01999b6c-d42d-746e-85f9-abc9cabbd987",
+                "OrgID": 1,
+                "Data": {
+                    "_user": {
+                        "name": "Andy Admin",
+                        "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
+                    },
+                    "created_on": "2025-09-30T12:30:00.123456789Z",
+                    "msg": {
+                        "text": "Yes"
+                    },
+                    "type": "msg_created"
+                }
+            },
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01999b6c-d42d-746e-85f9-abca70c02720",
+                "OrgID": 1,
+                "Data": {
+                    "_user": {
+                        "name": "Andy Admin",
+                        "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
+                    },
+                    "created_on": "2025-09-30T12:30:00.123456789Z",
+                    "msg": {
+                        "text": "Yes"
+                    },
+                    "type": "msg_created"
+                }
+            },
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01999b6c-d42d-746e-85f9-abcb76379495",
+                "OrgID": 1,
+                "Data": {
+                    "_user": {
+                        "name": "Andy Admin",
+                        "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
+                    },
+                    "created_on": "2025-09-30T12:30:00.123456789Z",
+                    "msg": {
+                        "text": "Yes"
+                    },
+                    "type": "msg_created"
+                }
+            }
+        ]
+    }
+]

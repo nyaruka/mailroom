@@ -167,7 +167,8 @@ func runTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 		actual.ExpectedTasks = testsuite.GetQueuedTasks(t, rt)
 		actual.ExpectedHistory = testsuite.GetHistoryItems(t, rt, true)
 
-		for i, dba := range actual.DBAssertions {
+		actual.DBAssertions = make([]*assertdb.Assert, len(tc.DBAssertions))
+		for i, dba := range tc.DBAssertions {
 			actual.DBAssertions[i] = dba.Actual(t, rt.DB)
 		}
 
