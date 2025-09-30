@@ -1,3 +1,8 @@
+v10.3.80 (2025-09-30)
+-------------------------
+ * Tweak msg loop detection to allow 20 repetitions
+ * Update msg event when message is unsendable
+
 v10.3.79 (2025-09-29)
 -------------------------
  * Persist all message events
