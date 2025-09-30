@@ -113,7 +113,8 @@ func RunWebTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 		actual.ExpectedTasks = GetQueuedTasks(t, rt)
 		actual.ExpectedHistory = GetHistoryItems(t, rt, true)
 
-		for i, dba := range actual.DBAssertions {
+		actual.DBAssertions = make([]*assertdb.Assert, len(tc.DBAssertions))
+		for i, dba := range tc.DBAssertions {
 			actual.DBAssertions[i] = dba.Actual(t, rt.DB)
 		}
 

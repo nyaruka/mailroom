@@ -442,7 +442,7 @@ func newMsgOut(rt *runtime.Runtime, org *Org, channel *Channel, contact *flows.C
 			if err != nil {
 				return nil, fmt.Errorf("error looking up msg repetitions: %w", err)
 			}
-			if repetitions >= msgRepetitionLimit {
+			if repetitions > msgRepetitionLimit {
 				event.Msg.UnsendableReason_ = UnsendableReasonLooping
 
 				slog.Warn("too many repetitions, failing message", "contact_id", contact.ID(), "text", out.Text(), "repetitions", repetitions)

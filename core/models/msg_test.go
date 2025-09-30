@@ -230,7 +230,7 @@ func TestNewOutgoingFlowMsg(t *testing.T) {
 		return msg
 	}
 
-	for range 19 {
+	for range 20 {
 		msg := newOutgoing("foo")
 		assert.Equal(t, models.MsgStatusQueued, msg.Status())
 		assert.Equal(t, models.NilMsgFailedReason, msg.FailedReason())
