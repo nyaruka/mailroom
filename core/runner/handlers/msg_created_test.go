@@ -57,3 +57,11 @@ func TestMsgCreatedNewURN(t *testing.T) {
 
 	runTests(t, rt, "testdata/msg_created_with_new_urn.json")
 }
+
+func TestMsgCreatedLoop(t *testing.T) {
+	_, rt := testsuite.Runtime(t)
+
+	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetValkey)
+
+	runTests(t, rt, "testdata/msg_created_loop.json")
+}
