@@ -518,7 +518,8 @@
                     },
                     "created_on": "2025-09-30T12:30:00.123456789Z",
                     "msg": {
-                        "text": "Yes"
+                        "text": "Yes",
+                        "unsendable_reason": "looping"
                     },
                     "type": "msg_created"
                 }
