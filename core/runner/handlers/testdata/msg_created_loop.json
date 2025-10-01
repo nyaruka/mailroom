@@ -1,7 +1,7 @@
 [
     {
         "label": "repeated messages",
-        "events": null,
+        "events": {},
         "actions": {
             "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
                 {
@@ -111,12 +111,11 @@
                 }
             ]
         },
-        "user_id": 3,
         "db_assertions": [
             {
                 "label": "first 20 messages can be sent",
-                "query": "SELECT count(*) FROM msgs_msg WHERE contact_id = 10000 AND direction = 'O' AND status = 'I' AND failed_reason IS NULL",
-                "returns": 0
+                "query": "SELECT count(*) FROM msgs_msg WHERE contact_id = 10000 AND direction = 'O' AND status = 'Q' AND failed_reason IS NULL",
+                "returns": 20
             },
             {
                 "label": "the 21st message is unsendable",
@@ -125,99 +124,6 @@
             }
         ],
         "expected_history": [
-            {
-                "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
-                "SK": "evt#01969b48-49bb-76f8-8b56-5e92bbfe0e3f",
-                "OrgID": 1,
-                "Data": {
-                    "created_on": "2025-05-04T12:32:09.123456789Z",
-                    "flow": {
-                        "name": "Test Flow",
-                        "revision": 1,
-                        "uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85"
-                    },
-                    "run_uuid": "01969b48-45d3-76f8-9803-f4a851d20f2b",
-                    "type": "run_started"
-                }
-            },
-            {
-                "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
-                "SK": "evt#01969b48-595b-76f8-bfd7-d22404241e07",
-                "OrgID": 1,
-                "Data": {
-                    "created_on": "2025-05-04T12:32:13.123456789Z",
-                    "flow": {
-                        "name": "Test Flow",
-                        "revision": 1,
-                        "uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85"
-                    },
-                    "run_uuid": "01969b48-45d3-76f8-9803-f4a851d20f2b",
-                    "status": "completed",
-                    "type": "run_ended"
-                }
-            },
-            {
-                "PK": "con#d709c157-4606-4d41-9df3-9e9c9b4ae2d4",
-                "SK": "evt#01969b48-af4b-76f8-9c02-6222e1badc14",
-                "OrgID": 1,
-                "Data": {
-                    "created_on": "2025-05-04T12:32:35.123456789Z",
-                    "flow": {
-                        "name": "Test Flow",
-                        "revision": 1,
-                        "uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85"
-                    },
-                    "run_uuid": "01969b48-ab63-76f8-8c15-15a7c0c5228d",
-                    "type": "run_started"
-                }
-            },
-            {
-                "PK": "con#d709c157-4606-4d41-9df3-9e9c9b4ae2d4",
-                "SK": "evt#01969b48-beeb-76f8-bf05-63393fd408f5",
-                "OrgID": 1,
-                "Data": {
-                    "created_on": "2025-05-04T12:32:39.123456789Z",
-                    "flow": {
-                        "name": "Test Flow",
-                        "revision": 1,
-                        "uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85"
-                    },
-                    "run_uuid": "01969b48-ab63-76f8-8c15-15a7c0c5228d",
-                    "status": "completed",
-                    "type": "run_ended"
-                }
-            },
-            {
-                "PK": "con#cd024bcd-f473-4719-a00a-bd0bb1190135",
-                "SK": "evt#01969b48-7c83-76f8-a5ef-59cf4d9d7a5b",
-                "OrgID": 1,
-                "Data": {
-                    "created_on": "2025-05-04T12:32:22.123456789Z",
-                    "flow": {
-                        "name": "Test Flow",
-                        "revision": 1,
-                        "uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85"
-                    },
-                    "run_uuid": "01969b48-789b-76f8-a09e-6806aab9f510",
-                    "type": "run_started"
-                }
-            },
-            {
-                "PK": "con#cd024bcd-f473-4719-a00a-bd0bb1190135",
-                "SK": "evt#01969b48-8c23-76f8-9504-776e7d151101",
-                "OrgID": 1,
-                "Data": {
-                    "created_on": "2025-05-04T12:32:26.123456789Z",
-                    "flow": {
-                        "name": "Test Flow",
-                        "revision": 1,
-                        "uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85"
-                    },
-                    "run_uuid": "01969b48-789b-76f8-a09e-6806aab9f510",
-                    "status": "completed",
-                    "type": "run_ended"
-                }
-            },
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
                 "SK": "evt#01969b47-190b-76f8-8dbf-00ecf5d03034",

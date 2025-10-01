@@ -31,7 +31,11 @@ import (
 )
 
 func init() {
-	goflow.RegisterCheckSendable(MsgIsSendableFactory)
+	goflow.RegisterCheckSendable(func(rt *runtime.Runtime) flows.CheckSendableCallback {
+		return func(sa flows.SessionAssets, contact *flows.Contact, content *flows.MsgContent) (flows.UnsendableReason, error) {
+			return msgCheckSendable(rt, orgFromAssets(sa), contact, content)
+		}
+	})
 }
 
 // maximum number of repeated messages to same contact allowed in 5 minute window
@@ -890,7 +894,7 @@ func CreateMsgOut(rt *runtime.Runtime, oa *OrgAssets, c *flows.Contact, content 
 		unsendableReason = flows.UnsendableReasonNoDestination
 	} else {
 		var err error
-		unsendableReason, err = MsgIsSendable(rt, oa.Org(), c, content)
+		unsendableReason, err = msgCheckSendable(rt, oa.Org(), c, content)
 		if err != nil {
 			return nil, fmt.Errorf("error checking if message is sendable: %w", err)
 		}
@@ -930,13 +934,7 @@ func UpdateMessageDeletedBySender(ctx context.Context, db *sql.DB, orgID OrgID, 
 	return nil
 }
 
-func MsgIsSendableFactory(rt *runtime.Runtime) flows.CheckSendableCallback {
-	return func(sa flows.SessionAssets, contact *flows.Contact, content *flows.MsgContent) (flows.UnsendableReason, error) {
-		return MsgIsSendable(rt, orgFromAssets(sa), contact, content)
-	}
-}
-
-func MsgIsSendable(rt *runtime.Runtime, org *Org, contact *flows.Contact, content *flows.MsgContent) (flows.UnsendableReason, error) {
+func msgCheckSendable(rt *runtime.Runtime, org *Org, contact *flows.Contact, content *flows.MsgContent) (flows.UnsendableReason, error) {
 	if org.Suspended() {
 		return UnsendableReasonOrgStatus, nil
 	}

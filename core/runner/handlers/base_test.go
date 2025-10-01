@@ -137,7 +137,7 @@ func runTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 			flowUUID := testdb.Favorites.UUID
 
 			// create dynamic flow to test actions
-			testFlow := createTestFlow(t, flowUUID, tc)
+			testFlow := createTestFlow(t, flowUUID, tc.Actions)
 			flowDef, err := json.Marshal(testFlow)
 			require.NoError(t, err)
 
@@ -145,17 +145,19 @@ func runTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 			assert.NoError(t, err)
 
 			for i, scene := range scenes {
-				msgEvent := msgEvents[i]
-				var trig flows.Trigger
+				if tc.Actions[scene.ContactUUID()] != nil {
+					msgEvent := msgEvents[i]
+					var trig flows.Trigger
 
-				if msgEvent != nil {
-					trig = triggers.NewBuilder(testFlow.Reference(false)).MsgReceived(msgEvent).Build()
-				} else {
-					trig = triggers.NewBuilder(testFlow.Reference(false)).Manual().Build()
+					if msgEvent != nil {
+						trig = triggers.NewBuilder(testFlow.Reference(false)).MsgReceived(msgEvent).Build()
+					} else {
+						trig = triggers.NewBuilder(testFlow.Reference(false)).Manual().Build()
+					}
+
+					err = scene.StartSession(ctx, rt, oa, trig, true)
+					require.NoError(t, err)
 				}
-
-				err = scene.StartSession(ctx, rt, oa, trig, true)
-				require.NoError(t, err)
 			}
 		}
 
@@ -217,11 +219,11 @@ func insertTestMessage(t *testing.T, rt *runtime.Runtime, oa *models.OrgAssets, 
 // test case are present.
 //
 // It returns the completed flow.
-func createTestFlow(t *testing.T, uuid assets.FlowUUID, tc TestCase) flows.Flow {
-	categoryUUIDs := make([]flows.CategoryUUID, len(tc.Actions))
-	exitUUIDs := make([]flows.ExitUUID, len(tc.Actions))
+func createTestFlow(t *testing.T, uuid assets.FlowUUID, actions ContactActionMap) flows.Flow {
+	categoryUUIDs := make([]flows.CategoryUUID, len(actions))
+	exitUUIDs := make([]flows.ExitUUID, len(actions))
 	i := 0
-	for range tc.Actions {
+	for range actions {
 		categoryUUIDs[i] = flows.CategoryUUID(uuids.NewV4())
 		exitUUIDs[i] = flows.ExitUUID(uuids.NewV4())
 		i++
@@ -229,12 +231,12 @@ func createTestFlow(t *testing.T, uuid assets.FlowUUID, tc TestCase) flows.Flow 
 	defaultCategoryUUID := flows.CategoryUUID(uuids.NewV4())
 	defaultExitUUID := flows.ExitUUID(uuids.NewV4())
 
-	cases := make([]*routers.Case, len(tc.Actions))
-	categories := make([]flows.Category, len(tc.Actions))
-	exits := make([]flows.Exit, len(tc.Actions))
-	exitNodes := make([]flows.Node, len(tc.Actions))
+	cases := make([]*routers.Case, len(actions))
+	categories := make([]flows.Category, len(actions))
+	exits := make([]flows.Exit, len(actions))
+	exitNodes := make([]flows.Node, len(actions))
 	i = 0
-	for contactUUID, actions := range tc.Actions {
+	for contactUUID, actions := range actions {
 		cases[i] = routers.NewCase(uuids.NewV4(), "has_any_word", []string{string(contactUUID)}, categoryUUIDs[i])
 
 		exitNodes[i] = definition.NewNode(
