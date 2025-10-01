@@ -49,9 +49,10 @@ const (
 type MsgVisibility string
 
 const (
-	VisibilityVisible  = MsgVisibility("V")
-	VisibilityArchived = MsgVisibility("A")
-	VisibilityDeleted  = MsgVisibility("D")
+	VisibilityVisible         = MsgVisibility("V")
+	VisibilityArchived        = MsgVisibility("A")
+	VisibilityDeletedByUser   = MsgVisibility("D")
+	VisibilityDeletedBySender = MsgVisibility("X")
 )
 
 type MsgType string
