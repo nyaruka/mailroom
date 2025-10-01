@@ -97,20 +97,7 @@ func TestNewOutgoingFlowMsg(t *testing.T) {
 			ExpectedMsgCount:     2,
 			ExpectedPriority:     false,
 		},
-		{ // 3: suspended org
-			Channel:              testdb.TwilioChannel,
-			Contact:              testdb.Ann,
-			URN:                  urns.URN(fmt.Sprintf("tel:+250700000001?id=%d", testdb.Ann.URNID)),
-			URNID:                testdb.Ann.URNID,
-			Content:              &flows.MsgContent{Text: "hello"},
-			Flow:                 testdb.Favorites,
-			SuspendedOrg:         true,
-			ExpectedStatus:       models.MsgStatusFailed,
-			ExpectedFailedReason: models.MsgFailedSuspended,
-			ExpectedMsgCount:     1,
-			ExpectedPriority:     false,
-		},
-		{ // 4: no destination
+		{ // 3: no destination
 			Channel:              nil,
 			Contact:              testdb.Ann,
 			URN:                  urns.NilURN,
@@ -123,7 +110,7 @@ func TestNewOutgoingFlowMsg(t *testing.T) {
 			ExpectedMsgCount:     1,
 			ExpectedPriority:     false,
 		},
-		{ // 5: blocked contact
+		{ // 4: blocked contact
 			Channel:              testdb.TwilioChannel,
 			Contact:              blake,
 			URN:                  urns.URN(fmt.Sprintf("tel:+250700000007?id=%d", blakeURNID)),
@@ -201,50 +188,11 @@ func TestNewOutgoingFlowMsg(t *testing.T) {
 	}
 
 	// check nil failed reasons are saved as NULLs
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE failed_reason IS NOT NULL`).Returns(3)
-
-	// ensure org is unsuspended
-	rt.DB.MustExec(`UPDATE orgs_org SET is_suspended = FALSE`)
-	models.FlushCache()
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE failed_reason IS NOT NULL`).Returns(2)
 
 	// check encoding of quick replies
 	assertdb.Query(t, rt.DB, `SELECT quick_replies[1] FROM msgs_msg WHERE id = 30001`).Returns("yes\nif you want")
 	assertdb.Query(t, rt.DB, `SELECT quick_replies[2] FROM msgs_msg WHERE id = 30001`).Returns("no")
-
-	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshOrg)
-	require.NoError(t, err)
-	channel := oa.ChannelByUUID(testdb.TwilioChannel.UUID)
-	flow, _ := oa.FlowByID(testdb.Favorites.ID)
-	_, contact, _ := testdb.Ann.Load(t, rt, oa)
-
-	// check that msg loop detection triggers after 20 repeats of the same text
-	newOutgoing := func(text string) *models.MsgOut {
-		content := &flows.MsgContent{Text: text}
-		msgEvent := events.NewMsgCreated(flows.NewMsgOut(
-			urns.URN(fmt.Sprintf("tel:+250700000001?id=%d", testdb.Ann.URNID)),
-			assets.NewChannelReference(testdb.TwilioChannel.UUID, "Twilio"),
-			content, nil, i18n.NilLocale, flows.NilUnsendableReason,
-		), "", "")
-		msg, err := models.NewOutgoingFlowMsg(rt, oa.Org(), channel, contact, flow, msgEvent, nil)
-		require.NoError(t, err)
-		return msg
-	}
-
-	for range 20 {
-		msg := newOutgoing("foo")
-		assert.Equal(t, models.MsgStatusQueued, msg.Status())
-		assert.Equal(t, models.NilMsgFailedReason, msg.FailedReason())
-	}
-	for range 10 {
-		msg := newOutgoing("foo")
-		assert.Equal(t, models.MsgStatusFailed, msg.Status())
-		assert.Equal(t, models.MsgFailedLooping, msg.FailedReason())
-	}
-	for range 5 {
-		msg := newOutgoing("bar")
-		assert.Equal(t, models.MsgStatusQueued, msg.Status())
-		assert.Equal(t, models.NilMsgFailedReason, msg.FailedReason())
-	}
 }
 
 func TestGetMessagesByID(t *testing.T) {

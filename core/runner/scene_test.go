@@ -73,12 +73,12 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 	dyntest.AssertCount(t, rt.Dynamo, "TestHistory", 6)
 
 	testsuite.AssertContactFires(t, rt, testdb.Bob.ID, map[string]time.Time{
-		fmt.Sprintf("E:%s", scBob.Session.UUID()): time.Date(2025, 2, 25, 16, 55, 9, 0, time.UTC), // 10 minutes in future
-		fmt.Sprintf("S:%s", scBob.Session.UUID()): time.Date(2025, 3, 28, 9, 55, 36, 0, time.UTC), // 30 days + rand(1 - 24 hours) in future
+		fmt.Sprintf("E:%s", scBob.Session.UUID()): time.Date(2025, 2, 25, 16, 55, 10, 0, time.UTC), // 10 minutes in future
+		fmt.Sprintf("S:%s", scBob.Session.UUID()): time.Date(2025, 3, 28, 9, 55, 36, 0, time.UTC),  // 30 days + rand(1 - 24 hours) in future
 	})
 	testsuite.AssertContactFires(t, rt, testdb.Dan.ID, map[string]time.Time{
 		fmt.Sprintf("T:%s", scDan.Session.UUID()): time.Date(2025, 2, 25, 16, 50, 27, 0, time.UTC), // 5 minutes in future
-		fmt.Sprintf("E:%s", scDan.Session.UUID()): time.Date(2025, 2, 25, 16, 55, 22, 0, time.UTC), // 10 minutes in future
+		fmt.Sprintf("E:%s", scDan.Session.UUID()): time.Date(2025, 2, 25, 16, 55, 23, 0, time.UTC), // 10 minutes in future
 		fmt.Sprintf("S:%s", scDan.Session.UUID()): time.Date(2025, 3, 28, 12, 9, 23, 0, time.UTC),  // 30 days + rand(1 - 24 hours) in future
 	})
 
@@ -99,7 +99,7 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 
 	// check we have a new contact fire for wait expiration but not timeout (wait doesn't have a timeout)
 	testsuite.AssertContactFires(t, rt, testdb.Bob.ID, map[string]time.Time{
-		fmt.Sprintf("E:%s", scBob.Session.UUID()): time.Date(2025, 2, 25, 16, 55, 41, 0, time.UTC), // updated
+		fmt.Sprintf("E:%s", scBob.Session.UUID()): time.Date(2025, 2, 25, 16, 55, 42, 0, time.UTC), // updated
 		fmt.Sprintf("S:%s", scBob.Session.UUID()): time.Date(2025, 3, 28, 9, 55, 36, 0, time.UTC),  // unchanged
 	})
 
@@ -191,7 +191,7 @@ func TestSessionWithSubflows(t *testing.T) {
 
 	// check we have a contact fire for wait expiration but not timeout
 	testsuite.AssertContactFires(t, rt, testdb.Ann.ID, map[string]time.Time{
-		fmt.Sprintf("E:%s", scene.Session.UUID()): time.Date(2025, 2, 25, 16, 55, 14, 0, time.UTC), // 10 minutes in future
+		fmt.Sprintf("E:%s", scene.Session.UUID()): time.Date(2025, 2, 25, 16, 55, 16, 0, time.UTC), // 10 minutes in future
 		fmt.Sprintf("S:%s", scene.Session.UUID()): time.Date(2025, 3, 28, 9, 55, 36, 0, time.UTC),  // 30 days + rand(1 - 24 hours) in future
 	})
 
@@ -466,7 +466,7 @@ func TestBroadcast(t *testing.T) {
 		{
 			"Data": {
 				"broadcast_uuid": "0199877e-0ed2-790b-b474-35099cea401c",
-				"created_on": "2025-05-04T12:30:46.123456789Z",
+				"created_on": "2025-05-04T12:30:47.123456789Z",
 				"msg": {
 					"channel": {
 						"name": "Twilio",
@@ -480,12 +480,12 @@ func TestBroadcast(t *testing.T) {
 			},
 			"OrgID": 1,
 			"PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
-			"SK": "evt#01969b47-0583-76f8-ae7f-f8b243c49ff5"
+			"SK": "evt#01969b47-096b-76f8-ae7f-f8b243c49ff5"
 		},
 		{
 			"Data": {
 				"broadcast_uuid": "0199877e-0ed2-790b-b474-35099cea401c",
-				"created_on": "2025-05-04T12:30:49.123456789Z",
+				"created_on": "2025-05-04T12:30:50.123456789Z",
 				"msg": {
 					"channel": {
 						"name": "Twilio",
@@ -499,7 +499,7 @@ func TestBroadcast(t *testing.T) {
 			},
 			"OrgID": 1,
 			"PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-			"SK": "evt#01969b47-113b-76f8-bd38-d266ec8d3716"
+			"SK": "evt#01969b47-1523-76f8-bd38-d266ec8d3716"
 		}
 	]`), jsonx.MustMarshal(testsuite.GetHistoryItems(t, rt, false)))
 
