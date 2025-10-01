@@ -57,7 +57,11 @@ func handleSend(ctx context.Context, rt *runtime.Runtime, r *sendRequest) (any, 
 	}
 
 	content := &flows.MsgContent{Text: r.Text, Attachments: r.Attachments, QuickReplies: r.QuickReplies}
-	out := models.CreateMsgOut(rt, oa, contact, content, models.NilTemplateID, nil, contact.Locale(oa.Env()), nil)
+	out, err := models.CreateMsgOut(rt, oa, contact, content, models.NilTemplateID, nil, contact.Locale(oa.Env()), nil)
+	if err != nil {
+		return nil, 0, fmt.Errorf("error creating message content: %w", err)
+	}
+
 	event := events.NewMsgCreated(out, "", r.TicketUUID)
 
 	scene := runner.NewScene(c, contact)
