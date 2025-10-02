@@ -18,7 +18,12 @@ func Broadcast(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, b
 	for _, scene := range scenes {
 		scene.Broadcast = broadcast
 
-		if event := broadcast.Send(rt, oa, scene.Contact); event != nil {
+		event, err := broadcast.Send(rt, oa, scene.Contact)
+		if err != nil {
+			return fmt.Errorf("error creating broadcast message event for contact %d: %w", scene.Contact.ID(), err)
+		}
+
+		if event != nil {
 			if err := scene.AddEvent(ctx, rt, oa, event, broadcast.CreatedByID); err != nil {
 				return fmt.Errorf("error adding message event to broadcast scene: %w", err)
 			}

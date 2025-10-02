@@ -310,7 +310,7 @@ func GetBroadcastByID(ctx context.Context, db DBorTx, bcastID BroadcastID) (*Bro
 }
 
 // Send creates a message event for the given contact - can return nil if resultant message has no content and thus is a noop
-func (b *Broadcast) Send(rt *runtime.Runtime, oa *OrgAssets, contact *flows.Contact) *events.MsgCreated {
+func (b *Broadcast) Send(rt *runtime.Runtime, oa *OrgAssets, contact *flows.Contact) (*events.MsgCreated, error) {
 	content, locale := b.Translations.ForContact(oa.Env(), contact, b.BaseLanguage)
 
 	var expressionsContext *types.XObject
@@ -325,10 +325,13 @@ func (b *Broadcast) Send(rt *runtime.Runtime, oa *OrgAssets, contact *flows.Cont
 
 	// don't create a message if we have no content
 	if content.Empty() {
-		return nil
+		return nil, nil
 	}
 
-	out := CreateMsgOut(rt, oa, contact, content, b.TemplateID, b.TemplateVariables, locale, expressionsContext)
+	out, err := CreateMsgOut(rt, oa, contact, content, b.TemplateID, b.TemplateVariables, locale, expressionsContext)
+	if err != nil {
+		return nil, fmt.Errorf("error creating message content: %w", err)
+	}
 
-	return events.NewMsgCreated(out, b.UUID, "")
+	return events.NewMsgCreated(out, b.UUID, ""), nil
 }

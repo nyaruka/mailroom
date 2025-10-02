@@ -30,6 +30,14 @@ import (
 	"github.com/nyaruka/null/v3"
 )
 
+func init() {
+	goflow.RegisterCheckSendable(func(rt *runtime.Runtime) flows.CheckSendableCallback {
+		return func(sa flows.SessionAssets, contact *flows.Contact, content *flows.MsgContent) (flows.UnsendableReason, error) {
+			return msgCheckSendable(rt, orgFromAssets(sa), contact, content)
+		}
+	})
+}
+
 // maximum number of repeated messages to same contact allowed in 5 minute window
 const msgRepetitionLimit = 20
 
@@ -433,24 +441,6 @@ func newMsgOut(rt *runtime.Runtime, org *Org, channel *Channel, contact *flows.C
 		}
 	}
 
-	// if engine didn't already flag this message as unsendable, do some additional checks...
-	if out.UnsendableReason() == flows.NilUnsendableReason {
-		if org.Suspended() {
-			event.Msg.UnsendableReason_ = UnsendableReasonOrgStatus
-		} else {
-			// does this look like a message loop?
-			repetitions, err := GetMsgRepetitions(rt.VK, contact, out)
-			if err != nil {
-				return nil, fmt.Errorf("error looking up msg repetitions: %w", err)
-			}
-			if repetitions > msgRepetitionLimit {
-				event.Msg.UnsendableReason_ = UnsendableReasonLooping
-
-				slog.Warn("too many repetitions, failing message", "contact_id", contact.ID(), "text", out.Text(), "repetitions", repetitions)
-			}
-		}
-	}
-
 	if out.UnsendableReason() != flows.NilUnsendableReason {
 		m.Status = MsgStatusFailed
 		m.FailedReason = unsendableToFailedReason[out.UnsendableReason()]
@@ -488,13 +478,13 @@ return count
 `)
 
 // GetMsgRepetitions gets the number of repetitions of this msg text for the given contact in the current 5 minute window
-func GetMsgRepetitions(rp *redis.Pool, contact *flows.Contact, msg *flows.MsgOut) (int, error) {
+func GetMsgRepetitions(rp *redis.Pool, contact *flows.Contact, msg *flows.MsgContent) (int, error) {
 	vc := rp.Get()
 	defer vc.Close()
 
 	keyTime := dates.Now().UTC().Round(time.Minute * 5)
 	key := fmt.Sprintf("msg_repetitions:%s", keyTime.Format("2006-01-02T15:04"))
-	return redis.Int(msgRepetitionsScript.Do(vc, key, contact.ID(), msg.Text()))
+	return redis.Int(msgRepetitionsScript.Do(vc, key, contact.ID(), msg.Text))
 }
 
 var sqlSelectMessagesByID = `
@@ -838,7 +828,7 @@ func FailChannelMessages(ctx context.Context, db *sql.DB, orgID OrgID, channelID
 }
 
 // CreateMsgOut creates a new outgoing message to the given contact, resolving the destination etc
-func CreateMsgOut(rt *runtime.Runtime, oa *OrgAssets, c *flows.Contact, content *flows.MsgContent, templateID TemplateID, templateVariables []string, locale i18n.Locale, expressionsContext *types.XObject) *flows.MsgOut {
+func CreateMsgOut(rt *runtime.Runtime, oa *OrgAssets, c *flows.Contact, content *flows.MsgContent, templateID TemplateID, templateVariables []string, locale i18n.Locale, expressionsContext *types.XObject) (*flows.MsgOut, error) {
 	// resolve URN + channel for this contact
 	urn := urns.NilURN
 	var channel *Channel
@@ -902,9 +892,15 @@ func CreateMsgOut(rt *runtime.Runtime, oa *OrgAssets, c *flows.Contact, content 
 		unsendableReason = flows.UnsendableReasonContactStatus
 	} else if urn == urns.NilURN || channel == nil {
 		unsendableReason = flows.UnsendableReasonNoDestination
+	} else {
+		var err error
+		unsendableReason, err = msgCheckSendable(rt, oa.Org(), c, content)
+		if err != nil {
+			return nil, fmt.Errorf("error checking if message is sendable: %w", err)
+		}
 	}
 
-	return flows.NewMsgOut(urn, channelRef, content, templating, locale, unsendableReason)
+	return flows.NewMsgOut(urn, channelRef, content, templating, locale, unsendableReason), nil
 }
 
 const sqlUpdateMsgDeletedBySender = `
@@ -936,6 +932,25 @@ func UpdateMessageDeletedBySender(ctx context.Context, db *sql.DB, orgID OrgID, 
 	}
 
 	return nil
+}
+
+func msgCheckSendable(rt *runtime.Runtime, org *Org, contact *flows.Contact, content *flows.MsgContent) (flows.UnsendableReason, error) {
+	if org.Suspended() {
+		return UnsendableReasonOrgStatus, nil
+	}
+
+	// does this look like a message loop?
+	repetitions, err := GetMsgRepetitions(rt.VK, contact, content)
+	if err != nil {
+		return flows.NilUnsendableReason, fmt.Errorf("error looking up msg repetitions: %w", err)
+	}
+	if repetitions > msgRepetitionLimit {
+		slog.Warn("too many repetitions, failing message", "contact_id", contact.ID(), "text", content.Text, "repetitions", repetitions)
+
+		return UnsendableReasonLooping, nil
+	}
+
+	return flows.NilUnsendableReason, nil
 }
 
 // NilID implementations

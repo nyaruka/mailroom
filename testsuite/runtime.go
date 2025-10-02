@@ -13,6 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/nyaruka/gocommon/aws/dynamo/dyntest"
+	"github.com/nyaruka/mailroom/core/goflow"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/rp-indexer/v10/indexers"
@@ -119,6 +120,8 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 
 		rt.DB.Close()
 		rt.VK.Close()
+
+		goflow.Reset()
 	})
 
 	return t.Context(), rt
