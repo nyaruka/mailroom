@@ -338,32 +338,28 @@ func TestGetMsgRepetitions(t *testing.T) {
 
 	dates.SetNowFunc(dates.NewFixedNow(time.Date(2021, 11, 18, 12, 13, 3, 234567, time.UTC)))
 
-	oa := testdb.Org1.Load(t, rt)
-	_, ann, _ := testdb.Ann.Load(t, rt, oa)
-	_, cat, _ := testdb.Cat.Load(t, rt, oa)
-
 	msg1 := &flows.MsgContent{Text: "foo"}
 	msg2 := &flows.MsgContent{Text: "FOO"}
 	msg3 := &flows.MsgContent{Text: "bar"}
 	msg4 := &flows.MsgContent{Text: "foo"}
 
-	assertRepetitions := func(contact *flows.Contact, m *flows.MsgContent, expected int) {
-		count, err := models.GetMsgRepetitions(rt.VK, models.ContactID(contact.ID()), m)
+	assertRepetitions := func(contactID models.ContactID, m *flows.MsgContent, expected int) {
+		count, err := models.GetMsgRepetitions(rt.VK, contactID, m)
 		require.NoError(t, err)
 		assert.Equal(t, expected, count)
 	}
 
 	for i := range 20 {
-		assertRepetitions(ann, msg1, i+1)
+		assertRepetitions(testdb.Ann.ID, msg1, i+1)
 	}
 	for i := range 10 {
-		assertRepetitions(ann, msg2, i+21)
+		assertRepetitions(testdb.Ann.ID, msg2, i+21)
 	}
 	for i := range 5 {
-		assertRepetitions(ann, msg3, i+1)
+		assertRepetitions(testdb.Ann.ID, msg3, i+1)
 	}
 	for i := range 5 {
-		assertRepetitions(cat, msg4, i+1)
+		assertRepetitions(testdb.Cat.ID, msg4, i+1)
 	}
 	assertvk.HGetAll(t, vc, "msg_repetitions:2021-11-18T12:15", map[string]string{"10000|foo": "30", "10000|bar": "5", "10002|foo": "5"})
 }
