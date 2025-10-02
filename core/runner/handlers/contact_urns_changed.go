@@ -22,17 +22,8 @@ func handleContactURNsChanged(ctx context.Context, rt *runtime.Runtime, oa *mode
 
 	slog.Debug("contact urns changed", "contact", scene.ContactUUID(), "session", scene.SessionUUID(), "urns", event.URNs)
 
-	var flow *models.Flow
-	if scene.Session != nil {
-		flow, _ = scene.LocateEvent(e)
-	}
-
 	// create our URN changed event
-	change := &models.ContactURNsChanged{
-		Contact: scene.DBContact,
-		URNs:    event.URNs,
-		Flow:    flow,
-	}
+	change := &models.ContactURNsChanged{Contact: scene.DBContact, URNs: event.URNs}
 
 	scene.AttachPreCommitHook(hooks.UpdateContactURNs, change)
 	scene.AttachPreCommitHook(hooks.UpdateContactModifiedOn, event)
