@@ -106,21 +106,19 @@ func tryToModifyWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.Or
 }
 
 // BulkModify bulk modifies contacts without locking.. used during contact creation
-func BulkModify(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, userID models.UserID, modifiersByContact map[*flows.Contact][]flows.Modifier) (map[*flows.Contact][]flows.Event, error) {
-	scenes := make([]*Scene, 0, len(modifiersByContact))
-	eventsByContact := make(map[*flows.Contact][]flows.Event, len(modifiersByContact))
+func BulkModify(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, userID models.UserID, mcs []*models.Contact, contacts []*flows.Contact, modifiers map[flows.ContactUUID][]flows.Modifier) (map[*flows.Contact][]flows.Event, error) {
+	scenes := make([]*Scene, 0, len(mcs))
+	eventsByContact := make(map[*flows.Contact][]flows.Event, len(mcs))
 
-	// for test determinism
-	contactsByID := slices.SortedFunc(maps.Keys(modifiersByContact), func(a, b *flows.Contact) int { return cmp.Compare(a.ID(), b.ID()) })
-
-	for _, contact := range contactsByID {
-		scene := NewScene(nil, contact)
+	for i, mc := range mcs {
+		contact := contacts[i]
+		scene := NewScene(mc, contact)
 		eventsByContact[contact] = make([]flows.Event, 0)
 
-		for _, mod := range modifiersByContact[contact] {
+		for _, mod := range modifiers[mc.UUID()] {
 			evts, err := scene.ApplyModifier(ctx, rt, oa, mod, userID)
 			if err != nil {
-				return nil, fmt.Errorf("error applying modifier %T to contact %s: %w", mod, contact.UUID(), err)
+				return nil, fmt.Errorf("error applying modifier %T to contact %s: %w", mod, mc.UUID(), err)
 			}
 
 			eventsByContact[contact] = append(eventsByContact[contact], evts...)
