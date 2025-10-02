@@ -236,13 +236,14 @@ func (c *Contact) UpdatePreferredURN(ctx context.Context, db DBorTx, oa *OrgAsse
 
 // EngineContact converts our mailroom contact into a contact for use in the engine
 func (c *Contact) EngineContact(oa *OrgAssets) (*flows.Contact, error) {
-	urnz := make([]urns.URN, len(c.urns))
-	for i, u := range c.urns {
+	urnz := make([]urns.URN, 0, len(c.urns))
+	for _, u := range c.urns {
 		encoded, err := u.Encode(oa)
 		if err != nil {
-			return nil, fmt.Errorf("error encoding urn: %w", err)
+			slog.Warn("ignoring invalid URN", "urn", u, "contact", c.uuid)
+			continue
 		}
-		urnz[i] = encoded
+		urnz = append(urnz, encoded)
 	}
 
 	// convert our groups to a list of references
