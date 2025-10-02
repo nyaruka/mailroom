@@ -474,6 +474,7 @@ func TestUpdateContactLastSeenAndModifiedOn(t *testing.T) {
 	require.NoError(t, err)
 
 	t0 := time.Now()
+	time.Sleep(time.Millisecond * 5)
 
 	err = models.UpdateContactModifiedOn(ctx, rt.DB, []models.ContactID{testdb.Ann.ID})
 	assert.NoError(t, err)
@@ -483,30 +484,19 @@ func TestUpdateContactLastSeenAndModifiedOn(t *testing.T) {
 	t1 := time.Now().Truncate(time.Millisecond)
 	time.Sleep(time.Millisecond * 5)
 
-	err = models.UpdateContactLastSeenOn(ctx, rt.DB, testdb.Ann.ID, t1)
+	ann, _, _ := testdb.Ann.Load(t, rt, oa)
+
+	err = ann.UpdateLastSeenOn(ctx, rt.DB, t1)
 	assert.NoError(t, err)
+	assert.Equal(t, t1, *ann.LastSeenOn())
 
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contact WHERE modified_on > $1 AND last_seen_on = $1`, t1).Returns(1)
 
-	ann, err := models.LoadContact(ctx, rt.DB, oa, testdb.Ann.ID)
+	ann, err = models.LoadContact(ctx, rt.DB, oa, testdb.Ann.ID)
 	require.NoError(t, err)
 	assert.NotNil(t, ann.LastSeenOn())
 	assert.True(t, t1.Equal(*ann.LastSeenOn()))
 	assert.True(t, ann.ModifiedOn().After(t1))
-
-	t2 := time.Now().Truncate(time.Millisecond)
-	time.Sleep(time.Millisecond * 5)
-
-	// can update directly from the contact object
-	err = ann.UpdateLastSeenOn(ctx, rt.DB, t2)
-	require.NoError(t, err)
-	assert.True(t, t2.Equal(*ann.LastSeenOn()))
-
-	// and that also updates the database
-	ann, err = models.LoadContact(ctx, rt.DB, oa, testdb.Ann.ID)
-	require.NoError(t, err)
-	assert.True(t, t2.Equal(*ann.LastSeenOn()))
-	assert.True(t, ann.ModifiedOn().After(t2))
 }
 
 func TestUpdateContactStatus(t *testing.T) {

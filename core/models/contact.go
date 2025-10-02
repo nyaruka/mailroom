@@ -170,8 +170,13 @@ func (c *Contact) Unstop(ctx context.Context, db DBorTx) error {
 
 // UpdateLastSeenOn updates last seen on (and modified on)
 func (c *Contact) UpdateLastSeenOn(ctx context.Context, db DBorTx, lastSeenOn time.Time) error {
+	_, err := db.ExecContext(ctx, `UPDATE contacts_contact SET last_seen_on = $2, modified_on = NOW() WHERE id = $1`, c.ID(), lastSeenOn)
+	if err != nil {
+		return fmt.Errorf("error updating last_seen_on on contact: %w", err)
+	}
+
 	c.lastSeenOn = &lastSeenOn
-	return UpdateContactLastSeenOn(ctx, db, c.id, lastSeenOn)
+	return nil
 }
 
 // UpdatePreferredURN updates the URNs for the contact (if needbe) to have the passed in URN as top priority
@@ -1143,12 +1148,6 @@ func UpdateContactModifiedOn(ctx context.Context, db DBorTx, contactIDs []Contac
 		}
 	}
 	return nil
-}
-
-// UpdateContactLastSeenOn updates last seen on (and modified on) on the passed in contact
-func UpdateContactLastSeenOn(ctx context.Context, db DBorTx, contactID ContactID, lastSeenOn time.Time) error {
-	_, err := db.ExecContext(ctx, `UPDATE contacts_contact SET last_seen_on = $2, modified_on = NOW() WHERE id = $1`, contactID, lastSeenOn)
-	return err
 }
 
 // UpdateContactURNs updates the contact urns in our database to match the passed in changes
