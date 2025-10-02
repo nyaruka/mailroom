@@ -23,8 +23,8 @@ func (h *updateContactLastSeenOn) Execute(ctx context.Context, rt *runtime.Runti
 		lastEvent := args[len(args)-1].(flows.Event)
 		lastSeenOn := lastEvent.CreatedOn()
 
-		if err := models.UpdateContactLastSeenOn(ctx, tx, scene.ContactID(), lastSeenOn); err != nil {
-			return fmt.Errorf("error updating last_seen_on on contacts: %w", err)
+		if err := scene.DBContact.UpdateLastSeenOn(ctx, tx, lastSeenOn); err != nil {
+			return fmt.Errorf("error updating last_seen_on on contact: %w", err)
 		}
 	}
 

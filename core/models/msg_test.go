@@ -1,7 +1,6 @@
 package models_test
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
@@ -28,13 +27,12 @@ func TestNewOutgoingFlowMsg(t *testing.T) {
 	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetValkey)
 
 	blake := testdb.InsertContact(t, rt, testdb.Org1, "79b94a23-6d13-43f4-95fe-c733ee457857", "Blake", i18n.NilLanguage, models.ContactStatusBlocked)
-	blakeURNID := testdb.InsertContactURN(t, rt, testdb.Org1, blake, "tel:++250700000007", 1, nil)
+	blakeURNID := testdb.InsertContactURN(t, rt, testdb.Org1, blake, "tel:+250700000007", 1, nil)
 
 	tcs := []struct {
 		Channel      *testdb.Channel
 		Contact      *testdb.Contact
 		URN          urns.URN
-		URNID        models.URNID
 		Content      *flows.MsgContent
 		Templating   *flows.MsgTemplating
 		Locale       i18n.Locale
@@ -43,29 +41,16 @@ func TestNewOutgoingFlowMsg(t *testing.T) {
 		ResponseTo   *models.MsgInRef
 		SuspendedOrg bool
 
+		ExpectedURNID        models.URNID
 		ExpectedStatus       models.MsgStatus
 		ExpectedFailedReason models.MsgFailedReason
 		ExpectedMsgCount     int
 		ExpectedPriority     bool
 	}{
-		{ // 0: missing URN ID
-			Channel:              testdb.TwilioChannel,
-			Contact:              testdb.Ann,
-			URN:                  urns.URN("tel:+250700000001"),
-			URNID:                models.URNID(0),
-			Content:              &flows.MsgContent{Text: "hello"},
-			Flow:                 testdb.Favorites,
-			ResponseTo:           &models.MsgInRef{ID: 123425},
-			ExpectedStatus:       models.MsgStatusQueued,
-			ExpectedFailedReason: models.NilMsgFailedReason,
-			ExpectedMsgCount:     1,
-			ExpectedPriority:     true,
-		},
-		{ // 1
+		{ // 0
 			Channel: testdb.TwilioChannel,
 			Contact: testdb.Ann,
-			URN:     urns.URN(fmt.Sprintf("tel:+250700000001?id=%d", testdb.Ann.URNID)),
-			URNID:   testdb.Ann.URNID,
+			URN:     "tel:+16055741111",
 			Content: &flows.MsgContent{
 				Text: "test outgoing",
 				QuickReplies: []flows.QuickReply{
@@ -80,44 +65,45 @@ func TestNewOutgoingFlowMsg(t *testing.T) {
 			),
 			Locale:               "eng-US",
 			Flow:                 testdb.SingleMessage,
+			ExpectedURNID:        testdb.Ann.URNID,
 			ExpectedStatus:       models.MsgStatusQueued,
 			ExpectedFailedReason: models.NilMsgFailedReason,
 			ExpectedMsgCount:     1,
 			ExpectedPriority:     false,
 		},
-		{ // 2
+		{ // 1
 			Channel:              testdb.TwilioChannel,
 			Contact:              testdb.Ann,
-			URN:                  urns.URN(fmt.Sprintf("tel:+250700000001?id=%d", testdb.Ann.URNID)),
-			URNID:                testdb.Ann.URNID,
+			URN:                  "tel:+16055741111",
 			Content:              &flows.MsgContent{Text: "test outgoing", Attachments: []utils.Attachment{utils.Attachment("image/jpeg:https://dl-foo.com/image.jpg")}},
 			Flow:                 testdb.Favorites,
+			ExpectedURNID:        testdb.Ann.URNID,
 			ExpectedStatus:       models.MsgStatusQueued,
 			ExpectedFailedReason: models.NilMsgFailedReason,
 			ExpectedMsgCount:     2,
 			ExpectedPriority:     false,
 		},
-		{ // 3: no destination
+		{ // 2: no destination
 			Channel:              nil,
 			Contact:              testdb.Ann,
 			URN:                  urns.NilURN,
-			URNID:                models.URNID(0),
 			Content:              &flows.MsgContent{Text: "hello"},
 			Unsendable:           flows.UnsendableReasonNoDestination,
 			Flow:                 testdb.Favorites,
+			ExpectedURNID:        models.URNID(0),
 			ExpectedStatus:       models.MsgStatusFailed,
 			ExpectedFailedReason: models.MsgFailedNoDestination,
 			ExpectedMsgCount:     1,
 			ExpectedPriority:     false,
 		},
-		{ // 4: blocked contact
+		{ // 3: blocked contact
 			Channel:              testdb.TwilioChannel,
 			Contact:              blake,
-			URN:                  urns.URN(fmt.Sprintf("tel:+250700000007?id=%d", blakeURNID)),
-			URNID:                blakeURNID,
+			URN:                  "tel:+250700000007",
 			Content:              &flows.MsgContent{Text: "hello"},
 			Unsendable:           flows.UnsendableReasonContactStatus,
 			Flow:                 testdb.Favorites,
+			ExpectedURNID:        blakeURNID,
 			ExpectedStatus:       models.MsgStatusFailed,
 			ExpectedFailedReason: models.MsgFailedContact,
 			ExpectedMsgCount:     1,
@@ -176,7 +162,7 @@ func TestNewOutgoingFlowMsg(t *testing.T) {
 
 		assert.Equal(t, tc.Contact.ID, msg.ContactID(), "%d: contact id mismatch", i)
 		assert.Equal(t, expectedChannelID, msg.ChannelID(), "%d: channel id mismatch", i)
-		assert.Equal(t, tc.URNID, msg.ContactURNID(), "%d: urn id mismatch", i)
+		assert.Equal(t, tc.ExpectedURNID, msg.ContactURNID(), "%d: urn id mismatch", i)
 		assert.Equal(t, tc.Flow.ID, msg.FlowID(), "%d: flow id mismatch", i)
 
 		assert.Equal(t, tc.ExpectedStatus, msg.Status(), "%d: status mismatch", i)
@@ -191,8 +177,8 @@ func TestNewOutgoingFlowMsg(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE failed_reason IS NOT NULL`).Returns(2)
 
 	// check encoding of quick replies
-	assertdb.Query(t, rt.DB, `SELECT quick_replies[1] FROM msgs_msg WHERE id = 30001`).Returns("yes\nif you want")
-	assertdb.Query(t, rt.DB, `SELECT quick_replies[2] FROM msgs_msg WHERE id = 30001`).Returns("no")
+	assertdb.Query(t, rt.DB, `SELECT quick_replies[1] FROM msgs_msg WHERE id = 30000`).Returns("yes\nif you want")
+	assertdb.Query(t, rt.DB, `SELECT quick_replies[2] FROM msgs_msg WHERE id = 30000`).Returns("no")
 }
 
 func TestGetMessagesByID(t *testing.T) {

@@ -37,7 +37,7 @@ func TestNewCourierMsg(t *testing.T) {
 	require.NoError(t, err)
 	require.False(t, oa.Org().Suspended())
 
-	ann, fAnn, annURNs := testdb.Ann.Load(t, rt, oa)
+	ann, _, annURNs := testdb.Ann.Load(t, rt, oa)
 	fred, _, fredURNs := testFred.Load(t, rt, oa)
 
 	twilio := oa.ChannelByUUID(testdb.TwilioChannel.UUID)
@@ -113,7 +113,7 @@ func TestNewCourierMsg(t *testing.T) {
 	}`, string(jsonx.MustMarshal(msgEvent1.CreatedOn())), session.UUID(), sprint.UUID(), msg1.UUID()))
 
 	// create a priority flow message.. i.e. the session is responding to an incoming message
-	fAnn.SetLastSeenOn(time.Date(2023, 4, 20, 10, 15, 0, 0, time.UTC))
+	ann.UpdateLastSeenOn(ctx, rt.DB, time.Date(2023, 4, 20, 10, 15, 0, 0, time.UTC))
 	msgEvent2 := events.NewMsgCreated(flows.NewMsgOut(
 		annURN,
 		assets.NewChannelReference(testdb.TwilioChannel.UUID, "Test Channel"),
