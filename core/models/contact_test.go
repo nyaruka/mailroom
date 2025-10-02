@@ -550,6 +550,11 @@ func TestUpdateContactURNs(t *testing.T) {
 	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 	assert.NoError(t, err)
 
+	ann, _, _ := testdb.Ann.Load(t, rt, oa)
+	bob, _, _ := testdb.Bob.Load(t, rt, oa)
+	cat, _, _ := testdb.Cat.Load(t, rt, oa)
+	dan, _, _ := testdb.Dan.Load(t, rt, oa)
+
 	numInitialURNs := 0
 	rt.DB.Get(&numInitialURNs, `SELECT count(*) FROM contacts_contacturn`)
 
@@ -580,13 +585,13 @@ func TestUpdateContactURNs(t *testing.T) {
 	bobURN := urns.URN(fmt.Sprintf("tel:+16055742222?id=%d", testdb.Bob.URNID))
 
 	// give Ann a new higher priority URN
-	_, err = models.UpdateContactURNs(ctx, rt.DB, oa, []*models.ContactURNsChanged{{testdb.Ann.ID, testdb.Org1.ID, []urns.URN{"tel:+16055700001", annURN}, nil}})
+	err = models.UpdateContactURNs(ctx, rt.DB, oa, []*models.ContactURNsChanged{{ann, []urns.URN{"tel:+16055700001", annURN}}})
 	assert.NoError(t, err)
 
 	assertContactURNs(testdb.Ann.ID, []string{"tel:+16055700001", "tel:+16055741111"})
 
 	// give Bob a new lower priority URN
-	_, err = models.UpdateContactURNs(ctx, rt.DB, oa, []*models.ContactURNsChanged{{testdb.Bob.ID, testdb.Org1.ID, []urns.URN{bobURN, "tel:+16055700002"}, nil}})
+	err = models.UpdateContactURNs(ctx, rt.DB, oa, []*models.ContactURNsChanged{{bob, []urns.URN{bobURN, "tel:+16055700002"}}})
 	assert.NoError(t, err)
 
 	assertContactURNs(testdb.Bob.ID, []string{"tel:+16055742222", "tel:+16055700002"})
@@ -594,7 +599,7 @@ func TestUpdateContactURNs(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contacturn`).Returns(numInitialURNs + 2)         // but 2 new URNs
 
 	// remove a URN from Ann
-	_, err = models.UpdateContactURNs(ctx, rt.DB, oa, []*models.ContactURNsChanged{{testdb.Ann.ID, testdb.Org1.ID, []urns.URN{"tel:+16055700001"}, nil}})
+	err = models.UpdateContactURNs(ctx, rt.DB, oa, []*models.ContactURNsChanged{{ann, []urns.URN{"tel:+16055700001"}}})
 	assert.NoError(t, err)
 
 	assertContactURNs(testdb.Ann.ID, []string{"tel:+16055700001"})
@@ -603,13 +608,11 @@ func TestUpdateContactURNs(t *testing.T) {
 	t1 := time.Now()
 
 	// steal a URN from Bob and give to Dan
-	affected, err := models.UpdateContactURNs(ctx, rt.DB, oa, []*models.ContactURNsChanged{
-		{testdb.Ann.ID, testdb.Org1.ID, []urns.URN{"tel:+16055700001", "tel:+16055700002"}, nil},
-		{testdb.Dan.ID, testdb.Org1.ID, []urns.URN{"tel:+16055742222"}, nil},
+	err = models.UpdateContactURNs(ctx, rt.DB, oa, []*models.ContactURNsChanged{
+		{ann, []urns.URN{"tel:+16055700001", "tel:+16055700002"}},
+		{dan, []urns.URN{"tel:+16055742222"}},
 	})
 	assert.NoError(t, err)
-	assert.Len(t, affected, 1)
-	assert.Equal(t, testdb.Bob.ID, affected[0].ID())
 
 	assertContactURNs(testdb.Ann.ID, []string{"tel:+16055700001", "tel:+16055700002"})
 	assertContactURNs(testdb.Dan.ID, []string{"tel:+16055742222"})
@@ -618,14 +621,12 @@ func TestUpdateContactURNs(t *testing.T) {
 	assertGroups(testdb.Bob.ID, []string{"\\Active", "No URN"})
 
 	// steal the URN back from Dan whilst simulataneously adding new URN to Ann and not-changing anything for Cat
-	affected, err = models.UpdateContactURNs(ctx, rt.DB, oa, []*models.ContactURNsChanged{
-		{testdb.Bob.ID, testdb.Org1.ID, []urns.URN{"tel:+16055742222", "tel:+16055700002"}, nil},
-		{testdb.Ann.ID, testdb.Org1.ID, []urns.URN{"tel:+16055700001", "tel:+16055700003"}, nil},
-		{testdb.Cat.ID, testdb.Org1.ID, []urns.URN{"tel:+16055743333"}, nil},
+	err = models.UpdateContactURNs(ctx, rt.DB, oa, []*models.ContactURNsChanged{
+		{bob, []urns.URN{"tel:+16055742222", "tel:+16055700002"}},
+		{ann, []urns.URN{"tel:+16055700001", "tel:+16055700003"}},
+		{cat, []urns.URN{"tel:+16055743333"}},
 	})
 	assert.NoError(t, err)
-	assert.Len(t, affected, 1)
-	assert.Equal(t, testdb.Dan.ID, affected[0].ID())
 
 	assertContactURNs(testdb.Ann.ID, []string{"tel:+16055700001", "tel:+16055700003"})
 	assertContactURNs(testdb.Bob.ID, []string{"tel:+16055742222", "tel:+16055700002"})

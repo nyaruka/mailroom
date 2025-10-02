@@ -220,18 +220,16 @@ func (c *Contact) UpdatePreferredURN(ctx context.Context, db DBorTx, oa *OrgAsse
 	c.urns = append(c.urns, newURNs...)
 
 	change := &ContactURNsChanged{
-		ContactID: ContactID(c.ID()),
-		URNs:      c.urns,
+		Contact: c,
+		URNs:    c.urns,
 	}
 
 	// write our new state to the db
-	_, err := UpdateContactURNs(ctx, db, oa, []*ContactURNsChanged{change})
-	if err != nil {
+	if err := UpdateContactURNs(ctx, db, oa, []*ContactURNsChanged{change}); err != nil {
 		return fmt.Errorf("error updating urns for contact: %w", err)
 	}
 
-	err = UpdateContactModifiedOn(ctx, db, []ContactID{c.ID()})
-	if err != nil {
+	if err := UpdateContactModifiedOn(ctx, db, []ContactID{c.ID()}); err != nil {
 		return fmt.Errorf("error updating modified on on contact: %w", err)
 	}
 
@@ -1154,7 +1152,7 @@ func UpdateContactLastSeenOn(ctx context.Context, db DBorTx, contactID ContactID
 }
 
 // UpdateContactURNs updates the contact urns in our database to match the passed in changes
-func UpdateContactURNs(ctx context.Context, db DBorTx, oa *OrgAssets, changes []*ContactURNsChanged) ([]*Contact, error) {
+func UpdateContactURNs(ctx context.Context, db DBorTx, oa *OrgAssets, changes []*ContactURNsChanged) error {
 	// keep track of all our inserts
 	inserts := make([]any, 0, len(changes))
 
@@ -1169,7 +1167,7 @@ func UpdateContactURNs(ctx context.Context, db DBorTx, oa *OrgAssets, changes []
 
 	// for each of our changes (one per contact)
 	for _, change := range changes {
-		contactIDs = append(contactIDs, change.ContactID)
+		contactIDs = append(contactIDs, change.Contact.ID())
 
 		// priority for each contact starts at 1000
 		priority := topURNPriority
@@ -1195,7 +1193,7 @@ func UpdateContactURNs(ctx context.Context, db DBorTx, oa *OrgAssets, changes []
 				// new URN, add it instead
 				inserts = append(inserts, &ContactURN{
 					OrgID:     oa.OrgID(),
-					ContactID: change.ContactID,
+					ContactID: change.Contact.ID(),
 					Identity:  urn.Identity(),
 					Scheme:    urn.Scheme(),
 					Path:      urn.Path(),
@@ -1214,7 +1212,7 @@ func UpdateContactURNs(ctx context.Context, db DBorTx, oa *OrgAssets, changes []
 	// first update existing URNs
 	err := BulkQuery(ctx, "updating contact urns", db, sqlUpdateContactURNs, updates)
 	if err != nil {
-		return nil, fmt.Errorf("error updating urns: %w", err)
+		return fmt.Errorf("error updating urns: %w", err)
 	}
 
 	// then detach any URNs that weren't updated (the ones we're not keeping)
@@ -1225,31 +1223,29 @@ func UpdateContactURNs(ctx context.Context, db DBorTx, oa *OrgAssets, changes []
 		pq.Array(updatedURNIDs),
 	)
 	if err != nil {
-		return nil, fmt.Errorf("error detaching urns: %w", err)
+		return fmt.Errorf("error detaching urns: %w", err)
 	}
-
-	var affected []*Contact
 
 	if len(inserts) > 0 {
 		// find the unique ids of the contacts that may be affected by our URN inserts
 		orphanedIDs, err := queryContactIDs(ctx, db, `SELECT contact_id FROM contacts_contacturn WHERE identity = ANY($1) AND org_id = $2 AND contact_id IS NOT NULL`, pq.Array(identities), oa.OrgID())
 		if err != nil {
-			return nil, fmt.Errorf("error finding contacts for URNs: %w", err)
+			return fmt.Errorf("error finding contacts for URNs: %w", err)
 		}
 
 		// then insert new urns, we do these one by one since we have to deal with conflicts
 		for _, insert := range inserts {
 			_, err := db.NamedExecContext(ctx, sqlInsertContactURN, insert)
 			if err != nil {
-				return nil, fmt.Errorf("error inserting new urns: %w", err)
+				return fmt.Errorf("error inserting new urns: %w", err)
 			}
 		}
 
 		// finally update the contacts who had URNs stolen from them
 		if len(orphanedIDs) > 0 {
-			affected, err = LoadContacts(ctx, db, oa, orphanedIDs)
+			affected, err := LoadContacts(ctx, db, oa, orphanedIDs)
 			if err != nil {
-				return nil, fmt.Errorf("error loading contacts affecting by URN stealing: %w", err)
+				return fmt.Errorf("error loading contacts affecting by URN stealing: %w", err)
 			}
 
 			// turn them into flow contacts..
@@ -1257,24 +1253,24 @@ func UpdateContactURNs(ctx context.Context, db DBorTx, oa *OrgAssets, changes []
 			for i, c := range affected {
 				flowOrphans[i], err = c.EngineContact(oa)
 				if err != nil {
-					return nil, fmt.Errorf("error creating orphan flow contact: %w", err)
+					return fmt.Errorf("error creating orphan flow contact: %w", err)
 				}
 			}
 
 			// and re-calculate their dynamic groups
 			if err := CalculateDynamicGroups(ctx, db, oa, flowOrphans); err != nil {
-				return nil, fmt.Errorf("error re-calculating dynamic groups for orphaned contacts: %w", err)
+				return fmt.Errorf("error re-calculating dynamic groups for orphaned contacts: %w", err)
 			}
 
 			// and mark them as updated
 			if err := UpdateContactModifiedOn(ctx, db, orphanedIDs); err != nil {
-				return nil, fmt.Errorf("error updating orphaned contacts: %w", err)
+				return fmt.Errorf("error updating orphaned contacts: %w", err)
 			}
 		}
 	}
 
 	// NOTE: caller needs to update modified on for this contact
-	return affected, nil
+	return nil
 }
 
 func FilterContactIDsByNotInFlow(ctx context.Context, db *sqlx.DB, contacts []ContactID) ([]ContactID, error) {
@@ -1321,10 +1317,8 @@ DO
 
 // ContactURNsChanged represents the new status of URNs for a contact
 type ContactURNsChanged struct {
-	ContactID ContactID
-	OrgID     OrgID
-	URNs      []urns.URN
-	Flow      *Flow // for logging
+	Contact *Contact
+	URNs    []urns.URN
 }
 
 func (i *URNID) Scan(value any) error         { return null.ScanInt(value, i) }
