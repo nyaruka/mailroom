@@ -48,16 +48,20 @@ func ImportBatch(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 	}
 
 	// gather up contacts and modifiers
-	modifiersByContact := make(map[*flows.Contact][]flows.Modifier, len(imports))
+	mcs := make([]*models.Contact, 0, len(imports))
+	contacts := make([]*flows.Contact, 0, len(imports))
+	mods := make(map[flows.ContactUUID][]flows.Modifier, len(imports))
 	for _, imp := range imports {
 		// ignore errored imports which couldn't get/create a contact
 		if imp.contact != nil {
-			modifiersByContact[imp.flowContact] = imp.mods
+			mcs = append(mcs, imp.contact)
+			contacts = append(contacts, imp.flowContact)
+			mods[imp.flowContact.UUID()] = imp.mods
 		}
 	}
 
 	// and apply in bulk
-	_, err := runner.BulkModify(ctx, rt, oa, userID, modifiersByContact)
+	_, err := runner.BulkModify(ctx, rt, oa, userID, mcs, contacts, mods)
 	if err != nil {
 		return fmt.Errorf("error applying modifiers: %w", err)
 	}
