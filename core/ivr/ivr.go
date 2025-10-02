@@ -110,16 +110,15 @@ func RequestCall(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 	}
 	ca := flows.NewChannelAssets(channels)
 
-	// TODO find better way to turn models.ContactURN into flows.ContactURN
-	telURNEncoded, err := telURN.Encode(oa)
-	if err != nil {
-		return nil, fmt.Errorf("error encoding URN: %w", err)
+	// get the preferred channel for this URN
+	var urnChannel *flows.Channel
+	if telURN.ChannelID != models.NilChannelID {
+		if ch := oa.ChannelByID(telURN.ChannelID); ch != nil {
+			urnChannel = ca.Get(ch.UUID())
+		}
 	}
 
-	urn, err := flows.ParseRawURN(ca, telURNEncoded, assets.IgnoreMissing)
-	if err != nil {
-		return nil, fmt.Errorf("unable to parse URN: %s: %w", telURN, err)
-	}
+	urn := flows.NewContactURN(telURN.Identity, urnChannel)
 
 	// get the channel to use for outgoing calls
 	callChannel := ca.GetForURN(urn, assets.ChannelRoleCall)
@@ -139,7 +138,7 @@ func RequestCall(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 		return nil, fmt.Errorf("error creating outgoing call: %w", err)
 	}
 
-	clog, err := RequestCallStart(ctx, rt, channel, telURNEncoded, call)
+	clog, err := RequestCallStart(ctx, rt, channel, telURN.Identity, call)
 
 	// log any error inserting our channel log, but continue
 	if clog != nil {
