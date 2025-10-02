@@ -29,10 +29,9 @@ func handleContactURNsChanged(ctx context.Context, rt *runtime.Runtime, oa *mode
 
 	// create our URN changed event
 	change := &models.ContactURNsChanged{
-		ContactID: scene.ContactID(),
-		OrgID:     oa.OrgID(),
-		URNs:      event.URNs,
-		Flow:      flow,
+		Contact: scene.DBContact,
+		URNs:    event.URNs,
+		Flow:    flow,
 	}
 
 	scene.AttachPreCommitHook(hooks.UpdateContactURNs, change)

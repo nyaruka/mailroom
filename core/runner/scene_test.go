@@ -474,7 +474,7 @@ func TestBroadcast(t *testing.T) {
 					},
 					"locale": "eng-US",
 					"text": "Hi",
-					"urn": "tel:+16055742222?id=10001"
+					"urn": "tel:+16055742222"
 				},
 				"type": "msg_created"
 			},
@@ -493,7 +493,7 @@ func TestBroadcast(t *testing.T) {
 					},
 					"locale": "eng-US",
 					"text": "Hi",
-					"urn": "tel:+16055741111?id=10000"
+					"urn": "tel:+16055741111"
 				},
 				"type": "msg_created"
 			},

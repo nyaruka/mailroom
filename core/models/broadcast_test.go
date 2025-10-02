@@ -170,7 +170,7 @@ func TestBroadcastSend(t *testing.T) {
 				"type": "msg_created",
 				"created_on": "2025-05-04T12:30:48.123456789Z",
 				"msg": {
-					"urn": "tel:+593979000000?id=30000",
+					"urn": "tel:+593979000000",
 					"channel": {
 						"uuid": "8e7b62ee-2e84-4601-8fef-2e44c490b43e",
 						"name": "Android"
@@ -192,7 +192,7 @@ func TestBroadcastSend(t *testing.T) {
 				"type": "msg_created",
 				"created_on": "2025-05-04T12:30:52.123456789Z",
 				"msg": {
-					"urn": "tel:+593979000001?id=30001",
+					"urn": "tel:+593979000001",
 					"channel": {
 						"uuid": "8e7b62ee-2e84-4601-8fef-2e44c490b43e",
 						"name": "Android"
@@ -214,7 +214,7 @@ func TestBroadcastSend(t *testing.T) {
 				"type": "msg_created",
 				"created_on": "2025-05-04T12:30:56.123456789Z",
 				"msg": {
-					"urn": "tel:+593979000002?id=30002",
+					"urn": "tel:+593979000002",
 					"channel": {
 						"uuid": "8e7b62ee-2e84-4601-8fef-2e44c490b43e",
 						"name": "Android"
@@ -239,7 +239,7 @@ func TestBroadcastSend(t *testing.T) {
 				"type": "msg_created",
 				"created_on": "2025-05-04T12:31:00.123456789Z",
 				"msg": {
-					"urn": "tel:+593979000003?id=30003",
+					"urn": "tel:+593979000003",
 					"channel": {
 						"uuid": "8e7b62ee-2e84-4601-8fef-2e44c490b43e",
 						"name": "Android"
@@ -274,7 +274,7 @@ func TestBroadcastSend(t *testing.T) {
 				"type": "msg_created",
 				"created_on": "2025-05-04T12:31:04.123456789Z",
 				"msg": {
-					"urn": "facebook:1000000000002?id=30004",
+					"urn": "facebook:1000000000002",
 					"channel": {
 						"uuid": "0f661e8b-ea9d-4bd3-9953-d368340acf91",
 						"name": "Facebook"

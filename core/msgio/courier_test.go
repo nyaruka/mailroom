@@ -37,8 +37,8 @@ func TestNewCourierMsg(t *testing.T) {
 	require.NoError(t, err)
 	require.False(t, oa.Org().Suspended())
 
-	_, fAnn, annURNs := testdb.Ann.Load(t, rt, oa)
-	_, fred, fredURNs := testFred.Load(t, rt, oa)
+	ann, fAnn, annURNs := testdb.Ann.Load(t, rt, oa)
+	fred, _, fredURNs := testFred.Load(t, rt, oa)
 
 	twilio := oa.ChannelByUUID(testdb.TwilioChannel.UUID)
 	facebook := oa.ChannelByUUID(testdb.FacebookChannel.UUID)
@@ -67,7 +67,7 @@ func TestNewCourierMsg(t *testing.T) {
 		flows.NilUnsendableReason,
 	), "", "")
 
-	msg1, err := models.NewOutgoingFlowMsg(rt, oa.Org(), facebook, fAnn, flow, msgEvent1, nil)
+	msg1, err := models.NewOutgoingFlowMsg(rt, oa.Org(), facebook, ann, flow, msgEvent1, nil)
 	require.NoError(t, err)
 
 	// insert to db so that it gets an id and time field values
@@ -123,7 +123,7 @@ func TestNewCourierMsg(t *testing.T) {
 		flows.NilUnsendableReason,
 	), "", "")
 	in1 := testdb.InsertIncomingMsg(t, rt, testdb.Org1, testdb.TwilioChannel, testdb.Ann, "test", models.MsgStatusHandled)
-	msg2, err := models.NewOutgoingFlowMsg(rt, oa.Org(), twilio, fAnn, flow, msgEvent2, &models.MsgInRef{ID: in1.ID, ExtID: "EX123"})
+	msg2, err := models.NewOutgoingFlowMsg(rt, oa.Org(), twilio, ann, flow, msgEvent2, &models.MsgInRef{ID: in1.ID, ExtID: "EX123"})
 	require.NoError(t, err)
 
 	err = models.InsertMessages(ctx, rt.DB, []*models.Msg{msg2.Msg})
@@ -188,8 +188,8 @@ func TestNewCourierMsg(t *testing.T) {
 		"uuid": "%s"
 	}`, string(jsonx.MustMarshal(msgEvent3.CreatedOn())), testdb.Admin.ID, msg3.UUID()))
 
-	optInEvent := events.NewOptInRequested(session.Assets().OptIns().Get(optIn.UUID()).Reference(), twilio.Reference(), "tel:+16055741111?id=10000")
-	msg4 := models.NewOutgoingOptInMsg(rt, testdb.Org1.ID, fAnn, flow, optIn, twilio, optInEvent, &models.MsgInRef{ID: in1.ID, ExtID: "EX123"})
+	optInEvent := events.NewOptInRequested(session.Assets().OptIns().Get(optIn.UUID()).Reference(), twilio.Reference(), "tel:+16055741111")
+	msg4 := models.NewOutgoingOptInMsg(rt, testdb.Org1.ID, ann, flow, optIn, twilio, optInEvent, &models.MsgInRef{ID: in1.ID, ExtID: "EX123"})
 	err = models.InsertMessages(ctx, rt.DB, []*models.Msg{msg4.Msg})
 	require.NoError(t, err)
 

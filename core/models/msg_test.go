@@ -145,9 +145,9 @@ func TestNewOutgoingFlowMsg(t *testing.T) {
 		flow, err := oa.FlowByID(tc.Flow.ID)
 		require.NoError(t, err)
 
-		_, contact, _ := tc.Contact.Load(t, rt, oa)
+		mc, _, _ := tc.Contact.Load(t, rt, oa)
 		msgEvent := events.NewMsgCreated(flows.NewMsgOut(tc.URN, chRef, tc.Content, tc.Templating, tc.Locale, tc.Unsendable), "", "")
-		msg, err := models.NewOutgoingFlowMsg(rt, oa.Org(), ch, contact, flow, msgEvent, tc.ResponseTo)
+		msg, err := models.NewOutgoingFlowMsg(rt, oa.Org(), ch, mc, flow, msgEvent, tc.ResponseTo)
 		assert.NoError(t, err)
 
 		expectedAttachments := tc.Content.Attachments
@@ -348,7 +348,7 @@ func TestGetMsgRepetitions(t *testing.T) {
 	msg4 := &flows.MsgContent{Text: "foo"}
 
 	assertRepetitions := func(contact *flows.Contact, m *flows.MsgContent, expected int) {
-		count, err := models.GetMsgRepetitions(rt.VK, contact, m)
+		count, err := models.GetMsgRepetitions(rt.VK, models.ContactID(contact.ID()), m)
 		require.NoError(t, err)
 		assert.Equal(t, expected, count)
 	}
@@ -507,7 +507,7 @@ func TestCreateMsgOut(t *testing.T) {
 	out, err := models.CreateMsgOut(rt, oa, bob, &flows.MsgContent{Text: "hello @contact.name"}, models.NilTemplateID, nil, `eng`, evalContext(bob))
 	assert.NoError(t, err)
 	assert.Equal(t, "hello Bob", out.Text())
-	assert.Equal(t, urns.URN("tel:+16055742222?id=10001"), out.URN())
+	assert.Equal(t, urns.URN("tel:+16055742222"), out.URN())
 	assert.Equal(t, assets.NewChannelReference("74729f45-7f29-4868-9dc4-90e491e3c7d8", "Twilio"), out.Channel())
 	assert.Equal(t, i18n.Locale(`eng`), out.Locale())
 	assert.Nil(t, out.Templating())
@@ -518,7 +518,7 @@ func TestCreateMsgOut(t *testing.T) {
 	out, err = models.CreateMsgOut(rt, oa, ann, msgContent, testdb.ReviveTemplate.ID, templateVariables, `eng`, evalContext(ann))
 	assert.NoError(t, err)
 	assert.Equal(t, "Hi Ann, are you still experiencing problems with mice?", out.Text())
-	assert.Equal(t, urns.URN("facebook:123456789?id=30000"), out.URN())
+	assert.Equal(t, urns.URN("facebook:123456789"), out.URN())
 	assert.Equal(t, assets.NewChannelReference("0f661e8b-ea9d-4bd3-9953-d368340acf91", "Facebook"), out.Channel())
 	assert.Equal(t, i18n.Locale(`eng-US`), out.Locale())
 	assert.Equal(t, &flows.MsgTemplating{
@@ -544,7 +544,7 @@ func TestCreateMsgOut(t *testing.T) {
 
 	out, err = models.CreateMsgOut(rt, oa, bob, &flows.MsgContent{Text: "hello"}, models.NilTemplateID, nil, `eng-US`, nil)
 	assert.NoError(t, err)
-	assert.Equal(t, urns.URN("tel:+16055742222?id=10001"), out.URN())
+	assert.Equal(t, urns.URN("tel:+16055742222"), out.URN())
 	assert.Equal(t, assets.NewChannelReference("74729f45-7f29-4868-9dc4-90e491e3c7d8", "Twilio"), out.Channel())
 	assert.Equal(t, flows.UnsendableReasonContactStatus, out.UnsendableReason())
 
@@ -564,7 +564,7 @@ func TestMsgTemplating(t *testing.T) {
 	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
 	oa := testdb.Org1.Load(t, rt)
-	_, contact, _ := testdb.Ann.Load(t, rt, oa)
+	mc, _, _ := testdb.Ann.Load(t, rt, oa)
 	channel := oa.ChannelByUUID(testdb.FacebookChannel.UUID)
 	chRef := assets.NewChannelReference(testdb.FacebookChannel.UUID, "FB")
 	flow, _ := oa.FlowByID(testdb.Favorites.ID)
@@ -577,12 +577,12 @@ func TestMsgTemplating(t *testing.T) {
 
 	// create a message with templating
 	out1 := events.NewMsgCreated(flows.NewMsgOut(testdb.Ann.URN, chRef, &flows.MsgContent{Text: "Hello"}, templating1, i18n.NilLocale, flows.NilUnsendableReason), "", "")
-	msg1, err := models.NewOutgoingFlowMsg(rt, oa.Org(), channel, contact, flow, out1, nil)
+	msg1, err := models.NewOutgoingFlowMsg(rt, oa.Org(), channel, mc, flow, out1, nil)
 	require.NoError(t, err)
 
 	// create a message without templating
 	out2 := events.NewMsgCreated(flows.NewMsgOut(testdb.Ann.URN, chRef, &flows.MsgContent{Text: "Hello"}, nil, i18n.NilLocale, flows.NilUnsendableReason), "", "")
-	msg2, err := models.NewOutgoingFlowMsg(rt, oa.Org(), channel, contact, flow, out2, nil)
+	msg2, err := models.NewOutgoingFlowMsg(rt, oa.Org(), channel, mc, flow, out2, nil)
 	require.NoError(t, err)
 
 	err = models.InsertMessages(ctx, rt.DB, []*models.Msg{msg1.Msg, msg2.Msg})

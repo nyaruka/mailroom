@@ -152,7 +152,7 @@
                         },
                         "locale": "eng-US",
                         "text": "Yes",
-                        "urn": "tel:+16055741111?id=10000"
+                        "urn": "tel:+16055741111"
                     },
                     "type": "msg_created"
                 }
@@ -170,7 +170,7 @@
                         },
                         "locale": "eng-US",
                         "text": "Yes",
-                        "urn": "tel:+16055741111?id=10000"
+                        "urn": "tel:+16055741111"
                     },
                     "type": "msg_created"
                 }
@@ -188,7 +188,7 @@
                         },
                         "locale": "eng-US",
                         "text": "Yes",
-                        "urn": "tel:+16055741111?id=10000"
+                        "urn": "tel:+16055741111"
                     },
                     "type": "msg_created"
                 }
@@ -206,7 +206,7 @@
                         },
                         "locale": "eng-US",
                         "text": "Yes",
-                        "urn": "tel:+16055741111?id=10000"
+                        "urn": "tel:+16055741111"
                     },
                     "type": "msg_created"
                 }
@@ -224,7 +224,7 @@
                         },
                         "locale": "eng-US",
                         "text": "Yes",
-                        "urn": "tel:+16055741111?id=10000"
+                        "urn": "tel:+16055741111"
                     },
                     "type": "msg_created"
                 }
@@ -242,7 +242,7 @@
                         },
                         "locale": "eng-US",
                         "text": "Yes",
-                        "urn": "tel:+16055741111?id=10000"
+                        "urn": "tel:+16055741111"
                     },
                     "type": "msg_created"
                 }
@@ -260,7 +260,7 @@
                         },
                         "locale": "eng-US",
                         "text": "Yes",
-                        "urn": "tel:+16055741111?id=10000"
+                        "urn": "tel:+16055741111"
                     },
                     "type": "msg_created"
                 }
@@ -278,7 +278,7 @@
                         },
                         "locale": "eng-US",
                         "text": "Yes",
-                        "urn": "tel:+16055741111?id=10000"
+                        "urn": "tel:+16055741111"
                     },
                     "type": "msg_created"
                 }
@@ -296,7 +296,7 @@
                         },
                         "locale": "eng-US",
                         "text": "Yes",
-                        "urn": "tel:+16055741111?id=10000"
+                        "urn": "tel:+16055741111"
                     },
                     "type": "msg_created"
                 }
@@ -314,7 +314,7 @@
                         },
                         "locale": "eng-US",
                         "text": "Yes",
-                        "urn": "tel:+16055741111?id=10000"
+                        "urn": "tel:+16055741111"
                     },
                     "type": "msg_created"
                 }
@@ -332,7 +332,7 @@
                         },
                         "locale": "eng-US",
                         "text": "Yes",
-                        "urn": "tel:+16055741111?id=10000"
+                        "urn": "tel:+16055741111"
                     },
                     "type": "msg_created"
                 }
@@ -350,7 +350,7 @@
                         },
                         "locale": "eng-US",
                         "text": "Yes",
-                        "urn": "tel:+16055741111?id=10000"
+                        "urn": "tel:+16055741111"
                     },
                     "type": "msg_created"
                 }
@@ -368,7 +368,7 @@
                         },
                         "locale": "eng-US",
                         "text": "Yes",
-                        "urn": "tel:+16055741111?id=10000"
+                        "urn": "tel:+16055741111"
                     },
                     "type": "msg_created"
                 }
@@ -386,7 +386,7 @@
                         },
                         "locale": "eng-US",
                         "text": "Yes",
-                        "urn": "tel:+16055741111?id=10000"
+                        "urn": "tel:+16055741111"
                     },
                     "type": "msg_created"
                 }
@@ -404,7 +404,7 @@
                         },
                         "locale": "eng-US",
                         "text": "Yes",
-                        "urn": "tel:+16055741111?id=10000"
+                        "urn": "tel:+16055741111"
                     },
                     "type": "msg_created"
                 }
@@ -422,7 +422,7 @@
                         },
                         "locale": "eng-US",
                         "text": "Yes",
-                        "urn": "tel:+16055741111?id=10000"
+                        "urn": "tel:+16055741111"
                     },
                     "type": "msg_created"
                 }
@@ -440,7 +440,7 @@
                         },
                         "locale": "eng-US",
                         "text": "Yes",
-                        "urn": "tel:+16055741111?id=10000"
+                        "urn": "tel:+16055741111"
                     },
                     "type": "msg_created"
                 }
@@ -458,7 +458,7 @@
                         },
                         "locale": "eng-US",
                         "text": "Yes",
-                        "urn": "tel:+16055741111?id=10000"
+                        "urn": "tel:+16055741111"
                     },
                     "type": "msg_created"
                 }
@@ -476,7 +476,7 @@
                         },
                         "locale": "eng-US",
                         "text": "Yes",
-                        "urn": "tel:+16055741111?id=10000"
+                        "urn": "tel:+16055741111"
                     },
                     "type": "msg_created"
                 }
@@ -494,7 +494,7 @@
                         },
                         "locale": "eng-US",
                         "text": "Yes",
-                        "urn": "tel:+16055741111?id=10000"
+                        "urn": "tel:+16055741111"
                     },
                     "type": "msg_created"
                 }
@@ -513,7 +513,7 @@
                         "locale": "eng-US",
                         "text": "Yes",
                         "unsendable_reason": "looping",
-                        "urn": "tel:+16055741111?id=10000"
+                        "urn": "tel:+16055741111"
                     },
                     "type": "msg_created"
                 }

@@ -92,21 +92,15 @@ func HangupCall(ctx context.Context, rt *runtime.Runtime, call *models.Call) (*m
 // RequestCall creates a new outgoing call and makes a request to the service to start it
 func RequestCall(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contact *models.Contact, trigger flows.Trigger) (*models.Call, error) {
 	// find a tel URL for the contact
-	telURN := urns.NilURN
+	var telURN *models.ContactURN
 	for _, u := range contact.URNs() {
-		if u.Scheme() == urns.Phone.Prefix {
+		if u.Scheme == urns.Phone.Prefix {
 			telURN = u
 		}
 	}
 
-	if telURN == urns.NilURN {
+	if telURN == nil {
 		return nil, fmt.Errorf("no tel URN on contact, cannot start IVR flow")
-	}
-
-	// get the ID of our URN
-	urnID := models.GetURNInt(telURN, "id")
-	if urnID == 0 {
-		return nil, fmt.Errorf("no urn id for URN: %s, cannot start IVR flow", telURN)
 	}
 
 	// build our channel assets, we need these to calculate the preferred channel for a call
@@ -116,7 +110,13 @@ func RequestCall(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 	}
 	ca := flows.NewChannelAssets(channels)
 
-	urn, err := flows.ParseRawURN(ca, telURN, assets.IgnoreMissing)
+	// TODO find better way to turn models.ContactURN into flows.ContactURN
+	telURNEncoded, err := telURN.Encode(oa)
+	if err != nil {
+		return nil, fmt.Errorf("error encoding URN: %w", err)
+	}
+
+	urn, err := flows.ParseRawURN(ca, telURNEncoded, assets.IgnoreMissing)
 	if err != nil {
 		return nil, fmt.Errorf("unable to parse URN: %s: %w", telURN, err)
 	}
@@ -134,12 +134,12 @@ func RequestCall(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 	}
 
 	channel := callChannel.Asset().(*models.Channel)
-	call := models.NewOutgoingCall(oa.OrgID(), channel, contact, models.URNID(urnID), trigger)
+	call := models.NewOutgoingCall(oa.OrgID(), channel, contact, telURN.ID, trigger)
 	if err := models.InsertCalls(ctx, rt.DB, []*models.Call{call}); err != nil {
 		return nil, fmt.Errorf("error creating outgoing call: %w", err)
 	}
 
-	clog, err := RequestCallStart(ctx, rt, channel, telURN, call)
+	clog, err := RequestCallStart(ctx, rt, channel, telURNEncoded, call)
 
 	// log any error inserting our channel log, but continue
 	if clog != nil {

@@ -30,7 +30,7 @@ func (h *insertMessages) Execute(ctx context.Context, rt *runtime.Runtime, tx *s
 				if err != nil {
 					return fmt.Errorf("error to getting URN: %s: %w", urn, err)
 				}
-				msg.SetURN(urn) // extracts id from param
+				msg.SetContactURNID(urn.ID)
 			}
 
 			msgs = append(msgs, msg)

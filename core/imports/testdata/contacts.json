@@ -28,7 +28,7 @@
                 "language": "",
                 "status": "active",
                 "urns": [
-                    "tel:+16055700001?id=10000"
+                    "tel:+16055700001"
                 ],
                 "fields": {},
                 "groups": [],
@@ -40,7 +40,7 @@
                 "language": "",
                 "status": "active",
                 "urns": [
-                    "tel:+16055700002?id=10001"
+                    "tel:+16055700002"
                 ],
                 "fields": {},
                 "groups": [],
@@ -79,7 +79,7 @@
                 "language": "",
                 "status": "active",
                 "urns": [
-                    "tel:+16055700001?id=10000"
+                    "tel:+16055700001"
                 ],
                 "fields": {},
                 "groups": [],
@@ -91,7 +91,7 @@
                 "language": "",
                 "status": "active",
                 "urns": [
-                    "tel:+16055700002?id=10001"
+                    "tel:+16055700002"
                 ],
                 "fields": {},
                 "groups": [],
@@ -103,8 +103,8 @@
                 "language": "spa",
                 "status": "active",
                 "urns": [
-                    "tel:+16055700003?id=10002",
-                    "tel:+593979000001?id=10003"
+                    "tel:+16055700003",
+                    "tel:+593979000001"
                 ],
                 "fields": {
                     "age": "40"
@@ -154,7 +154,7 @@
                 "language": "",
                 "status": "active",
                 "urns": [
-                    "tel:+16055700001?id=10000"
+                    "tel:+16055700001"
                 ],
                 "fields": {},
                 "groups": [],
@@ -166,8 +166,8 @@
                 "language": "",
                 "status": "active",
                 "urns": [
-                    "tel:+16055700002?id=10001",
-                    "tel:+593979000002?id=10004"
+                    "tel:+16055700002",
+                    "tel:+593979000002"
                 ],
                 "fields": {
                     "age": "28"
@@ -181,8 +181,8 @@
                 "language": "spa",
                 "status": "active",
                 "urns": [
-                    "tel:+16055700003?id=10002",
-                    "tel:+593979000001?id=10003"
+                    "tel:+16055700003",
+                    "tel:+593979000001"
                 ],
                 "fields": {
                     "age": "39"
@@ -249,7 +249,7 @@
                 "language": "",
                 "status": "active",
                 "urns": [
-                    "tel:+16055700001?id=10000"
+                    "tel:+16055700001"
                 ],
                 "fields": {},
                 "groups": [],
@@ -261,8 +261,8 @@
                 "language": "",
                 "status": "active",
                 "urns": [
-                    "tel:+16055700002?id=10001",
-                    "tel:+593979000002?id=10004"
+                    "tel:+16055700002",
+                    "tel:+593979000002"
                 ],
                 "fields": {
                     "age": "28",
@@ -277,8 +277,8 @@
                 "language": "spa",
                 "status": "active",
                 "urns": [
-                    "tel:+16055700003?id=10002",
-                    "tel:+593979000001?id=10003"
+                    "tel:+16055700003",
+                    "tel:+593979000001"
                 ],
                 "fields": {
                     "age": "39",
@@ -331,7 +331,7 @@
                 "language": "",
                 "status": "active",
                 "urns": [
-                    "tel:+16055700001?id=10000"
+                    "tel:+16055700001"
                 ],
                 "fields": {},
                 "groups": [],
@@ -343,8 +343,8 @@
                 "language": "kin",
                 "status": "active",
                 "urns": [
-                    "tel:+16055700002?id=10001",
-                    "tel:+593979000002?id=10004"
+                    "tel:+16055700002",
+                    "tel:+593979000002"
                 ],
                 "fields": {
                     "age": "28",
@@ -359,8 +359,8 @@
                 "language": "spa",
                 "status": "active",
                 "urns": [
-                    "tel:+16055700003?id=10002",
-                    "tel:+593979000001?id=10003"
+                    "tel:+16055700003",
+                    "tel:+593979000001"
                 ],
                 "fields": {
                     "age": "39",
@@ -397,8 +397,8 @@
                 "language": "",
                 "status": "active",
                 "urns": [
-                    "tel:+16055700001?id=10000",
-                    "tel:+16055700002?id=10001"
+                    "tel:+16055700001",
+                    "tel:+16055700002"
                 ],
                 "fields": {},
                 "groups": [],
@@ -410,7 +410,7 @@
                 "language": "kin",
                 "status": "active",
                 "urns": [
-                    "tel:+593979000002?id=10004"
+                    "tel:+593979000002"
                 ],
                 "fields": {
                     "age": "28",
@@ -425,8 +425,8 @@
                 "language": "spa",
                 "status": "active",
                 "urns": [
-                    "tel:+16055700003?id=10002",
-                    "tel:+593979000001?id=10003"
+                    "tel:+16055700003",
+                    "tel:+593979000001"
                 ],
                 "fields": {
                     "age": "39",
@@ -467,8 +467,8 @@
                 "language": "",
                 "status": "active",
                 "urns": [
-                    "tel:+16055700001?id=10000",
-                    "tel:+16055700002?id=10001"
+                    "tel:+16055700001",
+                    "tel:+16055700002"
                 ],
                 "fields": {},
                 "groups": [],
@@ -480,7 +480,7 @@
                 "language": "kin",
                 "status": "active",
                 "urns": [
-                    "tel:+593979000002?id=10004"
+                    "tel:+593979000002"
                 ],
                 "fields": {
                     "age": "28",
@@ -495,8 +495,8 @@
                 "language": "spa",
                 "status": "active",
                 "urns": [
-                    "tel:+16055700003?id=10002",
-                    "tel:+593979000001?id=10003"
+                    "tel:+16055700003",
+                    "tel:+593979000001"
                 ],
                 "fields": {
                     "age": "39",
@@ -546,9 +546,9 @@
                 "language": "",
                 "status": "active",
                 "urns": [
-                    "tel:+16055700001?id=10000",
-                    "tel:+16055700002?id=10001",
-                    "tel:+16055700005?id=10006"
+                    "tel:+16055700001",
+                    "tel:+16055700002",
+                    "tel:+16055700005"
                 ],
                 "fields": {},
                 "groups": [],
@@ -560,7 +560,7 @@
                 "language": "kin",
                 "status": "active",
                 "urns": [
-                    "tel:+593979000002?id=10004"
+                    "tel:+593979000002"
                 ],
                 "fields": {
                     "age": "28",
@@ -575,8 +575,8 @@
                 "language": "spa",
                 "status": "active",
                 "urns": [
-                    "tel:+16055700003?id=10002",
-                    "tel:+593979000001?id=10003"
+                    "tel:+16055700003",
+                    "tel:+593979000001"
                 ],
                 "fields": {
                     "age": "39",
@@ -633,9 +633,9 @@
                 "language": "",
                 "status": "archived",
                 "urns": [
-                    "tel:+16055700001?id=10000",
-                    "tel:+16055700002?id=10001",
-                    "tel:+16055700005?id=10006"
+                    "tel:+16055700001",
+                    "tel:+16055700002",
+                    "tel:+16055700005"
                 ],
                 "fields": {},
                 "groups": [],
@@ -647,7 +647,7 @@
                 "language": "kin",
                 "status": "active",
                 "urns": [
-                    "tel:+593979000002?id=10004"
+                    "tel:+593979000002"
                 ],
                 "fields": {
                     "age": "28",
@@ -662,8 +662,8 @@
                 "language": "spa",
                 "status": "active",
                 "urns": [
-                    "tel:+16055700003?id=10002",
-                    "tel:+593979000001?id=10003"
+                    "tel:+16055700003",
+                    "tel:+593979000001"
                 ],
                 "fields": {
                     "age": "39",
@@ -681,7 +681,7 @@
                 "language": "",
                 "status": "blocked",
                 "urns": [
-                    "tel:+16055700007?id=10007"
+                    "tel:+16055700007"
                 ],
                 "fields": {},
                 "groups": [],
@@ -693,7 +693,7 @@
                 "language": "",
                 "status": "active",
                 "urns": [
-                    "tel:+16055700008?id=10008"
+                    "tel:+16055700008"
                 ],
                 "fields": {},
                 "groups": [],

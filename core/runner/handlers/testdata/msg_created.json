@@ -196,7 +196,7 @@
                             ]
                         },
                         "text": "Hi Dan, are you still experiencing problems with tooth?",
-                        "urn": "facebook:12345?id=10003"
+                        "urn": "facebook:12345"
                     },
                     "type": "msg_created"
                 }
@@ -248,7 +248,7 @@
                         },
                         "locale": "eng-US",
                         "text": "Hello Attachments",
-                        "urn": "tel:+16055743333?id=10002"
+                        "urn": "tel:+16055743333"
                     },
                     "type": "msg_created"
                 }
@@ -322,7 +322,7 @@
                             }
                         ],
                         "text": "Hello World",
-                        "urn": "tel:+16055741111?id=10000"
+                        "urn": "tel:+16055741111"
                     },
                     "type": "msg_created"
                 }
@@ -348,7 +348,7 @@
                             }
                         ],
                         "text": "Hello World",
-                        "urn": "tel:+12065551212?id=30000"
+                        "urn": "tel:+12065551212"
                     },
                     "type": "msg_created"
                 }

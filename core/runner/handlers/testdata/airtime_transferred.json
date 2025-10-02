@@ -10,7 +10,7 @@
                     "step_uuid": "688e64f9-2456-4b42-afcb-91a2073e5459",
                     "external_id": "2237512891",
                     "sender": "tel:+13605551212",
-                    "recipient": "tel:+16055741111?id=10000",
+                    "recipient": "tel:+16055741111",
                     "currency": "USD",
                     "amount": 3,
                     "http_logs": [
@@ -88,7 +88,7 @@
                     "step_uuid": "c174a241-6057-41a3-874b-f17fb8365c22",
                     "external_id": "",
                     "sender": "tel:+13605551212",
-                    "recipient": "tel:+16055743333?id=10002",
+                    "recipient": "tel:+16055743333",
                     "currency": "",
                     "amount": 0,
                     "http_logs": [
@@ -148,7 +148,7 @@
                             "url": "https://dvs-api.dtone.com/v1/lookup/mobile-number"
                         }
                     ],
-                    "recipient": "tel:+16055743333?id=10002",
+                    "recipient": "tel:+16055743333",
                     "sender": "tel:+13605551212",
                     "type": "airtime_transferred"
                 }
