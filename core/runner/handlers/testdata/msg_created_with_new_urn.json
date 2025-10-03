@@ -48,20 +48,24 @@
         },
         "db_assertions": [
             {
-                "query": "SELECT count(*) FROM msgs_msg m JOIN contacts_contacturn u ON m.contact_urn_id = u.id WHERE m.text = 'Ann Message' AND m.contact_id = $1 AND m.status = 'Q' AND u.identity = 'telegram:12345' AND m.channel_id = $2 AND u.channel_id IS NULL",
-                "args": [
-                    10000,
-                    10002
-                ],
-                "returns": 1
+                "query": "SELECT m.text, m.status, m.channel_id AS msg_channel, u.identity, u.channel_id AS urn_channel FROM msgs_msg m JOIN contacts_contacturn u ON m.contact_urn_id = u.id WHERE m.contact_id = 10000 ORDER BY m.id DESC LIMIT 1",
+                "columns": {
+                    "identity": "telegram:12345",
+                    "msg_channel": 10002,
+                    "status": "Q",
+                    "text": "Ann Message",
+                    "urn_channel": null
+                }
             },
             {
-                "query": "SELECT count(*) FROM msgs_msg m JOIN contacts_contacturn u ON m.contact_urn_id = u.id WHERE m.text = 'Bob Message' AND m.contact_id = $1 AND m.status = 'Q' AND u.identity = 'telegram:67890' AND m.channel_id = $2 AND u.channel_id IS NULL",
-                "args": [
-                    10001,
-                    10002
-                ],
-                "returns": 1
+                "query": "SELECT m.text, m.status, m.channel_id AS msg_channel, u.identity, u.channel_id AS urn_channel FROM msgs_msg m JOIN contacts_contacturn u ON m.contact_urn_id = u.id WHERE m.contact_id = 10001 ORDER BY m.id DESC LIMIT 1",
+                "columns": {
+                    "identity": "telegram:67890",
+                    "msg_channel": 10002,
+                    "status": "Q",
+                    "text": "Bob Message",
+                    "urn_channel": null
+                }
             }
         ],
         "expected_history": [

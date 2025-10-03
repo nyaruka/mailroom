@@ -1,3 +1,11 @@
+v10.3.81 (2025-10-03)
+-------------------------
+ * Bump to go 1.25
+ * Update to latest goflow which tweaks airtime_transferred events
+ * Tweak runner.BulkModify so we never create scenes without a DB contact
+ * Simplify bulk updating of contact urns
+ * Perform additional message sendability checks via engine callback
+
 v10.3.80 (2025-09-30)
 -------------------------
  * Tweak msg loop detection to allow 20 repetitions
