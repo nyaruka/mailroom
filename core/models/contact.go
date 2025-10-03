@@ -895,10 +895,11 @@ func nornalizeAndValidateURNs(urnz []urns.URN) ([]urns.URN, error) {
 	return norm, nil
 }
 
-func GetURNByURN(ctx context.Context, db Queryer, oa *OrgAssets, u urns.URN) (*ContactURN, error) {
-	urn := &ContactURN{}
+// GetOrCreateURN will look up a URN by identity, creating it if needbe and associating it with the contact
+func GetOrCreateURN(ctx context.Context, db DBorTx, oa *OrgAssets, contactID ContactID, u urns.URN) (*ContactURN, error) {
+	// look for an existing URN with this identity
 	rows, err := db.QueryContext(ctx,
-		`SELECT row_to_json(r) FROM (SELECT id, scheme, path, display, auth_tokens, channel_id, priority FROM contacts_contacturn WHERE identity = $1 AND org_id = $2) r;`,
+		`SELECT row_to_json(r) FROM (SELECT id, identity, scheme, path, display, auth_tokens, channel_id, priority FROM contacts_contacturn WHERE identity = $1 AND org_id = $2) r;`,
 		u.Identity(), oa.OrgID(),
 	)
 	if err != nil {
@@ -906,35 +907,16 @@ func GetURNByURN(ctx context.Context, db Queryer, oa *OrgAssets, u urns.URN) (*C
 	}
 	defer rows.Close()
 
-	if !rows.Next() {
-		return nil, fmt.Errorf("no urn with identity: %s", u.Identity())
-	}
-
-	err = dbutil.ScanJSON(rows, urn)
-	if err != nil {
-		return nil, fmt.Errorf("error loading contact urn: %w", err)
-	}
-
 	if rows.Next() {
-		return nil, fmt.Errorf("more than one URN returned for identity query: %w", err)
-	}
-
-	return urn, nil
-}
-
-// GetOrCreateURN will look up a URN by identity, creating it if needbe and associating it with the contact
-func GetOrCreateURN(ctx context.Context, db DBorTx, oa *OrgAssets, contactID ContactID, u urns.URN) (*ContactURN, error) {
-	// first try to get it directly
-	urn, err := GetURNByURN(ctx, db, oa, u)
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return nil, fmt.Errorf("error looking up urn: %s: %w", u, err)
-	}
-	if urn != nil {
+		urn := &ContactURN{}
+		if err := dbutil.ScanJSON(rows, urn); err != nil {
+			return nil, fmt.Errorf("error loading contact urn: %w", err)
+		}
 		return urn, nil
 	}
 
-	// otherwise we need to insert it
-	insert := &ContactURN{
+	// otherwise we need to create it
+	urn := &ContactURN{
 		OrgID:     oa.OrgID(),
 		ContactID: contactID,
 		Scheme:    u.Scheme(),
@@ -944,7 +926,7 @@ func GetOrCreateURN(ctx context.Context, db DBorTx, oa *OrgAssets, contactID Con
 		Priority:  defaultURNPriority,
 	}
 
-	if _, err := db.NamedExecContext(ctx, sqlInsertContactURN, insert); err != nil {
+	if _, err := db.NamedExecContext(ctx, sqlInsertContactURN, urn); err != nil {
 		return nil, fmt.Errorf("error inserting new urn: %s: %w", u, err)
 	}
 
