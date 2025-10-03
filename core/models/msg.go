@@ -212,10 +212,11 @@ func (m *Msg) ExternalID() string            { return string(m.m.ExternalID) }
 func (m *Msg) MsgCount() int                 { return m.m.MsgCount }
 func (m *Msg) ChannelID() ChannelID          { return m.m.ChannelID }
 func (m *Msg) OrgID() OrgID                  { return m.m.OrgID }
+func (m *Msg) OptInID() OptInID              { return m.m.OptInID }
+func (m *Msg) ContactID() ContactID          { return m.m.ContactID }
 
-func (m *Msg) OptInID() OptInID     { return m.m.OptInID }
-func (m *Msg) ContactID() ContactID { return m.m.ContactID }
-func (m *Msg) ContactURNID() URNID  { return m.m.ContactURNID }
+func (m *Msg) ContactURNID() URNID         { return m.m.ContactURNID }
+func (m *Msg) SetContactURNID(urnID URNID) { m.m.ContactURNID = urnID }
 
 func (m *Msg) SetChannel(channel *Channel) {
 	if channel != nil {
@@ -224,17 +225,6 @@ func (m *Msg) SetChannel(channel *Channel) {
 	} else {
 		m.m.ChannelID = NilChannelID
 		m.m.IsAndroid = false
-	}
-}
-
-func (m *Msg) SetURN(urn urns.URN) {
-	m.m.ContactURNID = NilURNID
-
-	// try to extract id as param
-	if urn != urns.NilURN {
-		if id := GetURNInt(urn, "id"); id != 0 {
-			m.m.ContactURNID = URNID(id)
-		}
 	}
 }
 
@@ -260,8 +250,8 @@ func (m *Msg) QuickReplies() []flows.QuickReply {
 type MsgOut struct {
 	*Msg
 
-	URN      *ContactURN    // provides URN identity + auth
-	Contact  *flows.Contact // provides contact last seen on
+	URN      *ContactURN // provides URN identity + auth
+	Contact  *Contact    // provides contact last seen on
 	Session  flows.Session
 	ReplyTo  *MsgInRef
 	IsResend bool
@@ -355,12 +345,12 @@ func NewOutgoingIVR(cfg *runtime.Config, orgID OrgID, call *Call, flow *Flow, ev
 }
 
 // NewOutgoingOptInMsg creates an outgoing optin message
-func NewOutgoingOptInMsg(rt *runtime.Runtime, orgID OrgID, contact *flows.Contact, flow *Flow, optIn *OptIn, channel *Channel, event *events.OptInRequested, replyTo *MsgInRef) *MsgOut {
+func NewOutgoingOptInMsg(rt *runtime.Runtime, orgID OrgID, contact *Contact, flow *Flow, optIn *OptIn, channel *Channel, event *events.OptInRequested, replyTo *MsgInRef) *MsgOut {
 	msg := &Msg{}
 	m := &msg.m
 	m.UUID = event.UUID()
 	m.OrgID = orgID
-	m.ContactID = ContactID(contact.ID())
+	m.ContactID = contact.ID()
 	m.HighPriority = replyTo != nil
 	m.Direction = DirectionOut
 	m.Status = MsgStatusQueued
@@ -369,8 +359,10 @@ func NewOutgoingOptInMsg(rt *runtime.Runtime, orgID OrgID, contact *flows.Contac
 	m.MsgCount = 1
 	m.CreatedOn = event.CreatedOn()
 
+	if urn := contact.FindURN(event.URN); urn != nil {
+		m.ContactURNID = urn.ID
+	}
 	msg.SetChannel(channel)
-	msg.SetURN(event.URN)
 
 	if flow != nil {
 		m.FlowID = flow.ID()
@@ -383,30 +375,30 @@ func NewOutgoingOptInMsg(rt *runtime.Runtime, orgID OrgID, contact *flows.Contac
 }
 
 // NewOutgoingFlowMsg creates an outgoing message for the passed in flow message
-func NewOutgoingFlowMsg(rt *runtime.Runtime, org *Org, channel *Channel, contact *flows.Contact, flow *Flow, event *events.MsgCreated, replyTo *MsgInRef) (*MsgOut, error) {
+func NewOutgoingFlowMsg(rt *runtime.Runtime, org *Org, channel *Channel, contact *Contact, flow *Flow, event *events.MsgCreated, replyTo *MsgInRef) (*MsgOut, error) {
 	highPriority := replyTo != nil
 
 	return newMsgOut(rt, org, channel, contact, event, flow, NilBroadcastID, NilOptInID, NilUserID, replyTo, highPriority)
 }
 
 // NewOutgoingBroadcastMsg creates an outgoing message which is part of a broadcast
-func NewOutgoingBroadcastMsg(rt *runtime.Runtime, org *Org, channel *Channel, contact *flows.Contact, event *events.MsgCreated, b *Broadcast) (*MsgOut, error) {
+func NewOutgoingBroadcastMsg(rt *runtime.Runtime, org *Org, channel *Channel, contact *Contact, event *events.MsgCreated, b *Broadcast) (*MsgOut, error) {
 	return newMsgOut(rt, org, channel, contact, event, nil, b.ID, b.OptInID, b.CreatedByID, nil, false)
 }
 
 // NewOutgoingChatMsg creates an outgoing message from chat
-func NewOutgoingChatMsg(rt *runtime.Runtime, org *Org, channel *Channel, contact *flows.Contact, event *events.MsgCreated, userID UserID) (*MsgOut, error) {
+func NewOutgoingChatMsg(rt *runtime.Runtime, org *Org, channel *Channel, contact *Contact, event *events.MsgCreated, userID UserID) (*MsgOut, error) {
 	return newMsgOut(rt, org, channel, contact, event, nil, NilBroadcastID, NilOptInID, userID, nil, true)
 }
 
-func newMsgOut(rt *runtime.Runtime, org *Org, channel *Channel, contact *flows.Contact, event *events.MsgCreated, flow *Flow, broadcastID BroadcastID, optInID OptInID, userID UserID, replyTo *MsgInRef, highPriority bool) (*MsgOut, error) {
+func newMsgOut(rt *runtime.Runtime, org *Org, channel *Channel, contact *Contact, event *events.MsgCreated, flow *Flow, broadcastID BroadcastID, optInID OptInID, userID UserID, replyTo *MsgInRef, highPriority bool) (*MsgOut, error) {
 	out := event.Msg
 
 	msg := &Msg{}
 	m := &msg.m
 	m.UUID = event.UUID()
 	m.OrgID = org.ID()
-	m.ContactID = ContactID(contact.ID())
+	m.ContactID = contact.ID()
 	m.BroadcastID = broadcastID
 	m.TicketUUID = null.String(event.TicketUUID)
 	m.Text = out.Text()
@@ -421,8 +413,10 @@ func newMsgOut(rt *runtime.Runtime, org *Org, channel *Channel, contact *flows.C
 	m.CreatedByID = userID
 	m.CreatedOn = event.CreatedOn()
 
+	if urn := contact.FindURN(out.URN()); urn != nil {
+		m.ContactURNID = urn.ID
+	}
 	msg.SetChannel(channel)
-	msg.SetURN(out.URN())
 
 	if out.Templating() != nil {
 		m.Templating = &Templating{MsgTemplating: out.Templating()}

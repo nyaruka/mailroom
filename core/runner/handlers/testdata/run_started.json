@@ -68,7 +68,7 @@
                         },
                         "locale": "und-US",
                         "text": "Pick a number between 1-10.",
-                        "urn": "tel:+16055741111?id=10000"
+                        "urn": "tel:+16055741111"
                     },
                     "type": "msg_created"
                 }

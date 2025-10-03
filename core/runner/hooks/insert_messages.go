@@ -26,11 +26,11 @@ func (h *insertMessages) Execute(ctx context.Context, rt *runtime.Runtime, tx *s
 
 			// if a URN was added during the flow sprint, message won't have an URN ID which we need to insert it
 			if msg.ContactURNID() == models.NilURNID && urn != urns.NilURN {
-				urn, err := models.GetOrCreateURN(ctx, tx, oa, scene.ContactID(), urn)
+				cu, err := models.GetOrCreateURN(ctx, tx, oa, scene.ContactID(), urn)
 				if err != nil {
-					return fmt.Errorf("error to getting URN: %s: %w", urn, err)
+					return fmt.Errorf("error creating new URN %s for message: %w", urn, err)
 				}
-				msg.SetURN(urn) // extracts id from param
+				msg.SetContactURNID(cu.ID)
 			}
 
 			msgs = append(msgs, msg)

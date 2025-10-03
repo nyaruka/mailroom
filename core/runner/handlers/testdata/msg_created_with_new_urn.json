@@ -93,7 +93,7 @@
                     "created_on": "2025-05-04T12:31:18.123456789Z",
                     "type": "contact_urns_changed",
                     "urns": [
-                        "tel:+16055742222?id=10001",
+                        "tel:+16055742222",
                         "telegram:67890"
                     ]
                 }
@@ -108,7 +108,7 @@
                     "type": "contact_urns_changed",
                     "urns": [
                         "telegram:67890?channel=0f661e8b-ea9d-4bd3-9953-d368340acf91",
-                        "tel:+16055742222?id=10001"
+                        "tel:+16055742222"
                     ]
                 }
             },
@@ -170,7 +170,7 @@
                     "created_on": "2025-05-04T12:30:56.123456789Z",
                     "type": "contact_urns_changed",
                     "urns": [
-                        "tel:+16055741111?id=10000",
+                        "tel:+16055741111",
                         "telegram:12345"
                     ]
                 }
@@ -185,7 +185,7 @@
                     "type": "contact_urns_changed",
                     "urns": [
                         "telegram:12345?channel=0f661e8b-ea9d-4bd3-9953-d368340acf91",
-                        "tel:+16055741111?id=10000"
+                        "tel:+16055741111"
                     ]
                 }
             },

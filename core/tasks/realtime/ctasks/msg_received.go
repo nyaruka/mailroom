@@ -75,7 +75,7 @@ func (t *MsgReceivedTask) perform(ctx context.Context, rt *runtime.Runtime, oa *
 	}
 
 	// if we have URNs make sure the message URN is our highest priority (this is usually a noop)
-	if len(mc.URNs()) > 0 {
+	if len(mc.URNs()) > 0 && channel != nil {
 		if err := mc.UpdatePreferredURN(ctx, rt.DB, oa, t.URNID, channel); err != nil {
 			return fmt.Errorf("error changing primary URN: %w", err)
 		}

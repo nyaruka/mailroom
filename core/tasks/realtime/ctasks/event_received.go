@@ -77,6 +77,8 @@ func (t *EventReceivedTask) handle(ctx context.Context, rt *runtime.Runtime, oa 
 		}
 	}
 
+	urn := mc.GetURN(t.URNID)
+
 	if t.EventType == models.EventTypeDeleteContact {
 		slog.Info(fmt.Sprintf("NOOP: Handled %s channel event %d", models.EventTypeDeleteContact, t.EventID))
 
@@ -106,7 +108,7 @@ func (t *EventReceivedTask) handle(ctx context.Context, rt *runtime.Runtime, oa 
 
 	var flowCall *flows.Call
 	if call != nil {
-		flowCall = flows.NewCall(call.UUID(), oa.SessionAssets().Channels().Get(channel.UUID()), mc.URNForID(t.URNID))
+		flowCall = flows.NewCall(call.UUID(), oa.SessionAssets().Channels().Get(channel.UUID()), urn.Identity)
 	}
 
 	scene := runner.NewScene(mc, contact)

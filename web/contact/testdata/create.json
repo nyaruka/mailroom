@@ -77,7 +77,7 @@
                 "timezone": "America/Los_Angeles",
                 "created_on": "2025-05-04T12:30:46.123457Z",
                 "urns": [
-                    "tel:+16055700001?id=30000"
+                    "tel:+16055700001"
                 ],
                 "groups": [
                     {
@@ -251,7 +251,7 @@
                 "timezone": "America/Los_Angeles",
                 "created_on": "2025-05-04T12:30:55.123457Z",
                 "urns": [
-                    "tel:+16055741111?id=10000"
+                    "tel:+16055741111"
                 ]
             }
         }

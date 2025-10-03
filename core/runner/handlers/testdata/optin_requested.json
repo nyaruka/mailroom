@@ -131,7 +131,7 @@
                         "uuid": "45aec4dd-945f-4511-878f-7d8516fbd336"
                     },
                     "type": "optin_requested",
-                    "urn": "facebook:23456?id=10002"
+                    "urn": "facebook:23456"
                 }
             },
             {
@@ -197,7 +197,7 @@
                         "uuid": "45aec4dd-945f-4511-878f-7d8516fbd336"
                     },
                     "type": "optin_requested",
-                    "urn": "facebook:12345?id=10000"
+                    "urn": "facebook:12345"
                 }
             },
             {

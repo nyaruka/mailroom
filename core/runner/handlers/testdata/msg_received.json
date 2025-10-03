@@ -74,7 +74,7 @@
                         },
                         "locale": "eng-US",
                         "text": "Hello world",
-                        "urn": "tel:+16055743333?id=10002"
+                        "urn": "tel:+16055743333"
                     },
                     "type": "msg_created"
                 }
@@ -140,7 +140,7 @@
                         },
                         "locale": "eng-US",
                         "text": "Hello World",
-                        "urn": "tel:+16055741111?id=10000"
+                        "urn": "tel:+16055741111"
                     },
                     "type": "msg_created"
                 }
