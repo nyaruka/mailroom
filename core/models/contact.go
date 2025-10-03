@@ -895,21 +895,28 @@ func nornalizeAndValidateURNs(urnz []urns.URN) ([]urns.URN, error) {
 	return norm, nil
 }
 
+const sqlSelectURNByIdentity = `
+SELECT id, org_id, contact_id, identity, priority, scheme, path, display, auth_tokens, channel_id 
+  FROM contacts_contacturn 
+ WHERE identity = $1 AND org_id = $2`
+
+const sqlInsertContactURN = `
+INSERT INTO contacts_contacturn( contact_id,  identity,  path,  display,  auth_tokens,  scheme,  priority,  org_id)
+				         VALUES(:contact_id, :identity, :path, :display, :auth_tokens, :scheme, :priority, :org_id)
+ON CONFLICT(identity, org_id) DO UPDATE SET contact_id = :contact_id, priority = :priority`
+
 // GetOrCreateURN will look up a URN by identity, creating it if needbe and associating it with the contact
 func GetOrCreateURN(ctx context.Context, db DBorTx, oa *OrgAssets, contactID ContactID, u urns.URN) (*ContactURN, error) {
 	// look for an existing URN with this identity
-	rows, err := db.QueryContext(ctx,
-		`SELECT row_to_json(r) FROM (SELECT id, identity, scheme, path, display, auth_tokens, channel_id, priority FROM contacts_contacturn WHERE identity = $1 AND org_id = $2) r;`,
-		u.Identity(), oa.OrgID(),
-	)
+	rows, err := db.QueryxContext(ctx, sqlSelectURNByIdentity, u.Identity(), oa.OrgID())
 	if err != nil {
-		return nil, fmt.Errorf("error selecting URN: %s", u.Identity())
+		return nil, fmt.Errorf("error selecting URN by identity: %s", u.Identity())
 	}
 	defer rows.Close()
 
 	if rows.Next() {
 		urn := &ContactURN{}
-		if err := dbutil.ScanJSON(rows, urn); err != nil {
+		if err := rows.StructScan(urn); err != nil {
 			return nil, fmt.Errorf("error loading contact urn: %w", err)
 		}
 		return urn, nil
@@ -1214,12 +1221,6 @@ func UpdateURNPriorityAndChannel(ctx context.Context, db DBorTx, urnz []*Contact
 	}
 	return nil
 }
-
-const sqlInsertContactURN = `
-INSERT INTO contacts_contacturn( contact_id,  identity,  path,  display,  auth_tokens,  scheme,  priority,  org_id)
-				         VALUES(:contact_id, :identity, :path, :display, :auth_tokens, :scheme, :priority, :org_id)
-ON CONFLICT(identity, org_id) DO UPDATE SET contact_id = :contact_id, priority = :priority
-RETURNING id`
 
 // ContactURNsChanged represents the new status of URNs for a contact
 type ContactURNsChanged struct {
