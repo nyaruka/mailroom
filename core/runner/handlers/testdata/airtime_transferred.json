@@ -10,7 +10,7 @@
                     "step_uuid": "688e64f9-2456-4b42-afcb-91a2073e5459",
                     "external_id": "2237512891",
                     "sender": "tel:+13605551212",
-                    "recipient": "tel:+16055741111?id=10000",
+                    "recipient": "tel:+16055741111",
                     "currency": "USD",
                     "amount": 3,
                     "http_logs": [
@@ -73,7 +73,7 @@
                 "Data": {
                     "type": "airtime_transferred"
                 },
-                "DataGZ": "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"
+                "DataGZ": "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"
             }
         ]
     },
@@ -88,7 +88,7 @@
                     "step_uuid": "c174a241-6057-41a3-874b-f17fb8365c22",
                     "external_id": "",
                     "sender": "tel:+13605551212",
-                    "recipient": "tel:+16055743333?id=10002",
+                    "recipient": "tel:+16055743333",
                     "currency": "",
                     "amount": 0,
                     "http_logs": [
@@ -148,7 +148,7 @@
                             "url": "https://dvs-api.dtone.com/v1/lookup/mobile-number"
                         }
                     ],
-                    "recipient": "tel:+16055743333?id=10002",
+                    "recipient": "tel:+16055743333",
                     "sender": "tel:+13605551212",
                     "type": "airtime_transferred"
                 }
