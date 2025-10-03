@@ -1,4 +1,4 @@
-FROM golang:1.24
+FROM golang:1.25
 
 # copy our dev certs into the container
 # WORKDIR /usr/local/share/ca-certificates
