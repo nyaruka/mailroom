@@ -14,8 +14,8 @@
         "path": "/mi/msg/handle",
         "body": {
             "org_id": 1234,
-            "msg_ids": [
-                1234
+            "msg_uuids": [
+                "0199bad8-f98d-75a3-b641-2718a25ac3f5"
             ]
         },
         "status": 500,
@@ -29,16 +29,15 @@
         "path": "/mi/msg/handle",
         "body": {
             "org_id": 1,
-            "msg_ids": [
-                30000,
-                30001,
-                30002
+            "msg_uuids": [
+                "0199bad8-f98d-75a3-b641-2718a25ac3f5",
+                "0199bad9-9791-770d-a47d-8f4a6ea3ad13"
             ]
         },
         "status": 200,
         "response": {
-            "msg_ids": [
-                30001
+            "msg_uuids": [
+                "0199bad9-9791-770d-a47d-8f4a6ea3ad13"
             ]
         },
         "expected_tasks": {
