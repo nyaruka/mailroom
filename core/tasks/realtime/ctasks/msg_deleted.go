@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/tasks/realtime"
 	"github.com/nyaruka/mailroom/runtime"
@@ -16,7 +17,7 @@ func init() {
 }
 
 type MsgDeletedTask struct {
-	MsgID models.MsgID `json:"message_id"`
+	MsgUUID flows.EventUUID `json:"msg_uuid"`
 }
 
 func (t *MsgDeletedTask) Type() string {
@@ -28,9 +29,9 @@ func (t *MsgDeletedTask) UseReadOnly() bool {
 }
 
 func (t *MsgDeletedTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, mc *models.Contact) error {
-	err := models.UpdateMessageDeletedBySender(ctx, rt.DB.DB, oa.OrgID(), t.MsgID)
+	err := models.DeleteMessages(ctx, rt, oa.OrgID(), []flows.EventUUID{t.MsgUUID}, models.VisibilityDeletedBySender)
 	if err != nil {
-		return fmt.Errorf("error deleting message: %w", err)
+		return fmt.Errorf("error deleting message by sender: %w", err)
 	}
 	return nil
 }
