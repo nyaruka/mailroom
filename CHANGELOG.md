@@ -1,3 +1,8 @@
+v10.3.83 (2025-10-06)
+-------------------------
+ * Rework msg/handle endpoint to take UUIDs
+ * Add msg/delete endpoint to delete messages
+
 v10.3.82 (2025-10-06)
 -------------------------
  * Update how URNs are fetched and updated to avoid having to pass URN id around in query strings
