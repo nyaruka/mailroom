@@ -186,7 +186,7 @@ func TestGetMessagesByID(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
-	msgIn1 := testdb.InsertIncomingMsg(t, rt, testdb.Org1, testdb.TwilioChannel, testdb.Ann, "in 1", models.MsgStatusHandled)
+	msgIn1 := testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199bad8-d4be-76c7-8a5c-a12caae7aa87", testdb.TwilioChannel, testdb.Ann, "in 1", models.MsgStatusHandled)
 	msgOut1 := testdb.InsertOutgoingMsg(t, rt, testdb.Org1, testdb.TwilioChannel, testdb.Ann, "out 1", []utils.Attachment{"image/jpeg:hi.jpg"}, models.MsgStatusSent, false)
 	msgOut2 := testdb.InsertOutgoingMsg(t, rt, testdb.Org1, testdb.TwilioChannel, testdb.Ann, "out 2", nil, models.MsgStatusSent, false)
 	msgOut3 := testdb.InsertOutgoingMsg(t, rt, testdb.Org2, testdb.Org2Channel, testdb.Org2Contact, "out 3", nil, models.MsgStatusSent, false)
@@ -289,26 +289,33 @@ func TestFailMessages(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT status, failed_reason FROM msgs_msg WHERE id = $1`, out3.ID).Columns(map[string]any{"status": "F", "failed_reason": nil})
 }
 
-func TestUpdateMessageDeletedBySender(t *testing.T) {
+func TestDeleteMessages(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
-	in1 := testdb.InsertIncomingMsg(t, rt, testdb.Org1, testdb.TwilioChannel, testdb.Ann, "hi", models.MsgStatusHandled)
+	in1 := testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199bad8-f98d-75a3-b641-2718a25ac3f5", testdb.TwilioChannel, testdb.Ann, "hi", models.MsgStatusHandled)
 	in1.Label(rt, testdb.ReportingLabel, testdb.TestingLabel)
-	in2 := testdb.InsertIncomingMsg(t, rt, testdb.Org1, testdb.TwilioChannel, testdb.Ann, "bye", models.MsgStatusHandled)
+	in2 := testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199bad9-9791-770d-a47d-8f4a6ea3ad13", testdb.TwilioChannel, testdb.Ann, "bye", models.MsgStatusHandled)
 	in2.Label(rt, testdb.ReportingLabel, testdb.TestingLabel)
+	in3 := testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199bad9-f0bc-7738-8af8-99712a6f8bff", testdb.TwilioChannel, testdb.Ann, "3", models.MsgStatusHandled)
+	in4 := testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199bada-2b39-7cac-9714-827df9ec6b91", testdb.TwilioChannel, testdb.Ann, "4", models.MsgStatusHandled)
 	out1 := testdb.InsertOutgoingMsg(t, rt, testdb.Org1, testdb.TwilioChannel, testdb.Ann, "hi", nil, models.MsgStatusSent, false)
 
-	err := models.UpdateMessageDeletedBySender(ctx, rt.DB.DB, testdb.Org1.ID, in1.ID)
+	err := models.DeleteMessages(ctx, rt, testdb.Org1.ID, []flows.EventUUID{in1.UUID}, models.VisibilityDeletedBySender)
 	assert.NoError(t, err)
 
 	assertdb.Query(t, rt.DB, `SELECT visibility, text FROM msgs_msg WHERE id = $1`, in1.ID).Columns(map[string]any{"visibility": "X", "text": ""})
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg_labels WHERE msg_id = $1`, in1.ID).Returns(0)
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg_labels WHERE msg_id = $1`, in2.ID).Returns(2) // unchanged
 
+	err = models.DeleteMessages(ctx, rt, testdb.Org1.ID, []flows.EventUUID{in3.UUID, in4.UUID}, models.VisibilityDeletedByUser)
+	assert.NoError(t, err)
+	assertdb.Query(t, rt.DB, `SELECT visibility, text FROM msgs_msg WHERE id = $1`, in3.ID).Columns(map[string]any{"visibility": "D", "text": ""})
+	assertdb.Query(t, rt.DB, `SELECT visibility, text FROM msgs_msg WHERE id = $1`, in4.ID).Columns(map[string]any{"visibility": "D", "text": ""})
+
 	// trying to delete an outgoing message is a noop
-	err = models.UpdateMessageDeletedBySender(ctx, rt.DB.DB, testdb.Org1.ID, out1.ID)
+	err = models.DeleteMessages(ctx, rt, testdb.Org1.ID, []flows.EventUUID{out1.UUID}, models.VisibilityDeletedBySender)
 	assert.NoError(t, err)
 
 	assertdb.Query(t, rt.DB, `SELECT visibility, text FROM msgs_msg WHERE id = $1`, out1.ID).Columns(map[string]any{"visibility": "V", "text": "hi"})

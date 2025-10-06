@@ -26,13 +26,25 @@ func TestSend(t *testing.T) {
 	testsuite.AssertCourierQueues(t, rt, map[string][]int{"msgs:74729f45-7f29-4868-9dc4-90e491e3c7d8|10/1": {1, 1, 1, 1, 1}})
 }
 
+func TestDelete(t *testing.T) {
+	_, rt := testsuite.Runtime(t)
+
+	defer testsuite.Reset(t, rt, testsuite.ResetData)
+
+	testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199bad8-f98d-75a3-b641-2718a25ac3f5", testdb.TwilioChannel, testdb.Ann, "1", models.MsgStatusHandled)
+	testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199bad9-9791-770d-a47d-8f4a6ea3ad13", testdb.TwilioChannel, testdb.Ann, "2", models.MsgStatusPending)
+	testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199bad9-f0bc-7738-8af8-99712a6f8bff", testdb.TwilioChannel, testdb.Ann, "3", models.MsgStatusPending)
+
+	testsuite.RunWebTests(t, rt, "testdata/delete.json")
+}
+
 func TestHandle(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetValkey)
 
-	testdb.InsertIncomingMsg(t, rt, testdb.Org1, testdb.TwilioChannel, testdb.Ann, "hello", models.MsgStatusHandled)
-	testdb.InsertIncomingMsg(t, rt, testdb.Org1, testdb.TwilioChannel, testdb.Ann, "hello", models.MsgStatusPending)
+	testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199bad8-f98d-75a3-b641-2718a25ac3f5", testdb.TwilioChannel, testdb.Ann, "hello", models.MsgStatusHandled)
+	testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199bad9-9791-770d-a47d-8f4a6ea3ad13", testdb.TwilioChannel, testdb.Ann, "hello", models.MsgStatusPending)
 	testdb.InsertOutgoingMsg(t, rt, testdb.Org1, testdb.TwilioChannel, testdb.Ann, "how can we help", nil, models.MsgStatusSent, false)
 
 	testsuite.RunWebTests(t, rt, "testdata/handle.json")
@@ -43,7 +55,7 @@ func TestResend(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
-	testdb.InsertIncomingMsg(t, rt, testdb.Org1, testdb.TwilioChannel, testdb.Ann, "hello", models.MsgStatusHandled)
+	testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199bad8-f98d-75a3-b641-2718a25ac3f5", testdb.TwilioChannel, testdb.Ann, "hello", models.MsgStatusHandled)
 	testdb.InsertOutgoingMsg(t, rt, testdb.Org1, testdb.TwilioChannel, testdb.Ann, "how can we help", nil, models.MsgStatusSent, false)
 	testdb.InsertOutgoingMsg(t, rt, testdb.Org1, testdb.VonageChannel, testdb.Bob, "this failed", nil, models.MsgStatusFailed, false)
 	catOut := testdb.InsertOutgoingMsg(t, rt, testdb.Org1, testdb.VonageChannel, testdb.Cat, "no URN", nil, models.MsgStatusFailed, false)

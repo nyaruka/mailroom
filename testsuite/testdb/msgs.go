@@ -58,8 +58,7 @@ type Broadcast struct {
 }
 
 // InsertIncomingMsg inserts an incoming text message
-func InsertIncomingMsg(t *testing.T, rt *runtime.Runtime, org *Org, channel *Channel, contact *Contact, text string, status models.MsgStatus) *MsgIn {
-	uuid := flows.NewEventUUID()
+func InsertIncomingMsg(t *testing.T, rt *runtime.Runtime, org *Org, uuid flows.EventUUID, channel *Channel, contact *Contact, text string, status models.MsgStatus) *MsgIn {
 	var id models.MsgID
 	err := rt.DB.Get(&id,
 		`INSERT INTO msgs_msg(uuid, text, created_on, modified_on, direction, msg_type, status, visibility, msg_count, error_count, next_attempt, contact_id, contact_urn_id, org_id, channel_id, is_android)

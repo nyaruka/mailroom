@@ -484,7 +484,7 @@ func GetMsgRepetitions(rp *redis.Pool, contactID ContactID, msg *flows.MsgConten
 var sqlSelectMessagesByID = `
 SELECT 
 	id,
-	uuid,	
+	uuid,
 	broadcast_id,
 	flow_id,
 	ticket_uuid,
@@ -517,9 +517,50 @@ WHERE
 ORDER BY
 	id ASC`
 
-// GetMessagesByID fetches the messages with the given ids
+// Deprecated: use GetMessagesByUUID instead.
 func GetMessagesByID(ctx context.Context, db *sqlx.DB, orgID OrgID, direction Direction, msgIDs []MsgID) ([]*Msg, error) {
 	return loadMessages(ctx, db, sqlSelectMessagesByID, orgID, direction, pq.Array(msgIDs))
+}
+
+var sqlSelectMessagesByUUID = `
+SELECT 
+	id,
+	uuid,
+	broadcast_id,
+	flow_id,
+	ticket_uuid,
+	optin_id,
+	text,
+	attachments,
+	quick_replies,
+	locale,
+	templating,
+	created_on,
+	direction,
+	status,
+	visibility,
+	msg_count,
+	error_count,
+	next_attempt,
+	failed_reason,
+	coalesce(high_priority, FALSE) as high_priority,
+	external_id,
+	channel_id,
+	contact_id,
+	contact_urn_id,
+	org_id
+FROM
+	msgs_msg
+WHERE
+	org_id = $1 AND
+	direction = $2 AND
+	uuid = ANY($3)
+ORDER BY
+	uuid ASC`
+
+// GetMessagesByUUID fetches the messages with the given UUIDs
+func GetMessagesByUUID(ctx context.Context, db *sqlx.DB, orgID OrgID, direction Direction, msgUUIDs []flows.EventUUID) ([]*Msg, error) {
+	return loadMessages(ctx, db, sqlSelectMessagesByUUID, orgID, direction, pq.Array(msgUUIDs))
 }
 
 var sqlSelectMessagesForRetry = `
@@ -897,28 +938,27 @@ func CreateMsgOut(rt *runtime.Runtime, oa *OrgAssets, c *flows.Contact, content 
 	return flows.NewMsgOut(urn, channelRef, content, templating, locale, unsendableReason), nil
 }
 
-const sqlUpdateMsgDeletedBySender = `
-UPDATE msgs_msg
-   SET visibility = 'X', text = '', attachments = '{}'
- WHERE id = $1 AND org_id = $2 AND direction = 'I'`
+const sqlUpdateMsgDeleted = `
+   UPDATE msgs_msg
+      SET visibility = $3, text = '', attachments = '{}'
+    WHERE org_id = $1 AND uuid = ANY($2) AND direction = 'I'
+RETURNING id`
 
-func UpdateMessageDeletedBySender(ctx context.Context, db *sql.DB, orgID OrgID, msgID MsgID) error {
-	tx, err := db.BeginTx(ctx, nil)
+func DeleteMessages(ctx context.Context, rt *runtime.Runtime, orgID OrgID, uuids []flows.EventUUID, visibility MsgVisibility) error {
+	ids := make([]MsgID, 0, len(uuids))
+
+	tx, err := rt.DB.BeginTxx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("error beginning transaction: %w", err)
 	}
 
-	res, err := tx.ExecContext(ctx, sqlUpdateMsgDeletedBySender, msgID, orgID)
-	if err != nil {
+	if err := tx.SelectContext(ctx, &ids, sqlUpdateMsgDeleted, orgID, pq.Array(uuids), visibility); err != nil {
 		return fmt.Errorf("error updating message visibility: %w", err)
 	}
 
-	// if there was such a message, remove its labels too
-	if rows, _ := res.RowsAffected(); rows == 1 {
-		_, err = tx.ExecContext(ctx, `DELETE FROM msgs_msg_labels WHERE msg_id = $1`, msgID)
-		if err != nil {
-			return fmt.Errorf("error removing message labels: %w", err)
-		}
+	_, err = tx.ExecContext(ctx, `DELETE FROM msgs_msg_labels WHERE msg_id = ANY($1)`, pq.Array(ids))
+	if err != nil {
+		return fmt.Errorf("error clearing message labels from deleted messages: %w", err)
 	}
 
 	if err := tx.Commit(); err != nil {

@@ -70,7 +70,7 @@ func TestMsgReceivedTask(t *testing.T) {
 	models.FlushCache()
 
 	// insert a dummy message into the database that will get the updates from handling each message event which pretends to be it
-	dbMsg := testdb.InsertIncomingMsg(t, rt, testdb.Org1, testdb.TwilioChannel, testdb.Ann, "", models.MsgStatusPending)
+	dbMsg := testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199bad8-f98d-75a3-b641-2718a25ac3f5", testdb.TwilioChannel, testdb.Ann, "", models.MsgStatusPending)
 
 	tcs := []struct {
 		preHook             func()

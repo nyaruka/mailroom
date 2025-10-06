@@ -210,7 +210,7 @@ func insertTestMessage(t *testing.T, rt *runtime.Runtime, oa *models.OrgAssets, 
 	ch := oa.ChannelByUUID(msg.Channel().UUID)
 	tch := &testdb.Channel{ID: ch.ID(), UUID: ch.UUID(), Type: ch.Type()}
 
-	m := testdb.InsertIncomingMsg(t, rt, testdb.Org1, tch, c, msg.Text(), models.MsgStatusPending)
+	m := testdb.InsertIncomingMsg(t, rt, testdb.Org1, flows.NewEventUUID(), tch, c, msg.Text(), models.MsgStatusPending)
 	return &models.MsgInRef{ID: m.ID}
 }
 
