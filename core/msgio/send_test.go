@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
+	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/msgio"
 	"github.com/nyaruka/mailroom/runtime"
@@ -28,8 +29,8 @@ func (m *msgSpec) createMsg(t *testing.T, rt *runtime.Runtime, oa *models.OrgAss
 		status = models.MsgStatusFailed
 	}
 
-	msgID := testdb.InsertOutgoingMsg(t, rt, testdb.Org1, m.Channel, m.Contact, "Hello", nil, status, m.HighPriority).ID
-	msgs, err := models.GetMessagesByID(context.Background(), rt.DB, testdb.Org1.ID, models.DirectionOut, []models.MsgID{msgID})
+	msgUUID := testdb.InsertOutgoingMsg(t, rt, testdb.Org1, "0199bad8-f98d-75a3-b641-2718a25ac3f5", m.Channel, m.Contact, "Hello", nil, status, m.HighPriority).UUID
+	msgs, err := models.GetMessagesByUUID(context.Background(), rt.DB, testdb.Org1.ID, models.DirectionOut, []flows.EventUUID{msgUUID})
 	require.NoError(t, err)
 
 	msg := msgs[0]

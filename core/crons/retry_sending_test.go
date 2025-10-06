@@ -27,7 +27,7 @@ func TestRetryErroredMessages(t *testing.T) {
 	testsuite.AssertCourierQueues(t, rt, map[string][]int{})
 
 	// a non-errored outgoing message (should be ignored)
-	testdb.InsertOutgoingMsg(t, rt, testdb.Org1, testdb.TwilioChannel, testdb.Ann, "Hi", nil, models.MsgStatusDelivered, false)
+	testdb.InsertOutgoingMsg(t, rt, testdb.Org1, "0199bad8-f98d-75a3-b641-2718a25ac3f5", testdb.TwilioChannel, testdb.Ann, "Hi", nil, models.MsgStatusDelivered, false)
 
 	// an errored message with a next-attempt in the future (should be ignored)
 	testdb.InsertErroredOutgoingMsg(t, rt, testdb.Org1, testdb.TwilioChannel, testdb.Ann, "Hi", 2, time.Now().Add(time.Hour), false)

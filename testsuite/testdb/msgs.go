@@ -71,16 +71,16 @@ func InsertIncomingMsg(t *testing.T, rt *runtime.Runtime, org *Org, uuid flows.E
 }
 
 // InsertOutgoingMsg inserts an outgoing text message
-func InsertOutgoingMsg(t *testing.T, rt *runtime.Runtime, org *Org, channel *Channel, contact *Contact, text string, attachments []utils.Attachment, status models.MsgStatus, highPriority bool) *MsgOut {
-	return insertOutgoingMsg(t, rt, org, channel, contact, text, attachments, i18n.Locale(`eng-US`), models.MsgTypeText, status, highPriority, 0, nil)
+func InsertOutgoingMsg(t *testing.T, rt *runtime.Runtime, org *Org, uuid flows.EventUUID, channel *Channel, contact *Contact, text string, attachments []utils.Attachment, status models.MsgStatus, highPriority bool) *MsgOut {
+	return insertOutgoingMsg(t, rt, org, uuid, channel, contact, text, attachments, i18n.Locale(`eng-US`), models.MsgTypeText, status, highPriority, 0, nil)
 }
 
 // InsertErroredOutgoingMsg inserts an ERRORED(E) outgoing text message
 func InsertErroredOutgoingMsg(t *testing.T, rt *runtime.Runtime, org *Org, channel *Channel, contact *Contact, text string, errorCount int, nextAttempt time.Time, highPriority bool) *MsgOut {
-	return insertOutgoingMsg(t, rt, org, channel, contact, text, nil, i18n.NilLocale, models.MsgTypeText, models.MsgStatusErrored, highPriority, errorCount, &nextAttempt)
+	return insertOutgoingMsg(t, rt, org, flows.NewEventUUID(), channel, contact, text, nil, i18n.NilLocale, models.MsgTypeText, models.MsgStatusErrored, highPriority, errorCount, &nextAttempt)
 }
 
-func insertOutgoingMsg(t *testing.T, rt *runtime.Runtime, org *Org, channel *Channel, contact *Contact, text string, attachments []utils.Attachment, locale i18n.Locale, typ models.MsgType, status models.MsgStatus, highPriority bool, errorCount int, nextAttempt *time.Time) *MsgOut {
+func insertOutgoingMsg(t *testing.T, rt *runtime.Runtime, org *Org, uuid flows.EventUUID, channel *Channel, contact *Contact, text string, attachments []utils.Attachment, locale i18n.Locale, typ models.MsgType, status models.MsgStatus, highPriority bool, errorCount int, nextAttempt *time.Time) *MsgOut {
 	var channelRef *assets.ChannelReference
 	var channelID models.ChannelID
 	if channel != nil {
@@ -94,7 +94,6 @@ func insertOutgoingMsg(t *testing.T, rt *runtime.Runtime, org *Org, channel *Cha
 		sentOn = &t
 	}
 
-	uuid := flows.NewEventUUID()
 	fm := flows.NewMsgOut(contact.URN, channelRef, &flows.MsgContent{Text: text, Attachments: attachments}, nil, i18n.NilLocale, flows.NilUnsendableReason)
 
 	var id models.MsgID
