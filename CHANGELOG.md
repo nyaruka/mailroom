@@ -1,3 +1,7 @@
+v10.3.82 (2025-10-06)
+-------------------------
+ * Update how URNs are fetched and updated to avoid having to pass URN id around in query strings
+
 v10.3.81 (2025-10-03)
 -------------------------
  * Bump to go 1.25
