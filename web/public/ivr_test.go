@@ -80,7 +80,7 @@ func TestTwilioIVR(t *testing.T) {
 			"id": 10000, 
 			"name": "Ann", 
 			"status": "active",
-			"urns": ["tel:+16055741111?id=10000"], 
+			"urns": ["tel:+16055741111"], 
 			"fields": {"gender": {"text": "F"}}, 
 			"groups": [{"name": "Doctors", "uuid": "c153e265-f7c9-4539-9dbc-9b358714b638"}], 
 			"timezone": "America/Los_Angeles", 

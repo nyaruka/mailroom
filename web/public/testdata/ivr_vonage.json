@@ -156,7 +156,7 @@
                             "uuid": "19012bfd-3ce3-4cae-9bb9-76cf92c73d49"
                         },
                         "text": "3",
-                        "urn": "tel:+16055741111?id=10000"
+                        "urn": "tel:+16055741111"
                     },
                     "type": "msg_received"
                 }
@@ -223,7 +223,7 @@
                             "uuid": "19012bfd-3ce3-4cae-9bb9-76cf92c73d49"
                         },
                         "text": "1",
-                        "urn": "tel:+16055741111?id=10000"
+                        "urn": "tel:+16055741111"
                     },
                     "type": "msg_received"
                 }
@@ -290,7 +290,7 @@
                             "uuid": "19012bfd-3ce3-4cae-9bb9-76cf92c73d49"
                         },
                         "text": "101",
-                        "urn": "tel:+16055741111?id=10000"
+                        "urn": "tel:+16055741111"
                     },
                     "type": "msg_received"
                 }
@@ -365,7 +365,7 @@
                             "uuid": "19012bfd-3ce3-4cae-9bb9-76cf92c73d49"
                         },
                         "text": "56",
-                        "urn": "tel:+16055741111?id=10000"
+                        "urn": "tel:+16055741111"
                     },
                     "type": "msg_received"
                 }
@@ -458,7 +458,7 @@
                             "uuid": "19012bfd-3ce3-4cae-9bb9-76cf92c73d49"
                         },
                         "text": "",
-                        "urn": "tel:+16055741111?id=10000"
+                        "urn": "tel:+16055741111"
                     },
                     "type": "msg_received"
                 }
@@ -790,7 +790,7 @@
                             "uuid": "19012bfd-3ce3-4cae-9bb9-76cf92c73d49"
                         },
                         "text": "1",
-                        "urn": "tel:+16055743333?id=10002"
+                        "urn": "tel:+16055743333"
                     },
                     "type": "msg_received"
                 }
@@ -883,7 +883,7 @@
                             "name": "Vonage",
                             "uuid": "19012bfd-3ce3-4cae-9bb9-76cf92c73d49"
                         },
-                        "urn": "tel:+12482780345?channel=19012bfd-3ce3-4cae-9bb9-76cf92c73d49\u0026id=30000",
+                        "urn": "tel:+12482780345",
                         "uuid": "01969b4a-9f63-76f8-9c96-61ebc05df996"
                     },
                     "created_on": "2025-05-04T12:34:43.123456789Z",

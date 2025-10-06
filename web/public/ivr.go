@@ -108,23 +108,14 @@ func handleIncoming(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 	if err != nil {
 		return nil, svc.WriteErrorResponse(w, fmt.Errorf("unable to get contact by urn: %w", err))
 	}
-
-	urn, err = models.URNForURN(ctx, rt.DB, oa, urn)
-	if err != nil {
-		return nil, svc.WriteErrorResponse(w, fmt.Errorf("unable to load urn: %w", err))
-	}
-
-	urnID := models.GetURNID(urn)
-	if urnID == models.NilURNID {
-		return nil, svc.WriteErrorResponse(w, fmt.Errorf("unable to get id for URN: %w", err))
-	}
+	cu := contact.FindURN(urn)
 
 	externalID, err := svc.CallIDForRequest(r)
 	if err != nil {
 		return nil, svc.WriteErrorResponse(w, fmt.Errorf("unable to get external id from request: %w", err))
 	}
 
-	call := models.NewIncomingCall(oa.OrgID(), ch, contact, urnID, externalID)
+	call := models.NewIncomingCall(oa.OrgID(), ch, contact, cu.ID, externalID)
 	if err := models.InsertCalls(ctx, rt.DB, []*models.Call{call}); err != nil {
 		return nil, svc.WriteErrorResponse(w, fmt.Errorf("error inserting incoming call: %w", err))
 	}
@@ -133,7 +124,7 @@ func handleIncoming(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 	task := &ctasks.EventReceivedTask{
 		EventType: models.EventTypeIncomingCall,
 		ChannelID: ch.ID(),
-		URNID:     urnID,
+		URNID:     cu.ID,
 		Extra:     nil,
 		CreatedOn: time.Now(),
 	}
@@ -214,7 +205,7 @@ func handleCallback(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 	// make sure our URN is indeed present on our contact, no funny business
 	found := false
 	for _, u := range contact.URNs() {
-		if u.Identity() == urn.Identity() {
+		if u.ID == cu.ID {
 			found = true
 		}
 	}

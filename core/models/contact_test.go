@@ -1,7 +1,6 @@
 package models_test
 
 import (
-	"fmt"
 	"maps"
 	"slices"
 	"sort"
@@ -59,7 +58,7 @@ func TestContacts(t *testing.T) {
 
 	assert.Equal(t, "Ann", ann.Name())
 	assert.Equal(t, len(ann.URNs()), 1)
-	assert.Equal(t, ann.URNs()[0].String(), "tel:+16055741111?id=10000")
+	assert.Equal(t, ann.URNs()[0].String(), "tel:+16055741111")
 	assert.Equal(t, 1, ann.Groups().Count())
 	assert.Equal(t, 2, ann.Tickets().Open().Count())
 
@@ -75,8 +74,8 @@ func TestContacts(t *testing.T) {
 	assert.Equal(t, "Bob", bob.Name())
 	assert.NotNil(t, bob.Fields()["joined"].QueryValue())
 	assert.Equal(t, 2, len(bob.URNs()))
-	assert.Equal(t, "tel:+16055742222?id=10001", bob.URNs()[0].String())
-	assert.Equal(t, "whatsapp:250788373373?id=30000", bob.URNs()[1].String())
+	assert.Equal(t, "tel:+16055742222", bob.URNs()[0].String())
+	assert.Equal(t, "whatsapp:250788373373", bob.URNs()[1].String())
 	assert.Equal(t, 0, bob.Groups().Count())
 	assert.NotNil(t, bob.Tickets().LastOpen())
 
@@ -93,8 +92,8 @@ func TestContacts(t *testing.T) {
 
 	bob, err = mcs[1].EngineContact(org)
 	assert.NoError(t, err)
-	assert.Equal(t, "tel:+16055742222?channel=74729f45-7f29-4868-9dc4-90e491e3c7d8&id=10001", bob.URNs()[0].String())
-	assert.Equal(t, "whatsapp:250788373373?id=30000", bob.URNs()[1].String())
+	assert.Equal(t, "tel:+16055742222?channel=74729f45-7f29-4868-9dc4-90e491e3c7d8", bob.URNs()[0].String())
+	assert.Equal(t, "whatsapp:250788373373", bob.URNs()[1].String())
 
 	// add another tel urn to bob
 	testdb.InsertContactURN(t, rt, testdb.Org1, testdb.Bob, urns.URN("tel:+250788373373"), 10, nil)
@@ -109,9 +108,9 @@ func TestContacts(t *testing.T) {
 
 	bob, err = mcs[0].EngineContact(org)
 	assert.NoError(t, err)
-	assert.Equal(t, "tel:+250788373373?channel=74729f45-7f29-4868-9dc4-90e491e3c7d8&id=30001", bob.URNs()[0].String())
-	assert.Equal(t, "tel:+16055742222?channel=74729f45-7f29-4868-9dc4-90e491e3c7d8&id=10001", bob.URNs()[1].String())
-	assert.Equal(t, "whatsapp:250788373373?id=30000", bob.URNs()[2].String())
+	assert.Equal(t, "tel:+250788373373?channel=74729f45-7f29-4868-9dc4-90e491e3c7d8", bob.URNs()[0].String())
+	assert.Equal(t, "tel:+16055742222?channel=74729f45-7f29-4868-9dc4-90e491e3c7d8", bob.URNs()[1].String())
+	assert.Equal(t, "whatsapp:250788373373", bob.URNs()[2].String())
 
 	// no op this time
 	err = mcs[0].UpdatePreferredURN(ctx, rt.DB, org, models.URNID(30001), channel)
@@ -119,19 +118,9 @@ func TestContacts(t *testing.T) {
 
 	bob, err = mcs[0].EngineContact(org)
 	assert.NoError(t, err)
-	assert.Equal(t, "tel:+250788373373?channel=74729f45-7f29-4868-9dc4-90e491e3c7d8&id=30001", bob.URNs()[0].String())
-	assert.Equal(t, "tel:+16055742222?channel=74729f45-7f29-4868-9dc4-90e491e3c7d8&id=10001", bob.URNs()[1].String())
-	assert.Equal(t, "whatsapp:250788373373?id=30000", bob.URNs()[2].String())
-
-	// calling with no channel is a noop on the channel
-	err = mcs[0].UpdatePreferredURN(ctx, rt.DB, org, models.URNID(30001), nil)
-	assert.NoError(t, err)
-
-	bob, err = mcs[0].EngineContact(org)
-	assert.NoError(t, err)
-	assert.Equal(t, "tel:+250788373373?channel=74729f45-7f29-4868-9dc4-90e491e3c7d8&id=30001", bob.URNs()[0].String())
-	assert.Equal(t, "tel:+16055742222?channel=74729f45-7f29-4868-9dc4-90e491e3c7d8&id=10001", bob.URNs()[1].String())
-	assert.Equal(t, "whatsapp:250788373373?id=30000", bob.URNs()[2].String())
+	assert.Equal(t, "tel:+250788373373?channel=74729f45-7f29-4868-9dc4-90e491e3c7d8", bob.URNs()[0].String())
+	assert.Equal(t, "tel:+16055742222?channel=74729f45-7f29-4868-9dc4-90e491e3c7d8", bob.URNs()[1].String())
+	assert.Equal(t, "whatsapp:250788373373", bob.URNs()[2].String())
 }
 
 func TestCreateContact(t *testing.T) {
@@ -153,12 +142,14 @@ func TestCreateContact(t *testing.T) {
 	assert.Equal(t, "Rich", contact.Name())
 	assert.Equal(t, i18n.Language(`kin`), contact.Language())
 	assert.Equal(t, models.ContactStatusActive, contact.Status())
-	assert.Equal(t, []urns.URN{"telegram:200001?id=30001", "telegram:200002?id=30000"}, contact.URNs())
+	assert.Len(t, contact.URNs(), 2)
+	assert.Equal(t, urns.URN("telegram:200001"), contact.URNs()[0].Identity)
+	assert.Equal(t, urns.URN("telegram:200002"), contact.URNs()[1].Identity)
 
 	assert.Equal(t, "Rich", flowContact.Name())
 	assert.Equal(t, i18n.Language(`kin`), flowContact.Language())
 	assert.Equal(t, flows.ContactStatusActive, flowContact.Status())
-	assert.Equal(t, []urns.URN{"telegram:200001?id=30001", "telegram:200002?id=30000"}, flowContact.URNs().RawURNs())
+	assert.Equal(t, []urns.URN{"telegram:200001", "telegram:200002"}, flowContact.URNs().RawURNs())
 	assert.Len(t, flowContact.Groups().All(), 1)
 	assert.Equal(t, assets.GroupUUID("d636c966-79c1-4417-9f1c-82ad629773a2"), flowContact.Groups().All()[0].UUID())
 
@@ -240,7 +231,7 @@ func TestGetOrCreateContact(t *testing.T) {
 			[]urns.URN{testdb.Ann.URN},
 			testdb.Ann.ID,
 			false,
-			[]urns.URN{"tel:+16055741111?id=10000"},
+			[]urns.URN{"tel:+16055741111"},
 			models.NilChannelID,
 			[]assets.GroupUUID{testdb.DoctorsGroup.UUID},
 		},
@@ -249,7 +240,7 @@ func TestGetOrCreateContact(t *testing.T) {
 			[]urns.URN{urns.URN(testdb.Ann.URN.String() + "?foo=bar")},
 			testdb.Ann.ID, // only URN identity is considered
 			false,
-			[]urns.URN{"tel:+16055741111?id=10000"},
+			[]urns.URN{"tel:+16055741111"},
 			models.NilChannelID,
 			[]assets.GroupUUID{testdb.DoctorsGroup.UUID},
 		},
@@ -258,7 +249,7 @@ func TestGetOrCreateContact(t *testing.T) {
 			[]urns.URN{urns.URN("telegram:100001")},
 			newContact(), // creates new contact
 			true,
-			[]urns.URN{"telegram:100001?channel=74729f45-7f29-4868-9dc4-90e491e3c7d8&id=30002"},
+			[]urns.URN{"telegram:100001?channel=74729f45-7f29-4868-9dc4-90e491e3c7d8"},
 			testdb.TwilioChannel.ID,
 			[]assets.GroupUUID{"dcc16d85-8274-4d19-a3c2-152d4ee99380"},
 		},
@@ -267,7 +258,7 @@ func TestGetOrCreateContact(t *testing.T) {
 			[]urns.URN{urns.URN("telegram:100001")},
 			prevContact(), // returns the same created contact
 			false,
-			[]urns.URN{"telegram:100001?channel=74729f45-7f29-4868-9dc4-90e491e3c7d8&id=30002"},
+			[]urns.URN{"telegram:100001?channel=74729f45-7f29-4868-9dc4-90e491e3c7d8"},
 			models.NilChannelID,
 			[]assets.GroupUUID{"dcc16d85-8274-4d19-a3c2-152d4ee99380"},
 		},
@@ -276,7 +267,7 @@ func TestGetOrCreateContact(t *testing.T) {
 			[]urns.URN{urns.URN("telegram:100001"), urns.URN("telegram:100002")},
 			prevContact(), // same again as other URNs don't exist
 			false,
-			[]urns.URN{"telegram:100001?channel=74729f45-7f29-4868-9dc4-90e491e3c7d8&id=30002"},
+			[]urns.URN{"telegram:100001?channel=74729f45-7f29-4868-9dc4-90e491e3c7d8"},
 			models.NilChannelID,
 			[]assets.GroupUUID{"dcc16d85-8274-4d19-a3c2-152d4ee99380"},
 		},
@@ -285,7 +276,7 @@ func TestGetOrCreateContact(t *testing.T) {
 			[]urns.URN{urns.URN("telegram:100002"), urns.URN("telegram:100001")},
 			prevContact(), // same again as other URNs don't exist
 			false,
-			[]urns.URN{"telegram:100001?channel=74729f45-7f29-4868-9dc4-90e491e3c7d8&id=30002"},
+			[]urns.URN{"telegram:100001?channel=74729f45-7f29-4868-9dc4-90e491e3c7d8"},
 			models.NilChannelID,
 			[]assets.GroupUUID{"dcc16d85-8274-4d19-a3c2-152d4ee99380"},
 		},
@@ -294,7 +285,7 @@ func TestGetOrCreateContact(t *testing.T) {
 			[]urns.URN{urns.URN("telegram:200001"), urns.URN("telegram:100001")},
 			prevContact(), // same again as other URNs are orphaned
 			false,
-			[]urns.URN{"telegram:100001?channel=74729f45-7f29-4868-9dc4-90e491e3c7d8&id=30002"},
+			[]urns.URN{"telegram:100001?channel=74729f45-7f29-4868-9dc4-90e491e3c7d8"},
 			models.NilChannelID,
 			[]assets.GroupUUID{"dcc16d85-8274-4d19-a3c2-152d4ee99380"},
 		},
@@ -303,7 +294,7 @@ func TestGetOrCreateContact(t *testing.T) {
 			[]urns.URN{urns.URN("telegram:100003"), urns.URN("telegram:100004")}, // 2 new URNs
 			newContact(),
 			true,
-			[]urns.URN{"telegram:100003?id=30003", "telegram:100004?id=30004"},
+			[]urns.URN{"telegram:100003", "telegram:100004"},
 			models.NilChannelID,
 			[]assets.GroupUUID{},
 		},
@@ -312,7 +303,7 @@ func TestGetOrCreateContact(t *testing.T) {
 			[]urns.URN{urns.URN("telegram:100005"), urns.URN("telegram:200002")}, // 1 new, 1 orphaned
 			newContact(),
 			true,
-			[]urns.URN{"telegram:100005?id=30005", "telegram:200002?id=30001"},
+			[]urns.URN{"telegram:100005", "telegram:200002"},
 			models.NilChannelID,
 			[]assets.GroupUUID{},
 		},
@@ -549,8 +540,12 @@ func TestUpdateContactURNs(t *testing.T) {
 	rt.DB.Get(&numInitialURNs, `SELECT count(*) FROM contacts_contacturn`)
 
 	assertContactURNs := func(contactID models.ContactID, expected []string) {
-		var actual []string
-		err = rt.DB.Select(&actual, `SELECT identity FROM contacts_contacturn WHERE contact_id = $1 ORDER BY priority DESC`, contactID)
+		actual := []string{}
+		if contactID != models.NilContactID {
+			err = rt.DB.Select(&actual, `SELECT identity FROM contacts_contacturn WHERE contact_id = $1 ORDER BY priority DESC`, contactID)
+		} else {
+			err = rt.DB.Select(&actual, `SELECT identity FROM contacts_contacturn WHERE contact_id IS NULL ORDER BY identity`)
+		}
 		require.NoError(t, err)
 		assert.Equal(t, expected, actual, "URNs mismatch for contact %d", contactID)
 	}
@@ -571,46 +566,49 @@ func TestUpdateContactURNs(t *testing.T) {
 	assertContactURNs(testdb.Bob.ID, []string{"tel:+16055742222"})
 	assertContactURNs(testdb.Cat.ID, []string{"tel:+16055743333"})
 
-	annURN := urns.URN(fmt.Sprintf("tel:+16055741111?id=%d", testdb.Ann.URNID))
-	bobURN := urns.URN(fmt.Sprintf("tel:+16055742222?id=%d", testdb.Bob.URNID))
+	// give Ann a new lower priority URN
+	err = models.UpdateContactURNs(ctx, rt.DB, oa, []*models.ContactURNsChanged{{ann, []urns.URN{"tel:+16055700001", "tel:+16055741111"}}})
+	assert.NoError(t, err)
 
-	// give Ann a new higher priority URN
-	err = models.UpdateContactURNs(ctx, rt.DB, oa, []*models.ContactURNsChanged{{ann, []urns.URN{"tel:+16055700001", annURN}}})
+	// give Bob a new higher priority URN
+	err = models.UpdateContactURNs(ctx, rt.DB, oa, []*models.ContactURNsChanged{{bob, []urns.URN{"tel:+16055742222", "tel:+16055700002"}}})
 	assert.NoError(t, err)
 
 	assertContactURNs(testdb.Ann.ID, []string{"tel:+16055700001", "tel:+16055741111"})
-
-	// give Bob a new lower priority URN
-	err = models.UpdateContactURNs(ctx, rt.DB, oa, []*models.ContactURNsChanged{{bob, []urns.URN{bobURN, "tel:+16055700002"}}})
-	assert.NoError(t, err)
-
 	assertContactURNs(testdb.Bob.ID, []string{"tel:+16055742222", "tel:+16055700002"})
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contacturn WHERE contact_id IS NULL`).Returns(0) // shouldn't be any orphan URNs
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contacturn`).Returns(numInitialURNs + 2)         // but 2 new URNs
+	assertContactURNs(testdb.Cat.ID, []string{"tel:+16055743333"})
+	assertContactURNs(models.NilContactID, []string{})                                               // no orphan URNs
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contacturn`).Returns(numInitialURNs + 2) // but 2 new URNs
 
 	// remove a URN from Ann
 	err = models.UpdateContactURNs(ctx, rt.DB, oa, []*models.ContactURNsChanged{{ann, []urns.URN{"tel:+16055700001"}}})
 	assert.NoError(t, err)
 
 	assertContactURNs(testdb.Ann.ID, []string{"tel:+16055700001"})
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contacturn WHERE contact_id IS NULL`).Returns(1) // now orphaned
+	assertContactURNs(testdb.Bob.ID, []string{"tel:+16055742222", "tel:+16055700002"})
+	assertContactURNs(testdb.Cat.ID, []string{"tel:+16055743333"})
+	assertContactURNs(models.NilContactID, []string{"tel:+16055741111"}) // now orphaned
 
 	t1 := time.Now()
 
-	// steal a URN from Bob and give to Dan
+	// give Bob's URNs to Ann and Dan
 	err = models.UpdateContactURNs(ctx, rt.DB, oa, []*models.ContactURNsChanged{
 		{ann, []urns.URN{"tel:+16055700001", "tel:+16055700002"}},
+		{cat, []urns.URN{"tel:+16055743333"}},
 		{dan, []urns.URN{"tel:+16055742222"}},
 	})
 	assert.NoError(t, err)
 
 	assertContactURNs(testdb.Ann.ID, []string{"tel:+16055700001", "tel:+16055700002"})
+	assertContactURNs(testdb.Bob.ID, []string{})
+	assertContactURNs(testdb.Cat.ID, []string{"tel:+16055743333"})
 	assertContactURNs(testdb.Dan.ID, []string{"tel:+16055742222"})
-	assertContactURNs(testdb.Bob.ID, []string(nil))
 	assertModifiedOnUpdated(testdb.Bob.ID, t1)
 	assertGroups(testdb.Bob.ID, []string{"\\Active", "No URN"})
 
-	// steal the URN back from Dan whilst simulataneously adding new URN to Ann and not-changing anything for Cat
+	bob, _, _ = testdb.Bob.Load(t, rt, oa) // reload Bob
+
+	// Bob steals URN back from Dan whilst simultaneously adding new URN to Ann and not-changing anything for Cat
 	err = models.UpdateContactURNs(ctx, rt.DB, oa, []*models.ContactURNsChanged{
 		{bob, []urns.URN{"tel:+16055742222", "tel:+16055700002"}},
 		{ann, []urns.URN{"tel:+16055700001", "tel:+16055700003"}},
@@ -621,6 +619,7 @@ func TestUpdateContactURNs(t *testing.T) {
 	assertContactURNs(testdb.Ann.ID, []string{"tel:+16055700001", "tel:+16055700003"})
 	assertContactURNs(testdb.Bob.ID, []string{"tel:+16055742222", "tel:+16055700002"})
 	assertContactURNs(testdb.Cat.ID, []string{"tel:+16055743333"})
+	assertContactURNs(testdb.Dan.ID, []string{})
 
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contacturn`).Returns(numInitialURNs + 3)
 }

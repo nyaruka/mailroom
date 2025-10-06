@@ -31,19 +31,16 @@ func resolveContact(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 		return nil, fmt.Errorf("error getting system user id: %w", err)
 	}
 
-	contact, flowContact, created, err := models.GetOrCreateContact(ctx, rt.DB, oa, userID, []urns.URN{urn}, channelID)
+	contact, _, created, err := models.GetOrCreateContact(ctx, rt.DB, oa, userID, []urns.URN{urn}, channelID)
 	if err != nil {
 		return nil, fmt.Errorf("error getting or creating contact: %w", err)
 	}
 
 	// find the URN on the contact
-	for _, u := range flowContact.URNs() {
-		if urn.Identity() == u.URN().Identity() {
-			urn = u.URN()
-			break
-		}
+	var urnID models.URNID
+	if cu := contact.FindURN(urn); cu != nil {
+		urnID = cu.ID
 	}
-	urnID := models.URNID(models.GetURNInt(urn, "id"))
 
 	return &contactAndURN{contactID: contact.ID(), urnID: urnID, urn: urn, newContact: created}, nil
 }

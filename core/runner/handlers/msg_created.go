@@ -36,13 +36,13 @@ func handleMsgCreated(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAs
 	var err error
 
 	if event.BroadcastUUID != "" {
-		msg, err = models.NewOutgoingBroadcastMsg(rt, oa.Org(), channel, scene.Contact, event, scene.Broadcast)
+		msg, err = models.NewOutgoingBroadcastMsg(rt, oa.Org(), channel, scene.DBContact, event, scene.Broadcast)
 	} else if userID != models.NilUserID {
-		msg, err = models.NewOutgoingChatMsg(rt, oa.Org(), channel, scene.Contact, event, userID)
+		msg, err = models.NewOutgoingChatMsg(rt, oa.Org(), channel, scene.DBContact, event, userID)
 	} else {
 		flow, _ := scene.LocateEvent(e)
 
-		msg, err = models.NewOutgoingFlowMsg(rt, oa.Org(), channel, scene.Contact, flow, event, scene.IncomingMsg)
+		msg, err = models.NewOutgoingFlowMsg(rt, oa.Org(), channel, scene.DBContact, flow, event, scene.IncomingMsg)
 	}
 	if err != nil {
 		return fmt.Errorf("error creating outgoing message to %s: %w", event.Msg.URN(), err)
