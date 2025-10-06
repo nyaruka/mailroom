@@ -905,8 +905,8 @@ INSERT INTO contacts_contacturn( contact_id,  identity,  path,  display,  auth_t
 				         VALUES(:contact_id, :identity, :path, :display, :auth_tokens, :scheme, :priority, :org_id)
 ON CONFLICT(identity, org_id) DO UPDATE SET contact_id = :contact_id, priority = :priority`
 
-// GetOrCreateURN will look up a URN by identity, creating it if needbe and associating it with the contact
-func GetOrCreateURN(ctx context.Context, db DBorTx, oa *OrgAssets, contactID ContactID, u urns.URN) (*ContactURN, error) {
+// CreateOrStealURN will either create a new URN or steal an existing one
+func CreateOrStealURN(ctx context.Context, db DBorTx, oa *OrgAssets, contactID ContactID, u urns.URN) (*ContactURN, error) {
 	// look for an existing URN with this identity
 	rows, err := db.QueryxContext(ctx, sqlSelectURNByIdentity, u.Identity(), oa.OrgID())
 	if err != nil {
@@ -917,7 +917,7 @@ func GetOrCreateURN(ctx context.Context, db DBorTx, oa *OrgAssets, contactID Con
 	if rows.Next() {
 		urn := &ContactURN{}
 		if err := rows.StructScan(urn); err != nil {
-			return nil, fmt.Errorf("error loading contact urn: %w", err)
+			return nil, fmt.Errorf("error scanning contact urn: %w", err)
 		}
 		return urn, nil
 	}
@@ -935,6 +935,21 @@ func GetOrCreateURN(ctx context.Context, db DBorTx, oa *OrgAssets, contactID Con
 
 	if _, err := db.NamedExecContext(ctx, sqlInsertContactURN, urn); err != nil {
 		return nil, fmt.Errorf("error inserting new urn: %s: %w", u, err)
+	}
+
+	// TODO in PG18 we can use RETURNING old.id but for now we need to re-query to get the ID
+	if urn.ID == NilURNID {
+		rows, err := db.QueryxContext(ctx, sqlSelectURNByIdentity, u.Identity(), oa.OrgID())
+		if err != nil {
+			return nil, fmt.Errorf("error selecting URN by identity after stealing: %s", u.Identity())
+		}
+		defer rows.Close()
+
+		if rows.Next() {
+			if err := rows.StructScan(urn); err != nil {
+				return nil, fmt.Errorf("error scanning stolen contact urn: %w", err)
+			}
+		}
 	}
 
 	return urn, nil
