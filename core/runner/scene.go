@@ -212,7 +212,9 @@ func (s *Scene) ApplyModifier(ctx context.Context, rt *runtime.Runtime, oa *mode
 	evts := make([]flows.Event, 0)
 	evtLog := func(e flows.Event) { evts = append(evts, e) }
 
-	modifiers.Apply(eng, env, oa.SessionAssets(), s.Contact, mod, evtLog)
+	if _, err := modifiers.Apply(eng, env, oa.SessionAssets(), s.Contact, mod, evtLog); err != nil {
+		return nil, fmt.Errorf("error applying %s modifier to contact %s: %w", mod.Type(), s.Contact.UUID(), err)
+	}
 
 	userEventType := modifierUserEvents[mod.Type()]
 
