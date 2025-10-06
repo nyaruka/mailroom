@@ -265,7 +265,8 @@ func QueueCourierMessages(vc redis.Conn, oa *models.OrgAssets, contactID models.
 
 	for _, m := range msgs {
 		// sanity check the state of the msg we're about to queue...
-		assert(m.URN != nil && m.ContactURNID() != models.NilURNID, "can't queue a message to courier without a URN")
+		assert(m.URN != nil, "can't queue a message to courier without a URN")
+		assert(m.ContactURNID() != models.NilURNID, "can't queue a message to courier without a URNID")
 
 		// if this msg is the same priority, add to current batch, otherwise start new batch
 		if m.HighPriority() == currentPriority {

@@ -16,7 +16,7 @@ var InsertMessages runner.PreCommitHook = &insertMessages{}
 
 type insertMessages struct{}
 
-func (h *insertMessages) Order() int { return 10 }
+func (h *insertMessages) Order() int { return 20 } // after our urn creation hook
 
 func (h *insertMessages) Execute(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *models.OrgAssets, scenes map[*runner.Scene][]any) error {
 	msgs := make([]*models.Msg, 0, len(scenes))
@@ -26,7 +26,7 @@ func (h *insertMessages) Execute(ctx context.Context, rt *runtime.Runtime, tx *s
 
 			// if a URN was added during the flow sprint, message won't have an URN ID which we need to insert it
 			if msg.ContactURNID() == models.NilURNID && urn != urns.NilURN {
-				cu, err := models.GetOrCreateURN(ctx, tx, oa, scene.ContactID(), urn)
+				cu, err := models.CreateOrStealURN(ctx, tx, oa, scene.ContactID(), urn)
 				if err != nil {
 					return fmt.Errorf("error creating new URN %s for message: %w", urn, err)
 				}
