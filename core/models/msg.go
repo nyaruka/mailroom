@@ -900,19 +900,30 @@ func CreateMsgOut(rt *runtime.Runtime, oa *OrgAssets, c *flows.Contact, content 
 const sqlUpdateMsgDeleted = `
    UPDATE msgs_msg
       SET visibility = $3, text = '', attachments = '{}'
-    WHERE org_id = $1 AND uuid = ANY($2) AND direction = 'I'
-RETURNING id`
+	FROM  contacts_contact c
+    WHERE c.id = msgs_msg.contact_id AND msgs_msg.org_id = $1 AND msgs_msg.uuid = ANY($2) AND msgs_msg.direction = 'I' AND msgs_msg.visibility IN ('V', 'A')
+RETURNING msgs_msg.id, msgs_msg.uuid, c.uuid AS contact_uuid`
 
-func DeleteMessages(ctx context.Context, rt *runtime.Runtime, orgID OrgID, uuids []flows.EventUUID, visibility MsgVisibility) error {
-	ids := make([]MsgID, 0, len(uuids))
+func DeleteMessages(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, uuids []flows.EventUUID, visibility MsgVisibility, userID UserID) error {
+	type deletedMsg struct {
+		MsgID       MsgID             `db:"id"`
+		MsgUUID     flows.EventUUID   `db:"uuid"`
+		ContactUUID flows.ContactUUID `db:"contact_uuid"`
+	}
+	deleted := make([]deletedMsg, 0, len(uuids))
 
 	tx, err := rt.DB.BeginTxx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("error beginning transaction: %w", err)
 	}
 
-	if err := tx.SelectContext(ctx, &ids, sqlUpdateMsgDeleted, orgID, pq.Array(uuids), visibility); err != nil {
+	if err := tx.SelectContext(ctx, &deleted, sqlUpdateMsgDeleted, oa.OrgID(), pq.Array(uuids), visibility); err != nil {
 		return fmt.Errorf("error updating message visibility: %w", err)
+	}
+
+	ids := make([]MsgID, 0, len(deleted))
+	for _, d := range deleted {
+		ids = append(ids, d.MsgID)
 	}
 
 	_, err = tx.ExecContext(ctx, `DELETE FROM msgs_msg_labels WHERE msg_id = ANY($1)`, pq.Array(ids))
@@ -922,6 +933,16 @@ func DeleteMessages(ctx context.Context, rt *runtime.Runtime, orgID OrgID, uuids
 
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("error committing transaction: %w", err)
+	}
+
+	for _, d := range deleted {
+		var hu *EventUpdate
+		if visibility == VisibilityDeletedByUser {
+			hu = NewDeletionByUserUpdate(oa.OrgID(), d.ContactUUID, d.MsgUUID, oa.UserByID(userID))
+		} else {
+			hu = NewDeletionBySenderUpdate(oa.OrgID(), d.ContactUUID, d.MsgUUID)
+		}
+		rt.Writers.History.Queue(hu)
 	}
 
 	return nil

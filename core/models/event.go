@@ -10,6 +10,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/flows"
@@ -150,4 +151,52 @@ func (e *Event) UnmarshalDynamo(d map[string]types.AttributeValue) error {
 func PersistEvent(e flows.Event) bool {
 	_, ok := eventPersistence[e.Type()]
 	return ok
+}
+
+type EventUpdate struct {
+	OrgID       OrgID
+	ContactUUID flows.ContactUUID
+	EventUUID   flows.EventUUID
+	Tag         string
+	Data        map[string]any
+}
+
+func (e *EventUpdate) DynamoKey() DynamoKey {
+	return DynamoKey{
+		PK: fmt.Sprintf("con#%s", e.ContactUUID),
+		SK: fmt.Sprintf("evt#%s#%s", e.EventUUID, e.Tag),
+	}
+}
+
+func (e *EventUpdate) MarshalDynamo() (map[string]types.AttributeValue, error) {
+	return attributevalue.MarshalMap(&DynamoItem{
+		DynamoKey: e.DynamoKey(),
+		OrgID:     e.OrgID,
+		Data:      e.Data,
+	})
+}
+
+func NewDeletionByUserUpdate(orgID OrgID, contactUUID flows.ContactUUID, msgUUID flows.EventUUID, u *User) *EventUpdate {
+	var userRef map[string]any
+	if u != nil {
+		userRef = map[string]any{"uuid": u.UUID, "name": u.Name}
+	}
+
+	return &EventUpdate{
+		OrgID:       orgID,
+		ContactUUID: contactUUID,
+		EventUUID:   msgUUID,
+		Tag:         "del",
+		Data:        map[string]any{"deleted_by": "user", "user": userRef, "created_on": dates.Now()},
+	}
+}
+
+func NewDeletionBySenderUpdate(orgID OrgID, contactUUID flows.ContactUUID, msgUUID flows.EventUUID) *EventUpdate {
+	return &EventUpdate{
+		OrgID:       orgID,
+		ContactUUID: contactUUID,
+		EventUUID:   msgUUID,
+		Tag:         "del",
+		Data:        map[string]any{"deleted_by": "sender", "created_on": dates.Now()},
+	}
 }

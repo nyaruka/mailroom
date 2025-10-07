@@ -29,7 +29,7 @@ func (t *MsgDeletedTask) UseReadOnly() bool {
 }
 
 func (t *MsgDeletedTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, mc *models.Contact) error {
-	err := models.DeleteMessages(ctx, rt, oa.OrgID(), []flows.EventUUID{t.MsgUUID}, models.VisibilityDeletedBySender)
+	err := models.DeleteMessages(ctx, rt, oa, []flows.EventUUID{t.MsgUUID}, models.VisibilityDeletedBySender, models.NilUserID)
 	if err != nil {
 		return fmt.Errorf("error deleting message by sender: %w", err)
 	}
