@@ -1,3 +1,7 @@
+v10.3.85 (2025-10-07)
+-------------------------
+ * Should unstop a contact on new conversation event
+
 v10.3.84 (2025-10-07)
 -------------------------
  * Rework msg/resend endpoint to use UUIDs

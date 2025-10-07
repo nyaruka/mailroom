@@ -85,13 +85,21 @@ func (t *EventReceivedTask) handle(ctx context.Context, rt *runtime.Runtime, oa 
 		return nil, nil
 	}
 
+	recalcGroups := t.NewContact
+	if mc.Status() == models.ContactStatusStopped && (t.EventType == models.EventTypeNewConversation || t.EventType == models.EventTypeReferral) {
+		if err := mc.Unstop(ctx, rt.DB); err != nil {
+			return nil, fmt.Errorf("error unstopping contact: %w", err)
+		}
+		recalcGroups = true
+	}
+
 	// build our flow contact
 	contact, err := mc.EngineContact(oa)
 	if err != nil {
 		return nil, fmt.Errorf("error creating flow contact: %w", err)
 	}
 
-	if t.NewContact {
+	if recalcGroups {
 		err = models.CalculateDynamicGroups(ctx, rt.DB, oa, []*flows.Contact{contact})
 		if err != nil {
 			return nil, fmt.Errorf("unable to initialize new contact: %w", err)
