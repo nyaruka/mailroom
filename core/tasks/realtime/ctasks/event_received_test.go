@@ -27,6 +27,9 @@ func TestChannelEvents(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
+	// stop Bob so we can test that he gets un-stopped on new conversation
+	rt.DB.MustExec(`UPDATE contacts_contact SET status = 'S' WHERE id = $1`, testdb.Bob.ID)
+
 	// schedule a campaign fires for Ann and Cat
 	rt.DB.MustExec(
 		fmt.Sprintf(`UPDATE contacts_contact SET fields = fields || '{"%s": { "text": "2029-09-15T12:00:00+00:00", "datetime": "2029-09-15T12:00:00+00:00" }}'::jsonb WHERE id = $1 OR id = $2`, testdb.JoinedField.UUID),
@@ -220,6 +223,20 @@ func TestChannelEvents(t *testing.T) {
 			expectedResponse:    "",
 			persistedEvents:     map[flows.ContactUUID][]string{},
 		},
+		{ // 11: new conversation on Facebook for stopped contact, should unstop the contact
+			contact: testdb.Bob,
+			task: &ctasks.EventReceivedTask{
+				EventID:    eventID,
+				EventType:  models.EventTypeNewConversation,
+				ChannelID:  testdb.FacebookChannel.ID,
+				URNID:      testdb.Bob.URNID,
+				Extra:      null.Map[any]{},
+				NewContact: false,
+			},
+			expectedTriggerType: "chat",
+			expectedResponse:    "What is your favorite color?",
+			persistedEvents:     map[flows.ContactUUID][]string{testdb.Bob.UUID: {"chat_started", "run_started", "msg_created"}},
+		},
 	}
 
 	models.FlushCache()
@@ -283,6 +300,9 @@ func TestChannelEvents(t *testing.T) {
 
 	// last event was a stop_contact so check that Ann is stopped
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contact WHERE id = $1 AND status = 'S'`, testdb.Ann.ID).Returns(1)
+
+	// bob should be un-stopped
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contact WHERE id = $1 AND status = 'A'`, testdb.Bob.ID).Returns(1)
 
 	// and that only Cat is left in the group
 	assertdb.Query(t, rt.DB, `SELECT count(*) from contacts_contactgroup_contacts WHERE contactgroup_id = $1 AND contact_id = $2`, testdb.DoctorsGroup.ID, testdb.Ann.ID).Returns(0)
