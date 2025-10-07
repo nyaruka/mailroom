@@ -86,14 +86,11 @@ func (t *EventReceivedTask) handle(ctx context.Context, rt *runtime.Runtime, oa 
 	}
 
 	recalcGroups := t.NewContact
-	if t.EventType == models.EventTypeNewConversation || t.EventType == models.EventTypeReferral {
-		if mc.Status() == models.ContactStatusStopped {
-			if err := mc.Unstop(ctx, rt.DB); err != nil {
-				return nil, fmt.Errorf("error unstopping contact: %w", err)
-			}
-			recalcGroups = true
+	if mc.Status() == models.ContactStatusStopped && (t.EventType == models.EventTypeNewConversation || t.EventType == models.EventTypeReferral) {
+		if err := mc.Unstop(ctx, rt.DB); err != nil {
+			return nil, fmt.Errorf("error unstopping contact: %w", err)
 		}
-
+		recalcGroups = true
 	}
 
 	// build our flow contact
