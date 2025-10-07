@@ -481,47 +481,6 @@ func GetMsgRepetitions(rp *redis.Pool, contactID ContactID, msg *flows.MsgConten
 	return redis.Int(msgRepetitionsScript.Do(vc, key, contactID, msg.Text))
 }
 
-var sqlSelectMessagesByID = `
-SELECT 
-	id,
-	uuid,
-	broadcast_id,
-	flow_id,
-	ticket_uuid,
-	optin_id,
-	text,
-	attachments,
-	quick_replies,
-	locale,
-	templating,
-	created_on,
-	direction,
-	status,
-	visibility,
-	msg_count,
-	error_count,
-	next_attempt,
-	failed_reason,
-	coalesce(high_priority, FALSE) as high_priority,
-	external_id,
-	channel_id,
-	contact_id,
-	contact_urn_id,
-	org_id
-FROM
-	msgs_msg
-WHERE
-	org_id = $1 AND
-	direction = $2 AND
-	id = ANY($3)
-ORDER BY
-	id ASC`
-
-// Deprecated: use GetMessagesByUUID instead.
-func GetMessagesByID(ctx context.Context, db *sqlx.DB, orgID OrgID, direction Direction, msgIDs []MsgID) ([]*Msg, error) {
-	return loadMessages(ctx, db, sqlSelectMessagesByID, orgID, direction, pq.Array(msgIDs))
-}
-
 var sqlSelectMessagesByUUID = `
 SELECT 
 	id,
