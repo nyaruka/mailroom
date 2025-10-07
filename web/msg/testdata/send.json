@@ -65,7 +65,8 @@
             "quick_replies": [],
             "status": "Q",
             "text": "hello",
-            "urn": "tel:+16055741111"
+            "urn": "tel:+16055741111",
+            "uuid": "01969b47-096b-76f8-ae7f-f8b243c49ff5"
         },
         "db_assertions": [
             {
@@ -131,7 +132,8 @@
             "quick_replies": [],
             "status": "Q",
             "text": "",
-            "urn": "tel:+16055741111"
+            "urn": "tel:+16055741111",
+            "uuid": "01969b47-190b-76f8-bd38-d266ec8d3716"
         },
         "db_assertions": [
             {
@@ -195,7 +197,8 @@
             "quick_replies": [],
             "status": "Q",
             "text": "we can help",
-            "urn": "tel:+16055741111"
+            "urn": "tel:+16055741111",
+            "uuid": "01969b47-28ab-76f8-9c0b-2014ddc77094"
         },
         "db_assertions": [
             {
@@ -275,7 +278,8 @@
             "quick_replies": [],
             "status": "Q",
             "text": "what's the problem?",
-            "urn": "tel:+16055741111"
+            "urn": "tel:+16055741111",
+            "uuid": "01969b47-3c33-76f8-92a3-d648ab64bccb"
         },
         "db_assertions": [
             {
@@ -377,7 +381,8 @@
             ],
             "status": "Q",
             "text": "What is your preferred color?",
-            "urn": "tel:+16055741111"
+            "urn": "tel:+16055741111",
+            "uuid": "01969b47-4fbb-76f8-8228-9728778b6c98"
         },
         "db_assertions": [
             {
@@ -446,7 +451,8 @@
             "quick_replies": [],
             "status": "F",
             "text": "Come back",
-            "urn": ""
+            "urn": "",
+            "uuid": "01969b47-5b73-76f8-8f41-6b2d9f33d623"
         },
         "db_assertions": [
             {

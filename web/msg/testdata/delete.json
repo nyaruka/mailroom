@@ -25,22 +25,22 @@
             {
                 "query": "SELECT visibility, text FROM msgs_msg WHERE uuid = '0199bad8-f98d-75a3-b641-2718a25ac3f5'",
                 "columns": {
-                    "visibility": "D",
-                    "text": ""
+                    "text": "",
+                    "visibility": "D"
                 }
             },
             {
                 "query": "SELECT visibility, text FROM msgs_msg WHERE uuid = '0199bad9-9791-770d-a47d-8f4a6ea3ad13'",
                 "columns": {
-                    "visibility": "D",
-                    "text": ""
+                    "text": "",
+                    "visibility": "D"
                 }
             },
             {
                 "query": "SELECT visibility, text FROM msgs_msg WHERE uuid = '0199bad9-f0bc-7738-8af8-99712a6f8bff'",
                 "columns": {
-                    "visibility": "V",
-                    "text": "3"
+                    "text": "3",
+                    "visibility": "V"
                 }
             }
         ]
