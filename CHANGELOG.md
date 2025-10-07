@@ -1,3 +1,8 @@
+v10.3.84 (2025-10-07)
+-------------------------
+ * Rework msg/resend endpoint to use UUIDs
+ * Return uuid from msg/send endpoint
+
 v10.3.83 (2025-10-06)
 -------------------------
  * Rework msg/handle endpoint to take UUIDs
