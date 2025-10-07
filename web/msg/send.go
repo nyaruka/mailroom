@@ -84,6 +84,7 @@ func handleSend(ctx context.Context, rt *runtime.Runtime, r *sendRequest) (any, 
 	}
 
 	return map[string]any{
+		"uuid":          msg.UUID(),
 		"id":            msg.ID(),
 		"channel":       out.Channel(),
 		"contact":       contact.Reference(),
