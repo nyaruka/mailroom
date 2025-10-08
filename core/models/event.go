@@ -11,38 +11,39 @@ import (
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/nyaruka/gocommon/dates"
-	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/events"
 )
 
+const eternity time.Duration = -1
+
 var eventPersistence = map[string]time.Duration{
-	events.TypeAirtimeTransferred:     -1,
-	events.TypeCallCreated:            -1,
-	events.TypeCallMissed:             -1,
-	events.TypeCallReceived:           -1,
-	events.TypeChatStarted:            -1,
+	events.TypeAirtimeTransferred:     eternity,
+	events.TypeCallCreated:            eternity,
+	events.TypeCallMissed:             eternity,
+	events.TypeCallReceived:           eternity,
+	events.TypeChatStarted:            eternity,
 	events.TypeContactFieldChanged:    time.Hour * 24 * 365, // 1 year
 	events.TypeContactGroupsChanged:   time.Hour * 24 * 365, // 1 year
 	events.TypeContactLanguageChanged: time.Hour * 24 * 365, // 1 year
 	events.TypeContactNameChanged:     time.Hour * 24 * 365, // 1 year
-	events.TypeContactStatusChanged:   -1,
+	events.TypeContactStatusChanged:   eternity,
 	events.TypeContactURNsChanged:     time.Hour * 24 * 365, // 1 year
-	events.TypeIVRCreated:             -1,
-	events.TypeMsgCreated:             -1,
-	events.TypeMsgReceived:            -1,
-	events.TypeOptInRequested:         -1,
-	events.TypeOptInStarted:           -1,
-	events.TypeOptInStopped:           -1,
-	events.TypeRunEnded:               -1,
-	events.TypeRunStarted:             -1,
-	events.TypeTicketAssigneeChanged:  -1,
-	events.TypeTicketClosed:           -1,
-	events.TypeTicketNoteAdded:        -1,
-	events.TypeTicketOpened:           -1,
-	events.TypeTicketReopened:         -1,
-	events.TypeTicketTopicChanged:     -1,
+	events.TypeIVRCreated:             eternity,
+	events.TypeMsgCreated:             eternity,
+	events.TypeMsgReceived:            eternity,
+	events.TypeOptInRequested:         eternity,
+	events.TypeOptInStarted:           eternity,
+	events.TypeOptInStopped:           eternity,
+	events.TypeRunEnded:               eternity,
+	events.TypeRunStarted:             eternity,
+	events.TypeTicketAssigneeChanged:  eternity,
+	events.TypeTicketClosed:           eternity,
+	events.TypeTicketNoteAdded:        eternity,
+	events.TypeTicketOpened:           eternity,
+	events.TypeTicketReopened:         eternity,
+	events.TypeTicketTopicChanged:     eternity,
 }
 
 const (
@@ -50,6 +51,7 @@ const (
 	eventDataGZThreshold = 900
 )
 
+// Event wraps an engine event for persistence in the history table
 type Event struct {
 	flows.Event
 
@@ -58,6 +60,7 @@ type Event struct {
 	User        *assets.UserReference
 }
 
+// DynamoKey returns the PK+SK combo used for persistence
 func (e *Event) DynamoKey() DynamoKey {
 	return DynamoKey{
 		PK: fmt.Sprintf("con#%s", e.ContactUUID),
@@ -65,6 +68,7 @@ func (e *Event) DynamoKey() DynamoKey {
 	}
 }
 
+// DynamoTTL returns the TTL for this event or nil if it should never expire
 func (e *Event) DynamoTTL() *time.Time {
 	if persistence := eventPersistence[e.Type()]; persistence > 0 {
 		ttl := e.CreatedOn().Add(persistence)
@@ -116,44 +120,14 @@ func (e *Event) MarshalDynamo() (map[string]types.AttributeValue, error) {
 	})
 }
 
-// UnmarshalDynamo is only used in tests
-func (e *Event) UnmarshalDynamo(d map[string]types.AttributeValue) error {
-	item := &DynamoItem{}
-	if err := attributevalue.UnmarshalMap(d, item); err != nil {
-		return fmt.Errorf("error unmarshaling item: %w", err)
-	}
-
-	data, err := item.GetData()
-	if err != nil {
-		return fmt.Errorf("error extracting item data: %w", err)
-	}
-
-	e.OrgID = item.OrgID
-	e.ContactUUID = flows.ContactUUID(item.PK)[4:] // trim off con#
-	user, ok := data["_user"].(map[string]any)
-	if ok {
-		e.User = assets.NewUserReference(assets.UserUUID(user["uuid"].(string)), user["name"].(string))
-		delete(data, "_user")
-	}
-
-	data["uuid"] = item.SK[4:] // trim off evt# and put event UUID back in
-
-	evt, err := events.Read(jsonx.MustMarshal(data))
-	if err != nil {
-		return fmt.Errorf("error reading event: %w", err)
-	}
-	e.Event = evt
-
-	return nil
-}
-
 // PersistEvent returns whether an event should be persisted
 func PersistEvent(e flows.Event) bool {
 	_, ok := eventPersistence[e.Type()]
 	return ok
 }
 
-type EventUpdate struct {
+// EventTag is a record of additional information associated with an existing event
+type EventTag struct {
 	OrgID       OrgID
 	ContactUUID flows.ContactUUID
 	EventUUID   flows.EventUUID
@@ -161,14 +135,15 @@ type EventUpdate struct {
 	Data        map[string]any
 }
 
-func (e *EventUpdate) DynamoKey() DynamoKey {
+// DynamoKey returns the PK+SK combo used for persistence
+func (e *EventTag) DynamoKey() DynamoKey {
 	return DynamoKey{
 		PK: fmt.Sprintf("con#%s", e.ContactUUID),
 		SK: fmt.Sprintf("evt#%s#%s", e.EventUUID, e.Tag),
 	}
 }
 
-func (e *EventUpdate) MarshalDynamo() (map[string]types.AttributeValue, error) {
+func (e *EventTag) MarshalDynamo() (map[string]types.AttributeValue, error) {
 	return attributevalue.MarshalMap(&DynamoItem{
 		DynamoKey: e.DynamoKey(),
 		OrgID:     e.OrgID,
@@ -176,13 +151,13 @@ func (e *EventUpdate) MarshalDynamo() (map[string]types.AttributeValue, error) {
 	})
 }
 
-func NewDeletionByUserUpdate(orgID OrgID, contactUUID flows.ContactUUID, msgUUID flows.EventUUID, u *User) *EventUpdate {
-	var userRef map[string]any
+func NewDeletionByUserTag(orgID OrgID, contactUUID flows.ContactUUID, msgUUID flows.EventUUID, u *User) *EventTag {
+	var userRef any
 	if u != nil {
-		userRef = map[string]any{"uuid": u.UUID, "name": u.Name}
+		userRef = map[string]any{"uuid": u.UUID(), "name": u.Name()}
 	}
 
-	return &EventUpdate{
+	return &EventTag{
 		OrgID:       orgID,
 		ContactUUID: contactUUID,
 		EventUUID:   msgUUID,
@@ -191,12 +166,12 @@ func NewDeletionByUserUpdate(orgID OrgID, contactUUID flows.ContactUUID, msgUUID
 	}
 }
 
-func NewDeletionBySenderUpdate(orgID OrgID, contactUUID flows.ContactUUID, msgUUID flows.EventUUID) *EventUpdate {
-	return &EventUpdate{
+func NewDeletionByContactTag(orgID OrgID, contactUUID flows.ContactUUID, msgUUID flows.EventUUID) *EventTag {
+	return &EventTag{
 		OrgID:       orgID,
 		ContactUUID: contactUUID,
 		EventUUID:   msgUUID,
 		Tag:         "del",
-		Data:        map[string]any{"deleted_by": "sender", "created_on": dates.Now()},
+		Data:        map[string]any{"deleted_by": "contact", "created_on": dates.Now()},
 	}
 }

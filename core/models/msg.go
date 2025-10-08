@@ -936,11 +936,11 @@ func DeleteMessages(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, uui
 	}
 
 	for _, d := range deleted {
-		var hu *EventUpdate
+		var hu *EventTag
 		if visibility == VisibilityDeletedByUser {
-			hu = NewDeletionByUserUpdate(oa.OrgID(), d.ContactUUID, d.MsgUUID, oa.UserByID(userID))
+			hu = NewDeletionByUserTag(oa.OrgID(), d.ContactUUID, d.MsgUUID, oa.UserByID(userID))
 		} else {
-			hu = NewDeletionBySenderUpdate(oa.OrgID(), d.ContactUUID, d.MsgUUID)
+			hu = NewDeletionByContactTag(oa.OrgID(), d.ContactUUID, d.MsgUUID)
 		}
 		if _, err := rt.Writers.History.Queue(hu); err != nil {
 			return fmt.Errorf("error queueing history update: %w", err)

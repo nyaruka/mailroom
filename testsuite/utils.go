@@ -172,16 +172,19 @@ func GetHistoryItems(t *testing.T, rt *runtime.Runtime, clear bool) []*models.Dy
 }
 
 func GetHistoryEventTypes(t *testing.T, rt *runtime.Runtime, clear bool) map[flows.ContactUUID][]string {
-	rt.Writers.History.Flush()
+	items := GetHistoryItems(t, rt, clear)
 
-	evtTypes := make(map[flows.ContactUUID][]string, 4)
+	evtTypes := make(map[flows.ContactUUID][]string, len(items))
 
-	for _, evt := range dyntest.ScanAll[models.Event](t, rt.Dynamo, "TestHistory") {
-		evtTypes[evt.ContactUUID] = append(evtTypes[evt.ContactUUID], evt.Event.Type())
-	}
+	for _, item := range items {
+		data, err := item.GetData()
+		require.NoError(t, err)
 
-	if clear {
-		dyntest.Truncate(t, rt.Dynamo, "TestHistory")
+		evtType, ok := data["type"]
+		if ok {
+			contactUUID := flows.ContactUUID(item.PK)[4:] // trim off con#
+			evtTypes[contactUUID] = append(evtTypes[contactUUID], evtType.(string))
+		}
 	}
 
 	return evtTypes
