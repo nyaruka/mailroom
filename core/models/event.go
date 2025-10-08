@@ -16,7 +16,14 @@ import (
 	"github.com/nyaruka/goflow/flows/events"
 )
 
-const eternity time.Duration = -1
+const (
+	// If event .Data exceeds this number of bytes we compress it - aim is to get as many events written for 1 WCU (1KB)
+	eventDataGZThreshold = 900
+
+	eternity time.Duration = -1
+
+	eventTagDeletion = "del"
+)
 
 var eventPersistence = map[string]time.Duration{
 	events.TypeAirtimeTransferred:     eternity,
@@ -45,11 +52,6 @@ var eventPersistence = map[string]time.Duration{
 	events.TypeTicketReopened:         eternity,
 	events.TypeTicketTopicChanged:     eternity,
 }
-
-const (
-	// If event .Data exceeds this number of bytes we compress it - aim is to get as many events written for 1 WCU (1KB)
-	eventDataGZThreshold = 900
-)
 
 // Event wraps an engine event for persistence in the history table
 type Event struct {
@@ -132,22 +134,33 @@ type EventTag struct {
 	ContactUUID flows.ContactUUID
 	EventUUID   flows.EventUUID
 	Tag         string
+	Arg         string
 	Data        map[string]any
 }
 
 // DynamoKey returns the PK+SK combo used for persistence
-func (e *EventTag) DynamoKey() DynamoKey {
-	return DynamoKey{
-		PK: fmt.Sprintf("con#%s", e.ContactUUID),
-		SK: fmt.Sprintf("evt#%s#%s", e.EventUUID, e.Tag),
+func (t *EventTag) DynamoKey() DynamoKey {
+	var sk string
+	if t.Arg != "" {
+		sk = fmt.Sprintf("evt#%s#%s#%s", t.EventUUID, t.Tag, t.Arg)
+	} else {
+		sk = fmt.Sprintf("evt#%s#%s", t.EventUUID, t.Tag)
 	}
+	return DynamoKey{PK: fmt.Sprintf("con#%s", t.ContactUUID), SK: sk}
 }
 
-func (e *EventTag) MarshalDynamo() (map[string]types.AttributeValue, error) {
+// DynamoTTL returns the TTL for this tag or nil if it should never expire
+func (t *EventTag) DynamoTTL() *time.Time {
+	// TODO new types like status might want to set TTLs for certain args
+	return nil
+}
+
+func (t *EventTag) MarshalDynamo() (map[string]types.AttributeValue, error) {
 	return attributevalue.MarshalMap(&DynamoItem{
-		DynamoKey: e.DynamoKey(),
-		OrgID:     e.OrgID,
-		Data:      e.Data,
+		DynamoKey: t.DynamoKey(),
+		OrgID:     t.OrgID,
+		TTL:       t.DynamoTTL(),
+		Data:      t.Data,
 	})
 }
 
@@ -161,8 +174,8 @@ func NewDeletionByUserTag(orgID OrgID, contactUUID flows.ContactUUID, msgUUID fl
 		OrgID:       orgID,
 		ContactUUID: contactUUID,
 		EventUUID:   msgUUID,
-		Tag:         "del",
-		Data:        map[string]any{"deleted_by": "user", "user": userRef, "created_on": dates.Now()},
+		Tag:         eventTagDeletion,
+		Data:        map[string]any{"deleted_by": "user", "deleted_on": dates.Now(), "user": userRef},
 	}
 }
 
@@ -171,7 +184,7 @@ func NewDeletionByContactTag(orgID OrgID, contactUUID flows.ContactUUID, msgUUID
 		OrgID:       orgID,
 		ContactUUID: contactUUID,
 		EventUUID:   msgUUID,
-		Tag:         "del",
-		Data:        map[string]any{"deleted_by": "contact", "created_on": dates.Now()},
+		Tag:         eventTagDeletion,
+		Data:        map[string]any{"deleted_by": "contact", "deleted_on": dates.Now()},
 	}
 }

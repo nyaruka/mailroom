@@ -130,15 +130,15 @@ func TestEventTags(t *testing.T) {
 	tag := models.NewDeletionByUserTag(testdb.Org1.ID, testdb.Ann.UUID, "0197b335-6ded-79a4-95a6-3af85b57f108", oa.UserByID(testdb.Admin.ID))
 	assert.Equal(t, "del", tag.Tag)
 	assert.Equal(t, map[string]any{
-		"created_on": time.Date(2025, time.May, 4, 12, 30, 45, 123456789, time.UTC),
 		"deleted_by": "user",
+		"deleted_on": time.Date(2025, time.May, 4, 12, 30, 45, 123456789, time.UTC),
 		"user":       map[string]any{"name": "Andy Admin", "uuid": assets.UserUUID("e29fdf9f-56ab-422a-b77d-e3ec26091a25")},
 	}, tag.Data)
 
 	tag = models.NewDeletionByContactTag(testdb.Org1.ID, testdb.Ann.UUID, "0197b335-6ded-79a4-95a6-3af85b57f108")
 	assert.Equal(t, "del", tag.Tag)
 	assert.Equal(t, map[string]any{
-		"created_on": time.Date(2025, time.May, 4, 12, 30, 46, 123456789, time.UTC),
 		"deleted_by": "contact",
+		"deleted_on": time.Date(2025, time.May, 4, 12, 30, 46, 123456789, time.UTC),
 	}, tag.Data)
 }

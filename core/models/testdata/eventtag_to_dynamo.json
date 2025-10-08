@@ -3,8 +3,8 @@
         "event_uuid": "0197b335-6ded-79a4-95a6-3af85b57f108",
         "tag": "del",
         "data": {
-            "created_on": "2025-05-04T12:30:46.123456789Z",
-            "deleted_by": "contact"
+            "deleted_by": "contact",
+            "deleted_on": "2025-05-04T12:30:46.123456789Z"
         },
         "dynamo": {
             "PK": {
@@ -21,7 +21,7 @@
                     "deleted_by": {
                         "S": "contact"
                     },
-                    "created_on": {
+                    "deleted_on": {
                         "S": "2025-05-04T12:30:46.123456789Z"
                     }
                 }
@@ -32,8 +32,8 @@
         "event_uuid": "0197b335-6ded-79a4-95a6-3af85b57f108",
         "tag": "del",
         "data": {
-            "created_on": "2025-05-04T12:30:46.123456789Z",
             "deleted_by": "user",
+            "deleted_on": "2025-05-04T12:30:46.123456789Z",
             "user": {
                 "name": "Andy Admin",
                 "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
@@ -54,6 +54,9 @@
                     "deleted_by": {
                         "S": "user"
                     },
+                    "deleted_on": {
+                        "S": "2025-05-04T12:30:46.123456789Z"
+                    },
                     "user": {
                         "M": {
                             "name": {
@@ -63,9 +66,6 @@
                                 "S": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
                             }
                         }
-                    },
-                    "created_on": {
-                        "S": "2025-05-04T12:30:46.123456789Z"
                     }
                 }
             }
