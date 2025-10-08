@@ -2,30 +2,33 @@ package ctasks_test
 
 import (
 	"fmt"
+	"os"
 	"testing"
 	"time"
 
-	"github.com/buger/jsonparser"
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
+	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/test"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/tasks"
 	"github.com/nyaruka/mailroom/core/tasks/realtime"
 	"github.com/nyaruka/mailroom/core/tasks/realtime/ctasks"
 	"github.com/nyaruka/mailroom/testsuite"
 	"github.com/nyaruka/mailroom/testsuite/testdb"
-	"github.com/nyaruka/null/v3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestChannelEvents(t *testing.T) {
+func TestEventReceived(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 	vc := rt.VK.Get()
 	defer vc.Close()
 
 	defer testsuite.Reset(t, rt, testsuite.ResetAll)
+
+	oa := testdb.Org1.Load(t, rt)
 
 	// stop Bob so we can test that he gets un-stopped on new conversation
 	rt.DB.MustExec(`UPDATE contacts_contact SET status = 'S' WHERE id = $1`, testdb.Bob.ID)
@@ -47,213 +50,43 @@ func TestChannelEvents(t *testing.T) {
 	testdb.InsertOptInTrigger(t, rt, testdb.Org1, testdb.Favorites, testdb.VonageChannel)
 	testdb.InsertOptOutTrigger(t, rt, testdb.Org1, testdb.PickANumber, testdb.VonageChannel)
 
-	polls := testdb.InsertOptIn(t, rt, testdb.Org1, "45aec4dd-945f-4511-878f-7d8516fbd336", "Polls")
+	testdb.InsertOptIn(t, rt, testdb.Org1, "45aec4dd-945f-4511-878f-7d8516fbd336", "Polls")
 
 	// add a URN for Ann so we can test twitter URNs
 	testdb.InsertContactURN(t, rt, testdb.Org1, testdb.Bob, urns.URN("twitterid:123456"), 10, nil)
 
-	// create a deleted contact
-	deleted := testdb.InsertContact(t, rt, testdb.Org1, "", "Del", "eng", models.ContactStatusActive)
-	rt.DB.MustExec(`UPDATE contacts_contact SET is_active = false WHERE id = $1`, deleted.ID)
-
 	// insert a dummy event into the database that will get the updates from handling each event which pretends to be it
 	eventID := testdb.InsertChannelEvent(t, rt, testdb.Org1, models.EventTypeMissedCall, testdb.TwilioChannel, testdb.Ann, models.EventStatusPending)
 
-	tcs := []struct {
-		contact             *testdb.Contact
-		task                realtime.Task
-		expectedTriggerType string
-		expectedResponse    string
-		persistedEvents     map[flows.ContactUUID][]string
-	}{
-		{ // 0: new conversation on Facebook
-			contact: testdb.Ann,
-			task: &ctasks.EventReceivedTask{
-				EventID:    eventID,
-				EventType:  models.EventTypeNewConversation,
-				ChannelID:  testdb.FacebookChannel.ID,
-				URNID:      testdb.Ann.URNID,
-				Extra:      null.Map[any]{},
-				NewContact: false,
-			},
-			expectedTriggerType: "chat",
-			expectedResponse:    "What is your favorite color?",
-			persistedEvents:     map[flows.ContactUUID][]string{testdb.Ann.UUID: {"chat_started", "run_started", "msg_created"}},
-		},
-		{ // 1: new conversation on Vonage (no trigger)
-			contact: testdb.Ann,
-			task: &ctasks.EventReceivedTask{
-				EventID:    eventID,
-				EventType:  models.EventTypeNewConversation,
-				ChannelID:  testdb.VonageChannel.ID,
-				URNID:      testdb.Ann.URNID,
-				Extra:      null.Map[any]{},
-				NewContact: false,
-			},
-			expectedTriggerType: "",
-			expectedResponse:    "",
-			persistedEvents:     map[flows.ContactUUID][]string{testdb.Ann.UUID: {"chat_started"}},
-		},
-		{ // 2: welcome message on Vonage
-			contact: testdb.Ann,
-			task: &ctasks.EventReceivedTask{
-				EventID:    eventID,
-				EventType:  models.EventTypeWelcomeMessage,
-				ChannelID:  testdb.VonageChannel.ID,
-				URNID:      testdb.Ann.URNID,
-				Extra:      null.Map[any]{},
-				NewContact: false,
-			},
-			expectedTriggerType: "",
-			expectedResponse:    "",
-			persistedEvents:     map[flows.ContactUUID][]string{},
-		},
-		{ // 3: referral on Facebook
-			contact: testdb.Ann,
-			task: &ctasks.EventReceivedTask{
-				EventID:    eventID,
-				EventType:  models.EventTypeReferral,
-				ChannelID:  testdb.FacebookChannel.ID,
-				URNID:      testdb.Ann.URNID,
-				Extra:      null.Map[any]{"referrer_id": "123456"},
-				NewContact: false,
-			},
-			expectedTriggerType: "",
-			expectedResponse:    "",
-			persistedEvents:     map[flows.ContactUUID][]string{testdb.Ann.UUID: {"chat_started"}},
-		},
-		{ // 4: referral on Facebook
-			contact: testdb.Ann,
-			task: &ctasks.EventReceivedTask{
-				EventID:    eventID,
-				EventType:  models.EventTypeReferral,
-				ChannelID:  testdb.VonageChannel.ID,
-				URNID:      testdb.Ann.URNID,
-				Extra:      null.Map[any]{"referrer_id": "123456"},
-				NewContact: false,
-			},
-			expectedTriggerType: "chat",
-			expectedResponse:    "Pick a number between 1-10.",
-			persistedEvents:     map[flows.ContactUUID][]string{testdb.Ann.UUID: {"chat_started", "run_ended", "run_started", "msg_created"}},
-		},
-		{ // 5: optin on Vonage
-			contact: testdb.Ann,
-			task: &ctasks.EventReceivedTask{
-				EventID:    eventID,
-				EventType:  models.EventTypeOptIn,
-				ChannelID:  testdb.VonageChannel.ID,
-				URNID:      testdb.Ann.URNID,
-				OptInID:    polls.ID,
-				Extra:      map[string]any{"title": "Polls", "payload": fmt.Sprint(polls.ID)},
-				NewContact: false,
-			},
-			expectedTriggerType: "optin",
-			expectedResponse:    "What is your favorite color?",
-			persistedEvents:     map[flows.ContactUUID][]string{testdb.Ann.UUID: {"optin_started", "run_ended", "run_started", "msg_created"}},
-		},
-		{ // 6: optout on Vonage
-			contact: testdb.Ann,
-			task: &ctasks.EventReceivedTask{
-				EventID:    eventID,
-				EventType:  models.EventTypeOptOut,
-				ChannelID:  testdb.VonageChannel.ID,
-				URNID:      testdb.Ann.URNID,
-				OptInID:    polls.ID,
-				Extra:      map[string]any{"title": "Polls", "payload": fmt.Sprint(polls.ID)},
-				NewContact: false,
-			},
-			expectedTriggerType: "optin",
-			expectedResponse:    "Pick a number between 1-10.",
-			persistedEvents:     map[flows.ContactUUID][]string{testdb.Ann.UUID: {"optin_stopped", "run_ended", "run_started", "msg_created"}},
-		},
-		{ // 7: missed call trigger queued by RP
-			contact: testdb.Ann,
-			task: &ctasks.EventReceivedTask{
-				EventID:    eventID,
-				EventType:  models.EventTypeMissedCall,
-				ChannelID:  testdb.VonageChannel.ID,
-				URNID:      testdb.Ann.URNID,
-				OptInID:    polls.ID,
-				Extra:      map[string]any{"duration": 123},
-				NewContact: false,
-			},
-			expectedTriggerType: "",
-			expectedResponse:    "",
-			persistedEvents:     map[flows.ContactUUID][]string{testdb.Ann.UUID: {"call_missed"}},
-		},
-		{ // 8: stop contact
-			contact: testdb.Ann,
-			task: &ctasks.EventReceivedTask{
-				EventID:    eventID,
-				EventType:  models.EventTypeStopContact,
-				ChannelID:  testdb.VonageChannel.ID,
-				URNID:      testdb.Ann.URNID,
-				Extra:      null.Map[any]{},
-				NewContact: false,
-			},
-			expectedTriggerType: "",
-			expectedResponse:    "",
-			persistedEvents:     map[flows.ContactUUID][]string{testdb.Ann.UUID: {"contact_status_changed", "contact_groups_changed"}},
-		},
-		{ // 9: a task against a deleted contact
-			contact: deleted,
-			task: &ctasks.EventReceivedTask{
-				EventID:    eventID,
-				EventType:  models.EventTypeNewConversation,
-				ChannelID:  testdb.VonageChannel.ID,
-				URNID:      deleted.URNID,
-				Extra:      null.Map[any]{},
-				NewContact: false,
-			},
-			expectedTriggerType: "",
-			expectedResponse:    "",
-			persistedEvents:     map[flows.ContactUUID][]string{},
-		},
-		{ // 10: task to delete contact
-			contact: testdb.Ann,
-			task: &ctasks.EventReceivedTask{
-				EventID:    eventID,
-				EventType:  models.EventTypeDeleteContact,
-				ChannelID:  testdb.VonageChannel.ID,
-				URNID:      testdb.Ann.URNID,
-				Extra:      null.Map[any]{},
-				NewContact: false,
-			},
-			expectedTriggerType: "",
-			expectedResponse:    "",
-			persistedEvents:     map[flows.ContactUUID][]string{},
-		},
-		{ // 11: new conversation on Facebook for stopped contact, should unstop the contact
-			contact: testdb.Bob,
-			task: &ctasks.EventReceivedTask{
-				EventID:    eventID,
-				EventType:  models.EventTypeNewConversation,
-				ChannelID:  testdb.FacebookChannel.ID,
-				URNID:      testdb.Bob.URNID,
-				Extra:      null.Map[any]{},
-				NewContact: false,
-			},
-			expectedTriggerType: "chat",
-			expectedResponse:    "What is your favorite color?",
-			persistedEvents:     map[flows.ContactUUID][]string{testdb.Bob.UUID: {"chat_started", "run_started", "msg_created"}},
-		},
-	}
-
 	models.FlushCache()
 
-	lastLastSeenOn := time.Now().In(time.UTC).Add(-time.Hour)
-	rt.DB.MustExec(`UPDATE contacts_contact SET last_seen_on = $2 WHERE id = $1`, testdb.Ann.ID, lastLastSeenOn)
+	type testCase struct {
+		Label           string                    `json:"label"`
+		ContactUUID     flows.ContactUUID         `json:"contact_uuid"`
+		Task            *ctasks.EventReceivedTask `json:"task"`
+		DBAssertions    []*assertdb.Assert        `json:"db_assertions,omitempty"`
+		ExpectedHistory []*models.DynamoItem      `json:"expected_history,omitempty"`
+	}
+
+	tcs := make([]testCase, 0, 20)
+	tcJSON := testsuite.ReadFile(t, "testdata/event_received.json")
+
+	jsonx.MustUnmarshal(tcJSON, &tcs)
+
+	reset := test.MockUniverse()
+	defer reset()
 
 	for i, tc := range tcs {
-		tc.task.(*ctasks.EventReceivedTask).CreatedOn = time.Now()
-
-		start := time.Now()
 		time.Sleep(time.Millisecond * 5)
+
+		mcs, err := models.LoadContactsByUUID(ctx, rt.DB, oa, []flows.ContactUUID{tc.ContactUUID})
+		require.NoError(t, err)
+		contact := mcs[0]
 
 		// reset our dummy db event into an unhandled state
 		rt.DB.MustExec(`UPDATE channels_channelevent SET status = 'P' WHERE id = $1`, eventID)
 
-		err := realtime.QueueTask(ctx, rt, testdb.Org1.ID, tc.contact.ID, tc.task)
+		err = realtime.QueueTask(ctx, rt, testdb.Org1.ID, contact.ID(), tc.Task)
 		assert.NoError(t, err, "%d: error adding task", i)
 
 		task, err := rt.Queues.Realtime.Pop(ctx, vc)
@@ -263,48 +96,39 @@ func TestChannelEvents(t *testing.T) {
 		assert.NoError(t, err, "%d: error when handling event", i)
 
 		// check that event is marked as handled
-		if tc.contact != deleted {
-			assertdb.Query(t, rt.DB, `SELECT status FROM channels_channelevent WHERE id = $1`, eventID).Columns(map[string]any{"status": "H"}, "%d: event state mismatch", i)
+		assertdb.Query(t, rt.DB, `SELECT status FROM channels_channelevent WHERE id = $1`, eventID).Columns(map[string]any{"status": "H"}, "%d: event state mismatch", i)
+
+		actual := tc
+		actual.ExpectedHistory = testsuite.GetHistoryItems(t, rt, true)
+
+		actual.DBAssertions = make([]*assertdb.Assert, len(tc.DBAssertions))
+		for i, dba := range tc.DBAssertions {
+			actual.DBAssertions[i] = dba.Actual(t, rt.DB)
 		}
 
-		// if we are meant to trigger a new session...
-		if tc.expectedTriggerType != "" {
-			if assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE contact_uuid = $1 AND created_on > $2`, tc.contact.UUID, start).Returns(1, "%d: expected new session", i) {
-				// get session output to lookup trigger type
-				var output []byte
-				err = rt.DB.Get(&output, `SELECT output FROM flows_flowsession WHERE contact_uuid = $1 AND created_on > $2`, tc.contact.UUID, start)
-				require.NoError(t, err)
-
-				trigType, err := jsonparser.GetString(output, "trigger", "type")
-				require.NoError(t, err)
-				assert.Equal(t, tc.expectedTriggerType, trigType)
+		if !test.UpdateSnapshots {
+			for _, dba := range tc.DBAssertions {
+				dba.Check(t, rt.DB, "%s: assertion for query '%s' failed", tc.Label, dba.Query)
 			}
 
-			assertdb.Query(t, rt.DB, `SELECT text FROM msgs_msg WHERE contact_id = $1 AND created_on > $2 ORDER BY id DESC LIMIT 1`, tc.contact.ID, start).
-				Returns(tc.expectedResponse, "%d: response mismatch", i)
+			if tc.ExpectedHistory == nil {
+				tc.ExpectedHistory = []*models.DynamoItem{}
+			}
+			test.AssertEqualJSON(t, jsonx.MustMarshal(tc.ExpectedHistory), jsonx.MustMarshal(actual.ExpectedHistory), "%s: event history mismatch", tc.Label)
+		} else {
+			tcs[i] = actual
 		}
-
-		// check last_seen_on was updated
-		if tc.contact != deleted {
-			var lastSeen time.Time
-			err = rt.DB.Get(&lastSeen, `SELECT last_seen_on FROM contacts_contact WHERE id = $1`, tc.contact.ID)
-			assert.NoError(t, err)
-			assert.Greater(t, lastSeen, lastLastSeenOn, "%d: expected last seen to be updated", i)
-			lastLastSeenOn = lastSeen
-		}
-
-		// check persisted events
-		persistedEvents := testsuite.GetHistoryEventTypes(t, rt, true)
-		assert.Equal(t, tc.persistedEvents, persistedEvents, "%d: mismatch in persisted events", i)
 	}
 
-	// last event was a stop_contact so check that Ann is stopped
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contact WHERE id = $1 AND status = 'S'`, testdb.Ann.ID).Returns(1)
+	if test.UpdateSnapshots {
+		truth, err := jsonx.MarshalPretty(tcs)
+		require.NoError(t, err)
 
-	// bob should be un-stopped
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contact WHERE id = $1 AND status = 'A'`, testdb.Bob.ID).Returns(1)
+		err = os.WriteFile("testdata/event_received.json", truth, 0644)
+		require.NoError(t, err, "failed to update truth file")
+	}
 
-	// and that only Cat is left in the group
+	// check that only Cat is left in the group
 	assertdb.Query(t, rt.DB, `SELECT count(*) from contacts_contactgroup_contacts WHERE contactgroup_id = $1 AND contact_id = $2`, testdb.DoctorsGroup.ID, testdb.Ann.ID).Returns(0)
 	assertdb.Query(t, rt.DB, `SELECT count(*) from contacts_contactgroup_contacts WHERE contactgroup_id = $1 AND contact_id = $2`, testdb.DoctorsGroup.ID, testdb.Cat.ID).Returns(1)
 
