@@ -23,11 +23,17 @@ func init() {
 //	}
 type deleteRequest struct {
 	OrgID    models.OrgID      `json:"org_id"    validate:"required"`
+	UserID   models.UserID     `json:"user_id"   validate:"required"`
 	MsgUUIDs []flows.EventUUID `json:"msg_uuids" validate:"required"`
 }
 
 func handleDelete(ctx context.Context, rt *runtime.Runtime, r *deleteRequest) (any, int, error) {
-	if err := models.DeleteMessages(ctx, rt, r.OrgID, r.MsgUUIDs, models.VisibilityDeletedByUser); err != nil {
+	oa, err := models.GetOrgAssets(ctx, rt, r.OrgID)
+	if err != nil {
+		return nil, 0, fmt.Errorf("error loading org assets: %w", err)
+	}
+
+	if err := models.DeleteMessages(ctx, rt, oa, r.MsgUUIDs, models.VisibilityDeletedByUser, r.UserID); err != nil {
 		return nil, 0, fmt.Errorf("error deleting messages by user: %w", err)
 	}
 
