@@ -69,6 +69,6 @@ UPDATE api_resthooksubscriber
  WHERE id = ANY(
     SELECT s.id 
       FROM api_resthooksubscriber s
-      JOIN api_resthook r ON s.resthook_id = r.id, (VALUES(:org_id, :slug, :url)) AS u(org_id, slug, url)
-     WHERE s.is_active = TRUE AND r.org_id = u.org_id::int AND r.slug = u.slug AND s.target_url = u.url
+      JOIN api_resthook r ON s.resthook_id = r.id, (VALUES(:org_id::int, :slug, :url)) AS u(org_id, slug, url)
+     WHERE s.is_active = TRUE AND r.org_id = u.org_id AND r.slug = u.slug AND s.target_url = u.url
 )`

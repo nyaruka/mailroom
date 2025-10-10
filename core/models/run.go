@@ -119,19 +119,19 @@ UPDATE
 	flows_flowrun fr
 SET
 	status = r.status,
-	exited_on = r.exited_on::timestamptz,
-	responded = r.responded::bool,
+	exited_on = r.exited_on,
+	responded = r.responded,
 	results = r.results,
-	path_nodes = r.path_nodes::uuid[],
-	path_times = r.path_times::timestamptz[],
-	current_node_uuid = r.current_node_uuid::uuid,
+	path_nodes = r.path_nodes,
+	path_times = r.path_times,
+	current_node_uuid = r.current_node_uuid,
 	modified_on = NOW()
 FROM (
-	VALUES(:uuid, :status, :exited_on, :responded, :results, :path_nodes, :path_times, :current_node_uuid)
+	VALUES(:uuid::uuid, :status, :exited_on::timestamptz, :responded::bool, :results, :path_nodes::uuid[], :path_times::timestamptz[], :current_node_uuid::uuid)
 ) AS
 	r(uuid, status, exited_on, responded, results, path_nodes, path_times, current_node_uuid)
 WHERE
-	fr.uuid = r.uuid::uuid`
+	fr.uuid = r.uuid`
 
 func UpdateRuns(ctx context.Context, tx *sqlx.Tx, runs []*FlowRun) error {
 	if err := BulkQuery(ctx, "update runs", tx, sqlUpdateRun, runs); err != nil {

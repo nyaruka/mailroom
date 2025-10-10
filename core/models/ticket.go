@@ -187,13 +187,13 @@ func UpdateTicketLastActivity(ctx context.Context, db DBorTx, tickets []*Ticket)
 const sqlUpdateTicket = `
 UPDATE tickets_ticket t
    SET status = r.status,
-       assignee_id = r.assignee_id::int,
-       topic_id = r.topic_id::int,
-       last_activity_on = r.last_activity_on::timestamptz,
-	   closed_on = r.closed_on::timestamptz,
+       assignee_id = r.assignee_id,
+       topic_id = r.topic_id,
+       last_activity_on = r.last_activity_on,
+	   closed_on = r.closed_on,
        modified_on = NOW()
-  FROM (VALUES(:id, :status, :assignee_id, :topic_id, :last_activity_on, :closed_on)) AS r(id, status, assignee_id, topic_id, last_activity_on, closed_on)
- WHERE t.id = r.id::int`
+  FROM (VALUES(:id::int, :status, :assignee_id::int, :topic_id::int, :last_activity_on::timestamptz, :closed_on::timestamptz)) AS r(id, status, assignee_id, topic_id, last_activity_on, closed_on)
+ WHERE t.id = r.id`
 
 // UpdateTickets updates the passed in tickets in the database
 func UpdateTickets(ctx context.Context, tx DBorTx, tickets []*Ticket) error {

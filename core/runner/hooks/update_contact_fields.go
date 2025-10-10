@@ -99,12 +99,12 @@ type FieldValue struct {
 
 const sqlUpdateContactFields = `
 UPDATE contacts_contact c
-   SET fields = COALESCE(fields,'{}'::jsonb) || r.updates::jsonb
-  FROM (VALUES(:contact_id, :updates)) AS r(contact_id, updates)
- WHERE c.id = r.contact_id::int`
+   SET fields = COALESCE(fields,'{}'::jsonb) || r.updates
+  FROM (VALUES(:contact_id::int, :updates::jsonb)) AS r(contact_id, updates)
+ WHERE c.id = r.contact_id`
 
 const sqlDeleteContactFields = `
 UPDATE contacts_contact c
    SET fields = fields - r.field_uuid
-  FROM (VALUES(:contact_id, :field_uuid)) AS r(contact_id, field_uuid)
- WHERE c.id = r.contact_id::int`
+  FROM (VALUES(:contact_id::int, :field_uuid)) AS r(contact_id, field_uuid)
+ WHERE c.id = r.contact_id`

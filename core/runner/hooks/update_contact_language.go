@@ -40,5 +40,5 @@ type languageUpdate struct {
 const sqlUpdateContactLanguage = `
 UPDATE contacts_contact c
    SET language = r.language
-  FROM (VALUES(:id, :language)) AS r(id, language)
- WHERE c.id = r.id::int`
+  FROM (VALUES(:id::int, :language)) AS r(id, language)
+ WHERE c.id = r.id`
