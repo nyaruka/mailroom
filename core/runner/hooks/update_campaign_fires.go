@@ -6,11 +6,11 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/jmoiron/sqlx"
 	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/runner"
 	"github.com/nyaruka/mailroom/runtime"
+	"github.com/vinovest/sqlx"
 )
 
 // UpdateCampaignFires is our hook to update campaign fires

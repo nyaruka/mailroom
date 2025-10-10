@@ -6,13 +6,13 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/null/v3"
+	"github.com/vinovest/sqlx"
 )
 
 type FlowRunID int64

@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/buger/jsonparser"
-	"github.com/jmoiron/sqlx"
 	"github.com/nyaruka/gocommon/stringsx"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/events"
@@ -18,6 +17,7 @@ import (
 	"github.com/nyaruka/mailroom/core/runner"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/vkutil"
+	"github.com/vinovest/sqlx"
 )
 
 const (

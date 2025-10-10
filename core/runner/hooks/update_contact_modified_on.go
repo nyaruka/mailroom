@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/jmoiron/sqlx"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/runner"
 	"github.com/nyaruka/mailroom/runtime"
+	"github.com/vinovest/sqlx"
 )
 
 // UpdateContactModifiedOn is our hook for contact changes that require an update to modified_on

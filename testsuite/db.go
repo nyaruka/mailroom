@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"sync"
 
-	"github.com/jmoiron/sqlx"
+	"github.com/vinovest/sqlx"
 )
 
 // MockDB is a mockable proxy to a real sqlx.DB that implements models.Queryer

@@ -5,8 +5,8 @@ import (
 	"database/sql"
 	"fmt"
 
-	"github.com/jmoiron/sqlx"
 	"github.com/nyaruka/goflow/assets"
+	"github.com/vinovest/sqlx"
 )
 
 // ResthookID is our type for the database id of a resthook

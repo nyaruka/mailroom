@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/jmoiron/sqlx"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/runner"
 	"github.com/nyaruka/mailroom/runtime"
+	"github.com/vinovest/sqlx"
 )
 
 // UpdateCallStatus is our hook for updating IVR call status

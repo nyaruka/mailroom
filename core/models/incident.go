@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/gomodule/redigo/redis"
-	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
 	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/goflow/flows"
@@ -16,6 +15,7 @@ import (
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/null/v3"
 	"github.com/nyaruka/vkutil"
+	"github.com/vinovest/sqlx"
 )
 
 // IncidentID is our type for incident ids
