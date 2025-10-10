@@ -661,9 +661,9 @@ func MarkMessagesQueued(ctx context.Context, db DBorTx, msgs []*Msg) error {
 
 const sqlUpdateMsgStatus = `
 UPDATE msgs_msg
-   SET status = m.status, next_attempt = m.next_attempt::timestamptz
-  FROM (VALUES(:id, :status, :next_attempt)) AS m(id, status, next_attempt)
- WHERE msgs_msg.id = m.id::bigint`
+   SET status = m.status, next_attempt = m.next_attempt
+  FROM (VALUES(:id::bigint, :status, :next_attempt::timestamptz)) AS m(id, status, next_attempt)
+ WHERE msgs_msg.id = m.id`
 
 func updateMessageStatus(ctx context.Context, db DBorTx, msgs []*Msg, status MsgStatus, nextAttempt *time.Time) error {
 	is := make([]any, len(msgs))
@@ -713,14 +713,9 @@ func PrepareMessagesForRetry(ctx context.Context, db *sqlx.DB, msgs []*Msg) ([]*
 
 const sqlUpdateMsgForResending = `
 UPDATE msgs_msg m
-   SET channel_id = r.channel_id::int,
-       status = 'Q',
-       error_count = 0,
-       failed_reason = NULL,
-       sent_on = NULL,
-       modified_on = NOW()
-  FROM (VALUES(:id, :channel_id)) AS r(id, channel_id)
- WHERE m.id = r.id::bigint`
+   SET channel_id = r.channel_id, status = 'Q', error_count = 0, failed_reason = NULL, sent_on = NULL, modified_on = NOW()
+  FROM (VALUES(:id::bigint, :channel_id::int)) AS r(id, channel_id)
+ WHERE m.id = r.id`
 
 const sqlUpdateMsgResendFailed = `
 UPDATE msgs_msg m

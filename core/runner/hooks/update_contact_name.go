@@ -40,5 +40,5 @@ type nameUpdate struct {
 const sqlUpdateContactName = `
 UPDATE contacts_contact c
    SET name = r.name
-  FROM (VALUES(:id, :name)) AS r(id, name)
- WHERE c.id = r.id::int`
+  FROM (VALUES(:id::int, :name)) AS r(id, name)
+ WHERE c.id = r.id`

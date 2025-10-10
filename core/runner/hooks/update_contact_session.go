@@ -38,6 +38,6 @@ type CurrentSessionUpdate struct {
 
 const sqlUpdateContactCurrentSession = `
 UPDATE contacts_contact c
-   SET current_session_uuid = r.current_session_uuid::uuid, current_flow_id = r.current_flow_id::int
-  FROM (VALUES(:id, :current_session_uuid, :current_flow_id)) AS r(id, current_session_uuid, current_flow_id)
- WHERE c.id = r.id::int`
+   SET current_session_uuid = r.current_session_uuid, current_flow_id = r.current_flow_id
+  FROM (VALUES(:id::int, :current_session_uuid::uuid, :current_flow_id::int)) AS r(id, current_session_uuid, current_flow_id)
+ WHERE c.id = r.id`

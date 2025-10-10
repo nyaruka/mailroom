@@ -1225,9 +1225,9 @@ func FilterContactIDsByNotInFlow(ctx context.Context, db *sqlx.DB, contacts []Co
 
 const sqlUpdateContactURNPriorityAndChannel = `
 UPDATE contacts_contacturn u
-   SET channel_id = r.channel_id::int, priority = r.priority::int
-  FROM (VALUES(:id, :channel_id, :priority)) AS r(id, channel_id, priority)
- WHERE u.id = r.id::int`
+   SET channel_id = r.channel_id, priority = r.priority
+  FROM (VALUES(:id::int, :channel_id::int, :priority::int)) AS r(id, channel_id, priority)
+ WHERE u.id = r.id`
 
 // UpdateURNPriorityAndChannel updates the passed in URNs in our database (only priority and channel)
 func UpdateURNPriorityAndChannel(ctx context.Context, db DBorTx, urnz []*ContactURN) error {
@@ -1305,15 +1305,7 @@ func UpdateContactStatus(ctx context.Context, db DBorTx, changes []*ContactStatu
 }
 
 const sqlUpdateContactStatus = `
-UPDATE
-	contacts_contact c
-SET
-	status = r.status,
-	modified_on = NOW()
-FROM (
-	VALUES(:id, :status)
-) AS
-	r(id, status)
-WHERE
-	c.id = r.id::int
-`
+UPDATE contacts_contact c
+   SET status = r.status, modified_on = NOW()
+  FROM (VALUES(:id::int, :status)) AS r(id, status)
+ WHERE c.id = r.id`

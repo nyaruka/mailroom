@@ -97,20 +97,12 @@ type GroupRemove struct {
 }
 
 const removeContactsFromGroupsSQL = `
-DELETE FROM
-	contacts_contactgroup_contacts
-WHERE 
-	id
-IN (
-	SELECT 
-		c.id 
-	FROM 
-		contacts_contactgroup_contacts c,
-		(VALUES(:contact_id, :group_id)) AS g(contact_id, group_id)
-	WHERE
-		c.contact_id = g.contact_id::int AND c.contactgroup_id = g.group_id::int
-);
-`
+DELETE FROM contacts_contactgroup_contacts
+WHERE id IN (
+	SELECT c.id 
+	FROM contacts_contactgroup_contacts c, (VALUES(:contact_id::int, :group_id::int)) AS g(contact_id, group_id)
+	WHERE c.contact_id = g.contact_id AND c.contactgroup_id = g.group_id
+);`
 
 // AddContactsToGroups fires a bulk SQL query to remove all the contacts in the passed in groups
 func AddContactsToGroups(ctx context.Context, tx DBorTx, adds []*GroupAdd) error {

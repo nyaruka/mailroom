@@ -131,8 +131,8 @@ type FireDelete struct {
 // note that : is escaped as \x3A to stop sqlx mistakenly treating it as a named variable
 const sqlDeleteCampaignContactFires = `
 DELETE FROM contacts_contactfire WHERE id IN (
-    SELECT cf.id FROM contacts_contactfire cf, (VALUES(:contact_id, :event_id, :fire_version)) AS f(contact_id, event_id, fire_version)
-     WHERE cf.contact_id = f.contact_id::int AND fire_type = 'C' AND cf.scope = f.event_id || E'\x3A' || f.fire_version
+    SELECT cf.id FROM contacts_contactfire cf, (VALUES(:contact_id::int, :event_id::int, :fire_version)) AS f(contact_id, event_id, fire_version)
+     WHERE cf.contact_id = f.contact_id AND fire_type = 'C' AND cf.scope = f.event_id || E'\x3A' || f.fire_version
 )`
 
 // DeleteCampaignFires deletes *specific* campaign fires for the given contacts
