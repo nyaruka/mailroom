@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/jmoiron/sqlx"
 	"github.com/nyaruka/gocommon/dates"
+	"github.com/vinovest/sqlx"
 )
 
 type DailyCount struct {

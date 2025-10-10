@@ -20,10 +20,9 @@ require (
 	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/gomodule/redigo v1.9.2
 	github.com/gorilla/schema v1.4.1
-	github.com/jmoiron/sqlx v1.4.0
 	github.com/lib/pq v1.10.9
 	github.com/nyaruka/ezconf v0.4.1
-	github.com/nyaruka/gocommon v1.68.8
+	github.com/nyaruka/gocommon v1.69.0
 	github.com/nyaruka/goflow v0.258.0
 	github.com/nyaruka/null/v3 v3.0.0
 	github.com/nyaruka/rp-indexer/v10 v10.2.0
@@ -36,6 +35,7 @@ require (
 	github.com/samber/slog-sentry/v2 v2.9.3
 	github.com/shopspring/decimal v1.4.0
 	github.com/stretchr/testify v1.11.1
+	github.com/vinovest/sqlx v1.7.0
 	golang.org/x/exp v0.0.0-20250911091902-df9299821621
 	google.golang.org/api v0.249.0
 	google.golang.org/genai v1.24.0
@@ -103,6 +103,7 @@ require (
 	github.com/googleapis/gax-go/v2 v2.15.0 // indirect
 	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
+	github.com/muir/sqltoken v0.1.0 // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/naoina/go-stringutil v0.1.0 // indirect
 	github.com/naoina/toml v0.1.1 // indirect
