@@ -1,3 +1,8 @@
+v10.3.86 (2025-10-13)
+-------------------------
+ * Switch to vinovest/sqlx fork of jmoiron/sqlx
+ * Add event "tags" to history table and save for message deletion
+
 v10.3.85 (2025-10-07)
 -------------------------
  * Should unstop a contact on new conversation event
