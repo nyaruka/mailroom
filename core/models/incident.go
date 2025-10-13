@@ -106,7 +106,7 @@ func getOrCreateIncident(ctx context.Context, db DBorTx, oa *OrgAssets, incident
 			return NilIncidentID, fmt.Errorf("error creating notifications for new incident: %w", err)
 		}
 	} else {
-		err := db.GetContext(ctx, &incidentID, `SELECT id FROM notifications_incident WHERE org_id = $1 AND incident_type = $2 AND scope = $3`, incident.OrgID, incident.Type, incident.Scope)
+		err := db.GetContext(ctx, &incidentID, `SELECT id FROM notifications_incident WHERE org_id = $1 AND incident_type = $2 AND scope = $3 AND ended_on IS NULL`, incident.OrgID, incident.Type, incident.Scope)
 		if err != nil {
 			return NilIncidentID, fmt.Errorf("error looking up existing incident: %w", err)
 		}
