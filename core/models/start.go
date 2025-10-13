@@ -7,7 +7,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/lib/pq"
+	"github.com/nyaruka/gocommon/dbutil"
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/gocommon/uuids"
@@ -102,17 +102,17 @@ type FlowStart struct {
 }
 
 type dbFlowStart struct {
-	ID          StartID        `db:"id"`
-	UUID        uuids.UUID     `db:"uuid"`
-	OrgID       OrgID          `db:"org_id"`
-	Status      StartStatus    `db:"status"`
-	StartType   StartType      `db:"start_type"`
-	CreatedByID UserID         `db:"created_by_id"`
-	FlowID      FlowID         `db:"flow_id"`
-	Params      null.JSON      `db:"params"`
-	URNs        pq.StringArray `db:"urns"`
-	Query       null.String    `db:"query"`
-	Exclusions  Exclusions     `db:"exclusions"`
+	ID          StartID            `db:"id"`
+	UUID        uuids.UUID         `db:"uuid"`
+	OrgID       OrgID              `db:"org_id"`
+	Status      StartStatus        `db:"status"`
+	StartType   StartType          `db:"start_type"`
+	CreatedByID UserID             `db:"created_by_id"`
+	FlowID      FlowID             `db:"flow_id"`
+	Params      null.JSON          `db:"params"`
+	URNs        dbutil.StringArray `db:"urns"`
+	Query       null.String        `db:"query"`
+	Exclusions  Exclusions         `db:"exclusions"`
 }
 
 // NewFlowStart creates a new flow start objects for the passed in parameters

@@ -15,6 +15,7 @@ import (
 	"github.com/gomodule/redigo/redis"
 	"github.com/lib/pq"
 	"github.com/nyaruka/gocommon/dates"
+	"github.com/nyaruka/gocommon/dbutil"
 	"github.com/nyaruka/gocommon/gsm7"
 	"github.com/nyaruka/gocommon/i18n"
 	"github.com/nyaruka/gocommon/urns"
@@ -158,12 +159,12 @@ type Msg struct {
 		CreatedByID UserID      `db:"created_by_id"`
 
 		// content
-		Text         string         `db:"text"`
-		Attachments  pq.StringArray `db:"attachments"`
-		QuickReplies pq.StringArray `db:"quick_replies"`
-		OptInID      OptInID        `db:"optin_id"`
-		Locale       i18n.Locale    `db:"locale"`
-		Templating   *Templating    `db:"templating"`
+		Text         string             `db:"text"`
+		Attachments  dbutil.StringArray `db:"attachments"`
+		QuickReplies dbutil.StringArray `db:"quick_replies"`
+		OptInID      OptInID            `db:"optin_id"`
+		Locale       i18n.Locale        `db:"locale"`
+		Templating   *Templating        `db:"templating"`
 
 		HighPriority bool          `db:"high_priority"`
 		Direction    Direction     `db:"direction"`

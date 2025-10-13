@@ -51,17 +51,17 @@ const NilTriggerID = TriggerID(0)
 // Trigger represents a trigger in an organization
 type Trigger struct {
 	t struct {
-		ID              TriggerID      `json:"id"`
-		OrgID           OrgID          `json:"org_id"`
-		FlowID          FlowID         `json:"flow_id"`
-		TriggerType     TriggerType    `json:"trigger_type"`
-		Keywords        pq.StringArray `json:"keywords"`
-		MatchType       MatchType      `json:"match_type"`
-		ChannelID       ChannelID      `json:"channel_id"`
-		ReferrerID      string         `json:"referrer_id"`
-		IncludeGroupIDs []GroupID      `json:"include_group_ids"`
-		ExcludeGroupIDs []GroupID      `json:"exclude_group_ids"`
-		ContactIDs      []ContactID    `json:"contact_ids,omitempty"`
+		ID              TriggerID          `json:"id"`
+		OrgID           OrgID              `json:"org_id"`
+		FlowID          FlowID             `json:"flow_id"`
+		TriggerType     TriggerType        `json:"trigger_type"`
+		Keywords        dbutil.StringArray `json:"keywords"`
+		MatchType       MatchType          `json:"match_type"`
+		ChannelID       ChannelID          `json:"channel_id"`
+		ReferrerID      string             `json:"referrer_id"`
+		IncludeGroupIDs []GroupID          `json:"include_group_ids"`
+		ExcludeGroupIDs []GroupID          `json:"exclude_group_ids"`
+		ContactIDs      []ContactID        `json:"contact_ids,omitempty"`
 	}
 }
 

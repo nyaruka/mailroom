@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/elastic/go-elasticsearch/v8"
 	"github.com/gomodule/redigo/redis"
+	_ "github.com/jackc/pgx/v5/stdlib" // postgres driver
 	"github.com/nyaruka/gocommon/aws/cwatch"
 	"github.com/nyaruka/gocommon/aws/dynamo"
 	"github.com/nyaruka/gocommon/aws/s3x"
@@ -111,7 +112,7 @@ func (r *Runtime) Stop() {
 }
 
 func createPostgresPool(url string, maxOpenConns int) (*sqlx.DB, error) {
-	db, err := sqlx.Open("postgres", url)
+	db, err := sqlx.Open("pgx", url)
 	if err != nil {
 		return nil, fmt.Errorf("unable to open database connection: '%s': %w", url, err)
 	}

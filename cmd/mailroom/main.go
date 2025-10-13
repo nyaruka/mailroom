@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/getsentry/sentry-go"
-	_ "github.com/lib/pq"
 	"github.com/nyaruka/gocommon/uuids"
 	"github.com/nyaruka/mailroom"
 	"github.com/nyaruka/mailroom/runtime"

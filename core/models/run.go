@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/lib/pq"
+	"github.com/nyaruka/gocommon/dbutil"
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/flows"
@@ -40,28 +41,28 @@ var runStatusMap = map[flows.RunStatus]RunStatus{
 
 // FlowRun is the type for a run of a flow
 type FlowRun struct {
-	ID              FlowRunID         `db:"id"`
-	UUID            flows.RunUUID     `db:"uuid"`
-	Status          RunStatus         `db:"status"`
-	CreatedOn       time.Time         `db:"created_on"`
-	ModifiedOn      time.Time         `db:"modified_on"`
-	ExitedOn        *time.Time        `db:"exited_on"`
-	Responded       bool              `db:"responded"`
-	Results         string            `db:"results"`
-	PathNodes       pq.StringArray    `db:"path_nodes"`
-	PathTimes       pq.GenericArray   `db:"path_times"`
-	CurrentNodeUUID null.String       `db:"current_node_uuid"`
-	ContactID       ContactID         `db:"contact_id"`
-	FlowID          FlowID            `db:"flow_id"`
-	OrgID           OrgID             `db:"org_id"`
-	SessionUUID     flows.SessionUUID `db:"session_uuid"`
-	StartID         StartID           `db:"start_id"`
+	ID              FlowRunID          `db:"id"`
+	UUID            flows.RunUUID      `db:"uuid"`
+	Status          RunStatus          `db:"status"`
+	CreatedOn       time.Time          `db:"created_on"`
+	ModifiedOn      time.Time          `db:"modified_on"`
+	ExitedOn        *time.Time         `db:"exited_on"`
+	Responded       bool               `db:"responded"`
+	Results         string             `db:"results"`
+	PathNodes       dbutil.StringArray `db:"path_nodes"`
+	PathTimes       pq.GenericArray    `db:"path_times"`
+	CurrentNodeUUID null.String        `db:"current_node_uuid"`
+	ContactID       ContactID          `db:"contact_id"`
+	FlowID          FlowID             `db:"flow_id"`
+	OrgID           OrgID              `db:"org_id"`
+	SessionUUID     flows.SessionUUID  `db:"session_uuid"`
+	StartID         StartID            `db:"start_id"`
 }
 
 // NewRun creates a flow run we can save to the database
 func NewRun(oa *OrgAssets, fs flows.Session, fr flows.Run) *FlowRun {
 	// build our path elements
-	pathNodes := make(pq.StringArray, len(fr.Path()))
+	pathNodes := make(dbutil.StringArray, len(fr.Path()))
 	pathTimes := make([]time.Time, len(fr.Path()))
 	for i, p := range fr.Path() {
 		pathNodes[i] = string(p.NodeUUID())

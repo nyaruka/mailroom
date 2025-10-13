@@ -12,7 +12,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/lib/pq"
 	"github.com/nyaruka/gocommon/dbutil"
 	"github.com/vinovest/sqlx"
 )
@@ -110,8 +109,8 @@ func (t JSONB[T]) Value() (driver.Value, error) {
 	return json.Marshal(t.V)
 }
 
-func StringArray[T ~string](vals []T) pq.StringArray {
-	a := make(pq.StringArray, len(vals))
+func StringArray[T ~string](vals []T) dbutil.StringArray {
+	a := make(dbutil.StringArray, len(vals))
 	for i := range vals {
 		a[i] = string(vals[i])
 	}

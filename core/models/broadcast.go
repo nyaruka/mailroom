@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/lib/pq"
+	"github.com/nyaruka/gocommon/dbutil"
 	"github.com/nyaruka/gocommon/i18n"
 	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/goflow/excellent/types"
@@ -66,8 +66,8 @@ type dbBroadcast struct {
 	BaseLanguage      i18n.Language                      `db:"base_language"`
 	OptInID           OptInID                            `db:"optin_id"`
 	TemplateID        TemplateID                         `db:"template_id"`
-	TemplateVariables pq.StringArray                     `db:"template_variables"`
-	URNs              pq.StringArray                     `db:"urns"`
+	TemplateVariables dbutil.StringArray                 `db:"template_variables"`
+	URNs              dbutil.StringArray                 `db:"urns"`
 	Query             null.String                        `db:"query"`
 	NodeUUID          null.String                        `db:"node_uuid"`
 	Exclusions        Exclusions                         `db:"exclusions"`
