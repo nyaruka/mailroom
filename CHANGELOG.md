@@ -1,3 +1,7 @@
+v10.3.87 (2025-10-13)
+-------------------------
+ * Fix fetching of open incidents
+
 v10.3.86 (2025-10-13)
 -------------------------
  * Switch to vinovest/sqlx fork of jmoiron/sqlx
