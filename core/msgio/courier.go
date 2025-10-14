@@ -128,9 +128,10 @@ func NewCourierMsg(oa *models.OrgAssets, mo *models.MsgOut, ch *models.Channel) 
 		URNAuth:      string(mo.URN.AuthTokens["default"]),
 		IsResend:     mo.IsResend,
 		// deprecated
-		ID:           mo.ID(),
-		ContactID:    mo.ContactID(),
-		ContactURNID: mo.ContactURNID(),
+		ID:                mo.ID(),
+		ContactID:         mo.ContactID(),
+		ContactURNID:      mo.ContactURNID(),
+		ContactLastSeenOn: mo.Contact.LastSeenOn(),
 	}
 
 	if mo.FlowID() != models.NilFlowID {
@@ -175,9 +176,6 @@ func NewCourierMsg(oa *models.OrgAssets, mo *models.MsgOut, ch *models.Channel) 
 
 	if mo.ReplyTo != nil {
 		msg.ResponseToExternalID = mo.ReplyTo.ExtID
-	}
-	if mo.Contact != nil && mo.Contact.LastSeenOn() != nil {
-		msg.ContactLastSeenOn = mo.Contact.LastSeenOn()
 	}
 	if mo.Session != nil {
 		msg.Session = &Session{

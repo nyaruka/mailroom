@@ -492,9 +492,9 @@ func (u *ContactURN) Encode(oa *OrgAssets) (urns.URN, error) {
 
 // contactEnvelope is our JSON structure for a contact as read from the database
 type contactEnvelope struct {
-	ID       ContactID         `json:"id"`
+	ID       ContactID         `json:"id"       db:"id"`
 	OrgID    OrgID             `json:"org_id"`
-	UUID     flows.ContactUUID `json:"uuid"`
+	UUID     flows.ContactUUID `json:"uuid"     db:"uuid"`
 	Name     string            `json:"name"`
 	URNs     []*ContactURN     `json:"urns"`
 	Language i18n.Language     `json:"language"`
@@ -516,7 +516,7 @@ type contactEnvelope struct {
 	} `json:"tickets"`
 	CurrentSessionUUID null.String `json:"current_session_uuid"`
 	CurrentFlowID      FlowID      `json:"current_flow_id"`
-	LastSeenOn         *time.Time  `json:"last_seen_on"`
+	LastSeenOn         *time.Time  `json:"last_seen_on" db:"last_seen_on"`
 	CreatedOn          time.Time   `json:"created_on"`
 	ModifiedOn         time.Time   `json:"modified_on"`
 }
