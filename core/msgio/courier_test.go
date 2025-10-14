@@ -30,7 +30,7 @@ func TestNewCourierMsg(t *testing.T) {
 
 	// create an opt-in and a new contact with an auth token for it
 	optInID := testdb.InsertOptIn(t, rt, testdb.Org1, "45aec4dd-945f-4511-878f-7d8516fbd336", "Joke Of The Day").ID
-	testFred := testdb.InsertContact(t, rt, testdb.Org1, "", "Fred", "eng", models.ContactStatusActive)
+	testFred := testdb.InsertContact(t, rt, testdb.Org1, "fed2d179-73ac-44fd-b838-7f866fef0a3a", "Fred", "eng", models.ContactStatusActive)
 	testdb.InsertContactURN(t, rt, testdb.Org1, testFred, "tel:+593979123456", 1000, map[string]string{fmt.Sprintf("optin:%d", optInID): "sesame"})
 
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshOptIns)
@@ -83,6 +83,7 @@ func TestNewCourierMsg(t *testing.T) {
 			"image/jpeg:https://dl-foo.com/image.jpg"
 		],
 		"channel_uuid": "0f661e8b-ea9d-4bd3-9953-d368340acf91",
+		"contact": {"id": 10000, "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf"},
 		"contact_id": 10000,
 		"contact_urn_id": 10000,
 		"created_on": %s,
@@ -135,6 +136,7 @@ func TestNewCourierMsg(t *testing.T) {
 
 	createAndAssertCourierMsg(t, oa, msg2, fmt.Sprintf(`{
 		"channel_uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8",
+		"contact": {"id": 10000, "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf", "last_seen_on": "2023-04-20T10:15:00Z"},
 		"contact_id": 10000,
 		"contact_last_seen_on": "2023-04-20T10:15:00Z",
 		"contact_urn_id": 10000,
@@ -173,6 +175,7 @@ func TestNewCourierMsg(t *testing.T) {
 
 	createAndAssertCourierMsg(t, oa, msg3, fmt.Sprintf(`{
 		"channel_uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8",
+		"contact": {"id": 30000, "uuid": "fed2d179-73ac-44fd-b838-7f866fef0a3a"},
 		"contact_id": 30000,
 		"contact_urn_id": 30000,
 		"created_on": %s,
@@ -199,6 +202,7 @@ func TestNewCourierMsg(t *testing.T) {
 
 	createAndAssertCourierMsg(t, oa, msg4, fmt.Sprintf(`{
 		"channel_uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8",
+		"contact": {"id": 10000, "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf", "last_seen_on": "2023-04-20T10:15:00Z"},
 		"contact_id": 10000,
 		"contact_last_seen_on": "2023-04-20T10:15:00Z",
 		"contact_urn_id": 10000,
@@ -246,7 +250,7 @@ func TestQueueCourierMessages(t *testing.T) {
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshOrg|models.RefreshChannels)
 	require.NoError(t, err)
 
-	_, _, annURNs := testdb.Ann.Load(t, rt, oa)
+	ann, _, annURNs := testdb.Ann.Load(t, rt, oa)
 	twilio := oa.ChannelByUUID(testdb.TwilioChannel.UUID)
 
 	// noop if no messages provided
@@ -256,16 +260,19 @@ func TestQueueCourierMessages(t *testing.T) {
 	// queue 3 messages for Ann..
 	sends := []*models.MsgOut{
 		{
-			Msg: (&msgSpec{Channel: testdb.TwilioChannel, Contact: testdb.Ann}).createMsg(t, rt, oa),
-			URN: annURNs[0],
+			Msg:     (&msgSpec{Channel: testdb.TwilioChannel, Contact: testdb.Ann}).createMsg(t, rt, oa),
+			URN:     annURNs[0],
+			Contact: ann,
 		},
 		{
-			Msg: (&msgSpec{Channel: testdb.TwilioChannel, Contact: testdb.Ann}).createMsg(t, rt, oa),
-			URN: annURNs[0],
+			Msg:     (&msgSpec{Channel: testdb.TwilioChannel, Contact: testdb.Ann}).createMsg(t, rt, oa),
+			URN:     annURNs[0],
+			Contact: ann,
 		},
 		{
-			Msg: (&msgSpec{Channel: testdb.TwilioChannel, Contact: testdb.Ann, HighPriority: true}).createMsg(t, rt, oa),
-			URN: annURNs[0],
+			Msg:     (&msgSpec{Channel: testdb.TwilioChannel, Contact: testdb.Ann, HighPriority: true}).createMsg(t, rt, oa),
+			URN:     annURNs[0],
+			Contact: ann,
 		},
 	}
 
@@ -287,31 +294,35 @@ func TestClearChannelCourierQueue(t *testing.T) {
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshOrg|models.RefreshChannels)
 	require.NoError(t, err)
 
-	_, _, annURNs := testdb.Ann.Load(t, rt, oa)
+	ann, _, annURNs := testdb.Ann.Load(t, rt, oa)
 	twilio := oa.ChannelByUUID(testdb.TwilioChannel.UUID)
 	vonage := oa.ChannelByUUID(testdb.VonageChannel.UUID)
 
 	// queue 3 Twilio messages for Ann..
 	msgio.QueueCourierMessages(vc, oa, testdb.Ann.ID, twilio, []*models.MsgOut{
 		{
-			Msg: (&msgSpec{Channel: testdb.TwilioChannel, Contact: testdb.Ann}).createMsg(t, rt, oa),
-			URN: annURNs[0],
+			Msg:     (&msgSpec{Channel: testdb.TwilioChannel, Contact: testdb.Ann}).createMsg(t, rt, oa),
+			URN:     annURNs[0],
+			Contact: ann,
 		},
 		{
-			Msg: (&msgSpec{Channel: testdb.TwilioChannel, Contact: testdb.Ann}).createMsg(t, rt, oa),
-			URN: annURNs[0],
+			Msg:     (&msgSpec{Channel: testdb.TwilioChannel, Contact: testdb.Ann}).createMsg(t, rt, oa),
+			URN:     annURNs[0],
+			Contact: ann,
 		},
 		{
-			Msg: (&msgSpec{Channel: testdb.TwilioChannel, Contact: testdb.Ann, HighPriority: true}).createMsg(t, rt, oa),
-			URN: annURNs[0],
+			Msg:     (&msgSpec{Channel: testdb.TwilioChannel, Contact: testdb.Ann, HighPriority: true}).createMsg(t, rt, oa),
+			URN:     annURNs[0],
+			Contact: ann,
 		},
 	})
 
 	// and a Vonage message
 	msgio.QueueCourierMessages(vc, oa, testdb.Ann.ID, vonage, []*models.MsgOut{
 		{
-			Msg: (&msgSpec{Channel: testdb.VonageChannel, Contact: testdb.Ann}).createMsg(t, rt, oa),
-			URN: annURNs[0],
+			Msg:     (&msgSpec{Channel: testdb.VonageChannel, Contact: testdb.Ann}).createMsg(t, rt, oa),
+			URN:     annURNs[0],
+			Contact: ann,
 		},
 	})
 
@@ -344,13 +355,13 @@ func TestPushCourierBatch(t *testing.T) {
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshChannels)
 	require.NoError(t, err)
 
-	_, _, annURNs := testdb.Ann.Load(t, rt, oa)
+	ann, _, annURNs := testdb.Ann.Load(t, rt, oa)
 	channel := oa.ChannelByID(testdb.TwilioChannel.ID)
 
 	msg1 := (&msgSpec{Channel: testdb.TwilioChannel, Contact: testdb.Ann}).createMsg(t, rt, oa)
 	msg2 := (&msgSpec{Channel: testdb.TwilioChannel, Contact: testdb.Ann}).createMsg(t, rt, oa)
 
-	err = msgio.PushCourierBatch(vc, oa, channel, []*models.MsgOut{{Msg: msg1, URN: annURNs[0]}, {Msg: msg2, URN: annURNs[0]}}, "1636557205.123456")
+	err = msgio.PushCourierBatch(vc, oa, channel, []*models.MsgOut{{Msg: msg1, URN: annURNs[0], Contact: ann}, {Msg: msg2, URN: annURNs[0], Contact: ann}}, "1636557205.123456")
 	require.NoError(t, err)
 
 	// check that channel has been added to active list
@@ -377,7 +388,7 @@ func TestPushCourierBatch(t *testing.T) {
 
 	msg3 := (&msgSpec{Channel: testdb.TwilioChannel, Contact: testdb.Ann}).createMsg(t, rt, oa)
 
-	err = msgio.PushCourierBatch(vc, oa, channel, []*models.MsgOut{{Msg: msg3, URN: annURNs[0]}}, "1636557205.234567")
+	err = msgio.PushCourierBatch(vc, oa, channel, []*models.MsgOut{{Msg: msg3, URN: annURNs[0], Contact: ann}}, "1636557205.234567")
 	require.NoError(t, err)
 
 	queued, err = redis.ByteSlices(vc.Do("ZRANGE", "msgs:74729f45-7f29-4868-9dc4-90e491e3c7d8|10/0", 0, -1))
@@ -390,7 +401,7 @@ func TestPushCourierBatch(t *testing.T) {
 
 	msg4 := (&msgSpec{Channel: testdb.TwilioChannel, Contact: testdb.Ann}).createMsg(t, rt, oa)
 
-	err = msgio.PushCourierBatch(vc, oa, channel, []*models.MsgOut{{Msg: msg4, URN: annURNs[0]}}, "1636557205.345678")
+	err = msgio.PushCourierBatch(vc, oa, channel, []*models.MsgOut{{Msg: msg4, URN: annURNs[0], Contact: ann}}, "1636557205.345678")
 	require.NoError(t, err)
 
 	// check that channel has *not* been added to active list

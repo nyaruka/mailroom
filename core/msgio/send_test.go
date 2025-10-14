@@ -151,7 +151,8 @@ func TestQueueMessages(t *testing.T) {
 	for _, tc := range tests {
 		msgs := make([]*models.MsgOut, len(tc.Msgs))
 		for i, ms := range tc.Msgs {
-			msgs[i] = &models.MsgOut{Msg: ms.createMsg(t, rt, oa)}
+			contact, _, _ := ms.Contact.Load(t, rt, oa)
+			msgs[i] = &models.MsgOut{Msg: ms.createMsg(t, rt, oa), Contact: contact}
 		}
 
 		vc.Do("FLUSHDB")

@@ -677,14 +677,37 @@ func updateMessageStatus(ctx context.Context, db DBorTx, msgs []*Msg, status Msg
 	return BulkQuery(ctx, "updating message status", db, sqlUpdateMsgStatus, is)
 }
 
-// PrepareMessagesForRetry prepares messages for retrying by fetching the URN and marking them as QUEUED
-func PrepareMessagesForRetry(ctx context.Context, db *sqlx.DB, msgs []*Msg) ([]*MsgOut, error) {
-	ids := make([]URNID, 0, len(msgs))
-	for _, s := range msgs {
-		ids = append(ids, s.ContactURNID())
+// loads the bare minimum contact info we need for sending messages. Note that contacts may belong to
+// different orgs.
+func loadContactsForSending(ctx context.Context, db *sqlx.DB, contactIDs []ContactID) (map[ContactID]*Contact, error) {
+	contacts := make([]*contactEnvelope, 0, len(contactIDs))
+	if err := db.SelectContext(ctx, &contacts, `SELECT id, uuid, last_seen_on FROM contacts_contact WHERE id = ANY($1)`, pq.Array(contactIDs)); err != nil {
+		return nil, fmt.Errorf("error loading contacts for sending: %w", err)
 	}
 
-	cus, err := LoadContactURNs(ctx, db, ids)
+	contactsByID := make(map[ContactID]*Contact, len(contacts))
+	for _, c := range contacts {
+		contactsByID[c.ID] = &Contact{id: c.ID, uuid: c.UUID, lastSeenOn: c.LastSeenOn}
+	}
+
+	return contactsByID, nil
+}
+
+// PrepareMessagesForRetry prepares messages for retrying by fetching the contact/URN and marking them as QUEUED
+func PrepareMessagesForRetry(ctx context.Context, db *sqlx.DB, msgs []*Msg) ([]*MsgOut, error) {
+	contactIDs := make([]ContactID, len(msgs))
+	urnIDs := make([]URNID, len(msgs))
+	for i, m := range msgs {
+		contactIDs[i] = m.ContactID()
+		urnIDs[i] = m.ContactURNID()
+	}
+
+	contactsByID, err := loadContactsForSending(ctx, db, contactIDs)
+	if err != nil {
+		return nil, fmt.Errorf("error looking up contacts for retries: %w", err)
+	}
+
+	cus, err := LoadContactURNs(ctx, db, urnIDs)
 	if err != nil {
 		return nil, fmt.Errorf("error looking up contact URNs fo retries: %w", err)
 	}
@@ -698,8 +721,9 @@ func PrepareMessagesForRetry(ctx context.Context, db *sqlx.DB, msgs []*Msg) ([]*
 
 	for i, m := range msgs {
 		retries[i] = &MsgOut{
-			Msg: m,
-			URN: urnsByID[m.ContactURNID()],
+			Msg:     m,
+			URN:     urnsByID[m.ContactURNID()],
+			Contact: contactsByID[m.ContactID()],
 		}
 	}
 
@@ -725,6 +749,16 @@ UPDATE msgs_msg m
 // PrepareMessagesForResend prepares messages for resending by reselecting a channel and marking them as QUEUED
 func PrepareMessagesForResend(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, msgs []*Msg) ([]*MsgOut, error) {
 	channels := oa.SessionAssets().Channels()
+
+	contactIDs := make([]ContactID, len(msgs))
+	for i, m := range msgs {
+		contactIDs[i] = m.ContactID()
+	}
+
+	contactsByID, err := loadContactsForSending(ctx, rt.DB, contactIDs)
+	if err != nil {
+		return nil, fmt.Errorf("error looking up contacts for retries: %w", err)
+	}
 
 	// for the bulk db updates
 	resends := make([]any, 0, len(msgs))
@@ -765,7 +799,12 @@ func PrepareMessagesForResend(ctx context.Context, rt *runtime.Runtime, oa *OrgA
 			msg.m.FailedReason = ""
 
 			resends = append(resends, msg.m)
-			resent = append(resent, &MsgOut{Msg: msg, URN: cu, IsResend: true})
+			resent = append(resent, &MsgOut{
+				Msg:      msg,
+				URN:      cu,
+				Contact:  contactsByID[msg.m.ContactID],
+				IsResend: true,
+			})
 		} else {
 			// if we don't have channel or a URN, fail again
 			msg.m.ChannelID = NilChannelID
@@ -779,8 +818,7 @@ func PrepareMessagesForResend(ctx context.Context, rt *runtime.Runtime, oa *OrgA
 	}
 
 	// update the messages that can be resent
-	err := BulkQuery(ctx, "updating messages for resending", rt.DB, sqlUpdateMsgForResending, resends)
-	if err != nil {
+	if err := BulkQuery(ctx, "updating messages for resending", rt.DB, sqlUpdateMsgForResending, resends); err != nil {
 		return nil, fmt.Errorf("error updating messages for resending: %w", err)
 	}
 
