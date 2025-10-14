@@ -1,3 +1,8 @@
+v10.3.88 (2025-10-14)
+-------------------------
+ * Update retries and resends to fetch contact info
+ * Tweak courier payload adding contact UUID
+
 v10.3.87 (2025-10-13)
 -------------------------
  * Fix fetching of open incidents
