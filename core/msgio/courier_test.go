@@ -30,7 +30,7 @@ func TestNewCourierMsg(t *testing.T) {
 
 	// create an opt-in and a new contact with an auth token for it
 	optInID := testdb.InsertOptIn(t, rt, testdb.Org1, "45aec4dd-945f-4511-878f-7d8516fbd336", "Joke Of The Day").ID
-	testFred := testdb.InsertContact(t, rt, testdb.Org1, "", "Fred", "eng", models.ContactStatusActive)
+	testFred := testdb.InsertContact(t, rt, testdb.Org1, "fed2d179-73ac-44fd-b838-7f866fef0a3a", "Fred", "eng", models.ContactStatusActive)
 	testdb.InsertContactURN(t, rt, testdb.Org1, testFred, "tel:+593979123456", 1000, map[string]string{fmt.Sprintf("optin:%d", optInID): "sesame"})
 
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshOptIns)
@@ -83,6 +83,7 @@ func TestNewCourierMsg(t *testing.T) {
 			"image/jpeg:https://dl-foo.com/image.jpg"
 		],
 		"channel_uuid": "0f661e8b-ea9d-4bd3-9953-d368340acf91",
+		"contact": {"id": 10000, "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf"},
 		"contact_id": 10000,
 		"contact_urn_id": 10000,
 		"created_on": %s,
@@ -135,6 +136,7 @@ func TestNewCourierMsg(t *testing.T) {
 
 	createAndAssertCourierMsg(t, oa, msg2, fmt.Sprintf(`{
 		"channel_uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8",
+		"contact": {"id": 10000, "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf", "last_seen_on": "2023-04-20T10:15:00Z"},
 		"contact_id": 10000,
 		"contact_last_seen_on": "2023-04-20T10:15:00Z",
 		"contact_urn_id": 10000,
@@ -173,6 +175,7 @@ func TestNewCourierMsg(t *testing.T) {
 
 	createAndAssertCourierMsg(t, oa, msg3, fmt.Sprintf(`{
 		"channel_uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8",
+		"contact": {"id": 30000, "uuid": "fed2d179-73ac-44fd-b838-7f866fef0a3a"},
 		"contact_id": 30000,
 		"contact_urn_id": 30000,
 		"created_on": %s,
@@ -199,6 +202,7 @@ func TestNewCourierMsg(t *testing.T) {
 
 	createAndAssertCourierMsg(t, oa, msg4, fmt.Sprintf(`{
 		"channel_uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8",
+		"contact": {"id": 10000, "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf", "last_seen_on": "2023-04-20T10:15:00Z"},
 		"contact_id": 10000,
 		"contact_last_seen_on": "2023-04-20T10:15:00Z",
 		"contact_urn_id": 10000,

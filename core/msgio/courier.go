@@ -42,6 +42,12 @@ const (
 	MsgOriginChat      MsgOrigin = "chat"
 )
 
+type Contact struct {
+	ID         models.ContactID  `json:"id"`
+	UUID       flows.ContactUUID `json:"uuid"`
+	LastSeenOn *time.Time        `json:"last_seen_on,omitempty"`
+}
+
 type OptInRef struct {
 	ID   models.OptInID `json:"id"`
 	Name string         `json:"name"`
@@ -70,9 +76,9 @@ var sessionStatusMap = map[flows.SessionStatus]string{flows.SessionStatusWaiting
 
 // Msg is the format of a message queued to courier
 type Msg struct {
-	ID                   models.MsgID       `json:"id"`
 	UUID                 flows.EventUUID    `json:"uuid"`
 	OrgID                models.OrgID       `json:"org_id"`
+	Contact              *Contact           `json:"contact"`
 	Origin               MsgOrigin          `json:"origin"`
 	Text                 string             `json:"text"`
 	Attachments          []utils.Attachment `json:"attachments,omitempty"`
@@ -83,8 +89,6 @@ type Msg struct {
 	MsgCount             int                `json:"tps_cost"`
 	CreatedOn            time.Time          `json:"created_on"`
 	ChannelUUID          assets.ChannelUUID `json:"channel_uuid"`
-	ContactID            models.ContactID   `json:"contact_id"`
-	ContactURNID         models.URNID       `json:"contact_urn_id"`
 	URN                  urns.URN           `json:"urn"`
 	URNAuth              string             `json:"urn_auth,omitempty"`
 	Flow                 *FlowRef           `json:"flow,omitempty"`
@@ -92,17 +96,25 @@ type Msg struct {
 	OptIn                *OptInRef          `json:"optin,omitempty"`
 	ResponseToExternalID string             `json:"response_to_external_id,omitempty"`
 	IsResend             bool               `json:"is_resend,omitempty"`
+	Session              *Session           `json:"session,omitempty"`
 
-	ContactLastSeenOn *time.Time `json:"contact_last_seen_on,omitempty"`
-	Session           *Session   `json:"session,omitempty"`
+	// deprecated
+	ID                models.MsgID     `json:"id"`
+	ContactID         models.ContactID `json:"contact_id"`
+	ContactURNID      models.URNID     `json:"contact_urn_id"`
+	ContactLastSeenOn *time.Time       `json:"contact_last_seen_on,omitempty"`
 }
 
 // NewCourierMsg creates a courier message in the format it's expecting to be queued
 func NewCourierMsg(oa *models.OrgAssets, mo *models.MsgOut, ch *models.Channel) (*Msg, error) {
 	msg := &Msg{
-		ID:           mo.ID(),
-		UUID:         mo.UUID(),
-		OrgID:        mo.OrgID(),
+		UUID:  mo.UUID(),
+		OrgID: mo.OrgID(),
+		Contact: &Contact{
+			ID:         mo.ContactID(),
+			UUID:       mo.Contact.UUID(),
+			LastSeenOn: mo.Contact.LastSeenOn(),
+		},
 		Text:         mo.Text(),
 		Attachments:  mo.Attachments(),
 		QuickReplies: mo.QuickReplies(),
@@ -110,13 +122,15 @@ func NewCourierMsg(oa *models.OrgAssets, mo *models.MsgOut, ch *models.Channel) 
 		HighPriority: mo.HighPriority(),
 		MsgCount:     mo.MsgCount(),
 		CreatedOn:    mo.CreatedOn(),
-		ContactID:    mo.ContactID(),
-		ContactURNID: mo.ContactURNID(),
 		ChannelUUID:  ch.UUID(),
 		UserID:       mo.CreatedByID(),
 		URN:          mo.URN.Identity,
 		URNAuth:      string(mo.URN.AuthTokens["default"]),
 		IsResend:     mo.IsResend,
+		// deprecated
+		ID:           mo.ID(),
+		ContactID:    mo.ContactID(),
+		ContactURNID: mo.ContactURNID(),
 	}
 
 	if mo.FlowID() != models.NilFlowID {
