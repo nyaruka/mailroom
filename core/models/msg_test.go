@@ -88,7 +88,7 @@ func TestNewOutgoingFlowMsg(t *testing.T) {
 			Contact:              testdb.Ann,
 			URN:                  urns.NilURN,
 			Content:              &flows.MsgContent{Text: "hello"},
-			Unsendable:           flows.UnsendableReasonNoDestination,
+			Unsendable:           flows.UnsendableReasonNoRoute,
 			Flow:                 testdb.Favorites,
 			ExpectedURNID:        models.URNID(0),
 			ExpectedStatus:       models.MsgStatusFailed,
@@ -101,7 +101,7 @@ func TestNewOutgoingFlowMsg(t *testing.T) {
 			Contact:              blake,
 			URN:                  "tel:+250700000007",
 			Content:              &flows.MsgContent{Text: "hello"},
-			Unsendable:           flows.UnsendableReasonContactStatus,
+			Unsendable:           flows.UnsendableReasonContactBlocked,
 			Flow:                 testdb.Favorites,
 			ExpectedURNID:        blakeURNID,
 			ExpectedStatus:       models.MsgStatusFailed,
@@ -537,7 +537,7 @@ func TestCreateMsgOut(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, urns.URN("tel:+16055742222"), out.URN())
 	assert.Equal(t, assets.NewChannelReference("74729f45-7f29-4868-9dc4-90e491e3c7d8", "Twilio"), out.Channel())
-	assert.Equal(t, flows.UnsendableReasonContactStatus, out.UnsendableReason())
+	assert.Equal(t, flows.UnsendableReasonContactBlocked, out.UnsendableReason())
 
 	bob.SetStatus(flows.ContactStatusActive)
 	bob.SetURNs(nil)
@@ -546,7 +546,7 @@ func TestCreateMsgOut(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, urns.NilURN, out.URN())
 	assert.Nil(t, out.Channel())
-	assert.Equal(t, flows.UnsendableReasonNoDestination, out.UnsendableReason())
+	assert.Equal(t, flows.UnsendableReasonNoRoute, out.UnsendableReason())
 }
 
 func TestMsgTemplating(t *testing.T) {
@@ -567,12 +567,12 @@ func TestMsgTemplating(t *testing.T) {
 	)
 
 	// create a message with templating
-	out1 := events.NewMsgCreated(flows.NewMsgOut(testdb.Ann.URN, chRef, &flows.MsgContent{Text: "Hello"}, templating1, i18n.NilLocale, flows.NilUnsendableReason), "", "")
+	out1 := events.NewMsgCreated(flows.NewMsgOut(testdb.Ann.URN, chRef, &flows.MsgContent{Text: "Hello"}, templating1, i18n.NilLocale, ""), "", "")
 	msg1, err := models.NewOutgoingFlowMsg(rt, oa.Org(), channel, mc, flow, out1, nil)
 	require.NoError(t, err)
 
 	// create a message without templating
-	out2 := events.NewMsgCreated(flows.NewMsgOut(testdb.Ann.URN, chRef, &flows.MsgContent{Text: "Hello"}, nil, i18n.NilLocale, flows.NilUnsendableReason), "", "")
+	out2 := events.NewMsgCreated(flows.NewMsgOut(testdb.Ann.URN, chRef, &flows.MsgContent{Text: "Hello"}, nil, i18n.NilLocale, ""), "", "")
 	msg2, err := models.NewOutgoingFlowMsg(rt, oa.Org(), channel, mc, flow, out2, nil)
 	require.NoError(t, err)
 

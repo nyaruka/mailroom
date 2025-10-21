@@ -64,7 +64,7 @@ func TestNewCourierMsg(t *testing.T) {
 			[]*flows.TemplatingVariable{{Type: "text", Value: "name"}},
 		),
 		`eng-US`,
-		flows.NilUnsendableReason,
+		"",
 	), "", "")
 
 	msg1, err := models.NewOutgoingFlowMsg(rt, oa.Org(), facebook, ann, flow, msgEvent1, nil)
@@ -121,7 +121,7 @@ func TestNewCourierMsg(t *testing.T) {
 		&flows.MsgContent{Text: "Hi there"},
 		nil,
 		i18n.NilLocale,
-		flows.NilUnsendableReason,
+		"",
 	), "", "")
 	in1 := testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199bad8-f98d-75a3-b641-2718a25ac3f5", testdb.TwilioChannel, testdb.Ann, "test", models.MsgStatusHandled)
 	msg2, err := models.NewOutgoingFlowMsg(rt, oa.Org(), twilio, ann, flow, msgEvent2, &models.MsgInRef{ID: in1.ID, ExtID: "EX123"})
@@ -161,7 +161,7 @@ func TestNewCourierMsg(t *testing.T) {
 	// try a broadcast message which won't have session and flow fields set and won't be high priority
 	bcast := testdb.InsertBroadcast(t, rt, testdb.Org1, "0199877e-0ed2-790b-b474-35099cea401c", `eng`, map[i18n.Language]string{`eng`: "Blast"}, nil, models.NilScheduleID, []*testdb.Contact{testFred}, nil)
 	msgEvent3 := events.NewMsgCreated(
-		flows.NewMsgOut(fredURN, assets.NewChannelReference(testdb.TwilioChannel.UUID, "Test Channel"), &flows.MsgContent{Text: "Blast"}, nil, i18n.NilLocale, flows.NilUnsendableReason),
+		flows.NewMsgOut(fredURN, assets.NewChannelReference(testdb.TwilioChannel.UUID, "Test Channel"), &flows.MsgContent{Text: "Blast"}, nil, i18n.NilLocale, ""),
 		bcast.UUID,
 		"",
 	)

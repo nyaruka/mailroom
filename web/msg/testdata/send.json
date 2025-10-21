@@ -474,7 +474,7 @@
                     "msg": {
                         "locale": "eng",
                         "text": "Come back",
-                        "unsendable_reason": "no_destination"
+                        "unsendable_reason": "no_route"
                     },
                     "type": "msg_created"
                 }
