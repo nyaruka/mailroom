@@ -415,7 +415,8 @@ func newMsgOut(rt *runtime.Runtime, org *Org, channel *Channel, contact *Contact
 	m.CreatedByID = userID
 	m.CreatedOn = event.CreatedOn()
 
-	if urn := contact.FindURN(out.URN()); urn != nil {
+	urn := contact.FindURN(out.URN())
+	if urn != nil {
 		m.ContactURNID = urn.ID
 	}
 	msg.SetChannel(channel)
@@ -451,7 +452,7 @@ func newMsgOut(rt *runtime.Runtime, org *Org, channel *Channel, contact *Contact
 		m.FlowID = flow.ID()
 	}
 
-	return &MsgOut{Msg: msg, Contact: contact, ReplyTo: replyTo}, nil
+	return &MsgOut{Msg: msg, URN: urn, Contact: contact, ReplyTo: replyTo}, nil
 }
 
 var msgRepetitionsScript = redis.NewScript(3, `

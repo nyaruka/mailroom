@@ -52,7 +52,11 @@ func handleMsgCreated(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAs
 	scene.AttachPreCommitHook(hooks.InsertMessages, hooks.MsgAndURN{Msg: msg.Msg, URN: event.Msg.URN()})
 
 	// and queue it to be sent after the transaction is complete
-	scene.AttachPostCommitHook(hooks.SendMessages, msg)
+	if event.Msg.UnsendableReason() == "" {
+		scene.AttachPostCommitHook(hooks.SendMessages, msg)
+	}
+
+	scene.OutgoingMsgs = append(scene.OutgoingMsgs, msg)
 
 	return nil
 }
