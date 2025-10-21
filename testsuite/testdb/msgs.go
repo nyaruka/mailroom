@@ -94,7 +94,7 @@ func insertOutgoingMsg(t *testing.T, rt *runtime.Runtime, org *Org, uuid flows.E
 		sentOn = &t
 	}
 
-	fm := flows.NewMsgOut(contact.URN, channelRef, &flows.MsgContent{Text: text, Attachments: attachments}, nil, i18n.NilLocale, flows.NilUnsendableReason)
+	fm := flows.NewMsgOut(contact.URN, channelRef, &flows.MsgContent{Text: text, Attachments: attachments}, nil, i18n.NilLocale, "")
 
 	var id models.MsgID
 	err := rt.DB.Get(&id,

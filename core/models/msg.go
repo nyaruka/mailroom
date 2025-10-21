@@ -87,8 +87,8 @@ const (
 )
 
 const (
-	UnsendableReasonOrgStatus flows.UnsendableReason = "org_status"
-	UnsendableReasonLooping   flows.UnsendableReason = "looping"
+	UnsendableReasonOrgSuspended flows.UnsendableReason = "org_suspended"
+	UnsendableReasonLooping      flows.UnsendableReason = "looping"
 )
 
 type MsgFailedReason null.String
@@ -105,10 +105,12 @@ const (
 )
 
 var unsendableToFailedReason = map[flows.UnsendableReason]MsgFailedReason{
-	flows.UnsendableReasonContactStatus: MsgFailedContact,
-	flows.UnsendableReasonNoDestination: MsgFailedNoDestination,
-	UnsendableReasonOrgStatus:           MsgFailedSuspended,
-	UnsendableReasonLooping:             MsgFailedLooping,
+	flows.UnsendableReasonContactBlocked:  MsgFailedContact,
+	flows.UnsendableReasonContactStopped:  MsgFailedContact,
+	flows.UnsendableReasonContactArchived: MsgFailedContact,
+	flows.UnsendableReasonNoRoute:         MsgFailedNoDestination,
+	UnsendableReasonOrgSuspended:          MsgFailedSuspended,
+	UnsendableReasonLooping:               MsgFailedLooping,
 }
 
 // Templating adds db support to the engine's templating struct
@@ -435,7 +437,7 @@ func newMsgOut(rt *runtime.Runtime, org *Org, channel *Channel, contact *Contact
 		}
 	}
 
-	if out.UnsendableReason() != flows.NilUnsendableReason {
+	if out.UnsendableReason() != "" {
 		m.Status = MsgStatusFailed
 		m.FailedReason = unsendableToFailedReason[out.UnsendableReason()]
 	}
@@ -914,11 +916,15 @@ func CreateMsgOut(rt *runtime.Runtime, oa *OrgAssets, c *flows.Contact, content 
 	}
 
 	// is this message sendable?
-	unsendableReason := flows.NilUnsendableReason
-	if c.Status() != flows.ContactStatusActive {
-		unsendableReason = flows.UnsendableReasonContactStatus
+	var unsendableReason flows.UnsendableReason
+	if c.Status() == flows.ContactStatusBlocked {
+		unsendableReason = flows.UnsendableReasonContactBlocked
+	} else if c.Status() == flows.ContactStatusStopped {
+		unsendableReason = flows.UnsendableReasonContactStopped
+	} else if c.Status() == flows.ContactStatusArchived {
+		unsendableReason = flows.UnsendableReasonContactArchived
 	} else if urn == urns.NilURN || channel == nil {
-		unsendableReason = flows.UnsendableReasonNoDestination
+		unsendableReason = flows.UnsendableReasonNoRoute
 	} else {
 		var err error
 		unsendableReason, err = msgCheckSendable(rt, oa.Org(), ContactID(c.ID()), content)
@@ -985,13 +991,13 @@ func DeleteMessages(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, uui
 
 func msgCheckSendable(rt *runtime.Runtime, org *Org, contactID ContactID, content *flows.MsgContent) (flows.UnsendableReason, error) {
 	if org.Suspended() {
-		return UnsendableReasonOrgStatus, nil
+		return UnsendableReasonOrgSuspended, nil
 	}
 
 	// does this look like a message loop?
 	repetitions, err := GetMsgRepetitions(rt.VK, contactID, content)
 	if err != nil {
-		return flows.NilUnsendableReason, fmt.Errorf("error looking up msg repetitions: %w", err)
+		return "", fmt.Errorf("error looking up msg repetitions: %w", err)
 	}
 	if repetitions > msgRepetitionLimit {
 		slog.Warn("too many repetitions, failing message", "contact_id", contactID, "text", content.Text, "repetitions", repetitions)
@@ -999,7 +1005,7 @@ func msgCheckSendable(rt *runtime.Runtime, org *Org, contactID ContactID, conten
 		return UnsendableReasonLooping, nil
 	}
 
-	return flows.NilUnsendableReason, nil
+	return "", nil
 }
 
 // NilID implementations
