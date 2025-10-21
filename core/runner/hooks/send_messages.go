@@ -21,7 +21,7 @@ func (h *sendMessages) Execute(ctx context.Context, rt *runtime.Runtime, oa *mod
 
 	// for each scene gather all our messages
 	for s, args := range scenes {
-		s.SentMsgs = make([]*models.MsgOut, len(args))
+		sceneMsgs := make([]*models.MsgOut, len(args))
 
 		for i, m := range args {
 			msg := m.(*models.MsgOut)
@@ -34,10 +34,10 @@ func (h *sendMessages) Execute(ctx context.Context, rt *runtime.Runtime, oa *mod
 				msg.LastInSprint = true
 			}
 
-			s.SentMsgs[i] = msg
+			sceneMsgs[i] = msg
 		}
 
-		msgs = append(msgs, s.SentMsgs...)
+		msgs = append(msgs, sceneMsgs...)
 	}
 
 	msgio.QueueMessages(ctx, rt, msgs)

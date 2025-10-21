@@ -73,7 +73,7 @@ func handleSend(ctx context.Context, rt *runtime.Runtime, r *sendRequest) (any, 
 		return nil, 0, fmt.Errorf("error committing scene: %w", err)
 	}
 
-	msg := scene.SentMsgs[0]
+	msg := scene.OutgoingMsgs[0]
 
 	// TODO move this into event handler?
 	// if message was a ticket reply, update the ticket
