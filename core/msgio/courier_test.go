@@ -84,8 +84,6 @@ func TestNewCourierMsg(t *testing.T) {
 		],
 		"channel_uuid": "0f661e8b-ea9d-4bd3-9953-d368340acf91",
 		"contact": {"id": 10000, "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf"},
-		"contact_id": 10000,
-		"contact_urn_id": 10000,
 		"created_on": %s,
 		"flow": {"uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85", "name": "Favorites"},
 		"high_priority": false,
@@ -137,9 +135,6 @@ func TestNewCourierMsg(t *testing.T) {
 	createAndAssertCourierMsg(t, oa, msg2, fmt.Sprintf(`{
 		"channel_uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8",
 		"contact": {"id": 10000, "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf", "last_seen_on": "2023-04-20T10:15:00Z"},
-		"contact_id": 10000,
-		"contact_last_seen_on": "2023-04-20T10:15:00Z",
-		"contact_urn_id": 10000,
 		"created_on": %s,
 		"flow": {"uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85", "name": "Favorites"},
 		"response_to_external_id": "EX123",
@@ -176,8 +171,6 @@ func TestNewCourierMsg(t *testing.T) {
 	createAndAssertCourierMsg(t, oa, msg3, fmt.Sprintf(`{
 		"channel_uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8",
 		"contact": {"id": 30000, "uuid": "fed2d179-73ac-44fd-b838-7f866fef0a3a"},
-		"contact_id": 30000,
-		"contact_urn_id": 30000,
 		"created_on": %s,
 		"high_priority": false,
 		"id": 30004,
@@ -203,9 +196,6 @@ func TestNewCourierMsg(t *testing.T) {
 	createAndAssertCourierMsg(t, oa, msg4, fmt.Sprintf(`{
 		"channel_uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8",
 		"contact": {"id": 10000, "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf", "last_seen_on": "2023-04-20T10:15:00Z"},
-		"contact_id": 10000,
-		"contact_last_seen_on": "2023-04-20T10:15:00Z",
-		"contact_urn_id": 10000,
 		"created_on": %s,
 		"flow": {"uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85", "name": "Favorites"},
 		"high_priority": true,
