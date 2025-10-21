@@ -1,3 +1,9 @@
+v10.3.89 (2025-10-21)
+-------------------------
+ * Tweak creation of outgoing messages to save URN on MsgOut
+ * Update unsendable_reason constants
+ * Remove fields from courier payload that are no longer used
+
 v10.3.88 (2025-10-14)
 -------------------------
  * Update retries and resends to fetch contact info
