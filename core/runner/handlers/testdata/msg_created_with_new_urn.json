@@ -125,7 +125,7 @@
                         },
                         "locale": "eng-US",
                         "text": "Bob Message",
-                        "urn": "telegram:67890?channel=0f661e8b-ea9d-4bd3-9953-d368340acf91"
+                        "urn": "telegram:67890"
                     },
                     "type": "msg_created"
                 }
@@ -202,7 +202,7 @@
                         },
                         "locale": "eng-US",
                         "text": "Ann Message",
-                        "urn": "telegram:12345?channel=0f661e8b-ea9d-4bd3-9953-d368340acf91"
+                        "urn": "telegram:12345"
                     },
                     "type": "msg_created"
                 }

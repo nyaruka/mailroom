@@ -16,8 +16,8 @@
             {
                 "query": "SELECT status, last_seen_on::text FROM contacts_contact WHERE id = 10000",
                 "columns": {
-                    "status": "A",
-                    "last_seen_on": "2025-10-08 16:31:19.414488+00"
+                    "last_seen_on": "2025-10-08 16:31:19.414488+00",
+                    "status": "A"
                 }
             }
         ],
@@ -63,7 +63,7 @@
                         },
                         "locale": "und-US",
                         "text": "What is your favorite color?",
-                        "urn": "tel:+16055741111?channel=0f661e8b-ea9d-4bd3-9953-d368340acf91"
+                        "urn": "tel:+16055741111"
                     },
                     "type": "msg_created"
                 }
@@ -222,7 +222,7 @@
                         },
                         "locale": "und-US",
                         "text": "Pick a number between 1-10.",
-                        "urn": "tel:+16055741111?channel=19012bfd-3ce3-4cae-9bb9-76cf92c73d49"
+                        "urn": "tel:+16055741111"
                     },
                     "type": "msg_created"
                 }
@@ -306,7 +306,7 @@
                         },
                         "locale": "und-US",
                         "text": "What is your favorite color?",
-                        "urn": "tel:+16055741111?channel=19012bfd-3ce3-4cae-9bb9-76cf92c73d49"
+                        "urn": "tel:+16055741111"
                     },
                     "type": "msg_created"
                 }
@@ -390,7 +390,7 @@
                         },
                         "locale": "und-US",
                         "text": "Pick a number between 1-10.",
-                        "urn": "tel:+16055741111?channel=19012bfd-3ce3-4cae-9bb9-76cf92c73d49"
+                        "urn": "tel:+16055741111"
                     },
                     "type": "msg_created"
                 }
@@ -555,7 +555,7 @@
                         },
                         "locale": "und-US",
                         "text": "What is your favorite color?",
-                        "urn": "tel:+16055742222?channel=0f661e8b-ea9d-4bd3-9953-d368340acf91"
+                        "urn": "tel:+16055742222"
                     },
                     "type": "msg_created"
                 }
