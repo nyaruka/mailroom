@@ -1,3 +1,8 @@
+v10.3.90 (2025-10-27)
+-------------------------
+ * Update other deps
+ * Update to latest goflow that uses identity URNs for messages
+
 v10.3.89 (2025-10-21)
 -------------------------
  * Tweak creation of outgoing messages to save URN on MsgOut
