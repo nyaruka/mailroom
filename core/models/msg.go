@@ -784,7 +784,7 @@ func PrepareMessagesForResend(ctx context.Context, rt *runtime.Runtime, oa *OrgA
 			}
 
 			urn, _ := cu.Encode(oa)
-			fu, err := flows.ParseRawURN(channels, urn, assets.IgnoreMissing)
+			fu, err := flows.ParseURN(channels, urn, assets.IgnoreMissing)
 			if err != nil {
 				return nil, fmt.Errorf("error parsing URN: %w", err)
 			}
@@ -864,7 +864,7 @@ func CreateMsgOut(rt *runtime.Runtime, oa *OrgAssets, c *flows.Contact, content 
 	var channel *Channel
 	var channelRef *assets.ChannelReference
 	for _, dest := range c.ResolveDestinations(false) {
-		urn = dest.URN.URN()
+		urn = dest.URN.Identity()
 		channel = oa.ChannelByUUID(dest.Channel.UUID())
 		channelRef = dest.Channel.Reference()
 		break

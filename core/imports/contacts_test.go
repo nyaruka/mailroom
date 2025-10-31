@@ -110,7 +110,7 @@ func TestContactImports(t *testing.T) {
 				Name:     &name,
 				Language: &lang,
 				Status:   contact.Status(),
-				URNs:     contact.URNs().RawURNs(),
+				URNs:     contact.URNs().Encode(),
 				Fields:   fields,
 				Groups:   groupUUIDs,
 			}
