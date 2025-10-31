@@ -91,14 +91,14 @@ func handleInspect(ctx context.Context, rt *runtime.Runtime, r *inspectRequest) 
 		urnInfos := make([]urnInfo, 0, len(flowContact.URNs()))
 
 		for _, d := range dests {
-			scheme, path, _, display := d.URN.URN().ToParts()
+			scheme, path, display := d.URN.Scheme, d.URN.Path, d.URN.Display
 			urnInfos = append(urnInfos, urnInfo{Channel: d.Channel.Reference(), Scheme: scheme, Path: path, Display: display})
 			urnsSeen[scheme+":"+path] = true
 		}
 
 		// then the rest of the unsendable URNs
 		for _, u := range flowContact.URNs() {
-			scheme, path, _, display := u.URN().ToParts()
+			scheme, path, display := u.Scheme, u.Path, u.Display
 			if !urnsSeen[scheme+":"+path] {
 				urnInfos = append(urnInfos, urnInfo{Channel: nil, Scheme: scheme, Path: path, Display: display})
 			}

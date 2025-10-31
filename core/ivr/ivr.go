@@ -118,7 +118,7 @@ func RequestCall(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 		}
 	}
 
-	urn := flows.NewContactURN(telURN.Identity, urnChannel)
+	urn := flows.NewURN(telURN.Scheme, telURN.Path, "", urnChannel)
 
 	// get the channel to use for outgoing calls
 	callChannel := ca.GetForURN(urn, assets.ChannelRoleCall)

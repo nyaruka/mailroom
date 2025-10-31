@@ -57,8 +57,8 @@ func TestContacts(t *testing.T) {
 	ann, bob, cat := contacts[0], contacts[1], contacts[2]
 
 	assert.Equal(t, "Ann", ann.Name())
-	assert.Equal(t, len(ann.URNs()), 1)
-	assert.Equal(t, ann.URNs()[0].String(), "tel:+16055741111")
+	assert.Len(t, ann.URNs(), 1)
+	assert.Equal(t, urns.URN("tel:+16055741111"), ann.URNs()[0].Encode())
 	assert.Equal(t, 1, ann.Groups().Count())
 	assert.Equal(t, 2, ann.Tickets().Open().Count())
 
@@ -73,9 +73,9 @@ func TestContacts(t *testing.T) {
 
 	assert.Equal(t, "Bob", bob.Name())
 	assert.NotNil(t, bob.Fields()["joined"].QueryValue())
-	assert.Equal(t, 2, len(bob.URNs()))
-	assert.Equal(t, "tel:+16055742222", bob.URNs()[0].String())
-	assert.Equal(t, "whatsapp:250788373373", bob.URNs()[1].String())
+	assert.Len(t, bob.URNs(), 2)
+	assert.Equal(t, urns.URN("tel:+16055742222"), bob.URNs()[0].Encode())
+	assert.Equal(t, urns.URN("whatsapp:250788373373"), bob.URNs()[1].Encode())
 	assert.Equal(t, 0, bob.Groups().Count())
 	assert.NotNil(t, bob.Tickets().LastOpen())
 
@@ -92,8 +92,8 @@ func TestContacts(t *testing.T) {
 
 	bob, err = mcs[1].EngineContact(org)
 	assert.NoError(t, err)
-	assert.Equal(t, "tel:+16055742222?channel=74729f45-7f29-4868-9dc4-90e491e3c7d8", bob.URNs()[0].String())
-	assert.Equal(t, "whatsapp:250788373373", bob.URNs()[1].String())
+	assert.Equal(t, urns.URN("tel:+16055742222?channel=74729f45-7f29-4868-9dc4-90e491e3c7d8"), bob.URNs()[0].Encode())
+	assert.Equal(t, urns.URN("whatsapp:250788373373"), bob.URNs()[1].Encode())
 
 	// add another tel urn to bob
 	testdb.InsertContactURN(t, rt, testdb.Org1, testdb.Bob, urns.URN("tel:+250788373373"), 10, nil)
@@ -108,9 +108,9 @@ func TestContacts(t *testing.T) {
 
 	bob, err = mcs[0].EngineContact(org)
 	assert.NoError(t, err)
-	assert.Equal(t, "tel:+250788373373?channel=74729f45-7f29-4868-9dc4-90e491e3c7d8", bob.URNs()[0].String())
-	assert.Equal(t, "tel:+16055742222?channel=74729f45-7f29-4868-9dc4-90e491e3c7d8", bob.URNs()[1].String())
-	assert.Equal(t, "whatsapp:250788373373", bob.URNs()[2].String())
+	assert.Equal(t, urns.URN("tel:+250788373373?channel=74729f45-7f29-4868-9dc4-90e491e3c7d8"), bob.URNs()[0].Encode())
+	assert.Equal(t, urns.URN("tel:+16055742222?channel=74729f45-7f29-4868-9dc4-90e491e3c7d8"), bob.URNs()[1].Encode())
+	assert.Equal(t, urns.URN("whatsapp:250788373373"), bob.URNs()[2].Encode())
 
 	// no op this time
 	err = mcs[0].UpdatePreferredURN(ctx, rt.DB, org, models.URNID(30001), channel)
@@ -118,9 +118,9 @@ func TestContacts(t *testing.T) {
 
 	bob, err = mcs[0].EngineContact(org)
 	assert.NoError(t, err)
-	assert.Equal(t, "tel:+250788373373?channel=74729f45-7f29-4868-9dc4-90e491e3c7d8", bob.URNs()[0].String())
-	assert.Equal(t, "tel:+16055742222?channel=74729f45-7f29-4868-9dc4-90e491e3c7d8", bob.URNs()[1].String())
-	assert.Equal(t, "whatsapp:250788373373", bob.URNs()[2].String())
+	assert.Equal(t, urns.URN("tel:+250788373373?channel=74729f45-7f29-4868-9dc4-90e491e3c7d8"), bob.URNs()[0].Encode())
+	assert.Equal(t, urns.URN("tel:+16055742222?channel=74729f45-7f29-4868-9dc4-90e491e3c7d8"), bob.URNs()[1].Encode())
+	assert.Equal(t, urns.URN("whatsapp:250788373373"), bob.URNs()[2].Encode())
 }
 
 func TestCreateContact(t *testing.T) {
@@ -149,7 +149,7 @@ func TestCreateContact(t *testing.T) {
 	assert.Equal(t, "Rich", flowContact.Name())
 	assert.Equal(t, i18n.Language(`kin`), flowContact.Language())
 	assert.Equal(t, flows.ContactStatusActive, flowContact.Status())
-	assert.Equal(t, []urns.URN{"telegram:200001", "telegram:200002"}, flowContact.URNs().RawURNs())
+	assert.Equal(t, []urns.URN{"telegram:200001", "telegram:200002"}, flowContact.URNs().Encode())
 	assert.Len(t, flowContact.Groups().All(), 1)
 	assert.Equal(t, assets.GroupUUID("d636c966-79c1-4417-9f1c-82ad629773a2"), flowContact.Groups().All()[0].UUID())
 
@@ -314,7 +314,7 @@ func TestGetOrCreateContact(t *testing.T) {
 		assert.NoError(t, err, "%d: error creating contact", i)
 
 		assert.Equal(t, tc.ContactID, contact.ID(), "%d: contact id mismatch", i)
-		assert.Equal(t, tc.ContactURNs, flowContact.URNs().RawURNs(), "%d: URNs mismatch", i)
+		assert.Equal(t, tc.ContactURNs, flowContact.URNs().Encode(), "%d: URNs mismatch", i)
 		assert.Equal(t, tc.Created, created, "%d: created flag mismatch", i)
 
 		groupUUIDs := make([]assets.GroupUUID, len(flowContact.Groups().All()))
