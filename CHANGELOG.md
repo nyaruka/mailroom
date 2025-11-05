@@ -1,3 +1,8 @@
+v10.3.91 (2025-11-05)
+-------------------------
+ * Queue messages to courier with new prev_attempts field
+ * Update to latest goflow that changes URN creation
+
 v10.3.90 (2025-10-27)
 -------------------------
  * Update other deps
