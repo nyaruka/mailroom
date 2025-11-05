@@ -96,6 +96,7 @@ type Msg struct {
 	OptIn                *OptInRef          `json:"optin,omitempty"`
 	ResponseToExternalID string             `json:"response_to_external_id,omitempty"`
 	IsResend             bool               `json:"is_resend,omitempty"`
+	PrevAttempts         int                `json:"prev_attempts,omitempty"`
 	Session              *Session           `json:"session,omitempty"`
 
 	// deprecated, see https://github.com/nyaruka/courier/issues/906
@@ -124,6 +125,7 @@ func NewCourierMsg(oa *models.OrgAssets, mo *models.MsgOut, ch *models.Channel) 
 		URN:          mo.URN.Identity,
 		URNAuth:      string(mo.URN.AuthTokens["default"]),
 		IsResend:     mo.IsResend,
+		PrevAttempts: mo.ErrorCount(),
 		ID:           mo.ID(), // deprecated
 	}
 

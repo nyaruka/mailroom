@@ -103,7 +103,7 @@ func TestNewCourierMsg(t *testing.T) {
 			"variables": [{"type": "text", "value": "name"}],
 			"namespace": "2d40b45c_25cd_4965_9019_f05d0124c5fa",
 			"external_id": "eng1",
-			"language": "en_US"			
+			"language": "en_US"
 		},
 		"text": "Hi there",
 		"tps_cost": 2,
@@ -217,6 +217,45 @@ func TestNewCourierMsg(t *testing.T) {
 		"urn": "tel:+16055741111",
 		"uuid": "%s"
 	}`, string(jsonx.MustMarshal(optInEvent.CreatedOn())), optIn.ID(), session.UUID(), sprint.UUID(), msg4.UUID()))
+
+	// make msg1 look like it errored and fetch it for retrying
+	rt.DB.MustExec(`UPDATE msgs_msg SET status = 'E', error_count = 1, next_attempt = $2 WHERE id = $1`, msg1.ID(), time.Now())
+
+	msgs, err := models.GetMessagesForRetry(ctx, rt.DB)
+	assert.NoError(t, err)
+
+	retries, err := models.PrepareMessagesForRetry(ctx, rt.DB, msgs)
+	assert.NoError(t, err)
+	assert.Len(t, retries, 1)
+
+	createAndAssertCourierMsg(t, oa, retries[0], fmt.Sprintf(`{
+		"attachments": [
+			"image/jpeg:https://dl-foo.com/image.jpg"
+		],
+		"channel_uuid": "0f661e8b-ea9d-4bd3-9953-d368340acf91",
+		"contact": {"id": 10000, "last_seen_on": "2023-04-20T10:15:00Z", "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf"},
+		"created_on": %s,
+		"flow": {"uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85", "name": "Favorites"},
+		"high_priority": false,
+		"id": 30001,
+		"locale": "eng-US",
+		"org_id": 1,
+		"origin": "flow",
+		"prev_attempts": 1,
+		"quick_replies": [{"text": "yes", "extra": "if you really want"}, {"text": "no"}],
+		"templating": {
+			"template": {"uuid": "9c22b594-fcab-4b29-9bcb-ce4404894a80", "name": "revive_issue"},
+			"components": [{"type": "body", "name": "body", "variables": {"1": 0}}],
+			"variables": [{"type": "text", "value": "name"}],
+			"namespace": "2d40b45c_25cd_4965_9019_f05d0124c5fa",
+			"external_id": "eng1",
+			"language": "en_US"
+		},
+		"text": "Hi there",
+		"tps_cost": 2,
+		"urn": "tel:+16055741111",
+		"uuid": "%s"
+	}`, string(jsonx.MustMarshal(msgEvent1.CreatedOn().Round(time.Microsecond))), msg1.UUID()))
 }
 
 func createAndAssertCourierMsg(t *testing.T, oa *models.OrgAssets, msg *models.MsgOut, expectedJSON string) {
