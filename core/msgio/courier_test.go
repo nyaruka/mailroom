@@ -1,7 +1,6 @@
 package msgio_test
 
 import (
-	"encoding/json"
 	"fmt"
 	"testing"
 	"time"
@@ -87,7 +86,6 @@ func TestNewCourierMsg(t *testing.T) {
 		"created_on": %s,
 		"flow": {"uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85", "name": "Favorites"},
 		"high_priority": false,
-		"id": 30001,
 		"locale": "eng-US",
 		"org_id": 1,
 		"origin": "flow",
@@ -109,7 +107,7 @@ func TestNewCourierMsg(t *testing.T) {
 		"tps_cost": 2,
 		"urn": "tel:+16055741111",
 		"uuid": "%s"
-	}`, string(jsonx.MustMarshal(msgEvent1.CreatedOn())), session.UUID(), sprint.UUID(), msg1.UUID()))
+	}`, string(jsonx.MustMarshal(msgEvent1.CreatedOn().In(time.UTC))), session.UUID(), sprint.UUID(), msg1.UUID()))
 
 	// create a priority flow message.. i.e. the session is responding to an incoming message
 	ann.UpdateLastSeenOn(ctx, rt.DB, time.Date(2023, 4, 20, 10, 15, 0, 0, time.UTC))
@@ -139,7 +137,6 @@ func TestNewCourierMsg(t *testing.T) {
 		"flow": {"uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85", "name": "Favorites"},
 		"response_to_external_id": "EX123",
 		"high_priority": true,
-		"id": 30003,
 		"org_id": 1,
 		"origin": "flow",
 		"session": {
@@ -151,7 +148,7 @@ func TestNewCourierMsg(t *testing.T) {
 		"tps_cost": 1,
 		"urn": "tel:+16055741111",
 		"uuid": "%s"
-	}`, string(jsonx.MustMarshal(msgEvent2.CreatedOn())), session.UUID(), sprint.UUID(), msg2.UUID()))
+	}`, string(jsonx.MustMarshal(msgEvent2.CreatedOn().In(time.UTC))), session.UUID(), sprint.UUID(), msg2.UUID()))
 
 	// try a broadcast message which won't have session and flow fields set and won't be high priority
 	bcast := testdb.InsertBroadcast(t, rt, testdb.Org1, "0199877e-0ed2-790b-b474-35099cea401c", `eng`, map[i18n.Language]string{`eng`: "Blast"}, nil, models.NilScheduleID, []*testdb.Contact{testFred}, nil)
@@ -173,7 +170,6 @@ func TestNewCourierMsg(t *testing.T) {
 		"contact": {"id": 30000, "uuid": "fed2d179-73ac-44fd-b838-7f866fef0a3a"},
 		"created_on": %s,
 		"high_priority": false,
-		"id": 30004,
 		"org_id": 1,
 		"origin": "broadcast",
 		"text": "Blast",
@@ -182,7 +178,7 @@ func TestNewCourierMsg(t *testing.T) {
 		"urn_auth": "sesame",
 		"user_id": %d,
 		"uuid": "%s"
-	}`, string(jsonx.MustMarshal(msgEvent3.CreatedOn())), testdb.Admin.ID, msg3.UUID()))
+	}`, string(jsonx.MustMarshal(msgEvent3.CreatedOn().In(time.UTC))), testdb.Admin.ID, msg3.UUID()))
 
 	optInEvent := events.NewOptInRequested(session.Assets().OptIns().Get(optIn.UUID()).Reference(), twilio.Reference(), "tel:+16055741111")
 	msg4 := models.NewOutgoingOptInMsg(rt, testdb.Org1.ID, ann, flow, optIn, twilio, optInEvent, &models.MsgInRef{ID: in1.ID, ExtID: "EX123"})
@@ -199,7 +195,6 @@ func TestNewCourierMsg(t *testing.T) {
 		"created_on": %s,
 		"flow": {"uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85", "name": "Favorites"},
 		"high_priority": true,
-		"id": 30005,
 		"optin": {
 			"id": %d,
 			"name": "Joke Of The Day"
@@ -216,7 +211,7 @@ func TestNewCourierMsg(t *testing.T) {
 		"tps_cost": 1,
 		"urn": "tel:+16055741111",
 		"uuid": "%s"
-	}`, string(jsonx.MustMarshal(optInEvent.CreatedOn())), optIn.ID(), session.UUID(), sprint.UUID(), msg4.UUID()))
+	}`, string(jsonx.MustMarshal(optInEvent.CreatedOn().In(time.UTC))), optIn.ID(), session.UUID(), sprint.UUID(), msg4.UUID()))
 
 	// make msg1 look like it errored and fetch it for retrying
 	rt.DB.MustExec(`UPDATE msgs_msg SET status = 'E', error_count = 1, next_attempt = $2 WHERE id = $1`, msg1.ID(), time.Now())
@@ -237,7 +232,6 @@ func TestNewCourierMsg(t *testing.T) {
 		"created_on": %s,
 		"flow": {"uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85", "name": "Favorites"},
 		"high_priority": false,
-		"id": 30001,
 		"locale": "eng-US",
 		"org_id": 1,
 		"origin": "flow",
@@ -255,7 +249,7 @@ func TestNewCourierMsg(t *testing.T) {
 		"tps_cost": 2,
 		"urn": "tel:+16055741111",
 		"uuid": "%s"
-	}`, string(jsonx.MustMarshal(msgEvent1.CreatedOn().Round(time.Microsecond))), msg1.UUID()))
+	}`, string(jsonx.MustMarshal(msgEvent1.CreatedOn().In(time.UTC).Round(time.Microsecond))), msg1.UUID()))
 }
 
 func createAndAssertCourierMsg(t *testing.T, oa *models.OrgAssets, msg *models.MsgOut, expectedJSON string) {
@@ -407,10 +401,10 @@ func TestPushCourierBatch(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, 2, len(unmarshaled.([]any)))
 
-	item1ID, _ := unmarshaled.([]any)[0].(map[string]any)["id"].(json.Number).Int64()
-	item2ID, _ := unmarshaled.([]any)[1].(map[string]any)["id"].(json.Number).Int64()
-	assert.Equal(t, int64(msg1.ID()), item1ID)
-	assert.Equal(t, int64(msg2.ID()), item2ID)
+	item1UUID := unmarshaled.([]any)[0].(map[string]any)["uuid"].(string)
+	item2UUID := unmarshaled.([]any)[1].(map[string]any)["uuid"].(string)
+	assert.Equal(t, msg1.UUID(), flows.EventUUID(item1UUID))
+	assert.Equal(t, msg2.UUID(), flows.EventUUID(item2UUID))
 
 	// push another batch in the same epoch second with transaction counter still below limit
 	vc.Do("SET", "msgs:74729f45-7f29-4868-9dc4-90e491e3c7d8|10:tps:1636557205", "5")
