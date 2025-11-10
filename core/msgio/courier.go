@@ -98,9 +98,6 @@ type Msg struct {
 	IsResend             bool               `json:"is_resend,omitempty"`
 	PrevAttempts         int                `json:"prev_attempts,omitempty"`
 	Session              *Session           `json:"session,omitempty"`
-
-	// deprecated, see https://github.com/nyaruka/courier/issues/906
-	ID models.MsgID `json:"id"`
 }
 
 // NewCourierMsg creates a courier message in the format it's expecting to be queued
@@ -119,14 +116,13 @@ func NewCourierMsg(oa *models.OrgAssets, mo *models.MsgOut, ch *models.Channel) 
 		Locale:       mo.Locale(),
 		HighPriority: mo.HighPriority(),
 		MsgCount:     mo.MsgCount(),
-		CreatedOn:    mo.CreatedOn(),
+		CreatedOn:    mo.CreatedOn().In(time.UTC),
 		ChannelUUID:  ch.UUID(),
 		UserID:       mo.CreatedByID(),
 		URN:          mo.URN.Identity,
 		URNAuth:      string(mo.URN.AuthTokens["default"]),
 		IsResend:     mo.IsResend,
 		PrevAttempts: mo.ErrorCount(),
-		ID:           mo.ID(), // deprecated
 	}
 
 	if mo.FlowID() != models.NilFlowID {
