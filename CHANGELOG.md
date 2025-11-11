@@ -1,3 +1,8 @@
+v10.3.92 (2025-11-11)
+-------------------------
+ * Disable writing delete tags for messages
+ * Remove msg ID from courier payloads
+
 v10.3.91 (2025-11-05)
 -------------------------
  * Queue messages to courier with new prev_attempts field
