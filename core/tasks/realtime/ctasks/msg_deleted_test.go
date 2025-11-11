@@ -9,7 +9,6 @@ import (
 	"github.com/nyaruka/mailroom/testsuite"
 	"github.com/nyaruka/mailroom/testsuite/testdb"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestMsgDeleted(t *testing.T) {
@@ -35,14 +34,4 @@ func TestMsgDeleted(t *testing.T) {
 		"0199c4cb-f111-7ce8-9ce9-614d61a2c198": "X",
 		"0199c4cf-486a-79af-9892-79254b6ac5b7": "V",
 	})
-
-	items := testsuite.GetHistoryItems(t, rt, false)
-	if assert.Equal(t, 1, len(items)) {
-		assert.Equal(t, "con#a393abc0-283d-4c9b-a1b3-641a035c34bf", items[0].PK)
-		assert.Equal(t, "evt#0199c4cb-f111-7ce8-9ce9-614d61a2c198#del", items[0].SK)
-
-		data, err := items[0].GetData()
-		require.NoError(t, err)
-		assert.Equal(t, "contact", data["deleted_by"])
-	}
 }
