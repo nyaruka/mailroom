@@ -975,18 +975,6 @@ func DeleteMessages(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, uui
 		return fmt.Errorf("error committing transaction: %w", err)
 	}
 
-	for _, d := range deleted {
-		var hu *EventTag
-		if visibility == VisibilityDeletedByUser {
-			hu = NewDeletionByUserTag(oa.OrgID(), d.ContactUUID, d.MsgUUID, oa.UserByID(userID))
-		} else {
-			hu = NewDeletionByContactTag(oa.OrgID(), d.ContactUUID, d.MsgUUID)
-		}
-		if _, err := rt.Writers.History.Queue(hu); err != nil {
-			return fmt.Errorf("error queueing history update: %w", err)
-		}
-	}
-
 	return nil
 }
 

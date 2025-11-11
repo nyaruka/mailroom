@@ -10,7 +10,6 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
-	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/events"
@@ -126,65 +125,4 @@ func (e *Event) MarshalDynamo() (map[string]types.AttributeValue, error) {
 func PersistEvent(e flows.Event) bool {
 	_, ok := eventPersistence[e.Type()]
 	return ok
-}
-
-// EventTag is a record of additional information associated with an existing event
-type EventTag struct {
-	OrgID       OrgID
-	ContactUUID flows.ContactUUID
-	EventUUID   flows.EventUUID
-	Tag         string
-	Arg         string
-	Data        map[string]any
-}
-
-// DynamoKey returns the PK+SK combo used for persistence
-func (t *EventTag) DynamoKey() DynamoKey {
-	var sk string
-	if t.Arg != "" {
-		sk = fmt.Sprintf("evt#%s#%s#%s", t.EventUUID, t.Tag, t.Arg)
-	} else {
-		sk = fmt.Sprintf("evt#%s#%s", t.EventUUID, t.Tag)
-	}
-	return DynamoKey{PK: fmt.Sprintf("con#%s", t.ContactUUID), SK: sk}
-}
-
-// DynamoTTL returns the TTL for this tag or nil if it should never expire
-func (t *EventTag) DynamoTTL() *time.Time {
-	// TODO new types like status might want to set TTLs for certain args
-	return nil
-}
-
-func (t *EventTag) MarshalDynamo() (map[string]types.AttributeValue, error) {
-	return attributevalue.MarshalMap(&DynamoItem{
-		DynamoKey: t.DynamoKey(),
-		OrgID:     t.OrgID,
-		TTL:       t.DynamoTTL(),
-		Data:      t.Data,
-	})
-}
-
-func NewDeletionByUserTag(orgID OrgID, contactUUID flows.ContactUUID, msgUUID flows.EventUUID, u *User) *EventTag {
-	var userRef any
-	if u != nil {
-		userRef = map[string]any{"uuid": u.UUID(), "name": u.Name()}
-	}
-
-	return &EventTag{
-		OrgID:       orgID,
-		ContactUUID: contactUUID,
-		EventUUID:   msgUUID,
-		Tag:         eventTagDeletion,
-		Data:        map[string]any{"deleted_by": "user", "deleted_on": dates.Now(), "user": userRef},
-	}
-}
-
-func NewDeletionByContactTag(orgID OrgID, contactUUID flows.ContactUUID, msgUUID flows.EventUUID) *EventTag {
-	return &EventTag{
-		OrgID:       orgID,
-		ContactUUID: contactUUID,
-		EventUUID:   msgUUID,
-		Tag:         eventTagDeletion,
-		Data:        map[string]any{"deleted_by": "contact", "deleted_on": dates.Now()},
-	}
 }
