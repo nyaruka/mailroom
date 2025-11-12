@@ -1,3 +1,7 @@
+v10.3.93 (2025-11-12)
+-------------------------
+ * Reinstate writing message event deletion tags but also write msg_deleted events
+
 v10.3.92 (2025-11-11)
 -------------------------
  * Disable writing delete tags for messages
