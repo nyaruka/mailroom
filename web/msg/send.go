@@ -45,7 +45,7 @@ func handleSend(ctx context.Context, rt *runtime.Runtime, r *sendRequest) (any, 
 		return nil, 0, fmt.Errorf("error loading org assets: %w", err)
 	}
 
-	// load the contact and generate as a flow contact
+	// load the contact and convert to engine contact
 	c, err := models.LoadContact(ctx, rt.DB, oa, r.ContactID)
 	if err != nil {
 		return nil, 0, fmt.Errorf("error loading contact: %w", err)

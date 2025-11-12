@@ -123,7 +123,7 @@ func (c *FireSchedulesCron) Run(ctx context.Context, rt *runtime.Runtime) (map[s
 		// commit our transaction
 		err = tx.Commit()
 		if err != nil {
-			log.Error("error comitting schedule transaction", "error", err)
+			log.Error("error committing schedule transaction", "error", err)
 			tx.Rollback()
 			continue
 		}

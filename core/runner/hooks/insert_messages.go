@@ -11,7 +11,7 @@ import (
 	"github.com/vinovest/sqlx"
 )
 
-// InsertMessages is our hook for comitting scene messages
+// InsertMessages is our hook for committing scene messages
 var InsertMessages runner.PreCommitHook = &insertMessages{}
 
 type insertMessages struct{}
