@@ -1,9 +1,12 @@
 package msg
 
 import (
+	"cmp"
 	"context"
 	"fmt"
+	"maps"
 	"net/http"
+	"slices"
 
 	"github.com/lib/pq"
 	"github.com/nyaruka/goflow/flows"
@@ -53,12 +56,15 @@ func handleDelete(ctx context.Context, rt *runtime.Runtime, r *deleteRequest) (a
 		msgsByContact[contactID] = append(msgsByContact[contactID], uuid)
 	}
 
-	for contactID, msgUUIDs := range msgsByContact {
-		mc, err := models.LoadContact(ctx, rt.DB, oa, contactID)
-		if err != nil {
-			return nil, 0, fmt.Errorf("error loading contact: %w", err)
-		}
+	mcs, err := models.LoadContacts(ctx, rt.DB, oa, slices.Collect(maps.Keys(msgsByContact)))
+	if err != nil {
+		return nil, 0, fmt.Errorf("error loading contacts: %w", err)
+	}
 
+	// for test determinism
+	slices.SortFunc(mcs, func(a, b *models.Contact) int { return cmp.Compare(a.ID(), b.ID()) })
+
+	for _, mc := range mcs {
 		contact, err := mc.EngineContact(oa)
 		if err != nil {
 			return nil, 0, fmt.Errorf("error creating engine contact: %w", err)
@@ -66,7 +72,7 @@ func handleDelete(ctx context.Context, rt *runtime.Runtime, r *deleteRequest) (a
 
 		scene := runner.NewScene(mc, contact)
 
-		for _, tUUID := range msgUUIDs {
+		for _, tUUID := range msgsByContact[mc.ID()] {
 			evt := events.NewMsgDeleted(tUUID, false)
 
 			if err := scene.AddEvent(ctx, rt, oa, evt, r.UserID); err != nil {
