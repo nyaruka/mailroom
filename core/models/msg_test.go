@@ -294,8 +294,6 @@ func TestDeleteMessages(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
-	oa := testdb.Org1.Load(t, rt)
-
 	in1 := testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199bad8-f98d-75a3-b641-2718a25ac3f5", testdb.TwilioChannel, testdb.Ann, "hi", models.MsgStatusHandled)
 	in1.Label(rt, testdb.ReportingLabel, testdb.TestingLabel)
 	in2 := testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199bad9-9791-770d-a47d-8f4a6ea3ad13", testdb.TwilioChannel, testdb.Ann, "bye", models.MsgStatusHandled)
@@ -304,21 +302,31 @@ func TestDeleteMessages(t *testing.T) {
 	in4 := testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199bada-2b39-7cac-9714-827df9ec6b91", testdb.TwilioChannel, testdb.Ann, "4", models.MsgStatusHandled)
 	out1 := testdb.InsertOutgoingMsg(t, rt, testdb.Org1, "0199bb96-3c4c-72f2-bacc-4b6ae4c592b3", testdb.TwilioChannel, testdb.Ann, "hi", nil, models.MsgStatusSent, false)
 
-	err := models.DeleteMessages(ctx, rt, oa, []flows.EventUUID{in1.UUID}, models.VisibilityDeletedBySender, models.NilUserID)
+	tx := rt.DB.MustBegin()
+
+	err := models.DeleteMessages(ctx, tx, testdb.Org1.ID, []flows.EventUUID{in1.UUID}, models.VisibilityDeletedBySender)
 	assert.NoError(t, err)
+	assert.NoError(t, tx.Commit())
 
 	assertdb.Query(t, rt.DB, `SELECT visibility, text FROM msgs_msg WHERE id = $1`, in1.ID).Columns(map[string]any{"visibility": "X", "text": ""})
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg_labels WHERE msg_id = $1`, in1.ID).Returns(0)
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg_labels WHERE msg_id = $1`, in2.ID).Returns(2) // unchanged
 
-	err = models.DeleteMessages(ctx, rt, oa, []flows.EventUUID{in3.UUID, in4.UUID}, models.VisibilityDeletedByUser, testdb.Admin.ID)
+	tx = rt.DB.MustBegin()
+
+	err = models.DeleteMessages(ctx, tx, testdb.Org1.ID, []flows.EventUUID{in3.UUID, in4.UUID}, models.VisibilityDeletedByUser)
 	assert.NoError(t, err)
+	assert.NoError(t, tx.Commit())
+
 	assertdb.Query(t, rt.DB, `SELECT visibility, text FROM msgs_msg WHERE id = $1`, in3.ID).Columns(map[string]any{"visibility": "D", "text": ""})
 	assertdb.Query(t, rt.DB, `SELECT visibility, text FROM msgs_msg WHERE id = $1`, in4.ID).Columns(map[string]any{"visibility": "D", "text": ""})
 
+	tx = rt.DB.MustBegin()
+
 	// trying to delete an outgoing message is a noop
-	err = models.DeleteMessages(ctx, rt, oa, []flows.EventUUID{out1.UUID}, models.VisibilityDeletedBySender, models.NilUserID)
+	err = models.DeleteMessages(ctx, tx, testdb.Org1.ID, []flows.EventUUID{out1.UUID}, models.VisibilityDeletedBySender)
 	assert.NoError(t, err)
+	assert.NoError(t, tx.Commit())
 
 	assertdb.Query(t, rt.DB, `SELECT visibility, text FROM msgs_msg WHERE id = $1`, out1.ID).Columns(map[string]any{"visibility": "V", "text": "hi"})
 }

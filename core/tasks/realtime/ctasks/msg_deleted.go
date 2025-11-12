@@ -5,7 +5,9 @@ import (
 	"fmt"
 
 	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/mailroom/core/models"
+	"github.com/nyaruka/mailroom/core/runner"
 	"github.com/nyaruka/mailroom/core/tasks/realtime"
 	"github.com/nyaruka/mailroom/runtime"
 )
@@ -29,9 +31,23 @@ func (t *MsgDeletedTask) UseReadOnly() bool {
 }
 
 func (t *MsgDeletedTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, mc *models.Contact) error {
-	err := models.DeleteMessages(ctx, rt, oa, []flows.EventUUID{t.MsgUUID}, models.VisibilityDeletedBySender, models.NilUserID)
+	// build our flow contact
+	contact, err := mc.EngineContact(oa)
 	if err != nil {
-		return fmt.Errorf("error deleting message by sender: %w", err)
+		return fmt.Errorf("error creating flow contact: %w", err)
 	}
+
+	scene := runner.NewScene(mc, contact)
+
+	evt := events.NewMsgDeleted(t.MsgUUID, true)
+
+	if err := scene.AddEvent(ctx, rt, oa, evt, models.NilUserID); err != nil {
+		return fmt.Errorf("error adding msg delete event to scene for contact %s: %w", scene.ContactUUID(), err)
+	}
+
+	if err := scene.Commit(ctx, rt, oa); err != nil {
+		return fmt.Errorf("error committing scene for contact %s: %w", scene.ContactUUID(), err)
+	}
+
 	return nil
 }

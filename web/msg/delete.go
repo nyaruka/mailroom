@@ -5,8 +5,11 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/lib/pq"
 	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/mailroom/core/models"
+	"github.com/nyaruka/mailroom/core/runner"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/mailroom/web"
 )
@@ -33,8 +36,47 @@ func handleDelete(ctx context.Context, rt *runtime.Runtime, r *deleteRequest) (a
 		return nil, 0, fmt.Errorf("error loading org assets: %w", err)
 	}
 
-	if err := models.DeleteMessages(ctx, rt, oa, r.MsgUUIDs, models.VisibilityDeletedByUser, r.UserID); err != nil {
-		return nil, 0, fmt.Errorf("error deleting messages by user: %w", err)
+	// get the messages that will be deleted
+	rows, err := rt.DB.QueryContext(ctx, `SELECT uuid, contact_id FROM msgs_msg WHERE org_id = $1 AND uuid = ANY($2) AND direction = 'I' AND visibility IN ('V', 'A')`, r.OrgID, pq.Array(r.MsgUUIDs))
+	if err != nil {
+		return nil, 0, fmt.Errorf("error loading messages: %w", err)
+	}
+	defer rows.Close()
+
+	msgsByContact := make(map[models.ContactID][]flows.EventUUID)
+	for rows.Next() {
+		var uuid flows.EventUUID
+		var contactID models.ContactID
+		if err := rows.Scan(&uuid, &contactID); err != nil {
+			return nil, 0, fmt.Errorf("error scanning message row: %w", err)
+		}
+		msgsByContact[contactID] = append(msgsByContact[contactID], uuid)
+	}
+
+	for contactID, msgUUIDs := range msgsByContact {
+		mc, err := models.LoadContact(ctx, rt.DB, oa, contactID)
+		if err != nil {
+			return nil, 0, fmt.Errorf("error loading contact: %w", err)
+		}
+
+		contact, err := mc.EngineContact(oa)
+		if err != nil {
+			return nil, 0, fmt.Errorf("error creating engine contact: %w", err)
+		}
+
+		scene := runner.NewScene(mc, contact)
+
+		for _, tUUID := range msgUUIDs {
+			evt := events.NewMsgDeleted(tUUID, false)
+
+			if err := scene.AddEvent(ctx, rt, oa, evt, r.UserID); err != nil {
+				return nil, 0, fmt.Errorf("error adding msg delete event to scene for contact %s: %w", scene.ContactUUID(), err)
+			}
+		}
+
+		if err := scene.Commit(ctx, rt, oa); err != nil {
+			return nil, 0, fmt.Errorf("error committing scene for contact %s: %w", scene.ContactUUID(), err)
+		}
 	}
 
 	return map[string]any{}, http.StatusOK, nil

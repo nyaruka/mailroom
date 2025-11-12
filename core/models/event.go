@@ -10,6 +10,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/events"
@@ -38,6 +39,7 @@ var eventPersistence = map[string]time.Duration{
 	events.TypeContactURNsChanged:     time.Hour * 24 * 365, // 1 year
 	events.TypeIVRCreated:             eternity,
 	events.TypeMsgCreated:             eternity,
+	events.TypeMsgDeleted:             time.Hour * 24, // 1 day
 	events.TypeMsgReceived:            eternity,
 	events.TypeOptInRequested:         eternity,
 	events.TypeOptInStarted:           eternity,
@@ -125,4 +127,50 @@ func (e *Event) MarshalDynamo() (map[string]types.AttributeValue, error) {
 func PersistEvent(e flows.Event) bool {
 	_, ok := eventPersistence[e.Type()]
 	return ok
+}
+
+// EventTag is a record of additional information associated with an existing event
+type EventTag struct {
+	OrgID       OrgID
+	ContactUUID flows.ContactUUID
+	EventUUID   flows.EventUUID
+	Tag         string
+	Data        map[string]any
+}
+
+// DynamoKey returns the PK+SK combo used for persistence
+func (t *EventTag) DynamoKey() DynamoKey {
+	return DynamoKey{PK: fmt.Sprintf("con#%s", t.ContactUUID), SK: fmt.Sprintf("evt#%s#%s", t.EventUUID, t.Tag)}
+}
+
+// DynamoTTL returns the TTL for this tag or nil if it should never expire
+func (t *EventTag) DynamoTTL() *time.Time {
+	return nil
+}
+
+func (t *EventTag) MarshalDynamo() (map[string]types.AttributeValue, error) {
+	return attributevalue.MarshalMap(&DynamoItem{
+		DynamoKey: t.DynamoKey(),
+		OrgID:     t.OrgID,
+		TTL:       t.DynamoTTL(),
+		Data:      t.Data,
+	})
+}
+
+func NewMsgDeletionTag(orgID OrgID, contactUUID flows.ContactUUID, msgUUID flows.EventUUID, byContact bool, u *User) *EventTag {
+	data := map[string]any{"deleted_on": dates.Now()}
+
+	if byContact {
+		data["by_contact"] = true
+	} else if u != nil {
+		data["user"] = map[string]any{"uuid": u.UUID(), "name": u.Name()}
+	}
+
+	return &EventTag{
+		OrgID:       orgID,
+		ContactUUID: contactUUID,
+		EventUUID:   msgUUID,
+		Tag:         eventTagDeletion,
+		Data:        data,
+	}
 }
