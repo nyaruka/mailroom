@@ -1,3 +1,7 @@
+v10.3.94 (2025-11-13)
+-------------------------
+ * Fix not sending URN auth tokens for messages with optins
+
 v10.3.93 (2025-11-12)
 -------------------------
  * Reinstate writing message event deletion tags but also write msg_deleted events
