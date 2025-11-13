@@ -1,6 +1,7 @@
 package msgs_test
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -185,7 +186,9 @@ func TestSendBroadcastTask(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
+	// add an "Polls" optin and opt-in Bob
 	polls := testdb.InsertOptIn(t, rt, testdb.Org1, "45aec4dd-945f-4511-878f-7d8516fbd336", "Polls")
+	rt.DB.MustExec(fmt.Sprintf("UPDATE contacts_contacturn SET auth_tokens = '{\"optin:%d\": \"OPTIN1234\"}' WHERE contact_id = $1", polls.ID), testdb.Bob.ID)
 
 	rt.DB.MustExec(`UPDATE orgs_org SET flow_languages = '{"eng", "spa"}' WHERE id = $1`, testdb.Org1.ID)
 
@@ -222,12 +225,12 @@ func TestSendBroadcastTask(t *testing.T) {
 			expressions:     false,
 			optIn:           polls,
 			groupIDs:        []models.GroupID{testdb.DoctorsGroup.ID},
-			contactIDs:      []models.ContactID{testdb.Ann.ID},
+			contactIDs:      []models.ContactID{testdb.Ann.ID, testdb.Bob.ID},
 			exclusions:      models.NoExclusions,
 			createdByID:     testdb.Admin.ID,
 			queue:           rt.Queues.Batch,
 			expectedBatches: 2,
-			expectedMsgs:    map[string]int{"hello world": 121},
+			expectedMsgs:    map[string]int{"hello world": 122},
 		},
 		{
 			translations: flows.BroadcastTranslations{

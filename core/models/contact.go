@@ -549,7 +549,7 @@ LEFT JOIN (
 LEFT JOIN (
 	SELECT contact_id, 
 		array_agg(
-			json_build_object('id', u.id, 'identity', u.identity, 'scheme', u.scheme, 'path', path, 'display', display, 'channel_id', channel_id) ORDER BY priority DESC, id ASC
+			json_build_object('id', u.id, 'identity', u.identity, 'scheme', u.scheme, 'path', path, 'display', display, 'channel_id', channel_id, 'auth_tokens', auth_tokens) ORDER BY priority DESC, id ASC
 		) AS urns 
 	    FROM contacts_contacturn u 
 	   WHERE u.contact_id = ANY($1)
