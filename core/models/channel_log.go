@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/nyaruka/gocommon/aws/dynamo"
 	"github.com/nyaruka/gocommon/httpx"
 	"github.com/nyaruka/mailroom/utils/clogs"
@@ -44,14 +43,14 @@ func newChannelLog(t clogs.Type, ch *Channel, r *httpx.Recorder, redactVals []st
 	}
 }
 
-func (l *ChannelLog) DynamoKey() DynamoKey {
-	return DynamoKey{
+func (l *ChannelLog) DynamoKey() dynamo.Key {
+	return dynamo.Key{
 		PK: fmt.Sprintf("cha#%s#%s", l.channel.UUID(), l.UUID[35:36]), // 16 buckets for each channel,
 		SK: fmt.Sprintf("log#%s", l.UUID),
 	}
 }
 
-func (l *ChannelLog) MarshalDynamo() (map[string]types.AttributeValue, error) {
+func (l *ChannelLog) MarshalDynamo() (*dynamo.Item, error) {
 	type DataGZ struct {
 		HttpLogs []*httpx.Log   `json:"http_logs"`
 		Errors   []*clogs.Error `json:"errors"`
@@ -64,10 +63,10 @@ func (l *ChannelLog) MarshalDynamo() (map[string]types.AttributeValue, error) {
 
 	ttl := l.CreatedOn.Add(channelLogDynamoTTL)
 
-	return dynamo.Marshal(&DynamoItem{
-		DynamoKey: l.DynamoKey(),
-		OrgID:     l.channel.OrgID(),
-		TTL:       &ttl,
+	return &dynamo.Item{
+		Key:   l.DynamoKey(),
+		OrgID: int(l.channel.OrgID()),
+		TTL:   &ttl,
 		Data: map[string]any{
 			"type":       l.Type,
 			"elapsed_ms": int(l.Elapsed / time.Millisecond),
@@ -75,5 +74,5 @@ func (l *ChannelLog) MarshalDynamo() (map[string]types.AttributeValue, error) {
 			"is_error":   l.IsError(),
 		},
 		DataGZ: dataGZ,
-	})
+	}, nil
 }

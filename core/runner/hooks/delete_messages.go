@@ -49,7 +49,7 @@ func (h *deleteMessages) Execute(ctx context.Context, rt *runtime.Runtime, tx *s
 
 	for _, tag := range tags {
 		if _, err := rt.Writers.History.Queue(tag); err != nil {
-			return fmt.Errorf("error queuing event deletion tags: %w", err)
+			return fmt.Errorf("error queuing deletion tag to writer: %w", err)
 		}
 	}
 

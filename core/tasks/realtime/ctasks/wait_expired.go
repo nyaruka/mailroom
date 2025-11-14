@@ -71,8 +71,8 @@ func (t *WaitExpiredTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *
 		}
 
 		if clog != nil {
-			if err := models.BulkWriterQueue(ctx, rt.Writers.Main, []*models.ChannelLog{clog}); err != nil {
-				return fmt.Errorf("error writing channel logs: %w", err)
+			if _, err := rt.Writers.Main.Queue(clog); err != nil {
+				return fmt.Errorf("error queuing IVR channel log to writer: %w", err)
 			}
 		}
 

@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/gomodule/redigo/redis"
+	"github.com/nyaruka/gocommon/aws/dynamo"
 	"github.com/nyaruka/gocommon/aws/dynamo/dyntest"
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/goflow/flows"
@@ -159,10 +160,10 @@ func drainTasks(t *testing.T, rt *runtime.Runtime, perform bool, qnames ...strin
 	return counts
 }
 
-func GetHistoryItems(t *testing.T, rt *runtime.Runtime, clear bool) []*models.DynamoItem {
+func GetHistoryItems(t *testing.T, rt *runtime.Runtime, clear bool) []*dynamo.Item {
 	rt.Writers.History.Flush()
 
-	items := dyntest.ScanAll[models.DynamoItem](t, rt.Dynamo, "TestHistory")
+	items := dyntest.ScanAll(t, rt.Dynamo, "TestHistory")
 
 	if clear {
 		dyntest.Truncate(t, rt.Dynamo, "TestHistory")
