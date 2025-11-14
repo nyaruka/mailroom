@@ -1,3 +1,7 @@
+v10.3.95 (2025-11-14)
+-------------------------
+ * Tweak format of message deletion tags
+
 v10.3.94 (2025-11-13)
 -------------------------
  * Fix not sending URN auth tokens for messages with optins
