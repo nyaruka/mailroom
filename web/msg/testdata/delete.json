@@ -82,7 +82,7 @@
                 "OrgID": 1,
                 "Data": {
                     "created_on": "2025-05-04T12:30:50.123456789Z",
-                    "user": {
+                    "_user": {
                         "name": "Andy Admin",
                         "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
                     }
@@ -94,7 +94,7 @@
                 "OrgID": 1,
                 "Data": {
                     "created_on": "2025-05-04T12:30:49.123456789Z",
-                    "user": {
+                    "_user": {
                         "name": "Andy Admin",
                         "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
                     }

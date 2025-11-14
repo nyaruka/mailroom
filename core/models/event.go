@@ -163,7 +163,7 @@ func NewMsgDeletionTag(orgID OrgID, contactUUID flows.ContactUUID, msgUUID flows
 	if byContact {
 		data["by_contact"] = true
 	} else if u != nil {
-		data["user"] = map[string]any{"uuid": u.UUID(), "name": u.Name()}
+		data["_user"] = map[string]any{"uuid": u.UUID(), "name": u.Name()}
 	}
 
 	return &EventTag{

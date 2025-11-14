@@ -33,7 +33,7 @@
         "tag": "del",
         "data": {
             "created_on": "2025-05-04T12:30:46.123456789Z",
-            "user": {
+            "_user": {
                 "name": "Andy Admin",
                 "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
             }
@@ -53,7 +53,7 @@
                     "created_on": {
                         "S": "2025-05-04T12:30:46.123456789Z"
                     },
-                    "user": {
+                    "_user": {
                         "M": {
                             "name": {
                                 "S": "Andy Admin"
