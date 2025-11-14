@@ -158,7 +158,7 @@ func (t *EventTag) MarshalDynamo() (map[string]types.AttributeValue, error) {
 }
 
 func NewMsgDeletionTag(orgID OrgID, contactUUID flows.ContactUUID, msgUUID flows.EventUUID, byContact bool, u *User) *EventTag {
-	data := map[string]any{"deleted_on": dates.Now()}
+	data := map[string]any{"created_on": dates.Now()}
 
 	if byContact {
 		data["by_contact"] = true
