@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/nyaruka/gocommon/aws/dynamo"
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/gocommon/urns"
@@ -65,7 +66,7 @@ func TestEventReceived(t *testing.T) {
 		ContactUUID     flows.ContactUUID         `json:"contact_uuid"`
 		Task            *ctasks.EventReceivedTask `json:"task"`
 		DBAssertions    []*assertdb.Assert        `json:"db_assertions,omitempty"`
-		ExpectedHistory []*models.DynamoItem      `json:"expected_history,omitempty"`
+		ExpectedHistory []*dynamo.Item            `json:"expected_history,omitempty"`
 	}
 
 	tcs := make([]testCase, 0, 20)
@@ -112,7 +113,7 @@ func TestEventReceived(t *testing.T) {
 			}
 
 			if tc.ExpectedHistory == nil {
-				tc.ExpectedHistory = []*models.DynamoItem{}
+				tc.ExpectedHistory = []*dynamo.Item{}
 			}
 			test.AssertEqualJSON(t, jsonx.MustMarshal(tc.ExpectedHistory), jsonx.MustMarshal(actual.ExpectedHistory), "%s: event history mismatch", tc.Label)
 		} else {

@@ -54,10 +54,14 @@ func TestEventToDynamo(t *testing.T) {
 
 		actual := tc
 		actual.Event = jsonx.MustMarshal(evt)
+
 		actualItem, err := me.MarshalDynamo()
 		assert.NoError(t, err, "%d: error marshaling event to dynamo", i)
 
-		actual.Dynamo, err = attributevalue.MarshalMapJSON(actualItem)
+		actualMap, err := attributevalue.MarshalMap(actualItem)
+		require.NoError(t, err, "%d: error marshaling event to map", i)
+
+		actual.Dynamo, err = attributevalue.MarshalMapJSON(actualMap)
 		assert.NoError(t, err, "%d: error marshaling event to JSON", i)
 
 		if !test.UpdateSnapshots {
@@ -98,10 +102,13 @@ func TestEventTagToDynamo(t *testing.T) {
 
 		actual := tc
 		actualItem, err := me.MarshalDynamo()
-		assert.NoError(t, err, "%d: error marshaling event to dynamo", i)
+		assert.NoError(t, err, "%d: error marshaling tag to dynamo", i)
 
-		actual.Dynamo, err = attributevalue.MarshalMapJSON(actualItem)
-		assert.NoError(t, err, "%d: error marshaling event to JSON", i)
+		actualMap, err := attributevalue.MarshalMap(actualItem)
+		require.NoError(t, err, "%d: error marshaling tag to map", i)
+
+		actual.Dynamo, err = attributevalue.MarshalMapJSON(actualMap)
+		assert.NoError(t, err, "%d: error marshaling tag to JSON", i)
 
 		if !test.UpdateSnapshots {
 			test.AssertEqualJSON(t, tc.Dynamo, actual.Dynamo, "%d: dynamo mismatch", i)

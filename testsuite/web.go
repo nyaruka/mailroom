@@ -16,11 +16,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/nyaruka/gocommon/aws/dynamo"
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/gocommon/httpx"
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/goflow/test"
-	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/mailroom/web"
 	"github.com/stretchr/testify/assert"
@@ -51,7 +51,7 @@ func RunWebTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 		ResponseFile    string                `json:"response_file,omitempty"`
 		DBAssertions    []*assertdb.Assert    `json:"db_assertions,omitempty"`
 		ExpectedTasks   map[string][]TaskInfo `json:"expected_tasks,omitempty"`
-		ExpectedHistory []*models.DynamoItem  `json:"expected_history,omitempty"`
+		ExpectedHistory []*dynamo.Item        `json:"expected_history,omitempty"`
 
 		actualResponse  []byte
 		expectsJSONBody bool
@@ -169,7 +169,7 @@ func RunWebTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 			test.AssertEqualJSON(t, jsonx.MustMarshal(tc.ExpectedTasks), jsonx.MustMarshal(actual.ExpectedTasks), "%s: unexpected tasks", tc.Label)
 
 			if tc.ExpectedHistory == nil {
-				tc.ExpectedHistory = []*models.DynamoItem{}
+				tc.ExpectedHistory = []*dynamo.Item{}
 			}
 			test.AssertEqualJSON(t, jsonx.MustMarshal(tc.ExpectedHistory), jsonx.MustMarshal(actual.ExpectedHistory), "%s: event history mismatch", tc.Label)
 

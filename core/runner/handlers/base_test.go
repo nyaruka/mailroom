@@ -6,6 +6,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/nyaruka/gocommon/aws/dynamo"
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/gocommon/uuids"
@@ -83,7 +84,7 @@ type TestCase struct {
 	UserID          models.UserID                      `json:"user_id,omitempty"`
 	DBAssertions    []*assertdb.Assert                 `json:"db_assertions,omitempty"`
 	ExpectedTasks   map[string][]testsuite.TaskInfo    `json:"expected_tasks,omitempty"`
-	ExpectedHistory []*models.DynamoItem               `json:"expected_history,omitempty"`
+	ExpectedHistory []*dynamo.Item                     `json:"expected_history,omitempty"`
 }
 
 func runTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
@@ -188,7 +189,7 @@ func runTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 			test.AssertEqualJSON(t, jsonx.MustMarshal(tc.ExpectedTasks), jsonx.MustMarshal(actual.ExpectedTasks), "%s: unexpected tasks", tc.Label)
 
 			if tc.ExpectedHistory == nil {
-				tc.ExpectedHistory = []*models.DynamoItem{}
+				tc.ExpectedHistory = []*dynamo.Item{}
 			}
 			test.AssertEqualJSON(t, jsonx.MustMarshal(tc.ExpectedHistory), jsonx.MustMarshal(actual.ExpectedHistory), "%s: event history mismatch", tc.Label)
 		} else {

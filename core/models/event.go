@@ -8,8 +8,7 @@ import (
 	"io"
 	"time"
 
-	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
-	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	"github.com/nyaruka/gocommon/aws/dynamo"
 	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/flows"
@@ -64,11 +63,8 @@ type Event struct {
 }
 
 // DynamoKey returns the PK+SK combo used for persistence
-func (e *Event) DynamoKey() DynamoKey {
-	return DynamoKey{
-		PK: fmt.Sprintf("con#%s", e.ContactUUID),
-		SK: fmt.Sprintf("evt#%s", e.UUID()),
-	}
+func (e *Event) DynamoKey() dynamo.Key {
+	return dynamo.Key{PK: fmt.Sprintf("con#%s", e.ContactUUID), SK: fmt.Sprintf("evt#%s", e.UUID())}
 }
 
 // DynamoTTL returns the TTL for this event or nil if it should never expire
@@ -80,7 +76,7 @@ func (e *Event) DynamoTTL() *time.Time {
 	return nil
 }
 
-func (e *Event) MarshalDynamo() (map[string]types.AttributeValue, error) {
+func (e *Event) MarshalDynamo() (*dynamo.Item, error) {
 	eJSON, err := json.Marshal(e.Event)
 	if err != nil {
 		return nil, fmt.Errorf("error marshaling event: %w", err)
@@ -114,13 +110,13 @@ func (e *Event) MarshalDynamo() (map[string]types.AttributeValue, error) {
 		data["_user"] = map[string]any{"uuid": e.User.UUID, "name": e.User.Name}
 	}
 
-	return attributevalue.MarshalMap(&DynamoItem{
-		DynamoKey: e.DynamoKey(),
-		OrgID:     e.OrgID,
-		TTL:       e.DynamoTTL(),
-		Data:      data,
-		DataGZ:    dataGz,
-	})
+	return &dynamo.Item{
+		Key:    e.DynamoKey(),
+		OrgID:  int(e.OrgID),
+		TTL:    e.DynamoTTL(),
+		Data:   data,
+		DataGZ: dataGz,
+	}, nil
 }
 
 // PersistEvent returns whether an event should be persisted
@@ -139,22 +135,16 @@ type EventTag struct {
 }
 
 // DynamoKey returns the PK+SK combo used for persistence
-func (t *EventTag) DynamoKey() DynamoKey {
-	return DynamoKey{PK: fmt.Sprintf("con#%s", t.ContactUUID), SK: fmt.Sprintf("evt#%s#%s", t.EventUUID, t.Tag)}
+func (t *EventTag) DynamoKey() dynamo.Key {
+	return dynamo.Key{PK: fmt.Sprintf("con#%s", t.ContactUUID), SK: fmt.Sprintf("evt#%s#%s", t.EventUUID, t.Tag)}
 }
 
-// DynamoTTL returns the TTL for this tag or nil if it should never expire
-func (t *EventTag) DynamoTTL() *time.Time {
-	return nil
-}
-
-func (t *EventTag) MarshalDynamo() (map[string]types.AttributeValue, error) {
-	return attributevalue.MarshalMap(&DynamoItem{
-		DynamoKey: t.DynamoKey(),
-		OrgID:     t.OrgID,
-		TTL:       t.DynamoTTL(),
-		Data:      t.Data,
-	})
+func (t *EventTag) MarshalDynamo() (*dynamo.Item, error) {
+	return &dynamo.Item{
+		Key:   t.DynamoKey(),
+		OrgID: int(t.OrgID),
+		Data:  t.Data,
+	}, nil
 }
 
 func NewMsgDeletionTag(orgID OrgID, contactUUID flows.ContactUUID, msgUUID flows.EventUUID, byContact bool, u *User) *EventTag {
