@@ -1,3 +1,7 @@
+v10.3.96 (2025-11-17)
+-------------------------
+ * Update to latest gocommon that simplifies how we use DynamoDB
+
 v10.3.95 (2025-11-14)
 -------------------------
  * Tweak format of message deletion tags
