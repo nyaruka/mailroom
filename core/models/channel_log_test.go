@@ -8,6 +8,7 @@ import (
 	"github.com/nyaruka/gocommon/aws/dynamo"
 	"github.com/nyaruka/gocommon/aws/dynamo/dyntest"
 	"github.com/nyaruka/gocommon/httpx"
+	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/testsuite"
 	"github.com/nyaruka/mailroom/testsuite/testdb"
@@ -51,7 +52,9 @@ func TestChannelLogsOutgoing(t *testing.T) {
 	clog2.Error(&clogs.Error{Message: "oops"})
 	clog2.End()
 
-	err = models.BulkWriterQueue(ctx, rt.Writers.Main, []*models.ChannelLog{clog1, clog2})
+	_, err = rt.Writers.Main.Queue(clog1)
+	require.NoError(t, err)
+	_, err = rt.Writers.Main.Queue(clog2)
 	require.NoError(t, err)
 
 	rt.Writers.Main.Flush()
@@ -59,17 +62,16 @@ func TestChannelLogsOutgoing(t *testing.T) {
 	dyntest.AssertCount(t, rt.Dynamo, "TestMain", 2)
 
 	// read log back from DynamoDB
-	item, err := dynamo.GetItem[models.DynamoKey, models.DynamoItem](ctx, rt.Dynamo, "TestMain", clog1.DynamoKey())
+	item, err := dynamo.GetItem(ctx, rt.Dynamo, "TestMain", clog1.DynamoKey())
 	require.NoError(t, err)
 	if assert.NotNil(t, item) {
 		assert.Equal(t, string(models.ChannelLogTypeIVRStart), item.Data["type"])
 		assert.Equal(t, clog1.CreatedOn.Truncate(time.Second).Add(time.Hour*24*7), *item.TTL)
+
+		data, err := item.GetData()
+		require.NoError(t, err)
+		assert.Len(t, data["http_logs"], 1)
+
+		assert.NotContains(t, string(jsonx.MustMarshal(data)), "sesame", "redacted value should not be present in DynamoDB log")
 	}
-
-	var dataGZ map[string]any
-	err = dynamo.UnmarshalJSONGZ(item.DataGZ, &dataGZ)
-	require.NoError(t, err)
-	assert.Len(t, dataGZ["http_logs"], 1)
-
-	assert.NotContains(t, string(item.DataGZ), "sesame", "redacted value should not be present in DynamoDB log")
 }
