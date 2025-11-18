@@ -1,3 +1,7 @@
+v10.3.97 (2025-11-18)
+-------------------------
+ * Return msg_created event from msg/send endpoint
+
 v10.3.96 (2025-11-17)
 -------------------------
  * Update to latest gocommon that simplifies how we use DynamoDB
