@@ -84,17 +84,17 @@ func handleSend(ctx context.Context, rt *runtime.Runtime, r *sendRequest) (any, 
 	}
 
 	return map[string]any{
-		"uuid":          msg.UUID(),
-		"id":            msg.ID(),
-		"channel":       out.Channel(),
+		"event":         event,
 		"contact":       contact.Reference(),
-		"urn":           out.URN(),
-		"text":          msg.Text(),
-		"attachments":   msg.Attachments(),
-		"quick_replies": msg.QuickReplies(),
 		"status":        msg.Status(),
 		"created_on":    msg.CreatedOn(),
 		"modified_on":   msg.ModifiedOn(),
-		"event":         event,
+		"uuid":          msg.UUID(),         // deprecated, use event.uuid
+		"channel":       out.Channel(),      // deprecated, use event.channel
+		"urn":           out.URN(),          // deprecated, use event.urn
+		"text":          msg.Text(),         // deprecated, use event.text
+		"attachments":   msg.Attachments(),  // deprecated, use event.attachments
+		"quick_replies": msg.QuickReplies(), // deprecated, use event.quick_replies
+		"id":            msg.ID(),           // deprecated, but still used by API
 	}, http.StatusOK, nil
 }
