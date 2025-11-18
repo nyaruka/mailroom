@@ -60,6 +60,19 @@
                 "name": "Ann"
             },
             "created_on": "2025-05-04T12:30:47.123456789Z",
+            "event": {
+                "uuid": "01969b47-096b-76f8-ae7f-f8b243c49ff5",
+                "type": "msg_created",
+                "created_on": "2025-05-04T12:30:47.123456789Z",
+                "msg": {
+                    "urn": "tel:+16055741111",
+                    "channel": {
+                        "uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8",
+                        "name": "Twilio"
+                    },
+                    "text": "hello"
+                }
+            },
             "id": 30000,
             "modified_on": "$recent_timestamp$",
             "quick_replies": [],
@@ -127,6 +140,23 @@
                 "name": "Ann"
             },
             "created_on": "2025-05-04T12:30:51.123456789Z",
+            "event": {
+                "uuid": "01969b47-190b-76f8-bd38-d266ec8d3716",
+                "type": "msg_created",
+                "created_on": "2025-05-04T12:30:51.123456789Z",
+                "msg": {
+                    "urn": "tel:+16055741111",
+                    "channel": {
+                        "uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8",
+                        "name": "Twilio"
+                    },
+                    "text": "",
+                    "attachments": [
+                        "image/jpeg:https://aws.com/test/test.jpg",
+                        "audio/mp3:https://aws.com/test/test.mp3"
+                    ]
+                }
+            },
             "id": 30001,
             "modified_on": "$recent_timestamp$",
             "quick_replies": [],
@@ -192,6 +222,20 @@
                 "name": "Ann"
             },
             "created_on": "2025-05-04T12:30:55.123456789Z",
+            "event": {
+                "uuid": "01969b47-28ab-76f8-9c0b-2014ddc77094",
+                "type": "msg_created",
+                "created_on": "2025-05-04T12:30:55.123456789Z",
+                "msg": {
+                    "urn": "tel:+16055741111",
+                    "channel": {
+                        "uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8",
+                        "name": "Twilio"
+                    },
+                    "text": "we can help"
+                },
+                "ticket_uuid": "01992f54-5ab6-717a-a39e-e8ca91fb7262"
+            },
             "id": 30002,
             "modified_on": "$recent_timestamp$",
             "quick_replies": [],
@@ -273,6 +317,20 @@
                 "name": "Ann"
             },
             "created_on": "2025-05-04T12:31:00.123456789Z",
+            "event": {
+                "uuid": "01969b47-3c33-76f8-92a3-d648ab64bccb",
+                "type": "msg_created",
+                "created_on": "2025-05-04T12:31:00.123456789Z",
+                "msg": {
+                    "urn": "tel:+16055741111",
+                    "channel": {
+                        "uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8",
+                        "name": "Twilio"
+                    },
+                    "text": "what's the problem?"
+                },
+                "ticket_uuid": "01992f54-5ab6-717a-a39e-e8ca91fb7262"
+            },
             "id": 30003,
             "modified_on": "$recent_timestamp$",
             "quick_replies": [],
@@ -365,6 +423,31 @@
                 "name": "Ann"
             },
             "created_on": "2025-05-04T12:31:05.123456789Z",
+            "event": {
+                "uuid": "01969b47-4fbb-76f8-8228-9728778b6c98",
+                "type": "msg_created",
+                "created_on": "2025-05-04T12:31:05.123456789Z",
+                "msg": {
+                    "urn": "tel:+16055741111",
+                    "channel": {
+                        "uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8",
+                        "name": "Twilio"
+                    },
+                    "text": "What is your preferred color?",
+                    "quick_replies": [
+                        {
+                            "text": "Red"
+                        },
+                        {
+                            "text": "Green"
+                        },
+                        {
+                            "text": "Blue",
+                            "extra": "like the sky"
+                        }
+                    ]
+                }
+            },
             "id": 30004,
             "modified_on": "$recent_timestamp$",
             "quick_replies": [
@@ -446,6 +529,16 @@
                 "name": "Mr Unreachable"
             },
             "created_on": "2025-05-04T12:31:08.123456789Z",
+            "event": {
+                "uuid": "01969b47-5b73-76f8-8f41-6b2d9f33d623",
+                "type": "msg_created",
+                "created_on": "2025-05-04T12:31:08.123456789Z",
+                "msg": {
+                    "text": "Come back",
+                    "locale": "eng",
+                    "unsendable_reason": "no_route"
+                }
+            },
             "id": 30005,
             "modified_on": "$recent_timestamp$",
             "quick_replies": [],
