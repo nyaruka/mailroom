@@ -95,5 +95,6 @@ func handleSend(ctx context.Context, rt *runtime.Runtime, r *sendRequest) (any, 
 		"status":        msg.Status(),
 		"created_on":    msg.CreatedOn(),
 		"modified_on":   msg.ModifiedOn(),
+		"event":         event,
 	}, http.StatusOK, nil
 }
