@@ -1,3 +1,8 @@
+v10.3.98 (2025-11-20)
+-------------------------
+ * Update deps
+ * Remove deprecated fields from msg/send responses
+
 v10.3.97 (2025-11-18)
 -------------------------
  * Return msg_created event from msg/send endpoint
