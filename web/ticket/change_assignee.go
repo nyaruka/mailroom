@@ -47,10 +47,10 @@ func handleChangeAssignee(ctx context.Context, rt *runtime.Runtime, r *assignReq
 		return modifiers.NewTicketAssignee(t.UUID, user)
 	}
 
-	changed, err := modifyTickets(ctx, rt, oa, r.UserID, r.TicketUUIDs, mod)
+	eventsByContact, err := modifyTickets(ctx, rt, oa, r.UserID, r.TicketUUIDs, mod)
 	if err != nil {
 		return nil, 0, fmt.Errorf("error changing ticket assignee: %w", err)
 	}
 
-	return newBulkResponse(changed), http.StatusOK, nil
+	return newBulkResponse(eventsByContact), http.StatusOK, nil
 }

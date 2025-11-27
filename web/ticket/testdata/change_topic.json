@@ -34,7 +34,31 @@
             "changed_uuids": [
                 "01992f54-5ab6-717a-a39e-e8ca91fb7262",
                 "01992f54-5ab6-7498-a7f2-6aa246e45cfe"
-            ]
+            ],
+            "events": {
+                "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                    {
+                        "uuid": "01969b47-0583-76f8-ae7f-f8b243c49ff5",
+                        "type": "ticket_topic_changed",
+                        "created_on": "2025-05-04T12:30:46.123456789Z",
+                        "ticket_uuid": "01992f54-5ab6-717a-a39e-e8ca91fb7262",
+                        "topic": {
+                            "uuid": "0a8f2e00-fef6-402c-bd79-d789446ec0e0",
+                            "name": "Support"
+                        }
+                    },
+                    {
+                        "uuid": "01969b47-113b-76f8-bd38-d266ec8d3716",
+                        "type": "ticket_topic_changed",
+                        "created_on": "2025-05-04T12:30:49.123456789Z",
+                        "ticket_uuid": "01992f54-5ab6-7498-a7f2-6aa246e45cfe",
+                        "topic": {
+                            "uuid": "0a8f2e00-fef6-402c-bd79-d789446ec0e0",
+                            "name": "Support"
+                        }
+                    }
+                ]
+            }
         },
         "db_assertions": [
             {

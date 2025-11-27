@@ -37,10 +37,10 @@ func handleClose(ctx context.Context, rt *runtime.Runtime, r *closeRequest) (any
 		return modifiers.NewTicketClose(t.UUID)
 	}
 
-	changed, err := modifyTickets(ctx, rt, oa, r.UserID, r.TicketUUIDs, mod)
+	eventsByContact, err := modifyTickets(ctx, rt, oa, r.UserID, r.TicketUUIDs, mod)
 	if err != nil {
 		return nil, 0, fmt.Errorf("error closing tickets: %w", err)
 	}
 
-	return newBulkResponse(changed), http.StatusOK, nil
+	return newBulkResponse(eventsByContact), http.StatusOK, nil
 }
