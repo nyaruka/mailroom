@@ -4,17 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/runner"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/vinovest/sqlx"
 )
-
-type TicketAndNote struct {
-	Event  *events.TicketOpened
-	Ticket *models.Ticket
-}
 
 // InsertTickets is our hook for inserting tickets
 var InsertTickets runner.PreCommitHook = &insertTickets{}
@@ -24,15 +18,13 @@ type insertTickets struct{}
 func (h *insertTickets) Order() int { return 10 }
 
 func (h *insertTickets) Execute(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *models.OrgAssets, scenes map[*runner.Scene][]any) error {
-	// gather all our tickets and notes
+	// gather all our tickets
 	tickets := make([]*models.Ticket, 0, len(scenes))
-	events := make(map[*models.Ticket]*events.TicketOpened, len(scenes))
 
 	for _, args := range scenes {
 		for _, t := range args {
-			open := t.(TicketAndNote)
-			tickets = append(tickets, open.Ticket)
-			events[open.Ticket] = open.Event
+			ticket := t.(*models.Ticket)
+			tickets = append(tickets, ticket)
 		}
 	}
 

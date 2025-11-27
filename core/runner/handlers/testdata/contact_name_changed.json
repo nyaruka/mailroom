@@ -7,12 +7,20 @@
                     "uuid": "019986bb-8253-7e15-89be-65d807aa7b22",
                     "type": "contact_name_changed",
                     "created_on": "2025-09-26T10:54:00Z",
+                    "_user": {
+                        "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
+                        "name": "Andy Admin"
+                    },
                     "name": "Fred"
                 },
                 {
                     "uuid": "019986bc-70cc-79d4-bd6f-ae78aa17efcd",
                     "type": "contact_name_changed",
                     "created_on": "2025-09-26T10:54:00Z",
+                    "_user": {
+                        "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
+                        "name": "Andy Admin"
+                    },
                     "name": "Tarzan"
                 }
             ],
@@ -21,6 +29,10 @@
                     "uuid": "019986bc-c2a7-7640-b45d-6a41b677909d",
                     "type": "contact_name_changed",
                     "created_on": "2025-09-26T10:54:00Z",
+                    "_user": {
+                        "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
+                        "name": "Andy Admin"
+                    },
                     "name": ""
                 }
             ],
@@ -29,6 +41,10 @@
                     "uuid": "019986bd-8e2a-747f-8b1a-699800982794",
                     "type": "contact_name_changed",
                     "created_on": "2025-09-26T10:54:00Z",
+                    "_user": {
+                        "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
+                        "name": "Andy Admin"
+                    },
                     "name": "Geoff Newman"
                 }
             ],
@@ -37,6 +53,10 @@
                     "uuid": "019986bd-ebfa-7ffb-9710-ae3ca6194404",
                     "type": "contact_name_changed",
                     "created_on": "2025-09-26T10:54:00Z",
+                    "_user": {
+                        "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
+                        "name": "Andy Admin"
+                    },
                     "name": "😃234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890"
                 }
             ]

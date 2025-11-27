@@ -10,7 +10,6 @@ import (
 
 	"github.com/nyaruka/gocommon/aws/dynamo"
 	"github.com/nyaruka/gocommon/dates"
-	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/events"
 )
@@ -59,7 +58,6 @@ type Event struct {
 
 	OrgID       OrgID
 	ContactUUID flows.ContactUUID
-	User        *assets.UserReference
 }
 
 // DynamoKey returns the PK+SK combo used for persistence
@@ -90,8 +88,7 @@ func (e *Event) MarshalDynamo() (*dynamo.Item, error) {
 			return nil, fmt.Errorf("error unmarshaling event json: %w", err)
 		}
 
-		delete(data, "uuid")      // remove UUID as it's already in the key
-		delete(data, "step_uuid") // not needed
+		delete(data, "uuid") // remove UUID as it's already in the key
 	} else {
 		buf := &bytes.Buffer{}
 		w := gzip.NewWriter(buf)
@@ -104,10 +101,6 @@ func (e *Event) MarshalDynamo() (*dynamo.Item, error) {
 		dataGz = buf.Bytes()
 		data = make(map[string]any, 2)
 		data["type"] = e.Type() // always have type in uncompressed data
-	}
-
-	if e.User != nil {
-		data["_user"] = map[string]any{"uuid": e.User.UUID, "name": e.User.Name}
 	}
 
 	return &dynamo.Item{

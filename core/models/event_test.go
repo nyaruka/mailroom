@@ -20,16 +20,11 @@ import (
 )
 
 func TestEventToDynamo(t *testing.T) {
-	_, rt := testsuite.Runtime(t)
-
 	reset := test.MockUniverse()
 	defer reset()
 
-	oa := testdb.Org1.Load(t, rt)
-
 	tcs := []struct {
 		Event  json.RawMessage `json:"event"`
-		UserID models.UserID   `json:"user_id,omitempty"`
 		Dynamo json.RawMessage `json:"dynamo"`
 	}{}
 
@@ -40,16 +35,10 @@ func TestEventToDynamo(t *testing.T) {
 		evt, err := events.Read(tc.Event)
 		require.NoError(t, err, "%d: error reading event in test", i)
 
-		var user *models.User
-		if tc.UserID != models.NilUserID {
-			user = oa.UserByID(tc.UserID)
-		}
-
 		me := &models.Event{
 			Event:       evt,
 			OrgID:       testdb.Org1.ID,
 			ContactUUID: testdb.Ann.UUID,
-			User:        user.Reference(),
 		}
 
 		actual := tc

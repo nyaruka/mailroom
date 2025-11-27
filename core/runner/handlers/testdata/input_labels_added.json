@@ -25,7 +25,6 @@
                     "uuid": "01969b47-47eb-76f8-bef6-3979f99a96f9",
                     "type": "input_labels_added",
                     "created_on": "2025-05-04T12:31:03.123456789Z",
-                    "step_uuid": "2a6725ab-4f62-4c5a-9014-2c868db4022e",
                     "input_uuid": "01969b47-0583-76f8-ae7f-f8b243c49ff5",
                     "labels": [
                         {
@@ -38,7 +37,6 @@
                     "uuid": "01969b47-4fbb-76f8-ba91-c48ad8c50e6b",
                     "type": "input_labels_added",
                     "created_on": "2025-05-04T12:31:05.123456789Z",
-                    "step_uuid": "2a6725ab-4f62-4c5a-9014-2c868db4022e",
                     "input_uuid": "01969b47-0583-76f8-ae7f-f8b243c49ff5",
                     "labels": [
                         {
@@ -51,7 +49,6 @@
                     "uuid": "01969b47-578b-76f8-be24-6164105d48f2",
                     "type": "input_labels_added",
                     "created_on": "2025-05-04T12:31:07.123456789Z",
-                    "step_uuid": "2a6725ab-4f62-4c5a-9014-2c868db4022e",
                     "input_uuid": "01969b47-0583-76f8-ae7f-f8b243c49ff5",
                     "labels": [
                         {
@@ -66,14 +63,12 @@
                     "uuid": "01969b47-d873-76f8-a5ef-59cf4d9d7a5b",
                     "type": "error",
                     "created_on": "2025-05-04T12:31:40.123456789Z",
-                    "step_uuid": "19ebde80-3969-47d3-a09e-6806aab9f510",
                     "text": "no input to add labels to"
                 },
                 {
                     "uuid": "01969b47-e043-76f8-8ceb-17799a976525",
                     "type": "error",
                     "created_on": "2025-05-04T12:31:42.123456789Z",
-                    "step_uuid": "19ebde80-3969-47d3-a09e-6806aab9f510",
                     "text": "no input to add labels to"
                 }
             ]

@@ -7,7 +7,6 @@
                     "uuid": "01969b47-2c93-76f8-bec9-e032f4f9af5f",
                     "type": "contact_urns_changed",
                     "created_on": "2025-05-04T12:30:56.123456789Z",
-                    "step_uuid": "f5e0f002-41fc-4565-8d9f-e51d30290005",
                     "urns": [
                         "tel:+16055741111",
                         "tel:+12065551212"
@@ -17,7 +16,6 @@
                     "uuid": "01969b47-3463-76f8-9853-0310d032b497",
                     "type": "contact_urns_changed",
                     "created_on": "2025-05-04T12:30:58.123456789Z",
-                    "step_uuid": "f5e0f002-41fc-4565-8d9f-e51d30290005",
                     "urns": [
                         "tel:+16055741111",
                         "tel:+12065551212",
