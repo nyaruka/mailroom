@@ -57,7 +57,11 @@ func handleTicketOpened(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 		assigneeID,
 	)
 
-	scene.AttachPreCommitHook(hooks.InsertTickets, hooks.TicketAndNote{Event: event, Ticket: ticket})
+	// make this ticket available to subsequent event handlers - important because ticket open events are often followed
+	// by ticket note events for that same ticket
+	scene.DBContact.IncludeTickets([]*models.Ticket{ticket})
+
+	scene.AttachPreCommitHook(hooks.InsertTickets, ticket)
 
 	if assigneeID == models.NilUserID {
 		// ticket is unassigned so notify all possible assignees except the user who opened the ticket

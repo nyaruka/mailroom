@@ -98,11 +98,12 @@ func (s *Scene) AddEvent(ctx context.Context, rt *runtime.Runtime, oa *models.Or
 	}
 
 	if models.PersistEvent(e) {
+		e.SetUser(user.Reference())
+
 		s.persistEvents = append(s.persistEvents, &models.Event{
 			Event:       e,
 			OrgID:       oa.OrgID(),
 			ContactUUID: s.ContactUUID(),
-			User:        user.Reference(),
 		})
 	}
 

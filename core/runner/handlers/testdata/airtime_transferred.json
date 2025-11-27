@@ -7,7 +7,6 @@
                     "uuid": "01969b47-47eb-76f8-8e78-3bde7b3370ae",
                     "type": "airtime_transferred",
                     "created_on": "2025-05-04T12:31:03.123456789Z",
-                    "step_uuid": "688e64f9-2456-4b42-afcb-91a2073e5459",
                     "external_id": "2237512891",
                     "sender": "tel:+13605551212",
                     "recipient": "tel:+16055741111",
@@ -73,7 +72,7 @@
                 "Data": {
                     "type": "airtime_transferred"
                 },
-                "DataGZ": "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"
+                "DataGZ": "H4sIAAAAAAAA/+xZYXPaPBL+Kx59fTHINrZBM5mbXELbzLXJewnp9FpnPMIWRHdGciU5F5Lhv9/IxmAMBnIlk3bedqZ80GpX2tU+z643zyDLaAwQgFbf64+6vtn1ycj0vXHP7BG/ZzqjmPgjx/EhJqAF1CwlAAFMhaJTEiqBmRwTIUgMWiASBCsSh5wBBGxouyZ0TdgdWjZyLASdtmU7Xdfze/2voAXIoyKC4STMz7dtx3ctu9e3QAtIwmIiAAKKJOgPy/Gg67qWbdmgBQSJaEoJU0uxlvpdy7K0apQJQVg0Awjc3pyDFsBTnunNTgvcK5WGCZ9IgL49g0wkAOVrEnU68YM0cUrbseKMtCM+7TxYnYTz/2RpZ8pHNCEmy6YjIvT1FFaZDCMeE4BsCPWlvmdE6iv9eXUzNJp0jQ/D4Z8dq20FImAfuFTI2DhXi24lEebphDCFjPfc1Hc0o0Q7XSqfcaYIU+ZHwibqHhmOrVdPM3XPBX3CinKGjL9jSSMD25/dT8OLpyt2mUT2O/X1nycnVRPDWUqQgdM0oVGu2Pm35Cw3F0UkVeaARTymbIKMyRNNtUD/fw5A4VtY+BYAFIDqYwRgnj+XTDmTOmkWzkPDhtC4+sdWNxy/tP8tYIF61j+BCkCkH1HMAoCM5RqVPH8DvRiAwdltAFqljOFpuR5lOOaiIhNkQjmTWsyyJCmW50sxjbXEcvteZYkwRceU5CIlMrLloLMEC24cdFxx2Js65zc4N8aJ3Ord5fBA3wJ2p9Gd4FSSOJxKgCxYYEQJSiRAsEQQQEBmUUSk3EMeELlulTzmrYPgmwoeZ5GSf9OsdfLu4svgPPx8+vF2EF4Pzj6cXr8fBBmEtsdTIrDiIqTxiX73YjUlIkzxhJxYEO4B/ftBgfnjHXg8pngRJ+xE/IvRbHs9bzuc8QOmCR7RhKpZ+MQZyVPo20KsAnBxORxcX54OL64uTz8GoBDcLfNuRBgZU7Wu9bxSx3FMtb+6urAxF9Pc+zJNW5WNeXWoIq+wj2We906rupoKPuXaUDjiLMsPh2sbFFc4CcljlGQ6fKHCj7mVcs+8crJOkQW0rgfnF8ObFaxUADJGVSG9vTnfkIQV5dvr68Hl2b/KGOUAXA9WTGQkaFpGIAAVAMdEKsqW0XneFhnnGPeqU5AHHXcLzTjGml1QIqV2uS2MuZszd7NmE2+uv9hmYTiE//dzcipoVADguaqjME0a36RbMT8mpJaKP5Q+lc3/vecJkTghzbnR9l7vJpuBWuBP1pEMBFYbISxBDNs9Z+1fa1uYYdt3m1zfsFC/We2FK+vfMypIHBaEFVEsZuGYkiTesTcSJKYqTLFQs3BZnUVFb0l5FcasNWOl4K7OBstjYjLafcr22xW9edM2ScQDjer5skDOVth8yu+9SROSZ2LDUFPiHYGWVnu21u0VJT3ghMZUzbbD+Zcrcd5RSpz3a5e4I+fSssR5W0qc97vEHVTi/J+kxHlt5xcocX3Xdnpw+dtQ4nqub3Xt5W9zvauZ+/nq3V+v4q3n4VtXvFf6zPf/j898LGcs6uSjSBzl2Dl0Rrep+XoTOst9+ef4j4/oKkPWfEC3HPM6keMUY96+53bNHvZttzceYUy6+uXBYpRR6BUfawBnSlcfNqZiGgBUzMFAA3wDgA4ZEb58RmjZfW/lIWvolX4PA8rysiBCsHi43PkwxmqhY0PbMqFj2t2hDRF0EfTalmV5jobz1/K0dW3ymFKxy5CVG3LbvZ7jejVDmgD2XaFJsyHRVmPTer4ZAfjD7Tt9v1/wShGZRehr6NBt05d82/LIYn31t4nF8mY781bf6ys2f8tv9Xk1qAvmWIvOrv781eZB+9rlfQ3z27bMTS3W8fqNffW/9qhb+9LNrnT/2KVh6HLAyKW8TVHc106NEizr3fECvZWgTImUeFI+zdXlu4vrT4Pzpg84G+qOZkktO3TnAZsfuxuyEIRr3dDd/H8BAAD//7DKwdGuHQAA"
             }
         ]
     },
@@ -85,7 +84,6 @@
                     "uuid": "01969b48-900b-76f8-a2d8-44b4f9caf25c",
                     "type": "airtime_transferred",
                     "created_on": "2025-05-04T12:32:27.123456789Z",
-                    "step_uuid": "c174a241-6057-41a3-874b-f17fb8365c22",
                     "external_id": "",
                     "sender": "tel:+13605551212",
                     "recipient": "tel:+16055743333",
@@ -106,7 +104,6 @@
                     "uuid": "01969b48-97db-76f8-881a-ef06948e0f99",
                     "type": "error",
                     "created_on": "2025-05-04T12:32:29.123456789Z",
-                    "step_uuid": "c174a241-6057-41a3-874b-f17fb8365c22",
                     "text": "number lookup failed: unable to connect to server"
                 }
             ]

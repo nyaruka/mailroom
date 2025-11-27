@@ -7,7 +7,6 @@
                     "uuid": "01969b47-307b-76f8-ba91-c48ad8c50e6b",
                     "type": "contact_field_changed",
                     "created_on": "2025-05-04T12:30:57.123456789Z",
-                    "step_uuid": "da339edd-083b-48cb-bef6-3979f99a96f9",
                     "field": {
                         "key": "gender",
                         "name": "Gender"
@@ -20,7 +19,6 @@
                     "uuid": "01969b47-3c33-76f8-be24-6164105d48f2",
                     "type": "contact_field_changed",
                     "created_on": "2025-05-04T12:31:00.123456789Z",
-                    "step_uuid": "da339edd-083b-48cb-bef6-3979f99a96f9",
                     "field": {
                         "key": "gender",
                         "name": "Gender"
@@ -35,7 +33,6 @@
                     "uuid": "01969b47-8283-76f8-9803-f4a851d20f2b",
                     "type": "contact_field_changed",
                     "created_on": "2025-05-04T12:31:18.123456789Z",
-                    "step_uuid": "dc47e96a-392b-429b-92ca-6e1d7f550554",
                     "field": {
                         "key": "gender",
                         "name": "Gender"
@@ -48,7 +45,6 @@
                     "uuid": "01969b47-8e3b-76f8-8b56-5e92bbfe0e3f",
                     "type": "contact_field_changed",
                     "created_on": "2025-05-04T12:31:21.123456789Z",
-                    "step_uuid": "dc47e96a-392b-429b-92ca-6e1d7f550554",
                     "field": {
                         "key": "age",
                         "name": "Age"
@@ -63,7 +59,6 @@
                     "uuid": "01969b47-d48b-76f8-9504-776e7d151101",
                     "type": "contact_field_changed",
                     "created_on": "2025-05-04T12:31:39.123456789Z",
-                    "step_uuid": "530379ca-3fa7-4959-8ceb-17799a976525",
                     "field": {
                         "key": "gender",
                         "name": "Gender"
@@ -76,7 +71,6 @@
                     "uuid": "01969b47-dc5b-76f8-998e-ae5bd773804a",
                     "type": "contact_field_changed",
                     "created_on": "2025-05-04T12:31:41.123456789Z",
-                    "step_uuid": "530379ca-3fa7-4959-8ceb-17799a976525",
                     "field": {
                         "key": "gender",
                         "name": "Gender"
@@ -87,7 +81,6 @@
                     "uuid": "01969b47-e813-76f8-87bc-209e78511534",
                     "type": "contact_field_changed",
                     "created_on": "2025-05-04T12:31:44.123456789Z",
-                    "step_uuid": "530379ca-3fa7-4959-8ceb-17799a976525",
                     "field": {
                         "key": "age",
                         "name": "Age"
@@ -103,7 +96,6 @@
                     "uuid": "01969b48-2a7b-76f8-b8ba-60d66db82e39",
                     "type": "contact_field_changed",
                     "created_on": "2025-05-04T12:32:01.123456789Z",
-                    "step_uuid": "c1f115c7-bcf3-44ef-88b2-5d345629f07f",
                     "field": {
                         "key": "age",
                         "name": "Age"
@@ -114,7 +106,6 @@
                     "uuid": "01969b48-324b-76f8-8c2c-eb689cc91cf8",
                     "type": "contact_field_changed",
                     "created_on": "2025-05-04T12:32:03.123456789Z",
-                    "step_uuid": "c1f115c7-bcf3-44ef-88b2-5d345629f07f",
                     "field": {
                         "key": "gender",
                         "name": "Gender"

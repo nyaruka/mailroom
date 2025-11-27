@@ -25,6 +25,10 @@
                         "uuid": "01969b47-0583-76f8-ae7f-f8b243c49ff5",
                         "type": "ticket_assignee_changed",
                         "created_on": "2025-05-04T12:30:46.123456789Z",
+                        "_user": {
+                            "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
+                            "name": "Andy Admin"
+                        },
                         "ticket_uuid": "01992f54-5ab6-717a-a39e-e8ca91fb7262",
                         "assignee": {
                             "uuid": "27e44553-ab35-482b-a4d4-6f000ec611ab",
@@ -39,6 +43,10 @@
                         "uuid": "01969b47-0d53-76f8-bd38-d266ec8d3716",
                         "type": "ticket_assignee_changed",
                         "created_on": "2025-05-04T12:30:48.123456789Z",
+                        "_user": {
+                            "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
+                            "name": "Andy Admin"
+                        },
                         "ticket_uuid": "01992f54-5ab6-7498-a7f2-6aa246e45cfe",
                         "assignee": {
                             "uuid": "27e44553-ab35-482b-a4d4-6f000ec611ab",
@@ -120,6 +128,10 @@
                         "uuid": "01969b47-190b-76f8-9c0b-2014ddc77094",
                         "type": "ticket_assignee_changed",
                         "created_on": "2025-05-04T12:30:51.123456789Z",
+                        "_user": {
+                            "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
+                            "name": "Andy Admin"
+                        },
                         "ticket_uuid": "01992f54-5ab6-717a-a39e-e8ca91fb7262",
                         "assignee": null,
                         "previous": {

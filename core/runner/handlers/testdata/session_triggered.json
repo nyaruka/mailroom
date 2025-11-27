@@ -7,7 +7,6 @@
                     "uuid": "01969b47-2c93-76f8-9654-8a7258fbaae4",
                     "type": "session_triggered",
                     "created_on": "2025-05-04T12:30:56.123456789Z",
-                    "step_uuid": "688e64f9-2456-4b42-afcb-91a2073e5459",
                     "flow": {
                         "uuid": "a7c11d68-f008-496f-b56d-2d5cf4cf16a5",
                         "name": "Send All"
@@ -172,7 +171,6 @@
                     "uuid": "01969b48-41eb-76f8-8c2c-eb689cc91cf8",
                     "type": "session_triggered",
                     "created_on": "2025-05-04T12:32:07.123456789Z",
-                    "step_uuid": "10c62052-7db1-49d1-b8ba-60d66db82e39",
                     "flow": {
                         "uuid": "2f81d0ea-4d75-4843-9371-3f7465311cce",
                         "name": "IVR Flow"

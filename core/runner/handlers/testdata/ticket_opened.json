@@ -7,7 +7,6 @@
                     "uuid": "01969b47-307b-76f8-9853-0310d032b497",
                     "type": "ticket_opened",
                     "created_on": "2025-05-04T12:30:57.123456789Z",
-                    "step_uuid": "f5e0f002-41fc-4565-8d9f-e51d30290005",
                     "ticket": {
                         "uuid": "01969b47-2c93-76f8-bec9-e032f4f9af5f",
                         "status": "open",
@@ -19,14 +18,12 @@
                             "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
                             "name": "Andy Admin"
                         }
-                    },
-                    "note": "Where are my cookies?"
+                    }
                 },
                 {
                     "uuid": "01969b47-384b-76f8-8ab7-4a517a86045c",
                     "type": "contact_groups_changed",
                     "created_on": "2025-05-04T12:30:59.123456789Z",
-                    "step_uuid": "f5e0f002-41fc-4565-8d9f-e51d30290005",
                     "groups_added": [
                         {
                             "uuid": "361838c4-2866-495a-8990-9f3c222a7604",
@@ -40,7 +37,6 @@
                     "uuid": "01969b47-7e9b-76f8-8768-7d0ba4d4f3e8",
                     "type": "ticket_opened",
                     "created_on": "2025-05-04T12:31:17.123456789Z",
-                    "step_uuid": "229bd432-dac7-4a3f-ba91-c48ad8c50e6b",
                     "ticket": {
                         "uuid": "01969b47-7ab3-76f8-be24-6164105d48f2",
                         "status": "open",
@@ -48,14 +44,12 @@
                             "uuid": "4307df2e-b00b-42b6-922b-4a1dcfc268d8",
                             "name": "General"
                         }
-                    },
-                    "note": "I've found some cookies"
+                    }
                 },
                 {
                     "uuid": "01969b47-866b-76f8-b63d-c8dcc2fa9de0",
                     "type": "contact_groups_changed",
                     "created_on": "2025-05-04T12:31:19.123456789Z",
-                    "step_uuid": "229bd432-dac7-4a3f-ba91-c48ad8c50e6b",
                     "groups_added": [
                         {
                             "uuid": "361838c4-2866-495a-8990-9f3c222a7604",
@@ -104,7 +98,6 @@
                 "OrgID": 1,
                 "Data": {
                     "created_on": "2025-05-04T12:31:17.123456789Z",
-                    "note": "I've found some cookies",
                     "ticket": {
                         "status": "open",
                         "topic": {
@@ -138,7 +131,6 @@
                 "OrgID": 1,
                 "Data": {
                     "created_on": "2025-05-04T12:30:57.123456789Z",
-                    "note": "Where are my cookies?",
                     "ticket": {
                         "assignee": {
                             "name": "Andy Admin",

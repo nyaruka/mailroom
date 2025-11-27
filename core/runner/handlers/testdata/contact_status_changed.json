@@ -7,14 +7,12 @@
                     "uuid": "01969b47-2c93-76f8-9654-8a7258fbaae4",
                     "type": "contact_status_changed",
                     "created_on": "2025-05-04T12:30:56.123456789Z",
-                    "step_uuid": "688e64f9-2456-4b42-afcb-91a2073e5459",
                     "status": "blocked"
                 },
                 {
                     "uuid": "01969b47-3463-76f8-8e78-3bde7b3370ae",
                     "type": "contact_groups_changed",
                     "created_on": "2025-05-04T12:30:58.123456789Z",
-                    "step_uuid": "688e64f9-2456-4b42-afcb-91a2073e5459",
                     "groups_removed": [
                         {
                             "uuid": "c153e265-f7c9-4539-9dbc-9b358714b638",
@@ -70,7 +68,6 @@
                     "uuid": "01969b48-0f23-76f8-8c15-15a7c0c5228d",
                     "type": "contact_status_changed",
                     "created_on": "2025-05-04T12:31:54.123456789Z",
-                    "step_uuid": "7dcaa995-4ad0-444b-8a34-b008aed3f772",
                     "status": "stopped"
                 }
             ]
@@ -105,7 +102,6 @@
                     "uuid": "01969b48-e9e3-76f8-8742-c1eff0201012",
                     "type": "contact_status_changed",
                     "created_on": "2025-05-04T12:32:50.123456789Z",
-                    "step_uuid": "e4be9d25-b3ab-4a47-8704-ab259cb52a5d",
                     "status": "active"
                 }
             ]

@@ -200,6 +200,10 @@
                 "uuid": "01969b47-28ab-76f8-9c0b-2014ddc77094",
                 "type": "msg_created",
                 "created_on": "2025-05-04T12:30:55.123456789Z",
+                "_user": {
+                    "uuid": "ea84a3d7-92e4-4a8b-b01f-db11ff83bbb6",
+                    "name": "Ed McEditor"
+                },
                 "msg": {
                     "urn": "tel:+16055741111",
                     "channel": {
@@ -286,6 +290,10 @@
                 "uuid": "01969b47-3c33-76f8-92a3-d648ab64bccb",
                 "type": "msg_created",
                 "created_on": "2025-05-04T12:31:00.123456789Z",
+                "_user": {
+                    "uuid": "ea84a3d7-92e4-4a8b-b01f-db11ff83bbb6",
+                    "name": "Ed McEditor"
+                },
                 "msg": {
                     "urn": "tel:+16055741111",
                     "channel": {
