@@ -1,3 +1,8 @@
+v10.3.99 (2025-11-27)
+-------------------------
+ * Update to latest goflow that changes how events marshal
+ * Ticket endpoints should return events by contact
+
 v10.3.98 (2025-11-20)
 -------------------------
  * Update deps
