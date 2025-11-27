@@ -40,7 +40,7 @@ func handleMsgCreated(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAs
 	} else if userID != models.NilUserID {
 		msg, err = models.NewOutgoingChatMsg(rt, oa.Org(), channel, scene.DBContact, event, userID)
 	} else {
-		flow, _ := scene.LocateEvent(e)
+		flow := e.Step().Run().Flow().Asset().(*models.Flow)
 
 		msg, err = models.NewOutgoingFlowMsg(rt, oa.Org(), channel, scene.DBContact, flow, event, scene.IncomingMsg)
 	}

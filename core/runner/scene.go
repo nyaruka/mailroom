@@ -74,13 +74,6 @@ func (s *Scene) SprintUUID() flows.SprintUUID {
 	return s.Sprint.UUID()
 }
 
-// LocateEvent finds the flow and node UUID for an event belonging to this session
-func (s *Scene) LocateEvent(e flows.Event) (*models.Flow, flows.NodeUUID) {
-	run, step := s.Session.FindStep(e.StepUUID())
-	flow := run.Flow().Asset().(*models.Flow)
-	return flow, step.NodeUUID()
-}
-
 func (s *Scene) AddEvent(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, e flows.Event, userID models.UserID) error {
 	handler, found := eventHandlers[e.Type()]
 	if !found {
