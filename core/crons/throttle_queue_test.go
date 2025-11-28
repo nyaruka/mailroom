@@ -33,8 +33,6 @@ func TestThrottleQueue(t *testing.T) {
 	// make it look like org 1 has 20,000 messages in its outbox
 	rt.DB.MustExec(`INSERT INTO orgs_itemcount(org_id, scope, count, is_squashed) VALUES ($1, 'msgs:folder:O', 10050, FALSE)`, testdb.Org1.ID)
 
-	models.FlushCache()
-
 	res, err = cron.Run(ctx, rt)
 	require.NoError(t, err)
 	assert.Equal(t, map[string]any{"paused": 1, "resumed": 0}, res)

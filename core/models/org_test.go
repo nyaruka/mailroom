@@ -70,7 +70,6 @@ func TestGetOrgIDFromUUID(t *testing.T) {
 
 	// mark org 2 deleted
 	rt.DB.MustExec(`UPDATE orgs_org SET is_active = FALSE WHERE id = $1`, testdb.Org2.ID)
-	models.FlushCache()
 
 	orgID, err := models.GetOrgIDFromUUID(ctx, rt.DB.DB, models.OrgUUID(testdb.Org1.UUID))
 	require.NoError(t, err)
@@ -89,7 +88,6 @@ func TestEmailService(t *testing.T) {
 
 	// make org 2 a child of org 1
 	rt.DB.MustExec(`UPDATE orgs_org SET parent_id = $2 WHERE id = $1`, testdb.Org2.ID, testdb.Org1.ID)
-	models.FlushCache()
 
 	org1, err := models.LoadOrg(ctx, rt.Config, rt.DB.DB, testdb.Org1.ID)
 	require.NoError(t, err)

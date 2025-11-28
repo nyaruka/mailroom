@@ -5,7 +5,6 @@ import (
 
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/goflow/flows/events"
-	"github.com/nyaruka/mailroom/core/models"
 	_ "github.com/nyaruka/mailroom/core/runner/handlers"
 	"github.com/nyaruka/mailroom/core/tasks"
 	"github.com/nyaruka/mailroom/core/tasks/realtime"
@@ -24,7 +23,6 @@ func TestTicketClosed(t *testing.T) {
 
 	// add a ticket closed trigger
 	testdb.InsertTicketClosedTrigger(t, rt, testdb.Org1, testdb.Favorites)
-	models.FlushCache()
 
 	testdb.InsertClosedTicket(t, rt, "01992f54-5ab6-717a-a39e-e8ca91fb7262", testdb.Org1, testdb.Ann, testdb.DefaultTopic, nil)
 	evt := events.NewTicketClosed("01992f54-5ab6-717a-a39e-e8ca91fb7262")
