@@ -134,9 +134,8 @@ func loadFlow(ctx context.Context, db *sql.DB, sql string, orgID OrgID, arg any)
 		return nil, nil
 	}
 
-	err = dbutil.ScanJSON(rows, &flow.f)
-	if err != nil {
-		return nil, fmt.Errorf("error reading flow definition by: %s: %w", arg, err)
+	if err := dbutil.ScanJSON(rows, &flow.f); err != nil {
+		return nil, fmt.Errorf("error scanning flow definition: %w", err)
 	}
 
 	slog.Debug("loaded flow", "elapsed", time.Since(start), "org_id", orgID, "flow", arg)
