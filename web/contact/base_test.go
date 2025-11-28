@@ -138,7 +138,6 @@ func TestPopulateGroup(t *testing.T) {
 	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetValkey|testsuite.ResetElastic)
 
 	testdb.InsertContactGroup(t, rt, testdb.Org1, "", "Dynamic", "age > 18")
-	models.FlushCache()
 
 	testsuite.RunWebTests(t, rt, "testdata/populate_group.json")
 }

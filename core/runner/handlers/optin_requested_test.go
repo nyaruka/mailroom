@@ -20,7 +20,6 @@ func TestOptinRequested(t *testing.T) {
 	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
 	testdb.InsertOptIn(t, rt, testdb.Org1, "45aec4dd-945f-4511-878f-7d8516fbd336", "Jokes")
-	models.FlushCache()
 
 	rt.DB.MustExec(`UPDATE contacts_contacturn SET identity = 'facebook:12345', scheme='facebook', path='12345' WHERE contact_id = $1`, testdb.Ann.ID)
 	rt.DB.MustExec(`UPDATE contacts_contacturn SET identity = 'facebook:23456', scheme='facebook', path='23456' WHERE contact_id = $1`, testdb.Cat.ID)
