@@ -33,7 +33,7 @@ func handleIVRCreated(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAs
 		return nil
 	}
 
-	flow, _ := scene.LocateEvent(e)
+	flow := e.Step().Run().Flow().Asset().(*models.Flow)
 
 	msg := models.NewOutgoingIVR(rt.Config, oa.OrgID(), scene.DBCall, flow, event)
 

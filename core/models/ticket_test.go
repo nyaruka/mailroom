@@ -20,12 +20,13 @@ func TestTickets(t *testing.T) {
 	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
 	oa := testdb.Org1.Load(t, rt)
+	favorites := testdb.Favorites.Load(t, rt, oa)
 
 	ticket1 := models.NewTicket(
 		"2ef57efc-d85f-4291-b330-e4afe68af5fe",
 		testdb.Org1.ID,
 		testdb.Admin.ID,
-		models.NilFlowID,
+		nil,
 		testdb.Ann.ID,
 		testdb.DefaultTopic.ID,
 		testdb.Admin.ID,
@@ -34,7 +35,7 @@ func TestTickets(t *testing.T) {
 		"64f81be1-00ff-48ef-9e51-97d6f924c1a4",
 		testdb.Org1.ID,
 		testdb.Admin.ID,
-		models.NilFlowID,
+		nil,
 		testdb.Bob.ID,
 		testdb.SalesTopic.ID,
 		models.NilUserID,
@@ -43,7 +44,7 @@ func TestTickets(t *testing.T) {
 		"28ef8ddc-b221-42f3-aeae-ee406fc9d716",
 		testdb.Org1.ID,
 		models.NilUserID,
-		testdb.Favorites.ID,
+		favorites,
 		testdb.Dan.ID,
 		testdb.SupportTopic.ID,
 		testdb.Admin.ID,

@@ -26,10 +26,11 @@ func init() {
 func handleWarning(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scene *runner.Scene, e flows.Event, userID models.UserID) error {
 	event := e.(*events.Warning)
 
-	flow, _ := scene.LocateEvent(e)
 	logMsg := warningsLogs[event.Text]
 	if logMsg != "" {
-		slog.Error(logMsg, "contact", scene.ContactUUID(), "session", scene.SessionUUID(), "text", event.Text, slog.Group("flow", "uuid", flow.UUID, "name", flow.Name))
+		flow := e.Step().Run().Flow()
+
+		slog.Error(logMsg, "contact", scene.ContactUUID(), "session", scene.SessionUUID(), "text", event.Text, slog.Group("flow", "uuid", flow.UUID(), "name", flow.Name()))
 	}
 
 	return nil

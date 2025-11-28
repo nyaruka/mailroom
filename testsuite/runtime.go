@@ -64,8 +64,6 @@ func Reset(t *testing.T, rt *runtime.Runtime, what ResetFlag) {
 	} else if what&ResetData > 0 {
 		resetData(t, rt)
 	}
-
-	models.FlushCache()
 }
 
 // Runtime returns the various runtime things a test might need
@@ -122,6 +120,8 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 		rt.VK.Close()
 
 		goflow.Reset()
+
+		models.FlushCache()
 	})
 
 	return t.Context(), rt

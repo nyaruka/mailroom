@@ -70,7 +70,7 @@ func (h *insertFlowStats) Execute(ctx context.Context, rt *runtime.Runtime, tx *
 		for _, e := range scene.Sprint.Events() {
 			switch typed := e.(type) {
 			case *events.RunResultChanged:
-				flow, _ := scene.LocateEvent(e)
+				flow := e.Step().Run().Flow().Asset().(*models.Flow)
 				resultKey := utils.Snakify(typed.Name)
 				if typed.Previous != nil {
 					categoryChanges[resultInfo{flowID: flow.ID(), result: resultKey, category: typed.Previous.Category}]--

@@ -41,17 +41,16 @@ func handleTicketOpened(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 		assigneeID = assignee.ID()
 	}
 
-	var openedInID models.FlowID
+	var flow *models.Flow
 	if scene.Session != nil {
-		flow, _ := scene.LocateEvent(e)
-		openedInID = flow.ID()
+		flow = e.Step().Run().Flow().Asset().(*models.Flow)
 	}
 
 	ticket := models.NewTicket(
 		event.Ticket.UUID,
 		oa.OrgID(),
 		userID,
-		openedInID,
+		flow,
 		scene.ContactID(),
 		topicID,
 		assigneeID,

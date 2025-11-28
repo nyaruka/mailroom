@@ -54,12 +54,17 @@ type Ticket struct {
 }
 
 // NewTicket creates a new open ticket
-func NewTicket(uuid flows.TicketUUID, orgID OrgID, userID UserID, flowID FlowID, contactID ContactID, topicID TopicID, assigneeID UserID) *Ticket {
+func NewTicket(uuid flows.TicketUUID, orgID OrgID, userID UserID, flow *Flow, contactID ContactID, topicID TopicID, assigneeID UserID) *Ticket {
+	var openedInID FlowID
+	if flow != nil {
+		openedInID = flow.ID()
+	}
+
 	return &Ticket{
 		UUID:       uuid,
 		OrgID:      orgID,
 		OpenedByID: userID,
-		OpenedInID: flowID,
+		OpenedInID: openedInID,
 		ContactID:  contactID,
 		Status:     TicketStatusOpen,
 		TopicID:    topicID,
