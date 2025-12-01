@@ -1480,6 +1480,10 @@
                             "uuid": "01969b47-ad7b-76f8-bec9-e032f4f9af5f",
                             "type": "contact_urns_changed",
                             "created_on": "2025-05-04T12:31:29.123456789Z",
+                            "_user": {
+                                "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
+                                "name": "Andy Admin"
+                            },
                             "urns": [
                                 "tel:+255788555111"
                             ]
@@ -1502,6 +1506,10 @@
                 "OrgID": 1,
                 "TTL": "2026-05-04T12:31:29Z",
                 "Data": {
+                    "_user": {
+                        "name": "Andy Admin",
+                        "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
+                    },
                     "created_on": "2025-05-04T12:31:29.123456789Z",
                     "type": "contact_urns_changed",
                     "urns": [
@@ -1607,6 +1615,10 @@
                             "uuid": "01969b47-bd1b-76f8-8ab7-4a517a86045c",
                             "type": "contact_urns_changed",
                             "created_on": "2025-05-04T12:31:33.123456789Z",
+                            "_user": {
+                                "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
+                                "name": "Andy Admin"
+                            },
                             "urns": [
                                 "tel:+255788555111",
                                 "tel:+255788555222"
@@ -1630,6 +1642,10 @@
                 "OrgID": 1,
                 "TTL": "2026-05-04T12:31:33Z",
                 "Data": {
+                    "_user": {
+                        "name": "Andy Admin",
+                        "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
+                    },
                     "created_on": "2025-05-04T12:31:33.123456789Z",
                     "type": "contact_urns_changed",
                     "urns": [
@@ -1680,6 +1696,10 @@
                             "uuid": "01969b47-c4eb-76f8-97a3-ae27459a6be4",
                             "type": "contact_urns_changed",
                             "created_on": "2025-05-04T12:31:35.123456789Z",
+                            "_user": {
+                                "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
+                                "name": "Andy Admin"
+                            },
                             "urns": [
                                 "tel:+255788555111"
                             ]
@@ -1706,6 +1726,10 @@
                 "OrgID": 1,
                 "TTL": "2026-05-04T12:31:35Z",
                 "Data": {
+                    "_user": {
+                        "name": "Andy Admin",
+                        "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
+                    },
                     "created_on": "2025-05-04T12:31:35.123456789Z",
                     "type": "contact_urns_changed",
                     "urns": [
@@ -1757,6 +1781,10 @@
                             "uuid": "01969b47-ccbb-76f8-ba82-c15b24dd577f",
                             "type": "contact_urns_changed",
                             "created_on": "2025-05-04T12:31:37.123456789Z",
+                            "_user": {
+                                "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
+                                "name": "Andy Admin"
+                            },
                             "urns": [
                                 "tel:+255788555111",
                                 "tel:+255788555333"
@@ -1792,6 +1820,10 @@
                 "OrgID": 1,
                 "TTL": "2026-05-04T12:31:37Z",
                 "Data": {
+                    "_user": {
+                        "name": "Andy Admin",
+                        "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
+                    },
                     "created_on": "2025-05-04T12:31:37.123456789Z",
                     "type": "contact_urns_changed",
                     "urns": [
@@ -1837,6 +1869,10 @@
                             "uuid": "01969b47-d48b-76f8-ba7e-53c2263e32f8",
                             "type": "contact_urns_changed",
                             "created_on": "2025-05-04T12:31:39.123456789Z",
+                            "_user": {
+                                "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
+                                "name": "Andy Admin"
+                            },
                             "urns": []
                         }
                     ]
@@ -1869,6 +1905,10 @@
                 "OrgID": 1,
                 "TTL": "2026-05-04T12:31:39Z",
                 "Data": {
+                    "_user": {
+                        "name": "Andy Admin",
+                        "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
+                    },
                     "created_on": "2025-05-04T12:31:39.123456789Z",
                     "type": "contact_urns_changed",
                     "urns": []
@@ -1959,6 +1999,10 @@
                             "uuid": "01969b47-e813-76f8-9014-2c868db4022e",
                             "type": "ticket_note_added",
                             "created_on": "2025-05-04T12:31:44.123456789Z",
+                            "_user": {
+                                "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
+                                "name": "Andy Admin"
+                            },
                             "ticket_uuid": "01969b47-dc5b-76f8-aaa3-04d3fbce5f9a",
                             "note": "Need help"
                         },
@@ -2009,6 +2053,10 @@
                 "SK": "evt#01969b47-e813-76f8-9014-2c868db4022e",
                 "OrgID": 1,
                 "Data": {
+                    "_user": {
+                        "name": "Andy Admin",
+                        "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
+                    },
                     "created_on": "2025-05-04T12:31:44.123456789Z",
                     "note": "Need help",
                     "ticket_uuid": "01969b47-dc5b-76f8-aaa3-04d3fbce5f9a",
@@ -2151,6 +2199,10 @@
                             "uuid": "01969b48-16f3-76f8-b63d-c8dcc2fa9de0",
                             "type": "contact_urns_changed",
                             "created_on": "2025-05-04T12:31:56.123456789Z",
+                            "_user": {
+                                "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
+                                "name": "Andy Admin"
+                            },
                             "urns": [
                                 "tel:+255788555111"
                             ]
@@ -2217,6 +2269,10 @@
                 "OrgID": 1,
                 "TTL": "2026-05-04T12:31:56Z",
                 "Data": {
+                    "_user": {
+                        "name": "Andy Admin",
+                        "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
+                    },
                     "created_on": "2025-05-04T12:31:56.123456789Z",
                     "type": "contact_urns_changed",
                     "urns": [

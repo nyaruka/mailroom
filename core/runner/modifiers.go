@@ -9,8 +9,6 @@ import (
 	"time"
 
 	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/goflow/flows/events"
-	"github.com/nyaruka/goflow/flows/modifiers"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/runner/clocks"
 	"github.com/nyaruka/mailroom/runtime"
@@ -20,23 +18,6 @@ const (
 	// how long we will keep trying to lock contacts for modification
 	modifyLockWait = 10 * time.Second
 )
-
-// Mapping of modifier types to the primary event type they generate which is the only event that should
-// be credited to the user. For example if a user changes a field value that generates a contact_field_changed
-// event (which should be credited to the user) but potentially also a contact_groups_changed event (which should not).
-var modifierUserEvents = map[string]string{
-	modifiers.TypeField:          events.TypeContactFieldChanged,
-	modifiers.TypeGroups:         events.TypeContactGroupsChanged,
-	modifiers.TypeLanguage:       events.TypeContactLanguageChanged,
-	modifiers.TypeName:           events.TypeContactNameChanged,
-	modifiers.TypeStatus:         events.TypeContactStatusChanged,
-	modifiers.TypeTicketAssignee: events.TypeTicketAssigneeChanged,
-	modifiers.TypeTicketClose:    events.TypeTicketClosed,
-	modifiers.TypeTicketNote:     events.TypeTicketNoteAdded,
-	modifiers.TypeTicketOpen:     events.TypeTicketOpened,
-	modifiers.TypeTicketReopen:   events.TypeTicketReopened,
-	modifiers.TypeTicketTopic:    events.TypeTicketTopicChanged,
-}
 
 // ModifyWithLock bulk modifies contacts by loading and locking them, applying modifiers and processing the resultant events.
 //

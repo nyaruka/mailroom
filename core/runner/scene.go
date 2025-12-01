@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/goflow/flows/modifiers"
 	"github.com/nyaruka/mailroom/core/goflow"
 	"github.com/nyaruka/mailroom/core/models"
@@ -210,12 +211,12 @@ func (s *Scene) ApplyModifier(ctx context.Context, rt *runtime.Runtime, oa *mode
 		return nil, fmt.Errorf("error applying %s modifier to contact %s: %w", mod.Type(), s.Contact.UUID(), err)
 	}
 
-	userEventType := modifierUserEvents[mod.Type()]
-
 	for _, e := range evts {
-		creditUserID := models.NilUserID
-		if userEventType != "" && e.Type() == userEventType {
-			creditUserID = userID
+		creditUserID := userID
+
+		// don't credit group changes to the user if they didn't initiate them
+		if e.Type() == events.TypeContactGroupsChanged && mod.Type() != modifiers.TypeGroups {
+			creditUserID = models.NilUserID
 		}
 
 		if err := s.AddEvent(ctx, rt, oa, e, creditUserID); err != nil {
