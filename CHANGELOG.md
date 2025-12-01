@@ -1,3 +1,7 @@
+v10.3.101 (2025-12-01)
+-------------------------
+ * Remove support for writing sessions to S3
+
 v10.3.100 (2025-12-01)
 -------------------------
  * Update to latest goflow that simplifies locating events
