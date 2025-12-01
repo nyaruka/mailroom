@@ -10,8 +10,8 @@ import (
 )
 
 func TestValidate(t *testing.T) {
-	_, err := runtime.LoadConfig(`--db=??`, `--readonly-db=??`, `--valkey=??`, `--elastic=??`, `--session-storage=??`)
-	assert.EqualError(t, err, "invalid configuration: field 'DB' is not a valid URL, field 'ReadonlyDB' is not a valid URL, field 'Valkey' is not a valid URL, field 'SessionStorage' is not a valid session storage mode, field 'Elastic' is not a valid URL")
+	_, err := runtime.LoadConfig(`--db=??`, `--readonly-db=??`, `--valkey=??`, `--elastic=??`)
+	assert.EqualError(t, err, "invalid configuration: field 'DB' is not a valid URL, field 'ReadonlyDB' is not a valid URL, field 'Valkey' is not a valid URL, field 'Elastic' is not a valid URL")
 
 	_, err = runtime.LoadConfig(`--db=mysql://temba:temba@localhost/temba`, `--valkey=bluedis://localhost:6379/15`)
 	assert.EqualError(t, err, "invalid configuration: field 'DB' must start with 'postgres:', field 'Valkey' must start with 'valkey:'")
