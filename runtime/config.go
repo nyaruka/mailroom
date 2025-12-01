@@ -52,7 +52,6 @@ type Config struct {
 	MaxStepsPerSprint    int    `help:"the maximum number of steps allowed per engine sprint"`
 	MaxSprintsPerSession int    `help:"the maximum number of sprints allowed per engine session"`
 	MaxValueLength       int    `help:"the maximum size in characters for contact field values and run result values"`
-	SessionStorage       string `validate:"omitempty,session_storage"         help:"where to store session output (s3|db)"`
 
 	Elastic              string `validate:"url" help:"the URL of your ElasticSearch instance"`
 	ElasticUsername      string `help:"the username for ElasticSearch if using basic auth"`
@@ -118,7 +117,6 @@ func NewDefaultConfig() *Config {
 		MaxStepsPerSprint:    200,
 		MaxSprintsPerSession: 250,
 		MaxValueLength:       640,
-		SessionStorage:       "db",
 
 		Elastic:              "http://localhost:9200",
 		ElasticUsername:      "",
@@ -134,7 +132,7 @@ func NewDefaultConfig() *Config {
 
 		S3Endpoint:          "https://s3.amazonaws.com",
 		S3AttachmentsBucket: "temba-attachments",
-		S3SessionsBucket:    "temba-sessions",
+		S3SessionsBucket:    "temba-sessions", // for older sessions
 
 		MetricsReporting:    "off",
 		CloudwatchNamespace: "Temba/Mailroom",

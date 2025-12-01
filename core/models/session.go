@@ -12,9 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/lib/pq"
-	"github.com/nyaruka/gocommon/aws/s3x"
 	"github.com/nyaruka/gocommon/dbutil"
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/goflow/assets"
@@ -175,7 +173,7 @@ func GetWaitingSessionForContact(ctx context.Context, rt *runtime.Runtime, oa *O
 		return nil, nil
 	}
 
-	// load our output from storage if necessary
+	// older sessions may have their output stored in S3
 	if dbs.OutputURL != "" {
 		// strip just the path out of our output URL
 		u, err := url.Parse(string(dbs.OutputURL))
@@ -184,14 +182,11 @@ func GetWaitingSessionForContact(ctx context.Context, rt *runtime.Runtime, oa *O
 		}
 		key := strings.TrimPrefix(u.Path, "/")
 
-		start := time.Now()
-
 		_, output, err := rt.S3.GetObject(ctx, rt.Config.S3SessionsBucket, key)
 		if err != nil {
 			return nil, fmt.Errorf("error reading session from s3 bucket=%s key=%s: %w", rt.Config.S3SessionsBucket, key, err)
 		}
 
-		slog.Debug("loaded session from storage", "elapsed", time.Since(start), "output_url", string(dbs.OutputURL))
 		session.Output = output
 	}
 
@@ -393,20 +388,10 @@ INSERT INTO
 	flows_flowsession( uuid,  contact_uuid,  session_type,  status,  last_sprint_uuid,  current_flow_uuid,  output,  created_on,  call_uuid)
                VALUES(:uuid, :contact_uuid, :session_type, :status, :last_sprint_uuid, :current_flow_uuid, :output, :created_on, :call_uuid)`
 
-const sqlInsertWaitingSessionS3 = `
-INSERT INTO
-	flows_flowsession( uuid,  contact_uuid,  session_type,  status,  last_sprint_uuid,  current_flow_uuid,  output_url,  created_on,  call_uuid)
-               VALUES(:uuid, :contact_uuid, :session_type, :status, :last_sprint_uuid, :current_flow_uuid, :output_url, :created_on, :call_uuid)`
-
 const sqlInsertEndedSessionDB = `
 INSERT INTO
 	flows_flowsession( uuid,  contact_uuid,  session_type,  status,  last_sprint_uuid,  current_flow_uuid,  output,  created_on,  ended_on,  call_uuid)
                VALUES(:uuid, :contact_uuid, :session_type, :status, :last_sprint_uuid, :current_flow_uuid, :output, :created_on, :ended_on, :call_uuid)`
-
-const sqlInsertEndedSessionS3 = `
-INSERT INTO
-	flows_flowsession( uuid,  contact_uuid,  session_type,  status,  last_sprint_uuid,  current_flow_uuid,  output_url,  created_on,  ended_on,  call_uuid)
-               VALUES(:uuid, :contact_uuid, :session_type, :status, :last_sprint_uuid, :current_flow_uuid, :output_url, :created_on, :ended_on, :call_uuid)`
 
 func insertDatabaseSessions(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *OrgAssets, sessions []*Session, contacts []*Contact) error {
 	dbss := make([]*dbSession, len(sessions))
@@ -436,26 +421,12 @@ func insertDatabaseSessions(ctx context.Context, rt *runtime.Runtime, tx *sqlx.T
 		}
 	}
 
-	// the SQL we'll use to do our insert of sessions
-	insertEndedSQL := sqlInsertEndedSessionDB
-	insertWaitingSQL := sqlInsertWaitingSessionDB
-
-	// if writing our sessions to S3, do so
-	if rt.Config.SessionStorage == "s3" {
-		if err := writeSessionsToStorage(ctx, rt, oa.OrgID(), dbss, contacts); err != nil {
-			return fmt.Errorf("error writing sessions to storage: %w", err)
-		}
-
-		insertEndedSQL = sqlInsertEndedSessionS3
-		insertWaitingSQL = sqlInsertWaitingSessionS3
-	}
-
 	// insert our ended sessions first
-	if err := BulkQuery(ctx, "insert ended sessions", tx, insertEndedSQL, endedSessions); err != nil {
+	if err := BulkQuery(ctx, "insert ended sessions", tx, sqlInsertEndedSessionDB, endedSessions); err != nil {
 		return fmt.Errorf("error inserting ended sessions: %w", err)
 	}
 	// insert waiting sessions
-	if err := BulkQuery(ctx, "insert waiting sessions", tx, insertWaitingSQL, waitingSessions); err != nil {
+	if err := BulkQuery(ctx, "insert waiting sessions", tx, sqlInsertWaitingSessionDB, waitingSessions); err != nil {
 		return fmt.Errorf("error inserting waiting sessions: %w", err)
 	}
 
@@ -469,19 +440,6 @@ SET
 	output = :output, 
 	output_url = NULL,
 	status = :status,
-	last_sprint_uuid = :last_sprint_uuid,
-	ended_on = :ended_on,
-	current_flow_uuid = :current_flow_uuid
-WHERE 
-	uuid = :uuid`
-
-const sqlUpdateSessionS3 = `
-UPDATE 
-	flows_flowsession
-SET 
-	output = NULL,
-	output_url = :output_url,
-	status = :status, 
 	last_sprint_uuid = :last_sprint_uuid,
 	ended_on = :ended_on,
 	current_flow_uuid = :current_flow_uuid
@@ -502,52 +460,10 @@ func updateDatabaseSession(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx
 		EndedOn:         s.EndedOn,
 	}
 
-	// the SQL statement we'll use to update this session
-	updateSQL := sqlUpdateSessionDB
-
-	// if writing to S3, do so
-	if rt.Config.SessionStorage == "s3" {
-		if err := writeSessionsToStorage(ctx, rt, oa.OrgID(), []*dbSession{dbs}, []*Contact{contact}); err != nil {
-			slog.Error("error writing session to s3", "error", err)
-		}
-
-		// don't write output in our SQL
-		updateSQL = sqlUpdateSessionS3
-	}
-
 	// write our new session state to the db
-	if _, err := tx.NamedExecContext(ctx, updateSQL, dbs); err != nil {
+	if _, err := tx.NamedExecContext(ctx, sqlUpdateSessionDB, dbs); err != nil {
 		return fmt.Errorf("error updating session: %w", err)
 	}
 
-	return nil
-}
-
-// WriteSessionsToStorage writes the outputs of the passed in sessions to our storage (S3), updating the
-// output_url for each on success. Failure of any will cause all to fail.
-func writeSessionsToStorage(ctx context.Context, rt *runtime.Runtime, orgID OrgID, sessions []*dbSession, contacts []*Contact) error {
-	start := time.Now()
-
-	uploads := make([]*s3x.Upload, len(sessions))
-	for i, s := range sessions {
-		uploads[i] = &s3x.Upload{
-			Bucket:      rt.Config.S3SessionsBucket,
-			Key:         s.StoragePath(orgID, contacts[i].UUID()),
-			Body:        []byte(s.Output),
-			ContentType: "application/json",
-			ACL:         types.ObjectCannedACLPrivate,
-		}
-	}
-
-	err := rt.S3.BatchPut(ctx, uploads, 32)
-	if err != nil {
-		return fmt.Errorf("error writing sessions to storage: %w", err)
-	}
-
-	for i, s := range sessions {
-		s.OutputURL = null.String(uploads[i].URL)
-	}
-
-	slog.Debug("wrote sessions to s3", "elapsed", time.Since(start), "count", len(sessions))
 	return nil
 }
