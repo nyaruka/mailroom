@@ -1,3 +1,7 @@
+v10.3.102 (2025-12-01)
+-------------------------
+ * Fix crediting of users to events from modifiers
+
 v10.3.101 (2025-12-01)
 -------------------------
  * Remove support for writing sessions to S3
