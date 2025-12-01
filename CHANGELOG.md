@@ -1,3 +1,7 @@
+v10.3.100 (2025-12-01)
+-------------------------
+ * Update to latest goflow that simplifies locating events
+
 v10.3.99 (2025-11-27)
 -------------------------
  * Update to latest goflow that changes how events marshal
