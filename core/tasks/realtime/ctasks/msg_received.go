@@ -63,7 +63,7 @@ func (t *MsgReceivedTask) perform(ctx context.Context, rt *runtime.Runtime, oa *
 			if utils.Attachment(attURL).ContentType() != "" {
 				attachments = append(attachments, utils.Attachment(attURL))
 			} else {
-				attachment, logUUID, err := msgio.FetchAttachment(ctx, rt, channel, attURL, t.MsgID)
+				attachment, logUUID, err := msgio.FetchAttachment(ctx, rt, channel, attURL, t.MsgUUID, t.MsgID)
 				if err != nil {
 					return fmt.Errorf("error fetching attachment '%s': %w", attURL, err)
 				}
