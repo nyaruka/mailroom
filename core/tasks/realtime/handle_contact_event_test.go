@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
+	"github.com/nyaruka/gocommon/uuids"
 	"github.com/nyaruka/mailroom/core/models"
 	_ "github.com/nyaruka/mailroom/core/runner/handlers"
 	"github.com/nyaruka/mailroom/core/tasks/realtime/ctasks"
@@ -20,6 +21,7 @@ func TestHandleContactEvent(t *testing.T) {
 	defer vc.Close()
 
 	testsuite.QueueRealtimeTask(t, rt, testdb.Org1, testdb.Ann, &ctasks.EventReceivedTask{
+		EventUUID:  models.ChannelEventUUID(uuids.NewV7()),
 		EventType:  models.EventTypeNewConversation,
 		ChannelID:  testdb.FacebookChannel.ID,
 		URNID:      testdb.Ann.URNID,
@@ -28,6 +30,7 @@ func TestHandleContactEvent(t *testing.T) {
 		NewContact: false,
 	})
 	testsuite.QueueRealtimeTask(t, rt, testdb.Org1, testdb.Ann, &ctasks.EventReceivedTask{
+		EventUUID:  models.ChannelEventUUID(uuids.NewV7()),
 		EventType:  models.EventTypeStopContact,
 		ChannelID:  testdb.FacebookChannel.ID,
 		URNID:      testdb.Ann.URNID,

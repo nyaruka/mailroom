@@ -25,6 +25,7 @@ func init() {
 }
 
 type EventReceivedTask struct {
+	EventUUID  models.ChannelEventUUID `json:"event_uuid"`
 	EventID    models.ChannelEventID   `json:"event_id"`
 	EventType  models.ChannelEventType `json:"event_type"`
 	ChannelID  models.ChannelID        `json:"channel_id"`
@@ -46,7 +47,7 @@ func (t *EventReceivedTask) UseReadOnly() bool {
 func (t *EventReceivedTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, mc *models.Contact) error {
 	_, err := t.handle(ctx, rt, oa, mc, nil)
 	if err != nil {
-		return fmt.Errorf("error handling channel event %d: %w", t.EventID, err)
+		return fmt.Errorf("error handling channel event %s: %w", t.EventUUID, err)
 	}
 
 	return models.MarkChannelEventHandled(ctx, rt.DB, t.EventID)
