@@ -1,3 +1,7 @@
+v10.3.103 (2025-12-02)
+-------------------------
+ * Include msg UUID in requests to courier to fetch attachments
+
 v10.3.102 (2025-12-01)
 -------------------------
  * Fix crediting of users to events from modifiers
