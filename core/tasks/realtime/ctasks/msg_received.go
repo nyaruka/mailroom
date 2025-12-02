@@ -63,7 +63,7 @@ func (t *MsgReceivedTask) perform(ctx context.Context, rt *runtime.Runtime, oa *
 			if utils.Attachment(attURL).ContentType() != "" {
 				attachments = append(attachments, utils.Attachment(attURL))
 			} else {
-				attachment, logUUID, err := msgio.FetchAttachment(ctx, rt, channel, attURL, t.MsgUUID, t.MsgID)
+				attachment, logUUID, err := msgio.FetchAttachment(ctx, rt, channel, attURL, t.MsgUUID)
 				if err != nil {
 					return fmt.Errorf("error fetching attachment '%s': %w", attURL, err)
 				}
@@ -121,10 +121,11 @@ func (t *MsgReceivedTask) perform(ctx context.Context, rt *runtime.Runtime, oa *
 
 	scene := runner.NewScene(mc, contact)
 	scene.IncomingMsg = &models.MsgInRef{
-		ID:          t.MsgID,
+		UUID:        t.MsgUUID,
 		ExtID:       t.MsgExternalID,
 		Attachments: attachments,
 		LogUUIDs:    logUUIDs,
+		ID:          t.MsgID, // deprecated
 	}
 	if err := scene.AddEvent(ctx, rt, oa, msgEvent, models.NilUserID); err != nil {
 		return fmt.Errorf("error adding message event to scene: %w", err)

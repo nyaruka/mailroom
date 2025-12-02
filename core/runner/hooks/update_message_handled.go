@@ -41,7 +41,7 @@ func (h *updateMessageHandled) Execute(ctx context.Context, rt *runtime.Runtime,
 			ticket = tks[len(tks)-1]
 		}
 
-		err := models.MarkMessageHandled(ctx, tx, msgIn.ID, models.MsgStatusHandled, visibility, flow, ticket, msgIn.Attachments, msgIn.LogUUIDs)
+		err := models.MarkMessageHandled(ctx, tx, msgIn.UUID, models.MsgStatusHandled, visibility, flow, ticket, msgIn.Attachments, msgIn.LogUUIDs)
 		if err != nil {
 			return fmt.Errorf("error marking message as handled: %w", err)
 		}
