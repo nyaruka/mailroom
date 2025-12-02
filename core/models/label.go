@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/nyaruka/goflow/assets"
+	"github.com/nyaruka/goflow/flows"
 
 	"github.com/vinovest/sqlx"
 )
@@ -56,11 +57,14 @@ func AddMsgLabels(ctx context.Context, tx *sqlx.Tx, adds []*MsgLabelAdd) error {
 }
 
 const sqlInsertMsgLabels = `
-INSERT INTO msgs_msg_labels(msg_id, label_id) VALUES(:msg_id, :label_id)
+INSERT INTO msgs_msg_labels(msg_id, label_id) 
+SELECT msgs_msg.id, r.label_id
+FROM (VALUES(:msg_uuid::uuid, :label_id::int)) AS r(msg_uuid, label_id)
+INNER JOIN msgs_msg ON msgs_msg.uuid = r.msg_uuid
 ON CONFLICT DO NOTHING`
 
 // MsgLabelAdd represents a single label that should be added to a message
 type MsgLabelAdd struct {
-	MsgID   MsgID   `db:"msg_id"`
-	LabelID LabelID `db:"label_id"`
+	MsgUUID flows.EventUUID `db:"msg_uuid"`
+	LabelID LabelID         `db:"label_id"`
 }

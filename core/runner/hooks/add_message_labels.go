@@ -25,7 +25,7 @@ func (h *addMessageLabels) Execute(ctx context.Context, rt *runtime.Runtime, tx 
 	for _, args := range scenes {
 		for _, a := range args {
 			add := a.(*models.MsgLabelAdd)
-			key := fmt.Sprintf("%d:%d", add.LabelID, add.MsgID)
+			key := fmt.Sprintf("%d:%s", add.LabelID, add.MsgUUID)
 			if !seen[key] {
 				adds = append(adds, add)
 				seen[key] = true

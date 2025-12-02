@@ -305,7 +305,6 @@ func TestMsgReceivedTask(t *testing.T) {
 	makeMsgTask := func(channel *testdb.Channel, contact *testdb.Contact, text string) realtime.Task {
 		return &ctasks.MsgReceivedTask{
 			ChannelID: channel.ID,
-			MsgID:     dbMsg.ID,
 			MsgUUID:   dbMsg.UUID,
 			URN:       contact.URN,
 			URNID:     contact.URNID,
