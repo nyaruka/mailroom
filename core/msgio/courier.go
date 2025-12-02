@@ -314,7 +314,8 @@ type fetchAttachmentRequest struct {
 	ChannelType models.ChannelType `json:"channel_type"`
 	ChannelUUID assets.ChannelUUID `json:"channel_uuid"`
 	URL         string             `json:"url"`
-	MsgID       models.MsgID       `json:"msg_id"`
+	MsgUUID     flows.EventUUID    `json:"msg_uuid"`
+	MsgID       models.MsgID       `json:"msg_id"` // deprecated
 }
 
 type fetchAttachmentResponse struct {
@@ -327,11 +328,12 @@ type fetchAttachmentResponse struct {
 }
 
 // FetchAttachment calls courier to fetch the given attachment
-func FetchAttachment(ctx context.Context, rt *runtime.Runtime, ch *models.Channel, attURL string, msgID models.MsgID) (utils.Attachment, clogs.UUID, error) {
+func FetchAttachment(ctx context.Context, rt *runtime.Runtime, ch *models.Channel, attURL string, msgUUID flows.EventUUID, msgID models.MsgID) (utils.Attachment, clogs.UUID, error) {
 	payload := jsonx.MustMarshal(&fetchAttachmentRequest{
 		ChannelType: ch.Type(),
 		ChannelUUID: ch.UUID(),
 		URL:         attURL,
+		MsgUUID:     msgUUID,
 		MsgID:       msgID,
 	})
 	req, _ := http.NewRequest("POST", fmt.Sprintf("https://%s/c/_fetch-attachment", rt.Config.Domain), bytes.NewReader(payload))
