@@ -139,11 +139,12 @@ func (t *Templating) Value() (driver.Value, error) {
 }
 
 type MsgInRef struct {
-	ID          MsgID
+	UUID        flows.EventUUID
 	ExtID       string
 	Attachments []utils.Attachment
 	LogUUIDs    []clogs.UUID
 	Handled     bool
+	ID          MsgID //deprecated
 }
 
 // Msg is our type for mailroom messages
@@ -629,7 +630,7 @@ msgs_msg(uuid, text, attachments, quick_replies, locale, templating, high_priori
 RETURNING id, modified_on`
 
 // MarkMessageHandled updates a message after handling
-func MarkMessageHandled(ctx context.Context, tx DBorTx, msgID MsgID, status MsgStatus, visibility MsgVisibility, flow *Flow, ticket *Ticket, attachments []utils.Attachment, logUUIDs []clogs.UUID) error {
+func MarkMessageHandled(ctx context.Context, tx DBorTx, msgUUID flows.EventUUID, status MsgStatus, visibility MsgVisibility, flow *Flow, ticket *Ticket, attachments []utils.Attachment, logUUIDs []clogs.UUID) error {
 	flowID := NilFlowID
 	if flow != nil {
 		flowID = flow.ID()
@@ -641,11 +642,11 @@ func MarkMessageHandled(ctx context.Context, tx DBorTx, msgID MsgID, status MsgS
 	}
 
 	_, err := tx.ExecContext(ctx,
-		`UPDATE msgs_msg SET status = $2, visibility = $3, flow_id = $4, ticket_uuid = $5, attachments = $6, log_uuids = array_cat(log_uuids, $7) WHERE id = $1`,
-		msgID, status, visibility, flowID, null.String(ticketUUID), pq.Array(attachments), pq.Array(logUUIDs),
+		`UPDATE msgs_msg SET status = $2, visibility = $3, flow_id = $4, ticket_uuid = $5, attachments = $6, log_uuids = array_cat(log_uuids, $7) WHERE uuid = $1`,
+		msgUUID, status, visibility, flowID, null.String(ticketUUID), pq.Array(attachments), pq.Array(logUUIDs),
 	)
 	if err != nil {
-		return fmt.Errorf("error marking msg #%d as handled: %w", msgID, err)
+		return fmt.Errorf("error marking msg %s as handled: %w", msgUUID, err)
 	}
 	return nil
 }
