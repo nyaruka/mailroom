@@ -58,7 +58,7 @@ func TestChannelEvents(t *testing.T) {
 
 	assertdb.Query(t, rt.DB, `SELECT event_type, status FROM channels_channelevent WHERE id = $1`, e2.ID).Columns(map[string]any{"event_type": "mo_miss", "status": "P"})
 
-	models.MarkChannelEventHandled(ctx, rt.DB, e2.ID)
+	models.MarkChannelEventHandled(ctx, rt.DB, e2.UUID)
 
 	assertdb.Query(t, rt.DB, `SELECT event_type, status FROM channels_channelevent WHERE id = $1`, e2.ID).Columns(map[string]any{"event_type": "mo_miss", "status": "H"})
 

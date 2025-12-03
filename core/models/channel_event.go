@@ -94,8 +94,8 @@ func NewChannelEvent(orgID OrgID, eventType ChannelEventType, channelID ChannelI
 }
 
 // MarkChannelEventHandled updates a channel event after handling
-func MarkChannelEventHandled(ctx context.Context, tx DBorTx, id ChannelEventID) error {
-	_, err := tx.ExecContext(ctx, `UPDATE channels_channelevent SET status = 'H' WHERE id = $1`, id)
+func MarkChannelEventHandled(ctx context.Context, tx DBorTx, uuid ChannelEventUUID) error {
+	_, err := tx.ExecContext(ctx, `UPDATE channels_channelevent SET status = 'H' WHERE uuid = $1`, uuid)
 	if err != nil {
 		return fmt.Errorf("error marking event as handled: %w", err)
 	}
