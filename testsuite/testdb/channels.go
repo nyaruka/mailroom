@@ -36,11 +36,11 @@ func InsertChannel(t *testing.T, rt *runtime.Runtime, org *Org, typ models.Chann
 }
 
 // InsertChannelEvent inserts a channel event
-func InsertChannelEvent(t *testing.T, rt *runtime.Runtime, org *Org, eventType models.ChannelEventType, channel *Channel, contact *Contact, status models.ChannelEventStatus) models.ChannelEventID {
+func InsertChannelEvent(t *testing.T, rt *runtime.Runtime, org *Org, uuid models.ChannelEventUUID, eventType models.ChannelEventType, channel *Channel, contact *Contact, status models.ChannelEventStatus) models.ChannelEventID {
 	var id models.ChannelEventID
 	err := rt.DB.Get(&id,
 		`INSERT INTO channels_channelevent(uuid, org_id, event_type, status, channel_id, contact_id, contact_urn_id, extra, created_on, occurred_on)
-		VALUES($1, $2, $3, $4, $5, $6, $7, '{}', NOW(), NOW()) RETURNING id`, uuids.NewV4(), org.ID, eventType, status, channel.ID, contact.ID, contact.URNID,
+		VALUES($1, $2, $3, $4, $5, $6, $7, '{}', NOW(), NOW()) RETURNING id`, uuid, org.ID, eventType, status, channel.ID, contact.ID, contact.URNID,
 	)
 	require.NoError(t, err)
 	return id

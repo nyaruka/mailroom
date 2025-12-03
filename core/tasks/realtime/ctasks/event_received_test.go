@@ -57,7 +57,7 @@ func TestEventReceived(t *testing.T) {
 	testdb.InsertContactURN(t, rt, testdb.Org1, testdb.Bob, urns.URN("twitterid:123456"), 10, nil)
 
 	// insert a dummy event into the database that will get the updates from handling each event which pretends to be it
-	eventID := testdb.InsertChannelEvent(t, rt, testdb.Org1, models.EventTypeMissedCall, testdb.TwilioChannel, testdb.Ann, models.EventStatusPending)
+	eventID := testdb.InsertChannelEvent(t, rt, testdb.Org1, "019ae4fc-56c6-7a94-b757-dcf0640e5ebc", models.EventTypeMissedCall, testdb.TwilioChannel, testdb.Ann, models.EventStatusPending)
 
 	models.FlushCache()
 

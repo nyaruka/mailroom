@@ -26,7 +26,7 @@ func init() {
 
 type EventReceivedTask struct {
 	EventUUID  models.ChannelEventUUID `json:"event_uuid"`
-	EventID    models.ChannelEventID   `json:"event_id"`
+	EventID    models.ChannelEventID   `json:"event_id"` // TODO remove
 	EventType  models.ChannelEventType `json:"event_type"`
 	ChannelID  models.ChannelID        `json:"channel_id"`
 	URNID      models.URNID            `json:"urn_id"`
@@ -50,7 +50,7 @@ func (t *EventReceivedTask) Perform(ctx context.Context, rt *runtime.Runtime, oa
 		return fmt.Errorf("error handling channel event %s: %w", t.EventUUID, err)
 	}
 
-	return models.MarkChannelEventHandled(ctx, rt.DB, t.EventID)
+	return models.MarkChannelEventHandled(ctx, rt.DB, t.EventUUID)
 }
 
 // Handle let's us reuse this task's code for handling incoming calls.. which we need to perform inline in the IVR web
@@ -81,7 +81,7 @@ func (t *EventReceivedTask) handle(ctx context.Context, rt *runtime.Runtime, oa 
 	urn := mc.GetURN(t.URNID)
 
 	if t.EventType == models.EventTypeDeleteContact {
-		slog.Info(fmt.Sprintf("NOOP: Handled %s channel event %d", models.EventTypeDeleteContact, t.EventID))
+		slog.Info("delete contact event ignored", "contact", mc.UUID(), "event", t.EventUUID)
 
 		return nil, nil
 	}

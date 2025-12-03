@@ -3,7 +3,7 @@
         "label": "new conversation on Facebook",
         "contact_uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
         "task": {
-            "event_id": 30000,
+            "event_uuid": "019ae4fc-56c6-7a94-b757-dcf0640e5ebc",
             "event_type": "new_conversation",
             "channel_id": 10002,
             "urn_id": 10000,
@@ -74,7 +74,7 @@
         "label": "new conversation on Vonage (no trigger)",
         "contact_uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
         "task": {
-            "event_id": 30000,
+            "event_uuid": "019ae4fc-56c6-7a94-b757-dcf0640e5ebc",
             "event_type": "new_conversation",
             "channel_id": 10001,
             "urn_id": 10000,
@@ -103,7 +103,7 @@
         "label": "welcome message on Vonage",
         "contact_uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
         "task": {
-            "event_id": 30000,
+            "event_uuid": "019ae4fc-56c6-7a94-b757-dcf0640e5ebc",
             "event_type": "welcome_message",
             "channel_id": 10001,
             "urn_id": 10000,
@@ -117,7 +117,7 @@
         "label": "referral on Facebook",
         "contact_uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
         "task": {
-            "event_id": 30000,
+            "event_uuid": "019ae4fc-56c6-7a94-b757-dcf0640e5ebc",
             "event_type": "referral",
             "channel_id": 10002,
             "urn_id": 10000,
@@ -151,7 +151,7 @@
         "label": "referral on Vonage",
         "contact_uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
         "task": {
-            "event_id": 30000,
+            "event_uuid": "019ae4fc-56c6-7a94-b757-dcf0640e5ebc",
             "event_type": "referral",
             "channel_id": 10001,
             "urn_id": 10000,
@@ -233,7 +233,7 @@
         "label": "optin on Vonage",
         "contact_uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
         "task": {
-            "event_id": 30000,
+            "event_uuid": "019ae4fc-56c6-7a94-b757-dcf0640e5ebc",
             "event_type": "optin",
             "channel_id": 10001,
             "urn_id": 10000,
@@ -317,7 +317,7 @@
         "label": "optout on Vonage",
         "contact_uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
         "task": {
-            "event_id": 30000,
+            "event_uuid": "019ae4fc-56c6-7a94-b757-dcf0640e5ebc",
             "event_type": "optout",
             "channel_id": 10001,
             "urn_id": 10000,
@@ -401,7 +401,7 @@
         "label": "missed call trigger queued by RP",
         "contact_uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
         "task": {
-            "event_id": 30000,
+            "event_uuid": "019ae4fc-56c6-7a94-b757-dcf0640e5ebc",
             "event_type": "mo_miss",
             "channel_id": 10001,
             "urn_id": 10000,
@@ -432,7 +432,7 @@
         "label": "stop contact",
         "contact_uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
         "task": {
-            "event_id": 30000,
+            "event_uuid": "019ae4fc-56c6-7a94-b757-dcf0640e5ebc",
             "event_type": "stop_contact",
             "channel_id": 10001,
             "urn_id": 10000,
@@ -482,7 +482,7 @@
         "label": "task to delete contact",
         "contact_uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
         "task": {
-            "event_id": 30000,
+            "event_uuid": "019ae4fc-56c6-7a94-b757-dcf0640e5ebc",
             "event_type": "delete_contact",
             "channel_id": 10001,
             "urn_id": 10000,
@@ -496,7 +496,7 @@
         "label": "new conversation on Facebook for stopped contact, should unstop the contact",
         "contact_uuid": "b699a406-7e44-49be-9f01-1a82893e8a10",
         "task": {
-            "event_id": 30000,
+            "event_uuid": "019ae4fc-56c6-7a94-b757-dcf0640e5ebc",
             "event_type": "new_conversation",
             "channel_id": 10002,
             "urn_id": 10001,
