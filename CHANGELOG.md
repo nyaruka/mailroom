@@ -1,3 +1,9 @@
+v10.3.104 (2025-12-03)
+-------------------------
+ * Queue event received tasks with event UUID
+ * Handle message labeling using UUID so ID can be removed from the handle task
+ * Mark messages as handled using UUID instead of ID
+
 v10.3.103 (2025-12-02)
 -------------------------
  * Include msg UUID in requests to courier to fetch attachments
