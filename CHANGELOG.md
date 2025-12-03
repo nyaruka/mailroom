@@ -1,3 +1,7 @@
+v10.3.105 (2025-12-03)
+-------------------------
+ * Only use UUID handling channel events
+
 v10.3.104 (2025-12-03)
 -------------------------
  * Queue event received tasks with event UUID
