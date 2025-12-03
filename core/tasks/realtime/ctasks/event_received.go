@@ -26,7 +26,6 @@ func init() {
 
 type EventReceivedTask struct {
 	EventUUID  models.ChannelEventUUID `json:"event_uuid"`
-	EventID    models.ChannelEventID   `json:"event_id"` // TODO remove
 	EventType  models.ChannelEventType `json:"event_type"`
 	ChannelID  models.ChannelID        `json:"channel_id"`
 	URNID      models.URNID            `json:"urn_id"`
