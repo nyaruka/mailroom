@@ -30,7 +30,7 @@ func handleInputLabelsAdded(ctx context.Context, rt *runtime.Runtime, oa *models
 				return fmt.Errorf("unable to find label with UUID: %s", l.UUID)
 			}
 
-			scene.AttachPreCommitHook(hooks.AddMessageLabels, &models.MsgLabelAdd{MsgID: scene.IncomingMsg.ID, LabelID: label.ID()})
+			scene.AttachPreCommitHook(hooks.AddMessageLabels, &models.MsgLabelAdd{MsgUUID: scene.IncomingMsg.UUID, LabelID: label.ID()})
 		}
 	}
 

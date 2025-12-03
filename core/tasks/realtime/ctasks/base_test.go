@@ -98,7 +98,6 @@ func TestTimedEvents(t *testing.T) {
 		if tc.eventType == ctasks.TypeMsgReceived {
 			ctask = &ctasks.MsgReceivedTask{
 				ChannelID: testdb.FacebookChannel.ID,
-				MsgID:     models.MsgID(1),
 				MsgUUID:   flows.NewEventUUID(),
 				URN:       contact.URN,
 				URNID:     contact.URNID,

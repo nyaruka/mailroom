@@ -26,7 +26,6 @@ func init() {
 }
 
 type MsgReceivedTask struct {
-	MsgID         models.MsgID     `json:"msg_id"`
 	MsgUUID       flows.EventUUID  `json:"msg_uuid"`
 	MsgExternalID string           `json:"msg_external_id"`
 	ChannelID     models.ChannelID `json:"channel_id"`
@@ -125,7 +124,6 @@ func (t *MsgReceivedTask) perform(ctx context.Context, rt *runtime.Runtime, oa *
 		ExtID:       t.MsgExternalID,
 		Attachments: attachments,
 		LogUUIDs:    logUUIDs,
-		ID:          t.MsgID, // deprecated
 	}
 	if err := scene.AddEvent(ctx, rt, oa, msgEvent, models.NilUserID); err != nil {
 		return fmt.Errorf("error adding message event to scene: %w", err)

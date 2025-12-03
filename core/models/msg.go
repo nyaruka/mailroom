@@ -144,7 +144,6 @@ type MsgInRef struct {
 	Attachments []utils.Attachment
 	LogUUIDs    []clogs.UUID
 	Handled     bool
-	ID          MsgID //deprecated
 }
 
 // Msg is our type for mailroom messages

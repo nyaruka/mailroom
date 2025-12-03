@@ -120,7 +120,7 @@ func TestNewCourierMsg(t *testing.T) {
 		"",
 	), "", "")
 	in1 := testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199bad8-f98d-75a3-b641-2718a25ac3f5", testdb.TwilioChannel, testdb.Ann, "test", models.MsgStatusHandled)
-	msg2, err := models.NewOutgoingFlowMsg(rt, oa.Org(), twilio, ann, flow, msgEvent2, &models.MsgInRef{UUID: in1.UUID, ID: in1.ID, ExtID: "EX123"})
+	msg2, err := models.NewOutgoingFlowMsg(rt, oa.Org(), twilio, ann, flow, msgEvent2, &models.MsgInRef{UUID: in1.UUID, ExtID: "EX123"})
 	require.NoError(t, err)
 
 	err = models.InsertMessages(ctx, rt.DB, []*models.Msg{msg2.Msg})
@@ -181,7 +181,7 @@ func TestNewCourierMsg(t *testing.T) {
 	}`, string(jsonx.MustMarshal(msgEvent3.CreatedOn().In(time.UTC))), testdb.Admin.ID, msg3.UUID()))
 
 	optInEvent := events.NewOptInRequested(session.Assets().OptIns().Get(optIn.UUID()).Reference(), twilio.Reference(), "tel:+16055741111")
-	msg4 := models.NewOutgoingOptInMsg(rt, testdb.Org1.ID, ann, flow, optIn, twilio, optInEvent, &models.MsgInRef{UUID: in1.UUID, ID: in1.ID, ExtID: "EX123"})
+	msg4 := models.NewOutgoingOptInMsg(rt, testdb.Org1.ID, ann, flow, optIn, twilio, optInEvent, &models.MsgInRef{UUID: in1.UUID, ExtID: "EX123"})
 	err = models.InsertMessages(ctx, rt.DB, []*models.Msg{msg4.Msg})
 	require.NoError(t, err)
 

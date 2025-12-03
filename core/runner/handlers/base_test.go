@@ -212,7 +212,7 @@ func insertTestMessage(t *testing.T, rt *runtime.Runtime, oa *models.OrgAssets, 
 	tch := &testdb.Channel{ID: ch.ID(), UUID: ch.UUID(), Type: ch.Type()}
 
 	m := testdb.InsertIncomingMsg(t, rt, testdb.Org1, flows.NewEventUUID(), tch, c, msg.Text(), models.MsgStatusPending)
-	return &models.MsgInRef{UUID: m.UUID, ID: m.ID}
+	return &models.MsgInRef{UUID: m.UUID}
 }
 
 // createTestFlow creates a flow that starts with a split by contact id
