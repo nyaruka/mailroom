@@ -63,6 +63,7 @@ func handleEvent(ctx context.Context, rt *runtime.Runtime, r *eventRequest) (any
 
 	if needsHandling {
 		err = realtime.QueueTask(ctx, rt, r.OrgID, e.ContactID, &ctasks.EventReceivedTask{
+			EventUUID:  e.UUID,
 			EventID:    e.ID,
 			EventType:  e.EventType,
 			ChannelID:  e.ChannelID,
