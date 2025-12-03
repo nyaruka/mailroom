@@ -430,7 +430,7 @@
             {
                 "action": "stream",
                 "streamUrl": [
-                    "http://localhost:9000/test-attachments/attachments/1/0196/9b48/01969b48-f1b3-76f8-9e14-020037f6ddea.1:50002?recording=true"
+                    "http://localhost:4566/test-attachments/attachments/1/0196/9b48/01969b48-f1b3-76f8-9e14-020037f6ddea.1:50002?recording=true"
                 ]
             },
             {
@@ -451,7 +451,7 @@
                     "created_on": "2025-05-04T12:32:53.123456789Z",
                     "msg": {
                         "attachments": [
-                            "audio:http://localhost:9000/test-attachments/attachments/1/0196/9b48/01969b48-f1b3-76f8-9e14-020037f6ddea.1:50002?recording=true"
+                            "audio:http://localhost:4566/test-attachments/attachments/1/0196/9b48/01969b48-f1b3-76f8-9e14-020037f6ddea.1:50002?recording=true"
                         ],
                         "channel": {
                             "name": "Vonage",
@@ -489,7 +489,7 @@
                     "created_on": "2025-05-04T12:33:05.123456789Z",
                     "msg": {
                         "attachments": [
-                            "audio:http://localhost:9000/test-attachments/attachments/1/0196/9b48/01969b48-f1b3-76f8-9e14-020037f6ddea.1:50002?recording=true"
+                            "audio:http://localhost:4566/test-attachments/attachments/1/0196/9b48/01969b48-f1b3-76f8-9e14-020037f6ddea.1:50002?recording=true"
                         ],
                         "channel": {
                             "name": "Vonage",

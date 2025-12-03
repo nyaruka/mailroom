@@ -137,7 +137,7 @@ func TestStoreAttachment(t *testing.T) {
 	attachment, err := org.StoreAttachment(context.Background(), rt, "668383ba-387c-49bc-b164-1213ac0ea7aa.jpg", "image/jpeg", image)
 	require.NoError(t, err)
 
-	assert.Equal(t, utils.Attachment("image/jpeg:http://localhost:9000/test-attachments/attachments/1/6683/83ba/668383ba-387c-49bc-b164-1213ac0ea7aa.jpg"), attachment)
+	assert.Equal(t, utils.Attachment("image/jpeg:http://localhost:4566/test-attachments/attachments/1/6683/83ba/668383ba-387c-49bc-b164-1213ac0ea7aa.jpg"), attachment)
 
 	// err trying to read from same reader again
 	_, err = org.StoreAttachment(context.Background(), rt, "668383ba-387c-49bc-b164-1213ac0ea7aa.jpg", "image/jpeg", image)
