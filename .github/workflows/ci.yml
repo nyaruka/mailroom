@@ -54,6 +54,8 @@ jobs:
         uses: LocalStack/setup-localstack@v0.2.4
         with:
           image-tag: 'latest'
+          configuration: |
+            SERVICES=s3,dynamodb,cloudwatch
 
       - name: Run tests
         run: |
