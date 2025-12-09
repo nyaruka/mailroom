@@ -163,9 +163,9 @@ func loadTestDump(t *testing.T) {
 
 	defer dump.Close()
 
-	cmd := exec.Command("pg_restore", "-h", "postgres", "-U", "mailroom_test", "--no-password", "-d", "mailroom_test")
-	cmd.Stdin = dump
+	cmd := exec.Command("pg_restore", "-h", "postgres", "-U", "mailroom_test", "-d", "mailroom_test", "--no-password")
 	cmd.Env = append(os.Environ(), "PGPASSWORD=temba")
+	cmd.Stdin = dump
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
