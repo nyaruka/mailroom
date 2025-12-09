@@ -17,6 +17,7 @@ import (
 )
 
 type msgSpec struct {
+	UUID         flows.EventUUID
 	Channel      *testdb.Channel
 	Contact      *testdb.Contact
 	Failed       bool
@@ -24,13 +25,17 @@ type msgSpec struct {
 }
 
 func (m *msgSpec) createMsg(t *testing.T, rt *runtime.Runtime, oa *models.OrgAssets) *models.Msg {
+	if m.UUID == "" {
+		m.UUID = flows.NewEventUUID()
+	}
+
 	status := models.MsgStatusQueued
 	if m.Failed {
 		status = models.MsgStatusFailed
 	}
 
-	msgUUID := testdb.InsertOutgoingMsg(t, rt, testdb.Org1, "0199bad8-f98d-75a3-b641-2718a25ac3f5", m.Channel, m.Contact, "Hello", nil, status, m.HighPriority).UUID
-	msgs, err := models.GetMessagesByUUID(context.Background(), rt.DB, testdb.Org1.ID, models.DirectionOut, []flows.EventUUID{msgUUID})
+	testdb.InsertOutgoingMsg(t, rt, testdb.Org1, m.UUID, m.Channel, m.Contact, "Hello", nil, status, m.HighPriority)
+	msgs, err := models.GetMessagesByUUID(context.Background(), rt.DB, testdb.Org1.ID, models.DirectionOut, []flows.EventUUID{m.UUID})
 	require.NoError(t, err)
 
 	msg := msgs[0]
