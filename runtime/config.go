@@ -94,10 +94,10 @@ func NewDefaultConfig() *Config {
 	hostname, _ := os.Hostname()
 
 	return &Config{
-		DB:         "postgres://temba:temba@localhost/temba?sslmode=disable&Timezone=UTC",
+		DB:         "postgres://temba:temba@postgres/temba?sslmode=disable&Timezone=UTC",
 		ReadonlyDB: "",
 		DBPoolSize: 36,
-		Valkey:     "valkey://localhost:6379/15",
+		Valkey:     "valkey://valkey:6379/15",
 
 		Address:  "localhost",
 		Port:     8090,
@@ -118,7 +118,7 @@ func NewDefaultConfig() *Config {
 		MaxSprintsPerSession: 250,
 		MaxValueLength:       640,
 
-		Elastic:              "http://localhost:9200",
+		Elastic:              "http://elastic:9200",
 		ElasticUsername:      "",
 		ElasticPassword:      "",
 		ElasticContactsIndex: "contacts",

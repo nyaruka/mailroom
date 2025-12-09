@@ -22,11 +22,10 @@ import (
 )
 
 const (
-	elasticURL            = "http://localhost:9200"
-	elasticContactsIndex  = "test_contacts"
-	postgresContainerName = "textit-postgres-1"
-	postgresDumpPath      = "./testsuite/testdata/postgres.dump"
-	dynamoTablesPath      = "./testsuite/testdata/dynamo.json"
+	elasticURL           = "http://elastic:9200"
+	elasticContactsIndex = "test_contacts"
+	postgresDumpPath     = "./testsuite/testdata/postgres.dump"
+	dynamoTablesPath     = "./testsuite/testdata/dynamo.json"
 )
 
 // Refresh is our type for the pieces of org assets we want fresh (not cached)
@@ -71,16 +70,16 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 	cfg := runtime.NewDefaultConfig()
 	cfg.DeploymentID = "test"
 	cfg.Port = 8091
-	cfg.DB = "postgres://mailroom_test:temba@localhost/mailroom_test?sslmode=disable&Timezone=UTC"
+	cfg.DB = "postgres://mailroom_test:temba@postgres/mailroom_test?sslmode=disable&Timezone=UTC"
 	cfg.ElasticContactsIndex = elasticContactsIndex
 	cfg.Elastic = elasticURL
 	cfg.AWSAccessKeyID = "root"
 	cfg.AWSSecretAccessKey = "tembatemba"
-	cfg.S3Endpoint = "http://localhost:4566"
+	cfg.S3Endpoint = "http://localstack:4566"
 	cfg.S3AttachmentsBucket = "test-attachments"
 	cfg.S3SessionsBucket = "test-sessions"
 	cfg.S3PathStyle = true
-	cfg.DynamoEndpoint = "http://localhost:4566"
+	cfg.DynamoEndpoint = "http://localstack:4566"
 	cfg.DynamoTablePrefix = "Test"
 	cfg.SpoolDir = absPath("./_test_spool")
 
@@ -164,8 +163,9 @@ func loadTestDump(t *testing.T) {
 
 	defer dump.Close()
 
-	cmd := exec.Command("docker", "exec", "-i", postgresContainerName, "pg_restore", "-d", "mailroom_test", "-U", "mailroom_test")
+	cmd := exec.Command("pg_restore", "-h", "postgres", "-U", "mailroom_test", "--no-password", "-d", "mailroom_test")
 	cmd.Stdin = dump
+	cmd.Env = append(os.Environ(), "PGPASSWORD=temba")
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
