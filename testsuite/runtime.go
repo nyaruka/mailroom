@@ -22,11 +22,10 @@ import (
 )
 
 const (
-	elasticURL            = "http://elastic:9200"
-	elasticContactsIndex  = "test_contacts"
-	postgresContainerName = "textit-postgres-1"
-	postgresDumpPath      = "./testsuite/testdata/postgres.dump"
-	dynamoTablesPath      = "./testsuite/testdata/dynamo.json"
+	elasticURL           = "http://elastic:9200"
+	elasticContactsIndex = "test_contacts"
+	postgresDumpPath     = "./testsuite/testdata/postgres.dump"
+	dynamoTablesPath     = "./testsuite/testdata/dynamo.json"
 )
 
 // Refresh is our type for the pieces of org assets we want fresh (not cached)
@@ -164,8 +163,9 @@ func loadTestDump(t *testing.T) {
 
 	defer dump.Close()
 
-	cmd := exec.Command("docker", "exec", "-i", "-e", "PGPASSWORD=temba", postgresContainerName, "pg_restore", "-U", "mailroom_test", "-d", "mailroom_test", "--no-password")
+	cmd := exec.Command("pg_restore", "-h", "postgres", "-U", "mailroom_test", "-d", "mailroom_test", "--no-password")
 	cmd.Stdin = dump
+	cmd.Env = append(os.Environ(), "PGPASSWORD=temba")
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {

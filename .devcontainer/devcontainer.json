@@ -1,11 +1,9 @@
 {
     "name": "Mailroom",
-    "image": "mcr.microsoft.com/devcontainers/go:dev-1.25-trixie",
-    "features": {
-        "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
-            "moby": false
-        }
+    "build": {
+        "dockerfile": "Dockerfile"
     },
+    "features": {},
     "runArgs": [
         "--name=dev-mailroom",
         "--network=textit_default"

@@ -20,7 +20,7 @@ jobs:
           POSTGRES_PASSWORD: temba
         ports:
           - 5432:5432
-        options: --name textit-postgres-1 --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
       elastic:
         image: elasticsearch:8.13.4
         ports:
@@ -40,10 +40,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Install Linux packages
+      - name: Install Postgres Client
         run: |
           apt-get update
-          apt install -y --no-install-recommends postgresql-client
+          apt-get install -y wget gnupg2 lsb-release
+          echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list
+          wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | tee /etc/apt/trusted.gpg.d/postgresql.asc > /dev/null
+          apt-get update
+          apt-get install -y --no-install-recommends postgresql-client-15
 
       - name: Initialize database
         # we create our test database with a different user so that we can drop everything owned by this user between tests
@@ -55,7 +59,6 @@ jobs:
 
       - name: Run tests
         run: |
-          export PGPASSWORD=temba
           go test -p=1 -coverprofile=coverage.text -covermode=atomic ./...
 
       - name: Upload coverage
