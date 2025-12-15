@@ -2,7 +2,8 @@ package handlers
 
 import (
 	"context"
-	"log/slog"
+	"fmt"
+	"strings"
 
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/events"
@@ -11,13 +12,10 @@ import (
 	"github.com/nyaruka/mailroom/runtime"
 )
 
-var warningsLogs = map[string]string{
-	"deprecated context value accessed: legacy_extra":                                                "", // currently too many to do anything about
-	"deprecated context value accessed: webhook recreated from extra":                                "webhook recreated from extra usage",
-	"deprecated context value accessed: result.values: use value instead":                            "result.values usage",
-	"deprecated context value accessed: result.categories: use category instead":                     "result.categories usage",
-	"deprecated context value accessed: result.categories_localized: use category_localized instead": "result.categories_localized usage",
-}
+const (
+	deprecatedContextWarningPrefix = "deprecated context value accessed: "
+	deprecatedUsagesKey            = "deprecated_context_usage"
+)
 
 func init() {
 	runner.RegisterEventHandler(events.TypeWarning, handleWarning)
@@ -26,11 +24,19 @@ func init() {
 func handleWarning(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scene *runner.Scene, e flows.Event, userID models.UserID) error {
 	event := e.(*events.Warning)
 
-	logMsg := warningsLogs[event.Text]
-	if logMsg != "" {
-		flow := e.Step().Run().Flow()
+	if rem, ok := strings.CutPrefix(event.Text, deprecatedContextWarningPrefix); ok {
+		if strings.Contains(rem, ":") {
+			rem = rem[:strings.Index(rem, ":")]
+		}
 
-		slog.Error(logMsg, "contact", scene.ContactUUID(), "session", scene.SessionUUID(), "text", event.Text, slog.Group("flow", "uuid", flow.UUID(), "name", flow.Name()))
+		key := fmt.Sprintf("%s/%s", event.Step().Run().Flow().UUID(), rem)
+
+		vc := rt.VK.Get()
+		defer vc.Close()
+
+		if _, err := vc.Do("HINCRBY", deprecatedUsagesKey, key, 1); err != nil {
+			return fmt.Errorf("error recording deprecated context usage: %w", err)
+		}
 	}
 
 	return nil
