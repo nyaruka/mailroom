@@ -1,3 +1,7 @@
+v10.3.107 (2025-12-15)
+-------------------------
+ * Don't run release job in container
+
 v10.3.106 (2025-12-15)
 -------------------------
  * Track deprecated context usage in Valkey hash
