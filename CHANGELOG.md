@@ -1,3 +1,9 @@
+v10.3.106 (2025-12-15)
+-------------------------
+ * Track deprecated context usage in Valkey hash
+ * Add devcontainer configuration and switch to localstack for dev and CI
+ * Remove ID from event_received tasks
+
 v10.3.105 (2025-12-03)
 -------------------------
  * Only use UUID handling channel events
