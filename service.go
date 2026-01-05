@@ -95,16 +95,11 @@ func (s *Service) Start() error {
 		log.Info("dynamodb ok")
 	}
 
-	// test S3 buckets
+	// test S3 bucket
 	if err := s.rt.S3.Test(s.ctx, c.S3AttachmentsBucket); err != nil {
 		log.Error("attachments bucket not accessible", "error", err)
 	} else {
 		log.Info("attachments bucket ok")
-	}
-	if err := s.rt.S3.Test(s.ctx, c.S3SessionsBucket); err != nil {
-		log.Error("sessions bucket not accessible", "error", err)
-	} else {
-		log.Info("sessions bucket ok")
 	}
 
 	// test Elasticsearch
