@@ -23,7 +23,7 @@
         "errors": [],
         "contacts": [
             {
-                "uuid": "1ae96956-4b34-433e-8d1a-f05fe6923d6d",
+                "uuid": "e7187099-7d38-4f60-955c-325957214c42",
                 "name": "Ann",
                 "language": "",
                 "status": "active",
@@ -35,7 +35,7 @@
                 "_import_row": 0
             },
             {
-                "uuid": "e7187099-7d38-4f60-955c-325957214c42",
+                "uuid": "59d74b86-3e2f-4a93-aece-b05d2fdcde0c",
                 "name": "Bob",
                 "language": "",
                 "status": "active",
@@ -74,7 +74,7 @@
         "errors": [],
         "contacts": [
             {
-                "uuid": "1ae96956-4b34-433e-8d1a-f05fe6923d6d",
+                "uuid": "e7187099-7d38-4f60-955c-325957214c42",
                 "name": "Ann",
                 "language": "",
                 "status": "active",
@@ -86,7 +86,7 @@
                 "_import_row": 0
             },
             {
-                "uuid": "e7187099-7d38-4f60-955c-325957214c42",
+                "uuid": "59d74b86-3e2f-4a93-aece-b05d2fdcde0c",
                 "name": "Bob",
                 "language": "",
                 "status": "active",
@@ -98,7 +98,7 @@
                 "_import_row": 0
             },
             {
-                "uuid": "297611a6-b583-45c3-8587-d4e530c948f0",
+                "uuid": "4fc5fda0-de88-4c64-9b07-fce5df529848",
                 "name": "Cat",
                 "language": "spa",
                 "status": "active",
@@ -149,7 +149,7 @@
         "errors": [],
         "contacts": [
             {
-                "uuid": "1ae96956-4b34-433e-8d1a-f05fe6923d6d",
+                "uuid": "e7187099-7d38-4f60-955c-325957214c42",
                 "name": "Ann",
                 "language": "",
                 "status": "active",
@@ -161,7 +161,7 @@
                 "_import_row": 0
             },
             {
-                "uuid": "e7187099-7d38-4f60-955c-325957214c42",
+                "uuid": "59d74b86-3e2f-4a93-aece-b05d2fdcde0c",
                 "name": "Bob",
                 "language": "",
                 "status": "active",
@@ -176,7 +176,7 @@
                 "_import_row": 0
             },
             {
-                "uuid": "297611a6-b583-45c3-8587-d4e530c948f0",
+                "uuid": "4fc5fda0-de88-4c64-9b07-fce5df529848",
                 "name": "Cat",
                 "language": "spa",
                 "status": "active",
@@ -244,7 +244,7 @@
         ],
         "contacts": [
             {
-                "uuid": "1ae96956-4b34-433e-8d1a-f05fe6923d6d",
+                "uuid": "e7187099-7d38-4f60-955c-325957214c42",
                 "name": "Ann",
                 "language": "",
                 "status": "active",
@@ -256,7 +256,7 @@
                 "_import_row": 0
             },
             {
-                "uuid": "e7187099-7d38-4f60-955c-325957214c42",
+                "uuid": "59d74b86-3e2f-4a93-aece-b05d2fdcde0c",
                 "name": "Bob",
                 "language": "",
                 "status": "active",
@@ -272,7 +272,7 @@
                 "_import_row": 0
             },
             {
-                "uuid": "297611a6-b583-45c3-8587-d4e530c948f0",
+                "uuid": "4fc5fda0-de88-4c64-9b07-fce5df529848",
                 "name": "Cat",
                 "language": "spa",
                 "status": "active",
@@ -296,12 +296,12 @@
         "description": "updating contacts by UUID (last UUID doesn't exist)",
         "specs": [
             {
-                "uuid": "1ae96956-4b34-433e-8d1a-f05fe6923d6d",
+                "uuid": "e7187099-7d38-4f60-955c-325957214c42",
                 "name": "Anne",
                 "_import_row": 1
             },
             {
-                "uuid": "e7187099-7d38-4f60-955c-325957214c42",
+                "uuid": "59d74b86-3e2f-4a93-aece-b05d2fdcde0c",
                 "language": "kin",
                 "urns": [
                     "tel:+16055700002"
@@ -326,7 +326,7 @@
         ],
         "contacts": [
             {
-                "uuid": "1ae96956-4b34-433e-8d1a-f05fe6923d6d",
+                "uuid": "e7187099-7d38-4f60-955c-325957214c42",
                 "name": "Anne",
                 "language": "",
                 "status": "active",
@@ -338,7 +338,7 @@
                 "_import_row": 0
             },
             {
-                "uuid": "e7187099-7d38-4f60-955c-325957214c42",
+                "uuid": "59d74b86-3e2f-4a93-aece-b05d2fdcde0c",
                 "name": "Bob",
                 "language": "kin",
                 "status": "active",
@@ -354,7 +354,7 @@
                 "_import_row": 0
             },
             {
-                "uuid": "297611a6-b583-45c3-8587-d4e530c948f0",
+                "uuid": "4fc5fda0-de88-4c64-9b07-fce5df529848",
                 "name": "Cat",
                 "language": "spa",
                 "status": "active",
@@ -378,7 +378,7 @@
         "description": "stealing URNs permitted with UUIDs",
         "specs": [
             {
-                "uuid": "1ae96956-4b34-433e-8d1a-f05fe6923d6d",
+                "uuid": "e7187099-7d38-4f60-955c-325957214c42",
                 "name": "Anne",
                 "urns": [
                     "tel:+16055700002"
@@ -392,7 +392,7 @@
         "errors": [],
         "contacts": [
             {
-                "uuid": "1ae96956-4b34-433e-8d1a-f05fe6923d6d",
+                "uuid": "e7187099-7d38-4f60-955c-325957214c42",
                 "name": "Anne",
                 "language": "",
                 "status": "active",
@@ -405,7 +405,7 @@
                 "_import_row": 0
             },
             {
-                "uuid": "e7187099-7d38-4f60-955c-325957214c42",
+                "uuid": "59d74b86-3e2f-4a93-aece-b05d2fdcde0c",
                 "name": "Bob",
                 "language": "kin",
                 "status": "active",
@@ -420,7 +420,7 @@
                 "_import_row": 0
             },
             {
-                "uuid": "297611a6-b583-45c3-8587-d4e530c948f0",
+                "uuid": "4fc5fda0-de88-4c64-9b07-fce5df529848",
                 "name": "Cat",
                 "language": "spa",
                 "status": "active",
@@ -462,7 +462,7 @@
         ],
         "contacts": [
             {
-                "uuid": "1ae96956-4b34-433e-8d1a-f05fe6923d6d",
+                "uuid": "e7187099-7d38-4f60-955c-325957214c42",
                 "name": "Anne",
                 "language": "",
                 "status": "active",
@@ -475,7 +475,7 @@
                 "_import_row": 0
             },
             {
-                "uuid": "e7187099-7d38-4f60-955c-325957214c42",
+                "uuid": "59d74b86-3e2f-4a93-aece-b05d2fdcde0c",
                 "name": "Bob",
                 "language": "kin",
                 "status": "active",
@@ -490,7 +490,7 @@
                 "_import_row": 0
             },
             {
-                "uuid": "297611a6-b583-45c3-8587-d4e530c948f0",
+                "uuid": "4fc5fda0-de88-4c64-9b07-fce5df529848",
                 "name": "Cat",
                 "language": "spa",
                 "status": "active",
@@ -541,7 +541,7 @@
         ],
         "contacts": [
             {
-                "uuid": "1ae96956-4b34-433e-8d1a-f05fe6923d6d",
+                "uuid": "e7187099-7d38-4f60-955c-325957214c42",
                 "name": "Anne",
                 "language": "",
                 "status": "active",
@@ -555,7 +555,7 @@
                 "_import_row": 0
             },
             {
-                "uuid": "e7187099-7d38-4f60-955c-325957214c42",
+                "uuid": "59d74b86-3e2f-4a93-aece-b05d2fdcde0c",
                 "name": "Bob",
                 "language": "kin",
                 "status": "active",
@@ -570,7 +570,7 @@
                 "_import_row": 0
             },
             {
-                "uuid": "297611a6-b583-45c3-8587-d4e530c948f0",
+                "uuid": "4fc5fda0-de88-4c64-9b07-fce5df529848",
                 "name": "Cat",
                 "language": "spa",
                 "status": "active",
@@ -594,7 +594,7 @@
         "description": "contacts with non-active statuses",
         "specs": [
             {
-                "uuid": "1ae96956-4b34-433e-8d1a-f05fe6923d6d",
+                "uuid": "e7187099-7d38-4f60-955c-325957214c42",
                 "name": "Anne",
                 "status": "archived",
                 "_import_row": 1
@@ -628,7 +628,7 @@
         ],
         "contacts": [
             {
-                "uuid": "1ae96956-4b34-433e-8d1a-f05fe6923d6d",
+                "uuid": "e7187099-7d38-4f60-955c-325957214c42",
                 "name": "Anne",
                 "language": "",
                 "status": "archived",
@@ -642,7 +642,7 @@
                 "_import_row": 0
             },
             {
-                "uuid": "e7187099-7d38-4f60-955c-325957214c42",
+                "uuid": "59d74b86-3e2f-4a93-aece-b05d2fdcde0c",
                 "name": "Bob",
                 "language": "kin",
                 "status": "active",
@@ -657,7 +657,7 @@
                 "_import_row": 0
             },
             {
-                "uuid": "297611a6-b583-45c3-8587-d4e530c948f0",
+                "uuid": "4fc5fda0-de88-4c64-9b07-fce5df529848",
                 "name": "Cat",
                 "language": "spa",
                 "status": "active",
@@ -676,7 +676,7 @@
                 "_import_row": 0
             },
             {
-                "uuid": "4cb9ce56-3eaa-46f0-b96e-ac28a033e582",
+                "uuid": "b5d2f8c1-7070-4c16-a3d7-96ccc5cc29be",
                 "name": "Blake",
                 "language": "",
                 "status": "blocked",
@@ -688,7 +688,7 @@
                 "_import_row": 0
             },
             {
-                "uuid": "198c55c6-e989-4af8-a95e-b6a65e9f365f",
+                "uuid": "a55f2945-54bf-4364-ad92-cd548ab5be57",
                 "name": "Ivan",
                 "language": "",
                 "status": "active",
