@@ -2,11 +2,9 @@ package models
 
 import (
 	"context"
-	"crypto/md5"
 	"fmt"
 	"log/slog"
 	"maps"
-	"path"
 	"slices"
 	"time"
 
@@ -120,16 +118,16 @@ func (s *Session) Update(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, 
 }
 
 // InsertSessions inserts sessions and their runs into the database
-func InsertSessions(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *OrgAssets, sessions []*Session, contacts []*Contact) error {
+func InsertSessions(ctx context.Context, tx *sqlx.Tx, sessions []*Session) error {
 	if len(sessions) == 0 {
 		return nil
 	}
 
-	return insertDatabaseSessions(ctx, rt, tx, oa, sessions, contacts)
+	return insertDatabaseSessions(ctx, tx, sessions)
 }
 
 const sqlSelectSessionByUUID = `
-SELECT uuid, contact_uuid, session_type, status, last_sprint_uuid, current_flow_uuid, output, output_url, created_on, ended_on, call_uuid
+SELECT uuid, contact_uuid, session_type, status, last_sprint_uuid, current_flow_uuid, output, created_on, ended_on, call_uuid
   FROM flows_flowsession fs
  WHERE uuid = $1`
 
@@ -326,10 +324,6 @@ func InterruptSessionsForFlows(ctx context.Context, db *sqlx.DB, flowIDs []FlowI
 	return nil
 }
 
-const (
-	storageTSFormat = "20060102T150405.999Z"
-)
-
 type dbSession struct {
 	UUID            flows.SessionUUID `db:"uuid"`
 	ContactUUID     null.String       `db:"contact_uuid"`
@@ -339,29 +333,8 @@ type dbSession struct {
 	CurrentFlowUUID null.String       `db:"current_flow_uuid"`
 	CallUUID        null.String       `db:"call_uuid"`
 	Output          null.String       `db:"output"`
-	OutputURL       null.String       `db:"output_url"`
 	CreatedOn       time.Time         `db:"created_on"`
 	EndedOn         *time.Time        `db:"ended_on"`
-}
-
-// StoragePath returns the path for the session
-func (s *dbSession) StoragePath(orgID OrgID, contactUUID flows.ContactUUID) string {
-	ts := s.CreatedOn.UTC().Format(storageTSFormat)
-
-	// example output: orgs/1/c/20a5/20a5534c-b2ad-4f18-973a-f1aa3b4e6c74/20060102T150405.123Z_session_8a7fc501-177b-4567-a0aa-81c48e6de1c5_51df83ac21d3cf136d8341f0b11cb1a7.json"
-	return path.Join(
-		"orgs",
-		fmt.Sprintf("%d", orgID),
-		"c",
-		string(contactUUID[:4]),
-		string(contactUUID),
-		fmt.Sprintf("%s_session_%s_%s.json", ts, s.UUID, s.OutputMD5()),
-	)
-}
-
-// OutputMD5 returns the md5 of the passed in session
-func (s *dbSession) OutputMD5() string {
-	return fmt.Sprintf("%x", md5.Sum([]byte(s.Output)))
 }
 
 const sqlInsertWaitingSessionDB = `
@@ -374,7 +347,7 @@ INSERT INTO
 	flows_flowsession( uuid,  contact_uuid,  session_type,  status,  last_sprint_uuid,  current_flow_uuid,  output,  created_on,  ended_on,  call_uuid)
                VALUES(:uuid, :contact_uuid, :session_type, :status, :last_sprint_uuid, :current_flow_uuid, :output, :created_on, :ended_on, :call_uuid)`
 
-func insertDatabaseSessions(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *OrgAssets, sessions []*Session, contacts []*Contact) error {
+func insertDatabaseSessions(ctx context.Context, tx *sqlx.Tx, sessions []*Session) error {
 	dbss := make([]*dbSession, len(sessions))
 	for i, s := range sessions {
 		dbss[i] = &dbSession{
@@ -419,7 +392,6 @@ UPDATE
 	flows_flowsession
 SET 
 	output = :output, 
-	output_url = NULL,
 	status = :status,
 	last_sprint_uuid = :last_sprint_uuid,
 	ended_on = :ended_on,

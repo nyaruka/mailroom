@@ -42,7 +42,7 @@ func TestInsertSessions(t *testing.T) {
 	tx := rt.DB.MustBegin()
 
 	session := models.NewSession(oa, flowSession, sprint1, nil)
-	err = models.InsertSessions(ctx, rt, tx, oa, []*models.Session{session}, []*models.Contact{mc})
+	err = models.InsertSessions(ctx, tx, []*models.Session{session})
 	require.NoError(t, err)
 
 	require.NoError(t, tx.Commit())

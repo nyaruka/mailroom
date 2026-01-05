@@ -426,7 +426,7 @@ func TestResumeSession(t *testing.T) {
 	for i, tc := range tcs {
 		testsuite.ResumeSession(t, rt, oa, testdb.Ann, tc.input)
 
-		assertdb.Query(t, rt.DB, `SELECT status, current_flow_uuid::text, call_uuid FROM flows_flowsession WHERE uuid = $1 AND output IS NOT NULL AND output_url IS NULL`, sessionUUID).
+		assertdb.Query(t, rt.DB, `SELECT status, current_flow_uuid::text, call_uuid FROM flows_flowsession WHERE uuid = $1 AND output IS NOT NULL`, sessionUUID).
 			Columns(map[string]any{
 				"status": string(tc.expectedStatus), "current_flow_uuid": tc.expectedCurrentFlow, "call_uuid": nil,
 			}, "%d: session mismatch", i)
