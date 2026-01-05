@@ -6,10 +6,8 @@ import (
 	"fmt"
 	"log/slog"
 	"maps"
-	"net/url"
 	"path"
 	"slices"
-	"strings"
 	"time"
 
 	"github.com/lib/pq"
@@ -168,26 +166,9 @@ func GetWaitingSessionForContact(ctx context.Context, rt *runtime.Runtime, oa *O
 	}
 
 	// ignore and log if this session somehow isn't a waiting session for this contact
-	if session.Status != SessionStatusWaiting || (session.ContactUUID != "" && session.ContactUUID != fc.UUID()) {
-		slog.Error("current session for contact isn't a waiting session", "session", uuid, "contact", fc.UUID())
+	if dbs.Output == "" || session.Status != SessionStatusWaiting || (session.ContactUUID != "" && session.ContactUUID != fc.UUID()) {
+		slog.Error("current session for contact isn't a waiting session with output", "session", uuid, "contact", fc.UUID())
 		return nil, nil
-	}
-
-	// older sessions may have their output stored in S3
-	if dbs.OutputURL != "" {
-		// strip just the path out of our output URL
-		u, err := url.Parse(string(dbs.OutputURL))
-		if err != nil {
-			return nil, fmt.Errorf("error parsing output URL: %s: %w", string(dbs.OutputURL), err)
-		}
-		key := strings.TrimPrefix(u.Path, "/")
-
-		_, output, err := rt.S3.GetObject(ctx, rt.Config.S3SessionsBucket, key)
-		if err != nil {
-			return nil, fmt.Errorf("error reading session from s3 bucket=%s key=%s: %w", rt.Config.S3SessionsBucket, key, err)
-		}
-
-		session.Output = output
 	}
 
 	return session, nil
