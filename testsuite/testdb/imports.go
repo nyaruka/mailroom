@@ -6,6 +6,7 @@ import (
 
 	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/jsonx"
+	"github.com/nyaruka/gocommon/uuids"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/stretchr/testify/require"
@@ -14,8 +15,8 @@ import (
 // InsertContactImport inserts a contact import
 func InsertContactImport(t *testing.T, rt *runtime.Runtime, org *Org, status models.ImportStatus, createdBy *User) models.ContactImportID {
 	var importID models.ContactImportID
-	err := rt.DB.Get(&importID, `INSERT INTO contacts_contactimport(org_id, file, original_filename, mappings, num_records, group_id, started_on, status, created_on, created_by_id, modified_on, modified_by_id, is_active)
-					          VALUES($1, 'contact_imports/1234.xlsx', 'contacts.xlsx', '{}', 30, NULL, $2, $3, $2, $4, $2, $4, TRUE) RETURNING id`, org.ID, dates.Now(), status, createdBy.ID,
+	err := rt.DB.Get(&importID, `INSERT INTO contacts_contactimport(uuid, org_id, file, original_filename, mappings, num_records, group_id, started_on, status, created_on, created_by_id, modified_on, modified_by_id, is_active)
+					          VALUES($1, $2, 'contact_imports/1234.xlsx', 'contacts.xlsx', '{}', 30, NULL, $3, $4, $3, $5, $3, $5, TRUE) RETURNING id`, uuids.NewV4(), org.ID, dates.Now(), status, createdBy.ID,
 	)
 	require.NoError(t, err)
 	return importID
