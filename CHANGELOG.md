@@ -1,3 +1,7 @@
+v26.1.1 (2026-01-08)
+-------------------------
+ * Add Msg.external_identifier field
+
 v26.1.0 (2026-01-06)
 -------------------------
  * Add ordering by id to LoadContacts
