@@ -332,7 +332,7 @@ func TestBroadcastSend(t *testing.T) {
 
 		_, ec, _ := contact.Load(t, rt, oa)
 
-		evt, err := bcast.Send(rt, oa, ec)
+		evt, err := bcast.Send(ctx, rt, oa, ec)
 		require.NoError(t, err)
 
 		assert.JSONEq(t, string(tc.expected), string(jsonx.MustMarshal(evt)), "%d: msg json mismatch", i)

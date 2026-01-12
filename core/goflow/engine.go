@@ -17,6 +17,7 @@ var eng, simulator flows.Engine
 var engInit, simulatorInit sync.Once
 
 var checkSendable func(*runtime.Runtime) flows.CheckSendableCallback
+var claimURN func(*runtime.Runtime) flows.ClaimURNCallback
 var emailFactory func(*runtime.Runtime) engine.EmailServiceFactory
 var classificationFactory func(*runtime.Runtime) engine.ClassificationServiceFactory
 var llmFactory func(*runtime.Runtime) engine.LLMServiceFactory
@@ -29,6 +30,10 @@ func Reset() {
 
 func RegisterCheckSendable(f func(*runtime.Runtime) flows.CheckSendableCallback) {
 	checkSendable = f
+}
+
+func RegisterClaimURN(f func(*runtime.Runtime) flows.ClaimURNCallback) {
+	claimURN = f
 }
 
 // RegisterEmailServiceFactory can be used by outside callers to register a email service factory
@@ -83,6 +88,7 @@ func Engine(rt *runtime.Runtime) flows.Engine {
 			WithMaxResultChars(rt.Config.MaxValueLength).
 			WithLLMPrompts(llmPrompts).
 			WithCheckSendable(checkSendable(rt)).
+			WithClaimURN(claimURN(rt)).
 			Build()
 	})
 
