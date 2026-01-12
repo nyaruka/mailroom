@@ -21,9 +21,19 @@ import (
 	"github.com/nyaruka/goflow/envs"
 	"github.com/nyaruka/goflow/excellent/types"
 	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/mailroom/core/goflow"
+	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/null/v3"
 	"github.com/vinovest/sqlx"
 )
+
+func init() {
+	goflow.RegisterClaimURN(func(rt *runtime.Runtime) flows.ClaimURNCallback {
+		return func(ctx context.Context, sa flows.SessionAssets, contact *flows.Contact, urn urns.URN) (bool, error) {
+			return contactClaimURN(ctx, rt, orgFromAssets(sa), contact, urn)
+		}
+	})
+}
 
 // URNID is our type for urn ids, which can be null
 type URNID int
@@ -1268,41 +1278,28 @@ type contactStatusUpdate struct {
 
 // UpdateContactStatus updates the contacts status as the passed changes
 func UpdateContactStatus(ctx context.Context, db DBorTx, changes []*ContactStatusChange) error {
-
-	archiveTriggersForContactIDs := make([]ContactID, 0, len(changes))
-	statusUpdates := make([]any, 0, len(changes))
+	updates := make([]any, 0, len(changes))
+	archiveTriggers := make([]ContactID, 0, len(changes))
 
 	for _, ch := range changes {
-		blocked := ch.Status == flows.ContactStatusBlocked
-		stopped := ch.Status == flows.ContactStatusStopped
 		status := ContactToModelStatus[ch.Status]
 
-		if blocked || stopped {
-			archiveTriggersForContactIDs = append(archiveTriggersForContactIDs, ch.ContactID)
+		if ch.Status != flows.ContactStatusActive {
+			archiveTriggers = append(archiveTriggers, ch.ContactID)
 		}
 
-		statusUpdates = append(
-			statusUpdates,
-			&contactStatusUpdate{
-				ContactID: ch.ContactID,
-				Status:    status,
-			},
-		)
-
+		updates = append(updates, &contactStatusUpdate{ContactID: ch.ContactID, Status: status})
 	}
 
-	err := ArchiveContactTriggers(ctx, db, archiveTriggersForContactIDs)
-	if err != nil {
-		return fmt.Errorf("error archiving triggers for blocked or stopped contacts: %w", err)
+	if err := ArchiveContactTriggers(ctx, db, archiveTriggers); err != nil {
+		return fmt.Errorf("error archiving triggers for non-active contacts: %w", err)
 	}
 
-	// do our status update
-	err = BulkQuery(ctx, "updating contact statuses", db, sqlUpdateContactStatus, statusUpdates)
-	if err != nil {
+	if err := BulkQuery(ctx, "updating contact statuses", db, sqlUpdateContactStatus, updates); err != nil {
 		return fmt.Errorf("error updating contact statuses: %w", err)
 	}
 
-	return err
+	return nil
 }
 
 const sqlUpdateContactStatus = `
@@ -1310,3 +1307,8 @@ UPDATE contacts_contact c
    SET status = r.status, modified_on = NOW()
   FROM (VALUES(:id::int, :status)) AS r(id, status)
  WHERE c.id = r.id`
+
+func contactClaimURN(ctx context.Context, rt *runtime.Runtime, org *Org, contact *flows.Contact, urn urns.URN) (bool, error) {
+	// TODO
+	return true, nil
+}

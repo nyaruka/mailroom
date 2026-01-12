@@ -32,8 +32,8 @@ import (
 
 func init() {
 	goflow.RegisterCheckSendable(func(rt *runtime.Runtime) flows.CheckSendableCallback {
-		return func(sa flows.SessionAssets, contact *flows.Contact, content *flows.MsgContent) (flows.UnsendableReason, error) {
-			return msgCheckSendable(rt, orgFromAssets(sa), ContactID(contact.ID()), content)
+		return func(ctx context.Context, sa flows.SessionAssets, contact *flows.Contact, content *flows.MsgContent) (flows.UnsendableReason, error) {
+			return msgCheckSendable(ctx, rt, orgFromAssets(sa), ContactID(contact.ID()), content)
 		}
 	})
 }
@@ -868,7 +868,7 @@ func FailChannelMessages(ctx context.Context, db *sql.DB, orgID OrgID, channelID
 }
 
 // CreateMsgOut creates a new outgoing message to the given contact, resolving the destination etc
-func CreateMsgOut(rt *runtime.Runtime, oa *OrgAssets, c *flows.Contact, content *flows.MsgContent, templateID TemplateID, templateVariables []string, locale i18n.Locale, expressionsContext *types.XObject) (*flows.MsgOut, error) {
+func CreateMsgOut(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, c *flows.Contact, content *flows.MsgContent, templateID TemplateID, templateVariables []string, locale i18n.Locale, expressionsContext *types.XObject) (*flows.MsgOut, error) {
 	// resolve URN + channel for this contact
 	urn := urns.NilURN
 	var channel *Channel
@@ -938,7 +938,7 @@ func CreateMsgOut(rt *runtime.Runtime, oa *OrgAssets, c *flows.Contact, content 
 		unsendableReason = flows.UnsendableReasonNoRoute
 	} else {
 		var err error
-		unsendableReason, err = msgCheckSendable(rt, oa.Org(), ContactID(c.ID()), content)
+		unsendableReason, err = msgCheckSendable(ctx, rt, oa.Org(), ContactID(c.ID()), content)
 		if err != nil {
 			return nil, fmt.Errorf("error checking if message is sendable: %w", err)
 		}
@@ -968,7 +968,7 @@ func DeleteMessages(ctx context.Context, tx *sqlx.Tx, orgID OrgID, uuids []flows
 	return nil
 }
 
-func msgCheckSendable(rt *runtime.Runtime, org *Org, contactID ContactID, content *flows.MsgContent) (flows.UnsendableReason, error) {
+func msgCheckSendable(ctx context.Context, rt *runtime.Runtime, org *Org, contactID ContactID, content *flows.MsgContent) (flows.UnsendableReason, error) {
 	if org.Suspended() {
 		return UnsendableReasonOrgSuspended, nil
 	}

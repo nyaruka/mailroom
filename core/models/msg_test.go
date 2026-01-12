@@ -503,7 +503,7 @@ func TestCreateMsgOut(t *testing.T) {
 		})
 	}
 
-	out, err := models.CreateMsgOut(rt, oa, bob, &flows.MsgContent{Text: "hello @contact.name"}, models.NilTemplateID, nil, `eng`, evalContext(bob))
+	out, err := models.CreateMsgOut(ctx, rt, oa, bob, &flows.MsgContent{Text: "hello @contact.name"}, models.NilTemplateID, nil, `eng`, evalContext(bob))
 	assert.NoError(t, err)
 	assert.Equal(t, "hello Bob", out.Text())
 	assert.Equal(t, urns.URN("tel:+16055742222"), out.URN())
@@ -514,7 +514,7 @@ func TestCreateMsgOut(t *testing.T) {
 	msgContent := &flows.MsgContent{Text: "hello"}
 	templateVariables := []string{"@contact.name", "mice"}
 
-	out, err = models.CreateMsgOut(rt, oa, ann, msgContent, testdb.ReviveTemplate.ID, templateVariables, `eng`, evalContext(ann))
+	out, err = models.CreateMsgOut(ctx, rt, oa, ann, msgContent, testdb.ReviveTemplate.ID, templateVariables, `eng`, evalContext(ann))
 	assert.NoError(t, err)
 	assert.Equal(t, "Hi Ann, are you still experiencing problems with mice?", out.Text())
 	assert.Equal(t, urns.URN("facebook:123456789"), out.URN())
@@ -528,7 +528,7 @@ func TestCreateMsgOut(t *testing.T) {
 		Variables: []*flows.TemplatingVariable{{Type: "text", Value: "Ann"}, {Type: "text", Value: "mice"}},
 	}, out.Templating())
 
-	out, err = models.CreateMsgOut(rt, oa, cat, msgContent, testdb.ReviveTemplate.ID, templateVariables, `eng`, evalContext(cat))
+	out, err = models.CreateMsgOut(ctx, rt, oa, cat, msgContent, testdb.ReviveTemplate.ID, templateVariables, `eng`, evalContext(cat))
 	assert.NoError(t, err)
 	assert.Equal(t, "Hi Cat, are you still experiencing problems with mice?", out.Text())
 	assert.Equal(t, &flows.MsgTemplating{
@@ -541,7 +541,7 @@ func TestCreateMsgOut(t *testing.T) {
 
 	bob.SetStatus(flows.ContactStatusBlocked)
 
-	out, err = models.CreateMsgOut(rt, oa, bob, &flows.MsgContent{Text: "hello"}, models.NilTemplateID, nil, `eng-US`, nil)
+	out, err = models.CreateMsgOut(ctx, rt, oa, bob, &flows.MsgContent{Text: "hello"}, models.NilTemplateID, nil, `eng-US`, nil)
 	assert.NoError(t, err)
 	assert.Equal(t, urns.URN("tel:+16055742222"), out.URN())
 	assert.Equal(t, assets.NewChannelReference("74729f45-7f29-4868-9dc4-90e491e3c7d8", "Twilio"), out.Channel())
@@ -550,7 +550,7 @@ func TestCreateMsgOut(t *testing.T) {
 	bob.SetStatus(flows.ContactStatusActive)
 	bob.SetURNs(nil)
 
-	out, err = models.CreateMsgOut(rt, oa, bob, &flows.MsgContent{Text: "hello"}, models.NilTemplateID, nil, `eng-US`, nil)
+	out, err = models.CreateMsgOut(ctx, rt, oa, bob, &flows.MsgContent{Text: "hello"}, models.NilTemplateID, nil, `eng-US`, nil)
 	assert.NoError(t, err)
 	assert.Equal(t, urns.NilURN, out.URN())
 	assert.Nil(t, out.Channel())
