@@ -6,6 +6,6 @@ RUN apt-get update \
     && echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list \
     && wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | tee /etc/apt/trusted.gpg.d/postgresql.asc > /dev/null \
     && apt-get update \
-    && apt-get install -y --no-install-recommends postgresql-client-17 \
+    && apt-get install -y --no-install-recommends postgresql-client-15 \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
