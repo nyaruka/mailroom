@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"time"
 
+	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/goflow/flows/modifiers"
@@ -32,7 +32,6 @@ type EventReceivedTask struct {
 	OptInID    models.OptInID          `json:"optin_id"`
 	Extra      null.Map[any]           `json:"extra"`
 	NewContact bool                    `json:"new_contact"`
-	CreatedOn  time.Time               `json:"created_on"`
 }
 
 func (t *EventReceivedTask) Type() string {
@@ -66,7 +65,7 @@ func (t *EventReceivedTask) handle(ctx context.Context, rt *runtime.Runtime, oa 
 		return nil, nil
 	}
 
-	if err := mc.UpdateLastSeenOn(ctx, rt.DB, t.CreatedOn); err != nil {
+	if err := mc.UpdateLastSeenOn(ctx, rt.DB, dates.Now()); err != nil {
 		return nil, fmt.Errorf("error updating contact last_seen_on: %w", err)
 	}
 

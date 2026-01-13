@@ -68,7 +68,6 @@ func handleEvent(ctx context.Context, rt *runtime.Runtime, r *eventRequest) (any
 			ChannelID:  e.ChannelID,
 			URNID:      e.URNID,
 			Extra:      e.Extra,
-			CreatedOn:  e.CreatedOn,
 			NewContact: cu.newContact,
 		})
 		if err != nil {

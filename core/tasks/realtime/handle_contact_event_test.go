@@ -2,7 +2,6 @@ package realtime_test
 
 import (
 	"testing"
-	"time"
 
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/gocommon/uuids"
@@ -26,7 +25,6 @@ func TestHandleContactEvent(t *testing.T) {
 		ChannelID:  testdb.FacebookChannel.ID,
 		URNID:      testdb.Ann.URNID,
 		Extra:      null.Map[any]{},
-		CreatedOn:  time.Now(),
 		NewContact: false,
 	})
 	testsuite.QueueRealtimeTask(t, rt, testdb.Org1, testdb.Ann, &ctasks.EventReceivedTask{
@@ -35,7 +33,6 @@ func TestHandleContactEvent(t *testing.T) {
 		ChannelID:  testdb.FacebookChannel.ID,
 		URNID:      testdb.Ann.URNID,
 		Extra:      null.Map[any]{},
-		CreatedOn:  time.Now(),
 		NewContact: false,
 	})
 
