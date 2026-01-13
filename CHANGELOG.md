@@ -1,3 +1,9 @@
+v26.1.2 (2026-01-13)
+-------------------------
+ * Prevent URN stealing
+ * Update to latest goflow
+ * Revert to testing on PG15
+
 v26.1.1 (2026-01-08)
 -------------------------
  * Add Msg.external_identifier field
