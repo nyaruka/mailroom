@@ -1,3 +1,7 @@
+v26.1.3 (2026-01-13)
+-------------------------
+ * Ignore created_on on event_received tasks and just use now
+
 v26.1.2 (2026-01-13)
 -------------------------
  * Prevent URN stealing
