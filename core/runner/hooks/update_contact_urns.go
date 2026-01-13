@@ -25,7 +25,7 @@ func (h *updateContactURNs) Execute(ctx context.Context, rt *runtime.Runtime, tx
 		changes = append(changes, urnChange)
 	}
 
-	if err := models.UpdateContactURNs(ctx, tx, oa, changes); err != nil {
+	if err := models.UpdateContactURNs(ctx, rt, tx, oa, changes); err != nil {
 		return fmt.Errorf("error updating contact urns: %w", err)
 	}
 

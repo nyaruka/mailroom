@@ -375,7 +375,7 @@
         ]
     },
     {
-        "description": "stealing URNs permitted with UUIDs",
+        "description": "stealing URNs not permitted",
         "specs": [
             {
                 "uuid": "e7187099-7d38-4f60-955c-325957214c42",
@@ -389,7 +389,13 @@
         "num_created": 0,
         "num_updated": 1,
         "num_errored": 0,
-        "errors": [],
+        "errors": [
+            {
+                "message": "URN already taken by another contact",
+                "record": 0,
+                "row": 1
+            }
+        ],
         "contacts": [
             {
                 "uuid": "e7187099-7d38-4f60-955c-325957214c42",
@@ -397,8 +403,7 @@
                 "language": "",
                 "status": "active",
                 "urns": [
-                    "tel:+16055700001",
-                    "tel:+16055700002"
+                    "tel:+16055700001"
                 ],
                 "fields": {},
                 "groups": [],
@@ -410,6 +415,7 @@
                 "language": "kin",
                 "status": "active",
                 "urns": [
+                    "tel:+16055700002",
                     "tel:+593979000002"
                 ],
                 "fields": {
@@ -467,8 +473,7 @@
                 "language": "",
                 "status": "active",
                 "urns": [
-                    "tel:+16055700001",
-                    "tel:+16055700002"
+                    "tel:+16055700001"
                 ],
                 "fields": {},
                 "groups": [],
@@ -480,6 +485,7 @@
                 "language": "kin",
                 "status": "active",
                 "urns": [
+                    "tel:+16055700002",
                     "tel:+593979000002"
                 ],
                 "fields": {
@@ -547,7 +553,6 @@
                 "status": "active",
                 "urns": [
                     "tel:+16055700001",
-                    "tel:+16055700002",
                     "tel:+16055700005"
                 ],
                 "fields": {},
@@ -560,6 +565,7 @@
                 "language": "kin",
                 "status": "active",
                 "urns": [
+                    "tel:+16055700002",
                     "tel:+593979000002"
                 ],
                 "fields": {
@@ -634,7 +640,6 @@
                 "status": "archived",
                 "urns": [
                     "tel:+16055700001",
-                    "tel:+16055700002",
                     "tel:+16055700005"
                 ],
                 "fields": {},
@@ -647,6 +652,7 @@
                 "language": "kin",
                 "status": "active",
                 "urns": [
+                    "tel:+16055700002",
                     "tel:+593979000002"
                 ],
                 "fields": {
