@@ -32,7 +32,7 @@ import (
 func init() {
 	goflow.RegisterClaimURN(func(rt *runtime.Runtime) flows.ClaimURNCallback {
 		return func(ctx context.Context, sa flows.SessionAssets, contact *flows.Contact, urn urns.URN) (bool, error) {
-			return contactClaimURN(ctx, rt, orgFromAssets(sa), contact, urn)
+			return ContactClaimURN(ctx, rt, orgFromAssets(sa), contact, urn)
 		}
 	})
 }
@@ -1113,16 +1113,13 @@ func UpdateContactModifiedOn(ctx context.Context, db DBorTx, contactIDs []Contac
 }
 
 // UpdateContactURNs updates the contact urns in our database to match the passed in changes
-func UpdateContactURNs(ctx context.Context, db DBorTx, oa *OrgAssets, changes []*ContactURNsChanged) error {
-	// new URNS to insert and existing ones to update
-	inserts := make([]*ContactURN, 0, len(changes))
+func UpdateContactURNs(ctx context.Context, rt *runtime.Runtime, db DBorTx, oa *OrgAssets, changes []*ContactURNsChanged) error {
+	// new URNS to insert/claim and existing ones to update
+	claims := make([]*ContactURN, 0, len(changes))
 	updates := make([]*ContactURN, 0, len(changes))
 
 	contactIDs := make([]ContactID, 0)
 	updatedURNIDs := make([]URNID, 0)
-
-	// identities we are inserting
-	identities := make([]string, 0, 1)
 
 	// for each of our changes (one per contact)
 	for _, change := range changes {
@@ -1145,7 +1142,7 @@ func UpdateContactURNs(ctx context.Context, db DBorTx, oa *OrgAssets, changes []
 				updatedURNIDs = append(updatedURNIDs, cu.ID)
 			} else {
 				// new URN, add it instead
-				inserts = append(inserts, &ContactURN{
+				claims = append(claims, &ContactURN{
 					OrgID:     oa.OrgID(),
 					ContactID: change.Contact.ID(),
 					Identity:  urn.Identity(),
@@ -1154,8 +1151,6 @@ func UpdateContactURNs(ctx context.Context, db DBorTx, oa *OrgAssets, changes []
 					Display:   null.String(urn.Display()),
 					Priority:  priority,
 				})
-
-				identities = append(identities, urn.Identity().String())
 			}
 
 			// decrease our priority for the next URN
@@ -1164,13 +1159,12 @@ func UpdateContactURNs(ctx context.Context, db DBorTx, oa *OrgAssets, changes []
 	}
 
 	// first update existing URNs
-	err := UpdateURNPriorityAndChannel(ctx, db, updates)
-	if err != nil {
+	if err := UpdateURNPriorityAndChannel(ctx, db, updates); err != nil {
 		return fmt.Errorf("error updating urns: %w", err)
 	}
 
 	// then detach any URNs that weren't updated (the ones we're not keeping)
-	_, err = db.ExecContext(
+	_, err := db.ExecContext(
 		ctx,
 		`UPDATE contacts_contacturn SET contact_id = NULL WHERE contact_id = ANY($1) AND id != ALL($2)`,
 		pq.Array(contactIDs),
@@ -1180,13 +1174,24 @@ func UpdateContactURNs(ctx context.Context, db DBorTx, oa *OrgAssets, changes []
 		return fmt.Errorf("error detaching urns: %w", err)
 	}
 
-	if len(inserts) > 0 {
-		// then insert new urns, we do these one by one since we have to deal with conflicts
-		for _, insert := range inserts {
-			_, err := db.NamedExecContext(ctx, sqlInsertContactURN, insert)
+	if len(claims) > 0 {
+		vc := rt.VK.Get()
+		defer vc.Close()
+
+		// then insert/claim new urns, we do these one by one since we have to deal with conflicts
+		for _, urn := range claims {
+			_, err := db.NamedExecContext(ctx, sqlInsertContactURN, urn)
 			if err != nil {
 				return fmt.Errorf("error inserting new urns: %w", err)
 			}
+
+			// clear Valkey record of this claim
+			claimKey := fmt.Sprintf("urn-claim:%d:%s", oa.OrgID(), urn.Identity)
+
+			if _, err := redis.DoContext(vc, ctx, "DEL", claimKey); err != nil {
+				return fmt.Errorf("error clearing URN claim in Valkey: %w", err)
+			}
+
 		}
 	}
 
@@ -1277,7 +1282,8 @@ UPDATE contacts_contact c
   FROM (VALUES(:id::int, :status)) AS r(id, status)
  WHERE c.id = r.id`
 
-func contactClaimURN(ctx context.Context, rt *runtime.Runtime, org *Org, contact *flows.Contact, urn urns.URN) (bool, error) {
+// ContactClaimURN is used by the engine to "claim" a URN before that claim is committed to the database
+func ContactClaimURN(ctx context.Context, rt *runtime.Runtime, org *Org, contact *flows.Contact, urn urns.URN) (bool, error) {
 	locker := locks.NewLocker(fmt.Sprintf("urn-claims:%d", org.ID()), time.Second*30)
 	lock, err := locker.Grab(ctx, rt.VK, time.Second*5)
 	if err != nil {
@@ -1285,11 +1291,10 @@ func contactClaimURN(ctx context.Context, rt *runtime.Runtime, org *Org, contact
 	}
 	defer locker.Release(ctx, rt.VK, lock)
 
-	identity := urn.Identity().String()
-
 	vc := rt.VK.Get()
 	defer vc.Close()
 
+	identity := urn.Identity()
 	claimKey := fmt.Sprintf("urn-claim:%d:%s", org.ID(), identity)
 
 	owner, err := redis.Int64(redis.DoContext(vc, ctx, "GET", claimKey))
@@ -1311,8 +1316,9 @@ func contactClaimURN(ctx context.Context, rt *runtime.Runtime, org *Org, contact
 		return false, nil
 	}
 
-	// record URN as claimed in Valkey.. there's potentially a problem here if session errors because we'll still have
-	// this claim lingering for 60 seconds but that doesn't happen very often
+	// Record URN as claimed in Valkey - this will be cleared in UpdateContactURNs when the claim is committed to the
+	// database. There's potentially a problem here if session errors because we'll still have this claim lingering
+	// for 60 seconds... but that doesn't happen very often
 	if _, err := redis.DoContext(vc, ctx, "SET", claimKey, contact.ID(), "EX", 60); err != nil {
 		return false, fmt.Errorf("error recording URN claim in Valkey: %w", err)
 	}

@@ -1,6 +1,6 @@
 [
     {
-        "label": "brand new URN on Ann, and Bob is stealing a URN previously assigned to Cat",
+        "label": "add new URN to Ann and send to it",
         "events": {},
         "actions": {
             "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
@@ -23,27 +23,6 @@
                     "uuid": "3c159ef5-b077-476f-ac80-94a60be1f30f",
                     "text": "Ann Message"
                 }
-            ],
-            "b699a406-7e44-49be-9f01-1a82893e8a10": [
-                {
-                    "type": "add_contact_urn",
-                    "uuid": "29640e73-2ed2-43e6-8ec8-c405f7e05e3d",
-                    "scheme": "telegram",
-                    "path": "67890"
-                },
-                {
-                    "type": "set_contact_channel",
-                    "uuid": "da731913-0ef1-40af-bfaa-c84822be4e0e",
-                    "channel": {
-                        "uuid": "0f661e8b-ea9d-4bd3-9953-d368340acf91",
-                        "name": "telegram"
-                    }
-                },
-                {
-                    "type": "send_msg",
-                    "uuid": "693a2b86-af60-4606-89ec-19930ffc05f9",
-                    "text": "Bob Message"
-                }
             ]
         },
         "db_assertions": [
@@ -56,99 +35,12 @@
                     "text": "Ann Message",
                     "urn_channel": null
                 }
-            },
-            {
-                "query": "SELECT m.text, m.status, m.channel_id AS msg_channel, u.identity, u.channel_id AS urn_channel FROM msgs_msg m JOIN contacts_contacturn u ON m.contact_urn_id = u.id WHERE m.contact_id = 10001 ORDER BY m.id DESC LIMIT 1",
-                "columns": {
-                    "identity": "telegram:67890",
-                    "msg_channel": 10002,
-                    "status": "Q",
-                    "text": "Bob Message",
-                    "urn_channel": null
-                }
             }
         ],
         "expected_history": [
             {
-                "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
-                "SK": "evt#01969b47-6efb-76f8-9014-2c868db4022e",
-                "OrgID": 1,
-                "Data": {
-                    "created_on": "2025-05-04T12:31:13.123456789Z",
-                    "flow": {
-                        "name": "Test Flow",
-                        "revision": 1,
-                        "uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85"
-                    },
-                    "run_uuid": "01969b47-6b13-76f8-a13f-9238de2a0b76",
-                    "type": "run_started"
-                }
-            },
-            {
-                "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
-                "SK": "evt#01969b47-8283-76f8-be24-6164105d48f2",
-                "OrgID": 1,
-                "TTL": "2026-05-04T12:31:18Z",
-                "Data": {
-                    "created_on": "2025-05-04T12:31:18.123456789Z",
-                    "type": "contact_urns_changed",
-                    "urns": [
-                        "tel:+16055742222",
-                        "telegram:67890"
-                    ]
-                }
-            },
-            {
-                "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
-                "SK": "evt#01969b47-8a53-76f8-8768-7d0ba4d4f3e8",
-                "OrgID": 1,
-                "TTL": "2026-05-04T12:31:20Z",
-                "Data": {
-                    "created_on": "2025-05-04T12:31:20.123456789Z",
-                    "type": "contact_urns_changed",
-                    "urns": [
-                        "telegram:67890?channel=0f661e8b-ea9d-4bd3-9953-d368340acf91",
-                        "tel:+16055742222"
-                    ]
-                }
-            },
-            {
-                "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
-                "SK": "evt#01969b47-960b-76f8-b63d-c8dcc2fa9de0",
-                "OrgID": 1,
-                "Data": {
-                    "created_on": "2025-05-04T12:31:23.123456789Z",
-                    "msg": {
-                        "channel": {
-                            "name": "Telegram",
-                            "uuid": "0f661e8b-ea9d-4bd3-9953-d368340acf91"
-                        },
-                        "locale": "eng-US",
-                        "text": "Bob Message",
-                        "urn": "telegram:67890"
-                    },
-                    "type": "msg_created"
-                }
-            },
-            {
-                "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
-                "SK": "evt#01969b47-a1c3-76f8-8f9d-465efd6fbb5e",
-                "OrgID": 1,
-                "Data": {
-                    "created_on": "2025-05-04T12:31:26.123456789Z",
-                    "flow": {
-                        "name": "Test Flow",
-                        "revision": 1,
-                        "uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85"
-                    },
-                    "run_uuid": "01969b47-6b13-76f8-a13f-9238de2a0b76",
-                    "status": "completed",
-                    "type": "run_ended"
-                }
-            },
-            {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b47-190b-76f8-b62c-3c781ca3b5da",
+                "SK": "evt#01969b47-190b-76f8-8dbf-00ecf5d03034",
                 "OrgID": 1,
                 "Data": {
                     "created_on": "2025-05-04T12:30:51.123456789Z",
@@ -157,13 +49,13 @@
                         "revision": 1,
                         "uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85"
                     },
-                    "run_uuid": "01969b47-1523-76f8-8e78-3bde7b3370ae",
+                    "run_uuid": "01969b47-1523-76f8-bebe-b4a1f677cf4c",
                     "type": "run_started"
                 }
             },
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b47-2c93-76f8-bec9-e032f4f9af5f",
+                "SK": "evt#01969b47-2c93-76f8-9654-8a7258fbaae4",
                 "OrgID": 1,
                 "TTL": "2026-05-04T12:30:56Z",
                 "Data": {
@@ -177,7 +69,7 @@
             },
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b47-3463-76f8-9853-0310d032b497",
+                "SK": "evt#01969b47-3463-76f8-8e78-3bde7b3370ae",
                 "OrgID": 1,
                 "TTL": "2026-05-04T12:30:58Z",
                 "Data": {
@@ -191,7 +83,7 @@
             },
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b47-401b-76f8-8ab7-4a517a86045c",
+                "SK": "evt#01969b47-401b-76f8-b62c-3c781ca3b5da",
                 "OrgID": 1,
                 "Data": {
                     "created_on": "2025-05-04T12:31:01.123456789Z",
@@ -209,7 +101,7 @@
             },
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b47-4bd3-76f8-97a3-ae27459a6be4",
+                "SK": "evt#01969b47-4bd3-76f8-af9c-ff2f1faac4db",
                 "OrgID": 1,
                 "Data": {
                     "created_on": "2025-05-04T12:31:04.123456789Z",
@@ -218,7 +110,7 @@
                         "revision": 1,
                         "uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85"
                     },
-                    "run_uuid": "01969b47-1523-76f8-8e78-3bde7b3370ae",
+                    "run_uuid": "01969b47-1523-76f8-bebe-b4a1f677cf4c",
                     "status": "completed",
                     "type": "run_ended"
                 }

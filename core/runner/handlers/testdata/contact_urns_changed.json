@@ -1,24 +1,103 @@
 [
     {
-        "label": "#1",
+        "label": "add 2 urns to Ann (in sequential events), remove all from Bob",
         "events": {
             "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
                 {
-                    "uuid": "01969b47-2c93-76f8-bec9-e032f4f9af5f",
+                    "uuid": "019bb7f0-0a59-7017-9c97-5d4d65357b32",
                     "type": "contact_urns_changed",
-                    "created_on": "2025-05-04T12:30:56.123456789Z",
+                    "created_on": "2026-01-13T15:18:40.473533Z",
                     "urns": [
                         "tel:+16055741111",
                         "tel:+12065551212"
                     ]
                 },
                 {
-                    "uuid": "01969b47-3463-76f8-9853-0310d032b497",
+                    "uuid": "019bb7f0-0e41-720e-bd74-b0c29ec3bbc7",
                     "type": "contact_urns_changed",
-                    "created_on": "2025-05-04T12:30:58.123456789Z",
+                    "created_on": "2026-01-13T15:18:41.473533Z",
                     "urns": [
                         "tel:+16055741111",
                         "tel:+12065551212",
+                        "telegram:11551"
+                    ]
+                }
+            ],
+            "b699a406-7e44-49be-9f01-1a82893e8a10": [
+                {
+                    "uuid": "019bb7f0-1229-779b-9826-31f6e93aa38c",
+                    "type": "contact_urns_changed",
+                    "created_on": "2026-01-13T15:18:42.473533Z",
+                    "urns": []
+                }
+            ]
+        },
+        "db_assertions": [
+            {
+                "query": "SELECT identity FROM contacts_contacturn WHERE contact_id = 10000 ORDER BY priority DESC",
+                "list": [
+                    "tel:+16055741111",
+                    "tel:+12065551212",
+                    "telegram:11551"
+                ]
+            },
+            {
+                "query": "SELECT identity FROM contacts_contacturn WHERE contact_id = 10001 ORDER BY priority DESC",
+                "list": []
+            }
+        ],
+        "expected_history": [
+            {
+                "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
+                "SK": "evt#019bb7f0-1229-779b-9826-31f6e93aa38c",
+                "OrgID": 1,
+                "TTL": "2027-01-13T15:18:42Z",
+                "Data": {
+                    "created_on": "2026-01-13T15:18:42.473533Z",
+                    "type": "contact_urns_changed",
+                    "urns": []
+                }
+            },
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#019bb7f0-0a59-7017-9c97-5d4d65357b32",
+                "OrgID": 1,
+                "TTL": "2027-01-13T15:18:40Z",
+                "Data": {
+                    "created_on": "2026-01-13T15:18:40.473533Z",
+                    "type": "contact_urns_changed",
+                    "urns": [
+                        "tel:+16055741111",
+                        "tel:+12065551212"
+                    ]
+                }
+            },
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#019bb7f0-0e41-720e-bd74-b0c29ec3bbc7",
+                "OrgID": 1,
+                "TTL": "2027-01-13T15:18:41Z",
+                "Data": {
+                    "created_on": "2026-01-13T15:18:41.473533Z",
+                    "type": "contact_urns_changed",
+                    "urns": [
+                        "tel:+16055741111",
+                        "tel:+12065551212",
+                        "telegram:11551"
+                    ]
+                }
+            }
+        ]
+    },
+    {
+        "label": "remove 2 URNs from Ann",
+        "events": {
+            "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                {
+                    "uuid": "019bb7f0-1611-7070-ba64-f9965924fd11",
+                    "type": "contact_urns_changed",
+                    "created_on": "2026-01-13T15:18:43.473533Z",
+                    "urns": [
                         "telegram:11551"
                     ]
                 }
@@ -26,61 +105,93 @@
         },
         "db_assertions": [
             {
-                "query": "select count(*) from contacts_contacturn where contact_id = $1 and scheme = 'telegram' and path = '11551' and priority = 998",
-                "args": [
-                    10000
-                ],
-                "returns": 1
-            },
-            {
-                "query": "select count(*) from contacts_contacturn where contact_id = $1 and scheme = 'tel' and path = '+12065551212' and priority = 999 and identity = 'tel:+12065551212'",
-                "args": [
-                    10000
-                ],
-                "returns": 1
-            },
-            {
-                "query": "select count(*) from contacts_contacturn where contact_id = $1 and scheme = 'tel' and path = '+16055741111' and priority = 1000",
-                "args": [
-                    10000
-                ],
-                "returns": 1
-            },
-            {
-                "query": "select count(*) from contacts_contacturn where contact_id = $1",
-                "args": [
-                    10002
-                ],
-                "returns": 1
+                "query": "SELECT identity FROM contacts_contacturn WHERE contact_id = 10000 ORDER BY priority DESC",
+                "list": [
+                    "telegram:11551"
+                ]
             }
         ],
         "expected_history": [
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b47-2c93-76f8-bec9-e032f4f9af5f",
+                "SK": "evt#019bb7f0-1611-7070-ba64-f9965924fd11",
                 "OrgID": 1,
-                "TTL": "2026-05-04T12:30:56Z",
+                "TTL": "2027-01-13T15:18:43Z",
                 "Data": {
-                    "created_on": "2025-05-04T12:30:56.123456789Z",
+                    "created_on": "2026-01-13T15:18:43.473533Z",
                     "type": "contact_urns_changed",
                     "urns": [
-                        "tel:+16055741111",
+                        "telegram:11551"
+                    ]
+                }
+            }
+        ]
+    },
+    {
+        "label": "Ann reclaims her original URN, other goes to Bob",
+        "events": {
+            "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                {
+                    "uuid": "019bb7f0-19f9-721f-9c91-b81f5b2d5fff",
+                    "type": "contact_urns_changed",
+                    "created_on": "2026-01-13T15:18:44.473533Z",
+                    "urns": [
+                        "telegram:11551",
+                        "tel:+16055741111"
+                    ]
+                }
+            ],
+            "b699a406-7e44-49be-9f01-1a82893e8a10": [
+                {
+                    "uuid": "019bb7f0-1de1-712f-87e0-17f230cedb77",
+                    "type": "contact_urns_changed",
+                    "created_on": "2026-01-13T15:18:45.473533Z",
+                    "urns": [
+                        "tel:+12065551212"
+                    ]
+                }
+            ]
+        },
+        "db_assertions": [
+            {
+                "query": "SELECT identity FROM contacts_contacturn WHERE contact_id = 10000 ORDER BY priority DESC",
+                "list": [
+                    "telegram:11551",
+                    "tel:+16055741111"
+                ]
+            },
+            {
+                "query": "SELECT identity FROM contacts_contacturn WHERE contact_id = 10001 ORDER BY priority DESC",
+                "list": [
+                    "tel:+12065551212"
+                ]
+            }
+        ],
+        "expected_history": [
+            {
+                "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
+                "SK": "evt#019bb7f0-1de1-712f-87e0-17f230cedb77",
+                "OrgID": 1,
+                "TTL": "2027-01-13T15:18:45Z",
+                "Data": {
+                    "created_on": "2026-01-13T15:18:45.473533Z",
+                    "type": "contact_urns_changed",
+                    "urns": [
                         "tel:+12065551212"
                     ]
                 }
             },
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b47-3463-76f8-9853-0310d032b497",
+                "SK": "evt#019bb7f0-19f9-721f-9c91-b81f5b2d5fff",
                 "OrgID": 1,
-                "TTL": "2026-05-04T12:30:58Z",
+                "TTL": "2027-01-13T15:18:44Z",
                 "Data": {
-                    "created_on": "2025-05-04T12:30:58.123456789Z",
+                    "created_on": "2026-01-13T15:18:44.473533Z",
                     "type": "contact_urns_changed",
                     "urns": [
-                        "tel:+16055741111",
-                        "tel:+12065551212",
-                        "telegram:11551"
+                        "telegram:11551",
+                        "tel:+16055741111"
                     ]
                 }
             }
