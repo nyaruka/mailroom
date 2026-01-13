@@ -126,7 +126,6 @@ func handleIncoming(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 		ChannelID: ch.ID(),
 		URNID:     cu.ID,
 		Extra:     nil,
-		CreatedOn: time.Now(),
 	}
 	scene, err := task.Handle(ctx, rt, oa, contact, call)
 	if err != nil {

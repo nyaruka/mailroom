@@ -875,7 +875,7 @@
         "expected_history": [
             {
                 "PK": "con#72e90234-071d-4188-9676-22cd6062f002",
-                "SK": "evt#01969b4a-a34b-76f8-94b4-ef0c4720292f",
+                "SK": "evt#01969b4a-a733-76f8-94b4-ef0c4720292f",
                 "OrgID": 1,
                 "Data": {
                     "call": {
@@ -886,7 +886,7 @@
                         "urn": "tel:+12482780345",
                         "uuid": "01969b4a-9f63-76f8-9c96-61ebc05df996"
                     },
-                    "created_on": "2025-05-04T12:34:43.123456789Z",
+                    "created_on": "2025-05-04T12:34:44.123456789Z",
                     "type": "call_received"
                 }
             }
