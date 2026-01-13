@@ -64,7 +64,7 @@ func handleHandle(ctx context.Context, rt *runtime.Runtime, r *handleRequest) (a
 		err = realtime.QueueTask(ctx, rt, m.OrgID(), m.ContactID(), &ctasks.MsgReceivedTask{
 			ChannelID:     m.ChannelID(),
 			MsgUUID:       m.UUID(),
-			MsgExternalID: m.ExternalID(),
+			MsgExternalID: m.ExternalIdentifier(),
 			URN:           urn,
 			URNID:         m.ContactURNID(),
 			Text:          m.Text(),
