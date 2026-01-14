@@ -35,6 +35,7 @@ var eventPersistence = map[string]time.Duration{
 	events.TypeContactNameChanged:     time.Hour * 24 * 365, // 1 year
 	events.TypeContactStatusChanged:   eternity,
 	events.TypeContactURNsChanged:     time.Hour * 24 * 365, // 1 year
+	events.TypeFailure:                eternity,
 	events.TypeIVRCreated:             eternity,
 	events.TypeMsgCreated:             eternity,
 	events.TypeMsgDeleted:             time.Hour * 24, // 1 day

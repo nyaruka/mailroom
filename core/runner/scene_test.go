@@ -247,6 +247,13 @@ func TestSessionFailedStart(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowrun WHERE flow_id = $1`, ping.ID).Returns(101)
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowrun WHERE flow_id = $1`, pong.ID).Returns(100)
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowrun WHERE status = 'F' AND exited_on IS NOT NULL`).Returns(201)
+
+	// check the contact
+	assertdb.Query(t, rt.DB, `SELECT current_session_uuid, current_flow_id FROM contacts_contact WHERE id = $1`, testdb.Ann.ID).Columns(map[string]any{
+		"current_session_uuid": nil, "current_flow_id": nil,
+	})
+
+	assert.Equal(t, []string{"failure"}, testsuite.GetHistoryEventTypes(t, rt, false)[testdb.Ann.UUID])
 }
 
 func TestFlowStats(t *testing.T) {
