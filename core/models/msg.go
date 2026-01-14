@@ -177,7 +177,6 @@ type Msg struct {
 		CreatedOn          time.Time     `db:"created_on"`
 		ModifiedOn         time.Time     `db:"modified_on"`
 		ExternalIdentifier null.String   `db:"external_identifier"`
-		ExternalID         null.String   `db:"external_id"` // deprecated
 		ChannelID          ChannelID     `db:"channel_id"`
 		ContactID          ContactID     `db:"contact_id"`
 		ContactURNID       URNID         `db:"contact_urn_id"`
@@ -211,19 +210,12 @@ func (m *Msg) Type() MsgType                 { return m.m.MsgType }
 func (m *Msg) ErrorCount() int               { return m.m.ErrorCount }
 func (m *Msg) NextAttempt() *time.Time       { return m.m.NextAttempt }
 func (m *Msg) FailedReason() MsgFailedReason { return m.m.FailedReason }
-
-func (m *Msg) ExternalID() string {
-	if string(m.m.ExternalIdentifier) != "" {
-		return string(m.m.ExternalIdentifier)
-	}
-	return string(m.m.ExternalID)
-}
-
-func (m *Msg) MsgCount() int        { return m.m.MsgCount }
-func (m *Msg) ChannelID() ChannelID { return m.m.ChannelID }
-func (m *Msg) OrgID() OrgID         { return m.m.OrgID }
-func (m *Msg) OptInID() OptInID     { return m.m.OptInID }
-func (m *Msg) ContactID() ContactID { return m.m.ContactID }
+func (m *Msg) ExternalIdentifier() string    { return string(m.m.ExternalIdentifier) }
+func (m *Msg) MsgCount() int                 { return m.m.MsgCount }
+func (m *Msg) ChannelID() ChannelID          { return m.m.ChannelID }
+func (m *Msg) OrgID() OrgID                  { return m.m.OrgID }
+func (m *Msg) OptInID() OptInID              { return m.m.OptInID }
+func (m *Msg) ContactID() ContactID          { return m.m.ContactID }
 
 func (m *Msg) ContactURNID() URNID         { return m.m.ContactURNID }
 func (m *Msg) SetContactURNID(urnID URNID) { m.m.ContactURNID = urnID }
@@ -515,7 +507,6 @@ SELECT
 	failed_reason,
 	coalesce(high_priority, FALSE) as high_priority,
 	external_identifier,
-	external_id,
 	channel_id,
 	contact_id,
 	contact_urn_id,
@@ -557,7 +548,6 @@ SELECT
 	m.failed_reason,
 	m.high_priority,
 	m.external_identifier,
-	m.external_id,
 	m.channel_id,
 	m.contact_id,
 	m.contact_urn_id,
