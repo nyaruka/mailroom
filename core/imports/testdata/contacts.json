@@ -391,7 +391,7 @@
         "num_errored": 0,
         "errors": [
             {
-                "message": "URN already taken by another contact",
+                "message": "URN tel:+16055700002 already taken by another contact",
                 "record": 0,
                 "row": 1
             }
