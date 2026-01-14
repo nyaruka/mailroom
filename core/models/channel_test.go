@@ -100,12 +100,20 @@ func TestChannels(t *testing.T) {
 func TestGetChannelByID(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetAll)
+	defer rt.DB.MustExec(`UPDATE channels_channel SET is_active = TRUE WHERE id = $1`, testdb.VonageChannel.ID)
 
 	ch, err := models.GetChannelByID(ctx, rt.DB.DB, testdb.TwilioChannel.ID)
 	assert.NoError(t, err)
 	assert.Equal(t, testdb.TwilioChannel.ID, ch.ID())
 	assert.Equal(t, testdb.TwilioChannel.UUID, ch.UUID())
+
+	// test when channel is deleted
+	rt.DB.MustExec(`UPDATE channels_channel SET is_active = FALSE WHERE id = $1`, testdb.VonageChannel.ID)
+
+	ch, err = models.GetChannelByID(ctx, rt.DB.DB, testdb.VonageChannel.ID)
+	assert.NoError(t, err)
+	assert.Equal(t, testdb.VonageChannel.ID, ch.ID())
+	assert.Equal(t, testdb.VonageChannel.UUID, ch.UUID())
 
 	_, err = models.GetChannelByID(ctx, rt.DB.DB, 1234567890)
 	assert.EqualError(t, err, "error fetching channel by id 1234567890: error scanning row JSON: sql: no rows in result set")
