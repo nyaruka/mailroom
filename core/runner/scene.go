@@ -110,11 +110,11 @@ func (s *Scene) addSprint(ctx context.Context, rt *runtime.Runtime, oa *models.O
 
 	evts := make([]flows.Event, 0, len(sp.Events())+1)
 
-	// if session didn't fail, accept it's state changes
-	if ss.Status() != flows.SessionStatusFailed {
-		s.Contact = ss.Contact() // update contact
-
-		evts = append(evts, sp.Events()...)
+	for _, e := range sp.Events() {
+		// if session failed, only include failure events, otherwise all events
+		if ss.Status() != flows.SessionStatusFailed || e.Type() == events.TypeFailure {
+			evts = append(evts, e)
+		}
 	}
 
 	evts = append(evts, newSprintEndedEvent(s.DBContact, resumed))
