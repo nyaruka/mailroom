@@ -1,3 +1,9 @@
+v26.1.4 (2026-01-14)
+-------------------------
+ * Update to latest goflow which improves failure events
+ * Increase max steps per sprint to 250
+ * Persist failure events from failed sessions
+
 v26.1.3 (2026-01-13)
 -------------------------
  * Ignore created_on on event_received tasks and just use now
