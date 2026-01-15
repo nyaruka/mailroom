@@ -99,13 +99,6 @@ func (f *Flow) Reference() *assets.FlowReference {
 	return assets.NewFlowReference(f.UUID(), f.Name())
 }
 
-// clones this flow but gives it the provided definition (used for simulation)
-func (f *Flow) cloneWithNewDefinition(def []byte) *Flow {
-	c := *f
-	c.f.Definition = def
-	return &c
-}
-
 func LoadFlowByUUID(ctx context.Context, db *sql.DB, orgID OrgID, flowUUID assets.FlowUUID) (*Flow, error) {
 	return loadFlow(ctx, db, sqlSelectFlowByUUID, orgID, flowUUID)
 }

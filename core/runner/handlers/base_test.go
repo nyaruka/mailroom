@@ -96,7 +96,7 @@ func runTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 
 	models.FlushCache()
 
-	oa, err := models.GetOrgAssets(ctx, rt, models.OrgID(1))
+	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 	assert.NoError(t, err)
 
 	test.MockUniverse()
@@ -137,12 +137,15 @@ func runTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 			// reuse id from one of our real flows
 			flowUUID := testdb.Favorites.UUID
 
-			// create dynamic flow to test actions
+			// create dynamic flow definition to test actions
 			testFlow := createTestFlow(t, flowUUID, tc.Actions)
 			flowDef, err := json.Marshal(testFlow)
 			require.NoError(t, err)
 
-			oa, err = oa.CloneForSimulation(ctx, rt, map[assets.FlowUUID][]byte{flowUUID: flowDef}, nil)
+			rt.DB.MustExec(`UPDATE flows_flow SET name = 'Test Flow' WHERE id = $1`, testdb.Favorites.ID)
+			rt.DB.MustExec(`UPDATE flows_flowrevision SET definition = $2 WHERE flow_id = $1`, testdb.Favorites.ID, string(flowDef))
+
+			oa2, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshFlows)
 			assert.NoError(t, err)
 
 			for i, scene := range scenes {
@@ -156,7 +159,7 @@ func runTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 						trig = triggers.NewBuilder(testFlow.Reference(false)).Manual().Build()
 					}
 
-					err = scene.StartSession(ctx, rt, oa, trig, true)
+					err = scene.StartSession(ctx, rt, oa2, trig, true)
 					require.NoError(t, err)
 				}
 			}
