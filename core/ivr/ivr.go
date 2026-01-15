@@ -277,7 +277,7 @@ func StartCall(
 	scene.DBCall = call
 	scene.Call = flowCall
 
-	if err := scene.AddEvent(ctx, rt, oa, callEvt, models.NilUserID); err != nil {
+	if err := scene.AddEvent(ctx, rt, oa, callEvt, models.NilUserID, ""); err != nil {
 		return fmt.Errorf("error adding call created event: %w", err)
 	}
 
@@ -403,7 +403,7 @@ func ResumeCall(
 	scene.Call = flows.NewCall(call.UUID(), oa.SessionAssets().Channels().Get(channel.UUID()), urn.Identity())
 
 	if resumeEvent != nil {
-		if err := scene.AddEvent(ctx, rt, oa, resumeEvent, models.NilUserID); err != nil {
+		if err := scene.AddEvent(ctx, rt, oa, resumeEvent, models.NilUserID, ""); err != nil {
 			return fmt.Errorf("error adding event: %w", err)
 		}
 	}

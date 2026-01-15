@@ -14,6 +14,12 @@ import (
 	"github.com/nyaruka/mailroom/runtime"
 )
 
+type Via string
+
+const (
+	ViaImport Via = "import"
+)
+
 // Scene represents the context that events are occurring in
 type Scene struct {
 	// required state set on creation
@@ -75,7 +81,7 @@ func (s *Scene) SprintUUID() flows.SprintUUID {
 	return s.Sprint.UUID()
 }
 
-func (s *Scene) AddEvent(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, e flows.Event, userID models.UserID) error {
+func (s *Scene) AddEvent(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, e flows.Event, userID models.UserID, via Via) error {
 	handler, found := eventHandlers[e.Type()]
 	if !found {
 		return fmt.Errorf("unable to find handler for event type: %s", e.Type())
@@ -92,7 +98,7 @@ func (s *Scene) AddEvent(ctx context.Context, rt *runtime.Runtime, oa *models.Or
 	}
 
 	if models.PersistEvent(e) {
-		e.SetUser(user.Reference())
+		e.SetUser(user.Reference(), string(via))
 
 		s.persistEvents = append(s.persistEvents, &models.Event{
 			Event:       e,
@@ -120,7 +126,7 @@ func (s *Scene) addSprint(ctx context.Context, rt *runtime.Runtime, oa *models.O
 	evts = append(evts, newSprintEndedEvent(s.DBContact, resumed))
 
 	for _, e := range evts {
-		if err := s.AddEvent(ctx, rt, oa, e, models.NilUserID); err != nil {
+		if err := s.AddEvent(ctx, rt, oa, e, models.NilUserID, ""); err != nil {
 			return fmt.Errorf("error adding event to scene: %w", err)
 		}
 	}
@@ -200,7 +206,7 @@ func (s *Scene) ResumeSession(ctx context.Context, rt *runtime.Runtime, oa *mode
 	return nil
 }
 
-func (s *Scene) ApplyModifier(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, mod flows.Modifier, userID models.UserID) ([]flows.Event, error) {
+func (s *Scene) ApplyModifier(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, mod flows.Modifier, userID models.UserID, via Via) ([]flows.Event, error) {
 	env := flows.NewAssetsEnvironment(oa.Env(), oa.SessionAssets())
 	eng := goflow.Engine(rt)
 
@@ -219,7 +225,7 @@ func (s *Scene) ApplyModifier(ctx context.Context, rt *runtime.Runtime, oa *mode
 			creditUserID = models.NilUserID
 		}
 
-		if err := s.AddEvent(ctx, rt, oa, e, creditUserID); err != nil {
+		if err := s.AddEvent(ctx, rt, oa, e, creditUserID, via); err != nil {
 			return nil, fmt.Errorf("error adding modifier events for contact %s: %w", s.Contact.UUID(), err)
 		}
 	}

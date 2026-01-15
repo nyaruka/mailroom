@@ -70,7 +70,7 @@ func tryToModifyWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.Or
 		eventsByContact[scene.Contact] = make([]flows.Event, 0) // TODO only needed to avoid nulls until jsonv2
 
 		for _, mod := range modifiersByContact[scene.ContactID()] {
-			evts, err := scene.ApplyModifier(ctx, rt, oa, mod, userID)
+			evts, err := scene.ApplyModifier(ctx, rt, oa, mod, userID, "")
 			if err != nil {
 				return nil, nil, fmt.Errorf("error applying modifier: %w", err)
 			}
@@ -86,8 +86,8 @@ func tryToModifyWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.Or
 	return eventsByContact, skipped, nil
 }
 
-// BulkModify bulk modifies contacts without locking.. used during contact creation
-func BulkModify(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, userID models.UserID, mcs []*models.Contact, contacts []*flows.Contact, modifiers map[flows.ContactUUID][]flows.Modifier) (map[*flows.Contact][]flows.Event, error) {
+// BulkModify bulk modifies contacts without locking.. used during contact creation and imports
+func BulkModify(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, userID models.UserID, mcs []*models.Contact, contacts []*flows.Contact, modifiers map[flows.ContactUUID][]flows.Modifier, via Via) (map[*flows.Contact][]flows.Event, error) {
 	scenes := make([]*Scene, 0, len(mcs))
 	eventsByContact := make(map[*flows.Contact][]flows.Event, len(mcs))
 
@@ -97,7 +97,7 @@ func BulkModify(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, 
 		eventsByContact[contact] = make([]flows.Event, 0)
 
 		for _, mod := range modifiers[mc.UUID()] {
-			evts, err := scene.ApplyModifier(ctx, rt, oa, mod, userID)
+			evts, err := scene.ApplyModifier(ctx, rt, oa, mod, userID, via)
 			if err != nil {
 				return nil, fmt.Errorf("error applying modifier %T to contact %s: %w", mod, mc.UUID(), err)
 			}

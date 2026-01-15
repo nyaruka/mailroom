@@ -75,7 +75,7 @@ func handleDelete(ctx context.Context, rt *runtime.Runtime, r *deleteRequest) (a
 		for _, tUUID := range msgsByContact[mc.ID()] {
 			evt := events.NewMsgDeleted(tUUID, false)
 
-			if err := scene.AddEvent(ctx, rt, oa, evt, r.UserID); err != nil {
+			if err := scene.AddEvent(ctx, rt, oa, evt, r.UserID, ""); err != nil {
 				return nil, 0, fmt.Errorf("error adding msg delete event to scene for contact %s: %w", scene.ContactUUID(), err)
 			}
 		}

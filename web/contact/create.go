@@ -53,7 +53,7 @@ func handleCreate(ctx context.Context, rt *runtime.Runtime, r *createRequest) (a
 	}
 
 	modifiers := map[flows.ContactUUID][]flows.Modifier{contact.UUID(): c.Mods}
-	_, err = runner.BulkModify(ctx, rt, oa, r.UserID, []*models.Contact{mc}, []*flows.Contact{contact}, modifiers)
+	_, err = runner.BulkModify(ctx, rt, oa, r.UserID, []*models.Contact{mc}, []*flows.Contact{contact}, modifiers, "")
 	if err != nil {
 		return nil, 0, fmt.Errorf("error modifying new contact: %w", err)
 	}
