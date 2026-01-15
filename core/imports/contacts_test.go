@@ -7,12 +7,11 @@ import (
 	"sort"
 	"strings"
 	"testing"
-	"time"
 
+	"github.com/nyaruka/gocommon/aws/dynamo"
 	"github.com/nyaruka/gocommon/dbutil"
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/gocommon/urns"
-	"github.com/nyaruka/gocommon/uuids"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/excellent/types"
 	"github.com/nyaruka/goflow/flows"
@@ -29,6 +28,9 @@ import (
 
 func TestContactImports(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
+
+	reset := test.MockUniverse()
+	defer reset()
 
 	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
@@ -51,21 +53,19 @@ func TestContactImports(t *testing.T) {
 	testJSON := testsuite.ReadFile(t, "testdata/contacts.json")
 
 	tcs := []struct {
-		Description string                `json:"description"`
-		Specs       json.RawMessage       `json:"specs"`
-		NumCreated  int                   `json:"num_created"`
-		NumUpdated  int                   `json:"num_updated"`
-		NumErrored  int                   `json:"num_errored"`
-		Errors      json.RawMessage       `json:"errors"`
-		Contacts    []*models.ContactSpec `json:"contacts"`
+		Label            string                `json:"label"`
+		Specs            json.RawMessage       `json:"specs"`
+		NumCreated       int                   `json:"num_created"`
+		NumUpdated       int                   `json:"num_updated"`
+		NumErrored       int                   `json:"num_errored"`
+		ExpectedErrors   json.RawMessage       `json:"expected_errors"`
+		ExpectedContacts []*models.ContactSpec `json:"expected_contacts"`
+		ExpectedHistory  []*dynamo.Item        `json:"expected_history,omitempty"`
 	}{}
 	jsonx.MustUnmarshal(testJSON, &tcs)
 
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshOrg|models.RefreshChannels|models.RefreshGroups)
 	require.NoError(t, err)
-
-	uuids.SetGenerator(uuids.NewSeededGenerator(12345, time.Now))
-	defer uuids.SetGenerator(uuids.DefaultGenerator)
 
 	for i, tc := range tcs {
 		importID := testdb.InsertContactImport(t, rt, testdb.Org1, models.ImportStatusProcessing, testdb.Admin)
@@ -120,19 +120,25 @@ func TestContactImports(t *testing.T) {
 		actual.NumCreated = results.NumCreated
 		actual.NumUpdated = results.NumUpdated
 		actual.NumErrored = results.NumErrored
-		actual.Errors = results.Errors
-		actual.Contacts = specs
+		actual.ExpectedErrors = results.Errors
+		actual.ExpectedContacts = specs
+		actual.ExpectedHistory = testsuite.GetHistoryItems(t, rt, true)
 
 		if !test.UpdateSnapshots {
-			assert.Equal(t, tc.NumCreated, actual.NumCreated, "created contacts mismatch in '%s'", tc.Description)
-			assert.Equal(t, tc.NumUpdated, actual.NumUpdated, "updated contacts mismatch in '%s'", tc.Description)
-			assert.Equal(t, tc.NumErrored, actual.NumErrored, "errored contacts mismatch in '%s'", tc.Description)
+			assert.Equal(t, tc.NumCreated, actual.NumCreated, "created contacts mismatch in '%s'", tc.Label)
+			assert.Equal(t, tc.NumUpdated, actual.NumUpdated, "updated contacts mismatch in '%s'", tc.Label)
+			assert.Equal(t, tc.NumErrored, actual.NumErrored, "errored contacts mismatch in '%s'", tc.Label)
 
-			test.AssertEqualJSON(t, tc.Errors, actual.Errors, "errors mismatch in '%s'", tc.Description)
+			test.AssertEqualJSON(t, tc.ExpectedErrors, actual.ExpectedErrors, "errors mismatch in '%s'", tc.Label)
 
-			actualJSON := jsonx.MustMarshal(actual.Contacts)
-			expectedJSON := jsonx.MustMarshal(tc.Contacts)
-			test.AssertEqualJSON(t, expectedJSON, actualJSON, "imported contacts mismatch in '%s'", tc.Description)
+			actualJSON := jsonx.MustMarshal(actual.ExpectedContacts)
+			expectedJSON := jsonx.MustMarshal(tc.ExpectedContacts)
+			test.AssertEqualJSON(t, expectedJSON, actualJSON, "imported contacts mismatch in '%s'", tc.Label)
+
+			if tc.ExpectedHistory == nil {
+				tc.ExpectedHistory = []*dynamo.Item{}
+			}
+			test.AssertEqualJSON(t, jsonx.MustMarshal(tc.ExpectedHistory), jsonx.MustMarshal(actual.ExpectedHistory), "%s: event history mismatch", tc.Label)
 		} else {
 			tcs[i] = actual
 		}

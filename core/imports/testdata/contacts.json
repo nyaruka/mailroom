@@ -1,6 +1,6 @@
 [
     {
-        "description": "2 new contacts with name and phone",
+        "label": "2 new contacts with name and phone",
         "specs": [
             {
                 "name": "Ann",
@@ -20,10 +20,10 @@
         "num_created": 2,
         "num_updated": 0,
         "num_errored": 0,
-        "errors": [],
-        "contacts": [
+        "expected_errors": [],
+        "expected_contacts": [
             {
-                "uuid": "e7187099-7d38-4f60-955c-325957214c42",
+                "uuid": "692926ea-09d6-4942-bd38-d266ec8d3716",
                 "name": "Ann",
                 "language": "",
                 "status": "active",
@@ -35,7 +35,7 @@
                 "_import_row": 0
             },
             {
-                "uuid": "59d74b86-3e2f-4a93-aece-b05d2fdcde0c",
+                "uuid": "8720f157-ca1c-432f-9c0b-2014ddc77094",
                 "name": "Bob",
                 "language": "",
                 "status": "active",
@@ -46,10 +46,44 @@
                 "groups": [],
                 "_import_row": 0
             }
+        ],
+        "expected_history": [
+            {
+                "PK": "con#692926ea-09d6-4942-bd38-d266ec8d3716",
+                "SK": "evt#01969b47-113b-76f8-92a3-d648ab64bccb",
+                "OrgID": 1,
+                "TTL": "2026-05-04T12:30:49Z",
+                "Data": {
+                    "_user": {
+                        "name": "Andy Admin",
+                        "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
+                    },
+                    "_via": "import",
+                    "created_on": "2025-05-04T12:30:49.123456789Z",
+                    "name": "Ann",
+                    "type": "contact_name_changed"
+                }
+            },
+            {
+                "PK": "con#8720f157-ca1c-432f-9c0b-2014ddc77094",
+                "SK": "evt#01969b47-190b-76f8-8228-9728778b6c98",
+                "OrgID": 1,
+                "TTL": "2026-05-04T12:30:51Z",
+                "Data": {
+                    "_user": {
+                        "name": "Andy Admin",
+                        "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
+                    },
+                    "_via": "import",
+                    "created_on": "2025-05-04T12:30:51.123456789Z",
+                    "name": "Bob",
+                    "type": "contact_name_changed"
+                }
+            }
         ]
     },
     {
-        "description": "1 new contact with all fields",
+        "label": "1 new contact with all fields",
         "specs": [
             {
                 "name": "Cat",
@@ -71,10 +105,10 @@
         "num_created": 1,
         "num_updated": 0,
         "num_errored": 0,
-        "errors": [],
-        "contacts": [
+        "expected_errors": [],
+        "expected_contacts": [
             {
-                "uuid": "e7187099-7d38-4f60-955c-325957214c42",
+                "uuid": "692926ea-09d6-4942-bd38-d266ec8d3716",
                 "name": "Ann",
                 "language": "",
                 "status": "active",
@@ -86,7 +120,7 @@
                 "_import_row": 0
             },
             {
-                "uuid": "59d74b86-3e2f-4a93-aece-b05d2fdcde0c",
+                "uuid": "8720f157-ca1c-432f-9c0b-2014ddc77094",
                 "name": "Bob",
                 "language": "",
                 "status": "active",
@@ -98,7 +132,7 @@
                 "_import_row": 0
             },
             {
-                "uuid": "4fc5fda0-de88-4c64-9b07-fce5df529848",
+                "uuid": "5ecda5fc-951c-437b-a17e-f85e49829fb9",
                 "name": "Cat",
                 "language": "spa",
                 "status": "active",
@@ -116,10 +150,109 @@
                 ],
                 "_import_row": 0
             }
+        ],
+        "expected_history": [
+            {
+                "PK": "con#5ecda5fc-951c-437b-a17e-f85e49829fb9",
+                "SK": "evt#01969b47-2c93-76f8-ba00-bd7f0d08e671",
+                "OrgID": 1,
+                "TTL": "2026-05-04T12:30:56Z",
+                "Data": {
+                    "_user": {
+                        "name": "Andy Admin",
+                        "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
+                    },
+                    "_via": "import",
+                    "created_on": "2025-05-04T12:30:56.123456789Z",
+                    "name": "Cat",
+                    "type": "contact_name_changed"
+                }
+            },
+            {
+                "PK": "con#5ecda5fc-951c-437b-a17e-f85e49829fb9",
+                "SK": "evt#01969b47-3463-76f8-b86e-4b881f09a186",
+                "OrgID": 1,
+                "TTL": "2026-05-04T12:30:58Z",
+                "Data": {
+                    "_user": {
+                        "name": "Andy Admin",
+                        "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
+                    },
+                    "_via": "import",
+                    "created_on": "2025-05-04T12:30:58.123456789Z",
+                    "language": "spa",
+                    "type": "contact_language_changed"
+                }
+            },
+            {
+                "PK": "con#5ecda5fc-951c-437b-a17e-f85e49829fb9",
+                "SK": "evt#01969b47-401b-76f8-a691-235cbe720980",
+                "OrgID": 1,
+                "TTL": "2026-05-04T12:31:01Z",
+                "Data": {
+                    "_user": {
+                        "name": "Andy Admin",
+                        "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
+                    },
+                    "_via": "import",
+                    "created_on": "2025-05-04T12:31:01.123456789Z",
+                    "field": {
+                        "key": "age",
+                        "name": "Age"
+                    },
+                    "type": "contact_field_changed",
+                    "value": {
+                        "number": 40,
+                        "text": "40"
+                    }
+                }
+            },
+            {
+                "PK": "con#5ecda5fc-951c-437b-a17e-f85e49829fb9",
+                "SK": "evt#01969b47-47eb-76f8-bebe-b4a1f677cf4c",
+                "OrgID": 1,
+                "TTL": "2026-05-04T12:31:03Z",
+                "Data": {
+                    "_via": "import",
+                    "created_on": "2025-05-04T12:31:03.123456789Z",
+                    "groups_added": [
+                        {
+                            "name": "Adults",
+                            "uuid": "fc32f928-ad37-477c-a88e-003d30fd7406"
+                        }
+                    ],
+                    "type": "contact_groups_changed"
+                }
+            },
+            {
+                "PK": "con#5ecda5fc-951c-437b-a17e-f85e49829fb9",
+                "SK": "evt#01969b47-4fbb-76f8-8dbf-00ecf5d03034",
+                "OrgID": 1,
+                "TTL": "2026-05-04T12:31:05Z",
+                "Data": {
+                    "_user": {
+                        "name": "Andy Admin",
+                        "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
+                    },
+                    "_via": "import",
+                    "created_on": "2025-05-04T12:31:05.123456789Z",
+                    "groups_added": [
+                        {
+                            "name": "Doctors",
+                            "uuid": "c153e265-f7c9-4539-9dbc-9b358714b638"
+                        },
+                        {
+                            "name": "Testers",
+                            "uuid": "5e9d8fab-5e7e-4f51-b533-261af5dea70d"
+                        }
+                    ],
+                    "type": "contact_groups_changed"
+                }
+            }
         ]
     },
     {
-        "description": "updating contacts with single URN",
+        "label": "updating contacts with single URN",
         "specs": [
             {
                 "name": "Bob",
@@ -146,10 +279,10 @@
         "num_created": 0,
         "num_updated": 2,
         "num_errored": 0,
-        "errors": [],
-        "contacts": [
+        "expected_errors": [],
+        "expected_contacts": [
             {
-                "uuid": "e7187099-7d38-4f60-955c-325957214c42",
+                "uuid": "692926ea-09d6-4942-bd38-d266ec8d3716",
                 "name": "Ann",
                 "language": "",
                 "status": "active",
@@ -161,7 +294,7 @@
                 "_import_row": 0
             },
             {
-                "uuid": "59d74b86-3e2f-4a93-aece-b05d2fdcde0c",
+                "uuid": "8720f157-ca1c-432f-9c0b-2014ddc77094",
                 "name": "Bob",
                 "language": "",
                 "status": "active",
@@ -176,7 +309,7 @@
                 "_import_row": 0
             },
             {
-                "uuid": "4fc5fda0-de88-4c64-9b07-fce5df529848",
+                "uuid": "5ecda5fc-951c-437b-a17e-f85e49829fb9",
                 "name": "Cat",
                 "language": "spa",
                 "status": "active",
@@ -193,10 +326,94 @@
                 ],
                 "_import_row": 0
             }
+        ],
+        "expected_history": [
+            {
+                "PK": "con#5ecda5fc-951c-437b-a17e-f85e49829fb9",
+                "SK": "evt#01969b47-76cb-76f8-8e78-3bde7b3370ae",
+                "OrgID": 1,
+                "TTL": "2026-05-04T12:31:15Z",
+                "Data": {
+                    "_user": {
+                        "name": "Andy Admin",
+                        "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
+                    },
+                    "_via": "import",
+                    "created_on": "2025-05-04T12:31:15.123456789Z",
+                    "field": {
+                        "key": "age",
+                        "name": "Age"
+                    },
+                    "type": "contact_field_changed",
+                    "value": {
+                        "number": 39,
+                        "text": "39"
+                    }
+                }
+            },
+            {
+                "PK": "con#5ecda5fc-951c-437b-a17e-f85e49829fb9",
+                "SK": "evt#01969b47-7e9b-76f8-b62c-3c781ca3b5da",
+                "OrgID": 1,
+                "TTL": "2026-05-04T12:31:17Z",
+                "Data": {
+                    "_via": "import",
+                    "created_on": "2025-05-04T12:31:17.123456789Z",
+                    "groups_removed": [
+                        {
+                            "name": "Adults",
+                            "uuid": "fc32f928-ad37-477c-a88e-003d30fd7406"
+                        }
+                    ],
+                    "type": "contact_groups_changed"
+                }
+            },
+            {
+                "PK": "con#8720f157-ca1c-432f-9c0b-2014ddc77094",
+                "SK": "evt#01969b47-5f5b-76f8-afcb-91a2073e5459",
+                "OrgID": 1,
+                "TTL": "2026-05-04T12:31:09Z",
+                "Data": {
+                    "_user": {
+                        "name": "Andy Admin",
+                        "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
+                    },
+                    "_via": "import",
+                    "created_on": "2025-05-04T12:31:09.123456789Z",
+                    "type": "contact_urns_changed",
+                    "urns": [
+                        "tel:+16055700002",
+                        "tel:+593979000002"
+                    ]
+                }
+            },
+            {
+                "PK": "con#8720f157-ca1c-432f-9c0b-2014ddc77094",
+                "SK": "evt#01969b47-6b13-76f8-9654-8a7258fbaae4",
+                "OrgID": 1,
+                "TTL": "2026-05-04T12:31:12Z",
+                "Data": {
+                    "_user": {
+                        "name": "Andy Admin",
+                        "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
+                    },
+                    "_via": "import",
+                    "created_on": "2025-05-04T12:31:12.123456789Z",
+                    "field": {
+                        "key": "age",
+                        "name": "Age"
+                    },
+                    "type": "contact_field_changed",
+                    "value": {
+                        "number": 28,
+                        "text": "28"
+                    }
+                }
+            }
         ]
     },
     {
-        "description": "updating contacts with multiple URNs (first contact has URNs from 2 different contacts so errors)",
+        "label": "updating contacts with multiple URNs (first contact has URNs from 2 different contacts so errors)",
         "specs": [
             {
                 "name": "Ann",
@@ -235,16 +452,16 @@
         "num_created": 0,
         "num_updated": 2,
         "num_errored": 1,
-        "errors": [
+        "expected_errors": [
             {
                 "row": 1,
                 "record": 0,
                 "message": "Unable to find or create contact with URNs tel:+16055700001, tel:+593979000001"
             }
         ],
-        "contacts": [
+        "expected_contacts": [
             {
-                "uuid": "e7187099-7d38-4f60-955c-325957214c42",
+                "uuid": "692926ea-09d6-4942-bd38-d266ec8d3716",
                 "name": "Ann",
                 "language": "",
                 "status": "active",
@@ -256,7 +473,7 @@
                 "_import_row": 0
             },
             {
-                "uuid": "59d74b86-3e2f-4a93-aece-b05d2fdcde0c",
+                "uuid": "8720f157-ca1c-432f-9c0b-2014ddc77094",
                 "name": "Bob",
                 "language": "",
                 "status": "active",
@@ -272,7 +489,7 @@
                 "_import_row": 0
             },
             {
-                "uuid": "4fc5fda0-de88-4c64-9b07-fce5df529848",
+                "uuid": "5ecda5fc-951c-437b-a17e-f85e49829fb9",
                 "name": "Cat",
                 "language": "spa",
                 "status": "active",
@@ -290,18 +507,66 @@
                 ],
                 "_import_row": 0
             }
+        ],
+        "expected_history": [
+            {
+                "PK": "con#5ecda5fc-951c-437b-a17e-f85e49829fb9",
+                "SK": "evt#01969b47-960b-76f8-bec9-e032f4f9af5f",
+                "OrgID": 1,
+                "TTL": "2026-05-04T12:31:23Z",
+                "Data": {
+                    "_user": {
+                        "name": "Andy Admin",
+                        "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
+                    },
+                    "_via": "import",
+                    "created_on": "2025-05-04T12:31:23.123456789Z",
+                    "field": {
+                        "key": "joined",
+                        "name": "Joined"
+                    },
+                    "type": "contact_field_changed",
+                    "value": {
+                        "datetime": "2020-02-01T17:15:30.000000Z",
+                        "text": "2020-02-01T17:15:30Z"
+                    }
+                }
+            },
+            {
+                "PK": "con#8720f157-ca1c-432f-9c0b-2014ddc77094",
+                "SK": "evt#01969b47-8e3b-76f8-8d9f-e51d30290005",
+                "OrgID": 1,
+                "TTL": "2026-05-04T12:31:21Z",
+                "Data": {
+                    "_user": {
+                        "name": "Andy Admin",
+                        "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
+                    },
+                    "_via": "import",
+                    "created_on": "2025-05-04T12:31:21.123456789Z",
+                    "field": {
+                        "key": "joined",
+                        "name": "Joined"
+                    },
+                    "type": "contact_field_changed",
+                    "value": {
+                        "datetime": "2020-01-01T10:45:30.000000Z",
+                        "text": "2020-01-01T10:45:30Z"
+                    }
+                }
+            }
         ]
     },
     {
-        "description": "updating contacts by UUID (last UUID doesn't exist)",
+        "label": "updating contacts by UUID (last UUID doesn't exist)",
         "specs": [
             {
-                "uuid": "e7187099-7d38-4f60-955c-325957214c42",
+                "uuid": "692926ea-09d6-4942-bd38-d266ec8d3716",
                 "name": "Anne",
                 "_import_row": 1
             },
             {
-                "uuid": "59d74b86-3e2f-4a93-aece-b05d2fdcde0c",
+                "uuid": "8720f157-ca1c-432f-9c0b-2014ddc77094",
                 "language": "kin",
                 "urns": [
                     "tel:+16055700002"
@@ -317,16 +582,16 @@
         "num_created": 0,
         "num_updated": 2,
         "num_errored": 1,
-        "errors": [
+        "expected_errors": [
             {
                 "row": 4,
                 "record": 2,
                 "message": "Unable to find contact with UUID '68dc10e7-19ce-4052-b202-7c1b49e69ba0'"
             }
         ],
-        "contacts": [
+        "expected_contacts": [
             {
-                "uuid": "e7187099-7d38-4f60-955c-325957214c42",
+                "uuid": "692926ea-09d6-4942-bd38-d266ec8d3716",
                 "name": "Anne",
                 "language": "",
                 "status": "active",
@@ -338,7 +603,7 @@
                 "_import_row": 0
             },
             {
-                "uuid": "59d74b86-3e2f-4a93-aece-b05d2fdcde0c",
+                "uuid": "8720f157-ca1c-432f-9c0b-2014ddc77094",
                 "name": "Bob",
                 "language": "kin",
                 "status": "active",
@@ -354,7 +619,7 @@
                 "_import_row": 0
             },
             {
-                "uuid": "4fc5fda0-de88-4c64-9b07-fce5df529848",
+                "uuid": "5ecda5fc-951c-437b-a17e-f85e49829fb9",
                 "name": "Cat",
                 "language": "spa",
                 "status": "active",
@@ -372,13 +637,47 @@
                 ],
                 "_import_row": 0
             }
+        ],
+        "expected_history": [
+            {
+                "PK": "con#692926ea-09d6-4942-bd38-d266ec8d3716",
+                "SK": "evt#01969b47-a5ab-76f8-8ab7-4a517a86045c",
+                "OrgID": 1,
+                "TTL": "2026-05-04T12:31:27Z",
+                "Data": {
+                    "_user": {
+                        "name": "Andy Admin",
+                        "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
+                    },
+                    "_via": "import",
+                    "created_on": "2025-05-04T12:31:27.123456789Z",
+                    "name": "Anne",
+                    "type": "contact_name_changed"
+                }
+            },
+            {
+                "PK": "con#8720f157-ca1c-432f-9c0b-2014ddc77094",
+                "SK": "evt#01969b47-ad7b-76f8-97a3-ae27459a6be4",
+                "OrgID": 1,
+                "TTL": "2026-05-04T12:31:29Z",
+                "Data": {
+                    "_user": {
+                        "name": "Andy Admin",
+                        "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
+                    },
+                    "_via": "import",
+                    "created_on": "2025-05-04T12:31:29.123456789Z",
+                    "language": "kin",
+                    "type": "contact_language_changed"
+                }
+            }
         ]
     },
     {
-        "description": "stealing URNs not permitted",
+        "label": "stealing URNs not permitted",
         "specs": [
             {
-                "uuid": "e7187099-7d38-4f60-955c-325957214c42",
+                "uuid": "692926ea-09d6-4942-bd38-d266ec8d3716",
                 "name": "Anne",
                 "urns": [
                     "tel:+16055700002"
@@ -389,16 +688,16 @@
         "num_created": 0,
         "num_updated": 1,
         "num_errored": 0,
-        "errors": [
+        "expected_errors": [
             {
-                "message": "URN tel:+16055700002 already taken by another contact",
+                "row": 1,
                 "record": 0,
-                "row": 1
+                "message": "URN tel:+16055700002 already taken by another contact"
             }
         ],
-        "contacts": [
+        "expected_contacts": [
             {
-                "uuid": "e7187099-7d38-4f60-955c-325957214c42",
+                "uuid": "692926ea-09d6-4942-bd38-d266ec8d3716",
                 "name": "Anne",
                 "language": "",
                 "status": "active",
@@ -410,7 +709,7 @@
                 "_import_row": 0
             },
             {
-                "uuid": "59d74b86-3e2f-4a93-aece-b05d2fdcde0c",
+                "uuid": "8720f157-ca1c-432f-9c0b-2014ddc77094",
                 "name": "Bob",
                 "language": "kin",
                 "status": "active",
@@ -426,7 +725,7 @@
                 "_import_row": 0
             },
             {
-                "uuid": "4fc5fda0-de88-4c64-9b07-fce5df529848",
+                "uuid": "5ecda5fc-951c-437b-a17e-f85e49829fb9",
                 "name": "Cat",
                 "language": "spa",
                 "status": "active",
@@ -444,10 +743,32 @@
                 ],
                 "_import_row": 0
             }
+        ],
+        "expected_history": [
+            {
+                "PK": "con#692926ea-09d6-4942-bd38-d266ec8d3716",
+                "SK": "evt#01969b47-bd1b-76f8-ba7e-53c2263e32f8",
+                "OrgID": 1,
+                "TTL": "2026-05-04T12:31:33Z",
+                "Data": {
+                    "_user": {
+                        "name": "Andy Admin",
+                        "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
+                    },
+                    "_via": "import",
+                    "code": "urn_taken",
+                    "created_on": "2025-05-04T12:31:33.123456789Z",
+                    "extra": {
+                        "urn": "tel:+16055700002"
+                    },
+                    "text": "URN is taken by another contact",
+                    "type": "error"
+                }
+            }
         ]
     },
     {
-        "description": "can't reference contact in other org by UUID",
+        "label": "can't reference contact in other org by UUID",
         "specs": [
             {
                 "uuid": "f7a8016d-69a6-434b-aae7-5142ce4a98ba",
@@ -459,16 +780,16 @@
         "num_created": 0,
         "num_updated": 0,
         "num_errored": 1,
-        "errors": [
+        "expected_errors": [
             {
                 "row": 1,
                 "record": 0,
                 "message": "Unable to find contact with UUID 'f7a8016d-69a6-434b-aae7-5142ce4a98ba'"
             }
         ],
-        "contacts": [
+        "expected_contacts": [
             {
-                "uuid": "e7187099-7d38-4f60-955c-325957214c42",
+                "uuid": "692926ea-09d6-4942-bd38-d266ec8d3716",
                 "name": "Anne",
                 "language": "",
                 "status": "active",
@@ -480,7 +801,7 @@
                 "_import_row": 0
             },
             {
-                "uuid": "59d74b86-3e2f-4a93-aece-b05d2fdcde0c",
+                "uuid": "8720f157-ca1c-432f-9c0b-2014ddc77094",
                 "name": "Bob",
                 "language": "kin",
                 "status": "active",
@@ -496,7 +817,7 @@
                 "_import_row": 0
             },
             {
-                "uuid": "4fc5fda0-de88-4c64-9b07-fce5df529848",
+                "uuid": "5ecda5fc-951c-437b-a17e-f85e49829fb9",
                 "name": "Cat",
                 "language": "spa",
                 "status": "active",
@@ -517,7 +838,7 @@
         ]
     },
     {
-        "description": "URNs always normalized for lookup and addition, and invalid URNs rejected",
+        "label": "URNs always normalized for lookup and addition, and invalid URNs rejected",
         "specs": [
             {
                 "name": "Anne",
@@ -538,16 +859,16 @@
         "num_created": 0,
         "num_updated": 1,
         "num_errored": 1,
-        "errors": [
+        "expected_errors": [
             {
                 "row": 2,
                 "record": 1,
                 "message": "Unable to find or create contact with URNs xyz:1234567"
             }
         ],
-        "contacts": [
+        "expected_contacts": [
             {
-                "uuid": "e7187099-7d38-4f60-955c-325957214c42",
+                "uuid": "692926ea-09d6-4942-bd38-d266ec8d3716",
                 "name": "Anne",
                 "language": "",
                 "status": "active",
@@ -560,7 +881,7 @@
                 "_import_row": 0
             },
             {
-                "uuid": "59d74b86-3e2f-4a93-aece-b05d2fdcde0c",
+                "uuid": "8720f157-ca1c-432f-9c0b-2014ddc77094",
                 "name": "Bob",
                 "language": "kin",
                 "status": "active",
@@ -576,7 +897,7 @@
                 "_import_row": 0
             },
             {
-                "uuid": "4fc5fda0-de88-4c64-9b07-fce5df529848",
+                "uuid": "5ecda5fc-951c-437b-a17e-f85e49829fb9",
                 "name": "Cat",
                 "language": "spa",
                 "status": "active",
@@ -594,13 +915,34 @@
                 ],
                 "_import_row": 0
             }
+        ],
+        "expected_history": [
+            {
+                "PK": "con#692926ea-09d6-4942-bd38-d266ec8d3716",
+                "SK": "evt#01969b47-d48b-76f8-9014-2c868db4022e",
+                "OrgID": 1,
+                "TTL": "2026-05-04T12:31:39Z",
+                "Data": {
+                    "_user": {
+                        "name": "Andy Admin",
+                        "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
+                    },
+                    "_via": "import",
+                    "created_on": "2025-05-04T12:31:39.123456789Z",
+                    "type": "contact_urns_changed",
+                    "urns": [
+                        "tel:+16055700001",
+                        "tel:+16055700005"
+                    ]
+                }
+            }
         ]
     },
     {
-        "description": "contacts with non-active statuses",
+        "label": "contacts with non-active statuses",
         "specs": [
             {
-                "uuid": "e7187099-7d38-4f60-955c-325957214c42",
+                "uuid": "692926ea-09d6-4942-bd38-d266ec8d3716",
                 "name": "Anne",
                 "status": "archived",
                 "_import_row": 1
@@ -625,16 +967,16 @@
         "num_created": 2,
         "num_updated": 1,
         "num_errored": 0,
-        "errors": [
+        "expected_errors": [
             {
                 "row": 3,
                 "record": 2,
                 "message": "'invalid' is not a valid status"
             }
         ],
-        "contacts": [
+        "expected_contacts": [
             {
-                "uuid": "e7187099-7d38-4f60-955c-325957214c42",
+                "uuid": "692926ea-09d6-4942-bd38-d266ec8d3716",
                 "name": "Anne",
                 "language": "",
                 "status": "archived",
@@ -647,7 +989,7 @@
                 "_import_row": 0
             },
             {
-                "uuid": "59d74b86-3e2f-4a93-aece-b05d2fdcde0c",
+                "uuid": "8720f157-ca1c-432f-9c0b-2014ddc77094",
                 "name": "Bob",
                 "language": "kin",
                 "status": "active",
@@ -663,7 +1005,7 @@
                 "_import_row": 0
             },
             {
-                "uuid": "4fc5fda0-de88-4c64-9b07-fce5df529848",
+                "uuid": "5ecda5fc-951c-437b-a17e-f85e49829fb9",
                 "name": "Cat",
                 "language": "spa",
                 "status": "active",
@@ -682,7 +1024,7 @@
                 "_import_row": 0
             },
             {
-                "uuid": "b5d2f8c1-7070-4c16-a3d7-96ccc5cc29be",
+                "uuid": "229bd432-dac7-4a3f-ba91-c48ad8c50e6b",
                 "name": "Blake",
                 "language": "",
                 "status": "blocked",
@@ -694,7 +1036,7 @@
                 "_import_row": 0
             },
             {
-                "uuid": "a55f2945-54bf-4364-ad92-cd548ab5be57",
+                "uuid": "d659b893-76c5-4e9c-be24-6164105d48f2",
                 "name": "Ivan",
                 "language": "",
                 "status": "active",
@@ -704,6 +1046,70 @@
                 "fields": {},
                 "groups": [],
                 "_import_row": 0
+            }
+        ],
+        "expected_history": [
+            {
+                "PK": "con#692926ea-09d6-4942-bd38-d266ec8d3716",
+                "SK": "evt#01969b47-ebfb-76f8-8768-7d0ba4d4f3e8",
+                "OrgID": 1,
+                "Data": {
+                    "_user": {
+                        "name": "Andy Admin",
+                        "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
+                    },
+                    "_via": "import",
+                    "created_on": "2025-05-04T12:31:45.123456789Z",
+                    "status": "archived",
+                    "type": "contact_status_changed"
+                }
+            },
+            {
+                "PK": "con#229bd432-dac7-4a3f-ba91-c48ad8c50e6b",
+                "SK": "evt#01969b47-f3cb-76f8-b63d-c8dcc2fa9de0",
+                "OrgID": 1,
+                "TTL": "2026-05-04T12:31:47Z",
+                "Data": {
+                    "_user": {
+                        "name": "Andy Admin",
+                        "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
+                    },
+                    "_via": "import",
+                    "created_on": "2025-05-04T12:31:47.123456789Z",
+                    "name": "Blake",
+                    "type": "contact_name_changed"
+                }
+            },
+            {
+                "PK": "con#229bd432-dac7-4a3f-ba91-c48ad8c50e6b",
+                "SK": "evt#01969b47-fb9b-76f8-8f9d-465efd6fbb5e",
+                "OrgID": 1,
+                "Data": {
+                    "_user": {
+                        "name": "Andy Admin",
+                        "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
+                    },
+                    "_via": "import",
+                    "created_on": "2025-05-04T12:31:49.123456789Z",
+                    "status": "blocked",
+                    "type": "contact_status_changed"
+                }
+            },
+            {
+                "PK": "con#d659b893-76c5-4e9c-be24-6164105d48f2",
+                "SK": "evt#01969b48-036b-76f8-9566-6fb2598c32d6",
+                "OrgID": 1,
+                "TTL": "2026-05-04T12:31:51Z",
+                "Data": {
+                    "_user": {
+                        "name": "Andy Admin",
+                        "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
+                    },
+                    "_via": "import",
+                    "created_on": "2025-05-04T12:31:51.123456789Z",
+                    "name": "Ivan",
+                    "type": "contact_name_changed"
+                }
             }
         ]
     }

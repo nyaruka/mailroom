@@ -125,7 +125,7 @@ func (t *EventReceivedTask) handle(ctx context.Context, rt *runtime.Runtime, oa 
 	// convert to real event
 	event := t.toEvent(channel, flowCall, flowOptIn)
 	if event != nil {
-		if err := scene.AddEvent(ctx, rt, oa, event, models.NilUserID); err != nil {
+		if err := scene.AddEvent(ctx, rt, oa, event, models.NilUserID, ""); err != nil {
 			return nil, fmt.Errorf("error adding channel event to scene: %w", err)
 		}
 
@@ -149,7 +149,7 @@ func (t *EventReceivedTask) handle(ctx context.Context, rt *runtime.Runtime, oa 
 	}
 
 	if t.EventType == models.EventTypeStopContact {
-		if _, err := scene.ApplyModifier(ctx, rt, oa, modifiers.NewStatus(flows.ContactStatusStopped), models.NilUserID); err != nil {
+		if _, err := scene.ApplyModifier(ctx, rt, oa, modifiers.NewStatus(flows.ContactStatusStopped), models.NilUserID, ""); err != nil {
 			return nil, fmt.Errorf("error applying stop modifier: %w", err)
 		}
 	}

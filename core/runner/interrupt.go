@@ -51,12 +51,12 @@ func addInterruptEvents(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 
 	for _, s := range scenes {
 		if s.DBContact.CurrentSessionUUID() != "" {
-			if err := s.AddEvent(ctx, rt, oa, newContactInterruptedEvent(status), models.NilUserID); err != nil {
+			if err := s.AddEvent(ctx, rt, oa, newContactInterruptedEvent(status), models.NilUserID, ""); err != nil {
 				return fmt.Errorf("error adding contact interrupted event: %w", err)
 			}
 
 			for _, run := range runRefs[s.DBContact.CurrentSessionUUID()] {
-				if err := s.AddEvent(ctx, rt, oa, events.NewRunEnded(run.UUID, run.Flow, flows.RunStatus(status)), models.NilUserID); err != nil {
+				if err := s.AddEvent(ctx, rt, oa, events.NewRunEnded(run.UUID, run.Flow, flows.RunStatus(status)), models.NilUserID, ""); err != nil {
 					return fmt.Errorf("error adding run ended event: %w", err)
 				}
 			}
