@@ -87,7 +87,7 @@ func tryToModifyWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.Or
 }
 
 // BulkModify bulk modifies contacts without locking.. used during contact creation and imports
-func BulkModify(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, userID models.UserID, mcs []*models.Contact, contacts []*flows.Contact, modifiers map[flows.ContactUUID][]flows.Modifier, via Via) (map[*flows.Contact][]flows.Event, error) {
+func BulkModify(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, userID models.UserID, mcs []*models.Contact, contacts []*flows.Contact, modifiers map[flows.ContactUUID][]flows.Modifier, via models.Via) (map[*flows.Contact][]flows.Event, error) {
 	scenes := make([]*Scene, 0, len(mcs))
 	eventsByContact := make(map[*flows.Contact][]flows.Event, len(mcs))
 

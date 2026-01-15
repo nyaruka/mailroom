@@ -14,12 +14,6 @@ import (
 	"github.com/nyaruka/mailroom/runtime"
 )
 
-type Via string
-
-const (
-	ViaImport Via = "import"
-)
-
 // Scene represents the context that events are occurring in
 type Scene struct {
 	// required state set on creation
@@ -81,7 +75,7 @@ func (s *Scene) SprintUUID() flows.SprintUUID {
 	return s.Sprint.UUID()
 }
 
-func (s *Scene) AddEvent(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, e flows.Event, userID models.UserID, via Via) error {
+func (s *Scene) AddEvent(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, e flows.Event, userID models.UserID, via models.Via) error {
 	handler, found := eventHandlers[e.Type()]
 	if !found {
 		return fmt.Errorf("unable to find handler for event type: %s", e.Type())
@@ -97,9 +91,9 @@ func (s *Scene) AddEvent(ctx context.Context, rt *runtime.Runtime, oa *models.Or
 		user = oa.UserByID(userID)
 	}
 
-	if models.PersistEvent(e) {
-		e.SetUser(user.Reference(), string(via))
+	e.SetUser(user.Reference(), string(via))
 
+	if models.PersistEvent(e) {
 		s.persistEvents = append(s.persistEvents, &models.Event{
 			Event:       e,
 			OrgID:       oa.OrgID(),
@@ -206,7 +200,7 @@ func (s *Scene) ResumeSession(ctx context.Context, rt *runtime.Runtime, oa *mode
 	return nil
 }
 
-func (s *Scene) ApplyModifier(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, mod flows.Modifier, userID models.UserID, via Via) ([]flows.Event, error) {
+func (s *Scene) ApplyModifier(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, mod flows.Modifier, userID models.UserID, via models.Via) ([]flows.Event, error) {
 	env := flows.NewAssetsEnvironment(oa.Env(), oa.SessionAssets())
 	eng := goflow.Engine(rt)
 
@@ -220,8 +214,8 @@ func (s *Scene) ApplyModifier(ctx context.Context, rt *runtime.Runtime, oa *mode
 	for _, e := range evts {
 		creditUserID := userID
 
-		// don't credit group changes to the user if they didn't initiate them
-		if e.Type() == events.TypeContactGroupsChanged && mod.Type() != modifiers.TypeGroups {
+		// don't credit group changes to the user if they didn't initiate them, and never credit warnings or errors
+		if (e.Type() == events.TypeContactGroupsChanged && mod.Type() != modifiers.TypeGroups) || e.Type() == events.TypeWarning || e.Type() == events.TypeError {
 			creditUserID = models.NilUserID
 		}
 

@@ -14,6 +14,12 @@ import (
 	"github.com/nyaruka/goflow/flows/events"
 )
 
+type Via string
+
+const (
+	ViaImport Via = "import"
+)
+
 const (
 	// If event .Data exceeds this number of bytes we compress it - aim is to get as many events written for 1 WCU (1KB)
 	eventDataGZThreshold = 900
@@ -58,8 +64,9 @@ var eventPersistence = map[string]time.Duration{
 func PersistEvent(e flows.Event) bool {
 	switch typed := e.(type) {
 	case *events.Error:
-		// only persist URN taken errors for now
-		return typed.Code == events.ErrorCodeURNTaken
+		// Only persist non-import URN taken errors for now - this is to help with flows that still use actions for
+		// adding URNs that have no way to route on failure
+		return typed.Code == events.ErrorCodeURNTaken && typed.Via_ != string(ViaImport)
 	default:
 		_, ok := eventPersistence[e.Type()]
 		return ok
