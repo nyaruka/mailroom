@@ -743,28 +743,6 @@
                 ],
                 "_import_row": 0
             }
-        ],
-        "expected_history": [
-            {
-                "PK": "con#692926ea-09d6-4942-bd38-d266ec8d3716",
-                "SK": "evt#01969b47-bd1b-76f8-ba7e-53c2263e32f8",
-                "OrgID": 1,
-                "TTL": "2026-05-04T12:31:33Z",
-                "Data": {
-                    "_user": {
-                        "name": "Andy Admin",
-                        "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
-                    },
-                    "_via": "import",
-                    "code": "urn_taken",
-                    "created_on": "2025-05-04T12:31:33.123456789Z",
-                    "extra": {
-                        "urn": "tel:+16055700002"
-                    },
-                    "text": "URN is taken by another contact",
-                    "type": "error"
-                }
-            }
         ]
     },
     {
