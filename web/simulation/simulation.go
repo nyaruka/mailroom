@@ -38,21 +38,12 @@ type flowDefinition struct {
 }
 
 type sessionRequest struct {
-	OrgID  models.OrgID     `json:"org_id"  validate:"required"`
-	Flows  []flowDefinition `json:"flows"`
+	OrgID  models.OrgID `json:"org_id"  validate:"required"`
 	Assets struct {
 		Channels []*static.Channel `json:"channels"`
 	} `json:"assets"`
 	Contact *flows.ContactEnvelope `json:"contact" validate:"required"`
 	Call    *flows.CallEnvelope    `json:"call,omitempty"`
-}
-
-func (r *sessionRequest) flows() map[assets.FlowUUID][]byte {
-	flows := make(map[assets.FlowUUID][]byte, len(r.Flows))
-	for _, fd := range r.Flows {
-		flows[fd.UUID] = fd.Definition
-	}
-	return flows
 }
 
 func (r *sessionRequest) channels() []assets.Channel {
@@ -96,10 +87,6 @@ func newSimulationResponse(session flows.Session, sprint flows.Sprint) *simulati
 //
 //	{
 //	  "org_id": 1,
-//	  "flows": [{
-//	     "uuid": uuidv4,
-//	     "definition": {...},
-//	  },.. ],
 //	  "contact": {"uuid": "468621a8-32e6-4cd2-afc1-04416f7151f0", "name": "Bob", ...},
 //	  "trigger": {...},
 //	  "assets": {...}
@@ -137,7 +124,7 @@ func handleStart(ctx context.Context, rt *runtime.Runtime, r *startRequest) (any
 	}
 
 	// create clone of assets for simulation
-	oa, err = oa.CloneForSimulation(ctx, rt, r.flows(), r.channels())
+	oa, err = oa.CloneForSimulation(ctx, rt, r.channels())
 	if err != nil {
 		return nil, http.StatusBadRequest, fmt.Errorf("unable to clone org: %w", err)
 	}
@@ -180,10 +167,6 @@ func triggerFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 //
 //	{
 //	  "org_id": 1,
-//	  "flows": [{
-//	     "uuid": uuidv4,
-//	     "definition": {...},
-//	  },.. ],
 //	  "contact": {"uuid": "468621a8-32e6-4cd2-afc1-04416f7151f0", "name": "Bob", ...},
 //	  "session": {"uuid": "01979d37-9fe7-7e16-8cc0-bae91a66cfe1", "runs": [...], ...},
 //	  "resume": {...},
@@ -203,7 +186,7 @@ func handleResume(ctx context.Context, rt *runtime.Runtime, r *resumeRequest) (a
 	}
 
 	// create clone of assets for simulation
-	oa, err = oa.CloneForSimulation(ctx, rt, r.flows(), r.channels())
+	oa, err = oa.CloneForSimulation(ctx, rt, r.channels())
 	if err != nil {
 		return nil, http.StatusBadRequest, err
 	}
