@@ -1,3 +1,9 @@
+v26.1.6 (2026-01-15)
+-------------------------
+ * Never credit error events to users
+ * Don't persist URN-taken error events that occur via imports
+ * Record on events if they happened via import
+
 v26.1.5 (2026-01-15)
 -------------------------
  * Persist URN taken error events
