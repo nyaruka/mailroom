@@ -1,6 +1,6 @@
 [
     {
-        "label": "error if contact not provided",
+        "label": "error if contact or via not provided",
         "method": "POST",
         "path": "/mi/contact/create",
         "body": {
@@ -9,7 +9,7 @@
         },
         "status": 400,
         "response": {
-            "error": "request failed validation: field 'contact' is required"
+            "error": "request failed validation: field 'contact' is required, field 'via' is required"
         },
         "db_assertions": [
             {
@@ -25,7 +25,8 @@
         "body": {
             "org_id": 1,
             "user_id": 1,
-            "contact": {}
+            "contact": {},
+            "via": "api"
         },
         "status": 200,
         "response": {
@@ -64,7 +65,8 @@
                 "groups": [
                     "c153e265-f7c9-4539-9dbc-9b358714b638"
                 ]
-            }
+            },
+            "via": "api"
         },
         "status": 200,
         "response": {
@@ -107,6 +109,7 @@
                         "name": "Andy Admin",
                         "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
                     },
+                    "_via": "api",
                     "created_on": "2025-05-04T12:30:49.123456789Z",
                     "field": {
                         "key": "age",
@@ -129,6 +132,7 @@
                         "name": "Andy Admin",
                         "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
                     },
+                    "_via": "api",
                     "created_on": "2025-05-04T12:30:52.123456789Z",
                     "field": {
                         "key": "gender",
@@ -150,6 +154,7 @@
                         "name": "Andy Admin",
                         "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
                     },
+                    "_via": "api",
                     "created_on": "2025-05-04T12:30:54.123456789Z",
                     "groups_added": [
                         {
@@ -172,7 +177,8 @@
             "contact": {
                 "name": "María",
                 "language": "xyz"
-            }
+            },
+            "via": "ui"
         },
         "status": 400,
         "response": {
@@ -192,7 +198,8 @@
                     "tel:+16055700009",
                     "tel:!!"
                 ]
-            }
+            },
+            "via": "ui"
         },
         "status": 422,
         "response": {
@@ -216,7 +223,8 @@
                     "tel:+16055700009",
                     "tel:+16055700001"
                 ]
-            }
+            },
+            "via": "ui"
         },
         "status": 422,
         "response": {
@@ -239,7 +247,8 @@
                 "urns": [
                     "tel:+16055741111"
                 ]
-            }
+            },
+            "via": "ui"
         },
         "status": 200,
         "response": {
