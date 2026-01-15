@@ -76,7 +76,7 @@ func ImportBatch(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 			case *events.Error:
 				if typed.Code == events.ErrorCodeURNTaken {
 					imp := importsByContact[contact]
-					imp.errors = append(imp.errors, "URN already taken by another contact")
+					imp.errors = append(imp.errors, fmt.Sprintf("URN %s already taken by another contact", typed.Extra["urn"]))
 				}
 			}
 		}
