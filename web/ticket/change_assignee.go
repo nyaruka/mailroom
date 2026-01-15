@@ -47,7 +47,7 @@ func handleChangeAssignee(ctx context.Context, rt *runtime.Runtime, r *assignReq
 		return modifiers.NewTicketAssignee(t.UUID, user)
 	}
 
-	eventsByContact, err := modifyTickets(ctx, rt, oa, r.UserID, r.TicketUUIDs, mod)
+	eventsByContact, err := modifyTickets(ctx, rt, oa, r.UserID, r.TicketUUIDs, mod, r.Via)
 	if err != nil {
 		return nil, 0, fmt.Errorf("error changing ticket assignee: %w", err)
 	}

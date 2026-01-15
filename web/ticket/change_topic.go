@@ -46,7 +46,7 @@ func handleChangeTopic(ctx context.Context, rt *runtime.Runtime, r *changeTopicR
 		return modifiers.NewTicketTopic(t.UUID, topic)
 	}
 
-	eventsByContact, err := modifyTickets(ctx, rt, oa, r.UserID, r.TicketUUIDs, mod)
+	eventsByContact, err := modifyTickets(ctx, rt, oa, r.UserID, r.TicketUUIDs, mod, r.Via)
 	if err != nil {
 		return nil, 0, fmt.Errorf("error changing ticket topic: %w", err)
 	}

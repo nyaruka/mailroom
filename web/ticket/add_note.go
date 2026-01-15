@@ -40,7 +40,7 @@ func handleAddNote(ctx context.Context, rt *runtime.Runtime, r *addNoteRequest) 
 		return modifiers.NewTicketNote(t.UUID, r.Note)
 	}
 
-	eventsByContact, err := modifyTickets(ctx, rt, oa, r.UserID, r.TicketUUIDs, mod)
+	eventsByContact, err := modifyTickets(ctx, rt, oa, r.UserID, r.TicketUUIDs, mod, r.Via)
 	if err != nil {
 		return nil, 0, fmt.Errorf("error adding note to tickets: %w", err)
 	}

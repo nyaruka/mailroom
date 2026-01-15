@@ -17,6 +17,7 @@ type bulkTicketRequest struct {
 	OrgID       models.OrgID       `json:"org_id"       validate:"required"`
 	UserID      models.UserID      `json:"user_id"      validate:"required"`
 	TicketUUIDs []flows.TicketUUID `json:"ticket_uuids" validate:"required"`
+	Via         models.Via         `json:"via"` // TODO make required and validate
 }
 
 type bulkTicketResponse struct {
@@ -54,7 +55,7 @@ func newBulkResponse(eventsByContact map[*flows.Contact][]flows.Event) *bulkTick
 	return &bulkTicketResponse{ChangedUUIDs: changed, Events: eventMap}
 }
 
-func modifyTickets(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, userID models.UserID, ticketUUIDs []flows.TicketUUID, mod func(*models.Ticket) flows.Modifier) (map[*flows.Contact][]flows.Event, error) {
+func modifyTickets(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, userID models.UserID, ticketUUIDs []flows.TicketUUID, mod func(*models.Ticket) flows.Modifier, via models.Via) (map[*flows.Contact][]flows.Event, error) {
 	tickets, err := models.LoadTickets(ctx, rt.DB, oa.OrgID(), ticketUUIDs)
 	if err != nil {
 		return nil, fmt.Errorf("error loading tickets: %w", err)
@@ -70,7 +71,7 @@ func modifyTickets(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsset
 
 	contactDs := slices.Collect(maps.Keys(byContact))
 
-	eventsByContact, _, err := runner.ModifyWithLock(ctx, rt, oa, userID, contactDs, modsByContact, byContact)
+	eventsByContact, _, err := runner.ModifyWithLock(ctx, rt, oa, userID, contactDs, modsByContact, byContact, via)
 	if err != nil {
 		return nil, fmt.Errorf("error applying ticket modifiers: %w", err)
 	}
