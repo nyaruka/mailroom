@@ -214,8 +214,8 @@ func (s *Scene) ApplyModifier(ctx context.Context, rt *runtime.Runtime, oa *mode
 	for _, e := range evts {
 		creditUserID := userID
 
-		// don't credit group changes to the user if they didn't initiate them
-		if e.Type() == events.TypeContactGroupsChanged && mod.Type() != modifiers.TypeGroups {
+		// don't credit group changes to the user if they didn't initiate them, and never credit warnings or errors
+		if (e.Type() == events.TypeContactGroupsChanged && mod.Type() != modifiers.TypeGroups) || e.Type() == events.TypeWarning || e.Type() == events.TypeError {
 			creditUserID = models.NilUserID
 		}
 
