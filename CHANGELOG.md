@@ -1,3 +1,8 @@
+v26.1.5 (2026-01-15)
+-------------------------
+ * Persist URN taken error events
+ * Update to latest goflow which improves more error events
+
 v26.1.4 (2026-01-14)
 -------------------------
  * Update to latest goflow which improves failure events
