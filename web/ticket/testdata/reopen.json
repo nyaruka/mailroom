@@ -9,7 +9,8 @@
             "ticket_uuids": [
                 "01992f54-5ab6-717a-a39e-e8ca91fb7262",
                 "01992f54-5ab6-7498-a7f2-6aa246e45cfe"
-            ]
+            ],
+            "via": "api"
         },
         "status": 200,
         "response": {
@@ -27,12 +28,14 @@
                             "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
                             "name": "Andy Admin"
                         },
+                        "_via": "api",
                         "ticket_uuid": "01992f54-5ab6-717a-a39e-e8ca91fb7262"
                     },
                     {
                         "uuid": "01969b47-0d53-76f8-bd38-d266ec8d3716",
                         "type": "contact_groups_changed",
                         "created_on": "2025-05-04T12:30:48.123456789Z",
+                        "_via": "api",
                         "groups_added": [
                             {
                                 "uuid": "361838c4-2866-495a-8990-9f3c222a7604",
@@ -50,12 +53,14 @@
                             "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
                             "name": "Andy Admin"
                         },
+                        "_via": "api",
                         "ticket_uuid": "01992f54-5ab6-7498-a7f2-6aa246e45cfe"
                     },
                     {
                         "uuid": "01969b47-20db-76f8-92a3-d648ab64bccb",
                         "type": "contact_groups_changed",
                         "created_on": "2025-05-04T12:30:53.123456789Z",
+                        "_via": "api",
                         "groups_added": [
                             {
                                 "uuid": "361838c4-2866-495a-8990-9f3c222a7604",
@@ -86,6 +91,7 @@
                         "name": "Andy Admin",
                         "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
                     },
+                    "_via": "api",
                     "created_on": "2025-05-04T12:30:51.123456789Z",
                     "ticket_uuid": "01992f54-5ab6-7498-a7f2-6aa246e45cfe",
                     "type": "ticket_reopened"
@@ -97,6 +103,7 @@
                 "OrgID": 1,
                 "TTL": "2026-05-04T12:30:53Z",
                 "Data": {
+                    "_via": "api",
                     "created_on": "2025-05-04T12:30:53.123456789Z",
                     "groups_added": [
                         {
@@ -116,6 +123,7 @@
                         "name": "Andy Admin",
                         "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
                     },
+                    "_via": "api",
                     "created_on": "2025-05-04T12:30:46.123456789Z",
                     "ticket_uuid": "01992f54-5ab6-717a-a39e-e8ca91fb7262",
                     "type": "ticket_reopened"
@@ -127,6 +135,7 @@
                 "OrgID": 1,
                 "TTL": "2026-05-04T12:30:48Z",
                 "Data": {
+                    "_via": "api",
                     "created_on": "2025-05-04T12:30:48.123456789Z",
                     "groups_added": [
                         {
@@ -149,7 +158,8 @@
             "user_id": 4,
             "ticket_uuids": [
                 "01992f54-5ab6-725e-be9c-0c6407efd755"
-            ]
+            ],
+            "via": "ui"
         },
         "status": 200,
         "response": {

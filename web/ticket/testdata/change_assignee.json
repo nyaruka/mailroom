@@ -11,7 +11,8 @@
                 "01992f54-5ab6-725e-be9c-0c6407efd755",
                 "01992f54-5ab6-7498-a7f2-6aa246e45cfe"
             ],
-            "assignee_id": 5
+            "assignee_id": 5,
+            "via": "api"
         },
         "status": 200,
         "response": {
@@ -29,6 +30,7 @@
                             "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
                             "name": "Andy Admin"
                         },
+                        "_via": "api",
                         "ticket_uuid": "01992f54-5ab6-717a-a39e-e8ca91fb7262",
                         "assignee": {
                             "uuid": "27e44553-ab35-482b-a4d4-6f000ec611ab",
@@ -47,6 +49,7 @@
                             "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
                             "name": "Andy Admin"
                         },
+                        "_via": "api",
                         "ticket_uuid": "01992f54-5ab6-7498-a7f2-6aa246e45cfe",
                         "assignee": {
                             "uuid": "27e44553-ab35-482b-a4d4-6f000ec611ab",
@@ -72,6 +75,7 @@
                         "name": "Andy Admin",
                         "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
                     },
+                    "_via": "api",
                     "assignee": {
                         "name": "Ann D'Agent",
                         "uuid": "27e44553-ab35-482b-a4d4-6f000ec611ab"
@@ -94,6 +98,7 @@
                         "name": "Andy Admin",
                         "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
                     },
+                    "_via": "api",
                     "assignee": {
                         "name": "Ann D'Agent",
                         "uuid": "27e44553-ab35-482b-a4d4-6f000ec611ab"
@@ -115,7 +120,8 @@
             "ticket_uuids": [
                 "01992f54-5ab6-717a-a39e-e8ca91fb7262"
             ],
-            "assignee_id": null
+            "assignee_id": null,
+            "via": "ui"
         },
         "status": 200,
         "response": {
@@ -132,6 +138,7 @@
                             "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
                             "name": "Andy Admin"
                         },
+                        "_via": "ui",
                         "ticket_uuid": "01992f54-5ab6-717a-a39e-e8ca91fb7262",
                         "assignee": null,
                         "previous": {
@@ -158,6 +165,7 @@
                         "name": "Andy Admin",
                         "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
                     },
+                    "_via": "ui",
                     "assignee": null,
                     "created_on": "2025-05-04T12:30:51.123456789Z",
                     "previous": {

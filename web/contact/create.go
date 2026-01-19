@@ -27,12 +27,14 @@ func init() {
 //	    "urns": ["tel:+250788123123"],
 //	    "fields": {"age": "39"},
 //	    "groups": ["b0b778db-6657-430b-9272-989ad43a10db"]
-//	  }
+//	  },
+//	  "via": "ui"
 //	}
 type createRequest struct {
 	OrgID   models.OrgID        `json:"org_id"   validate:"required"`
 	UserID  models.UserID       `json:"user_id"  validate:"required"`
 	Contact *models.ContactSpec `json:"contact"  validate:"required"`
+	Via     models.Via          `json:"via"      validate:"required,eq=api|eq=ui"`
 }
 
 // handles a request to create the given contact
@@ -53,7 +55,7 @@ func handleCreate(ctx context.Context, rt *runtime.Runtime, r *createRequest) (a
 	}
 
 	modifiers := map[flows.ContactUUID][]flows.Modifier{contact.UUID(): c.Mods}
-	_, err = runner.BulkModify(ctx, rt, oa, r.UserID, []*models.Contact{mc}, []*flows.Contact{contact}, modifiers)
+	_, err = runner.BulkModify(ctx, rt, oa, r.UserID, []*models.Contact{mc}, []*flows.Contact{contact}, modifiers, r.Via)
 	if err != nil {
 		return nil, 0, fmt.Errorf("error modifying new contact: %w", err)
 	}

@@ -9,7 +9,8 @@
             "contact_ids": [
                 10000
             ],
-            "modifiers": []
+            "modifiers": [],
+            "via": "api"
         },
         "status": 200,
         "response": {
@@ -50,7 +51,8 @@
                     "type": "name",
                     "name": "Kathy"
                 }
-            ]
+            ],
+            "via": "ui"
         },
         "status": 200,
         "response": {
@@ -69,6 +71,7 @@
                             "uuid": "01969b47-0583-76f8-ae7f-f8b243c49ff5",
                             "type": "contact_name_changed",
                             "created_on": "2025-05-04T12:30:46.123456789Z",
+                            "_via": "ui",
                             "name": "Kathy"
                         }
                     ]
@@ -89,6 +92,7 @@
                 "OrgID": 1,
                 "TTL": "2026-05-04T12:30:46Z",
                 "Data": {
+                    "_via": "ui",
                     "created_on": "2025-05-04T12:30:46.123456789Z",
                     "name": "Kathy",
                     "type": "contact_name_changed"
@@ -111,7 +115,8 @@
                     "type": "name",
                     "name": "Nate"
                 }
-            ]
+            ],
+            "via": "ui"
         },
         "status": 200,
         "response": {
@@ -134,6 +139,7 @@
                                 "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
                                 "name": "Andy Admin"
                             },
+                            "_via": "ui",
                             "name": "Nate"
                         }
                     ]
@@ -158,6 +164,7 @@
                         "name": "Andy Admin",
                         "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
                     },
+                    "_via": "ui",
                     "created_on": "2025-05-04T12:30:48.123456789Z",
                     "name": "Nate",
                     "type": "contact_name_changed"
@@ -180,7 +187,8 @@
                     "type": "name",
                     "name": ""
                 }
-            ]
+            ],
+            "via": "ui"
         },
         "status": 200,
         "response": {
@@ -202,6 +210,7 @@
                                 "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
                                 "name": "Andy Admin"
                             },
+                            "_via": "ui",
                             "name": ""
                         }
                     ]
@@ -226,6 +235,7 @@
                         "name": "Andy Admin",
                         "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
                     },
+                    "_via": "ui",
                     "created_on": "2025-05-04T12:30:50.123456789Z",
                     "name": "",
                     "type": "contact_name_changed"
@@ -248,7 +258,8 @@
                     "type": "status",
                     "status": "blocked"
                 }
-            ]
+            ],
+            "via": "ui"
         },
         "status": 200,
         "response": {
@@ -270,6 +281,7 @@
                                 "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
                                 "name": "Andy Admin"
                             },
+                            "_via": "ui",
                             "status": "blocked"
                         }
                     ]
@@ -293,6 +305,7 @@
                         "name": "Andy Admin",
                         "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
                     },
+                    "_via": "ui",
                     "created_on": "2025-05-04T12:30:52.123456789Z",
                     "status": "blocked",
                     "type": "contact_status_changed"
@@ -315,7 +328,8 @@
                     "type": "status",
                     "status": "archived"
                 }
-            ]
+            ],
+            "via": "ui"
         },
         "status": 200,
         "response": {
@@ -337,6 +351,7 @@
                                 "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
                                 "name": "Andy Admin"
                             },
+                            "_via": "ui",
                             "status": "archived"
                         }
                     ]
@@ -360,6 +375,7 @@
                         "name": "Andy Admin",
                         "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
                     },
+                    "_via": "ui",
                     "created_on": "2025-05-04T12:30:54.123456789Z",
                     "status": "archived",
                     "type": "contact_status_changed"
@@ -382,7 +398,8 @@
                     "type": "status",
                     "status": "active"
                 }
-            ]
+            ],
+            "via": "ui"
         },
         "status": 200,
         "response": {
@@ -404,6 +421,7 @@
                                 "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
                                 "name": "Andy Admin"
                             },
+                            "_via": "ui",
                             "status": "active"
                         }
                     ]
@@ -427,6 +445,7 @@
                         "name": "Andy Admin",
                         "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
                     },
+                    "_via": "ui",
                     "created_on": "2025-05-04T12:30:56.123456789Z",
                     "status": "active",
                     "type": "contact_status_changed"
@@ -453,7 +472,8 @@
                     },
                     "value": "M"
                 }
-            ]
+            ],
+            "via": "ui"
         },
         "status": 200,
         "response": {
@@ -480,6 +500,7 @@
                                 "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
                                 "name": "Andy Admin"
                             },
+                            "_via": "ui",
                             "field": {
                                 "key": "gender",
                                 "name": "Gender"
@@ -510,6 +531,7 @@
                         "name": "Andy Admin",
                         "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
                     },
+                    "_via": "ui",
                     "created_on": "2025-05-04T12:30:59.123456789Z",
                     "field": {
                         "key": "gender",
@@ -542,7 +564,8 @@
                     },
                     "value": "24"
                 }
-            ]
+            ],
+            "via": "ui"
         },
         "status": 200,
         "response": {
@@ -579,6 +602,7 @@
                                 "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
                                 "name": "Andy Admin"
                             },
+                            "_via": "ui",
                             "field": {
                                 "key": "age",
                                 "name": "Age"
@@ -592,6 +616,7 @@
                             "uuid": "01969b47-4bd3-76f8-b86e-4b881f09a186",
                             "type": "contact_groups_changed",
                             "created_on": "2025-05-04T12:31:04.123456789Z",
+                            "_via": "ui",
                             "groups_added": [
                                 {
                                     "uuid": "c153e265-f7c9-4539-9dbc-9b358714b638",
@@ -629,6 +654,7 @@
                         "name": "Andy Admin",
                         "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
                     },
+                    "_via": "ui",
                     "created_on": "2025-05-04T12:31:02.123456789Z",
                     "field": {
                         "key": "age",
@@ -647,6 +673,7 @@
                 "OrgID": 1,
                 "TTL": "2026-05-04T12:31:04Z",
                 "Data": {
+                    "_via": "ui",
                     "created_on": "2025-05-04T12:31:04.123456789Z",
                     "groups_added": [
                         {
@@ -678,7 +705,8 @@
                     },
                     "value": "26/06/2020"
                 }
-            ]
+            ],
+            "via": "ui"
         },
         "status": 200,
         "response": {
@@ -719,6 +747,7 @@
                                 "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
                                 "name": "Andy Admin"
                             },
+                            "_via": "ui",
                             "field": {
                                 "key": "joined",
                                 "name": "Joined"
@@ -744,6 +773,7 @@
                         "name": "Andy Admin",
                         "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
                     },
+                    "_via": "ui",
                     "created_on": "2025-05-04T12:31:08.123456789Z",
                     "field": {
                         "key": "joined",
@@ -777,7 +807,8 @@
                     },
                     "value": "BORNO"
                 }
-            ]
+            ],
+            "via": "ui"
         },
         "status": 200,
         "response": {
@@ -822,6 +853,7 @@
                                 "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
                                 "name": "Andy Admin"
                             },
+                            "_via": "ui",
                             "field": {
                                 "key": "state",
                                 "name": "State"
@@ -847,6 +879,7 @@
                         "name": "Andy Admin",
                         "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
                     },
+                    "_via": "ui",
                     "created_on": "2025-05-04T12:31:11.123456789Z",
                     "field": {
                         "key": "state",
@@ -904,7 +937,8 @@
                     },
                     "value": ""
                 }
-            ]
+            ],
+            "via": "ui"
         },
         "status": 200,
         "response": {
@@ -926,6 +960,7 @@
                                 "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
                                 "name": "Andy Admin"
                             },
+                            "_via": "ui",
                             "field": {
                                 "key": "gender",
                                 "name": "Gender"
@@ -940,6 +975,7 @@
                                 "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
                                 "name": "Andy Admin"
                             },
+                            "_via": "ui",
                             "field": {
                                 "key": "age",
                                 "name": "Age"
@@ -950,6 +986,7 @@
                             "uuid": "01969b47-7e9b-76f8-afcb-91a2073e5459",
                             "type": "contact_groups_changed",
                             "created_on": "2025-05-04T12:31:17.123456789Z",
+                            "_via": "ui",
                             "groups_removed": [
                                 {
                                     "uuid": "c153e265-f7c9-4539-9dbc-9b358714b638",
@@ -965,6 +1002,7 @@
                                 "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
                                 "name": "Andy Admin"
                             },
+                            "_via": "ui",
                             "field": {
                                 "key": "joined",
                                 "name": "Joined"
@@ -979,6 +1017,7 @@
                                 "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
                                 "name": "Andy Admin"
                             },
+                            "_via": "ui",
                             "field": {
                                 "key": "state",
                                 "name": "State"
@@ -1015,6 +1054,7 @@
                         "name": "Andy Admin",
                         "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
                     },
+                    "_via": "ui",
                     "created_on": "2025-05-04T12:31:13.123456789Z",
                     "field": {
                         "key": "gender",
@@ -1034,6 +1074,7 @@
                         "name": "Andy Admin",
                         "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
                     },
+                    "_via": "ui",
                     "created_on": "2025-05-04T12:31:15.123456789Z",
                     "field": {
                         "key": "age",
@@ -1049,6 +1090,7 @@
                 "OrgID": 1,
                 "TTL": "2026-05-04T12:31:17Z",
                 "Data": {
+                    "_via": "ui",
                     "created_on": "2025-05-04T12:31:17.123456789Z",
                     "groups_removed": [
                         {
@@ -1069,6 +1111,7 @@
                         "name": "Andy Admin",
                         "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
                     },
+                    "_via": "ui",
                     "created_on": "2025-05-04T12:31:19.123456789Z",
                     "field": {
                         "key": "joined",
@@ -1088,6 +1131,7 @@
                         "name": "Andy Admin",
                         "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
                     },
+                    "_via": "ui",
                     "created_on": "2025-05-04T12:31:21.123456789Z",
                     "field": {
                         "key": "state",
@@ -1120,7 +1164,8 @@
                         }
                     ]
                 }
-            ]
+            ],
+            "via": "ui"
         },
         "status": 200,
         "response": {
@@ -1148,6 +1193,7 @@
                                 "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
                                 "name": "Andy Admin"
                             },
+                            "_via": "ui",
                             "groups_added": [
                                 {
                                     "uuid": "5e9d8fab-5e7e-4f51-b533-261af5dea70d",
@@ -1177,6 +1223,7 @@
                         "name": "Andy Admin",
                         "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
                     },
+                    "_via": "ui",
                     "created_on": "2025-05-04T12:31:23.123456789Z",
                     "groups_added": [
                         {
@@ -1210,7 +1257,8 @@
                         }
                     ]
                 }
-            ]
+            ],
+            "via": "ui"
         },
         "status": 200,
         "response": {
@@ -1262,7 +1310,8 @@
                         }
                     ]
                 }
-            ]
+            ],
+            "via": "ui"
         },
         "status": 200,
         "response": {
@@ -1284,6 +1333,7 @@
                                 "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
                                 "name": "Andy Admin"
                             },
+                            "_via": "ui",
                             "groups_removed": [
                                 {
                                     "uuid": "5e9d8fab-5e7e-4f51-b533-261af5dea70d",
@@ -1313,6 +1363,7 @@
                         "name": "Andy Admin",
                         "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
                     },
+                    "_via": "ui",
                     "created_on": "2025-05-04T12:31:25.123456789Z",
                     "groups_removed": [
                         {
@@ -1346,7 +1397,8 @@
                         }
                     ]
                 }
-            ]
+            ],
+            "via": "ui"
         },
         "status": 200,
         "response": {
@@ -1386,7 +1438,8 @@
                     "type": "language",
                     "language": "fra"
                 }
-            ]
+            ],
+            "via": "ui"
         },
         "status": 200,
         "response": {
@@ -1409,6 +1462,7 @@
                                 "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
                                 "name": "Andy Admin"
                             },
+                            "_via": "ui",
                             "language": "fra"
                         }
                     ]
@@ -1433,6 +1487,7 @@
                         "name": "Andy Admin",
                         "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
                     },
+                    "_via": "ui",
                     "created_on": "2025-05-04T12:31:27.123456789Z",
                     "language": "fra",
                     "type": "contact_language_changed"
@@ -1458,7 +1513,8 @@
                         "tel:+255788555111"
                     ]
                 }
-            ]
+            ],
+            "via": "ui"
         },
         "status": 200,
         "response": {
@@ -1484,6 +1540,7 @@
                                 "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
                                 "name": "Andy Admin"
                             },
+                            "_via": "ui",
                             "urns": [
                                 "tel:+255788555111"
                             ]
@@ -1510,6 +1567,7 @@
                         "name": "Andy Admin",
                         "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
                     },
+                    "_via": "ui",
                     "created_on": "2025-05-04T12:31:29.123456789Z",
                     "type": "contact_urns_changed",
                     "urns": [
@@ -1537,7 +1595,8 @@
                         "xyz:12345"
                     ]
                 }
-            ]
+            ],
+            "via": "ui"
         },
         "status": 200,
         "response": {
@@ -1559,6 +1618,7 @@
                             "uuid": "01969b47-b54b-76f8-9853-0310d032b497",
                             "type": "error",
                             "created_on": "2025-05-04T12:31:31.123456789Z",
+                            "_via": "ui",
                             "text": "'xyz:12345' is not valid URN"
                         }
                     ]
@@ -1592,7 +1652,8 @@
                         "tel:+255788555222"
                     ]
                 }
-            ]
+            ],
+            "via": "ui"
         },
         "status": 200,
         "response": {
@@ -1619,6 +1680,7 @@
                                 "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
                                 "name": "Andy Admin"
                             },
+                            "_via": "ui",
                             "urns": [
                                 "tel:+255788555111",
                                 "tel:+255788555222"
@@ -1646,6 +1708,7 @@
                         "name": "Andy Admin",
                         "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
                     },
+                    "_via": "ui",
                     "created_on": "2025-05-04T12:31:33.123456789Z",
                     "type": "contact_urns_changed",
                     "urns": [
@@ -1674,7 +1737,8 @@
                         "tel:+255788555222"
                     ]
                 }
-            ]
+            ],
+            "via": "ui"
         },
         "status": 200,
         "response": {
@@ -1700,6 +1764,7 @@
                                 "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
                                 "name": "Andy Admin"
                             },
+                            "_via": "ui",
                             "urns": [
                                 "tel:+255788555111"
                             ]
@@ -1730,6 +1795,7 @@
                         "name": "Andy Admin",
                         "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
                     },
+                    "_via": "ui",
                     "created_on": "2025-05-04T12:31:35.123456789Z",
                     "type": "contact_urns_changed",
                     "urns": [
@@ -1758,7 +1824,8 @@
                         "tel:+255788555333"
                     ]
                 }
-            ]
+            ],
+            "via": "ui"
         },
         "status": 200,
         "response": {
@@ -1785,6 +1852,7 @@
                                 "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
                                 "name": "Andy Admin"
                             },
+                            "_via": "ui",
                             "urns": [
                                 "tel:+255788555111",
                                 "tel:+255788555333"
@@ -1824,6 +1892,7 @@
                         "name": "Andy Admin",
                         "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
                     },
+                    "_via": "ui",
                     "created_on": "2025-05-04T12:31:37.123456789Z",
                     "type": "contact_urns_changed",
                     "urns": [
@@ -1850,7 +1919,8 @@
                     "modification": "set",
                     "urns": []
                 }
-            ]
+            ],
+            "via": "ui"
         },
         "status": 200,
         "response": {
@@ -1873,6 +1943,7 @@
                                 "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
                                 "name": "Andy Admin"
                             },
+                            "_via": "ui",
                             "urns": []
                         }
                     ]
@@ -1909,6 +1980,7 @@
                         "name": "Andy Admin",
                         "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
                     },
+                    "_via": "ui",
                     "created_on": "2025-05-04T12:31:39.123456789Z",
                     "type": "contact_urns_changed",
                     "urns": []
@@ -1939,7 +2011,8 @@
                     },
                     "note": "Need help"
                 }
-            ]
+            ],
+            "via": "ui"
         },
         "status": 200,
         "response": {
@@ -1982,6 +2055,7 @@
                                 "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
                                 "name": "Andy Admin"
                             },
+                            "_via": "ui",
                             "ticket": {
                                 "uuid": "01969b47-dc5b-76f8-aaa3-04d3fbce5f9a",
                                 "status": "open",
@@ -2003,6 +2077,7 @@
                                 "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
                                 "name": "Andy Admin"
                             },
+                            "_via": "ui",
                             "ticket_uuid": "01969b47-dc5b-76f8-aaa3-04d3fbce5f9a",
                             "note": "Need help"
                         },
@@ -2010,6 +2085,7 @@
                             "uuid": "01969b47-efe3-76f8-bef6-3979f99a96f9",
                             "type": "contact_groups_changed",
                             "created_on": "2025-05-04T12:31:46.123456789Z",
+                            "_via": "ui",
                             "groups_added": [
                                 {
                                     "uuid": "361838c4-2866-495a-8990-9f3c222a7604",
@@ -2032,6 +2108,7 @@
                         "name": "Andy Admin",
                         "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
                     },
+                    "_via": "ui",
                     "created_on": "2025-05-04T12:31:42.123456789Z",
                     "ticket": {
                         "assignee": {
@@ -2057,6 +2134,7 @@
                         "name": "Andy Admin",
                         "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
                     },
+                    "_via": "ui",
                     "created_on": "2025-05-04T12:31:44.123456789Z",
                     "note": "Need help",
                     "ticket_uuid": "01969b47-dc5b-76f8-aaa3-04d3fbce5f9a",
@@ -2069,6 +2147,7 @@
                 "OrgID": 1,
                 "TTL": "2026-05-04T12:31:46Z",
                 "Data": {
+                    "_via": "ui",
                     "created_on": "2025-05-04T12:31:46.123456789Z",
                     "groups_added": [
                         {
@@ -2117,7 +2196,8 @@
                         "tel:+255788555111"
                     ]
                 }
-            ]
+            ],
+            "via": "ui"
         },
         "status": 200,
         "response": {
@@ -2168,6 +2248,7 @@
                                 "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
                                 "name": "Andy Admin"
                             },
+                            "_via": "ui",
                             "name": "Juan"
                         },
                         {
@@ -2178,6 +2259,7 @@
                                 "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
                                 "name": "Andy Admin"
                             },
+                            "_via": "ui",
                             "language": "spa"
                         },
                         {
@@ -2188,6 +2270,7 @@
                                 "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
                                 "name": "Andy Admin"
                             },
+                            "_via": "ui",
                             "groups_added": [
                                 {
                                     "uuid": "5e9d8fab-5e7e-4f51-b533-261af5dea70d",
@@ -2203,6 +2286,7 @@
                                 "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
                                 "name": "Andy Admin"
                             },
+                            "_via": "ui",
                             "urns": [
                                 "tel:+255788555111"
                             ]
@@ -2223,6 +2307,7 @@
                         "name": "Andy Admin",
                         "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
                     },
+                    "_via": "ui",
                     "created_on": "2025-05-04T12:31:50.123456789Z",
                     "name": "Juan",
                     "type": "contact_name_changed"
@@ -2238,6 +2323,7 @@
                         "name": "Andy Admin",
                         "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
                     },
+                    "_via": "ui",
                     "created_on": "2025-05-04T12:31:52.123456789Z",
                     "language": "spa",
                     "type": "contact_language_changed"
@@ -2253,6 +2339,7 @@
                         "name": "Andy Admin",
                         "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
                     },
+                    "_via": "ui",
                     "created_on": "2025-05-04T12:31:54.123456789Z",
                     "groups_added": [
                         {
@@ -2273,6 +2360,7 @@
                         "name": "Andy Admin",
                         "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
                     },
+                    "_via": "ui",
                     "created_on": "2025-05-04T12:31:56.123456789Z",
                     "type": "contact_urns_changed",
                     "urns": [
@@ -2298,7 +2386,8 @@
                     "type": "language",
                     "language": "eng"
                 }
-            ]
+            ],
+            "via": "ui"
         },
         "status": 200,
         "response": {
@@ -2349,6 +2438,7 @@
                                 "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
                                 "name": "Andy Admin"
                             },
+                            "_via": "ui",
                             "language": "eng"
                         }
                     ]
@@ -2369,6 +2459,7 @@
                         "name": "Andy Admin",
                         "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
                     },
+                    "_via": "ui",
                     "created_on": "2025-05-04T12:31:58.123456789Z",
                     "language": "eng",
                     "type": "contact_language_changed"

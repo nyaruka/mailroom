@@ -19,6 +19,18 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestPersistEvent(t *testing.T) {
+	assert.True(t, models.PersistEvent(events.NewContactNameChanged("Bobby")))
+	assert.True(t, models.PersistEvent(events.NewContactStatusChanged(flows.ContactStatusBlocked)))
+	assert.True(t, models.PersistEvent(events.NewError("URN taken by another contact", events.ErrorCodeURNTaken)))
+	assert.False(t, models.PersistEvent(events.NewError("Bang", "bang")))
+	assert.False(t, models.PersistEvent(events.NewWarning("Don't do that")))
+
+	e := events.NewError("URN taken by another contact", events.ErrorCodeURNTaken)
+	e.SetUser(nil, string(models.ViaImport))
+	assert.False(t, models.PersistEvent(e))
+}
+
 func TestEventToDynamo(t *testing.T) {
 	reset := test.MockUniverse()
 	defer reset()

@@ -32,12 +32,14 @@ func init() {
 //	         "name": "Doctors"
 //	     }]
 //	  }]
+//	  "via": "ui"
 //	}
 type modifyRequest struct {
 	OrgID      models.OrgID       `json:"org_id"      validate:"required"`
 	UserID     models.UserID      `json:"user_id"     validate:"required"`
 	ContactIDs []models.ContactID `json:"contact_ids" validate:"required"`
 	Modifiers  []json.RawMessage  `json:"modifiers"   validate:"required"`
+	Via        models.Via         `json:"via"         validate:"required,eq=api|eq=ui"`
 }
 
 // Response for contact modify. Will return the full contact state and the events generated. Contacts that we couldn't
@@ -90,7 +92,7 @@ func handleModify(ctx context.Context, rt *runtime.Runtime, r *modifyRequest) (a
 		byContact[cid] = mods
 	}
 
-	eventsBycontact, skipped, err := runner.ModifyWithLock(ctx, rt, oa, r.UserID, r.ContactIDs, byContact, nil)
+	eventsBycontact, skipped, err := runner.ModifyWithLock(ctx, rt, oa, r.UserID, r.ContactIDs, byContact, nil, r.Via)
 	if err != nil {
 		return nil, 0, fmt.Errorf("error bulk modifying contacts: %w", err)
 	}

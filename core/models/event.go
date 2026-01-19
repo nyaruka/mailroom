@@ -14,6 +14,14 @@ import (
 	"github.com/nyaruka/goflow/flows/events"
 )
 
+type Via string
+
+const (
+	ViaUI     Via = "ui"
+	ViaAPI    Via = "api"
+	ViaImport Via = "import"
+)
+
 const (
 	// If event .Data exceeds this number of bytes we compress it - aim is to get as many events written for 1 WCU (1KB)
 	eventDataGZThreshold = 900
@@ -35,6 +43,8 @@ var eventPersistence = map[string]time.Duration{
 	events.TypeContactNameChanged:     time.Hour * 24 * 365, // 1 year
 	events.TypeContactStatusChanged:   eternity,
 	events.TypeContactURNsChanged:     time.Hour * 24 * 365, // 1 year
+	events.TypeError:                  time.Hour * 24 * 365, // 1 year (additional filtering on error code below)
+	events.TypeFailure:                eternity,
 	events.TypeIVRCreated:             eternity,
 	events.TypeMsgCreated:             eternity,
 	events.TypeMsgDeleted:             time.Hour * 24, // 1 day
@@ -50,6 +60,19 @@ var eventPersistence = map[string]time.Duration{
 	events.TypeTicketOpened:           eternity,
 	events.TypeTicketReopened:         eternity,
 	events.TypeTicketTopicChanged:     eternity,
+}
+
+// PersistEvent returns whether an event should be persisted
+func PersistEvent(e flows.Event) bool {
+	switch typed := e.(type) {
+	case *events.Error:
+		// Only persist non-import URN taken errors for now - this is to help with flows that still use actions for
+		// adding URNs that have no way to route on failure
+		return typed.Code == events.ErrorCodeURNTaken && typed.Via_ != string(ViaImport)
+	default:
+		_, ok := eventPersistence[e.Type()]
+		return ok
+	}
 }
 
 // Event wraps an engine event for persistence in the history table
@@ -110,12 +133,6 @@ func (e *Event) MarshalDynamo() (*dynamo.Item, error) {
 		Data:   data,
 		DataGZ: dataGz,
 	}, nil
-}
-
-// PersistEvent returns whether an event should be persisted
-func PersistEvent(e flows.Event) bool {
-	_, ok := eventPersistence[e.Type()]
-	return ok
 }
 
 // EventTag is a record of additional information associated with an existing event

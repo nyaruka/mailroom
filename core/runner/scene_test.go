@@ -235,7 +235,7 @@ func TestSessionFailedStart(t *testing.T) {
 	scenes := testsuite.StartSessions(t, rt, oa, []*testdb.Contact{testdb.Ann}, trig)
 
 	assert.Equal(t, flows.SessionStatusFailed, scenes[0].Session.Status())
-	assert.Len(t, scenes[0].Session.Runs(), 201)
+	assert.Len(t, scenes[0].Session.Runs(), 251)
 
 	// check session in database
 	assertdb.Query(t, rt.DB, `SELECT status, session_type, current_flow_uuid FROM flows_flowsession`).
@@ -243,10 +243,17 @@ func TestSessionFailedStart(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE ended_on IS NOT NULL`).Returns(1)
 
 	// check the state of all the created runs
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowrun`).Returns(201)
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowrun WHERE flow_id = $1`, ping.ID).Returns(101)
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowrun WHERE flow_id = $1`, pong.ID).Returns(100)
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowrun WHERE status = 'F' AND exited_on IS NOT NULL`).Returns(201)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowrun`).Returns(251)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowrun WHERE flow_id = $1`, ping.ID).Returns(126)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowrun WHERE flow_id = $1`, pong.ID).Returns(125)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowrun WHERE status = 'F' AND exited_on IS NOT NULL`).Returns(251)
+
+	// check the contact
+	assertdb.Query(t, rt.DB, `SELECT current_session_uuid, current_flow_id FROM contacts_contact WHERE id = $1`, testdb.Ann.ID).Columns(map[string]any{
+		"current_session_uuid": nil, "current_flow_id": nil,
+	})
+
+	assert.Equal(t, []string{"failure"}, testsuite.GetHistoryEventTypes(t, rt, false)[testdb.Ann.UUID])
 }
 
 func TestFlowStats(t *testing.T) {

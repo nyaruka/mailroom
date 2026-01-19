@@ -41,7 +41,7 @@ func (t *MsgDeletedTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *m
 
 	evt := events.NewMsgDeleted(t.MsgUUID, true)
 
-	if err := scene.AddEvent(ctx, rt, oa, evt, models.NilUserID); err != nil {
+	if err := scene.AddEvent(ctx, rt, oa, evt, models.NilUserID, ""); err != nil {
 		return fmt.Errorf("error adding msg delete event to scene for contact %s: %w", scene.ContactUUID(), err)
 	}
 
