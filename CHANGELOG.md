@@ -1,3 +1,9 @@
+v26.1.8 (2026-01-19)
+-------------------------
+ * Rework interrput_channel task so interrupted contacts go thru proper event pipelines
+ * Remove no longer used code for overriding flow definitions in simulations
+ * Remove use of Msg.external_id
+
 v26.1.7 (2026-01-19)
 -------------------------
  * Add via on ticket endpoints as well
