@@ -537,29 +537,12 @@ func (a *OrgAssets) FieldByKey(key string) *Field {
 	return a.fieldsByKey[key]
 }
 
-// CloneForSimulation clones our org assets for simulation and returns a new org assets with the given flow definitions overrided
-func (a *OrgAssets) CloneForSimulation(ctx context.Context, rt *runtime.Runtime, newDefs map[assets.FlowUUID][]byte, testChannels []assets.Channel) (*OrgAssets, error) {
+// CloneForSimulation clones our org assets for simulation and returns a new org assets with extra test channels
+func (a *OrgAssets) CloneForSimulation(ctx context.Context, rt *runtime.Runtime, testChannels []assets.Channel) (*OrgAssets, error) {
 	// only channels and flows can be modified so only refresh those
 	clone, err := NewOrgAssets(context.Background(), a.rt, a.OrgID(), a, RefreshFlows)
 	if err != nil {
 		return nil, err
-	}
-
-	for flowUUID, newDef := range newDefs {
-		// get the original flow
-		flowAsset, err := a.FlowByUUID(flowUUID)
-		if err != nil {
-			return nil, fmt.Errorf("unable to find flow with UUID '%s': %w", flowUUID, err)
-		}
-		f := flowAsset.(*Flow)
-
-		// make a clone of the flow with the provided definition
-		cf := f.cloneWithNewDefinition(newDef)
-
-		clone.flowCacheLock.Lock()
-		clone.flowByUUID[flowUUID] = cf
-		clone.flowByID[cf.ID()] = cf
-		clone.flowCacheLock.Unlock()
 	}
 
 	clone.channels = append(clone.channels, testChannels...)

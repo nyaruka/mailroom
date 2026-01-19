@@ -15,7 +15,6 @@ import (
 	"github.com/nyaruka/mailroom/testsuite"
 	"github.com/nyaruka/mailroom/testsuite/testdb"
 	"github.com/nyaruka/mailroom/web"
-
 	"github.com/stretchr/testify/assert"
 )
 
@@ -129,40 +128,6 @@ const (
 			"triggered_on": "2000-01-01T00:00:00.000000000-00:00",
 			"type": "msg"
 		},
-		"flows": [
-			{
-				"uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85",
-				"definition": {
-					"base_language": "eng",
-					"action_sets": [{
-						"y": 0,
-						"x": 100,
-						"destination": null,
-						"uuid": "87edb79e-f46c-4970-bcd3-c715dfededb7",
-						"actions": [{
-							"uuid": "0aaa6871-15fb-408c-9f33-2d7d8f6d5baf",
-							"msg": {
-								"eng": "Your channel is @channel.name"
-							},
-							"type": "reply"
-						}],
-						"exit_uuid": "40c6cb36-bb44-479a-8ed1-d3f8df3a134d"
-					}],
-					"version": 8,
-					"flow_type": "F",
-					"entry": "87edb79e-f46c-4970-bcd3-c715dfededb7",
-					"rule_sets": [],
-					"metadata": {
-						"uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85",
-						"expires": 10080,
-						"revision": 1,
-						"id": 41049,
-						"name": "No ruleset flow",
-						"saved_on": "2015-11-20T11:02:19.790131Z"
-					}
-				}
-			}
-		],
 		"assets": {
 			"channels": [
 				{
@@ -216,10 +181,7 @@ func TestServer(t *testing.T) {
 		{"/mr/sim/start", "POST", startBody, "", 200, "What is your favorite color?"},
 		{"/mr/sim/resume", "POST", resumeBody, "I like blue!", 200, "Good choice, I like Blue too! What is your favorite beer?"},
 
-		// start with a definition of the flow to override what we have in assets
-		{"/mr/sim/start", "POST", customStartBody, "", 200, "Your channel is Test Channel"},
-
-		// start regular flow again but resume with a message that matches the campaign flow trigger
+		// start flow again but resume with a message that matches the campaign flow trigger
 		{"/mr/sim/start", "POST", startBody, "", 200, "What is your favorite color?"},
 		{"/mr/sim/resume", "POST", resumeBody, "trigger", 200, "Nothing to see here"},
 		{"/mr/sim/resume", "POST", resumeBody, "I like blue!", 200, "Nothing to see here"},
@@ -265,6 +227,6 @@ func TestServer(t *testing.T) {
 			}
 		}
 
-		assert.Contains(t, string(content), tc.ExpectedResponse, "%d: did not find expected response content")
+		assert.Contains(t, string(content), tc.ExpectedResponse, "%d: did not find expected response content", i)
 	}
 }
