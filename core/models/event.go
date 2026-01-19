@@ -17,6 +17,8 @@ import (
 type Via string
 
 const (
+	ViaUI     Via = "ui"
+	ViaAPI    Via = "api"
 	ViaImport Via = "import"
 )
 
