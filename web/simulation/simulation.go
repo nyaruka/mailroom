@@ -32,11 +32,6 @@ func init() {
 	web.InternalRoute(http.MethodPost, "/sim/resume", web.JSONPayload(handleResume))
 }
 
-type flowDefinition struct {
-	UUID       assets.FlowUUID `json:"uuid"       validate:"required"`
-	Definition json.RawMessage `json:"definition" validate:"required"`
-}
-
 type sessionRequest struct {
 	OrgID  models.OrgID `json:"org_id"  validate:"required"`
 	Assets struct {

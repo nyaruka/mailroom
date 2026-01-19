@@ -537,7 +537,7 @@ func (a *OrgAssets) FieldByKey(key string) *Field {
 	return a.fieldsByKey[key]
 }
 
-// CloneForSimulation clones our org assets for simulation and returns a new org assets with the given flow definitions overrided
+// CloneForSimulation clones our org assets for simulation and returns a new org assets with extra test channels
 func (a *OrgAssets) CloneForSimulation(ctx context.Context, rt *runtime.Runtime, testChannels []assets.Channel) (*OrgAssets, error) {
 	// only channels and flows can be modified so only refresh those
 	clone, err := NewOrgAssets(context.Background(), a.rt, a.OrgID(), a, RefreshFlows)
