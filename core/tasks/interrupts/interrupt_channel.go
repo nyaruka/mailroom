@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/msgio"
+	"github.com/nyaruka/mailroom/core/runner"
 	"github.com/nyaruka/mailroom/core/tasks"
 	"github.com/nyaruka/mailroom/runtime"
 )
@@ -27,23 +29,27 @@ func (t *InterruptChannelTask) Type() string {
 	return TypeInterruptChannel
 }
 
+func (*InterruptChannelTask) Timeout() time.Duration {
+	return time.Hour
+}
+
 func (t *InterruptChannelTask) WithAssets() models.Refresh {
 	return models.RefreshNone
 }
 
 // Perform implements tasks.Task
 func (t *InterruptChannelTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets) error {
-	db := rt.DB
 	vc := rt.VK.Get()
 	defer vc.Close()
 
 	// load channel from db instead of assets because it may already be released
-	channel, err := models.GetChannelByID(ctx, db.DB, t.ChannelID)
+	channel, err := models.GetChannelByID(ctx, rt.DB.DB, t.ChannelID)
 	if err != nil {
 		return fmt.Errorf("error getting channel: %w", err)
 	}
 
-	if err := models.InterruptSessionsForChannel(ctx, db, t.ChannelID); err != nil {
+	// interrupt any IVR sessions currently using this channel
+	if err := t.interruptIVRSessions(ctx, rt, oa); err != nil {
 		return fmt.Errorf("error interrupting sessions: %w", err)
 	}
 
@@ -57,10 +63,25 @@ func (t *InterruptChannelTask) Perform(ctx context.Context, rt *runtime.Runtime,
 	}
 
 	return nil
-
 }
 
-// Timeout is the maximum amount of time the task can run for
-func (*InterruptChannelTask) Timeout() time.Duration {
-	return time.Hour
+func (t *InterruptChannelTask) interruptIVRSessions(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets) error {
+	contactIDs := make([]models.ContactID, 0, 10)
+
+	// fail any calls that are pending, queued or errored
+	if _, err := rt.DB.ExecContext(ctx, `UPDATE ivr_call SET status = 'F', modified_on = NOW() WHERE channel_id = $1 AND status IN ('P', 'Q', 'E')`, t.ChannelID); err != nil {
+		return fmt.Errorf("error failing queued calls on channel %d: %w", t.ChannelID, err)
+	}
+
+	// find all contacts with calls in progress...
+	if err := rt.DB.SelectContext(ctx, &contactIDs, `SELECT contact_id FROM ivr_call WHERE channel_id = $1 AND status = 'I' AND session_uuid IS NOT NULL`, t.ChannelID); err != nil {
+		return fmt.Errorf("error selecting contacts with calls on channel %d: %w", t.ChannelID, err)
+	}
+
+	// and interrupt their sessions
+	if err := runner.Interrupt(ctx, rt, oa, contactIDs, flows.SessionStatusInterrupted); err != nil {
+		return fmt.Errorf("error interrupting contacts with calls on channel %d: %w", t.ChannelID, err)
+	}
+
+	return nil
 }

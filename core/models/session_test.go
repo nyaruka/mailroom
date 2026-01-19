@@ -161,39 +161,6 @@ func TestInterruptSessionsForContactsTx(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT current_session_uuid, current_flow_id FROM contacts_contact WHERE id = $1`, testdb.Ann.ID).Columns(map[string]any{"current_session_uuid": nil, "current_flow_id": nil})
 }
 
-func TestInterruptSessionsForChannels(t *testing.T) {
-	ctx, rt := testsuite.Runtime(t)
-
-	defer testsuite.Reset(t, rt, testsuite.ResetData)
-
-	ann1Call := testdb.InsertCall(t, rt, testdb.Org1, testdb.TwilioChannel, testdb.Ann)
-	ann2Call := testdb.InsertCall(t, rt, testdb.Org1, testdb.TwilioChannel, testdb.Ann)
-	bobCall := testdb.InsertCall(t, rt, testdb.Org1, testdb.TwilioChannel, testdb.Bob)
-	catCall := testdb.InsertCall(t, rt, testdb.Org1, testdb.VonageChannel, testdb.Cat)
-
-	session1UUID, _ := insertSessionAndRun(t, rt, testdb.Ann, models.FlowTypeMessaging, models.SessionStatusCompleted, testdb.Favorites, ann1Call)
-	session2UUID, _ := insertSessionAndRun(t, rt, testdb.Ann, models.FlowTypeMessaging, models.SessionStatusWaiting, testdb.Favorites, ann2Call)
-	session3UUID, _ := insertSessionAndRun(t, rt, testdb.Bob, models.FlowTypeMessaging, models.SessionStatusWaiting, testdb.Favorites, bobCall)
-	session4UUID, _ := insertSessionAndRun(t, rt, testdb.Cat, models.FlowTypeMessaging, models.SessionStatusWaiting, testdb.Favorites, catCall)
-
-	rt.DB.MustExec(`UPDATE ivr_call SET session_uuid = $2 WHERE id = $1`, ann1Call.ID, session1UUID)
-	rt.DB.MustExec(`UPDATE ivr_call SET session_uuid = $2 WHERE id = $1`, ann2Call.ID, session2UUID)
-	rt.DB.MustExec(`UPDATE ivr_call SET session_uuid = $2 WHERE id = $1`, bobCall.ID, session3UUID)
-	rt.DB.MustExec(`UPDATE ivr_call SET session_uuid = $2 WHERE id = $1`, catCall.ID, session4UUID)
-
-	err := models.InterruptSessionsForChannel(ctx, rt.DB, testdb.TwilioChannel.ID)
-	require.NoError(t, err)
-
-	assertSessionAndRunStatus(t, rt, session1UUID, models.SessionStatusCompleted) // wasn't waiting
-	assertSessionAndRunStatus(t, rt, session2UUID, models.SessionStatusInterrupted)
-	assertSessionAndRunStatus(t, rt, session3UUID, models.SessionStatusInterrupted)
-	assertSessionAndRunStatus(t, rt, session4UUID, models.SessionStatusWaiting) // channel not included
-
-	// check other columns are correct on interrupted session and contact
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE ended_on IS NOT NULL AND current_flow_uuid IS NULL AND uuid = $1`, session2UUID).Returns(1)
-	assertdb.Query(t, rt.DB, `SELECT current_session_uuid, current_flow_id FROM contacts_contact WHERE id = $1`, testdb.Ann.ID).Columns(map[string]any{"current_session_uuid": nil, "current_flow_id": nil})
-}
-
 func TestInterruptSessionsForFlows(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
