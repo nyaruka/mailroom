@@ -9,7 +9,8 @@
             "ticket_uuids": [
                 "01992f54-5ab6-717a-a39e-e8ca91fb7262",
                 "01992f54-5ab6-7d45-aa0c-f95cfd7c9bc2"
-            ]
+            ],
+            "via": "api"
         },
         "status": 200,
         "response": {
@@ -26,6 +27,7 @@
                             "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
                             "name": "Andy Admin"
                         },
+                        "_via": "api",
                         "ticket_uuid": "01992f54-5ab6-717a-a39e-e8ca91fb7262"
                     }
                 ]
@@ -61,6 +63,7 @@
                         "name": "Andy Admin",
                         "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
                     },
+                    "_via": "api",
                     "created_on": "2025-05-04T12:30:46.123456789Z",
                     "ticket_uuid": "01992f54-5ab6-717a-a39e-e8ca91fb7262",
                     "type": "ticket_closed"

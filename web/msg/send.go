@@ -66,7 +66,7 @@ func handleSend(ctx context.Context, rt *runtime.Runtime, r *sendRequest) (any, 
 
 	scene := runner.NewScene(c, contact)
 
-	if err := scene.AddEvent(ctx, rt, oa, event, r.UserID); err != nil {
+	if err := scene.AddEvent(ctx, rt, oa, event, r.UserID, ""); err != nil {
 		return nil, 0, fmt.Errorf("error adding message event to scene: %w", err)
 	}
 	if err := scene.Commit(ctx, rt, oa); err != nil {

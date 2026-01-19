@@ -125,7 +125,7 @@ func (t *MsgReceivedTask) perform(ctx context.Context, rt *runtime.Runtime, oa *
 		Attachments: attachments,
 		LogUUIDs:    logUUIDs,
 	}
-	if err := scene.AddEvent(ctx, rt, oa, msgEvent, models.NilUserID); err != nil {
+	if err := scene.AddEvent(ctx, rt, oa, msgEvent, models.NilUserID, ""); err != nil {
 		return fmt.Errorf("error adding message event to scene: %w", err)
 	}
 

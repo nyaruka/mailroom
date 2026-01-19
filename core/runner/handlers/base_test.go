@@ -112,7 +112,7 @@ func runTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 			if msg := tc.Msgs[c.UUID]; msg != nil {
 				msgEvent := events.NewMsgReceived(msg)
 				scenes[i].IncomingMsg = insertTestMessage(t, rt, oa, c, msg)
-				err := scenes[i].AddEvent(ctx, rt, oa, msgEvent, models.NilUserID)
+				err := scenes[i].AddEvent(ctx, rt, oa, msgEvent, models.NilUserID, "")
 				require.NoError(t, err)
 
 				contact.SetLastSeenOn(msgEvent.CreatedOn())
@@ -128,7 +128,7 @@ func runTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 			}
 
 			for _, e := range tc.Events[c.UUID] {
-				err := scenes[i].AddEvent(ctx, rt, oa, e, tc.UserID)
+				err := scenes[i].AddEvent(ctx, rt, oa, e, tc.UserID, "")
 				require.NoError(t, err)
 			}
 		}
