@@ -17,7 +17,7 @@ type bulkTicketRequest struct {
 	OrgID       models.OrgID       `json:"org_id"       validate:"required"`
 	UserID      models.UserID      `json:"user_id"      validate:"required"`
 	TicketUUIDs []flows.TicketUUID `json:"ticket_uuids" validate:"required"`
-	Via         models.Via         `json:"via"` // TODO make required and validate
+	Via         models.Via         `json:"via"          validate:"required,eq=api|eq=ui"`
 }
 
 type bulkTicketResponse struct {
