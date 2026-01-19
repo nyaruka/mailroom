@@ -9,7 +9,8 @@
             "ticket_uuids": [
                 "01992f54-5ab6-717a-a39e-e8ca91fb7262",
                 "01992f54-5ab6-7498-a7f2-6aa246e45cfe"
-            ]
+            ],
+            "via": "api"
         },
         "status": 400,
         "response": {
@@ -27,7 +28,8 @@
                 "01992f54-5ab6-717a-a39e-e8ca91fb7262",
                 "01992f54-5ab6-7498-a7f2-6aa246e45cfe"
             ],
-            "topic_uuid": "0a8f2e00-fef6-402c-bd79-d789446ec0e0"
+            "topic_uuid": "0a8f2e00-fef6-402c-bd79-d789446ec0e0",
+            "via": "ui"
         },
         "status": 200,
         "response": {
@@ -45,6 +47,7 @@
                             "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
                             "name": "Andy Admin"
                         },
+                        "_via": "ui",
                         "ticket_uuid": "01992f54-5ab6-717a-a39e-e8ca91fb7262",
                         "topic": {
                             "uuid": "0a8f2e00-fef6-402c-bd79-d789446ec0e0",
@@ -59,6 +62,7 @@
                             "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
                             "name": "Andy Admin"
                         },
+                        "_via": "ui",
                         "ticket_uuid": "01992f54-5ab6-7498-a7f2-6aa246e45cfe",
                         "topic": {
                             "uuid": "0a8f2e00-fef6-402c-bd79-d789446ec0e0",
@@ -84,6 +88,7 @@
                         "name": "Andy Admin",
                         "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
                     },
+                    "_via": "ui",
                     "created_on": "2025-05-04T12:30:46.123456789Z",
                     "ticket_uuid": "01992f54-5ab6-717a-a39e-e8ca91fb7262",
                     "topic": {
@@ -102,6 +107,7 @@
                         "name": "Andy Admin",
                         "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
                     },
+                    "_via": "ui",
                     "created_on": "2025-05-04T12:30:49.123456789Z",
                     "ticket_uuid": "01992f54-5ab6-7498-a7f2-6aa246e45cfe",
                     "topic": {

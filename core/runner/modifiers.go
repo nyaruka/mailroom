@@ -22,7 +22,7 @@ const (
 // ModifyWithLock bulk modifies contacts by loading and locking them, applying modifiers and processing the resultant events.
 //
 // Note we don't load the user object from org assets as it's possible that the user isn't part of the org, e.g. customer support.
-func ModifyWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, userID models.UserID, contactIDs []models.ContactID, modifiersByContact map[models.ContactID][]flows.Modifier, includeTickets map[models.ContactID][]*models.Ticket) (map[*flows.Contact][]flows.Event, []models.ContactID, error) {
+func ModifyWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, userID models.UserID, contactIDs []models.ContactID, modifiersByContact map[models.ContactID][]flows.Modifier, includeTickets map[models.ContactID][]*models.Ticket, via models.Via) (map[*flows.Contact][]flows.Event, []models.ContactID, error) {
 	eventsByContact := make(map[*flows.Contact][]flows.Event, len(modifiersByContact))
 	remaining := contactIDs
 	start := time.Now()
@@ -32,7 +32,7 @@ func ModifyWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 			return nil, nil, ctx.Err()
 		}
 
-		es, skipped, err := tryToModifyWithLock(ctx, rt, oa, userID, remaining, modifiersByContact, includeTickets)
+		es, skipped, err := tryToModifyWithLock(ctx, rt, oa, userID, remaining, modifiersByContact, includeTickets, via)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -44,7 +44,7 @@ func ModifyWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 	return eventsByContact, remaining, nil
 }
 
-func tryToModifyWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, userID models.UserID, ids []models.ContactID, modifiersByContact map[models.ContactID][]flows.Modifier, includeTickets map[models.ContactID][]*models.Ticket) (map[*flows.Contact][]flows.Event, []models.ContactID, error) {
+func tryToModifyWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, userID models.UserID, ids []models.ContactID, modifiersByContact map[models.ContactID][]flows.Modifier, includeTickets map[models.ContactID][]*models.Ticket, via models.Via) (map[*flows.Contact][]flows.Event, []models.ContactID, error) {
 	// try to get locks for these contacts, waiting for up to a second for each contact
 	locks, skipped, err := clocks.TryToLock(ctx, rt, oa, ids, time.Second)
 	if err != nil {
@@ -70,7 +70,7 @@ func tryToModifyWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.Or
 		eventsByContact[scene.Contact] = make([]flows.Event, 0) // TODO only needed to avoid nulls until jsonv2
 
 		for _, mod := range modifiersByContact[scene.ContactID()] {
-			evts, err := scene.ApplyModifier(ctx, rt, oa, mod, userID, "")
+			evts, err := scene.ApplyModifier(ctx, rt, oa, mod, userID, via)
 			if err != nil {
 				return nil, nil, fmt.Errorf("error applying modifier: %w", err)
 			}

@@ -37,7 +37,7 @@ func handleClose(ctx context.Context, rt *runtime.Runtime, r *closeRequest) (any
 		return modifiers.NewTicketClose(t.UUID)
 	}
 
-	eventsByContact, err := modifyTickets(ctx, rt, oa, r.UserID, r.TicketUUIDs, mod)
+	eventsByContact, err := modifyTickets(ctx, rt, oa, r.UserID, r.TicketUUIDs, mod, r.Via)
 	if err != nil {
 		return nil, 0, fmt.Errorf("error closing tickets: %w", err)
 	}
