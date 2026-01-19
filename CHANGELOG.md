@@ -1,3 +1,8 @@
+v26.1.7 (2026-01-19)
+-------------------------
+ * Add via on ticket endpoints as well
+ * Add via field to contact create and modify endpoints
+
 v26.1.6 (2026-01-15)
 -------------------------
  * Never credit error events to users
