@@ -282,27 +282,6 @@ func getWaitingSessionsForContacts(ctx context.Context, db DBorTx, contactIDs []
 	return sessionUUIDs, nil
 }
 
-const sqlSelectWaitingSessionsForChannel = `
-SELECT session_uuid 
-  FROM ivr_call 
- WHERE channel_id = $1 AND status NOT IN ('D', 'F') AND session_uuid IS NOT NULL;`
-
-// InterruptSessionsForChannel interrupts any waiting sessions with calls on the given channel
-func InterruptSessionsForChannel(ctx context.Context, db *sqlx.DB, channelID ChannelID) error {
-	sessionUUIDs := make([]flows.SessionUUID, 0, 10)
-
-	err := db.SelectContext(ctx, &sessionUUIDs, sqlSelectWaitingSessionsForChannel, channelID)
-	if err != nil {
-		return fmt.Errorf("error selecting waiting sessions for channel %d: %w", channelID, err)
-	}
-
-	if err := ExitSessions(ctx, db, sessionUUIDs, SessionStatusInterrupted); err != nil {
-		return fmt.Errorf("error interrupting sessions for channel: %w", err)
-	}
-
-	return nil
-}
-
 const sqlSelectWaitingSessionsForFlows = `
 SELECT DISTINCT session_uuid
   FROM flows_flowrun

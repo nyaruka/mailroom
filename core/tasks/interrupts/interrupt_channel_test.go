@@ -5,19 +5,21 @@ import (
 	"time"
 
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
+	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/core/crons"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/tasks"
 	"github.com/nyaruka/mailroom/core/tasks/interrupts"
 	"github.com/nyaruka/mailroom/testsuite"
 	"github.com/nyaruka/mailroom/testsuite/testdb"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestInterruptChannel(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetValkey)
+	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetDynamo|testsuite.ResetValkey)
 
 	// twilio call
 	twilioCall := testdb.InsertCall(t, rt, testdb.Org1, testdb.TwilioChannel, testdb.Dan)
@@ -45,6 +47,10 @@ func TestInterruptChannel(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE status = 'F' and failed_reason = 'R' and channel_id = $1`, testdb.VonageChannel.ID).Returns(0)
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE status = 'F' and channel_id = $1`, testdb.VonageChannel.ID).Returns(1)
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE status = 'F' and channel_id = $1`, testdb.TwilioChannel.ID).Returns(0)
+
+	// get current modified_on for Cat so we can check it gets updated
+	var catModifiedOn1 time.Time
+	require.NoError(t, rt.DB.Get(&catModifiedOn1, `SELECT modified_on FROM contacts_contact WHERE id = $1`, testdb.Cat.ID))
 
 	// queue and perform a task to interrupt the Twilio channel
 	tasks.Queue(ctx, rt, rt.Queues.Batch, testdb.Org1.ID, &interrupts.InterruptChannelTask{ChannelID: testdb.TwilioChannel.ID}, false)
@@ -91,4 +97,13 @@ func TestInterruptChannel(t *testing.T) {
 		"msgs:74729f45-7f29-4868-9dc4-90e491e3c7d8|10/0": {1}, // twilio, bulk priority
 	})
 
+	// check that run ended events were persisted for Cat and Dan
+	assert.Equal(t, map[flows.ContactUUID][]string{
+		testdb.Cat.UUID: {"run_ended"},
+		testdb.Dan.UUID: {"run_ended"},
+	}, testsuite.GetHistoryEventTypes(t, rt, false))
+
+	var catModifiedOn2 time.Time
+	require.NoError(t, rt.DB.Get(&catModifiedOn2, `SELECT modified_on FROM contacts_contact WHERE id = $1`, testdb.Cat.ID))
+	assert.Greater(t, catModifiedOn2, catModifiedOn1)
 }
