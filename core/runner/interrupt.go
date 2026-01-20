@@ -12,7 +12,7 @@ import (
 	"github.com/nyaruka/mailroom/runtime"
 )
 
-// Interrupt interrupts the sessions for the given contacts
+// Interrupt interrupts the current waiting session if any for the given contacts
 // TODO rework to share contact locking code with bulk starts?
 func Interrupt(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contactIDs []models.ContactID, status flows.SessionStatus) error {
 	// load our contacts
