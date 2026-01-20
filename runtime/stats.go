@@ -14,11 +14,11 @@ type LLMTypeAndModel struct {
 }
 
 type Stats struct {
-	RealtimeTaskCount    map[string]int           // number of contact tasks handled by type
-	RealtimeTaskErrors   map[string]int           // number of contact tasks that errored by type
-	RealtimeTaskDuration map[string]time.Duration // total time spent handling contact tasks
-	RealtimeTaskLatency  map[string]time.Duration // total time spent queuing and handling contact tasks
-	RealtimeLockFails    int                      // number of times an attempt to get a contact lock failed
+	ContactTaskCount    map[string]int           // number of contact tasks handled by type
+	ContactTaskErrors   map[string]int           // number of contact tasks that errored by type
+	ContactTaskDuration map[string]time.Duration // total time spent handling contact tasks
+	ContactTaskLatency  map[string]time.Duration // total time spent queuing and handling contact tasks
+	RealtimeLockFails   int                      // number of times an attempt to get a contact lock failed
 
 	CronTaskCount    map[string]int           // number of cron tasks run by type
 	CronTaskDuration map[string]time.Duration // total time spent running cron tasks
@@ -32,10 +32,10 @@ type Stats struct {
 
 func newStats() *Stats {
 	return &Stats{
-		RealtimeTaskCount:    make(map[string]int),
-		RealtimeTaskErrors:   make(map[string]int),
-		RealtimeTaskDuration: make(map[string]time.Duration),
-		RealtimeTaskLatency:  make(map[string]time.Duration),
+		ContactTaskCount:    make(map[string]int),
+		ContactTaskErrors:   make(map[string]int),
+		ContactTaskDuration: make(map[string]time.Duration),
+		ContactTaskLatency:  make(map[string]time.Duration),
 
 		CronTaskCount:    make(map[string]int),
 		CronTaskDuration: make(map[string]time.Duration),
@@ -48,14 +48,14 @@ func newStats() *Stats {
 func (s *Stats) ToMetrics(advanced bool) []types.MetricDatum {
 	metrics := make([]types.MetricDatum, 0, 20)
 
-	for typ, count := range s.RealtimeTaskCount {
+	for typ, count := range s.ContactTaskCount {
 		// convert task timings to averages
-		avgDuration := s.RealtimeTaskDuration[typ] / time.Duration(count)
-		avgLatency := s.RealtimeTaskLatency[typ] / time.Duration(count)
+		avgDuration := s.ContactTaskDuration[typ] / time.Duration(count)
+		avgLatency := s.ContactTaskLatency[typ] / time.Duration(count)
 
 		metrics = append(metrics,
 			cwatch.Datum("HandlerTaskCount", float64(count), types.StandardUnitCount, cwatch.Dimension("TaskType", typ)),
-			cwatch.Datum("HandlerTaskErrors", float64(s.RealtimeTaskErrors[typ]), types.StandardUnitCount, cwatch.Dimension("TaskType", typ)),
+			cwatch.Datum("HandlerTaskErrors", float64(s.ContactTaskErrors[typ]), types.StandardUnitCount, cwatch.Dimension("TaskType", typ)),
 			cwatch.Datum("HandlerTaskDuration", float64(avgDuration)/float64(time.Second), types.StandardUnitCount, cwatch.Dimension("TaskType", typ)),
 			cwatch.Datum("HandlerTaskLatency", float64(avgLatency)/float64(time.Second), types.StandardUnitCount, cwatch.Dimension("TaskType", typ)),
 		)
@@ -109,13 +109,13 @@ func NewStatsCollector() *StatsCollector {
 	return &StatsCollector{stats: newStats()}
 }
 
-func (c *StatsCollector) RecordRealtimeTask(typ string, d, l time.Duration, errored bool) {
+func (c *StatsCollector) RecordContactTask(typ string, d, l time.Duration, errored bool) {
 	c.mutex.Lock()
-	c.stats.RealtimeTaskCount[typ]++
-	c.stats.RealtimeTaskDuration[typ] += d
-	c.stats.RealtimeTaskLatency[typ] += l
+	c.stats.ContactTaskCount[typ]++
+	c.stats.ContactTaskDuration[typ] += d
+	c.stats.ContactTaskLatency[typ] += l
 	if errored {
-		c.stats.RealtimeTaskErrors[typ]++
+		c.stats.ContactTaskErrors[typ]++
 	}
 	c.mutex.Unlock()
 }

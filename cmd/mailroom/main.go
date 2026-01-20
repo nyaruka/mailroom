@@ -19,13 +19,6 @@ import (
 
 	_ "github.com/nyaruka/mailroom/core/runner/handlers"
 	_ "github.com/nyaruka/mailroom/core/runner/hooks"
-	_ "github.com/nyaruka/mailroom/core/tasks/campaigns"
-	_ "github.com/nyaruka/mailroom/core/tasks/contacts"
-	_ "github.com/nyaruka/mailroom/core/tasks/interrupts"
-	_ "github.com/nyaruka/mailroom/core/tasks/msgs"
-	_ "github.com/nyaruka/mailroom/core/tasks/realtime"
-	_ "github.com/nyaruka/mailroom/core/tasks/realtime/ctasks"
-	_ "github.com/nyaruka/mailroom/core/tasks/starts"
 	_ "github.com/nyaruka/mailroom/services/airtime/dtone"
 	_ "github.com/nyaruka/mailroom/services/ivr/bandwidth"
 	_ "github.com/nyaruka/mailroom/services/ivr/twiml"

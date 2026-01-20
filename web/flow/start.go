@@ -11,7 +11,6 @@ import (
 	"github.com/nyaruka/gocommon/uuids"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/tasks"
-	"github.com/nyaruka/mailroom/core/tasks/starts"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/mailroom/web"
 )
@@ -78,7 +77,7 @@ func handleStart(ctx context.Context, rt *runtime.Runtime, r *startRequest) (any
 	}
 
 	// queue it up for actual starting
-	task := &starts.StartFlowTask{FlowStart: start}
+	task := &tasks.StartFlow{FlowStart: start}
 	if err := tasks.Queue(ctx, rt, rt.Queues.Batch, r.OrgID, task, false); err != nil {
 		return nil, 0, fmt.Errorf("error queuing start flow task: %w", err)
 	}

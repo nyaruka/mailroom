@@ -7,7 +7,6 @@ import (
 
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/tasks"
-	"github.com/nyaruka/mailroom/core/tasks/interrupts"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/mailroom/web"
 )
@@ -28,7 +27,7 @@ type interruptRequest struct {
 }
 
 func handleInterrupt(ctx context.Context, rt *runtime.Runtime, r *interruptRequest) (any, int, error) {
-	task := &interrupts.InterruptSessionsTask{FlowIDs: []models.FlowID{r.FlowID}}
+	task := &tasks.InterruptSessions{FlowIDs: []models.FlowID{r.FlowID}}
 	if err := tasks.Queue(ctx, rt, rt.Queues.Batch, r.OrgID, task, true); err != nil {
 		return nil, 0, fmt.Errorf("error queuing interrupt flow task: %w", err)
 	}

@@ -9,7 +9,6 @@ import (
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/runner"
 	"github.com/nyaruka/mailroom/core/tasks"
-	"github.com/nyaruka/mailroom/core/tasks/starts"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/vinovest/sqlx"
 )
@@ -65,7 +64,7 @@ func (h *createFlowStarts) Execute(ctx context.Context, rt *runtime.Runtime, tx 
 				WithSessionHistory(historyJSON)
 
 			// and a task to process it
-			task := &starts.StartFlowTask{FlowStart: start}
+			task := &tasks.StartFlow{FlowStart: start}
 			if err := tasks.Queue(ctx, rt, rt.Queues.Batch, oa.OrgID(), task, false); err != nil {
 				return fmt.Errorf("error queuing flow start: %w", err)
 			}
