@@ -10,7 +10,7 @@ import (
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/runner"
 	"github.com/nyaruka/mailroom/core/runner/hooks"
-	"github.com/nyaruka/mailroom/core/tasks/realtime/ctasks"
+	"github.com/nyaruka/mailroom/core/tasks/ctasks"
 	"github.com/nyaruka/mailroom/runtime"
 )
 

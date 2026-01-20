@@ -8,7 +8,6 @@ import (
 	"github.com/gomodule/redigo/redis"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/tasks"
-	"github.com/nyaruka/mailroom/core/tasks/contacts"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/mailroom/web"
 )
@@ -52,7 +51,7 @@ func handleImport(ctx context.Context, rt *runtime.Runtime, r *importRequest) (a
 
 	// create tasks for all batches
 	for _, bID := range imp.BatchIDs {
-		task := &contacts.ImportContactBatchTask{ContactImportBatchID: bID}
+		task := &tasks.ImportContactBatch{ContactImportBatchID: bID}
 		if err := tasks.Queue(ctx, rt, rt.Queues.Batch, r.OrgID, task, false); err != nil {
 			return nil, 0, fmt.Errorf("error queuing import contact batch task: %w", err)
 		}

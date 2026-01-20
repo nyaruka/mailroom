@@ -8,7 +8,6 @@ import (
 
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/tasks"
-	"github.com/nyaruka/mailroom/core/tasks/contacts"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/mailroom/web"
 )
@@ -40,7 +39,7 @@ func handlePopulateGroup(ctx context.Context, rt *runtime.Runtime, r *populateGr
 		return errors.New("no such query based group"), http.StatusBadRequest, nil
 	}
 
-	task := &contacts.PopulateQueryGroupTask{
+	task := &tasks.PopulateQueryGroup{
 		GroupID: group.ID(),
 		Query:   group.Query(),
 	}

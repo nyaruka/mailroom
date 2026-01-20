@@ -12,8 +12,7 @@ import (
 	"github.com/nyaruka/mailroom/core/crons"
 	"github.com/nyaruka/mailroom/core/models"
 	_ "github.com/nyaruka/mailroom/core/runner/handlers"
-	"github.com/nyaruka/mailroom/core/tasks/campaigns"
-	"github.com/nyaruka/mailroom/core/tasks/contacts"
+	"github.com/nyaruka/mailroom/core/tasks"
 	"github.com/nyaruka/mailroom/testsuite"
 	"github.com/nyaruka/mailroom/testsuite/testdb"
 	"github.com/nyaruka/mailroom/utils/queues"
@@ -66,25 +65,25 @@ func TestFireContacts(t *testing.T) {
 	assert.Equal(t, int(testdb.Org2.ID), ts[4].OwnerID)
 	assert.Equal(t, "bulk_wait_timeout", ts[4].Type)
 
-	decoded1 := &campaigns.BulkCampaignTriggerTask{}
+	decoded1 := &tasks.BulkCampaignTrigger{}
 	jsonx.MustUnmarshal(ts[0].Task, decoded1)
 	assert.Len(t, decoded1.ContactIDs, 1)
 	assert.Equal(t, testdb.Dan.ID, decoded1.ContactIDs[0])
 	assert.Equal(t, models.PointID(6789), decoded1.PointID)
 	assert.Equal(t, 123, decoded1.FireVersion)
 
-	decoded2 := &contacts.BulkSessionExpireTask{}
+	decoded2 := &tasks.BulkSessionExpire{}
 	jsonx.MustUnmarshal(ts[1].Task, decoded2)
 	assert.Len(t, decoded2.SessionUUIDs, 1)
 	assert.Equal(t, flows.SessionUUID("f72b48df-5f6d-4e4f-955a-f5fb29ccb97b"), decoded2.SessionUUIDs[0])
 
-	decoded3 := &contacts.BulkWaitExpireTask{}
+	decoded3 := &tasks.BulkWaitExpire{}
 	jsonx.MustUnmarshal(ts[2].Task, decoded3)
 	assert.Len(t, decoded3.Expirations, 2)
 	assert.Equal(t, flows.SessionUUID("4010a3b2-d1f2-42ae-9051-47d41a3ef923"), decoded3.Expirations[0].SessionUUID)
 	assert.Equal(t, flows.SessionUUID("f72b48df-5f6d-4e4f-955a-f5fb29ccb97b"), decoded3.Expirations[1].SessionUUID)
 
-	decoded4 := &contacts.BulkWaitTimeoutTask{}
+	decoded4 := &tasks.BulkWaitTimeout{}
 	jsonx.MustUnmarshal(ts[3].Task, decoded4)
 	assert.Len(t, decoded4.Timeouts, 1)
 	assert.Equal(t, flows.SessionUUID("5c1248e3-f669-4a72-83f4-a29292fdad4d"), decoded4.Timeouts[0].SessionUUID)

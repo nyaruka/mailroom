@@ -15,7 +15,7 @@ import (
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/tasks"
-	"github.com/nyaruka/mailroom/core/tasks/realtime"
+	"github.com/nyaruka/mailroom/core/tasks/ctasks"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/mailroom/testsuite/testdb"
 	"github.com/nyaruka/mailroom/utils/queues"
@@ -29,10 +29,10 @@ func QueueBatchTask(t *testing.T, rt *runtime.Runtime, org *testdb.Org, task tas
 	require.NoError(t, err)
 }
 
-func QueueRealtimeTask(t *testing.T, rt *runtime.Runtime, org *testdb.Org, contact *testdb.Contact, ctask realtime.Task) {
+func QueueContactTask(t *testing.T, rt *runtime.Runtime, org *testdb.Org, contact *testdb.Contact, ctask ctasks.Task) {
 	ctx := context.Background()
 
-	err := realtime.QueueTask(ctx, rt, org.ID, contact.ID, ctask)
+	err := tasks.QueueContact(ctx, rt, org.ID, contact.ID, ctask)
 	require.NoError(t, err)
 }
 

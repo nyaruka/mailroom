@@ -51,9 +51,6 @@ func Reset(t *testing.T, rt *runtime.Runtime, what ResetFlag) {
 	if what&ResetStorage > 0 {
 		resetStorage(t, rt)
 	}
-	if what&ResetElastic > 0 {
-		resetElastic(t, rt)
-	}
 	if what&ResetDynamo > 0 {
 		resetDynamo(t, rt)
 	}
@@ -62,6 +59,11 @@ func Reset(t *testing.T, rt *runtime.Runtime, what ResetFlag) {
 		resetDB(t, rt)
 	} else if what&ResetData > 0 {
 		resetData(t, rt)
+	}
+
+	// comes after data/db reset so reindexing happens from reset data
+	if what&ResetElastic > 0 {
+		resetElastic(t, rt)
 	}
 }
 
