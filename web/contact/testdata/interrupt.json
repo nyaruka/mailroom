@@ -26,16 +26,25 @@
         },
         "db_assertions": [
             {
-                "query": "SELECT count(*) FROM flows_flowsession WHERE status = 'W'",
-                "returns": 1
+                "query": "SELECT contact_uuid, status FROM flows_flowsession",
+                "map": {
+                    "a393abc0-283d-4c9b-a1b3-641a035c34bf": "I",
+                    "b699a406-7e44-49be-9f01-1a82893e8a10": "W"
+                }
             },
             {
-                "query": "SELECT count(*) FROM flows_flowsession WHERE status = 'W' AND contact_uuid = 'a393abc0-283d-4c9b-a1b3-641a035c34bf'",
-                "returns": 0
+                "query": "SELECT current_session_uuid::text, current_flow_id FROM contacts_contact WHERE uuid = 'a393abc0-283d-4c9b-a1b3-641a035c34bf'",
+                "columns": {
+                    "current_flow_id": null,
+                    "current_session_uuid": null
+                }
             },
             {
-                "query": "SELECT count(*) FROM flows_flowsession WHERE status = 'I' AND contact_uuid = 'a393abc0-283d-4c9b-a1b3-641a035c34bf'",
-                "returns": 1
+                "query": "SELECT current_session_uuid::text, current_flow_id FROM contacts_contact WHERE uuid = 'b699a406-7e44-49be-9f01-1a82893e8a10'",
+                "columns": {
+                    "current_flow_id": 10001,
+                    "current_session_uuid": "01969b48-324b-76f8-9803-f4a851d20f2b"
+                }
             }
         ],
         "expected_history": [

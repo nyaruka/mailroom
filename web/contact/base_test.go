@@ -116,6 +116,9 @@ func TestInterrupt(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetValkey)
 
+	var modifiedOn1 time.Time
+	rt.DB.Get(&modifiedOn1, `SELECT modified_on FROM contacts_contact WHERE id = $1`, testdb.Ann.ID)
+
 	// give Ann a completed and a waiting session
 	testdb.InsertFlowSession(t, rt, testdb.Ann, models.FlowTypeMessaging, models.SessionStatusCompleted, nil, testdb.Favorites)
 	testdb.InsertWaitingSession(t, rt, testdb.Org1, testdb.Ann, models.FlowTypeMessaging, nil, testdb.Favorites)
@@ -124,6 +127,10 @@ func TestInterrupt(t *testing.T) {
 	testdb.InsertWaitingSession(t, rt, testdb.Org1, testdb.Bob, models.FlowTypeMessaging, nil, testdb.PickANumber)
 
 	testsuite.RunWebTests(t, rt, "testdata/interrupt.json")
+
+	var modifiedOn2 time.Time
+	rt.DB.Get(&modifiedOn2, `SELECT modified_on FROM contacts_contact WHERE id = $1`, testdb.Ann.ID)
+	assert.True(t, modifiedOn2.After(modifiedOn1), "expected Ann's modified_on to be updated after interrupting sessions")
 }
 
 func TestParseQuery(t *testing.T) {
