@@ -325,7 +325,7 @@ func LockAndLoad(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 		// create scenes for the locked contacts
 		scenes, err := CreateScenes(ctx, rt, oa, locked, includeTickets)
 		if err != nil {
-			return nil, nil, nil, fmt.Errorf("error creating scenes for modifiers: %w", err)
+			return nil, nil, nil, fmt.Errorf("error creating scenes after locking: %w", err)
 		}
 
 		allScenes = append(allScenes, scenes...)

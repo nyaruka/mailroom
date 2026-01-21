@@ -22,12 +22,10 @@ func ModifyWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 
 	for _, scene := range scenes {
 		for _, mod := range modifiersByContact[scene.ContactID()] {
-			evts, err := scene.ApplyModifier(ctx, rt, oa, mod, userID, via)
+			_, err := scene.ApplyModifier(ctx, rt, oa, mod, userID, via)
 			if err != nil {
-				return nil, nil, fmt.Errorf("error applying modifier: %w", err)
+				return nil, nil, fmt.Errorf("error applying modifier %T to contact %s: %w", mod, scene.ContactUUID(), err)
 			}
-
-			eventsByContact[scene.Contact] = append(eventsByContact[scene.Contact], evts...)
 		}
 
 		eventsByContact[scene.Contact] = scene.History()
@@ -40,8 +38,8 @@ func ModifyWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 	return eventsByContact, skipped, nil
 }
 
-// BulkModify bulk modifies contacts without locking.. used during contact creation and imports
-func BulkModify(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, userID models.UserID, mcs []*models.Contact, contacts []*flows.Contact, modifiers map[flows.ContactUUID][]flows.Modifier, via models.Via) (map[*flows.Contact][]flows.Event, error) {
+// ModifyWithoutLock bulk modifies contacts without locking.. used during contact creation and imports
+func ModifyWithoutLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, userID models.UserID, mcs []*models.Contact, contacts []*flows.Contact, modifiers map[flows.ContactUUID][]flows.Modifier, via models.Via) (map[*flows.Contact][]flows.Event, error) {
 	scenes := make([]*Scene, 0, len(mcs))
 	eventsByContact := make(map[*flows.Contact][]flows.Event, len(mcs))
 
@@ -56,6 +54,8 @@ func BulkModify(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, 
 				return nil, fmt.Errorf("error applying modifier %T to contact %s: %w", mod, mc.UUID(), err)
 			}
 
+			// TODO we should be using .History() like above but this is is used by imports which need to see urn_taken
+			// error events which aren't persisted to history
 			eventsByContact[contact] = append(eventsByContact[contact], evts...)
 		}
 

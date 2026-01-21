@@ -29,7 +29,7 @@ func InterruptWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 		return nil, nil, fmt.Errorf("error committing interruption scenes: %w", err)
 	}
 
-	eventsByContact := make(map[*flows.Contact][]flows.Event, len(contactIDs))
+	eventsByContact := make(map[*flows.Contact][]flows.Event, len(scenes))
 	for _, s := range scenes {
 		eventsByContact[s.Contact] = s.History()
 	}
