@@ -1,9 +1,12 @@
 package runner
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"log/slog"
+	"maps"
+	"slices"
 	"time"
 
 	"github.com/nyaruka/goflow/flows"
@@ -11,6 +14,7 @@ import (
 	"github.com/nyaruka/goflow/flows/modifiers"
 	"github.com/nyaruka/mailroom/core/goflow"
 	"github.com/nyaruka/mailroom/core/models"
+	"github.com/nyaruka/mailroom/core/runner/clocks"
 	"github.com/nyaruka/mailroom/runtime"
 )
 
@@ -38,6 +42,8 @@ type Scene struct {
 	preCommits    map[PreCommitHook][]any
 	postCommits   map[PostCommitHook][]any
 	persistEvents []*models.Event
+
+	lock string
 
 	// can be overridden by tests
 	Engine func(*runtime.Runtime) flows.Engine
@@ -242,6 +248,13 @@ func (s *Scene) Commit(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 	return BulkCommit(ctx, rt, oa, []*Scene{s})
 }
 
+func (s *Scene) unlock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets) error {
+	if s.lock == "" {
+		return nil // nothing to do
+	}
+	return clocks.Unlock(ctx, rt, oa, map[models.ContactID]string{s.ContactID(): s.lock})
+}
+
 // CreateScenes creates scenes for the given contact ids
 func CreateScenes(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contactIDs []models.ContactID, extraTickets map[models.ContactID][]*models.Ticket) ([]*Scene, error) {
 	mcs, err := models.LoadContacts(ctx, rt.ReadonlyDB, oa, contactIDs)
@@ -332,4 +345,66 @@ func BulkCommit(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, 
 	}
 
 	return nil
+}
+
+// LockAndLoad tries to lock and load scenes for the given contact ids, returning any ids that could not be locked.
+// The caller is responsible for unlocking the scenes.
+func LockAndLoad(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, ids []models.ContactID, includeTickets map[models.ContactID][]*models.Ticket) ([]*Scene, []models.ContactID, func(), error) {
+	remaining := ids
+	start := time.Now()
+
+	allgood := false
+	scenes := make([]*Scene, 0, len(ids))
+
+	unlockAll := func() {
+		for _, s := range scenes {
+			if err := s.unlock(context.Background(), rt, oa); err != nil {
+				slog.Error("error unlocking scene contact", "contact", s.ContactUUID(), "error", err)
+			}
+		}
+	}
+
+	defer func() {
+		if !allgood {
+			unlockAll()
+		}
+	}()
+
+	for len(remaining) > 0 && time.Since(start) < 10*time.Second {
+		if ctx.Err() != nil {
+			return nil, nil, nil, ctx.Err()
+		}
+
+		// try to get locks for these contacts, waiting for up to a second for each contact
+		locks, skipped, err := clocks.TryToLock(ctx, rt, oa, remaining, time.Second)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		locked := slices.Collect(maps.Keys(locks))
+
+		// create scenes for the locked contacts
+		ss, err := CreateScenes(ctx, rt, oa, locked, includeTickets)
+		if err != nil {
+			return nil, nil, nil, fmt.Errorf("error creating scenes for modifiers: %w", err)
+		}
+
+		for _, s := range ss {
+			s.lock = locks[s.ContactID()]
+		}
+
+		scenes = append(scenes, ss...)
+
+		remaining = skipped // skipped are now our remaining
+
+		if len(remaining) > 0 {
+			time.Sleep(50 * time.Millisecond)
+		}
+	}
+
+	// for test determinism
+	slices.SortFunc(scenes, func(a, b *Scene) int { return cmp.Compare(a.Contact.ID(), b.Contact.ID()) })
+
+	allgood = true // to prevent unlock in defer
+
+	return scenes, remaining, unlockAll, nil
 }

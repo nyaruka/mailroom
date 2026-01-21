@@ -1,70 +1,25 @@
 package runner
 
 import (
-	"cmp"
 	"context"
 	"fmt"
-	"maps"
-	"slices"
-	"time"
 
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/core/models"
-	"github.com/nyaruka/mailroom/core/runner/clocks"
 	"github.com/nyaruka/mailroom/runtime"
 )
 
-const (
-	// how long we will keep trying to lock contacts for modification
-	modifyLockWait = 10 * time.Second
-)
-
-// ModifyWithLock bulk modifies contacts by loading and locking them, applying modifiers and processing the resultant events.
-//
-// Note we don't load the user object from org assets as it's possible that the user isn't part of the org, e.g. customer support.
+// ModifyWithLock bulk modifies contacts by locking and loading them, applying modifiers and processing the resultant events.
 func ModifyWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, userID models.UserID, contactIDs []models.ContactID, modifiersByContact map[models.ContactID][]flows.Modifier, includeTickets map[models.ContactID][]*models.Ticket, via models.Via) (map[*flows.Contact][]flows.Event, []models.ContactID, error) {
-	eventsByContact := make(map[*flows.Contact][]flows.Event, len(modifiersByContact))
-	remaining := contactIDs
-	start := time.Now()
-
-	for len(remaining) > 0 && time.Since(start) < modifyLockWait {
-		if ctx.Err() != nil {
-			return nil, nil, ctx.Err()
-		}
-
-		es, skipped, err := tryToModifyWithLock(ctx, rt, oa, userID, remaining, modifiersByContact, includeTickets, via)
-		if err != nil {
-			return nil, nil, err
-		}
-
-		maps.Copy(eventsByContact, es)
-		remaining = skipped // skipped are now our remaining
-	}
-
-	return eventsByContact, remaining, nil
-}
-
-func tryToModifyWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, userID models.UserID, ids []models.ContactID, modifiersByContact map[models.ContactID][]flows.Modifier, includeTickets map[models.ContactID][]*models.Ticket, via models.Via) (map[*flows.Contact][]flows.Event, []models.ContactID, error) {
-	// try to get locks for these contacts, waiting for up to a second for each contact
-	locks, skipped, err := clocks.TryToLock(ctx, rt, oa, ids, time.Second)
+	scenes, skipped, unlock, err := LockAndLoad(ctx, rt, oa, contactIDs, includeTickets)
 	if err != nil {
 		return nil, nil, err
 	}
-	locked := slices.Collect(maps.Keys(locks))
 
-	// whatever happens, we need to unlock the contacts
-	defer clocks.Unlock(ctx, rt, oa, locks)
+	// ensure contacts are unlocked whatever happens
+	defer unlock()
 
-	eventsByContact := make(map[*flows.Contact][]flows.Event, len(ids))
-
-	// create scenes for the locked contacts
-	scenes, err := CreateScenes(ctx, rt, oa, locked, includeTickets)
-	if err != nil {
-		return nil, nil, fmt.Errorf("error creating scenes for modifiers: %w", err)
-	}
-
-	// for test determinism
-	slices.SortFunc(scenes, func(a, b *Scene) int { return cmp.Compare(a.Contact.ID(), b.Contact.ID()) })
+	eventsByContact := make(map[*flows.Contact][]flows.Event, len(modifiersByContact))
 
 	for _, scene := range scenes {
 		eventsByContact[scene.Contact] = make([]flows.Event, 0) // TODO only needed to avoid nulls until jsonv2
