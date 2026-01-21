@@ -1613,15 +1613,7 @@
                             "tel:+255788555111"
                         ]
                     },
-                    "events": [
-                        {
-                            "uuid": "01969b47-b54b-76f8-9853-0310d032b497",
-                            "type": "error",
-                            "created_on": "2025-05-04T12:31:31.123456789Z",
-                            "_via": "ui",
-                            "text": "'xyz:12345' is not valid URN"
-                        }
-                    ]
+                    "events": []
                 }
             },
             "skipped": []

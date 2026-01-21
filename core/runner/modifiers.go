@@ -16,14 +16,11 @@ func ModifyWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 		return nil, nil, err
 	}
 
-	// ensure contacts are unlocked whatever happens
-	defer unlock()
+	defer unlock() // contacts are unlocked whatever happens
 
 	eventsByContact := make(map[*flows.Contact][]flows.Event, len(modifiersByContact))
 
 	for _, scene := range scenes {
-		eventsByContact[scene.Contact] = make([]flows.Event, 0) // TODO only needed to avoid nulls until jsonv2
-
 		for _, mod := range modifiersByContact[scene.ContactID()] {
 			evts, err := scene.ApplyModifier(ctx, rt, oa, mod, userID, via)
 			if err != nil {
@@ -32,6 +29,8 @@ func ModifyWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 
 			eventsByContact[scene.Contact] = append(eventsByContact[scene.Contact], evts...)
 		}
+
+		eventsByContact[scene.Contact] = scene.History()
 	}
 
 	if err := BulkCommit(ctx, rt, oa, scenes); err != nil {
