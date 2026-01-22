@@ -1,9 +1,12 @@
 package runner
 
 import (
+	"cmp"
 	"context"
 	"fmt"
 	"log/slog"
+	"maps"
+	"slices"
 	"time"
 
 	"github.com/nyaruka/goflow/flows"
@@ -11,7 +14,15 @@ import (
 	"github.com/nyaruka/goflow/flows/modifiers"
 	"github.com/nyaruka/mailroom/core/goflow"
 	"github.com/nyaruka/mailroom/core/models"
+	"github.com/nyaruka/mailroom/core/runner/clocks"
 	"github.com/nyaruka/mailroom/runtime"
+)
+
+const (
+	// how long to try to acquire locks for contacts
+	lockingTimeout = 10 * time.Second
+
+	commitTimeout = time.Minute
 )
 
 // Scene represents the context that events are occurring in
@@ -75,6 +86,15 @@ func (s *Scene) SprintUUID() flows.SprintUUID {
 	return s.Sprint.UUID()
 }
 
+// History returns the persisted events for this scene, as engine events
+func (s *Scene) History() []flows.Event {
+	hs := make([]flows.Event, len(s.persistEvents))
+	for i, e := range s.persistEvents {
+		hs[i] = e.Event
+	}
+	return hs
+}
+
 func (s *Scene) AddEvent(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, e flows.Event, userID models.UserID, via models.Via) error {
 	handler, found := eventHandlers[e.Type()]
 	if !found {
@@ -128,7 +148,7 @@ func (s *Scene) addSprint(ctx context.Context, rt *runtime.Runtime, oa *models.O
 	return nil
 }
 
-func (s *Scene) Interrupt(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, status flows.SessionStatus) error {
+func (s *Scene) InterruptWaiting(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, status flows.SessionStatus) error {
 	return addInterruptEvents(ctx, rt, oa, []*Scene{s}, status)
 }
 
@@ -166,7 +186,7 @@ func (s *Scene) ResumeSession(ctx context.Context, rt *runtime.Runtime, oa *mode
 			// if flow doesn't exist, we can't resume, so fail the session
 			slog.Debug("unable to find flow for resume", "contact", s.ContactUUID(), "session", session.UUID, "flow", session.CurrentFlowUUID)
 
-			if err := s.Interrupt(ctx, rt, oa, flows.SessionStatusFailed); err != nil {
+			if err := s.InterruptWaiting(ctx, rt, oa, flows.SessionStatusFailed); err != nil {
 				return fmt.Errorf("error adding interrupt events for unresumable session %s: %w", session.UUID, err)
 			}
 
@@ -264,6 +284,61 @@ func CreateScenes(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets
 	}
 
 	return scenes, nil
+}
+
+// LockAndLoad tries to lock and load scenes for the given contact ids, returning any ids that could not be locked.
+// The caller is responsible for unlocking the scenes by calling the returned unlock function.
+func LockAndLoad(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, ids []models.ContactID, includeTickets map[models.ContactID][]*models.Ticket) ([]*Scene, []models.ContactID, func(), error) {
+	allScenes := make([]*Scene, 0, len(ids))
+	allLocks := make(map[models.ContactID]string, len(ids))
+	allGood := false
+
+	unlockAll := func() {
+		if err := clocks.Unlock(context.Background(), rt, oa, allLocks); err != nil {
+			slog.Error("error unlocking contacts", "error", err, "contacts", maps.Keys(allLocks))
+		}
+	}
+
+	defer func() {
+		if !allGood {
+			unlockAll()
+		}
+	}()
+
+	remaining := ids
+	start := time.Now()
+
+	for len(remaining) > 0 && time.Since(start) < lockingTimeout {
+		if ctx.Err() != nil {
+			return nil, nil, nil, ctx.Err()
+		}
+
+		// try to get locks for these contacts, waiting for up to a second for each contact
+		locks, skipped, err := clocks.TryToLock(ctx, rt, oa, remaining, time.Second)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		maps.Copy(allLocks, locks)
+
+		locked := slices.Collect(maps.Keys(locks))
+
+		// create scenes for the locked contacts
+		scenes, err := CreateScenes(ctx, rt, oa, locked, includeTickets)
+		if err != nil {
+			return nil, nil, nil, fmt.Errorf("error creating scenes after locking: %w", err)
+		}
+
+		allScenes = append(allScenes, scenes...)
+
+		remaining = skipped // skipped are now our remaining
+	}
+
+	// for test determinism
+	slices.SortFunc(allScenes, func(a, b *Scene) int { return cmp.Compare(a.Contact.ID(), b.Contact.ID()) })
+
+	allGood = true // to prevent unlock in defer
+
+	return allScenes, remaining, unlockAll, nil
 }
 
 // BulkCommit commits the passed in scenes in a single transaction. If that fails, it retries committing each scene one at a time.

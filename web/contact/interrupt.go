@@ -31,24 +31,51 @@ type interruptRequest struct {
 	ContactIDs []models.ContactID `json:"contact_ids" validate:"required"`
 }
 
+// Response for contact interruption. Will return the events generated. Contacts that we couldn't
+// get a lock for are returned in skipped.
+//
+//	{
+//	  "events": {
+//	    "559d4cf7-8ed3-43db-9bbb-2be85345f87e": [...]
+//	    ...
+//	  },
+//	  "skipped": [1006, 1007]
+//	}
+type interruptResponse struct {
+	Events  map[flows.ContactUUID][]flows.Event `json:"events"`
+	Skipped []models.ContactID                  `json:"skipped"`
+}
+
 // handles a request to interrupt a contact
 func handleInterrupt(ctx context.Context, rt *runtime.Runtime, r *interruptRequest) (any, int, error) {
+	resp := &interruptResponse{}
+
 	if len(r.ContactIDs) == 1 {
 		oa, err := models.GetOrgAssets(ctx, rt, r.OrgID)
 		if err != nil {
 			return nil, 0, fmt.Errorf("error loading org assets: %w", err)
 		}
 
-		if err := runner.Interrupt(ctx, rt, oa, r.ContactIDs, flows.SessionStatusInterrupted); err != nil {
-			return nil, 0, fmt.Errorf("unable to interrupt contact: %w", err)
+		eventsByContact, skipped, err := runner.InterruptWithLock(ctx, rt, oa, r.ContactIDs, flows.SessionStatusInterrupted)
+		if err != nil {
+			return nil, 0, fmt.Errorf("error interrupting contact: %w", err)
 		}
+
+		resp.Events = make(map[flows.ContactUUID][]flows.Event, len(eventsByContact))
+		for contact, events := range eventsByContact {
+			resp.Events[contact.UUID()] = events
+		}
+		resp.Skipped = skipped
 
 	} else if len(r.ContactIDs) > 0 {
 		task := &tasks.InterruptSessions{ContactIDs: r.ContactIDs}
 		if err := tasks.Queue(ctx, rt, rt.Queues.Batch, r.OrgID, task, true); err != nil {
 			return nil, 0, fmt.Errorf("error queuing interrupt flow task: %w", err)
 		}
+
+		resp.Events = map[flows.ContactUUID][]flows.Event{}
+		resp.Skipped = []models.ContactID{}
 	}
 
-	return map[string]any{"sessions": 0}, http.StatusOK, nil
+	return resp, http.StatusOK, nil
 }

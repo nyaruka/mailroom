@@ -14,10 +14,6 @@ import (
 	"github.com/nyaruka/mailroom/runtime"
 )
 
-const (
-	commitTimeout = time.Minute
-)
-
 // TriggerBuilder defines the interface for building a trigger for the passed in contact
 type TriggerBuilder func() flows.Trigger
 
