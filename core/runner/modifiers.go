@@ -3,6 +3,7 @@ package runner
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/core/models"
@@ -11,7 +12,7 @@ import (
 
 // ModifyWithLock bulk modifies contacts by locking and loading them, applying modifiers and processing the resultant events.
 func ModifyWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, userID models.UserID, contactIDs []models.ContactID, modifiersByContact map[models.ContactID][]flows.Modifier, includeTickets map[models.ContactID][]*models.Ticket, via models.Via) (map[*flows.Contact][]flows.Event, []models.ContactID, error) {
-	scenes, skipped, unlock, err := LockAndLoad(ctx, rt, oa, contactIDs, includeTickets)
+	scenes, skipped, unlock, err := LockAndLoad(ctx, rt, oa, contactIDs, includeTickets, 10*time.Second)
 	if err != nil {
 		return nil, nil, err
 	}

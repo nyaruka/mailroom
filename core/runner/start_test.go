@@ -46,9 +46,9 @@ func TestStartFlowConcurrency(t *testing.T) {
 
 	// start each contact in the flow at the same time...
 	test.RunConcurrently(len(contacts), func(i int) {
-		sessions, err := runner.StartWithLock(ctx, rt, oa, []models.ContactID{contacts[i].ID}, triggerBuilder, false, models.NilStartID)
+		scenes, _, err := runner.StartWithLock(ctx, rt, oa, []models.ContactID{contacts[i].ID}, triggerBuilder, false, models.NilStartID)
 		assert.NoError(t, err)
-		assert.Equal(t, 1, len(sessions))
+		assert.Equal(t, 1, len(scenes))
 	})
 
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowrun`).Returns(len(contacts))

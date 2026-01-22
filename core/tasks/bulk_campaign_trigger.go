@@ -145,9 +145,13 @@ func (t *BulkCampaignTrigger) triggerFlow(ctx context.Context, rt *runtime.Runti
 	} else {
 		interrupt := p.StartMode != models.PointModePassive
 
-		_, err = runner.StartWithLock(ctx, rt, oa, contactIDs, triggerBuilder, interrupt, models.NilStartID)
+		_, skipped, err := runner.StartWithLock(ctx, rt, oa, contactIDs, triggerBuilder, interrupt, models.NilStartID)
 		if err != nil {
 			return fmt.Errorf("error starting flow for campaign point #%d: %w", p.ID, err)
+		}
+
+		if len(skipped) > 0 {
+			slog.Warn("failed to acquire locks for contacts", "contacts", skipped)
 		}
 	}
 

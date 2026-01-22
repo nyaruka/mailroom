@@ -19,9 +19,6 @@ import (
 )
 
 const (
-	// how long to try to acquire locks for contacts
-	lockingTimeout = 10 * time.Second
-
 	commitTimeout = time.Minute
 )
 
@@ -288,7 +285,7 @@ func CreateScenes(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets
 
 // LockAndLoad tries to lock and load scenes for the given contact ids, returning any ids that could not be locked.
 // The caller is responsible for unlocking the scenes by calling the returned unlock function.
-func LockAndLoad(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, ids []models.ContactID, includeTickets map[models.ContactID][]*models.Ticket) ([]*Scene, []models.ContactID, func(), error) {
+func LockAndLoad(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, ids []models.ContactID, includeTickets map[models.ContactID][]*models.Ticket, timeout time.Duration) ([]*Scene, []models.ContactID, func(), error) {
 	allScenes := make([]*Scene, 0, len(ids))
 	allLocks := make(map[models.ContactID]string, len(ids))
 	allGood := false
@@ -308,7 +305,7 @@ func LockAndLoad(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 	remaining := ids
 	start := time.Now()
 
-	for len(remaining) > 0 && time.Since(start) < lockingTimeout {
+	for len(remaining) > 0 && time.Since(start) < timeout {
 		if ctx.Err() != nil {
 			return nil, nil, nil, ctx.Err()
 		}
