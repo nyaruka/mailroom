@@ -2187,7 +2187,15 @@
         "status": 200,
         "response": {
             "events": {
-                "a393abc0-283d-4c9b-a1b3-641a035c34bf": []
+                "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                    {
+                        "uuid": "01969b47-b54b-76f8-9853-0310d032b497",
+                        "type": "error",
+                        "created_on": "2025-05-04T12:31:31.123456789Z",
+                        "_via": "ui",
+                        "text": "'xyz:12345' is not valid URN"
+                    }
+                ]
             },
             "skipped": [],
             "contacts": [
@@ -2216,7 +2224,15 @@
                             "tel:+255788555111"
                         ]
                     },
-                    "events": []
+                    "events": [
+                        {
+                            "uuid": "01969b47-b54b-76f8-9853-0310d032b497",
+                            "type": "error",
+                            "created_on": "2025-05-04T12:31:31.123456789Z",
+                            "_via": "ui",
+                            "text": "'xyz:12345' is not valid URN"
+                        }
+                    ]
                 }
             }
         },

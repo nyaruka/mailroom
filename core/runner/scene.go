@@ -45,6 +45,7 @@ type Scene struct {
 
 	preCommits    map[PreCommitHook][]any
 	postCommits   map[PostCommitHook][]any
+	rawEvents     []flows.Event
 	persistEvents []*models.Event
 
 	// can be overridden by tests
@@ -59,6 +60,7 @@ func NewScene(dbContact *models.Contact, contact *flows.Contact) *Scene {
 
 		preCommits:  make(map[PreCommitHook][]any),
 		postCommits: make(map[PostCommitHook][]any),
+		rawEvents:   make([]flows.Event, 0, 5),
 
 		Engine: goflow.Engine,
 	}
@@ -83,14 +85,8 @@ func (s *Scene) SprintUUID() flows.SprintUUID {
 	return s.Sprint.UUID()
 }
 
-// History returns the persisted events for this scene, as engine events
-func (s *Scene) History() []flows.Event {
-	hs := make([]flows.Event, len(s.persistEvents))
-	for i, e := range s.persistEvents {
-		hs[i] = e.Event
-	}
-	return hs
-}
+// Events returns all events added to this scene (includes non-persisted events)
+func (s *Scene) Events() []flows.Event { return s.rawEvents }
 
 func (s *Scene) AddEvent(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, e flows.Event, userID models.UserID, via models.Via) error {
 	handler, found := eventHandlers[e.Type()]
@@ -110,12 +106,18 @@ func (s *Scene) AddEvent(ctx context.Context, rt *runtime.Runtime, oa *models.Or
 
 	e.SetUser(user.Reference(), string(via))
 
-	if models.PersistEvent(e) {
-		s.persistEvents = append(s.persistEvents, &models.Event{
-			Event:       e,
-			OrgID:       oa.OrgID(),
-			ContactUUID: s.ContactUUID(),
-		})
+	switch e.(type) {
+	case *ContactInterruptedEvent, *SprintEndedEvent: // our pseudo events aren't real...
+	default:
+		s.rawEvents = append(s.rawEvents, e)
+
+		if models.PersistEvent(e) {
+			s.persistEvents = append(s.persistEvents, &models.Event{
+				Event:       e,
+				OrgID:       oa.OrgID(),
+				ContactUUID: s.ContactUUID(),
+			})
+		}
 	}
 
 	return nil
