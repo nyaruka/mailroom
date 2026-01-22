@@ -14,6 +14,10 @@
         },
         "status": 200,
         "response": {
+            "events": {
+                "a393abc0-283d-4c9b-a1b3-641a035c34bf": []
+            },
+            "skipped": [],
             "contacts": [
                 {
                     "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
@@ -24,10 +28,6 @@
                     "created_on": "2018-07-06T12:30:00.123457Z"
                 }
             ],
-            "events": {
-                "a393abc0-283d-4c9b-a1b3-641a035c34bf": []
-            },
-            "skipped": [],
             "modified": {
                 "10000": {
                     "contact": {
@@ -69,16 +69,6 @@
         },
         "status": 200,
         "response": {
-            "contacts": [
-                {
-                    "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                    "id": 10000,
-                    "name": "Kathy",
-                    "status": "active",
-                    "timezone": "America/Los_Angeles",
-                    "created_on": "2018-07-06T12:30:00.123457Z"
-                }
-            ],
             "events": {
                 "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
                     {
@@ -91,6 +81,16 @@
                 ]
             },
             "skipped": [],
+            "contacts": [
+                {
+                    "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                    "id": 10000,
+                    "name": "Kathy",
+                    "status": "active",
+                    "timezone": "America/Los_Angeles",
+                    "created_on": "2018-07-06T12:30:00.123457Z"
+                }
+            ],
             "modified": {
                 "10000": {
                     "contact": {
@@ -154,16 +154,6 @@
         },
         "status": 200,
         "response": {
-            "contacts": [
-                {
-                    "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                    "id": 10000,
-                    "name": "Nate",
-                    "status": "active",
-                    "timezone": "America/Los_Angeles",
-                    "created_on": "2018-07-06T12:30:00.123457Z"
-                }
-            ],
             "events": {
                 "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
                     {
@@ -180,6 +170,16 @@
                 ]
             },
             "skipped": [],
+            "contacts": [
+                {
+                    "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                    "id": 10000,
+                    "name": "Nate",
+                    "status": "active",
+                    "timezone": "America/Los_Angeles",
+                    "created_on": "2018-07-06T12:30:00.123457Z"
+                }
+            ],
             "modified": {
                 "10000": {
                     "contact": {
@@ -251,15 +251,6 @@
         },
         "status": 200,
         "response": {
-            "contacts": [
-                {
-                    "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                    "id": 10000,
-                    "status": "active",
-                    "timezone": "America/Los_Angeles",
-                    "created_on": "2018-07-06T12:30:00.123457Z"
-                }
-            ],
             "events": {
                 "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
                     {
@@ -276,6 +267,15 @@
                 ]
             },
             "skipped": [],
+            "contacts": [
+                {
+                    "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                    "id": 10000,
+                    "status": "active",
+                    "timezone": "America/Los_Angeles",
+                    "created_on": "2018-07-06T12:30:00.123457Z"
+                }
+            ],
             "modified": {
                 "10000": {
                     "contact": {
@@ -346,15 +346,6 @@
         },
         "status": 200,
         "response": {
-            "contacts": [
-                {
-                    "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                    "id": 10000,
-                    "status": "blocked",
-                    "timezone": "America/Los_Angeles",
-                    "created_on": "2018-07-06T12:30:00.123457Z"
-                }
-            ],
             "events": {
                 "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
                     {
@@ -371,6 +362,15 @@
                 ]
             },
             "skipped": [],
+            "contacts": [
+                {
+                    "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                    "id": 10000,
+                    "status": "blocked",
+                    "timezone": "America/Los_Angeles",
+                    "created_on": "2018-07-06T12:30:00.123457Z"
+                }
+            ],
             "modified": {
                 "10000": {
                     "contact": {
@@ -440,15 +440,6 @@
         },
         "status": 200,
         "response": {
-            "contacts": [
-                {
-                    "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                    "id": 10000,
-                    "status": "archived",
-                    "timezone": "America/Los_Angeles",
-                    "created_on": "2018-07-06T12:30:00.123457Z"
-                }
-            ],
             "events": {
                 "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
                     {
@@ -465,6 +456,15 @@
                 ]
             },
             "skipped": [],
+            "contacts": [
+                {
+                    "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                    "id": 10000,
+                    "status": "archived",
+                    "timezone": "America/Los_Angeles",
+                    "created_on": "2018-07-06T12:30:00.123457Z"
+                }
+            ],
             "modified": {
                 "10000": {
                     "contact": {
@@ -534,15 +534,6 @@
         },
         "status": 200,
         "response": {
-            "contacts": [
-                {
-                    "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                    "id": 10000,
-                    "status": "active",
-                    "timezone": "America/Los_Angeles",
-                    "created_on": "2018-07-06T12:30:00.123457Z"
-                }
-            ],
             "events": {
                 "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
                     {
@@ -559,6 +550,15 @@
                 ]
             },
             "skipped": [],
+            "contacts": [
+                {
+                    "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                    "id": 10000,
+                    "status": "active",
+                    "timezone": "America/Los_Angeles",
+                    "created_on": "2018-07-06T12:30:00.123457Z"
+                }
+            ],
             "modified": {
                 "10000": {
                     "contact": {
@@ -632,20 +632,6 @@
         },
         "status": 200,
         "response": {
-            "contacts": [
-                {
-                    "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                    "id": 10000,
-                    "status": "active",
-                    "timezone": "America/Los_Angeles",
-                    "created_on": "2018-07-06T12:30:00.123457Z",
-                    "fields": {
-                        "gender": {
-                            "text": "M"
-                        }
-                    }
-                }
-            ],
             "events": {
                 "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
                     {
@@ -668,6 +654,20 @@
                 ]
             },
             "skipped": [],
+            "contacts": [
+                {
+                    "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                    "id": 10000,
+                    "status": "active",
+                    "timezone": "America/Los_Angeles",
+                    "created_on": "2018-07-06T12:30:00.123457Z",
+                    "fields": {
+                        "gender": {
+                            "text": "M"
+                        }
+                    }
+                }
+            ],
             "modified": {
                 "10000": {
                     "contact": {
@@ -759,30 +759,6 @@
         },
         "status": 200,
         "response": {
-            "contacts": [
-                {
-                    "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                    "id": 10000,
-                    "status": "active",
-                    "timezone": "America/Los_Angeles",
-                    "created_on": "2018-07-06T12:30:00.123457Z",
-                    "groups": [
-                        {
-                            "uuid": "c153e265-f7c9-4539-9dbc-9b358714b638",
-                            "name": "Doctors"
-                        }
-                    ],
-                    "fields": {
-                        "age": {
-                            "text": "24",
-                            "number": 24
-                        },
-                        "gender": {
-                            "text": "M"
-                        }
-                    }
-                }
-            ],
             "events": {
                 "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
                     {
@@ -818,6 +794,30 @@
                 ]
             },
             "skipped": [],
+            "contacts": [
+                {
+                    "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                    "id": 10000,
+                    "status": "active",
+                    "timezone": "America/Los_Angeles",
+                    "created_on": "2018-07-06T12:30:00.123457Z",
+                    "groups": [
+                        {
+                            "uuid": "c153e265-f7c9-4539-9dbc-9b358714b638",
+                            "name": "Doctors"
+                        }
+                    ],
+                    "fields": {
+                        "age": {
+                            "text": "24",
+                            "number": 24
+                        },
+                        "gender": {
+                            "text": "M"
+                        }
+                    }
+                }
+            ],
             "modified": {
                 "10000": {
                     "contact": {
@@ -958,6 +958,29 @@
         },
         "status": 200,
         "response": {
+            "events": {
+                "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                    {
+                        "uuid": "01969b47-5b73-76f8-a691-235cbe720980",
+                        "type": "contact_field_changed",
+                        "created_on": "2025-05-04T12:31:08.123456789Z",
+                        "_user": {
+                            "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
+                            "name": "Andy Admin"
+                        },
+                        "_via": "ui",
+                        "field": {
+                            "key": "joined",
+                            "name": "Joined"
+                        },
+                        "value": {
+                            "text": "26/06/2020",
+                            "datetime": "2020-06-26T05:31:06.123456-07:00"
+                        }
+                    }
+                ]
+            },
+            "skipped": [],
             "contacts": [
                 {
                     "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
@@ -986,29 +1009,6 @@
                     }
                 }
             ],
-            "events": {
-                "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
-                    {
-                        "uuid": "01969b47-5b73-76f8-a691-235cbe720980",
-                        "type": "contact_field_changed",
-                        "created_on": "2025-05-04T12:31:08.123456789Z",
-                        "_user": {
-                            "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
-                            "name": "Andy Admin"
-                        },
-                        "_via": "ui",
-                        "field": {
-                            "key": "joined",
-                            "name": "Joined"
-                        },
-                        "value": {
-                            "text": "26/06/2020",
-                            "datetime": "2020-06-26T05:31:06.123456-07:00"
-                        }
-                    }
-                ]
-            },
-            "skipped": [],
             "modified": {
                 "10000": {
                     "contact": {
@@ -1110,6 +1110,29 @@
         },
         "status": 200,
         "response": {
+            "events": {
+                "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                    {
+                        "uuid": "01969b47-672b-76f8-bebe-b4a1f677cf4c",
+                        "type": "contact_field_changed",
+                        "created_on": "2025-05-04T12:31:11.123456789Z",
+                        "_user": {
+                            "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
+                            "name": "Andy Admin"
+                        },
+                        "_via": "ui",
+                        "field": {
+                            "key": "state",
+                            "name": "State"
+                        },
+                        "value": {
+                            "text": "BORNO",
+                            "state": "Nigeria > Borno"
+                        }
+                    }
+                ]
+            },
+            "skipped": [],
             "contacts": [
                 {
                     "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
@@ -1142,29 +1165,6 @@
                     }
                 }
             ],
-            "events": {
-                "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
-                    {
-                        "uuid": "01969b47-672b-76f8-bebe-b4a1f677cf4c",
-                        "type": "contact_field_changed",
-                        "created_on": "2025-05-04T12:31:11.123456789Z",
-                        "_user": {
-                            "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
-                            "name": "Andy Admin"
-                        },
-                        "_via": "ui",
-                        "field": {
-                            "key": "state",
-                            "name": "State"
-                        },
-                        "value": {
-                            "text": "BORNO",
-                            "state": "Nigeria > Borno"
-                        }
-                    }
-                ]
-            },
-            "skipped": [],
             "modified": {
                 "10000": {
                     "contact": {
@@ -1294,15 +1294,6 @@
         },
         "status": 200,
         "response": {
-            "contacts": [
-                {
-                    "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                    "id": 10000,
-                    "status": "active",
-                    "timezone": "America/Los_Angeles",
-                    "created_on": "2018-07-06T12:30:00.123457Z"
-                }
-            ],
             "events": {
                 "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
                     {
@@ -1380,6 +1371,15 @@
                 ]
             },
             "skipped": [],
+            "contacts": [
+                {
+                    "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                    "id": 10000,
+                    "status": "active",
+                    "timezone": "America/Los_Angeles",
+                    "created_on": "2018-07-06T12:30:00.123457Z"
+                }
+            ],
             "modified": {
                 "10000": {
                     "contact": {
@@ -1606,21 +1606,6 @@
         },
         "status": 200,
         "response": {
-            "contacts": [
-                {
-                    "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                    "id": 10000,
-                    "status": "active",
-                    "timezone": "America/Los_Angeles",
-                    "created_on": "2018-07-06T12:30:00.123457Z",
-                    "groups": [
-                        {
-                            "uuid": "5e9d8fab-5e7e-4f51-b533-261af5dea70d",
-                            "name": "Testers"
-                        }
-                    ]
-                }
-            ],
             "events": {
                 "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
                     {
@@ -1642,6 +1627,21 @@
                 ]
             },
             "skipped": [],
+            "contacts": [
+                {
+                    "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                    "id": 10000,
+                    "status": "active",
+                    "timezone": "America/Los_Angeles",
+                    "created_on": "2018-07-06T12:30:00.123457Z",
+                    "groups": [
+                        {
+                            "uuid": "5e9d8fab-5e7e-4f51-b533-261af5dea70d",
+                            "name": "Testers"
+                        }
+                    ]
+                }
+            ],
             "modified": {
                 "10000": {
                     "contact": {
@@ -1734,6 +1734,10 @@
         },
         "status": 200,
         "response": {
+            "events": {
+                "a393abc0-283d-4c9b-a1b3-641a035c34bf": []
+            },
+            "skipped": [],
             "contacts": [
                 {
                     "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
@@ -1749,10 +1753,6 @@
                     ]
                 }
             ],
-            "events": {
-                "a393abc0-283d-4c9b-a1b3-641a035c34bf": []
-            },
-            "skipped": [],
             "modified": {
                 "10000": {
                     "contact": {
@@ -1805,15 +1805,6 @@
         },
         "status": 200,
         "response": {
-            "contacts": [
-                {
-                    "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                    "id": 10000,
-                    "status": "active",
-                    "timezone": "America/Los_Angeles",
-                    "created_on": "2018-07-06T12:30:00.123457Z"
-                }
-            ],
             "events": {
                 "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
                     {
@@ -1835,6 +1826,15 @@
                 ]
             },
             "skipped": [],
+            "contacts": [
+                {
+                    "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                    "id": 10000,
+                    "status": "active",
+                    "timezone": "America/Los_Angeles",
+                    "created_on": "2018-07-06T12:30:00.123457Z"
+                }
+            ],
             "modified": {
                 "10000": {
                     "contact": {
@@ -1921,6 +1921,10 @@
         },
         "status": 200,
         "response": {
+            "events": {
+                "a393abc0-283d-4c9b-a1b3-641a035c34bf": []
+            },
+            "skipped": [],
             "contacts": [
                 {
                     "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
@@ -1930,10 +1934,6 @@
                     "created_on": "2018-07-06T12:30:00.123457Z"
                 }
             ],
-            "events": {
-                "a393abc0-283d-4c9b-a1b3-641a035c34bf": []
-            },
-            "skipped": [],
             "modified": {
                 "10000": {
                     "contact": {
@@ -1974,16 +1974,6 @@
         },
         "status": 200,
         "response": {
-            "contacts": [
-                {
-                    "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                    "id": 10000,
-                    "language": "fra",
-                    "status": "active",
-                    "timezone": "America/Los_Angeles",
-                    "created_on": "2018-07-06T12:30:00.123457Z"
-                }
-            ],
             "events": {
                 "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
                     {
@@ -2000,6 +1990,16 @@
                 ]
             },
             "skipped": [],
+            "contacts": [
+                {
+                    "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                    "id": 10000,
+                    "language": "fra",
+                    "status": "active",
+                    "timezone": "America/Los_Angeles",
+                    "created_on": "2018-07-06T12:30:00.123457Z"
+                }
+            ],
             "modified": {
                 "10000": {
                     "contact": {
@@ -2074,19 +2074,6 @@
         },
         "status": 200,
         "response": {
-            "contacts": [
-                {
-                    "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                    "id": 10000,
-                    "language": "fra",
-                    "status": "active",
-                    "timezone": "America/Los_Angeles",
-                    "created_on": "2018-07-06T12:30:00.123457Z",
-                    "urns": [
-                        "tel:+255788555111"
-                    ]
-                }
-            ],
             "events": {
                 "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
                     {
@@ -2105,6 +2092,19 @@
                 ]
             },
             "skipped": [],
+            "contacts": [
+                {
+                    "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                    "id": 10000,
+                    "language": "fra",
+                    "status": "active",
+                    "timezone": "America/Los_Angeles",
+                    "created_on": "2018-07-06T12:30:00.123457Z",
+                    "urns": [
+                        "tel:+255788555111"
+                    ]
+                }
+            ],
             "modified": {
                 "10000": {
                     "contact": {
@@ -2186,6 +2186,10 @@
         },
         "status": 200,
         "response": {
+            "events": {
+                "a393abc0-283d-4c9b-a1b3-641a035c34bf": []
+            },
+            "skipped": [],
             "contacts": [
                 {
                     "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
@@ -2199,10 +2203,6 @@
                     ]
                 }
             ],
-            "events": {
-                "a393abc0-283d-4c9b-a1b3-641a035c34bf": []
-            },
-            "skipped": [],
             "modified": {
                 "10000": {
                     "contact": {
@@ -2251,20 +2251,6 @@
         },
         "status": 200,
         "response": {
-            "contacts": [
-                {
-                    "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                    "id": 10000,
-                    "language": "fra",
-                    "status": "active",
-                    "timezone": "America/Los_Angeles",
-                    "created_on": "2018-07-06T12:30:00.123457Z",
-                    "urns": [
-                        "tel:+255788555111",
-                        "tel:+255788555222"
-                    ]
-                }
-            ],
             "events": {
                 "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
                     {
@@ -2284,6 +2270,20 @@
                 ]
             },
             "skipped": [],
+            "contacts": [
+                {
+                    "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                    "id": 10000,
+                    "language": "fra",
+                    "status": "active",
+                    "timezone": "America/Los_Angeles",
+                    "created_on": "2018-07-06T12:30:00.123457Z",
+                    "urns": [
+                        "tel:+255788555111",
+                        "tel:+255788555222"
+                    ]
+                }
+            ],
             "modified": {
                 "10000": {
                     "contact": {
@@ -2368,19 +2368,6 @@
         },
         "status": 200,
         "response": {
-            "contacts": [
-                {
-                    "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                    "id": 10000,
-                    "language": "fra",
-                    "status": "active",
-                    "timezone": "America/Los_Angeles",
-                    "created_on": "2018-07-06T12:30:00.123457Z",
-                    "urns": [
-                        "tel:+255788555111"
-                    ]
-                }
-            ],
             "events": {
                 "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
                     {
@@ -2399,6 +2386,19 @@
                 ]
             },
             "skipped": [],
+            "contacts": [
+                {
+                    "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                    "id": 10000,
+                    "language": "fra",
+                    "status": "active",
+                    "timezone": "America/Los_Angeles",
+                    "created_on": "2018-07-06T12:30:00.123457Z",
+                    "urns": [
+                        "tel:+255788555111"
+                    ]
+                }
+            ],
             "modified": {
                 "10000": {
                     "contact": {
@@ -2485,20 +2485,6 @@
         },
         "status": 200,
         "response": {
-            "contacts": [
-                {
-                    "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                    "id": 10000,
-                    "language": "fra",
-                    "status": "active",
-                    "timezone": "America/Los_Angeles",
-                    "created_on": "2018-07-06T12:30:00.123457Z",
-                    "urns": [
-                        "tel:+255788555111",
-                        "tel:+255788555333"
-                    ]
-                }
-            ],
             "events": {
                 "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
                     {
@@ -2518,6 +2504,20 @@
                 ]
             },
             "skipped": [],
+            "contacts": [
+                {
+                    "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                    "id": 10000,
+                    "language": "fra",
+                    "status": "active",
+                    "timezone": "America/Los_Angeles",
+                    "created_on": "2018-07-06T12:30:00.123457Z",
+                    "urns": [
+                        "tel:+255788555111",
+                        "tel:+255788555333"
+                    ]
+                }
+            ],
             "modified": {
                 "10000": {
                     "contact": {
@@ -2612,16 +2612,6 @@
         },
         "status": 200,
         "response": {
-            "contacts": [
-                {
-                    "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                    "id": 10000,
-                    "language": "fra",
-                    "status": "active",
-                    "timezone": "America/Los_Angeles",
-                    "created_on": "2018-07-06T12:30:00.123457Z"
-                }
-            ],
             "events": {
                 "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
                     {
@@ -2638,6 +2628,16 @@
                 ]
             },
             "skipped": [],
+            "contacts": [
+                {
+                    "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                    "id": 10000,
+                    "language": "fra",
+                    "status": "active",
+                    "timezone": "America/Los_Angeles",
+                    "created_on": "2018-07-06T12:30:00.123457Z"
+                }
+            ],
             "modified": {
                 "10000": {
                     "contact": {
@@ -2729,36 +2729,6 @@
         },
         "status": 200,
         "response": {
-            "contacts": [
-                {
-                    "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                    "id": 10000,
-                    "language": "fra",
-                    "status": "active",
-                    "timezone": "America/Los_Angeles",
-                    "created_on": "2018-07-06T12:30:00.123457Z",
-                    "groups": [
-                        {
-                            "uuid": "361838c4-2866-495a-8990-9f3c222a7604",
-                            "name": "Open Tickets"
-                        }
-                    ],
-                    "tickets": [
-                        {
-                            "uuid": "01969b47-dc5b-76f8-aaa3-04d3fbce5f9a",
-                            "status": "open",
-                            "topic": {
-                                "uuid": "0a8f2e00-fef6-402c-bd79-d789446ec0e0",
-                                "name": "Support"
-                            },
-                            "assignee": {
-                                "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
-                                "name": "Andy Admin"
-                            }
-                        }
-                    ]
-                }
-            ],
             "events": {
                 "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
                     {
@@ -2810,6 +2780,36 @@
                 ]
             },
             "skipped": [],
+            "contacts": [
+                {
+                    "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                    "id": 10000,
+                    "language": "fra",
+                    "status": "active",
+                    "timezone": "America/Los_Angeles",
+                    "created_on": "2018-07-06T12:30:00.123457Z",
+                    "groups": [
+                        {
+                            "uuid": "361838c4-2866-495a-8990-9f3c222a7604",
+                            "name": "Open Tickets"
+                        }
+                    ],
+                    "tickets": [
+                        {
+                            "uuid": "01969b47-dc5b-76f8-aaa3-04d3fbce5f9a",
+                            "status": "open",
+                            "topic": {
+                                "uuid": "0a8f2e00-fef6-402c-bd79-d789446ec0e0",
+                                "name": "Support"
+                            },
+                            "assignee": {
+                                "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
+                                "name": "Andy Admin"
+                            }
+                        }
+                    ]
+                }
+            ],
             "modified": {
                 "10000": {
                     "contact": {
@@ -2994,44 +2994,6 @@
         },
         "status": 200,
         "response": {
-            "contacts": [
-                {
-                    "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                    "id": 10000,
-                    "name": "Juan",
-                    "language": "spa",
-                    "status": "active",
-                    "timezone": "America/Los_Angeles",
-                    "created_on": "2018-07-06T12:30:00.123457Z",
-                    "urns": [
-                        "tel:+255788555111"
-                    ],
-                    "groups": [
-                        {
-                            "uuid": "361838c4-2866-495a-8990-9f3c222a7604",
-                            "name": "Open Tickets"
-                        },
-                        {
-                            "uuid": "5e9d8fab-5e7e-4f51-b533-261af5dea70d",
-                            "name": "Testers"
-                        }
-                    ],
-                    "tickets": [
-                        {
-                            "uuid": "01969b47-dc5b-76f8-aaa3-04d3fbce5f9a",
-                            "status": "open",
-                            "topic": {
-                                "uuid": "0a8f2e00-fef6-402c-bd79-d789446ec0e0",
-                                "name": "Support"
-                            },
-                            "assignee": {
-                                "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
-                                "name": "Andy Admin"
-                            }
-                        }
-                    ]
-                }
-            ],
             "events": {
                 "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
                     {
@@ -3088,6 +3050,44 @@
                 ]
             },
             "skipped": [],
+            "contacts": [
+                {
+                    "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                    "id": 10000,
+                    "name": "Juan",
+                    "language": "spa",
+                    "status": "active",
+                    "timezone": "America/Los_Angeles",
+                    "created_on": "2018-07-06T12:30:00.123457Z",
+                    "urns": [
+                        "tel:+255788555111"
+                    ],
+                    "groups": [
+                        {
+                            "uuid": "361838c4-2866-495a-8990-9f3c222a7604",
+                            "name": "Open Tickets"
+                        },
+                        {
+                            "uuid": "5e9d8fab-5e7e-4f51-b533-261af5dea70d",
+                            "name": "Testers"
+                        }
+                    ],
+                    "tickets": [
+                        {
+                            "uuid": "01969b47-dc5b-76f8-aaa3-04d3fbce5f9a",
+                            "status": "open",
+                            "topic": {
+                                "uuid": "0a8f2e00-fef6-402c-bd79-d789446ec0e0",
+                                "name": "Support"
+                            },
+                            "assignee": {
+                                "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
+                                "name": "Andy Admin"
+                            }
+                        }
+                    ]
+                }
+            ],
             "modified": {
                 "10000": {
                     "contact": {
@@ -3277,6 +3277,24 @@
         },
         "status": 200,
         "response": {
+            "events": {
+                "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                    {
+                        "uuid": "01969b48-1ec3-76f8-8f9d-465efd6fbb5e",
+                        "type": "contact_language_changed",
+                        "created_on": "2025-05-04T12:31:58.123456789Z",
+                        "_user": {
+                            "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
+                            "name": "Andy Admin"
+                        },
+                        "_via": "ui",
+                        "language": "eng"
+                    }
+                ]
+            },
+            "skipped": [
+                10003
+            ],
             "contacts": [
                 {
                     "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
@@ -3314,24 +3332,6 @@
                         }
                     ]
                 }
-            ],
-            "events": {
-                "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
-                    {
-                        "uuid": "01969b48-1ec3-76f8-8f9d-465efd6fbb5e",
-                        "type": "contact_language_changed",
-                        "created_on": "2025-05-04T12:31:58.123456789Z",
-                        "_user": {
-                            "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
-                            "name": "Andy Admin"
-                        },
-                        "_via": "ui",
-                        "language": "eng"
-                    }
-                ]
-            },
-            "skipped": [
-                10003
             ],
             "modified": {
                 "10000": {
