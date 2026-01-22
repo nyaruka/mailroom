@@ -1,3 +1,9 @@
+v26.1.9 (2026-01-22)
+-------------------------
+ * Add events to modify responses to match other endpoints
+ * Interrupt endpoint should return history events
+ * Rework locking for contact modification and interruption
+
 v26.1.8 (2026-01-19)
 -------------------------
  * Rework interrput_channel task so interrupted contacts go thru proper event pipelines
