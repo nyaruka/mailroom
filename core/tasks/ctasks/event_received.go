@@ -148,7 +148,7 @@ func (t *EventReceived) handle(ctx context.Context, rt *runtime.Runtime, oa *mod
 	}
 
 	if t.EventType == models.EventTypeStopContact {
-		if _, err := scene.ApplyModifier(ctx, rt, oa, modifiers.NewStatus(flows.ContactStatusStopped), models.NilUserID, ""); err != nil {
+		if err := scene.ApplyModifier(ctx, rt, oa, modifiers.NewStatus(flows.ContactStatusStopped), models.NilUserID, ""); err != nil {
 			return nil, fmt.Errorf("error applying stop modifier: %w", err)
 		}
 	}

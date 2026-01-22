@@ -19,17 +19,9 @@ func ModifyWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 
 	defer unlock() // contacts are unlocked whatever happens
 
-	evts := make(map[*flows.Contact][]flows.Event, len(mods))
-
-	for _, scene := range scenes {
-		for _, mod := range mods[scene.ContactID()] {
-			_, err := scene.ApplyModifier(ctx, rt, oa, mod, userID, via)
-			if err != nil {
-				return nil, nil, fmt.Errorf("error applying modifier %T to contact %s: %w", mod, scene.ContactUUID(), err)
-			}
-		}
-
-		evts[scene.Contact] = scene.Events()
+	evts, err := applyModifiers(ctx, rt, oa, userID, scenes, mods, via)
+	if err != nil {
+		return nil, nil, err
 	}
 
 	if err := BulkCommit(ctx, rt, oa, scenes); err != nil {
@@ -39,29 +31,38 @@ func ModifyWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 	return evts, skipped, nil
 }
 
-// ModifyWithoutLock bulk modifies contacts without locking.. used during contact creation and imports
-func ModifyWithoutLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, userID models.UserID, mcs []*models.Contact, contacts []*flows.Contact, modifiers map[flows.ContactUUID][]flows.Modifier, via models.Via) (map[*flows.Contact][]flows.Event, error) {
+// ModifyWithoutLock bulk modifies contacts without locking - used during contact creation and imports.
+func ModifyWithoutLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, userID models.UserID, mcs []*models.Contact, contacts []*flows.Contact, mods map[models.ContactID][]flows.Modifier, via models.Via) (map[*flows.Contact][]flows.Event, error) {
 	scenes := make([]*Scene, 0, len(mcs))
-	evts := make(map[*flows.Contact][]flows.Event, len(mcs))
-
 	for i, mc := range mcs {
 		contact := contacts[i]
 		scene := NewScene(mc, contact)
-		evts[contact] = make([]flows.Event, 0)
-
-		for _, mod := range modifiers[mc.UUID()] {
-			_, err := scene.ApplyModifier(ctx, rt, oa, mod, userID, via)
-			if err != nil {
-				return nil, fmt.Errorf("error applying modifier %T to contact %s: %w", mod, mc.UUID(), err)
-			}
-		}
-
 		scenes = append(scenes, scene)
-		evts[scene.Contact] = scene.Events()
+	}
+
+	evts, err := applyModifiers(ctx, rt, oa, userID, scenes, mods, via)
+	if err != nil {
+		return nil, err
 	}
 
 	if err := BulkCommit(ctx, rt, oa, scenes); err != nil {
 		return nil, fmt.Errorf("error committing scenes from modifiers: %w", err)
+	}
+
+	return evts, nil
+}
+
+func applyModifiers(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, userID models.UserID, scenes []*Scene, mods map[models.ContactID][]flows.Modifier, via models.Via) (map[*flows.Contact][]flows.Event, error) {
+	evts := make(map[*flows.Contact][]flows.Event, len(scenes))
+
+	for _, scene := range scenes {
+		for _, mod := range mods[scene.ContactID()] {
+			if err := scene.ApplyModifier(ctx, rt, oa, mod, userID, via); err != nil {
+				return nil, fmt.Errorf("error applying modifier %T to contact %s: %w", mod, scene.ContactUUID(), err)
+			}
+		}
+
+		evts[scene.Contact] = scene.Events()
 	}
 
 	return evts, nil

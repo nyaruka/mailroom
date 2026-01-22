@@ -219,7 +219,7 @@ func (s *Scene) ResumeSession(ctx context.Context, rt *runtime.Runtime, oa *mode
 	return nil
 }
 
-func (s *Scene) ApplyModifier(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, mod flows.Modifier, userID models.UserID, via models.Via) ([]flows.Event, error) {
+func (s *Scene) ApplyModifier(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, mod flows.Modifier, userID models.UserID, via models.Via) error {
 	env := flows.NewAssetsEnvironment(oa.Env(), oa.SessionAssets())
 	eng := goflow.Engine(rt)
 
@@ -227,7 +227,7 @@ func (s *Scene) ApplyModifier(ctx context.Context, rt *runtime.Runtime, oa *mode
 	evtLog := func(e flows.Event) { evts = append(evts, e) }
 
 	if _, err := modifiers.Apply(ctx, eng, env, oa.SessionAssets(), s.Contact, mod, evtLog); err != nil {
-		return nil, fmt.Errorf("error applying %s modifier to contact %s: %w", mod.Type(), s.Contact.UUID(), err)
+		return fmt.Errorf("error applying %s modifier to contact %s: %w", mod.Type(), s.Contact.UUID(), err)
 	}
 
 	for _, e := range evts {
@@ -239,11 +239,11 @@ func (s *Scene) ApplyModifier(ctx context.Context, rt *runtime.Runtime, oa *mode
 		}
 
 		if err := s.AddEvent(ctx, rt, oa, e, creditUserID, via); err != nil {
-			return nil, fmt.Errorf("error adding modifier events for contact %s: %w", s.Contact.UUID(), err)
+			return fmt.Errorf("error adding modifier events for contact %s: %w", s.Contact.UUID(), err)
 		}
 	}
 
-	return evts, nil
+	return nil
 }
 
 // AttachPreCommitHook adds an item to be handled by the given pre commit hook
