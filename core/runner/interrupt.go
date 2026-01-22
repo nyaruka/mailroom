@@ -3,8 +3,6 @@ package runner
 import (
 	"context"
 	"fmt"
-	"maps"
-	"slices"
 	"time"
 
 	"github.com/nyaruka/goflow/flows"
@@ -22,7 +20,7 @@ func InterruptWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 
 	defer unlock() // contacts are unlocked whatever happens
 
-	if err := addInterruptEvents(ctx, rt, oa, scenes, status); err != nil {
+	if err := addInterruptEvents(ctx, rt, oa, scenes, nil, status); err != nil {
 		return nil, nil, fmt.Errorf("error interrupting existing sessions: %w", err)
 	}
 
@@ -39,24 +37,29 @@ func InterruptWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 }
 
 // adds contact interruption to the given scenes
-func addInterruptEvents(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scenes []*Scene, status flows.SessionStatus) error {
-	sessions := make(map[flows.SessionUUID]*Scene, len(scenes))
+func addInterruptEvents(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scenes []*Scene, sessions map[models.ContactID]flows.SessionUUID, status flows.SessionStatus) error {
+	sessionUUIDs := make([]flows.SessionUUID, 0, len(scenes))
+	byScene := make(map[*Scene]flows.SessionUUID, len(scenes))
 	for _, s := range scenes {
-		if s.DBContact.CurrentSessionUUID() != "" {
-			sessions[s.DBContact.CurrentSessionUUID()] = s
+		waitingSession := s.DBContact.CurrentSessionUUID()
+
+		// if we have a waiting session and it matches the specified session (or no session specified), add it
+		if waitingSession != "" && (sessions == nil || sessions[s.DBContact.ID()] == waitingSession || sessions[s.DBContact.ID()] == "") {
+			sessionUUIDs = append(sessionUUIDs, waitingSession)
+			byScene[s] = waitingSession
 		}
 	}
-	if len(sessions) == 0 {
+	if len(sessionUUIDs) == 0 {
 		return nil // nothing to do
 	}
 
-	runRefs, err := models.GetActiveAndWaitingRuns(ctx, rt, slices.Collect(maps.Keys(sessions)))
+	runRefs, err := models.GetActiveAndWaitingRuns(ctx, rt, sessionUUIDs)
 	if err != nil {
 		return fmt.Errorf("error getting active runs for waiting sessions: %w", err)
 	}
 
 	for _, s := range scenes {
-		if s.DBContact.CurrentSessionUUID() != "" {
+		if sessionUUID := byScene[s]; sessionUUID != "" {
 			if err := s.AddEvent(ctx, rt, oa, newContactInterruptedEvent(status), models.NilUserID, ""); err != nil {
 				return fmt.Errorf("error adding contact interrupted event: %w", err)
 			}

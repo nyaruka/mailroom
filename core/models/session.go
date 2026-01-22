@@ -4,12 +4,10 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"maps"
 	"slices"
 	"time"
 
 	"github.com/lib/pq"
-	"github.com/nyaruka/gocommon/dbutil"
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/envs"
@@ -200,7 +198,6 @@ const sqlExitSessions = `
     WHERE uuid = ANY($1) AND status = 'W'
 RETURNING contact_uuid`
 
-// TODO instead of having an index on session_uuid.. rework this to fetch the sessions and extract a list of run uuids?
 const sqlExitSessionRuns = `
 UPDATE flows_flowrun
    SET exited_on = NOW(), status = $2, modified_on = NOW()
@@ -241,45 +238,58 @@ func exitSessionBatch(ctx context.Context, tx *sqlx.Tx, uuids []flows.SessionUUI
 	return nil
 }
 
-// InterruptContacts interrupts any waiting sessions for the given contacts which are assumed to be batched.
-func InterruptContacts(ctx context.Context, tx *sqlx.Tx, contacts map[ContactID]flows.SessionStatus) error {
-	// re-org into contact IDs by status
-	statuses := make(map[flows.SessionStatus][]ContactID)
-	for contactID, status := range contacts {
-		statuses[status] = append(statuses[status], contactID)
+const sqlInterruptSessions = `
+UPDATE flows_flowsession
+   SET status = $2, ended_on = NOW(), current_flow_uuid = NULL
+ WHERE uuid = ANY($1) AND status = 'W'`
+
+const sqlInterruptSessionRuns = `
+UPDATE flows_flowrun
+   SET exited_on = NOW(), status = $2, modified_on = NOW()
+ WHERE session_uuid = ANY($1) AND status IN ('A', 'W')`
+
+const sqlInterruptSessionContacts = `
+UPDATE contacts_contact 
+   SET current_session_uuid = NULL, current_flow_id = NULL, modified_on = NOW() 
+ WHERE id = ANY($1) AND current_session_uuid = ANY($2)`
+
+// InterruptContacts interrupts the waiting sessions for the given contacts. It's on the caller to only call this for
+// contacts that have waiting sessions and to ensure they are batched appropriately.
+func InterruptContacts(ctx context.Context, tx *sqlx.Tx, contacts []*Contact, status flows.SessionStatus) error {
+	dbStatus := sessionStatusMap[status]
+	runStatus := RunStatus(dbStatus) // session status codes are subset of run status codes
+
+	sessionUUIDs := make([]flows.SessionUUID, len(contacts))
+	contactIDs := make([]ContactID, len(contacts))
+	for i, c := range contacts {
+		sessionUUIDs[i] = c.CurrentSessionUUID()
+		contactIDs[i] = c.ID()
+
+		c.currentSessionUUID = ""
+		c.currentFlowID = 0
 	}
 
-	for status, contactIDs := range statuses {
-		sessionUUIDs, err := getWaitingSessionsForContacts(ctx, tx, contactIDs)
-		if err != nil {
-			return err
-		}
+	// first update the sessions themselves
+	if _, err := tx.ExecContext(ctx, sqlInterruptSessions, pq.Array(sessionUUIDs), dbStatus); err != nil {
+		return fmt.Errorf("error exiting sessions: %w", err)
+	}
 
-		if len(sessionUUIDs) > 0 {
-			if err := exitSessionBatch(ctx, tx, slices.Collect(maps.Values(sessionUUIDs)), sessionStatusMap[status]); err != nil {
-				return fmt.Errorf("error exiting sessions: %w", err)
-			}
-		}
+	// then the runs that belong to these sessions
+	if _, err := tx.ExecContext(ctx, sqlInterruptSessionRuns, pq.Array(sessionUUIDs), runStatus); err != nil {
+		return fmt.Errorf("error exiting session runs: %w", err)
+	}
+
+	// then the contacts from each session
+	if _, err := tx.ExecContext(ctx, sqlInterruptSessionContacts, pq.Array(contactIDs), pq.Array(sessionUUIDs)); err != nil {
+		return fmt.Errorf("error updating interrupted contacts: %w", err)
+	}
+
+	// finally any session related fires for these contacts
+	if _, err := DeleteSessionFires(ctx, tx, contactIDs, true); err != nil {
+		return fmt.Errorf("error deleting session contact fires: %w", err)
 	}
 
 	return nil
-}
-
-const sqlSelectWaitingSessionsForContacts = `
-SELECT id, current_session_uuid FROM contacts_contact WHERE id = ANY($1) AND current_session_uuid IS NOT NULL`
-
-func getWaitingSessionsForContacts(ctx context.Context, db DBorTx, contactIDs []ContactID) (map[ContactID]flows.SessionUUID, error) {
-	rows, err := db.QueryContext(ctx, sqlSelectWaitingSessionsForContacts, pq.Array(contactIDs))
-	if err != nil {
-		return nil, fmt.Errorf("error selecting current sessions for contacts: %w", err)
-	}
-
-	sessionUUIDs := make(map[ContactID]flows.SessionUUID, len(contactIDs))
-	if err = dbutil.ScanAllMap(rows, sessionUUIDs); err != nil {
-		return nil, fmt.Errorf("error scanning current sessions for contacts: %w", err)
-	}
-
-	return sessionUUIDs, nil
 }
 
 const sqlSelectWaitingSessionsForFlows = `
