@@ -27,20 +27,7 @@
                     "timezone": "America/Los_Angeles",
                     "created_on": "2018-07-06T12:30:00.123457Z"
                 }
-            ],
-            "modified": {
-                "10000": {
-                    "contact": {
-                        "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                        "id": 10000,
-                        "name": "Ann",
-                        "status": "active",
-                        "timezone": "America/Los_Angeles",
-                        "created_on": "2018-07-06T12:30:00.123457Z"
-                    },
-                    "events": []
-                }
-            }
+            ]
         },
         "db_assertions": [
             {
@@ -90,28 +77,7 @@
                     "timezone": "America/Los_Angeles",
                     "created_on": "2018-07-06T12:30:00.123457Z"
                 }
-            ],
-            "modified": {
-                "10000": {
-                    "contact": {
-                        "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                        "id": 10000,
-                        "name": "Kathy",
-                        "status": "active",
-                        "timezone": "America/Los_Angeles",
-                        "created_on": "2018-07-06T12:30:00.123457Z"
-                    },
-                    "events": [
-                        {
-                            "uuid": "01969b47-0583-76f8-ae7f-f8b243c49ff5",
-                            "type": "contact_name_changed",
-                            "created_on": "2025-05-04T12:30:46.123456789Z",
-                            "_via": "ui",
-                            "name": "Kathy"
-                        }
-                    ]
-                }
-            }
+            ]
         },
         "db_assertions": [
             {
@@ -179,32 +145,7 @@
                     "timezone": "America/Los_Angeles",
                     "created_on": "2018-07-06T12:30:00.123457Z"
                 }
-            ],
-            "modified": {
-                "10000": {
-                    "contact": {
-                        "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                        "id": 10000,
-                        "name": "Nate",
-                        "status": "active",
-                        "timezone": "America/Los_Angeles",
-                        "created_on": "2018-07-06T12:30:00.123457Z"
-                    },
-                    "events": [
-                        {
-                            "uuid": "01969b47-0d53-76f8-bd38-d266ec8d3716",
-                            "type": "contact_name_changed",
-                            "created_on": "2025-05-04T12:30:48.123456789Z",
-                            "_user": {
-                                "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
-                                "name": "Andy Admin"
-                            },
-                            "_via": "ui",
-                            "name": "Nate"
-                        }
-                    ]
-                }
-            }
+            ]
         },
         "db_assertions": [
             {
@@ -275,31 +216,7 @@
                     "timezone": "America/Los_Angeles",
                     "created_on": "2018-07-06T12:30:00.123457Z"
                 }
-            ],
-            "modified": {
-                "10000": {
-                    "contact": {
-                        "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                        "id": 10000,
-                        "status": "active",
-                        "timezone": "America/Los_Angeles",
-                        "created_on": "2018-07-06T12:30:00.123457Z"
-                    },
-                    "events": [
-                        {
-                            "uuid": "01969b47-1523-76f8-9c0b-2014ddc77094",
-                            "type": "contact_name_changed",
-                            "created_on": "2025-05-04T12:30:50.123456789Z",
-                            "_user": {
-                                "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
-                                "name": "Andy Admin"
-                            },
-                            "_via": "ui",
-                            "name": ""
-                        }
-                    ]
-                }
-            }
+            ]
         },
         "db_assertions": [
             {
@@ -370,31 +287,7 @@
                     "timezone": "America/Los_Angeles",
                     "created_on": "2018-07-06T12:30:00.123457Z"
                 }
-            ],
-            "modified": {
-                "10000": {
-                    "contact": {
-                        "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                        "id": 10000,
-                        "status": "blocked",
-                        "timezone": "America/Los_Angeles",
-                        "created_on": "2018-07-06T12:30:00.123457Z"
-                    },
-                    "events": [
-                        {
-                            "uuid": "01969b47-1cf3-76f8-92a3-d648ab64bccb",
-                            "type": "contact_status_changed",
-                            "created_on": "2025-05-04T12:30:52.123456789Z",
-                            "_user": {
-                                "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
-                                "name": "Andy Admin"
-                            },
-                            "_via": "ui",
-                            "status": "blocked"
-                        }
-                    ]
-                }
-            }
+            ]
         },
         "db_assertions": [
             {
@@ -464,31 +357,7 @@
                     "timezone": "America/Los_Angeles",
                     "created_on": "2018-07-06T12:30:00.123457Z"
                 }
-            ],
-            "modified": {
-                "10000": {
-                    "contact": {
-                        "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                        "id": 10000,
-                        "status": "archived",
-                        "timezone": "America/Los_Angeles",
-                        "created_on": "2018-07-06T12:30:00.123457Z"
-                    },
-                    "events": [
-                        {
-                            "uuid": "01969b47-24c3-76f8-8228-9728778b6c98",
-                            "type": "contact_status_changed",
-                            "created_on": "2025-05-04T12:30:54.123456789Z",
-                            "_user": {
-                                "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
-                                "name": "Andy Admin"
-                            },
-                            "_via": "ui",
-                            "status": "archived"
-                        }
-                    ]
-                }
-            }
+            ]
         },
         "db_assertions": [
             {
@@ -558,31 +427,7 @@
                     "timezone": "America/Los_Angeles",
                     "created_on": "2018-07-06T12:30:00.123457Z"
                 }
-            ],
-            "modified": {
-                "10000": {
-                    "contact": {
-                        "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                        "id": 10000,
-                        "status": "active",
-                        "timezone": "America/Los_Angeles",
-                        "created_on": "2018-07-06T12:30:00.123457Z"
-                    },
-                    "events": [
-                        {
-                            "uuid": "01969b47-2c93-76f8-8f41-6b2d9f33d623",
-                            "type": "contact_status_changed",
-                            "created_on": "2025-05-04T12:30:56.123456789Z",
-                            "_user": {
-                                "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
-                                "name": "Andy Admin"
-                            },
-                            "_via": "ui",
-                            "status": "active"
-                        }
-                    ]
-                }
-            }
+            ]
         },
         "db_assertions": [
             {
@@ -667,42 +512,7 @@
                         }
                     }
                 }
-            ],
-            "modified": {
-                "10000": {
-                    "contact": {
-                        "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                        "id": 10000,
-                        "status": "active",
-                        "timezone": "America/Los_Angeles",
-                        "created_on": "2018-07-06T12:30:00.123457Z",
-                        "fields": {
-                            "gender": {
-                                "text": "M"
-                            }
-                        }
-                    },
-                    "events": [
-                        {
-                            "uuid": "01969b47-384b-76f8-a17e-f85e49829fb9",
-                            "type": "contact_field_changed",
-                            "created_on": "2025-05-04T12:30:59.123456789Z",
-                            "_user": {
-                                "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
-                                "name": "Andy Admin"
-                            },
-                            "_via": "ui",
-                            "field": {
-                                "key": "gender",
-                                "name": "Gender"
-                            },
-                            "value": {
-                                "text": "M"
-                            }
-                        }
-                    ]
-                }
-            }
+            ]
         },
         "db_assertions": [
             {
@@ -817,65 +627,7 @@
                         }
                     }
                 }
-            ],
-            "modified": {
-                "10000": {
-                    "contact": {
-                        "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                        "id": 10000,
-                        "status": "active",
-                        "timezone": "America/Los_Angeles",
-                        "created_on": "2018-07-06T12:30:00.123457Z",
-                        "groups": [
-                            {
-                                "uuid": "c153e265-f7c9-4539-9dbc-9b358714b638",
-                                "name": "Doctors"
-                            }
-                        ],
-                        "fields": {
-                            "age": {
-                                "text": "24",
-                                "number": 24
-                            },
-                            "gender": {
-                                "text": "M"
-                            }
-                        }
-                    },
-                    "events": [
-                        {
-                            "uuid": "01969b47-4403-76f8-ba00-bd7f0d08e671",
-                            "type": "contact_field_changed",
-                            "created_on": "2025-05-04T12:31:02.123456789Z",
-                            "_user": {
-                                "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
-                                "name": "Andy Admin"
-                            },
-                            "_via": "ui",
-                            "field": {
-                                "key": "age",
-                                "name": "Age"
-                            },
-                            "value": {
-                                "text": "24",
-                                "number": 24
-                            }
-                        },
-                        {
-                            "uuid": "01969b47-4bd3-76f8-b86e-4b881f09a186",
-                            "type": "contact_groups_changed",
-                            "created_on": "2025-05-04T12:31:04.123456789Z",
-                            "_via": "ui",
-                            "groups_added": [
-                                {
-                                    "uuid": "c153e265-f7c9-4539-9dbc-9b358714b638",
-                                    "name": "Doctors"
-                                }
-                            ]
-                        }
-                    ]
-                }
-            }
+            ]
         },
         "db_assertions": [
             {
@@ -1008,57 +760,7 @@
                         }
                     }
                 }
-            ],
-            "modified": {
-                "10000": {
-                    "contact": {
-                        "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                        "id": 10000,
-                        "status": "active",
-                        "timezone": "America/Los_Angeles",
-                        "created_on": "2018-07-06T12:30:00.123457Z",
-                        "groups": [
-                            {
-                                "uuid": "c153e265-f7c9-4539-9dbc-9b358714b638",
-                                "name": "Doctors"
-                            }
-                        ],
-                        "fields": {
-                            "age": {
-                                "text": "24",
-                                "number": 24
-                            },
-                            "gender": {
-                                "text": "M"
-                            },
-                            "joined": {
-                                "text": "26/06/2020",
-                                "datetime": "2020-06-26T05:31:06.123456-07:00"
-                            }
-                        }
-                    },
-                    "events": [
-                        {
-                            "uuid": "01969b47-5b73-76f8-a691-235cbe720980",
-                            "type": "contact_field_changed",
-                            "created_on": "2025-05-04T12:31:08.123456789Z",
-                            "_user": {
-                                "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
-                                "name": "Andy Admin"
-                            },
-                            "_via": "ui",
-                            "field": {
-                                "key": "joined",
-                                "name": "Joined"
-                            },
-                            "value": {
-                                "text": "26/06/2020",
-                                "datetime": "2020-06-26T05:31:06.123456-07:00"
-                            }
-                        }
-                    ]
-                }
-            }
+            ]
         },
         "expected_history": [
             {
@@ -1164,61 +866,7 @@
                         }
                     }
                 }
-            ],
-            "modified": {
-                "10000": {
-                    "contact": {
-                        "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                        "id": 10000,
-                        "status": "active",
-                        "timezone": "America/Los_Angeles",
-                        "created_on": "2018-07-06T12:30:00.123457Z",
-                        "groups": [
-                            {
-                                "uuid": "c153e265-f7c9-4539-9dbc-9b358714b638",
-                                "name": "Doctors"
-                            }
-                        ],
-                        "fields": {
-                            "age": {
-                                "text": "24",
-                                "number": 24
-                            },
-                            "gender": {
-                                "text": "M"
-                            },
-                            "joined": {
-                                "text": "26/06/2020",
-                                "datetime": "2020-06-26T05:31:06.123456-07:00"
-                            },
-                            "state": {
-                                "text": "BORNO",
-                                "state": "Nigeria > Borno"
-                            }
-                        }
-                    },
-                    "events": [
-                        {
-                            "uuid": "01969b47-672b-76f8-bebe-b4a1f677cf4c",
-                            "type": "contact_field_changed",
-                            "created_on": "2025-05-04T12:31:11.123456789Z",
-                            "_user": {
-                                "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
-                                "name": "Andy Admin"
-                            },
-                            "_via": "ui",
-                            "field": {
-                                "key": "state",
-                                "name": "State"
-                            },
-                            "value": {
-                                "text": "BORNO",
-                                "state": "Nigeria > Borno"
-                            }
-                        }
-                    ]
-                }
-            }
+            ]
         },
         "expected_history": [
             {
@@ -1379,92 +1027,7 @@
                     "timezone": "America/Los_Angeles",
                     "created_on": "2018-07-06T12:30:00.123457Z"
                 }
-            ],
-            "modified": {
-                "10000": {
-                    "contact": {
-                        "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                        "id": 10000,
-                        "status": "active",
-                        "timezone": "America/Los_Angeles",
-                        "created_on": "2018-07-06T12:30:00.123457Z"
-                    },
-                    "events": [
-                        {
-                            "uuid": "01969b47-6efb-76f8-8dbf-00ecf5d03034",
-                            "type": "contact_field_changed",
-                            "created_on": "2025-05-04T12:31:13.123456789Z",
-                            "_user": {
-                                "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
-                                "name": "Andy Admin"
-                            },
-                            "_via": "ui",
-                            "field": {
-                                "key": "gender",
-                                "name": "Gender"
-                            },
-                            "value": null
-                        },
-                        {
-                            "uuid": "01969b47-76cb-76f8-acca-bbca70987315",
-                            "type": "contact_field_changed",
-                            "created_on": "2025-05-04T12:31:15.123456789Z",
-                            "_user": {
-                                "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
-                                "name": "Andy Admin"
-                            },
-                            "_via": "ui",
-                            "field": {
-                                "key": "age",
-                                "name": "Age"
-                            },
-                            "value": null
-                        },
-                        {
-                            "uuid": "01969b47-7e9b-76f8-afcb-91a2073e5459",
-                            "type": "contact_groups_changed",
-                            "created_on": "2025-05-04T12:31:17.123456789Z",
-                            "_via": "ui",
-                            "groups_removed": [
-                                {
-                                    "uuid": "c153e265-f7c9-4539-9dbc-9b358714b638",
-                                    "name": "Doctors"
-                                }
-                            ]
-                        },
-                        {
-                            "uuid": "01969b47-866b-76f8-9654-8a7258fbaae4",
-                            "type": "contact_field_changed",
-                            "created_on": "2025-05-04T12:31:19.123456789Z",
-                            "_user": {
-                                "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
-                                "name": "Andy Admin"
-                            },
-                            "_via": "ui",
-                            "field": {
-                                "key": "joined",
-                                "name": "Joined"
-                            },
-                            "value": null
-                        },
-                        {
-                            "uuid": "01969b47-8e3b-76f8-8e78-3bde7b3370ae",
-                            "type": "contact_field_changed",
-                            "created_on": "2025-05-04T12:31:21.123456789Z",
-                            "_user": {
-                                "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
-                                "name": "Andy Admin"
-                            },
-                            "_via": "ui",
-                            "field": {
-                                "key": "state",
-                                "name": "State"
-                            },
-                            "value": null
-                        }
-                    ]
-                }
-            }
+            ]
         },
         "db_assertions": [
             {
@@ -1641,42 +1204,7 @@
                         }
                     ]
                 }
-            ],
-            "modified": {
-                "10000": {
-                    "contact": {
-                        "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                        "id": 10000,
-                        "status": "active",
-                        "timezone": "America/Los_Angeles",
-                        "created_on": "2018-07-06T12:30:00.123457Z",
-                        "groups": [
-                            {
-                                "uuid": "5e9d8fab-5e7e-4f51-b533-261af5dea70d",
-                                "name": "Testers"
-                            }
-                        ]
-                    },
-                    "events": [
-                        {
-                            "uuid": "01969b47-960b-76f8-b62c-3c781ca3b5da",
-                            "type": "contact_groups_changed",
-                            "created_on": "2025-05-04T12:31:23.123456789Z",
-                            "_user": {
-                                "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
-                                "name": "Andy Admin"
-                            },
-                            "_via": "ui",
-                            "groups_added": [
-                                {
-                                    "uuid": "5e9d8fab-5e7e-4f51-b533-261af5dea70d",
-                                    "name": "Testers"
-                                }
-                            ]
-                        }
-                    ]
-                }
-            }
+            ]
         },
         "db_assertions": [
             {
@@ -1752,25 +1280,7 @@
                         }
                     ]
                 }
-            ],
-            "modified": {
-                "10000": {
-                    "contact": {
-                        "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                        "id": 10000,
-                        "status": "active",
-                        "timezone": "America/Los_Angeles",
-                        "created_on": "2018-07-06T12:30:00.123457Z",
-                        "groups": [
-                            {
-                                "uuid": "5e9d8fab-5e7e-4f51-b533-261af5dea70d",
-                                "name": "Testers"
-                            }
-                        ]
-                    },
-                    "events": []
-                }
-            }
+            ]
         },
         "db_assertions": [
             {
@@ -1834,36 +1344,7 @@
                     "timezone": "America/Los_Angeles",
                     "created_on": "2018-07-06T12:30:00.123457Z"
                 }
-            ],
-            "modified": {
-                "10000": {
-                    "contact": {
-                        "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                        "id": 10000,
-                        "status": "active",
-                        "timezone": "America/Los_Angeles",
-                        "created_on": "2018-07-06T12:30:00.123457Z"
-                    },
-                    "events": [
-                        {
-                            "uuid": "01969b47-9ddb-76f8-af9c-ff2f1faac4db",
-                            "type": "contact_groups_changed",
-                            "created_on": "2025-05-04T12:31:25.123456789Z",
-                            "_user": {
-                                "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
-                                "name": "Andy Admin"
-                            },
-                            "_via": "ui",
-                            "groups_removed": [
-                                {
-                                    "uuid": "5e9d8fab-5e7e-4f51-b533-261af5dea70d",
-                                    "name": "Testers"
-                                }
-                            ]
-                        }
-                    ]
-                }
-            }
+            ]
         },
         "db_assertions": [
             {
@@ -1933,19 +1414,7 @@
                     "timezone": "America/Los_Angeles",
                     "created_on": "2018-07-06T12:30:00.123457Z"
                 }
-            ],
-            "modified": {
-                "10000": {
-                    "contact": {
-                        "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                        "id": 10000,
-                        "status": "active",
-                        "timezone": "America/Los_Angeles",
-                        "created_on": "2018-07-06T12:30:00.123457Z"
-                    },
-                    "events": []
-                }
-            }
+            ]
         },
         "db_assertions": [
             {
@@ -1999,32 +1468,7 @@
                     "timezone": "America/Los_Angeles",
                     "created_on": "2018-07-06T12:30:00.123457Z"
                 }
-            ],
-            "modified": {
-                "10000": {
-                    "contact": {
-                        "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                        "id": 10000,
-                        "language": "fra",
-                        "status": "active",
-                        "timezone": "America/Los_Angeles",
-                        "created_on": "2018-07-06T12:30:00.123457Z"
-                    },
-                    "events": [
-                        {
-                            "uuid": "01969b47-a5ab-76f8-8d9f-e51d30290005",
-                            "type": "contact_language_changed",
-                            "created_on": "2025-05-04T12:31:27.123456789Z",
-                            "_user": {
-                                "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
-                                "name": "Andy Admin"
-                            },
-                            "_via": "ui",
-                            "language": "fra"
-                        }
-                    ]
-                }
-            }
+            ]
         },
         "db_assertions": [
             {
@@ -2104,37 +1548,7 @@
                         "tel:+255788555111"
                     ]
                 }
-            ],
-            "modified": {
-                "10000": {
-                    "contact": {
-                        "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                        "id": 10000,
-                        "language": "fra",
-                        "status": "active",
-                        "timezone": "America/Los_Angeles",
-                        "created_on": "2018-07-06T12:30:00.123457Z",
-                        "urns": [
-                            "tel:+255788555111"
-                        ]
-                    },
-                    "events": [
-                        {
-                            "uuid": "01969b47-ad7b-76f8-bec9-e032f4f9af5f",
-                            "type": "contact_urns_changed",
-                            "created_on": "2025-05-04T12:31:29.123456789Z",
-                            "_user": {
-                                "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
-                                "name": "Andy Admin"
-                            },
-                            "_via": "ui",
-                            "urns": [
-                                "tel:+255788555111"
-                            ]
-                        }
-                    ]
-                }
-            }
+            ]
         },
         "db_assertions": [
             {
@@ -2187,7 +1601,15 @@
         "status": 200,
         "response": {
             "events": {
-                "a393abc0-283d-4c9b-a1b3-641a035c34bf": []
+                "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                    {
+                        "uuid": "01969b47-b54b-76f8-9853-0310d032b497",
+                        "type": "error",
+                        "created_on": "2025-05-04T12:31:31.123456789Z",
+                        "_via": "ui",
+                        "text": "'xyz:12345' is not valid URN"
+                    }
+                ]
             },
             "skipped": [],
             "contacts": [
@@ -2202,23 +1624,7 @@
                         "tel:+255788555111"
                     ]
                 }
-            ],
-            "modified": {
-                "10000": {
-                    "contact": {
-                        "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                        "id": 10000,
-                        "language": "fra",
-                        "status": "active",
-                        "timezone": "America/Los_Angeles",
-                        "created_on": "2018-07-06T12:30:00.123457Z",
-                        "urns": [
-                            "tel:+255788555111"
-                        ]
-                    },
-                    "events": []
-                }
-            }
+            ]
         },
         "db_assertions": [
             {
@@ -2283,39 +1689,7 @@
                         "tel:+255788555222"
                     ]
                 }
-            ],
-            "modified": {
-                "10000": {
-                    "contact": {
-                        "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                        "id": 10000,
-                        "language": "fra",
-                        "status": "active",
-                        "timezone": "America/Los_Angeles",
-                        "created_on": "2018-07-06T12:30:00.123457Z",
-                        "urns": [
-                            "tel:+255788555111",
-                            "tel:+255788555222"
-                        ]
-                    },
-                    "events": [
-                        {
-                            "uuid": "01969b47-bd1b-76f8-8ab7-4a517a86045c",
-                            "type": "contact_urns_changed",
-                            "created_on": "2025-05-04T12:31:33.123456789Z",
-                            "_user": {
-                                "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
-                                "name": "Andy Admin"
-                            },
-                            "_via": "ui",
-                            "urns": [
-                                "tel:+255788555111",
-                                "tel:+255788555222"
-                            ]
-                        }
-                    ]
-                }
-            }
+            ]
         },
         "db_assertions": [
             {
@@ -2398,37 +1772,7 @@
                         "tel:+255788555111"
                     ]
                 }
-            ],
-            "modified": {
-                "10000": {
-                    "contact": {
-                        "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                        "id": 10000,
-                        "language": "fra",
-                        "status": "active",
-                        "timezone": "America/Los_Angeles",
-                        "created_on": "2018-07-06T12:30:00.123457Z",
-                        "urns": [
-                            "tel:+255788555111"
-                        ]
-                    },
-                    "events": [
-                        {
-                            "uuid": "01969b47-c4eb-76f8-97a3-ae27459a6be4",
-                            "type": "contact_urns_changed",
-                            "created_on": "2025-05-04T12:31:35.123456789Z",
-                            "_user": {
-                                "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
-                                "name": "Andy Admin"
-                            },
-                            "_via": "ui",
-                            "urns": [
-                                "tel:+255788555111"
-                            ]
-                        }
-                    ]
-                }
-            }
+            ]
         },
         "db_assertions": [
             {
@@ -2517,39 +1861,7 @@
                         "tel:+255788555333"
                     ]
                 }
-            ],
-            "modified": {
-                "10000": {
-                    "contact": {
-                        "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                        "id": 10000,
-                        "language": "fra",
-                        "status": "active",
-                        "timezone": "America/Los_Angeles",
-                        "created_on": "2018-07-06T12:30:00.123457Z",
-                        "urns": [
-                            "tel:+255788555111",
-                            "tel:+255788555333"
-                        ]
-                    },
-                    "events": [
-                        {
-                            "uuid": "01969b47-ccbb-76f8-ba82-c15b24dd577f",
-                            "type": "contact_urns_changed",
-                            "created_on": "2025-05-04T12:31:37.123456789Z",
-                            "_user": {
-                                "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
-                                "name": "Andy Admin"
-                            },
-                            "_via": "ui",
-                            "urns": [
-                                "tel:+255788555111",
-                                "tel:+255788555333"
-                            ]
-                        }
-                    ]
-                }
-            }
+            ]
         },
         "db_assertions": [
             {
@@ -2637,32 +1949,7 @@
                     "timezone": "America/Los_Angeles",
                     "created_on": "2018-07-06T12:30:00.123457Z"
                 }
-            ],
-            "modified": {
-                "10000": {
-                    "contact": {
-                        "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                        "id": 10000,
-                        "language": "fra",
-                        "status": "active",
-                        "timezone": "America/Los_Angeles",
-                        "created_on": "2018-07-06T12:30:00.123457Z"
-                    },
-                    "events": [
-                        {
-                            "uuid": "01969b47-d48b-76f8-ba7e-53c2263e32f8",
-                            "type": "contact_urns_changed",
-                            "created_on": "2025-05-04T12:31:39.123456789Z",
-                            "_user": {
-                                "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
-                                "name": "Andy Admin"
-                            },
-                            "_via": "ui",
-                            "urns": []
-                        }
-                    ]
-                }
-            }
+            ]
         },
         "db_assertions": [
             {
@@ -2809,87 +2096,7 @@
                         }
                     ]
                 }
-            ],
-            "modified": {
-                "10000": {
-                    "contact": {
-                        "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                        "id": 10000,
-                        "language": "fra",
-                        "status": "active",
-                        "timezone": "America/Los_Angeles",
-                        "created_on": "2018-07-06T12:30:00.123457Z",
-                        "groups": [
-                            {
-                                "uuid": "361838c4-2866-495a-8990-9f3c222a7604",
-                                "name": "Open Tickets"
-                            }
-                        ],
-                        "tickets": [
-                            {
-                                "uuid": "01969b47-dc5b-76f8-aaa3-04d3fbce5f9a",
-                                "status": "open",
-                                "topic": {
-                                    "uuid": "0a8f2e00-fef6-402c-bd79-d789446ec0e0",
-                                    "name": "Support"
-                                },
-                                "assignee": {
-                                    "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
-                                    "name": "Andy Admin"
-                                }
-                            }
-                        ]
-                    },
-                    "events": [
-                        {
-                            "uuid": "01969b47-e043-76f8-a13f-9238de2a0b76",
-                            "type": "ticket_opened",
-                            "created_on": "2025-05-04T12:31:42.123456789Z",
-                            "_user": {
-                                "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
-                                "name": "Andy Admin"
-                            },
-                            "_via": "ui",
-                            "ticket": {
-                                "uuid": "01969b47-dc5b-76f8-aaa3-04d3fbce5f9a",
-                                "status": "open",
-                                "topic": {
-                                    "uuid": "0a8f2e00-fef6-402c-bd79-d789446ec0e0",
-                                    "name": "Support"
-                                },
-                                "assignee": {
-                                    "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
-                                    "name": "Andy Admin"
-                                }
-                            }
-                        },
-                        {
-                            "uuid": "01969b47-e813-76f8-9014-2c868db4022e",
-                            "type": "ticket_note_added",
-                            "created_on": "2025-05-04T12:31:44.123456789Z",
-                            "_user": {
-                                "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
-                                "name": "Andy Admin"
-                            },
-                            "_via": "ui",
-                            "ticket_uuid": "01969b47-dc5b-76f8-aaa3-04d3fbce5f9a",
-                            "note": "Need help"
-                        },
-                        {
-                            "uuid": "01969b47-efe3-76f8-bef6-3979f99a96f9",
-                            "type": "contact_groups_changed",
-                            "created_on": "2025-05-04T12:31:46.123456789Z",
-                            "_via": "ui",
-                            "groups_added": [
-                                {
-                                    "uuid": "361838c4-2866-495a-8990-9f3c222a7604",
-                                    "name": "Open Tickets"
-                                }
-                            ]
-                        }
-                    ]
-                }
-            }
+            ]
         },
         "expected_history": [
             {
@@ -3087,100 +2294,7 @@
                         }
                     ]
                 }
-            ],
-            "modified": {
-                "10000": {
-                    "contact": {
-                        "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                        "id": 10000,
-                        "name": "Juan",
-                        "language": "spa",
-                        "status": "active",
-                        "timezone": "America/Los_Angeles",
-                        "created_on": "2018-07-06T12:30:00.123457Z",
-                        "urns": [
-                            "tel:+255788555111"
-                        ],
-                        "groups": [
-                            {
-                                "uuid": "361838c4-2866-495a-8990-9f3c222a7604",
-                                "name": "Open Tickets"
-                            },
-                            {
-                                "uuid": "5e9d8fab-5e7e-4f51-b533-261af5dea70d",
-                                "name": "Testers"
-                            }
-                        ],
-                        "tickets": [
-                            {
-                                "uuid": "01969b47-dc5b-76f8-aaa3-04d3fbce5f9a",
-                                "status": "open",
-                                "topic": {
-                                    "uuid": "0a8f2e00-fef6-402c-bd79-d789446ec0e0",
-                                    "name": "Support"
-                                },
-                                "assignee": {
-                                    "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
-                                    "name": "Andy Admin"
-                                }
-                            }
-                        ]
-                    },
-                    "events": [
-                        {
-                            "uuid": "01969b47-ff83-76f8-ba91-c48ad8c50e6b",
-                            "type": "contact_name_changed",
-                            "created_on": "2025-05-04T12:31:50.123456789Z",
-                            "_user": {
-                                "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
-                                "name": "Andy Admin"
-                            },
-                            "_via": "ui",
-                            "name": "Juan"
-                        },
-                        {
-                            "uuid": "01969b48-0753-76f8-be24-6164105d48f2",
-                            "type": "contact_language_changed",
-                            "created_on": "2025-05-04T12:31:52.123456789Z",
-                            "_user": {
-                                "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
-                                "name": "Andy Admin"
-                            },
-                            "_via": "ui",
-                            "language": "spa"
-                        },
-                        {
-                            "uuid": "01969b48-0f23-76f8-8768-7d0ba4d4f3e8",
-                            "type": "contact_groups_changed",
-                            "created_on": "2025-05-04T12:31:54.123456789Z",
-                            "_user": {
-                                "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
-                                "name": "Andy Admin"
-                            },
-                            "_via": "ui",
-                            "groups_added": [
-                                {
-                                    "uuid": "5e9d8fab-5e7e-4f51-b533-261af5dea70d",
-                                    "name": "Testers"
-                                }
-                            ]
-                        },
-                        {
-                            "uuid": "01969b48-16f3-76f8-b63d-c8dcc2fa9de0",
-                            "type": "contact_urns_changed",
-                            "created_on": "2025-05-04T12:31:56.123456789Z",
-                            "_user": {
-                                "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
-                                "name": "Andy Admin"
-                            },
-                            "_via": "ui",
-                            "urns": [
-                                "tel:+255788555111"
-                            ]
-                        }
-                    ]
-                }
-            }
+            ]
         },
         "expected_history": [
             {
@@ -3332,60 +2446,7 @@
                         }
                     ]
                 }
-            ],
-            "modified": {
-                "10000": {
-                    "contact": {
-                        "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                        "id": 10000,
-                        "name": "Juan",
-                        "language": "eng",
-                        "status": "active",
-                        "timezone": "America/Los_Angeles",
-                        "created_on": "2018-07-06T12:30:00.123457Z",
-                        "urns": [
-                            "tel:+255788555111"
-                        ],
-                        "groups": [
-                            {
-                                "uuid": "361838c4-2866-495a-8990-9f3c222a7604",
-                                "name": "Open Tickets"
-                            },
-                            {
-                                "uuid": "5e9d8fab-5e7e-4f51-b533-261af5dea70d",
-                                "name": "Testers"
-                            }
-                        ],
-                        "tickets": [
-                            {
-                                "uuid": "01969b47-dc5b-76f8-aaa3-04d3fbce5f9a",
-                                "status": "open",
-                                "topic": {
-                                    "uuid": "0a8f2e00-fef6-402c-bd79-d789446ec0e0",
-                                    "name": "Support"
-                                },
-                                "assignee": {
-                                    "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
-                                    "name": "Andy Admin"
-                                }
-                            }
-                        ]
-                    },
-                    "events": [
-                        {
-                            "uuid": "01969b48-1ec3-76f8-8f9d-465efd6fbb5e",
-                            "type": "contact_language_changed",
-                            "created_on": "2025-05-04T12:31:58.123456789Z",
-                            "_user": {
-                                "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
-                                "name": "Andy Admin"
-                            },
-                            "_via": "ui",
-                            "language": "eng"
-                        }
-                    ]
-                }
-            }
+            ]
         },
         "expected_history": [
             {

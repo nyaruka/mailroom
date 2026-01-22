@@ -19,9 +19,6 @@ import (
 )
 
 const (
-	// how long to try to acquire locks for contacts
-	lockingTimeout = 10 * time.Second
-
 	commitTimeout = time.Minute
 )
 
@@ -48,6 +45,7 @@ type Scene struct {
 
 	preCommits    map[PreCommitHook][]any
 	postCommits   map[PostCommitHook][]any
+	rawEvents     []flows.Event
 	persistEvents []*models.Event
 
 	// can be overridden by tests
@@ -62,6 +60,7 @@ func NewScene(dbContact *models.Contact, contact *flows.Contact) *Scene {
 
 		preCommits:  make(map[PreCommitHook][]any),
 		postCommits: make(map[PostCommitHook][]any),
+		rawEvents:   make([]flows.Event, 0, 5),
 
 		Engine: goflow.Engine,
 	}
@@ -86,19 +85,13 @@ func (s *Scene) SprintUUID() flows.SprintUUID {
 	return s.Sprint.UUID()
 }
 
-// History returns the persisted events for this scene, as engine events
-func (s *Scene) History() []flows.Event {
-	hs := make([]flows.Event, len(s.persistEvents))
-	for i, e := range s.persistEvents {
-		hs[i] = e.Event
-	}
-	return hs
-}
+// Events returns all events added to this scene (includes non-persisted events)
+func (s *Scene) Events() []flows.Event { return s.rawEvents }
 
 func (s *Scene) AddEvent(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, e flows.Event, userID models.UserID, via models.Via) error {
-	handler, found := eventHandlers[e.Type()]
-	if !found {
-		return fmt.Errorf("unable to find handler for event type: %s", e.Type())
+	handler := eventHandlers[e.Type()]
+	if handler == nil {
+		panic(fmt.Sprintf("no handler for event type: %s", e.Type()))
 	}
 
 	if err := handler(ctx, rt, oa, s, e, userID); err != nil {
@@ -113,12 +106,18 @@ func (s *Scene) AddEvent(ctx context.Context, rt *runtime.Runtime, oa *models.Or
 
 	e.SetUser(user.Reference(), string(via))
 
-	if models.PersistEvent(e) {
-		s.persistEvents = append(s.persistEvents, &models.Event{
-			Event:       e,
-			OrgID:       oa.OrgID(),
-			ContactUUID: s.ContactUUID(),
-		})
+	switch e.(type) {
+	case *ContactInterruptedEvent, *SprintEndedEvent: // our pseudo events aren't real...
+	default:
+		s.rawEvents = append(s.rawEvents, e)
+
+		if models.PersistEvent(e) {
+			s.persistEvents = append(s.persistEvents, &models.Event{
+				Event:       e,
+				OrgID:       oa.OrgID(),
+				ContactUUID: s.ContactUUID(),
+			})
+		}
 	}
 
 	return nil
@@ -220,7 +219,7 @@ func (s *Scene) ResumeSession(ctx context.Context, rt *runtime.Runtime, oa *mode
 	return nil
 }
 
-func (s *Scene) ApplyModifier(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, mod flows.Modifier, userID models.UserID, via models.Via) ([]flows.Event, error) {
+func (s *Scene) ApplyModifier(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, mod flows.Modifier, userID models.UserID, via models.Via) error {
 	env := flows.NewAssetsEnvironment(oa.Env(), oa.SessionAssets())
 	eng := goflow.Engine(rt)
 
@@ -228,7 +227,7 @@ func (s *Scene) ApplyModifier(ctx context.Context, rt *runtime.Runtime, oa *mode
 	evtLog := func(e flows.Event) { evts = append(evts, e) }
 
 	if _, err := modifiers.Apply(ctx, eng, env, oa.SessionAssets(), s.Contact, mod, evtLog); err != nil {
-		return nil, fmt.Errorf("error applying %s modifier to contact %s: %w", mod.Type(), s.Contact.UUID(), err)
+		return fmt.Errorf("error applying %s modifier to contact %s: %w", mod.Type(), s.Contact.UUID(), err)
 	}
 
 	for _, e := range evts {
@@ -240,11 +239,11 @@ func (s *Scene) ApplyModifier(ctx context.Context, rt *runtime.Runtime, oa *mode
 		}
 
 		if err := s.AddEvent(ctx, rt, oa, e, creditUserID, via); err != nil {
-			return nil, fmt.Errorf("error adding modifier events for contact %s: %w", s.Contact.UUID(), err)
+			return fmt.Errorf("error adding modifier events for contact %s: %w", s.Contact.UUID(), err)
 		}
 	}
 
-	return evts, nil
+	return nil
 }
 
 // AttachPreCommitHook adds an item to be handled by the given pre commit hook
@@ -288,7 +287,7 @@ func CreateScenes(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets
 
 // LockAndLoad tries to lock and load scenes for the given contact ids, returning any ids that could not be locked.
 // The caller is responsible for unlocking the scenes by calling the returned unlock function.
-func LockAndLoad(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, ids []models.ContactID, includeTickets map[models.ContactID][]*models.Ticket) ([]*Scene, []models.ContactID, func(), error) {
+func LockAndLoad(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, ids []models.ContactID, includeTickets map[models.ContactID][]*models.Ticket, timeout time.Duration) ([]*Scene, []models.ContactID, func(), error) {
 	allScenes := make([]*Scene, 0, len(ids))
 	allLocks := make(map[models.ContactID]string, len(ids))
 	allGood := false
@@ -308,7 +307,7 @@ func LockAndLoad(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 	remaining := ids
 	start := time.Now()
 
-	for len(remaining) > 0 && time.Since(start) < lockingTimeout {
+	for len(remaining) > 0 && time.Since(start) < timeout {
 		if ctx.Err() != nil {
 			return nil, nil, nil, ctx.Err()
 		}

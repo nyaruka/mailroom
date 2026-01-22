@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"maps"
 	"slices"
+	"time"
 
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/events"
@@ -14,7 +15,7 @@ import (
 
 // InterruptWithLock interrupts the waiting sessions for the given contacts
 func InterruptWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contactIDs []models.ContactID, status flows.SessionStatus) (map[*flows.Contact][]flows.Event, []models.ContactID, error) {
-	scenes, skipped, unlock, err := LockAndLoad(ctx, rt, oa, contactIDs, nil)
+	scenes, skipped, unlock, err := LockAndLoad(ctx, rt, oa, contactIDs, nil, 10*time.Second)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -29,12 +30,12 @@ func InterruptWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 		return nil, nil, fmt.Errorf("error committing interruption scenes: %w", err)
 	}
 
-	eventsByContact := make(map[*flows.Contact][]flows.Event, len(scenes))
+	evts := make(map[*flows.Contact][]flows.Event, len(scenes))
 	for _, s := range scenes {
-		eventsByContact[s.Contact] = s.History()
+		evts[s.Contact] = s.Events()
 	}
 
-	return eventsByContact, skipped, nil
+	return evts, skipped, nil
 }
 
 // adds contact interruption to the given scenes
