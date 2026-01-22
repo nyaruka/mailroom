@@ -4,7 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"net/http"
+	"slices"
+	"strings"
 
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/core/goflow"
@@ -13,6 +16,8 @@ import (
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/mailroom/web"
 )
+
+var ReturnContacts = false
 
 func init() {
 	web.InternalRoute(http.MethodPost, "/contact/modify", web.JSONPayload(handleModify))
@@ -42,35 +47,28 @@ type modifyRequest struct {
 	Via        models.Via         `json:"via"         validate:"required,eq=api|eq=ui"`
 }
 
-// Response for contact modify. Will return the full contact state and the events generated. Contacts that we couldn't
-// get a lock for are returned in skipped.
+// Response for contact modify. Returns events generated. Contacts that we couldn't get a lock for are returned in
+// skipped. Additionally, for testing purposes only, we return the modified contacts themselves.
 //
 //	{
-//	  "modified": {
-//	    "1001": {
-//	      "contact": {
-//	        "id": 123,
-//	        "contact_uuid": "559d4cf7-8ed3-43db-9bbb-2be85345f87e",
+//	  "events": {
+//	    "559d4cf7-8ed3-43db-9bbb-2be85345f87e": [...]
+//	  }
+//	  "skipped": [1006, 1007]
+//	  "contacts": [
+//	    {
+//	        "uuid": "559d4cf7-8ed3-43db-9bbb-2be85345f87e",
 //	        "name": "Joe",
 //	        "language": "eng",
 //	        ...
-//	      },
-//	      "events": [
-//	        ...
-//	      ]
 //	    },
 //	    ...
-//	  },
-//	  "skipped": [1006, 1007]
+//	  ],
 //	}
-type modifyResult struct {
-	Contact *flows.Contact `json:"contact"`
-	Events  []flows.Event  `json:"events"`
-}
-
 type modifyResponse struct {
-	Modified map[flows.ContactID]modifyResult `json:"modified"`
-	Skipped  []models.ContactID               `json:"skipped"`
+	Events   map[flows.ContactUUID][]flows.Event `json:"events"`
+	Skipped  []models.ContactID                  `json:"skipped"`
+	Contacts []*flows.Contact                    `json:"contacts,omitempty"` // testing only
 }
 
 // handles a request to apply the passed in actions
@@ -92,16 +90,22 @@ func handleModify(ctx context.Context, rt *runtime.Runtime, r *modifyRequest) (a
 		byContact[cid] = mods
 	}
 
-	eventsBycontact, skipped, err := runner.ModifyWithLock(ctx, rt, oa, r.UserID, r.ContactIDs, byContact, nil, r.Via)
+	eventsByContact, skipped, err := runner.ModifyWithLock(ctx, rt, oa, r.UserID, r.ContactIDs, byContact, nil, r.Via)
 	if err != nil {
 		return nil, 0, fmt.Errorf("error bulk modifying contacts: %w", err)
 	}
 
-	results := make(map[flows.ContactID]modifyResult, len(r.ContactIDs))
-
-	for flowContact, contactEvents := range eventsBycontact {
-		results[flowContact.ID()] = modifyResult{Contact: flowContact, Events: contactEvents}
+	events := make(map[flows.ContactUUID][]flows.Event, len(eventsByContact))
+	for flowContact, contactEvents := range eventsByContact {
+		events[flowContact.UUID()] = contactEvents
 	}
 
-	return &modifyResponse{Modified: results, Skipped: skipped}, http.StatusOK, nil
+	resp := &modifyResponse{Events: events, Skipped: skipped}
+
+	if ReturnContacts {
+		resp.Contacts = slices.Collect(maps.Keys(eventsByContact))
+		slices.SortFunc(resp.Contacts, func(a, b *flows.Contact) int { return strings.Compare(string(a.UUID()), string(b.UUID())) })
+	}
+
+	return resp, http.StatusOK, nil
 }

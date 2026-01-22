@@ -75,12 +75,12 @@ func (t *WaitExpired) Perform(ctx context.Context, rt *runtime.Runtime, oa *mode
 			}
 		}
 
-		if err := runner.Interrupt(ctx, rt, oa, []models.ContactID{mc.ID()}, flows.SessionStatusExpired); err != nil {
-			return fmt.Errorf("error expiring sessions for expired calls: %w", err)
+		scene := runner.NewScene(mc, contact)
+		if err := scene.InterruptWaiting(ctx, rt, oa, flows.SessionStatusExpired); err != nil {
+			return fmt.Errorf("error expiring voice session: %w", err)
 		}
 
-		return nil
-
+		return scene.Commit(ctx, rt, oa)
 	}
 
 	scene := runner.NewScene(mc, contact)

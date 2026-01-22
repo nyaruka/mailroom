@@ -145,9 +145,13 @@ func (t *BulkCampaignTrigger) triggerFlow(ctx context.Context, rt *runtime.Runti
 	} else {
 		interrupt := p.StartMode != models.PointModePassive
 
-		_, err = runner.StartWithLock(ctx, rt, oa, contactIDs, triggerBuilder, interrupt, models.NilStartID)
+		_, skipped, err := runner.StartWithLock(ctx, rt, oa, contactIDs, triggerBuilder, interrupt, models.NilStartID)
 		if err != nil {
 			return fmt.Errorf("error starting flow for campaign point #%d: %w", p.ID, err)
+		}
+
+		if len(skipped) > 0 {
+			slog.Warn("failed to acquire locks for contacts", "contacts", skipped)
 		}
 	}
 
@@ -157,7 +161,7 @@ func (t *BulkCampaignTrigger) triggerFlow(ctx context.Context, rt *runtime.Runti
 func (t *BulkCampaignTrigger) triggerBroadcast(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, p *models.CampaignPoint, contactIDs []models.ContactID) error {
 	// interrupt the contacts if desired
 	if p.StartMode != models.PointModePassive {
-		if err := runner.Interrupt(ctx, rt, oa, contactIDs, flows.SessionStatusInterrupted); err != nil {
+		if _, _, err := runner.InterruptWithLock(ctx, rt, oa, contactIDs, flows.SessionStatusInterrupted); err != nil {
 			return fmt.Errorf("error interrupting contacts for campaign broadcast: %w", err)
 		}
 	}

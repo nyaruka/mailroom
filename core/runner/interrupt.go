@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"maps"
 	"slices"
+	"time"
 
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/events"
@@ -12,24 +13,29 @@ import (
 	"github.com/nyaruka/mailroom/runtime"
 )
 
-// Interrupt interrupts the current waiting session if any for the given contacts
-// TODO rework to share contact locking code with bulk starts?
-func Interrupt(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contactIDs []models.ContactID, status flows.SessionStatus) error {
-	// load our contacts
-	scenes, err := CreateScenes(ctx, rt, oa, contactIDs, nil)
+// InterruptWithLock interrupts the waiting sessions for the given contacts
+func InterruptWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contactIDs []models.ContactID, status flows.SessionStatus) (map[*flows.Contact][]flows.Event, []models.ContactID, error) {
+	scenes, skipped, unlock, err := LockAndLoad(ctx, rt, oa, contactIDs, nil, 10*time.Second)
 	if err != nil {
-		return fmt.Errorf("error creating scenes for contacts: %w", err)
+		return nil, nil, err
 	}
 
+	defer unlock() // contacts are unlocked whatever happens
+
 	if err := addInterruptEvents(ctx, rt, oa, scenes, status); err != nil {
-		return fmt.Errorf("error interrupting existing sessions: %w", err)
+		return nil, nil, fmt.Errorf("error interrupting existing sessions: %w", err)
 	}
 
 	if err := BulkCommit(ctx, rt, oa, scenes); err != nil {
-		return fmt.Errorf("error committing interruption scenes: %w", err)
+		return nil, nil, fmt.Errorf("error committing interruption scenes: %w", err)
 	}
 
-	return nil
+	evts := make(map[*flows.Contact][]flows.Event, len(scenes))
+	for _, s := range scenes {
+		evts[s.Contact] = s.Events()
+	}
+
+	return evts, skipped, nil
 }
 
 // adds contact interruption to the given scenes

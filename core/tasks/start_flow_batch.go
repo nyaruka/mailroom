@@ -161,9 +161,13 @@ func (t *StartFlowBatch) start(ctx context.Context, rt *runtime.Runtime, oa *mod
 			}
 		}
 	} else {
-		_, err := runner.StartWithLock(ctx, rt, oa, t.ContactIDs, triggerBuilder, flow.FlowType().Interrupts(), t.StartID)
+		_, skipped, err := runner.StartWithLock(ctx, rt, oa, t.ContactIDs, triggerBuilder, flow.FlowType().Interrupts(), t.StartID)
 		if err != nil {
 			return fmt.Errorf("error starting flow batch: %w", err)
+		}
+
+		if len(skipped) > 0 {
+			slog.Warn("failed to acquire locks for contacts", "contacts", skipped)
 		}
 	}
 
