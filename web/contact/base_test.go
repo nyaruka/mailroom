@@ -108,6 +108,8 @@ func TestModify(t *testing.T) {
 	// lock a contact to test skipping them
 	clocks.TryToLock(ctx, rt, oa, []models.ContactID{testdb.Dan.ID}, time.Second)
 
+	contact.ReturnContacts = true
+
 	testsuite.RunWebTests(t, rt, "testdata/modify.json")
 }
 
