@@ -89,9 +89,9 @@ func (s *Scene) SprintUUID() flows.SprintUUID {
 func (s *Scene) Events() []flows.Event { return s.rawEvents }
 
 func (s *Scene) AddEvent(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, e flows.Event, userID models.UserID, via models.Via) error {
-	handler, found := eventHandlers[e.Type()]
-	if !found {
-		return fmt.Errorf("unable to find handler for event type: %s", e.Type())
+	handler := eventHandlers[e.Type()]
+	if handler == nil {
+		panic(fmt.Sprintf("no handler for event type: %s", e.Type()))
 	}
 
 	if err := handler(ctx, rt, oa, s, e, userID); err != nil {
