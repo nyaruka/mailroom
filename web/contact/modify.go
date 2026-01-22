@@ -51,6 +51,10 @@ type modifyRequest struct {
 // skipped. Additionally, for testing purposes only, we return the modified contacts themselves.
 //
 //	{
+//	  "events": {
+//	    "559d4cf7-8ed3-43db-9bbb-2be85345f87e": [...]
+//	  }
+//	  "skipped": [1006, 1007]
 //	  "contacts": [
 //	    {
 //	        "uuid": "559d4cf7-8ed3-43db-9bbb-2be85345f87e",
@@ -60,22 +64,11 @@ type modifyRequest struct {
 //	    },
 //	    ...
 //	  ],
-//	  "events": {
-//	    "559d4cf7-8ed3-43db-9bbb-2be85345f87e": [...]
-//	  }
-//	  "skipped": [1006, 1007]
 //	}
-type modifyResult struct {
-	Contact *flows.Contact `json:"contact"`
-	Events  []flows.Event  `json:"events"`
-}
-
 type modifyResponse struct {
-	Events  map[flows.ContactUUID][]flows.Event `json:"events"`
-	Skipped []models.ContactID                  `json:"skipped"`
-
-	Contacts []*flows.Contact                 `json:"contacts,omitempty"` // testing only
-	Modified map[flows.ContactID]modifyResult `json:"modified"`           // deprecated
+	Events   map[flows.ContactUUID][]flows.Event `json:"events"`
+	Skipped  []models.ContactID                  `json:"skipped"`
+	Contacts []*flows.Contact                    `json:"contacts,omitempty"` // testing only
 }
 
 // handles a request to apply the passed in actions
@@ -103,14 +96,11 @@ func handleModify(ctx context.Context, rt *runtime.Runtime, r *modifyRequest) (a
 	}
 
 	events := make(map[flows.ContactUUID][]flows.Event, len(eventsByContact))
-	results := make(map[flows.ContactID]modifyResult, len(r.ContactIDs))
 	for flowContact, contactEvents := range eventsByContact {
 		events[flowContact.UUID()] = contactEvents
-
-		results[flowContact.ID()] = modifyResult{Contact: flowContact, Events: contactEvents}
 	}
 
-	resp := &modifyResponse{Modified: results, Events: events, Skipped: skipped}
+	resp := &modifyResponse{Events: events, Skipped: skipped}
 
 	if ReturnContacts {
 		resp.Contacts = slices.Collect(maps.Keys(eventsByContact))
