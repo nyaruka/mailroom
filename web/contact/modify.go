@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"slices"
+	"strings"
 
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/core/goflow"
@@ -46,21 +48,18 @@ type modifyRequest struct {
 // get a lock for are returned in skipped.
 //
 //	{
-//	  "modified": {
-//	    "1001": {
-//	      "contact": {
-//	        "id": 123,
-//	        "contact_uuid": "559d4cf7-8ed3-43db-9bbb-2be85345f87e",
+//	  "contacts": [
+//	    {
+//	        "uuid": "559d4cf7-8ed3-43db-9bbb-2be85345f87e",
 //	        "name": "Joe",
 //	        "language": "eng",
 //	        ...
-//	      },
-//	      "events": [
-//	        ...
-//	      ]
 //	    },
 //	    ...
-//	  },
+//	  ],
+//	  "events": {
+//	    "559d4cf7-8ed3-43db-9bbb-2be85345f87e": [...]
+//	  }
 //	  "skipped": [1006, 1007]
 //	}
 type modifyResult struct {
@@ -69,8 +68,11 @@ type modifyResult struct {
 }
 
 type modifyResponse struct {
-	Modified map[flows.ContactID]modifyResult `json:"modified"`
-	Skipped  []models.ContactID               `json:"skipped"`
+	Contacts []*flows.Contact                    `json:"contacts"`
+	Events   map[flows.ContactUUID][]flows.Event `json:"events"`
+	Skipped  []models.ContactID                  `json:"skipped"`
+
+	Modified map[flows.ContactID]modifyResult `json:"modified"` // deprecated
 }
 
 // handles a request to apply the passed in actions
@@ -92,16 +94,22 @@ func handleModify(ctx context.Context, rt *runtime.Runtime, r *modifyRequest) (a
 		byContact[cid] = mods
 	}
 
-	eventsBycontact, skipped, err := runner.ModifyWithLock(ctx, rt, oa, r.UserID, r.ContactIDs, byContact, nil, r.Via)
+	eventsByContact, skipped, err := runner.ModifyWithLock(ctx, rt, oa, r.UserID, r.ContactIDs, byContact, nil, r.Via)
 	if err != nil {
 		return nil, 0, fmt.Errorf("error bulk modifying contacts: %w", err)
 	}
 
+	contacts := make([]*flows.Contact, 0, len(eventsByContact))
+	events := make(map[flows.ContactUUID][]flows.Event, len(eventsByContact))
 	results := make(map[flows.ContactID]modifyResult, len(r.ContactIDs))
+	for flowContact, contactEvents := range eventsByContact {
+		contacts = append(contacts, flowContact)
+		events[flowContact.UUID()] = contactEvents
 
-	for flowContact, contactEvents := range eventsBycontact {
 		results[flowContact.ID()] = modifyResult{Contact: flowContact, Events: contactEvents}
 	}
 
-	return &modifyResponse{Modified: results, Skipped: skipped}, http.StatusOK, nil
+	slices.SortFunc(contacts, func(a, b *flows.Contact) int { return strings.Compare(string(a.UUID()), string(b.UUID())) })
+
+	return &modifyResponse{Modified: results, Contacts: contacts, Events: events, Skipped: skipped}, http.StatusOK, nil
 }
