@@ -314,14 +314,14 @@ func InterruptSessionsForFlows(ctx context.Context, db *sqlx.DB, flowIDs []FlowI
 }
 
 type SessionRef struct {
-	UUID      flows.SessionUUID `json:"s,omitempty"`
-	ContactID ContactID         `json:"c"`
+	UUID      flows.SessionUUID `db:"session_uuid" json:"s,omitempty"`
+	ContactID ContactID         `db:"contact_id"   json:"c"`
 }
 
 const sqlSelectWaitingSessionsForFlow = `
-SELECT DISTINCT session_uuid AS "uuid", contact_id FROM flows_flowrun WHERE status IN ('A', 'W') AND flow_id = $1`
+SELECT DISTINCT contact_id, session_uuid FROM flows_flowrun WHERE status IN ('A', 'W') AND flow_id = $1 ORDER BY contact_id;`
 
-// GetWaitingSessionsForFlow looks for waiting sessions for the given flow
+// GetWaitingSessionsForFlow returns all waiting sessions for the given flow
 func GetWaitingSessionsForFlow(ctx context.Context, db *sqlx.DB, flowID FlowID) ([]SessionRef, error) {
 	var sessionRefs []SessionRef
 

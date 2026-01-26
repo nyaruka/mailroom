@@ -2,9 +2,12 @@ package tasks
 
 import (
 	"context"
+	"fmt"
 	"time"
 
+	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/core/models"
+	"github.com/nyaruka/mailroom/core/runner"
 	"github.com/nyaruka/mailroom/runtime"
 )
 
@@ -36,8 +39,16 @@ func (t *InterruptSessionBatch) WithAssets() models.Refresh {
 }
 
 func (t *InterruptSessionBatch) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets) error {
+	contactIDs := make([]models.ContactID, len(t.Sessions))
+	sessions := make(map[models.ContactID]flows.SessionUUID, len(t.Sessions))
+	for i, s := range t.Sessions {
+		contactIDs[i] = s.ContactID
+		sessions[s.ContactID] = s.UUID
+	}
 
-	// TODO interrupt sessions that are still the waiting session for the contact
+	if _, _, err := runner.InterruptWithLock(ctx, rt, oa, contactIDs, sessions, flows.SessionStatusInterrupted); err != nil {
+		return fmt.Errorf("error interrupting contacts for campaign broadcast: %w", err)
+	}
 
 	return nil
 }

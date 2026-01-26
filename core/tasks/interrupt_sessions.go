@@ -38,7 +38,7 @@ func (t *InterruptSessions) WithAssets() models.Refresh {
 
 func (t *InterruptSessions) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets) error {
 	if len(t.ContactIDs) > 0 {
-		if _, _, err := runner.InterruptWithLock(ctx, rt, oa, t.ContactIDs, flows.SessionStatusInterrupted); err != nil {
+		if _, _, err := runner.InterruptWithLock(ctx, rt, oa, t.ContactIDs, nil, flows.SessionStatusInterrupted); err != nil {
 			return err
 		}
 	}

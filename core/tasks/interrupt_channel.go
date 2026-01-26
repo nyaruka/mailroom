@@ -77,8 +77,10 @@ func (t *InterruptChannel) interruptIVRSessions(ctx context.Context, rt *runtime
 		return fmt.Errorf("error selecting contacts with calls on channel %d: %w", t.ChannelID, err)
 	}
 
+	// TODO interrupt specific sessions
+
 	// and interrupt their sessions
-	if _, _, err := runner.InterruptWithLock(ctx, rt, oa, contactIDs, flows.SessionStatusInterrupted); err != nil {
+	if _, _, err := runner.InterruptWithLock(ctx, rt, oa, contactIDs, nil, flows.SessionStatusInterrupted); err != nil {
 		return fmt.Errorf("error interrupting contacts with calls on channel %d: %w", t.ChannelID, err)
 	}
 

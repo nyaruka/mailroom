@@ -161,7 +161,7 @@ func (t *BulkCampaignTrigger) triggerFlow(ctx context.Context, rt *runtime.Runti
 func (t *BulkCampaignTrigger) triggerBroadcast(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, p *models.CampaignPoint, contactIDs []models.ContactID) error {
 	// interrupt the contacts if desired
 	if p.StartMode != models.PointModePassive {
-		if _, _, err := runner.InterruptWithLock(ctx, rt, oa, contactIDs, flows.SessionStatusInterrupted); err != nil {
+		if _, _, err := runner.InterruptWithLock(ctx, rt, oa, contactIDs, nil, flows.SessionStatusInterrupted); err != nil {
 			return fmt.Errorf("error interrupting contacts for campaign broadcast: %w", err)
 		}
 	}

@@ -56,7 +56,7 @@ func handleInterrupt(ctx context.Context, rt *runtime.Runtime, r *interruptReque
 			return nil, 0, fmt.Errorf("error loading org assets: %w", err)
 		}
 
-		eventsByContact, skipped, err := runner.InterruptWithLock(ctx, rt, oa, r.ContactIDs, flows.SessionStatusInterrupted)
+		eventsByContact, skipped, err := runner.InterruptWithLock(ctx, rt, oa, r.ContactIDs, nil, flows.SessionStatusInterrupted)
 		if err != nil {
 			return nil, 0, fmt.Errorf("error interrupting contact: %w", err)
 		}
