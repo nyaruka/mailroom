@@ -1,3 +1,12 @@
+v26.1.11 (2026-01-26)
+-------------------------
+ * Update deps including goflow
+ * Rework session interruption
+ * Remove deprecated fields from modify endpoint responses
+ * Use panic instead of error for missing event handler
+ * Return even non-persisted events from endpoints
+ * Use runner.LockAndLoad for flow starts as well
+
 v26.1.10 (2026-01-22)
 -------------------------
  * Contact modify endpoint should only return contacts in testing mode
