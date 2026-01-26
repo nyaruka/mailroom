@@ -23,7 +23,7 @@ func StartWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsset
 	defer unlock() // contacts are unlocked whatever happens
 
 	if interrupt {
-		if err := addInterruptEvents(ctx, rt, oa, scenes, flows.SessionStatusInterrupted); err != nil {
+		if err := addInterruptEvents(ctx, rt, oa, scenes, nil, flows.SessionStatusInterrupted); err != nil {
 			return nil, nil, fmt.Errorf("error interrupting existing sessions: %w", err)
 		}
 	}

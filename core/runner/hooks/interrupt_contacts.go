@@ -19,14 +19,18 @@ type interruptContacts struct{}
 func (h *interruptContacts) Order() int { return 0 } // run before everything else
 
 func (h *interruptContacts) Execute(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *models.OrgAssets, scenes map[*runner.Scene][]any) error {
-	// gather contacts by session status
-	contacts := make(map[models.ContactID]flows.SessionStatus)
+	// group by status
+	byStatus := make(map[flows.SessionStatus][]*models.Contact)
 	for scene, args := range scenes {
-		contacts[scene.DBContact.ID()] = args[0].(*runner.ContactInterruptedEvent).Status
+		e := args[0].(*runner.ContactInterruptedEvent)
+
+		byStatus[e.Status] = append(byStatus[e.Status], scene.DBContact)
 	}
 
-	if err := models.InterruptContacts(ctx, tx, contacts); err != nil {
-		return fmt.Errorf("error interrupting contacts: %w", err)
+	for status, contacts := range byStatus {
+		if err := models.InterruptContacts(ctx, tx, contacts, status); err != nil {
+			return fmt.Errorf("error interrupting contacts: %w", err)
+		}
 	}
 
 	return nil
