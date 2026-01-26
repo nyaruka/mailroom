@@ -26,7 +26,7 @@ func (t *InterruptFlow) Type() string {
 
 // Timeout is the maximum amount of time the task can run for
 func (t *InterruptFlow) Timeout() time.Duration {
-	return time.Hour
+	return 10 * time.Minute
 }
 
 func (t *InterruptFlow) WithAssets() models.Refresh {

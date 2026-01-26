@@ -14,7 +14,7 @@ import (
 const (
 	TypeInterruptSessionBatch = "interrupt_session_batch"
 
-	interruptSessionBatchSize = 100
+	interruptSessionBatchSize = 500
 )
 
 func init() {
@@ -31,7 +31,7 @@ func (t *InterruptSessionBatch) Type() string {
 
 // Timeout is the maximum amount of time the task can run for
 func (t *InterruptSessionBatch) Timeout() time.Duration {
-	return time.Hour
+	return 10 * time.Minute
 }
 
 func (t *InterruptSessionBatch) WithAssets() models.Refresh {
@@ -47,7 +47,7 @@ func (t *InterruptSessionBatch) Perform(ctx context.Context, rt *runtime.Runtime
 	}
 
 	if _, _, err := runner.InterruptWithLock(ctx, rt, oa, contactIDs, sessions, flows.SessionStatusInterrupted); err != nil {
-		return fmt.Errorf("error interrupting contacts for campaign broadcast: %w", err)
+		return fmt.Errorf("error interrupting batch of sessions: %w", err)
 	}
 
 	return nil

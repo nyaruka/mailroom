@@ -21,11 +21,9 @@
         "expected_tasks": {
             "batch/1": [
                 {
-                    "type": "interrupt_sessions",
+                    "type": "interrupt_flow",
                     "payload": {
-                        "flow_ids": [
-                            10000
-                        ]
+                        "flow_id": 10000
                     }
                 }
             ]

@@ -20,7 +20,7 @@ func init() {
 // InterruptSessions is our task for interrupting sessions
 type InterruptSessions struct {
 	ContactIDs []models.ContactID `json:"contact_ids,omitempty"`
-	FlowIDs    []models.FlowID    `json:"flow_ids,omitempty"`
+	FlowIDs    []models.FlowID    `json:"flow_ids,omitempty"` // deprecated
 }
 
 func (t *InterruptSessions) Type() string {
