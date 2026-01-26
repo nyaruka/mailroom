@@ -118,10 +118,12 @@ func TestGetWaitingSessionForContact(t *testing.T) {
 	assert.Equal(t, sessionUUID, session.UUID)
 }
 
-func TestInterruptSessionsForContactsTx(t *testing.T) {
+func TestInterruptContacts(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, rt, testsuite.ResetData)
+
+	oa := testdb.Org1.Load(t, rt)
 
 	session1UUID, _ := insertSessionAndRun(t, rt, testdb.Ann, models.FlowTypeMessaging, models.SessionStatusCompleted, testdb.Favorites, nil)
 	session2UUID, run2UUID := insertSessionAndRun(t, rt, testdb.Ann, models.FlowTypeVoice, models.SessionStatusWaiting, testdb.Favorites, nil)
@@ -131,9 +133,8 @@ func TestInterruptSessionsForContactsTx(t *testing.T) {
 	tx := rt.DB.MustBegin()
 
 	// noop if no contacts
-	err := models.InterruptContacts(ctx, tx, map[models.ContactID]flows.SessionStatus{})
+	err := models.InterruptContacts(ctx, tx, []*models.Contact{}, flows.SessionStatusInterrupted)
 	require.NoError(t, err)
-
 	require.NoError(t, tx.Commit())
 
 	assertSessionAndRunStatus(t, rt, session1UUID, models.SessionStatusCompleted)
@@ -141,11 +142,24 @@ func TestInterruptSessionsForContactsTx(t *testing.T) {
 	assertSessionAndRunStatus(t, rt, session3UUID, models.SessionStatusWaiting)
 	assertSessionAndRunStatus(t, rt, session4UUID, models.SessionStatusWaiting)
 
+	ann, _, _ := testdb.Ann.Load(t, rt, oa)
+	bob, _, _ := testdb.Bob.Load(t, rt, oa)
+	cat, _, _ := testdb.Cat.Load(t, rt, oa)
+
+	assert.Equal(t, session2UUID, ann.CurrentSessionUUID())
+	assert.Equal(t, session3UUID, bob.CurrentSessionUUID())
+	assert.Equal(t, session4UUID, cat.CurrentSessionUUID())
+
 	tx = rt.DB.MustBegin()
 
-	err = models.InterruptContacts(ctx, tx, map[models.ContactID]flows.SessionStatus{testdb.Ann.ID: flows.SessionStatusFailed, testdb.Bob.ID: flows.SessionStatusInterrupted})
+	err = models.InterruptContacts(ctx, tx, []*models.Contact{ann}, flows.SessionStatusFailed)
 	require.NoError(t, err)
+	require.NoError(t, tx.Commit())
 
+	tx = rt.DB.MustBegin()
+
+	err = models.InterruptContacts(ctx, tx, []*models.Contact{bob}, flows.SessionStatusInterrupted)
+	require.NoError(t, err)
 	require.NoError(t, tx.Commit())
 
 	assertSessionAndRunStatus(t, rt, session1UUID, models.SessionStatusCompleted) // wasn't waiting
@@ -159,6 +173,11 @@ func TestInterruptSessionsForContactsTx(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT status FROM flows_flowrun WHERE uuid = $1`, run2UUID).Columns(map[string]any{"status": "F"})
 	assertdb.Query(t, rt.DB, `SELECT status FROM flows_flowrun WHERE uuid = $1`, run3UUID).Columns(map[string]any{"status": "I"})
 	assertdb.Query(t, rt.DB, `SELECT current_session_uuid, current_flow_id FROM contacts_contact WHERE id = $1`, testdb.Ann.ID).Columns(map[string]any{"current_session_uuid": nil, "current_flow_id": nil})
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contactfire`).Returns(1)
+
+	assert.Equal(t, flows.SessionUUID(""), ann.CurrentSessionUUID())
+	assert.Equal(t, flows.SessionUUID(""), bob.CurrentSessionUUID())
+	assert.Equal(t, session4UUID, cat.CurrentSessionUUID())
 }
 
 func TestInterruptSessionsForFlows(t *testing.T) {
@@ -206,6 +225,9 @@ func insertSessionAndRun(t *testing.T, rt *runtime.Runtime, contact *testdb.Cont
 	if status == models.SessionStatusWaiting {
 		// mark contact as being in that flow
 		rt.DB.MustExec(`UPDATE contacts_contact SET current_session_uuid = $2, current_flow_id = $3 WHERE id = $1`, contact.ID, sessionUUID, flow.ID)
+
+		// add expiration fire
+		testdb.InsertContactFire(t, rt, testdb.Org1, contact, models.ContactFireTypeSessionExpiration, "", time.Now().Add(10*time.Minute), sessionUUID)
 	}
 
 	return sessionUUID, runUUID
