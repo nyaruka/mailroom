@@ -1,3 +1,7 @@
+v26.1.16 (2026-01-27)
+-------------------------
+ * Fix using InterruptSessionBatch to expire sessions
+
 v26.1.15 (2026-01-27)
 -------------------------
  * Use interrupt session batch task for session expiration fires
