@@ -21,8 +21,11 @@ func init() {
 	RegisterType(TypeInterruptSessionBatch, func() Task { return &InterruptSessionBatch{} })
 }
 
+// InterruptSessionBatch is our task for interrupting a batch of specific sessions. The sessions will only be modified
+// if they are still the contact's waiting session when the task runs.
 type InterruptSessionBatch struct {
 	Sessions []models.SessionRef `json:"sessions" validate:"required"`
+	Status   flows.SessionStatus `json:"status"` // TODO make required
 }
 
 func (t *InterruptSessionBatch) Type() string {
@@ -46,7 +49,11 @@ func (t *InterruptSessionBatch) Perform(ctx context.Context, rt *runtime.Runtime
 		sessions[s.ContactID] = s.UUID
 	}
 
-	if _, _, err := runner.InterruptWithLock(ctx, rt, oa, contactIDs, sessions, flows.SessionStatusInterrupted); err != nil {
+	if t.Status == "" {
+		t.Status = flows.SessionStatusInterrupted
+	}
+
+	if _, _, err := runner.InterruptWithLock(ctx, rt, oa, contactIDs, sessions, t.Status); err != nil {
 		return fmt.Errorf("error interrupting batch of sessions: %w", err)
 	}
 

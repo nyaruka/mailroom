@@ -313,8 +313,10 @@ func InterruptSessionsForFlows(ctx context.Context, db *sqlx.DB, flowIDs []FlowI
 	return nil
 }
 
+// SessionRef is a reference to a specific session for a contact. Since it's used for some task payloads, we use short
+// JSON field names
 type SessionRef struct {
-	UUID      flows.SessionUUID `db:"session_uuid" json:"s,omitempty"`
+	UUID      flows.SessionUUID `db:"session_uuid" json:"s"`
 	ContactID ContactID         `db:"contact_id"   json:"c"`
 }
 
@@ -323,13 +325,27 @@ SELECT DISTINCT contact_id, session_uuid FROM flows_flowrun WHERE status IN ('A'
 
 // GetWaitingSessionsForFlow returns all waiting sessions for the given flow
 func GetWaitingSessionsForFlow(ctx context.Context, db *sqlx.DB, flowID FlowID) ([]SessionRef, error) {
-	var sessionRefs []SessionRef
+	var refs []SessionRef
 
-	if err := db.SelectContext(ctx, &sessionRefs, sqlSelectWaitingSessionsForFlow, flowID); err != nil {
+	if err := db.SelectContext(ctx, &refs, sqlSelectWaitingSessionsForFlow, flowID); err != nil {
 		return nil, fmt.Errorf("error selecting waiting sessions for flow #%d: %w", flowID, err)
 	}
 
-	return sessionRefs, nil
+	return refs, nil
+}
+
+const sqlSelectWaitingSessionsForChannel = `
+SELECT DISTINCT contact_id, session_uuid FROM ivr_call WHERE channel_id = $1 AND status = 'I' AND session_uuid IS NOT NULL ORDER BY contact_id;`
+
+// GetWaitingSessionsForChannel returns all waiting sessions for the given channel (i.e. calls on IVR channel)
+func GetWaitingSessionsForChannel(ctx context.Context, db *sqlx.DB, channelID ChannelID) ([]SessionRef, error) {
+	var refs []SessionRef
+
+	if err := db.SelectContext(ctx, &refs, sqlSelectWaitingSessionsForChannel, channelID); err != nil {
+		return nil, fmt.Errorf("error selecting waiting sessions for channel %d: %w", channelID, err)
+	}
+
+	return refs, nil
 }
 
 type dbSession struct {

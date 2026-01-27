@@ -6,6 +6,7 @@ import (
 	"slices"
 	"time"
 
+	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/runtime"
 )
@@ -16,6 +17,8 @@ func init() {
 	RegisterType(TypeInterruptFlow, func() Task { return &InterruptFlow{} })
 }
 
+// InterruptFlow is our task for interrupting all waiting sessions for a given flow. Since there could be many sessions,
+// it creates batches of InterruptSessionBatch tasks to do the actual interrupting.
 type InterruptFlow struct {
 	FlowID models.FlowID `json:"flow_id" validate:"required"`
 }
@@ -40,7 +43,7 @@ func (t *InterruptFlow) Perform(ctx context.Context, rt *runtime.Runtime, oa *mo
 	}
 
 	for batch := range slices.Chunk(sessionRefs, interruptSessionBatchSize) {
-		task := &InterruptSessionBatch{Sessions: batch}
+		task := &InterruptSessionBatch{Sessions: batch, Status: flows.SessionStatusInterrupted}
 
 		if err := Queue(ctx, rt, rt.Queues.Batch, oa.OrgID(), task, false); err != nil {
 			return fmt.Errorf("error queueing interrupt session batch task: %w", err)
