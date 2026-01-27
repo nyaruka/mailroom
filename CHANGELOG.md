@@ -1,3 +1,7 @@
+v26.1.12 (2026-01-27)
+-------------------------
+ * Use new interrupt_flow task for flow/interrupt endpoint
+
 v26.1.11 (2026-01-26)
 -------------------------
  * Update deps including goflow
