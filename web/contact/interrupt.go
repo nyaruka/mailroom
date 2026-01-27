@@ -68,7 +68,7 @@ func handleInterrupt(ctx context.Context, rt *runtime.Runtime, r *interruptReque
 		resp.Skipped = skipped
 
 	} else if len(r.ContactIDs) > 0 {
-		task := &tasks.InterruptSessions{ContactIDs: r.ContactIDs}
+		task := &tasks.InterruptContacts{ContactIDs: r.ContactIDs}
 		if err := tasks.Queue(ctx, rt, rt.Queues.Batch, r.OrgID, task, true); err != nil {
 			return nil, 0, fmt.Errorf("error queuing interrupt flow task: %w", err)
 		}

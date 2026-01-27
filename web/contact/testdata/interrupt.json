@@ -133,7 +133,7 @@
         "expected_tasks": {
             "batch/1": [
                 {
-                    "type": "interrupt_sessions",
+                    "type": "interrupt_contacts",
                     "payload": {
                         "contact_ids": [
                             10001,
