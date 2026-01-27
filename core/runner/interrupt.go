@@ -11,8 +11,10 @@ import (
 	"github.com/nyaruka/mailroom/runtime"
 )
 
-// InterruptWithLock interrupts the waiting sessions for the given contacts
-func InterruptWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contactIDs []models.ContactID, status flows.SessionStatus) (map[*flows.Contact][]flows.Event, []models.ContactID, error) {
+// InterruptWithLock interrupts sessions for the given contacts. If sessions is provided then only those sessions will
+// be interrupted (if they are still the current waiting session for the contact). Otherwise the waiting session for
+// each contact is interrupted. Returns any generated events and any contacts we were unable to lock.
+func InterruptWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contactIDs []models.ContactID, sessions map[models.ContactID]flows.SessionUUID, status flows.SessionStatus) (map[*flows.Contact][]flows.Event, []models.ContactID, error) {
 	scenes, skipped, unlock, err := LockAndLoad(ctx, rt, oa, contactIDs, nil, 10*time.Second)
 	if err != nil {
 		return nil, nil, err
@@ -20,7 +22,7 @@ func InterruptWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 
 	defer unlock() // contacts are unlocked whatever happens
 
-	if err := addInterruptEvents(ctx, rt, oa, scenes, nil, status); err != nil {
+	if err := addInterruptEvents(ctx, rt, oa, scenes, sessions, status); err != nil {
 		return nil, nil, fmt.Errorf("error interrupting existing sessions: %w", err)
 	}
 
