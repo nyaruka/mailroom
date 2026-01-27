@@ -96,13 +96,13 @@ func (c *FireContactsCron) Run(ctx context.Context, rt *runtime.Runtime) (map[st
 					numWaitExpires += len(batch)
 				} else if og.grouping == "session_expires" {
 					// turn session timeouts into bulk session expire tasks
-					ss := make([]flows.SessionUUID, len(batch))
+					ss := make([]models.SessionRef, len(batch))
 					for i, f := range batch {
-						ss[i] = flows.SessionUUID(f.SessionUUID)
+						ss[i] = models.SessionRef{UUID: flows.SessionUUID(f.SessionUUID), ContactID: f.ContactID}
 					}
 
-					// queue to throttled queue but high priority
-					if err := tasks.Queue(ctx, rt, rt.Queues.Throttled, og.orgID, &tasks.BulkSessionExpire{SessionUUIDs: ss}, true); err != nil {
+					// queue to batch queue rather than throttled, since expiring sessions can't create more messages
+					if err := tasks.Queue(ctx, rt, rt.Queues.Batch, og.orgID, &tasks.InterruptSessionBatch{Sessions: ss, Status: flows.SessionStatusExpired}, false); err != nil {
 						return nil, fmt.Errorf("error queuing bulk session expire task for org #%d: %w", og.orgID, err)
 					}
 					numSessionExpires += len(batch)

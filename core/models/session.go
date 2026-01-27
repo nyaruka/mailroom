@@ -170,7 +170,7 @@ func GetWaitingSessionForContact(ctx context.Context, rt *runtime.Runtime, oa *O
 	return session, nil
 }
 
-// ExitSessions exits waiting sessions and their runs
+// deprecated
 func ExitSessions(ctx context.Context, db *sqlx.DB, uuids []flows.SessionUUID, status SessionStatus) error {
 	// split into batches and exit each batch in a transaction
 	for batch := range slices.Chunk(uuids, 100) {
@@ -287,27 +287,6 @@ func InterruptContacts(ctx context.Context, tx *sqlx.Tx, contacts []*Contact, st
 	// finally any session related fires for these contacts
 	if _, err := DeleteSessionFires(ctx, tx, contactIDs, true); err != nil {
 		return fmt.Errorf("error deleting session contact fires: %w", err)
-	}
-
-	return nil
-}
-
-const sqlSelectWaitingSessionsForFlows = `
-SELECT DISTINCT session_uuid
-  FROM flows_flowrun
- WHERE status IN ('A', 'W') AND flow_id = ANY($1);`
-
-// InterruptSessionsForFlows interrupts any waiting sessions currently in the given flows
-func InterruptSessionsForFlows(ctx context.Context, db *sqlx.DB, flowIDs []FlowID) error {
-	var sessionUUIDs []flows.SessionUUID
-
-	err := db.SelectContext(ctx, &sessionUUIDs, sqlSelectWaitingSessionsForFlows, pq.Array(flowIDs))
-	if err != nil {
-		return fmt.Errorf("error selecting waiting sessions for flows: %w", err)
-	}
-
-	if err := ExitSessions(ctx, db, sessionUUIDs, SessionStatusInterrupted); err != nil {
-		return fmt.Errorf("error interrupting sessions: %w", err)
 	}
 
 	return nil

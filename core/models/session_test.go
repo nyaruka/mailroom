@@ -180,43 +180,6 @@ func TestInterruptContacts(t *testing.T) {
 	assert.Equal(t, session4UUID, cat.CurrentSessionUUID())
 }
 
-func TestInterruptSessionsForFlows(t *testing.T) {
-	ctx, rt := testsuite.Runtime(t)
-
-	defer testsuite.Reset(t, rt, testsuite.ResetData)
-
-	ann1Call := testdb.InsertCall(t, rt, testdb.Org1, testdb.TwilioChannel, testdb.Ann)
-	ann2Call := testdb.InsertCall(t, rt, testdb.Org1, testdb.TwilioChannel, testdb.Ann)
-	bobCall := testdb.InsertCall(t, rt, testdb.Org1, testdb.TwilioChannel, testdb.Bob)
-	catCall := testdb.InsertCall(t, rt, testdb.Org1, testdb.VonageChannel, testdb.Cat)
-
-	session1UUID, _ := insertSessionAndRun(t, rt, testdb.Ann, models.FlowTypeMessaging, models.SessionStatusCompleted, testdb.Favorites, ann1Call)
-	session2UUID, _ := insertSessionAndRun(t, rt, testdb.Ann, models.FlowTypeMessaging, models.SessionStatusWaiting, testdb.Favorites, ann2Call)
-	session3UUID, _ := insertSessionAndRun(t, rt, testdb.Bob, models.FlowTypeMessaging, models.SessionStatusWaiting, testdb.Favorites, bobCall)
-	session4UUID, _ := insertSessionAndRun(t, rt, testdb.Cat, models.FlowTypeMessaging, models.SessionStatusWaiting, testdb.PickANumber, catCall)
-
-	// noop if no flows
-	err := models.InterruptSessionsForFlows(ctx, rt.DB, []models.FlowID{})
-	require.NoError(t, err)
-
-	assertSessionAndRunStatus(t, rt, session1UUID, models.SessionStatusCompleted)
-	assertSessionAndRunStatus(t, rt, session2UUID, models.SessionStatusWaiting)
-	assertSessionAndRunStatus(t, rt, session3UUID, models.SessionStatusWaiting)
-	assertSessionAndRunStatus(t, rt, session4UUID, models.SessionStatusWaiting)
-
-	err = models.InterruptSessionsForFlows(ctx, rt.DB, []models.FlowID{testdb.Favorites.ID})
-	require.NoError(t, err)
-
-	assertSessionAndRunStatus(t, rt, session1UUID, models.SessionStatusCompleted) // wasn't waiting
-	assertSessionAndRunStatus(t, rt, session2UUID, models.SessionStatusInterrupted)
-	assertSessionAndRunStatus(t, rt, session3UUID, models.SessionStatusInterrupted)
-	assertSessionAndRunStatus(t, rt, session4UUID, models.SessionStatusWaiting) // flow not included
-
-	// check other columns are correct on interrupted session and contact
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE ended_on IS NOT NULL AND current_flow_uuid IS NULL AND uuid = $1`, session2UUID).Returns(1)
-	assertdb.Query(t, rt.DB, `SELECT current_session_uuid, current_flow_id FROM contacts_contact WHERE id = $1`, testdb.Ann.ID).Columns(map[string]any{"current_session_uuid": nil, "current_flow_id": nil})
-}
-
 func insertSessionAndRun(t *testing.T, rt *runtime.Runtime, contact *testdb.Contact, sessionType models.FlowType, status models.SessionStatus, flow *testdb.Flow, call *testdb.Call) (flows.SessionUUID, flows.RunUUID) {
 	// create session and add a run with same status
 	sessionUUID := testdb.InsertFlowSession(t, rt, contact, sessionType, status, call, flow)
