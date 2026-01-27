@@ -1,3 +1,7 @@
+v26.1.15 (2026-01-27)
+-------------------------
+ * Use interrupt session batch task for session expiration fires
+
 v26.1.14 (2026-01-27)
 -------------------------
  * Use new interrupt_contacts task type for contact/interrupt endpoint
