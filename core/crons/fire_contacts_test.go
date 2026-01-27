@@ -90,8 +90,8 @@ func TestFireContacts(t *testing.T) {
 
 	decoded4 := &tasks.InterruptSessionBatch{}
 	jsonx.MustUnmarshal(ts[4].Task, decoded4)
-	assert.Len(t, decoded4.Sessions, 1)
-	assert.Equal(t, models.SessionRef{UUID: "f72b48df-5f6d-4e4f-955a-f5fb29ccb97b", ContactID: testdb.Ann.ID}, decoded4.Sessions[0])
+	assert.Equal(t, []models.SessionRef{{UUID: "f72b48df-5f6d-4e4f-955a-f5fb29ccb97b", ContactID: testdb.Ann.ID}}, decoded4.Sessions)
+	assert.Equal(t, flows.SessionStatusExpired, decoded4.Status)
 
 	assertdb.Query(t, rt.DB, `SELECT COUNT(*) FROM contacts_contactfire`).Returns(3) // only 3 fires in the future left
 
