@@ -17,10 +17,10 @@ func init() {
 	RegisterType(TypeInterruptSessions, func() Task { return &InterruptSessions{} })
 }
 
-// InterruptSessions is our task for interrupting sessions
+// TODO remove (replaced by interrupt_contacts and interrupt_flow)
 type InterruptSessions struct {
 	ContactIDs []models.ContactID `json:"contact_ids,omitempty"`
-	FlowIDs    []models.FlowID    `json:"flow_ids,omitempty"` // deprecated
+	FlowIDs    []models.FlowID    `json:"flow_ids,omitempty"`
 }
 
 func (t *InterruptSessions) Type() string {
