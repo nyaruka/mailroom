@@ -6,6 +6,7 @@ import (
 	"slices"
 	"time"
 
+	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/runtime"
 )
@@ -42,7 +43,7 @@ func (t *InterruptFlow) Perform(ctx context.Context, rt *runtime.Runtime, oa *mo
 	}
 
 	for batch := range slices.Chunk(sessionRefs, interruptSessionBatchSize) {
-		task := &InterruptSessionBatch{Sessions: batch}
+		task := &InterruptSessionBatch{Sessions: batch, Status: flows.SessionStatusInterrupted}
 
 		if err := Queue(ctx, rt, rt.Queues.Batch, oa.OrgID(), task, false); err != nil {
 			return fmt.Errorf("error queueing interrupt session batch task: %w", err)
