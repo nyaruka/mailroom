@@ -10,14 +10,15 @@ import (
 	"github.com/nyaruka/mailroom/runtime"
 )
 
-// TypeInterruptSessions is the type of the interrupt contacts task
+// TypeInterruptContacts is the type of the interrupt contacts task
 const TypeInterruptContacts = "interrupt_contacts"
 
 func init() {
 	RegisterType(TypeInterruptContacts, func() Task { return &InterruptContacts{} })
 }
 
-// InterruptContacts is our task for interrupting contacts
+// InterruptContacts is our task for interrupting contacts. It will interrupt whatever is the current session for the
+// contact when the task runs.
 type InterruptContacts struct {
 	ContactIDs []models.ContactID `json:"contact_ids" validate:"required"`
 }

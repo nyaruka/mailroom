@@ -65,22 +65,26 @@ func (t *InterruptChannel) Perform(ctx context.Context, rt *runtime.Runtime, oa 
 }
 
 func (t *InterruptChannel) interruptIVRSessions(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets) error {
-	contactIDs := make([]models.ContactID, 0, 10)
-
 	// fail any calls that are pending, queued or errored
 	if _, err := rt.DB.ExecContext(ctx, `UPDATE ivr_call SET status = 'F', modified_on = NOW() WHERE channel_id = $1 AND status IN ('P', 'Q', 'E')`, t.ChannelID); err != nil {
 		return fmt.Errorf("error failing queued calls on channel %d: %w", t.ChannelID, err)
 	}
 
-	// find all contacts with calls in progress...
-	if err := rt.DB.SelectContext(ctx, &contactIDs, `SELECT contact_id FROM ivr_call WHERE channel_id = $1 AND status = 'I' AND session_uuid IS NOT NULL`, t.ChannelID); err != nil {
-		return fmt.Errorf("error selecting contacts with calls on channel %d: %w", t.ChannelID, err)
+	// get the ongoing sessions from calls on this channel
+	sessionRefs, err := models.GetWaitingSessionsForChannel(ctx, rt.DB, t.ChannelID)
+	if err != nil {
+		return fmt.Errorf("error selecting sessions from calls on channel %d: %w", t.ChannelID, err)
 	}
 
-	// TODO interrupt specific sessions
+	contactIDs := make([]models.ContactID, len(sessionRefs))
+	sessions := make(map[models.ContactID]flows.SessionUUID, len(sessionRefs))
+	for i, sr := range sessionRefs {
+		contactIDs[i] = sr.ContactID
+		sessions[sr.ContactID] = sr.UUID
+	}
 
 	// and interrupt their sessions
-	if _, _, err := runner.InterruptWithLock(ctx, rt, oa, contactIDs, nil, flows.SessionStatusInterrupted); err != nil {
+	if _, _, err := runner.InterruptWithLock(ctx, rt, oa, contactIDs, sessions, flows.SessionStatusInterrupted); err != nil {
 		return fmt.Errorf("error interrupting contacts with calls on channel %d: %w", t.ChannelID, err)
 	}
 

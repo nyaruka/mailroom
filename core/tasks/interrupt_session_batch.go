@@ -21,6 +21,8 @@ func init() {
 	RegisterType(TypeInterruptSessionBatch, func() Task { return &InterruptSessionBatch{} })
 }
 
+// InterruptSessionBatch is our task for interrupting a batch of specific sessions. The sessions will only be modified
+// if they are still the contact's waiting session when the task runs.
 type InterruptSessionBatch struct {
 	Sessions []models.SessionRef `json:"sessions" validate:"required"`
 }

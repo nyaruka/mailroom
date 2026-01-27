@@ -16,6 +16,8 @@ func init() {
 	RegisterType(TypeInterruptFlow, func() Task { return &InterruptFlow{} })
 }
 
+// InterruptFlow is our task for interrupting all waiting sessions for a given flow. Since there could be many sessions,
+// it creates batches of InterruptSessionBatch tasks to do the actual interrupting.
 type InterruptFlow struct {
 	FlowID models.FlowID `json:"flow_id" validate:"required"`
 }
