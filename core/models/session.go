@@ -33,6 +33,7 @@ var sessionStatusMap = map[flows.SessionStatus]SessionStatus{
 	flows.SessionStatusCompleted:   SessionStatusCompleted,
 	flows.SessionStatusFailed:      SessionStatusFailed,
 	flows.SessionStatusInterrupted: SessionStatusInterrupted,
+	flows.SessionStatusExpired:     SessionStatusExpired,
 }
 
 // Session is the mailroom type for a FlowSession
