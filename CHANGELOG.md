@@ -1,3 +1,8 @@
+v26.1.14 (2026-01-27)
+-------------------------
+ * Use new interrupt_contacts task type for contact/interrupt endpoint
+ * Make status required on InterruptSessionBatch task
+
 v26.1.13 (2026-01-27)
 -------------------------
  * Add status to interrupt_session_batch tasks
