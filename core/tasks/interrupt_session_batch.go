@@ -25,7 +25,7 @@ func init() {
 // if they are still the contact's waiting session when the task runs.
 type InterruptSessionBatch struct {
 	Sessions []models.SessionRef `json:"sessions" validate:"required"`
-	Status   flows.SessionStatus `json:"status"` // TODO make required
+	Status   flows.SessionStatus `json:"status"   validate:"required"`
 }
 
 func (t *InterruptSessionBatch) Type() string {
@@ -47,10 +47,6 @@ func (t *InterruptSessionBatch) Perform(ctx context.Context, rt *runtime.Runtime
 	for i, s := range t.Sessions {
 		contactIDs[i] = s.ContactID
 		sessions[s.ContactID] = s.UUID
-	}
-
-	if t.Status == "" {
-		t.Status = flows.SessionStatusInterrupted
 	}
 
 	if _, _, err := runner.InterruptWithLock(ctx, rt, oa, contactIDs, sessions, t.Status); err != nil {
