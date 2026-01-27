@@ -1,3 +1,8 @@
+v26.1.13 (2026-01-27)
+-------------------------
+ * Add status to interrupt_session_batch tasks
+ * Add new interrupt_contacts task to replace interrupt_sessions
+
 v26.1.12 (2026-01-27)
 -------------------------
  * Use new interrupt_flow task for flow/interrupt endpoint
