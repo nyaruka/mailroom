@@ -250,6 +250,55 @@ func TestNewCourierMsg(t *testing.T) {
 		"urn": "tel:+16055741111",
 		"uuid": "%s"
 	}`, string(jsonx.MustMarshal(msgEvent1.CreatedOn().In(time.UTC).Round(time.Microsecond))), msg1.UUID()))
+
+	msgEvent5 := events.NewMsgCreated(flows.NewMsgOut(
+		annURN,
+		assets.NewChannelReference(testdb.FacebookChannel.UUID, "Facebook"),
+		&flows.MsgContent{
+			Text:         "Hi there",
+			Attachments:  []utils.Attachment{utils.Attachment("image/jpeg:https://dl-foo.com/image.jpg")},
+			QuickReplies: []flows.QuickReply{{Text: "location_request"}},
+		},
+		nil,
+		`eng-US`,
+		"",
+	), "", "")
+
+	msg5, err := models.NewOutgoingFlowMsg(rt, oa.Org(), facebook, ann, flow, msgEvent5, nil)
+	require.NoError(t, err)
+
+	// insert to db so that it gets an id and time field values
+	err = models.InsertMessages(ctx, rt.DB, []*models.Msg{msg5.Msg})
+	require.NoError(t, err)
+
+	msg5.URN = annURNs[0]
+	msg5.Session = session
+	msg5.SprintUUID = sprint.UUID()
+
+	createAndAssertCourierMsg(t, oa, msg5, fmt.Sprintf(`{
+		"attachments": [
+			"image/jpeg:https://dl-foo.com/image.jpg"
+		],
+		"channel_uuid": "0f661e8b-ea9d-4bd3-9953-d368340acf91",
+		"contact": {"id": 10000, "last_seen_on": "2023-04-20T10:15:00Z", "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf"},
+		"created_on": %s,
+		"flow": {"uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85", "name": "Favorites"},
+		"high_priority": false,
+		"locale": "eng-US",
+		"org_id": 1,
+		"origin": "flow",
+		"prompt": "location",
+		"session": {
+			"uuid": "%s",
+			"status": "W",
+			"sprint_uuid": "%s"
+        },
+		"text": "Hi there",
+		"tps_cost": 2,
+		"urn": "tel:+16055741111",
+		"uuid": "%s"
+	}`, string(jsonx.MustMarshal(msgEvent5.CreatedOn().In(time.UTC))), session.UUID(), sprint.UUID(), msg5.UUID()))
+
 }
 
 func createAndAssertCourierMsg(t *testing.T, oa *models.OrgAssets, msg *models.MsgOut, expectedJSON string) {
