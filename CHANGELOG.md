@@ -1,3 +1,8 @@
+v26.1.17 (2026-01-28)
+-------------------------
+ * interrupt_channel task should defer to interrupt_session_batch task for session interruption
+ * Remove no longer used bulk_session_expire task
+
 v26.1.16 (2026-01-27)
 -------------------------
  * Fix using InterruptSessionBatch to expire sessions
