@@ -3,12 +3,12 @@ package tasks
 import (
 	"context"
 	"fmt"
+	"slices"
 	"time"
 
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/msgio"
-	"github.com/nyaruka/mailroom/core/runner"
 	"github.com/nyaruka/mailroom/runtime"
 )
 
@@ -76,16 +76,13 @@ func (t *InterruptChannel) interruptIVRSessions(ctx context.Context, rt *runtime
 		return fmt.Errorf("error selecting sessions from calls on channel %d: %w", t.ChannelID, err)
 	}
 
-	contactIDs := make([]models.ContactID, len(sessionRefs))
-	sessions := make(map[models.ContactID]flows.SessionUUID, len(sessionRefs))
-	for i, sr := range sessionRefs {
-		contactIDs[i] = sr.ContactID
-		sessions[sr.ContactID] = sr.UUID
-	}
+	// and queue up batch tasks to interrupt them
+	for batch := range slices.Chunk(sessionRefs, interruptSessionBatchSize) {
+		task := &InterruptSessionBatch{Sessions: batch, Status: flows.SessionStatusInterrupted}
 
-	// and interrupt their sessions
-	if _, _, err := runner.InterruptWithLock(ctx, rt, oa, contactIDs, sessions, flows.SessionStatusInterrupted); err != nil {
-		return fmt.Errorf("error interrupting contacts with calls on channel %d: %w", t.ChannelID, err)
+		if err := Queue(ctx, rt, rt.Queues.Batch, oa.OrgID(), task, false); err != nil {
+			return fmt.Errorf("error queueing interrupt session batch task for channel #%d: %w", t.ChannelID, err)
+		}
 	}
 
 	return nil
