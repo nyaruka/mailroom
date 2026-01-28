@@ -38,6 +38,28 @@ func InterruptWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 	return evts, skipped, nil
 }
 
+func InterruptWithoutLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, mcs []*models.Contact, contacts []*flows.Contact, sessions map[models.ContactID]flows.SessionUUID, status flows.SessionStatus) (map[*flows.Contact][]flows.Event, error) {
+	scenes := make([]*Scene, len(mcs))
+	for i, mc := range mcs {
+		scenes[i] = NewScene(mc, contacts[i])
+	}
+
+	if err := addInterruptEvents(ctx, rt, oa, scenes, sessions, status); err != nil {
+		return nil, fmt.Errorf("error interrupting existing sessions: %w", err)
+	}
+
+	if err := BulkCommit(ctx, rt, oa, scenes); err != nil {
+		return nil, fmt.Errorf("error committing interruption scenes: %w", err)
+	}
+
+	evts := make(map[*flows.Contact][]flows.Event, len(scenes))
+	for _, s := range scenes {
+		evts[s.Contact] = s.Events()
+	}
+
+	return evts, nil
+}
+
 // adds contact interruption to the given scenes
 func addInterruptEvents(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scenes []*Scene, sessions map[models.ContactID]flows.SessionUUID, status flows.SessionStatus) error {
 	sessionUUIDs := make([]flows.SessionUUID, 0, len(scenes))
