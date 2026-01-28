@@ -329,7 +329,7 @@ func ResumeCall(
 
 	// check if call has been marked as errored - it maybe have been updated by status callback
 	if call.Status() == models.CallStatusErrored || call.Status() == models.CallStatusFailed {
-		if err = models.ExitSessions(ctx, rt.DB, []flows.SessionUUID{session.UUID}, models.SessionStatusInterrupted); err != nil {
+		if _, err := runner.InterruptWithoutLock(ctx, rt, oa, []*models.Contact{mc}, []*flows.Contact{contact}, map[models.ContactID]flows.SessionUUID{mc.ID(): session.UUID}, flows.SessionStatusInterrupted); err != nil {
 			slog.Error("error interrupting session for errored call", "error", err)
 		}
 
@@ -418,16 +418,10 @@ func ResumeCall(
 
 	// if still active, write out our response
 	if status == models.CallStatusInProgress {
-		err = svc.WriteSessionResponse(ctx, rt, oa, channel, scene, urn, resumeURL, r, w)
-		if err != nil {
+		if err = svc.WriteSessionResponse(ctx, rt, oa, channel, scene, urn, resumeURL, r, w); err != nil {
 			return fmt.Errorf("error writing ivr response for resume: %w", err)
 		}
 	} else {
-		err = models.ExitSessions(ctx, rt.DB, []flows.SessionUUID{session.UUID}, models.SessionStatusCompleted)
-		if err != nil {
-			slog.Error("error closing session", "error", err)
-		}
-
 		return svc.WriteErrorResponse(w, fmt.Errorf("call completed"))
 	}
 

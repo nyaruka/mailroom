@@ -33,11 +33,9 @@ func ModifyWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 
 // ModifyWithoutLock bulk modifies contacts without locking - used during contact creation and imports.
 func ModifyWithoutLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, userID models.UserID, mcs []*models.Contact, contacts []*flows.Contact, mods map[models.ContactID][]flows.Modifier, via models.Via) (map[*flows.Contact][]flows.Event, error) {
-	scenes := make([]*Scene, 0, len(mcs))
+	scenes := make([]*Scene, len(mcs))
 	for i, mc := range mcs {
-		contact := contacts[i]
-		scene := NewScene(mc, contact)
-		scenes = append(scenes, scene)
+		scenes[i] = NewScene(mc, contacts[i])
 	}
 
 	evts, err := applyModifiers(ctx, rt, oa, userID, scenes, mods, via)
