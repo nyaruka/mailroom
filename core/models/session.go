@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"slices"
 	"time"
 
 	"github.com/lib/pq"
@@ -91,6 +90,10 @@ func (s *Session) EngineSession(ctx context.Context, rt *runtime.Runtime, sa flo
 	return session, nil
 }
 
+const sqlUpdateSessionDB = `
+UPDATE flows_flowsession SET output = :output, status = :status, last_sprint_uuid = :last_sprint_uuid, ended_on = :ended_on, current_flow_uuid = :current_flow_uuid 
+ WHERE uuid = :uuid`
+
 // Update updates the session based on the state passed in from our engine session, this also takes care of applying any event hooks
 func (s *Session) Update(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *OrgAssets, fs flows.Session, sprint flows.Sprint, contact *Contact) error {
 	s.Output = jsonx.MustMarshal(fs)
@@ -113,7 +116,25 @@ func (s *Session) Update(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, 
 		}
 	}
 
-	return updateDatabaseSession(ctx, rt, tx, oa, s, contact)
+	dbs := &dbSession{
+		UUID:            s.UUID,
+		ContactUUID:     null.String(s.ContactUUID),
+		SessionType:     s.SessionType,
+		Status:          s.Status,
+		LastSprintUUID:  null.String(s.LastSprintUUID),
+		CurrentFlowUUID: null.String(s.CurrentFlowUUID),
+		CallUUID:        null.String(s.CallUUID),
+		Output:          null.String(s.Output),
+		CreatedOn:       s.CreatedOn,
+		EndedOn:         s.EndedOn,
+	}
+
+	// write our new session state to the db
+	if _, err := tx.NamedExecContext(ctx, sqlUpdateSessionDB, dbs); err != nil {
+		return fmt.Errorf("error updating session: %w", err)
+	}
+
+	return nil
 }
 
 // InsertSessions inserts sessions and their runs into the database
@@ -169,74 +190,6 @@ func GetWaitingSessionForContact(ctx context.Context, rt *runtime.Runtime, oa *O
 	}
 
 	return session, nil
-}
-
-// deprecated
-func ExitSessions(ctx context.Context, db *sqlx.DB, uuids []flows.SessionUUID, status SessionStatus) error {
-	// split into batches and exit each batch in a transaction
-	for batch := range slices.Chunk(uuids, 100) {
-		tx, err := db.BeginTxx(ctx, nil)
-		if err != nil {
-			return fmt.Errorf("error starting transaction to interrupt sessions: %w", err)
-		}
-
-		if err := exitSessionBatch(ctx, tx, batch, status); err != nil {
-			tx.Rollback()
-			return fmt.Errorf("error interrupting batch of sessions: %w", err)
-		}
-
-		if err := tx.Commit(); err != nil {
-			return fmt.Errorf("error committing session interrupts: %w", err)
-		}
-	}
-
-	return nil
-}
-
-const sqlExitSessions = `
-   UPDATE flows_flowsession
-      SET status = $2, ended_on = NOW(), current_flow_uuid = NULL
-    WHERE uuid = ANY($1) AND status = 'W'
-RETURNING contact_uuid`
-
-const sqlExitSessionRuns = `
-UPDATE flows_flowrun
-   SET exited_on = NOW(), status = $2, modified_on = NOW()
- WHERE session_uuid = ANY($1) AND status IN ('A', 'W')`
-
-const sqlExitSessionContacts = `
-   UPDATE contacts_contact 
-      SET current_session_uuid = NULL, current_flow_id = NULL, modified_on = NOW() 
-    WHERE uuid = ANY($1) AND current_session_uuid = ANY($2)
-RETURNING id`
-
-// exits sessions and their runs inside the given transaction
-func exitSessionBatch(ctx context.Context, tx *sqlx.Tx, uuids []flows.SessionUUID, status SessionStatus) error {
-	runStatus := RunStatus(status) // session status codes are subset of run status codes
-	contactUUIDs := make([]flows.ContactUUID, 0, len(uuids))
-
-	// first update the sessions themselves and get the contact UUIDs
-	if err := tx.SelectContext(ctx, &contactUUIDs, sqlExitSessions, pq.Array(uuids), status); err != nil {
-		return fmt.Errorf("error exiting sessions: %w", err)
-	}
-
-	// then the runs that belong to these sessions
-	if _, err := tx.ExecContext(ctx, sqlExitSessionRuns, pq.Array(uuids), runStatus); err != nil {
-		return fmt.Errorf("error exiting session runs: %w", err)
-	}
-
-	// and finally the contacts from each session
-	contactIDs := make([]ContactID, 0, len(contactUUIDs))
-	if err := tx.SelectContext(ctx, &contactIDs, sqlExitSessionContacts, pq.Array(contactUUIDs), pq.Array(uuids)); err != nil {
-		return fmt.Errorf("error exiting sessions: %w", err)
-	}
-
-	// delete any session related fires for these contacts
-	if _, err := DeleteSessionFires(ctx, tx, contactIDs, true); err != nil {
-		return fmt.Errorf("error deleting session contact fires: %w", err)
-	}
-
-	return nil
 }
 
 const sqlInterruptSessions = `
@@ -386,40 +339,6 @@ func insertDatabaseSessions(ctx context.Context, tx *sqlx.Tx, sessions []*Sessio
 	// insert waiting sessions
 	if err := BulkQuery(ctx, "insert waiting sessions", tx, sqlInsertWaitingSessionDB, waitingSessions); err != nil {
 		return fmt.Errorf("error inserting waiting sessions: %w", err)
-	}
-
-	return nil
-}
-
-const sqlUpdateSessionDB = `
-UPDATE 
-	flows_flowsession
-SET 
-	output = :output, 
-	status = :status,
-	last_sprint_uuid = :last_sprint_uuid,
-	ended_on = :ended_on,
-	current_flow_uuid = :current_flow_uuid
-WHERE 
-	uuid = :uuid`
-
-func updateDatabaseSession(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *OrgAssets, s *Session, contact *Contact) error {
-	dbs := &dbSession{
-		UUID:            s.UUID,
-		ContactUUID:     null.String(s.ContactUUID),
-		SessionType:     s.SessionType,
-		Status:          s.Status,
-		LastSprintUUID:  null.String(s.LastSprintUUID),
-		CurrentFlowUUID: null.String(s.CurrentFlowUUID),
-		CallUUID:        null.String(s.CallUUID),
-		Output:          null.String(s.Output),
-		CreatedOn:       s.CreatedOn,
-		EndedOn:         s.EndedOn,
-	}
-
-	// write our new session state to the db
-	if _, err := tx.NamedExecContext(ctx, sqlUpdateSessionDB, dbs); err != nil {
-		return fmt.Errorf("error updating session: %w", err)
 	}
 
 	return nil
