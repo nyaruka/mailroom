@@ -48,6 +48,8 @@ type Contact struct {
 	LastSeenOn *time.Time        `json:"last_seen_on,omitempty"`
 }
 
+const MsgLocationRequestQRText string = "location_request"
+
 type OptInRef struct {
 	ID   models.OptInID `json:"id"`
 	Name string         `json:"name"`
@@ -98,6 +100,7 @@ type Msg struct {
 	IsResend             bool               `json:"is_resend,omitempty"`
 	PrevAttempts         int                `json:"prev_attempts,omitempty"`
 	Session              *Session           `json:"session,omitempty"`
+	Prompt               string             `json:"prompt,omitempty"`
 }
 
 // NewCourierMsg creates a courier message in the format it's expecting to be queued
@@ -148,6 +151,16 @@ func NewCourierMsg(oa *models.OrgAssets, mo *models.MsgOut, ch *models.Channel) 
 	} else if mo.OptInID() != models.NilOptInID {
 		// an optin on a broadcast message means use it for authentication
 		msg.URNAuth = mo.URN.AuthTokens[fmt.Sprintf("optin:%d", mo.OptInID())]
+	}
+
+	if len(mo.QuickReplies()) > 0 {
+		for _, qr := range mo.QuickReplies() {
+			if qr.Text == MsgLocationRequestQRText {
+				msg.Prompt = "location"
+				msg.QuickReplies = []flows.QuickReply{} // clear out quick replies as courier handles location prompt specially
+				break
+			}
+		}
 	}
 
 	if mo.Templating() != nil {
