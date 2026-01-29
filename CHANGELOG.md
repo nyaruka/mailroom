@@ -1,3 +1,7 @@
+v26.1.18 (2026-01-29)
+-------------------------
+ * Replace final usage of ExitSessions
+
 v26.1.17 (2026-01-28)
 -------------------------
  * interrupt_channel task should defer to interrupt_session_batch task for session interruption
