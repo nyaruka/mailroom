@@ -262,6 +262,8 @@ type MsgOut struct {
 	WaitTimeout  time.Duration
 	SprintUUID   flows.SprintUUID
 	LastInSprint bool
+
+	Prompt string // prompt associated with this outgoing message, if any
 }
 
 // NewIncomingAndroid creates a new incoming message from an Android relayer sync.
@@ -452,7 +454,7 @@ func newMsgOut(rt *runtime.Runtime, org *Org, channel *Channel, contact *Contact
 		m.FlowID = flow.ID()
 	}
 
-	return &MsgOut{Msg: msg, URN: urn, Contact: contact, ReplyTo: replyTo}, nil
+	return &MsgOut{Msg: msg, URN: urn, Contact: contact, ReplyTo: replyTo, Prompt: out.Prompt()}, nil
 }
 
 var msgRepetitionsScript = redis.NewScript(3, `

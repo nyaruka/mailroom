@@ -98,6 +98,7 @@ type Msg struct {
 	IsResend             bool               `json:"is_resend,omitempty"`
 	PrevAttempts         int                `json:"prev_attempts,omitempty"`
 	Session              *Session           `json:"session,omitempty"`
+	Prompt               string             `json:"prompt,omitempty"`
 }
 
 // NewCourierMsg creates a courier message in the format it's expecting to be queued
@@ -112,6 +113,7 @@ func NewCourierMsg(oa *models.OrgAssets, mo *models.MsgOut, ch *models.Channel) 
 		},
 		Text:         mo.Text(),
 		Attachments:  mo.Attachments(),
+		Prompt:       mo.Prompt,
 		QuickReplies: mo.QuickReplies(),
 		Locale:       mo.Locale(),
 		HighPriority: mo.HighPriority(),
