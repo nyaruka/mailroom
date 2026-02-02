@@ -7,6 +7,7 @@ import (
 	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/events"
+	"github.com/nyaruka/goflow/flows/modifiers"
 	"github.com/nyaruka/goflow/flows/resumes"
 	"github.com/nyaruka/goflow/flows/triggers"
 	"github.com/nyaruka/goflow/utils"
@@ -79,30 +80,6 @@ func (t *MsgReceived) perform(ctx context.Context, rt *runtime.Runtime, oa *mode
 		}
 	}
 
-	// stopped contact? they are unstopped if they send us an incoming message
-	recalcGroups := t.NewContact
-	if mc.Status() == models.ContactStatusStopped {
-		if err := mc.Unstop(ctx, rt.DB); err != nil {
-			return fmt.Errorf("error unstopping contact: %w", err)
-		}
-
-		recalcGroups = true
-	}
-
-	// build our flow contact
-	contact, err := mc.EngineContact(oa)
-	if err != nil {
-		return fmt.Errorf("error creating flow contact: %w", err)
-	}
-
-	// if this is a new or newly unstopped contact, we need to calculate dynamic groups and campaigns
-	if recalcGroups {
-		err = models.CalculateDynamicGroups(ctx, rt.DB, oa, []*flows.Contact{contact})
-		if err != nil {
-			return fmt.Errorf("unable to initialize new contact: %w", err)
-		}
-	}
-
 	// flow will only see the attachments we were able to fetch
 	availableAttachments := make([]utils.Attachment, 0, len(attachments))
 	for _, att := range attachments {
@@ -115,6 +92,12 @@ func (t *MsgReceived) perform(ctx context.Context, rt *runtime.Runtime, oa *mode
 	msgEvent := events.NewMsgReceived(msgIn)
 	msgEvent.UUID_ = t.MsgUUID
 
+	// build our flow contact
+	contact, err := mc.EngineContact(oa)
+	if err != nil {
+		return fmt.Errorf("error creating flow contact: %w", err)
+	}
+
 	contact.SetLastSeenOn(msgEvent.CreatedOn())
 
 	scene := runner.NewScene(mc, contact)
@@ -124,6 +107,18 @@ func (t *MsgReceived) perform(ctx context.Context, rt *runtime.Runtime, oa *mode
 		Attachments: attachments,
 		LogUUIDs:    logUUIDs,
 	}
+
+	if t.NewContact {
+		if err := scene.NewContact(ctx, rt, oa); err != nil {
+			return fmt.Errorf("error calculating groups for new contact: %w", err)
+		}
+	} else if contact.Status() == flows.ContactStatusStopped {
+		// if we get a mesage from a stopped contact, unstop them
+		if err := scene.ApplyModifier(ctx, rt, oa, modifiers.NewStatus(flows.ContactStatusActive), models.NilUserID, ""); err != nil {
+			return fmt.Errorf("error applying modifier to unstop contact: %w", err)
+		}
+	}
+
 	if err := scene.AddEvent(ctx, rt, oa, msgEvent, models.NilUserID, ""); err != nil {
 		return fmt.Errorf("error adding message event to scene: %w", err)
 	}

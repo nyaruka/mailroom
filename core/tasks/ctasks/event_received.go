@@ -83,25 +83,10 @@ func (t *EventReceived) handle(ctx context.Context, rt *runtime.Runtime, oa *mod
 		return nil, nil
 	}
 
-	recalcGroups := t.NewContact
-	if mc.Status() == models.ContactStatusStopped && (t.EventType == models.EventTypeNewConversation || t.EventType == models.EventTypeReferral) {
-		if err := mc.Unstop(ctx, rt.DB); err != nil {
-			return nil, fmt.Errorf("error unstopping contact: %w", err)
-		}
-		recalcGroups = true
-	}
-
 	// build our flow contact
 	contact, err := mc.EngineContact(oa)
 	if err != nil {
 		return nil, fmt.Errorf("error creating flow contact: %w", err)
-	}
-
-	if recalcGroups {
-		err = models.CalculateDynamicGroups(ctx, rt.DB, oa, []*flows.Contact{contact})
-		if err != nil {
-			return nil, fmt.Errorf("unable to initialize new contact: %w", err)
-		}
 	}
 
 	var flowOptIn *flows.OptIn
@@ -120,6 +105,16 @@ func (t *EventReceived) handle(ctx context.Context, rt *runtime.Runtime, oa *mod
 	scene := runner.NewScene(mc, contact)
 	scene.DBCall = call
 	scene.Call = flowCall
+
+	if t.NewContact {
+		if err := scene.NewContact(ctx, rt, oa); err != nil {
+			return nil, fmt.Errorf("error calculating groups for new contact: %w", err)
+		}
+	} else if contact.Status() == flows.ContactStatusStopped && (t.EventType == models.EventTypeNewConversation || t.EventType == models.EventTypeReferral) {
+		if err := scene.ApplyModifier(ctx, rt, oa, modifiers.NewStatus(flows.ContactStatusActive), models.NilUserID, ""); err != nil {
+			return nil, fmt.Errorf("error applying modifier to unstop contact: %w", err)
+		}
+	}
 
 	// convert to real event
 	event := t.toEvent(channel, flowCall, flowOptIn)

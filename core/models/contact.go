@@ -176,17 +176,6 @@ func (c *Contact) FindTicket(uuid flows.TicketUUID) *Ticket {
 	return nil
 }
 
-// Unstop sets the status to stopped for this contact
-func (c *Contact) Unstop(ctx context.Context, db DBorTx) error {
-	_, err := db.ExecContext(ctx, `UPDATE contacts_contact SET status = 'A', modified_on = NOW() WHERE id = $1`, c.id)
-	if err != nil {
-		return fmt.Errorf("error unstopping contact: %w", err)
-	}
-
-	c.status = ContactStatusActive
-	return nil
-}
-
 // UpdateLastSeenOn updates last seen on (and modified on)
 func (c *Contact) UpdateLastSeenOn(ctx context.Context, db DBorTx, lastSeenOn time.Time) error {
 	_, err := db.ExecContext(ctx, `UPDATE contacts_contact SET last_seen_on = $2, modified_on = NOW() WHERE id = $1`, c.ID(), lastSeenOn)
