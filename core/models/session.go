@@ -204,7 +204,7 @@ UPDATE flows_flowrun
 
 const sqlInterruptSessionContacts = `
 UPDATE contacts_contact 
-   SET current_session_uuid = NULL, current_flow_id = NULL, modified_on = NOW() 
+   SET current_session_uuid = NULL, current_flow_id = NULL
  WHERE id = ANY($1) AND current_session_uuid = ANY($2)`
 
 // InterruptContacts interrupts the waiting sessions for the given contacts. It's on the caller to only call this for
