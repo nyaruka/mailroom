@@ -315,9 +315,11 @@
                         "locale": "eng-US",
                         "quick_replies": [
                             {
+                                "type": "text",
                                 "text": "yes"
                             },
                             {
+                                "type": "text",
                                 "text": "no"
                             }
                         ],
@@ -341,9 +343,11 @@
                         "locale": "eng-US",
                         "quick_replies": [
                             {
+                                "type": "text",
                                 "text": "yes"
                             },
                             {
+                                "type": "text",
                                 "text": "no"
                             }
                         ],
@@ -384,9 +388,11 @@
                         "text": "Cats or dogs?",
                         "quick_replies": [
                             {
+                                "type": "text",
                                 "text": "Cats"
                             },
                             {
+                                "type": "text",
                                 "text": "Dogs"
                             }
                         ]
@@ -403,9 +409,11 @@
                         "text": "Cats or dogs?",
                         "quick_replies": [
                             {
+                                "type": "text",
                                 "text": "Cats"
                             },
                             {
+                                "type": "text",
                                 "text": "Dogs"
                             }
                         ]
@@ -447,9 +455,11 @@
                     "msg": {
                         "quick_replies": [
                             {
+                                "type": "text",
                                 "text": "Cats"
                             },
                             {
+                                "type": "text",
                                 "text": "Dogs"
                             }
                         ],
@@ -468,9 +478,11 @@
                     "msg": {
                         "quick_replies": [
                             {
+                                "type": "text",
                                 "text": "Cats"
                             },
                             {
+                                "type": "text",
                                 "text": "Dogs"
                             }
                         ],

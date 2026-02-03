@@ -54,8 +54,8 @@ func TestNewOutgoingFlowMsg(t *testing.T) {
 			Content: &flows.MsgContent{
 				Text: "test outgoing",
 				QuickReplies: []flows.QuickReply{
-					{Text: "yes", Extra: "if you want"},
-					{Text: "no"},
+					{Type: "text", Text: "yes", Extra: "if you want"},
+					{Type: "text", Text: "no"},
 				},
 			},
 			Templating: flows.NewMsgTemplating(
@@ -177,7 +177,7 @@ func TestNewOutgoingFlowMsg(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE failed_reason IS NOT NULL`).Returns(2)
 
 	// check encoding of quick replies
-	assertdb.Query(t, rt.DB, `SELECT quick_replies[1] FROM msgs_msg WHERE id = 30000`).Returns("yes\nif you want")
+	assertdb.Query(t, rt.DB, `SELECT quick_replies[1] FROM msgs_msg WHERE id = 30000`).Returns("yes<extra>if you want")
 	assertdb.Query(t, rt.DB, `SELECT quick_replies[2] FROM msgs_msg WHERE id = 30000`).Returns("no")
 }
 

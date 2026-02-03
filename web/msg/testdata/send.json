@@ -400,12 +400,15 @@
                     "text": "What is your preferred color?",
                     "quick_replies": [
                         {
+                            "type": "text",
                             "text": "Red"
                         },
                         {
+                            "type": "text",
                             "text": "Green"
                         },
                         {
+                            "type": "text",
                             "text": "Blue",
                             "extra": "like the sky"
                         }
@@ -422,7 +425,7 @@
                 "columns": {
                     "qr_1": "Red",
                     "qr_2": "Green",
-                    "qr_3": "Blue\nlike the sky",
+                    "qr_3": "Blue<extra>like the sky",
                     "text": "What is your preferred color?"
                 }
             }
@@ -441,12 +444,15 @@
                         },
                         "quick_replies": [
                             {
+                                "type": "text",
                                 "text": "Red"
                             },
                             {
+                                "type": "text",
                                 "text": "Green"
                             },
                             {
+                                "type": "text",
                                 "extra": "like the sky",
                                 "text": "Blue"
                             }
