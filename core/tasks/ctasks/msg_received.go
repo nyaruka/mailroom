@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/events"
@@ -98,8 +99,6 @@ func (t *MsgReceived) perform(ctx context.Context, rt *runtime.Runtime, oa *mode
 		return fmt.Errorf("error creating flow contact: %w", err)
 	}
 
-	contact.SetLastSeenOn(msgEvent.CreatedOn())
-
 	scene := runner.NewScene(mc, contact)
 	scene.IncomingMsg = &models.MsgInRef{
 		UUID:        t.MsgUUID,
@@ -125,6 +124,11 @@ func (t *MsgReceived) perform(ctx context.Context, rt *runtime.Runtime, oa *mode
 
 	if err := t.handleMsgEvent(ctx, rt, oa, channel, scene, msgEvent); err != nil {
 		return fmt.Errorf("error handing message event in scene: %w", err)
+	}
+
+	// update last_seen_on last so that during flow execution it's the previous value which is more useful than now
+	if err := scene.ApplyModifier(ctx, rt, oa, modifiers.NewSeen(dates.Now()), models.NilUserID, ""); err != nil {
+		return fmt.Errorf("error applying last seen modifier: %w", err)
 	}
 
 	if err := scene.Commit(ctx, rt, oa); err != nil {
