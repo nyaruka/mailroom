@@ -229,8 +229,8 @@ func TestBroadcastSend(t *testing.T) {
 			contactURN:      "tel:+593979000003",
 			contactLanguage: "fra",
 			translations: flows.BroadcastTranslations{
-				"eng": {Text: "Hello @contact.name", Attachments: []utils.Attachment{"audio/mp3:http://test.en.mp3"}, QuickReplies: []flows.QuickReply{{Text: "yes"}, {Text: "no"}}},
-				"fra": {Text: "Bonjour @contact.name", Attachments: []utils.Attachment{"audio/mp3:http://test.fr.mp3"}, QuickReplies: []flows.QuickReply{{Text: "oui"}, {Text: "no"}}},
+				"eng": {Text: "Hello @contact.name", Attachments: []utils.Attachment{"audio/mp3:http://test.en.mp3"}, QuickReplies: []flows.QuickReply{{Type: "text", Text: "yes"}, {Type: "text", Text: "no"}}},
+				"fra": {Text: "Bonjour @contact.name", Attachments: []utils.Attachment{"audio/mp3:http://test.fr.mp3"}, QuickReplies: []flows.QuickReply{{Type: "text", Text: "oui"}, {Type: "text", Text: "no"}}},
 			},
 			baseLanguage: "eng",
 			expressions:  true,
@@ -250,9 +250,11 @@ func TestBroadcastSend(t *testing.T) {
 					],
 					"quick_replies": [
 						{
+							"type": "text",
 							"text": "oui"
 						},
 						{
+							"type": "text",
 							"text": "no"
 						}
 					],

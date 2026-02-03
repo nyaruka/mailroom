@@ -55,7 +55,7 @@ func TestNewCourierMsg(t *testing.T) {
 		&flows.MsgContent{
 			Text:         "Hi there",
 			Attachments:  []utils.Attachment{utils.Attachment("image/jpeg:https://dl-foo.com/image.jpg")},
-			QuickReplies: []flows.QuickReply{{Text: "yes", Extra: "if you really want"}, {Text: "no"}},
+			QuickReplies: []flows.QuickReply{{Type: "text", Text: "yes", Extra: "if you really want"}, {Type: "text", Text: "no"}},
 		},
 		flows.NewMsgTemplating(
 			assets.NewTemplateReference(testdb.ReviveTemplate.UUID, "revive_issue"),
@@ -89,7 +89,7 @@ func TestNewCourierMsg(t *testing.T) {
 		"locale": "eng-US",
 		"org_id": 1,
 		"origin": "flow",
-		"quick_replies": [{"text": "yes", "extra": "if you really want"}, {"text": "no"}],
+		"quick_replies": [{"type": "text", "text": "yes", "extra": "if you really want"}, {"type": "text", "text": "no"}],
 		"session": {
 			"uuid": "%s",
 			"status": "W",
@@ -236,7 +236,7 @@ func TestNewCourierMsg(t *testing.T) {
 		"org_id": 1,
 		"origin": "flow",
 		"prev_attempts": 1,
-		"quick_replies": [{"text": "yes", "extra": "if you really want"}, {"text": "no"}],
+		"quick_replies": [{"type": "text", "text": "yes", "extra": "if you really want"}, {"type": "text", "text": "no"}],
 		"templating": {
 			"template": {"uuid": "9c22b594-fcab-4b29-9bcb-ce4404894a80", "name": "revive_issue"},
 			"components": [{"type": "body", "name": "body", "variables": {"1": 0}}],
