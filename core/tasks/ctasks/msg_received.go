@@ -113,7 +113,7 @@ func (t *MsgReceived) perform(ctx context.Context, rt *runtime.Runtime, oa *mode
 			return fmt.Errorf("error calculating groups for new contact: %w", err)
 		}
 	} else if contact.Status() == flows.ContactStatusStopped {
-		// if we get a mesage from a stopped contact, unstop them
+		// if we get a message from a stopped contact, unstop them
 		if err := scene.ApplyModifier(ctx, rt, oa, modifiers.NewStatus(flows.ContactStatusActive), models.NilUserID, ""); err != nil {
 			return fmt.Errorf("error applying modifier to unstop contact: %w", err)
 		}
