@@ -1,3 +1,8 @@
+v26.1.19 (2026-02-03)
+-------------------------
+ * Do initialization of new contacts and unstopping of stopped contacts within the scene
+ * Rely on UpdateContactModifiedOn hook to update modified_on instead of updating directly
+
 v26.1.18 (2026-01-29)
 -------------------------
  * Replace final usage of ExitSessions
