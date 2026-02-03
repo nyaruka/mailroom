@@ -21,6 +21,7 @@ func handleContactInterrupted(ctx context.Context, rt *runtime.Runtime, oa *mode
 	slog.Debug("contact interrupted", "contact", scene.ContactUUID())
 
 	scene.AttachPreCommitHook(hooks.InterruptContacts, event)
+	scene.AttachPreCommitHook(hooks.UpdateContactModifiedOn, event)
 
 	return nil
 }
