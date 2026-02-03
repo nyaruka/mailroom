@@ -508,35 +508,45 @@
                 "SK": "evt#01969b49-5f13-76f8-92f0-b4a6fcc7080c",
                 "OrgID": 1,
                 "Data": {
+                    "created_on": "2025-05-04T12:33:20.123456789Z",
+                    "status": "active",
+                    "type": "contact_status_changed"
+                }
+            },
+            {
+                "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
+                "SK": "evt#01969b49-66e3-76f8-a52e-e58736ac73ba",
+                "OrgID": 1,
+                "Data": {
                     "channel": {
                         "name": "Facebook",
                         "uuid": "0f661e8b-ea9d-4bd3-9953-d368340acf91"
                     },
-                    "created_on": "2025-05-04T12:33:20.123456789Z",
+                    "created_on": "2025-05-04T12:33:22.123456789Z",
                     "type": "chat_started"
                 }
             },
             {
                 "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
-                "SK": "evt#01969b49-7a6b-76f8-874b-f17fb8365c22",
+                "SK": "evt#01969b49-823b-76f8-a2d8-44b4f9caf25c",
                 "OrgID": 1,
                 "Data": {
-                    "created_on": "2025-05-04T12:33:27.123456789Z",
+                    "created_on": "2025-05-04T12:33:29.123456789Z",
                     "flow": {
                         "name": "Favorites",
                         "revision": 1,
                         "uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85"
                     },
-                    "run_uuid": "01969b49-7683-76f8-956a-5bc98156b0ad",
+                    "run_uuid": "01969b49-7e53-76f8-874b-f17fb8365c22",
                     "type": "run_started"
                 }
             },
             {
                 "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
-                "SK": "evt#01969b49-8a0b-76f8-881a-ef06948e0f99",
+                "SK": "evt#01969b49-91db-76f8-802a-9fffea2a27fa",
                 "OrgID": 1,
                 "Data": {
-                    "created_on": "2025-05-04T12:33:31.123456789Z",
+                    "created_on": "2025-05-04T12:33:33.123456789Z",
                     "msg": {
                         "channel": {
                             "name": "Facebook",
