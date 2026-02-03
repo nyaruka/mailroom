@@ -64,10 +64,6 @@ func (t *EventReceived) handle(ctx context.Context, rt *runtime.Runtime, oa *mod
 		return nil, nil
 	}
 
-	if err := mc.UpdateLastSeenOn(ctx, rt.DB, dates.Now()); err != nil {
-		return nil, fmt.Errorf("error updating contact last_seen_on: %w", err)
-	}
-
 	// make sure this URN is our highest priority (this is usually a noop)
 	if t.URNID != models.NilURNID {
 		if err := mc.UpdatePreferredURN(ctx, rt.DB, oa, t.URNID, channel); err != nil {
@@ -146,6 +142,11 @@ func (t *EventReceived) handle(ctx context.Context, rt *runtime.Runtime, oa *mod
 		if err := scene.ApplyModifier(ctx, rt, oa, modifiers.NewStatus(flows.ContactStatusStopped), models.NilUserID, ""); err != nil {
 			return nil, fmt.Errorf("error applying stop modifier: %w", err)
 		}
+	}
+
+	// update last_seen_on last so that during flow execution it's the previous value which is more useful than now
+	if err := scene.ApplyModifier(ctx, rt, oa, modifiers.NewSeen(dates.Now()), models.NilUserID, ""); err != nil {
+		return nil, fmt.Errorf("error applying last seen modifier: %w", err)
 	}
 
 	if err := scene.Commit(ctx, rt, oa); err != nil {
