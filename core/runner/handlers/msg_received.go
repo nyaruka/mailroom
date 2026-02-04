@@ -27,9 +27,5 @@ func handleMsgReceived(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 		scene.AttachPreCommitHook(hooks.UpdateMessageHandled, event)
 	}
 
-	// update the contact's last seen date
-	scene.AttachPreCommitHook(hooks.UpdateContactLastSeenOn, event)
-	scene.AttachPreCommitHook(hooks.UpdateCampaignFires, event)
-
 	return nil
 }

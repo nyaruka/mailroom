@@ -15,7 +15,7 @@
             {
                 "query": "SELECT status, last_seen_on::text FROM contacts_contact WHERE id = 10000",
                 "columns": {
-                    "last_seen_on": "2025-05-04 12:31:11.123457+00",
+                    "last_seen_on": "2025-05-04 12:31:09.123457+00",
                     "status": "A"
                 }
             }
