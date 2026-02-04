@@ -23,7 +23,7 @@ require (
 	github.com/lib/pq v1.10.9
 	github.com/nyaruka/ezconf v0.4.1
 	github.com/nyaruka/gocommon v1.74.0
-	github.com/nyaruka/goflow v0.265.1
+	github.com/nyaruka/goflow v0.265.2
 	github.com/nyaruka/null/v3 v3.0.0
 	github.com/nyaruka/rp-indexer/v10 v10.3.2
 	github.com/nyaruka/vkutil v0.20.0
