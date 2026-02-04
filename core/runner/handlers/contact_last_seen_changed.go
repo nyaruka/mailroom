@@ -23,6 +23,7 @@ func handleContactLastSeenChanged(ctx context.Context, rt *runtime.Runtime, oa *
 
 	scene.AttachPreCommitHook(hooks.UpdateContactLastSeenOn, event)
 	scene.AttachPreCommitHook(hooks.UpdateContactModifiedOn, event)
+	scene.AttachPreCommitHook(hooks.UpdateCampaignFires, event)
 
 	return nil
 }

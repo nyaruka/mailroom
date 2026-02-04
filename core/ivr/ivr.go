@@ -15,6 +15,7 @@ import (
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/events"
+	"github.com/nyaruka/goflow/flows/modifiers"
 	"github.com/nyaruka/goflow/utils"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/runner"
@@ -410,6 +411,12 @@ func ResumeCall(
 
 	if err := scene.ResumeSession(ctx, rt, oa, session, resume); err != nil {
 		return fmt.Errorf("error resuming ivr flow: %w", err)
+	}
+
+	if msg != nil {
+		if err := scene.ApplyModifier(ctx, rt, oa, modifiers.NewSeen(dates.Now()), models.NilUserID, ""); err != nil {
+			return fmt.Errorf("error applying last seen modifier: %w", err)
+		}
 	}
 
 	if err := scene.Commit(ctx, rt, oa); err != nil {
