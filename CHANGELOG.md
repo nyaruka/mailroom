@@ -1,3 +1,7 @@
+v26.1.21 (2026-02-04)
+-------------------------
+ * Tweak updating of last seen to use value from event
+
 v26.1.20 (2026-02-03)
 -------------------------
  * Update goflow which adds type field to QuickReply
