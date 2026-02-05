@@ -179,6 +179,8 @@ func TestNewOutgoingFlowMsg(t *testing.T) {
 	// check encoding of quick replies
 	assertdb.Query(t, rt.DB, `SELECT quick_replies[1] FROM msgs_msg WHERE id = 30000`).Returns("yes<extra>if you want")
 	assertdb.Query(t, rt.DB, `SELECT quick_replies[2] FROM msgs_msg WHERE id = 30000`).Returns("no")
+	assertdb.Query(t, rt.DB, `SELECT quickreplies::text FROM msgs_msg WHERE id = 30000`).Returns(`[{"text": "yes", "type": "text", "extra": "if you want"}, {"text": "no", "type": "text"}]`)
+	assertdb.Query(t, rt.DB, `SELECT quickreplies FROM msgs_msg WHERE id = 30001`).Returns(nil)
 }
 
 func TestGetMessagesByUUID(t *testing.T) {

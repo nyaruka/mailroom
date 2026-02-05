@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"reflect"
 	"slices"
 	"strconv"
 	"time"
@@ -107,6 +108,13 @@ func (t *JSONB[T]) Scan(value any) error {
 }
 
 func (t JSONB[T]) Value() (driver.Value, error) {
+	v := reflect.ValueOf(t.V)
+	switch v.Kind() {
+	case reflect.Slice, reflect.Map, reflect.Pointer, reflect.Interface:
+		if v.IsNil() {
+			return nil, nil
+		}
+	}
 	return json.Marshal(t.V)
 }
 

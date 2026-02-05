@@ -160,12 +160,12 @@ type Msg struct {
 		CreatedByID UserID      `db:"created_by_id"`
 
 		// content
-		Text         string         `db:"text"`
-		Attachments  pq.StringArray `db:"attachments"`
-		QuickReplies pq.StringArray `db:"quick_replies"`
-		OptInID      OptInID        `db:"optin_id"`
-		Locale       i18n.Locale    `db:"locale"`
-		Templating   *Templating    `db:"templating"`
+		Text         string                    `db:"text"`
+		Attachments  pq.StringArray            `db:"attachments"`
+		QuickReplies JSONB[[]flows.QuickReply] `db:"quickreplies"`
+		OptInID      OptInID                   `db:"optin_id"`
+		Locale       i18n.Locale               `db:"locale"`
+		Templating   *Templating               `db:"templating"`
 
 		HighPriority       bool          `db:"high_priority"`
 		Direction          Direction     `db:"direction"`
@@ -185,6 +185,9 @@ type Msg struct {
 		ErrorCount   int             `db:"error_count"`
 		NextAttempt  *time.Time      `db:"next_attempt"`
 		FailedReason MsgFailedReason `db:"failed_reason"`
+
+		// TODO replace with QuickReplies
+		LegacyQuickReplies pq.StringArray `db:"quick_replies"`
 	}
 }
 
@@ -239,8 +242,8 @@ func (m *Msg) Attachments() []utils.Attachment {
 }
 
 func (m *Msg) QuickReplies() []flows.QuickReply {
-	qrs := make([]flows.QuickReply, len(m.m.QuickReplies))
-	for i, mqr := range m.m.QuickReplies {
+	qrs := make([]flows.QuickReply, len(m.m.LegacyQuickReplies))
+	for i, mqr := range m.m.LegacyQuickReplies {
 		qr := flows.QuickReply{}
 		qr.UnmarshalText([]byte(mqr))
 		qrs[i] = qr
@@ -432,9 +435,11 @@ func newMsgOut(rt *runtime.Runtime, org *Org, channel *Channel, contact *Contact
 		}
 	}
 	if len(out.QuickReplies()) > 0 {
+		m.QuickReplies = JSONB[[]flows.QuickReply]{out.QuickReplies()}
+
 		for _, qr := range out.QuickReplies() {
 			mqr, _ := qr.MarshalText()
-			m.QuickReplies = append(m.QuickReplies, string(mqr))
+			m.LegacyQuickReplies = append(m.LegacyQuickReplies, string(mqr))
 		}
 	}
 
@@ -620,10 +625,10 @@ func InsertMessages(ctx context.Context, tx DBorTx, msgs []*Msg) error {
 
 const sqlInsertMsgSQL = `
 INSERT INTO
-msgs_msg(uuid, text, attachments, quick_replies, locale, templating, high_priority, created_on, modified_on, sent_on, direction, status,
+msgs_msg(uuid, text, attachments, quickreplies, quick_replies, locale, templating, high_priority, created_on, modified_on, sent_on, direction, status,
 		 visibility, msg_type, msg_count, error_count, next_attempt, failed_reason, channel_id, is_android,
 		 contact_id, contact_urn_id, org_id, flow_id, broadcast_id, ticket_uuid, optin_id, created_by_id)
-  VALUES(:uuid, :text, :attachments, :quick_replies, :locale, :templating, :high_priority, :created_on, now(), :sent_on, :direction, :status,
+  VALUES(:uuid, :text, :attachments, :quickreplies, :quick_replies, :locale, :templating, :high_priority, :created_on, now(), :sent_on, :direction, :status,
 		 :visibility, :msg_type, :msg_count, :error_count, :next_attempt, :failed_reason, :channel_id, :is_android,
 		 :contact_id, :contact_urn_id, :org_id, :flow_id, :broadcast_id, :ticket_uuid, :optin_id, :created_by_id)
 RETURNING id, modified_on`
