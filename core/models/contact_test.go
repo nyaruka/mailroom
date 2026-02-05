@@ -84,43 +84,6 @@ func TestContacts(t *testing.T) {
 	assert.Equal(t, 0, len(cat.URNs()))
 	assert.Equal(t, 0, cat.Groups().Count())
 	assert.Nil(t, cat.Tickets().LastOpen())
-
-	// change bob to have a preferred URN and channel of our telephone
-	channel := org.ChannelByID(testdb.TwilioChannel.ID)
-	err = mcs[1].UpdatePreferredURN(ctx, rt.DB, org, testdb.Bob.URNID, channel)
-	assert.NoError(t, err)
-
-	bob, err = mcs[1].EngineContact(org)
-	assert.NoError(t, err)
-	assert.Equal(t, urns.URN("tel:+16055742222?channel=74729f45-7f29-4868-9dc4-90e491e3c7d8"), bob.URNs()[0].Encode())
-	assert.Equal(t, urns.URN("whatsapp:250788373373"), bob.URNs()[1].Encode())
-
-	// add another tel urn to bob
-	testdb.InsertContactURN(t, rt, testdb.Org1, testdb.Bob, urns.URN("tel:+250788373373"), 10, nil)
-
-	// reload the contact
-	mcs, err = models.LoadContacts(ctx, rt.DB, org, []models.ContactID{testdb.Bob.ID})
-	assert.NoError(t, err)
-
-	// set our preferred channel again
-	err = mcs[0].UpdatePreferredURN(ctx, rt.DB, org, models.URNID(30001), channel)
-	assert.NoError(t, err)
-
-	bob, err = mcs[0].EngineContact(org)
-	assert.NoError(t, err)
-	assert.Equal(t, urns.URN("tel:+250788373373?channel=74729f45-7f29-4868-9dc4-90e491e3c7d8"), bob.URNs()[0].Encode())
-	assert.Equal(t, urns.URN("tel:+16055742222?channel=74729f45-7f29-4868-9dc4-90e491e3c7d8"), bob.URNs()[1].Encode())
-	assert.Equal(t, urns.URN("whatsapp:250788373373"), bob.URNs()[2].Encode())
-
-	// no op this time
-	err = mcs[0].UpdatePreferredURN(ctx, rt.DB, org, models.URNID(30001), channel)
-	assert.NoError(t, err)
-
-	bob, err = mcs[0].EngineContact(org)
-	assert.NoError(t, err)
-	assert.Equal(t, urns.URN("tel:+250788373373?channel=74729f45-7f29-4868-9dc4-90e491e3c7d8"), bob.URNs()[0].Encode())
-	assert.Equal(t, urns.URN("tel:+16055742222?channel=74729f45-7f29-4868-9dc4-90e491e3c7d8"), bob.URNs()[1].Encode())
-	assert.Equal(t, urns.URN("whatsapp:250788373373"), bob.URNs()[2].Encode())
 }
 
 func TestCreateContact(t *testing.T) {

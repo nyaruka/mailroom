@@ -64,13 +64,6 @@ func (t *EventReceived) handle(ctx context.Context, rt *runtime.Runtime, oa *mod
 		return nil, nil
 	}
 
-	// make sure this URN is our highest priority (this is usually a noop)
-	if t.URNID != models.NilURNID {
-		if err := mc.UpdatePreferredURN(ctx, rt.DB, oa, t.URNID, channel); err != nil {
-			return nil, fmt.Errorf("error changing primary URN: %w", err)
-		}
-	}
-
 	urn := mc.GetURN(t.URNID)
 
 	if t.EventType == models.EventTypeDeleteContact {
@@ -109,6 +102,15 @@ func (t *EventReceived) handle(ctx context.Context, rt *runtime.Runtime, oa *mod
 	} else if contact.Status() == flows.ContactStatusStopped && (t.EventType == models.EventTypeNewConversation || t.EventType == models.EventTypeReferral) {
 		if err := scene.ApplyModifier(ctx, rt, oa, modifiers.NewStatus(flows.ContactStatusActive), models.NilUserID, ""); err != nil {
 			return nil, fmt.Errorf("error applying modifier to unstop contact: %w", err)
+		}
+	}
+
+	// make sure this URN is our highest priority (this is usually a noop)
+	if t.URNID != models.NilURNID && urn != nil {
+		if ch := oa.SessionAssets().Channels().Get(channel.UUID()); ch != nil {
+			if err := scene.ApplyModifier(ctx, rt, oa, modifiers.NewAffinity(urn.Identity, ch), models.NilUserID, ""); err != nil {
+				return nil, fmt.Errorf("error applying affinity modifier: %w", err)
+			}
 		}
 	}
 
