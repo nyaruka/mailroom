@@ -1,3 +1,7 @@
+v26.1.23 (2026-02-05)
+-------------------------
+ * Start reading from Msg.quickreplies when set
+
 v26.1.22 (2026-02-05)
 -------------------------
  * Start writing Msg.quickreplies
