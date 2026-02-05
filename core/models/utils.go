@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log/slog"
 	"reflect"
@@ -100,9 +99,15 @@ type JSONB[T any] struct {
 }
 
 func (t *JSONB[T]) Scan(value any) error {
+	if value == nil {
+		var zero T
+		t.V = zero
+		return nil
+	}
+
 	b, ok := value.([]byte)
 	if !ok {
-		return errors.New("failed type assertion to []byte")
+		return fmt.Errorf("failed type assertion to []byte: %T", reflect.TypeOf(value))
 	}
 	return json.Unmarshal(b, &t.V)
 }
