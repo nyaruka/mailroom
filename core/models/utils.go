@@ -107,7 +107,7 @@ func (t *JSONB[T]) Scan(value any) error {
 
 	b, ok := value.([]byte)
 	if !ok {
-		return fmt.Errorf("failed type assertion to []byte: %T", reflect.TypeOf(value))
+		return fmt.Errorf("failed type assertion to []byte: %T", value)
 	}
 	return json.Unmarshal(b, &t.V)
 }
