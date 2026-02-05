@@ -1,3 +1,10 @@
+v26.1.22 (2026-02-05)
+-------------------------
+ * Start writing Msg.quickreplies
+ * Update URN affinity via scene and modifier
+ * Update test database
+ * Update goflow which tweaks truncation of quick replies
+
 v26.1.21 (2026-02-04)
 -------------------------
  * Tweak updating of last seen to use value from event
