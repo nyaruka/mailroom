@@ -187,54 +187,6 @@ func (c *Contact) UpdateLastSeenOn(ctx context.Context, db DBorTx, lastSeenOn ti
 	return nil
 }
 
-// UpdatePreferredURN updates the URNs for the contact (if needbe) to have the passed in URN as top priority
-// with the passed in channel as the preferred channel
-func (c *Contact) UpdatePreferredURN(ctx context.Context, db DBorTx, oa *OrgAssets, urnID URNID, channel *Channel) error {
-	// no urns? that's an error
-	if len(c.urns) == 0 {
-		return fmt.Errorf("can't set preferred URN on contact with no URNs")
-	}
-
-	// we are already the top URN, nothing to do
-	if c.urns[0].ID == urnID && c.urns[0].ChannelID == channel.ID() {
-		return nil
-	}
-
-	topURN := c.GetURN(urnID)
-	if topURN == nil {
-		return fmt.Errorf("contact doesn't appear to own URN with id #%d", urnID)
-	}
-
-	topURN.ChannelID = channel.ID()
-	topURN.Priority = topURNPriority
-
-	// make new list of URNs with this one first
-	newURNs := make([]*ContactURN, 0, len(c.urns))
-	newURNs = append(newURNs, topURN)
-
-	priority := topURNPriority - 1
-	for _, u := range c.urns {
-		if u.ID != urnID {
-			newURNs = append(newURNs, u)
-		}
-		u.Priority = priority
-		priority--
-	}
-
-	c.urns = newURNs
-
-	// write our new state to the db
-	if err := UpdateURNPriorityAndChannel(ctx, db, c.urns); err != nil {
-		return fmt.Errorf("error updating urns for contact: %w", err)
-	}
-
-	if err := UpdateContactModifiedOn(ctx, db, []ContactID{c.ID()}); err != nil {
-		return fmt.Errorf("error updating modified on on contact: %w", err)
-	}
-
-	return nil
-}
-
 // EngineContact converts our mailroom contact into a contact for use in the engine
 func (c *Contact) EngineContact(oa *OrgAssets) (*flows.Contact, error) {
 	urnz := make([]urns.URN, 0, len(c.urns))

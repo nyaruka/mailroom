@@ -74,13 +74,6 @@ func (t *MsgReceived) perform(ctx context.Context, rt *runtime.Runtime, oa *mode
 		}
 	}
 
-	// if we have URNs make sure the message URN is our highest priority (this is usually a noop)
-	if len(mc.URNs()) > 0 && channel != nil {
-		if err := mc.UpdatePreferredURN(ctx, rt.DB, oa, t.URNID, channel); err != nil {
-			return fmt.Errorf("error changing primary URN: %w", err)
-		}
-	}
-
 	// flow will only see the attachments we were able to fetch
 	availableAttachments := make([]utils.Attachment, 0, len(attachments))
 	for _, att := range attachments {
@@ -115,6 +108,15 @@ func (t *MsgReceived) perform(ctx context.Context, rt *runtime.Runtime, oa *mode
 		// if we get a message from a stopped contact, unstop them
 		if err := scene.ApplyModifier(ctx, rt, oa, modifiers.NewStatus(flows.ContactStatusActive), models.NilUserID, ""); err != nil {
 			return fmt.Errorf("error applying modifier to unstop contact: %w", err)
+		}
+	}
+
+	// if we have URNs make sure the message URN is our highest priority (this is usually a noop)
+	if len(mc.URNs()) > 0 && channel != nil {
+		if ch := oa.SessionAssets().Channels().Get(channel.UUID()); ch != nil {
+			if err := scene.ApplyModifier(ctx, rt, oa, modifiers.NewAffinity(t.URN, ch), models.NilUserID, ""); err != nil {
+				return fmt.Errorf("error applying affinity modifier: %w", err)
+			}
 		}
 	}
 

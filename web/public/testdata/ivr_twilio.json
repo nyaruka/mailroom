@@ -658,6 +658,19 @@
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
                 "SK": "evt#01969b4a-ab1b-76f8-9c96-61ebc05df996",
                 "OrgID": 1,
+                "TTL": "2026-05-04T12:34:45Z",
+                "Data": {
+                    "created_on": "2025-05-04T12:34:45.123456789Z",
+                    "type": "contact_urns_changed",
+                    "urns": [
+                        "tel:+16055741111?channel=74729f45-7f29-4868-9dc4-90e491e3c7d8"
+                    ]
+                }
+            },
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01969b4a-b2eb-76f8-94b4-ef0c4720292f",
+                "OrgID": 1,
                 "Data": {
                     "call": {
                         "channel": {
@@ -667,31 +680,31 @@
                         "urn": "tel:+16055741111",
                         "uuid": "01969b4a-a733-76f8-9676-22cd6062f002"
                     },
-                    "created_on": "2025-05-04T12:34:45.123456789Z",
+                    "created_on": "2025-05-04T12:34:47.123456789Z",
                     "type": "call_received"
                 }
             },
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b4a-c673-76f8-b715-6b60849cfb2b",
+                "SK": "evt#01969b4a-ce43-76f8-b09a-ec8aca1372ed",
                 "OrgID": 1,
                 "Data": {
-                    "created_on": "2025-05-04T12:34:52.123456789Z",
+                    "created_on": "2025-05-04T12:34:54.123456789Z",
                     "flow": {
                         "name": "IVR Flow",
                         "revision": 1,
                         "uuid": "2f81d0ea-4d75-4843-9371-3f7465311cce"
                     },
-                    "run_uuid": "01969b4a-c28b-76f8-9418-6d3e4ae5a100",
+                    "run_uuid": "01969b4a-ca5b-76f8-b715-6b60849cfb2b",
                     "type": "run_started"
                 }
             },
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b4a-d9fb-76f8-962a-76fbcac8bf7f",
+                "SK": "evt#01969b4a-e1cb-76f8-a2a5-6b6ffeeada26",
                 "OrgID": 1,
                 "Data": {
-                    "created_on": "2025-05-04T12:34:57.123456789Z",
+                    "created_on": "2025-05-04T12:34:59.123456789Z",
                     "msg": {
                         "channel": {
                             "name": "Twilio",
@@ -731,10 +744,10 @@
         "expected_history": [
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b4b-187b-76f8-85ee-f261b5a4c5a1",
+                "SK": "evt#01969b4b-204b-76f8-9ad9-7b76948880e3",
                 "OrgID": 1,
                 "Data": {
-                    "created_on": "2025-05-04T12:35:14.123456789Z",
+                    "created_on": "2025-05-04T12:35:16.123456789Z",
                     "msg": {
                         "channel": {
                             "name": "Twilio",
@@ -748,10 +761,10 @@
             },
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b4b-475b-76f8-9c41-cf3f881022fb",
+                "SK": "evt#01969b4b-4f2b-76f8-82ae-81542083c6c6",
                 "OrgID": 1,
                 "Data": {
-                    "created_on": "2025-05-04T12:35:25.123456789Z",
+                    "created_on": "2025-05-04T12:35:27.123456789Z",
                     "msg": {
                         "channel": {
                             "name": "Twilio",
@@ -788,7 +801,20 @@
         "expected_history": [
             {
                 "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
-                "SK": "evt#01969b4b-89c3-76f8-a261-a8a7a2e749fe",
+                "SK": "evt#01969b4b-9193-76f8-a8e1-fc82b887c3ff",
+                "OrgID": 1,
+                "TTL": "2026-05-04T12:35:44Z",
+                "Data": {
+                    "created_on": "2025-05-04T12:35:44.123456789Z",
+                    "type": "contact_urns_changed",
+                    "urns": [
+                        "tel:+16055742222?channel=74729f45-7f29-4868-9dc4-90e491e3c7d8"
+                    ]
+                }
+            },
+            {
+                "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
+                "SK": "evt#01969b4b-9963-76f8-a679-1ed579b6107a",
                 "OrgID": 1,
                 "Data": {
                     "call": {
@@ -797,9 +823,9 @@
                             "uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8"
                         },
                         "urn": "tel:+16055742222",
-                        "uuid": "01969b4b-85db-76f8-86f5-36e944bfe3ab"
+                        "uuid": "01969b4b-8dab-76f8-a261-a8a7a2e749fe"
                     },
-                    "created_on": "2025-05-04T12:35:42.123456789Z",
+                    "created_on": "2025-05-04T12:35:46.123456789Z",
                     "type": "call_received"
                 }
             }
