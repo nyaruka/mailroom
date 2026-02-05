@@ -61,11 +61,10 @@
         },
         "db_assertions": [
             {
-                "query": "SELECT text, high_priority, quick_replies[1] AS qr1, quick_replies[2] AS qr2 FROM msgs_msg WHERE contact_id = 10000 ORDER BY id DESC LIMIT 1",
+                "query": "SELECT text, high_priority, quickreplies::text AS qrs FROM msgs_msg WHERE contact_id = 10000 ORDER BY id DESC LIMIT 1",
                 "columns": {
                     "high_priority": true,
-                    "qr1": "yes",
-                    "qr2": "no",
+                    "qrs": "[{\"text\": \"yes\", \"type\": \"text\"}, {\"text\": \"no\", \"type\": \"text\"}]",
                     "text": "Hello World"
                 }
             },
@@ -315,12 +314,12 @@
                         "locale": "eng-US",
                         "quick_replies": [
                             {
-                                "type": "text",
-                                "text": "yes"
+                                "text": "yes",
+                                "type": "text"
                             },
                             {
-                                "type": "text",
-                                "text": "no"
+                                "text": "no",
+                                "type": "text"
                             }
                         ],
                         "text": "Hello World",
@@ -343,12 +342,12 @@
                         "locale": "eng-US",
                         "quick_replies": [
                             {
-                                "type": "text",
-                                "text": "yes"
+                                "text": "yes",
+                                "type": "text"
                             },
                             {
-                                "type": "text",
-                                "text": "no"
+                                "text": "no",
+                                "type": "text"
                             }
                         ],
                         "text": "Hello World",
@@ -424,22 +423,20 @@
         },
         "db_assertions": [
             {
-                "query": "SELECT broadcast_id, text, high_priority, quick_replies[1] AS qr1, quick_replies[2] AS qr2 FROM msgs_msg WHERE contact_id = 10000 ORDER BY id DESC LIMIT 1",
+                "query": "SELECT broadcast_id, text, high_priority, quickreplies::text AS qrs FROM msgs_msg WHERE contact_id = 10000 ORDER BY id DESC LIMIT 1",
                 "columns": {
                     "broadcast_id": 30000,
                     "high_priority": false,
-                    "qr1": "Cats",
-                    "qr2": "Dogs",
+                    "qrs": "[{\"text\": \"Cats\", \"type\": \"text\"}, {\"text\": \"Dogs\", \"type\": \"text\"}]",
                     "text": "Cats or dogs?"
                 }
             },
             {
-                "query": "SELECT broadcast_id, text, high_priority, quick_replies[1] AS qr1, quick_replies[2] AS qr2 FROM msgs_msg WHERE contact_id = 10001 ORDER BY id DESC LIMIT 1",
+                "query": "SELECT broadcast_id, text, high_priority, quickreplies::text AS qrs FROM msgs_msg WHERE contact_id = 10001 ORDER BY id DESC LIMIT 1",
                 "columns": {
                     "broadcast_id": 30000,
                     "high_priority": false,
-                    "qr1": "Cats",
-                    "qr2": "Dogs",
+                    "qrs": "[{\"text\": \"Cats\", \"type\": \"text\"}, {\"text\": \"Dogs\", \"type\": \"text\"}]",
                     "text": "Cats or dogs?"
                 }
             }
@@ -455,12 +452,12 @@
                     "msg": {
                         "quick_replies": [
                             {
-                                "type": "text",
-                                "text": "Cats"
+                                "text": "Cats",
+                                "type": "text"
                             },
                             {
-                                "type": "text",
-                                "text": "Dogs"
+                                "text": "Dogs",
+                                "type": "text"
                             }
                         ],
                         "text": "Cats or dogs?"
@@ -478,12 +475,12 @@
                     "msg": {
                         "quick_replies": [
                             {
-                                "type": "text",
-                                "text": "Cats"
+                                "text": "Cats",
+                                "type": "text"
                             },
                             {
-                                "type": "text",
-                                "text": "Dogs"
+                                "text": "Dogs",
+                                "type": "text"
                             }
                         ],
                         "text": "Cats or dogs?"
