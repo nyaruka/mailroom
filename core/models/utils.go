@@ -78,14 +78,14 @@ func BulkQueryBatches[T any](ctx context.Context, label string, tx DBorTx, sql s
 	return nil
 }
 
+// ScanJSONRows is a helper to scan rows of JSON results into a slice on things that can unmarshal from JSON
 func ScanJSONRows[T any](rows *sql.Rows, f func() T) ([]T, error) {
 	defer rows.Close()
 
 	as := make([]T, 0, 10)
 	for rows.Next() {
 		a := f()
-		err := dbutil.ScanJSON(rows, &a)
-		if err != nil {
+		if err := dbutil.ScanJSON(rows, &a); err != nil {
 			return nil, fmt.Errorf("error scanning into %T: %w", a, err)
 		}
 		as = append(as, a)
@@ -111,6 +111,7 @@ func (t JSONB[T]) Value() (driver.Value, error) {
 	v := reflect.ValueOf(t.V)
 	switch v.Kind() {
 	case reflect.Slice, reflect.Map, reflect.Pointer, reflect.Interface:
+		// we never want to write "null" for nil things
 		if v.IsNil() {
 			return nil, nil
 		}
