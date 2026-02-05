@@ -242,6 +242,10 @@ func (m *Msg) Attachments() []utils.Attachment {
 }
 
 func (m *Msg) QuickReplies() []flows.QuickReply {
+	if m.m.QuickReplies.V != nil {
+		return m.m.QuickReplies.V
+	}
+
 	qrs := make([]flows.QuickReply, len(m.m.LegacyQuickReplies))
 	for i, mqr := range m.m.LegacyQuickReplies {
 		qr := flows.QuickReply{}
@@ -500,6 +504,7 @@ SELECT
 	text,
 	attachments,
 	quick_replies,
+	quickreplies,
 	locale,
 	templating,
 	created_on,
@@ -541,6 +546,7 @@ SELECT
 	m.text,
 	m.attachments,
 	m.quick_replies,
+	m.quickreplies,
 	m.locale,
 	m.templating,
 	m.created_on,
