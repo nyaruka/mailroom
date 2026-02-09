@@ -421,11 +421,9 @@
         },
         "db_assertions": [
             {
-                "query": "SELECT text, quick_replies[1] AS qr_1, quick_replies[2] AS qr_2, quick_replies[3] AS qr_3 FROM msgs_msg ORDER BY id DESC LIMIT 1",
+                "query": "SELECT text, quickreplies::text AS qrs FROM msgs_msg ORDER BY id DESC LIMIT 1",
                 "columns": {
-                    "qr_1": "Red",
-                    "qr_2": "Green",
-                    "qr_3": "Blue<extra>like the sky",
+                    "qrs": "[{\"text\": \"Red\", \"type\": \"text\"}, {\"text\": \"Green\", \"type\": \"text\"}, {\"text\": \"Blue\", \"type\": \"text\", \"extra\": \"like the sky\"}]",
                     "text": "What is your preferred color?"
                 }
             }
@@ -444,17 +442,17 @@
                         },
                         "quick_replies": [
                             {
-                                "type": "text",
-                                "text": "Red"
+                                "text": "Red",
+                                "type": "text"
                             },
                             {
-                                "type": "text",
-                                "text": "Green"
+                                "text": "Green",
+                                "type": "text"
                             },
                             {
-                                "type": "text",
                                 "extra": "like the sky",
-                                "text": "Blue"
+                                "text": "Blue",
+                                "type": "text"
                             }
                         ],
                         "text": "What is your preferred color?",

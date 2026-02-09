@@ -631,10 +631,10 @@ func InsertMessages(ctx context.Context, tx DBorTx, msgs []*Msg) error {
 
 const sqlInsertMsgSQL = `
 INSERT INTO
-msgs_msg(uuid, text, attachments, quickreplies, quick_replies, locale, templating, high_priority, created_on, modified_on, sent_on, direction, status,
+msgs_msg(uuid, text, attachments, quickreplies, locale, templating, high_priority, created_on, modified_on, sent_on, direction, status,
 		 visibility, msg_type, msg_count, error_count, next_attempt, failed_reason, channel_id, is_android,
 		 contact_id, contact_urn_id, org_id, flow_id, broadcast_id, ticket_uuid, optin_id, created_by_id)
-  VALUES(:uuid, :text, :attachments, :quickreplies, :quick_replies, :locale, :templating, :high_priority, :created_on, now(), :sent_on, :direction, :status,
+  VALUES(:uuid, :text, :attachments, :quickreplies, :locale, :templating, :high_priority, :created_on, now(), :sent_on, :direction, :status,
 		 :visibility, :msg_type, :msg_count, :error_count, :next_attempt, :failed_reason, :channel_id, :is_android,
 		 :contact_id, :contact_urn_id, :org_id, :flow_id, :broadcast_id, :ticket_uuid, :optin_id, :created_by_id)
 RETURNING id, modified_on`
