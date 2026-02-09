@@ -1,3 +1,8 @@
+v26.1.24 (2026-02-09)
+-------------------------
+ * Update phonenumbers
+ * Stop writing Msg.quick_replies to the DB
+
 v26.1.23 (2026-02-05)
 -------------------------
  * Start reading from Msg.quickreplies when set
