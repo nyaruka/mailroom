@@ -185,9 +185,6 @@ type Msg struct {
 		ErrorCount   int             `db:"error_count"`
 		NextAttempt  *time.Time      `db:"next_attempt"`
 		FailedReason MsgFailedReason `db:"failed_reason"`
-
-		// TODO replace with QuickReplies
-		LegacyQuickReplies pq.StringArray `db:"quick_replies"`
 	}
 }
 
@@ -245,14 +242,7 @@ func (m *Msg) QuickReplies() []flows.QuickReply {
 	if m.m.QuickReplies.V != nil {
 		return m.m.QuickReplies.V
 	}
-
-	qrs := make([]flows.QuickReply, len(m.m.LegacyQuickReplies))
-	for i, mqr := range m.m.LegacyQuickReplies {
-		qr := flows.QuickReply{}
-		qr.UnmarshalText([]byte(mqr))
-		qrs[i] = qr
-	}
-	return qrs
+	return []flows.QuickReply{}
 }
 
 // MsgOut is an outgoing message with the additional information required to queue it
@@ -412,6 +402,7 @@ func newMsgOut(rt *runtime.Runtime, org *Org, channel *Channel, contact *Contact
 	m.TicketUUID = null.String(event.TicketUUID)
 	m.Text = out.Text()
 	m.Locale = out.Locale()
+	m.QuickReplies = JSONB[[]flows.QuickReply]{out.QuickReplies()}
 	m.OptInID = optInID
 	m.HighPriority = highPriority
 	m.Direction = DirectionOut
@@ -436,14 +427,6 @@ func newMsgOut(rt *runtime.Runtime, org *Org, channel *Channel, contact *Contact
 	if len(out.Attachments()) > 0 {
 		for _, a := range out.Attachments() {
 			m.Attachments = append(m.Attachments, string(NormalizeAttachment(rt.Config, a)))
-		}
-	}
-	if len(out.QuickReplies()) > 0 {
-		m.QuickReplies = JSONB[[]flows.QuickReply]{out.QuickReplies()}
-
-		for _, qr := range out.QuickReplies() {
-			mqr, _ := qr.MarshalText()
-			m.LegacyQuickReplies = append(m.LegacyQuickReplies, string(mqr))
 		}
 	}
 
@@ -503,7 +486,6 @@ SELECT
 	optin_id,
 	text,
 	attachments,
-	quick_replies,
 	quickreplies,
 	locale,
 	templating,
@@ -545,7 +527,6 @@ SELECT
 	m.optin_id,
 	m.text,
 	m.attachments,
-	m.quick_replies,
 	m.quickreplies,
 	m.locale,
 	m.templating,
