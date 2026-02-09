@@ -215,8 +215,8 @@ github.com/nyaruka/goflow v0.266.0 h1:AOhgXMkZWG8YgSkJiOI80KgR5dkeaCYBOOpHMSs/yE
 github.com/nyaruka/goflow v0.266.0/go.mod h1:J71huteQ49PtdVDzmfp2zXY/MaGqfGMN9vqXXVGAimQ=
 github.com/nyaruka/null/v3 v3.0.0 h1:JvOiNuKmRBFHxzZFt4sWii+ewmMkCQ1vO7X0clTNn6E=
 github.com/nyaruka/null/v3 v3.0.0/go.mod h1:Sus286RmC8P0VihFuQDDQPib/xJQ7++TsaPLdRuwgVc=
-github.com/nyaruka/phonenumbers v1.6.8 h1:k7HAJ/LeBkXE0vfbajITzTCZD0z0j+epdBNx43yTygk=
-github.com/nyaruka/phonenumbers v1.6.8/go.mod h1:IUu45lj2bSeYXQuxDyyuzOrdV10tyRa1YSsfH8EKN5c=
+github.com/nyaruka/phonenumbers v1.6.9 h1:LUmsIr+WKyBhWTzxm/9j+kGC9JclO+hBOHc18PSo9iM=
+github.com/nyaruka/phonenumbers v1.6.9/go.mod h1:IUu45lj2bSeYXQuxDyyuzOrdV10tyRa1YSsfH8EKN5c=
 github.com/nyaruka/rp-indexer/v10 v10.3.2 h1:r26tcju1b2jDyv+xqoTR7j8NPHE6HDeC+2a8uj5YEJw=
 github.com/nyaruka/rp-indexer/v10 v10.3.2/go.mod h1:5Ba2nXMJwUitYUqRqth6ensibWpOFVUvFTV9o2aqXKo=
 github.com/nyaruka/vkutil v0.20.0 h1:ZKFh7wI+1YYVGX6YbwWMsh5HlE6IKDwAs3yWg73CQdU=
