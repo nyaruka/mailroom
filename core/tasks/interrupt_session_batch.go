@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/gomodule/redigo/redis"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/runner"
@@ -24,8 +25,9 @@ func init() {
 // InterruptSessionBatch is our task for interrupting a batch of specific sessions. The sessions will only be modified
 // if they are still the contact's waiting session when the task runs.
 type InterruptSessionBatch struct {
-	Sessions []models.SessionRef `json:"sessions" validate:"required"`
-	Status   flows.SessionStatus `json:"status"   validate:"required"`
+	Sessions []models.SessionRef `json:"sessions"          validate:"required"`
+	Status   flows.SessionStatus `json:"status"            validate:"required"`
+	FlowID   models.FlowID       `json:"flow_id,omitempty"`
 }
 
 func (t *InterruptSessionBatch) Type() string {
@@ -51,6 +53,16 @@ func (t *InterruptSessionBatch) Perform(ctx context.Context, rt *runtime.Runtime
 
 	if _, _, err := runner.InterruptWithLock(ctx, rt, oa, contactIDs, sessions, t.Status); err != nil {
 		return fmt.Errorf("error interrupting batch of sessions: %w", err)
+	}
+
+	// if this batch was created as part of a flow interruption, decrement the remaining sessions counter
+	if t.FlowID != 0 {
+		vc := rt.VK.Get()
+		_, err := redis.DoContext(vc, ctx, "DECRBY", fmt.Sprintf("%s:%d", InterruptFlowProgressKey, t.FlowID), len(t.Sessions))
+		vc.Close()
+		if err != nil {
+			return fmt.Errorf("error decrementing flow interrupt sessions remaining key: %w", err)
+		}
 	}
 
 	return nil

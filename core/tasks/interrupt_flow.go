@@ -6,12 +6,19 @@ import (
 	"slices"
 	"time"
 
+	"github.com/gomodule/redigo/redis"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/runtime"
 )
 
-const TypeInterruptFlow = "interrupt_flow"
+const (
+	TypeInterruptFlow = "interrupt_flow"
+
+	// InterruptFlowProgressKey is the redis key prefix used to track the number of sessions remaining to be interrupted
+	// for a flow. RapidPro can check this to block further interruption calls until the current one completes.
+	InterruptFlowProgressKey = "interrupt_flow_progress"
+)
 
 func init() {
 	RegisterType(TypeInterruptFlow, func() Task { return &InterruptFlow{} })
@@ -42,8 +49,19 @@ func (t *InterruptFlow) Perform(ctx context.Context, rt *runtime.Runtime, oa *mo
 		return fmt.Errorf("error getting waiting sessions for flow: %w", err)
 	}
 
+	// set a redis key with the total number of sessions being interrupted so that RapidPro can check it
+	// to block further interruption calls until this one completes
+	if len(sessionRefs) > 0 {
+		vc := rt.VK.Get()
+		_, err = redis.DoContext(vc, ctx, "SET", fmt.Sprintf("%s:%d", InterruptFlowProgressKey, t.FlowID), len(sessionRefs), "EX", 15*60)
+		vc.Close()
+		if err != nil {
+			return fmt.Errorf("error setting flow interrupt sessions remaining key: %w", err)
+		}
+	}
+
 	for batch := range slices.Chunk(sessionRefs, interruptSessionBatchSize) {
-		task := &InterruptSessionBatch{Sessions: batch, Status: flows.SessionStatusInterrupted}
+		task := &InterruptSessionBatch{Sessions: batch, Status: flows.SessionStatusInterrupted, FlowID: t.FlowID}
 
 		if err := Queue(ctx, rt, rt.Queues.Batch, oa.OrgID(), task, false); err != nil {
 			return fmt.Errorf("error queueing interrupt session batch task: %w", err)
