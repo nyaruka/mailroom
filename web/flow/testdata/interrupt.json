@@ -9,7 +9,20 @@
         }
     },
     {
-        "label": "response is empty on success",
+        "label": "noop if interruption already in progress",
+        "method": "POST",
+        "path": "/mi/flow/interrupt",
+        "body": {
+            "org_id": 1,
+            "flow_id": 10001
+        },
+        "status": 200,
+        "response": {
+            "interrupted": false
+        }
+    },
+    {
+        "label": "task created on success",
         "method": "POST",
         "path": "/mi/flow/interrupt",
         "body": {
@@ -17,7 +30,9 @@
             "flow_id": 10000
         },
         "status": 200,
-        "response": {},
+        "response": {
+            "interrupted": true
+        },
         "expected_tasks": {
             "batch/1": [
                 {

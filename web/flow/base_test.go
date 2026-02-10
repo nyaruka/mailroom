@@ -1,9 +1,11 @@
 package flow_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/nyaruka/mailroom/testsuite"
+	"github.com/nyaruka/mailroom/testsuite/testdb"
 )
 
 func TestChangeLanguage(t *testing.T) {
@@ -28,6 +30,11 @@ func TestInterrupt(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, rt, testsuite.ResetValkey)
+
+	// set the progress key for PickANumber to simulate an ongoing interruption for that flow
+	vc := rt.VK.Get()
+	vc.Do("SET", fmt.Sprintf("%s:%d", "interrupt_flow_progress", testdb.PickANumber.ID), 100, "EX", 15*60)
+	vc.Close()
 
 	testsuite.RunWebTests(t, rt, "testdata/interrupt.json")
 }

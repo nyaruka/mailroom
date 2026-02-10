@@ -1,8 +1,10 @@
 package tasks_test
 
 import (
+	"fmt"
 	"testing"
 
+	"github.com/gomodule/redigo/redis"
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/tasks"
@@ -13,6 +15,8 @@ import (
 
 func TestInterruptFlow(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
+	vc := rt.VK.Get()
+	defer vc.Close()
 
 	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetDynamo|testsuite.ResetValkey)
 
@@ -35,4 +39,9 @@ func TestInterruptFlow(t *testing.T) {
 		string(s4UUID): models.SessionStatusWaiting,
 		string(s5UUID): models.SessionStatusExpired,
 	})
+
+	// check that the sessions remaining counter has been decremented to zero
+	remaining, err := redis.Int(vc.Do("GET", fmt.Sprintf("interrupt_flow_progress:%d", testdb.Favorites.ID)))
+	assert.NoError(t, err)
+	assert.Equal(t, 0, remaining)
 }

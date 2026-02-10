@@ -4,11 +4,13 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/tasks"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/mailroom/web"
+	"github.com/nyaruka/vkutil/locks"
 )
 
 func init() {
@@ -27,10 +29,32 @@ type interruptRequest struct {
 }
 
 func handleInterrupt(ctx context.Context, rt *runtime.Runtime, r *interruptRequest) (any, int, error) {
+	locker := locks.NewLocker(fmt.Sprintf("flow_interrupt:%d", r.FlowID), time.Second*30)
+	lock, err := locker.Grab(ctx, rt.VK, time.Second*5)
+	if err != nil {
+		return nil, 0, fmt.Errorf("error grabbing lock for flow interruption: %w", err)
+	}
+	defer locker.Release(ctx, rt.VK, lock)
+
+	// check if there is already an interruption in progress for this flow
+	remaining, err := tasks.GetFlowInterruptProgress(ctx, rt, r.FlowID)
+	if err != nil {
+		return nil, 0, fmt.Errorf("error checking flow interrupt progress: %w", err)
+	}
+	if remaining != 0 {
+		return map[string]any{"interrupted": false}, http.StatusOK, nil
+	}
+
+	// to avoid a race condition between checking for an existing interruption and setting the progress key in the task
+	// below we set the progress key here with a placeholder value.
+	if err := tasks.SetFlowInterruptProgress(ctx, rt, r.FlowID, -1); err != nil {
+		return nil, 0, fmt.Errorf("error initializing flow interrupt progress: %w", err)
+	}
+
 	task := &tasks.InterruptFlow{FlowID: r.FlowID}
 	if err := tasks.Queue(ctx, rt, rt.Queues.Batch, r.OrgID, task, true); err != nil {
 		return nil, 0, fmt.Errorf("error queuing interrupt flow task: %w", err)
 	}
 
-	return map[string]any{}, http.StatusOK, nil
+	return map[string]any{"interrupted": true}, http.StatusOK, nil
 }

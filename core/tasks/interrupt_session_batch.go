@@ -24,8 +24,9 @@ func init() {
 // InterruptSessionBatch is our task for interrupting a batch of specific sessions. The sessions will only be modified
 // if they are still the contact's waiting session when the task runs.
 type InterruptSessionBatch struct {
-	Sessions []models.SessionRef `json:"sessions" validate:"required"`
-	Status   flows.SessionStatus `json:"status"   validate:"required"`
+	Sessions []models.SessionRef `json:"sessions"          validate:"required"`
+	Status   flows.SessionStatus `json:"status"            validate:"required"`
+	FlowID   models.FlowID       `json:"flow_id,omitempty"`
 }
 
 func (t *InterruptSessionBatch) Type() string {
@@ -51,6 +52,19 @@ func (t *InterruptSessionBatch) Perform(ctx context.Context, rt *runtime.Runtime
 
 	if _, _, err := runner.InterruptWithLock(ctx, rt, oa, contactIDs, sessions, t.Status); err != nil {
 		return fmt.Errorf("error interrupting batch of sessions: %w", err)
+	}
+
+	// if this batch was created as part of a flow interruption, decrement the remaining sessions counter
+	if t.FlowID != 0 {
+		key := fmt.Sprintf("%s:%d", interruptFlowProgressKey, t.FlowID)
+		vc := rt.VK.Get()
+		vc.Send("DECRBY", key, len(t.Sessions))
+		vc.Send("EXPIRE", key, 15*60)
+		if err := vc.Flush(); err != nil {
+			vc.Close()
+			return fmt.Errorf("error decrementing flow interrupt progress key: %w", err)
+		}
+		vc.Close()
 	}
 
 	return nil
