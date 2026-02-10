@@ -48,14 +48,13 @@ func (t *InterruptFlow) Perform(ctx context.Context, rt *runtime.Runtime, oa *mo
 		return fmt.Errorf("error getting waiting sessions for flow: %w", err)
 	}
 
-	// set a redis key with the total number of sessions being interrupted so that RapidPro can check it
-	// to block further interruption calls until this one completes
 	if len(sessionRefs) > 0 {
-		vc := rt.VK.Get()
-		_, err = redis.DoContext(vc, ctx, "SET", fmt.Sprintf("%s:%d", interruptFlowProgressKey, t.FlowID), len(sessionRefs), "EX", 15*60)
-		vc.Close()
-		if err != nil {
+		if err := SetFlowInterruptProgress(ctx, rt, t.FlowID, len(sessionRefs)); err != nil {
 			return fmt.Errorf("error setting flow interrupt sessions remaining key: %w", err)
+		}
+	} else {
+		if err := ClearFlowInterruptProgress(ctx, rt, t.FlowID); err != nil {
+			return fmt.Errorf("error clearing flow interrupt progress key: %w", err)
 		}
 	}
 
@@ -68,4 +67,29 @@ func (t *InterruptFlow) Perform(ctx context.Context, rt *runtime.Runtime, oa *mo
 	}
 
 	return nil
+}
+
+func SetFlowInterruptProgress(ctx context.Context, rt *runtime.Runtime, flowID models.FlowID, val int) error {
+	vc := rt.VK.Get()
+	_, err := redis.DoContext(vc, ctx, "SET", fmt.Sprintf("%s:%d", interruptFlowProgressKey, flowID), val, "EX", 15*60)
+	vc.Close()
+	return err
+}
+
+func GetFlowInterruptProgress(ctx context.Context, rt *runtime.Runtime, flowID models.FlowID) (int, error) {
+	vc := rt.VK.Get()
+	defer vc.Close()
+
+	remaining, err := redis.Int(redis.DoContext(vc, ctx, "GET", fmt.Sprintf("%s:%d", interruptFlowProgressKey, flowID)))
+	if err != nil && err != redis.ErrNil {
+		return 0, err
+	}
+	return remaining, nil
+}
+
+func ClearFlowInterruptProgress(ctx context.Context, rt *runtime.Runtime, flowID models.FlowID) error {
+	vc := rt.VK.Get()
+	_, err := redis.DoContext(vc, ctx, "DEL", fmt.Sprintf("%s:%d", interruptFlowProgressKey, flowID))
+	vc.Close()
+	return err
 }

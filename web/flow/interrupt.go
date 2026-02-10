@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/gomodule/redigo/redis"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/tasks"
 	"github.com/nyaruka/mailroom/runtime"
@@ -38,14 +37,18 @@ func handleInterrupt(ctx context.Context, rt *runtime.Runtime, r *interruptReque
 	defer locker.Release(ctx, rt.VK, lock)
 
 	// check if there is already an interruption in progress for this flow
-	vc := rt.VK.Get()
-	remaining, err := redis.Int(vc.Do("GET", fmt.Sprintf("%s:%d", "interrupt_flow_progress", r.FlowID)))
-	vc.Close()
-	if err != nil && err != redis.ErrNil {
+	remaining, err := tasks.GetFlowInterruptProgress(ctx, rt, r.FlowID)
+	if err != nil {
 		return nil, 0, fmt.Errorf("error checking flow interrupt progress: %w", err)
 	}
-	if remaining > 0 {
+	if remaining != 0 {
 		return map[string]any{"interrupted": false}, http.StatusOK, nil
+	}
+
+	// to avoid a race condition between checking for an existing interruption and setting the progress key in the task
+	// below we set the progress key here with a placeholder value.
+	if err := tasks.SetFlowInterruptProgress(ctx, rt, r.FlowID, -1); err != nil {
+		return nil, 0, fmt.Errorf("error initializing flow interrupt progress: %w", err)
 	}
 
 	task := &tasks.InterruptFlow{FlowID: r.FlowID}
