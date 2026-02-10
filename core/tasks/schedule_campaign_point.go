@@ -44,6 +44,9 @@ func (t *ScheduleCampaignPoint) Perform(ctx context.Context, rt *runtime.Runtime
 	if err != nil {
 		return fmt.Errorf("error grabbing lock to schedule campaign point %d: %w", t.PointID, err)
 	}
+	if lock == "" {
+		return fmt.Errorf("timeout waiting for lock to schedule campaign point %d", t.PointID)
+	}
 	defer locker.Release(ctx, rt.VK, lock)
 
 	err = models.ScheduleCampaignPoint(ctx, rt, oa, t.PointID)

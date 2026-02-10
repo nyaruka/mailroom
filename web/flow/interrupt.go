@@ -34,6 +34,9 @@ func handleInterrupt(ctx context.Context, rt *runtime.Runtime, r *interruptReque
 	if err != nil {
 		return nil, 0, fmt.Errorf("error grabbing lock for flow interruption: %w", err)
 	}
+	if lock == "" {
+		return nil, 0, fmt.Errorf("timeout waiting for flow interruption lock")
+	}
 	defer locker.Release(ctx, rt.VK, lock)
 
 	// check if there is already an interruption in progress for this flow
