@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/gomodule/redigo/redis"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/runner"
@@ -57,12 +56,15 @@ func (t *InterruptSessionBatch) Perform(ctx context.Context, rt *runtime.Runtime
 
 	// if this batch was created as part of a flow interruption, decrement the remaining sessions counter
 	if t.FlowID != 0 {
+		key := fmt.Sprintf("%s:%d", interruptFlowProgressKey, t.FlowID)
 		vc := rt.VK.Get()
-		_, err := redis.DoContext(vc, ctx, "DECRBY", fmt.Sprintf("%s:%d", InterruptFlowProgressKey, t.FlowID), len(t.Sessions))
-		vc.Close()
-		if err != nil {
-			return fmt.Errorf("error decrementing flow interrupt sessions remaining key: %w", err)
+		vc.Send("DECRBY", key, len(t.Sessions))
+		vc.Send("EXPIRE", key, 15*60)
+		if err := vc.Flush(); err != nil {
+			vc.Close()
+			return fmt.Errorf("error decrementing flow interrupt progress key: %w", err)
 		}
+		vc.Close()
 	}
 
 	return nil

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/gomodule/redigo/redis"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/tasks"
 	"github.com/nyaruka/mailroom/runtime"
@@ -27,10 +28,21 @@ type interruptRequest struct {
 }
 
 func handleInterrupt(ctx context.Context, rt *runtime.Runtime, r *interruptRequest) (any, int, error) {
+	// check if there is already an interruption in progress for this flow
+	vc := rt.VK.Get()
+	remaining, err := redis.Int(vc.Do("GET", fmt.Sprintf("%s:%d", "interrupt_flow_progress", r.FlowID)))
+	vc.Close()
+	if err != nil && err != redis.ErrNil {
+		return nil, 0, fmt.Errorf("error checking flow interrupt progress: %w", err)
+	}
+	if remaining > 0 {
+		return map[string]any{"interrupted": false}, http.StatusOK, nil
+	}
+
 	task := &tasks.InterruptFlow{FlowID: r.FlowID}
 	if err := tasks.Queue(ctx, rt, rt.Queues.Batch, r.OrgID, task, true); err != nil {
 		return nil, 0, fmt.Errorf("error queuing interrupt flow task: %w", err)
 	}
 
-	return map[string]any{}, http.StatusOK, nil
+	return map[string]any{"interrupted": true}, http.StatusOK, nil
 }

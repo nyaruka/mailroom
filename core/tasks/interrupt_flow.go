@@ -15,9 +15,8 @@ import (
 const (
 	TypeInterruptFlow = "interrupt_flow"
 
-	// InterruptFlowProgressKey is the redis key prefix used to track the number of sessions remaining to be interrupted
-	// for a flow. RapidPro can check this to block further interruption calls until the current one completes.
-	InterruptFlowProgressKey = "interrupt_flow_progress"
+	// valkey key prefix used to track the number of sessions remaining to be interrupted for a flow
+	interruptFlowProgressKey = "interrupt_flow_progress"
 )
 
 func init() {
@@ -53,7 +52,7 @@ func (t *InterruptFlow) Perform(ctx context.Context, rt *runtime.Runtime, oa *mo
 	// to block further interruption calls until this one completes
 	if len(sessionRefs) > 0 {
 		vc := rt.VK.Get()
-		_, err = redis.DoContext(vc, ctx, "SET", fmt.Sprintf("%s:%d", InterruptFlowProgressKey, t.FlowID), len(sessionRefs), "EX", 15*60)
+		_, err = redis.DoContext(vc, ctx, "SET", fmt.Sprintf("%s:%d", interruptFlowProgressKey, t.FlowID), len(sessionRefs), "EX", 15*60)
 		vc.Close()
 		if err != nil {
 			return fmt.Errorf("error setting flow interrupt sessions remaining key: %w", err)
