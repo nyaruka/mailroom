@@ -1,3 +1,8 @@
+v26.1.25 (2026-02-10)
+-------------------------
+ * Fix handling of lock grabs that timeout
+ * Set a redis key to track progress of flow interruption
+
 v26.1.24 (2026-02-09)
 -------------------------
  * Update phonenumbers
