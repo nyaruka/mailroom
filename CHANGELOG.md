@@ -1,3 +1,7 @@
+v26.1.26 (2026-02-10)
+-------------------------
+ * Completely remove old Msg.quick_replies field
+
 v26.1.25 (2026-02-10)
 -------------------------
  * Fix handling of lock grabs that timeout
