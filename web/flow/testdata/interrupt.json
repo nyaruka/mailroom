@@ -22,7 +22,7 @@
         }
     },
     {
-        "label": "response is empty on success",
+        "label": "task created on success",
         "method": "POST",
         "path": "/mi/flow/interrupt",
         "body": {

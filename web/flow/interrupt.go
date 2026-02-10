@@ -4,12 +4,14 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/gomodule/redigo/redis"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/tasks"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/mailroom/web"
+	"github.com/nyaruka/vkutil/locks"
 )
 
 func init() {
@@ -28,6 +30,13 @@ type interruptRequest struct {
 }
 
 func handleInterrupt(ctx context.Context, rt *runtime.Runtime, r *interruptRequest) (any, int, error) {
+	locker := locks.NewLocker(fmt.Sprintf("flow_interrupt:%d", r.FlowID), time.Second*30)
+	lock, err := locker.Grab(ctx, rt.VK, time.Second*5)
+	if err != nil {
+		return nil, 0, fmt.Errorf("error grabbing lock for flow interruption: %w", err)
+	}
+	defer locker.Release(ctx, rt.VK, lock)
+
 	// check if there is already an interruption in progress for this flow
 	vc := rt.VK.Get()
 	remaining, err := redis.Int(vc.Do("GET", fmt.Sprintf("%s:%d", "interrupt_flow_progress", r.FlowID)))
