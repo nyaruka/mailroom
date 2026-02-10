@@ -47,6 +47,9 @@ func (t *PopulateQueryGroup) Perform(ctx context.Context, rt *runtime.Runtime, o
 	if err != nil {
 		return fmt.Errorf("error grabbing lock to repopulate query group: %d: %w", t.GroupID, err)
 	}
+	if lock == "" {
+		return fmt.Errorf("timeout waiting for lock to repopulate query group: %d", t.GroupID)
+	}
 	defer locker.Release(ctx, rt.VK, lock)
 
 	start := time.Now()

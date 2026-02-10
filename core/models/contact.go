@@ -1230,6 +1230,9 @@ func ContactClaimURN(ctx context.Context, rt *runtime.Runtime, org *Org, contact
 	if err != nil {
 		return false, fmt.Errorf("error grabbing lock for URN claiming: %w", err)
 	}
+	if lock == "" {
+		return false, fmt.Errorf("timeout waiting for URN claiming lock")
+	}
 	defer locker.Release(ctx, rt.VK, lock)
 
 	vc := rt.VK.Get()
