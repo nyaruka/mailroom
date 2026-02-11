@@ -30,10 +30,6 @@ func (t *WaitTimeout) Type() string {
 	return TypeWaitTimeout
 }
 
-func (t *WaitTimeout) UseReadOnly() bool {
-	return true
-}
-
 func (t *WaitTimeout) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, mc *models.Contact) error {
 	log := slog.With("ctask", "wait_timeout", "contact_id", mc.ID(), "session_uuid", t.SessionUUID)
 

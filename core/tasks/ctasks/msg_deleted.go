@@ -25,10 +25,6 @@ func (t *MsgDeleted) Type() string {
 	return TypeMsgDeleted
 }
 
-func (t *MsgDeleted) UseReadOnly() bool {
-	return true
-}
-
 func (t *MsgDeleted) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, mc *models.Contact) error {
 	// build our flow contact
 	contact, err := mc.EngineContact(oa)

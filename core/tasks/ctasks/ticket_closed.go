@@ -34,10 +34,6 @@ func (t *TicketClosed) Type() string {
 	return TypeTicketClosed
 }
 
-func (t *TicketClosed) UseReadOnly() bool {
-	return false
-}
-
 func (t *TicketClosed) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, mc *models.Contact) error {
 	// load our ticket
 	tickets, err := models.LoadTickets(ctx, rt.DB, oa.OrgID(), []flows.TicketUUID{t.Event.TicketUUID})
