@@ -152,8 +152,9 @@ SELECT uuid, contact_uuid, session_type, status, last_sprint_uuid, current_flow_
  WHERE uuid = $1`
 
 // GetWaitingSessionForContact returns the waiting session for the passed in contact, if any
-func GetWaitingSessionForContact(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, fc *flows.Contact, uuid flows.SessionUUID) (*Session, error) {
-	rows, err := rt.DB.QueryxContext(ctx, sqlSelectSessionByUUID, uuid)
+func GetWaitingSessionForContact(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, mc *Contact) (*Session, error) {
+	uuid := mc.CurrentSessionUUID()
+	rows, err := rt.DB.QueryxContext(ctx, sqlSelectSessionByUUID, mc.CurrentSessionUUID())
 	if err != nil {
 		return nil, fmt.Errorf("error selecting session %s: %w", uuid, err)
 	}
@@ -184,8 +185,8 @@ func GetWaitingSessionForContact(ctx context.Context, rt *runtime.Runtime, oa *O
 	}
 
 	// ignore and log if this session somehow isn't a waiting session for this contact
-	if dbs.Output == "" || session.Status != SessionStatusWaiting || (session.ContactUUID != "" && session.ContactUUID != fc.UUID()) {
-		slog.Error("current session for contact isn't a waiting session with output", "session", uuid, "contact", fc.UUID())
+	if dbs.Output == "" || session.Status != SessionStatusWaiting || session.ContactUUID != mc.UUID() {
+		slog.Error("current session for contact isn't a waiting session with output", "session", uuid, "contact", mc.UUID())
 		return nil, nil
 	}
 

@@ -110,9 +110,9 @@ func TestGetWaitingSessionForContact(t *testing.T) {
 	testdb.InsertWaitingSession(t, rt, testdb.Org1, testdb.Cat, models.FlowTypeMessaging, nil, testdb.Favorites)
 
 	oa := testdb.Org1.Load(t, rt)
-	mc, contact, _ := testdb.Ann.Load(t, rt, oa)
+	mc, _, _ := testdb.Ann.Load(t, rt, oa)
 
-	session, err := models.GetWaitingSessionForContact(ctx, rt, oa, contact, mc.CurrentSessionUUID())
+	session, err := models.GetWaitingSessionForContact(ctx, rt, oa, mc)
 	assert.NoError(t, err)
 	assert.NotNil(t, session)
 	assert.Equal(t, sessionUUID, session.UUID)
