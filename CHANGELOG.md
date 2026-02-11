@@ -1,3 +1,8 @@
+v26.1.28 (2026-02-11)
+-------------------------
+ * Get rid of ever using the read replica to load contacts for realtime tasks.
+ * Simplify insertDatabaseSessions
+
 v26.1.27 (2026-02-11)
 -------------------------
  * Simplify GetWaitingSessionForContact
