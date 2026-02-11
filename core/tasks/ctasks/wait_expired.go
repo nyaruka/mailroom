@@ -29,10 +29,6 @@ func (t *WaitExpired) Type() string {
 	return TypeWaitExpired
 }
 
-func (t *WaitExpired) UseReadOnly() bool {
-	return true
-}
-
 func (t *WaitExpired) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, mc *models.Contact) error {
 	log := slog.With("ctask", "wait_expired", "contact_id", mc.ID(), "session_uuid", t.SessionUUID)
 

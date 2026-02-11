@@ -41,10 +41,6 @@ func (t *MsgReceived) Type() string {
 	return TypeMsgReceived
 }
 
-func (t *MsgReceived) UseReadOnly() bool {
-	return false
-}
-
 func (t *MsgReceived) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, mc *models.Contact) error {
 	return t.perform(ctx, rt, oa, mc)
 }

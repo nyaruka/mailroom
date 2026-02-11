@@ -37,10 +37,6 @@ func (t *EventReceived) Type() string {
 	return TypeEventReceived
 }
 
-func (t *EventReceived) UseReadOnly() bool {
-	return false
-}
-
 func (t *EventReceived) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, mc *models.Contact) error {
 	_, err := t.handle(ctx, rt, oa, mc, nil)
 	if err != nil {

@@ -17,7 +17,6 @@ import (
 // Task is the interface for all contact tasks - tasks which operate on a single contact in real time
 type Task interface {
 	Type() string
-	UseReadOnly() bool
 	Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contact *models.Contact) error
 }
 
@@ -74,12 +73,7 @@ func Queue(ctx context.Context, rt *runtime.Runtime, orgID models.OrgID, contact
 }
 
 func Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contactID models.ContactID, task Task) error {
-	var db models.Queryer = rt.DB
-	if task.UseReadOnly() {
-		db = rt.ReadonlyDB
-	}
-
-	contact, err := models.LoadContact(ctx, db, oa, contactID)
+	contact, err := models.LoadContact(ctx, rt.DB, oa, contactID)
 	if err != nil {
 		if err == sql.ErrNoRows { // if contact no longer exists, ignore event, whatever it was gonna do is about to be deleted too
 			return nil
