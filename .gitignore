@@ -29,3 +29,5 @@ fabconfig.pyc
 
 # GoLand config folder
 .idea/
+
+.claude/
