@@ -148,7 +148,7 @@ func (t *MsgReceived) handleMsgEvent(ctx context.Context, rt *runtime.Runtime, o
 	var err error
 
 	if scene.DBContact.CurrentSessionUUID() != "" {
-		session, err = models.GetWaitingSessionForContact(ctx, rt, oa, scene.DBContact)
+		session, err = models.GetContactWaitingSession(ctx, rt, oa, scene.DBContact)
 		if err != nil {
 			return fmt.Errorf("error loading waiting session for contact %s: %w", scene.ContactUUID(), err)
 		}

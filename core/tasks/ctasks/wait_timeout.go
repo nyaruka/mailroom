@@ -45,7 +45,7 @@ func (t *WaitTimeout) Perform(ctx context.Context, rt *runtime.Runtime, oa *mode
 		return fmt.Errorf("error creating flow contact: %w", err)
 	}
 
-	session, err := models.GetWaitingSessionForContact(ctx, rt, oa, mc)
+	session, err := models.GetContactWaitingSession(ctx, rt, oa, mc)
 	if err != nil {
 		return fmt.Errorf("error loading waiting session for contact #%d: %w", mc.ID(), err)
 	}
