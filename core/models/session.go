@@ -295,12 +295,7 @@ type dbSession struct {
 	EndedOn         *time.Time        `db:"ended_on"`
 }
 
-const sqlInsertWaitingSessionDB = `
-INSERT INTO
-	flows_flowsession( uuid,  contact_uuid,  session_type,  status,  last_sprint_uuid,  current_flow_uuid,  output,  created_on,  call_uuid)
-               VALUES(:uuid, :contact_uuid, :session_type, :status, :last_sprint_uuid, :current_flow_uuid, :output, :created_on, :call_uuid)`
-
-const sqlInsertEndedSessionDB = `
+const sqlInsertSessionDB = `
 INSERT INTO
 	flows_flowsession( uuid,  contact_uuid,  session_type,  status,  last_sprint_uuid,  current_flow_uuid,  output,  created_on,  ended_on,  call_uuid)
                VALUES(:uuid, :contact_uuid, :session_type, :status, :last_sprint_uuid, :current_flow_uuid, :output, :created_on, :ended_on, :call_uuid)`
@@ -322,24 +317,8 @@ func insertDatabaseSessions(ctx context.Context, tx *sqlx.Tx, sessions []*Sessio
 		}
 	}
 
-	// split into waiting and ended sessions
-	waitingSessions := make([]*dbSession, 0, len(sessions))
-	endedSessions := make([]*dbSession, 0, len(sessions))
-	for _, s := range dbss {
-		if s.Status == SessionStatusWaiting {
-			waitingSessions = append(waitingSessions, s)
-		} else {
-			endedSessions = append(endedSessions, s)
-		}
-	}
-
-	// insert our ended sessions first
-	if err := BulkQuery(ctx, "insert ended sessions", tx, sqlInsertEndedSessionDB, endedSessions); err != nil {
-		return fmt.Errorf("error inserting ended sessions: %w", err)
-	}
-	// insert waiting sessions
-	if err := BulkQuery(ctx, "insert waiting sessions", tx, sqlInsertWaitingSessionDB, waitingSessions); err != nil {
-		return fmt.Errorf("error inserting waiting sessions: %w", err)
+	if err := BulkQuery(ctx, "insert sessions", tx, sqlInsertSessionDB, dbss); err != nil {
+		return fmt.Errorf("error inserting sessions: %w", err)
 	}
 
 	return nil
