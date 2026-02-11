@@ -1,3 +1,8 @@
+v26.1.27 (2026-02-11)
+-------------------------
+ * Simplify GetWaitingSessionForContact
+ * Wait expiration and timeout events should noop if the contact's current session has already changed
+
 v26.1.26 (2026-02-10)
 -------------------------
  * Completely remove old Msg.quick_replies field
