@@ -195,7 +195,8 @@ func TestSessionWithSubflows(t *testing.T) {
 		fmt.Sprintf("S:%s", scene.Session.UUID()): time.Date(2025, 3, 28, 9, 55, 36, 0, time.UTC),  // 30 days + rand(1 - 24 hours) in future
 	})
 
-	modelSession, err := models.GetWaitingSessionForContact(ctx, rt, oa, contact, scene.Session.UUID())
+	mc, contact, _ = testdb.Ann.Load(t, rt, oa)
+	modelSession, err := models.GetWaitingSessionForContact(ctx, rt, oa, mc)
 	require.NoError(t, err)
 	assert.Equal(t, scene.Session.UUID(), modelSession.UUID)
 	assert.Equal(t, child.UUID, modelSession.CurrentFlowUUID)

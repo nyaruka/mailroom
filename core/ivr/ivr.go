@@ -307,6 +307,9 @@ func ResumeCall(
 	// if call doesn't have an associated session then we shouldn't be here
 	if call.SessionUUID() == "" {
 		return HandleAsFailure(ctx, rt.DB, svc, call, w, errors.New("can't resume call without session"))
+	} else if call.SessionUUID() != mc.CurrentSessionUUID() {
+		// if call's session doesn't match contact's current session then we shouldn't be here either
+		return HandleAsFailure(ctx, rt.DB, svc, call, w, errors.New("call session does not match contact's current session"))
 	}
 
 	contact, err := mc.EngineContact(oa)
@@ -314,7 +317,7 @@ func ResumeCall(
 		return fmt.Errorf("error creating flow contact: %w", err)
 	}
 
-	session, err := models.GetWaitingSessionForContact(ctx, rt, oa, contact, call.SessionUUID())
+	session, err := models.GetWaitingSessionForContact(ctx, rt, oa, mc)
 	if err != nil {
 		return fmt.Errorf("error loading session for contact #%d and call #%d: %w", mc.ID(), call.ID(), err)
 	}
