@@ -36,6 +36,12 @@ func (t *WaitExpired) UseReadOnly() bool {
 func (t *WaitExpired) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, mc *models.Contact) error {
 	log := slog.With("ctask", "wait_expired", "contact_id", mc.ID(), "session_uuid", t.SessionUUID)
 
+	// if contact's current session has already changed, noop
+	if mc.CurrentSessionUUID() != t.SessionUUID {
+		log.Debug("skipping as contact's current session has changed")
+		return nil
+	}
+
 	// build our flow contact
 	contact, err := mc.EngineContact(oa)
 	if err != nil {
@@ -43,13 +49,13 @@ func (t *WaitExpired) Perform(ctx context.Context, rt *runtime.Runtime, oa *mode
 	}
 
 	// look for a waiting session for this contact
-	session, err := models.GetWaitingSessionForContact(ctx, rt, oa, contact, t.SessionUUID)
+	session, err := models.GetWaitingSessionForContact(ctx, rt, oa, contact, mc.CurrentSessionUUID())
 	if err != nil {
 		return fmt.Errorf("error loading waiting session for contact #%d: %w", mc.ID(), err)
 	}
 
-	// if we didn't find a session or it is another session or if it's been modified since, ignore this task
-	if session == nil || session.UUID != t.SessionUUID || session.LastSprintUUID != t.SprintUUID {
+	// if we didn't find a session or if it's been modified since, ignore this task
+	if session == nil || session.LastSprintUUID != t.SprintUUID {
 		log.Debug("skipping as waiting session has changed")
 		return nil
 	}
