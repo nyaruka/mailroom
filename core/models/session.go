@@ -151,10 +151,13 @@ SELECT uuid, contact_uuid, session_type, status, last_sprint_uuid, current_flow_
   FROM flows_flowsession fs
  WHERE uuid = $1`
 
-// GetContactWaitingSession returns the waiting session for the passed in contact - responsibility of caller not to call
-// this if they don't have a current session set.
+// GetContactWaitingSession returns the waiting session for the passed in contact if any.
 func GetContactWaitingSession(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, mc *Contact) (*Session, error) {
 	uuid := mc.CurrentSessionUUID()
+	if uuid == "" {
+		return nil, nil
+	}
+
 	rows, err := rt.DB.QueryxContext(ctx, sqlSelectSessionByUUID, mc.CurrentSessionUUID())
 	if err != nil {
 		return nil, fmt.Errorf("error selecting session %s: %w", uuid, err)
