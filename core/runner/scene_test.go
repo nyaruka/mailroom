@@ -196,7 +196,7 @@ func TestSessionWithSubflows(t *testing.T) {
 	})
 
 	mc, contact, _ = testdb.Ann.Load(t, rt, oa)
-	modelSession, err := models.GetWaitingSessionForContact(ctx, rt, oa, mc)
+	modelSession, err := models.GetContactWaitingSession(ctx, rt, oa, mc)
 	require.NoError(t, err)
 	assert.Equal(t, scene.Session.UUID(), modelSession.UUID)
 	assert.Equal(t, child.UUID, modelSession.CurrentFlowUUID)
