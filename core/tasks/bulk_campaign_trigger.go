@@ -104,7 +104,7 @@ func (t *BulkCampaignTrigger) triggerFlow(ctx context.Context, rt *runtime.Runti
 
 	campaign := oa.SessionAssets().Campaigns().Get(p.Campaign().UUID())
 	if campaign == nil {
-		return nil, fmt.Errorf("unable to find campaign for point #%d: %w", p.ID, err)
+		return nil, fmt.Errorf("unable to find campaign for point #%d", p.ID)
 	}
 
 	flowRef := assets.NewFlowReference(flow.UUID(), flow.Name())

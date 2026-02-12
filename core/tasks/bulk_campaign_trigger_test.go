@@ -45,7 +45,7 @@ func TestBulkCampaignTrigger(t *testing.T) {
 
 	// check we recorded recent triggers for this event
 	assertvk.Keys(t, vc, "recent_campaign_fires:*", []string{"recent_campaign_fires:10002"})
-	assertvk.ZRange(t, vc, "recent_campaign_fires:10002", 0, -1, []string{"BPV0gqT9PL|10001", "QQFoOgV99A|10003"})
+	assertvk.ZRange(t, vc, "recent_campaign_fires:10002", 0, -1, []string{"QQFoOgV99A|10001", "vWOxKKbX2M|10003"})
 
 	// create task for event #2 (single message, start mode PASSIVE)
 	task = &tasks.BulkCampaignTrigger{
@@ -68,8 +68,8 @@ func TestBulkCampaignTrigger(t *testing.T) {
 
 	// check we recorded recent triggers for this event
 	assertvk.Keys(t, vc, "recent_campaign_fires:*", []string{"recent_campaign_fires:10001", "recent_campaign_fires:10002"})
-	assertvk.ZRange(t, vc, "recent_campaign_fires:10001", 0, -1, []string{"vWOxKKbX2M|10001", "sZZ/N3THKK|10000", "LrT60Tr9/c|10003"})
-	assertvk.ZRange(t, vc, "recent_campaign_fires:10002", 0, -1, []string{"BPV0gqT9PL|10001", "QQFoOgV99A|10003"})
+	assertvk.ZRange(t, vc, "recent_campaign_fires:10001", 0, -1, []string{"nU/8BkiRuI|10000", "8bPiuaeAX6|10001", "VtFTaBQT2V|10003"})
+	assertvk.ZRange(t, vc, "recent_campaign_fires:10002", 0, -1, []string{"QQFoOgV99A|10001", "vWOxKKbX2M|10003"})
 
 	// create task for event #1 (Favorites, start mode INTERRUPT)
 	task = &tasks.BulkCampaignTrigger{
@@ -131,4 +131,86 @@ func TestBulkCampaignTrigger(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE contact_uuid = $1 AND status = 'I'`, testdb.Bob.UUID).Returns(1)
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE contact_uuid = $1 AND status = 'I'`, testdb.Ann.UUID).Returns(1)
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE contact_uuid = $1 AND status = 'I'`, testdb.Dan.UUID).Returns(1)
+}
+
+func TestBulkCampaignTriggerModes(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	defer testsuite.Reset(t, rt, testsuite.ResetAll)
+
+	// create waiting messaging sessions for Ann and Bob, Cat and Dan have no session
+	testdb.InsertWaitingSession(t, rt, testdb.Org1, testdb.Ann, models.FlowTypeMessaging, nil, testdb.Favorites)
+	testdb.InsertWaitingSession(t, rt, testdb.Org1, testdb.Bob, models.FlowTypeMessaging, nil, testdb.PickANumber)
+
+	oa := testdb.Org1.Load(t, rt)
+
+	// 1. skip mode with flow point (#3) - contacts with messaging sessions should be skipped
+	task := &tasks.BulkCampaignTrigger{
+		PointID:     testdb.RemindersPoint3.ID,
+		FireVersion: 1,
+		ContactIDs:  []models.ContactID{testdb.Ann.ID, testdb.Bob.ID, testdb.Cat.ID, testdb.Dan.ID},
+	}
+	err := task.Perform(ctx, rt, oa)
+	assert.NoError(t, err)
+
+	testsuite.AssertContactInFlow(t, rt, testdb.Ann, testdb.Favorites)   // skipped, still in Favorites
+	testsuite.AssertContactInFlow(t, rt, testdb.Bob, testdb.PickANumber) // skipped, still in Pick A Number
+	testsuite.AssertContactInFlow(t, rt, testdb.Cat, testdb.PickANumber) // started in Pick A Number
+	testsuite.AssertContactInFlow(t, rt, testdb.Dan, testdb.PickANumber) // started in Pick A Number
+
+	// no sessions were interrupted (skip mode doesn't interrupt)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE status = 'I'`).Returns(0)
+
+	// 2. background mode with message point (#2) - sends to all regardless of session state
+	task = &tasks.BulkCampaignTrigger{
+		PointID:     testdb.RemindersPoint2.ID,
+		FireVersion: 1,
+		ContactIDs:  []models.ContactID{testdb.Ann.ID, testdb.Bob.ID, testdb.Cat.ID, testdb.Dan.ID},
+	}
+	err = task.Perform(ctx, rt, oa)
+	assert.NoError(t, err)
+
+	// all 4 contacts should have received messages
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE text LIKE 'Hi %, it is time to consult%'`).Returns(4)
+
+	// contacts still in their original flows (background mode doesn't interrupt)
+	testsuite.AssertContactInFlow(t, rt, testdb.Ann, testdb.Favorites)
+	testsuite.AssertContactInFlow(t, rt, testdb.Bob, testdb.PickANumber)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE status = 'I'`).Returns(0)
+
+	// 3. change point #2 to skip mode and fire - contacts with sessions should be skipped
+	rt.DB.MustExec(`UPDATE campaigns_campaignevent SET start_mode = 'S' WHERE id = $1`, testdb.RemindersPoint2.ID)
+	models.FlushCache()
+	oa = testdb.Org1.Load(t, rt)
+
+	task = &tasks.BulkCampaignTrigger{
+		PointID:     testdb.RemindersPoint2.ID,
+		FireVersion: 1,
+		ContactIDs:  []models.ContactID{testdb.Ann.ID, testdb.Bob.ID, testdb.Cat.ID, testdb.Dan.ID},
+	}
+	err = task.Perform(ctx, rt, oa)
+	assert.NoError(t, err)
+
+	// all 4 contacts have sessions so all should be skipped - no new messages
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE text LIKE 'Hi %, it is time to consult%'`).Returns(4)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE status = 'I'`).Returns(0)
+
+	// 4. change point #2 to interrupt mode and fire - sessions interrupted, all get messages
+	rt.DB.MustExec(`UPDATE campaigns_campaignevent SET start_mode = 'I' WHERE id = $1`, testdb.RemindersPoint2.ID)
+	models.FlushCache()
+	oa = testdb.Org1.Load(t, rt)
+
+	task = &tasks.BulkCampaignTrigger{
+		PointID:     testdb.RemindersPoint2.ID,
+		FireVersion: 1,
+		ContactIDs:  []models.ContactID{testdb.Ann.ID, testdb.Bob.ID, testdb.Cat.ID, testdb.Dan.ID},
+	}
+	err = task.Perform(ctx, rt, oa)
+	assert.NoError(t, err)
+
+	// all contacts should have received messages (4 from step 2 + 4 new = 8)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE text LIKE 'Hi %, it is time to consult%'`).Returns(8)
+
+	// all previous sessions should have been interrupted
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE status = 'I'`).Returns(4)
 }

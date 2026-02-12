@@ -521,6 +521,55 @@ func TestBroadcastWithLock(t *testing.T) {
 	assert.Len(t, skipped, 0)
 
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE broadcast_id = $1 AND created_by_id = $2`, bcast.ID, bcast.CreatedByID).Returns(3)
+
+	// create waiting sessions for Ann and Bob so we can test skip and interrupt modes
+	testdb.InsertWaitingSession(t, rt, testdb.Org1, testdb.Ann, models.FlowTypeMessaging, nil, testdb.Favorites)
+	testdb.InsertWaitingSession(t, rt, testdb.Org1, testdb.Bob, models.FlowTypeMessaging, nil, testdb.Favorites)
+
+	// test skip mode: Ann and Bob have sessions so should be skipped, Cat should receive
+	b2 := testdb.InsertBroadcast(t, rt, testdb.Org1, "0199877e-0ed2-790b-b474-35099cea401d", "eng", map[i18n.Language]string{"eng": "Skippable"}, nil, models.NilScheduleID, []*testdb.Contact{testdb.Ann, testdb.Bob, testdb.Cat}, nil)
+	bcast2, err := models.GetBroadcastByID(ctx, rt.DB, b2.ID)
+	require.NoError(t, err)
+
+	skipBatch := bcast2.CreateBatch([]models.ContactID{testdb.Ann.ID, testdb.Bob.ID, testdb.Cat.ID}, true, true)
+	scenes, skipped, err = runner.BroadcastWithLock(ctx, rt, oa, bcast2, skipBatch, models.StartModeSkip)
+	assert.NoError(t, err)
+	assert.Len(t, skipped, 0) // all contacts were locked successfully
+	assert.Len(t, scenes, 3)
+
+	// Ann and Bob should have been skipped (no broadcast set), Cat should have received
+	assert.Nil(t, scenes[0].Broadcast)    // Ann (10000) - has session, skipped
+	assert.Nil(t, scenes[1].Broadcast)    // Bob (10001) - has session, skipped
+	assert.NotNil(t, scenes[2].Broadcast) // Cat (10002) - no session, receives broadcast
+
+	// only 1 new message created (for Cat)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE broadcast_id = $1`, bcast2.ID).Returns(1)
+
+	// Ann and Bob should still be in their flow
+	testsuite.AssertContactInFlow(t, rt, testdb.Ann, testdb.Favorites)
+	testsuite.AssertContactInFlow(t, rt, testdb.Bob, testdb.Favorites)
+
+	// test interrupt mode: Ann and Bob have sessions which should be interrupted, all should receive
+	b3 := testdb.InsertBroadcast(t, rt, testdb.Org1, "0199877e-0ed2-790b-b474-35099cea401e", "eng", map[i18n.Language]string{"eng": "Interrupting"}, nil, models.NilScheduleID, []*testdb.Contact{testdb.Ann, testdb.Bob, testdb.Cat}, nil)
+	bcast3, err := models.GetBroadcastByID(ctx, rt.DB, b3.ID)
+	require.NoError(t, err)
+
+	intBatch := bcast3.CreateBatch([]models.ContactID{testdb.Ann.ID, testdb.Bob.ID, testdb.Cat.ID}, true, true)
+	scenes, skipped, err = runner.BroadcastWithLock(ctx, rt, oa, bcast3, intBatch, models.StartModeInterrupt)
+	assert.NoError(t, err)
+	assert.Len(t, skipped, 0)
+	assert.Len(t, scenes, 3)
+
+	// all contacts should have received the broadcast
+	assert.NotNil(t, scenes[0].Broadcast) // Ann
+	assert.NotNil(t, scenes[1].Broadcast) // Bob
+	assert.NotNil(t, scenes[2].Broadcast) // Cat
+
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE broadcast_id = $1`, bcast3.ID).Returns(3)
+
+	// Ann and Bob's previous sessions should have been interrupted
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE contact_uuid = $1 AND status = 'I'`, testdb.Ann.UUID).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE contact_uuid = $1 AND status = 'I'`, testdb.Bob.UUID).Returns(1)
 }
 
 func assertFlowActivityCounts(t *testing.T, rt *runtime.Runtime, flowID models.FlowID, expected map[string]int) {
