@@ -3,6 +3,7 @@ package tasks
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/nyaruka/mailroom/core/models"
@@ -61,8 +62,13 @@ func (t *SendBroadcastBatch) Perform(ctx context.Context, rt *runtime.Runtime, o
 	}
 
 	// create this batch of messages
-	if _, _, err := runner.BroadcastWithLock(ctx, rt, oa, bcast, t.BroadcastBatch, models.StartModeBackground); err != nil {
+	_, skipped, err := runner.BroadcastWithLock(ctx, rt, oa, bcast, t.BroadcastBatch, models.StartModeBackground)
+	if err != nil {
 		return fmt.Errorf("error creating broadcast messages: %w", err)
+	}
+
+	if len(skipped) > 0 {
+		slog.Warn("failed to acquire locks for contacts", "contacts", skipped)
 	}
 
 	// if this is our last batch, mark broadcast as done
