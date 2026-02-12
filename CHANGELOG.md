@@ -1,3 +1,7 @@
+v26.1.29 (2026-02-12)
+-------------------------
+ * Tweaks to GetContactWaitingSession.. should log error if contact's current session no longer exists or is not waiting
+
 v26.1.28 (2026-02-11)
 -------------------------
  * Get rid of ever using the read replica to load contacts for realtime tasks.
