@@ -39,21 +39,22 @@ func (t *WaitTimeout) Perform(ctx context.Context, rt *runtime.Runtime, oa *mode
 		return nil
 	}
 
-	// build our flow contact
-	contact, err := mc.EngineContact(oa)
-	if err != nil {
-		return fmt.Errorf("error creating flow contact: %w", err)
-	}
-
+	// look for a waiting session for this contact
 	session, err := models.GetContactWaitingSession(ctx, rt, oa, mc)
 	if err != nil {
-		return fmt.Errorf("error loading waiting session for contact #%d: %w", mc.ID(), err)
+		return fmt.Errorf("error loading waiting session for contact %s: %w", mc.UUID(), err)
 	}
 
 	// if we didn't find a session or if it's been modified since, ignore this task
 	if session == nil || session.LastSprintUUID != t.SprintUUID {
 		log.Debug("skipping as waiting session has changed")
 		return nil
+	}
+
+	// build our flow contact
+	contact, err := mc.EngineContact(oa)
+	if err != nil {
+		return fmt.Errorf("error creating flow contact: %w", err)
 	}
 
 	evt := events.NewWaitTimedOut()

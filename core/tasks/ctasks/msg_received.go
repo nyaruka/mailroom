@@ -143,16 +143,12 @@ func (t *MsgReceived) handleMsgEvent(ctx context.Context, rt *runtime.Runtime, o
 	}
 
 	// look for a waiting session for this contact
-	var session *models.Session
-	var flow *models.Flow
-	var err error
-
-	if scene.DBContact.CurrentSessionUUID() != "" {
-		session, err = models.GetContactWaitingSession(ctx, rt, oa, scene.DBContact)
-		if err != nil {
-			return fmt.Errorf("error loading waiting session for contact %s: %w", scene.ContactUUID(), err)
-		}
+	session, err := models.GetContactWaitingSession(ctx, rt, oa, scene.DBContact)
+	if err != nil {
+		return fmt.Errorf("error loading waiting session for contact %s: %w", scene.ContactUUID(), err)
 	}
+
+	var flow *models.Flow
 
 	if session != nil {
 		// if we have a waiting voice session, we want to leave it as is
