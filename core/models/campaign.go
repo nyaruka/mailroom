@@ -19,8 +19,9 @@ type CampaignID int
 type PointID int
 type PointType string
 type PointStatus string
-type PointMode string
 type PointUnit string
+
+type StartMode string
 
 const (
 	// CreatedOnKey is key of created on system field
@@ -38,14 +39,14 @@ const (
 	PointStatusScheduling = PointStatus("S")
 	PointStatusReady      = PointStatus("R")
 
-	PointModeInterrupt = PointMode("I") // should interrupt other flows
-	PointModeSkip      = PointMode("S") // should be skipped if the user is in another flow
-	PointModePassive   = PointMode("P") // flow is a background flow and should run that way
-
 	PointUnitMinutes = PointUnit("M")
 	PointUnitHours   = PointUnit("H")
 	PointUnitDays    = PointUnit("D")
 	PointUnitWeeks   = PointUnit("W")
+
+	StartModeInterrupt  = StartMode("I") // should interrupt other flows
+	StartModeSkip       = StartMode("S") // should be skipped if the user is in another flow
+	StartModeBackground = StartMode("P") // flow is a background flow and should run that way
 )
 
 // Campaign is our struct for a campaign and all its point events
@@ -72,7 +73,7 @@ type CampaignPoint struct {
 	Type        PointType                `json:"event_type"`
 	Status      PointStatus              `json:"status"`
 	FireVersion int                      `json:"fire_version"`
-	StartMode   PointMode                `json:"start_mode"`
+	StartMode   StartMode                `json:"start_mode"`
 
 	RelativeToID  FieldID   `json:"relative_to_id"`
 	RelativeToKey string    `json:"relative_to_key"`

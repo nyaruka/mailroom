@@ -449,7 +449,7 @@ func TestResumeSession(t *testing.T) {
 	}
 }
 
-func TestBroadcast(t *testing.T) {
+func TestBroadcastWithLock(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetDynamo)
@@ -467,8 +467,10 @@ func TestBroadcast(t *testing.T) {
 	batch1 := bcast.CreateBatch([]models.ContactID{testdb.Ann.ID, testdb.Bob.ID}, true, false)
 	batch2 := bcast.CreateBatch([]models.ContactID{testdb.Cat.ID}, false, true)
 
-	err = runner.Broadcast(ctx, rt, oa, bcast, batch1)
+	scenes, skipped, err := runner.BroadcastWithLock(ctx, rt, oa, bcast, batch1, models.StartModeBackground)
 	assert.NoError(t, err)
+	assert.Len(t, scenes, 2)
+	assert.Len(t, skipped, 0)
 
 	test.AssertEqualJSON(t, []byte(`[
 		{
@@ -513,8 +515,10 @@ func TestBroadcast(t *testing.T) {
 
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE broadcast_id = $1 AND created_by_id = $2`, bcast.ID, bcast.CreatedByID).Returns(2)
 
-	err = runner.Broadcast(ctx, rt, oa, bcast, batch2)
+	scenes, skipped, err = runner.BroadcastWithLock(ctx, rt, oa, bcast, batch2, models.StartModeBackground)
 	assert.NoError(t, err)
+	assert.Len(t, scenes, 1)
+	assert.Len(t, skipped, 0)
 
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE broadcast_id = $1 AND created_by_id = $2`, bcast.ID, bcast.CreatedByID).Returns(3)
 }
