@@ -161,7 +161,12 @@ func (t *StartFlowBatch) start(ctx context.Context, rt *runtime.Runtime, oa *mod
 			}
 		}
 	} else {
-		_, skipped, err := runner.StartWithLock(ctx, rt, oa, t.ContactIDs, triggerBuilder, flow.FlowType().Interrupts(), t.StartID)
+		mode := models.StartModeBackground
+		if flow.FlowType().Interrupts() {
+			mode = models.StartModeInterrupt
+		}
+
+		_, skipped, err := runner.StartWithLock(ctx, rt, oa, t.ContactIDs, triggerBuilder, mode, t.StartID)
 		if err != nil {
 			return fmt.Errorf("error starting flow batch: %w", err)
 		}
