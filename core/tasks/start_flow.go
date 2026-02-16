@@ -17,7 +17,7 @@ import (
 const (
 	TypeStartFlow = "start_flow"
 
-	flowStartBatchSize = 25
+	FlowStartBatchSize = 25
 )
 
 func init() {
@@ -114,7 +114,7 @@ func createFlowStartBatches(ctx context.Context, rt *runtime.Runtime, oa *models
 	}
 
 	// split the contact ids into batches to become batch tasks
-	idBatches := slices.Collect(slices.Chunk(contactIDs, flowStartBatchSize))
+	idBatches := slices.Collect(slices.Chunk(contactIDs, FlowStartBatchSize))
 
 	for i, idBatch := range idBatches {
 		isFirst := (i == 0)
