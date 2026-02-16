@@ -1,3 +1,8 @@
+v26.1.30 (2026-02-16)
+-------------------------
+ * Don't create wait timeout fires if they'd occur after the wait expiration
+ * Ensure that contacts are properly locked when for campaign events that use skip mode
+
 v26.1.29 (2026-02-12)
 -------------------------
  * Tweaks to GetContactWaitingSession.. should log error if contact's current session no longer exists or is not waiting
