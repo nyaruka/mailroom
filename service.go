@@ -113,17 +113,17 @@ func (s *Service) Start() error {
 	}
 
 	// test OpenSearch
-	if s.rt.OS != nil {
-		resp, err := s.rt.OS.Ping(s.ctx, nil)
+	if s.rt.OS.Messages != nil {
+		resp, err := s.rt.OS.Messages.Ping(s.ctx, nil)
 		if err != nil {
-			log.Error("opensearch not available", "error", err)
+			log.Error("opensearch messages not available", "error", err)
 		} else if resp.IsError() {
-			log.Error("opensearch not reachable", "status", resp.Status())
+			log.Error("opensearch messages not reachable", "status", resp.Status())
 		} else {
-			log.Info("opensearch ok")
+			log.Info("opensearch messages ok")
 		}
 	} else {
-		log.Warn("opensearch not configured")
+		log.Warn("opensearch messages not configured")
 	}
 
 	if c.AndroidCredentialsFile != "" {
