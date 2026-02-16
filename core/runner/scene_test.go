@@ -77,9 +77,9 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 		fmt.Sprintf("S:%s", scBob.Session.UUID()): time.Date(2025, 3, 28, 9, 55, 36, 0, time.UTC),  // 30 days + rand(1 - 24 hours) in future
 	})
 	testsuite.AssertContactFires(t, rt, testdb.Dan.ID, map[string]time.Time{
-		fmt.Sprintf("T:%s", scDan.Session.UUID()): time.Date(2025, 2, 25, 16, 50, 27, 0, time.UTC), // 5 minutes in future
-		fmt.Sprintf("E:%s", scDan.Session.UUID()): time.Date(2025, 2, 25, 16, 55, 23, 0, time.UTC), // 10 minutes in future
-		fmt.Sprintf("S:%s", scDan.Session.UUID()): time.Date(2025, 3, 28, 12, 9, 23, 0, time.UTC),  // 30 days + rand(1 - 24 hours) in future
+		fmt.Sprintf("T:%s", scDan.Session.UUID()): time.Date(2025, 2, 25, 16, 50, 28, 0, time.UTC), // 5 minutes in future
+		fmt.Sprintf("E:%s", scDan.Session.UUID()): time.Date(2025, 2, 25, 16, 55, 24, 0, time.UTC), // 10 minutes in future
+		fmt.Sprintf("S:%s", scDan.Session.UUID()): time.Date(2025, 3, 28, 12, 9, 24, 0, time.UTC),  // 30 days + rand(1 - 24 hours) in future
 	})
 
 	scene := testsuite.ResumeSession(t, rt, oa, testdb.Bob, "no")
@@ -99,7 +99,7 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 
 	// check we have a new contact fire for wait expiration but not timeout (wait doesn't have a timeout)
 	testsuite.AssertContactFires(t, rt, testdb.Bob.ID, map[string]time.Time{
-		fmt.Sprintf("E:%s", scBob.Session.UUID()): time.Date(2025, 2, 25, 16, 55, 42, 0, time.UTC), // updated
+		fmt.Sprintf("E:%s", scBob.Session.UUID()): time.Date(2025, 2, 25, 16, 55, 43, 0, time.UTC), // updated
 		fmt.Sprintf("S:%s", scBob.Session.UUID()): time.Date(2025, 3, 28, 9, 55, 36, 0, time.UTC),  // unchanged
 	})
 

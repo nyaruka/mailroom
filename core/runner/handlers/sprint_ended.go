@@ -137,18 +137,25 @@ func handleSprintEnded(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 	return nil
 }
 
-// calculates the fires needed for the given session - returns timeout separately if this session will queue messages to courier
+// Calculates the fires needed for the given session - returns timeout separately if this session will queue messages to
+// courier so that the message can be queued with that timeout delta and courier knows that it should create the actual
+// wait timeout contact fire.
 func calculateFires(oa *models.OrgAssets, contactID models.ContactID, session flows.Session, sprint flows.Sprint, initial bool) ([]*models.ContactFire, time.Duration) {
 	waitExpiresOn, waitTimeout, queuesToCourier := getWaitProperties(oa, sprint.Events())
 	var waitTimeoutOn *time.Time
 	var timeout time.Duration
 
 	if waitTimeout != 0 {
-		if queuesToCourier {
-			timeout = waitTimeout
-		} else {
-			ton := dates.Now().Add(waitTimeout)
-			waitTimeoutOn = &ton
+		ton := dates.Now().Add(waitTimeout)
+
+		// if wait timeout would be after wait expiration, don't bother creating a timeout fire or
+		// returning a timeout to courier since it would never be used
+		if waitExpiresOn == nil || ton.Before(*waitExpiresOn) {
+			if queuesToCourier {
+				timeout = waitTimeout
+			} else {
+				waitTimeoutOn = &ton
+			}
 		}
 	}
 
