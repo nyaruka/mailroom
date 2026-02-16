@@ -1,3 +1,8 @@
+v26.1.31 (2026-02-16)
+-------------------------
+ * When campaign points are flow events, use smaller batches
+ * Add optional OpenSearch client (not yet used)
+
 v26.1.30 (2026-02-16)
 -------------------------
  * Don't create wait timeout fires if they'd occur after the wait expiration
