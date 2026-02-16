@@ -112,6 +112,20 @@ func (s *Service) Start() error {
 		log.Info("elastic ok")
 	}
 
+	// test OpenSearch
+	if s.rt.OS != nil {
+		resp, err := s.rt.OS.Ping(s.ctx, nil)
+		if err != nil {
+			log.Error("opensearch not available", "error", err)
+		} else if resp.IsError() {
+			log.Error("opensearch not reachable", "status", resp.Status())
+		} else {
+			log.Info("opensearch ok")
+		}
+	} else {
+		log.Warn("opensearch not configured")
+	}
+
 	if c.AndroidCredentialsFile != "" {
 		s.rt.FCM, err = fcm.NewClient(s.ctx, fcm.WithCredentialsFile(c.AndroidCredentialsFile))
 		if err != nil {

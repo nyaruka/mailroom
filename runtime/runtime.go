@@ -10,10 +10,14 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/elastic/go-elasticsearch/v8"
 	"github.com/gomodule/redigo/redis"
+	awsx "github.com/nyaruka/gocommon/aws"
 	"github.com/nyaruka/gocommon/aws/cwatch"
 	"github.com/nyaruka/gocommon/aws/dynamo"
 	"github.com/nyaruka/gocommon/aws/s3x"
 	"github.com/nyaruka/vkutil"
+	"github.com/opensearch-project/opensearch-go/v4"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
+	"github.com/opensearch-project/opensearch-go/v4/signer/awsv2"
 	"github.com/vinovest/sqlx"
 )
 
@@ -28,6 +32,7 @@ type Runtime struct {
 	VK         *redis.Pool
 	S3         *s3x.Service
 	ES         *elasticsearch.TypedClient
+	OS         *opensearchapi.Client
 	CW         *cwatch.Service
 	FCM        FCMClient
 
@@ -81,6 +86,25 @@ func NewRuntime(cfg *Config) (*Runtime, error) {
 	rt.ES, err = elasticsearch.NewTypedClient(elasticsearch.Config{Addresses: []string{cfg.Elastic}, Username: cfg.ElasticUsername, Password: cfg.ElasticPassword})
 	if err != nil {
 		return nil, fmt.Errorf("error creating Elasticsearch client: %w", err)
+	}
+
+	if cfg.Opensearch != "" {
+		awsCfg, err := awsx.NewConfig(cfg.AWSAccessKeyID, cfg.AWSSecretAccessKey, cfg.AWSRegion)
+		if err != nil {
+			return nil, fmt.Errorf("error creating AWS config for OpenSearch: %w", err)
+		}
+
+		signer, err := awsv2.NewSigner(awsCfg)
+		if err != nil {
+			return nil, fmt.Errorf("error creating OpenSearch request signer: %w", err)
+		}
+
+		rt.OS, err = opensearchapi.NewClient(opensearchapi.Config{
+			Client: opensearch.Config{Addresses: []string{cfg.Opensearch}, Signer: signer},
+		})
+		if err != nil {
+			return nil, fmt.Errorf("error creating OpenSearch client: %w", err)
+		}
 	}
 
 	rt.CW, err = cwatch.NewService(cfg.AWSAccessKeyID, cfg.AWSSecretAccessKey, cfg.AWSRegion, cfg.CloudwatchNamespace, cfg.DeploymentID)

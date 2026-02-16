@@ -58,6 +58,8 @@ type Config struct {
 	ElasticPassword      string `help:"the password for ElasticSearch if using basic auth"`
 	ElasticContactsIndex string `help:"the name of index alias for contacts"`
 
+	Opensearch string `validate:"omitempty,url" help:"the URL of your OpenSearch instance"`
+
 	AWSAccessKeyID     string `help:"access key ID to use for AWS services"`
 	AWSSecretAccessKey string `help:"secret access key to use for AWS services"`
 	AWSRegion          string `help:"region to use for AWS services, e.g. us-east-1"`
@@ -121,6 +123,8 @@ func NewDefaultConfig() *Config {
 		ElasticUsername:      "",
 		ElasticPassword:      "",
 		ElasticContactsIndex: "contacts",
+
+		Opensearch: "",
 
 		AWSAccessKeyID:     "",
 		AWSSecretAccessKey: "",
