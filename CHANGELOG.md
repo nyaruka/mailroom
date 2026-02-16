@@ -1,3 +1,7 @@
+v26.1.32 (2026-02-16)
+-------------------------
+ * OpenSearch config needs to be collection specific
+
 v26.1.31 (2026-02-16)
 -------------------------
  * When campaign points are flow events, use smaller batches
