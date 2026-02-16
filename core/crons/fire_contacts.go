@@ -3,6 +3,7 @@ package crons
 import (
 	"context"
 	"fmt"
+	"maps"
 	"regexp"
 	"slices"
 	"strconv"
@@ -16,12 +17,13 @@ import (
 )
 
 func init() {
-	Register("contact_fires", &FireContactsCron{FetchBatchSize: 5_000, TaskBatchSize: 100})
+	Register("contact_fires", &FireContactsCron{FetchBatchSize: 5_000, TaskBatchSize: 100, FlowBatchSize: tasks.FlowStartBatchSize})
 }
 
 type FireContactsCron struct {
 	FetchBatchSize int
 	TaskBatchSize  int
+	FlowBatchSize  int
 }
 
 func (c *FireContactsCron) Next(last time.Time) time.Time {
@@ -51,6 +53,10 @@ func (c *FireContactsCron) Run(ctx context.Context, rt *runtime.Runtime) (map[st
 			grouping string
 		}
 		grouped := make(map[orgAndGrouping][]*models.ContactFire, 25)
+
+		// unique campaign point IDs
+		pointIDs := make(map[models.PointID]bool)
+
 		for _, f := range fires {
 			og := orgAndGrouping{orgID: f.OrgID}
 			switch f.Type {
@@ -62,10 +68,19 @@ func (c *FireContactsCron) Run(ctx context.Context, rt *runtime.Runtime) (map[st
 				og.grouping = "session_expires"
 			case models.ContactFireTypeCampaignPoint:
 				og.grouping = "campaign:" + f.Scope
+
+				pointID, _ := c.parseCampaignFireScope(f.Scope)
+				pointIDs[pointID] = true
 			default:
 				return nil, fmt.Errorf("unknown contact fire type: %s", f.Type)
 			}
 			grouped[og] = append(grouped[og], f)
+		}
+
+		// look up point types for all campaign fires in this batch
+		pointTypes, err := models.GetCampaignPointTypes(ctx, rt.DB, slices.Collect(maps.Keys(pointIDs)))
+		if err != nil {
+			return nil, fmt.Errorf("error looking up campaign point types: %w", err)
 		}
 
 		for og, fs := range grouped {
@@ -115,9 +130,17 @@ func (c *FireContactsCron) Run(ctx context.Context, rt *runtime.Runtime) (map[st
 
 					pointID, fireVersion := c.parseCampaignFireScope(strings.TrimPrefix(og.grouping, "campaign:"))
 
-					// queue to throttled queue but high priority
-					if err := tasks.Queue(ctx, rt, rt.Queues.Throttled, og.orgID, &tasks.BulkCampaignTrigger{PointID: pointID, FireVersion: fireVersion, ContactIDs: cids}, true); err != nil {
-						return nil, fmt.Errorf("error queuing bulk campaign trigger task for org #%d: %w", og.orgID, err)
+					// flow events get sub-batched into smaller groups
+					cidBatches := [][]models.ContactID{cids}
+					if pointTypes[pointID] == models.PointTypeFlow {
+						cidBatches = slices.Collect(slices.Chunk(cids, c.FlowBatchSize))
+					}
+
+					for _, cidBatch := range cidBatches {
+						// queue to throttled queue but high priority
+						if err := tasks.Queue(ctx, rt, rt.Queues.Throttled, og.orgID, &tasks.BulkCampaignTrigger{PointID: pointID, FireVersion: fireVersion, ContactIDs: cidBatch}, true); err != nil {
+							return nil, fmt.Errorf("error queuing bulk campaign trigger task for org #%d: %w", og.orgID, err)
+						}
 					}
 					numCampaignPoints += len(batch)
 				}

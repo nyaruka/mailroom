@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/lib/pq"
 	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/dbutil"
 	"github.com/nyaruka/goflow/assets"
@@ -407,4 +408,24 @@ func campaignPointEligibleContacts(ctx context.Context, db *sqlx.DB, groupID Gro
 	}
 
 	return contacts, nil
+}
+
+// GetCampaignPointTypes returns a map of point ID to point type for the given IDs
+func GetCampaignPointTypes(ctx context.Context, db Queryer, ids []PointID) (map[PointID]PointType, error) {
+	result := make(map[PointID]PointType, len(ids))
+	if len(ids) == 0 {
+		return result, nil
+	}
+
+	rows, err := db.QueryContext(ctx, `SELECT id, event_type FROM campaigns_campaignevent WHERE id = ANY($1)`, pq.Array(ids))
+	if err != nil {
+		return nil, fmt.Errorf("error querying point types: %w", err)
+	}
+	defer rows.Close()
+
+	if err := dbutil.ScanAllMap(rows, result); err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
