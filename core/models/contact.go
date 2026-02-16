@@ -26,7 +26,6 @@ import (
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/null/v3"
 	"github.com/nyaruka/vkutil/locks"
-	"github.com/vinovest/sqlx"
 )
 
 func init() {
@@ -1138,15 +1137,6 @@ func UpdateContactURNs(ctx context.Context, rt *runtime.Runtime, db DBorTx, oa *
 
 	// NOTE: caller needs to update modified on for this contact
 	return nil
-}
-
-func FilterContactIDsByNotInFlow(ctx context.Context, db *sqlx.DB, contacts []ContactID) ([]ContactID, error) {
-	var filtered []ContactID
-
-	if err := db.SelectContext(ctx, &filtered, `SELECT id FROM contacts_contact WHERE id = ANY($1) AND current_flow_id IS NULL`, pq.Array(contacts)); err != nil {
-		return nil, fmt.Errorf("error filtering contacts by not in flow: %w", err)
-	}
-	return filtered, nil
 }
 
 const sqlUpdateContactURNPriorityAndChannel = `
