@@ -161,12 +161,12 @@ func drainTasks(t *testing.T, rt *runtime.Runtime, perform bool, qnames ...strin
 }
 
 func GetHistoryItems(t *testing.T, rt *runtime.Runtime, clear bool) []*dynamo.Item {
-	rt.Writers.History.Flush()
+	rt.Dynamo.History.Flush()
 
-	items := dyntest.ScanAll(t, rt.Dynamo, "TestHistory")
+	items := dyntest.ScanAll(t, rt.Dynamo.Client, "TestHistory")
 
 	if clear {
-		dyntest.Truncate(t, rt.Dynamo, "TestHistory")
+		dyntest.Truncate(t, rt.Dynamo.Client, "TestHistory")
 	}
 
 	return items

@@ -106,7 +106,7 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 	}
 
 	// create Dynamo tables if necessary
-	dyntest.CreateTables(t, rt.Dynamo, absPath(dynamoTablesPath), false)
+	dyntest.CreateTables(t, rt.Dynamo.Client, absPath(dynamoTablesPath), false)
 
 	rt.FCM = &MockFCMClient{ValidTokens: []string{"FCMID3", "FCMID4", "FCMID5"}}
 
@@ -259,10 +259,10 @@ func createOpenSearchMessagesTemplate(t *testing.T, rt *runtime.Runtime) {
 func resetDynamo(t *testing.T, rt *runtime.Runtime) {
 	t.Helper()
 
-	rt.Writers.Main.Flush()
-	rt.Writers.History.Flush()
+	rt.Dynamo.Main.Flush()
+	rt.Dynamo.History.Flush()
 
-	dyntest.CreateTables(t, rt.Dynamo, absPath(dynamoTablesPath), true)
+	dyntest.CreateTables(t, rt.Dynamo.Client, absPath(dynamoTablesPath), true)
 }
 
 var sqlResetTestData = `
