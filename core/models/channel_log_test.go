@@ -52,17 +52,17 @@ func TestChannelLogsOutgoing(t *testing.T) {
 	clog2.Error(&clogs.Error{Message: "oops"})
 	clog2.End()
 
-	_, err = rt.Writers.Main.Queue(clog1)
+	_, err = rt.Dynamo.Main.Queue(clog1)
 	require.NoError(t, err)
-	_, err = rt.Writers.Main.Queue(clog2)
+	_, err = rt.Dynamo.Main.Queue(clog2)
 	require.NoError(t, err)
 
-	rt.Writers.Main.Flush()
+	rt.Dynamo.Main.Flush()
 
-	dyntest.AssertCount(t, rt.Dynamo, "TestMain", 2)
+	dyntest.AssertCount(t, rt.Dynamo.Client, "TestMain", 2)
 
 	// read log back from DynamoDB
-	item, err := dynamo.GetItem(ctx, rt.Dynamo, "TestMain", clog1.DynamoKey())
+	item, err := dynamo.GetItem(ctx, rt.Dynamo.Client, "TestMain", clog1.DynamoKey())
 	require.NoError(t, err)
 	if assert.NotNil(t, item) {
 		assert.Equal(t, string(models.ChannelLogTypeIVRStart), item.Data["type"])

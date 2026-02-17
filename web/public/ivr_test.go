@@ -232,7 +232,7 @@ func TestVonageIVR(t *testing.T) {
 }
 
 func getCallLogs(t *testing.T, rt *runtime.Runtime, ch *testdb.Channel) []*httpx.Log {
-	rt.Writers.Main.Flush()
+	rt.Dynamo.Main.Flush()
 
 	var logUUIDs []clogs.UUID
 	err := rt.DB.Select(&logUUIDs, `SELECT unnest(log_uuids) FROM ivr_call ORDER BY id`)
@@ -247,7 +247,7 @@ func getCallLogs(t *testing.T, rt *runtime.Runtime, ch *testdb.Channel) []*httpx
 
 	for _, logUUID := range logUUIDs {
 		key := dynamo.Key{PK: fmt.Sprintf("cha#%s#%s", ch.UUID, logUUID[35:36]), SK: fmt.Sprintf("log#%s", logUUID)}
-		item, err := dynamo.GetItem(t.Context(), rt.Dynamo, "TestMain", key)
+		item, err := dynamo.GetItem(t.Context(), rt.Dynamo.Client, "TestMain", key)
 		require.NoError(t, err)
 		require.NotNil(t, item, "log item not found for key %s", key)
 

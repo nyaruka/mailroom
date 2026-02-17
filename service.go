@@ -89,7 +89,7 @@ func (s *Service) Start() error {
 	}
 
 	// test DynamoDB tables
-	if err := dynamo.Test(s.ctx, s.rt.Dynamo, c.DynamoTablePrefix+"Main", c.DynamoTablePrefix+"History"); err != nil {
+	if err := dynamo.Test(s.ctx, s.rt.Dynamo.Client, c.DynamoTablePrefix+"Main", c.DynamoTablePrefix+"History"); err != nil {
 		log.Error("dynamodb not reachable", "error", err)
 	} else {
 		log.Info("dynamodb ok")
@@ -252,7 +252,7 @@ func (s *Service) reportMetrics(ctx context.Context) (int, error) {
 		cwatch.Datum("QueuedTasks", float64(realtimeSize), types.StandardUnitCount, cwatch.Dimension("QueueName", "realtime")),
 		cwatch.Datum("QueuedTasks", float64(batchSize), types.StandardUnitCount, cwatch.Dimension("QueueName", "batch")),
 		cwatch.Datum("QueuedTasks", float64(throttledSize), types.StandardUnitCount, cwatch.Dimension("QueueName", "throttled")),
-		cwatch.Datum("DynamoSpooledItems", float64(s.rt.Spool.Size()), types.StandardUnitCount, hostDim),
+		cwatch.Datum("DynamoSpooledItems", float64(s.rt.Dynamo.Spool.Size()), types.StandardUnitCount, hostDim),
 	)
 
 	if err := s.rt.CW.Send(ctx, metrics...); err != nil {

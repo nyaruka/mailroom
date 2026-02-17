@@ -7,12 +7,10 @@ import (
 	"time"
 
 	"firebase.google.com/go/v4/messaging"
-	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/elastic/go-elasticsearch/v8"
 	"github.com/gomodule/redigo/redis"
 	awsx "github.com/nyaruka/gocommon/aws"
 	"github.com/nyaruka/gocommon/aws/cwatch"
-	"github.com/nyaruka/gocommon/aws/dynamo"
 	"github.com/nyaruka/gocommon/aws/s3x"
 	"github.com/nyaruka/vkutil"
 	"github.com/opensearch-project/opensearch-go/v4"
@@ -32,7 +30,6 @@ type Runtime struct {
 
 	DB         *sqlx.DB
 	ReadonlyDB *sql.DB
-	Dynamo     *dynamodb.Client
 	VK         *redis.Pool
 	S3         *s3x.Service
 	ES         *elasticsearch.TypedClient
@@ -40,10 +37,9 @@ type Runtime struct {
 	CW         *cwatch.Service
 	FCM        FCMClient
 
-	Writers *Writers
-	Spool   *dynamo.Spool
-	Queues  *Queues
-	Stats   *StatsCollector
+	Dynamo *Dynamo
+	Queues *Queues
+	Stats  *StatsCollector
 }
 
 // FCMClient is an interface to allow mocking in tests
@@ -72,9 +68,9 @@ func NewRuntime(cfg *Config) (*Runtime, error) {
 		rt.ReadonlyDB = rt.DB.DB
 	}
 
-	rt.Dynamo, err = dynamo.NewClient(cfg.AWSAccessKeyID, cfg.AWSSecretAccessKey, cfg.AWSRegion, cfg.DynamoEndpoint)
+	rt.Dynamo, err = newDynamo(cfg)
 	if err != nil {
-		return nil, fmt.Errorf("error creating DynamoDB client: %w", err)
+		return nil, err
 	}
 
 	rt.VK, err = vkutil.NewPool(cfg.Valkey)
@@ -116,8 +112,6 @@ func NewRuntime(cfg *Config) (*Runtime, error) {
 		return nil, fmt.Errorf("error creating Cloudwatch service: %w", err)
 	}
 
-	rt.Spool = dynamo.NewSpool(rt.Dynamo, cfg.SpoolDir+"/dynamo", 30*time.Second)
-	rt.Writers = newWriters(cfg, rt.Dynamo, rt.Spool)
 	rt.Queues = newQueues(cfg)
 	rt.Stats = NewStatsCollector()
 
@@ -125,17 +119,14 @@ func NewRuntime(cfg *Config) (*Runtime, error) {
 }
 
 func (r *Runtime) Start() error {
-	if err := r.Spool.Start(); err != nil {
-		return fmt.Errorf("error starting dynamo spool: %w", err)
+	if err := r.Dynamo.start(); err != nil {
+		return err
 	}
-
-	r.Writers.start()
 	return nil
 }
 
 func (r *Runtime) Stop() {
-	r.Writers.stop()
-	r.Spool.Stop()
+	r.Dynamo.stop()
 }
 
 func createPostgresPool(url string, maxOpenConns int) (*sqlx.DB, error) {

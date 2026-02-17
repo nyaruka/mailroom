@@ -406,7 +406,7 @@ func BulkCommit(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, 
 	eventsWritten := 0
 	for _, scene := range scenes {
 		for _, evt := range scene.persistEvents {
-			if _, err := rt.Writers.History.Queue(evt); err != nil {
+			if _, err := rt.Dynamo.History.Queue(evt); err != nil {
 				return fmt.Errorf("error queuing scene event to writer: %w", err)
 			}
 		}
