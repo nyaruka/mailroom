@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 
 	"firebase.google.com/go/v4/messaging"
@@ -92,22 +93,10 @@ func NewRuntime(cfg *Config) (*Runtime, error) {
 		return nil, fmt.Errorf("error creating Elasticsearch client: %w", err)
 	}
 
-	if cfg.OpensearchMessages != "" {
-		awsCfg, err := awsx.NewConfig(cfg.AWSAccessKeyID, cfg.AWSSecretAccessKey, cfg.AWSRegion)
+	if cfg.OpenSearchMessagesEndpoint != "" {
+		rt.OS.Messages, err = createOpenSearchClient(cfg.AWSAccessKeyID, cfg.AWSSecretAccessKey, cfg.AWSRegion, cfg.OpenSearchMessagesEndpoint)
 		if err != nil {
-			return nil, fmt.Errorf("error creating AWS config for OpenSearch: %w", err)
-		}
-
-		signer, err := awsv2.NewSignerWithService(awsCfg, "aoss")
-		if err != nil {
-			return nil, fmt.Errorf("error creating OpenSearch request signer: %w", err)
-		}
-
-		rt.OS.Messages, err = opensearchapi.NewClient(opensearchapi.Config{
-			Client: opensearch.Config{Addresses: []string{cfg.OpensearchMessages}, Signer: signer},
-		})
-		if err != nil {
-			return nil, fmt.Errorf("error creating OpenSearch client for messages: %w", err)
+			return nil, fmt.Errorf("error creating OpenSearch messages service: %w", err)
 		}
 	}
 
@@ -149,4 +138,30 @@ func createPostgresPool(url string, maxOpenConns int) (*sqlx.DB, error) {
 	db.SetConnMaxLifetime(time.Minute * 30)
 
 	return db, nil
+}
+
+func createOpenSearchClient(accessKey, secretKey, region, url string) (*opensearchapi.Client, error) {
+	awsCfg, err := awsx.NewConfig(accessKey, secretKey, region)
+	if err != nil {
+		return nil, fmt.Errorf("error creating AWS config: %w", err)
+	}
+
+	// AWS OpenSearch Serverless uses "aoss" as the service name for signing
+	svc := "es"
+	if strings.Contains(url, ".aoss.") {
+		svc = "aoss"
+	}
+
+	signer, err := awsv2.NewSignerWithService(awsCfg, svc)
+	if err != nil {
+		return nil, fmt.Errorf("error creating request signer: %w", err)
+	}
+
+	client, err := opensearchapi.NewClient(opensearchapi.Config{
+		Client: opensearch.Config{Addresses: []string{url}, Signer: signer},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("error creating client: %w", err)
+	}
+	return client, err
 }

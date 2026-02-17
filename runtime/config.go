@@ -1,14 +1,11 @@
 package runtime
 
 import (
-	"encoding/csv"
 	"encoding/hex"
 	"fmt"
-	"io"
 	"log/slog"
 	"net"
 	"os"
-	"strings"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/nyaruka/ezconf"
@@ -47,18 +44,19 @@ type Config struct {
 	WebhooksBackoffJitter        float64 `help:"the amount of jitter to apply to backoff times"`
 	WebhooksHealthyResponseLimit int     `help:"the limit in milliseconds for webhook response to be considered healthy"`
 
-	SMTPServer           string `help:"the default SMTP configuration for sending flow emails, e.g. smtp://user%40password@server:port/?from=foo%40gmail.com"`
-	DisallowedNetworks   string `help:"comma separated list of IP addresses and networks which engine can't make HTTP calls to"`
-	MaxStepsPerSprint    int    `help:"the maximum number of steps allowed per engine sprint"`
-	MaxSprintsPerSession int    `help:"the maximum number of sprints allowed per engine session"`
-	MaxValueLength       int    `help:"the maximum size in characters for contact field values and run result values"`
+	SMTPServer           string   `help:"the default SMTP configuration for sending flow emails, e.g. smtp://user%40password@server:port/?from=foo%40gmail.com"`
+	DisallowedNetworks   []string `help:"comma separated list of IP addresses and networks which engine can't make HTTP calls to"`
+	MaxStepsPerSprint    int      `help:"the maximum number of steps allowed per engine sprint"`
+	MaxSprintsPerSession int      `help:"the maximum number of sprints allowed per engine session"`
+	MaxValueLength       int      `help:"the maximum size in characters for contact field values and run result values"`
 
 	Elastic              string `validate:"url" help:"the URL of your ElasticSearch instance"`
 	ElasticUsername      string `help:"the username for ElasticSearch if using basic auth"`
 	ElasticPassword      string `help:"the password for ElasticSearch if using basic auth"`
 	ElasticContactsIndex string `help:"the name of index alias for contacts"`
 
-	OpensearchMessages string `validate:"omitempty,url" help:"the URL of your OpenSearch serverless messages collection"`
+	// experimental - multiple indices so we can double write when switching indexes - we would query against the first in the list
+	OpenSearchMessagesEndpoint string `name:"opensearch_messages_endpoint" validate:"omitempty,url" help:"the URL of your OpenSearch endpoint for messages"`
 
 	AWSAccessKeyID     string `help:"access key ID to use for AWS services"`
 	AWSSecretAccessKey string `help:"secret access key to use for AWS services"`
@@ -114,7 +112,7 @@ func NewDefaultConfig() *Config {
 		WebhooksHealthyResponseLimit: 10000,
 
 		SMTPServer:           "",
-		DisallowedNetworks:   `127.0.0.1,::1,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,169.254.0.0/16,fe80::/10`,
+		DisallowedNetworks:   []string{`127.0.0.1`, `::1`, `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `169.254.0.0/16`, `fe80::/10`},
 		MaxStepsPerSprint:    250,
 		MaxSprintsPerSession: 250,
 		MaxValueLength:       640,
@@ -124,7 +122,8 @@ func NewDefaultConfig() *Config {
 		ElasticPassword:      "",
 		ElasticContactsIndex: "contacts",
 
-		OpensearchMessages: "",
+		// not enabled by default.. still at experimental stage
+		OpenSearchMessagesEndpoint: "",
 
 		AWSAccessKeyID:     "",
 		AWSSecretAccessKey: "",
@@ -194,12 +193,7 @@ func (c *Config) Parse() error {
 
 // parses the list of IPs and IP networks (written in CIDR notation)
 func (c *Config) parseDisallowedNetworks() error {
-	addrs, err := csv.NewReader(strings.NewReader(c.DisallowedNetworks)).Read()
-	if err != nil && err != io.EOF {
-		return err
-	}
-
-	ips, nets, err := httpx.ParseNetworks(addrs...)
+	ips, nets, err := httpx.ParseNetworks(c.DisallowedNetworks...)
 	if err != nil {
 		return err
 	}
