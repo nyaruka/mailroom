@@ -143,7 +143,7 @@ func RequestCall(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 
 	// log any error inserting our channel log, but continue
 	if clog != nil {
-		if _, err := rt.Writers.Main.Queue(clog); err != nil {
+		if _, err := rt.Dynamo.Main.Queue(clog); err != nil {
 			slog.Error("error queuing IVR channel log to writer", "error", err, "channel", channel.UUID())
 		}
 	}

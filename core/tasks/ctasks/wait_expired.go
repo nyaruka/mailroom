@@ -72,7 +72,7 @@ func (t *WaitExpired) Perform(ctx context.Context, rt *runtime.Runtime, oa *mode
 		}
 
 		if clog != nil {
-			if _, err := rt.Writers.Main.Queue(clog); err != nil {
+			if _, err := rt.Dynamo.Main.Queue(clog); err != nil {
 				return fmt.Errorf("error queuing IVR channel log to writer: %w", err)
 			}
 		}
