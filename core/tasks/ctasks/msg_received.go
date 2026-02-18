@@ -78,8 +78,14 @@ func (t *MsgReceived) perform(ctx context.Context, rt *runtime.Runtime, oa *mode
 		}
 	}
 
+	// associate this message with the last open ticket for this contact if there is one
+	var ticketUUID flows.TicketUUID
+	if tks := mc.Tickets(); len(tks) > 0 {
+		ticketUUID = tks[len(tks)-1].UUID
+	}
+
 	msgIn := flows.NewMsgIn(t.URN, channel.Reference(), t.Text, availableAttachments, string(t.MsgExternalID))
-	msgEvent := events.NewMsgReceived(msgIn)
+	msgEvent := events.NewMsgReceived(msgIn, ticketUUID)
 	msgEvent.UUID_ = t.MsgUUID
 
 	// build our flow contact

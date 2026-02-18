@@ -467,7 +467,7 @@ func TestNewIVRMessages(t *testing.T) {
 		Columns(map[string]any{"text": "Hello", "status": "W", "msg_type": "V", "flow_id": testdb.Favorites.ID})
 
 	flowIn := flows.NewMsgIn(testdb.Ann.URN, vonage.Reference(), "1", nil, "")
-	eventIn := events.NewMsgReceived(flowIn)
+	eventIn := events.NewMsgReceived(flowIn, "")
 	dbIn := models.NewIncomingIVR(rt.Config, testdb.Org1.ID, call, flow, eventIn)
 
 	assert.Equal(t, eventIn.UUID(), dbIn.UUID())

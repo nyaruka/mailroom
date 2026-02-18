@@ -110,7 +110,7 @@ func runTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 			scenes[i] = runner.NewScene(mc, contact)
 
 			if msg := tc.Msgs[c.UUID]; msg != nil {
-				msgEvent := events.NewMsgReceived(msg)
+				msgEvent := events.NewMsgReceived(msg, "")
 				scenes[i].IncomingMsg = insertTestMessage(t, rt, oa, c, msg)
 				err := scenes[i].AddEvent(ctx, rt, oa, msgEvent, models.NilUserID, "")
 				require.NoError(t, err)
