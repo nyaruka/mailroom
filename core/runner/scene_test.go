@@ -204,7 +204,7 @@ func TestSessionWithSubflows(t *testing.T) {
 	msg2 := flows.NewMsgIn(testdb.Ann.URN, nil, "yes", nil, "")
 	scene = runner.NewScene(mc, contact)
 
-	err = scene.ResumeSession(ctx, rt, oa, modelSession, resumes.NewMsg(events.NewMsgReceived(msg2)))
+	err = scene.ResumeSession(ctx, rt, oa, modelSession, resumes.NewMsg(events.NewMsgReceived(msg2, "")))
 	require.NoError(t, err)
 	err = scene.Commit(ctx, rt, oa)
 	require.NoError(t, err)
