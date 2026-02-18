@@ -4,12 +4,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/nyaruka/gocommon/aws/dynamo"
 )
 
 type Dynamo struct {
-	Client  *dynamodb.Client
 	Main    *dynamo.Writer
 	History *dynamo.Writer
 	Spool   *dynamo.Spool
@@ -24,7 +22,6 @@ func newDynamo(cfg *Config) (*Dynamo, error) {
 	spool := dynamo.NewSpool(client, cfg.SpoolDir+"/dynamo", 30*time.Second)
 
 	return &Dynamo{
-		Client:  client,
 		Main:    dynamo.NewWriter(client, cfg.DynamoTablePrefix+"Main", 250*time.Millisecond, 1000, spool),
 		History: dynamo.NewWriter(client, cfg.DynamoTablePrefix+"History", 250*time.Millisecond, 1000, spool),
 		Spool:   spool,

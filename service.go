@@ -89,7 +89,7 @@ func (s *Service) Start() error {
 	}
 
 	// test DynamoDB tables
-	if err := dynamo.Test(s.ctx, s.rt.Dynamo.Client, c.DynamoTablePrefix+"Main", c.DynamoTablePrefix+"History"); err != nil {
+	if err := dynamo.Test(s.ctx, s.rt.Dynamo.Main.Client(), c.DynamoTablePrefix+"Main", c.DynamoTablePrefix+"History"); err != nil {
 		log.Error("dynamodb not reachable", "error", err)
 	} else {
 		log.Info("dynamodb ok")

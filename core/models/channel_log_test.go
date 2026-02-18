@@ -59,10 +59,10 @@ func TestChannelLogsOutgoing(t *testing.T) {
 
 	rt.Dynamo.Main.Flush()
 
-	dyntest.AssertCount(t, rt.Dynamo.Client, "TestMain", 2)
+	dyntest.AssertCount(t, rt.Dynamo.Main.Client(), "TestMain", 2)
 
 	// read log back from DynamoDB
-	item, err := dynamo.GetItem(ctx, rt.Dynamo.Client, "TestMain", clog1.DynamoKey())
+	item, err := dynamo.GetItem(ctx, rt.Dynamo.Main.Client(), "TestMain", clog1.DynamoKey())
 	require.NoError(t, err)
 	if assert.NotNil(t, item) {
 		assert.Equal(t, string(models.ChannelLogTypeIVRStart), item.Data["type"])
