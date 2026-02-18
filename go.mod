@@ -10,7 +10,6 @@ require (
 	github.com/aws/aws-sdk-go-v2 v1.41.1
 	github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue v1.20.31
 	github.com/aws/aws-sdk-go-v2/service/cloudwatch v1.53.1
-	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.54.0
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.95.1
 	github.com/buger/jsonparser v1.1.1
 	github.com/elastic/go-elasticsearch/v8 v8.19.1
@@ -22,7 +21,7 @@ require (
 	github.com/gorilla/schema v1.4.1
 	github.com/lib/pq v1.10.9
 	github.com/nyaruka/ezconf v0.4.1
-	github.com/nyaruka/gocommon v1.74.0
+	github.com/nyaruka/gocommon v1.75.1
 	github.com/nyaruka/goflow v0.266.0
 	github.com/nyaruka/null/v3 v3.0.0
 	github.com/nyaruka/rp-indexer/v10 v10.3.2
@@ -70,6 +69,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.7.17 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.8.4 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/v4a v1.4.17 // indirect
+	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.54.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/dynamodbstreams v1.32.10 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.13.4 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/checksum v1.9.8 // indirect
