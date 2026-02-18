@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"slices"
+	"strings"
 	"testing"
 
 	"github.com/gomodule/redigo/redis"
@@ -14,11 +15,13 @@ import (
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/core/models"
+	"github.com/nyaruka/mailroom/core/search"
 	"github.com/nyaruka/mailroom/core/tasks"
 	"github.com/nyaruka/mailroom/core/tasks/ctasks"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/mailroom/testsuite/testdb"
 	"github.com/nyaruka/mailroom/utils/queues"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	"github.com/stretchr/testify/require"
 )
 
@@ -158,6 +161,43 @@ func drainTasks(t *testing.T, rt *runtime.Runtime, perform bool, qnames ...strin
 		require.NoError(t, err, "unexpected error marking task %s as done", task.Type)
 	}
 	return counts
+}
+
+func GetIndexedMessages(t *testing.T, rt *runtime.Runtime, clear bool) []search.MessageDoc {
+	t.Helper()
+
+	rt.Search.Messages.Flush()
+
+	client := rt.Search.Messages.Client()
+
+	// refresh the index to make documents searchable
+	refreshResp, err := client.Indices.Refresh(t.Context(), &opensearchapi.IndicesRefreshReq{Indices: []string{"messages"}})
+	if err != nil || refreshResp.Inspect().Response.IsError() {
+		return nil // data stream doesn't exist yet, no messages indexed
+	}
+
+	// search all documents, sorted by timestamp for deterministic ordering
+	resp, err := client.Search(t.Context(), &opensearchapi.SearchReq{
+		Indices: []string{"messages"},
+		Body:    strings.NewReader(`{"query": {"match_all": {}}, "sort": [{"@timestamp": "asc"}]}`),
+	})
+	require.NoError(t, err)
+
+	docs := make([]search.MessageDoc, len(resp.Hits.Hits))
+	for i, hit := range resp.Hits.Hits {
+		err := json.Unmarshal(hit.Source, &docs[i])
+		require.NoError(t, err)
+	}
+
+	if clear {
+		// delete data stream (and its backing indices) if it exists
+		client.DataStream.Delete(t.Context(), opensearchapi.DataStreamDeleteReq{DataStream: "messages"})
+
+		// delete regular index if it exists (can happen if documents were indexed outside a data stream)
+		client.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{Indices: []string{"messages"}})
+	}
+
+	return docs
 }
 
 func GetHistoryItems(t *testing.T, rt *runtime.Runtime, clear bool) []*dynamo.Item {
