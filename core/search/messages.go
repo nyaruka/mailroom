@@ -7,6 +7,11 @@ import (
 	"github.com/nyaruka/mailroom/core/models"
 )
 
+const (
+	// MessageTextMinLength is the minimum length of message text to be indexed
+	MessageTextMinLength = 2
+)
+
 // MessageDoc represents a message document in the OpenSearch messages index
 type MessageDoc struct {
 	Timestamp   time.Time         `json:"@timestamp"`
