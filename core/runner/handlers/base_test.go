@@ -20,6 +20,7 @@ import (
 	"github.com/nyaruka/goflow/test"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/runner"
+	"github.com/nyaruka/mailroom/core/search"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/mailroom/testsuite"
 	"github.com/nyaruka/mailroom/testsuite/testdb"
@@ -84,6 +85,7 @@ type TestCase struct {
 	DBAssertions    []*assertdb.Assert              `json:"db_assertions,omitempty"`
 	ExpectedTasks   map[string][]testsuite.TaskInfo `json:"expected_tasks,omitempty"`
 	ExpectedHistory []*dynamo.Item                  `json:"expected_history,omitempty"`
+	IndexedMessages []search.MessageDoc             `json:"indexed_messages,omitempty"`
 }
 
 func runTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
@@ -99,6 +101,9 @@ func runTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 	assert.NoError(t, err)
 
 	test.MockUniverse()
+
+	// clear any stale opensearch data from previous test runs
+	testsuite.GetIndexedMessages(t, rt, true)
 
 	for i, tc := range tcs {
 		scenes := make([]*runner.Scene, 4)
@@ -166,6 +171,7 @@ func runTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 		actual := tc
 		actual.ExpectedTasks = testsuite.GetQueuedTasks(t, rt)
 		actual.ExpectedHistory = testsuite.GetHistoryItems(t, rt, true)
+		actual.IndexedMessages = testsuite.GetIndexedMessages(t, rt, true)
 
 		actual.DBAssertions = make([]*assertdb.Assert, len(tc.DBAssertions))
 		for i, dba := range tc.DBAssertions {
@@ -189,6 +195,14 @@ func runTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 				tc.ExpectedHistory = []*dynamo.Item{}
 			}
 			test.AssertEqualJSON(t, jsonx.MustMarshal(tc.ExpectedHistory), jsonx.MustMarshal(actual.ExpectedHistory), "%s: event history mismatch", tc.Label)
+
+			if tc.IndexedMessages == nil {
+				tc.IndexedMessages = []search.MessageDoc{}
+			}
+			if actual.IndexedMessages == nil {
+				actual.IndexedMessages = []search.MessageDoc{}
+			}
+			test.AssertEqualJSON(t, jsonx.MustMarshal(tc.IndexedMessages), jsonx.MustMarshal(actual.IndexedMessages), "%s: indexed messages mismatch", tc.Label)
 		} else {
 			tcs[i] = actual
 		}

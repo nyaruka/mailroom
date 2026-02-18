@@ -7,6 +7,7 @@ import (
 	"github.com/nyaruka/mailroom/core/models"
 )
 
+// MessageDoc represents a message document in the OpenSearch messages index
 type MessageDoc struct {
 	Timestamp   time.Time         `json:"@timestamp"`
 	OrgID       models.OrgID      `json:"org_id"`

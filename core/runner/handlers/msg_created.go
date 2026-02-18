@@ -59,12 +59,12 @@ func handleMsgCreated(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAs
 
 	scene.OutgoingMsgs = append(scene.OutgoingMsgs, msg)
 
-	// index message to opensearch if it's associated with a ticket
+	// index message to OpenSearch if it has an associated ticket
 	if event.TicketUUID != "" {
 		scene.AttachPostCommitHook(hooks.IndexMessages, &search.MessageDoc{
 			Timestamp:   event.CreatedOn(),
 			OrgID:       oa.OrgID(),
-			UUID:        msg.UUID(),
+			UUID:        event.UUID(),
 			ContactUUID: scene.ContactUUID(),
 			Text:        event.Msg.Text(),
 		})
