@@ -1,3 +1,8 @@
+v26.1.34 (2026-02-18)
+-------------------------
+ * Start indexing messages associated with tickets to opensearch
+ * Update dependencies
+
 v26.1.33 (2026-02-18)
 -------------------------
  * Update to latest goflow that adds ticket_uuid to msg_received events
