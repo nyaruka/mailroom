@@ -2,6 +2,7 @@ package runtime
 
 import (
 	"fmt"
+	"path/filepath"
 	"time"
 
 	"github.com/nyaruka/gocommon/aws/dynamo"
@@ -19,7 +20,7 @@ func newDynamo(cfg *Config) (*Dynamo, error) {
 		return nil, fmt.Errorf("error creating DynamoDB client: %w", err)
 	}
 
-	spool := dynamo.NewSpool(client, cfg.SpoolDir+"/dynamo", 30*time.Second)
+	spool := dynamo.NewSpool(client, filepath.Join(cfg.SpoolDir, "dynamo"), 30*time.Second)
 
 	return &Dynamo{
 		Main:    dynamo.NewWriter(client, cfg.DynamoTablePrefix+"Main", 250*time.Millisecond, 1000, spool),

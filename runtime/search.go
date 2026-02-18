@@ -2,6 +2,7 @@ package runtime
 
 import (
 	"fmt"
+	"path/filepath"
 	"time"
 
 	"github.com/nyaruka/gocommon/aws/osearch"
@@ -18,7 +19,7 @@ func newOpenSearch(cfg *Config) (*OpenSearch, error) {
 		return nil, fmt.Errorf("error creating OpenSearch messages client: %w", err)
 	}
 
-	spool := osearch.NewSpool(client, cfg.SpoolDir+"/opensearch", 30*time.Second)
+	spool := osearch.NewSpool(client, filepath.Join(cfg.SpoolDir, "opensearch"), 30*time.Second)
 
 	return &OpenSearch{
 		Messages: osearch.NewWriter(client, "messages", osearch.ActionCreate, 500, 250*time.Millisecond, 1000, spool),
