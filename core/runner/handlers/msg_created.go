@@ -10,6 +10,7 @@ import (
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/runner"
 	"github.com/nyaruka/mailroom/core/runner/hooks"
+	"github.com/nyaruka/mailroom/core/search"
 	"github.com/nyaruka/mailroom/runtime"
 )
 
@@ -57,6 +58,17 @@ func handleMsgCreated(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAs
 	}
 
 	scene.OutgoingMsgs = append(scene.OutgoingMsgs, msg)
+
+	// index message to opensearch if it's associated with a ticket
+	if event.TicketUUID != "" {
+		scene.AttachPostCommitHook(hooks.IndexMessages, &search.MessageDoc{
+			Timestamp:   event.CreatedOn(),
+			OrgID:       oa.OrgID(),
+			UUID:        msg.UUID(),
+			ContactUUID: scene.ContactUUID(),
+			Text:        event.Msg.Text(),
+		})
+	}
 
 	return nil
 }
