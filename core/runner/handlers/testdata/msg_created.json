@@ -1,17 +1,23 @@
 [
     {
         "label": "messages created in a flow",
-        "msgs": {
-            "a393abc0-283d-4c9b-a1b3-641a035c34bf": {
-                "urn": "tel:+16055741111",
-                "channel": {
-                    "uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8",
-                    "name": "Twilio"
-                },
-                "text": "start"
-            }
+        "events": {
+            "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                {
+                    "uuid": "01969b47-0583-76f8-ae7f-f8b243c49ff5",
+                    "type": "msg_received",
+                    "created_on": "2025-05-04T12:30:46.123456789Z",
+                    "msg": {
+                        "urn": "tel:+16055741111",
+                        "channel": {
+                            "uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8",
+                            "name": "Twilio"
+                        },
+                        "text": "start"
+                    }
+                }
+            ]
         },
-        "events": {},
         "actions": {
             "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
                 {
@@ -98,25 +104,25 @@
         "expected_history": [
             {
                 "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
-                "SK": "evt#01969b47-76cb-76f8-92ca-6e1d7f550554",
+                "SK": "evt#01969b47-6efb-76f8-92e8-a5e406ecb2a7",
                 "OrgID": 1,
                 "Data": {
-                    "created_on": "2025-05-04T12:31:15.123456789Z",
+                    "created_on": "2025-05-04T12:31:13.123456789Z",
                     "flow": {
                         "name": "Test Flow",
                         "revision": 1,
                         "uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85"
                     },
-                    "run_uuid": "01969b47-72e3-76f8-92e8-a5e406ecb2a7",
+                    "run_uuid": "01969b47-6b13-76f8-977d-88574316827e",
                     "type": "run_started"
                 }
             },
             {
                 "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
-                "SK": "evt#01969b47-8e3b-76f8-a71b-fe4af29b871a",
+                "SK": "evt#01969b47-866b-76f8-8b56-5e92bbfe0e3f",
                 "OrgID": 1,
                 "Data": {
-                    "created_on": "2025-05-04T12:31:21.123456789Z",
+                    "created_on": "2025-05-04T12:31:19.123456789Z",
                     "msg": {
                         "locale": "eng",
                         "text": "No URNs",
@@ -127,41 +133,41 @@
             },
             {
                 "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
-                "SK": "evt#01969b47-99f3-76f8-bfd7-d22404241e07",
+                "SK": "evt#01969b47-9223-76f8-a71b-fe4af29b871a",
                 "OrgID": 1,
                 "Data": {
-                    "created_on": "2025-05-04T12:31:24.123456789Z",
+                    "created_on": "2025-05-04T12:31:22.123456789Z",
                     "flow": {
                         "name": "Test Flow",
                         "revision": 1,
                         "uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85"
                     },
-                    "run_uuid": "01969b47-72e3-76f8-92e8-a5e406ecb2a7",
+                    "run_uuid": "01969b47-6b13-76f8-977d-88574316827e",
                     "status": "completed",
                     "type": "run_ended"
                 }
             },
             {
                 "PK": "con#d709c157-4606-4d41-9df3-9e9c9b4ae2d4",
-                "SK": "evt#01969b48-036b-76f8-bf05-63393fd408f5",
+                "SK": "evt#01969b47-fb9b-76f8-9e14-020037f6ddea",
                 "OrgID": 1,
                 "Data": {
-                    "created_on": "2025-05-04T12:31:51.123456789Z",
+                    "created_on": "2025-05-04T12:31:49.123456789Z",
                     "flow": {
                         "name": "Test Flow",
                         "revision": 1,
                         "uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85"
                     },
-                    "run_uuid": "01969b47-ff83-76f8-9e14-020037f6ddea",
+                    "run_uuid": "01969b47-f7b3-76f8-9c02-6222e1badc14",
                     "type": "run_started"
                 }
             },
             {
                 "PK": "con#d709c157-4606-4d41-9df3-9e9c9b4ae2d4",
-                "SK": "evt#01969b48-1adb-76f8-88b2-5d345629f07f",
+                "SK": "evt#01969b48-130b-76f8-ad03-b49f80627da4",
                 "OrgID": 1,
                 "Data": {
-                    "created_on": "2025-05-04T12:31:57.123456789Z",
+                    "created_on": "2025-05-04T12:31:55.123456789Z",
                     "msg": {
                         "channel": {
                             "name": "Facebook",
@@ -202,41 +208,41 @@
             },
             {
                 "PK": "con#d709c157-4606-4d41-9df3-9e9c9b4ae2d4",
-                "SK": "evt#01969b48-2693-76f8-b8ba-60d66db82e39",
+                "SK": "evt#01969b48-1ec3-76f8-88b2-5d345629f07f",
                 "OrgID": 1,
                 "Data": {
-                    "created_on": "2025-05-04T12:32:00.123456789Z",
+                    "created_on": "2025-05-04T12:31:58.123456789Z",
                     "flow": {
                         "name": "Test Flow",
                         "revision": 1,
                         "uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85"
                     },
-                    "run_uuid": "01969b47-ff83-76f8-9e14-020037f6ddea",
+                    "run_uuid": "01969b47-f7b3-76f8-9c02-6222e1badc14",
                     "status": "completed",
                     "type": "run_ended"
                 }
             },
             {
                 "PK": "con#cd024bcd-f473-4719-a00a-bd0bb1190135",
-                "SK": "evt#01969b47-bd1b-76f8-a5ef-59cf4d9d7a5b",
+                "SK": "evt#01969b47-b54b-76f8-a09e-6806aab9f510",
                 "OrgID": 1,
                 "Data": {
-                    "created_on": "2025-05-04T12:31:33.123456789Z",
+                    "created_on": "2025-05-04T12:31:31.123456789Z",
                     "flow": {
                         "name": "Test Flow",
                         "revision": 1,
                         "uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85"
                     },
-                    "run_uuid": "01969b47-b933-76f8-a09e-6806aab9f510",
+                    "run_uuid": "01969b47-b163-76f8-acdc-e181352d44cc",
                     "type": "run_started"
                 }
             },
             {
                 "PK": "con#cd024bcd-f473-4719-a00a-bd0bb1190135",
-                "SK": "evt#01969b47-d48b-76f8-998e-ae5bd773804a",
+                "SK": "evt#01969b47-ccbb-76f8-9504-776e7d151101",
                 "OrgID": 1,
                 "Data": {
-                    "created_on": "2025-05-04T12:31:39.123456789Z",
+                    "created_on": "2025-05-04T12:31:37.123456789Z",
                     "msg": {
                         "attachments": [
                             "image/png:/images/image1.png"
@@ -254,16 +260,16 @@
             },
             {
                 "PK": "con#cd024bcd-f473-4719-a00a-bd0bb1190135",
-                "SK": "evt#01969b47-e043-76f8-87bc-209e78511534",
+                "SK": "evt#01969b47-d873-76f8-998e-ae5bd773804a",
                 "OrgID": 1,
                 "Data": {
-                    "created_on": "2025-05-04T12:31:42.123456789Z",
+                    "created_on": "2025-05-04T12:31:40.123456789Z",
                     "flow": {
                         "name": "Test Flow",
                         "revision": 1,
                         "uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85"
                     },
-                    "run_uuid": "01969b47-b933-76f8-a09e-6806aab9f510",
+                    "run_uuid": "01969b47-b163-76f8-acdc-e181352d44cc",
                     "status": "completed",
                     "type": "run_ended"
                 }
@@ -287,17 +293,45 @@
             },
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b47-24c3-76f8-bef6-3979f99a96f9",
+                "SK": "evt#01969b47-1cf3-76f8-9014-2c868db4022e",
                 "OrgID": 1,
                 "Data": {
-                    "created_on": "2025-05-04T12:30:54.123456789Z",
+                    "created_on": "2025-05-04T12:30:52.123456789Z",
                     "flow": {
                         "name": "Test Flow",
                         "revision": 1,
                         "uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85"
                     },
-                    "run_uuid": "01969b47-20db-76f8-9014-2c868db4022e",
+                    "run_uuid": "01969b47-190b-76f8-a13f-9238de2a0b76",
                     "type": "run_started"
+                }
+            },
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01969b47-384b-76f8-be24-6164105d48f2",
+                "OrgID": 1,
+                "Data": {
+                    "created_on": "2025-05-04T12:30:59.123456789Z",
+                    "msg": {
+                        "channel": {
+                            "name": "Twilio",
+                            "uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8"
+                        },
+                        "locale": "eng-US",
+                        "quick_replies": [
+                            {
+                                "text": "yes",
+                                "type": "text"
+                            },
+                            {
+                                "text": "no",
+                                "type": "text"
+                            }
+                        ],
+                        "text": "Hello World",
+                        "urn": "tel:+16055741111"
+                    },
+                    "type": "msg_created"
                 }
             },
             {
@@ -323,34 +357,6 @@
                             }
                         ],
                         "text": "Hello World",
-                        "urn": "tel:+16055741111"
-                    },
-                    "type": "msg_created"
-                }
-            },
-            {
-                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b47-47eb-76f8-b63d-c8dcc2fa9de0",
-                "OrgID": 1,
-                "Data": {
-                    "created_on": "2025-05-04T12:31:03.123456789Z",
-                    "msg": {
-                        "channel": {
-                            "name": "Twilio",
-                            "uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8"
-                        },
-                        "locale": "eng-US",
-                        "quick_replies": [
-                            {
-                                "text": "yes",
-                                "type": "text"
-                            },
-                            {
-                                "text": "no",
-                                "type": "text"
-                            }
-                        ],
-                        "text": "Hello World",
                         "urn": "tel:+12065551212"
                     },
                     "type": "msg_created"
@@ -358,16 +364,16 @@
             },
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b47-53a3-76f8-8f9d-465efd6fbb5e",
+                "SK": "evt#01969b47-4bd3-76f8-b63d-c8dcc2fa9de0",
                 "OrgID": 1,
                 "Data": {
-                    "created_on": "2025-05-04T12:31:06.123456789Z",
+                    "created_on": "2025-05-04T12:31:04.123456789Z",
                     "flow": {
                         "name": "Test Flow",
                         "revision": 1,
                         "uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85"
                     },
-                    "run_uuid": "01969b47-20db-76f8-9014-2c868db4022e",
+                    "run_uuid": "01969b47-190b-76f8-a13f-9238de2a0b76",
                     "status": "completed",
                     "type": "run_ended"
                 }
