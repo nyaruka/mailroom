@@ -5,6 +5,33 @@
     "data_stream": {},
     "priority": 100,
     "template": {
+        "settings": {
+            "analysis": {
+                "filter": {
+                    "stop_filter": {
+                        "type": "stop",
+                        "stopwords": [
+                            "_arabic_",
+                            "_cjk_",
+                            "_english_",
+                            "_french_",
+                            "_russian_",
+                            "_spanish_"
+                        ]
+                    }
+                },
+                "analyzer": {
+                    "msg_text": {
+                        "type": "custom",
+                        "tokenizer": "standard",
+                        "filter": [
+                            "lowercase",
+                            "stop_filter"
+                        ]
+                    }
+                }
+            }
+        },
         "mappings": {
             "properties": {
                 "@timestamp": {
@@ -22,7 +49,8 @@
                     "index": false
                 },
                 "text": {
-                    "type": "text"
+                    "type": "text",
+                    "analyzer": "msg_text"
                 }
             }
         }
