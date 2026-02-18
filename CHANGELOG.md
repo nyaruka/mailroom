@@ -1,3 +1,8 @@
+v26.1.33 (2026-02-18)
+-------------------------
+ * Update to latest goflow that adds ticket_uuid to msg_received events
+ * Add OpenSearch writer and spool to runtime
+
 v26.1.32 (2026-02-16)
 -------------------------
  * OpenSearch config needs to be collection specific
