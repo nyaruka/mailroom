@@ -1,10 +1,10 @@
 package testsuite
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"log/slog"
-	"maps"
 	"os"
 	"os/exec"
 	"path"
@@ -18,6 +18,7 @@ import (
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/rp-indexer/v10/indexers"
 	ixruntime "github.com/nyaruka/rp-indexer/v10/runtime"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	"github.com/stretchr/testify/require"
 )
 
@@ -82,6 +83,7 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 	cfg.S3PathStyle = true
 	cfg.DynamoEndpoint = "http://localstack:4566"
 	cfg.DynamoTablePrefix = "Test"
+	cfg.OpenSearchMessagesEndpoint = "http://opensearch:9200"
 	cfg.SpoolDir = absPath("./_test_spool")
 
 	err := cfg.Parse()
@@ -91,6 +93,7 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 	require.NoError(t, err)
 
 	createBucket(t, rt, rt.Config.S3AttachmentsBucket)
+	createOpenSearchMessagesTemplate(t, rt)
 
 	// create Postgres tables if necessary
 	_, err = rt.DB.Exec("SELECT * from orgs_org")
@@ -228,13 +231,35 @@ func resetElastic(t *testing.T, rt *runtime.Runtime) {
 		require.NoError(t, err)
 
 		// and delete them
-		for index := range maps.Keys(ar) {
+		for index := range ar {
 			_, err := rt.ES.Indices.Delete(index).Do(t.Context())
 			require.NoError(t, err)
 		}
 	}
 
 	ReindexElastic(t, rt)
+}
+
+func createOpenSearchMessagesTemplate(t *testing.T, rt *runtime.Runtime) {
+	t.Helper()
+
+	client := rt.Search.Messages.Client()
+	tpl := ReadFile(t, absPath("./testsuite/testdata/os_messages.json"))
+
+	resp, err := client.IndexTemplate.Exists(t.Context(), opensearchapi.IndexTemplateExistsReq{IndexTemplate: "messages-template"})
+	if err == nil {
+		resp.Body.Close()
+	}
+
+	if err != nil || resp.StatusCode == 404 {
+		createResp, err := client.IndexTemplate.Create(t.Context(), opensearchapi.IndexTemplateCreateReq{
+			IndexTemplate: "messages-template",
+			Body:          bytes.NewReader(tpl),
+		})
+		require.NoError(t, err)
+		require.False(t, createResp.Inspect().Response.IsError())
+		createResp.Inspect().Response.Body.Close()
+	}
 }
 
 func resetDynamo(t *testing.T, rt *runtime.Runtime) {

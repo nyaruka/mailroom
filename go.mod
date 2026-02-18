@@ -20,7 +20,7 @@ require (
 	github.com/gomodule/redigo v1.9.3
 	github.com/gorilla/schema v1.4.1
 	github.com/lib/pq v1.10.9
-	github.com/nyaruka/ezconf v0.4.1
+	github.com/nyaruka/ezconf v0.6.1
 	github.com/nyaruka/gocommon v1.75.1
 	github.com/nyaruka/goflow v0.266.0
 	github.com/nyaruka/null/v3 v3.0.0

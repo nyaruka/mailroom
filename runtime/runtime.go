@@ -9,19 +9,11 @@ import (
 	"firebase.google.com/go/v4/messaging"
 	"github.com/elastic/go-elasticsearch/v8"
 	"github.com/gomodule/redigo/redis"
-	awsx "github.com/nyaruka/gocommon/aws"
 	"github.com/nyaruka/gocommon/aws/cwatch"
 	"github.com/nyaruka/gocommon/aws/s3x"
 	"github.com/nyaruka/vkutil"
-	"github.com/opensearch-project/opensearch-go/v4"
-	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
-	"github.com/opensearch-project/opensearch-go/v4/signer/awsv2"
 	"github.com/vinovest/sqlx"
 )
-
-type OS struct {
-	Messages *opensearchapi.Client
-}
 
 // Runtime represents the set of services required to run many Mailroom functions. Used as a wrapper for
 // those services to simplify call signatures but not create a direct dependency to Mailroom or Server
@@ -33,11 +25,11 @@ type Runtime struct {
 	VK         *redis.Pool
 	S3         *s3x.Service
 	ES         *elasticsearch.TypedClient
-	OS         OS
+	Dynamo     *Dynamo
+	Search     *OpenSearch
 	CW         *cwatch.Service
 	FCM        FCMClient
 
-	Dynamo *Dynamo
 	Queues *Queues
 	Stats  *StatsCollector
 }
@@ -88,22 +80,10 @@ func NewRuntime(cfg *Config) (*Runtime, error) {
 		return nil, fmt.Errorf("error creating Elasticsearch client: %w", err)
 	}
 
-	if cfg.OpensearchMessages != "" {
-		awsCfg, err := awsx.NewConfig(cfg.AWSAccessKeyID, cfg.AWSSecretAccessKey, cfg.AWSRegion)
+	if cfg.OpenSearchMessagesEndpoint != "" {
+		rt.Search, err = newOpenSearch(cfg)
 		if err != nil {
-			return nil, fmt.Errorf("error creating AWS config for OpenSearch: %w", err)
-		}
-
-		signer, err := awsv2.NewSignerWithService(awsCfg, "aoss")
-		if err != nil {
-			return nil, fmt.Errorf("error creating OpenSearch request signer: %w", err)
-		}
-
-		rt.OS.Messages, err = opensearchapi.NewClient(opensearchapi.Config{
-			Client: opensearch.Config{Addresses: []string{cfg.OpensearchMessages}, Signer: signer},
-		})
-		if err != nil {
-			return nil, fmt.Errorf("error creating OpenSearch client for messages: %w", err)
+			return nil, err
 		}
 	}
 
@@ -122,11 +102,15 @@ func (r *Runtime) Start() error {
 	if err := r.Dynamo.start(); err != nil {
 		return err
 	}
+	if err := r.Search.start(); err != nil {
+		return err
+	}
 	return nil
 }
 
 func (r *Runtime) Stop() {
 	r.Dynamo.stop()
+	r.Search.stop()
 }
 
 func createPostgresPool(url string, maxOpenConns int) (*sqlx.DB, error) {

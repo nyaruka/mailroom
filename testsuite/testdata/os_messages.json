@@ -1,0 +1,30 @@
+{
+    "index_patterns": [
+        "messages*"
+    ],
+    "data_stream": {},
+    "priority": 100,
+    "template": {
+        "mappings": {
+            "properties": {
+                "@timestamp": {
+                    "type": "date"
+                },
+                "org_id": {
+                    "type": "integer"
+                },
+                "uuid": {
+                    "type": "keyword",
+                    "index": false
+                },
+                "contact_uuid": {
+                    "type": "keyword",
+                    "index": false
+                },
+                "text": {
+                    "type": "text"
+                }
+            }
+        }
+    }
+}

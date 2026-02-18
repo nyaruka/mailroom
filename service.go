@@ -113,8 +113,8 @@ func (s *Service) Start() error {
 	}
 
 	// test OpenSearch
-	if s.rt.OS.Messages != nil {
-		resp, err := s.rt.OS.Messages.Ping(s.ctx, nil)
+	if s.rt.Search != nil {
+		resp, err := s.rt.Search.Messages.Client().Ping(s.ctx, nil)
 		if err != nil {
 			log.Error("opensearch messages not available", "error", err)
 		} else if resp.IsError() {
