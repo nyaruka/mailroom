@@ -243,16 +243,22 @@ func resetElastic(t *testing.T, rt *runtime.Runtime) {
 func createOpenSearchMessagesTemplate(t *testing.T, rt *runtime.Runtime) {
 	t.Helper()
 
+	client := rt.Search.Messages.Client()
 	tpl := ReadFile(t, absPath("./testsuite/testdata/os_messages.json"))
 
-	resp, err := rt.OS.Messages.IndexTemplate.Exists(t.Context(), opensearchapi.IndexTemplateExistsReq{IndexTemplate: "messages-template"})
+	resp, err := client.IndexTemplate.Exists(t.Context(), opensearchapi.IndexTemplateExistsReq{IndexTemplate: "messages-template"})
+	if err == nil {
+		resp.Body.Close()
+	}
+
 	if err != nil || resp.StatusCode == 404 {
-		resp, err := rt.OS.Messages.IndexTemplate.Create(t.Context(), opensearchapi.IndexTemplateCreateReq{
+		createResp, err := client.IndexTemplate.Create(t.Context(), opensearchapi.IndexTemplateCreateReq{
 			IndexTemplate: "messages-template",
 			Body:          bytes.NewReader(tpl),
 		})
 		require.NoError(t, err)
-		require.False(t, resp.Inspect().Response.IsError())
+		require.False(t, createResp.Inspect().Response.IsError())
+		createResp.Inspect().Response.Body.Close()
 	}
 }
 

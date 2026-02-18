@@ -4,25 +4,16 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"strings"
 	"time"
 
 	"firebase.google.com/go/v4/messaging"
 	"github.com/elastic/go-elasticsearch/v8"
 	"github.com/gomodule/redigo/redis"
-	awsx "github.com/nyaruka/gocommon/aws"
 	"github.com/nyaruka/gocommon/aws/cwatch"
 	"github.com/nyaruka/gocommon/aws/s3x"
 	"github.com/nyaruka/vkutil"
-	"github.com/opensearch-project/opensearch-go/v4"
-	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
-	"github.com/opensearch-project/opensearch-go/v4/signer/awsv2"
 	"github.com/vinovest/sqlx"
 )
-
-type OS struct {
-	Messages *opensearchapi.Client
-}
 
 // Runtime represents the set of services required to run many Mailroom functions. Used as a wrapper for
 // those services to simplify call signatures but not create a direct dependency to Mailroom or Server
@@ -34,11 +25,11 @@ type Runtime struct {
 	VK         *redis.Pool
 	S3         *s3x.Service
 	ES         *elasticsearch.TypedClient
-	OS         OS
+	Dynamo     *Dynamo
+	Search     *OpenSearch
 	CW         *cwatch.Service
 	FCM        FCMClient
 
-	Dynamo *Dynamo
 	Queues *Queues
 	Stats  *StatsCollector
 }
@@ -90,9 +81,9 @@ func NewRuntime(cfg *Config) (*Runtime, error) {
 	}
 
 	if cfg.OpenSearchMessagesEndpoint != "" {
-		rt.OS.Messages, err = createOpenSearchClient(cfg.AWSAccessKeyID, cfg.AWSSecretAccessKey, cfg.AWSRegion, cfg.OpenSearchMessagesEndpoint)
+		rt.Search, err = newOpenSearch(cfg)
 		if err != nil {
-			return nil, fmt.Errorf("error creating OpenSearch messages service: %w", err)
+			return nil, err
 		}
 	}
 
@@ -111,11 +102,15 @@ func (r *Runtime) Start() error {
 	if err := r.Dynamo.start(); err != nil {
 		return err
 	}
+	if err := r.Search.start(); err != nil {
+		return err
+	}
 	return nil
 }
 
 func (r *Runtime) Stop() {
 	r.Dynamo.stop()
+	r.Search.stop()
 }
 
 func createPostgresPool(url string, maxOpenConns int) (*sqlx.DB, error) {
@@ -129,30 +124,4 @@ func createPostgresPool(url string, maxOpenConns int) (*sqlx.DB, error) {
 	db.SetConnMaxLifetime(time.Minute * 30)
 
 	return db, nil
-}
-
-func createOpenSearchClient(accessKey, secretKey, region, url string) (*opensearchapi.Client, error) {
-	awsCfg, err := awsx.NewConfig(accessKey, secretKey, region)
-	if err != nil {
-		return nil, fmt.Errorf("error creating AWS config: %w", err)
-	}
-
-	// AWS OpenSearch Serverless uses "aoss" as the service name for signing
-	svc := "es"
-	if strings.Contains(url, ".aoss.") {
-		svc = "aoss"
-	}
-
-	signer, err := awsv2.NewSignerWithService(awsCfg, svc)
-	if err != nil {
-		return nil, fmt.Errorf("error creating request signer: %w", err)
-	}
-
-	client, err := opensearchapi.NewClient(opensearchapi.Config{
-		Client: opensearch.Config{Addresses: []string{url}, Signer: signer},
-	})
-	if err != nil {
-		return nil, fmt.Errorf("error creating client: %w", err)
-	}
-	return client, err
 }
