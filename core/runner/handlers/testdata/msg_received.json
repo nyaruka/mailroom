@@ -14,7 +14,8 @@
                             "name": "Twilio"
                         },
                         "text": "start"
-                    }
+                    },
+                    "ticket_uuid": "019c71af-9d6f-73da-9086-4b88e9a30a11"
                 }
             ]
         },
@@ -115,6 +116,7 @@
                         "text": "start",
                         "urn": "tel:+16055741111"
                     },
+                    "ticket_uuid": "019c71af-9d6f-73da-9086-4b88e9a30a11",
                     "type": "msg_received"
                 }
             },
