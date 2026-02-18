@@ -76,15 +76,14 @@ func (m *ContactActionMap) UnmarshalJSON(d []byte) error {
 }
 
 type TestCase struct {
-	Label           string                             `json:"label"`
-	Msgs            map[flows.ContactUUID]*flows.MsgIn `json:"msgs,omitempty"`
-	BroadcastID     models.BroadcastID                 `json:"broadcast_id,omitempty"`
-	Events          ContactEventMap                    `json:"events"`
-	Actions         ContactActionMap                   `json:"actions,omitempty"`
-	UserID          models.UserID                      `json:"user_id,omitempty"`
-	DBAssertions    []*assertdb.Assert                 `json:"db_assertions,omitempty"`
-	ExpectedTasks   map[string][]testsuite.TaskInfo    `json:"expected_tasks,omitempty"`
-	ExpectedHistory []*dynamo.Item                     `json:"expected_history,omitempty"`
+	Label           string                          `json:"label"`
+	BroadcastID     models.BroadcastID              `json:"broadcast_id,omitempty"`
+	Events          ContactEventMap                 `json:"events"`
+	Actions         ContactActionMap                `json:"actions,omitempty"`
+	UserID          models.UserID                   `json:"user_id,omitempty"`
+	DBAssertions    []*assertdb.Assert              `json:"db_assertions,omitempty"`
+	ExpectedTasks   map[string][]testsuite.TaskInfo `json:"expected_tasks,omitempty"`
+	ExpectedHistory []*dynamo.Item                  `json:"expected_history,omitempty"`
 }
 
 func runTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
@@ -109,17 +108,6 @@ func runTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 			mc, contact, _ := c.Load(t, rt, oa)
 			scenes[i] = runner.NewScene(mc, contact)
 
-			if msg := tc.Msgs[c.UUID]; msg != nil {
-				msgEvent := events.NewMsgReceived(msg)
-				scenes[i].IncomingMsg = insertTestMessage(t, rt, oa, c, msg)
-				err := scenes[i].AddEvent(ctx, rt, oa, msgEvent, models.NilUserID, "")
-				require.NoError(t, err)
-
-				contact.SetLastSeenOn(msgEvent.CreatedOn())
-
-				msgEvents[i] = msgEvent
-			}
-
 			if tc.BroadcastID != models.NilBroadcastID {
 				bcast, err := models.GetBroadcastByID(ctx, rt.DB, tc.BroadcastID)
 				require.NoError(t, err)
@@ -128,6 +116,12 @@ func runTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 			}
 
 			for _, e := range tc.Events[c.UUID] {
+				if me, ok := e.(*events.MsgReceived); ok {
+					scenes[i].IncomingMsg = insertTestMessage(t, rt, oa, c, me.Msg)
+					contact.SetLastSeenOn(me.CreatedOn())
+					msgEvents[i] = me
+				}
+
 				err := scenes[i].AddEvent(ctx, rt, oa, e, tc.UserID, "")
 				require.NoError(t, err)
 			}
