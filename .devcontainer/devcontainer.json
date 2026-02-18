@@ -4,6 +4,9 @@
         "dockerfile": "Dockerfile"
     },
     "features": {},
+    "mounts": [
+        "source=${localEnv:HOME}/.claude,target=/home/vscode/.claude,type=bind"
+    ],
     "runArgs": [
         "--name=dev-mailroom",
         "--network=textit_default"
