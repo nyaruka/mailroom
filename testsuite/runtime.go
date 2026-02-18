@@ -34,14 +34,15 @@ type ResetFlag int
 
 // refresh bit masks
 const (
-	ResetNone    = ResetFlag(0)
-	ResetAll     = ResetFlag(^0)
-	ResetDB      = ResetFlag(1 << 1)
-	ResetData    = ResetFlag(1 << 2)
-	ResetValkey  = ResetFlag(1 << 3)
-	ResetStorage = ResetFlag(1 << 4)
-	ResetElastic = ResetFlag(1 << 5)
-	ResetDynamo  = ResetFlag(1 << 6)
+	ResetNone       = ResetFlag(0)
+	ResetAll        = ResetFlag(^0)
+	ResetDB         = ResetFlag(1 << 1)
+	ResetData       = ResetFlag(1 << 2)
+	ResetValkey     = ResetFlag(1 << 3)
+	ResetStorage    = ResetFlag(1 << 4)
+	ResetDynamo     = ResetFlag(1 << 5)
+	ResetOpenSearch = ResetFlag(1 << 6)
+	ResetElastic    = ResetFlag(1 << 7)
 )
 
 // Reset clears out both our database and redis DB
@@ -54,6 +55,9 @@ func Reset(t *testing.T, rt *runtime.Runtime, what ResetFlag) {
 	}
 	if what&ResetDynamo > 0 {
 		resetDynamo(t, rt)
+	}
+	if what&ResetOpenSearch > 0 {
+		resetOpenSearch(t, rt)
 	}
 
 	if what&ResetDB > 0 {
@@ -260,6 +264,22 @@ func createOpenSearchMessagesTemplate(t *testing.T, rt *runtime.Runtime) {
 		require.False(t, createResp.Inspect().Response.IsError())
 		createResp.Inspect().Response.Body.Close()
 	}
+}
+
+func resetOpenSearch(t *testing.T, rt *runtime.Runtime) {
+	t.Helper()
+
+	client := rt.Search.Messages.Client()
+
+	// check if data stream exists
+	_, err := client.DataStream.Get(t.Context(), &opensearchapi.DataStreamGetReq{DataStreams: []string{"messages"}})
+	if err != nil {
+		return // doesn't exist, nothing to reset
+	}
+
+	// delete the data stream (backing indices are removed automatically)
+	_, err = client.DataStream.Delete(t.Context(), opensearchapi.DataStreamDeleteReq{DataStream: "messages"})
+	require.NoError(t, err)
 }
 
 func resetDynamo(t *testing.T, rt *runtime.Runtime) {
