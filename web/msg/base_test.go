@@ -4,10 +4,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/core/models"
+	"github.com/nyaruka/mailroom/core/search"
 	"github.com/nyaruka/mailroom/testsuite"
 	"github.com/nyaruka/mailroom/testsuite/testdb"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	"github.com/stretchr/testify/require"
 )
 
@@ -88,4 +91,27 @@ func TestBroadcastPreview(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
 
 	testsuite.RunWebTests(t, rt, "testdata/broadcast_preview.json")
+}
+
+func TestSearch(t *testing.T) {
+	_, rt := testsuite.Runtime(t)
+
+	defer testsuite.Reset(t, rt, testsuite.ResetOpenSearch)
+
+	// index some test messages
+	for _, msg := range []search.MessageDoc{
+		{Timestamp: time.Date(2025, 5, 1, 12, 0, 0, 0, time.UTC), OrgID: testdb.Org1.ID, UUID: "2ef672d8-a10f-4aaf-8e2a-e83844efa94a", ContactUUID: testdb.Ann.UUID, Text: "hello world"},
+		{Timestamp: time.Date(2025, 5, 1, 13, 0, 0, 0, time.UTC), OrgID: testdb.Org1.ID, UUID: "3af672d8-b10f-4bbf-9e3b-f93955fgb95b", ContactUUID: testdb.Bob.UUID, Text: "hello there friend"},
+		{Timestamp: time.Date(2025, 5, 1, 14, 0, 0, 0, time.UTC), OrgID: testdb.Org1.ID, UUID: "4bf783e9-c21g-5ccg-af4c-g04a66ghc06c", ContactUUID: testdb.Cat.UUID, Text: "goodbye world"},
+	} {
+		rt.Search.Messages.Queue(jsonx.MustMarshal(msg))
+	}
+
+	rt.Search.Messages.Flush()
+
+	// refresh the index to make documents searchable
+	_, err := rt.Search.Messages.Client().Indices.Refresh(t.Context(), &opensearchapi.IndicesRefreshReq{Indices: []string{"messages"}})
+	require.NoError(t, err)
+
+	testsuite.RunWebTests(t, rt, "testdata/search.json")
 }
