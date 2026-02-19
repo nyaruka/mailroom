@@ -1,3 +1,7 @@
+v26.1.35 (2026-02-19)
+-------------------------
+ * Create regular index for messages instead of template
+
 v26.1.34 (2026-02-18)
 -------------------------
  * Start indexing messages associated with tickets to opensearch
