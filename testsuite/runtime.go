@@ -97,7 +97,7 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 	require.NoError(t, err)
 
 	createBucket(t, rt, rt.Config.S3AttachmentsBucket)
-	createOpenSearchMessagesTemplate(t, rt)
+	createOpenSearchMessagesIndex(t, rt)
 
 	// create Postgres tables if necessary
 	_, err = rt.DB.Exec("SELECT * from orgs_org")
@@ -244,21 +244,21 @@ func resetElastic(t *testing.T, rt *runtime.Runtime) {
 	ReindexElastic(t, rt)
 }
 
-func createOpenSearchMessagesTemplate(t *testing.T, rt *runtime.Runtime) {
+func createOpenSearchMessagesIndex(t *testing.T, rt *runtime.Runtime) {
 	t.Helper()
 
 	client := rt.Search.Messages.Client()
-	tpl := ReadFile(t, absPath("./testsuite/testdata/os_messages.json"))
+	body := ReadFile(t, absPath("./testsuite/testdata/os_messages.json"))
 
-	resp, err := client.IndexTemplate.Exists(t.Context(), opensearchapi.IndexTemplateExistsReq{IndexTemplate: "messages-template"})
+	resp, err := client.Indices.Exists(t.Context(), opensearchapi.IndicesExistsReq{Indices: []string{"messages"}})
 	if err == nil {
 		resp.Body.Close()
 	}
 
 	if err != nil || resp.StatusCode == 404 {
-		createResp, err := client.IndexTemplate.Create(t.Context(), opensearchapi.IndexTemplateCreateReq{
-			IndexTemplate: "messages-template",
-			Body:          bytes.NewReader(tpl),
+		createResp, err := client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{
+			Index: "messages",
+			Body:  bytes.NewReader(body),
 		})
 		require.NoError(t, err)
 		require.False(t, createResp.Inspect().Response.IsError())
@@ -271,14 +271,19 @@ func resetOpenSearch(t *testing.T, rt *runtime.Runtime) {
 
 	client := rt.Search.Messages.Client()
 
-	// check if data stream exists
-	_, err := client.DataStream.Get(t.Context(), &opensearchapi.DataStreamGetReq{DataStreams: []string{"messages"}})
+	// delete all documents from the messages index
+	_, err := client.Indices.Exists(t.Context(), opensearchapi.IndicesExistsReq{Indices: []string{"messages"}})
 	if err != nil {
 		return // doesn't exist, nothing to reset
 	}
 
-	// delete the data stream (backing indices are removed automatically)
-	_, err = client.DataStream.Delete(t.Context(), opensearchapi.DataStreamDeleteReq{DataStream: "messages"})
+	_, err = client.Document.DeleteByQuery(t.Context(), opensearchapi.DocumentDeleteByQueryReq{
+		Indices: []string{"messages"},
+		Body:    bytes.NewReader([]byte(`{"query": {"match_all": {}}}`)),
+	})
+	require.NoError(t, err)
+
+	_, err = client.Indices.Refresh(t.Context(), &opensearchapi.IndicesRefreshReq{Indices: []string{"messages"}})
 	require.NoError(t, err)
 }
 
