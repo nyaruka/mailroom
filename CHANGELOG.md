@@ -1,3 +1,7 @@
+v26.1.36 (2026-02-19)
+-------------------------
+ * Fix startup check for opensearch
+
 v26.1.35 (2026-02-19)
 -------------------------
  * Create regular index for messages instead of template
