@@ -1,3 +1,8 @@
+v26.1.54 (2026-03-05)
+-------------------------
+ * Enable contact indexing to OpenSearch generally
+ * Add contact reindex endpoint
+
 v26.1.53 (2026-03-04)
 -------------------------
  * Add new Counter util for tracking progress of batch tasks
