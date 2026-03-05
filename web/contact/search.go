@@ -69,7 +69,7 @@ func handleSearch(ctx context.Context, rt *runtime.Runtime, r *searchRequest) (a
 	}
 
 	// perform our search
-	parsed, hits, total, err := search.GetContactIDsForQueryPage(ctx, rt, oa, group, r.ExcludeIDs, r.Query, r.Sort, r.Offset, r.Limit)
+	parsed, hits, total, err := search.GetContactIDsForQueryPage(ctx, rt, oa, group, r.ExcludeIDs, r.Query, r.Sort, r.Offset, r.Limit, false)
 	if err != nil {
 		return nil, 0, fmt.Errorf("error searching page: %w", err)
 	}

@@ -74,7 +74,7 @@ func handleBroadcastPreview(ctx context.Context, rt *runtime.Runtime, r *preview
 		return &previewResponse{Query: "", Total: 0}, http.StatusOK, nil
 	}
 
-	parsedQuery, total, err := search.GetContactTotal(ctx, rt, oa, nil, query)
+	parsedQuery, total, err := search.GetContactTotal(ctx, rt, oa, nil, query, false)
 	if err != nil {
 		return nil, 0, fmt.Errorf("error querying preview: %w", err)
 	}

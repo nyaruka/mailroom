@@ -3,6 +3,7 @@ package search
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"strconv"
@@ -16,6 +17,7 @@ import (
 	"github.com/nyaruka/goflow/contactql/es"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/runtime"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 )
 
 // AssetMapper maps resolved assets in queries to how we identify them in ES which in the case
@@ -34,50 +36,64 @@ var assetMapper = &AssetMapper{}
 
 // BuildElasticQuery turns the passed in contact ql query into an elastic query
 func BuildElasticQuery(oa *models.OrgAssets, group *models.Group, status models.ContactStatus, excludeIDs []models.ContactID, query *contactql.ContactQuery) elastic.Query {
-	// filter by org and active contacts
+	return buildContactQuery(oa, group, status, excludeIDs, query, false)
+}
+
+// BuildContactQuery turns the passed in contact ql query into a query for the given backend
+func BuildContactQuery(oa *models.OrgAssets, group *models.Group, status models.ContactStatus, excludeIDs []models.ContactID, query *contactql.ContactQuery, os bool) elastic.Query {
+	return buildContactQuery(oa, group, status, excludeIDs, query, os)
+}
+
+func buildContactQuery(oa *models.OrgAssets, group *models.Group, status models.ContactStatus, excludeIDs []models.ContactID, query *contactql.ContactQuery, os bool) elastic.Query {
 	must := []elastic.Query{
 		elastic.Term("org_id", oa.OrgID()),
-		elastic.Term("is_active", true),
 	}
 
-	// and group if present
+	// Elastic has is_active field, OpenSearch only indexes active contacts
+	if !os {
+		must = append(must, elastic.Term("is_active", true))
+	}
+
 	if group != nil {
 		must = append(must, elastic.Term("group_ids", group.ID()))
 	}
 
-	// and status if present
 	if status != models.NilContactStatus {
 		must = append(must, elastic.Term("status", status))
 	}
 
-	// and by user query if present
 	if query != nil {
 		must = append(must, es.ToElasticQuery(oa.Env(), assetMapper, query))
 	}
 
 	not := []elastic.Query{}
 
-	// exclude ids if present
 	if len(excludeIDs) > 0 {
-		ids := make([]string, len(excludeIDs))
-		for i := range excludeIDs {
-			ids[i] = fmt.Sprintf("%d", excludeIDs[i])
+		if os {
+			// OpenSearch uses legacy_id for the database contact ID
+			ids := make([]int64, len(excludeIDs))
+			for i := range excludeIDs {
+				ids[i] = int64(excludeIDs[i])
+			}
+			not = append(not, elastic.Query{"terms": map[string]any{"legacy_id": ids}})
+		} else {
+			// Elastic uses _id for the database contact ID
+			ids := make([]string, len(excludeIDs))
+			for i := range excludeIDs {
+				ids[i] = fmt.Sprintf("%d", excludeIDs[i])
+			}
+			not = append(not, elastic.Ids(ids...))
 		}
-		not = append(not, elastic.Ids(ids...))
 	}
 
 	return elastic.Bool(must, not)
 }
 
 // GetContactTotal returns the total count of matching contacts for the given query
-func GetContactTotal(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, group *models.Group, query string) (*contactql.ContactQuery, int64, error) {
+func GetContactTotal(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, group *models.Group, query string, os bool) (*contactql.ContactQuery, int64, error) {
 	env := oa.Env()
 	var parsed *contactql.ContactQuery
 	var err error
-
-	if rt.ES == nil {
-		return nil, 0, fmt.Errorf("no elastic client available, check your configuration")
-	}
 
 	if query != "" {
 		parsed, err = contactql.ParseQuery(env, query, oa.SessionAssets())
@@ -86,15 +102,27 @@ func GetContactTotal(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAss
 		}
 	}
 
-	// if group is a status group, Elastic won't know about it so search by status instead
+	// if group is a status group, the index won't know about it so search by status instead
 	status := models.NilContactStatus
 	if group != nil && !group.Visible() {
 		status = models.ContactStatus(group.Type())
 		group = nil
 	}
 
-	eq := BuildElasticQuery(oa, group, status, nil, parsed)
+	eq := buildContactQuery(oa, group, status, nil, parsed, os)
 	src := map[string]any{"query": eq}
+
+	if os {
+		resp, err := rt.OS.Client.Indices.Count(ctx, &opensearchapi.IndicesCountReq{
+			Indices: []string{rt.Config.OSContactsIndex},
+			Body:    bytes.NewReader(jsonx.MustMarshal(src)),
+			Params:  opensearchapi.IndicesCountParams{Routing: []string{oa.OrgID().String()}},
+		})
+		if err != nil {
+			return nil, 0, fmt.Errorf("error performing count: %w", err)
+		}
+		return parsed, int64(resp.Count), nil
+	}
 
 	count, err := rt.ES.Count().Index(rt.Config.ElasticContactsIndex).Routing(oa.OrgID().String()).Raw(bytes.NewReader(jsonx.MustMarshal(src))).Do(ctx)
 	if err != nil {
@@ -105,16 +133,11 @@ func GetContactTotal(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAss
 }
 
 // GetContactIDsForQueryPage returns a page of contact ids for the given query and sort
-func GetContactIDsForQueryPage(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, group *models.Group, excludeIDs []models.ContactID, query string, sort string, offset int, pageSize int) (*contactql.ContactQuery, []models.ContactID, int64, error) {
+func GetContactIDsForQueryPage(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, group *models.Group, excludeIDs []models.ContactID, query string, sort string, offset int, pageSize int, os bool) (*contactql.ContactQuery, []models.ContactID, int64, error) {
 	env := oa.Env()
-	index := rt.Config.ElasticContactsIndex
 	start := time.Now()
 	var parsed *contactql.ContactQuery
 	var err error
-
-	if rt.ES == nil {
-		return nil, nil, 0, fmt.Errorf("no elastic client available, check your configuration")
-	}
 
 	if query != "" {
 		parsed, err = contactql.ParseQuery(env, query, oa.SessionAssets())
@@ -123,20 +146,51 @@ func GetContactIDsForQueryPage(ctx context.Context, rt *runtime.Runtime, oa *mod
 		}
 	}
 
-	// if group is a status group, Elastic won't know about it so search by status instead
+	// if group is a status group, the index won't know about it so search by status instead
 	status := models.NilContactStatus
 	if group != nil && !group.Visible() {
 		status = models.ContactStatus(group.Type())
 		group = nil
 	}
 
-	eq := BuildElasticQuery(oa, group, status, excludeIDs, parsed)
+	eq := buildContactQuery(oa, group, status, excludeIDs, parsed, os)
 
 	fieldSort, err := es.ToElasticSort(sort, oa.SessionAssets())
 	if err != nil {
 		return nil, nil, 0, fmt.Errorf("error parsing sort: %w", err)
 	}
 
+	if os {
+		fieldSort = adaptSortForOS(fieldSort)
+
+		src := map[string]any{
+			"_source":          []string{"legacy_id"},
+			"query":            eq,
+			"sort":             []any{fieldSort},
+			"from":             offset,
+			"size":             pageSize,
+			"track_total_hits": true,
+		}
+
+		routing := oa.OrgID().String()
+		resp, err := rt.OS.Client.Search(ctx, &opensearchapi.SearchReq{
+			Indices: []string{rt.Config.OSContactsIndex},
+			Body:    bytes.NewReader(jsonx.MustMarshal(src)),
+			Params:  opensearchapi.SearchParams{Routing: []string{routing}},
+		})
+		if err != nil {
+			return nil, nil, 0, fmt.Errorf("error performing query: %w", err)
+		}
+
+		ids := make([]models.ContactID, 0, pageSize)
+		ids = appendIDsFromOSHits(ids, resp.Hits.Hits)
+
+		slog.Debug("paged contact query complete", "org_id", oa.OrgID(), "query", query, "elapsed", time.Since(start), "page_count", len(ids), "total_count", resp.Hits.Total.Value)
+
+		return parsed, ids, int64(resp.Hits.Total.Value), nil
+	}
+
+	index := rt.Config.ElasticContactsIndex
 	src := map[string]any{
 		"_source":          false,
 		"query":            eq,
@@ -152,7 +206,7 @@ func GetContactIDsForQueryPage(ctx context.Context, rt *runtime.Runtime, oa *mod
 	}
 
 	ids := make([]models.ContactID, 0, pageSize)
-	ids = appendIDsFromHits(ids, results.Hits.Hits)
+	ids = appendIDsFromESHits(ids, results.Hits.Hits)
 
 	slog.Debug("paged contact query complete", "org_id", oa.OrgID(), "query", query, "elapsed", time.Since(start), "page_count", len(ids), "total_count", results.Hits.Total.Value)
 
@@ -160,15 +214,10 @@ func GetContactIDsForQueryPage(ctx context.Context, rt *runtime.Runtime, oa *mod
 }
 
 // GetContactIDsForQuery returns up to limit the contact ids that match the given query, sorted by id. Limit of -1 means return all.
-func GetContactIDsForQuery(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, group *models.Group, status models.ContactStatus, query string, limit int) ([]models.ContactID, error) {
+func GetContactIDsForQuery(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, group *models.Group, status models.ContactStatus, query string, limit int, os bool) ([]models.ContactID, error) {
 	env := oa.Env()
-	index := rt.Config.ElasticContactsIndex
 	var parsed *contactql.ContactQuery
 	var err error
-
-	if rt.ES == nil {
-		return nil, fmt.Errorf("no elastic client available, check your configuration")
-	}
 
 	// turn into elastic query
 	if query != "" {
@@ -178,13 +227,22 @@ func GetContactIDsForQuery(ctx context.Context, rt *runtime.Runtime, oa *models.
 		}
 	}
 
-	// if group is a status group, Elastic won't know about it so search by status instead
+	// if group is a status group, the index won't know about it so search by status instead
 	if group != nil && !group.Visible() {
 		status = models.ContactStatus(group.Type())
 		group = nil
 	}
 
-	eq := BuildElasticQuery(oa, group, status, nil, parsed)
+	eq := buildContactQuery(oa, group, status, nil, parsed, os)
+
+	if os {
+		return getContactIDsForQueryOS(ctx, rt, oa, eq, limit)
+	}
+	return getContactIDsForQueryES(ctx, rt, oa, eq, limit)
+}
+
+func getContactIDsForQueryES(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, eq elastic.Query, limit int) ([]models.ContactID, error) {
+	index := rt.Config.ElasticContactsIndex
 	sort := elastic.SortBy("id", true)
 	ids := make([]models.ContactID, 0, 100)
 
@@ -203,7 +261,7 @@ func GetContactIDsForQuery(ctx context.Context, rt *runtime.Runtime, oa *models.
 		if err != nil {
 			return nil, fmt.Errorf("error searching ES index: %w", err)
 		}
-		return appendIDsFromHits(ids, results.Hits.Hits), nil
+		return appendIDsFromESHits(ids, results.Hits.Hits), nil
 	}
 
 	// for larger limits we need to take a point in time and iterate through multiple search requests using search_after
@@ -231,7 +289,7 @@ func GetContactIDsForQuery(ctx context.Context, rt *runtime.Runtime, oa *models.
 			break
 		}
 
-		ids = appendIDsFromHits(ids, results.Hits.Hits)
+		ids = appendIDsFromESHits(ids, results.Hits.Hits)
 
 		lastHit := results.Hits.Hits[len(results.Hits.Hits)-1]
 		src["search_after"] = lastHit.Sort
@@ -244,8 +302,81 @@ func GetContactIDsForQuery(ctx context.Context, rt *runtime.Runtime, oa *models.
 	return ids, nil
 }
 
-// utility to convert search hits to contact IDs and append them to the given slice
-func appendIDsFromHits(ids []models.ContactID, hits []types.Hit) []models.ContactID {
+func getContactIDsForQueryOS(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, eq elastic.Query, limit int) ([]models.ContactID, error) {
+	index := rt.Config.OSContactsIndex
+	routing := oa.OrgID().String()
+	sort := elastic.SortBy("legacy_id", true)
+	ids := make([]models.ContactID, 0, 100)
+
+	// if limit provided that can be done with single search, do that
+	if limit >= 0 && limit <= 10_000 {
+		src := map[string]any{
+			"_source":          []string{"legacy_id"},
+			"query":            eq,
+			"sort":             []any{sort},
+			"from":             0,
+			"size":             limit,
+			"track_total_hits": false,
+		}
+
+		resp, err := rt.OS.Client.Search(ctx, &opensearchapi.SearchReq{
+			Indices: []string{index},
+			Body:    bytes.NewReader(jsonx.MustMarshal(src)),
+			Params:  opensearchapi.SearchParams{Routing: []string{routing}},
+		})
+		if err != nil {
+			return nil, fmt.Errorf("error searching OS index: %w", err)
+		}
+		return appendIDsFromOSHits(ids, resp.Hits.Hits), nil
+	}
+
+	// for larger limits we need to take a point in time and iterate through multiple search requests using search_after
+	pit, err := rt.OS.Client.PointInTime.Create(ctx, opensearchapi.PointInTimeCreateReq{
+		Indices: []string{index},
+		Params:  opensearchapi.PointInTimeCreateParams{KeepAlive: time.Minute, Routing: routing},
+	})
+	if err != nil {
+		return nil, fmt.Errorf("error creating OS point-in-time: %w", err)
+	}
+
+	src := map[string]any{
+		"_source":          []string{"legacy_id"},
+		"query":            eq,
+		"sort":             []any{sort},
+		"pit":              map[string]any{"id": pit.PitID, "keep_alive": "1m"},
+		"size":             10_000,
+		"track_total_hits": false,
+	}
+
+	for {
+		resp, err := rt.OS.Client.Search(ctx, &opensearchapi.SearchReq{
+			Body: bytes.NewReader(jsonx.MustMarshal(src)),
+		})
+		if err != nil {
+			return nil, fmt.Errorf("error searching OS index: %w", err)
+		}
+
+		if len(resp.Hits.Hits) == 0 {
+			break
+		}
+
+		ids = appendIDsFromOSHits(ids, resp.Hits.Hits)
+
+		lastHit := resp.Hits.Hits[len(resp.Hits.Hits)-1]
+		src["search_after"] = lastHit.Sort
+	}
+
+	if _, err := rt.OS.Client.PointInTime.Delete(ctx, opensearchapi.PointInTimeDeleteReq{
+		PitID: []string{pit.PitID},
+	}); err != nil {
+		return nil, fmt.Errorf("error closing OS point-in-time: %w", err)
+	}
+
+	return ids, nil
+}
+
+// appendIDsFromESHits extracts contact IDs from Elasticsearch hits where _id is the database contact ID
+func appendIDsFromESHits(ids []models.ContactID, hits []types.Hit) []models.ContactID {
 	for _, hit := range hits {
 		id, err := strconv.Atoi(*hit.Id_)
 		if err == nil {
@@ -254,3 +385,30 @@ func appendIDsFromHits(ids []models.ContactID, hits []types.Hit) []models.Contac
 	}
 	return ids
 }
+
+// appendIDsFromOSHits extracts contact IDs from OpenSearch hits using the legacy_id source field
+func appendIDsFromOSHits(ids []models.ContactID, hits []opensearchapi.SearchHit) []models.ContactID {
+	for _, hit := range hits {
+		var doc struct {
+			LegacyID models.ContactID `json:"legacy_id"`
+		}
+		if err := json.Unmarshal(hit.Source, &doc); err == nil && doc.LegacyID != models.NilContactID {
+			ids = append(ids, doc.LegacyID)
+		}
+	}
+	return ids
+}
+
+// adaptSortForOS replaces "id" with "legacy_id" in sort specs for OpenSearch
+func adaptSortForOS(s elastic.Sort) elastic.Sort {
+	adapted := make(elastic.Sort, len(s))
+	for k, v := range s {
+		if k == "id" {
+			adapted["legacy_id"] = v
+		} else {
+			adapted[k] = v
+		}
+	}
+	return adapted
+}
+
