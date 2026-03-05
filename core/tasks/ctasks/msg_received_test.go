@@ -434,6 +434,91 @@ func TestMsgReceivedTask(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE contact_id = $1 AND direction = 'O' AND created_on > $2`, testdb.Org2Contact.ID, previous).Returns(0)
 }
 
+func TestMsgReceivedNewURN(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+	vc := rt.VK.Get()
+	defer vc.Close()
+
+	defer testsuite.Reset(t, rt, testsuite.ResetAll)
+
+	dbMsg := testdb.InsertIncomingMsg(t, rt, testdb.Org1, "019a0000-aaaa-7000-b000-000000000001", testdb.TwilioChannel, testdb.Ann, "", models.MsgStatusPending)
+
+	performTask := func(t *testing.T, contact *testdb.Contact, channel *testdb.Channel, newURN *ctasks.NewURNSpec) {
+		models.FlushCache()
+		rt.DB.MustExec(`UPDATE msgs_msg SET status = 'P', flow_id = NULL WHERE id = $1`, dbMsg.ID)
+
+		task := &ctasks.MsgReceived{
+			ChannelID: channel.ID,
+			MsgUUID:   dbMsg.UUID,
+			URN:       contact.URN,
+			URNID:     contact.URNID,
+			Text:      "hello",
+			NewURN:    newURN,
+		}
+
+		err := tasks.QueueContact(ctx, rt, testdb.Org1.ID, contact.ID, task)
+		require.NoError(t, err)
+
+		queued, err := rt.Queues.Realtime.Pop(ctx, vc)
+		require.NoError(t, err)
+
+		err = tasks.Perform(ctx, rt, queued)
+		require.NoError(t, err)
+	}
+
+	getContactURNs := func(t *testing.T, contactID models.ContactID) []string {
+		var urns []string
+		err := rt.DB.Select(&urns, `SELECT identity FROM contacts_contacturn WHERE contact_id = $1 ORDER BY priority DESC`, contactID)
+		require.NoError(t, err)
+		return urns
+	}
+
+	t.Run("prepend", func(t *testing.T) {
+		defer func() {
+			// cleanup: remove the added URN
+			rt.DB.MustExec(`DELETE FROM contacts_contacturn WHERE identity = 'whatsapp:16055741111' AND contact_id = $1`, testdb.Ann.ID)
+		}()
+
+		performTask(t, testdb.Ann, testdb.TwilioChannel, &ctasks.NewURNSpec{
+			Value:  "whatsapp:16055741111",
+			Action: "prepend",
+		})
+
+		urns := getContactURNs(t, testdb.Ann.ID)
+		assert.Equal(t, []string{"whatsapp:16055741111", "tel:+16055741111"}, urns, "new URN should be first (top priority)")
+	})
+
+	t.Run("append", func(t *testing.T) {
+		defer func() {
+			rt.DB.MustExec(`DELETE FROM contacts_contacturn WHERE identity = 'telegram:9876543' AND contact_id = $1`, testdb.Ann.ID)
+		}()
+
+		performTask(t, testdb.Ann, testdb.TwilioChannel, &ctasks.NewURNSpec{
+			Value:  "telegram:9876543",
+			Action: "append",
+		})
+
+		urns := getContactURNs(t, testdb.Ann.ID)
+		assert.Equal(t, []string{"tel:+16055741111", "telegram:9876543"}, urns, "new URN should be last (lowest priority)")
+	})
+
+	t.Run("replace", func(t *testing.T) {
+		defer func() {
+			// cleanup: remove new URN and re-attach the original
+			rt.DB.MustExec(`DELETE FROM contacts_contacturn WHERE identity = 'whatsapp:16055741111' AND org_id = $1`, testdb.Org1.ID)
+			rt.DB.MustExec(`UPDATE contacts_contacturn SET contact_id = $1, priority = 1000 WHERE identity = 'tel:+16055741111' AND org_id = $2`, testdb.Ann.ID, testdb.Org1.ID)
+		}()
+
+		performTask(t, testdb.Ann, testdb.TwilioChannel, &ctasks.NewURNSpec{
+			Value:  "whatsapp:16055741111",
+			Action: "replace",
+		})
+
+		urns := getContactURNs(t, testdb.Ann.ID)
+		assert.Equal(t, []string{"whatsapp:16055741111"}, urns, "task URN should be replaced with new URN")
+	})
+}
+
 func getLastSeenOn(t *testing.T, rt *runtime.Runtime, c *testdb.Contact) *time.Time {
 	var lastSeenOn *time.Time
 	err := rt.DB.Get(&lastSeenOn, `SELECT last_seen_on FROM contacts_contact WHERE id = $1`, c.ID)

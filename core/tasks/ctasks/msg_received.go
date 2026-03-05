@@ -26,6 +26,12 @@ func init() {
 	RegisterType(TypeMsgReceived, func() Task { return &MsgReceived{} })
 }
 
+// NewURNSpec specifies a new URN to add or replace on the contact
+type NewURNSpec struct {
+	Value  urns.URN `json:"value"`
+	Action string   `json:"action"` // "prepend", "append", or "replace"
+}
+
 type MsgReceived struct {
 	MsgUUID       flows.EventUUID  `json:"msg_uuid"`
 	MsgExternalID string           `json:"msg_external_id"`
@@ -35,6 +41,7 @@ type MsgReceived struct {
 	Text          string           `json:"text"`
 	Attachments   []string         `json:"attachments,omitempty"`
 	NewContact    bool             `json:"new_contact"`
+	NewURN        *NewURNSpec      `json:"new_urn,omitempty"`
 }
 
 func (t *MsgReceived) Type() string {
@@ -130,6 +137,13 @@ func (t *MsgReceived) perform(ctx context.Context, rt *runtime.Runtime, oa *mode
 		return fmt.Errorf("error handing message event in scene: %w", err)
 	}
 
+	// if we have a new URN spec, apply the URN change to the contact
+	if t.NewURN != nil {
+		if err := t.applyNewURN(ctx, rt, oa, contact, scene); err != nil {
+			return fmt.Errorf("error applying new URN: %w", err)
+		}
+	}
+
 	// update last_seen_on last so that during flow execution it's the previous value which is more useful than now
 	if err := scene.ApplyModifier(ctx, rt, oa, modifiers.NewSeen(dates.Now()), models.NilUserID, ""); err != nil {
 		return fmt.Errorf("error applying last seen modifier: %w", err)
@@ -137,6 +151,45 @@ func (t *MsgReceived) perform(ctx context.Context, rt *runtime.Runtime, oa *mode
 
 	if err := scene.Commit(ctx, rt, oa); err != nil {
 		return fmt.Errorf("error committing scene: %w", err)
+	}
+
+	return nil
+}
+
+// applyNewURN applies a new URN to the contact based on the action specified in the task
+func (t *MsgReceived) applyNewURN(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contact *flows.Contact, scene *runner.Scene) error {
+	newURN := t.NewURN.Value
+
+	switch t.NewURN.Action {
+	case "prepend":
+		// build full URN list with the new URN first (top priority), then existing URNs
+		urnList := append([]urns.URN{newURN}, contact.URNs().Encode()...)
+		if err := scene.ApplyModifier(ctx, rt, oa, modifiers.NewURNs(urnList, modifiers.URNsSet), models.NilUserID, ""); err != nil {
+			return fmt.Errorf("error applying URNs modifier for prepend: %w", err)
+		}
+
+	case "append":
+		if err := scene.ApplyModifier(ctx, rt, oa, modifiers.NewURNs([]urns.URN{newURN}, modifiers.URNsAppend), models.NilUserID, ""); err != nil {
+			return fmt.Errorf("error applying URNs modifier for append: %w", err)
+		}
+
+	case "replace":
+		// replace the task's message URN with the new URN, keeping all other URNs in place
+		existingURNs := contact.URNs().Encode()
+		urnList := make([]urns.URN, 0, len(existingURNs))
+		for _, u := range existingURNs {
+			if u.Identity() == t.URN.Identity() {
+				urnList = append(urnList, newURN)
+			} else {
+				urnList = append(urnList, u)
+			}
+		}
+		if err := scene.ApplyModifier(ctx, rt, oa, modifiers.NewURNs(urnList, modifiers.URNsSet), models.NilUserID, ""); err != nil {
+			return fmt.Errorf("error applying URNs modifier for replace: %w", err)
+		}
+
+	default:
+		return fmt.Errorf("unknown new_urn action: %s", t.NewURN.Action)
 	}
 
 	return nil
