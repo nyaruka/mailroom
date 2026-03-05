@@ -125,7 +125,7 @@ func NewDefaultConfig() *Config {
 
 		OSEndpoint:      "http://opensearch:9200",
 		OSMessagesIndex: "messages-v1",
-		// OSContactsIndex: "contacts-v1", only for tests for now
+		OSContactsIndex: "contacts-v1",
 
 		AWSAccessKeyID:     "",
 		AWSSecretAccessKey: "",
