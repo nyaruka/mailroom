@@ -86,7 +86,7 @@ func (t *PopulateGroup) Perform(ctx context.Context, rt *runtime.Runtime, oa *mo
 	}
 
 	// get contacts that match the query from search
-	matchedIDs, err := search.GetContactIDsForQuery(ctx, rt, oa, nil, models.ContactStatusActive, t.Query, -1)
+	matchedIDs, err := search.GetContactIDsForQuery(ctx, rt, oa, nil, models.ContactStatusActive, t.Query, -1, false)
 
 	if err != nil {
 		var qerr *contactql.QueryError

@@ -57,7 +57,7 @@ func handleExportPreview(ctx context.Context, rt *runtime.Runtime, r *previewReq
 		return &previewResponse{Total: count}, http.StatusOK, nil
 	}
 
-	_, total, err := search.GetContactTotal(ctx, rt, oa, group, r.Query)
+	_, total, err := search.GetContactTotal(ctx, rt, oa, group, r.Query, false)
 	if err != nil {
 		return nil, 0, fmt.Errorf("error querying preview: %w", err)
 	}

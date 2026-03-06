@@ -93,7 +93,7 @@ func ResolveRecipients(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 			return nil, fmt.Errorf("error building query: %w", err)
 		}
 
-		matches, err = GetContactIDsForQuery(ctx, rt, oa, nil, models.ContactStatusActive, query, limit)
+		matches, err = GetContactIDsForQuery(ctx, rt, oa, nil, models.ContactStatusActive, query, limit, false)
 		if err != nil {
 			return nil, fmt.Errorf("error performing contact search: %w", err)
 		}

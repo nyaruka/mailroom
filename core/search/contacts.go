@@ -42,8 +42,9 @@ type ContactDocURN struct {
 
 // ContactDoc represents a contact document in the OpenSearch contacts index. UUID is used as the document _id.
 type ContactDoc struct {
-	OrgID          models.OrgID         `json:"org_id"`
 	UUID           flows.ContactUUID    `json:"-"` // used as _id
+	DBID           models.ContactID     `json:"db_id"`
+	OrgID          models.OrgID         `json:"org_id"`
 	Name           string               `json:"name,omitempty"`
 	Status         models.ContactStatus `json:"status"`
 	Language       i18n.Language        `json:"language,omitempty"`
@@ -55,15 +56,15 @@ type ContactDoc struct {
 	Tickets        int                  `json:"tickets"`
 	CreatedOn      time.Time            `json:"created_on"`
 	LastSeenOn     *time.Time           `json:"last_seen_on,omitempty"`
-	LegacyID       models.ContactID     `json:"legacy_id"`
 }
 
 // NewContactDoc builds a ContactDoc from a flow contact and its org assets. We use the flow contact
 // rather than the DB contact because it is kept up-to-date in memory as events are applied.
 func NewContactDoc(oa *models.OrgAssets, c *flows.Contact, currentFlowID models.FlowID, flowHistoryIDs []models.FlowID) *ContactDoc {
 	doc := &ContactDoc{
-		OrgID:          oa.OrgID(),
 		UUID:           c.UUID(),
+		DBID:           models.ContactID(c.ID()),
+		OrgID:          oa.OrgID(),
 		Name:           c.Name(),
 		Status:         models.ContactToModelStatus[c.Status()],
 		Language:       c.Language(),
@@ -72,7 +73,6 @@ func NewContactDoc(oa *models.OrgAssets, c *flows.Contact, currentFlowID models.
 		Tickets:        c.Tickets().Open().Count(),
 		FlowID:         currentFlowID,
 		FlowHistoryIDs: flowHistoryIDs,
-		LegacyID:       models.ContactID(c.ID()),
 	}
 
 	// build field docs from the flow contact's field values
