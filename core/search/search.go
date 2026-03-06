@@ -70,12 +70,12 @@ func buildContactQuery(oa *models.OrgAssets, group *models.Group, status models.
 
 	if len(excludeIDs) > 0 {
 		if os {
-			// OpenSearch uses legacy_id for the database contact ID
+			// OpenSearch uses db_id for the database contact ID
 			ids := make([]int64, len(excludeIDs))
 			for i := range excludeIDs {
 				ids[i] = int64(excludeIDs[i])
 			}
-			not = append(not, elastic.Query{"terms": map[string]any{"legacy_id": ids}})
+			not = append(not, elastic.Query{"terms": map[string]any{"db_id": ids}})
 		} else {
 			// Elastic uses _id for the database contact ID
 			ids := make([]string, len(excludeIDs))
@@ -164,7 +164,7 @@ func GetContactIDsForQueryPage(ctx context.Context, rt *runtime.Runtime, oa *mod
 		fieldSort = adaptSortForOS(fieldSort)
 
 		src := map[string]any{
-			"_source":          []string{"legacy_id"},
+			"_source":          []string{"db_id"},
 			"query":            eq,
 			"sort":             []any{fieldSort},
 			"from":             offset,
@@ -305,13 +305,13 @@ func getContactIDsForQueryES(ctx context.Context, rt *runtime.Runtime, oa *model
 func getContactIDsForQueryOS(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, eq elastic.Query, limit int) ([]models.ContactID, error) {
 	index := rt.Config.OSContactsIndex
 	routing := oa.OrgID().String()
-	sort := elastic.SortBy("legacy_id", true)
+	sort := elastic.SortBy("db_id", true)
 	ids := make([]models.ContactID, 0, 100)
 
 	// if limit provided that can be done with single search, do that
 	if limit >= 0 && limit <= 10_000 {
 		src := map[string]any{
-			"_source":          []string{"legacy_id"},
+			"_source":          []string{"db_id"},
 			"query":            eq,
 			"sort":             []any{sort},
 			"from":             0,
@@ -340,7 +340,7 @@ func getContactIDsForQueryOS(ctx context.Context, rt *runtime.Runtime, oa *model
 	}
 
 	src := map[string]any{
-		"_source":          []string{"legacy_id"},
+		"_source":          []string{"db_id"},
 		"query":            eq,
 		"sort":             []any{sort},
 		"pit":              map[string]any{"id": pit.PitID, "keep_alive": "1m"},
@@ -386,11 +386,11 @@ func appendIDsFromESHits(ids []models.ContactID, hits []types.Hit) []models.Cont
 	return ids
 }
 
-// appendIDsFromOSHits extracts contact IDs from OpenSearch hits using the legacy_id source field
+// appendIDsFromOSHits extracts contact IDs from OpenSearch hits using the db_id source field
 func appendIDsFromOSHits(ids []models.ContactID, hits []opensearchapi.SearchHit) []models.ContactID {
 	for _, hit := range hits {
 		var doc struct {
-			LegacyID models.ContactID `json:"legacy_id"`
+			LegacyID models.ContactID `json:"db_id"`
 		}
 		if err := json.Unmarshal(hit.Source, &doc); err == nil && doc.LegacyID != models.NilContactID {
 			ids = append(ids, doc.LegacyID)
@@ -399,16 +399,15 @@ func appendIDsFromOSHits(ids []models.ContactID, hits []opensearchapi.SearchHit)
 	return ids
 }
 
-// adaptSortForOS replaces "id" with "legacy_id" in sort specs for OpenSearch
+// adaptSortForOS replaces "id" with "db_id" in sort specs for OpenSearch
 func adaptSortForOS(s elastic.Sort) elastic.Sort {
 	adapted := make(elastic.Sort, len(s))
 	for k, v := range s {
 		if k == "id" {
-			adapted["legacy_id"] = v
+			adapted["db_id"] = v
 		} else {
 			adapted[k] = v
 		}
 	}
 	return adapted
 }
-

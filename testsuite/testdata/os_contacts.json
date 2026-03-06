@@ -73,7 +73,7 @@
             "required": true
         },
         "properties": {
-            "legacy_id": {
+            "db_id": {
                 "type": "long"
             },
             "org_id": {
