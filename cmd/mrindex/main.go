@@ -57,10 +57,6 @@ func main() {
 }
 
 func indexAllContacts(ctx context.Context, rt *runtime.Runtime) error {
-	if rt.Config.OSContactsIndex == "" {
-		return fmt.Errorf("OSContactsIndex not configured")
-	}
-
 	log := slog.With("comp", "mrindex")
 
 	orgIDs, err := models.GetActiveOrgIDs(ctx, rt.DB)
