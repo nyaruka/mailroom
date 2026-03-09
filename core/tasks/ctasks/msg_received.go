@@ -180,14 +180,14 @@ func (t *MsgReceived) applyNewURN(ctx context.Context, rt *runtime.Runtime, oa *
 		urnList = append(filtered, newURN)
 
 	case "replace":
-		// replace the task's message URN with the new URN, keeping all other URNs in place
+		// replace the task's message URN with the new URN, skipping any other occurrence of the new URN's identity
 		replaced := false
-		urnList = make([]urns.URN, 0, len(filtered)+1)
-		for _, u := range filtered {
+		urnList = make([]urns.URN, 0, len(existing))
+		for _, u := range existing {
 			if u.Identity() == t.URN.Identity() {
 				urnList = append(urnList, newURN)
 				replaced = true
-			} else {
+			} else if u.Identity() != newIdentity {
 				urnList = append(urnList, u)
 			}
 		}
