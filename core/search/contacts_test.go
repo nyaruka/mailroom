@@ -45,7 +45,7 @@ func TestNewContactDoc(t *testing.T) {
 
 	doc := search.NewContactDoc(oa, annFC, testdb.Favorites.ID, []models.FlowID{testdb.Favorites.ID, testdb.PickANumber.ID})
 
-	assert.Equal(t, testdb.Ann.ID, doc.LegacyID)
+	assert.Equal(t, testdb.Ann.ID, doc.DBID)
 	assert.Equal(t, testdb.Org1.ID, doc.OrgID)
 	assert.Equal(t, testdb.Ann.UUID, doc.UUID)
 	assert.Equal(t, "Ann", doc.Name)
@@ -91,7 +91,7 @@ func TestNewContactDoc(t *testing.T) {
 
 	doc = search.NewContactDoc(oa, catFC, models.NilFlowID, nil)
 
-	assert.Equal(t, testdb.Cat.ID, doc.LegacyID)
+	assert.Equal(t, testdb.Cat.ID, doc.DBID)
 	assert.Equal(t, testdb.Cat.UUID, doc.UUID)
 	assert.Equal(t, "Cat", doc.Name)
 	assert.Equal(t, models.ContactStatusActive, doc.Status)
