@@ -25,20 +25,17 @@ func main() {
 		os.Exit(1)
 	}
 
-	logHandler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: cfg.LogLevel})
-	slog.SetDefault(slog.New(logHandler))
-
-	log := slog.With("comp", "mrindex")
-	log.Info("starting contact re-indexing")
+	// only output ERROR logs
+	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelError})))
 
 	rt, err := runtime.NewRuntime(cfg)
 	if err != nil {
-		log.Error("error creating runtime", "error", err)
+		fmt.Printf("error creating runtime: %s\n", err)
 		os.Exit(1)
 	}
 
 	if err := rt.Start(); err != nil {
-		log.Error("error starting runtime", "error", err)
+		fmt.Printf("error starting runtime: %s\n", err)
 		os.Exit(1)
 	}
 
@@ -46,33 +43,30 @@ func main() {
 
 	if err := indexAllContacts(ctx, rt); err != nil {
 		rt.Stop()
-		log.Error("error re-indexing contacts", "error", err)
+		fmt.Printf("error re-indexing contacts: %s\n", err)
 		os.Exit(1)
 	}
 
 	// stop flushes remaining queued items to OpenSearch and spool
 	rt.Stop()
-
-	log.Info("contact re-indexing complete")
 }
 
 func indexAllContacts(ctx context.Context, rt *runtime.Runtime) error {
-	log := slog.With("comp", "mrindex")
-
 	orgIDs, err := models.GetActiveOrgIDs(ctx, rt.DB)
 	if err != nil {
 		return fmt.Errorf("error getting active org IDs: %w", err)
 	}
 
-	log.Info("found active orgs", "count", len(orgIDs))
-
 	totalIndexed := 0
 	totalSkipped := 0
 
-	for i, orgID := range orgIDs {
+	for _, orgID := range orgIDs {
 		orgIndexed := 0
 		orgSkipped := 0
+		orgBatches := 0
 		afterID := models.NilContactID
+
+		fmt.Printf(" > Indexing org #%d", orgID)
 
 		for {
 			contactIDs, err := models.GetContactIDsPage(ctx, rt.DB, orgID, afterID, contactBatchSize)
@@ -100,7 +94,6 @@ func indexAllContacts(ctx context.Context, rt *runtime.Runtime) error {
 			for _, c := range contacts {
 				fc, err := c.EngineContact(oa)
 				if err != nil {
-					log.Warn("error creating flow contact, skipping", "org_id", orgID, "contact_id", c.ID(), "error", err)
 					orgSkipped++
 					continue
 				}
@@ -113,18 +106,23 @@ func indexAllContacts(ctx context.Context, rt *runtime.Runtime) error {
 			}
 
 			orgIndexed += len(flowContacts)
+			totalIndexed += len(flowContacts)
+			orgBatches++
 			afterID = contactIDs[len(contactIDs)-1]
+
+			if orgBatches%20 == 0 {
+				fmt.Print(".")
+			}
 
 			if len(contactIDs) < contactBatchSize {
 				break
 			}
 		}
 
-		totalIndexed += orgIndexed
 		totalSkipped += orgSkipped
-		log.Info("indexed org contacts", "org_id", orgID, "org_num", i+1, "org_total", len(orgIDs), "org_indexed", orgIndexed, "org_skipped", orgSkipped, "total_indexed", totalIndexed)
+		fmt.Printf(" (%d indexed, %d skipped)\n", orgIndexed, orgSkipped)
 	}
 
-	log.Info("re-indexing complete", "total_indexed", totalIndexed, "total_skipped", totalSkipped, "orgs", len(orgIDs))
+	fmt.Printf("Completed indexing (%d indexed, %d skipped)\n", totalIndexed, totalSkipped)
 	return nil
 }
