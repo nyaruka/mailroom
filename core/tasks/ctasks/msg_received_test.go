@@ -518,6 +518,42 @@ func TestMsgReceivedNewURN(t *testing.T) {
 		assert.Equal(t, []string{"whatsapp:16055741111"}, urns, "task URN should be replaced with new URN")
 	})
 
+	t.Run("replace dedup", func(t *testing.T) {
+		// give Ann a second URN (whatsapp) at lower priority
+		testdb.InsertContactURN(t, rt, testdb.Org1, testdb.Ann, "whatsapp:16055741111", 500, nil)
+
+		defer func() {
+			rt.DB.MustExec(`DELETE FROM contacts_contacturn WHERE identity = 'whatsapp:16055741111' AND org_id = $1`, testdb.Org1.ID)
+		}()
+
+		// replace task URN (tel) with whatsapp that already exists - should deduplicate and place it at tel's position
+		performTask(t, testdb.Ann, testdb.TwilioChannel, &ctasks.NewURNSpec{
+			Value:  "whatsapp:16055741111",
+			Action: "replace",
+		})
+
+		urns := getContactURNs(t, testdb.Ann.ID)
+		assert.Equal(t, []string{"whatsapp:16055741111"}, urns, "new URN should replace task URN, duplicate removed")
+	})
+
+	t.Run("replace same identity", func(t *testing.T) {
+		// give Ann a second URN so we can verify ordering
+		testdb.InsertContactURN(t, rt, testdb.Org1, testdb.Ann, "whatsapp:16055741111", 500, nil)
+
+		defer func() {
+			rt.DB.MustExec(`DELETE FROM contacts_contacturn WHERE identity = 'whatsapp:16055741111' AND org_id = $1`, testdb.Org1.ID)
+		}()
+
+		// replace task URN with itself (same identity) - should prepend to top
+		performTask(t, testdb.Ann, testdb.TwilioChannel, &ctasks.NewURNSpec{
+			Value:  "tel:+16055741111",
+			Action: "replace",
+		})
+
+		urns := getContactURNs(t, testdb.Ann.ID)
+		assert.Equal(t, []string{"tel:+16055741111", "whatsapp:16055741111"}, urns, "replaced URN with same identity should be prepended to top")
+	})
+
 	t.Run("prepend dedup", func(t *testing.T) {
 		// add a second URN to Ann so she has two
 		testdb.InsertContactURN(t, rt, testdb.Org1, testdb.Ann, "whatsapp:16055741111", 500, nil)
