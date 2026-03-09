@@ -390,10 +390,10 @@ func appendIDsFromESHits(ids []models.ContactID, hits []types.Hit) []models.Cont
 func appendIDsFromOSHits(ids []models.ContactID, hits []opensearchapi.SearchHit) []models.ContactID {
 	for _, hit := range hits {
 		var doc struct {
-			LegacyID models.ContactID `json:"db_id"`
+			DBID models.ContactID `json:"db_id"`
 		}
-		if err := json.Unmarshal(hit.Source, &doc); err == nil && doc.LegacyID != models.NilContactID {
-			ids = append(ids, doc.LegacyID)
+		if err := json.Unmarshal(hit.Source, &doc); err == nil && doc.DBID != models.NilContactID {
+			ids = append(ids, doc.DBID)
 		}
 	}
 	return ids
