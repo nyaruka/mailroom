@@ -159,37 +159,47 @@ func (t *MsgReceived) perform(ctx context.Context, rt *runtime.Runtime, oa *mode
 // applyNewURN applies a new URN to the contact based on the action specified in the task
 func (t *MsgReceived) applyNewURN(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contact *flows.Contact, scene *runner.Scene) error {
 	newURN := t.NewURN.Value
+	newIdentity := newURN.Identity()
+
+	// filter out any existing URN with the same identity as the new URN to avoid duplicates
+	existing := contact.URNs().Encode()
+	filtered := make([]urns.URN, 0, len(existing))
+	for _, u := range existing {
+		if u.Identity() != newIdentity {
+			filtered = append(filtered, u)
+		}
+	}
+
+	var urnList []urns.URN
 
 	switch t.NewURN.Action {
 	case "prepend":
-		// build full URN list with the new URN first (top priority), then existing URNs
-		urnList := append([]urns.URN{newURN}, contact.URNs().Encode()...)
-		if err := scene.ApplyModifier(ctx, rt, oa, modifiers.NewURNs(urnList, modifiers.URNsSet), models.NilUserID, ""); err != nil {
-			return fmt.Errorf("error applying URNs modifier for prepend: %w", err)
-		}
+		urnList = append([]urns.URN{newURN}, filtered...)
 
 	case "append":
-		if err := scene.ApplyModifier(ctx, rt, oa, modifiers.NewURNs([]urns.URN{newURN}, modifiers.URNsAppend), models.NilUserID, ""); err != nil {
-			return fmt.Errorf("error applying URNs modifier for append: %w", err)
-		}
+		urnList = append(filtered, newURN)
 
 	case "replace":
 		// replace the task's message URN with the new URN, keeping all other URNs in place
-		existingURNs := contact.URNs().Encode()
-		urnList := make([]urns.URN, 0, len(existingURNs))
-		for _, u := range existingURNs {
+		urnList = make([]urns.URN, 0, len(filtered))
+		for _, u := range filtered {
 			if u.Identity() == t.URN.Identity() {
 				urnList = append(urnList, newURN)
 			} else {
 				urnList = append(urnList, u)
 			}
 		}
-		if err := scene.ApplyModifier(ctx, rt, oa, modifiers.NewURNs(urnList, modifiers.URNsSet), models.NilUserID, ""); err != nil {
-			return fmt.Errorf("error applying URNs modifier for replace: %w", err)
+		// if the task URN wasn't found (e.g. already removed), append the new URN
+		if len(urnList) == len(filtered) {
+			urnList = append(urnList, newURN)
 		}
 
 	default:
 		return fmt.Errorf("unknown new_urn action: %s", t.NewURN.Action)
+	}
+
+	if err := scene.ApplyModifier(ctx, rt, oa, modifiers.NewURNs(urnList, modifiers.URNsSet), models.NilUserID, ""); err != nil {
+		return fmt.Errorf("error applying URNs modifier for %s: %w", t.NewURN.Action, err)
 	}
 
 	return nil
