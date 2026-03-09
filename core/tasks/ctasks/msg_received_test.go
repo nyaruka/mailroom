@@ -517,6 +517,24 @@ func TestMsgReceivedNewURN(t *testing.T) {
 		urns := getContactURNs(t, testdb.Ann.ID)
 		assert.Equal(t, []string{"whatsapp:16055741111"}, urns, "task URN should be replaced with new URN")
 	})
+
+	t.Run("prepend dedup", func(t *testing.T) {
+		// add a second URN to Ann so she has two
+		testdb.InsertContactURN(t, rt, testdb.Org1, testdb.Ann, "whatsapp:16055741111", 500, nil)
+
+		defer func() {
+			rt.DB.MustExec(`DELETE FROM contacts_contacturn WHERE identity = 'whatsapp:16055741111' AND org_id = $1`, testdb.Org1.ID)
+		}()
+
+		// prepend the URN that already exists - it should move to top without duplication
+		performTask(t, testdb.Ann, testdb.TwilioChannel, &ctasks.NewURNSpec{
+			Value:  "whatsapp:16055741111",
+			Action: "prepend",
+		})
+
+		urns := getContactURNs(t, testdb.Ann.ID)
+		assert.Equal(t, []string{"whatsapp:16055741111", "tel:+16055741111"}, urns, "existing URN should move to top without duplicate")
+	})
 }
 
 func getLastSeenOn(t *testing.T, rt *runtime.Runtime, c *testdb.Contact) *time.Time {
