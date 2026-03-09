@@ -20,9 +20,11 @@ import (
 	"github.com/nyaruka/goflow/test"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/runner"
+	"github.com/nyaruka/mailroom/core/search"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/mailroom/testsuite"
 	"github.com/nyaruka/mailroom/testsuite/testdb"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -85,6 +87,7 @@ type TestCase struct {
 	ExpectedTasks   map[string][]testsuite.TaskInfo `json:"expected_tasks,omitempty"`
 	ExpectedHistory []*dynamo.Item                  `json:"expected_history,omitempty"`
 	IndexedMessages []testsuite.IndexedMessage       `json:"indexed_messages,omitempty"`
+	AssertSearch    []testsuite.SearchAssertion      `json:"assert_search,omitempty"`
 }
 
 func runTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
@@ -103,6 +106,7 @@ func runTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 
 	// clear any stale opensearch data from previous test runs
 	testsuite.GetIndexedMessages(t, rt, true)
+	testsuite.ClearOSContactsIndex(t, rt)
 
 	for i, tc := range tcs {
 		scenes := make([]*runner.Scene, 4)
@@ -202,6 +206,34 @@ func runTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 				actual.IndexedMessages = []testsuite.IndexedMessage{}
 			}
 			test.AssertEqualJSON(t, jsonx.MustMarshal(tc.IndexedMessages), jsonx.MustMarshal(actual.IndexedMessages), "%s: indexed messages mismatch", tc.Label)
+
+			// check search assertions against OpenSearch contacts index
+			if len(tc.AssertSearch) > 0 {
+				// reload contacts from DB and re-index since handler tests add events directly
+				// (bypassing the flow engine) so the flow contacts used by IndexContacts hook
+				// don't have the updated values
+				models.FlushCache()
+				oa2, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
+				require.NoError(t, err)
+
+				for _, c := range []*testdb.Contact{testdb.Ann, testdb.Bob, testdb.Cat, testdb.Dan} {
+					_, reloaded, _ := c.Load(t, rt, oa2)
+					err = search.IndexContacts(ctx, rt, oa2, []*flows.Contact{reloaded}, nil)
+					require.NoError(t, err)
+				}
+
+				rt.OS.Writer.Flush()
+				_, err = rt.OS.Client.Indices.Refresh(ctx, &opensearchapi.IndicesRefreshReq{Indices: []string{rt.Config.OSContactsIndex}})
+				require.NoError(t, err)
+
+				for _, sa := range tc.AssertSearch {
+					ids, err := search.GetContactIDsForQuery(ctx, rt, oa2, nil, models.ContactStatusActive, sa.Query, -1, true)
+					assert.NoError(t, err, "%s: search query '%s' failed", tc.Label, sa.Query)
+					assert.ElementsMatch(t, sa.Contacts, ids, "%s: search query '%s' returned wrong contacts", tc.Label, sa.Query)
+				}
+
+				testsuite.ClearOSContactsIndex(t, rt)
+			}
 		} else {
 			tcs[i] = actual
 		}
