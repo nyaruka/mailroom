@@ -28,10 +28,6 @@ type reindexRequest struct {
 }
 
 func handleReindex(ctx context.Context, rt *runtime.Runtime, r *reindexRequest) (any, int, error) {
-	if rt.Config.OSContactsIndex == "" {
-		return map[string]any{"indexed": 0}, http.StatusOK, nil
-	}
-
 	oa, err := models.GetOrgAssets(ctx, rt, r.OrgID)
 	if err != nil {
 		return nil, 0, fmt.Errorf("error loading org assets: %w", err)

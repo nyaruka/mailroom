@@ -164,7 +164,7 @@ func IndexContacts(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsset
 		rt.OS.Writer.Queue(&osearch.Document{
 			Index:   rt.Config.OSContactsIndex,
 			ID:      string(doc.UUID),
-			Routing: fmt.Sprintf("%d", doc.OrgID),
+			Routing: doc.OrgID.String(),
 			Version: dates.Now().UnixNano(),
 			Body:    body,
 		})

@@ -19,10 +19,6 @@ type indexContacts struct{}
 func (h *indexContacts) Order() int { return 10 }
 
 func (h *indexContacts) Execute(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scenes map[*runner.Scene][]any) error {
-	if rt.Config.OSContactsIndex == "" {
-		return nil
-	}
-
 	contacts := make([]*flows.Contact, 0, len(scenes))
 	currentFlows := make(map[models.ContactID]models.FlowID, len(scenes))
 	for scene := range scenes {

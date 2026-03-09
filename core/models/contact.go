@@ -389,6 +389,13 @@ func queryContactIDs(ctx context.Context, db Queryer, query string, args ...any)
 	return ids, nil
 }
 
+const sqlSelectContactIDsPage = `SELECT id FROM contacts_contact WHERE org_id = $1 AND is_active = TRUE AND id > $2 ORDER BY id LIMIT $3`
+
+// GetContactIDsPage returns a page of contact IDs for the given org using cursor-based pagination.
+func GetContactIDsPage(ctx context.Context, db Queryer, orgID OrgID, afterID ContactID, limit int) ([]ContactID, error) {
+	return queryContactIDs(ctx, db, sqlSelectContactIDsPage, orgID, afterID, limit)
+}
+
 type ContactURN struct {
 	ID         URNID            `json:"id"          db:"id"`
 	OrgID      OrgID            `                   db:"org_id"`
