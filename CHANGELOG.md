@@ -1,3 +1,7 @@
+v26.1.55 (2026-03-09)
+-------------------------
+ * Rename legacy_id in context index since it will always be needed for ref in queries
+
 v26.1.54 (2026-03-05)
 -------------------------
  * Enable contact indexing to OpenSearch generally
