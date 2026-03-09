@@ -252,6 +252,28 @@ func GetIndexedMessages(t *testing.T, rt *runtime.Runtime, clear bool) []Indexed
 	return msgs
 }
 
+// SearchAssertion is a search query and the expected contact IDs that should match.
+type SearchAssertion struct {
+	Query    string             `json:"query"`
+	Contacts []models.ContactID `json:"contacts"`
+}
+
+// ClearOSContactsIndex removes all documents from the OpenSearch contacts index.
+func ClearOSContactsIndex(t *testing.T, rt *runtime.Runtime) {
+	t.Helper()
+
+	client := rt.OS.Client
+
+	_, err := client.Document.DeleteByQuery(t.Context(), opensearchapi.DocumentDeleteByQueryReq{
+		Indices: []string{rt.Config.OSContactsIndex},
+		Body:    strings.NewReader(`{"query": {"match_all": {}}}`),
+	})
+	require.NoError(t, err)
+
+	_, err = client.Indices.Refresh(t.Context(), &opensearchapi.IndicesRefreshReq{Indices: []string{rt.Config.OSContactsIndex}})
+	require.NoError(t, err)
+}
+
 func GetHistoryItems(t *testing.T, rt *runtime.Runtime, clear bool, after time.Time) []*dynamo.Item {
 	t.Helper()
 

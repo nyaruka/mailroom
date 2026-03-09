@@ -74,6 +74,9 @@
                 "returns": 0
             }
         ],
+        "assert_search": [
+            {"query": "group = Testers", "contacts": [10000, 10002]}
+        ],
         "expected_history": [
             {
                 "PK": "con#cd024bcd-f473-4719-a00a-bd0bb1190135",

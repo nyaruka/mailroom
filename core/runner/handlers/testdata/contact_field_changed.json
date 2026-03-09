@@ -179,6 +179,11 @@
                 "returns": 1
             }
         ],
+        "assert_search": [
+            {"query": "gender = Female", "contacts": [10000]},
+            {"query": "gender = Male", "contacts": [10001]},
+            {"query": "age = 40", "contacts": [10002]}
+        ],
         "expected_history": [
             {
                 "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",

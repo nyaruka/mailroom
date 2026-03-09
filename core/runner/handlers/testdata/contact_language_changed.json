@@ -37,6 +37,9 @@
                 "returns": null
             }
         ],
+        "assert_search": [
+            {"query": "language = spa", "contacts": [10000]}
+        ],
         "expected_history": [
             {
                 "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
