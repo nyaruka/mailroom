@@ -1,3 +1,10 @@
+v26.1.56 (2026-03-09)
+-------------------------
+ * Use contacts as name of index (can be alias for contacts-v1 in prod)
+ * Add mrindex command to re-index all contacts
+ * Rename legacy_id to db_id in OpenSearch contacts index
+ * Add OpenSearch backend support for contact search queries
+
 v26.1.55 (2026-03-09)
 -------------------------
  * Rename legacy_id in context index since it will always be needed for ref in queries
