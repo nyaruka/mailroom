@@ -8,6 +8,14 @@ builds:
     goarch:
       - amd64
       - arm64
+  - main: ./cmd/mrindex/main.go
+    binary: mrindex
+    goos:
+      - darwin
+      - linux
+    goarch:
+      - amd64
+      - arm64
 
 changelog:
   filters:

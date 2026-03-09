@@ -295,6 +295,23 @@ func GetOrgIDFromUUID(ctx context.Context, db *sql.DB, orgUUID OrgUUID) (OrgID, 
 	return orgID, nil
 }
 
+const sqlSelectActiveOrgIDs = `SELECT id FROM orgs_org WHERE is_active = TRUE ORDER BY id`
+
+// GetActiveOrgIDs returns the IDs of all active orgs
+func GetActiveOrgIDs(ctx context.Context, db Queryer) ([]OrgID, error) {
+	rows, err := db.QueryContext(ctx, sqlSelectActiveOrgIDs)
+	if err != nil {
+		return nil, fmt.Errorf("error querying active org IDs: %w", err)
+	}
+	defer rows.Close()
+
+	ids, err := dbutil.ScanAllSlice(rows, make([]OrgID, 0, 100))
+	if err != nil {
+		return nil, fmt.Errorf("error scanning active org IDs: %w", err)
+	}
+	return ids, nil
+}
+
 const sqlSelectOutboxCounts = `
   SELECT org_id, SUM(count) 
     FROM orgs_itemcount 

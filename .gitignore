@@ -10,4 +10,5 @@ fabfile.*
 /docs
 /_test_spool
 /_spool
-mailroom
+/mailroom
+/mrindex
