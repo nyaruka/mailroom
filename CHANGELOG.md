@@ -1,3 +1,7 @@
+v26.1.59 (2026-03-10)
+-------------------------
+ * Update to latest goflow and gocommon
+
 v26.1.58 (2026-03-10)
 -------------------------
  * Fix GetContactIDsPage passing NilContactID as NULL to SQL
