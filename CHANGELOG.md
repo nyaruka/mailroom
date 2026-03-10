@@ -1,3 +1,7 @@
+v26.1.57 (2026-03-10)
+-------------------------
+ * Fix goreleaser config
+
 v26.1.56 (2026-03-09)
 -------------------------
  * Use contacts as name of index (can be alias for contacts-v1 in prod)
