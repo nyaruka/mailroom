@@ -1,3 +1,7 @@
+v26.1.58 (2026-03-10)
+-------------------------
+ * Fix GetContactIDsPage passing NilContactID as NULL to SQL
+
 v26.1.57 (2026-03-10)
 -------------------------
  * Fix goreleaser config
