@@ -120,6 +120,13 @@ func (t *MsgReceived) perform(ctx context.Context, rt *runtime.Runtime, oa *mode
 		}
 	}
 
+	// if we have a new URN spec, apply the URN change to the contact
+	if t.NewURN != nil {
+		if err := t.applyNewURN(ctx, rt, oa, contact, scene); err != nil {
+			return fmt.Errorf("error applying new URN: %w", err)
+		}
+	}
+
 	// if we have URNs make sure the message URN is our highest priority (this is usually a noop)
 	if len(mc.URNs()) > 0 && channel != nil {
 		if ch := oa.SessionAssets().Channels().Get(channel.UUID()); ch != nil {
@@ -135,13 +142,6 @@ func (t *MsgReceived) perform(ctx context.Context, rt *runtime.Runtime, oa *mode
 
 	if err := t.handleMsgEvent(ctx, rt, oa, channel, scene, msgEvent); err != nil {
 		return fmt.Errorf("error handing message event in scene: %w", err)
-	}
-
-	// if we have a new URN spec, apply the URN change to the contact
-	if t.NewURN != nil {
-		if err := t.applyNewURN(ctx, rt, oa, contact, scene); err != nil {
-			return fmt.Errorf("error applying new URN: %w", err)
-		}
 	}
 
 	// update last_seen_on last so that during flow execution it's the previous value which is more useful than now
