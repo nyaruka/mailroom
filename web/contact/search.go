@@ -3,6 +3,8 @@ package contact
 import (
 	"context"
 	"fmt"
+	"log/slog"
+	"math/rand"
 	"net/http"
 
 	"github.com/nyaruka/goflow/contactql"
@@ -68,10 +70,30 @@ func handleSearch(ctx context.Context, rt *runtime.Runtime, r *searchRequest) (a
 		r.Limit = 50
 	}
 
-	// perform our search
+	// perform our search against ES (source of truth)
 	parsed, hits, total, err := search.GetContactIDsForQueryPage(ctx, rt, oa, group, r.ExcludeIDs, r.Query, r.Sort, r.Offset, r.Limit, false)
 	if err != nil {
 		return nil, 0, fmt.Errorf("error searching page: %w", err)
+	}
+
+	// also search OpenSearch for a proportion of requests and compare results
+	if rt.Config.OSContactsSearchVerify > 0 && rand.Float64() < rt.Config.OSContactsSearchVerify {
+		_, osHits, osTotal, osErr := search.GetContactIDsForQueryPage(ctx, rt, oa, group, r.ExcludeIDs, r.Query, r.Sort, r.Offset, r.Limit, true)
+		if osErr != nil {
+			slog.Warn("error searching OpenSearch for comparison", "org_id", r.OrgID, "error", osErr)
+		} else if total != osTotal || !contactIDsEqual(hits, osHits) {
+			example := findMismatchExample(hits, osHits)
+			slog.Error("ES/OpenSearch search mismatch",
+				"org_id", r.OrgID,
+				"group_id", r.GroupID,
+				"query", r.Query,
+				"es_total", total,
+				"os_total", osTotal,
+				"es_page_count", len(hits),
+				"os_page_count", len(osHits),
+				"example_contact", example,
+			)
+		}
 	}
 
 	// normalize and inspect the query
@@ -92,4 +114,42 @@ func handleSearch(ctx context.Context, rt *runtime.Runtime, r *searchRequest) (a
 	}
 
 	return response, http.StatusOK, nil
+}
+
+// contactIDsEqual returns true if two slices contain the same contact IDs in the same order
+func contactIDsEqual(a, b []models.ContactID) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}
+
+// findMismatchExample returns a description of the first contact ID that differs between ES and OS results
+func findMismatchExample(esIDs, osIDs []models.ContactID) string {
+	osSet := make(map[models.ContactID]bool, len(osIDs))
+	for _, id := range osIDs {
+		osSet[id] = true
+	}
+	for _, id := range esIDs {
+		if !osSet[id] {
+			return fmt.Sprintf("contact %d in ES but not OS", id)
+		}
+	}
+
+	esSet := make(map[models.ContactID]bool, len(esIDs))
+	for _, id := range esIDs {
+		esSet[id] = true
+	}
+	for _, id := range osIDs {
+		if !esSet[id] {
+			return fmt.Sprintf("contact %d in OS but not ES", id)
+		}
+	}
+
+	return "same IDs but different order"
 }
