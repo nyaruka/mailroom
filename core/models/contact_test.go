@@ -419,6 +419,27 @@ func TestGetContactIDsFromReferences(t *testing.T) {
 	assert.ElementsMatch(t, []models.ContactID{testdb.Ann.ID, testdb.Bob.ID}, ids)
 }
 
+func TestGetContactIDsPage(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	// first page should return contacts
+	ids, err := models.GetContactIDsPage(ctx, rt.DB, testdb.Org1.ID, models.NilContactID, 3)
+	require.NoError(t, err)
+	assert.Len(t, ids, 3)
+	assert.Contains(t, ids, testdb.Ann.ID)
+	assert.Contains(t, ids, testdb.Bob.ID)
+	assert.Contains(t, ids, testdb.Cat.ID)
+
+	// second page using last ID as cursor
+	ids2, err := models.GetContactIDsPage(ctx, rt.DB, testdb.Org1.ID, ids[len(ids)-1], 3)
+	require.NoError(t, err)
+
+	// should not overlap with first page
+	for _, id := range ids2 {
+		assert.NotContains(t, ids, id)
+	}
+}
+
 func TestUpdateContactLastSeenAndModifiedOn(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
