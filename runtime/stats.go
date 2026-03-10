@@ -34,6 +34,11 @@ type Stats struct {
 
 	WebhookCallCount    int           // number of webhook calls
 	WebhookCallDuration time.Duration // total time spent handling webhook calls
+
+	ESContactSearchCount    int           // number of contact searches against Elasticsearch
+	ESContactSearchDuration time.Duration // total time spent searching Elasticsearch
+	OSContactSearchCount    int           // number of contact searches against OpenSearch
+	OSContactSearchDuration time.Duration // total time spent searching OpenSearch
 }
 
 func newStats() *Stats {
@@ -84,6 +89,22 @@ func (s *Stats) ToMetrics(advanced bool) []types.MetricDatum {
 	metrics = append(metrics,
 		cwatch.Datum("WebhookCallCount", float64(s.WebhookCallCount), types.StandardUnitCount),
 		cwatch.Datum("WebhookCallDuration", float64(avgWebhookDuration)/float64(time.Second), types.StandardUnitSeconds),
+	)
+
+	var avgESSearchDuration time.Duration
+	if s.ESContactSearchCount > 0 {
+		avgESSearchDuration = s.ESContactSearchDuration / time.Duration(s.ESContactSearchCount)
+	}
+	var avgOSSearchDuration time.Duration
+	if s.OSContactSearchCount > 0 {
+		avgOSSearchDuration = s.OSContactSearchDuration / time.Duration(s.OSContactSearchCount)
+	}
+
+	metrics = append(metrics,
+		cwatch.Datum("ContactSearchCount", float64(s.ESContactSearchCount), types.StandardUnitCount, cwatch.Dimension("Backend", "es")),
+		cwatch.Datum("ContactSearchDuration", float64(avgESSearchDuration)/float64(time.Second), types.StandardUnitSeconds, cwatch.Dimension("Backend", "es")),
+		cwatch.Datum("ContactSearchCount", float64(s.OSContactSearchCount), types.StandardUnitCount, cwatch.Dimension("Backend", "os")),
+		cwatch.Datum("ContactSearchDuration", float64(avgOSSearchDuration)/float64(time.Second), types.StandardUnitSeconds, cwatch.Dimension("Backend", "os")),
 	)
 
 	if advanced {
@@ -146,6 +167,18 @@ func (c *StatsCollector) RecordWebhookCall(d time.Duration) {
 	c.mutex.Lock()
 	c.stats.WebhookCallCount++
 	c.stats.WebhookCallDuration += d
+	c.mutex.Unlock()
+}
+
+func (c *StatsCollector) RecordContactSearch(backend string, d time.Duration) {
+	c.mutex.Lock()
+	if backend == "os" {
+		c.stats.OSContactSearchCount++
+		c.stats.OSContactSearchDuration += d
+	} else {
+		c.stats.ESContactSearchCount++
+		c.stats.ESContactSearchDuration += d
+	}
 	c.mutex.Unlock()
 }
 
