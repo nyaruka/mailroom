@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"math/rand"
 	"net/http"
 
 	"github.com/nyaruka/goflow/contactql"
@@ -75,22 +76,24 @@ func handleSearch(ctx context.Context, rt *runtime.Runtime, r *searchRequest) (a
 		return nil, 0, fmt.Errorf("error searching page: %w", err)
 	}
 
-	// also search OpenSearch and compare results
-	_, osHits, osTotal, osErr := search.GetContactIDsForQueryPage(ctx, rt, oa, group, r.ExcludeIDs, r.Query, r.Sort, r.Offset, r.Limit, true)
-	if osErr != nil {
-		slog.Warn("error searching OpenSearch for comparison", "org_id", r.OrgID, "error", osErr)
-	} else if total != osTotal || !contactIDsEqual(hits, osHits) {
-		example := findMismatchExample(hits, osHits)
-		slog.Error("ES/OpenSearch search mismatch",
-			"org_id", r.OrgID,
-			"group_id", r.GroupID,
-			"query", r.Query,
-			"es_total", total,
-			"os_total", osTotal,
-			"es_page_count", len(hits),
-			"os_page_count", len(osHits),
-			"example_contact", example,
-		)
+	// also search OpenSearch for a proportion of requests and compare results
+	if rt.Config.OSContactsSearchVerify > 0 && rand.Float64() < rt.Config.OSContactsSearchVerify {
+		_, osHits, osTotal, osErr := search.GetContactIDsForQueryPage(ctx, rt, oa, group, r.ExcludeIDs, r.Query, r.Sort, r.Offset, r.Limit, true)
+		if osErr != nil {
+			slog.Warn("error searching OpenSearch for comparison", "org_id", r.OrgID, "error", osErr)
+		} else if total != osTotal || !contactIDsEqual(hits, osHits) {
+			example := findMismatchExample(hits, osHits)
+			slog.Error("ES/OpenSearch search mismatch",
+				"org_id", r.OrgID,
+				"group_id", r.GroupID,
+				"query", r.Query,
+				"es_total", total,
+				"os_total", osTotal,
+				"es_page_count", len(hits),
+				"os_page_count", len(osHits),
+				"example_contact", example,
+			)
+		}
 	}
 
 	// normalize and inspect the query
