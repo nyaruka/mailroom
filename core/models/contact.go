@@ -393,7 +393,7 @@ const sqlSelectContactIDsPage = `SELECT id FROM contacts_contact WHERE org_id = 
 
 // GetContactIDsPage returns a page of contact IDs for the given org using cursor-based pagination.
 func GetContactIDsPage(ctx context.Context, db Queryer, orgID OrgID, afterID ContactID, limit int) ([]ContactID, error) {
-	return queryContactIDs(ctx, db, sqlSelectContactIDsPage, orgID, afterID, limit)
+	return queryContactIDs(ctx, db, sqlSelectContactIDsPage, orgID, int(afterID), limit)
 }
 
 type ContactURN struct {
