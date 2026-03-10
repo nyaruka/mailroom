@@ -151,7 +151,7 @@ func TestBroadcastsFromEvents(t *testing.T) {
 		testsuite.ReindexElastic(t, rt)
 
 		// handle our start task
-		event := events.NewBroadcastCreated(tc.translations, tc.baseLanguage, tc.groups, tc.contacts, "", tc.urns)
+		event := events.NewBroadcastCreated(tc.translations, tc.baseLanguage, tc.groups, tc.contacts, "", tc.urns, nil, nil)
 		bcast, err := models.NewBroadcastFromEvent(ctx, rt.DB, oa, event)
 		assert.NoError(t, err)
 
