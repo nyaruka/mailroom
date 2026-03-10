@@ -120,17 +120,22 @@ func (t *MsgReceived) perform(ctx context.Context, rt *runtime.Runtime, oa *mode
 		}
 	}
 
+	affinityURN := t.URN
+
 	// if we have a new URN spec, apply the URN change to the contact
 	if t.NewURN != nil {
 		if err := t.applyNewURN(ctx, rt, oa, contact, scene); err != nil {
 			return fmt.Errorf("error applying new URN: %w", err)
 		}
+		if t.NewURN.Action == "prepend" {
+			affinityURN = t.NewURN.Value
+		}
 	}
 
-	// if we have URNs make sure the message URN is our highest priority (this is usually a noop)
+	// if we have URNs make sure the message URN is our highest priority (this is usually a noop
 	if len(mc.URNs()) > 0 && channel != nil {
 		if ch := oa.SessionAssets().Channels().Get(channel.UUID()); ch != nil {
-			if err := scene.ApplyModifier(ctx, rt, oa, modifiers.NewAffinity(t.URN, ch), models.NilUserID, ""); err != nil {
+			if err := scene.ApplyModifier(ctx, rt, oa, modifiers.NewAffinity(affinityURN, ch), models.NilUserID, ""); err != nil {
 				return fmt.Errorf("error applying affinity modifier: %w", err)
 			}
 		}
