@@ -116,7 +116,18 @@ func NewBroadcastFromEvent(ctx context.Context, tx DBorTx, oa *OrgAssets, event 
 		}
 	}
 
-	return NewBroadcast(oa.OrgID(), event.Translations, event.BaseLanguage, false, NilOptInID, groupIDs, contactIDs, event.URNs, event.ContactQuery, NoExclusions, NilUserID), nil
+	// and our template
+	var templateID TemplateID
+	if event.Template != nil {
+		if t := oa.TemplateByUUID(event.Template.UUID); t != nil {
+			templateID = t.ID()
+		}
+	}
+
+	bcast := NewBroadcast(oa.OrgID(), event.Translations, event.BaseLanguage, false, NilOptInID, groupIDs, contactIDs, event.URNs, event.ContactQuery, NoExclusions, NilUserID)
+	bcast.TemplateID = templateID
+	bcast.TemplateVariables = event.TemplateVariables
+	return bcast, nil
 }
 
 // BroadcastBatch represents a batch of contacts that need messages sent for
