@@ -107,7 +107,8 @@ func (t *ProcessContactQueue) Perform(ctx context.Context, rt *runtime.Runtime, 
 
 			taskPayload.ErrorCount++
 			if taskPayload.ErrorCount < 3 {
-				retryErr := queueContact(ctx, rt, oa.OrgID(), t.ContactID, ctask, true, taskPayload.ErrorCount)
+				// use background context because ctx may have been cancelled by the task timeout
+			retryErr := queueContact(context.Background(), rt, oa.OrgID(), t.ContactID, ctask, true, taskPayload.ErrorCount)
 				if retryErr != nil {
 					log.Error("error requeuing errored contact event", "error", retryErr)
 				}
