@@ -164,6 +164,10 @@ func (t *MsgReceived) perform(ctx context.Context, rt *runtime.Runtime, oa *mode
 // applyNewURN applies a new URN to the contact based on the action specified in the task
 func (t *MsgReceived) applyNewURN(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contact *flows.Contact, scene *runner.Scene) error {
 	newURN := t.NewURN.Value
+	if newURN == urns.NilURN {
+		return fmt.Errorf("new_urn value is empty")
+	}
+
 	newIdentity := newURN.Identity()
 
 	// filter out any existing URN with the same identity as the new URN to avoid duplicates
@@ -196,7 +200,7 @@ func (t *MsgReceived) applyNewURN(ctx context.Context, rt *runtime.Runtime, oa *
 				urnList = append(urnList, u)
 			}
 		}
-		// if the task URN wasn't found (e.g. same identity as new URN, or already removed), prepend
+		// if the task URN wasn't found in the existing list (e.g. already removed), prepend
 		if !replaced {
 			urnList = append([]urns.URN{newURN}, urnList...)
 		}

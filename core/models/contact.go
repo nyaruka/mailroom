@@ -844,7 +844,7 @@ SELECT id, org_id, contact_id, identity, priority, scheme, path, display, auth_t
 const sqlInsertContactURN = `
 INSERT INTO contacts_contacturn( contact_id,  identity,  path,  display,  auth_tokens,  scheme,  priority,  channel_id,  org_id)
 				         VALUES(:contact_id, :identity, :path, :display, :auth_tokens, :scheme, :priority, :channel_id, :org_id)
-ON CONFLICT(identity, org_id) DO UPDATE SET contact_id = :contact_id, priority = :priority, channel_id = :channel_id WHERE contacts_contacturn.contact_id IS NULL`
+ON CONFLICT(identity, org_id) DO UPDATE SET contact_id = :contact_id, priority = :priority, channel_id = COALESCE(:channel_id, contacts_contacturn.channel_id) WHERE contacts_contacturn.contact_id IS NULL`
 
 // CreateOrClaimURN will either create a new URN or claim an existing orphaned one
 func CreateOrClaimURN(ctx context.Context, db DBorTx, oa *OrgAssets, contactID ContactID, u urns.URN) (*ContactURN, error) {
