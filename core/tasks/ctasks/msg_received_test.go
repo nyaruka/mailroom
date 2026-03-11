@@ -538,7 +538,9 @@ func TestMsgReceivedNewURN(t *testing.T) {
 		testdb.InsertContactURN(t, rt, testdb.Org1, testdb.Ann, "tel:+16055700001", 500, nil)
 
 		defer func() {
+			// cleanup: remove new URN and re-attach the original
 			rt.DB.MustExec(`DELETE FROM contacts_contacturn WHERE identity = 'tel:+16055700001' AND contact_id = $1`, testdb.Ann.ID)
+			rt.DB.MustExec(`UPDATE contacts_contacturn SET contact_id = $1, priority = 1000 WHERE identity = 'tel:+16055741111' AND contact_id IS NULL AND org_id = $2`, testdb.Ann.ID, testdb.Org1.ID)
 		}()
 
 		// replace task URN with one that already exists - should deduplicate and place it at task URN's position
