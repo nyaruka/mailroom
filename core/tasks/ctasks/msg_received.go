@@ -26,6 +26,12 @@ func init() {
 	RegisterType(TypeMsgReceived, func() Task { return &MsgReceived{} })
 }
 
+// NewURNSpec specifies a new URN to add or replace on the contact
+type NewURNSpec struct {
+	Value  urns.URN `json:"value"`
+	Action string   `json:"action"` // "prepend", "append", or "replace"
+}
+
 type MsgReceived struct {
 	MsgUUID       flows.EventUUID  `json:"msg_uuid"`
 	MsgExternalID string           `json:"msg_external_id"`
@@ -35,6 +41,7 @@ type MsgReceived struct {
 	Text          string           `json:"text"`
 	Attachments   []string         `json:"attachments,omitempty"`
 	NewContact    bool             `json:"new_contact"`
+	NewURN        *NewURNSpec      `json:"new_urn,omitempty"`
 }
 
 func (t *MsgReceived) Type() string {
@@ -113,10 +120,22 @@ func (t *MsgReceived) perform(ctx context.Context, rt *runtime.Runtime, oa *mode
 		}
 	}
 
+	affinityURN := t.URN
+
+	// if we have a new URN spec, apply the URN change to the contact
+	if t.NewURN != nil {
+		if err := t.applyNewURN(ctx, rt, oa, contact, scene); err != nil {
+			return fmt.Errorf("error applying new URN: %w", err)
+		}
+		if t.NewURN.Action == "prepend" || t.NewURN.Action == "replace" {
+			affinityURN = t.NewURN.Value
+		}
+	}
+
 	// if we have URNs make sure the message URN is our highest priority (this is usually a noop)
 	if len(mc.URNs()) > 0 && channel != nil {
 		if ch := oa.SessionAssets().Channels().Get(channel.UUID()); ch != nil {
-			if err := scene.ApplyModifier(ctx, rt, oa, modifiers.NewAffinity(t.URN, ch), models.NilUserID, ""); err != nil {
+			if err := scene.ApplyModifier(ctx, rt, oa, modifiers.NewAffinity(affinityURN, ch), models.NilUserID, ""); err != nil {
 				return fmt.Errorf("error applying affinity modifier: %w", err)
 			}
 		}
@@ -137,6 +156,61 @@ func (t *MsgReceived) perform(ctx context.Context, rt *runtime.Runtime, oa *mode
 
 	if err := scene.Commit(ctx, rt, oa); err != nil {
 		return fmt.Errorf("error committing scene: %w", err)
+	}
+
+	return nil
+}
+
+// applyNewURN applies a new URN to the contact based on the action specified in the task
+func (t *MsgReceived) applyNewURN(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contact *flows.Contact, scene *runner.Scene) error {
+	newURN := t.NewURN.Value
+	if newURN == urns.NilURN {
+		return fmt.Errorf("new_urn value is empty")
+	}
+
+	newIdentity := newURN.Identity()
+
+	// filter out any existing URN with the same identity as the new URN to avoid duplicates
+	existing := contact.URNs().Encode()
+	filtered := make([]urns.URN, 0, len(existing))
+	for _, u := range existing {
+		if u.Identity() != newIdentity {
+			filtered = append(filtered, u)
+		}
+	}
+
+	var urnList []urns.URN
+
+	switch t.NewURN.Action {
+	case "prepend":
+		urnList = append([]urns.URN{newURN}, filtered...)
+
+	case "append":
+		urnList = append(filtered, newURN)
+
+	case "replace":
+		// replace the task's message URN with the new URN, skipping any other occurrence of the new URN's identity
+		replaced := false
+		urnList = make([]urns.URN, 0, len(existing))
+		for _, u := range existing {
+			if u.Identity() == t.URN.Identity() {
+				urnList = append(urnList, newURN)
+				replaced = true
+			} else if u.Identity() != newIdentity {
+				urnList = append(urnList, u)
+			}
+		}
+		// if the task URN wasn't found in the existing list (e.g. already removed), prepend
+		if !replaced {
+			urnList = append([]urns.URN{newURN}, urnList...)
+		}
+
+	default:
+		return fmt.Errorf("unknown new_urn action: %s", t.NewURN.Action)
+	}
+
+	if err := scene.ApplyModifier(ctx, rt, oa, modifiers.NewURNs(urnList, modifiers.URNsSet), models.NilUserID, ""); err != nil {
+		return fmt.Errorf("error applying URNs modifier for %s: %w", t.NewURN.Action, err)
 	}
 
 	return nil
