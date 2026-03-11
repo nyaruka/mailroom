@@ -1,3 +1,9 @@
+v26.1.61 (2026-03-11)
+-------------------------
+ * Use background context for deferred PIT cleanup
+ * Fix requeuing of failed contact tasks
+ * Fix PIT leak on error and enforce limit in paginated contact search
+
 v26.1.60 (2026-03-11)
 -------------------------
  * Add metrics reporting for contact search duration by backend (ES/OS)
