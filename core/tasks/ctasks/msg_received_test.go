@@ -505,8 +505,8 @@ func TestMsgReceivedNewURN(t *testing.T) {
 	t.Run("replace", func(t *testing.T) {
 		defer func() {
 			// cleanup: remove new URN and re-attach the original
-			rt.DB.MustExec(`DELETE FROM contacts_contacturn WHERE identity = 'whatsapp:16055741111' AND org_id = $1`, testdb.Org1.ID)
-			rt.DB.MustExec(`UPDATE contacts_contacturn SET contact_id = $1, priority = 1000 WHERE identity = 'tel:+16055741111' AND org_id = $2`, testdb.Ann.ID, testdb.Org1.ID)
+			rt.DB.MustExec(`DELETE FROM contacts_contacturn WHERE identity = 'whatsapp:16055741111' AND contact_id = $1`, testdb.Ann.ID)
+			rt.DB.MustExec(`UPDATE contacts_contacturn SET contact_id = $1, priority = 1000 WHERE identity = 'tel:+16055741111' AND contact_id IS NULL AND org_id = $2`, testdb.Ann.ID, testdb.Org1.ID)
 		}()
 
 		performTask(t, testdb.Ann, testdb.TwilioChannel, &ctasks.NewURNSpec{
@@ -523,7 +523,7 @@ func TestMsgReceivedNewURN(t *testing.T) {
 		testdb.InsertContactURN(t, rt, testdb.Org1, testdb.Ann, "whatsapp:16055741111", 500, nil)
 
 		defer func() {
-			rt.DB.MustExec(`DELETE FROM contacts_contacturn WHERE identity = 'whatsapp:16055741111' AND org_id = $1`, testdb.Org1.ID)
+			rt.DB.MustExec(`DELETE FROM contacts_contacturn WHERE identity = 'whatsapp:16055741111' AND contact_id = $1`, testdb.Ann.ID)
 		}()
 
 		// replace task URN (tel) with whatsapp that already exists - should deduplicate and place it at tel's position
@@ -541,7 +541,7 @@ func TestMsgReceivedNewURN(t *testing.T) {
 		testdb.InsertContactURN(t, rt, testdb.Org1, testdb.Ann, "whatsapp:16055741111", 500, nil)
 
 		defer func() {
-			rt.DB.MustExec(`DELETE FROM contacts_contacturn WHERE identity = 'whatsapp:16055741111' AND org_id = $1`, testdb.Org1.ID)
+			rt.DB.MustExec(`DELETE FROM contacts_contacturn WHERE identity = 'whatsapp:16055741111' AND contact_id = $1`, testdb.Ann.ID)
 		}()
 
 		// replace task URN with itself (same identity) - should prepend to top
@@ -559,7 +559,7 @@ func TestMsgReceivedNewURN(t *testing.T) {
 		testdb.InsertContactURN(t, rt, testdb.Org1, testdb.Ann, "whatsapp:16055741111", 500, nil)
 
 		defer func() {
-			rt.DB.MustExec(`DELETE FROM contacts_contacturn WHERE identity = 'whatsapp:16055741111' AND org_id = $1`, testdb.Org1.ID)
+			rt.DB.MustExec(`DELETE FROM contacts_contacturn WHERE identity = 'whatsapp:16055741111' AND contact_id = $1`, testdb.Ann.ID)
 		}()
 
 		// prepend the URN that already exists - it should move to top without duplication
