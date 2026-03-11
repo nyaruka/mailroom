@@ -270,7 +270,9 @@ func getContactIDsForQueryES(ctx context.Context, rt *runtime.Runtime, oa *model
 		return nil, fmt.Errorf("error creating ES point-in-time: %w", err)
 	}
 	defer func() {
-		if _, err := rt.ES.ClosePointInTime().Id(pit.Id).Do(ctx); err != nil {
+		cctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if _, err := rt.ES.ClosePointInTime().Id(pit.Id).Do(cctx); err != nil {
 			slog.Error("error closing ES point-in-time", "error", err)
 		}
 	}()
@@ -350,7 +352,9 @@ func getContactIDsForQueryOS(ctx context.Context, rt *runtime.Runtime, oa *model
 		return nil, fmt.Errorf("error creating OS point-in-time: %w", err)
 	}
 	defer func() {
-		if _, err := rt.OS.Client.PointInTime.Delete(ctx, opensearchapi.PointInTimeDeleteReq{
+		cctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if _, err := rt.OS.Client.PointInTime.Delete(cctx, opensearchapi.PointInTimeDeleteReq{
 			PitID: []string{pit.PitID},
 		}); err != nil {
 			slog.Error("error closing OS point-in-time", "error", err)
