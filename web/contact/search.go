@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"math/rand"
 	"net/http"
+	"time"
 
 	"github.com/nyaruka/goflow/contactql"
 	"github.com/nyaruka/mailroom/core/models"
@@ -71,14 +72,19 @@ func handleSearch(ctx context.Context, rt *runtime.Runtime, r *searchRequest) (a
 	}
 
 	// perform our search against ES (source of truth)
+	esStart := time.Now()
 	parsed, hits, total, err := search.GetContactIDsForQueryPage(ctx, rt, oa, group, r.ExcludeIDs, r.Query, r.Sort, r.Offset, r.Limit, false)
 	if err != nil {
 		return nil, 0, fmt.Errorf("error searching page: %w", err)
 	}
+	rt.Stats.RecordContactSearch("es", time.Since(esStart))
 
 	// also search OpenSearch for a proportion of requests and compare results
 	if rt.Config.OSContactsSearchVerify > 0 && rand.Float64() < rt.Config.OSContactsSearchVerify {
+		osStart := time.Now()
 		_, osHits, osTotal, osErr := search.GetContactIDsForQueryPage(ctx, rt, oa, group, r.ExcludeIDs, r.Query, r.Sort, r.Offset, r.Limit, true)
+		rt.Stats.RecordContactSearch("os", time.Since(osStart))
+
 		if osErr != nil {
 			slog.Warn("error searching OpenSearch for comparison", "org_id", r.OrgID, "error", osErr)
 		} else if total != osTotal || !contactIDsEqual(hits, osHits) {
