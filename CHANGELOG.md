@@ -1,3 +1,9 @@
+v26.1.60 (2026-03-11)
+-------------------------
+ * Add metrics reporting for contact search duration by backend (ES/OS)
+ * Add config to control proportion of searches verified against OpenSearch
+ * Run contact search against both ES and OpenSearch, log mismatches
+
 v26.1.59 (2026-03-10)
 -------------------------
  * Update to latest goflow and gocommon
