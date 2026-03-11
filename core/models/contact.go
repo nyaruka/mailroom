@@ -842,9 +842,9 @@ SELECT id, org_id, contact_id, identity, priority, scheme, path, display, auth_t
  WHERE identity = $1 AND org_id = $2`
 
 const sqlInsertContactURN = `
-INSERT INTO contacts_contacturn( contact_id,  identity,  path,  display,  auth_tokens,  scheme,  priority,  org_id)
-				         VALUES(:contact_id, :identity, :path, :display, :auth_tokens, :scheme, :priority, :org_id)
-ON CONFLICT(identity, org_id) DO UPDATE SET contact_id = :contact_id, priority = :priority WHERE contacts_contacturn.contact_id IS NULL`
+INSERT INTO contacts_contacturn( contact_id,  identity,  path,  display,  auth_tokens,  scheme,  priority,  channel_id,  org_id)
+				         VALUES(:contact_id, :identity, :path, :display, :auth_tokens, :scheme, :priority, :channel_id, :org_id)
+ON CONFLICT(identity, org_id) DO UPDATE SET contact_id = :contact_id, priority = :priority, channel_id = :channel_id WHERE contacts_contacturn.contact_id IS NULL`
 
 // CreateOrClaimURN will either create a new URN or claim an existing orphaned one
 func CreateOrClaimURN(ctx context.Context, db DBorTx, oa *OrgAssets, contactID ContactID, u urns.URN) (*ContactURN, error) {
@@ -1078,6 +1078,7 @@ func UpdateContactURNs(ctx context.Context, rt *runtime.Runtime, db DBorTx, oa *
 					Path:      urn.Path(),
 					Display:   null.String(urn.Display()),
 					Priority:  priority,
+					ChannelID: channelID,
 				})
 			}
 

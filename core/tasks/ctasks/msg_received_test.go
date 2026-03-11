@@ -473,75 +473,93 @@ func TestMsgReceivedNewURN(t *testing.T) {
 		return urns
 	}
 
+	getURNChannelID := func(t *testing.T, contactID models.ContactID, identity string) models.ChannelID {
+		var channelID models.ChannelID
+		err := rt.DB.Get(&channelID, `SELECT COALESCE(channel_id, 0) FROM contacts_contacturn WHERE contact_id = $1 AND identity = $2`, contactID, identity)
+		require.NoError(t, err)
+		return channelID
+	}
+
 	t.Run("prepend", func(t *testing.T) {
 		defer func() {
-			// cleanup: remove the added URN
-			rt.DB.MustExec(`DELETE FROM contacts_contacturn WHERE identity = 'whatsapp:16055741111' AND contact_id = $1`, testdb.Ann.ID)
+			rt.DB.MustExec(`DELETE FROM contacts_contacturn WHERE identity = 'tel:+16055700001' AND contact_id = $1`, testdb.Ann.ID)
 		}()
 
 		performTask(t, testdb.Ann, testdb.TwilioChannel, &ctasks.NewURNSpec{
-			Value:  "whatsapp:16055741111",
+			Value:  "tel:+16055700001",
 			Action: "prepend",
 		})
 
 		urns := getContactURNs(t, testdb.Ann.ID)
-		assert.Equal(t, []string{"whatsapp:16055741111", "tel:+16055741111"}, urns, "new URN should be first (top priority)")
+		assert.Equal(t, []string{"tel:+16055700001", "tel:+16055741111"}, urns, "new URN should be first (top priority)")
+
+		// affinity should be applied to the prepended URN
+		assert.Equal(t, testdb.TwilioChannel.ID, getURNChannelID(t, testdb.Ann.ID, "tel:+16055700001"), "prepended URN should have channel affinity")
 	})
 
 	t.Run("append", func(t *testing.T) {
 		defer func() {
-			rt.DB.MustExec(`DELETE FROM contacts_contacturn WHERE identity = 'telegram:9876543' AND contact_id = $1`, testdb.Ann.ID)
+			rt.DB.MustExec(`DELETE FROM contacts_contacturn WHERE identity = 'tel:+16055700002' AND contact_id = $1`, testdb.Ann.ID)
 		}()
 
 		performTask(t, testdb.Ann, testdb.TwilioChannel, &ctasks.NewURNSpec{
-			Value:  "telegram:9876543",
+			Value:  "tel:+16055700002",
 			Action: "append",
 		})
 
 		urns := getContactURNs(t, testdb.Ann.ID)
-		assert.Equal(t, []string{"tel:+16055741111", "telegram:9876543"}, urns, "new URN should be last (lowest priority)")
+		assert.Equal(t, []string{"tel:+16055741111", "tel:+16055700002"}, urns, "new URN should be last (lowest priority)")
+
+		// affinity should remain on the task URN
+		assert.Equal(t, testdb.TwilioChannel.ID, getURNChannelID(t, testdb.Ann.ID, "tel:+16055741111"), "task URN should keep channel affinity")
 	})
 
 	t.Run("replace", func(t *testing.T) {
 		defer func() {
 			// cleanup: remove new URN and re-attach the original
-			rt.DB.MustExec(`DELETE FROM contacts_contacturn WHERE identity = 'whatsapp:16055741111' AND contact_id = $1`, testdb.Ann.ID)
+			rt.DB.MustExec(`DELETE FROM contacts_contacturn WHERE identity = 'tel:+16055700001' AND contact_id = $1`, testdb.Ann.ID)
 			rt.DB.MustExec(`UPDATE contacts_contacturn SET contact_id = $1, priority = 1000 WHERE identity = 'tel:+16055741111' AND contact_id IS NULL AND org_id = $2`, testdb.Ann.ID, testdb.Org1.ID)
 		}()
 
 		performTask(t, testdb.Ann, testdb.TwilioChannel, &ctasks.NewURNSpec{
-			Value:  "whatsapp:16055741111",
+			Value:  "tel:+16055700001",
 			Action: "replace",
 		})
 
 		urns := getContactURNs(t, testdb.Ann.ID)
-		assert.Equal(t, []string{"whatsapp:16055741111"}, urns, "task URN should be replaced with new URN")
+		assert.Equal(t, []string{"tel:+16055700001"}, urns, "task URN should be replaced with new URN")
+
+		// affinity should be applied to the new URN
+		assert.Equal(t, testdb.TwilioChannel.ID, getURNChannelID(t, testdb.Ann.ID, "tel:+16055700001"), "replaced URN should have channel affinity")
 	})
 
 	t.Run("replace dedup", func(t *testing.T) {
-		// give Ann a second URN (whatsapp) at lower priority
-		testdb.InsertContactURN(t, rt, testdb.Org1, testdb.Ann, "whatsapp:16055741111", 500, nil)
+		// give Ann a second URN at lower priority
+		testdb.InsertContactURN(t, rt, testdb.Org1, testdb.Ann, "tel:+16055700001", 500, nil)
 
 		defer func() {
-			rt.DB.MustExec(`DELETE FROM contacts_contacturn WHERE identity = 'whatsapp:16055741111' AND contact_id = $1`, testdb.Ann.ID)
+			rt.DB.MustExec(`DELETE FROM contacts_contacturn WHERE identity = 'tel:+16055700001' AND contact_id = $1`, testdb.Ann.ID)
 		}()
 
-		// replace task URN (tel) with whatsapp that already exists - should deduplicate and place it at tel's position
+		// replace task URN with one that already exists - should deduplicate and place it at task URN's position
 		performTask(t, testdb.Ann, testdb.TwilioChannel, &ctasks.NewURNSpec{
-			Value:  "whatsapp:16055741111",
+			Value:  "tel:+16055700001",
 			Action: "replace",
 		})
 
 		urns := getContactURNs(t, testdb.Ann.ID)
-		assert.Equal(t, []string{"whatsapp:16055741111"}, urns, "new URN should replace task URN, duplicate removed")
+		assert.Equal(t, []string{"tel:+16055700001"}, urns, "new URN should replace task URN, duplicate removed")
+
+		// affinity should be applied to the new URN
+		assert.Equal(t, testdb.TwilioChannel.ID, getURNChannelID(t, testdb.Ann.ID, "tel:+16055700001"), "deduped replaced URN should have channel affinity")
 	})
 
 	t.Run("replace same identity", func(t *testing.T) {
 		// give Ann a second URN so we can verify ordering
-		testdb.InsertContactURN(t, rt, testdb.Org1, testdb.Ann, "whatsapp:16055741111", 500, nil)
+		testdb.InsertContactURN(t, rt, testdb.Org1, testdb.Ann, "tel:+16055700001", 500, nil)
 
 		defer func() {
-			rt.DB.MustExec(`DELETE FROM contacts_contacturn WHERE identity = 'whatsapp:16055741111' AND contact_id = $1`, testdb.Ann.ID)
+			rt.DB.MustExec(`DELETE FROM contacts_contacturn WHERE identity = 'tel:+16055700001' AND contact_id = $1`, testdb.Ann.ID)
 		}()
 
 		// replace task URN with itself (same identity) - should prepend to top
@@ -551,25 +569,31 @@ func TestMsgReceivedNewURN(t *testing.T) {
 		})
 
 		urns := getContactURNs(t, testdb.Ann.ID)
-		assert.Equal(t, []string{"tel:+16055741111", "whatsapp:16055741111"}, urns, "replaced URN with same identity should be prepended to top")
+		assert.Equal(t, []string{"tel:+16055741111", "tel:+16055700001"}, urns, "replaced URN with same identity should be prepended to top")
+
+		// affinity should be applied to the task URN (same identity as new URN)
+		assert.Equal(t, testdb.TwilioChannel.ID, getURNChannelID(t, testdb.Ann.ID, "tel:+16055741111"), "same-identity replaced URN should have channel affinity")
 	})
 
 	t.Run("prepend dedup", func(t *testing.T) {
 		// add a second URN to Ann so she has two
-		testdb.InsertContactURN(t, rt, testdb.Org1, testdb.Ann, "whatsapp:16055741111", 500, nil)
+		testdb.InsertContactURN(t, rt, testdb.Org1, testdb.Ann, "tel:+16055700001", 500, nil)
 
 		defer func() {
-			rt.DB.MustExec(`DELETE FROM contacts_contacturn WHERE identity = 'whatsapp:16055741111' AND contact_id = $1`, testdb.Ann.ID)
+			rt.DB.MustExec(`DELETE FROM contacts_contacturn WHERE identity = 'tel:+16055700001' AND contact_id = $1`, testdb.Ann.ID)
 		}()
 
 		// prepend the URN that already exists - it should move to top without duplication
 		performTask(t, testdb.Ann, testdb.TwilioChannel, &ctasks.NewURNSpec{
-			Value:  "whatsapp:16055741111",
+			Value:  "tel:+16055700001",
 			Action: "prepend",
 		})
 
 		urns := getContactURNs(t, testdb.Ann.ID)
-		assert.Equal(t, []string{"whatsapp:16055741111", "tel:+16055741111"}, urns, "existing URN should move to top without duplicate")
+		assert.Equal(t, []string{"tel:+16055700001", "tel:+16055741111"}, urns, "existing URN should move to top without duplicate")
+
+		// affinity should be applied to the prepended URN
+		assert.Equal(t, testdb.TwilioChannel.ID, getURNChannelID(t, testdb.Ann.ID, "tel:+16055700001"), "prepended existing URN should have channel affinity")
 	})
 }
 
