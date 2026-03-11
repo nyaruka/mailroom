@@ -269,6 +269,13 @@ func getContactIDsForQueryES(ctx context.Context, rt *runtime.Runtime, oa *model
 	if err != nil {
 		return nil, fmt.Errorf("error creating ES point-in-time: %w", err)
 	}
+	defer func() {
+		cctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if _, err := rt.ES.ClosePointInTime().Id(pit.Id).Do(cctx); err != nil {
+			slog.Error("error closing ES point-in-time", "error", err)
+		}
+	}()
 
 	src := map[string]any{
 		"_source":          false,
@@ -291,12 +298,18 @@ func getContactIDsForQueryES(ctx context.Context, rt *runtime.Runtime, oa *model
 
 		ids = appendIDsFromESHits(ids, results.Hits.Hits)
 
+		if limit != -1 && len(ids) >= limit {
+			ids = ids[:limit]
+			break
+		}
+		if limit != -1 {
+			if remaining := limit - len(ids); remaining < 10_000 {
+				src["size"] = remaining
+			}
+		}
+
 		lastHit := results.Hits.Hits[len(results.Hits.Hits)-1]
 		src["search_after"] = lastHit.Sort
-	}
-
-	if _, err := rt.ES.ClosePointInTime().Id(pit.Id).Do(ctx); err != nil {
-		return nil, fmt.Errorf("error closing ES point-in-time: %w", err)
 	}
 
 	return ids, nil
@@ -338,6 +351,15 @@ func getContactIDsForQueryOS(ctx context.Context, rt *runtime.Runtime, oa *model
 	if err != nil {
 		return nil, fmt.Errorf("error creating OS point-in-time: %w", err)
 	}
+	defer func() {
+		cctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if _, err := rt.OS.Client.PointInTime.Delete(cctx, opensearchapi.PointInTimeDeleteReq{
+			PitID: []string{pit.PitID},
+		}); err != nil {
+			slog.Error("error closing OS point-in-time", "error", err)
+		}
+	}()
 
 	src := map[string]any{
 		"_source":          []string{"db_id"},
@@ -362,14 +384,18 @@ func getContactIDsForQueryOS(ctx context.Context, rt *runtime.Runtime, oa *model
 
 		ids = appendIDsFromOSHits(ids, resp.Hits.Hits)
 
+		if limit != -1 && len(ids) >= limit {
+			ids = ids[:limit]
+			break
+		}
+		if limit != -1 {
+			if remaining := limit - len(ids); remaining < 10_000 {
+				src["size"] = remaining
+			}
+		}
+
 		lastHit := resp.Hits.Hits[len(resp.Hits.Hits)-1]
 		src["search_after"] = lastHit.Sort
-	}
-
-	if _, err := rt.OS.Client.PointInTime.Delete(ctx, opensearchapi.PointInTimeDeleteReq{
-		PitID: []string{pit.PitID},
-	}); err != nil {
-		return nil, fmt.Errorf("error closing OS point-in-time: %w", err)
 	}
 
 	return ids, nil
