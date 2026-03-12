@@ -202,7 +202,7 @@ func GetContactIDsForQueryPage(ctx context.Context, rt *runtime.Runtime, oa *mod
 	return parsed, ids, results.Hits.Total.Value, nil
 }
 
-// GetContactIDsForQuery returns up to limit the contact ids that match the given query, sorted by id. Limit of -1 means return all.
+// GetContactIDsForQuery returns up to limit the contact ids that match the given query in no particular order. Limit of -1 means return all.
 func GetContactIDsForQuery(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, group *models.Group, status models.ContactStatus, query string, limit int, os bool) ([]models.ContactID, error) {
 	env := oa.Env()
 	var parsed *contactql.ContactQuery
@@ -232,7 +232,7 @@ func GetContactIDsForQuery(ctx context.Context, rt *runtime.Runtime, oa *models.
 
 func getContactIDsForQueryES(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, eq elastic.Query, limit int) ([]models.ContactID, error) {
 	index := rt.Config.ElasticContactsIndex
-	sort := elastic.SortBy("id", true)
+	sort := elastic.SortBy("_doc", true)
 	ids := make([]models.ContactID, 0, 100)
 
 	// if limit provided that can be done with single search, do that
@@ -307,7 +307,7 @@ func getContactIDsForQueryES(ctx context.Context, rt *runtime.Runtime, oa *model
 func getContactIDsForQueryOS(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, eq elastic.Query, limit int) ([]models.ContactID, error) {
 	index := rt.Config.OSContactsIndex
 	routing := oa.OrgID().String()
-	sort := elastic.SortBy("id", true)
+	sort := elastic.SortBy("_doc", true)
 	ids := make([]models.ContactID, 0, 100)
 
 	// if limit provided that can be done with single search, do that
