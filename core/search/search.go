@@ -202,7 +202,7 @@ func GetContactIDsForQueryPage(ctx context.Context, rt *runtime.Runtime, oa *mod
 	return parsed, ids, results.Hits.Total.Value, nil
 }
 
-// GetContactIDsForQuery returns up to limit the contact ids that match the given query, sorted by id. Limit of -1 means return all.
+// GetContactIDsForQuery returns up to limit the contact ids that match the given query in no particular order. Limit of -1 means return all.
 func GetContactIDsForQuery(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, group *models.Group, status models.ContactStatus, query string, limit int, os bool) ([]models.ContactID, error) {
 	env := oa.Env()
 	var parsed *contactql.ContactQuery
