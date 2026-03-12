@@ -25,7 +25,8 @@
         },
         "status": 200,
         "response": {
-            "deindexed": 2
+            "es_deindexed": 2,
+            "os_deindexed": 0
         }
     }
 ]
