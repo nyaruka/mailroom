@@ -1,3 +1,7 @@
+v26.1.63 (2026-03-12)
+-------------------------
+ * Use docvalue_fields instead of _source for OS contact search
+
 v26.1.62 (2026-03-12)
 -------------------------
  * Use filter context instead of must in contact search queries
