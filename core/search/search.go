@@ -3,7 +3,6 @@ package search
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"strconv"
@@ -71,23 +70,11 @@ func buildContactQuery(oa *models.OrgAssets, group *models.Group, status models.
 	bq := map[string]any{"filter": filter}
 
 	if len(excludeIDs) > 0 {
-		not := []elastic.Query{}
-		if os {
-			// OpenSearch uses db_id for the database contact ID
-			ids := make([]int64, len(excludeIDs))
-			for i := range excludeIDs {
-				ids[i] = int64(excludeIDs[i])
-			}
-			not = append(not, elastic.Query{"terms": map[string]any{"db_id": ids}})
-		} else {
-			// Elastic uses _id for the database contact ID
-			ids := make([]string, len(excludeIDs))
-			for i := range excludeIDs {
-				ids[i] = fmt.Sprintf("%d", excludeIDs[i])
-			}
-			not = append(not, elastic.Ids(ids...))
+		ids := make([]string, len(excludeIDs))
+		for i := range excludeIDs {
+			ids[i] = fmt.Sprintf("%d", excludeIDs[i])
 		}
-		bq["must_not"] = not
+		bq["must_not"] = []elastic.Query{elastic.Ids(ids...)}
 	}
 
 	return elastic.Query{"bool": bq}
@@ -165,11 +152,8 @@ func GetContactIDsForQueryPage(ctx context.Context, rt *runtime.Runtime, oa *mod
 	}
 
 	if os {
-		fieldSort = adaptSortForOS(fieldSort)
-
 		src := map[string]any{
 			"_source":          false,
-			"docvalue_fields":  []string{"db_id"},
 			"query":            eq,
 			"sort":             []any{fieldSort},
 			"from":             offset,
@@ -323,14 +307,13 @@ func getContactIDsForQueryES(ctx context.Context, rt *runtime.Runtime, oa *model
 func getContactIDsForQueryOS(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, eq elastic.Query, limit int) ([]models.ContactID, error) {
 	index := rt.Config.OSContactsIndex
 	routing := oa.OrgID().String()
-	sort := elastic.SortBy("db_id", true)
+	sort := elastic.SortBy("id", true)
 	ids := make([]models.ContactID, 0, 100)
 
 	// if limit provided that can be done with single search, do that
 	if limit >= 0 && limit <= 10_000 {
 		src := map[string]any{
 			"_source":          false,
-			"docvalue_fields":  []string{"db_id"},
 			"query":            eq,
 			"sort":             []any{sort},
 			"from":             0,
@@ -369,7 +352,6 @@ func getContactIDsForQueryOS(ctx context.Context, rt *runtime.Runtime, oa *model
 
 	src := map[string]any{
 		"_source":          false,
-		"docvalue_fields":  []string{"db_id"},
 		"query":            eq,
 		"sort":             []any{sort},
 		"pit":              map[string]any{"id": pit.PitID, "keep_alive": "1m"},
@@ -419,28 +401,13 @@ func appendIDsFromESHits(ids []models.ContactID, hits []types.Hit) []models.Cont
 	return ids
 }
 
-// appendIDsFromOSHits extracts contact IDs from OpenSearch hits using the db_id docvalue field
+// appendIDsFromOSHits extracts contact IDs from OpenSearch hits where _id is the database contact ID
 func appendIDsFromOSHits(ids []models.ContactID, hits []opensearchapi.SearchHit) []models.ContactID {
 	for _, hit := range hits {
-		var fields struct {
-			DBID []models.ContactID `json:"db_id"`
-		}
-		if err := json.Unmarshal(hit.Fields, &fields); err == nil && len(fields.DBID) > 0 {
-			ids = append(ids, fields.DBID[0])
+		id, err := strconv.Atoi(hit.ID)
+		if err == nil {
+			ids = append(ids, models.ContactID(id))
 		}
 	}
 	return ids
-}
-
-// adaptSortForOS replaces "id" with "db_id" in sort specs for OpenSearch
-func adaptSortForOS(s elastic.Sort) elastic.Sort {
-	adapted := make(elastic.Sort, len(s))
-	for k, v := range s {
-		if k == "id" {
-			adapted["db_id"] = v
-		} else {
-			adapted[k] = v
-		}
-	}
-	return adapted
 }
