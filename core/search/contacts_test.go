@@ -132,16 +132,17 @@ func TestDeindexContacts(t *testing.T) {
 	assertSearchCount(t, rt, elastic.Term("org_id", testdb.Org1.ID), 124)
 	assertSearchCount(t, rt, elastic.Term("org_id", testdb.Org2.ID), 121)
 
-	deindexed, err := search.DeindexContactsByID(ctx, rt, testdb.Org1.ID, []models.ContactID{testdb.Bob.ID, testdb.Cat.ID})
+	esDeindexed, osDeindexed, err := search.DeindexContactsByID(ctx, rt, testdb.Org1.ID, []models.ContactID{testdb.Bob.ID, testdb.Cat.ID})
 	assert.NoError(t, err)
-	assert.Equal(t, 2, deindexed)
+	assert.Equal(t, 2, esDeindexed)
+	assert.Equal(t, 0, osDeindexed)
 
 	refreshElastic()
 
 	assertSearchCount(t, rt, elastic.Term("org_id", testdb.Org1.ID), 122)
 	assertSearchCount(t, rt, elastic.Term("org_id", testdb.Org2.ID), 121)
 
-	deindexed, err = search.DeindexContactsByOrg(ctx, rt, testdb.Org1.ID, 100)
+	deindexed, err := search.DeindexContactsByOrg(ctx, rt, testdb.Org1.ID, 100)
 	assert.NoError(t, err)
 	assert.Equal(t, 100, deindexed)
 
