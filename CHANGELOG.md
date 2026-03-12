@@ -1,3 +1,8 @@
+v26.1.65 (2026-03-12)
+-------------------------
+ * Change some contact index fields to be keyword
+ * Deindex contacts from OpenSearch as well as Elastic
+
 v26.1.64 (2026-03-12)
 -------------------------
  * Rename db_id to id to match ES index
