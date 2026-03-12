@@ -1,3 +1,7 @@
+v26.1.62 (2026-03-12)
+-------------------------
+ * Use filter context instead of must in contact search queries
+
 v26.1.61 (2026-03-11)
 -------------------------
  * Use background context for deferred PIT cleanup
