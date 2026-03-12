@@ -42,7 +42,7 @@ type ContactDocURN struct {
 
 // ContactDoc represents a contact document in the OpenSearch contacts index. DBID is used as the document _id.
 type ContactDoc struct {
-	DBID           models.ContactID     `json:"db_id"` // also used as _id
+	DBID           models.ContactID     `json:"id"` // also used as _id
 	UUID           flows.ContactUUID    `json:"uuid"`
 	OrgID          models.OrgID         `json:"org_id"`
 	Name           string               `json:"name,omitempty"`

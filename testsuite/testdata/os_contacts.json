@@ -74,8 +74,8 @@
             "required": true
         },
         "properties": {
-            "db_id": {
-                "type": "integer"
+            "id": {
+                "type": "long"
             },
             "uuid": {
                 "type": "keyword"
