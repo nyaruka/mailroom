@@ -45,30 +45,33 @@ func BuildContactQuery(oa *models.OrgAssets, group *models.Group, status models.
 }
 
 func buildContactQuery(oa *models.OrgAssets, group *models.Group, status models.ContactStatus, excludeIDs []models.ContactID, query *contactql.ContactQuery, os bool) elastic.Query {
-	must := []elastic.Query{
+	// use filter context for all clauses since we never sort by relevance score, and filter clauses
+	// are cacheable and skip scoring
+	filter := []elastic.Query{
 		elastic.Term("org_id", oa.OrgID()),
 	}
 
 	// Elastic has is_active field, OpenSearch only indexes active contacts
 	if !os {
-		must = append(must, elastic.Term("is_active", true))
+		filter = append(filter, elastic.Term("is_active", true))
 	}
 
 	if group != nil {
-		must = append(must, elastic.Term("group_ids", group.ID()))
+		filter = append(filter, elastic.Term("group_ids", group.ID()))
 	}
 
 	if status != models.NilContactStatus {
-		must = append(must, elastic.Term("status", status))
+		filter = append(filter, elastic.Term("status", status))
 	}
 
 	if query != nil {
-		must = append(must, es.ToElasticQuery(oa.Env(), assetMapper, query))
+		filter = append(filter, es.ToElasticQuery(oa.Env(), assetMapper, query))
 	}
 
-	not := []elastic.Query{}
+	bq := map[string]any{"filter": filter}
 
 	if len(excludeIDs) > 0 {
+		not := []elastic.Query{}
 		if os {
 			// OpenSearch uses db_id for the database contact ID
 			ids := make([]int64, len(excludeIDs))
@@ -84,9 +87,10 @@ func buildContactQuery(oa *models.OrgAssets, group *models.Group, status models.
 			}
 			not = append(not, elastic.Ids(ids...))
 		}
+		bq["must_not"] = not
 	}
 
-	return elastic.Bool(must, not)
+	return elastic.Query{"bool": bq}
 }
 
 // GetContactTotal returns the total count of matching contacts for the given query
