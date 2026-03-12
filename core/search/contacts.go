@@ -40,10 +40,10 @@ type ContactDocURN struct {
 	Path   string `json:"path"`
 }
 
-// ContactDoc represents a contact document in the OpenSearch contacts index. UUID is used as the document _id.
+// ContactDoc represents a contact document in the OpenSearch contacts index. DBID is used as the document _id.
 type ContactDoc struct {
-	UUID           flows.ContactUUID    `json:"-"` // used as _id
-	DBID           models.ContactID     `json:"db_id"`
+	DBID           models.ContactID     `json:"db_id"` // also used as _id
+	UUID           flows.ContactUUID    `json:"uuid"`
 	OrgID          models.OrgID         `json:"org_id"`
 	Name           string               `json:"name,omitempty"`
 	Status         models.ContactStatus `json:"status"`
@@ -163,7 +163,7 @@ func IndexContacts(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsset
 
 		rt.OS.Writer.Queue(&osearch.Document{
 			Index:   rt.Config.OSContactsIndex,
-			ID:      string(doc.UUID),
+			ID:      doc.DBID.String(),
 			Routing: doc.OrgID.String(),
 			Version: dates.Now().UnixNano(),
 			Body:    body,
