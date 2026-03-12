@@ -45,7 +45,7 @@ func BuildContactQuery(oa *models.OrgAssets, group *models.Group, status models.
 }
 
 func buildContactQuery(oa *models.OrgAssets, group *models.Group, status models.ContactStatus, excludeIDs []models.ContactID, query *contactql.ContactQuery, os bool) elastic.Query {
-	// use filter context for all clauses since we sort by id, not relevance score, and filter clauses
+	// use filter context for all clauses since we never sort by relevance score, and filter clauses
 	// are cacheable and skip scoring
 	filter := []elastic.Query{
 		elastic.Term("org_id", oa.OrgID()),
