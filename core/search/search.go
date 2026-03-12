@@ -232,7 +232,7 @@ func GetContactIDsForQuery(ctx context.Context, rt *runtime.Runtime, oa *models.
 
 func getContactIDsForQueryES(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, eq elastic.Query, limit int) ([]models.ContactID, error) {
 	index := rt.Config.ElasticContactsIndex
-	sort := elastic.SortBy("id", true)
+	sort := elastic.SortBy("_doc", true)
 	ids := make([]models.ContactID, 0, 100)
 
 	// if limit provided that can be done with single search, do that
@@ -307,7 +307,7 @@ func getContactIDsForQueryES(ctx context.Context, rt *runtime.Runtime, oa *model
 func getContactIDsForQueryOS(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, eq elastic.Query, limit int) ([]models.ContactID, error) {
 	index := rt.Config.OSContactsIndex
 	routing := oa.OrgID().String()
-	sort := elastic.SortBy("id", true)
+	sort := elastic.SortBy("_doc", true)
 	ids := make([]models.ContactID, 0, 100)
 
 	// if limit provided that can be done with single search, do that
