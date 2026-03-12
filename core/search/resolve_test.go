@@ -1,6 +1,7 @@
 package search_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/nyaruka/gocommon/urns"
@@ -87,6 +88,50 @@ func TestResolveRecipients(t *testing.T) {
 			},
 			limit:       -1,
 			expectedIDs: []models.ContactID{30002},
+		},
+		{ // 8 simple uuid query resolved directly from DB
+			recipients: &search.Recipients{
+				Query: fmt.Sprintf(`uuid = "%s"`, testdb.Ann.UUID),
+			},
+			limit:       -1,
+			expectedIDs: []models.ContactID{testdb.Ann.ID},
+		},
+		{ // 9 simple id query resolved directly from DB
+			recipients: &search.Recipients{
+				Query: fmt.Sprintf(`id = %d`, testdb.Bob.ID),
+			},
+			limit:       -1,
+			expectedIDs: []models.ContactID{testdb.Bob.ID},
+		},
+		{ // 10 simple uuid query for non-existent contact
+			recipients: &search.Recipients{
+				Query: `uuid = "00000000-0000-0000-0000-000000000000"`,
+			},
+			limit:       -1,
+			expectedIDs: []models.ContactID{},
+		},
+		{ // 11 simple id query for non-existent contact
+			recipients: &search.Recipients{
+				Query: `id = 999999`,
+			},
+			limit:       -1,
+			expectedIDs: []models.ContactID{},
+		},
+		{ // 12 simple query with exclusions falls through to ES
+			recipients: &search.Recipients{
+				Query:      fmt.Sprintf(`uuid = "%s"`, testdb.Ann.UUID),
+				Exclusions: models.Exclusions{InAFlow: true},
+			},
+			limit:       -1,
+			expectedIDs: []models.ContactID{testdb.Ann.ID},
+		},
+		{ // 13 simple query with additional contacts falls through to ES
+			recipients: &search.Recipients{
+				ContactIDs: []models.ContactID{testdb.Bob.ID},
+				Query:      fmt.Sprintf(`uuid = "%s"`, testdb.Ann.UUID),
+			},
+			limit:       -1,
+			expectedIDs: []models.ContactID{testdb.Bob.ID, testdb.Ann.ID},
 		},
 	}
 
