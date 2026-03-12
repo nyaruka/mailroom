@@ -168,7 +168,8 @@ func GetContactIDsForQueryPage(ctx context.Context, rt *runtime.Runtime, oa *mod
 		fieldSort = adaptSortForOS(fieldSort)
 
 		src := map[string]any{
-			"_source":          []string{"db_id"},
+			"_source":          false,
+			"docvalue_fields":  []string{"db_id"},
 			"query":            eq,
 			"sort":             []any{fieldSort},
 			"from":             offset,
@@ -328,7 +329,8 @@ func getContactIDsForQueryOS(ctx context.Context, rt *runtime.Runtime, oa *model
 	// if limit provided that can be done with single search, do that
 	if limit >= 0 && limit <= 10_000 {
 		src := map[string]any{
-			"_source":          []string{"db_id"},
+			"_source":          false,
+			"docvalue_fields":  []string{"db_id"},
 			"query":            eq,
 			"sort":             []any{sort},
 			"from":             0,
@@ -366,7 +368,8 @@ func getContactIDsForQueryOS(ctx context.Context, rt *runtime.Runtime, oa *model
 	}()
 
 	src := map[string]any{
-		"_source":          []string{"db_id"},
+		"_source":          false,
+		"docvalue_fields":  []string{"db_id"},
 		"query":            eq,
 		"sort":             []any{sort},
 		"pit":              map[string]any{"id": pit.PitID, "keep_alive": "1m"},
@@ -416,14 +419,14 @@ func appendIDsFromESHits(ids []models.ContactID, hits []types.Hit) []models.Cont
 	return ids
 }
 
-// appendIDsFromOSHits extracts contact IDs from OpenSearch hits using the db_id source field
+// appendIDsFromOSHits extracts contact IDs from OpenSearch hits using the db_id docvalue field
 func appendIDsFromOSHits(ids []models.ContactID, hits []opensearchapi.SearchHit) []models.ContactID {
 	for _, hit := range hits {
-		var doc struct {
-			DBID models.ContactID `json:"db_id"`
+		var fields struct {
+			DBID []models.ContactID `json:"db_id"`
 		}
-		if err := json.Unmarshal(hit.Source, &doc); err == nil && doc.DBID != models.NilContactID {
-			ids = append(ids, doc.DBID)
+		if err := json.Unmarshal(hit.Fields, &fields); err == nil && len(fields.DBID) > 0 {
+			ids = append(ids, fields.DBID[0])
 		}
 	}
 	return ids
