@@ -340,7 +340,7 @@ func LoadContacts(ctx context.Context, db Queryer, oa *OrgAssets, ids []ContactI
 
 // LoadContactsByUUID loads a set of contacts for the passed in UUIDs
 func LoadContactsByUUID(ctx context.Context, db Queryer, oa *OrgAssets, uuids []flows.ContactUUID) ([]*Contact, error) {
-	ids, err := getContactIDsFromUUIDs(ctx, db, oa.OrgID(), uuids)
+	ids, err := GetContactIDsFromUUIDs(ctx, db, oa.OrgID(), uuids)
 	if err != nil {
 		return nil, err
 	}
@@ -357,11 +357,11 @@ func GetContactIDsFromReferences(ctx context.Context, db Queryer, orgID OrgID, r
 		uuids[i] = refs[i].UUID
 	}
 
-	return getContactIDsFromUUIDs(ctx, db, orgID, uuids)
+	return GetContactIDsFromUUIDs(ctx, db, orgID, uuids)
 }
 
-// gets the contact IDs for the passed in org and set of UUIDs
-func getContactIDsFromUUIDs(ctx context.Context, db Queryer, orgID OrgID, uuids []flows.ContactUUID) ([]ContactID, error) {
+// GetContactIDsFromUUIDs gets the contact IDs for the passed in org and set of UUIDs
+func GetContactIDsFromUUIDs(ctx context.Context, db Queryer, orgID OrgID, uuids []flows.ContactUUID) ([]ContactID, error) {
 	if len(uuids) == 0 {
 		return nil, nil
 	}
@@ -371,6 +371,19 @@ func getContactIDsFromUUIDs(ctx context.Context, db Queryer, orgID OrgID, uuids 
 		return nil, fmt.Errorf("error selecting contact ids by UUID: %w", err)
 	}
 	return ids, nil
+}
+
+// GetContactIDsByDBID gets the contact IDs for the passed in org and set of database IDs, filtering to only active contacts
+func GetContactIDsByDBID(ctx context.Context, db Queryer, orgID OrgID, ids []ContactID) ([]ContactID, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+
+	result, err := queryContactIDs(ctx, db, `SELECT id FROM contacts_contact WHERE org_id = $1 AND id = ANY($2) AND is_active = TRUE`, orgID, pq.Array(ids))
+	if err != nil {
+		return nil, fmt.Errorf("error selecting contact ids by database ID: %w", err)
+	}
+	return result, nil
 }
 
 // utility to query contact IDs
