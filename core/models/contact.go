@@ -896,6 +896,75 @@ func CreateOrClaimURN(ctx context.Context, db DBorTx, oa *OrgAssets, contactID C
 	return urn, nil
 }
 
+// ClaimURN claims the given URN for the given contact, stealing it from any other contact if necessary.
+// Returns the ID of the previous owner if the URN was stolen, or NilContactID.
+func ClaimURN(ctx context.Context, db DBorTx, oa *OrgAssets, contactID ContactID, u urns.URN) (ContactID, error) {
+	// look for an existing URN with this identity
+	var existingID URNID
+	var existingContactID ContactID
+
+	rows, err := db.QueryContext(ctx, `SELECT id, COALESCE(contact_id, 0) FROM contacts_contacturn WHERE identity = $1 AND org_id = $2`, u.Identity(), oa.OrgID())
+	if err != nil {
+		return NilContactID, fmt.Errorf("error looking up URN: %w", err)
+	}
+	defer rows.Close()
+
+	found := rows.Next()
+	if found {
+		if err := rows.Scan(&existingID, &existingContactID); err != nil {
+			return NilContactID, fmt.Errorf("error scanning URN: %w", err)
+		}
+	}
+	rows.Close()
+
+	if !found {
+		// URN doesn't exist, create it
+		urn := &ContactURN{
+			OrgID:     oa.OrgID(),
+			ContactID: contactID,
+			Scheme:    u.Scheme(),
+			Identity:  u.Identity(),
+			Path:      u.Path(),
+			Display:   null.String(u.Display()),
+			Priority:  defaultURNPriority,
+		}
+		if _, err := db.NamedExecContext(ctx, sqlInsertContactURN, urn); err != nil {
+			return NilContactID, fmt.Errorf("error inserting new urn: %s: %w", u, err)
+		}
+		return NilContactID, nil
+	}
+
+	// already owned by this contact
+	if existingContactID == contactID {
+		return NilContactID, nil
+	}
+
+	oldOwnerID := existingContactID
+
+	// reassign to this contact (works for both orphaned and stealing)
+	_, err = db.ExecContext(ctx,
+		`UPDATE contacts_contacturn SET contact_id = $1 WHERE id = $2`,
+		contactID, existingID,
+	)
+	if err != nil {
+		return NilContactID, fmt.Errorf("error claiming urn: %w", err)
+	}
+
+	return oldOwnerID, nil
+}
+
+// DetachContactURN detaches a specific URN from a contact by setting contact_id to NULL.
+func DetachContactURN(ctx context.Context, db DBorTx, orgID OrgID, contactID ContactID, urnIdentity urns.URN) error {
+	_, err := db.ExecContext(ctx,
+		`UPDATE contacts_contacturn SET contact_id = NULL WHERE contact_id = $1 AND identity = $2 AND org_id = $3`,
+		contactID, urnIdentity, orgID,
+	)
+	if err != nil {
+		return fmt.Errorf("error detaching urn: %w", err)
+	}
+	return nil
+}
+
 // CalculateDynamicGroups recalculates all the dynamic groups for the passed in contact, recalculating
 // campaigns as necessary based on those group changes.
 func CalculateDynamicGroups(ctx context.Context, db DBorTx, oa *OrgAssets, contacts []*flows.Contact) error {
