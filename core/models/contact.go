@@ -919,10 +919,10 @@ func ClaimURN(ctx context.Context, db DBorTx, oa *OrgAssets, contactID ContactID
 }
 
 // DetachContactURN detaches a specific URN from a contact by setting contact_id to NULL.
-func DetachContactURN(ctx context.Context, db DBorTx, orgID OrgID, contactID ContactID, urnIdentity urns.URN) error {
+func DetachContactURN(ctx context.Context, db DBorTx, orgID OrgID, contactID ContactID, identity urns.URN) error {
 	_, err := db.ExecContext(ctx,
 		`UPDATE contacts_contacturn SET contact_id = NULL WHERE contact_id = $1 AND identity = $2 AND org_id = $3`,
-		contactID, urnIdentity, orgID,
+		contactID, identity, orgID,
 	)
 	if err != nil {
 		return fmt.Errorf("error detaching urn: %w", err)
