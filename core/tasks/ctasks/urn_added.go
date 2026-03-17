@@ -33,22 +33,20 @@ func (t *URNAdded) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.
 		return nil
 	}
 
-	oldOwnerID, err := models.ClaimURN(ctx, rt.DB, oa, mc.ID(), urn)
+	claimed, err := models.ClaimURN(ctx, rt.DB, oa, mc.ID(), urn)
 	if err != nil {
 		return fmt.Errorf("error claiming urn: %w", err)
 	}
 
-	// update modified_on for affected contacts
-	contactIDs := []models.ContactID{mc.ID()}
-	if oldOwnerID != models.NilContactID {
-		contactIDs = append(contactIDs, oldOwnerID)
+	if !claimed {
+		return nil // URN belongs to another contact, nothing to do
 	}
 
-	if err := models.UpdateContactModifiedOn(ctx, rt.DB, contactIDs); err != nil {
+	if err := models.UpdateContactModifiedOn(ctx, rt.DB, []models.ContactID{mc.ID()}); err != nil {
 		return fmt.Errorf("error updating modified_on: %w", err)
 	}
 
-	if err := reindexContacts(ctx, rt, oa, contactIDs); err != nil {
+	if err := reindexContacts(ctx, rt, oa, []models.ContactID{mc.ID()}); err != nil {
 		return fmt.Errorf("error reindexing contacts: %w", err)
 	}
 

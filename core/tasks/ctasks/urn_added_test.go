@@ -44,7 +44,7 @@ func TestURNAdded(t *testing.T) {
 
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contacturn WHERE contact_id = $1`, testdb.Ann.ID).Returns(2)
 
-	// steal a URN from a different contact - use a new URN assigned to a new contact to avoid modifying base data
+	// try to add a URN that belongs to another contact - should be a no-op
 	testContact := testdb.InsertContact(t, rt, testdb.Org1, "01999999-0000-0000-0000-000000000001", "Zed", "", "A")
 	testdb.InsertContactURN(t, rt, testdb.Org1, testContact, urns.URN("tel:+16055740001"), 100, nil)
 
@@ -57,8 +57,9 @@ func TestURNAdded(t *testing.T) {
 	err = tasks.Perform(ctx, rt, task)
 	require.NoError(t, err)
 
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contacturn WHERE identity = $1 AND contact_id = $2`, "tel:+16055740001", testdb.Ann.ID).Returns(1)
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contacturn WHERE identity = $1 AND contact_id = $2`, "tel:+16055740001", testContact.ID).Returns(0)
+	// URN should still belong to the other contact
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contacturn WHERE identity = $1 AND contact_id = $2`, "tel:+16055740001", testContact.ID).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contacturn WHERE identity = $1 AND contact_id = $2`, "tel:+16055740001", testdb.Ann.ID).Returns(0)
 
 	// claim an orphaned URN
 	testdb.InsertContactURN(t, rt, testdb.Org1, nil, urns.URN("tel:+16055740000"), 0, nil)

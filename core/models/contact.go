@@ -896,61 +896,26 @@ func CreateOrClaimURN(ctx context.Context, db DBorTx, oa *OrgAssets, contactID C
 	return urn, nil
 }
 
-// ClaimURN claims the given URN for the given contact, stealing it from any other contact if necessary.
-// Returns the ID of the previous owner if the URN was stolen, or NilContactID.
-func ClaimURN(ctx context.Context, db DBorTx, oa *OrgAssets, contactID ContactID, u urns.URN) (ContactID, error) {
-	// look for an existing URN with this identity
-	var existingID URNID
-	var existingContactID ContactID
+// ClaimURN creates the given URN for the given contact, or claims it if it exists but is orphaned.
+// Returns true if the URN was created or claimed, false if it already belongs to another contact.
+func ClaimURN(ctx context.Context, db DBorTx, oa *OrgAssets, contactID ContactID, u urns.URN) (bool, error) {
+	urn := &ContactURN{
+		OrgID:     oa.OrgID(),
+		ContactID: contactID,
+		Scheme:    u.Scheme(),
+		Identity:  u.Identity(),
+		Path:      u.Path(),
+		Display:   null.String(u.Display()),
+		Priority:  defaultURNPriority,
+	}
 
-	rows, err := db.QueryContext(ctx, `SELECT id, COALESCE(contact_id, 0) FROM contacts_contacturn WHERE identity = $1 AND org_id = $2`, u.Identity(), oa.OrgID())
+	res, err := db.NamedExecContext(ctx, sqlInsertContactURN, urn)
 	if err != nil {
-		return NilContactID, fmt.Errorf("error looking up URN: %w", err)
-	}
-	defer rows.Close()
-
-	found := rows.Next()
-	if found {
-		if err := rows.Scan(&existingID, &existingContactID); err != nil {
-			return NilContactID, fmt.Errorf("error scanning URN: %w", err)
-		}
-	}
-	rows.Close()
-
-	if !found {
-		// URN doesn't exist, create it
-		urn := &ContactURN{
-			OrgID:     oa.OrgID(),
-			ContactID: contactID,
-			Scheme:    u.Scheme(),
-			Identity:  u.Identity(),
-			Path:      u.Path(),
-			Display:   null.String(u.Display()),
-			Priority:  defaultURNPriority,
-		}
-		if _, err := db.NamedExecContext(ctx, sqlInsertContactURN, urn); err != nil {
-			return NilContactID, fmt.Errorf("error inserting new urn: %s: %w", u, err)
-		}
-		return NilContactID, nil
+		return false, fmt.Errorf("error claiming urn: %s: %w", u, err)
 	}
 
-	// already owned by this contact
-	if existingContactID == contactID {
-		return NilContactID, nil
-	}
-
-	oldOwnerID := existingContactID
-
-	// reassign to this contact (works for both orphaned and stealing)
-	_, err = db.ExecContext(ctx,
-		`UPDATE contacts_contacturn SET contact_id = $1 WHERE id = $2`,
-		contactID, existingID,
-	)
-	if err != nil {
-		return NilContactID, fmt.Errorf("error claiming urn: %w", err)
-	}
-
-	return oldOwnerID, nil
+	rows, _ := res.RowsAffected()
+	return rows > 0, nil
 }
 
 // DetachContactURN detaches a specific URN from a contact by setting contact_id to NULL.
