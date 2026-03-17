@@ -26,6 +26,7 @@ func TestURNAdded(t *testing.T) {
 
 	task, err := rt.Queues.Realtime.Pop(ctx, vc)
 	require.NoError(t, err)
+	require.NotNil(t, task)
 	err = tasks.Perform(ctx, rt, task)
 	require.NoError(t, err)
 
@@ -37,24 +38,27 @@ func TestURNAdded(t *testing.T) {
 
 	task, err = rt.Queues.Realtime.Pop(ctx, vc)
 	require.NoError(t, err)
+	require.NotNil(t, task)
 	err = tasks.Perform(ctx, rt, task)
 	require.NoError(t, err)
 
-	// Ann should still have only her original URN and the new one
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contacturn WHERE contact_id = $1`, testdb.Ann.ID).Returns(2)
 
-	// steal a URN from Bob
-	err = tasks.QueueContact(ctx, rt, testdb.Org1.ID, testdb.Ann.ID, &ctasks.URNAdded{URN: "tel:+16055742222"})
+	// steal a URN from a different contact - use a new URN assigned to a new contact to avoid modifying base data
+	testContact := testdb.InsertContact(t, rt, testdb.Org1, "01999999-0000-0000-0000-000000000001", "Zed", "", "A")
+	testdb.InsertContactURN(t, rt, testdb.Org1, testContact, urns.URN("tel:+16055740001"), 100, nil)
+
+	err = tasks.QueueContact(ctx, rt, testdb.Org1.ID, testdb.Ann.ID, &ctasks.URNAdded{URN: "tel:+16055740001"})
 	require.NoError(t, err)
 
 	task, err = rt.Queues.Realtime.Pop(ctx, vc)
 	require.NoError(t, err)
+	require.NotNil(t, task)
 	err = tasks.Perform(ctx, rt, task)
 	require.NoError(t, err)
 
-	// Bob's URN should now belong to Ann
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contacturn WHERE identity = $1 AND contact_id = $2`, "tel:+16055742222", testdb.Ann.ID).Returns(1)
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contacturn WHERE identity = $1 AND contact_id = $2`, "tel:+16055742222", testdb.Bob.ID).Returns(0)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contacturn WHERE identity = $1 AND contact_id = $2`, "tel:+16055740001", testdb.Ann.ID).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contacturn WHERE identity = $1 AND contact_id = $2`, "tel:+16055740001", testContact.ID).Returns(0)
 
 	// claim an orphaned URN
 	testdb.InsertContactURN(t, rt, testdb.Org1, nil, urns.URN("tel:+16055740000"), 0, nil)
@@ -63,6 +67,7 @@ func TestURNAdded(t *testing.T) {
 
 	task, err = rt.Queues.Realtime.Pop(ctx, vc)
 	require.NoError(t, err)
+	require.NotNil(t, task)
 	err = tasks.Perform(ctx, rt, task)
 	require.NoError(t, err)
 

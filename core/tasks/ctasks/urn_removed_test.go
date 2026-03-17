@@ -29,6 +29,7 @@ func TestURNRemoved(t *testing.T) {
 
 	task, err := rt.Queues.Realtime.Pop(ctx, vc)
 	require.NoError(t, err)
+	require.NotNil(t, task)
 	err = tasks.Perform(ctx, rt, task)
 	require.NoError(t, err)
 
@@ -42,6 +43,7 @@ func TestURNRemoved(t *testing.T) {
 
 	task, err = rt.Queues.Realtime.Pop(ctx, vc)
 	require.NoError(t, err)
+	require.NotNil(t, task)
 	err = tasks.Perform(ctx, rt, task)
 	require.NoError(t, err)
 
@@ -54,6 +56,7 @@ func TestURNRemoved(t *testing.T) {
 
 	task, err = rt.Queues.Realtime.Pop(ctx, vc)
 	require.NoError(t, err)
+	require.NotNil(t, task)
 	err = tasks.Perform(ctx, rt, task)
 	require.NoError(t, err)
 
