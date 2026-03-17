@@ -1,3 +1,13 @@
+v26.1.65 (2026-03-12)
+-------------------------
+ * Change some contact index fields to be keyword
+ * Deindex contacts from OpenSearch as well as Elastic
+
+v26.1.64 (2026-03-12)
+-------------------------
+ * Rename db_id to id to match ES index
+ * Use database ID as _id in OpenSearch contacts index
+
 v26.1.63 (2026-03-12)
 -------------------------
  * Use docvalue_fields instead of _source for OS contact search

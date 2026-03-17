@@ -17,6 +17,7 @@ import (
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/runtime"
+	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	"github.com/shopspring/decimal"
 )
 
@@ -173,27 +174,46 @@ func IndexContacts(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsset
 	return nil
 }
 
-// DeindexContactsByID de-indexes the contacts with the given IDs from Elastic
-func DeindexContactsByID(ctx context.Context, rt *runtime.Runtime, orgID models.OrgID, contactIDs []models.ContactID) (int, error) {
+// DeindexContactsByID de-indexes the contacts with the given IDs from Elastic and OpenSearch
+func DeindexContactsByID(ctx context.Context, rt *runtime.Runtime, orgID models.OrgID, contactIDs []models.ContactID) (int, int, error) {
 	cmds := &bytes.Buffer{}
 	for _, id := range contactIDs {
 		cmds.Write(jsonx.MustMarshal(map[string]any{"delete": map[string]any{"_id": id.String()}}))
 		cmds.WriteString("\n")
 	}
+	body := cmds.Bytes()
 
-	resp, err := rt.ES.Bulk().Index(rt.Config.ElasticContactsIndex).Routing(orgID.String()).Raw(bytes.NewReader(cmds.Bytes())).Do(ctx)
+	resp, err := rt.ES.Client.Bulk().Index(rt.Config.ElasticContactsIndex).Routing(orgID.String()).Raw(bytes.NewReader(body)).Do(ctx)
 	if err != nil {
-		return 0, fmt.Errorf("error deindexing deleted contacts from elastic: %w", err)
+		return 0, 0, fmt.Errorf("error deindexing deleted contacts from elastic: %w", err)
 	}
 
-	deleted := 0
+	esDeleted := 0
 	for _, r := range resp.Items {
 		if r[operationtype.Delete].Status == 200 {
-			deleted++
+			esDeleted++
 		}
 	}
 
-	return deleted, nil
+	osResp, err := rt.OS.Client.Bulk(ctx, opensearchapi.BulkReq{
+		Index: rt.Config.OSContactsIndex,
+		Body:  bytes.NewReader(body),
+		Params: opensearchapi.BulkParams{
+			Routing: orgID.String(),
+		},
+	})
+	if err != nil {
+		return 0, 0, fmt.Errorf("error deindexing deleted contacts from opensearch: %w", err)
+	}
+
+	osDeleted := 0
+	for _, item := range osResp.Items {
+		if d, ok := item["delete"]; ok && d.Status == 200 {
+			osDeleted++
+		}
+	}
+
+	return esDeleted, osDeleted, nil
 }
 
 // DeindexContactsByOrg de-indexes all contacts in the given org from Elastic
@@ -203,7 +223,7 @@ func DeindexContactsByOrg(ctx context.Context, rt *runtime.Runtime, orgID models
 		"max_docs": limit,
 	}
 
-	resp, err := rt.ES.DeleteByQuery(rt.Config.ElasticContactsIndex).Routing(orgID.String()).Raw(bytes.NewReader(jsonx.MustMarshal(src))).Do(ctx)
+	resp, err := rt.ES.Client.DeleteByQuery(rt.Config.ElasticContactsIndex).Routing(orgID.String()).Raw(bytes.NewReader(jsonx.MustMarshal(src))).Do(ctx)
 	if err != nil {
 		return 0, fmt.Errorf("error deindexing contacts in org #%d from elastic: %w", orgID, err)
 	}

@@ -141,7 +141,7 @@ func ReindexElastic(t *testing.T, rt *runtime.Runtime) {
 	_, err := contactsIndexer.Index(&ixruntime.Runtime{DB: rt.DB.DB}, false, false)
 	require.NoError(t, err)
 
-	_, err = rt.ES.Indices.Refresh().Index(elasticContactsIndex).Do(t.Context())
+	_, err = rt.ES.Client.Indices.Refresh().Index(elasticContactsIndex).Do(t.Context())
 	require.NoError(t, err)
 }
 
@@ -226,17 +226,17 @@ func createBucket(t *testing.T, rt *runtime.Runtime, bucket string) {
 func resetElastic(t *testing.T, rt *runtime.Runtime) {
 	t.Helper()
 
-	exists, err := rt.ES.Indices.ExistsAlias(elasticContactsIndex).Do(t.Context())
+	exists, err := rt.ES.Client.Indices.ExistsAlias(elasticContactsIndex).Do(t.Context())
 	require.NoError(t, err)
 
 	if exists {
 		// get any indexes for the contacts alias
-		ar, err := rt.ES.Indices.GetAlias().Name(elasticContactsIndex).Do(t.Context())
+		ar, err := rt.ES.Client.Indices.GetAlias().Name(elasticContactsIndex).Do(t.Context())
 		require.NoError(t, err)
 
 		// and delete them
 		for index := range ar {
-			_, err := rt.ES.Indices.Delete(index).Do(t.Context())
+			_, err := rt.ES.Client.Indices.Delete(index).Do(t.Context())
 			require.NoError(t, err)
 		}
 	}

@@ -24,12 +24,12 @@ func init() {
 //	}
 type deindexRequest struct {
 	OrgID        models.OrgID        `json:"org_id"        validate:"required"`
-	ContactUUIDs []flows.ContactUUID `json:"contact_uuids" validate:"required"`
-	ContactIDs   []models.ContactID  `json:"contact_ids"   validate:"required"` // still needed for Elastic
+	ContactIDs   []models.ContactID  `json:"contact_ids"   validate:"required"`
+	ContactUUIDs []flows.ContactUUID `json:"contact_uuids" validate:"required"` // needed for message de-indexing
 }
 
 func handleDeindex(ctx context.Context, rt *runtime.Runtime, r *deindexRequest) (any, int, error) {
-	deindexed, err := search.DeindexContactsByID(ctx, rt, r.OrgID, r.ContactIDs)
+	esDeleted, osDeleted, err := search.DeindexContactsByID(ctx, rt, r.OrgID, r.ContactIDs)
 	if err != nil {
 		return nil, 0, fmt.Errorf("error de-indexing contacts in org #%d: %w", r.OrgID, err)
 	}
@@ -38,5 +38,5 @@ func handleDeindex(ctx context.Context, rt *runtime.Runtime, r *deindexRequest) 
 		return nil, 0, fmt.Errorf("error de-indexing messages in org #%d: %w", r.OrgID, err)
 	}
 
-	return map[string]any{"deindexed": deindexed}, http.StatusOK, nil
+	return map[string]any{"es_deindexed": esDeleted, "os_deindexed": osDeleted}, http.StatusOK, nil
 }
