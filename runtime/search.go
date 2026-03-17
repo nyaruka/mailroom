@@ -18,14 +18,7 @@ type Elastic struct {
 }
 
 func newElastic(cfg *Config) (*Elastic, error) {
-	esCfg := elasticsearch.Config{Addresses: []string{cfg.Elastic}, Username: cfg.ElasticUsername, Password: cfg.ElasticPassword}
-
-	typedClient, err := elasticsearch.NewTypedClient(esCfg)
-	if err != nil {
-		return nil, fmt.Errorf("error creating Elasticsearch typed client: %w", err)
-	}
-
-	client, err := elasticsearch.NewClient(esCfg)
+	client, err := elastic.NewClient(cfg.Elastic, cfg.ElasticUsername, cfg.ElasticPassword)
 	if err != nil {
 		return nil, fmt.Errorf("error creating Elasticsearch client: %w", err)
 	}
@@ -33,7 +26,7 @@ func newElastic(cfg *Config) (*Elastic, error) {
 	spool := elastic.NewSpool(client, filepath.Join(cfg.SpoolDir, "elastic"), 30*time.Second)
 
 	return &Elastic{
-		Client: typedClient,
+		Client: client,
 		Writer: elastic.NewWriter(client, 500, 250*time.Millisecond, 1000, spool),
 		Spool:  spool,
 	}, nil
