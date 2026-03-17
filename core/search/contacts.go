@@ -183,7 +183,7 @@ func DeindexContactsByID(ctx context.Context, rt *runtime.Runtime, orgID models.
 	}
 	body := cmds.Bytes()
 
-	resp, err := rt.ES.Bulk().Index(rt.Config.ElasticContactsIndex).Routing(orgID.String()).Raw(bytes.NewReader(body)).Do(ctx)
+	resp, err := rt.ES.Client.Bulk().Index(rt.Config.ElasticContactsIndex).Routing(orgID.String()).Raw(bytes.NewReader(body)).Do(ctx)
 	if err != nil {
 		return 0, 0, fmt.Errorf("error deindexing deleted contacts from elastic: %w", err)
 	}
@@ -223,7 +223,7 @@ func DeindexContactsByOrg(ctx context.Context, rt *runtime.Runtime, orgID models
 		"max_docs": limit,
 	}
 
-	resp, err := rt.ES.DeleteByQuery(rt.Config.ElasticContactsIndex).Routing(orgID.String()).Raw(bytes.NewReader(jsonx.MustMarshal(src))).Do(ctx)
+	resp, err := rt.ES.Client.DeleteByQuery(rt.Config.ElasticContactsIndex).Routing(orgID.String()).Raw(bytes.NewReader(jsonx.MustMarshal(src))).Do(ctx)
 	if err != nil {
 		return 0, fmt.Errorf("error deindexing contacts in org #%d from elastic: %w", orgID, err)
 	}
