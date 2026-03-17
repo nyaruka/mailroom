@@ -18,7 +18,7 @@ func TestURNRemoved(t *testing.T) {
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	defer testsuite.Reset(t, rt, testsuite.ResetData)
+	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetValkey)
 
 	// give Ann a second URN so she has two
 	testdb.InsertContactURN(t, rt, testdb.Org1, testdb.Ann, urns.URN("tel:+16055749999"), 50, nil)
