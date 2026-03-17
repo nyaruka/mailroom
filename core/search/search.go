@@ -37,14 +37,14 @@ func BuildElasticQuery(oa *models.OrgAssets, group *models.Group, status models.
 	return buildContactQuery(oa, group, status, excludeIDs, query, false)
 }
 
-// BuildContactQuery turns the passed in contact ql query into a query for the given index. If useV2
+// BuildContactQuery turns the passed in contact ql query into a query for the given index. If v2
 // is true, it targets the v2 index (which only contains active contacts, so no is_active filter is
 // needed). If false, it targets the legacy rp-indexer index (which requires an is_active filter).
-func BuildContactQuery(oa *models.OrgAssets, group *models.Group, status models.ContactStatus, excludeIDs []models.ContactID, query *contactql.ContactQuery, useV2 bool) elastic.Query {
-	return buildContactQuery(oa, group, status, excludeIDs, query, useV2)
+func BuildContactQuery(oa *models.OrgAssets, group *models.Group, status models.ContactStatus, excludeIDs []models.ContactID, query *contactql.ContactQuery, v2 bool) elastic.Query {
+	return buildContactQuery(oa, group, status, excludeIDs, query, v2)
 }
 
-func buildContactQuery(oa *models.OrgAssets, group *models.Group, status models.ContactStatus, excludeIDs []models.ContactID, query *contactql.ContactQuery, useV2 bool) elastic.Query {
+func buildContactQuery(oa *models.OrgAssets, group *models.Group, status models.ContactStatus, excludeIDs []models.ContactID, query *contactql.ContactQuery, v2 bool) elastic.Query {
 	// use filter context for all clauses since we never sort by relevance score, and filter clauses
 	// are cacheable and skip scoring
 	filter := []elastic.Query{
@@ -52,7 +52,7 @@ func buildContactQuery(oa *models.OrgAssets, group *models.Group, status models.
 	}
 
 	// rp-indexer index has is_active field, v2 index only indexes active contacts
-	if !useV2 {
+	if !v2 {
 		filter = append(filter, elastic.Term("is_active", true))
 	}
 
@@ -82,7 +82,7 @@ func buildContactQuery(oa *models.OrgAssets, group *models.Group, status models.
 }
 
 // GetContactTotal returns the total count of matching contacts for the given query
-func GetContactTotal(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, group *models.Group, query string, useV2 bool) (*contactql.ContactQuery, int64, error) {
+func GetContactTotal(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, group *models.Group, query string, v2 bool) (*contactql.ContactQuery, int64, error) {
 	env := oa.Env()
 	var parsed *contactql.ContactQuery
 	var err error
@@ -101,11 +101,11 @@ func GetContactTotal(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAss
 		group = nil
 	}
 
-	eq := buildContactQuery(oa, group, status, nil, parsed, useV2)
+	eq := buildContactQuery(oa, group, status, nil, parsed, v2)
 	src := map[string]any{"query": eq}
 
 	index := rt.Config.ElasticContactsIndex
-	if useV2 {
+	if v2 {
 		index = rt.Config.ElasticContactsIndexV2
 	}
 
@@ -118,7 +118,7 @@ func GetContactTotal(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAss
 }
 
 // GetContactIDsForQueryPage returns a page of contact ids for the given query and sort
-func GetContactIDsForQueryPage(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, group *models.Group, excludeIDs []models.ContactID, query string, sort string, offset int, pageSize int, useV2 bool) (*contactql.ContactQuery, []models.ContactID, int64, error) {
+func GetContactIDsForQueryPage(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, group *models.Group, excludeIDs []models.ContactID, query string, sort string, offset int, pageSize int, v2 bool) (*contactql.ContactQuery, []models.ContactID, int64, error) {
 	env := oa.Env()
 	start := time.Now()
 	var parsed *contactql.ContactQuery
@@ -138,7 +138,7 @@ func GetContactIDsForQueryPage(ctx context.Context, rt *runtime.Runtime, oa *mod
 		group = nil
 	}
 
-	eq := buildContactQuery(oa, group, status, excludeIDs, parsed, useV2)
+	eq := buildContactQuery(oa, group, status, excludeIDs, parsed, v2)
 
 	fieldSort, err := es.ToElasticSort(sort, oa.SessionAssets())
 	if err != nil {
@@ -146,7 +146,7 @@ func GetContactIDsForQueryPage(ctx context.Context, rt *runtime.Runtime, oa *mod
 	}
 
 	index := rt.Config.ElasticContactsIndex
-	if useV2 {
+	if v2 {
 		index = rt.Config.ElasticContactsIndexV2
 	}
 
@@ -173,7 +173,7 @@ func GetContactIDsForQueryPage(ctx context.Context, rt *runtime.Runtime, oa *mod
 }
 
 // GetContactIDsForQuery returns up to limit the contact ids that match the given query, sorted by id. Limit of -1 means return all.
-func GetContactIDsForQuery(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, group *models.Group, status models.ContactStatus, query string, limit int, useV2 bool) ([]models.ContactID, error) {
+func GetContactIDsForQuery(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, group *models.Group, status models.ContactStatus, query string, limit int, v2 bool) ([]models.ContactID, error) {
 	env := oa.Env()
 	var parsed *contactql.ContactQuery
 	var err error
@@ -192,10 +192,10 @@ func GetContactIDsForQuery(ctx context.Context, rt *runtime.Runtime, oa *models.
 		group = nil
 	}
 
-	eq := buildContactQuery(oa, group, status, nil, parsed, useV2)
+	eq := buildContactQuery(oa, group, status, nil, parsed, v2)
 
 	index := rt.Config.ElasticContactsIndex
-	if useV2 {
+	if v2 {
 		index = rt.Config.ElasticContactsIndexV2
 	}
 
