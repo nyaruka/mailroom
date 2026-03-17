@@ -115,7 +115,7 @@ func GetContactTotal(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAss
 		return parsed, int64(resp.Count), nil
 	}
 
-	count, err := rt.ES.Count().Index(rt.Config.ElasticContactsIndex).Routing(oa.OrgID().String()).Raw(bytes.NewReader(jsonx.MustMarshal(src))).Do(ctx)
+	count, err := rt.ES.Client.Count().Index(rt.Config.ElasticContactsIndex).Routing(oa.OrgID().String()).Raw(bytes.NewReader(jsonx.MustMarshal(src))).Do(ctx)
 	if err != nil {
 		return nil, 0, fmt.Errorf("error performing count: %w", err)
 	}
@@ -189,7 +189,7 @@ func GetContactIDsForQueryPage(ctx context.Context, rt *runtime.Runtime, oa *mod
 		"track_total_hits": true,
 	}
 
-	results, err := rt.ES.Search().Index(index).Routing(oa.OrgID().String()).Raw(bytes.NewReader(jsonx.MustMarshal(src))).Do(ctx)
+	results, err := rt.ES.Client.Search().Index(index).Routing(oa.OrgID().String()).Raw(bytes.NewReader(jsonx.MustMarshal(src))).Do(ctx)
 	if err != nil {
 		return nil, nil, 0, fmt.Errorf("error performing query: %w", err)
 	}
@@ -246,7 +246,7 @@ func getContactIDsForQueryES(ctx context.Context, rt *runtime.Runtime, oa *model
 			"track_total_hits": false,
 		}
 
-		results, err := rt.ES.Search().Index(index).Routing(oa.OrgID().String()).Raw(bytes.NewReader(jsonx.MustMarshal(src))).Do(ctx)
+		results, err := rt.ES.Client.Search().Index(index).Routing(oa.OrgID().String()).Raw(bytes.NewReader(jsonx.MustMarshal(src))).Do(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("error searching ES index: %w", err)
 		}
@@ -254,14 +254,14 @@ func getContactIDsForQueryES(ctx context.Context, rt *runtime.Runtime, oa *model
 	}
 
 	// for larger limits we need to take a point in time and iterate through multiple search requests using search_after
-	pit, err := rt.ES.OpenPointInTime(index).Routing(oa.OrgID().String()).KeepAlive("1m").Do(ctx)
+	pit, err := rt.ES.Client.OpenPointInTime(index).Routing(oa.OrgID().String()).KeepAlive("1m").Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("error creating ES point-in-time: %w", err)
 	}
 	defer func() {
 		cctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		if _, err := rt.ES.ClosePointInTime().Id(pit.Id).Do(cctx); err != nil {
+		if _, err := rt.ES.Client.ClosePointInTime().Id(pit.Id).Do(cctx); err != nil {
 			slog.Error("error closing ES point-in-time", "error", err)
 		}
 	}()
@@ -276,7 +276,7 @@ func getContactIDsForQueryES(ctx context.Context, rt *runtime.Runtime, oa *model
 	}
 
 	for {
-		results, err := rt.ES.Search().Raw(bytes.NewReader(jsonx.MustMarshal(src))).Do(ctx)
+		results, err := rt.ES.Client.Search().Raw(bytes.NewReader(jsonx.MustMarshal(src))).Do(ctx)
 		if err != nil {
 			return nil, fmt.Errorf("error searching ES index: %w", err)
 		}
