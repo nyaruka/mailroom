@@ -258,6 +258,37 @@ type SearchAssertion struct {
 	Contacts []models.ContactID `json:"contacts"`
 }
 
+// IndexOrgContacts indexes all active contacts for the given org into the v2 Elastic contacts index
+// and refreshes the index so they're immediately searchable.
+func IndexOrgContacts(t *testing.T, rt *runtime.Runtime, org *testdb.Org) {
+	t.Helper()
+
+	ctx := t.Context()
+	oa, err := models.GetOrgAssets(ctx, rt, org.ID)
+	require.NoError(t, err)
+
+	contactIDs, err := models.GetContactIDsPage(ctx, rt.DB, org.ID, models.NilContactID, 10_000)
+	require.NoError(t, err)
+
+	contacts, err := models.LoadContacts(ctx, rt.DB, oa, contactIDs)
+	require.NoError(t, err)
+
+	fcs := make([]*flows.Contact, 0, len(contacts))
+	for _, mc := range contacts {
+		fc, err := mc.EngineContact(oa)
+		require.NoError(t, err)
+		fcs = append(fcs, fc)
+	}
+
+	err = search.IndexContacts(ctx, rt, oa, fcs, map[models.ContactID]models.FlowID{})
+	require.NoError(t, err)
+
+	rt.ES.Writer.Flush()
+
+	_, err = rt.ES.Client.Indices.Refresh().Index(rt.Config.ElasticContactsIndexV2).Do(ctx)
+	require.NoError(t, err)
+}
+
 // ClearESContactsIndexV2 removes all documents from the v2 Elastic contacts index.
 func ClearESContactsIndexV2(t *testing.T, rt *runtime.Runtime) {
 	t.Helper()
