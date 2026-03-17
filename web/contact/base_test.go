@@ -8,6 +8,7 @@ import (
 	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/envs"
+	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/runner/clocks"
 	_ "github.com/nyaruka/mailroom/core/runner/handlers"
@@ -31,9 +32,24 @@ func TestCreate(t *testing.T) {
 }
 
 func TestDeindex(t *testing.T) {
-	_, rt := testsuite.Runtime(t)
+	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, rt, testsuite.ResetElastic|testsuite.ResetOpenSearch)
+
+	// index Bob and Cat into the v2 contacts index
+	oa := testdb.Org1.Load(t, rt)
+	mcs, err := models.LoadContacts(ctx, rt.DB, oa, []models.ContactID{testdb.Bob.ID, testdb.Cat.ID})
+	require.NoError(t, err)
+	fcs := make([]*flows.Contact, len(mcs))
+	for i, mc := range mcs {
+		fcs[i], err = mc.EngineContact(oa)
+		require.NoError(t, err)
+	}
+	err = search.IndexContacts(ctx, rt, oa, fcs, map[models.ContactID]models.FlowID{})
+	require.NoError(t, err)
+	rt.ES.Writer.Flush()
+	_, err = rt.ES.Client.Indices.Refresh().Index(rt.Config.ElasticContactsIndexV2).Do(ctx)
+	require.NoError(t, err)
 
 	// index some test messages into OpenSearch for Bob (10001) and Cat (10002)
 	testsuite.IndexMessages(t, rt, []search.MessageDoc{

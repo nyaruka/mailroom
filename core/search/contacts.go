@@ -180,7 +180,7 @@ func DeindexContactsByID(ctx context.Context, rt *runtime.Runtime, orgID models.
 		cmds.WriteString("\n")
 	}
 
-	resp, err := rt.ES.Client.Bulk().Index(rt.Config.ElasticContactsIndex).Routing(orgID.String()).Raw(bytes.NewReader(cmds.Bytes())).Do(ctx)
+	resp, err := rt.ES.Client.Bulk().Index(rt.Config.ElasticContactsIndexV2).Routing(orgID.String()).Raw(bytes.NewReader(cmds.Bytes())).Do(ctx)
 	if err != nil {
 		return 0, fmt.Errorf("error deindexing deleted contacts from elastic: %w", err)
 	}
