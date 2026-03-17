@@ -16,7 +16,6 @@ import (
 	"github.com/nyaruka/goflow/contactql/es"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/runtime"
-	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 )
 
 // AssetMapper maps resolved assets in queries to how we identify them in ES which in the case
@@ -50,7 +49,7 @@ func buildContactQuery(oa *models.OrgAssets, group *models.Group, status models.
 		elastic.Term("org_id", oa.OrgID()),
 	}
 
-	// Elastic has is_active field, OpenSearch only indexes active contacts
+	// rp-indexer index has is_active field, v2 index only indexes active contacts
 	if !os {
 		filter = append(filter, elastic.Term("is_active", true))
 	}
@@ -103,19 +102,12 @@ func GetContactTotal(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAss
 	eq := buildContactQuery(oa, group, status, nil, parsed, os)
 	src := map[string]any{"query": eq}
 
+	index := rt.Config.ElasticContactsIndex
 	if os {
-		resp, err := rt.OS.Client.Indices.Count(ctx, &opensearchapi.IndicesCountReq{
-			Indices: []string{rt.Config.OSContactsIndex},
-			Body:    bytes.NewReader(jsonx.MustMarshal(src)),
-			Params:  opensearchapi.IndicesCountParams{Routing: []string{oa.OrgID().String()}},
-		})
-		if err != nil {
-			return nil, 0, fmt.Errorf("error performing count: %w", err)
-		}
-		return parsed, int64(resp.Count), nil
+		index = rt.Config.ElasticContactsIndexV2
 	}
 
-	count, err := rt.ES.Client.Count().Index(rt.Config.ElasticContactsIndex).Routing(oa.OrgID().String()).Raw(bytes.NewReader(jsonx.MustMarshal(src))).Do(ctx)
+	count, err := rt.ES.Client.Count().Index(index).Routing(oa.OrgID().String()).Raw(bytes.NewReader(jsonx.MustMarshal(src))).Do(ctx)
 	if err != nil {
 		return nil, 0, fmt.Errorf("error performing count: %w", err)
 	}
@@ -151,35 +143,11 @@ func GetContactIDsForQueryPage(ctx context.Context, rt *runtime.Runtime, oa *mod
 		return nil, nil, 0, fmt.Errorf("error parsing sort: %w", err)
 	}
 
+	index := rt.Config.ElasticContactsIndex
 	if os {
-		src := map[string]any{
-			"_source":          false,
-			"query":            eq,
-			"sort":             []any{fieldSort},
-			"from":             offset,
-			"size":             pageSize,
-			"track_total_hits": true,
-		}
-
-		routing := oa.OrgID().String()
-		resp, err := rt.OS.Client.Search(ctx, &opensearchapi.SearchReq{
-			Indices: []string{rt.Config.OSContactsIndex},
-			Body:    bytes.NewReader(jsonx.MustMarshal(src)),
-			Params:  opensearchapi.SearchParams{Routing: []string{routing}},
-		})
-		if err != nil {
-			return nil, nil, 0, fmt.Errorf("error performing query: %w", err)
-		}
-
-		ids := make([]models.ContactID, 0, pageSize)
-		ids = appendIDsFromOSHits(ids, resp.Hits.Hits)
-
-		slog.Debug("paged contact query complete", "org_id", oa.OrgID(), "query", query, "elapsed", time.Since(start), "page_count", len(ids), "total_count", resp.Hits.Total.Value)
-
-		return parsed, ids, int64(resp.Hits.Total.Value), nil
+		index = rt.Config.ElasticContactsIndexV2
 	}
 
-	index := rt.Config.ElasticContactsIndex
 	src := map[string]any{
 		"_source":          false,
 		"query":            eq,
@@ -224,14 +192,15 @@ func GetContactIDsForQuery(ctx context.Context, rt *runtime.Runtime, oa *models.
 
 	eq := buildContactQuery(oa, group, status, nil, parsed, os)
 
+	index := rt.Config.ElasticContactsIndex
 	if os {
-		return getContactIDsForQueryOS(ctx, rt, oa, eq, limit)
+		index = rt.Config.ElasticContactsIndexV2
 	}
-	return getContactIDsForQueryES(ctx, rt, oa, eq, limit)
+
+	return getContactIDsForQuery(ctx, rt, oa, index, eq, limit)
 }
 
-func getContactIDsForQueryES(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, eq elastic.Query, limit int) ([]models.ContactID, error) {
-	index := rt.Config.ElasticContactsIndex
+func getContactIDsForQuery(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, index string, eq elastic.Query, limit int) ([]models.ContactID, error) {
 	sort := elastic.SortBy("id", true)
 	ids := make([]models.ContactID, 0, 100)
 
@@ -304,107 +273,10 @@ func getContactIDsForQueryES(ctx context.Context, rt *runtime.Runtime, oa *model
 	return ids, nil
 }
 
-func getContactIDsForQueryOS(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, eq elastic.Query, limit int) ([]models.ContactID, error) {
-	index := rt.Config.OSContactsIndex
-	routing := oa.OrgID().String()
-	sort := elastic.SortBy("id", true)
-	ids := make([]models.ContactID, 0, 100)
-
-	// if limit provided that can be done with single search, do that
-	if limit >= 0 && limit <= 10_000 {
-		src := map[string]any{
-			"_source":          false,
-			"query":            eq,
-			"sort":             []any{sort},
-			"from":             0,
-			"size":             limit,
-			"track_total_hits": false,
-		}
-
-		resp, err := rt.OS.Client.Search(ctx, &opensearchapi.SearchReq{
-			Indices: []string{index},
-			Body:    bytes.NewReader(jsonx.MustMarshal(src)),
-			Params:  opensearchapi.SearchParams{Routing: []string{routing}},
-		})
-		if err != nil {
-			return nil, fmt.Errorf("error searching OS index: %w", err)
-		}
-		return appendIDsFromOSHits(ids, resp.Hits.Hits), nil
-	}
-
-	// for larger limits we need to take a point in time and iterate through multiple search requests using search_after
-	pit, err := rt.OS.Client.PointInTime.Create(ctx, opensearchapi.PointInTimeCreateReq{
-		Indices: []string{index},
-		Params:  opensearchapi.PointInTimeCreateParams{KeepAlive: time.Minute, Routing: routing},
-	})
-	if err != nil {
-		return nil, fmt.Errorf("error creating OS point-in-time: %w", err)
-	}
-	defer func() {
-		cctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		if _, err := rt.OS.Client.PointInTime.Delete(cctx, opensearchapi.PointInTimeDeleteReq{
-			PitID: []string{pit.PitID},
-		}); err != nil {
-			slog.Error("error closing OS point-in-time", "error", err)
-		}
-	}()
-
-	src := map[string]any{
-		"_source":          false,
-		"query":            eq,
-		"sort":             []any{sort},
-		"pit":              map[string]any{"id": pit.PitID, "keep_alive": "1m"},
-		"size":             10_000,
-		"track_total_hits": false,
-	}
-
-	for {
-		resp, err := rt.OS.Client.Search(ctx, &opensearchapi.SearchReq{
-			Body: bytes.NewReader(jsonx.MustMarshal(src)),
-		})
-		if err != nil {
-			return nil, fmt.Errorf("error searching OS index: %w", err)
-		}
-
-		if len(resp.Hits.Hits) == 0 {
-			break
-		}
-
-		ids = appendIDsFromOSHits(ids, resp.Hits.Hits)
-
-		if limit != -1 && len(ids) >= limit {
-			ids = ids[:limit]
-			break
-		}
-		if limit != -1 {
-			if remaining := limit - len(ids); remaining < 10_000 {
-				src["size"] = remaining
-			}
-		}
-
-		lastHit := resp.Hits.Hits[len(resp.Hits.Hits)-1]
-		src["search_after"] = lastHit.Sort
-	}
-
-	return ids, nil
-}
-
 // appendIDsFromESHits extracts contact IDs from Elasticsearch hits where _id is the database contact ID
 func appendIDsFromESHits(ids []models.ContactID, hits []types.Hit) []models.ContactID {
 	for _, hit := range hits {
 		id, err := strconv.Atoi(*hit.Id_)
-		if err == nil {
-			ids = append(ids, models.ContactID(id))
-		}
-	}
-	return ids
-}
-
-// appendIDsFromOSHits extracts contact IDs from OpenSearch hits where _id is the database contact ID
-func appendIDsFromOSHits(ids []models.ContactID, hits []opensearchapi.SearchHit) []models.ContactID {
-	for _, hit := range hits {
-		id, err := strconv.Atoi(hit.ID)
 		if err == nil {
 			ids = append(ids, models.ContactID(id))
 		}

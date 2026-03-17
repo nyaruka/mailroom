@@ -25,9 +25,9 @@ func TestStats(t *testing.T) {
 	sc.RecordLLMCall("openai", "gpt-4", 7*time.Second)
 	sc.RecordLLMCall("openai", "gpt-4", 3*time.Second)
 	sc.RecordLLMCall("anthropic", "claude-3.7", 4*time.Second)
-	sc.RecordContactSearch("es", 100*time.Millisecond)
-	sc.RecordContactSearch("es", 200*time.Millisecond)
-	sc.RecordContactSearch("os", 150*time.Millisecond)
+	sc.RecordContactSearch(100 * time.Millisecond)
+	sc.RecordContactSearch(200 * time.Millisecond)
+	sc.RecordContactSearch(150 * time.Millisecond)
 
 	stats := sc.Extract()
 	assert.Equal(t, 2, stats.CronTaskCount["make_foos"])
@@ -36,16 +36,14 @@ func TestStats(t *testing.T) {
 	assert.Equal(t, 10*time.Second, stats.LLMCallDuration[runtime.LLMTypeAndModel{Type: "openai", Model: "gpt-4"}])
 	assert.Equal(t, 1, stats.LLMCallCount[runtime.LLMTypeAndModel{Type: "anthropic", Model: "claude-3.7"}])
 	assert.Equal(t, 4*time.Second, stats.LLMCallDuration[runtime.LLMTypeAndModel{Type: "anthropic", Model: "claude-3.7"}])
-	assert.Equal(t, 2, stats.ESContactSearchCount)
-	assert.Equal(t, 300*time.Millisecond, stats.ESContactSearchDuration)
-	assert.Equal(t, 1, stats.OSContactSearchCount)
-	assert.Equal(t, 150*time.Millisecond, stats.OSContactSearchDuration)
+	assert.Equal(t, 3, stats.ContactSearchCount)
+	assert.Equal(t, 450*time.Millisecond, stats.ContactSearchDuration)
 
 	datums := stats.ToMetrics(true)
-	assert.Len(t, datums, 13)
+	assert.Len(t, datums, 11)
 
 	datums = stats.ToMetrics(false)
-	assert.Len(t, datums, 10)
+	assert.Len(t, datums, 8)
 
 	// no latencies recorded yet
 	latencies, err := runtime.GetCTaskLatencies(rt.VK)

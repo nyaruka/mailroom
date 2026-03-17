@@ -16,7 +16,7 @@ func init() {
 	web.InternalRoute(http.MethodPost, "/contact/deindex", web.JSONPayload(handleDeindex))
 }
 
-// Requests de-indexing of the given contacts from Elastic and OpenSearch indexes.
+// Requests de-indexing of the given contacts from Elastic indexes.
 //
 //	{
 //	  "org_id": 1,
@@ -29,7 +29,7 @@ type deindexRequest struct {
 }
 
 func handleDeindex(ctx context.Context, rt *runtime.Runtime, r *deindexRequest) (any, int, error) {
-	esDeleted, osDeleted, err := search.DeindexContactsByID(ctx, rt, r.OrgID, r.ContactIDs)
+	deindexed, err := search.DeindexContactsByID(ctx, rt, r.OrgID, r.ContactIDs)
 	if err != nil {
 		return nil, 0, fmt.Errorf("error de-indexing contacts in org #%d: %w", r.OrgID, err)
 	}
@@ -38,5 +38,5 @@ func handleDeindex(ctx context.Context, rt *runtime.Runtime, r *deindexRequest) 
 		return nil, 0, fmt.Errorf("error de-indexing messages in org #%d: %w", r.OrgID, err)
 	}
 
-	return map[string]any{"es_deindexed": esDeleted, "os_deindexed": osDeleted}, http.StatusOK, nil
+	return map[string]any{"deindexed": deindexed}, http.StatusOK, nil
 }

@@ -258,19 +258,14 @@ type SearchAssertion struct {
 	Contacts []models.ContactID `json:"contacts"`
 }
 
-// ClearOSContactsIndex removes all documents from the OpenSearch contacts index.
-func ClearOSContactsIndex(t *testing.T, rt *runtime.Runtime) {
+// ClearESContactsIndexV2 removes all documents from the v2 Elastic contacts index.
+func ClearESContactsIndexV2(t *testing.T, rt *runtime.Runtime) {
 	t.Helper()
 
-	client := rt.OS.Client
-
-	_, err := client.Document.DeleteByQuery(t.Context(), opensearchapi.DocumentDeleteByQueryReq{
-		Indices: []string{rt.Config.OSContactsIndex},
-		Body:    strings.NewReader(`{"query": {"match_all": {}}}`),
-	})
+	_, err := rt.ES.Client.DeleteByQuery(rt.Config.ElasticContactsIndexV2).Raw(strings.NewReader(`{"query": {"match_all": {}}}`)).Do(t.Context())
 	require.NoError(t, err)
 
-	_, err = client.Indices.Refresh(t.Context(), &opensearchapi.IndicesRefreshReq{Indices: []string{rt.Config.OSContactsIndex}})
+	_, err = rt.ES.Client.Indices.Refresh().Index(rt.Config.ElasticContactsIndexV2).Do(t.Context())
 	require.NoError(t, err)
 }
 
