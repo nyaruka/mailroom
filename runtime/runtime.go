@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"firebase.google.com/go/v4/messaging"
-	"github.com/elastic/go-elasticsearch/v8"
 	valkey "github.com/gomodule/redigo/redis"
 	"github.com/nyaruka/gocommon/aws/cwatch"
 	"github.com/nyaruka/gocommon/aws/s3x"
@@ -24,7 +23,7 @@ type Runtime struct {
 	ReadonlyDB *sql.DB
 	VK         *valkey.Pool
 	S3         *s3x.Service
-	ES         *elasticsearch.TypedClient
+	ES         *Elastic
 	Dynamo     *Dynamo
 	OS         *OpenSearch
 	CW         *cwatch.Service
@@ -75,9 +74,9 @@ func NewRuntime(cfg *Config) (*Runtime, error) {
 		return nil, fmt.Errorf("error creating S3 service: %w", err)
 	}
 
-	rt.ES, err = elasticsearch.NewTypedClient(elasticsearch.Config{Addresses: []string{cfg.Elastic}, Username: cfg.ElasticUsername, Password: cfg.ElasticPassword})
+	rt.ES, err = newElastic(cfg)
 	if err != nil {
-		return nil, fmt.Errorf("error creating Elasticsearch client: %w", err)
+		return nil, err
 	}
 
 	rt.OS, err = newOpenSearch(cfg)
@@ -100,6 +99,9 @@ func (r *Runtime) Start() error {
 	if err := r.Dynamo.start(); err != nil {
 		return err
 	}
+	if err := r.ES.start(); err != nil {
+		return err
+	}
 	if err := r.OS.start(); err != nil {
 		return err
 	}
@@ -108,6 +110,7 @@ func (r *Runtime) Start() error {
 
 func (r *Runtime) Stop() {
 	r.Dynamo.stop()
+	r.ES.stop()
 	r.OS.stop()
 }
 

@@ -103,7 +103,7 @@ func (s *Service) Start() error {
 	}
 
 	// test Elasticsearch
-	ping, err := s.rt.ES.Ping().Do(s.ctx)
+	ping, err := s.rt.ES.Client.Ping().Do(s.ctx)
 	if err != nil {
 		log.Error("elasticsearch not available", "error", err)
 	} else if !ping {
