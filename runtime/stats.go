@@ -35,8 +35,8 @@ type Stats struct {
 	WebhookCallCount    int           // number of webhook calls
 	WebhookCallDuration time.Duration // total time spent handling webhook calls
 
-	ContactSearchCount    int           // number of contact searches
-	ContactSearchDuration time.Duration // total time spent searching contacts
+	ContactSearchCount    map[string]int           // number of contact searches by version (v1/v2)
+	ContactSearchDuration map[string]time.Duration // total time spent searching contacts by version
 }
 
 func newStats() *Stats {
@@ -51,6 +51,9 @@ func newStats() *Stats {
 
 		LLMCallCount:    make(map[LLMTypeAndModel]int),
 		LLMCallDuration: make(map[LLMTypeAndModel]time.Duration),
+
+		ContactSearchCount:    make(map[string]int),
+		ContactSearchDuration: make(map[string]time.Duration),
 	}
 }
 
@@ -89,15 +92,14 @@ func (s *Stats) ToMetrics(advanced bool) []types.MetricDatum {
 		cwatch.Datum("WebhookCallDuration", float64(avgWebhookDuration)/float64(time.Second), types.StandardUnitSeconds),
 	)
 
-	var avgSearchDuration time.Duration
-	if s.ContactSearchCount > 0 {
-		avgSearchDuration = s.ContactSearchDuration / time.Duration(s.ContactSearchCount)
-	}
+	for version, count := range s.ContactSearchCount {
+		avgDuration := s.ContactSearchDuration[version] / time.Duration(count)
 
-	metrics = append(metrics,
-		cwatch.Datum("ContactSearchCount", float64(s.ContactSearchCount), types.StandardUnitCount),
-		cwatch.Datum("ContactSearchDuration", float64(avgSearchDuration)/float64(time.Second), types.StandardUnitSeconds),
-	)
+		metrics = append(metrics,
+			cwatch.Datum("ContactSearchCount", float64(count), types.StandardUnitCount, cwatch.Dimension("Version", version)),
+			cwatch.Datum("ContactSearchDuration", float64(avgDuration)/float64(time.Second), types.StandardUnitSeconds, cwatch.Dimension("Version", version)),
+		)
+	}
 
 	if advanced {
 		metrics = append(metrics,
@@ -162,10 +164,10 @@ func (c *StatsCollector) RecordWebhookCall(d time.Duration) {
 	c.mutex.Unlock()
 }
 
-func (c *StatsCollector) RecordContactSearch(d time.Duration) {
+func (c *StatsCollector) RecordContactSearch(version string, d time.Duration) {
 	c.mutex.Lock()
-	c.stats.ContactSearchCount++
-	c.stats.ContactSearchDuration += d
+	c.stats.ContactSearchCount[version]++
+	c.stats.ContactSearchDuration[version] += d
 	c.mutex.Unlock()
 }
 
