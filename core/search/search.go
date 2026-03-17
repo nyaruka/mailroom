@@ -32,18 +32,6 @@ func (m *AssetMapper) Group(g assets.Group) int64 {
 
 var assetMapper = &AssetMapper{}
 
-// BuildElasticQuery turns the passed in contact ql query into an elastic query
-func BuildElasticQuery(oa *models.OrgAssets, group *models.Group, status models.ContactStatus, excludeIDs []models.ContactID, query *contactql.ContactQuery) elastic.Query {
-	return buildContactQuery(oa, group, status, excludeIDs, query, false)
-}
-
-// BuildContactQuery turns the passed in contact ql query into a query for the given index. If v2
-// is true, it targets the v2 index (which only contains active contacts, so no is_active filter is
-// needed). If false, it targets the legacy rp-indexer index (which requires an is_active filter).
-func BuildContactQuery(oa *models.OrgAssets, group *models.Group, status models.ContactStatus, excludeIDs []models.ContactID, query *contactql.ContactQuery, v2 bool) elastic.Query {
-	return buildContactQuery(oa, group, status, excludeIDs, query, v2)
-}
-
 func buildContactQuery(oa *models.OrgAssets, group *models.Group, status models.ContactStatus, excludeIDs []models.ContactID, query *contactql.ContactQuery, v2 bool) elastic.Query {
 	// use filter context for all clauses since we never sort by relevance score, and filter clauses
 	// are cacheable and skip scoring

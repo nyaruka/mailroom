@@ -2,7 +2,6 @@ package search_test
 
 import (
 	"bytes"
-	"context"
 	"sort"
 	"testing"
 
@@ -172,7 +171,7 @@ func TestDeindexContacts(t *testing.T) {
 func assertSearchCountV2(t *testing.T, rt *runtime.Runtime, query elastic.Query, expected int) {
 	src := map[string]any{"query": query}
 
-	resp, err := rt.ES.Client.Count().Index(rt.Config.ElasticContactsIndexV2).Raw(bytes.NewReader(jsonx.MustMarshal(src))).Do(context.Background())
+	resp, err := rt.ES.Client.Count().Index(rt.Config.ElasticContactsIndexV2).Raw(bytes.NewReader(jsonx.MustMarshal(src))).Do(t.Context())
 	require.NoError(t, err)
 	assert.Equal(t, expected, int(resp.Count))
 }
