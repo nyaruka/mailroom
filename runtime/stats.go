@@ -35,10 +35,8 @@ type Stats struct {
 	WebhookCallCount    int           // number of webhook calls
 	WebhookCallDuration time.Duration // total time spent handling webhook calls
 
-	ESContactSearchCount    int           // number of contact searches against Elasticsearch
-	ESContactSearchDuration time.Duration // total time spent searching Elasticsearch
-	OSContactSearchCount    int           // number of contact searches against OpenSearch
-	OSContactSearchDuration time.Duration // total time spent searching OpenSearch
+	ContactSearchCount    map[string]int           // number of contact searches by version (v1/v2)
+	ContactSearchDuration map[string]time.Duration // total time spent searching contacts by version
 }
 
 func newStats() *Stats {
@@ -53,6 +51,9 @@ func newStats() *Stats {
 
 		LLMCallCount:    make(map[LLMTypeAndModel]int),
 		LLMCallDuration: make(map[LLMTypeAndModel]time.Duration),
+
+		ContactSearchCount:    make(map[string]int),
+		ContactSearchDuration: make(map[string]time.Duration),
 	}
 }
 
@@ -91,21 +92,14 @@ func (s *Stats) ToMetrics(advanced bool) []types.MetricDatum {
 		cwatch.Datum("WebhookCallDuration", float64(avgWebhookDuration)/float64(time.Second), types.StandardUnitSeconds),
 	)
 
-	var avgESSearchDuration time.Duration
-	if s.ESContactSearchCount > 0 {
-		avgESSearchDuration = s.ESContactSearchDuration / time.Duration(s.ESContactSearchCount)
-	}
-	var avgOSSearchDuration time.Duration
-	if s.OSContactSearchCount > 0 {
-		avgOSSearchDuration = s.OSContactSearchDuration / time.Duration(s.OSContactSearchCount)
-	}
+	for version, count := range s.ContactSearchCount {
+		avgDuration := s.ContactSearchDuration[version] / time.Duration(count)
 
-	metrics = append(metrics,
-		cwatch.Datum("ContactSearchCount", float64(s.ESContactSearchCount), types.StandardUnitCount, cwatch.Dimension("Backend", "es")),
-		cwatch.Datum("ContactSearchDuration", float64(avgESSearchDuration)/float64(time.Second), types.StandardUnitSeconds, cwatch.Dimension("Backend", "es")),
-		cwatch.Datum("ContactSearchCount", float64(s.OSContactSearchCount), types.StandardUnitCount, cwatch.Dimension("Backend", "os")),
-		cwatch.Datum("ContactSearchDuration", float64(avgOSSearchDuration)/float64(time.Second), types.StandardUnitSeconds, cwatch.Dimension("Backend", "os")),
-	)
+		metrics = append(metrics,
+			cwatch.Datum("ContactSearchCount", float64(count), types.StandardUnitCount, cwatch.Dimension("Version", version)),
+			cwatch.Datum("ContactSearchDuration", float64(avgDuration)/float64(time.Second), types.StandardUnitSeconds, cwatch.Dimension("Version", version)),
+		)
+	}
 
 	if advanced {
 		metrics = append(metrics,
@@ -170,15 +164,10 @@ func (c *StatsCollector) RecordWebhookCall(d time.Duration) {
 	c.mutex.Unlock()
 }
 
-func (c *StatsCollector) RecordContactSearch(backend string, d time.Duration) {
+func (c *StatsCollector) RecordContactSearch(version string, d time.Duration) {
 	c.mutex.Lock()
-	if backend == "os" {
-		c.stats.OSContactSearchCount++
-		c.stats.OSContactSearchDuration += d
-	} else {
-		c.stats.ESContactSearchCount++
-		c.stats.ESContactSearchDuration += d
-	}
+	c.stats.ContactSearchCount[version]++
+	c.stats.ContactSearchDuration[version] += d
 	c.mutex.Unlock()
 }
 

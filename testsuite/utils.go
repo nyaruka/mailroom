@@ -258,19 +258,45 @@ type SearchAssertion struct {
 	Contacts []models.ContactID `json:"contacts"`
 }
 
-// ClearOSContactsIndex removes all documents from the OpenSearch contacts index.
-func ClearOSContactsIndex(t *testing.T, rt *runtime.Runtime) {
+// IndexOrgContacts indexes all active contacts for the given org into the v2 Elastic contacts index
+// and refreshes the index so they're immediately searchable.
+func IndexOrgContacts(t *testing.T, rt *runtime.Runtime, org *testdb.Org) {
 	t.Helper()
 
-	client := rt.OS.Client
-
-	_, err := client.Document.DeleteByQuery(t.Context(), opensearchapi.DocumentDeleteByQueryReq{
-		Indices: []string{rt.Config.OSContactsIndex},
-		Body:    strings.NewReader(`{"query": {"match_all": {}}}`),
-	})
+	ctx := t.Context()
+	oa, err := models.GetOrgAssets(ctx, rt, org.ID)
 	require.NoError(t, err)
 
-	_, err = client.Indices.Refresh(t.Context(), &opensearchapi.IndicesRefreshReq{Indices: []string{rt.Config.OSContactsIndex}})
+	contactIDs, err := models.GetContactIDsPage(ctx, rt.DB, org.ID, models.NilContactID, 10_000)
+	require.NoError(t, err)
+
+	contacts, err := models.LoadContacts(ctx, rt.DB, oa, contactIDs)
+	require.NoError(t, err)
+
+	fcs := make([]*flows.Contact, 0, len(contacts))
+	for _, mc := range contacts {
+		fc, err := mc.EngineContact(oa)
+		require.NoError(t, err)
+		fcs = append(fcs, fc)
+	}
+
+	err = search.IndexContacts(ctx, rt, oa, fcs, map[models.ContactID]models.FlowID{})
+	require.NoError(t, err)
+
+	rt.ES.Writer.Flush()
+
+	_, err = rt.ES.Client.Indices.Refresh().Index(rt.Config.ElasticContactsIndexV2).Do(ctx)
+	require.NoError(t, err)
+}
+
+// ClearESContactsIndexV2 removes all documents from the v2 Elastic contacts index.
+func ClearESContactsIndexV2(t *testing.T, rt *runtime.Runtime) {
+	t.Helper()
+
+	_, err := rt.ES.Client.DeleteByQuery(rt.Config.ElasticContactsIndexV2).Raw(strings.NewReader(`{"query": {"match_all": {}}}`)).Do(t.Context())
+	require.NoError(t, err)
+
+	_, err = rt.ES.Client.Indices.Refresh().Index(rt.Config.ElasticContactsIndexV2).Do(t.Context())
 	require.NoError(t, err)
 }
 

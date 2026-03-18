@@ -15,7 +15,7 @@ import (
 
 const contactBatchSize = 500
 
-// command line tool to re-index all contacts in the database to OpenSearch.
+// command line tool to re-index all contacts in the database to Elastic.
 //
 // go install github.com/nyaruka/mailroom/cmd/mrindex; mrindex
 func main() {
@@ -47,7 +47,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	// stop flushes remaining queued items to OpenSearch and spool
+	// stop flushes remaining queued items to Elastic and spool
 	rt.Stop()
 }
 

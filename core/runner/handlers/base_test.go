@@ -24,7 +24,6 @@ import (
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/mailroom/testsuite"
 	"github.com/nyaruka/mailroom/testsuite/testdb"
-	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -104,9 +103,9 @@ func runTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 
 	test.MockUniverse()
 
-	// clear any stale opensearch data from previous test runs
+	// clear any stale data from previous test runs
 	testsuite.GetIndexedMessages(t, rt, true)
-	testsuite.ClearOSContactsIndex(t, rt)
+	testsuite.ClearESContactsIndexV2(t, rt)
 
 	for i, tc := range tcs {
 		scenes := make([]*runner.Scene, 4)
@@ -207,7 +206,7 @@ func runTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 			}
 			test.AssertEqualJSON(t, jsonx.MustMarshal(tc.IndexedMessages), jsonx.MustMarshal(actual.IndexedMessages), "%s: indexed messages mismatch", tc.Label)
 
-			// check search assertions against OpenSearch contacts index
+			// check search assertions against v2 Elastic contacts index
 			if len(tc.AssertSearch) > 0 {
 				// reload contacts from DB and re-index since handler tests add events directly
 				// (bypassing the flow engine) so the flow contacts used by IndexContacts hook
@@ -222,17 +221,17 @@ func runTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 					require.NoError(t, err)
 				}
 
-				rt.OS.Writer.Flush()
-				_, err = rt.OS.Client.Indices.Refresh(ctx, &opensearchapi.IndicesRefreshReq{Indices: []string{rt.Config.OSContactsIndex}})
+				rt.ES.Writer.Flush()
+				_, err = rt.ES.Client.Indices.Refresh().Index(rt.Config.ElasticContactsIndexV2).Do(ctx)
 				require.NoError(t, err)
 
 				for _, sa := range tc.AssertSearch {
-					ids, err := search.GetContactIDsForQuery(ctx, rt, oa2, nil, models.ContactStatusActive, sa.Query, -1, true)
+					ids, err := search.GetContactIDsForQuery(ctx, rt, oa2, nil, models.ContactStatusActive, sa.Query, -1, true /*v2*/)
 					assert.NoError(t, err, "%s: search query '%s' failed", tc.Label, sa.Query)
 					assert.ElementsMatch(t, sa.Contacts, ids, "%s: search query '%s' returned wrong contacts", tc.Label, sa.Query)
 				}
 
-				testsuite.ClearOSContactsIndex(t, rt)
+				testsuite.ClearESContactsIndexV2(t, rt)
 			}
 		} else {
 			tcs[i] = actual
