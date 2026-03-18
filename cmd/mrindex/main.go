@@ -152,17 +152,17 @@ func indexAllContacts(ctx context.Context, rt *runtime.Runtime) error {
 	return nil
 }
 
-const sqlSelectMessagesForSearch = `
+var sqlSelectMessagesForSearch = fmt.Sprintf(`
 SELECT m.uuid, m.org_id, m.text, m.created_on, m.ticket_uuid, c.uuid AS contact_uuid
   FROM msgs_msg m
   JOIN contacts_contact c ON c.id = m.contact_id
  WHERE (m.direction = 'I' OR (m.broadcast_id IS NULL AND m.created_by_id IS NOT NULL))
-   AND LENGTH(m.text) >= 2
+   AND LENGTH(m.text) >= %d
    AND m.visibility IN ('V', 'A')
    AND m.msg_type != 'V'
    AND m.uuid < $1
  ORDER BY m.uuid DESC
- LIMIT $2`
+ LIMIT $2`, search.MessageTextMinLength)
 
 func indexAllMessages(ctx context.Context, rt *runtime.Runtime, startUUID string) error {
 	if startUUID == "" {
