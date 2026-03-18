@@ -71,32 +71,32 @@ func handleSearch(ctx context.Context, rt *runtime.Runtime, r *searchRequest) (a
 		r.Limit = 50
 	}
 
-	// perform our search against ES (source of truth)
-	esStart := time.Now()
+	// perform our search against the v1 ES index (source of truth)
+	v1Start := time.Now()
 	parsed, hits, total, err := search.GetContactIDsForQueryPage(ctx, rt, oa, group, r.ExcludeIDs, r.Query, r.Sort, r.Offset, r.Limit, false)
 	if err != nil {
 		return nil, 0, fmt.Errorf("error searching page: %w", err)
 	}
-	rt.Stats.RecordContactSearch("es", time.Since(esStart))
+	rt.Stats.RecordContactSearch("v1", time.Since(v1Start))
 
-	// also search OpenSearch for a proportion of requests and compare results
-	if rt.Config.OSContactsSearchVerify > 0 && rand.Float64() < rt.Config.OSContactsSearchVerify {
-		osStart := time.Now()
-		_, osHits, osTotal, osErr := search.GetContactIDsForQueryPage(ctx, rt, oa, group, r.ExcludeIDs, r.Query, r.Sort, r.Offset, r.Limit, true)
-		rt.Stats.RecordContactSearch("os", time.Since(osStart))
+	// also search the v2 index for a proportion of requests to verify consistency
+	if rt.Config.ElasticContactsV2Verify > 0 && rand.Float64() < rt.Config.ElasticContactsV2Verify {
+		v2Start := time.Now()
+		_, v2Hits, v2Total, v2Err := search.GetContactIDsForQueryPage(ctx, rt, oa, group, r.ExcludeIDs, r.Query, r.Sort, r.Offset, r.Limit, true)
+		rt.Stats.RecordContactSearch("v2", time.Since(v2Start))
 
-		if osErr != nil {
-			slog.Warn("error searching OpenSearch for comparison", "org_id", r.OrgID, "error", osErr)
-		} else if total != osTotal || !contactIDsEqual(hits, osHits) {
-			example := findMismatchExample(hits, osHits)
-			slog.Error("ES/OpenSearch search mismatch",
+		if v2Err != nil {
+			slog.Warn("error searching v2 contacts index for comparison", "org_id", r.OrgID, "error", v2Err)
+		} else if total != v2Total || !contactIDsEqual(hits, v2Hits) {
+			example := findMismatchExample(hits, v2Hits)
+			slog.Error("v1/v2 contacts index search mismatch",
 				"org_id", r.OrgID,
 				"group_id", r.GroupID,
 				"query", r.Query,
-				"es_total", total,
-				"os_total", osTotal,
-				"es_page_count", len(hits),
-				"os_page_count", len(osHits),
+				"v1_total", total,
+				"v2_total", v2Total,
+				"v1_page_count", len(hits),
+				"v2_page_count", len(v2Hits),
 				"example_contact", example,
 			)
 		}
@@ -135,25 +135,25 @@ func contactIDsEqual(a, b []models.ContactID) bool {
 	return true
 }
 
-// findMismatchExample returns a description of the first contact ID that differs between ES and OS results
-func findMismatchExample(esIDs, osIDs []models.ContactID) string {
-	osSet := make(map[models.ContactID]bool, len(osIDs))
-	for _, id := range osIDs {
-		osSet[id] = true
+// findMismatchExample returns a description of the first contact ID that differs between v1 and v2 results
+func findMismatchExample(v1IDs, v2IDs []models.ContactID) string {
+	v2Set := make(map[models.ContactID]bool, len(v2IDs))
+	for _, id := range v2IDs {
+		v2Set[id] = true
 	}
-	for _, id := range esIDs {
-		if !osSet[id] {
-			return fmt.Sprintf("contact %d in ES but not OS", id)
+	for _, id := range v1IDs {
+		if !v2Set[id] {
+			return fmt.Sprintf("contact %d in v1 but not v2", id)
 		}
 	}
 
-	esSet := make(map[models.ContactID]bool, len(esIDs))
-	for _, id := range esIDs {
-		esSet[id] = true
+	v1Set := make(map[models.ContactID]bool, len(v1IDs))
+	for _, id := range v1IDs {
+		v1Set[id] = true
 	}
-	for _, id := range osIDs {
-		if !esSet[id] {
-			return fmt.Sprintf("contact %d in OS but not ES", id)
+	for _, id := range v2IDs {
+		if !v1Set[id] {
+			return fmt.Sprintf("contact %d in v2 but not v1", id)
 		}
 	}
 

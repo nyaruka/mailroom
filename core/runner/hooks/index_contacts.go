@@ -11,7 +11,7 @@ import (
 	"github.com/nyaruka/mailroom/runtime"
 )
 
-// IndexContacts is our hook for indexing contacts to OpenSearch after the database transaction has committed
+// IndexContacts is our hook for indexing contacts to Elastic after the database transaction has committed
 var IndexContacts runner.PostCommitHook = &indexContacts{}
 
 type indexContacts struct{}

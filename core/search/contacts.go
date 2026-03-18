@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/elastic/go-elasticsearch/v8/typedapi/types/enums/operationtype"
-	"github.com/nyaruka/gocommon/aws/osearch"
 	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/elastic"
 	"github.com/nyaruka/gocommon/i18n"
@@ -17,11 +16,10 @@ import (
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/runtime"
-	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	"github.com/shopspring/decimal"
 )
 
-// ContactDocField represents a single field value in a contact document for OpenSearch.
+// ContactDocField represents a single field value in a contact document.
 type ContactDocField struct {
 	Field           assets.FieldUUID `json:"field"`
 	Text            string           `json:"text,omitempty"`
@@ -35,13 +33,13 @@ type ContactDocField struct {
 	WardKeyword     string           `json:"ward_keyword,omitempty"`
 }
 
-// ContactDocURN represents a single URN in a contact document for OpenSearch.
+// ContactDocURN represents a single URN in a contact document.
 type ContactDocURN struct {
 	Scheme string `json:"scheme"`
 	Path   string `json:"path"`
 }
 
-// ContactDoc represents a contact document in the OpenSearch contacts index. DBID is used as the document _id.
+// ContactDoc represents a contact document in the contacts index. DBID is used as the document _id.
 type ContactDoc struct {
 	DBID           models.ContactID     `json:"id"` // also used as _id
 	UUID           flows.ContactUUID    `json:"uuid"`
@@ -137,7 +135,7 @@ func NewContactDoc(oa *models.OrgAssets, c *flows.Contact, currentFlowID models.
 	return doc
 }
 
-// IndexContacts builds contact documents and queues them for indexing in OpenSearch.
+// IndexContacts builds contact documents and queues them for indexing in Elastic.
 func IndexContacts(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, flowContacts []*flows.Contact, currentFlows map[models.ContactID]models.FlowID) error {
 	if len(flowContacts) == 0 {
 		return nil
@@ -162,8 +160,8 @@ func IndexContacts(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsset
 			return fmt.Errorf("error marshalling contact doc: %w", err)
 		}
 
-		rt.OS.Writer.Queue(&osearch.Document{
-			Index:   rt.Config.OSContactsIndex,
+		rt.ES.Writer.Queue(&elastic.Document{
+			Index:   rt.Config.ElasticContactsIndexV2,
 			ID:      doc.DBID.String(),
 			Routing: doc.OrgID.String(),
 			Version: dates.Now().UnixNano(),
@@ -174,46 +172,27 @@ func IndexContacts(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsset
 	return nil
 }
 
-// DeindexContactsByID de-indexes the contacts with the given IDs from Elastic and OpenSearch
-func DeindexContactsByID(ctx context.Context, rt *runtime.Runtime, orgID models.OrgID, contactIDs []models.ContactID) (int, int, error) {
+// DeindexContactsByID de-indexes the contacts with the given IDs from Elastic
+func DeindexContactsByID(ctx context.Context, rt *runtime.Runtime, orgID models.OrgID, contactIDs []models.ContactID) (int, error) {
 	cmds := &bytes.Buffer{}
 	for _, id := range contactIDs {
 		cmds.Write(jsonx.MustMarshal(map[string]any{"delete": map[string]any{"_id": id.String()}}))
 		cmds.WriteString("\n")
 	}
-	body := cmds.Bytes()
 
-	resp, err := rt.ES.Client.Bulk().Index(rt.Config.ElasticContactsIndex).Routing(orgID.String()).Raw(bytes.NewReader(body)).Do(ctx)
+	resp, err := rt.ES.Client.Bulk().Index(rt.Config.ElasticContactsIndexV2).Routing(orgID.String()).Raw(bytes.NewReader(cmds.Bytes())).Do(ctx)
 	if err != nil {
-		return 0, 0, fmt.Errorf("error deindexing deleted contacts from elastic: %w", err)
+		return 0, fmt.Errorf("error deindexing deleted contacts from elastic: %w", err)
 	}
 
-	esDeleted := 0
+	deleted := 0
 	for _, r := range resp.Items {
 		if r[operationtype.Delete].Status == 200 {
-			esDeleted++
+			deleted++
 		}
 	}
 
-	osResp, err := rt.OS.Client.Bulk(ctx, opensearchapi.BulkReq{
-		Index: rt.Config.OSContactsIndex,
-		Body:  bytes.NewReader(body),
-		Params: opensearchapi.BulkParams{
-			Routing: orgID.String(),
-		},
-	})
-	if err != nil {
-		return 0, 0, fmt.Errorf("error deindexing deleted contacts from opensearch: %w", err)
-	}
-
-	osDeleted := 0
-	for _, item := range osResp.Items {
-		if d, ok := item["delete"]; ok && d.Status == 200 {
-			osDeleted++
-		}
-	}
-
-	return esDeleted, osDeleted, nil
+	return deleted, nil
 }
 
 // DeindexContactsByOrg de-indexes all contacts in the given org from Elastic
@@ -223,7 +202,7 @@ func DeindexContactsByOrg(ctx context.Context, rt *runtime.Runtime, orgID models
 		"max_docs": limit,
 	}
 
-	resp, err := rt.ES.Client.DeleteByQuery(rt.Config.ElasticContactsIndex).Routing(orgID.String()).Raw(bytes.NewReader(jsonx.MustMarshal(src))).Do(ctx)
+	resp, err := rt.ES.Client.DeleteByQuery(rt.Config.ElasticContactsIndexV2).Routing(orgID.String()).Raw(bytes.NewReader(jsonx.MustMarshal(src))).Do(ctx)
 	if err != nil {
 		return 0, fmt.Errorf("error deindexing contacts in org #%d from elastic: %w", orgID, err)
 	}

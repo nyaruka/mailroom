@@ -2,7 +2,6 @@ package search_test
 
 import (
 	"bytes"
-	"context"
 	"sort"
 	"testing"
 
@@ -119,56 +118,60 @@ func TestDeindexContacts(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
-	testsuite.ReindexElastic(t, rt)
+	// index all org1 and org2 contacts into the v2 index
+	testsuite.IndexOrgContacts(t, rt, testdb.Org1)
+	testsuite.IndexOrgContacts(t, rt, testdb.Org2)
 
-	// ensures changes are visible in elastic
-	refreshElastic := func() {
-		_, err := rt.ES.Client.Indices.Refresh().Index(rt.Config.ElasticContactsIndex).Do(ctx)
+	refreshV2 := func() {
+		_, err := rt.ES.Client.Indices.Refresh().Index(rt.Config.ElasticContactsIndexV2).Do(ctx)
 		require.NoError(t, err)
 	}
 
+	refreshV2()
+
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contact WHERE org_id = $1`, testdb.Org1.ID).Returns(124)
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contact WHERE org_id = $1`, testdb.Org2.ID).Returns(121)
-	assertSearchCount(t, rt, elastic.Term("org_id", testdb.Org1.ID), 124)
-	assertSearchCount(t, rt, elastic.Term("org_id", testdb.Org2.ID), 121)
+	assertSearchCountV2(t, rt, elastic.Term("org_id", testdb.Org1.ID), 124)
+	assertSearchCountV2(t, rt, elastic.Term("org_id", testdb.Org2.ID), 121)
 
-	esDeindexed, osDeindexed, err := search.DeindexContactsByID(ctx, rt, testdb.Org1.ID, []models.ContactID{testdb.Bob.ID, testdb.Cat.ID})
+	// DeindexContactsByID operates on the v2 index
+	deindexedByID, err := search.DeindexContactsByID(ctx, rt, testdb.Org1.ID, []models.ContactID{testdb.Bob.ID, testdb.Cat.ID})
 	assert.NoError(t, err)
-	assert.Equal(t, 2, esDeindexed)
-	assert.Equal(t, 0, osDeindexed)
+	assert.Equal(t, 2, deindexedByID)
 
-	refreshElastic()
+	refreshV2()
 
-	assertSearchCount(t, rt, elastic.Term("org_id", testdb.Org1.ID), 122)
-	assertSearchCount(t, rt, elastic.Term("org_id", testdb.Org2.ID), 121)
+	assertSearchCountV2(t, rt, elastic.Term("org_id", testdb.Org1.ID), 122)
+	assertSearchCountV2(t, rt, elastic.Term("org_id", testdb.Org2.ID), 121)
 
+	// DeindexContactsByOrg also operates on the v2 index
 	deindexed, err := search.DeindexContactsByOrg(ctx, rt, testdb.Org1.ID, 100)
 	assert.NoError(t, err)
 	assert.Equal(t, 100, deindexed)
 
-	refreshElastic()
+	refreshV2()
 
-	assertSearchCount(t, rt, elastic.Term("org_id", testdb.Org1.ID), 22)
-	assertSearchCount(t, rt, elastic.Term("org_id", testdb.Org2.ID), 121)
+	assertSearchCountV2(t, rt, elastic.Term("org_id", testdb.Org1.ID), 22)
+	assertSearchCountV2(t, rt, elastic.Term("org_id", testdb.Org2.ID), 121)
 
 	deindexed, err = search.DeindexContactsByOrg(ctx, rt, testdb.Org1.ID, 100)
 	assert.NoError(t, err)
 	assert.Equal(t, 22, deindexed)
 
-	refreshElastic()
+	refreshV2()
 
-	assertSearchCount(t, rt, elastic.Term("org_id", testdb.Org1.ID), 0)
-	assertSearchCount(t, rt, elastic.Term("org_id", testdb.Org2.ID), 121)
+	assertSearchCountV2(t, rt, elastic.Term("org_id", testdb.Org1.ID), 0)
+	assertSearchCountV2(t, rt, elastic.Term("org_id", testdb.Org2.ID), 121)
 
 	deindexed, err = search.DeindexContactsByOrg(ctx, rt, testdb.Org1.ID, 100)
 	assert.NoError(t, err)
 	assert.Equal(t, 0, deindexed)
 }
 
-func assertSearchCount(t *testing.T, rt *runtime.Runtime, query elastic.Query, expected int) {
+func assertSearchCountV2(t *testing.T, rt *runtime.Runtime, query elastic.Query, expected int) {
 	src := map[string]any{"query": query}
 
-	resp, err := rt.ES.Client.Count().Index(rt.Config.ElasticContactsIndex).Raw(bytes.NewReader(jsonx.MustMarshal(src))).Do(context.Background())
+	resp, err := rt.ES.Client.Count().Index(rt.Config.ElasticContactsIndexV2).Raw(bytes.NewReader(jsonx.MustMarshal(src))).Do(t.Context())
 	require.NoError(t, err)
 	assert.Equal(t, expected, int(resp.Count))
 }

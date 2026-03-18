@@ -23,10 +23,11 @@ import (
 )
 
 const (
-	elasticURL           = "http://elastic:9200"
-	elasticContactsIndex = "test_contacts"
-	postgresDumpPath     = "./testsuite/testdata/postgres.dump"
-	dynamoTablesPath     = "./testsuite/testdata/dynamo.json"
+	elasticURL             = "http://elastic:9200"
+	elasticContactsIndex   = "test_contacts"
+	elasticContactsIndexV2 = "test_contacts-v2"
+	postgresDumpPath       = "./testsuite/testdata/postgres.dump"
+	dynamoTablesPath       = "./testsuite/testdata/dynamo.json"
 )
 
 // Refresh is our type for the pieces of org assets we want fresh (not cached)
@@ -79,6 +80,7 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 	cfg.Port = 8091
 	cfg.DB = "postgres://mailroom_test:temba@postgres/mailroom_test?sslmode=disable&Timezone=UTC"
 	cfg.ElasticContactsIndex = elasticContactsIndex
+	cfg.ElasticContactsIndexV2 = elasticContactsIndexV2
 	cfg.Elastic = elasticURL
 	cfg.AWSAccessKeyID = "root"
 	cfg.AWSSecretAccessKey = "tembatemba"
@@ -98,6 +100,7 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 
 	createBucket(t, rt, rt.Config.S3AttachmentsBucket)
 	setupOpenSearch(t, rt)
+	setupElasticContactsV2(t, rt)
 
 	// create Postgres tables if necessary
 	_, err = rt.DB.Exec("SELECT * from orgs_org")
@@ -241,30 +244,35 @@ func resetElastic(t *testing.T, rt *runtime.Runtime) {
 		}
 	}
 
+	// delete and recreate the v2 contacts index
+	rt.ES.Client.Indices.Delete(elasticContactsIndexV2).Do(t.Context())
+	setupElasticContactsV2(t, rt)
+
 	ReindexElastic(t, rt)
 }
 
 func setupOpenSearch(t *testing.T, rt *runtime.Runtime) {
 	t.Helper()
 
-	client := rt.OS.Client
-
 	// create messages index template (idempotent)
 	messagesBody := ReadFile(t, absPath("./testsuite/testdata/os_messages.json"))
-	_, err := client.IndexTemplate.Create(t.Context(), opensearchapi.IndexTemplateCreateReq{
+	_, err := rt.OS.Client.IndexTemplate.Create(t.Context(), opensearchapi.IndexTemplateCreateReq{
 		IndexTemplate: rt.Config.OSMessagesIndex,
 		Body:          bytes.NewReader(messagesBody),
 	})
 	require.NoError(t, err)
+}
 
-	// create contacts index if it doesn't already exist (client returns error for 404)
-	resp, _ := client.Indices.Exists(t.Context(), opensearchapi.IndicesExistsReq{Indices: []string{rt.Config.OSContactsIndex}})
-	if resp == nil || resp.StatusCode != 200 {
-		contactsBody := ReadFile(t, absPath("./testsuite/testdata/os_contacts.json"))
-		_, err = client.Indices.Create(t.Context(), opensearchapi.IndicesCreateReq{
-			Index: rt.Config.OSContactsIndex,
-			Body:  bytes.NewReader(contactsBody),
-		})
+// setupElasticContactsV2 creates the v2 contacts index in Elastic if it doesn't already exist
+func setupElasticContactsV2(t *testing.T, rt *runtime.Runtime) {
+	t.Helper()
+
+	exists, err := rt.ES.Client.Indices.Exists(elasticContactsIndexV2).IsSuccess(t.Context())
+	require.NoError(t, err)
+
+	if !exists {
+		contactsBody := ReadFile(t, absPath("./testsuite/testdata/es_contacts.json"))
+		_, err = rt.ES.Client.Indices.Create(elasticContactsIndexV2).Raw(bytes.NewReader(contactsBody)).Do(t.Context())
 		require.NoError(t, err)
 	}
 }
@@ -274,9 +282,6 @@ func resetOpenSearch(t *testing.T, rt *runtime.Runtime) {
 
 	// delete all indexes matching the messages pattern (ignore 404 if none exist)
 	rt.OS.Client.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{Indices: []string{rt.Config.OSMessagesIndex + "-*"}})
-
-	// delete contacts index (ignore 404 if it doesn't exist)
-	rt.OS.Client.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{Indices: []string{rt.Config.OSContactsIndex}})
 }
 
 func resetDynamo(t *testing.T, rt *runtime.Runtime) {

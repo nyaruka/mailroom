@@ -16,7 +16,7 @@ func init() {
 	web.InternalRoute(http.MethodPost, "/contact/reindex", web.JSONPayload(handleReindex))
 }
 
-// Loads the given contacts from the database and reindexes them in OpenSearch.
+// Loads the given contacts from the database and reindexes them in Elastic.
 //
 //	{
 //	  "org_id": 1,
