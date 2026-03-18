@@ -1,3 +1,7 @@
+v26.1.68 (2026-03-18)
+-------------------------
+ * Add messages mode to mrindex command
+
 v26.1.67 (2026-03-18)
 -------------------------
  * Reduce elastic writer batch size to 250
