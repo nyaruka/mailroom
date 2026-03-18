@@ -39,6 +39,7 @@
             }
         },
         "mappings": {
+            "dynamic": false,
             "_routing": {
                 "required": true
             },
@@ -47,7 +48,7 @@
                     "type": "date"
                 },
                 "org_id": {
-                    "type": "integer"
+                    "type": "keyword"
                 },
                 "contact_uuid": {
                     "type": "keyword"
