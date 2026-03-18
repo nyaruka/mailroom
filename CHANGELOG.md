@@ -1,3 +1,7 @@
+v26.1.66 (2026-03-18)
+-------------------------
+ * Switch contact indexing from OpenSearch to Elastic v2 index
+
 v26.1.65 (2026-03-12)
 -------------------------
  * Change some contact index fields to be keyword
