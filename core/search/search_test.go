@@ -44,7 +44,7 @@ func TestGetContactTotal(t *testing.T) {
 			group = oa.GroupByID(tc.group.ID)
 		}
 
-		_, total, err := search.GetContactTotal(ctx, rt, oa, group, tc.query, false)
+		_, total, err := search.GetContactTotal(ctx, rt, oa, group, tc.query)
 
 		if tc.expectedError != "" {
 			assert.EqualError(t, err, tc.expectedError)
@@ -107,7 +107,7 @@ func TestGetContactIDsForQueryPage(t *testing.T) {
 	for i, tc := range tcs {
 		group := oa.GroupByID(tc.group.ID)
 
-		_, ids, total, err := search.GetContactIDsForQueryPage(ctx, rt, oa, group, tc.excludeIDs, tc.query, tc.sort, 0, 50, false)
+		_, ids, total, err := search.GetContactIDsForQueryPage(ctx, rt, oa, group, tc.excludeIDs, tc.query, tc.sort, 0, 50)
 
 		if tc.expectedError != "" {
 			assert.EqualError(t, err, tc.expectedError)
@@ -212,7 +212,7 @@ func TestGetContactIDsForQuery(t *testing.T) {
 			group = oa.GroupByID(tc.group.ID)
 		}
 
-		ids, err := search.GetContactIDsForQuery(ctx, rt, oa, group, tc.status, tc.query, tc.limit, false)
+		ids, err := search.GetContactIDsForQuery(ctx, rt, oa, group, tc.status, tc.query, tc.limit)
 
 		if tc.expectedError != "" {
 			assert.EqualError(t, err, tc.expectedError)

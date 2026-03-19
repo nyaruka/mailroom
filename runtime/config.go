@@ -55,7 +55,7 @@ type Config struct {
 	ElasticPassword      string `help:"the password for ElasticSearch if using basic auth"`
 	ElasticContactsIndex       string  `help:"the name of index alias for contacts"`
 	ElasticContactsIndexV2     string  `help:"the name of the v2 contacts index written by mailroom"`
-	ElasticContactsV2Verify    float64 `help:"proportion of contact searches to also run against the v2 index for comparison (0 to disable)"`
+	ElasticContactsV2Verify    bool    `help:"whether to also run contact searches against the v2 index for comparison"`
 
 	OSEndpoint      string `name:"os_endpoint"        validate:"url" help:"the URL of your OpenSearch endpoint"`
 	OSMessagesIndex string `name:"os_messages_index"                 help:"the base name for monthly message indexes (e.g. messages -> messages-2026-02)"`
