@@ -48,7 +48,7 @@ func handleExport(ctx context.Context, rt *runtime.Runtime, r *exportRequest) (a
 		return errors.New("no such group"), http.StatusBadRequest, nil
 	}
 
-	ids, err := search.GetContactIDsForQuery(ctx, rt, oa, group, models.NilContactStatus, r.Query, -1, false)
+	ids, err := search.GetContactIDsForQuery(ctx, rt, oa, group, models.NilContactStatus, r.Query, -1)
 	if err != nil {
 		return nil, 0, fmt.Errorf("error querying export: %w", err)
 	}
