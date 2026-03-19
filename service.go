@@ -112,13 +112,6 @@ func (s *Service) Start() error {
 		log.Info("elastic ok")
 	}
 
-	// test OpenSearch
-	if _, err := s.rt.OS.Client.Ping(s.ctx, nil); err != nil {
-		log.Error("opensearch not available", "error", err)
-	} else {
-		log.Info("opensearch ok")
-	}
-
 	if c.AndroidCredentialsFile != "" {
 		s.rt.FCM, err = fcm.NewClient(s.ctx, fcm.WithCredentialsFile(c.AndroidCredentialsFile))
 		if err != nil {
@@ -249,7 +242,7 @@ func (s *Service) reportMetrics(ctx context.Context) (int, error) {
 	)
 
 	metrics = append(metrics,
-		cwatch.Datum("OpenSearchSpooledItems", float64(s.rt.OS.Spool.Size()), types.StandardUnitCount, hostDim),
+		cwatch.Datum("ElasticSpooledItems", float64(s.rt.ES.Spool.Size()), types.StandardUnitCount, hostDim),
 	)
 
 	if err := s.rt.CW.Send(ctx, metrics...); err != nil {

@@ -6,14 +6,14 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/nyaruka/gocommon/aws/osearch"
+	"github.com/nyaruka/gocommon/elastic"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/runner"
 	"github.com/nyaruka/mailroom/core/search"
 	"github.com/nyaruka/mailroom/runtime"
 )
 
-// IndexMessages is our hook for indexing messages to OpenSearch
+// IndexMessages is our hook for indexing messages to Elasticsearch
 var IndexMessages runner.PostCommitHook = &indexMessages{}
 
 type indexMessages struct{}
@@ -30,10 +30,10 @@ func (h *indexMessages) Execute(ctx context.Context, rt *runtime.Runtime, oa *mo
 				return err
 			}
 
-			slog.Debug("indexing message to opensearch", "uuid", msg.UUID, "contact", msg.ContactUUID)
+			slog.Debug("indexing message to elasticsearch", "uuid", msg.UUID, "contact", msg.ContactUUID)
 
-			rt.OS.Writer.Queue(&osearch.Document{
-				Index:   msg.IndexName(rt.Config.OSMessagesIndex),
+			rt.ES.Writer.Queue(&elastic.Document{
+				Index:   msg.IndexName(rt.Config.ElasticMessagesIndex),
 				ID:      string(msg.UUID),
 				Routing: fmt.Sprintf("%d", msg.OrgID),
 				Body:    doc,

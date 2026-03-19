@@ -12,7 +12,6 @@ import (
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/runtime"
-	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 )
 
 const (
@@ -20,7 +19,7 @@ const (
 	MessageTextMinLength = 2
 )
 
-// MessageDoc represents a message document in the OpenSearch messages index. UUID is used as the document _id.
+// MessageDoc represents a message document in the Elasticsearch messages index. UUID is used as the document _id.
 type MessageDoc struct {
 	CreatedOn   time.Time         `json:"@timestamp"` // also used to determine monthly index
 	UUID        flows.EventUUID   `json:"-"`          // used as _id
@@ -42,7 +41,7 @@ type MessageResult struct {
 	Event       map[string]any
 }
 
-// SearchMessages searches the OpenSearch messages index for messages matching the given text in the given org,
+// SearchMessages searches the Elasticsearch messages index for messages matching the given text in the given org,
 // then fetches the corresponding events from DynamoDB.
 func SearchMessages(ctx context.Context, rt *runtime.Runtime, orgID models.OrgID, text string, contactUUID flows.ContactUUID, inTicket bool, limit int) ([]MessageResult, error) {
 	routing := fmt.Sprintf("%d", orgID)
@@ -78,11 +77,9 @@ func SearchMessages(ctx context.Context, rt *runtime.Runtime, orgID models.OrgID
 		"track_total_hits": false,
 	}
 
-	resp, err := rt.OS.Client.Search(ctx, &opensearchapi.SearchReq{
-		Indices: []string{rt.Config.OSMessagesIndex + "-*"},
-		Body:    bytes.NewReader(jsonx.MustMarshal(src)),
-		Params:  opensearchapi.SearchParams{Routing: []string{routing}},
-	})
+	index := rt.Config.ElasticMessagesIndex + "-*"
+
+	results, err := rt.ES.Client.Search().Index(index).Routing(routing).Raw(bytes.NewReader(jsonx.MustMarshal(src))).Do(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("error searching messages: %w", err)
 	}
@@ -92,16 +89,16 @@ func SearchMessages(ctx context.Context, rt *runtime.Runtime, orgID models.OrgID
 		contactUUID flows.ContactUUID
 	}
 
-	hits := make([]hitResult, len(resp.Hits.Hits))
-	for i, hit := range resp.Hits.Hits {
+	hits := make([]hitResult, len(results.Hits.Hits))
+	for i, hit := range results.Hits.Hits {
 		var doc MessageDoc
-		if err := json.Unmarshal(hit.Source, &doc); err != nil {
+		if err := json.Unmarshal(hit.Source_, &doc); err != nil {
 			return nil, fmt.Errorf("error unmarshalling message doc: %w", err)
 		}
-		hits[i] = hitResult{uuid: flows.EventUUID(hit.ID), contactUUID: doc.ContactUUID}
+		hits[i] = hitResult{uuid: flows.EventUUID(*hit.Id_), contactUUID: doc.ContactUUID}
 	}
 
-	// build DynamoDB keys from OpenSearch results
+	// build DynamoDB keys from Elasticsearch results
 	keys := make([]dynamo.Key, len(hits))
 	for i, hit := range hits {
 		keys[i] = dynamo.Key{
@@ -122,8 +119,8 @@ func SearchMessages(ctx context.Context, rt *runtime.Runtime, orgID models.OrgID
 		itemsBySK[item.SK] = item
 	}
 
-	// build results in OpenSearch relevance order, skipping any not found in DynamoDB
-	results := make([]MessageResult, 0, len(hits))
+	// build results in Elasticsearch relevance order, skipping any not found in DynamoDB
+	msgResults := make([]MessageResult, 0, len(hits))
 	for _, hit := range hits {
 		item := itemsBySK[fmt.Sprintf("evt#%s", hit.uuid)]
 		if item == nil {
@@ -137,13 +134,13 @@ func SearchMessages(ctx context.Context, rt *runtime.Runtime, orgID models.OrgID
 
 		data["uuid"] = string(hit.uuid) // re-add uuid (stripped on write)
 
-		results = append(results, MessageResult{ContactUUID: hit.contactUUID, Event: data})
+		msgResults = append(msgResults, MessageResult{ContactUUID: hit.contactUUID, Event: data})
 	}
 
-	return results, nil
+	return msgResults, nil
 }
 
-// DeindexMessagesByContact deletes all messages in the OpenSearch messages index for the given contact UUIDs.
+// DeindexMessagesByContact deletes all messages in the Elasticsearch messages index for the given contact UUIDs.
 func DeindexMessagesByContact(ctx context.Context, rt *runtime.Runtime, orgID models.OrgID, contactUUIDs []flows.ContactUUID) (int, error) {
 	routing := fmt.Sprintf("%d", orgID)
 	uuids := make([]string, len(contactUUIDs))
@@ -157,14 +154,12 @@ func DeindexMessagesByContact(ctx context.Context, rt *runtime.Runtime, orgID mo
 		},
 	}
 
-	resp, err := rt.OS.Client.Document.DeleteByQuery(ctx, opensearchapi.DocumentDeleteByQueryReq{
-		Indices: []string{rt.Config.OSMessagesIndex + "-*"},
-		Body:    bytes.NewReader(jsonx.MustMarshal(src)),
-		Params:  opensearchapi.DocumentDeleteByQueryParams{Routing: []string{routing}},
-	})
+	index := rt.Config.ElasticMessagesIndex + "-*"
+
+	resp, err := rt.ES.Client.DeleteByQuery(index).Routing(routing).Raw(bytes.NewReader(jsonx.MustMarshal(src))).Do(ctx)
 	if err != nil {
 		return 0, fmt.Errorf("error deindexing messages for contacts in org #%d: %w", orgID, err)
 	}
 
-	return resp.Deleted, nil
+	return int(*resp.Deleted), nil
 }

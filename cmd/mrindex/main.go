@@ -10,7 +10,7 @@ import (
 	"time"
 
 	_ "github.com/lib/pq"
-	"github.com/nyaruka/gocommon/aws/osearch"
+	"github.com/nyaruka/gocommon/elastic"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/search"
@@ -72,7 +72,7 @@ func main() {
 		}
 	}
 
-	// stop flushes remaining queued items to Elastic/OpenSearch and spool
+	// stop flushes remaining queued items to Elastic and spool
 	rt.Stop()
 }
 
@@ -208,8 +208,8 @@ func indexAllMessages(ctx context.Context, rt *runtime.Runtime, startUUID string
 				return fmt.Errorf("error marshalling message doc: %w", err)
 			}
 
-			rt.OS.Writer.Queue(&osearch.Document{
-				Index:   msg.IndexName(rt.Config.OSMessagesIndex),
+			rt.ES.Writer.Queue(&elastic.Document{
+				Index:   msg.IndexName(rt.Config.ElasticMessagesIndex),
 				ID:      string(msg.UUID),
 				Routing: fmt.Sprintf("%d", msg.OrgID),
 				Body:    doc,

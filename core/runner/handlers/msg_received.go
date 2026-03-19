@@ -28,7 +28,7 @@ func handleMsgReceived(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 		scene.AttachPreCommitHook(hooks.UpdateMessageHandled, event)
 	}
 
-	// index message to OpenSearch if it's not IVR and has sufficient text
+	// index message to Elasticsearch if it's not IVR and has sufficient text
 	if scene.Call == nil && len(event.Msg.Text()) >= search.MessageTextMinLength {
 		scene.AttachPostCommitHook(hooks.IndexMessages, &search.MessageDoc{
 			CreatedOn:   event.CreatedOn(),

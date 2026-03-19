@@ -16,7 +16,7 @@ func init() {
 	web.InternalRoute(http.MethodPost, "/msg/search", web.JSONPayload(handleSearch))
 }
 
-// Searches messages in the OpenSearch messages index and returns the matching events from DynamoDB.
+// Searches messages in the Elasticsearch messages index and returns the matching events from DynamoDB.
 //
 //	{
 //	  "org_id": 1,

@@ -17,7 +17,7 @@ import (
 	valkey "github.com/gomodule/redigo/redis"
 	"github.com/nyaruka/gocommon/aws/dynamo"
 	"github.com/nyaruka/gocommon/aws/dynamo/dyntest"
-	"github.com/nyaruka/gocommon/aws/osearch"
+	"github.com/nyaruka/gocommon/elastic"
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/core/models"
@@ -27,7 +27,6 @@ import (
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/mailroom/testsuite/testdb"
 	"github.com/nyaruka/mailroom/utils/queues"
-	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	"github.com/stretchr/testify/require"
 )
 
@@ -169,23 +168,23 @@ func drainTasks(t *testing.T, rt *runtime.Runtime, perform bool, qnames ...strin
 	return counts
 }
 
-// IndexMessages indexes the given messages into OpenSearch and writes the corresponding events to
-// DynamoDB, then refreshes the OpenSearch index so they're immediately searchable.
+// IndexMessages indexes the given messages into Elasticsearch and writes the corresponding events to
+// DynamoDB, then refreshes the Elasticsearch index so they're immediately searchable.
 func IndexMessages(t *testing.T, rt *runtime.Runtime, msgs []search.MessageDoc) {
 	t.Helper()
 
 	for _, msg := range msgs {
-		rt.OS.Writer.Queue(&osearch.Document{
-			Index:   msg.IndexName(rt.Config.OSMessagesIndex),
+		rt.ES.Writer.Queue(&elastic.Document{
+			Index:   msg.IndexName(rt.Config.ElasticMessagesIndex),
 			ID:      string(msg.UUID),
 			Routing: fmt.Sprintf("%d", msg.OrgID),
 			Body:    jsonx.MustMarshal(msg),
 		})
 	}
 
-	rt.OS.Writer.Flush()
+	rt.ES.Writer.Flush()
 
-	_, err := rt.OS.Client.Indices.Refresh(t.Context(), &opensearchapi.IndicesRefreshReq{Indices: []string{rt.Config.OSMessagesIndex + "-*"}})
+	_, err := rt.ES.Client.Indices.Refresh().Index(rt.Config.ElasticMessagesIndex + "-*").Do(t.Context())
 	require.NoError(t, err)
 
 	for _, msg := range msgs {
@@ -206,7 +205,7 @@ func IndexMessages(t *testing.T, rt *runtime.Runtime, msgs []search.MessageDoc) 
 	}
 }
 
-// IndexedMessage represents an indexed OpenSearch message for test assertions, including metadata
+// IndexedMessage represents an indexed Elasticsearch message for test assertions, including metadata
 // fields (_id and _routing) that aren't part of the document body.
 type IndexedMessage struct {
 	ID          string `json:"_id"`
@@ -218,35 +217,36 @@ type IndexedMessage struct {
 func GetIndexedMessages(t *testing.T, rt *runtime.Runtime, clear bool) []IndexedMessage {
 	t.Helper()
 
-	rt.OS.Writer.Flush()
+	rt.ES.Writer.Flush()
 
-	client := rt.OS.Client
-	pattern := rt.Config.OSMessagesIndex + "-*"
+	pattern := rt.Config.ElasticMessagesIndex + "-*"
 
 	// refresh the indexes to make documents searchable
-	refreshResp, err := client.Indices.Refresh(t.Context(), &opensearchapi.IndicesRefreshReq{Indices: []string{pattern}})
-	if err != nil || refreshResp.Inspect().Response.IsError() {
+	_, err := rt.ES.Client.Indices.Refresh().Index(pattern).Do(t.Context())
+	if err != nil {
 		return nil // no matching indexes yet
 	}
 
-	// search all documents, sorted by _id for deterministic ordering
-	resp, err := client.Search(t.Context(), &opensearchapi.SearchReq{
-		Indices: []string{pattern},
-		Body:    strings.NewReader(`{"query": {"match_all": {}}, "sort": ["_id"]}`),
-	})
-	require.NoError(t, err)
-
-	msgs := make([]IndexedMessage, len(resp.Hits.Hits))
-	for i, hit := range resp.Hits.Hits {
-		err := json.Unmarshal(hit.Source, &msgs[i])
-		require.NoError(t, err)
-		msgs[i].ID = hit.ID
-		msgs[i].Routing = hit.Routing
+	// search all documents
+	results, err := rt.ES.Client.Search().Index(pattern).Raw(strings.NewReader(`{"query": {"match_all": {}}, "size": 1000}`)).Do(t.Context())
+	if err != nil {
+		return nil
 	}
 
+	msgs := make([]IndexedMessage, len(results.Hits.Hits))
+	for i, hit := range results.Hits.Hits {
+		err := json.Unmarshal(hit.Source_, &msgs[i])
+		require.NoError(t, err)
+		msgs[i].ID = *hit.Id_
+		msgs[i].Routing = *hit.Routing_
+	}
+
+	slices.SortFunc(msgs, func(a, b IndexedMessage) int { return strings.Compare(a.ID, b.ID) })
+
 	if clear {
-		// delete all matching monthly indexes
-		client.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{Indices: []string{pattern}})
+		// delete all matching monthly indexes using delete-by-query and refresh
+		rt.ES.Client.DeleteByQuery(pattern).Raw(strings.NewReader(`{"query": {"match_all": {}}}`)).Do(t.Context())
+		rt.ES.Client.Indices.Refresh().Index(pattern).Do(t.Context())
 	}
 
 	return msgs
