@@ -56,7 +56,8 @@
                                 ]
                             }
                         ]
-                    }
+                    },
+                    "all_urns": true
                 }
             ],
             "exits": [

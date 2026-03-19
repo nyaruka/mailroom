@@ -1,22 +1,15 @@
 {
     "uuid": "502c3ee4-3249-4dee-8e71-c62070667d52",
     "name": "New",
-    "spec_version": "13.6.0",
+    "spec_version": "14.4.0",
     "type": "messaging",
     "language": "und",
-    "expire_after_minutes": 43200,
+    "expire_after_minutes": 20160,
     "localization": {
         "spa": {
             "82a1de5f-af1a-45ef-8511-4d60c160e486": {
                 "text": [
                     "Hola @webhook.json"
-                ]
-            }
-        },
-        "base": {
-            "82a1de5f-af1a-45ef-8511-4d60c160e486": {
-                "text": [
-                    "Salut"
                 ]
             }
         }
@@ -28,7 +21,7 @@
                 {
                     "uuid": "82a1de5f-af1a-45ef-8511-4d60c160e486",
                     "type": "send_msg",
-                    "text": "Hello @webhook.json from @results.this_is_a_reference_to_a_result_whose_name_will_have_been_truncated",
+                    "text": "Hello @webhook.json from @results.this_is_a_reference_to_a_result_whose_name_will_have_been_trunca",
                     "quick_replies": [
                         "A",
                         "B",
@@ -39,8 +32,7 @@
                         "G",
                         "H",
                         "I",
-                        "J",
-                        "K"
+                        "J"
                     ],
                     "template": {
                         "uuid": "641b8b05-082a-497e-bf63-38aa48b1f0c4",
@@ -48,8 +40,7 @@
                     },
                     "template_variables": [
                         "@contact.name"
-                    ],
-                    "all_urns": true
+                    ]
                 }
             ],
             "exits": [
@@ -73,13 +64,14 @@
             ],
             "router": {
                 "type": "switch",
-                "operand": "@results.call_2.category",
+                "operand": "@webhook.status",
                 "cases": [
                     {
                         "uuid": "ff810df6-23c2-4dff-9be1-eebffae2bb9d",
-                        "type": "has_only_text",
+                        "type": "has_number_between",
                         "arguments": [
-                            "Success"
+                            "200",
+                            "299"
                         ],
                         "category_uuid": "be4ad508-3afb-4c4a-80ba-86b61518411c"
                     }
@@ -114,8 +106,7 @@
                 {
                     "uuid": "dad37f80-4661-45bc-bfe0-a60bfc24b257",
                     "type": "open_ticket",
-                    "body": "Sounds important",
-                    "result_name": "Ticket"
+                    "note": "Sounds important"
                 }
             ],
             "router": {
@@ -133,17 +124,16 @@
                     }
                 ],
                 "default_category_uuid": "e86a60b9-6e8e-4150-9ab9-19e6eb7003d9",
-                "operand": "@results.ticket",
+                "operand": "@locals._new_ticket",
                 "cases": [
                     {
                         "uuid": "73bfb9dc-9bbb-4928-92fd-d8957edf4a92",
-                        "type": "has_category",
-                        "arguments": [
-                            "Success"
-                        ],
+                        "type": "has_text",
+                        "arguments": [],
                         "category_uuid": "6103fa71-6ca9-4300-aec6-929f50fa1ae0"
                     }
-                ]
+                ],
+                "result_name": "Ticket"
             },
             "exits": [
                 {
