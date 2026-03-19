@@ -40,7 +40,8 @@
                     },
                     "template_variables": [
                         "@contact.name"
-                    ]
+                    ],
+                    "all_urns": true
                 }
             ],
             "exits": [

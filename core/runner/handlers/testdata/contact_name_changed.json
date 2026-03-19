@@ -83,10 +83,6 @@
                 "returns": "😃2345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678"
             }
         ],
-        "assert_search": [
-            {"query": "name = Tarzan", "contacts": [10000]},
-            {"query": "name = \"Geoff Newman\"", "contacts": [10002]}
-        ],
         "expected_history": [
             {
                 "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
@@ -162,6 +158,20 @@
                     "name": "Tarzan",
                     "type": "contact_name_changed"
                 }
+            }
+        ],
+        "assert_search": [
+            {
+                "query": "name = Tarzan",
+                "contacts": [
+                    10000
+                ]
+            },
+            {
+                "query": "name = \"Geoff Newman\"",
+                "contacts": [
+                    10002
+                ]
             }
         ]
     }
