@@ -1,3 +1,8 @@
+v26.1.69 (2026-03-19)
+-------------------------
+ * Update goflow to v0.271.0 which adds flow spec 14.4.0
+ * Internalize v1/v2 ES index comparison into search functions
+
 v26.1.68 (2026-03-18)
 -------------------------
  * Add messages mode to mrindex command
