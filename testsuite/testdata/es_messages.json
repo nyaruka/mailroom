@@ -1,7 +1,5 @@
 {
-    "index_patterns": [
-        "messages-v1-*"
-    ],
+    "index_patterns": ["{{INDEX}}-*"],
     "template": {
         "settings": {
             "index": {

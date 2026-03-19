@@ -18,16 +18,16 @@ import (
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/rp-indexer/v10/indexers"
 	ixruntime "github.com/nyaruka/rp-indexer/v10/runtime"
-	"github.com/opensearch-project/opensearch-go/v4/opensearchapi"
 	"github.com/stretchr/testify/require"
 )
 
 const (
-	elasticURL             = "http://elastic:9200"
-	elasticContactsIndex   = "test_contacts"
-	elasticContactsIndexV2 = "test_contacts-v2"
-	postgresDumpPath       = "./testsuite/testdata/postgres.dump"
-	dynamoTablesPath       = "./testsuite/testdata/dynamo.json"
+	elasticURL               = "http://elastic:9200"
+	elasticContactsIndex     = "test_contacts"
+	elasticContactsIndexV2   = "test_contacts-v2"
+	elasticMessagesIndex     = "messages-test"
+	postgresDumpPath         = "./testsuite/testdata/postgres.dump"
+	dynamoTablesPath         = "./testsuite/testdata/dynamo.json"
 )
 
 // Refresh is our type for the pieces of org assets we want fresh (not cached)
@@ -35,15 +35,14 @@ type ResetFlag int
 
 // refresh bit masks
 const (
-	ResetNone       = ResetFlag(0)
-	ResetAll        = ResetFlag(^0)
-	ResetDB         = ResetFlag(1 << 1)
-	ResetData       = ResetFlag(1 << 2)
-	ResetValkey     = ResetFlag(1 << 3)
-	ResetStorage    = ResetFlag(1 << 4)
-	ResetDynamo     = ResetFlag(1 << 5)
-	ResetOpenSearch = ResetFlag(1 << 6)
-	ResetElastic    = ResetFlag(1 << 7)
+	ResetNone    = ResetFlag(0)
+	ResetAll     = ResetFlag(^0)
+	ResetDB      = ResetFlag(1 << 1)
+	ResetData    = ResetFlag(1 << 2)
+	ResetValkey  = ResetFlag(1 << 3)
+	ResetStorage = ResetFlag(1 << 4)
+	ResetDynamo  = ResetFlag(1 << 5)
+	ResetElastic = ResetFlag(1 << 6)
 )
 
 // Reset clears out both our database and redis DB
@@ -56,9 +55,6 @@ func Reset(t *testing.T, rt *runtime.Runtime, what ResetFlag) {
 	}
 	if what&ResetDynamo > 0 {
 		resetDynamo(t, rt)
-	}
-	if what&ResetOpenSearch > 0 {
-		resetOpenSearch(t, rt)
 	}
 
 	if what&ResetDB > 0 {
@@ -81,6 +77,7 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 	cfg.DB = "postgres://mailroom_test:temba@postgres/mailroom_test?sslmode=disable&Timezone=UTC"
 	cfg.ElasticContactsIndex = elasticContactsIndex
 	cfg.ElasticContactsIndexV2 = elasticContactsIndexV2
+	cfg.ElasticMessagesIndex = elasticMessagesIndex
 	cfg.Elastic = elasticURL
 	cfg.AWSAccessKeyID = "root"
 	cfg.AWSSecretAccessKey = "tembatemba"
@@ -89,7 +86,6 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 	cfg.S3PathStyle = true
 	cfg.DynamoEndpoint = "http://localstack:4566"
 	cfg.DynamoTablePrefix = "Test"
-	cfg.OSEndpoint = "http://opensearch:9200"
 	cfg.SpoolDir = absPath("./_test_spool")
 
 	err := cfg.Parse()
@@ -99,8 +95,11 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 	require.NoError(t, err)
 
 	createBucket(t, rt, rt.Config.S3AttachmentsBucket)
-	setupOpenSearch(t, rt)
 	setupElasticContactsV2(t, rt)
+	setupElasticMessages(t, rt)
+
+	// clear stale message indexes from previous test runs (they share deterministic mock UUIDs)
+	deleteElasticMessages(t, rt)
 
 	// create Postgres tables if necessary
 	_, err = rt.DB.Exec("SELECT * from orgs_org")
@@ -248,19 +247,10 @@ func resetElastic(t *testing.T, rt *runtime.Runtime) {
 	rt.ES.Client.Indices.Delete(elasticContactsIndexV2).Do(t.Context())
 	setupElasticContactsV2(t, rt)
 
+	// delete any message indexes
+	deleteElasticMessages(t, rt)
+
 	ReindexElastic(t, rt)
-}
-
-func setupOpenSearch(t *testing.T, rt *runtime.Runtime) {
-	t.Helper()
-
-	// create messages index template (idempotent)
-	messagesBody := ReadFile(t, absPath("./testsuite/testdata/os_messages.json"))
-	_, err := rt.OS.Client.IndexTemplate.Create(t.Context(), opensearchapi.IndexTemplateCreateReq{
-		IndexTemplate: rt.Config.OSMessagesIndex,
-		Body:          bytes.NewReader(messagesBody),
-	})
-	require.NoError(t, err)
 }
 
 // setupElasticContactsV2 creates the v2 contacts index in Elastic if it doesn't already exist
@@ -277,11 +267,34 @@ func setupElasticContactsV2(t *testing.T, rt *runtime.Runtime) {
 	}
 }
 
-func resetOpenSearch(t *testing.T, rt *runtime.Runtime) {
+// setupElasticMessages creates the index template for messages in Elastic
+func setupElasticMessages(t *testing.T, rt *runtime.Runtime) {
 	t.Helper()
 
-	// delete all indexes matching the messages pattern (ignore 404 if none exist)
-	rt.OS.Client.Indices.Delete(t.Context(), opensearchapi.IndicesDeleteReq{Indices: []string{rt.Config.OSMessagesIndex + "-*"}})
+	messagesBody := ReadFile(t, absPath("./testsuite/testdata/es_messages.json"))
+
+	// replace placeholder with actual index name for test
+	body := bytes.ReplaceAll(messagesBody, []byte("{{INDEX}}"), []byte(rt.Config.ElasticMessagesIndex))
+
+	_, err := rt.ES.Client.Indices.PutIndexTemplate(rt.Config.ElasticMessagesIndex).Raw(bytes.NewReader(body)).Do(t.Context())
+	require.NoError(t, err)
+}
+
+// deleteElasticMessages deletes all message indexes matching the configured pattern
+func deleteElasticMessages(t *testing.T, rt *runtime.Runtime) {
+	t.Helper()
+
+	pattern := rt.Config.ElasticMessagesIndex + "-*"
+
+	indexes, err := rt.ES.Client.Cat.Indices().Index(pattern).Do(t.Context())
+	require.NoError(t, err)
+
+	for _, idx := range indexes {
+		if idx.Index != nil {
+			_, err := rt.ES.Client.Indices.Delete(*idx.Index).Do(t.Context())
+			require.NoError(t, err)
+		}
+	}
 }
 
 func resetDynamo(t *testing.T, rt *runtime.Runtime) {

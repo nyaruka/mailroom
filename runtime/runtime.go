@@ -23,10 +23,9 @@ type Runtime struct {
 	ReadonlyDB *sql.DB
 	VK         *valkey.Pool
 	S3         *s3x.Service
-	ES         *Elastic
-	Dynamo     *Dynamo
-	OS         *OpenSearch
-	CW         *cwatch.Service
+	ES     *Elastic
+	Dynamo *Dynamo
+	CW     *cwatch.Service
 	FCM        FCMClient
 
 	Queues *Queues
@@ -79,11 +78,6 @@ func NewRuntime(cfg *Config) (*Runtime, error) {
 		return nil, err
 	}
 
-	rt.OS, err = newOpenSearch(cfg)
-	if err != nil {
-		return nil, err
-	}
-
 	rt.CW, err = cwatch.NewService(cfg.AWSAccessKeyID, cfg.AWSSecretAccessKey, cfg.AWSRegion, cfg.CloudwatchNamespace, cfg.DeploymentID)
 	if err != nil {
 		return nil, fmt.Errorf("error creating Cloudwatch service: %w", err)
@@ -102,16 +96,12 @@ func (r *Runtime) Start() error {
 	if err := r.ES.start(); err != nil {
 		return err
 	}
-	if err := r.OS.start(); err != nil {
-		return err
-	}
 	return nil
 }
 
 func (r *Runtime) Stop() {
 	r.Dynamo.stop()
 	r.ES.stop()
-	r.OS.stop()
 }
 
 func createPostgresPool(url string, maxOpenConns int) (*sqlx.DB, error) {
