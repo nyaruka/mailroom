@@ -225,11 +225,13 @@ func runTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 				_, err = rt.ES.Client.Indices.Refresh().Index(rt.Config.ElasticContactsIndexV2).Do(ctx)
 				require.NoError(t, err)
 
+				rt.Config.ElasticContactsUseV2 = true
 				for _, sa := range tc.AssertSearch {
-					ids, err := search.GetContactIDsForQueryV2(ctx, rt, oa2, nil, models.ContactStatusActive, sa.Query, -1)
+					ids, err := search.GetContactIDsForQuery(ctx, rt, oa2, nil, models.ContactStatusActive, sa.Query, -1)
 					assert.NoError(t, err, "%s: search query '%s' failed", tc.Label, sa.Query)
 					assert.ElementsMatch(t, sa.Contacts, ids, "%s: search query '%s' returned wrong contacts", tc.Label, sa.Query)
 				}
+				rt.Config.ElasticContactsUseV2 = false
 
 				testsuite.ClearESContactsIndexV2(t, rt)
 			}

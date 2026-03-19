@@ -55,7 +55,7 @@ type Config struct {
 	ElasticPassword      string `help:"the password for ElasticSearch if using basic auth"`
 	ElasticContactsIndex       string  `help:"the name of index alias for contacts"`
 	ElasticContactsIndexV2     string  `help:"the name of the v2 contacts index written by mailroom"`
-	ElasticContactsV2Verify    bool    `help:"whether to also run contact searches against the v2 index for comparison"`
+	ElasticContactsUseV2       bool    `help:"whether to use the v2 contacts index for searches"`
 	ElasticMessagesIndex       string  `help:"the base name for monthly message indexes (e.g. messages-v2 -> messages-v2-2026-02)"`
 
 	AWSAccessKeyID     string `help:"access key ID to use for AWS services"`
