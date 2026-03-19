@@ -1,3 +1,7 @@
+v26.1.70 (2026-03-19)
+-------------------------
+ * Move message indexing from OpenSearch to Elasticsearch
+
 v26.1.69 (2026-03-19)
 -------------------------
  * Update goflow to v0.271.0 which adds flow spec 14.4.0
