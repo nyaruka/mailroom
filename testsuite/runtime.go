@@ -25,7 +25,7 @@ const (
 	elasticURL               = "http://elastic:9200"
 	elasticContactsIndex     = "test_contacts"
 	elasticContactsIndexV2   = "test_contacts-v2"
-	elasticMessagesIndex     = "test_messages-v1"
+	elasticMessagesIndex     = "messages-test"
 	postgresDumpPath         = "./testsuite/testdata/postgres.dump"
 	dynamoTablesPath         = "./testsuite/testdata/dynamo.json"
 )
