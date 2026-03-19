@@ -62,7 +62,7 @@ func newOpenSearch(cfg *Config) (*OpenSearch, error) {
 
 	return &OpenSearch{
 		Client: client,
-		Writer: osearch.NewWriter(client, 500, 250*time.Millisecond, 1000, spool),
+		Writer: osearch.NewWriter(client, 250, 250*time.Millisecond, 1000, spool),
 		Spool:  spool,
 	}, nil
 }
