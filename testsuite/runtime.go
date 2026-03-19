@@ -99,7 +99,7 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 	setupElasticMessages(t, rt)
 
 	// clear stale message indexes from previous test runs (they share deterministic mock UUIDs)
-	clearElasticMessages(t, rt)
+	deleteElasticMessages(t, rt)
 
 	// create Postgres tables if necessary
 	_, err = rt.DB.Exec("SELECT * from orgs_org")
@@ -247,8 +247,8 @@ func resetElastic(t *testing.T, rt *runtime.Runtime) {
 	rt.ES.Client.Indices.Delete(elasticContactsIndexV2).Do(t.Context())
 	setupElasticContactsV2(t, rt)
 
-	// delete and recreate any message indexes
-	rt.ES.Client.Indices.Delete(elasticMessagesIndex + "-*").Do(t.Context())
+	// delete any message indexes
+	deleteElasticMessages(t, rt)
 
 	ReindexElastic(t, rt)
 }
@@ -280,12 +280,21 @@ func setupElasticMessages(t *testing.T, rt *runtime.Runtime) {
 	require.NoError(t, err)
 }
 
-// clearElasticMessages deletes all documents from message indexes
-func clearElasticMessages(t *testing.T, rt *runtime.Runtime) {
+// deleteElasticMessages deletes all message indexes matching the configured pattern
+func deleteElasticMessages(t *testing.T, rt *runtime.Runtime) {
 	t.Helper()
 
 	pattern := rt.Config.ElasticMessagesIndex + "-*"
-	rt.ES.Client.DeleteByQuery(pattern).Raw(bytes.NewReader([]byte(`{"query": {"match_all": {}}}`))).Do(t.Context())
+
+	indexes, err := rt.ES.Client.Cat.Indices().Index(pattern).Do(t.Context())
+	require.NoError(t, err)
+
+	for _, idx := range indexes {
+		if idx.Index != nil {
+			_, err := rt.ES.Client.Indices.Delete(*idx.Index).Do(t.Context())
+			require.NoError(t, err)
+		}
+	}
 }
 
 func resetDynamo(t *testing.T, rt *runtime.Runtime) {

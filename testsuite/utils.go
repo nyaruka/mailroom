@@ -221,17 +221,21 @@ func GetIndexedMessages(t *testing.T, rt *runtime.Runtime, clear bool) []Indexed
 
 	pattern := rt.Config.ElasticMessagesIndex + "-*"
 
-	// refresh the indexes to make documents searchable
-	_, err := rt.ES.Client.Indices.Refresh().Index(pattern).Do(t.Context())
-	if err != nil {
+	// check if any message indexes exist
+	indexes, err := rt.ES.Client.Cat.Indices().Index(pattern).Do(t.Context())
+	require.NoError(t, err)
+
+	if len(indexes) == 0 {
 		return nil // no matching indexes yet
 	}
 
+	// refresh the indexes to make documents searchable
+	_, err = rt.ES.Client.Indices.Refresh().Index(pattern).Do(t.Context())
+	require.NoError(t, err)
+
 	// search all documents
 	results, err := rt.ES.Client.Search().Index(pattern).Raw(strings.NewReader(`{"query": {"match_all": {}}, "size": 1000}`)).Do(t.Context())
-	if err != nil {
-		return nil
-	}
+	require.NoError(t, err)
 
 	msgs := make([]IndexedMessage, len(results.Hits.Hits))
 	for i, hit := range results.Hits.Hits {
@@ -244,9 +248,12 @@ func GetIndexedMessages(t *testing.T, rt *runtime.Runtime, clear bool) []Indexed
 	slices.SortFunc(msgs, func(a, b IndexedMessage) int { return strings.Compare(a.ID, b.ID) })
 
 	if clear {
-		// delete all matching monthly indexes using delete-by-query and refresh
-		rt.ES.Client.DeleteByQuery(pattern).Raw(strings.NewReader(`{"query": {"match_all": {}}}`)).Do(t.Context())
-		rt.ES.Client.Indices.Refresh().Index(pattern).Do(t.Context())
+		for _, idx := range indexes {
+			if idx.Index != nil {
+				_, err := rt.ES.Client.Indices.Delete(*idx.Index).Do(t.Context())
+				require.NoError(t, err)
+			}
+		}
 	}
 
 	return msgs
