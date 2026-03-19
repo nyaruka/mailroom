@@ -105,7 +105,7 @@ func runTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 
 	// clear any stale data from previous test runs
 	testsuite.GetIndexedMessages(t, rt, true)
-	testsuite.ClearESContactsIndexV2(t, rt)
+	testsuite.ResetESContactsIndexV2(t, rt)
 
 	for i, tc := range tcs {
 		scenes := make([]*runner.Scene, 4)
@@ -206,11 +206,13 @@ func runTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 			}
 			test.AssertEqualJSON(t, jsonx.MustMarshal(tc.IndexedMessages), jsonx.MustMarshal(actual.IndexedMessages), "%s: indexed messages mismatch", tc.Label)
 
-			// check search assertions against v2 Elastic contacts index
+			// check search assertions against v2 Elastic contacts index - we re-index
+			// test contacts from DB because handler tests add events directly so the
+			// in-memory flow contacts used by the IndexContacts hook don't reflect the
+			// DB changes made by pre-commit hooks
 			if len(tc.AssertSearch) > 0 {
-				// reload contacts from DB and re-index since handler tests add events directly
-				// (bypassing the flow engine) so the flow contacts used by IndexContacts hook
-				// don't have the updated values
+				testsuite.ResetESContactsIndexV2(t, rt)
+
 				models.FlushCache()
 				oa2, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 				require.NoError(t, err)
@@ -222,18 +224,15 @@ func runTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 				}
 
 				rt.ES.Writer.Flush()
+
 				_, err = rt.ES.Client.Indices.Refresh().Index(rt.Config.ElasticContactsIndexV2).Do(ctx)
 				require.NoError(t, err)
 
-				rt.Config.ElasticContactsUseV2 = true
 				for _, sa := range tc.AssertSearch {
 					ids, err := search.GetContactIDsForQuery(ctx, rt, oa2, nil, models.ContactStatusActive, sa.Query, -1)
 					assert.NoError(t, err, "%s: search query '%s' failed", tc.Label, sa.Query)
 					assert.ElementsMatch(t, sa.Contacts, ids, "%s: search query '%s' returned wrong contacts", tc.Label, sa.Query)
 				}
-				rt.Config.ElasticContactsUseV2 = false
-
-				testsuite.ClearESContactsIndexV2(t, rt)
 			}
 		} else {
 			tcs[i] = actual

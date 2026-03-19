@@ -25,7 +25,6 @@ require (
 	github.com/nyaruka/gocommon v1.76.2
 	github.com/nyaruka/goflow v0.271.0
 	github.com/nyaruka/null/v3 v3.0.0
-	github.com/nyaruka/rp-indexer/v10 v10.3.2
 	github.com/nyaruka/vkutil v0.20.0
 	github.com/openai/openai-go v1.12.0
 	github.com/patrickmn/go-cache v2.1.0+incompatible
