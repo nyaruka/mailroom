@@ -17,7 +17,6 @@ import (
 	valkey "github.com/gomodule/redigo/redis"
 	"github.com/nyaruka/gocommon/aws/dynamo"
 	"github.com/nyaruka/gocommon/aws/dynamo/dyntest"
-	"github.com/elastic/go-elasticsearch/v8/typedapi/types/enums/conflicts"
 	"github.com/nyaruka/gocommon/elastic"
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/goflow/flows"
@@ -310,8 +309,11 @@ func IndexOrgContacts(t *testing.T, rt *runtime.Runtime, org *testdb.Org) {
 func ClearElasticIndexes(t *testing.T, rt *runtime.Runtime) {
 	t.Helper()
 
-	// clear contacts (Proceed ignores version conflicts from externally-versioned docs)
-	_, err := rt.ES.Client.DeleteByQuery(rt.Config.ElasticContactsIndexV2).Conflicts(conflicts.Proceed).Raw(strings.NewReader(`{"query": {"match_all": {}}}`)).Do(t.Context())
+	// flush any buffered writes so they don't arrive after we clear
+	rt.ES.Writer.Flush()
+
+	// clear contacts
+	_, err := rt.ES.Client.DeleteByQuery(rt.Config.ElasticContactsIndexV2).Raw(strings.NewReader(`{"query": {"match_all": {}}}`)).Do(t.Context())
 	require.NoError(t, err)
 
 	_, err = rt.ES.Client.Indices.Refresh().Index(rt.Config.ElasticContactsIndexV2).Do(t.Context())
