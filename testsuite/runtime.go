@@ -21,11 +21,8 @@ import (
 )
 
 const (
-	elasticURL             = "http://elastic:9200"
-	elasticContactsIndexV2 = "test_contacts-v2"
-	elasticMessagesIndex     = "messages-test"
-	postgresDumpPath         = "./testsuite/testdata/postgres.dump"
-	dynamoTablesPath         = "./testsuite/testdata/dynamo.json"
+	postgresDumpPath = "./testsuite/testdata/postgres.dump"
+	dynamoTablesPath = "./testsuite/testdata/dynamo.json"
 )
 
 // Refresh is our type for the pieces of org assets we want fresh (not cached)
@@ -73,10 +70,6 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 	cfg.DeploymentID = "test"
 	cfg.Port = 8091
 	cfg.DB = "postgres://mailroom_test:temba@postgres/mailroom_test?sslmode=disable&Timezone=UTC"
-	cfg.ElasticContactsIndexV2 = elasticContactsIndexV2
-	cfg.ElasticContactsUseV2 = true
-	cfg.ElasticMessagesIndex = elasticMessagesIndex
-	cfg.Elastic = elasticURL
 	cfg.AWSAccessKeyID = "root"
 	cfg.AWSSecretAccessKey = "tembatemba"
 	cfg.S3Endpoint = "http://localstack:4566"
@@ -84,6 +77,9 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 	cfg.S3PathStyle = true
 	cfg.DynamoEndpoint = "http://localstack:4566"
 	cfg.DynamoTablePrefix = "Test"
+	cfg.ElasticContactsIndexV2 = "contacts-test"
+	cfg.ElasticContactsUseV2 = true
+	cfg.ElasticMessagesIndex = "messages-test"
 	cfg.SpoolDir = absPath("./_test_spool")
 
 	err := cfg.Parse()
