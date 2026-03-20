@@ -105,7 +105,7 @@ func runTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 
 	// clear any stale data from previous test runs
 	testsuite.GetIndexedMessages(t, rt, true)
-	testsuite.ResetESContactsIndexV2(t, rt)
+	testsuite.ClearESContactsIndexV2(t, rt)
 
 	for i, tc := range tcs {
 		scenes := make([]*runner.Scene, 4)
@@ -211,7 +211,7 @@ func runTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 			// hook but those index the in-memory flow contacts which don't reflect
 			// DB changes made by pre-commit hooks
 			if len(tc.AssertSearch) > 0 {
-				testsuite.ResetESContactsIndexV2(t, rt)
+				testsuite.ClearESContactsIndexV2(t, rt)
 
 				models.FlushCache()
 				oa2, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)

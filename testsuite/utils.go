@@ -305,15 +305,6 @@ func IndexOrgContacts(t *testing.T, rt *runtime.Runtime, org *testdb.Org) {
 	require.NoError(t, err)
 }
 
-// ResetESContactsIndexV2 deletes and recreates the v2 Elastic contacts index, clearing both
-// documents and version history.
-func ResetESContactsIndexV2(t *testing.T, rt *runtime.Runtime) {
-	t.Helper()
-
-	deleteElasticIndex(t, rt, rt.Config.ElasticContactsIndexV2)
-	setupElasticContactsV2(t, rt)
-}
-
 // ClearESContactsIndexV2 removes all documents from the v2 Elastic contacts index.
 func ClearESContactsIndexV2(t *testing.T, rt *runtime.Runtime) {
 	t.Helper()
