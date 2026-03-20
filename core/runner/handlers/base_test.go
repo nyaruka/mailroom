@@ -207,8 +207,8 @@ func runTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 			test.AssertEqualJSON(t, jsonx.MustMarshal(tc.IndexedMessages), jsonx.MustMarshal(actual.IndexedMessages), "%s: indexed messages mismatch", tc.Label)
 
 			// check search assertions against v2 Elastic contacts index - we re-index
-			// test contacts from DB because handler tests add events directly so the
-			// in-memory flow contacts used by the IndexContacts hook don't reflect the
+			// from DB because event handlers trigger indexing via the IndexContacts
+			// hook but those index the in-memory flow contacts which don't reflect
 			// DB changes made by pre-commit hooks
 			if len(tc.AssertSearch) > 0 {
 				testsuite.ResetESContactsIndexV2(t, rt)

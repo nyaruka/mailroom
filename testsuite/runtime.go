@@ -137,7 +137,7 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 func ReindexElastic(t *testing.T, rt *runtime.Runtime) {
 	t.Helper()
 
-	rt.ES.Client.Indices.Delete(elasticContactsIndexV2).Do(t.Context())
+	deleteElasticIndex(t, rt, rt.Config.ElasticContactsIndexV2)
 	setupElasticContactsV2(t, rt)
 
 	IndexOrgContacts(t, rt, testdb.Org1)
@@ -226,7 +226,7 @@ func resetElastic(t *testing.T, rt *runtime.Runtime) {
 	t.Helper()
 
 	// delete and recreate the v2 contacts index
-	rt.ES.Client.Indices.Delete(elasticContactsIndexV2).Do(t.Context())
+	deleteElasticIndex(t, rt, rt.Config.ElasticContactsIndexV2)
 	setupElasticContactsV2(t, rt)
 
 	// delete any message indexes
@@ -239,14 +239,24 @@ func resetElastic(t *testing.T, rt *runtime.Runtime) {
 func setupElasticContactsV2(t *testing.T, rt *runtime.Runtime) {
 	t.Helper()
 
-	exists, err := rt.ES.Client.Indices.Exists(elasticContactsIndexV2).IsSuccess(t.Context())
+	index := rt.Config.ElasticContactsIndexV2
+
+	exists, err := rt.ES.Client.Indices.Exists(index).IsSuccess(t.Context())
 	require.NoError(t, err)
 
 	if !exists {
 		contactsBody := ReadFile(t, absPath("./testsuite/testdata/es_contacts.json"))
-		_, err = rt.ES.Client.Indices.Create(elasticContactsIndexV2).Raw(bytes.NewReader(contactsBody)).Do(t.Context())
+		_, err = rt.ES.Client.Indices.Create(index).Raw(bytes.NewReader(contactsBody)).Do(t.Context())
 		require.NoError(t, err)
 	}
+}
+
+// deleteElasticIndex deletes an Elastic index, ignoring 404 (index not found) but failing on other errors.
+func deleteElasticIndex(t *testing.T, rt *runtime.Runtime, index string) {
+	t.Helper()
+
+	_, err := rt.ES.Client.Indices.Delete(index).IsSuccess(t.Context())
+	require.NoError(t, err)
 }
 
 // setupElasticMessages creates the index template for messages in Elastic

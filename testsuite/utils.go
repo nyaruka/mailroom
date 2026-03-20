@@ -310,7 +310,7 @@ func IndexOrgContacts(t *testing.T, rt *runtime.Runtime, org *testdb.Org) {
 func ResetESContactsIndexV2(t *testing.T, rt *runtime.Runtime) {
 	t.Helper()
 
-	rt.ES.Client.Indices.Delete(rt.Config.ElasticContactsIndexV2).Do(t.Context())
+	deleteElasticIndex(t, rt, rt.Config.ElasticContactsIndexV2)
 	setupElasticContactsV2(t, rt)
 }
 
