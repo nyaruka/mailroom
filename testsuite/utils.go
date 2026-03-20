@@ -274,26 +274,44 @@ func IndexOrgContacts(t *testing.T, rt *runtime.Runtime, org *testdb.Org) {
 	oa, err := models.GetOrgAssets(ctx, rt, org.ID)
 	require.NoError(t, err)
 
-	contactIDs, err := models.GetContactIDsPage(ctx, rt.DB, org.ID, models.NilContactID, 10_000)
-	require.NoError(t, err)
-
-	contacts, err := models.LoadContacts(ctx, rt.DB, oa, contactIDs)
-	require.NoError(t, err)
-
-	fcs := make([]*flows.Contact, 0, len(contacts))
-	for _, mc := range contacts {
-		fc, err := mc.EngineContact(oa)
+	afterID := models.NilContactID
+	for {
+		contactIDs, err := models.GetContactIDsPage(ctx, rt.DB, org.ID, afterID, 10_000)
 		require.NoError(t, err)
-		fcs = append(fcs, fc)
-	}
 
-	err = search.IndexContacts(ctx, rt, oa, fcs, map[models.ContactID]models.FlowID{})
-	require.NoError(t, err)
+		if len(contactIDs) == 0 {
+			break
+		}
+
+		contacts, err := models.LoadContacts(ctx, rt.DB, oa, contactIDs)
+		require.NoError(t, err)
+
+		fcs := make([]*flows.Contact, 0, len(contacts))
+		for _, mc := range contacts {
+			fc, err := mc.EngineContact(oa)
+			require.NoError(t, err)
+			fcs = append(fcs, fc)
+		}
+
+		err = search.IndexContacts(ctx, rt, oa, fcs, map[models.ContactID]models.FlowID{})
+		require.NoError(t, err)
+
+		afterID = contactIDs[len(contactIDs)-1]
+	}
 
 	rt.ES.Writer.Flush()
 
 	_, err = rt.ES.Client.Indices.Refresh().Index(rt.Config.ElasticContactsIndexV2).Do(ctx)
 	require.NoError(t, err)
+}
+
+// ResetESContactsIndexV2 deletes and recreates the v2 Elastic contacts index, clearing both
+// documents and version history.
+func ResetESContactsIndexV2(t *testing.T, rt *runtime.Runtime) {
+	t.Helper()
+
+	deleteElasticIndex(t, rt, rt.Config.ElasticContactsIndexV2)
+	setupElasticContactsV2(t, rt)
 }
 
 // ClearESContactsIndexV2 removes all documents from the v2 Elastic contacts index.

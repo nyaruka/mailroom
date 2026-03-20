@@ -219,8 +219,6 @@ github.com/nyaruka/null/v3 v3.0.0 h1:JvOiNuKmRBFHxzZFt4sWii+ewmMkCQ1vO7X0clTNn6E
 github.com/nyaruka/null/v3 v3.0.0/go.mod h1:Sus286RmC8P0VihFuQDDQPib/xJQ7++TsaPLdRuwgVc=
 github.com/nyaruka/phonenumbers v1.6.12 h1:aeGHjGQnfLhdN5/mZPevhoYMs13FWcQ0Vus0YQHh1Ec=
 github.com/nyaruka/phonenumbers v1.6.12/go.mod h1:IUu45lj2bSeYXQuxDyyuzOrdV10tyRa1YSsfH8EKN5c=
-github.com/nyaruka/rp-indexer/v10 v10.3.2 h1:r26tcju1b2jDyv+xqoTR7j8NPHE6HDeC+2a8uj5YEJw=
-github.com/nyaruka/rp-indexer/v10 v10.3.2/go.mod h1:5Ba2nXMJwUitYUqRqth6ensibWpOFVUvFTV9o2aqXKo=
 github.com/nyaruka/vkutil v0.20.0 h1:ZKFh7wI+1YYVGX6YbwWMsh5HlE6IKDwAs3yWg73CQdU=
 github.com/nyaruka/vkutil v0.20.0/go.mod h1:G53rhVxkmG2C7GVioiih2i3HTH29OPmgV3d+n+1Vhws=
 github.com/openai/openai-go v1.12.0 h1:NBQCnXzqOTv5wsgNC36PrFEiskGfO5wccfCWDo9S1U0=

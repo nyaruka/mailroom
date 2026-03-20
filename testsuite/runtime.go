@@ -16,15 +16,13 @@ import (
 	"github.com/nyaruka/mailroom/core/goflow"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/runtime"
-	"github.com/nyaruka/rp-indexer/v10/indexers"
-	ixruntime "github.com/nyaruka/rp-indexer/v10/runtime"
+	"github.com/nyaruka/mailroom/testsuite/testdb"
 	"github.com/stretchr/testify/require"
 )
 
 const (
-	elasticURL               = "http://elastic:9200"
-	elasticContactsIndex     = "test_contacts"
-	elasticContactsIndexV2   = "test_contacts-v2"
+	elasticURL             = "http://elastic:9200"
+	elasticContactsIndexV2 = "test_contacts-v2"
 	elasticMessagesIndex     = "messages-test"
 	postgresDumpPath         = "./testsuite/testdata/postgres.dump"
 	dynamoTablesPath         = "./testsuite/testdata/dynamo.json"
@@ -75,8 +73,8 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 	cfg.DeploymentID = "test"
 	cfg.Port = 8091
 	cfg.DB = "postgres://mailroom_test:temba@postgres/mailroom_test?sslmode=disable&Timezone=UTC"
-	cfg.ElasticContactsIndex = elasticContactsIndex
 	cfg.ElasticContactsIndexV2 = elasticContactsIndexV2
+	cfg.ElasticContactsUseV2 = true
 	cfg.ElasticMessagesIndex = elasticMessagesIndex
 	cfg.Elastic = elasticURL
 	cfg.AWSAccessKeyID = "root"
@@ -135,16 +133,15 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 	return t.Context(), rt
 }
 
-// reindexes data changes to Elastic
+// ReindexElastic deletes, recreates and re-indexes all contacts for test orgs into the v2 Elastic contacts index
 func ReindexElastic(t *testing.T, rt *runtime.Runtime) {
 	t.Helper()
 
-	contactsIndexer := indexers.NewContactIndexer(elasticURL, elasticContactsIndex, 1, 1, 100)
-	_, err := contactsIndexer.Index(&ixruntime.Runtime{DB: rt.DB.DB}, false, false)
-	require.NoError(t, err)
+	deleteElasticIndex(t, rt, rt.Config.ElasticContactsIndexV2)
+	setupElasticContactsV2(t, rt)
 
-	_, err = rt.ES.Client.Indices.Refresh().Index(elasticContactsIndex).Do(t.Context())
-	require.NoError(t, err)
+	IndexOrgContacts(t, rt, testdb.Org1)
+	IndexOrgContacts(t, rt, testdb.Org2)
 }
 
 // resets our database to our base state from our RapidPro dump
@@ -228,23 +225,8 @@ func createBucket(t *testing.T, rt *runtime.Runtime, bucket string) {
 func resetElastic(t *testing.T, rt *runtime.Runtime) {
 	t.Helper()
 
-	exists, err := rt.ES.Client.Indices.ExistsAlias(elasticContactsIndex).Do(t.Context())
-	require.NoError(t, err)
-
-	if exists {
-		// get any indexes for the contacts alias
-		ar, err := rt.ES.Client.Indices.GetAlias().Name(elasticContactsIndex).Do(t.Context())
-		require.NoError(t, err)
-
-		// and delete them
-		for index := range ar {
-			_, err := rt.ES.Client.Indices.Delete(index).Do(t.Context())
-			require.NoError(t, err)
-		}
-	}
-
 	// delete and recreate the v2 contacts index
-	rt.ES.Client.Indices.Delete(elasticContactsIndexV2).Do(t.Context())
+	deleteElasticIndex(t, rt, rt.Config.ElasticContactsIndexV2)
 	setupElasticContactsV2(t, rt)
 
 	// delete any message indexes
@@ -257,14 +239,24 @@ func resetElastic(t *testing.T, rt *runtime.Runtime) {
 func setupElasticContactsV2(t *testing.T, rt *runtime.Runtime) {
 	t.Helper()
 
-	exists, err := rt.ES.Client.Indices.Exists(elasticContactsIndexV2).IsSuccess(t.Context())
+	index := rt.Config.ElasticContactsIndexV2
+
+	exists, err := rt.ES.Client.Indices.Exists(index).IsSuccess(t.Context())
 	require.NoError(t, err)
 
 	if !exists {
 		contactsBody := ReadFile(t, absPath("./testsuite/testdata/es_contacts.json"))
-		_, err = rt.ES.Client.Indices.Create(elasticContactsIndexV2).Raw(bytes.NewReader(contactsBody)).Do(t.Context())
+		_, err = rt.ES.Client.Indices.Create(index).Raw(bytes.NewReader(contactsBody)).Do(t.Context())
 		require.NoError(t, err)
 	}
+}
+
+// deleteElasticIndex deletes an Elastic index, ignoring 404 (index not found) but failing on other errors.
+func deleteElasticIndex(t *testing.T, rt *runtime.Runtime, index string) {
+	t.Helper()
+
+	_, err := rt.ES.Client.Indices.Delete(index).IsSuccess(t.Context())
+	require.NoError(t, err)
 }
 
 // setupElasticMessages creates the index template for messages in Elastic
