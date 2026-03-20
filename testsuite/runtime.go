@@ -134,6 +134,7 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 func ReindexElastic(t *testing.T, rt *runtime.Runtime) {
 	t.Helper()
 
+	rt.ES.Writer.Flush()
 	ClearElasticIndexes(t, rt)
 
 	IndexOrgContacts(t, rt, testdb.Org1)
@@ -221,6 +222,7 @@ func createBucket(t *testing.T, rt *runtime.Runtime, bucket string) {
 func resetElastic(t *testing.T, rt *runtime.Runtime) {
 	t.Helper()
 
+	rt.ES.Writer.Flush()
 	ClearElasticIndexes(t, rt)
 }
 

@@ -306,11 +306,9 @@ func IndexOrgContacts(t *testing.T, rt *runtime.Runtime, org *testdb.Org) {
 }
 
 // ClearElasticIndexes removes all documents from the v2 contacts index and deletes all message indexes.
+// Callers should flush the ES writer first if there may be buffered writes.
 func ClearElasticIndexes(t *testing.T, rt *runtime.Runtime) {
 	t.Helper()
-
-	// flush any buffered writes so they don't arrive after we clear
-	rt.ES.Writer.Flush()
 
 	// clear contacts
 	_, err := rt.ES.Client.DeleteByQuery(rt.Config.ElasticContactsIndexV2).Raw(strings.NewReader(`{"query": {"match_all": {}}}`)).Do(t.Context())
