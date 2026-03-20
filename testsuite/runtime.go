@@ -92,8 +92,8 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 	setupElasticContactsV2(t, rt)
 	setupElasticMessages(t, rt)
 
-	// clear stale message indexes from previous test runs (they share deterministic mock UUIDs)
-	deleteElasticMessages(t, rt)
+	// clear stale data from previous test runs
+	ClearElasticIndexes(t, rt)
 
 	// create Postgres tables if necessary
 	_, err = rt.DB.Exec("SELECT * from orgs_org")
@@ -134,7 +134,7 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 func ReindexElastic(t *testing.T, rt *runtime.Runtime) {
 	t.Helper()
 
-	ClearESContactsIndexV2(t, rt)
+	ClearElasticIndexes(t, rt)
 
 	IndexOrgContacts(t, rt, testdb.Org1)
 	IndexOrgContacts(t, rt, testdb.Org2)
@@ -221,8 +221,7 @@ func createBucket(t *testing.T, rt *runtime.Runtime, bucket string) {
 func resetElastic(t *testing.T, rt *runtime.Runtime) {
 	t.Helper()
 
-	ClearESContactsIndexV2(t, rt)
-	deleteElasticMessages(t, rt)
+	ClearElasticIndexes(t, rt)
 }
 
 // setupElasticContactsV2 creates the v2 contacts index in Elastic if it doesn't already exist
@@ -252,23 +251,6 @@ func setupElasticMessages(t *testing.T, rt *runtime.Runtime) {
 
 	_, err := rt.ES.Client.Indices.PutIndexTemplate(rt.Config.ElasticMessagesIndex).Raw(bytes.NewReader(body)).Do(t.Context())
 	require.NoError(t, err)
-}
-
-// deleteElasticMessages deletes all message indexes matching the configured pattern
-func deleteElasticMessages(t *testing.T, rt *runtime.Runtime) {
-	t.Helper()
-
-	pattern := rt.Config.ElasticMessagesIndex + "-*"
-
-	indexes, err := rt.ES.Client.Cat.Indices().Index(pattern).Do(t.Context())
-	require.NoError(t, err)
-
-	for _, idx := range indexes {
-		if idx.Index != nil {
-			_, err := rt.ES.Client.Indices.Delete(*idx.Index).Do(t.Context())
-			require.NoError(t, err)
-		}
-	}
 }
 
 func resetDynamo(t *testing.T, rt *runtime.Runtime) {

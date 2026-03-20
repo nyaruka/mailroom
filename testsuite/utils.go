@@ -17,6 +17,7 @@ import (
 	valkey "github.com/gomodule/redigo/redis"
 	"github.com/nyaruka/gocommon/aws/dynamo"
 	"github.com/nyaruka/gocommon/aws/dynamo/dyntest"
+	"github.com/elastic/go-elasticsearch/v8/typedapi/types/enums/conflicts"
 	"github.com/nyaruka/gocommon/elastic"
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/goflow/flows"
@@ -305,15 +306,29 @@ func IndexOrgContacts(t *testing.T, rt *runtime.Runtime, org *testdb.Org) {
 	require.NoError(t, err)
 }
 
-// ClearESContactsIndexV2 removes all documents from the v2 Elastic contacts index.
-func ClearESContactsIndexV2(t *testing.T, rt *runtime.Runtime) {
+// ClearElasticIndexes removes all documents from the v2 contacts index and deletes all message indexes.
+func ClearElasticIndexes(t *testing.T, rt *runtime.Runtime) {
 	t.Helper()
 
-	_, err := rt.ES.Client.DeleteByQuery(rt.Config.ElasticContactsIndexV2).Raw(strings.NewReader(`{"query": {"match_all": {}}}`)).Do(t.Context())
+	// clear contacts (Proceed ignores version conflicts from externally-versioned docs)
+	_, err := rt.ES.Client.DeleteByQuery(rt.Config.ElasticContactsIndexV2).Conflicts(conflicts.Proceed).Raw(strings.NewReader(`{"query": {"match_all": {}}}`)).Do(t.Context())
 	require.NoError(t, err)
 
 	_, err = rt.ES.Client.Indices.Refresh().Index(rt.Config.ElasticContactsIndexV2).Do(t.Context())
 	require.NoError(t, err)
+
+	// clear messages
+	pattern := rt.Config.ElasticMessagesIndex + "-*"
+
+	indexes, err := rt.ES.Client.Cat.Indices().Index(pattern).Do(t.Context())
+	require.NoError(t, err)
+
+	for _, idx := range indexes {
+		if idx.Index != nil {
+			_, err := rt.ES.Client.Indices.Delete(*idx.Index).Do(t.Context())
+			require.NoError(t, err)
+		}
+	}
 }
 
 func GetHistoryItems(t *testing.T, rt *runtime.Runtime, clear bool, after time.Time) []*dynamo.Item {

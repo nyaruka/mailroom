@@ -16,6 +16,9 @@ import (
 
 func TestGetContactTotal(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
+	defer testsuite.Reset(t, rt, testsuite.ResetElastic)
+
+	testsuite.ReindexElastic(t, rt)
 
 	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 	require.NoError(t, err)
@@ -57,6 +60,9 @@ func TestGetContactTotal(t *testing.T) {
 
 func TestGetContactIDsForQueryPage(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
+	defer testsuite.Reset(t, rt, testsuite.ResetElastic)
+
+	testsuite.ReindexElastic(t, rt)
 
 	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 	require.NoError(t, err)
