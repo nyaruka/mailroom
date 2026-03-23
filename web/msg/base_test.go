@@ -88,6 +88,8 @@ func TestBroadcast(t *testing.T) {
 func TestBroadcastPreview(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
 
+	testsuite.ReindexElastic(t, rt)
+
 	testsuite.RunWebTests(t, rt, "testdata/broadcast_preview.json")
 }
 
