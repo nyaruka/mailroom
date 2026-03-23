@@ -63,24 +63,18 @@ type Broadcast struct {
 
 // InsertIncomingMsg inserts an incoming text message, deriving created_on from the v7 UUID timestamp
 func InsertIncomingMsg(t *testing.T, rt *runtime.Runtime, org *Org, uuid flows.EventUUID, channel *Channel, contact *Contact, text string, status models.MsgStatus) *MsgIn {
+	createdOn, err := uuids.V7Time(uuids.UUID(uuid))
+	require.NoError(t, err)
+
 	var id models.MsgID
-	err := rt.DB.Get(&id,
+	err = rt.DB.Get(&id,
 		`INSERT INTO msgs_msg(uuid, text, created_on, modified_on, direction, msg_type, status, visibility, msg_count, error_count, next_attempt, contact_id, contact_urn_id, org_id, channel_id, is_android)
-	  	 VALUES($1, $2, $3, NOW(), 'I', $4, $5, 'V', 1, 0, NOW(), $6, $7, $8, $9, FALSE) RETURNING id`, uuid, text, timeFromV7UUID(t, uuid), models.MsgTypeText, status, contact.ID, contact.URNID, org.ID, channel.ID,
+	  	 VALUES($1, $2, $3, NOW(), 'I', $4, $5, 'V', 1, 0, NOW(), $6, $7, $8, $9, FALSE) RETURNING id`, uuid, text, createdOn, models.MsgTypeText, status, contact.ID, contact.URNID, org.ID, channel.ID,
 	)
 	require.NoError(t, err)
 
 	fm := flows.NewMsgIn(contact.URN, assets.NewChannelReference(channel.UUID, ""), text, nil, "")
 	return &MsgIn{Msg: Msg{ID: id, UUID: uuid}, FlowMsg: fm}
-}
-
-// timeFromV7UUID extracts the millisecond timestamp from a v7 UUID
-func timeFromV7UUID(t *testing.T, u flows.EventUUID) time.Time {
-	t.Helper()
-
-	tm, err := uuids.V7Time(uuids.UUID(u))
-	require.NoError(t, err)
-	return tm
 }
 
 // InsertOutgoingMsg inserts an outgoing text message
