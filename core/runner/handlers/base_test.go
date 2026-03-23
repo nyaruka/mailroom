@@ -103,10 +103,6 @@ func runTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 
 	test.MockUniverse()
 
-	// clear any stale data from previous test runs
-	testsuite.GetIndexedMessages(t, rt, true)
-	testsuite.ClearElasticIndexes(t, rt)
-
 	for i, tc := range tcs {
 		scenes := make([]*runner.Scene, 4)
 		msgEvents := make([]*events.MsgReceived, 4)
@@ -211,8 +207,6 @@ func runTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 			// hook but those index the in-memory flow contacts which don't reflect
 			// DB changes made by pre-commit hooks
 			if len(tc.AssertSearch) > 0 {
-				testsuite.ClearElasticIndexes(t, rt)
-
 				models.FlushCache()
 				oa2, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 				require.NoError(t, err)
@@ -233,10 +227,13 @@ func runTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 					assert.NoError(t, err, "%s: search query '%s' failed", tc.Label, sa.Query)
 					assert.ElementsMatch(t, sa.Contacts, ids, "%s: search query '%s' returned wrong contacts", tc.Label, sa.Query)
 				}
+
 			}
 		} else {
 			tcs[i] = actual
 		}
+
+		testsuite.Reset(t, rt, testsuite.ResetElastic)
 	}
 
 	// update if we are meant to

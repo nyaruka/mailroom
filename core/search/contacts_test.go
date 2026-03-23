@@ -118,7 +118,7 @@ func TestDeindexContacts(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
-	testsuite.ReindexElastic(t, rt)
+	testsuite.IndexContacts(t, rt)
 
 	refreshV2 := func() {
 		_, err := rt.ES.Client.Indices.Refresh().Index(rt.Config.ElasticContactsIndex).Do(ctx)

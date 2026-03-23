@@ -57,8 +57,9 @@ func TestStart(t *testing.T) {
 
 func TestStartPreview(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
+	defer testsuite.Reset(t, rt, testsuite.ResetElastic)
 
-	testsuite.ReindexElastic(t, rt)
+	testsuite.IndexContacts(t, rt)
 
 	testsuite.RunWebTests(t, rt, "testdata/start_preview.json")
 }

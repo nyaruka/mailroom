@@ -91,7 +91,7 @@ func TestResolveRecipients(t *testing.T) {
 	}
 
 	for i, tc := range tcs {
-		testsuite.ReindexElastic(t, rt)
+		testsuite.IndexContacts(t, rt)
 
 		var flow *models.Flow
 		if tc.flow != nil {

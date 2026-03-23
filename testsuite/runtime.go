@@ -90,9 +90,6 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 	setupElasticContacts(t, rt)
 	setupElasticMessages(t, rt)
 
-	// clear stale data from previous test runs
-	ClearElasticIndexes(t, rt)
-
 	// create Postgres tables if necessary
 	_, err = rt.DB.Exec("SELECT * from orgs_org")
 	if err != nil {
@@ -208,7 +205,7 @@ func resetElastic(t *testing.T, rt *runtime.Runtime) {
 	t.Helper()
 
 	rt.ES.Writer.Flush()
-	ClearElasticIndexes(t, rt)
+	clearElasticIndexes(t, rt)
 }
 
 func resetDynamo(t *testing.T, rt *runtime.Runtime) {

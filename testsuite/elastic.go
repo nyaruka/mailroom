@@ -21,13 +21,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// ReindexElastic clears all documents from the contacts and messages indexes.. and re-indexes all contacts
-// for test orgs from the database.
-func ReindexElastic(t *testing.T, rt *runtime.Runtime) {
+// IndexContacts indexes all contacts for the test orgs into Elasticsearch.
+func IndexContacts(t *testing.T, rt *runtime.Runtime) {
 	t.Helper()
-
-	rt.ES.Writer.Flush()
-	ClearElasticIndexes(t, rt)
 
 	indexOrgContacts(t, rt, testdb.Org1)
 	indexOrgContacts(t, rt, testdb.Org2)
@@ -131,9 +127,9 @@ type SearchAssertion struct {
 	Contacts []models.ContactID `json:"contacts"`
 }
 
-// ClearElasticIndexes removes all documents from the contacts index and deletes all message indexes.
+// removes all documents from the contacts index and deletes all message indexes.
 // Callers should flush the ES writer first if there may be buffered writes.
-func ClearElasticIndexes(t *testing.T, rt *runtime.Runtime) {
+func clearElasticIndexes(t *testing.T, rt *runtime.Runtime) {
 	t.Helper()
 
 	// clear contacts
