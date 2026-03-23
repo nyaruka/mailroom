@@ -75,7 +75,7 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 	cfg.S3PathStyle = true
 	cfg.DynamoEndpoint = "http://localstack:4566"
 	cfg.DynamoTablePrefix = "Test"
-	cfg.ElasticContactsIndexV2 = "contacts-test"
+	cfg.ElasticContactsIndex = "contacts-test"
 	cfg.ElasticContactsUseV2 = true
 	cfg.ElasticMessagesIndex = "messages-test"
 	cfg.SpoolDir = absPath("./_test_spool")
@@ -87,7 +87,7 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 	require.NoError(t, err)
 
 	createBucket(t, rt, rt.Config.S3AttachmentsBucket)
-	setupElasticContactsV2(t, rt)
+	setupElasticContacts(t, rt)
 	setupElasticMessages(t, rt)
 
 	// clear stale data from previous test runs

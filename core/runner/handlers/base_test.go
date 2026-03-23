@@ -85,8 +85,8 @@ type TestCase struct {
 	DBAssertions    []*assertdb.Assert              `json:"db_assertions,omitempty"`
 	ExpectedTasks   map[string][]testsuite.TaskInfo `json:"expected_tasks,omitempty"`
 	ExpectedHistory []*dynamo.Item                  `json:"expected_history,omitempty"`
-	IndexedMessages []testsuite.IndexedMessage       `json:"indexed_messages,omitempty"`
-	AssertSearch    []testsuite.SearchAssertion      `json:"assert_search,omitempty"`
+	IndexedMessages []testsuite.IndexedMessage      `json:"indexed_messages,omitempty"`
+	AssertSearch    []testsuite.SearchAssertion     `json:"assert_search,omitempty"`
 }
 
 func runTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
@@ -225,7 +225,7 @@ func runTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 
 				rt.ES.Writer.Flush()
 
-				_, err = rt.ES.Client.Indices.Refresh().Index(rt.Config.ElasticContactsIndexV2).Do(ctx)
+				_, err = rt.ES.Client.Indices.Refresh().Index(rt.Config.ElasticContactsIndex).Do(ctx)
 				require.NoError(t, err)
 
 				for _, sa := range tc.AssertSearch {

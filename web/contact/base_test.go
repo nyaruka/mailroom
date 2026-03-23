@@ -48,7 +48,7 @@ func TestDeindex(t *testing.T) {
 	err = search.IndexContacts(ctx, rt, oa, fcs, map[models.ContactID]models.FlowID{})
 	require.NoError(t, err)
 	rt.ES.Writer.Flush()
-	_, err = rt.ES.Client.Indices.Refresh().Index(rt.Config.ElasticContactsIndexV2).Do(ctx)
+	_, err = rt.ES.Client.Indices.Refresh().Index(rt.Config.ElasticContactsIndex).Do(ctx)
 	require.NoError(t, err)
 
 	// index some test messages into Elasticsearch for Bob (10001) and Cat (10002)

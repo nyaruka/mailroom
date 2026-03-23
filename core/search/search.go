@@ -20,9 +20,9 @@ import (
 
 func contactsIndex(rt *runtime.Runtime) (string, bool) {
 	if rt.Config.ElasticContactsUseV2 {
-		return rt.Config.ElasticContactsIndexV2, true
+		return rt.Config.ElasticContactsIndex, true
 	}
-	return rt.Config.ElasticContactsIndex, false
+	return rt.Config.ElasticContactsLegacyIndex, false
 }
 
 // AssetMapper maps resolved assets in queries to how we identify them in ES which in the case
@@ -279,4 +279,3 @@ func appendIDsFromESHits(ids []models.ContactID, hits []types.Hit) []models.Cont
 	}
 	return ids
 }
-

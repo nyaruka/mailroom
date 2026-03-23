@@ -33,8 +33,9 @@ func ReindexElastic(t *testing.T, rt *runtime.Runtime) {
 	indexOrgContacts(t, rt, testdb.Org2)
 }
 
-// IndexMessages indexes the given messages into Elasticsearch and writes the corresponding events to
-// DynamoDB, then refreshes the Elasticsearch index so they're immediately searchable.
+// IndexMessages indexes the given messages into Elasticsearch and writes the corresponding events to DynamoDB,
+// then refreshes the Elasticsearch index so they're immediately searchable. Note that the messages don't
+// necessarily exist in the database.
 func IndexMessages(t *testing.T, rt *runtime.Runtime, msgs []search.MessageDoc) {
 	t.Helper()
 
@@ -130,18 +131,18 @@ type SearchAssertion struct {
 	Contacts []models.ContactID `json:"contacts"`
 }
 
-// ClearElasticIndexes removes all documents from the v2 contacts index and deletes all message indexes.
+// ClearElasticIndexes removes all documents from the contacts index and deletes all message indexes.
 // Callers should flush the ES writer first if there may be buffered writes.
 func ClearElasticIndexes(t *testing.T, rt *runtime.Runtime) {
 	t.Helper()
 
 	// clear contacts
-	_, err := rt.ES.Client.DeleteByQuery(rt.Config.ElasticContactsIndexV2).
+	_, err := rt.ES.Client.DeleteByQuery(rt.Config.ElasticContactsIndex).
 		Conflicts(conflicts.Proceed).
 		Raw(strings.NewReader(`{"query": {"match_all": {}}}`)).Do(t.Context())
 	require.NoError(t, err)
 
-	_, err = rt.ES.Client.Indices.Refresh().Index(rt.Config.ElasticContactsIndexV2).Do(t.Context())
+	_, err = rt.ES.Client.Indices.Refresh().Index(rt.Config.ElasticContactsIndex).Do(t.Context())
 	require.NoError(t, err)
 
 	// clear messages
@@ -158,18 +159,16 @@ func ClearElasticIndexes(t *testing.T, rt *runtime.Runtime) {
 	}
 }
 
-// setupElasticContactsV2 creates the v2 contacts index in Elastic if it doesn't already exist
-func setupElasticContactsV2(t *testing.T, rt *runtime.Runtime) {
+// setupElasticContacts creates the contacts index in Elastic if it doesn't already exist
+func setupElasticContacts(t *testing.T, rt *runtime.Runtime) {
 	t.Helper()
 
-	index := rt.Config.ElasticContactsIndexV2
-
-	exists, err := rt.ES.Client.Indices.Exists(index).IsSuccess(t.Context())
+	exists, err := rt.ES.Client.Indices.Exists(rt.Config.ElasticContactsIndex).IsSuccess(t.Context())
 	require.NoError(t, err)
 
 	if !exists {
 		contactsBody := ReadFile(t, absPath("./testsuite/testdata/es_contacts.json"))
-		_, err = rt.ES.Client.Indices.Create(index).Raw(bytes.NewReader(contactsBody)).Do(t.Context())
+		_, err = rt.ES.Client.Indices.Create(rt.Config.ElasticContactsIndex).Raw(bytes.NewReader(contactsBody)).Do(t.Context())
 		require.NoError(t, err)
 	}
 }
@@ -222,6 +221,6 @@ func indexOrgContacts(t *testing.T, rt *runtime.Runtime, org *testdb.Org) {
 
 	rt.ES.Writer.Flush()
 
-	_, err = rt.ES.Client.Indices.Refresh().Index(rt.Config.ElasticContactsIndexV2).Do(ctx)
+	_, err = rt.ES.Client.Indices.Refresh().Index(rt.Config.ElasticContactsIndex).Do(ctx)
 	require.NoError(t, err)
 }
