@@ -52,9 +52,9 @@ func TestDeindex(t *testing.T) {
 	require.NoError(t, err)
 
 	// index some test messages into Elasticsearch for Bob (10001) and Cat (10002)
-	testdb.InsertIncomingMsg(t, rt, testdb.Org1, "01968bb7-ca00-7000-8000-000000000001", testdb.TwilioChannel, testdb.Bob, "hello from bob", models.MsgStatusHandled)
-	testdb.InsertIncomingMsg(t, rt, testdb.Org1, "01968bee-b880-7000-8000-000000000002", testdb.TwilioChannel, testdb.Cat, "hello from cat", models.MsgStatusHandled)
-	testdb.InsertIncomingMsg(t, rt, testdb.Org1, "01968c25-a700-7000-8000-000000000003", testdb.TwilioChannel, testdb.Ann, "hello from ann", models.MsgStatusHandled)
+	testdb.InsertIncomingMsg(t, rt, testdb.Org1, "01968bb7-ca00-7000-8000-000000000001", testdb.TwilioChannel, testdb.Bob, "hello from bob", models.MsgStatusHandled, "")
+	testdb.InsertIncomingMsg(t, rt, testdb.Org1, "01968bee-b880-7000-8000-000000000002", testdb.TwilioChannel, testdb.Cat, "hello from cat", models.MsgStatusHandled, "")
+	testdb.InsertIncomingMsg(t, rt, testdb.Org1, "01968c25-a700-7000-8000-000000000003", testdb.TwilioChannel, testdb.Ann, "hello from ann", models.MsgStatusHandled, "")
 
 	testsuite.IndexMessages(t, rt)
 
