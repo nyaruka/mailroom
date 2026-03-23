@@ -100,7 +100,7 @@ func NewDefaultConfig() *Config {
 
 		Address:  "localhost",
 		Port:     8090,
-		SpoolDir: "/var/spool/mailroom",
+		SpoolDir: "./_spool",
 
 		WorkersRealtime:  32,
 		WorkersBatch:     8,
