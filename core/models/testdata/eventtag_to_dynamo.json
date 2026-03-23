@@ -3,8 +3,8 @@
         "event_uuid": "0197b335-6ded-79a4-95a6-3af85b57f108",
         "tag": "del",
         "data": {
-            "created_on": "2025-05-04T12:30:46.123456789Z",
-            "by_contact": true
+            "by_contact": true,
+            "created_on": "2025-05-04T12:30:46.123456789Z"
         },
         "dynamo": {
             "PK": {
@@ -18,11 +18,11 @@
             },
             "Data": {
                 "M": {
-                    "by_contact": {
-                        "BOOL": true
-                    },
                     "created_on": {
                         "S": "2025-05-04T12:30:46.123456789Z"
+                    },
+                    "by_contact": {
+                        "BOOL": true
                     }
                 }
             }
