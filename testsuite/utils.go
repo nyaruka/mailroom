@@ -267,9 +267,8 @@ type SearchAssertion struct {
 	Contacts []models.ContactID `json:"contacts"`
 }
 
-// IndexOrgContacts indexes all active contacts for the given org into the v2 Elastic contacts index
-// and refreshes the index so they're immediately searchable.
-func IndexOrgContacts(t *testing.T, rt *runtime.Runtime, org *testdb.Org) {
+// indexes all active contacts for the given org into Elastic and refreshes the index so they're immediately searchable
+func indexOrgContacts(t *testing.T, rt *runtime.Runtime, org *testdb.Org) {
 	t.Helper()
 
 	ctx := t.Context()

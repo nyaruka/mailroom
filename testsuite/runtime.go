@@ -129,7 +129,7 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 	return t.Context(), rt
 }
 
-// ReindexElastic clears all documents from the v2 Elastic contacts index and re-indexes all contacts
+// ReindexElastic clears all documents from the contacts and messages indexes.. and re-indexes all contacts
 // for test orgs from the database.
 func ReindexElastic(t *testing.T, rt *runtime.Runtime) {
 	t.Helper()
@@ -137,8 +137,8 @@ func ReindexElastic(t *testing.T, rt *runtime.Runtime) {
 	rt.ES.Writer.Flush()
 	ClearElasticIndexes(t, rt)
 
-	IndexOrgContacts(t, rt, testdb.Org1)
-	IndexOrgContacts(t, rt, testdb.Org2)
+	indexOrgContacts(t, rt, testdb.Org1)
+	indexOrgContacts(t, rt, testdb.Org2)
 }
 
 // resets our database to our base state from our RapidPro dump

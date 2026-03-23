@@ -80,6 +80,8 @@ func TestReindex(t *testing.T) {
 func TestExport(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
 
+	testsuite.ReindexElastic(t, rt)
+
 	testsuite.RunWebTests(t, rt, "testdata/export.json")
 }
 

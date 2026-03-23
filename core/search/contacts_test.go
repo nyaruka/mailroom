@@ -118,9 +118,7 @@ func TestDeindexContacts(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
-	// index all org1 and org2 contacts into the v2 index
-	testsuite.IndexOrgContacts(t, rt, testdb.Org1)
-	testsuite.IndexOrgContacts(t, rt, testdb.Org2)
+	testsuite.ReindexElastic(t, rt)
 
 	refreshV2 := func() {
 		_, err := rt.ES.Client.Indices.Refresh().Index(rt.Config.ElasticContactsIndexV2).Do(ctx)
