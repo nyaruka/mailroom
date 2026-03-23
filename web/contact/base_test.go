@@ -34,7 +34,7 @@ func TestCreate(t *testing.T) {
 func TestDeindex(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetElastic|testsuite.ResetOpenSearch)
+	defer testsuite.Reset(t, rt, testsuite.ResetElastic)
 
 	// index Bob and Cat into the v2 contacts index
 	oa := testdb.Org1.Load(t, rt)
@@ -48,10 +48,10 @@ func TestDeindex(t *testing.T) {
 	err = search.IndexContacts(ctx, rt, oa, fcs, map[models.ContactID]models.FlowID{})
 	require.NoError(t, err)
 	rt.ES.Writer.Flush()
-	_, err = rt.ES.Client.Indices.Refresh().Index(rt.Config.ElasticContactsIndexV2).Do(ctx)
+	_, err = rt.ES.Client.Indices.Refresh().Index(rt.Config.ElasticContactsIndex).Do(ctx)
 	require.NoError(t, err)
 
-	// index some test messages into OpenSearch for Bob (10001) and Cat (10002)
+	// index some test messages into Elasticsearch for Bob (10001) and Cat (10002)
 	testsuite.IndexMessages(t, rt, []search.MessageDoc{
 		{CreatedOn: time.Date(2025, 5, 1, 12, 0, 0, 0, time.UTC), OrgID: testdb.Org1.ID, UUID: "01968bb7-ca00-7000-8000-000000000001", ContactUUID: testdb.Bob.UUID, Text: "hello from bob"},
 		{CreatedOn: time.Date(2025, 5, 1, 13, 0, 0, 0, time.UTC), OrgID: testdb.Org1.ID, UUID: "01968bee-b880-7000-8000-000000000002", ContactUUID: testdb.Cat.UUID, Text: "hello from cat"},
@@ -79,12 +79,18 @@ func TestReindex(t *testing.T) {
 
 func TestExport(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
+	defer testsuite.Reset(t, rt, testsuite.ResetElastic)
+
+	testsuite.IndexContacts(t, rt)
 
 	testsuite.RunWebTests(t, rt, "testdata/export.json")
 }
 
 func TestExportPreview(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
+	defer testsuite.Reset(t, rt, testsuite.ResetElastic)
+
+	testsuite.IndexContacts(t, rt)
 
 	testsuite.RunWebTests(t, rt, "testdata/export_preview.json")
 }
@@ -193,6 +199,9 @@ func TestPopulateGroup(t *testing.T) {
 
 func TestSearch(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
+	defer testsuite.Reset(t, rt, testsuite.ResetElastic)
+
+	testsuite.IndexContacts(t, rt)
 
 	testsuite.RunWebTests(t, rt, "testdata/search.json")
 }

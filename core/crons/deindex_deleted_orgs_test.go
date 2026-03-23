@@ -25,11 +25,11 @@ func TestDeindexDeletedOrgsCron(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, expected, res)
 
-		_, err = rt.ES.Client.Indices.Refresh().Index(rt.Config.ElasticContactsIndexV2).Do(ctx)
+		_, err = rt.ES.Client.Indices.Refresh().Index(rt.Config.ElasticContactsIndex).Do(ctx)
 		require.NoError(t, err)
 	}
 
-	testsuite.IndexOrgContacts(t, rt, testdb.Org1)
+	testsuite.IndexContacts(t, rt)
 
 	// no orgs to deindex
 	assertRun(map[string]any{"contacts": map[models.OrgID]int{}})

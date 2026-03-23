@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/elastic/go-elasticsearch/v8/typedapi/types/enums/operationtype"
-	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/elastic"
 	"github.com/nyaruka/gocommon/i18n"
 	"github.com/nyaruka/gocommon/jsonx"
@@ -161,10 +160,10 @@ func IndexContacts(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsset
 		}
 
 		rt.ES.Writer.Queue(&elastic.Document{
-			Index:   rt.Config.ElasticContactsIndexV2,
+			Index:   rt.Config.ElasticContactsIndex,
 			ID:      doc.DBID.String(),
 			Routing: doc.OrgID.String(),
-			Version: dates.Now().UnixNano(),
+			Version: time.Now().UnixNano(),
 			Body:    body,
 		})
 	}
@@ -180,7 +179,7 @@ func DeindexContactsByID(ctx context.Context, rt *runtime.Runtime, orgID models.
 		cmds.WriteString("\n")
 	}
 
-	resp, err := rt.ES.Client.Bulk().Index(rt.Config.ElasticContactsIndexV2).Routing(orgID.String()).Raw(bytes.NewReader(cmds.Bytes())).Do(ctx)
+	resp, err := rt.ES.Client.Bulk().Index(rt.Config.ElasticContactsIndex).Routing(orgID.String()).Raw(bytes.NewReader(cmds.Bytes())).Do(ctx)
 	if err != nil {
 		return 0, fmt.Errorf("error deindexing deleted contacts from elastic: %w", err)
 	}
@@ -202,7 +201,7 @@ func DeindexContactsByOrg(ctx context.Context, rt *runtime.Runtime, orgID models
 		"max_docs": limit,
 	}
 
-	resp, err := rt.ES.Client.DeleteByQuery(rt.Config.ElasticContactsIndexV2).Routing(orgID.String()).Raw(bytes.NewReader(jsonx.MustMarshal(src))).Do(ctx)
+	resp, err := rt.ES.Client.DeleteByQuery(rt.Config.ElasticContactsIndex).Routing(orgID.String()).Raw(bytes.NewReader(jsonx.MustMarshal(src))).Do(ctx)
 	if err != nil {
 		return 0, fmt.Errorf("error deindexing contacts in org #%d from elastic: %w", orgID, err)
 	}

@@ -15,7 +15,7 @@ import (
 func TestSearchMessages(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetOpenSearch|testsuite.ResetDynamo)
+	defer testsuite.Reset(t, rt, testsuite.ResetElastic|testsuite.ResetDynamo)
 
 	testsuite.IndexMessages(t, rt, []search.MessageDoc{
 		{CreatedOn: time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC), OrgID: testdb.Org1.ID, UUID: "01968bb7-ca00-7000-8000-000000000001", ContactUUID: testdb.Ann.UUID, Text: "hello world"},

@@ -32,7 +32,7 @@ func TestPopulateGroupTask(t *testing.T) {
 		testdb.Ann.ID,
 	)
 
-	testsuite.ReindexElastic(t, rt)
+	testsuite.IndexContacts(t, rt)
 
 	// reload org assets to include new groups and campaign
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshGroups|models.RefreshCampaigns)
