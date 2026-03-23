@@ -1,3 +1,8 @@
+v26.1.71 (2026-03-23)
+-------------------------
+ * Make tests always use v2 contacts index and remove rp-indexer dependency
+ * Use config toggle to switch contact search between v1 and v2 index
+
 v26.1.70 (2026-03-19)
 -------------------------
  * Move message indexing from OpenSearch to Elasticsearch
