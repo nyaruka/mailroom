@@ -1,7 +1,6 @@
 package testsuite
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"log/slog"
@@ -16,7 +15,6 @@ import (
 	"github.com/nyaruka/mailroom/core/goflow"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/runtime"
-	"github.com/nyaruka/mailroom/testsuite/testdb"
 	"github.com/stretchr/testify/require"
 )
 
@@ -77,7 +75,7 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 	cfg.S3PathStyle = true
 	cfg.DynamoEndpoint = "http://localstack:4566"
 	cfg.DynamoTablePrefix = "Test"
-	cfg.ElasticContactsIndexV2 = "contacts-test"
+	cfg.ElasticContactsIndex = "contacts-test"
 	cfg.ElasticContactsUseV2 = true
 	cfg.ElasticMessagesIndex = "messages-test"
 	cfg.SpoolDir = absPath("./_test_spool")
@@ -89,11 +87,8 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 	require.NoError(t, err)
 
 	createBucket(t, rt, rt.Config.S3AttachmentsBucket)
-	setupElasticContactsV2(t, rt)
+	setupElasticContacts(t, rt)
 	setupElasticMessages(t, rt)
-
-	// clear stale data from previous test runs
-	ClearElasticIndexes(t, rt)
 
 	// create Postgres tables if necessary
 	_, err = rt.DB.Exec("SELECT * from orgs_org")
@@ -127,18 +122,6 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 	})
 
 	return t.Context(), rt
-}
-
-// ReindexElastic clears all documents from the contacts and messages indexes.. and re-indexes all contacts
-// for test orgs from the database.
-func ReindexElastic(t *testing.T, rt *runtime.Runtime) {
-	t.Helper()
-
-	rt.ES.Writer.Flush()
-	ClearElasticIndexes(t, rt)
-
-	indexOrgContacts(t, rt, testdb.Org1)
-	indexOrgContacts(t, rt, testdb.Org2)
 }
 
 // resets our database to our base state from our RapidPro dump
@@ -218,41 +201,11 @@ func createBucket(t *testing.T, rt *runtime.Runtime, bucket string) {
 	}
 }
 
-// clears indexed data in Elastic
 func resetElastic(t *testing.T, rt *runtime.Runtime) {
 	t.Helper()
 
 	rt.ES.Writer.Flush()
-	ClearElasticIndexes(t, rt)
-}
-
-// setupElasticContactsV2 creates the v2 contacts index in Elastic if it doesn't already exist
-func setupElasticContactsV2(t *testing.T, rt *runtime.Runtime) {
-	t.Helper()
-
-	index := rt.Config.ElasticContactsIndexV2
-
-	exists, err := rt.ES.Client.Indices.Exists(index).IsSuccess(t.Context())
-	require.NoError(t, err)
-
-	if !exists {
-		contactsBody := ReadFile(t, absPath("./testsuite/testdata/es_contacts.json"))
-		_, err = rt.ES.Client.Indices.Create(index).Raw(bytes.NewReader(contactsBody)).Do(t.Context())
-		require.NoError(t, err)
-	}
-}
-
-// setupElasticMessages creates the index template for messages in Elastic
-func setupElasticMessages(t *testing.T, rt *runtime.Runtime) {
-	t.Helper()
-
-	messagesBody := ReadFile(t, absPath("./testsuite/testdata/es_messages.json"))
-
-	// replace placeholder with actual index name for test
-	body := bytes.ReplaceAll(messagesBody, []byte("{{INDEX}}"), []byte(rt.Config.ElasticMessagesIndex))
-
-	_, err := rt.ES.Client.Indices.PutIndexTemplate(rt.Config.ElasticMessagesIndex).Raw(bytes.NewReader(body)).Do(t.Context())
-	require.NoError(t, err)
+	clearElasticIndexes(t, rt)
 }
 
 func resetDynamo(t *testing.T, rt *runtime.Runtime) {

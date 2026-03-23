@@ -148,7 +148,7 @@ func TestBroadcastsFromEvents(t *testing.T) {
 	time.Sleep(10 * time.Millisecond)
 
 	for i, tc := range tcs {
-		testsuite.ReindexElastic(t, rt)
+		testsuite.IndexContacts(t, rt)
 
 		// handle our start task
 		event := events.NewBroadcastCreated(tc.translations, tc.baseLanguage, tc.groups, tc.contacts, "", tc.urns, nil, nil)
@@ -193,7 +193,7 @@ func TestSendBroadcastTask(t *testing.T) {
 	rt.DB.MustExec(`UPDATE contacts_contact SET language = 'spa', modified_on = NOW() WHERE id = $1`, testdb.Cat.ID)
 	rt.DB.MustExec(`UPDATE contacts_contact SET last_seen_on = NOW() - interval '45 days', modified_on = NOW() WHERE id = $1`, testdb.Bob.ID)
 
-	testsuite.ReindexElastic(t, rt)
+	testsuite.IndexContacts(t, rt)
 
 	tcs := []struct {
 		translations    flows.BroadcastTranslations

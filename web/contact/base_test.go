@@ -48,7 +48,7 @@ func TestDeindex(t *testing.T) {
 	err = search.IndexContacts(ctx, rt, oa, fcs, map[models.ContactID]models.FlowID{})
 	require.NoError(t, err)
 	rt.ES.Writer.Flush()
-	_, err = rt.ES.Client.Indices.Refresh().Index(rt.Config.ElasticContactsIndexV2).Do(ctx)
+	_, err = rt.ES.Client.Indices.Refresh().Index(rt.Config.ElasticContactsIndex).Do(ctx)
 	require.NoError(t, err)
 
 	// index some test messages into Elasticsearch for Bob (10001) and Cat (10002)
@@ -79,16 +79,18 @@ func TestReindex(t *testing.T) {
 
 func TestExport(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
+	defer testsuite.Reset(t, rt, testsuite.ResetElastic)
 
-	testsuite.ReindexElastic(t, rt)
+	testsuite.IndexContacts(t, rt)
 
 	testsuite.RunWebTests(t, rt, "testdata/export.json")
 }
 
 func TestExportPreview(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
+	defer testsuite.Reset(t, rt, testsuite.ResetElastic)
 
-	testsuite.ReindexElastic(t, rt)
+	testsuite.IndexContacts(t, rt)
 
 	testsuite.RunWebTests(t, rt, "testdata/export_preview.json")
 }
@@ -197,8 +199,9 @@ func TestPopulateGroup(t *testing.T) {
 
 func TestSearch(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
+	defer testsuite.Reset(t, rt, testsuite.ResetElastic)
 
-	testsuite.ReindexElastic(t, rt)
+	testsuite.IndexContacts(t, rt)
 
 	testsuite.RunWebTests(t, rt, "testdata/search.json")
 }
