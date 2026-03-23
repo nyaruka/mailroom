@@ -11,6 +11,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/elastic/go-elasticsearch/v8/typedapi/types/enums/conflicts"
+
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	dbtypes "github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
@@ -311,7 +313,9 @@ func ClearElasticIndexes(t *testing.T, rt *runtime.Runtime) {
 	t.Helper()
 
 	// clear contacts
-	_, err := rt.ES.Client.DeleteByQuery(rt.Config.ElasticContactsIndexV2).Raw(strings.NewReader(`{"query": {"match_all": {}}}`)).Do(t.Context())
+	_, err := rt.ES.Client.DeleteByQuery(rt.Config.ElasticContactsIndexV2).
+		Conflicts(conflicts.Proceed).
+		Raw(strings.NewReader(`{"query": {"match_all": {}}}`)).Do(t.Context())
 	require.NoError(t, err)
 
 	_, err = rt.ES.Client.Indices.Refresh().Index(rt.Config.ElasticContactsIndexV2).Do(t.Context())
