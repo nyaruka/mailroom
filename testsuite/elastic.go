@@ -85,14 +85,14 @@ func IndexMessages(t *testing.T, rt *runtime.Runtime) {
 	require.NoError(t, err)
 }
 
-// IndexMessagesToDynamo writes the corresponding DynamoDB history events for all indexable messages in the database.
-func IndexMessagesToDynamo(t *testing.T, rt *runtime.Runtime) {
+// WriteMessageHistory writes the corresponding DynamoDB history events for all indexable messages in the database.
+func WriteMessageHistory(t *testing.T, rt *runtime.Runtime) {
 	t.Helper()
 
 	ctx := t.Context()
 
 	const query = `
-	SELECT m.uuid, m.org_id, m.text, m.created_on, c.uuid AS contact_uuid
+	SELECT m.uuid, m.org_id, m.direction, m.text, m.created_on, c.uuid AS contact_uuid
 	  FROM msgs_msg m
 	  JOIN contacts_contact c ON c.id = m.contact_id
 	 WHERE (m.direction = 'I' OR (m.broadcast_id IS NULL AND m.created_by_id IS NOT NULL))
@@ -108,11 +108,16 @@ func IndexMessagesToDynamo(t *testing.T, rt *runtime.Runtime) {
 	for rows.Next() {
 		var msgUUID, contactUUID string
 		var orgID models.OrgID
-		var text string
+		var direction, text string
 		var createdOn time.Time
 
-		err := rows.Scan(&msgUUID, &orgID, &text, &createdOn, &contactUUID)
+		err := rows.Scan(&msgUUID, &orgID, &direction, &text, &createdOn, &contactUUID)
 		require.NoError(t, err)
+
+		eventType := "msg_received"
+		if direction == "O" {
+			eventType = "msg_created"
+		}
 
 		item := &dynamo.Item{
 			Key: dynamo.Key{
@@ -121,7 +126,7 @@ func IndexMessagesToDynamo(t *testing.T, rt *runtime.Runtime) {
 			},
 			OrgID: int(orgID),
 			Data: map[string]any{
-				"type":       "msg_received",
+				"type":       eventType,
 				"text":       text,
 				"created_on": createdOn.Format(time.RFC3339),
 			},

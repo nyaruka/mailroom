@@ -26,7 +26,7 @@ func TestSearchMessages(t *testing.T) {
 	testdb.InsertIncomingMsg(t, rt, testdb.Org2, "019b21e1-ba00-7000-8000-000000000004", testdb.Org2Channel, testdb.Org2Contact, "hello world", models.MsgStatusHandled, "")
 
 	testsuite.IndexMessages(t, rt)
-	testsuite.IndexMessagesToDynamo(t, rt)
+	testsuite.WriteMessageHistory(t, rt)
 
 	tcs := []struct {
 		label       string
