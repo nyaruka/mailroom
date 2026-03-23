@@ -1,13 +1,12 @@
 [
     {
         "label": "#1",
-        "events": {
+        "modifiers": {
             "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
                 {
-                    "uuid": "01969b47-2c93-76f8-bec9-e032f4f9af5f",
-                    "type": "contact_groups_changed",
-                    "created_on": "2025-05-04T12:30:56.123456789Z",
-                    "groups_removed": [
+                    "type": "groups",
+                    "modification": "remove",
+                    "groups": [
                         {
                             "uuid": "c153e265-f7c9-4539-9dbc-9b358714b638",
                             "name": "Doctors"
@@ -15,10 +14,9 @@
                     ]
                 },
                 {
-                    "uuid": "01969b47-3463-76f8-9853-0310d032b497",
-                    "type": "contact_groups_changed",
-                    "created_on": "2025-05-04T12:30:58.123456789Z",
-                    "groups_added": [
+                    "type": "groups",
+                    "modification": "add",
+                    "groups": [
                         {
                             "uuid": "5e9d8fab-5e7e-4f51-b533-261af5dea70d",
                             "name": "Testers"
@@ -28,10 +26,9 @@
             ],
             "cd024bcd-f473-4719-a00a-bd0bb1190135": [
                 {
-                    "uuid": "01969b47-a993-76f8-977d-88574316827e",
-                    "type": "contact_groups_changed",
-                    "created_on": "2025-05-04T12:31:28.123456789Z",
-                    "groups_added": [
+                    "type": "groups",
+                    "modification": "add",
+                    "groups": [
                         {
                             "uuid": "5e9d8fab-5e7e-4f51-b533-261af5dea70d",
                             "name": "Testers"
@@ -40,6 +37,7 @@
                 }
             ]
         },
+        "events": {},
         "db_assertions": [
             {
                 "query": "select count(*) from contacts_contactgroup_contacts where contact_id = $1 and contactgroup_id = $2",
@@ -77,11 +75,11 @@
         "expected_history": [
             {
                 "PK": "con#cd024bcd-f473-4719-a00a-bd0bb1190135",
-                "SK": "evt#01969b47-a993-76f8-977d-88574316827e",
+                "SK": "evt#01969b47-1523-76f8-9c0b-2014ddc77094",
                 "OrgID": 1,
-                "TTL": "2026-05-04T12:31:28Z",
+                "TTL": "2026-05-04T12:30:50Z",
                 "Data": {
-                    "created_on": "2025-05-04T12:31:28.123456789Z",
+                    "created_on": "2025-05-04T12:30:50.123456789Z",
                     "groups_added": [
                         {
                             "name": "Testers",
@@ -93,11 +91,11 @@
             },
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b47-2c93-76f8-bec9-e032f4f9af5f",
+                "SK": "evt#01969b47-0583-76f8-ae7f-f8b243c49ff5",
                 "OrgID": 1,
-                "TTL": "2026-05-04T12:30:56Z",
+                "TTL": "2026-05-04T12:30:46Z",
                 "Data": {
-                    "created_on": "2025-05-04T12:30:56.123456789Z",
+                    "created_on": "2025-05-04T12:30:46.123456789Z",
                     "groups_removed": [
                         {
                             "name": "Doctors",
@@ -109,11 +107,11 @@
             },
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b47-3463-76f8-9853-0310d032b497",
+                "SK": "evt#01969b47-0d53-76f8-bd38-d266ec8d3716",
                 "OrgID": 1,
-                "TTL": "2026-05-04T12:30:58Z",
+                "TTL": "2026-05-04T12:30:48Z",
                 "Data": {
-                    "created_on": "2025-05-04T12:30:58.123456789Z",
+                    "created_on": "2025-05-04T12:30:48.123456789Z",
                     "groups_added": [
                         {
                             "name": "Testers",

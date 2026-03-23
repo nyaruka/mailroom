@@ -1,119 +1,89 @@
 [
     {
         "label": "#1",
-        "events": {
+        "modifiers": {
             "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
                 {
-                    "uuid": "01969b47-307b-76f8-ba91-c48ad8c50e6b",
-                    "type": "contact_field_changed",
-                    "created_on": "2025-05-04T12:30:57.123456789Z",
+                    "type": "field",
                     "field": {
                         "key": "gender",
                         "name": "Gender"
                     },
-                    "value": {
-                        "text": "Male"
-                    }
+                    "value": "Male"
                 },
                 {
-                    "uuid": "01969b47-3c33-76f8-be24-6164105d48f2",
-                    "type": "contact_field_changed",
-                    "created_on": "2025-05-04T12:31:00.123456789Z",
+                    "type": "field",
                     "field": {
                         "key": "gender",
                         "name": "Gender"
                     },
-                    "value": {
-                        "text": "Female"
-                    }
+                    "value": "Female"
                 }
             ],
             "b699a406-7e44-49be-9f01-1a82893e8a10": [
                 {
-                    "uuid": "01969b47-8283-76f8-9803-f4a851d20f2b",
-                    "type": "contact_field_changed",
-                    "created_on": "2025-05-04T12:31:18.123456789Z",
+                    "type": "field",
                     "field": {
                         "key": "gender",
                         "name": "Gender"
                     },
-                    "value": {
-                        "text": "Male"
-                    }
+                    "value": "Male"
                 },
                 {
-                    "uuid": "01969b47-8e3b-76f8-8b56-5e92bbfe0e3f",
-                    "type": "contact_field_changed",
-                    "created_on": "2025-05-04T12:31:21.123456789Z",
+                    "type": "field",
                     "field": {
                         "key": "age",
                         "name": "Age"
                     },
-                    "value": {
-                        "text": "Old"
-                    }
+                    "value": "Old"
                 }
             ],
             "cd024bcd-f473-4719-a00a-bd0bb1190135": [
                 {
-                    "uuid": "01969b47-d48b-76f8-9504-776e7d151101",
-                    "type": "contact_field_changed",
-                    "created_on": "2025-05-04T12:31:39.123456789Z",
+                    "type": "field",
                     "field": {
                         "key": "gender",
                         "name": "Gender"
                     },
-                    "value": {
-                        "text": "Male"
-                    }
+                    "value": "Male"
                 },
                 {
-                    "uuid": "01969b47-dc5b-76f8-998e-ae5bd773804a",
-                    "type": "contact_field_changed",
-                    "created_on": "2025-05-04T12:31:41.123456789Z",
+                    "type": "field",
                     "field": {
                         "key": "gender",
                         "name": "Gender"
                     },
-                    "value": null
+                    "value": ""
                 },
                 {
-                    "uuid": "01969b47-e813-76f8-87bc-209e78511534",
-                    "type": "contact_field_changed",
-                    "created_on": "2025-05-04T12:31:44.123456789Z",
+                    "type": "field",
                     "field": {
                         "key": "age",
                         "name": "Age"
                     },
-                    "value": {
-                        "text": "40",
-                        "number": 40
-                    }
+                    "value": "40"
                 }
             ],
             "d709c157-4606-4d41-9df3-9e9c9b4ae2d4": [
                 {
-                    "uuid": "01969b48-2a7b-76f8-b8ba-60d66db82e39",
-                    "type": "contact_field_changed",
-                    "created_on": "2025-05-04T12:32:01.123456789Z",
+                    "type": "field",
                     "field": {
                         "key": "age",
                         "name": "Age"
                     },
-                    "value": null
+                    "value": ""
                 },
                 {
-                    "uuid": "01969b48-324b-76f8-8c2c-eb689cc91cf8",
-                    "type": "contact_field_changed",
-                    "created_on": "2025-05-04T12:32:03.123456789Z",
+                    "type": "field",
                     "field": {
                         "key": "gender",
                         "name": "Gender"
                     },
-                    "value": null
+                    "value": ""
                 }
             ]
         },
+        "events": {},
         "db_assertions": [
             {
                 "query": "select count(*) from contacts_contact where id = $1 AND fields-\u003e$2 = '{\"text\":\"Female\"}'::jsonb",
@@ -182,11 +152,11 @@
         "expected_history": [
             {
                 "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
-                "SK": "evt#01969b47-8283-76f8-9803-f4a851d20f2b",
+                "SK": "evt#01969b47-20db-76f8-9c0b-2014ddc77094",
                 "OrgID": 1,
-                "TTL": "2026-05-04T12:31:18Z",
+                "TTL": "2026-05-04T12:30:53Z",
                 "Data": {
-                    "created_on": "2025-05-04T12:31:18.123456789Z",
+                    "created_on": "2025-05-04T12:30:53.123456789Z",
                     "field": {
                         "key": "gender",
                         "name": "Gender"
@@ -199,11 +169,11 @@
             },
             {
                 "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
-                "SK": "evt#01969b47-8e3b-76f8-8b56-5e92bbfe0e3f",
+                "SK": "evt#01969b47-2c93-76f8-92a3-d648ab64bccb",
                 "OrgID": 1,
-                "TTL": "2026-05-04T12:31:21Z",
+                "TTL": "2026-05-04T12:30:56Z",
                 "Data": {
-                    "created_on": "2025-05-04T12:31:21.123456789Z",
+                    "created_on": "2025-05-04T12:30:56.123456789Z",
                     "field": {
                         "key": "age",
                         "name": "Age"
@@ -216,11 +186,11 @@
             },
             {
                 "PK": "con#d709c157-4606-4d41-9df3-9e9c9b4ae2d4",
-                "SK": "evt#01969b48-2a7b-76f8-b8ba-60d66db82e39",
+                "SK": "evt#01969b47-53a3-76f8-ba00-bd7f0d08e671",
                 "OrgID": 1,
-                "TTL": "2026-05-04T12:32:01Z",
+                "TTL": "2026-05-04T12:31:06Z",
                 "Data": {
-                    "created_on": "2025-05-04T12:32:01.123456789Z",
+                    "created_on": "2025-05-04T12:31:06.123456789Z",
                     "field": {
                         "key": "age",
                         "name": "Age"
@@ -231,11 +201,11 @@
             },
             {
                 "PK": "con#d709c157-4606-4d41-9df3-9e9c9b4ae2d4",
-                "SK": "evt#01969b48-324b-76f8-8c2c-eb689cc91cf8",
+                "SK": "evt#01969b47-5b73-76f8-b86e-4b881f09a186",
                 "OrgID": 1,
-                "TTL": "2026-05-04T12:32:03Z",
+                "TTL": "2026-05-04T12:31:08Z",
                 "Data": {
-                    "created_on": "2025-05-04T12:32:03.123456789Z",
+                    "created_on": "2025-05-04T12:31:08.123456789Z",
                     "field": {
                         "key": "gender",
                         "name": "Gender"
@@ -246,11 +216,11 @@
             },
             {
                 "PK": "con#cd024bcd-f473-4719-a00a-bd0bb1190135",
-                "SK": "evt#01969b47-d48b-76f8-9504-776e7d151101",
+                "SK": "evt#01969b47-384b-76f8-8228-9728778b6c98",
                 "OrgID": 1,
-                "TTL": "2026-05-04T12:31:39Z",
+                "TTL": "2026-05-04T12:30:59Z",
                 "Data": {
-                    "created_on": "2025-05-04T12:31:39.123456789Z",
+                    "created_on": "2025-05-04T12:30:59.123456789Z",
                     "field": {
                         "key": "gender",
                         "name": "Gender"
@@ -263,11 +233,11 @@
             },
             {
                 "PK": "con#cd024bcd-f473-4719-a00a-bd0bb1190135",
-                "SK": "evt#01969b47-dc5b-76f8-998e-ae5bd773804a",
+                "SK": "evt#01969b47-401b-76f8-8f41-6b2d9f33d623",
                 "OrgID": 1,
-                "TTL": "2026-05-04T12:31:41Z",
+                "TTL": "2026-05-04T12:31:01Z",
                 "Data": {
-                    "created_on": "2025-05-04T12:31:41.123456789Z",
+                    "created_on": "2025-05-04T12:31:01.123456789Z",
                     "field": {
                         "key": "gender",
                         "name": "Gender"
@@ -278,11 +248,11 @@
             },
             {
                 "PK": "con#cd024bcd-f473-4719-a00a-bd0bb1190135",
-                "SK": "evt#01969b47-e813-76f8-87bc-209e78511534",
+                "SK": "evt#01969b47-4bd3-76f8-a17e-f85e49829fb9",
                 "OrgID": 1,
-                "TTL": "2026-05-04T12:31:44Z",
+                "TTL": "2026-05-04T12:31:04Z",
                 "Data": {
-                    "created_on": "2025-05-04T12:31:44.123456789Z",
+                    "created_on": "2025-05-04T12:31:04.123456789Z",
                     "field": {
                         "key": "age",
                         "name": "Age"
@@ -296,11 +266,11 @@
             },
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b47-307b-76f8-ba91-c48ad8c50e6b",
+                "SK": "evt#01969b47-096b-76f8-ae7f-f8b243c49ff5",
                 "OrgID": 1,
-                "TTL": "2026-05-04T12:30:57Z",
+                "TTL": "2026-05-04T12:30:47Z",
                 "Data": {
-                    "created_on": "2025-05-04T12:30:57.123456789Z",
+                    "created_on": "2025-05-04T12:30:47.123456789Z",
                     "field": {
                         "key": "gender",
                         "name": "Gender"
@@ -313,11 +283,11 @@
             },
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b47-3c33-76f8-be24-6164105d48f2",
+                "SK": "evt#01969b47-1523-76f8-bd38-d266ec8d3716",
                 "OrgID": 1,
-                "TTL": "2026-05-04T12:31:00Z",
+                "TTL": "2026-05-04T12:30:50Z",
                 "Data": {
-                    "created_on": "2025-05-04T12:31:00.123456789Z",
+                    "created_on": "2025-05-04T12:30:50.123456789Z",
                     "field": {
                         "key": "gender",
                         "name": "Gender"
