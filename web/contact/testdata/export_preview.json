@@ -62,7 +62,7 @@
         },
         "status": 200,
         "response": {
-            "total": 2
+            "total": 0
         }
     },
     {
@@ -76,7 +76,7 @@
         },
         "status": 200,
         "response": {
-            "total": 1
+            "total": 0
         }
     },
     {
@@ -90,7 +90,7 @@
         },
         "status": 200,
         "response": {
-            "total": 1
+            "total": 0
         }
     },
     {

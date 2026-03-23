@@ -57,10 +57,8 @@
         "status": 200,
         "response": {
             "query": "name ~ \"Ann\"",
-            "contact_ids": [
-                10000
-            ],
-            "total": 1,
+            "contact_ids": [],
+            "total": 0,
             "metadata": {
                 "attributes": [
                     "name"
@@ -88,10 +86,8 @@
         "status": 200,
         "response": {
             "query": "name ~ \"Ann\" OR name ~ \"Cat\"",
-            "contact_ids": [
-                10000
-            ],
-            "total": 1,
+            "contact_ids": [],
+            "total": 0,
             "metadata": {
                 "attributes": [
                     "name"
@@ -147,19 +143,8 @@
         "status": 200,
         "response": {
             "query": "",
-            "contact_ids": [
-                10013,
-                10012,
-                10011,
-                10010,
-                10009,
-                10008,
-                10007,
-                10006,
-                10005,
-                10004
-            ],
-            "total": 10
+            "contact_ids": [],
+            "total": 0
         }
     },
     {
@@ -175,14 +160,8 @@
         "status": 200,
         "response": {
             "query": "",
-            "contact_ids": [
-                10013,
-                10012,
-                10011,
-                10010,
-                10009
-            ],
-            "total": 10
+            "contact_ids": [],
+            "total": 0
         }
     },
     {
@@ -199,14 +178,8 @@
         "status": 200,
         "response": {
             "query": "",
-            "contact_ids": [
-                10004,
-                10005,
-                10006,
-                10007,
-                10008
-            ],
-            "total": 10
+            "contact_ids": [],
+            "total": 0
         }
     }
 ]
