@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	guuid "github.com/google/uuid"
 	"github.com/lib/pq"
 	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/i18n"
@@ -24,6 +25,10 @@ type Msg struct {
 type MsgIn struct {
 	Msg
 	FlowMsg *flows.MsgIn
+}
+
+func (m *MsgIn) SetTicketUUID(rt *runtime.Runtime, ticketUUID flows.TicketUUID) {
+	rt.DB.MustExec(`UPDATE msgs_msg SET ticket_uuid = $1 WHERE id = $2`, ticketUUID, m.ID)
 }
 
 func (m *MsgIn) Label(rt *runtime.Runtime, labels ...*Label) {
@@ -57,17 +62,28 @@ type Broadcast struct {
 	UUID flows.BroadcastUUID
 }
 
-// InsertIncomingMsg inserts an incoming text message
+// InsertIncomingMsg inserts an incoming text message, deriving created_on from the v7 UUID timestamp
 func InsertIncomingMsg(t *testing.T, rt *runtime.Runtime, org *Org, uuid flows.EventUUID, channel *Channel, contact *Contact, text string, status models.MsgStatus) *MsgIn {
 	var id models.MsgID
 	err := rt.DB.Get(&id,
 		`INSERT INTO msgs_msg(uuid, text, created_on, modified_on, direction, msg_type, status, visibility, msg_count, error_count, next_attempt, contact_id, contact_urn_id, org_id, channel_id, is_android)
-	  	 VALUES($1, $2, NOW(), NOW(), 'I', $3, $4, 'V', 1, 0, NOW(), $5, $6, $7, $8, FALSE) RETURNING id`, uuid, text, models.MsgTypeText, status, contact.ID, contact.URNID, org.ID, channel.ID,
+	  	 VALUES($1, $2, $3, NOW(), 'I', $4, $5, 'V', 1, 0, NOW(), $6, $7, $8, $9, FALSE) RETURNING id`, uuid, text, timeFromV7UUID(t, uuid), models.MsgTypeText, status, contact.ID, contact.URNID, org.ID, channel.ID,
 	)
 	require.NoError(t, err)
 
 	fm := flows.NewMsgIn(contact.URN, assets.NewChannelReference(channel.UUID, ""), text, nil, "")
 	return &MsgIn{Msg: Msg{ID: id, UUID: uuid}, FlowMsg: fm}
+}
+
+// timeFromV7UUID extracts the millisecond timestamp from a v7 UUID
+func timeFromV7UUID(t *testing.T, u flows.EventUUID) time.Time {
+	t.Helper()
+
+	parsed, err := guuid.Parse(string(u))
+	require.NoError(t, err)
+
+	sec, nsec := parsed.Time().UnixTime()
+	return time.Unix(sec, nsec)
 }
 
 // InsertOutgoingMsg inserts an outgoing text message
