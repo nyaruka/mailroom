@@ -4,7 +4,6 @@ import (
 	"testing"
 	"time"
 
-	guuid "github.com/google/uuid"
 	"github.com/lib/pq"
 	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/i18n"
@@ -79,11 +78,9 @@ func InsertIncomingMsg(t *testing.T, rt *runtime.Runtime, org *Org, uuid flows.E
 func timeFromV7UUID(t *testing.T, u flows.EventUUID) time.Time {
 	t.Helper()
 
-	parsed, err := guuid.Parse(string(u))
+	tm, err := uuids.V7Time(uuids.UUID(u))
 	require.NoError(t, err)
-
-	sec, nsec := parsed.Time().UnixTime()
-	return time.Unix(sec, nsec)
+	return tm
 }
 
 // InsertOutgoingMsg inserts an outgoing text message
