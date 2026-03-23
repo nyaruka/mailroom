@@ -105,6 +105,7 @@ func TestSearch(t *testing.T) {
 	testdb.InsertIncomingMsg(t, rt, testdb.Org1, "019b224f-9700-7000-8000-000000000003", testdb.TwilioChannel, testdb.Cat, "goodbye world", models.MsgStatusHandled, "")
 
 	testsuite.IndexMessages(t, rt)
+	testsuite.WriteMessageHistory(t, rt)
 
 	testsuite.RunWebTests(t, rt, "testdata/search.json")
 }
