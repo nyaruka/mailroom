@@ -92,8 +92,8 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 	setupElasticContactsV2(t, rt)
 	setupElasticMessages(t, rt)
 
-	// clear stale message indexes from previous test runs (they share deterministic mock UUIDs)
-	deleteElasticMessages(t, rt)
+	// clear stale data from previous test runs
+	ClearElasticIndexes(t, rt)
 
 	// create Postgres tables if necessary
 	_, err = rt.DB.Exec("SELECT * from orgs_org")
@@ -129,15 +129,16 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 	return t.Context(), rt
 }
 
-// ReindexElastic deletes, recreates and re-indexes all contacts for test orgs into the v2 Elastic contacts index
+// ReindexElastic clears all documents from the contacts and messages indexes.. and re-indexes all contacts
+// for test orgs from the database.
 func ReindexElastic(t *testing.T, rt *runtime.Runtime) {
 	t.Helper()
 
-	deleteElasticIndex(t, rt, rt.Config.ElasticContactsIndexV2)
-	setupElasticContactsV2(t, rt)
+	rt.ES.Writer.Flush()
+	ClearElasticIndexes(t, rt)
 
-	IndexOrgContacts(t, rt, testdb.Org1)
-	IndexOrgContacts(t, rt, testdb.Org2)
+	indexOrgContacts(t, rt, testdb.Org1)
+	indexOrgContacts(t, rt, testdb.Org2)
 }
 
 // resets our database to our base state from our RapidPro dump
@@ -221,14 +222,8 @@ func createBucket(t *testing.T, rt *runtime.Runtime, bucket string) {
 func resetElastic(t *testing.T, rt *runtime.Runtime) {
 	t.Helper()
 
-	// delete and recreate the v2 contacts index
-	deleteElasticIndex(t, rt, rt.Config.ElasticContactsIndexV2)
-	setupElasticContactsV2(t, rt)
-
-	// delete any message indexes
-	deleteElasticMessages(t, rt)
-
-	ReindexElastic(t, rt)
+	rt.ES.Writer.Flush()
+	ClearElasticIndexes(t, rt)
 }
 
 // setupElasticContactsV2 creates the v2 contacts index in Elastic if it doesn't already exist
@@ -247,14 +242,6 @@ func setupElasticContactsV2(t *testing.T, rt *runtime.Runtime) {
 	}
 }
 
-// deleteElasticIndex deletes an Elastic index, ignoring 404 (index not found) but failing on other errors.
-func deleteElasticIndex(t *testing.T, rt *runtime.Runtime, index string) {
-	t.Helper()
-
-	_, err := rt.ES.Client.Indices.Delete(index).IsSuccess(t.Context())
-	require.NoError(t, err)
-}
-
 // setupElasticMessages creates the index template for messages in Elastic
 func setupElasticMessages(t *testing.T, rt *runtime.Runtime) {
 	t.Helper()
@@ -266,23 +253,6 @@ func setupElasticMessages(t *testing.T, rt *runtime.Runtime) {
 
 	_, err := rt.ES.Client.Indices.PutIndexTemplate(rt.Config.ElasticMessagesIndex).Raw(bytes.NewReader(body)).Do(t.Context())
 	require.NoError(t, err)
-}
-
-// deleteElasticMessages deletes all message indexes matching the configured pattern
-func deleteElasticMessages(t *testing.T, rt *runtime.Runtime) {
-	t.Helper()
-
-	pattern := rt.Config.ElasticMessagesIndex + "-*"
-
-	indexes, err := rt.ES.Client.Cat.Indices().Index(pattern).Do(t.Context())
-	require.NoError(t, err)
-
-	for _, idx := range indexes {
-		if idx.Index != nil {
-			_, err := rt.ES.Client.Indices.Delete(*idx.Index).Do(t.Context())
-			require.NoError(t, err)
-		}
-	}
 }
 
 func resetDynamo(t *testing.T, rt *runtime.Runtime) {

@@ -267,9 +267,8 @@ type SearchAssertion struct {
 	Contacts []models.ContactID `json:"contacts"`
 }
 
-// IndexOrgContacts indexes all active contacts for the given org into the v2 Elastic contacts index
-// and refreshes the index so they're immediately searchable.
-func IndexOrgContacts(t *testing.T, rt *runtime.Runtime, org *testdb.Org) {
+// indexes all active contacts for the given org into Elastic and refreshes the index so they're immediately searchable
+func indexOrgContacts(t *testing.T, rt *runtime.Runtime, org *testdb.Org) {
 	t.Helper()
 
 	ctx := t.Context()
@@ -307,19 +306,12 @@ func IndexOrgContacts(t *testing.T, rt *runtime.Runtime, org *testdb.Org) {
 	require.NoError(t, err)
 }
 
-// ResetESContactsIndexV2 deletes and recreates the v2 Elastic contacts index, clearing both
-// documents and version history.
-func ResetESContactsIndexV2(t *testing.T, rt *runtime.Runtime) {
+// ClearElasticIndexes removes all documents from the v2 contacts index and deletes all message indexes.
+// Callers should flush the ES writer first if there may be buffered writes.
+func ClearElasticIndexes(t *testing.T, rt *runtime.Runtime) {
 	t.Helper()
 
-	deleteElasticIndex(t, rt, rt.Config.ElasticContactsIndexV2)
-	setupElasticContactsV2(t, rt)
-}
-
-// ClearESContactsIndexV2 removes all documents from the v2 Elastic contacts index.
-func ClearESContactsIndexV2(t *testing.T, rt *runtime.Runtime) {
-	t.Helper()
-
+	// clear contacts
 	_, err := rt.ES.Client.DeleteByQuery(rt.Config.ElasticContactsIndexV2).
 		Conflicts(conflicts.Proceed).
 		Raw(strings.NewReader(`{"query": {"match_all": {}}}`)).Do(t.Context())
@@ -327,6 +319,19 @@ func ClearESContactsIndexV2(t *testing.T, rt *runtime.Runtime) {
 
 	_, err = rt.ES.Client.Indices.Refresh().Index(rt.Config.ElasticContactsIndexV2).Do(t.Context())
 	require.NoError(t, err)
+
+	// clear messages
+	pattern := rt.Config.ElasticMessagesIndex + "-*"
+
+	indexes, err := rt.ES.Client.Cat.Indices().Index(pattern).Do(t.Context())
+	require.NoError(t, err)
+
+	for _, idx := range indexes {
+		if idx.Index != nil {
+			_, err := rt.ES.Client.Indices.Delete(*idx.Index).Do(t.Context())
+			require.NoError(t, err)
+		}
+	}
 }
 
 func GetHistoryItems(t *testing.T, rt *runtime.Runtime, clear bool, after time.Time) []*dynamo.Item {

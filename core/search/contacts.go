@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/elastic/go-elasticsearch/v8/typedapi/types/enums/operationtype"
-	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/elastic"
 	"github.com/nyaruka/gocommon/i18n"
 	"github.com/nyaruka/gocommon/jsonx"
@@ -164,7 +163,7 @@ func IndexContacts(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsset
 			Index:   rt.Config.ElasticContactsIndexV2,
 			ID:      doc.DBID.String(),
 			Routing: doc.OrgID.String(),
-			Version: dates.Now().UnixNano(),
+			Version: time.Now().UnixNano(),
 			Body:    body,
 		})
 	}
