@@ -722,10 +722,10 @@
     {
         "label": "handle resume with digits we're waiting for",
         "method": "POST",
-        "path": "/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&call=01969b4a-c28b-76f8-9676-22cd6062f002",
+        "path": "/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&call=01969b4a-a733-76f8-9676-22cd6062f002",
         "body": "CallStatus=in-progress&Digits=2&wait_type=gather",
-        "status": 500,
-        "response": "{\n    \"error\": \"unable to load call with UUID 01969b4a-c28b-76f8-9676-22cd6062f002: error loading call 01969b4a-c28b-76f8-9676-22cd6062f002: sql: no rows in result set\"\n}",
+        "status": 200,
+        "response": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Response>\n  <Gather timeout=\"30\" action=\"https://localhost:8091/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&amp;call=01969b4a-a733-76f8-9676-22cd6062f002&amp;wait_type=gather\">\n    <Say language=\"en-US\">Great! You said Two. Ok, now enter a number 1 to 100 then press pound.</Say>\n  </Gather>\n  <Redirect>https://localhost:8091/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&amp;call=01969b4a-a733-76f8-9676-22cd6062f002&amp;wait_type=gather&amp;timeout=true</Redirect>\n</Response>",
         "db_assertions": [
             {
                 "query": "SELECT external_id, status FROM ivr_call",
@@ -738,7 +738,44 @@
             },
             {
                 "query": "SELECT count(*) FROM msgs_msg WHERE contact_id = 10000 AND direction = 'I'",
-                "returns": 3
+                "returns": 4
+            }
+        ],
+        "expected_history": [
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01969b4b-204b-76f8-9ad9-7b76948880e3",
+                "OrgID": 1,
+                "Data": {
+                    "created_on": "2025-05-04T12:35:16.123456789Z",
+                    "msg": {
+                        "channel": {
+                            "name": "Twilio",
+                            "uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8"
+                        },
+                        "text": "2",
+                        "urn": "tel:+16055741111?channel=74729f45-7f29-4868-9dc4-90e491e3c7d8"
+                    },
+                    "type": "msg_received"
+                }
+            },
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01969b4b-4f2b-76f8-82ae-81542083c6c6",
+                "OrgID": 1,
+                "Data": {
+                    "created_on": "2025-05-04T12:35:27.123456789Z",
+                    "msg": {
+                        "channel": {
+                            "name": "Twilio",
+                            "uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8"
+                        },
+                        "locale": "und-US",
+                        "text": "Great! You said Two. Ok, now enter a number 1 to 100 then press pound.",
+                        "urn": "tel:+16055741111"
+                    },
+                    "type": "ivr_created"
+                }
             }
         ]
     },
@@ -764,11 +801,11 @@
         "expected_history": [
             {
                 "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
-                "SK": "evt#01969b4b-2c03-76f8-ab24-17061eb32600",
+                "SK": "evt#01969b4b-9193-76f8-a8e1-fc82b887c3ff",
                 "OrgID": 1,
-                "TTL": "2026-05-04T12:35:18Z",
+                "TTL": "2026-05-04T12:35:44Z",
                 "Data": {
-                    "created_on": "2025-05-04T12:35:18.123456789Z",
+                    "created_on": "2025-05-04T12:35:44.123456789Z",
                     "type": "contact_urns_changed",
                     "urns": [
                         "tel:+16055742222?channel=74729f45-7f29-4868-9dc4-90e491e3c7d8"
@@ -777,7 +814,7 @@
             },
             {
                 "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
-                "SK": "evt#01969b4b-33d3-76f8-93ca-b93dc25ffd65",
+                "SK": "evt#01969b4b-9963-76f8-a679-1ed579b6107a",
                 "OrgID": 1,
                 "Data": {
                     "call": {
@@ -786,9 +823,9 @@
                             "uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8"
                         },
                         "urn": "tel:+16055742222",
-                        "uuid": "01969b4b-281b-76f8-b1f8-3d29c913263a"
+                        "uuid": "01969b4b-8dab-76f8-a261-a8a7a2e749fe"
                     },
-                    "created_on": "2025-05-04T12:35:20.123456789Z",
+                    "created_on": "2025-05-04T12:35:46.123456789Z",
                     "type": "call_received"
                 }
             }
