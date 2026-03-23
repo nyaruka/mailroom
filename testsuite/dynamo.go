@@ -20,11 +20,13 @@ func GetHistoryItems(t *testing.T, rt *runtime.Runtime, clear bool, after time.T
 
 	rt.Dynamo.History.Flush()
 
-	allItems := dyntest.ScanAll(t, rt.Dynamo.History.Client(), "TestHistory")
+	table := rt.Dynamo.History.Table()
+
+	allItems := dyntest.ScanAll(t, rt.Dynamo.History.Client(), table)
 
 	if after.IsZero() {
 		if clear {
-			dyntest.Truncate(t, rt.Dynamo.History.Client(), "TestHistory")
+			dyntest.Truncate(t, rt.Dynamo.History.Client(), table)
 		}
 		return allItems
 	}
@@ -41,7 +43,6 @@ func GetHistoryItems(t *testing.T, rt *runtime.Runtime, clear bool, after time.T
 
 	if clear && len(items) > 0 {
 		client := rt.Dynamo.History.Client()
-		table := rt.Dynamo.History.Table()
 		for _, item := range items {
 			_, err := client.DeleteItem(t.Context(), &dynamodb.DeleteItemInput{
 				TableName: aws.String(table),
