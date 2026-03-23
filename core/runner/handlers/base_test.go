@@ -18,6 +18,7 @@ import (
 	"github.com/nyaruka/goflow/flows/routers"
 	"github.com/nyaruka/goflow/flows/triggers"
 	"github.com/nyaruka/goflow/test"
+	"github.com/nyaruka/mailroom/core/goflow"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/runner"
 	"github.com/nyaruka/mailroom/core/search"
@@ -76,9 +77,12 @@ func (m *ContactActionMap) UnmarshalJSON(d []byte) error {
 	return nil
 }
 
+type ContactModifierMap map[flows.ContactUUID][]json.RawMessage
+
 type TestCase struct {
 	Label           string                          `json:"label"`
 	BroadcastID     models.BroadcastID              `json:"broadcast_id,omitempty"`
+	Modifiers       ContactModifierMap              `json:"modifiers,omitempty"`
 	Events          ContactEventMap                 `json:"events"`
 	Actions         ContactActionMap                `json:"actions,omitempty"`
 	UserID          models.UserID                   `json:"user_id,omitempty"`
@@ -116,6 +120,17 @@ func runTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 				require.NoError(t, err)
 
 				scenes[i].Broadcast = bcast
+			}
+
+			// apply modifiers first - these update the engine contact and generate events
+			if rawMods := tc.Modifiers[c.UUID]; len(rawMods) > 0 {
+				mods, err := goflow.ReadModifiers(oa.SessionAssets(), rawMods, goflow.ErrorOnMissing)
+				require.NoError(t, err, "%s: error reading modifiers for %s", tc.Label, c.UUID)
+
+				for _, mod := range mods {
+					err = scenes[i].ApplyModifier(ctx, rt, oa, mod, tc.UserID, "")
+					require.NoError(t, err, "%s: error applying modifier for %s", tc.Label, c.UUID)
+				}
 			}
 
 			for _, e := range tc.Events[c.UUID] {
@@ -202,32 +217,17 @@ func runTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 			}
 			test.AssertEqualJSON(t, jsonx.MustMarshal(tc.IndexedMessages), jsonx.MustMarshal(actual.IndexedMessages), "%s: indexed messages mismatch", tc.Label)
 
-			// check search assertions against v2 Elastic contacts index - we re-index
-			// from DB because event handlers trigger indexing via the IndexContacts
-			// hook but those index the in-memory flow contacts which don't reflect
-			// DB changes made by pre-commit hooks
 			if len(tc.AssertSearch) > 0 {
-				models.FlushCache()
-				oa2, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
-				require.NoError(t, err)
-
-				for _, c := range []*testdb.Contact{testdb.Ann, testdb.Bob, testdb.Cat, testdb.Dan} {
-					_, reloaded, _ := c.Load(t, rt, oa2)
-					err = search.IndexContacts(ctx, rt, oa2, []*flows.Contact{reloaded}, nil)
-					require.NoError(t, err)
-				}
-
 				rt.ES.Writer.Flush()
 
 				_, err = rt.ES.Client.Indices.Refresh().Index(rt.Config.ElasticContactsIndex).Do(ctx)
 				require.NoError(t, err)
 
 				for _, sa := range tc.AssertSearch {
-					ids, err := search.GetContactIDsForQuery(ctx, rt, oa2, nil, models.ContactStatusActive, sa.Query, -1)
+					ids, err := search.GetContactIDsForQuery(ctx, rt, oa, nil, models.ContactStatusActive, sa.Query, -1)
 					assert.NoError(t, err, "%s: search query '%s' failed", tc.Label, sa.Query)
 					assert.ElementsMatch(t, sa.Contacts, ids, "%s: search query '%s' returned wrong contacts", tc.Label, sa.Query)
 				}
-
 			}
 		} else {
 			tcs[i] = actual
