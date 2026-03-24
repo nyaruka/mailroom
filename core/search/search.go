@@ -156,7 +156,8 @@ func getContactIDsForQueryPage(ctx context.Context, rt *runtime.Runtime, oa *mod
 	eq := buildContactQuery(oa, group, status, excludeIDs, parsed, own)
 
 	src := map[string]any{
-		"_source":          []string{"id"},
+		"_source":          false,
+		"docvalue_fields":  []string{"id"},
 		"query":            eq,
 		"sort":             []any{fieldSort},
 		"from":             offset,
@@ -209,7 +210,8 @@ func getContactIDsForQuery(ctx context.Context, rt *runtime.Runtime, oa *models.
 	// if limit provided that can be done with single search, do that
 	if limit >= 0 && limit <= 10_000 {
 		src := map[string]any{
-			"_source":          []string{"id"},
+			"_source":          false,
+		"docvalue_fields":  []string{"id"},
 			"query":            eq,
 			"sort":             []any{sort},
 			"from":             0,
@@ -238,7 +240,8 @@ func getContactIDsForQuery(ctx context.Context, rt *runtime.Runtime, oa *models.
 	}()
 
 	src := map[string]any{
-		"_source":          []string{"id"},
+		"_source":          false,
+		"docvalue_fields":  []string{"id"},
 		"query":            eq,
 		"sort":             []any{sort},
 		"pit":              map[string]any{"id": pit.Id, "keep_alive": "1m"},
@@ -275,14 +278,16 @@ func getContactIDsForQuery(ctx context.Context, rt *runtime.Runtime, oa *models.
 	return ids, nil
 }
 
-// appendIDsFromESHits extracts contact IDs from Elasticsearch hits using the id field in _source
+// appendIDsFromESHits extracts contact IDs from Elasticsearch hits using the id docvalue field
 func appendIDsFromESHits(ids []models.ContactID, hits []types.Hit) []models.ContactID {
 	for _, hit := range hits {
-		var src struct {
-			ID models.ContactID `json:"id"`
+		raw, ok := hit.Fields["id"]
+		if !ok {
+			continue
 		}
-		if err := json.Unmarshal(hit.Source_, &src); err == nil {
-			ids = append(ids, src.ID)
+		var vals []models.ContactID
+		if err := json.Unmarshal(raw, &vals); err == nil && len(vals) > 0 {
+			ids = append(ids, vals[0])
 		}
 	}
 	return ids
