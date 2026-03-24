@@ -3,9 +3,9 @@ package search
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
-	"strconv"
 	"time"
 
 	"github.com/elastic/go-elasticsearch/v8/typedapi/types"
@@ -39,8 +39,8 @@ func (m *AssetMapper) Group(g assets.Group) int64 {
 
 var assetMapper = &AssetMapper{}
 
-func newConverter(oa *models.OrgAssets) *es.Converter {
-	return es.NewConverter(oa.Env(), assetMapper, false)
+func newConverter(oa *models.OrgAssets, uuidAsDocID bool) *es.Converter {
+	return es.NewConverter(oa.Env(), assetMapper, uuidAsDocID)
 }
 
 func buildContactQuery(oa *models.OrgAssets, group *models.Group, status models.ContactStatus, excludeIDs []models.ContactID, query *contactql.ContactQuery, v2 bool) elastic.Query {
@@ -64,18 +64,18 @@ func buildContactQuery(oa *models.OrgAssets, group *models.Group, status models.
 	}
 
 	if query != nil {
-		conv := newConverter(oa)
+		conv := newConverter(oa, v2)
 		filter = append(filter, conv.Query(query))
 	}
 
 	bq := map[string]any{"filter": filter}
 
 	if len(excludeIDs) > 0 {
-		ids := make([]string, len(excludeIDs))
+		ids := make([]any, len(excludeIDs))
 		for i := range excludeIDs {
-			ids[i] = fmt.Sprintf("%d", excludeIDs[i])
+			ids[i] = excludeIDs[i]
 		}
-		bq["must_not"] = []elastic.Query{elastic.Ids(ids...)}
+		bq["must_not"] = []elastic.Query{{"terms": map[string]any{"id": ids}}}
 	}
 
 	return elastic.Query{"bool": bq}
@@ -135,7 +135,7 @@ func GetContactIDsForQueryPage(ctx context.Context, rt *runtime.Runtime, oa *mod
 
 	index, v2 := contactsIndex(rt)
 
-	conv := newConverter(oa)
+	conv := newConverter(oa, v2)
 	fieldSort, err := conv.Sort(sort, oa.SessionAssets())
 	if err != nil {
 		return nil, nil, 0, fmt.Errorf("error parsing sort: %w", err)
@@ -156,7 +156,7 @@ func getContactIDsForQueryPage(ctx context.Context, rt *runtime.Runtime, oa *mod
 	eq := buildContactQuery(oa, group, status, excludeIDs, parsed, v2)
 
 	src := map[string]any{
-		"_source":          false,
+		"_source":          []string{"id"},
 		"query":            eq,
 		"sort":             []any{fieldSort},
 		"from":             offset,
@@ -209,7 +209,7 @@ func getContactIDsForQuery(ctx context.Context, rt *runtime.Runtime, oa *models.
 	// if limit provided that can be done with single search, do that
 	if limit >= 0 && limit <= 10_000 {
 		src := map[string]any{
-			"_source":          false,
+			"_source":          []string{"id"},
 			"query":            eq,
 			"sort":             []any{sort},
 			"from":             0,
@@ -238,7 +238,7 @@ func getContactIDsForQuery(ctx context.Context, rt *runtime.Runtime, oa *models.
 	}()
 
 	src := map[string]any{
-		"_source":          false,
+		"_source":          []string{"id"},
 		"query":            eq,
 		"sort":             []any{sort},
 		"pit":              map[string]any{"id": pit.Id, "keep_alive": "1m"},
@@ -275,12 +275,14 @@ func getContactIDsForQuery(ctx context.Context, rt *runtime.Runtime, oa *models.
 	return ids, nil
 }
 
-// appendIDsFromESHits extracts contact IDs from Elasticsearch hits where _id is the database contact ID
+// appendIDsFromESHits extracts contact IDs from Elasticsearch hits using the id field in _source
 func appendIDsFromESHits(ids []models.ContactID, hits []types.Hit) []models.ContactID {
 	for _, hit := range hits {
-		id, err := strconv.Atoi(*hit.Id_)
-		if err == nil {
-			ids = append(ids, models.ContactID(id))
+		var src struct {
+			ID models.ContactID `json:"id"`
+		}
+		if err := json.Unmarshal(hit.Source_, &src); err == nil {
+			ids = append(ids, src.ID)
 		}
 	}
 	return ids
