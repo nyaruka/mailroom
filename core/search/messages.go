@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/nyaruka/gocommon/aws/dynamo"
+	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/core/models"
@@ -47,10 +48,11 @@ func SearchMessages(ctx context.Context, rt *runtime.Runtime, orgID models.OrgID
 	routing := fmt.Sprintf("%d", orgID)
 
 	// orgwide search looks back 180 days, but if we're filtering by contact we can look back a full year
-	since := "now-180d/d"
+	lookback := 180 * 24 * time.Hour
 	if contactUUID != "" {
-		since = "now-1y/d"
+		lookback = 365 * 24 * time.Hour
 	}
+	since := dates.Now().Add(-lookback).Format("2006-01-02")
 
 	filter := []map[string]any{
 		{"term": map[string]any{"org_id": orgID}},

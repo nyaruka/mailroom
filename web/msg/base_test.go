@@ -98,11 +98,11 @@ func TestSearch(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetElastic|testsuite.ResetDynamo)
 
-	testdb.InsertIncomingMsg(t, rt, testdb.Org1, "019b21e1-ba00-7000-8000-000000000001", testdb.TwilioChannel, testdb.Ann, "hello world", models.MsgStatusHandled, "")
+	testdb.InsertIncomingMsg(t, rt, testdb.Org1, "01955193-de00-7000-8000-000000000001", testdb.TwilioChannel, testdb.Ann, "hello world", models.MsgStatusHandled, "")
 
-	testdb.InsertIncomingMsg(t, rt, testdb.Org1, "019b2218-a880-7000-8000-000000000002", testdb.TwilioChannel, testdb.Bob, "hello there friend", models.MsgStatusHandled, "019b2218-a880-7000-8000-000000000099")
+	testdb.InsertIncomingMsg(t, rt, testdb.Org1, "019551ca-cc80-7000-8000-000000000002", testdb.TwilioChannel, testdb.Bob, "hello there friend", models.MsgStatusHandled, "019551ca-cc80-7000-8000-000000000099")
 
-	testdb.InsertIncomingMsg(t, rt, testdb.Org1, "019b224f-9700-7000-8000-000000000003", testdb.TwilioChannel, testdb.Cat, "goodbye world", models.MsgStatusHandled, "")
+	testdb.InsertIncomingMsg(t, rt, testdb.Org1, "01955201-bb00-7000-8000-000000000003", testdb.TwilioChannel, testdb.Cat, "goodbye world", models.MsgStatusHandled, "")
 
 	testsuite.IndexMessages(t, rt)
 	testsuite.WriteMessageHistory(t, rt)
