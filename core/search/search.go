@@ -19,7 +19,7 @@ import (
 )
 
 func contactsIndex(rt *runtime.Runtime) (string, bool) {
-	if rt.Config.ElasticContactsUseV2 {
+	if rt.Config.ElasticContactsUseOwn {
 		return rt.Config.ElasticContactsIndex, true
 	}
 	return rt.Config.ElasticContactsLegacyIndex, false
@@ -43,15 +43,15 @@ func newConverter(oa *models.OrgAssets, uuidAsDocID bool) *es.Converter {
 	return es.NewConverter(oa.Env(), assetMapper, uuidAsDocID)
 }
 
-func buildContactQuery(oa *models.OrgAssets, group *models.Group, status models.ContactStatus, excludeIDs []models.ContactID, query *contactql.ContactQuery, v2 bool) elastic.Query {
+func buildContactQuery(oa *models.OrgAssets, group *models.Group, status models.ContactStatus, excludeIDs []models.ContactID, query *contactql.ContactQuery, own bool) elastic.Query {
 	// use filter context for all clauses since we never sort by relevance score, and filter clauses
 	// are cacheable and skip scoring
 	filter := []elastic.Query{
 		elastic.Term("org_id", oa.OrgID()),
 	}
 
-	// rp-indexer index has is_active field, v2 index only indexes active contacts
-	if !v2 {
+	// rp-indexer index has is_active field, own index only indexes active contacts
+	if !own {
 		filter = append(filter, elastic.Term("is_active", true))
 	}
 
@@ -64,7 +64,7 @@ func buildContactQuery(oa *models.OrgAssets, group *models.Group, status models.
 	}
 
 	if query != nil {
-		conv := newConverter(oa, v2)
+		conv := newConverter(oa, own)
 		filter = append(filter, conv.Query(query))
 	}
 
@@ -101,8 +101,8 @@ func GetContactTotal(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAss
 		group = nil
 	}
 
-	index, v2 := contactsIndex(rt)
-	eq := buildContactQuery(oa, group, status, nil, parsed, v2)
+	index, own := contactsIndex(rt)
+	eq := buildContactQuery(oa, group, status, nil, parsed, own)
 	src := map[string]any{"query": eq}
 
 	count, err := rt.ES.Client.Count().Index(index).Routing(oa.OrgID().String()).Raw(bytes.NewReader(jsonx.MustMarshal(src))).Do(ctx)
@@ -133,16 +133,16 @@ func GetContactIDsForQueryPage(ctx context.Context, rt *runtime.Runtime, oa *mod
 		group = nil
 	}
 
-	index, v2 := contactsIndex(rt)
+	index, own := contactsIndex(rt)
 
-	conv := newConverter(oa, v2)
+	conv := newConverter(oa, own)
 	fieldSort, err := conv.Sort(sort, oa.SessionAssets())
 	if err != nil {
 		return nil, nil, 0, fmt.Errorf("error parsing sort: %w", err)
 	}
 
 	start := time.Now()
-	hits, total, err := getContactIDsForQueryPage(ctx, rt, oa, group, status, excludeIDs, parsed, fieldSort, offset, pageSize, index, v2)
+	hits, total, err := getContactIDsForQueryPage(ctx, rt, oa, group, status, excludeIDs, parsed, fieldSort, offset, pageSize, index, own)
 	if err != nil {
 		return nil, nil, 0, err
 	}
@@ -151,9 +151,9 @@ func GetContactIDsForQueryPage(ctx context.Context, rt *runtime.Runtime, oa *mod
 	return parsed, hits, total, nil
 }
 
-func getContactIDsForQueryPage(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, group *models.Group, status models.ContactStatus, excludeIDs []models.ContactID, parsed *contactql.ContactQuery, fieldSort map[string]any, offset int, pageSize int, index string, v2 bool) ([]models.ContactID, int64, error) {
+func getContactIDsForQueryPage(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, group *models.Group, status models.ContactStatus, excludeIDs []models.ContactID, parsed *contactql.ContactQuery, fieldSort map[string]any, offset int, pageSize int, index string, own bool) ([]models.ContactID, int64, error) {
 	start := time.Now()
-	eq := buildContactQuery(oa, group, status, excludeIDs, parsed, v2)
+	eq := buildContactQuery(oa, group, status, excludeIDs, parsed, own)
 
 	src := map[string]any{
 		"_source":          []string{"id"},
@@ -197,8 +197,8 @@ func GetContactIDsForQuery(ctx context.Context, rt *runtime.Runtime, oa *models.
 		group = nil
 	}
 
-	index, v2 := contactsIndex(rt)
-	eq := buildContactQuery(oa, group, status, nil, parsed, v2)
+	index, own := contactsIndex(rt)
+	eq := buildContactQuery(oa, group, status, nil, parsed, own)
 	return getContactIDsForQuery(ctx, rt, oa, index, eq, limit)
 }
 

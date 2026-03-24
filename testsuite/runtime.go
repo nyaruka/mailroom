@@ -76,7 +76,7 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 	cfg.DynamoEndpoint = "http://localstack:4566"
 	cfg.DynamoTablePrefix = "Test"
 	cfg.ElasticContactsIndex = "contacts-test"
-	cfg.ElasticContactsUseV2 = true
+	cfg.ElasticContactsUseOwn = true
 	cfg.ElasticMessagesIndex = "messages-test"
 	cfg.SpoolDir = absPath("./_test_spool")
 
