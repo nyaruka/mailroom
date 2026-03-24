@@ -80,6 +80,9 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Fix git safe directory
+        run: git config --global --add safe.directory /__w/mailroom/mailroom
+
       - name: Fetch GoFlow docs
         # for backward compatibility, English docs are copied to root of docs directory
         run: |
@@ -88,7 +91,7 @@ jobs:
           cp ./docs/en-us/*.* docs/
 
       - name: Publish release
-        uses: goreleaser/goreleaser-action@v6
+        uses: goreleaser/goreleaser-action@v7
         if: ${{ !contains(github.ref, '-') }}
         with:
           args: release --clean
@@ -96,7 +99,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish non-master release
-        uses: goreleaser/goreleaser-action@v6
+        uses: goreleaser/goreleaser-action@v7
         if: contains(github.ref, '-')
         with:
           args: release --clean --skip-validate
