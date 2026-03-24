@@ -1,3 +1,7 @@
+v26.1.74 (2026-03-24)
+-------------------------
+ * Use contact UUID as _id in new contacts ES index
+
 v26.1.73 (2026-03-24)
 -------------------------
  * CI releasing tweaks
