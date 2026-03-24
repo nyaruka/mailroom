@@ -47,22 +47,23 @@ type MessageResult struct {
 func SearchMessages(ctx context.Context, rt *runtime.Runtime, orgID models.OrgID, text string, contactUUID flows.ContactUUID, inTicket bool, limit int) ([]MessageResult, error) {
 	routing := fmt.Sprintf("%d", orgID)
 
-	// orgwide search looks back 180 days, but if we're filtering by contact we can look back a full year
-	lookback := 180 * 24 * time.Hour
-	if contactUUID != "" {
-		lookback = 365 * 24 * time.Hour
-	}
-	since := dates.Now().Add(-lookback).Format("2006-01-02")
-
 	filter := []map[string]any{
 		{"term": map[string]any{"org_id": orgID}},
-		{"range": map[string]any{"@timestamp": map[string]string{"gte": since}}},
 	}
 	if contactUUID != "" {
 		filter = append(filter, map[string]any{"term": map[string]any{"contact_uuid": contactUUID}})
+	} else {
+		since := dates.Now().Add(-180 * 24 * time.Hour).Format("2006-01-02")
+		filter = append(filter, map[string]any{"range": map[string]any{"@timestamp": map[string]string{"gte": since}}})
 	}
 	if inTicket {
 		filter = append(filter, map[string]any{"term": map[string]any{"in_ticket": true}})
+	}
+
+	// if searching by contact, sort purely by recency; otherwise sort by relevance then recency
+	sort := []any{"_score", map[string]string{"@timestamp": "desc"}}
+	if contactUUID != "" {
+		sort = []any{map[string]string{"@timestamp": "desc"}}
 	}
 
 	src := map[string]any{
@@ -74,7 +75,7 @@ func SearchMessages(ctx context.Context, rt *runtime.Runtime, orgID models.OrgID
 				},
 			},
 		},
-		"sort":             []any{"_score", map[string]string{"@timestamp": "desc"}},
+		"sort":             sort,
 		"size":             limit,
 		"track_total_hits": false,
 	}
