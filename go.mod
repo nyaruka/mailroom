@@ -12,7 +12,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/cloudwatch v1.55.2
 	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.56.2
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.97.1
-	github.com/buger/jsonparser v1.1.1
+	github.com/buger/jsonparser v1.1.2
 	github.com/elastic/go-elasticsearch/v8 v8.19.3
 	github.com/getsentry/sentry-go v0.42.0
 	github.com/go-chi/chi/v5 v5.2.5
@@ -23,8 +23,8 @@ require (
 	github.com/gorilla/schema v1.4.1
 	github.com/lib/pq v1.11.2
 	github.com/nyaruka/ezconf v0.6.1
-	github.com/nyaruka/gocommon v1.76.3
-	github.com/nyaruka/goflow v0.271.0
+	github.com/nyaruka/gocommon v1.77.0
+	github.com/nyaruka/goflow v0.272.0
 	github.com/nyaruka/null/v3 v3.0.0
 	github.com/nyaruka/vkutil v0.20.0
 	github.com/openai/openai-go v1.12.0

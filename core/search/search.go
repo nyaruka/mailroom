@@ -39,6 +39,10 @@ func (m *AssetMapper) Group(g assets.Group) int64 {
 
 var assetMapper = &AssetMapper{}
 
+func newConverter(oa *models.OrgAssets) *es.Converter {
+	return es.NewConverter(oa.Env(), assetMapper, false)
+}
+
 func buildContactQuery(oa *models.OrgAssets, group *models.Group, status models.ContactStatus, excludeIDs []models.ContactID, query *contactql.ContactQuery, v2 bool) elastic.Query {
 	// use filter context for all clauses since we never sort by relevance score, and filter clauses
 	// are cacheable and skip scoring
@@ -60,7 +64,8 @@ func buildContactQuery(oa *models.OrgAssets, group *models.Group, status models.
 	}
 
 	if query != nil {
-		filter = append(filter, es.ToElasticQuery(oa.Env(), assetMapper, query))
+		conv := newConverter(oa)
+		filter = append(filter, conv.Query(query))
 	}
 
 	bq := map[string]any{"filter": filter}
@@ -128,12 +133,13 @@ func GetContactIDsForQueryPage(ctx context.Context, rt *runtime.Runtime, oa *mod
 		group = nil
 	}
 
-	fieldSort, err := es.ToElasticSort(sort, oa.SessionAssets())
+	index, v2 := contactsIndex(rt)
+
+	conv := newConverter(oa)
+	fieldSort, err := conv.Sort(sort, oa.SessionAssets())
 	if err != nil {
 		return nil, nil, 0, fmt.Errorf("error parsing sort: %w", err)
 	}
-
-	index, v2 := contactsIndex(rt)
 
 	start := time.Now()
 	hits, total, err := getContactIDsForQueryPage(ctx, rt, oa, group, status, excludeIDs, parsed, fieldSort, offset, pageSize, index, v2)
