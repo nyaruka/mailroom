@@ -71,7 +71,7 @@ func SearchMessages(ctx context.Context, rt *runtime.Runtime, orgID models.OrgID
 			"bool": map[string]any{
 				"filter": filter,
 				"must": []map[string]any{
-					{"match": map[string]any{"text": map[string]any{"query": text, "operator": "and", "fuzziness": "AUTO"}}},
+					{"match": map[string]any{"text": map[string]any{"query": text, "operator": "and"}}},
 				},
 			},
 		},
