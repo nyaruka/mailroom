@@ -121,7 +121,7 @@ func NewDefaultConfig() *Config {
 		ElasticUsername:            "",
 		ElasticPassword:            "",
 		ElasticContactsLegacyIndex: "contacts",
-		ElasticContactsIndex:       "contacts-v3",
+		ElasticContactsIndex:       "contacts-v1",
 		ElasticMessagesIndex:       "messages-v1",
 
 		AWSAccessKeyID:     "",
