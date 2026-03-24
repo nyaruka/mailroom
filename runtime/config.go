@@ -55,7 +55,7 @@ type Config struct {
 	ElasticPassword            string `help:"the password for ElasticSearch if using basic auth"`
 	ElasticContactsLegacyIndex string `help:"the name of the legacy contacts index written by rp-indexer"`
 	ElasticContactsIndex       string `help:"the name of the contacts index written by mailroom"`
-	ElasticContactsUseV2       bool   `help:"whether to use the v2 contacts index for searches"`
+	ElasticContactsUseOwn      bool   `help:"whether to use mailroom's own contacts index for searches"`
 	ElasticMessagesIndex       string `help:"the base name for monthly message indexes (e.g. messages-v1 -> messages-v1-2026-02)"`
 
 	AWSAccessKeyID     string `help:"access key ID to use for AWS services"`
@@ -121,7 +121,7 @@ func NewDefaultConfig() *Config {
 		ElasticUsername:            "",
 		ElasticPassword:            "",
 		ElasticContactsLegacyIndex: "contacts",
-		ElasticContactsIndex:       "contacts-v2",
+		ElasticContactsIndex:       "contacts-v3",
 		ElasticMessagesIndex:       "messages-v1",
 
 		AWSAccessKeyID:     "",
