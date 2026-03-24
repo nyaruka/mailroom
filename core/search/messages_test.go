@@ -2,9 +2,9 @@ package search_test
 
 import (
 	"testing"
-	"time"
 
 	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/search"
 	"github.com/nyaruka/mailroom/testsuite"
 	"github.com/nyaruka/mailroom/testsuite/testdb"
@@ -15,14 +15,18 @@ import (
 func TestSearchMessages(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetElastic|testsuite.ResetDynamo)
+	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetElastic|testsuite.ResetDynamo)
 
-	testsuite.IndexMessages(t, rt, []search.MessageDoc{
-		{CreatedOn: time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC), OrgID: testdb.Org1.ID, UUID: "01968bb7-ca00-7000-8000-000000000001", ContactUUID: testdb.Ann.UUID, Text: "hello world"},
-		{CreatedOn: time.Date(2026, 1, 15, 13, 0, 0, 0, time.UTC), OrgID: testdb.Org1.ID, UUID: "01968bee-b880-7000-8000-000000000002", ContactUUID: testdb.Bob.UUID, Text: "hello there friend", InTicket: true},
-		{CreatedOn: time.Date(2026, 1, 15, 14, 0, 0, 0, time.UTC), OrgID: testdb.Org1.ID, UUID: "01968c25-a700-7000-8000-000000000003", ContactUUID: testdb.Cat.UUID, Text: "goodbye world"},
-		{CreatedOn: time.Date(2026, 1, 15, 12, 0, 0, 0, time.UTC), OrgID: testdb.Org2.ID, UUID: "01968bb7-ca00-7000-9000-000000000001", ContactUUID: testdb.Org2Contact.UUID, Text: "hello world"},
-	})
+	testdb.InsertIncomingMsg(t, rt, testdb.Org1, "019b21e1-ba00-7000-8000-000000000001", testdb.TwilioChannel, testdb.Ann, "hello world", models.MsgStatusHandled, "")
+
+	testdb.InsertIncomingMsg(t, rt, testdb.Org1, "019b2218-a880-7000-8000-000000000002", testdb.TwilioChannel, testdb.Bob, "hello there friend", models.MsgStatusHandled, "019b2218-a880-7000-8000-000000000099")
+
+	testdb.InsertIncomingMsg(t, rt, testdb.Org1, "019b224f-9700-7000-8000-000000000003", testdb.TwilioChannel, testdb.Cat, "goodbye world", models.MsgStatusHandled, "")
+
+	testdb.InsertIncomingMsg(t, rt, testdb.Org2, "019b21e1-ba00-7000-8000-000000000004", testdb.Org2Channel, testdb.Org2Contact, "hello world", models.MsgStatusHandled, "")
+
+	testsuite.IndexMessages(t, rt)
+	testsuite.WriteMessageHistory(t, rt)
 
 	tcs := []struct {
 		label       string

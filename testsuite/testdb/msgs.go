@@ -13,6 +13,7 @@ import (
 	"github.com/nyaruka/goflow/utils"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/runtime"
+	"github.com/nyaruka/null/v3"
 	"github.com/stretchr/testify/require"
 )
 
@@ -57,12 +58,15 @@ type Broadcast struct {
 	UUID flows.BroadcastUUID
 }
 
-// InsertIncomingMsg inserts an incoming text message
-func InsertIncomingMsg(t *testing.T, rt *runtime.Runtime, org *Org, uuid flows.EventUUID, channel *Channel, contact *Contact, text string, status models.MsgStatus) *MsgIn {
+// InsertIncomingMsg inserts an incoming text message, deriving created_on from the v7 UUID timestamp
+func InsertIncomingMsg(t *testing.T, rt *runtime.Runtime, org *Org, uuid flows.EventUUID, channel *Channel, contact *Contact, text string, status models.MsgStatus, ticketUUID flows.TicketUUID) *MsgIn {
+	createdOn, err := uuids.V7Time(uuids.UUID(uuid))
+	require.NoError(t, err)
+
 	var id models.MsgID
-	err := rt.DB.Get(&id,
-		`INSERT INTO msgs_msg(uuid, text, created_on, modified_on, direction, msg_type, status, visibility, msg_count, error_count, next_attempt, contact_id, contact_urn_id, org_id, channel_id, is_android)
-	  	 VALUES($1, $2, NOW(), NOW(), 'I', $3, $4, 'V', 1, 0, NOW(), $5, $6, $7, $8, FALSE) RETURNING id`, uuid, text, models.MsgTypeText, status, contact.ID, contact.URNID, org.ID, channel.ID,
+	err = rt.DB.Get(&id,
+		`INSERT INTO msgs_msg(uuid, text, created_on, modified_on, direction, msg_type, status, visibility, msg_count, error_count, next_attempt, contact_id, contact_urn_id, org_id, channel_id, ticket_uuid, is_android)
+	  	 VALUES($1, $2, $3, NOW(), 'I', $4, $5, 'V', 1, 0, NOW(), $6, $7, $8, $9, $10, FALSE) RETURNING id`, uuid, text, createdOn, models.MsgTypeText, status, contact.ID, contact.URNID, org.ID, channel.ID, null.String(ticketUUID),
 	)
 	require.NoError(t, err)
 

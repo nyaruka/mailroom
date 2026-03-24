@@ -119,7 +119,7 @@ func TestNewCourierMsg(t *testing.T) {
 		i18n.NilLocale,
 		"",
 	), "", "")
-	in1 := testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199bad8-f98d-75a3-b641-2718a25ac3f5", testdb.TwilioChannel, testdb.Ann, "test", models.MsgStatusHandled)
+	in1 := testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199bad8-f98d-75a3-b641-2718a25ac3f5", testdb.TwilioChannel, testdb.Ann, "test", models.MsgStatusHandled, "")
 	msg2, err := models.NewOutgoingFlowMsg(rt, oa.Org(), twilio, ann, flow, msgEvent2, &models.MsgInRef{UUID: in1.UUID, ExtID: "EX123"})
 	require.NoError(t, err)
 
