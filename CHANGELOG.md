@@ -1,3 +1,7 @@
+v26.1.73 (2026-03-24)
+-------------------------
+ * CI releasing tweaks
+
 v26.1.72 (2026-03-24)
 -------------------------
  * Update goflow to v0.272.0 and use new es.Converter API
