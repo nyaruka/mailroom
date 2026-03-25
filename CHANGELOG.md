@@ -1,3 +1,8 @@
+v26.1.75 (2026-03-25)
+-------------------------
+ * Remove fuzziness on message searches
+ * Update ordering for message search for contact-specific queries
+
 v26.1.74 (2026-03-24)
 -------------------------
  * Use contact UUID as _id in new contacts ES index
