@@ -74,6 +74,9 @@ type Config struct {
 	DeploymentID        string `help:"the deployment identifier to use for metrics"`
 	InstanceID          string `help:"the instance identifier to use for metrics"`
 
+	CentrifugoEndpoint string `help:"the endpoint of the Centrifugo server"`
+	CentrifugoKey      string `help:"the API key for the Centrifugo server"`
+
 	CourierAuthToken       string `help:"the authentication token used for requests to Courier"`
 	AndroidCredentialsFile string `help:"path to JSON file with FCM service account credentials used to sync Android relayers"`
 	IDObfuscationKey       string `help:"key used to decode obfuscated IDs, as 4 comma separated integers" validate:"omitempty,hexadecimal,len=32"`
