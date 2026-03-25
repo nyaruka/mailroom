@@ -13,6 +13,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.57.0
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.97.2
 	github.com/buger/jsonparser v1.1.2
+	github.com/centrifugal/gocent/v3 v3.4.0
 	github.com/elastic/go-elasticsearch/v8 v8.19.3
 	github.com/getsentry/sentry-go v0.44.1
 	github.com/go-chi/chi/v5 v5.2.5
@@ -80,7 +81,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sts v1.41.9 // indirect
 	github.com/aws/smithy-go v1.24.2 // indirect
 	github.com/blevesearch/segment v0.9.1 // indirect
-	github.com/centrifugal/gocent/v3 v3.4.0 // indirect
+
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cncf/xds/go v0.0.0-20260202195803-dba9d589def2 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
