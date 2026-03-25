@@ -10,6 +10,7 @@ import (
 
 	"github.com/appleboy/go-fcm"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatch/types"
+	"github.com/centrifugal/gocent/v3"
 	valkey "github.com/gomodule/redigo/redis"
 	"github.com/nyaruka/gocommon/aws/cwatch"
 	"github.com/nyaruka/gocommon/aws/dynamo"
@@ -119,6 +120,16 @@ func (s *Service) Start() error {
 		}
 	} else {
 		log.Warn("fcm not configured, no android syncing")
+	}
+
+	if c.CentrifugoEndpoint != "" {
+		s.rt.Centrifugo = gocent.New(gocent.Config{
+			Addr: c.CentrifugoEndpoint,
+			Key:  c.CentrifugoKey,
+		})
+		log.Info("centrifugo ok")
+	} else {
+		log.Warn("centrifugo not configured")
 	}
 
 	if err := s.rt.Start(); err != nil {

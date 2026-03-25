@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"firebase.google.com/go/v4/messaging"
+	"github.com/centrifugal/gocent/v3"
 	valkey "github.com/gomodule/redigo/redis"
 	"github.com/nyaruka/gocommon/aws/cwatch"
 	"github.com/nyaruka/gocommon/aws/s3x"
@@ -27,6 +28,7 @@ type Runtime struct {
 	Dynamo *Dynamo
 	CW     *cwatch.Service
 	FCM        FCMClient
+	Centrifugo *gocent.Client
 
 	Queues *Queues
 	Stats  *StatsCollector
