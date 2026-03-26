@@ -30,6 +30,9 @@ func TestMsgReceivedTask(t *testing.T) {
 	disabled := testdb.InsertChannel(t, rt, testdb.Org1, "TG", "Deleted", "1234567", []string{"telegram"}, "SR", map[string]any{})
 	rt.DB.MustExec(`UPDATE channels_channel SET is_enabled = false WHERE id = $1`, disabled.ID)
 
+	disallowed := testdb.InsertChannel(t, rt, testdb.Org1, "TG", "Disallowed", "12345678", []string{"telegram"}, "SR", map[string]any{})
+	rt.DB.MustExec(`UPDATE channels_channel SET is_allowed = false WHERE id = $1`, disallowed.ID)
+
 	testdb.InsertKeywordTrigger(t, rt, testdb.Org1, testdb.Favorites, []string{"start"}, models.MatchOnly, nil, nil, nil)
 	testdb.InsertKeywordTrigger(t, rt, testdb.Org1, testdb.IVRFlow, []string{"ivr"}, models.MatchOnly, nil, nil, nil)
 
@@ -295,6 +298,13 @@ func TestMsgReceivedTask(t *testing.T) {
 		{ // 22: disabled channel
 			org:                testdb.Org1,
 			channel:            disabled,
+			contact:            testdb.Ann,
+			text:               "start",
+			expectedVisibility: models.VisibilityArchived,
+		},
+		{ // 23: disallowed channel
+			org:                testdb.Org1,
+			channel:            disallowed,
 			contact:            testdb.Ann,
 			text:               "start",
 			expectedVisibility: models.VisibilityArchived,

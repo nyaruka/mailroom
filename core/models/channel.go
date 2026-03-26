@@ -145,7 +145,7 @@ const sqlSelectAndroidChannelsToSync = `
 SELECT ROW_TO_JSON(r) FROM (
     SELECT c.id, c.uuid, c.org_id, c.channel_type, c.name, c.address, COALESCE(c.tps, 10) AS tps, c.config
       FROM channels_channel c
-     WHERE c.channel_type = 'A' AND c.last_seen >= NOW() - INTERVAL '7 days' AND c.last_seen <  NOW() - INTERVAL '15 minutes' AND c.is_active = TRUE AND c.is_enabled = TRUE
+     WHERE c.channel_type = 'A' AND c.last_seen >= NOW() - INTERVAL '7 days' AND c.last_seen <  NOW() - INTERVAL '15 minutes' AND c.is_active = TRUE AND c.is_enabled = TRUE AND c.is_allowed = TRUE
   ORDER BY c.last_seen DESC, c.id DESC
 ) r;`
 
@@ -177,7 +177,7 @@ SELECT ROW_TO_JSON(r) FROM (SELECT
       jsonb_extract_path(c.config, 'allow_international') AS allow_international,
       jsonb_extract_path(c.config, 'machine_detection') AS machine_detection
     FROM channels_channel c
-   WHERE c.org_id = $1 AND c.is_active = TRUE AND c.is_enabled = TRUE
+   WHERE c.org_id = $1 AND c.is_active = TRUE AND c.is_enabled = TRUE AND c.is_allowed = TRUE
 ORDER BY c.created_on ASC
 ) r;`
 
