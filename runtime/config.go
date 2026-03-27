@@ -50,13 +50,11 @@ type Config struct {
 	MaxSprintsPerSession int      `help:"the maximum number of sprints allowed per engine session"`
 	MaxValueLength       int      `help:"the maximum size in characters for contact field values and run result values"`
 
-	Elastic                    string `validate:"url" help:"the URL of your ElasticSearch instance"`
-	ElasticUsername            string `help:"the username for ElasticSearch if using basic auth"`
-	ElasticPassword            string `help:"the password for ElasticSearch if using basic auth"`
-	ElasticContactsLegacyIndex string `help:"the name of the legacy contacts index written by rp-indexer"`
-	ElasticContactsIndex       string `help:"the name of the contacts index written by mailroom"`
-	ElasticContactsUseOwn      bool   `help:"whether to use mailroom's own contacts index for searches"`
-	ElasticMessagesIndex       string `help:"the base name for monthly message indexes (e.g. messages-v1 -> messages-v1-2026-02)"`
+	Elastic              string `validate:"url" help:"the URL of your ElasticSearch instance"`
+	ElasticUsername      string `help:"the username for ElasticSearch if using basic auth"`
+	ElasticPassword      string `help:"the password for ElasticSearch if using basic auth"`
+	ElasticContactsIndex string `help:"the name of the contacts index written by mailroom"`
+	ElasticMessagesIndex string `help:"the base name for monthly message indexes (e.g. messages-v1 -> messages-v1-2026-02)"`
 
 	AWSAccessKeyID     string `help:"access key ID to use for AWS services"`
 	AWSSecretAccessKey string `help:"secret access key to use for AWS services"`
@@ -120,12 +118,11 @@ func NewDefaultConfig() *Config {
 		MaxSprintsPerSession: 250,
 		MaxValueLength:       640,
 
-		Elastic:                    "http://elastic:9200",
-		ElasticUsername:            "",
-		ElasticPassword:            "",
-		ElasticContactsLegacyIndex: "contacts",
-		ElasticContactsIndex:       "contacts-v1",
-		ElasticMessagesIndex:       "messages-v1",
+		Elastic:              "http://elastic:9200",
+		ElasticUsername:      "",
+		ElasticPassword:      "",
+		ElasticContactsIndex: "contacts-v1",
+		ElasticMessagesIndex: "messages-v1",
 
 		AWSAccessKeyID:     "",
 		AWSSecretAccessKey: "",
