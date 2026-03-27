@@ -1,3 +1,10 @@
+v26.1.76 (2026-03-27)
+-------------------------
+ * Update to latest gocommon which adds bsuid URNs
+ * Update deps including goflow that relaxes restrictions on flow types on enter flow actions
+ * Add optional centrifugo support
+ * Remove support for legacy rp-indexer contacts index
+
 v26.1.75 (2026-03-25)
 -------------------------
  * Remove fuzziness on message searches
