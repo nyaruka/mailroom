@@ -23,7 +23,7 @@ require (
 	github.com/gorilla/schema v1.4.1
 	github.com/lib/pq v1.12.0
 	github.com/nyaruka/ezconf v0.6.1
-	github.com/nyaruka/gocommon v1.77.0
+	github.com/nyaruka/gocommon v1.78.0
 	github.com/nyaruka/goflow v0.272.1
 	github.com/nyaruka/null/v3 v3.0.0
 	github.com/nyaruka/vkutil v0.20.0
@@ -81,7 +81,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sts v1.41.9 // indirect
 	github.com/aws/smithy-go v1.24.2 // indirect
 	github.com/blevesearch/segment v0.9.1 // indirect
-
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/cncf/xds/go v0.0.0-20260202195803-dba9d589def2 // indirect
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
