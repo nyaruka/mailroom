@@ -22,8 +22,8 @@ func TestMsgDeleted(t *testing.T) {
 
 	ann, _, _ := testdb.Ann.Load(t, rt, oa)
 
-	testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199c4cb-f111-7ce8-9ce9-614d61a2c198", testdb.TwilioChannel, testdb.Ann, "hello", models.MsgStatusHandled)
-	testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199c4cf-486a-79af-9892-79254b6ac5b7", testdb.TwilioChannel, testdb.Ann, "goodbye", models.MsgStatusHandled)
+	testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199c4cb-f111-7ce8-9ce9-614d61a2c198", testdb.TwilioChannel, testdb.Ann, "hello", models.MsgStatusHandled, "")
+	testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199c4cf-486a-79af-9892-79254b6ac5b7", testdb.TwilioChannel, testdb.Ann, "goodbye", models.MsgStatusHandled, "")
 
 	task := &ctasks.MsgDeleted{
 		MsgUUID: "0199c4cb-f111-7ce8-9ce9-614d61a2c198",

@@ -3,9 +3,9 @@ package search
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
-	"strconv"
 	"time"
 
 	"github.com/elastic/go-elasticsearch/v8/typedapi/types"
@@ -17,13 +17,6 @@ import (
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/runtime"
 )
-
-func contactsIndex(rt *runtime.Runtime) (string, bool) {
-	if rt.Config.ElasticContactsUseV2 {
-		return rt.Config.ElasticContactsIndex, true
-	}
-	return rt.Config.ElasticContactsLegacyIndex, false
-}
 
 // AssetMapper maps resolved assets in queries to how we identify them in ES which in the case
 // of flows and groups is their ids. We can do this by just type cracking them to their models.
@@ -39,16 +32,15 @@ func (m *AssetMapper) Group(g assets.Group) int64 {
 
 var assetMapper = &AssetMapper{}
 
-func buildContactQuery(oa *models.OrgAssets, group *models.Group, status models.ContactStatus, excludeIDs []models.ContactID, query *contactql.ContactQuery, v2 bool) elastic.Query {
+func newConverter(oa *models.OrgAssets, uuidAsDocID bool) *es.Converter {
+	return es.NewConverter(oa.Env(), assetMapper, uuidAsDocID)
+}
+
+func buildContactQuery(oa *models.OrgAssets, group *models.Group, status models.ContactStatus, excludeIDs []models.ContactID, query *contactql.ContactQuery) elastic.Query {
 	// use filter context for all clauses since we never sort by relevance score, and filter clauses
 	// are cacheable and skip scoring
 	filter := []elastic.Query{
 		elastic.Term("org_id", oa.OrgID()),
-	}
-
-	// rp-indexer index has is_active field, v2 index only indexes active contacts
-	if !v2 {
-		filter = append(filter, elastic.Term("is_active", true))
 	}
 
 	if group != nil {
@@ -60,17 +52,18 @@ func buildContactQuery(oa *models.OrgAssets, group *models.Group, status models.
 	}
 
 	if query != nil {
-		filter = append(filter, es.ToElasticQuery(oa.Env(), assetMapper, query))
+		conv := newConverter(oa, true)
+		filter = append(filter, conv.Query(query))
 	}
 
 	bq := map[string]any{"filter": filter}
 
 	if len(excludeIDs) > 0 {
-		ids := make([]string, len(excludeIDs))
+		ids := make([]any, len(excludeIDs))
 		for i := range excludeIDs {
-			ids[i] = fmt.Sprintf("%d", excludeIDs[i])
+			ids[i] = excludeIDs[i]
 		}
-		bq["must_not"] = []elastic.Query{elastic.Ids(ids...)}
+		bq["must_not"] = []elastic.Query{{"terms": map[string]any{"id": ids}}}
 	}
 
 	return elastic.Query{"bool": bq}
@@ -96,8 +89,8 @@ func GetContactTotal(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAss
 		group = nil
 	}
 
-	index, v2 := contactsIndex(rt)
-	eq := buildContactQuery(oa, group, status, nil, parsed, v2)
+	index := rt.Config.ElasticContactsIndex
+	eq := buildContactQuery(oa, group, status, nil, parsed)
 	src := map[string]any{"query": eq}
 
 	count, err := rt.ES.Client.Count().Index(index).Routing(oa.OrgID().String()).Raw(bytes.NewReader(jsonx.MustMarshal(src))).Do(ctx)
@@ -128,15 +121,14 @@ func GetContactIDsForQueryPage(ctx context.Context, rt *runtime.Runtime, oa *mod
 		group = nil
 	}
 
-	fieldSort, err := es.ToElasticSort(sort, oa.SessionAssets())
+	conv := newConverter(oa, true)
+	fieldSort, err := conv.Sort(sort, oa.SessionAssets())
 	if err != nil {
 		return nil, nil, 0, fmt.Errorf("error parsing sort: %w", err)
 	}
 
-	index, v2 := contactsIndex(rt)
-
 	start := time.Now()
-	hits, total, err := getContactIDsForQueryPage(ctx, rt, oa, group, status, excludeIDs, parsed, fieldSort, offset, pageSize, index, v2)
+	hits, total, err := getContactIDsForQueryPage(ctx, rt, oa, group, status, excludeIDs, parsed, fieldSort, offset, pageSize, rt.Config.ElasticContactsIndex)
 	if err != nil {
 		return nil, nil, 0, err
 	}
@@ -145,12 +137,13 @@ func GetContactIDsForQueryPage(ctx context.Context, rt *runtime.Runtime, oa *mod
 	return parsed, hits, total, nil
 }
 
-func getContactIDsForQueryPage(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, group *models.Group, status models.ContactStatus, excludeIDs []models.ContactID, parsed *contactql.ContactQuery, fieldSort map[string]any, offset int, pageSize int, index string, v2 bool) ([]models.ContactID, int64, error) {
+func getContactIDsForQueryPage(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, group *models.Group, status models.ContactStatus, excludeIDs []models.ContactID, parsed *contactql.ContactQuery, fieldSort map[string]any, offset int, pageSize int, index string) ([]models.ContactID, int64, error) {
 	start := time.Now()
-	eq := buildContactQuery(oa, group, status, excludeIDs, parsed, v2)
+	eq := buildContactQuery(oa, group, status, excludeIDs, parsed)
 
 	src := map[string]any{
 		"_source":          false,
+		"docvalue_fields":  []string{"id"},
 		"query":            eq,
 		"sort":             []any{fieldSort},
 		"from":             offset,
@@ -191,9 +184,9 @@ func GetContactIDsForQuery(ctx context.Context, rt *runtime.Runtime, oa *models.
 		group = nil
 	}
 
-	index, v2 := contactsIndex(rt)
-	eq := buildContactQuery(oa, group, status, nil, parsed, v2)
-	return getContactIDsForQuery(ctx, rt, oa, index, eq, limit)
+	eq := buildContactQuery(oa, group, status, nil, parsed)
+
+	return getContactIDsForQuery(ctx, rt, oa, rt.Config.ElasticContactsIndex, eq, limit)
 }
 
 func getContactIDsForQuery(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, index string, eq elastic.Query, limit int) ([]models.ContactID, error) {
@@ -204,6 +197,7 @@ func getContactIDsForQuery(ctx context.Context, rt *runtime.Runtime, oa *models.
 	if limit >= 0 && limit <= 10_000 {
 		src := map[string]any{
 			"_source":          false,
+			"docvalue_fields":  []string{"id"},
 			"query":            eq,
 			"sort":             []any{sort},
 			"from":             0,
@@ -233,6 +227,7 @@ func getContactIDsForQuery(ctx context.Context, rt *runtime.Runtime, oa *models.
 
 	src := map[string]any{
 		"_source":          false,
+		"docvalue_fields":  []string{"id"},
 		"query":            eq,
 		"sort":             []any{sort},
 		"pit":              map[string]any{"id": pit.Id, "keep_alive": "1m"},
@@ -269,12 +264,16 @@ func getContactIDsForQuery(ctx context.Context, rt *runtime.Runtime, oa *models.
 	return ids, nil
 }
 
-// appendIDsFromESHits extracts contact IDs from Elasticsearch hits where _id is the database contact ID
+// appendIDsFromESHits extracts contact IDs from Elasticsearch hits using the id docvalue field
 func appendIDsFromESHits(ids []models.ContactID, hits []types.Hit) []models.ContactID {
 	for _, hit := range hits {
-		id, err := strconv.Atoi(*hit.Id_)
-		if err == nil {
-			ids = append(ids, models.ContactID(id))
+		raw, ok := hit.Fields["id"]
+		if !ok {
+			continue
+		}
+		var vals []models.ContactID
+		if err := json.Unmarshal(raw, &vals); err == nil && len(vals) > 0 {
+			ids = append(ids, vals[0])
 		}
 	}
 	return ids

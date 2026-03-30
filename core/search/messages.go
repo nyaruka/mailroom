@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/nyaruka/gocommon/aws/dynamo"
+	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/core/models"
@@ -46,21 +47,23 @@ type MessageResult struct {
 func SearchMessages(ctx context.Context, rt *runtime.Runtime, orgID models.OrgID, text string, contactUUID flows.ContactUUID, inTicket bool, limit int) ([]MessageResult, error) {
 	routing := fmt.Sprintf("%d", orgID)
 
-	// orgwide search looks back 180 days, but if we're filtering by contact we can look back a full year
-	since := "now-180d/d"
-	if contactUUID != "" {
-		since = "now-1y/d"
-	}
-
 	filter := []map[string]any{
 		{"term": map[string]any{"org_id": orgID}},
-		{"range": map[string]any{"@timestamp": map[string]string{"gte": since}}},
 	}
 	if contactUUID != "" {
 		filter = append(filter, map[string]any{"term": map[string]any{"contact_uuid": contactUUID}})
+	} else {
+		since := dates.Now().Add(-180 * 24 * time.Hour).Format("2006-01-02")
+		filter = append(filter, map[string]any{"range": map[string]any{"@timestamp": map[string]string{"gte": since}}})
 	}
 	if inTicket {
 		filter = append(filter, map[string]any{"term": map[string]any{"in_ticket": true}})
+	}
+
+	// if searching by contact, sort purely by recency; otherwise sort by relevance then recency
+	sort := []any{"_score", map[string]string{"@timestamp": "desc"}}
+	if contactUUID != "" {
+		sort = []any{map[string]string{"@timestamp": "desc"}}
 	}
 
 	src := map[string]any{
@@ -68,11 +71,11 @@ func SearchMessages(ctx context.Context, rt *runtime.Runtime, orgID models.OrgID
 			"bool": map[string]any{
 				"filter": filter,
 				"must": []map[string]any{
-					{"match": map[string]any{"text": map[string]any{"query": text, "operator": "and", "fuzziness": "AUTO"}}},
+					{"match": map[string]any{"text": map[string]any{"query": text, "operator": "and"}}},
 				},
 			},
 		},
-		"sort":             []any{"_score", map[string]string{"@timestamp": "desc"}},
+		"sort":             sort,
 		"size":             limit,
 		"track_total_hits": false,
 	}

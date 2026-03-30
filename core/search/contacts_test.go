@@ -132,17 +132,17 @@ func TestDeindexContacts(t *testing.T) {
 	assertSearchCountV2(t, rt, elastic.Term("org_id", testdb.Org1.ID), 124)
 	assertSearchCountV2(t, rt, elastic.Term("org_id", testdb.Org2.ID), 121)
 
-	// DeindexContactsByID operates on the v2 index
-	deindexedByID, err := search.DeindexContactsByID(ctx, rt, testdb.Org1.ID, []models.ContactID{testdb.Bob.ID, testdb.Cat.ID})
+	// DeindexContactsByUUID operates on the v3 index
+	deindexedByUUID, err := search.DeindexContactsByUUID(ctx, rt, testdb.Org1.ID, []flows.ContactUUID{testdb.Bob.UUID, testdb.Cat.UUID})
 	assert.NoError(t, err)
-	assert.Equal(t, 2, deindexedByID)
+	assert.Equal(t, 2, deindexedByUUID)
 
 	refreshV2()
 
 	assertSearchCountV2(t, rt, elastic.Term("org_id", testdb.Org1.ID), 122)
 	assertSearchCountV2(t, rt, elastic.Term("org_id", testdb.Org2.ID), 121)
 
-	// DeindexContactsByOrg also operates on the v2 index
+	// DeindexContactsByOrg also operates on the v3 index
 	deindexed, err := search.DeindexContactsByOrg(ctx, rt, testdb.Org1.ID, 100)
 	assert.NoError(t, err)
 	assert.Equal(t, 100, deindexed)

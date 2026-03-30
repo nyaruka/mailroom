@@ -1,3 +1,29 @@
+v26.1.76 (2026-03-27)
+-------------------------
+ * Update to latest gocommon which adds bsuid URNs
+ * Update deps including goflow that relaxes restrictions on flow types on enter flow actions
+ * Add optional centrifugo support
+ * Remove support for legacy rp-indexer contacts index
+
+v26.1.75 (2026-03-25)
+-------------------------
+ * Remove fuzziness on message searches
+ * Update ordering for message search for contact-specific queries
+
+v26.1.74 (2026-03-24)
+-------------------------
+ * Use contact UUID as _id in new contacts ES index
+
+v26.1.73 (2026-03-24)
+-------------------------
+ * CI releasing tweaks
+
+v26.1.72 (2026-03-24)
+-------------------------
+ * Update goflow to v0.272.0 and use new es.Converter API
+ * Update to go 1.26
+ * Even more test cleanup
+
 v26.1.71 (2026-03-23)
 -------------------------
  * Make tests always use v2 contacts index and remove rp-indexer dependency

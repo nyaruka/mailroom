@@ -77,9 +77,6 @@
             "id": {
                 "type": "long"
             },
-            "uuid": {
-                "type": "keyword"
-            },
             "org_id": {
                 "type": "keyword"
             },

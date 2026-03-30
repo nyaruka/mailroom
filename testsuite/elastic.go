@@ -18,6 +18,7 @@ import (
 	"github.com/nyaruka/mailroom/core/search"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/mailroom/testsuite/testdb"
+	"github.com/nyaruka/null/v3"
 	"github.com/stretchr/testify/require"
 )
 
@@ -29,13 +30,46 @@ func IndexContacts(t *testing.T, rt *runtime.Runtime) {
 	indexOrgContacts(t, rt, testdb.Org2)
 }
 
-// IndexMessages indexes the given messages into Elasticsearch and writes the corresponding events to DynamoDB,
-// then refreshes the Elasticsearch index so they're immediately searchable. Note that the messages don't
-// necessarily exist in the database.
-func IndexMessages(t *testing.T, rt *runtime.Runtime, msgs []search.MessageDoc) {
+// IndexMessages indexes all indexable messages from the database into Elasticsearch, then refreshes
+// the index so they're immediately searchable.
+func IndexMessages(t *testing.T, rt *runtime.Runtime) {
 	t.Helper()
 
-	for _, msg := range msgs {
+	ctx := t.Context()
+
+	const query = `
+	SELECT m.uuid, m.org_id, m.text, m.created_on, m.ticket_uuid, c.uuid AS contact_uuid
+	  FROM msgs_msg m
+	  JOIN contacts_contact c ON c.id = m.contact_id
+	 WHERE (m.direction = 'I' OR (m.broadcast_id IS NULL AND m.created_by_id IS NOT NULL))
+	   AND LENGTH(m.text) >= $1
+	   AND m.visibility IN ('V', 'A')
+	   AND m.msg_type != 'V'
+	 ORDER BY m.uuid`
+
+	rows, err := rt.DB.QueryContext(ctx, query, search.MessageTextMinLength)
+	require.NoError(t, err)
+	defer rows.Close()
+
+	for rows.Next() {
+		var msgUUID, contactUUID string
+		var orgID models.OrgID
+		var text string
+		var createdOn time.Time
+		var ticketUUID null.String
+
+		err := rows.Scan(&msgUUID, &orgID, &text, &createdOn, &ticketUUID, &contactUUID)
+		require.NoError(t, err)
+
+		msg := search.MessageDoc{
+			CreatedOn:   createdOn,
+			UUID:        flows.EventUUID(msgUUID),
+			OrgID:       orgID,
+			ContactUUID: flows.ContactUUID(contactUUID),
+			Text:        text,
+			InTicket:    ticketUUID != "",
+		}
+
 		rt.ES.Writer.Queue(&elastic.Document{
 			Index:   msg.IndexName(rt.Config.ElasticMessagesIndex),
 			ID:      string(msg.UUID),
@@ -43,28 +77,64 @@ func IndexMessages(t *testing.T, rt *runtime.Runtime, msgs []search.MessageDoc) 
 			Body:    jsonx.MustMarshal(msg),
 		})
 	}
+	require.NoError(t, rows.Err())
 
 	rt.ES.Writer.Flush()
 
-	_, err := rt.ES.Client.Indices.Refresh().Index(rt.Config.ElasticMessagesIndex + "-*").Do(t.Context())
+	_, err = rt.ES.Client.Indices.Refresh().Index(rt.Config.ElasticMessagesIndex + "-*").Do(ctx)
 	require.NoError(t, err)
+}
 
-	for _, msg := range msgs {
+// WriteMessageHistory writes the corresponding DynamoDB history events for all indexable messages in the database.
+func WriteMessageHistory(t *testing.T, rt *runtime.Runtime) {
+	t.Helper()
+
+	ctx := t.Context()
+
+	const query = `
+	SELECT m.uuid, m.org_id, m.direction, m.text, m.created_on, c.uuid AS contact_uuid
+	  FROM msgs_msg m
+	  JOIN contacts_contact c ON c.id = m.contact_id
+	 WHERE (m.direction = 'I' OR (m.broadcast_id IS NULL AND m.created_by_id IS NOT NULL))
+	   AND LENGTH(m.text) >= $1
+	   AND m.visibility IN ('V', 'A')
+	   AND m.msg_type != 'V'
+	 ORDER BY m.uuid`
+
+	rows, err := rt.DB.QueryContext(ctx, query, search.MessageTextMinLength)
+	require.NoError(t, err)
+	defer rows.Close()
+
+	for rows.Next() {
+		var msgUUID, contactUUID string
+		var orgID models.OrgID
+		var direction, text string
+		var createdOn time.Time
+
+		err := rows.Scan(&msgUUID, &orgID, &direction, &text, &createdOn, &contactUUID)
+		require.NoError(t, err)
+
+		eventType := "msg_received"
+		if direction == "O" {
+			eventType = "msg_created"
+		}
+
 		item := &dynamo.Item{
 			Key: dynamo.Key{
-				PK: fmt.Sprintf("con#%s", msg.ContactUUID),
-				SK: fmt.Sprintf("evt#%s", msg.UUID),
+				PK: fmt.Sprintf("con#%s", contactUUID),
+				SK: fmt.Sprintf("evt#%s", msgUUID),
 			},
-			OrgID: int(msg.OrgID),
+			OrgID: int(orgID),
 			Data: map[string]any{
-				"type":       "msg_received",
-				"text":       msg.Text,
-				"created_on": msg.CreatedOn.Format(time.RFC3339),
+				"type":       eventType,
+				"text":       text,
+				"created_on": createdOn.Format(time.RFC3339),
 			},
 		}
-		err := dynamo.PutItem(t.Context(), rt.Dynamo.History.Client(), rt.Dynamo.History.Table(), item)
+		err = dynamo.PutItem(ctx, rt.Dynamo.History.Client(), rt.Dynamo.History.Table(), item)
 		require.NoError(t, err)
 	}
+	require.NoError(t, rows.Err())
 }
 
 // IndexedMessage represents an indexed Elasticsearch message for test assertions, including metadata

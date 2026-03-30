@@ -38,10 +38,10 @@ type ContactDocURN struct {
 	Path   string `json:"path"`
 }
 
-// ContactDoc represents a contact document in the contacts index. DBID is used as the document _id.
+// ContactDoc represents a contact document in the contacts index. UUID is used as the document _id.
 type ContactDoc struct {
-	DBID           models.ContactID     `json:"id"` // also used as _id
-	UUID           flows.ContactUUID    `json:"uuid"`
+	DBID           models.ContactID     `json:"id"`
+	UUID           flows.ContactUUID    `json:"-"` // used as _id, not in body
 	OrgID          models.OrgID         `json:"org_id"`
 	Name           string               `json:"name,omitempty"`
 	Status         models.ContactStatus `json:"status"`
@@ -161,7 +161,7 @@ func IndexContacts(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsset
 
 		rt.ES.Writer.Queue(&elastic.Document{
 			Index:   rt.Config.ElasticContactsIndex,
-			ID:      doc.DBID.String(),
+			ID:      string(doc.UUID),
 			Routing: doc.OrgID.String(),
 			Version: time.Now().UnixNano(),
 			Body:    body,
@@ -171,11 +171,16 @@ func IndexContacts(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsset
 	return nil
 }
 
-// DeindexContactsByID de-indexes the contacts with the given IDs from Elastic
-func DeindexContactsByID(ctx context.Context, rt *runtime.Runtime, orgID models.OrgID, contactIDs []models.ContactID) (int, error) {
+// DeindexContactsByUUID de-indexes the contacts with the given UUIDs from Elastic
+func DeindexContactsByUUID(ctx context.Context, rt *runtime.Runtime, orgID models.OrgID, contactUUIDs []flows.ContactUUID) (int, error) {
+	ids := make([]string, len(contactUUIDs))
+	for i, uuid := range contactUUIDs {
+		ids[i] = string(uuid)
+	}
+
 	cmds := &bytes.Buffer{}
-	for _, id := range contactIDs {
-		cmds.Write(jsonx.MustMarshal(map[string]any{"delete": map[string]any{"_id": id.String()}}))
+	for _, id := range ids {
+		cmds.Write(jsonx.MustMarshal(map[string]any{"delete": map[string]any{"_id": id}}))
 		cmds.WriteString("\n")
 	}
 
