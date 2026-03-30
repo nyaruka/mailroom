@@ -127,7 +127,7 @@ func (t *MsgReceived) perform(ctx context.Context, rt *runtime.Runtime, oa *mode
 		if err := t.applyNewURN(ctx, rt, oa, contact, scene); err != nil {
 			return fmt.Errorf("error applying new URN: %w", err)
 		}
-		if t.NewURN.Action == "prepend" || t.NewURN.Action == "replace" {
+		if t.NewURN.Action != "append" {
 			affinityURN = t.NewURN.Value
 		}
 	}
