@@ -434,6 +434,120 @@ func TestMsgReceivedTask(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE contact_id = $1 AND direction = 'O' AND created_on > $2`, testdb.Org2Contact.ID, previous).Returns(0)
 }
 
+func TestMsgReceivedNewURN(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+	vc := rt.VK.Get()
+	defer vc.Close()
+
+	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetDynamo|testsuite.ResetElastic)
+
+	dbMsg := testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199bad8-f98d-75a3-b641-2718a25ac3f5", testdb.TwilioChannel, testdb.Bob, "", models.MsgStatusPending, "")
+
+	tcs := []struct {
+		label       string
+		preHook     func()
+		contact     *testdb.Contact
+		channel     *testdb.Channel
+		newURN      *ctasks.NewURNSpec
+		expectedURN []string
+		expectedErr string
+	}{
+		{
+			label:   "append new URN",
+			contact: testdb.Bob,
+			channel: testdb.TwilioChannel,
+			newURN: &ctasks.NewURNSpec{
+				Value:  "telegram:98765",
+				Action: "append",
+			},
+			expectedURN: []string{"tel:+16055742222", "telegram:98765"},
+		},
+		{
+			label: "append dedup existing URN",
+			preHook: func() {
+				// reset Bob's URNs to original state
+				rt.DB.MustExec(`DELETE FROM contacts_contacturn WHERE contact_id = $1 AND scheme = 'telegram'`, testdb.Bob.ID)
+				testdb.InsertContactURN(t, rt, testdb.Org1, testdb.Bob, "telegram:98765", 999, nil)
+			},
+			contact: testdb.Bob,
+			channel: testdb.TwilioChannel,
+			newURN: &ctasks.NewURNSpec{
+				Value:  "telegram:98765",
+				Action: "append",
+			},
+			// telegram URN moves from high priority to lowest
+			expectedURN: []string{"tel:+16055742222", "telegram:98765"},
+		},
+		{
+			label:   "unsupported action errors",
+			contact: testdb.Bob,
+			channel: testdb.TwilioChannel,
+			newURN: &ctasks.NewURNSpec{
+				Value:  "telegram:98765",
+				Action: "prepend",
+			},
+			expectedErr: "unsupported new_urn action: prepend",
+		},
+		{
+			label:   "empty URN value errors",
+			contact: testdb.Bob,
+			channel: testdb.TwilioChannel,
+			newURN: &ctasks.NewURNSpec{
+				Value:  "",
+				Action: "append",
+			},
+			expectedErr: "new_urn value is required",
+		},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.label, func(t *testing.T) {
+			models.FlushCache()
+
+			if tc.preHook != nil {
+				tc.preHook()
+			}
+
+			rt.DB.MustExec(`UPDATE msgs_msg SET status = 'P', flow_id = NULL WHERE id = $1`, dbMsg.ID)
+
+			task := &ctasks.MsgReceived{
+				ChannelID: tc.channel.ID,
+				MsgUUID:   dbMsg.UUID,
+				URN:       tc.contact.URN,
+				URNID:     tc.contact.URNID,
+				Text:      "hello",
+				NewURN:    tc.newURN,
+			}
+
+			if tc.expectedErr != "" {
+				// call ctasks.Perform directly to check errors (queue processing swallows them)
+				oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
+				require.NoError(t, err)
+
+				err = ctasks.Perform(ctx, rt, oa, tc.contact.ID, task)
+				assert.ErrorContains(t, err, tc.expectedErr)
+				return
+			}
+
+			err := tasks.QueueContact(ctx, rt, testdb.Org1.ID, tc.contact.ID, task)
+			require.NoError(t, err)
+
+			queued, err := rt.Queues.Realtime.Pop(ctx, vc)
+			require.NoError(t, err)
+			require.NotNil(t, queued)
+
+			err = tasks.Perform(ctx, rt, queued)
+			require.NoError(t, err)
+
+			// verify URN order
+			var urnIdentities []string
+			err = rt.DB.Select(&urnIdentities, `SELECT identity FROM contacts_contacturn WHERE contact_id = $1 ORDER BY priority DESC`, tc.contact.ID)
+			require.NoError(t, err)
+			assert.Equal(t, tc.expectedURN, urnIdentities)
+		})
+	}
+}
+
 func getLastSeenOn(t *testing.T, rt *runtime.Runtime, c *testdb.Contact) *time.Time {
 	var lastSeenOn *time.Time
 	err := rt.DB.Get(&lastSeenOn, `SELECT last_seen_on FROM contacts_contact WHERE id = $1`, c.ID)
