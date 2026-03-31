@@ -14,6 +14,7 @@ import (
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/contactql"
 	"github.com/nyaruka/goflow/contactql/es"
+	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/runtime"
 )
@@ -36,7 +37,7 @@ func newConverter(oa *models.OrgAssets, uuidAsDocID bool) *es.Converter {
 	return es.NewConverter(oa.Env(), assetMapper, uuidAsDocID)
 }
 
-func buildContactQuery(oa *models.OrgAssets, group *models.Group, status models.ContactStatus, excludeIDs []models.ContactID, query *contactql.ContactQuery) elastic.Query {
+func buildContactQuery(oa *models.OrgAssets, group *models.Group, status models.ContactStatus, excludeUUIDs []flows.ContactUUID, query *contactql.ContactQuery) elastic.Query {
 	// use filter context for all clauses since we never sort by relevance score, and filter clauses
 	// are cacheable and skip scoring
 	filter := []elastic.Query{
@@ -58,12 +59,12 @@ func buildContactQuery(oa *models.OrgAssets, group *models.Group, status models.
 
 	bq := map[string]any{"filter": filter}
 
-	if len(excludeIDs) > 0 {
-		ids := make([]any, len(excludeIDs))
-		for i := range excludeIDs {
-			ids[i] = excludeIDs[i]
+	if len(excludeUUIDs) > 0 {
+		ids := make([]string, len(excludeUUIDs))
+		for i := range excludeUUIDs {
+			ids[i] = string(excludeUUIDs[i])
 		}
-		bq["must_not"] = []elastic.Query{{"terms": map[string]any{"id": ids}}}
+		bq["must_not"] = []elastic.Query{elastic.Ids(ids...)}
 	}
 
 	return elastic.Query{"bool": bq}
@@ -102,7 +103,7 @@ func GetContactTotal(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAss
 }
 
 // GetContactIDsForQueryPage returns a page of contact ids for the given query and sort
-func GetContactIDsForQueryPage(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, group *models.Group, excludeIDs []models.ContactID, query string, sort string, offset int, pageSize int) (*contactql.ContactQuery, []models.ContactID, int64, error) {
+func GetContactIDsForQueryPage(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, group *models.Group, excludeUUIDs []flows.ContactUUID, query string, sort string, offset int, pageSize int) (*contactql.ContactQuery, []models.ContactID, int64, error) {
 	env := oa.Env()
 	var parsed *contactql.ContactQuery
 	var err error
@@ -128,7 +129,7 @@ func GetContactIDsForQueryPage(ctx context.Context, rt *runtime.Runtime, oa *mod
 	}
 
 	start := time.Now()
-	hits, total, err := getContactIDsForQueryPage(ctx, rt, oa, group, status, excludeIDs, parsed, fieldSort, offset, pageSize, rt.Config.ElasticContactsIndex)
+	hits, total, err := getContactIDsForQueryPage(ctx, rt, oa, group, status, excludeUUIDs, parsed, fieldSort, offset, pageSize, rt.Config.ElasticContactsIndex)
 	if err != nil {
 		return nil, nil, 0, err
 	}
@@ -137,9 +138,9 @@ func GetContactIDsForQueryPage(ctx context.Context, rt *runtime.Runtime, oa *mod
 	return parsed, hits, total, nil
 }
 
-func getContactIDsForQueryPage(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, group *models.Group, status models.ContactStatus, excludeIDs []models.ContactID, parsed *contactql.ContactQuery, fieldSort map[string]any, offset int, pageSize int, index string) ([]models.ContactID, int64, error) {
+func getContactIDsForQueryPage(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, group *models.Group, status models.ContactStatus, excludeUUIDs []flows.ContactUUID, parsed *contactql.ContactQuery, fieldSort map[string]any, offset int, pageSize int, index string) ([]models.ContactID, int64, error) {
 	start := time.Now()
-	eq := buildContactQuery(oa, group, status, excludeIDs, parsed)
+	eq := buildContactQuery(oa, group, status, excludeUUIDs, parsed)
 
 	src := map[string]any{
 		"_source":          false,

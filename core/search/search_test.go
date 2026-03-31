@@ -69,7 +69,7 @@ func TestGetContactIDsForQueryPage(t *testing.T) {
 
 	tcs := []struct {
 		group            *testdb.Group
-		excludeIDs       []models.ContactID
+		excludeUUIDs     []flows.ContactUUID
 		query            string
 		sort             string
 		expectedContacts []models.ContactID
@@ -97,7 +97,7 @@ func TestGetContactIDsForQueryPage(t *testing.T) {
 		},
 		{ // 3
 			group:            testdb.ActiveGroup,
-			excludeIDs:       []models.ContactID{testdb.Cat.ID},
+			excludeUUIDs:     []flows.ContactUUID{testdb.Cat.UUID},
 			query:            "age >= 30",
 			sort:             "-age",
 			expectedContacts: []models.ContactID{},
@@ -113,7 +113,7 @@ func TestGetContactIDsForQueryPage(t *testing.T) {
 	for i, tc := range tcs {
 		group := oa.GroupByID(tc.group.ID)
 
-		_, ids, total, err := search.GetContactIDsForQueryPage(ctx, rt, oa, group, tc.excludeIDs, tc.query, tc.sort, 0, 50)
+		_, ids, total, err := search.GetContactIDsForQueryPage(ctx, rt, oa, group, tc.excludeUUIDs, tc.query, tc.sort, 0, 50)
 
 		if tc.expectedError != "" {
 			assert.EqualError(t, err, tc.expectedError)
