@@ -1,3 +1,8 @@
+v26.1.78 (2026-03-31)
+-------------------------
+ * Change /contact/search to return contact_uuids instead of contact_ids
+ * Simplify message indexing criteria to contact last_seen_on + text length
+
 v26.1.77 (2026-03-31)
 -------------------------
  * Change /contact/search to use exclude_uuids instead of exclude_ids
