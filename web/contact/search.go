@@ -41,8 +41,8 @@ type searchRequest struct {
 //
 //	{
 //	  "query": "age > 10",
-//	  "contact_ids": [5,10,15],
-//	  "total": 3,
+//	  "contact_uuids": ["b699a406-7e44-49be-9f01-1a82893e8a10"],
+//	  "total": 1,
 //	  "metadata": {
 //	    "fields": [
 //	      {"key": "age", "name": "Age"}
@@ -51,10 +51,10 @@ type searchRequest struct {
 //	  }
 //	}
 type searchResponse struct {
-	Query      string                `json:"query"`
-	ContactIDs []models.ContactID    `json:"contact_ids"`
-	Total      int64                 `json:"total"`
-	Metadata   *contactql.Inspection `json:"metadata,omitempty"`
+	Query        string                `json:"query"`
+	ContactUUIDs []flows.ContactUUID   `json:"contact_uuids"`
+	Total        int64                 `json:"total"`
+	Metadata     *contactql.Inspection `json:"metadata,omitempty"`
 }
 
 // handles a contact search request
@@ -69,7 +69,7 @@ func handleSearch(ctx context.Context, rt *runtime.Runtime, r *searchRequest) (a
 		r.Limit = 50
 	}
 
-	parsed, hits, total, err := search.GetContactIDsForQueryPage(ctx, rt, oa, group, r.ExcludeUUIDs, r.Query, r.Sort, r.Offset, r.Limit)
+	parsed, hits, total, err := search.GetContactUUIDsForQueryPage(ctx, rt, oa, group, r.ExcludeUUIDs, r.Query, r.Sort, r.Offset, r.Limit)
 	if err != nil {
 		return nil, 0, fmt.Errorf("error searching page: %w", err)
 	}
@@ -85,10 +85,10 @@ func handleSearch(ctx context.Context, rt *runtime.Runtime, r *searchRequest) (a
 
 	// build our response
 	response := &searchResponse{
-		Query:      normalized,
-		ContactIDs: hits,
-		Total:      total,
-		Metadata:   metadata,
+		Query:        normalized,
+		ContactUUIDs: hits,
+		Total:        total,
+		Metadata:     metadata,
 	}
 
 	return response, http.StatusOK, nil
