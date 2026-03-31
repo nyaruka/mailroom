@@ -33,7 +33,7 @@
                     "msg_channel": 10002,
                     "status": "Q",
                     "text": "Ann Message",
-                    "urn_channel": null
+                    "urn_channel": 10002
                 }
             }
         ],
