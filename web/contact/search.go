@@ -28,13 +28,13 @@ func init() {
 //	  "limit": 50
 //	}
 type searchRequest struct {
-	OrgID      models.OrgID       `json:"org_id"      validate:"required"`
-	GroupID    models.GroupID     `json:"group_id"    validate:"required"`
+	OrgID        models.OrgID        `json:"org_id"      validate:"required"`
+	GroupID      models.GroupID      `json:"group_id"    validate:"required"`
 	ExcludeUUIDs []flows.ContactUUID `json:"exclude_uuids"`
-	Query      string             `json:"query"`
-	Sort       string             `json:"sort"`
-	Offset     int                `json:"offset"`
-	Limit      int                `json:"limit"`
+	Query        string              `json:"query"`
+	Sort         string              `json:"sort"`
+	Offset       int                 `json:"offset"`
+	Limit        int                 `json:"limit"`
 }
 
 // Response for a contact search
