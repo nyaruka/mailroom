@@ -102,14 +102,7 @@
                 }
             }
         ],
-        "indexed_messages": [
-            {
-                "_id": "01969b47-096b-76f8-ae7f-f8b243c49ff5",
-                "_routing": "1",
-                "contact_uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "text": "hello"
-            }
-        ]
+        "indexed_messages": []
     },
     {
         "label": "attachments only message",
@@ -275,14 +268,7 @@
                 }
             }
         ],
-        "indexed_messages": [
-            {
-                "_id": "01969b47-28ab-76f8-9c0b-2014ddc77094",
-                "_routing": "1",
-                "contact_uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "text": "we can help"
-            }
-        ]
+        "indexed_messages": []
     },
     {
         "label": "second ticket reply",
@@ -373,14 +359,7 @@
                 }
             }
         ],
-        "indexed_messages": [
-            {
-                "_id": "01969b47-3c33-76f8-92a3-d648ab64bccb",
-                "_routing": "1",
-                "contact_uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "text": "what's the problem?"
-            }
-        ]
+        "indexed_messages": []
     },
     {
         "label": "text message with quick replies",
@@ -486,14 +465,7 @@
                 }
             }
         ],
-        "indexed_messages": [
-            {
-                "_id": "01969b47-4fbb-76f8-8228-9728778b6c98",
-                "_routing": "1",
-                "contact_uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "text": "What is your preferred color?"
-            }
-        ]
+        "indexed_messages": []
     },
     {
         "label": "message to an unreachable contact",
@@ -552,13 +524,6 @@
                 }
             }
         ],
-        "indexed_messages": [
-            {
-                "_id": "01969b47-5b73-76f8-8f41-6b2d9f33d623",
-                "_routing": "1",
-                "contact_uuid": "f5e5c595-0cba-4eb9-b1e6-41d7f7f0add6",
-                "text": "Come back"
-            }
-        ]
+        "indexed_messages": []
     }
 ]

@@ -108,6 +108,8 @@ func runTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 	test.MockUniverse()
 
 	for i, tc := range tcs {
+		rt.DB.MustExec(`UPDATE contacts_contact SET last_seen_on = NULL WHERE last_seen_on IS NOT NULL`)
+
 		scenes := make([]*runner.Scene, 4)
 		msgEvents := make([]*events.MsgReceived, 4)
 
@@ -137,6 +139,8 @@ func runTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 				if me, ok := e.(*events.MsgReceived); ok {
 					scenes[i].IncomingMsg = insertTestMessage(t, rt, oa, c, me.Msg)
 					contact.SetLastSeenOn(me.CreatedOn())
+					err := scenes[i].DBContact.UpdateLastSeenOn(ctx, rt.DB, me.CreatedOn())
+					require.NoError(t, err, "%s: error updating last_seen_on for %s", tc.Label, c.UUID)
 					msgEvents[i] = me
 				}
 

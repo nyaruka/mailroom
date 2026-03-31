@@ -56,6 +56,8 @@ func TestDeindex(t *testing.T) {
 	testdb.InsertIncomingMsg(t, rt, testdb.Org1, "01968bee-b880-7000-8000-000000000002", testdb.TwilioChannel, testdb.Cat, "hello from cat", models.MsgStatusHandled, "")
 	testdb.InsertIncomingMsg(t, rt, testdb.Org1, "01968c25-a700-7000-8000-000000000003", testdb.TwilioChannel, testdb.Ann, "hello from ann", models.MsgStatusHandled, "")
 
+	rt.DB.MustExec(`UPDATE contacts_contact SET last_seen_on = NOW() WHERE id IN ($1, $2, $3)`, testdb.Bob.ID, testdb.Cat.ID, testdb.Ann.ID)
+
 	testsuite.IndexMessages(t, rt)
 
 	msgs := testsuite.GetIndexedMessages(t, rt, false)

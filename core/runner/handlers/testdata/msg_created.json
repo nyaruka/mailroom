@@ -355,6 +355,12 @@
                 "_routing": "1",
                 "contact_uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
                 "text": "start"
+            },
+            {
+                "_id": "01969b47-384b-76f8-be24-6164105d48f2",
+                "_routing": "1",
+                "contact_uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "text": "Hello World"
             }
         ]
     },
@@ -520,13 +526,6 @@
                 }
             }
         ],
-        "indexed_messages": [
-            {
-                "_id": "01999b52-f8e5-75dd-b63f-5099a530d6c9",
-                "_routing": "1",
-                "contact_uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "text": "How are you?"
-            }
-        ]
+        "indexed_messages": []
     }
 ]
