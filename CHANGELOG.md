@@ -1,3 +1,9 @@
+v26.1.77 (2026-03-31)
+-------------------------
+ * Change /contact/search to use exclude_uuids instead of exclude_ids
+ * Add new_urn append support to msg_received task
+ * Bump valkey from 8.0 to 8.1 in CI
+
 v26.1.76 (2026-03-27)
 -------------------------
  * Update to latest gocommon which adds bsuid URNs
