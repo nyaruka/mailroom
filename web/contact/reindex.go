@@ -20,11 +20,11 @@ func init() {
 //
 //	{
 //	  "org_id": 1,
-//	  "contact_ids": [10000, 10001]
+//	  "contact_uuids": ["b699a406-7e44-49be-9f01-1a82893e8a10", "cd024bcd-f473-4719-a00a-bd0bb1190135"]
 //	}
 type reindexRequest struct {
-	OrgID      models.OrgID       `json:"org_id"      validate:"required"`
-	ContactIDs []models.ContactID `json:"contact_ids" validate:"required"`
+	OrgID        models.OrgID        `json:"org_id"         validate:"required"`
+	ContactUUIDs []flows.ContactUUID `json:"contact_uuids"  validate:"required"`
 }
 
 func handleReindex(ctx context.Context, rt *runtime.Runtime, r *reindexRequest) (any, int, error) {
@@ -33,7 +33,7 @@ func handleReindex(ctx context.Context, rt *runtime.Runtime, r *reindexRequest) 
 		return nil, 0, fmt.Errorf("error loading org assets: %w", err)
 	}
 
-	contacts, err := models.LoadContacts(ctx, rt.DB, oa, r.ContactIDs)
+	contacts, err := models.LoadContactsByUUID(ctx, rt.DB, oa, r.ContactUUIDs)
 	if err != nil {
 		return nil, 0, fmt.Errorf("error loading contacts: %w", err)
 	}
