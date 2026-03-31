@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/nyaruka/goflow/contactql"
+	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/search"
 	"github.com/nyaruka/mailroom/runtime"
@@ -27,13 +28,13 @@ func init() {
 //	  "limit": 50
 //	}
 type searchRequest struct {
-	OrgID      models.OrgID       `json:"org_id"      validate:"required"`
-	GroupID    models.GroupID     `json:"group_id"    validate:"required"`
-	ExcludeIDs []models.ContactID `json:"exclude_ids"`
-	Query      string             `json:"query"`
-	Sort       string             `json:"sort"`
-	Offset     int                `json:"offset"`
-	Limit      int                `json:"limit"`
+	OrgID        models.OrgID        `json:"org_id"      validate:"required"`
+	GroupID      models.GroupID      `json:"group_id"    validate:"required"`
+	ExcludeUUIDs []flows.ContactUUID `json:"exclude_uuids"`
+	Query        string              `json:"query"`
+	Sort         string              `json:"sort"`
+	Offset       int                 `json:"offset"`
+	Limit        int                 `json:"limit"`
 }
 
 // Response for a contact search
@@ -68,7 +69,7 @@ func handleSearch(ctx context.Context, rt *runtime.Runtime, r *searchRequest) (a
 		r.Limit = 50
 	}
 
-	parsed, hits, total, err := search.GetContactIDsForQueryPage(ctx, rt, oa, group, r.ExcludeIDs, r.Query, r.Sort, r.Offset, r.Limit)
+	parsed, hits, total, err := search.GetContactIDsForQueryPage(ctx, rt, oa, group, r.ExcludeUUIDs, r.Query, r.Sort, r.Offset, r.Limit)
 	if err != nil {
 		return nil, 0, fmt.Errorf("error searching page: %w", err)
 	}
