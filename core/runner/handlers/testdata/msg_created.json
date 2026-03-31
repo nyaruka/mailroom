@@ -355,6 +355,12 @@
                 "_routing": "1",
                 "contact_uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
                 "text": "start"
+            },
+            {
+                "_id": "01969b47-384b-76f8-be24-6164105d48f2",
+                "_routing": "1",
+                "contact_uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "text": "Hello World"
             }
         ]
     },
@@ -471,6 +477,14 @@
                     },
                     "type": "msg_created"
                 }
+            }
+        ],
+        "indexed_messages": [
+            {
+                "_id": "01999b41-7545-7210-b17e-a89e186f0160",
+                "_routing": "1",
+                "contact_uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "text": "Cats or dogs?"
             }
         ]
     },

@@ -25,6 +25,8 @@ func TestSearchMessages(t *testing.T) {
 
 	testdb.InsertIncomingMsg(t, rt, testdb.Org2, "019b21e1-ba00-7000-8000-000000000004", testdb.Org2Channel, testdb.Org2Contact, "hello world", models.MsgStatusHandled, "")
 
+	rt.DB.MustExec(`UPDATE contacts_contact SET last_seen_on = NOW() WHERE id IN ($1, $2, $3, $4)`, testdb.Ann.ID, testdb.Bob.ID, testdb.Cat.ID, testdb.Org2Contact.ID)
+
 	testsuite.IndexMessages(t, rt)
 	testsuite.WriteMessageHistory(t, rt)
 

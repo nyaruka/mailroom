@@ -137,6 +137,8 @@ func runTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 				if me, ok := e.(*events.MsgReceived); ok {
 					scenes[i].IncomingMsg = insertTestMessage(t, rt, oa, c, me.Msg)
 					contact.SetLastSeenOn(me.CreatedOn())
+					err := scenes[i].DBContact.UpdateLastSeenOn(ctx, rt.DB, me.CreatedOn())
+					require.NoError(t, err, "%s: error updating last_seen_on for %s", tc.Label, c.UUID)
 					msgEvents[i] = me
 				}
 

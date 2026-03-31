@@ -41,10 +41,9 @@ func IndexMessages(t *testing.T, rt *runtime.Runtime) {
 	SELECT m.uuid, m.org_id, m.text, m.created_on, m.ticket_uuid, c.uuid AS contact_uuid
 	  FROM msgs_msg m
 	  JOIN contacts_contact c ON c.id = m.contact_id
-	 WHERE (m.direction = 'I' OR (m.broadcast_id IS NULL AND m.created_by_id IS NOT NULL))
+	 WHERE c.last_seen_on IS NOT NULL
 	   AND LENGTH(m.text) >= $1
 	   AND m.visibility IN ('V', 'A')
-	   AND m.msg_type != 'V'
 	 ORDER BY m.uuid`
 
 	rows, err := rt.DB.QueryContext(ctx, query, search.MessageTextMinLength)
@@ -95,10 +94,9 @@ func WriteMessageHistory(t *testing.T, rt *runtime.Runtime) {
 	SELECT m.uuid, m.org_id, m.direction, m.text, m.created_on, c.uuid AS contact_uuid
 	  FROM msgs_msg m
 	  JOIN contacts_contact c ON c.id = m.contact_id
-	 WHERE (m.direction = 'I' OR (m.broadcast_id IS NULL AND m.created_by_id IS NOT NULL))
+	 WHERE c.last_seen_on IS NOT NULL
 	   AND LENGTH(m.text) >= $1
 	   AND m.visibility IN ('V', 'A')
-	   AND m.msg_type != 'V'
 	 ORDER BY m.uuid`
 
 	rows, err := rt.DB.QueryContext(ctx, query, search.MessageTextMinLength)

@@ -104,6 +104,8 @@ func TestSearch(t *testing.T) {
 
 	testdb.InsertIncomingMsg(t, rt, testdb.Org1, "01955201-bb00-7000-8000-000000000003", testdb.TwilioChannel, testdb.Cat, "goodbye world", models.MsgStatusHandled, "")
 
+	rt.DB.MustExec(`UPDATE contacts_contact SET last_seen_on = NOW() WHERE id IN ($1, $2, $3)`, testdb.Ann.ID, testdb.Bob.ID, testdb.Cat.ID)
+
 	testsuite.IndexMessages(t, rt)
 	testsuite.WriteMessageHistory(t, rt)
 

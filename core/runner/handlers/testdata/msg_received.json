@@ -210,6 +210,12 @@
                 "_routing": "1",
                 "contact_uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
                 "text": "start"
+            },
+            {
+                "_id": "01969b47-3c33-76f8-8ab7-4a517a86045c",
+                "_routing": "1",
+                "contact_uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "text": "Hello World"
             }
         ]
     }

@@ -264,6 +264,14 @@
                     "type": "ivr_created"
                 }
             }
+        ],
+        "indexed_messages": [
+            {
+                "_id": "01969b48-3633-76f8-9566-6fb2598c32d6",
+                "_routing": "1",
+                "contact_uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "text": "101"
+            }
         ]
     },
     {
@@ -330,6 +338,14 @@
                     },
                     "type": "ivr_created"
                 }
+            }
+        ],
+        "indexed_messages": [
+            {
+                "_id": "01969b48-9fab-76f8-acdc-e181352d44cc",
+                "_routing": "1",
+                "contact_uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "text": "56"
             }
         ]
     },
@@ -596,6 +612,14 @@
                     },
                     "type": "ivr_created"
                 }
+            }
+        ],
+        "indexed_messages": [
+            {
+                "_id": "01969b4a-1e7b-76f8-8a45-573a4a7a0d0f",
+                "_routing": "1",
+                "contact_uuid": "b699a406-7e44-49be-9f01-1a82893e8a10",
+                "text": "56"
             }
         ]
     },
