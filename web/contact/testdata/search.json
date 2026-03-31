@@ -57,8 +57,8 @@
         "status": 200,
         "response": {
             "query": "name ~ \"Ann\"",
-            "contact_ids": [
-                10000
+            "contact_uuids": [
+                "a393abc0-283d-4c9b-a1b3-641a035c34bf"
             ],
             "total": 1,
             "metadata": {
@@ -88,8 +88,8 @@
         "status": 200,
         "response": {
             "query": "name ~ \"Ann\" OR name ~ \"Cat\"",
-            "contact_ids": [
-                10000
+            "contact_uuids": [
+                "a393abc0-283d-4c9b-a1b3-641a035c34bf"
             ],
             "total": 1,
             "metadata": {
@@ -115,7 +115,7 @@
         "status": 200,
         "response": {
             "query": "fields.age = 10 AND fields.gender = \"M\"",
-            "contact_ids": [],
+            "contact_uuids": [],
             "total": 0,
             "metadata": {
                 "attributes": [],
@@ -147,17 +147,17 @@
         "status": 200,
         "response": {
             "query": "",
-            "contact_ids": [
-                10013,
-                10012,
-                10011,
-                10010,
-                10009,
-                10008,
-                10007,
-                10006,
-                10005,
-                10004
+            "contact_uuids": [
+                "01206316-7eaa-4cd2-b6f8-ab7558683b01",
+                "03e607e7-4d43-4159-b6f5-1edf76c279cb",
+                "eab52173-c81b-43af-9bf2-683a8d4d90cb",
+                "df17cd52-2d73-4918-8ca8-a9d82dbd33e8",
+                "5f42c9ea-dcf7-4784-b730-8cc3b659f96f",
+                "af690bc3-d2b7-4fcf-9a3f-1fd34649d055",
+                "7c4bb02c-3291-4222-8cee-537d6b20ef04",
+                "c42af660-7cd0-40f9-901d-6fca031dcb7e",
+                "86056241-4ac5-4c8c-ad71-bf9159b41059",
+                "860d4519-6698-41f2-847a-66334bce96cc"
             ],
             "total": 10
         }
@@ -175,12 +175,12 @@
         "status": 200,
         "response": {
             "query": "",
-            "contact_ids": [
-                10013,
-                10012,
-                10011,
-                10010,
-                10009
+            "contact_uuids": [
+                "01206316-7eaa-4cd2-b6f8-ab7558683b01",
+                "03e607e7-4d43-4159-b6f5-1edf76c279cb",
+                "eab52173-c81b-43af-9bf2-683a8d4d90cb",
+                "df17cd52-2d73-4918-8ca8-a9d82dbd33e8",
+                "5f42c9ea-dcf7-4784-b730-8cc3b659f96f"
             ],
             "total": 10
         }
@@ -199,12 +199,12 @@
         "status": 200,
         "response": {
             "query": "",
-            "contact_ids": [
-                10004,
-                10005,
-                10006,
-                10007,
-                10008
+            "contact_uuids": [
+                "860d4519-6698-41f2-847a-66334bce96cc",
+                "86056241-4ac5-4c8c-ad71-bf9159b41059",
+                "c42af660-7cd0-40f9-901d-6fca031dcb7e",
+                "7c4bb02c-3291-4222-8cee-537d6b20ef04",
+                "af690bc3-d2b7-4fcf-9a3f-1fd34649d055"
             ],
             "total": 10
         }
