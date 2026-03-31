@@ -14,9 +14,9 @@
         "path": "/mi/contact/reindex",
         "body": {
             "org_id": 1,
-            "contact_ids": [
-                10001,
-                10002
+            "contact_uuids": [
+                "b699a406-7e44-49be-9f01-1a82893e8a10",
+                "cd024bcd-f473-4719-a00a-bd0bb1190135"
             ]
         },
         "status": 200,
