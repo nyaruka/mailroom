@@ -1,3 +1,9 @@
+v26.1.79 (2026-03-31)
+-------------------------
+ * Use contact UUIDs instead of IDs in contact/reindex endpoint
+ * Update gocommon and phonenumbers
+ * Use UUID-based ES search for recipient resolution
+
 v26.1.78 (2026-03-31)
 -------------------------
  * Change /contact/search to return contact_uuids instead of contact_ids
