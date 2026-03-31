@@ -340,13 +340,12 @@ func LoadContacts(ctx context.Context, db Queryer, oa *OrgAssets, ids []ContactI
 
 // LoadContactsByUUID loads a set of contacts for the passed in UUIDs
 func LoadContactsByUUID(ctx context.Context, db Queryer, oa *OrgAssets, uuids []flows.ContactUUID) ([]*Contact, error) {
-	ids, err := getContactIDsFromUUIDs(ctx, db, oa.OrgID(), uuids)
+	ids, err := GetContactIDsFromUUIDs(ctx, db, oa.OrgID(), uuids)
 	if err != nil {
 		return nil, err
 	}
 	return LoadContacts(ctx, db, oa, ids)
 }
-
 
 // GetContactIDsFromReferences gets the contact ids for the given org and set of references. Note that the order of the returned contacts
 // won't necessarily match the order of the references.
@@ -357,11 +356,11 @@ func GetContactIDsFromReferences(ctx context.Context, db Queryer, orgID OrgID, r
 		uuids[i] = refs[i].UUID
 	}
 
-	return getContactIDsFromUUIDs(ctx, db, orgID, uuids)
+	return GetContactIDsFromUUIDs(ctx, db, orgID, uuids)
 }
 
-// gets the contact IDs for the passed in org and set of UUIDs
-func getContactIDsFromUUIDs(ctx context.Context, db Queryer, orgID OrgID, uuids []flows.ContactUUID) ([]ContactID, error) {
+// GetContactIDsFromUUIDs gets the contact IDs for the passed in org and set of UUIDs
+func GetContactIDsFromUUIDs(ctx context.Context, db Queryer, orgID OrgID, uuids []flows.ContactUUID) ([]ContactID, error) {
 	if len(uuids) == 0 {
 		return nil, nil
 	}

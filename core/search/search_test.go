@@ -125,6 +125,110 @@ func TestGetContactUUIDsForQueryPage(t *testing.T) {
 	}
 }
 
+func TestGetContactUUIDsForQuery(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetElastic)
+
+	oa, err := models.GetOrgAssets(ctx, rt, 1)
+	require.NoError(t, err)
+
+	// so that we can test queries that span multiple responses
+	cylonUUIDs := make([]flows.ContactUUID, 10003)
+	for i := range 10003 {
+		cylonUUIDs[i] = testdb.InsertContact(t, rt, testdb.Org1, flows.NewContactUUID(), fmt.Sprintf("Cylon %d", i), i18n.NilLanguage, models.ContactStatusActive).UUID
+	}
+
+	// create some extra contacts in the other org to be sure we're filtering correctly
+	testdb.InsertContact(t, rt, testdb.Org2, flows.NewContactUUID(), "Cat", i18n.NilLanguage, models.ContactStatusActive)
+	testdb.InsertContact(t, rt, testdb.Org2, flows.NewContactUUID(), "Bob", i18n.NilLanguage, models.ContactStatusActive)
+	testdb.InsertContact(t, rt, testdb.Org2, flows.NewContactUUID(), "Cylon 0", i18n.NilLanguage, models.ContactStatusActive)
+
+	testsuite.IndexContacts(t, rt)
+
+	tcs := []struct {
+		group            *testdb.Group
+		status           models.ContactStatus
+		query            string
+		limit            int
+		expectedContacts []flows.ContactUUID
+		expectedError    string
+	}{
+		{
+			group:            testdb.ActiveGroup,
+			status:           models.NilContactStatus,
+			query:            "cat OR bob",
+			limit:            -1,
+			expectedContacts: []flows.ContactUUID{testdb.Cat.UUID, testdb.Bob.UUID},
+		},
+		{
+			group:            nil,
+			status:           models.ContactStatusActive,
+			query:            "cat OR bob",
+			limit:            -1,
+			expectedContacts: []flows.ContactUUID{testdb.Cat.UUID, testdb.Bob.UUID},
+		},
+		{
+			group:            testdb.DoctorsGroup,
+			status:           models.ContactStatusActive,
+			query:            "name = ann",
+			limit:            -1,
+			expectedContacts: []flows.ContactUUID{testdb.Ann.UUID},
+		},
+		{
+			group:            nil,
+			status:           models.ContactStatusActive,
+			query:            "nobody",
+			limit:            -1,
+			expectedContacts: []flows.ContactUUID{},
+		},
+		{
+			group:            nil,
+			status:           models.ContactStatusActive,
+			query:            "cat",
+			limit:            1,
+			expectedContacts: []flows.ContactUUID{testdb.Cat.UUID},
+		},
+		{
+			group:            testdb.DoctorsGroup,
+			status:           models.NilContactStatus,
+			query:            "",
+			limit:            1,
+			expectedContacts: []flows.ContactUUID{testdb.Ann.UUID},
+		},
+		{
+			group:            nil,
+			status:           models.ContactStatusActive,
+			query:            "name has cylon",
+			limit:            -1,
+			expectedContacts: cylonUUIDs,
+		},
+		{
+			group:         nil,
+			status:        models.ContactStatusActive,
+			query:         "goats > 2", // no such contact field
+			limit:         -1,
+			expectedError: "error parsing query: goats > 2: can't resolve 'goats' to attribute, scheme or field",
+		},
+	}
+
+	for i, tc := range tcs {
+		var group *models.Group
+		if tc.group != nil {
+			group = oa.GroupByID(tc.group.ID)
+		}
+
+		uuids, err := search.GetContactUUIDsForQuery(ctx, rt, oa, group, tc.status, tc.query, tc.limit)
+
+		if tc.expectedError != "" {
+			assert.EqualError(t, err, tc.expectedError)
+		} else {
+			assert.NoError(t, err, "%d: error encountered performing query", i)
+			assert.ElementsMatch(t, tc.expectedContacts, uuids, "%d: uuids mismatch", i)
+		}
+	}
+}
+
 func TestGetContactIDsForQuery(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
