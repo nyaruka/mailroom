@@ -102,8 +102,8 @@ func GetContactTotal(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAss
 	return parsed, count.Count, nil
 }
 
-// GetContactIDsForQueryPage returns a page of contact ids for the given query and sort
-func GetContactIDsForQueryPage(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, group *models.Group, excludeUUIDs []flows.ContactUUID, query string, sort string, offset int, pageSize int) (*contactql.ContactQuery, []models.ContactID, int64, error) {
+// GetContactUUIDsForQueryPage returns a page of contact UUIDs for the given query and sort
+func GetContactUUIDsForQueryPage(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, group *models.Group, excludeUUIDs []flows.ContactUUID, query string, sort string, offset int, pageSize int) (*contactql.ContactQuery, []flows.ContactUUID, int64, error) {
 	env := oa.Env()
 	var parsed *contactql.ContactQuery
 	var err error
@@ -129,7 +129,7 @@ func GetContactIDsForQueryPage(ctx context.Context, rt *runtime.Runtime, oa *mod
 	}
 
 	start := time.Now()
-	hits, total, err := getContactIDsForQueryPage(ctx, rt, oa, group, status, excludeUUIDs, parsed, fieldSort, offset, pageSize, rt.Config.ElasticContactsIndex)
+	hits, total, err := getContactUUIDsForQueryPage(ctx, rt, oa, group, status, excludeUUIDs, parsed, fieldSort, offset, pageSize, rt.Config.ElasticContactsIndex)
 	if err != nil {
 		return nil, nil, 0, err
 	}
@@ -138,13 +138,12 @@ func GetContactIDsForQueryPage(ctx context.Context, rt *runtime.Runtime, oa *mod
 	return parsed, hits, total, nil
 }
 
-func getContactIDsForQueryPage(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, group *models.Group, status models.ContactStatus, excludeUUIDs []flows.ContactUUID, parsed *contactql.ContactQuery, fieldSort map[string]any, offset int, pageSize int, index string) ([]models.ContactID, int64, error) {
+func getContactUUIDsForQueryPage(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, group *models.Group, status models.ContactStatus, excludeUUIDs []flows.ContactUUID, parsed *contactql.ContactQuery, fieldSort map[string]any, offset int, pageSize int, index string) ([]flows.ContactUUID, int64, error) {
 	start := time.Now()
 	eq := buildContactQuery(oa, group, status, excludeUUIDs, parsed)
 
 	src := map[string]any{
 		"_source":          false,
-		"docvalue_fields":  []string{"id"},
 		"query":            eq,
 		"sort":             []any{fieldSort},
 		"from":             offset,
@@ -157,12 +156,14 @@ func getContactIDsForQueryPage(ctx context.Context, rt *runtime.Runtime, oa *mod
 		return nil, 0, fmt.Errorf("error performing query: %w", err)
 	}
 
-	ids := make([]models.ContactID, 0, pageSize)
-	ids = appendIDsFromESHits(ids, results.Hits.Hits)
+	uuids := make([]flows.ContactUUID, 0, pageSize)
+	for _, hit := range results.Hits.Hits {
+		uuids = append(uuids, flows.ContactUUID(*hit.Id_))
+	}
 
-	slog.Debug("paged contact query complete", "org_id", oa.OrgID(), "index", index, "elapsed", time.Since(start), "page_count", len(ids), "total_count", results.Hits.Total.Value)
+	slog.Debug("paged contact query complete", "org_id", oa.OrgID(), "index", index, "elapsed", time.Since(start), "page_count", len(uuids), "total_count", results.Hits.Total.Value)
 
-	return ids, results.Hits.Total.Value, nil
+	return uuids, results.Hits.Total.Value, nil
 }
 
 // GetContactIDsForQuery returns up to limit the contact ids that match the given query, sorted by id. Limit of -1 means return all.

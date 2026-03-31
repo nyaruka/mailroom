@@ -58,7 +58,7 @@ func TestGetContactTotal(t *testing.T) {
 	}
 }
 
-func TestGetContactIDsForQueryPage(t *testing.T) {
+func TestGetContactUUIDsForQueryPage(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 	defer testsuite.Reset(t, rt, testsuite.ResetElastic)
 
@@ -72,27 +72,27 @@ func TestGetContactIDsForQueryPage(t *testing.T) {
 		excludeUUIDs     []flows.ContactUUID
 		query            string
 		sort             string
-		expectedContacts []models.ContactID
+		expectedContacts []flows.ContactUUID
 		expectedTotal    int64
 		expectedError    string
 	}{
 		{ // 0
 			group:            testdb.ActiveGroup,
 			query:            "cat OR bob",
-			expectedContacts: []models.ContactID{testdb.Cat.ID, testdb.Bob.ID},
+			expectedContacts: []flows.ContactUUID{testdb.Cat.UUID, testdb.Bob.UUID},
 			expectedTotal:    2,
 		},
 		{ // 1
 			group:            testdb.BlockedGroup,
 			query:            "cat",
-			expectedContacts: []models.ContactID{},
+			expectedContacts: []flows.ContactUUID{},
 			expectedTotal:    0,
 		},
 		{ // 2
 			group:            testdb.ActiveGroup,
 			query:            "age >= 30",
 			sort:             "-age",
-			expectedContacts: []models.ContactID{testdb.Cat.ID},
+			expectedContacts: []flows.ContactUUID{testdb.Cat.UUID},
 			expectedTotal:    1,
 		},
 		{ // 3
@@ -100,7 +100,7 @@ func TestGetContactIDsForQueryPage(t *testing.T) {
 			excludeUUIDs:     []flows.ContactUUID{testdb.Cat.UUID},
 			query:            "age >= 30",
 			sort:             "-age",
-			expectedContacts: []models.ContactID{},
+			expectedContacts: []flows.ContactUUID{},
 			expectedTotal:    0,
 		},
 		{ // 4
@@ -113,13 +113,13 @@ func TestGetContactIDsForQueryPage(t *testing.T) {
 	for i, tc := range tcs {
 		group := oa.GroupByID(tc.group.ID)
 
-		_, ids, total, err := search.GetContactIDsForQueryPage(ctx, rt, oa, group, tc.excludeUUIDs, tc.query, tc.sort, 0, 50)
+		_, uuids, total, err := search.GetContactUUIDsForQueryPage(ctx, rt, oa, group, tc.excludeUUIDs, tc.query, tc.sort, 0, 50)
 
 		if tc.expectedError != "" {
 			assert.EqualError(t, err, tc.expectedError)
 		} else {
 			assert.NoError(t, err, "%d: error encountered performing query", i)
-			assert.Equal(t, tc.expectedContacts, ids, "%d: ids mismatch", i)
+			assert.Equal(t, tc.expectedContacts, uuids, "%d: uuids mismatch", i)
 			assert.Equal(t, tc.expectedTotal, total, "%d: total mismatch", i)
 		}
 	}
