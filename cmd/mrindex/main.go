@@ -158,6 +158,7 @@ SELECT m.uuid, m.org_id, m.text, m.created_on, m.ticket_uuid, c.uuid AS contact_
   JOIN contacts_contact c ON c.id = m.contact_id
  WHERE c.last_seen_on IS NOT NULL
    AND LENGTH(m.text) >= $3
+   AND m.visibility IN ('V', 'A')
    AND m.uuid < $1
  ORDER BY m.uuid DESC
  LIMIT $2`
