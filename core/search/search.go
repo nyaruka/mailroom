@@ -3,9 +3,9 @@ package search
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"log/slog"
+	"slices"
 	"time"
 
 	"github.com/elastic/go-elasticsearch/v8/typedapi/types"
@@ -166,13 +166,12 @@ func getContactUUIDsForQueryPage(ctx context.Context, rt *runtime.Runtime, oa *m
 	return uuids, results.Hits.Total.Value, nil
 }
 
-// GetContactIDsForQuery returns up to limit the contact ids that match the given query, sorted by id. Limit of -1 means return all.
-func GetContactIDsForQuery(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, group *models.Group, status models.ContactStatus, query string, limit int) ([]models.ContactID, error) {
+// GetContactUUIDsForQuery returns up to limit the contact UUIDs that match the given query, sorted by id. Limit of -1 means return all.
+func GetContactUUIDsForQuery(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, group *models.Group, status models.ContactStatus, query string, limit int) ([]flows.ContactUUID, error) {
 	env := oa.Env()
 	var parsed *contactql.ContactQuery
 	var err error
 
-	// turn into elastic query
 	if query != "" {
 		parsed, err = contactql.ParseQuery(env, query, oa.SessionAssets())
 		if err != nil {
@@ -188,18 +187,17 @@ func GetContactIDsForQuery(ctx context.Context, rt *runtime.Runtime, oa *models.
 
 	eq := buildContactQuery(oa, group, status, nil, parsed)
 
-	return getContactIDsForQuery(ctx, rt, oa, rt.Config.ElasticContactsIndex, eq, limit)
+	return getContactUUIDsForQuery(ctx, rt, oa, rt.Config.ElasticContactsIndex, eq, limit)
 }
 
-func getContactIDsForQuery(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, index string, eq elastic.Query, limit int) ([]models.ContactID, error) {
+func getContactUUIDsForQuery(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, index string, eq elastic.Query, limit int) ([]flows.ContactUUID, error) {
 	sort := elastic.SortBy("id", true)
-	ids := make([]models.ContactID, 0, 100)
+	uuids := make([]flows.ContactUUID, 0, 100)
 
 	// if limit provided that can be done with single search, do that
 	if limit >= 0 && limit <= 10_000 {
 		src := map[string]any{
 			"_source":          false,
-			"docvalue_fields":  []string{"id"},
 			"query":            eq,
 			"sort":             []any{sort},
 			"from":             0,
@@ -211,7 +209,7 @@ func getContactIDsForQuery(ctx context.Context, rt *runtime.Runtime, oa *models.
 		if err != nil {
 			return nil, fmt.Errorf("error searching ES index: %w", err)
 		}
-		return appendIDsFromESHits(ids, results.Hits.Hits), nil
+		return appendUUIDsFromESHits(uuids, results.Hits.Hits), nil
 	}
 
 	// for larger limits we need to take a point in time and iterate through multiple search requests using search_after
@@ -229,7 +227,6 @@ func getContactIDsForQuery(ctx context.Context, rt *runtime.Runtime, oa *models.
 
 	src := map[string]any{
 		"_source":          false,
-		"docvalue_fields":  []string{"id"},
 		"query":            eq,
 		"sort":             []any{sort},
 		"pit":              map[string]any{"id": pit.Id, "keep_alive": "1m"},
@@ -247,14 +244,14 @@ func getContactIDsForQuery(ctx context.Context, rt *runtime.Runtime, oa *models.
 			break
 		}
 
-		ids = appendIDsFromESHits(ids, results.Hits.Hits)
+		uuids = appendUUIDsFromESHits(uuids, results.Hits.Hits)
 
-		if limit != -1 && len(ids) >= limit {
-			ids = ids[:limit]
+		if limit != -1 && len(uuids) >= limit {
+			uuids = uuids[:limit]
 			break
 		}
 		if limit != -1 {
-			if remaining := limit - len(ids); remaining < 10_000 {
+			if remaining := limit - len(uuids); remaining < 10_000 {
 				src["size"] = remaining
 			}
 		}
@@ -263,20 +260,32 @@ func getContactIDsForQuery(ctx context.Context, rt *runtime.Runtime, oa *models.
 		src["search_after"] = lastHit.Sort
 	}
 
-	return ids, nil
+	return uuids, nil
 }
 
-// appendIDsFromESHits extracts contact IDs from Elasticsearch hits using the id docvalue field
-func appendIDsFromESHits(ids []models.ContactID, hits []types.Hit) []models.ContactID {
+// appendUUIDsFromESHits extracts contact UUIDs from Elasticsearch hits using the document _id
+func appendUUIDsFromESHits(uuids []flows.ContactUUID, hits []types.Hit) []flows.ContactUUID {
 	for _, hit := range hits {
-		raw, ok := hit.Fields["id"]
-		if !ok {
-			continue
-		}
-		var vals []models.ContactID
-		if err := json.Unmarshal(raw, &vals); err == nil && len(vals) > 0 {
-			ids = append(ids, vals[0])
-		}
+		uuids = append(uuids, flows.ContactUUID(*hit.Id_))
 	}
-	return ids
+	return uuids
+}
+
+// GetContactIDsForQuery is a temporary wrapper around GetContactUUIDsForQuery that converts the results back to
+// contact IDs. Used by contact exports and group population which still need IDs - these should be updated to work
+// with UUIDs directly.
+func GetContactIDsForQuery(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, group *models.Group, status models.ContactStatus, query string, limit int) ([]models.ContactID, error) {
+	uuids, err := GetContactUUIDsForQuery(ctx, rt, oa, group, status, query, limit)
+	if err != nil {
+		return nil, err
+	}
+
+	ids, err := models.GetContactIDsFromUUIDs(ctx, rt.DB, oa.OrgID(), uuids)
+	if err != nil {
+		return nil, err
+	}
+
+	slices.Sort(ids)
+
+	return ids, nil
 }
