@@ -166,7 +166,7 @@ func getContactUUIDsForQueryPage(ctx context.Context, rt *runtime.Runtime, oa *m
 	return uuids, results.Hits.Total.Value, nil
 }
 
-// GetContactUUIDsForQuery returns up to limit the contact UUIDs that match the given query, sorted by id. Limit of -1 means return all.
+// GetContactUUIDsForQuery returns up to limit the contact UUIDs that match the given query, sorted by contact ID. Limit of -1 means return all.
 func GetContactUUIDsForQuery(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, group *models.Group, status models.ContactStatus, query string, limit int) ([]flows.ContactUUID, error) {
 	env := oa.Env()
 	var parsed *contactql.ContactQuery
@@ -272,8 +272,7 @@ func appendUUIDsFromESHits(uuids []flows.ContactUUID, hits []types.Hit) []flows.
 }
 
 // GetContactIDsForQuery is a temporary wrapper around GetContactUUIDsForQuery that converts the results back to
-// contact IDs. Used by contact exports and group population which still need IDs - these should be updated to work
-// with UUIDs directly.
+// contact IDs. Used by call sites that still need IDs; these should be updated to work with UUIDs directly.
 func GetContactIDsForQuery(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, group *models.Group, status models.ContactStatus, query string, limit int) ([]models.ContactID, error) {
 	uuids, err := GetContactUUIDsForQuery(ctx, rt, oa, group, status, query, limit)
 	if err != nil {
