@@ -450,7 +450,6 @@ func TestMsgReceivedNewURN(t *testing.T) {
 		channel     *testdb.Channel
 		newURN      *ctasks.NewURNSpec
 		expectedURN []string
-		expectedErr string
 	}{
 		{
 			label:   "append new URN",
@@ -478,26 +477,6 @@ func TestMsgReceivedNewURN(t *testing.T) {
 			// telegram URN moves from high priority to lowest
 			expectedURN: []string{"tel:+16055742222", "telegram:98765"},
 		},
-		{
-			label:   "unsupported action errors",
-			contact: testdb.Bob,
-			channel: testdb.TwilioChannel,
-			newURN: &ctasks.NewURNSpec{
-				Value:  "telegram:98765",
-				Action: "prepend",
-			},
-			expectedErr: "unsupported new_urn action: prepend",
-		},
-		{
-			label:   "empty URN value errors",
-			contact: testdb.Bob,
-			channel: testdb.TwilioChannel,
-			newURN: &ctasks.NewURNSpec{
-				Value:  "",
-				Action: "append",
-			},
-			expectedErr: "new_urn value is required",
-		},
 	}
 
 	for _, tc := range tcs {
@@ -517,16 +496,6 @@ func TestMsgReceivedNewURN(t *testing.T) {
 				URNID:     tc.contact.URNID,
 				Text:      "hello",
 				NewURN:    tc.newURN,
-			}
-
-			if tc.expectedErr != "" {
-				// call ctasks.Perform directly to check errors (queue processing swallows them)
-				oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
-				require.NoError(t, err)
-
-				err = ctasks.Perform(ctx, rt, oa, tc.contact.ID, task)
-				assert.ErrorContains(t, err, tc.expectedErr)
-				return
 			}
 
 			err := tasks.QueueContact(ctx, rt, testdb.Org1.ID, tc.contact.ID, task)

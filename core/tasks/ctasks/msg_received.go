@@ -26,11 +26,6 @@ func init() {
 	RegisterType(TypeMsgReceived, func() Task { return &MsgReceived{} })
 }
 
-type NewURNSpec struct {
-	Value  urns.URN `json:"value" validate:"required"`
-	Action string   `json:"action" validate:"required,eq=append"`
-}
-
 type MsgReceived struct {
 	MsgUUID       flows.EventUUID  `json:"msg_uuid"`
 	MsgExternalID string           `json:"msg_external_id"`
@@ -119,15 +114,9 @@ func (t *MsgReceived) perform(ctx context.Context, rt *runtime.Runtime, oa *mode
 		}
 	}
 
-	// if a new URN was specified, validate and append it before affinity
+	// if a new URN was specified, append it before affinity
 	if t.NewURN != nil {
-		if t.NewURN.Value == urns.NilURN {
-			return fmt.Errorf("new_urn value is required")
-		}
-		if t.NewURN.Action != "append" {
-			return fmt.Errorf("unsupported new_urn action: %s", t.NewURN.Action)
-		}
-		if err := t.applyNewURN(ctx, rt, oa, contact, scene); err != nil {
+		if err := t.NewURN.Apply(ctx, rt, oa, scene); err != nil {
 			return fmt.Errorf("error applying new URN: %w", err)
 		}
 	}
@@ -236,15 +225,6 @@ func (t *MsgReceived) handleMsgEvent(ctx context.Context, rt *runtime.Runtime, o
 		if err := scene.ResumeSession(ctx, rt, oa, session, resumes.NewMsg(msgEvent)); err != nil {
 			return fmt.Errorf("error resuming flow for contact: %w", err)
 		}
-	}
-
-	return nil
-}
-
-func (t *MsgReceived) applyNewURN(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contact *flows.Contact, scene *runner.Scene) error {
-
-	if err := scene.ApplyModifier(ctx, rt, oa, modifiers.NewURNs([]urns.URN{t.NewURN.Value}, modifiers.URNsAppend), models.NilUserID, ""); err != nil {
-		return fmt.Errorf("error applying URNs modifier: %w", err)
 	}
 
 	return nil
