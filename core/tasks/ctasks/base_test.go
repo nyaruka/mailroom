@@ -16,6 +16,25 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestReadTask(t *testing.T) {
+	// valid contact_changed task
+	task, err := ctasks.ReadTask("contact_changed", []byte(`{"new_urn": {"value": "telegram:98765", "action": "append"}}`))
+	assert.NoError(t, err)
+	assert.Equal(t, "contact_changed", task.Type())
+
+	// invalid: missing required action field
+	_, err = ctasks.ReadTask("contact_changed", []byte(`{"new_urn": {"value": "telegram:98765"}}`))
+	assert.ErrorContains(t, err, "action")
+
+	// invalid: unsupported action value
+	_, err = ctasks.ReadTask("contact_changed", []byte(`{"new_urn": {"value": "telegram:98765", "action": "prepend"}}`))
+	assert.ErrorContains(t, err, "action")
+
+	// unknown task type
+	_, err = ctasks.ReadTask("unknown", []byte(`{}`))
+	assert.ErrorContains(t, err, "unknown task type")
+}
+
 func TestTimedEvents(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 	vc := rt.VK.Get()

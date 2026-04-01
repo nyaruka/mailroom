@@ -12,6 +12,7 @@ import (
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/goflow/flows/modifiers"
+	"github.com/nyaruka/goflow/utils"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/runner"
 	"github.com/nyaruka/mailroom/runtime"
@@ -36,7 +37,7 @@ func ReadTask(type_ string, data []byte) (Task, error) {
 	}
 
 	t := fn()
-	return t, json.Unmarshal(data, t)
+	return t, utils.UnmarshalAndValidate(data, t)
 }
 
 // Payload wrapper for encoding a contact task
