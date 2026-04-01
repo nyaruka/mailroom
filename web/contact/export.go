@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/core/search"
 	"github.com/nyaruka/mailroom/runtime"
@@ -16,7 +17,7 @@ func init() {
 	web.InternalRoute(http.MethodPost, "/contact/export", web.JSONPayload(handleExport))
 }
 
-// Turns a search based export into a list of contact IDs.
+// Turns a search based export into a list of contact UUIDs.
 //
 //	{
 //	  "org_id": 1,
@@ -25,7 +26,7 @@ func init() {
 //	}
 //
 //	{
-//	  "contact_ids": [73525, 3463567, 234234]
+//	  "contact_uuids": ["6393abc0-...", "def456-..."]
 //	}
 type exportRequest struct {
 	OrgID   models.OrgID   `json:"org_id"   validate:"required"`
@@ -34,7 +35,7 @@ type exportRequest struct {
 }
 
 type exportResponse struct {
-	ContactIDs []models.ContactID `json:"contact_ids"`
+	ContactUUIDs []flows.ContactUUID `json:"contact_uuids"`
 }
 
 func handleExport(ctx context.Context, rt *runtime.Runtime, r *exportRequest) (any, int, error) {
@@ -48,10 +49,10 @@ func handleExport(ctx context.Context, rt *runtime.Runtime, r *exportRequest) (a
 		return errors.New("no such group"), http.StatusBadRequest, nil
 	}
 
-	ids, err := search.GetContactIDsForQuery(ctx, rt, oa, group, models.NilContactStatus, r.Query, -1)
+	uuids, err := search.GetContactUUIDsForQuery(ctx, rt, oa, group, models.NilContactStatus, r.Query, -1)
 	if err != nil {
 		return nil, 0, fmt.Errorf("error querying export: %w", err)
 	}
 
-	return &exportResponse{ContactIDs: ids}, http.StatusOK, nil
+	return &exportResponse{ContactUUIDs: uuids}, http.StatusOK, nil
 }
