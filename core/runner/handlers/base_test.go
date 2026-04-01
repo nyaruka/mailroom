@@ -226,9 +226,9 @@ func runTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 				require.NoError(t, err)
 
 				for _, sa := range tc.AssertSearch {
-					ids, err := search.GetContactIDsForQuery(ctx, rt, oa, nil, models.ContactStatusActive, sa.Query, -1)
+					uuids, err := search.GetContactUUIDsForQuery(ctx, rt, oa, nil, models.ContactStatusActive, sa.Query, -1)
 					assert.NoError(t, err, "%s: search query '%s' failed", tc.Label, sa.Query)
-					assert.ElementsMatch(t, sa.Contacts, ids, "%s: search query '%s' returned wrong contacts", tc.Label, sa.Query)
+					assert.ElementsMatch(t, sa.Contacts, uuids, "%s: search query '%s' returned wrong contacts", tc.Label, sa.Query)
 				}
 			}
 		} else {
