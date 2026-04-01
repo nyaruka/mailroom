@@ -10,7 +10,10 @@ import (
 	valkey "github.com/gomodule/redigo/redis"
 	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/jsonx"
+	"github.com/nyaruka/gocommon/urns"
+	"github.com/nyaruka/goflow/flows/modifiers"
 	"github.com/nyaruka/mailroom/core/models"
+	"github.com/nyaruka/mailroom/core/runner"
 	"github.com/nyaruka/mailroom/runtime"
 )
 
@@ -69,6 +72,19 @@ func Queue(ctx context.Context, rt *runtime.Runtime, orgID models.OrgID, contact
 		return fmt.Errorf("error queuing contact task: %w", err)
 	}
 
+	return nil
+}
+
+// NewURNSpec describes a new URN to add to a contact
+type NewURNSpec struct {
+	Value  urns.URN `json:"value" validate:"required"`
+	Action string   `json:"action" validate:"required,eq=append"`
+}
+
+func applyNewURN(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scene *runner.Scene, urn urns.URN) error {
+	if err := scene.ApplyModifier(ctx, rt, oa, modifiers.NewURNs([]urns.URN{urn}, modifiers.URNsAppend), models.NilUserID, ""); err != nil {
+		return fmt.Errorf("error applying URNs modifier: %w", err)
+	}
 	return nil
 }
 
