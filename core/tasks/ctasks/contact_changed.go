@@ -32,7 +32,7 @@ func (t *ContactChanged) Perform(ctx context.Context, rt *runtime.Runtime, oa *m
 	scene := runner.NewScene(mc, contact)
 
 	if t.NewURN != nil {
-		if err := applyNewURN(ctx, rt, oa, scene, t.NewURN.Value); err != nil {
+		if err := t.NewURN.Apply(ctx, rt, oa, scene); err != nil {
 			return fmt.Errorf("error applying new URN: %w", err)
 		}
 	}

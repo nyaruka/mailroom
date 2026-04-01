@@ -81,8 +81,8 @@ type NewURNSpec struct {
 	Action string   `json:"action" validate:"required,eq=append"`
 }
 
-func applyNewURN(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scene *runner.Scene, urn urns.URN) error {
-	if err := scene.ApplyModifier(ctx, rt, oa, modifiers.NewURNs([]urns.URN{urn}, modifiers.URNsAppend), models.NilUserID, ""); err != nil {
+func (s *NewURNSpec) Apply(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scene *runner.Scene) error {
+	if err := scene.ApplyModifier(ctx, rt, oa, modifiers.NewURNs([]urns.URN{s.Value}, modifiers.URNsAppend), models.NilUserID, ""); err != nil {
 		return fmt.Errorf("error applying URNs modifier: %w", err)
 	}
 	return nil
