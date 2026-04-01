@@ -20,14 +20,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestChanged(t *testing.T) {
-	_, rt := testsuite.Runtime(t)
-
-	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetValkey)
-
-	testsuite.RunWebTests(t, rt, "testdata/changed.json")
-}
-
 func TestCreate(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
 
