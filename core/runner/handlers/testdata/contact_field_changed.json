@@ -303,19 +303,19 @@
             {
                 "query": "gender = Female",
                 "contacts": [
-                    10000
+                    "a393abc0-283d-4c9b-a1b3-641a035c34bf"
                 ]
             },
             {
                 "query": "gender = Male",
                 "contacts": [
-                    10001
+                    "b699a406-7e44-49be-9f01-1a82893e8a10"
                 ]
             },
             {
                 "query": "age = 40",
                 "contacts": [
-                    10002
+                    "cd024bcd-f473-4719-a00a-bd0bb1190135"
                 ]
             }
         ]

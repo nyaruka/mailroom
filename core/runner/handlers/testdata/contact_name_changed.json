@@ -135,13 +135,13 @@
             {
                 "query": "name = Tarzan",
                 "contacts": [
-                    10000
+                    "a393abc0-283d-4c9b-a1b3-641a035c34bf"
                 ]
             },
             {
                 "query": "name = \"Geoff Newman\"",
                 "contacts": [
-                    10002
+                    "cd024bcd-f473-4719-a00a-bd0bb1190135"
                 ]
             }
         ]

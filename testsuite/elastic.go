@@ -189,10 +189,10 @@ func GetIndexedMessages(t *testing.T, rt *runtime.Runtime, clear bool) []Indexed
 	return msgs
 }
 
-// SearchAssertion is a search query and the expected contact IDs that should match.
+// SearchAssertion is a search query and the expected contact UUIDs that should match.
 type SearchAssertion struct {
-	Query    string             `json:"query"`
-	Contacts []models.ContactID `json:"contacts"`
+	Query    string              `json:"query"`
+	Contacts []flows.ContactUUID `json:"contacts"`
 }
 
 // removes all documents from the contacts index and deletes all message indexes.
