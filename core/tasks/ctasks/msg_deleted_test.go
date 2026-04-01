@@ -16,14 +16,21 @@ import (
 func TestMsgDeleted(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetDynamo)
+	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetDynamo|testsuite.ResetElastic)
 
 	oa := testdb.Org1.Load(t, rt)
 
 	ann, _, _ := testdb.Ann.Load(t, rt, oa)
 
-	testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199c4cb-f111-7ce8-9ce9-614d61a2c198", testdb.TwilioChannel, testdb.Ann, "hello", models.MsgStatusHandled, "")
-	testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199c4cf-486a-79af-9892-79254b6ac5b7", testdb.TwilioChannel, testdb.Ann, "goodbye", models.MsgStatusHandled, "")
+	testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199c4cb-f111-7ce8-9ce9-614d61a2c198", testdb.TwilioChannel, testdb.Ann, "hello world", models.MsgStatusHandled, "")
+	testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199c4cf-486a-79af-9892-79254b6ac5b7", testdb.TwilioChannel, testdb.Ann, "goodbye world", models.MsgStatusHandled, "")
+
+	rt.DB.MustExec(`UPDATE contacts_contact SET last_seen_on = NOW() WHERE id = $1`, testdb.Ann.ID)
+
+	testsuite.IndexMessages(t, rt)
+
+	msgs := testsuite.GetIndexedMessages(t, rt, false)
+	assert.Len(t, msgs, 2)
 
 	task := &ctasks.MsgDeleted{
 		MsgUUID: "0199c4cb-f111-7ce8-9ce9-614d61a2c198",
@@ -36,6 +43,11 @@ func TestMsgDeleted(t *testing.T) {
 		"0199c4cb-f111-7ce8-9ce9-614d61a2c198": "X",
 		"0199c4cf-486a-79af-9892-79254b6ac5b7": "V",
 	})
+
+	// deleted message should be de-indexed, other should remain
+	msgs = testsuite.GetIndexedMessages(t, rt, false)
+	assert.Len(t, msgs, 1)
+	assert.Equal(t, "0199c4cf-486a-79af-9892-79254b6ac5b7", msgs[0].ID)
 
 	items := testsuite.GetHistoryItems(t, rt, false, time.Time{})
 	if assert.Equal(t, 2, len(items)) {

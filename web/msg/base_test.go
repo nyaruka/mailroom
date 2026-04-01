@@ -8,6 +8,7 @@ import (
 	"github.com/nyaruka/mailroom/core/models"
 	"github.com/nyaruka/mailroom/testsuite"
 	"github.com/nyaruka/mailroom/testsuite/testdb"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -31,11 +32,23 @@ func TestDelete(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetValkey|testsuite.ResetDynamo|testsuite.ResetElastic)
 
-	testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199bad8-f98d-75a3-b641-2718a25ac3f5", testdb.TwilioChannel, testdb.Ann, "1", models.MsgStatusHandled, "")
-	testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199bad9-9791-770d-a47d-8f4a6ea3ad13", testdb.TwilioChannel, testdb.Ann, "2", models.MsgStatusPending, "")
-	testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199bad9-f0bc-7738-8af8-99712a6f8bff", testdb.TwilioChannel, testdb.Ann, "3", models.MsgStatusPending, "")
+	testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199bad8-f98d-75a3-b641-2718a25ac3f5", testdb.TwilioChannel, testdb.Ann, "hello world", models.MsgStatusHandled, "")
+	testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199bad9-9791-770d-a47d-8f4a6ea3ad13", testdb.TwilioChannel, testdb.Ann, "goodbye world", models.MsgStatusPending, "")
+	testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199bad9-f0bc-7738-8af8-99712a6f8bff", testdb.TwilioChannel, testdb.Ann, "stay visible", models.MsgStatusPending, "")
+
+	rt.DB.MustExec(`UPDATE contacts_contact SET last_seen_on = NOW() WHERE id = $1`, testdb.Ann.ID)
+
+	testsuite.IndexMessages(t, rt)
+
+	msgs := testsuite.GetIndexedMessages(t, rt, false)
+	require.Len(t, msgs, 3)
 
 	testsuite.RunWebTests(t, rt, "testdata/delete.json")
+
+	// first two messages should have been de-indexed, third should remain
+	msgs = testsuite.GetIndexedMessages(t, rt, false)
+	require.Len(t, msgs, 1)
+	assert.Equal(t, "0199bad9-f0bc-7738-8af8-99712a6f8bff", msgs[0].ID)
 }
 
 func TestHandle(t *testing.T) {

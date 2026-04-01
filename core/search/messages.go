@@ -143,6 +143,30 @@ func SearchMessages(ctx context.Context, rt *runtime.Runtime, orgID models.OrgID
 	return msgResults, nil
 }
 
+// DeindexMessages deletes specific messages from the Elasticsearch messages index by their UUIDs.
+func DeindexMessages(ctx context.Context, rt *runtime.Runtime, orgID models.OrgID, msgUUIDs []flows.EventUUID) (int, error) {
+	routing := fmt.Sprintf("%d", orgID)
+	uuids := make([]string, len(msgUUIDs))
+	for i, u := range msgUUIDs {
+		uuids[i] = string(u)
+	}
+
+	src := map[string]any{
+		"query": map[string]any{
+			"ids": map[string]any{"values": uuids},
+		},
+	}
+
+	index := rt.Config.ElasticMessagesIndex + "-*"
+
+	resp, err := rt.ES.Client.DeleteByQuery(index).Routing(routing).Raw(bytes.NewReader(jsonx.MustMarshal(src))).Do(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("error deindexing messages in org #%d: %w", orgID, err)
+	}
+
+	return int(*resp.Deleted), nil
+}
+
 // DeindexMessagesByContact deletes all messages in the Elasticsearch messages index for the given contact UUIDs.
 func DeindexMessagesByContact(ctx context.Context, rt *runtime.Runtime, orgID models.OrgID, contactUUIDs []flows.ContactUUID) (int, error) {
 	routing := fmt.Sprintf("%d", orgID)

@@ -40,7 +40,7 @@
             {
                 "query": "SELECT visibility, text FROM msgs_msg WHERE uuid = '0199bad9-f0bc-7738-8af8-99712a6f8bff'",
                 "columns": {
-                    "text": "3",
+                    "text": "stay visible",
                     "visibility": "V"
                 }
             }
