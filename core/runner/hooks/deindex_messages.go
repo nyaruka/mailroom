@@ -2,7 +2,6 @@ package hooks
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 
 	"github.com/nyaruka/goflow/flows"
@@ -29,7 +28,8 @@ func (h *deindexMessages) Execute(ctx context.Context, rt *runtime.Runtime, oa *
 
 	deleted, err := search.DeindexMessages(ctx, rt, oa.OrgID(), msgUUIDs)
 	if err != nil {
-		return fmt.Errorf("error deindexing messages: %w", err)
+		slog.Error("error deindexing messages from elasticsearch", "error", err, "org_id", oa.OrgID(), "count", len(msgUUIDs))
+		return nil
 	}
 
 	slog.Debug("deindexed messages from elasticsearch", "count", deleted)
