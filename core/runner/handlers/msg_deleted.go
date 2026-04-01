@@ -26,6 +26,7 @@ func handleMsgDeleted(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAs
 		ByContact: event.ByContact,
 		UserID:    userID,
 	})
+	scene.AttachPostCommitHook(hooks.DeindexMessages, event.MsgUUID)
 
 	return nil
 }
