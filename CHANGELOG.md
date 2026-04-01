@@ -1,3 +1,9 @@
+v26.1.80 (2026-04-01)
+-------------------------
+ * Read from Org.root_location instead of Org.country
+ * De-index deleted messages from Elasticsearch
+ * Use contact UUIDs instead of IDs in contact/export endpoint
+
 v26.1.79 (2026-03-31)
 -------------------------
  * Use contact UUIDs instead of IDs in contact/reindex endpoint
