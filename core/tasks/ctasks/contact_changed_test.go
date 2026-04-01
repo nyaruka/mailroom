@@ -25,7 +25,6 @@ func TestContactChanged(t *testing.T) {
 		contact     *testdb.Contact
 		newURN      *ctasks.NewURNSpec
 		expectedURN []string
-		expectedErr string
 	}{
 		{
 			label:   "append new URN",
@@ -49,24 +48,6 @@ func TestContactChanged(t *testing.T) {
 			},
 			expectedURN: []string{"tel:+16055742222", "telegram:98765"},
 		},
-		{
-			label:   "unsupported action errors",
-			contact: testdb.Bob,
-			newURN: &ctasks.NewURNSpec{
-				Value:  "telegram:98765",
-				Action: "prepend",
-			},
-			expectedErr: "unsupported new_urn action: prepend",
-		},
-		{
-			label:   "empty URN value errors",
-			contact: testdb.Bob,
-			newURN: &ctasks.NewURNSpec{
-				Value:  "",
-				Action: "append",
-			},
-			expectedErr: "new_urn value is required",
-		},
 	}
 
 	for _, tc := range tcs {
@@ -79,15 +60,6 @@ func TestContactChanged(t *testing.T) {
 
 			task := &ctasks.ContactChanged{
 				NewURN: tc.newURN,
-			}
-
-			if tc.expectedErr != "" {
-				oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
-				require.NoError(t, err)
-
-				err = ctasks.Perform(ctx, rt, oa, tc.contact.ID, task)
-				assert.ErrorContains(t, err, tc.expectedErr)
-				return
 			}
 
 			err := tasks.QueueContact(ctx, rt, testdb.Org1.ID, tc.contact.ID, task)

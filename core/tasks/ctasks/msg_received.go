@@ -114,14 +114,8 @@ func (t *MsgReceived) perform(ctx context.Context, rt *runtime.Runtime, oa *mode
 		}
 	}
 
-	// if a new URN was specified, validate and append it before affinity
+	// if a new URN was specified, append it before affinity
 	if t.NewURN != nil {
-		if t.NewURN.Value == urns.NilURN {
-			return fmt.Errorf("new_urn value is required")
-		}
-		if t.NewURN.Action != "append" {
-			return fmt.Errorf("unsupported new_urn action: %s", t.NewURN.Action)
-		}
 		if err := applyNewURN(ctx, rt, oa, scene, t.NewURN.Value); err != nil {
 			return fmt.Errorf("error applying new URN: %w", err)
 		}
