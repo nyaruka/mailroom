@@ -1,3 +1,9 @@
+v26.1.81 (2026-04-02)
+-------------------------
+ * Validate contact tasks after deserializing from Valkey
+ * Add contact_changed task type for handling contact modifications from courier
+ * Update to latest phonenumbers
+
 v26.1.80 (2026-04-01)
 -------------------------
  * Read from Org.root_location instead of Org.country
