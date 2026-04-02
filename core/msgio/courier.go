@@ -46,6 +46,7 @@ type Contact struct {
 	ID         models.ContactID  `json:"id"`
 	UUID       flows.ContactUUID `json:"uuid"`
 	LastSeenOn *time.Time        `json:"last_seen_on,omitempty"`
+	OtherURNs  []urns.URN        `json:"other_urns,omitempty"` // currently needed for WA handlers to know if contact already has a BSUID URN, may not be needed long term
 }
 
 type OptInRef struct {
@@ -100,6 +101,17 @@ type Msg struct {
 	Session              *Session           `json:"session,omitempty"`
 }
 
+// otherURNs returns the identities of all URNs on the contact except the one being sent to
+func otherURNs(mo *models.MsgOut) []urns.URN {
+	var others []urns.URN
+	for _, u := range mo.Contact.URNs() {
+		if u.ID != mo.URN.ID {
+			others = append(others, u.Identity)
+		}
+	}
+	return others
+}
+
 // NewCourierMsg creates a courier message in the format it's expecting to be queued
 func NewCourierMsg(oa *models.OrgAssets, mo *models.MsgOut, ch *models.Channel) (*Msg, error) {
 	msg := &Msg{
@@ -109,6 +121,7 @@ func NewCourierMsg(oa *models.OrgAssets, mo *models.MsgOut, ch *models.Channel) 
 			ID:         mo.ContactID(),
 			UUID:       mo.Contact.UUID(),
 			LastSeenOn: mo.Contact.LastSeenOn(),
+			OtherURNs:  otherURNs(mo),
 		},
 		Text:         mo.Text(),
 		Attachments:  mo.Attachments(),

@@ -32,6 +32,9 @@ func TestNewCourierMsg(t *testing.T) {
 	testFred := testdb.InsertContact(t, rt, testdb.Org1, "fed2d179-73ac-44fd-b838-7f866fef0a3a", "Fred", "eng", models.ContactStatusActive)
 	testdb.InsertContactURN(t, rt, testdb.Org1, testFred, "tel:+593979123456", 1000, map[string]string{fmt.Sprintf("optin:%d", optInID): "sesame"})
 
+	// add a second URN to Ann so we can test other_urns
+	testdb.InsertContactURN(t, rt, testdb.Org1, testdb.Ann, "whatsapp:16055741111", 100, nil)
+
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshOptIns)
 	require.NoError(t, err)
 	require.False(t, oa.Org().Suspended())
@@ -82,7 +85,7 @@ func TestNewCourierMsg(t *testing.T) {
 			"image/jpeg:https://dl-foo.com/image.jpg"
 		],
 		"channel_uuid": "0f661e8b-ea9d-4bd3-9953-d368340acf91",
-		"contact": {"id": 10000, "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf"},
+		"contact": {"id": 10000, "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf", "other_urns": ["whatsapp:16055741111"]},
 		"created_on": %s,
 		"flow": {"uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85", "name": "Favorites"},
 		"high_priority": false,
@@ -132,7 +135,7 @@ func TestNewCourierMsg(t *testing.T) {
 
 	createAndAssertCourierMsg(t, oa, msg2, fmt.Sprintf(`{
 		"channel_uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8",
-		"contact": {"id": 10000, "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf", "last_seen_on": "2023-04-20T10:15:00Z"},
+		"contact": {"id": 10000, "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf", "last_seen_on": "2023-04-20T10:15:00Z", "other_urns": ["whatsapp:16055741111"]},
 		"created_on": %s,
 		"flow": {"uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85", "name": "Favorites"},
 		"response_to_external_id": "EX123",
@@ -191,7 +194,7 @@ func TestNewCourierMsg(t *testing.T) {
 
 	createAndAssertCourierMsg(t, oa, msg4, fmt.Sprintf(`{
 		"channel_uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8",
-		"contact": {"id": 10000, "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf", "last_seen_on": "2023-04-20T10:15:00Z"},
+		"contact": {"id": 10000, "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf", "last_seen_on": "2023-04-20T10:15:00Z", "other_urns": ["whatsapp:16055741111"]},
 		"created_on": %s,
 		"flow": {"uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85", "name": "Favorites"},
 		"high_priority": true,
@@ -228,7 +231,7 @@ func TestNewCourierMsg(t *testing.T) {
 			"image/jpeg:https://dl-foo.com/image.jpg"
 		],
 		"channel_uuid": "0f661e8b-ea9d-4bd3-9953-d368340acf91",
-		"contact": {"id": 10000, "last_seen_on": "2023-04-20T10:15:00Z", "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf"},
+		"contact": {"id": 10000, "last_seen_on": "2023-04-20T10:15:00Z", "other_urns": ["whatsapp:16055741111"], "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf"},
 		"created_on": %s,
 		"flow": {"uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85", "name": "Favorites"},
 		"high_priority": false,
