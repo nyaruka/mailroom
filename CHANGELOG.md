@@ -1,3 +1,7 @@
+v26.1.83 (2026-04-02)
+-------------------------
+ * Update export test snapshots for changed contact UUIDs
+
 v26.1.82 (2026-04-02)
 -------------------------
  * Add other_urns to courier send message payload
