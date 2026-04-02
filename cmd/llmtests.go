@@ -1,10 +1,11 @@
-package main
+package cmd
 
 import (
 	"context"
 	_ "embed"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"maps"
 	"net/http"
 	"slices"
@@ -17,19 +18,38 @@ import (
 	"github.com/nyaruka/mailroom/runtime"
 )
 
-//go:embed data/tests.json
-var testsJSON json.RawMessage
+//go:embed data/llm_tests.json
+var llmTestsJSON json.RawMessage
 
-type promptTest struct {
+type llmPromptTest struct {
 	Template       string         `json:"template"`
 	Data           map[string]any `json:"data"`
 	Input          string         `json:"input"`
 	ExpectedOutput []string       `json:"expected_output"`
 }
 
+// LLMTests is the entry point for the mrllmtests command which runs LLM prompt tests against
+// a local test database with real LLMs.
+func LLMTests() error {
+	ctx := context.TODO()
+	cfg, err := runtime.LoadConfig()
+	if err != nil {
+		return fmt.Errorf("error loading config: %w", err)
+	}
+
+	slog.SetDefault(slog.New(slog.DiscardHandler)) // disable logging
+
+	rt, err := runtime.NewRuntime(cfg)
+	if err != nil {
+		return fmt.Errorf("error creating runtime: %w", err)
+	}
+
+	return runPromptTests(ctx, rt, models.OrgID(1))
+}
+
 func runPromptTests(ctx context.Context, rt *runtime.Runtime, orgID models.OrgID) error {
-	var tests []promptTest
-	jsonx.MustUnmarshal(testsJSON, &tests)
+	var tests []llmPromptTest
+	jsonx.MustUnmarshal(llmTestsJSON, &tests)
 
 	oa, err := models.GetOrgAssets(ctx, rt, orgID)
 	if err != nil {
@@ -68,13 +88,13 @@ func runPromptTests(ctx context.Context, rt *runtime.Runtime, orgID models.OrgID
 			start := time.Now()
 			resp, err := svc.Response(ctx, instructions, test.Input, 2500)
 			if err != nil {
-				fmt.Print(color(err.Error(), false))
+				fmt.Print(colorize(err.Error(), false))
 			} else {
 				correct := slices.Contains(test.ExpectedOutput, resp.Output)
 				timeTaken := time.Since(start)
 
-				fmt.Print(color(resp.Output, correct))
-				fmt.Printf(" [tokens=%d, time=%s]", resp.TokensUsed, color(timeTaken.String(), timeTaken < 1*time.Second))
+				fmt.Print(colorize(resp.Output, correct))
+				fmt.Printf(" [tokens=%d, time=%s]", resp.TokensUsed, colorize(timeTaken.String(), timeTaken < 1*time.Second))
 				if correct {
 					correctByLLM[llmName]++
 					timeTakenByLLM[llmName] += time.Since(start)
@@ -88,14 +108,14 @@ func runPromptTests(ctx context.Context, rt *runtime.Runtime, orgID models.OrgID
 	fmt.Printf("======== summary ==============================================\n")
 	for _, llmName := range slices.Sorted(maps.Keys(svcs)) {
 		allCorrect := correctByLLM[llmName] == len(tests)
-		score := fmt.Sprintf("%s/%d", color(fmt.Sprint(correctByLLM[llmName]), allCorrect), len(tests))
+		score := fmt.Sprintf("%s/%d", colorize(fmt.Sprint(correctByLLM[llmName]), allCorrect), len(tests))
 		fmt.Printf("%s: %s in %s\n", llmName, score, timeTakenByLLM[llmName])
 	}
 
 	return nil
 }
 
-func color(msg string, success bool) string {
+func colorize(msg string, success bool) string {
 	const (
 		reset = "\033[0m"
 		red   = "\033[31m"
