@@ -15,6 +15,7 @@ import (
 	valkey "github.com/gomodule/redigo/redis"
 	"github.com/lib/pq"
 	"github.com/nyaruka/gocommon/dates"
+	"github.com/nyaruka/gocommon/dbutil"
 	"github.com/nyaruka/gocommon/gsm7"
 	"github.com/nyaruka/gocommon/i18n"
 	"github.com/nyaruka/gocommon/urns"
@@ -674,15 +675,41 @@ func updateMessageStatus(ctx context.Context, db DBorTx, msgs []*Msg, status Msg
 
 // loads the bare minimum contact info we need for sending messages. Note that contacts may belong to
 // different orgs.
+const sqlSelectContactsForSending = `
+SELECT ROW_TO_JSON(r) FROM (SELECT
+	c.id,
+	c.uuid,
+	c.last_seen_on,
+	u.urns AS urns
+FROM
+	contacts_contact c
+LEFT JOIN (
+	SELECT contact_id,
+		array_agg(
+			json_build_object('id', u.id, 'identity', u.identity, 'scheme', u.scheme, 'path', path, 'display', display, 'channel_id', channel_id, 'auth_tokens', auth_tokens) ORDER BY priority DESC, id ASC
+		) AS urns
+	FROM contacts_contacturn u
+	WHERE u.contact_id = ANY($1)
+	GROUP BY contact_id
+) u ON c.id = u.contact_id
+WHERE c.id = ANY($1)
+) r`
+
 func loadContactsForSending(ctx context.Context, db *sqlx.DB, contactIDs []ContactID) (map[ContactID]*Contact, error) {
-	contacts := make([]*contactEnvelope, 0, len(contactIDs))
-	if err := db.SelectContext(ctx, &contacts, `SELECT id, uuid, last_seen_on FROM contacts_contact WHERE id = ANY($1)`, pq.Array(contactIDs)); err != nil {
+	rows, err := db.QueryContext(ctx, sqlSelectContactsForSending, pq.Array(contactIDs))
+	if err != nil {
 		return nil, fmt.Errorf("error loading contacts for sending: %w", err)
 	}
+	defer rows.Close()
 
-	contactsByID := make(map[ContactID]*Contact, len(contacts))
-	for _, c := range contacts {
-		contactsByID[c.ID] = &Contact{id: c.ID, uuid: c.UUID, lastSeenOn: c.LastSeenOn}
+	contactsByID := make(map[ContactID]*Contact, len(contactIDs))
+	for rows.Next() {
+		e := &contactEnvelope{}
+		if err := dbutil.ScanJSON(rows, e); err != nil {
+			return nil, fmt.Errorf("error scanning contact json: %w", err)
+		}
+
+		contactsByID[e.ID] = &Contact{id: e.ID, uuid: e.UUID, lastSeenOn: e.LastSeenOn, urns: e.URNs}
 	}
 
 	return contactsByID, nil
