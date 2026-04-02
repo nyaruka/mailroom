@@ -48,6 +48,15 @@ func TestContactChanged(t *testing.T) {
 			},
 			expectedURN: []string{"tel:+16055742222", "telegram:98765"},
 		},
+		{
+			label:   "remove existing URN",
+			contact: testdb.Bob,
+			newURN: &ctasks.NewURNSpec{
+				Value:  "telegram:98765",
+				Action: "remove",
+			},
+			expectedURN: []string{"tel:+16055742222"},
+		},
 	}
 
 	for _, tc := range tcs {

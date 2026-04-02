@@ -76,14 +76,19 @@ func Queue(ctx context.Context, rt *runtime.Runtime, orgID models.OrgID, contact
 	return nil
 }
 
-// NewURNSpec describes a new URN to add to a contact
+// NewURNSpec describes a URN change to apply to a contact
 type NewURNSpec struct {
 	Value  urns.URN `json:"value" validate:"required"`
-	Action string   `json:"action" validate:"required,eq=append"`
+	Action string   `json:"action" validate:"required,eq=append|eq=remove"`
+}
+
+var urnActions = map[string]modifiers.URNsModification{
+	"append": modifiers.URNsAppend,
+	"remove": modifiers.URNsRemove,
 }
 
 func (s *NewURNSpec) Apply(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scene *runner.Scene) error {
-	if err := scene.ApplyModifier(ctx, rt, oa, modifiers.NewURNs([]urns.URN{s.Value}, modifiers.URNsAppend), models.NilUserID, ""); err != nil {
+	if err := scene.ApplyModifier(ctx, rt, oa, modifiers.NewURNs([]urns.URN{s.Value}, urnActions[s.Action]), models.NilUserID, ""); err != nil {
 		return fmt.Errorf("error applying URNs modifier: %w", err)
 	}
 	return nil

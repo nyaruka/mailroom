@@ -22,6 +22,11 @@ func TestReadTask(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "contact_changed", task.Type())
 
+	// valid contact_changed task with remove action
+	task, err = ctasks.ReadTask("contact_changed", []byte(`{"new_urn": {"value": "telegram:98765", "action": "remove"}}`))
+	assert.NoError(t, err)
+	assert.Equal(t, "contact_changed", task.Type())
+
 	// invalid: missing required action field
 	_, err = ctasks.ReadTask("contact_changed", []byte(`{"new_urn": {"value": "telegram:98765"}}`))
 	assert.ErrorContains(t, err, "action")
