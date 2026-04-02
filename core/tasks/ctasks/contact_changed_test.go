@@ -51,6 +51,22 @@ func TestContactChanged(t *testing.T) {
 		{
 			label:   "remove existing URN",
 			contact: testdb.Bob,
+			preHook: func() {
+				rt.DB.MustExec(`DELETE FROM contacts_contacturn WHERE contact_id = $1 AND scheme = 'telegram'`, testdb.Bob.ID)
+				testdb.InsertContactURN(t, rt, testdb.Org1, testdb.Bob, "telegram:98765", 999, nil)
+			},
+			newURN: &ctasks.NewURNSpec{
+				Value:  "telegram:98765",
+				Action: "remove",
+			},
+			expectedURN: []string{"tel:+16055742222"},
+		},
+		{
+			label:   "remove non-existing URN",
+			contact: testdb.Bob,
+			preHook: func() {
+				rt.DB.MustExec(`DELETE FROM contacts_contacturn WHERE contact_id = $1 AND scheme = 'telegram'`, testdb.Bob.ID)
+			},
 			newURN: &ctasks.NewURNSpec{
 				Value:  "telegram:98765",
 				Action: "remove",
