@@ -1,3 +1,7 @@
+v26.1.82 (2026-04-02)
+-------------------------
+ * Add other_urns to courier send message payload
+
 v26.1.81 (2026-04-02)
 -------------------------
  * Validate contact tasks after deserializing from Valkey
