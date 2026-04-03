@@ -19,7 +19,7 @@ func TestStats(t *testing.T) {
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	sc := runtime.NewStatsCollector(rt.VK)
+	sc := runtime.NewStatsCollector(rt.VK, nil)
 	sc.RecordCronTask("make_foos", 10*time.Second)
 	sc.RecordCronTask("make_foos", 5*time.Second)
 	sc.RecordLLMCall("openai", "gpt-4", 7*time.Second)
@@ -79,4 +79,36 @@ func TestStats(t *testing.T) {
 			{Type: "msg_received", Count: 2, TotalMS: 400, AvgMS: 200},
 		}},
 	}, latencies)
+}
+
+func TestStatsLatencyExcludedOrgs(t *testing.T) {
+	_, rt := testsuite.Runtime(t)
+	defer testsuite.Reset(t, rt, testsuite.ResetValkey)
+
+	vc := rt.VK.Get()
+	defer vc.Close()
+
+	// create collector with org 2 excluded from latency metrics
+	sc := runtime.NewStatsCollector(rt.VK, []int{2})
+
+	sc.RecordContactTask("msg_received", 1, 100*time.Millisecond, 200*time.Millisecond, false)
+	sc.RecordContactTask("msg_received", 2, 100*time.Millisecond, 5*time.Second, false)
+	sc.RecordContactTask("msg_received", 3, 100*time.Millisecond, 300*time.Millisecond, false)
+
+	stats := sc.Extract()
+
+	// count and duration include all orgs
+	assert.Equal(t, 3, stats.ContactTaskCount["msg_received"])
+	assert.Equal(t, 300*time.Millisecond, stats.ContactTaskDuration["msg_received"])
+
+	// latency excludes org 2
+	assert.Equal(t, 500*time.Millisecond, stats.ContactTaskLatency["msg_received"])
+
+	// but per-org Valkey latency still includes org 2
+	key := fmt.Sprintf("ctask_latency:%s", time.Now().UTC().Format("2006-01-02T15"))
+	assertvk.HGetAll(t, vc, key, map[string]string{
+		"1/msg_received:n": "1", "1/msg_received:t": "200",
+		"2/msg_received:n": "1", "2/msg_received:t": "5000",
+		"3/msg_received:n": "1", "3/msg_received:t": "300",
+	})
 }

@@ -87,7 +87,7 @@ func NewRuntime(cfg *Config) (*Runtime, error) {
 	}
 
 	rt.Queues = newQueues(cfg)
-	rt.Stats = NewStatsCollector(rt.VK)
+	rt.Stats = NewStatsCollector(rt.VK, cfg.LatencyExcludedOrgs)
 
 	return rt, nil
 }

@@ -121,21 +121,28 @@ func (s *Stats) ToMetrics(advanced bool) []types.MetricDatum {
 
 // StatsCollector provides threadsafe stats collection
 type StatsCollector struct {
-	vk    *valkey.Pool
-	mutex sync.Mutex
-	stats *Stats
+	vk           *valkey.Pool
+	excludedOrgs map[int]bool
+	mutex        sync.Mutex
+	stats        *Stats
 }
 
 // NewStatsCollector creates a new stats collector
-func NewStatsCollector(vk *valkey.Pool) *StatsCollector {
-	return &StatsCollector{vk: vk, stats: newStats()}
+func NewStatsCollector(vk *valkey.Pool, excludedOrgs []int) *StatsCollector {
+	excluded := make(map[int]bool, len(excludedOrgs))
+	for _, id := range excludedOrgs {
+		excluded[id] = true
+	}
+	return &StatsCollector{vk: vk, excludedOrgs: excluded, stats: newStats()}
 }
 
 func (c *StatsCollector) RecordContactTask(typ string, orgID int, d, l time.Duration, errored bool) {
 	c.mutex.Lock()
 	c.stats.ContactTaskCount[typ]++
 	c.stats.ContactTaskDuration[typ] += d
-	c.stats.ContactTaskLatency[typ] += l
+	if !c.excludedOrgs[orgID] {
+		c.stats.ContactTaskLatency[typ] += l
+	}
 	if errored {
 		c.stats.ContactTaskErrors[typ]++
 	}
