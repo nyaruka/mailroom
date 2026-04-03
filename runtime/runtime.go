@@ -9,6 +9,7 @@ import (
 	"firebase.google.com/go/v4/messaging"
 	"github.com/centrifugal/gocent/v3"
 	valkey "github.com/gomodule/redigo/redis"
+	_ "github.com/lib/pq"
 	"github.com/nyaruka/gocommon/aws/cwatch"
 	"github.com/nyaruka/gocommon/aws/s3x"
 	"github.com/nyaruka/vkutil"
@@ -24,9 +25,9 @@ type Runtime struct {
 	ReadonlyDB *sql.DB
 	VK         *valkey.Pool
 	S3         *s3x.Service
-	ES     *Elastic
-	Dynamo *Dynamo
-	CW     *cwatch.Service
+	ES         *Elastic
+	Dynamo     *Dynamo
+	CW         *cwatch.Service
 	FCM        FCMClient
 	Centrifugo *gocent.Client
 
