@@ -1,9 +1,6 @@
 package main
 
 import (
-	"log/slog"
-	"os"
-
 	"github.com/nyaruka/mailroom/cmd"
 
 	_ "github.com/nyaruka/mailroom/services/llm/anthropic"
@@ -14,8 +11,5 @@ import (
 )
 
 func main() {
-	if err := cmd.LLMTests(); err != nil {
-		slog.Error(err.Error())
-		os.Exit(1)
-	}
+	cmd.Run(cmd.LLMTests())
 }

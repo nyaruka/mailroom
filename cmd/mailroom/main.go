@@ -1,9 +1,6 @@
 package main
 
 import (
-	"log/slog"
-	"os"
-
 	"github.com/nyaruka/mailroom/cmd"
 
 	_ "github.com/nyaruka/mailroom/core/runner/handlers"
@@ -39,8 +36,5 @@ var (
 )
 
 func main() {
-	if err := cmd.Service(version, date); err != nil {
-		slog.Error(err.Error())
-		os.Exit(1)
-	}
+	cmd.Run(cmd.Service(version, date))
 }
