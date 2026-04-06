@@ -1,3 +1,7 @@
+v26.1.84 (2026-04-06)
+-------------------------
+ * Add config to exclude specific orgs from latency metrics
+
 v26.1.83 (2026-04-02)
 -------------------------
  * Update export test snapshots for changed contact UUIDs
