@@ -1,4 +1,4 @@
-module github.com/nyaruka/mailroom
+module github.com/nyaruka/mailroom/v26
 
 go 1.26.0
 

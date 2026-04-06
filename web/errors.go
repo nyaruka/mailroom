@@ -5,9 +5,9 @@ import (
 	"net/http"
 
 	"github.com/nyaruka/goflow/contactql"
-	"github.com/nyaruka/mailroom/core/ai"
-	"github.com/nyaruka/mailroom/core/goflow"
-	"github.com/nyaruka/mailroom/core/models"
+	"github.com/nyaruka/mailroom/v26/core/ai"
+	"github.com/nyaruka/mailroom/v26/core/goflow"
+	"github.com/nyaruka/mailroom/v26/core/models"
 )
 
 // ErrorResponse is the type for our error responses

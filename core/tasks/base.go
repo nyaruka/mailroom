@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/nyaruka/goflow/utils"
-	"github.com/nyaruka/mailroom/core/models"
-	"github.com/nyaruka/mailroom/runtime"
-	"github.com/nyaruka/mailroom/utils/queues"
+	"github.com/nyaruka/mailroom/v26/core/models"
+	"github.com/nyaruka/mailroom/v26/runtime"
+	"github.com/nyaruka/mailroom/v26/utils/queues"
 )
 
 var registeredTypes = map[string](func() Task){}

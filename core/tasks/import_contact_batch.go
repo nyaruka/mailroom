@@ -6,9 +6,9 @@ import (
 	"slices"
 	"time"
 
-	"github.com/nyaruka/mailroom/core/imports"
-	"github.com/nyaruka/mailroom/core/models"
-	"github.com/nyaruka/mailroom/runtime"
+	"github.com/nyaruka/mailroom/v26/core/imports"
+	"github.com/nyaruka/mailroom/v26/core/models"
+	"github.com/nyaruka/mailroom/v26/runtime"
 )
 
 // TypeImportContactBatch is the type of the import contact batch task

@@ -8,7 +8,7 @@ import (
 	"github.com/nyaruka/goflow/contactql"
 	"github.com/nyaruka/goflow/envs"
 	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/mailroom/core/models"
+	"github.com/nyaruka/mailroom/v26/core/models"
 )
 
 // BuildRecipientsQuery builds a query from a set of inclusions/exclusions (i.e. a flow start or broadcast)

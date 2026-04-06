@@ -2,7 +2,7 @@ package testdb
 
 import (
 	"github.com/nyaruka/goflow/assets"
-	"github.com/nyaruka/mailroom/core/models"
+	"github.com/nyaruka/mailroom/v26/core/models"
 )
 
 type Classifier struct {

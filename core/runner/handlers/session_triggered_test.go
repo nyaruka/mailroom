@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/nyaruka/goflow/test"
-	"github.com/nyaruka/mailroom/testsuite"
+	"github.com/nyaruka/mailroom/v26/testsuite"
 )
 
 func TestSessionTriggered(t *testing.T) {

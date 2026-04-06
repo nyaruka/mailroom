@@ -9,10 +9,10 @@ import (
 	valkey "github.com/gomodule/redigo/redis"
 	"github.com/nyaruka/gocommon/dbutil"
 	"github.com/nyaruka/gocommon/jsonx"
-	"github.com/nyaruka/mailroom/core/models"
-	"github.com/nyaruka/mailroom/core/runner/clocks"
-	"github.com/nyaruka/mailroom/core/tasks/ctasks"
-	"github.com/nyaruka/mailroom/runtime"
+	"github.com/nyaruka/mailroom/v26/core/models"
+	"github.com/nyaruka/mailroom/v26/core/runner/clocks"
+	"github.com/nyaruka/mailroom/v26/core/tasks/ctasks"
+	"github.com/nyaruka/mailroom/v26/runtime"
 )
 
 // TypePerformContactTask is the task type for flagging that a contact has queued tasks
@@ -108,7 +108,7 @@ func (t *ProcessContactQueue) Perform(ctx context.Context, rt *runtime.Runtime, 
 			taskPayload.ErrorCount++
 			if taskPayload.ErrorCount < 3 {
 				// use background context because ctx may have been cancelled by the task timeout
-			retryErr := queueContact(context.Background(), rt, oa.OrgID(), t.ContactID, ctask, true, taskPayload.ErrorCount)
+				retryErr := queueContact(context.Background(), rt, oa.OrgID(), t.ContactID, ctask, true, taskPayload.ErrorCount)
 				if retryErr != nil {
 					log.Error("error requeuing errored contact event", "error", retryErr)
 				}

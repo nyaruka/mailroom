@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/nyaruka/mailroom/cmd"
+	"github.com/nyaruka/mailroom/v26/cmd"
 )
 
 func main() {

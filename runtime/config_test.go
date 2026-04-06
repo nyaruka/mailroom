@@ -4,7 +4,7 @@ import (
 	"net"
 	"testing"
 
-	"github.com/nyaruka/mailroom/runtime"
+	"github.com/nyaruka/mailroom/v26/runtime"
 
 	"github.com/stretchr/testify/assert"
 )

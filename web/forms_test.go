@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/nyaruka/mailroom/testsuite"
-	"github.com/nyaruka/mailroom/web"
+	"github.com/nyaruka/mailroom/v26/testsuite"
+	"github.com/nyaruka/mailroom/v26/web"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

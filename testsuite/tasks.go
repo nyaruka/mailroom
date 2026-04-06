@@ -10,12 +10,12 @@ import (
 
 	valkey "github.com/gomodule/redigo/redis"
 	"github.com/nyaruka/gocommon/jsonx"
-	"github.com/nyaruka/mailroom/core/models"
-	"github.com/nyaruka/mailroom/core/tasks"
-	"github.com/nyaruka/mailroom/core/tasks/ctasks"
-	"github.com/nyaruka/mailroom/runtime"
-	"github.com/nyaruka/mailroom/testsuite/testdb"
-	"github.com/nyaruka/mailroom/utils/queues"
+	"github.com/nyaruka/mailroom/v26/core/models"
+	"github.com/nyaruka/mailroom/v26/core/tasks"
+	"github.com/nyaruka/mailroom/v26/core/tasks/ctasks"
+	"github.com/nyaruka/mailroom/v26/runtime"
+	"github.com/nyaruka/mailroom/v26/testsuite/testdb"
+	"github.com/nyaruka/mailroom/v26/utils/queues"
 	"github.com/stretchr/testify/require"
 )
 
@@ -156,4 +156,3 @@ func drainTasks(t *testing.T, rt *runtime.Runtime, perform bool, qnames ...strin
 	}
 	return counts
 }
-
