@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/service/cloudwatch/types"
 	"github.com/nyaruka/mailroom/runtime"
 	"github.com/nyaruka/mailroom/testsuite"
 	"github.com/nyaruka/vkutil/assertvk"
@@ -101,8 +102,15 @@ func TestStatsLatencyExcludedOrgs(t *testing.T) {
 	assert.Equal(t, 3, stats.ContactTaskCount["msg_received"])
 	assert.Equal(t, 300*time.Millisecond, stats.ContactTaskDuration["msg_received"])
 
-	// latency excludes org 2
+	// latency sum and count both exclude org 2
 	assert.Equal(t, 500*time.Millisecond, stats.ContactTaskLatency["msg_received"])
+	assert.Equal(t, 2, stats.ContactTaskLatencyCount["msg_received"])
+
+	// CloudWatch metric HandlerTaskLatency should average over the 2 non-excluded tasks (250ms)
+	// not over all 3 tasks (which would incorrectly give ~167ms)
+	datums := stats.ToMetrics(false)
+	assert.Equal(t, 0.25, findDatumValue(t, datums, "HandlerTaskLatency"))
+	assert.Equal(t, float64(3), findDatumValue(t, datums, "HandlerTaskCount"))
 
 	// but per-org Valkey latency still includes org 2
 	key := fmt.Sprintf("ctask_latency:%s", time.Now().UTC().Format("2006-01-02T15"))
@@ -111,4 +119,24 @@ func TestStatsLatencyExcludedOrgs(t *testing.T) {
 		"2/msg_received:n": "1", "2/msg_received:t": "5000",
 		"3/msg_received:n": "1", "3/msg_received:t": "300",
 	})
+
+	// if all orgs for a task type are excluded, HandlerTaskLatency should be omitted (no div-by-zero)
+	sc2 := runtime.NewStatsCollector(rt.VK, []int{5})
+	sc2.RecordContactTask("msg_received", 5, 100*time.Millisecond, 200*time.Millisecond, false)
+	datums2 := sc2.Extract().ToMetrics(false)
+
+	for _, d := range datums2 {
+		assert.NotEqual(t, "HandlerTaskLatency", *d.MetricName, "HandlerTaskLatency should be omitted when all orgs are excluded")
+	}
+}
+
+// findDatumValue returns the value of the first MetricDatum with the given name
+func findDatumValue(t *testing.T, datums []types.MetricDatum, name string) float64 {
+	for _, d := range datums {
+		if d.MetricName != nil && *d.MetricName == name {
+			return *d.Value
+		}
+	}
+	t.Fatalf("no datum with name %q found", name)
+	return 0
 }
