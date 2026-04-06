@@ -20,11 +20,12 @@ type LLMTypeAndModel struct {
 }
 
 type Stats struct {
-	ContactTaskCount    map[string]int           // number of contact tasks handled by type
-	ContactTaskErrors   map[string]int           // number of contact tasks that errored by type
-	ContactTaskDuration map[string]time.Duration // total time spent handling contact tasks
-	ContactTaskLatency  map[string]time.Duration // total time spent queuing and handling contact tasks
-	RealtimeLockFails   int                      // number of times an attempt to get a contact lock failed
+	ContactTaskCount        map[string]int           // number of contact tasks handled by type
+	ContactTaskErrors       map[string]int           // number of contact tasks that errored by type
+	ContactTaskDuration     map[string]time.Duration // total time spent handling contact tasks
+	ContactTaskLatency      map[string]time.Duration // total time spent queuing and handling contact tasks (excluding excluded orgs)
+	ContactTaskLatencyCount map[string]int           // number of contact tasks whose latency was included in ContactTaskLatency
+	RealtimeLockFails       int                      // number of times an attempt to get a contact lock failed
 
 	CronTaskCount    map[string]int           // number of cron tasks run by type
 	CronTaskDuration map[string]time.Duration // total time spent running cron tasks
@@ -41,10 +42,11 @@ type Stats struct {
 
 func newStats() *Stats {
 	return &Stats{
-		ContactTaskCount:    make(map[string]int),
-		ContactTaskErrors:   make(map[string]int),
-		ContactTaskDuration: make(map[string]time.Duration),
-		ContactTaskLatency:  make(map[string]time.Duration),
+		ContactTaskCount:        make(map[string]int),
+		ContactTaskErrors:       make(map[string]int),
+		ContactTaskDuration:     make(map[string]time.Duration),
+		ContactTaskLatency:      make(map[string]time.Duration),
+		ContactTaskLatencyCount: make(map[string]int),
 
 		CronTaskCount:    make(map[string]int),
 		CronTaskDuration: make(map[string]time.Duration),
@@ -63,14 +65,21 @@ func (s *Stats) ToMetrics(advanced bool) []types.MetricDatum {
 	for typ, count := range s.ContactTaskCount {
 		// convert task timings to averages
 		avgDuration := s.ContactTaskDuration[typ] / time.Duration(count)
-		avgLatency := s.ContactTaskLatency[typ] / time.Duration(count)
+		typDim := cwatch.Dimension("TaskType", typ)
 
 		metrics = append(metrics,
-			cwatch.Datum("HandlerTaskCount", float64(count), types.StandardUnitCount, cwatch.Dimension("TaskType", typ)),
-			cwatch.Datum("HandlerTaskErrors", float64(s.ContactTaskErrors[typ]), types.StandardUnitCount, cwatch.Dimension("TaskType", typ)),
-			cwatch.Datum("HandlerTaskDuration", float64(avgDuration)/float64(time.Second), types.StandardUnitCount, cwatch.Dimension("TaskType", typ)),
-			cwatch.Datum("HandlerTaskLatency", float64(avgLatency)/float64(time.Second), types.StandardUnitCount, cwatch.Dimension("TaskType", typ)),
+			cwatch.Datum("HandlerTaskCount", float64(count), types.StandardUnitCount, typDim),
+			cwatch.Datum("HandlerTaskErrors", float64(s.ContactTaskErrors[typ]), types.StandardUnitCount, typDim),
+			cwatch.Datum("HandlerTaskDuration", float64(avgDuration)/float64(time.Second), types.StandardUnitCount, typDim),
 		)
+
+		// latency average uses its own count because tasks from excluded orgs aren't added to the sum
+		if latencyCount := s.ContactTaskLatencyCount[typ]; latencyCount > 0 {
+			avgLatency := s.ContactTaskLatency[typ] / time.Duration(latencyCount)
+			metrics = append(metrics,
+				cwatch.Datum("HandlerTaskLatency", float64(avgLatency)/float64(time.Second), types.StandardUnitCount, typDim),
+			)
+		}
 	}
 
 	for typeAndModel, count := range s.LLMCallCount {
@@ -121,21 +130,29 @@ func (s *Stats) ToMetrics(advanced bool) []types.MetricDatum {
 
 // StatsCollector provides threadsafe stats collection
 type StatsCollector struct {
-	vk    *valkey.Pool
-	mutex sync.Mutex
-	stats *Stats
+	vk           *valkey.Pool
+	excludedOrgs map[int]bool
+	mutex        sync.Mutex
+	stats        *Stats
 }
 
 // NewStatsCollector creates a new stats collector
-func NewStatsCollector(vk *valkey.Pool) *StatsCollector {
-	return &StatsCollector{vk: vk, stats: newStats()}
+func NewStatsCollector(vk *valkey.Pool, excludedOrgs []int) *StatsCollector {
+	excluded := make(map[int]bool, len(excludedOrgs))
+	for _, id := range excludedOrgs {
+		excluded[id] = true
+	}
+	return &StatsCollector{vk: vk, excludedOrgs: excluded, stats: newStats()}
 }
 
 func (c *StatsCollector) RecordContactTask(typ string, orgID int, d, l time.Duration, errored bool) {
 	c.mutex.Lock()
 	c.stats.ContactTaskCount[typ]++
 	c.stats.ContactTaskDuration[typ] += d
-	c.stats.ContactTaskLatency[typ] += l
+	if !c.excludedOrgs[orgID] {
+		c.stats.ContactTaskLatency[typ] += l
+		c.stats.ContactTaskLatencyCount[typ]++
+	}
 	if errored {
 		c.stats.ContactTaskErrors[typ]++
 	}

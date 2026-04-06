@@ -67,6 +67,7 @@ type Config struct {
 	S3AttachmentsBucket string `help:"S3 bucket to write attachments to"`
 	S3PathStyle         bool   `help:"S3 should use path style URLs"`
 
+	LatencyExcludedOrgs []int  `help:"comma separated list of org IDs to exclude from latency metrics"`
 	MetricsReporting    string `validate:"eq=off|eq=basic|eq=advanced"     help:"the level of metrics reporting"`
 	CloudwatchNamespace string `help:"the namespace to use for cloudwatch metrics"`
 	DeploymentID        string `help:"the deployment identifier to use for metrics"`
