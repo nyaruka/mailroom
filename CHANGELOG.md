@@ -1,3 +1,7 @@
+v26.1.85 (2026-04-06)
+-------------------------
+ * Add /v26 major version suffix to module path
+
 v26.1.84 (2026-04-06)
 -------------------------
  * Add config to exclude specific orgs from latency metrics
