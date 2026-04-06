@@ -11,7 +11,7 @@ import (
 	"github.com/nyaruka/gocommon/aws/dynamo"
 	"github.com/nyaruka/gocommon/aws/dynamo/dyntest"
 	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/mailroom/runtime"
+	"github.com/nyaruka/mailroom/v26/runtime"
 	"github.com/stretchr/testify/require"
 )
 

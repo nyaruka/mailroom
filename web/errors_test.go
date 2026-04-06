@@ -7,7 +7,7 @@ import (
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/goflow/contactql"
 	"github.com/nyaruka/goflow/envs"
-	"github.com/nyaruka/mailroom/web"
+	"github.com/nyaruka/mailroom/v26/web"
 	"github.com/stretchr/testify/assert"
 )
 

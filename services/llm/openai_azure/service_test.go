@@ -5,10 +5,10 @@ import (
 	"testing"
 
 	"github.com/nyaruka/gocommon/httpx"
-	"github.com/nyaruka/mailroom/core/ai"
-	"github.com/nyaruka/mailroom/services/llm/openai_azure"
-	"github.com/nyaruka/mailroom/testsuite"
-	"github.com/nyaruka/mailroom/testsuite/testdb"
+	"github.com/nyaruka/mailroom/v26/core/ai"
+	"github.com/nyaruka/mailroom/v26/services/llm/openai_azure"
+	"github.com/nyaruka/mailroom/v26/testsuite"
+	"github.com/nyaruka/mailroom/v26/testsuite/testdb"
 	"github.com/stretchr/testify/assert"
 )
 

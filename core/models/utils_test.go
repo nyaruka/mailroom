@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
-	"github.com/nyaruka/mailroom/core/models"
-	"github.com/nyaruka/mailroom/testsuite"
+	"github.com/nyaruka/mailroom/v26/core/models"
+	"github.com/nyaruka/mailroom/v26/testsuite"
 
 	"github.com/stretchr/testify/assert"
 )

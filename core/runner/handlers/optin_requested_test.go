@@ -5,9 +5,9 @@ import (
 	"testing"
 
 	"github.com/nyaruka/goflow/assets"
-	"github.com/nyaruka/mailroom/core/models"
-	"github.com/nyaruka/mailroom/testsuite"
-	"github.com/nyaruka/mailroom/testsuite/testdb"
+	"github.com/nyaruka/mailroom/v26/core/models"
+	"github.com/nyaruka/mailroom/v26/testsuite"
+	"github.com/nyaruka/mailroom/v26/testsuite/testdb"
 	"github.com/nyaruka/vkutil/assertvk"
 	"github.com/stretchr/testify/assert"
 )

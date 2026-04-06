@@ -4,9 +4,9 @@ import (
 	"context"
 
 	"github.com/nyaruka/goflow/flows/events"
-	"github.com/nyaruka/mailroom/core/models"
-	"github.com/nyaruka/mailroom/core/runner"
-	"github.com/nyaruka/mailroom/runtime"
+	"github.com/nyaruka/mailroom/v26/core/models"
+	"github.com/nyaruka/mailroom/v26/core/runner"
+	"github.com/nyaruka/mailroom/v26/runtime"
 	"github.com/nyaruka/null/v3"
 	"github.com/vinovest/sqlx"
 )

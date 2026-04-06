@@ -9,9 +9,9 @@ import (
 	"time"
 
 	"github.com/getsentry/sentry-go"
-	"github.com/nyaruka/mailroom/core/tasks"
-	"github.com/nyaruka/mailroom/runtime"
-	"github.com/nyaruka/mailroom/utils/queues"
+	"github.com/nyaruka/mailroom/v26/core/tasks"
+	"github.com/nyaruka/mailroom/v26/runtime"
+	"github.com/nyaruka/mailroom/v26/utils/queues"
 )
 
 // Foreman takes care of managing our set of workers and assigns msgs for each to send

@@ -5,11 +5,11 @@ import (
 
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/gocommon/uuids"
-	"github.com/nyaruka/mailroom/core/models"
-	_ "github.com/nyaruka/mailroom/core/runner/handlers"
-	"github.com/nyaruka/mailroom/core/tasks/ctasks"
-	"github.com/nyaruka/mailroom/testsuite"
-	"github.com/nyaruka/mailroom/testsuite/testdb"
+	"github.com/nyaruka/mailroom/v26/core/models"
+	_ "github.com/nyaruka/mailroom/v26/core/runner/handlers"
+	"github.com/nyaruka/mailroom/v26/core/tasks/ctasks"
+	"github.com/nyaruka/mailroom/v26/testsuite"
+	"github.com/nyaruka/mailroom/v26/testsuite/testdb"
 	"github.com/nyaruka/null/v3"
 	"github.com/stretchr/testify/assert"
 )

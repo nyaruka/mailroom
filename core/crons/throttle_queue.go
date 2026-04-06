@@ -6,8 +6,8 @@ import (
 	"slices"
 	"time"
 
-	"github.com/nyaruka/mailroom/core/models"
-	"github.com/nyaruka/mailroom/runtime"
+	"github.com/nyaruka/mailroom/v26/core/models"
+	"github.com/nyaruka/mailroom/v26/runtime"
 	"golang.org/x/exp/maps"
 )
 

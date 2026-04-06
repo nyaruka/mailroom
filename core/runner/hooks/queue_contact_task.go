@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/nyaruka/mailroom/core/models"
-	"github.com/nyaruka/mailroom/core/runner"
-	"github.com/nyaruka/mailroom/core/tasks"
-	"github.com/nyaruka/mailroom/core/tasks/ctasks"
-	"github.com/nyaruka/mailroom/runtime"
+	"github.com/nyaruka/mailroom/v26/core/models"
+	"github.com/nyaruka/mailroom/v26/core/runner"
+	"github.com/nyaruka/mailroom/v26/core/tasks"
+	"github.com/nyaruka/mailroom/v26/core/tasks/ctasks"
+	"github.com/nyaruka/mailroom/v26/runtime"
 )
 
 var QueueContactTask runner.PostCommitHook = &queueContactTask{}

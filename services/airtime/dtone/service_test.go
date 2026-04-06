@@ -10,7 +10,7 @@ import (
 	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/test"
-	"github.com/nyaruka/mailroom/services/airtime/dtone"
+	"github.com/nyaruka/mailroom/v26/services/airtime/dtone"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
 )

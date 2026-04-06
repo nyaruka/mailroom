@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/nyaruka/gocommon/dates"
-	"github.com/nyaruka/mailroom/testsuite"
-	"github.com/nyaruka/mailroom/utils/queues"
+	"github.com/nyaruka/mailroom/v26/testsuite"
+	"github.com/nyaruka/mailroom/v26/utils/queues"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

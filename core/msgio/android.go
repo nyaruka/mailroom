@@ -12,8 +12,8 @@ import (
 	"firebase.google.com/go/v4/messaging"
 	"google.golang.org/api/option"
 
-	"github.com/nyaruka/mailroom/core/models"
-	"github.com/nyaruka/mailroom/runtime"
+	"github.com/nyaruka/mailroom/v26/core/models"
+	"github.com/nyaruka/mailroom/v26/runtime"
 )
 
 // SyncAndroidChannel tries to trigger sync of the given Android channel via FCM

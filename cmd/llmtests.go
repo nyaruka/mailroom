@@ -13,9 +13,9 @@ import (
 
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/mailroom/core/ai/prompts"
-	"github.com/nyaruka/mailroom/core/models"
-	"github.com/nyaruka/mailroom/runtime"
+	"github.com/nyaruka/mailroom/v26/core/ai/prompts"
+	"github.com/nyaruka/mailroom/v26/core/models"
+	"github.com/nyaruka/mailroom/v26/runtime"
 )
 
 //go:embed data/llm_tests.json

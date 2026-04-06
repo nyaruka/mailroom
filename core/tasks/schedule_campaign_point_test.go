@@ -5,9 +5,9 @@ import (
 	"time"
 
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
-	"github.com/nyaruka/mailroom/core/tasks"
-	"github.com/nyaruka/mailroom/testsuite"
-	"github.com/nyaruka/mailroom/testsuite/testdb"
+	"github.com/nyaruka/mailroom/v26/core/tasks"
+	"github.com/nyaruka/mailroom/v26/testsuite"
+	"github.com/nyaruka/mailroom/v26/testsuite/testdb"
 )
 
 func TestScheduleCampaignPoint(t *testing.T) {

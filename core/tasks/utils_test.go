@@ -5,8 +5,8 @@ import (
 	"time"
 
 	valkey "github.com/gomodule/redigo/redis"
-	"github.com/nyaruka/mailroom/core/tasks"
-	"github.com/nyaruka/mailroom/testsuite"
+	"github.com/nyaruka/mailroom/v26/core/tasks"
+	"github.com/nyaruka/mailroom/v26/testsuite"
 	"github.com/stretchr/testify/assert"
 )
 

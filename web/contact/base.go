@@ -10,7 +10,7 @@ import (
 	"github.com/nyaruka/goflow/envs"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/modifiers"
-	"github.com/nyaruka/mailroom/core/models"
+	"github.com/nyaruka/mailroom/v26/core/models"
 )
 
 // Creation a validated contact creation task

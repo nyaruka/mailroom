@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/nyaruka/gocommon/httpx"
-	"github.com/nyaruka/mailroom/runtime"
+	"github.com/nyaruka/mailroom/v26/runtime"
 )
 
 var httpInit sync.Once

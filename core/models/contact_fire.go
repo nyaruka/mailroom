@@ -7,7 +7,7 @@ import (
 
 	"github.com/lib/pq"
 	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/mailroom/runtime"
+	"github.com/nyaruka/mailroom/v26/runtime"
 	"github.com/nyaruka/null/v3"
 )
 

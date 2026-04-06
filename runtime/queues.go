@@ -1,6 +1,6 @@
 package runtime
 
-import "github.com/nyaruka/mailroom/utils/queues"
+import "github.com/nyaruka/mailroom/v26/utils/queues"
 
 type Queues struct {
 	Realtime  queues.Fair

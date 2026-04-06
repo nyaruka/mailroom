@@ -25,9 +25,9 @@ import (
 	"github.com/nyaruka/goflow/services/email/smtp"
 	"github.com/nyaruka/goflow/utils"
 	"github.com/nyaruka/goflow/utils/smtpx"
-	"github.com/nyaruka/mailroom/core/goflow"
-	"github.com/nyaruka/mailroom/runtime"
-	"github.com/nyaruka/mailroom/services/airtime/dtone"
+	"github.com/nyaruka/mailroom/v26/core/goflow"
+	"github.com/nyaruka/mailroom/v26/runtime"
+	"github.com/nyaruka/mailroom/v26/services/airtime/dtone"
 	"github.com/nyaruka/null/v3"
 )
 

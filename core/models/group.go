@@ -154,4 +154,3 @@ func UpdateGroupStatus(ctx context.Context, db DBorTx, groupID GroupID, status G
 	}
 	return nil
 }
-

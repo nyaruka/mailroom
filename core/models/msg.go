@@ -24,9 +24,9 @@ import (
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/goflow/utils"
-	"github.com/nyaruka/mailroom/core/goflow"
-	"github.com/nyaruka/mailroom/runtime"
-	"github.com/nyaruka/mailroom/utils/clogs"
+	"github.com/nyaruka/mailroom/v26/core/goflow"
+	"github.com/nyaruka/mailroom/v26/runtime"
+	"github.com/nyaruka/mailroom/v26/utils/clogs"
 	"github.com/nyaruka/null/v3"
 	"github.com/vinovest/sqlx"
 )

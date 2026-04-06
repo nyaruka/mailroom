@@ -16,6 +16,6 @@ RUN grep goflow go.mod | cut -d" " -f2 | cut -c2- > /tmp/goflow_version
 RUN curl -L "https://github.com/nyaruka/goflow/releases/download/v`cat /tmp/goflow_version`/docs.tar.gz" | tar zxv
 
 COPY . .
-RUN go build -v -o /usr/local/bin/app github.com/nyaruka/mailroom/cmd/mailroom
+RUN go build -v -o /usr/local/bin/app github.com/nyaruka/mailroom/v26/cmd/mailroom
 
 CMD ["app"]

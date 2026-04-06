@@ -4,8 +4,8 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/nyaruka/mailroom/runtime"
-	"github.com/nyaruka/mailroom/web"
+	"github.com/nyaruka/mailroom/v26/runtime"
+	"github.com/nyaruka/mailroom/v26/web"
 )
 
 var docServer http.Handler

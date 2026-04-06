@@ -9,7 +9,7 @@ import (
 	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/httpx"
 	"github.com/nyaruka/goflow/test"
-	"github.com/nyaruka/mailroom/services/airtime/dtone"
+	"github.com/nyaruka/mailroom/v26/services/airtime/dtone"
 	"github.com/stretchr/testify/assert"
 )
 

@@ -8,9 +8,9 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/nyaruka/gocommon/i18n"
 	"github.com/nyaruka/goflow/flows/translation"
-	"github.com/nyaruka/mailroom/core/models"
-	"github.com/nyaruka/mailroom/runtime"
-	"github.com/nyaruka/mailroom/web"
+	"github.com/nyaruka/mailroom/v26/core/models"
+	"github.com/nyaruka/mailroom/v26/runtime"
+	"github.com/nyaruka/mailroom/v26/web"
 )
 
 func init() {

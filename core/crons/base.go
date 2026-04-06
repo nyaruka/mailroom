@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/nyaruka/gocommon/jsonx"
-	"github.com/nyaruka/mailroom/runtime"
-	"github.com/nyaruka/mailroom/utils/crons"
+	"github.com/nyaruka/mailroom/v26/runtime"
+	"github.com/nyaruka/mailroom/v26/utils/crons"
 )
 
 const (

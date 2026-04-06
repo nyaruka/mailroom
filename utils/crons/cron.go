@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/getsentry/sentry-go"
-	"github.com/nyaruka/mailroom/runtime"
+	"github.com/nyaruka/mailroom/v26/runtime"
 	"github.com/nyaruka/vkutil/locks"
 )
 

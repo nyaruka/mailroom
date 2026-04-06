@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/nyaruka/mailroom/runtime"
+	"github.com/nyaruka/mailroom/v26/runtime"
 )
 
 type JSONHandler[T any] func(context.Context, *runtime.Runtime, *T) (any, int, error)

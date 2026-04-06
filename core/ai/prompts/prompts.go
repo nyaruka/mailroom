@@ -5,7 +5,7 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/nyaruka/mailroom/core/goflow"
+	"github.com/nyaruka/mailroom/v26/core/goflow"
 )
 
 //go:embed templates/categorize.txt

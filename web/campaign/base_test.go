@@ -3,7 +3,7 @@ package campaign_test
 import (
 	"testing"
 
-	"github.com/nyaruka/mailroom/testsuite"
+	"github.com/nyaruka/mailroom/v26/testsuite"
 )
 
 func TestSchedule(t *testing.T) {

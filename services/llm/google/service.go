@@ -8,8 +8,8 @@ import (
 	"strings"
 
 	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/mailroom/core/ai"
-	"github.com/nyaruka/mailroom/core/models"
+	"github.com/nyaruka/mailroom/v26/core/ai"
+	"github.com/nyaruka/mailroom/v26/core/models"
 	"google.golang.org/genai"
 )
 

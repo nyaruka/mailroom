@@ -6,7 +6,7 @@ import (
 
 	"github.com/nyaruka/gocommon/aws/dynamo"
 	"github.com/nyaruka/gocommon/httpx"
-	"github.com/nyaruka/mailroom/utils/clogs"
+	"github.com/nyaruka/mailroom/v26/utils/clogs"
 )
 
 const (

@@ -3,7 +3,7 @@ package system_test
 import (
 	"testing"
 
-	"github.com/nyaruka/mailroom/testsuite"
+	"github.com/nyaruka/mailroom/v26/testsuite"
 )
 
 func TestErrors(t *testing.T) {

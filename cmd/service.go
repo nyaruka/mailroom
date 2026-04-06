@@ -11,8 +11,8 @@ import (
 
 	"github.com/getsentry/sentry-go"
 	"github.com/nyaruka/gocommon/uuids"
-	"github.com/nyaruka/mailroom"
-	"github.com/nyaruka/mailroom/runtime"
+	"github.com/nyaruka/mailroom/v26"
+	"github.com/nyaruka/mailroom/v26/runtime"
 	slogmulti "github.com/samber/slog-multi"
 	slogsentry "github.com/samber/slog-sentry/v2"
 )

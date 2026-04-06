@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/nyaruka/mailroom/core/crons"
-	"github.com/nyaruka/mailroom/runtime"
-	"github.com/nyaruka/mailroom/testsuite"
+	"github.com/nyaruka/mailroom/v26/core/crons"
+	"github.com/nyaruka/mailroom/v26/runtime"
+	"github.com/nyaruka/mailroom/v26/testsuite"
 	"github.com/nyaruka/vkutil/assertvk"
 	"github.com/stretchr/testify/assert"
 )

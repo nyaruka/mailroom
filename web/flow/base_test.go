@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/nyaruka/mailroom/testsuite"
-	"github.com/nyaruka/mailroom/testsuite/testdb"
+	"github.com/nyaruka/mailroom/v26/testsuite"
+	"github.com/nyaruka/mailroom/v26/testsuite/testdb"
 )
 
 func TestChangeLanguage(t *testing.T) {

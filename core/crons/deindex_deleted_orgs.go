@@ -6,9 +6,9 @@ import (
 	"time"
 
 	valkey "github.com/gomodule/redigo/redis"
-	"github.com/nyaruka/mailroom/core/models"
-	"github.com/nyaruka/mailroom/core/search"
-	"github.com/nyaruka/mailroom/runtime"
+	"github.com/nyaruka/mailroom/v26/core/models"
+	"github.com/nyaruka/mailroom/v26/core/search"
+	"github.com/nyaruka/mailroom/v26/runtime"
 )
 
 const (

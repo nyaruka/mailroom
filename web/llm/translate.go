@@ -7,11 +7,11 @@ import (
 	"time"
 
 	"github.com/nyaruka/gocommon/i18n"
-	"github.com/nyaruka/mailroom/core/ai"
-	"github.com/nyaruka/mailroom/core/ai/prompts"
-	"github.com/nyaruka/mailroom/core/models"
-	"github.com/nyaruka/mailroom/runtime"
-	"github.com/nyaruka/mailroom/web"
+	"github.com/nyaruka/mailroom/v26/core/ai"
+	"github.com/nyaruka/mailroom/v26/core/ai/prompts"
+	"github.com/nyaruka/mailroom/v26/core/models"
+	"github.com/nyaruka/mailroom/v26/runtime"
+	"github.com/nyaruka/mailroom/v26/web"
 )
 
 func init() {
