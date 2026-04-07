@@ -1,3 +1,7 @@
+v26.1.86 (2026-04-07)
+-------------------------
+ * Use goflow routes modifier to save channel affinity for new URNs on msg_received
+
 v26.1.85 (2026-04-06)
 -------------------------
  * Add /v26 major version suffix to module path
