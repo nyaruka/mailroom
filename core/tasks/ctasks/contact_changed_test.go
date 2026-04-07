@@ -19,21 +19,31 @@ func TestContactChanged(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetDynamo|testsuite.ResetElastic)
 
+	type urnRow struct {
+		Identity  string            `db:"identity"`
+		ChannelID *models.ChannelID `db:"channel_id"`
+	}
+
 	tcs := []struct {
 		label       string
 		preHook     func()
 		contact     *testdb.Contact
+		channel     *testdb.Channel
 		newURN      *ctasks.NewURNSpec
-		expectedURN []string
+		expectedURN []urnRow
 	}{
 		{
-			label:   "append new URN",
+			label:   "append new URN saves channel affinity",
 			contact: testdb.Bob,
+			channel: testdb.TwilioChannel,
 			newURN: &ctasks.NewURNSpec{
 				Value:  "telegram:98765",
 				Action: "append",
 			},
-			expectedURN: []string{"tel:+16055742222", "telegram:98765"},
+			expectedURN: []urnRow{
+				{Identity: "tel:+16055742222", ChannelID: nil},
+				{Identity: "telegram:98765", ChannelID: &testdb.TwilioChannel.ID},
+			},
 		},
 		{
 			label: "append duplicate URN",
@@ -42,11 +52,16 @@ func TestContactChanged(t *testing.T) {
 				testdb.InsertContactURN(t, rt, testdb.Org1, testdb.Bob, "telegram:98765", 999, nil)
 			},
 			contact: testdb.Bob,
+			channel: testdb.TwilioChannel,
 			newURN: &ctasks.NewURNSpec{
 				Value:  "telegram:98765",
 				Action: "append",
 			},
-			expectedURN: []string{"tel:+16055742222", "telegram:98765"},
+			// telegram URN already existed without a channel, no modification event emitted
+			expectedURN: []urnRow{
+				{Identity: "tel:+16055742222", ChannelID: nil},
+				{Identity: "telegram:98765", ChannelID: nil},
+			},
 		},
 	}
 
@@ -59,7 +74,8 @@ func TestContactChanged(t *testing.T) {
 			}
 
 			task := &ctasks.ContactChanged{
-				NewURN: tc.newURN,
+				ChannelID: tc.channel.ID,
+				NewURN:    tc.newURN,
 			}
 
 			err := tasks.QueueContact(ctx, rt, testdb.Org1.ID, tc.contact.ID, task)
@@ -72,10 +88,10 @@ func TestContactChanged(t *testing.T) {
 			err = tasks.Perform(ctx, rt, queued)
 			require.NoError(t, err)
 
-			var urnIdentities []string
-			err = rt.DB.Select(&urnIdentities, `SELECT identity FROM contacts_contacturn WHERE contact_id = $1 ORDER BY priority DESC`, tc.contact.ID)
+			var urnRows []urnRow
+			err = rt.DB.Select(&urnRows, `SELECT identity, channel_id FROM contacts_contacturn WHERE contact_id = $1 ORDER BY priority DESC`, tc.contact.ID)
 			require.NoError(t, err)
-			assert.Equal(t, tc.expectedURN, urnIdentities)
+			assert.Equal(t, tc.expectedURN, urnRows)
 		})
 	}
 }

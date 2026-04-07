@@ -116,14 +116,7 @@ func (t *MsgReceived) perform(ctx context.Context, rt *runtime.Runtime, oa *mode
 
 	// if a new URN was specified, append it (with channel affinity) before affinity
 	if t.NewURN != nil {
-		var flowCh *flows.Channel
-		if channel != nil {
-			flowCh = oa.SessionAssets().Channels().Get(channel.UUID())
-		}
-
-		route := flows.Route{URN: t.NewURN.Value, Channel: flowCh}
-		mod := modifiers.NewRoutes([]flows.Route{route}, modifiers.RoutesAppend)
-		if err := scene.ApplyModifier(ctx, rt, oa, mod, models.NilUserID, ""); err != nil {
+		if err := t.NewURN.Apply(ctx, rt, oa, scene, channel); err != nil {
 			return fmt.Errorf("error applying new URN: %w", err)
 		}
 	}
