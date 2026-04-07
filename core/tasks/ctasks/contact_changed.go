@@ -16,7 +16,8 @@ func init() {
 }
 
 type ContactChanged struct {
-	NewURN *NewURNSpec `json:"new_urn,omitempty"`
+	ChannelID models.ChannelID `json:"channel_id"`
+	NewURN    *NewURNSpec      `json:"new_urn,omitempty"`
 }
 
 func (t *ContactChanged) Type() string {
@@ -32,7 +33,7 @@ func (t *ContactChanged) Perform(ctx context.Context, rt *runtime.Runtime, oa *m
 	scene := runner.NewScene(mc, contact)
 
 	if t.NewURN != nil {
-		if err := t.NewURN.Apply(ctx, rt, oa, scene); err != nil {
+		if err := t.NewURN.Apply(ctx, rt, oa, scene, oa.ChannelByID(t.ChannelID)); err != nil {
 			return fmt.Errorf("error applying new URN: %w", err)
 		}
 	}

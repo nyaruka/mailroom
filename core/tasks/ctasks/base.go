@@ -11,6 +11,7 @@ import (
 	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/gocommon/urns"
+	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/modifiers"
 	"github.com/nyaruka/goflow/utils"
 	"github.com/nyaruka/mailroom/v26/core/models"
@@ -82,9 +83,16 @@ type NewURNSpec struct {
 	Action string   `json:"action" validate:"required,eq=append"`
 }
 
-func (s *NewURNSpec) Apply(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scene *runner.Scene) error {
-	if err := scene.ApplyModifier(ctx, rt, oa, modifiers.NewURNs([]urns.URN{s.Value}, modifiers.URNsAppend), models.NilUserID, ""); err != nil {
-		return fmt.Errorf("error applying URNs modifier: %w", err)
+// Apply appends the new URN to the contact, recording channel affinity for the given channel if set.
+func (s *NewURNSpec) Apply(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scene *runner.Scene, channel *models.Channel) error {
+	var flowCh *flows.Channel
+	if channel != nil {
+		flowCh = oa.SessionAssets().Channels().Get(channel.UUID())
+	}
+
+	mod := modifiers.NewRoutes([]flows.Route{{URN: s.Value, Channel: flowCh}}, modifiers.RoutesAppend)
+	if err := scene.ApplyModifier(ctx, rt, oa, mod, models.NilUserID, ""); err != nil {
+		return fmt.Errorf("error applying routes modifier: %w", err)
 	}
 	return nil
 }

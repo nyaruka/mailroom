@@ -114,9 +114,9 @@ func (t *MsgReceived) perform(ctx context.Context, rt *runtime.Runtime, oa *mode
 		}
 	}
 
-	// if a new URN was specified, append it before affinity
+	// if a new URN was specified, append it (with channel affinity) before affinity
 	if t.NewURN != nil {
-		if err := t.NewURN.Apply(ctx, rt, oa, scene); err != nil {
+		if err := t.NewURN.Apply(ctx, rt, oa, scene, channel); err != nil {
 			return fmt.Errorf("error applying new URN: %w", err)
 		}
 	}
