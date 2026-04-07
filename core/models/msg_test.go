@@ -548,7 +548,7 @@ func TestCreateMsgOut(t *testing.T) {
 	assert.Equal(t, flows.UnsendableReasonContactBlocked, out.UnsendableReason())
 
 	bob.SetStatus(flows.ContactStatusActive)
-	bob.SetURNs(nil)
+	bob.SetRoutes(nil)
 
 	out, err = models.CreateMsgOut(ctx, rt, oa, bob, &flows.MsgContent{Text: "hello"}, models.NilTemplateID, nil, `eng-US`, nil)
 	assert.NoError(t, err)

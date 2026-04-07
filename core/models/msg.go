@@ -882,8 +882,8 @@ func CreateMsgOut(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, c *fl
 	urn := urns.NilURN
 	var channel *Channel
 	var channelRef *assets.ChannelReference
-	for _, dest := range c.ResolveDestinations(false) {
-		urn = dest.URN.Identity()
+	for _, dest := range c.ResolveRoutes(false) {
+		urn = dest.URN
 		channel = oa.ChannelByUUID(dest.Channel.UUID())
 		channelRef = dest.Channel.Reference()
 		break

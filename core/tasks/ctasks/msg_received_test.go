@@ -443,23 +443,31 @@ func TestMsgReceivedNewURN(t *testing.T) {
 
 	dbMsg := testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199bad8-f98d-75a3-b641-2718a25ac3f5", testdb.TwilioChannel, testdb.Bob, "", models.MsgStatusPending, "")
 
+	type urnRow struct {
+		Identity  string            `db:"identity"`
+		ChannelID *models.ChannelID `db:"channel_id"`
+	}
+
 	tcs := []struct {
 		label       string
 		preHook     func()
 		contact     *testdb.Contact
 		channel     *testdb.Channel
 		newURN      *ctasks.NewURNSpec
-		expectedURN []string
+		expectedURN []urnRow
 	}{
 		{
-			label:   "append new URN",
+			label:   "append new URN saves channel affinity",
 			contact: testdb.Bob,
 			channel: testdb.TwilioChannel,
 			newURN: &ctasks.NewURNSpec{
 				Value:  "telegram:98765",
 				Action: "append",
 			},
-			expectedURN: []string{"tel:+16055742222", "telegram:98765"},
+			expectedURN: []urnRow{
+				{Identity: "tel:+16055742222", ChannelID: &testdb.TwilioChannel.ID},
+				{Identity: "telegram:98765", ChannelID: &testdb.TwilioChannel.ID},
+			},
 		},
 		{
 			label: "append dedup existing URN",
@@ -474,8 +482,11 @@ func TestMsgReceivedNewURN(t *testing.T) {
 				Value:  "telegram:98765",
 				Action: "append",
 			},
-			// telegram URN moves from high priority to lowest
-			expectedURN: []string{"tel:+16055742222", "telegram:98765"},
+			// telegram URN already existed without a channel, stays unchanged
+			expectedURN: []urnRow{
+				{Identity: "tel:+16055742222", ChannelID: &testdb.TwilioChannel.ID},
+				{Identity: "telegram:98765", ChannelID: nil},
+			},
 		},
 	}
 
@@ -508,11 +519,11 @@ func TestMsgReceivedNewURN(t *testing.T) {
 			err = tasks.Perform(ctx, rt, queued)
 			require.NoError(t, err)
 
-			// verify URN order
-			var urnIdentities []string
-			err = rt.DB.Select(&urnIdentities, `SELECT identity FROM contacts_contacturn WHERE contact_id = $1 ORDER BY priority DESC`, tc.contact.ID)
+			// verify URN order and channel affinity
+			var urnRows []urnRow
+			err = rt.DB.Select(&urnRows, `SELECT identity, channel_id FROM contacts_contacturn WHERE contact_id = $1 ORDER BY priority DESC`, tc.contact.ID)
 			require.NoError(t, err)
-			assert.Equal(t, tc.expectedURN, urnIdentities)
+			assert.Equal(t, tc.expectedURN, urnRows)
 		})
 	}
 }
