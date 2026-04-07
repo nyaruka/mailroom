@@ -1,3 +1,7 @@
+v26.1.88 (2026-04-07)
+-------------------------
+ * Update to latest goflow that fixes routes modifier in set mode
+
 v26.1.87 (2026-04-07)
 -------------------------
  * Update dependencies
