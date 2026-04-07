@@ -1,3 +1,7 @@
+v26.1.87 (2026-04-07)
+-------------------------
+ * Update dependencies
+
 v26.1.86 (2026-04-07)
 -------------------------
  * Use goflow routes modifier to save channel affinity for new URNs on msg_received
