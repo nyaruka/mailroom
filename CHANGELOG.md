@@ -1,3 +1,7 @@
+v26.1.91 (2026-04-08)
+-------------------------
+ * Update to latest goflow
+
 v26.1.90 (2026-04-08)
 -------------------------
  * Fix TestEventReceived and TestMsgReceivedTask after goflow scheme check
