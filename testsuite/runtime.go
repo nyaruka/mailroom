@@ -192,15 +192,19 @@ func templateDBExists(t *testing.T) bool {
 }
 
 // createTemplateDB clones mailroom_test into mailroom_test_tpl and marks the clone as a
-// template. The caller must ensure no connections are open against mailroom_test, since
-// PostgreSQL refuses to use a source database that has active connections.
+// template. PostgreSQL refuses to use a source database that has active connections, so
+// we first terminate any leftover backends against it (lib/pq sometimes leaves idle
+// connections behind even after Close, and earlier setup may have leaked a pool).
 func createTemplateDB(t *testing.T) {
 	t.Helper()
 
 	admin := openAdminDB(t)
 	defer admin.Close()
 
-	_, err := admin.Exec(`CREATE DATABASE ` + templateDBName + ` TEMPLATE ` + testDBName)
+	_, err := admin.Exec(`SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = $1 AND pid <> pg_backend_pid()`, testDBName)
+	require.NoError(t, err, "error terminating backends on test database")
+
+	_, err = admin.Exec(`CREATE DATABASE ` + templateDBName + ` TEMPLATE ` + testDBName)
 	require.NoError(t, err, "error creating template database")
 
 	// mark as a template so it can't be accidentally connected to and modified
