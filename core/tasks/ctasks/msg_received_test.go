@@ -470,10 +470,26 @@ func TestMsgReceivedNewURN(t *testing.T) {
 			},
 		},
 		{
+			label: "append new bsuid URN saves channel affinity",
+			preHook: func() {
+				rt.DB.MustExec(`DELETE FROM contacts_contacturn WHERE contact_id = $1 AND scheme = 'telegram'`, testdb.Bob.ID)
+			},
+			contact: testdb.Bob,
+			channel: testdb.TwilioChannel,
+			newURN: &ctasks.NewURNSpec{
+				Value:  "bsuid:US.ABC123",
+				Action: "append",
+			},
+			expectedURN: []urnRow{
+				{Identity: "tel:+16055742222", ChannelID: &testdb.TwilioChannel.ID},
+				{Identity: "bsuid:US.ABC123", ChannelID: &testdb.TwilioChannel.ID},
+			},
+		},
+		{
 			label: "append dedup existing URN",
 			preHook: func() {
 				// reset Bob's URNs to original state
-				rt.DB.MustExec(`DELETE FROM contacts_contacturn WHERE contact_id = $1 AND scheme = 'telegram'`, testdb.Bob.ID)
+				rt.DB.MustExec(`DELETE FROM contacts_contacturn WHERE contact_id = $1 AND scheme IN ('telegram', 'bsuid')`, testdb.Bob.ID)
 				testdb.InsertContactURN(t, rt, testdb.Org1, testdb.Bob, "telegram:98765", 999, nil)
 			},
 			contact: testdb.Bob,
