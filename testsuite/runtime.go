@@ -207,8 +207,10 @@ func createTemplateDB(t *testing.T) {
 	_, err = admin.Exec(`CREATE DATABASE ` + templateDBName + ` TEMPLATE ` + testDBName)
 	require.NoError(t, err, "error creating template database")
 
-	// mark as a template so it can't be accidentally connected to and modified
-	_, err = admin.Exec(`UPDATE pg_database SET datistemplate = TRUE WHERE datname = $1`, templateDBName)
+	// mark as a template and disallow connections, so it can't be accidentally
+	// connected to and modified - datistemplate alone only affects non-superuser
+	// template usage, datallowconn=false is what actually blocks connections
+	_, err = admin.Exec(`UPDATE pg_database SET datistemplate = TRUE, datallowconn = FALSE WHERE datname = $1`, templateDBName)
 	require.NoError(t, err)
 }
 
