@@ -30,7 +30,8 @@
                     "created_on": "2025-05-04T12:30:49.123456789Z",
                     "type": "contact_urns_changed",
                     "urns": [
-                        "tel:+16055741111?channel=0f661e8b-ea9d-4bd3-9953-d368340acf91"
+                        "facebook:1000000000001?channel=0f661e8b-ea9d-4bd3-9953-d368340acf91",
+                        "tel:+16055741111"
                     ]
                 }
             },
@@ -75,7 +76,7 @@
                         },
                         "locale": "und-US",
                         "text": "What is your favorite color?",
-                        "urn": "tel:+16055741111"
+                        "urn": "facebook:1000000000001"
                     },
                     "type": "msg_created"
                 }
@@ -104,7 +105,8 @@
                     "created_on": "2025-05-04T12:31:20.123456789Z",
                     "type": "contact_urns_changed",
                     "urns": [
-                        "tel:+16055741111?channel=19012bfd-3ce3-4cae-9bb9-76cf92c73d49"
+                        "tel:+16055741111?channel=19012bfd-3ce3-4cae-9bb9-76cf92c73d49",
+                        "facebook:1000000000001?channel=0f661e8b-ea9d-4bd3-9953-d368340acf91"
                     ]
                 }
             },
@@ -160,7 +162,8 @@
                     "created_on": "2025-05-04T12:31:36.123456789Z",
                     "type": "contact_urns_changed",
                     "urns": [
-                        "tel:+16055741111?channel=0f661e8b-ea9d-4bd3-9953-d368340acf91"
+                        "facebook:1000000000001?channel=0f661e8b-ea9d-4bd3-9953-d368340acf91",
+                        "tel:+16055741111?channel=19012bfd-3ce3-4cae-9bb9-76cf92c73d49"
                     ]
                 }
             },
@@ -206,7 +209,8 @@
                     "created_on": "2025-05-04T12:31:46.123456789Z",
                     "type": "contact_urns_changed",
                     "urns": [
-                        "tel:+16055741111?channel=19012bfd-3ce3-4cae-9bb9-76cf92c73d49"
+                        "tel:+16055741111?channel=19012bfd-3ce3-4cae-9bb9-76cf92c73d49",
+                        "facebook:1000000000001?channel=0f661e8b-ea9d-4bd3-9953-d368340acf91"
                     ]
                 }
             },
@@ -574,7 +578,8 @@
                     "created_on": "2025-05-04T12:33:48.123456789Z",
                     "type": "contact_urns_changed",
                     "urns": [
-                        "tel:+16055742222?channel=0f661e8b-ea9d-4bd3-9953-d368340acf91",
+                        "facebook:1000000000002?channel=0f661e8b-ea9d-4bd3-9953-d368340acf91",
+                        "tel:+16055742222",
                         "twitterid:123456"
                     ]
                 }
@@ -620,7 +625,7 @@
                         },
                         "locale": "und-US",
                         "text": "What is your favorite color?",
-                        "urn": "tel:+16055742222"
+                        "urn": "facebook:1000000000002"
                     },
                     "type": "msg_created"
                 }

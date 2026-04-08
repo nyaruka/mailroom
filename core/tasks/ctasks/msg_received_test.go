@@ -84,21 +84,21 @@ func TestMsgReceivedTask(t *testing.T) {
 	}{
 		{ // 0: no trigger match, inbox message
 			org:                testdb.Org1,
-			channel:            testdb.FacebookChannel,
+			channel:            testdb.TwilioChannel,
 			contact:            testdb.Ann,
 			text:               "noop",
 			expectedVisibility: models.VisibilityVisible,
 		},
 		{ // 1: no trigger match, inbox message (trigger is keyword only)
 			org:                testdb.Org1,
-			channel:            testdb.FacebookChannel,
+			channel:            testdb.TwilioChannel,
 			contact:            testdb.Ann,
 			text:               "start other",
 			expectedVisibility: models.VisibilityVisible,
 		},
 		{ // 2: keyword trigger match, flow message
 			org:                 testdb.Org1,
-			channel:             testdb.FacebookChannel,
+			channel:             testdb.TwilioChannel,
 			contact:             testdb.Ann,
 			text:                "start",
 			expectedVisibility:  models.VisibilityVisible,
@@ -108,7 +108,7 @@ func TestMsgReceivedTask(t *testing.T) {
 		},
 		{ // 3:
 			org:                 testdb.Org1,
-			channel:             testdb.FacebookChannel,
+			channel:             testdb.TwilioChannel,
 			contact:             testdb.Ann,
 			text:                "purple",
 			expectedVisibility:  models.VisibilityVisible,
@@ -118,7 +118,7 @@ func TestMsgReceivedTask(t *testing.T) {
 		},
 		{ // 4:
 			org:                 testdb.Org1,
-			channel:             testdb.FacebookChannel,
+			channel:             testdb.TwilioChannel,
 			contact:             testdb.Ann,
 			text:                "blue",
 			expectedVisibility:  models.VisibilityVisible,
@@ -128,7 +128,7 @@ func TestMsgReceivedTask(t *testing.T) {
 		},
 		{ // 5:
 			org:                 testdb.Org1,
-			channel:             testdb.FacebookChannel,
+			channel:             testdb.TwilioChannel,
 			contact:             testdb.Ann,
 			text:                "MUTZIG",
 			expectedVisibility:  models.VisibilityVisible,
@@ -138,7 +138,7 @@ func TestMsgReceivedTask(t *testing.T) {
 		},
 		{ // 6:
 			org:                 testdb.Org1,
-			channel:             testdb.FacebookChannel,
+			channel:             testdb.TwilioChannel,
 			contact:             testdb.Ann,
 			text:                "Ann",
 			expectedVisibility:  models.VisibilityVisible,
@@ -148,7 +148,7 @@ func TestMsgReceivedTask(t *testing.T) {
 		},
 		{ // 7:
 			org:                testdb.Org1,
-			channel:            testdb.FacebookChannel,
+			channel:            testdb.TwilioChannel,
 			contact:            testdb.Ann,
 			text:               "noop",
 			expectedVisibility: models.VisibilityVisible,
@@ -215,7 +215,7 @@ func TestMsgReceivedTask(t *testing.T) {
 		},
 		{ // 14:
 			org:                testdb.Org1,
-			channel:            testdb.FacebookChannel,
+			channel:            testdb.TwilioChannel,
 			contact:            testdb.Bob,
 			text:               "ivr",
 			expectedVisibility: models.VisibilityVisible,
@@ -225,7 +225,7 @@ func TestMsgReceivedTask(t *testing.T) {
 				rt.DB.MustExec(`UPDATE contacts_contact SET status = 'S' WHERE id = $1`, testdb.Cat.ID)
 			},
 			org:                 testdb.Org1,
-			channel:             testdb.FacebookChannel,
+			channel:             testdb.TwilioChannel,
 			contact:             testdb.Cat,
 			text:                "start",
 			expectedVisibility:  models.VisibilityVisible,
@@ -287,7 +287,7 @@ func TestMsgReceivedTask(t *testing.T) {
 		},
 		{ // 21: blocked contact
 			org:                testdb.Org1,
-			channel:            testdb.FacebookChannel,
+			channel:            testdb.TwilioChannel,
 			contact:            blocked,
 			text:               "start",
 			expectedVisibility: models.VisibilityArchived,
@@ -383,8 +383,8 @@ func TestMsgReceivedTask(t *testing.T) {
 
 	// check messages queued to courier
 	testsuite.AssertCourierQueues(t, rt, map[string][]int{
-		fmt.Sprintf("msgs:%s|10/1", testdb.FacebookChannel.UUID): {1, 1, 1, 1, 1, 1},
-		fmt.Sprintf("msgs:%s|10/1", testdb.Org2Channel.UUID):     {1, 1, 1, 1, 1, 1, 1, 1, 1},
+		fmt.Sprintf("msgs:%s|10/1", testdb.TwilioChannel.UUID): {1, 1, 1, 1, 1, 1},
+		fmt.Sprintf("msgs:%s|10/1", testdb.Org2Channel.UUID):   {1, 1, 1, 1, 1, 1, 1, 1, 1},
 	})
 
 	// Fred's sessions should not have a timeout because courier will set them

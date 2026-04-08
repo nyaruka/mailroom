@@ -55,6 +55,10 @@ func TestEventReceived(t *testing.T) {
 	// add a URN for Ann so we can test twitter URNs
 	testdb.InsertContactURN(t, rt, testdb.Org1, testdb.Bob, urns.URN("twitterid:123456"), 10, nil)
 
+	// add facebook URNs for Ann and Bob so that Facebook new_conversation events have a matching URN
+	annFacebookURNID := testdb.InsertContactURN(t, rt, testdb.Org1, testdb.Ann, urns.URN("facebook:1000000000001"), 100, nil)
+	bobFacebookURNID := testdb.InsertContactURN(t, rt, testdb.Org1, testdb.Bob, urns.URN("facebook:1000000000002"), 100, nil)
+
 	// insert a dummy event into the database that will get the updates from handling each event which pretends to be it
 	eventID := testdb.InsertChannelEvent(t, rt, testdb.Org1, "019ae4fc-56c6-7a94-b757-dcf0640e5ebc", models.EventTypeMissedCall, testdb.TwilioChannel, testdb.Ann, models.EventStatusPending)
 
@@ -73,6 +77,13 @@ func TestEventReceived(t *testing.T) {
 
 	jsonx.MustUnmarshal(tcJSON, &tcs)
 
+	// map of hardcoded placeholder URN IDs used in the JSON to actual dynamic IDs for facebook URNs,
+	// so that Facebook channel events are received on a URN whose scheme actually matches the channel
+	urnIDSubs := map[models.URNID]models.URNID{
+		testdb.Ann.URNID: annFacebookURNID,
+		testdb.Bob.URNID: bobFacebookURNID,
+	}
+
 	reset := test.MockUniverse()
 	defer reset()
 
@@ -86,7 +97,18 @@ func TestEventReceived(t *testing.T) {
 		// reset our dummy db event into an unhandled state
 		rt.DB.MustExec(`UPDATE channels_channelevent SET status = 'P' WHERE id = $1`, eventID)
 
-		err = tasks.QueueContact(ctx, rt, testdb.Org1.ID, contact.ID(), tc.Task)
+		// for Facebook channel events, rewrite the URN ID to the contact's facebook URN so goflow
+		// can resolve the channel by scheme when building outbound messages
+		taskToQueue := tc.Task
+		if taskToQueue.ChannelID == testdb.FacebookChannel.ID {
+			if subID, ok := urnIDSubs[taskToQueue.URNID]; ok {
+				taskCopy := *taskToQueue
+				taskCopy.URNID = subID
+				taskToQueue = &taskCopy
+			}
+		}
+
+		err = tasks.QueueContact(ctx, rt, testdb.Org1.ID, contact.ID(), taskToQueue)
 		assert.NoError(t, err, "%d: error adding task", i)
 
 		task, err := rt.Queues.Realtime.Pop(ctx, vc)
