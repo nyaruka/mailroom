@@ -21,6 +21,19 @@ const indexBatchSize = 500
 
 // Index is the entry point for the mrindex command which re-indexes all contacts or messages.
 func Index() error {
+	// parse mrindex-specific flags before LoadConfig which also parses os.Args
+	flags := flag.NewFlagSet("mrindex", flag.ExitOnError)
+	startUUID := flags.String("start-uuid", "", "UUID to start from (messages mode only, works backwards from here)")
+	flags.Parse(os.Args[1:])
+
+	mode := flags.Arg(0)
+	if mode != "contacts" && mode != "messages" {
+		return fmt.Errorf("usage: mrindex [--start-uuid UUID] <contacts|messages>")
+	}
+
+	// strip mrindex-specific flags from os.Args so LoadConfig doesn't see them
+	os.Args = append([]string{os.Args[0]}, flags.Args()...)
+
 	cfg, err := runtime.LoadConfig()
 	if err != nil {
 		return fmt.Errorf("error loading config: %w", err)
@@ -38,16 +51,6 @@ func Index() error {
 		return fmt.Errorf("error starting runtime: %w", err)
 	}
 	defer rt.Stop()
-
-	// parse mode from args
-	flags := flag.NewFlagSet("mrindex", flag.ExitOnError)
-	startUUID := flags.String("start-uuid", "", "UUID to start from (messages mode only, works backwards from here)")
-	flags.Parse(os.Args[1:])
-
-	mode := flags.Arg(0)
-	if mode != "contacts" && mode != "messages" {
-		return fmt.Errorf("usage: mrindex [--start-uuid UUID] <contacts|messages>")
-	}
 
 	ctx := context.TODO()
 
