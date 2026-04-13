@@ -42,25 +42,35 @@ func Index() error {
 	// parse mode from args
 	flags := flag.NewFlagSet("mrindex", flag.ExitOnError)
 	startUUID := flags.String("start-uuid", "", "UUID to start from (messages mode only, works backwards from here)")
+	modifiedAfter := flags.String("modified-after", "", "only index contacts modified after this timestamp (contacts mode only, RFC3339 format)")
 	flags.Parse(os.Args[1:])
 
 	mode := flags.Arg(0)
 	if mode != "contacts" && mode != "messages" {
-		return fmt.Errorf("usage: mrindex [--start-uuid UUID] <contacts|messages>")
+		return fmt.Errorf("usage: mrindex [--start-uuid UUID] [--modified-after TIMESTAMP] <contacts|messages>")
 	}
 
 	ctx := context.TODO()
 
+	var modifiedAfterTime *time.Time
+	if *modifiedAfter != "" {
+		t, err := time.Parse(time.RFC3339, *modifiedAfter)
+		if err != nil {
+			return fmt.Errorf("error parsing --modified-after: %w", err)
+		}
+		modifiedAfterTime = &t
+	}
+
 	switch mode {
 	case "contacts":
-		return indexAllContacts(ctx, rt)
+		return indexAllContacts(ctx, rt, modifiedAfterTime)
 	case "messages":
 		return indexAllMessages(ctx, rt, *startUUID)
 	}
 	return nil
 }
 
-func indexAllContacts(ctx context.Context, rt *runtime.Runtime) error {
+func indexAllContacts(ctx context.Context, rt *runtime.Runtime, modifiedAfter *time.Time) error {
 	orgIDs, err := models.GetActiveOrgIDs(ctx, rt.DB)
 	if err != nil {
 		return fmt.Errorf("error getting active org IDs: %w", err)
@@ -78,7 +88,12 @@ func indexAllContacts(ctx context.Context, rt *runtime.Runtime) error {
 		fmt.Printf(" > Indexing org #%d", orgID)
 
 		for {
-			contactIDs, err := models.GetContactIDsPage(ctx, rt.DB, orgID, afterID, indexBatchSize)
+			var contactIDs []models.ContactID
+			if modifiedAfter != nil {
+				contactIDs, err = models.GetContactIDsPageModifiedAfter(ctx, rt.DB, orgID, afterID, *modifiedAfter, indexBatchSize)
+			} else {
+				contactIDs, err = models.GetContactIDsPage(ctx, rt.DB, orgID, afterID, indexBatchSize)
+			}
 			if err != nil {
 				return fmt.Errorf("error getting contact IDs for org #%d: %w", orgID, err)
 			}
