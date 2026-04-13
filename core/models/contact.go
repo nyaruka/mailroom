@@ -1063,7 +1063,13 @@ func UpdateContactURNs(ctx context.Context, rt *runtime.Runtime, db DBorTx, oa *
 			cu := change.Contact.FindURN(urn)
 
 			if cu != nil {
-				cu.ChannelID = channelID
+				// only overwrite channel affinity if the event URN actually specified one - otherwise preserve
+				// the existing channel_id. The goflow round-trip silently drops channel UUIDs that aren't in
+				// SessionAssets (e.g. disabled channels), and we don't want to wipe perfectly valid channel
+				// affinity just because the engine couldn't resolve the channel.
+				if channelID != NilChannelID {
+					cu.ChannelID = channelID
+				}
 				cu.Priority = priority
 				updates = append(updates, cu)
 				updatedURNIDs = append(updatedURNIDs, cu.ID)

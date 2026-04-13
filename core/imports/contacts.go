@@ -12,6 +12,7 @@ import (
 	"github.com/nyaruka/goflow/flows/modifiers"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/runner"
+	"github.com/nyaruka/mailroom/v26/core/search"
 	"github.com/nyaruka/mailroom/v26/runtime"
 	"github.com/vinovest/sqlx"
 )
@@ -80,6 +81,20 @@ func ImportBatch(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 				}
 			}
 		}
+	}
+
+	// ensure newly created contacts are indexed in elastic (modifiers may not have generated events
+	// that trigger the indexing hook, e.g. when only URNs are set)
+	createdContacts := make([]*flows.Contact, 0, len(imports))
+	createdFlows := make(map[models.ContactID]models.FlowID, len(imports))
+	for _, imp := range imports {
+		if imp.contact != nil && imp.created {
+			createdContacts = append(createdContacts, imp.flowContact)
+			createdFlows[imp.contact.ID()] = imp.contact.CurrentFlowID()
+		}
+	}
+	if err := search.IndexContacts(ctx, rt, oa, createdContacts, createdFlows); err != nil {
+		return fmt.Errorf("error indexing new contacts: %w", err)
 	}
 
 	if err := markBatchComplete(ctx, rt.DB, b, imports); err != nil {

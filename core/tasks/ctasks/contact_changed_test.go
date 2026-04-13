@@ -46,7 +46,7 @@ func TestContactChanged(t *testing.T) {
 			},
 		},
 		{
-			label: "append duplicate URN",
+			label: "append duplicate URN leaves existing channel_id alone",
 			preHook: func() {
 				rt.DB.MustExec(`DELETE FROM contacts_contacturn WHERE contact_id = $1 AND scheme = 'telegram'`, testdb.Bob.ID)
 				testdb.InsertContactURN(t, rt, testdb.Org1, testdb.Bob, "telegram:98765", 999, nil)
@@ -57,7 +57,8 @@ func TestContactChanged(t *testing.T) {
 				Value:  "telegram:98765",
 				Action: "append",
 			},
-			// telegram URN already existed without a channel, no modification event emitted
+			// telegram URN already existed without a channel - modifier is a no-op and the post-commit
+			// channel fixup only applies to truly new URNs, so the existing NULL channel_id is preserved.
 			expectedURN: []urnRow{
 				{Identity: "tel:+16055742222", ChannelID: nil},
 				{Identity: "telegram:98765", ChannelID: nil},

@@ -8,6 +8,7 @@ import (
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/runner"
+	"github.com/nyaruka/mailroom/v26/core/search"
 	"github.com/nyaruka/mailroom/v26/runtime"
 	"github.com/nyaruka/mailroom/v26/web"
 )
@@ -58,6 +59,13 @@ func handleCreate(ctx context.Context, rt *runtime.Runtime, r *createRequest) (a
 	_, err = runner.ModifyWithoutLock(ctx, rt, oa, r.UserID, []*models.Contact{mc}, []*flows.Contact{contact}, modifiers, r.Via)
 	if err != nil {
 		return nil, 0, fmt.Errorf("error modifying new contact: %w", err)
+	}
+
+	// ensure newly created contact is indexed in elastic (modifiers may not have generated events
+	// that trigger the indexing hook, e.g. when no fields or groups are set)
+	currentFlows := map[models.ContactID]models.FlowID{mc.ID(): mc.CurrentFlowID()}
+	if err := search.IndexContacts(ctx, rt, oa, []*flows.Contact{contact}, currentFlows); err != nil {
+		return nil, 0, fmt.Errorf("error indexing new contact: %w", err)
 	}
 
 	return map[string]any{"contact": contact}, http.StatusOK, nil

@@ -453,6 +453,7 @@ func TestMsgReceivedNewURN(t *testing.T) {
 		preHook     func()
 		contact     *testdb.Contact
 		channel     *testdb.Channel
+		newContact  bool
 		newURN      *ctasks.NewURNSpec
 		expectedURN []urnRow
 	}{
@@ -486,6 +487,23 @@ func TestMsgReceivedNewURN(t *testing.T) {
 			},
 		},
 		{
+			label: "new contact with bsuid URN saves channel affinity",
+			preHook: func() {
+				rt.DB.MustExec(`DELETE FROM contacts_contacturn WHERE contact_id = $1 AND scheme IN ('telegram', 'bsuid')`, testdb.Bob.ID)
+			},
+			contact:    testdb.Bob,
+			channel:    testdb.TwilioChannel,
+			newContact: true,
+			newURN: &ctasks.NewURNSpec{
+				Value:  "bsuid:US.NEWCONTACT",
+				Action: "append",
+			},
+			expectedURN: []urnRow{
+				{Identity: "tel:+16055742222", ChannelID: &testdb.TwilioChannel.ID},
+				{Identity: "bsuid:US.NEWCONTACT", ChannelID: &testdb.TwilioChannel.ID},
+			},
+		},
+		{
 			label: "append dedup existing URN",
 			preHook: func() {
 				// reset Bob's URNs to original state
@@ -504,6 +522,31 @@ func TestMsgReceivedNewURN(t *testing.T) {
 				{Identity: "telegram:98765", ChannelID: nil},
 			},
 		},
+		{
+			label: "append new bsuid URN saves channel affinity even when channel is disabled in mailroom",
+			preHook: func() {
+				// clear any prior bsuid/telegram URNs, wipe tel's channel affinity so we can see if the disabled
+				// channel case clobbers it, and disable the twilio channel in mailroom (courier still uses it).
+				rt.DB.MustExec(`DELETE FROM contacts_contacturn WHERE contact_id = $1 AND scheme IN ('telegram', 'bsuid')`, testdb.Bob.ID)
+				rt.DB.MustExec(`UPDATE contacts_contacturn SET channel_id = NULL WHERE contact_id = $1`, testdb.Bob.ID)
+				rt.DB.MustExec(`UPDATE channels_channel SET is_enabled = FALSE WHERE id = $1`, testdb.TwilioChannel.ID)
+				t.Cleanup(func() {
+					rt.DB.MustExec(`UPDATE channels_channel SET is_enabled = TRUE WHERE id = $1`, testdb.TwilioChannel.ID)
+				})
+			},
+			contact: testdb.Bob,
+			channel: testdb.TwilioChannel,
+			newURN: &ctasks.NewURNSpec{
+				Value:  "bsuid:US.DISABLED",
+				Action: "append",
+			},
+			// tel URN's NULL channel_id should be preserved (Fix 1), and the new bsuid URN should pick
+			// up the task's ChannelID via post-commit fixup (Fix 2) even though oa.ChannelByID is nil.
+			expectedURN: []urnRow{
+				{Identity: "tel:+16055742222", ChannelID: nil},
+				{Identity: "bsuid:US.DISABLED", ChannelID: &testdb.TwilioChannel.ID},
+			},
+		},
 	}
 
 	for _, tc := range tcs {
@@ -517,12 +560,13 @@ func TestMsgReceivedNewURN(t *testing.T) {
 			rt.DB.MustExec(`UPDATE msgs_msg SET status = 'P', flow_id = NULL WHERE id = $1`, dbMsg.ID)
 
 			task := &ctasks.MsgReceived{
-				ChannelID: tc.channel.ID,
-				MsgUUID:   dbMsg.UUID,
-				URN:       tc.contact.URN,
-				URNID:     tc.contact.URNID,
-				Text:      "hello",
-				NewURN:    tc.newURN,
+				ChannelID:  tc.channel.ID,
+				MsgUUID:    dbMsg.UUID,
+				URN:        tc.contact.URN,
+				URNID:      tc.contact.URNID,
+				Text:       "hello",
+				NewContact: tc.newContact,
+				NewURN:     tc.newURN,
 			}
 
 			err := tasks.QueueContact(ctx, rt, testdb.Org1.ID, tc.contact.ID, task)

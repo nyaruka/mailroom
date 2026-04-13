@@ -32,14 +32,23 @@ func (t *ContactChanged) Perform(ctx context.Context, rt *runtime.Runtime, oa *m
 
 	scene := runner.NewScene(mc, contact)
 
+	var newURNAdded bool
 	if t.NewURN != nil {
-		if err := t.NewURN.Apply(ctx, rt, oa, scene, oa.ChannelByID(t.ChannelID)); err != nil {
+		added, err := t.NewURN.Apply(ctx, rt, oa, scene, oa.ChannelByID(t.ChannelID))
+		if err != nil {
 			return fmt.Errorf("error applying new URN: %w", err)
 		}
+		newURNAdded = added
 	}
 
 	if err := scene.Commit(ctx, rt, oa); err != nil {
 		return fmt.Errorf("error committing scene: %w", err)
+	}
+
+	if newURNAdded {
+		if err := t.NewURN.EnsureChannel(ctx, rt.DB, mc.ID(), t.ChannelID); err != nil {
+			return fmt.Errorf("error ensuring channel affinity on new URN: %w", err)
+		}
 	}
 
 	return nil

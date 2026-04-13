@@ -84,7 +84,10 @@ type NewURNSpec struct {
 }
 
 // Apply appends the new URN to the contact, recording channel affinity for the given channel if set.
-func (s *NewURNSpec) Apply(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scene *runner.Scene, channel *models.Channel) error {
+// Returns whether the URN was newly added (i.e. didn't already exist on the contact).
+func (s *NewURNSpec) Apply(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scene *runner.Scene, channel *models.Channel) (bool, error) {
+	wasNew := scene.DBContact.FindURN(s.Value) == nil
+
 	var flowCh *flows.Channel
 	if channel != nil {
 		flowCh = oa.SessionAssets().Channels().Get(channel.UUID())
@@ -92,7 +95,25 @@ func (s *NewURNSpec) Apply(ctx context.Context, rt *runtime.Runtime, oa *models.
 
 	mod := modifiers.NewRoutes([]flows.Route{{URN: s.Value, Channel: flowCh}}, modifiers.RoutesAppend)
 	if err := scene.ApplyModifier(ctx, rt, oa, mod, models.NilUserID, ""); err != nil {
-		return fmt.Errorf("error applying routes modifier: %w", err)
+		return false, fmt.Errorf("error applying routes modifier: %w", err)
+	}
+	return wasNew, nil
+}
+
+// EnsureChannel makes sure a newly created URN has the given channel affinity - required when the
+// channel isn't loaded in oa (e.g. is_enabled=false) and so the goflow routes modifier couldn't attach
+// the channel via SessionAssets. Called after scene.Commit() so that the URN row is already persisted,
+// and only if Apply reported the URN as newly added.
+func (s *NewURNSpec) EnsureChannel(ctx context.Context, db models.DBorTx, contactID models.ContactID, channelID models.ChannelID) error {
+	if channelID == models.NilChannelID {
+		return nil
+	}
+	_, err := db.ExecContext(ctx,
+		`UPDATE contacts_contacturn SET channel_id = $1 WHERE contact_id = $2 AND identity = $3 AND channel_id IS NULL`,
+		channelID, contactID, s.Value.Identity(),
+	)
+	if err != nil {
+		return fmt.Errorf("error ensuring channel_id on new URN: %w", err)
 	}
 	return nil
 }
