@@ -1,3 +1,7 @@
+v26.1.92 (2026-04-13)
+-------------------------
+ * Index newly created contacts in Elasticsearch (#1042)
+
 v26.1.91 (2026-04-08)
 -------------------------
  * Update to latest goflow
