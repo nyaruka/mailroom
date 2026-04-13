@@ -8,6 +8,7 @@ import (
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/runner"
+	"github.com/nyaruka/mailroom/v26/core/search"
 	"github.com/nyaruka/mailroom/v26/runtime"
 	"github.com/nyaruka/mailroom/v26/web"
 )
@@ -58,6 +59,10 @@ func handleCreate(ctx context.Context, rt *runtime.Runtime, r *createRequest) (a
 	_, err = runner.ModifyWithoutLock(ctx, rt, oa, r.UserID, []*models.Contact{mc}, []*flows.Contact{contact}, modifiers, r.Via)
 	if err != nil {
 		return nil, 0, fmt.Errorf("error modifying new contact: %w", err)
+	}
+
+	if err := search.IndexContacts(ctx, rt, oa, []*flows.Contact{contact}, nil); err != nil {
+		return nil, 0, fmt.Errorf("error indexing new contact: %w", err)
 	}
 
 	return map[string]any{"contact": contact}, http.StatusOK, nil
