@@ -395,11 +395,11 @@ func GetContactIDsPage(ctx context.Context, db Queryer, orgID OrgID, afterID Con
 	return queryContactIDs(ctx, db, sqlSelectContactIDsPage, orgID, int(afterID), limit)
 }
 
-const sqlSelectContactIDsPageModifiedAfter = `SELECT id FROM contacts_contact WHERE org_id = $1 AND is_active = TRUE AND id > $2 AND modified_on > $3 ORDER BY id LIMIT $4`
+const sqlSelectContactIDsModifiedAfter = `SELECT id FROM contacts_contact WHERE org_id = $1 AND is_active = TRUE AND modified_on > $2 ORDER BY modified_on DESC, id DESC`
 
-// GetContactIDsPageModifiedAfter returns a page of contact IDs for the given org that were modified after the given time.
-func GetContactIDsPageModifiedAfter(ctx context.Context, db Queryer, orgID OrgID, afterID ContactID, modifiedAfter time.Time, limit int) ([]ContactID, error) {
-	return queryContactIDs(ctx, db, sqlSelectContactIDsPageModifiedAfter, orgID, int(afterID), modifiedAfter, limit)
+// GetContactIDsModifiedAfter returns all contact IDs for the given org that were modified after the given time.
+func GetContactIDsModifiedAfter(ctx context.Context, db Queryer, orgID OrgID, modifiedAfter time.Time) ([]ContactID, error) {
+	return queryContactIDs(ctx, db, sqlSelectContactIDsModifiedAfter, orgID, modifiedAfter)
 }
 
 type ContactURN struct {

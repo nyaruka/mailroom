@@ -82,24 +82,41 @@ func indexAllContacts(ctx context.Context, rt *runtime.Runtime, modifiedAfter *t
 	for _, orgID := range orgIDs {
 		orgIndexed := 0
 		orgSkipped := 0
-		orgBatches := 0
-		afterID := models.NilContactID
 
 		fmt.Printf(" > Indexing org #%d", orgID)
+
+		var allContactIDs []models.ContactID
+		if modifiedAfter != nil {
+			allContactIDs, err = models.GetContactIDsModifiedAfter(ctx, rt.DB, orgID, *modifiedAfter)
+			if err != nil {
+				return fmt.Errorf("error getting modified contact IDs for org #%d: %w", orgID, err)
+			}
+		}
+
+		afterID := models.NilContactID
+		batch := 0
 
 		for {
 			var contactIDs []models.ContactID
 			if modifiedAfter != nil {
-				contactIDs, err = models.GetContactIDsPageModifiedAfter(ctx, rt.DB, orgID, afterID, *modifiedAfter, indexBatchSize)
+				// take next batch from pre-fetched IDs
+				start := batch * indexBatchSize
+				if start >= len(allContactIDs) {
+					break
+				}
+				end := start + indexBatchSize
+				if end > len(allContactIDs) {
+					end = len(allContactIDs)
+				}
+				contactIDs = allContactIDs[start:end]
 			} else {
 				contactIDs, err = models.GetContactIDsPage(ctx, rt.DB, orgID, afterID, indexBatchSize)
-			}
-			if err != nil {
-				return fmt.Errorf("error getting contact IDs for org #%d: %w", orgID, err)
-			}
-
-			if len(contactIDs) == 0 {
-				break
+				if err != nil {
+					return fmt.Errorf("error getting contact IDs for org #%d: %w", orgID, err)
+				}
+				if len(contactIDs) == 0 {
+					break
+				}
 			}
 
 			// get org assets (cached but periodically refreshed for large orgs)
@@ -131,10 +148,10 @@ func indexAllContacts(ctx context.Context, rt *runtime.Runtime, modifiedAfter *t
 
 			orgIndexed += len(flowContacts)
 			totalIndexed += len(flowContacts)
-			orgBatches++
+			batch++
 			afterID = contactIDs[len(contactIDs)-1]
 
-			if orgBatches%20 == 0 {
+			if batch%20 == 0 {
 				fmt.Print(".")
 			}
 
