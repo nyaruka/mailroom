@@ -49,6 +49,11 @@ func Index() error {
 	if mode != "contacts" && mode != "messages" {
 		return fmt.Errorf("usage: mrindex [--start-uuid UUID] [--modified-after TIMESTAMP] <contacts|messages>")
 	}
+	for _, arg := range flags.Args()[1:] {
+		if len(arg) > 0 && arg[0] == '-' {
+			return fmt.Errorf("unexpected flag %q after mode %q: place flags before <contacts|messages>", arg, mode)
+		}
+	}
 
 	ctx := context.TODO()
 
@@ -56,7 +61,7 @@ func Index() error {
 	if *modifiedAfter != "" {
 		t, err := time.Parse(time.RFC3339, *modifiedAfter)
 		if err != nil {
-			return fmt.Errorf("error parsing --modified-after: %w", err)
+			return fmt.Errorf("error parsing --modified-after %q: must be RFC3339: %w", *modifiedAfter, err)
 		}
 		modifiedAfterTime = &t
 	}

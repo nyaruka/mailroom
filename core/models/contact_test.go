@@ -440,6 +440,26 @@ func TestGetContactIDsPage(t *testing.T) {
 	}
 }
 
+func TestGetContactIDsModifiedAfter(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	defer testsuite.Reset(t, rt, testsuite.ResetAll)
+
+	// update Ann's modified_on to a known time
+	recent := time.Now()
+	rt.DB.MustExec(`UPDATE contacts_contact SET modified_on = $1 WHERE id = $2`, recent, testdb.Ann.ID)
+
+	// query with cutoff before the update should include Ann
+	ids, err := models.GetContactIDsModifiedAfter(ctx, rt.DB, testdb.Org1.ID, recent.Add(-time.Second))
+	require.NoError(t, err)
+	assert.Contains(t, ids, testdb.Ann.ID)
+
+	// query with cutoff after the update should not include Ann
+	ids, err = models.GetContactIDsModifiedAfter(ctx, rt.DB, testdb.Org1.ID, recent.Add(time.Second))
+	require.NoError(t, err)
+	assert.NotContains(t, ids, testdb.Ann.ID)
+}
+
 func TestUpdateContactLastSeenAndModifiedOn(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
