@@ -33,7 +33,7 @@ func handleDeindex(ctx context.Context, rt *runtime.Runtime, r *deindexRequest) 
 		return nil, 0, fmt.Errorf("error de-indexing contacts in org #%d: %w", r.OrgID, err)
 	}
 
-	if _, err := search.DeindexMessagesByContact(ctx, rt, r.OrgID, r.ContactUUIDs); err != nil {
+	if err := search.DeindexMessagesByContact(ctx, rt, r.OrgID, r.ContactUUIDs); err != nil {
 		return nil, 0, fmt.Errorf("error de-indexing messages in org #%d: %w", r.OrgID, err)
 	}
 
