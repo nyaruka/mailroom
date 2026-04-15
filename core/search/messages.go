@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/nyaruka/gocommon/aws/dynamo"
@@ -168,7 +169,8 @@ func DeindexMessages(ctx context.Context, rt *runtime.Runtime, orgID models.OrgI
 }
 
 // DeindexMessagesByContact deletes all messages in the Elasticsearch messages index for the given contact UUIDs.
-func DeindexMessagesByContact(ctx context.Context, rt *runtime.Runtime, orgID models.OrgID, contactUUIDs []flows.ContactUUID) error {
+// The delete is submitted asynchronously to ES and the function polls the task until completion.
+func DeindexMessagesByContact(ctx context.Context, rt *runtime.Runtime, orgID models.OrgID, contactUUIDs []flows.ContactUUID) (int, error) {
 	routing := fmt.Sprintf("%d", orgID)
 	uuids := make([]string, len(contactUUIDs))
 	for i, u := range contactUUIDs {
@@ -183,10 +185,51 @@ func DeindexMessagesByContact(ctx context.Context, rt *runtime.Runtime, orgID mo
 
 	index := rt.Config.ElasticMessagesIndex + "-*"
 
-	_, err := rt.ES.Client.DeleteByQuery(index).Routing(routing).Raw(bytes.NewReader(jsonx.MustMarshal(src))).WaitForCompletion(false).Do(ctx)
+	resp, err := rt.ES.Client.DeleteByQuery(index).Routing(routing).WaitForCompletion(false).Raw(bytes.NewReader(jsonx.MustMarshal(src))).Do(ctx)
 	if err != nil {
-		return fmt.Errorf("error deindexing messages for contacts in org #%d: %w", orgID, err)
+		return 0, fmt.Errorf("error submitting deindex messages task for contacts in org #%d: %w", orgID, err)
 	}
 
-	return nil
+	taskID := fmt.Sprintf("%v", resp.Task)
+
+	slog.Info("submitted async deindex messages task", "org_id", orgID, "task_id", taskID, "contacts", len(contactUUIDs))
+
+	taskResp, err := WaitForESTask(ctx, rt, taskID)
+	if err != nil {
+		return 0, fmt.Errorf("error waiting for deindex messages task in org #%d: %w", orgID, err)
+	}
+
+	var result struct {
+		Deleted int64 `json:"deleted"`
+	}
+	if err := json.Unmarshal(taskResp, &result); err != nil {
+		return 0, fmt.Errorf("error parsing deindex messages task result in org #%d: %w", orgID, err)
+	}
+
+	return int(result.Deleted), nil
+}
+
+const esTaskPollInterval = time.Second
+
+// WaitForESTask polls an Elasticsearch task by ID until it completes, returning the task's response payload.
+func WaitForESTask(ctx context.Context, rt *runtime.Runtime, taskID string) (json.RawMessage, error) {
+	for {
+		taskResp, err := rt.ES.Client.Tasks.Get(taskID).Do(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("error getting ES task %s: %w", taskID, err)
+		}
+
+		if taskResp.Completed {
+			if taskResp.Error != nil {
+				return nil, fmt.Errorf("ES task %s failed: %s", taskID, *taskResp.Error.Reason)
+			}
+			return taskResp.Response, nil
+		}
+
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		case <-time.After(esTaskPollInterval):
+		}
+	}
 }

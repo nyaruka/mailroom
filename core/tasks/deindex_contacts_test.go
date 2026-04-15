@@ -14,7 +14,7 @@ import (
 func TestDeindexContacts(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetElastic)
+	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
 	testsuite.IndexContacts(t, rt)
 

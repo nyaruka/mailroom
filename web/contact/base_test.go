@@ -32,7 +32,7 @@ func TestCreate(t *testing.T) {
 func TestDeindex(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetValkey)
+	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetValkey|testsuite.ResetElastic)
 
 	testsuite.RunWebTests(t, rt, "testdata/deindex.json")
 }
