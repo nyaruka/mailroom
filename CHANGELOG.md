@@ -1,6 +1,5 @@
 v26.1.93 (2026-04-15)
 -------------------------
- * Merge pull request #1046 from nyaruka/no-wait-for-ES-completion
  * Do no wait for messages ES deletion by contact synchronously
 
 v26.1.92 (2026-04-13)
