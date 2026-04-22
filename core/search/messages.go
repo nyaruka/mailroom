@@ -32,10 +32,15 @@ type MessageDoc struct {
 	InTicket    bool              `json:"in_ticket"`
 }
 
-// IndexName returns the monthly index name for this message, e.g. base "messages" with a message
-// from January 2026 gives "messages-2026-01".
+// MessagesIndexName returns the monthly messages index name for the given base and time, e.g. base
+// "messages" with a time in January 2026 gives "messages-2026-01".
+func MessagesIndexName(base string, t time.Time) string {
+	return fmt.Sprintf("%s-%s", base, t.UTC().Format("2006-01"))
+}
+
+// IndexName returns the monthly index name for this message.
 func (m *MessageDoc) IndexName(base string) string {
-	return fmt.Sprintf("%s-%s", base, m.CreatedOn.UTC().Format("2006-01"))
+	return MessagesIndexName(base, m.CreatedOn)
 }
 
 // MessageResult is a single result from a message search containing the contact UUID and event data.
@@ -156,7 +161,7 @@ func DeindexMessages(rt *runtime.Runtime, orgID models.OrgID, msgUUIDs []flows.E
 		}
 		rt.ES.Writer.Queue(&elastic.Document{
 			Action:  elastic.ActionDelete,
-			Index:   fmt.Sprintf("%s-%s", rt.Config.ElasticMessagesIndex, t.UTC().Format("2006-01")),
+			Index:   MessagesIndexName(rt.Config.ElasticMessagesIndex, t),
 			ID:      string(u),
 			Routing: routing,
 		})
