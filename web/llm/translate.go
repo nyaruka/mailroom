@@ -86,17 +86,14 @@ func handleTranslate(ctx context.Context, rt *runtime.Runtime, r *translateReque
 	instructions := prompts.Render(instructionsTpl, r)
 
 	type result struct {
-		id, prop   string
-		values     []string
-		tokensUsed int64
-		ok         bool
+		id, prop string
+		values   []string
+		ok       bool
 	}
 
 	var wg sync.WaitGroup
 	sem := make(chan struct{}, translateConcurrency)
 	results := make(chan result)
-
-	start := time.Now()
 
 	for id, props := range r.Items {
 		for prop, vals := range props {
@@ -104,8 +101,11 @@ func handleTranslate(ctx context.Context, rt *runtime.Runtime, r *translateReque
 				sem <- struct{}{}
 				defer func() { <-sem }()
 
+				callStart := time.Now()
 				translated, tokensUsed, ok := translateValues(ctx, llmSvc, instructions, vals)
-				results <- result{id: id, prop: prop, values: translated, tokensUsed: tokensUsed, ok: ok}
+				llm.RecordCall(rt, time.Since(callStart), tokensUsed)
+
+				results <- result{id: id, prop: prop, values: translated, ok: ok}
 			})
 		}
 	}
@@ -113,9 +113,7 @@ func handleTranslate(ctx context.Context, rt *runtime.Runtime, r *translateReque
 	go func() { wg.Wait(); close(results) }()
 
 	items := make(map[string]map[string][]string)
-	var totalTokens int64
 	for res := range results {
-		totalTokens += res.tokensUsed
 		if !res.ok {
 			continue
 		}
@@ -124,8 +122,6 @@ func handleTranslate(ctx context.Context, rt *runtime.Runtime, r *translateReque
 		}
 		items[res.id][res.prop] = res.values
 	}
-
-	llm.RecordCall(rt, time.Since(start), totalTokens)
 
 	return translateResponse{Items: items}, http.StatusOK, nil
 }
