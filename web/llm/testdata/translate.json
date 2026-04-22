@@ -70,37 +70,17 @@
             "source": "eng",
             "target": "spa",
             "items": {
-                "a1f0e2c4:text": ["Hi @contact.name"],
-                "a1f0e2c4:quick_replies": ["Yes", "No"],
-                "b7d91a22:arguments": ["yes yeah"]
+                "a1f0e2c4:text": ["\\return [\"Hola @contact.name\"]"],
+                "a1f0e2c4:quick_replies": ["\\return [\"Sí\",\"No\"]", "_"],
+                "b7d91a22:arguments": ["\\return [\"sí claro\"]"]
             }
         },
         "status": 200,
         "response": {
             "items": {
-                "a1f0e2c4:text": ["T-Hi @contact.name"],
-                "a1f0e2c4:quick_replies": ["T-Yes", "T-No"],
-                "b7d91a22:arguments": ["T-yes yeah"]
-            }
-        }
-    },
-    {
-        "label": "und to spa uses unknown_from template",
-        "method": "POST",
-        "path": "/mi/llm/translate",
-        "body": {
-            "org_id": 1,
-            "llm_id": 10002,
-            "source": "und",
-            "target": "spa",
-            "items": {
-                "a1f0e2c4:text": ["Hello world"]
-            }
-        },
-        "status": 200,
-        "response": {
-            "items": {
-                "a1f0e2c4:text": ["T-Hello world"]
+                "a1f0e2c4:text": ["Hola @contact.name"],
+                "a1f0e2c4:quick_replies": ["Sí", "No"],
+                "b7d91a22:arguments": ["sí claro"]
             }
         }
     },
@@ -114,14 +94,14 @@
             "source": "eng",
             "target": "spa",
             "items": {
-                "a1f0e2c4:text": ["Hi"],
-                "a1f0e2c4:quick_replies": ["<CANT>"]
+                "a1f0e2c4:text": ["\\return [\"Hola\"]"],
+                "a1f0e2c4:quick_replies": ["\\return <CANT>"]
             }
         },
         "status": 200,
         "response": {
             "items": {
-                "a1f0e2c4:text": ["T-Hi"]
+                "a1f0e2c4:text": ["Hola"]
             }
         }
     },
@@ -135,7 +115,7 @@
             "source": "eng",
             "target": "spa",
             "items": {
-                "a1f0e2c4:text": ["<CANT>"]
+                "a1f0e2c4:text": ["\\return <CANT>"]
             }
         },
         "status": 200,
@@ -153,7 +133,25 @@
             "source": "eng",
             "target": "spa",
             "items": {
-                "a1f0e2c4:text": ["<BAD>"]
+                "a1f0e2c4:text": ["\\return not json"]
+            }
+        },
+        "status": 200,
+        "response": {
+            "items": {}
+        }
+    },
+    {
+        "label": "wrong-length LLM output dropped silently",
+        "method": "POST",
+        "path": "/mi/llm/translate",
+        "body": {
+            "org_id": 1,
+            "llm_id": 10002,
+            "source": "eng",
+            "target": "spa",
+            "items": {
+                "a1f0e2c4:quick_replies": ["\\return [\"Sí\"]", "No"]
             }
         },
         "status": 200,
