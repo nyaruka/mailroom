@@ -1,3 +1,8 @@
+v26.1.95 (2026-04-22)
+-------------------------
+ * Remove pauses in Twilio IVR
+ * Support templates on message-type campaign events
+
 v26.1.94 (2026-04-22)
 -------------------------
  * Add short pause to initial inbound IVR TwiML response
