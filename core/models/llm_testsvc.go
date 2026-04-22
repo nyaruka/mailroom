@@ -10,8 +10,9 @@ import (
 )
 
 // testLLMService wraps the goflow test LLM service and additionally handles
-// batch-translate JSON inputs from the web/llm endpoint. For everything else
-// it delegates to the wrapped service.
+// per-property translate calls from the web/llm endpoint. The translate
+// endpoint sends a JSON array of strings; we return a JSON array of the same
+// strings each prefixed with "T-". For everything else we delegate.
 type testLLMService struct {
 	inner *services.LLMService
 }
@@ -21,49 +22,39 @@ func newTestLLMService() *testLLMService {
 }
 
 func (s *testLLMService) Response(ctx context.Context, instructions, input string, maxTokens int) (*flows.LLMResponse, error) {
-	if strings.HasPrefix(instructions, "Translate each value in the JSON input") {
-		return s.translateBatch(instructions, input)
+	if strings.HasPrefix(instructions, "Translate each string in the JSON array input") {
+		return s.translateValues(input)
 	}
 	return s.inner.Response(ctx, instructions, input, maxTokens)
 }
 
-// translateBatch produces a deterministic JSON response for batch translation
-// prompts. Each value is prefixed with "T-" unless it's a test directive:
+// translateValues produces a deterministic response for a per-property
+// translate call. Each string is prefixed with "T-", with these in-band
+// directives:
 //
-//   - "<SKIP>"  → the containing property is omitted from the response
-//   - "<BAD>"   → the whole response is returned as non-JSON
-func (s *testLLMService) translateBatch(instructions, input string) (*flows.LLMResponse, error) {
-	var items map[string]map[string][]string
-	if err := json.Unmarshal([]byte(input), &items); err != nil {
+//   - "<CANT>"  → return the literal "<CANT>" sentinel
+//   - "<BAD>"   → return non-JSON, simulating a malformed LLM response
+func (s *testLLMService) translateValues(input string) (*flows.LLMResponse, error) {
+	var values []string
+	if err := json.Unmarshal([]byte(input), &values); err != nil {
 		return &flows.LLMResponse{Output: "not valid json", TokensUsed: 123}, nil
 	}
 
-	out := make(map[string]map[string][]string, len(items))
-	for id, props := range items {
-		outProps := make(map[string][]string)
-		for prop, vals := range props {
-			skip := false
-			translated := make([]string, len(vals))
-			for i, v := range vals {
-				switch v {
-				case "<SKIP>":
-					skip = true
-				case "<BAD>":
-					return &flows.LLMResponse{Output: "not valid json", TokensUsed: 123}, nil
-				default:
-					translated[i] = "T-" + v
-				}
-			}
-			if !skip {
-				outProps[prop] = translated
-			}
-		}
-		if len(outProps) > 0 {
-			out[id] = outProps
+	for _, v := range values {
+		switch v {
+		case "<CANT>":
+			return &flows.LLMResponse{Output: "<CANT>", TokensUsed: 123}, nil
+		case "<BAD>":
+			return &flows.LLMResponse{Output: "not valid json", TokensUsed: 123}, nil
 		}
 	}
 
-	outBytes, _ := json.Marshal(out)
+	translated := make([]string, len(values))
+	for i, v := range values {
+		translated[i] = "T-" + v
+	}
+
+	outBytes, _ := json.Marshal(translated)
 	return &flows.LLMResponse{Output: string(outBytes), TokensUsed: 123}, nil
 }
 

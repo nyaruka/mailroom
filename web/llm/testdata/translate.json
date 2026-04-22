@@ -45,7 +45,7 @@
         }
     },
     {
-        "label": "missing items",
+        "label": "empty items",
         "method": "POST",
         "path": "/mi/llm/translate",
         "body": {
@@ -109,7 +109,7 @@
         }
     },
     {
-        "label": "partial - one property omitted by LLM",
+        "label": "partial - one property untranslatable",
         "method": "POST",
         "path": "/mi/llm/translate",
         "body": {
@@ -120,7 +120,7 @@
             "items": {
                 "a1f0e2c4": {
                     "text": ["Hi"],
-                    "quick_replies": ["<SKIP>"]
+                    "quick_replies": ["<CANT>"]
                 }
             }
         },
@@ -141,7 +141,7 @@
             "source": "eng",
             "target": "spa",
             "items": {
-                "a1f0e2c4": {"text": ["<SKIP>"]}
+                "a1f0e2c4": {"text": ["<CANT>"]}
             }
         },
         "status": 200,
@@ -150,7 +150,7 @@
         }
     },
     {
-        "label": "malformed LLM output",
+        "label": "malformed LLM output dropped silently",
         "method": "POST",
         "path": "/mi/llm/translate",
         "body": {
@@ -162,9 +162,9 @@
                 "a1f0e2c4": {"text": ["<BAD>"]}
             }
         },
-        "status": 500,
+        "status": 200,
         "response": {
-            "error": "error parsing LLM response: invalid character 'o' in literal null (expecting 'u')"
+            "items": {}
         }
     }
 ]

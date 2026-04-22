@@ -5,9 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/nyaruka/gocommon/i18n"
+	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/v26/core/ai/prompts"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/runtime"
@@ -17,6 +19,16 @@ import (
 func init() {
 	web.InternalRoute(http.MethodPost, "/llm/translate", web.JSONPayload(handleTranslate))
 }
+
+// translateConcurrency is the maximum number of LLM calls made in parallel
+// for a single translate request.
+const translateConcurrency = 5
+
+// translateMaxTokens is the output token cap for a single property call. A
+// single property typically holds a handful of short strings; even a maximal
+// ~10KB text value translates to a few thousand output tokens, well under
+// this cap and under every supported provider's model limit.
+const translateMaxTokens = 8000
 
 // Performs batch translation using an LLM. Items is a two-level map keyed by
 // a caller-supplied opaque object id, then by property name.
@@ -71,60 +83,80 @@ func handleTranslate(ctx context.Context, rt *runtime.Runtime, r *translateReque
 	if r.Source == "und" || r.Source == "mul" {
 		instructionsTpl = "translate_unknown_from"
 	}
-
 	instructions := prompts.Render(instructionsTpl, r)
 
-	inputBytes, err := json.Marshal(r.Items)
-	if err != nil {
-		return nil, 0, fmt.Errorf("error marshaling items: %w", err)
+	type result struct {
+		id, prop   string
+		values     []string
+		tokensUsed int64
+		ok         bool
 	}
 
-	maxTokens := 500 * totalValues(r.Items)
-	if maxTokens < 2500 {
-		maxTokens = 2500
-	}
+	var wg sync.WaitGroup
+	sem := make(chan struct{}, translateConcurrency)
+	results := make(chan result)
 
 	start := time.Now()
-	resp, err := llmSvc.Response(ctx, instructions, string(inputBytes), maxTokens)
-	if err != nil {
-		return nil, 0, fmt.Errorf("error calling LLM service: %w", err)
+
+	for id, props := range r.Items {
+		for prop, vals := range props {
+			wg.Add(1)
+			go func(id, prop string, vals []string) {
+				defer wg.Done()
+				sem <- struct{}{}
+				defer func() { <-sem }()
+
+				translated, tokensUsed, ok := translateValues(ctx, llmSvc, instructions, vals)
+				results <- result{id: id, prop: prop, values: translated, tokensUsed: tokensUsed, ok: ok}
+			}(id, prop, vals)
+		}
 	}
 
-	llm.RecordCall(rt, time.Since(start), resp.TokensUsed)
-
-	var translated map[string]map[string][]string
-	if err := json.Unmarshal([]byte(resp.Output), &translated); err != nil {
-		return nil, 0, fmt.Errorf("error parsing LLM response: %w", err)
-	}
+	go func() { wg.Wait(); close(results) }()
 
 	items := make(map[string]map[string][]string)
-	for id, reqProps := range r.Items {
-		respProps, ok := translated[id]
-		if !ok {
+	var totalTokens int64
+	for res := range results {
+		totalTokens += res.tokensUsed
+		if !res.ok {
 			continue
 		}
-		outProps := make(map[string][]string)
-		for prop, reqVals := range reqProps {
-			respVals, ok := respProps[prop]
-			if !ok || len(respVals) != len(reqVals) {
-				continue
-			}
-			outProps[prop] = respVals
+		if _, ok := items[res.id]; !ok {
+			items[res.id] = make(map[string][]string)
 		}
-		if len(outProps) > 0 {
-			items[id] = outProps
-		}
+		items[res.id][res.prop] = res.values
 	}
+
+	llm.RecordCall(rt, time.Since(start), totalTokens)
 
 	return translateResponse{Items: items}, http.StatusOK, nil
 }
 
-func totalValues(items map[string]map[string][]string) int {
-	n := 0
-	for _, props := range items {
-		for _, vals := range props {
-			n += len(vals)
-		}
+// translateValues translates a single property's array of strings. Returns the
+// translated values, the tokens used, and whether the translation succeeded.
+// Any failure (LLM error, <CANT>, malformed or wrong-length JSON response) is
+// reported as ok=false so the caller can simply omit the property.
+func translateValues(ctx context.Context, llmSvc flows.LLMService, instructions string, vals []string) ([]string, int64, bool) {
+	inputBytes, err := json.Marshal(vals)
+	if err != nil {
+		return nil, 0, false
 	}
-	return n
+
+	resp, err := llmSvc.Response(ctx, instructions, string(inputBytes), translateMaxTokens)
+	if err != nil {
+		return nil, 0, false
+	}
+
+	if resp.Output == "<CANT>" {
+		return nil, resp.TokensUsed, false
+	}
+
+	var translated []string
+	if err := json.Unmarshal([]byte(resp.Output), &translated); err != nil {
+		return nil, resp.TokensUsed, false
+	}
+	if len(translated) != len(vals) {
+		return nil, resp.TokensUsed, false
+	}
+	return translated, resp.TokensUsed, true
 }
