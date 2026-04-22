@@ -24,14 +24,15 @@ func init() {
 // for a single translate request.
 const translateConcurrency = 5
 
-// translateMaxTokens is the output token cap for a single property call. A
-// single property typically holds a handful of short strings; even a maximal
-// ~10KB text value translates to a few thousand output tokens, well under
-// this cap and under every supported provider's model limit.
+// translateMaxTokens is the output token cap for a single item call. An item
+// typically holds a handful of short strings; even a maximal ~10KB text value
+// translates to a few thousand output tokens, well under this cap and under
+// every supported provider's model limit.
 const translateMaxTokens = 8000
 
-// Performs batch translation using an LLM. Items is a two-level map keyed by
-// a caller-supplied opaque object id, then by property name.
+// Performs batch translation using an LLM. Items is a map keyed by a
+// caller-supplied opaque id; each entry holds the array of strings to
+// translate together.
 //
 //	{
 //	  "org_id": 1,
@@ -39,28 +40,26 @@ const translateMaxTokens = 8000
 //	  "source": "eng",
 //	  "target": "spa",
 //	  "items": {
-//	    "a1f0e2c4-...": {
-//	      "text":          ["Hi @contact.name"],
-//	      "quick_replies": ["Yes", "No"]
-//	    },
-//	    "d4f72c66-...": {"name": ["Yes"]}
+//	    "a1f0e2c4-...:text":          ["Hi @contact.name"],
+//	    "a1f0e2c4-...:quick_replies": ["Yes", "No"],
+//	    "b7d91a22-...:arguments":     ["yes yeah"]
 //	  }
 //	}
 type translateRequest struct {
-	OrgID  models.OrgID                   `json:"org_id" validate:"required"`
-	LLMID  models.LLMID                   `json:"llm_id" validate:"required"`
-	Source i18n.Language                  `json:"source" validate:"required"`
-	Target i18n.Language                  `json:"target" validate:"required"`
-	Items  map[string]map[string][]string `json:"items"  validate:"required,min=1"`
+	OrgID  models.OrgID        `json:"org_id" validate:"required"`
+	LLMID  models.LLMID        `json:"llm_id" validate:"required"`
+	Source i18n.Language       `json:"source" validate:"required"`
+	Target i18n.Language       `json:"target" validate:"required"`
+	Items  map[string][]string `json:"items"  validate:"required,min=1"`
 }
 
 //	{
 //	  "items": {
-//	    "a1f0e2c4-...": {"text": ["Hola @contact.name"]}
+//	    "a1f0e2c4-...:text": ["Hola @contact.name"]
 //	  }
 //	}
 type translateResponse struct {
-	Items map[string]map[string][]string `json:"items"`
+	Items map[string][]string `json:"items"`
 }
 
 func handleTranslate(ctx context.Context, rt *runtime.Runtime, r *translateRequest) (any, int, error) {
@@ -86,50 +85,44 @@ func handleTranslate(ctx context.Context, rt *runtime.Runtime, r *translateReque
 	instructions := prompts.Render(instructionsTpl, r)
 
 	type result struct {
-		id, prop string
-		values   []string
-		ok       bool
+		id     string
+		values []string
+		ok     bool
 	}
 
 	var wg sync.WaitGroup
 	sem := make(chan struct{}, translateConcurrency)
 	results := make(chan result)
 
-	for id, props := range r.Items {
-		for prop, vals := range props {
-			wg.Go(func() {
-				sem <- struct{}{}
-				defer func() { <-sem }()
+	for id, vals := range r.Items {
+		wg.Go(func() {
+			sem <- struct{}{}
+			defer func() { <-sem }()
 
-				callStart := time.Now()
-				translated, tokensUsed, ok := translateValues(ctx, llmSvc, instructions, vals)
-				llm.RecordCall(rt, time.Since(callStart), tokensUsed)
+			callStart := time.Now()
+			translated, tokensUsed, ok := translateValues(ctx, llmSvc, instructions, vals)
+			llm.RecordCall(rt, time.Since(callStart), tokensUsed)
 
-				results <- result{id: id, prop: prop, values: translated, ok: ok}
-			})
-		}
+			results <- result{id: id, values: translated, ok: ok}
+		})
 	}
 
 	go func() { wg.Wait(); close(results) }()
 
-	items := make(map[string]map[string][]string)
+	items := make(map[string][]string)
 	for res := range results {
-		if !res.ok {
-			continue
+		if res.ok {
+			items[res.id] = res.values
 		}
-		if _, ok := items[res.id]; !ok {
-			items[res.id] = make(map[string][]string)
-		}
-		items[res.id][res.prop] = res.values
 	}
 
 	return translateResponse{Items: items}, http.StatusOK, nil
 }
 
-// translateValues translates a single property's array of strings. Returns the
+// translateValues translates a single item's array of strings. Returns the
 // translated values, the tokens used, and whether the translation succeeded.
 // Any failure (LLM error, <CANT>, malformed or wrong-length JSON response) is
-// reported as ok=false so the caller can simply omit the property.
+// reported as ok=false so the caller can simply omit the item.
 func translateValues(ctx context.Context, llmSvc flows.LLMService, instructions string, vals []string) ([]string, int64, bool) {
 	inputBytes, err := json.Marshal(vals)
 	if err != nil {

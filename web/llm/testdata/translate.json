@@ -18,7 +18,7 @@
             "source": "eng",
             "target": "spa",
             "items": {
-                "a1f0e2c4": {"text": ["Hello world"]}
+                "a1f0e2c4:text": ["Hello world"]
             }
         },
         "status": 500,
@@ -36,7 +36,7 @@
             "source": "eng",
             "target": "spa",
             "items": {
-                "a1f0e2c4": {"text": ["Hello world"]}
+                "a1f0e2c4:text": ["Hello world"]
             }
         },
         "status": 500,
@@ -61,7 +61,7 @@
         }
     },
     {
-        "label": "eng to spa multi-object batch",
+        "label": "eng to spa multi-item batch",
         "method": "POST",
         "path": "/mi/llm/translate",
         "body": {
@@ -70,21 +70,17 @@
             "source": "eng",
             "target": "spa",
             "items": {
-                "a1f0e2c4": {
-                    "text": ["Hi @contact.name"],
-                    "quick_replies": ["Yes", "No"]
-                },
-                "b7d91a22": {"arguments": ["yes yeah"]}
+                "a1f0e2c4:text": ["Hi @contact.name"],
+                "a1f0e2c4:quick_replies": ["Yes", "No"],
+                "b7d91a22:arguments": ["yes yeah"]
             }
         },
         "status": 200,
         "response": {
             "items": {
-                "a1f0e2c4": {
-                    "text": ["T-Hi @contact.name"],
-                    "quick_replies": ["T-Yes", "T-No"]
-                },
-                "b7d91a22": {"arguments": ["T-yes yeah"]}
+                "a1f0e2c4:text": ["T-Hi @contact.name"],
+                "a1f0e2c4:quick_replies": ["T-Yes", "T-No"],
+                "b7d91a22:arguments": ["T-yes yeah"]
             }
         }
     },
@@ -98,18 +94,18 @@
             "source": "und",
             "target": "spa",
             "items": {
-                "a1f0e2c4": {"text": ["Hello world"]}
+                "a1f0e2c4:text": ["Hello world"]
             }
         },
         "status": 200,
         "response": {
             "items": {
-                "a1f0e2c4": {"text": ["T-Hello world"]}
+                "a1f0e2c4:text": ["T-Hello world"]
             }
         }
     },
     {
-        "label": "partial - one property untranslatable",
+        "label": "partial - one item untranslatable",
         "method": "POST",
         "path": "/mi/llm/translate",
         "body": {
@@ -118,16 +114,14 @@
             "source": "eng",
             "target": "spa",
             "items": {
-                "a1f0e2c4": {
-                    "text": ["Hi"],
-                    "quick_replies": ["<CANT>"]
-                }
+                "a1f0e2c4:text": ["Hi"],
+                "a1f0e2c4:quick_replies": ["<CANT>"]
             }
         },
         "status": 200,
         "response": {
             "items": {
-                "a1f0e2c4": {"text": ["T-Hi"]}
+                "a1f0e2c4:text": ["T-Hi"]
             }
         }
     },
@@ -141,7 +135,7 @@
             "source": "eng",
             "target": "spa",
             "items": {
-                "a1f0e2c4": {"text": ["<CANT>"]}
+                "a1f0e2c4:text": ["<CANT>"]
             }
         },
         "status": 200,
@@ -159,7 +153,7 @@
             "source": "eng",
             "target": "spa",
             "items": {
-                "a1f0e2c4": {"text": ["<BAD>"]}
+                "a1f0e2c4:text": ["<BAD>"]
             }
         },
         "status": 200,
