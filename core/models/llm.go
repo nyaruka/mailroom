@@ -11,7 +11,6 @@ import (
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/engine"
-	"github.com/nyaruka/goflow/test/services"
 	"github.com/nyaruka/mailroom/v26/core/goflow"
 	"github.com/nyaruka/mailroom/v26/runtime"
 	"github.com/nyaruka/null/v3"
@@ -28,7 +27,7 @@ var registeredLLMServices = map[string]func(*LLM, *http.Client) (flows.LLMServic
 // Register a LLM service factory with the engine
 func init() {
 	RegisterLLMService("test", func(*LLM, *http.Client) (flows.LLMService, error) {
-		return services.NewLLM(), nil
+		return newTestLLMService(), nil
 	})
 
 	goflow.RegisterLLMServiceFactory(llmServiceFactory)

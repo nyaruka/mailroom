@@ -15,9 +15,11 @@
         "body": {
             "org_id": 1234,
             "llm_id": 10002,
-            "from_language": "eng",
-            "to_language": "spa",
-            "text": "Hello world"
+            "source": "eng",
+            "target": "spa",
+            "items": {
+                "a1f0e2c4": {"text": ["Hello world"]}
+            }
         },
         "status": 500,
         "response": {
@@ -31,9 +33,11 @@
         "body": {
             "org_id": 1,
             "llm_id": 6789,
-            "from_language": "eng",
-            "to_language": "spa",
-            "text": "Hello world"
+            "source": "eng",
+            "target": "spa",
+            "items": {
+                "a1f0e2c4": {"text": ["Hello world"]}
+            }
         },
         "status": 500,
         "response": {
@@ -41,58 +45,126 @@
         }
     },
     {
-        "label": "eng to spa using test LLM",
+        "label": "missing items",
         "method": "POST",
         "path": "/mi/llm/translate",
         "body": {
             "org_id": 1,
             "llm_id": 10002,
-            "from_language": "eng",
-            "to_language": "spa",
-            "text": "Hello world"
+            "source": "eng",
+            "target": "spa",
+            "items": {}
         },
-        "status": 200,
+        "status": 400,
         "response": {
-            "text": "You asked:\n\nTranslate the input text from the language with the ISO code \"eng\" to the language with the ISO code \"spa\".\nAn \"@\" character indicates a variable expression and should be left untranslated.\nReturn only the translated text, without additional explanations.\nReturn \"<CANT>\" if you can't translate it.\n\nHello world",
-            "tokens_used": 123
+            "error": "request failed validation: field 'items' must be greater than or equal to 1"
         }
     },
     {
-        "label": "und to spa using test LLM",
+        "label": "eng to spa multi-object batch",
         "method": "POST",
         "path": "/mi/llm/translate",
         "body": {
             "org_id": 1,
             "llm_id": 10002,
-            "from_language": "und",
-            "to_language": "spa",
-            "text": "Hello world"
-        },
-        "status": 200,
-        "response": {
-            "text": "You asked:\n\nTranslate the input text to the language with the ISO code \"spa\".\nAn \"@\" character indicates a variable expression and should be left untranslated.\nReturn only the translated text, without additional explanations.\nReturn \"<CANT>\" if you can't translate it.\n\nHello world",
-            "tokens_used": 123
-        }
-    },
-    {
-        "label": "trigger failure by LLM",
-        "method": "POST",
-        "path": "/mi/llm/translate",
-        "body": {
-            "org_id": 1,
-            "llm_id": 10002,
-            "from_language": "und",
-            "to_language": "spa",
-            "text": "\\return <CANT>"
-        },
-        "status": 422,
-        "response": {
-            "error": "unable to perform translation",
-            "code": "ai:reasoning",
-            "extra": {
-                "input": "\\return <CANT>",
-                "instructions": "Translate the input text to the language with the ISO code \"spa\".\nAn \"@\" character indicates a variable expression and should be left untranslated.\nReturn only the translated text, without additional explanations.\nReturn \"<CANT>\" if you can't translate it."
+            "source": "eng",
+            "target": "spa",
+            "items": {
+                "a1f0e2c4": {
+                    "text": ["Hi @contact.name"],
+                    "quick_replies": ["Yes", "No"]
+                },
+                "b7d91a22": {"arguments": ["yes yeah"]}
             }
+        },
+        "status": 200,
+        "response": {
+            "items": {
+                "a1f0e2c4": {
+                    "text": ["T-Hi @contact.name"],
+                    "quick_replies": ["T-Yes", "T-No"]
+                },
+                "b7d91a22": {"arguments": ["T-yes yeah"]}
+            }
+        }
+    },
+    {
+        "label": "und to spa uses unknown_from template",
+        "method": "POST",
+        "path": "/mi/llm/translate",
+        "body": {
+            "org_id": 1,
+            "llm_id": 10002,
+            "source": "und",
+            "target": "spa",
+            "items": {
+                "a1f0e2c4": {"text": ["Hello world"]}
+            }
+        },
+        "status": 200,
+        "response": {
+            "items": {
+                "a1f0e2c4": {"text": ["T-Hello world"]}
+            }
+        }
+    },
+    {
+        "label": "partial - one property omitted by LLM",
+        "method": "POST",
+        "path": "/mi/llm/translate",
+        "body": {
+            "org_id": 1,
+            "llm_id": 10002,
+            "source": "eng",
+            "target": "spa",
+            "items": {
+                "a1f0e2c4": {
+                    "text": ["Hi"],
+                    "quick_replies": ["<SKIP>"]
+                }
+            }
+        },
+        "status": 200,
+        "response": {
+            "items": {
+                "a1f0e2c4": {"text": ["T-Hi"]}
+            }
+        }
+    },
+    {
+        "label": "all untranslatable",
+        "method": "POST",
+        "path": "/mi/llm/translate",
+        "body": {
+            "org_id": 1,
+            "llm_id": 10002,
+            "source": "eng",
+            "target": "spa",
+            "items": {
+                "a1f0e2c4": {"text": ["<SKIP>"]}
+            }
+        },
+        "status": 200,
+        "response": {
+            "items": {}
+        }
+    },
+    {
+        "label": "malformed LLM output",
+        "method": "POST",
+        "path": "/mi/llm/translate",
+        "body": {
+            "org_id": 1,
+            "llm_id": 10002,
+            "source": "eng",
+            "target": "spa",
+            "items": {
+                "a1f0e2c4": {"text": ["<BAD>"]}
+            }
+        },
+        "status": 500,
+        "response": {
+            "error": "error parsing LLM response: invalid character 'o' in literal null (expecting 'u')"
         }
     }
 ]

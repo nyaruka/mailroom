@@ -1,4 +1,6 @@
-Translate the input text to the language with the ISO code "{{ .ToLanguage }}".
-An "@" character indicates a variable expression and should be left untranslated.
-Return only the translated text, without additional explanations.
-Return "<CANT>" if you can't translate it.
+Translate each value in the JSON input to the language with the ISO code "{{ .Target }}".
+The input is a JSON object mapping object ids to a map of property names to arrays of strings.
+An "@" character indicates a variable expression and must be left untranslated.
+Return a JSON object with the same two-level structure and the same ids, property names, and number of values per property.
+Omit any property you cannot translate. Omit any object with no translatable properties.
+Return only the JSON object, with no additional text or explanation.
