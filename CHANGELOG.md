@@ -1,3 +1,8 @@
+v26.1.94 (2026-04-22)
+-------------------------
+ * Add short pause to initial inbound IVR TwiML response
+ * Update test database
+
 v26.1.93 (2026-04-15)
 -------------------------
  * Do no wait for messages ES deletion by contact synchronously
