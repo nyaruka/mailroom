@@ -1,6 +1,6 @@
 Translate each value in the JSON input from the language with the ISO code "{{ .Source }}" to the language with the ISO code "{{ .Target }}".
 The input is a JSON object mapping object ids to a map of property names to arrays of strings.
 An "@" character indicates a variable expression and must be left untranslated.
-Return a JSON object with the same two-level structure and the same ids, property names, and number of values per property.
+Return a JSON object with the same two-level structure. For each property you include, use the same id and property name and return the same number of values as the input.
 Omit any property you cannot translate. Omit any object with no translatable properties.
 Return only the JSON object, with no additional text or explanation.
