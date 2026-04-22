@@ -2,12 +2,14 @@ package llm
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/nyaruka/gocommon/i18n"
-	"github.com/nyaruka/mailroom/v26/core/ai"
+	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/v26/core/ai/prompts"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/runtime"
@@ -18,30 +20,46 @@ func init() {
 	web.InternalRoute(http.MethodPost, "/llm/translate", web.JSONPayload(handleTranslate))
 }
 
-// Performs translation using an LLM.
+// translateConcurrency is the maximum number of LLM calls made in parallel
+// for a single translate request.
+const translateConcurrency = 5
+
+// translateMaxTokens is the output token cap for a single item call. An item
+// typically holds a handful of short strings; even a maximal ~10KB text value
+// translates to a few thousand output tokens, well under this cap and under
+// every supported provider's model limit.
+const translateMaxTokens = 8000
+
+// Performs batch translation using an LLM. Items is a map keyed by a
+// caller-supplied opaque id; each entry holds the array of strings to
+// translate together.
 //
 //	{
 //	  "org_id": 1,
 //	  "llm_id": 1234,
-//	  "from_language": "eng",
-//	  "to_language": "spa",
-//	  "text": "Hello world"
+//	  "source": "eng",
+//	  "target": "spa",
+//	  "items": {
+//	    "a1f0e2c4-...:text":          ["Hi @contact.name"],
+//	    "a1f0e2c4-...:quick_replies": ["Yes", "No"],
+//	    "b7d91a22-...:arguments":     ["yes yeah"]
+//	  }
 //	}
 type translateRequest struct {
-	OrgID        models.OrgID  `json:"org_id"        validate:"required"`
-	LLMID        models.LLMID  `json:"llm_id"        validate:"required"`
-	FromLanguage i18n.Language `json:"from_language" validate:"required"`
-	ToLanguage   i18n.Language `json:"to_language"   validate:"required"`
-	Text         string        `json:"text"          validate:"required"`
+	OrgID  models.OrgID        `json:"org_id" validate:"required"`
+	LLMID  models.LLMID        `json:"llm_id" validate:"required"`
+	Source i18n.Language       `json:"source" validate:"required"`
+	Target i18n.Language       `json:"target" validate:"required"`
+	Items  map[string][]string `json:"items"  validate:"required,min=1"`
 }
 
 //	{
-//	  "text": "Hola mundo",
-//	  "tokens_used": 123
+//	  "items": {
+//	    "a1f0e2c4-...:text": ["Hola @contact.name"]
+//	  }
 //	}
 type translateResponse struct {
-	Text       string `json:"text"`
-	TokensUsed int64  `json:"tokens_used,omitempty"`
+	Items map[string][]string `json:"items"`
 }
 
 func handleTranslate(ctx context.Context, rt *runtime.Runtime, r *translateRequest) (any, int, error) {
@@ -61,23 +79,71 @@ func handleTranslate(ctx context.Context, rt *runtime.Runtime, r *translateReque
 	}
 
 	instructionsTpl := "translate"
-	if r.FromLanguage == "und" || r.FromLanguage == "mul" {
+	if r.Source == "und" || r.Source == "mul" {
 		instructionsTpl = "translate_unknown_from"
 	}
-
 	instructions := prompts.Render(instructionsTpl, r)
-	start := time.Now()
 
-	resp, err := llmSvc.Response(ctx, instructions, r.Text, 2500)
-	if err != nil {
-		return nil, 0, fmt.Errorf("error calling LLM service: %w", err)
+	type result struct {
+		id     string
+		values []string
+		ok     bool
 	}
 
-	llm.RecordCall(rt, time.Since(start), resp.TokensUsed)
+	var wg sync.WaitGroup
+	sem := make(chan struct{}, translateConcurrency)
+	results := make(chan result)
+
+	for id, vals := range r.Items {
+		wg.Go(func() {
+			sem <- struct{}{}
+			defer func() { <-sem }()
+
+			callStart := time.Now()
+			translated, tokensUsed, ok := translateValues(ctx, llmSvc, instructions, vals)
+			llm.RecordCall(rt, time.Since(callStart), tokensUsed)
+
+			results <- result{id: id, values: translated, ok: ok}
+		})
+	}
+
+	go func() { wg.Wait(); close(results) }()
+
+	items := make(map[string][]string)
+	for res := range results {
+		if res.ok {
+			items[res.id] = res.values
+		}
+	}
+
+	return translateResponse{Items: items}, http.StatusOK, nil
+}
+
+// translateValues translates a single item's array of strings. Returns the
+// translated values, the tokens used, and whether the translation succeeded.
+// Any failure (LLM error, <CANT>, malformed or wrong-length JSON response) is
+// reported as ok=false so the caller can simply omit the item.
+func translateValues(ctx context.Context, llmSvc flows.LLMService, instructions string, vals []string) ([]string, int64, bool) {
+	inputBytes, err := json.Marshal(vals)
+	if err != nil {
+		return nil, 0, false
+	}
+
+	resp, err := llmSvc.Response(ctx, instructions, string(inputBytes), translateMaxTokens)
+	if err != nil {
+		return nil, 0, false
+	}
 
 	if resp.Output == "<CANT>" {
-		return nil, 0, &ai.ServiceError{Message: "unable to perform translation", Code: ai.ErrorReasoning, Instructions: instructions, Input: r.Text}
+		return nil, resp.TokensUsed, false
 	}
 
-	return translateResponse{Text: resp.Output, TokensUsed: resp.TokensUsed}, http.StatusOK, nil
+	var translated []string
+	if err := json.Unmarshal([]byte(resp.Output), &translated); err != nil {
+		return nil, resp.TokensUsed, false
+	}
+	if len(translated) != len(vals) {
+		return nil, resp.TokensUsed, false
+	}
+	return translated, resp.TokensUsed, true
 }
