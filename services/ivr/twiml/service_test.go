@@ -37,9 +37,8 @@ func TestResponseForSprint(t *testing.T) {
 	defer func() { rt.Config.AttachmentDomain = "" }()
 
 	tcs := []struct {
-		events       []flows.Event
-		prependPause bool
-		expected     string
+		events   []flows.Event
+		expected string
 	}{
 		{
 			// ivr msg, no text language specified
@@ -47,14 +46,6 @@ func TestResponseForSprint(t *testing.T) {
 				events.NewIVRCreated(flows.NewIVRMsgOut(urn, channelRef, "Hi there", "", "")),
 			},
 			expected: `<Response><Say language="en-US">Hi there</Say><Hangup></Hangup></Response>`,
-		},
-		{
-			// initial inbound response gets a leading pause so forwarded calls have time to connect
-			events: []flows.Event{
-				events.NewIVRCreated(flows.NewIVRMsgOut(urn, channelRef, "Hi there", "", "")),
-			},
-			prependPause: true,
-			expected:     `<Response><Pause length="1"></Pause><Say language="en-US">Hi there</Say><Hangup></Hangup></Response>`,
 		},
 		{
 			// ivr msg, supported text language specified
@@ -119,7 +110,7 @@ func TestResponseForSprint(t *testing.T) {
 	}
 
 	for i, tc := range tcs {
-		response, err := twiml.ResponseForSprint(rt, env, urn, resumeURL, tc.events, tc.prependPause, false)
+		response, err := twiml.ResponseForSprint(rt, env, urn, resumeURL, tc.events, false)
 		assert.NoError(t, err, "%d: unexpected error")
 		assert.Equal(t, xml.Header+tc.expected, response, "%d: unexpected response", i)
 	}
