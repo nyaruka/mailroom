@@ -1,4 +1,5 @@
-Translate the input text from the language with the ISO code "{{ .FromLanguage }}" to the language with the ISO code "{{ .ToLanguage }}".
-An "@" character indicates a variable expression and should be left untranslated.
-Return only the translated text, without additional explanations.
-Return "<CANT>" if you can't translate it.
+Translate each string in the JSON array input from the language with the ISO code "{{ .Source }}" to the language with the ISO code "{{ .Target }}".
+An "@" character indicates a variable expression and must be left untranslated.
+Return a JSON array of the same length containing the translated strings.
+If you cannot translate any of the strings, return "<CANT>" instead of a JSON array.
+Return only the JSON array or "<CANT>", with no additional text or explanation.
