@@ -82,9 +82,11 @@ type CampaignPoint struct {
 	Unit          PointUnit `json:"unit"`
 	DeliveryHour  int       `json:"delivery_hour"`
 
-	FlowID       FlowID                      `json:"flow_id"`
-	Translations flows.BroadcastTranslations `json:"translations"`
-	BaseLanguage null.String                 `json:"base_language"`
+	FlowID            FlowID                      `json:"flow_id"`
+	Translations      flows.BroadcastTranslations `json:"translations"`
+	BaseLanguage      null.String                 `json:"base_language"`
+	TemplateID        TemplateID                  `json:"template_id"`
+	TemplateVariables []string                    `json:"template_variables"`
 
 	campaign *Campaign
 }
@@ -231,7 +233,7 @@ SELECT ROW_TO_JSON(r) FROM (SELECT
     c.name,
     c.group_id,
     (SELECT ARRAY_AGG(evs) FROM (
-        SELECT e.id, e.uuid, e.event_type, e.status, e.fire_version, e.start_mode, e.relative_to_id, f.key AS relative_to_key, e.offset, e.unit, e.delivery_hour, e.flow_id, e.translations, e.base_language
+        SELECT e.id, e.uuid, e.event_type, e.status, e.fire_version, e.start_mode, e.relative_to_id, f.key AS relative_to_key, e.offset, e.unit, e.delivery_hour, e.flow_id, e.translations, e.base_language, e.template_id, e.template_variables
           FROM campaigns_campaignevent e
           JOIN contacts_contactfield f ON f.id = e.relative_to_id
          WHERE e.campaign_id = c.id AND e.is_active = TRUE AND f.is_active = TRUE

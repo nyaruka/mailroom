@@ -160,6 +160,8 @@ func (t *BulkCampaignTrigger) triggerFlow(ctx context.Context, rt *runtime.Runti
 
 func (t *BulkCampaignTrigger) triggerBroadcast(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, p *models.CampaignPoint, contactIDs []models.ContactID) ([]models.ContactID, error) {
 	bcast := models.NewBroadcast(oa.OrgID(), p.Translations, i18n.Language(p.BaseLanguage), true, models.NilOptInID, nil, contactIDs, nil, "", models.NoExclusions, models.NilUserID)
+	bcast.TemplateID = p.TemplateID
+	bcast.TemplateVariables = p.TemplateVariables
 
 	scenes, skipped, err := runner.BroadcastWithLock(ctx, rt, oa, bcast, &models.BroadcastBatch{ContactIDs: contactIDs}, p.StartMode)
 	if err != nil {

@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/lib/pq"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/testsuite"
@@ -16,7 +17,9 @@ import (
 func TestLoadCampaigns(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, 1, models.RefreshChannels)
+	defer testsuite.Reset(t, rt, testsuite.ResetData)
+
+	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, 1, models.RefreshCampaigns)
 	require.NoError(t, err)
 
 	event1 := oa.CampaignPointByID(testdb.RemindersPoint1.ID)
@@ -31,9 +34,24 @@ func TestLoadCampaigns(t *testing.T) {
 		"fra": &flows.MsgContent{Text: "Bonjour @contact.name, il est temps de consulter vos patients."},
 	}, event2.Translations)
 	assert.Equal(t, null.String("eng"), event2.BaseLanguage)
+	assert.Equal(t, models.NilTemplateID, event2.TemplateID)
+	assert.Nil(t, event2.TemplateVariables)
 
 	event3 := oa.CampaignPointByID(testdb.RemindersPoint3.ID)
 	assert.Equal(t, testdb.RemindersPoint3.UUID, event3.UUID)
+
+	// set template and template_variables on event 2 and reload
+	rt.DB.MustExec(
+		`UPDATE campaigns_campaignevent SET template_id = $1, template_variables = $2 WHERE id = $3`,
+		testdb.GoodbyeTemplate.ID, pq.StringArray{"@contact.name", "foo"}, testdb.RemindersPoint2.ID,
+	)
+
+	oa, err = models.GetOrgAssetsWithRefresh(ctx, rt, 1, models.RefreshCampaigns)
+	require.NoError(t, err)
+
+	event2 = oa.CampaignPointByID(testdb.RemindersPoint2.ID)
+	assert.Equal(t, testdb.GoodbyeTemplate.ID, event2.TemplateID)
+	assert.Equal(t, []string{"@contact.name", "foo"}, event2.TemplateVariables)
 }
 
 func TestScheduleForTime(t *testing.T) {
