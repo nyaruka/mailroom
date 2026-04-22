@@ -18,7 +18,7 @@
             "source": "eng",
             "target": "spa",
             "items": {
-                "a1f0e2c4:text": ["Hello world"]
+                "a1f0e2c4-5b3e-4d7a-9c2f-1e8d6a4b7c35:text": ["Hello world"]
             }
         },
         "status": 500,
@@ -36,7 +36,7 @@
             "source": "eng",
             "target": "spa",
             "items": {
-                "a1f0e2c4:text": ["Hello world"]
+                "a1f0e2c4-5b3e-4d7a-9c2f-1e8d6a4b7c35:text": ["Hello world"]
             }
         },
         "status": 500,
@@ -70,17 +70,17 @@
             "source": "eng",
             "target": "spa",
             "items": {
-                "a1f0e2c4:text": ["\\return [\"Hola @contact.name\"]"],
-                "a1f0e2c4:quick_replies": ["\\return [\"Sí\",\"No\"]", "_"],
-                "b7d91a22:arguments": ["\\return [\"sí claro\"]"]
+                "a1f0e2c4-5b3e-4d7a-9c2f-1e8d6a4b7c35:text": ["\\return [\"Hola @contact.name\"]"],
+                "a1f0e2c4-5b3e-4d7a-9c2f-1e8d6a4b7c35:quick_replies": ["\\return [\"Sí\",\"No\"]", "_"],
+                "b7d91a22-8e4f-4a1b-9d3c-2f7e5b8a9c10:arguments": ["\\return [\"sí claro\"]"]
             }
         },
         "status": 200,
         "response": {
             "items": {
-                "a1f0e2c4:text": ["Hola @contact.name"],
-                "a1f0e2c4:quick_replies": ["Sí", "No"],
-                "b7d91a22:arguments": ["sí claro"]
+                "a1f0e2c4-5b3e-4d7a-9c2f-1e8d6a4b7c35:text": ["Hola @contact.name"],
+                "a1f0e2c4-5b3e-4d7a-9c2f-1e8d6a4b7c35:quick_replies": ["Sí", "No"],
+                "b7d91a22-8e4f-4a1b-9d3c-2f7e5b8a9c10:arguments": ["sí claro"]
             }
         }
     },
@@ -94,14 +94,14 @@
             "source": "eng",
             "target": "spa",
             "items": {
-                "a1f0e2c4:text": ["\\return [\"Hola\"]"],
-                "a1f0e2c4:quick_replies": ["\\return <CANT>"]
+                "a1f0e2c4-5b3e-4d7a-9c2f-1e8d6a4b7c35:text": ["\\return [\"Hola\"]"],
+                "a1f0e2c4-5b3e-4d7a-9c2f-1e8d6a4b7c35:quick_replies": ["\\return <CANT>"]
             }
         },
         "status": 200,
         "response": {
             "items": {
-                "a1f0e2c4:text": ["Hola"]
+                "a1f0e2c4-5b3e-4d7a-9c2f-1e8d6a4b7c35:text": ["Hola"]
             }
         }
     },
@@ -115,7 +115,7 @@
             "source": "eng",
             "target": "spa",
             "items": {
-                "a1f0e2c4:text": ["\\return <CANT>"]
+                "a1f0e2c4-5b3e-4d7a-9c2f-1e8d6a4b7c35:text": ["\\return <CANT>"]
             }
         },
         "status": 200,
@@ -133,7 +133,7 @@
             "source": "eng",
             "target": "spa",
             "items": {
-                "a1f0e2c4:text": ["\\return not json"]
+                "a1f0e2c4-5b3e-4d7a-9c2f-1e8d6a4b7c35:text": ["\\return not json"]
             }
         },
         "status": 200,
@@ -151,7 +151,7 @@
             "source": "eng",
             "target": "spa",
             "items": {
-                "a1f0e2c4:quick_replies": ["\\return [\"Sí\"]", "No"]
+                "a1f0e2c4-5b3e-4d7a-9c2f-1e8d6a4b7c35:quick_replies": ["\\return [\"Sí\"]", "No"]
             }
         },
         "status": 200,
