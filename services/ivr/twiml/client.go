@@ -22,6 +22,11 @@ type Hangup struct {
 	XMLName string `xml:"Hangup"`
 }
 
+type Pause struct {
+	XMLName string `xml:"Pause"`
+	Length  int    `xml:"length,attr,omitempty"`
+}
+
 type Redirect struct {
 	XMLName string `xml:"Redirect"`
 	URL     string `xml:",chardata"`

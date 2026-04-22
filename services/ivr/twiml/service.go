@@ -54,8 +54,9 @@ const (
 
 	statusFailed = "failed"
 
-	gatherTimeout = 30
-	recordTimeout = 600
+	gatherTimeout     = 30
+	recordTimeout     = 600
+	answerPauseLength = 1
 
 	accountSIDConfig = "account_sid"
 	authTokenConfig  = "auth_token"
@@ -397,8 +398,12 @@ func (s *service) WriteSessionResponse(ctx context.Context, rt *runtime.Runtime,
 		return fmt.Errorf("cannot write IVR response for failed session")
 	}
 
+	// prepend a brief pause on initial inbound responses so Twilio doesn't start speaking before
+	// forwarded calls (e.g. Google Voice -> Twilio) have fully connected
+	isIncoming := strings.HasSuffix(r.URL.Path, "/incoming")
+
 	// get our response
-	response, err := ResponseForSprint(rt, oa.Env(), number, resumeURL, scene.Sprint.Events(), true)
+	response, err := ResponseForSprint(rt, oa.Env(), number, resumeURL, scene.Sprint.Events(), isIncoming, true)
 	if err != nil {
 		return fmt.Errorf("unable to build response for IVR call: %w", err)
 	}
@@ -486,10 +491,14 @@ func twCalculateSignature(url string, form url.Values, authToken string) ([]byte
 
 // TWIML building utilities
 
-func ResponseForSprint(rt *runtime.Runtime, env envs.Environment, urn urns.URN, resumeURL string, es []flows.Event, indent bool) (string, error) {
+func ResponseForSprint(rt *runtime.Runtime, env envs.Environment, urn urns.URN, resumeURL string, es []flows.Event, prependPause bool, indent bool) (string, error) {
 	r := &Response{}
 	commands := make([]any, 0)
 	hasWait := false
+
+	if prependPause {
+		commands = append(commands, Pause{Length: answerPauseLength})
+	}
 
 	for _, e := range es {
 		switch event := e.(type) {
