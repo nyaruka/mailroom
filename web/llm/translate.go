@@ -100,15 +100,13 @@ func handleTranslate(ctx context.Context, rt *runtime.Runtime, r *translateReque
 
 	for id, props := range r.Items {
 		for prop, vals := range props {
-			wg.Add(1)
-			go func(id, prop string, vals []string) {
-				defer wg.Done()
+			wg.Go(func() {
 				sem <- struct{}{}
 				defer func() { <-sem }()
 
 				translated, tokensUsed, ok := translateValues(ctx, llmSvc, instructions, vals)
 				results <- result{id: id, prop: prop, values: translated, tokensUsed: tokensUsed, ok: ok}
-			}(id, prop, vals)
+			})
 		}
 	}
 
