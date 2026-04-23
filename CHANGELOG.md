@@ -1,3 +1,7 @@
+v26.1.97 (2026-04-23)
+-------------------------
+ * Return 422 when LLM service call fails in translate endpoint
+
 v26.1.96 (2026-04-23)
 -------------------------
  * Add case preservation and length limits to translate prompts
