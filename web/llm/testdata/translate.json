@@ -71,7 +71,7 @@
             "target": "spa",
             "items": {
                 "a1f0e2c4-5b3e-4d7a-9c2f-1e8d6a4b7c35:text": ["Hi @contact.name"],
-                "a1f0e2c4-5b3e-4d7a-9c2f-1e8d6a4b7c35:quick_replies": ["\\return [\"Sí\",\"No\",\"Hola @contact.name\",\"sí claro\"]", "_"],
+                "a1f0e2c4-5b3e-4d7a-9c2f-1e8d6a4b7c35:quick_replies": ["\\return {\"a1f0e2c4-5b3e-4d7a-9c2f-1e8d6a4b7c35:text\":[\"Hola @contact.name\"],\"a1f0e2c4-5b3e-4d7a-9c2f-1e8d6a4b7c35:quick_replies\":[\"Sí\",\"No\"],\"b7d91a22-8e4f-4a1b-9d3c-2f7e5b8a9c10:arguments\":[\"sí claro\"]}", "_"],
                 "b7d91a22-8e4f-4a1b-9d3c-2f7e5b8a9c10:arguments": ["yes yeah"]
             }
         },
@@ -81,6 +81,27 @@
                 "a1f0e2c4-5b3e-4d7a-9c2f-1e8d6a4b7c35:text": ["Hola @contact.name"],
                 "a1f0e2c4-5b3e-4d7a-9c2f-1e8d6a4b7c35:quick_replies": ["Sí", "No"],
                 "b7d91a22-8e4f-4a1b-9d3c-2f7e5b8a9c10:arguments": ["sí claro"]
+            }
+        }
+    },
+    {
+        "label": "partial - one item untranslatable (key omitted by LLM)",
+        "method": "POST",
+        "path": "/mi/llm/translate",
+        "body": {
+            "org_id": 1,
+            "llm_id": 10002,
+            "source": "eng",
+            "target": "spa",
+            "items": {
+                "a1f0e2c4-5b3e-4d7a-9c2f-1e8d6a4b7c35:text": ["\\return {\"a1f0e2c4-5b3e-4d7a-9c2f-1e8d6a4b7c35:text\":[\"Hola\"]}"],
+                "a1f0e2c4-5b3e-4d7a-9c2f-1e8d6a4b7c35:quick_replies": ["Yes"]
+            }
+        },
+        "status": 200,
+        "response": {
+            "items": {
+                "a1f0e2c4-5b3e-4d7a-9c2f-1e8d6a4b7c35:text": ["Hola"]
             }
         }
     },
@@ -121,7 +142,7 @@
         }
     },
     {
-        "label": "wrong-length LLM output dropped silently",
+        "label": "wrong-length value dropped silently",
         "method": "POST",
         "path": "/mi/llm/translate",
         "body": {
@@ -130,7 +151,7 @@
             "source": "eng",
             "target": "spa",
             "items": {
-                "a1f0e2c4-5b3e-4d7a-9c2f-1e8d6a4b7c35:quick_replies": ["\\return [\"Sí\"]", "No"]
+                "a1f0e2c4-5b3e-4d7a-9c2f-1e8d6a4b7c35:quick_replies": ["\\return {\"a1f0e2c4-5b3e-4d7a-9c2f-1e8d6a4b7c35:quick_replies\":[\"Sí\"]}", "No"]
             }
         },
         "status": 200,

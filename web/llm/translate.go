@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"slices"
 	"time"
 
 	"github.com/nyaruka/gocommon/i18n"
@@ -23,7 +22,9 @@ func init() {
 
 // Performs batch translation using an LLM. Items is a map keyed by a
 // caller-supplied opaque id; each entry holds the array of strings to
-// translate together.
+// translate together. The id is passed through to the LLM as the key of a
+// JSON object so the prompt can key off its suffix (":text", ":quick_replies",
+// ":arguments") for context-dependent rules.
 //
 //	{
 //	  "org_id": 1,
@@ -75,20 +76,7 @@ func handleTranslate(ctx context.Context, rt *runtime.Runtime, r *translateReque
 	}
 	instructions := prompts.Render(instructionsTpl, r)
 
-	// Flatten all items into a single array for one LLM call, in deterministic
-	// id order so the response can be reliably split back into per-id slices.
-	ids := make([]string, 0, len(r.Items))
-	for id := range r.Items {
-		ids = append(ids, id)
-	}
-	slices.Sort(ids)
-
-	flat := make([]string, 0)
-	for _, id := range ids {
-		flat = append(flat, r.Items[id]...)
-	}
-
-	inputBytes, err := json.Marshal(flat)
+	inputBytes, err := json.Marshal(r.Items)
 	if err != nil {
 		return nil, 0, fmt.Errorf("error marshaling input: %w", err)
 	}
@@ -117,26 +105,25 @@ func handleTranslate(ctx context.Context, rt *runtime.Runtime, r *translateReque
 		return nil, 0, err
 	}
 
-	// A <CANT>, malformed response, or wrong-length response means nothing is
-	// translatable and is silently reported back as an empty items map.
+	// A <CANT> response or anything unparseable means nothing was translatable;
+	// return an empty items map. The LLM can also omit individual keys from the
+	// object to signal that only those items were untranslatable.
 	items := make(map[string][]string)
 	if resp.Output == "<CANT>" {
 		return translateResponse{Items: items}, http.StatusOK, nil
 	}
 
-	var translated []string
+	var translated map[string][]string
 	if err := json.Unmarshal([]byte(resp.Output), &translated); err != nil {
 		return translateResponse{Items: items}, http.StatusOK, nil
 	}
-	if len(translated) != len(flat) {
-		return translateResponse{Items: items}, http.StatusOK, nil
-	}
 
-	offset := 0
-	for _, id := range ids {
-		n := len(r.Items[id])
-		items[id] = translated[offset : offset+n]
-		offset += n
+	for id, vals := range r.Items {
+		tvals, ok := translated[id]
+		if !ok || len(tvals) != len(vals) {
+			continue
+		}
+		items[id] = tvals
 	}
 
 	return translateResponse{Items: items}, http.StatusOK, nil
