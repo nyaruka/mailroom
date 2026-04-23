@@ -144,6 +144,10 @@ func translateValues(ctx context.Context, llmSvc flows.LLMService, instructions 
 
 	resp, err := llmSvc.Response(ctx, instructions, string(inputBytes), translateMaxTokens)
 	if err != nil {
+		// context cancellation/deadline is a client/timeout issue, not an LLM config failure
+		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
+			return nil, 0, err
+		}
 		// real LLM services wrap their errors as *ai.ServiceError already; wrap anything else
 		// (e.g. from the test service) so the handler response is consistently a 422.
 		var aerr *ai.ServiceError
