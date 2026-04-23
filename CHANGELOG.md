@@ -1,3 +1,9 @@
+v26.1.96 (2026-04-23)
+-------------------------
+ * Add case preservation and length limits to translate prompts
+ * Bump gocommon to v1.79.0 and use writer for message deindexing
+ * Batch translation in /llm/translate endpoint
+
 v26.1.95 (2026-04-22)
 -------------------------
  * Remove pauses in Twilio IVR
