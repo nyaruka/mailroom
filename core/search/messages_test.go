@@ -104,3 +104,43 @@ func TestSearchMessages(t *testing.T) {
 		})
 	}
 }
+
+func TestDeindexMessagesByContact(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetElastic|testsuite.ResetDynamo)
+
+	testdb.InsertIncomingMsg(t, rt, testdb.Org1, "019b21e1-ba00-7000-8000-000000000011", testdb.TwilioChannel, testdb.Ann, "hello world", models.MsgStatusHandled, "")
+	testdb.InsertIncomingMsg(t, rt, testdb.Org1, "019b2218-a880-7000-8000-000000000012", testdb.TwilioChannel, testdb.Bob, "hello there friend", models.MsgStatusHandled, "")
+	testdb.InsertIncomingMsg(t, rt, testdb.Org1, "019b224f-9700-7000-8000-000000000013", testdb.TwilioChannel, testdb.Cat, "goodbye world", models.MsgStatusHandled, "")
+	testdb.InsertIncomingMsg(t, rt, testdb.Org2, "019b21e1-ba00-7000-8000-000000000014", testdb.Org2Channel, testdb.Org2Contact, "hello world", models.MsgStatusHandled, "")
+
+	rt.DB.MustExec(`UPDATE contacts_contact SET last_seen_on = NOW() WHERE id IN ($1, $2, $3, $4)`, testdb.Ann.ID, testdb.Bob.ID, testdb.Cat.ID, testdb.Org2Contact.ID)
+
+	testsuite.IndexMessages(t, rt)
+
+	// verify initial state: 3 messages in org1, 1 in org2
+	msgs := testsuite.GetIndexedMessages(t, rt, false)
+	assert.Len(t, msgs, 4)
+
+	// deindex messages for Ann and Bob (should remove 2 messages)
+	deleted, err := search.DeindexMessagesByContact(ctx, rt, testdb.Org1.ID, []flows.ContactUUID{testdb.Ann.UUID, testdb.Bob.UUID})
+	require.NoError(t, err)
+	assert.Equal(t, 2, deleted)
+
+	// refresh and verify only Cat's message and org2 message remain
+	msgs = testsuite.GetIndexedMessages(t, rt, false)
+	assert.Len(t, msgs, 2)
+
+	contactUUIDs := make([]string, len(msgs))
+	for i, m := range msgs {
+		contactUUIDs[i] = m.ContactUUID
+	}
+	assert.Contains(t, contactUUIDs, string(testdb.Cat.UUID))
+	assert.Contains(t, contactUUIDs, string(testdb.Org2Contact.UUID))
+
+	// deindex messages for a contact with no messages should return 0
+	deleted, err = search.DeindexMessagesByContact(ctx, rt, testdb.Org1.ID, []flows.ContactUUID{testdb.Ann.UUID})
+	require.NoError(t, err)
+	assert.Equal(t, 0, deleted)
+}
