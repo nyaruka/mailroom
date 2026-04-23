@@ -158,5 +158,28 @@
         "response": {
             "items": {}
         }
+    },
+    {
+        "label": "LLM service call failure returns 422",
+        "method": "POST",
+        "path": "/mi/llm/translate",
+        "body": {
+            "org_id": 1,
+            "llm_id": 10002,
+            "source": "eng",
+            "target": "spa",
+            "items": {
+                "a1f0e2c4-5b3e-4d7a-9c2f-1e8d6a4b7c35:text": ["\\error rate limit exceeded"]
+            }
+        },
+        "status": 422,
+        "response": {
+            "error": "rate limit exceeded",
+            "code": "ai:unknown",
+            "extra": {
+                "instructions": "",
+                "input": ""
+            }
+        }
     }
 ]

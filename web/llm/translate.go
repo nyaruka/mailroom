@@ -3,6 +3,7 @@ package llm
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"sync"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/nyaruka/gocommon/i18n"
 	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/mailroom/v26/core/ai"
 	"github.com/nyaruka/mailroom/v26/core/ai/prompts"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/runtime"
@@ -87,7 +89,7 @@ func handleTranslate(ctx context.Context, rt *runtime.Runtime, r *translateReque
 	type result struct {
 		id     string
 		values []string
-		ok     bool
+		err    error
 	}
 
 	var wg sync.WaitGroup
@@ -100,50 +102,67 @@ func handleTranslate(ctx context.Context, rt *runtime.Runtime, r *translateReque
 			defer func() { <-sem }()
 
 			callStart := time.Now()
-			translated, tokensUsed, ok := translateValues(ctx, llmSvc, instructions, vals)
+			translated, tokensUsed, err := translateValues(ctx, llmSvc, instructions, vals)
 			llm.RecordCall(rt, time.Since(callStart), tokensUsed)
 
-			results <- result{id: id, values: translated, ok: ok}
+			results <- result{id: id, values: translated, err: err}
 		})
 	}
 
 	go func() { wg.Wait(); close(results) }()
 
 	items := make(map[string][]string)
+	var svcErr error
 	for res := range results {
-		if res.ok {
+		if res.err != nil && svcErr == nil {
+			svcErr = res.err
+		}
+		if res.values != nil {
 			items[res.id] = res.values
 		}
+	}
+
+	// An error from the LLM service itself (bad credentials, rate limit, model unavailable, etc.)
+	// is reported as 422 because LLMs are user-configured — it's not necessarily our fault.
+	if svcErr != nil {
+		return nil, 0, svcErr
 	}
 
 	return translateResponse{Items: items}, http.StatusOK, nil
 }
 
 // translateValues translates a single item's array of strings. Returns the
-// translated values, the tokens used, and whether the translation succeeded.
-// Any failure (LLM error, <CANT>, malformed or wrong-length JSON response) is
-// reported as ok=false so the caller can simply omit the item.
-func translateValues(ctx context.Context, llmSvc flows.LLMService, instructions string, vals []string) ([]string, int64, bool) {
+// translated values, tokens used, and any service error. A nil values slice with
+// a nil error means the item was untranslatable (<CANT>, malformed or wrong-length
+// JSON response) and should be silently omitted. A non-nil error is an LLM service
+// failure and should be reported to the caller as 422.
+func translateValues(ctx context.Context, llmSvc flows.LLMService, instructions string, vals []string) ([]string, int64, error) {
 	inputBytes, err := json.Marshal(vals)
 	if err != nil {
-		return nil, 0, false
+		return nil, 0, nil
 	}
 
 	resp, err := llmSvc.Response(ctx, instructions, string(inputBytes), translateMaxTokens)
 	if err != nil {
-		return nil, 0, false
+		// real LLM services wrap their errors as *ai.ServiceError already; wrap anything else
+		// (e.g. from the test service) so the handler response is consistently a 422.
+		var aerr *ai.ServiceError
+		if !errors.As(err, &aerr) {
+			err = &ai.ServiceError{Message: err.Error(), Code: ai.ErrorUnknown}
+		}
+		return nil, 0, err
 	}
 
 	if resp.Output == "<CANT>" {
-		return nil, resp.TokensUsed, false
+		return nil, resp.TokensUsed, nil
 	}
 
 	var translated []string
 	if err := json.Unmarshal([]byte(resp.Output), &translated); err != nil {
-		return nil, resp.TokensUsed, false
+		return nil, resp.TokensUsed, nil
 	}
 	if len(translated) != len(vals) {
-		return nil, resp.TokensUsed, false
+		return nil, resp.TokensUsed, nil
 	}
-	return translated, resp.TokensUsed, true
+	return translated, resp.TokensUsed, nil
 }
