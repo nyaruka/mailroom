@@ -18,8 +18,8 @@ type LLM struct {
 func InsertLLM(t *testing.T, rt *runtime.Runtime, org *Org, uuid assets.LLMUUID, typ string, model, name string, config map[string]any) *LLM {
 	var id models.LLMID
 	err := rt.DB.Get(&id,
-		`INSERT INTO ai_llm(org_id, uuid, llm_type, model, name, config, roles, is_system, is_active, created_on, modified_on, created_by_id, modified_by_id)
-		VALUES($1, $2, $3, $4, $5, $6, 'TF', FALSE, TRUE, NOW(), NOW(), 1, 1) RETURNING id`, org.ID, uuid, typ, model, name, models.JSONB[map[string]any]{V: config},
+		`INSERT INTO ai_llm(org_id, uuid, llm_type, model, name, config, max_output_tokens, roles, is_system, is_active, created_on, modified_on, created_by_id, modified_by_id)
+		VALUES($1, $2, $3, $4, $5, $6, 4096, 'TF', FALSE, TRUE, NOW(), NOW(), 1, 1) RETURNING id`, org.ID, uuid, typ, model, name, models.JSONB[map[string]any]{V: config},
 	)
 	require.NoError(t, err)
 	return &LLM{ID: id, UUID: uuid}

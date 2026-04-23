@@ -21,11 +21,6 @@ func init() {
 	web.InternalRoute(http.MethodPost, "/llm/translate", web.JSONPayload(handleTranslate))
 }
 
-// translateMaxTokens is the output token cap for the batch call. All items are
-// translated together, but even a maximal request stays well under this cap and
-// under every supported provider's model limit.
-const translateMaxTokens = 8000
-
 // Performs batch translation using an LLM. Items is a map keyed by a
 // caller-supplied opaque id; each entry holds the array of strings to
 // translate together.
@@ -99,7 +94,7 @@ func handleTranslate(ctx context.Context, rt *runtime.Runtime, r *translateReque
 	}
 
 	callStart := time.Now()
-	resp, err := llmSvc.Response(ctx, instructions, string(inputBytes), translateMaxTokens)
+	resp, err := llmSvc.Response(ctx, instructions, string(inputBytes), llm.MaxOutputTokens())
 	var tokensUsed int64
 	if resp != nil {
 		tokensUsed = resp.TokensUsed
