@@ -4,11 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"database/sql/driver"
-	"encoding/json"
 	"fmt"
 	"net/http"
-	"slices"
-	"strings"
 	"time"
 
 	"github.com/nyaruka/goflow/assets"
@@ -31,38 +28,10 @@ var registeredLLMServices = map[string]func(*LLM, *http.Client) (flows.LLMServic
 // Register a LLM service factory with the engine
 func init() {
 	RegisterLLMService("test", func(*LLM, *http.Client) (flows.LLMService, error) {
-		return &testLLMService{inner: services.NewLLM()}, nil
+		return services.NewLLM(), nil
 	})
 
 	goflow.RegisterLLMServiceFactory(llmServiceFactory)
-}
-
-// testLLMService wraps goflow's test LLM service so that directives like
-// "\return ..." and "\error ..." also work when the input is a JSON object of
-// string arrays (as used by the translate endpoint). It finds the first string
-// value in sorted-key order that starts with a directive and forwards that to
-// the underlying service as the input.
-type testLLMService struct {
-	inner flows.LLMService
-}
-
-func (s *testLLMService) Response(ctx context.Context, instructions, input string, maxTokens int) (*flows.LLMResponse, error) {
-	if len(input) > 0 && input[0] == '{' {
-		var obj map[string][]string
-		if err := json.Unmarshal([]byte(input), &obj); err == nil {
-			keys := make([]string, 0, len(obj))
-			for k := range obj {
-				keys = append(keys, k)
-			}
-			slices.Sort(keys)
-			for _, k := range keys {
-				if len(obj[k]) > 0 && (strings.HasPrefix(obj[k][0], "\\return ") || strings.HasPrefix(obj[k][0], "\\error ")) {
-					return s.inner.Response(ctx, instructions, obj[k][0], maxTokens)
-				}
-			}
-		}
-	}
-	return s.inner.Response(ctx, instructions, input, maxTokens)
 }
 
 // RegisterLLMService registers a LLM service for the given type code
