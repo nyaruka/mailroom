@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"slices"
 	"time"
 
 	"github.com/nyaruka/gocommon/i18n"
@@ -106,8 +107,9 @@ func handleTranslate(ctx context.Context, rt *runtime.Runtime, r *translateReque
 	}
 
 	// A <CANT> response or anything unparseable means nothing was translatable;
-	// return an empty items map. The LLM can also omit individual keys from the
-	// object to signal that only those items were untranslatable.
+	// return an empty items map. The LLM can also signal per-item untranslatability
+	// by returning "<CANT>" in place of an individual string or by omitting the key
+	// entirely — either drops that whole key from the response.
 	items := make(map[string][]string)
 	if resp.Output == "<CANT>" {
 		return translateResponse{Items: items}, http.StatusOK, nil
@@ -120,7 +122,7 @@ func handleTranslate(ctx context.Context, rt *runtime.Runtime, r *translateReque
 
 	for id, vals := range r.Items {
 		tvals, ok := translated[id]
-		if !ok || len(tvals) != len(vals) {
+		if !ok || len(tvals) != len(vals) || slices.Contains(tvals, "<CANT>") {
 			continue
 		}
 		items[id] = tvals

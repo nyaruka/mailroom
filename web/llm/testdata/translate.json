@@ -83,5 +83,44 @@
                 "b7d91a22-8e4f-4a1b-9d3c-2f7e5b8a9c10:arguments": ["y35 y34h"]
             }
         }
+    },
+    {
+        "label": "partial - one item untranslatable",
+        "method": "POST",
+        "path": "/mi/llm/translate",
+        "body": {
+            "org_id": 1,
+            "llm_id": 10002,
+            "source": "eng",
+            "target": "spa",
+            "items": {
+                "a1f0e2c4-5b3e-4d7a-9c2f-1e8d6a4b7c35:text": ["Hello"],
+                "a1f0e2c4-5b3e-4d7a-9c2f-1e8d6a4b7c35:quick_replies": ["untranslatable"]
+            }
+        },
+        "status": 200,
+        "response": {
+            "items": {
+                "a1f0e2c4-5b3e-4d7a-9c2f-1e8d6a4b7c35:text": ["H3110"]
+            }
+        }
+    },
+    {
+        "label": "all untranslatable",
+        "method": "POST",
+        "path": "/mi/llm/translate",
+        "body": {
+            "org_id": 1,
+            "llm_id": 10002,
+            "source": "eng",
+            "target": "spa",
+            "items": {
+                "a1f0e2c4-5b3e-4d7a-9c2f-1e8d6a4b7c35:text": ["untranslatable"]
+            }
+        },
+        "status": 200,
+        "response": {
+            "items": {}
+        }
     }
 ]

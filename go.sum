@@ -219,6 +219,8 @@ github.com/nyaruka/gocommon v1.79.0 h1:0DTMIIuBROHKCAf/0InJikjai0YDsf7UQ7/zSdfhC
 github.com/nyaruka/gocommon v1.79.0/go.mod h1:ENjCYP0o6EsErj3/J6HMEfxJ/0MpUzAEPQpdIyV7BaY=
 github.com/nyaruka/goflow v0.273.7 h1:cWHZrLOHYUsjY9YBv5B/+Zr41ovOA0zGrIk8FmdNVu8=
 github.com/nyaruka/goflow v0.273.7/go.mod h1:/rEAg9Jol9OChzUjuGVAr2QaX7zisGaa7yNHMlyu5K0=
+github.com/nyaruka/goflow v0.273.8 h1:SoMbbFavhjetVgbE6fGeVj9qQUwIYe7HzO9umiG0Axc=
+github.com/nyaruka/goflow v0.273.8/go.mod h1:/rEAg9Jol9OChzUjuGVAr2QaX7zisGaa7yNHMlyu5K0=
 github.com/nyaruka/null/v3 v3.0.0 h1:JvOiNuKmRBFHxzZFt4sWii+ewmMkCQ1vO7X0clTNn6E=
 github.com/nyaruka/null/v3 v3.0.0/go.mod h1:Sus286RmC8P0VihFuQDDQPib/xJQ7++TsaPLdRuwgVc=
 github.com/nyaruka/phonenumbers v1.7.1 h1:k8FHBMLegwW2tEIhsurC5YJk5Dix++H1k6liu1LUruY=
