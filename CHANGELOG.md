@@ -1,3 +1,8 @@
+v26.1.98 (2026-04-24)
+-------------------------
+ * Load LLM max_output_tokens from db and use it for translate calls
+ * Translate all items in a single LLM call
+
 v26.1.97 (2026-04-23)
 -------------------------
  * Return 422 when LLM service call fails in translate endpoint
