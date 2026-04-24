@@ -6,11 +6,10 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"sync"
+	"slices"
 	"time"
 
 	"github.com/nyaruka/gocommon/i18n"
-	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/v26/core/ai"
 	"github.com/nyaruka/mailroom/v26/core/ai/prompts"
 	"github.com/nyaruka/mailroom/v26/core/models"
@@ -22,19 +21,11 @@ func init() {
 	web.InternalRoute(http.MethodPost, "/llm/translate", web.JSONPayload(handleTranslate))
 }
 
-// translateConcurrency is the maximum number of LLM calls made in parallel
-// for a single translate request.
-const translateConcurrency = 5
-
-// translateMaxTokens is the output token cap for a single item call. An item
-// typically holds a handful of short strings; even a maximal ~10KB text value
-// translates to a few thousand output tokens, well under this cap and under
-// every supported provider's model limit.
-const translateMaxTokens = 8000
-
 // Performs batch translation using an LLM. Items is a map keyed by a
 // caller-supplied opaque id; each entry holds the array of strings to
-// translate together.
+// translate together. The id is passed through to the LLM as the key of a
+// JSON object so the prompt can key off its suffix (":text", ":quick_replies",
+// ":arguments") for context-dependent rules.
 //
 //	{
 //	  "org_id": 1,
@@ -86,63 +77,21 @@ func handleTranslate(ctx context.Context, rt *runtime.Runtime, r *translateReque
 	}
 	instructions := prompts.Render(instructionsTpl, r)
 
-	type result struct {
-		id     string
-		values []string
-		err    error
+	inputBytes, err := json.Marshal(r.Items)
+	if err != nil {
+		return nil, 0, fmt.Errorf("error marshaling input: %w", err)
 	}
 
-	var wg sync.WaitGroup
-	sem := make(chan struct{}, translateConcurrency)
-	results := make(chan result)
-
-	for id, vals := range r.Items {
-		wg.Go(func() {
-			sem <- struct{}{}
-			defer func() { <-sem }()
-
-			callStart := time.Now()
-			translated, tokensUsed, err := translateValues(ctx, llmSvc, instructions, vals)
-			llm.RecordCall(rt, time.Since(callStart), tokensUsed)
-
-			results <- result{id: id, values: translated, err: err}
-		})
+	callStart := time.Now()
+	resp, err := llmSvc.Response(ctx, instructions, string(inputBytes), llm.MaxOutputTokens())
+	var tokensUsed int64
+	if resp != nil {
+		tokensUsed = resp.TokensUsed
 	}
-
-	go func() { wg.Wait(); close(results) }()
-
-	items := make(map[string][]string)
-	var svcErr error
-	for res := range results {
-		if res.err != nil && svcErr == nil {
-			svcErr = res.err
-		}
-		if res.values != nil {
-			items[res.id] = res.values
-		}
-	}
+	llm.RecordCall(rt, time.Since(callStart), tokensUsed)
 
 	// An error from the LLM service itself (bad credentials, rate limit, model unavailable, etc.)
 	// is reported as 422 because LLMs are user-configured — it's not necessarily our fault.
-	if svcErr != nil {
-		return nil, 0, svcErr
-	}
-
-	return translateResponse{Items: items}, http.StatusOK, nil
-}
-
-// translateValues translates a single item's array of strings. Returns the
-// translated values, tokens used, and any service error. A nil values slice with
-// a nil error means the item was untranslatable (<CANT>, malformed or wrong-length
-// JSON response) and should be silently omitted. A non-nil error is an LLM service
-// failure and should be reported to the caller as 422.
-func translateValues(ctx context.Context, llmSvc flows.LLMService, instructions string, vals []string) ([]string, int64, error) {
-	inputBytes, err := json.Marshal(vals)
-	if err != nil {
-		return nil, 0, nil
-	}
-
-	resp, err := llmSvc.Response(ctx, instructions, string(inputBytes), translateMaxTokens)
 	if err != nil {
 		// context cancellation/deadline is a client/timeout issue, not an LLM config failure
 		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
@@ -157,16 +106,27 @@ func translateValues(ctx context.Context, llmSvc flows.LLMService, instructions 
 		return nil, 0, err
 	}
 
+	// A <CANT> response or anything unparseable means nothing was translatable;
+	// return an empty items map. The LLM can also signal per-item untranslatability
+	// by returning "<CANT>" in place of an individual string or by omitting the key
+	// entirely — either drops that whole key from the response.
+	items := make(map[string][]string)
 	if resp.Output == "<CANT>" {
-		return nil, resp.TokensUsed, nil
+		return translateResponse{Items: items}, http.StatusOK, nil
 	}
 
-	var translated []string
+	var translated map[string][]string
 	if err := json.Unmarshal([]byte(resp.Output), &translated); err != nil {
-		return nil, resp.TokensUsed, nil
+		return translateResponse{Items: items}, http.StatusOK, nil
 	}
-	if len(translated) != len(vals) {
-		return nil, resp.TokensUsed, nil
+
+	for id, vals := range r.Items {
+		tvals, ok := translated[id]
+		if !ok || len(tvals) != len(vals) || slices.Contains(tvals, "<CANT>") {
+			continue
+		}
+		items[id] = tvals
 	}
-	return translated, resp.TokensUsed, nil
+
+	return translateResponse{Items: items}, http.StatusOK, nil
 }

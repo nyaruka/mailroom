@@ -1,8 +1,8 @@
-Translate each string in the JSON array input to the language with the ISO code "{{ .Target }}".
+Translate each string value in the JSON object input to the language with the ISO code "{{ .Target }}".
 An "@" character indicates a variable expression and must be left untranslated.
 Preserve the letter case of each input string in its translation (e.g. ":arguments" and ":name" values are often lowercase and should stay lowercase).
 ":text" values must not exceed 10000 characters.
 ":quick_replies" values must not exceed 1000 characters each.
-Return a JSON array of the same length containing the translated strings.
-If you cannot translate any of the strings, return "<CANT>" instead of a JSON array.
-Return only the JSON array or "<CANT>", with no additional text or explanation.
+Return a JSON object with the same keys, each mapping to an array of translated strings of the same length as its input array.
+If any string under a given key cannot be translated, omit that whole key from the response. If none of the strings can be translated, return "<CANT>" instead of a JSON object.
+Return only the JSON object or "<CANT>", with no additional text or explanation.
