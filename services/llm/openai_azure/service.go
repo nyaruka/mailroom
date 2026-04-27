@@ -89,11 +89,11 @@ func (s *service) Response(ctx context.Context, instructions, input string, maxT
 
 func (s *service) error(err error, instructions, input string) error {
 	code := ai.ErrorUnknown
-	var aerr *responses.Error
-	if errors.As(err, &aerr) {
-		if aerr.StatusCode == http.StatusUnauthorized {
+	if aerr, ok := errors.AsType[*responses.Error](err); ok {
+		switch aerr.StatusCode {
+		case http.StatusUnauthorized:
 			code = ai.ErrorCredentials
-		} else if aerr.StatusCode == http.StatusTooManyRequests {
+		case http.StatusTooManyRequests:
 			code = ai.ErrorRateLimit
 		}
 	}

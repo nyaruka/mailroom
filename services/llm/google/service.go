@@ -66,11 +66,11 @@ func (s *service) Response(ctx context.Context, instructions, input string, maxT
 
 func (s *service) error(err error, instructions, input string) error {
 	code := ai.ErrorUnknown
-	var aerr *genai.APIError
-	if errors.As(err, &aerr) {
-		if aerr.Code == http.StatusUnauthorized {
+	if aerr, ok := errors.AsType[*genai.APIError](err); ok {
+		switch aerr.Code {
+		case http.StatusUnauthorized:
 			code = ai.ErrorCredentials
-		} else if aerr.Code == http.StatusTooManyRequests {
+		case http.StatusTooManyRequests:
 			code = ai.ErrorRateLimit
 		}
 	}
