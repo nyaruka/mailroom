@@ -1,3 +1,7 @@
+v26.1.100 (2026-04-27)
+-------------------------
+ * Use System field for Anthropic instructions, clean output once
+
 v26.1.99 (2026-04-27)
 -------------------------
  * Reject /llm/translate requests with LLMs lacking the translation role
