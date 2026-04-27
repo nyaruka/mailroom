@@ -21,14 +21,15 @@ func TestLLMs(t *testing.T) {
 	require.NoError(t, err)
 
 	tcs := []struct {
-		id   models.LLMID
-		uuid assets.LLMUUID
-		name string
-		typ  string
+		id    models.LLMID
+		uuid  assets.LLMUUID
+		name  string
+		typ   string
+		roles []assets.LLMRole
 	}{
-		{testdb.OpenAI.ID, testdb.OpenAI.UUID, "GPT-4o", "openai"},
-		{testdb.Anthropic.ID, testdb.Anthropic.UUID, "Claude", "anthropic"},
-		{testdb.TestLLM.ID, testdb.TestLLM.UUID, "Test", "test"},
+		{testdb.OpenAI.ID, testdb.OpenAI.UUID, "GPT-4o", "openai", []assets.LLMRole{assets.LLMRoleTranslation, assets.LLMRoleFlows}},
+		{testdb.Anthropic.ID, testdb.Anthropic.UUID, "Claude", "anthropic", []assets.LLMRole{assets.LLMRoleTranslation, assets.LLMRoleFlows}},
+		{testdb.TestLLM.ID, testdb.TestLLM.UUID, "Test", "test", []assets.LLMRole{assets.LLMRoleTranslation, assets.LLMRoleFlows}},
 	}
 
 	assert.Equal(t, len(tcs), len(llms))
@@ -38,6 +39,7 @@ func TestLLMs(t *testing.T) {
 		assert.Equal(t, tc.id, c.ID())
 		assert.Equal(t, tc.name, c.Name())
 		assert.Equal(t, tc.typ, c.Type())
+		assert.Equal(t, tc.roles, c.Roles())
 	}
 
 	assert.Equal(t, "Claude", oa.LLMByID(testdb.Anthropic.ID).Name())
