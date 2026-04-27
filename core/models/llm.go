@@ -23,11 +23,11 @@ type LLMID int
 // NilLLMID is nil value for LLM IDs
 const NilLLMID = LLMID(0)
 
-var registeredLLMServices = map[string]func(*LLM, *http.Client) (flows.LLMService, error){}
+var registeredLLMServices = map[string]func(*runtime.Runtime, *LLM, *http.Client) (flows.LLMService, error){}
 
 // Register a LLM service factory with the engine
 func init() {
-	RegisterLLMService("test", func(*LLM, *http.Client) (flows.LLMService, error) {
+	RegisterLLMService("test", func(*runtime.Runtime, *LLM, *http.Client) (flows.LLMService, error) {
 		return services.NewLLM(), nil
 	})
 
@@ -35,7 +35,7 @@ func init() {
 }
 
 // RegisterLLMService registers a LLM service for the given type code
-func RegisterLLMService(typ string, fn func(*LLM, *http.Client) (flows.LLMService, error)) {
+func RegisterLLMService(typ string, fn func(*runtime.Runtime, *LLM, *http.Client) (flows.LLMService, error)) {
 	registeredLLMServices[typ] = fn
 }
 
@@ -43,7 +43,7 @@ func llmServiceFactory(rt *runtime.Runtime) engine.LLMServiceFactory {
 	httpClient, _ := goflow.HTTP(rt.Config)
 
 	return func(llm *flows.LLM) (flows.LLMService, error) {
-		return llm.Asset().(*LLM).AsService(httpClient)
+		return llm.Asset().(*LLM).AsService(rt, httpClient)
 	}
 }
 
@@ -68,12 +68,12 @@ func (l *LLM) Config() Config          { return l.Config_ }
 func (l *LLM) MaxOutputTokens() int    { return l.MaxOutputTokens_ }
 func (l *LLM) Roles() []assets.LLMRole { return l.Roles_ }
 
-func (l *LLM) AsService(client *http.Client) (flows.LLMService, error) {
+func (l *LLM) AsService(rt *runtime.Runtime, client *http.Client) (flows.LLMService, error) {
 	fn := registeredLLMServices[l.Type()]
 	if fn == nil {
 		return nil, fmt.Errorf("unknown type '%s' for LLM: %s", l.Type(), l.UUID())
 	}
-	return fn(l, client)
+	return fn(rt, l, client)
 }
 
 func (l *LLM) RecordCall(rt *runtime.Runtime, d time.Duration, tokensUsed int64) {
