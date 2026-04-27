@@ -45,6 +45,24 @@
         }
     },
     {
+        "label": "LLM without translation role",
+        "method": "POST",
+        "path": "/mi/llm/translate",
+        "body": {
+            "org_id": 1,
+            "llm_id": 30000,
+            "source": "eng",
+            "target": "spa",
+            "items": {
+                "a1f0e2c4-5b3e-4d7a-9c2f-1e8d6a4b7c35:text": ["Hello world"]
+            }
+        },
+        "status": 500,
+        "response": {
+            "error": "LLM with ID 30000 does not support translation"
+        }
+    },
+    {
         "label": "empty items",
         "method": "POST",
         "path": "/mi/llm/translate",
