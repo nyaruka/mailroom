@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/nyaruka/gocommon/i18n"
+	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/mailroom/v26/core/ai"
 	"github.com/nyaruka/mailroom/v26/core/ai/prompts"
 	"github.com/nyaruka/mailroom/v26/core/models"
@@ -64,6 +65,9 @@ func handleTranslate(ctx context.Context, rt *runtime.Runtime, r *translateReque
 	llm := oa.LLMByID(r.LLMID)
 	if llm == nil {
 		return nil, 0, fmt.Errorf("no such LLM with ID %d", r.LLMID)
+	}
+	if !slices.Contains(llm.Roles(), assets.LLMRoleTranslation) {
+		return nil, 0, fmt.Errorf("LLM with ID %d does not support translation", r.LLMID)
 	}
 
 	llmSvc, err := llm.AsService(http.DefaultClient)
