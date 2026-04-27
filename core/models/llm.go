@@ -49,22 +49,24 @@ func llmServiceFactory(rt *runtime.Runtime) engine.LLMServiceFactory {
 
 // LLM is our type for a large language model
 type LLM struct {
-	ID_              LLMID          `json:"id"`
-	UUID_            assets.LLMUUID `json:"uuid"`
-	Type_            string         `json:"llm_type"`
-	Model_           string         `json:"model"`
-	Name_            string         `json:"name"`
-	Config_          Config         `json:"config"`
-	MaxOutputTokens_ int            `json:"max_output_tokens"`
+	ID_              LLMID            `json:"id"`
+	UUID_            assets.LLMUUID   `json:"uuid"`
+	Type_            string           `json:"llm_type"`
+	Model_           string           `json:"model"`
+	Name_            string           `json:"name"`
+	Config_          Config           `json:"config"`
+	MaxOutputTokens_ int              `json:"max_output_tokens"`
+	Roles_           []assets.LLMRole `json:"roles"`
 }
 
-func (l *LLM) ID() LLMID            { return l.ID_ }
-func (l *LLM) UUID() assets.LLMUUID { return l.UUID_ }
-func (l *LLM) Name() string         { return l.Name_ }
-func (l *LLM) Type() string         { return l.Type_ }
-func (l *LLM) Model() string        { return l.Model_ }
-func (l *LLM) Config() Config       { return l.Config_ }
-func (l *LLM) MaxOutputTokens() int { return l.MaxOutputTokens_ }
+func (l *LLM) ID() LLMID               { return l.ID_ }
+func (l *LLM) UUID() assets.LLMUUID    { return l.UUID_ }
+func (l *LLM) Name() string            { return l.Name_ }
+func (l *LLM) Type() string            { return l.Type_ }
+func (l *LLM) Model() string           { return l.Model_ }
+func (l *LLM) Config() Config          { return l.Config_ }
+func (l *LLM) MaxOutputTokens() int    { return l.MaxOutputTokens_ }
+func (l *LLM) Roles() []assets.LLMRole { return l.Roles_ }
 
 func (l *LLM) AsService(client *http.Client) (flows.LLMService, error) {
 	fn := registeredLLMServices[l.Type()]
@@ -92,7 +94,8 @@ func loadLLMs(ctx context.Context, db *sql.DB, orgID OrgID) ([]assets.LLM, error
 
 const sqlSelectLLMs = `
 SELECT ROW_TO_JSON(r) FROM (
-      SELECT l.id, l.uuid, l.name, l.llm_type, l.model, l.config, l.max_output_tokens
+      SELECT l.id, l.uuid, l.name, l.llm_type, l.model, l.config, l.max_output_tokens,
+             (SELECT ARRAY(SELECT CASE r WHEN 'T' THEN 'translation' WHEN 'F' THEN 'flows' END FROM unnest(regexp_split_to_array(l.roles,'')) AS r)) AS roles
         FROM ai_llm l
        WHERE l.org_id = $1 AND l.is_active
     ORDER BY l.created_on ASC
