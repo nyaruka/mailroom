@@ -44,16 +44,9 @@ func New(m *models.LLM, c *http.Client) (flows.LLMService, error) {
 
 func (s *service) Response(ctx context.Context, instructions, input string, maxTokens int) (*flows.LLMResponse, error) {
 	resp, err := s.client.Messages.New(ctx, anthropic.MessageNewParams{
-		Model: anthropic.Model(s.model),
+		Model:  anthropic.Model(s.model),
+		System: []anthropic.TextBlockParam{{Text: instructions}},
 		Messages: []anthropic.MessageParam{
-			{
-				Role: anthropic.MessageParamRoleAssistant,
-				Content: []anthropic.ContentBlockParamUnion{
-					{
-						OfText: &anthropic.TextBlockParam{Text: instructions},
-					},
-				},
-			},
 			{
 				Role: anthropic.MessageParamRoleUser,
 				Content: []anthropic.ContentBlockParamUnion{
@@ -73,11 +66,11 @@ func (s *service) Response(ctx context.Context, instructions, input string, maxT
 	var output strings.Builder
 	for _, content := range resp.Content {
 		if content.Type == "text" {
-			output.WriteString(s.cleanOutput(content.Text))
+			output.WriteString(content.Text)
 		}
 	}
 
-	return &flows.LLMResponse{Output: output.String(), TokensUsed: resp.Usage.InputTokens + resp.Usage.OutputTokens}, nil
+	return &flows.LLMResponse{Output: s.cleanOutput(output.String()), TokensUsed: resp.Usage.InputTokens + resp.Usage.OutputTokens}, nil
 }
 
 func (s *service) error(err error, instructions, input string) error {
@@ -94,7 +87,7 @@ func (s *service) error(err error, instructions, input string) error {
 }
 
 func (s *service) cleanOutput(output string) string {
-	output = strings.Replace(output, "<<ASSISTANT_CONVERSATION_START>>", "", -1)
-	output = strings.Replace(output, "<<ASSISTANT_CONVERSATION_END>>", "", -1)
+	output = strings.ReplaceAll(output, "<<ASSISTANT_CONVERSATION_START>>", "")
+	output = strings.ReplaceAll(output, "<<ASSISTANT_CONVERSATION_END>>", "")
 	return strings.TrimSpace(output)
 }
