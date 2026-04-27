@@ -23,11 +23,11 @@ func TestService(t *testing.T) {
 	goodLLM := oa.LLMByID(good.ID)
 
 	// can't create service with bad config
-	svc, err := google.New(badLLM, http.DefaultClient)
+	svc, err := google.New(rt, badLLM, http.DefaultClient)
 	assert.EqualError(t, err, "config incomplete for LLM: c69723d8-fb37-4cf6-9ec4-bc40cb36f2cc")
 	assert.Nil(t, svc)
 
-	svc, err = google.New(goodLLM, http.DefaultClient)
+	svc, err = google.New(rt, goodLLM, http.DefaultClient)
 	assert.NoError(t, err)
 	assert.NotNil(t, svc)
 }

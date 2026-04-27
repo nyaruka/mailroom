@@ -12,6 +12,7 @@ import (
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/v26/core/ai"
 	"github.com/nyaruka/mailroom/v26/core/models"
+	"github.com/nyaruka/mailroom/v26/runtime"
 )
 
 const (
@@ -30,7 +31,7 @@ type service struct {
 	model  string
 }
 
-func New(m *models.LLM, c *http.Client) (flows.LLMService, error) {
+func New(rt *runtime.Runtime, m *models.LLM, c *http.Client) (flows.LLMService, error) {
 	apiKey := m.Config().GetString(configAPIKey, "")
 	if apiKey == "" {
 		return nil, fmt.Errorf("config incomplete for LLM: %s", m.UUID())

@@ -11,6 +11,7 @@ import (
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/v26/core/ai"
 	"github.com/nyaruka/mailroom/v26/core/models"
+	"github.com/nyaruka/mailroom/v26/runtime"
 	"github.com/openai/openai-go"
 	"github.com/openai/openai-go/azure"
 	"github.com/openai/openai-go/option"
@@ -37,7 +38,7 @@ type service struct {
 	model  string
 }
 
-func New(m *models.LLM, c *http.Client) (flows.LLMService, error) {
+func New(rt *runtime.Runtime, m *models.LLM, c *http.Client) (flows.LLMService, error) {
 	apiKey := m.Config().GetString(configAPIKey, "")
 	endpoint := m.Config().GetString(configEndpoint, "")
 	parsedEndpoint, err := url.Parse(endpoint)

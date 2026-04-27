@@ -34,11 +34,11 @@ func TestService(t *testing.T) {
 	})}
 
 	// can't create service with bad config
-	svc, err := openai_azure.New(badLLM, client)
+	svc, err := openai_azure.New(rt, badLLM, client)
 	assert.EqualError(t, err, "config incomplete for LLM: c69723d8-fb37-4cf6-9ec4-bc40cb36f2cc")
 	assert.Nil(t, svc)
 
-	svc, err = openai_azure.New(goodLLM, client)
+	svc, err = openai_azure.New(rt, goodLLM, client)
 	assert.NoError(t, err)
 	assert.NotNil(t, svc)
 
