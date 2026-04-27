@@ -1,3 +1,8 @@
+v26.1.99 (2026-04-27)
+-------------------------
+ * Reject /llm/translate requests with LLMs lacking the translation role
+ * Update to goflow v0.273.10 and load LLM roles from database
+
 v26.1.98 (2026-04-24)
 -------------------------
  * Load LLM max_output_tokens from db and use it for translate calls
