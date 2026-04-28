@@ -14,7 +14,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.100.0
 	github.com/buger/jsonparser v1.1.2
 	github.com/centrifugal/gocent/v3 v3.4.0
-	github.com/elastic/go-elasticsearch/v8 v8.19.5
+	github.com/elastic/go-elasticsearch/v9 v9.3.3
 	github.com/getsentry/sentry-go v0.46.1
 	github.com/go-chi/chi/v5 v5.2.5
 	github.com/go-playground/validator/v10 v10.30.2
@@ -23,7 +23,7 @@ require (
 	github.com/gorilla/schema v1.4.1
 	github.com/lib/pq v1.12.3
 	github.com/nyaruka/ezconf v0.6.1
-	github.com/nyaruka/gocommon v1.79.0
+	github.com/nyaruka/gocommon v1.80.0
 	github.com/nyaruka/goflow v0.274.0
 	github.com/nyaruka/null/v3 v3.0.0
 	github.com/nyaruka/vkutil v0.20.0
