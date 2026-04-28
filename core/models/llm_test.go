@@ -27,9 +27,9 @@ func TestLLMs(t *testing.T) {
 		typ   string
 		roles []assets.LLMRole
 	}{
-		{testdb.OpenAI.ID, testdb.OpenAI.UUID, "GPT-4o", "openai", []assets.LLMRole{assets.LLMRoleTranslation, assets.LLMRoleFlows}},
-		{testdb.Anthropic.ID, testdb.Anthropic.UUID, "Claude", "anthropic", []assets.LLMRole{assets.LLMRoleTranslation, assets.LLMRoleFlows}},
-		{testdb.TestLLM.ID, testdb.TestLLM.UUID, "Test", "test", []assets.LLMRole{assets.LLMRoleTranslation, assets.LLMRoleFlows}},
+		{testdb.OpenAI.ID, testdb.OpenAI.UUID, "GPT-4o", "openai", []assets.LLMRole{assets.LLMRoleEditing, assets.LLMRoleEngine}},
+		{testdb.Anthropic.ID, testdb.Anthropic.UUID, "Claude", "anthropic", []assets.LLMRole{assets.LLMRoleEditing, assets.LLMRoleEngine}},
+		{testdb.TestLLM.ID, testdb.TestLLM.UUID, "Test", "test", []assets.LLMRole{assets.LLMRoleEditing, assets.LLMRoleEngine}},
 	}
 
 	assert.Equal(t, len(tcs), len(llms))
