@@ -1,3 +1,7 @@
+v26.1.103 (2026-04-28)
+-------------------------
+ * Update goflow to v0.274.0 and rename LLM roles translation/flows to editing/engine
+
 v26.1.102 (2026-04-28)
 -------------------------
  * Update dependencies
