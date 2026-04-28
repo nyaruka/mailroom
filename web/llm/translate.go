@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"slices"
 	"time"
@@ -121,6 +122,7 @@ func handleTranslate(ctx context.Context, rt *runtime.Runtime, r *translateReque
 
 	var translated map[string][]string
 	if err := json.Unmarshal([]byte(resp.Output), &translated); err != nil {
+		slog.Warn("translate: failed to parse LLM output", "error", err, "output", resp.Output, "llm_id", r.LLMID)
 		return translateResponse{Items: items}, http.StatusOK, nil
 	}
 
