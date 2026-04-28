@@ -1,3 +1,7 @@
+v26.1.105 (2026-04-28)
+-------------------------
+ * Log raw LLM output when /llm/translate fails to parse it
+
 v26.1.104 (2026-04-28)
 -------------------------
  * Reduce LLM max_output_tokens cap to 16000
