@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/elastic/go-elasticsearch/v8/typedapi/types/enums/operationtype"
+	"github.com/elastic/go-elasticsearch/v9/typedapi/types/enums/operationtype"
 	"github.com/nyaruka/gocommon/elastic"
 	"github.com/nyaruka/gocommon/i18n"
 	"github.com/nyaruka/gocommon/jsonx"

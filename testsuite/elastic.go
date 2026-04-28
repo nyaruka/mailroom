@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/elastic/go-elasticsearch/v8/typedapi/types/enums/conflicts"
+	"github.com/elastic/go-elasticsearch/v9/typedapi/types/enums/conflicts"
 	"github.com/nyaruka/gocommon/aws/dynamo"
 	"github.com/nyaruka/gocommon/elastic"
 	"github.com/nyaruka/gocommon/jsonx"
