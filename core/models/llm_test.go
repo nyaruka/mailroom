@@ -45,3 +45,20 @@ func TestLLMs(t *testing.T) {
 	assert.Equal(t, "Claude", oa.LLMByID(testdb.Anthropic.ID).Name())
 	assert.Nil(t, oa.LLMByID(1235))
 }
+
+func TestLLMMaxOutputTokens(t *testing.T) {
+	tcs := []struct {
+		configured int
+		expected   int
+	}{
+		{4096, 4096},
+		{32000, 32000},
+		{32001, 32000},
+		{128000, 32000},
+	}
+
+	for _, tc := range tcs {
+		l := &models.LLM{MaxOutputTokens_: tc.configured}
+		assert.Equal(t, tc.expected, l.MaxOutputTokens(), "configured=%d", tc.configured)
+	}
+}
