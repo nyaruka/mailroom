@@ -1,3 +1,8 @@
+v26.1.104 (2026-04-28)
+-------------------------
+ * Reduce LLM max_output_tokens cap to 16000
+ * Update go-elasticsearch to v9 and gocommon to v1.80.0
+
 v26.1.103 (2026-04-28)
 -------------------------
  * Update goflow to v0.274.0 and rename LLM roles translation/flows to editing/engine
