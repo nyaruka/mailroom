@@ -45,7 +45,7 @@
         }
     },
     {
-        "label": "LLM without translation role",
+        "label": "LLM without editing role",
         "method": "POST",
         "path": "/mi/llm/translate",
         "body": {
@@ -59,7 +59,7 @@
         },
         "status": 500,
         "response": {
-            "error": "LLM with ID 30000 does not support translation"
+            "error": "LLM with ID 30000 does not support editing"
         }
     },
     {

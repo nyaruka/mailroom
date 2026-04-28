@@ -98,7 +98,7 @@ func loadLLMs(ctx context.Context, db *sql.DB, orgID OrgID) ([]assets.LLM, error
 const sqlSelectLLMs = `
 SELECT ROW_TO_JSON(r) FROM (
       SELECT l.id, l.uuid, l.name, l.llm_type, l.model, l.config, l.max_output_tokens,
-             (SELECT ARRAY(SELECT CASE r WHEN 'T' THEN 'translation' WHEN 'F' THEN 'flows' END FROM unnest(regexp_split_to_array(l.roles,'')) AS r)) AS roles
+             (SELECT ARRAY(SELECT CASE r WHEN 'T' THEN 'editing' WHEN 'F' THEN 'engine' END FROM unnest(regexp_split_to_array(l.roles,'')) AS r)) AS roles
         FROM ai_llm l
        WHERE l.org_id = $1 AND l.is_active
     ORDER BY l.created_on ASC
