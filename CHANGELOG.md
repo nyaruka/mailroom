@@ -1,3 +1,7 @@
+v26.1.101 (2026-04-28)
+-------------------------
+ * Cap LLM max_output_tokens at 32000
+
 v26.1.100 (2026-04-27)
 -------------------------
  * Use System field for Anthropic instructions, clean output once
