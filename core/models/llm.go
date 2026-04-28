@@ -23,6 +23,9 @@ type LLMID int
 // NilLLMID is nil value for LLM IDs
 const NilLLMID = LLMID(0)
 
+// maxOutputTokensLimit is the hard ceiling we apply to any LLM's configured max_output_tokens.
+const maxOutputTokensLimit = 32000
+
 var registeredLLMServices = map[string]func(*runtime.Runtime, *LLM, *http.Client) (flows.LLMService, error){}
 
 // Register a LLM service factory with the engine
@@ -65,7 +68,7 @@ func (l *LLM) Name() string            { return l.Name_ }
 func (l *LLM) Type() string            { return l.Type_ }
 func (l *LLM) Model() string           { return l.Model_ }
 func (l *LLM) Config() Config          { return l.Config_ }
-func (l *LLM) MaxOutputTokens() int    { return l.MaxOutputTokens_ }
+func (l *LLM) MaxOutputTokens() int    { return min(l.MaxOutputTokens_, maxOutputTokensLimit) }
 func (l *LLM) Roles() []assets.LLMRole { return l.Roles_ }
 
 func (l *LLM) AsService(rt *runtime.Runtime, client *http.Client) (flows.LLMService, error) {
