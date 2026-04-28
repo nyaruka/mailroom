@@ -24,7 +24,7 @@ type LLMID int
 const NilLLMID = LLMID(0)
 
 // maxOutputTokensLimit is the hard ceiling we apply to any LLM's configured max_output_tokens.
-const maxOutputTokensLimit = 32000
+const maxOutputTokensLimit = 16000
 
 var registeredLLMServices = map[string]func(*runtime.Runtime, *LLM, *http.Client) (flows.LLMService, error){}
 

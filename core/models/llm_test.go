@@ -52,9 +52,9 @@ func TestLLMMaxOutputTokens(t *testing.T) {
 		expected   int
 	}{
 		{4096, 4096},
-		{32000, 32000},
-		{32001, 32000},
-		{128000, 32000},
+		{16000, 16000},
+		{16001, 16000},
+		{128000, 16000},
 	}
 
 	for _, tc := range tcs {
