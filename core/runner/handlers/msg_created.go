@@ -66,6 +66,7 @@ func handleMsgCreated(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAs
 			OrgID:       oa.OrgID(),
 			UUID:        event.UUID(),
 			ContactUUID: scene.ContactUUID(),
+			URNPath:     event.Msg.URN().Path(),
 			Text:        event.Msg.Text(),
 			InTicket:    event.TicketUUID != "",
 		})

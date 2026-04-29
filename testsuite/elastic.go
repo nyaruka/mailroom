@@ -38,9 +38,10 @@ func IndexMessages(t *testing.T, rt *runtime.Runtime) {
 	ctx := t.Context()
 
 	const query = `
-	SELECT m.uuid, m.org_id, m.text, m.created_on, m.ticket_uuid, c.uuid AS contact_uuid
+	SELECT m.uuid, m.org_id, m.text, m.created_on, m.ticket_uuid, c.uuid AS contact_uuid, COALESCE(u.path, '') AS urn_path
 	  FROM msgs_msg m
 	  JOIN contacts_contact c ON c.id = m.contact_id
+	  LEFT JOIN contacts_contacturn u ON u.id = m.contact_urn_id
 	 WHERE c.last_seen_on IS NOT NULL
 	   AND LENGTH(m.text) >= $1
 	   AND m.visibility IN ('V', 'A')
@@ -51,13 +52,13 @@ func IndexMessages(t *testing.T, rt *runtime.Runtime) {
 	defer rows.Close()
 
 	for rows.Next() {
-		var msgUUID, contactUUID string
+		var msgUUID, contactUUID, urnPath string
 		var orgID models.OrgID
 		var text string
 		var createdOn time.Time
 		var ticketUUID null.String
 
-		err := rows.Scan(&msgUUID, &orgID, &text, &createdOn, &ticketUUID, &contactUUID)
+		err := rows.Scan(&msgUUID, &orgID, &text, &createdOn, &ticketUUID, &contactUUID, &urnPath)
 		require.NoError(t, err)
 
 		msg := search.MessageDoc{
@@ -65,6 +66,7 @@ func IndexMessages(t *testing.T, rt *runtime.Runtime) {
 			UUID:        flows.EventUUID(msgUUID),
 			OrgID:       orgID,
 			ContactUUID: flows.ContactUUID(contactUUID),
+			URNPath:     urnPath,
 			Text:        text,
 			InTicket:    ticketUUID != "",
 		}
@@ -141,6 +143,7 @@ type IndexedMessage struct {
 	ID          string `json:"_id"`
 	Routing     string `json:"_routing"`
 	ContactUUID string `json:"contact_uuid"`
+	URNPath     string `json:"urn_path,omitempty"`
 	Text        string `json:"text"`
 }
 
