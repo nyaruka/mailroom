@@ -1,3 +1,7 @@
+v26.1.106 (2026-04-29)
+-------------------------
+ * Index urn_path on message documents
+
 v26.1.105 (2026-04-28)
 -------------------------
  * Log raw LLM output when /llm/translate fails to parse it
