@@ -28,6 +28,7 @@ type MessageDoc struct {
 	UUID        flows.EventUUID   `json:"-"`          // used as _id
 	OrgID       models.OrgID      `json:"org_id"`
 	ContactUUID flows.ContactUUID `json:"contact_uuid"`
+	URNPath     string            `json:"urn_path,omitempty"`
 	Text        string            `json:"text"`
 	InTicket    bool              `json:"in_ticket"`
 }
