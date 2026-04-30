@@ -11,6 +11,7 @@ import (
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/engine"
+	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/goflow/test/services"
 	"github.com/nyaruka/mailroom/v26/core/goflow"
 	"github.com/nyaruka/mailroom/v26/runtime"
@@ -79,10 +80,10 @@ func (l *LLM) AsService(rt *runtime.Runtime, client *http.Client) (flows.LLMServ
 	return fn(rt, l, client)
 }
 
-func (l *LLM) RecordCall(rt *runtime.Runtime, d time.Duration, tokensInput, tokensOutput int64) {
+func (l *LLM) RecordCall(rt *runtime.Runtime, e *events.LLMCalled) {
 	// TODO write daily LLMCount rows for tokens:in / tokens:out / calls once the model exists
 
-	rt.Stats.RecordLLMCall(l.Type(), l.Model(), d)
+	rt.Stats.RecordLLMCall(l.Type(), l.Model(), time.Duration(e.ElapsedMS)*time.Millisecond)
 }
 
 // loads the LLMs for the passed in org
