@@ -89,11 +89,12 @@ func handleTranslate(ctx context.Context, rt *runtime.Runtime, r *translateReque
 
 	callStart := time.Now()
 	resp, err := llmSvc.Response(ctx, instructions, string(inputBytes), llm.MaxOutputTokens())
-	var tokensUsed int64
+	var tokensInput, tokensOutput int64
 	if resp != nil {
-		tokensUsed = resp.TokensUsed
+		tokensInput = resp.TokensInput
+		tokensOutput = resp.TokensOutput
 	}
-	llm.RecordCall(rt, time.Since(callStart), tokensUsed)
+	llm.RecordCall(rt, time.Since(callStart), tokensInput, tokensOutput)
 
 	// An error from the LLM service itself (bad credentials, rate limit, model unavailable, etc.)
 	// is reported as 422 because LLMs are user-configured — it's not necessarily our fault.

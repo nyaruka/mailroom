@@ -79,8 +79,8 @@ func (l *LLM) AsService(rt *runtime.Runtime, client *http.Client) (flows.LLMServ
 	return fn(rt, l, client)
 }
 
-func (l *LLM) RecordCall(rt *runtime.Runtime, d time.Duration, tokensUsed int64) {
-	// TODO record tokens used ?
+func (l *LLM) RecordCall(rt *runtime.Runtime, d time.Duration, tokensInput, tokensOutput int64) {
+	// TODO write daily LLMCount rows for tokens:in / tokens:out / calls once the model exists
 
 	rt.Stats.RecordLLMCall(l.Type(), l.Model(), d)
 }
