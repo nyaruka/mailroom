@@ -1,3 +1,7 @@
+v26.1.107 (2026-04-30)
+-------------------------
+ * Record LLM input and output tokens separately
+
 v26.1.106 (2026-04-29)
 -------------------------
  * Index urn_path on message documents
