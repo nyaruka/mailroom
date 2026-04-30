@@ -71,7 +71,11 @@ func (s *service) Response(ctx context.Context, instructions, input string, maxT
 		}
 	}
 
-	return &flows.LLMResponse{Output: s.cleanOutput(output.String()), TokensUsed: resp.Usage.InputTokens + resp.Usage.OutputTokens}, nil
+	return &flows.LLMResponse{
+		Output:       s.cleanOutput(output.String()),
+		TokensInput:  resp.Usage.InputTokens,
+		TokensOutput: resp.Usage.OutputTokens,
+	}, nil
 }
 
 func (s *service) error(err error, instructions, input string) error {

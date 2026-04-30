@@ -12,6 +12,8 @@ import (
 
 	"github.com/nyaruka/gocommon/i18n"
 	"github.com/nyaruka/goflow/assets"
+	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/mailroom/v26/core/ai"
 	"github.com/nyaruka/mailroom/v26/core/ai/prompts"
 	"github.com/nyaruka/mailroom/v26/core/models"
@@ -89,11 +91,10 @@ func handleTranslate(ctx context.Context, rt *runtime.Runtime, r *translateReque
 
 	callStart := time.Now()
 	resp, err := llmSvc.Response(ctx, instructions, string(inputBytes), llm.MaxOutputTokens())
-	var tokensUsed int64
-	if resp != nil {
-		tokensUsed = resp.TokensUsed
+	if resp == nil {
+		resp = &flows.LLMResponse{}
 	}
-	llm.RecordCall(rt, time.Since(callStart), tokensUsed)
+	llm.RecordCall(rt, events.NewLLMCalled(flows.NewLLM(llm), instructions, string(inputBytes), resp, time.Since(callStart)))
 
 	// An error from the LLM service itself (bad credentials, rate limit, model unavailable, etc.)
 	// is reported as 422 because LLMs are user-configured — it's not necessarily our fault.

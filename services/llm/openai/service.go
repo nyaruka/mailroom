@@ -60,8 +60,9 @@ func (s *service) Response(ctx context.Context, instructions, input string, maxT
 	}
 
 	return &flows.LLMResponse{
-		Output:     strings.TrimSpace(resp.OutputText()),
-		TokensUsed: resp.Usage.TotalTokens,
+		Output:       strings.TrimSpace(resp.OutputText()),
+		TokensInput:  resp.Usage.InputTokens,
+		TokensOutput: resp.Usage.OutputTokens,
 	}, nil
 }
 

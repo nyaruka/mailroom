@@ -112,5 +112,6 @@ func TestService(t *testing.T) {
 	resp, err = svc.Response(ctx, "translate to Spanish", "Hello world", 1000)
 	assert.NoError(t, err)
 	assert.Equal(t, "Hola mundo", resp.Output)
-	assert.Equal(t, int64(123), resp.TokensUsed)
+	assert.Equal(t, int64(36), resp.TokensInput)
+	assert.Equal(t, int64(87), resp.TokensOutput)
 }

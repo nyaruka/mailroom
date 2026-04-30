@@ -3,7 +3,6 @@ package handlers
 import (
 	"context"
 	"log/slog"
-	"time"
 
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/events"
@@ -24,7 +23,7 @@ func handleLLMCalled(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAss
 	llm := oa.SessionAssets().LLMs().Get(event.LLM.UUID)
 	if llm != nil {
 		m := llm.Asset().(*models.LLM)
-		m.RecordCall(rt, time.Duration(event.ElapsedMS)*time.Millisecond, event.TokensUsed)
+		m.RecordCall(rt, event)
 	}
 
 	return nil
