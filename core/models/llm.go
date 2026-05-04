@@ -81,7 +81,8 @@ func (l *LLM) AsService(rt *runtime.Runtime, client *http.Client) (flows.LLMServ
 	return fn(rt, l, client)
 }
 
-func (l *LLM) RecordCall(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, e *events.LLMCalled) error {
+// RecordCall records stats for an LLM call and returns the daily count rows to be inserted.
+func (l *LLM) RecordCall(rt *runtime.Runtime, oa *OrgAssets, e *events.LLMCalled) []*LLMDailyCount {
 	rt.Stats.RecordLLMCall(l.Type(), l.Model(), time.Duration(e.ElapsedMS)*time.Millisecond)
 
 	day := dates.ExtractDate(dates.Now().In(oa.Env().Timezone()))
@@ -92,11 +93,7 @@ func (l *LLM) RecordCall(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets
 	if e.Tokens.Output > 0 {
 		counts = append(counts, &LLMDailyCount{LLMID: l.ID(), Day: day, Scope: "tokens:out", Count: e.Tokens.Output})
 	}
-
-	if err := BulkQuery(ctx, "inserted llm daily counts", rt.DB, sqlInsertLLMDailyCount, counts); err != nil {
-		return fmt.Errorf("error inserting llm daily counts: %w", err)
-	}
-	return nil
+	return counts
 }
 
 type LLMDailyCount struct {
@@ -107,6 +104,14 @@ type LLMDailyCount struct {
 }
 
 const sqlInsertLLMDailyCount = `INSERT INTO ai_llmcount(llm_id, scope, day, count, is_squashed) VALUES(:llm_id, :scope, :day, :count, FALSE)`
+
+// InsertLLMDailyCounts inserts the given LLM daily count rows.
+func InsertLLMDailyCounts(ctx context.Context, tx DBorTx, counts []*LLMDailyCount) error {
+	if len(counts) == 0 {
+		return nil
+	}
+	return BulkQuery(ctx, "inserted llm daily counts", tx, sqlInsertLLMDailyCount, counts)
+}
 
 // loads the LLMs for the passed in org
 func loadLLMs(ctx context.Context, db *sql.DB, orgID OrgID) ([]assets.LLM, error) {

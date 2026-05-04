@@ -2,13 +2,13 @@ package handlers
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/runner"
+	"github.com/nyaruka/mailroom/v26/core/runner/hooks"
 	"github.com/nyaruka/mailroom/v26/runtime"
 )
 
@@ -24,9 +24,7 @@ func handleLLMCalled(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAss
 	llm := oa.SessionAssets().LLMs().Get(event.LLM.UUID)
 	if llm != nil {
 		m := llm.Asset().(*models.LLM)
-		if err := m.RecordCall(ctx, rt, oa, event); err != nil {
-			return fmt.Errorf("error recording llm call: %w", err)
-		}
+		scene.AttachPreCommitHook(hooks.InsertLLMDailyCounts, m.RecordCall(rt, oa, event))
 	}
 
 	return nil

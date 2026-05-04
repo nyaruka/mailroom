@@ -69,9 +69,16 @@ func TestLLMRecordCall(t *testing.T) {
 		return events.NewLLMCalled(flows.NewLLM(llm), "instructions", "input", &flows.LLMResponse{Output: "output", TokensInput: in, TokensOutput: out}, 250*time.Millisecond)
 	}
 
-	require.NoError(t, llm.RecordCall(ctx, rt, oa, mkEvent(120, 340)))
-	require.NoError(t, llm.RecordCall(ctx, rt, oa, mkEvent(80, 200)))
-	require.NoError(t, llm.RecordCall(ctx, rt, oa, mkEvent(0, 0)))
+	assert.Len(t, llm.RecordCall(rt, oa, mkEvent(120, 340)), 3)
+	assert.Len(t, llm.RecordCall(rt, oa, mkEvent(80, 200)), 3)
+	assert.Len(t, llm.RecordCall(rt, oa, mkEvent(0, 0)), 1)
+
+	var allCounts []*models.LLMDailyCount
+	allCounts = append(allCounts, llm.RecordCall(rt, oa, mkEvent(120, 340))...)
+	allCounts = append(allCounts, llm.RecordCall(rt, oa, mkEvent(80, 200))...)
+	allCounts = append(allCounts, llm.RecordCall(rt, oa, mkEvent(0, 0))...)
+
+	require.NoError(t, models.InsertLLMDailyCounts(ctx, rt.DB, allCounts))
 
 	assertdb.Query(t, rt.DB, `SELECT COUNT(*) FROM ai_llmcount WHERE llm_id = $1`, testdb.OpenAI.ID).Returns(7)
 	assertdb.Query(t, rt.DB, `SELECT COALESCE(SUM(count), 0)::bigint FROM ai_llmcount WHERE llm_id = $1 AND scope = 'calls'`, testdb.OpenAI.ID).Returns(int64(3))
