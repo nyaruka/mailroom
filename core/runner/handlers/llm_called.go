@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 
 	"github.com/nyaruka/goflow/flows"
@@ -23,7 +24,9 @@ func handleLLMCalled(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAss
 	llm := oa.SessionAssets().LLMs().Get(event.LLM.UUID)
 	if llm != nil {
 		m := llm.Asset().(*models.LLM)
-		m.RecordCall(rt, event)
+		if err := m.RecordCall(ctx, rt, oa, event); err != nil {
+			return fmt.Errorf("error recording llm call: %w", err)
+		}
 	}
 
 	return nil

@@ -94,7 +94,9 @@ func handleTranslate(ctx context.Context, rt *runtime.Runtime, r *translateReque
 	if resp == nil {
 		resp = &flows.LLMResponse{}
 	}
-	llm.RecordCall(rt, events.NewLLMCalled(flows.NewLLM(llm), instructions, string(inputBytes), resp, time.Since(callStart)))
+	if rerr := llm.RecordCall(ctx, rt, oa, events.NewLLMCalled(flows.NewLLM(llm), instructions, string(inputBytes), resp, time.Since(callStart))); rerr != nil {
+		slog.Error("error recording llm call", "error", rerr, "llm_id", r.LLMID)
+	}
 
 	// An error from the LLM service itself (bad credentials, rate limit, model unavailable, etc.)
 	// is reported as 422 because LLMs are user-configured — it's not necessarily our fault.

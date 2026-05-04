@@ -243,6 +243,7 @@ DELETE FROM flows_flowstart;
 DELETE FROM flows_flowsession;
 DELETE FROM flows_flowrevision WHERE flow_id >= 30000;
 DELETE FROM flows_flow WHERE id >= 30000;
+DELETE FROM ai_llmcount;
 DELETE FROM ai_llm WHERE id >= 30000;
 DELETE FROM ivr_call;
 DELETE FROM msgs_msg_labels;
