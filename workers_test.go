@@ -81,3 +81,35 @@ func TestForemanAndWorkers(t *testing.T) {
 
 	assertvk.ZGetAll(t, vc, "{tasks:test}:active", map[string]float64{})
 }
+
+func TestForemanWithZeroWorkers(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	defer testsuite.Reset(t, rt, testsuite.ResetValkey)
+
+	wg := &sync.WaitGroup{}
+	q := queues.NewFair("test", 0)
+
+	vc := rt.VK.Get()
+	defer vc.Close()
+
+	tasks.RegisterType("test", func() tasks.Task { return &testTask{} })
+
+	// queue a task - it should not be processed because there are no workers
+	q.Push(ctx, vc, "test", 1, &testTask{}, false)
+
+	fm := mailroom.NewForeman(rt, q, 0)
+	fm.Start(wg) // must not spawn an Assign goroutine
+	fm.Stop()    // must not block waiting on a goroutine that was never started
+
+	wg.Wait() // returns immediately
+
+	// task should still be queued, never popped
+	size, err := q.Size(ctx, vc)
+	if err != nil {
+		t.Fatalf("error getting queue size: %v", err)
+	}
+	if size != 1 {
+		t.Fatalf("expected queue size 1, got %d", size)
+	}
+}

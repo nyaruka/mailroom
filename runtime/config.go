@@ -32,9 +32,9 @@ type Config struct {
 	AttachmentDomain string `help:"the domain that will be used for relative attachment"`
 	SpoolDir         string `help:"the directory to use for spool files"`
 
-	WorkersRealtime  int     `help:"the number of workers for the realtime task queue"`
-	WorkersBatch     int     `help:"the number of workers for the batch task queue"`
-	WorkersThrottled int     `help:"the number of workers for the throttled task queue"`
+	WorkersRealtime  int     `help:"the number of workers for the realtime task queue (set to 0 to disable processing of realtime tasks on this node)"`
+	WorkersBatch     int     `help:"the number of workers for the batch task queue (set to 0 to disable processing of batch tasks on this node)"`
+	WorkersThrottled int     `help:"the number of workers for the throttled task queue (set to 0 to disable processing of throttled tasks on this node)"`
 	WorkerOwnerLimit float64 `help:"the maximum number of workers, across nodes, available to a single owner, as a fraction of the per node worker counts"`
 
 	WebhooksTimeout              int     `help:"the timeout in milliseconds for webhook calls from engine"`
