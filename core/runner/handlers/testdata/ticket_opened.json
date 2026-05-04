@@ -15,7 +15,7 @@
                             "name": "Support"
                         },
                         "assignee": {
-                            "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25",
+                            "uuid": "ad9fdf9f-56ab-422a-b77d-e3ec26091a25",
                             "name": "Andy Admin"
                         }
                     }
@@ -134,7 +134,7 @@
                     "ticket": {
                         "assignee": {
                             "name": "Andy Admin",
-                            "uuid": "e29fdf9f-56ab-422a-b77d-e3ec26091a25"
+                            "uuid": "ad9fdf9f-56ab-422a-b77d-e3ec26091a25"
                         },
                         "status": "open",
                         "topic": {
