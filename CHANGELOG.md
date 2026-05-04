@@ -1,3 +1,7 @@
+v26.1.109 (2026-05-04)
+-------------------------
+ * Allow disabling task processing per queue by setting workers to zero
+
 v26.1.108 (2026-05-04)
 -------------------------
  * Record daily LLM call and token counts
