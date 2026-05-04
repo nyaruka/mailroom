@@ -1,3 +1,7 @@
+v26.1.108 (2026-05-04)
+-------------------------
+ * Record daily LLM call and token counts
+
 v26.1.107 (2026-04-30)
 -------------------------
  * Record LLM input and output tokens separately
