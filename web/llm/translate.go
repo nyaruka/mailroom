@@ -94,7 +94,10 @@ func handleTranslate(ctx context.Context, rt *runtime.Runtime, r *translateReque
 	if resp == nil {
 		resp = &flows.LLMResponse{}
 	}
-	llm.RecordCall(rt, events.NewLLMCalled(flows.NewLLM(llm), instructions, string(inputBytes), resp, time.Since(callStart)))
+	counts := llm.RecordCall(rt, oa, events.NewLLMCalled(flows.NewLLM(llm), instructions, string(inputBytes), resp, time.Since(callStart)))
+	if rerr := insertLLMCallCounts(ctx, rt, counts); rerr != nil {
+		slog.Error("error recording llm call", "error", rerr, "llm_id", r.LLMID)
+	}
 
 	// An error from the LLM service itself (bad credentials, rate limit, model unavailable, etc.)
 	// is reported as 422 because LLMs are user-configured — it's not necessarily our fault.
@@ -136,4 +139,17 @@ func handleTranslate(ctx context.Context, rt *runtime.Runtime, r *translateReque
 	}
 
 	return translateResponse{Items: items}, http.StatusOK, nil
+}
+
+// insertLLMCallCounts inserts the given LLM daily counts in a transaction.
+func insertLLMCallCounts(ctx context.Context, rt *runtime.Runtime, counts []*models.LLMDailyCount) error {
+	tx, err := rt.DB.BeginTxx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("error starting transaction: %w", err)
+	}
+	if err := models.InsertLLMDailyCounts(ctx, tx, counts); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
 }

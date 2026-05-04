@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/engine"
@@ -80,10 +81,36 @@ func (l *LLM) AsService(rt *runtime.Runtime, client *http.Client) (flows.LLMServ
 	return fn(rt, l, client)
 }
 
-func (l *LLM) RecordCall(rt *runtime.Runtime, e *events.LLMCalled) {
-	// TODO write daily LLMCount rows for tokens:in / tokens:out / calls once the model exists
-
+// RecordCall records stats for an LLM call and returns the daily count rows to be inserted.
+func (l *LLM) RecordCall(rt *runtime.Runtime, oa *OrgAssets, e *events.LLMCalled) []*LLMDailyCount {
 	rt.Stats.RecordLLMCall(l.Type(), l.Model(), time.Duration(e.ElapsedMS)*time.Millisecond)
+
+	day := dates.ExtractDate(dates.Now().In(oa.Env().Timezone()))
+	counts := []*LLMDailyCount{{LLMID: l.ID(), Day: day, Scope: "calls", Count: 1}}
+	if e.Tokens.Input > 0 {
+		counts = append(counts, &LLMDailyCount{LLMID: l.ID(), Day: day, Scope: "tokens:in", Count: e.Tokens.Input})
+	}
+	if e.Tokens.Output > 0 {
+		counts = append(counts, &LLMDailyCount{LLMID: l.ID(), Day: day, Scope: "tokens:out", Count: e.Tokens.Output})
+	}
+	return counts
+}
+
+type LLMDailyCount struct {
+	LLMID LLMID      `db:"llm_id"`
+	Day   dates.Date `db:"day"`
+	Scope string     `db:"scope"`
+	Count int64      `db:"count"`
+}
+
+const sqlInsertLLMDailyCount = `INSERT INTO ai_llmcount(llm_id, scope, day, count, is_squashed) VALUES(:llm_id, :scope, :day, :count, FALSE)`
+
+// InsertLLMDailyCounts inserts the given LLM daily count rows.
+func InsertLLMDailyCounts(ctx context.Context, tx DBorTx, counts []*LLMDailyCount) error {
+	if len(counts) == 0 {
+		return nil
+	}
+	return BulkQuery(ctx, "inserted llm daily counts", tx, sqlInsertLLMDailyCount, counts)
 }
 
 // loads the LLMs for the passed in org
