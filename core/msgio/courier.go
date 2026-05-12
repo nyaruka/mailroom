@@ -347,7 +347,7 @@ func FetchAttachment(ctx context.Context, rt *runtime.Runtime, ch *models.Channe
 		URL:         attURL,
 		MsgUUID:     msgUUID,
 	})
-	req, _ := http.NewRequest("POST", fmt.Sprintf("https://%s/c/_fetch-attachment", rt.Config.Domain), bytes.NewReader(payload))
+	req, _ := http.NewRequest("POST", fmt.Sprintf("https://%s/ci/attachment/fetch", rt.Config.Domain), bytes.NewReader(payload))
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", rt.Config.CourierAuthToken))
 
 	resp, err := httpx.DoTrace(courierHttpClient, req, nil, nil, -1)
