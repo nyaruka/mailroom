@@ -1,3 +1,8 @@
+v26.1.110 (2026-05-12)
+-------------------------
+ * Use new /ci/attachment/fetch courier endpoint instead of deprecated /c/_fetch-attachment
+ * Use separate valkey DB for tests to avoid interference from local courier
+
 v26.1.109 (2026-05-04)
 -------------------------
  * Allow disabling task processing per queue by setting workers to zero
