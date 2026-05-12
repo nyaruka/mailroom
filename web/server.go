@@ -38,9 +38,6 @@ func PublicRoute(method string, pattern string, handler Handler) {
 // InternalRoute registers a route that handles internal requests between components
 func InternalRoute(method string, pattern string, handler Handler) {
 	routes = append(routes, &route{method, "/mi" + pattern, requireAuthToken(handler)})
-
-	// for backwards compatibility
-	routes = append(routes, &route{method, "/mr" + pattern, requireAuthToken(handler)})
 }
 
 type Server struct {
