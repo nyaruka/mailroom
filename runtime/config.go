@@ -67,16 +67,18 @@ type Config struct {
 	S3AttachmentsBucket string `help:"S3 bucket to write attachments to"`
 	S3PathStyle         bool   `help:"S3 should use path style URLs"`
 
+	CourierEndpoint  string `help:"the base URL used for internal calls to courier" validate:"url"`
+	CourierAuthToken string `help:"the authentication token used for requests to Courier"`
+
+	CentrifugoEndpoint string `help:"the endpoint of the Centrifugo server"`
+	CentrifugoKey      string `help:"the API key for the Centrifugo server"`
+
 	LatencyExcludedOrgs []int  `help:"comma separated list of org IDs to exclude from latency metrics"`
 	MetricsReporting    string `validate:"eq=off|eq=basic|eq=advanced"     help:"the level of metrics reporting"`
 	CloudwatchNamespace string `help:"the namespace to use for cloudwatch metrics"`
 	DeploymentID        string `help:"the deployment identifier to use for metrics"`
 	InstanceID          string `help:"the instance identifier to use for metrics"`
 
-	CentrifugoEndpoint string `help:"the endpoint of the Centrifugo server"`
-	CentrifugoKey      string `help:"the API key for the Centrifugo server"`
-
-	CourierAuthToken       string `help:"the authentication token used for requests to Courier"`
 	AndroidCredentialsFile string `help:"path to JSON file with FCM service account credentials used to sync Android relayers"`
 	IDObfuscationKey       string `help:"key used to decode obfuscated IDs, as 4 comma separated integers" validate:"omitempty,hexadecimal,len=32"`
 
@@ -103,6 +105,8 @@ func NewDefaultConfig() *Config {
 		Address:  "localhost",
 		Port:     8090,
 		SpoolDir: "./_spool",
+
+		CourierEndpoint: "http://localhost:8080",
 
 		WorkersRealtime:  32,
 		WorkersBatch:     8,
