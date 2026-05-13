@@ -1,3 +1,7 @@
+v26.1.113 (2026-05-13)
+-------------------------
+ * Rename Elastic config field to ElasticEndpoint
+
 v26.1.112 (2026-05-13)
 -------------------------
  * Add MAILROOM_COURIER_ENDPOINT config for calls to courier
