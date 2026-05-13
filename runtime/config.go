@@ -50,7 +50,7 @@ type Config struct {
 	MaxSprintsPerSession int      `help:"the maximum number of sprints allowed per engine session"`
 	MaxValueLength       int      `help:"the maximum size in characters for contact field values and run result values"`
 
-	Elastic              string `validate:"url" help:"the URL of your ElasticSearch instance"`
+	ElasticEndpoint      string `validate:"url" help:"the URL of your ElasticSearch instance"`
 	ElasticUsername      string `help:"the username for ElasticSearch if using basic auth"`
 	ElasticPassword      string `help:"the password for ElasticSearch if using basic auth"`
 	ElasticContactsIndex string `help:"the name of the contacts index written by mailroom"`
@@ -123,7 +123,7 @@ func NewDefaultConfig() *Config {
 		MaxSprintsPerSession: 250,
 		MaxValueLength:       640,
 
-		Elastic:              "http://elastic:9200",
+		ElasticEndpoint:      "http://elastic:9200",
 		ElasticUsername:      "",
 		ElasticPassword:      "",
 		ElasticContactsIndex: "contacts-v1",
