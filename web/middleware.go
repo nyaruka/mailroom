@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"runtime/debug"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/getsentry/sentry-go"
@@ -32,6 +33,20 @@ func requestLogger(next http.Handler) http.Handler {
 			slog.Info("request completed", "method", r.Method, "status", ww.Status(), "elapsed", elapsed, "length", ww.BytesWritten(), "url", uri, "user_agent", r.UserAgent())
 
 		}
+	})
+}
+
+func logPlaintextWebhook(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasPrefix(r.URL.Path, "/mr/") && r.Header.Get("X-Forwarded-Proto") == "http" {
+			slog.Warn("plaintext webhook",
+				"path", r.URL.Path,
+				"method", r.Method,
+				"ua", r.UserAgent(),
+				"from", r.Header.Get("X-Forwarded-For"),
+			)
+		}
+		next.ServeHTTP(w, r)
 	})
 }
 
