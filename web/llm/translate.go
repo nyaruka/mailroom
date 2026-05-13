@@ -96,7 +96,7 @@ func handleTranslate(ctx context.Context, rt *runtime.Runtime, r *translateReque
 	}
 	counts := llm.RecordCall(rt, oa, events.NewLLMCalled(flows.NewLLM(llm), instructions, string(inputBytes), resp, time.Since(callStart)))
 
-	// detach from the request context so a client-side timeout during the LLM call doesn't prevent us from recording usage we already paid for
+	// detach from the request context so a client-side timeout during the LLM call doesn't prevent us from recording usage someone may have paid for
 	recCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
 	defer cancel()
 	if rerr := insertLLMCallCounts(recCtx, rt, counts); rerr != nil {
