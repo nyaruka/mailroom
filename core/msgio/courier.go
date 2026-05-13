@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	valkey "github.com/gomodule/redigo/redis"
@@ -347,7 +348,7 @@ func FetchAttachment(ctx context.Context, rt *runtime.Runtime, ch *models.Channe
 		URL:         attURL,
 		MsgUUID:     msgUUID,
 	})
-	req, _ := http.NewRequest("POST", fmt.Sprintf("https://%s/ci/attachment/fetch", rt.Config.Domain), bytes.NewReader(payload))
+	req, _ := http.NewRequest("POST", strings.TrimRight(rt.Config.CourierEndpoint, "/")+"/ci/attachment/fetch", bytes.NewReader(payload))
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", rt.Config.CourierAuthToken))
 
 	resp, err := httpx.DoTrace(courierHttpClient, req, nil, nil, -1)
