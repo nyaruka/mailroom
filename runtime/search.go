@@ -16,7 +16,7 @@ type Elastic struct {
 }
 
 func newElastic(cfg *Config) (*Elastic, error) {
-	client, err := elastic.NewClient(cfg.Elastic, cfg.ElasticUsername, cfg.ElasticPassword)
+	client, err := elastic.NewClient(cfg.ElasticEndpoint, cfg.ElasticUsername, cfg.ElasticPassword)
 	if err != nil {
 		return nil, fmt.Errorf("error creating Elasticsearch client: %w", err)
 	}
