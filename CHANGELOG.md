@@ -1,3 +1,7 @@
+v26.1.112 (2026-05-13)
+-------------------------
+ * Add MAILROOM_COURIER_ENDPOINT config for calls to courier
+
 v26.1.111 (2026-05-12)
 -------------------------
  * Drop /mr/ backwards-compat mounts for internal endpoints
