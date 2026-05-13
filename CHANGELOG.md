@@ -1,3 +1,8 @@
+v26.1.114 (2026-05-13)
+-------------------------
+ * Detach context when recording LLM call counts
+ * Log warning when /mr/* request arrives over plaintext HTTP
+
 v26.1.113 (2026-05-13)
 -------------------------
  * Rename Elastic config field to ElasticEndpoint
