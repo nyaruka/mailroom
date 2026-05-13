@@ -95,7 +95,11 @@ func handleTranslate(ctx context.Context, rt *runtime.Runtime, r *translateReque
 		resp = &flows.LLMResponse{}
 	}
 	counts := llm.RecordCall(rt, oa, events.NewLLMCalled(flows.NewLLM(llm), instructions, string(inputBytes), resp, time.Since(callStart)))
-	if rerr := insertLLMCallCounts(ctx, rt, counts); rerr != nil {
+
+	// detach from the request context so a client-side timeout during the LLM call doesn't prevent us from recording usage someone may have paid for
+	recCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
+	defer cancel()
+	if rerr := insertLLMCallCounts(recCtx, rt, counts); rerr != nil {
 		slog.Error("error recording llm call", "error", rerr, "llm_id", r.LLMID)
 	}
 
