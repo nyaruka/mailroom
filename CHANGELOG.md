@@ -1,3 +1,7 @@
+v26.1.115 (2026-05-14)
+-------------------------
+ * Remove plaintext webhook logging
+
 v26.1.114 (2026-05-13)
 -------------------------
  * Detach context when recording LLM call counts
