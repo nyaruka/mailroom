@@ -62,7 +62,6 @@ func NewServer(ctx context.Context, rt *runtime.Runtime, wg *sync.WaitGroup) *Se
 	router.Use(panicRecovery)
 	router.Use(middleware.Timeout(60 * time.Second))
 	router.Use(requestLogger)
-	router.Use(logPlaintextWebhook)
 
 	// wire up our main pages
 	router.NotFound(handle404)
