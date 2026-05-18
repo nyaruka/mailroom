@@ -23,22 +23,22 @@ const (
 type Handler func(ctx context.Context, rt *runtime.Runtime, r *http.Request, w http.ResponseWriter) error
 
 type route struct {
-	method   string
-	pattern  string
-	handler  Handler
-	internal bool
+	method  string
+	pattern string
+	handler Handler
 }
 
-var routes []*route
+var publicRoutes []*route
+var internalRoutes []*route
 
 // PublicRoute registers a route that handles direct requests from the internet
 func PublicRoute(method string, pattern string, handler Handler) {
-	routes = append(routes, &route{method: method, pattern: "/mr" + pattern, handler: handler})
+	publicRoutes = append(publicRoutes, &route{method: method, pattern: pattern, handler: handler})
 }
 
 // InternalRoute registers a route that handles internal requests between components
 func InternalRoute(method string, pattern string, handler Handler) {
-	routes = append(routes, &route{method: method, pattern: "/mi" + pattern, handler: requireAuthToken(handler), internal: true})
+	internalRoutes = append(internalRoutes, &route{method: method, pattern: pattern, handler: requireAuthToken(handler)})
 }
 
 type Server struct {
@@ -55,7 +55,7 @@ type Server struct {
 func NewServer(ctx context.Context, rt *runtime.Runtime, wg *sync.WaitGroup) *Server {
 	s := &Server{ctx: ctx, rt: rt, wg: wg}
 
-	// public listener — exposes /mr/* and (during transition) /mi/* as well
+	// public listener — exposes only /mr/* routes
 	publicRouter := chi.NewRouter()
 	publicRouter.Use(middleware.Compress(flate.DefaultCompression))
 	publicRouter.Use(middleware.RequestID)
@@ -67,8 +67,8 @@ func NewServer(ctx context.Context, rt *runtime.Runtime, wg *sync.WaitGroup) *Se
 	publicRouter.MethodNotAllowed(handle405)
 	publicRouter.Get("/", s.WrapHandler(handleIndex))
 	publicRouter.Get("/ping", handlePing)
-	for _, route := range routes {
-		publicRouter.Method(route.method, route.pattern, s.WrapHandler(route.handler))
+	for _, route := range publicRoutes {
+		publicRouter.Method(route.method, "/mr"+route.pattern, s.WrapHandler(route.handler))
 	}
 
 	// internal listener — only /mi/* routes, no public-facing concerns
@@ -87,10 +87,8 @@ func NewServer(ctx context.Context, rt *runtime.Runtime, wg *sync.WaitGroup) *Se
 		handle405(w, r)
 	})
 	internalRouter.Get("/ping", handlePing)
-	for _, route := range routes {
-		if route.internal {
-			internalRouter.Method(route.method, route.pattern, s.WrapHandler(route.handler))
-		}
+	for _, route := range internalRoutes {
+		internalRouter.Method(route.method, "/mi"+route.pattern, s.WrapHandler(route.handler))
 	}
 
 	s.publicServer = &http.Server{

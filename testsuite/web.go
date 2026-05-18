@@ -81,7 +81,12 @@ func RunWebTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 			httpx.SetRequestor(httpx.DefaultRequestor)
 		}
 
-		testURL := "http://localhost:8190" + tc.Path
+		// route /mi/* requests to the internal listener and everything else to the public listener
+		host := "http://localhost:8190"
+		if strings.HasPrefix(tc.Path, "/mi/") {
+			host = "http://localhost:8191"
+		}
+		testURL := host + tc.Path
 		var req *http.Request
 		if tc.BodyEncode == "multipart" {
 			var parts []MultiPartPart
