@@ -1,3 +1,7 @@
+v26.1.118 (2026-05-18)
+-------------------------
+ * Expose internal /mi/* routes only on the internal listener
+
 v26.1.117 (2026-05-18)
 -------------------------
  * Add /ping liveness endpoint on both listeners
