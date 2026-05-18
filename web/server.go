@@ -66,6 +66,7 @@ func NewServer(ctx context.Context, rt *runtime.Runtime, wg *sync.WaitGroup) *Se
 	publicRouter.NotFound(handle404)
 	publicRouter.MethodNotAllowed(handle405)
 	publicRouter.Get("/", s.WrapHandler(handleIndex))
+	publicRouter.Get("/ping", handlePing)
 	for _, route := range routes {
 		publicRouter.Method(route.method, route.pattern, s.WrapHandler(route.handler))
 	}
@@ -85,6 +86,7 @@ func NewServer(ctx context.Context, rt *runtime.Runtime, wg *sync.WaitGroup) *Se
 		slog.Error("internal 405", "method", r.Method, "path", r.URL.Path)
 		handle405(w, r)
 	})
+	internalRouter.Get("/ping", handlePing)
 	for _, route := range routes {
 		if route.internal {
 			internalRouter.Method(route.method, route.pattern, s.WrapHandler(route.handler))
@@ -179,6 +181,13 @@ func handleIndex(ctx context.Context, rt *runtime.Runtime, r *http.Request, w ht
 		"component": "mailroom",
 		"version":   rt.Config.Version,
 	})
+}
+
+// handlePing is a lightweight liveness probe used by ALB health checks. Registered at the
+// root of both listeners and not under any /mr or /mi prefix, so no ALB listener rule routes
+// client traffic to it — only direct ALB→target health probes reach it.
+func handlePing(w http.ResponseWriter, r *http.Request) {
+	WriteMarshalled(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
 func handle404(w http.ResponseWriter, r *http.Request) {
