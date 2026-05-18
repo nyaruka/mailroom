@@ -25,8 +25,8 @@ type Config struct {
 	Valkey     string `validate:"url,startswith=valkey:"             help:"URL for your Valkey instance"`
 	SentryDSN  string `                                              help:"the DSN used for logging errors to Sentry"`
 
-	Address          string `help:"the address to bind our web server to"`
-	Port             int    `help:"the port to bind our web server to"`
+	PublicAddress    string `help:"the address to bind our public web server to"`
+	PublicPort       int    `help:"the port to bind our public web server to"`
 	InternalAddress  string `help:"the address to bind our internal web server to"`
 	InternalPort     int    `help:"the port to bind our internal web server to"`
 	AuthToken        string `help:"the token clients will need to authenticate web requests"`
@@ -104,8 +104,8 @@ func NewDefaultConfig() *Config {
 		DBPoolSize: 36,
 		Valkey:     "valkey://valkey:6379/15",
 
-		Address:         "localhost",
-		Port:            8090,
+		PublicAddress:   "localhost",
+		PublicPort:      8090,
 		InternalAddress: "localhost",
 		InternalPort:    8091,
 		SpoolDir:        "./_spool",
