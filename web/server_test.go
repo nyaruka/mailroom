@@ -58,14 +58,16 @@ func TestListeners(t *testing.T) {
 		url    string
 		status int
 	}{
-		// public listener: index, public routes, and (during transition) internal routes
+		// public listener: index, public routes, ping, and (during transition) internal routes
 		{"public: index", "GET", publicURL + "/", 200},
+		{"public: ping", "GET", publicURL + "/ping", 200},
 		{"public: public route", "GET", publicURL + "/mr/docs", 301},
 		{"public: internal route via GET (wrong method)", "GET", publicURL + "/mi/contact/parse_query", 405},
 		{"public: unknown path", "GET", publicURL + "/nope", 404},
 
-		// internal listener: only /mi/* routes, no index, no /mr/*
+		// internal listener: only /mi/* routes and /ping, no index, no /mr/*
 		{"internal: index", "GET", internalURL + "/", 404},
+		{"internal: ping", "GET", internalURL + "/ping", 200},
 		{"internal: internal route via GET (wrong method)", "GET", internalURL + "/mi/contact/parse_query", 405},
 		{"internal: public route not exposed", "GET", internalURL + "/mr/docs", 404},
 		{"internal: unknown path", "GET", internalURL + "/nope", 404},
