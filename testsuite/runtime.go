@@ -66,7 +66,8 @@ func Reset(t *testing.T, rt *runtime.Runtime, what ResetFlag) {
 func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 	cfg := runtime.NewDefaultConfig()
 	cfg.DeploymentID = "test"
-	cfg.Port = 8091
+	cfg.PublicPort = 8190
+	cfg.InternalPort = 8191
 	cfg.DB = "postgres://mailroom_test:temba@postgres/mailroom_test?sslmode=disable&Timezone=UTC"
 	cfg.Valkey = "valkey://valkey:6379/10" // use a different DB from the default so a locally-running courier can't pop from queues we're asserting on
 

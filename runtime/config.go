@@ -25,8 +25,10 @@ type Config struct {
 	Valkey     string `validate:"url,startswith=valkey:"             help:"URL for your Valkey instance"`
 	SentryDSN  string `                                              help:"the DSN used for logging errors to Sentry"`
 
-	Address          string `help:"the address to bind our web server to"`
-	Port             int    `help:"the port to bind our web server to"`
+	PublicAddress    string `help:"the address to bind our public web server to"`
+	PublicPort       int    `help:"the port to bind our public web server to"`
+	InternalAddress  string `help:"the address to bind our internal web server to"`
+	InternalPort     int    `help:"the port to bind our internal web server to"`
 	AuthToken        string `help:"the token clients will need to authenticate web requests"`
 	Domain           string `help:"the domain that mailroom is listening on"`
 	AttachmentDomain string `help:"the domain that will be used for relative attachment"`
@@ -102,9 +104,11 @@ func NewDefaultConfig() *Config {
 		DBPoolSize: 36,
 		Valkey:     "valkey://valkey:6379/15",
 
-		Address:  "localhost",
-		Port:     8090,
-		SpoolDir: "./_spool",
+		PublicAddress:   "localhost",
+		PublicPort:      8090,
+		InternalAddress: "localhost",
+		InternalPort:    8091,
+		SpoolDir:        "./_spool",
 
 		CourierEndpoint: "http://localhost:8080",
 

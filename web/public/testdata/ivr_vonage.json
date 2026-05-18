@@ -22,7 +22,7 @@
                 "submitOnHash": true,
                 "timeOut": 30,
                 "eventUrl": [
-                    "https://localhost:8091/mr/ivr/c/19012bfd-3ce3-4cae-9bb9-76cf92c73d49/handle?action=resume\u0026call=01969b47-190b-76f8-92a3-d648ab64bccb\u0026wait_type=gather\u0026sig=zRlLI%2B84luUb4KLdMN525WprJ1Q%3D"
+                    "https://localhost:8190/mr/ivr/c/19012bfd-3ce3-4cae-9bb9-76cf92c73d49/handle?action=resume\u0026call=01969b47-190b-76f8-92a3-d648ab64bccb\u0026wait_type=gather\u0026sig=WXyNzgCUMQkDLQ4Zd1cmXI8fZj4%3D"
                 ],
                 "eventMethod": "POST"
             }
@@ -125,7 +125,7 @@
                 "submitOnHash": true,
                 "timeOut": 30,
                 "eventUrl": [
-                    "https://localhost:8091/mr/ivr/c/19012bfd-3ce3-4cae-9bb9-76cf92c73d49/handle?action=resume\u0026call=01969b47-190b-76f8-92a3-d648ab64bccb\u0026wait_type=gather\u0026sig=zRlLI%2B84luUb4KLdMN525WprJ1Q%3D"
+                    "https://localhost:8190/mr/ivr/c/19012bfd-3ce3-4cae-9bb9-76cf92c73d49/handle?action=resume\u0026call=01969b47-190b-76f8-92a3-d648ab64bccb\u0026wait_type=gather\u0026sig=WXyNzgCUMQkDLQ4Zd1cmXI8fZj4%3D"
                 ],
                 "eventMethod": "POST"
             }
@@ -205,7 +205,7 @@
                 "submitOnHash": true,
                 "timeOut": 30,
                 "eventUrl": [
-                    "https://localhost:8091/mr/ivr/c/19012bfd-3ce3-4cae-9bb9-76cf92c73d49/handle?action=resume\u0026call=01969b47-190b-76f8-92a3-d648ab64bccb\u0026wait_type=gather\u0026sig=zRlLI%2B84luUb4KLdMN525WprJ1Q%3D"
+                    "https://localhost:8190/mr/ivr/c/19012bfd-3ce3-4cae-9bb9-76cf92c73d49/handle?action=resume\u0026call=01969b47-190b-76f8-92a3-d648ab64bccb\u0026wait_type=gather\u0026sig=WXyNzgCUMQkDLQ4Zd1cmXI8fZj4%3D"
                 ],
                 "eventMethod": "POST"
             }
@@ -272,7 +272,7 @@
                 "submitOnHash": true,
                 "timeOut": 30,
                 "eventUrl": [
-                    "https://localhost:8091/mr/ivr/c/19012bfd-3ce3-4cae-9bb9-76cf92c73d49/handle?action=resume\u0026call=01969b47-190b-76f8-92a3-d648ab64bccb\u0026wait_type=gather\u0026sig=zRlLI%2B84luUb4KLdMN525WprJ1Q%3D"
+                    "https://localhost:8190/mr/ivr/c/19012bfd-3ce3-4cae-9bb9-76cf92c73d49/handle?action=resume\u0026call=01969b47-190b-76f8-92a3-d648ab64bccb\u0026wait_type=gather\u0026sig=WXyNzgCUMQkDLQ4Zd1cmXI8fZj4%3D"
                 ],
                 "eventMethod": "POST"
             }
@@ -347,7 +347,7 @@
                 "timeOut": 600,
                 "endOnSilence": 5,
                 "eventUrl": [
-                    "https://localhost:8091/mr/ivr/c/19012bfd-3ce3-4cae-9bb9-76cf92c73d49/handle?action=resume\u0026call=01969b47-190b-76f8-92a3-d648ab64bccb\u0026wait_type=recording_url\u0026recording_uuid=76c98188-cfe6-4072-bf05-63393fd408f5\u0026sig=phCC1y2PSeAk0b3dXudT%2B6Ss9ws%3D"
+                    "https://localhost:8190/mr/ivr/c/19012bfd-3ce3-4cae-9bb9-76cf92c73d49/handle?action=resume\u0026call=01969b47-190b-76f8-92a3-d648ab64bccb\u0026wait_type=recording_url\u0026recording_uuid=76c98188-cfe6-4072-bf05-63393fd408f5\u0026sig=PJYtnhezTMUWsi3VmusI25PA0no%3D"
                 ],
                 "eventMethod": "POST"
             },
@@ -356,7 +356,7 @@
                 "submitOnHash": true,
                 "timeOut": 1,
                 "eventUrl": [
-                    "https://localhost:8091/mr/ivr/c/19012bfd-3ce3-4cae-9bb9-76cf92c73d49/handle?action=resume\u0026call=01969b47-190b-76f8-92a3-d648ab64bccb\u0026wait_type=record\u0026recording_uuid=76c98188-cfe6-4072-bf05-63393fd408f5\u0026sig=%2BPzNDgKWNw52ZL13AmOF32QVhGU%3D"
+                    "https://localhost:8190/mr/ivr/c/19012bfd-3ce3-4cae-9bb9-76cf92c73d49/handle?action=resume\u0026call=01969b47-190b-76f8-92a3-d648ab64bccb\u0026wait_type=record\u0026recording_uuid=76c98188-cfe6-4072-bf05-63393fd408f5\u0026sig=fV18U%2BDGBUp1kd0A%2F%2BAxsBXFMaQ%3D"
                 ],
                 "eventMethod": "POST"
             }
@@ -690,7 +690,7 @@
                 "submitOnHash": true,
                 "timeOut": 30,
                 "eventUrl": [
-                    "https://localhost:8091/mr/ivr/c/19012bfd-3ce3-4cae-9bb9-76cf92c73d49/handle?action=resume\u0026call=01969b47-2c93-76f8-8f41-6b2d9f33d623\u0026wait_type=gather\u0026sig=smTf79il%2Bj7jiRYv0EvcL9e6084%3D"
+                    "https://localhost:8190/mr/ivr/c/19012bfd-3ce3-4cae-9bb9-76cf92c73d49/handle?action=resume\u0026call=01969b47-2c93-76f8-8f41-6b2d9f33d623\u0026wait_type=gather\u0026sig=Fmsu6Oki5jXzSJLPXBxzDkmnHAU%3D"
                 ],
                 "eventMethod": "POST"
             }
@@ -781,7 +781,7 @@
                 "submitOnHash": true,
                 "timeOut": 30,
                 "eventUrl": [
-                    "https://localhost:8091/mr/ivr/c/19012bfd-3ce3-4cae-9bb9-76cf92c73d49/handle?action=resume\u0026call=01969b47-2c93-76f8-8f41-6b2d9f33d623\u0026wait_type=gather\u0026sig=smTf79il%2Bj7jiRYv0EvcL9e6084%3D"
+                    "https://localhost:8190/mr/ivr/c/19012bfd-3ce3-4cae-9bb9-76cf92c73d49/handle?action=resume\u0026call=01969b47-2c93-76f8-8f41-6b2d9f33d623\u0026wait_type=gather\u0026sig=Fmsu6Oki5jXzSJLPXBxzDkmnHAU%3D"
                 ],
                 "eventMethod": "POST"
             }

@@ -46,35 +46,35 @@ func TestMetrics(t *testing.T) {
 	}{
 		{
 			Label:    "no auth provided",
-			URL:      fmt.Sprintf("http://localhost:8091/mr/org/%s/metrics", testdb.Org1.UUID),
+			URL:      fmt.Sprintf("http://localhost:8190/mr/org/%s/metrics", testdb.Org1.UUID),
 			Username: "",
 			Password: "",
 			Response: `{"error": "invalid authentication"}`,
 		},
 		{
 			Label:    "invalid password (token)",
-			URL:      fmt.Sprintf("http://localhost:8091/mr/org/%s/metrics", testdb.Org1.UUID),
+			URL:      fmt.Sprintf("http://localhost:8190/mr/org/%s/metrics", testdb.Org1.UUID),
 			Username: "metrics",
 			Password: "invalid",
 			Response: `{"error": "invalid authentication"}`,
 		},
 		{
 			Label:    "invalid username (always metrics)",
-			URL:      fmt.Sprintf("http://localhost:8091/mr/org/%s/metrics", testdb.Org1.UUID),
+			URL:      fmt.Sprintf("http://localhost:8190/mr/org/%s/metrics", testdb.Org1.UUID),
 			Username: "invalid",
 			Password: promToken,
 			Response: `{"error": "invalid authentication"}`,
 		},
 		{
 			Label:    "valid token but wrong org",
-			URL:      fmt.Sprintf("http://localhost:8091/mr/org/%s/metrics", testdb.Org2.UUID),
+			URL:      fmt.Sprintf("http://localhost:8190/mr/org/%s/metrics", testdb.Org2.UUID),
 			Username: "metrics",
 			Password: promToken,
 			Response: `{"error": "invalid authentication"}`,
 		},
 		{
 			Label:    "valid auth",
-			URL:      fmt.Sprintf("http://localhost:8091/mr/org/%s/metrics", testdb.Org1.UUID),
+			URL:      fmt.Sprintf("http://localhost:8190/mr/org/%s/metrics", testdb.Org1.UUID),
 			Username: "metrics",
 			Password: promToken,
 			Contains: []string{
