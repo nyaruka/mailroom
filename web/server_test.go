@@ -1,6 +1,7 @@
 package web_test
 
 import (
+	"net"
 	"net/http"
 	"sync"
 	"testing"
@@ -11,8 +12,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	// blank-imported so TestListeners has a registered internal route to probe
+	// blank-imported so TestListeners has both a registered internal and public route to probe
 	_ "github.com/nyaruka/mailroom/v26/web/contact"
+	_ "github.com/nyaruka/mailroom/v26/web/public"
 )
 
 func TestServer(t *testing.T) {
@@ -31,10 +33,24 @@ func TestListeners(t *testing.T) {
 	server.Start()
 	defer server.Stop()
 
-	time.Sleep(100 * time.Millisecond)
+	for _, addr := range []string{"localhost:8190", "localhost:8191"} {
+		require.Eventually(t, func() bool {
+			c, err := net.DialTimeout("tcp", addr, 50*time.Millisecond)
+			if err != nil {
+				return false
+			}
+			c.Close()
+			return true
+		}, 5*time.Second, 10*time.Millisecond, "listener at %s never came up", addr)
+	}
 
 	const publicURL = "http://localhost:8190"
 	const internalURL = "http://localhost:8191"
+
+	// don't follow redirects so we can assert on the 301 from /mr/docs
+	client := &http.Client{
+		CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse },
+	}
 
 	tcs := []struct {
 		label  string
@@ -44,6 +60,7 @@ func TestListeners(t *testing.T) {
 	}{
 		// public listener: index, public routes, and (during transition) internal routes
 		{"public: index", "GET", publicURL + "/", 200},
+		{"public: public route", "GET", publicURL + "/mr/docs", 301},
 		{"public: internal route via GET (wrong method)", "GET", publicURL + "/mi/contact/parse_query", 405},
 		{"public: unknown path", "GET", publicURL + "/nope", 404},
 
@@ -58,7 +75,7 @@ func TestListeners(t *testing.T) {
 		req, err := http.NewRequest(tc.method, tc.url, nil)
 		require.NoError(t, err, tc.label)
 
-		resp, err := http.DefaultClient.Do(req)
+		resp, err := client.Do(req)
 		require.NoError(t, err, tc.label)
 		resp.Body.Close()
 
