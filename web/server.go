@@ -55,7 +55,7 @@ type Server struct {
 func NewServer(ctx context.Context, rt *runtime.Runtime, wg *sync.WaitGroup) *Server {
 	s := &Server{ctx: ctx, rt: rt, wg: wg}
 
-	// public listener — exposes /mr/* and (during transition) /mi/* as well
+	// public listener — exposes only /mr/* routes
 	publicRouter := chi.NewRouter()
 	publicRouter.Use(middleware.Compress(flate.DefaultCompression))
 	publicRouter.Use(middleware.RequestID)
@@ -68,7 +68,9 @@ func NewServer(ctx context.Context, rt *runtime.Runtime, wg *sync.WaitGroup) *Se
 	publicRouter.Get("/", s.WrapHandler(handleIndex))
 	publicRouter.Get("/ping", handlePing)
 	for _, route := range routes {
-		publicRouter.Method(route.method, route.pattern, s.WrapHandler(route.handler))
+		if !route.internal {
+			publicRouter.Method(route.method, route.pattern, s.WrapHandler(route.handler))
+		}
 	}
 
 	// internal listener — only /mi/* routes, no public-facing concerns

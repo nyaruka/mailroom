@@ -24,7 +24,7 @@ func TestServer(t *testing.T) {
 }
 
 // TestListeners verifies that public and internal endpoints are correctly split
-// between the two listener ports during the dual-exposure phase.
+// between the two listener ports.
 func TestListeners(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
@@ -58,11 +58,11 @@ func TestListeners(t *testing.T) {
 		url    string
 		status int
 	}{
-		// public listener: index, public routes, ping, and (during transition) internal routes
+		// public listener: index, public routes, ping — no /mi/* routes
 		{"public: index", "GET", publicURL + "/", 200},
 		{"public: ping", "GET", publicURL + "/ping", 200},
 		{"public: public route", "GET", publicURL + "/mr/docs", 301},
-		{"public: internal route via GET (wrong method)", "GET", publicURL + "/mi/contact/parse_query", 405},
+		{"public: internal route not exposed", "GET", publicURL + "/mi/contact/parse_query", 404},
 		{"public: unknown path", "GET", publicURL + "/nope", 404},
 
 		// internal listener: only /mi/* routes and /ping, no index, no /mr/*
