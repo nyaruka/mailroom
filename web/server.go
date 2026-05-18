@@ -33,12 +33,12 @@ var internalRoutes []*route
 
 // PublicRoute registers a route that handles direct requests from the internet
 func PublicRoute(method string, pattern string, handler Handler) {
-	publicRoutes = append(publicRoutes, &route{method: method, pattern: "/mr" + pattern, handler: handler})
+	publicRoutes = append(publicRoutes, &route{method: method, pattern: pattern, handler: handler})
 }
 
 // InternalRoute registers a route that handles internal requests between components
 func InternalRoute(method string, pattern string, handler Handler) {
-	internalRoutes = append(internalRoutes, &route{method: method, pattern: "/mi" + pattern, handler: requireAuthToken(handler)})
+	internalRoutes = append(internalRoutes, &route{method: method, pattern: pattern, handler: requireAuthToken(handler)})
 }
 
 type Server struct {
@@ -68,7 +68,7 @@ func NewServer(ctx context.Context, rt *runtime.Runtime, wg *sync.WaitGroup) *Se
 	publicRouter.Get("/", s.WrapHandler(handleIndex))
 	publicRouter.Get("/ping", handlePing)
 	for _, route := range publicRoutes {
-		publicRouter.Method(route.method, route.pattern, s.WrapHandler(route.handler))
+		publicRouter.Method(route.method, "/mr"+route.pattern, s.WrapHandler(route.handler))
 	}
 
 	// internal listener — only /mi/* routes, no public-facing concerns
@@ -88,7 +88,7 @@ func NewServer(ctx context.Context, rt *runtime.Runtime, wg *sync.WaitGroup) *Se
 	})
 	internalRouter.Get("/ping", handlePing)
 	for _, route := range internalRoutes {
-		internalRouter.Method(route.method, route.pattern, s.WrapHandler(route.handler))
+		internalRouter.Method(route.method, "/mi"+route.pattern, s.WrapHandler(route.handler))
 	}
 
 	s.publicServer = &http.Server{
