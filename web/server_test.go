@@ -33,8 +33,8 @@ func TestListeners(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 
-	const publicURL = "http://localhost:8091"
-	const internalURL = "http://localhost:8092"
+	const publicURL = "http://localhost:8190"
+	const internalURL = "http://localhost:8191"
 
 	tcs := []struct {
 		label  string

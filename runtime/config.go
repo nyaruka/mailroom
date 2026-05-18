@@ -107,7 +107,7 @@ func NewDefaultConfig() *Config {
 		Address:         "localhost",
 		Port:            8090,
 		InternalAddress: "localhost",
-		InternalPort:    8190,
+		InternalPort:    8091,
 		SpoolDir:        "./_spool",
 
 		CourierEndpoint: "http://localhost:8080",
