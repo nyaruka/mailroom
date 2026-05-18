@@ -21,7 +21,10 @@ We recommend running it with no changes to the configuration and no parameters, 
 environment variables to configure it. You can use `% mailroom --help` to see a list of the
 environment variables and parameters and for more details on each option.
 
-- `MAILROOM_ADDRESS`: address to bind our web server to
+- `MAILROOM_PUBLIC_ADDRESS`: address to bind our public web server to (serves `/mr/*` routes)
+- `MAILROOM_PUBLIC_PORT`: port to bind our public web server to
+- `MAILROOM_INTERNAL_ADDRESS`: address to bind our internal web server to (serves `/mi/*` routes)
+- `MAILROOM_INTERNAL_PORT`: port to bind our internal web server to
 - `MAILROOM_DOMAIN`: domain that mailroom is listening on
 - `MAILROOM_COURIER_ENDPOINT`: base URL used for internal calls to courier, e.g. `http://localhost:8080`
 - `MAILROOM_AUTH_TOKEN`: authentication token clients will need to for web requests (should match setting in RapidPro)
