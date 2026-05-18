@@ -10,7 +10,6 @@ import (
 	_ "github.com/nyaruka/mailroom/v26/services/ivr/twiml"
 	_ "github.com/nyaruka/mailroom/v26/services/ivr/vonage"
 	_ "github.com/nyaruka/mailroom/v26/services/llm/anthropic"
-	_ "github.com/nyaruka/mailroom/v26/services/llm/deepseek"
 	_ "github.com/nyaruka/mailroom/v26/services/llm/google"
 	_ "github.com/nyaruka/mailroom/v26/services/llm/openai"
 	_ "github.com/nyaruka/mailroom/v26/services/llm/openai_azure"
