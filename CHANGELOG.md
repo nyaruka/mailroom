@@ -1,3 +1,9 @@
+v26.1.116 (2026-05-18)
+-------------------------
+ * Rename Config.Address/Port to PublicAddress/PublicPort
+ * Renumber listener ports: 80xx prod, 81xx tests
+ * Expose internal endpoints on separate listener port
+
 v26.1.115 (2026-05-14)
 -------------------------
  * Remove plaintext webhook logging
