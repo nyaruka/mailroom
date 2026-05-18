@@ -23,21 +23,22 @@ const (
 type Handler func(ctx context.Context, rt *runtime.Runtime, r *http.Request, w http.ResponseWriter) error
 
 type route struct {
-	method  string
-	pattern string
-	handler Handler
+	method   string
+	pattern  string
+	handler  Handler
+	internal bool
 }
 
 var routes []*route
 
 // PublicRoute registers a route that handles direct requests from the internet
 func PublicRoute(method string, pattern string, handler Handler) {
-	routes = append(routes, &route{method, "/mr" + pattern, handler})
+	routes = append(routes, &route{method: method, pattern: "/mr" + pattern, handler: handler})
 }
 
 // InternalRoute registers a route that handles internal requests between components
 func InternalRoute(method string, pattern string, handler Handler) {
-	routes = append(routes, &route{method, "/mi" + pattern, requireAuthToken(handler)})
+	routes = append(routes, &route{method: method, pattern: "/mi" + pattern, handler: requireAuthToken(handler), internal: true})
 }
 
 type Server struct {
@@ -46,37 +47,60 @@ type Server struct {
 
 	wg *sync.WaitGroup
 
-	httpServer *http.Server
+	publicServer   *http.Server
+	internalServer *http.Server
 }
 
 // NewServer creates a new web server, it will need to be started after being created
 func NewServer(ctx context.Context, rt *runtime.Runtime, wg *sync.WaitGroup) *Server {
 	s := &Server{ctx: ctx, rt: rt, wg: wg}
 
-	router := chi.NewRouter()
-
-	//  set up our middlewares
-	router.Use(middleware.Compress(flate.DefaultCompression))
-	router.Use(middleware.RequestID)
-	router.Use(middleware.RealIP)
-	router.Use(panicRecovery)
-	router.Use(middleware.Timeout(60 * time.Second))
-	router.Use(requestLogger)
-
-	// wire up our main pages
-	router.NotFound(handle404)
-	router.MethodNotAllowed(handle405)
-	router.Get("/", s.WrapHandler(handleIndex))
-
-	// and all registered routes
+	// public listener — exposes /mr/* and (during transition) /mi/* as well
+	publicRouter := chi.NewRouter()
+	publicRouter.Use(middleware.Compress(flate.DefaultCompression))
+	publicRouter.Use(middleware.RequestID)
+	publicRouter.Use(middleware.RealIP)
+	publicRouter.Use(panicRecovery("public"))
+	publicRouter.Use(middleware.Timeout(60 * time.Second))
+	publicRouter.Use(requestLogger("public"))
+	publicRouter.NotFound(handle404)
+	publicRouter.MethodNotAllowed(handle405)
+	publicRouter.Get("/", s.WrapHandler(handleIndex))
 	for _, route := range routes {
-		router.Method(route.method, route.pattern, s.WrapHandler(route.handler))
+		publicRouter.Method(route.method, route.pattern, s.WrapHandler(route.handler))
 	}
 
-	// configure our http server
-	s.httpServer = &http.Server{
+	// internal listener — only /mi/* routes, no public-facing concerns
+	internalRouter := chi.NewRouter()
+	internalRouter.Use(middleware.Compress(flate.DefaultCompression))
+	internalRouter.Use(middleware.RequestID)
+	internalRouter.Use(panicRecovery("internal"))
+	internalRouter.Use(middleware.Timeout(60 * time.Second))
+	internalRouter.Use(requestLogger("internal"))
+	internalRouter.NotFound(func(w http.ResponseWriter, r *http.Request) {
+		slog.Error("internal 404", "method", r.Method, "path", r.URL.Path)
+		handle404(w, r)
+	})
+	internalRouter.MethodNotAllowed(func(w http.ResponseWriter, r *http.Request) {
+		slog.Error("internal 405", "method", r.Method, "path", r.URL.Path)
+		handle405(w, r)
+	})
+	for _, route := range routes {
+		if route.internal {
+			internalRouter.Method(route.method, route.pattern, s.WrapHandler(route.handler))
+		}
+	}
+
+	s.publicServer = &http.Server{
 		Addr:         fmt.Sprintf("%s:%d", rt.Config.Address, rt.Config.Port),
-		Handler:      router,
+		Handler:      publicRouter,
+		ReadTimeout:  30 * time.Second,
+		WriteTimeout: 30 * time.Second,
+		IdleTimeout:  90 * time.Second,
+	}
+	s.internalServer = &http.Server{
+		Addr:         fmt.Sprintf("%s:%d", rt.Config.InternalAddress, rt.Config.InternalPort),
+		Handler:      internalRouter,
 		ReadTimeout:  30 * time.Second,
 		WriteTimeout: 30 * time.Second,
 		IdleTimeout:  90 * time.Second,
@@ -107,32 +131,45 @@ func (s *Server) WrapHandler(handler Handler) http.HandlerFunc {
 
 // Start starts our web server, listening for new requests
 func (s *Server) Start() {
-	log := slog.With("comp", "server", "address", s.rt.Config.Address, "port", s.rt.Config.Port)
+	s.wg.Add(2)
 
-	s.wg.Add(1)
-
-	// start serving HTTP
 	go func() {
 		defer s.wg.Done()
 
-		err := s.httpServer.ListenAndServe()
+		log := slog.With("comp", "server", "listener", "public", "address", s.publicServer.Addr)
+		log.Info("server started")
+
+		err := s.publicServer.ListenAndServe()
 		if err != nil && err != http.ErrServerClosed {
 			log.Error("error listening", "error", err)
 		}
 	}()
 
-	log.Info("server started")
+	go func() {
+		defer s.wg.Done()
+
+		log := slog.With("comp", "server", "listener", "internal", "address", s.internalServer.Addr)
+		log.Info("server started")
+
+		err := s.internalServer.ListenAndServe()
+		if err != nil && err != http.ErrServerClosed {
+			log.Error("error listening", "error", err)
+		}
+	}()
 }
 
 // Stop stops our web server
 func (s *Server) Stop() {
-	log := slog.With("comp", "server")
-
-	// shut down our HTTP server
-	if err := s.httpServer.Shutdown(context.Background()); err != nil {
-		log.Error("error shutting down server", "error", err)
+	if err := s.publicServer.Shutdown(context.Background()); err != nil {
+		slog.Error("error shutting down server", "comp", "server", "listener", "public", "error", err)
 	} else {
-		log.Info("server stopped")
+		slog.Info("server stopped", "comp", "server", "listener", "public")
+	}
+
+	if err := s.internalServer.Shutdown(context.Background()); err != nil {
+		slog.Error("error shutting down server", "comp", "server", "listener", "internal", "error", err)
+	} else {
+		slog.Info("server stopped", "comp", "server", "listener", "internal")
 	}
 }
 
