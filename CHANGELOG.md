@@ -1,3 +1,7 @@
+v26.1.117 (2026-05-18)
+-------------------------
+ * Add /ping liveness endpoint on both listeners
+
 v26.1.116 (2026-05-18)
 -------------------------
  * Rename Config.Address/Port to PublicAddress/PublicPort
