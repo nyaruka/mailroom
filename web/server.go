@@ -65,8 +65,8 @@ func NewServer(ctx context.Context, rt *runtime.Runtime, wg *sync.WaitGroup) *Se
 	publicRouter.Use(requestLogger("public"))
 	publicRouter.NotFound(handle404)
 	publicRouter.MethodNotAllowed(handle405)
-	publicRouter.Get("/", s.WrapHandler(handleIndex))
-	publicRouter.Get("/ping", handlePing)
+	publicRouter.Get("/", s.WrapHandler(handleHealth))
+	publicRouter.Get("/ping", s.WrapHandler(handleHealth)) // temporary back-compat alias for /
 	for _, route := range publicRoutes {
 		publicRouter.Method(route.method, "/mr"+route.pattern, s.WrapHandler(route.handler))
 	}
@@ -86,7 +86,8 @@ func NewServer(ctx context.Context, rt *runtime.Runtime, wg *sync.WaitGroup) *Se
 		slog.Error("internal 405", "method", r.Method, "path", r.URL.Path)
 		handle405(w, r)
 	})
-	internalRouter.Get("/ping", handlePing)
+	internalRouter.Get("/", s.WrapHandler(handleHealth))
+	internalRouter.Get("/ping", s.WrapHandler(handleHealth)) // temporary back-compat alias for /
 	for _, route := range internalRoutes {
 		internalRouter.Method(route.method, "/mi"+route.pattern, s.WrapHandler(route.handler))
 	}
@@ -173,19 +174,15 @@ func (s *Server) Stop() {
 	}
 }
 
-func handleIndex(ctx context.Context, rt *runtime.Runtime, r *http.Request, w http.ResponseWriter) error {
+// handleHealth is the liveness probe used by ALB health checks. Registered at the root of
+// both listeners and not under any /mr or /mi prefix, so no listener rule routes client
+// traffic to it — only direct ALB→target health probes reach it. Also returns the running
+// version so it doubles as a debug endpoint.
+func handleHealth(ctx context.Context, rt *runtime.Runtime, r *http.Request, w http.ResponseWriter) error {
 	return WriteMarshalled(w, http.StatusOK, map[string]string{
-		"url":       r.URL.String(),
 		"component": "mailroom",
 		"version":   rt.Config.Version,
 	})
-}
-
-// handlePing is a lightweight liveness probe used by ALB health checks. Registered at the
-// root of both listeners and not under any /mr or /mi prefix, so no ALB listener rule routes
-// client traffic to it — only direct ALB→target health probes reach it.
-func handlePing(w http.ResponseWriter, r *http.Request) {
-	WriteMarshalled(w, http.StatusOK, map[string]string{"status": "ok"})
 }
 
 func handle404(w http.ResponseWriter, r *http.Request) {

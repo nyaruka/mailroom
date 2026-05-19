@@ -9,22 +9,22 @@
         }
     },
     {
-        "label": "illegal method if POST to root",
-        "method": "POST",
-        "path": "/",
-        "status": 405,
-        "response": {
-            "error": "illegal method: POST"
-        }
-    },
-    {
-        "label": "status page if GET root",
+        "label": "health at root returns component and version",
         "method": "GET",
         "path": "/",
         "status": 200,
         "response": {
             "component": "mailroom",
-            "url": "/",
+            "version": "Dev"
+        }
+    },
+    {
+        "label": "health at /ping returns the same (temporary back-compat)",
+        "method": "GET",
+        "path": "/ping",
+        "status": 200,
+        "response": {
+            "component": "mailroom",
             "version": "Dev"
         }
     }
