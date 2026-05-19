@@ -20,8 +20,19 @@
             ]
         },
         "status": 200,
-        "response": {
-            "deindexed": 2
+        "response": {},
+        "expected_tasks": {
+            "batch/1": [
+                {
+                    "type": "deindex_contacts",
+                    "payload": {
+                        "contact_uuids": [
+                            "b699a406-7e44-49be-9f01-1a82893e8a10",
+                            "cd024bcd-f473-4719-a00a-bd0bb1190135"
+                        ]
+                    }
+                }
+            ]
         }
     }
 ]
