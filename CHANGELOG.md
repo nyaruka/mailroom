@@ -1,3 +1,7 @@
+v26.1.119 (2026-05-19)
+-------------------------
+ * Drop deprecated temperature param from Anthropic LLM calls
+
 v26.1.118 (2026-05-18)
 -------------------------
  * Expose internal /mi/* routes only on the internal listener
