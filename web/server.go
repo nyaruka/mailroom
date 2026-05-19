@@ -66,7 +66,6 @@ func NewServer(ctx context.Context, rt *runtime.Runtime, wg *sync.WaitGroup) *Se
 	publicRouter.NotFound(handle404)
 	publicRouter.MethodNotAllowed(handle405)
 	publicRouter.Get("/", s.WrapHandler(handleHealth))
-	publicRouter.Get("/ping", s.WrapHandler(handleHealth)) // temporary back-compat alias for /
 	for _, route := range publicRoutes {
 		publicRouter.Method(route.method, "/mr"+route.pattern, s.WrapHandler(route.handler))
 	}
@@ -87,7 +86,6 @@ func NewServer(ctx context.Context, rt *runtime.Runtime, wg *sync.WaitGroup) *Se
 		handle405(w, r)
 	})
 	internalRouter.Get("/", s.WrapHandler(handleHealth))
-	internalRouter.Get("/ping", s.WrapHandler(handleHealth)) // temporary back-compat alias for /
 	for _, route := range internalRoutes {
 		internalRouter.Method(route.method, "/mi"+route.pattern, s.WrapHandler(route.handler))
 	}

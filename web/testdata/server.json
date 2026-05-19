@@ -26,15 +26,5 @@
         "response": {
             "error": "illegal method: POST"
         }
-    },
-    {
-        "label": "health at /ping returns the same (temporary back-compat)",
-        "method": "GET",
-        "path": "/ping",
-        "status": 200,
-        "response": {
-            "component": "mailroom",
-            "version": "Dev"
-        }
     }
 ]

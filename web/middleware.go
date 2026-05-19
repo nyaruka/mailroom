@@ -29,7 +29,7 @@ func requestLogger(listener string) func(http.Handler) http.Handler {
 			uri := fmt.Sprintf("%s://%s%s", scheme, r.Host, r.RequestURI)
 			ww.Header().Set("X-Elapsed-NS", strconv.FormatInt(int64(elapsed), 10))
 
-			if r.RequestURI != "/" && r.RequestURI != "/ping" {
+			if r.RequestURI != "/" {
 				slog.Info("request completed", "listener", listener, "method", r.Method, "status", ww.Status(), "elapsed", elapsed, "length", ww.BytesWritten(), "url", uri, "user_agent", r.UserAgent())
 			}
 		})
