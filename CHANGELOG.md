@@ -1,3 +1,7 @@
+v26.1.120 (2026-05-19)
+-------------------------
+ * Serve health response at /, alias /ping for back-compat
+
 v26.1.119 (2026-05-19)
 -------------------------
  * Drop deprecated temperature param from Anthropic LLM calls
