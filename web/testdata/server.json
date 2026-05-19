@@ -9,6 +9,16 @@
         }
     },
     {
+        "label": "health at root returns component and version",
+        "method": "GET",
+        "path": "/",
+        "status": 200,
+        "response": {
+            "component": "mailroom",
+            "version": "Dev"
+        }
+    },
+    {
         "label": "illegal method if POST to root",
         "method": "POST",
         "path": "/",
@@ -18,13 +28,12 @@
         }
     },
     {
-        "label": "status page if GET root",
+        "label": "health at /ping returns the same (temporary back-compat)",
         "method": "GET",
-        "path": "/",
+        "path": "/ping",
         "status": 200,
         "response": {
             "component": "mailroom",
-            "url": "/",
             "version": "Dev"
         }
     }
