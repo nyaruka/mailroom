@@ -57,8 +57,7 @@ func (s *service) Response(ctx context.Context, instructions, input string, maxT
 				},
 			},
 		},
-		Temperature: anthropic.Float(0.000001),
-		MaxTokens:   int64(maxTokens),
+		MaxTokens: int64(maxTokens),
 	})
 	if err != nil {
 		return nil, s.error(err, instructions, input)
