@@ -48,7 +48,7 @@ func init() {
 
 func classificationServiceFactory(rt *runtime.Runtime) engine.ClassificationServiceFactory {
 	return func(classifier *flows.Classifier) (flows.ClassificationService, error) {
-		return classifier.Asset().(*Classifier).AsService(rt.Config, classifier)
+		return classifier.Asset().(*Classifier).AsService(rt, classifier)
 	}
 }
 
@@ -83,16 +83,14 @@ func (c *Classifier) Intents() []string { return c.intentNames }
 func (c *Classifier) Type() string { return c.Type_ }
 
 // AsService builds the corresponding ClassificationService for the passed in Classifier
-func (c *Classifier) AsService(cfg *runtime.Config, classifier *flows.Classifier) (flows.ClassificationService, error) {
-	httpClient, _ := goflow.HTTP(cfg)
-
+func (c *Classifier) AsService(rt *runtime.Runtime, classifier *flows.Classifier) (flows.ClassificationService, error) {
 	switch c.Type() {
 	case ClassifierTypeWit:
 		accessToken := c.Config_[WitConfigAccessToken]
 		if accessToken == "" {
 			return nil, fmt.Errorf("missing %s for Wit classifier: %s", WitConfigAccessToken, c.UUID())
 		}
-		return wit.NewService(httpClient, nil, classifier, accessToken), nil
+		return wit.NewService(rt.HTTP, nil, classifier, accessToken), nil
 
 	default:
 		return nil, fmt.Errorf("unknown classifier type '%s' for classifier: %s", c.Type(), c.UUID())

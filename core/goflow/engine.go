@@ -26,6 +26,8 @@ var llmPrompts map[string]*template.Template
 
 func Reset() {
 	engInit, eng = sync.Once{}, nil
+	simulatorInit, simulator = sync.Once{}, nil
+	httpInit, httpClient, httpAccess = sync.Once{}, nil, nil
 }
 
 func RegisterCheckSendable(f func(*runtime.Runtime) flows.CheckSendableCallback) {

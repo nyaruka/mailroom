@@ -2,7 +2,9 @@ package goflow
 
 import (
 	"crypto/tls"
+	"fmt"
 	"net/http"
+	"net/url"
 	"sync"
 	"time"
 
@@ -15,10 +17,12 @@ var httpInit sync.Once
 var httpClient *http.Client
 var httpAccess *httpx.AccessConfig
 
-// HTTP returns the configuration objects for HTTP calls from the engine and its services
+// HTTP returns the http.Client and SSRF access config used by the engine for user-controlled
+// webhook calls (flow call_webhook actions and resthook deliveries). When cfg.OutboundProxyURL
+// is set, the client routes through that forward HTTP proxy; the SSRF IP blocklist is still
+// applied as defense-in-depth.
 func HTTP(cfg *runtime.Config) (*http.Client, *httpx.AccessConfig) {
 	httpInit.Do(func() {
-		// customize the default golang transport
 		t := http.DefaultTransport.(*http.Transport).Clone()
 		t.MaxIdleConns = 32
 		t.MaxIdleConnsPerHost = 8
@@ -27,13 +31,20 @@ func HTTP(cfg *runtime.Config) (*http.Client, *httpx.AccessConfig) {
 			Renegotiation: tls.RenegotiateOnceAsClient, // support single TLS renegotiation
 		}
 
+		if cfg.OutboundProxyURL != "" {
+			u, err := url.Parse(cfg.OutboundProxyURL)
+			if err != nil {
+				panic(fmt.Errorf("invalid OutboundProxyURL %q: %w", cfg.OutboundProxyURL, err))
+			}
+			t.Proxy = http.ProxyURL(u)
+		}
+
 		httpClient = &http.Client{
 			Transport: t,
 			Timeout:   time.Duration(cfg.WebhooksTimeout) * time.Millisecond,
 		}
 
-		disallowedIPs, disallowedNets := cfg.DisallowedIPs, cfg.DisallowedNets
-		httpAccess = httpx.NewAccessConfig(10*time.Second, disallowedIPs, disallowedNets)
+		httpAccess = httpx.NewAccessConfig(10*time.Second, cfg.DisallowedIPs, cfg.DisallowedNets)
 	})
 	return httpClient, httpAccess
 }
