@@ -2,6 +2,7 @@ package goflow
 
 import (
 	"net/http"
+	"net/url"
 	"testing"
 
 	"github.com/nyaruka/mailroom/v26/runtime"
@@ -14,7 +15,9 @@ func TestHTTPWithProxyConfigured(t *testing.T) {
 	Reset()
 
 	cfg := runtime.NewDefaultConfig()
-	cfg.WebhookProxyURL = "http://proxy.example.com:3128"
+	u, err := url.Parse("http://proxy.example.com:3128")
+	require.NoError(t, err)
+	cfg.WebhookProxyURLParsed = u
 
 	client, access := HTTP(cfg)
 	require.NotNil(t, access)
@@ -32,26 +35,8 @@ func TestHTTPWithoutProxy(t *testing.T) {
 	Reset()
 
 	cfg := runtime.NewDefaultConfig()
-	cfg.WebhookProxyURL = ""
-
+	// WebhookProxyURLParsed is nil — transport must have nil Proxy regardless of host env vars
 	client, _ := HTTP(cfg)
 
-	req, _ := http.NewRequest("POST", "https://example.org/hook", nil)
-	// transport.Proxy is the cloned default (ProxyFromEnvironment); with no env-var proxy and
-	// no WebhookProxyURL configured, it must resolve to no proxy.
-	proxy, err := client.Transport.(*http.Transport).Proxy(req)
-	require.NoError(t, err)
-	assert.Nil(t, proxy)
-}
-
-func TestHTTPInvalidProxyURLPanics(t *testing.T) {
-	t.Cleanup(Reset)
-	Reset()
-
-	cfg := runtime.NewDefaultConfig()
-	cfg.WebhookProxyURL = "://not a url"
-
-	assert.Panics(t, func() {
-		HTTP(cfg)
-	})
+	assert.Nil(t, client.Transport.(*http.Transport).Proxy)
 }

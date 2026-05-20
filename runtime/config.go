@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net"
+	"net/url"
 	"os"
 
 	"github.com/go-playground/validator/v10"
@@ -48,7 +49,7 @@ type Config struct {
 
 	SMTPServer           string   `help:"the default SMTP configuration for sending flow emails, e.g. smtp://user%40password@server:port/?from=foo%40gmail.com"`
 	DisallowedNetworks   []string `help:"comma separated list of IP addresses and networks which engine can't make HTTP calls to"`
-	WebhookProxyURL      string   `validate:"omitempty,url" help:"optional URL of a forward HTTP proxy to use for user-controlled webhook calls, e.g. http://proxy.example.com:3128"`
+	WebhookProxyURL      string   `validate:"omitempty,http_url" help:"optional URL of a forward HTTP proxy to use for user-controlled webhook calls, e.g. http://proxy.example.com:3128"`
 	MaxStepsPerSprint    int      `help:"the maximum number of steps allowed per engine sprint"`
 	MaxSprintsPerSession int      `help:"the maximum number of sprints allowed per engine session"`
 	MaxValueLength       int      `help:"the maximum size in characters for contact field values and run result values"`
@@ -93,6 +94,7 @@ type Config struct {
 	DisallowedIPs          []net.IP
 	DisallowedNets         []*net.IPNet
 	IDObfuscationKeyParsed [4]uint32
+	WebhookProxyURLParsed  *url.URL
 }
 
 // NewDefaultConfig returns a new default configuration object
@@ -183,6 +185,15 @@ func (c *Config) Parse() error {
 	// parse our disallowed networks
 	if err := c.parseDisallowedNetworks(); err != nil {
 		return fmt.Errorf("invalid disallowed networks: %w", err)
+	}
+
+	// parse the optional webhook proxy URL (validator already enforced http/https scheme)
+	if c.WebhookProxyURL != "" {
+		u, err := url.Parse(c.WebhookProxyURL)
+		if err != nil {
+			return fmt.Errorf("invalid webhook proxy URL: %w", err)
+		}
+		c.WebhookProxyURLParsed = u
 	}
 
 	// parse our ID obfuscation key

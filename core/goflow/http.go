@@ -2,9 +2,7 @@ package goflow
 
 import (
 	"crypto/tls"
-	"fmt"
 	"net/http"
-	"net/url"
 	"sync"
 	"time"
 
@@ -19,7 +17,8 @@ var httpAccess *httpx.AccessConfig
 
 // HTTP returns the http.Client and SSRF access config used by the engine for user-controlled
 // webhook calls (flow call_webhook actions and resthook deliveries). When cfg.WebhookProxyURL
-// is set, the client routes through that forward HTTP proxy; the SSRF IP blocklist is still
+// is set, the client routes through that forward HTTP proxy; otherwise no proxy is used (the
+// transport ignores HTTP_PROXY/HTTPS_PROXY env vars by design). The SSRF IP blocklist is
 // applied as defense-in-depth.
 func HTTP(cfg *runtime.Config) (*http.Client, *httpx.AccessConfig) {
 	httpInit.Do(func() {
@@ -31,12 +30,10 @@ func HTTP(cfg *runtime.Config) (*http.Client, *httpx.AccessConfig) {
 			Renegotiation: tls.RenegotiateOnceAsClient, // support single TLS renegotiation
 		}
 
-		if cfg.WebhookProxyURL != "" {
-			u, err := url.Parse(cfg.WebhookProxyURL)
-			if err != nil {
-				panic(fmt.Errorf("invalid WebhookProxyURL %q: %w", cfg.WebhookProxyURL, err))
-			}
-			t.Proxy = http.ProxyURL(u)
+		if cfg.WebhookProxyURLParsed != nil {
+			t.Proxy = http.ProxyURL(cfg.WebhookProxyURLParsed)
+		} else {
+			t.Proxy = nil
 		}
 
 		httpClient = &http.Client{
