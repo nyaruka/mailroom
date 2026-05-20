@@ -1,3 +1,8 @@
+v26.1.121 (2026-05-20)
+-------------------------
+ * Route user-controlled webhook calls through optional outbound HTTP proxy
+ * Drop /ping back-compat alias
+
 v26.1.120 (2026-05-19)
 -------------------------
  * Serve health response at /, alias /ping for back-compat
