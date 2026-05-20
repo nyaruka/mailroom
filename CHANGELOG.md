@@ -1,3 +1,7 @@
+v26.1.122 (2026-05-20)
+-------------------------
+ * Trim webhook User-Agent to avoid leaking build details
+
 v26.1.121 (2026-05-20)
 -------------------------
  * Route user-controlled webhook calls through optional outbound HTTP proxy
