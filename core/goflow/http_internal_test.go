@@ -14,7 +14,7 @@ func TestHTTPWithProxyConfigured(t *testing.T) {
 	Reset()
 
 	cfg := runtime.NewDefaultConfig()
-	cfg.OutboundProxyURL = "http://proxy.example.com:3128"
+	cfg.WebhookProxyURL = "http://proxy.example.com:3128"
 
 	client, access := HTTP(cfg)
 	require.NotNil(t, access)
@@ -22,7 +22,7 @@ func TestHTTPWithProxyConfigured(t *testing.T) {
 	req, _ := http.NewRequest("POST", "https://example.org/hook", nil)
 	proxy, err := client.Transport.(*http.Transport).Proxy(req)
 	require.NoError(t, err)
-	require.NotNil(t, proxy, "transport should resolve a proxy URL when OutboundProxyURL is set")
+	require.NotNil(t, proxy, "transport should resolve a proxy URL when WebhookProxyURL is set")
 	assert.Equal(t, "proxy.example.com:3128", proxy.Host)
 	assert.Equal(t, "http", proxy.Scheme)
 }
@@ -32,13 +32,13 @@ func TestHTTPWithoutProxy(t *testing.T) {
 	Reset()
 
 	cfg := runtime.NewDefaultConfig()
-	cfg.OutboundProxyURL = ""
+	cfg.WebhookProxyURL = ""
 
 	client, _ := HTTP(cfg)
 
 	req, _ := http.NewRequest("POST", "https://example.org/hook", nil)
 	// transport.Proxy is the cloned default (ProxyFromEnvironment); with no env-var proxy and
-	// no OutboundProxyURL configured, it must resolve to no proxy.
+	// no WebhookProxyURL configured, it must resolve to no proxy.
 	proxy, err := client.Transport.(*http.Transport).Proxy(req)
 	require.NoError(t, err)
 	assert.Nil(t, proxy)
@@ -49,7 +49,7 @@ func TestHTTPInvalidProxyURLPanics(t *testing.T) {
 	Reset()
 
 	cfg := runtime.NewDefaultConfig()
-	cfg.OutboundProxyURL = "://not a url"
+	cfg.WebhookProxyURL = "://not a url"
 
 	assert.Panics(t, func() {
 		HTTP(cfg)

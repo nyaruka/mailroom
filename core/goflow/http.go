@@ -18,7 +18,7 @@ var httpClient *http.Client
 var httpAccess *httpx.AccessConfig
 
 // HTTP returns the http.Client and SSRF access config used by the engine for user-controlled
-// webhook calls (flow call_webhook actions and resthook deliveries). When cfg.OutboundProxyURL
+// webhook calls (flow call_webhook actions and resthook deliveries). When cfg.WebhookProxyURL
 // is set, the client routes through that forward HTTP proxy; the SSRF IP blocklist is still
 // applied as defense-in-depth.
 func HTTP(cfg *runtime.Config) (*http.Client, *httpx.AccessConfig) {
@@ -31,10 +31,10 @@ func HTTP(cfg *runtime.Config) (*http.Client, *httpx.AccessConfig) {
 			Renegotiation: tls.RenegotiateOnceAsClient, // support single TLS renegotiation
 		}
 
-		if cfg.OutboundProxyURL != "" {
-			u, err := url.Parse(cfg.OutboundProxyURL)
+		if cfg.WebhookProxyURL != "" {
+			u, err := url.Parse(cfg.WebhookProxyURL)
 			if err != nil {
-				panic(fmt.Errorf("invalid OutboundProxyURL %q: %w", cfg.OutboundProxyURL, err))
+				panic(fmt.Errorf("invalid WebhookProxyURL %q: %w", cfg.WebhookProxyURL, err))
 			}
 			t.Proxy = http.ProxyURL(u)
 		}
