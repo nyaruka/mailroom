@@ -2,6 +2,7 @@ package goflow
 
 import (
 	"context"
+	"strings"
 	"sync"
 	"text/template"
 
@@ -68,11 +69,21 @@ func RegisterLLMPrompts(p map[string]*template.Template) {
 	llmPrompts = p
 }
 
+// userAgent returns the User-Agent header value for webhook calls. Only the major.minor
+// portion of the version is included to avoid leaking specific build details.
+func userAgent(version string) string {
+	parts := strings.SplitN(version, ".", 3)
+	if len(parts) >= 2 {
+		return "Mailroom/" + parts[0] + "." + parts[1]
+	}
+	return "Mailroom/" + version
+}
+
 // Engine returns the global engine instance for use with real sessions
 func Engine(rt *runtime.Runtime) flows.Engine {
 	engInit.Do(func() {
 		webhookHeaders := map[string]string{
-			"User-Agent":      "RapidProMailroom/" + rt.Config.Version,
+			"User-Agent":      userAgent(rt.Config.Version),
 			"X-Mailroom-Mode": "normal",
 		}
 
@@ -101,7 +112,7 @@ func Engine(rt *runtime.Runtime) flows.Engine {
 func Simulator(ctx context.Context, rt *runtime.Runtime) flows.Engine {
 	simulatorInit.Do(func() {
 		webhookHeaders := map[string]string{
-			"User-Agent":      "RapidProMailroom/" + rt.Config.Version,
+			"User-Agent":      userAgent(rt.Config.Version),
 			"X-Mailroom-Mode": "simulation",
 		}
 
