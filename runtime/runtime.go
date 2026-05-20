@@ -2,8 +2,10 @@ package runtime
 
 import (
 	"context"
+	"crypto/tls"
 	"database/sql"
 	"fmt"
+	"net/http"
 	"time"
 
 	"firebase.google.com/go/v4/messaging"
@@ -33,6 +35,11 @@ type Runtime struct {
 
 	Queues *Queues
 	Stats  *StatsCollector
+
+	// HTTP is the shared http.Client for outbound calls to fixed third-party services (e.g. LLM
+	// provider APIs). It does NOT go through the outbound webhook proxy — that is reserved for
+	// user-controlled URLs and lives on the engine's HTTP client (see core/goflow.HTTP).
+	HTTP *http.Client
 }
 
 // FCMClient is an interface to allow mocking in tests
@@ -88,8 +95,23 @@ func NewRuntime(cfg *Config) (*Runtime, error) {
 
 	rt.Queues = newQueues(cfg)
 	rt.Stats = NewStatsCollector(rt.VK, cfg.LatencyExcludedOrgs)
+	rt.HTTP = newHTTPClient(cfg)
 
 	return rt, nil
+}
+
+func newHTTPClient(cfg *Config) *http.Client {
+	t := http.DefaultTransport.(*http.Transport).Clone()
+	t.MaxIdleConns = 32
+	t.MaxIdleConnsPerHost = 8
+	t.IdleConnTimeout = 30 * time.Second
+	t.TLSClientConfig = &tls.Config{
+		Renegotiation: tls.RenegotiateOnceAsClient,
+	}
+	return &http.Client{
+		Transport: t,
+		Timeout:   time.Duration(cfg.WebhooksTimeout) * time.Millisecond,
+	}
 }
 
 func (r *Runtime) Start() error {
