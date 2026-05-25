@@ -124,12 +124,8 @@ func NewDefaultConfig() *Config {
 		WebhooksMaxBodyBytes:         256 * 1024, // 256 KiB
 		WebhooksHealthyResponseLimit: 10000,
 
-		SMTPServer: "",
-		DisallowedNetworks: []string{
-			`127.0.0.0/8`, `::1`, `::ffff:0:0/96`, `fe80::/10`, `fc00::/7`,
-			`10.0.0.0/8`, `172.16.0.0/12`, `172.32.0.0/16`, `192.168.0.0/16`, `100.64.0.0/10`,
-			`169.254.0.0/16`, `0.0.0.0/8`,
-		},
+		SMTPServer:           "",
+		DisallowedNetworks:   []string{`127.0.0.0/8`, `::1`, `fe80::/10`, `fc00::/7`, `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `100.64.0.0/10`, `169.254.0.0/16`, `0.0.0.0/8`},
 		MaxStepsPerSprint:    250,
 		MaxSprintsPerSession: 250,
 		MaxValueLength:       640,
