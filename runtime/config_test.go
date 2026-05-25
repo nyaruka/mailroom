@@ -21,19 +21,26 @@ func TestDisallowedNetworksParsing(t *testing.T) {
 	// check default value
 	cfg, err := runtime.LoadConfig(`--log-level=warn`)
 	assert.NoError(t, err)
-	assert.Equal(t, [4]uint32{0x000A3B1C, 0x000D2E3F, 0x0001A2B3, 0x00C0FFEE}, cfg.IDObfuscationKeyParsed)
 
-	privateNetwork1 := &net.IPNet{IP: net.IPv4(10, 0, 0, 0).To4(), Mask: net.CIDRMask(8, 32)}
-	privateNetwork2 := &net.IPNet{IP: net.IPv4(172, 16, 0, 0).To4(), Mask: net.CIDRMask(12, 32)}
-	privateNetwork3 := &net.IPNet{IP: net.IPv4(192, 168, 0, 0).To4(), Mask: net.CIDRMask(16, 32)}
-
-	linkLocalIPv4 := &net.IPNet{IP: net.IPv4(169, 254, 0, 0).To4(), Mask: net.CIDRMask(16, 32)}
-	_, linkLocalIPv6, _ := net.ParseCIDR("fe80::/10")
+	mustParseCIDR := func(s string) *net.IPNet {
+		_, n, perr := net.ParseCIDR(s)
+		assert.NoError(t, perr)
+		return n
+	}
 
 	ips, ipNets := cfg.DisallowedIPs, cfg.DisallowedNets
-	assert.NoError(t, err)
-	assert.Equal(t, []net.IP{net.IPv4(127, 0, 0, 1), net.ParseIP(`::1`)}, ips)
-	assert.Equal(t, []*net.IPNet{privateNetwork1, privateNetwork2, privateNetwork3, linkLocalIPv4, linkLocalIPv6}, ipNets)
+	assert.Equal(t, []net.IP{net.ParseIP(`::1`)}, ips)
+	assert.Equal(t, []*net.IPNet{
+		mustParseCIDR("127.0.0.0/8"),
+		mustParseCIDR("fe80::/10"),
+		mustParseCIDR("fc00::/7"),
+		mustParseCIDR("10.0.0.0/8"),
+		mustParseCIDR("172.16.0.0/12"),
+		mustParseCIDR("192.168.0.0/16"),
+		mustParseCIDR("100.64.0.0/10"),
+		mustParseCIDR("169.254.0.0/16"),
+		mustParseCIDR("0.0.0.0/8"),
+	}, ipNets)
 
 	// test with invalid CSV
 	_, err = runtime.LoadConfig(`--disallowed-networks="127.0.0.1`)
