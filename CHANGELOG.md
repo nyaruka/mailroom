@@ -1,3 +1,7 @@
+v26.1.124 (2026-05-25)
+-------------------------
+ * Update deps and fix disallowed network list
+
 v26.1.123 (2026-05-25)
 -------------------------
  * Expand default DisallowedNetworks (full loopback, IPv4-mapped IPv6, ULA, CGNAT, and more)
