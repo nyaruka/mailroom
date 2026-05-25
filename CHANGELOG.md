@@ -1,3 +1,7 @@
+v26.1.123 (2026-05-25)
+-------------------------
+ * Expand default DisallowedNetworks (full loopback, IPv4-mapped IPv6, ULA, CGNAT, and more)
+
 v26.1.122 (2026-05-20)
 -------------------------
  * Trim webhook User-Agent to avoid leaking build details
