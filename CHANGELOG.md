@@ -1,3 +1,8 @@
+v26.1.125 (2026-05-26)
+-------------------------
+ * Change default cloudwatch namespace to Mailroom
+ * Update to goflow v0.275.0 and remove classifier support
+
 v26.1.124 (2026-05-25)
 -------------------------
  * Update deps and fix disallowed network list
