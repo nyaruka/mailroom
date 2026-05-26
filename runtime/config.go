@@ -147,7 +147,7 @@ func NewDefaultConfig() *Config {
 		S3AttachmentsBucket: "temba-attachments",
 
 		MetricsReporting:    "off",
-		CloudwatchNamespace: "Temba/Mailroom",
+		CloudwatchNamespace: "Mailroom",
 		DeploymentID:        "dev",
 		InstanceID:          hostname,
 
