@@ -20,7 +20,6 @@ var engInit, simulatorInit sync.Once
 var checkSendable func(*runtime.Runtime) flows.CheckSendableCallback
 var claimURN func(*runtime.Runtime) flows.ClaimURNCallback
 var emailFactory func(*runtime.Runtime) engine.EmailServiceFactory
-var classificationFactory func(*runtime.Runtime) engine.ClassificationServiceFactory
 var llmFactory func(*runtime.Runtime) engine.LLMServiceFactory
 var airtimeFactory func(*runtime.Runtime) engine.AirtimeServiceFactory
 var llmPrompts map[string]*template.Template
@@ -43,12 +42,6 @@ func RegisterClaimURN(f func(*runtime.Runtime) flows.ClaimURNCallback) {
 // for use by the engine
 func RegisterEmailServiceFactory(f func(*runtime.Runtime) engine.EmailServiceFactory) {
 	emailFactory = f
-}
-
-// RegisterClassificationServiceFactory can be used by outside callers to register a classification service factory
-// for use by the engine
-func RegisterClassificationServiceFactory(f func(*runtime.Runtime) engine.ClassificationServiceFactory) {
-	classificationFactory = f
 }
 
 // RegisterLLMServiceFactory can be used by outside callers to register an LLM service factory
@@ -91,7 +84,6 @@ func Engine(rt *runtime.Runtime) flows.Engine {
 
 		eng = engine.NewBuilder().
 			WithWebhookServiceFactory(webhooks.NewServiceFactory(httpClient, nil, httpAccess, webhookHeaders, rt.Config.WebhooksMaxBodyBytes)).
-			WithClassificationServiceFactory(classificationFactory(rt)).
 			WithLLMServiceFactory(llmFactory(rt)).
 			WithEmailServiceFactory(emailFactory(rt)).
 			WithAirtimeServiceFactory(airtimeFactory(rt)).
@@ -120,10 +112,9 @@ func Simulator(ctx context.Context, rt *runtime.Runtime) flows.Engine {
 
 		simulator = engine.NewBuilder().
 			WithWebhookServiceFactory(webhooks.NewServiceFactory(httpClient, nil, httpAccess, webhookHeaders, rt.Config.WebhooksMaxBodyBytes)).
-			WithClassificationServiceFactory(classificationFactory(rt)). // simulated sessions do real classification
-			WithLLMServiceFactory(llmFactory(rt)).                       // simulated sessions do real LLM calls
-			WithEmailServiceFactory(simulatorEmailServiceFactory).       // but faked emails
-			WithAirtimeServiceFactory(simulatorAirtimeServiceFactory).   // and faked airtime transfers
+			WithLLMServiceFactory(llmFactory(rt)).                     // simulated sessions do real LLM calls
+			WithEmailServiceFactory(simulatorEmailServiceFactory).     // but faked emails
+			WithAirtimeServiceFactory(simulatorAirtimeServiceFactory). // and faked airtime transfers
 			WithMaxStepsPerSprint(rt.Config.MaxStepsPerSprint).
 			WithMaxSprintsPerSession(rt.Config.MaxSprintsPerSession).
 			WithMaxFieldChars(rt.Config.MaxValueLength).

@@ -70,10 +70,6 @@ var SupportTopic = &Topic{10002, "0a8f2e00-fef6-402c-bd79-d789446ec0e0"}
 var Partners = &Team{10001, "4321c30b-b596-46fa-adb4-4a46d37923f6"}
 var Office = &Team{10002, "f14c1762-d38b-4072-ae63-2705332a3719"}
 
-var Luis = &Classifier{10000, "097e026c-ae79-4740-af67-656dbedf0263"}
-var Wit = &Classifier{10001, "ff2a817c-040a-4eb2-8404-7d92e8b79dd0"}
-var Bothub = &Classifier{10002, "859b436d-3005-4e43-9ad5-3de5f26ede4c"}
-
 var OpenAI = &LLM{10000, "62c2bb93-f388-4c72-a2e6-25bee7282240"}
 var Anthropic = &LLM{10001, "43764a92-2545-4aa0-b005-6ade894acc96"}
 var TestLLM = &LLM{10002, "e5d8900a-ef54-4d2a-8214-ff7d3e903502"}

@@ -10,7 +10,7 @@ import (
 	"github.com/vinovest/sqlx"
 )
 
-// InsertHTTPLogs is our hook for inserting classifier logs
+// InsertHTTPLogs is our hook for inserting HTTP logs
 var InsertHTTPLogs runner.PreCommitHook = &insertHTTPLogs{}
 
 type insertHTTPLogs struct{}
