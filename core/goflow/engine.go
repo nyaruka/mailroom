@@ -142,7 +142,7 @@ func simulatorAirtimeServiceFactory(flows.SessionAssets) (flows.AirtimeService, 
 
 type simulatorAirtimeService struct{}
 
-func (s *simulatorAirtimeService) Create(ctx context.Context, sender urns.URN, recipient urns.URN, amounts map[string]decimal.Decimal, logHTTP flows.HTTPLogCallback) (*flows.AirtimeTransfer, error) {
+func (s *simulatorAirtimeService) Create(ctx context.Context, transferUUID flows.EventUUID, sender urns.URN, recipient urns.URN, amounts map[string]decimal.Decimal, logHTTP flows.HTTPLogCallback) (*flows.AirtimeTransfer, error) {
 	transfer := &flows.AirtimeTransfer{
 		Sender:    sender,
 		Recipient: recipient,

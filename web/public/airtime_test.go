@@ -1,6 +1,7 @@
 package public_test
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 	"sync"
@@ -32,17 +33,18 @@ func TestDTOneStatusCallback(t *testing.T) {
 	defer server.Stop()
 	time.Sleep(100 * time.Millisecond)
 
-	seed := func(t *testing.T) *models.AirtimeTransfer {
+	seed := func(t *testing.T) flows.EventUUID {
 		rt.DB.MustExec(`DELETE FROM airtime_airtimetransfer`)
-		tr := models.NewAirtimeTransfer(testdb.Org1.ID, testdb.Ann.ID, events.NewAirtimeCreated(&flows.AirtimeTransfer{
-			ExternalID: "9876",
+		uuid := flows.NewEventUUID()
+		tr := models.NewAirtimeTransfer(testdb.Org1.ID, testdb.Ann.ID, events.NewAirtimeCreated(uuid, &flows.AirtimeTransfer{
+			ExternalID: "2237512891",
 			Sender:     urns.URN("tel:+250700000001"),
 			Recipient:  urns.URN("tel:+250700000002"),
 			Currency:   "RWF",
 			Amount:     decimal.RequireFromString("100"),
 		}, nil))
 		require.NoError(t, models.InsertAirtimeTransfers(ctx, rt.DB, []*models.AirtimeTransfer{tr}))
-		return tr
+		return uuid
 	}
 
 	post := func(t *testing.T, path, body string) int {
@@ -55,66 +57,68 @@ func TestDTOneStatusCallback(t *testing.T) {
 		return resp.StatusCode
 	}
 
-	rowStatus := func(t *testing.T) models.AirtimeTransferStatus {
-		fetched, err := models.GetAirtimeTransferByExternalID(ctx, rt.DB, "9876")
+	rowStatus := func(t *testing.T, uuid flows.EventUUID) models.AirtimeTransferStatus {
+		fetched, err := models.GetAirtimeTransferByUUID(ctx, rt.DB, uuid)
 		require.NoError(t, err)
 		require.NotNil(t, fetched)
 		return fetched.Status()
 	}
 
+	// body builder for a callback whose external_id field carries our row UUID
+	body := func(uuid flows.EventUUID, classID int, msg string) string {
+		return fmt.Sprintf(`{"id":2237512891,"external_id":%q,"status":{"class":{"id":%d,"message":%q}}}`, string(uuid), classID, msg)
+	}
+
 	// happy path: P → S
-	tr := seed(t)
-	assert.Equal(t, http.StatusOK, post(t, "/mr/airtime/dtone/status/sek", `{"id":9876,"status":{"class":{"id":7,"message":"COMPLETED"}}}`))
-	assert.Equal(t, models.AirtimeTransferStatusSuccess, rowStatus(t))
+	uuid := seed(t)
+	assert.Equal(t, http.StatusOK, post(t, "/mr/airtime/dtone/status/sek", body(uuid, 7, "COMPLETED")))
+	assert.Equal(t, models.AirtimeTransferStatusSuccess, rowStatus(t, uuid))
 
 	// reversed after success is allowed (S → R)
-	assert.Equal(t, http.StatusOK, post(t, "/mr/airtime/dtone/status/sek", `{"id":9876,"status":{"class":{"id":8,"message":"REVERSED"}}}`))
-	assert.Equal(t, models.AirtimeTransferStatusReversed, rowStatus(t))
+	assert.Equal(t, http.StatusOK, post(t, "/mr/airtime/dtone/status/sek", body(uuid, 8, "REVERSED")))
+	assert.Equal(t, models.AirtimeTransferStatusReversed, rowStatus(t, uuid))
 
 	// late/out-of-order rejected after reversed must NOT walk the row back to F
-	assert.Equal(t, http.StatusOK, post(t, "/mr/airtime/dtone/status/sek", `{"id":9876,"status":{"class":{"id":3,"message":"REJECTED"}}}`))
-	assert.Equal(t, models.AirtimeTransferStatusReversed, rowStatus(t), "rejected after reversed should be ignored")
+	assert.Equal(t, http.StatusOK, post(t, "/mr/airtime/dtone/status/sek", body(uuid, 3, "REJECTED")))
+	assert.Equal(t, models.AirtimeTransferStatusReversed, rowStatus(t, uuid), "rejected after reversed should be ignored")
 
 	// late completed after reversed must NOT walk the row back to S either
-	assert.Equal(t, http.StatusOK, post(t, "/mr/airtime/dtone/status/sek", `{"id":9876,"status":{"class":{"id":7,"message":"COMPLETED"}}}`))
-	assert.Equal(t, models.AirtimeTransferStatusReversed, rowStatus(t), "completed after reversed should be ignored")
+	assert.Equal(t, http.StatusOK, post(t, "/mr/airtime/dtone/status/sek", body(uuid, 7, "COMPLETED")))
+	assert.Equal(t, models.AirtimeTransferStatusReversed, rowStatus(t, uuid), "completed after reversed should be ignored")
 
 	// rejected from pending takes the row to F directly
-	tr = seed(t)
-	_ = tr
-	assert.Equal(t, http.StatusOK, post(t, "/mr/airtime/dtone/status/sek", `{"id":9876,"status":{"class":{"id":3,"message":"REJECTED"}}}`))
-	assert.Equal(t, models.AirtimeTransferStatusFailed, rowStatus(t))
+	uuid = seed(t)
+	assert.Equal(t, http.StatusOK, post(t, "/mr/airtime/dtone/status/sek", body(uuid, 3, "REJECTED")))
+	assert.Equal(t, models.AirtimeTransferStatusFailed, rowStatus(t, uuid))
 
 	// declined and cancelled also map to F
-	tr = seed(t)
-	_ = tr
-	assert.Equal(t, http.StatusOK, post(t, "/mr/airtime/dtone/status/sek", `{"id":9876,"status":{"class":{"id":9,"message":"DECLINED"}}}`))
-	assert.Equal(t, models.AirtimeTransferStatusFailed, rowStatus(t))
+	uuid = seed(t)
+	assert.Equal(t, http.StatusOK, post(t, "/mr/airtime/dtone/status/sek", body(uuid, 9, "DECLINED")))
+	assert.Equal(t, models.AirtimeTransferStatusFailed, rowStatus(t, uuid))
 
-	tr = seed(t)
-	_ = tr
-	assert.Equal(t, http.StatusOK, post(t, "/mr/airtime/dtone/status/sek", `{"id":9876,"status":{"class":{"id":4,"message":"CANCELLED"}}}`))
-	assert.Equal(t, models.AirtimeTransferStatusFailed, rowStatus(t))
+	uuid = seed(t)
+	assert.Equal(t, http.StatusOK, post(t, "/mr/airtime/dtone/status/sek", body(uuid, 4, "CANCELLED")))
+	assert.Equal(t, models.AirtimeTransferStatusFailed, rowStatus(t, uuid))
 
 	// non-terminal status class is ignored — row stays in its current state
-	seed(t)
-	assert.Equal(t, http.StatusOK, post(t, "/mr/airtime/dtone/status/sek", `{"id":9876,"status":{"class":{"id":5,"message":"SUBMITTED"}}}`))
-	assert.Equal(t, models.AirtimeTransferStatusPending, rowStatus(t))
+	uuid = seed(t)
+	assert.Equal(t, http.StatusOK, post(t, "/mr/airtime/dtone/status/sek", body(uuid, 5, "SUBMITTED")))
+	assert.Equal(t, models.AirtimeTransferStatusPending, rowStatus(t, uuid))
 
-	// duplicate of a terminal-equal status from the same callback: idempotent (P → S then redundant S → S)
-	assert.Equal(t, http.StatusOK, post(t, "/mr/airtime/dtone/status/sek", `{"id":9876,"status":{"class":{"id":7,"message":"COMPLETED"}}}`))
-	assert.Equal(t, models.AirtimeTransferStatusSuccess, rowStatus(t))
-	assert.Equal(t, http.StatusOK, post(t, "/mr/airtime/dtone/status/sek", `{"id":9876,"status":{"class":{"id":7,"message":"COMPLETED"}}}`))
-	assert.Equal(t, models.AirtimeTransferStatusSuccess, rowStatus(t))
+	// same terminal callback delivered twice is idempotent
+	assert.Equal(t, http.StatusOK, post(t, "/mr/airtime/dtone/status/sek", body(uuid, 7, "COMPLETED")))
+	assert.Equal(t, models.AirtimeTransferStatusSuccess, rowStatus(t, uuid))
+	assert.Equal(t, http.StatusOK, post(t, "/mr/airtime/dtone/status/sek", body(uuid, 7, "COMPLETED")))
+	assert.Equal(t, models.AirtimeTransferStatusSuccess, rowStatus(t, uuid))
 
-	// unknown transaction id → 404 so DT One retries through the race window
-	assert.Equal(t, http.StatusNotFound, post(t, "/mr/airtime/dtone/status/sek", `{"id":99999,"status":{"class":{"id":7,"message":"COMPLETED"}}}`))
+	// unknown UUID → 404 so DT One retries through the race window
+	assert.Equal(t, http.StatusNotFound, post(t, "/mr/airtime/dtone/status/sek", body(flows.NewEventUUID(), 7, "COMPLETED")))
 
 	// wrong secret → 403
-	assert.Equal(t, http.StatusForbidden, post(t, "/mr/airtime/dtone/status/wrong", `{"id":9876,"status":{"class":{"id":7,"message":"COMPLETED"}}}`))
+	assert.Equal(t, http.StatusForbidden, post(t, "/mr/airtime/dtone/status/wrong", body(uuid, 7, "COMPLETED")))
 
-	// missing transaction id → 400
-	assert.Equal(t, http.StatusBadRequest, post(t, "/mr/airtime/dtone/status/sek", `{"status":{"class":{"id":7}}}`))
+	// missing external_id → 400
+	assert.Equal(t, http.StatusBadRequest, post(t, "/mr/airtime/dtone/status/sek", `{"id":1,"status":{"class":{"id":7}}}`))
 }
 
 func TestDTOneStatusCallback_disabled(t *testing.T) {

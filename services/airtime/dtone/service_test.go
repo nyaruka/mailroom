@@ -51,11 +51,13 @@ func TestServiceCreate(t *testing.T) {
 	httpx.SetRequestor(mocks)
 
 	svc := dtone.NewService(http.DefaultClient, nil, "key123", "sesame", callbackURL)
+	transferUUID := flows.EventUUID("01970fa4-1e58-79d5-bca8-1234567890ab")
 
 	// success — Create resolves the product, submits an unconfirmed transaction, returns currency/amount + external id
 	logger := &flows.HTTPLogger{}
 	transfer, err := svc.Create(
 		ctx,
+		transferUUID,
 		urns.URN("tel:+593979000000"),
 		urns.URN("tel:+593979123456"),
 		map[string]decimal.Decimal{
@@ -73,23 +75,23 @@ func TestServiceCreate(t *testing.T) {
 	assert.Equal(t, 3, len(logger.Logs))
 
 	// lookup connection error
-	_, err = svc.Create(ctx, urns.NilURN, urns.URN("tel:+593979123456"), map[string]decimal.Decimal{"USD": decimal.RequireFromString("3")}, logger.Log)
+	_, err = svc.Create(ctx, transferUUID, urns.NilURN, urns.URN("tel:+593979123456"), map[string]decimal.Decimal{"USD": decimal.RequireFromString("3")}, logger.Log)
 	assert.EqualError(t, err, "number lookup failed: unable to connect to server")
 
 	// lookup returns no operator match
-	_, err = svc.Create(ctx, urns.NilURN, urns.URN("tel:+593979123456"), map[string]decimal.Decimal{"USD": decimal.RequireFromString("3")}, logger.Log)
+	_, err = svc.Create(ctx, transferUUID, urns.NilURN, urns.URN("tel:+593979123456"), map[string]decimal.Decimal{"USD": decimal.RequireFromString("3")}, logger.Log)
 	assert.EqualError(t, err, "unable to find operator for number +593979123456")
 
 	// products fetch fails
-	_, err = svc.Create(ctx, urns.NilURN, urns.URN("tel:+593979123456"), map[string]decimal.Decimal{"USD": decimal.RequireFromString("3")}, logger.Log)
+	_, err = svc.Create(ctx, transferUUID, urns.NilURN, urns.URN("tel:+593979123456"), map[string]decimal.Decimal{"USD": decimal.RequireFromString("3")}, logger.Log)
 	assert.EqualError(t, err, "product fetch failed: Product is not available in your account")
 
 	// no matching product for desired amount
-	_, err = svc.Create(ctx, urns.NilURN, urns.URN("tel:+593979123456"), map[string]decimal.Decimal{"USD": decimal.RequireFromString("2")}, logger.Log)
+	_, err = svc.Create(ctx, transferUUID, urns.NilURN, urns.URN("tel:+593979123456"), map[string]decimal.Decimal{"USD": decimal.RequireFromString("2")}, logger.Log)
 	assert.EqualError(t, err, "unable to find a suitable product for operator 'Claro Ecuador'")
 
 	// transaction submission errors out
-	_, err = svc.Create(ctx, urns.NilURN, urns.URN("tel:+593979123456"), map[string]decimal.Decimal{"USD": decimal.RequireFromString("3")}, logger.Log)
+	_, err = svc.Create(ctx, transferUUID, urns.NilURN, urns.URN("tel:+593979123456"), map[string]decimal.Decimal{"USD": decimal.RequireFromString("3")}, logger.Log)
 	assert.EqualError(t, err, "transaction creation failed: Something went wrong")
 
 	assert.False(t, mocks.HasUnused())

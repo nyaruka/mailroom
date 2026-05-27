@@ -21,10 +21,11 @@ func TestAirtimeTransfers(t *testing.T) {
 
 	// insert a transfer — new transfers are always created in pending state, with the provider's
 	// transaction id already populated from the event
+	transferUUID := flows.NewEventUUID()
 	transfer := models.NewAirtimeTransfer(
 		testdb.Org1.ID,
 		testdb.Ann.ID,
-		events.NewAirtimeCreated(&flows.AirtimeTransfer{
+		events.NewAirtimeCreated(transferUUID, &flows.AirtimeTransfer{
 			ExternalID: "2237512891",
 			Sender:     urns.URN("tel:+250700000001"),
 			Recipient:  urns.URN("tel:+250700000002"),
@@ -48,14 +49,14 @@ func TestAirtimeTransfers(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT status FROM airtime_airtimetransfer WHERE id = $1`, transfer.ID()).
 		Columns(map[string]any{"status": "S"})
 
-	// can look it up by external_id
-	fetched, err := models.GetAirtimeTransferByExternalID(ctx, rt.DB, "2237512891")
+	// can look it up by UUID
+	fetched, err := models.GetAirtimeTransferByUUID(ctx, rt.DB, transferUUID)
 	assert.NoError(t, err)
 	assert.NotNil(t, fetched)
-	assert.Equal(t, transfer.UUID(), fetched.UUID())
+	assert.Equal(t, transferUUID, fetched.UUID())
 
-	// missing external_id returns nil, nil
-	fetched, err = models.GetAirtimeTransferByExternalID(ctx, rt.DB, "does-not-exist")
+	// missing UUID returns nil, nil
+	fetched, err = models.GetAirtimeTransferByUUID(ctx, rt.DB, flows.NewEventUUID())
 	assert.NoError(t, err)
 	assert.Nil(t, fetched)
 

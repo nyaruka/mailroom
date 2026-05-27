@@ -31,8 +31,10 @@ func NewService(httpClient *http.Client, httpRetries *httpx.RetryConfig, key, se
 }
 
 // Create resolves the operator + product for the recipient and submits an unconfirmed transaction to DT One.
+// The transferUUID is passed to DT One as our reference (their `external_id` request field), so subsequent
+// status callbacks echo it back and the host can correlate them to the airtime_created event by UUID.
 // The returned ExternalID is DT One's transaction id; nothing is actually sent until the host calls Confirm.
-func (s *service) Create(ctx context.Context, sender urns.URN, recipient urns.URN, amounts map[string]decimal.Decimal, logHTTP flows.HTTPLogCallback) (*flows.AirtimeTransfer, error) {
+func (s *service) Create(ctx context.Context, transferUUID flows.EventUUID, sender urns.URN, recipient urns.URN, amounts map[string]decimal.Decimal, logHTTP flows.HTTPLogCallback) (*flows.AirtimeTransfer, error) {
 	transfer := &flows.AirtimeTransfer{
 		Sender:    sender,
 		Recipient: recipient,
@@ -92,7 +94,7 @@ func (s *service) Create(ctx context.Context, sender urns.URN, recipient urns.UR
 	transfer.Amount = product.Destination.Amount
 
 	// submit the transaction in a held state; the host triggers actual delivery via Confirm after commit
-	tx, trace, err := s.client.TransactionAsync(ctx, string(flows.NewEventUUID()), product.ID, recipientPhone, s.callbackURL)
+	tx, trace, err := s.client.TransactionAsync(ctx, string(transferUUID), product.ID, recipientPhone, s.callbackURL)
 	if trace != nil {
 		logHTTP(flows.NewHTTPLog(trace, flows.HTTPStatusFromCode, s.redactor))
 	}

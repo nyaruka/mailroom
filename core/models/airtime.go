@@ -150,18 +150,17 @@ func UpdateAirtimeTransferStatus(ctx context.Context, db DBorTx, uuid flows.Even
 	return rows > 0, nil
 }
 
-const sqlSelectAirtimeTransferByExternalID = `
+const sqlSelectAirtimeTransferByUUID = `
 SELECT id, uuid, org_id, status, external_id, contact_id, sender, recipient, currency, desired_amount, actual_amount, created_on
   FROM airtime_airtimetransfer
- WHERE external_id = $1
- LIMIT 1
+ WHERE uuid = $1
 `
 
-// GetAirtimeTransferByExternalID fetches the airtime transfer for the given provider transaction id.
-// Returns nil with no error if no matching row exists.
-func GetAirtimeTransferByExternalID(ctx context.Context, db DBorTx, externalID string) (*AirtimeTransfer, error) {
+// GetAirtimeTransferByUUID fetches the airtime transfer for the given UUID. Returns nil with no error if
+// no matching row exists.
+func GetAirtimeTransferByUUID(ctx context.Context, db DBorTx, uuid flows.EventUUID) (*AirtimeTransfer, error) {
 	t := &AirtimeTransfer{}
-	err := db.GetContext(ctx, &t.t, sqlSelectAirtimeTransferByExternalID, externalID)
+	err := db.GetContext(ctx, &t.t, sqlSelectAirtimeTransferByUUID, uuid)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}

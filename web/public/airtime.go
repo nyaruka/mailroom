@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"strconv"
 
+	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/runtime"
 	"github.com/nyaruka/mailroom/v26/services/airtime/dtone"
@@ -46,13 +46,13 @@ func handleDTOneStatus(ctx context.Context, rt *runtime.Runtime, r *http.Request
 		return writeAirtimeStatusError(w, http.StatusBadRequest, fmt.Sprintf("invalid body: %s", err))
 	}
 
-	if body.ID == 0 {
-		return writeAirtimeStatusError(w, http.StatusBadRequest, "missing transaction id")
+	if body.ExternalID == "" {
+		return writeAirtimeStatusError(w, http.StatusBadRequest, "missing external_id")
 	}
 
-	// look up the airtime transfer using DT One's transaction id, which we store as external_id on the row
-	externalID := strconv.FormatInt(body.ID, 10)
-	transfer, err := models.GetAirtimeTransferByExternalID(ctx, rt.DB, externalID)
+	// look up the airtime transfer by its UUID — DT One echoes back the reference we passed in their
+	// external_id field, which we set to the airtime_created event UUID at Create time
+	transfer, err := models.GetAirtimeTransferByUUID(ctx, rt.DB, flows.EventUUID(body.ExternalID))
 	if err != nil {
 		return fmt.Errorf("error looking up airtime transfer: %w", err)
 	}
