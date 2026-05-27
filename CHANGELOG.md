@@ -1,3 +1,8 @@
+v26.1.126 (2026-05-27)
+-------------------------
+ * Set ExternalID on simulator airtime transfers
+ * Update to goflow v0.276.1 which adds flow spec 14.4.1 to fix broken resthook actions
+
 v26.1.125 (2026-05-26)
 -------------------------
  * Change default cloudwatch namespace to Mailroom
