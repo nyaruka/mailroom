@@ -142,13 +142,11 @@ func simulatorAirtimeServiceFactory(flows.SessionAssets) (flows.AirtimeService, 
 
 type simulatorAirtimeService struct{}
 
-func (s *simulatorAirtimeService) Transfer(ctx context.Context, sender urns.URN, recipient urns.URN, amounts map[string]decimal.Decimal, logHTTP flows.HTTPLogCallback) (*flows.AirtimeTransfer, error) {
+func (s *simulatorAirtimeService) Create(ctx context.Context, sender urns.URN, recipient urns.URN, amounts map[string]decimal.Decimal, logHTTP flows.HTTPLogCallback) (*flows.AirtimeTransfer, error) {
 	transfer := &flows.AirtimeTransfer{
-		// fake but non-empty so @locals._new_transfer satisfies has_text and runs route to Success
-		ExternalID: "123456789",
-		Sender:     sender,
-		Recipient:  recipient,
-		Amount:     decimal.Zero,
+		Sender:    sender,
+		Recipient: recipient,
+		Amount:    decimal.Zero,
 	}
 
 	// pick arbitrary currency/amount pair in map
@@ -159,4 +157,8 @@ func (s *simulatorAirtimeService) Transfer(ctx context.Context, sender urns.URN,
 	}
 
 	return transfer, nil
+}
+
+func (s *simulatorAirtimeService) Confirm(ctx context.Context, transfer *flows.AirtimeTransfer, logHTTP flows.HTTPLogCallback) error {
+	return nil
 }

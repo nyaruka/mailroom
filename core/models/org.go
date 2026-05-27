@@ -54,8 +54,18 @@ func airtimeServiceFactory(rt *runtime.Runtime) engine.AirtimeServiceFactory {
 	airtimeHTTPRetries := httpx.NewFixedRetries(time.Second*5, time.Second*10)
 
 	return func(sa flows.SessionAssets) (flows.AirtimeService, error) {
-		return orgFromAssets(sa).AirtimeService(airtimeHTTPClient, airtimeHTTPRetries)
+		return orgFromAssets(sa).AirtimeService(rt, airtimeHTTPClient, airtimeHTTPRetries)
 	}
+}
+
+// DTOneCallbackURL returns the URL DT One should POST status updates to, derived from the configured
+// domain and shared secret. Returns an empty string if no secret is configured (in which case callbacks
+// aren't requested).
+func DTOneCallbackURL(rt *runtime.Runtime) string {
+	if rt.Config.DTOneCallbackSecret == "" {
+		return ""
+	}
+	return fmt.Sprintf("https://%s/mr/airtime/dtone/status/%s", rt.Config.Domain, rt.Config.DTOneCallbackSecret)
 }
 
 // OrgID is our type for org ids
@@ -181,14 +191,14 @@ func (o *Org) EmailService(ctx context.Context, rt *runtime.Runtime, retries *sm
 }
 
 // AirtimeService returns the airtime service for this org if one is configured
-func (o *Org) AirtimeService(httpClient *http.Client, httpRetries *httpx.RetryConfig) (flows.AirtimeService, error) {
+func (o *Org) AirtimeService(rt *runtime.Runtime, httpClient *http.Client, httpRetries *httpx.RetryConfig) (flows.AirtimeService, error) {
 	key := o.ConfigValue(configDTOneKey, "")
 	secret := o.ConfigValue(configDTOneSecret, "")
 
 	if key == "" || secret == "" {
 		return nil, fmt.Errorf("missing %s or %s on DTOne configuration for org: %d", configDTOneKey, configDTOneSecret, o.ID())
 	}
-	return dtone.NewService(httpClient, httpRetries, key, secret), nil
+	return dtone.NewService(httpClient, httpRetries, key, secret, DTOneCallbackURL(rt)), nil
 }
 
 // StoreAttachment saves an attachment to storage

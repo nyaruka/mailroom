@@ -19,11 +19,12 @@ func TestAirtimeTransfers(t *testing.T) {
 
 	defer rt.DB.MustExec(`DELETE FROM airtime_airtimetransfer`)
 
-	// insert a transfer
+	// insert a transfer — new transfers are always created in pending state, with the provider's
+	// transaction id already populated from the event
 	transfer := models.NewAirtimeTransfer(
 		testdb.Org1.ID,
 		testdb.Ann.ID,
-		events.NewAirtimeTransferred(&flows.AirtimeTransfer{
+		events.NewAirtimeCreated(&flows.AirtimeTransfer{
 			ExternalID: "2237512891",
 			Sender:     urns.URN("tel:+250700000001"),
 			Recipient:  urns.URN("tel:+250700000002"),
@@ -32,24 +33,34 @@ func TestAirtimeTransfers(t *testing.T) {
 		}, nil),
 	)
 	err := models.InsertAirtimeTransfers(ctx, rt.DB, []*models.AirtimeTransfer{transfer})
-	assert.Nil(t, err)
+	assert.NoError(t, err)
+	assert.NotEqual(t, models.NilAirtimeTransferID, transfer.ID())
 
-	assertdb.Query(t, rt.DB, `SELECT org_id, status, external_id from airtime_airtimetransfer`).Columns(map[string]any{"org_id": 1, "status": "S", "external_id": "2237512891"})
+	assertdb.Query(t, rt.DB, `SELECT org_id, status, external_id from airtime_airtimetransfer WHERE id = $1`, transfer.ID()).
+		Columns(map[string]any{"org_id": 1, "status": "P", "external_id": "2237512891"})
 
-	// insert a failed transfer with nil sender, empty currency
-	transfer = models.NewAirtimeTransfer(
-		testdb.Org1.ID,
-		testdb.Ann.ID,
-		events.NewAirtimeTransferred(&flows.AirtimeTransfer{
-			ExternalID: "2237512891",
-			Sender:     urns.NilURN,
-			Recipient:  urns.URN("tel:+250700000002"),
-			Currency:   "",
-			Amount:     decimal.Zero,
-		}, nil),
-	)
-	err = models.InsertAirtimeTransfers(ctx, rt.DB, []*models.AirtimeTransfer{transfer})
-	assert.Nil(t, err)
+	// callback transitions pending → success
+	err = models.UpdateAirtimeTransferStatus(ctx, rt.DB, transfer.UUID(), models.AirtimeTransferStatusSuccess, "")
+	assert.NoError(t, err)
 
-	assertdb.Query(t, rt.DB, `SELECT count(*) from airtime_airtimetransfer WHERE org_id = $1 AND status = $2`, testdb.Org1.ID, models.AirtimeTransferStatusFailed).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT status, external_id FROM airtime_airtimetransfer WHERE id = $1`, transfer.ID()).
+		Columns(map[string]any{"status": "S", "external_id": "2237512891"})
+
+	// can look it up by external_id
+	fetched, err := models.GetAirtimeTransferByExternalID(ctx, rt.DB, "2237512891")
+	assert.NoError(t, err)
+	assert.NotNil(t, fetched)
+	assert.Equal(t, transfer.UUID(), fetched.UUID())
+
+	// missing external_id returns nil, nil
+	fetched, err = models.GetAirtimeTransferByExternalID(ctx, rt.DB, "does-not-exist")
+	assert.NoError(t, err)
+	assert.Nil(t, fetched)
+
+	// later callback marks it reversed — status updates, external_id is preserved
+	err = models.UpdateAirtimeTransferStatus(ctx, rt.DB, transfer.UUID(), models.AirtimeTransferStatusReversed, "")
+	assert.NoError(t, err)
+
+	assertdb.Query(t, rt.DB, `SELECT status, external_id FROM airtime_airtimetransfer WHERE id = $1`, transfer.ID()).
+		Columns(map[string]any{"status": "R", "external_id": "2237512891"})
 }

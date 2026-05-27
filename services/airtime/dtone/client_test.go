@@ -387,7 +387,7 @@ func TestClient(t *testing.T) {
 	test.AssertSnapshot(t, "products", string(trace.RequestTrace))
 
 	// create a synchronous transaction
-	tx, trace, err := cl.TransactionAsync(ctx, "EX12345", 6035, "+593979123456")
+	tx, trace, err := cl.TransactionAsync(ctx, "EX12345", 6035, "+593979123456", "https://mailroom.example.com/mr/airtime/dtone/status/secret")
 	assert.NoError(t, err)
 	assert.Equal(t, int64(2237512891), tx.ID)
 	assert.Equal(t, "EX12345", tx.ExternalID)

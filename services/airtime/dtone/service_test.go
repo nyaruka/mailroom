@@ -15,11 +15,13 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+const callbackURL = "https://mailroom.example.com/mr/airtime/dtone/status/secret"
+
 func errorResp(code int, message string) []byte {
 	return jsonx.MustMarshal(map[string]any{"errors": []map[string]any{{"code": code, "message": message}}})
 }
 
-func TestServiceWithSuccessfulTranfer(t *testing.T) {
+func TestServiceCreate(t *testing.T) {
 	ctx := context.Background()
 
 	reset := test.MockUniverse()
@@ -27,24 +29,32 @@ func TestServiceWithSuccessfulTranfer(t *testing.T) {
 
 	mocks := httpx.NewMockRequestor(map[string][]*httpx.MockResponse{
 		"https://dvs-api.dtone.com/v1/lookup/mobile-number": {
-			httpx.NewMockResponse(200, nil, []byte(lookupNumberResponse)), // successful mobile number lookup
+			httpx.NewMockResponse(200, nil, []byte(lookupNumberResponse)),
+			httpx.MockConnectionError,
+			httpx.NewMockResponse(200, nil, []byte(`[]`)),
+			httpx.NewMockResponse(200, nil, []byte(lookupNumberResponse)),
+			httpx.NewMockResponse(200, nil, []byte(lookupNumberResponse)),
+			httpx.NewMockResponse(200, nil, []byte(lookupNumberResponse)),
 		},
 		"https://dvs-api.dtone.com/v1/products?type=FIXED_VALUE_RECHARGE&operator_id=1596&per_page=100": {
+			httpx.NewMockResponse(200, nil, []byte(productsResponse)),
+			httpx.NewMockResponse(400, nil, errorResp(1003001, "Product is not available in your account")),
+			httpx.NewMockResponse(200, nil, []byte(productsResponse)),
 			httpx.NewMockResponse(200, nil, []byte(productsResponse)),
 		},
 		"https://dvs-api.dtone.com/v1/async/transactions": {
 			httpx.NewMockResponse(200, nil, []byte(transactionConfirmedResponse)),
+			httpx.NewMockResponse(400, nil, errorResp(1003001, "Something went wrong")),
 		},
 	})
-
 	defer httpx.SetRequestor(httpx.DefaultRequestor)
 	httpx.SetRequestor(mocks)
 
-	svc := dtone.NewService(http.DefaultClient, nil, "key123", "sesame")
+	svc := dtone.NewService(http.DefaultClient, nil, "key123", "sesame", callbackURL)
 
-	httpLogger := &flows.HTTPLogger{}
-
-	transfer, err := svc.Transfer(
+	// success — Create resolves the product, submits an unconfirmed transaction, returns currency/amount + external id
+	logger := &flows.HTTPLogger{}
+	transfer, err := svc.Create(
 		ctx,
 		urns.URN("tel:+593979000000"),
 		urns.URN("tel:+593979123456"),
@@ -52,98 +62,65 @@ func TestServiceWithSuccessfulTranfer(t *testing.T) {
 			"USD": decimal.RequireFromString("3"),
 			"RWF": decimal.RequireFromString("5000"),
 		},
-		httpLogger.Log,
+		logger.Log,
 	)
 	assert.NoError(t, err)
-	assert.Equal(t, &flows.AirtimeTransfer{
-		ExternalID: "2237512891",
-		Sender:     urns.URN("tel:+593979000000"),
-		Recipient:  urns.URN("tel:+593979123456"),
-		Currency:   "USD",
-		Amount:     decimal.RequireFromString("3"),
-	}, transfer)
+	assert.Equal(t, "2237512891", transfer.ExternalID)
+	assert.Equal(t, urns.URN("tel:+593979000000"), transfer.Sender)
+	assert.Equal(t, urns.URN("tel:+593979123456"), transfer.Recipient)
+	assert.Equal(t, "USD", transfer.Currency)
+	assert.Equal(t, decimal.RequireFromString("3"), transfer.Amount)
+	assert.Equal(t, 3, len(logger.Logs))
 
-	assert.Equal(t, 3, len(httpLogger.Logs))
+	// lookup connection error
+	_, err = svc.Create(ctx, urns.NilURN, urns.URN("tel:+593979123456"), map[string]decimal.Decimal{"USD": decimal.RequireFromString("3")}, logger.Log)
+	assert.EqualError(t, err, "number lookup failed: unable to connect to server")
+
+	// lookup returns no operator match
+	_, err = svc.Create(ctx, urns.NilURN, urns.URN("tel:+593979123456"), map[string]decimal.Decimal{"USD": decimal.RequireFromString("3")}, logger.Log)
+	assert.EqualError(t, err, "unable to find operator for number +593979123456")
+
+	// products fetch fails
+	_, err = svc.Create(ctx, urns.NilURN, urns.URN("tel:+593979123456"), map[string]decimal.Decimal{"USD": decimal.RequireFromString("3")}, logger.Log)
+	assert.EqualError(t, err, "product fetch failed: Product is not available in your account")
+
+	// no matching product for desired amount
+	_, err = svc.Create(ctx, urns.NilURN, urns.URN("tel:+593979123456"), map[string]decimal.Decimal{"USD": decimal.RequireFromString("2")}, logger.Log)
+	assert.EqualError(t, err, "unable to find a suitable product for operator 'Claro Ecuador'")
+
+	// transaction submission errors out
+	_, err = svc.Create(ctx, urns.NilURN, urns.URN("tel:+593979123456"), map[string]decimal.Decimal{"USD": decimal.RequireFromString("3")}, logger.Log)
+	assert.EqualError(t, err, "transaction creation failed: Something went wrong")
 
 	assert.False(t, mocks.HasUnused())
 }
 
-func TestServiceFailedTransfers(t *testing.T) {
+func TestServiceConfirm(t *testing.T) {
 	ctx := context.Background()
 
-	test.MockUniverse()
+	reset := test.MockUniverse()
+	defer reset()
 
 	mocks := httpx.NewMockRequestor(map[string][]*httpx.MockResponse{
-		"https://dvs-api.dtone.com/v1/lookup/mobile-number": {
-			httpx.MockConnectionError, // timeout
-			httpx.NewMockResponse(400, nil, errorResp(1005003, "Credit party mobile number is invalid")),
-			httpx.NewMockResponse(200, nil, []byte(`[]`)), // no matches
-			httpx.NewMockResponse(200, nil, []byte(lookupNumberResponse)),
-			httpx.NewMockResponse(200, nil, []byte(lookupNumberResponse)),
-			httpx.NewMockResponse(200, nil, []byte(lookupNumberResponse)),
-			httpx.NewMockResponse(200, nil, []byte(lookupNumberResponse)),
-			httpx.NewMockResponse(200, nil, []byte(lookupNumberResponse)),
-		},
-		"https://dvs-api.dtone.com/v1/products?type=FIXED_VALUE_RECHARGE&operator_id=1596&per_page=100": {
-			httpx.NewMockResponse(400, nil, errorResp(1003001, "Product is not available in your account")),
-			httpx.NewMockResponse(200, nil, []byte(`[]`)), // no products
-			httpx.NewMockResponse(200, nil, []byte(productsResponse)),
-			httpx.NewMockResponse(200, nil, []byte(productsResponse)),
-			httpx.NewMockResponse(200, nil, []byte(productsResponse)),
-		},
-		"https://dvs-api.dtone.com/v1/async/transactions": {
-			httpx.NewMockResponse(400, nil, errorResp(1003001, "Something went wrong")),
-			httpx.NewMockResponse(200, nil, []byte(transactionRejectedResponse)),
+		"https://dvs-api.dtone.com/v1/async/transactions/2237512891/confirm": {
+			httpx.NewMockResponse(200, nil, []byte(transactionConfirmedResponse)),
+			httpx.NewMockResponse(400, nil, errorResp(1003001, "Already confirmed")),
 		},
 	})
-
 	defer httpx.SetRequestor(httpx.DefaultRequestor)
 	httpx.SetRequestor(mocks)
 
-	svc := dtone.NewService(http.DefaultClient, nil, "key123", "sesame")
+	svc := dtone.NewService(http.DefaultClient, nil, "key123", "sesame", callbackURL)
 
-	httpLogger := &flows.HTTPLogger{}
-	amounts := map[string]decimal.Decimal{"USD": decimal.RequireFromString("3")}
+	logger := &flows.HTTPLogger{}
+	err := svc.Confirm(ctx, &flows.AirtimeTransfer{ExternalID: "2237512891"}, logger.Log)
+	assert.NoError(t, err)
 
-	// try when phone number lookup gives a connection error
-	transfer, err := svc.Transfer(ctx, urns.URN("tel:+593979000000"), urns.URN("tel:+593979123456"), amounts, httpLogger.Log)
-	assert.EqualError(t, err, "number lookup failed: unable to connect to server")
-	assert.Equal(t, urns.URN("tel:+593979000000"), transfer.Sender)
-	assert.Equal(t, urns.URN("tel:+593979123456"), transfer.Recipient)
-	assert.Equal(t, decimal.Zero, transfer.Amount)
+	err = svc.Confirm(ctx, &flows.AirtimeTransfer{ExternalID: "2237512891"}, logger.Log)
+	assert.EqualError(t, err, "transaction confirmation failed: Already confirmed")
 
-	// try when phone number lookup fails
-	transfer, err = svc.Transfer(ctx, urns.URN("tel:+593979000000"), urns.URN("tel:+593979123456"), amounts, httpLogger.Log)
-	assert.EqualError(t, err, "number lookup failed: Credit party mobile number is invalid")
-	assert.NotNil(t, transfer)
+	err = svc.Confirm(ctx, &flows.AirtimeTransfer{ExternalID: "not-an-int"}, logger.Log)
+	assert.ErrorContains(t, err, `invalid transaction id "not-an-int"`)
 
-	// try when phone number lookup returns no matches
-	transfer, err = svc.Transfer(ctx, urns.URN("tel:+593979000000"), urns.URN("tel:+593979123456"), amounts, httpLogger.Log)
-	assert.EqualError(t, err, "unable to find operator for number +593979123456")
-	assert.NotNil(t, transfer)
-
-	// try when product fetch fails
-	transfer, err = svc.Transfer(ctx, urns.URN("tel:+593979000000"), urns.URN("tel:+593979123456"), amounts, httpLogger.Log)
-	assert.EqualError(t, err, "product fetch failed: Product is not available in your account")
-	assert.NotNil(t, transfer)
-
-	// try when we can't find any suitable products
-	transfer, err = svc.Transfer(ctx, urns.URN("tel:+593979000000"), urns.URN("tel:+593979123456"), amounts, httpLogger.Log)
-	assert.EqualError(t, err, "unable to find a suitable product for operator 'Claro Ecuador'")
-	assert.NotNil(t, transfer)
-
-	// try when we can't find any suitable products (there are products but none match the amount)
-	transfer, err = svc.Transfer(ctx, urns.URN("tel:+593979000000"), urns.URN("tel:+593979123456"), map[string]decimal.Decimal{"USD": decimal.RequireFromString("2")}, httpLogger.Log)
-	assert.EqualError(t, err, "unable to find a suitable product for operator 'Claro Ecuador'")
-	assert.NotNil(t, transfer)
-
-	// try when transaction request errors
-	transfer, err = svc.Transfer(ctx, urns.URN("tel:+593979000000"), urns.URN("tel:+593979123456"), amounts, httpLogger.Log)
-	assert.EqualError(t, err, "transaction creation failed: Something went wrong")
-	assert.NotNil(t, transfer)
-
-	// try when transaction is rejected
-	transfer, err = svc.Transfer(ctx, urns.URN("tel:+593979000000"), urns.URN("tel:+593979123456"), amounts, httpLogger.Log)
-	assert.EqualError(t, err, "transaction to send product 6035 on operator 1596 ended with status REJECTED-OPERATOR-CURRENTLY-UNAVAILABLE")
-	assert.NotNil(t, transfer)
+	assert.False(t, mocks.HasUnused())
 }
