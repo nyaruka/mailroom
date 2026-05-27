@@ -144,9 +144,11 @@ type simulatorAirtimeService struct{}
 
 func (s *simulatorAirtimeService) Transfer(ctx context.Context, sender urns.URN, recipient urns.URN, amounts map[string]decimal.Decimal, logHTTP flows.HTTPLogCallback) (*flows.AirtimeTransfer, error) {
 	transfer := &flows.AirtimeTransfer{
-		Sender:    sender,
-		Recipient: recipient,
-		Amount:    decimal.Zero,
+		// fake but non-empty so @locals._new_transfer satisfies has_text and runs route to Success
+		ExternalID: "123456789",
+		Sender:     sender,
+		Recipient:  recipient,
+		Amount:     decimal.Zero,
 	}
 
 	// pick arbitrary currency/amount pair in map
