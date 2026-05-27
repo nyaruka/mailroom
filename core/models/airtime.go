@@ -86,6 +86,10 @@ func (t *AirtimeTransfer) ExternalID() string {
 	return string(t.t.ExternalID)
 }
 
+func (t *AirtimeTransfer) Status() AirtimeTransferStatus {
+	return t.t.Status
+}
+
 func (t *AirtimeTransfer) AddLog(l *HTTPLog) {
 	t.Logs = append(t.Logs, l)
 }
@@ -110,19 +114,40 @@ func InsertAirtimeTransfers(ctx context.Context, db DBorTx, transfers []*Airtime
 	return BulkQuery(ctx, "inserted airtime transfers", db, sqlInsertAirtimeTransfers, ts)
 }
 
+// allowedAirtimeTransitions is the set of (current, new) status pairs the host accepts. Anything else is
+// a no-op (e.g. a duplicate or out-of-order callback). Once a row reaches a terminal state we still allow
+// success → reversed since DT One can reverse a transfer after it completes; everything else is locked.
+var allowedAirtimeTransitions = map[AirtimeTransferStatus]map[AirtimeTransferStatus]bool{
+	AirtimeTransferStatusPending: {
+		AirtimeTransferStatusSuccess:  true,
+		AirtimeTransferStatusFailed:   true,
+		AirtimeTransferStatusReversed: true,
+	},
+	AirtimeTransferStatusSuccess: {
+		AirtimeTransferStatusReversed: true,
+	},
+}
+
 const sqlUpdateAirtimeTransferStatus = `
-UPDATE airtime_airtimetransfer SET status = $2, external_id = COALESCE($3, external_id) WHERE uuid = $1
+UPDATE airtime_airtimetransfer SET status = $2 WHERE uuid = $1 AND status = $3
 `
 
-// UpdateAirtimeTransferStatus updates the status of the airtime transfer with the given UUID. If externalID
-// is non-empty it is also written to the row (preserving any existing value when empty is passed).
-func UpdateAirtimeTransferStatus(ctx context.Context, db DBorTx, uuid flows.EventUUID, status AirtimeTransferStatus, externalID string) error {
-	var extID any
-	if externalID != "" {
-		extID = externalID
+// UpdateAirtimeTransferStatus transitions an airtime transfer to the given status, returning true if a
+// row was actually updated. The transition is only applied if it's in the allowed set — late or duplicate
+// callbacks that would walk the status backwards are ignored and return false with no error.
+func UpdateAirtimeTransferStatus(ctx context.Context, db DBorTx, uuid flows.EventUUID, current, next AirtimeTransferStatus) (bool, error) {
+	if !allowedAirtimeTransitions[current][next] {
+		return false, nil
 	}
-	_, err := db.ExecContext(ctx, sqlUpdateAirtimeTransferStatus, uuid, status, extID)
-	return err
+	res, err := db.ExecContext(ctx, sqlUpdateAirtimeTransferStatus, uuid, next, current)
+	if err != nil {
+		return false, err
+	}
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return false, err
+	}
+	return rows > 0, nil
 }
 
 const sqlSelectAirtimeTransferByExternalID = `

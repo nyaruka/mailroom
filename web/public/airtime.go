@@ -67,8 +67,15 @@ func handleDTOneStatus(ctx context.Context, rt *runtime.Runtime, r *http.Request
 		return web.WriteMarshalled(w, http.StatusOK, map[string]string{"status": "ignored"})
 	}
 
-	if err := models.UpdateAirtimeTransferStatus(ctx, rt.DB, transfer.UUID(), newStatus, externalID); err != nil {
+	updated, err := models.UpdateAirtimeTransferStatus(ctx, rt.DB, transfer.UUID(), transfer.Status(), newStatus)
+	if err != nil {
 		return fmt.Errorf("error updating airtime transfer status: %w", err)
+	}
+	if !updated {
+		// transition wasn't allowed from the current state (duplicate / out-of-order callback) — respond
+		// 200 so the provider stops retrying
+		slog.Info("ignoring out-of-order dtone callback", "transfer", transfer.UUID(), "from", transfer.Status(), "to", newStatus)
+		return web.WriteMarshalled(w, http.StatusOK, map[string]string{"status": "ignored"})
 	}
 
 	return web.WriteMarshalled(w, http.StatusOK, map[string]string{"status": "ok"})

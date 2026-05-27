@@ -13,10 +13,13 @@ import (
 	"github.com/nyaruka/mailroom/v26/runtime"
 )
 
-// ConfirmAirtimeTransfers is our post-commit hook that triggers the provider to actually send the airtime for
-// each pending transfer initiated during the sprint. Failures aren't retried: the transfer row stays pending so
-// it's visible for manual triage. DT One auto-cancels unconfirmed transactions after its expiration window, so
-// stuck-pending rows naturally transition to failed via the eventual status callback.
+// ConfirmAirtimeTransfers is our post-commit hook that triggers the provider to actually send the airtime
+// for each pending transfer initiated during the sprint.
+//
+// Confirm failures are *not* retried: rows that hit a permanent error (malformed external_id, transaction
+// never reached the provider) are flipped to failed immediately so the contact's flow can react; transient
+// errors (5xx, network) leave the row pending and rely on the provider's eventual status callback (DT One
+// auto-cancels unconfirmed transactions after its expiration window).
 var ConfirmAirtimeTransfers runner.PostCommitHook = &confirmAirtimeTransfers{}
 
 type confirmAirtimeTransfers struct{}
@@ -27,18 +30,22 @@ func (h *confirmAirtimeTransfers) Execute(ctx context.Context, rt *runtime.Runti
 	httpClient := &http.Client{Timeout: 120 * time.Second}
 	httpRetries := httpx.NewFixedRetries(time.Second*5, time.Second*10)
 
+	// hoist the airtime service out of the per-transfer loop — the org is constant for this hook invocation
+	svc, err := oa.Org().AirtimeService(rt, httpClient, httpRetries)
+	if err != nil {
+		// every transfer here belongs to this org, so we can't make progress on any of them
+		slog.Error("unable to get airtime service, leaving transfers pending", "org_id", oa.OrgID(), "error", err)
+		return nil
+	}
+
 	for _, args := range scenes {
 		for _, arg := range args {
 			transfer := arg.(*models.AirtimeTransfer)
 
 			if transfer.ExternalID() == "" {
-				slog.Warn("airtime transfer has no provider id, cannot confirm", "transfer", transfer.UUID())
-				continue
-			}
-
-			svc, err := oa.Org().AirtimeService(rt, httpClient, httpRetries)
-			if err != nil {
-				slog.Error("unable to get airtime service for transfer", "transfer", transfer.UUID(), "error", err)
+				// no provider id means Create returned nothing to confirm — mark failed rather than leaving stuck
+				slog.Warn("airtime transfer has no provider id, marking failed", "transfer", transfer.UUID())
+				h.markFailed(ctx, rt, transfer)
 				continue
 			}
 
@@ -63,11 +70,39 @@ func (h *confirmAirtimeTransfers) Execute(ctx context.Context, rt *runtime.Runti
 				}
 			}
 
-			if confirmErr != nil {
-				slog.Warn("airtime transfer failed to confirm, leaving pending", "transfer", transfer.UUID(), "error", confirmErr)
+			if confirmErr == nil {
+				continue
+			}
+
+			// permanent failures (4xx, malformed id) → flip to failed so the flow doesn't hang on a zombie row.
+			// transient failures (5xx, connection error) leave the row pending — the provider will eventually
+			// auto-cancel the held transaction and send a callback that transitions us to failed.
+			if isPermanentConfirmError(logger.Logs, confirmErr) {
+				slog.Warn("airtime transfer failed to confirm permanently, marking failed", "transfer", transfer.UUID(), "error", confirmErr)
+				h.markFailed(ctx, rt, transfer)
+			} else {
+				slog.Warn("airtime transfer failed to confirm transiently, leaving pending", "transfer", transfer.UUID(), "error", confirmErr)
 			}
 		}
 	}
 
 	return nil
+}
+
+func (h *confirmAirtimeTransfers) markFailed(ctx context.Context, rt *runtime.Runtime, transfer *models.AirtimeTransfer) {
+	if _, err := models.UpdateAirtimeTransferStatus(ctx, rt.DB, transfer.UUID(), models.AirtimeTransferStatusPending, models.AirtimeTransferStatusFailed); err != nil {
+		slog.Error("error marking airtime transfer as failed", "transfer", transfer.UUID(), "error", err)
+	}
+}
+
+// isPermanentConfirmError decides whether a Confirm error is worth giving up on immediately. If we got an
+// HTTP response back at all and it was a 4xx, the provider rejected the confirm (id unknown, already
+// confirmed, etc.) and retrying won't help. Anything else (no HTTP log, 5xx, connection error) is treated
+// as transient.
+func isPermanentConfirmError(logs []*flows.HTTPLog, err error) bool {
+	if len(logs) == 0 {
+		return true // didn't even reach the provider — most likely a malformed external_id
+	}
+	last := logs[len(logs)-1]
+	return last.StatusCode >= 400 && last.StatusCode < 500
 }

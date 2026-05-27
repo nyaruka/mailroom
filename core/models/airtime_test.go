@@ -35,16 +35,18 @@ func TestAirtimeTransfers(t *testing.T) {
 	err := models.InsertAirtimeTransfers(ctx, rt.DB, []*models.AirtimeTransfer{transfer})
 	assert.NoError(t, err)
 	assert.NotEqual(t, models.NilAirtimeTransferID, transfer.ID())
+	assert.Equal(t, models.AirtimeTransferStatusPending, transfer.Status())
 
 	assertdb.Query(t, rt.DB, `SELECT org_id, status, external_id from airtime_airtimetransfer WHERE id = $1`, transfer.ID()).
 		Columns(map[string]any{"org_id": 1, "status": "P", "external_id": "2237512891"})
 
 	// callback transitions pending → success
-	err = models.UpdateAirtimeTransferStatus(ctx, rt.DB, transfer.UUID(), models.AirtimeTransferStatusSuccess, "")
+	updated, err := models.UpdateAirtimeTransferStatus(ctx, rt.DB, transfer.UUID(), models.AirtimeTransferStatusPending, models.AirtimeTransferStatusSuccess)
 	assert.NoError(t, err)
+	assert.True(t, updated)
 
-	assertdb.Query(t, rt.DB, `SELECT status, external_id FROM airtime_airtimetransfer WHERE id = $1`, transfer.ID()).
-		Columns(map[string]any{"status": "S", "external_id": "2237512891"})
+	assertdb.Query(t, rt.DB, `SELECT status FROM airtime_airtimetransfer WHERE id = $1`, transfer.ID()).
+		Columns(map[string]any{"status": "S"})
 
 	// can look it up by external_id
 	fetched, err := models.GetAirtimeTransferByExternalID(ctx, rt.DB, "2237512891")
@@ -57,10 +59,30 @@ func TestAirtimeTransfers(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Nil(t, fetched)
 
-	// later callback marks it reversed — status updates, external_id is preserved
-	err = models.UpdateAirtimeTransferStatus(ctx, rt.DB, transfer.UUID(), models.AirtimeTransferStatusReversed, "")
+	// success → reversed is allowed (DT One can reverse after completion)
+	updated, err = models.UpdateAirtimeTransferStatus(ctx, rt.DB, transfer.UUID(), models.AirtimeTransferStatusSuccess, models.AirtimeTransferStatusReversed)
 	assert.NoError(t, err)
+	assert.True(t, updated)
 
-	assertdb.Query(t, rt.DB, `SELECT status, external_id FROM airtime_airtimetransfer WHERE id = $1`, transfer.ID()).
-		Columns(map[string]any{"status": "R", "external_id": "2237512891"})
+	assertdb.Query(t, rt.DB, `SELECT status FROM airtime_airtimetransfer WHERE id = $1`, transfer.ID()).
+		Columns(map[string]any{"status": "R"})
+
+	// reversed → success is NOT allowed — out-of-order callbacks don't walk the row backwards
+	updated, err = models.UpdateAirtimeTransferStatus(ctx, rt.DB, transfer.UUID(), models.AirtimeTransferStatusReversed, models.AirtimeTransferStatusSuccess)
+	assert.NoError(t, err)
+	assert.False(t, updated)
+
+	// reversed → failed is NOT allowed either
+	updated, err = models.UpdateAirtimeTransferStatus(ctx, rt.DB, transfer.UUID(), models.AirtimeTransferStatusReversed, models.AirtimeTransferStatusFailed)
+	assert.NoError(t, err)
+	assert.False(t, updated)
+
+	// caller-supplied current status that disagrees with the row is a no-op (someone else moved the row)
+	updated, err = models.UpdateAirtimeTransferStatus(ctx, rt.DB, transfer.UUID(), models.AirtimeTransferStatusPending, models.AirtimeTransferStatusSuccess)
+	assert.NoError(t, err)
+	assert.False(t, updated)
+
+	// status remained reversed throughout
+	assertdb.Query(t, rt.DB, `SELECT status FROM airtime_airtimetransfer WHERE id = $1`, transfer.ID()).
+		Columns(map[string]any{"status": "R"})
 }

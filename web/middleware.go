@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"regexp"
 	"runtime/debug"
 	"strconv"
 	"time"
@@ -11,6 +12,11 @@ import (
 	"github.com/getsentry/sentry-go"
 	"github.com/go-chi/chi/v5/middleware"
 )
+
+// redactedRequestURIs matches request URIs whose path contains a shared secret we don't want surfaced in
+// the structured request log (Sentry breadcrumbs, log aggregators, ALB logs etc.). The matched segment is
+// replaced with "<redacted>" before logging.
+var redactedRequestURIs = regexp.MustCompile(`(/mr/airtime/dtone/status/)[^/?#]+`)
 
 func requestLogger(listener string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
@@ -26,7 +32,8 @@ func requestLogger(listener string) func(http.Handler) http.Handler {
 			}
 
 			elapsed := time.Since(start)
-			uri := fmt.Sprintf("%s://%s%s", scheme, r.Host, r.RequestURI)
+			requestURI := redactedRequestURIs.ReplaceAllString(r.RequestURI, "${1}<redacted>")
+			uri := fmt.Sprintf("%s://%s%s", scheme, r.Host, requestURI)
 			ww.Header().Set("X-Elapsed-NS", strconv.FormatInt(int64(elapsed), 10))
 
 			if r.RequestURI != "/" {
