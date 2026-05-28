@@ -68,47 +68,48 @@ func TestDTOneStatusCallback(t *testing.T) {
 		return fmt.Sprintf(`{"id":2237512891,"external_id":%q,"status":{"class":{"id":%d,"message":%q}}}`, string(uuid), classID, msg)
 	}
 
-	// happy path: P → S
+	// happy path through the lifecycle: P → C → B → S
 	uuid := seed(t)
+	assert.Equal(t, http.StatusOK, post(t, body(uuid, 2, "CONFIRMED")))
+	assert.Equal(t, models.AirtimeTransferStatusConfirmed, rowStatus(t, uuid))
+	assert.Equal(t, http.StatusOK, post(t, body(uuid, 5, "SUBMITTED")))
+	assert.Equal(t, models.AirtimeTransferStatusSubmitted, rowStatus(t, uuid))
 	assert.Equal(t, http.StatusOK, post(t, body(uuid, 7, "COMPLETED")))
-	assert.Equal(t, models.AirtimeTransferStatusSuccess, rowStatus(t, uuid))
+	assert.Equal(t, models.AirtimeTransferStatusCompleted, rowStatus(t, uuid))
 
-	// reversed after success is allowed (S → R)
+	// reversed after completed is allowed (S → R)
 	assert.Equal(t, http.StatusOK, post(t, body(uuid, 8, "REVERSED")))
 	assert.Equal(t, models.AirtimeTransferStatusReversed, rowStatus(t, uuid))
 
-	// late/out-of-order rejected after reversed must NOT walk the row back to F
+	// late/out-of-order callbacks after reversed must not walk the row backwards
 	assert.Equal(t, http.StatusOK, post(t, body(uuid, 3, "REJECTED")))
 	assert.Equal(t, models.AirtimeTransferStatusReversed, rowStatus(t, uuid), "rejected after reversed should be ignored")
-
-	// late completed after reversed must NOT walk the row back to S either
 	assert.Equal(t, http.StatusOK, post(t, body(uuid, 7, "COMPLETED")))
 	assert.Equal(t, models.AirtimeTransferStatusReversed, rowStatus(t, uuid), "completed after reversed should be ignored")
 
-	// rejected from pending takes the row to F directly
+	// each terminal failure class maps to its own status
 	uuid = seed(t)
 	assert.Equal(t, http.StatusOK, post(t, body(uuid, 3, "REJECTED")))
-	assert.Equal(t, models.AirtimeTransferStatusFailed, rowStatus(t, uuid))
+	assert.Equal(t, models.AirtimeTransferStatusRejected, rowStatus(t, uuid))
 
-	// declined and cancelled also map to F
 	uuid = seed(t)
 	assert.Equal(t, http.StatusOK, post(t, body(uuid, 9, "DECLINED")))
-	assert.Equal(t, models.AirtimeTransferStatusFailed, rowStatus(t, uuid))
+	assert.Equal(t, models.AirtimeTransferStatusDeclined, rowStatus(t, uuid))
 
 	uuid = seed(t)
 	assert.Equal(t, http.StatusOK, post(t, body(uuid, 4, "CANCELLED")))
-	assert.Equal(t, models.AirtimeTransferStatusFailed, rowStatus(t, uuid))
+	assert.Equal(t, models.AirtimeTransferStatusCancelled, rowStatus(t, uuid))
 
-	// non-terminal status class is ignored — row stays in its current state
+	// CREATED status class (1) on a callback is ignored — that's just the initial state we set the row to
 	uuid = seed(t)
-	assert.Equal(t, http.StatusOK, post(t, body(uuid, 5, "SUBMITTED")))
-	assert.Equal(t, models.AirtimeTransferStatusPending, rowStatus(t, uuid))
+	assert.Equal(t, http.StatusOK, post(t, body(uuid, 1, "CREATED")))
+	assert.Equal(t, models.AirtimeTransferStatusCreated, rowStatus(t, uuid))
 
-	// same terminal callback delivered twice is idempotent
+	// same terminal callback delivered twice is idempotent (second is a no-op via the CAS)
 	assert.Equal(t, http.StatusOK, post(t, body(uuid, 7, "COMPLETED")))
-	assert.Equal(t, models.AirtimeTransferStatusSuccess, rowStatus(t, uuid))
+	assert.Equal(t, models.AirtimeTransferStatusCompleted, rowStatus(t, uuid))
 	assert.Equal(t, http.StatusOK, post(t, body(uuid, 7, "COMPLETED")))
-	assert.Equal(t, models.AirtimeTransferStatusSuccess, rowStatus(t, uuid))
+	assert.Equal(t, models.AirtimeTransferStatusCompleted, rowStatus(t, uuid))
 
 	// unknown UUID → 200 ignored (compare-and-swap can't distinguish unknown UUID from rejected
 	// transition without an extra SELECT; the distinction isn't actionable for DT One either way)
@@ -119,7 +120,7 @@ func TestDTOneStatusCallback(t *testing.T) {
 	uuid = seed(t)
 	mismatched := fmt.Sprintf(`{"id":99999999,"external_id":%q,"status":{"class":{"id":7,"message":"COMPLETED"}}}`, string(uuid))
 	assert.Equal(t, http.StatusOK, post(t, mismatched))
-	assert.Equal(t, models.AirtimeTransferStatusPending, rowStatus(t, uuid), "wrong tx id should not mutate the row")
+	assert.Equal(t, models.AirtimeTransferStatusCreated, rowStatus(t, uuid), "wrong tx id should not mutate the row")
 
 	// missing external_id → 400
 	assert.Equal(t, http.StatusBadRequest, post(t, `{"id":1,"status":{"class":{"id":7}}}`))

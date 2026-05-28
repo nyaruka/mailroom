@@ -19,21 +19,40 @@ type AirtimeTransferID int
 // NilAirtimeTransferID is the nil value for airtime transfer IDs
 var NilAirtimeTransferID = AirtimeTransferID(0)
 
-// AirtimeTransferStatus is the type for the status of a transfer
+// AirtimeTransferStatus is the type for the status of a transfer. The values mirror the lifecycle a
+// transfer goes through with a two-step provider: from the host's create call all the way through
+// provider-reported delivery (or one of the various terminal failure states). See
+// https://dvs-api-doc.dtone.com/#section/Overview/Transactions for the DT One taxonomy this is based on.
 type AirtimeTransferStatus string
 
 const (
-	// AirtimeTransferStatusPending is our status for transfers awaiting provider confirmation
-	AirtimeTransferStatusPending AirtimeTransferStatus = "P"
+	// AirtimeTransferStatusCreated — the host has created the transaction with the provider but not
+	// yet confirmed it. New transfers start here.
+	AirtimeTransferStatusCreated AirtimeTransferStatus = "P"
 
-	// AirtimeTransferStatusSuccess is our status for successful transfers
-	AirtimeTransferStatusSuccess AirtimeTransferStatus = "S"
+	// AirtimeTransferStatusConfirmed — the host has confirmed the transaction; the provider is now
+	// responsible for sending it.
+	AirtimeTransferStatusConfirmed AirtimeTransferStatus = "C"
 
-	// AirtimeTransferStatusFailed is our status for failed transfers
-	AirtimeTransferStatusFailed AirtimeTransferStatus = "F"
+	// AirtimeTransferStatusSubmitted — the provider has submitted the transaction to the operator's
+	// network and is waiting on confirmation of delivery.
+	AirtimeTransferStatusSubmitted AirtimeTransferStatus = "B"
 
-	// AirtimeTransferStatusReversed is our status for transfers reversed after success
+	// AirtimeTransferStatusCompleted — the operator confirmed delivery.
+	AirtimeTransferStatusCompleted AirtimeTransferStatus = "S"
+
+	// AirtimeTransferStatusReversed — a previously completed transfer has been reversed by the provider.
 	AirtimeTransferStatusReversed AirtimeTransferStatus = "R"
+
+	// AirtimeTransferStatusRejected — the operator (or the provider) rejected the transaction.
+	AirtimeTransferStatusRejected AirtimeTransferStatus = "J"
+
+	// AirtimeTransferStatusCancelled — the transaction was cancelled before delivery (e.g. the
+	// provider's hold expired without a Confirm).
+	AirtimeTransferStatusCancelled AirtimeTransferStatus = "A"
+
+	// AirtimeTransferStatusDeclined — the operator declined the transaction.
+	AirtimeTransferStatusDeclined AirtimeTransferStatus = "D"
 )
 
 // AirtimeTransfer is our type for an airtime transfer
@@ -63,7 +82,7 @@ func NewAirtimeTransfer(orgID OrgID, contactID ContactID, event *events.AirtimeC
 	t.t.UUID = event.UUID()
 	t.t.OrgID = orgID
 	t.t.ContactID = contactID
-	t.t.Status = AirtimeTransferStatusPending
+	t.t.Status = AirtimeTransferStatusCreated
 	t.t.ExternalID = null.String(event.ExternalID)
 	t.t.Sender = null.String(string(event.Sender))
 	t.t.Recipient = event.Recipient
@@ -114,14 +133,24 @@ func InsertAirtimeTransfers(ctx context.Context, db DBorTx, transfers []*Airtime
 	return BulkQuery(ctx, "inserted airtime transfers", db, sqlInsertAirtimeTransfers, ts)
 }
 
-// allowedAirtimePredecessors lists the statuses a row may be in for each destination status to be a valid
-// transition. Anything not listed is a no-op — late or duplicate callbacks that would walk the status
-// backwards (e.g. R → S or S → F) are ignored. Reversed is reachable from both pending and success since
-// DT One can reverse a transfer after it completes.
+// allowedAirtimePredecessors lists the statuses a row may be in for each destination status to be a
+// valid transition. Anything not listed is a no-op — late or duplicate callbacks that would walk the
+// status backwards in the lifecycle (e.g. S → C, R → S) are ignored. The lifecycle is roughly:
+//
+//	Created → Confirmed → Submitted → Completed → Reversed
+//	                               ↘
+//	                                Rejected / Cancelled / Declined
+//
+// Any non-terminal status can transition to any later non-terminal status, or to any terminal failure
+// state. Once a row reaches Reversed / Rejected / Cancelled / Declined it's locked.
 var allowedAirtimePredecessors = map[AirtimeTransferStatus][]AirtimeTransferStatus{
-	AirtimeTransferStatusSuccess:  {AirtimeTransferStatusPending},
-	AirtimeTransferStatusFailed:   {AirtimeTransferStatusPending},
-	AirtimeTransferStatusReversed: {AirtimeTransferStatusPending, AirtimeTransferStatusSuccess},
+	AirtimeTransferStatusConfirmed: {AirtimeTransferStatusCreated},
+	AirtimeTransferStatusSubmitted: {AirtimeTransferStatusCreated, AirtimeTransferStatusConfirmed},
+	AirtimeTransferStatusCompleted: {AirtimeTransferStatusCreated, AirtimeTransferStatusConfirmed, AirtimeTransferStatusSubmitted},
+	AirtimeTransferStatusRejected:  {AirtimeTransferStatusCreated, AirtimeTransferStatusConfirmed, AirtimeTransferStatusSubmitted},
+	AirtimeTransferStatusCancelled: {AirtimeTransferStatusCreated, AirtimeTransferStatusConfirmed, AirtimeTransferStatusSubmitted},
+	AirtimeTransferStatusDeclined:  {AirtimeTransferStatusCreated, AirtimeTransferStatusConfirmed, AirtimeTransferStatusSubmitted},
+	AirtimeTransferStatusReversed:  {AirtimeTransferStatusCompleted},
 }
 
 const sqlUpdateAirtimeTransferStatus = `

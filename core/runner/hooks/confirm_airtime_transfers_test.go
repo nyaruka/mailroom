@@ -63,7 +63,7 @@ func TestConfirmAirtimeTransfers(t *testing.T) {
 	confirmErr := `{"errors":[{"code":1003001,"message":"Transaction not found"}]}`
 
 	// the hook never mutates the row directly — it triggers Confirm and attaches HTTP logs. Status
-	// transitions out of pending happen via the provider's status callback (handled in web/public).
+	// transitions out of Created happen via the provider's status callback (handled in web/public).
 	cases := []struct {
 		name    string
 		mocks   []*httpx.MockResponse
@@ -99,8 +99,8 @@ func TestConfirmAirtimeTransfers(t *testing.T) {
 			tr := seed()
 			run(tr)
 
-			// every branch leaves the row pending — callback is the source of truth for terminal status
-			assert.Equal(t, models.AirtimeTransferStatusPending, rowStatus(tr.UUID()))
+			// every branch leaves the row in Created — callback is the source of truth for transitions
+			assert.Equal(t, models.AirtimeTransferStatusCreated, rowStatus(tr.UUID()))
 			assertdb.Query(t, rt.DB, `SELECT count(*) FROM request_logs_httplog WHERE airtime_transfer_id = $1`, tr.ID()).Returns(tc.expLogs)
 		})
 	}

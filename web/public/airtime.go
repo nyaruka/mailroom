@@ -54,14 +54,23 @@ func handleDTOneStatus(ctx context.Context, rt *runtime.Runtime, r *http.Request
 
 	var newStatus models.AirtimeTransferStatus
 	switch body.Status.Class.ID {
+	case dtone.StatusCIDConfirmed:
+		newStatus = models.AirtimeTransferStatusConfirmed
+	case dtone.StatusCIDSubmitted:
+		newStatus = models.AirtimeTransferStatusSubmitted
 	case dtone.StatusCIDCompleted:
-		newStatus = models.AirtimeTransferStatusSuccess
-	case dtone.StatusCIDRejected, dtone.StatusCIDCancelled, dtone.StatusCIDDeclined:
-		newStatus = models.AirtimeTransferStatusFailed
+		newStatus = models.AirtimeTransferStatusCompleted
+	case dtone.StatusCIDRejected:
+		newStatus = models.AirtimeTransferStatusRejected
+	case dtone.StatusCIDCancelled:
+		newStatus = models.AirtimeTransferStatusCancelled
+	case dtone.StatusCIDDeclined:
+		newStatus = models.AirtimeTransferStatusDeclined
 	case dtone.StatusCIDReversed:
 		newStatus = models.AirtimeTransferStatusReversed
 	default:
-		slog.Warn("ignoring dtone callback with non-terminal status", "transfer", transferUUID, "class", body.Status.Class.ID, "message", body.Status.Message)
+		// includes Created — we initiated the row in that state, no transition to apply
+		slog.Warn("ignoring dtone callback with unmapped status", "transfer", transferUUID, "class", body.Status.Class.ID, "message", body.Status.Message)
 		return web.WriteMarshalled(w, http.StatusOK, map[string]string{"status": "ignored"})
 	}
 
