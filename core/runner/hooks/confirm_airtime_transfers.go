@@ -14,12 +14,9 @@ import (
 )
 
 // ConfirmAirtimeTransfers is our post-commit hook that triggers the provider to actually send the airtime
-// for each pending transfer initiated during the sprint.
-//
-// Confirm failures are *not* retried: rows that hit a permanent error (4xx from the provider) are flipped
-// to failed immediately so the contact's flow can react; transient errors (5xx, network) leave the row
-// pending and rely on the provider's eventual status callback (DT One auto-cancels unconfirmed transactions
-// after its expiration window).
+// for each pending transfer initiated during the sprint. Confirm failures are not retried and leave the
+// row pending; DT One auto-cancels held transactions after its expiration window and sends us a callback
+// that transitions the row to failed, so even the "transaction permanently stuck" case converges.
 var ConfirmAirtimeTransfers runner.PostCommitHook = &confirmAirtimeTransfers{}
 
 type confirmAirtimeTransfers struct{}
@@ -65,39 +62,11 @@ func (h *confirmAirtimeTransfers) Execute(ctx context.Context, rt *runtime.Runti
 				}
 			}
 
-			if confirmErr == nil {
-				continue
-			}
-
-			// permanent failures (4xx, malformed id) → flip to failed so the flow doesn't hang on a zombie row.
-			// transient failures (5xx, connection error) leave the row pending — the provider will eventually
-			// auto-cancel the held transaction and send a callback that transitions us to failed.
-			if isPermanentConfirmError(logger.Logs) {
-				slog.Warn("airtime transfer failed to confirm permanently, marking failed", "transfer", transfer.UUID(), "error", confirmErr)
-				h.markFailed(ctx, rt, transfer)
-			} else {
-				slog.Warn("airtime transfer failed to confirm transiently, leaving pending", "transfer", transfer.UUID(), "error", confirmErr)
+			if confirmErr != nil {
+				slog.Warn("airtime transfer failed to confirm, leaving pending", "transfer", transfer.UUID(), "error", confirmErr)
 			}
 		}
 	}
 
 	return nil
-}
-
-func (h *confirmAirtimeTransfers) markFailed(ctx context.Context, rt *runtime.Runtime, transfer *models.AirtimeTransfer) {
-	if _, err := models.UpdateAirtimeTransferStatus(ctx, rt.DB, transfer.UUID(), transfer.ExternalID(), models.AirtimeTransferStatusFailed); err != nil {
-		slog.Error("error marking airtime transfer as failed", "transfer", transfer.UUID(), "error", err)
-	}
-}
-
-// isPermanentConfirmError decides whether a Confirm error is worth giving up on immediately. A 4xx from
-// the provider (id unknown, already confirmed, etc.) is permanent and retrying won't help; everything
-// else (5xx, connection error, no response) is treated as transient and left for the provider's eventual
-// auto-cancel callback.
-func isPermanentConfirmError(logs []*flows.HTTPLog) bool {
-	if len(logs) == 0 {
-		return false
-	}
-	last := logs[len(logs)-1]
-	return last.StatusCode >= 400 && last.StatusCode < 500
 }

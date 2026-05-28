@@ -2,7 +2,6 @@ package models
 
 import (
 	"context"
-	"database/sql"
 	"database/sql/driver"
 	"time"
 
@@ -159,26 +158,6 @@ func UpdateAirtimeTransferStatus(ctx context.Context, db DBorTx, uuid flows.Even
 		return false, err
 	}
 	return rows > 0, nil
-}
-
-const sqlSelectAirtimeTransferByUUID = `
-SELECT id, uuid, org_id, status, external_id, contact_id, sender, recipient, currency, desired_amount, actual_amount, created_on
-  FROM airtime_airtimetransfer
- WHERE uuid = $1
-`
-
-// GetAirtimeTransferByUUID fetches the airtime transfer for the given UUID. Returns nil with no error if
-// no matching row exists.
-func GetAirtimeTransferByUUID(ctx context.Context, db DBorTx, uuid flows.EventUUID) (*AirtimeTransfer, error) {
-	t := &AirtimeTransfer{}
-	err := db.GetContext(ctx, &t.t, sqlSelectAirtimeTransferByUUID, uuid)
-	if err == sql.ErrNoRows {
-		return nil, nil
-	}
-	if err != nil {
-		return nil, err
-	}
-	return t, nil
 }
 
 func (i *AirtimeTransferID) Scan(value any) error         { return null.ScanInt(value, i) }

@@ -31,12 +31,12 @@ func TestConfirmAirtimeTransfers(t *testing.T) {
 	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 	require.NoError(t, err)
 
-	seed := func(externalID string) *models.AirtimeTransfer {
+	seed := func() *models.AirtimeTransfer {
 		rt.DB.MustExec(`DELETE FROM request_logs_httplog WHERE airtime_transfer_id IS NOT NULL`)
 		rt.DB.MustExec(`DELETE FROM airtime_airtimetransfer`)
 		uuid := flows.NewEventUUID()
 		tr := models.NewAirtimeTransfer(testdb.Org1.ID, testdb.Ann.ID, events.NewAirtimeCreated(uuid, &flows.AirtimeTransfer{
-			ExternalID: externalID,
+			ExternalID: "2237512891",
 			Sender:     urns.URN("tel:+250700000001"),
 			Recipient:  urns.URN("tel:+250700000002"),
 			Currency:   "RWF",
@@ -54,56 +54,54 @@ func TestConfirmAirtimeTransfers(t *testing.T) {
 	}
 
 	rowStatus := func(uuid flows.EventUUID) models.AirtimeTransferStatus {
-		fetched, err := models.GetAirtimeTransferByUUID(ctx, rt.DB, uuid)
-		require.NoError(t, err)
-		require.NotNil(t, fetched)
-		return fetched.Status()
+		var status models.AirtimeTransferStatus
+		require.NoError(t, rt.DB.GetContext(ctx, &status, `SELECT status FROM airtime_airtimetransfer WHERE uuid = $1`, uuid))
+		return status
 	}
 
 	confirmOK := `{"id":2237512891,"status":{"class":{"id":2,"message":"CONFIRMED"}}}`
 	confirmErr := `{"errors":[{"code":1003001,"message":"Transaction not found"}]}`
 
-	// 200 success → row stays pending (terminal status flows in via callback later)
-	httpx.SetRequestor(httpx.NewMockRequestor(map[string][]*httpx.MockResponse{
-		"https://dvs-api.dtone.com/v1/async/transactions/2237512891/confirm": {
-			httpx.NewMockResponse(200, nil, []byte(confirmOK)),
+	// the hook never mutates the row directly — it triggers Confirm and attaches HTTP logs. Status
+	// transitions out of pending happen via the provider's status callback (handled in web/public).
+	cases := []struct {
+		name    string
+		mocks   []*httpx.MockResponse
+		expLogs int
+	}{
+		{
+			name:    "200 success",
+			mocks:   []*httpx.MockResponse{httpx.NewMockResponse(200, nil, []byte(confirmOK))},
+			expLogs: 1,
 		},
-	}))
-	tr := seed("2237512891")
-	run(tr)
-	assert.Equal(t, models.AirtimeTransferStatusPending, rowStatus(tr.UUID()), "200 OK leaves row pending")
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM request_logs_httplog WHERE airtime_transfer_id = $1`, tr.ID()).Returns(1)
+		{
+			name:    "4xx provider rejection",
+			mocks:   []*httpx.MockResponse{httpx.NewMockResponse(400, nil, []byte(confirmErr))},
+			expLogs: 1,
+		},
+		{
+			name:    "5xx retried then given up",
+			mocks:   []*httpx.MockResponse{httpx.NewMockResponse(500, nil, []byte(confirmErr)), httpx.NewMockResponse(500, nil, []byte(confirmErr)), httpx.NewMockResponse(500, nil, []byte(confirmErr))},
+			expLogs: 1,
+		},
+		{
+			name:    "connection error",
+			mocks:   []*httpx.MockResponse{httpx.MockConnectionError, httpx.MockConnectionError, httpx.MockConnectionError},
+			expLogs: 1,
+		},
+	}
 
-	// 4xx permanent error → row flipped to failed
-	httpx.SetRequestor(httpx.NewMockRequestor(map[string][]*httpx.MockResponse{
-		"https://dvs-api.dtone.com/v1/async/transactions/2237512891/confirm": {
-			httpx.NewMockResponse(400, nil, []byte(confirmErr)),
-		},
-	}))
-	tr = seed("2237512891")
-	run(tr)
-	assert.Equal(t, models.AirtimeTransferStatusFailed, rowStatus(tr.UUID()), "4xx confirm marks row failed")
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			httpx.SetRequestor(httpx.NewMockRequestor(map[string][]*httpx.MockResponse{
+				"https://dvs-api.dtone.com/v1/async/transactions/2237512891/confirm": tc.mocks,
+			}))
+			tr := seed()
+			run(tr)
 
-	// 5xx transient error → row stays pending (provider's auto-cancel callback will eventually arrive)
-	httpx.SetRequestor(httpx.NewMockRequestor(map[string][]*httpx.MockResponse{
-		"https://dvs-api.dtone.com/v1/async/transactions/2237512891/confirm": {
-			// the client retries on 5xx; mock enough responses to exhaust retries
-			httpx.NewMockResponse(500, nil, []byte(confirmErr)),
-			httpx.NewMockResponse(500, nil, []byte(confirmErr)),
-			httpx.NewMockResponse(500, nil, []byte(confirmErr)),
-		},
-	}))
-	tr = seed("2237512891")
-	run(tr)
-	assert.Equal(t, models.AirtimeTransferStatusPending, rowStatus(tr.UUID()), "5xx confirm leaves row pending for provider auto-cancel")
-
-	// connection error → row stays pending
-	httpx.SetRequestor(httpx.NewMockRequestor(map[string][]*httpx.MockResponse{
-		"https://dvs-api.dtone.com/v1/async/transactions/2237512891/confirm": {
-			httpx.MockConnectionError, httpx.MockConnectionError, httpx.MockConnectionError,
-		},
-	}))
-	tr = seed("2237512891")
-	run(tr)
-	assert.Equal(t, models.AirtimeTransferStatusPending, rowStatus(tr.UUID()), "connection error leaves row pending")
+			// every branch leaves the row pending — callback is the source of truth for terminal status
+			assert.Equal(t, models.AirtimeTransferStatusPending, rowStatus(tr.UUID()))
+			assertdb.Query(t, rt.DB, `SELECT count(*) FROM request_logs_httplog WHERE airtime_transfer_id = $1`, tr.ID()).Returns(tc.expLogs)
+		})
+	}
 }

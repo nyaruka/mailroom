@@ -58,10 +58,9 @@ func TestDTOneStatusCallback(t *testing.T) {
 	}
 
 	rowStatus := func(t *testing.T, uuid flows.EventUUID) models.AirtimeTransferStatus {
-		fetched, err := models.GetAirtimeTransferByUUID(ctx, rt.DB, uuid)
-		require.NoError(t, err)
-		require.NotNil(t, fetched)
-		return fetched.Status()
+		var status models.AirtimeTransferStatus
+		require.NoError(t, rt.DB.GetContext(ctx, &status, `SELECT status FROM airtime_airtimetransfer WHERE uuid = $1`, uuid))
+		return status
 	}
 
 	// body builder for a callback whose external_id field carries our row UUID

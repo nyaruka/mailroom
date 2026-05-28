@@ -55,17 +55,6 @@ func TestAirtimeTransfers(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT status FROM airtime_airtimetransfer WHERE id = $1`, transfer.ID()).
 		Columns(map[string]any{"status": "S"})
 
-	// can look it up by UUID
-	fetched, err := models.GetAirtimeTransferByUUID(ctx, rt.DB, transferUUID)
-	assert.NoError(t, err)
-	assert.NotNil(t, fetched)
-	assert.Equal(t, transferUUID, fetched.UUID())
-
-	// missing UUID returns nil, nil
-	fetched, err = models.GetAirtimeTransferByUUID(ctx, rt.DB, flows.NewEventUUID())
-	assert.NoError(t, err)
-	assert.Nil(t, fetched)
-
 	// success → reversed is allowed (DT One can reverse after completion)
 	updated, err = models.UpdateAirtimeTransferStatus(ctx, rt.DB, transfer.UUID(), "2237512891", models.AirtimeTransferStatusReversed)
 	assert.NoError(t, err)

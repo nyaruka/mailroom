@@ -52,8 +52,15 @@ func handleDTOneStatus(ctx context.Context, rt *runtime.Runtime, r *http.Request
 	transferUUID := flows.EventUUID(body.ExternalID)
 	providerID := strconv.FormatInt(body.ID, 10)
 
-	newStatus, ok := mapDTOneStatus(body.Status.Class.ID)
-	if !ok {
+	var newStatus models.AirtimeTransferStatus
+	switch body.Status.Class.ID {
+	case dtone.StatusCIDCompleted:
+		newStatus = models.AirtimeTransferStatusSuccess
+	case dtone.StatusCIDRejected, dtone.StatusCIDCancelled, dtone.StatusCIDDeclined:
+		newStatus = models.AirtimeTransferStatusFailed
+	case dtone.StatusCIDReversed:
+		newStatus = models.AirtimeTransferStatusReversed
+	default:
 		slog.Warn("ignoring dtone callback with non-terminal status", "transfer", transferUUID, "class", body.Status.Class.ID, "message", body.Status.Message)
 		return web.WriteMarshalled(w, http.StatusOK, map[string]string{"status": "ignored"})
 	}
@@ -73,19 +80,6 @@ func handleDTOneStatus(ctx context.Context, rt *runtime.Runtime, r *http.Request
 	}
 
 	return web.WriteMarshalled(w, http.StatusOK, map[string]string{"status": "ok"})
-}
-
-func mapDTOneStatus(class dtone.StatusCID) (models.AirtimeTransferStatus, bool) {
-	switch class {
-	case dtone.StatusCIDCompleted:
-		return models.AirtimeTransferStatusSuccess, true
-	case dtone.StatusCIDRejected, dtone.StatusCIDCancelled, dtone.StatusCIDDeclined:
-		return models.AirtimeTransferStatusFailed, true
-	case dtone.StatusCIDReversed:
-		return models.AirtimeTransferStatusReversed, true
-	default:
-		return "", false
-	}
 }
 
 func writeAirtimeStatusError(w http.ResponseWriter, status int, msg string) error {
