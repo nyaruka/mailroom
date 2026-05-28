@@ -3,10 +3,8 @@ package models
 import (
 	"context"
 	"database/sql/driver"
-	"fmt"
 	"time"
 
-	"github.com/lib/pq"
 	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/events"
@@ -134,54 +132,19 @@ func InsertAirtimeTransfers(ctx context.Context, db DBorTx, transfers []*Airtime
 	return BulkQuery(ctx, "inserted airtime transfers", db, sqlInsertAirtimeTransfers, ts)
 }
 
-// allowedAirtimePredecessors lists the statuses a row may be in for each destination status to be a
-// valid transition. Anything not listed is a no-op — late or duplicate callbacks that would walk the
-// status backwards in the lifecycle (e.g. S → C, R → S) are ignored. The lifecycle is roughly:
-//
-//	Created → Confirmed → Submitted → Completed → Reversed
-//	                               ↘
-//	                                Rejected / Cancelled / Declined
-//
-// Any non-terminal status can transition to any later non-terminal status, or to any terminal failure
-// state. Once a row reaches Reversed / Rejected / Cancelled / Declined it's locked.
-var allowedAirtimePredecessors = map[AirtimeTransferStatus][]AirtimeTransferStatus{
-	AirtimeTransferStatusConfirmed: {AirtimeTransferStatusCreated},
-	AirtimeTransferStatusSubmitted: {AirtimeTransferStatusCreated, AirtimeTransferStatusConfirmed},
-	AirtimeTransferStatusCompleted: {AirtimeTransferStatusCreated, AirtimeTransferStatusConfirmed, AirtimeTransferStatusSubmitted},
-	AirtimeTransferStatusRejected:  {AirtimeTransferStatusCreated, AirtimeTransferStatusConfirmed, AirtimeTransferStatusSubmitted},
-	AirtimeTransferStatusCancelled: {AirtimeTransferStatusCreated, AirtimeTransferStatusConfirmed, AirtimeTransferStatusSubmitted},
-	AirtimeTransferStatusDeclined:  {AirtimeTransferStatusCreated, AirtimeTransferStatusConfirmed, AirtimeTransferStatusSubmitted},
-	AirtimeTransferStatusReversed:  {AirtimeTransferStatusCompleted},
-}
-
 const sqlUpdateAirtimeTransferStatus = `
-UPDATE airtime_airtimetransfer
-   SET status = $2
- WHERE uuid = $1
-   AND external_id = $3
-   AND status = ANY($4::text[])
+UPDATE airtime_airtimetransfer SET status = $2 WHERE uuid = $1 AND external_id = $3
 `
 
-// UpdateAirtimeTransferStatus transitions an airtime transfer to the given status, returning true if a
-// row was actually updated. The current status is matched in the same statement against the destination's
-// allowed predecessors — so concurrent callbacks race safely on a single compare-and-swap rather than via
-// a separate SELECT (which would leave a TOCTOU window where a legitimate transition could be silently
-// dropped). external_id must also match the row, which serves as defense in depth for the public callback
-// path: a forged callback with a leaked UUID still can't mutate a row whose tx id it doesn't know.
-// Returns false with no error when the row is already in a terminal state that doesn't admit the
-// requested transition, or when external_id doesn't match the row.
+// UpdateAirtimeTransferStatus writes the given status to the airtime transfer keyed by (uuid, external_id),
+// returning true if a row was actually updated. external_id must match the row as defense in depth for the
+// public callback path — a forged callback with a leaked UUID still can't mutate a row whose tx id it
+// doesn't know. There's no status-transition guard: provider callbacks can arrive out of order or with
+// gaps in the lifecycle (e.g. a Reversed callback for a transfer we never saw Completed for), and dropping
+// those would strand the row in its prior state forever. We'd rather a late callback overwrite with stale
+// state than silently lose a real terminal status update.
 func UpdateAirtimeTransferStatus(ctx context.Context, db DBorTx, uuid flows.EventUUID, externalID string, next AirtimeTransferStatus) (bool, error) {
-	preds, ok := allowedAirtimePredecessors[next]
-	if !ok {
-		// programming error — caller passed a status that isn't in the lifecycle map. Surface it so the
-		// missing entry shows up in tests / logs instead of silently no-op'ing.
-		return false, fmt.Errorf("no lifecycle predecessors configured for airtime status %q", next)
-	}
-	predStrs := make([]string, len(preds))
-	for i, p := range preds {
-		predStrs[i] = string(p)
-	}
-	res, err := db.ExecContext(ctx, sqlUpdateAirtimeTransferStatus, uuid, next, externalID, pq.Array(predStrs))
+	res, err := db.ExecContext(ctx, sqlUpdateAirtimeTransferStatus, uuid, next, externalID)
 	if err != nil {
 		return false, err
 	}

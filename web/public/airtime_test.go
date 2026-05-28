@@ -68,7 +68,7 @@ func TestDTOneStatusCallback(t *testing.T) {
 		return fmt.Sprintf(`{"id":2237512891,"external_id":%q,"status":{"class":{"id":%d,"message":%q}}}`, string(uuid), classID, msg)
 	}
 
-	// happy path through the lifecycle: P → C → B → S
+	// happy path through the lifecycle: P → C → B → S → R
 	uuid := seed(t)
 	assert.Equal(t, http.StatusOK, post(t, body(uuid, 2, "CONFIRMED")))
 	assert.Equal(t, models.AirtimeTransferStatusConfirmed, rowStatus(t, uuid))
@@ -76,16 +76,8 @@ func TestDTOneStatusCallback(t *testing.T) {
 	assert.Equal(t, models.AirtimeTransferStatusSubmitted, rowStatus(t, uuid))
 	assert.Equal(t, http.StatusOK, post(t, body(uuid, 7, "COMPLETED")))
 	assert.Equal(t, models.AirtimeTransferStatusCompleted, rowStatus(t, uuid))
-
-	// reversed after completed is allowed (S → R)
 	assert.Equal(t, http.StatusOK, post(t, body(uuid, 8, "REVERSED")))
 	assert.Equal(t, models.AirtimeTransferStatusReversed, rowStatus(t, uuid))
-
-	// late/out-of-order callbacks after reversed must not walk the row backwards
-	assert.Equal(t, http.StatusOK, post(t, body(uuid, 3, "REJECTED")))
-	assert.Equal(t, models.AirtimeTransferStatusReversed, rowStatus(t, uuid), "rejected after reversed should be ignored")
-	assert.Equal(t, http.StatusOK, post(t, body(uuid, 7, "COMPLETED")))
-	assert.Equal(t, models.AirtimeTransferStatusReversed, rowStatus(t, uuid), "completed after reversed should be ignored")
 
 	// each terminal failure class maps to its own status
 	uuid = seed(t)
@@ -105,14 +97,13 @@ func TestDTOneStatusCallback(t *testing.T) {
 	assert.Equal(t, http.StatusOK, post(t, body(uuid, 1, "CREATED")))
 	assert.Equal(t, models.AirtimeTransferStatusCreated, rowStatus(t, uuid))
 
-	// same terminal callback delivered twice is idempotent (second is a no-op via the CAS)
-	assert.Equal(t, http.StatusOK, post(t, body(uuid, 7, "COMPLETED")))
-	assert.Equal(t, models.AirtimeTransferStatusCompleted, rowStatus(t, uuid))
-	assert.Equal(t, http.StatusOK, post(t, body(uuid, 7, "COMPLETED")))
-	assert.Equal(t, models.AirtimeTransferStatusCompleted, rowStatus(t, uuid))
+	// a Reversed callback that arrives without a preceding Completed still applies — better to record
+	// the eventual reversal than silently drop it because the lifecycle skipped a stage
+	assert.Equal(t, http.StatusOK, post(t, body(uuid, 8, "REVERSED")))
+	assert.Equal(t, models.AirtimeTransferStatusReversed, rowStatus(t, uuid))
 
-	// unknown UUID → 200 ignored (compare-and-swap can't distinguish unknown UUID from rejected
-	// transition without an extra SELECT; the distinction isn't actionable for DT One either way)
+	// unknown UUID → 200 ignored (the CAS finds no row to update; the distinction isn't actionable
+	// for DT One and the matching response shape doubles as an anti-enumeration shield)
 	assert.Equal(t, http.StatusOK, post(t, body(flows.NewEventUUID(), 7, "COMPLETED")))
 
 	// a forged callback with a real UUID but wrong DT One tx id is a no-op (defense in depth — the

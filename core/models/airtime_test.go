@@ -55,25 +55,13 @@ func TestAirtimeTransfers(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT status FROM airtime_airtimetransfer WHERE id = $1`, transfer.ID()).
 		Columns(map[string]any{"status": "S"})
 
-	// success → reversed is allowed (DT One can reverse after completion)
+	// any status update with matching uuid + external_id is applied — no transition guard, since
+	// dropping out-of-order callbacks could strand the row (e.g. a Reversed callback for a transfer
+	// we never saw Completed for)
 	updated, err = models.UpdateAirtimeTransferStatus(ctx, rt.DB, transfer.UUID(), "2237512891", models.AirtimeTransferStatusReversed)
 	assert.NoError(t, err)
 	assert.True(t, updated)
 
-	assertdb.Query(t, rt.DB, `SELECT status FROM airtime_airtimetransfer WHERE id = $1`, transfer.ID()).
-		Columns(map[string]any{"status": "R"})
-
-	// reversed → completed is NOT allowed — out-of-order callbacks don't walk the row backwards
-	updated, err = models.UpdateAirtimeTransferStatus(ctx, rt.DB, transfer.UUID(), "2237512891", models.AirtimeTransferStatusCompleted)
-	assert.NoError(t, err)
-	assert.False(t, updated)
-
-	// reversed → rejected is NOT allowed either
-	updated, err = models.UpdateAirtimeTransferStatus(ctx, rt.DB, transfer.UUID(), "2237512891", models.AirtimeTransferStatusRejected)
-	assert.NoError(t, err)
-	assert.False(t, updated)
-
-	// status remained reversed throughout
 	assertdb.Query(t, rt.DB, `SELECT status FROM airtime_airtimetransfer WHERE id = $1`, transfer.ID()).
 		Columns(map[string]any{"status": "R"})
 }
