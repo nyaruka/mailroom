@@ -2,10 +2,10 @@ package public
 
 import (
 	"context"
-	"crypto/subtle"
 	"fmt"
 	"log/slog"
 	"net/http"
+	"strconv"
 
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/v26/core/models"
@@ -15,7 +15,7 @@ import (
 )
 
 func init() {
-	web.PublicRoute(http.MethodPost, "/airtime/dtone/status/{secret}", handleDTOneStatus)
+	web.PublicRoute(http.MethodPost, "/airtime/dtone/status", handleDTOneStatus)
 }
 
 // dtoneStatusBody is the subset of DT One's transaction callback payload we care about. See
@@ -31,15 +31,12 @@ type dtoneStatusBody struct {
 	} `json:"status"`
 }
 
+// handleDTOneStatus receives DT One's transaction status callbacks. Authentication is per-transaction
+// via two unguessable identifiers DT One echoes back to us on every callback: the airtime_created event
+// UUID (which we passed as DT One's external_id field) and DT One's own transaction id (which we stored
+// on the row at Create time). A forged callback needs to know both for a specific transfer, not either
+// one alone — 122 bits of UUID + the provider's tx id together are the capability token.
 func handleDTOneStatus(ctx context.Context, rt *runtime.Runtime, r *http.Request, w http.ResponseWriter) error {
-	expected := rt.Config.DTOneCallbackSecret
-	if expected == "" {
-		return writeAirtimeStatusError(w, http.StatusNotFound, "dtone callbacks not enabled")
-	}
-	if subtle.ConstantTimeCompare([]byte(r.PathValue("secret")), []byte(expected)) != 1 {
-		return writeAirtimeStatusError(w, http.StatusForbidden, "invalid secret")
-	}
-
 	body := &dtoneStatusBody{}
 	if err := web.ReadAndValidateJSON(r, body); err != nil {
 		return writeAirtimeStatusError(w, http.StatusBadRequest, fmt.Sprintf("invalid body: %s", err))
@@ -48,8 +45,12 @@ func handleDTOneStatus(ctx context.Context, rt *runtime.Runtime, r *http.Request
 	if body.ExternalID == "" {
 		return writeAirtimeStatusError(w, http.StatusBadRequest, "missing external_id")
 	}
+	if body.ID == 0 {
+		return writeAirtimeStatusError(w, http.StatusBadRequest, "missing id")
+	}
 
 	transferUUID := flows.EventUUID(body.ExternalID)
+	providerID := strconv.FormatInt(body.ID, 10)
 
 	newStatus, ok := mapDTOneStatus(body.Status.Class.ID)
 	if !ok {
@@ -57,12 +58,12 @@ func handleDTOneStatus(ctx context.Context, rt *runtime.Runtime, r *http.Request
 		return web.WriteMarshalled(w, http.StatusOK, map[string]string{"status": "ignored"})
 	}
 
-	// compare-and-swap directly on the row by UUID — concurrent callbacks race safely on a single SQL
-	// statement (no SELECT, no TOCTOU window). Rows affected of zero means either: the UUID is unknown,
-	// or the row's current status doesn't admit this transition (duplicate / out-of-order callback).
-	// Either way the right reply to the provider is 2XX so it stops retrying — we can't distinguish
-	// the two cases without an extra SELECT and the distinction isn't actionable for DT One.
-	updated, err := models.UpdateAirtimeTransferStatus(ctx, rt.DB, transferUUID, newStatus)
+	// compare-and-swap directly on the row by (UUID, provider tx id) — concurrent callbacks race safely
+	// on a single SQL statement (no SELECT, no TOCTOU window). Rows affected of zero means the UUID is
+	// unknown, the provider id doesn't match what we stored, or the row's current status doesn't admit
+	// this transition (duplicate / out-of-order callback). The right reply to the provider is 2XX
+	// either way so it stops retrying — the distinction isn't actionable for DT One.
+	updated, err := models.UpdateAirtimeTransferStatus(ctx, rt.DB, transferUUID, providerID, newStatus)
 	if err != nil {
 		return fmt.Errorf("error updating airtime transfer status: %w", err)
 	}

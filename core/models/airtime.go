@@ -126,16 +126,22 @@ var allowedAirtimePredecessors = map[AirtimeTransferStatus][]AirtimeTransferStat
 }
 
 const sqlUpdateAirtimeTransferStatus = `
-UPDATE airtime_airtimetransfer SET status = $2 WHERE uuid = $1 AND status = ANY($3::text[])
+UPDATE airtime_airtimetransfer
+   SET status = $2
+ WHERE uuid = $1
+   AND external_id IS NOT DISTINCT FROM $3
+   AND status = ANY($4::text[])
 `
 
 // UpdateAirtimeTransferStatus transitions an airtime transfer to the given status, returning true if a
 // row was actually updated. The current status is matched in the same statement against the destination's
 // allowed predecessors — so concurrent callbacks race safely on a single compare-and-swap rather than via
 // a separate SELECT (which would leave a TOCTOU window where a legitimate transition could be silently
-// dropped). Returns false with no error when the row is already in a terminal state that doesn't admit
-// the requested transition.
-func UpdateAirtimeTransferStatus(ctx context.Context, db DBorTx, uuid flows.EventUUID, next AirtimeTransferStatus) (bool, error) {
+// dropped). external_id must also match the row, which serves as defense in depth for the public callback
+// path: a forged callback now needs to know both the row's UUID (122 bits) and its provider tx id, not
+// just one. Returns false with no error when the row is already in a terminal state that doesn't admit
+// the requested transition, or when external_id doesn't match the row.
+func UpdateAirtimeTransferStatus(ctx context.Context, db DBorTx, uuid flows.EventUUID, externalID string, next AirtimeTransferStatus) (bool, error) {
 	preds, ok := allowedAirtimePredecessors[next]
 	if !ok {
 		return false, nil
@@ -144,7 +150,11 @@ func UpdateAirtimeTransferStatus(ctx context.Context, db DBorTx, uuid flows.Even
 	for i, p := range preds {
 		predStrs[i] = string(p)
 	}
-	res, err := db.ExecContext(ctx, sqlUpdateAirtimeTransferStatus, uuid, next, pq.Array(predStrs))
+	var extID any // bind as NULL when empty so IS NOT DISTINCT FROM matches a null column
+	if externalID != "" {
+		extID = externalID
+	}
+	res, err := db.ExecContext(ctx, sqlUpdateAirtimeTransferStatus, uuid, next, extID, pq.Array(predStrs))
 	if err != nil {
 		return false, err
 	}

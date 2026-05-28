@@ -74,8 +74,6 @@ type Config struct {
 	CourierEndpoint  string `help:"the base URL used for internal calls to courier" validate:"url"`
 	CourierAuthToken string `help:"the authentication token used for requests to Courier"`
 
-	DTOneCallbackSecret string `help:"shared secret embedded in DT One status callback URLs"`
-
 	CentrifugoEndpoint string `help:"the endpoint of the Centrifugo server"`
 	CentrifugoKey      string `help:"the API key for the Centrifugo server"`
 

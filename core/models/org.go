@@ -59,13 +59,11 @@ func airtimeServiceFactory(rt *runtime.Runtime) engine.AirtimeServiceFactory {
 }
 
 // DTOneCallbackURL returns the URL DT One should POST status updates to, derived from the configured
-// domain and shared secret. Returns an empty string if no secret is configured (in which case callbacks
-// aren't requested).
+// domain. The URL is stable per deployment; correlation back to a specific transfer happens via the
+// airtime_created event UUID that we pass to DT One as their external_id field (122 bits of entropy
+// per transfer is the authentication mechanism — the URL itself doesn't carry a secret).
 func DTOneCallbackURL(rt *runtime.Runtime) string {
-	if rt.Config.DTOneCallbackSecret == "" {
-		return ""
-	}
-	return fmt.Sprintf("https://%s/mr/airtime/dtone/status/%s", rt.Config.Domain, rt.Config.DTOneCallbackSecret)
+	return fmt.Sprintf("https://%s/mr/airtime/dtone/status", rt.Config.Domain)
 }
 
 // OrgID is our type for org ids
@@ -197,12 +195,6 @@ func (o *Org) AirtimeService(rt *runtime.Runtime, httpClient *http.Client, httpR
 
 	if key == "" || secret == "" {
 		return nil, fmt.Errorf("missing %s or %s on DTOne configuration for org: %d", configDTOneKey, configDTOneSecret, o.ID())
-	}
-	// DT One's lifecycle is callback-driven (auto_confirm:false), so we refuse to construct the service
-	// without a callback URL — otherwise transfers would be confirmed with no path for their eventual
-	// status to ever reach mailroom and rows would orphan in pending.
-	if rt.Config.DTOneCallbackSecret == "" {
-		return nil, fmt.Errorf("DTOneCallbackSecret must be configured for DT One airtime")
 	}
 	return dtone.NewService(httpClient, httpRetries, key, secret, DTOneCallbackURL(rt)), nil
 }

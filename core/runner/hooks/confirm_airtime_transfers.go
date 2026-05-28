@@ -92,7 +92,7 @@ func (h *confirmAirtimeTransfers) Execute(ctx context.Context, rt *runtime.Runti
 }
 
 func (h *confirmAirtimeTransfers) markFailed(ctx context.Context, rt *runtime.Runtime, transfer *models.AirtimeTransfer) {
-	if _, err := models.UpdateAirtimeTransferStatus(ctx, rt.DB, transfer.UUID(), models.AirtimeTransferStatusFailed); err != nil {
+	if _, err := models.UpdateAirtimeTransferStatus(ctx, rt.DB, transfer.UUID(), transfer.ExternalID(), models.AirtimeTransferStatusFailed); err != nil {
 		slog.Error("error marking airtime transfer as failed", "transfer", transfer.UUID(), "error", err)
 	}
 }

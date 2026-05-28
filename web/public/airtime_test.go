@@ -25,13 +25,13 @@ func TestDTOneStatusCallback(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
-	rt.Config.DTOneCallbackSecret = "sek"
-
 	wg := &sync.WaitGroup{}
 	server := web.NewServer(ctx, rt, wg)
 	server.Start()
 	defer server.Stop()
 	time.Sleep(100 * time.Millisecond)
+
+	const callbackPath = "/mr/airtime/dtone/status"
 
 	seed := func(t *testing.T) flows.EventUUID {
 		rt.DB.MustExec(`DELETE FROM airtime_airtimetransfer`)
@@ -47,8 +47,8 @@ func TestDTOneStatusCallback(t *testing.T) {
 		return uuid
 	}
 
-	post := func(t *testing.T, path, body string) int {
-		req, err := http.NewRequest("POST", "http://localhost:8190"+path, strings.NewReader(body))
+	post := func(t *testing.T, body string) int {
+		req, err := http.NewRequest("POST", "http://localhost:8190"+callbackPath, strings.NewReader(body))
 		require.NoError(t, err)
 		req.Header.Set("Content-Type", "application/json")
 		resp, err := http.DefaultClient.Do(req)
@@ -71,74 +71,60 @@ func TestDTOneStatusCallback(t *testing.T) {
 
 	// happy path: P → S
 	uuid := seed(t)
-	assert.Equal(t, http.StatusOK, post(t, "/mr/airtime/dtone/status/sek", body(uuid, 7, "COMPLETED")))
+	assert.Equal(t, http.StatusOK, post(t, body(uuid, 7, "COMPLETED")))
 	assert.Equal(t, models.AirtimeTransferStatusSuccess, rowStatus(t, uuid))
 
 	// reversed after success is allowed (S → R)
-	assert.Equal(t, http.StatusOK, post(t, "/mr/airtime/dtone/status/sek", body(uuid, 8, "REVERSED")))
+	assert.Equal(t, http.StatusOK, post(t, body(uuid, 8, "REVERSED")))
 	assert.Equal(t, models.AirtimeTransferStatusReversed, rowStatus(t, uuid))
 
 	// late/out-of-order rejected after reversed must NOT walk the row back to F
-	assert.Equal(t, http.StatusOK, post(t, "/mr/airtime/dtone/status/sek", body(uuid, 3, "REJECTED")))
+	assert.Equal(t, http.StatusOK, post(t, body(uuid, 3, "REJECTED")))
 	assert.Equal(t, models.AirtimeTransferStatusReversed, rowStatus(t, uuid), "rejected after reversed should be ignored")
 
 	// late completed after reversed must NOT walk the row back to S either
-	assert.Equal(t, http.StatusOK, post(t, "/mr/airtime/dtone/status/sek", body(uuid, 7, "COMPLETED")))
+	assert.Equal(t, http.StatusOK, post(t, body(uuid, 7, "COMPLETED")))
 	assert.Equal(t, models.AirtimeTransferStatusReversed, rowStatus(t, uuid), "completed after reversed should be ignored")
 
 	// rejected from pending takes the row to F directly
 	uuid = seed(t)
-	assert.Equal(t, http.StatusOK, post(t, "/mr/airtime/dtone/status/sek", body(uuid, 3, "REJECTED")))
+	assert.Equal(t, http.StatusOK, post(t, body(uuid, 3, "REJECTED")))
 	assert.Equal(t, models.AirtimeTransferStatusFailed, rowStatus(t, uuid))
 
 	// declined and cancelled also map to F
 	uuid = seed(t)
-	assert.Equal(t, http.StatusOK, post(t, "/mr/airtime/dtone/status/sek", body(uuid, 9, "DECLINED")))
+	assert.Equal(t, http.StatusOK, post(t, body(uuid, 9, "DECLINED")))
 	assert.Equal(t, models.AirtimeTransferStatusFailed, rowStatus(t, uuid))
 
 	uuid = seed(t)
-	assert.Equal(t, http.StatusOK, post(t, "/mr/airtime/dtone/status/sek", body(uuid, 4, "CANCELLED")))
+	assert.Equal(t, http.StatusOK, post(t, body(uuid, 4, "CANCELLED")))
 	assert.Equal(t, models.AirtimeTransferStatusFailed, rowStatus(t, uuid))
 
 	// non-terminal status class is ignored — row stays in its current state
 	uuid = seed(t)
-	assert.Equal(t, http.StatusOK, post(t, "/mr/airtime/dtone/status/sek", body(uuid, 5, "SUBMITTED")))
+	assert.Equal(t, http.StatusOK, post(t, body(uuid, 5, "SUBMITTED")))
 	assert.Equal(t, models.AirtimeTransferStatusPending, rowStatus(t, uuid))
 
 	// same terminal callback delivered twice is idempotent
-	assert.Equal(t, http.StatusOK, post(t, "/mr/airtime/dtone/status/sek", body(uuid, 7, "COMPLETED")))
+	assert.Equal(t, http.StatusOK, post(t, body(uuid, 7, "COMPLETED")))
 	assert.Equal(t, models.AirtimeTransferStatusSuccess, rowStatus(t, uuid))
-	assert.Equal(t, http.StatusOK, post(t, "/mr/airtime/dtone/status/sek", body(uuid, 7, "COMPLETED")))
+	assert.Equal(t, http.StatusOK, post(t, body(uuid, 7, "COMPLETED")))
 	assert.Equal(t, models.AirtimeTransferStatusSuccess, rowStatus(t, uuid))
 
-	// unknown UUID → 200 ignored (the compare-and-swap is indistinguishable from a no-op transition; we
-	// don't pay an extra SELECT just to give 404, and the response also doubles as an anti-enumeration
-	// shield since attackers can't distinguish "this UUID isn't ours" from "this transition isn't allowed")
-	assert.Equal(t, http.StatusOK, post(t, "/mr/airtime/dtone/status/sek", body(flows.NewEventUUID(), 7, "COMPLETED")))
+	// unknown UUID → 200 ignored (compare-and-swap can't distinguish unknown UUID from rejected
+	// transition without an extra SELECT; the distinction isn't actionable for DT One either way)
+	assert.Equal(t, http.StatusOK, post(t, body(flows.NewEventUUID(), 7, "COMPLETED")))
 
-	// wrong secret → 403
-	assert.Equal(t, http.StatusForbidden, post(t, "/mr/airtime/dtone/status/wrong", body(uuid, 7, "COMPLETED")))
+	// a forged callback with a real UUID but wrong DT One tx id is a no-op (defense in depth — the
+	// matching CAS requires both halves)
+	uuid = seed(t)
+	mismatched := fmt.Sprintf(`{"id":99999999,"external_id":%q,"status":{"class":{"id":7,"message":"COMPLETED"}}}`, string(uuid))
+	assert.Equal(t, http.StatusOK, post(t, mismatched))
+	assert.Equal(t, models.AirtimeTransferStatusPending, rowStatus(t, uuid), "wrong tx id should not mutate the row")
 
 	// missing external_id → 400
-	assert.Equal(t, http.StatusBadRequest, post(t, "/mr/airtime/dtone/status/sek", `{"id":1,"status":{"class":{"id":7}}}`))
-}
+	assert.Equal(t, http.StatusBadRequest, post(t, `{"id":1,"status":{"class":{"id":7}}}`))
 
-func TestDTOneStatusCallback_disabled(t *testing.T) {
-	ctx, rt := testsuite.Runtime(t)
-	defer testsuite.Reset(t, rt, testsuite.ResetAll)
-
-	rt.Config.DTOneCallbackSecret = ""
-
-	wg := &sync.WaitGroup{}
-	server := web.NewServer(ctx, rt, wg)
-	server.Start()
-	defer server.Stop()
-	time.Sleep(100 * time.Millisecond)
-
-	req, err := http.NewRequest("POST", "http://localhost:8190/mr/airtime/dtone/status/anything", strings.NewReader(`{}`))
-	require.NoError(t, err)
-	resp, err := http.DefaultClient.Do(req)
-	require.NoError(t, err)
-	resp.Body.Close()
-	assert.Equal(t, http.StatusNotFound, resp.StatusCode)
+	// missing id → 400
+	assert.Equal(t, http.StatusBadRequest, post(t, fmt.Sprintf(`{"external_id":%q,"status":{"class":{"id":7}}}`, string(uuid))))
 }

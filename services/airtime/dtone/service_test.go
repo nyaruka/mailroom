@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const callbackURL = "https://mailroom.example.com/mr/airtime/dtone/status/secret"
+const callbackURL = "https://mailroom.example.com/mr/airtime/dtone/status"
 
 func errorResp(code int, message string) []byte {
 	return jsonx.MustMarshal(map[string]any{"errors": []map[string]any{{"code": code, "message": message}}})
