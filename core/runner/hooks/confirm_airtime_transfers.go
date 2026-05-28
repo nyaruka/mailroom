@@ -16,22 +16,24 @@ import (
 // ConfirmAirtimeTransfers is our post-commit hook that triggers the provider to actually send the airtime
 // for each pending transfer initiated during the sprint.
 //
-// Confirm failures are *not* retried: rows that hit a permanent error (malformed external_id, transaction
-// never reached the provider) are flipped to failed immediately so the contact's flow can react; transient
-// errors (5xx, network) leave the row pending and rely on the provider's eventual status callback (DT One
-// auto-cancels unconfirmed transactions after its expiration window).
+// Confirm failures are *not* retried: rows that hit a permanent error (4xx from the provider) are flipped
+// to failed immediately so the contact's flow can react; transient errors (5xx, network) leave the row
+// pending and rely on the provider's eventual status callback (DT One auto-cancels unconfirmed transactions
+// after its expiration window).
 var ConfirmAirtimeTransfers runner.PostCommitHook = &confirmAirtimeTransfers{}
 
 type confirmAirtimeTransfers struct{}
 
 func (h *confirmAirtimeTransfers) Order() int { return 10 }
 
-func (h *confirmAirtimeTransfers) Execute(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scenes map[*runner.Scene][]any) error {
-	httpClient := &http.Client{Timeout: 120 * time.Second}
-	httpRetries := httpx.NewFixedRetries(time.Second*5, time.Second*10)
+// shared across Execute invocations so the underlying connection pool is reused across hooks rather than
+// dropped each time. The long timeout covers the worst-case Confirm round-trip with the configured retries.
+var confirmHTTPClient = &http.Client{Timeout: 120 * time.Second}
+var confirmHTTPRetries = httpx.NewFixedRetries(time.Second*5, time.Second*10)
 
+func (h *confirmAirtimeTransfers) Execute(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scenes map[*runner.Scene][]any) error {
 	// hoist the airtime service out of the per-transfer loop — the org is constant for this hook invocation
-	svc, err := oa.Org().AirtimeService(rt, httpClient, httpRetries)
+	svc, err := oa.Org().AirtimeService(rt, confirmHTTPClient, confirmHTTPRetries)
 	if err != nil {
 		// every transfer here belongs to this org, so we can't make progress on any of them
 		slog.Error("unable to get airtime service, leaving transfers pending", "org_id", oa.OrgID(), "error", err)
@@ -90,7 +92,7 @@ func (h *confirmAirtimeTransfers) Execute(ctx context.Context, rt *runtime.Runti
 }
 
 func (h *confirmAirtimeTransfers) markFailed(ctx context.Context, rt *runtime.Runtime, transfer *models.AirtimeTransfer) {
-	if _, err := models.UpdateAirtimeTransferStatus(ctx, rt.DB, transfer.UUID(), models.AirtimeTransferStatusPending, models.AirtimeTransferStatusFailed); err != nil {
+	if _, err := models.UpdateAirtimeTransferStatus(ctx, rt.DB, transfer.UUID(), models.AirtimeTransferStatusFailed); err != nil {
 		slog.Error("error marking airtime transfer as failed", "transfer", transfer.UUID(), "error", err)
 	}
 }

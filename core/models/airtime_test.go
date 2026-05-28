@@ -42,7 +42,7 @@ func TestAirtimeTransfers(t *testing.T) {
 		Columns(map[string]any{"org_id": 1, "status": "P", "external_id": "2237512891"})
 
 	// callback transitions pending → success
-	updated, err := models.UpdateAirtimeTransferStatus(ctx, rt.DB, transfer.UUID(), models.AirtimeTransferStatusPending, models.AirtimeTransferStatusSuccess)
+	updated, err := models.UpdateAirtimeTransferStatus(ctx, rt.DB, transfer.UUID(), models.AirtimeTransferStatusSuccess)
 	assert.NoError(t, err)
 	assert.True(t, updated)
 
@@ -61,7 +61,7 @@ func TestAirtimeTransfers(t *testing.T) {
 	assert.Nil(t, fetched)
 
 	// success → reversed is allowed (DT One can reverse after completion)
-	updated, err = models.UpdateAirtimeTransferStatus(ctx, rt.DB, transfer.UUID(), models.AirtimeTransferStatusSuccess, models.AirtimeTransferStatusReversed)
+	updated, err = models.UpdateAirtimeTransferStatus(ctx, rt.DB, transfer.UUID(), models.AirtimeTransferStatusReversed)
 	assert.NoError(t, err)
 	assert.True(t, updated)
 
@@ -69,17 +69,12 @@ func TestAirtimeTransfers(t *testing.T) {
 		Columns(map[string]any{"status": "R"})
 
 	// reversed → success is NOT allowed — out-of-order callbacks don't walk the row backwards
-	updated, err = models.UpdateAirtimeTransferStatus(ctx, rt.DB, transfer.UUID(), models.AirtimeTransferStatusReversed, models.AirtimeTransferStatusSuccess)
+	updated, err = models.UpdateAirtimeTransferStatus(ctx, rt.DB, transfer.UUID(), models.AirtimeTransferStatusSuccess)
 	assert.NoError(t, err)
 	assert.False(t, updated)
 
 	// reversed → failed is NOT allowed either
-	updated, err = models.UpdateAirtimeTransferStatus(ctx, rt.DB, transfer.UUID(), models.AirtimeTransferStatusReversed, models.AirtimeTransferStatusFailed)
-	assert.NoError(t, err)
-	assert.False(t, updated)
-
-	// caller-supplied current status that disagrees with the row is a no-op (someone else moved the row)
-	updated, err = models.UpdateAirtimeTransferStatus(ctx, rt.DB, transfer.UUID(), models.AirtimeTransferStatusPending, models.AirtimeTransferStatusSuccess)
+	updated, err = models.UpdateAirtimeTransferStatus(ctx, rt.DB, transfer.UUID(), models.AirtimeTransferStatusFailed)
 	assert.NoError(t, err)
 	assert.False(t, updated)
 

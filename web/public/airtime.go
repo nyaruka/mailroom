@@ -3,7 +3,6 @@ package public
 import (
 	"context"
 	"crypto/subtle"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -42,7 +41,7 @@ func handleDTOneStatus(ctx context.Context, rt *runtime.Runtime, r *http.Request
 	}
 
 	body := &dtoneStatusBody{}
-	if err := json.NewDecoder(r.Body).Decode(body); err != nil {
+	if err := web.ReadAndValidateJSON(r, body); err != nil {
 		return writeAirtimeStatusError(w, http.StatusBadRequest, fmt.Sprintf("invalid body: %s", err))
 	}
 
@@ -50,31 +49,25 @@ func handleDTOneStatus(ctx context.Context, rt *runtime.Runtime, r *http.Request
 		return writeAirtimeStatusError(w, http.StatusBadRequest, "missing external_id")
 	}
 
-	// look up the airtime transfer by its UUID — DT One echoes back the reference we passed in their
-	// external_id field, which we set to the airtime_created event UUID at Create time
-	transfer, err := models.GetAirtimeTransferByUUID(ctx, rt.DB, flows.EventUUID(body.ExternalID))
-	if err != nil {
-		return fmt.Errorf("error looking up airtime transfer: %w", err)
-	}
-	if transfer == nil {
-		// row hasn't committed yet, or the id is unknown — return 404 so DT One retries through the race
-		return writeAirtimeStatusError(w, http.StatusNotFound, "transfer not found")
-	}
+	transferUUID := flows.EventUUID(body.ExternalID)
 
 	newStatus, ok := mapDTOneStatus(body.Status.Class.ID)
 	if !ok {
-		slog.Warn("ignoring dtone callback with non-terminal status", "transfer", transfer.UUID(), "class", body.Status.Class.ID, "message", body.Status.Message)
+		slog.Warn("ignoring dtone callback with non-terminal status", "transfer", transferUUID, "class", body.Status.Class.ID, "message", body.Status.Message)
 		return web.WriteMarshalled(w, http.StatusOK, map[string]string{"status": "ignored"})
 	}
 
-	updated, err := models.UpdateAirtimeTransferStatus(ctx, rt.DB, transfer.UUID(), transfer.Status(), newStatus)
+	// compare-and-swap directly on the row by UUID — concurrent callbacks race safely on a single SQL
+	// statement (no SELECT, no TOCTOU window). Rows affected of zero means either: the UUID is unknown,
+	// or the row's current status doesn't admit this transition (duplicate / out-of-order callback).
+	// Either way the right reply to the provider is 2XX so it stops retrying — we can't distinguish
+	// the two cases without an extra SELECT and the distinction isn't actionable for DT One.
+	updated, err := models.UpdateAirtimeTransferStatus(ctx, rt.DB, transferUUID, newStatus)
 	if err != nil {
 		return fmt.Errorf("error updating airtime transfer status: %w", err)
 	}
 	if !updated {
-		// transition wasn't allowed from the current state (duplicate / out-of-order callback) — respond
-		// 200 so the provider stops retrying
-		slog.Info("ignoring out-of-order dtone callback", "transfer", transfer.UUID(), "from", transfer.Status(), "to", newStatus)
+		slog.Info("ignoring no-op dtone callback", "transfer", transferUUID, "to", newStatus)
 		return web.WriteMarshalled(w, http.StatusOK, map[string]string{"status": "ignored"})
 	}
 

@@ -102,6 +102,16 @@ func (s *service) Create(ctx context.Context, transferUUID flows.EventUUID, send
 		return transfer, fmt.Errorf("transaction creation failed: %w", err)
 	}
 
+	// the provider can return a 200 with a terminal-failure status class (rejected/declined/etc.) — surface
+	// that here rather than letting the row commit as pending and then having Confirm 4xx with a misleading
+	// "permanent confirm error" log
+	switch tx.Status.Class.ID {
+	case StatusCIDCreated, StatusCIDConfirmed, StatusCIDSubmitted, StatusCIDCompleted:
+		// expected — held / accepted by the provider, ready for Confirm
+	default:
+		return transfer, fmt.Errorf("transaction rejected by provider with status %s", tx.Status.Message)
+	}
+
 	transfer.ExternalID = strconv.FormatInt(tx.ID, 10)
 	return transfer, nil
 }

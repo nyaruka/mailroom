@@ -111,8 +111,10 @@ func TestDTOneStatusCallback(t *testing.T) {
 	assert.Equal(t, http.StatusOK, post(t, "/mr/airtime/dtone/status/sek", body(uuid, 7, "COMPLETED")))
 	assert.Equal(t, models.AirtimeTransferStatusSuccess, rowStatus(t, uuid))
 
-	// unknown UUID → 404 so DT One retries through the race window
-	assert.Equal(t, http.StatusNotFound, post(t, "/mr/airtime/dtone/status/sek", body(flows.NewEventUUID(), 7, "COMPLETED")))
+	// unknown UUID → 200 ignored (the compare-and-swap is indistinguishable from a no-op transition; we
+	// don't pay an extra SELECT just to give 404, and the response also doubles as an anti-enumeration
+	// shield since attackers can't distinguish "this UUID isn't ours" from "this transition isn't allowed")
+	assert.Equal(t, http.StatusOK, post(t, "/mr/airtime/dtone/status/sek", body(flows.NewEventUUID(), 7, "COMPLETED")))
 
 	// wrong secret → 403
 	assert.Equal(t, http.StatusForbidden, post(t, "/mr/airtime/dtone/status/wrong", body(uuid, 7, "COMPLETED")))

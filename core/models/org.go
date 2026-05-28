@@ -198,6 +198,12 @@ func (o *Org) AirtimeService(rt *runtime.Runtime, httpClient *http.Client, httpR
 	if key == "" || secret == "" {
 		return nil, fmt.Errorf("missing %s or %s on DTOne configuration for org: %d", configDTOneKey, configDTOneSecret, o.ID())
 	}
+	// DT One's lifecycle is callback-driven (auto_confirm:false), so we refuse to construct the service
+	// without a callback URL — otherwise transfers would be confirmed with no path for their eventual
+	// status to ever reach mailroom and rows would orphan in pending.
+	if rt.Config.DTOneCallbackSecret == "" {
+		return nil, fmt.Errorf("DTOneCallbackSecret must be configured for DT One airtime")
+	}
 	return dtone.NewService(httpClient, httpRetries, key, secret, DTOneCallbackURL(rt)), nil
 }
 

@@ -6,6 +6,7 @@ import (
 	"database/sql/driver"
 	"time"
 
+	"github.com/lib/pq"
 	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/events"
@@ -114,32 +115,36 @@ func InsertAirtimeTransfers(ctx context.Context, db DBorTx, transfers []*Airtime
 	return BulkQuery(ctx, "inserted airtime transfers", db, sqlInsertAirtimeTransfers, ts)
 }
 
-// allowedAirtimeTransitions is the set of (current, new) status pairs the host accepts. Anything else is
-// a no-op (e.g. a duplicate or out-of-order callback). Once a row reaches a terminal state we still allow
-// success → reversed since DT One can reverse a transfer after it completes; everything else is locked.
-var allowedAirtimeTransitions = map[AirtimeTransferStatus]map[AirtimeTransferStatus]bool{
-	AirtimeTransferStatusPending: {
-		AirtimeTransferStatusSuccess:  true,
-		AirtimeTransferStatusFailed:   true,
-		AirtimeTransferStatusReversed: true,
-	},
-	AirtimeTransferStatusSuccess: {
-		AirtimeTransferStatusReversed: true,
-	},
+// allowedAirtimePredecessors lists the statuses a row may be in for each destination status to be a valid
+// transition. Anything not listed is a no-op — late or duplicate callbacks that would walk the status
+// backwards (e.g. R → S or S → F) are ignored. Reversed is reachable from both pending and success since
+// DT One can reverse a transfer after it completes.
+var allowedAirtimePredecessors = map[AirtimeTransferStatus][]AirtimeTransferStatus{
+	AirtimeTransferStatusSuccess:  {AirtimeTransferStatusPending},
+	AirtimeTransferStatusFailed:   {AirtimeTransferStatusPending},
+	AirtimeTransferStatusReversed: {AirtimeTransferStatusPending, AirtimeTransferStatusSuccess},
 }
 
 const sqlUpdateAirtimeTransferStatus = `
-UPDATE airtime_airtimetransfer SET status = $2 WHERE uuid = $1 AND status = $3
+UPDATE airtime_airtimetransfer SET status = $2 WHERE uuid = $1 AND status = ANY($3::text[])
 `
 
 // UpdateAirtimeTransferStatus transitions an airtime transfer to the given status, returning true if a
-// row was actually updated. The transition is only applied if it's in the allowed set — late or duplicate
-// callbacks that would walk the status backwards are ignored and return false with no error.
-func UpdateAirtimeTransferStatus(ctx context.Context, db DBorTx, uuid flows.EventUUID, current, next AirtimeTransferStatus) (bool, error) {
-	if !allowedAirtimeTransitions[current][next] {
+// row was actually updated. The current status is matched in the same statement against the destination's
+// allowed predecessors — so concurrent callbacks race safely on a single compare-and-swap rather than via
+// a separate SELECT (which would leave a TOCTOU window where a legitimate transition could be silently
+// dropped). Returns false with no error when the row is already in a terminal state that doesn't admit
+// the requested transition.
+func UpdateAirtimeTransferStatus(ctx context.Context, db DBorTx, uuid flows.EventUUID, next AirtimeTransferStatus) (bool, error) {
+	preds, ok := allowedAirtimePredecessors[next]
+	if !ok {
 		return false, nil
 	}
-	res, err := db.ExecContext(ctx, sqlUpdateAirtimeTransferStatus, uuid, next, current)
+	predStrs := make([]string, len(preds))
+	for i, p := range preds {
+		predStrs[i] = string(p)
+	}
+	res, err := db.ExecContext(ctx, sqlUpdateAirtimeTransferStatus, uuid, next, pq.Array(predStrs))
 	if err != nil {
 		return false, err
 	}
