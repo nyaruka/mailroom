@@ -29,6 +29,7 @@ const (
 	eternity time.Duration = -1
 
 	eventTagDeletion = "del"
+	eventTagStatus   = "sts"
 )
 
 var eventPersistence = map[string]time.Duration{
