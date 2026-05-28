@@ -74,3 +74,29 @@ func TestAirtimeTransfers(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT status FROM airtime_airtimetransfer WHERE id = $1`, transfer.ID()).
 		Columns(map[string]any{"status": "R"})
 }
+
+func TestNewAirtimeStatusTag(t *testing.T) {
+	// every status must map to a non-empty external name (consumed as the event's _status by clients) —
+	// an unmapped status would silently write `"status": ""` and render as an empty badge with no error.
+	// Any new AirtimeTransferStatus constant must be added here.
+	names := map[models.AirtimeTransferStatus]string{
+		models.AirtimeTransferStatusCreated:   "created",
+		models.AirtimeTransferStatusConfirmed: "confirmed",
+		models.AirtimeTransferStatusSubmitted: "submitted",
+		models.AirtimeTransferStatusCompleted: "completed",
+		models.AirtimeTransferStatusReversed:  "reversed",
+		models.AirtimeTransferStatusRejected:  "rejected",
+		models.AirtimeTransferStatusCancelled: "cancelled",
+		models.AirtimeTransferStatusDeclined:  "declined",
+	}
+
+	for status, name := range names {
+		tag := models.NewAirtimeStatusTag(testdb.Org1.ID, testdb.Ann.UUID, "0197b335-6ded-79a4-95a6-3af85b57f108", status)
+		assert.Equal(t, testdb.Org1.ID, tag.OrgID)
+		assert.Equal(t, testdb.Ann.UUID, tag.ContactUUID)
+		assert.Equal(t, flows.EventUUID("0197b335-6ded-79a4-95a6-3af85b57f108"), tag.EventUUID)
+		assert.Equal(t, "sts", tag.Tag)
+		assert.Equal(t, name, tag.Data["status"], "unexpected name for status %q", status)
+		assert.NotEmpty(t, tag.Data["status"], "status %q has no external name", status)
+	}
+}
