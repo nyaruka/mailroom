@@ -1,3 +1,8 @@
+v26.1.127 (2026-05-28)
+-------------------------
+ * Move airtime transfers to an async lifecycle driven by provider status callbacks
+ * Record airtime status changes as event tags in contact history
+
 v26.1.126 (2026-05-27)
 -------------------------
  * Set ExternalID on simulator airtime transfers
