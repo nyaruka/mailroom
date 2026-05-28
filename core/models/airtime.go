@@ -129,7 +129,7 @@ const sqlUpdateAirtimeTransferStatus = `
 UPDATE airtime_airtimetransfer
    SET status = $2
  WHERE uuid = $1
-   AND external_id IS NOT DISTINCT FROM $3
+   AND external_id = $3
    AND status = ANY($4::text[])
 `
 
@@ -150,11 +150,7 @@ func UpdateAirtimeTransferStatus(ctx context.Context, db DBorTx, uuid flows.Even
 	for i, p := range preds {
 		predStrs[i] = string(p)
 	}
-	var extID any // bind as NULL when empty so IS NOT DISTINCT FROM matches a null column
-	if externalID != "" {
-		extID = externalID
-	}
-	res, err := db.ExecContext(ctx, sqlUpdateAirtimeTransferStatus, uuid, next, extID, pq.Array(predStrs))
+	res, err := db.ExecContext(ctx, sqlUpdateAirtimeTransferStatus, uuid, next, externalID, pq.Array(predStrs))
 	if err != nil {
 		return false, err
 	}

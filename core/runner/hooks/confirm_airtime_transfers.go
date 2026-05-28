@@ -44,13 +44,6 @@ func (h *confirmAirtimeTransfers) Execute(ctx context.Context, rt *runtime.Runti
 		for _, arg := range args {
 			transfer := arg.(*models.AirtimeTransfer)
 
-			if transfer.ExternalID() == "" {
-				// no provider id means Create returned nothing to confirm — mark failed rather than leaving stuck
-				slog.Warn("airtime transfer has no provider id, marking failed", "transfer", transfer.UUID())
-				h.markFailed(ctx, rt, transfer)
-				continue
-			}
-
 			logger := &flows.HTTPLogger{}
 			confirmErr := svc.Confirm(ctx, &flows.AirtimeTransfer{ExternalID: transfer.ExternalID()}, logger.Log)
 
@@ -79,7 +72,7 @@ func (h *confirmAirtimeTransfers) Execute(ctx context.Context, rt *runtime.Runti
 			// permanent failures (4xx, malformed id) → flip to failed so the flow doesn't hang on a zombie row.
 			// transient failures (5xx, connection error) leave the row pending — the provider will eventually
 			// auto-cancel the held transaction and send a callback that transitions us to failed.
-			if isPermanentConfirmError(logger.Logs, confirmErr) {
+			if isPermanentConfirmError(logger.Logs) {
 				slog.Warn("airtime transfer failed to confirm permanently, marking failed", "transfer", transfer.UUID(), "error", confirmErr)
 				h.markFailed(ctx, rt, transfer)
 			} else {
@@ -97,13 +90,13 @@ func (h *confirmAirtimeTransfers) markFailed(ctx context.Context, rt *runtime.Ru
 	}
 }
 
-// isPermanentConfirmError decides whether a Confirm error is worth giving up on immediately. If we got an
-// HTTP response back at all and it was a 4xx, the provider rejected the confirm (id unknown, already
-// confirmed, etc.) and retrying won't help. Anything else (no HTTP log, 5xx, connection error) is treated
-// as transient.
-func isPermanentConfirmError(logs []*flows.HTTPLog, err error) bool {
+// isPermanentConfirmError decides whether a Confirm error is worth giving up on immediately. A 4xx from
+// the provider (id unknown, already confirmed, etc.) is permanent and retrying won't help; everything
+// else (5xx, connection error, no response) is treated as transient and left for the provider's eventual
+// auto-cancel callback.
+func isPermanentConfirmError(logs []*flows.HTTPLog) bool {
 	if len(logs) == 0 {
-		return true // didn't even reach the provider — most likely a malformed external_id
+		return false
 	}
 	last := logs[len(logs)-1]
 	return last.StatusCode >= 400 && last.StatusCode < 500

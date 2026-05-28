@@ -106,10 +106,4 @@ func TestConfirmAirtimeTransfers(t *testing.T) {
 	tr = seed("2237512891")
 	run(tr)
 	assert.Equal(t, models.AirtimeTransferStatusPending, rowStatus(tr.UUID()), "connection error leaves row pending")
-
-	// empty external_id (Create returned without a provider id) → row flipped to failed
-	httpx.SetRequestor(httpx.NewMockRequestor(map[string][]*httpx.MockResponse{}))
-	tr = seed("")
-	run(tr)
-	assert.Equal(t, models.AirtimeTransferStatusFailed, rowStatus(tr.UUID()), "empty external_id marks row failed")
 }
