@@ -32,10 +32,22 @@ func (h *confirmAirtimeTransfers) Execute(ctx context.Context, rt *runtime.Runti
 	// hoist the airtime service out of the per-transfer loop — the org is constant for this hook invocation
 	svc, err := oa.Org().AirtimeService(rt, confirmHTTPClient, confirmHTTPRetries)
 	if err != nil {
-		// every transfer here belongs to this org, so we can't make progress on any of them
-		slog.Error("unable to get airtime service, leaving transfers pending", "org_id", oa.OrgID(), "error", err)
+		// every transfer here belongs to this org, so we can't make progress on any of them. Log per
+		// transfer rather than a single summary line so the affected UUIDs are searchable / countable
+		// in aggregated logs — a misconfigured org silently dropping airtime would otherwise only show
+		// up as one ERROR per sprint regardless of how many transfers were affected.
+		for _, args := range scenes {
+			for _, arg := range args {
+				transfer := arg.(*models.AirtimeTransfer)
+				slog.Error("unable to get airtime service, leaving transfer in Created", "transfer", transfer.UUID(), "org_id", oa.OrgID(), "error", err)
+			}
+		}
 		return nil
 	}
+
+	// collect all HTTP logs across all transfers and insert in a single batch at the end rather than
+	// one round-trip per transfer
+	var logs []*models.HTTPLog
 
 	for _, args := range scenes {
 		for _, arg := range args {
@@ -57,14 +69,18 @@ func (h *confirmAirtimeTransfers) Execute(ctx context.Context, rt *runtime.Runti
 					l.CreatedOn,
 				)
 				log.SetAirtimeTransferID(transfer.ID())
-				if err := models.InsertHTTPLogs(ctx, rt.DB, []*models.HTTPLog{log}); err != nil {
-					slog.Error("error inserting airtime transfer http log", "transfer", transfer.UUID(), "error", err)
-				}
+				logs = append(logs, log)
 			}
 
 			if confirmErr != nil {
 				slog.Warn("airtime transfer failed to confirm, leaving pending", "transfer", transfer.UUID(), "error", confirmErr)
 			}
+		}
+	}
+
+	if len(logs) > 0 {
+		if err := models.InsertHTTPLogs(ctx, rt.DB, logs); err != nil {
+			slog.Error("error inserting airtime transfer http logs", "count", len(logs), "error", err)
 		}
 	}
 
