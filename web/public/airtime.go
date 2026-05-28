@@ -84,15 +84,21 @@ func handleDTOneStatus(ctx context.Context, rt *runtime.Runtime, r *http.Request
 	// unknown, the provider id doesn't match what we stored, or the row's current status doesn't admit
 	// this transition (duplicate / out-of-order callback). The right reply to the provider is 2XX
 	// either way so it stops retrying — the distinction isn't actionable for DT One.
-	updated, err := models.UpdateAirtimeTransferStatus(ctx, rt.DB, transferUUID, providerID, newStatus)
+	tag, err := models.UpdateAirtimeTransferStatus(ctx, rt.DB, transferUUID, providerID, newStatus)
 	if err != nil {
 		return fmt.Errorf("error updating airtime transfer status: %w", err)
 	}
-	if !updated {
+	if tag == nil {
 		// debug rather than info — the UUID is a capability token and we don't want to surface it in
 		// aggregated logs by default
 		slog.Debug("ignoring no-op dtone callback", "transfer", transferUUID, "to", newStatus)
 		return web.WriteMarshalled(w, http.StatusOK, map[string]string{"status": "ignored"})
+	}
+
+	// record the change as an event tag in the contact's history (keyed by the airtime_created event UUID)
+	// so clients can inject the transfer's current _status when rendering that event
+	if _, err := rt.Dynamo.History.Queue(tag); err != nil {
+		return fmt.Errorf("error queuing airtime status tag: %w", err)
 	}
 
 	return web.WriteMarshalled(w, http.StatusOK, map[string]string{"status": "ok"})

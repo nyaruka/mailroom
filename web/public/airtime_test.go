@@ -68,6 +68,9 @@ func TestDTOneStatusCallback(t *testing.T) {
 		return fmt.Sprintf(`{"id":2237512891,"external_id":%q,"status":{"class":{"id":%d,"message":%q}}}`, string(uuid), classID, msg)
 	}
 
+	// start from a clean history table so we can assert exactly what each callback writes
+	testsuite.GetHistoryItems(t, rt, true, time.Time{})
+
 	// happy path through the lifecycle: P → C → B → S → R
 	uuid := seed(t)
 	assert.Equal(t, http.StatusOK, post(t, body(uuid, 2, "CONFIRMED")))
@@ -79,10 +82,30 @@ func TestDTOneStatusCallback(t *testing.T) {
 	assert.Equal(t, http.StatusOK, post(t, body(uuid, 8, "REVERSED")))
 	assert.Equal(t, models.AirtimeTransferStatusReversed, rowStatus(t, uuid))
 
-	// each terminal failure class maps to its own status
+	// each successful transition is recorded as an `sts` event tag keyed by the transfer's UUID; the
+	// tags share a sort key so the latest callback overwrites, leaving one tag at the current status
+	items := testsuite.GetHistoryItems(t, rt, true, time.Time{})
+	if assert.Len(t, items, 1) {
+		assert.Equal(t, fmt.Sprintf("con#%s", testdb.Ann.UUID), items[0].PK)
+		assert.Equal(t, fmt.Sprintf("evt#%s#sts", uuid), items[0].SK)
+		data, err := items[0].GetData()
+		require.NoError(t, err)
+		assert.Equal(t, "reversed", data["status"])
+		assert.NotEmpty(t, data["created_on"])
+	}
+
+	// each terminal failure class maps to its own status, and writes its own status tag
 	uuid = seed(t)
 	assert.Equal(t, http.StatusOK, post(t, body(uuid, 3, "REJECTED")))
 	assert.Equal(t, models.AirtimeTransferStatusRejected, rowStatus(t, uuid))
+
+	items = testsuite.GetHistoryItems(t, rt, true, time.Time{})
+	if assert.Len(t, items, 1) {
+		assert.Equal(t, fmt.Sprintf("evt#%s#sts", uuid), items[0].SK)
+		data, err := items[0].GetData()
+		require.NoError(t, err)
+		assert.Equal(t, "rejected", data["status"])
+	}
 
 	uuid = seed(t)
 	assert.Equal(t, http.StatusOK, post(t, body(uuid, 9, "DECLINED")))
@@ -92,10 +115,13 @@ func TestDTOneStatusCallback(t *testing.T) {
 	assert.Equal(t, http.StatusOK, post(t, body(uuid, 4, "CANCELLED")))
 	assert.Equal(t, models.AirtimeTransferStatusCancelled, rowStatus(t, uuid))
 
-	// CREATED status class (1) on a callback is ignored — that's just the initial state we set the row to
+	// CREATED status class (1) on a callback is ignored — that's just the initial state we set the row
+	// to — and an ignored callback writes nothing to history
+	testsuite.GetHistoryItems(t, rt, true, time.Time{}) // clear prior writes
 	uuid = seed(t)
 	assert.Equal(t, http.StatusOK, post(t, body(uuid, 1, "CREATED")))
 	assert.Equal(t, models.AirtimeTransferStatusCreated, rowStatus(t, uuid))
+	assert.Empty(t, testsuite.GetHistoryItems(t, rt, true, time.Time{}), "ignored CREATED-class callback should not write history")
 
 	// a Reversed callback that arrives without a preceding Completed still applies — better to record
 	// the eventual reversal than silently drop it because the lifecycle skipped a stage
@@ -103,8 +129,11 @@ func TestDTOneStatusCallback(t *testing.T) {
 	assert.Equal(t, models.AirtimeTransferStatusReversed, rowStatus(t, uuid))
 
 	// unknown UUID → 200 ignored (the CAS finds no row to update; the distinction isn't actionable
-	// for DT One and the matching response shape doubles as an anti-enumeration shield)
+	// for DT One and the matching response shape doubles as an anti-enumeration shield), and writes
+	// nothing to history
+	testsuite.GetHistoryItems(t, rt, true, time.Time{}) // clear prior writes
 	assert.Equal(t, http.StatusOK, post(t, body(flows.NewEventUUID(), 7, "COMPLETED")))
+	assert.Empty(t, testsuite.GetHistoryItems(t, rt, true, time.Time{}), "ignored unknown-UUID callback should not write history")
 
 	// a forged callback with a real UUID but wrong DT One tx id is a no-op (defense in depth — the
 	// matching CAS requires both halves)

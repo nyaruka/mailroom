@@ -2,9 +2,12 @@ package models
 
 import (
 	"context"
+	"database/sql"
 	"database/sql/driver"
+	"errors"
 	"time"
 
+	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/events"
@@ -53,6 +56,20 @@ const (
 	// AirtimeTransferStatusDeclined — the operator declined the transaction.
 	AirtimeTransferStatusDeclined AirtimeTransferStatus = "D"
 )
+
+// airtimeTransferStatusNames maps each status to the lowercase name written to the history table and read
+// back by clients (see https://github.com/nyaruka/temba-components). Clients inject this as the _status of
+// the airtime_created event, mirroring how courier records msg_created status changes.
+var airtimeTransferStatusNames = map[AirtimeTransferStatus]string{
+	AirtimeTransferStatusCreated:   "created",
+	AirtimeTransferStatusConfirmed: "confirmed",
+	AirtimeTransferStatusSubmitted: "submitted",
+	AirtimeTransferStatusCompleted: "completed",
+	AirtimeTransferStatusReversed:  "reversed",
+	AirtimeTransferStatusRejected:  "rejected",
+	AirtimeTransferStatusCancelled: "cancelled",
+	AirtimeTransferStatusDeclined:  "declined",
+}
 
 // AirtimeTransfer is our type for an airtime transfer
 type AirtimeTransfer struct {
@@ -133,26 +150,47 @@ func InsertAirtimeTransfers(ctx context.Context, db DBorTx, transfers []*Airtime
 }
 
 const sqlUpdateAirtimeTransferStatus = `
-UPDATE airtime_airtimetransfer SET status = $2 WHERE uuid = $1 AND external_id = $3
-`
+   UPDATE airtime_airtimetransfer t SET status = $2
+     FROM contacts_contact c
+    WHERE t.uuid = $1 AND t.external_id = $3 AND c.id = t.contact_id
+RETURNING t.org_id AS org_id, c.uuid AS contact_uuid`
 
-// UpdateAirtimeTransferStatus writes the given status to the airtime transfer keyed by (uuid, external_id),
-// returning true if a row was actually updated. external_id must match the row as defense in depth for the
-// public callback path — a forged callback with a leaked UUID still can't mutate a row whose tx id it
-// doesn't know. There's no status-transition guard: provider callbacks can arrive out of order or with
-// gaps in the lifecycle (e.g. a Reversed callback for a transfer we never saw Completed for), and dropping
-// those would strand the row in its prior state forever. We'd rather a late callback overwrite with stale
-// state than silently lose a real terminal status update.
-func UpdateAirtimeTransferStatus(ctx context.Context, db DBorTx, uuid flows.EventUUID, externalID string, next AirtimeTransferStatus) (bool, error) {
-	res, err := db.ExecContext(ctx, sqlUpdateAirtimeTransferStatus, uuid, next, externalID)
-	if err != nil {
-		return false, err
+// UpdateAirtimeTransferStatus writes the given status to the airtime transfer keyed by (uuid, external_id).
+// It returns an event tag recording the change for the contact's history (to be queued to the history table),
+// or nil if no row was updated. external_id must match the row as defense in depth for the public callback
+// path — a forged callback with a leaked UUID still can't mutate a row whose tx id it doesn't know. There's
+// no status-transition guard: provider callbacks can arrive out of order or with gaps in the lifecycle (e.g.
+// a Reversed callback for a transfer we never saw Completed for), and dropping those would strand the row in
+// its prior state forever. We'd rather a late callback overwrite with stale state than silently lose a real
+// terminal status update.
+func UpdateAirtimeTransferStatus(ctx context.Context, db DBorTx, uuid flows.EventUUID, externalID string, next AirtimeTransferStatus) (*EventTag, error) {
+	row := &struct {
+		OrgID       OrgID             `db:"org_id"`
+		ContactUUID flows.ContactUUID `db:"contact_uuid"`
+	}{}
+	if err := db.GetContext(ctx, row, sqlUpdateAirtimeTransferStatus, uuid, next, externalID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
+		return nil, err
 	}
-	rows, err := res.RowsAffected()
-	if err != nil {
-		return false, err
+	return NewAirtimeStatusTag(row.OrgID, row.ContactUUID, uuid, next), nil
+}
+
+// NewAirtimeStatusTag creates the history-table event tag that records a transfer's status change. It's keyed
+// by the same UUID as the transfer's airtime_created event (and shares a sort key across changes, so the
+// latest overwrites) allowing clients to inject the current _status when rendering that event.
+func NewAirtimeStatusTag(orgID OrgID, contactUUID flows.ContactUUID, transferUUID flows.EventUUID, status AirtimeTransferStatus) *EventTag {
+	return &EventTag{
+		OrgID:       orgID,
+		ContactUUID: contactUUID,
+		EventUUID:   transferUUID,
+		Tag:         eventTagStatus,
+		Data: map[string]any{
+			"created_on": dates.Now(),
+			"status":     airtimeTransferStatusNames[status],
+		},
 	}
-	return rows > 0, nil
 }
 
 func (i *AirtimeTransferID) Scan(value any) error         { return null.ScanInt(value, i) }

@@ -149,4 +149,11 @@ func TestEventTags(t *testing.T) {
 		"created_on": time.Date(2025, time.May, 4, 12, 30, 46, 123456789, time.UTC),
 		"by_contact": true,
 	}, tag.Data)
+
+	tag = models.NewAirtimeStatusTag(testdb.Org1.ID, testdb.Ann.UUID, "0197b335-6ded-79a4-95a6-3af85b57f108", models.AirtimeTransferStatusCompleted)
+	assert.Equal(t, "sts", tag.Tag)
+	assert.Equal(t, map[string]any{
+		"created_on": time.Date(2025, time.May, 4, 12, 30, 47, 123456789, time.UTC),
+		"status":     "completed",
+	}, tag.Data)
 }

@@ -43,14 +43,21 @@ func TestAirtimeTransfers(t *testing.T) {
 
 	// callback whose provider tx id doesn't match the row's external_id is a no-op (defense in depth —
 	// a forged callback would have to know both the UUID and DT One's id to mutate the row)
-	updated, err := models.UpdateAirtimeTransferStatus(ctx, rt.DB, transfer.UUID(), "wrong-tx-id", models.AirtimeTransferStatusCompleted)
+	tag, err := models.UpdateAirtimeTransferStatus(ctx, rt.DB, transfer.UUID(), "wrong-tx-id", models.AirtimeTransferStatusCompleted)
 	assert.NoError(t, err)
-	assert.False(t, updated)
+	assert.Nil(t, tag, "no row should be updated when the provider tx id doesn't match")
 
-	// callback transitions pending → success when both UUID and provider tx id line up
-	updated, err = models.UpdateAirtimeTransferStatus(ctx, rt.DB, transfer.UUID(), "2237512891", models.AirtimeTransferStatusCompleted)
+	// callback transitions pending → success when both UUID and provider tx id line up, returning an
+	// event tag that records the change for the contact's history
+	tag, err = models.UpdateAirtimeTransferStatus(ctx, rt.DB, transfer.UUID(), "2237512891", models.AirtimeTransferStatusCompleted)
 	assert.NoError(t, err)
-	assert.True(t, updated)
+	if assert.NotNil(t, tag) {
+		assert.Equal(t, testdb.Org1.ID, tag.OrgID)
+		assert.Equal(t, testdb.Ann.UUID, tag.ContactUUID)
+		assert.Equal(t, transfer.UUID(), tag.EventUUID)
+		assert.Equal(t, "sts", tag.Tag)
+		assert.Equal(t, "completed", tag.Data["status"])
+	}
 
 	assertdb.Query(t, rt.DB, `SELECT status FROM airtime_airtimetransfer WHERE id = $1`, transfer.ID()).
 		Columns(map[string]any{"status": "S"})
@@ -58,9 +65,11 @@ func TestAirtimeTransfers(t *testing.T) {
 	// any status update with matching uuid + external_id is applied — no transition guard, since
 	// dropping out-of-order callbacks could strand the row (e.g. a Reversed callback for a transfer
 	// we never saw Completed for)
-	updated, err = models.UpdateAirtimeTransferStatus(ctx, rt.DB, transfer.UUID(), "2237512891", models.AirtimeTransferStatusReversed)
+	tag, err = models.UpdateAirtimeTransferStatus(ctx, rt.DB, transfer.UUID(), "2237512891", models.AirtimeTransferStatusReversed)
 	assert.NoError(t, err)
-	assert.True(t, updated)
+	if assert.NotNil(t, tag) {
+		assert.Equal(t, "reversed", tag.Data["status"])
+	}
 
 	assertdb.Query(t, rt.DB, `SELECT status FROM airtime_airtimetransfer WHERE id = $1`, transfer.ID()).
 		Columns(map[string]any{"status": "R"})
