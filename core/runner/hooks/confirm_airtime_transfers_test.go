@@ -22,6 +22,7 @@ import (
 // exercise cleanly because they want different mock responses per case.
 func TestConfirmAirtimeTransfers(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
+	rt.Config.Domain = "mailroom.example.com"
 
 	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 	defer httpx.SetRequestor(httpx.DefaultRequestor)

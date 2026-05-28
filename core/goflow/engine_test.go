@@ -48,10 +48,11 @@ func TestSimulatorAirtime(t *testing.T) {
 	assert.NoError(t, err)
 
 	assert.Equal(t, &flows.AirtimeTransfer{
-		Sender:    urns.URN("tel:+593979111111"),
-		Recipient: urns.URN("tel:+593979222222"),
-		Currency:  "USD",
-		Amount:    decimal.RequireFromString(`1.50`),
+		ExternalID: "123456789",
+		Sender:     urns.URN("tel:+593979111111"),
+		Recipient:  urns.URN("tel:+593979222222"),
+		Currency:   "USD",
+		Amount:     decimal.RequireFromString(`1.50`),
 	}, transfer)
 }
 

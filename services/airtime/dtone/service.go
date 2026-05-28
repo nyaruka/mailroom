@@ -21,7 +21,8 @@ type service struct {
 }
 
 // NewService creates a new DTOne airtime service. The callbackURL is the URL DT One will POST to with
-// transaction status updates; it should already include any host-side authentication (e.g. a path secret).
+// transaction status updates. Authentication of callbacks is per-transaction via the row UUID we send
+// as DT One's external_id plus the tx id they return — the URL itself doesn't carry a secret.
 func NewService(httpClient *http.Client, httpRetries *httpx.RetryConfig, key, secret, callbackURL string) flows.AirtimeService {
 	return &service{
 		client:      NewClient(httpClient, httpRetries, key, secret),
@@ -102,13 +103,12 @@ func (s *service) Create(ctx context.Context, transferUUID flows.EventUUID, send
 		return transfer, fmt.Errorf("transaction creation failed: %w", err)
 	}
 
-	// the provider can return a 200 with a terminal-failure status class (rejected/declined/etc.) — surface
-	// that here rather than letting the row commit as pending and then having Confirm 4xx with a misleading
-	// "permanent confirm error" log
-	switch tx.Status.Class.ID {
-	case StatusCIDCreated, StatusCIDConfirmed, StatusCIDSubmitted, StatusCIDCompleted:
-		// expected — held / accepted by the provider, ready for Confirm
-	default:
+	// auto_confirm: false means the only success status we should ever see here is Created (held). Anything
+	// else — including Confirmed/Submitted/Completed (the host hasn't confirmed yet, so the provider can't
+	// have advanced past Created) or the terminal failure classes (Rejected/Declined/Cancelled) — indicates
+	// the transaction will not be confirmable by the host's later Confirm call, so we fail Create here
+	// rather than commit a row that's destined to get stuck.
+	if tx.Status.Class.ID != StatusCIDCreated {
 		return transfer, fmt.Errorf("transaction rejected by provider with status %s", tx.Status.Message)
 	}
 

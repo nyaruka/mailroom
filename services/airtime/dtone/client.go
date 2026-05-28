@@ -149,8 +149,9 @@ type Transaction struct {
 	} `json:"status"`
 }
 
-// TransactionAsync see https://dvs-api-doc.dtone.com/#tag/Transactions. The transaction is created in a confirmed
-// state pending host confirmation; the host must call ConfirmTransaction before DT One will actually send the airtime.
+// TransactionAsync see https://dvs-api-doc.dtone.com/#tag/Transactions. With auto_confirm: false the transaction
+// is created in an unconfirmed (held) state — the host must call ConfirmTransaction before DT One will actually
+// send the airtime, otherwise the transaction expires and is auto-cancelled.
 func (c *Client) TransactionAsync(ctx context.Context, externalID string, productID int, mobileNumber, callbackURL string) (*Transaction, *httpx.Trace, error) {
 	var response *Transaction
 

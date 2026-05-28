@@ -193,6 +193,20 @@ var productsResponse = `[
 	}
 ]`
 
+// transactionCreatedResponse is what the provider returns from TransactionAsync when auto_confirm:false —
+// the transaction exists but is held pending the host's Confirm call.
+var transactionCreatedResponse = `{
+	"creation_date": "2021-03-24T20:05:05.883561000Z",
+	"credit_party_identifier": {"mobile_number": "+593979123456"},
+	"external_id": "EX12345",
+	"id": 2237512891,
+	"status": {
+		"class": {"id": 1, "message": "CREATED"},
+		"id": 10000,
+		"message": "CREATED"
+	}
+}`
+
 var transactionConfirmedResponse = `{
 	"benefits": [
 		{

@@ -23,6 +23,15 @@ func init() {
 func handleAirtimeCreated(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scene *runner.Scene, e flows.Event, userID models.UserID) error {
 	event := e.(*events.AirtimeCreated)
 
+	// the post-commit lifecycle is callback-driven and the callback CAS requires external_id to match;
+	// a row inserted with empty external_id can never be transitioned, so refuse to persist one. This
+	// shouldn't happen with the current DT One service (Create always returns a provider id on success)
+	// but it would silently strand a row if a future provider impl ever bypassed that.
+	if event.ExternalID == "" {
+		slog.Error("ignoring airtime_created event with empty external_id", "contact", scene.ContactUUID(), "session", scene.SessionUUID(), "event", event.UUID())
+		return nil
+	}
+
 	slog.Debug("airtime created", "contact", scene.ContactUUID(), "session", scene.SessionUUID(), "sender", event.Sender, "recipient", event.Recipient, "currency", event.Currency, "amount", event.Amount.String())
 
 	transfer := models.NewAirtimeTransfer(oa.OrgID(), scene.ContactID(), event)

@@ -23,6 +23,7 @@ var transactionConfirmedResponse = `{
 
 func TestAirtimeCreated(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
+	rt.Config.Domain = "mailroom.example.com"
 
 	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 	defer httpx.SetRequestor(httpx.DefaultRequestor)

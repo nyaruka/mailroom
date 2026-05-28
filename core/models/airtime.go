@@ -3,6 +3,7 @@ package models
 import (
 	"context"
 	"database/sql/driver"
+	"fmt"
 	"time"
 
 	"github.com/lib/pq"
@@ -166,13 +167,15 @@ UPDATE airtime_airtimetransfer
 // allowed predecessors — so concurrent callbacks race safely on a single compare-and-swap rather than via
 // a separate SELECT (which would leave a TOCTOU window where a legitimate transition could be silently
 // dropped). external_id must also match the row, which serves as defense in depth for the public callback
-// path: a forged callback now needs to know both the row's UUID (122 bits) and its provider tx id, not
-// just one. Returns false with no error when the row is already in a terminal state that doesn't admit
-// the requested transition, or when external_id doesn't match the row.
+// path: a forged callback with a leaked UUID still can't mutate a row whose tx id it doesn't know.
+// Returns false with no error when the row is already in a terminal state that doesn't admit the
+// requested transition, or when external_id doesn't match the row.
 func UpdateAirtimeTransferStatus(ctx context.Context, db DBorTx, uuid flows.EventUUID, externalID string, next AirtimeTransferStatus) (bool, error) {
 	preds, ok := allowedAirtimePredecessors[next]
 	if !ok {
-		return false, nil
+		// programming error — caller passed a status that isn't in the lifecycle map. Surface it so the
+		// missing entry shows up in tests / logs instead of silently no-op'ing.
+		return false, fmt.Errorf("no lifecycle predecessors configured for airtime status %q", next)
 	}
 	predStrs := make([]string, len(preds))
 	for i, p := range preds {

@@ -43,7 +43,7 @@ func TestServiceCreate(t *testing.T) {
 			httpx.NewMockResponse(200, nil, []byte(productsResponse)),
 		},
 		"https://dvs-api.dtone.com/v1/async/transactions": {
-			httpx.NewMockResponse(200, nil, []byte(transactionConfirmedResponse)),
+			httpx.NewMockResponse(200, nil, []byte(transactionCreatedResponse)),
 			httpx.NewMockResponse(400, nil, errorResp(1003001, "Something went wrong")),
 		},
 	})

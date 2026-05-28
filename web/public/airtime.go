@@ -20,22 +20,27 @@ func init() {
 
 // dtoneStatusBody is the subset of DT One's transaction callback payload we care about. See
 // https://developers.dtone.com/docs/handling-transactions-r-for-review-copy
+//
+// DT One nests human-readable messages at both status.message (instance-level) and status.class.message
+// (class-level). The class-level one is the more useful diagnostic since it identifies which broad
+// failure bucket the transaction is in (e.g. "DECLINED" vs the operator-specific message).
 type dtoneStatusBody struct {
 	ID         int64  `json:"id"`
 	ExternalID string `json:"external_id"`
 	Status     struct {
 		Class struct {
-			ID dtone.StatusCID `json:"id"`
+			ID      dtone.StatusCID `json:"id"`
+			Message string          `json:"message"`
 		} `json:"class"`
 		Message string `json:"message"`
 	} `json:"status"`
 }
 
 // handleDTOneStatus receives DT One's transaction status callbacks. Authentication is per-transaction
-// via two unguessable identifiers DT One echoes back to us on every callback: the airtime_created event
-// UUID (which we passed as DT One's external_id field) and DT One's own transaction id (which we stored
-// on the row at Create time). A forged callback needs to know both for a specific transfer, not either
-// one alone — 122 bits of UUID + the provider's tx id together are the capability token.
+// via two identifiers DT One echoes back to us on every callback: the airtime_created event UUID (which
+// we passed as DT One's external_id field) and DT One's own transaction id (which we stored on the row
+// at Create time). The capability token here is the UUIDv7 (~74 random bits — the rest is a timestamp);
+// matching the tx id is defense-in-depth so a leaked UUID can't be used to mutate the wrong transfer's row.
 func handleDTOneStatus(ctx context.Context, rt *runtime.Runtime, r *http.Request, w http.ResponseWriter) error {
 	body := &dtoneStatusBody{}
 	if err := web.ReadAndValidateJSON(r, body); err != nil {
@@ -70,7 +75,7 @@ func handleDTOneStatus(ctx context.Context, rt *runtime.Runtime, r *http.Request
 		newStatus = models.AirtimeTransferStatusReversed
 	default:
 		// includes Created — we initiated the row in that state, no transition to apply
-		slog.Warn("ignoring dtone callback with unmapped status", "transfer", transferUUID, "class", body.Status.Class.ID, "message", body.Status.Message)
+		slog.Warn("ignoring dtone callback with unmapped status", "transfer", transferUUID, "class", body.Status.Class.ID, "class_message", body.Status.Class.Message, "message", body.Status.Message)
 		return web.WriteMarshalled(w, http.StatusOK, map[string]string{"status": "ignored"})
 	}
 
@@ -84,7 +89,9 @@ func handleDTOneStatus(ctx context.Context, rt *runtime.Runtime, r *http.Request
 		return fmt.Errorf("error updating airtime transfer status: %w", err)
 	}
 	if !updated {
-		slog.Info("ignoring no-op dtone callback", "transfer", transferUUID, "to", newStatus)
+		// debug rather than info — the UUID is a capability token and we don't want to surface it in
+		// aggregated logs by default
+		slog.Debug("ignoring no-op dtone callback", "transfer", transferUUID, "to", newStatus)
 		return web.WriteMarshalled(w, http.StatusOK, map[string]string{"status": "ignored"})
 	}
 
