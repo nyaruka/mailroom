@@ -142,9 +142,10 @@ func simulatorAirtimeServiceFactory(flows.SessionAssets) (flows.AirtimeService, 
 
 type simulatorAirtimeService struct{}
 
-func (s *simulatorAirtimeService) Transfer(ctx context.Context, sender urns.URN, recipient urns.URN, amounts map[string]decimal.Decimal, logHTTP flows.HTTPLogCallback) (*flows.AirtimeTransfer, error) {
+func (s *simulatorAirtimeService) Create(ctx context.Context, transferUUID flows.EventUUID, sender urns.URN, recipient urns.URN, amounts map[string]decimal.Decimal, logHTTP flows.HTTPLogCallback) (*flows.AirtimeTransfer, error) {
 	transfer := &flows.AirtimeTransfer{
-		// fake but non-empty so @locals._new_transfer satisfies has_text and runs route to Success
+		// fake but non-empty so simulated flows that branch on @results.airtime.external_id behave as
+		// they would in production (where the real DT One service always populates this)
 		ExternalID: "123456789",
 		Sender:     sender,
 		Recipient:  recipient,
@@ -159,4 +160,8 @@ func (s *simulatorAirtimeService) Transfer(ctx context.Context, sender urns.URN,
 	}
 
 	return transfer, nil
+}
+
+func (s *simulatorAirtimeService) Confirm(ctx context.Context, transfer *flows.AirtimeTransfer, logHTTP flows.HTTPLogCallback) error {
+	return nil
 }

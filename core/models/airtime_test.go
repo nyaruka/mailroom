@@ -19,11 +19,13 @@ func TestAirtimeTransfers(t *testing.T) {
 
 	defer rt.DB.MustExec(`DELETE FROM airtime_airtimetransfer`)
 
-	// insert a transfer
+	// insert a transfer — new transfers are always created in pending state, with the provider's
+	// transaction id already populated from the event
+	transferUUID := flows.NewEventUUID()
 	transfer := models.NewAirtimeTransfer(
 		testdb.Org1.ID,
 		testdb.Ann.ID,
-		events.NewAirtimeTransferred(&flows.AirtimeTransfer{
+		events.NewAirtimeCreated(transferUUID, &flows.AirtimeTransfer{
 			ExternalID: "2237512891",
 			Sender:     urns.URN("tel:+250700000001"),
 			Recipient:  urns.URN("tel:+250700000002"),
@@ -32,24 +34,34 @@ func TestAirtimeTransfers(t *testing.T) {
 		}, nil),
 	)
 	err := models.InsertAirtimeTransfers(ctx, rt.DB, []*models.AirtimeTransfer{transfer})
-	assert.Nil(t, err)
+	assert.NoError(t, err)
+	assert.NotEqual(t, models.NilAirtimeTransferID, transfer.ID())
+	assert.Equal(t, models.AirtimeTransferStatusCreated, transfer.Status())
 
-	assertdb.Query(t, rt.DB, `SELECT org_id, status, external_id from airtime_airtimetransfer`).Columns(map[string]any{"org_id": 1, "status": "S", "external_id": "2237512891"})
+	assertdb.Query(t, rt.DB, `SELECT org_id, status, external_id from airtime_airtimetransfer WHERE id = $1`, transfer.ID()).
+		Columns(map[string]any{"org_id": 1, "status": "P", "external_id": "2237512891"})
 
-	// insert a failed transfer with nil sender, empty currency
-	transfer = models.NewAirtimeTransfer(
-		testdb.Org1.ID,
-		testdb.Ann.ID,
-		events.NewAirtimeTransferred(&flows.AirtimeTransfer{
-			ExternalID: "2237512891",
-			Sender:     urns.NilURN,
-			Recipient:  urns.URN("tel:+250700000002"),
-			Currency:   "",
-			Amount:     decimal.Zero,
-		}, nil),
-	)
-	err = models.InsertAirtimeTransfers(ctx, rt.DB, []*models.AirtimeTransfer{transfer})
-	assert.Nil(t, err)
+	// callback whose provider tx id doesn't match the row's external_id is a no-op (defense in depth —
+	// a forged callback would have to know both the UUID and DT One's id to mutate the row)
+	updated, err := models.UpdateAirtimeTransferStatus(ctx, rt.DB, transfer.UUID(), "wrong-tx-id", models.AirtimeTransferStatusCompleted)
+	assert.NoError(t, err)
+	assert.False(t, updated)
 
-	assertdb.Query(t, rt.DB, `SELECT count(*) from airtime_airtimetransfer WHERE org_id = $1 AND status = $2`, testdb.Org1.ID, models.AirtimeTransferStatusFailed).Returns(1)
+	// callback transitions pending → success when both UUID and provider tx id line up
+	updated, err = models.UpdateAirtimeTransferStatus(ctx, rt.DB, transfer.UUID(), "2237512891", models.AirtimeTransferStatusCompleted)
+	assert.NoError(t, err)
+	assert.True(t, updated)
+
+	assertdb.Query(t, rt.DB, `SELECT status FROM airtime_airtimetransfer WHERE id = $1`, transfer.ID()).
+		Columns(map[string]any{"status": "S"})
+
+	// any status update with matching uuid + external_id is applied — no transition guard, since
+	// dropping out-of-order callbacks could strand the row (e.g. a Reversed callback for a transfer
+	// we never saw Completed for)
+	updated, err = models.UpdateAirtimeTransferStatus(ctx, rt.DB, transfer.UUID(), "2237512891", models.AirtimeTransferStatusReversed)
+	assert.NoError(t, err)
+	assert.True(t, updated)
+
+	assertdb.Query(t, rt.DB, `SELECT status FROM airtime_airtimetransfer WHERE id = $1`, transfer.ID()).
+		Columns(map[string]any{"status": "R"})
 }

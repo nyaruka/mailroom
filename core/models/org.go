@@ -54,8 +54,20 @@ func airtimeServiceFactory(rt *runtime.Runtime) engine.AirtimeServiceFactory {
 	airtimeHTTPRetries := httpx.NewFixedRetries(time.Second*5, time.Second*10)
 
 	return func(sa flows.SessionAssets) (flows.AirtimeService, error) {
-		return orgFromAssets(sa).AirtimeService(airtimeHTTPClient, airtimeHTTPRetries)
+		return orgFromAssets(sa).AirtimeService(rt, airtimeHTTPClient, airtimeHTTPRetries)
 	}
+}
+
+// DTOneCallbackURL returns the URL DT One should POST status updates to, derived from the configured
+// domain. The URL is stable per deployment; correlation back to a specific transfer happens via the
+// airtime_created event UUID that we pass to DT One as their external_id field — the URL itself
+// doesn't carry a secret. Errors if Domain is unset, since handing DT One a broken URL (e.g.
+// https:///mr/airtime/dtone/status) would silently lose every future status update.
+func DTOneCallbackURL(rt *runtime.Runtime) (string, error) {
+	if rt.Config.Domain == "" {
+		return "", fmt.Errorf("Domain must be configured for DT One callbacks")
+	}
+	return fmt.Sprintf("https://%s/mr/airtime/dtone/status", rt.Config.Domain), nil
 }
 
 // OrgID is our type for org ids
@@ -181,14 +193,18 @@ func (o *Org) EmailService(ctx context.Context, rt *runtime.Runtime, retries *sm
 }
 
 // AirtimeService returns the airtime service for this org if one is configured
-func (o *Org) AirtimeService(httpClient *http.Client, httpRetries *httpx.RetryConfig) (flows.AirtimeService, error) {
+func (o *Org) AirtimeService(rt *runtime.Runtime, httpClient *http.Client, httpRetries *httpx.RetryConfig) (flows.AirtimeService, error) {
 	key := o.ConfigValue(configDTOneKey, "")
 	secret := o.ConfigValue(configDTOneSecret, "")
 
 	if key == "" || secret == "" {
 		return nil, fmt.Errorf("missing %s or %s on DTOne configuration for org: %d", configDTOneKey, configDTOneSecret, o.ID())
 	}
-	return dtone.NewService(httpClient, httpRetries, key, secret), nil
+	callbackURL, err := DTOneCallbackURL(rt)
+	if err != nil {
+		return nil, err
+	}
+	return dtone.NewService(httpClient, httpRetries, key, secret, callbackURL), nil
 }
 
 // StoreAttachment saves an attachment to storage

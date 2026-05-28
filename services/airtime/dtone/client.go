@@ -149,8 +149,10 @@ type Transaction struct {
 	} `json:"status"`
 }
 
-// TransactionAsync see https://dvs-api-doc.dtone.com/#tag/Transactions
-func (c *Client) TransactionAsync(ctx context.Context, externalID string, productID int, mobileNumber string) (*Transaction, *httpx.Trace, error) {
+// TransactionAsync see https://dvs-api-doc.dtone.com/#tag/Transactions. With auto_confirm: false the transaction
+// is created in an unconfirmed (held) state — the host must call ConfirmTransaction before DT One will actually
+// send the airtime, otherwise the transaction expires and is auto-cancelled.
+func (c *Client) TransactionAsync(ctx context.Context, externalID string, productID int, mobileNumber, callbackURL string) (*Transaction, *httpx.Trace, error) {
 	var response *Transaction
 
 	type creditPartyIdentifier struct {
@@ -161,11 +163,13 @@ func (c *Client) TransactionAsync(ctx context.Context, externalID string, produc
 		ExternalID            string                `json:"external_id"`
 		ProductID             int                   `json:"product_id"`
 		AutoConfirm           bool                  `json:"auto_confirm"`
+		CallbackURL           string                `json:"callback_url,omitempty"`
 		CreditPartyIdentifier creditPartyIdentifier `json:"credit_party_identifier"`
 	}{
 		ExternalID:  externalID,
 		ProductID:   productID,
-		AutoConfirm: true,
+		AutoConfirm: false,
+		CallbackURL: callbackURL,
 		CreditPartyIdentifier: creditPartyIdentifier{
 			MobileNumber: mobileNumber,
 		},
@@ -176,6 +180,17 @@ func (c *Client) TransactionAsync(ctx context.Context, externalID string, produc
 		return nil, trace, err
 	}
 
+	return response, trace, nil
+}
+
+// ConfirmTransaction confirms a previously-created transaction so DT One actually sends the airtime.
+// See https://dvs-api-doc.dtone.com/#tag/Transactions/operation/postTransactionConfirm
+func (c *Client) ConfirmTransaction(ctx context.Context, transactionID int64) (*Transaction, *httpx.Trace, error) {
+	var response *Transaction
+	trace, err := c.request(ctx, "POST", fmt.Sprintf("async/transactions/%d/confirm", transactionID), nil, &response)
+	if err != nil {
+		return nil, trace, err
+	}
 	return response, trace, nil
 }
 
