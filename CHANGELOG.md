@@ -1,3 +1,7 @@
+v26.1.128 (2026-06-01)
+-------------------------
+ * Rename clogs package to svclogs
+
 v26.1.127 (2026-05-28)
 -------------------------
  * Move airtime transfers to an async lifecycle driven by provider status callbacks
