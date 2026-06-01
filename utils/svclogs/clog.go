@@ -1,4 +1,4 @@
-package clogs
+package svclogs
 
 import (
 	"time"
@@ -8,17 +8,17 @@ import (
 	"github.com/nyaruka/gocommon/uuids"
 )
 
-// UUID is the type of a channel log UUID (should be v7)
+// UUID is the type of a service log UUID (should be v7)
 type UUID uuids.UUID
 
-// NewUUID creates a new channel log UUID
+// NewUUID creates a new service log UUID
 func NewUUID() UUID {
 	return UUID(uuids.NewV7())
 }
 
 type Type string
 
-// Error is an error that occurred during a channel interaction
+// Error is an error that occurred during a service interaction
 type Error struct {
 	Code    string `json:"code"`
 	ExtCode string `json:"ext_code,omitempty"`
@@ -30,7 +30,7 @@ func (e *Error) Redact(r stringsx.Redactor) *Error {
 	return &Error{Code: e.Code, ExtCode: e.ExtCode, Message: r(e.Message)}
 }
 
-// Log is the basic channel log structure
+// Log is the basic service log structure
 type Log struct {
 	UUID      UUID
 	Type      Type

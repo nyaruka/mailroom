@@ -22,7 +22,7 @@ import (
 	"github.com/nyaruka/goflow/utils"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/runtime"
-	"github.com/nyaruka/mailroom/v26/utils/clogs"
+	"github.com/nyaruka/mailroom/v26/utils/svclogs"
 )
 
 var courierHttpClient = &http.Client{
@@ -337,11 +337,11 @@ type fetchAttachmentResponse struct {
 		URL         string `json:"url"`
 		Size        int    `json:"size"`
 	} `json:"attachment"`
-	LogUUID clogs.UUID `json:"log_uuid"`
+	LogUUID svclogs.UUID `json:"log_uuid"`
 }
 
 // FetchAttachment calls courier to fetch the given attachment
-func FetchAttachment(ctx context.Context, rt *runtime.Runtime, ch *models.Channel, attURL string, msgUUID flows.EventUUID) (utils.Attachment, clogs.UUID, error) {
+func FetchAttachment(ctx context.Context, rt *runtime.Runtime, ch *models.Channel, attURL string, msgUUID flows.EventUUID) (utils.Attachment, svclogs.UUID, error) {
 	payload := jsonx.MustMarshal(&fetchAttachmentRequest{
 		ChannelType: ch.Type(),
 		ChannelUUID: ch.UUID(),
