@@ -45,6 +45,7 @@ func TestLLMs(t *testing.T) {
 		assert.Equal(t, tc.name, c.Name())
 		assert.Equal(t, tc.typ, c.Type())
 		assert.Equal(t, tc.roles, c.Roles())
+		assert.Equal(t, testdb.Org1.ID, c.OrgID())
 	}
 
 	assert.Equal(t, "Claude", oa.LLMByID(testdb.Anthropic.ID).Name())

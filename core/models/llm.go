@@ -54,6 +54,7 @@ func llmServiceFactory(rt *runtime.Runtime) engine.LLMServiceFactory {
 type LLM struct {
 	ID_              LLMID            `json:"id"`
 	UUID_            assets.LLMUUID   `json:"uuid"`
+	OrgID_           OrgID            `json:"org_id"`
 	Type_            string           `json:"llm_type"`
 	Model_           string           `json:"model"`
 	Name_            string           `json:"name"`
@@ -63,6 +64,7 @@ type LLM struct {
 }
 
 func (l *LLM) ID() LLMID               { return l.ID_ }
+func (l *LLM) OrgID() OrgID            { return l.OrgID_ }
 func (l *LLM) UUID() assets.LLMUUID    { return l.UUID_ }
 func (l *LLM) Name() string            { return l.Name_ }
 func (l *LLM) Type() string            { return l.Type_ }
@@ -123,7 +125,7 @@ func loadLLMs(ctx context.Context, db *sql.DB, orgID OrgID) ([]assets.LLM, error
 
 const sqlSelectLLMs = `
 SELECT ROW_TO_JSON(r) FROM (
-      SELECT l.id, l.uuid, l.name, l.llm_type, l.model, l.config, l.max_output_tokens,
+      SELECT l.id, l.uuid, l.org_id, l.llm_type, l.model, l.name, l.config, l.max_output_tokens,
              (SELECT ARRAY(SELECT CASE r WHEN 'T' THEN 'editing' WHEN 'F' THEN 'engine' END FROM unnest(regexp_split_to_array(l.roles,'')) AS r)) AS roles
         FROM ai_llm l
        WHERE l.org_id = $1 AND l.is_active
