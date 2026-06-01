@@ -22,7 +22,7 @@ import (
 	"github.com/nyaruka/mailroom/v26/services/ivr/vonage"
 	"github.com/nyaruka/mailroom/v26/testsuite"
 	"github.com/nyaruka/mailroom/v26/testsuite/testdb"
-	"github.com/nyaruka/mailroom/v26/utils/clogs"
+	"github.com/nyaruka/mailroom/v26/utils/svclogs"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -234,15 +234,15 @@ func TestVonageIVR(t *testing.T) {
 func getCallLogs(t *testing.T, rt *runtime.Runtime, ch *testdb.Channel) []*httpx.Log {
 	rt.Dynamo.Main.Flush()
 
-	var logUUIDs []clogs.UUID
+	var logUUIDs []svclogs.UUID
 	err := rt.DB.Select(&logUUIDs, `SELECT unnest(log_uuids) FROM ivr_call ORDER BY id`)
 	require.NoError(t, err)
 
 	logs := make([]*httpx.Log, 0, len(logUUIDs))
 
 	type DataGZ struct {
-		HttpLogs []*httpx.Log   `json:"http_logs"`
-		Errors   []*clogs.Error `json:"errors"`
+		HttpLogs []*httpx.Log     `json:"http_logs"`
+		Errors   []*svclogs.Error `json:"errors"`
 	}
 
 	for _, logUUID := range logUUIDs {

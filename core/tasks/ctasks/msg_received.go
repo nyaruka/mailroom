@@ -17,7 +17,7 @@ import (
 	"github.com/nyaruka/mailroom/v26/core/msgio"
 	"github.com/nyaruka/mailroom/v26/core/runner"
 	"github.com/nyaruka/mailroom/v26/runtime"
-	"github.com/nyaruka/mailroom/v26/utils/clogs"
+	"github.com/nyaruka/mailroom/v26/utils/svclogs"
 )
 
 const TypeMsgReceived = "msg_received"
@@ -51,7 +51,7 @@ func (t *MsgReceived) perform(ctx context.Context, rt *runtime.Runtime, oa *mode
 
 	// fetch the attachments on the message (i.e. ask courier to fetch them)
 	attachments := make([]utils.Attachment, 0, len(t.Attachments))
-	logUUIDs := make([]clogs.UUID, 0, len(t.Attachments))
+	logUUIDs := make([]svclogs.UUID, 0, len(t.Attachments))
 
 	// no channel, no attachments
 	if channel != nil {

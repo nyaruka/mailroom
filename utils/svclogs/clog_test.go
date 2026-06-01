@@ -1,4 +1,4 @@
-package clogs_test
+package svclogs_test
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/nyaruka/gocommon/httpx"
-	"github.com/nyaruka/mailroom/v26/utils/clogs"
+	"github.com/nyaruka/mailroom/v26/utils/svclogs"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -21,8 +21,8 @@ func TestLogs(t *testing.T) {
 		"http://ivr.com/hangup": {httpx.NewMockResponse(400, nil, []byte("Oops"))},
 	}))
 
-	clog1 := clogs.New("type1", nil, []string{"sesame"})
-	clog2 := clogs.New("type1", nil, []string{"sesame"})
+	clog1 := svclogs.New("type1", nil, []string{"sesame"})
+	clog2 := svclogs.New("type1", nil, []string{"sesame"})
 
 	req1, _ := httpx.NewRequest(ctx, "GET", "http://ivr.com/start", nil, map[string]string{"Authorization": "Token sesame"})
 	trace1, err := httpx.DoTrace(http.DefaultClient, req1, nil, nil, -1)
@@ -36,7 +36,7 @@ func TestLogs(t *testing.T) {
 	require.NoError(t, err)
 
 	clog2.HTTP(trace2)
-	clog2.Error(&clogs.Error{Message: "oops"})
+	clog2.Error(&svclogs.Error{Message: "oops"})
 	clog2.End()
 
 	assert.NotEqual(t, clog1.UUID, clog2.UUID)

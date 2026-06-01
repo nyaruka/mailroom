@@ -26,7 +26,7 @@ import (
 	"github.com/nyaruka/goflow/utils"
 	"github.com/nyaruka/mailroom/v26/core/goflow"
 	"github.com/nyaruka/mailroom/v26/runtime"
-	"github.com/nyaruka/mailroom/v26/utils/clogs"
+	"github.com/nyaruka/mailroom/v26/utils/svclogs"
 	"github.com/nyaruka/null/v3"
 	"github.com/vinovest/sqlx"
 )
@@ -143,7 +143,7 @@ type MsgInRef struct {
 	UUID        flows.EventUUID
 	ExtID       string
 	Attachments []utils.Attachment
-	LogUUIDs    []clogs.UUID
+	LogUUIDs    []svclogs.UUID
 	Handled     bool
 }
 
@@ -622,7 +622,7 @@ msgs_msg(uuid, text, attachments, quickreplies, locale, templating, high_priorit
 RETURNING id, modified_on`
 
 // MarkMessageHandled updates a message after handling
-func MarkMessageHandled(ctx context.Context, tx DBorTx, msgUUID flows.EventUUID, status MsgStatus, visibility MsgVisibility, flow *Flow, ticket *Ticket, attachments []utils.Attachment, logUUIDs []clogs.UUID) error {
+func MarkMessageHandled(ctx context.Context, tx DBorTx, msgUUID flows.EventUUID, status MsgStatus, visibility MsgVisibility, flow *Flow, ticket *Ticket, attachments []utils.Attachment, logUUIDs []svclogs.UUID) error {
 	flowID := NilFlowID
 	if flow != nil {
 		flowID = flow.ID()

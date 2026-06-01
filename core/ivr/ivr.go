@@ -20,7 +20,7 @@ import (
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/runner"
 	"github.com/nyaruka/mailroom/v26/runtime"
-	"github.com/nyaruka/mailroom/v26/utils/clogs"
+	"github.com/nyaruka/mailroom/v26/utils/svclogs"
 	"github.com/vinovest/sqlx"
 )
 
@@ -80,7 +80,7 @@ func HangupCall(ctx context.Context, rt *runtime.Runtime, call *models.Call) (*m
 		clog.HTTP(trace)
 	}
 	if err != nil {
-		clog.Error(&clogs.Error{Message: err.Error()})
+		clog.Error(&svclogs.Error{Message: err.Error()})
 	}
 
 	if err := call.AttachLog(ctx, rt.DB, clog); err != nil {
@@ -197,7 +197,7 @@ func RequestCallStart(ctx context.Context, rt *runtime.Runtime, channel *models.
 		clog.HTTP(trace)
 	}
 	if err != nil {
-		clog.Error(&clogs.Error{Message: err.Error()})
+		clog.Error(&svclogs.Error{Message: err.Error()})
 
 		// set our status as errored
 		err := call.UpdateStatus(ctx, rt.DB, models.CallStatusFailed, 0, time.Now())
