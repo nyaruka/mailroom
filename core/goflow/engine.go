@@ -27,7 +27,7 @@ var llmPrompts map[string]*template.Template
 func Reset() {
 	engInit, eng = sync.Once{}, nil
 	simulatorInit, simulator = sync.Once{}, nil
-	httpInit, httpClient, httpAccess = sync.Once{}, nil, nil
+	httpInit, httpClient = sync.Once{}, nil
 }
 
 func RegisterCheckSendable(f func(*runtime.Runtime) flows.CheckSendableCallback) {
@@ -80,10 +80,9 @@ func Engine(rt *runtime.Runtime) flows.Engine {
 			"X-Mailroom-Mode": "normal",
 		}
 
-		httpClient, httpAccess := HTTP(rt.Config)
-
 		eng = engine.NewBuilder().
-			WithWebhookServiceFactory(webhooks.NewServiceFactory(httpClient, nil, httpAccess, webhookHeaders, rt.Config.WebhooksMaxBodyBytes)).
+			WithHTTPClient(HTTP(rt.Config)).
+			WithWebhookServiceFactory(webhooks.NewServiceFactory(webhookHeaders, rt.Config.WebhooksMaxBodyBytes)).
 			WithLLMServiceFactory(llmFactory(rt)).
 			WithEmailServiceFactory(emailFactory(rt)).
 			WithAirtimeServiceFactory(airtimeFactory(rt)).
@@ -108,10 +107,9 @@ func Simulator(ctx context.Context, rt *runtime.Runtime) flows.Engine {
 			"X-Mailroom-Mode": "simulation",
 		}
 
-		httpClient, httpAccess := HTTP(rt.Config) // don't do retries in simulator
-
 		simulator = engine.NewBuilder().
-			WithWebhookServiceFactory(webhooks.NewServiceFactory(httpClient, nil, httpAccess, webhookHeaders, rt.Config.WebhooksMaxBodyBytes)).
+			WithHTTPClient(HTTP(rt.Config)).
+			WithWebhookServiceFactory(webhooks.NewServiceFactory(webhookHeaders, rt.Config.WebhooksMaxBodyBytes)).
 			WithLLMServiceFactory(llmFactory(rt)).                     // simulated sessions do real LLM calls
 			WithEmailServiceFactory(simulatorEmailServiceFactory).     // but faked emails
 			WithAirtimeServiceFactory(simulatorAirtimeServiceFactory). // and faked airtime transfers
