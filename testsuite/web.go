@@ -21,6 +21,7 @@ import (
 	"github.com/nyaruka/gocommon/httpx"
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/goflow/test"
+	"github.com/nyaruka/mailroom/v26/core/goflow"
 	"github.com/nyaruka/mailroom/v26/runtime"
 	"github.com/nyaruka/mailroom/v26/web"
 	"github.com/stretchr/testify/assert"
@@ -39,20 +40,20 @@ func RunWebTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 	time.Sleep(100 * time.Millisecond) // give server time to start
 
 	type TestCase struct {
-		Label           string                `json:"label"`
-		HTTPMocks       *httpx.MockRequestor  `json:"http_mocks,omitempty"`
-		Method          string                `json:"method"`
-		Path            string                `json:"path"`
-		Headers         map[string]string     `json:"headers,omitempty"`
-		Body            json.RawMessage       `json:"body,omitempty"`
-		BodyEncode      string                `json:"body_encode,omitempty"`
-		Status          int                   `json:"status"`
-		Response        json.RawMessage       `json:"response,omitempty"`
-		ResponseFile    string                `json:"response_file,omitempty"`
-		DBAssertions    []*assertdb.Assert    `json:"db_assertions,omitempty"`
-		ExpectedTasks   map[string][]TaskInfo `json:"expected_tasks,omitempty"`
-		ExpectedHistory []*dynamo.Item        `json:"expected_history,omitempty"`
-		IndexedMessages []IndexedMessage      `json:"indexed_messages,omitempty"`
+		Label           string                           `json:"label"`
+		HTTPMocks       map[string][]*httpx.MockResponse `json:"http_mocks,omitempty"`
+		Method          string                           `json:"method"`
+		Path            string                           `json:"path"`
+		Headers         map[string]string                `json:"headers,omitempty"`
+		Body            json.RawMessage                  `json:"body,omitempty"`
+		BodyEncode      string                           `json:"body_encode,omitempty"`
+		Status          int                              `json:"status"`
+		Response        json.RawMessage                  `json:"response,omitempty"`
+		ResponseFile    string                           `json:"response_file,omitempty"`
+		DBAssertions    []*assertdb.Assert               `json:"db_assertions,omitempty"`
+		ExpectedTasks   map[string][]TaskInfo            `json:"expected_tasks,omitempty"`
+		ExpectedHistory []*dynamo.Item                   `json:"expected_history,omitempty"`
+		IndexedMessages []IndexedMessage                 `json:"indexed_messages,omitempty"`
 
 		actualResponse  []byte
 		expectsJSONBody bool
@@ -71,14 +72,16 @@ func RunWebTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 		prevIndexedIDs[m.ID] = true
 	}
 
+	defer goflow.SetWebhookMockTransport(nil)
 	for i, tc := range tcs {
-		var clonedMocks *httpx.MockRequestor
+		// route the engine's webhook calls through the test case's mocks (WithMocks clones the map, so the
+		// original tc.HTTPMocks is preserved for write-back); local requests fall through to the real transport
+		var mocks *httpx.MocksTransport
 		if tc.HTTPMocks != nil {
-			tc.HTTPMocks.SetIgnoreLocal(true)
-			httpx.SetRequestor(tc.HTTPMocks)
-			clonedMocks = tc.HTTPMocks.Clone()
+			mocks = httpx.WithMocks(http.DefaultTransport, tc.HTTPMocks, httpx.MockIgnoreLocal())
+			goflow.SetWebhookMockTransport(mocks)
 		} else {
-			httpx.SetRequestor(httpx.DefaultRequestor)
+			goflow.SetWebhookMockTransport(nil)
 		}
 
 		// route /mi/* requests to the internal listener and everything else to the public listener
@@ -113,14 +116,13 @@ func RunWebTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 		assert.NoError(t, err, "%s: error making request", tc.Label)
 
 		// check all http mocks were used
-		if tc.HTTPMocks != nil {
-			assert.False(t, tc.HTTPMocks.HasUnused(), "%s: unused HTTP mocks in %s", tc.Label)
+		if mocks != nil {
+			assert.False(t, mocks.HasUnused(), "%s: unused HTTP mocks", tc.Label)
 		}
 
 		// clone test case and populate with actual values
 		actual := tc
 		actual.Status = resp.StatusCode
-		actual.HTTPMocks = clonedMocks
 		actual.actualResponse, err = io.ReadAll(resp.Body)
 		actual.ExpectedTasks = GetQueuedTasks(t, rt)
 		actual.ExpectedHistory = GetHistoryItems(t, rt, true, test.MockStartTime)

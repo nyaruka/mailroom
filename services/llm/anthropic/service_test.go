@@ -24,7 +24,7 @@ func TestService(t *testing.T) {
 	badLLM := oa.LLMByID(bad.ID)
 	goodLLM := oa.LLMByID(good.ID)
 
-	client := &http.Client{Transport: httpx.NewMockRequestor(map[string][]*httpx.MockResponse{
+	client := &http.Client{Transport: httpx.WithMocks(http.DefaultTransport, map[string][]*httpx.MockResponse{
 		"https://api.anthropic.com/v1/messages": {
 			httpx.NewMockResponse(401, map[string]string{"Content-type": "application/json"}, []byte(`{"type": "error", "error": {"message": "Incorrect API key provided", "type": "invalid_api_key"}}`)),
 			httpx.NewMockResponse(429, map[string]string{"Content-type": "application/json"}, []byte(`{"type": "error", "error": {"message": "Rate limit reached for your model", "type": "rate_limit_exceeded"}}`)),

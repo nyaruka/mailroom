@@ -12,6 +12,7 @@ import (
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/engine"
 	"github.com/nyaruka/goflow/flows/triggers"
+	"github.com/nyaruka/mailroom/v26/core/goflow"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/runner"
 	"github.com/nyaruka/mailroom/v26/runtime"
@@ -27,9 +28,9 @@ func TestWebhookCalled(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, rt, testsuite.ResetAll)
-	defer httpx.SetRequestor(httpx.DefaultRequestor)
+	defer goflow.SetWebhookMockTransport(nil)
 
-	httpx.SetRequestor(httpx.NewMockRequestor(map[string][]*httpx.MockResponse{
+	goflow.SetWebhookMockTransport(httpx.WithMocks(http.DefaultTransport, map[string][]*httpx.MockResponse{
 		"http://rapidpro.io/": {
 			httpx.NewMockResponse(200, nil, []byte("OK")),
 			httpx.NewMockResponse(200, nil, []byte("OK")),

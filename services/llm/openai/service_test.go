@@ -24,7 +24,7 @@ func TestService(t *testing.T) {
 	badLLM := oa.LLMByID(bad.ID)
 	goodLLM := oa.LLMByID(good.ID)
 
-	client := &http.Client{Transport: httpx.NewMockRequestor(map[string][]*httpx.MockResponse{
+	client := &http.Client{Transport: httpx.WithMocks(http.DefaultTransport, map[string][]*httpx.MockResponse{
 		"https://api.openai.com/v1/responses": {
 			httpx.NewMockResponse(401, map[string]string{"Content-type": "application/json"}, []byte(`{"message": "Incorrect API key provided", "type": "invalid_request_error", "param": null, "code": "invalid_api_key"}`)),
 			httpx.NewMockResponse(429, map[string]string{"Content-type": "application/json"}, []byte(`{"message": "Rate limit reached for your model", "type": "requests", "param": null, "code": "rate_limit_exceeded"}`)),
