@@ -23,14 +23,13 @@ type confirmAirtimeTransfers struct{}
 
 func (h *confirmAirtimeTransfers) Order() int { return 10 }
 
-// The long timeout covers the worst-case Confirm round-trip with the configured retries. The underlying
-// connection pool is shared via the runtime's HTTP transport.
 var confirmHTTPRetries = httpx.NewFixedRetries(time.Second*5, time.Second*10)
 
 func (h *confirmAirtimeTransfers) Execute(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scenes map[*runner.Scene][]any) error {
 	// hoist the airtime service out of the per-transfer loop — the org is constant for this hook invocation.
-	// share the runtime's pooled transport (swappable for mocks in tests) with airtime's own longer timeout
-	httpClient := &http.Client{Transport: rt.HTTP.Transport, Timeout: 120 * time.Second}
+	// share the runtime's pooled transport (swappable for mocks in tests); the timeout has to cover the whole
+	// retry sequence since the retrier runs within a single client.Do, so it must exceed the retry backoffs
+	httpClient := &http.Client{Transport: rt.HTTP.Transport, Timeout: 30 * time.Second}
 	svc, err := oa.Org().AirtimeService(rt, httpClient, confirmHTTPRetries)
 	if err != nil {
 		// every transfer here belongs to this org, so we can't make progress on any of them. Log per

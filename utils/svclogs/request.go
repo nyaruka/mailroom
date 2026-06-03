@@ -11,7 +11,7 @@ import (
 
 // TraceRequest sends req through a client whose transport is inner and captures a single Trace of the request
 // and response. It's the composable replacement for the deprecated httpx.DoTrace used by service clients
-// (airtime, IVR, courier): it wraps inner in an httpx.TracesTransport for this one request and returns the
+// (airtime, IVR): it wraps inner in an httpx.TracesTransport for this one request and returns the
 // resulting trace. Callers compose any extra behaviour (e.g. retries via httpx.WithRetries) into inner before
 // passing it in — when a retrier is composed inside the tracer this way, Trace.Retries is populated with the
 // number of retries performed. On a transport-level failure the trace still carries the request (with no
