@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -13,7 +14,6 @@ import (
 
 	valkey "github.com/gomodule/redigo/redis"
 	"github.com/nyaruka/gocommon/dates"
-	"github.com/nyaruka/gocommon/httpx"
 	"github.com/nyaruka/gocommon/i18n"
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/gocommon/urns"
@@ -351,15 +351,22 @@ func FetchAttachment(ctx context.Context, rt *runtime.Runtime, ch *models.Channe
 	req, _ := http.NewRequest("POST", strings.TrimRight(rt.Config.CourierEndpoint, "/")+"/ci/attachment/fetch", bytes.NewReader(payload))
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", rt.Config.CourierAuthToken))
 
-	resp, err := httpx.DoTrace(courierHttpClient, req, nil, nil, -1)
+	// this is an internal request to courier whose trace we don't persist, so a plain fetch is enough
+	resp, err := courierHttpClient.Do(req)
 	if err != nil {
 		return "", "", fmt.Errorf("error calling courier endpoint: %w", err)
 	}
-	if resp.Response.StatusCode != 200 {
-		return "", "", fmt.Errorf("error calling courier endpoint, got non-200 status: %s", string(resp.ResponseTrace))
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", "", fmt.Errorf("error reading courier response: %w", err)
+	}
+	if resp.StatusCode != 200 {
+		return "", "", fmt.Errorf("error calling courier endpoint, got non-200 status: %s", string(body))
 	}
 	fa := &fetchAttachmentResponse{}
-	if err := json.Unmarshal(resp.ResponseBody, fa); err != nil {
+	if err := json.Unmarshal(body, fa); err != nil {
 		return "", "", fmt.Errorf("error unmarshaling courier response: %w", err)
 	}
 
