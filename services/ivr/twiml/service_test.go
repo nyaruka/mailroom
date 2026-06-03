@@ -144,7 +144,7 @@ func TestRedactValues(t *testing.T) {
 
 	oa := testdb.Org1.Load(t, rt)
 	ch := oa.ChannelByUUID(testdb.TwilioChannel.UUID)
-	svc, _ := ivr.GetService(ch)
+	svc, _ := ivr.GetService(http.DefaultClient, ch)
 
 	assert.Equal(t, []string{"U0lEMTIzNDU2Nzg5OnNlc2FtZQ==", "sesame"}, svc.RedactValues(ch))
 }

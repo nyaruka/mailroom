@@ -451,7 +451,7 @@ func (s *service) postRequest(sendURL string, form url.Values) (*httpx.Trace, er
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("Accept", "application/json")
 
-	return httpx.DoTrace(s.httpClient, req, nil, nil, -1)
+	return ivr.TraceRequest(s.httpClient, req)
 }
 
 // see https://www.twilio.com/docs/api/security

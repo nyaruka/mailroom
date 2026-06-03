@@ -2,8 +2,10 @@ package ivr
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 
 	"github.com/nyaruka/gocommon/httpx"
 	"github.com/nyaruka/gocommon/urns"
@@ -22,14 +24,44 @@ func RegisterService(channelType models.ChannelType, constructor ServiceConstruc
 	registeredTypes[channelType] = constructor
 }
 
-// GetService creates the right kind of IVR service for the passed in channel
-func GetService(channel *models.Channel) (Service, error) {
+// GetService creates the right kind of IVR service for the passed in channel. The httpClient's transport is
+// used as the base for the service's outbound provider calls, so tests can pass a client with a mocking
+// transport while production passes the runtime's shared client.
+func GetService(httpClient *http.Client, channel *models.Channel) (Service, error) {
 	constructor := registeredTypes[channel.Type()]
 	if constructor == nil {
 		return nil, fmt.Errorf("no registered IVR service for channel type: %s", channel.Type())
 	}
 
-	return constructor(http.DefaultClient, channel)
+	return constructor(httpClient, channel)
+}
+
+// TraceRequest sends req through client and captures a single Trace of the request and response. It's the
+// composable replacement for the deprecated httpx.DoTrace used by IVR service implementations: it wraps the
+// client's transport in an httpx.TracesTransport for this one request and returns the resulting trace. On a
+// transport-level failure the trace still carries the request (with no response) and the underlying error is
+// returned with http.Client.Do's *url.Error wrapper removed, matching what DoTrace surfaced.
+func TraceRequest(client *http.Client, req *http.Request) (*httpx.Trace, error) {
+	tracer := httpx.WithTraces(client.Transport)
+	traced := &http.Client{Transport: tracer, Timeout: client.Timeout}
+
+	resp, err := traced.Do(req)
+	if resp != nil {
+		resp.Body.Close()
+	}
+
+	var trace *httpx.Trace
+	if traces := tracer.Traces(); len(traces) > 0 {
+		trace = traces[len(traces)-1]
+	}
+
+	if err != nil {
+		var ue *url.Error
+		if errors.As(err, &ue) {
+			err = ue.Err
+		}
+	}
+	return trace, err
 }
 
 // Service defines the interface IVR services must satisfy

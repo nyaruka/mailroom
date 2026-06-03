@@ -30,14 +30,11 @@ func TestResponseForSprint(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
-	mockVonage := httpx.NewMockRequestor(map[string][]*httpx.MockResponse{
+	mockVonage := httpx.WithMocks(http.DefaultTransport, map[string][]*httpx.MockResponse{
 		"https://api.nexmo.com/v1/calls": {
 			httpx.NewMockResponse(201, nil, []byte(`{"uuid": "63f61863-4a51-4f6b-86e1-46edebcf9356", "status": "started", "direction": "outbound"}`)),
 		},
 	})
-
-	defer httpx.SetRequestor(httpx.DefaultRequestor)
-	httpx.SetRequestor(mockVonage)
 
 	urn := urns.URN("tel:+12067799294")
 	expiresOn := time.Now().Add(time.Hour)
@@ -60,7 +57,7 @@ func TestResponseForSprint(t *testing.T) {
 	channel := oa.ChannelByUUID(testdb.VonageChannel.UUID)
 	assert.NotNil(t, channel)
 
-	p, err := NewServiceFromChannel(http.DefaultClient, channel)
+	p, err := NewServiceFromChannel(&http.Client{Transport: mockVonage}, channel)
 	require.NoError(t, err)
 
 	provider := p.(*service)
@@ -152,7 +149,7 @@ func TestRedactValues(t *testing.T) {
 
 	oa := testdb.Org1.Load(t, rt)
 	ch := oa.ChannelByUUID(testdb.VonageChannel.UUID)
-	svc, _ := ivr.GetService(ch)
+	svc, _ := ivr.GetService(http.DefaultClient, ch)
 
 	assert.NotNil(t, svc)
 	assert.Equal(t, []string{"-----BEGIN PRIVATE KEY-----\nMIICdgIBADANBgkqhkiG9w0BAQEFAASCAmAwggJcAgEAAoGBAKNwapOQ6rQJHetP\nHRlJBIh1OsOsUBiXb3rXXE3xpWAxAha0MH+UPRblOko+5T2JqIb+xKf9Vi3oTM3t\nKvffaOPtzKXZauscjq6NGzA3LgeiMy6q19pvkUUOlGYK6+Xfl+B7Xw6+hBMkQuGE\nnUS8nkpR5mK4ne7djIyfHFfMu4ptAgMBAAECgYA+s0PPtMq1osG9oi4xoxeAGikf\nJB3eMUptP+2DYW7mRibc+ueYKhB9lhcUoKhlQUhL8bUUFVZYakP8xD21thmQqnC4\nf63asad0ycteJMLb3r+z26LHuCyOdPg1pyLk3oQ32lVQHBCYathRMcVznxOG16VK\nI8BFfstJTaJu0lK/wQJBANYFGusBiZsJQ3utrQMVPpKmloO2++4q1v6ZR4puDQHx\nTjLjAIgrkYfwTJBLBRZxec0E7TmuVQ9uJ+wMu/+7zaUCQQDDf2xMnQqYknJoKGq+\noAnyC66UqWC5xAnQS32mlnJ632JXA0pf9pb1SXAYExB1p9Dfqd3VAwQDwBsDDgP6\nHD8pAkEA0lscNQZC2TaGtKZk2hXkdcH1SKru/g3vWTkRHxfCAznJUaza1fx0wzdG\nGcES1Bdez0tbW4llI5By/skZc2eE3QJAFl6fOskBbGHde3Oce0F+wdZ6XIJhEgCP\niukIcKZoZQzoiMJUoVRrA5gqnmaYDI5uRRl/y57zt6YksR3KcLUIuQJAd242M/WF\n6YAZat3q/wEeETeQq1wrooew+8lHl05/Nt0cCpV48RGEhJ83pzBm3mnwHf8lTBJH\nx6XroMXsmbnsEw==\n-----END PRIVATE KEY-----"}, svc.RedactValues(ch))

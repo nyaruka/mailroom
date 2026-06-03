@@ -356,10 +356,9 @@ var transactionRejectedResponse = `{
 func TestClient(t *testing.T) {
 	ctx := context.Background()
 
-	defer httpx.SetRequestor(httpx.DefaultRequestor)
 	defer dates.SetNowFunc(time.Now)
 
-	mocks := httpx.NewMockRequestor(map[string][]*httpx.MockResponse{
+	mocks := httpx.WithMocks(http.DefaultTransport, map[string][]*httpx.MockResponse{
 		"https://dvs-api.dtone.com/v1/lookup/mobile-number": {
 			httpx.NewMockResponse(200, nil, []byte(lookupNumberResponse)), // successful mobile number lookup
 			httpx.MockConnectionError,                                     // timeout
@@ -372,10 +371,9 @@ func TestClient(t *testing.T) {
 		},
 	})
 
-	httpx.SetRequestor(mocks)
 	dates.SetNowFunc(dates.NewSequentialNow(time.Date(2019, 10, 9, 15, 25, 30, 123456789, time.UTC), time.Second))
 
-	cl := dtone.NewClient(http.DefaultClient, nil, "key123", "sesame")
+	cl := dtone.NewClient(&http.Client{Transport: mocks}, nil, "key123", "sesame")
 
 	// test lookup mobile number
 	operators, trace, err := cl.LookupMobileNumber(ctx, "+593979123456")

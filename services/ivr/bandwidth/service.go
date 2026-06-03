@@ -450,7 +450,7 @@ func (s *service) makeRequest(method string, sendURL string, body any) (*httpx.T
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Content-Type", "application/json")
 
-	return httpx.DoTrace(s.httpClient, req, nil, nil, -1)
+	return ivr.TraceRequest(s.httpClient, req)
 }
 
 func ResponseForSprint(rt *runtime.Runtime, env envs.Environment, urn urns.URN, resumeURL string, es []flows.Event, indent bool) (string, error) {

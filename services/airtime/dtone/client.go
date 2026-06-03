@@ -3,9 +3,11 @@ package dtone
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 
 	"github.com/nyaruka/gocommon/httpx"
@@ -195,7 +197,7 @@ func (c *Client) ConfirmTransaction(ctx context.Context, transactionID int64) (*
 }
 
 func (c *Client) request(ctx context.Context, method, endpoint string, payload any, response any) (*httpx.Trace, error) {
-	url := apiURL + endpoint
+	endpointURL := apiURL + endpoint
 	headers := map[string]string{}
 	var body io.Reader
 
@@ -208,15 +210,36 @@ func (c *Client) request(ctx context.Context, method, endpoint string, payload a
 		headers["Content-Type"] = "application/json"
 	}
 
-	req, err := httpx.NewRequest(ctx, method, url, body, headers)
+	req, err := httpx.NewRequest(ctx, method, endpointURL, body, headers)
 	if err != nil {
 		return nil, err
 	}
 
 	req.SetBasicAuth(c.key, c.secret)
 
-	trace, err := httpx.DoTrace(c.httpClient, req, c.httpRetries, nil, -1)
+	// trace a single request, retrying per the client's retry config. Composing the tracer outside the retrier
+	// captures one trace of the final attempt, with Trace.Retries set to the number of retries performed.
+	tracer := httpx.WithTraces(httpx.WithRetries(c.httpClient.Transport, c.httpRetries))
+	httpClient := &http.Client{Transport: tracer, Timeout: c.httpClient.Timeout}
+
+	resp, err := httpClient.Do(req)
+	if resp != nil {
+		resp.Body.Close()
+	}
+
+	traces := tracer.Traces()
+	var trace *httpx.Trace
+	if len(traces) > 0 {
+		trace = traces[len(traces)-1]
+	}
+
 	if err != nil {
+		// http.Client.Do wraps transport errors in *url.Error; unwrap so callers (and channel logs) see the
+		// same underlying error they did when this used httpx.DoTrace
+		var ue *url.Error
+		if errors.As(err, &ue) {
+			err = ue.Err
+		}
 		return trace, err
 	}
 
