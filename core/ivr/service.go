@@ -2,10 +2,8 @@ package ivr
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net/http"
-	"net/url"
 
 	"github.com/nyaruka/gocommon/httpx"
 	"github.com/nyaruka/gocommon/urns"
@@ -34,34 +32,6 @@ func GetService(httpClient *http.Client, channel *models.Channel) (Service, erro
 	}
 
 	return constructor(httpClient, channel)
-}
-
-// TraceRequest sends req through client and captures a single Trace of the request and response. It's the
-// composable replacement for the deprecated httpx.DoTrace used by IVR service implementations: it wraps the
-// client's transport in an httpx.TracesTransport for this one request and returns the resulting trace. On a
-// transport-level failure the trace still carries the request (with no response) and the underlying error is
-// returned with http.Client.Do's *url.Error wrapper removed, matching what DoTrace surfaced.
-func TraceRequest(client *http.Client, req *http.Request) (*httpx.Trace, error) {
-	tracer := httpx.WithTraces(client.Transport)
-	traced := &http.Client{Transport: tracer, Timeout: client.Timeout}
-
-	resp, err := traced.Do(req)
-	if resp != nil {
-		resp.Body.Close()
-	}
-
-	var trace *httpx.Trace
-	if traces := tracer.Traces(); len(traces) > 0 {
-		trace = traces[len(traces)-1]
-	}
-
-	if err != nil {
-		var ue *url.Error
-		if errors.As(err, &ue) {
-			err = ue.Err
-		}
-	}
-	return trace, err
 }
 
 // Service defines the interface IVR services must satisfy

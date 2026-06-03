@@ -406,3 +406,26 @@ func TestClient(t *testing.T) {
 	assert.Equal(t, "REJECTED-OPERATOR-CURRENTLY-UNAVAILABLE", tx.Status.Message)
 	test.AssertSnapshot(t, "transaction_async", string(trace.RequestTrace))
 }
+
+// TestClientRetries verifies that when the retry config retries an (idempotent) request, the retry count
+// survives the WithTraces(WithRetries(...)) composition and surfaces on the returned trace — that count is
+// what gets persisted as request_logs_httplog.num_retries.
+func TestClientRetries(t *testing.T) {
+	ctx := context.Background()
+
+	// products is a GET, so a 503 is retried; the second attempt succeeds
+	mocks := httpx.WithMocks(http.DefaultTransport, map[string][]*httpx.MockResponse{
+		"https://dvs-api.dtone.com/v1/products?type=FIXED_VALUE_RECHARGE&operator_id=1596&per_page=100": {
+			httpx.NewMockResponse(503, nil, []byte(`{}`)),
+			httpx.NewMockResponse(200, nil, []byte(productsResponse)),
+		},
+	})
+
+	cl := dtone.NewClient(&http.Client{Transport: mocks}, httpx.NewFixedRetries(time.Millisecond), "key123", "sesame")
+
+	products, trace, err := cl.Products(ctx, "FIXED_VALUE_RECHARGE", 1596)
+	assert.NoError(t, err)
+	assert.Equal(t, 2, len(products))
+	assert.Equal(t, 1, trace.Retries)
+	assert.False(t, mocks.HasUnused())
+}

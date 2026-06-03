@@ -49,12 +49,13 @@ func emailServiceFactory(rt *runtime.Runtime) engine.EmailServiceFactory {
 }
 
 func airtimeServiceFactory(rt *runtime.Runtime) engine.AirtimeServiceFactory {
-	// give airtime transfers an extra long timeout; share the runtime's pooled transport (which tests can
-	// swap for mocks) rather than a bare default transport
-	airtimeHTTPClient := &http.Client{Transport: rt.HTTP.Transport, Timeout: 120 * time.Second}
 	airtimeHTTPRetries := httpx.NewFixedRetries(time.Second*5, time.Second*10)
 
 	return func(sa flows.SessionAssets) (flows.AirtimeService, error) {
+		// give airtime transfers an extra long timeout; build the client inside the closure so it reads the
+		// runtime's (test-swappable) transport at service-creation time rather than capturing it once when the
+		// engine is first built
+		airtimeHTTPClient := &http.Client{Transport: rt.HTTP.Transport, Timeout: 120 * time.Second}
 		return orgFromAssets(sa).AirtimeService(rt, airtimeHTTPClient, airtimeHTTPRetries)
 	}
 }

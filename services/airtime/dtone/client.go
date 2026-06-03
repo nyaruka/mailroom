@@ -3,15 +3,14 @@ package dtone
 import (
 	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
-	"net/url"
 	"strings"
 
 	"github.com/nyaruka/gocommon/httpx"
 	"github.com/nyaruka/gocommon/jsonx"
+	"github.com/nyaruka/mailroom/v26/utils/svclogs"
 
 	"github.com/shopspring/decimal"
 )
@@ -218,28 +217,10 @@ func (c *Client) request(ctx context.Context, method, endpoint string, payload a
 	req.SetBasicAuth(c.key, c.secret)
 
 	// trace a single request, retrying per the client's retry config. Composing the tracer outside the retrier
-	// captures one trace of the final attempt, with Trace.Retries set to the number of retries performed.
-	tracer := httpx.WithTraces(httpx.WithRetries(c.httpClient.Transport, c.httpRetries))
-	httpClient := &http.Client{Transport: tracer, Timeout: c.httpClient.Timeout}
-
-	resp, err := httpClient.Do(req)
-	if resp != nil {
-		resp.Body.Close()
-	}
-
-	traces := tracer.Traces()
-	var trace *httpx.Trace
-	if len(traces) > 0 {
-		trace = traces[len(traces)-1]
-	}
-
+	// (WithRetries is passed as the tracer's inner transport) captures one trace of the final attempt, with
+	// Trace.Retries set to the number of retries performed.
+	trace, err := svclogs.TraceRequest(httpx.WithRetries(c.httpClient.Transport, c.httpRetries), c.httpClient.Timeout, req)
 	if err != nil {
-		// http.Client.Do wraps transport errors in *url.Error; unwrap so callers (and channel logs) see the
-		// same underlying error they did when this used httpx.DoTrace
-		var ue *url.Error
-		if errors.As(err, &ue) {
-			err = ue.Err
-		}
 		return trace, err
 	}
 
