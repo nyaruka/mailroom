@@ -20,15 +20,18 @@ type HTTP struct {
 
 func newHTTP(cfg *Config) *HTTP {
 	return &HTTP{
-		Services:  newServicesClient(cfg),
+		Services:  newServicesClient(),
 		Engine:    newWebhookClient(cfg),
 		Simulator: newWebhookClient(cfg),
 	}
 }
 
-// newServicesClient builds the client for fixed third-party service APIs. It does not apply the SSRF blocklist
-// or the webhook proxy — those are reserved for user-controlled webhook URLs.
-func newServicesClient(cfg *Config) *http.Client {
+// newServicesClient builds the client for fixed third-party service APIs (LLM providers, airtime, IVR). It does
+// not apply the SSRF blocklist or the webhook proxy — those are reserved for user-controlled webhook URLs. The
+// 1-minute timeout is generous enough for slower provider responses, and comfortably covers the airtime
+// client's retry sequence (DTOne retries within a single client.Do, so the timeout bounds all attempts plus
+// their backoffs).
+func newServicesClient() *http.Client {
 	t := http.DefaultTransport.(*http.Transport).Clone()
 	t.MaxIdleConns = 32
 	t.MaxIdleConnsPerHost = 8
@@ -38,7 +41,7 @@ func newServicesClient(cfg *Config) *http.Client {
 	}
 	return &http.Client{
 		Transport: t,
-		Timeout:   time.Duration(cfg.WebhooksTimeout) * time.Millisecond,
+		Timeout:   time.Minute,
 	}
 }
 
