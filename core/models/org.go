@@ -52,12 +52,7 @@ func airtimeServiceFactory(rt *runtime.Runtime) engine.AirtimeServiceFactory {
 	airtimeHTTPRetries := httpx.NewFixedRetries(time.Second*5, time.Second*10)
 
 	return func(sa flows.SessionAssets) (flows.AirtimeService, error) {
-		// build the client inside the closure so it reads the runtime's (test-swappable) transport at
-		// service-creation time rather than capturing it once when the engine is first built. The timeout has
-		// to cover the whole retry sequence (the retrier runs within a single client.Do), so it must exceed the
-		// combined retry backoffs above.
-		airtimeHTTPClient := &http.Client{Transport: rt.HTTP.Transport, Timeout: 30 * time.Second}
-		return orgFromAssets(sa).AirtimeService(rt, airtimeHTTPClient, airtimeHTTPRetries)
+		return orgFromAssets(sa).AirtimeService(rt, rt.HTTP.Services, airtimeHTTPRetries)
 	}
 }
 

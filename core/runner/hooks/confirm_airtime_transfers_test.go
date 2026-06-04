@@ -94,9 +94,9 @@ func TestConfirmAirtimeTransfers(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			rt.HTTP = &http.Client{Transport: httpx.WithMocks(http.DefaultTransport, map[string][]*httpx.MockResponse{
+			rt.HTTP.Services.Transport = httpx.WithMocks(http.DefaultTransport, map[string][]*httpx.MockResponse{
 				"https://dvs-api.dtone.com/v1/async/transactions/2237512891/confirm": tc.mocks,
-			})}
+			})
 			tr := seed()
 			run(tr)
 

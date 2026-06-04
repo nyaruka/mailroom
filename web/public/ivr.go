@@ -52,7 +52,7 @@ func newIVRHandler(handler ivrHandlerFn, logType svclogs.Type) web.Handler {
 		}
 
 		// get the IVR service for this channel
-		svc, err := ivr.GetService(rt.HTTP, ch)
+		svc, err := ivr.GetService(rt.HTTP.Services, ch)
 		if svc == nil {
 			return writeGenericErrorResponse(w, fmt.Errorf("unable to get service for channel: %s: %w", ch.UUID(), err))
 		}

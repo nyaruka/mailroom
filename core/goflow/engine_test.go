@@ -20,10 +20,11 @@ func TestEngineWebhook(t *testing.T) {
 	svc, err := goflow.Engine(rt).Services().Webhook(nil)
 	assert.NoError(t, err)
 
-	defer goflow.SetWebhookMockTransport(nil)
-	goflow.SetWebhookMockTransport(httpx.WithMocks(http.DefaultTransport, map[string][]*httpx.MockResponse{
+	// the engine's webhook service re-reads client.Transport on each call, so mocking it after building the
+	// engine above still takes effect — order doesn't matter
+	rt.HTTP.Engine.Transport = httpx.WithMocks(http.DefaultTransport, map[string][]*httpx.MockResponse{
 		"http://rapidpro.io": {httpx.NewMockResponse(200, nil, []byte("OK"))},
-	}))
+	})
 
 	request, err := http.NewRequest("GET", "http://rapidpro.io", nil)
 	require.NoError(t, err)
@@ -62,10 +63,9 @@ func TestSimulatorWebhook(t *testing.T) {
 	svc, err := goflow.Simulator(ctx, rt).Services().Webhook(nil)
 	assert.NoError(t, err)
 
-	defer goflow.SetWebhookMockTransport(nil)
-	goflow.SetWebhookMockTransport(httpx.WithMocks(http.DefaultTransport, map[string][]*httpx.MockResponse{
+	rt.HTTP.Simulator.Transport = httpx.WithMocks(http.DefaultTransport, map[string][]*httpx.MockResponse{
 		"http://rapidpro.io": {httpx.NewMockResponse(200, nil, []byte("OK"))},
-	}))
+	})
 
 	request, err := http.NewRequest("GET", "http://rapidpro.io", nil)
 	require.NoError(t, err)

@@ -3,7 +3,6 @@ package hooks
 import (
 	"context"
 	"log/slog"
-	"net/http"
 	"time"
 
 	"github.com/nyaruka/gocommon/httpx"
@@ -26,11 +25,8 @@ func (h *confirmAirtimeTransfers) Order() int { return 10 }
 var confirmHTTPRetries = httpx.NewFixedRetries(time.Second*5, time.Second*10)
 
 func (h *confirmAirtimeTransfers) Execute(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scenes map[*runner.Scene][]any) error {
-	// hoist the airtime service out of the per-transfer loop — the org is constant for this hook invocation.
-	// share the runtime's pooled transport (swappable for mocks in tests); the timeout has to cover the whole
-	// retry sequence since the retrier runs within a single client.Do, so it must exceed the retry backoffs
-	httpClient := &http.Client{Transport: rt.HTTP.Transport, Timeout: 30 * time.Second}
-	svc, err := oa.Org().AirtimeService(rt, httpClient, confirmHTTPRetries)
+	// hoist the airtime service out of the per-transfer loop — the org is constant for this hook invocation
+	svc, err := oa.Org().AirtimeService(rt, rt.HTTP.Services, confirmHTTPRetries)
 	if err != nil {
 		// every transfer here belongs to this org, so we can't make progress on any of them. Log per
 		// transfer rather than a single summary line so the affected UUIDs are searchable / countable
