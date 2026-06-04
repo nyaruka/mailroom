@@ -25,10 +25,6 @@ import (
 	"github.com/nyaruka/mailroom/v26/utils/svclogs"
 )
 
-var courierHttpClient = &http.Client{
-	Timeout: 1 * time.Minute, // big so we let courier determine when things timeout
-}
-
 const (
 	bulkPriority = 0
 	highPriority = 1
@@ -351,8 +347,9 @@ func FetchAttachment(ctx context.Context, rt *runtime.Runtime, ch *models.Channe
 	req, _ := http.NewRequest("POST", strings.TrimRight(rt.Config.CourierEndpoint, "/")+"/ci/attachment/fetch", bytes.NewReader(payload))
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", rt.Config.CourierAuthToken))
 
-	// this is an internal request to courier whose trace we don't persist, so a plain fetch is enough
-	resp, err := courierHttpClient.Do(req)
+	// this is an internal request to courier whose trace we don't persist, so a plain fetch is enough; the
+	// shared services client's 1-minute timeout is big enough that courier determines when things time out
+	resp, err := rt.HTTP.Services.Do(req)
 	if err != nil {
 		return "", "", fmt.Errorf("error calling courier endpoint: %w", err)
 	}

@@ -34,9 +34,9 @@ type Runtime struct {
 	Queues *Queues
 	Stats  *StatsCollector
 
-	// HTTP holds the http.Clients for outbound calls — Services for fixed third-party APIs (LLM providers,
-	// airtime, IVR, courier), and Engine / Simulator for user-controlled webhook calls (which apply the SSRF
-	// blocklist and route through the webhook proxy).
+	// HTTP holds the http.Clients for outbound calls — Services for fixed (non-webhook) targets (LLM
+	// providers, airtime, IVR, courier), and Engine / Simulator for user-controlled webhook calls (which
+	// apply the SSRF blocklist and route through the webhook proxy).
 	HTTP *HTTP
 }
 

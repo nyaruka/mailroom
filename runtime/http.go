@@ -8,10 +8,11 @@ import (
 	"github.com/nyaruka/gocommon/httpx"
 )
 
-// HTTP holds the http.Clients used for outbound calls. Services is for fixed third-party APIs (LLM providers,
-// airtime, IVR, courier). Engine and Simulator are for the user-controlled webhook calls made by the flow
-// engine and simulator respectively — those apply the SSRF IP blocklist and route through the configured
-// webhook proxy. Tests can replace a client's Transport with a mocking transport to intercept its calls.
+// HTTP holds the http.Clients used for outbound calls. Services is for fixed (non-webhook) targets — LLM
+// providers, airtime, IVR, and the courier service. Engine and Simulator are for the user-controlled webhook
+// calls made by the flow engine and simulator respectively — those apply the SSRF IP blocklist and route
+// through the configured webhook proxy. Tests can replace a client's Transport with a mocking transport to
+// intercept its calls.
 type HTTP struct {
 	Services  *http.Client
 	Engine    *http.Client
@@ -26,8 +27,9 @@ func newHTTP(cfg *Config) *HTTP {
 	}
 }
 
-// newServicesClient builds the client for fixed third-party service APIs (LLM providers, airtime, IVR). It does
-// not apply the SSRF blocklist or the webhook proxy — those are reserved for user-controlled webhook URLs. The
+// newServicesClient builds the client for fixed (non-webhook) outbound targets — LLM providers, airtime, IVR,
+// and courier. It does not apply the SSRF blocklist or the webhook proxy — those are reserved for
+// user-controlled webhook URLs. The
 // 1-minute timeout is generous enough for slower provider responses, and comfortably covers the airtime
 // client's retry sequence (DTOne retries within a single client.Do, so the timeout bounds all attempts plus
 // their backoffs).
