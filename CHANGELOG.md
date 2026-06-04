@@ -1,3 +1,7 @@
+v26.1.132 (2026-06-04)
+-------------------------
+ * Update to goflow v0.277.3 and gocommon v1.83.0 and rework HTTP clients
+
 v26.1.131 (2026-06-03)
 -------------------------
  * Update goflow to v0.277.1
