@@ -15,6 +15,7 @@ import (
 	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/goflow/flows/routers/waits/hints"
 	"github.com/nyaruka/goflow/flows/triggers"
+	"github.com/nyaruka/goflow/test"
 	"github.com/nyaruka/mailroom/v26/core/ivr"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/testsuite"
@@ -30,7 +31,7 @@ func TestResponseForSprint(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
-	mockVonage := httpx.WithMocks(http.DefaultTransport, map[string][]*httpx.MockResponse{
+	client, mockVonage := test.MockedHTTP(map[string][]*httpx.MockResponse{
 		"https://api.nexmo.com/v1/calls": {
 			httpx.NewMockResponse(201, nil, []byte(`{"uuid": "63f61863-4a51-4f6b-86e1-46edebcf9356", "status": "started", "direction": "outbound"}`)),
 		},
@@ -57,7 +58,7 @@ func TestResponseForSprint(t *testing.T) {
 	channel := oa.ChannelByUUID(testdb.VonageChannel.UUID)
 	assert.NotNil(t, channel)
 
-	p, err := NewServiceFromChannel(&http.Client{Transport: mockVonage}, channel)
+	p, err := NewServiceFromChannel(client, channel)
 	require.NoError(t, err)
 
 	provider := p.(*service)

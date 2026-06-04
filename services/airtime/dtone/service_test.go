@@ -2,7 +2,6 @@ package dtone_test
 
 import (
 	"context"
-	"net/http"
 	"testing"
 
 	"github.com/nyaruka/gocommon/httpx"
@@ -27,7 +26,7 @@ func TestServiceCreate(t *testing.T) {
 	reset := test.MockUniverse()
 	defer reset()
 
-	mocks := httpx.WithMocks(http.DefaultTransport, map[string][]*httpx.MockResponse{
+	client, mocks := test.MockedHTTP(map[string][]*httpx.MockResponse{
 		"https://dvs-api.dtone.com/v1/lookup/mobile-number": {
 			httpx.NewMockResponse(200, nil, []byte(lookupNumberResponse)),
 			httpx.MockConnectionError,
@@ -47,7 +46,7 @@ func TestServiceCreate(t *testing.T) {
 			httpx.NewMockResponse(400, nil, errorResp(1003001, "Something went wrong")),
 		},
 	})
-	svc := dtone.NewService(&http.Client{Transport: mocks}, nil, "key123", "sesame", callbackURL)
+	svc := dtone.NewService(client, nil, "key123", "sesame", callbackURL)
 	transferUUID := flows.EventUUID("01970fa4-1e58-79d5-bca8-1234567890ab")
 
 	// success — Create resolves the product, submits an unconfirmed transaction, returns currency/amount + external id
@@ -100,13 +99,13 @@ func TestServiceConfirm(t *testing.T) {
 	reset := test.MockUniverse()
 	defer reset()
 
-	mocks := httpx.WithMocks(http.DefaultTransport, map[string][]*httpx.MockResponse{
+	client, mocks := test.MockedHTTP(map[string][]*httpx.MockResponse{
 		"https://dvs-api.dtone.com/v1/async/transactions/2237512891/confirm": {
 			httpx.NewMockResponse(200, nil, []byte(transactionConfirmedResponse)),
 			httpx.NewMockResponse(400, nil, errorResp(1003001, "Already confirmed")),
 		},
 	})
-	svc := dtone.NewService(&http.Client{Transport: mocks}, nil, "key123", "sesame", callbackURL)
+	svc := dtone.NewService(client, nil, "key123", "sesame", callbackURL)
 
 	logger := &flows.HTTPLogger{}
 	err := svc.Confirm(ctx, &flows.AirtimeTransfer{ExternalID: "2237512891"}, logger.Log)

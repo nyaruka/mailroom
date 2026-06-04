@@ -2,7 +2,6 @@ package dtone_test
 
 import (
 	"context"
-	"net/http"
 	"testing"
 	"time"
 
@@ -358,7 +357,7 @@ func TestClient(t *testing.T) {
 
 	defer dates.SetNowFunc(time.Now)
 
-	mocks := httpx.WithMocks(http.DefaultTransport, map[string][]*httpx.MockResponse{
+	client, _ := test.MockedHTTP(map[string][]*httpx.MockResponse{
 		"https://dvs-api.dtone.com/v1/lookup/mobile-number": {
 			httpx.NewMockResponse(200, nil, []byte(lookupNumberResponse)), // successful mobile number lookup
 			httpx.MockConnectionError,                                     // timeout
@@ -373,7 +372,7 @@ func TestClient(t *testing.T) {
 
 	dates.SetNowFunc(dates.NewSequentialNow(time.Date(2019, 10, 9, 15, 25, 30, 123456789, time.UTC), time.Second))
 
-	cl := dtone.NewClient(&http.Client{Transport: mocks}, nil, "key123", "sesame")
+	cl := dtone.NewClient(client, nil, "key123", "sesame")
 
 	// test lookup mobile number
 	operators, trace, err := cl.LookupMobileNumber(ctx, "+593979123456")
@@ -414,14 +413,14 @@ func TestClientRetries(t *testing.T) {
 	ctx := context.Background()
 
 	// products is a GET, so a 503 is retried; the second attempt succeeds
-	mocks := httpx.WithMocks(http.DefaultTransport, map[string][]*httpx.MockResponse{
+	client, mocks := test.MockedHTTP(map[string][]*httpx.MockResponse{
 		"https://dvs-api.dtone.com/v1/products?type=FIXED_VALUE_RECHARGE&operator_id=1596&per_page=100": {
 			httpx.NewMockResponse(503, nil, []byte(`{}`)),
 			httpx.NewMockResponse(200, nil, []byte(productsResponse)),
 		},
 	})
 
-	cl := dtone.NewClient(&http.Client{Transport: mocks}, httpx.NewFixedRetries(time.Millisecond), "key123", "sesame")
+	cl := dtone.NewClient(client, httpx.NewFixedRetries(time.Millisecond), "key123", "sesame")
 
 	products, trace, err := cl.Products(ctx, "FIXED_VALUE_RECHARGE", 1596)
 	assert.NoError(t, err)
