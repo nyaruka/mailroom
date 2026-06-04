@@ -34,17 +34,23 @@ func newHTTP(cfg *Config) *HTTP {
 // client's retry sequence (DTOne retries within a single client.Do, so the timeout bounds all attempts plus
 // their backoffs).
 func newServicesClient() *http.Client {
+	return &http.Client{
+		Transport: newBaseTransport(),
+		Timeout:   time.Minute,
+	}
+}
+
+// newBaseTransport clones http.DefaultTransport with mailroom's connection-pool and TLS settings. Callers
+// layer their own concerns (e.g. webhook proxy, access control) on top.
+func newBaseTransport() *http.Transport {
 	t := http.DefaultTransport.(*http.Transport).Clone()
 	t.MaxIdleConns = 32
 	t.MaxIdleConnsPerHost = 8
 	t.IdleConnTimeout = 30 * time.Second
 	t.TLSClientConfig = &tls.Config{
-		Renegotiation: tls.RenegotiateOnceAsClient,
+		Renegotiation: tls.RenegotiateOnceAsClient, // support single TLS renegotiation
 	}
-	return &http.Client{
-		Transport: t,
-		Timeout:   time.Minute,
-	}
+	return t
 }
 
 // newWebhookClient builds an http.Client for user-controlled webhook calls (flow call_webhook actions and
@@ -66,13 +72,7 @@ func newWebhookClient(cfg *Config) *http.Client {
 // cfg.WebhookProxyURL is set the transport routes through that forward proxy; otherwise no proxy is used (env
 // vars like HTTP_PROXY/HTTPS_PROXY are deliberately ignored).
 func newWebhookTransport(cfg *Config) *http.Transport {
-	t := http.DefaultTransport.(*http.Transport).Clone()
-	t.MaxIdleConns = 32
-	t.MaxIdleConnsPerHost = 8
-	t.IdleConnTimeout = 30 * time.Second
-	t.TLSClientConfig = &tls.Config{
-		Renegotiation: tls.RenegotiateOnceAsClient, // support single TLS renegotiation
-	}
+	t := newBaseTransport()
 
 	if cfg.WebhookProxyURLParsed != nil {
 		t.Proxy = http.ProxyURL(cfg.WebhookProxyURLParsed)

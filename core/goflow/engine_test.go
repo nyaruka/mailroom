@@ -20,6 +20,8 @@ func TestEngineWebhook(t *testing.T) {
 	svc, err := goflow.Engine(rt).Services().Webhook(nil)
 	assert.NoError(t, err)
 
+	// the engine's webhook service re-reads client.Transport on each call, so mocking it after building the
+	// engine above still takes effect — order doesn't matter
 	rt.HTTP.Engine.Transport = httpx.WithMocks(http.DefaultTransport, map[string][]*httpx.MockResponse{
 		"http://rapidpro.io": {httpx.NewMockResponse(200, nil, []byte("OK"))},
 	})
