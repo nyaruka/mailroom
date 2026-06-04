@@ -20,8 +20,8 @@ func TestEngineWebhook(t *testing.T) {
 	svc, err := goflow.Engine(rt).Services().Webhook(nil)
 	assert.NoError(t, err)
 
-	defer httpx.SetRequestor(httpx.DefaultRequestor)
-	httpx.SetRequestor(httpx.NewMockRequestor(map[string][]*httpx.MockResponse{
+	defer goflow.SetWebhookMockTransport(nil)
+	goflow.SetWebhookMockTransport(httpx.WithMocks(http.DefaultTransport, map[string][]*httpx.MockResponse{
 		"http://rapidpro.io": {httpx.NewMockResponse(200, nil, []byte("OK"))},
 	}))
 
@@ -62,8 +62,8 @@ func TestSimulatorWebhook(t *testing.T) {
 	svc, err := goflow.Simulator(ctx, rt).Services().Webhook(nil)
 	assert.NoError(t, err)
 
-	defer httpx.SetRequestor(httpx.DefaultRequestor)
-	httpx.SetRequestor(httpx.NewMockRequestor(map[string][]*httpx.MockResponse{
+	defer goflow.SetWebhookMockTransport(nil)
+	goflow.SetWebhookMockTransport(httpx.WithMocks(http.DefaultTransport, map[string][]*httpx.MockResponse{
 		"http://rapidpro.io": {httpx.NewMockResponse(200, nil, []byte("OK"))},
 	}))
 

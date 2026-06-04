@@ -1,10 +1,10 @@
 package anthropic_test
 
 import (
-	"net/http"
 	"testing"
 
 	"github.com/nyaruka/gocommon/httpx"
+	"github.com/nyaruka/goflow/test"
 	"github.com/nyaruka/mailroom/v26/core/ai"
 	"github.com/nyaruka/mailroom/v26/services/llm/anthropic"
 	"github.com/nyaruka/mailroom/v26/testsuite"
@@ -24,14 +24,14 @@ func TestService(t *testing.T) {
 	badLLM := oa.LLMByID(bad.ID)
 	goodLLM := oa.LLMByID(good.ID)
 
-	client := &http.Client{Transport: httpx.NewMockRequestor(map[string][]*httpx.MockResponse{
+	client, _ := test.MockedHTTP(map[string][]*httpx.MockResponse{
 		"https://api.anthropic.com/v1/messages": {
 			httpx.NewMockResponse(401, map[string]string{"Content-type": "application/json"}, []byte(`{"type": "error", "error": {"message": "Incorrect API key provided", "type": "invalid_api_key"}}`)),
 			httpx.NewMockResponse(429, map[string]string{"Content-type": "application/json"}, []byte(`{"type": "error", "error": {"message": "Rate limit reached for your model", "type": "rate_limit_exceeded"}}`)),
 			httpx.NewMockResponse(429, map[string]string{"Content-type": "application/json"}, []byte(`{"type": "error", "error": {"message": "Rate limit reached for your model", "type": "rate_limit_exceeded"}}`)),
 			httpx.NewMockResponse(429, map[string]string{"Content-type": "application/json"}, []byte(`{"type": "error", "error": {"message": "Rate limit reached for your model", "type": "rate_limit_exceeded"}}`)),
 		},
-	})}
+	})
 
 	// can't create service with bad config
 	svc, err := anthropic.New(rt, badLLM, client)

@@ -2,6 +2,7 @@ package bandwidth_test
 
 import (
 	"encoding/xml"
+	"net/http"
 	"testing"
 	"time"
 
@@ -121,7 +122,7 @@ func TestRedactValues(t *testing.T) {
 
 	oa := testdb.Org1.Load(t, rt)
 	ch := oa.ChannelByUUID(bwChannel.UUID)
-	svc, _ := ivr.GetService(ch)
+	svc, _ := ivr.GetService(http.DefaultClient, ch)
 
 	assert.Equal(t, []string{"dXNlcjpwYXNz", "pass"}, svc.RedactValues(ch))
 }

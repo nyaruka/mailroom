@@ -40,7 +40,6 @@ func RunWebTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 
 	type TestCase struct {
 		Label           string                `json:"label"`
-		HTTPMocks       *httpx.MockRequestor  `json:"http_mocks,omitempty"`
 		Method          string                `json:"method"`
 		Path            string                `json:"path"`
 		Headers         map[string]string     `json:"headers,omitempty"`
@@ -72,15 +71,6 @@ func RunWebTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 	}
 
 	for i, tc := range tcs {
-		var clonedMocks *httpx.MockRequestor
-		if tc.HTTPMocks != nil {
-			tc.HTTPMocks.SetIgnoreLocal(true)
-			httpx.SetRequestor(tc.HTTPMocks)
-			clonedMocks = tc.HTTPMocks.Clone()
-		} else {
-			httpx.SetRequestor(httpx.DefaultRequestor)
-		}
-
 		// route /mi/* requests to the internal listener and everything else to the public listener
 		host := "http://localhost:8190"
 		if strings.HasPrefix(tc.Path, "/mi/") {
@@ -112,15 +102,9 @@ func RunWebTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 		resp, err := http.DefaultClient.Do(req)
 		assert.NoError(t, err, "%s: error making request", tc.Label)
 
-		// check all http mocks were used
-		if tc.HTTPMocks != nil {
-			assert.False(t, tc.HTTPMocks.HasUnused(), "%s: unused HTTP mocks in %s", tc.Label)
-		}
-
 		// clone test case and populate with actual values
 		actual := tc
 		actual.Status = resp.StatusCode
-		actual.HTTPMocks = clonedMocks
 		actual.actualResponse, err = io.ReadAll(resp.Body)
 		actual.ExpectedTasks = GetQueuedTasks(t, rt)
 		actual.ExpectedHistory = GetHistoryItems(t, rt, true, test.MockStartTime)

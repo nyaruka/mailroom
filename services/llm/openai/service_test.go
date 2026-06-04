@@ -1,10 +1,10 @@
 package openai_test
 
 import (
-	"net/http"
 	"testing"
 
 	"github.com/nyaruka/gocommon/httpx"
+	"github.com/nyaruka/goflow/test"
 	"github.com/nyaruka/mailroom/v26/core/ai"
 	"github.com/nyaruka/mailroom/v26/services/llm/openai"
 	"github.com/nyaruka/mailroom/v26/testsuite"
@@ -24,7 +24,7 @@ func TestService(t *testing.T) {
 	badLLM := oa.LLMByID(bad.ID)
 	goodLLM := oa.LLMByID(good.ID)
 
-	client := &http.Client{Transport: httpx.NewMockRequestor(map[string][]*httpx.MockResponse{
+	client, _ := test.MockedHTTP(map[string][]*httpx.MockResponse{
 		"https://api.openai.com/v1/responses": {
 			httpx.NewMockResponse(401, map[string]string{"Content-type": "application/json"}, []byte(`{"message": "Incorrect API key provided", "type": "invalid_request_error", "param": null, "code": "invalid_api_key"}`)),
 			httpx.NewMockResponse(429, map[string]string{"Content-type": "application/json"}, []byte(`{"message": "Rate limit reached for your model", "type": "requests", "param": null, "code": "rate_limit_exceeded"}`)),
@@ -83,7 +83,7 @@ func TestService(t *testing.T) {
 				"metadata": {}
 			}`)),
 		},
-	})}
+	})
 
 	// can't create service with bad config
 	svc, err := openai.New(rt, badLLM, client)

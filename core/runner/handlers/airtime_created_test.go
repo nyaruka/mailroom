@@ -1,6 +1,7 @@
 package handlers_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/nyaruka/gocommon/httpx"
@@ -26,16 +27,15 @@ func TestAirtimeCreated(t *testing.T) {
 	rt.Config.Domain = "mailroom.example.com"
 
 	defer testsuite.Reset(t, rt, testsuite.ResetAll)
-	defer httpx.SetRequestor(httpx.DefaultRequestor)
 
 	// the in-sprint Create resolves the operator + product and submits the unconfirmed transaction; the
 	// post-commit hook then POSTs to /confirm with the provider id. HTTP logs surfaced inside the event are
 	// test data only and don't make real calls.
-	httpx.SetRequestor(httpx.NewMockRequestor(map[string][]*httpx.MockResponse{
+	rt.HTTP = &http.Client{Transport: httpx.WithMocks(http.DefaultTransport, map[string][]*httpx.MockResponse{
 		"https://dvs-api.dtone.com/v1/async/transactions/2237512891/confirm": {
 			httpx.NewMockResponse(200, nil, []byte(transactionConfirmedResponse)),
 		},
-	}))
+	})}
 
 	rt.DB.MustExec(`UPDATE orgs_org SET config = '{"dtone_key": "key123", "dtone_secret": "sesame"}'::jsonb WHERE id = $1`, testdb.Org1.ID)
 

@@ -10,6 +10,7 @@ import (
 
 	"github.com/nyaruka/gocommon/httpx"
 	"github.com/nyaruka/gocommon/jsonx"
+	"github.com/nyaruka/mailroom/v26/utils/svclogs"
 
 	"github.com/shopspring/decimal"
 )
@@ -195,7 +196,7 @@ func (c *Client) ConfirmTransaction(ctx context.Context, transactionID int64) (*
 }
 
 func (c *Client) request(ctx context.Context, method, endpoint string, payload any, response any) (*httpx.Trace, error) {
-	url := apiURL + endpoint
+	endpointURL := apiURL + endpoint
 	headers := map[string]string{}
 	var body io.Reader
 
@@ -208,14 +209,17 @@ func (c *Client) request(ctx context.Context, method, endpoint string, payload a
 		headers["Content-Type"] = "application/json"
 	}
 
-	req, err := httpx.NewRequest(ctx, method, url, body, headers)
+	req, err := httpx.NewRequest(ctx, method, endpointURL, body, headers)
 	if err != nil {
 		return nil, err
 	}
 
 	req.SetBasicAuth(c.key, c.secret)
 
-	trace, err := httpx.DoTrace(c.httpClient, req, c.httpRetries, nil, -1)
+	// trace a single request, retrying per the client's retry config. Composing the tracer outside the retrier
+	// (WithRetries is passed as the tracer's inner transport) captures one trace of the final attempt, with
+	// Trace.Retries set to the number of retries performed.
+	trace, err := svclogs.TraceRequest(httpx.WithRetries(c.httpClient.Transport, c.httpRetries), c.httpClient.Timeout, req)
 	if err != nil {
 		return trace, err
 	}

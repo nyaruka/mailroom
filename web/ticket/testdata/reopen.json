@@ -150,7 +150,6 @@
     },
     {
         "label": "reopen fails when contact already has open ticket",
-        "http_mocks": {},
         "method": "POST",
         "path": "/mi/ticket/reopen",
         "body": {

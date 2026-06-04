@@ -22,14 +22,16 @@ func RegisterService(channelType models.ChannelType, constructor ServiceConstruc
 	registeredTypes[channelType] = constructor
 }
 
-// GetService creates the right kind of IVR service for the passed in channel
-func GetService(channel *models.Channel) (Service, error) {
+// GetService creates the right kind of IVR service for the passed in channel. The httpClient's transport is
+// used as the base for the service's outbound provider calls, so tests can pass a client with a mocking
+// transport while production passes the runtime's shared client.
+func GetService(httpClient *http.Client, channel *models.Channel) (Service, error) {
 	constructor := registeredTypes[channel.Type()]
 	if constructor == nil {
 		return nil, fmt.Errorf("no registered IVR service for channel type: %s", channel.Type())
 	}
 
-	return constructor(http.DefaultClient, channel)
+	return constructor(httpClient, channel)
 }
 
 // Service defines the interface IVR services must satisfy
