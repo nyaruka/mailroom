@@ -27,7 +27,6 @@ var llmPrompts map[string]*template.Template
 func Reset() {
 	engInit, eng = sync.Once{}, nil
 	simulatorInit, simulator = sync.Once{}, nil
-	httpInit, httpClient = sync.Once{}, nil
 }
 
 func RegisterCheckSendable(f func(*runtime.Runtime) flows.CheckSendableCallback) {
@@ -81,7 +80,7 @@ func Engine(rt *runtime.Runtime) flows.Engine {
 		}
 
 		eng = engine.NewBuilder().
-			WithHTTPClient(HTTP(rt.Config)).
+			WithHTTPClient(rt.HTTP.Engine).
 			WithWebhookServiceFactory(webhooks.NewServiceFactory(webhookHeaders, rt.Config.WebhooksMaxBodyBytes)).
 			WithLLMServiceFactory(llmFactory(rt)).
 			WithEmailServiceFactory(emailFactory(rt)).
@@ -108,7 +107,7 @@ func Simulator(ctx context.Context, rt *runtime.Runtime) flows.Engine {
 		}
 
 		simulator = engine.NewBuilder().
-			WithHTTPClient(HTTP(rt.Config)).
+			WithHTTPClient(rt.HTTP.Simulator).
 			WithWebhookServiceFactory(webhooks.NewServiceFactory(webhookHeaders, rt.Config.WebhooksMaxBodyBytes)).
 			WithLLMServiceFactory(llmFactory(rt)).                     // simulated sessions do real LLM calls
 			WithEmailServiceFactory(simulatorEmailServiceFactory).     // but faked emails

@@ -46,7 +46,7 @@ func RegisterLLMService(typ string, fn func(*runtime.Runtime, *LLM, *http.Client
 
 func llmServiceFactory(rt *runtime.Runtime) engine.LLMServiceFactory {
 	return func(llm *flows.LLM) (flows.LLMService, error) {
-		return llm.Asset().(*LLM).AsService(rt, rt.HTTP)
+		return llm.Asset().(*LLM).AsService(rt, rt.HTTP.Services)
 	}
 }
 

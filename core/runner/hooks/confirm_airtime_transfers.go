@@ -29,7 +29,7 @@ func (h *confirmAirtimeTransfers) Execute(ctx context.Context, rt *runtime.Runti
 	// hoist the airtime service out of the per-transfer loop — the org is constant for this hook invocation.
 	// share the runtime's pooled transport (swappable for mocks in tests); the timeout has to cover the whole
 	// retry sequence since the retrier runs within a single client.Do, so it must exceed the retry backoffs
-	httpClient := &http.Client{Transport: rt.HTTP.Transport, Timeout: 30 * time.Second}
+	httpClient := &http.Client{Transport: rt.HTTP.Services.Transport, Timeout: 30 * time.Second}
 	svc, err := oa.Org().AirtimeService(rt, httpClient, confirmHTTPRetries)
 	if err != nil {
 		// every transfer here belongs to this org, so we can't make progress on any of them. Log per

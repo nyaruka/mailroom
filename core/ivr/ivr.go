@@ -66,7 +66,7 @@ func HangupCall(ctx context.Context, rt *runtime.Runtime, call *models.Call) (*m
 	}
 
 	// create the right service
-	svc, err := GetService(rt.HTTP, channel)
+	svc, err := GetService(rt.HTTP.Services, channel)
 	if err != nil {
 		return nil, fmt.Errorf("unable to create IVR service: %w", err)
 	}
@@ -183,7 +183,7 @@ func RequestCallStart(ctx context.Context, rt *runtime.Runtime, channel *models.
 	statusURL := fmt.Sprintf("https://%s/mr/ivr/c/%s/status", domain, channel.UUID())
 
 	// create the right service
-	svc, err := GetService(rt.HTTP, channel)
+	svc, err := GetService(rt.HTTP.Services, channel)
 	if err != nil {
 		return nil, fmt.Errorf("unable to create IVR service: %w", err)
 	}

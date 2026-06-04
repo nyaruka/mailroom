@@ -56,7 +56,7 @@ func airtimeServiceFactory(rt *runtime.Runtime) engine.AirtimeServiceFactory {
 		// service-creation time rather than capturing it once when the engine is first built. The timeout has
 		// to cover the whole retry sequence (the retrier runs within a single client.Do), so it must exceed the
 		// combined retry backoffs above.
-		airtimeHTTPClient := &http.Client{Transport: rt.HTTP.Transport, Timeout: 30 * time.Second}
+		airtimeHTTPClient := &http.Client{Transport: rt.HTTP.Services.Transport, Timeout: 30 * time.Second}
 		return orgFromAssets(sa).AirtimeService(rt, airtimeHTTPClient, airtimeHTTPRetries)
 	}
 }
