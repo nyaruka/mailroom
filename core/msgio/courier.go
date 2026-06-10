@@ -319,6 +319,43 @@ func ClearCourierQueues(vc valkey.Conn, ch *models.Channel) error {
 	return err
 }
 
+// see https://github.com/nyaruka/courier/blob/main/events.go
+type sendEventRequest struct {
+	Type        string             `json:"type"`
+	ChannelType models.ChannelType `json:"channel_type"`
+	ChannelUUID assets.ChannelUUID `json:"channel_uuid"`
+	URN         urns.URN           `json:"urn"`
+}
+
+// SendTyping calls courier to send a typing indicator to the given URN. These are transient events - there's
+// no queueing and failures are returned to the caller rather than retried.
+func SendTyping(ctx context.Context, rt *runtime.Runtime, ch *models.Channel, urn urns.URN) error {
+	payload := jsonx.MustMarshal(&sendEventRequest{
+		Type:        "typing",
+		ChannelType: ch.Type(),
+		ChannelUUID: ch.UUID(),
+		URN:         urn,
+	})
+	req, _ := http.NewRequest("POST", strings.TrimRight(rt.Config.CourierEndpoint, "/")+"/ci/event/send", bytes.NewReader(payload))
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", rt.Config.CourierAuthToken))
+
+	// like attachment fetching, this is an internal request to courier whose trace we don't persist
+	resp, err := rt.HTTP.Services.Do(req)
+	if err != nil {
+		return fmt.Errorf("error calling courier endpoint: %w", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("error reading courier response: %w", err)
+	}
+	if resp.StatusCode != 200 {
+		return fmt.Errorf("error calling courier endpoint, got non-200 status: %s", string(body))
+	}
+	return nil
+}
+
 // see https://github.com/nyaruka/courier/blob/main/attachments.go#L23
 type fetchAttachmentRequest struct {
 	ChannelType models.ChannelType `json:"channel_type"`

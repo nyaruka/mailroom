@@ -26,6 +26,11 @@ const (
 	ChannelTypeAndroid = ChannelType("A")
 )
 
+// channel feature constants in addition to those defined by goflow
+const (
+	ChannelFeatureTyping = assets.ChannelFeature("typing")
+)
+
 // config key constants
 const (
 	ChannelConfigCallbackDomain     = "callback_domain"
@@ -172,7 +177,9 @@ SELECT ROW_TO_JSON(r) FROM (SELECT
       c.schemes,
       c.config,
       (SELECT ARRAY(SELECT CASE r WHEN 'R' THEN 'receive' WHEN 'S' THEN 'send' WHEN 'C' THEN 'call' WHEN 'A' THEN 'answer' END FROM unnest(regexp_split_to_array(c.role,'')) AS r)) AS roles,
-      CASE WHEN channel_type IN ('FBA') THEN '{"optins"}'::text[] ELSE '{}'::text[] END AS features,
+      CASE WHEN channel_type IN ('FBA') THEN '{"optins"}'::text[]
+           WHEN channel_type IN ('TG') OR (channel_type = 'EX' AND c.config ? 'send_typing_url') THEN '{"typing"}'::text[]
+           ELSE '{}'::text[] END AS features,
       jsonb_extract_path(c.config, 'matching_prefixes') AS match_prefixes,
       jsonb_extract_path(c.config, 'allow_international') AS allow_international,
       jsonb_extract_path(c.config, 'machine_detection') AS machine_detection

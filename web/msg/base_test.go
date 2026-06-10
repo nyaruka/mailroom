@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/nyaruka/gocommon/httpx"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/testsuite"
@@ -25,6 +26,28 @@ func TestSend(t *testing.T) {
 	testsuite.RunWebTests(t, rt, "testdata/send.json")
 
 	testsuite.AssertCourierQueues(t, rt, map[string][]int{"msgs:74729f45-7f29-4868-9dc4-90e491e3c7d8|10/1": {1, 1, 1, 1, 1}})
+}
+
+func TestTyping(t *testing.T) {
+	_, rt := testsuite.Runtime(t)
+
+	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetValkey)
+
+	// give Bob a telegram URN and channel so that his preferred channel supports typing indicators
+	testdb.InsertChannel(t, rt, testdb.Org1, "TG", "Telegram", "mybot", []string{"telegram"}, "SR", map[string]any{})
+	testdb.InsertContactURN(t, rt, testdb.Org1, testdb.Bob, "telegram:123456789", 2000, nil)
+
+	mocks := httpx.WithMocks(nil, map[string][]*httpx.MockResponse{
+		"http://localhost:8080/ci/event/send": {
+			httpx.NewMockResponse(200, nil, []byte(`{"log_uuid": "deddd249-2eab-4d4d-a1a0-1e7adda5ed4f"}`)),
+		},
+	})
+	rt.HTTP.Services.Transport = mocks
+
+	testsuite.RunWebTests(t, rt, "testdata/typing.json")
+
+	// the telegram case should have resulted in exactly one event send call to courier
+	assert.False(t, mocks.HasUnused(), "expected typing event to be sent to courier")
 }
 
 func TestDelete(t *testing.T) {

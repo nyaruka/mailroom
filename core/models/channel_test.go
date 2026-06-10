@@ -97,6 +97,29 @@ func TestChannels(t *testing.T) {
 	}
 }
 
+func TestChannelFeatures(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	defer testsuite.Reset(t, rt, testsuite.ResetData)
+
+	tg := testdb.InsertChannel(t, rt, testdb.Org1, "TG", "Telegram", "mybot", []string{"telegram"}, "SR", map[string]any{})
+	exPlain := testdb.InsertChannel(t, rt, testdb.Org1, "EX", "External", "1234", []string{"tel"}, "SR", map[string]any{})
+	exTyping := testdb.InsertChannel(t, rt, testdb.Org1, "EX", "External With Typing", "2345", []string{"tel"}, "SR", map[string]any{"send_typing_url": "http://console.local/typing"})
+
+	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, 1, models.RefreshChannels)
+	require.NoError(t, err)
+
+	assertFeatures := func(ch *testdb.Channel, expected []assets.ChannelFeature) {
+		channel := oa.ChannelByUUID(ch.UUID)
+		require.NotNil(t, channel)
+		assert.Equal(t, expected, channel.Features())
+	}
+
+	assertFeatures(tg, []assets.ChannelFeature{models.ChannelFeatureTyping})
+	assertFeatures(exPlain, []assets.ChannelFeature{})
+	assertFeatures(exTyping, []assets.ChannelFeature{models.ChannelFeatureTyping})
+}
+
 func TestGetChannelByID(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 

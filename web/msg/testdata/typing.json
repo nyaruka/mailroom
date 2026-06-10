@@ -1,0 +1,46 @@
+[
+    {
+        "label": "illegal method",
+        "method": "GET",
+        "path": "/mi/msg/typing",
+        "status": 405,
+        "response": {
+            "error": "illegal method: GET"
+        }
+    },
+    {
+        "label": "invalid org_id",
+        "method": "POST",
+        "path": "/mi/msg/typing",
+        "body": {
+            "org_id": 1234,
+            "contact_id": 10000
+        },
+        "status": 500,
+        "response": {
+            "error": "error loading org assets: error loading environment for org 1234: no org with id: 1234"
+        }
+    },
+    {
+        "label": "noop for contact whose preferred channel doesn't support typing indicators",
+        "method": "POST",
+        "path": "/mi/msg/typing",
+        "body": {
+            "org_id": 1,
+            "contact_id": 10000
+        },
+        "status": 200,
+        "response": {}
+    },
+    {
+        "label": "typing indicator sent to courier for contact whose preferred channel is telegram",
+        "method": "POST",
+        "path": "/mi/msg/typing",
+        "body": {
+            "org_id": 1,
+            "contact_id": 10001
+        },
+        "status": 200,
+        "response": {}
+    }
+]
