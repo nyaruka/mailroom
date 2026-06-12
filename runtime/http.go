@@ -61,11 +61,30 @@ func newBaseTransport() *http.Transport {
 // Tests can replace the returned client's Transport (e.g. with httpx.WithMocks) to intercept webhook calls.
 func newWebhookClient(cfg *Config) *http.Client {
 	access := httpx.NewAccessConfig(10*time.Second, cfg.DisallowedIPs, cfg.DisallowedNets)
-	inner := &http.Client{Transport: httpx.WithAccessControl(newWebhookTransport(cfg), access)}
+	// retries sit inside access control so an SSRF-blocked host (which short-circuits with a nil response) isn't
+	// retried, while a genuine connection failure past the check is
+	transport := httpx.WithAccessControl(httpx.WithRetries(newWebhookTransport(cfg), webhookRetries(cfg)), access)
+	inner := &http.Client{Transport: transport}
 	return &http.Client{
 		Transport: &webhookTransport{client: inner},
 		Timeout:   time.Duration(cfg.WebhooksTimeout) * time.Millisecond,
 	}
+}
+
+// webhookRetries builds the retry policy for webhook calls, or nil (single attempt) when disabled. Retries are scoped
+// to connection-establishment failures (response == nil) so a webhook the origin received and responded to is never
+// replayed — recovering only the stale-keepalive / proxy-reset race where the request never reached the origin.
+func webhookRetries(cfg *Config) *httpx.RetryConfig {
+	if cfg.WebhooksMaxRetries <= 0 || cfg.WebhooksInitialBackoff <= 0 {
+		return nil // guard: NewExponentialRetries with a zero backoff panics in Backoff()
+	}
+	r := httpx.NewExponentialRetries(
+		time.Duration(cfg.WebhooksInitialBackoff)*time.Millisecond,
+		cfg.WebhooksMaxRetries,
+		cfg.WebhooksBackoffJitter,
+	)
+	r.ShouldRetry = func(_ *http.Request, resp *http.Response, _ time.Duration) bool { return resp == nil }
+	return r
 }
 
 // newWebhookTransport builds the base transport for webhook calls, honoring the configured proxy. When
@@ -76,6 +95,10 @@ func newWebhookTransport(cfg *Config) *http.Transport {
 
 	if cfg.WebhookProxyURLParsed != nil {
 		t.Proxy = http.ProxyURL(cfg.WebhookProxyURLParsed)
+		// Don't reuse a pooled connection to the proxy: it (or a middlebox) may have closed it while idle, and Go
+		// can't replay the non-idempotent POST that lands on the dead socket — it surfaces as a connection_error. A
+		// fresh connection per proxied call eliminates that stale-reuse race.
+		t.DisableKeepAlives = true
 	} else {
 		t.Proxy = nil
 	}

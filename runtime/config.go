@@ -121,6 +121,9 @@ func NewDefaultConfig() *Config {
 		WorkerOwnerLimit: 0.5,
 
 		WebhooksTimeout:              15000,
+		WebhooksMaxRetries:           2,
+		WebhooksInitialBackoff:       500, // ms → exponential backoffs ~[500ms, 1s]
+		WebhooksBackoffJitter:        0.1,
 		WebhooksMaxBodyBytes:         256 * 1024, // 256 KiB
 		WebhooksHealthyResponseLimit: 10000,
 
