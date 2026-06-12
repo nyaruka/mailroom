@@ -40,7 +40,7 @@ type Config struct {
 	WorkersThrottled int     `help:"the number of workers for the throttled task queue (set to 0 to disable processing of throttled tasks on this node)"`
 	WorkerOwnerLimit float64 `help:"the maximum number of workers, across nodes, available to a single owner, as a fraction of the per node worker counts"`
 
-	WebhooksTimeout              int     `help:"the timeout in milliseconds for webhook calls from engine"`
+	WebhooksTimeout              int     `help:"the timeout in milliseconds bounding the whole webhook call from engine, including any retries and their backoffs"`
 	WebhooksMaxRetries           int     `help:"the number of times to retry a failed webhook call"`
 	WebhooksMaxBodyBytes         int     `help:"the maximum size of bytes to a webhook call response body"`
 	WebhooksInitialBackoff       int     `help:"the initial backoff in milliseconds when retrying a failed webhook call"`

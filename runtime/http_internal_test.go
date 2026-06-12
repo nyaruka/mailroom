@@ -2,10 +2,13 @@ package runtime
 
 import (
 	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/nyaruka/gocommon/httpx"
 	"github.com/stretchr/testify/assert"
@@ -121,4 +124,75 @@ type countingTransport struct {
 func (t *countingTransport) RoundTrip(*http.Request) (*http.Response, error) {
 	t.calls++
 	return t.resp, nil
+}
+
+// bodyRecordingTransport reads and records the request body on every call, returning a connection error (nil
+// response) for the first failures calls before succeeding. Used to verify the POST body is replayed on retries.
+type bodyRecordingTransport struct {
+	failures int
+	calls    int
+	bodies   []string
+}
+
+func (t *bodyRecordingTransport) RoundTrip(req *http.Request) (*http.Response, error) {
+	t.calls++
+	b, _ := io.ReadAll(req.Body)
+	t.bodies = append(t.bodies, string(b))
+	if t.calls <= t.failures {
+		return nil, errors.New("connection reset")
+	}
+	return &http.Response{StatusCode: http.StatusOK, Body: http.NoBody, Header: http.Header{}}, nil
+}
+
+func TestWebhookClientReplaysPOSTBodyOnRetry(t *testing.T) {
+	cfg := NewDefaultConfig()
+	cfg.WebhooksInitialBackoff = 1 // keep the test fast
+	retries := webhookRetries(cfg)
+
+	// build a POST with a body the same way goflow's webhook service does (a strings/bytes reader, so net/http
+	// populates GetBody) — retry correctness for production webhooks depends on that body being rewound per attempt
+	const payload = `{"hello":"world"}`
+	rec := &bodyRecordingTransport{failures: 2}
+	rt := httpx.WithRetries(rec, retries)
+
+	req, err := http.NewRequest("POST", "http://example.org/hook", strings.NewReader(payload))
+	require.NoError(t, err)
+	require.NotNil(t, req.GetBody, "request must carry GetBody for retries to rewind the body")
+
+	resp, err := rt.RoundTrip(req)
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	require.Equal(t, 3, rec.calls, "should have retried twice before succeeding")
+	for i, b := range rec.bodies {
+		assert.Equal(t, payload, b, "attempt %d should resend the full body, not an empty one", i+1)
+	}
+}
+
+func TestWebhookClientDoesNotRetrySSRFBlocks(t *testing.T) {
+	cfg := NewDefaultConfig()
+	// block loopback, and make any retry painfully slow: with the correct wrap order (access control outside
+	// retries) a blocked host fast-fails in milliseconds; if the order is ever inverted, the retry layer would see
+	// access control's nil response and burn the 5s+ backoff budget before failing, which this timing bound catches
+	_, nets, err := httpx.ParseNetworks("127.0.0.0/8")
+	require.NoError(t, err)
+	cfg.DisallowedNets = nets
+	cfg.WebhooksMaxRetries = 2
+	cfg.WebhooksInitialBackoff = 5000
+
+	server := httptest.NewServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
+		t.Error("a disallowed host must never be dialed")
+	}))
+	defer server.Close()
+
+	client := newWebhookClient(cfg) // server listens on 127.0.0.1, so its URL host is blocked
+	req, err := http.NewRequest("POST", server.URL, strings.NewReader("x"))
+	require.NoError(t, err)
+
+	start := time.Now()
+	_, err = client.Do(req)
+	elapsed := time.Since(start)
+
+	require.Error(t, err, "a request to a disallowed host must fail")
+	assert.ErrorIs(t, err, httpx.ErrAccessConfig)
+	assert.Less(t, elapsed, 2*time.Second, "an SSRF block must fast-fail, not consume the retry backoff budget")
 }

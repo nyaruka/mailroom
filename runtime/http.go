@@ -67,13 +67,17 @@ func newWebhookClient(cfg *Config) *http.Client {
 	inner := &http.Client{Transport: transport}
 	return &http.Client{
 		Transport: &webhookTransport{client: inner},
-		Timeout:   time.Duration(cfg.WebhooksTimeout) * time.Millisecond,
+		// this timeout bounds the whole call chain — initial attempt plus any retry attempts and their backoffs — so
+		// for slow origins a large WebhooksMaxRetries can be truncated to fewer effective attempts
+		Timeout: time.Duration(cfg.WebhooksTimeout) * time.Millisecond,
 	}
 }
 
 // webhookRetries builds the retry policy for webhook calls, or nil (single attempt) when disabled. Retries are scoped
-// to connection-establishment failures (response == nil) so a webhook the origin received and responded to is never
-// replayed — recovering only the stale-keepalive / proxy-reset race where the request never reached the origin.
+// to failures where no response was received (response == nil). This primarily recovers the stale-keepalive /
+// proxy-reset race where the request never reached the origin, but also covers post-send failures (response cut
+// mid-read, client timeout after the request was written) which will be replayed — so retried webhooks are
+// at-least-once, not exactly-once. Any request the origin actually responded to (even a 5xx) is never replayed.
 func webhookRetries(cfg *Config) *httpx.RetryConfig {
 	if cfg.WebhooksMaxRetries <= 0 || cfg.WebhooksInitialBackoff <= 0 {
 		return nil // guard: NewExponentialRetries with a zero backoff panics in Backoff()
