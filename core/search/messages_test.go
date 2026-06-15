@@ -2,7 +2,9 @@ package search_test
 
 import (
 	"testing"
+	"time"
 
+	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/search"
@@ -16,6 +18,10 @@ func TestSearchMessages(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetElastic|testsuite.ResetDynamo)
+
+	// pin the clock to just after the message fixtures so they stay within the search's rolling time window
+	defer dates.SetNowFunc(time.Now)
+	dates.SetNowFunc(dates.NewFixedNow(time.Date(2025, 12, 16, 0, 0, 0, 0, time.UTC)))
 
 	testdb.InsertIncomingMsg(t, rt, testdb.Org1, "019b21e1-ba00-7000-8000-000000000001", testdb.TwilioChannel, testdb.Ann, "hello world", models.MsgStatusHandled, "")
 
