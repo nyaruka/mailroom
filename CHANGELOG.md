@@ -1,3 +1,7 @@
+v26.2.0 (2026-06-15)
+-------------------------
+ * Update dependencies including phonenumbers to v2.0.1
+
 v26.1.132 (2026-06-04)
 -------------------------
  * Update to goflow v0.277.3 and gocommon v1.83.0 and rework HTTP clients
