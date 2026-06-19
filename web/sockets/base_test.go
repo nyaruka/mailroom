@@ -1,4 +1,4 @@
-package realtime_test
+package sockets_test
 
 import (
 	"testing"

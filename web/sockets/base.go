@@ -1,4 +1,4 @@
-package realtime
+package sockets
 
 import (
 	"context"
@@ -16,8 +16,8 @@ import (
 )
 
 func init() {
-	web.InternalRoute(http.MethodPost, "/realtime/subscribe", web.JSONPayload(handleSubscribe))
-	web.InternalRoute(http.MethodPost, "/realtime/sub_refresh", web.JSONPayload(handleSubRefresh))
+	web.InternalRoute(http.MethodPost, "/sockets/subscribe", web.JSONPayload(handleSubscribe))
+	web.InternalRoute(http.MethodPost, "/sockets/sub_refresh", web.JSONPayload(handleSubRefresh))
 }
 
 const (

@@ -2,7 +2,7 @@
     {
         "label": "still allowed: extend the subscription",
         "method": "POST",
-        "path": "/mi/realtime/sub_refresh",
+        "path": "/mi/sockets/sub_refresh",
         "body": {
             "client": "conn-allowed",
             "user": "56",
@@ -22,7 +22,7 @@
     {
         "label": "no longer allowed: contact belongs to another org",
         "method": "POST",
-        "path": "/mi/realtime/sub_refresh",
+        "path": "/mi/sockets/sub_refresh",
         "body": {
             "client": "conn-otherorg",
             "user": "56",
@@ -42,7 +42,7 @@
     {
         "label": "no longer allowed: unknown channel namespace",
         "method": "POST",
-        "path": "/mi/realtime/sub_refresh",
+        "path": "/mi/sockets/sub_refresh",
         "body": {
             "client": "conn-unknownns",
             "user": "56",
@@ -62,7 +62,7 @@
     {
         "label": "no usable identity: refresh expires (never disconnects)",
         "method": "POST",
-        "path": "/mi/realtime/sub_refresh",
+        "path": "/mi/sockets/sub_refresh",
         "body": {
             "client": "conn-noidentity",
             "user": "56",

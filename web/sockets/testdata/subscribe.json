@@ -2,7 +2,7 @@
     {
         "label": "allowed: contact belongs to the meta org and is active",
         "method": "POST",
-        "path": "/mi/realtime/subscribe",
+        "path": "/mi/sockets/subscribe",
         "body": {
             "client": "conn-allowed",
             "user": "56",
@@ -22,7 +22,7 @@
     {
         "label": "denied: contact belongs to another org",
         "method": "POST",
-        "path": "/mi/realtime/subscribe",
+        "path": "/mi/sockets/subscribe",
         "body": {
             "client": "conn-otherorg",
             "user": "56",
@@ -43,7 +43,7 @@
     {
         "label": "denied: contact does not exist",
         "method": "POST",
-        "path": "/mi/realtime/subscribe",
+        "path": "/mi/sockets/subscribe",
         "body": {
             "client": "conn-nonexistent",
             "user": "56",
@@ -64,7 +64,7 @@
     {
         "label": "denied: malformed contact uuid",
         "method": "POST",
-        "path": "/mi/realtime/subscribe",
+        "path": "/mi/sockets/subscribe",
         "body": {
             "client": "conn-malformed",
             "user": "56",
@@ -85,7 +85,7 @@
     {
         "label": "denied: unknown channel namespace",
         "method": "POST",
-        "path": "/mi/realtime/subscribe",
+        "path": "/mi/sockets/subscribe",
         "body": {
             "client": "conn-unknownns",
             "user": "56",
@@ -106,7 +106,7 @@
     {
         "label": "denied: contact is released/inactive",
         "method": "POST",
-        "path": "/mi/realtime/subscribe",
+        "path": "/mi/sockets/subscribe",
         "body": {
             "client": "conn-inactive",
             "user": "56",
@@ -127,7 +127,7 @@
     {
         "label": "disconnect: no meta at all",
         "method": "POST",
-        "path": "/mi/realtime/subscribe",
+        "path": "/mi/sockets/subscribe",
         "body": {
             "client": "conn-nometa",
             "user": "56",
@@ -144,7 +144,7 @@
     {
         "label": "disconnect: meta has empty org uuid",
         "method": "POST",
-        "path": "/mi/realtime/subscribe",
+        "path": "/mi/sockets/subscribe",
         "body": {
             "client": "conn-noorg",
             "user": "56",
@@ -165,7 +165,7 @@
     {
         "label": "disconnect: meta has empty user uuid",
         "method": "POST",
-        "path": "/mi/realtime/subscribe",
+        "path": "/mi/sockets/subscribe",
         "body": {
             "client": "conn-nouser",
             "user": "56",

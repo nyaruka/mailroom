@@ -1,4 +1,4 @@
-package realtime
+package sockets
 
 import (
 	"context"
