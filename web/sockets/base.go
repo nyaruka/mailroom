@@ -23,10 +23,14 @@ const (
 	// server to call sub_refresh before it lapses so we can re-authorize.
 	subscribeWindow = 60 * time.Second
 
-	// subscribeTTL is how long a subscription lives in the valkey index. It's comfortably larger than
-	// subscribeWindow so an entry survives between refreshes but a connection that stops refreshing
-	// (e.g. the browser went away) is garbage collected.
-	subscribeTTL = 90 * time.Second
+	// subscribeTTL is how long a channel's presence key survives without a refresh. It must comfortably
+	// exceed subscribeWindow plus the realtime server's refresh delay: the server drives sub_refresh from
+	// the expire_at we return (subscribeWindow), but Centrifugo's docs note refresh requests can be delayed
+	// up to ~1 minute. So consecutive refreshes can be as much as subscribeWindow + ~60s apart; 150s (60s
+	// window + ~60s delay + buffer) keeps the key alive across that gap, while still expiring within a
+	// couple of minutes once the last subscriber stops refreshing (there's no unsubscribe callback, so this
+	// TTL is the only GC).
+	subscribeTTL = 150 * time.Second
 
 	// codeForbidden is the error code returned for a denied subscription (keeps the connection alive).
 	codeForbidden = 403
