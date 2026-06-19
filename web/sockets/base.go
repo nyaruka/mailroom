@@ -3,22 +3,15 @@ package sockets
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"strings"
 	"time"
 
-	"github.com/nyaruka/gocommon/dates"
+	valkey "github.com/gomodule/redigo/redis"
 	"github.com/nyaruka/gocommon/uuids"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/runtime"
-	"github.com/nyaruka/mailroom/v26/web"
 )
-
-func init() {
-	web.InternalRoute(http.MethodPost, "/sockets/subscribe", web.JSONPayload(handleSubscribe))
-	web.InternalRoute(http.MethodPost, "/sockets/sub_refresh", web.JSONPayload(handleSubRefresh))
-}
 
 const (
 	// chatNamespace is the only client-subscribable channel namespace: a contact's chat history,
@@ -78,51 +71,6 @@ type proxyError struct {
 type proxyDisconnect struct {
 	Code   int    `json:"code"`
 	Reason string `json:"reason"`
-}
-
-// handleSubscribe authorizes a client-initiated subscription. On allow it records the subscription in the
-// valkey index and returns an expire_at so the realtime server schedules a sub_refresh. On deny it returns
-// a forbidden error (connection stays up); with no usable identity it disconnects the connection.
-func handleSubscribe(ctx context.Context, rt *runtime.Runtime, r *proxyRequest) (any, int, error) {
-	now := dates.Now()
-
-	auth, err := authorize(ctx, rt, r.Meta, r.Channel)
-	if err != nil {
-		return nil, 0, err
-	}
-
-	switch auth {
-	case authAllowed:
-		if err := indexSubscription(ctx, rt, now, r.Channel, r.Client); err != nil {
-			return nil, 0, err
-		}
-		return allowed(now), http.StatusOK, nil
-	case authNoIdentity:
-		return disconnected(), http.StatusOK, nil
-	default:
-		return forbidden(), http.StatusOK, nil
-	}
-}
-
-// handleSubRefresh re-authorizes an existing subscription, since access may have been revoked since it was
-// created. Refresh responses are result-only: if still allowed we extend the index entry and return a fresh
-// expire_at, otherwise we mark the subscription expired so it's dropped.
-func handleSubRefresh(ctx context.Context, rt *runtime.Runtime, r *proxyRequest) (any, int, error) {
-	now := dates.Now()
-
-	auth, err := authorize(ctx, rt, r.Meta, r.Channel)
-	if err != nil {
-		return nil, 0, err
-	}
-
-	if auth != authAllowed {
-		return expired(), http.StatusOK, nil
-	}
-
-	if err := indexSubscription(ctx, rt, now, r.Channel, r.Client); err != nil {
-		return nil, 0, err
-	}
-	return allowed(now), http.StatusOK, nil
 }
 
 // allowed builds the result for a permitted (re)subscription, setting expire_at so the realtime
@@ -190,4 +138,36 @@ func authorize(ctx context.Context, rt *runtime.Runtime, meta connectionMeta, ch
 	}
 
 	return authAllowed, nil
+}
+
+// subsKey is the valkey key of the sorted set of active subscriptions to a channel.
+func subsKey(channel string) string {
+	return fmt.Sprintf("subs:%s", channel)
+}
+
+// indexSubscription records (or, when called from sub_refresh, extends) a client's subscription to a channel,
+// so the backend can answer "which connections are subscribed to channel X". Each channel is a sorted set
+// keyed by subsKey, whose members are connection ids scored by their expiry. We:
+//
+//   - ZADD the member with a score of now+TTL (extending it if already present),
+//   - lazily prune members whose expiry has passed with ZREMRANGEBYSCORE, and
+//   - set an EXPIRE on the whole key as a backstop so a channel nobody refreshes vanishes.
+//
+// The realtime server has no unsubscribe/disconnect callback, so this TTL + periodic refresh is the only
+// reliable way to garbage collect subscriptions; the per-member score gives accurate per-connection expiry.
+func indexSubscription(ctx context.Context, rt *runtime.Runtime, now time.Time, channel, client string) error {
+	key := subsKey(channel)
+
+	vc := rt.VK.Get()
+	defer vc.Close()
+
+	vc.Send("MULTI")
+	vc.Send("ZADD", key, now.Add(subscribeTTL).Unix(), client)
+	vc.Send("ZREMRANGEBYSCORE", key, 0, now.Unix())
+	vc.Send("EXPIRE", key, int(subscribeTTL/time.Second))
+	if _, err := valkey.DoContext(vc, ctx, "EXEC"); err != nil {
+		return fmt.Errorf("error updating subscription index for %s: %w", channel, err)
+	}
+
+	return nil
 }
