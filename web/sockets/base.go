@@ -39,10 +39,10 @@ const (
 // proxyRequest is the subset of a realtime server subscribe/sub_refresh proxy request we use. The server
 // forwards the connection meta (set when the connection was established) at the top level on every request.
 type proxyRequest struct {
-	Client  string         `json:"client"`  // the connection id
-	User    string         `json:"user"`    // the connection's user id
-	Channel string         `json:"channel"` // the channel being subscribed to / refreshed
-	Meta    connectionMeta `json:"meta"`    // the connection's identity, set when it was established
+	Client  string         `json:"client"  validate:"required"` // the connection id
+	User    string         `json:"user"`                        // the connection's user id
+	Channel string         `json:"channel" validate:"required"` // the channel being subscribed to / refreshed
+	Meta    connectionMeta `json:"meta"`                        // the connection's identity, set when it was established
 }
 
 // connectionMeta is the identity stashed in the connection meta when the connection was established.
@@ -105,7 +105,8 @@ const (
 
 // authorize implements the default-deny allowlist for client subscriptions. The only permitted channel is a
 // contact's chat history, allowed when the contact belongs to the org identified by the connection meta and
-// is active. The org comes from the meta, never from the channel.
+// isn't released (soft-deleted). Blocked/stopped/archived contacts still have viewable history, so they're
+// allowed too. The org comes from the meta, never from the channel.
 func authorize(ctx context.Context, rt *runtime.Runtime, meta connectionMeta, channel string) (authResult, error) {
 	// a connection with no org/user in its meta was never authenticated by the connect proxy
 	if meta.OrgUUID == "" || meta.UserUUID == "" {
@@ -122,16 +123,17 @@ func authorize(ctx context.Context, rt *runtime.Runtime, meta connectionMeta, ch
 	// resolve the org from the connection meta
 	orgID, err := models.GetOrgIDFromUUID(ctx, rt.DB.DB, meta.OrgUUID)
 	if err != nil {
-		return authDenied, fmt.Errorf("error resolving org from uuid: %w", err)
+		return 0, fmt.Errorf("error resolving org from uuid: %w", err)
 	}
 	if orgID == models.NilOrgID {
 		return authDenied, nil
 	}
 
-	// allow only if the contact belongs to that org and is active (the lookup excludes released contacts)
+	// allow only if the contact belongs to that org and isn't released (the lookup excludes soft-deleted
+	// contacts; blocked/stopped/archived ones are still returned and remain viewable)
 	ids, err := models.GetContactIDsFromUUIDs(ctx, rt.DB, orgID, []flows.ContactUUID{contactUUID})
 	if err != nil {
-		return authDenied, fmt.Errorf("error looking up contact: %w", err)
+		return 0, fmt.Errorf("error looking up contact: %w", err)
 	}
 	if len(ids) == 0 {
 		return authDenied, nil
@@ -140,32 +142,23 @@ func authorize(ctx context.Context, rt *runtime.Runtime, meta connectionMeta, ch
 	return authAllowed, nil
 }
 
-// subsKey is the valkey key of the sorted set of active subscriptions to a channel.
-func subsKey(channel string) string {
-	return fmt.Sprintf("subs:%s", channel)
+// subKey is the valkey key recording that a single connection is subscribed to a channel, e.g.
+// "socket-subs:chat:<contact-uuid>:<client>". The subscribing user is stored as the value.
+func subKey(channel, client string) string {
+	return fmt.Sprintf("socket-subs:%s:%s", channel, client)
 }
 
-// indexSubscription records (or, when called from sub_refresh, extends) a client's subscription to a channel,
-// so the backend can answer "which connections are subscribed to channel X". Each channel is a sorted set
-// keyed by subsKey, whose members are connection ids scored by their expiry. We:
-//
-//   - ZADD the member with a score of now+TTL (extending it if already present),
-//   - lazily prune members whose expiry has passed with ZREMRANGEBYSCORE, and
-//   - set an EXPIRE on the whole key as a backstop so a channel nobody refreshes vanishes.
-//
-// The realtime server has no unsubscribe/disconnect callback, so this TTL + periodic refresh is the only
-// reliable way to garbage collect subscriptions; the per-member score gives accurate per-connection expiry.
-func indexSubscription(ctx context.Context, rt *runtime.Runtime, now time.Time, channel, client string) error {
-	key := subsKey(channel)
-
+// indexSubscription records (or, from sub_refresh, refreshes) that a client is subscribed to a channel, as
+// an individual key that expires on its own after subscribeTTL. The realtime server has no unsubscribe or
+// disconnect callback, so this TTL + periodic refresh is what garbage collects subscriptions whose
+// connection has gone away. There are never many subscriptions, so individual auto-expiring keys are
+// simpler than a per-channel index we'd have to prune ourselves.
+func indexSubscription(ctx context.Context, rt *runtime.Runtime, channel, client, user string) error {
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	vc.Send("MULTI")
-	vc.Send("ZADD", key, now.Add(subscribeTTL).Unix(), client)
-	vc.Send("ZREMRANGEBYSCORE", key, 0, now.Unix())
-	vc.Send("EXPIRE", key, int(subscribeTTL/time.Second))
-	if _, err := valkey.DoContext(vc, ctx, "EXEC"); err != nil {
+	ttl := int(subscribeTTL / time.Second)
+	if _, err := valkey.DoContext(vc, ctx, "SET", subKey(channel, client), user, "EX", ttl); err != nil {
 		return fmt.Errorf("error updating subscription index for %s: %w", channel, err)
 	}
 

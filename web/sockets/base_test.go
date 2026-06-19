@@ -18,22 +18,32 @@ func TestSubscribe(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetValkey)
 
-	// a released (inactive) contact in org1 - should be denied just like a non-existent one
+	// a released (soft-deleted) contact in org1 - should be denied like a non-existent one
 	released := testdb.InsertContact(
 		t, rt, testdb.Org1, "11111111-1111-4111-8111-111111111111", "Released", "eng", models.ContactStatusActive,
 	)
 	rt.DB.MustExec(`UPDATE contacts_contact SET is_active = FALSE WHERE id = $1`, released.ID)
+
+	// a blocked contact is still authorized - blocked/stopped/archived contacts keep viewable chat history
+	testdb.InsertContact(
+		t, rt, testdb.Org1, "22222222-2222-4222-8222-222222222222", "Blocked", "eng", models.ContactStatusBlocked,
+	)
 
 	testsuite.RunWebTests(t, rt, "testdata/subscribe.json")
 
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	// the one allowed subscribe recorded its connection in the channel's index...
-	assertvk.ZRange(t, vc, subsKey("chat:a393abc0-283d-4c9b-a1b3-641a035c34bf"), 0, -1, []string{"conn-allowed"})
+	annKey := subKey("chat:a393abc0-283d-4c9b-a1b3-641a035c34bf", "conn-allowed")
+	blockedKey := subKey("chat:22222222-2222-4222-8222-222222222222", "conn-blocked")
 
-	// ...and denied subscribes recorded nothing
-	assertvk.NotExists(t, vc, subsKey("chat:f6d20b72-f7d8-44dc-87f2-aae046dbff95"))
+	// the allowed subscribes each recorded their connection, valued with the subscribing user...
+	assertvk.Get(t, vc, annKey, "ad9fdf9f-56ab-422a-b77d-e3ec26091a25")
+	assertvk.Exists(t, vc, blockedKey)
+
+	// ...and the denied/disconnected subscribes (other org, missing, malformed uuid, unknown namespace,
+	// released contact, no/empty meta) wrote nothing - only the two allowed keys exist
+	assertvk.Keys(t, vc, "socket-subs:*", []string{annKey, blockedKey})
 }
 
 func TestSubRefresh(t *testing.T) {
@@ -46,8 +56,10 @@ func TestSubRefresh(t *testing.T) {
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	// the successful refresh recorded/extended the connection in the channel's index
-	assertvk.ZRange(t, vc, subsKey("chat:a393abc0-283d-4c9b-a1b3-641a035c34bf"), 0, -1, []string{"conn-allowed"})
+	// the successful refresh recorded/refreshed the connection's key; nothing else was written
+	key := subKey("chat:a393abc0-283d-4c9b-a1b3-641a035c34bf", "conn-allowed")
+	assertvk.Get(t, vc, key, "ad9fdf9f-56ab-422a-b77d-e3ec26091a25")
+	assertvk.Keys(t, vc, "socket-subs:*", []string{key})
 }
 
 func TestSubscriptionIndex(t *testing.T) {
@@ -58,35 +70,25 @@ func TestSubscriptionIndex(t *testing.T) {
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	t0 := time.Date(2025, 5, 4, 12, 0, 0, 0, time.UTC)
 	channel := "chat:a393abc0-283d-4c9b-a1b3-641a035c34bf"
-	key := subsKey(channel)
 
-	// subscribing connection A records it scored at now+TTL, with a key TTL backstop
-	require.NoError(t, indexSubscription(ctx, rt, t0, channel, "connA"))
-	assertvk.ZGetAll(t, vc, key, map[string]float64{"connA": float64(t0.Add(subscribeTTL).Unix())})
-	ttl, err := valkey.Int64(vc.Do("TTL", key))
+	// subscribing a connection writes its own key, valued with the user and expiring after the TTL
+	require.NoError(t, indexSubscription(ctx, rt, channel, "connA", "user-a"))
+	assertvk.Get(t, vc, subKey(channel, "connA"), "user-a")
+
+	ttl, err := valkey.Int64(vc.Do("TTL", subKey(channel, "connA")))
 	require.NoError(t, err)
 	assert.Greater(t, ttl, int64(0))
 	assert.LessOrEqual(t, ttl, int64(subscribeTTL/time.Second))
 
-	// a second connection B to the same channel is added alongside A
-	require.NoError(t, indexSubscription(ctx, rt, t0, channel, "connB"))
-	assertvk.ZGetAll(t, vc, key, map[string]float64{
-		"connA": float64(t0.Add(subscribeTTL).Unix()),
-		"connB": float64(t0.Add(subscribeTTL).Unix()),
-	})
+	// a second connection to the same channel is an independent key
+	require.NoError(t, indexSubscription(ctx, rt, channel, "connB", "user-b"))
+	assertvk.Keys(t, vc, "socket-subs:*", []string{subKey(channel, "connA"), subKey(channel, "connB")})
 
-	// refreshing A later extends its expiry score
-	t1 := t0.Add(30 * time.Second)
-	require.NoError(t, indexSubscription(ctx, rt, t1, channel, "connA"))
-	assertvk.ZScore(t, vc, key, "connA", float64(t1.Add(subscribeTTL).Unix()))
-
-	// a write well past B's expiry lazily prunes B while A (recently refreshed) survives
-	t2 := t0.Add(subscribeTTL + time.Second)
-	require.NoError(t, indexSubscription(ctx, rt, t2, channel, "connC"))
-	assertvk.ZGetAll(t, vc, key, map[string]float64{
-		"connA": float64(t1.Add(subscribeTTL).Unix()),
-		"connC": float64(t2.Add(subscribeTTL).Unix()),
-	})
+	// refreshing a connection keeps its key and resets the TTL
+	require.NoError(t, indexSubscription(ctx, rt, channel, "connA", "user-a"))
+	ttl, err = valkey.Int64(vc.Do("TTL", subKey(channel, "connA")))
+	require.NoError(t, err)
+	assert.Greater(t, ttl, int64(0))
+	assert.LessOrEqual(t, ttl, int64(subscribeTTL/time.Second))
 }

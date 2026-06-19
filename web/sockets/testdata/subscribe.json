@@ -20,6 +20,26 @@
         }
     },
     {
+        "label": "allowed: blocked contact still has viewable chat history",
+        "method": "POST",
+        "path": "/mi/sockets/subscribe",
+        "body": {
+            "client": "conn-blocked",
+            "user": "56",
+            "channel": "chat:22222222-2222-4222-8222-222222222222",
+            "meta": {
+                "org_uuid": "bf0514a5-9407-44c9-b0f9-3f36f9c18414",
+                "user_uuid": "ad9fdf9f-56ab-422a-b77d-e3ec26091a25"
+            }
+        },
+        "status": 200,
+        "response": {
+            "result": {
+                "expire_at": 1746361906
+            }
+        }
+    },
+    {
         "label": "denied: contact belongs to another org",
         "method": "POST",
         "path": "/mi/sockets/subscribe",
@@ -181,6 +201,22 @@
                 "code": 4401,
                 "reason": "unauthorized"
             }
+        }
+    },
+    {
+        "label": "bad request: channel and client are required",
+        "method": "POST",
+        "path": "/mi/sockets/subscribe",
+        "body": {
+            "user": "56",
+            "meta": {
+                "org_uuid": "bf0514a5-9407-44c9-b0f9-3f36f9c18414",
+                "user_uuid": "ad9fdf9f-56ab-422a-b77d-e3ec26091a25"
+            }
+        },
+        "status": 400,
+        "response": {
+            "error": "request failed validation: field 'client' is required, field 'channel' is required"
         }
     }
 ]
