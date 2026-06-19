@@ -34,15 +34,15 @@ func TestSubscribe(t *testing.T) {
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	annKey := subKey("chat:a393abc0-283d-4c9b-a1b3-641a035c34bf", "conn-allowed")
-	blockedKey := subKey("chat:22222222-2222-4222-8222-222222222222", "conn-blocked")
+	annKey := subKey("chat:a393abc0-283d-4c9b-a1b3-641a035c34bf")
+	blockedKey := subKey("chat:22222222-2222-4222-8222-222222222222")
 
-	// the allowed subscribes each recorded their connection, valued with the subscribing user...
-	assertvk.Get(t, vc, annKey, "ad9fdf9f-56ab-422a-b77d-e3ec26091a25")
+	// the allowed subscribes marked their contact's chat channel as having a subscriber...
+	assertvk.Exists(t, vc, annKey)
 	assertvk.Exists(t, vc, blockedKey)
 
 	// ...and the denied/disconnected subscribes (other org, missing, malformed uuid, unknown namespace,
-	// released contact, no/empty meta) wrote nothing - only the two allowed keys exist
+	// released contact, no/empty meta) wrote nothing - only the two allowed channels exist
 	assertvk.Keys(t, vc, "socket-subs:*", []string{annKey, blockedKey})
 }
 
@@ -56,9 +56,9 @@ func TestSubRefresh(t *testing.T) {
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	// the successful refresh recorded/refreshed the connection's key; nothing else was written
-	key := subKey("chat:a393abc0-283d-4c9b-a1b3-641a035c34bf", "conn-allowed")
-	assertvk.Get(t, vc, key, "ad9fdf9f-56ab-422a-b77d-e3ec26091a25")
+	// the successful refresh kept the channel marked; nothing else was written
+	key := subKey("chat:a393abc0-283d-4c9b-a1b3-641a035c34bf")
+	assertvk.Exists(t, vc, key)
 	assertvk.Keys(t, vc, "socket-subs:*", []string{key})
 }
 
@@ -70,25 +70,23 @@ func TestSubscriptionIndex(t *testing.T) {
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	channel := "chat:a393abc0-283d-4c9b-a1b3-641a035c34bf"
+	chat1 := "chat:a393abc0-283d-4c9b-a1b3-641a035c34bf"
+	chat2 := "chat:b699a406-7e44-49be-9f01-1a82893e8a10"
 
-	// subscribing a connection writes its own key, valued with the user and expiring after the TTL
-	require.NoError(t, indexSubscription(ctx, rt, channel, "connA", "user-a"))
-	assertvk.Get(t, vc, subKey(channel, "connA"), "user-a")
+	// a subscription marks its channel present with a TTL
+	require.NoError(t, indexSubscription(ctx, rt, chat1))
+	assertvk.Exists(t, vc, subKey(chat1))
 
-	ttl, err := valkey.Int64(vc.Do("TTL", subKey(channel, "connA")))
+	ttl, err := valkey.Int64(vc.Do("TTL", subKey(chat1)))
 	require.NoError(t, err)
 	assert.Greater(t, ttl, int64(0))
 	assert.LessOrEqual(t, ttl, int64(subscribeTTL/time.Second))
 
-	// a second connection to the same channel is an independent key
-	require.NoError(t, indexSubscription(ctx, rt, channel, "connB", "user-b"))
-	assertvk.Keys(t, vc, "socket-subs:*", []string{subKey(channel, "connA"), subKey(channel, "connB")})
+	// a second subscriber to the same channel keeps it a single key (we track presence, not who)
+	require.NoError(t, indexSubscription(ctx, rt, chat1))
+	assertvk.Keys(t, vc, "socket-subs:*", []string{subKey(chat1)})
 
-	// refreshing a connection keeps its key and resets the TTL
-	require.NoError(t, indexSubscription(ctx, rt, channel, "connA", "user-a"))
-	ttl, err = valkey.Int64(vc.Do("TTL", subKey(channel, "connA")))
-	require.NoError(t, err)
-	assert.Greater(t, ttl, int64(0))
-	assert.LessOrEqual(t, ttl, int64(subscribeTTL/time.Second))
+	// a different channel is a separate key
+	require.NoError(t, indexSubscription(ctx, rt, chat2))
+	assertvk.Keys(t, vc, "socket-subs:*", []string{subKey(chat1), subKey(chat2)})
 }

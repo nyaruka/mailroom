@@ -39,7 +39,7 @@ const (
 // proxyRequest is the subset of a realtime server subscribe/sub_refresh proxy request we use. The server
 // forwards the connection meta (set when the connection was established) at the top level on every request.
 type proxyRequest struct {
-	Client  string         `json:"client"  validate:"required"` // the connection id
+	Client  string         `json:"client"`                      // the connection id
 	User    string         `json:"user"`                        // the connection's user id
 	Channel string         `json:"channel" validate:"required"` // the channel being subscribed to / refreshed
 	Meta    connectionMeta `json:"meta"`                        // the connection's identity, set when it was established
@@ -142,23 +142,24 @@ func authorize(ctx context.Context, rt *runtime.Runtime, meta connectionMeta, ch
 	return authAllowed, nil
 }
 
-// subKey is the valkey key recording that a single connection is subscribed to a channel, e.g.
-// "socket-subs:chat:<contact-uuid>:<client>". The subscribing user is stored as the value.
-func subKey(channel, client string) string {
-	return fmt.Sprintf("socket-subs:%s:%s", channel, client)
+// subKey is the valkey key marking that a channel has at least one active subscription, e.g.
+// "socket-subs:chat:<contact-uuid>".
+func subKey(channel string) string {
+	return fmt.Sprintf("socket-subs:%s", channel)
 }
 
-// indexSubscription records (or, from sub_refresh, refreshes) that a client is subscribed to a channel, as
-// an individual key that expires on its own after subscribeTTL. The realtime server has no unsubscribe or
-// disconnect callback, so this TTL + periodic refresh is what garbage collects subscriptions whose
-// connection has gone away. There are never many subscriptions, so individual auto-expiring keys are
-// simpler than a per-channel index we'd have to prune ourselves.
-func indexSubscription(ctx context.Context, rt *runtime.Runtime, channel, client, user string) error {
+// indexSubscription marks a channel as having at least one active subscription, with a TTL. Every subscribe
+// and sub_refresh from any connection re-sets the same per-channel key, so the key stays present as long as
+// some subscriber keeps refreshing it; once the last one goes away (the realtime server has no unsubscribe
+// or disconnect callback) nobody refreshes it and it expires. The backend only needs to know whether a
+// contact's chat might have subscribers - not who or how many - so a single presence key per channel is all
+// we keep.
+func indexSubscription(ctx context.Context, rt *runtime.Runtime, channel string) error {
 	vc := rt.VK.Get()
 	defer vc.Close()
 
 	ttl := int(subscribeTTL / time.Second)
-	if _, err := valkey.DoContext(vc, ctx, "SET", subKey(channel, client), user, "EX", ttl); err != nil {
+	if _, err := valkey.DoContext(vc, ctx, "SET", subKey(channel), "1", "EX", ttl); err != nil {
 		return fmt.Errorf("error updating subscription index for %s: %w", channel, err)
 	}
 

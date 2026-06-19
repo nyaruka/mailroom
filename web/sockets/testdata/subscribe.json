@@ -204,10 +204,11 @@
         }
     },
     {
-        "label": "bad request: channel and client are required",
+        "label": "bad request: channel is required",
         "method": "POST",
         "path": "/mi/sockets/subscribe",
         "body": {
+            "client": "conn-nochannel",
             "user": "56",
             "meta": {
                 "org_uuid": "bf0514a5-9407-44c9-b0f9-3f36f9c18414",
@@ -216,7 +217,7 @@
         },
         "status": 400,
         "response": {
-            "error": "request failed validation: field 'client' is required, field 'channel' is required"
+            "error": "request failed validation: field 'channel' is required"
         }
     }
 ]

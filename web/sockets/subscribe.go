@@ -26,7 +26,7 @@ func handleSubscribe(ctx context.Context, rt *runtime.Runtime, r *proxyRequest) 
 
 	switch auth {
 	case authAllowed:
-		if err := indexSubscription(ctx, rt, r.Channel, r.Client, r.Meta.UserUUID); err != nil {
+		if err := indexSubscription(ctx, rt, r.Channel); err != nil {
 			return nil, 0, err
 		}
 		return allowed(now), http.StatusOK, nil
