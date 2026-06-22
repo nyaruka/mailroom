@@ -107,7 +107,7 @@ func NewDefaultConfig() *Config {
 		DBPoolSize: 36,
 		Valkey:     "valkey://valkey:6379/15",
 
-		PublicAddress:   "localhost",
+		PublicAddress:   "",
 		PublicPort:      8090,
 		InternalAddress: "localhost",
 		InternalPort:    8091,
