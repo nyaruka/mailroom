@@ -1,3 +1,8 @@
+v26.3.0 (2026-06-22)
+-------------------------
+ * Default to empty public bind host
+ * Add realtime subscribe/sub_refresh proxy endpoints
+
 v26.2.0 (2026-06-15)
 -------------------------
  * Update dependencies including phonenumbers to v2.0.1
