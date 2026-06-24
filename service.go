@@ -126,7 +126,13 @@ func (s *Service) Start() error {
 		Addr: c.CentrifugoEndpoint,
 		Key:  c.CentrifugoKey,
 	})
-	log.Info("centrifugo ok")
+
+	// test Centrifugo - its info API confirms both that the server is reachable and that our API key is accepted
+	if _, err := s.rt.Centrifugo.Info(s.ctx); err != nil {
+		log.Error("centrifugo not reachable", "error", err)
+	} else {
+		log.Info("centrifugo ok")
+	}
 
 	if err := s.rt.Start(); err != nil {
 		return fmt.Errorf("error starting runtime: %w", err)

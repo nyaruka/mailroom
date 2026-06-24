@@ -74,7 +74,7 @@ type Config struct {
 	CourierEndpoint  string `help:"the base URL used for internal calls to courier" validate:"url"`
 	CourierAuthToken string `help:"the authentication token used for requests to Courier"`
 
-	CentrifugoEndpoint string `help:"the endpoint of the Centrifugo server"`
+	CentrifugoEndpoint string `help:"the endpoint of the Centrifugo server" validate:"url"`
 	CentrifugoKey      string `help:"the API key for the Centrifugo server"`
 
 	LatencyExcludedOrgs []int  `help:"comma separated list of org IDs to exclude from latency metrics"`
@@ -114,6 +114,8 @@ func NewDefaultConfig() *Config {
 		SpoolDir:        "./_spool",
 
 		CourierEndpoint: "http://localhost:8080",
+
+		CentrifugoEndpoint: "http://localhost:8000/api",
 
 		WorkersRealtime:  32,
 		WorkersBatch:     8,
