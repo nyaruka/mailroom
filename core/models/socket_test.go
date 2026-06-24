@@ -116,19 +116,15 @@ func TestPublishToHistory(t *testing.T) {
 		return append([]publish(nil), published...)
 	}
 
+	rt.Centrifugo = gocent.New(gocent.Config{Addr: srv.URL, Key: "sesame"})
+
 	contact := flows.ContactUUID("a393abc0-283d-4c9b-a1b3-641a035c34bf")
 	channel := models.HistoryChannel(contact)
 	evt1 := events.NewContactNameChanged("Bob")
 	evt1.SetUser(assets.NewUserReference("eb9536d7-7b22-4ca6-9a1e-8e1f1effe7f3", "Ann Admin"), "ui")
 	evt2 := events.NewContactLanguageChanged("spa")
 
-	// no centrifugo client configured = no-op
-	require.NoError(t, models.PublishToHistory(ctx, rt, contact, []flows.Event{evt1}))
-	assert.Empty(t, snapshot())
-
-	rt.Centrifugo = gocent.New(gocent.Config{Addr: srv.URL, Key: "sesame"})
-
-	// channel isn't subscribed yet, so still nothing is published
+	// channel isn't subscribed yet, so nothing is published
 	require.NoError(t, models.PublishToHistory(ctx, rt, contact, []flows.Event{evt1}))
 	assert.Empty(t, snapshot())
 

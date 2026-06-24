@@ -122,15 +122,11 @@ func (s *Service) Start() error {
 		log.Warn("fcm not configured, no android syncing")
 	}
 
-	if c.CentrifugoEndpoint != "" {
-		s.rt.Centrifugo = gocent.New(gocent.Config{
-			Addr: c.CentrifugoEndpoint,
-			Key:  c.CentrifugoKey,
-		})
-		log.Info("centrifugo ok")
-	} else {
-		log.Warn("centrifugo not configured")
-	}
+	s.rt.Centrifugo = gocent.New(gocent.Config{
+		Addr: c.CentrifugoEndpoint,
+		Key:  c.CentrifugoKey,
+	})
+	log.Info("centrifugo ok")
 
 	if err := s.rt.Start(); err != nil {
 		return fmt.Errorf("error starting runtime: %w", err)

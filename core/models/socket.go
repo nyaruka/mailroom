@@ -58,10 +58,9 @@ func IsSubscribed(ctx context.Context, rt *runtime.Runtime, channel string) (boo
 // PublishToHistory publishes engine events to a contact's history channel for any live subscribers. Each event
 // is sent as its full JSON, including its uuid - matching the shape clients fetch from the history table, save
 // for the hydration the fetch layer adds on read (e.g. resolving user avatars). It's best-effort and a no-op
-// when realtime isn't configured or the channel currently has no subscribers; we only pay the centrifugo
-// publish when someone is actually watching.
+// when the channel currently has no subscribers; we only pay the centrifugo publish when someone is watching.
 func PublishToHistory(ctx context.Context, rt *runtime.Runtime, contactUUID flows.ContactUUID, events []flows.Event) error {
-	if rt.Centrifugo == nil || len(events) == 0 {
+	if len(events) == 0 {
 		return nil
 	}
 
