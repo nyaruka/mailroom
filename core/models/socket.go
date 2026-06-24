@@ -2,6 +2,7 @@ package models
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -52,4 +53,37 @@ func IsSubscribed(ctx context.Context, rt *runtime.Runtime, channel string) (boo
 		return false, fmt.Errorf("error checking subscription for %s: %w", channel, err)
 	}
 	return subscribed, nil
+}
+
+// PublishToHistory publishes engine events to a contact's history channel for any live subscribers. Each event
+// is sent as its full JSON, including its uuid - matching the shape clients fetch from the history table, save
+// for the hydration the fetch layer adds on read (e.g. resolving user avatars). It's best-effort and a no-op
+// when realtime isn't configured or the channel currently has no subscribers; we only pay the centrifugo
+// publish when someone is actually watching.
+func PublishToHistory(ctx context.Context, rt *runtime.Runtime, contactUUID flows.ContactUUID, events []flows.Event) error {
+	if rt.Centrifugo == nil || len(events) == 0 {
+		return nil
+	}
+
+	channel := HistoryChannel(contactUUID)
+
+	subscribed, err := IsSubscribed(ctx, rt, channel)
+	if err != nil {
+		return err
+	}
+	if !subscribed {
+		return nil
+	}
+
+	for _, e := range events {
+		data, err := json.Marshal(e)
+		if err != nil {
+			return fmt.Errorf("error marshaling event for %s: %w", channel, err)
+		}
+		if _, err := rt.Centrifugo.Publish(ctx, channel, data); err != nil {
+			return fmt.Errorf("error publishing event to %s: %w", channel, err)
+		}
+	}
+
+	return nil
 }

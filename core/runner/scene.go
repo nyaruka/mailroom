@@ -402,13 +402,22 @@ func BulkCommit(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, 
 		}
 	}
 
-	// send events to be persisted to the history table writer
+	// send events to be persisted to the history table writer, and publish them to any live subscribers of the
+	// contact's history channel
 	eventsWritten := 0
 	for _, scene := range scenes {
-		for _, evt := range scene.persistEvents {
+		events := make([]flows.Event, len(scene.persistEvents))
+		for i, evt := range scene.persistEvents {
 			if _, err := rt.Dynamo.History.Queue(evt); err != nil {
 				return fmt.Errorf("error queuing scene event to writer: %w", err)
 			}
+			events[i] = evt.Event
+		}
+
+		// realtime delivery is best-effort - a publish failure shouldn't fail the commit when the events are
+		// already safely queued for persistence
+		if err := models.PublishToHistory(ctx, rt, scene.ContactUUID(), events); err != nil {
+			slog.Error("error publishing events to history channel", "error", err, "contact", scene.ContactUUID())
 		}
 
 		eventsWritten += len(scene.persistEvents)
