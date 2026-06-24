@@ -1,3 +1,7 @@
+v26.3.1 (2026-06-24)
+-------------------------
+ * Rename client-subscribable channel namespace from "chat" to "history"
+
 v26.3.0 (2026-06-22)
 -------------------------
  * Default to empty public bind host
