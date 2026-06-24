@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/nyaruka/gocommon/dates"
+	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/runtime"
 	"github.com/nyaruka/mailroom/v26/web"
 )
@@ -28,7 +29,7 @@ func handleSubRefresh(ctx context.Context, rt *runtime.Runtime, r *proxyRequest)
 		return expired(), http.StatusOK, nil
 	}
 
-	if err := indexSubscription(ctx, rt, r.Channel); err != nil {
+	if err := models.RecordSubscription(ctx, rt, r.Channel, subscribeTTL); err != nil {
 		return nil, 0, err
 	}
 	return allowed(now), http.StatusOK, nil

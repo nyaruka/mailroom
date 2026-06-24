@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	valkey "github.com/gomodule/redigo/redis"
 	"github.com/nyaruka/gocommon/uuids"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/v26/core/models"
@@ -14,11 +13,6 @@ import (
 )
 
 const (
-	// chatNamespace is the only client-subscribable channel namespace: a contact's chat history,
-	// addressed as "chat:<contact-uuid>". A contact UUID uniquely implies its org, so the org isn't
-	// in the channel name - it comes from the connection meta.
-	chatNamespace = "chat"
-
 	// subscribeWindow is how far ahead we set a subscription's expire_at, scheduling the realtime
 	// server to call sub_refresh before it lapses so we can re-authorize.
 	subscribeWindow = 60 * time.Second
@@ -119,7 +113,7 @@ func authorize(ctx context.Context, rt *runtime.Runtime, meta connectionMeta, ch
 
 	// default deny: only "chat:<contact-uuid>" is subscribable, and only with a well-formed uuid
 	namespace, rest, ok := strings.Cut(channel, ":")
-	if !ok || namespace != chatNamespace || !uuids.Is(rest) {
+	if !ok || namespace != models.SocketChatNamespace || !uuids.Is(rest) {
 		return authDenied, nil
 	}
 	contactUUID := flows.ContactUUID(rest)
@@ -144,28 +138,4 @@ func authorize(ctx context.Context, rt *runtime.Runtime, meta connectionMeta, ch
 	}
 
 	return authAllowed, nil
-}
-
-// subKey is the valkey key marking that a channel has at least one active subscription, e.g.
-// "socket-subs:chat:<contact-uuid>".
-func subKey(channel string) string {
-	return fmt.Sprintf("socket-subs:%s", channel)
-}
-
-// indexSubscription marks a channel as having at least one active subscription, with a TTL. Every subscribe
-// and sub_refresh from any connection re-sets the same per-channel key, so the key stays present as long as
-// some subscriber keeps refreshing it; once the last one goes away (the realtime server has no unsubscribe
-// or disconnect callback) nobody refreshes it and it expires. The backend only needs to know whether a
-// contact's chat might have subscribers - not who or how many - so a single presence key per channel is all
-// we keep.
-func indexSubscription(ctx context.Context, rt *runtime.Runtime, channel string) error {
-	vc := rt.VK.Get()
-	defer vc.Close()
-
-	ttl := int(subscribeTTL / time.Second)
-	if _, err := valkey.DoContext(vc, ctx, "SET", subKey(channel), "1", "EX", ttl); err != nil {
-		return fmt.Errorf("error updating subscription index for %s: %w", channel, err)
-	}
-
-	return nil
 }

@@ -2,15 +2,11 @@ package sockets
 
 import (
 	"testing"
-	"time"
 
-	valkey "github.com/gomodule/redigo/redis"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/testsuite"
 	"github.com/nyaruka/mailroom/v26/testsuite/testdb"
 	"github.com/nyaruka/vkutil/assertvk"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestSubscribe(t *testing.T) {
@@ -34,8 +30,8 @@ func TestSubscribe(t *testing.T) {
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	annKey := subKey("chat:a393abc0-283d-4c9b-a1b3-641a035c34bf")
-	blockedKey := subKey("chat:22222222-2222-4222-8222-222222222222")
+	annKey := "socket-subs:chat:a393abc0-283d-4c9b-a1b3-641a035c34bf"
+	blockedKey := "socket-subs:chat:22222222-2222-4222-8222-222222222222"
 
 	// the allowed subscribes marked their contact's chat channel as having a subscriber...
 	assertvk.Exists(t, vc, annKey)
@@ -57,36 +53,7 @@ func TestSubRefresh(t *testing.T) {
 	defer vc.Close()
 
 	// the successful refresh kept the channel marked; nothing else was written
-	key := subKey("chat:a393abc0-283d-4c9b-a1b3-641a035c34bf")
+	key := "socket-subs:chat:a393abc0-283d-4c9b-a1b3-641a035c34bf"
 	assertvk.Exists(t, vc, key)
 	assertvk.Keys(t, vc, "socket-subs:*", []string{key})
-}
-
-func TestSubscriptionIndex(t *testing.T) {
-	ctx, rt := testsuite.Runtime(t)
-
-	defer testsuite.Reset(t, rt, testsuite.ResetValkey)
-
-	vc := rt.VK.Get()
-	defer vc.Close()
-
-	chat1 := "chat:a393abc0-283d-4c9b-a1b3-641a035c34bf"
-	chat2 := "chat:b699a406-7e44-49be-9f01-1a82893e8a10"
-
-	// a subscription marks its channel present with a TTL
-	require.NoError(t, indexSubscription(ctx, rt, chat1))
-	assertvk.Exists(t, vc, subKey(chat1))
-
-	ttl, err := valkey.Int64(vc.Do("TTL", subKey(chat1)))
-	require.NoError(t, err)
-	assert.Greater(t, ttl, int64(0))
-	assert.LessOrEqual(t, ttl, int64(subscribeTTL/time.Second))
-
-	// a second subscriber to the same channel keeps it a single key (we track presence, not who)
-	require.NoError(t, indexSubscription(ctx, rt, chat1))
-	assertvk.Keys(t, vc, "socket-subs:*", []string{subKey(chat1)})
-
-	// a different channel is a separate key
-	require.NoError(t, indexSubscription(ctx, rt, chat2))
-	assertvk.Keys(t, vc, "socket-subs:*", []string{subKey(chat1), subKey(chat2)})
 }
