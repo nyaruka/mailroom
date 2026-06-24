@@ -122,14 +122,16 @@ func (s *Service) Start() error {
 		log.Warn("fcm not configured, no android syncing")
 	}
 
-	if c.CentrifugoEndpoint != "" {
-		s.rt.Centrifugo = gocent.New(gocent.Config{
-			Addr: c.CentrifugoEndpoint,
-			Key:  c.CentrifugoKey,
-		})
-		log.Info("centrifugo ok")
+	s.rt.Centrifugo = gocent.New(gocent.Config{
+		Addr: c.CentrifugoEndpoint,
+		Key:  c.CentrifugoKey,
+	})
+
+	// test Centrifugo - its info API confirms both that the server is reachable and that our API key is accepted
+	if _, err := s.rt.Centrifugo.Info(s.ctx); err != nil {
+		log.Error("centrifugo not reachable", "error", err)
 	} else {
-		log.Warn("centrifugo not configured")
+		log.Info("centrifugo ok")
 	}
 
 	if err := s.rt.Start(); err != nil {
