@@ -53,10 +53,3 @@ func IsSubscribed(ctx context.Context, rt *runtime.Runtime, channel string) (boo
 	}
 	return subscribed, nil
 }
-
-// IsChatSubscribed reports whether a contact's chat history currently has any subscribers. Backend code that
-// persists chat-visible activity (e.g. channel events) can use this to cheaply decide whether anyone is
-// watching a given contact's chat.
-func IsChatSubscribed(ctx context.Context, rt *runtime.Runtime, contactUUID flows.ContactUUID) (bool, error) {
-	return IsSubscribed(ctx, rt, ChatChannel(contactUUID))
-}

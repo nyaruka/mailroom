@@ -37,21 +37,13 @@ func TestSubscriptions(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, expected, actual, "subscribed mismatch for %s", channel)
 	}
-	assertChatSubscribed := func(contactUUID flows.ContactUUID, expected bool) {
-		t.Helper()
-		actual, err := models.IsChatSubscribed(ctx, rt, contactUUID)
-		require.NoError(t, err)
-		assert.Equal(t, expected, actual, "chat subscribed mismatch for %s", contactUUID)
-	}
 
 	// nothing subscribed yet
 	assertSubscribed(chat1, false)
-	assertChatSubscribed(contact1, false)
 
 	// recording a subscription marks the channel present with a TTL
 	require.NoError(t, models.RecordSubscription(ctx, rt, chat1, ttl))
 	assertSubscribed(chat1, true)
-	assertChatSubscribed(contact1, true)
 
 	secs, err := valkey.Int64(vc.Do("TTL", "socket-subs:"+chat1))
 	require.NoError(t, err)
@@ -63,8 +55,8 @@ func TestSubscriptions(t *testing.T) {
 	assertvk.Keys(t, vc, "socket-subs:*", []string{"socket-subs:" + chat1})
 
 	// a different channel is a separate key, checked independently
-	assertChatSubscribed(contact2, false)
+	assertSubscribed(chat2, false)
 	require.NoError(t, models.RecordSubscription(ctx, rt, chat2, ttl))
-	assertChatSubscribed(contact2, true)
+	assertSubscribed(chat2, true)
 	assertvk.Keys(t, vc, "socket-subs:*", []string{"socket-subs:" + chat1, "socket-subs:" + chat2})
 }
