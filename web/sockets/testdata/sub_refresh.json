@@ -6,7 +6,7 @@
         "body": {
             "client": "conn-allowed",
             "user": "56",
-            "channel": "chat:a393abc0-283d-4c9b-a1b3-641a035c34bf",
+            "channel": "history:a393abc0-283d-4c9b-a1b3-641a035c34bf",
             "meta": {
                 "org_uuid": "bf0514a5-9407-44c9-b0f9-3f36f9c18414",
                 "user_uuid": "ad9fdf9f-56ab-422a-b77d-e3ec26091a25"
@@ -26,7 +26,7 @@
         "body": {
             "client": "conn-otherorg",
             "user": "56",
-            "channel": "chat:f6d20b72-f7d8-44dc-87f2-aae046dbff95",
+            "channel": "history:f6d20b72-f7d8-44dc-87f2-aae046dbff95",
             "meta": {
                 "org_uuid": "bf0514a5-9407-44c9-b0f9-3f36f9c18414",
                 "user_uuid": "ad9fdf9f-56ab-422a-b77d-e3ec26091a25"
@@ -66,7 +66,7 @@
         "body": {
             "client": "conn-noidentity",
             "user": "56",
-            "channel": "chat:a393abc0-283d-4c9b-a1b3-641a035c34bf"
+            "channel": "history:a393abc0-283d-4c9b-a1b3-641a035c34bf"
         },
         "status": 200,
         "response": {

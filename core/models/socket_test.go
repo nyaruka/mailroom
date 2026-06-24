@@ -13,8 +13,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestChatChannel(t *testing.T) {
-	assert.Equal(t, "chat:a393abc0-283d-4c9b-a1b3-641a035c34bf", models.ChatChannel("a393abc0-283d-4c9b-a1b3-641a035c34bf"))
+func TestHistoryChannel(t *testing.T) {
+	assert.Equal(t, "history:a393abc0-283d-4c9b-a1b3-641a035c34bf", models.HistoryChannel("a393abc0-283d-4c9b-a1b3-641a035c34bf"))
 }
 
 func TestSubscriptions(t *testing.T) {
@@ -28,8 +28,8 @@ func TestSubscriptions(t *testing.T) {
 	const ttl = 150 * time.Second
 	contact1 := flows.ContactUUID("a393abc0-283d-4c9b-a1b3-641a035c34bf")
 	contact2 := flows.ContactUUID("b699a406-7e44-49be-9f01-1a82893e8a10")
-	chat1 := models.ChatChannel(contact1)
-	chat2 := models.ChatChannel(contact2)
+	hist1 := models.HistoryChannel(contact1)
+	hist2 := models.HistoryChannel(contact2)
 
 	assertSubscribed := func(channel string, expected bool) {
 		t.Helper()
@@ -39,24 +39,24 @@ func TestSubscriptions(t *testing.T) {
 	}
 
 	// nothing subscribed yet
-	assertSubscribed(chat1, false)
+	assertSubscribed(hist1, false)
 
 	// recording a subscription marks the channel present with a TTL
-	require.NoError(t, models.RecordSubscription(ctx, rt, chat1, ttl))
-	assertSubscribed(chat1, true)
+	require.NoError(t, models.RecordSubscription(ctx, rt, hist1, ttl))
+	assertSubscribed(hist1, true)
 
-	secs, err := valkey.Int64(vc.Do("TTL", "socket-subs:"+chat1))
+	secs, err := valkey.Int64(vc.Do("TTL", "socket-subs:"+hist1))
 	require.NoError(t, err)
 	assert.Greater(t, secs, int64(0))
 	assert.LessOrEqual(t, secs, int64(ttl/time.Second))
 
 	// a second subscriber to the same channel keeps it a single key (we track presence, not who)
-	require.NoError(t, models.RecordSubscription(ctx, rt, chat1, ttl))
-	assertvk.Keys(t, vc, "socket-subs:*", []string{"socket-subs:" + chat1})
+	require.NoError(t, models.RecordSubscription(ctx, rt, hist1, ttl))
+	assertvk.Keys(t, vc, "socket-subs:*", []string{"socket-subs:" + hist1})
 
 	// a different channel is a separate key, checked independently
-	assertSubscribed(chat2, false)
-	require.NoError(t, models.RecordSubscription(ctx, rt, chat2, ttl))
-	assertSubscribed(chat2, true)
-	assertvk.Keys(t, vc, "socket-subs:*", []string{"socket-subs:" + chat1, "socket-subs:" + chat2})
+	assertSubscribed(hist2, false)
+	require.NoError(t, models.RecordSubscription(ctx, rt, hist2, ttl))
+	assertSubscribed(hist2, true)
+	assertvk.Keys(t, vc, "socket-subs:*", []string{"socket-subs:" + hist1, "socket-subs:" + hist2})
 }
