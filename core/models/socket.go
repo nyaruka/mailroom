@@ -75,13 +75,26 @@ func PublishToHistory(ctx context.Context, rt *runtime.Runtime, contactUUID flow
 		return nil
 	}
 
+	// batch all events into a single pipelined request so a subscribed contact costs one round-trip per commit
+	// regardless of how many events it produced, and the whole batch lands or fails together
+	pipe := rt.Centrifugo.Pipe()
 	for _, e := range events {
 		data, err := json.Marshal(e)
 		if err != nil {
 			return fmt.Errorf("error marshaling event for %s: %w", channel, err)
 		}
-		if _, err := rt.Centrifugo.Publish(ctx, channel, data); err != nil {
-			return fmt.Errorf("error publishing event to %s: %w", channel, err)
+		if err := pipe.AddPublish(channel, data); err != nil {
+			return fmt.Errorf("error adding event to publish pipe for %s: %w", channel, err)
+		}
+	}
+
+	replies, err := rt.Centrifugo.SendPipe(ctx, pipe)
+	if err != nil {
+		return fmt.Errorf("error publishing events to %s: %w", channel, err)
+	}
+	for _, reply := range replies {
+		if reply.Error != nil {
+			return fmt.Errorf("error publishing event to %s: %w", channel, reply.Error)
 		}
 	}
 

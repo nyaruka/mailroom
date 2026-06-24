@@ -11,6 +11,7 @@ import (
 
 	"github.com/centrifugal/gocent/v3"
 	valkey "github.com/gomodule/redigo/redis"
+	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/mailroom/v26/core/models"
@@ -118,6 +119,7 @@ func TestPublishToHistory(t *testing.T) {
 	contact := flows.ContactUUID("a393abc0-283d-4c9b-a1b3-641a035c34bf")
 	channel := models.HistoryChannel(contact)
 	evt1 := events.NewContactNameChanged("Bob")
+	evt1.SetUser(assets.NewUserReference("eb9536d7-7b22-4ca6-9a1e-8e1f1effe7f3", "Ann Admin"), "ui")
 	evt2 := events.NewContactLanguageChanged("spa")
 
 	// no centrifugo client configured = no-op
@@ -144,10 +146,12 @@ func TestPublishToHistory(t *testing.T) {
 	assert.Equal(t, channel, sent[1].Channel)
 
 	// the published payload is the full event including its uuid (the history table strips uuid into the key)
+	// and the raw _user reference (uuid+name) that the read path later hydrates with avatar etc.
 	var decoded map[string]any
 	require.NoError(t, json.Unmarshal(sent[0].Data, &decoded))
 	assert.Equal(t, "contact_name_changed", decoded["type"])
 	assert.Equal(t, string(evt1.UUID()), decoded["uuid"])
+	assert.Equal(t, map[string]any{"uuid": "eb9536d7-7b22-4ca6-9a1e-8e1f1effe7f3", "name": "Ann Admin"}, decoded["_user"])
 
 	require.NoError(t, json.Unmarshal(sent[1].Data, &decoded))
 	assert.Equal(t, "contact_language_changed", decoded["type"])
