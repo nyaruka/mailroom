@@ -20,7 +20,7 @@ func TestSubscribe(t *testing.T) {
 	)
 	rt.DB.MustExec(`UPDATE contacts_contact SET is_active = FALSE WHERE id = $1`, released.ID)
 
-	// a blocked contact is still authorized - blocked/stopped/archived contacts keep viewable chat history
+	// a blocked contact is still authorized - blocked/stopped/archived contacts keep viewable message history
 	testdb.InsertContact(
 		t, rt, testdb.Org1, "22222222-2222-4222-8222-222222222222", "Blocked", "eng", models.ContactStatusBlocked,
 	)
@@ -30,10 +30,10 @@ func TestSubscribe(t *testing.T) {
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	annKey := "socket-subs:chat:a393abc0-283d-4c9b-a1b3-641a035c34bf"
-	blockedKey := "socket-subs:chat:22222222-2222-4222-8222-222222222222"
+	annKey := "socket-subs:history:a393abc0-283d-4c9b-a1b3-641a035c34bf"
+	blockedKey := "socket-subs:history:22222222-2222-4222-8222-222222222222"
 
-	// the allowed subscribes marked their contact's chat channel as having a subscriber...
+	// the allowed subscribes marked their contact's history channel as having a subscriber...
 	assertvk.Exists(t, vc, annKey)
 	assertvk.Exists(t, vc, blockedKey)
 
@@ -53,7 +53,7 @@ func TestSubRefresh(t *testing.T) {
 	defer vc.Close()
 
 	// the successful refresh kept the channel marked; nothing else was written
-	key := "socket-subs:chat:a393abc0-283d-4c9b-a1b3-641a035c34bf"
+	key := "socket-subs:history:a393abc0-283d-4c9b-a1b3-641a035c34bf"
 	assertvk.Exists(t, vc, key)
 	assertvk.Keys(t, vc, "socket-subs:*", []string{key})
 }

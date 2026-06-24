@@ -10,18 +10,18 @@ import (
 	"github.com/nyaruka/mailroom/v26/runtime"
 )
 
-// SocketChatNamespace is the realtime subscription channel namespace for a contact's chat history, addressed
-// as "chat:<contact-uuid>". It's currently the only client-subscribable namespace. ("Channel" here is a
-// realtime pub/sub channel - unrelated to a messaging Channel.)
-const SocketChatNamespace = "chat"
+// SocketHistoryNamespace is the realtime subscription channel namespace for a contact's message history,
+// addressed as "history:<contact-uuid>". It's currently the only client-subscribable namespace. ("Channel"
+// here is a realtime pub/sub channel - unrelated to a messaging Channel.)
+const SocketHistoryNamespace = "history"
 
-// ChatChannel returns the realtime subscription channel for a contact's chat history.
-func ChatChannel(contactUUID flows.ContactUUID) string {
-	return fmt.Sprintf("%s:%s", SocketChatNamespace, contactUUID)
+// HistoryChannel returns the realtime subscription channel for a contact's message history.
+func HistoryChannel(contactUUID flows.ContactUUID) string {
+	return fmt.Sprintf("%s:%s", SocketHistoryNamespace, contactUUID)
 }
 
 // subscriptionKey is the valkey key marking that a realtime channel has at least one active subscriber, e.g.
-// "socket-subs:chat:<contact-uuid>".
+// "socket-subs:history:<contact-uuid>".
 func subscriptionKey(channel string) string {
 	return fmt.Sprintf("socket-subs:%s", channel)
 }

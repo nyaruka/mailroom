@@ -102,18 +102,18 @@ const (
 )
 
 // authorize implements the default-deny allowlist for client subscriptions. The only permitted channel is a
-// contact's chat history, allowed when the contact belongs to the org identified by the connection meta and
-// isn't released (soft-deleted). Blocked/stopped/archived contacts still have viewable history, so they're
-// allowed too. The org comes from the meta, never from the channel.
+// contact's message history, allowed when the contact belongs to the org identified by the connection meta
+// and isn't released (soft-deleted). Blocked/stopped/archived contacts still have viewable history, so
+// they're allowed too. The org comes from the meta, never from the channel.
 func authorize(ctx context.Context, rt *runtime.Runtime, meta connectionMeta, channel string) (authResult, error) {
 	// a connection with no org/user in its meta was never authenticated by the connect proxy
 	if meta.OrgUUID == "" || meta.UserUUID == "" {
 		return authNoIdentity, nil
 	}
 
-	// default deny: only "chat:<contact-uuid>" is subscribable, and only with a well-formed uuid
+	// default deny: only "history:<contact-uuid>" is subscribable, and only with a well-formed uuid
 	namespace, rest, ok := strings.Cut(channel, ":")
-	if !ok || namespace != models.SocketChatNamespace || !uuids.Is(rest) {
+	if !ok || namespace != models.SocketHistoryNamespace || !uuids.Is(rest) {
 		return authDenied, nil
 	}
 	contactUUID := flows.ContactUUID(rest)
