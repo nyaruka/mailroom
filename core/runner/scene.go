@@ -47,6 +47,7 @@ type Scene struct {
 	postCommits   map[PostCommitHook][]any
 	rawEvents     []flows.Event
 	persistEvents []*models.Event
+	notifications []*models.Notification
 
 	// can be overridden by tests
 	Engine func(*runtime.Runtime) flows.Engine
@@ -271,6 +272,13 @@ func (s *Scene) AttachPostCommitHook(hook PostCommitHook, item any) {
 	s.postCommits[hook] = append(s.postCommits[hook], item)
 }
 
+// AddNotifications records notifications created while committing this scene so they can be published to their users'
+// realtime sockets once the commit succeeds. The pre-commit insert populates each notification's id in place, so the
+// same pointer recorded here carries the persisted id by the time it's published.
+func (s *Scene) AddNotifications(notifications ...*models.Notification) {
+	s.notifications = append(s.notifications, notifications...)
+}
+
 // Commit commits this scene's events
 func (s *Scene) Commit(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets) error {
 	return BulkCommit(ctx, rt, oa, []*Scene{s})
@@ -424,6 +432,32 @@ func BulkCommit(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, 
 	}
 
 	slog.Debug("events queued to history writer", "count", eventsWritten)
+
+	// publish any notifications created while committing to their users' realtime sockets - best-effort, like history,
+	// and done after commit so we never publish a notification that was rolled back. Gathered across all scenes into a
+	// single centrifugo round-trip and de-duped by what an unseen notification is unique on (org, user, type, scope),
+	// keeping the highest id: a retried scene re-creates its notifications, so without this a rolled-back duplicate
+	// from the failed attempt could be published alongside the committed one.
+	latest := make(map[string]*models.Notification)
+	var order []string
+	for _, scene := range scenes {
+		for _, n := range scene.notifications {
+			key := fmt.Sprintf("%d|%d|%s|%s", n.OrgID, n.UserID, n.Type, n.Scope)
+			if prev, seen := latest[key]; !seen {
+				order = append(order, key)
+				latest[key] = n
+			} else if n.ID > prev.ID {
+				latest[key] = n
+			}
+		}
+	}
+	notifications := make([]*models.Notification, len(order))
+	for i, key := range order {
+		notifications[i] = latest[key]
+	}
+	if err := models.PublishNotifications(ctx, rt, oa, notifications); err != nil {
+		slog.Error("error publishing notifications", "error", err)
+	}
 
 	if err := ExecutePostCommitHooks(ctx, rt, oa, scenes); err != nil {
 		return fmt.Errorf("error processing post commit hooks: %w", err)

@@ -54,9 +54,18 @@ func (h *monitorWebhooks) Execute(ctx context.Context, rt *runtime.Runtime, tx *
 
 	// if we have unhealthy nodes, ensure we have an incident
 	if len(unhealthyNodeUUIDs) > 0 {
-		_, err := models.IncidentWebhooksUnhealthy(ctx, tx, rt.VK, oa, unhealthyNodeUUIDs)
+		_, notifications, err := models.IncidentWebhooksUnhealthy(ctx, tx, rt.VK, oa, unhealthyNodeUUIDs)
 		if err != nil {
 			return fmt.Errorf("error creating unhealthy webhooks incident: %w", err)
+		}
+
+		// record any notifications for a newly started incident on a scene so they're published after commit. The
+		// incident is workspace-level rather than tied to any one contact, so any of this commit's scenes will do.
+		if len(notifications) > 0 {
+			for scene := range scenes {
+				scene.AddNotifications(notifications...)
+				break
+			}
 		}
 	}
 

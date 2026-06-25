@@ -56,16 +56,17 @@ func (i *Incident) End(ctx context.Context, db DBorTx) error {
 	return nil
 }
 
-// IncidentWebhooksUnhealthy ensures there is an open unhealthy webhooks incident for the given org
-func IncidentWebhooksUnhealthy(ctx context.Context, db DBorTx, rp *valkey.Pool, oa *OrgAssets, nodes []flows.NodeUUID) (IncidentID, error) {
-	id, err := getOrCreateIncident(ctx, db, oa, &Incident{
+// IncidentWebhooksUnhealthy ensures there is an open unhealthy webhooks incident for the given org. It returns any
+// notifications created for a newly started incident so the caller can publish them once its transaction has committed.
+func IncidentWebhooksUnhealthy(ctx context.Context, db DBorTx, rp *valkey.Pool, oa *OrgAssets, nodes []flows.NodeUUID) (IncidentID, []*Notification, error) {
+	id, notifications, err := getOrCreateIncident(ctx, db, oa, &Incident{
 		OrgID:     oa.OrgID(),
 		Type:      IncidentTypeWebhooksUnhealthy,
 		StartedOn: dates.Now(),
 		Scope:     "",
 	})
 	if err != nil {
-		return NilIncidentID, err
+		return NilIncidentID, nil, err
 	}
 
 	if len(nodes) > 0 {
@@ -78,11 +79,11 @@ func IncidentWebhooksUnhealthy(ctx context.Context, db DBorTx, rp *valkey.Pool, 
 		vc.Send("EXPIRE", nodesKey, 60*30) // 30 minutes
 		_, err = vc.Do("EXEC")
 		if err != nil {
-			return NilIncidentID, fmt.Errorf("error adding node uuids to incident: %w", err)
+			return NilIncidentID, nil, fmt.Errorf("error adding node uuids to incident: %w", err)
 		}
 	}
 
-	return id, nil
+	return id, notifications, nil
 }
 
 const sqlInsertIncident = `
@@ -91,28 +92,30 @@ INSERT INTO notifications_incident(org_id, incident_type, scope, started_on, cha
 ON CONFLICT DO NOTHING 
   RETURNING id`
 
-func getOrCreateIncident(ctx context.Context, db DBorTx, oa *OrgAssets, incident *Incident) (IncidentID, error) {
+func getOrCreateIncident(ctx context.Context, db DBorTx, oa *OrgAssets, incident *Incident) (IncidentID, []*Notification, error) {
 	var incidentID IncidentID
 	err := db.GetContext(ctx, &incidentID, sqlInsertIncident, incident.OrgID, incident.Type, incident.Scope, incident.StartedOn, incident.ChannelID)
 	if err != nil && err != sql.ErrNoRows {
-		return NilIncidentID, fmt.Errorf("error inserting incident: %w", err)
+		return NilIncidentID, nil, fmt.Errorf("error inserting incident: %w", err)
 	}
 
 	// if we got back an id, a new incident was actually created
 	if incidentID != NilIncidentID {
 		incident.ID = incidentID
 
-		if err := NotifyIncidentStarted(ctx, db, oa, incident); err != nil {
-			return NilIncidentID, fmt.Errorf("error creating notifications for new incident: %w", err)
-		}
-	} else {
-		err := db.GetContext(ctx, &incidentID, `SELECT id FROM notifications_incident WHERE org_id = $1 AND incident_type = $2 AND scope = $3 AND ended_on IS NULL`, incident.OrgID, incident.Type, incident.Scope)
+		notifications, err := NotifyIncidentStarted(ctx, db, oa, incident)
 		if err != nil {
-			return NilIncidentID, fmt.Errorf("error looking up existing incident: %w", err)
+			return NilIncidentID, nil, fmt.Errorf("error creating notifications for new incident: %w", err)
 		}
+		return incidentID, notifications, nil
 	}
 
-	return incidentID, nil
+	err = db.GetContext(ctx, &incidentID, `SELECT id FROM notifications_incident WHERE org_id = $1 AND incident_type = $2 AND scope = $3 AND ended_on IS NULL`, incident.OrgID, incident.Type, incident.Scope)
+	if err != nil {
+		return NilIncidentID, nil, fmt.Errorf("error looking up existing incident: %w", err)
+	}
+
+	return incidentID, nil, nil
 }
 
 const sqlSelectOpenIncidents = `
