@@ -36,14 +36,33 @@ func subscriptionKey(socket string) string {
 	return fmt.Sprintf("socket-subs:%s", socket)
 }
 
-// IsSubscribed reports whether a realtime socket currently has at least one active subscriber.
-func IsSubscribed(ctx context.Context, rt *runtime.Runtime, socket string) (bool, error) {
+// SubscribedSockets returns the subset of the given sockets that currently have at least one active subscriber. It
+// resolves them all in a single round-trip by MGETting their presence keys, so checking many sockets at once (e.g. a
+// contact plus all of its tickets) costs one lookup rather than one per socket. A socket is subscribed when its key
+// is present; missing keys come back nil. The returned map only contains the subscribed sockets.
+func SubscribedSockets(ctx context.Context, rt *runtime.Runtime, sockets ...string) (map[string]bool, error) {
+	if len(sockets) == 0 {
+		return nil, nil
+	}
+
+	keys := make([]any, len(sockets))
+	for i, s := range sockets {
+		keys[i] = subscriptionKey(s)
+	}
+
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	subscribed, err := valkey.Bool(valkey.DoContext(vc, ctx, "EXISTS", subscriptionKey(socket)))
+	values, err := valkey.Values(valkey.DoContext(vc, ctx, "MGET", keys...))
 	if err != nil {
-		return false, fmt.Errorf("error checking subscription for %s: %w", socket, err)
+		return nil, fmt.Errorf("error checking socket subscriptions: %w", err)
+	}
+
+	subscribed := make(map[string]bool, len(sockets))
+	for i, v := range values {
+		if v != nil {
+			subscribed[sockets[i]] = true
+		}
 	}
 	return subscribed, nil
 }
@@ -77,44 +96,53 @@ func PublishToHistory(ctx context.Context, rt *runtime.Runtime, contactUUID flow
 		}
 	}
 
-	pipe := rt.Centrifugo.Pipe()
-	var sockets []string // the socket each pipelined publish targets, parallel to the replies for error reporting
-
-	// addEvents adds a socket's events to the shared pipe, but only if the socket currently has subscribers
-	addEvents := func(socket string, evts []flows.Event) error {
-		if len(evts) == 0 {
-			return nil
-		}
-		subscribed, err := IsSubscribed(ctx, rt, socket)
-		if err != nil {
-			return err
-		}
-		if !subscribed {
-			return nil
-		}
-		for _, e := range evts {
-			data, err := json.Marshal(e)
-			if err != nil {
-				return fmt.Errorf("error marshaling event for %s: %w", socket, err)
-			}
-			if err := pipe.AddPublish(socket, data); err != nil {
-				return fmt.Errorf("error adding event to publish pipe for %s: %w", socket, err)
-			}
-			sockets = append(sockets, socket)
-		}
+	// gather the sockets this commit touches - the contact socket plus one per ticket with detail events - so their
+	// subscription state can be resolved in a single round-trip rather than one presence lookup per socket (which
+	// matters once a commit can span many tickets, e.g. a bulk ticket operation)
+	type batch struct {
+		socket string
+		events []flows.Event
+	}
+	batches := make([]batch, 0, len(ticketEvents)+1)
+	if len(contactEvents) > 0 {
+		batches = append(batches, batch{HistorySocket(contactUUID), contactEvents})
+	}
+	for ticketUUID, evts := range ticketEvents {
+		batches = append(batches, batch{HistorySocket(contactUUID, ticketUUID), evts})
+	}
+	if len(batches) == 0 {
 		return nil
 	}
 
-	if err := addEvents(HistorySocket(contactUUID), contactEvents); err != nil {
+	candidates := make([]string, len(batches))
+	for i, b := range batches {
+		candidates[i] = b.socket
+	}
+	subscribed, err := SubscribedSockets(ctx, rt, candidates...)
+	if err != nil {
 		return err
 	}
-	for ticketUUID, evts := range ticketEvents {
-		if err := addEvents(HistorySocket(contactUUID, ticketUUID), evts); err != nil {
-			return err
+
+	// batch every subscribed socket's events into a single pipelined request, so the whole commit is one centrifugo
+	// round-trip no matter how many sockets it spans, and the batch lands or fails together
+	pipe := rt.Centrifugo.Pipe()
+	var targets []string // the socket each pipelined publish targets, parallel to the replies for error reporting
+	for _, b := range batches {
+		if !subscribed[b.socket] {
+			continue
+		}
+		for _, e := range b.events {
+			data, err := json.Marshal(e)
+			if err != nil {
+				return fmt.Errorf("error marshaling event for %s: %w", b.socket, err)
+			}
+			if err := pipe.AddPublish(b.socket, data); err != nil {
+				return fmt.Errorf("error adding event to publish pipe for %s: %w", b.socket, err)
+			}
+			targets = append(targets, b.socket)
 		}
 	}
-
-	if len(sockets) == 0 {
+	if len(targets) == 0 {
 		return nil
 	}
 
@@ -124,7 +152,7 @@ func PublishToHistory(ctx context.Context, rt *runtime.Runtime, contactUUID flow
 	}
 	for i, reply := range replies {
 		if reply.Error != nil {
-			return fmt.Errorf("error publishing event to %s: %w", sockets[i], reply.Error)
+			return fmt.Errorf("error publishing event to %s: %w", targets[i], reply.Error)
 		}
 	}
 

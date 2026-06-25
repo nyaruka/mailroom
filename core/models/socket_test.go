@@ -29,7 +29,7 @@ func TestHistorySocket(t *testing.T) {
 	assert.Equal(t, "history:a393abc0-283d-4c9b-a1b3-641a035c34bf:019905d4-5f7b-71b8-bcb8-6a68de2d91d2", models.HistorySocket(contact, ticket))
 }
 
-func TestIsSubscribed(t *testing.T) {
+func TestSubscribedSockets(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, rt, testsuite.ResetValkey)
@@ -42,26 +42,31 @@ func TestIsSubscribed(t *testing.T) {
 	hist1 := models.HistorySocket(contact1)
 	hist2 := models.HistorySocket(contact2)
 
-	assertSubscribed := func(socket string, expected bool) {
-		t.Helper()
-		actual, err := models.IsSubscribed(ctx, rt, socket)
-		require.NoError(t, err)
-		assert.Equal(t, expected, actual, "subscribed mismatch for %s", socket)
-	}
+	// no sockets to check is a no-op
+	subs, err := models.SubscribedSockets(ctx, rt)
+	require.NoError(t, err)
+	assert.Empty(t, subs)
 
 	// nothing subscribed yet
-	assertSubscribed(hist1, false)
+	subs, err = models.SubscribedSockets(ctx, rt, hist1, hist2)
+	require.NoError(t, err)
+	assert.Empty(t, subs)
 
 	// the authorizing service records a subscription by setting the per-socket presence key; mailroom only reads it
-	_, err := vc.Do("SET", "socket-subs:"+hist1, "1")
+	_, err = vc.Do("SET", "socket-subs:"+hist1, "1")
 	require.NoError(t, err)
-	assertSubscribed(hist1, true)
 
-	// each socket is its own key, checked independently
-	assertSubscribed(hist2, false)
+	// a single lookup reports which of the requested sockets are subscribed
+	subs, err = models.SubscribedSockets(ctx, rt, hist1, hist2)
+	require.NoError(t, err)
+	assert.Equal(t, map[string]bool{hist1: true}, subs)
+
+	// once both are subscribed they both come back from the one lookup
 	_, err = vc.Do("SET", "socket-subs:"+hist2, "1")
 	require.NoError(t, err)
-	assertSubscribed(hist2, true)
+	subs, err = models.SubscribedSockets(ctx, rt, hist1, hist2)
+	require.NoError(t, err)
+	assert.Equal(t, map[string]bool{hist1: true, hist2: true}, subs)
 }
 
 func TestPublishToHistory(t *testing.T) {
@@ -211,4 +216,33 @@ func TestPublishToHistory(t *testing.T) {
 
 	// ticket B's socket wasn't subscribed, so nothing was published to it
 	assert.Empty(t, sentTo(ticketBSocket))
+
+	// a commit can span several ticket sockets at once (e.g. a future bulk ticket operation) - subscribing ticket B
+	// too, a publish touching both tickets and the contact resolves every socket's subscription in one lookup and is
+	// still a single centrifugo round-trip
+	_, err = vc.Do("SET", "socket-subs:"+ticketBSocket, "1")
+	require.NoError(t, err)
+
+	noteA2 := events.NewTicketNoteAdded(ticketA, "more on A") // detail -> ticket A socket
+	noteB := events.NewTicketNoteAdded(ticketB, "now on B")   // detail -> ticket B socket
+	renamed := events.NewContactNameChanged("Bobby")          // non-ticket -> contact socket
+
+	reqsBefore = reqCount()
+	require.NoError(t, models.PublishToHistory(ctx, rt, contact, []flows.Event{noteA2, noteB, renamed}))
+	assert.Equal(t, 1, reqCount()-reqsBefore)
+
+	// each socket received exactly its own events, across all three sockets in the one round-trip
+	require.Len(t, sentTo(socket), 5) // evt1, evt2, closed, lang, renamed
+	require.NoError(t, json.Unmarshal(sentTo(socket)[4].Data, &decoded))
+	assert.Equal(t, "contact_name_changed", decoded["type"])
+
+	ticketASent = sentTo(ticketASocket)
+	require.Len(t, ticketASent, 2) // noteA, noteA2
+	require.NoError(t, json.Unmarshal(ticketASent[1].Data, &decoded))
+	assert.Equal(t, string(noteA2.UUID()), decoded["uuid"])
+
+	ticketBSent := sentTo(ticketBSocket)
+	require.Len(t, ticketBSent, 1) // noteB
+	require.NoError(t, json.Unmarshal(ticketBSent[0].Data, &decoded))
+	assert.Equal(t, string(noteB.UUID()), decoded["uuid"])
 }
