@@ -58,8 +58,9 @@ func IsSubscribed(ctx context.Context, rt *runtime.Runtime, socket string) (bool
 // socket. The ticket read page subscribes to both its ticket socket and the contact socket, so the union it sees
 // matches what the read API returns for that ticket.
 //
-// It's best-effort and a no-op for any socket that currently has no subscribers; we only pay the centrifugo publish
-// when someone is watching.
+// Every subscribed socket's events are batched into a single pipelined request, so one commit costs one centrifugo
+// round-trip no matter how many sockets it spans, and the whole batch lands or fails together. It's best-effort and
+// a no-op for any socket that currently has no subscribers; we only publish to a socket when someone is watching.
 func PublishToHistory(ctx context.Context, rt *runtime.Runtime, contactUUID flows.ContactUUID, events []flows.Event) error {
 	if len(events) == 0 {
 		return nil
@@ -76,12 +77,54 @@ func PublishToHistory(ctx context.Context, rt *runtime.Runtime, contactUUID flow
 		}
 	}
 
-	if err := publishToSocket(ctx, rt, HistorySocket(contactUUID), contactEvents); err != nil {
+	pipe := rt.Centrifugo.Pipe()
+	var sockets []string // the socket each pipelined publish targets, parallel to the replies for error reporting
+
+	// addEvents adds a socket's events to the shared pipe, but only if the socket currently has subscribers
+	addEvents := func(socket string, evts []flows.Event) error {
+		if len(evts) == 0 {
+			return nil
+		}
+		subscribed, err := IsSubscribed(ctx, rt, socket)
+		if err != nil {
+			return err
+		}
+		if !subscribed {
+			return nil
+		}
+		for _, e := range evts {
+			data, err := json.Marshal(e)
+			if err != nil {
+				return fmt.Errorf("error marshaling event for %s: %w", socket, err)
+			}
+			if err := pipe.AddPublish(socket, data); err != nil {
+				return fmt.Errorf("error adding event to publish pipe for %s: %w", socket, err)
+			}
+			sockets = append(sockets, socket)
+		}
+		return nil
+	}
+
+	if err := addEvents(HistorySocket(contactUUID), contactEvents); err != nil {
 		return err
 	}
 	for ticketUUID, evts := range ticketEvents {
-		if err := publishToSocket(ctx, rt, HistorySocket(contactUUID, ticketUUID), evts); err != nil {
+		if err := addEvents(HistorySocket(contactUUID, ticketUUID), evts); err != nil {
 			return err
+		}
+	}
+
+	if len(sockets) == 0 {
+		return nil
+	}
+
+	replies, err := rt.Centrifugo.SendPipe(ctx, pipe)
+	if err != nil {
+		return fmt.Errorf("error publishing history events: %w", err)
+	}
+	for i, reply := range replies {
+		if reply.Error != nil {
+			return fmt.Errorf("error publishing event to %s: %w", sockets[i], reply.Error)
 		}
 	}
 
@@ -102,44 +145,4 @@ func ticketDetailEvent(e flows.Event) (flows.TicketUUID, bool) {
 	default:
 		return "", false
 	}
-}
-
-// publishToSocket publishes events to a single realtime socket if it currently has subscribers. All the events are
-// batched into one pipelined request so a subscribed socket costs one round-trip per commit regardless of how many
-// events it produced, and the whole batch lands or fails together.
-func publishToSocket(ctx context.Context, rt *runtime.Runtime, socket string, events []flows.Event) error {
-	if len(events) == 0 {
-		return nil
-	}
-
-	subscribed, err := IsSubscribed(ctx, rt, socket)
-	if err != nil {
-		return err
-	}
-	if !subscribed {
-		return nil
-	}
-
-	pipe := rt.Centrifugo.Pipe()
-	for _, e := range events {
-		data, err := json.Marshal(e)
-		if err != nil {
-			return fmt.Errorf("error marshaling event for %s: %w", socket, err)
-		}
-		if err := pipe.AddPublish(socket, data); err != nil {
-			return fmt.Errorf("error adding event to publish pipe for %s: %w", socket, err)
-		}
-	}
-
-	replies, err := rt.Centrifugo.SendPipe(ctx, pipe)
-	if err != nil {
-		return fmt.Errorf("error publishing events to %s: %w", socket, err)
-	}
-	for _, reply := range replies {
-		if reply.Error != nil {
-			return fmt.Errorf("error publishing event to %s: %w", socket, reply.Error)
-		}
-	}
-
-	return nil
 }

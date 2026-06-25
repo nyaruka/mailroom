@@ -79,8 +79,13 @@ func TestPublishToHistory(t *testing.T) {
 	}
 	var mu sync.Mutex
 	var published []publish
+	var requests int
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		requests++
+		mu.Unlock()
+
 		// the gocent client sends newline-delimited publish commands and expects one reply per command
 		dec := json.NewDecoder(r.Body)
 		replies := 0
@@ -121,6 +126,11 @@ func TestPublishToHistory(t *testing.T) {
 			}
 		}
 		return out
+	}
+	reqCount := func() int {
+		mu.Lock()
+		defer mu.Unlock()
+		return requests
 	}
 
 	rt.Centrifugo = gocent.New(gocent.Config{Addr: srv.URL, Key: "sesame"})
@@ -178,7 +188,11 @@ func TestPublishToHistory(t *testing.T) {
 	assignB := events.NewTicketAssigneeChanged(ticketB, assets.NewUserReference("0c78ef47-7d56-44d8-8f57-96e0f30e8f44", "Bob"), nil) // detail -> ticket B socket (unsubscribed)
 	lang := events.NewContactLanguageChanged("fra")                                                                                  // non-ticket -> contact socket
 
+	reqsBefore := reqCount()
 	require.NoError(t, models.PublishToHistory(ctx, rt, contact, []flows.Event{closed, noteA, assignB, lang}))
+
+	// even though this commit spans two sockets (contact + ticket A), it's a single pipelined centrifugo round-trip
+	assert.Equal(t, 1, reqCount()-reqsBefore)
 
 	// the contact socket got the basic ticket event and the non-ticket event in order, plus the two from before
 	contactSent := sentTo(socket)
