@@ -4,43 +4,28 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"time"
 
 	valkey "github.com/gomodule/redigo/redis"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/v26/runtime"
 )
 
-// SocketHistoryNamespace is the realtime subscription channel namespace for a contact's message history,
-// addressed as "history:<contact-uuid>". It's currently the only client-subscribable namespace. ("Channel"
-// here is a realtime pub/sub channel - unrelated to a messaging Channel.)
+// SocketHistoryNamespace is the realtime pub/sub channel namespace for a contact's message history, addressed
+// as "history:<contact-uuid>". Mailroom publishes engine events to this channel for any live subscribers.
+// ("Channel" here is a realtime pub/sub channel - unrelated to a messaging Channel.)
 const SocketHistoryNamespace = "history"
 
-// HistoryChannel returns the realtime subscription channel for a contact's message history.
+// HistoryChannel returns the realtime pub/sub channel for a contact's message history.
 func HistoryChannel(contactUUID flows.ContactUUID) string {
 	return fmt.Sprintf("%s:%s", SocketHistoryNamespace, contactUUID)
 }
 
 // subscriptionKey is the valkey key marking that a realtime channel has at least one active subscriber, e.g.
-// "socket-subs:history:<contact-uuid>".
+// "socket-subs:history:<contact-uuid>". The key is a per-channel presence marker written by the service that
+// authorizes subscriptions (it sets/re-arms the key with a TTL on every subscribe and refresh); mailroom only
+// reads it.
 func subscriptionKey(channel string) string {
 	return fmt.Sprintf("socket-subs:%s", channel)
-}
-
-// RecordSubscription marks a realtime channel as having at least one active subscriber by (re)setting a
-// single per-channel presence key in valkey with the given TTL. The websocket layer calls this on every
-// subscribe and refresh, so the key stays present while some subscriber keeps refreshing it and expires once
-// the last one stops (the realtime server has no unsubscribe/disconnect callback, so the TTL is the only GC).
-// We only track presence - whether a channel has any subscribers, not who or how many - so one key per
-// channel is all we keep.
-func RecordSubscription(ctx context.Context, rt *runtime.Runtime, channel string, ttl time.Duration) error {
-	vc := rt.VK.Get()
-	defer vc.Close()
-
-	if _, err := valkey.DoContext(vc, ctx, "SET", subscriptionKey(channel), "1", "EX", int(ttl/time.Second)); err != nil {
-		return fmt.Errorf("error recording subscription for %s: %w", channel, err)
-	}
-	return nil
 }
 
 // IsSubscribed reports whether a realtime channel currently has at least one active subscriber.
