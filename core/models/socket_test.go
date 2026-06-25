@@ -22,6 +22,13 @@ func TestHistoryChannel(t *testing.T) {
 	assert.Equal(t, "history:a393abc0-283d-4c9b-a1b3-641a035c34bf", models.HistoryChannel("a393abc0-283d-4c9b-a1b3-641a035c34bf"))
 }
 
+func TestTicketHistoryChannel(t *testing.T) {
+	assert.Equal(t,
+		"history:a393abc0-283d-4c9b-a1b3-641a035c34bf:019905d4-5f7b-71b8-bcb8-6a68de2d91d2",
+		models.TicketHistoryChannel("a393abc0-283d-4c9b-a1b3-641a035c34bf", "019905d4-5f7b-71b8-bcb8-6a68de2d91d2"),
+	)
+}
+
 func TestIsSubscribed(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
@@ -144,4 +151,56 @@ func TestPublishToHistory(t *testing.T) {
 	require.NoError(t, json.Unmarshal(sent[1].Data, &decoded))
 	assert.Equal(t, "contact_language_changed", decoded["type"])
 	assert.Equal(t, "spa", decoded["language"])
+
+	// per-ticket detail events (assignee/note/topic changes) route to that ticket's channel rather than the contact
+	// channel, mirroring how the read API filters them off the contact page; the basic ticket lifecycle events
+	// (opened/closed/reopened) and non-ticket events stay on the contact channel
+	ticketA := flows.TicketUUID("019905d4-5f7b-71b8-bcb8-6a68de2d91d2")
+	ticketB := flows.TicketUUID("28e94070-7c69-4f8e-9b7e-2c5a3a3e6f9a")
+	ticketAChannel := models.TicketHistoryChannel(contact, ticketA)
+	ticketBChannel := models.TicketHistoryChannel(contact, ticketB)
+
+	// ticket A's channel is subscribed (e.g. someone has its ticket page open), ticket B's is not
+	_, err = vc.Do("SET", "socket-subs:"+ticketAChannel, "1")
+	require.NoError(t, err)
+
+	sentTo := func(ch string) []publish {
+		var out []publish
+		for _, p := range snapshot() {
+			if p.Channel == ch {
+				out = append(out, p)
+			}
+		}
+		return out
+	}
+	typeOf := func(data json.RawMessage) string {
+		var e struct {
+			Type string `json:"type"`
+		}
+		require.NoError(t, json.Unmarshal(data, &e))
+		return e.Type
+	}
+
+	closed := events.NewTicketClosed(ticketA)                                                                                        // basic lifecycle -> contact channel
+	noteA := events.NewTicketNoteAdded(ticketA, "look at this")                                                                      // detail -> ticket A channel
+	assignB := events.NewTicketAssigneeChanged(ticketB, assets.NewUserReference("0c78ef47-7d56-44d8-8f57-96e0f30e8f44", "Bob"), nil) // detail -> ticket B channel (unsubscribed)
+	lang := events.NewContactLanguageChanged("fra")                                                                                  // non-ticket -> contact channel
+
+	require.NoError(t, models.PublishToHistory(ctx, rt, contact, []flows.Event{closed, noteA, assignB, lang}))
+
+	// the contact channel got the basic ticket event and the non-ticket event in order, plus the two from before
+	contactSent := sentTo(channel)
+	require.Len(t, contactSent, 4)
+	assert.Equal(t, "ticket_closed", typeOf(contactSent[2].Data))
+	assert.Equal(t, "contact_language_changed", typeOf(contactSent[3].Data))
+
+	// ticket A's subscribed channel got only its own detail event, again as full JSON including its uuid
+	ticketASent := sentTo(ticketAChannel)
+	require.Len(t, ticketASent, 1)
+	require.NoError(t, json.Unmarshal(ticketASent[0].Data, &decoded))
+	assert.Equal(t, "ticket_note_added", decoded["type"])
+	assert.Equal(t, string(noteA.UUID()), decoded["uuid"])
+
+	// ticket B's channel wasn't subscribed, so nothing was published to it
+	assert.Empty(t, sentTo(ticketBChannel))
 }
