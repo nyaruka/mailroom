@@ -11,54 +11,54 @@ import (
 	"github.com/nyaruka/mailroom/v26/runtime"
 )
 
-// SocketHistoryNamespace is the realtime pub/sub channel namespace for a contact's message history. It's addressed
-// as "history:<contact-uuid>" for a contact's whole history (the contact read page) or
+// SocketHistoryNamespace is the realtime pub/sub namespace for a contact's message history. A history socket is
+// addressed as "history:<contact-uuid>" for a contact's whole history (the contact read page) or
 // "history:<contact-uuid>:<ticket-uuid>" for the subset scoped to a single ticket (the ticket read page). Mailroom
-// publishes engine events to these channels for any live subscribers. ("Channel" here is a realtime pub/sub channel
-// - unrelated to a messaging Channel.)
+// publishes engine events to these sockets for any live subscribers. ("Socket" is our name for a realtime pub/sub
+// address - so as not to overload Channel, which already means a messaging channel.)
 const SocketHistoryNamespace = "history"
 
-// HistoryChannel returns the realtime pub/sub channel for a contact's message history.
-func HistoryChannel(contactUUID flows.ContactUUID) string {
+// HistorySocket returns the realtime pub/sub socket for a contact's message history, optionally scoped to a single
+// ticket. Given a ticket it returns that ticket's socket ("history:<contact-uuid>:<ticket-uuid>"), otherwise the
+// contact's socket ("history:<contact-uuid>"). At most one ticket is used; any extra is ignored.
+func HistorySocket(contactUUID flows.ContactUUID, ticketUUID ...flows.TicketUUID) string {
+	if len(ticketUUID) > 0 {
+		return fmt.Sprintf("%s:%s:%s", SocketHistoryNamespace, contactUUID, ticketUUID[0])
+	}
 	return fmt.Sprintf("%s:%s", SocketHistoryNamespace, contactUUID)
 }
 
-// TicketHistoryChannel returns the realtime pub/sub channel for a contact's history scoped to a single ticket.
-func TicketHistoryChannel(contactUUID flows.ContactUUID, ticketUUID flows.TicketUUID) string {
-	return fmt.Sprintf("%s:%s:%s", SocketHistoryNamespace, contactUUID, ticketUUID)
-}
-
-// subscriptionKey is the valkey key marking that a realtime channel has at least one active subscriber, e.g.
-// "socket-subs:history:<contact-uuid>". The key is a per-channel presence marker written by the service that
+// subscriptionKey is the valkey key marking that a realtime socket has at least one active subscriber, e.g.
+// "socket-subs:history:<contact-uuid>". The key is a per-socket presence marker written by the service that
 // authorizes subscriptions (it sets/re-arms the key with a TTL on every subscribe and refresh); mailroom only
 // reads it.
-func subscriptionKey(channel string) string {
-	return fmt.Sprintf("socket-subs:%s", channel)
+func subscriptionKey(socket string) string {
+	return fmt.Sprintf("socket-subs:%s", socket)
 }
 
-// IsSubscribed reports whether a realtime channel currently has at least one active subscriber.
-func IsSubscribed(ctx context.Context, rt *runtime.Runtime, channel string) (bool, error) {
+// IsSubscribed reports whether a realtime socket currently has at least one active subscriber.
+func IsSubscribed(ctx context.Context, rt *runtime.Runtime, socket string) (bool, error) {
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	subscribed, err := valkey.Bool(valkey.DoContext(vc, ctx, "EXISTS", subscriptionKey(channel)))
+	subscribed, err := valkey.Bool(valkey.DoContext(vc, ctx, "EXISTS", subscriptionKey(socket)))
 	if err != nil {
-		return false, fmt.Errorf("error checking subscription for %s: %w", channel, err)
+		return false, fmt.Errorf("error checking subscription for %s: %w", socket, err)
 	}
 	return subscribed, nil
 }
 
-// PublishToHistory publishes engine events to a contact's history channels for any live subscribers. Each event is
+// PublishToHistory publishes engine events to a contact's history sockets for any live subscribers. Each event is
 // sent as its full JSON, including its uuid - matching the shape clients fetch from the history table, save for the
 // hydration the fetch layer adds on read (e.g. resolving user avatars).
 //
 // Events are routed to mirror how the read API filters the same events: the per-ticket detail events (assignee, note
-// and topic changes) are filtered off the contact read page and so go only to that ticket's channel, while everything
+// and topic changes) are filtered off the contact read page and so go only to that ticket's socket, while everything
 // else - non-ticket events plus the basic ticket lifecycle events (opened/closed/reopened) - goes to the contact's
-// channel. The ticket read page subscribes to both its ticket channel and the contact channel, so the union it sees
+// socket. The ticket read page subscribes to both its ticket socket and the contact socket, so the union it sees
 // matches what the read API returns for that ticket.
 //
-// It's best-effort and a no-op for any channel that currently has no subscribers; we only pay the centrifugo publish
+// It's best-effort and a no-op for any socket that currently has no subscribers; we only pay the centrifugo publish
 // when someone is watching.
 func PublishToHistory(ctx context.Context, rt *runtime.Runtime, contactUUID flows.ContactUUID, events []flows.Event) error {
 	if len(events) == 0 {
@@ -76,11 +76,11 @@ func PublishToHistory(ctx context.Context, rt *runtime.Runtime, contactUUID flow
 		}
 	}
 
-	if err := publishToChannel(ctx, rt, HistoryChannel(contactUUID), contactEvents); err != nil {
+	if err := publishToSocket(ctx, rt, HistorySocket(contactUUID), contactEvents); err != nil {
 		return err
 	}
 	for ticketUUID, evts := range ticketEvents {
-		if err := publishToChannel(ctx, rt, TicketHistoryChannel(contactUUID, ticketUUID), evts); err != nil {
+		if err := publishToSocket(ctx, rt, HistorySocket(contactUUID, ticketUUID), evts); err != nil {
 			return err
 		}
 	}
@@ -90,7 +90,7 @@ func PublishToHistory(ctx context.Context, rt *runtime.Runtime, contactUUID flow
 
 // ticketDetailEvent returns the ticket UUID and true if the event is a per-ticket detail event - one the read API
 // includes on the ticket page but filters off the contact page (assignee/note/topic changes). Everything else,
-// including the basic ticket lifecycle events (opened/closed/reopened), belongs on the contact channel.
+// including the basic ticket lifecycle events (opened/closed/reopened), belongs on the contact socket.
 func ticketDetailEvent(e flows.Event) (flows.TicketUUID, bool) {
 	switch typed := e.(type) {
 	case *events.TicketAssigneeChanged:
@@ -104,15 +104,15 @@ func ticketDetailEvent(e flows.Event) (flows.TicketUUID, bool) {
 	}
 }
 
-// publishToChannel publishes events to a single realtime channel if it currently has subscribers. All the events are
-// batched into one pipelined request so a subscribed channel costs one round-trip per commit regardless of how many
+// publishToSocket publishes events to a single realtime socket if it currently has subscribers. All the events are
+// batched into one pipelined request so a subscribed socket costs one round-trip per commit regardless of how many
 // events it produced, and the whole batch lands or fails together.
-func publishToChannel(ctx context.Context, rt *runtime.Runtime, channel string, events []flows.Event) error {
+func publishToSocket(ctx context.Context, rt *runtime.Runtime, socket string, events []flows.Event) error {
 	if len(events) == 0 {
 		return nil
 	}
 
-	subscribed, err := IsSubscribed(ctx, rt, channel)
+	subscribed, err := IsSubscribed(ctx, rt, socket)
 	if err != nil {
 		return err
 	}
@@ -124,20 +124,20 @@ func publishToChannel(ctx context.Context, rt *runtime.Runtime, channel string, 
 	for _, e := range events {
 		data, err := json.Marshal(e)
 		if err != nil {
-			return fmt.Errorf("error marshaling event for %s: %w", channel, err)
+			return fmt.Errorf("error marshaling event for %s: %w", socket, err)
 		}
-		if err := pipe.AddPublish(channel, data); err != nil {
-			return fmt.Errorf("error adding event to publish pipe for %s: %w", channel, err)
+		if err := pipe.AddPublish(socket, data); err != nil {
+			return fmt.Errorf("error adding event to publish pipe for %s: %w", socket, err)
 		}
 	}
 
 	replies, err := rt.Centrifugo.SendPipe(ctx, pipe)
 	if err != nil {
-		return fmt.Errorf("error publishing events to %s: %w", channel, err)
+		return fmt.Errorf("error publishing events to %s: %w", socket, err)
 	}
 	for _, reply := range replies {
 		if reply.Error != nil {
-			return fmt.Errorf("error publishing event to %s: %w", channel, reply.Error)
+			return fmt.Errorf("error publishing event to %s: %w", socket, reply.Error)
 		}
 	}
 
