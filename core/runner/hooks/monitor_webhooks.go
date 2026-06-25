@@ -59,13 +59,11 @@ func (h *monitorWebhooks) Execute(ctx context.Context, rt *runtime.Runtime, tx *
 			return fmt.Errorf("error creating unhealthy webhooks incident: %w", err)
 		}
 
-		// record any notifications for a newly started incident on a scene so they're published after commit. The
-		// incident is workspace-level rather than tied to any one contact, so any of this commit's scenes will do.
-		if len(notifications) > 0 {
-			for scene := range scenes {
-				scene.AddNotifications(notifications...)
-				break
-			}
+		// record any notifications for a newly started incident so they're published after commit. The incident is
+		// workspace-level rather than tied to any one contact, so we record them on every scene in this commit - the
+		// post-commit gather de-dupes, and this way they survive as long as any one scene commits.
+		for scene := range scenes {
+			scene.AddNotifications(notifications...)
 		}
 	}
 

@@ -382,6 +382,10 @@ func BulkCommit(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, 
 		return fmt.Errorf("error executing scene pre commit hooks: %w", err)
 	}
 
+	// the scenes that actually committed - all of them on the happy path, or just those whose individual retry
+	// succeeded - so post-commit work (notification publishing) doesn't act on rolled-back changes
+	committed := scenes
+
 	if err := tx.Commit(); err != nil {
 		// retry committing our scenes one at a time
 		slog.Debug("failed committing scenes in bulk, retrying one at a time", "error", err)
@@ -389,6 +393,7 @@ func BulkCommit(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, 
 		tx.Rollback()
 
 		// we failed committing the scenes in one go, try one at a time
+		committed = make([]*Scene, 0, len(scenes))
 		for _, scene := range scenes {
 			txCTX, cancel := context.WithTimeout(ctx, commitTimeout)
 			defer cancel()
@@ -397,6 +402,10 @@ func BulkCommit(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, 
 			if err != nil {
 				return fmt.Errorf("error starting transaction for retry: %w", err)
 			}
+
+			// this attempt re-runs the pre-commit hooks, which re-record this scene's notifications, so clear the
+			// rolled-back bulk attempt's first - otherwise we'd publish a notification whose row no longer exists
+			scene.notifications = nil
 
 			if err := ExecutePreCommitHooks(ctx, rt, tx, oa, []*Scene{scene}); err != nil {
 				return fmt.Errorf("error applying scene pre commit hooks: %w", err)
@@ -407,6 +416,8 @@ func BulkCommit(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, 
 				slog.Error("error committing scene", "error", err, "contact", scene.ContactUUID())
 				continue
 			}
+
+			committed = append(committed, scene)
 		}
 	}
 
@@ -434,13 +445,13 @@ func BulkCommit(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, 
 	slog.Debug("events queued to history writer", "count", eventsWritten)
 
 	// publish any notifications created while committing to their users' realtime sockets - best-effort, like history,
-	// and done after commit so we never publish a notification that was rolled back. Gathered across all scenes into a
-	// single centrifugo round-trip and de-duped by what an unseen notification is unique on (org, user, type, scope),
-	// keeping the highest id: a retried scene re-creates its notifications, so without this a rolled-back duplicate
-	// from the failed attempt could be published alongside the committed one.
+	// and only after commit so a rolled-back notification is never delivered. Gathered from the scenes that actually
+	// committed into a single centrifugo round-trip and de-duped by what an unseen notification is unique on (org,
+	// user, type, scope) - the same notification can be recorded on several scenes (e.g. a workspace incident) - taking
+	// the highest id as a tiebreak.
 	latest := make(map[string]*models.Notification)
 	var order []string
-	for _, scene := range scenes {
+	for _, scene := range committed {
 		for _, n := range scene.notifications {
 			key := fmt.Sprintf("%d|%d|%s|%s", n.OrgID, n.UserID, n.Type, n.Scope)
 			if prev, seen := latest[key]; !seen {

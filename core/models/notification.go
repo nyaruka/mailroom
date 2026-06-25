@@ -146,7 +146,7 @@ const sqlInsertNotification = `
 INSERT INTO notifications_notification(org_id,  notification_type,  scope,  user_id,  medium, is_seen,  email_status,  created_on,  contact_import_id,  incident_id)
                                VALUES(:org_id, :notification_type, :scope, :user_id, :medium,   FALSE, :email_status, :created_on, :contact_import_id, :incident_id)
                           ON CONFLICT DO NOTHING
-                            RETURNING id, user_id, notification_type, scope`
+                            RETURNING id, org_id, user_id, notification_type, scope`
 
 // InsertNotifications inserts the given notifications and returns those that were actually created. A notification
 // that would duplicate an existing unseen one (same org, type, scope and user) is dropped by the ON CONFLICT and not
@@ -178,13 +178,14 @@ func InsertNotifications(ctx context.Context, db DBorTx, notifications []*Notifi
 
 	byKey := make(map[string]*Notification, len(notifications))
 	for _, n := range notifications {
-		byKey[notificationKey(n.UserID, n.Type, n.Scope)] = n
+		byKey[notificationKey(n.OrgID, n.UserID, n.Type, n.Scope)] = n
 	}
 
 	inserted := make([]*Notification, 0, len(notifications))
 	for rows.Next() {
 		r := struct {
 			ID    NotificationID   `db:"id"`
+			Org   OrgID            `db:"org_id"`
 			User  UserID           `db:"user_id"`
 			Type  NotificationType `db:"notification_type"`
 			Scope string           `db:"scope"`
@@ -192,7 +193,7 @@ func InsertNotifications(ctx context.Context, db DBorTx, notifications []*Notifi
 		if err := rows.StructScan(&r); err != nil {
 			return nil, fmt.Errorf("error scanning inserted notification: %w", err)
 		}
-		if n := byKey[notificationKey(r.User, r.Type, r.Scope)]; n != nil {
+		if n := byKey[notificationKey(r.Org, r.User, r.Type, r.Scope)]; n != nil {
 			n.ID = r.ID
 			inserted = append(inserted, n)
 		}
@@ -204,10 +205,11 @@ func InsertNotifications(ctx context.Context, db DBorTx, notifications []*Notifi
 	return inserted, nil
 }
 
-// notificationKey identifies a notification within an insert batch by what the unseen-notification uniqueness is
-// scoped to, so a returned row can be matched back to the notification it was inserted from.
-func notificationKey(userID UserID, t NotificationType, scope string) string {
-	return fmt.Sprintf("%d|%s|%s", userID, t, scope)
+// notificationKey identifies a notification within an insert batch by what an unseen notification is unique on (the DB
+// index is on org, type, scope and user), so a returned row can be matched back to the notification it was inserted
+// from even if a batch ever spans more than one org.
+func notificationKey(orgID OrgID, userID UserID, t NotificationType, scope string) string {
+	return fmt.Sprintf("%d|%d|%s|%s", orgID, userID, t, scope)
 }
 
 // notificationPayload is the JSON shape published to a user's realtime notifications socket. It mirrors the
