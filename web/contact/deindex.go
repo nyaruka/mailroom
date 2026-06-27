@@ -7,7 +7,7 @@ import (
 
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/v26/core/models"
-	"github.com/nyaruka/mailroom/v26/core/search"
+	"github.com/nyaruka/mailroom/v26/core/tasks"
 	"github.com/nyaruka/mailroom/v26/runtime"
 	"github.com/nyaruka/mailroom/v26/web"
 )
@@ -28,14 +28,13 @@ type deindexRequest struct {
 }
 
 func handleDeindex(ctx context.Context, rt *runtime.Runtime, r *deindexRequest) (any, int, error) {
-	deindexed, err := search.DeindexContactsByUUID(ctx, rt, r.OrgID, r.ContactUUIDs)
-	if err != nil {
-		return nil, 0, fmt.Errorf("error de-indexing contacts in org #%d: %w", r.OrgID, err)
+	task := &tasks.DeindexContacts{
+		ContactUUIDs: r.ContactUUIDs,
 	}
 
-	if err := search.DeindexMessagesByContact(ctx, rt, r.OrgID, r.ContactUUIDs); err != nil {
-		return nil, 0, fmt.Errorf("error de-indexing messages in org #%d: %w", r.OrgID, err)
+	if err := tasks.Queue(ctx, rt, rt.Queues.Batch, r.OrgID, task, false); err != nil {
+		return nil, 0, fmt.Errorf("error queuing deindex contacts task: %w", err)
 	}
 
-	return map[string]any{"deindexed": deindexed}, http.StatusOK, nil
+	return map[string]any{}, http.StatusOK, nil
 }
