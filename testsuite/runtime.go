@@ -2,6 +2,7 @@ package testsuite
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"os"
@@ -11,6 +12,8 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/centrifugal/gocent/v3"
+	valkey "github.com/gomodule/redigo/redis"
 	"github.com/nyaruka/gocommon/aws/dynamo/dyntest"
 	"github.com/nyaruka/mailroom/v26/core/goflow"
 	"github.com/nyaruka/mailroom/v26/core/models"
@@ -28,14 +31,15 @@ type ResetFlag int
 
 // refresh bit masks
 const (
-	ResetNone    = ResetFlag(0)
-	ResetAll     = ResetFlag(^0)
-	ResetDB      = ResetFlag(1 << 1)
-	ResetData    = ResetFlag(1 << 2)
-	ResetValkey  = ResetFlag(1 << 3)
-	ResetStorage = ResetFlag(1 << 4)
-	ResetDynamo  = ResetFlag(1 << 5)
-	ResetElastic = ResetFlag(1 << 6)
+	ResetNone       = ResetFlag(0)
+	ResetAll        = ResetFlag(^0)
+	ResetDB         = ResetFlag(1 << 1)
+	ResetData       = ResetFlag(1 << 2)
+	ResetValkey     = ResetFlag(1 << 3)
+	ResetStorage    = ResetFlag(1 << 4)
+	ResetDynamo     = ResetFlag(1 << 5)
+	ResetElastic    = ResetFlag(1 << 6)
+	ResetCentrifugo = ResetFlag(1 << 7)
 )
 
 // Reset clears out both our database and redis DB
@@ -48,6 +52,9 @@ func Reset(t *testing.T, rt *runtime.Runtime, what ResetFlag) {
 	}
 	if what&ResetDynamo > 0 {
 		resetDynamo(t, rt)
+	}
+	if what&ResetCentrifugo > 0 {
+		resetCentrifugo(t, rt)
 	}
 
 	if what&ResetDB > 0 {
@@ -80,6 +87,8 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 	cfg.DynamoTablePrefix = "Test"
 	cfg.ElasticContactsIndex = "contacts-test"
 	cfg.ElasticMessagesIndex = "messages-test"
+	cfg.CentrifugoEndpoint = "http://centrifugo:9000/ws/api"
+	cfg.CentrifugoKey = "dev-api-key"
 	cfg.SpoolDir = absPath("./_test_spool")
 
 	err := cfg.Parse()
@@ -191,6 +200,37 @@ func resetStorage(t *testing.T, rt *runtime.Runtime) {
 
 	err := rt.S3.EmptyBucket(t.Context(), rt.Config.S3AttachmentsBucket)
 	require.NoError(t, err)
+}
+
+// resetCentrifugo clears any channel history Centrifugo is holding between tests. The dev and CI Centrifugo use valkey
+// DB 6 for their engine (see the centrifugo service config), so flushing that DB drops all retained publications.
+func resetCentrifugo(t *testing.T, rt *runtime.Runtime) {
+	t.Helper()
+
+	vc, err := valkey.Dial("tcp", "valkey:6379")
+	require.NoError(t, err, "error connecting to centrifugo valkey db")
+	defer vc.Close()
+
+	_, err = vc.Do("SELECT", 6)
+	require.NoError(t, err)
+	_, err = vc.Do("FLUSHDB")
+	require.NoError(t, err, "error flushing centrifugo valkey db")
+}
+
+// CentrifugoHistory returns the JSON payloads published to the given Centrifugo channel, oldest first. The channel's
+// namespace must have history enabled - the dev and CI Centrifugo enable it so tests can read publishes back; the
+// production config does not.
+func CentrifugoHistory(t *testing.T, rt *runtime.Runtime, channel string) []json.RawMessage {
+	t.Helper()
+
+	res, err := rt.Centrifugo.History(t.Context(), channel, gocent.WithLimit(-1))
+	require.NoError(t, err)
+
+	msgs := make([]json.RawMessage, len(res.Publications))
+	for i, p := range res.Publications {
+		msgs[i] = p.Data
+	}
+	return msgs
 }
 
 func createBucket(t *testing.T, rt *runtime.Runtime, bucket string) {

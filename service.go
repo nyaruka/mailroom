@@ -10,7 +10,6 @@ import (
 
 	"github.com/appleboy/go-fcm"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatch/types"
-	"github.com/centrifugal/gocent/v3"
 	valkey "github.com/gomodule/redigo/redis"
 	"github.com/nyaruka/gocommon/aws/cwatch"
 	"github.com/nyaruka/gocommon/aws/dynamo"
@@ -122,12 +121,7 @@ func (s *Service) Start() error {
 		log.Warn("fcm not configured, no android syncing")
 	}
 
-	s.rt.Centrifugo = gocent.New(gocent.Config{
-		Addr: c.CentrifugoEndpoint,
-		Key:  c.CentrifugoKey,
-	})
-
-	// test Centrifugo - its info API confirms both that the server is reachable and that our API key is accepted
+	// the Centrifugo client is built by the runtime; confirm here that the server is reachable and accepts our key
 	if _, err := s.rt.Centrifugo.Info(s.ctx); err != nil {
 		log.Error("centrifugo not reachable", "error", err)
 	} else {

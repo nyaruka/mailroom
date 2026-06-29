@@ -3,14 +3,9 @@ package runner_test
 import (
 	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
-	"net/http/httptest"
-	"sync"
 	"testing"
 	"time"
 
-	"github.com/centrifugal/gocent/v3"
 	"github.com/nyaruka/gocommon/aws/dynamo/dyntest"
 	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
@@ -226,50 +221,16 @@ func TestSessionWithSubflows(t *testing.T) {
 func TestBulkCommitPublishesNotifications(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetValkey)
+	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetValkey|testsuite.ResetCentrifugo)
 
 	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 	require.NoError(t, err)
-
-	// a fake centrifugo API server that records what gets published to it
-	type publish struct {
-		Channel string          `json:"channel"`
-		Data    json.RawMessage `json:"data"`
-	}
-	var mu sync.Mutex
-	var published []publish
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		dec := json.NewDecoder(r.Body)
-		replies := 0
-		for {
-			var cmd struct {
-				Method string  `json:"method"`
-				Params publish `json:"params"`
-			}
-			if err := dec.Decode(&cmd); err == io.EOF {
-				break
-			} else if err != nil {
-				http.Error(w, err.Error(), http.StatusBadRequest)
-				return
-			}
-			if cmd.Method == "publish" {
-				mu.Lock()
-				published = append(published, cmd.Params)
-				mu.Unlock()
-			}
-			replies++
-		}
-		for range replies {
-			io.WriteString(w, `{"result":{}}`+"\n")
-		}
-	}))
-	defer srv.Close()
-	rt.Centrifugo = gocent.New(gocent.Config{Addr: srv.URL, Key: "sesame"})
 
 	vc := rt.VK.Get()
 	defer vc.Close()
 
 	// only the editor is watching their notifications socket
+	adminSocket := fmt.Sprintf("notifications:%s:%s", testdb.Org1.UUID, testdb.Admin.UUID)
 	editorSocket := fmt.Sprintf("notifications:%s:%s", testdb.Org1.UUID, testdb.Editor.UUID)
 	_, err = vc.Do("SET", "socket-subs:"+editorSocket, "1")
 	require.NoError(t, err)
@@ -286,14 +247,15 @@ func TestBulkCommitPublishesNotifications(t *testing.T) {
 	// both notifications were persisted
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM notifications_notification WHERE notification_type = 'tickets:opened'`).Returns(2)
 
-	// but only the editor's subscribed socket received a realtime publish
-	mu.Lock()
-	defer mu.Unlock()
-	require.Len(t, published, 1)
-	assert.Equal(t, editorSocket, published[0].Channel)
+	// the admin isn't watching, so nothing was published to their socket
+	assert.Empty(t, testsuite.CentrifugoHistory(t, rt, adminSocket))
+
+	// but the editor's subscribed socket received the realtime publish, as the same JSON the API serves
+	sent := testsuite.CentrifugoHistory(t, rt, editorSocket)
+	require.Len(t, sent, 1)
 
 	var decoded map[string]any
-	require.NoError(t, json.Unmarshal(published[0].Data, &decoded))
+	require.NoError(t, json.Unmarshal(sent[0], &decoded))
 	assert.Equal(t, "tickets:opened", decoded["type"])
 	assert.Equal(t, false, decoded["is_seen"])
 }

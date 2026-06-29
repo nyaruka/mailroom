@@ -14,61 +14,11 @@ import (
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/mailroom/v26/core/models"
-	"github.com/nyaruka/mailroom/v26/runtime"
 	"github.com/nyaruka/mailroom/v26/testsuite"
 	"github.com/nyaruka/mailroom/v26/testsuite/testdb"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-// capturedPublish is one publish recorded by the fake centrifugo server.
-type capturedPublish struct {
-	Channel string          `json:"channel"`
-	Data    json.RawMessage `json:"data"`
-}
-
-// recordCentrifugo points rt.Centrifugo at a fake centrifugo API server that records what gets published to it,
-// returning a function that snapshots the publishes so far.
-func recordCentrifugo(t *testing.T, rt *runtime.Runtime) func() []capturedPublish {
-	var mu sync.Mutex
-	var published []capturedPublish
-
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// the gocent client sends newline-delimited publish commands and expects one reply per command
-		dec := json.NewDecoder(r.Body)
-		replies := 0
-		for {
-			var cmd struct {
-				Method string          `json:"method"`
-				Params capturedPublish `json:"params"`
-			}
-			if err := dec.Decode(&cmd); err == io.EOF {
-				break
-			} else if err != nil {
-				http.Error(w, err.Error(), http.StatusBadRequest)
-				return
-			}
-			if cmd.Method == "publish" {
-				mu.Lock()
-				published = append(published, cmd.Params)
-				mu.Unlock()
-			}
-			replies++
-		}
-		for range replies {
-			io.WriteString(w, `{"result":{}}`+"\n")
-		}
-	}))
-	t.Cleanup(srv.Close)
-
-	rt.Centrifugo = gocent.New(gocent.Config{Addr: srv.URL, Key: "sesame"})
-
-	return func() []capturedPublish {
-		mu.Lock()
-		defer mu.Unlock()
-		return append([]capturedPublish(nil), published...)
-	}
-}
 
 func TestHistorySocket(t *testing.T) {
 	contact := flows.ContactUUID("a393abc0-283d-4c9b-a1b3-641a035c34bf")
@@ -91,12 +41,10 @@ func TestNotificationSocket(t *testing.T) {
 func TestPublishNotifications(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetValkey)
+	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetValkey|testsuite.ResetCentrifugo)
 
 	vc := rt.VK.Get()
 	defer vc.Close()
-
-	snapshot := recordCentrifugo(t, rt)
 
 	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 	require.NoError(t, err)
@@ -105,7 +53,7 @@ func TestPublishNotifications(t *testing.T) {
 
 	// no notifications is a no-op
 	require.NoError(t, models.PublishNotifications(ctx, rt, oa, nil))
-	assert.Empty(t, snapshot())
+	assert.Empty(t, testsuite.CentrifugoHistory(t, rt, adminSocket))
 
 	n := models.NewTicketsOpenedNotification(testdb.Org1.ID, testdb.Admin.ID)
 	inserted, err := models.InsertNotifications(ctx, rt.DB, []*models.Notification{n})
@@ -114,7 +62,7 @@ func TestPublishNotifications(t *testing.T) {
 
 	// the admin's socket isn't subscribed yet, so nothing is published
 	require.NoError(t, models.PublishNotifications(ctx, rt, oa, inserted))
-	assert.Empty(t, snapshot())
+	assert.Empty(t, testsuite.CentrifugoHistory(t, rt, adminSocket))
 
 	// mark the socket subscribed (as the authorizing service would) - now it publishes as the same JSON the API serves
 	_, err = vc.Do("SET", "socket-subs:"+adminSocket, "1")
@@ -122,12 +70,11 @@ func TestPublishNotifications(t *testing.T) {
 
 	require.NoError(t, models.PublishNotifications(ctx, rt, oa, inserted))
 
-	sent := snapshot()
+	sent := testsuite.CentrifugoHistory(t, rt, adminSocket)
 	require.Len(t, sent, 1)
-	assert.Equal(t, adminSocket, sent[0].Channel)
 
 	var decoded map[string]any
-	require.NoError(t, json.Unmarshal(sent[0].Data, &decoded))
+	require.NoError(t, json.Unmarshal(sent[0], &decoded))
 	assert.Equal(t, "tickets:opened", decoded["type"])
 	assert.Equal(t, false, decoded["is_seen"])
 	assert.Equal(t, fmt.Sprintf("/notification/read/%d/", inserted[0].ID), decoded["url"])
@@ -141,10 +88,9 @@ func TestPublishNotifications(t *testing.T) {
 
 	require.NoError(t, models.PublishNotifications(ctx, rt, oa, notifications))
 
-	sent = snapshot()
+	sent = testsuite.CentrifugoHistory(t, rt, adminSocket)
 	require.Len(t, sent, 2)
-	assert.Equal(t, adminSocket, sent[1].Channel)
-	require.NoError(t, json.Unmarshal(sent[1].Data, &decoded))
+	require.NoError(t, json.Unmarshal(sent[1], &decoded))
 	assert.Equal(t, "incident:started", decoded["type"])
 	incident := decoded["incident"].(map[string]any)
 	assert.Equal(t, "webhooks:unhealthy", incident["type"])

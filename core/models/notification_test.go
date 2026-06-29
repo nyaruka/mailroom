@@ -18,17 +18,17 @@ import (
 func TestImportNotifications(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetValkey)
+	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetValkey|testsuite.ResetCentrifugo)
 
 	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 	require.NoError(t, err)
 
-	snapshot := recordCentrifugo(t, rt)
+	editorSocket := fmt.Sprintf("notifications:%s:%s", testdb.Org1.UUID, testdb.Editor.UUID)
 
 	// mark the creator's notifications socket subscribed so the finished notification is published to it
 	vc := rt.VK.Get()
 	defer vc.Close()
-	_, err = vc.Do("SET", fmt.Sprintf("socket-subs:notifications:%s:%s", testdb.Org1.UUID, testdb.Editor.UUID), "1")
+	_, err = vc.Do("SET", "socket-subs:"+editorSocket, "1")
 	require.NoError(t, err)
 
 	importID := testdb.InsertContactImport(t, rt, testdb.Org1, models.ImportStatusProcessing, testdb.Editor)
@@ -48,12 +48,11 @@ func TestImportNotifications(t *testing.T) {
 	})
 
 	// the notification was also published to the creator's realtime socket as the same JSON the API would serve
-	sent := snapshot()
+	sent := testsuite.CentrifugoHistory(t, rt, editorSocket)
 	require.Len(t, sent, 1)
-	assert.Equal(t, fmt.Sprintf("notifications:%s:%s", testdb.Org1.UUID, testdb.Editor.UUID), sent[0].Channel)
 
 	var decoded map[string]any
-	require.NoError(t, json.Unmarshal(sent[0].Data, &decoded))
+	require.NoError(t, json.Unmarshal(sent[0], &decoded))
 	assert.Equal(t, "import:finished", decoded["type"])
 	assert.Equal(t, false, decoded["is_seen"])
 	assert.Equal(t, map[string]any{"type": "contact", "num_records": float64(30)}, decoded["import"])
