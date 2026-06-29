@@ -120,6 +120,9 @@ func (e *Environment) ObfuscationKey() [4]uint32 { return e.obfuscationKey }
 // ID returns the id of the org
 func (o *Org) ID() OrgID { return o.o.ID }
 
+// UUID returns the uuid of the org
+func (o *Org) UUID() OrgUUID { return o.o.UUID }
+
 // Name returns the name of the org
 func (o *Org) Name() string { return o.o.Name }
 

@@ -69,7 +69,7 @@ func (t *ImportContactBatch) Perform(ctx context.Context, rt *runtime.Runtime, o
 			return fmt.Errorf("error marking import as finished: %w", err)
 		}
 
-		if err := models.NotifyImportFinished(ctx, rt.DB, imp); err != nil {
+		if err := models.NotifyImportFinished(ctx, rt, oa, imp); err != nil {
 			return fmt.Errorf("error creating import finished notification: %w", err)
 		}
 	}

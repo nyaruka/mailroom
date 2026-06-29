@@ -4,8 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 
 	valkey "github.com/gomodule/redigo/redis"
+	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/mailroom/v26/runtime"
@@ -26,6 +28,91 @@ func HistorySocket(contactUUID flows.ContactUUID, ticketUUID ...flows.TicketUUID
 		return fmt.Sprintf("%s:%s:%s", SocketHistoryNamespace, contactUUID, ticketUUID[0])
 	}
 	return fmt.Sprintf("%s:%s", SocketHistoryNamespace, contactUUID)
+}
+
+// SocketNotificationsNamespace is the realtime pub/sub namespace for a user's notifications within a workspace. A
+// notification socket is addressed as "notifications:<org-uuid>:<user-uuid>". Like history sockets it's a client
+// subscription, authorized per-session by the subscribe proxy, which records the same "socket-subs:" presence key -
+// so mailroom only publishes to it when someone is watching.
+const SocketNotificationsNamespace = "notifications"
+
+// NotificationSocket returns the realtime pub/sub socket for a user's notifications within a workspace, addressed as
+// "notifications:<org-uuid>:<user-uuid>".
+func NotificationSocket(orgUUID OrgUUID, userUUID assets.UserUUID) string {
+	return fmt.Sprintf("%s:%s:%s", SocketNotificationsNamespace, orgUUID, userUUID)
+}
+
+// PublishNotifications publishes the given notifications to their users' notification sockets, each as the same JSON a
+// client would otherwise fetch from the notifications API. As with history, it's best-effort and a no-op for any
+// socket that currently has no subscribers; the sockets this commit touches are resolved in a single presence lookup,
+// then every subscribed socket's notifications are batched into one pipelined request so it costs one centrifugo
+// round-trip.
+func PublishNotifications(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, notifications []*Notification) error {
+	// the service always configures a Centrifugo client; this only guards contexts that don't start it (e.g. tests)
+	if len(notifications) == 0 || rt.Centrifugo == nil {
+		return nil
+	}
+
+	orgUUID := oa.Org().UUID()
+
+	// resolve each notification's socket up front, skipping any whose user we can't resolve
+	type pending struct {
+		socket string
+		n      *Notification
+	}
+	items := make([]pending, 0, len(notifications))
+	candidates := make([]string, 0, len(notifications))
+	for _, n := range notifications {
+		user := oa.UserByID(n.UserID)
+		if user == nil {
+			slog.Error("unable to publish notification for unknown user", "user_id", n.UserID, "org_id", n.OrgID)
+			continue
+		}
+
+		socket := NotificationSocket(orgUUID, user.UUID())
+		items = append(items, pending{socket, n})
+		candidates = append(candidates, socket)
+	}
+	if len(items) == 0 {
+		return nil
+	}
+
+	subscribed, err := SubscribedSockets(ctx, rt, candidates...)
+	if err != nil {
+		return err
+	}
+
+	pipe := rt.Centrifugo.Pipe()
+	var targets []string // the socket each pipelined publish targets, parallel to the replies for error reporting
+	for _, it := range items {
+		if !subscribed[it.socket] {
+			continue
+		}
+
+		data, err := it.n.marshalForSocket()
+		if err != nil {
+			return fmt.Errorf("error marshaling notification for %s: %w", it.socket, err)
+		}
+		if err := pipe.AddPublish(it.socket, data); err != nil {
+			return fmt.Errorf("error adding notification to publish pipe for %s: %w", it.socket, err)
+		}
+		targets = append(targets, it.socket)
+	}
+	if len(targets) == 0 {
+		return nil
+	}
+
+	replies, err := rt.Centrifugo.SendPipe(ctx, pipe)
+	if err != nil {
+		return fmt.Errorf("error publishing notifications: %w", err)
+	}
+	for i, reply := range replies {
+		if reply.Error != nil {
+			return fmt.Errorf("error publishing notification to %s: %w", targets[i], reply.Error)
+		}
+	}
+
+	return nil
 }
 
 // subscriptionKey is the valkey key marking that a realtime socket has at least one active subscriber, e.g.

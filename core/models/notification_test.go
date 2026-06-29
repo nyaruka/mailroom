@@ -2,6 +2,8 @@ package models_test
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"testing"
 	"time"
 
@@ -16,7 +18,18 @@ import (
 func TestImportNotifications(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetData)
+	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetValkey)
+
+	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
+	require.NoError(t, err)
+
+	snapshot := recordCentrifugo(t, rt)
+
+	// mark the creator's notifications socket subscribed so the finished notification is published to it
+	vc := rt.VK.Get()
+	defer vc.Close()
+	_, err = vc.Do("SET", fmt.Sprintf("socket-subs:notifications:%s:%s", testdb.Org1.UUID, testdb.Editor.UUID), "1")
+	require.NoError(t, err)
 
 	importID := testdb.InsertContactImport(t, rt, testdb.Org1, models.ImportStatusProcessing, testdb.Editor)
 	imp, err := models.LoadContactImport(ctx, rt.DB, importID)
@@ -27,12 +40,23 @@ func TestImportNotifications(t *testing.T) {
 
 	t0 := time.Now()
 
-	err = models.NotifyImportFinished(ctx, rt.DB, imp)
+	err = models.NotifyImportFinished(ctx, rt, oa, imp)
 	require.NoError(t, err)
 
 	assertNotifications(t, ctx, rt.DB, t0, map[*testdb.User][]models.NotificationType{
 		testdb.Editor: {models.NotificationTypeImportFinished},
 	})
+
+	// the notification was also published to the creator's realtime socket as the same JSON the API would serve
+	sent := snapshot()
+	require.Len(t, sent, 1)
+	assert.Equal(t, fmt.Sprintf("notifications:%s:%s", testdb.Org1.UUID, testdb.Editor.UUID), sent[0].Channel)
+
+	var decoded map[string]any
+	require.NoError(t, json.Unmarshal(sent[0].Data, &decoded))
+	assert.Equal(t, "import:finished", decoded["type"])
+	assert.Equal(t, false, decoded["is_seen"])
+	assert.Equal(t, map[string]any{"type": "contact", "num_records": float64(30)}, decoded["import"])
 }
 
 func TestIncidentNotifications(t *testing.T) {
@@ -45,7 +69,7 @@ func TestIncidentNotifications(t *testing.T) {
 
 	t0 := time.Now()
 
-	_, err = models.IncidentWebhooksUnhealthy(ctx, rt.DB, rt.VK, oa, nil)
+	_, _, err = models.IncidentWebhooksUnhealthy(ctx, rt.DB, rt.VK, oa, nil)
 	require.NoError(t, err)
 
 	assertNotifications(t, ctx, rt.DB, t0, map[*testdb.User][]models.NotificationType{

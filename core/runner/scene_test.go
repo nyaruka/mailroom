@@ -1,10 +1,16 @@
 package runner_test
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"sync"
 	"testing"
 	"time"
 
+	"github.com/centrifugal/gocent/v3"
 	"github.com/nyaruka/gocommon/aws/dynamo/dyntest"
 	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
@@ -18,6 +24,7 @@ import (
 	"github.com/nyaruka/goflow/test"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/runner"
+	"github.com/nyaruka/mailroom/v26/core/runner/hooks"
 	"github.com/nyaruka/mailroom/v26/runtime"
 	"github.com/nyaruka/mailroom/v26/testsuite"
 	"github.com/nyaruka/mailroom/v26/testsuite/testdb"
@@ -214,6 +221,81 @@ func TestSessionWithSubflows(t *testing.T) {
 
 	// check we have no contact fires for wait expiration or timeout
 	testsuite.AssertContactFires(t, rt, testdb.Ann.ID, map[string]time.Time{})
+}
+
+func TestBulkCommitPublishesNotifications(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetValkey)
+
+	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
+	require.NoError(t, err)
+
+	// a fake centrifugo API server that records what gets published to it
+	type publish struct {
+		Channel string          `json:"channel"`
+		Data    json.RawMessage `json:"data"`
+	}
+	var mu sync.Mutex
+	var published []publish
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		dec := json.NewDecoder(r.Body)
+		replies := 0
+		for {
+			var cmd struct {
+				Method string  `json:"method"`
+				Params publish `json:"params"`
+			}
+			if err := dec.Decode(&cmd); err == io.EOF {
+				break
+			} else if err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+			if cmd.Method == "publish" {
+				mu.Lock()
+				published = append(published, cmd.Params)
+				mu.Unlock()
+			}
+			replies++
+		}
+		for range replies {
+			io.WriteString(w, `{"result":{}}`+"\n")
+		}
+	}))
+	defer srv.Close()
+	rt.Centrifugo = gocent.New(gocent.Config{Addr: srv.URL, Key: "sesame"})
+
+	vc := rt.VK.Get()
+	defer vc.Close()
+
+	// only the editor is watching their notifications socket
+	editorSocket := fmt.Sprintf("notifications:%s:%s", testdb.Org1.UUID, testdb.Editor.UUID)
+	_, err = vc.Do("SET", "socket-subs:"+editorSocket, "1")
+	require.NoError(t, err)
+
+	// commit a scene that creates a tickets:opened notification for each of the admin and editor, attaching them the
+	// same way the ticket-opened handler does
+	mc, contact, _ := testdb.Ann.Load(t, rt, oa)
+	scene := runner.NewScene(mc, contact)
+	scene.AttachPreCommitHook(hooks.InsertNotifications, models.NewTicketsOpenedNotification(oa.OrgID(), testdb.Admin.ID))
+	scene.AttachPreCommitHook(hooks.InsertNotifications, models.NewTicketsOpenedNotification(oa.OrgID(), testdb.Editor.ID))
+
+	require.NoError(t, runner.BulkCommit(ctx, rt, oa, []*runner.Scene{scene}))
+
+	// both notifications were persisted
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM notifications_notification WHERE notification_type = 'tickets:opened'`).Returns(2)
+
+	// but only the editor's subscribed socket received a realtime publish
+	mu.Lock()
+	defer mu.Unlock()
+	require.Len(t, published, 1)
+	assert.Equal(t, editorSocket, published[0].Channel)
+
+	var decoded map[string]any
+	require.NoError(t, json.Unmarshal(published[0].Data, &decoded))
+	assert.Equal(t, "tickets:opened", decoded["type"])
+	assert.Equal(t, false, decoded["is_seen"])
 }
 
 func TestSessionFailedStart(t *testing.T) {
