@@ -421,10 +421,15 @@ func BulkCommit(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, 
 		}
 	}
 
-	// send events to be persisted to the history table writer, and publish them to any live subscribers of the
-	// contact's history channel - only for scenes that actually committed, so a rolled-back scene's events never reach
-	// the history table or its live subscribers
+	// do the realtime post-commit work for the scenes that actually committed, so a rolled-back scene's events never
+	// reach the history table or its live subscribers and its notifications are never delivered: persist each scene's
+	// events to the history table writer and publish them to the contact's history socket, and gather its notifications
+	// to publish. Notifications are de-duped by what an unseen notification is unique on (org, user, type, scope) since
+	// the same one can be recorded on several scenes (e.g. a workspace incident), taking the highest id as a tiebreak.
 	eventsWritten := 0
+	latest := make(map[string]*models.Notification)
+	var order []string
+
 	for _, scene := range committed {
 		evts := make([]flows.Event, len(scene.persistEvents))
 		for i, evt := range scene.persistEvents {
@@ -441,18 +446,7 @@ func BulkCommit(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, 
 		}
 
 		eventsWritten += len(scene.persistEvents)
-	}
 
-	slog.Debug("events queued to history writer", "count", eventsWritten)
-
-	// publish any notifications created while committing to their users' realtime sockets - best-effort, like history,
-	// and only after commit so a rolled-back notification is never delivered. Gathered from the scenes that actually
-	// committed into a single centrifugo round-trip and de-duped by what an unseen notification is unique on (org,
-	// user, type, scope) - the same notification can be recorded on several scenes (e.g. a workspace incident) - taking
-	// the highest id as a tiebreak.
-	latest := make(map[string]*models.Notification)
-	var order []string
-	for _, scene := range committed {
 		for _, n := range scene.notifications {
 			key := fmt.Sprintf("%d|%d|%s|%s", n.OrgID, n.UserID, n.Type, n.Scope)
 			if prev, seen := latest[key]; !seen {
@@ -463,6 +457,10 @@ func BulkCommit(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, 
 			}
 		}
 	}
+
+	slog.Debug("events queued to history writer", "count", eventsWritten)
+
+	// publish the gathered notifications in a single centrifugo round-trip - best-effort, like history
 	notifications := make([]*models.Notification, len(order))
 	for i, key := range order {
 		notifications[i] = latest[key]
