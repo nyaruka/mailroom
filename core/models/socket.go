@@ -48,8 +48,7 @@ func NotificationSocket(orgUUID OrgUUID, userUUID assets.UserUUID) string {
 // then every subscribed socket's notifications are batched into one pipelined request so it costs one centrifugo
 // round-trip.
 func PublishNotifications(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, notifications []*Notification) error {
-	// the service always configures a Centrifugo client; this only guards contexts that don't start it (e.g. tests)
-	if len(notifications) == 0 || rt.Centrifugo == nil {
+	if len(notifications) == 0 {
 		return nil
 	}
 

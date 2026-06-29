@@ -91,6 +91,8 @@ func NewRuntime(cfg *Config) (*Runtime, error) {
 		return nil, fmt.Errorf("error creating Cloudwatch service: %w", err)
 	}
 
+	rt.Centrifugo = gocent.New(gocent.Config{Addr: cfg.CentrifugoEndpoint, Key: cfg.CentrifugoKey})
+
 	rt.Queues = newQueues(cfg)
 	rt.Stats = NewStatsCollector(rt.VK, cfg.LatencyExcludedOrgs)
 	rt.HTTP = newHTTP(cfg)
