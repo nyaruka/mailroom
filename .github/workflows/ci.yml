@@ -40,7 +40,6 @@ jobs:
           CENTRIFUGO_HTTP_SERVER_INTERNAL_PORT: 9000
           CENTRIFUGO_HTTP_API_HANDLER_PREFIX: /ws/api
           CENTRIFUGO_HTTP_API_KEY: dev-api-key
-          CENTRIFUGO_HEALTH_ENABLED: true
           # redis engine on valkey DB 6 so the test suite can clear channel history by flushing that DB
           CENTRIFUGO_ENGINE_TYPE: redis
           CENTRIFUGO_ENGINE_REDIS_ADDRESS: redis://valkey:6379/6
@@ -61,14 +60,6 @@ jobs:
           wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | tee /etc/apt/trusted.gpg.d/postgresql.asc > /dev/null
           apt-get update
           apt-get install -y --no-install-recommends postgresql-client-15
-
-      - name: Wait for Centrifugo
-        run: |
-          for i in $(seq 1 30); do
-            if wget -q -O /dev/null http://centrifugo:9000/health; then echo "centrifugo ready"; exit 0; fi
-            sleep 1
-          done
-          echo "centrifugo did not become ready" >&2; exit 1
 
       - name: Initialize database
         # we create our test database with a different user so that we can drop everything owned by this user between tests
