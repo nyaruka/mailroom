@@ -9,7 +9,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/dbutil"
 	"github.com/nyaruka/mailroom/v26/runtime"
 )
@@ -143,24 +142,17 @@ func NewTicketActivityNotification(orgID OrgID, userID UserID) *Notification {
 }
 
 const sqlInsertNotification = `
-INSERT INTO notifications_notification(org_id,  notification_type,  scope,  user_id,  medium, is_seen,  email_status,  created_on,  contact_import_id,  incident_id)
-                               VALUES(:org_id, :notification_type, :scope, :user_id, :medium,   FALSE, :email_status, :created_on, :contact_import_id, :incident_id)
+INSERT INTO notifications_notification(org_id,  notification_type,  scope,  user_id,  medium, is_seen,  email_status, created_on,  contact_import_id,  incident_id)
+                               VALUES(:org_id, :notification_type, :scope, :user_id, :medium,   FALSE, :email_status,      NOW(), :contact_import_id, :incident_id)
                           ON CONFLICT DO NOTHING
-                            RETURNING id, org_id, user_id, notification_type, scope`
+                            RETURNING id, org_id, user_id, notification_type, scope, created_on`
 
 // InsertNotifications inserts the given notifications and returns those that were actually created. A notification
 // that would duplicate an existing unseen one (same org, type, scope and user) is dropped by the ON CONFLICT and not
-// returned. Each returned notification has its ID populated; all are stamped with the same CreatedOn.
+// returned. Each returned notification has its ID and CreatedOn populated from the inserted row.
 func InsertNotifications(ctx context.Context, db DBorTx, notifications []*Notification) ([]*Notification, error) {
 	if len(notifications) == 0 {
 		return nil, nil
-	}
-
-	now := dates.Now()
-	for _, n := range notifications {
-		if n.CreatedOn.IsZero() {
-			n.CreatedOn = now
-		}
 	}
 
 	// we can't use the bulk query helper here: ON CONFLICT DO NOTHING means fewer rows come back than we send, so we
@@ -184,17 +176,19 @@ func InsertNotifications(ctx context.Context, db DBorTx, notifications []*Notifi
 	inserted := make([]*Notification, 0, len(notifications))
 	for rows.Next() {
 		r := struct {
-			ID    NotificationID   `db:"id"`
-			Org   OrgID            `db:"org_id"`
-			User  UserID           `db:"user_id"`
-			Type  NotificationType `db:"notification_type"`
-			Scope string           `db:"scope"`
+			ID        NotificationID   `db:"id"`
+			Org       OrgID            `db:"org_id"`
+			User      UserID           `db:"user_id"`
+			Type      NotificationType `db:"notification_type"`
+			Scope     string           `db:"scope"`
+			CreatedOn time.Time        `db:"created_on"`
 		}{}
 		if err := rows.StructScan(&r); err != nil {
 			return nil, fmt.Errorf("error scanning inserted notification: %w", err)
 		}
 		if n := byKey[notificationKey(r.Org, r.User, r.Type, r.Scope)]; n != nil {
 			n.ID = r.ID
+			n.CreatedOn = r.CreatedOn
 			inserted = append(inserted, n)
 		}
 	}
