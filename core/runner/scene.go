@@ -422,9 +422,10 @@ func BulkCommit(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, 
 	}
 
 	// send events to be persisted to the history table writer, and publish them to any live subscribers of the
-	// contact's history channel
+	// contact's history channel - only for scenes that actually committed, so a rolled-back scene's events never reach
+	// the history table or its live subscribers
 	eventsWritten := 0
-	for _, scene := range scenes {
+	for _, scene := range committed {
 		evts := make([]flows.Event, len(scene.persistEvents))
 		for i, evt := range scene.persistEvents {
 			if _, err := rt.Dynamo.History.Queue(evt); err != nil {
@@ -470,7 +471,9 @@ func BulkCommit(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, 
 		slog.Error("error publishing notifications", "error", err)
 	}
 
-	if err := ExecutePostCommitHooks(ctx, rt, oa, scenes); err != nil {
+	// likewise only run post-commit hooks (sending messages, queuing tasks, search indexing) for scenes that committed
+	// - a rolled-back scene has no persisted rows for them to act on
+	if err := ExecutePostCommitHooks(ctx, rt, oa, committed); err != nil {
 		return fmt.Errorf("error processing post commit hooks: %w", err)
 	}
 
