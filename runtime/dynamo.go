@@ -1,6 +1,7 @@
 package runtime
 
 import (
+	"context"
 	"fmt"
 	"path/filepath"
 	"time"
@@ -15,7 +16,7 @@ type Dynamo struct {
 }
 
 func newDynamo(cfg *Config) (*Dynamo, error) {
-	client, err := dynamo.NewClient("", "", "", cfg.DynamoEndpoint)
+	client, err := dynamo.NewClient(context.Background(), cfg.DynamoEndpoint)
 	if err != nil {
 		return nil, fmt.Errorf("error creating DynamoDB client: %w", err)
 	}
