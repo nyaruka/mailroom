@@ -15,7 +15,7 @@ type Dynamo struct {
 }
 
 func newDynamo(cfg *Config) (*Dynamo, error) {
-	client, err := dynamo.NewClient(cfg.AWSAccessKeyID, cfg.AWSSecretAccessKey, cfg.AWSRegion, cfg.DynamoEndpoint)
+	client, err := dynamo.NewClient("", "", "", cfg.DynamoEndpoint)
 	if err != nil {
 		return nil, fmt.Errorf("error creating DynamoDB client: %w", err)
 	}

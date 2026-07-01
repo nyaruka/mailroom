@@ -76,7 +76,7 @@ func NewRuntime(cfg *Config) (*Runtime, error) {
 		return nil, fmt.Errorf("error creating Valkey pool: %w", err)
 	}
 
-	rt.S3, err = s3x.NewService(cfg.AWSAccessKeyID, cfg.AWSSecretAccessKey, cfg.AWSRegion, cfg.S3Endpoint, cfg.S3PathStyle)
+	rt.S3, err = s3x.NewService("", "", "", cfg.S3Endpoint, cfg.S3PathStyle)
 	if err != nil {
 		return nil, fmt.Errorf("error creating S3 service: %w", err)
 	}
@@ -86,7 +86,7 @@ func NewRuntime(cfg *Config) (*Runtime, error) {
 		return nil, err
 	}
 
-	rt.CW, err = cwatch.NewService(cfg.AWSAccessKeyID, cfg.AWSSecretAccessKey, cfg.AWSRegion, cfg.CloudwatchNamespace, cfg.DeploymentID)
+	rt.CW, err = cwatch.NewService("", "", "", cfg.CloudwatchNamespace, cfg.DeploymentID)
 	if err != nil {
 		return nil, fmt.Errorf("error creating Cloudwatch service: %w", err)
 	}
