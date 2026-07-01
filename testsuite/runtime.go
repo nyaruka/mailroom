@@ -78,8 +78,11 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 	cfg.DB = "postgres://mailroom_test:temba@postgres/mailroom_test?sslmode=disable&Timezone=UTC"
 	cfg.Valkey = "valkey://valkey:6379/10" // use a different DB from the default so a locally-running courier can't pop from queues we're asserting on
 
-	cfg.AWSAccessKeyID = "root"
-	cfg.AWSSecretAccessKey = "tembatemba"
+	// AWS SDK default chain reads these — used by the localstack S3/Dynamo/Cloudwatch clients
+	t.Setenv("AWS_ACCESS_KEY_ID", "root")
+	t.Setenv("AWS_SECRET_ACCESS_KEY", "tembatemba")
+	t.Setenv("AWS_REGION", "us-east-1")
+
 	cfg.S3Endpoint = "http://localstack:4566"
 	cfg.S3AttachmentsBucket = "test-attachments"
 	cfg.S3PathStyle = true

@@ -40,10 +40,12 @@ environment variables and parameters and for more details on each option.
  
 ### AWS services:
 
- * `MAILROOM_AWS_ACCESS_KEY_ID`: AWS access key id used to authenticate to AWS
- * `MAILROOM_AWS_SECRET_ACCESS_KEY`: AWS secret access key used to authenticate to AWS
- * `MAILROOM_AWS_REGION`: AWS region (e.g. `eu-west-1`)
  * `MAILROOM_S3_ATTACHMENTS_BUCKET`: name of your S3 bucket (e.g. `mailroom-attachments`)
+
+The AWS region and credentials are resolved via the standard AWS SDK default chain — the
+`AWS_REGION` (or `AWS_DEFAULT_REGION`) environment variable, the instance/task IAM role,
+`AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` environment variables, the shared config/credentials
+files, etc. When running on AWS the task/instance role is the recommended option for credentials.
 
 ### Logging and error reporting:
 

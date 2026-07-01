@@ -60,10 +60,6 @@ type Config struct {
 	ElasticContactsIndex string `help:"the name of the contacts index written by mailroom"`
 	ElasticMessagesIndex string `help:"the base name for monthly message indexes (e.g. messages-v1 -> messages-v1-2026-02)"`
 
-	AWSAccessKeyID     string `help:"access key ID to use for AWS services"`
-	AWSSecretAccessKey string `help:"secret access key to use for AWS services"`
-	AWSRegion          string `help:"region to use for AWS services, e.g. us-east-1"`
-
 	DynamoEndpoint    string `help:"DynamoDB service endpoint, e.g. https://dynamodb.us-east-1.amazonaws.com"`
 	DynamoTablePrefix string `help:"prefix to use for DynamoDB tables"`
 
@@ -137,10 +133,6 @@ func NewDefaultConfig() *Config {
 		ElasticPassword:      "",
 		ElasticContactsIndex: "contacts-v1",
 		ElasticMessagesIndex: "messages-v1",
-
-		AWSAccessKeyID:     "",
-		AWSSecretAccessKey: "",
-		AWSRegion:          "us-east-1",
 
 		DynamoEndpoint:    "", // let library generate it
 		DynamoTablePrefix: "Temba",
