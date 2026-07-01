@@ -1,0 +1,39 @@
+[
+    {
+        "label": "illegal method",
+        "method": "GET",
+        "path": "/mi/notification/publish",
+        "status": 405,
+        "response": {
+            "error": "illegal method: GET"
+        }
+    },
+    {
+        "label": "invalid org_id",
+        "method": "POST",
+        "path": "/mi/notification/publish",
+        "body": {
+            "org_id": 1234,
+            "notifications": [
+                {"user_id": 3, "data": {"type": "export:finished"}}
+            ]
+        },
+        "status": 500,
+        "response": {
+            "error": "error loading org assets for org #1234: error loading environment for org 1234: no org with id: 1234"
+        }
+    },
+    {
+        "label": "no subscribers is a no-op",
+        "method": "POST",
+        "path": "/mi/notification/publish",
+        "body": {
+            "org_id": 1,
+            "notifications": [
+                {"user_id": 3, "data": {"type": "export:finished", "is_seen": false, "url": "/notification/read/123/"}}
+            ]
+        },
+        "status": 200,
+        "response": {}
+    }
+]

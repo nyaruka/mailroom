@@ -54,13 +54,7 @@ func PublishNotifications(ctx context.Context, rt *runtime.Runtime, oa *OrgAsset
 
 	orgUUID := oa.Org().UUID()
 
-	// resolve each notification's socket up front, skipping any whose user we can't resolve
-	type pending struct {
-		socket string
-		n      *Notification
-	}
-	items := make([]pending, 0, len(notifications))
-	candidates := make([]string, 0, len(notifications))
+	msgs := make([]socketMessage, 0, len(notifications))
 	for _, n := range notifications {
 		user := oa.UserByID(n.UserID)
 		if user == nil {
@@ -68,12 +62,60 @@ func PublishNotifications(ctx context.Context, rt *runtime.Runtime, oa *OrgAsset
 			continue
 		}
 
-		socket := NotificationSocket(orgUUID, user.UUID())
-		items = append(items, pending{socket, n})
-		candidates = append(candidates, socket)
+		data, err := n.marshalForSocket()
+		if err != nil {
+			return fmt.Errorf("error marshaling notification for user #%d: %w", n.UserID, err)
+		}
+		msgs = append(msgs, socketMessage{NotificationSocket(orgUUID, user.UUID()), data})
 	}
+
+	return publishToSockets(ctx, rt, msgs)
+}
+
+// PublishNotificationData publishes already-rendered notification payloads to their users' notification sockets. It's
+// the counterpart to PublishNotifications for notifications created outside mailroom (e.g. the platform's Django side
+// creates finished-export and locally-detected-incident notifications): it delivers them over the same realtime path,
+// reusing the socket addressing and subscriber-presence check so there's a single implementation of those. Each item's
+// data is published verbatim - the rendering is the caller's, so mailroom needs no knowledge of those notification
+// types. Best-effort and a no-op for any socket with no current subscribers, exactly like PublishNotifications.
+func PublishNotificationData(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, items []NotificationData) error {
 	if len(items) == 0 {
 		return nil
+	}
+
+	orgUUID := oa.Org().UUID()
+
+	msgs := make([]socketMessage, 0, len(items))
+	for _, it := range items {
+		user := oa.UserByID(it.UserID)
+		if user == nil {
+			slog.Error("unable to publish notification for unknown user", "user_id", it.UserID, "org_id", oa.OrgID())
+			continue
+		}
+		msgs = append(msgs, socketMessage{NotificationSocket(orgUUID, user.UUID()), it.Data})
+	}
+
+	return publishToSockets(ctx, rt, msgs)
+}
+
+// socketMessage is an already-marshaled payload bound for a single realtime socket.
+type socketMessage struct {
+	socket string
+	data   []byte
+}
+
+// publishToSockets publishes pre-rendered messages to their sockets, best-effort, skipping any socket that currently
+// has no active subscriber. Subscriber presence for every socket is resolved in a single round-trip, then each
+// subscribed socket's payload is batched into one pipelined centrifugo request so the whole batch costs one round-trip
+// and lands or fails together. This is the shared publish core behind the notification publishers above.
+func publishToSockets(ctx context.Context, rt *runtime.Runtime, msgs []socketMessage) error {
+	if len(msgs) == 0 {
+		return nil
+	}
+
+	candidates := make([]string, len(msgs))
+	for i, m := range msgs {
+		candidates[i] = m.socket
 	}
 
 	subscribed, err := SubscribedSockets(ctx, rt, candidates...)
@@ -83,19 +125,14 @@ func PublishNotifications(ctx context.Context, rt *runtime.Runtime, oa *OrgAsset
 
 	pipe := rt.Centrifugo.Pipe()
 	var targets []string // the socket each pipelined publish targets, parallel to the replies for error reporting
-	for _, it := range items {
-		if !subscribed[it.socket] {
+	for _, m := range msgs {
+		if !subscribed[m.socket] {
 			continue
 		}
-
-		data, err := it.n.marshalForSocket()
-		if err != nil {
-			return fmt.Errorf("error marshaling notification for %s: %w", it.socket, err)
+		if err := pipe.AddPublish(m.socket, m.data); err != nil {
+			return fmt.Errorf("error adding notification to publish pipe for %s: %w", m.socket, err)
 		}
-		if err := pipe.AddPublish(it.socket, data); err != nil {
-			return fmt.Errorf("error adding notification to publish pipe for %s: %w", it.socket, err)
-		}
-		targets = append(targets, it.socket)
+		targets = append(targets, m.socket)
 	}
 	if len(targets) == 0 {
 		return nil
