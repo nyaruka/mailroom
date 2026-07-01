@@ -1,3 +1,9 @@
+v26.3.4 (2026-07-01)
+-------------------------
+ * Update dependencies
+ * Add endpoint to publish externally-created notifications to realtime sockets
+ * Resolve AWS credentials and region from standard AWS SDK chain
+
 v26.3.3 (2026-07-01)
 -------------------------
  * Run a real Centrifugo in tests instead of mocking it
