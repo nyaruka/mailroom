@@ -1,6 +1,7 @@
 package notification
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -43,6 +44,11 @@ func handlePublish(ctx context.Context, rt *runtime.Runtime, r *publishRequest) 
 
 	items := make([]models.NotificationData, len(r.Notifications))
 	for i, n := range r.Notifications {
+		// `validate:"required"` doesn't reject `null` or a non-object payload, but the realtime protocol assumes an
+		// object, so guard here rather than forwarding e.g. literal `null` to a subscriber's socket
+		if data := bytes.TrimSpace(n.Data); len(data) == 0 || data[0] != '{' {
+			return fmt.Errorf("notification %d: data must be a JSON object", i), http.StatusBadRequest, nil
+		}
 		items[i] = models.NotificationData{UserID: n.UserID, Data: n.Data}
 	}
 
