@@ -20,6 +20,7 @@ import (
 	_ "github.com/nyaruka/mailroom/v26/web/flow"
 	_ "github.com/nyaruka/mailroom/v26/web/llm"
 	_ "github.com/nyaruka/mailroom/v26/web/msg"
+	_ "github.com/nyaruka/mailroom/v26/web/notification"
 	_ "github.com/nyaruka/mailroom/v26/web/org"
 	_ "github.com/nyaruka/mailroom/v26/web/po"
 	_ "github.com/nyaruka/mailroom/v26/web/public"

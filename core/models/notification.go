@@ -42,6 +42,13 @@ const (
 	MediumEmail = "E"
 )
 
+// NotificationData pairs a user with an already-rendered notification payload, for publishing notifications created
+// outside mailroom to that user's realtime socket. See PublishNotificationData.
+type NotificationData struct {
+	UserID UserID
+	Data   json.RawMessage
+}
+
 type Notification struct {
 	ID          NotificationID   `db:"id"`
 	OrgID       OrgID            `db:"org_id"`
