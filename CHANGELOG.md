@@ -1,3 +1,8 @@
+v26.3.3 (2026-07-01)
+-------------------------
+ * Run a real Centrifugo in tests instead of mocking it
+ * Publish notifications to realtime sockets
+
 v26.3.2 (2026-06-25)
 -------------------------
  * Route per-ticket history events to ticket-scoped realtime channels
