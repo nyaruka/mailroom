@@ -372,6 +372,24 @@ func GetContactIDsFromUUIDs(ctx context.Context, db Queryer, orgID OrgID, uuids 
 	return ids, nil
 }
 
+const sqlSelectContactExists = `
+SELECT EXISTS(
+	SELECT 1 FROM contacts_contact
+	 WHERE org_id = $1 AND uuid = $2 AND is_active = TRUE
+	   AND ($3 = 0 OR EXISTS(SELECT 1 FROM contacts_contactgroup_contacts WHERE contactgroup_id = $3 AND contact_id = contacts_contact.id))
+	   AND ($4 = '' OR status = $4)
+)`
+
+// ContactExists returns whether a contact with the given UUID exists in the given org, optionally filtered by group
+// membership and status.
+func ContactExists(ctx context.Context, db DBorTx, orgID OrgID, uuid flows.ContactUUID, groupID GroupID, status ContactStatus) (bool, error) {
+	var exists bool
+	if err := db.GetContext(ctx, &exists, sqlSelectContactExists, orgID, uuid, groupID, status); err != nil {
+		return false, fmt.Errorf("error querying contact exists: %w", err)
+	}
+	return exists, nil
+}
+
 // utility to query contact IDs
 func queryContactIDs(ctx context.Context, db Queryer, query string, args ...any) ([]ContactID, error) {
 	rows, err := db.QueryContext(ctx, query, args...)

@@ -11,6 +11,7 @@ import (
 	"github.com/elastic/go-elasticsearch/v9/typedapi/types"
 	"github.com/nyaruka/gocommon/elastic"
 	"github.com/nyaruka/gocommon/jsonx"
+	"github.com/nyaruka/gocommon/uuids"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/contactql"
 	"github.com/nyaruka/goflow/contactql/es"
@@ -35,6 +36,34 @@ var assetMapper = &AssetMapper{}
 
 func newConverter(oa *models.OrgAssets, uuidAsDocID bool) *es.Converter {
 	return es.NewConverter(oa.Env(), assetMapper, uuidAsDocID)
+}
+
+// queryAsUUID returns the UUID value if the given query is a single equality condition on contact UUID,
+// e.g. `uuid = "0197c464-c397-72e8-8b52-9c4b0b23e096"`, or false if it's anything else.
+func queryAsUUID(query *contactql.ContactQuery) (flows.ContactUUID, bool) {
+	if query != nil {
+		if c, ok := query.Root().(*contactql.Condition); ok {
+			if c.PropertyType() == contactql.PropertyTypeAttribute && c.PropertyKey() == contactql.AttributeUUID && c.Operator() == contactql.OpEqual && uuids.Is(c.Value()) {
+				return flows.ContactUUID(c.Value()), true
+			}
+		}
+	}
+	return "", false
+}
+
+// contactExistsInDB checks in the database whether a contact matching the given UUID and group/status filters exists -
+// used to resolve queries on UUID without Elastic, so that contacts not yet indexed are still visible to such queries.
+func contactExistsInDB(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, group *models.Group, status models.ContactStatus, uuid flows.ContactUUID) (bool, error) {
+	var groupID models.GroupID
+	if group != nil {
+		groupID = group.ID()
+	}
+
+	exists, err := models.ContactExists(ctx, rt.DB, oa.OrgID(), uuid, groupID, status)
+	if err != nil {
+		return false, fmt.Errorf("error looking up contact UUID in database: %w", err)
+	}
+	return exists, nil
 }
 
 func buildContactQuery(oa *models.OrgAssets, group *models.Group, status models.ContactStatus, excludeUUIDs []flows.ContactUUID, query *contactql.ContactQuery) elastic.Query {
@@ -90,6 +119,20 @@ func GetContactTotal(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAss
 		group = nil
 	}
 
+	// a query that is a single condition on UUID can be resolved from the database, so that contacts not yet
+	// indexed in Elastic are still visible to such queries
+	if uuid, ok := queryAsUUID(parsed); ok {
+		exists, err := contactExistsInDB(ctx, rt, oa, group, status, uuid)
+		if err != nil {
+			return nil, 0, err
+		}
+		total := int64(0)
+		if exists {
+			total = 1
+		}
+		return parsed, total, nil
+	}
+
 	index := rt.Config.ElasticContactsIndex
 	eq := buildContactQuery(oa, group, status, nil, parsed)
 	src := map[string]any{"query": eq}
@@ -126,6 +169,25 @@ func GetContactUUIDsForQueryPage(ctx context.Context, rt *runtime.Runtime, oa *m
 	fieldSort, err := conv.Sort(sort, oa.SessionAssets())
 	if err != nil {
 		return nil, nil, 0, fmt.Errorf("error parsing sort: %w", err)
+	}
+
+	// a query that is a single condition on UUID can be resolved from the database, so that contacts not yet
+	// indexed in Elastic are still visible to such queries
+	if uuid, ok := queryAsUUID(parsed); ok {
+		exists, err := contactExistsInDB(ctx, rt, oa, group, status, uuid)
+		if err != nil {
+			return nil, nil, 0, err
+		}
+
+		page := []flows.ContactUUID{}
+		total := int64(0)
+		if exists && !slices.Contains(excludeUUIDs, uuid) {
+			total = 1
+			if offset == 0 && pageSize > 0 {
+				page = append(page, uuid)
+			}
+		}
+		return parsed, page, total, nil
 	}
 
 	start := time.Now()
@@ -183,6 +245,21 @@ func GetContactUUIDsForQuery(ctx context.Context, rt *runtime.Runtime, oa *model
 	if group != nil && !group.Visible() {
 		status = models.ContactStatus(group.Type())
 		group = nil
+	}
+
+	// a query that is a single condition on UUID can be resolved from the database, so that contacts not yet
+	// indexed in Elastic are still visible to such queries
+	if uuid, ok := queryAsUUID(parsed); ok {
+		exists, err := contactExistsInDB(ctx, rt, oa, group, status, uuid)
+		if err != nil {
+			return nil, err
+		}
+
+		matches := []flows.ContactUUID{}
+		if exists && limit != 0 {
+			matches = append(matches, uuid)
+		}
+		return matches, nil
 	}
 
 	eq := buildContactQuery(oa, group, status, nil, parsed)
