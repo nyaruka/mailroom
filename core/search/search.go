@@ -51,21 +51,6 @@ func queryAsUUID(query *contactql.ContactQuery) (flows.ContactUUID, bool) {
 	return "", false
 }
 
-// contactExistsInDB checks in the database whether a contact matching the given UUID and group/status filters exists -
-// used to resolve queries on UUID without Elastic, so that contacts not yet indexed are still visible to such queries.
-func contactExistsInDB(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, group *models.Group, status models.ContactStatus, uuid flows.ContactUUID) (bool, error) {
-	var groupID models.GroupID
-	if group != nil {
-		groupID = group.ID()
-	}
-
-	exists, err := models.ContactExists(ctx, rt.DB, oa.OrgID(), uuid, groupID, status)
-	if err != nil {
-		return false, fmt.Errorf("error looking up contact UUID in database: %w", err)
-	}
-	return exists, nil
-}
-
 func buildContactQuery(oa *models.OrgAssets, group *models.Group, status models.ContactStatus, excludeUUIDs []flows.ContactUUID, query *contactql.ContactQuery) elastic.Query {
 	// use filter context for all clauses since we never sort by relevance score, and filter clauses
 	// are cacheable and skip scoring
@@ -119,20 +104,6 @@ func GetContactTotal(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAss
 		group = nil
 	}
 
-	// a query that is a single condition on UUID can be resolved from the database, so that contacts not yet
-	// indexed in Elastic are still visible to such queries
-	if uuid, ok := queryAsUUID(parsed); ok {
-		exists, err := contactExistsInDB(ctx, rt, oa, group, status, uuid)
-		if err != nil {
-			return nil, 0, err
-		}
-		total := int64(0)
-		if exists {
-			total = 1
-		}
-		return parsed, total, nil
-	}
-
 	index := rt.Config.ElasticContactsIndex
 	eq := buildContactQuery(oa, group, status, nil, parsed)
 	src := map[string]any{"query": eq}
@@ -169,25 +140,6 @@ func GetContactUUIDsForQueryPage(ctx context.Context, rt *runtime.Runtime, oa *m
 	fieldSort, err := conv.Sort(sort, oa.SessionAssets())
 	if err != nil {
 		return nil, nil, 0, fmt.Errorf("error parsing sort: %w", err)
-	}
-
-	// a query that is a single condition on UUID can be resolved from the database, so that contacts not yet
-	// indexed in Elastic are still visible to such queries
-	if uuid, ok := queryAsUUID(parsed); ok {
-		exists, err := contactExistsInDB(ctx, rt, oa, group, status, uuid)
-		if err != nil {
-			return nil, nil, 0, err
-		}
-
-		page := []flows.ContactUUID{}
-		total := int64(0)
-		if exists && !slices.Contains(excludeUUIDs, uuid) {
-			total = 1
-			if offset == 0 && pageSize > 0 {
-				page = append(page, uuid)
-			}
-		}
-		return parsed, page, total, nil
 	}
 
 	start := time.Now()
@@ -250,9 +202,14 @@ func GetContactUUIDsForQuery(ctx context.Context, rt *runtime.Runtime, oa *model
 	// a query that is a single condition on UUID can be resolved from the database, so that contacts not yet
 	// indexed in Elastic are still visible to such queries
 	if uuid, ok := queryAsUUID(parsed); ok {
-		exists, err := contactExistsInDB(ctx, rt, oa, group, status, uuid)
+		var groupID models.GroupID
+		if group != nil {
+			groupID = group.ID()
+		}
+
+		exists, err := models.ContactExists(ctx, rt.DB, oa.OrgID(), uuid, groupID, status)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("error looking up contact UUID in database: %w", err)
 		}
 
 		matches := []flows.ContactUUID{}

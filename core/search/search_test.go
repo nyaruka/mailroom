@@ -16,12 +16,9 @@ import (
 
 func TestGetContactTotal(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
-	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetElastic)
+	defer testsuite.Reset(t, rt, testsuite.ResetElastic)
 
 	testsuite.IndexContacts(t, rt)
-
-	// created after indexing so only visible to UUID queries which are resolved from the database
-	eve := testdb.InsertContact(t, rt, testdb.Org1, flows.NewContactUUID(), "Eve", i18n.NilLanguage, models.ContactStatusActive)
 
 	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 	require.NoError(t, err)
@@ -37,13 +34,6 @@ func TestGetContactTotal(t *testing.T) {
 		{group: nil, query: "cat", expectedTotal: 1},
 		{group: testdb.ActiveGroup, query: "cat", expectedTotal: 1},
 		{group: nil, query: "age >= 30", expectedTotal: 1},
-		{group: nil, query: fmt.Sprintf(`uuid = "%s"`, eve.UUID), expectedTotal: 1}, // not yet indexed but resolved from database
-		{group: testdb.DoctorsGroup, query: fmt.Sprintf(`uuid = "%s"`, testdb.Ann.UUID), expectedTotal: 1},
-		{group: testdb.DoctorsGroup, query: fmt.Sprintf(`uuid = "%s"`, testdb.Bob.UUID), expectedTotal: 0},          // not a doctor
-		{group: testdb.BlockedGroup, query: fmt.Sprintf(`uuid = "%s"`, eve.UUID), expectedTotal: 0},                 // not blocked
-		{group: nil, query: `uuid = "xyz"`, expectedTotal: 0},                                                       // not a valid UUID so still uses Elastic
-		{group: nil, query: fmt.Sprintf(`uuid = "%s" OR uuid = "%s"`, testdb.Ann.UUID, eve.UUID), expectedTotal: 1}, // OR queries still use Elastic so eve not visible
-		{group: nil, query: fmt.Sprintf(`uuid = "%s" OR name = "Ann"`, eve.UUID), expectedTotal: 1},                 // as do mixed queries
 		{
 			group:         nil,
 			query:         "goats > 2", // no such contact field
@@ -70,12 +60,9 @@ func TestGetContactTotal(t *testing.T) {
 
 func TestGetContactUUIDsForQueryPage(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
-	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetElastic)
+	defer testsuite.Reset(t, rt, testsuite.ResetElastic)
 
 	testsuite.IndexContacts(t, rt)
-
-	// created after indexing so only visible to UUID queries which are resolved from the database
-	eve := testdb.InsertContact(t, rt, testdb.Org1, flows.NewContactUUID(), "Eve", i18n.NilLanguage, models.ContactStatusActive)
 
 	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 	require.NoError(t, err)
@@ -117,25 +104,6 @@ func TestGetContactUUIDsForQueryPage(t *testing.T) {
 			expectedTotal:    0,
 		},
 		{ // 4
-			group:            testdb.ActiveGroup,
-			query:            fmt.Sprintf(`uuid = "%s"`, eve.UUID), // not yet indexed but resolved from database
-			expectedContacts: []flows.ContactUUID{eve.UUID},
-			expectedTotal:    1,
-		},
-		{ // 5
-			group:            testdb.ActiveGroup,
-			excludeUUIDs:     []flows.ContactUUID{eve.UUID},
-			query:            fmt.Sprintf(`uuid = "%s"`, eve.UUID),
-			expectedContacts: []flows.ContactUUID{},
-			expectedTotal:    0,
-		},
-		{ // 6
-			group:            testdb.BlockedGroup,
-			query:            fmt.Sprintf(`uuid = "%s"`, eve.UUID), // not blocked
-			expectedContacts: []flows.ContactUUID{},
-			expectedTotal:    0,
-		},
-		{ // 7
 			group:         testdb.BlockedGroup,
 			query:         "goats > 2", // no such contact field
 			expectedError: "error parsing query: goats > 2: can't resolve 'goats' to attribute, scheme or field",
