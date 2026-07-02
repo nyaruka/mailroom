@@ -264,15 +264,15 @@ func insertTestMessage(t *testing.T, rt *runtime.Runtime, oa *models.OrgAssets, 
 // It returns the completed flow.
 func createTestFlow(t *testing.T, uuid assets.FlowUUID, actions ContactActionMap) flows.Flow {
 	categoryUUIDs := make([]flows.CategoryUUID, len(actions))
-	exitUUIDs := make([]core.ExitUUID, len(actions))
+	exitUUIDs := make([]flows.ExitUUID, len(actions))
 	i := 0
 	for range actions {
 		categoryUUIDs[i] = flows.CategoryUUID(uuids.NewV4())
-		exitUUIDs[i] = core.ExitUUID(uuids.NewV4())
+		exitUUIDs[i] = flows.ExitUUID(uuids.NewV4())
 		i++
 	}
 	defaultCategoryUUID := flows.CategoryUUID(uuids.NewV4())
-	defaultExitUUID := core.ExitUUID(uuids.NewV4())
+	defaultExitUUID := flows.ExitUUID(uuids.NewV4())
 
 	cases := make([]*routers.Case, len(actions))
 	categories := make([]flows.Category, len(actions))
@@ -286,7 +286,7 @@ func createTestFlow(t *testing.T, uuid assets.FlowUUID, actions ContactActionMap
 			flows.NewNodeUUID(),
 			actions,
 			nil,
-			[]flows.Exit{definition.NewExit(core.ExitUUID(uuids.NewV4()), "")},
+			[]flows.Exit{definition.NewExit(flows.ExitUUID(uuids.NewV4()), "")},
 		)
 
 		categories[i] = routers.NewCategory(categoryUUIDs[i], fmt.Sprintf("Contact %s", contactUUID), exitUUIDs[i])

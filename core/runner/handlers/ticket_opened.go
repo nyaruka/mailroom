@@ -6,7 +6,6 @@ import (
 	"log/slog"
 
 	"github.com/nyaruka/goflow/core/events"
-	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/runner"
 	"github.com/nyaruka/mailroom/v26/core/runner/hooks"
@@ -43,7 +42,11 @@ func handleTicketOpened(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 
 	var flow *models.Flow
 	if scene.Session != nil {
-		flow = e.Step().(flows.Step).Run().Flow().Asset().(*models.Flow)
+		f, err := oa.FlowByUUID(e.Step().Flow.UUID)
+		if err != nil {
+			return fmt.Errorf("unable to load flow with uuid: %s: %w", e.Step().Flow.UUID, err)
+		}
+		flow = f.(*models.Flow)
 	}
 
 	ticket := models.NewTicket(

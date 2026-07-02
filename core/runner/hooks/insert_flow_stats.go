@@ -71,7 +71,11 @@ func (h *insertFlowStats) Execute(ctx context.Context, rt *runtime.Runtime, tx *
 		for _, e := range scene.Sprint.Events() {
 			switch typed := e.(type) {
 			case *events.RunResultChanged:
-				flow := e.Step().(flows.Step).Run().Flow().Asset().(*models.Flow)
+				f, err := oa.FlowByUUID(e.Step().Flow.UUID)
+				if err != nil {
+					return fmt.Errorf("unable to load flow with uuid: %s: %w", e.Step().Flow.UUID, err)
+				}
+				flow := f.(*models.Flow)
 				resultKey := utils.Snakify(typed.Name)
 				if typed.Previous != nil {
 					categoryChanges[resultInfo{flowID: flow.ID(), result: resultKey, category: typed.Previous.Category}]--
@@ -141,7 +145,7 @@ type resultInfo struct {
 
 type segmentInfo struct {
 	flowID   models.FlowID
-	exitUUID core.ExitUUID
+	exitUUID flows.ExitUUID
 	destUUID core.NodeUUID
 }
 

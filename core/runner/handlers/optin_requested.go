@@ -6,7 +6,6 @@ import (
 	"log/slog"
 
 	"github.com/nyaruka/goflow/core/events"
-	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/runner"
 	"github.com/nyaruka/mailroom/v26/core/runner/hooks"
@@ -35,9 +34,12 @@ func handleOptInRequested(ctx context.Context, rt *runtime.Runtime, oa *models.O
 	}
 
 	// and the flow
-	flow := e.Step().(flows.Step).Run().Flow().Asset().(*models.Flow)
+	flow, err := oa.FlowByUUID(e.Step().Flow.UUID)
+	if err != nil {
+		return fmt.Errorf("unable to load flow with uuid: %s: %w", e.Step().Flow.UUID, err)
+	}
 
-	msg := models.NewOutgoingOptInMsg(rt, oa.OrgID(), scene.DBContact, flow, optIn, channel, event, scene.IncomingMsg)
+	msg := models.NewOutgoingOptInMsg(rt, oa.OrgID(), scene.DBContact, flow.(*models.Flow), optIn, channel, event, scene.IncomingMsg)
 
 	// register to have this message committed and sent
 	scene.AttachPreCommitHook(hooks.InsertMessages, hooks.MsgAndURN{Msg: msg.Msg, URN: event.URN})

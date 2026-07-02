@@ -6,7 +6,6 @@ import (
 	"log/slog"
 
 	"github.com/nyaruka/goflow/core/events"
-	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/runner"
 	"github.com/nyaruka/mailroom/v26/core/runner/hooks"
@@ -33,9 +32,12 @@ func handleIVRCreated(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAs
 		return nil
 	}
 
-	flow := e.Step().(flows.Step).Run().Flow().Asset().(*models.Flow)
+	flow, err := oa.FlowByUUID(e.Step().Flow.UUID)
+	if err != nil {
+		return fmt.Errorf("unable to load flow with uuid: %s: %w", e.Step().Flow.UUID, err)
+	}
 
-	msg := models.NewOutgoingIVR(rt.Config, oa.OrgID(), scene.DBCall, flow, event)
+	msg := models.NewOutgoingIVR(rt.Config, oa.OrgID(), scene.DBCall, flow.(*models.Flow), event)
 
 	// register to have this message committed
 	scene.AttachPreCommitHook(hooks.InsertMessages, hooks.MsgAndURN{Msg: msg})

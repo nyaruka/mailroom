@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/nyaruka/goflow/core/events"
-	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/runner"
 	"github.com/nyaruka/mailroom/v26/runtime"
@@ -29,7 +28,7 @@ func handleWarning(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsset
 			rem = rem[:strings.Index(rem, ":")]
 		}
 
-		key := fmt.Sprintf("%s/%s", event.Step().(flows.Step).Run().Flow().UUID(), rem)
+		key := fmt.Sprintf("%s/%s", event.Step().Flow.UUID, rem)
 
 		vc := rt.VK.Get()
 		defer vc.Close()
