@@ -5,8 +5,9 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/nyaruka/goflow/core"
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/runner"
 	"github.com/nyaruka/mailroom/v26/core/runner/hooks"
@@ -18,13 +19,13 @@ func init() {
 }
 
 // handleWebhookCalled is called for each webhook call in a scene
-func handleWebhookCalled(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scene *runner.Scene, e flows.Event, userID models.UserID) error {
+func handleWebhookCalled(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scene *runner.Scene, e events.Event, userID models.UserID) error {
 	event := e.(*events.WebhookCalled)
 
 	slog.Debug("webhook called", "contact", scene.ContactUUID(), "session", scene.SessionUUID(), "url", event.URL, "status", event.Status, "elapsed_ms", event.ElapsedMS)
 
 	// if this was a resthook and the status was 410, that means we should remove it
-	if event.Status == flows.CallStatusSubscriberGone {
+	if event.Status == core.CallStatusSubscriberGone {
 		unsub := &models.ResthookUnsubscribe{
 			OrgID: oa.OrgID(),
 			Slug:  event.Resthook,
@@ -34,7 +35,7 @@ func handleWebhookCalled(ctx context.Context, rt *runtime.Runtime, oa *models.Or
 		scene.AttachPreCommitHook(hooks.UnsubscribeResthook, unsub)
 	}
 
-	flow := e.Step().Run().Flow().Asset().(*models.Flow)
+	flow := e.Step().(flows.Step).Run().Flow().Asset().(*models.Flow)
 
 	// create an HTTP log
 	if flow != nil {
@@ -42,7 +43,7 @@ func handleWebhookCalled(ctx context.Context, rt *runtime.Runtime, oa *models.Or
 			oa.OrgID(),
 			flow.ID(),
 			event.URL, event.StatusCode, event.Request, event.Response,
-			event.Status != flows.CallStatusSuccess,
+			event.Status != core.CallStatusSuccess,
 			time.Millisecond*time.Duration(event.ElapsedMS),
 			event.Retries,
 			event.CreatedOn(),

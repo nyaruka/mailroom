@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/search"
 	"github.com/nyaruka/mailroom/v26/runtime"
@@ -23,8 +23,8 @@ func init() {
 //	  "contact_uuids": ["548f43fb-f32a-491f-abb7-0c29a453a06e"]
 //	}
 type deindexRequest struct {
-	OrgID        models.OrgID        `json:"org_id"        validate:"required"`
-	ContactUUIDs []flows.ContactUUID `json:"contact_uuids" validate:"required"`
+	OrgID        models.OrgID       `json:"org_id"        validate:"required"`
+	ContactUUIDs []core.ContactUUID `json:"contact_uuids" validate:"required"`
 }
 
 func handleDeindex(ctx context.Context, rt *runtime.Runtime, r *deindexRequest) (any, int, error) {

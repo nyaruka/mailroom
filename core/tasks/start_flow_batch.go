@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/excellent/types"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/triggers"
@@ -112,7 +113,7 @@ func (t *StartFlowBatch) start(ctx context.Context, rt *runtime.Runtime, oa *mod
 		}
 	}
 
-	var history *flows.SessionHistory
+	var history *core.SessionHistory
 	if start.SessionHistory != nil {
 		history, err = models.ReadSessionHistory(start.SessionHistory)
 		if err != nil {

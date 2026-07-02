@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/search"
@@ -23,8 +24,8 @@ func init() {
 //	  "contact_uuids": ["b699a406-7e44-49be-9f01-1a82893e8a10", "cd024bcd-f473-4719-a00a-bd0bb1190135"]
 //	}
 type reindexRequest struct {
-	OrgID        models.OrgID        `json:"org_id"         validate:"required"`
-	ContactUUIDs []flows.ContactUUID `json:"contact_uuids"  validate:"required"`
+	OrgID        models.OrgID       `json:"org_id"         validate:"required"`
+	ContactUUIDs []core.ContactUUID `json:"contact_uuids"  validate:"required"`
 }
 
 func handleReindex(ctx context.Context, rt *runtime.Runtime, r *reindexRequest) (any, int, error) {

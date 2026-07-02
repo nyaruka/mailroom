@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/nyaruka/gocommon/httpx"
-	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/runner"
 	"github.com/nyaruka/mailroom/v26/runtime"
@@ -49,8 +49,8 @@ func (h *confirmAirtimeTransfers) Execute(ctx context.Context, rt *runtime.Runti
 		for _, arg := range args {
 			transfer := arg.(*models.AirtimeTransfer)
 
-			logger := &flows.HTTPLogger{}
-			confirmErr := svc.Confirm(ctx, &flows.AirtimeTransfer{ExternalID: transfer.ExternalID()}, logger.Log)
+			logger := &core.HTTPLogger{}
+			confirmErr := svc.Confirm(ctx, &core.AirtimeTransfer{ExternalID: transfer.ExternalID()}, logger.Log)
 
 			for _, l := range logger.Logs {
 				log := models.NewAirtimeTransferredLog(
@@ -59,7 +59,7 @@ func (h *confirmAirtimeTransfers) Execute(ctx context.Context, rt *runtime.Runti
 					l.StatusCode,
 					l.Request,
 					l.Response,
-					l.Status != flows.CallStatusSuccess,
+					l.Status != core.CallStatusSuccess,
 					time.Duration(l.ElapsedMS)*time.Millisecond,
 					l.Retries,
 					l.CreatedOn,

@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/runner"
 	"github.com/nyaruka/mailroom/v26/runtime"
@@ -19,8 +19,8 @@ type deleteMessages struct{}
 func (h *deleteMessages) Order() int { return 10 }
 
 func (h *deleteMessages) Execute(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *models.OrgAssets, scenes map[*runner.Scene][]any) error {
-	byContact := make([]flows.EventUUID, 0, len(scenes))
-	byUser := make([]flows.EventUUID, 0, len(scenes))
+	byContact := make([]events.EventUUID, 0, len(scenes))
+	byUser := make([]events.EventUUID, 0, len(scenes))
 	tags := make([]*models.EventTag, 0, len(scenes))
 
 	for s, args := range scenes {
@@ -57,7 +57,7 @@ func (h *deleteMessages) Execute(ctx context.Context, rt *runtime.Runtime, tx *s
 }
 
 type MessageDeletion struct {
-	MsgUUID   flows.EventUUID
+	MsgUUID   events.EventUUID
 	ByContact bool
 	UserID    models.UserID
 }

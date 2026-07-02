@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/nyaruka/gocommon/i18n"
-	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/search"
 	"github.com/nyaruka/mailroom/v26/testsuite"
@@ -69,38 +69,38 @@ func TestGetContactUUIDsForQueryPage(t *testing.T) {
 
 	tcs := []struct {
 		group            *testdb.Group
-		excludeUUIDs     []flows.ContactUUID
+		excludeUUIDs     []core.ContactUUID
 		query            string
 		sort             string
-		expectedContacts []flows.ContactUUID
+		expectedContacts []core.ContactUUID
 		expectedTotal    int64
 		expectedError    string
 	}{
 		{ // 0
 			group:            testdb.ActiveGroup,
 			query:            "cat OR bob",
-			expectedContacts: []flows.ContactUUID{testdb.Cat.UUID, testdb.Bob.UUID},
+			expectedContacts: []core.ContactUUID{testdb.Cat.UUID, testdb.Bob.UUID},
 			expectedTotal:    2,
 		},
 		{ // 1
 			group:            testdb.BlockedGroup,
 			query:            "cat",
-			expectedContacts: []flows.ContactUUID{},
+			expectedContacts: []core.ContactUUID{},
 			expectedTotal:    0,
 		},
 		{ // 2
 			group:            testdb.ActiveGroup,
 			query:            "age >= 30",
 			sort:             "-age",
-			expectedContacts: []flows.ContactUUID{testdb.Cat.UUID},
+			expectedContacts: []core.ContactUUID{testdb.Cat.UUID},
 			expectedTotal:    1,
 		},
 		{ // 3
 			group:            testdb.ActiveGroup,
-			excludeUUIDs:     []flows.ContactUUID{testdb.Cat.UUID},
+			excludeUUIDs:     []core.ContactUUID{testdb.Cat.UUID},
 			query:            "age >= 30",
 			sort:             "-age",
-			expectedContacts: []flows.ContactUUID{},
+			expectedContacts: []core.ContactUUID{},
 			expectedTotal:    0,
 		},
 		{ // 4
@@ -134,27 +134,27 @@ func TestGetContactUUIDsForQuery(t *testing.T) {
 	require.NoError(t, err)
 
 	// so that we can test queries that span multiple responses
-	cylonUUIDs := make([]flows.ContactUUID, 10003)
+	cylonUUIDs := make([]core.ContactUUID, 10003)
 	for i := range 10003 {
-		cylonUUIDs[i] = testdb.InsertContact(t, rt, testdb.Org1, flows.NewContactUUID(), fmt.Sprintf("Cylon %d", i), i18n.NilLanguage, models.ContactStatusActive).UUID
+		cylonUUIDs[i] = testdb.InsertContact(t, rt, testdb.Org1, core.NewContactUUID(), fmt.Sprintf("Cylon %d", i), i18n.NilLanguage, models.ContactStatusActive).UUID
 	}
 
 	// create some extra contacts in the other org to be sure we're filtering correctly
-	testdb.InsertContact(t, rt, testdb.Org2, flows.NewContactUUID(), "Cat", i18n.NilLanguage, models.ContactStatusActive)
-	testdb.InsertContact(t, rt, testdb.Org2, flows.NewContactUUID(), "Bob", i18n.NilLanguage, models.ContactStatusActive)
-	testdb.InsertContact(t, rt, testdb.Org2, flows.NewContactUUID(), "Cylon 0", i18n.NilLanguage, models.ContactStatusActive)
+	testdb.InsertContact(t, rt, testdb.Org2, core.NewContactUUID(), "Cat", i18n.NilLanguage, models.ContactStatusActive)
+	testdb.InsertContact(t, rt, testdb.Org2, core.NewContactUUID(), "Bob", i18n.NilLanguage, models.ContactStatusActive)
+	testdb.InsertContact(t, rt, testdb.Org2, core.NewContactUUID(), "Cylon 0", i18n.NilLanguage, models.ContactStatusActive)
 
 	testsuite.IndexContacts(t, rt)
 
 	// created after indexing so only visible to UUID queries which are resolved from the database
-	eve := testdb.InsertContact(t, rt, testdb.Org1, flows.NewContactUUID(), "Eve", i18n.NilLanguage, models.ContactStatusActive)
+	eve := testdb.InsertContact(t, rt, testdb.Org1, core.NewContactUUID(), "Eve", i18n.NilLanguage, models.ContactStatusActive)
 
 	tcs := []struct {
 		group            *testdb.Group
 		status           models.ContactStatus
 		query            string
 		limit            int
-		expectedContacts []flows.ContactUUID
+		expectedContacts []core.ContactUUID
 		expectedError    string
 	}{
 		{
@@ -162,42 +162,42 @@ func TestGetContactUUIDsForQuery(t *testing.T) {
 			status:           models.NilContactStatus,
 			query:            "cat OR bob",
 			limit:            -1,
-			expectedContacts: []flows.ContactUUID{testdb.Cat.UUID, testdb.Bob.UUID},
+			expectedContacts: []core.ContactUUID{testdb.Cat.UUID, testdb.Bob.UUID},
 		},
 		{
 			group:            nil,
 			status:           models.ContactStatusActive,
 			query:            "cat OR bob",
 			limit:            -1,
-			expectedContacts: []flows.ContactUUID{testdb.Cat.UUID, testdb.Bob.UUID},
+			expectedContacts: []core.ContactUUID{testdb.Cat.UUID, testdb.Bob.UUID},
 		},
 		{
 			group:            testdb.DoctorsGroup,
 			status:           models.ContactStatusActive,
 			query:            "name = ann",
 			limit:            -1,
-			expectedContacts: []flows.ContactUUID{testdb.Ann.UUID},
+			expectedContacts: []core.ContactUUID{testdb.Ann.UUID},
 		},
 		{
 			group:            nil,
 			status:           models.ContactStatusActive,
 			query:            "nobody",
 			limit:            -1,
-			expectedContacts: []flows.ContactUUID{},
+			expectedContacts: []core.ContactUUID{},
 		},
 		{
 			group:            nil,
 			status:           models.ContactStatusActive,
 			query:            "cat",
 			limit:            1,
-			expectedContacts: []flows.ContactUUID{testdb.Cat.UUID},
+			expectedContacts: []core.ContactUUID{testdb.Cat.UUID},
 		},
 		{
 			group:            testdb.DoctorsGroup,
 			status:           models.NilContactStatus,
 			query:            "",
 			limit:            1,
-			expectedContacts: []flows.ContactUUID{testdb.Ann.UUID},
+			expectedContacts: []core.ContactUUID{testdb.Ann.UUID},
 		},
 		{
 			group:            nil,
@@ -211,21 +211,21 @@ func TestGetContactUUIDsForQuery(t *testing.T) {
 			status:           models.ContactStatusActive,
 			query:            fmt.Sprintf(`uuid = "%s"`, eve.UUID), // not yet indexed but resolved from database
 			limit:            -1,
-			expectedContacts: []flows.ContactUUID{eve.UUID},
+			expectedContacts: []core.ContactUUID{eve.UUID},
 		},
 		{
 			group:            testdb.DoctorsGroup,
 			status:           models.NilContactStatus,
 			query:            fmt.Sprintf(`uuid = "%s"`, testdb.Bob.UUID), // not a doctor
 			limit:            -1,
-			expectedContacts: []flows.ContactUUID{},
+			expectedContacts: []core.ContactUUID{},
 		},
 		{
 			group:            nil,
 			status:           models.NilContactStatus,
 			query:            fmt.Sprintf(`uuid = "%s" OR uuid = "%s"`, testdb.Cat.UUID, eve.UUID), // OR queries still use Elastic so eve not visible
 			limit:            -1,
-			expectedContacts: []flows.ContactUUID{testdb.Cat.UUID},
+			expectedContacts: []core.ContactUUID{testdb.Cat.UUID},
 		},
 		{
 			group:         nil,
@@ -264,13 +264,13 @@ func TestGetContactIDsForQuery(t *testing.T) {
 	// so that we can test queries that span multiple responses
 	cylonIDs := make([]models.ContactID, 10003)
 	for i := range 10003 {
-		cylonIDs[i] = testdb.InsertContact(t, rt, testdb.Org1, flows.NewContactUUID(), fmt.Sprintf("Cylon %d", i), i18n.NilLanguage, models.ContactStatusActive).ID
+		cylonIDs[i] = testdb.InsertContact(t, rt, testdb.Org1, core.NewContactUUID(), fmt.Sprintf("Cylon %d", i), i18n.NilLanguage, models.ContactStatusActive).ID
 	}
 
 	// create some extra contacts in the other org to be sure we're filtering correctly
-	testdb.InsertContact(t, rt, testdb.Org2, flows.NewContactUUID(), "Cat", i18n.NilLanguage, models.ContactStatusActive)
-	testdb.InsertContact(t, rt, testdb.Org2, flows.NewContactUUID(), "Bob", i18n.NilLanguage, models.ContactStatusActive)
-	testdb.InsertContact(t, rt, testdb.Org2, flows.NewContactUUID(), "Cylon 0", i18n.NilLanguage, models.ContactStatusActive)
+	testdb.InsertContact(t, rt, testdb.Org2, core.NewContactUUID(), "Cat", i18n.NilLanguage, models.ContactStatusActive)
+	testdb.InsertContact(t, rt, testdb.Org2, core.NewContactUUID(), "Bob", i18n.NilLanguage, models.ContactStatusActive)
+	testdb.InsertContact(t, rt, testdb.Org2, core.NewContactUUID(), "Cylon 0", i18n.NilLanguage, models.ContactStatusActive)
 
 	testsuite.IndexContacts(t, rt)
 

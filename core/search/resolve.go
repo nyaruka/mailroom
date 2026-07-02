@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/nyaruka/gocommon/urns"
-	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/runtime"
 )
@@ -83,7 +83,7 @@ func ResolveRecipients(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 
 	if len(includeContacts) > 0 || len(includeGroups) > 0 || recipients.Query != "" {
 		// reduce contacts to UUIDs
-		includeContactUUIDs := make([]flows.ContactUUID, len(includeContacts))
+		includeContactUUIDs := make([]core.ContactUUID, len(includeContacts))
 		for i, contact := range includeContacts {
 			includeContactUUIDs[i] = contact.UUID()
 		}

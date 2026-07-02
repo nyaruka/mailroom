@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/tasks/ctasks"
@@ -19,9 +20,9 @@ func init() {
 }
 
 type WaitTimeout struct {
-	ContactID   models.ContactID  `json:"contact_id"`
-	SessionUUID flows.SessionUUID `json:"session_uuid"`
-	SprintUUID  flows.SprintUUID  `json:"sprint_uuid"`
+	ContactID   models.ContactID `json:"contact_id"`
+	SessionUUID core.SessionUUID `json:"session_uuid"`
+	SprintUUID  flows.SprintUUID `json:"sprint_uuid"`
 }
 
 // BulkWaitTimeout is the payload of the task

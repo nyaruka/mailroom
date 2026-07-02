@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/nyaruka/goflow/core"
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/runner"
@@ -42,7 +44,7 @@ type interruptRequest struct {
 //	  "skipped": [1006, 1007]
 //	}
 type interruptResponse struct {
-	Events  map[flows.ContactUUID][]flows.Event `json:"events"`
+	Events  map[core.ContactUUID][]events.Event `json:"events"`
 	Skipped []models.ContactID                  `json:"skipped"`
 }
 
@@ -61,7 +63,7 @@ func handleInterrupt(ctx context.Context, rt *runtime.Runtime, r *interruptReque
 			return nil, 0, fmt.Errorf("error interrupting contact: %w", err)
 		}
 
-		resp.Events = make(map[flows.ContactUUID][]flows.Event, len(eventsByContact))
+		resp.Events = make(map[core.ContactUUID][]events.Event, len(eventsByContact))
 		for contact, events := range eventsByContact {
 			resp.Events[contact.UUID()] = events
 		}
@@ -73,7 +75,7 @@ func handleInterrupt(ctx context.Context, rt *runtime.Runtime, r *interruptReque
 			return nil, 0, fmt.Errorf("error queuing interrupt flow task: %w", err)
 		}
 
-		resp.Events = map[flows.ContactUUID][]flows.Event{}
+		resp.Events = map[core.ContactUUID][]events.Event{}
 		resp.Skipped = []models.ContactID{}
 	}
 

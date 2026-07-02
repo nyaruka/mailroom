@@ -5,6 +5,7 @@ import (
 
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/gocommon/i18n"
+	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/triggers"
 	"github.com/nyaruka/mailroom/v26/core/models"
@@ -37,7 +38,7 @@ func TestStartFlowConcurrency(t *testing.T) {
 	// create a lot of contacts...
 	contacts := make([]*testdb.Contact, 100)
 	for i := range contacts {
-		contacts[i] = testdb.InsertContact(t, rt, testdb.Org1, flows.NewContactUUID(), "Jim", i18n.NilLanguage, models.ContactStatusActive)
+		contacts[i] = testdb.InsertContact(t, rt, testdb.Org1, core.NewContactUUID(), "Jim", i18n.NilLanguage, models.ContactStatusActive)
 	}
 
 	triggerBuilder := func() flows.Trigger {

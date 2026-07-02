@@ -9,7 +9,8 @@ import (
 	"github.com/nyaruka/gocommon/i18n"
 	"github.com/nyaruka/gocommon/uuids"
 	"github.com/nyaruka/goflow/assets"
-	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/core"
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/goflow/utils"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/runtime"
@@ -19,12 +20,12 @@ import (
 
 type Msg struct {
 	ID   models.MsgID
-	UUID flows.EventUUID
+	UUID events.EventUUID
 }
 
 type MsgIn struct {
 	Msg
-	FlowMsg *flows.MsgIn
+	FlowMsg *core.MsgIn
 }
 
 func (m *MsgIn) Label(rt *runtime.Runtime, labels ...*Label) {
@@ -35,7 +36,7 @@ func (m *MsgIn) Label(rt *runtime.Runtime, labels ...*Label) {
 
 type MsgOut struct {
 	Msg
-	FlowMsg *flows.MsgOut
+	FlowMsg *core.MsgOut
 }
 
 type Label struct {
@@ -55,11 +56,11 @@ type Template struct {
 
 type Broadcast struct {
 	ID   models.BroadcastID
-	UUID flows.BroadcastUUID
+	UUID core.BroadcastUUID
 }
 
 // InsertIncomingMsg inserts an incoming text message, deriving created_on from the v7 UUID timestamp
-func InsertIncomingMsg(t *testing.T, rt *runtime.Runtime, org *Org, uuid flows.EventUUID, channel *Channel, contact *Contact, text string, status models.MsgStatus, ticketUUID flows.TicketUUID) *MsgIn {
+func InsertIncomingMsg(t *testing.T, rt *runtime.Runtime, org *Org, uuid events.EventUUID, channel *Channel, contact *Contact, text string, status models.MsgStatus, ticketUUID core.TicketUUID) *MsgIn {
 	createdOn, err := uuids.V7Time(uuids.UUID(uuid))
 	require.NoError(t, err)
 
@@ -70,21 +71,21 @@ func InsertIncomingMsg(t *testing.T, rt *runtime.Runtime, org *Org, uuid flows.E
 	)
 	require.NoError(t, err)
 
-	fm := flows.NewMsgIn(contact.URN, assets.NewChannelReference(channel.UUID, ""), text, nil, "")
+	fm := core.NewMsgIn(contact.URN, assets.NewChannelReference(channel.UUID, ""), text, nil, "")
 	return &MsgIn{Msg: Msg{ID: id, UUID: uuid}, FlowMsg: fm}
 }
 
 // InsertOutgoingMsg inserts an outgoing text message
-func InsertOutgoingMsg(t *testing.T, rt *runtime.Runtime, org *Org, uuid flows.EventUUID, channel *Channel, contact *Contact, text string, attachments []utils.Attachment, status models.MsgStatus, highPriority bool) *MsgOut {
+func InsertOutgoingMsg(t *testing.T, rt *runtime.Runtime, org *Org, uuid events.EventUUID, channel *Channel, contact *Contact, text string, attachments []utils.Attachment, status models.MsgStatus, highPriority bool) *MsgOut {
 	return insertOutgoingMsg(t, rt, org, uuid, channel, contact, text, attachments, i18n.Locale(`eng-US`), models.MsgTypeText, status, highPriority, 0, nil)
 }
 
 // InsertErroredOutgoingMsg inserts an ERRORED(E) outgoing text message
 func InsertErroredOutgoingMsg(t *testing.T, rt *runtime.Runtime, org *Org, channel *Channel, contact *Contact, text string, errorCount int, nextAttempt time.Time, highPriority bool) *MsgOut {
-	return insertOutgoingMsg(t, rt, org, flows.NewEventUUID(), channel, contact, text, nil, i18n.NilLocale, models.MsgTypeText, models.MsgStatusErrored, highPriority, errorCount, &nextAttempt)
+	return insertOutgoingMsg(t, rt, org, events.NewEventUUID(), channel, contact, text, nil, i18n.NilLocale, models.MsgTypeText, models.MsgStatusErrored, highPriority, errorCount, &nextAttempt)
 }
 
-func insertOutgoingMsg(t *testing.T, rt *runtime.Runtime, org *Org, uuid flows.EventUUID, channel *Channel, contact *Contact, text string, attachments []utils.Attachment, locale i18n.Locale, typ models.MsgType, status models.MsgStatus, highPriority bool, errorCount int, nextAttempt *time.Time) *MsgOut {
+func insertOutgoingMsg(t *testing.T, rt *runtime.Runtime, org *Org, uuid events.EventUUID, channel *Channel, contact *Contact, text string, attachments []utils.Attachment, locale i18n.Locale, typ models.MsgType, status models.MsgStatus, highPriority bool, errorCount int, nextAttempt *time.Time) *MsgOut {
 	var channelRef *assets.ChannelReference
 	var channelID models.ChannelID
 	if channel != nil {
@@ -98,7 +99,7 @@ func insertOutgoingMsg(t *testing.T, rt *runtime.Runtime, org *Org, uuid flows.E
 		sentOn = &t
 	}
 
-	fm := flows.NewMsgOut(contact.URN, channelRef, &flows.MsgContent{Text: text, Attachments: attachments}, nil, i18n.NilLocale, "")
+	fm := core.NewMsgOut(contact.URN, channelRef, &core.MsgContent{Text: text, Attachments: attachments}, nil, i18n.NilLocale, "")
 
 	var id models.MsgID
 	err := rt.DB.Get(&id,
@@ -111,10 +112,10 @@ func insertOutgoingMsg(t *testing.T, rt *runtime.Runtime, org *Org, uuid flows.E
 	return &MsgOut{Msg: Msg{ID: id, UUID: uuid}, FlowMsg: fm}
 }
 
-func InsertBroadcast(t *testing.T, rt *runtime.Runtime, org *Org, uuid flows.BroadcastUUID, baseLanguage i18n.Language, text map[i18n.Language]string, optIn *OptIn, schedID models.ScheduleID, contacts []*Contact, groups []*Group) *Broadcast {
-	translations := make(flows.BroadcastTranslations)
+func InsertBroadcast(t *testing.T, rt *runtime.Runtime, org *Org, uuid core.BroadcastUUID, baseLanguage i18n.Language, text map[i18n.Language]string, optIn *OptIn, schedID models.ScheduleID, contacts []*Contact, groups []*Group) *Broadcast {
+	translations := make(core.BroadcastTranslations)
 	for lang, t := range text {
-		translations[lang] = &flows.MsgContent{Text: t}
+		translations[lang] = &core.MsgContent{Text: t}
 	}
 
 	var optInID models.OptInID
@@ -125,7 +126,7 @@ func InsertBroadcast(t *testing.T, rt *runtime.Runtime, org *Org, uuid flows.Bro
 	var id models.BroadcastID
 	err := rt.DB.Get(&id,
 		`INSERT INTO msgs_broadcast(uuid, org_id, base_language, translations, optin_id, schedule_id, status, created_on, modified_on, created_by_id, modified_by_id, is_active)
-		VALUES($1, $2, $3, $4, $5, $6, 'P', NOW(), NOW(), 1, 1, TRUE) RETURNING id`, uuid, org.ID, baseLanguage, models.JSONB[flows.BroadcastTranslations]{V: translations}, optInID, schedID,
+		VALUES($1, $2, $3, $4, $5, $6, 'P', NOW(), NOW(), 1, 1, TRUE) RETURNING id`, uuid, org.ID, baseLanguage, models.JSONB[core.BroadcastTranslations]{V: translations}, optInID, schedID,
 	)
 	require.NoError(t, err)
 

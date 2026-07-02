@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/goflow/flows/events"
+	"github.com/nyaruka/goflow/core"
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/goflow/flows/triggers"
 	"github.com/nyaruka/mailroom/v26/core/ivr"
 	"github.com/nyaruka/mailroom/v26/core/models"
@@ -36,7 +36,7 @@ func (t *TicketClosed) Type() string {
 
 func (t *TicketClosed) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, mc *models.Contact) error {
 	// load our ticket
-	tickets, err := models.LoadTickets(ctx, rt.DB, oa.OrgID(), []flows.TicketUUID{t.Event.TicketUUID})
+	tickets, err := models.LoadTickets(ctx, rt.DB, oa.OrgID(), []core.TicketUUID{t.Event.TicketUUID})
 	if err != nil {
 		return fmt.Errorf("error loading ticket: %w", err)
 	}

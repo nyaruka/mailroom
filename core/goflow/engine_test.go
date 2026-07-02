@@ -6,7 +6,8 @@ import (
 
 	"github.com/nyaruka/gocommon/httpx"
 	"github.com/nyaruka/gocommon/urns"
-	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/core"
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/mailroom/v26/core/goflow"
 	"github.com/nyaruka/mailroom/v26/testsuite"
 	"github.com/shopspring/decimal"
@@ -45,10 +46,10 @@ func TestSimulatorAirtime(t *testing.T) {
 
 	amounts := map[string]decimal.Decimal{"USD": decimal.RequireFromString(`1.50`)}
 
-	transfer, err := svc.Create(ctx, flows.NewEventUUID(), urns.URN("tel:+593979111111"), urns.URN("tel:+593979222222"), amounts, nil)
+	transfer, err := svc.Create(ctx, events.NewEventUUID(), urns.URN("tel:+593979111111"), urns.URN("tel:+593979222222"), amounts, nil)
 	assert.NoError(t, err)
 
-	assert.Equal(t, &flows.AirtimeTransfer{
+	assert.Equal(t, &core.AirtimeTransfer{
 		ExternalID: "123456789",
 		Sender:     urns.URN("tel:+593979111111"),
 		Recipient:  urns.URN("tel:+593979222222"),

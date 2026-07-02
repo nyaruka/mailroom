@@ -7,8 +7,8 @@ import (
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/gocommon/httpx"
 	"github.com/nyaruka/gocommon/urns"
-	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/goflow/flows/events"
+	"github.com/nyaruka/goflow/core"
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/runner"
 	"github.com/nyaruka/mailroom/v26/core/runner/hooks"
@@ -35,8 +35,8 @@ func TestConfirmAirtimeTransfers(t *testing.T) {
 	seed := func() *models.AirtimeTransfer {
 		rt.DB.MustExec(`DELETE FROM request_logs_httplog WHERE airtime_transfer_id IS NOT NULL`)
 		rt.DB.MustExec(`DELETE FROM airtime_airtimetransfer`)
-		uuid := flows.NewEventUUID()
-		tr := models.NewAirtimeTransfer(testdb.Org1.ID, testdb.Ann.ID, events.NewAirtimeCreated(uuid, &flows.AirtimeTransfer{
+		uuid := events.NewEventUUID()
+		tr := models.NewAirtimeTransfer(testdb.Org1.ID, testdb.Ann.ID, events.NewAirtimeCreated(uuid, &core.AirtimeTransfer{
 			ExternalID: "2237512891",
 			Sender:     urns.URN("tel:+250700000001"),
 			Recipient:  urns.URN("tel:+250700000002"),
@@ -54,7 +54,7 @@ func TestConfirmAirtimeTransfers(t *testing.T) {
 		require.NoError(t, hooks.ConfirmAirtimeTransfers.Execute(ctx, rt, oa, scenes))
 	}
 
-	rowStatus := func(uuid flows.EventUUID) models.AirtimeTransferStatus {
+	rowStatus := func(uuid events.EventUUID) models.AirtimeTransferStatus {
 		var status models.AirtimeTransferStatus
 		require.NoError(t, rt.DB.GetContext(ctx, &status, `SELECT status FROM airtime_airtimetransfer WHERE uuid = $1`, uuid))
 		return status

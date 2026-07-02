@@ -26,9 +26,10 @@ import (
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/gocommon/uuids"
+	"github.com/nyaruka/goflow/core"
+	"github.com/nyaruka/goflow/core/events"
+	"github.com/nyaruka/goflow/core/hints"
 	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/goflow/flows/events"
-	"github.com/nyaruka/goflow/flows/routers/waits/hints"
 	"github.com/nyaruka/goflow/utils"
 	"github.com/nyaruka/mailroom/v26/core/ivr"
 	"github.com/nyaruka/mailroom/v26/core/models"
@@ -40,14 +41,14 @@ import (
 // IgnoreSignatures sets whether we ignore signatures (for unit tests)
 var IgnoreSignatures = false
 
-var callStatusMap = map[string]flows.DialStatus{
-	"cancelled": flows.DialStatusFailed,
-	"answered":  flows.DialStatusAnswered,
-	"busy":      flows.DialStatusBusy,
-	"timeout":   flows.DialStatusNoAnswer,
-	"failed":    flows.DialStatusFailed,
-	"rejected":  flows.DialStatusNoAnswer,
-	"canceled":  flows.DialStatusFailed,
+var callStatusMap = map[string]core.DialStatus{
+	"cancelled": core.DialStatusFailed,
+	"answered":  core.DialStatusAnswered,
+	"busy":      core.DialStatusBusy,
+	"timeout":   core.DialStatusNoAnswer,
+	"failed":    core.DialStatusFailed,
+	"rejected":  core.DialStatusNoAnswer,
+	"canceled":  core.DialStatusFailed,
 }
 
 const (
@@ -497,7 +498,7 @@ func (s *service) ResumeForRequest(r *http.Request) (ivr.Resume, error) {
 	}
 
 	slog.Info("input found dial status and duration", "status", status, "duration", duration)
-	return ivr.DialResume{Status: flows.DialStatus(status), Duration: duration}, nil
+	return ivr.DialResume{Status: core.DialStatus(status), Duration: duration}, nil
 }
 
 type StatusRequest struct {
@@ -718,11 +719,11 @@ func (s *service) generateToken() (string, error) {
 
 // NCCO building utilities
 
-func (s *service) responseForSprint(ctx context.Context, rp *valkey.Pool, channel *models.Channel, call *models.Call, resumeURL string, es []flows.Event) (string, error) {
+func (s *service) responseForSprint(ctx context.Context, rp *valkey.Pool, channel *models.Channel, call *models.Call, resumeURL string, es []events.Event) (string, error) {
 	actions := make([]any, 0, 1)
 	waitActions := make([]any, 0, 1)
 
-	var waitEvent flows.Event
+	var waitEvent events.Event
 	for _, e := range es {
 		switch event := e.(type) {
 		case *events.MsgWait, *events.DialWait:

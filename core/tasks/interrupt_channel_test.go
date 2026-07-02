@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
-	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/mailroom/v26/core/crons"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/tasks"
@@ -97,7 +97,7 @@ func TestInterruptChannel(t *testing.T) {
 	})
 
 	// check that run ended events were persisted for Cat and Dan
-	assert.Equal(t, map[flows.ContactUUID][]string{
+	assert.Equal(t, map[core.ContactUUID][]string{
 		testdb.Cat.UUID: {"run_ended"},
 		testdb.Dan.UUID: {"run_ended"},
 	}, testsuite.GetHistoryEventTypes(t, rt, false, time.Time{}))

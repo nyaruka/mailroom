@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/nyaruka/goflow/contactql"
-	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/search"
 	"github.com/nyaruka/mailroom/v26/runtime"
@@ -28,13 +28,13 @@ func init() {
 //	  "limit": 50
 //	}
 type searchRequest struct {
-	OrgID        models.OrgID        `json:"org_id"      validate:"required"`
-	GroupID      models.GroupID      `json:"group_id"    validate:"required"`
-	ExcludeUUIDs []flows.ContactUUID `json:"exclude_uuids"`
-	Query        string              `json:"query"`
-	Sort         string              `json:"sort"`
-	Offset       int                 `json:"offset"`
-	Limit        int                 `json:"limit"`
+	OrgID        models.OrgID       `json:"org_id"      validate:"required"`
+	GroupID      models.GroupID     `json:"group_id"    validate:"required"`
+	ExcludeUUIDs []core.ContactUUID `json:"exclude_uuids"`
+	Query        string             `json:"query"`
+	Sort         string             `json:"sort"`
+	Offset       int                `json:"offset"`
+	Limit        int                `json:"limit"`
 }
 
 // Response for a contact search
@@ -52,7 +52,7 @@ type searchRequest struct {
 //	}
 type searchResponse struct {
 	Query        string                `json:"query"`
-	ContactUUIDs []flows.ContactUUID   `json:"contact_uuids"`
+	ContactUUIDs []core.ContactUUID    `json:"contact_uuids"`
 	Total        int64                 `json:"total"`
 	Metadata     *contactql.Inspection `json:"metadata,omitempty"`
 }

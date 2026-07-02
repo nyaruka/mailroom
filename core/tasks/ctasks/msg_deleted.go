@@ -4,8 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/goflow/flows/events"
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/runner"
 	"github.com/nyaruka/mailroom/v26/runtime"
@@ -18,7 +17,7 @@ func init() {
 }
 
 type MsgDeleted struct {
-	MsgUUID flows.EventUUID `json:"msg_uuid"`
+	MsgUUID events.EventUUID `json:"msg_uuid"`
 }
 
 func (t *MsgDeleted) Type() string {

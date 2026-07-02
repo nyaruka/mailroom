@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/runner"
@@ -44,7 +45,7 @@ func (t *InterruptSessionBatch) WithAssets() models.Refresh {
 
 func (t *InterruptSessionBatch) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets) error {
 	contactIDs := make([]models.ContactID, len(t.Sessions))
-	sessions := make(map[models.ContactID]flows.SessionUUID, len(t.Sessions))
+	sessions := make(map[models.ContactID]core.SessionUUID, len(t.Sessions))
 	for i, s := range t.Sessions {
 		contactIDs[i] = s.ContactID
 		sessions[s.ContactID] = s.UUID

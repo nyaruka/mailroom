@@ -10,8 +10,8 @@ import (
 	valkey "github.com/gomodule/redigo/redis"
 	"github.com/lib/pq"
 	"github.com/nyaruka/gocommon/dates"
-	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/goflow/flows/events"
+	"github.com/nyaruka/goflow/core"
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/mailroom/v26/runtime"
 	"github.com/nyaruka/null/v3"
 	"github.com/nyaruka/vkutil"
@@ -58,7 +58,7 @@ func (i *Incident) End(ctx context.Context, db DBorTx) error {
 
 // IncidentWebhooksUnhealthy ensures there is an open unhealthy webhooks incident for the given org. It returns any
 // notifications created for a newly started incident so the caller can publish them once its transaction has committed.
-func IncidentWebhooksUnhealthy(ctx context.Context, db DBorTx, rp *valkey.Pool, oa *OrgAssets, nodes []flows.NodeUUID) (IncidentID, []*Notification, error) {
+func IncidentWebhooksUnhealthy(ctx context.Context, db DBorTx, rp *valkey.Pool, oa *OrgAssets, nodes []core.NodeUUID) (IncidentID, []*Notification, error) {
 	id, notifications, err := getOrCreateIncident(ctx, db, oa, &Incident{
 		OrgID:     oa.OrgID(),
 		Type:      IncidentTypeWebhooksUnhealthy,
@@ -146,7 +146,7 @@ func GetOpenIncidents(ctx context.Context, db *sqlx.DB, types []IncidentType) ([
 
 // WebhookNode is a utility to help determine the health of an individual webhook node
 type WebhookNode struct {
-	UUID flows.NodeUUID
+	UUID core.NodeUUID
 }
 
 func (n *WebhookNode) Record(ctx context.Context, rt *runtime.Runtime, events []*events.WebhookCalled) error {

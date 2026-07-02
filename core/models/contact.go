@@ -19,6 +19,7 @@ import (
 	"github.com/nyaruka/gocommon/i18n"
 	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/goflow/assets"
+	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/envs"
 	"github.com/nyaruka/goflow/excellent/types"
 	"github.com/nyaruka/goflow/flows"
@@ -68,18 +69,18 @@ const (
 	ContactStatusArchived ContactStatus = "V"
 )
 
-var ContactToModelStatus = map[flows.ContactStatus]ContactStatus{
-	flows.ContactStatusActive:   ContactStatusActive,
-	flows.ContactStatusBlocked:  ContactStatusBlocked,
-	flows.ContactStatusStopped:  ContactStatusStopped,
-	flows.ContactStatusArchived: ContactStatusArchived,
+var ContactToModelStatus = map[core.ContactStatus]ContactStatus{
+	core.ContactStatusActive:   ContactStatusActive,
+	core.ContactStatusBlocked:  ContactStatusBlocked,
+	core.ContactStatusStopped:  ContactStatusStopped,
+	core.ContactStatusArchived: ContactStatusArchived,
 }
 
-var contactToFlowStatus = map[ContactStatus]flows.ContactStatus{
-	ContactStatusActive:   flows.ContactStatusActive,
-	ContactStatusBlocked:  flows.ContactStatusBlocked,
-	ContactStatusStopped:  flows.ContactStatusStopped,
-	ContactStatusArchived: flows.ContactStatusArchived,
+var contactToFlowStatus = map[ContactStatus]core.ContactStatus{
+	ContactStatusActive:   core.ContactStatusActive,
+	ContactStatusBlocked:  core.ContactStatusBlocked,
+	ContactStatusStopped:  core.ContactStatusStopped,
+	ContactStatusArchived: core.ContactStatusArchived,
 }
 
 type URNError struct {
@@ -102,41 +103,41 @@ func NewURNInvalidError(index int, cause error) error {
 type Contact struct {
 	id                 ContactID
 	orgID              OrgID
-	uuid               flows.ContactUUID
+	uuid               core.ContactUUID
 	name               string
 	urns               []*ContactURN
 	language           i18n.Language
 	status             ContactStatus
-	fields             map[string]*flows.Value
+	fields             map[string]*core.Value
 	groups             []*Group
 	createdOn          time.Time
 	modifiedOn         time.Time
 	lastSeenOn         *time.Time
-	currentSessionUUID flows.SessionUUID
+	currentSessionUUID core.SessionUUID
 	currentFlowID      FlowID
 	tickets            []*Ticket
 }
 
-func (c *Contact) ID() ContactID                         { return c.id }
-func (c *Contact) UUID() flows.ContactUUID               { return c.uuid }
-func (c *Contact) Name() string                          { return c.name }
-func (c *Contact) Language() i18n.Language               { return c.language }
-func (c *Contact) Status() ContactStatus                 { return c.status }
-func (c *Contact) Fields() map[string]*flows.Value       { return c.fields }
-func (c *Contact) Groups() []*Group                      { return c.groups }
-func (c *Contact) URNs() []*ContactURN                   { return c.urns }
-func (c *Contact) CreatedOn() time.Time                  { return c.createdOn }
-func (c *Contact) ModifiedOn() time.Time                 { return c.modifiedOn }
-func (c *Contact) LastSeenOn() *time.Time                { return c.lastSeenOn }
-func (c *Contact) CurrentFlowID() FlowID                 { return c.currentFlowID }
-func (c *Contact) SetCurrentFlowID(id FlowID)            { c.currentFlowID = id }
-func (c *Contact) CurrentSessionUUID() flows.SessionUUID { return c.currentSessionUUID }
-func (c *Contact) Tickets() []*Ticket                    { return c.tickets }
+func (c *Contact) ID() ContactID                        { return c.id }
+func (c *Contact) UUID() core.ContactUUID               { return c.uuid }
+func (c *Contact) Name() string                         { return c.name }
+func (c *Contact) Language() i18n.Language              { return c.language }
+func (c *Contact) Status() ContactStatus                { return c.status }
+func (c *Contact) Fields() map[string]*core.Value       { return c.fields }
+func (c *Contact) Groups() []*Group                     { return c.groups }
+func (c *Contact) URNs() []*ContactURN                  { return c.urns }
+func (c *Contact) CreatedOn() time.Time                 { return c.createdOn }
+func (c *Contact) ModifiedOn() time.Time                { return c.modifiedOn }
+func (c *Contact) LastSeenOn() *time.Time               { return c.lastSeenOn }
+func (c *Contact) CurrentFlowID() FlowID                { return c.currentFlowID }
+func (c *Contact) SetCurrentFlowID(id FlowID)           { c.currentFlowID = id }
+func (c *Contact) CurrentSessionUUID() core.SessionUUID { return c.currentSessionUUID }
+func (c *Contact) Tickets() []*Ticket                   { return c.tickets }
 
 // IncludeTickets includes additional tickets on this contact - by default contacts are only loaded with their open
 // tickets of which there should only ever be 1.. but for bulk ticket operations we need to include additional tickets.
 func (c *Contact) IncludeTickets(other []*Ticket) {
-	uuids := make(map[flows.TicketUUID]bool, len(c.tickets)+len(other))
+	uuids := make(map[core.TicketUUID]bool, len(c.tickets)+len(other))
 	for _, t := range c.tickets {
 		uuids[t.UUID] = true
 	}
@@ -167,7 +168,7 @@ func (c *Contact) FindURN(urn urns.URN) *ContactURN {
 	return nil
 }
 
-func (c *Contact) FindTicket(uuid flows.TicketUUID) *Ticket {
+func (c *Contact) FindTicket(uuid core.TicketUUID) *Ticket {
 	for _, t := range c.tickets {
 		if t.UUID == uuid {
 			return t
@@ -283,7 +284,7 @@ func LoadContacts(ctx context.Context, db Queryer, oa *OrgAssets, ids []ContactI
 			createdOn:          e.CreatedOn,
 			modifiedOn:         e.ModifiedOn,
 			lastSeenOn:         e.LastSeenOn,
-			currentSessionUUID: flows.SessionUUID(e.CurrentSessionUUID),
+			currentSessionUUID: core.SessionUUID(e.CurrentSessionUUID),
 			currentFlowID:      e.CurrentFlowID,
 		}
 
@@ -298,13 +299,13 @@ func LoadContacts(ctx context.Context, db Queryer, oa *OrgAssets, ids []ContactI
 		contact.groups = groups
 
 		// create our map of field values filtered by what we know exists
-		fields := make(map[string]*flows.Value)
+		fields := make(map[string]*core.Value)
 		orgFields, _ := oa.Fields()
 		for _, f := range orgFields {
 			field := f.(*Field)
 			cv, found := e.Fields[field.UUID()]
 			if found {
-				value := flows.NewValue(
+				value := core.NewValue(
 					cv.Text,
 					cv.Datetime,
 					cv.Number,
@@ -339,7 +340,7 @@ func LoadContacts(ctx context.Context, db Queryer, oa *OrgAssets, ids []ContactI
 }
 
 // LoadContactsByUUID loads a set of contacts for the passed in UUIDs
-func LoadContactsByUUID(ctx context.Context, db Queryer, oa *OrgAssets, uuids []flows.ContactUUID) ([]*Contact, error) {
+func LoadContactsByUUID(ctx context.Context, db Queryer, oa *OrgAssets, uuids []core.ContactUUID) ([]*Contact, error) {
 	ids, err := GetContactIDsFromUUIDs(ctx, db, oa.OrgID(), uuids)
 	if err != nil {
 		return nil, err
@@ -349,9 +350,9 @@ func LoadContactsByUUID(ctx context.Context, db Queryer, oa *OrgAssets, uuids []
 
 // GetContactIDsFromReferences gets the contact ids for the given org and set of references. Note that the order of the returned contacts
 // won't necessarily match the order of the references.
-func GetContactIDsFromReferences(ctx context.Context, db Queryer, orgID OrgID, refs []*flows.ContactReference) ([]ContactID, error) {
+func GetContactIDsFromReferences(ctx context.Context, db Queryer, orgID OrgID, refs []*core.ContactReference) ([]ContactID, error) {
 	// build our list of UUIDs
-	uuids := make([]flows.ContactUUID, len(refs))
+	uuids := make([]core.ContactUUID, len(refs))
 	for i := range refs {
 		uuids[i] = refs[i].UUID
 	}
@@ -360,7 +361,7 @@ func GetContactIDsFromReferences(ctx context.Context, db Queryer, orgID OrgID, r
 }
 
 // GetContactIDsFromUUIDs gets the contact IDs for the passed in org and set of UUIDs
-func GetContactIDsFromUUIDs(ctx context.Context, db Queryer, orgID OrgID, uuids []flows.ContactUUID) ([]ContactID, error) {
+func GetContactIDsFromUUIDs(ctx context.Context, db Queryer, orgID OrgID, uuids []core.ContactUUID) ([]ContactID, error) {
 	if len(uuids) == 0 {
 		return nil, nil
 	}
@@ -382,7 +383,7 @@ SELECT EXISTS(
 
 // ContactExists returns whether a contact with the given UUID exists in the given org, optionally filtered by group
 // membership and status.
-func ContactExists(ctx context.Context, db DBorTx, orgID OrgID, uuid flows.ContactUUID, groupID GroupID, status ContactStatus) (bool, error) {
+func ContactExists(ctx context.Context, db DBorTx, orgID OrgID, uuid core.ContactUUID, groupID GroupID, status ContactStatus) (bool, error) {
 	var exists bool
 	if err := db.GetContext(ctx, &exists, sqlSelectContactExists, orgID, uuid, groupID, status); err != nil {
 		return false, fmt.Errorf("error querying contact exists: %w", err)
@@ -449,13 +450,13 @@ func (u *ContactURN) Encode(oa *OrgAssets) (urns.URN, error) {
 
 // contactEnvelope is our JSON structure for a contact as read from the database
 type contactEnvelope struct {
-	ID       ContactID         `json:"id"       db:"id"`
-	OrgID    OrgID             `json:"org_id"`
-	UUID     flows.ContactUUID `json:"uuid"     db:"uuid"`
-	Name     string            `json:"name"`
-	URNs     []*ContactURN     `json:"urns"`
-	Language i18n.Language     `json:"language"`
-	Status   ContactStatus     `json:"status"`
+	ID       ContactID        `json:"id"       db:"id"`
+	OrgID    OrgID            `json:"org_id"`
+	UUID     core.ContactUUID `json:"uuid"     db:"uuid"`
+	Name     string           `json:"name"`
+	URNs     []*ContactURN    `json:"urns"`
+	Language i18n.Language    `json:"language"`
+	Status   ContactStatus    `json:"status"`
 	Fields   map[assets.FieldUUID]struct {
 		Text     *types.XText      `json:"text"`
 		Datetime *types.XDateTime  `json:"datetime,omitempty"`
@@ -466,10 +467,10 @@ type contactEnvelope struct {
 	} `json:"fields"`
 	GroupIDs []GroupID `json:"group_ids"`
 	Tickets  []struct {
-		ID         TicketID         `json:"id"`
-		UUID       flows.TicketUUID `json:"uuid"`
-		TopicID    TopicID          `json:"topic_id"`
-		AssigneeID UserID           `json:"assignee_id"`
+		ID         TicketID        `json:"id"`
+		UUID       core.TicketUUID `json:"uuid"`
+		TopicID    TopicID         `json:"topic_id"`
+		AssigneeID UserID          `json:"assignee_id"`
 	} `json:"tickets"`
 	CurrentSessionUUID null.String `json:"current_session_uuid"`
 	CurrentFlowID      FlowID      `json:"current_flow_id"`
@@ -805,7 +806,7 @@ func insertContactAndURNs(ctx context.Context, db DBorTx, orgID OrgID, userID Us
 		`INSERT INTO contacts_contact (org_id, is_active, uuid, name, language, status, ticket_count, created_on, modified_on, created_by_id, modified_by_id) 
 		VALUES($1, TRUE, $2, $3, $4, $5, 0, $6, $6, $7, $7)
 		RETURNING id`,
-		orgID, flows.NewContactUUID(), null.String(name), null.String(string(language)), status, dates.Now(), userID,
+		orgID, core.NewContactUUID(), null.String(name), null.String(string(language)), status, dates.Now(), userID,
 	)
 	if err != nil {
 		return NilContactID, fmt.Errorf("error inserting new contact: %w", err)
@@ -1179,7 +1180,7 @@ func (i ContactID) MarshalJSON() ([]byte, error)  { return null.MarshalInt(i) }
 // ContactStatusChange struct used for our contact status change
 type ContactStatusChange struct {
 	ContactID ContactID
-	Status    flows.ContactStatus
+	Status    core.ContactStatus
 }
 
 const sqlUpdateContactStatus = `
@@ -1201,7 +1202,7 @@ func UpdateContactStatus(ctx context.Context, db DBorTx, changes []*ContactStatu
 	for _, ch := range changes {
 		dbStatus := ContactToModelStatus[ch.Status]
 
-		if ch.Status != flows.ContactStatusActive {
+		if ch.Status != core.ContactStatusActive {
 			archiveTriggers = append(archiveTriggers, ch.ContactID)
 		}
 

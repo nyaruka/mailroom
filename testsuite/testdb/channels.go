@@ -6,7 +6,7 @@ import (
 	"github.com/lib/pq"
 	"github.com/nyaruka/gocommon/uuids"
 	"github.com/nyaruka/goflow/assets"
-	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/runtime"
 	"github.com/stretchr/testify/require"
@@ -20,7 +20,7 @@ type Channel struct {
 
 type Call struct {
 	ID   models.CallID
-	UUID flows.CallUUID
+	UUID core.CallUUID
 }
 
 // InsertChannel inserts a channel
@@ -48,7 +48,7 @@ func InsertChannelEvent(t *testing.T, rt *runtime.Runtime, org *Org, uuid models
 
 // InsertCall inserts a call
 func InsertCall(t *testing.T, rt *runtime.Runtime, org *Org, channel *Channel, contact *Contact) *Call {
-	uuid := flows.NewCallUUID()
+	uuid := core.NewCallUUID()
 	var id models.CallID
 	err := rt.DB.Get(&id,
 		`INSERT INTO ivr_call(uuid, created_on, modified_on, external_id, status, direction, duration, error_count, org_id, channel_id, contact_id, contact_urn_id) 

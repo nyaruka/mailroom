@@ -8,6 +8,7 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/v26/core/ai"
 	"github.com/nyaruka/mailroom/v26/core/models"
@@ -68,7 +69,7 @@ func New(rt *runtime.Runtime, m *models.LLM, c *http.Client) (flows.LLMService, 
 	}, nil
 }
 
-func (s *service) Response(ctx context.Context, instructions, input string, maxTokens int) (*flows.LLMResponse, error) {
+func (s *service) Response(ctx context.Context, instructions, input string, maxTokens int) (*core.LLMResponse, error) {
 	resp, err := s.client.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
 		Model: shared.ChatModel(s.model),
 		Messages: []openai.ChatCompletionMessageParamUnion{
@@ -82,7 +83,7 @@ func (s *service) Response(ctx context.Context, instructions, input string, maxT
 		return nil, s.error(err, instructions, input)
 	}
 
-	return &flows.LLMResponse{
+	return &core.LLMResponse{
 		Output:       strings.TrimSpace(resp.Choices[0].Message.Content),
 		TokensInput:  resp.Usage.PromptTokens,
 		TokensOutput: resp.Usage.CompletionTokens,

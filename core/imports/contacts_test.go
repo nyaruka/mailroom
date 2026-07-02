@@ -13,6 +13,7 @@ import (
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/goflow/assets"
+	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/excellent/types"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/test"
@@ -157,7 +158,7 @@ func TestContactSpecUnmarshal(t *testing.T) {
 	s := &models.ContactSpec{}
 	jsonx.Unmarshal([]byte(`{}`), s)
 
-	assert.Equal(t, flows.ContactUUID(""), s.UUID)
+	assert.Equal(t, core.ContactUUID(""), s.UUID)
 	assert.Nil(t, s.Name)
 	assert.Nil(t, s.Language)
 	assert.Nil(t, s.URNs)
@@ -174,7 +175,7 @@ func TestContactSpecUnmarshal(t *testing.T) {
 		"groups": ["3972dcc2-6749-4761-a896-7880d6165f2c"]
 	}`), s)
 
-	assert.Equal(t, flows.ContactUUID("8e879527-7e6d-4bff-abc8-b1d41cd4f702"), s.UUID)
+	assert.Equal(t, core.ContactUUID("8e879527-7e6d-4bff-abc8-b1d41cd4f702"), s.UUID)
 	assert.Equal(t, "Bob", *s.Name)
 	assert.Equal(t, "spa", *s.Language)
 	assert.Equal(t, []urns.URN{"tel:+1234567890"}, s.URNs)

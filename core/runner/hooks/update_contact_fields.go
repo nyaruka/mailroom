@@ -7,8 +7,8 @@ import (
 	"log/slog"
 
 	"github.com/nyaruka/goflow/assets"
-	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/goflow/flows/events"
+	"github.com/nyaruka/goflow/core"
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/runner"
 	"github.com/nyaruka/mailroom/v26/runtime"
@@ -27,7 +27,7 @@ func (h *updateContactFields) Execute(ctx context.Context, rt *runtime.Runtime, 
 	fieldUpdates := make([]any, 0, len(scenes))
 	fieldDeletes := make(map[assets.FieldUUID][]any)
 	for scene, args := range scenes {
-		updates := make(map[assets.FieldUUID]*flows.Value, len(args))
+		updates := make(map[assets.FieldUUID]*core.Value, len(args))
 		for _, e := range args {
 			event := e.(*events.ContactFieldChanged)
 			field := oa.FieldByKey(event.Field.Key)

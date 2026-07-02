@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/goflow/flows/events"
+	"github.com/nyaruka/goflow/core"
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/runner"
 	"github.com/nyaruka/mailroom/v26/runtime"
@@ -23,7 +23,7 @@ func (h *updateMessageHandled) Execute(ctx context.Context, rt *runtime.Runtime,
 	for scene, args := range scenes {
 		evt := args[0].(*events.MsgReceived)
 		msgIn := scene.IncomingMsg
-		contactBlocked := scene.Contact.Status() == flows.ContactStatusBlocked
+		contactBlocked := scene.Contact.Status() == core.ContactStatusBlocked
 
 		var flow *models.Flow
 		if scene.Sprint != nil && len(scene.Sprint.Flows()) > 0 {

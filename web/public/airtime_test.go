@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/nyaruka/gocommon/urns"
-	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/goflow/flows/events"
+	"github.com/nyaruka/goflow/core"
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/testsuite"
 	"github.com/nyaruka/mailroom/v26/testsuite/testdb"
@@ -33,10 +33,10 @@ func TestDTOneStatusCallback(t *testing.T) {
 
 	const callbackPath = "/mr/airtime/dtone/status"
 
-	seed := func(t *testing.T) flows.EventUUID {
+	seed := func(t *testing.T) events.EventUUID {
 		rt.DB.MustExec(`DELETE FROM airtime_airtimetransfer`)
-		uuid := flows.NewEventUUID()
-		tr := models.NewAirtimeTransfer(testdb.Org1.ID, testdb.Ann.ID, events.NewAirtimeCreated(uuid, &flows.AirtimeTransfer{
+		uuid := events.NewEventUUID()
+		tr := models.NewAirtimeTransfer(testdb.Org1.ID, testdb.Ann.ID, events.NewAirtimeCreated(uuid, &core.AirtimeTransfer{
 			ExternalID: "2237512891",
 			Sender:     urns.URN("tel:+250700000001"),
 			Recipient:  urns.URN("tel:+250700000002"),
@@ -57,14 +57,14 @@ func TestDTOneStatusCallback(t *testing.T) {
 		return resp.StatusCode
 	}
 
-	rowStatus := func(t *testing.T, uuid flows.EventUUID) models.AirtimeTransferStatus {
+	rowStatus := func(t *testing.T, uuid events.EventUUID) models.AirtimeTransferStatus {
 		var status models.AirtimeTransferStatus
 		require.NoError(t, rt.DB.GetContext(ctx, &status, `SELECT status FROM airtime_airtimetransfer WHERE uuid = $1`, uuid))
 		return status
 	}
 
 	// body builder for a callback whose external_id field carries our row UUID
-	body := func(uuid flows.EventUUID, classID int, msg string) string {
+	body := func(uuid events.EventUUID, classID int, msg string) string {
 		return fmt.Sprintf(`{"id":2237512891,"external_id":%q,"status":{"class":{"id":%d,"message":%q}}}`, string(uuid), classID, msg)
 	}
 
@@ -132,7 +132,7 @@ func TestDTOneStatusCallback(t *testing.T) {
 	// for DT One and the matching response shape doubles as an anti-enumeration shield), and writes
 	// nothing to history
 	testsuite.GetHistoryItems(t, rt, true, time.Time{}) // clear prior writes
-	assert.Equal(t, http.StatusOK, post(t, body(flows.NewEventUUID(), 7, "COMPLETED")))
+	assert.Equal(t, http.StatusOK, post(t, body(events.NewEventUUID(), 7, "COMPLETED")))
 	assert.Empty(t, testsuite.GetHistoryItems(t, rt, true, time.Time{}), "ignored unknown-UUID callback should not write history")
 
 	// a forged callback with a real UUID but wrong DT One tx id is a no-op (defense in depth — the

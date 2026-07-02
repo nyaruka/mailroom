@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/runner"
 	"github.com/nyaruka/mailroom/v26/runtime"
@@ -21,7 +21,7 @@ func init() {
 	runner.RegisterEventHandler(events.TypeWarning, handleWarning)
 }
 
-func handleWarning(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scene *runner.Scene, e flows.Event, userID models.UserID) error {
+func handleWarning(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scene *runner.Scene, e events.Event, userID models.UserID) error {
 	event := e.(*events.Warning)
 
 	if rem, ok := strings.CutPrefix(event.Text, deprecatedContextWarningPrefix); ok {
@@ -29,7 +29,7 @@ func handleWarning(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsset
 			rem = rem[:strings.Index(rem, ":")]
 		}
 
-		key := fmt.Sprintf("%s/%s", event.Step().Run().Flow().UUID(), rem)
+		key := fmt.Sprintf("%s/%s", event.Step().(flows.Step).Run().Flow().UUID(), rem)
 
 		vc := rt.VK.Get()
 		defer vc.Close()

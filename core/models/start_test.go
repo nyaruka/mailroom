@@ -9,7 +9,7 @@ import (
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/gocommon/uuids"
-	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/test"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/testsuite"
@@ -76,7 +76,7 @@ func TestStarts(t *testing.T) {
 
 	history, err := models.ReadSessionHistory(start.SessionHistory)
 	assert.NoError(t, err)
-	assert.Equal(t, flows.SessionUUID("532a3899-492f-4ffe-aed7-e75ad524efab"), history.ParentUUID)
+	assert.Equal(t, core.SessionUUID("532a3899-492f-4ffe-aed7-e75ad524efab"), history.ParentUUID)
 
 	_, err = models.ReadSessionHistory([]byte(`{`))
 	assert.EqualError(t, err, "unexpected end of JSON input")

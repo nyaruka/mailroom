@@ -11,7 +11,7 @@ import (
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/gocommon/uuids"
-	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/null/v3"
 )
 
@@ -346,7 +346,7 @@ type FlowStartBatch struct {
 }
 
 // ReadSessionHistory reads a session history from the given JSON
-func ReadSessionHistory(data []byte) (*flows.SessionHistory, error) {
-	h := &flows.SessionHistory{}
+func ReadSessionHistory(data []byte) (*core.SessionHistory, error) {
+	h := &core.SessionHistory{}
 	return h, jsonx.Unmarshal(data, h)
 }

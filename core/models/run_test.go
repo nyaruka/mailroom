@@ -7,7 +7,7 @@ import (
 	"github.com/lib/pq"
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/goflow/assets"
-	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/testsuite"
 	"github.com/nyaruka/mailroom/v26/testsuite/testdb"
@@ -82,7 +82,7 @@ func TestGetContactIDsAtNode(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
-	createRun := func(org *testdb.Org, contact *testdb.Contact, nodeUUID flows.NodeUUID) {
+	createRun := func(org *testdb.Org, contact *testdb.Contact, nodeUUID core.NodeUUID) {
 		sessionUUID := testdb.InsertFlowSession(t, rt, contact, models.FlowTypeMessaging, models.SessionStatusWaiting, nil, testdb.Favorites)
 		testdb.InsertFlowRun(t, rt, org, sessionUUID, contact, testdb.Favorites, models.RunStatusWaiting, nodeUUID)
 	}
@@ -106,7 +106,7 @@ func TestGetActiveAndWaitingRuns(t *testing.T) {
 	session2UUID := testdb.InsertWaitingSession(t, rt, testdb.Org1, testdb.Bob, models.FlowTypeMessaging, nil, testdb.PickANumber)
 	testdb.InsertFlowSession(t, rt, testdb.Cat, models.FlowTypeMessaging, models.SessionStatusCompleted, nil, testdb.Favorites)
 
-	runRefs, err := models.GetActiveAndWaitingRuns(ctx, rt, []flows.SessionUUID{session1UUID, session2UUID})
+	runRefs, err := models.GetActiveAndWaitingRuns(ctx, rt, []core.SessionUUID{session1UUID, session2UUID})
 	assert.NoError(t, err)
 
 	assert.Len(t, runRefs[session1UUID], 2)

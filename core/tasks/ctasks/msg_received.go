@@ -6,8 +6,9 @@ import (
 
 	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/urns"
+	"github.com/nyaruka/goflow/core"
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/goflow/flows/modifiers"
 	"github.com/nyaruka/goflow/flows/resumes"
 	"github.com/nyaruka/goflow/flows/triggers"
@@ -27,7 +28,7 @@ func init() {
 }
 
 type MsgReceived struct {
-	MsgUUID       flows.EventUUID  `json:"msg_uuid"`
+	MsgUUID       events.EventUUID `json:"msg_uuid"`
 	MsgExternalID string           `json:"msg_external_id"`
 	ChannelID     models.ChannelID `json:"channel_id"`
 	URN           urns.URN         `json:"urn"`
@@ -80,12 +81,12 @@ func (t *MsgReceived) perform(ctx context.Context, rt *runtime.Runtime, oa *mode
 	}
 
 	// associate this message with the last open ticket for this contact if there is one
-	var ticketUUID flows.TicketUUID
+	var ticketUUID core.TicketUUID
 	if tks := mc.Tickets(); len(tks) > 0 {
 		ticketUUID = tks[len(tks)-1].UUID
 	}
 
-	msgIn := flows.NewMsgIn(t.URN, channel.Reference(), t.Text, availableAttachments, string(t.MsgExternalID))
+	msgIn := core.NewMsgIn(t.URN, channel.Reference(), t.Text, availableAttachments, string(t.MsgExternalID))
 	msgEvent := events.NewMsgReceived(msgIn, ticketUUID)
 	msgEvent.UUID_ = t.MsgUUID
 
@@ -107,9 +108,9 @@ func (t *MsgReceived) perform(ctx context.Context, rt *runtime.Runtime, oa *mode
 		if err := scene.ReevaluateGroups(ctx, rt, oa); err != nil {
 			return fmt.Errorf("error calculating groups for new contact: %w", err)
 		}
-	} else if contact.Status() == flows.ContactStatusStopped {
+	} else if contact.Status() == core.ContactStatusStopped {
 		// if we get a message from a stopped contact, unstop them
-		if err := scene.ApplyModifier(ctx, rt, oa, modifiers.NewStatus(flows.ContactStatusActive), models.NilUserID, ""); err != nil {
+		if err := scene.ApplyModifier(ctx, rt, oa, modifiers.NewStatus(core.ContactStatusActive), models.NilUserID, ""); err != nil {
 			return fmt.Errorf("error applying modifier to unstop contact: %w", err)
 		}
 	}
@@ -152,7 +153,7 @@ func (t *MsgReceived) perform(ctx context.Context, rt *runtime.Runtime, oa *mode
 
 func (t *MsgReceived) handleMsgEvent(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, channel *models.Channel, scene *runner.Scene, msgEvent *events.MsgReceived) error {
 	// if contact is blocked, or channel no longer exists or is disabled, no sessions
-	if scene.Contact.Status() == flows.ContactStatusBlocked || channel == nil {
+	if scene.Contact.Status() == core.ContactStatusBlocked || channel == nil {
 		return nil
 	}
 

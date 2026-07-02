@@ -7,8 +7,9 @@ import (
 
 	"github.com/nyaruka/gocommon/i18n"
 	"github.com/nyaruka/gocommon/jsonx"
+	"github.com/nyaruka/goflow/core"
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/goflow/flows/modifiers"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/runner"
@@ -104,7 +105,7 @@ func getOrCreateContacts(ctx context.Context, db *sqlx.DB, oa *models.OrgAssets,
 		addError := func(s string, args ...any) { imp.errors = append(imp.errors, fmt.Sprintf(s, args...)) }
 		spec := imp.spec
 
-		isActive := spec.Status == "" || spec.Status == flows.ContactStatusActive
+		isActive := spec.Status == "" || spec.Status == core.ContactStatusActive
 
 		uuid := spec.UUID
 		if uuid != "" {
@@ -146,7 +147,7 @@ func getOrCreateContacts(ctx context.Context, db *sqlx.DB, oa *models.OrgAssets,
 			}
 		}
 		if !isActive {
-			if spec.Status == flows.ContactStatusArchived || spec.Status == flows.ContactStatusBlocked || spec.Status == flows.ContactStatusStopped {
+			if spec.Status == core.ContactStatusArchived || spec.Status == core.ContactStatusBlocked || spec.Status == core.ContactStatusStopped {
 				addModifier(modifiers.NewStatus(spec.Status))
 			} else {
 				addError("'%s' is not a valid status", spec.Status)
@@ -180,8 +181,8 @@ func getOrCreateContacts(ctx context.Context, db *sqlx.DB, oa *models.OrgAssets,
 }
 
 // loads any import contacts for which we have UUIDs
-func loadContactsByUUID(ctx context.Context, db *sqlx.DB, oa *models.OrgAssets, imports []*importContact) (map[flows.ContactUUID]*models.Contact, error) {
-	uuids := make([]flows.ContactUUID, 0, 50)
+func loadContactsByUUID(ctx context.Context, db *sqlx.DB, oa *models.OrgAssets, imports []*importContact) (map[core.ContactUUID]*models.Contact, error) {
+	uuids := make([]core.ContactUUID, 0, 50)
 	for _, imp := range imports {
 		if imp.spec.UUID != "" {
 			uuids = append(uuids, imp.spec.UUID)
@@ -194,7 +195,7 @@ func loadContactsByUUID(ctx context.Context, db *sqlx.DB, oa *models.OrgAssets, 
 		return nil, err
 	}
 
-	contactsByUUID := make(map[flows.ContactUUID]*models.Contact, len(contacts))
+	contactsByUUID := make(map[core.ContactUUID]*models.Contact, len(contacts))
 	for _, c := range contacts {
 		contactsByUUID[c.UUID()] = c
 	}

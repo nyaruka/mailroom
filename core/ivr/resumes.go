@@ -9,8 +9,9 @@ import (
 	"time"
 
 	"github.com/nyaruka/gocommon/urns"
+	"github.com/nyaruka/goflow/core"
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/goflow/flows/resumes"
 	"github.com/nyaruka/goflow/utils"
 	"github.com/nyaruka/mailroom/v26/core/models"
@@ -43,7 +44,7 @@ func (r InputResume) Type() ResumeType {
 
 // DialResume is our type for resumes as consequences of dials/transfers completing
 type DialResume struct {
-	Status   flows.DialStatus
+	Status   core.DialStatus
 	Duration int
 }
 
@@ -53,12 +54,12 @@ func (r DialResume) Type() ResumeType {
 }
 
 func buildDialResume(resume DialResume) (flows.Resume, error, error) {
-	return resumes.NewDial(events.NewDialEnded(flows.NewDial(resume.Status, resume.Duration))), nil, nil
+	return resumes.NewDial(events.NewDialEnded(core.NewDial(resume.Status, resume.Duration))), nil, nil
 }
 
 func buildMsgResume(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, svc Service, channel *models.Channel, urn urns.URN, call *models.Call, flow *models.Flow, resume InputResume) (*models.MsgInRef, flows.Resume, error, error) {
 	// our msg UUID
-	msgUUID := flows.NewEventUUID()
+	msgUUID := events.NewEventUUID()
 
 	// we have an attachment, download it locally
 	if resume.Attachment != NilAttachment {
@@ -100,7 +101,7 @@ func buildMsgResume(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 		attachments = []utils.Attachment{resume.Attachment}
 	}
 
-	msgIn := flows.NewMsgIn(urn, channel.Reference(), resume.Input, attachments, "")
+	msgIn := core.NewMsgIn(urn, channel.Reference(), resume.Input, attachments, "")
 	msgEvt := events.NewMsgReceived(msgIn, "")
 	msgEvt.UUID_ = msgUUID
 

@@ -6,28 +6,29 @@ import (
 	"maps"
 	"slices"
 
+	"github.com/nyaruka/goflow/core"
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/runner"
 	"github.com/nyaruka/mailroom/v26/runtime"
 )
 
 type bulkTicketRequest struct {
-	OrgID       models.OrgID       `json:"org_id"       validate:"required"`
-	UserID      models.UserID      `json:"user_id"      validate:"required"`
-	TicketUUIDs []flows.TicketUUID `json:"ticket_uuids" validate:"required"`
-	Via         models.Via         `json:"via"          validate:"required,eq=api|eq=ui"`
+	OrgID       models.OrgID      `json:"org_id"       validate:"required"`
+	UserID      models.UserID     `json:"user_id"      validate:"required"`
+	TicketUUIDs []core.TicketUUID `json:"ticket_uuids" validate:"required"`
+	Via         models.Via        `json:"via"          validate:"required,eq=api|eq=ui"`
 }
 
 type bulkTicketResponse struct {
-	ChangedUUIDs []flows.TicketUUID                  `json:"changed_uuids"`
-	Events       map[flows.ContactUUID][]flows.Event `json:"events"`
+	ChangedUUIDs []core.TicketUUID                   `json:"changed_uuids"`
+	Events       map[core.ContactUUID][]events.Event `json:"events"`
 }
 
-func newBulkResponse(eventsByContact map[*flows.Contact][]flows.Event) *bulkTicketResponse {
-	changed := make([]flows.TicketUUID, 0, len(eventsByContact))
-	eventMap := make(map[flows.ContactUUID][]flows.Event)
+func newBulkResponse(eventsByContact map[*flows.Contact][]events.Event) *bulkTicketResponse {
+	changed := make([]core.TicketUUID, 0, len(eventsByContact))
+	eventMap := make(map[core.ContactUUID][]events.Event)
 
 	for contact, evts := range eventsByContact {
 		for _, e := range evts {
@@ -55,7 +56,7 @@ func newBulkResponse(eventsByContact map[*flows.Contact][]flows.Event) *bulkTick
 	return &bulkTicketResponse{ChangedUUIDs: changed, Events: eventMap}
 }
 
-func modifyTickets(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, userID models.UserID, ticketUUIDs []flows.TicketUUID, mod func(*models.Ticket) flows.Modifier, via models.Via) (map[*flows.Contact][]flows.Event, error) {
+func modifyTickets(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, userID models.UserID, ticketUUIDs []core.TicketUUID, mod func(*models.Ticket) flows.Modifier, via models.Via) (map[*flows.Contact][]events.Event, error) {
 	tickets, err := models.LoadTickets(ctx, rt.DB, oa.OrgID(), ticketUUIDs)
 	if err != nil {
 		return nil, fmt.Errorf("error loading tickets: %w", err)

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/runner"
 	"github.com/nyaruka/mailroom/v26/core/runner/hooks"
@@ -19,7 +19,7 @@ func init() {
 }
 
 // handleMsgCreated creates the db msg for the passed in event
-func handleMsgCreated(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scene *runner.Scene, e flows.Event, userID models.UserID) error {
+func handleMsgCreated(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scene *runner.Scene, e events.Event, userID models.UserID) error {
 	event := e.(*events.MsgCreated)
 
 	slog.Debug("msg created", "contact", scene.ContactUUID(), "session", scene.SessionUUID(), "text", event.Msg.Text(), "urn", event.Msg.URN())
@@ -41,7 +41,7 @@ func handleMsgCreated(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAs
 	} else if userID != models.NilUserID {
 		msg, err = models.NewOutgoingChatMsg(rt, oa.Org(), channel, scene.DBContact, event, userID)
 	} else {
-		flow := e.Step().Run().Flow().Asset().(*models.Flow)
+		flow := e.Step().(flows.Step).Run().Flow().Asset().(*models.Flow)
 
 		msg, err = models.NewOutgoingFlowMsg(rt, oa.Org(), channel, scene.DBContact, flow, event, scene.IncomingMsg)
 	}

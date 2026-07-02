@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/nyaruka/goflow/assets"
-	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/core/events"
 
 	"github.com/vinovest/sqlx"
 )
@@ -65,6 +65,6 @@ ON CONFLICT DO NOTHING`
 
 // MsgLabelAdd represents a single label that should be added to a message
 type MsgLabelAdd struct {
-	MsgUUID flows.EventUUID `db:"msg_uuid"`
-	LabelID LabelID         `db:"label_id"`
+	MsgUUID events.EventUUID `db:"msg_uuid"`
+	LabelID LabelID          `db:"label_id"`
 }

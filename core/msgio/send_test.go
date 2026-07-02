@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
-	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/msgio"
 	"github.com/nyaruka/mailroom/v26/runtime"
@@ -17,7 +17,7 @@ import (
 )
 
 type msgSpec struct {
-	UUID         flows.EventUUID
+	UUID         events.EventUUID
 	Channel      *testdb.Channel
 	Contact      *testdb.Contact
 	Failed       bool
@@ -26,7 +26,7 @@ type msgSpec struct {
 
 func (m *msgSpec) createMsg(t *testing.T, rt *runtime.Runtime, oa *models.OrgAssets) *models.Msg {
 	if m.UUID == "" {
-		m.UUID = flows.NewEventUUID()
+		m.UUID = events.NewEventUUID()
 	}
 
 	status := models.MsgStatusQueued
@@ -35,7 +35,7 @@ func (m *msgSpec) createMsg(t *testing.T, rt *runtime.Runtime, oa *models.OrgAss
 	}
 
 	testdb.InsertOutgoingMsg(t, rt, testdb.Org1, m.UUID, m.Channel, m.Contact, "Hello", nil, status, m.HighPriority)
-	msgs, err := models.GetMessagesByUUID(context.Background(), rt.DB, testdb.Org1.ID, models.DirectionOut, []flows.EventUUID{m.UUID})
+	msgs, err := models.GetMessagesByUUID(context.Background(), rt.DB, testdb.Org1.ID, models.DirectionOut, []events.EventUUID{m.UUID})
 	require.NoError(t, err)
 
 	msg := msgs[0]

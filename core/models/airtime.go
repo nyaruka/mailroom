@@ -9,8 +9,8 @@ import (
 
 	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/urns"
-	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/goflow/flows/events"
+	"github.com/nyaruka/goflow/core"
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/null/v3"
 	"github.com/shopspring/decimal"
 )
@@ -75,7 +75,7 @@ var airtimeTransferStatusNames = map[AirtimeTransferStatus]string{
 type AirtimeTransfer struct {
 	t struct {
 		ID            AirtimeTransferID     `db:"id"`
-		UUID          flows.EventUUID       `db:"uuid"`
+		UUID          events.EventUUID      `db:"uuid"`
 		OrgID         OrgID                 `db:"org_id"`
 		Status        AirtimeTransferStatus `db:"status"`
 		ExternalID    null.String           `db:"external_id"`
@@ -113,7 +113,7 @@ func (t *AirtimeTransfer) ID() AirtimeTransferID {
 	return t.t.ID
 }
 
-func (t *AirtimeTransfer) UUID() flows.EventUUID {
+func (t *AirtimeTransfer) UUID() events.EventUUID {
 	return t.t.UUID
 }
 
@@ -163,10 +163,10 @@ RETURNING t.org_id AS org_id, c.uuid AS contact_uuid`
 // a Reversed callback for a transfer we never saw Completed for), and dropping those would strand the row in
 // its prior state forever. We'd rather a late callback overwrite with stale state than silently lose a real
 // terminal status update.
-func UpdateAirtimeTransferStatus(ctx context.Context, db DBorTx, uuid flows.EventUUID, externalID string, next AirtimeTransferStatus) (*EventTag, error) {
+func UpdateAirtimeTransferStatus(ctx context.Context, db DBorTx, uuid events.EventUUID, externalID string, next AirtimeTransferStatus) (*EventTag, error) {
 	row := &struct {
-		OrgID       OrgID             `db:"org_id"`
-		ContactUUID flows.ContactUUID `db:"contact_uuid"`
+		OrgID       OrgID            `db:"org_id"`
+		ContactUUID core.ContactUUID `db:"contact_uuid"`
 	}{}
 	if err := db.GetContext(ctx, row, sqlUpdateAirtimeTransferStatus, uuid, next, externalID); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
@@ -180,7 +180,7 @@ func UpdateAirtimeTransferStatus(ctx context.Context, db DBorTx, uuid flows.Even
 // NewAirtimeStatusTag creates the history-table event tag that records a transfer's status change. It's keyed
 // by the same UUID as the transfer's airtime_created event (and shares a sort key across changes, so the
 // latest overwrites) allowing clients to inject the current _status when rendering that event.
-func NewAirtimeStatusTag(orgID OrgID, contactUUID flows.ContactUUID, transferUUID flows.EventUUID, status AirtimeTransferStatus) *EventTag {
+func NewAirtimeStatusTag(orgID OrgID, contactUUID core.ContactUUID, transferUUID events.EventUUID, status AirtimeTransferStatus) *EventTag {
 	return &EventTag{
 		OrgID:       orgID,
 		ContactUUID: contactUUID,

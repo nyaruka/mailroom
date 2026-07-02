@@ -7,7 +7,8 @@ import (
 	"github.com/nyaruka/gocommon/httpx"
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/gocommon/urns"
-	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/core"
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/goflow/test"
 	"github.com/nyaruka/mailroom/v26/services/airtime/dtone"
 	"github.com/shopspring/decimal"
@@ -47,10 +48,10 @@ func TestServiceCreate(t *testing.T) {
 		},
 	})
 	svc := dtone.NewService(client, nil, "key123", "sesame", callbackURL)
-	transferUUID := flows.EventUUID("01970fa4-1e58-79d5-bca8-1234567890ab")
+	transferUUID := events.EventUUID("01970fa4-1e58-79d5-bca8-1234567890ab")
 
 	// success — Create resolves the product, submits an unconfirmed transaction, returns currency/amount + external id
-	logger := &flows.HTTPLogger{}
+	logger := &core.HTTPLogger{}
 	transfer, err := svc.Create(
 		ctx,
 		transferUUID,
@@ -107,14 +108,14 @@ func TestServiceConfirm(t *testing.T) {
 	})
 	svc := dtone.NewService(client, nil, "key123", "sesame", callbackURL)
 
-	logger := &flows.HTTPLogger{}
-	err := svc.Confirm(ctx, &flows.AirtimeTransfer{ExternalID: "2237512891"}, logger.Log)
+	logger := &core.HTTPLogger{}
+	err := svc.Confirm(ctx, &core.AirtimeTransfer{ExternalID: "2237512891"}, logger.Log)
 	assert.NoError(t, err)
 
-	err = svc.Confirm(ctx, &flows.AirtimeTransfer{ExternalID: "2237512891"}, logger.Log)
+	err = svc.Confirm(ctx, &core.AirtimeTransfer{ExternalID: "2237512891"}, logger.Log)
 	assert.EqualError(t, err, "transaction confirmation failed: Already confirmed")
 
-	err = svc.Confirm(ctx, &flows.AirtimeTransfer{ExternalID: "not-an-int"}, logger.Log)
+	err = svc.Confirm(ctx, &core.AirtimeTransfer{ExternalID: "not-an-int"}, logger.Log)
 	assert.ErrorContains(t, err, `invalid transaction id "not-an-int"`)
 
 	assert.False(t, mocks.HasUnused())

@@ -13,6 +13,8 @@ import (
 	"github.com/nyaruka/gocommon/aws/dynamo"
 	"github.com/nyaruka/gocommon/elastic"
 	"github.com/nyaruka/gocommon/jsonx"
+	"github.com/nyaruka/goflow/core"
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/search"
@@ -63,9 +65,9 @@ func IndexMessages(t *testing.T, rt *runtime.Runtime) {
 
 		msg := search.MessageDoc{
 			CreatedOn:   createdOn,
-			UUID:        flows.EventUUID(msgUUID),
+			UUID:        events.EventUUID(msgUUID),
 			OrgID:       orgID,
-			ContactUUID: flows.ContactUUID(contactUUID),
+			ContactUUID: core.ContactUUID(contactUUID),
 			URNPath:     urnPath,
 			Text:        text,
 			InTicket:    ticketUUID != "",
@@ -194,8 +196,8 @@ func GetIndexedMessages(t *testing.T, rt *runtime.Runtime, clear bool) []Indexed
 
 // SearchAssertion is a search query and the expected contact UUIDs that should match.
 type SearchAssertion struct {
-	Query    string              `json:"query"`
-	Contacts []flows.ContactUUID `json:"contacts"`
+	Query    string             `json:"query"`
+	Contacts []core.ContactUUID `json:"contacts"`
 }
 
 // removes all documents from the contacts index and deletes all message indexes.

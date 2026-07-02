@@ -12,7 +12,7 @@ import (
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/goflow/assets"
-	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/null/v3"
 	"github.com/vinovest/sqlx"
 )
@@ -183,13 +183,13 @@ func LoadContactImportBatch(ctx context.Context, db DBorTx, id ContactImportBatc
 
 // ContactSpec describes a contact to be updated or created
 type ContactSpec struct {
-	UUID     flows.ContactUUID   `json:"uuid"`
-	Name     *string             `json:"name"`
-	Language *string             `json:"language"`
-	Status   flows.ContactStatus `json:"status"`
-	URNs     []urns.URN          `json:"urns"`
-	Fields   map[string]string   `json:"fields"`
-	Groups   []assets.GroupUUID  `json:"groups"`
+	UUID     core.ContactUUID   `json:"uuid"`
+	Name     *string            `json:"name"`
+	Language *string            `json:"language"`
+	Status   core.ContactStatus `json:"status"`
+	URNs     []urns.URN         `json:"urns"`
+	Fields   map[string]string  `json:"fields"`
+	Groups   []assets.GroupUUID `json:"groups"`
 
 	ImportRow int `json:"_import_row"`
 }

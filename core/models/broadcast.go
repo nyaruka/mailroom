@@ -8,9 +8,10 @@ import (
 	"github.com/lib/pq"
 	"github.com/nyaruka/gocommon/i18n"
 	"github.com/nyaruka/gocommon/urns"
+	"github.com/nyaruka/goflow/core"
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/goflow/excellent/types"
 	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/mailroom/v26/runtime"
 	"github.com/nyaruka/null/v3"
 )
@@ -36,54 +37,54 @@ const (
 
 // Broadcast represents a broadcast that needs to be sent
 type Broadcast struct {
-	ID                BroadcastID                 `json:"broadcast_id,omitempty"` // null for non-persisted tasks used by flow actions
-	UUID              flows.BroadcastUUID         `json:"broadcast_uuid,omitempty"`
-	OrgID             OrgID                       `json:"org_id"`
-	Status            BroadcastStatus             `json:"status"`
-	Translations      flows.BroadcastTranslations `json:"translations"`
-	BaseLanguage      i18n.Language               `json:"base_language"`
-	Expressions       bool                        `json:"expressions"`
-	OptInID           OptInID                     `json:"optin_id,omitempty"`
-	TemplateID        TemplateID                  `json:"template_id,omitempty"`
-	TemplateVariables []string                    `json:"template_variables,omitempty"`
-	GroupIDs          []GroupID                   `json:"group_ids,omitempty"`
-	ContactIDs        []ContactID                 `json:"contact_ids,omitempty"`
-	URNs              []urns.URN                  `json:"urns,omitempty"`
-	Query             string                      `json:"query,omitempty"`
-	NodeUUID          flows.NodeUUID              `json:"node_uuid,omitempty"`
-	Exclusions        Exclusions                  `json:"exclusions,omitempty"`
-	CreatedByID       UserID                      `json:"created_by_id,omitempty"`
-	ScheduleID        ScheduleID                  `json:"schedule_id,omitempty"`
-	ParentID          BroadcastID                 `json:"parent_id,omitempty"`
+	ID                BroadcastID                `json:"broadcast_id,omitempty"` // null for non-persisted tasks used by flow actions
+	UUID              core.BroadcastUUID         `json:"broadcast_uuid,omitempty"`
+	OrgID             OrgID                      `json:"org_id"`
+	Status            BroadcastStatus            `json:"status"`
+	Translations      core.BroadcastTranslations `json:"translations"`
+	BaseLanguage      i18n.Language              `json:"base_language"`
+	Expressions       bool                       `json:"expressions"`
+	OptInID           OptInID                    `json:"optin_id,omitempty"`
+	TemplateID        TemplateID                 `json:"template_id,omitempty"`
+	TemplateVariables []string                   `json:"template_variables,omitempty"`
+	GroupIDs          []GroupID                  `json:"group_ids,omitempty"`
+	ContactIDs        []ContactID                `json:"contact_ids,omitempty"`
+	URNs              []urns.URN                 `json:"urns,omitempty"`
+	Query             string                     `json:"query,omitempty"`
+	NodeUUID          core.NodeUUID              `json:"node_uuid,omitempty"`
+	Exclusions        Exclusions                 `json:"exclusions,omitempty"`
+	CreatedByID       UserID                     `json:"created_by_id,omitempty"`
+	ScheduleID        ScheduleID                 `json:"schedule_id,omitempty"`
+	ParentID          BroadcastID                `json:"parent_id,omitempty"`
 }
 
 type dbBroadcast struct {
-	ID                BroadcastID                        `db:"id"`
-	UUID              flows.BroadcastUUID                `db:"uuid"`
-	OrgID             OrgID                              `db:"org_id"`
-	Status            BroadcastStatus                    `db:"status"`
-	Translations      JSONB[flows.BroadcastTranslations] `db:"translations"`
-	BaseLanguage      i18n.Language                      `db:"base_language"`
-	OptInID           OptInID                            `db:"optin_id"`
-	TemplateID        TemplateID                         `db:"template_id"`
-	TemplateVariables pq.StringArray                     `db:"template_variables"`
-	URNs              pq.StringArray                     `db:"urns"`
-	Query             null.String                        `db:"query"`
-	NodeUUID          null.String                        `db:"node_uuid"`
-	Exclusions        Exclusions                         `db:"exclusions"`
-	CreatedByID       UserID                             `db:"created_by_id"`
-	ScheduleID        ScheduleID                         `db:"schedule_id"`
-	ParentID          BroadcastID                        `db:"parent_id"`
+	ID                BroadcastID                       `db:"id"`
+	UUID              core.BroadcastUUID                `db:"uuid"`
+	OrgID             OrgID                             `db:"org_id"`
+	Status            BroadcastStatus                   `db:"status"`
+	Translations      JSONB[core.BroadcastTranslations] `db:"translations"`
+	BaseLanguage      i18n.Language                     `db:"base_language"`
+	OptInID           OptInID                           `db:"optin_id"`
+	TemplateID        TemplateID                        `db:"template_id"`
+	TemplateVariables pq.StringArray                    `db:"template_variables"`
+	URNs              pq.StringArray                    `db:"urns"`
+	Query             null.String                       `db:"query"`
+	NodeUUID          null.String                       `db:"node_uuid"`
+	Exclusions        Exclusions                        `db:"exclusions"`
+	CreatedByID       UserID                            `db:"created_by_id"`
+	ScheduleID        ScheduleID                        `db:"schedule_id"`
+	ParentID          BroadcastID                       `db:"parent_id"`
 }
 
 var ErrNoRecipients = errors.New("can't create broadcast with no recipients")
 
 // NewBroadcast creates a new broadcast with the passed in parameters
-func NewBroadcast(orgID OrgID, translations flows.BroadcastTranslations,
+func NewBroadcast(orgID OrgID, translations core.BroadcastTranslations,
 	baseLanguage i18n.Language, expressions bool, optInID OptInID, groupIDs []GroupID, contactIDs []ContactID, urns []urns.URN, query string, exclude Exclusions, createdByID UserID) *Broadcast {
 
 	return &Broadcast{
-		UUID:         flows.NewBroadcastUUID(),
+		UUID:         core.NewBroadcastUUID(),
 		OrgID:        orgID,
 		Status:       BroadcastStatusPending,
 		Translations: translations,
@@ -206,7 +207,7 @@ func InsertBroadcast(ctx context.Context, db DBorTx, bcast *Broadcast) error {
 		UUID:              bcast.UUID,
 		OrgID:             bcast.OrgID,
 		Status:            bcast.Status,
-		Translations:      JSONB[flows.BroadcastTranslations]{bcast.Translations},
+		Translations:      JSONB[core.BroadcastTranslations]{bcast.Translations},
 		BaseLanguage:      bcast.BaseLanguage,
 		OptInID:           bcast.OptInID,
 		TemplateID:        bcast.TemplateID,
@@ -254,7 +255,7 @@ func InsertBroadcast(ctx context.Context, db DBorTx, bcast *Broadcast) error {
 // InsertChildBroadcast clones the passed in broadcast as a parent, then inserts that broadcast into the DB
 func InsertChildBroadcast(ctx context.Context, db DBorTx, parent *Broadcast) (*Broadcast, error) {
 	child := &Broadcast{
-		UUID:              flows.NewBroadcastUUID(),
+		UUID:              core.NewBroadcastUUID(),
 		OrgID:             parent.OrgID,
 		Status:            BroadcastStatusPending,
 		Translations:      parent.Translations,
@@ -322,7 +323,7 @@ func GetBroadcastByID(ctx context.Context, db DBorTx, bcastID BroadcastID) (*Bro
 
 // Send creates a message event for the given contact - can return nil if resultant message has no content and thus is a noop
 func (b *Broadcast) Send(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, contact *flows.Contact) (*events.MsgCreated, error) {
-	content, locale := b.Translations.ForContact(oa.Env(), contact, b.BaseLanguage)
+	content, locale := flows.TranslationsForContact(oa.Env(), b.Translations, contact, b.BaseLanguage)
 
 	var expressionsContext *types.XObject
 	if b.Expressions {

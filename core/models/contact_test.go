@@ -11,6 +11,7 @@ import (
 	"github.com/nyaruka/gocommon/i18n"
 	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/goflow/assets"
+	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/testsuite"
@@ -111,7 +112,7 @@ func TestCreateContact(t *testing.T) {
 
 	assert.Equal(t, "Rich", flowContact.Name())
 	assert.Equal(t, i18n.Language(`kin`), flowContact.Language())
-	assert.Equal(t, flows.ContactStatusActive, flowContact.Status())
+	assert.Equal(t, core.ContactStatusActive, flowContact.Status())
 	assert.Equal(t, []urns.URN{"telegram:200001", "telegram:200002"}, flowContact.URNs().Encode())
 	assert.Len(t, flowContact.Groups().All(), 1)
 	assert.Equal(t, assets.GroupUUID("d636c966-79c1-4417-9f1c-82ad629773a2"), flowContact.Groups().All()[0].UUID())
@@ -129,7 +130,7 @@ func TestCreateContact(t *testing.T) {
 	contact, flowContact, err = models.CreateContact(ctx, rt.DB, oa, models.UserID(1), "Bob", `kin`, models.ContactStatusBlocked, []urns.URN{urns.URN("telegram:200003")})
 	assert.NoError(t, err)
 	assert.Equal(t, models.ContactStatusBlocked, contact.Status())
-	assert.Equal(t, flows.ContactStatusBlocked, flowContact.Status())
+	assert.Equal(t, core.ContactStatusBlocked, flowContact.Status())
 	assert.Len(t, flowContact.Groups().All(), 0)
 }
 
@@ -411,9 +412,9 @@ func TestGetOrCreateContactsFromURNsRace(t *testing.T) {
 func TestGetContactIDsFromReferences(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	ids, err := models.GetContactIDsFromReferences(ctx, rt.DB, testdb.Org1.ID, []*flows.ContactReference{
-		flows.NewContactReference(testdb.Ann.UUID, "Ann"),
-		flows.NewContactReference(testdb.Bob.UUID, "Bob"),
+	ids, err := models.GetContactIDsFromReferences(ctx, rt.DB, testdb.Org1.ID, []*core.ContactReference{
+		core.NewContactReference(testdb.Ann.UUID, "Ann"),
+		core.NewContactReference(testdb.Bob.UUID, "Bob"),
 	})
 	require.NoError(t, err)
 	assert.ElementsMatch(t, []models.ContactID{testdb.Ann.ID, testdb.Bob.ID}, ids)
@@ -424,7 +425,7 @@ func TestContactExists(t *testing.T) {
 
 	tcs := []struct {
 		orgID    models.OrgID
-		uuid     flows.ContactUUID
+		uuid     core.ContactUUID
 		groupID  models.GroupID
 		status   models.ContactStatus
 		expected bool
@@ -512,7 +513,7 @@ func TestUpdateContactStatus(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contact WHERE id = $1 AND status = 'S'`, testdb.Ann.ID).Returns(0)
 
 	changes := make([]*models.ContactStatusChange, 0, 1)
-	changes = append(changes, &models.ContactStatusChange{testdb.Ann.ID, flows.ContactStatusBlocked})
+	changes = append(changes, &models.ContactStatusChange{testdb.Ann.ID, core.ContactStatusBlocked})
 
 	err = models.UpdateContactStatus(ctx, rt.DB, changes)
 	assert.NoError(t, err)
@@ -521,7 +522,7 @@ func TestUpdateContactStatus(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contact WHERE id = $1 AND status = 'S'`, testdb.Ann.ID).Returns(0)
 
 	changes = make([]*models.ContactStatusChange, 0, 1)
-	changes = append(changes, &models.ContactStatusChange{testdb.Ann.ID, flows.ContactStatusStopped})
+	changes = append(changes, &models.ContactStatusChange{testdb.Ann.ID, core.ContactStatusStopped})
 
 	err = models.UpdateContactStatus(ctx, rt.DB, changes)
 	assert.NoError(t, err)

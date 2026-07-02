@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/search"
 	"github.com/nyaruka/mailroom/v26/runtime"
@@ -35,7 +35,7 @@ type exportRequest struct {
 }
 
 type exportResponse struct {
-	ContactUUIDs []flows.ContactUUID `json:"contact_uuids"`
+	ContactUUIDs []core.ContactUUID `json:"contact_uuids"`
 }
 
 func handleExport(ctx context.Context, rt *runtime.Runtime, r *exportRequest) (any, int, error) {

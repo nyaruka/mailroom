@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/runtime"
 	"github.com/nyaruka/mailroom/v26/services/airtime/dtone"
@@ -54,7 +54,7 @@ func handleDTOneStatus(ctx context.Context, rt *runtime.Runtime, r *http.Request
 		return writeAirtimeStatusError(w, http.StatusBadRequest, "missing id")
 	}
 
-	transferUUID := flows.EventUUID(body.ExternalID)
+	transferUUID := events.EventUUID(body.ExternalID)
 	providerID := strconv.FormatInt(body.ID, 10)
 
 	var newStatus models.AirtimeTransferStatus

@@ -9,9 +9,10 @@ import (
 	"github.com/nyaruka/gocommon/i18n"
 	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/goflow/assets"
+	"github.com/nyaruka/goflow/core"
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/goflow/excellent/types"
 	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/goflow/utils"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/testsuite"
@@ -33,10 +34,10 @@ func TestNewOutgoingFlowMsg(t *testing.T) {
 		Channel      *testdb.Channel
 		Contact      *testdb.Contact
 		URN          urns.URN
-		Content      *flows.MsgContent
-		Templating   *flows.MsgTemplating
+		Content      *core.MsgContent
+		Templating   *core.MsgTemplating
 		Locale       i18n.Locale
-		Unsendable   flows.UnsendableReason
+		Unsendable   core.UnsendableReason
 		Flow         *testdb.Flow
 		ResponseTo   *models.MsgInRef
 		SuspendedOrg bool
@@ -51,17 +52,17 @@ func TestNewOutgoingFlowMsg(t *testing.T) {
 			Channel: testdb.TwilioChannel,
 			Contact: testdb.Ann,
 			URN:     "tel:+16055741111",
-			Content: &flows.MsgContent{
+			Content: &core.MsgContent{
 				Text: "test outgoing",
-				QuickReplies: []flows.QuickReply{
+				QuickReplies: []core.QuickReply{
 					{Type: "text", Text: "yes", Extra: "if you want"},
 					{Type: "text", Text: "no"},
 				},
 			},
-			Templating: flows.NewMsgTemplating(
+			Templating: core.NewMsgTemplating(
 				assets.NewTemplateReference("9c22b594-fcab-4b29-9bcb-ce4404894a80", "revive_issue"),
-				[]*flows.TemplatingComponent{{Type: "body", Name: "body", Variables: map[string]int{"1": 0}}},
-				[]*flows.TemplatingVariable{{Type: "text", Value: "name"}},
+				[]*core.TemplatingComponent{{Type: "body", Name: "body", Variables: map[string]int{"1": 0}}},
+				[]*core.TemplatingVariable{{Type: "text", Value: "name"}},
 			),
 			Locale:               "eng-US",
 			Flow:                 testdb.SingleMessage,
@@ -75,7 +76,7 @@ func TestNewOutgoingFlowMsg(t *testing.T) {
 			Channel:              testdb.TwilioChannel,
 			Contact:              testdb.Ann,
 			URN:                  "tel:+16055741111",
-			Content:              &flows.MsgContent{Text: "test outgoing", Attachments: []utils.Attachment{utils.Attachment("image/jpeg:https://dl-foo.com/image.jpg")}},
+			Content:              &core.MsgContent{Text: "test outgoing", Attachments: []utils.Attachment{utils.Attachment("image/jpeg:https://dl-foo.com/image.jpg")}},
 			Flow:                 testdb.Favorites,
 			ExpectedURNID:        testdb.Ann.URNID,
 			ExpectedStatus:       models.MsgStatusQueued,
@@ -87,8 +88,8 @@ func TestNewOutgoingFlowMsg(t *testing.T) {
 			Channel:              nil,
 			Contact:              testdb.Ann,
 			URN:                  urns.NilURN,
-			Content:              &flows.MsgContent{Text: "hello"},
-			Unsendable:           flows.UnsendableReasonNoRoute,
+			Content:              &core.MsgContent{Text: "hello"},
+			Unsendable:           core.UnsendableReasonNoRoute,
 			Flow:                 testdb.Favorites,
 			ExpectedURNID:        models.URNID(0),
 			ExpectedStatus:       models.MsgStatusFailed,
@@ -100,8 +101,8 @@ func TestNewOutgoingFlowMsg(t *testing.T) {
 			Channel:              testdb.TwilioChannel,
 			Contact:              blake,
 			URN:                  "tel:+250700000007",
-			Content:              &flows.MsgContent{Text: "hello"},
-			Unsendable:           flows.UnsendableReasonContactBlocked,
+			Content:              &core.MsgContent{Text: "hello"},
+			Unsendable:           core.UnsendableReasonContactBlocked,
 			Flow:                 testdb.Favorites,
 			ExpectedURNID:        blakeURNID,
 			ExpectedStatus:       models.MsgStatusFailed,
@@ -132,7 +133,7 @@ func TestNewOutgoingFlowMsg(t *testing.T) {
 		require.NoError(t, err)
 
 		mc, _, _ := tc.Contact.Load(t, rt, oa)
-		msgEvent := events.NewMsgCreated(flows.NewMsgOut(tc.URN, chRef, tc.Content, tc.Templating, tc.Locale, tc.Unsendable), "", "")
+		msgEvent := events.NewMsgCreated(core.NewMsgOut(tc.URN, chRef, tc.Content, tc.Templating, tc.Locale, tc.Unsendable), "", "")
 		msg, err := models.NewOutgoingFlowMsg(rt, oa.Org(), ch, mc, flow, msgEvent, tc.ResponseTo)
 		assert.NoError(t, err)
 
@@ -142,7 +143,7 @@ func TestNewOutgoingFlowMsg(t *testing.T) {
 		}
 		expectedQuickReplies := tc.Content.QuickReplies
 		if expectedQuickReplies == nil {
-			expectedQuickReplies = []flows.QuickReply{}
+			expectedQuickReplies = []core.QuickReply{}
 		}
 
 		err = models.InsertMessages(ctx, rt.DB, []*models.Msg{msg.Msg})
@@ -192,7 +193,7 @@ func TestGetMessagesByUUID(t *testing.T) {
 	msgOut3 := testdb.InsertOutgoingMsg(t, rt, testdb.Org2, "0199bb93-ec0f-703e-9b5b-d26d4b6b133c", testdb.Org2Channel, testdb.Org2Contact, "out 3", nil, models.MsgStatusSent, false)
 	testdb.InsertOutgoingMsg(t, rt, testdb.Org1, "0199bb94-1134-75d6-91dc-8aee7787f703", testdb.TwilioChannel, testdb.Ann, "hi 3", nil, models.MsgStatusSent, false)
 
-	uuids := []flows.EventUUID{msgIn1.UUID, msgOut1.UUID, msgOut2.UUID, msgOut3.UUID}
+	uuids := []events.EventUUID{msgIn1.UUID, msgOut1.UUID, msgOut2.UUID, msgOut3.UUID}
 
 	msgs, err := models.GetMessagesByUUID(ctx, rt.DB, testdb.Org1.ID, models.DirectionOut, uuids)
 
@@ -240,7 +241,7 @@ func TestResendMessages(t *testing.T) {
 	// give Bob's URN an affinity for the Vonage channel
 	rt.DB.MustExec(`UPDATE contacts_contacturn SET channel_id = $1 WHERE id = $2`, testdb.VonageChannel.ID, testdb.Bob.URNID)
 
-	uuids := []flows.EventUUID{out1.UUID, out2.UUID, out3.UUID, out4.UUID, out5.UUID}
+	uuids := []events.EventUUID{out1.UUID, out2.UUID, out3.UUID, out4.UUID, out5.UUID}
 	msgs, err := models.GetMessagesByUUID(ctx, rt.DB, testdb.Org1.ID, models.DirectionOut, uuids)
 	require.NoError(t, err)
 
@@ -304,7 +305,7 @@ func TestDeleteMessages(t *testing.T) {
 
 	tx := rt.DB.MustBegin()
 
-	err := models.DeleteMessages(ctx, tx, testdb.Org1.ID, []flows.EventUUID{in1.UUID}, models.VisibilityDeletedBySender)
+	err := models.DeleteMessages(ctx, tx, testdb.Org1.ID, []events.EventUUID{in1.UUID}, models.VisibilityDeletedBySender)
 	assert.NoError(t, err)
 	assert.NoError(t, tx.Commit())
 
@@ -314,7 +315,7 @@ func TestDeleteMessages(t *testing.T) {
 
 	tx = rt.DB.MustBegin()
 
-	err = models.DeleteMessages(ctx, tx, testdb.Org1.ID, []flows.EventUUID{in3.UUID, in4.UUID}, models.VisibilityDeletedByUser)
+	err = models.DeleteMessages(ctx, tx, testdb.Org1.ID, []events.EventUUID{in3.UUID, in4.UUID}, models.VisibilityDeletedByUser)
 	assert.NoError(t, err)
 	assert.NoError(t, tx.Commit())
 
@@ -324,7 +325,7 @@ func TestDeleteMessages(t *testing.T) {
 	tx = rt.DB.MustBegin()
 
 	// trying to delete an outgoing message is a noop
-	err = models.DeleteMessages(ctx, tx, testdb.Org1.ID, []flows.EventUUID{out1.UUID}, models.VisibilityDeletedBySender)
+	err = models.DeleteMessages(ctx, tx, testdb.Org1.ID, []events.EventUUID{out1.UUID}, models.VisibilityDeletedBySender)
 	assert.NoError(t, err)
 	assert.NoError(t, tx.Commit())
 
@@ -341,12 +342,12 @@ func TestGetMsgRepetitions(t *testing.T) {
 
 	dates.SetNowFunc(dates.NewFixedNow(time.Date(2021, 11, 18, 12, 13, 3, 234567, time.UTC)))
 
-	msg1 := &flows.MsgContent{Text: "foo"}
-	msg2 := &flows.MsgContent{Text: "FOO"}
-	msg3 := &flows.MsgContent{Text: "bar"}
-	msg4 := &flows.MsgContent{Text: "foo"}
+	msg1 := &core.MsgContent{Text: "foo"}
+	msg2 := &core.MsgContent{Text: "FOO"}
+	msg3 := &core.MsgContent{Text: "bar"}
+	msg4 := &core.MsgContent{Text: "foo"}
 
-	assertRepetitions := func(contactID models.ContactID, m *flows.MsgContent, expected int) {
+	assertRepetitions := func(contactID models.ContactID, m *core.MsgContent, expected int) {
 		count, err := models.GetMsgRepetitions(rt.VK, contactID, m)
 		require.NoError(t, err)
 		assert.Equal(t, expected, count)
@@ -395,12 +396,12 @@ func TestMarkMessages(t *testing.T) {
 	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
 	out1 := testdb.InsertOutgoingMsg(t, rt, testdb.Org1, "0199bad8-f98d-75a3-b641-2718a25ac3f5", testdb.TwilioChannel, testdb.Ann, "Hello", nil, models.MsgStatusQueued, false)
-	msgs, err := models.GetMessagesByUUID(ctx, rt.DB, testdb.Org1.ID, models.DirectionOut, []flows.EventUUID{out1.UUID})
+	msgs, err := models.GetMessagesByUUID(ctx, rt.DB, testdb.Org1.ID, models.DirectionOut, []events.EventUUID{out1.UUID})
 	require.NoError(t, err)
 	msg1 := msgs[0]
 
 	out2 := testdb.InsertOutgoingMsg(t, rt, testdb.Org1, "0199bad9-9791-770d-a47d-8f4a6ea3ad13", testdb.TwilioChannel, testdb.Ann, "Hola", nil, models.MsgStatusQueued, false)
-	msgs, err = models.GetMessagesByUUID(ctx, rt.DB, testdb.Org1.ID, models.DirectionOut, []flows.EventUUID{out2.UUID})
+	msgs, err = models.GetMessagesByUUID(ctx, rt.DB, testdb.Org1.ID, models.DirectionOut, []events.EventUUID{out2.UUID})
 	require.NoError(t, err)
 	msg2 := msgs[0]
 
@@ -415,7 +416,7 @@ func TestMarkMessages(t *testing.T) {
 	rt.DB.MustExec(`ALTER SEQUENCE "msgs_msg_id_seq" RESTART WITH 3000000000;`)
 
 	out4 := testdb.InsertOutgoingMsg(t, rt, testdb.Org1, "0199bb94-1134-75d6-91dc-8aee7787f703", testdb.TwilioChannel, testdb.Ann, "Big messages!", nil, models.MsgStatusQueued, false)
-	msgs, err = models.GetMessagesByUUID(ctx, rt.DB, testdb.Org1.ID, models.DirectionOut, []flows.EventUUID{out4.UUID})
+	msgs, err = models.GetMessagesByUUID(ctx, rt.DB, testdb.Org1.ID, models.DirectionOut, []events.EventUUID{out4.UUID})
 	require.NoError(t, err)
 	msg4 := msgs[0]
 
@@ -447,7 +448,7 @@ func TestNewIVRMessages(t *testing.T) {
 
 	flow := testdb.Favorites.Load(t, rt, oa)
 
-	flowOut := flows.NewIVRMsgOut(testdb.Ann.URN, vonage.Reference(), "Hello", "http://example.com/hi.mp3", "eng-US")
+	flowOut := core.NewIVRMsgOut(testdb.Ann.URN, vonage.Reference(), "Hello", "http://example.com/hi.mp3", "eng-US")
 	eventOut := events.NewIVRCreated(flowOut)
 	dbOut := models.NewOutgoingIVR(rt.Config, testdb.Org1.ID, call, flow, eventOut)
 
@@ -466,7 +467,7 @@ func TestNewIVRMessages(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT text, status, msg_type, flow_id FROM msgs_msg WHERE uuid = $1`, dbOut.UUID()).
 		Columns(map[string]any{"text": "Hello", "status": "W", "msg_type": "V", "flow_id": testdb.Favorites.ID})
 
-	flowIn := flows.NewMsgIn(testdb.Ann.URN, vonage.Reference(), "1", nil, "")
+	flowIn := core.NewMsgIn(testdb.Ann.URN, vonage.Reference(), "1", nil, "")
 	eventIn := events.NewMsgReceived(flowIn, "")
 	dbIn := models.NewIncomingIVR(rt.Config, testdb.Org1.ID, call, flow, eventIn)
 
@@ -503,7 +504,7 @@ func TestCreateMsgOut(t *testing.T) {
 		})
 	}
 
-	out, err := models.CreateMsgOut(ctx, rt, oa, bob, &flows.MsgContent{Text: "hello @contact.name"}, models.NilTemplateID, nil, `eng`, evalContext(bob))
+	out, err := models.CreateMsgOut(ctx, rt, oa, bob, &core.MsgContent{Text: "hello @contact.name"}, models.NilTemplateID, nil, `eng`, evalContext(bob))
 	assert.NoError(t, err)
 	assert.Equal(t, "hello Bob", out.Text())
 	assert.Equal(t, urns.URN("tel:+16055742222"), out.URN())
@@ -511,7 +512,7 @@ func TestCreateMsgOut(t *testing.T) {
 	assert.Equal(t, i18n.Locale(`eng`), out.Locale())
 	assert.Nil(t, out.Templating())
 
-	msgContent := &flows.MsgContent{Text: "hello"}
+	msgContent := &core.MsgContent{Text: "hello"}
 	templateVariables := []string{"@contact.name", "mice"}
 
 	out, err = models.CreateMsgOut(ctx, rt, oa, ann, msgContent, testdb.ReviveTemplate.ID, templateVariables, `eng`, evalContext(ann))
@@ -520,41 +521,41 @@ func TestCreateMsgOut(t *testing.T) {
 	assert.Equal(t, urns.URN("facebook:123456789"), out.URN())
 	assert.Equal(t, assets.NewChannelReference("0f661e8b-ea9d-4bd3-9953-d368340acf91", "Facebook"), out.Channel())
 	assert.Equal(t, i18n.Locale(`eng-US`), out.Locale())
-	assert.Equal(t, &flows.MsgTemplating{
+	assert.Equal(t, &core.MsgTemplating{
 		Template: assets.NewTemplateReference("9c22b594-fcab-4b29-9bcb-ce4404894a80", "revive_issue"),
-		Components: []*flows.TemplatingComponent{
+		Components: []*core.TemplatingComponent{
 			{Name: "body", Type: "body/text", Variables: map[string]int{"1": 0, "2": 1}},
 		},
-		Variables: []*flows.TemplatingVariable{{Type: "text", Value: "Ann"}, {Type: "text", Value: "mice"}},
+		Variables: []*core.TemplatingVariable{{Type: "text", Value: "Ann"}, {Type: "text", Value: "mice"}},
 	}, out.Templating())
 
 	out, err = models.CreateMsgOut(ctx, rt, oa, cat, msgContent, testdb.ReviveTemplate.ID, templateVariables, `eng`, evalContext(cat))
 	assert.NoError(t, err)
 	assert.Equal(t, "Hi Cat, are you still experiencing problems with mice?", out.Text())
-	assert.Equal(t, &flows.MsgTemplating{
+	assert.Equal(t, &core.MsgTemplating{
 		Template: assets.NewTemplateReference("9c22b594-fcab-4b29-9bcb-ce4404894a80", "revive_issue"),
-		Components: []*flows.TemplatingComponent{
+		Components: []*core.TemplatingComponent{
 			{Name: "body", Type: "body/text", Variables: map[string]int{"1": 0, "2": 1}},
 		},
-		Variables: []*flows.TemplatingVariable{{Type: "text", Value: "Cat"}, {Type: "text", Value: "mice"}},
+		Variables: []*core.TemplatingVariable{{Type: "text", Value: "Cat"}, {Type: "text", Value: "mice"}},
 	}, out.Templating())
 
-	bob.SetStatus(flows.ContactStatusBlocked)
+	bob.SetStatus(core.ContactStatusBlocked)
 
-	out, err = models.CreateMsgOut(ctx, rt, oa, bob, &flows.MsgContent{Text: "hello"}, models.NilTemplateID, nil, `eng-US`, nil)
+	out, err = models.CreateMsgOut(ctx, rt, oa, bob, &core.MsgContent{Text: "hello"}, models.NilTemplateID, nil, `eng-US`, nil)
 	assert.NoError(t, err)
 	assert.Equal(t, urns.URN("tel:+16055742222"), out.URN())
 	assert.Equal(t, assets.NewChannelReference("74729f45-7f29-4868-9dc4-90e491e3c7d8", "Twilio"), out.Channel())
-	assert.Equal(t, flows.UnsendableReasonContactBlocked, out.UnsendableReason())
+	assert.Equal(t, core.UnsendableReasonContactBlocked, out.UnsendableReason())
 
-	bob.SetStatus(flows.ContactStatusActive)
+	bob.SetStatus(core.ContactStatusActive)
 	bob.SetRoutes(nil)
 
-	out, err = models.CreateMsgOut(ctx, rt, oa, bob, &flows.MsgContent{Text: "hello"}, models.NilTemplateID, nil, `eng-US`, nil)
+	out, err = models.CreateMsgOut(ctx, rt, oa, bob, &core.MsgContent{Text: "hello"}, models.NilTemplateID, nil, `eng-US`, nil)
 	assert.NoError(t, err)
 	assert.Equal(t, urns.NilURN, out.URN())
 	assert.Nil(t, out.Channel())
-	assert.Equal(t, flows.UnsendableReasonNoRoute, out.UnsendableReason())
+	assert.Equal(t, core.UnsendableReasonNoRoute, out.UnsendableReason())
 }
 
 func TestMsgTemplating(t *testing.T) {
@@ -568,19 +569,19 @@ func TestMsgTemplating(t *testing.T) {
 	chRef := assets.NewChannelReference(testdb.FacebookChannel.UUID, "FB")
 	flow, _ := oa.FlowByID(testdb.Favorites.ID)
 
-	templating1 := flows.NewMsgTemplating(
+	templating1 := core.NewMsgTemplating(
 		assets.NewTemplateReference("9c22b594-fcab-4b29-9bcb-ce4404894a80", "revive_issue"),
-		[]*flows.TemplatingComponent{{Type: "body", Name: "body", Variables: map[string]int{"1": 0}}},
-		[]*flows.TemplatingVariable{{Type: "text", Value: "name"}},
+		[]*core.TemplatingComponent{{Type: "body", Name: "body", Variables: map[string]int{"1": 0}}},
+		[]*core.TemplatingVariable{{Type: "text", Value: "name"}},
 	)
 
 	// create a message with templating
-	out1 := events.NewMsgCreated(flows.NewMsgOut(testdb.Ann.URN, chRef, &flows.MsgContent{Text: "Hello"}, templating1, i18n.NilLocale, ""), "", "")
+	out1 := events.NewMsgCreated(core.NewMsgOut(testdb.Ann.URN, chRef, &core.MsgContent{Text: "Hello"}, templating1, i18n.NilLocale, ""), "", "")
 	msg1, err := models.NewOutgoingFlowMsg(rt, oa.Org(), channel, mc, flow, out1, nil)
 	require.NoError(t, err)
 
 	// create a message without templating
-	out2 := events.NewMsgCreated(flows.NewMsgOut(testdb.Ann.URN, chRef, &flows.MsgContent{Text: "Hello"}, nil, i18n.NilLocale, ""), "", "")
+	out2 := events.NewMsgCreated(core.NewMsgOut(testdb.Ann.URN, chRef, &core.MsgContent{Text: "Hello"}, nil, i18n.NilLocale, ""), "", "")
 	msg2, err := models.NewOutgoingFlowMsg(rt, oa.Org(), channel, mc, flow, out2, nil)
 	require.NoError(t, err)
 

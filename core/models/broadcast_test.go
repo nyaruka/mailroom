@@ -9,7 +9,7 @@ import (
 	"github.com/nyaruka/gocommon/i18n"
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/gocommon/urns"
-	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/test"
 	"github.com/nyaruka/goflow/utils"
 	"github.com/nyaruka/mailroom/v26/core/models"
@@ -28,7 +28,7 @@ func TestBroadcasts(t *testing.T) {
 
 	bcast := models.NewBroadcast(
 		testdb.Org1.ID,
-		flows.BroadcastTranslations{"eng": {Text: "Hi there"}},
+		core.BroadcastTranslations{"eng": {Text: "Hi there"}},
 		"eng",
 		true,
 		optIn.ID,
@@ -102,7 +102,7 @@ func TestNonPersistentBroadcasts(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
-	translations := flows.BroadcastTranslations{"eng": {Text: "Hi there"}}
+	translations := core.BroadcastTranslations{"eng": {Text: "Hi there"}}
 	optIn := testdb.InsertOptIn(t, rt, testdb.Org1, "45aec4dd-945f-4511-878f-7d8516fbd336", "Polls")
 
 	// create a broadcast which doesn't actually exist in the DB
@@ -151,7 +151,7 @@ func TestBroadcastSend(t *testing.T) {
 	tcs := []struct {
 		contactLanguage   i18n.Language
 		contactURN        urns.URN
-		translations      flows.BroadcastTranslations
+		translations      core.BroadcastTranslations
 		baseLanguage      i18n.Language
 		expressions       bool
 		optInID           models.OptInID
@@ -162,7 +162,7 @@ func TestBroadcastSend(t *testing.T) {
 		{ // 0
 			contactURN:      "tel:+593979000000",
 			contactLanguage: i18n.NilLanguage,
-			translations:    flows.BroadcastTranslations{"eng": {Text: "Hi @contact"}},
+			translations:    core.BroadcastTranslations{"eng": {Text: "Hi @contact"}},
 			baseLanguage:    "eng",
 			expressions:     false,
 			expected: []byte(`{
@@ -184,7 +184,7 @@ func TestBroadcastSend(t *testing.T) {
 		{ // 1: contact language not set, uses base language
 			contactURN:      "tel:+593979000001",
 			contactLanguage: i18n.NilLanguage,
-			translations:    flows.BroadcastTranslations{"eng": {Text: "Hello @contact.name"}, "spa": {Text: "Hola @contact.name"}},
+			translations:    core.BroadcastTranslations{"eng": {Text: "Hello @contact.name"}, "spa": {Text: "Hola @contact.name"}},
 			baseLanguage:    "eng",
 			expressions:     true,
 			expected: []byte(`{
@@ -206,7 +206,7 @@ func TestBroadcastSend(t *testing.T) {
 		{ // 2: contact language iggnored if it isn't a valid org language, even if translation exists
 			contactURN:      "tel:+593979000002",
 			contactLanguage: "spa",
-			translations:    flows.BroadcastTranslations{"eng": {Text: "Hello @contact.name"}, "spa": {Text: "Hola @contact.name"}},
+			translations:    core.BroadcastTranslations{"eng": {Text: "Hello @contact.name"}, "spa": {Text: "Hola @contact.name"}},
 			baseLanguage:    "eng",
 			expressions:     true,
 			expected: []byte(`{
@@ -228,9 +228,9 @@ func TestBroadcastSend(t *testing.T) {
 		{ // 3: contact language used
 			contactURN:      "tel:+593979000003",
 			contactLanguage: "fra",
-			translations: flows.BroadcastTranslations{
-				"eng": {Text: "Hello @contact.name", Attachments: []utils.Attachment{"audio/mp3:http://test.en.mp3"}, QuickReplies: []flows.QuickReply{{Type: "text", Text: "yes"}, {Type: "text", Text: "no"}}},
-				"fra": {Text: "Bonjour @contact.name", Attachments: []utils.Attachment{"audio/mp3:http://test.fr.mp3"}, QuickReplies: []flows.QuickReply{{Type: "text", Text: "oui"}, {Type: "text", Text: "no"}}},
+			translations: core.BroadcastTranslations{
+				"eng": {Text: "Hello @contact.name", Attachments: []utils.Attachment{"audio/mp3:http://test.en.mp3"}, QuickReplies: []core.QuickReply{{Type: "text", Text: "yes"}, {Type: "text", Text: "no"}}},
+				"fra": {Text: "Bonjour @contact.name", Attachments: []utils.Attachment{"audio/mp3:http://test.fr.mp3"}, QuickReplies: []core.QuickReply{{Type: "text", Text: "oui"}, {Type: "text", Text: "no"}}},
 			},
 			baseLanguage: "eng",
 			expressions:  true,
@@ -266,7 +266,7 @@ func TestBroadcastSend(t *testing.T) {
 		{ // 4: broadcast with template
 			contactURN:        "facebook:1000000000002",
 			contactLanguage:   "eng",
-			translations:      flows.BroadcastTranslations{"eng": {Text: "Hi @contact"}},
+			translations:      core.BroadcastTranslations{"eng": {Text: "Hi @contact"}},
 			baseLanguage:      "eng",
 			expressions:       true,
 			templateID:        testdb.ReviveTemplate.ID,
@@ -316,11 +316,11 @@ func TestBroadcastSend(t *testing.T) {
 	}
 
 	for i, tc := range tcs {
-		contact := testdb.InsertContact(t, rt, testdb.Org1, flows.NewContactUUID(), "Felix", tc.contactLanguage, models.ContactStatusActive)
+		contact := testdb.InsertContact(t, rt, testdb.Org1, core.NewContactUUID(), "Felix", tc.contactLanguage, models.ContactStatusActive)
 		testdb.InsertContactURN(t, rt, testdb.Org1, contact, tc.contactURN, 1000, nil)
 
 		bcast := &models.Broadcast{
-			UUID:              flows.NewBroadcastUUID(),
+			UUID:              core.NewBroadcastUUID(),
 			OrgID:             testdb.Org1.ID,
 			Translations:      tc.translations,
 			BaseLanguage:      tc.baseLanguage,

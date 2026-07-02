@@ -6,8 +6,8 @@ import (
 	"net/http"
 
 	"github.com/nyaruka/gocommon/dates"
-	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/goflow/flows/events"
+	"github.com/nyaruka/goflow/core"
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/goflow/utils"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/runner"
@@ -33,8 +33,8 @@ type sendRequest struct {
 	ContactID    models.ContactID   `json:"contact_id"   validate:"required"`
 	Text         string             `json:"text"`
 	Attachments  []utils.Attachment `json:"attachments"`
-	QuickReplies []flows.QuickReply `json:"quick_replies"`
-	TicketUUID   flows.TicketUUID   `json:"ticket_uuid"`
+	QuickReplies []core.QuickReply  `json:"quick_replies"`
+	TicketUUID   core.TicketUUID    `json:"ticket_uuid"`
 }
 
 // handles a request to resend the given messages
@@ -56,7 +56,7 @@ func handleSend(ctx context.Context, rt *runtime.Runtime, r *sendRequest) (any, 
 		return nil, 0, fmt.Errorf("error creating flow contact: %w", err)
 	}
 
-	content := &flows.MsgContent{Text: r.Text, Attachments: r.Attachments, QuickReplies: r.QuickReplies}
+	content := &core.MsgContent{Text: r.Text, Attachments: r.Attachments, QuickReplies: r.QuickReplies}
 	out, err := models.CreateMsgOut(ctx, rt, oa, contact, content, models.NilTemplateID, nil, contact.Locale(oa.Env()), nil)
 	if err != nil {
 		return nil, 0, fmt.Errorf("error creating message content: %w", err)

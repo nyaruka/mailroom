@@ -18,6 +18,8 @@ import (
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/goflow/assets"
+	"github.com/nyaruka/goflow/core"
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/utils"
 	"github.com/nyaruka/mailroom/v26/core/models"
@@ -40,10 +42,10 @@ const (
 )
 
 type Contact struct {
-	ID         models.ContactID  `json:"id"`
-	UUID       flows.ContactUUID `json:"uuid"`
-	LastSeenOn *time.Time        `json:"last_seen_on,omitempty"`
-	OtherURNs  []urns.URN        `json:"other_urns,omitempty"` // currently needed for WA handlers to know if contact already has a BSUID URN, may not be needed long term
+	ID         models.ContactID `json:"id"`
+	UUID       core.ContactUUID `json:"uuid"`
+	LastSeenOn *time.Time       `json:"last_seen_on,omitempty"`
+	OtherURNs  []urns.URN       `json:"other_urns,omitempty"` // currently needed for WA handlers to know if contact already has a BSUID URN, may not be needed long term
 }
 
 type OptInRef struct {
@@ -57,30 +59,30 @@ type FlowRef struct {
 }
 
 type Templating struct {
-	*flows.MsgTemplating
+	*core.MsgTemplating
 	Namespace  string `json:"namespace"`
 	ExternalID string `json:"external_id"`
 	Language   string `json:"language"`
 }
 
 type Session struct {
-	UUID       flows.SessionUUID `json:"uuid"`
-	Status     string            `json:"status"`
-	SprintUUID flows.SprintUUID  `json:"sprint_uuid"`
-	Timeout    int               `json:"timeout,omitempty"`
+	UUID       core.SessionUUID `json:"uuid"`
+	Status     string           `json:"status"`
+	SprintUUID flows.SprintUUID `json:"sprint_uuid"`
+	Timeout    int              `json:"timeout,omitempty"`
 }
 
 var sessionStatusMap = map[flows.SessionStatus]string{flows.SessionStatusWaiting: "W", flows.SessionStatusCompleted: "C"}
 
 // Msg is the format of a message queued to courier
 type Msg struct {
-	UUID                 flows.EventUUID    `json:"uuid"`
+	UUID                 events.EventUUID   `json:"uuid"`
 	OrgID                models.OrgID       `json:"org_id"`
 	Contact              *Contact           `json:"contact"`
 	Origin               MsgOrigin          `json:"origin"`
 	Text                 string             `json:"text"`
 	Attachments          []utils.Attachment `json:"attachments,omitempty"`
-	QuickReplies         []flows.QuickReply `json:"quick_replies,omitempty"`
+	QuickReplies         []core.QuickReply  `json:"quick_replies,omitempty"`
 	Locale               i18n.Locale        `json:"locale,omitempty"`
 	Templating           *Templating        `json:"templating,omitempty"`
 	HighPriority         bool               `json:"high_priority"`
@@ -324,7 +326,7 @@ type fetchAttachmentRequest struct {
 	ChannelType models.ChannelType `json:"channel_type"`
 	ChannelUUID assets.ChannelUUID `json:"channel_uuid"`
 	URL         string             `json:"url"`
-	MsgUUID     flows.EventUUID    `json:"msg_uuid"`
+	MsgUUID     events.EventUUID   `json:"msg_uuid"`
 }
 
 type fetchAttachmentResponse struct {
@@ -337,7 +339,7 @@ type fetchAttachmentResponse struct {
 }
 
 // FetchAttachment calls courier to fetch the given attachment
-func FetchAttachment(ctx context.Context, rt *runtime.Runtime, ch *models.Channel, attURL string, msgUUID flows.EventUUID) (utils.Attachment, svclogs.UUID, error) {
+func FetchAttachment(ctx context.Context, rt *runtime.Runtime, ch *models.Channel, attURL string, msgUUID events.EventUUID) (utils.Attachment, svclogs.UUID, error) {
 	payload := jsonx.MustMarshal(&fetchAttachmentRequest{
 		ChannelType: ch.Type(),
 		ChannelUUID: ch.UUID(),

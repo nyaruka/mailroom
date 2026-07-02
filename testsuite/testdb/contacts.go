@@ -9,6 +9,7 @@ import (
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/goflow/assets"
+	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/runtime"
@@ -18,13 +19,13 @@ import (
 
 type Contact struct {
 	ID    models.ContactID
-	UUID  flows.ContactUUID
+	UUID  core.ContactUUID
 	URN   urns.URN
 	URNID models.URNID
 }
 
-func (c *Contact) Reference() *flows.ContactReference {
-	return &flows.ContactReference{UUID: c.UUID, Name: ""}
+func (c *Contact) Reference() *core.ContactReference {
+	return &core.ContactReference{UUID: c.UUID, Name: ""}
 }
 
 func (c *Contact) Load(t *testing.T, rt *runtime.Runtime, oa *models.OrgAssets) (*models.Contact, *flows.Contact, []*models.ContactURN) {
@@ -63,7 +64,7 @@ type Field struct {
 }
 
 // InsertContact inserts a contact
-func InsertContact(t *testing.T, rt *runtime.Runtime, org *Org, uuid flows.ContactUUID, name string, language i18n.Language, status models.ContactStatus) *Contact {
+func InsertContact(t *testing.T, rt *runtime.Runtime, org *Org, uuid core.ContactUUID, name string, language i18n.Language, status models.ContactStatus) *Contact {
 	var id models.ContactID
 	err := rt.DB.Get(&id,
 		`INSERT INTO contacts_contact (org_id, is_active, ticket_count, uuid, name, language, status, created_on, modified_on, created_by_id, modified_by_id) 
@@ -118,7 +119,7 @@ func InsertContactURN(t *testing.T, rt *runtime.Runtime, org *Org, contact *Cont
 }
 
 // InsertContactFire inserts a contact fire
-func InsertContactFire(t *testing.T, rt *runtime.Runtime, org *Org, contact *Contact, typ models.ContactFireType, scope string, fireOn time.Time, sessionUUID flows.SessionUUID) models.ContactFireID {
+func InsertContactFire(t *testing.T, rt *runtime.Runtime, org *Org, contact *Contact, typ models.ContactFireType, scope string, fireOn time.Time, sessionUUID core.SessionUUID) models.ContactFireID {
 	var id models.ContactFireID
 	err := rt.DB.Get(&id,
 		`INSERT INTO contacts_contactfire(org_id, contact_id, fire_type, scope, fire_on, session_uuid) 

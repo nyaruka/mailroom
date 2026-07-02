@@ -4,7 +4,7 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/runner"
 	"github.com/nyaruka/mailroom/v26/core/search"
@@ -19,10 +19,10 @@ type deindexMessages struct{}
 func (h *deindexMessages) Order() int { return 20 }
 
 func (h *deindexMessages) Execute(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scenes map[*runner.Scene][]any) error {
-	msgUUIDs := make([]flows.EventUUID, 0, len(scenes))
+	msgUUIDs := make([]events.EventUUID, 0, len(scenes))
 	for _, args := range scenes {
 		for _, a := range args {
-			msgUUIDs = append(msgUUIDs, a.(flows.EventUUID))
+			msgUUIDs = append(msgUUIDs, a.(events.EventUUID))
 		}
 	}
 

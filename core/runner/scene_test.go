@@ -12,8 +12,9 @@ import (
 	"github.com/nyaruka/gocommon/i18n"
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/gocommon/random"
+	"github.com/nyaruka/goflow/core"
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/goflow/flows/resumes"
 	"github.com/nyaruka/goflow/flows/triggers"
 	"github.com/nyaruka/goflow/test"
@@ -203,7 +204,7 @@ func TestSessionWithSubflows(t *testing.T) {
 	assert.Equal(t, scene.Session.UUID(), modelSession.UUID)
 	assert.Equal(t, child.UUID, modelSession.CurrentFlowUUID)
 
-	msg2 := flows.NewMsgIn(testdb.Ann.URN, nil, "yes", nil, "")
+	msg2 := core.NewMsgIn(testdb.Ann.URN, nil, "yes", nil, "")
 	scene = runner.NewScene(mc, contact)
 
 	err = scene.ResumeSession(ctx, rt, oa, modelSession, resumes.NewMsg(events.NewMsgReceived(msg2, "")))

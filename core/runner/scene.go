@@ -9,8 +9,9 @@ import (
 	"slices"
 	"time"
 
+	"github.com/nyaruka/goflow/core"
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/goflow/flows/modifiers"
 	"github.com/nyaruka/mailroom/v26/core/goflow"
 	"github.com/nyaruka/mailroom/v26/core/models"
@@ -40,12 +41,12 @@ type Scene struct {
 	Session             flows.Session
 	Sprint              flows.Sprint
 	WaitTimeout         time.Duration
-	PriorRunModifiedOns map[flows.RunUUID]time.Time
+	PriorRunModifiedOns map[core.RunUUID]time.Time
 	OutgoingMsgs        []*models.MsgOut
 
 	preCommits    map[PreCommitHook][]any
 	postCommits   map[PostCommitHook][]any
-	rawEvents     []flows.Event
+	rawEvents     []events.Event
 	persistEvents []*models.Event
 	notifications []*models.Notification
 
@@ -61,17 +62,17 @@ func NewScene(dbContact *models.Contact, contact *flows.Contact) *Scene {
 
 		preCommits:  make(map[PreCommitHook][]any),
 		postCommits: make(map[PostCommitHook][]any),
-		rawEvents:   make([]flows.Event, 0, 5),
+		rawEvents:   make([]events.Event, 0, 5),
 
 		Engine: goflow.Engine,
 	}
 }
 
-func (s *Scene) ContactID() models.ContactID    { return models.ContactID(s.Contact.ID()) }
-func (s *Scene) ContactUUID() flows.ContactUUID { return s.Contact.UUID() }
+func (s *Scene) ContactID() models.ContactID   { return models.ContactID(s.Contact.ID()) }
+func (s *Scene) ContactUUID() core.ContactUUID { return s.Contact.UUID() }
 
 // SessionUUID is a convenience utility to get the session UUID for this scene if any
-func (s *Scene) SessionUUID() flows.SessionUUID {
+func (s *Scene) SessionUUID() core.SessionUUID {
 	if s.Session == nil {
 		return ""
 	}
@@ -87,9 +88,9 @@ func (s *Scene) SprintUUID() flows.SprintUUID {
 }
 
 // Events returns all events added to this scene (includes non-persisted events)
-func (s *Scene) Events() []flows.Event { return s.rawEvents }
+func (s *Scene) Events() []events.Event { return s.rawEvents }
 
-func (s *Scene) AddEvent(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, e flows.Event, userID models.UserID, via models.Via) error {
+func (s *Scene) AddEvent(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, e events.Event, userID models.UserID, via models.Via) error {
 	handler := eventHandlers[e.Type()]
 	if handler == nil {
 		panic(fmt.Sprintf("no handler for event type: %s", e.Type()))
@@ -128,7 +129,7 @@ func (s *Scene) addSprint(ctx context.Context, rt *runtime.Runtime, oa *models.O
 	s.Session = ss
 	s.Sprint = sp
 
-	evts := make([]flows.Event, 0, len(sp.Events())+1)
+	evts := make([]events.Event, 0, len(sp.Events())+1)
 
 	for _, e := range sp.Events() {
 		// if session failed, only include failure events, otherwise all events
@@ -150,8 +151,8 @@ func (s *Scene) addSprint(ctx context.Context, rt *runtime.Runtime, oa *models.O
 
 // ReevaluateGroups re-evaluates query based group membership for this scene's contact and adds any resulting events.
 func (s *Scene) ReevaluateGroups(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets) error {
-	evts := make([]flows.Event, 0, 1)
-	log := func(e flows.Event) { evts = append(evts, e) }
+	evts := make([]events.Event, 0, 1)
+	log := func(e events.Event) { evts = append(evts, e) }
 
 	modifiers.ReevaluateGroups(oa.Env(), s.Contact, log)
 
@@ -218,7 +219,7 @@ func (s *Scene) ResumeSession(ctx context.Context, rt *runtime.Runtime, oa *mode
 
 	// record run modified times prior to resuming so we can figure out which runs are new or updated
 	s.DBSession = session
-	s.PriorRunModifiedOns = make(map[flows.RunUUID]time.Time, len(fs.Runs()))
+	s.PriorRunModifiedOns = make(map[core.RunUUID]time.Time, len(fs.Runs()))
 	for _, r := range fs.Runs() {
 		s.PriorRunModifiedOns[r.UUID()] = r.ModifiedOn()
 	}
@@ -239,8 +240,8 @@ func (s *Scene) ApplyModifier(ctx context.Context, rt *runtime.Runtime, oa *mode
 	env := flows.NewAssetsEnvironment(oa.Env(), oa.SessionAssets())
 	eng := goflow.Engine(rt)
 
-	evts := make([]flows.Event, 0)
-	evtLog := func(e flows.Event) { evts = append(evts, e) }
+	evts := make([]events.Event, 0)
+	evtLog := func(e events.Event) { evts = append(evts, e) }
 
 	if _, err := modifiers.Apply(ctx, eng, env, oa.SessionAssets(), s.Contact, mod, evtLog); err != nil {
 		return fmt.Errorf("error applying %s modifier to contact %s: %w", mod.Type(), s.Contact.UUID(), err)
@@ -431,7 +432,7 @@ func BulkCommit(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, 
 	var order []string
 
 	for _, scene := range committed {
-		evts := make([]flows.Event, len(scene.persistEvents))
+		evts := make([]events.Event, len(scene.persistEvents))
 		for i, evt := range scene.persistEvents {
 			if _, err := rt.Dynamo.History.Queue(evt); err != nil {
 				return fmt.Errorf("error queuing scene event to writer: %w", err)

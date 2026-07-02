@@ -10,8 +10,8 @@ import (
 
 	"github.com/nyaruka/gocommon/aws/dynamo"
 	"github.com/nyaruka/gocommon/dates"
-	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/goflow/flows/events"
+	"github.com/nyaruka/goflow/core"
+	"github.com/nyaruka/goflow/core/events"
 )
 
 type Via string
@@ -64,7 +64,7 @@ var eventPersistence = map[string]time.Duration{
 }
 
 // PersistEvent returns whether an event should be persisted
-func PersistEvent(e flows.Event) bool {
+func PersistEvent(e events.Event) bool {
 	switch typed := e.(type) {
 	case *events.Error:
 		// Only persist non-import URN taken errors for now - this is to help with flows that still use actions for
@@ -78,10 +78,10 @@ func PersistEvent(e flows.Event) bool {
 
 // Event wraps an engine event for persistence in the history table
 type Event struct {
-	flows.Event
+	events.Event
 
 	OrgID       OrgID
-	ContactUUID flows.ContactUUID
+	ContactUUID core.ContactUUID
 }
 
 // DynamoKey returns the PK+SK combo used for persistence
@@ -139,8 +139,8 @@ func (e *Event) MarshalDynamo() (*dynamo.Item, error) {
 // EventTag is a record of additional information associated with an existing event
 type EventTag struct {
 	OrgID       OrgID
-	ContactUUID flows.ContactUUID
-	EventUUID   flows.EventUUID
+	ContactUUID core.ContactUUID
+	EventUUID   events.EventUUID
 	Tag         string
 	Data        map[string]any
 }
@@ -158,7 +158,7 @@ func (t *EventTag) MarshalDynamo() (*dynamo.Item, error) {
 	}, nil
 }
 
-func NewMsgDeletionTag(orgID OrgID, contactUUID flows.ContactUUID, msgUUID flows.EventUUID, byContact bool, u *User) *EventTag {
+func NewMsgDeletionTag(orgID OrgID, contactUUID core.ContactUUID, msgUUID events.EventUUID, byContact bool, u *User) *EventTag {
 	data := map[string]any{"created_on": dates.Now()}
 
 	if byContact {

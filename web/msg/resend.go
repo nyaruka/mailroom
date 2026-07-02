@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/msgio"
 	"github.com/nyaruka/mailroom/v26/runtime"
@@ -23,8 +23,8 @@ func init() {
 //	  "msg_uuids": ["0199bada-2b39-7cac-9714-827df9ec6b91", "0199bb09-f0e9-7489-a58e-69304a7941a0"]
 //	}
 type resendRequest struct {
-	OrgID    models.OrgID      `json:"org_id"    validate:"required"`
-	MsgUUIDs []flows.EventUUID `json:"msg_uuids" validate:"required"`
+	OrgID    models.OrgID       `json:"org_id"    validate:"required"`
+	MsgUUIDs []events.EventUUID `json:"msg_uuids" validate:"required"`
 }
 
 // handles a request to resend the given messages
@@ -47,7 +47,7 @@ func handleResend(ctx context.Context, rt *runtime.Runtime, r *resendRequest) (a
 	msgio.QueueMessages(ctx, rt, resends)
 
 	// response is the UUIDs of the messages that were actually resent
-	resentUUIDs := make([]flows.EventUUID, len(resends))
+	resentUUIDs := make([]events.EventUUID, len(resends))
 	for i, s := range resends {
 		resentUUIDs[i] = s.UUID()
 	}

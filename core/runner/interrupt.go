@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/nyaruka/goflow/core"
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/runtime"
 )
@@ -14,7 +15,7 @@ import (
 // InterruptWithLock interrupts sessions for the given contacts. If sessions is provided then only those sessions will
 // be interrupted (if they are still the current waiting session for the contact). Otherwise the waiting session for
 // each contact is interrupted. Returns any generated events and any contacts we were unable to lock.
-func InterruptWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contactIDs []models.ContactID, sessions map[models.ContactID]flows.SessionUUID, status flows.SessionStatus) (map[*flows.Contact][]flows.Event, []models.ContactID, error) {
+func InterruptWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contactIDs []models.ContactID, sessions map[models.ContactID]core.SessionUUID, status flows.SessionStatus) (map[*flows.Contact][]events.Event, []models.ContactID, error) {
 	scenes, skipped, unlock, err := LockAndLoad(ctx, rt, oa, contactIDs, nil, 10*time.Second)
 	if err != nil {
 		return nil, nil, err
@@ -30,7 +31,7 @@ func InterruptWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 		return nil, nil, fmt.Errorf("error committing interruption scenes: %w", err)
 	}
 
-	evts := make(map[*flows.Contact][]flows.Event, len(scenes))
+	evts := make(map[*flows.Contact][]events.Event, len(scenes))
 	for _, s := range scenes {
 		evts[s.Contact] = s.Events()
 	}
@@ -38,7 +39,7 @@ func InterruptWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 	return evts, skipped, nil
 }
 
-func InterruptWithoutLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, mcs []*models.Contact, contacts []*flows.Contact, sessions map[models.ContactID]flows.SessionUUID, status flows.SessionStatus) (map[*flows.Contact][]flows.Event, error) {
+func InterruptWithoutLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, mcs []*models.Contact, contacts []*flows.Contact, sessions map[models.ContactID]core.SessionUUID, status flows.SessionStatus) (map[*flows.Contact][]events.Event, error) {
 	scenes := make([]*Scene, len(mcs))
 	for i, mc := range mcs {
 		scenes[i] = NewScene(mc, contacts[i])
@@ -52,7 +53,7 @@ func InterruptWithoutLock(ctx context.Context, rt *runtime.Runtime, oa *models.O
 		return nil, fmt.Errorf("error committing interruption scenes: %w", err)
 	}
 
-	evts := make(map[*flows.Contact][]flows.Event, len(scenes))
+	evts := make(map[*flows.Contact][]events.Event, len(scenes))
 	for _, s := range scenes {
 		evts[s.Contact] = s.Events()
 	}
@@ -61,9 +62,9 @@ func InterruptWithoutLock(ctx context.Context, rt *runtime.Runtime, oa *models.O
 }
 
 // adds contact interruption to the given scenes
-func addInterruptEvents(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scenes []*Scene, sessions map[models.ContactID]flows.SessionUUID, status flows.SessionStatus) error {
-	sessionUUIDs := make([]flows.SessionUUID, 0, len(scenes))
-	byScene := make(map[*Scene]flows.SessionUUID, len(scenes))
+func addInterruptEvents(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scenes []*Scene, sessions map[models.ContactID]core.SessionUUID, status flows.SessionStatus) error {
+	sessionUUIDs := make([]core.SessionUUID, 0, len(scenes))
+	byScene := make(map[*Scene]core.SessionUUID, len(scenes))
 	for _, s := range scenes {
 		waitingSession := s.DBContact.CurrentSessionUUID()
 
@@ -89,7 +90,7 @@ func addInterruptEvents(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 			}
 
 			for _, run := range runRefs[s.DBContact.CurrentSessionUUID()] {
-				if err := s.AddEvent(ctx, rt, oa, events.NewRunEnded(run.UUID, run.Flow, flows.RunStatus(status)), models.NilUserID, ""); err != nil {
+				if err := s.AddEvent(ctx, rt, oa, events.NewRunEnded(run.UUID, run.Flow, core.RunStatus(status)), models.NilUserID, ""); err != nil {
 					return fmt.Errorf("error adding run ended event: %w", err)
 				}
 			}

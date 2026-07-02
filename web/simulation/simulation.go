@@ -9,10 +9,11 @@ import (
 	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/assets/static"
+	"github.com/nyaruka/goflow/core"
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/goflow/excellent/tools"
 	"github.com/nyaruka/goflow/excellent/types"
 	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/goflow/flows/resumes"
 	"github.com/nyaruka/goflow/flows/triggers"
 	"github.com/nyaruka/mailroom/v26/core/goflow"
@@ -24,7 +25,7 @@ import (
 const (
 	testURN         = urns.URN("tel:+12065551212")
 	testChannelUUID = assets.ChannelUUID("440099cf-200c-4d45-a8e7-4a564f4a0e8b")
-	testCallUUID    = flows.CallUUID("01979e0b-3072-7345-ae19-879750caaaf6")
+	testCallUUID    = core.CallUUID("01979e0b-3072-7345-ae19-879750caaaf6")
 )
 
 func init() {
@@ -38,7 +39,7 @@ type sessionRequest struct {
 		Channels []*static.Channel `json:"channels"`
 	} `json:"assets"`
 	Contact *flows.ContactEnvelope `json:"contact" validate:"required"`
-	Call    *flows.CallEnvelope    `json:"call,omitempty"`
+	Call    *core.CallEnvelope     `json:"call,omitempty"`
 }
 
 func (r *sessionRequest) channels() []assets.Channel {
@@ -52,7 +53,7 @@ func (r *sessionRequest) channels() []assets.Channel {
 type simulationResponse struct {
 	Session  flows.Session          `json:"session"`
 	Contact  *flows.ContactEnvelope `json:"contact"`
-	Events   []flows.Event          `json:"events"`
+	Events   []events.Event         `json:"events"`
 	Segments []flows.Segment        `json:"segments"`
 	Context  *types.XObject         `json:"context,omitempty"`
 }
@@ -92,7 +93,7 @@ type startRequest struct {
 }
 
 // handleSimulationEvents takes care of updating our db with any events needed during simulation
-func handleSimulationEvents(ctx context.Context, db models.DBorTx, oa *models.OrgAssets, es []flows.Event) error {
+func handleSimulationEvents(ctx context.Context, db models.DBorTx, oa *models.OrgAssets, es []events.Event) error {
 	// nicpottier: this could be refactored into something more similar to how we handle normal events (ie hooks) if
 	// we see ourselves taking actions for more than just webhook events
 	wes := make([]*models.WebhookEvent, 0)
@@ -131,7 +132,7 @@ func handleStart(ctx context.Context, rt *runtime.Runtime, r *startRequest) (any
 
 	var call *flows.Call
 	if r.Call != nil {
-		call = r.Call.Unmarshal(oa.SessionAssets(), assets.IgnoreMissing)
+		call = flows.ReadCall(oa.SessionAssets(), r.Call, assets.IgnoreMissing)
 	}
 
 	trigger, err := triggers.Read(oa.SessionAssets(), r.Trigger, assets.IgnoreMissing)
@@ -193,7 +194,7 @@ func handleResume(ctx context.Context, rt *runtime.Runtime, r *resumeRequest) (a
 
 	var call *flows.Call
 	if r.Call != nil {
-		call = r.Call.Unmarshal(oa.SessionAssets(), assets.IgnoreMissing)
+		call = flows.ReadCall(oa.SessionAssets(), r.Call, assets.IgnoreMissing)
 	}
 
 	resume, err := resumes.Read(oa.SessionAssets(), r.Resume, assets.IgnoreMissing)
@@ -215,7 +216,7 @@ func handleResume(ctx context.Context, rt *runtime.Runtime, r *resumeRequest) (a
 		if trigger != nil {
 			var flow *models.Flow
 			for _, r := range session.Runs() {
-				if r.Status() == flows.RunStatusWaiting {
+				if r.Status() == core.RunStatusWaiting {
 					f, _ := oa.FlowByUUID(r.FlowReference().UUID)
 					if f != nil {
 						flow = f.(*models.Flow)

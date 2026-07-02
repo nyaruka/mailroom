@@ -9,6 +9,8 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/nyaruka/goflow/core"
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/v26/core/goflow"
 	"github.com/nyaruka/mailroom/v26/core/models"
@@ -66,7 +68,7 @@ type modifyRequest struct {
 //	  ],
 //	}
 type modifyResponse struct {
-	Events   map[flows.ContactUUID][]flows.Event `json:"events"`
+	Events   map[core.ContactUUID][]events.Event `json:"events"`
 	Skipped  []models.ContactID                  `json:"skipped"`
 	Contacts []*flows.Contact                    `json:"contacts,omitempty"` // testing only
 }
@@ -95,7 +97,7 @@ func handleModify(ctx context.Context, rt *runtime.Runtime, r *modifyRequest) (a
 		return nil, 0, fmt.Errorf("error bulk modifying contacts: %w", err)
 	}
 
-	events := make(map[flows.ContactUUID][]flows.Event, len(eventsByContact))
+	events := make(map[core.ContactUUID][]events.Event, len(eventsByContact))
 	for flowContact, contactEvents := range eventsByContact {
 		events[flowContact.UUID()] = contactEvents
 	}
