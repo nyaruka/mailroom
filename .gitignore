@@ -1,16 +1,23 @@
+# General
+*~
 .DS_Store
+.vscode/
 .devcontainer
+deploy
+fabfile.py
+
+# AI
 .claude/
 CLAUDE.md
 CODEX.md
 AGENTS.md
-coverage.text
-deploy
-fabfile.*
 
-/docs/*
-/docs
-/_test_spool
-/_spool
+# Go
+coverage.text
+
+# Project specific
 /mailroom
 /mrindex
+/docs
+/_spool
+/_test_spool
