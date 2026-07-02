@@ -1,3 +1,7 @@
+v26.3.5 (2026-07-02)
+-------------------------
+ * Resolve single UUID contact queries from the database instead of Elastic
+
 v26.3.4 (2026-07-01)
 -------------------------
  * Update dependencies
