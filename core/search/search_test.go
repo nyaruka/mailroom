@@ -146,6 +146,9 @@ func TestGetContactUUIDsForQuery(t *testing.T) {
 
 	testsuite.IndexContacts(t, rt)
 
+	// created after indexing so only visible to UUID queries which are resolved from the database
+	eve := testdb.InsertContact(t, rt, testdb.Org1, flows.NewContactUUID(), "Eve", i18n.NilLanguage, models.ContactStatusActive)
+
 	tcs := []struct {
 		group            *testdb.Group
 		status           models.ContactStatus
@@ -202,6 +205,27 @@ func TestGetContactUUIDsForQuery(t *testing.T) {
 			query:            "name has cylon",
 			limit:            -1,
 			expectedContacts: cylonUUIDs,
+		},
+		{
+			group:            nil,
+			status:           models.ContactStatusActive,
+			query:            fmt.Sprintf(`uuid = "%s"`, eve.UUID), // not yet indexed but resolved from database
+			limit:            -1,
+			expectedContacts: []flows.ContactUUID{eve.UUID},
+		},
+		{
+			group:            testdb.DoctorsGroup,
+			status:           models.NilContactStatus,
+			query:            fmt.Sprintf(`uuid = "%s"`, testdb.Bob.UUID), // not a doctor
+			limit:            -1,
+			expectedContacts: []flows.ContactUUID{},
+		},
+		{
+			group:            nil,
+			status:           models.NilContactStatus,
+			query:            fmt.Sprintf(`uuid = "%s" OR uuid = "%s"`, testdb.Cat.UUID, eve.UUID), // OR queries still use Elastic so eve not visible
+			limit:            -1,
+			expectedContacts: []flows.ContactUUID{testdb.Cat.UUID},
 		},
 		{
 			group:         nil,

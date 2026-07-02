@@ -419,6 +419,32 @@ func TestGetContactIDsFromReferences(t *testing.T) {
 	assert.ElementsMatch(t, []models.ContactID{testdb.Ann.ID, testdb.Bob.ID}, ids)
 }
 
+func TestContactExists(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	tcs := []struct {
+		orgID    models.OrgID
+		uuid     flows.ContactUUID
+		groupID  models.GroupID
+		status   models.ContactStatus
+		expected bool
+	}{
+		{testdb.Org1.ID, testdb.Ann.UUID, models.GroupID(0), models.NilContactStatus, true},
+		{testdb.Org1.ID, "e0c261e1-c95f-4a04-92c6-e6d13ea16d1a", models.GroupID(0), models.NilContactStatus, false}, // no such contact
+		{testdb.Org1.ID, testdb.Org2Contact.UUID, models.GroupID(0), models.NilContactStatus, false},                // wrong org
+		{testdb.Org1.ID, testdb.Ann.UUID, testdb.DoctorsGroup.ID, models.NilContactStatus, true},
+		{testdb.Org1.ID, testdb.Bob.UUID, testdb.DoctorsGroup.ID, models.NilContactStatus, false}, // not a doctor
+		{testdb.Org1.ID, testdb.Ann.UUID, models.GroupID(0), models.ContactStatusActive, true},
+		{testdb.Org1.ID, testdb.Ann.UUID, models.GroupID(0), models.ContactStatusBlocked, false}, // not blocked
+	}
+
+	for i, tc := range tcs {
+		exists, err := models.ContactExists(ctx, rt.DB, tc.orgID, tc.uuid, tc.groupID, tc.status)
+		require.NoError(t, err)
+		assert.Equal(t, tc.expected, exists, "%d: exists mismatch", i)
+	}
+}
+
 func TestGetContactIDsPage(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
