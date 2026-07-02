@@ -7,6 +7,7 @@ import (
 	"log/slog"
 
 	valkey "github.com/gomodule/redigo/redis"
+	"github.com/nyaruka/gocommon/centrifugo"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/events"
@@ -123,29 +124,15 @@ func publishToSockets(ctx context.Context, rt *runtime.Runtime, msgs []socketMes
 		return err
 	}
 
-	pipe := rt.Centrifugo.Pipe()
-	var targets []string // the socket each pipelined publish targets, parallel to the replies for error reporting
+	pubs := make([]*centrifugo.Publish, 0, len(msgs))
 	for _, m := range msgs {
-		if !subscribed[m.socket] {
-			continue
+		if subscribed[m.socket] {
+			pubs = append(pubs, &centrifugo.Publish{Channel: m.socket, Data: m.data})
 		}
-		if err := pipe.AddPublish(m.socket, m.data); err != nil {
-			return fmt.Errorf("error adding notification to publish pipe for %s: %w", m.socket, err)
-		}
-		targets = append(targets, m.socket)
-	}
-	if len(targets) == 0 {
-		return nil
 	}
 
-	replies, err := rt.Centrifugo.SendPipe(ctx, pipe)
-	if err != nil {
+	if err := rt.Centrifugo.Publish(ctx, pubs...); err != nil {
 		return fmt.Errorf("error publishing notifications: %w", err)
-	}
-	for i, reply := range replies {
-		if reply.Error != nil {
-			return fmt.Errorf("error publishing notification to %s: %w", targets[i], reply.Error)
-		}
 	}
 
 	return nil
@@ -248,8 +235,7 @@ func PublishToHistory(ctx context.Context, rt *runtime.Runtime, contactUUID flow
 
 	// batch every subscribed socket's events into a single pipelined request, so the whole commit is one centrifugo
 	// round-trip no matter how many sockets it spans, and the batch lands or fails together
-	pipe := rt.Centrifugo.Pipe()
-	var targets []string // the socket each pipelined publish targets, parallel to the replies for error reporting
+	var pubs []*centrifugo.Publish
 	for _, b := range batches {
 		if !subscribed[b.socket] {
 			continue
@@ -259,24 +245,12 @@ func PublishToHistory(ctx context.Context, rt *runtime.Runtime, contactUUID flow
 			if err != nil {
 				return fmt.Errorf("error marshaling event for %s: %w", b.socket, err)
 			}
-			if err := pipe.AddPublish(b.socket, data); err != nil {
-				return fmt.Errorf("error adding event to publish pipe for %s: %w", b.socket, err)
-			}
-			targets = append(targets, b.socket)
+			pubs = append(pubs, &centrifugo.Publish{Channel: b.socket, Data: data})
 		}
-	}
-	if len(targets) == 0 {
-		return nil
 	}
 
-	replies, err := rt.Centrifugo.SendPipe(ctx, pipe)
-	if err != nil {
+	if err := rt.Centrifugo.Publish(ctx, pubs...); err != nil {
 		return fmt.Errorf("error publishing history events: %w", err)
-	}
-	for i, reply := range replies {
-		if reply.Error != nil {
-			return fmt.Errorf("error publishing event to %s: %w", targets[i], reply.Error)
-		}
 	}
 
 	return nil
