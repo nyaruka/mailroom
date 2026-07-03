@@ -9,8 +9,8 @@ import (
 	valkey "github.com/gomodule/redigo/redis"
 	"github.com/nyaruka/gocommon/centrifugo"
 	"github.com/nyaruka/goflow/assets"
-	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/goflow/flows/events"
+	"github.com/nyaruka/goflow/core"
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/mailroom/v26/runtime"
 )
 
@@ -24,7 +24,7 @@ const SocketHistoryNamespace = "history"
 // HistorySocket returns the realtime pub/sub socket for a contact's message history, optionally scoped to a single
 // ticket. Given a ticket it returns that ticket's socket ("history:<contact-uuid>:<ticket-uuid>"), otherwise the
 // contact's socket ("history:<contact-uuid>"). At most one ticket is used; any extra is ignored.
-func HistorySocket(contactUUID flows.ContactUUID, ticketUUID ...flows.TicketUUID) string {
+func HistorySocket(contactUUID core.ContactUUID, ticketUUID ...core.TicketUUID) string {
 	if len(ticketUUID) > 0 {
 		return fmt.Sprintf("%s:%s:%s", SocketHistoryNamespace, contactUUID, ticketUUID[0])
 	}
@@ -190,15 +190,15 @@ func SubscribedSockets(ctx context.Context, rt *runtime.Runtime, sockets ...stri
 // Every subscribed socket's events are batched into a single pipelined request, so one commit costs one centrifugo
 // round-trip no matter how many sockets it spans, and the whole batch lands or fails together. It's best-effort and
 // a no-op for any socket that currently has no subscribers; we only publish to a socket when someone is watching.
-func PublishToHistory(ctx context.Context, rt *runtime.Runtime, contactUUID flows.ContactUUID, events []flows.Event) error {
-	if len(events) == 0 {
+func PublishToHistory(ctx context.Context, rt *runtime.Runtime, contactUUID core.ContactUUID, evts []events.Event) error {
+	if len(evts) == 0 {
 		return nil
 	}
 
-	contactEvents := make([]flows.Event, 0, len(events))
-	ticketEvents := make(map[flows.TicketUUID][]flows.Event)
+	contactEvents := make([]events.Event, 0, len(evts))
+	ticketEvents := make(map[core.TicketUUID][]events.Event)
 
-	for _, e := range events {
+	for _, e := range evts {
 		if ticketUUID, ok := ticketDetailEvent(e); ok {
 			ticketEvents[ticketUUID] = append(ticketEvents[ticketUUID], e)
 		} else {
@@ -211,7 +211,7 @@ func PublishToHistory(ctx context.Context, rt *runtime.Runtime, contactUUID flow
 	// matters once a commit can span many tickets, e.g. a bulk ticket operation)
 	type batch struct {
 		socket string
-		events []flows.Event
+		events []events.Event
 	}
 	batches := make([]batch, 0, len(ticketEvents)+1)
 	if len(contactEvents) > 0 {
@@ -259,7 +259,7 @@ func PublishToHistory(ctx context.Context, rt *runtime.Runtime, contactUUID flow
 // ticketDetailEvent returns the ticket UUID and true if the event is a per-ticket detail event - one the read API
 // includes on the ticket page but filters off the contact page (assignee/note/topic changes). Everything else,
 // including the basic ticket lifecycle events (opened/closed/reopened), belongs on the contact socket.
-func ticketDetailEvent(e flows.Event) (flows.TicketUUID, bool) {
+func ticketDetailEvent(e events.Event) (core.TicketUUID, bool) {
 	switch typed := e.(type) {
 	case *events.TicketAssigneeChanged:
 		return typed.TicketUUID, true

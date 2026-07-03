@@ -9,8 +9,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/goflow/assets"
-	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/goflow/flows/events"
+	"github.com/nyaruka/goflow/core"
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/goflow/test"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/testsuite"
@@ -21,7 +21,7 @@ import (
 
 func TestPersistEvent(t *testing.T) {
 	assert.True(t, models.PersistEvent(events.NewContactNameChanged("Bobby")))
-	assert.True(t, models.PersistEvent(events.NewContactStatusChanged(flows.ContactStatusBlocked)))
+	assert.True(t, models.PersistEvent(events.NewContactStatusChanged(core.ContactStatusBlocked)))
 	assert.True(t, models.PersistEvent(events.NewError("URN taken by another contact", events.ErrorCodeURNTaken)))
 	assert.False(t, models.PersistEvent(events.NewError("Bang", "bang")))
 	assert.False(t, models.PersistEvent(events.NewWarning("Don't do that")))
@@ -83,10 +83,10 @@ func TestEventToDynamo(t *testing.T) {
 
 func TestEventTagToDynamo(t *testing.T) {
 	tcs := []struct {
-		EventUUID flows.EventUUID `json:"event_uuid"`
-		Tag       string          `json:"tag"`
-		Data      map[string]any  `json:"data"`
-		Dynamo    json.RawMessage `json:"dynamo"`
+		EventUUID events.EventUUID `json:"event_uuid"`
+		Tag       string           `json:"tag"`
+		Data      map[string]any   `json:"data"`
+		Dynamo    json.RawMessage  `json:"dynamo"`
 	}{}
 
 	testJSON := testsuite.ReadFile(t, "testdata/eventtag_to_dynamo.json")

@@ -5,8 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/goflow/flows/events"
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/runner"
 	"github.com/nyaruka/mailroom/v26/core/runner/hooks"
@@ -18,7 +17,7 @@ func init() {
 }
 
 // handleTicketOpened is called for each ticket opened event
-func handleTicketOpened(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scene *runner.Scene, e flows.Event, userID models.UserID) error {
+func handleTicketOpened(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scene *runner.Scene, e events.Event, userID models.UserID) error {
 	event := e.(*events.TicketOpened)
 
 	slog.Debug("ticket opened", "contact", scene.ContactUUID(), "session", scene.SessionUUID(), "ticket", event.Ticket.UUID)
@@ -43,7 +42,11 @@ func handleTicketOpened(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 
 	var flow *models.Flow
 	if scene.Session != nil {
-		flow = e.Step().Run().Flow().Asset().(*models.Flow)
+		f, err := oa.FlowByUUID(e.Step().Flow.UUID)
+		if err != nil {
+			return fmt.Errorf("unable to load flow with uuid: %s: %w", e.Step().Flow.UUID, err)
+		}
+		flow = f.(*models.Flow)
 	}
 
 	ticket := models.NewTicket(

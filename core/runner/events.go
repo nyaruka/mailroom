@@ -4,14 +4,14 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/runtime"
 )
 
 // EventHandler defines a call for handling events that occur in a flow
-type EventHandler func(context.Context, *runtime.Runtime, *models.OrgAssets, *Scene, flows.Event, models.UserID) error
+type EventHandler func(context.Context, *runtime.Runtime, *models.OrgAssets, *Scene, events.Event, models.UserID) error
 
 // our registry of event type to internal handlers
 var eventHandlers = make(map[string]EventHandler)

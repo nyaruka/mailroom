@@ -6,8 +6,9 @@ import (
 	"log/slog"
 
 	"github.com/nyaruka/gocommon/dates"
+	"github.com/nyaruka/goflow/core"
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/goflow/flows/modifiers"
 	"github.com/nyaruka/goflow/flows/triggers"
 	"github.com/nyaruka/mailroom/v26/core/ivr"
@@ -95,8 +96,8 @@ func (t *EventReceived) handle(ctx context.Context, rt *runtime.Runtime, oa *mod
 		if err := scene.ReevaluateGroups(ctx, rt, oa); err != nil {
 			return nil, fmt.Errorf("error calculating groups for new contact: %w", err)
 		}
-	} else if contact.Status() == flows.ContactStatusStopped && (t.EventType == models.EventTypeNewConversation || t.EventType == models.EventTypeReferral) {
-		if err := scene.ApplyModifier(ctx, rt, oa, modifiers.NewStatus(flows.ContactStatusActive), models.NilUserID, ""); err != nil {
+	} else if contact.Status() == core.ContactStatusStopped && (t.EventType == models.EventTypeNewConversation || t.EventType == models.EventTypeReferral) {
+		if err := scene.ApplyModifier(ctx, rt, oa, modifiers.NewStatus(core.ContactStatusActive), models.NilUserID, ""); err != nil {
 			return nil, fmt.Errorf("error applying modifier to unstop contact: %w", err)
 		}
 	}
@@ -137,7 +138,7 @@ func (t *EventReceived) handle(ctx context.Context, rt *runtime.Runtime, oa *mod
 	}
 
 	if t.EventType == models.EventTypeStopContact {
-		if err := scene.ApplyModifier(ctx, rt, oa, modifiers.NewStatus(flows.ContactStatusStopped), models.NilUserID, ""); err != nil {
+		if err := scene.ApplyModifier(ctx, rt, oa, modifiers.NewStatus(core.ContactStatusStopped), models.NilUserID, ""); err != nil {
 			return nil, fmt.Errorf("error applying stop modifier: %w", err)
 		}
 	}
@@ -155,12 +156,12 @@ func (t *EventReceived) handle(ctx context.Context, rt *runtime.Runtime, oa *mod
 }
 
 // convert to a real engine event
-func (t *EventReceived) toEvent(ch *models.Channel, call *flows.Call, optIn *flows.OptIn) flows.Event {
+func (t *EventReceived) toEvent(ch *models.Channel, call *flows.Call, optIn *flows.OptIn) events.Event {
 	switch t.EventType {
 	case models.EventTypeMissedCall:
 		return events.NewCallMissed(ch.Reference())
 	case models.EventTypeIncomingCall:
-		return events.NewCallReceived(call)
+		return events.NewCallReceived(call.Marshal())
 	case models.EventTypeNewConversation:
 		return events.NewChatStarted(ch.Reference(), nil)
 	case models.EventTypeReferral:
@@ -186,7 +187,7 @@ func (t *EventReceived) toEvent(ch *models.Channel, call *flows.Call, optIn *flo
 	return nil
 }
 
-func findEventTrigger(oa *models.OrgAssets, evt flows.Event, ch *models.Channel, c *flows.Contact, optIn *flows.OptIn) (flows.Trigger, models.FlowType, error) {
+func findEventTrigger(oa *models.OrgAssets, evt events.Event, ch *models.Channel, c *flows.Contact, optIn *flows.OptIn) (flows.Trigger, models.FlowType, error) {
 	var mtrig *models.Trigger
 
 	switch typed := evt.(type) {

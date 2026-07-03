@@ -5,8 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/goflow/flows/events"
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/runner"
 	"github.com/nyaruka/mailroom/v26/core/runner/hooks"
@@ -18,7 +17,7 @@ func init() {
 }
 
 // handleInputLabelsAdded is called for each input labels added event in a scene
-func handleInputLabelsAdded(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scene *runner.Scene, e flows.Event, userID models.UserID) error {
+func handleInputLabelsAdded(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scene *runner.Scene, e events.Event, userID models.UserID) error {
 	event := e.(*events.InputLabelsAdded)
 
 	slog.Debug("input labels added", "contact", scene.ContactUUID(), "session", scene.SessionUUID(), "labels", event.Labels)

@@ -4,8 +4,7 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/goflow/flows/events"
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/runner"
 	"github.com/nyaruka/mailroom/v26/core/runner/hooks"
@@ -17,7 +16,7 @@ func init() {
 }
 
 // handleContactGroupsChanged is called when a group is added or removed from our contact
-func handleContactGroupsChanged(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scene *runner.Scene, e flows.Event, userID models.UserID) error {
+func handleContactGroupsChanged(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scene *runner.Scene, e events.Event, userID models.UserID) error {
 	event := e.(*events.ContactGroupsChanged)
 
 	slog.Debug("contact groups changed", "contact", scene.ContactUUID(), "session", scene.SessionUUID(), "groups_removed", len(event.GroupsRemoved), "groups_added", len(event.GroupsAdded))

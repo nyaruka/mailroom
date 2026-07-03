@@ -10,8 +10,8 @@ import (
 	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/gocommon/httpx"
-	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/goflow/flows/events"
+	"github.com/nyaruka/goflow/core"
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/testsuite"
 	"github.com/nyaruka/mailroom/v26/testsuite/testdb"
@@ -29,7 +29,7 @@ func TestIncidentWebhooksUnhealthy(t *testing.T) {
 
 	oa := testdb.Org1.Load(t, rt)
 
-	id1, _, err := models.IncidentWebhooksUnhealthy(ctx, rt.DB, rt.VK, oa, []flows.NodeUUID{"5a2e83f1-efa8-40ba-bc0c-8873c525de7d", "aba89043-6f0a-4ccf-ba7f-0e1674b90759"})
+	id1, _, err := models.IncidentWebhooksUnhealthy(ctx, rt.DB, rt.VK, oa, []core.NodeUUID{"5a2e83f1-efa8-40ba-bc0c-8873c525de7d", "aba89043-6f0a-4ccf-ba7f-0e1674b90759"})
 	require.NoError(t, err)
 	assert.NotEqual(t, 0, id1)
 
@@ -37,7 +37,7 @@ func TestIncidentWebhooksUnhealthy(t *testing.T) {
 	assertvk.SMembers(t, vc, fmt.Sprintf("incident:%d:nodes", id1), []string{"5a2e83f1-efa8-40ba-bc0c-8873c525de7d", "aba89043-6f0a-4ccf-ba7f-0e1674b90759"})
 
 	// raising same incident doesn't create a new one...
-	id2, _, err := models.IncidentWebhooksUnhealthy(ctx, rt.DB, rt.VK, oa, []flows.NodeUUID{"3b1743cd-bd8b-449e-8e8a-11a3bc479766"})
+	id2, _, err := models.IncidentWebhooksUnhealthy(ctx, rt.DB, rt.VK, oa, []core.NodeUUID{"3b1743cd-bd8b-449e-8e8a-11a3bc479766"})
 	require.NoError(t, err)
 	assert.Equal(t, id1, id2)
 
@@ -112,7 +112,7 @@ func TestWebhookNode(t *testing.T) {
 		for i := range evts {
 			req, _ := http.NewRequest("GET", "http://example.com", nil)
 			trace := &httpx.Trace{Request: req, StartTime: dates.Now(), EndTime: dates.Now().Add(elapsed)}
-			evts[i] = events.NewWebhookCalled(trace, flows.CallStatusSuccess, "")
+			evts[i] = events.NewWebhookCalled(trace, core.CallStatusSuccess, "")
 		}
 		return evts
 	}

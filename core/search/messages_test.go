@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/nyaruka/gocommon/dates"
-	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/search"
 	"github.com/nyaruka/mailroom/v26/testsuite"
@@ -39,61 +39,61 @@ func TestSearchMessages(t *testing.T) {
 	tcs := []struct {
 		label       string
 		text        string
-		contactUUID flows.ContactUUID
+		contactUUID core.ContactUUID
 		inTicket    bool
 		limit       int
-		expected    []flows.ContactUUID
+		expected    []core.ContactUUID
 	}{
 		{
 			label:    "matching two messages",
 			text:     "hello",
 			limit:    50,
-			expected: []flows.ContactUUID{testdb.Bob.UUID, testdb.Ann.UUID},
+			expected: []core.ContactUUID{testdb.Bob.UUID, testdb.Ann.UUID},
 		},
 		{
 			label:    "matching one message",
 			text:     "goodbye",
 			limit:    50,
-			expected: []flows.ContactUUID{testdb.Cat.UUID},
+			expected: []core.ContactUUID{testdb.Cat.UUID},
 		},
 		{
 			label:    "matching no messages",
 			text:     "xyznotfound",
 			limit:    50,
-			expected: []flows.ContactUUID{},
+			expected: []core.ContactUUID{},
 		},
 		{
 			label:       "filtered by contact",
 			text:        "hello",
 			contactUUID: testdb.Bob.UUID,
 			limit:       50,
-			expected:    []flows.ContactUUID{testdb.Bob.UUID},
+			expected:    []core.ContactUUID{testdb.Bob.UUID},
 		},
 		{
 			label:    "filtered by in_ticket",
 			text:     "hello",
 			inTicket: true,
 			limit:    50,
-			expected: []flows.ContactUUID{testdb.Bob.UUID},
+			expected: []core.ContactUUID{testdb.Bob.UUID},
 		},
 		{
 			label:    "without in_ticket returns all",
 			text:     "hello",
 			inTicket: false,
 			limit:    50,
-			expected: []flows.ContactUUID{testdb.Bob.UUID, testdb.Ann.UUID},
+			expected: []core.ContactUUID{testdb.Bob.UUID, testdb.Ann.UUID},
 		},
 		{
 			label:    "respects limit",
 			text:     "hello",
 			limit:    1,
-			expected: []flows.ContactUUID{testdb.Bob.UUID},
+			expected: []core.ContactUUID{testdb.Bob.UUID},
 		},
 		{
 			label:    "multi-word match requires all terms",
 			text:     "hello world",
 			limit:    50,
-			expected: []flows.ContactUUID{testdb.Ann.UUID},
+			expected: []core.ContactUUID{testdb.Ann.UUID},
 		},
 	}
 
@@ -102,7 +102,7 @@ func TestSearchMessages(t *testing.T) {
 			results, err := search.SearchMessages(ctx, rt, testdb.Org1.ID, tc.text, tc.contactUUID, tc.inTicket, tc.limit)
 			require.NoError(t, err)
 
-			contactUUIDs := make([]flows.ContactUUID, len(results))
+			contactUUIDs := make([]core.ContactUUID, len(results))
 			for i, r := range results {
 				contactUUIDs[i] = r.ContactUUID
 			}

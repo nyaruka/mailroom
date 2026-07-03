@@ -7,6 +7,8 @@ import (
 	"text/template"
 
 	"github.com/nyaruka/gocommon/urns"
+	"github.com/nyaruka/goflow/core"
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/engine"
 	"github.com/nyaruka/goflow/services/webhooks"
@@ -139,8 +141,8 @@ func simulatorAirtimeServiceFactory(flows.SessionAssets) (flows.AirtimeService, 
 
 type simulatorAirtimeService struct{}
 
-func (s *simulatorAirtimeService) Create(ctx context.Context, transferUUID flows.EventUUID, sender urns.URN, recipient urns.URN, amounts map[string]decimal.Decimal, logHTTP flows.HTTPLogCallback) (*flows.AirtimeTransfer, error) {
-	transfer := &flows.AirtimeTransfer{
+func (s *simulatorAirtimeService) Create(ctx context.Context, transferUUID events.EventUUID, sender urns.URN, recipient urns.URN, amounts map[string]decimal.Decimal, logHTTP core.HTTPLogCallback) (*core.AirtimeTransfer, error) {
+	transfer := &core.AirtimeTransfer{
 		// fake but non-empty so simulated flows that branch on @results.airtime.external_id behave as
 		// they would in production (where the real DT One service always populates this)
 		ExternalID: "123456789",
@@ -159,6 +161,6 @@ func (s *simulatorAirtimeService) Create(ctx context.Context, transferUUID flows
 	return transfer, nil
 }
 
-func (s *simulatorAirtimeService) Confirm(ctx context.Context, transfer *flows.AirtimeTransfer, logHTTP flows.HTTPLogCallback) error {
+func (s *simulatorAirtimeService) Confirm(ctx context.Context, transfer *core.AirtimeTransfer, logHTTP core.HTTPLogCallback) error {
 	return nil
 }

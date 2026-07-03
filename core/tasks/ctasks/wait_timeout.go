@@ -6,9 +6,10 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/nyaruka/goflow/core"
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/engine"
-	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/goflow/flows/resumes"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/runner"
@@ -22,8 +23,8 @@ func init() {
 }
 
 type WaitTimeout struct {
-	SessionUUID flows.SessionUUID `json:"session_uuid"`
-	SprintUUID  flows.SprintUUID  `json:"sprint_uuid"`
+	SessionUUID core.SessionUUID `json:"session_uuid"`
+	SprintUUID  flows.SprintUUID `json:"sprint_uuid"`
 }
 
 func (t *WaitTimeout) Type() string {

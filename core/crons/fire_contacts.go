@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/tasks"
@@ -89,7 +90,7 @@ func (c *FireContactsCron) Run(ctx context.Context, rt *runtime.Runtime) (map[st
 					// turn wait timeouts into bulk wait timeout tasks
 					ts := make([]*tasks.WaitTimeout, len(batch))
 					for i, f := range batch {
-						ts[i] = &tasks.WaitTimeout{ContactID: f.ContactID, SessionUUID: flows.SessionUUID(f.SessionUUID), SprintUUID: flows.SprintUUID(f.SprintUUID)}
+						ts[i] = &tasks.WaitTimeout{ContactID: f.ContactID, SessionUUID: core.SessionUUID(f.SessionUUID), SprintUUID: flows.SprintUUID(f.SprintUUID)}
 					}
 
 					// queue to throttled queue but high priority
@@ -101,7 +102,7 @@ func (c *FireContactsCron) Run(ctx context.Context, rt *runtime.Runtime) (map[st
 					// turn wait expires into bulk wait expire tasks
 					es := make([]*tasks.WaitExpiration, len(batch))
 					for i, f := range batch {
-						es[i] = &tasks.WaitExpiration{ContactID: f.ContactID, SessionUUID: flows.SessionUUID(f.SessionUUID), SprintUUID: flows.SprintUUID(f.SprintUUID)}
+						es[i] = &tasks.WaitExpiration{ContactID: f.ContactID, SessionUUID: core.SessionUUID(f.SessionUUID), SprintUUID: flows.SprintUUID(f.SprintUUID)}
 					}
 
 					// queue to throttled queue but high priority
@@ -113,7 +114,7 @@ func (c *FireContactsCron) Run(ctx context.Context, rt *runtime.Runtime) (map[st
 					// turn session timeouts into bulk session expire tasks
 					ss := make([]models.SessionRef, len(batch))
 					for i, f := range batch {
-						ss[i] = models.SessionRef{UUID: flows.SessionUUID(f.SessionUUID), ContactID: f.ContactID}
+						ss[i] = models.SessionRef{UUID: core.SessionUUID(f.SessionUUID), ContactID: f.ContactID}
 					}
 
 					// queue to batch queue rather than throttled, since expiring sessions can't create more messages

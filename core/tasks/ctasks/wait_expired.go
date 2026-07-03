@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/nyaruka/goflow/core"
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/goflow/flows/resumes"
 	"github.com/nyaruka/mailroom/v26/core/ivr"
 	"github.com/nyaruka/mailroom/v26/core/models"
@@ -21,8 +22,8 @@ func init() {
 }
 
 type WaitExpired struct {
-	SessionUUID flows.SessionUUID `json:"session_uuid"`
-	SprintUUID  flows.SprintUUID  `json:"sprint_uuid"`
+	SessionUUID core.SessionUUID `json:"session_uuid"`
+	SprintUUID  flows.SprintUUID `json:"sprint_uuid"`
 }
 
 func (t *WaitExpired) Type() string {

@@ -5,8 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/goflow/flows/events"
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/runner"
 	"github.com/nyaruka/mailroom/v26/core/runner/hooks"
@@ -19,7 +18,7 @@ func init() {
 }
 
 // handleMsgCreated creates the db msg for the passed in event
-func handleMsgCreated(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scene *runner.Scene, e flows.Event, userID models.UserID) error {
+func handleMsgCreated(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scene *runner.Scene, e events.Event, userID models.UserID) error {
 	event := e.(*events.MsgCreated)
 
 	slog.Debug("msg created", "contact", scene.ContactUUID(), "session", scene.SessionUUID(), "text", event.Msg.Text(), "urn", event.Msg.URN())
@@ -41,9 +40,12 @@ func handleMsgCreated(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAs
 	} else if userID != models.NilUserID {
 		msg, err = models.NewOutgoingChatMsg(rt, oa.Org(), channel, scene.DBContact, event, userID)
 	} else {
-		flow := e.Step().Run().Flow().Asset().(*models.Flow)
+		flow, ferr := oa.FlowByUUID(e.Step().Flow.UUID)
+		if ferr != nil {
+			return fmt.Errorf("unable to load flow with uuid: %s: %w", e.Step().Flow.UUID, ferr)
+		}
 
-		msg, err = models.NewOutgoingFlowMsg(rt, oa.Org(), channel, scene.DBContact, flow, event, scene.IncomingMsg)
+		msg, err = models.NewOutgoingFlowMsg(rt, oa.Org(), channel, scene.DBContact, flow.(*models.Flow), event, scene.IncomingMsg)
 	}
 	if err != nil {
 		return fmt.Errorf("error creating outgoing message to %s: %w", event.Msg.URN(), err)

@@ -18,10 +18,11 @@ import (
 	"github.com/nyaruka/gocommon/i18n"
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/gocommon/urns"
+	"github.com/nyaruka/goflow/core"
+	"github.com/nyaruka/goflow/core/events"
+	"github.com/nyaruka/goflow/core/hints"
 	"github.com/nyaruka/goflow/envs"
 	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/goflow/flows/events"
-	"github.com/nyaruka/goflow/flows/routers/waits/hints"
 	"github.com/nyaruka/goflow/utils"
 	"github.com/nyaruka/mailroom/v26/core/ivr"
 	"github.com/nyaruka/mailroom/v26/core/models"
@@ -292,7 +293,7 @@ func (s *service) ResumeForRequest(r *http.Request) (ivr.Resume, error) {
 	case "dial":
 		duration := time.Since(input.StartTime).Seconds()
 
-		return ivr.DialResume{Status: flows.DialStatus("answered"), Duration: int(duration)}, nil
+		return ivr.DialResume{Status: core.DialStatus("answered"), Duration: int(duration)}, nil
 
 	default:
 		return nil, fmt.Errorf("unknown wait_type: %s", waitType)
@@ -454,7 +455,7 @@ func (s *service) makeRequest(method string, sendURL string, body any) (*httpx.T
 	return svclogs.TraceRequest(s.httpClient.Transport, s.httpClient.Timeout, req)
 }
 
-func ResponseForSprint(rt *runtime.Runtime, env envs.Environment, urn urns.URN, resumeURL string, es []flows.Event, indent bool) (string, error) {
+func ResponseForSprint(rt *runtime.Runtime, env envs.Environment, urn urns.URN, resumeURL string, es []events.Event, indent bool) (string, error) {
 	r := &Response{}
 	commands := make([]any, 0)
 	hasWait := false

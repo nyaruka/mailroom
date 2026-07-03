@@ -9,6 +9,7 @@ import (
 	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/goflow/assets"
+	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/triggers"
 	"github.com/nyaruka/null/v3"
@@ -54,41 +55,41 @@ const (
 // Call models an IVR call
 type Call struct {
 	c struct {
-		ID           CallID         `db:"id"`
-		UUID         flows.CallUUID `db:"uuid"`
-		OrgID        OrgID          `db:"org_id"`
-		ChannelID    ChannelID      `db:"channel_id"`
-		ContactID    ContactID      `db:"contact_id"`
-		ContactURNID URNID          `db:"contact_urn_id"`
-		ExternalID   string         `db:"external_id"`
-		Status       CallStatus     `db:"status"`
-		SessionUUID  null.String    `db:"session_uuid"`
-		Direction    Direction      `db:"direction"`
-		StartedOn    *time.Time     `db:"started_on"`
-		EndedOn      *time.Time     `db:"ended_on"`
-		Duration     int            `db:"duration"`
-		ErrorReason  null.String    `db:"error_reason"`
-		ErrorCount   int            `db:"error_count"`
-		NextAttempt  *time.Time     `db:"next_attempt"`
-		Trigger      null.JSON      `db:"trigger"`
-		CreatedOn    time.Time      `db:"created_on"`
-		ModifiedOn   time.Time      `db:"modified_on"`
+		ID           CallID        `db:"id"`
+		UUID         core.CallUUID `db:"uuid"`
+		OrgID        OrgID         `db:"org_id"`
+		ChannelID    ChannelID     `db:"channel_id"`
+		ContactID    ContactID     `db:"contact_id"`
+		ContactURNID URNID         `db:"contact_urn_id"`
+		ExternalID   string        `db:"external_id"`
+		Status       CallStatus    `db:"status"`
+		SessionUUID  null.String   `db:"session_uuid"`
+		Direction    Direction     `db:"direction"`
+		StartedOn    *time.Time    `db:"started_on"`
+		EndedOn      *time.Time    `db:"ended_on"`
+		Duration     int           `db:"duration"`
+		ErrorReason  null.String   `db:"error_reason"`
+		ErrorCount   int           `db:"error_count"`
+		NextAttempt  *time.Time    `db:"next_attempt"`
+		Trigger      null.JSON     `db:"trigger"`
+		CreatedOn    time.Time     `db:"created_on"`
+		ModifiedOn   time.Time     `db:"modified_on"`
 	}
 }
 
-func (c *Call) ID() CallID                     { return c.c.ID }
-func (c *Call) UUID() flows.CallUUID           { return c.c.UUID }
-func (c *Call) ChannelID() ChannelID           { return c.c.ChannelID }
-func (c *Call) OrgID() OrgID                   { return c.c.OrgID }
-func (c *Call) ContactID() ContactID           { return c.c.ContactID }
-func (c *Call) ContactURNID() URNID            { return c.c.ContactURNID }
-func (c *Call) Direction() Direction           { return c.c.Direction }
-func (c *Call) Status() CallStatus             { return c.c.Status }
-func (c *Call) SessionUUID() flows.SessionUUID { return flows.SessionUUID(c.c.SessionUUID) }
-func (c *Call) ExternalID() string             { return c.c.ExternalID }
-func (c *Call) ErrorReason() CallError         { return CallError(c.c.ErrorReason) }
-func (c *Call) ErrorCount() int                { return c.c.ErrorCount }
-func (c *Call) NextAttempt() *time.Time        { return c.c.NextAttempt }
+func (c *Call) ID() CallID                    { return c.c.ID }
+func (c *Call) UUID() core.CallUUID           { return c.c.UUID }
+func (c *Call) ChannelID() ChannelID          { return c.c.ChannelID }
+func (c *Call) OrgID() OrgID                  { return c.c.OrgID }
+func (c *Call) ContactID() ContactID          { return c.c.ContactID }
+func (c *Call) ContactURNID() URNID           { return c.c.ContactURNID }
+func (c *Call) Direction() Direction          { return c.c.Direction }
+func (c *Call) Status() CallStatus            { return c.c.Status }
+func (c *Call) SessionUUID() core.SessionUUID { return core.SessionUUID(c.c.SessionUUID) }
+func (c *Call) ExternalID() string            { return c.c.ExternalID }
+func (c *Call) ErrorReason() CallError        { return CallError(c.c.ErrorReason) }
+func (c *Call) ErrorCount() int               { return c.c.ErrorCount }
+func (c *Call) NextAttempt() *time.Time       { return c.c.NextAttempt }
 
 func (c *Call) EngineTrigger(oa *OrgAssets) (flows.Trigger, error) {
 	trigger, err := triggers.Read(oa.SessionAssets(), c.c.Trigger, assets.IgnoreMissing)
@@ -103,7 +104,7 @@ func (c *Call) EngineTrigger(oa *OrgAssets) (flows.Trigger, error) {
 func NewIncomingCall(orgID OrgID, ch *Channel, contact *Contact, urnID URNID, externalID string) *Call {
 	call := &Call{}
 	c := &call.c
-	c.UUID = flows.NewCallUUID()
+	c.UUID = core.NewCallUUID()
 	c.OrgID = orgID
 	c.ChannelID = ch.ID()
 	c.ContactID = contact.ID()
@@ -118,7 +119,7 @@ func NewIncomingCall(orgID OrgID, ch *Channel, contact *Contact, urnID URNID, ex
 func NewOutgoingCall(orgID OrgID, ch *Channel, contact *Contact, urnID URNID, trigger flows.Trigger) *Call {
 	call := &Call{}
 	c := &call.c
-	c.UUID = flows.NewCallUUID()
+	c.UUID = core.NewCallUUID()
 	c.OrgID = orgID
 	c.ChannelID = ch.ID()
 	c.ContactID = contact.ID()
@@ -169,7 +170,7 @@ SELECT
           WHERE org_id = $1 AND uuid = $2`
 
 // GetCallByUUID loads a call by its UUID
-func GetCallByUUID(ctx context.Context, db DBorTx, orgID OrgID, uuid flows.CallUUID) (*Call, error) {
+func GetCallByUUID(ctx context.Context, db DBorTx, orgID OrgID, uuid core.CallUUID) (*Call, error) {
 	c := &Call{}
 	if err := db.GetContext(ctx, &c.c, sqlSelectCallByUUID, orgID, uuid); err != nil {
 		return nil, fmt.Errorf("error loading call %s: %w", uuid, err)
@@ -273,7 +274,7 @@ func (c *Call) UpdateExternalID(ctx context.Context, db DBorTx, id string) error
 }
 
 // SetInProgress sets the status of this call to IN_PROGRESS and records the session UUID and started time
-func (c *Call) SetInProgress(ctx context.Context, db DBorTx, sessionUUID flows.SessionUUID, now time.Time) error {
+func (c *Call) SetInProgress(ctx context.Context, db DBorTx, sessionUUID core.SessionUUID, now time.Time) error {
 	c.c.Status = CallStatusInProgress
 	c.c.SessionUUID = null.String(sessionUUID)
 	c.c.StartedOn = &now

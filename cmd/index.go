@@ -10,6 +10,8 @@ import (
 	"time"
 
 	"github.com/nyaruka/gocommon/elastic"
+	"github.com/nyaruka/goflow/core"
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/search"
@@ -179,9 +181,9 @@ func indexAllMessages(ctx context.Context, rt *runtime.Runtime, startUUID string
 
 			msg := &search.MessageDoc{
 				CreatedOn:   createdOn,
-				UUID:        flows.EventUUID(msgUUID),
+				UUID:        events.EventUUID(msgUUID),
 				OrgID:       orgID,
-				ContactUUID: flows.ContactUUID(contactUUID),
+				ContactUUID: core.ContactUUID(contactUUID),
 				URNPath:     urnPath,
 				Text:        text,
 				InTicket:    ticketUUID != "",

@@ -9,6 +9,7 @@ import (
 	"github.com/lib/pq"
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/goflow/assets"
+	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/envs"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/v26/core/goflow"
@@ -37,13 +38,13 @@ var sessionStatusMap = map[flows.SessionStatus]SessionStatus{
 
 // Session is the mailroom type for a FlowSession
 type Session struct {
-	UUID            flows.SessionUUID
-	ContactUUID     flows.ContactUUID
+	UUID            core.SessionUUID
+	ContactUUID     core.ContactUUID
 	SessionType     FlowType
 	Status          SessionStatus
 	LastSprintUUID  flows.SprintUUID
 	CurrentFlowUUID assets.FlowUUID
-	CallUUID        flows.CallUUID
+	CallUUID        core.CallUUID
 	Output          []byte
 	CreatedOn       time.Time
 	EndedOn         *time.Time
@@ -71,7 +72,7 @@ func NewSession(oa *OrgAssets, fs flows.Session, sprint flows.Sprint, call *Call
 
 	for _, r := range fs.Runs() {
 		// if this run is waiting, save it as the current flow
-		if r.Status() == flows.RunStatusWaiting && r.Flow() != nil {
+		if r.Status() == core.RunStatusWaiting && r.Flow() != nil {
 			s.CurrentFlowUUID = r.FlowReference().UUID
 			break
 		}
@@ -110,7 +111,7 @@ func (s *Session) Update(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, 
 
 	for _, r := range fs.Runs() {
 		// if this run is waiting, save it as the current flow
-		if r.Status() == flows.RunStatusWaiting && r.Flow() != nil {
+		if r.Status() == core.RunStatusWaiting && r.Flow() != nil {
 			s.CurrentFlowUUID = r.FlowReference().UUID
 			break
 		}
@@ -189,7 +190,7 @@ func GetContactWaitingSession(ctx context.Context, rt *runtime.Runtime, oa *OrgA
 		Status:          dbs.Status,
 		LastSprintUUID:  flows.SprintUUID(dbs.LastSprintUUID),
 		CurrentFlowUUID: assets.FlowUUID(dbs.CurrentFlowUUID),
-		CallUUID:        flows.CallUUID(dbs.CallUUID),
+		CallUUID:        core.CallUUID(dbs.CallUUID),
 		Output:          []byte(dbs.Output),
 		CreatedOn:       dbs.CreatedOn,
 		EndedOn:         dbs.EndedOn,
@@ -217,7 +218,7 @@ func InterruptContacts(ctx context.Context, tx *sqlx.Tx, contacts []*Contact, st
 	dbStatus := sessionStatusMap[status]
 	runStatus := RunStatus(dbStatus) // session status codes are subset of run status codes
 
-	sessionUUIDs := make([]flows.SessionUUID, len(contacts))
+	sessionUUIDs := make([]core.SessionUUID, len(contacts))
 	contactIDs := make([]ContactID, len(contacts))
 	for i, c := range contacts {
 		sessionUUIDs[i] = c.CurrentSessionUUID()
@@ -253,8 +254,8 @@ func InterruptContacts(ctx context.Context, tx *sqlx.Tx, contacts []*Contact, st
 // SessionRef is a reference to a specific session for a contact. Since it's used for some task payloads, we use short
 // JSON field names
 type SessionRef struct {
-	UUID      flows.SessionUUID `db:"session_uuid" json:"s"`
-	ContactID ContactID         `db:"contact_id"   json:"c"`
+	UUID      core.SessionUUID `db:"session_uuid" json:"s"`
+	ContactID ContactID        `db:"contact_id"   json:"c"`
 }
 
 const sqlSelectWaitingSessionsForFlow = `
@@ -286,16 +287,16 @@ func GetWaitingSessionsForChannel(ctx context.Context, db *sqlx.DB, channelID Ch
 }
 
 type dbSession struct {
-	UUID            flows.SessionUUID `db:"uuid"`
-	ContactUUID     flows.ContactUUID `db:"contact_uuid"`
-	SessionType     FlowType          `db:"session_type"`
-	Status          SessionStatus     `db:"status"`
-	LastSprintUUID  null.String       `db:"last_sprint_uuid"`
-	CurrentFlowUUID null.String       `db:"current_flow_uuid"`
-	CallUUID        null.String       `db:"call_uuid"`
-	Output          null.String       `db:"output"`
-	CreatedOn       time.Time         `db:"created_on"`
-	EndedOn         *time.Time        `db:"ended_on"`
+	UUID            core.SessionUUID `db:"uuid"`
+	ContactUUID     core.ContactUUID `db:"contact_uuid"`
+	SessionType     FlowType         `db:"session_type"`
+	Status          SessionStatus    `db:"status"`
+	LastSprintUUID  null.String      `db:"last_sprint_uuid"`
+	CurrentFlowUUID null.String      `db:"current_flow_uuid"`
+	CallUUID        null.String      `db:"call_uuid"`
+	Output          null.String      `db:"output"`
+	CreatedOn       time.Time        `db:"created_on"`
+	EndedOn         *time.Time       `db:"ended_on"`
 }
 
 const sqlInsertSessionDB = `

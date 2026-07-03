@@ -7,7 +7,7 @@ import (
 
 	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/goflow/assets"
-	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/runtime"
 	"github.com/stretchr/testify/require"
@@ -20,7 +20,7 @@ type Topic struct {
 
 type Ticket struct {
 	ID   models.TicketID
-	UUID flows.TicketUUID
+	UUID core.TicketUUID
 }
 
 type Team struct {
@@ -29,23 +29,23 @@ type Team struct {
 }
 
 func (k *Ticket) Load(t *testing.T, rt *runtime.Runtime, org *Org) *models.Ticket {
-	tickets, err := models.LoadTickets(context.Background(), rt.DB, org.ID, []flows.TicketUUID{k.UUID})
+	tickets, err := models.LoadTickets(context.Background(), rt.DB, org.ID, []core.TicketUUID{k.UUID})
 	require.NoError(t, err)
 	require.Len(t, tickets, 1)
 	return tickets[0]
 }
 
 // InsertOpenTicket inserts an open ticket
-func InsertOpenTicket(t *testing.T, rt *runtime.Runtime, uuid flows.TicketUUID, org *Org, contact *Contact, topic *Topic, openedOn time.Time, assignee *User) *Ticket {
+func InsertOpenTicket(t *testing.T, rt *runtime.Runtime, uuid core.TicketUUID, org *Org, contact *Contact, topic *Topic, openedOn time.Time, assignee *User) *Ticket {
 	return insertTicket(t, rt, uuid, org, contact, models.TicketStatusOpen, topic, openedOn, assignee)
 }
 
 // InsertClosedTicket inserts a closed ticket
-func InsertClosedTicket(t *testing.T, rt *runtime.Runtime, uuid flows.TicketUUID, org *Org, contact *Contact, topic *Topic, assignee *User) *Ticket {
+func InsertClosedTicket(t *testing.T, rt *runtime.Runtime, uuid core.TicketUUID, org *Org, contact *Contact, topic *Topic, assignee *User) *Ticket {
 	return insertTicket(t, rt, uuid, org, contact, models.TicketStatusClosed, topic, dates.Now(), assignee)
 }
 
-func insertTicket(t *testing.T, rt *runtime.Runtime, uuid flows.TicketUUID, org *Org, contact *Contact, status models.TicketStatus, topic *Topic, openedOn time.Time, assignee *User) *Ticket {
+func insertTicket(t *testing.T, rt *runtime.Runtime, uuid core.TicketUUID, org *Org, contact *Contact, status models.TicketStatus, topic *Topic, openedOn time.Time, assignee *User) *Ticket {
 	lastActivityOn := openedOn
 	var closedOn *time.Time
 	if status == models.TicketStatusClosed {

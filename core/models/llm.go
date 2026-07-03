@@ -10,9 +10,9 @@ import (
 
 	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/goflow/assets"
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/engine"
-	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/goflow/test/services"
 	"github.com/nyaruka/mailroom/v26/core/goflow"
 	"github.com/nyaruka/mailroom/v26/runtime"

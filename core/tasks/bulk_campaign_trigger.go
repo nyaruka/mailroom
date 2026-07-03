@@ -9,8 +9,8 @@ import (
 	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/i18n"
 	"github.com/nyaruka/goflow/assets"
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/goflow/flows/triggers"
 	"github.com/nyaruka/mailroom/v26/core/ivr"
 	"github.com/nyaruka/mailroom/v26/core/models"
@@ -109,7 +109,7 @@ func (t *BulkCampaignTrigger) triggerFlow(ctx context.Context, rt *runtime.Runti
 
 	flowRef := assets.NewFlowReference(flow.UUID(), flow.Name())
 	triggerBuilder := func() flows.Trigger {
-		return triggers.NewBuilder(flowRef).CampaignFired(events.NewCampaignFired(campaign, p.UUID), campaign).Build()
+		return triggers.NewBuilder(flowRef).CampaignFired(events.NewCampaignFired(campaign.Reference(), p.UUID), campaign).Build()
 	}
 
 	if flow.FlowType() == models.FlowTypeVoice {

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/tasks"
 	"github.com/nyaruka/mailroom/v26/core/tasks/ctasks"
@@ -25,8 +25,8 @@ func init() {
 //	  "msg_uuids": ["0199bada-2b39-7cac-9714-827df9ec6b91", "0199bb09-f0e9-7489-a58e-69304a7941a0"]
 //	}
 type handleRequest struct {
-	OrgID    models.OrgID      `json:"org_id"  validate:"required"`
-	MsgUUIDs []flows.EventUUID `json:"msg_uuids" validate:"required"`
+	OrgID    models.OrgID       `json:"org_id"  validate:"required"`
+	MsgUUIDs []events.EventUUID `json:"msg_uuids" validate:"required"`
 }
 
 // handles a request to resend the given messages
@@ -42,7 +42,7 @@ func handleHandle(ctx context.Context, rt *runtime.Runtime, r *handleRequest) (a
 	}
 
 	// response is the ids of the messages that were actually queued
-	queuedMsgUUIDs := make([]flows.EventUUID, 0, len(r.MsgUUIDs))
+	queuedMsgUUIDs := make([]events.EventUUID, 0, len(r.MsgUUIDs))
 
 	for _, m := range msgs {
 		if m.Status() != models.MsgStatusPending || m.ContactURNID() == models.NilURNID {

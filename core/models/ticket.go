@@ -9,6 +9,7 @@ import (
 
 	"github.com/lib/pq"
 	"github.com/nyaruka/gocommon/dates"
+	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/null/v3"
 	"github.com/vinovest/sqlx"
@@ -31,30 +32,30 @@ const (
 	TicketStatusClosed = TicketStatus("C")
 )
 
-var ticketStatusMap = map[TicketStatus]flows.TicketStatus{
-	TicketStatusOpen:   flows.TicketStatusOpen,
-	TicketStatusClosed: flows.TicketStatusClosed,
+var ticketStatusMap = map[TicketStatus]core.TicketStatus{
+	TicketStatusOpen:   core.TicketStatusOpen,
+	TicketStatusClosed: core.TicketStatusClosed,
 }
 
 type Ticket struct {
-	ID             TicketID         `db:"id"`
-	UUID           flows.TicketUUID `db:"uuid"`
-	OrgID          OrgID            `db:"org_id"`
-	ContactID      ContactID        `db:"contact_id"`
-	Status         TicketStatus     `db:"status"`
-	TopicID        TopicID          `db:"topic_id"`
-	AssigneeID     UserID           `db:"assignee_id"`
-	OpenedOn       time.Time        `db:"opened_on"`
-	OpenedByID     UserID           `db:"opened_by_id"`
-	OpenedInID     FlowID           `db:"opened_in_id"`
-	RepliedOn      *time.Time       `db:"replied_on"`
-	ModifiedOn     time.Time        `db:"modified_on"`
-	ClosedOn       *time.Time       `db:"closed_on"`
-	LastActivityOn time.Time        `db:"last_activity_on"`
+	ID             TicketID        `db:"id"`
+	UUID           core.TicketUUID `db:"uuid"`
+	OrgID          OrgID           `db:"org_id"`
+	ContactID      ContactID       `db:"contact_id"`
+	Status         TicketStatus    `db:"status"`
+	TopicID        TopicID         `db:"topic_id"`
+	AssigneeID     UserID          `db:"assignee_id"`
+	OpenedOn       time.Time       `db:"opened_on"`
+	OpenedByID     UserID          `db:"opened_by_id"`
+	OpenedInID     FlowID          `db:"opened_in_id"`
+	RepliedOn      *time.Time      `db:"replied_on"`
+	ModifiedOn     time.Time       `db:"modified_on"`
+	ClosedOn       *time.Time      `db:"closed_on"`
+	LastActivityOn time.Time       `db:"last_activity_on"`
 }
 
 // NewTicket creates a new open ticket
-func NewTicket(uuid flows.TicketUUID, orgID OrgID, userID UserID, flow *Flow, contactID ContactID, topicID TopicID, assigneeID UserID) *Ticket {
+func NewTicket(uuid core.TicketUUID, orgID OrgID, userID UserID, flow *Flow, contactID ContactID, topicID TopicID, assigneeID UserID) *Ticket {
 	var openedInID FlowID
 	if flow != nil {
 		openedInID = flow.ID()
@@ -113,7 +114,7 @@ SELECT
 ORDER BY opened_on DESC`
 
 // LoadTickets loads all of the tickets with the given ids
-func LoadTickets(ctx context.Context, db *sqlx.DB, orgID OrgID, uuids []flows.TicketUUID) ([]*Ticket, error) {
+func LoadTickets(ctx context.Context, db *sqlx.DB, orgID OrgID, uuids []core.TicketUUID) ([]*Ticket, error) {
 	return loadTickets(ctx, db, sqlSelectTicketsByUUID, orgID, pq.Array(uuids))
 }
 
@@ -217,7 +218,7 @@ RETURNING CASE WHEN t2.replied_on IS NULL THEN t1.opened_on ELSE NULL END`
 
 // TicketRecordReplied records a ticket as being replied to, updating last_activity_on. If this is the first reply
 // to this ticket then replied_on is updated and the function returns the time the ticket was opened.
-func TicketRecordReplied(ctx context.Context, db DBorTx, ticketUUID flows.TicketUUID, when time.Time) (*time.Time, error) {
+func TicketRecordReplied(ctx context.Context, db DBorTx, ticketUUID core.TicketUUID, when time.Time) (*time.Time, error) {
 	rows, err := db.QueryxContext(ctx, sqlUpdateTicketRepliedOn, ticketUUID, when)
 	if err != nil && err != sql.ErrNoRows {
 		return nil, err
@@ -238,7 +239,7 @@ func TicketRecordReplied(ctx context.Context, db DBorTx, ticketUUID flows.Ticket
 	return openedOn, nil
 }
 
-func RecordTicketReply(ctx context.Context, db DBorTx, oa *OrgAssets, ticketUUID flows.TicketUUID, userID UserID, when time.Time) error {
+func RecordTicketReply(ctx context.Context, db DBorTx, oa *OrgAssets, ticketUUID core.TicketUUID, userID UserID, when time.Time) error {
 	openedOn, err := TicketRecordReplied(ctx, db, ticketUUID, when)
 	if err != nil {
 		return err

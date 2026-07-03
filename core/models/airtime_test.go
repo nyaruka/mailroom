@@ -5,8 +5,8 @@ import (
 
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/gocommon/urns"
-	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/goflow/flows/events"
+	"github.com/nyaruka/goflow/core"
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/testsuite"
 	"github.com/nyaruka/mailroom/v26/testsuite/testdb"
@@ -21,11 +21,11 @@ func TestAirtimeTransfers(t *testing.T) {
 
 	// insert a transfer — new transfers are always created in pending state, with the provider's
 	// transaction id already populated from the event
-	transferUUID := flows.NewEventUUID()
+	transferUUID := events.NewEventUUID()
 	transfer := models.NewAirtimeTransfer(
 		testdb.Org1.ID,
 		testdb.Ann.ID,
-		events.NewAirtimeCreated(transferUUID, &flows.AirtimeTransfer{
+		events.NewAirtimeCreated(transferUUID, &core.AirtimeTransfer{
 			ExternalID: "2237512891",
 			Sender:     urns.URN("tel:+250700000001"),
 			Recipient:  urns.URN("tel:+250700000002"),
@@ -94,7 +94,7 @@ func TestNewAirtimeStatusTag(t *testing.T) {
 		tag := models.NewAirtimeStatusTag(testdb.Org1.ID, testdb.Ann.UUID, "0197b335-6ded-79a4-95a6-3af85b57f108", status)
 		assert.Equal(t, testdb.Org1.ID, tag.OrgID)
 		assert.Equal(t, testdb.Ann.UUID, tag.ContactUUID)
-		assert.Equal(t, flows.EventUUID("0197b335-6ded-79a4-95a6-3af85b57f108"), tag.EventUUID)
+		assert.Equal(t, events.EventUUID("0197b335-6ded-79a4-95a6-3af85b57f108"), tag.EventUUID)
 		assert.Equal(t, "sts", tag.Tag)
 		assert.Equal(t, name, tag.Data["status"], "unexpected name for status %q", status)
 		assert.NotEmpty(t, tag.Data["status"], "status %q has no external name", status)

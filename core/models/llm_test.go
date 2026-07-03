@@ -7,8 +7,9 @@ import (
 	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/goflow/assets"
+	"github.com/nyaruka/goflow/core"
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/testsuite"
 	"github.com/nyaruka/mailroom/v26/testsuite/testdb"
@@ -67,7 +68,7 @@ func TestLLMRecordCall(t *testing.T) {
 	require.NotNil(t, llm)
 
 	mkEvent := func(in, out int64) *events.LLMCalled {
-		return events.NewLLMCalled(flows.NewLLM(llm), "instructions", "input", &flows.LLMResponse{Output: "output", TokensInput: in, TokensOutput: out}, 250*time.Millisecond)
+		return events.NewLLMCalled(flows.NewLLM(llm).Reference(), "instructions", "input", &core.LLMResponse{Output: "output", TokensInput: in, TokensOutput: out}, 250*time.Millisecond)
 	}
 
 	assert.Len(t, llm.RecordCall(rt, oa, mkEvent(120, 340)), 3)

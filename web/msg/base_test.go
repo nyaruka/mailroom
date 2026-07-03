@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/testsuite"
 	"github.com/nyaruka/mailroom/v26/testsuite/testdb"
@@ -85,7 +85,7 @@ func TestBroadcast(t *testing.T) {
 	optIn := testdb.InsertOptIn(t, rt, testdb.Org1, "45aec4dd-945f-4511-878f-7d8516fbd336", "Polls")
 	require.Equal(t, models.OptInID(30000), optIn.ID)
 
-	createRun := func(org *testdb.Org, contact *testdb.Contact, nodeUUID flows.NodeUUID) {
+	createRun := func(org *testdb.Org, contact *testdb.Contact, nodeUUID core.NodeUUID) {
 		sessionUUID := testdb.InsertFlowSession(t, rt, contact, models.FlowTypeMessaging, models.SessionStatusWaiting, nil, testdb.Favorites)
 		testdb.InsertFlowRun(t, rt, org, sessionUUID, contact, testdb.Favorites, models.RunStatusWaiting, nodeUUID)
 	}

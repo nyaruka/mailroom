@@ -9,7 +9,7 @@ import (
 
 	"github.com/nyaruka/gocommon/i18n"
 	"github.com/nyaruka/gocommon/urns"
-	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/tasks"
 	"github.com/nyaruka/mailroom/v26/runtime"
@@ -38,19 +38,19 @@ func init() {
 //	  }
 //	}
 type broadcastRequest struct {
-	OrgID             models.OrgID                `json:"org_id"        validate:"required"`
-	UserID            models.UserID               `json:"user_id"       validate:"required"`
-	Translations      flows.BroadcastTranslations `json:"translations"  validate:"required"`
-	BaseLanguage      i18n.Language               `json:"base_language" validate:"required"`
-	OptInID           models.OptInID              `json:"optin_id"`
-	TemplateID        models.TemplateID           `json:"template_id"`
-	TemplateVariables []string                    `json:"template_variables"`
-	GroupIDs          []models.GroupID            `json:"group_ids"`
-	ContactIDs        []models.ContactID          `json:"contact_ids"`
-	URNs              []urns.URN                  `json:"urns"`
-	Query             string                      `json:"query"`
-	NodeUUID          flows.NodeUUID              `json:"node_uuid"`
-	Exclude           models.Exclusions           `json:"exclude"`
+	OrgID             models.OrgID               `json:"org_id"        validate:"required"`
+	UserID            models.UserID              `json:"user_id"       validate:"required"`
+	Translations      core.BroadcastTranslations `json:"translations"  validate:"required"`
+	BaseLanguage      i18n.Language              `json:"base_language" validate:"required"`
+	OptInID           models.OptInID             `json:"optin_id"`
+	TemplateID        models.TemplateID          `json:"template_id"`
+	TemplateVariables []string                   `json:"template_variables"`
+	GroupIDs          []models.GroupID           `json:"group_ids"`
+	ContactIDs        []models.ContactID         `json:"contact_ids"`
+	URNs              []urns.URN                 `json:"urns"`
+	Query             string                     `json:"query"`
+	NodeUUID          core.NodeUUID              `json:"node_uuid"`
+	Exclude           models.Exclusions          `json:"exclude"`
 	Schedule          *struct {
 		Start            time.Time           `json:"start"`
 		RepeatPeriod     models.RepeatPeriod `json:"repeat_period"`
@@ -75,7 +75,7 @@ func handleBroadcast(ctx context.Context, rt *runtime.Runtime, r *broadcastReque
 	}
 
 	bcast := &models.Broadcast{
-		UUID:              flows.NewBroadcastUUID(),
+		UUID:              core.NewBroadcastUUID(),
 		OrgID:             r.OrgID,
 		Status:            models.BroadcastStatusPending,
 		Translations:      r.Translations,

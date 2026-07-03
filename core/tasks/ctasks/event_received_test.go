@@ -10,7 +10,7 @@ import (
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/gocommon/urns"
-	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/test"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/tasks"
@@ -66,7 +66,7 @@ func TestEventReceived(t *testing.T) {
 
 	type testCase struct {
 		Label           string                `json:"label"`
-		ContactUUID     flows.ContactUUID     `json:"contact_uuid"`
+		ContactUUID     core.ContactUUID      `json:"contact_uuid"`
 		Task            *ctasks.EventReceived `json:"task"`
 		DBAssertions    []*assertdb.Assert    `json:"db_assertions,omitempty"`
 		ExpectedHistory []*dynamo.Item        `json:"expected_history,omitempty"`
@@ -90,7 +90,7 @@ func TestEventReceived(t *testing.T) {
 	for i, tc := range tcs {
 		time.Sleep(time.Millisecond * 5)
 
-		mcs, err := models.LoadContactsByUUID(ctx, rt.DB, oa, []flows.ContactUUID{tc.ContactUUID})
+		mcs, err := models.LoadContactsByUUID(ctx, rt.DB, oa, []core.ContactUUID{tc.ContactUUID})
 		require.NoError(t, err)
 		contact := mcs[0]
 

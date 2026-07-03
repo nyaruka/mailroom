@@ -9,8 +9,7 @@ import (
 	"slices"
 
 	"github.com/lib/pq"
-	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/goflow/flows/events"
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/runner"
 	"github.com/nyaruka/mailroom/v26/runtime"
@@ -28,9 +27,9 @@ func init() {
 //	  "msg_uuids": ["0199bada-2b39-7cac-9714-827df9ec6b91", "0199bb09-f0e9-7489-a58e-69304a7941a0"]
 //	}
 type deleteRequest struct {
-	OrgID    models.OrgID      `json:"org_id"    validate:"required"`
-	UserID   models.UserID     `json:"user_id"   validate:"required"`
-	MsgUUIDs []flows.EventUUID `json:"msg_uuids" validate:"required"`
+	OrgID    models.OrgID       `json:"org_id"    validate:"required"`
+	UserID   models.UserID      `json:"user_id"   validate:"required"`
+	MsgUUIDs []events.EventUUID `json:"msg_uuids" validate:"required"`
 }
 
 func handleDelete(ctx context.Context, rt *runtime.Runtime, r *deleteRequest) (any, int, error) {
@@ -46,9 +45,9 @@ func handleDelete(ctx context.Context, rt *runtime.Runtime, r *deleteRequest) (a
 	}
 	defer rows.Close()
 
-	msgsByContact := make(map[models.ContactID][]flows.EventUUID)
+	msgsByContact := make(map[models.ContactID][]events.EventUUID)
 	for rows.Next() {
-		var uuid flows.EventUUID
+		var uuid events.EventUUID
 		var contactID models.ContactID
 		if err := rows.Scan(&uuid, &contactID); err != nil {
 			return nil, 0, fmt.Errorf("error scanning message row: %w", err)

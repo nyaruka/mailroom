@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/lib/pq"
+	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/v26/runtime"
 	"github.com/nyaruka/null/v3"
@@ -32,7 +33,7 @@ type ContactFire struct {
 	SprintUUID  null.String     `db:"sprint_uuid"` // set for wait expirations and timeouts
 }
 
-func newContactFire(orgID OrgID, contactID ContactID, typ ContactFireType, scope string, fireOn time.Time, sessionUUID flows.SessionUUID, sprintUUID flows.SprintUUID) *ContactFire {
+func newContactFire(orgID OrgID, contactID ContactID, typ ContactFireType, scope string, fireOn time.Time, sessionUUID core.SessionUUID, sprintUUID flows.SprintUUID) *ContactFire {
 	return &ContactFire{
 		OrgID:       orgID,
 		ContactID:   contactID,
@@ -44,7 +45,7 @@ func newContactFire(orgID OrgID, contactID ContactID, typ ContactFireType, scope
 	}
 }
 
-func NewFireForSession(orgID OrgID, contactID ContactID, sessionUUID flows.SessionUUID, sprintUUID flows.SprintUUID, typ ContactFireType, fireOn time.Time) *ContactFire {
+func NewFireForSession(orgID OrgID, contactID ContactID, sessionUUID core.SessionUUID, sprintUUID flows.SprintUUID, typ ContactFireType, fireOn time.Time) *ContactFire {
 	return newContactFire(orgID, contactID, typ, "", fireOn, sessionUUID, sprintUUID)
 }
 

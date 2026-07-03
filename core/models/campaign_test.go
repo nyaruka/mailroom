@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/lib/pq"
-	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/testsuite"
 	"github.com/nyaruka/mailroom/v26/testsuite/testdb"
@@ -29,9 +29,9 @@ func TestLoadCampaigns(t *testing.T) {
 
 	event2 := oa.CampaignPointByID(testdb.RemindersPoint2.ID)
 	assert.Equal(t, testdb.RemindersPoint2.UUID, event2.UUID)
-	assert.Equal(t, flows.BroadcastTranslations{
-		"eng": &flows.MsgContent{Text: "Hi @contact.name, it is time to consult with your patients."},
-		"fra": &flows.MsgContent{Text: "Bonjour @contact.name, il est temps de consulter vos patients."},
+	assert.Equal(t, core.BroadcastTranslations{
+		"eng": &core.MsgContent{Text: "Hi @contact.name, it is time to consult with your patients."},
+		"fra": &core.MsgContent{Text: "Bonjour @contact.name, il est temps de consulter vos patients."},
 	}, event2.Translations)
 	assert.Equal(t, null.String("eng"), event2.BaseLanguage)
 	assert.Equal(t, models.NilTemplateID, event2.TemplateID)

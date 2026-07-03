@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/search"
 	"github.com/nyaruka/mailroom/v26/runtime"
@@ -23,10 +23,10 @@ func init() {
 //	  "text": "hello"
 //	}
 type searchRequest struct {
-	OrgID       models.OrgID      `json:"org_id"        validate:"required"`
-	Text        string            `json:"text"          validate:"required"`
-	ContactUUID flows.ContactUUID `json:"contact_uuid"`
-	InTicket    bool              `json:"in_ticket"`
+	OrgID       models.OrgID     `json:"org_id"        validate:"required"`
+	Text        string           `json:"text"          validate:"required"`
+	ContactUUID core.ContactUUID `json:"contact_uuid"`
+	InTicket    bool             `json:"in_ticket"`
 }
 
 func handleSearch(ctx context.Context, rt *runtime.Runtime, r *searchRequest) (any, int, error) {

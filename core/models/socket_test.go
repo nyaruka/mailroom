@@ -7,8 +7,8 @@ import (
 
 	"github.com/nyaruka/gocommon/centrifugo"
 	"github.com/nyaruka/goflow/assets"
-	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/goflow/flows/events"
+	"github.com/nyaruka/goflow/core"
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/testsuite"
 	"github.com/nyaruka/mailroom/v26/testsuite/testdb"
@@ -17,8 +17,8 @@ import (
 )
 
 func TestHistorySocket(t *testing.T) {
-	contact := flows.ContactUUID("a393abc0-283d-4c9b-a1b3-641a035c34bf")
-	ticket := flows.TicketUUID("019905d4-5f7b-71b8-bcb8-6a68de2d91d2")
+	contact := core.ContactUUID("a393abc0-283d-4c9b-a1b3-641a035c34bf")
+	ticket := core.TicketUUID("019905d4-5f7b-71b8-bcb8-6a68de2d91d2")
 
 	// with no ticket it's the contact's socket
 	assert.Equal(t, "history:a393abc0-283d-4c9b-a1b3-641a035c34bf", models.HistorySocket(contact))
@@ -139,8 +139,8 @@ func TestSubscribedSockets(t *testing.T) {
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	contact1 := flows.ContactUUID("a393abc0-283d-4c9b-a1b3-641a035c34bf")
-	contact2 := flows.ContactUUID("b699a406-7e44-49be-9f01-1a82893e8a10")
+	contact1 := core.ContactUUID("a393abc0-283d-4c9b-a1b3-641a035c34bf")
+	contact2 := core.ContactUUID("b699a406-7e44-49be-9f01-1a82893e8a10")
 	hist1 := models.HistorySocket(contact1)
 	hist2 := models.HistorySocket(contact2)
 
@@ -181,14 +181,14 @@ func TestPublishToHistory(t *testing.T) {
 
 	mock := rt.Centrifugo.(*centrifugo.MockClient)
 
-	contact := flows.ContactUUID("a393abc0-283d-4c9b-a1b3-641a035c34bf")
+	contact := core.ContactUUID("a393abc0-283d-4c9b-a1b3-641a035c34bf")
 	socket := models.HistorySocket(contact)
 	evt1 := events.NewContactNameChanged("Bob")
 	evt1.SetUser(assets.NewUserReference("eb9536d7-7b22-4ca6-9a1e-8e1f1effe7f3", "Ann Admin"), "ui")
 	evt2 := events.NewContactLanguageChanged("spa")
 
 	// socket isn't subscribed yet, so nothing is published
-	require.NoError(t, models.PublishToHistory(ctx, rt, contact, []flows.Event{evt1}))
+	require.NoError(t, models.PublishToHistory(ctx, rt, contact, []events.Event{evt1}))
 	assert.Equal(t, 0, mock.Requests())
 
 	// mark the socket subscribed (as the authorizing service would) - empty event slice is still a no-op
@@ -198,7 +198,7 @@ func TestPublishToHistory(t *testing.T) {
 	assert.Equal(t, 0, mock.Requests())
 
 	// now that it's subscribed, each event is published to the contact's history socket as its full JSON
-	require.NoError(t, models.PublishToHistory(ctx, rt, contact, []flows.Event{evt1, evt2}))
+	require.NoError(t, models.PublishToHistory(ctx, rt, contact, []events.Event{evt1, evt2}))
 
 	sent := mock.Published(socket)
 	require.Len(t, sent, 2)
@@ -218,8 +218,8 @@ func TestPublishToHistory(t *testing.T) {
 	// per-ticket detail events (assignee/note/topic changes) route to that ticket's socket rather than the contact
 	// socket, mirroring how the read API filters them off the contact page; the basic ticket lifecycle events
 	// (opened/closed/reopened) and non-ticket events stay on the contact socket
-	ticketA := flows.TicketUUID("019905d4-5f7b-71b8-bcb8-6a68de2d91d2")
-	ticketB := flows.TicketUUID("28e94070-7c69-4f8e-9b7e-2c5a3a3e6f9a")
+	ticketA := core.TicketUUID("019905d4-5f7b-71b8-bcb8-6a68de2d91d2")
+	ticketB := core.TicketUUID("28e94070-7c69-4f8e-9b7e-2c5a3a3e6f9a")
 	ticketASocket := models.HistorySocket(contact, ticketA)
 	ticketBSocket := models.HistorySocket(contact, ticketB)
 
@@ -233,7 +233,7 @@ func TestPublishToHistory(t *testing.T) {
 	lang := events.NewContactLanguageChanged("fra")                                                                                  // non-ticket -> contact socket
 
 	reqsBefore := mock.Requests()
-	require.NoError(t, models.PublishToHistory(ctx, rt, contact, []flows.Event{closed, noteA, assignB, lang}))
+	require.NoError(t, models.PublishToHistory(ctx, rt, contact, []events.Event{closed, noteA, assignB, lang}))
 
 	// even though this commit spans two sockets (contact + ticket A), it's a single pipelined centrifugo round-trip
 	assert.Equal(t, 1, mock.Requests()-reqsBefore)
@@ -267,7 +267,7 @@ func TestPublishToHistory(t *testing.T) {
 	renamed := events.NewContactNameChanged("Bobby")          // non-ticket -> contact socket
 
 	reqsBefore = mock.Requests()
-	require.NoError(t, models.PublishToHistory(ctx, rt, contact, []flows.Event{noteA2, noteB, renamed}))
+	require.NoError(t, models.PublishToHistory(ctx, rt, contact, []events.Event{noteA2, noteB, renamed}))
 	assert.Equal(t, 1, mock.Requests()-reqsBefore)
 
 	// each socket received exactly its own events, across all three sockets in the one round-trip

@@ -9,6 +9,7 @@ import (
 	"github.com/lib/pq"
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/goflow/assets"
+	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/v26/runtime"
 	"github.com/nyaruka/null/v3"
@@ -30,32 +31,32 @@ const (
 	RunStatusFailed      RunStatus = "F"
 )
 
-var runStatusMap = map[flows.RunStatus]RunStatus{
-	flows.RunStatusActive:    RunStatusActive,
-	flows.RunStatusWaiting:   RunStatusWaiting,
-	flows.RunStatusCompleted: RunStatusCompleted,
-	flows.RunStatusExpired:   RunStatusExpired,
-	flows.RunStatusFailed:    RunStatusFailed,
+var runStatusMap = map[core.RunStatus]RunStatus{
+	core.RunStatusActive:    RunStatusActive,
+	core.RunStatusWaiting:   RunStatusWaiting,
+	core.RunStatusCompleted: RunStatusCompleted,
+	core.RunStatusExpired:   RunStatusExpired,
+	core.RunStatusFailed:    RunStatusFailed,
 }
 
 // FlowRun is the type for a run of a flow
 type FlowRun struct {
-	ID              FlowRunID         `db:"id"`
-	UUID            flows.RunUUID     `db:"uuid"`
-	Status          RunStatus         `db:"status"`
-	CreatedOn       time.Time         `db:"created_on"`
-	ModifiedOn      time.Time         `db:"modified_on"`
-	ExitedOn        *time.Time        `db:"exited_on"`
-	Responded       bool              `db:"responded"`
-	Results         string            `db:"results"`
-	PathNodes       pq.StringArray    `db:"path_nodes"`
-	PathTimes       pq.GenericArray   `db:"path_times"`
-	CurrentNodeUUID null.String       `db:"current_node_uuid"`
-	ContactID       ContactID         `db:"contact_id"`
-	FlowID          FlowID            `db:"flow_id"`
-	OrgID           OrgID             `db:"org_id"`
-	SessionUUID     flows.SessionUUID `db:"session_uuid"`
-	StartID         StartID           `db:"start_id"`
+	ID              FlowRunID        `db:"id"`
+	UUID            core.RunUUID     `db:"uuid"`
+	Status          RunStatus        `db:"status"`
+	CreatedOn       time.Time        `db:"created_on"`
+	ModifiedOn      time.Time        `db:"modified_on"`
+	ExitedOn        *time.Time       `db:"exited_on"`
+	Responded       bool             `db:"responded"`
+	Results         string           `db:"results"`
+	PathNodes       pq.StringArray   `db:"path_nodes"`
+	PathTimes       pq.GenericArray  `db:"path_times"`
+	CurrentNodeUUID null.String      `db:"current_node_uuid"`
+	ContactID       ContactID        `db:"contact_id"`
+	FlowID          FlowID           `db:"flow_id"`
+	OrgID           OrgID            `db:"org_id"`
+	SessionUUID     core.SessionUUID `db:"session_uuid"`
+	StartID         StartID          `db:"start_id"`
 }
 
 // NewRun creates a flow run we can save to the database
@@ -91,7 +92,7 @@ func NewRun(oa *OrgAssets, fs flows.Session, fr flows.Run) *FlowRun {
 		Responded:   fr.HadInput(),
 	}
 
-	if len(pathNodes) > 0 && (fr.Status() == flows.RunStatusActive || fr.Status() == flows.RunStatusWaiting) {
+	if len(pathNodes) > 0 && (fr.Status() == core.RunStatusActive || fr.Status() == core.RunStatusWaiting) {
 		r.CurrentNodeUUID = null.String(pathNodes[len(pathNodes)-1])
 	}
 
@@ -141,7 +142,7 @@ func UpdateRuns(ctx context.Context, tx *sqlx.Tx, runs []*FlowRun) error {
 }
 
 // GetContactIDsAtNode returns the ids of contacts currently waiting or active at the given flow node
-func GetContactIDsAtNode(ctx context.Context, rt *runtime.Runtime, orgID OrgID, nodeUUID flows.NodeUUID) ([]ContactID, error) {
+func GetContactIDsAtNode(ctx context.Context, rt *runtime.Runtime, orgID OrgID, nodeUUID core.NodeUUID) ([]ContactID, error) {
 	rows, err := rt.ReadonlyDB.QueryContext(ctx,
 		`SELECT contact_id FROM flows_flowrun WHERE org_id = $1 AND current_node_uuid = $2 AND status IN ('A' , 'W')`, orgID, nodeUUID,
 	)
@@ -196,7 +197,7 @@ func GetContactFlowHistory(ctx context.Context, db *sqlx.DB, contactIDs []Contac
 }
 
 type RunReference struct {
-	UUID flows.RunUUID
+	UUID core.RunUUID
 	Flow *assets.FlowReference
 }
 
@@ -208,12 +209,12 @@ INNER JOIN flows_flow f ON f.id = r.flow_id
 	 ORDER BY r.id`
 
 // GetActiveAndWaitingRuns gets references to the active/waiting runs for the given sessions
-func GetActiveAndWaitingRuns(ctx context.Context, rt *runtime.Runtime, sessionUUIDs []flows.SessionUUID) (map[flows.SessionUUID][]*RunReference, error) {
+func GetActiveAndWaitingRuns(ctx context.Context, rt *runtime.Runtime, sessionUUIDs []core.SessionUUID) (map[core.SessionUUID][]*RunReference, error) {
 	type envelope struct {
-		SessionUUID flows.SessionUUID `db:"session_uuid"`
-		UUID        flows.RunUUID     `db:"uuid"`
-		FlowUUID    assets.FlowUUID   `db:"flow_uuid"`
-		FlowName    string            `db:"flow_name"`
+		SessionUUID core.SessionUUID `db:"session_uuid"`
+		UUID        core.RunUUID     `db:"uuid"`
+		FlowUUID    assets.FlowUUID  `db:"flow_uuid"`
+		FlowName    string           `db:"flow_name"`
 	}
 
 	var all []*envelope
@@ -222,7 +223,7 @@ func GetActiveAndWaitingRuns(ctx context.Context, rt *runtime.Runtime, sessionUU
 		return nil, fmt.Errorf("error fetching ongoing runs: %w", err)
 	}
 
-	runRefs := make(map[flows.SessionUUID][]*RunReference, len(sessionUUIDs))
+	runRefs := make(map[core.SessionUUID][]*RunReference, len(sessionUUIDs))
 	for _, r := range all {
 		runRefs[r.SessionUUID] = append(runRefs[r.SessionUUID], &RunReference{UUID: r.UUID, Flow: assets.NewFlowReference(r.FlowUUID, r.FlowName)})
 	}

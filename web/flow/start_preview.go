@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/nyaruka/goflow/assets"
-	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/search"
 	"github.com/nyaruka/mailroom/v26/runtime"
@@ -43,9 +43,9 @@ type previewRequest struct {
 	OrgID   models.OrgID  `json:"org_id"    validate:"required"`
 	FlowID  models.FlowID `json:"flow_id"   validate:"required"`
 	Include struct {
-		GroupUUIDs   []assets.GroupUUID  `json:"group_uuids"`
-		ContactUUIDs []flows.ContactUUID `json:"contact_uuids"`
-		Query        string              `json:"query"`
+		GroupUUIDs   []assets.GroupUUID `json:"group_uuids"`
+		ContactUUIDs []core.ContactUUID `json:"contact_uuids"`
+		Query        string             `json:"query"`
 	} `json:"include"   validate:"required"`
 	Exclude models.Exclusions `json:"exclude"`
 }

@@ -11,10 +11,11 @@ import (
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/gocommon/uuids"
 	"github.com/nyaruka/goflow/assets"
+	"github.com/nyaruka/goflow/core"
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/actions"
 	"github.com/nyaruka/goflow/flows/definition"
-	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/goflow/flows/routers"
 	"github.com/nyaruka/goflow/flows/triggers"
 	"github.com/nyaruka/goflow/test"
@@ -29,18 +30,18 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type ContactEventMap map[flows.ContactUUID][]flows.Event
+type ContactEventMap map[core.ContactUUID][]events.Event
 
 func (m *ContactEventMap) UnmarshalJSON(d []byte) error {
 	*m = make(ContactEventMap)
 
-	var raw map[flows.ContactUUID][]json.RawMessage
+	var raw map[core.ContactUUID][]json.RawMessage
 	if err := json.Unmarshal(d, &raw); err != nil {
 		return err
 	}
 
 	for contactUUID, v := range raw {
-		unmarshaled := make([]flows.Event, len(v))
+		unmarshaled := make([]events.Event, len(v))
 		for i := range v {
 			var err error
 			unmarshaled[i], err = events.Read(v[i])
@@ -53,12 +54,12 @@ func (m *ContactEventMap) UnmarshalJSON(d []byte) error {
 	return nil
 }
 
-type ContactActionMap map[flows.ContactUUID][]flows.Action
+type ContactActionMap map[core.ContactUUID][]flows.Action
 
 func (m *ContactActionMap) UnmarshalJSON(d []byte) error {
 	*m = make(ContactActionMap)
 
-	var raw map[flows.ContactUUID][]json.RawMessage
+	var raw map[core.ContactUUID][]json.RawMessage
 	if err := json.Unmarshal(d, &raw); err != nil {
 		return err
 	}
@@ -77,7 +78,7 @@ func (m *ContactActionMap) UnmarshalJSON(d []byte) error {
 	return nil
 }
 
-type ContactModifierMap map[flows.ContactUUID][]json.RawMessage
+type ContactModifierMap map[core.ContactUUID][]json.RawMessage
 
 type TestCase struct {
 	Label           string                          `json:"label"`
@@ -248,11 +249,11 @@ func runTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 	}
 }
 
-func insertTestMessage(t *testing.T, rt *runtime.Runtime, oa *models.OrgAssets, c *testdb.Contact, msg *flows.MsgIn) *models.MsgInRef {
+func insertTestMessage(t *testing.T, rt *runtime.Runtime, oa *models.OrgAssets, c *testdb.Contact, msg *core.MsgIn) *models.MsgInRef {
 	ch := oa.ChannelByUUID(msg.Channel().UUID)
 	tch := &testdb.Channel{ID: ch.ID(), UUID: ch.UUID(), Type: ch.Type()}
 
-	m := testdb.InsertIncomingMsg(t, rt, testdb.Org1, flows.NewEventUUID(), tch, c, msg.Text(), models.MsgStatusPending, "")
+	m := testdb.InsertIncomingMsg(t, rt, testdb.Org1, events.NewEventUUID(), tch, c, msg.Text(), models.MsgStatusPending, "")
 	return &models.MsgInRef{UUID: m.UUID}
 }
 
@@ -296,7 +297,7 @@ func createTestFlow(t *testing.T, uuid assets.FlowUUID, actions ContactActionMap
 
 	// create our router
 	categories = append(categories, routers.NewCategory(defaultCategoryUUID, "Other", defaultExitUUID))
-	exits = append(exits, definition.NewExit(defaultExitUUID, flows.NodeUUID("")))
+	exits = append(exits, definition.NewExit(defaultExitUUID, core.NodeUUID("")))
 	router := routers.NewSwitch(nil, "", categories, "@contact.uuid", cases, defaultCategoryUUID)
 
 	// and our entry node

@@ -9,8 +9,8 @@ import (
 	"github.com/nyaruka/gocommon/i18n"
 	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/goflow/assets"
-	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/goflow/flows/events"
+	"github.com/nyaruka/goflow/core"
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	_ "github.com/nyaruka/mailroom/v26/core/runner/handlers"
 	"github.com/nyaruka/mailroom/v26/core/tasks"
@@ -30,24 +30,24 @@ func TestBroadcastsFromEvents(t *testing.T) {
 	require.NoError(t, err)
 
 	eng := i18n.Language("eng")
-	basic := flows.BroadcastTranslations{eng: {Text: "hello world"}}
+	basic := core.BroadcastTranslations{eng: {Text: "hello world"}}
 
 	doctors := assets.NewGroupReference(testdb.DoctorsGroup.UUID, "Doctors")
-	ann := flows.NewContactReference(testdb.Ann.UUID, "Ann")
+	ann := core.NewContactReference(testdb.Ann.UUID, "Ann")
 
 	// add an extra URN fo Ann
 	testdb.InsertContactURN(t, rt, testdb.Org1, testdb.Ann, urns.URN("tel:+12065551212"), 1001, nil)
 
 	// change Cat's URN to an invalid twitter URN so it can't be sent
 	rt.DB.MustExec(`UPDATE contacts_contacturn SET identity = 'twitter:invalid-urn', scheme = 'twitter', path='invalid-urn' WHERE id = $1`, testdb.Cat.URNID)
-	cat := flows.NewContactReference(testdb.Cat.UUID, "Cat")
-	catOnly := []*flows.ContactReference{cat}
+	cat := core.NewContactReference(testdb.Cat.UUID, "Cat")
+	catOnly := []*core.ContactReference{cat}
 
 	tcs := []struct {
-		translations       flows.BroadcastTranslations
+		translations       core.BroadcastTranslations
 		baseLanguage       i18n.Language
 		groups             []*assets.GroupReference
-		contacts           []*flows.ContactReference
+		contacts           []*core.ContactReference
 		urns               []urns.URN
 		queue              queues.Fair
 		expectedBatchCount int
@@ -91,7 +91,7 @@ func TestBroadcastsFromEvents(t *testing.T) {
 			translations:       basic,
 			baseLanguage:       eng,
 			groups:             []*assets.GroupReference{doctors},
-			contacts:           []*flows.ContactReference{ann},
+			contacts:           []*core.ContactReference{ann},
 			urns:               nil,
 			queue:              rt.Queues.Batch,
 			expectedBatchCount: 2,
@@ -102,7 +102,7 @@ func TestBroadcastsFromEvents(t *testing.T) {
 			translations:       basic,
 			baseLanguage:       eng,
 			groups:             nil,
-			contacts:           []*flows.ContactReference{ann},
+			contacts:           []*core.ContactReference{ann},
 			urns:               nil,
 			queue:              rt.Queues.Realtime,
 			expectedBatchCount: 1,
@@ -113,7 +113,7 @@ func TestBroadcastsFromEvents(t *testing.T) {
 			translations:       basic,
 			baseLanguage:       eng,
 			groups:             nil,
-			contacts:           []*flows.ContactReference{ann},
+			contacts:           []*core.ContactReference{ann},
 			urns:               []urns.URN{urns.URN("tel:+12065551212")},
 			queue:              rt.Queues.Realtime,
 			expectedBatchCount: 1,
@@ -124,7 +124,7 @@ func TestBroadcastsFromEvents(t *testing.T) {
 			translations:       basic,
 			baseLanguage:       eng,
 			groups:             nil,
-			contacts:           []*flows.ContactReference{ann},
+			contacts:           []*core.ContactReference{ann},
 			urns:               []urns.URN{urns.URN("tel:+250700000001")},
 			queue:              rt.Queues.Realtime,
 			expectedBatchCount: 1,
@@ -196,7 +196,7 @@ func TestSendBroadcastTask(t *testing.T) {
 	testsuite.IndexContacts(t, rt)
 
 	tcs := []struct {
-		translations    flows.BroadcastTranslations
+		translations    core.BroadcastTranslations
 		baseLanguage    i18n.Language
 		expressions     bool
 		optIn           *testdb.OptIn
@@ -211,7 +211,7 @@ func TestSendBroadcastTask(t *testing.T) {
 		expectedMsgs    map[string]int
 	}{
 		{
-			translations: flows.BroadcastTranslations{
+			translations: core.BroadcastTranslations{
 				"eng": {Text: "hello world"},
 			},
 			baseLanguage:    "eng",
@@ -226,7 +226,7 @@ func TestSendBroadcastTask(t *testing.T) {
 			expectedMsgs:    map[string]int{"hello world": 122},
 		},
 		{
-			translations: flows.BroadcastTranslations{
+			translations: core.BroadcastTranslations{
 				"eng": {Text: "hi @(title(contact.name)) from @globals.org_name goflow URN: @urns.tel Gender: @fields.gender"},
 			},
 			baseLanguage:    "eng",
@@ -239,7 +239,7 @@ func TestSendBroadcastTask(t *testing.T) {
 			expectedMsgs:    map[string]int{"hi Ann from TextIt goflow URN: tel:+12065551212 Gender: F": 1},
 		},
 		{
-			translations: flows.BroadcastTranslations{
+			translations: core.BroadcastTranslations{
 				"eng": {Text: "hello"},
 				"spa": {Text: "hola"},
 			},
@@ -252,7 +252,7 @@ func TestSendBroadcastTask(t *testing.T) {
 			expectedMsgs:    map[string]int{"hello": 2, "hola": 1},
 		},
 		{
-			translations: flows.BroadcastTranslations{
+			translations: core.BroadcastTranslations{
 				"eng": {Text: "goodbye"},
 				"spa": {Text: "chau"},
 			},

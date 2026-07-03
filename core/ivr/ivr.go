@@ -13,8 +13,9 @@ import (
 	"github.com/nyaruka/gocommon/httpx"
 	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/goflow/assets"
+	"github.com/nyaruka/goflow/core"
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/goflow/flows/modifiers"
 	"github.com/nyaruka/goflow/utils"
 	"github.com/nyaruka/mailroom/v26/core/models"
@@ -40,8 +41,8 @@ const (
 
 // CallbackParams is our form for what fields we expect in IVR callbacks
 type CallbackParams struct {
-	Action   string         `form:"action"     validate:"required"`
-	CallUUID flows.CallUUID `form:"call"       validate:"required"`
+	Action   string        `form:"action"     validate:"required"`
+	CallUUID core.CallUUID `form:"call"       validate:"required"`
 }
 
 func (p *CallbackParams) Encode() string {
@@ -272,7 +273,7 @@ func StartCall(
 	}
 
 	flowCall := flows.NewCall(call.UUID(), oa.SessionAssets().Channels().Get(channel.UUID()), urn.Identity())
-	callEvt := events.NewCallCreated(flowCall)
+	callEvt := events.NewCallCreated(flowCall.Marshal())
 
 	scene := runner.NewScene(mc, contact)
 	scene.DBCall = call
@@ -333,7 +334,7 @@ func ResumeCall(
 
 	// check if call has been marked as errored - it maybe have been updated by status callback
 	if call.Status() == models.CallStatusErrored || call.Status() == models.CallStatusFailed {
-		if _, err := runner.InterruptWithoutLock(ctx, rt, oa, []*models.Contact{mc}, []*flows.Contact{contact}, map[models.ContactID]flows.SessionUUID{mc.ID(): session.UUID}, flows.SessionStatusInterrupted); err != nil {
+		if _, err := runner.InterruptWithoutLock(ctx, rt, oa, []*models.Contact{mc}, []*flows.Contact{contact}, map[models.ContactID]core.SessionUUID{mc.ID(): session.UUID}, flows.SessionStatusInterrupted); err != nil {
 			slog.Error("error interrupting session for errored call", "error", err)
 		}
 
@@ -371,7 +372,7 @@ func ResumeCall(
 
 	var msg *models.MsgInRef
 	var resume flows.Resume
-	var resumeEvent flows.Event
+	var resumeEvent events.Event
 	var svcErr error
 	switch res := ivrResume.(type) {
 	case InputResume:

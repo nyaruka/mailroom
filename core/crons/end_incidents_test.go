@@ -9,8 +9,8 @@ import (
 	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/gocommon/httpx"
-	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/goflow/flows/events"
+	"github.com/nyaruka/goflow/core"
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/mailroom/v26/core/crons"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/testsuite"
@@ -35,7 +35,7 @@ func TestEndIncidents(t *testing.T) {
 		for i := range evts {
 			req, _ := http.NewRequest("GET", "http://example.com", nil)
 			trace := &httpx.Trace{Request: req, StartTime: dates.Now(), EndTime: dates.Now().Add(elapsed)}
-			evts[i] = events.NewWebhookCalled(trace, flows.CallStatusSuccess, "")
+			evts[i] = events.NewWebhookCalled(trace, core.CallStatusSuccess, "")
 		}
 		return evts
 	}
@@ -44,14 +44,14 @@ func TestEndIncidents(t *testing.T) {
 	node1.Record(ctx, rt, createWebhookEvents(10, time.Second*30))
 
 	// create incident for org 1 based on node which is still unhealthy
-	id1, _, err := models.IncidentWebhooksUnhealthy(ctx, rt.DB, rt.VK, oa1, []flows.NodeUUID{"3c703019-8c92-4d28-9be0-a926a934486b"})
+	id1, _, err := models.IncidentWebhooksUnhealthy(ctx, rt.DB, rt.VK, oa1, []core.NodeUUID{"3c703019-8c92-4d28-9be0-a926a934486b"})
 	require.NoError(t, err)
 
 	node2 := &models.WebhookNode{UUID: "07d69080-475b-4395-aa96-ea6c28ea6cb6"}
 	node2.Record(ctx, rt, createWebhookEvents(10, time.Second*1))
 
 	// create incident for org 2 based on node which is now healthy
-	id2, _, err := models.IncidentWebhooksUnhealthy(ctx, rt.DB, rt.VK, oa2, []flows.NodeUUID{"07d69080-475b-4395-aa96-ea6c28ea6cb6"})
+	id2, _, err := models.IncidentWebhooksUnhealthy(ctx, rt.DB, rt.VK, oa2, []core.NodeUUID{"07d69080-475b-4395-aa96-ea6c28ea6cb6"})
 	require.NoError(t, err)
 
 	cron := &crons.EndIncidentsCron{}

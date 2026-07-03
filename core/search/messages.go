@@ -12,7 +12,8 @@ import (
 	"github.com/nyaruka/gocommon/elastic"
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/gocommon/uuids"
-	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/core"
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/runtime"
 )
@@ -24,13 +25,13 @@ const (
 
 // MessageDoc represents a message document in the Elasticsearch messages index. UUID is used as the document _id.
 type MessageDoc struct {
-	CreatedOn   time.Time         `json:"@timestamp"` // also used to determine monthly index
-	UUID        flows.EventUUID   `json:"-"`          // used as _id
-	OrgID       models.OrgID      `json:"org_id"`
-	ContactUUID flows.ContactUUID `json:"contact_uuid"`
-	URNPath     string            `json:"urn_path,omitempty"`
-	Text        string            `json:"text"`
-	InTicket    bool              `json:"in_ticket"`
+	CreatedOn   time.Time        `json:"@timestamp"` // also used to determine monthly index
+	UUID        events.EventUUID `json:"-"`          // used as _id
+	OrgID       models.OrgID     `json:"org_id"`
+	ContactUUID core.ContactUUID `json:"contact_uuid"`
+	URNPath     string           `json:"urn_path,omitempty"`
+	Text        string           `json:"text"`
+	InTicket    bool             `json:"in_ticket"`
 }
 
 // MessagesIndexName returns the monthly messages index name for the given base and time, e.g. base
@@ -46,13 +47,13 @@ func (m *MessageDoc) IndexName(base string) string {
 
 // MessageResult is a single result from a message search containing the contact UUID and event data.
 type MessageResult struct {
-	ContactUUID flows.ContactUUID
+	ContactUUID core.ContactUUID
 	Event       map[string]any
 }
 
 // SearchMessages searches the Elasticsearch messages index for messages matching the given text in the given org,
 // then fetches the corresponding events from DynamoDB.
-func SearchMessages(ctx context.Context, rt *runtime.Runtime, orgID models.OrgID, text string, contactUUID flows.ContactUUID, inTicket bool, limit int) ([]MessageResult, error) {
+func SearchMessages(ctx context.Context, rt *runtime.Runtime, orgID models.OrgID, text string, contactUUID core.ContactUUID, inTicket bool, limit int) ([]MessageResult, error) {
 	routing := fmt.Sprintf("%d", orgID)
 
 	filter := []map[string]any{
@@ -96,8 +97,8 @@ func SearchMessages(ctx context.Context, rt *runtime.Runtime, orgID models.OrgID
 	}
 
 	type hitResult struct {
-		uuid        flows.EventUUID
-		contactUUID flows.ContactUUID
+		uuid        events.EventUUID
+		contactUUID core.ContactUUID
 	}
 
 	hits := make([]hitResult, len(results.Hits.Hits))
@@ -106,7 +107,7 @@ func SearchMessages(ctx context.Context, rt *runtime.Runtime, orgID models.OrgID
 		if err := json.Unmarshal(hit.Source_, &doc); err != nil {
 			return nil, fmt.Errorf("error unmarshalling message doc: %w", err)
 		}
-		hits[i] = hitResult{uuid: flows.EventUUID(*hit.Id_), contactUUID: doc.ContactUUID}
+		hits[i] = hitResult{uuid: events.EventUUID(*hit.Id_), contactUUID: doc.ContactUUID}
 	}
 
 	// build DynamoDB keys from Elasticsearch results
@@ -153,7 +154,7 @@ func SearchMessages(ctx context.Context, rt *runtime.Runtime, orgID models.OrgID
 
 // DeindexMessages queues deletes for the given messages on the Elasticsearch writer. The monthly index
 // for each message is derived from its v7 UUID timestamp.
-func DeindexMessages(rt *runtime.Runtime, orgID models.OrgID, msgUUIDs []flows.EventUUID) error {
+func DeindexMessages(rt *runtime.Runtime, orgID models.OrgID, msgUUIDs []events.EventUUID) error {
 	routing := fmt.Sprintf("%d", orgID)
 	for _, u := range msgUUIDs {
 		t, err := uuids.V7Time(uuids.UUID(u))
@@ -171,7 +172,7 @@ func DeindexMessages(rt *runtime.Runtime, orgID models.OrgID, msgUUIDs []flows.E
 }
 
 // DeindexMessagesByContact deletes all messages in the Elasticsearch messages index for the given contact UUIDs.
-func DeindexMessagesByContact(ctx context.Context, rt *runtime.Runtime, orgID models.OrgID, contactUUIDs []flows.ContactUUID) error {
+func DeindexMessagesByContact(ctx context.Context, rt *runtime.Runtime, orgID models.OrgID, contactUUIDs []core.ContactUUID) error {
 	routing := fmt.Sprintf("%d", orgID)
 	ids := make([]string, len(contactUUIDs))
 	for i, u := range contactUUIDs {

@@ -10,6 +10,7 @@ import (
 	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/dbutil"
 	"github.com/nyaruka/goflow/assets"
+	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/v26/runtime"
 	"github.com/nyaruka/null/v3"
@@ -82,11 +83,11 @@ type CampaignPoint struct {
 	Unit          PointUnit `json:"unit"`
 	DeliveryHour  int       `json:"delivery_hour"`
 
-	FlowID            FlowID                      `json:"flow_id"`
-	Translations      flows.BroadcastTranslations `json:"translations"`
-	BaseLanguage      null.String                 `json:"base_language"`
-	TemplateID        TemplateID                  `json:"template_id"`
-	TemplateVariables []string                    `json:"template_variables"`
+	FlowID            FlowID                     `json:"flow_id"`
+	Translations      core.BroadcastTranslations `json:"translations"`
+	BaseLanguage      null.String                `json:"base_language"`
+	TemplateID        TemplateID                 `json:"template_id"`
+	TemplateVariables []string                   `json:"template_variables"`
 
 	campaign *Campaign
 }

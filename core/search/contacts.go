@@ -12,6 +12,7 @@ import (
 	"github.com/nyaruka/gocommon/i18n"
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/goflow/assets"
+	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/runtime"
@@ -41,7 +42,7 @@ type ContactDocURN struct {
 // ContactDoc represents a contact document in the contacts index. UUID is used as the document _id.
 type ContactDoc struct {
 	DBID           models.ContactID     `json:"id"`
-	UUID           flows.ContactUUID    `json:"-"` // used as _id, not in body
+	UUID           core.ContactUUID     `json:"-"` // used as _id, not in body
 	OrgID          models.OrgID         `json:"org_id"`
 	Name           string               `json:"name,omitempty"`
 	Status         models.ContactStatus `json:"status"`
@@ -172,7 +173,7 @@ func IndexContacts(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsset
 }
 
 // DeindexContactsByUUID de-indexes the contacts with the given UUIDs from Elastic
-func DeindexContactsByUUID(ctx context.Context, rt *runtime.Runtime, orgID models.OrgID, contactUUIDs []flows.ContactUUID) (int, error) {
+func DeindexContactsByUUID(ctx context.Context, rt *runtime.Runtime, orgID models.OrgID, contactUUIDs []core.ContactUUID) (int, error) {
 	ids := make([]string, len(contactUUIDs))
 	for i, uuid := range contactUUIDs {
 		ids[i] = string(uuid)

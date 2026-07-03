@@ -19,10 +19,11 @@ import (
 	"github.com/nyaruka/gocommon/httpx"
 	"github.com/nyaruka/gocommon/i18n"
 	"github.com/nyaruka/gocommon/urns"
+	"github.com/nyaruka/goflow/core"
+	"github.com/nyaruka/goflow/core/events"
+	"github.com/nyaruka/goflow/core/hints"
 	"github.com/nyaruka/goflow/envs"
 	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/goflow/flows/events"
-	"github.com/nyaruka/goflow/flows/routers/waits/hints"
 	"github.com/nyaruka/goflow/utils"
 	"github.com/nyaruka/mailroom/v26/core/ivr"
 	"github.com/nyaruka/mailroom/v26/core/models"
@@ -34,13 +35,13 @@ import (
 // IgnoreSignatures controls whether we ignore signatures (public for testing overriding)
 var IgnoreSignatures = false
 
-var dialStatusMap = map[string]flows.DialStatus{
-	"completed": flows.DialStatusAnswered,
-	"answered":  flows.DialStatusAnswered,
-	"busy":      flows.DialStatusBusy,
-	"no-answer": flows.DialStatusNoAnswer,
-	"failed":    flows.DialStatusFailed,
-	"canceled":  flows.DialStatusFailed,
+var dialStatusMap = map[string]core.DialStatus{
+	"completed": core.DialStatusAnswered,
+	"answered":  core.DialStatusAnswered,
+	"busy":      core.DialStatusBusy,
+	"no-answer": core.DialStatusNoAnswer,
+	"failed":    core.DialStatusFailed,
+	"canceled":  core.DialStatusFailed,
 }
 
 const (
@@ -487,7 +488,7 @@ func twCalculateSignature(url string, form url.Values, authToken string) ([]byte
 
 // TWIML building utilities
 
-func ResponseForSprint(rt *runtime.Runtime, env envs.Environment, urn urns.URN, resumeURL string, es []flows.Event, indent bool) (string, error) {
+func ResponseForSprint(rt *runtime.Runtime, env envs.Environment, urn urns.URN, resumeURL string, es []events.Event, indent bool) (string, error) {
 	r := &Response{}
 	commands := make([]any, 0)
 	hasWait := false

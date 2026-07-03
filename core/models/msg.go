@@ -20,9 +20,10 @@ import (
 	"github.com/nyaruka/gocommon/i18n"
 	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/goflow/assets"
+	"github.com/nyaruka/goflow/core"
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/goflow/excellent/types"
 	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/goflow/utils"
 	"github.com/nyaruka/mailroom/v26/core/goflow"
 	"github.com/nyaruka/mailroom/v26/runtime"
@@ -33,7 +34,7 @@ import (
 
 func init() {
 	goflow.RegisterCheckSendable(func(rt *runtime.Runtime) flows.CheckSendableCallback {
-		return func(ctx context.Context, sa flows.SessionAssets, contact *flows.Contact, content *flows.MsgContent) (flows.UnsendableReason, error) {
+		return func(ctx context.Context, sa flows.SessionAssets, contact *flows.Contact, content *core.MsgContent) (core.UnsendableReason, error) {
 			return msgCheckSendable(ctx, rt, orgFromAssets(sa), ContactID(contact.ID()), content)
 		}
 	})
@@ -88,8 +89,8 @@ const (
 )
 
 const (
-	UnsendableReasonOrgSuspended flows.UnsendableReason = "org_suspended"
-	UnsendableReasonLooping      flows.UnsendableReason = "looping"
+	UnsendableReasonOrgSuspended core.UnsendableReason = "org_suspended"
+	UnsendableReasonLooping      core.UnsendableReason = "looping"
 )
 
 type MsgFailedReason null.String
@@ -105,18 +106,18 @@ const (
 	MsgFailedChannelRemoved = MsgFailedReason("R")
 )
 
-var unsendableToFailedReason = map[flows.UnsendableReason]MsgFailedReason{
-	flows.UnsendableReasonContactBlocked:  MsgFailedContact,
-	flows.UnsendableReasonContactStopped:  MsgFailedContact,
-	flows.UnsendableReasonContactArchived: MsgFailedContact,
-	flows.UnsendableReasonNoRoute:         MsgFailedNoDestination,
-	UnsendableReasonOrgSuspended:          MsgFailedSuspended,
-	UnsendableReasonLooping:               MsgFailedLooping,
+var unsendableToFailedReason = map[core.UnsendableReason]MsgFailedReason{
+	core.UnsendableReasonContactBlocked:  MsgFailedContact,
+	core.UnsendableReasonContactStopped:  MsgFailedContact,
+	core.UnsendableReasonContactArchived: MsgFailedContact,
+	core.UnsendableReasonNoRoute:         MsgFailedNoDestination,
+	UnsendableReasonOrgSuspended:         MsgFailedSuspended,
+	UnsendableReasonLooping:              MsgFailedLooping,
 }
 
 // Templating adds db support to the engine's templating struct
 type Templating struct {
-	*flows.MsgTemplating
+	*core.MsgTemplating
 }
 
 // Scan supports reading templating values from JSON in database
@@ -140,7 +141,7 @@ func (t *Templating) Value() (driver.Value, error) {
 }
 
 type MsgInRef struct {
-	UUID        flows.EventUUID
+	UUID        events.EventUUID
 	ExtID       string
 	Attachments []utils.Attachment
 	LogUUIDs    []svclogs.UUID
@@ -150,9 +151,9 @@ type MsgInRef struct {
 // Msg is our type for mailroom messages
 type Msg struct {
 	m struct {
-		ID    MsgID           `db:"id"`
-		UUID  flows.EventUUID `db:"uuid"`
-		OrgID OrgID           `db:"org_id"`
+		ID    MsgID            `db:"id"`
+		UUID  events.EventUUID `db:"uuid"`
+		OrgID OrgID            `db:"org_id"`
 
 		// origin
 		BroadcastID BroadcastID `db:"broadcast_id"`
@@ -161,12 +162,12 @@ type Msg struct {
 		CreatedByID UserID      `db:"created_by_id"`
 
 		// content
-		Text         string                    `db:"text"`
-		Attachments  pq.StringArray            `db:"attachments"`
-		QuickReplies JSONB[[]flows.QuickReply] `db:"quickreplies"`
-		OptInID      OptInID                   `db:"optin_id"`
-		Locale       i18n.Locale               `db:"locale"`
-		Templating   *Templating               `db:"templating"`
+		Text         string                   `db:"text"`
+		Attachments  pq.StringArray           `db:"attachments"`
+		QuickReplies JSONB[[]core.QuickReply] `db:"quickreplies"`
+		OptInID      OptInID                  `db:"optin_id"`
+		Locale       i18n.Locale              `db:"locale"`
+		Templating   *Templating              `db:"templating"`
 
 		HighPriority       bool          `db:"high_priority"`
 		Direction          Direction     `db:"direction"`
@@ -189,13 +190,13 @@ type Msg struct {
 	}
 }
 
-func (m *Msg) ID() MsgID             { return m.m.ID }
-func (m *Msg) UUID() flows.EventUUID { return m.m.UUID }
+func (m *Msg) ID() MsgID              { return m.m.ID }
+func (m *Msg) UUID() events.EventUUID { return m.m.UUID }
 
-func (m *Msg) BroadcastID() BroadcastID     { return m.m.BroadcastID }
-func (m *Msg) FlowID() FlowID               { return m.m.FlowID }
-func (m *Msg) TicketUUID() flows.TicketUUID { return flows.TicketUUID(m.m.TicketUUID) }
-func (m *Msg) CreatedByID() UserID          { return m.m.CreatedByID }
+func (m *Msg) BroadcastID() BroadcastID    { return m.m.BroadcastID }
+func (m *Msg) FlowID() FlowID              { return m.m.FlowID }
+func (m *Msg) TicketUUID() core.TicketUUID { return core.TicketUUID(m.m.TicketUUID) }
+func (m *Msg) CreatedByID() UserID         { return m.m.CreatedByID }
 
 func (m *Msg) Text() string                  { return m.m.Text }
 func (m *Msg) Locale() i18n.Locale           { return m.m.Locale }
@@ -239,11 +240,11 @@ func (m *Msg) Attachments() []utils.Attachment {
 	return attachments
 }
 
-func (m *Msg) QuickReplies() []flows.QuickReply {
+func (m *Msg) QuickReplies() []core.QuickReply {
 	if m.m.QuickReplies.V != nil {
 		return m.m.QuickReplies.V
 	}
-	return []flows.QuickReply{}
+	return []core.QuickReply{}
 }
 
 // MsgOut is an outgoing message with the additional information required to queue it
@@ -266,7 +267,7 @@ type MsgOut struct {
 func NewIncomingAndroid(orgID OrgID, channelID ChannelID, contactID ContactID, urnID URNID, text string, receivedOn time.Time) *Msg {
 	msg := &Msg{}
 	m := &msg.m
-	m.UUID = flows.NewEventUUID()
+	m.UUID = events.NewEventUUID()
 	m.OrgID = orgID
 	m.ChannelID = channelID
 	m.ContactID = contactID
@@ -403,7 +404,7 @@ func newMsgOut(rt *runtime.Runtime, org *Org, channel *Channel, contact *Contact
 	m.TicketUUID = null.String(event.TicketUUID)
 	m.Text = out.Text()
 	m.Locale = out.Locale()
-	m.QuickReplies = JSONB[[]flows.QuickReply]{out.QuickReplies()}
+	m.QuickReplies = JSONB[[]core.QuickReply]{out.QuickReplies()}
 	m.OptInID = optInID
 	m.HighPriority = highPriority
 	m.Direction = DirectionOut
@@ -468,7 +469,7 @@ return count
 `)
 
 // GetMsgRepetitions gets the number of repetitions of this msg text for the given contact in the current 5 minute window
-func GetMsgRepetitions(rp *valkey.Pool, contactID ContactID, msg *flows.MsgContent) (int, error) {
+func GetMsgRepetitions(rp *valkey.Pool, contactID ContactID, msg *core.MsgContent) (int, error) {
 	vc := rp.Get()
 	defer vc.Close()
 
@@ -514,7 +515,7 @@ ORDER BY
 	uuid ASC`
 
 // GetMessagesByUUID fetches the messages with the given UUIDs
-func GetMessagesByUUID(ctx context.Context, db *sqlx.DB, orgID OrgID, direction Direction, msgUUIDs []flows.EventUUID) ([]*Msg, error) {
+func GetMessagesByUUID(ctx context.Context, db *sqlx.DB, orgID OrgID, direction Direction, msgUUIDs []events.EventUUID) ([]*Msg, error) {
 	return loadMessages(ctx, db, sqlSelectMessagesByUUID, orgID, direction, pq.Array(msgUUIDs))
 }
 
@@ -622,13 +623,13 @@ msgs_msg(uuid, text, attachments, quickreplies, locale, templating, high_priorit
 RETURNING id, modified_on`
 
 // MarkMessageHandled updates a message after handling
-func MarkMessageHandled(ctx context.Context, tx DBorTx, msgUUID flows.EventUUID, status MsgStatus, visibility MsgVisibility, flow *Flow, ticket *Ticket, attachments []utils.Attachment, logUUIDs []svclogs.UUID) error {
+func MarkMessageHandled(ctx context.Context, tx DBorTx, msgUUID events.EventUUID, status MsgStatus, visibility MsgVisibility, flow *Flow, ticket *Ticket, attachments []utils.Attachment, logUUIDs []svclogs.UUID) error {
 	flowID := NilFlowID
 	if flow != nil {
 		flowID = flow.ID()
 	}
 
-	var ticketUUID flows.TicketUUID
+	var ticketUUID core.TicketUUID
 	if ticket != nil {
 		ticketUUID = ticket.UUID
 	}
@@ -877,7 +878,7 @@ func FailChannelMessages(ctx context.Context, db *sql.DB, orgID OrgID, channelID
 }
 
 // CreateMsgOut creates a new outgoing message to the given contact, resolving the destination etc
-func CreateMsgOut(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, c *flows.Contact, content *flows.MsgContent, templateID TemplateID, templateVariables []string, locale i18n.Locale, expressionsContext *types.XObject) (*flows.MsgOut, error) {
+func CreateMsgOut(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, c *flows.Contact, content *core.MsgContent, templateID TemplateID, templateVariables []string, locale i18n.Locale, expressionsContext *types.XObject) (*core.MsgOut, error) {
 	// resolve URN + channel for this contact
 	urn := urns.NilURN
 	var channel *Channel
@@ -909,7 +910,7 @@ func CreateMsgOut(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, c *fl
 	}
 
 	// if we have a template, try to generate templating
-	var templating *flows.MsgTemplating
+	var templating *core.MsgTemplating
 	if templateID != NilTemplateID && channel != nil {
 		template := oa.TemplateByID(templateID)
 		if template != nil {
@@ -936,15 +937,15 @@ func CreateMsgOut(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, c *fl
 	}
 
 	// is this message sendable?
-	var unsendableReason flows.UnsendableReason
-	if c.Status() == flows.ContactStatusBlocked {
-		unsendableReason = flows.UnsendableReasonContactBlocked
-	} else if c.Status() == flows.ContactStatusStopped {
-		unsendableReason = flows.UnsendableReasonContactStopped
-	} else if c.Status() == flows.ContactStatusArchived {
-		unsendableReason = flows.UnsendableReasonContactArchived
+	var unsendableReason core.UnsendableReason
+	if c.Status() == core.ContactStatusBlocked {
+		unsendableReason = core.UnsendableReasonContactBlocked
+	} else if c.Status() == core.ContactStatusStopped {
+		unsendableReason = core.UnsendableReasonContactStopped
+	} else if c.Status() == core.ContactStatusArchived {
+		unsendableReason = core.UnsendableReasonContactArchived
 	} else if urn == urns.NilURN || channel == nil {
-		unsendableReason = flows.UnsendableReasonNoRoute
+		unsendableReason = core.UnsendableReasonNoRoute
 	} else {
 		var err error
 		unsendableReason, err = msgCheckSendable(ctx, rt, oa.Org(), ContactID(c.ID()), content)
@@ -953,7 +954,7 @@ func CreateMsgOut(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, c *fl
 		}
 	}
 
-	return flows.NewMsgOut(urn, channelRef, content, templating, locale, unsendableReason), nil
+	return core.NewMsgOut(urn, channelRef, content, templating, locale, unsendableReason), nil
 }
 
 const sqlUpdateMsgDeleted = `
@@ -962,7 +963,7 @@ const sqlUpdateMsgDeleted = `
     WHERE org_id = $1 AND uuid = ANY($2) AND direction = 'I' AND visibility IN ('V', 'A')
 RETURNING id`
 
-func DeleteMessages(ctx context.Context, tx *sqlx.Tx, orgID OrgID, uuids []flows.EventUUID, visibility MsgVisibility) error {
+func DeleteMessages(ctx context.Context, tx *sqlx.Tx, orgID OrgID, uuids []events.EventUUID, visibility MsgVisibility) error {
 	ids := make([]MsgID, 0, len(uuids))
 
 	if err := tx.SelectContext(ctx, &ids, sqlUpdateMsgDeleted, orgID, pq.Array(uuids), visibility); err != nil {
@@ -977,7 +978,7 @@ func DeleteMessages(ctx context.Context, tx *sqlx.Tx, orgID OrgID, uuids []flows
 	return nil
 }
 
-func msgCheckSendable(ctx context.Context, rt *runtime.Runtime, org *Org, contactID ContactID, content *flows.MsgContent) (flows.UnsendableReason, error) {
+func msgCheckSendable(ctx context.Context, rt *runtime.Runtime, org *Org, contactID ContactID, content *core.MsgContent) (core.UnsendableReason, error) {
 	if org.Suspended() {
 		return UnsendableReasonOrgSuspended, nil
 	}

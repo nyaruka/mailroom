@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/nyaruka/gocommon/dates"
-	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/search"
 	"github.com/nyaruka/mailroom/v26/testsuite"
@@ -29,7 +29,7 @@ func TestBuildRecipientsQuery(t *testing.T) {
 
 	tcs := []struct {
 		groups        []*models.Group
-		contactUUIDs  []flows.ContactUUID
+		contactUUIDs  []core.ContactUUID
 		userQuery     string
 		exclusions    models.Exclusions
 		excludeGroups []*models.Group
@@ -38,13 +38,13 @@ func TestBuildRecipientsQuery(t *testing.T) {
 	}{
 		{ // 0
 			groups:       []*models.Group{doctors, testers},
-			contactUUIDs: []flows.ContactUUID{testdb.Ann.UUID, testdb.Cat.UUID},
+			contactUUIDs: []core.ContactUUID{testdb.Ann.UUID, testdb.Cat.UUID},
 			exclusions:   models.Exclusions{},
 			expected:     `group = "Doctors" OR group = "Testers" OR uuid = "a393abc0-283d-4c9b-a1b3-641a035c34bf" OR uuid = "cd024bcd-f473-4719-a00a-bd0bb1190135"`,
 		},
 		{ // 1
 			groups:       []*models.Group{doctors},
-			contactUUIDs: []flows.ContactUUID{testdb.Ann.UUID},
+			contactUUIDs: []core.ContactUUID{testdb.Ann.UUID},
 			exclusions: models.Exclusions{
 				NonActive:         true,
 				InAFlow:           true,
@@ -55,7 +55,7 @@ func TestBuildRecipientsQuery(t *testing.T) {
 			expected:      `(group = "Doctors" OR uuid = "a393abc0-283d-4c9b-a1b3-641a035c34bf") AND status = "active" AND flow = "" AND history != "Favorites" AND last_seen_on > "20-01-2022" AND group != "Testers"`,
 		},
 		{ // 2
-			contactUUIDs: []flows.ContactUUID{testdb.Ann.UUID},
+			contactUUIDs: []core.ContactUUID{testdb.Ann.UUID},
 			exclusions: models.Exclusions{
 				NonActive: true,
 			},

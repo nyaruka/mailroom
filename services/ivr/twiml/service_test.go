@@ -11,10 +11,10 @@ import (
 	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/gocommon/uuids"
 	"github.com/nyaruka/goflow/assets"
+	"github.com/nyaruka/goflow/core"
+	"github.com/nyaruka/goflow/core/events"
+	"github.com/nyaruka/goflow/core/hints"
 	"github.com/nyaruka/goflow/envs"
-	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/goflow/flows/events"
-	"github.com/nyaruka/goflow/flows/routers/waits/hints"
 	"github.com/nyaruka/mailroom/v26/core/ivr"
 	"github.com/nyaruka/mailroom/v26/services/ivr/twiml"
 	"github.com/nyaruka/mailroom/v26/testsuite"
@@ -37,72 +37,72 @@ func TestResponseForSprint(t *testing.T) {
 	defer func() { rt.Config.AttachmentDomain = "" }()
 
 	tcs := []struct {
-		events   []flows.Event
+		events   []events.Event
 		expected string
 	}{
 		{
 			// ivr msg, no text language specified
-			events: []flows.Event{
-				events.NewIVRCreated(flows.NewIVRMsgOut(urn, channelRef, "Hi there", "", "")),
+			events: []events.Event{
+				events.NewIVRCreated(core.NewIVRMsgOut(urn, channelRef, "Hi there", "", "")),
 			},
 			expected: `<Response><Say language="en-US">Hi there</Say><Hangup></Hangup></Response>`,
 		},
 		{
 			// ivr msg, supported text language specified
-			events: []flows.Event{
-				events.NewIVRCreated(flows.NewIVRMsgOut(urn, channelRef, "Hi there", "", "eng-GB")),
+			events: []events.Event{
+				events.NewIVRCreated(core.NewIVRMsgOut(urn, channelRef, "Hi there", "", "eng-GB")),
 			},
 			expected: `<Response><Say language="en-GB">Hi there</Say><Hangup></Hangup></Response>`,
 		},
 		{
 			// ivr msg, unsupported text language specified
-			events: []flows.Event{
-				events.NewIVRCreated(flows.NewIVRMsgOut(urn, channelRef, "Amakuru", "", "kin")),
+			events: []events.Event{
+				events.NewIVRCreated(core.NewIVRMsgOut(urn, channelRef, "Amakuru", "", "kin")),
 			},
 			expected: `<Response><Say language="en-US">Amakuru</Say><Hangup></Hangup></Response>`,
 		},
 		{
 			// ivr msg with audio attachment, text language ignored
-			events: []flows.Event{
-				events.NewIVRCreated(flows.NewIVRMsgOut(urn, channelRef, "Hi there", "/recordings/foo.wav", "eng-US")),
+			events: []events.Event{
+				events.NewIVRCreated(core.NewIVRMsgOut(urn, channelRef, "Hi there", "/recordings/foo.wav", "eng-US")),
 			},
 			expected: `<Response><Play>https://mailroom.io/recordings/foo.wav</Play><Hangup></Hangup></Response>`,
 		},
 		{
 			// 2 ivr msgs
-			events: []flows.Event{
-				events.NewIVRCreated(flows.NewIVRMsgOut(urn, channelRef, "hello world", "", "")),
-				events.NewIVRCreated(flows.NewIVRMsgOut(urn, channelRef, "goodbye", "", "")),
+			events: []events.Event{
+				events.NewIVRCreated(core.NewIVRMsgOut(urn, channelRef, "hello world", "", "")),
+				events.NewIVRCreated(core.NewIVRMsgOut(urn, channelRef, "goodbye", "", "")),
 			},
 			expected: `<Response><Say language="en-US">hello world</Say><Say language="en-US">goodbye</Say><Hangup></Hangup></Response>`,
 		},
 		{
 			// ivr msg followed by wait for digits
-			events: []flows.Event{
-				events.NewIVRCreated(flows.NewIVRMsgOut(urn, channelRef, "enter a number", "", "")),
+			events: []events.Event{
+				events.NewIVRCreated(core.NewIVRMsgOut(urn, channelRef, "enter a number", "", "")),
 				events.NewMsgWait(nil, expiresOn, hints.NewFixedDigits(1)),
 			},
 			expected: `<Response><Gather numDigits="1" timeout="30" action="http://temba.io/resume?session=1&amp;wait_type=gather"><Say language="en-US">enter a number</Say></Gather><Redirect>http://temba.io/resume?session=1&amp;wait_type=gather&amp;timeout=true</Redirect></Response>`,
 		},
 		{
 			// ivr msg followed by wait for terminated digits
-			events: []flows.Event{
-				events.NewIVRCreated(flows.NewIVRMsgOut(urn, channelRef, "enter a number, then press #", "", "")),
+			events: []events.Event{
+				events.NewIVRCreated(core.NewIVRMsgOut(urn, channelRef, "enter a number, then press #", "", "")),
 				events.NewMsgWait(nil, expiresOn, hints.NewTerminatedDigits("#")),
 			},
 			expected: `<Response><Gather finishOnKey="#" timeout="30" action="http://temba.io/resume?session=1&amp;wait_type=gather"><Say language="en-US">enter a number, then press #</Say></Gather><Redirect>http://temba.io/resume?session=1&amp;wait_type=gather&amp;timeout=true</Redirect></Response>`,
 		},
 		{
 			// ivr msg followed by wait for recording
-			events: []flows.Event{
-				events.NewIVRCreated(flows.NewIVRMsgOut(urn, channelRef, "say something", "", "")),
+			events: []events.Event{
+				events.NewIVRCreated(core.NewIVRMsgOut(urn, channelRef, "say something", "", "")),
 				events.NewMsgWait(nil, expiresOn, hints.NewAudio()),
 			},
 			expected: `<Response><Say language="en-US">say something</Say><Record action="http://temba.io/resume?session=1&amp;wait_type=record" maxLength="600"></Record><Redirect>http://temba.io/resume?session=1&amp;wait_type=record&amp;empty=true</Redirect></Response>`,
 		},
 		{
 			// dial wait
-			events: []flows.Event{
+			events: []events.Event{
 				events.NewDialWait(urns.URN(`tel:+1234567890`), 60, 7200, expiresOn),
 			},
 			expected: `<Response><Dial action="http://temba.io/resume?session=1&amp;wait_type=dial" timeout="60" timeLimit="7200">+1234567890</Dial></Response>`,

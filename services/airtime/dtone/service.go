@@ -10,6 +10,8 @@ import (
 	"github.com/nyaruka/gocommon/httpx"
 	"github.com/nyaruka/gocommon/stringsx"
 	"github.com/nyaruka/gocommon/urns"
+	"github.com/nyaruka/goflow/core"
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/shopspring/decimal"
 )
@@ -26,7 +28,7 @@ type service struct {
 func NewService(httpClient *http.Client, httpRetries *httpx.RetryConfig, key, secret, callbackURL string) flows.AirtimeService {
 	return &service{
 		client:      NewClient(httpClient, httpRetries, key, secret),
-		redactor:    stringsx.NewRedactor(flows.RedactionMask, secret),
+		redactor:    stringsx.NewRedactor(core.RedactionMask, secret),
 		callbackURL: callbackURL,
 	}
 }
@@ -35,8 +37,8 @@ func NewService(httpClient *http.Client, httpRetries *httpx.RetryConfig, key, se
 // The transferUUID is passed to DT One as our reference (their `external_id` request field), so subsequent
 // status callbacks echo it back and the host can correlate them to the airtime_created event by UUID.
 // The returned ExternalID is DT One's transaction id; nothing is actually sent until the host calls Confirm.
-func (s *service) Create(ctx context.Context, transferUUID flows.EventUUID, sender urns.URN, recipient urns.URN, amounts map[string]decimal.Decimal, logHTTP flows.HTTPLogCallback) (*flows.AirtimeTransfer, error) {
-	transfer := &flows.AirtimeTransfer{
+func (s *service) Create(ctx context.Context, transferUUID events.EventUUID, sender urns.URN, recipient urns.URN, amounts map[string]decimal.Decimal, logHTTP core.HTTPLogCallback) (*core.AirtimeTransfer, error) {
+	transfer := &core.AirtimeTransfer{
 		Sender:    sender,
 		Recipient: recipient,
 		Currency:  "",
@@ -50,7 +52,7 @@ func (s *service) Create(ctx context.Context, transferUUID flows.EventUUID, send
 
 	operators, trace, err := s.client.LookupMobileNumber(ctx, recipientPhone)
 	if trace != nil {
-		logHTTP(flows.NewHTTPLog(trace, flows.HTTPStatusFromCode, s.redactor))
+		logHTTP(core.NewHTTPLog(trace, core.HTTPStatusFromCode, s.redactor))
 	}
 	if err != nil {
 		return transfer, fmt.Errorf("number lookup failed: %w", err)
@@ -69,7 +71,7 @@ func (s *service) Create(ctx context.Context, transferUUID flows.EventUUID, send
 
 	products, trace, err := s.client.Products(ctx, "FIXED_VALUE_RECHARGE", operator.ID)
 	if trace != nil {
-		logHTTP(flows.NewHTTPLog(trace, flows.HTTPStatusFromCode, s.redactor))
+		logHTTP(core.NewHTTPLog(trace, core.HTTPStatusFromCode, s.redactor))
 	}
 	if err != nil {
 		return transfer, fmt.Errorf("product fetch failed: %w", err)
@@ -97,7 +99,7 @@ func (s *service) Create(ctx context.Context, transferUUID flows.EventUUID, send
 	// submit the transaction in a held state; the host triggers actual delivery via Confirm after commit
 	tx, trace, err := s.client.TransactionAsync(ctx, string(transferUUID), product.ID, recipientPhone, s.callbackURL)
 	if trace != nil {
-		logHTTP(flows.NewHTTPLog(trace, flows.HTTPStatusFromCode, s.redactor))
+		logHTTP(core.NewHTTPLog(trace, core.HTTPStatusFromCode, s.redactor))
 	}
 	if err != nil {
 		return transfer, fmt.Errorf("transaction creation failed: %w", err)
@@ -118,7 +120,7 @@ func (s *service) Create(ctx context.Context, transferUUID flows.EventUUID, send
 
 // Confirm triggers DT One to actually send the airtime for the previously-created transaction. The provider
 // transaction id is read from transfer.ExternalID, which Create set on initiation.
-func (s *service) Confirm(ctx context.Context, transfer *flows.AirtimeTransfer, logHTTP flows.HTTPLogCallback) error {
+func (s *service) Confirm(ctx context.Context, transfer *core.AirtimeTransfer, logHTTP core.HTTPLogCallback) error {
 	txID, err := strconv.ParseInt(transfer.ExternalID, 10, 64)
 	if err != nil {
 		return fmt.Errorf("invalid transaction id %q: %w", transfer.ExternalID, err)
@@ -126,7 +128,7 @@ func (s *service) Confirm(ctx context.Context, transfer *flows.AirtimeTransfer, 
 
 	_, trace, err := s.client.ConfirmTransaction(ctx, txID)
 	if trace != nil {
-		logHTTP(flows.NewHTTPLog(trace, flows.HTTPStatusFromCode, s.redactor))
+		logHTTP(core.NewHTTPLog(trace, core.HTTPStatusFromCode, s.redactor))
 	}
 	if err != nil {
 		return fmt.Errorf("transaction confirmation failed: %w", err)

@@ -2,11 +2,12 @@ package handlers
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"time"
 
-	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/goflow/flows/events"
+	"github.com/nyaruka/goflow/core"
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/runner"
 	"github.com/nyaruka/mailroom/v26/core/runner/hooks"
@@ -18,13 +19,13 @@ func init() {
 }
 
 // handleWebhookCalled is called for each webhook call in a scene
-func handleWebhookCalled(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scene *runner.Scene, e flows.Event, userID models.UserID) error {
+func handleWebhookCalled(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scene *runner.Scene, e events.Event, userID models.UserID) error {
 	event := e.(*events.WebhookCalled)
 
 	slog.Debug("webhook called", "contact", scene.ContactUUID(), "session", scene.SessionUUID(), "url", event.URL, "status", event.Status, "elapsed_ms", event.ElapsedMS)
 
 	// if this was a resthook and the status was 410, that means we should remove it
-	if event.Status == flows.CallStatusSubscriberGone {
+	if event.Status == core.CallStatusSubscriberGone {
 		unsub := &models.ResthookUnsubscribe{
 			OrgID: oa.OrgID(),
 			Slug:  event.Resthook,
@@ -34,26 +35,27 @@ func handleWebhookCalled(ctx context.Context, rt *runtime.Runtime, oa *models.Or
 		scene.AttachPreCommitHook(hooks.UnsubscribeResthook, unsub)
 	}
 
-	flow := e.Step().Run().Flow().Asset().(*models.Flow)
+	flow, err := oa.FlowByUUID(e.Step().Flow.UUID)
+	if err != nil {
+		return fmt.Errorf("unable to load flow with uuid: %s: %w", e.Step().Flow.UUID, err)
+	}
 
 	// create an HTTP log
-	if flow != nil {
-		httpLog := models.NewWebhookCalledLog(
-			oa.OrgID(),
-			flow.ID(),
-			event.URL, event.StatusCode, event.Request, event.Response,
-			event.Status != flows.CallStatusSuccess,
-			time.Millisecond*time.Duration(event.ElapsedMS),
-			event.Retries,
-			event.CreatedOn(),
-		)
-		scene.AttachPreCommitHook(hooks.InsertHTTPLogs, httpLog)
-	}
+	httpLog := models.NewWebhookCalledLog(
+		oa.OrgID(),
+		flow.(*models.Flow).ID(),
+		event.URL, event.StatusCode, event.Request, event.Response,
+		event.Status != core.CallStatusSuccess,
+		time.Millisecond*time.Duration(event.ElapsedMS),
+		event.Retries,
+		event.CreatedOn(),
+	)
+	scene.AttachPreCommitHook(hooks.InsertHTTPLogs, httpLog)
 
 	rt.Stats.RecordWebhookCall(time.Duration(event.ElapsedMS) * time.Millisecond)
 
 	// pass node and response time to the hook that monitors webhook health
-	scene.AttachPreCommitHook(hooks.MonitorWebhooks, &hooks.WebhookCall{NodeUUID: e.Step().NodeUUID(), Event: event})
+	scene.AttachPreCommitHook(hooks.MonitorWebhooks, &hooks.WebhookCall{NodeUUID: e.Step().Node, Event: event})
 
 	return nil
 }

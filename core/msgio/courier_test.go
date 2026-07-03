@@ -9,8 +9,8 @@ import (
 	"github.com/nyaruka/gocommon/i18n"
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/goflow/assets"
-	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/goflow/flows/events"
+	"github.com/nyaruka/goflow/core"
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/goflow/flows/triggers"
 	"github.com/nyaruka/goflow/test"
 	"github.com/nyaruka/goflow/utils"
@@ -52,18 +52,18 @@ func TestNewCourierMsg(t *testing.T) {
 	scenes := testsuite.StartSessions(t, rt, oa, []*testdb.Contact{testdb.Ann}, triggers.NewBuilder(testdb.Favorites.Reference()).Manual().Build())
 	session, sprint := scenes[0].Session, scenes[0].Sprint
 
-	msgEvent1 := events.NewMsgCreated(flows.NewMsgOut(
+	msgEvent1 := events.NewMsgCreated(core.NewMsgOut(
 		annURN,
 		assets.NewChannelReference(testdb.FacebookChannel.UUID, "Facebook"),
-		&flows.MsgContent{
+		&core.MsgContent{
 			Text:         "Hi there",
 			Attachments:  []utils.Attachment{utils.Attachment("image/jpeg:https://dl-foo.com/image.jpg")},
-			QuickReplies: []flows.QuickReply{{Type: "text", Text: "yes", Extra: "if you really want"}, {Type: "text", Text: "no"}},
+			QuickReplies: []core.QuickReply{{Type: "text", Text: "yes", Extra: "if you really want"}, {Type: "text", Text: "no"}},
 		},
-		flows.NewMsgTemplating(
+		core.NewMsgTemplating(
 			assets.NewTemplateReference(testdb.ReviveTemplate.UUID, "revive_issue"),
-			[]*flows.TemplatingComponent{{Type: "body", Name: "body", Variables: map[string]int{"1": 0}}},
-			[]*flows.TemplatingVariable{{Type: "text", Value: "name"}},
+			[]*core.TemplatingComponent{{Type: "body", Name: "body", Variables: map[string]int{"1": 0}}},
+			[]*core.TemplatingVariable{{Type: "text", Value: "name"}},
 		),
 		`eng-US`,
 		"",
@@ -114,10 +114,10 @@ func TestNewCourierMsg(t *testing.T) {
 
 	// create a priority flow message.. i.e. the session is responding to an incoming message
 	ann.UpdateLastSeenOn(ctx, rt.DB, time.Date(2023, 4, 20, 10, 15, 0, 0, time.UTC))
-	msgEvent2 := events.NewMsgCreated(flows.NewMsgOut(
+	msgEvent2 := events.NewMsgCreated(core.NewMsgOut(
 		annURN,
 		assets.NewChannelReference(testdb.TwilioChannel.UUID, "Test Channel"),
-		&flows.MsgContent{Text: "Hi there"},
+		&core.MsgContent{Text: "Hi there"},
 		nil,
 		i18n.NilLocale,
 		"",
@@ -156,7 +156,7 @@ func TestNewCourierMsg(t *testing.T) {
 	// try a broadcast message which won't have session and flow fields set and won't be high priority
 	bcast := testdb.InsertBroadcast(t, rt, testdb.Org1, "0199877e-0ed2-790b-b474-35099cea401c", `eng`, map[i18n.Language]string{`eng`: "Blast"}, nil, models.NilScheduleID, []*testdb.Contact{testFred}, nil)
 	msgEvent3 := events.NewMsgCreated(
-		flows.NewMsgOut(fredURN, assets.NewChannelReference(testdb.TwilioChannel.UUID, "Test Channel"), &flows.MsgContent{Text: "Blast"}, nil, i18n.NilLocale, ""),
+		core.NewMsgOut(fredURN, assets.NewChannelReference(testdb.TwilioChannel.UUID, "Test Channel"), &core.MsgContent{Text: "Blast"}, nil, i18n.NilLocale, ""),
 		bcast.UUID,
 		"",
 	)
@@ -406,8 +406,8 @@ func TestPushCourierBatch(t *testing.T) {
 
 	item1UUID := unmarshaled.([]any)[0].(map[string]any)["uuid"].(string)
 	item2UUID := unmarshaled.([]any)[1].(map[string]any)["uuid"].(string)
-	assert.Equal(t, msg1.UUID(), flows.EventUUID(item1UUID))
-	assert.Equal(t, msg2.UUID(), flows.EventUUID(item2UUID))
+	assert.Equal(t, msg1.UUID(), events.EventUUID(item1UUID))
+	assert.Equal(t, msg2.UUID(), events.EventUUID(item2UUID))
 
 	// push another batch in the same epoch second with transaction counter still below limit
 	vc.Do("SET", "msgs:74729f45-7f29-4868-9dc4-90e491e3c7d8|10:tps:1636557205", "5")

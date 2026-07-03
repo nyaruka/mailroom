@@ -12,8 +12,9 @@ import (
 
 	"github.com/nyaruka/gocommon/i18n"
 	"github.com/nyaruka/goflow/assets"
+	"github.com/nyaruka/goflow/core"
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/mailroom/v26/core/ai"
 	"github.com/nyaruka/mailroom/v26/core/ai/prompts"
 	"github.com/nyaruka/mailroom/v26/core/models"
@@ -92,9 +93,9 @@ func handleTranslate(ctx context.Context, rt *runtime.Runtime, r *translateReque
 	callStart := time.Now()
 	resp, err := llmSvc.Response(ctx, instructions, string(inputBytes), llm.MaxOutputTokens())
 	if resp == nil {
-		resp = &flows.LLMResponse{}
+		resp = &core.LLMResponse{}
 	}
-	counts := llm.RecordCall(rt, oa, events.NewLLMCalled(flows.NewLLM(llm), instructions, string(inputBytes), resp, time.Since(callStart)))
+	counts := llm.RecordCall(rt, oa, events.NewLLMCalled(flows.NewLLM(llm).Reference(), instructions, string(inputBytes), resp, time.Since(callStart)))
 
 	// detach from the request context so a client-side timeout during the LLM call doesn't prevent us from recording usage someone may have paid for
 	recCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)

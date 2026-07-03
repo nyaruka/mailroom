@@ -7,8 +7,9 @@ import (
 
 	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/random"
+	"github.com/nyaruka/goflow/core"
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/runner"
 	"github.com/nyaruka/mailroom/v26/core/runner/hooks"
@@ -25,7 +26,7 @@ func init() {
 	runner.RegisterEventHandler(runner.TypeSprintEnded, handleSprintEnded)
 }
 
-func handleSprintEnded(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scene *runner.Scene, e flows.Event, userID models.UserID) error {
+func handleSprintEnded(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scene *runner.Scene, e events.Event, userID models.UserID) error {
 	event := e.(*runner.SprintEndedEvent)
 
 	slog.Debug("sprint ended", "contact", scene.ContactUUID(), "session", scene.SessionUUID())
@@ -70,7 +71,7 @@ func handleSprintEnded(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 	// get flow that contact is now waiting in
 	waitingFlowID := models.NilFlowID
 	for _, run := range scene.Session.Runs() {
-		if run.Status() == flows.RunStatusWaiting {
+		if run.Status() == core.RunStatusWaiting {
 			waitingFlowID = run.Flow().Asset().(*models.Flow).ID()
 			break
 		}
@@ -78,7 +79,7 @@ func handleSprintEnded(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 
 	// if we're in a flow type that can wait, then contact current flow has potentially changed
 	if scene.Session.Type() != flows.FlowTypeMessagingBackground {
-		var waitingSessionUUID flows.SessionUUID
+		var waitingSessionUUID core.SessionUUID
 		if sessionIsWaiting {
 			waitingSessionUUID = scene.Session.UUID()
 		}
@@ -180,7 +181,7 @@ func calculateFires(oa *models.OrgAssets, contactID models.ContactID, session fl
 }
 
 // looks thru sprint events to figure out if we have a wait on this session and if so what is its expiration and timeout
-func getWaitProperties(oa *models.OrgAssets, evts []flows.Event) (*time.Time, time.Duration, bool) {
+func getWaitProperties(oa *models.OrgAssets, evts []events.Event) (*time.Time, time.Duration, bool) {
 	var expiresOn *time.Time
 	var timeout time.Duration
 	var queuesToCourier bool

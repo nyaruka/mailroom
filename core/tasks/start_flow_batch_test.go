@@ -5,7 +5,7 @@ import (
 
 	"github.com/lib/pq"
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
-	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	_ "github.com/nyaruka/mailroom/v26/core/runner/handlers"
 	"github.com/nyaruka/mailroom/v26/core/tasks"
@@ -37,7 +37,7 @@ func TestStartFlowBatchTask(t *testing.T) {
 	testsuite.FlushTasks(t, rt)
 
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE contact_uuid = ANY($1) 
-		AND status = 'C' AND call_uuid IS NULL AND output IS NOT NULL`, pq.Array([]flows.ContactUUID{testdb.Ann.UUID, testdb.Bob.UUID})).
+		AND status = 'C' AND call_uuid IS NULL AND output IS NOT NULL`, pq.Array([]core.ContactUUID{testdb.Ann.UUID, testdb.Bob.UUID})).
 		Returns(2)
 
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowrun WHERE contact_id = ANY($1) and flow_id = $2 AND responded = FALSE AND org_id = 1 AND status = 'C'

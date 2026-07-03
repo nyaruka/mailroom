@@ -6,7 +6,7 @@ import (
 
 	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
-	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/testsuite"
 	"github.com/nyaruka/mailroom/v26/testsuite/testdb"
@@ -50,7 +50,7 @@ func TestTickets(t *testing.T) {
 		testdb.Admin.ID,
 	)
 
-	assert.Equal(t, flows.TicketUUID("2ef57efc-d85f-4291-b330-e4afe68af5fe"), ticket1.UUID)
+	assert.Equal(t, core.TicketUUID("2ef57efc-d85f-4291-b330-e4afe68af5fe"), ticket1.UUID)
 	assert.Equal(t, testdb.Org1.ID, ticket1.OrgID)
 	assert.Equal(t, testdb.Ann.ID, ticket1.ContactID)
 	assert.Equal(t, testdb.DefaultTopic.ID, ticket1.TopicID)

@@ -8,7 +8,7 @@ import (
 	"github.com/buger/jsonparser"
 	"github.com/nyaruka/gocommon/uuids"
 	"github.com/nyaruka/goflow/assets"
-	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/runtime"
 	"github.com/nyaruka/null/v3"
@@ -95,9 +95,9 @@ func InsertFlowStart(t *testing.T, rt *runtime.Runtime, org *Org, user *User, fl
 }
 
 // InsertFlowSession inserts a flow session
-func InsertFlowSession(t *testing.T, rt *runtime.Runtime, contact *Contact, sessionType models.FlowType, status models.SessionStatus, call *Call, currentFlow *Flow) flows.SessionUUID {
+func InsertFlowSession(t *testing.T, rt *runtime.Runtime, contact *Contact, sessionType models.FlowType, status models.SessionStatus, call *Call, currentFlow *Flow) core.SessionUUID {
 	now := time.Now()
-	uuid := flows.NewSessionUUID()
+	uuid := core.NewSessionUUID()
 
 	var endedOn *time.Time
 	if status != models.SessionStatusWaiting {
@@ -118,8 +118,8 @@ func InsertFlowSession(t *testing.T, rt *runtime.Runtime, contact *Contact, sess
 }
 
 // InsertWaitingSession inserts a waiting flow session with a corresponding waiting run, and updates the contact
-func InsertWaitingSession(t *testing.T, rt *runtime.Runtime, org *Org, contact *Contact, sessionType models.FlowType, call *Call, flws ...*Flow) flows.SessionUUID {
-	uuid := flows.NewSessionUUID()
+func InsertWaitingSession(t *testing.T, rt *runtime.Runtime, org *Org, contact *Contact, sessionType models.FlowType, call *Call, flws ...*Flow) core.SessionUUID {
+	uuid := core.NewSessionUUID()
 
 	var callUUID null.String
 	if call != nil {
@@ -139,7 +139,7 @@ func InsertWaitingSession(t *testing.T, rt *runtime.Runtime, org *Org, contact *
 		if i == len(flws)-1 {
 			status = models.RunStatusWaiting
 		}
-		InsertFlowRun(t, rt, org, uuid, contact, flow, status, flows.NodeUUID(uuids.NewV4()))
+		InsertFlowRun(t, rt, org, uuid, contact, flow, status, core.NodeUUID(uuids.NewV4()))
 	}
 
 	rt.DB.MustExec(`UPDATE contacts_contact SET current_session_uuid = $2, current_flow_id = $3 WHERE id = $1`, contact.ID, uuid, currentFlow.ID)
@@ -147,8 +147,8 @@ func InsertWaitingSession(t *testing.T, rt *runtime.Runtime, org *Org, contact *
 }
 
 // InsertFlowRun inserts a flow run
-func InsertFlowRun(t *testing.T, rt *runtime.Runtime, org *Org, sessionUUID flows.SessionUUID, contact *Contact, flow *Flow, status models.RunStatus, currentNodeUUID flows.NodeUUID) flows.RunUUID {
-	uuid := flows.NewRunUUID()
+func InsertFlowRun(t *testing.T, rt *runtime.Runtime, org *Org, sessionUUID core.SessionUUID, contact *Contact, flow *Flow, status models.RunStatus, currentNodeUUID core.NodeUUID) core.RunUUID {
+	uuid := core.NewRunUUID()
 	now := time.Now()
 
 	var exitedOn *time.Time

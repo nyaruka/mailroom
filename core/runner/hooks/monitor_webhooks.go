@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/goflow/flows/events"
+	"github.com/nyaruka/goflow/core"
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/runner"
 	"github.com/nyaruka/mailroom/v26/runtime"
@@ -13,7 +13,7 @@ import (
 )
 
 type WebhookCall struct {
-	NodeUUID flows.NodeUUID
+	NodeUUID core.NodeUUID
 	Event    *events.WebhookCalled
 }
 
@@ -25,7 +25,7 @@ func (h *monitorWebhooks) Order() int { return 10 }
 
 func (h *monitorWebhooks) Execute(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *models.OrgAssets, scenes map[*runner.Scene][]any) error {
 	// organize events by nodes
-	eventsByNode := make(map[flows.NodeUUID][]*events.WebhookCalled)
+	eventsByNode := make(map[core.NodeUUID][]*events.WebhookCalled)
 	for _, args := range scenes {
 		for _, e := range args {
 			wc := e.(*WebhookCall)
@@ -33,7 +33,7 @@ func (h *monitorWebhooks) Execute(ctx context.Context, rt *runtime.Runtime, tx *
 		}
 	}
 
-	unhealthyNodeUUIDs := make([]flows.NodeUUID, 0, 10)
+	unhealthyNodeUUIDs := make([]core.NodeUUID, 0, 10)
 
 	// record events against each node and determine if it's healthy
 	for nodeUUID, events := range eventsByNode {

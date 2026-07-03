@@ -8,6 +8,7 @@ import (
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/gocommon/random"
 	"github.com/nyaruka/goflow/assets"
+	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/test"
 	"github.com/nyaruka/mailroom/v26/core/models"
@@ -175,12 +176,12 @@ func TestInterruptContacts(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT current_session_uuid, current_flow_id FROM contacts_contact WHERE id = $1`, testdb.Ann.ID).Columns(map[string]any{"current_session_uuid": nil, "current_flow_id": nil})
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contactfire`).Returns(1)
 
-	assert.Equal(t, flows.SessionUUID(""), ann.CurrentSessionUUID())
-	assert.Equal(t, flows.SessionUUID(""), bob.CurrentSessionUUID())
+	assert.Equal(t, core.SessionUUID(""), ann.CurrentSessionUUID())
+	assert.Equal(t, core.SessionUUID(""), bob.CurrentSessionUUID())
 	assert.Equal(t, session4UUID, cat.CurrentSessionUUID())
 }
 
-func insertSessionAndRun(t *testing.T, rt *runtime.Runtime, contact *testdb.Contact, sessionType models.FlowType, status models.SessionStatus, flow *testdb.Flow, call *testdb.Call) (flows.SessionUUID, flows.RunUUID) {
+func insertSessionAndRun(t *testing.T, rt *runtime.Runtime, contact *testdb.Contact, sessionType models.FlowType, status models.SessionStatus, flow *testdb.Flow, call *testdb.Call) (core.SessionUUID, core.RunUUID) {
 	// create session and add a run with same status
 	sessionUUID := testdb.InsertFlowSession(t, rt, contact, sessionType, status, call, flow)
 	runUUID := testdb.InsertFlowRun(t, rt, testdb.Org1, sessionUUID, contact, flow, models.RunStatus(status), "")
@@ -196,7 +197,7 @@ func insertSessionAndRun(t *testing.T, rt *runtime.Runtime, contact *testdb.Cont
 	return sessionUUID, runUUID
 }
 
-func assertSessionAndRunStatus(t *testing.T, rt *runtime.Runtime, sessionUUID flows.SessionUUID, status models.SessionStatus) {
+func assertSessionAndRunStatus(t *testing.T, rt *runtime.Runtime, sessionUUID core.SessionUUID, status models.SessionStatus) {
 	assertdb.Query(t, rt.DB, `SELECT status FROM flows_flowsession WHERE uuid = $1`, sessionUUID).Columns(map[string]any{"status": string(status)})
 	assertdb.Query(t, rt.DB, `SELECT status FROM flows_flowrun WHERE session_uuid = $1`, sessionUUID).Columns(map[string]any{"status": string(status)})
 }

@@ -9,6 +9,7 @@ import (
 
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/gocommon/jsonx"
+	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/v26/core/crons"
 	"github.com/nyaruka/mailroom/v26/core/models"
@@ -81,13 +82,13 @@ func TestFireContacts(t *testing.T) {
 	decoded2 := &tasks.BulkWaitExpire{}
 	jsonx.MustUnmarshal(ts[1].Task, decoded2)
 	assert.Len(t, decoded2.Expirations, 2)
-	assert.Equal(t, flows.SessionUUID("4010a3b2-d1f2-42ae-9051-47d41a3ef923"), decoded2.Expirations[0].SessionUUID)
-	assert.Equal(t, flows.SessionUUID("f72b48df-5f6d-4e4f-955a-f5fb29ccb97b"), decoded2.Expirations[1].SessionUUID)
+	assert.Equal(t, core.SessionUUID("4010a3b2-d1f2-42ae-9051-47d41a3ef923"), decoded2.Expirations[0].SessionUUID)
+	assert.Equal(t, core.SessionUUID("f72b48df-5f6d-4e4f-955a-f5fb29ccb97b"), decoded2.Expirations[1].SessionUUID)
 
 	decoded3 := &tasks.BulkWaitTimeout{}
 	jsonx.MustUnmarshal(ts[2].Task, decoded3)
 	assert.Len(t, decoded3.Timeouts, 1)
-	assert.Equal(t, flows.SessionUUID("5c1248e3-f669-4a72-83f4-a29292fdad4d"), decoded3.Timeouts[0].SessionUUID)
+	assert.Equal(t, core.SessionUUID("5c1248e3-f669-4a72-83f4-a29292fdad4d"), decoded3.Timeouts[0].SessionUUID)
 
 	decoded4 := &tasks.InterruptSessionBatch{}
 	jsonx.MustUnmarshal(ts[4].Task, decoded4)

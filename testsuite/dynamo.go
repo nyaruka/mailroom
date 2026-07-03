@@ -10,7 +10,7 @@ import (
 	dbtypes "github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/nyaruka/gocommon/aws/dynamo"
 	"github.com/nyaruka/gocommon/aws/dynamo/dyntest"
-	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/mailroom/v26/runtime"
 	"github.com/stretchr/testify/require"
 )
@@ -72,10 +72,10 @@ func skUUID7TimeMs(sk string) int64 {
 	return ms
 }
 
-func GetHistoryEventTypes(t *testing.T, rt *runtime.Runtime, clear bool, after time.Time) map[flows.ContactUUID][]string {
+func GetHistoryEventTypes(t *testing.T, rt *runtime.Runtime, clear bool, after time.Time) map[core.ContactUUID][]string {
 	items := GetHistoryItems(t, rt, clear, after)
 
-	evtTypes := make(map[flows.ContactUUID][]string, len(items))
+	evtTypes := make(map[core.ContactUUID][]string, len(items))
 
 	for _, item := range items {
 		data, err := item.GetData()
@@ -83,7 +83,7 @@ func GetHistoryEventTypes(t *testing.T, rt *runtime.Runtime, clear bool, after t
 
 		evtType, ok := data["type"]
 		if ok {
-			contactUUID := flows.ContactUUID(item.PK)[4:] // trim off con#
+			contactUUID := core.ContactUUID(item.PK)[4:] // trim off con#
 			evtTypes[contactUUID] = append(evtTypes[contactUUID], evtType.(string))
 		}
 	}

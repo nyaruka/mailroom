@@ -9,6 +9,7 @@ import (
 	"github.com/nyaruka/gocommon/elastic"
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/goflow/assets"
+	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/search"
@@ -133,7 +134,7 @@ func TestDeindexContacts(t *testing.T) {
 	assertSearchCountV2(t, rt, elastic.Term("org_id", testdb.Org2.ID), 121)
 
 	// DeindexContactsByUUID operates on the v3 index
-	deindexedByUUID, err := search.DeindexContactsByUUID(ctx, rt, testdb.Org1.ID, []flows.ContactUUID{testdb.Bob.UUID, testdb.Cat.UUID})
+	deindexedByUUID, err := search.DeindexContactsByUUID(ctx, rt, testdb.Org1.ID, []core.ContactUUID{testdb.Bob.UUID, testdb.Cat.UUID})
 	assert.NoError(t, err)
 	assert.Equal(t, 2, deindexedByUUID)
 

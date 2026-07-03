@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
-	"github.com/nyaruka/goflow/flows/events"
+	"github.com/nyaruka/goflow/core/events"
 	_ "github.com/nyaruka/mailroom/v26/core/runner/handlers"
 	"github.com/nyaruka/mailroom/v26/core/tasks"
 	"github.com/nyaruka/mailroom/v26/core/tasks/ctasks"

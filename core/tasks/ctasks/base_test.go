@@ -6,6 +6,8 @@ import (
 
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/gocommon/uuids"
+	"github.com/nyaruka/goflow/core"
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/tasks"
@@ -101,7 +103,7 @@ func TestTimedEvents(t *testing.T) {
 	}
 
 	last := time.Now()
-	var sessionUUID flows.SessionUUID
+	var sessionUUID core.SessionUUID
 	var sprintUUID flows.SprintUUID
 
 	for i, tc := range tcs {
@@ -116,7 +118,7 @@ func TestTimedEvents(t *testing.T) {
 		if tc.eventType == ctasks.TypeMsgReceived {
 			ctask = &ctasks.MsgReceived{
 				ChannelID: testdb.FacebookChannel.ID,
-				MsgUUID:   flows.NewEventUUID(),
+				MsgUUID:   events.NewEventUUID(),
 				URN:       contact.URN,
 				URNID:     contact.URNID,
 				Text:      tc.messageIn,

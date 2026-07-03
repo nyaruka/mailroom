@@ -5,8 +5,9 @@ import (
 	"slices"
 	"testing"
 
+	"github.com/nyaruka/goflow/core"
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/goflow/flows/events"
 	"github.com/nyaruka/goflow/flows/resumes"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/runner"
@@ -48,7 +49,7 @@ func ResumeSession(t *testing.T, rt *runtime.Runtime, oa *models.OrgAssets, cont
 
 	mc, fc, _ := contact.Load(t, rt, oa)
 
-	require.NotEqual(t, flows.SessionUUID(""), mc.CurrentSessionUUID(), "contact must have a waiting session")
+	require.NotEqual(t, core.SessionUUID(""), mc.CurrentSessionUUID(), "contact must have a waiting session")
 
 	modelSession, err := models.GetContactWaitingSession(ctx, rt, oa, mc)
 	require.NoError(t, err)
@@ -60,7 +61,7 @@ func ResumeSession(t *testing.T, rt *runtime.Runtime, oa *models.OrgAssets, cont
 	case flows.Resume:
 		r = typed
 	case string:
-		msg := flows.NewMsgIn(contact.URN, nil, typed, nil, "")
+		msg := core.NewMsgIn(contact.URN, nil, typed, nil, "")
 		r = resumes.NewMsg(events.NewMsgReceived(msg, ""))
 	default:
 		panic("invalid resume type")

@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/v26/core/ai"
 	"github.com/nyaruka/mailroom/v26/core/models"
@@ -48,7 +49,7 @@ func New(rt *runtime.Runtime, m *models.LLM, c *http.Client) (flows.LLMService, 
 	return &service{client: client, model: m.Model()}, nil
 }
 
-func (s *service) Response(ctx context.Context, instructions, input string, maxTokens int) (*flows.LLMResponse, error) {
+func (s *service) Response(ctx context.Context, instructions, input string, maxTokens int) (*core.LLMResponse, error) {
 	config := &genai.GenerateContentConfig{
 		Temperature:       genai.Ptr(float32(0.000001)),
 		MaxOutputTokens:   int32(maxTokens),
@@ -59,7 +60,7 @@ func (s *service) Response(ctx context.Context, instructions, input string, maxT
 		return nil, s.error(err, instructions, input)
 	}
 
-	return &flows.LLMResponse{
+	return &core.LLMResponse{
 		Output:       strings.TrimSpace(resp.Text()),
 		TokensInput:  int64(resp.UsageMetadata.PromptTokenCount),
 		TokensOutput: int64(resp.UsageMetadata.CandidatesTokenCount),
