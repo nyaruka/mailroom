@@ -12,9 +12,6 @@ import (
 	"github.com/nyaruka/mailroom/v26/utils/queues"
 )
 
-// used for random components that make valkey set members unique - via gocommon/random so tests can seed it
-var base64Chars = []rune(`ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/`)
-
 var registeredTypes = map[string](func() Task){}
 
 // RegisterType registers a new type of task
