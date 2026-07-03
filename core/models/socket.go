@@ -66,7 +66,7 @@ func PublishNotifications(ctx context.Context, rt *runtime.Runtime, oa *OrgAsset
 		if err != nil {
 			return fmt.Errorf("error marshaling notification for user #%d: %w", n.UserID, err)
 		}
-		pubs = append(pubs, &centrifugo.Publication{Channel: NotificationSocket(orgUUID, user.UUID()), Data: data})
+		pubs = append(pubs, &centrifugo.Publication{Channel: NotificationSocket(orgUUID, user.UUID()), Data: json.RawMessage(data)})
 	}
 
 	if err := rt.Centrifugo.Publish(ctx, pubs...); err != nil {
@@ -119,7 +119,8 @@ func PublishNotificationData(ctx context.Context, rt *runtime.Runtime, oa *OrgAs
 // It's best-effort and a no-op for any socket that currently has no subscribers - the centrifugo service resolves
 // subscriber presence for every socket the commit touches in a single lookup and sends the surviving events as one
 // pipelined request, so a commit costs one centrifugo round-trip no matter how many sockets it spans, and the whole
-// batch lands or fails together.
+// batch lands or fails together. Events are passed to the service unmarshaled, so in the common case where no
+// socket has a subscriber they're dropped without ever paying the marshaling cost.
 func PublishToHistory(ctx context.Context, rt *runtime.Runtime, contactUUID core.ContactUUID, evts []events.Event) error {
 	pubs := make([]*centrifugo.Publication, len(evts))
 	for i, e := range evts {
@@ -127,12 +128,7 @@ func PublishToHistory(ctx context.Context, rt *runtime.Runtime, contactUUID core
 		if ticketUUID, ok := ticketDetailEvent(e); ok {
 			socket = HistorySocket(contactUUID, ticketUUID)
 		}
-
-		data, err := json.Marshal(e)
-		if err != nil {
-			return fmt.Errorf("error marshaling event for %s: %w", socket, err)
-		}
-		pubs[i] = &centrifugo.Publication{Channel: socket, Data: data}
+		pubs[i] = &centrifugo.Publication{Channel: socket, Data: e}
 	}
 
 	if err := rt.Centrifugo.Publish(ctx, pubs...); err != nil {
