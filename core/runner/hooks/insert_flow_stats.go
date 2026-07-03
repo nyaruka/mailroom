@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/buger/jsonparser"
+	"github.com/nyaruka/gocommon/random"
 	"github.com/nyaruka/gocommon/stringsx"
 	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/core/events"
@@ -26,6 +27,9 @@ const (
 	recentContactsExpire = time.Hour * 24 // how long we keep recent contacts
 	recentContactsKey    = "recent_contacts:%s:%s"
 )
+
+// used for the random component that makes recent contact set members unique - via gocommon/random so tests can seed it
+var base64Chars = []rune(`ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/`)
 
 var storeOperandsForTypes = map[string]bool{"wait_for_response": true, "split_by_expression": true, "split_by_contact_field": true, "split_by_run_result": true}
 
@@ -64,7 +68,7 @@ func (h *insertFlowStats) Execute(ctx context.Context, rt *runtime.Runtime, tx *
 				if storeOperandsForTypes[uiNodeType] {
 					operand = seg.Operand()
 				}
-				recentBySegment[segID] = append(recentBySegment[segID], &segmentRecentContact{contact: scene.Contact, operand: operand, time: seg.Time(), rnd: vkutil.RandomBase64(10)})
+				recentBySegment[segID] = append(recentBySegment[segID], &segmentRecentContact{contact: scene.Contact, operand: operand, time: seg.Time(), rnd: random.String(10, base64Chars)})
 			}
 		}
 

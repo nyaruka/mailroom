@@ -45,7 +45,7 @@ func TestBulkCampaignTrigger(t *testing.T) {
 
 	// check we recorded recent triggers for this event
 	assertvk.Keys(t, vc, "recent_campaign_fires:*", []string{"recent_campaign_fires:10002"})
-	assertvk.ZRange(t, vc, "recent_campaign_fires:10002", 0, -1, []string{"QQFoOgV99A|10001", "vWOxKKbX2M|10003"})
+	assertvk.ZRange(t, vc, "recent_campaign_fires:10002", 0, -1, []string{"ARtWDACk2S|10001", "S5dyuJzp6M|10003"})
 
 	// create task for event #2 (single message, start mode PASSIVE)
 	task = &tasks.BulkCampaignTrigger{
@@ -68,8 +68,8 @@ func TestBulkCampaignTrigger(t *testing.T) {
 
 	// check we recorded recent triggers for this event
 	assertvk.Keys(t, vc, "recent_campaign_fires:*", []string{"recent_campaign_fires:10001", "recent_campaign_fires:10002"})
-	assertvk.ZRange(t, vc, "recent_campaign_fires:10001", 0, -1, []string{"nU/8BkiRuI|10000", "8bPiuaeAX6|10001", "VtFTaBQT2V|10003"})
-	assertvk.ZRange(t, vc, "recent_campaign_fires:10002", 0, -1, []string{"QQFoOgV99A|10001", "vWOxKKbX2M|10003"})
+	assertvk.ZRange(t, vc, "recent_campaign_fires:10001", 0, -1, []string{"BPV0gqT9PL|10000", "QQFoOgV99A|10001", "vWOxKKbX2M|10003"})
+	assertvk.ZRange(t, vc, "recent_campaign_fires:10002", 0, -1, []string{"ARtWDACk2S|10001", "S5dyuJzp6M|10003"})
 
 	// create task for event #1 (Favorites, start mode INTERRUPT)
 	task = &tasks.BulkCampaignTrigger{

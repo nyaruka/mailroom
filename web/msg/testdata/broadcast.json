@@ -166,7 +166,7 @@
                     "type": "send_broadcast",
                     "payload": {
                         "broadcast_id": 30001,
-                        "broadcast_uuid": "01969b47-113b-76f8-9c0b-2014ddc77094",
+                        "broadcast_uuid": "01969b47-0d53-76f8-bd38-d266ec8d3716",
                         "org_id": 1,
                         "status": "P",
                         "translations": {

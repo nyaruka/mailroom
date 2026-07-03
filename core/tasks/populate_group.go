@@ -9,11 +9,11 @@ import (
 	"slices"
 	"time"
 
+	"github.com/nyaruka/gocommon/random"
 	"github.com/nyaruka/goflow/contactql"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/search"
 	"github.com/nyaruka/mailroom/v26/runtime"
-	"github.com/nyaruka/vkutil"
 	"github.com/nyaruka/vkutil/locks"
 )
 
@@ -133,7 +133,7 @@ func (t *PopulateGroup) Perform(ctx context.Context, rt *runtime.Runtime, oa *mo
 	batches := slices.Collect(slices.Chunk(recheckIDs, populateBatchSize))
 
 	// generate a random ID for this population run so batch tasks can track completion
-	populationID := vkutil.RandomBase64(10)
+	populationID := random.String(10, base64Chars)
 
 	// set valkey counter which batch tasks can decrement to know when population has completed
 	counter := NewCounter(fmt.Sprintf(populateGroupBatchesRemainingKey, populationID), time.Hour)

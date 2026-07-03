@@ -122,7 +122,7 @@ func (s *Service) Start() error {
 	}
 
 	// the Centrifugo client is built by the runtime; confirm here that the server is reachable and accepts our key
-	if err := s.rt.Centrifugo.Info(s.ctx); err != nil {
+	if err := s.rt.Centrifugo.Client.Info(s.ctx); err != nil {
 		log.Error("centrifugo not reachable", "error", err)
 	} else {
 		log.Info("centrifugo ok")

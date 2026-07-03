@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/nyaruka/gocommon/centrifugo"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/testsuite"
 	"github.com/nyaruka/mailroom/v26/testsuite/testdb"
@@ -28,7 +29,7 @@ func TestImportNotifications(t *testing.T) {
 	// mark the creator's notifications socket subscribed so the finished notification is published to it
 	vc := rt.VK.Get()
 	defer vc.Close()
-	_, err = vc.Do("SET", "socket-subs:"+editorSocket, "1")
+	_, err = vc.Do("SET", centrifugo.SubscriptionKey(editorSocket), "1")
 	require.NoError(t, err)
 
 	importID := testdb.InsertContactImport(t, rt, testdb.Org1, models.ImportStatusProcessing, testdb.Editor)

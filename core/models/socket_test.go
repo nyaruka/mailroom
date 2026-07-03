@@ -61,7 +61,7 @@ func TestPublishNotifications(t *testing.T) {
 	assert.Empty(t, testsuite.CentrifugoHistory(t, rt, adminSocket))
 
 	// mark the socket subscribed (as the authorizing service would) - now it publishes as the same JSON the API serves
-	_, err = vc.Do("SET", "socket-subs:"+adminSocket, "1")
+	_, err = vc.Do("SET", centrifugo.SubscriptionKey(adminSocket), "1")
 	require.NoError(t, err)
 
 	require.NoError(t, models.PublishNotifications(ctx, rt, oa, inserted))
@@ -121,7 +121,7 @@ func TestPublishNotificationData(t *testing.T) {
 	require.NoError(t, models.PublishNotificationData(ctx, rt, oa, []models.NotificationData{{UserID: 0, Data: payload}}))
 
 	// mark the socket subscribed - now the pre-rendered payload is published verbatim
-	_, err = vc.Do("SET", "socket-subs:"+adminSocket, "1")
+	_, err = vc.Do("SET", centrifugo.SubscriptionKey(adminSocket), "1")
 	require.NoError(t, err)
 
 	require.NoError(t, models.PublishNotificationData(ctx, rt, oa, items))
@@ -129,46 +129,6 @@ func TestPublishNotificationData(t *testing.T) {
 	sent := testsuite.CentrifugoHistory(t, rt, adminSocket)
 	require.Len(t, sent, 1)
 	assert.JSONEq(t, string(payload), string(sent[0]))
-}
-
-func TestSubscribedSockets(t *testing.T) {
-	ctx, rt := testsuite.Runtime(t)
-
-	defer testsuite.Reset(t, rt, testsuite.ResetValkey)
-
-	vc := rt.VK.Get()
-	defer vc.Close()
-
-	contact1 := core.ContactUUID("a393abc0-283d-4c9b-a1b3-641a035c34bf")
-	contact2 := core.ContactUUID("b699a406-7e44-49be-9f01-1a82893e8a10")
-	hist1 := models.HistorySocket(contact1)
-	hist2 := models.HistorySocket(contact2)
-
-	// no sockets to check is a no-op
-	subs, err := models.SubscribedSockets(ctx, rt)
-	require.NoError(t, err)
-	assert.Empty(t, subs)
-
-	// nothing subscribed yet
-	subs, err = models.SubscribedSockets(ctx, rt, hist1, hist2)
-	require.NoError(t, err)
-	assert.Empty(t, subs)
-
-	// the authorizing service records a subscription by setting the per-socket presence key; mailroom only reads it
-	_, err = vc.Do("SET", "socket-subs:"+hist1, "1")
-	require.NoError(t, err)
-
-	// a single lookup reports which of the requested sockets are subscribed
-	subs, err = models.SubscribedSockets(ctx, rt, hist1, hist2)
-	require.NoError(t, err)
-	assert.Equal(t, map[string]bool{hist1: true}, subs)
-
-	// once both are subscribed they both come back from the one lookup
-	_, err = vc.Do("SET", "socket-subs:"+hist2, "1")
-	require.NoError(t, err)
-	subs, err = models.SubscribedSockets(ctx, rt, hist1, hist2)
-	require.NoError(t, err)
-	assert.Equal(t, map[string]bool{hist1: true, hist2: true}, subs)
 }
 
 func TestPublishToHistory(t *testing.T) {
@@ -179,7 +139,7 @@ func TestPublishToHistory(t *testing.T) {
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	mock := rt.Centrifugo.(*centrifugo.MockClient)
+	mock := rt.Centrifugo.Client.(*centrifugo.MockClient)
 
 	contact := core.ContactUUID("a393abc0-283d-4c9b-a1b3-641a035c34bf")
 	socket := models.HistorySocket(contact)
@@ -189,18 +149,18 @@ func TestPublishToHistory(t *testing.T) {
 
 	// socket isn't subscribed yet, so nothing is published
 	require.NoError(t, models.PublishToHistory(ctx, rt, contact, []events.Event{evt1}))
-	assert.Equal(t, 0, mock.Requests())
+	assert.Empty(t, mock.Publications())
 
 	// mark the socket subscribed (as the authorizing service would) - empty event slice is still a no-op
-	_, err := vc.Do("SET", "socket-subs:"+socket, "1")
+	_, err := vc.Do("SET", centrifugo.SubscriptionKey(socket), "1")
 	require.NoError(t, err)
 	require.NoError(t, models.PublishToHistory(ctx, rt, contact, nil))
-	assert.Equal(t, 0, mock.Requests())
+	assert.Empty(t, mock.Publications())
 
 	// now that it's subscribed, each event is published to the contact's history socket as its full JSON
 	require.NoError(t, models.PublishToHistory(ctx, rt, contact, []events.Event{evt1, evt2}))
 
-	sent := mock.Published(socket)
+	sent := testsuite.CentrifugoHistory(t, rt, socket)
 	require.Len(t, sent, 2)
 
 	// the published payload is the full event including its uuid (the history table strips uuid into the key)
@@ -224,7 +184,7 @@ func TestPublishToHistory(t *testing.T) {
 	ticketBSocket := models.HistorySocket(contact, ticketB)
 
 	// ticket A's socket is subscribed (e.g. someone has its ticket page open), ticket B's is not
-	_, err = vc.Do("SET", "socket-subs:"+ticketASocket, "1")
+	_, err = vc.Do("SET", centrifugo.SubscriptionKey(ticketASocket), "1")
 	require.NoError(t, err)
 
 	closed := events.NewTicketClosed(ticketA)                                                                                        // basic lifecycle -> contact socket
@@ -232,14 +192,10 @@ func TestPublishToHistory(t *testing.T) {
 	assignB := events.NewTicketAssigneeChanged(ticketB, assets.NewUserReference("0c78ef47-7d56-44d8-8f57-96e0f30e8f44", "Bob"), nil) // detail -> ticket B socket (unsubscribed)
 	lang := events.NewContactLanguageChanged("fra")                                                                                  // non-ticket -> contact socket
 
-	reqsBefore := mock.Requests()
 	require.NoError(t, models.PublishToHistory(ctx, rt, contact, []events.Event{closed, noteA, assignB, lang}))
 
-	// even though this commit spans two sockets (contact + ticket A), it's a single pipelined centrifugo round-trip
-	assert.Equal(t, 1, mock.Requests()-reqsBefore)
-
 	// the contact socket got the basic ticket event and the non-ticket event in order, plus the two from before
-	contactSent := mock.Published(socket)
+	contactSent := testsuite.CentrifugoHistory(t, rt, socket)
 	require.Len(t, contactSent, 4)
 	require.NoError(t, json.Unmarshal(contactSent[2], &decoded))
 	assert.Equal(t, "ticket_closed", decoded["type"])
@@ -247,41 +203,38 @@ func TestPublishToHistory(t *testing.T) {
 	assert.Equal(t, "contact_language_changed", decoded["type"])
 
 	// ticket A's subscribed socket got only its own detail event, again as full JSON including its uuid
-	ticketASent := mock.Published(ticketASocket)
+	ticketASent := testsuite.CentrifugoHistory(t, rt, ticketASocket)
 	require.Len(t, ticketASent, 1)
 	require.NoError(t, json.Unmarshal(ticketASent[0], &decoded))
 	assert.Equal(t, "ticket_note_added", decoded["type"])
 	assert.Equal(t, string(noteA.UUID()), decoded["uuid"])
 
 	// ticket B's socket wasn't subscribed, so nothing was published to it
-	assert.Empty(t, mock.Published(ticketBSocket))
+	assert.Empty(t, testsuite.CentrifugoHistory(t, rt, ticketBSocket))
 
 	// a commit can span several ticket sockets at once (e.g. a future bulk ticket operation) - subscribing ticket B
-	// too, a publish touching both tickets and the contact resolves every socket's subscription in one lookup and is
-	// still a single centrifugo round-trip
-	_, err = vc.Do("SET", "socket-subs:"+ticketBSocket, "1")
+	// too, a publish touching both tickets and the contact still routes each event to its own socket
+	_, err = vc.Do("SET", centrifugo.SubscriptionKey(ticketBSocket), "1")
 	require.NoError(t, err)
 
 	noteA2 := events.NewTicketNoteAdded(ticketA, "more on A") // detail -> ticket A socket
 	noteB := events.NewTicketNoteAdded(ticketB, "now on B")   // detail -> ticket B socket
 	renamed := events.NewContactNameChanged("Bobby")          // non-ticket -> contact socket
 
-	reqsBefore = mock.Requests()
 	require.NoError(t, models.PublishToHistory(ctx, rt, contact, []events.Event{noteA2, noteB, renamed}))
-	assert.Equal(t, 1, mock.Requests()-reqsBefore)
 
-	// each socket received exactly its own events, across all three sockets in the one round-trip
-	contactSent = mock.Published(socket)
+	// each socket received exactly its own events
+	contactSent = testsuite.CentrifugoHistory(t, rt, socket)
 	require.Len(t, contactSent, 5) // evt1, evt2, closed, lang, renamed
 	require.NoError(t, json.Unmarshal(contactSent[4], &decoded))
 	assert.Equal(t, "contact_name_changed", decoded["type"])
 
-	ticketASent = mock.Published(ticketASocket)
+	ticketASent = testsuite.CentrifugoHistory(t, rt, ticketASocket)
 	require.Len(t, ticketASent, 2) // noteA, noteA2
 	require.NoError(t, json.Unmarshal(ticketASent[1], &decoded))
 	assert.Equal(t, string(noteA2.UUID()), decoded["uuid"])
 
-	ticketBSent := mock.Published(ticketBSocket)
+	ticketBSent := testsuite.CentrifugoHistory(t, rt, ticketBSocket)
 	require.Len(t, ticketBSent, 1) // noteB
 	require.NoError(t, json.Unmarshal(ticketBSent[0], &decoded))
 	assert.Equal(t, string(noteB.UUID()), decoded["uuid"])

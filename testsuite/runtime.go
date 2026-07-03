@@ -111,7 +111,7 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 	dyntest.CreateTables(t, rt.Dynamo.Main.Client(), absPath(dynamoTablesPath), false)
 
 	rt.FCM = &MockFCMClient{ValidTokens: []string{"FCMID3", "FCMID4", "FCMID5"}}
-	rt.Centrifugo = centrifugo.NewMockClient()
+	rt.Centrifugo = centrifugo.NewService(centrifugo.NewMockClient(), rt.VK)
 
 	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo})))
 
@@ -204,7 +204,13 @@ func resetStorage(t *testing.T, rt *runtime.Runtime) {
 func CentrifugoHistory(t *testing.T, rt *runtime.Runtime, channel string) []json.RawMessage {
 	t.Helper()
 
-	return rt.Centrifugo.(*centrifugo.MockClient).Published(channel)
+	var history []json.RawMessage
+	for _, p := range rt.Centrifugo.Client.(*centrifugo.MockClient).Publications() {
+		if p.Channel == channel {
+			history = append(history, p.Data)
+		}
+	}
+	return history
 }
 
 func createBucket(t *testing.T, rt *runtime.Runtime, bucket string) {

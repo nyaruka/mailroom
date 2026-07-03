@@ -8,6 +8,7 @@ import (
 
 	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/i18n"
+	"github.com/nyaruka/gocommon/random"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/goflow/flows"
@@ -78,7 +79,7 @@ func (t *BulkCampaignTrigger) Perform(ctx context.Context, rt *runtime.Runtime, 
 
 	for _, cid := range started[:min(recentFiresCap, len(started))] {
 		// set members need to be unique, so we include a random string
-		value := fmt.Sprintf("%s|%d", vkutil.RandomBase64(10), cid)
+		value := fmt.Sprintf("%s|%d", random.String(10, base64Chars), cid)
 		score := float64(dates.Now().UnixNano()) / float64(1e9) // score is UNIX time as floating point
 
 		err := recentSet.Add(ctx, vc, value, score)
