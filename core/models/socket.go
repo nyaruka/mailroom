@@ -81,7 +81,9 @@ func PublishNotifications(ctx context.Context, rt *runtime.Runtime, oa *OrgAsset
 // creates finished-export and locally-detected-incident notifications): it delivers them over the same realtime path,
 // reusing the socket addressing and subscriber-presence check so there's a single implementation of those. Each item's
 // data is published verbatim - the rendering is the caller's, so mailroom needs no knowledge of those notification
-// types. Best-effort and a no-op for any socket with no current subscribers, exactly like PublishNotifications.
+// types. Each item carries its user's UUID so sockets are addressed directly without a user asset lookup - the user
+// may not belong to the workspace (e.g. staff who serviced it). Best-effort and a no-op for any socket with no
+// current subscribers, exactly like PublishNotifications.
 func PublishNotificationData(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, items []NotificationData) error {
 	if len(items) == 0 {
 		return nil
@@ -91,12 +93,7 @@ func PublishNotificationData(ctx context.Context, rt *runtime.Runtime, oa *OrgAs
 
 	pubs := make([]*centrifugo.Publication, 0, len(items))
 	for _, it := range items {
-		user := oa.UserByID(it.UserID)
-		if user == nil {
-			slog.Error("unable to publish notification for unknown user", "user_id", it.UserID, "org_id", oa.OrgID())
-			continue
-		}
-		pubs = append(pubs, &centrifugo.Publication{Channel: NotificationSocket(orgUUID, user.UUID()), Data: it.Data})
+		pubs = append(pubs, &centrifugo.Publication{Channel: NotificationSocket(orgUUID, it.UserUUID), Data: it.Data})
 	}
 
 	if err := rt.Centrifugo.Publish(ctx, pubs...); err != nil {

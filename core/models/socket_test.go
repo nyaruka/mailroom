@@ -113,12 +113,9 @@ func TestPublishNotificationData(t *testing.T) {
 	assert.Empty(t, testsuite.CentrifugoHistory(t, rt, adminSocket))
 
 	// socket isn't subscribed yet, so nothing is published
-	items := []models.NotificationData{{UserID: testdb.Admin.ID, Data: payload}}
+	items := []models.NotificationData{{UserUUID: testdb.Admin.UUID, Data: payload}}
 	require.NoError(t, models.PublishNotificationData(ctx, rt, oa, items))
 	assert.Empty(t, testsuite.CentrifugoHistory(t, rt, adminSocket))
-
-	// an unknown user is skipped rather than failing the batch
-	require.NoError(t, models.PublishNotificationData(ctx, rt, oa, []models.NotificationData{{UserID: 0, Data: payload}}))
 
 	// mark the socket subscribed - now the pre-rendered payload is published verbatim
 	_, err = vc.Do("SET", centrifugo.SubscriptionKey(adminSocket), "1")
@@ -127,6 +124,19 @@ func TestPublishNotificationData(t *testing.T) {
 	require.NoError(t, models.PublishNotificationData(ctx, rt, oa, items))
 
 	sent := testsuite.CentrifugoHistory(t, rt, adminSocket)
+	require.Len(t, sent, 1)
+	assert.JSONEq(t, string(payload), string(sent[0]))
+
+	// users are addressed by UUID without an asset lookup, so a user who isn't a member of the workspace (e.g. staff
+	// who serviced it) still receives their notification on their subscribed socket
+	staffSocket := fmt.Sprintf("notifications:%s:%s", testdb.Org1.UUID, testdb.Org2Admin.UUID)
+	_, err = vc.Do("SET", centrifugo.SubscriptionKey(staffSocket), "1")
+	require.NoError(t, err)
+
+	staffItems := []models.NotificationData{{UserUUID: testdb.Org2Admin.UUID, Data: payload}}
+	require.NoError(t, models.PublishNotificationData(ctx, rt, oa, staffItems))
+
+	sent = testsuite.CentrifugoHistory(t, rt, staffSocket)
 	require.Len(t, sent, 1)
 	assert.JSONEq(t, string(payload), string(sent[0]))
 }
