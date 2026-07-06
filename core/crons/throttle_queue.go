@@ -26,10 +26,6 @@ func (c *ThrottleQueueCron) Next(last time.Time) time.Time {
 	return Next(last, time.Second*10)
 }
 
-func (c *ThrottleQueueCron) AllInstances() bool {
-	return false
-}
-
 // Run throttles processing of starts based on that org's current outbox size
 func (c *ThrottleQueueCron) Run(ctx context.Context, rt *runtime.Runtime) (map[string]any, error) {
 	vc := rt.VK.Get()

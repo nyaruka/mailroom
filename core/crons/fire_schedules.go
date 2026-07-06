@@ -21,10 +21,6 @@ func (c *FireSchedulesCron) Next(last time.Time) time.Time {
 	return Next(last, time.Minute)
 }
 
-func (c *FireSchedulesCron) AllInstances() bool {
-	return false
-}
-
 // checkSchedules looks up any expired schedules and fires them, setting the next fire as needed
 func (c *FireSchedulesCron) Run(ctx context.Context, rt *runtime.Runtime) (map[string]any, error) {
 	// we sleep 1 second since we fire right on the minute and want to make sure to fire

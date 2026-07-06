@@ -31,10 +31,6 @@ func (c *FireContactsCron) Next(last time.Time) time.Time {
 	return Next(last, 30*time.Second)
 }
 
-func (c *FireContactsCron) AllInstances() bool {
-	return false
-}
-
 func (c *FireContactsCron) Run(ctx context.Context, rt *runtime.Runtime) (map[string]any, error) {
 	start := time.Now()
 	numWaitTimeouts, numWaitExpires, numSessionExpires, numCampaignPoints := 0, 0, 0, 0

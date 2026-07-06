@@ -40,10 +40,6 @@ func (c *TestCron) Next(last time.Time) time.Time {
 	return crons.Next(last, time.Minute*5)
 }
 
-func (c *TestCron) AllInstances() bool {
-	return false
-}
-
 func (c *TestCron) Run(ctx context.Context, rt *runtime.Runtime) (map[string]any, error) {
 	c.ran = true
 	return map[string]any{"foo": 123}, nil
