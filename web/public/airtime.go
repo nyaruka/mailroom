@@ -15,7 +15,7 @@ import (
 )
 
 func init() {
-	web.PublicRoute(http.MethodPost, "/airtime/dtone/status", handleDTOneStatus)
+	web.InternetRoute(http.MethodPost, "/airtime/dtone/status", handleDTOneStatus)
 }
 
 // dtoneStatusBody is the subset of DT One's transaction callback payload we care about. See
