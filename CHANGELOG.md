@@ -1,3 +1,9 @@
+v26.3.7 (2026-07-06)
+-------------------------
+ * Rename PublicAddress/PublicPort config to InternetAddress/InternetPort
+ * Change default internal address to bind all interfaces
+ * Update gocommon to v1.86.2
+
 v26.3.6 (2026-07-06)
 -------------------------
  * Address notification sockets by user UUID when publishing external notifications
