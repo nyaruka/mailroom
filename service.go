@@ -10,16 +10,11 @@ import (
 
 	"github.com/appleboy/go-fcm"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatch/types"
-	valkey "github.com/gomodule/redigo/redis"
 	"github.com/nyaruka/gocommon/aws/cwatch"
 	"github.com/nyaruka/gocommon/aws/dynamo"
 	"github.com/nyaruka/mailroom/v26/core/crons"
 	"github.com/nyaruka/mailroom/v26/runtime"
 	"github.com/nyaruka/mailroom/v26/web"
-)
-
-const (
-	appNodesRunningKey = "app-nodes:running"
 )
 
 type Service struct {
@@ -147,43 +142,8 @@ func (s *Service) Start() error {
 
 	s.startMetricsReporter(time.Minute)
 
-	if err := s.checkLastShutdown(s.ctx); err != nil {
-		return err
-	}
-
 	log.Info("mailroom started", "domain", c.Domain)
 
-	return nil
-}
-
-func (s *Service) checkLastShutdown(ctx context.Context) error {
-	nodeID := fmt.Sprintf("mailroom:%s", s.rt.Config.InstanceID)
-	vc := s.rt.VK.Get()
-	defer vc.Close()
-
-	exists, err := valkey.Bool(valkey.DoContext(vc, ctx, "HEXISTS", appNodesRunningKey, nodeID))
-	if err != nil {
-		return fmt.Errorf("error checking last shutdown: %w", err)
-	}
-
-	if exists {
-		slog.Error("node did not shutdown cleanly last time")
-	} else {
-		if _, err := valkey.DoContext(vc, ctx, "HSET", appNodesRunningKey, nodeID, time.Now().UTC().Format(time.RFC3339)); err != nil {
-			return fmt.Errorf("error setting app node state: %w", err)
-		}
-	}
-	return nil
-}
-
-func (s *Service) recordShutdown(ctx context.Context) error {
-	nodeID := fmt.Sprintf("mailroom:%s", s.rt.Config.InstanceID)
-	vc := s.rt.VK.Get()
-	defer vc.Close()
-
-	if _, err := valkey.DoContext(vc, ctx, "HDEL", appNodesRunningKey, nodeID); err != nil {
-		return fmt.Errorf("error recording shutdown: %w", err)
-	}
 	return nil
 }
 
@@ -280,10 +240,6 @@ func (s *Service) Stop() error {
 	s.rt.Stop()
 
 	log.Info("runtime stopped")
-
-	if err := s.recordShutdown(context.TODO()); err != nil {
-		return fmt.Errorf("error recording shutdown: %w", err)
-	}
 
 	log.Info("mailroom stopped")
 	return nil
