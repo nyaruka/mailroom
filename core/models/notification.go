@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/nyaruka/gocommon/dbutil"
+	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/mailroom/v26/runtime"
 )
 
@@ -43,10 +44,11 @@ const (
 )
 
 // NotificationData pairs a user with an already-rendered notification payload, for publishing notifications created
-// outside mailroom to that user's realtime socket. See PublishNotificationData.
+// outside mailroom to that user's realtime socket. The user is identified by UUID because that's what socket
+// addressing uses, and because the user may not belong to the workspace (e.g. staff). See PublishNotificationData.
 type NotificationData struct {
-	UserID UserID
-	Data   json.RawMessage
+	UserUUID assets.UserUUID
+	Data     json.RawMessage
 }
 
 type Notification struct {

@@ -15,7 +15,7 @@
         "body": {
             "org_id": 1234,
             "notifications": [
-                {"user_id": 3, "data": {"type": "export:finished"}}
+                {"user_uuid": "ad9fdf9f-56ab-422a-b77d-e3ec26091a25", "data": {"type": "export:finished"}}
             ]
         },
         "status": 500,
@@ -30,10 +30,51 @@
         "body": {
             "org_id": 1,
             "notifications": [
+                {"user_uuid": "ad9fdf9f-56ab-422a-b77d-e3ec26091a25", "data": {"type": "export:finished", "is_seen": false, "url": "/notification/read/123/"}}
+            ]
+        },
+        "status": 200,
+        "response": {}
+    },
+    {
+        "label": "deprecated user_id is resolved to a UUID via the workspace's users",
+        "method": "POST",
+        "path": "/mi/notification/publish",
+        "body": {
+            "org_id": 1,
+            "notifications": [
                 {"user_id": 3, "data": {"type": "export:finished", "is_seen": false, "url": "/notification/read/123/"}}
             ]
         },
         "status": 200,
         "response": {}
+    },
+    {
+        "label": "deprecated user_id that isn't a workspace user is skipped rather than failing the batch",
+        "method": "POST",
+        "path": "/mi/notification/publish",
+        "body": {
+            "org_id": 1,
+            "notifications": [
+                {"user_id": 12345678, "data": {"type": "export:finished", "is_seen": false, "url": "/notification/read/123/"}}
+            ]
+        },
+        "status": 200,
+        "response": {}
+    },
+    {
+        "label": "notification without user_uuid or user_id is an error",
+        "method": "POST",
+        "path": "/mi/notification/publish",
+        "body": {
+            "org_id": 1,
+            "notifications": [
+                {"data": {"type": "export:finished"}}
+            ]
+        },
+        "status": 400,
+        "response": {
+            "error": "notification 0: user_uuid or user_id required"
+        }
     }
 ]
