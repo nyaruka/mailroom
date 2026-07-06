@@ -1,3 +1,10 @@
+v26.3.8 (2026-07-06)
+-------------------------
+ * Remove InstanceID config setting
+ * Publish instance level metrics without a Host dimension
+ * Remove app node registry
+ * Remove allInstances option from crons
+
 v26.3.7 (2026-07-06)
 -------------------------
  * Rename PublicAddress/PublicPort config to InternetAddress/InternetPort
