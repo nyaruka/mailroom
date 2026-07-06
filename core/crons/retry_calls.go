@@ -21,10 +21,6 @@ func (c *RetryCallsCron) Next(last time.Time) time.Time {
 	return Next(last, time.Minute)
 }
 
-func (c *RetryCallsCron) AllInstances() bool {
-	return false
-}
-
 // RetryCalls looks for calls that need to be retried and retries them
 func (c *RetryCallsCron) Run(ctx context.Context, rt *runtime.Runtime) (map[string]any, error) {
 	log := slog.With("comp", "ivr_cron_retryer")

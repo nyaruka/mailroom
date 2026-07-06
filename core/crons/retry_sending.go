@@ -20,10 +20,6 @@ func (c *RetrySendingCron) Next(last time.Time) time.Time {
 	return Next(last, time.Minute)
 }
 
-func (c *RetrySendingCron) AllInstances() bool {
-	return false
-}
-
 func (c *RetrySendingCron) Run(ctx context.Context, rt *runtime.Runtime) (map[string]any, error) {
 	vc := rt.VK.Get()
 	defer vc.Close()

@@ -17,10 +17,6 @@ func init() {
 
 type SyncAndroidChannelsCron struct{}
 
-func (s *SyncAndroidChannelsCron) AllInstances() bool {
-	return true
-}
-
 func (s *SyncAndroidChannelsCron) Next(last time.Time) time.Time {
 	return Next(last, time.Minute*10)
 

@@ -36,10 +36,6 @@ type Cron interface {
 
 	// Run performs the task
 	Run(context.Context, *runtime.Runtime) (map[string]any, error)
-
-	// AllInstances returns whether cron runs on all instances - i.e. locking is instance specific. This is for crons
-	// like metrics which report instance specific stats. Other crons are synchronized across all instances.
-	AllInstances() bool
 }
 
 var registeredCrons = map[string]Cron{}
@@ -52,7 +48,7 @@ func Register(name string, c Cron) {
 // StartAll starts all registered cron jobs
 func StartAll(rt *runtime.Runtime, wg *sync.WaitGroup, quit chan bool) {
 	for name, c := range registeredCrons {
-		crons.Start(rt, wg, name, c.AllInstances(), recordExecution(name, c.Run), c.Next, time.Minute*5, quit)
+		crons.Start(rt, wg, name, recordExecution(name, c.Run), c.Next, time.Minute*5, quit)
 	}
 }
 

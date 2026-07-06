@@ -22,10 +22,6 @@ func (c *EndIncidentsCron) Next(last time.Time) time.Time {
 	return Next(last, time.Minute*3)
 }
 
-func (c *EndIncidentsCron) AllInstances() bool {
-	return false
-}
-
 // EndIncidents checks open incidents and end any that no longer apply
 func (c *EndIncidentsCron) Run(ctx context.Context, rt *runtime.Runtime) (map[string]any, error) {
 	incidents, err := models.GetOpenIncidents(ctx, rt.DB, []models.IncidentType{models.IncidentTypeWebhooksUnhealthy})

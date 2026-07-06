@@ -26,10 +26,6 @@ func (c *DeindexDeletedOrgsCron) Next(last time.Time) time.Time {
 	return Next(last, time.Minute*5)
 }
 
-func (c *DeindexDeletedOrgsCron) AllInstances() bool {
-	return false
-}
-
 func (c *DeindexDeletedOrgsCron) Run(ctx context.Context, rt *runtime.Runtime) (map[string]any, error) {
 	vc := rt.VK.Get()
 	defer vc.Close()

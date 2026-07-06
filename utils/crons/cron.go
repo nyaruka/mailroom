@@ -20,17 +20,12 @@ type Function func(context.Context, *runtime.Runtime) error
 // lock so that only one process is running at once. Note that across processes
 // crons may be called more often than duration as there is no inter-process
 // coordination of cron fires. (this might be a worthy addition)
-func Start(rt *runtime.Runtime, wg *sync.WaitGroup, name string, allInstances bool, cronFunc Function, next func(time.Time) time.Time, timeout time.Duration, quit chan bool) {
+func Start(rt *runtime.Runtime, wg *sync.WaitGroup, name string, cronFunc Function, next func(time.Time) time.Time, timeout time.Duration, quit chan bool) {
 	ctx := context.TODO()
 
 	wg.Add(1) // add ourselves to the wait group
 
 	lockName := fmt.Sprintf("lock:%s_lock", name) // for historical reasons...
-
-	// for jobs that run on all instances, the lock key is specific to this instance
-	if allInstances {
-		lockName = fmt.Sprintf("%s:%s", lockName, rt.Config.InstanceID)
-	}
 
 	locker := locks.NewLocker(lockName, timeout+time.Second*30)
 
