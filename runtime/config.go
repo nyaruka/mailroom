@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"net"
 	"net/url"
-	"os"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/nyaruka/ezconf"
@@ -77,7 +76,6 @@ type Config struct {
 	MetricsReporting    string `validate:"eq=off|eq=basic|eq=advanced"     help:"the level of metrics reporting"`
 	CloudwatchNamespace string `help:"the namespace to use for cloudwatch metrics"`
 	DeploymentID        string `help:"the deployment identifier to use for metrics"`
-	InstanceID          string `help:"the instance identifier to use for metrics"`
 
 	AndroidCredentialsFile string `help:"path to JSON file with FCM service account credentials used to sync Android relayers"`
 	IDObfuscationKey       string `help:"key used to decode obfuscated IDs, as 4 comma separated integers" validate:"omitempty,hexadecimal,len=32"`
@@ -95,8 +93,6 @@ type Config struct {
 
 // NewDefaultConfig returns a new default configuration object
 func NewDefaultConfig() *Config {
-	hostname, _ := os.Hostname()
-
 	return &Config{
 		DB:         "postgres://temba:temba@postgres/temba?sslmode=disable&Timezone=UTC",
 		ReadonlyDB: "",
@@ -143,7 +139,6 @@ func NewDefaultConfig() *Config {
 		MetricsReporting:    "off",
 		CloudwatchNamespace: "Mailroom",
 		DeploymentID:        "dev",
-		InstanceID:          hostname,
 
 		IDObfuscationKey: "000A3B1C000D2E3F0001A2B300C0FFEE",
 
