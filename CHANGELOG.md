@@ -1,3 +1,9 @@
+v26.3.6 (2026-07-06)
+-------------------------
+ * Address notification sockets by user UUID when publishing external notifications
+ * Update to goflow v0.278.1
+ * Use gocommon centrifugo client so tests can use a mock instead of a real server
+
 v26.3.5 (2026-07-02)
 -------------------------
  * Resolve single UUID contact queries from the database instead of Elastic
