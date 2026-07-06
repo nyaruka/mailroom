@@ -1,6 +1,7 @@
 package web_test
 
 import (
+	"io"
 	"net"
 	"net/http"
 	"sync"
@@ -12,7 +13,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	// blank-imported so TestListeners has both a registered internal and public route to probe
+	// blank-imported so TestListeners has both a registered internal and internet route to probe
 	_ "github.com/nyaruka/mailroom/v26/web/contact"
 	_ "github.com/nyaruka/mailroom/v26/web/public"
 )
@@ -23,7 +24,7 @@ func TestServer(t *testing.T) {
 	testsuite.RunWebTests(t, rt, "testdata/server.json")
 }
 
-// TestListeners verifies that public and internal endpoints are correctly split
+// TestListeners verifies that internet and internal endpoints are correctly split
 // between the two listener ports.
 func TestListeners(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
@@ -44,7 +45,7 @@ func TestListeners(t *testing.T) {
 		}, 5*time.Second, 10*time.Millisecond, "listener at %s never came up", addr)
 	}
 
-	const publicURL = "http://localhost:8190"
+	const internetURL = "http://localhost:8190"
 	const internalURL = "http://localhost:8191"
 
 	// don't follow redirects so we can assert on the 301 from /mr/docs
@@ -57,18 +58,19 @@ func TestListeners(t *testing.T) {
 		method string
 		url    string
 		status int
+		body   string
 	}{
-		// public listener: health at /, public routes — no /mi/* routes
-		{"public: health", "GET", publicURL + "/", 200},
-		{"public: public route", "GET", publicURL + "/mr/docs", 301},
-		{"public: internal route not exposed", "GET", publicURL + "/mi/contact/parse_query", 404},
-		{"public: unknown path", "GET", publicURL + "/nope", 404},
+		// internet listener: health at /, internet routes — no /mi/* routes
+		{"internet: health", "GET", internetURL + "/", 200, `{"component": "mailroom", "listener": "internet", "version": "Dev"}`},
+		{"internet: internet route", "GET", internetURL + "/mr/docs", 301, ""},
+		{"internet: internal route not exposed", "GET", internetURL + "/mi/contact/parse_query", 404, ""},
+		{"internet: unknown path", "GET", internetURL + "/nope", 404, ""},
 
 		// internal listener: health at /, /mi/* routes — no /mr/*
-		{"internal: health", "GET", internalURL + "/", 200},
-		{"internal: internal route via GET (wrong method)", "GET", internalURL + "/mi/contact/parse_query", 405},
-		{"internal: public route not exposed", "GET", internalURL + "/mr/docs", 404},
-		{"internal: unknown path", "GET", internalURL + "/nope", 404},
+		{"internal: health", "GET", internalURL + "/", 200, `{"component": "mailroom", "listener": "internal", "version": "Dev"}`},
+		{"internal: internal route via GET (wrong method)", "GET", internalURL + "/mi/contact/parse_query", 405, ""},
+		{"internal: internet route not exposed", "GET", internalURL + "/mr/docs", 404, ""},
+		{"internal: unknown path", "GET", internalURL + "/nope", 404, ""},
 	}
 
 	for _, tc := range tcs {
@@ -77,8 +79,13 @@ func TestListeners(t *testing.T) {
 
 		resp, err := client.Do(req)
 		require.NoError(t, err, tc.label)
+		body, err := io.ReadAll(resp.Body)
+		require.NoError(t, err, tc.label)
 		resp.Body.Close()
 
 		assert.Equal(t, tc.status, resp.StatusCode, tc.label)
+		if tc.body != "" {
+			assert.JSONEq(t, tc.body, string(body), tc.label)
+		}
 	}
 }

@@ -9,12 +9,13 @@
         }
     },
     {
-        "label": "health at root returns component and version",
+        "label": "health at root returns component, listener and version",
         "method": "GET",
         "path": "/",
         "status": 200,
         "response": {
             "component": "mailroom",
+            "listener": "internet",
             "version": "Dev"
         }
     },

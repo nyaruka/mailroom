@@ -28,12 +28,12 @@ type route struct {
 	handler Handler
 }
 
-var publicRoutes []*route
+var internetRoutes []*route
 var internalRoutes []*route
 
-// PublicRoute registers a route that handles direct requests from the internet
-func PublicRoute(method string, pattern string, handler Handler) {
-	publicRoutes = append(publicRoutes, &route{method: method, pattern: pattern, handler: handler})
+// InternetRoute registers a route that handles direct requests from the internet
+func InternetRoute(method string, pattern string, handler Handler) {
+	internetRoutes = append(internetRoutes, &route{method: method, pattern: pattern, handler: handler})
 }
 
 // InternalRoute registers a route that handles internal requests between components
@@ -47,7 +47,7 @@ type Server struct {
 
 	wg *sync.WaitGroup
 
-	publicServer   *http.Server
+	internetServer *http.Server
 	internalServer *http.Server
 }
 
@@ -55,22 +55,22 @@ type Server struct {
 func NewServer(ctx context.Context, rt *runtime.Runtime, wg *sync.WaitGroup) *Server {
 	s := &Server{ctx: ctx, rt: rt, wg: wg}
 
-	// public listener — exposes only /mr/* routes
-	publicRouter := chi.NewRouter()
-	publicRouter.Use(middleware.Compress(flate.DefaultCompression))
-	publicRouter.Use(middleware.RequestID)
-	publicRouter.Use(middleware.RealIP)
-	publicRouter.Use(panicRecovery("public"))
-	publicRouter.Use(middleware.Timeout(60 * time.Second))
-	publicRouter.Use(requestLogger("public"))
-	publicRouter.NotFound(handle404)
-	publicRouter.MethodNotAllowed(handle405)
-	publicRouter.Get("/", s.WrapHandler(handleHealth))
-	for _, route := range publicRoutes {
-		publicRouter.Method(route.method, "/mr"+route.pattern, s.WrapHandler(route.handler))
+	// internet listener — exposes only /mr/* routes
+	internetRouter := chi.NewRouter()
+	internetRouter.Use(middleware.Compress(flate.DefaultCompression))
+	internetRouter.Use(middleware.RequestID)
+	internetRouter.Use(middleware.RealIP)
+	internetRouter.Use(panicRecovery("internet"))
+	internetRouter.Use(middleware.Timeout(60 * time.Second))
+	internetRouter.Use(requestLogger("internet"))
+	internetRouter.NotFound(handle404)
+	internetRouter.MethodNotAllowed(handle405)
+	internetRouter.Get("/", s.WrapHandler(handleHealth("internet")))
+	for _, route := range internetRoutes {
+		internetRouter.Method(route.method, "/mr"+route.pattern, s.WrapHandler(route.handler))
 	}
 
-	// internal listener — only /mi/* routes, no public-facing concerns
+	// internal listener — only /mi/* routes, no internet-facing concerns
 	internalRouter := chi.NewRouter()
 	internalRouter.Use(middleware.Compress(flate.DefaultCompression))
 	internalRouter.Use(middleware.RequestID)
@@ -85,14 +85,14 @@ func NewServer(ctx context.Context, rt *runtime.Runtime, wg *sync.WaitGroup) *Se
 		slog.Error("internal 405", "method", r.Method, "path", r.URL.Path)
 		handle405(w, r)
 	})
-	internalRouter.Get("/", s.WrapHandler(handleHealth))
+	internalRouter.Get("/", s.WrapHandler(handleHealth("internal")))
 	for _, route := range internalRoutes {
 		internalRouter.Method(route.method, "/mi"+route.pattern, s.WrapHandler(route.handler))
 	}
 
-	s.publicServer = &http.Server{
+	s.internetServer = &http.Server{
 		Addr:         fmt.Sprintf("%s:%d", rt.Config.PublicAddress, rt.Config.PublicPort),
-		Handler:      publicRouter,
+		Handler:      internetRouter,
 		ReadTimeout:  30 * time.Second,
 		WriteTimeout: 30 * time.Second,
 		IdleTimeout:  90 * time.Second,
@@ -135,10 +135,10 @@ func (s *Server) Start() {
 	go func() {
 		defer s.wg.Done()
 
-		log := slog.With("comp", "server", "listener", "public", "address", s.publicServer.Addr)
+		log := slog.With("comp", "server", "listener", "internet", "address", s.internetServer.Addr)
 		log.Info("server started")
 
-		err := s.publicServer.ListenAndServe()
+		err := s.internetServer.ListenAndServe()
 		if err != nil && err != http.ErrServerClosed {
 			log.Error("error listening", "error", err)
 		}
@@ -159,10 +159,10 @@ func (s *Server) Start() {
 
 // Stop stops our web server
 func (s *Server) Stop() {
-	if err := s.publicServer.Shutdown(context.Background()); err != nil {
-		slog.Error("error shutting down server", "comp", "server", "listener", "public", "error", err)
+	if err := s.internetServer.Shutdown(context.Background()); err != nil {
+		slog.Error("error shutting down server", "comp", "server", "listener", "internet", "error", err)
 	} else {
-		slog.Info("server stopped", "comp", "server", "listener", "public")
+		slog.Info("server stopped", "comp", "server", "listener", "internet")
 	}
 
 	if err := s.internalServer.Shutdown(context.Background()); err != nil {
@@ -172,15 +172,18 @@ func (s *Server) Stop() {
 	}
 }
 
-// handleHealth is the liveness probe used by ALB health checks. Registered at the root of
+// handleHealth returns the liveness probe used by ALB health checks. Registered at the root of
 // both listeners and not under any /mr or /mi prefix, so no listener rule routes client
 // traffic to it — only direct ALB→target health probes reach it. Also returns the running
-// version so it doubles as a debug endpoint.
-func handleHealth(ctx context.Context, rt *runtime.Runtime, r *http.Request, w http.ResponseWriter) error {
-	return WriteMarshalled(w, http.StatusOK, map[string]string{
-		"component": "mailroom",
-		"version":   rt.Config.Version,
-	})
+// version and which listener was hit so it doubles as a debug endpoint.
+func handleHealth(listener string) Handler {
+	return func(ctx context.Context, rt *runtime.Runtime, r *http.Request, w http.ResponseWriter) error {
+		return WriteMarshalled(w, http.StatusOK, map[string]string{
+			"component": "mailroom",
+			"listener":  listener,
+			"version":   rt.Config.Version,
+		})
+	}
 }
 
 func handle404(w http.ResponseWriter, r *http.Request) {
