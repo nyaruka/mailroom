@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/nyaruka/gocommon/aws/dynamo/dyntest"
+	"github.com/nyaruka/gocommon/centrifugo"
 	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/gocommon/i18n"
@@ -233,7 +234,7 @@ func TestBulkCommitPublishesNotifications(t *testing.T) {
 	// only the editor is watching their notifications socket
 	adminSocket := fmt.Sprintf("notifications:%s:%s", testdb.Org1.UUID, testdb.Admin.UUID)
 	editorSocket := fmt.Sprintf("notifications:%s:%s", testdb.Org1.UUID, testdb.Editor.UUID)
-	_, err = vc.Do("SET", "socket-subs:"+editorSocket, "1")
+	_, err = vc.Do("SET", centrifugo.SubscriptionKey(editorSocket), "1")
 	require.NoError(t, err)
 
 	// commit a scene that creates a tickets:opened notification for each of the admin and editor, attaching them the

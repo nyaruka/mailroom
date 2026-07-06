@@ -29,7 +29,7 @@ type Runtime struct {
 	Dynamo     *Dynamo
 	CW         *cwatch.Service
 	FCM        FCMClient
-	Centrifugo centrifugo.Client
+	Centrifugo *centrifugo.Service
 
 	Queues *Queues
 	Stats  *StatsCollector
@@ -91,7 +91,7 @@ func NewRuntime(cfg *Config) (*Runtime, error) {
 		return nil, fmt.Errorf("error creating Cloudwatch service: %w", err)
 	}
 
-	rt.Centrifugo = centrifugo.NewClient(cfg.CentrifugoEndpoint, cfg.CentrifugoKey)
+	rt.Centrifugo = centrifugo.NewService(centrifugo.NewClient(cfg.CentrifugoEndpoint, cfg.CentrifugoKey), rt.VK)
 
 	rt.Queues = newQueues(cfg)
 	rt.Stats = NewStatsCollector(rt.VK, cfg.LatencyExcludedOrgs)

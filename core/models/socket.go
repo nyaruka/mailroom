@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log/slog"
 
-	valkey "github.com/gomodule/redigo/redis"
 	"github.com/nyaruka/gocommon/centrifugo"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/core"
@@ -45,9 +44,9 @@ func NotificationSocket(orgUUID OrgUUID, userUUID assets.UserUUID) string {
 
 // PublishNotifications publishes the given notifications to their users' notification sockets, each as the same JSON a
 // client would otherwise fetch from the notifications API. As with history, it's best-effort and a no-op for any
-// socket that currently has no subscribers; the sockets this commit touches are resolved in a single presence lookup,
-// then every subscribed socket's notifications are batched into one pipelined request so it costs one centrifugo
-// round-trip.
+// socket that currently has no subscribers - the centrifugo service resolves subscriber presence for the whole batch
+// in a single lookup and sends the surviving notifications as one pipelined request, so the batch lands or fails
+// together.
 func PublishNotifications(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, notifications []*Notification) error {
 	if len(notifications) == 0 {
 		return nil
@@ -55,7 +54,7 @@ func PublishNotifications(ctx context.Context, rt *runtime.Runtime, oa *OrgAsset
 
 	orgUUID := oa.Org().UUID()
 
-	msgs := make([]socketMessage, 0, len(notifications))
+	pubs := make([]*centrifugo.Publication, 0, len(notifications))
 	for _, n := range notifications {
 		user := oa.UserByID(n.UserID)
 		if user == nil {
@@ -67,10 +66,14 @@ func PublishNotifications(ctx context.Context, rt *runtime.Runtime, oa *OrgAsset
 		if err != nil {
 			return fmt.Errorf("error marshaling notification for user #%d: %w", n.UserID, err)
 		}
-		msgs = append(msgs, socketMessage{NotificationSocket(orgUUID, user.UUID()), data})
+		pubs = append(pubs, &centrifugo.Publication{Channel: NotificationSocket(orgUUID, user.UUID()), Data: json.RawMessage(data)})
 	}
 
-	return publishToSockets(ctx, rt, msgs)
+	if err := rt.Centrifugo.Publish(ctx, pubs...); err != nil {
+		return fmt.Errorf("error publishing notifications: %w", err)
+	}
+
+	return nil
 }
 
 // PublishNotificationData publishes already-rendered notification payloads to their users' notification sockets. It's
@@ -86,49 +89,14 @@ func PublishNotificationData(ctx context.Context, rt *runtime.Runtime, oa *OrgAs
 
 	orgUUID := oa.Org().UUID()
 
-	msgs := make([]socketMessage, 0, len(items))
+	pubs := make([]*centrifugo.Publication, 0, len(items))
 	for _, it := range items {
 		user := oa.UserByID(it.UserID)
 		if user == nil {
 			slog.Error("unable to publish notification for unknown user", "user_id", it.UserID, "org_id", oa.OrgID())
 			continue
 		}
-		msgs = append(msgs, socketMessage{NotificationSocket(orgUUID, user.UUID()), it.Data})
-	}
-
-	return publishToSockets(ctx, rt, msgs)
-}
-
-// socketMessage is an already-marshaled payload bound for a single realtime socket.
-type socketMessage struct {
-	socket string
-	data   []byte
-}
-
-// publishToSockets publishes pre-rendered messages to their sockets, best-effort, skipping any socket that currently
-// has no active subscriber. Subscriber presence for every socket is resolved in a single round-trip, then each
-// subscribed socket's payload is batched into one pipelined centrifugo request so the whole batch costs one round-trip
-// and lands or fails together. This is the shared publish core behind the notification publishers above.
-func publishToSockets(ctx context.Context, rt *runtime.Runtime, msgs []socketMessage) error {
-	if len(msgs) == 0 {
-		return nil
-	}
-
-	candidates := make([]string, len(msgs))
-	for i, m := range msgs {
-		candidates[i] = m.socket
-	}
-
-	subscribed, err := SubscribedSockets(ctx, rt, candidates...)
-	if err != nil {
-		return err
-	}
-
-	pubs := make([]*centrifugo.Publish, 0, len(msgs))
-	for _, m := range msgs {
-		if subscribed[m.socket] {
-			pubs = append(pubs, &centrifugo.Publish{Channel: m.socket, Data: m.data})
-		}
+		pubs = append(pubs, &centrifugo.Publication{Channel: NotificationSocket(orgUUID, user.UUID()), Data: it.Data})
 	}
 
 	if err := rt.Centrifugo.Publish(ctx, pubs...); err != nil {
@@ -136,45 +104,6 @@ func publishToSockets(ctx context.Context, rt *runtime.Runtime, msgs []socketMes
 	}
 
 	return nil
-}
-
-// subscriptionKey is the valkey key marking that a realtime socket has at least one active subscriber, e.g.
-// "socket-subs:history:<contact-uuid>". The key is a per-socket presence marker written by the service that
-// authorizes subscriptions (it sets/re-arms the key with a TTL on every subscribe and refresh); mailroom only
-// reads it.
-func subscriptionKey(socket string) string {
-	return fmt.Sprintf("socket-subs:%s", socket)
-}
-
-// SubscribedSockets returns the subset of the given sockets that currently have at least one active subscriber. It
-// resolves them all in a single round-trip by MGETting their presence keys, so checking many sockets at once (e.g. a
-// contact plus all of its tickets) costs one lookup rather than one per socket. A socket is subscribed when its key
-// is present; missing keys come back nil. The returned map only contains the subscribed sockets.
-func SubscribedSockets(ctx context.Context, rt *runtime.Runtime, sockets ...string) (map[string]bool, error) {
-	if len(sockets) == 0 {
-		return nil, nil
-	}
-
-	keys := make([]any, len(sockets))
-	for i, s := range sockets {
-		keys[i] = subscriptionKey(s)
-	}
-
-	vc := rt.VK.Get()
-	defer vc.Close()
-
-	values, err := valkey.Values(valkey.DoContext(vc, ctx, "MGET", keys...))
-	if err != nil {
-		return nil, fmt.Errorf("error checking socket subscriptions: %w", err)
-	}
-
-	subscribed := make(map[string]bool, len(sockets))
-	for i, v := range values {
-		if v != nil {
-			subscribed[sockets[i]] = true
-		}
-	}
-	return subscribed, nil
 }
 
 // PublishToHistory publishes engine events to a contact's history sockets for any live subscribers. Each event is
@@ -187,66 +116,19 @@ func SubscribedSockets(ctx context.Context, rt *runtime.Runtime, sockets ...stri
 // socket. The ticket read page subscribes to both its ticket socket and the contact socket, so the union it sees
 // matches what the read API returns for that ticket.
 //
-// Every subscribed socket's events are batched into a single pipelined request, so one commit costs one centrifugo
-// round-trip no matter how many sockets it spans, and the whole batch lands or fails together. It's best-effort and
-// a no-op for any socket that currently has no subscribers; we only publish to a socket when someone is watching.
+// It's best-effort and a no-op for any socket that currently has no subscribers - the centrifugo service resolves
+// subscriber presence for every socket the commit touches in a single lookup and sends the surviving events as one
+// pipelined request, so a commit costs one centrifugo round-trip no matter how many sockets it spans, and the whole
+// batch lands or fails together. Events are passed to the service unmarshaled, so in the common case where no
+// socket has a subscriber they're dropped without ever paying the marshaling cost.
 func PublishToHistory(ctx context.Context, rt *runtime.Runtime, contactUUID core.ContactUUID, evts []events.Event) error {
-	if len(evts) == 0 {
-		return nil
-	}
-
-	contactEvents := make([]events.Event, 0, len(evts))
-	ticketEvents := make(map[core.TicketUUID][]events.Event)
-
-	for _, e := range evts {
+	pubs := make([]*centrifugo.Publication, len(evts))
+	for i, e := range evts {
+		socket := HistorySocket(contactUUID)
 		if ticketUUID, ok := ticketDetailEvent(e); ok {
-			ticketEvents[ticketUUID] = append(ticketEvents[ticketUUID], e)
-		} else {
-			contactEvents = append(contactEvents, e)
+			socket = HistorySocket(contactUUID, ticketUUID)
 		}
-	}
-
-	// gather the sockets this commit touches - the contact socket plus one per ticket with detail events - so their
-	// subscription state can be resolved in a single round-trip rather than one presence lookup per socket (which
-	// matters once a commit can span many tickets, e.g. a bulk ticket operation)
-	type batch struct {
-		socket string
-		events []events.Event
-	}
-	batches := make([]batch, 0, len(ticketEvents)+1)
-	if len(contactEvents) > 0 {
-		batches = append(batches, batch{HistorySocket(contactUUID), contactEvents})
-	}
-	for ticketUUID, evts := range ticketEvents {
-		batches = append(batches, batch{HistorySocket(contactUUID, ticketUUID), evts})
-	}
-	if len(batches) == 0 {
-		return nil
-	}
-
-	candidates := make([]string, len(batches))
-	for i, b := range batches {
-		candidates[i] = b.socket
-	}
-	subscribed, err := SubscribedSockets(ctx, rt, candidates...)
-	if err != nil {
-		return err
-	}
-
-	// batch every subscribed socket's events into a single pipelined request, so the whole commit is one centrifugo
-	// round-trip no matter how many sockets it spans, and the batch lands or fails together
-	var pubs []*centrifugo.Publish
-	for _, b := range batches {
-		if !subscribed[b.socket] {
-			continue
-		}
-		for _, e := range b.events {
-			data, err := json.Marshal(e)
-			if err != nil {
-				return fmt.Errorf("error marshaling event for %s: %w", b.socket, err)
-			}
-			pubs = append(pubs, &centrifugo.Publish{Channel: b.socket, Data: data})
-		}
+		pubs[i] = &centrifugo.Publication{Channel: socket, Data: e}
 	}
 
 	if err := rt.Centrifugo.Publish(ctx, pubs...); err != nil {

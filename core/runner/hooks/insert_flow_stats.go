@@ -17,6 +17,7 @@ import (
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/runner"
 	"github.com/nyaruka/mailroom/v26/runtime"
+	mrutils "github.com/nyaruka/mailroom/v26/utils"
 	"github.com/nyaruka/vkutil"
 	"github.com/vinovest/sqlx"
 )
@@ -64,7 +65,7 @@ func (h *insertFlowStats) Execute(ctx context.Context, rt *runtime.Runtime, tx *
 				if storeOperandsForTypes[uiNodeType] {
 					operand = seg.Operand()
 				}
-				recentBySegment[segID] = append(recentBySegment[segID], &segmentRecentContact{contact: scene.Contact, operand: operand, time: seg.Time(), rnd: vkutil.RandomBase64(10)})
+				recentBySegment[segID] = append(recentBySegment[segID], &segmentRecentContact{contact: scene.Contact, operand: operand, time: seg.Time(), rnd: mrutils.RandomBase64(10)})
 			}
 		}
 
