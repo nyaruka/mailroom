@@ -91,7 +91,7 @@ func NewServer(ctx context.Context, rt *runtime.Runtime, wg *sync.WaitGroup) *Se
 	}
 
 	s.internetServer = &http.Server{
-		Addr:         fmt.Sprintf("%s:%d", rt.Config.PublicAddress, rt.Config.PublicPort),
+		Addr:         fmt.Sprintf("%s:%d", rt.Config.InternetAddress, rt.Config.InternetPort),
 		Handler:      internetRouter,
 		ReadTimeout:  30 * time.Second,
 		WriteTimeout: 30 * time.Second,
