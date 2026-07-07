@@ -11,9 +11,10 @@ const (
 	// the worker that was processing them died
 	taskLease = 65 * time.Minute
 
-	// tasks delivered this many times without completing are assumed to be killing their workers and are moved to
-	// the dead list
-	taskMaxAttempts = 3
+	// tasks whose leases expire are moved to the dead list instead of being redelivered because not all task types
+	// are yet safe to rerun after partial completion - but this still frees up the owner's active slot so losing a
+	// worker can't starve them of workers
+	taskMaxAttempts = 1
 )
 
 type Queues struct {
