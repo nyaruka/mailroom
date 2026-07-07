@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"firebase.google.com/go/v4/messaging"
+	"github.com/aws/aws-sdk-go-v2/config"
 	valkey "github.com/gomodule/redigo/redis"
 	_ "github.com/lib/pq"
 	"github.com/nyaruka/gocommon/aws/cwatch"
@@ -48,6 +49,8 @@ type FCMClient interface {
 func NewRuntime(cfg *Config) (*Runtime, error) {
 	rt := &Runtime{Config: cfg}
 
+	ctx := context.Background()
+
 	var err error
 
 	rt.DB, err = createPostgresPool(cfg.DB, cfg.DBPoolSize)
@@ -76,7 +79,18 @@ func NewRuntime(cfg *Config) (*Runtime, error) {
 		return nil, fmt.Errorf("error creating Valkey pool: %w", err)
 	}
 
-	rt.S3, err = s3x.NewService(context.Background(), "", cfg.S3Endpoint, cfg.S3PathStyle)
+	// resolve the AWS region from the standard SDK default chain (AWS_REGION / AWS_DEFAULT_REGION env
+	// vars, shared config, etc.). The SDK doesn't error when no region can be resolved, it just leaves
+	// it empty, so fail fast here rather than let an empty region break virtual-host style S3 URLs.
+	awsCfg, err := config.LoadDefaultConfig(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("error resolving AWS config: %w", err)
+	}
+	if awsCfg.Region == "" {
+		return nil, fmt.Errorf("no AWS region resolved - set AWS_REGION or AWS_DEFAULT_REGION")
+	}
+
+	rt.S3, err = s3x.NewService(ctx, awsCfg.Region, cfg.S3Endpoint, cfg.S3PathStyle)
 	if err != nil {
 		return nil, fmt.Errorf("error creating S3 service: %w", err)
 	}
@@ -86,7 +100,7 @@ func NewRuntime(cfg *Config) (*Runtime, error) {
 		return nil, err
 	}
 
-	rt.CW, err = cwatch.NewService(context.Background(), cfg.CloudwatchNamespace, cfg.DeploymentID)
+	rt.CW, err = cwatch.NewService(ctx, cfg.CloudwatchNamespace, cfg.DeploymentID)
 	if err != nil {
 		return nil, fmt.Errorf("error creating Cloudwatch service: %w", err)
 	}
