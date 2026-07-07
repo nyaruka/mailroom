@@ -7,12 +7,13 @@ import (
 
 	"github.com/elastic/go-elasticsearch/v9"
 	"github.com/nyaruka/gocommon/elastic"
+	"github.com/nyaruka/gocommon/spool"
 )
 
 type Elastic struct {
 	Client *elasticsearch.TypedClient
 	Writer *elastic.Writer
-	Spool  *elastic.Spool
+	Spool  *spool.Spool[*elastic.Document]
 }
 
 func newElastic(cfg *Config) (*Elastic, error) {
