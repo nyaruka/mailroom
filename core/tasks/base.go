@@ -12,6 +12,18 @@ import (
 	"github.com/nyaruka/mailroom/v26/utils/queues"
 )
 
+// tasks that take longer than this are logged as errors - set slightly below the maximum stop
+// timeout for an ECS task on Fargate (120s) so we catch tasks getting dangerously close to a
+// duration where they couldn't stop gracefully during a deployment
+const maxNormalDuration = 110 * time.Second
+
+// slowThreshold is the duration after which a task is logged as an error - the lesser of
+// maxNormalDuration and 75% of the task's own timeout, so that tasks with short timeouts are
+// still reported when they get close to timing out
+func slowThreshold(timeout time.Duration) time.Duration {
+	return min(maxNormalDuration, 3*timeout/4)
+}
+
 var registeredTypes = map[string](func() Task){}
 
 // RegisterType registers a new type of task
@@ -52,9 +64,8 @@ func Perform(ctx context.Context, rt *runtime.Runtime, task *queues.Task) error 
 
 	err = typedTask.Perform(ctx, rt, oa)
 
-	// log if task took longer than 75% of its timeout
-	if duration := time.Since(start); duration >= (3 * typedTask.Timeout() / 4) {
-		slog.Error("task took longer than expected", "org", oa.OrgID(), "type", typedTask.Type(), "duration", duration, "limit", typedTask.Timeout())
+	if duration := time.Since(start); duration >= slowThreshold(typedTask.Timeout()) {
+		slog.Error("task took longer than expected", "org", oa.OrgID(), "type", typedTask.Type(), "duration", duration, "timeout", typedTask.Timeout())
 	}
 
 	return err
