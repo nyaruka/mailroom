@@ -25,6 +25,7 @@ type PopulateGroupBatch struct {
 	ContactIDs   []models.ContactID `json:"contact_ids"`
 	LockValue    string             `json:"lock_value"`
 	PopulationID string             `json:"population_id"`
+	BatchID      string             `json:"batch_id"`
 }
 
 func (t *PopulateGroupBatch) Type() string {
@@ -51,11 +52,11 @@ func (t *PopulateGroupBatch) Perform(ctx context.Context, rt *runtime.Runtime, o
 		slog.Warn("failed to acquire locks for contacts during group population", "group_id", t.GroupID, "skipped", len(skipped))
 	}
 
-	// decrement the counter to see if the overall population is now finished
-	counter := NewCounter(fmt.Sprintf(populateGroupBatchesRemainingKey, t.PopulationID), time.Hour)
-	done, err := counter.Done(ctx, rt.VK)
+	// mark this batch as done to see if the overall population is now finished
+	tracker := NewTracker(fmt.Sprintf(populateGroupBatchesRemainingKey, t.PopulationID), time.Hour)
+	done, err := tracker.Done(ctx, rt.VK, t.BatchID)
 	if err != nil {
-		return fmt.Errorf("error decrementing populate group batch counter: %w", err)
+		return fmt.Errorf("error updating populate group batch tracker: %w", err)
 	}
 	if done {
 		if err := models.UpdateGroupStatus(ctx, rt.DB, t.GroupID, models.GroupStatusReady); err != nil {

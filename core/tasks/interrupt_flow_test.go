@@ -40,8 +40,8 @@ func TestInterruptFlow(t *testing.T) {
 		string(s5UUID): models.SessionStatusExpired,
 	})
 
-	// check that the batches remaining counter has been decremented to zero
-	remaining, err := valkey.Int(vc.Do("GET", fmt.Sprintf("interrupt_flow_progress:%d", testdb.Favorites.ID)))
+	// check that the progress tracker key is gone now that all batches have completed
+	exists, err := valkey.Int(vc.Do("EXISTS", fmt.Sprintf("interrupt_flow_progress:%d", testdb.Favorites.ID)))
 	assert.NoError(t, err)
-	assert.Equal(t, 0, remaining)
+	assert.Equal(t, 0, exists)
 }

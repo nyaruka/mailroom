@@ -40,8 +40,8 @@ func handleInterrupt(ctx context.Context, rt *runtime.Runtime, r *interruptReque
 	defer locker.Release(ctx, rt.VK, lock)
 
 	// check if there is already an interruption in progress for this flow
-	counter := tasks.FlowInterruptCounter(r.FlowID)
-	remaining, err := counter.Value(ctx, rt.VK)
+	tracker := tasks.FlowInterruptTracker(r.FlowID)
+	remaining, err := tracker.Remaining(ctx, rt.VK)
 	if err != nil {
 		return nil, 0, fmt.Errorf("error checking flow interrupt progress: %w", err)
 	}
@@ -50,8 +50,8 @@ func handleInterrupt(ctx context.Context, rt *runtime.Runtime, r *interruptReque
 	}
 
 	// to avoid a race condition between checking for an existing interruption and setting the progress key in the task
-	// below we set the progress key here with a placeholder value.
-	if err := counter.Init(ctx, rt.VK, -1); err != nil {
+	// below we set the progress key here with a placeholder batch.
+	if err := tracker.Init(ctx, rt.VK, []string{"!"}); err != nil {
 		return nil, 0, fmt.Errorf("error initializing flow interrupt progress: %w", err)
 	}
 
