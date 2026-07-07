@@ -1,3 +1,10 @@
+v26.3.9 (2026-07-07)
+-------------------------
+ * Update to gocommon v1.88.0 which reworks spools
+ * Fail startup if postgres or valkey are unreachable
+ * Also report tasks that reach 75% of their own timeout
+ * Use fixed 120s threshold for reporting slow tasks
+
 v26.3.8 (2026-07-06)
 -------------------------
  * Remove InstanceID config setting
