@@ -12,6 +12,10 @@ import (
 	"github.com/nyaruka/mailroom/v26/utils/queues"
 )
 
+// tasks that take longer than this can't stop gracefully during a deployment (matches the maximum
+// stop timeout for an ECS task on Fargate) so are logged as errors
+const maxNormalDuration = 120 * time.Second
+
 var registeredTypes = map[string](func() Task){}
 
 // RegisterType registers a new type of task
@@ -52,9 +56,8 @@ func Perform(ctx context.Context, rt *runtime.Runtime, task *queues.Task) error 
 
 	err = typedTask.Perform(ctx, rt, oa)
 
-	// log if task took longer than 75% of its timeout
-	if duration := time.Since(start); duration >= (3 * typedTask.Timeout() / 4) {
-		slog.Error("task took longer than expected", "org", oa.OrgID(), "type", typedTask.Type(), "duration", duration, "limit", typedTask.Timeout())
+	if duration := time.Since(start); duration >= maxNormalDuration {
+		slog.Error("task took longer than expected", "org", oa.OrgID(), "type", typedTask.Type(), "duration", duration, "limit", maxNormalDuration)
 	}
 
 	return err
