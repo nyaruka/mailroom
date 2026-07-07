@@ -140,6 +140,14 @@ func RequestCall(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 		return nil, fmt.Errorf("error creating outgoing call: %w", err)
 	}
 
+	// suspended orgs can't make calls, so fail the call without requesting it from the provider
+	if oa.Org().Suspended() {
+		if err := call.SetFailed(ctx, rt.DB); err != nil {
+			return nil, fmt.Errorf("error marking call as failed: %w", err)
+		}
+		return call, nil
+	}
+
 	clog, err := RequestCallStart(ctx, rt, channel, telURN.Identity, call)
 
 	// log any error inserting our channel log, but continue
