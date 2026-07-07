@@ -10,6 +10,7 @@ import (
 
 	"github.com/appleboy/go-fcm"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatch/types"
+	valkey "github.com/gomodule/redigo/redis"
 	"github.com/nyaruka/gocommon/aws/cwatch"
 	"github.com/nyaruka/gocommon/aws/dynamo"
 	"github.com/nyaruka/mailroom/v26/core/crons"
@@ -58,30 +59,28 @@ func (s *Service) Start() error {
 
 	log := slog.With("comp", "mailroom")
 
-	// test Postgres
+	// we can't function at all without Postgres and Valkey so unreachable is fatal, whereas writes to services
+	// like DynamoDB and Elastic are spooled so we can start without them and recover later
 	if err := checkDBConnection(s.rt.DB.DB); err != nil {
-		log.Error("postgres not reachable", "error", err)
-	} else {
-		log.Info("postgres ok")
+		return fmt.Errorf("postgres not reachable: %w", err)
 	}
+	log.Info("postgres ok")
+
 	if s.rt.ReadonlyDB != s.rt.DB.DB {
 		if err := checkDBConnection(s.rt.ReadonlyDB); err != nil {
-			log.Error("readonly db not reachable", "error", err)
-		} else {
-			log.Info("readonly db ok")
+			return fmt.Errorf("readonly db not reachable: %w", err)
 		}
+		log.Info("readonly db ok")
 	} else {
 		log.Warn("no distinct readonly db configured")
 	}
 
-	// test Valkey
 	vc := s.rt.VK.Get()
 	defer vc.Close()
-	if _, err := vc.Do("PING"); err != nil {
-		log.Error("valkey not reachable", "error", err)
-	} else {
-		log.Info("valkey ok")
+	if _, err := valkey.DoWithTimeout(vc, 5*time.Second, "PING"); err != nil {
+		return fmt.Errorf("valkey not reachable: %w", err)
 	}
+	log.Info("valkey ok")
 
 	// test DynamoDB tables
 	if err := dynamo.Test(s.ctx, s.rt.Dynamo.Main.Client(), c.DynamoTablePrefix+"Main", c.DynamoTablePrefix+"History"); err != nil {
@@ -247,7 +246,7 @@ func (s *Service) Stop() error {
 }
 
 func checkDBConnection(db *sql.DB) error {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	err := db.PingContext(ctx)
 	cancel()
 
