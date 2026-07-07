@@ -1,3 +1,7 @@
+v26.3.10 (2026-07-07)
+-------------------------
+ * Fail fast when no AWS region is resolved and use it for S3 object URLs
+
 v26.3.9 (2026-07-07)
 -------------------------
  * Update to gocommon v1.88.0 which reworks spools
