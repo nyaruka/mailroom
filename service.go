@@ -10,6 +10,7 @@ import (
 
 	"github.com/appleboy/go-fcm"
 	"github.com/aws/aws-sdk-go-v2/service/cloudwatch/types"
+	valkey "github.com/gomodule/redigo/redis"
 	"github.com/nyaruka/gocommon/aws/cwatch"
 	"github.com/nyaruka/gocommon/aws/dynamo"
 	"github.com/nyaruka/mailroom/v26/core/crons"
@@ -76,7 +77,7 @@ func (s *Service) Start() error {
 
 	vc := s.rt.VK.Get()
 	defer vc.Close()
-	if _, err := vc.Do("PING"); err != nil {
+	if _, err := valkey.DoWithTimeout(vc, 5*time.Second, "PING"); err != nil {
 		return fmt.Errorf("valkey not reachable: %w", err)
 	}
 	log.Info("valkey ok")
@@ -245,7 +246,7 @@ func (s *Service) Stop() error {
 }
 
 func checkDBConnection(db *sql.DB) error {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	err := db.PingContext(ctx)
 	cancel()
 
