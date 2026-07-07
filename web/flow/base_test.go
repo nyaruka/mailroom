@@ -33,7 +33,9 @@ func TestInterrupt(t *testing.T) {
 
 	// set the progress key for PickANumber to simulate an ongoing interruption for that flow
 	vc := rt.VK.Get()
-	vc.Do("SET", fmt.Sprintf("%s:%d", "interrupt_flow_progress", testdb.PickANumber.ID), 100, "EX", 15*60)
+	key := fmt.Sprintf("%s:%d", "interrupt_flow_progress", testdb.PickANumber.ID)
+	vc.Do("SADD", key, "0", "1")
+	vc.Do("EXPIRE", key, 15*60)
 	vc.Close()
 
 	testsuite.RunWebTests(t, rt, "testdata/interrupt.json")

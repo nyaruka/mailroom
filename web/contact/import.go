@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"time"
+	"strconv"
 
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/tasks"
@@ -39,10 +39,13 @@ func handleImport(ctx context.Context, rt *runtime.Runtime, r *importRequest) (a
 		return nil, 0, fmt.Errorf("import is not processing")
 	}
 
-	// set valkey counter which batch tasks can decrement to know when import has completed
-	counter := tasks.NewCounter(fmt.Sprintf("contact_import_batches_remaining:%d", imp.ID), 24*time.Hour)
-	if err := counter.Init(ctx, rt.VK, len(imp.BatchIDs)); err != nil {
-		return nil, 0, fmt.Errorf("error setting import batch counter key: %w", err)
+	// set valkey tracker which batch tasks can mark themselves complete in to know when import has completed
+	batchIDs := make([]string, len(imp.BatchIDs))
+	for i, bID := range imp.BatchIDs {
+		batchIDs[i] = strconv.Itoa(int(bID))
+	}
+	if err := tasks.ContactImportTracker(imp.ID).Init(ctx, rt.VK, batchIDs); err != nil {
+		return nil, 0, fmt.Errorf("error setting import batch tracker key: %w", err)
 	}
 
 	// create tasks for all batches

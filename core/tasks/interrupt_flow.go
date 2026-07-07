@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"slices"
+	"strconv"
 	"time"
 
 	"github.com/nyaruka/goflow/flows"
@@ -48,10 +49,10 @@ func (t *InterruptFlow) Perform(ctx context.Context, rt *runtime.Runtime, oa *mo
 		return fmt.Errorf("error getting waiting sessions for flow: %w", err)
 	}
 
-	counter := FlowInterruptCounter(t.FlowID)
+	tracker := FlowInterruptTracker(t.FlowID)
 
 	if len(sessionRefs) == 0 {
-		if err := counter.Clear(ctx, rt.VK); err != nil {
+		if err := tracker.Clear(ctx, rt.VK); err != nil {
 			return fmt.Errorf("error clearing flow interrupt progress key: %w", err)
 		}
 		return nil
@@ -59,12 +60,16 @@ func (t *InterruptFlow) Perform(ctx context.Context, rt *runtime.Runtime, oa *mo
 
 	batches := slices.Collect(slices.Chunk(sessionRefs, interruptSessionBatchSize))
 
-	if err := counter.Init(ctx, rt.VK, len(batches)); err != nil {
+	batchIDs := make([]string, len(batches))
+	for i := range batches {
+		batchIDs[i] = strconv.Itoa(i)
+	}
+	if err := tracker.Init(ctx, rt.VK, batchIDs); err != nil {
 		return fmt.Errorf("error setting flow interrupt batches remaining key: %w", err)
 	}
 
-	for _, batch := range batches {
-		task := &InterruptSessionBatch{Sessions: batch, Status: flows.SessionStatusInterrupted, FlowID: t.FlowID}
+	for i, batch := range batches {
+		task := &InterruptSessionBatch{Sessions: batch, Status: flows.SessionStatusInterrupted, FlowID: t.FlowID, BatchID: batchIDs[i]}
 
 		if err := Queue(ctx, rt, rt.Queues.Batch, oa.OrgID(), task, false); err != nil {
 			return fmt.Errorf("error queueing interrupt session batch task: %w", err)
@@ -74,7 +79,7 @@ func (t *InterruptFlow) Perform(ctx context.Context, rt *runtime.Runtime, oa *mo
 	return nil
 }
 
-// FlowInterruptCounter returns a counter for tracking flow interruption progress for the given flow.
-func FlowInterruptCounter(flowID models.FlowID) *Counter {
-	return NewCounter(fmt.Sprintf("%s:%d", interruptFlowProgressKey, flowID), interruptFlowProgressTTL)
+// FlowInterruptTracker returns a tracker for tracking flow interruption progress for the given flow.
+func FlowInterruptTracker(flowID models.FlowID) *Tracker {
+	return NewTracker(fmt.Sprintf("%s:%d", interruptFlowProgressKey, flowID), interruptFlowProgressTTL)
 }

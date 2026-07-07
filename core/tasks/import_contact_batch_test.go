@@ -30,7 +30,9 @@ func TestImportContactBatch(t *testing.T) {
 		{"name": "Rowan", "language": "spa", "urns": ["tel:+16055740003"]}
 	]`))
 
-	vc.Do("SETEX", fmt.Sprintf("contact_import_batches_remaining:%d", importID), 10, 2)
+	key := fmt.Sprintf("contact_import_batches_remaining:%d", importID)
+	vc.Do("SADD", key, fmt.Sprint(batch1ID), fmt.Sprint(batch2ID))
+	vc.Do("EXPIRE", key, 10)
 
 	// perform first batch task...
 	testsuite.QueueBatchTask(t, rt, testdb.Org1, &tasks.ImportContactBatch{ContactImportBatchID: batch1ID})
@@ -71,7 +73,9 @@ func TestImportContactBatchFailure(t *testing.T) {
 	// insert a batch with specs that can't be unmarshaled so that processing it fails
 	batchID := testdb.InsertContactImportBatch(t, rt, importID, []byte(`[{"urns": "should-be-an-array"}]`))
 
-	vc.Do("SETEX", fmt.Sprintf("contact_import_batches_remaining:%d", importID), 10, 1)
+	key := fmt.Sprintf("contact_import_batches_remaining:%d", importID)
+	vc.Do("SADD", key, fmt.Sprint(batchID))
+	vc.Do("EXPIRE", key, 10)
 
 	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 	require.NoError(t, err)

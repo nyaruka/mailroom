@@ -10,69 +10,77 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestCounter(t *testing.T) {
+func TestTracker(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 	vc := rt.VK.Get()
 	defer vc.Close()
 
 	defer testsuite.Reset(t, rt, testsuite.ResetValkey)
 
-	counter := tasks.NewCounter("test_counter", time.Minute)
+	tracker := tasks.NewTracker("test_tracker", time.Minute)
 
-	// init counter with 3 batches
-	err := counter.Init(ctx, rt.VK, 3)
+	// init tracker with 3 batches
+	err := tracker.Init(ctx, rt.VK, []string{"1", "2", "3"})
 	assert.NoError(t, err)
 
-	val, err := valkey.Int(vc.Do("GET", "test_counter"))
+	members, err := valkey.Strings(vc.Do("SMEMBERS", "test_tracker"))
 	assert.NoError(t, err)
-	assert.Equal(t, 3, val)
+	assert.ElementsMatch(t, []string{"1", "2", "3"}, members)
 
-	ttl, err := valkey.Int(vc.Do("TTL", "test_counter"))
+	ttl, err := valkey.Int(vc.Do("TTL", "test_tracker"))
 	assert.NoError(t, err)
 	assert.Greater(t, ttl, 0)
 
-	// first two calls to Done should return false
-	done, err := counter.Done(ctx, rt.VK)
+	remaining, err := tracker.Remaining(ctx, rt.VK)
+	assert.NoError(t, err)
+	assert.Equal(t, 3, remaining)
+
+	// completing first two batches should return false
+	done, err := tracker.Done(ctx, rt.VK, "2")
 	assert.NoError(t, err)
 	assert.False(t, done)
 
-	done, err = counter.Done(ctx, rt.VK)
+	done, err = tracker.Done(ctx, rt.VK, "1")
 	assert.NoError(t, err)
 	assert.False(t, done)
 
-	// last call should return true
-	done, err = counter.Done(ctx, rt.VK)
+	// completing an already completed batch is a no-op
+	done, err = tracker.Done(ctx, rt.VK, "1")
+	assert.NoError(t, err)
+	assert.False(t, done)
+
+	remaining, err = tracker.Remaining(ctx, rt.VK)
+	assert.NoError(t, err)
+	assert.Equal(t, 1, remaining)
+
+	// completing the last batch should return true
+	done, err = tracker.Done(ctx, rt.VK, "3")
 	assert.NoError(t, err)
 	assert.True(t, done)
 
-	// key should still exist with a TTL (not orphaned)
-	ttl, err = valkey.Int(vc.Do("TTL", "test_counter"))
+	// and even it can't complete again
+	done, err = tracker.Done(ctx, rt.VK, "3")
 	assert.NoError(t, err)
-	assert.Greater(t, ttl, 0)
-}
+	assert.False(t, done)
 
-func TestCounterDoneSetsExpiry(t *testing.T) {
-	ctx, rt := testsuite.Runtime(t)
-	vc := rt.VK.Get()
-	defer vc.Close()
-
-	defer testsuite.Reset(t, rt, testsuite.ResetValkey)
-
-	// simulate a key that was created by DECR without a TTL (the fragility we're fixing)
-	vc.Do("SET", "test_counter_orphan", 1)
-
-	ttl, err := valkey.Int(vc.Do("TTL", "test_counter_orphan"))
+	remaining, err = tracker.Remaining(ctx, rt.VK)
 	assert.NoError(t, err)
-	assert.Equal(t, -1, ttl) // no expiry
+	assert.Equal(t, 0, remaining)
 
-	counter := tasks.NewCounter("test_counter_orphan", time.Minute)
-
-	done, err := counter.Done(ctx, rt.VK)
+	// re-initializing replaces any previous batches
+	err = tracker.Init(ctx, rt.VK, []string{"4"})
 	assert.NoError(t, err)
-	assert.True(t, done)
-
-	// TTL should now be set
-	ttl, err = valkey.Int(vc.Do("TTL", "test_counter_orphan"))
+	err = tracker.Init(ctx, rt.VK, []string{"5", "6"})
 	assert.NoError(t, err)
-	assert.Greater(t, ttl, 0)
+
+	members, err = valkey.Strings(vc.Do("SMEMBERS", "test_tracker"))
+	assert.NoError(t, err)
+	assert.ElementsMatch(t, []string{"5", "6"}, members)
+
+	err = tracker.Clear(ctx, rt.VK)
+	assert.NoError(t, err)
+
+	remaining, err = tracker.Remaining(ctx, rt.VK)
+	assert.NoError(t, err)
+	assert.Equal(t, 0, remaining)
 }
