@@ -8,7 +8,6 @@ require (
 	github.com/anthropics/anthropic-sdk-go v1.55.0
 	github.com/appleboy/go-fcm v1.2.11
 	github.com/aws/aws-sdk-go-v2 v1.42.1
-	github.com/aws/aws-sdk-go-v2/config v1.32.27
 	github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue v1.20.50
 	github.com/aws/aws-sdk-go-v2/service/cloudwatch v1.61.1
 	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.59.2
@@ -62,6 +61,7 @@ require (
 	github.com/Shopify/gomail v0.0.0-20220729171026-0784ece65e69 // indirect
 	github.com/antlr4-go/antlr/v4 v4.13.1 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.14 // indirect
+	github.com/aws/aws-sdk-go-v2/config v1.32.27 // indirect
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.26 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.18.30 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.30 // indirect
