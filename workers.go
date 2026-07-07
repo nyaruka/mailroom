@@ -190,6 +190,10 @@ func (w *Worker) handleTask(task *queues.Task) {
 		vc.Close()
 	}()
 
+	if task.Attempts > 1 {
+		log.Warn("task redelivered", "attempts", task.Attempts)
+	}
+
 	log.Info("task started")
 	start := time.Now()
 

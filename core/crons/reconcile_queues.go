@@ -2,6 +2,7 @@ package crons
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -25,11 +26,12 @@ func (c *ReconcileQueuesCron) Run(ctx context.Context, rt *runtime.Runtime) (map
 	vc := rt.VK.Get()
 	defer vc.Close()
 
+	var errs []error
 	for _, q := range []*queues.Fair{rt.Queues.Realtime, rt.Queues.Batch, rt.Queues.Throttled} {
 		if err := q.Reconcile(ctx, vc); err != nil {
-			return nil, fmt.Errorf("error reconciling queue %s: %w", q, err)
+			errs = append(errs, fmt.Errorf("error reconciling queue %s: %w", q, err))
 		}
 	}
 
-	return map[string]any{}, nil
+	return map[string]any{}, errors.Join(errs...)
 }
