@@ -12,9 +12,10 @@ import (
 	"github.com/nyaruka/mailroom/v26/utils/queues"
 )
 
-// tasks that take longer than this can't stop gracefully during a deployment (matches the maximum
-// stop timeout for an ECS task on Fargate) so are logged as errors
-const maxNormalDuration = 120 * time.Second
+// tasks that take longer than this are logged as errors - set slightly below the maximum stop
+// timeout for an ECS task on Fargate (120s) so we catch tasks getting dangerously close to a
+// duration where they couldn't stop gracefully during a deployment
+const maxNormalDuration = 110 * time.Second
 
 var registeredTypes = map[string](func() Task){}
 
