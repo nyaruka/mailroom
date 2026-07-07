@@ -72,7 +72,7 @@ func Perform(ctx context.Context, rt *runtime.Runtime, task *queues.Task) error 
 }
 
 // Queue adds the given task to the given queue
-func Queue(ctx context.Context, rt *runtime.Runtime, q queues.Fair, orgID models.OrgID, task Task, priority bool) error {
+func Queue(ctx context.Context, rt *runtime.Runtime, q *queues.Fair, orgID models.OrgID, task Task, priority bool) error {
 	vc := rt.VK.Get()
 	defer vc.Close()
 

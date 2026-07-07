@@ -4,30 +4,32 @@ import (
 	"context"
 	"fmt"
 	"strconv"
+	"time"
 
 	valkey "github.com/gomodule/redigo/redis"
 	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/jsonx"
-	"github.com/nyaruka/vkutil/queues"
+	"github.com/nyaruka/gocommon/queues"
 )
 
-type FairV2 struct {
+// Fair is a queue that supports fair distribution of tasks between owners
+type Fair struct {
 	name string
-	base queues.Fair
+	base *queues.Fair
 }
 
-func NewFair(name string, maxActivePerOwner int) *FairV2 {
-	return &FairV2{
+func NewFair(name string, maxActivePerOwner int, lease time.Duration, maxAttempts int) *Fair {
+	return &Fair{
 		name: name,
-		base: *queues.NewFair(fmt.Sprintf("tasks:%s", name), maxActivePerOwner),
+		base: queues.NewFair(fmt.Sprintf("tasks:%s", name), maxActivePerOwner, lease, maxAttempts),
 	}
 }
 
-func (q *FairV2) String() string {
+func (q *Fair) String() string {
 	return q.name
 }
 
-func (q *FairV2) Push(ctx context.Context, vc valkey.Conn, taskType string, ownerID int, task any, priority bool) (queues.TaskID, error) {
+func (q *Fair) Push(ctx context.Context, vc valkey.Conn, taskType string, ownerID int, task any, priority bool) (queues.TaskID, error) {
 	taskJSON := jsonx.MustMarshal(task)
 
 	wrapper := &Task{Type: taskType, OwnerID: ownerID, Task: taskJSON, QueuedOn: dates.Now()}
@@ -36,32 +38,37 @@ func (q *FairV2) Push(ctx context.Context, vc valkey.Conn, taskType string, owne
 	return q.base.Push(ctx, vc, queues.OwnerID(fmt.Sprint(ownerID)), priority, raw)
 }
 
-func (q *FairV2) Pop(ctx context.Context, vc valkey.Conn) (*Task, error) {
-	taskID, ownerID, raw, err := q.base.Pop(ctx, vc)
+func (q *Fair) Pop(ctx context.Context, vc valkey.Conn) (*Task, error) {
+	popped, err := q.base.Pop(ctx, vc)
 	if err != nil {
 		return nil, fmt.Errorf("error popping task: %w", err)
 	}
 
-	if ownerID == "" || raw == nil {
+	if popped == nil {
 		return nil, nil // no task available
 	}
 
 	task := &Task{}
-	if err := jsonx.Unmarshal(raw, task); err != nil {
-		return nil, fmt.Errorf("error unmarshaling task %s: %w", taskID, err)
+	if err := jsonx.Unmarshal(popped.Task, task); err != nil {
+		return nil, fmt.Errorf("error unmarshaling task %s: %w", popped.ID, err)
 	}
 
-	task.ID = taskID
-	task.OwnerID, _ = strconv.Atoi(string(ownerID))
+	task.ID = popped.ID
+	task.OwnerID, _ = strconv.Atoi(string(popped.Owner))
+	task.Attempts = popped.Attempts
 
 	return task, nil
 }
 
-func (q *FairV2) Done(ctx context.Context, vc valkey.Conn, ownerID int) error {
-	return q.base.Done(ctx, vc, queues.OwnerID(fmt.Sprint(ownerID)))
+func (q *Fair) Done(ctx context.Context, vc valkey.Conn, id queues.TaskID) error {
+	return q.base.Done(ctx, vc, id)
 }
 
-func (q *FairV2) Queued(ctx context.Context, vc valkey.Conn) ([]int, error) {
+func (q *Fair) Reconcile(ctx context.Context, vc valkey.Conn) error {
+	return q.base.Reconcile(ctx, vc)
+}
+
+func (q *Fair) Queued(ctx context.Context, vc valkey.Conn) ([]int, error) {
 	strs, err := q.base.Queued(ctx, vc)
 	if err != nil {
 		return nil, err
@@ -76,7 +83,7 @@ func (q *FairV2) Queued(ctx context.Context, vc valkey.Conn) ([]int, error) {
 	return actual, nil
 }
 
-func (q *FairV2) Paused(ctx context.Context, vc valkey.Conn) ([]int, error) {
+func (q *Fair) Paused(ctx context.Context, vc valkey.Conn) ([]int, error) {
 	strs, err := q.base.Paused(ctx, vc)
 	if err != nil {
 		return nil, err
@@ -91,7 +98,7 @@ func (q *FairV2) Paused(ctx context.Context, vc valkey.Conn) ([]int, error) {
 	return actual, nil
 }
 
-func (q *FairV2) Size(ctx context.Context, vc valkey.Conn) (int, error) {
+func (q *Fair) Size(ctx context.Context, vc valkey.Conn) (int, error) {
 	owners, err := q.base.Queued(ctx, vc)
 	if err != nil {
 		return 0, fmt.Errorf("error getting queued task owners: %w", err)
@@ -109,16 +116,14 @@ func (q *FairV2) Size(ctx context.Context, vc valkey.Conn) (int, error) {
 	return total, nil
 }
 
-func (q *FairV2) Pause(ctx context.Context, vc valkey.Conn, ownerID int) error {
+func (q *Fair) Pause(ctx context.Context, vc valkey.Conn, ownerID int) error {
 	return q.base.Pause(ctx, vc, queues.OwnerID(fmt.Sprint(ownerID)))
 }
 
-func (q *FairV2) Resume(ctx context.Context, vc valkey.Conn, ownerID int) error {
+func (q *Fair) Resume(ctx context.Context, vc valkey.Conn, ownerID int) error {
 	return q.base.Resume(ctx, vc, queues.OwnerID(fmt.Sprint(ownerID)))
 }
 
-func (q *FairV2) Dump(ctx context.Context, vc valkey.Conn) ([]byte, error) {
+func (q *Fair) Dump(ctx context.Context, vc valkey.Conn) ([]byte, error) {
 	return q.base.Dump(ctx, vc)
 }
-
-var _ Fair = (*FairV2)(nil)

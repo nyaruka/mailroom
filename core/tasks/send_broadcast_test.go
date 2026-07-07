@@ -49,7 +49,7 @@ func TestBroadcastsFromEvents(t *testing.T) {
 		groups             []*assets.GroupReference
 		contacts           []*core.ContactReference
 		urns               []urns.URN
-		queue              queues.Fair
+		queue              *queues.Fair
 		expectedBatchCount int
 		expectedMsgCount   int
 		expectedMsgText    string
@@ -206,7 +206,7 @@ func TestSendBroadcastTask(t *testing.T) {
 		query           string
 		exclusions      models.Exclusions
 		createdByID     models.UserID
-		queue           queues.Fair
+		queue           *queues.Fair
 		expectedBatches int
 		expectedMsgs    map[string]int
 	}{

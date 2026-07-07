@@ -22,18 +22,20 @@ func TestFair(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetValkey)
 
-	var q queues.Fair = queues.NewFair("test", 10)
+	q := queues.NewFair("test", 10, time.Minute*5, 3)
 	assert.Equal(t, "test", fmt.Sprint(q))
 
-	assertPop := func(expectedOwnerID int, expectedBody string) {
+	assertPop := func(expectedOwnerID int, expectedBody string) *queues.Task {
 		task, err := q.Pop(ctx, vc)
 		require.NoError(t, err)
 		if expectedBody != "" {
 			assert.Equal(t, expectedOwnerID, task.OwnerID)
 			assert.Equal(t, expectedBody, string(task.Task))
+			assert.Equal(t, 1, task.Attempts)
 		} else {
 			assert.Nil(t, task)
 		}
+		return task
 	}
 
 	assertSize := func(expecting int) {
@@ -58,37 +60,41 @@ func TestFair(t *testing.T) {
 
 	assertSize(5)
 
-	assertPop(1, `"task2"`) // because it's highest priority for owner 1
-	assertPop(2, `"task5"`) // because it's highest priority for owner 2
-	assertPop(1, `"task1"`)
+	task2 := assertPop(1, `"task2"`) // because it's highest priority for owner 1
+	task5 := assertPop(2, `"task5"`) // because it's highest priority for owner 2
+	task1 := assertPop(1, `"task1"`)
 
 	assertOwners([]int{1, 2})
 	assertSize(2)
 
 	// mark task2 and task1 (owner 1) as complete
-	q.Done(ctx, vc, 1)
-	q.Done(ctx, vc, 1)
+	require.NoError(t, q.Done(ctx, vc, task2.ID))
+	require.NoError(t, q.Done(ctx, vc, task1.ID))
 
-	assertPop(1, `"task4"`)
-	assertPop(2, `"task3"`)
+	task4 := assertPop(1, `"task4"`)
+	task3 := assertPop(2, `"task3"`)
 	assertPop(0, "") // no more tasks
 
 	assertSize(0)
+
+	require.NoError(t, q.Done(ctx, vc, task5.ID))
+	require.NoError(t, q.Done(ctx, vc, task4.ID))
+	require.NoError(t, q.Done(ctx, vc, task3.ID))
 
 	q.Push(ctx, vc, "type1", 1, "task6", false)
 	q.Push(ctx, vc, "type1", 1, "task7", false)
 	q.Push(ctx, vc, "type1", 2, "task8", false)
 	q.Push(ctx, vc, "type1", 2, "task9", false)
 
-	assertPop(1, `"task6"`)
+	task6 := assertPop(1, `"task6"`)
 
 	q.Pause(ctx, vc, 1)
 	q.Pause(ctx, vc, 1) // no-op if already paused
 
 	assertOwners([]int{1, 2})
 
-	assertPop(2, `"task8"`)
-	assertPop(2, `"task9"`)
+	task8 := assertPop(2, `"task8"`)
+	task9 := assertPop(2, `"task9"`)
 	assertPop(0, "") // no more tasks
 
 	q.Resume(ctx, vc, 1)
@@ -96,10 +102,12 @@ func TestFair(t *testing.T) {
 
 	assertOwners([]int{1})
 
-	assertPop(1, `"task7"`)
+	task7 := assertPop(1, `"task7"`)
 
-	q.Done(ctx, vc, 1)
-	q.Done(ctx, vc, 1)
-	q.Done(ctx, vc, 2)
-	q.Done(ctx, vc, 2)
+	require.NoError(t, q.Done(ctx, vc, task6.ID))
+	require.NoError(t, q.Done(ctx, vc, task7.ID))
+	require.NoError(t, q.Done(ctx, vc, task8.ID))
+	require.NoError(t, q.Done(ctx, vc, task9.ID))
+
+	require.NoError(t, q.Reconcile(ctx, vc))
 }

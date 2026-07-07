@@ -25,7 +25,7 @@ require (
 	github.com/nyaruka/gocommon v1.89.1
 	github.com/nyaruka/goflow v0.278.1
 	github.com/nyaruka/null/v3 v3.0.0
-	github.com/nyaruka/vkutil v0.21.0
+	github.com/nyaruka/vkutil v0.22.0
 	github.com/openai/openai-go v1.12.0
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/prometheus/client_model v0.6.2

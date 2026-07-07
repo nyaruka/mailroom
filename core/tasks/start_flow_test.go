@@ -29,7 +29,7 @@ func TestStartFlowTask(t *testing.T) {
 		query                    string
 		excludeInAFlow           bool
 		excludeStartedPreviously bool
-		queue                    queues.Fair
+		queue                    *queues.Fair
 		expectedContactCount     int
 		expectedBatchCount       int
 		expectedTotalCount       int
