@@ -115,7 +115,7 @@ func TestNewOutgoingFlowMsg(t *testing.T) {
 	now := time.Now()
 
 	for i, tc := range tcs {
-		rt.DB.MustExec(`UPDATE orgs_org SET is_suspended = $1 WHERE id = $2`, tc.SuspendedOrg, testdb.Org1.ID)
+		rt.DB.MustExec(`UPDATE orgs_org SET is_suspended = $1, suspended_on = CASE WHEN $1 THEN NOW() END WHERE id = $2`, tc.SuspendedOrg, testdb.Org1.ID)
 
 		oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshOrg|models.RefreshFlows)
 		require.NoError(t, err)
