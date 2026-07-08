@@ -18,14 +18,14 @@ import (
 type Foreman struct {
 	rt               *runtime.Runtime
 	wg               *sync.WaitGroup
-	queue            queues.Fair
+	queue            *queues.Fair
 	workers          []*Worker
 	availableWorkers chan *Worker
 	quit             chan bool
 }
 
 // NewForeman creates a new Foreman for the passed in server with the number of max workers
-func NewForeman(rt *runtime.Runtime, q queues.Fair, maxWorkers int) *Foreman {
+func NewForeman(rt *runtime.Runtime, q *queues.Fair, maxWorkers int) *Foreman {
 	foreman := &Foreman{
 		rt:               rt,
 		wg:               &sync.WaitGroup{},
@@ -183,12 +183,16 @@ func (w *Worker) handleTask(task *queues.Task) {
 
 		// mark our task as complete
 		vc := w.foreman.rt.VK.Get()
-		err := w.foreman.queue.Done(context.TODO(), vc, task.OwnerID)
+		err := w.foreman.queue.Done(context.TODO(), vc, task.ID)
 		if err != nil {
 			log.Error("unable to mark task as complete", "error", err)
 		}
 		vc.Close()
 	}()
+
+	if task.Attempts > 1 {
+		log.Warn("task redelivered", "attempts", task.Attempts)
+	}
 
 	log.Info("task started")
 	start := time.Now()

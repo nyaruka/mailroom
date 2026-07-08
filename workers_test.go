@@ -31,7 +31,7 @@ func TestForemanAndWorkers(t *testing.T) {
 	defer testsuite.Reset(t, rt, testsuite.ResetValkey)
 
 	wg := &sync.WaitGroup{}
-	q := queues.NewFair("test", 10)
+	q := queues.NewFair("test", 10, time.Minute*5, 3)
 
 	vc := rt.VK.Get()
 	defer vc.Close()
@@ -88,7 +88,7 @@ func TestForemanWithZeroWorkers(t *testing.T) {
 	defer testsuite.Reset(t, rt, testsuite.ResetValkey)
 
 	wg := &sync.WaitGroup{}
-	q := queues.NewFair("test", 0)
+	q := queues.NewFair("test", 0, time.Minute*5, 3)
 
 	vc := rt.VK.Get()
 	defer vc.Close()

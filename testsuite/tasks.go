@@ -121,8 +121,8 @@ func drainTasks(t *testing.T, rt *runtime.Runtime, perform bool, qnames ...strin
 	var err error
 	counts := make(map[string]int)
 
-	var qs []queues.Fair
-	for _, q := range []queues.Fair{rt.Queues.Realtime, rt.Queues.Batch, rt.Queues.Throttled} {
+	var qs []*queues.Fair
+	for _, q := range []*queues.Fair{rt.Queues.Realtime, rt.Queues.Batch, rt.Queues.Throttled} {
 		if len(qnames) == 0 || slices.Contains(qnames, fmt.Sprint(q)) {
 			qs = append(qs, q)
 		}
@@ -130,7 +130,7 @@ func drainTasks(t *testing.T, rt *runtime.Runtime, perform bool, qnames ...strin
 
 	for {
 		// look for a task in the queues
-		var q queues.Fair
+		var q *queues.Fair
 		for _, q = range qs {
 			task, err = q.Pop(t.Context(), vc)
 			require.NoError(t, err)
@@ -151,7 +151,7 @@ func drainTasks(t *testing.T, rt *runtime.Runtime, perform bool, qnames ...strin
 			require.NoError(t, err, "unexpected error performing task %s", task.Type)
 		}
 
-		err = q.Done(t.Context(), vc, task.OwnerID)
+		err = q.Done(t.Context(), vc, task.ID)
 		require.NoError(t, err, "unexpected error marking task %s as done", task.Type)
 	}
 	return counts

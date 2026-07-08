@@ -18,17 +18,23 @@
             "batch": {
                 "paused": {},
                 "queued": {},
-                "active": {}
+                "active": {},
+                "inflight": {},
+                "dead": 0
             },
             "realtime": {
                 "paused": {},
                 "queued": {},
-                "active": {}
+                "active": {},
+                "inflight": {},
+                "dead": 0
             },
             "throttled": {
                 "paused": {},
                 "queued": {},
-                "active": {}
+                "active": {},
+                "inflight": {},
+                "dead": 0
             }
         }
     }

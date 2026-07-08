@@ -225,8 +225,8 @@ github.com/nyaruka/null/v3 v3.0.0 h1:JvOiNuKmRBFHxzZFt4sWii+ewmMkCQ1vO7X0clTNn6E
 github.com/nyaruka/null/v3 v3.0.0/go.mod h1:Sus286RmC8P0VihFuQDDQPib/xJQ7++TsaPLdRuwgVc=
 github.com/nyaruka/phonenumbers/v2 v2.0.2 h1:8+XJFJcApk+rKNi/pbK1WeyH1p6XmLx2UNT9eGDqI90=
 github.com/nyaruka/phonenumbers/v2 v2.0.2/go.mod h1:pKu+U8m/6xzgPlYxQ9D89irpcWeB4/J7lKd3FbhQaqw=
-github.com/nyaruka/vkutil v0.21.0 h1:Vy1auqZ2slCQ1H6t/texGLv8v5DObwtwTFW7OLid9Ok=
-github.com/nyaruka/vkutil v0.21.0/go.mod h1:5dIAvwkeidExJWAJ5AAYlYN8PJ4MQrzJeFuO8wRdlAo=
+github.com/nyaruka/vkutil v0.22.0 h1:HczZwEyBhv3JAryGBNkygjgs+kaIR8kMYUI40RzSR/A=
+github.com/nyaruka/vkutil v0.22.0/go.mod h1:fp8Z1xA7C0daR0s/S26neij5uC+EwcGL8pGZQeOsobc=
 github.com/openai/openai-go v1.12.0 h1:NBQCnXzqOTv5wsgNC36PrFEiskGfO5wccfCWDo9S1U0=
 github.com/openai/openai-go v1.12.0/go.mod h1:g461MYGXEXBVdV5SaR/5tNzNbSfwTBBefwc+LlDCK0Y=
 github.com/patrickmn/go-cache v2.1.0+incompatible h1:HRMgzkcYKYpi3C8ajMPV8OFXaaRUnok+kx1WdO15EQc=
