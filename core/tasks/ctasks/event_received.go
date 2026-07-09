@@ -75,7 +75,7 @@ func (t *EventReceived) handle(ctx context.Context, rt *runtime.Runtime, oa *mod
 		return nil, fmt.Errorf("error creating flow contact: %w", err)
 	}
 
-	var flowOptIn *flows.OptIn
+	var flowOptIn *core.OptIn
 	if t.EventType == models.EventTypeOptIn || t.EventType == models.EventTypeOptOut {
 		optIn := oa.OptInByID(t.OptInID)
 		if optIn != nil {
@@ -83,9 +83,9 @@ func (t *EventReceived) handle(ctx context.Context, rt *runtime.Runtime, oa *mod
 		}
 	}
 
-	var flowCall *flows.Call
+	var flowCall *core.Call
 	if call != nil {
-		flowCall = flows.NewCall(call.UUID(), oa.SessionAssets().Channels().Get(channel.UUID()), urn.Identity)
+		flowCall = core.NewCall(call.UUID(), oa.SessionAssets().Channels().Get(channel.UUID()), urn.Identity)
 	}
 
 	scene := runner.NewScene(mc, contact)
@@ -156,7 +156,7 @@ func (t *EventReceived) handle(ctx context.Context, rt *runtime.Runtime, oa *mod
 }
 
 // convert to a real engine event
-func (t *EventReceived) toEvent(ch *models.Channel, call *flows.Call, optIn *flows.OptIn) events.Event {
+func (t *EventReceived) toEvent(ch *models.Channel, call *core.Call, optIn *core.OptIn) events.Event {
 	switch t.EventType {
 	case models.EventTypeMissedCall:
 		return events.NewCallMissed(ch.Reference())
@@ -187,7 +187,7 @@ func (t *EventReceived) toEvent(ch *models.Channel, call *flows.Call, optIn *flo
 	return nil
 }
 
-func findEventTrigger(oa *models.OrgAssets, evt events.Event, ch *models.Channel, c *flows.Contact, optIn *flows.OptIn) (flows.Trigger, models.FlowType, error) {
+func findEventTrigger(oa *models.OrgAssets, evt events.Event, ch *models.Channel, c *flows.Contact, optIn *core.OptIn) (flows.Trigger, models.FlowType, error) {
 	var mtrig *models.Trigger
 
 	switch typed := evt.(type) {

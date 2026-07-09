@@ -10,6 +10,7 @@ import (
 
 	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/goflow/assets"
+	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/engine"
@@ -45,7 +46,7 @@ func RegisterLLMService(typ string, fn func(*runtime.Runtime, *LLM, *http.Client
 }
 
 func llmServiceFactory(rt *runtime.Runtime) engine.LLMServiceFactory {
-	return func(llm *flows.LLM) (flows.LLMService, error) {
+	return func(llm *core.LLM) (flows.LLMService, error) {
 		return llm.Asset().(*LLM).AsService(rt, rt.HTTP.Services)
 	}
 }

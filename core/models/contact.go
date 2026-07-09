@@ -209,7 +209,7 @@ func (c *Contact) EngineContact(oa *OrgAssets) (*flows.Contact, error) {
 		}
 	}
 
-	tickets := make([]*flows.Ticket, len(c.tickets))
+	tickets := make([]*core.Ticket, len(c.tickets))
 	for i, t := range c.tickets {
 		tickets[i] = t.EngineTicket(oa)
 	}

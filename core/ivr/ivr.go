@@ -110,17 +110,17 @@ func RequestCall(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 	if err != nil {
 		return nil, fmt.Errorf("unable to load channels for org: %w", err)
 	}
-	ca := flows.NewChannelAssets(channels)
+	ca := core.NewChannelAssets(channels)
 
 	// get the preferred channel for this URN
-	var urnChannel *flows.Channel
+	var urnChannel *core.Channel
 	if telURN.ChannelID != models.NilChannelID {
 		if ch := oa.ChannelByID(telURN.ChannelID); ch != nil {
 			urnChannel = ca.Get(ch.UUID())
 		}
 	}
 
-	urn := flows.NewURN(telURN.Scheme, telURN.Path, "", urnChannel)
+	urn := core.NewURN(telURN.Scheme, telURN.Path, "", urnChannel)
 
 	// get the channel to use for outgoing calls
 	callChannel := ca.GetForURN(urn, assets.ChannelRoleCall)
@@ -272,7 +272,7 @@ func StartCall(
 		return fmt.Errorf("error loading flow contact: %w", err)
 	}
 
-	flowCall := flows.NewCall(call.UUID(), oa.SessionAssets().Channels().Get(channel.UUID()), urn.Identity())
+	flowCall := core.NewCall(call.UUID(), oa.SessionAssets().Channels().Get(channel.UUID()), urn.Identity())
 	callEvt := events.NewCallCreated(flowCall.Marshal())
 
 	scene := runner.NewScene(mc, contact)
@@ -405,7 +405,7 @@ func ResumeCall(
 	scene := runner.NewScene(mc, contact)
 	scene.IncomingMsg = msg
 	scene.DBCall = call
-	scene.Call = flows.NewCall(call.UUID(), oa.SessionAssets().Channels().Get(channel.UUID()), urn.Identity())
+	scene.Call = core.NewCall(call.UUID(), oa.SessionAssets().Channels().Get(channel.UUID()), urn.Identity())
 
 	if resumeEvent != nil {
 		if err := scene.AddEvent(ctx, rt, oa, resumeEvent, models.NilUserID, ""); err != nil {

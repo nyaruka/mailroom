@@ -804,7 +804,7 @@ func PrepareMessagesForResend(ctx context.Context, rt *runtime.Runtime, oa *OrgA
 			}
 
 			urn, _ := cu.Encode(oa)
-			fu, err := flows.ParseURN(channels, urn, assets.IgnoreMissing)
+			fu, err := core.ParseURN(channels, urn, assets.IgnoreMissing)
 			if err != nil {
 				return nil, fmt.Errorf("error parsing URN: %w", err)
 			}
@@ -915,7 +915,7 @@ func CreateMsgOut(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, c *fl
 		template := oa.TemplateByID(templateID)
 		if template != nil {
 			flowTemplate := flows.NewTemplate(template)
-			flowChannel := flows.NewChannel(channel)
+			flowChannel := core.NewChannel(channel)
 
 			// look for a translation in the contact's locale, or the org's default locale
 			locales := make([]i18n.Locale, 0, 2)

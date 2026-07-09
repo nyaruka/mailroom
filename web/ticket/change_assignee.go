@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/modifiers"
 	"github.com/nyaruka/mailroom/v26/core/models"
@@ -36,7 +37,7 @@ func handleChangeAssignee(ctx context.Context, rt *runtime.Runtime, r *assignReq
 		return nil, 0, fmt.Errorf("error loading org assets: %w", err)
 	}
 
-	var user *flows.User
+	var user *core.User
 	if r.AssigneeID != models.NilUserID {
 		if u := oa.UserByID(r.AssigneeID); u != nil {
 			user = oa.SessionAssets().Users().Get(u.UUID())
