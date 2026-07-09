@@ -1,3 +1,8 @@
+v26.3.11 (2026-07-09)
+-------------------------
+ * Update to goflow v0.278.4
+ * Update to gocommon v1.89.4 which resolves AWS region for S3 URLs internally
+
 v26.3.10 (2026-07-07)
 -------------------------
  * Fail fast when no AWS region is resolved and use it for S3 object URLs
