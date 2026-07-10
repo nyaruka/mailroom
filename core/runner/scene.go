@@ -31,7 +31,7 @@ type Scene struct {
 
 	// optional state set on creation
 	DBCall      *models.Call
-	Call        *flows.Call
+	Call        *core.Call
 	StartID     models.StartID
 	IncomingMsg *models.MsgInRef
 	Broadcast   *models.Broadcast

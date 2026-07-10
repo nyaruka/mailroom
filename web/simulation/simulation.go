@@ -130,9 +130,9 @@ func handleStart(ctx context.Context, rt *runtime.Runtime, r *startRequest) (any
 		return nil, http.StatusBadRequest, fmt.Errorf("unable to read contact: %w", err)
 	}
 
-	var call *flows.Call
+	var call *core.Call
 	if r.Call != nil {
-		call = flows.ReadCall(oa.SessionAssets(), r.Call, assets.IgnoreMissing)
+		call = r.Call.Unmarshal(oa.SessionAssets().Channels(), assets.IgnoreMissing)
 	}
 
 	trigger, err := triggers.Read(oa.SessionAssets(), r.Trigger, assets.IgnoreMissing)
@@ -144,7 +144,7 @@ func handleStart(ctx context.Context, rt *runtime.Runtime, r *startRequest) (any
 }
 
 // triggerFlow creates a new session with the passed in trigger, returning our standard response
-func triggerFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contact *flows.Contact, call *flows.Call, trigger flows.Trigger) (any, int, error) {
+func triggerFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contact *flows.Contact, call *core.Call, trigger flows.Trigger) (any, int, error) {
 	// start our flow session
 	session, sprint, err := goflow.Simulator(ctx, rt).NewSession(ctx, oa.SessionAssets(), oa.Env(), contact, trigger, call)
 	if err != nil {
@@ -192,9 +192,9 @@ func handleResume(ctx context.Context, rt *runtime.Runtime, r *resumeRequest) (a
 		return nil, http.StatusBadRequest, fmt.Errorf("unable to read contact: %w", err)
 	}
 
-	var call *flows.Call
+	var call *core.Call
 	if r.Call != nil {
-		call = flows.ReadCall(oa.SessionAssets(), r.Call, assets.IgnoreMissing)
+		call = r.Call.Unmarshal(oa.SessionAssets().Channels(), assets.IgnoreMissing)
 	}
 
 	resume, err := resumes.Read(oa.SessionAssets(), r.Resume, assets.IgnoreMissing)
@@ -236,10 +236,10 @@ func handleResume(ctx context.Context, rt *runtime.Runtime, r *resumeRequest) (a
 					tb := triggers.NewBuilder(triggeredFlow.Reference())
 
 					var sessionTrigger flows.Trigger
-					var call *flows.Call
+					var call *core.Call
 					if triggeredFlow.FlowType() == models.FlowTypeVoice {
 						sessionTrigger = tb.MsgReceived(msgEvt).Build()
-						call = flows.NewCall(testCallUUID, oa.SessionAssets().Channels().Get(testChannelUUID), testURN)
+						call = core.NewCall(testCallUUID, oa.SessionAssets().Channels().Get(testChannelUUID), testURN)
 					} else {
 						mtb := tb.MsgReceived(msgEvt)
 						if keyword != "" {

@@ -97,7 +97,7 @@ func (t *StartFlowBatch) start(ctx context.Context, rt *runtime.Runtime, oa *mod
 	}
 
 	// get the user that created this flow start if there was one
-	var flowUser *flows.User
+	var flowUser *core.User
 	if start.CreatedByID != models.NilUserID {
 		user := oa.UserByID(start.CreatedByID)
 		if user != nil {

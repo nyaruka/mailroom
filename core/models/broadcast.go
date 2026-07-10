@@ -328,10 +328,10 @@ func (b *Broadcast) Send(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets
 	var expressionsContext *types.XObject
 	if b.Expressions {
 		expressionsContext = types.NewXObject(map[string]types.XValue{
-			"contact": flows.Context(oa.Env(), contact),
-			"fields":  flows.Context(oa.Env(), contact.Fields()),
-			"globals": flows.Context(oa.Env(), oa.SessionAssets().Globals()),
-			"urns":    flows.ContextFunc(oa.Env(), contact.URNs().MapContext),
+			"contact": core.Context(oa.Env(), contact),
+			"fields":  core.Context(oa.Env(), contact.Fields()),
+			"globals": core.Context(oa.Env(), oa.SessionAssets().Globals()),
+			"urns":    core.ContextFunc(oa.Env(), contact.URNs().MapContext),
 		})
 	}
 

@@ -11,6 +11,7 @@ import (
 	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/gocommon/urns"
+	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/modifiers"
 	"github.com/nyaruka/goflow/utils"
@@ -85,7 +86,7 @@ type NewURNSpec struct {
 
 // Apply appends the new URN to the contact, recording channel affinity for the given channel if set.
 func (s *NewURNSpec) Apply(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scene *runner.Scene, channel *models.Channel) error {
-	var flowCh *flows.Channel
+	var flowCh *core.Channel
 	if channel != nil {
 		flowCh = oa.SessionAssets().Channels().Get(channel.UUID())
 	}
