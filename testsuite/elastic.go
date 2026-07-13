@@ -236,7 +236,7 @@ func setupElasticContacts(t *testing.T, rt *runtime.Runtime) {
 	require.NoError(t, err)
 
 	if !exists {
-		contactsBody := ReadFile(t, absPath("./testsuite/testdata/es_contacts.json"))
+		contactsBody := ReadFile(t, testdataPath("es_contacts.json"))
 		_, err = rt.ES.Client.Indices.Create(rt.Config.ElasticContactsIndex).Raw(bytes.NewReader(contactsBody)).Do(t.Context())
 		require.NoError(t, err)
 	}
@@ -246,7 +246,7 @@ func setupElasticContacts(t *testing.T, rt *runtime.Runtime) {
 func setupElasticMessages(t *testing.T, rt *runtime.Runtime) {
 	t.Helper()
 
-	messagesBody := ReadFile(t, absPath("./testsuite/testdata/es_messages.json"))
+	messagesBody := ReadFile(t, testdataPath("es_messages.json"))
 
 	// replace placeholder with actual index name for test
 	body := bytes.ReplaceAll(messagesBody, []byte("{{INDEX}}"), []byte(rt.Config.ElasticMessagesIndex))

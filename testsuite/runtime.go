@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path"
+	goruntime "runtime"
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -20,10 +21,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-const (
-	postgresDumpPath = "./testsuite/testdata/postgres.dump"
-	dynamoTablesPath = "./testsuite/testdata/dynamo.json"
-)
+// testdataPath returns the absolute path of a file in this package's testdata directory. Paths are resolved relative
+// to this source file rather than the module being tested, so that they also work from modules importing this package.
+func testdataPath(file string) string {
+	_, thisFile, _, _ := goruntime.Caller(0)
+	return path.Join(path.Dir(thisFile), "testdata", file)
+}
 
 // Refresh is our type for the pieces of org assets we want fresh (not cached)
 type ResetFlag int
@@ -108,7 +111,7 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 	}
 
 	// create Dynamo tables if necessary
-	dyntest.CreateTables(t, rt.Dynamo.Main.Client(), absPath(dynamoTablesPath), false)
+	dyntest.CreateTables(t, rt.Dynamo.Main.Client(), testdataPath("dynamo.json"), false)
 
 	rt.FCM = &MockFCMClient{ValidTokens: []string{"FCMID3", "FCMID4", "FCMID5"}}
 	rt.Centrifugo = centrifugo.NewService(centrifugo.NewMockClient(), rt.VK)
@@ -152,7 +155,7 @@ func resetDB(t *testing.T, rt *runtime.Runtime) {
 func loadTestDump(t *testing.T) {
 	t.Helper()
 
-	dump, err := os.Open(absPath(postgresDumpPath))
+	dump, err := os.Open(testdataPath("postgres.dump"))
 	require.NoError(t, err)
 
 	defer dump.Close()
@@ -236,7 +239,7 @@ func resetDynamo(t *testing.T, rt *runtime.Runtime) {
 	rt.Dynamo.Main.Flush()
 	rt.Dynamo.History.Flush()
 
-	dyntest.CreateTables(t, rt.Dynamo.Main.Client(), absPath(dynamoTablesPath), true)
+	dyntest.CreateTables(t, rt.Dynamo.Main.Client(), testdataPath("dynamo.json"), true)
 }
 
 var sqlResetTestData = `
