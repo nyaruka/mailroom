@@ -10,7 +10,6 @@ import (
 	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/core"
-	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/runtime"
 	"github.com/nyaruka/null/v3"
@@ -28,7 +27,7 @@ func (c *Contact) Reference() *core.ContactReference {
 	return &core.ContactReference{UUID: c.UUID, Name: ""}
 }
 
-func (c *Contact) Load(t *testing.T, rt *runtime.Runtime, oa *models.OrgAssets) (*models.Contact, *flows.Contact, []*models.ContactURN) {
+func (c *Contact) Load(t *testing.T, rt *runtime.Runtime, oa *models.OrgAssets) (*models.Contact, *core.Contact, []*models.ContactURN) {
 	ctx := context.Background()
 
 	contact, err := models.LoadContact(ctx, rt.DB, oa, c.ID)

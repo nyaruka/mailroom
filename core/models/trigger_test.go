@@ -6,7 +6,7 @@ import (
 
 	"github.com/nyaruka/gocommon/uuids"
 	"github.com/nyaruka/goflow/assets"
-	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/testsuite"
 	"github.com/nyaruka/mailroom/v26/testsuite/testdb"
@@ -171,7 +171,7 @@ func TestFindMatchingMsgTrigger(t *testing.T) {
 	tcs := []struct {
 		text              string
 		channel           *models.Channel
-		contact           *flows.Contact
+		contact           *core.Contact
 		expectedTriggerID models.TriggerID
 		expectedKeyword   string
 	}{
@@ -232,7 +232,7 @@ func TestFindMatchingIncomingCallTrigger(t *testing.T) {
 	facebookChannel, _ := models.GetChannelByID(ctx, rt.DB.DB, testdb.FacebookChannel.ID)
 
 	tcs := []struct {
-		contact           *flows.Contact
+		contact           *core.Contact
 		channel           *models.Channel
 		expectedTriggerID models.TriggerID
 	}{

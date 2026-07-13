@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/v26/core/models"
@@ -12,7 +13,7 @@ import (
 )
 
 // ModifyWithLock bulk modifies contacts by locking and loading them, applying modifiers and processing the resultant events.
-func ModifyWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, userID models.UserID, contactIDs []models.ContactID, mods map[models.ContactID][]flows.Modifier, includeTickets map[models.ContactID][]*models.Ticket, via models.Via) (map[*flows.Contact][]events.Event, []models.ContactID, error) {
+func ModifyWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, userID models.UserID, contactIDs []models.ContactID, mods map[models.ContactID][]flows.Modifier, includeTickets map[models.ContactID][]*models.Ticket, via models.Via) (map[*core.Contact][]events.Event, []models.ContactID, error) {
 	scenes, skipped, unlock, err := LockAndLoad(ctx, rt, oa, contactIDs, includeTickets, 10*time.Second)
 	if err != nil {
 		return nil, nil, err
@@ -33,7 +34,7 @@ func ModifyWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 }
 
 // ModifyWithoutLock bulk modifies contacts without locking - used during contact creation and imports.
-func ModifyWithoutLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, userID models.UserID, mcs []*models.Contact, contacts []*flows.Contact, mods map[models.ContactID][]flows.Modifier, via models.Via) (map[*flows.Contact][]events.Event, error) {
+func ModifyWithoutLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, userID models.UserID, mcs []*models.Contact, contacts []*core.Contact, mods map[models.ContactID][]flows.Modifier, via models.Via) (map[*core.Contact][]events.Event, error) {
 	scenes := make([]*Scene, len(mcs))
 	for i, mc := range mcs {
 		scenes[i] = NewScene(mc, contacts[i])
@@ -51,8 +52,8 @@ func ModifyWithoutLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 	return evts, nil
 }
 
-func applyModifiers(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, userID models.UserID, scenes []*Scene, mods map[models.ContactID][]flows.Modifier, via models.Via) (map[*flows.Contact][]events.Event, error) {
-	evts := make(map[*flows.Contact][]events.Event, len(scenes))
+func applyModifiers(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, userID models.UserID, scenes []*Scene, mods map[models.ContactID][]flows.Modifier, via models.Via) (map[*core.Contact][]events.Event, error) {
+	evts := make(map[*core.Contact][]events.Event, len(scenes))
 
 	for _, scene := range scenes {
 		for _, mod := range mods[scene.ContactID()] {

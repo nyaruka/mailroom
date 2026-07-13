@@ -7,8 +7,8 @@ import (
 	"github.com/nyaruka/gocommon/i18n"
 	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/goflow/assets"
+	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/envs"
-	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/runner/clocks"
 	_ "github.com/nyaruka/mailroom/v26/core/runner/handlers"
@@ -40,7 +40,7 @@ func TestDeindex(t *testing.T) {
 	oa := testdb.Org1.Load(t, rt)
 	mcs, err := models.LoadContacts(ctx, rt.DB, oa, []models.ContactID{testdb.Bob.ID, testdb.Cat.ID})
 	require.NoError(t, err)
-	fcs := make([]*flows.Contact, len(mcs))
+	fcs := make([]*core.Contact, len(mcs))
 	for i, mc := range mcs {
 		fcs[i], err = mc.EngineContact(oa)
 		require.NoError(t, err)

@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/nyaruka/goflow/assets"
-	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/runtime"
 	"github.com/nyaruka/mailroom/v26/web"
@@ -77,7 +77,7 @@ func handleInspect(ctx context.Context, rt *runtime.Runtime, r *inspectRequest) 
 		return nil, 0, fmt.Errorf("error loading contact: %w", err)
 	}
 
-	response := make(map[flows.ContactID]*contactInfo, len(contacts))
+	response := make(map[core.ContactID]*contactInfo, len(contacts))
 
 	for _, c := range contacts {
 		flowContact, err := c.EngineContact(oa)

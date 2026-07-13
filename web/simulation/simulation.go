@@ -38,8 +38,8 @@ type sessionRequest struct {
 	Assets struct {
 		Channels []*static.Channel `json:"channels"`
 	} `json:"assets"`
-	Contact *flows.ContactEnvelope `json:"contact" validate:"required"`
-	Call    *core.CallEnvelope     `json:"call,omitempty"`
+	Contact *core.ContactEnvelope `json:"contact" validate:"required"`
+	Call    *core.CallEnvelope    `json:"call,omitempty"`
 }
 
 func (r *sessionRequest) channels() []assets.Channel {
@@ -51,11 +51,11 @@ func (r *sessionRequest) channels() []assets.Channel {
 }
 
 type simulationResponse struct {
-	Session  flows.Session          `json:"session"`
-	Contact  *flows.ContactEnvelope `json:"contact"`
-	Events   []events.Event         `json:"events"`
-	Segments []flows.Segment        `json:"segments"`
-	Context  *types.XObject         `json:"context,omitempty"`
+	Session  flows.Session         `json:"session"`
+	Contact  *core.ContactEnvelope `json:"contact"`
+	Events   []events.Event        `json:"events"`
+	Segments []flows.Segment       `json:"segments"`
+	Context  *types.XObject        `json:"context,omitempty"`
 }
 
 func newSimulationResponse(session flows.Session, sprint flows.Sprint) *simulationResponse {
@@ -144,7 +144,7 @@ func handleStart(ctx context.Context, rt *runtime.Runtime, r *startRequest) (any
 }
 
 // triggerFlow creates a new session with the passed in trigger, returning our standard response
-func triggerFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contact *flows.Contact, call *core.Call, trigger flows.Trigger) (any, int, error) {
+func triggerFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contact *core.Contact, call *core.Call, trigger flows.Trigger) (any, int, error) {
 	// start our flow session
 	session, sprint, err := goflow.Simulator(ctx, rt).NewSession(ctx, oa.SessionAssets(), oa.Env(), contact, trigger, call)
 	if err != nil {

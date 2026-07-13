@@ -334,7 +334,7 @@ func ResumeCall(
 
 	// check if call has been marked as errored - it maybe have been updated by status callback
 	if call.Status() == models.CallStatusErrored || call.Status() == models.CallStatusFailed {
-		if _, err := runner.InterruptWithoutLock(ctx, rt, oa, []*models.Contact{mc}, []*flows.Contact{contact}, map[models.ContactID]core.SessionUUID{mc.ID(): session.UUID}, flows.SessionStatusInterrupted); err != nil {
+		if _, err := runner.InterruptWithoutLock(ctx, rt, oa, []*models.Contact{mc}, []*core.Contact{contact}, map[models.ContactID]core.SessionUUID{mc.ID(): session.UUID}, flows.SessionStatusInterrupted); err != nil {
 			slog.Error("error interrupting session for errored call", "error", err)
 		}
 

@@ -38,7 +38,7 @@ func TestInsertSessions(t *testing.T) {
 	mc, _, _ := testdb.Bob.Load(t, rt, oa)
 
 	sa, flowSession, sprint1 := test.NewSessionBuilder().WithAssets(oa.SessionAssets()).WithFlow(flow.UUID).
-		WithContact(testdb.Bob.UUID, flows.ContactID(testdb.Bob.ID), "Bob", "eng", "").MustBuild()
+		WithContact(testdb.Bob.UUID, core.ContactID(testdb.Bob.ID), "Bob", "eng", "").MustBuild()
 
 	tx := rt.DB.MustBegin()
 

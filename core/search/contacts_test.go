@@ -10,7 +10,6 @@ import (
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/core"
-	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/search"
 	"github.com/nyaruka/mailroom/v26/runtime"
@@ -32,7 +31,7 @@ func TestNewContactDoc(t *testing.T) {
 	sort.Slice(mcs, func(i, j int) bool { return mcs[i].ID() < mcs[j].ID() })
 
 	// convert to flow contacts
-	flowContacts := make(map[models.ContactID]*flows.Contact)
+	flowContacts := make(map[models.ContactID]*core.Contact)
 	for _, mc := range mcs {
 		fc, err := mc.EngineContact(oa)
 		require.NoError(t, err)

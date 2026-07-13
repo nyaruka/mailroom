@@ -13,7 +13,6 @@ import (
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/core"
-	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/runtime"
 	"github.com/shopspring/decimal"
@@ -59,7 +58,7 @@ type ContactDoc struct {
 
 // NewContactDoc builds a ContactDoc from a flow contact and its org assets. We use the flow contact
 // rather than the DB contact because it is kept up-to-date in memory as events are applied.
-func NewContactDoc(oa *models.OrgAssets, c *flows.Contact, currentFlowID models.FlowID, flowHistoryIDs []models.FlowID) *ContactDoc {
+func NewContactDoc(oa *models.OrgAssets, c *core.Contact, currentFlowID models.FlowID, flowHistoryIDs []models.FlowID) *ContactDoc {
 	doc := &ContactDoc{
 		UUID:           c.UUID(),
 		DBID:           models.ContactID(c.ID()),
@@ -136,7 +135,7 @@ func NewContactDoc(oa *models.OrgAssets, c *flows.Contact, currentFlowID models.
 }
 
 // IndexContacts builds contact documents and queues them for indexing in Elastic.
-func IndexContacts(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, flowContacts []*flows.Contact, currentFlows map[models.ContactID]models.FlowID) error {
+func IndexContacts(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, flowContacts []*core.Contact, currentFlows map[models.ContactID]models.FlowID) error {
 	if len(flowContacts) == 0 {
 		return nil
 	}

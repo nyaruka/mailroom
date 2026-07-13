@@ -27,7 +27,7 @@ const (
 type Scene struct {
 	// required state set on creation
 	DBContact *models.Contact
-	Contact   *flows.Contact
+	Contact   *core.Contact
 
 	// optional state set on creation
 	DBCall      *models.Call
@@ -55,7 +55,7 @@ type Scene struct {
 }
 
 // NewScene creates a new scene for the passed in contact
-func NewScene(dbContact *models.Contact, contact *flows.Contact) *Scene {
+func NewScene(dbContact *models.Contact, contact *core.Contact) *Scene {
 	return &Scene{
 		DBContact: dbContact,
 		Contact:   contact,

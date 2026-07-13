@@ -12,7 +12,6 @@ import (
 	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/goflow/excellent/types"
-	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/utils"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/testsuite"
@@ -498,7 +497,7 @@ func TestCreateMsgOut(t *testing.T) {
 	_, ann, _ := testdb.Ann.Load(t, rt, oa)
 	_, bob, _ := testdb.Bob.Load(t, rt, oa)
 	_, cat, _ := testdb.Cat.Load(t, rt, oa)
-	evalContext := func(c *flows.Contact) *types.XObject {
+	evalContext := func(c *core.Contact) *types.XObject {
 		return types.NewXObject(map[string]types.XValue{
 			"contact": types.NewXObject(map[string]types.XValue{"name": types.NewXText(c.Name())}),
 		})

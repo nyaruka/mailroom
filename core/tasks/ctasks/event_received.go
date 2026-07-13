@@ -187,7 +187,7 @@ func (t *EventReceived) toEvent(ch *models.Channel, call *core.Call, optIn *core
 	return nil
 }
 
-func findEventTrigger(oa *models.OrgAssets, evt events.Event, ch *models.Channel, c *flows.Contact, optIn *core.OptIn) (flows.Trigger, models.FlowType, error) {
+func findEventTrigger(oa *models.OrgAssets, evt events.Event, ch *models.Channel, c *core.Contact, optIn *core.OptIn) (flows.Trigger, models.FlowType, error) {
 	var mtrig *models.Trigger
 
 	switch typed := evt.(type) {

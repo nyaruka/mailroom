@@ -31,7 +31,7 @@ import (
 
 func init() {
 	goflow.RegisterClaimURN(func(rt *runtime.Runtime) flows.ClaimURNCallback {
-		return func(ctx context.Context, sa flows.SessionAssets, contact *flows.Contact, urn urns.URN) (bool, error) {
+		return func(ctx context.Context, sa flows.SessionAssets, contact *core.Contact, urn urns.URN) (bool, error) {
 			return ContactClaimURN(ctx, rt, orgFromAssets(sa), contact, urn)
 		}
 	})
@@ -189,7 +189,7 @@ func (c *Contact) UpdateLastSeenOn(ctx context.Context, db DBorTx, lastSeenOn ti
 }
 
 // EngineContact converts our mailroom contact into a contact for use in the engine
-func (c *Contact) EngineContact(oa *OrgAssets) (*flows.Contact, error) {
+func (c *Contact) EngineContact(oa *OrgAssets) (*core.Contact, error) {
 	urnz := make([]urns.URN, 0, len(c.urns))
 	for _, u := range c.urns {
 		encoded, err := u.Encode(oa)
@@ -215,10 +215,10 @@ func (c *Contact) EngineContact(oa *OrgAssets) (*flows.Contact, error) {
 	}
 
 	// create our flow contact
-	contact, err := flows.NewContact(
+	contact, err := core.NewContact(
 		oa.SessionAssets(),
 		c.uuid,
-		flows.ContactID(c.id),
+		core.ContactID(c.id),
 		c.name,
 		c.language,
 		contactToFlowStatus[c.Status()],
@@ -533,7 +533,7 @@ ORDER BY c.id
 `
 
 // CreateContact creates a new contact for the passed in org with the passed in URNs
-func CreateContact(ctx context.Context, db DB, oa *OrgAssets, userID UserID, name string, language i18n.Language, status ContactStatus, urnz []urns.URN) (*Contact, *flows.Contact, error) {
+func CreateContact(ctx context.Context, db DB, oa *OrgAssets, userID UserID, name string, language i18n.Language, status ContactStatus, urnz []urns.URN) (*Contact, *core.Contact, error) {
 	// ensure all URNs are normalized and valid
 	urnz, err := nornalizeAndValidateURNs(urnz)
 	if err != nil {
@@ -572,7 +572,7 @@ func CreateContact(ctx context.Context, db DB, oa *OrgAssets, userID UserID, nam
 		return nil, nil, fmt.Errorf("error creating flow contact: %w", err)
 	}
 
-	err = CalculateDynamicGroups(ctx, db, oa, []*flows.Contact{flowContact})
+	err = CalculateDynamicGroups(ctx, db, oa, []*core.Contact{flowContact})
 	if err != nil {
 		return nil, nil, fmt.Errorf("error calculating dynamic groups: %w", err)
 	}
@@ -586,7 +586,7 @@ func CreateContact(ctx context.Context, db DB, oa *OrgAssets, userID UserID, nam
 // * If URNs exist but are orphaned it creates a new contact and assigns those URNs to them.
 // * If URNs exists and belongs to a single contact it returns that contact (other URNs are not assigned to the contact).
 // * If URNs exists and belongs to multiple contacts it will return an error.
-func GetOrCreateContact(ctx context.Context, db DB, oa *OrgAssets, userID UserID, urnz []urns.URN, channelID ChannelID) (*Contact, *flows.Contact, bool, error) {
+func GetOrCreateContact(ctx context.Context, db DB, oa *OrgAssets, userID UserID, urnz []urns.URN, channelID ChannelID) (*Contact, *core.Contact, bool, error) {
 	// ensure all URNs are normalized and valid
 	urnz, err := nornalizeAndValidateURNs(urnz)
 	if err != nil {
@@ -611,7 +611,7 @@ func GetOrCreateContact(ctx context.Context, db DB, oa *OrgAssets, userID UserID
 
 	// calculate dynamic groups if contact was created
 	if created {
-		err := CalculateDynamicGroups(ctx, db, oa, []*flows.Contact{flowContact})
+		err := CalculateDynamicGroups(ctx, db, oa, []*core.Contact{flowContact})
 		if err != nil {
 			return nil, nil, false, fmt.Errorf("error calculating dynamic groups: %w", err)
 		}
@@ -916,11 +916,11 @@ func CreateOrClaimURN(ctx context.Context, db DBorTx, oa *OrgAssets, contactID C
 
 // CalculateDynamicGroups recalculates all the dynamic groups for the passed in contact, recalculating
 // campaigns as necessary based on those group changes.
-func CalculateDynamicGroups(ctx context.Context, db DBorTx, oa *OrgAssets, contacts []*flows.Contact) error {
+func CalculateDynamicGroups(ctx context.Context, db DBorTx, oa *OrgAssets, contacts []*core.Contact) error {
 	contactIDs := make([]ContactID, len(contacts))
 	groupAdds := make([]*GroupAdd, 0, 2*len(contacts))
 	groupRemoves := make([]*GroupRemove, 0, 2*len(contacts))
-	checkCampaigns := make(map[*Campaign][]*flows.Contact)
+	checkCampaigns := make(map[*Campaign][]*core.Contact)
 
 	for i, contact := range contacts {
 		contactIDs[i] = ContactID(contact.ID())
@@ -1221,7 +1221,7 @@ func UpdateContactStatus(ctx context.Context, db DBorTx, changes []*ContactStatu
 }
 
 // ContactClaimURN is used by the engine to "claim" a URN before that claim is committed to the database
-func ContactClaimURN(ctx context.Context, rt *runtime.Runtime, org *Org, contact *flows.Contact, urn urns.URN) (bool, error) {
+func ContactClaimURN(ctx context.Context, rt *runtime.Runtime, org *Org, contact *core.Contact, urn urns.URN) (bool, error) {
 	locker := locks.NewLocker(fmt.Sprintf("urn-claims:%d", org.ID()), time.Second*30)
 	lock, err := locker.Grab(ctx, rt.VK, time.Second*5)
 	if err != nil {
@@ -1244,7 +1244,7 @@ func ContactClaimURN(ctx context.Context, rt *runtime.Runtime, org *Org, contact
 	}
 
 	if owner != 0 {
-		return contact.ID() == flows.ContactID(owner), nil
+		return contact.ID() == core.ContactID(owner), nil
 	}
 
 	// check if URN is claimed in database
