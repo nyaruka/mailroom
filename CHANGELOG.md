@@ -1,3 +1,9 @@
+v26.3.12 (2026-07-13)
+-------------------------
+ * Update to goflow v0.279.1
+ * Update test database dump for latest rapidpro migrations
+ * Resolve testsuite testdata paths relative to the testsuite package
+
 v26.3.11 (2026-07-09)
 -------------------------
  * Update to goflow v0.278.4
