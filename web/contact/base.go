@@ -7,6 +7,7 @@ import (
 
 	"github.com/nyaruka/gocommon/i18n"
 	"github.com/nyaruka/gocommon/urns"
+	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/envs"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/modifiers"
@@ -62,7 +63,7 @@ func SpecToCreation(s *models.ContactSpec, env envs.Environment, sa flows.Sessio
 	}
 
 	if len(s.Groups) > 0 {
-		groups := make([]*flows.Group, len(s.Groups))
+		groups := make([]*core.Group, len(s.Groups))
 		for i, uuid := range s.Groups {
 			group := sa.Groups().Get(uuid)
 			if group == nil {

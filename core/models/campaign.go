@@ -11,7 +11,6 @@ import (
 	"github.com/nyaruka/gocommon/dbutil"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/core"
-	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/v26/runtime"
 	"github.com/nyaruka/null/v3"
 	"github.com/vinovest/sqlx"
@@ -93,7 +92,7 @@ type CampaignPoint struct {
 }
 
 // QualifiesByGroup returns whether the passed in contact qualifies for this event by group membership
-func (p *CampaignPoint) QualifiesByGroup(contact *flows.Contact) bool {
+func (p *CampaignPoint) QualifiesByGroup(contact *core.Contact) bool {
 	for _, g := range contact.Groups().All() {
 		if g.Asset().(*Group).ID() == p.campaign.c.GroupID {
 			return true
@@ -103,7 +102,7 @@ func (p *CampaignPoint) QualifiesByGroup(contact *flows.Contact) bool {
 }
 
 // QualifiesByField returns whether the passed in contact qualifies for this event by group membership
-func (p *CampaignPoint) QualifiesByField(contact *flows.Contact) bool {
+func (p *CampaignPoint) QualifiesByField(contact *core.Contact) bool {
 	switch p.RelativeToKey {
 	case CreatedOnKey:
 		return true
@@ -116,7 +115,7 @@ func (p *CampaignPoint) QualifiesByField(contact *flows.Contact) bool {
 }
 
 // ScheduleForContact calculates the next fire ( if any) for the passed in contact
-func (p *CampaignPoint) ScheduleForContact(tz *time.Location, now time.Time, contact *flows.Contact) (*time.Time, error) {
+func (p *CampaignPoint) ScheduleForContact(tz *time.Location, now time.Time, contact *core.Contact) (*time.Time, error) {
 	// we aren't part of the group, move on
 	if !p.QualifiesByGroup(contact) {
 		return nil, nil

@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/nyaruka/gocommon/jsonx"
-	"github.com/nyaruka/goflow/contactql"
+	"github.com/nyaruka/goflow/contactql/parse"
 	"github.com/nyaruka/goflow/envs"
 	"github.com/nyaruka/mailroom/v26/web"
 	"github.com/stretchr/testify/assert"
@@ -22,7 +22,7 @@ func TestErrorToResponse(t *testing.T) {
 	assert.JSONEq(t, `{"error": "I'm an error!"}`, string(er1JSON))
 
 	// create a query error
-	_, err = contactql.ParseQuery(envs.NewBuilder().Build(), "$$", nil)
+	_, err = parse.Query(envs.NewBuilder().Build(), "$$", nil)
 
 	resp, status = web.ErrorToResponse(err)
 	assert.Equal(t, "mismatched input '$' expecting {'(', STRING, PROPERTY, TEXT}", resp.Error)

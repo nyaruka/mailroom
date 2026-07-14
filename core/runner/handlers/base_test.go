@@ -283,7 +283,7 @@ func createTestFlow(t *testing.T, uuid assets.FlowUUID, actions ContactActionMap
 		cases[i] = routers.NewCase(uuids.NewV4(), "has_any_word", []string{string(contactUUID)}, categoryUUIDs[i])
 
 		exitNodes[i] = definition.NewNode(
-			flows.NewNodeUUID(),
+			core.NewNodeUUID(),
 			actions,
 			nil,
 			[]flows.Exit{definition.NewExit(flows.ExitUUID(uuids.NewV4()), "")},
@@ -301,7 +301,7 @@ func createTestFlow(t *testing.T, uuid assets.FlowUUID, actions ContactActionMap
 	router := routers.NewSwitch(nil, "", categories, "@contact.uuid", cases, defaultCategoryUUID)
 
 	// and our entry node
-	entry := definition.NewNode(flows.NewNodeUUID(), nil, router, exits)
+	entry := definition.NewNode(core.NewNodeUUID(), nil, router, exits)
 
 	nodes := []flows.Node{entry}
 	nodes = append(nodes, exitNodes...)

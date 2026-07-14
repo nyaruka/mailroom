@@ -15,7 +15,6 @@ import (
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/core/events"
-	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/search"
 	"github.com/nyaruka/mailroom/v26/runtime"
@@ -275,7 +274,7 @@ func indexOrgContacts(t *testing.T, rt *runtime.Runtime, org *testdb.Org) {
 		contacts, err := models.LoadContacts(ctx, rt.DB, oa, contactIDs)
 		require.NoError(t, err)
 
-		fcs := make([]*flows.Contact, 0, len(contacts))
+		fcs := make([]*core.Contact, 0, len(contacts))
 		for _, mc := range contacts {
 			fc, err := mc.EngineContact(oa)
 			require.NoError(t, err)

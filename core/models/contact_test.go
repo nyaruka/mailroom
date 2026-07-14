@@ -12,7 +12,6 @@ import (
 	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/core"
-	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/testsuite"
 	"github.com/nyaruka/mailroom/v26/testsuite/testdb"
@@ -49,7 +48,7 @@ func TestContacts(t *testing.T) {
 	sort.Slice(mcs, func(i, j int) bool { return mcs[i].ID() < mcs[j].ID() })
 
 	// convert to goflow contacts
-	contacts := make([]*flows.Contact, len(mcs))
+	contacts := make([]*core.Contact, len(mcs))
 	for i := range mcs {
 		contacts[i], err = mcs[i].EngineContact(org)
 		assert.NoError(t, err)
@@ -70,7 +69,7 @@ func TestContacts(t *testing.T) {
 	assert.Equal(t, "Yobe", ann.Fields()["state"].QueryValue())
 	assert.Equal(t, "Dokshi", ann.Fields()["ward"].QueryValue())
 	assert.Equal(t, "F", ann.Fields()["gender"].QueryValue())
-	assert.Equal(t, (*flows.FieldValue)(nil), ann.Fields()["age"])
+	assert.Equal(t, (*core.FieldValue)(nil), ann.Fields()["age"])
 
 	assert.Equal(t, "Bob", bob.Name())
 	assert.NotNil(t, bob.Fields()["joined"].QueryValue())

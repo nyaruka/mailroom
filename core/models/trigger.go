@@ -10,8 +10,8 @@ import (
 
 	"github.com/lib/pq"
 	"github.com/nyaruka/gocommon/dbutil"
+	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/envs"
-	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/triggers"
 	"github.com/nyaruka/goflow/utils"
 )
@@ -117,7 +117,7 @@ func loadTriggers(ctx context.Context, db *sql.DB, orgID OrgID) ([]*Trigger, err
 }
 
 // FindMatchingMsgTrigger finds the best match trigger for an incoming message from the given contact
-func FindMatchingMsgTrigger(oa *OrgAssets, channel *Channel, contact *flows.Contact, text string) (*Trigger, string) {
+func FindMatchingMsgTrigger(oa *OrgAssets, channel *Channel, contact *core.Contact, text string) (*Trigger, string) {
 	// determine our message keyword
 	words := utils.TokenizeString(text)
 	keyword := ""
@@ -154,7 +154,7 @@ func FindMatchingMsgTrigger(oa *OrgAssets, channel *Channel, contact *flows.Cont
 }
 
 // FindMatchingIncomingCallTrigger finds the best match trigger for incoming calls
-func FindMatchingIncomingCallTrigger(oa *OrgAssets, channel *Channel, contact *flows.Contact) *Trigger {
+func FindMatchingIncomingCallTrigger(oa *OrgAssets, channel *Channel, contact *core.Contact) *Trigger {
 	candidates := findTriggerCandidates(oa, IncomingCallTriggerType, nil)
 
 	return findBestTriggerMatch(candidates, channel, contact)
@@ -209,7 +209,7 @@ func FindMatchingReferralTrigger(oa *OrgAssets, channel *Channel, referrerID str
 }
 
 // FindMatchingTicketClosedTrigger finds the best match trigger for ticket closed events
-func FindMatchingTicketClosedTrigger(oa *OrgAssets, contact *flows.Contact) *Trigger {
+func FindMatchingTicketClosedTrigger(oa *OrgAssets, contact *core.Contact) *Trigger {
 	candidates := findTriggerCandidates(oa, TicketClosedTriggerType, nil)
 
 	return findBestTriggerMatch(candidates, nil, contact)
@@ -247,7 +247,7 @@ const triggerScoreByChannel = 4
 const triggerScoreByInclusion = 2
 const triggerScoreByExclusion = 1
 
-func findBestTriggerMatch(candidates []*Trigger, channel *Channel, contact *flows.Contact) *Trigger {
+func findBestTriggerMatch(candidates []*Trigger, channel *Channel, contact *core.Contact) *Trigger {
 	matches := make([]*triggerMatch, 0, len(candidates))
 
 	var groupIDs map[GroupID]bool

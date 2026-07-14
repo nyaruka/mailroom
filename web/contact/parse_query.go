@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/nyaruka/goflow/contactql"
+	"github.com/nyaruka/goflow/contactql/parse"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/runtime"
 	"github.com/nyaruka/mailroom/v26/web"
@@ -56,7 +57,7 @@ func handleParseQuery(ctx context.Context, rt *runtime.Runtime, r *parseRequest)
 		resolver = oa.SessionAssets()
 	}
 
-	parsed, err := contactql.ParseQuery(env, r.Query, resolver)
+	parsed, err := parse.Query(env, r.Query, resolver)
 	if err != nil {
 		return nil, 0, err
 	}

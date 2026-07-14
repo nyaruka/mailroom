@@ -11,7 +11,6 @@ import (
 	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/goflow/excellent/types"
-	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/v26/runtime"
 	"github.com/nyaruka/null/v3"
 )
@@ -322,8 +321,8 @@ func GetBroadcastByID(ctx context.Context, db DBorTx, bcastID BroadcastID) (*Bro
 }
 
 // Send creates a message event for the given contact - can return nil if resultant message has no content and thus is a noop
-func (b *Broadcast) Send(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, contact *flows.Contact) (*events.MsgCreated, error) {
-	content, locale := flows.TranslationsForContact(oa.Env(), b.Translations, contact, b.BaseLanguage)
+func (b *Broadcast) Send(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, contact *core.Contact) (*events.MsgCreated, error) {
+	content, locale := b.Translations.ForContact(oa.Env(), contact, b.BaseLanguage)
 
 	var expressionsContext *types.XObject
 	if b.Expressions {

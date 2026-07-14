@@ -23,7 +23,7 @@ type importContact struct {
 	spec        *models.ContactSpec
 	contact     *models.Contact
 	created     bool
-	flowContact *flows.Contact
+	flowContact *core.Contact
 	mods        []flows.Modifier
 	errors      []string
 }
@@ -41,7 +41,7 @@ func ImportBatch(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 
 	// create our work data for each contact being created or updated
 	imports := make([]*importContact, len(specs))
-	importsByContact := make(map[*flows.Contact]*importContact, len(specs))
+	importsByContact := make(map[*core.Contact]*importContact, len(specs))
 	for i := range imports {
 		imports[i] = &importContact{record: b.RecordStart + i, spec: specs[i]}
 	}
@@ -52,7 +52,7 @@ func ImportBatch(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 
 	// gather up contacts and modifiers
 	mcs := make([]*models.Contact, 0, len(imports))
-	contacts := make([]*flows.Contact, 0, len(imports))
+	contacts := make([]*core.Contact, 0, len(imports))
 	mods := make(map[models.ContactID][]flows.Modifier, len(imports))
 	for _, imp := range imports {
 		// ignore errored imports which couldn't get/create a contact
@@ -164,7 +164,7 @@ func getOrCreateContacts(ctx context.Context, db *sqlx.DB, oa *models.OrgAssets,
 		}
 
 		if len(spec.Groups) > 0 && isActive {
-			groups := make([]*flows.Group, 0, len(spec.Groups))
+			groups := make([]*core.Group, 0, len(spec.Groups))
 			for _, uuid := range spec.Groups {
 				group := sa.Groups().Get(uuid)
 				if group == nil {

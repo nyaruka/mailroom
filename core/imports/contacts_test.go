@@ -15,7 +15,6 @@ import (
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/excellent/types"
-	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/test"
 	"github.com/nyaruka/mailroom/v26/core/imports"
 	"github.com/nyaruka/mailroom/v26/core/models"
@@ -184,7 +183,7 @@ func TestContactSpecUnmarshal(t *testing.T) {
 }
 
 // utility to load all contacts for the given org and return as slice sorted by ID
-func loadAllContacts(t *testing.T, rt *runtime.Runtime, oa *models.OrgAssets) []*flows.Contact {
+func loadAllContacts(t *testing.T, rt *runtime.Runtime, oa *models.OrgAssets) []*core.Contact {
 	rows, err := rt.DB.Query(`SELECT id FROM contacts_contact WHERE org_id = $1`, oa.OrgID())
 	require.NoError(t, err)
 
@@ -198,7 +197,7 @@ func loadAllContacts(t *testing.T, rt *runtime.Runtime, oa *models.OrgAssets) []
 
 	sort.Slice(contacts, func(i, j int) bool { return contacts[i].ID() < contacts[j].ID() })
 
-	flowContacts := make([]*flows.Contact, len(contacts))
+	flowContacts := make([]*core.Contact, len(contacts))
 	for i := range contacts {
 		flowContacts[i], err = contacts[i].EngineContact(oa)
 		require.NoError(t, err)

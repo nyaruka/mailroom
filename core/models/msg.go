@@ -34,7 +34,7 @@ import (
 
 func init() {
 	goflow.RegisterCheckSendable(func(rt *runtime.Runtime) flows.CheckSendableCallback {
-		return func(ctx context.Context, sa flows.SessionAssets, contact *flows.Contact, content *core.MsgContent) (core.UnsendableReason, error) {
+		return func(ctx context.Context, sa flows.SessionAssets, contact *core.Contact, content *core.MsgContent) (core.UnsendableReason, error) {
 			return msgCheckSendable(ctx, rt, orgFromAssets(sa), ContactID(contact.ID()), content)
 		}
 	})
@@ -878,7 +878,7 @@ func FailChannelMessages(ctx context.Context, db *sql.DB, orgID OrgID, channelID
 }
 
 // CreateMsgOut creates a new outgoing message to the given contact, resolving the destination etc
-func CreateMsgOut(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, c *flows.Contact, content *core.MsgContent, templateID TemplateID, templateVariables []string, locale i18n.Locale, expressionsContext *types.XObject) (*core.MsgOut, error) {
+func CreateMsgOut(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, c *core.Contact, content *core.MsgContent, templateID TemplateID, templateVariables []string, locale i18n.Locale, expressionsContext *types.XObject) (*core.MsgOut, error) {
 	// resolve URN + channel for this contact
 	urn := urns.NilURN
 	var channel *Channel
@@ -914,7 +914,7 @@ func CreateMsgOut(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, c *fl
 	if templateID != NilTemplateID && channel != nil {
 		template := oa.TemplateByID(templateID)
 		if template != nil {
-			flowTemplate := flows.NewTemplate(template)
+			flowTemplate := core.NewTemplate(template)
 			flowChannel := core.NewChannel(channel)
 
 			// look for a translation in the contact's locale, or the org's default locale
@@ -926,8 +926,8 @@ func CreateMsgOut(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, c *fl
 
 			trans := flowTemplate.FindTranslation(flowChannel, locales)
 			if trans != nil {
-				translation := flows.NewTemplateTranslation(trans)
-				templating = flows.NewTemplate(template).Templating(translation, templateVariables)
+				translation := core.NewTemplateTranslation(trans)
+				templating = core.NewTemplate(template).Templating(translation, templateVariables)
 
 				// override message content to be a preview of template message and override locale to match the template translation
 				content = translation.Preview(templating.Variables)

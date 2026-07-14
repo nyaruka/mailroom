@@ -82,7 +82,7 @@ func NewSession(oa *OrgAssets, fs flows.Session, sprint flows.Sprint, call *Call
 }
 
 // EngineSession creates a flow session for the passed in session object
-func (s *Session) EngineSession(ctx context.Context, rt *runtime.Runtime, sa flows.SessionAssets, env envs.Environment, contact *flows.Contact, call *core.Call) (flows.Session, error) {
+func (s *Session) EngineSession(ctx context.Context, rt *runtime.Runtime, sa flows.SessionAssets, env envs.Environment, contact *core.Contact, call *core.Call) (flows.Session, error) {
 	session, err := goflow.Engine(rt).ReadSession(sa, []byte(s.Output), env, contact, call, assets.IgnoreMissing)
 	if err != nil {
 		return nil, fmt.Errorf("unable to unmarshal session: %w", err)

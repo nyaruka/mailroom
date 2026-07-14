@@ -6,6 +6,7 @@ import (
 
 	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/goflow/contactql"
+	"github.com/nyaruka/goflow/contactql/parse"
 	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/envs"
 	"github.com/nyaruka/mailroom/v26/core/models"
@@ -17,7 +18,7 @@ func BuildRecipientsQuery(oa *models.OrgAssets, flow *models.Flow, groups []*mod
 	var err error
 
 	if userQuery != "" {
-		parsedQuery, err = contactql.ParseQuery(oa.Env(), userQuery, oa.SessionAssets())
+		parsedQuery, err = parse.Query(oa.Env(), userQuery, oa.SessionAssets())
 		if err != nil {
 			return "", fmt.Errorf("invalid user query: %w", err)
 		}

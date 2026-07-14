@@ -12,7 +12,6 @@ import (
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/goflow/core"
-	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/modifiers"
 	"github.com/nyaruka/goflow/utils"
 	"github.com/nyaruka/mailroom/v26/core/models"
@@ -91,7 +90,7 @@ func (s *NewURNSpec) Apply(ctx context.Context, rt *runtime.Runtime, oa *models.
 		flowCh = oa.SessionAssets().Channels().Get(channel.UUID())
 	}
 
-	mod := modifiers.NewRoutes([]flows.Route{{URN: s.Value, Channel: flowCh}}, modifiers.RoutesAppend)
+	mod := modifiers.NewRoutes([]core.Route{{URN: s.Value, Channel: flowCh}}, modifiers.RoutesAppend)
 	if err := scene.ApplyModifier(ctx, rt, oa, mod, models.NilUserID, ""); err != nil {
 		return fmt.Errorf("error applying routes modifier: %w", err)
 	}

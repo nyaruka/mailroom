@@ -6,7 +6,6 @@ import (
 	"net/http"
 
 	"github.com/nyaruka/goflow/core"
-	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/search"
 	"github.com/nyaruka/mailroom/v26/runtime"
@@ -39,7 +38,7 @@ func handleReindex(ctx context.Context, rt *runtime.Runtime, r *reindexRequest) 
 		return nil, 0, fmt.Errorf("error loading contacts: %w", err)
 	}
 
-	flowContacts := make([]*flows.Contact, 0, len(contacts))
+	flowContacts := make([]*core.Contact, 0, len(contacts))
 	currentFlows := make(map[models.ContactID]models.FlowID, len(contacts))
 	for _, c := range contacts {
 		fc, err := c.EngineContact(oa)

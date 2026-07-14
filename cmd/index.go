@@ -12,7 +12,6 @@ import (
 	"github.com/nyaruka/gocommon/elastic"
 	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/core/events"
-	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/search"
 	"github.com/nyaruka/mailroom/v26/runtime"
@@ -100,7 +99,7 @@ func indexAllContacts(ctx context.Context, rt *runtime.Runtime) error {
 				return fmt.Errorf("error loading contacts for org #%d: %w", orgID, err)
 			}
 
-			flowContacts := make([]*flows.Contact, 0, len(contacts))
+			flowContacts := make([]*core.Contact, 0, len(contacts))
 			currentFlows := make(map[models.ContactID]models.FlowID, len(contacts))
 			for _, c := range contacts {
 				fc, err := c.EngineContact(oa)
