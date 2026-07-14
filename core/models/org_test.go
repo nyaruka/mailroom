@@ -121,6 +121,16 @@ func TestEmailService(t *testing.T) {
 	svc, err = org2.EmailService(ctx, rt, nil)
 	assert.NoError(t, err)
 	assert.NotNil(t, svc)
+
+	// suspend org 1.. no email service even tho it has SMTP configured
+	rt.DB.MustExec(`UPDATE orgs_org SET is_suspended = TRUE WHERE id = $1`, testdb.Org1.ID)
+	models.FlushCache()
+
+	org1, err = models.LoadOrg(ctx, rt.Config, rt.DB.DB, testdb.Org1.ID)
+	require.NoError(t, err)
+
+	_, err = org1.EmailService(ctx, rt, nil)
+	assert.EqualError(t, err, "workspace is suspended")
 }
 
 func TestStoreAttachment(t *testing.T) {
