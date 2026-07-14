@@ -50,6 +50,7 @@ jobs:
         run: |
           echo "gomodcache=$(go env GOMODCACHE)" >> $GITHUB_OUTPUT
           echo "gocache=$(go env GOCACHE)" >> $GITHUB_OUTPUT
+          echo "goversion=$(go env GOVERSION)" >> $GITHUB_OUTPUT
 
       - name: Cache Go modules and build cache
         uses: actions/cache@v5
@@ -57,8 +58,9 @@ jobs:
           path: |
             ${{ steps.go-cache-paths.outputs.gomodcache }}
             ${{ steps.go-cache-paths.outputs.gocache }}
-          key: go-${{ hashFiles('go.sum') }}
+          key: go-${{ steps.go-cache-paths.outputs.goversion }}-${{ hashFiles('go.sum') }}
           restore-keys: |
+            go-${{ steps.go-cache-paths.outputs.goversion }}-
             go-
 
       - name: Install Postgres Client
