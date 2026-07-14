@@ -40,6 +40,8 @@ func Index() error {
 	}
 	defer rt.Stop()
 
+	models.InitCache(rt)
+
 	// parse mode from args
 	flags := flag.NewFlagSet("mrindex", flag.ExitOnError)
 	startUUID := flags.String("start-uuid", "", "UUID to start from (messages mode only, works backwards from here)")
