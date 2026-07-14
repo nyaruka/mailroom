@@ -25,7 +25,6 @@ import (
 	_ "github.com/nyaruka/mailroom/v26/web/po"
 	_ "github.com/nyaruka/mailroom/v26/web/public"
 	_ "github.com/nyaruka/mailroom/v26/web/simulation"
-	_ "github.com/nyaruka/mailroom/v26/web/system"
 	_ "github.com/nyaruka/mailroom/v26/web/ticket"
 )
 

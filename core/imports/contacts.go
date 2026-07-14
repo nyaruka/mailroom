@@ -19,13 +19,13 @@ import (
 
 // holds work data for import of a single contact
 type importContact struct {
-	record      int
-	spec        *models.ContactSpec
-	contact     *models.Contact
-	created     bool
-	flowContact *flows.Contact
-	mods        []flows.Modifier
-	errors      []string
+	record  int
+	spec    *models.ContactSpec
+	mc      *models.Contact
+	created bool
+	contact *core.Contact
+	mods    []flows.Modifier
+	errors  []string
 }
 
 func ImportBatch(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, b *models.ContactImportBatch, userID models.UserID) error {
@@ -41,7 +41,7 @@ func ImportBatch(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 
 	// create our work data for each contact being created or updated
 	imports := make([]*importContact, len(specs))
-	importsByContact := make(map[*flows.Contact]*importContact, len(specs))
+	importsByContact := make(map[*core.Contact]*importContact, len(specs))
 	for i := range imports {
 		imports[i] = &importContact{record: b.RecordStart + i, spec: specs[i]}
 	}
@@ -52,15 +52,15 @@ func ImportBatch(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 
 	// gather up contacts and modifiers
 	mcs := make([]*models.Contact, 0, len(imports))
-	contacts := make([]*flows.Contact, 0, len(imports))
+	contacts := make([]*core.Contact, 0, len(imports))
 	mods := make(map[models.ContactID][]flows.Modifier, len(imports))
 	for _, imp := range imports {
 		// ignore errored imports which couldn't get/create a contact
-		if imp.contact != nil {
-			mcs = append(mcs, imp.contact)
-			contacts = append(contacts, imp.flowContact)
-			mods[imp.contact.ID()] = imp.mods
-			importsByContact[imp.flowContact] = imp
+		if imp.mc != nil {
+			mcs = append(mcs, imp.mc)
+			contacts = append(contacts, imp.contact)
+			mods[imp.mc.ID()] = imp.mods
+			importsByContact[imp.contact] = imp
 		}
 	}
 
@@ -109,19 +109,19 @@ func getOrCreateContacts(ctx context.Context, db *sqlx.DB, oa *models.OrgAssets,
 
 		uuid := spec.UUID
 		if uuid != "" {
-			imp.contact = contactsByUUID[uuid]
-			if imp.contact == nil {
+			imp.mc = contactsByUUID[uuid]
+			if imp.mc == nil {
 				addError("Unable to find contact with UUID '%s'", uuid)
 				continue
 			}
 
-			imp.flowContact, err = imp.contact.EngineContact(oa)
+			imp.contact, err = imp.mc.EngineContact(oa)
 			if err != nil {
-				return fmt.Errorf("error creating flow contact for %d: %w", imp.contact.ID(), err)
+				return fmt.Errorf("error creating engine contact for %d: %w", imp.mc.ID(), err)
 			}
 
 		} else {
-			imp.contact, imp.flowContact, imp.created, err = models.GetOrCreateContact(ctx, db, oa, userID, spec.URNs, models.NilChannelID)
+			imp.mc, imp.contact, imp.created, err = models.GetOrCreateContact(ctx, db, oa, userID, spec.URNs, models.NilChannelID)
 			if err != nil {
 				urnStrs := make([]string, len(spec.URNs))
 				for i := range spec.URNs {
@@ -164,7 +164,7 @@ func getOrCreateContacts(ctx context.Context, db *sqlx.DB, oa *models.OrgAssets,
 		}
 
 		if len(spec.Groups) > 0 && isActive {
-			groups := make([]*flows.Group, 0, len(spec.Groups))
+			groups := make([]*core.Group, 0, len(spec.Groups))
 			for _, uuid := range spec.Groups {
 				group := sa.Groups().Get(uuid)
 				if group == nil {
@@ -208,7 +208,7 @@ func markBatchComplete(ctx context.Context, db models.DBorTx, b *models.ContactI
 	numErrored := 0
 	importErrors := make([]models.ImportError, 0, 10)
 	for _, imp := range imports {
-		if imp.contact == nil {
+		if imp.mc == nil {
 			numErrored++
 		} else if imp.created {
 			numCreated++

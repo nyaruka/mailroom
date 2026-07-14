@@ -46,14 +46,14 @@ func handleSend(ctx context.Context, rt *runtime.Runtime, r *sendRequest) (any, 
 	}
 
 	// load the contact and convert to engine contact
-	c, err := models.LoadContact(ctx, rt.DB, oa, r.ContactID)
+	mc, err := models.LoadContact(ctx, rt.DB, oa, r.ContactID)
 	if err != nil {
 		return nil, 0, fmt.Errorf("error loading contact: %w", err)
 	}
 
-	contact, err := c.EngineContact(oa)
+	contact, err := mc.EngineContact(oa)
 	if err != nil {
-		return nil, 0, fmt.Errorf("error creating flow contact: %w", err)
+		return nil, 0, fmt.Errorf("error creating engine contact: %w", err)
 	}
 
 	content := &core.MsgContent{Text: r.Text, Attachments: r.Attachments, QuickReplies: r.QuickReplies}
@@ -64,7 +64,7 @@ func handleSend(ctx context.Context, rt *runtime.Runtime, r *sendRequest) (any, 
 
 	event := events.NewMsgCreated(out, "", r.TicketUUID)
 
-	scene := runner.NewScene(c, contact)
+	scene := runner.NewScene(mc, contact)
 
 	if err := scene.AddEvent(ctx, rt, oa, event, r.UserID, ""); err != nil {
 		return nil, 0, fmt.Errorf("error adding message event to scene: %w", err)

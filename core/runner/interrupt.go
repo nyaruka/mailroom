@@ -15,7 +15,7 @@ import (
 // InterruptWithLock interrupts sessions for the given contacts. If sessions is provided then only those sessions will
 // be interrupted (if they are still the current waiting session for the contact). Otherwise the waiting session for
 // each contact is interrupted. Returns any generated events and any contacts we were unable to lock.
-func InterruptWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contactIDs []models.ContactID, sessions map[models.ContactID]core.SessionUUID, status flows.SessionStatus) (map[*flows.Contact][]events.Event, []models.ContactID, error) {
+func InterruptWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contactIDs []models.ContactID, sessions map[models.ContactID]core.SessionUUID, status flows.SessionStatus) (map[*core.Contact][]events.Event, []models.ContactID, error) {
 	scenes, skipped, unlock, err := LockAndLoad(ctx, rt, oa, contactIDs, nil, 10*time.Second)
 	if err != nil {
 		return nil, nil, err
@@ -31,7 +31,7 @@ func InterruptWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 		return nil, nil, fmt.Errorf("error committing interruption scenes: %w", err)
 	}
 
-	evts := make(map[*flows.Contact][]events.Event, len(scenes))
+	evts := make(map[*core.Contact][]events.Event, len(scenes))
 	for _, s := range scenes {
 		evts[s.Contact] = s.Events()
 	}
@@ -39,7 +39,7 @@ func InterruptWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 	return evts, skipped, nil
 }
 
-func InterruptWithoutLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, mcs []*models.Contact, contacts []*flows.Contact, sessions map[models.ContactID]core.SessionUUID, status flows.SessionStatus) (map[*flows.Contact][]events.Event, error) {
+func InterruptWithoutLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, mcs []*models.Contact, contacts []*core.Contact, sessions map[models.ContactID]core.SessionUUID, status flows.SessionStatus) (map[*core.Contact][]events.Event, error) {
 	scenes := make([]*Scene, len(mcs))
 	for i, mc := range mcs {
 		scenes[i] = NewScene(mc, contacts[i])
@@ -53,7 +53,7 @@ func InterruptWithoutLock(ctx context.Context, rt *runtime.Runtime, oa *models.O
 		return nil, fmt.Errorf("error committing interruption scenes: %w", err)
 	}
 
-	evts := make(map[*flows.Contact][]events.Event, len(scenes))
+	evts := make(map[*core.Contact][]events.Event, len(scenes))
 	for _, s := range scenes {
 		evts[s.Contact] = s.Events()
 	}

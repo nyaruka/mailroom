@@ -70,7 +70,7 @@ type modifyRequest struct {
 type modifyResponse struct {
 	Events   map[core.ContactUUID][]events.Event `json:"events"`
 	Skipped  []models.ContactID                  `json:"skipped"`
-	Contacts []*flows.Contact                    `json:"contacts,omitempty"` // testing only
+	Contacts []*core.Contact                     `json:"contacts,omitempty"` // testing only
 }
 
 // handles a request to apply the passed in actions
@@ -98,15 +98,15 @@ func handleModify(ctx context.Context, rt *runtime.Runtime, r *modifyRequest) (a
 	}
 
 	events := make(map[core.ContactUUID][]events.Event, len(eventsByContact))
-	for flowContact, contactEvents := range eventsByContact {
-		events[flowContact.UUID()] = contactEvents
+	for contact, contactEvents := range eventsByContact {
+		events[contact.UUID()] = contactEvents
 	}
 
 	resp := &modifyResponse{Events: events, Skipped: skipped}
 
 	if ReturnContacts {
 		resp.Contacts = slices.Collect(maps.Keys(eventsByContact))
-		slices.SortFunc(resp.Contacts, func(a, b *flows.Contact) int { return strings.Compare(string(a.UUID()), string(b.UUID())) })
+		slices.SortFunc(resp.Contacts, func(a, b *core.Contact) int { return strings.Compare(string(a.UUID()), string(b.UUID())) })
 	}
 
 	return resp, http.StatusOK, nil

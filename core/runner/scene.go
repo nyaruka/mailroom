@@ -27,11 +27,11 @@ const (
 type Scene struct {
 	// required state set on creation
 	DBContact *models.Contact
-	Contact   *flows.Contact
+	Contact   *core.Contact
 
 	// optional state set on creation
 	DBCall      *models.Call
-	Call        *flows.Call
+	Call        *core.Call
 	StartID     models.StartID
 	IncomingMsg *models.MsgInRef
 	Broadcast   *models.Broadcast
@@ -55,7 +55,7 @@ type Scene struct {
 }
 
 // NewScene creates a new scene for the passed in contact
-func NewScene(dbContact *models.Contact, contact *flows.Contact) *Scene {
+func NewScene(dbContact *models.Contact, contact *core.Contact) *Scene {
 	return &Scene{
 		DBContact: dbContact,
 		Contact:   contact,
@@ -298,12 +298,12 @@ func CreateScenes(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets
 			mc.IncludeTickets(extra)
 		}
 
-		c, err := mc.EngineContact(oa)
+		contact, err := mc.EngineContact(oa)
 		if err != nil {
 			return nil, fmt.Errorf("error creating engine contact for %s: %w", mc.UUID(), err)
 		}
 
-		scenes[i] = NewScene(mc, c)
+		scenes[i] = NewScene(mc, contact)
 	}
 
 	return scenes, nil

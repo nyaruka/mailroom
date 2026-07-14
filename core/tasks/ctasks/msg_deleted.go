@@ -25,10 +25,10 @@ func (t *MsgDeleted) Type() string {
 }
 
 func (t *MsgDeleted) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, mc *models.Contact) error {
-	// build our flow contact
+	// build our engine contact
 	contact, err := mc.EngineContact(oa)
 	if err != nil {
-		return fmt.Errorf("error creating flow contact: %w", err)
+		return fmt.Errorf("error creating engine contact: %w", err)
 	}
 
 	scene := runner.NewScene(mc, contact)

@@ -11,7 +11,7 @@ import (
 	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/gocommon/urns"
-	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/flows/modifiers"
 	"github.com/nyaruka/goflow/utils"
 	"github.com/nyaruka/mailroom/v26/core/models"
@@ -22,7 +22,7 @@ import (
 // Task is the interface for all contact tasks - tasks which operate on a single contact in real time
 type Task interface {
 	Type() string
-	Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contact *models.Contact) error
+	Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, mc *models.Contact) error
 }
 
 var registeredTypes = map[string]func() Task{}
@@ -85,12 +85,12 @@ type NewURNSpec struct {
 
 // Apply appends the new URN to the contact, recording channel affinity for the given channel if set.
 func (s *NewURNSpec) Apply(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scene *runner.Scene, channel *models.Channel) error {
-	var flowCh *flows.Channel
+	var flowCh *core.Channel
 	if channel != nil {
 		flowCh = oa.SessionAssets().Channels().Get(channel.UUID())
 	}
 
-	mod := modifiers.NewRoutes([]flows.Route{{URN: s.Value, Channel: flowCh}}, modifiers.RoutesAppend)
+	mod := modifiers.NewRoutes([]core.Route{{URN: s.Value, Channel: flowCh}}, modifiers.RoutesAppend)
 	if err := scene.ApplyModifier(ctx, rt, oa, mod, models.NilUserID, ""); err != nil {
 		return fmt.Errorf("error applying routes modifier: %w", err)
 	}

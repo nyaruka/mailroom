@@ -15,6 +15,7 @@ import (
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/contactql"
 	"github.com/nyaruka/goflow/contactql/es"
+	"github.com/nyaruka/goflow/contactql/parse"
 	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/runtime"
@@ -91,7 +92,7 @@ func GetContactTotal(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAss
 	var err error
 
 	if query != "" {
-		parsed, err = contactql.ParseQuery(env, query, oa.SessionAssets())
+		parsed, err = parse.Query(env, query, oa.SessionAssets())
 		if err != nil {
 			return nil, 0, fmt.Errorf("error parsing query: %s: %w", query, err)
 		}
@@ -123,7 +124,7 @@ func GetContactUUIDsForQueryPage(ctx context.Context, rt *runtime.Runtime, oa *m
 	var err error
 
 	if query != "" {
-		parsed, err = contactql.ParseQuery(env, query, oa.SessionAssets())
+		parsed, err = parse.Query(env, query, oa.SessionAssets())
 		if err != nil {
 			return nil, nil, 0, fmt.Errorf("error parsing query: %s: %w", query, err)
 		}
@@ -187,7 +188,7 @@ func GetContactUUIDsForQuery(ctx context.Context, rt *runtime.Runtime, oa *model
 	var err error
 
 	if query != "" {
-		parsed, err = contactql.ParseQuery(env, query, oa.SessionAssets())
+		parsed, err = parse.Query(env, query, oa.SessionAssets())
 		if err != nil {
 			return nil, fmt.Errorf("error parsing query: %s: %w", query, err)
 		}

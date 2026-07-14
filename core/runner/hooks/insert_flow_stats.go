@@ -151,7 +151,7 @@ type segmentInfo struct {
 }
 
 type segmentRecentContact struct {
-	contact *flows.Contact
+	contact *core.Contact
 	operand string
 	time    time.Time
 	rnd     string

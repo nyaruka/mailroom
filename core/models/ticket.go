@@ -10,7 +10,6 @@ import (
 	"github.com/lib/pq"
 	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/goflow/core"
-	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/null/v3"
 	"github.com/vinovest/sqlx"
 )
@@ -73,8 +72,8 @@ func NewTicket(uuid core.TicketUUID, orgID OrgID, userID UserID, flow *Flow, con
 	}
 }
 
-func (t *Ticket) EngineTicket(oa *OrgAssets) *flows.Ticket {
-	var topic *flows.Topic
+func (t *Ticket) EngineTicket(oa *OrgAssets) *core.Ticket {
+	var topic *core.Topic
 	if t.TopicID != NilTopicID {
 		dbTopic := oa.TopicByID(t.TopicID)
 		if dbTopic != nil {
@@ -82,7 +81,7 @@ func (t *Ticket) EngineTicket(oa *OrgAssets) *flows.Ticket {
 		}
 	}
 
-	var assignee *flows.User
+	var assignee *core.User
 	if t.AssigneeID != NilUserID {
 		user := oa.UserByID(t.AssigneeID)
 		if user != nil {
@@ -90,7 +89,7 @@ func (t *Ticket) EngineTicket(oa *OrgAssets) *flows.Ticket {
 		}
 	}
 
-	return flows.NewTicket(t.UUID, ticketStatusMap[t.Status], topic, assignee)
+	return core.NewTicket(t.UUID, ticketStatusMap[t.Status], topic, assignee)
 }
 
 const sqlSelectTicketsByUUID = `

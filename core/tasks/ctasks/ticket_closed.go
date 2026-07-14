@@ -45,10 +45,10 @@ func (t *TicketClosed) Perform(ctx context.Context, rt *runtime.Runtime, oa *mod
 		return nil
 	}
 
-	// build our flow contact
+	// build our engine contact
 	contact, err := mc.EngineContact(oa)
 	if err != nil {
-		return fmt.Errorf("error creating flow contact: %w", err)
+		return fmt.Errorf("error creating engine contact: %w", err)
 	}
 
 	// do we have associated trigger?

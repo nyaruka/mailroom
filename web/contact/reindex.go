@@ -6,7 +6,6 @@ import (
 	"net/http"
 
 	"github.com/nyaruka/goflow/core"
-	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/search"
 	"github.com/nyaruka/mailroom/v26/runtime"
@@ -34,25 +33,25 @@ func handleReindex(ctx context.Context, rt *runtime.Runtime, r *reindexRequest) 
 		return nil, 0, fmt.Errorf("error loading org assets: %w", err)
 	}
 
-	contacts, err := models.LoadContactsByUUID(ctx, rt.DB, oa, r.ContactUUIDs)
+	mcs, err := models.LoadContactsByUUID(ctx, rt.DB, oa, r.ContactUUIDs)
 	if err != nil {
 		return nil, 0, fmt.Errorf("error loading contacts: %w", err)
 	}
 
-	flowContacts := make([]*flows.Contact, 0, len(contacts))
-	currentFlows := make(map[models.ContactID]models.FlowID, len(contacts))
-	for _, c := range contacts {
-		fc, err := c.EngineContact(oa)
+	contacts := make([]*core.Contact, 0, len(mcs))
+	currentFlows := make(map[models.ContactID]models.FlowID, len(mcs))
+	for _, mc := range mcs {
+		contact, err := mc.EngineContact(oa)
 		if err != nil {
-			return nil, 0, fmt.Errorf("error creating flow contact: %w", err)
+			return nil, 0, fmt.Errorf("error creating engine contact: %w", err)
 		}
-		flowContacts = append(flowContacts, fc)
-		currentFlows[c.ID()] = c.CurrentFlowID()
+		contacts = append(contacts, contact)
+		currentFlows[mc.ID()] = mc.CurrentFlowID()
 	}
 
-	if err := search.IndexContacts(ctx, rt, oa, flowContacts, currentFlows); err != nil {
+	if err := search.IndexContacts(ctx, rt, oa, contacts, currentFlows); err != nil {
 		return nil, 0, fmt.Errorf("error indexing contacts: %w", err)
 	}
 
-	return map[string]any{"indexed": len(contacts)}, http.StatusOK, nil
+	return map[string]any{"indexed": len(mcs)}, http.StatusOK, nil
 }

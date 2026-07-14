@@ -26,7 +26,7 @@ type bulkTicketResponse struct {
 	Events       map[core.ContactUUID][]events.Event `json:"events"`
 }
 
-func newBulkResponse(eventsByContact map[*flows.Contact][]events.Event) *bulkTicketResponse {
+func newBulkResponse(eventsByContact map[*core.Contact][]events.Event) *bulkTicketResponse {
 	changed := make([]core.TicketUUID, 0, len(eventsByContact))
 	eventMap := make(map[core.ContactUUID][]events.Event)
 
@@ -56,7 +56,7 @@ func newBulkResponse(eventsByContact map[*flows.Contact][]events.Event) *bulkTic
 	return &bulkTicketResponse{ChangedUUIDs: changed, Events: eventMap}
 }
 
-func modifyTickets(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, userID models.UserID, ticketUUIDs []core.TicketUUID, mod func(*models.Ticket) flows.Modifier, via models.Via) (map[*flows.Contact][]events.Event, error) {
+func modifyTickets(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, userID models.UserID, ticketUUIDs []core.TicketUUID, mod func(*models.Ticket) flows.Modifier, via models.Via) (map[*core.Contact][]events.Event, error) {
 	tickets, err := models.LoadTickets(ctx, rt.DB, oa.OrgID(), ticketUUIDs)
 	if err != nil {
 		return nil, fmt.Errorf("error loading tickets: %w", err)

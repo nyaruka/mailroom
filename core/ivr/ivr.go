@@ -92,10 +92,10 @@ func HangupCall(ctx context.Context, rt *runtime.Runtime, call *models.Call) (*m
 }
 
 // RequestCall creates a new outgoing call and makes a request to the service to start it
-func RequestCall(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contact *models.Contact, trigger flows.Trigger) (*models.Call, error) {
+func RequestCall(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, mc *models.Contact, trigger flows.Trigger) (*models.Call, error) {
 	// find a tel URL for the contact
 	var telURN *models.ContactURN
-	for _, u := range contact.URNs() {
+	for _, u := range mc.URNs() {
 		if u.Scheme == urns.Phone.Prefix {
 			telURN = u
 		}
@@ -110,17 +110,17 @@ func RequestCall(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 	if err != nil {
 		return nil, fmt.Errorf("unable to load channels for org: %w", err)
 	}
-	ca := flows.NewChannelAssets(channels)
+	ca := core.NewChannelAssets(channels)
 
 	// get the preferred channel for this URN
-	var urnChannel *flows.Channel
+	var urnChannel *core.Channel
 	if telURN.ChannelID != models.NilChannelID {
 		if ch := oa.ChannelByID(telURN.ChannelID); ch != nil {
 			urnChannel = ca.Get(ch.UUID())
 		}
 	}
 
-	urn := flows.NewURN(telURN.Scheme, telURN.Path, "", urnChannel)
+	urn := core.NewURN(telURN.Scheme, telURN.Path, "", urnChannel)
 
 	// get the channel to use for outgoing calls
 	callChannel := ca.GetForURN(urn, assets.ChannelRoleCall)
@@ -135,7 +135,7 @@ func RequestCall(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 	}
 
 	channel := callChannel.Asset().(*models.Channel)
-	call := models.NewOutgoingCall(oa.OrgID(), channel, contact, telURN.ID, trigger)
+	call := models.NewOutgoingCall(oa.OrgID(), channel, mc, telURN.ID, trigger)
 	if err := models.InsertCalls(ctx, rt.DB, []*models.Call{call}); err != nil {
 		return nil, fmt.Errorf("error creating outgoing call: %w", err)
 	}
@@ -269,10 +269,10 @@ func StartCall(
 	// load contact and update on trigger to ensure we're not starting with outdated contact data
 	contact, err := mc.EngineContact(oa)
 	if err != nil {
-		return fmt.Errorf("error loading flow contact: %w", err)
+		return fmt.Errorf("error loading engine contact: %w", err)
 	}
 
-	flowCall := flows.NewCall(call.UUID(), oa.SessionAssets().Channels().Get(channel.UUID()), urn.Identity())
+	flowCall := core.NewCall(call.UUID(), oa.SessionAssets().Channels().Get(channel.UUID()), urn.Identity())
 	callEvt := events.NewCallCreated(flowCall.Marshal())
 
 	scene := runner.NewScene(mc, contact)
@@ -324,7 +324,7 @@ func ResumeCall(
 
 	contact, err := mc.EngineContact(oa)
 	if err != nil {
-		return fmt.Errorf("error creating flow contact: %w", err)
+		return fmt.Errorf("error creating engine contact: %w", err)
 	}
 
 	flow, err := oa.FlowByUUID(session.CurrentFlowUUID)
@@ -334,7 +334,7 @@ func ResumeCall(
 
 	// check if call has been marked as errored - it maybe have been updated by status callback
 	if call.Status() == models.CallStatusErrored || call.Status() == models.CallStatusFailed {
-		if _, err := runner.InterruptWithoutLock(ctx, rt, oa, []*models.Contact{mc}, []*flows.Contact{contact}, map[models.ContactID]core.SessionUUID{mc.ID(): session.UUID}, flows.SessionStatusInterrupted); err != nil {
+		if _, err := runner.InterruptWithoutLock(ctx, rt, oa, []*models.Contact{mc}, []*core.Contact{contact}, map[models.ContactID]core.SessionUUID{mc.ID(): session.UUID}, flows.SessionStatusInterrupted); err != nil {
 			slog.Error("error interrupting session for errored call", "error", err)
 		}
 
@@ -405,7 +405,7 @@ func ResumeCall(
 	scene := runner.NewScene(mc, contact)
 	scene.IncomingMsg = msg
 	scene.DBCall = call
-	scene.Call = flows.NewCall(call.UUID(), oa.SessionAssets().Channels().Get(channel.UUID()), urn.Identity())
+	scene.Call = core.NewCall(call.UUID(), oa.SessionAssets().Channels().Get(channel.UUID()), urn.Identity())
 
 	if resumeEvent != nil {
 		if err := scene.AddEvent(ctx, rt, oa, resumeEvent, models.NilUserID, ""); err != nil {

@@ -29,7 +29,7 @@ func TestLoadOrg(t *testing.T) {
 
 	rt.DB.MustExec(`UPDATE orgs_org SET flow_languages = '{"fra", "eng"}' WHERE id = $1`, testdb.Org1.ID)
 	rt.DB.MustExec(`UPDATE orgs_org SET flow_smtp = 'smtp://foo:bar' WHERE id = $1`, testdb.Org1.ID)
-	rt.DB.MustExec(`UPDATE orgs_org SET is_suspended = TRUE WHERE id = $1`, testdb.Org2.ID)
+	rt.DB.MustExec(`UPDATE orgs_org SET is_suspended = TRUE, suspended_on = NOW() WHERE id = $1`, testdb.Org2.ID)
 	rt.DB.MustExec(`UPDATE orgs_org SET flow_languages = '{}' WHERE id = $1`, testdb.Org2.ID)
 	rt.DB.MustExec(`UPDATE orgs_org SET date_format = 'M' WHERE id = $1`, testdb.Org2.ID)
 

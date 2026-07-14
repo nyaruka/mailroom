@@ -1,3 +1,22 @@
+v26.3.13 (2026-07-13)
+-------------------------
+ * Remove unused web endpoints
+
+v26.3.12 (2026-07-13)
+-------------------------
+ * Update to goflow v0.279.1
+ * Update test database dump for latest rapidpro migrations
+ * Resolve testsuite testdata paths relative to the testsuite package
+
+v26.3.11 (2026-07-09)
+-------------------------
+ * Update to goflow v0.278.4
+ * Update to gocommon v1.89.4 which resolves AWS region for S3 URLs internally
+
+v26.3.10 (2026-07-07)
+-------------------------
+ * Fail fast when no AWS region is resolved and use it for S3 object URLs
+
 v26.3.9 (2026-07-07)
 -------------------------
  * Update to gocommon v1.88.0 which reworks spools

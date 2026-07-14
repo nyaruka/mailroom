@@ -10,7 +10,6 @@ import (
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/core"
-	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/search"
 	"github.com/nyaruka/mailroom/v26/runtime"
@@ -31,19 +30,19 @@ func TestNewContactDoc(t *testing.T) {
 
 	sort.Slice(mcs, func(i, j int) bool { return mcs[i].ID() < mcs[j].ID() })
 
-	// convert to flow contacts
-	flowContacts := make(map[models.ContactID]*flows.Contact)
+	// convert to engine contacts
+	contacts := make(map[models.ContactID]*core.Contact)
 	for _, mc := range mcs {
-		fc, err := mc.EngineContact(oa)
+		contact, err := mc.EngineContact(oa)
 		require.NoError(t, err)
-		flowContacts[mc.ID()] = fc
+		contacts[mc.ID()] = contact
 	}
 
 	// Ann: has name, status=active, URNs, groups, fields (gender, state, district, ward)
-	annFC := flowContacts[testdb.Ann.ID]
-	require.NotNil(t, annFC)
+	ann := contacts[testdb.Ann.ID]
+	require.NotNil(t, ann)
 
-	doc := search.NewContactDoc(oa, annFC, testdb.Favorites.ID, []models.FlowID{testdb.Favorites.ID, testdb.PickANumber.ID})
+	doc := search.NewContactDoc(oa, ann, testdb.Favorites.ID, []models.FlowID{testdb.Favorites.ID, testdb.PickANumber.ID})
 
 	assert.Equal(t, testdb.Ann.ID, doc.DBID)
 	assert.Equal(t, testdb.Org1.ID, doc.OrgID)
@@ -86,10 +85,10 @@ func TestNewContactDoc(t *testing.T) {
 	assert.NotEmpty(t, wardField.WardKeyword)
 
 	// Cat: has name, status=active, age=30, 1 URN, in Doctors group, no tickets
-	catFC := flowContacts[testdb.Cat.ID]
-	require.NotNil(t, catFC)
+	cat := contacts[testdb.Cat.ID]
+	require.NotNil(t, cat)
 
-	doc = search.NewContactDoc(oa, catFC, models.NilFlowID, nil)
+	doc = search.NewContactDoc(oa, cat, models.NilFlowID, nil)
 
 	assert.Equal(t, testdb.Cat.ID, doc.DBID)
 	assert.Equal(t, testdb.Cat.UUID, doc.UUID)

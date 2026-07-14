@@ -15,7 +15,6 @@ import (
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/core/events"
-	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/search"
 	"github.com/nyaruka/mailroom/v26/runtime"
@@ -236,7 +235,7 @@ func setupElasticContacts(t *testing.T, rt *runtime.Runtime) {
 	require.NoError(t, err)
 
 	if !exists {
-		contactsBody := ReadFile(t, absPath("./testsuite/testdata/es_contacts.json"))
+		contactsBody := ReadFile(t, testdataPath("es_contacts.json"))
 		_, err = rt.ES.Client.Indices.Create(rt.Config.ElasticContactsIndex).Raw(bytes.NewReader(contactsBody)).Do(t.Context())
 		require.NoError(t, err)
 	}
@@ -246,7 +245,7 @@ func setupElasticContacts(t *testing.T, rt *runtime.Runtime) {
 func setupElasticMessages(t *testing.T, rt *runtime.Runtime) {
 	t.Helper()
 
-	messagesBody := ReadFile(t, absPath("./testsuite/testdata/es_messages.json"))
+	messagesBody := ReadFile(t, testdataPath("es_messages.json"))
 
 	// replace placeholder with actual index name for test
 	body := bytes.ReplaceAll(messagesBody, []byte("{{INDEX}}"), []byte(rt.Config.ElasticMessagesIndex))
@@ -272,17 +271,17 @@ func indexOrgContacts(t *testing.T, rt *runtime.Runtime, org *testdb.Org) {
 			break
 		}
 
-		contacts, err := models.LoadContacts(ctx, rt.DB, oa, contactIDs)
+		mcs, err := models.LoadContacts(ctx, rt.DB, oa, contactIDs)
 		require.NoError(t, err)
 
-		fcs := make([]*flows.Contact, 0, len(contacts))
-		for _, mc := range contacts {
-			fc, err := mc.EngineContact(oa)
+		contacts := make([]*core.Contact, 0, len(mcs))
+		for _, mc := range mcs {
+			contact, err := mc.EngineContact(oa)
 			require.NoError(t, err)
-			fcs = append(fcs, fc)
+			contacts = append(contacts, contact)
 		}
 
-		err = search.IndexContacts(ctx, rt, oa, fcs, map[models.ContactID]models.FlowID{})
+		err = search.IndexContacts(ctx, rt, oa, contacts, map[models.ContactID]models.FlowID{})
 		require.NoError(t, err)
 
 		afterID = contactIDs[len(contactIDs)-1]
