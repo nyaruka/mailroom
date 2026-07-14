@@ -38,6 +38,22 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
+      - name: Get Go cache paths
+        id: go-cache-paths
+        run: |
+          echo "gomodcache=$(go env GOMODCACHE)" >> $GITHUB_OUTPUT
+          echo "gocache=$(go env GOCACHE)" >> $GITHUB_OUTPUT
+
+      - name: Cache Go modules and build cache
+        uses: actions/cache@v5
+        with:
+          path: |
+            ${{ steps.go-cache-paths.outputs.gomodcache }}
+            ${{ steps.go-cache-paths.outputs.gocache }}
+          key: go-${{ hashFiles('go.sum') }}
+          restore-keys: |
+            go-
+
       - name: Install Postgres Client
         run: |
           apt-get update
