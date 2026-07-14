@@ -125,7 +125,7 @@ func TestCreateContact(t *testing.T) {
 		assert.Equal(t, 0, uerr.Index)
 	}
 
-	// new blocked mc won't be added to smart groups
+	// new blocked contact won't be added to smart groups
 	mc, contact, err = models.CreateContact(ctx, rt.DB, oa, models.UserID(1), "Bob", `kin`, models.ContactStatusBlocked, []urns.URN{urns.URN("telegram:200003")})
 	assert.NoError(t, err)
 	assert.Equal(t, models.ContactStatusBlocked, mc.Status())

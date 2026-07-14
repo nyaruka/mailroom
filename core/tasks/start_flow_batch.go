@@ -142,22 +142,22 @@ func (t *StartFlowBatch) start(ctx context.Context, rt *runtime.Runtime, oa *mod
 	}
 
 	if flow.FlowType() == models.FlowTypeVoice {
-		contacts, err := models.LoadContacts(ctx, rt.ReadonlyDB, oa, t.ContactIDs)
+		mcs, err := models.LoadContacts(ctx, rt.ReadonlyDB, oa, t.ContactIDs)
 		if err != nil {
 			return fmt.Errorf("error loading contacts: %w", err)
 		}
 
-		// for each contacts, request a call start
-		for _, contact := range contacts {
+		// for each contact, request a call start
+		for _, mc := range mcs {
 			ctx, cancel := context.WithTimeout(ctx, time.Minute)
-			call, err := ivr.RequestCall(ctx, rt, oa, contact, triggerBuilder())
+			call, err := ivr.RequestCall(ctx, rt, oa, mc, triggerBuilder())
 			cancel()
 			if err != nil {
-				slog.Error("error requesting call for flow start", "contact", contact.UUID(), "start_id", start.ID, "error", err)
+				slog.Error("error requesting call for flow start", "contact", mc.UUID(), "start_id", start.ID, "error", err)
 				continue
 			}
 			if call == nil {
-				slog.Debug("call start skipped, no suitable channel", "contact", contact.UUID(), "start_id", start.ID)
+				slog.Debug("call start skipped, no suitable channel", "contact", mc.UUID(), "start_id", start.ID)
 				continue
 			}
 		}
