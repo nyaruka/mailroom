@@ -56,7 +56,7 @@ type ContactDoc struct {
 	LastSeenOn     *time.Time           `json:"last_seen_on,omitempty"`
 }
 
-// NewContactDoc builds a ContactDoc from a flow contact and its org assets. We use the flow contact
+// NewContactDoc builds a ContactDoc from an engine contact and its org assets. We use the engine contact
 // rather than the DB contact because it is kept up-to-date in memory as events are applied.
 func NewContactDoc(oa *models.OrgAssets, c *core.Contact, currentFlowID models.FlowID, flowHistoryIDs []models.FlowID) *ContactDoc {
 	doc := &ContactDoc{
@@ -73,7 +73,7 @@ func NewContactDoc(oa *models.OrgAssets, c *core.Contact, currentFlowID models.F
 		FlowHistoryIDs: flowHistoryIDs,
 	}
 
-	// build field docs from the flow contact's field values
+	// build field docs from the engine contact's field values
 	for key, fv := range c.Fields() {
 		if fv == nil {
 			continue
@@ -135,13 +135,13 @@ func NewContactDoc(oa *models.OrgAssets, c *core.Contact, currentFlowID models.F
 }
 
 // IndexContacts builds contact documents and queues them for indexing in Elastic.
-func IndexContacts(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, flowContacts []*core.Contact, currentFlows map[models.ContactID]models.FlowID) error {
-	if len(flowContacts) == 0 {
+func IndexContacts(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contacts []*core.Contact, currentFlows map[models.ContactID]models.FlowID) error {
+	if len(contacts) == 0 {
 		return nil
 	}
 
-	contactIDs := make([]models.ContactID, len(flowContacts))
-	for i, c := range flowContacts {
+	contactIDs := make([]models.ContactID, len(contacts))
+	for i, c := range contacts {
 		contactIDs[i] = models.ContactID(c.ID())
 	}
 
@@ -150,7 +150,7 @@ func IndexContacts(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsset
 		return fmt.Errorf("error loading flow history IDs: %w", err)
 	}
 
-	for _, c := range flowContacts {
+	for _, c := range contacts {
 		contactID := models.ContactID(c.ID())
 		doc := NewContactDoc(oa, c, currentFlows[contactID], flowHistoryByContact[contactID])
 

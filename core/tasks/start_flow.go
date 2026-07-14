@@ -67,11 +67,11 @@ func createFlowStartBatches(ctx context.Context, rt *runtime.Runtime, oa *models
 
 	if start.CreateContact {
 		// if we are meant to create a new contact, do so
-		contact, _, err := models.CreateContact(ctx, rt.DB, oa, models.NilUserID, "", i18n.NilLanguage, models.ContactStatusActive, nil)
+		mc, _, err := models.CreateContact(ctx, rt.DB, oa, models.NilUserID, "", i18n.NilLanguage, models.ContactStatusActive, nil)
 		if err != nil {
 			return fmt.Errorf("error creating new contact: %w", err)
 		}
-		contactIDs = []models.ContactID{contact.ID()}
+		contactIDs = []models.ContactID{mc.ID()}
 	} else {
 		// otherwise resolve recipients across contacts, groups, urns etc
 

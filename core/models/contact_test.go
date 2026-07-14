@@ -47,7 +47,7 @@ func TestContacts(t *testing.T) {
 	// LoadContacts doesn't guarantee returned order of contacts
 	sort.Slice(mcs, func(i, j int) bool { return mcs[i].ID() < mcs[j].ID() })
 
-	// convert to goflow contacts
+	// convert to engine contacts
 	contacts := make([]*core.Contact, len(mcs))
 	for i := range mcs {
 		contacts[i], err = mcs[i].EngineContact(org)
@@ -99,22 +99,22 @@ func TestCreateContact(t *testing.T) {
 	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 	require.NoError(t, err)
 
-	contact, flowContact, err := models.CreateContact(ctx, rt.DB, oa, models.UserID(1), "Rich", `kin`, models.ContactStatusActive, []urns.URN{urns.URN("telegram:200001"), urns.URN("telegram:200002")})
+	mc, contact, err := models.CreateContact(ctx, rt.DB, oa, models.UserID(1), "Rich", `kin`, models.ContactStatusActive, []urns.URN{urns.URN("telegram:200001"), urns.URN("telegram:200002")})
 	assert.NoError(t, err)
+
+	assert.Equal(t, "Rich", mc.Name())
+	assert.Equal(t, i18n.Language(`kin`), mc.Language())
+	assert.Equal(t, models.ContactStatusActive, mc.Status())
+	assert.Len(t, mc.URNs(), 2)
+	assert.Equal(t, urns.URN("telegram:200001"), mc.URNs()[0].Identity)
+	assert.Equal(t, urns.URN("telegram:200002"), mc.URNs()[1].Identity)
 
 	assert.Equal(t, "Rich", contact.Name())
 	assert.Equal(t, i18n.Language(`kin`), contact.Language())
-	assert.Equal(t, models.ContactStatusActive, contact.Status())
-	assert.Len(t, contact.URNs(), 2)
-	assert.Equal(t, urns.URN("telegram:200001"), contact.URNs()[0].Identity)
-	assert.Equal(t, urns.URN("telegram:200002"), contact.URNs()[1].Identity)
-
-	assert.Equal(t, "Rich", flowContact.Name())
-	assert.Equal(t, i18n.Language(`kin`), flowContact.Language())
-	assert.Equal(t, core.ContactStatusActive, flowContact.Status())
-	assert.Equal(t, []urns.URN{"telegram:200001", "telegram:200002"}, flowContact.URNs().Encode())
-	assert.Len(t, flowContact.Groups().All(), 1)
-	assert.Equal(t, assets.GroupUUID("d636c966-79c1-4417-9f1c-82ad629773a2"), flowContact.Groups().All()[0].UUID())
+	assert.Equal(t, core.ContactStatusActive, contact.Status())
+	assert.Equal(t, []urns.URN{"telegram:200001", "telegram:200002"}, contact.URNs().Encode())
+	assert.Len(t, contact.Groups().All(), 1)
+	assert.Equal(t, assets.GroupUUID("d636c966-79c1-4417-9f1c-82ad629773a2"), contact.Groups().All()[0].UUID())
 
 	_, _, err = models.CreateContact(ctx, rt.DB, oa, models.UserID(1), "Rich", `kin`, models.ContactStatusActive, []urns.URN{urns.URN("telegram:200001")})
 	assert.EqualError(t, err, "URN 0 in use by other contacts")
@@ -126,11 +126,11 @@ func TestCreateContact(t *testing.T) {
 	}
 
 	// new blocked contact won't be added to smart groups
-	contact, flowContact, err = models.CreateContact(ctx, rt.DB, oa, models.UserID(1), "Bob", `kin`, models.ContactStatusBlocked, []urns.URN{urns.URN("telegram:200003")})
+	mc, contact, err = models.CreateContact(ctx, rt.DB, oa, models.UserID(1), "Bob", `kin`, models.ContactStatusBlocked, []urns.URN{urns.URN("telegram:200003")})
 	assert.NoError(t, err)
-	assert.Equal(t, models.ContactStatusBlocked, contact.Status())
-	assert.Equal(t, core.ContactStatusBlocked, flowContact.Status())
-	assert.Len(t, flowContact.Groups().All(), 0)
+	assert.Equal(t, models.ContactStatusBlocked, mc.Status())
+	assert.Equal(t, core.ContactStatusBlocked, contact.Status())
+	assert.Len(t, contact.Groups().All(), 0)
 }
 
 func TestCreateContactRace(t *testing.T) {
@@ -273,15 +273,15 @@ func TestGetOrCreateContact(t *testing.T) {
 	}
 
 	for i, tc := range tcs {
-		contact, flowContact, created, err := models.GetOrCreateContact(ctx, rt.DB, oa, testdb.Admin.ID, tc.URNs, tc.ChannelID)
+		mc, contact, created, err := models.GetOrCreateContact(ctx, rt.DB, oa, testdb.Admin.ID, tc.URNs, tc.ChannelID)
 		assert.NoError(t, err, "%d: error creating contact", i)
 
-		assert.Equal(t, tc.ContactID, contact.ID(), "%d: contact id mismatch", i)
-		assert.Equal(t, tc.ContactURNs, flowContact.URNs().Encode(), "%d: URNs mismatch", i)
+		assert.Equal(t, tc.ContactID, mc.ID(), "%d: contact id mismatch", i)
+		assert.Equal(t, tc.ContactURNs, contact.URNs().Encode(), "%d: URNs mismatch", i)
 		assert.Equal(t, tc.Created, created, "%d: created flag mismatch", i)
 
-		groupUUIDs := make([]assets.GroupUUID, len(flowContact.Groups().All()))
-		for i, g := range flowContact.Groups().All() {
+		groupUUIDs := make([]assets.GroupUUID, len(contact.Groups().All()))
+		for i, g := range contact.Groups().All() {
 			groupUUIDs[i] = g.UUID()
 		}
 
@@ -556,12 +556,12 @@ func TestUpdateContactURNs(t *testing.T) {
 	updateURNs := func(us map[*testdb.Contact][]urns.URN) {
 		changes := make([]*models.ContactURNsChanged, 0, 4)
 		for c, urnz := range us {
-			mc, fc, _ := c.Load(t, rt, oa)
+			mc, contact, _ := c.Load(t, rt, oa)
 
 			for _, u := range urnz {
 				// simulate how the engine would claim new URNs
-				if !fc.HasURN(u) {
-					claimed, err := models.ContactClaimURN(ctx, rt, oa.Org(), fc, u)
+				if !contact.HasURN(u) {
+					claimed, err := models.ContactClaimURN(ctx, rt, oa.Org(), contact, u)
 					assert.NoError(t, err)
 					assert.True(t, claimed)
 				}

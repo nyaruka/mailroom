@@ -98,8 +98,8 @@ func handleModify(ctx context.Context, rt *runtime.Runtime, r *modifyRequest) (a
 	}
 
 	events := make(map[core.ContactUUID][]events.Event, len(eventsByContact))
-	for flowContact, contactEvents := range eventsByContact {
-		events[flowContact.UUID()] = contactEvents
+	for contact, contactEvents := range eventsByContact {
+		events[contact.UUID()] = contactEvents
 	}
 
 	resp := &modifyResponse{Events: events, Skipped: skipped}

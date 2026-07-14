@@ -192,16 +192,16 @@ func loadAllContacts(t *testing.T, rt *runtime.Runtime, oa *models.OrgAssets) []
 	allIDs, err = dbutil.ScanAllSlice(rows, allIDs)
 	require.NoError(t, err)
 
-	contacts, err := models.LoadContacts(context.Background(), rt.DB, oa, allIDs)
+	mcs, err := models.LoadContacts(context.Background(), rt.DB, oa, allIDs)
 	require.NoError(t, err)
 
-	sort.Slice(contacts, func(i, j int) bool { return contacts[i].ID() < contacts[j].ID() })
+	sort.Slice(mcs, func(i, j int) bool { return mcs[i].ID() < mcs[j].ID() })
 
-	flowContacts := make([]*core.Contact, len(contacts))
-	for i := range contacts {
-		flowContacts[i], err = contacts[i].EngineContact(oa)
+	contacts := make([]*core.Contact, len(mcs))
+	for i := range mcs {
+		contacts[i], err = mcs[i].EngineContact(oa)
 		require.NoError(t, err)
 	}
 
-	return flowContacts
+	return contacts
 }

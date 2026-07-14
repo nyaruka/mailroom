@@ -22,7 +22,7 @@ import (
 // Task is the interface for all contact tasks - tasks which operate on a single contact in real time
 type Task interface {
 	Type() string
-	Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contact *models.Contact) error
+	Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, mc *models.Contact) error
 }
 
 var registeredTypes = map[string]func() Task{}
