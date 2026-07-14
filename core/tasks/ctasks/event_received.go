@@ -69,10 +69,10 @@ func (t *EventReceived) handle(ctx context.Context, rt *runtime.Runtime, oa *mod
 		return nil, nil
 	}
 
-	// build our flow contact
+	// build our engine contact
 	contact, err := mc.EngineContact(oa)
 	if err != nil {
-		return nil, fmt.Errorf("error creating flow contact: %w", err)
+		return nil, fmt.Errorf("error creating engine contact: %w", err)
 	}
 
 	var flowOptIn *core.OptIn

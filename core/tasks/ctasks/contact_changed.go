@@ -27,7 +27,7 @@ func (t *ContactChanged) Type() string {
 func (t *ContactChanged) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, mc *models.Contact) error {
 	contact, err := mc.EngineContact(oa)
 	if err != nil {
-		return fmt.Errorf("error creating flow contact: %w", err)
+		return fmt.Errorf("error creating engine contact: %w", err)
 	}
 
 	scene := runner.NewScene(mc, contact)

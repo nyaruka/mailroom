@@ -40,12 +40,12 @@ func TestDeindex(t *testing.T) {
 	oa := testdb.Org1.Load(t, rt)
 	mcs, err := models.LoadContacts(ctx, rt.DB, oa, []models.ContactID{testdb.Bob.ID, testdb.Cat.ID})
 	require.NoError(t, err)
-	fcs := make([]*core.Contact, len(mcs))
+	contacts := make([]*core.Contact, len(mcs))
 	for i, mc := range mcs {
-		fcs[i], err = mc.EngineContact(oa)
+		contacts[i], err = mc.EngineContact(oa)
 		require.NoError(t, err)
 	}
-	err = search.IndexContacts(ctx, rt, oa, fcs, map[models.ContactID]models.FlowID{})
+	err = search.IndexContacts(ctx, rt, oa, contacts, map[models.ContactID]models.FlowID{})
 	require.NoError(t, err)
 	rt.ES.Writer.Flush()
 	_, err = rt.ES.Client.Indices.Refresh().Index(rt.Config.ElasticContactsIndex).Do(ctx)

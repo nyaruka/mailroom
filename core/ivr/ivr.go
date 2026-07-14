@@ -92,10 +92,10 @@ func HangupCall(ctx context.Context, rt *runtime.Runtime, call *models.Call) (*m
 }
 
 // RequestCall creates a new outgoing call and makes a request to the service to start it
-func RequestCall(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contact *models.Contact, trigger flows.Trigger) (*models.Call, error) {
+func RequestCall(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, mc *models.Contact, trigger flows.Trigger) (*models.Call, error) {
 	// find a tel URL for the contact
 	var telURN *models.ContactURN
-	for _, u := range contact.URNs() {
+	for _, u := range mc.URNs() {
 		if u.Scheme == urns.Phone.Prefix {
 			telURN = u
 		}
@@ -135,7 +135,7 @@ func RequestCall(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 	}
 
 	channel := callChannel.Asset().(*models.Channel)
-	call := models.NewOutgoingCall(oa.OrgID(), channel, contact, telURN.ID, trigger)
+	call := models.NewOutgoingCall(oa.OrgID(), channel, mc, telURN.ID, trigger)
 	if err := models.InsertCalls(ctx, rt.DB, []*models.Call{call}); err != nil {
 		return nil, fmt.Errorf("error creating outgoing call: %w", err)
 	}
@@ -269,7 +269,7 @@ func StartCall(
 	// load contact and update on trigger to ensure we're not starting with outdated contact data
 	contact, err := mc.EngineContact(oa)
 	if err != nil {
-		return fmt.Errorf("error loading flow contact: %w", err)
+		return fmt.Errorf("error loading engine contact: %w", err)
 	}
 
 	flowCall := core.NewCall(call.UUID(), oa.SessionAssets().Channels().Get(channel.UUID()), urn.Identity())
@@ -324,7 +324,7 @@ func ResumeCall(
 
 	contact, err := mc.EngineContact(oa)
 	if err != nil {
-		return fmt.Errorf("error creating flow contact: %w", err)
+		return fmt.Errorf("error creating engine contact: %w", err)
 	}
 
 	flow, err := oa.FlowByUUID(session.CurrentFlowUUID)

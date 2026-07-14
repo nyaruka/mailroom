@@ -298,12 +298,12 @@ func CreateScenes(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets
 			mc.IncludeTickets(extra)
 		}
 
-		c, err := mc.EngineContact(oa)
+		contact, err := mc.EngineContact(oa)
 		if err != nil {
 			return nil, fmt.Errorf("error creating engine contact for %s: %w", mc.UUID(), err)
 		}
 
-		scenes[i] = NewScene(mc, c)
+		scenes[i] = NewScene(mc, contact)
 	}
 
 	return scenes, nil

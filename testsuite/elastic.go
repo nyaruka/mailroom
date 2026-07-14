@@ -271,17 +271,17 @@ func indexOrgContacts(t *testing.T, rt *runtime.Runtime, org *testdb.Org) {
 			break
 		}
 
-		contacts, err := models.LoadContacts(ctx, rt.DB, oa, contactIDs)
+		mcs, err := models.LoadContacts(ctx, rt.DB, oa, contactIDs)
 		require.NoError(t, err)
 
-		fcs := make([]*core.Contact, 0, len(contacts))
-		for _, mc := range contacts {
-			fc, err := mc.EngineContact(oa)
+		contacts := make([]*core.Contact, 0, len(mcs))
+		for _, mc := range mcs {
+			contact, err := mc.EngineContact(oa)
 			require.NoError(t, err)
-			fcs = append(fcs, fc)
+			contacts = append(contacts, contact)
 		}
 
-		err = search.IndexContacts(ctx, rt, oa, fcs, map[models.ContactID]models.FlowID{})
+		err = search.IndexContacts(ctx, rt, oa, contacts, map[models.ContactID]models.FlowID{})
 		require.NoError(t, err)
 
 		afterID = contactIDs[len(contactIDs)-1]

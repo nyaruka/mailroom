@@ -104,18 +104,18 @@ func handleIncoming(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 	}
 
 	// get the contact for this URN
-	contact, _, _, err := models.GetOrCreateContact(ctx, rt.DB, oa, userID, []urns.URN{urn}, ch.ID())
+	mc, _, _, err := models.GetOrCreateContact(ctx, rt.DB, oa, userID, []urns.URN{urn}, ch.ID())
 	if err != nil {
 		return nil, svc.WriteErrorResponse(w, fmt.Errorf("unable to get contact by urn: %w", err))
 	}
-	cu := contact.FindURN(urn)
+	cu := mc.FindURN(urn)
 
 	externalID, err := svc.CallIDForRequest(r)
 	if err != nil {
 		return nil, svc.WriteErrorResponse(w, fmt.Errorf("unable to get external id from request: %w", err))
 	}
 
-	call := models.NewIncomingCall(oa.OrgID(), ch, contact, cu.ID, externalID)
+	call := models.NewIncomingCall(oa.OrgID(), ch, mc, cu.ID, externalID)
 	if err := models.InsertCalls(ctx, rt.DB, []*models.Call{call}); err != nil {
 		return nil, svc.WriteErrorResponse(w, fmt.Errorf("error inserting incoming call: %w", err))
 	}
@@ -127,7 +127,7 @@ func handleIncoming(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 		URNID:     cu.ID,
 		Extra:     nil,
 	}
-	scene, err := task.Handle(ctx, rt, oa, contact, call)
+	scene, err := task.Handle(ctx, rt, oa, mc, call)
 	if err != nil {
 		slog.Error("error handling incoming call", "error", err, "http_request", r)
 		return call, svc.WriteErrorResponse(w, fmt.Errorf("error handling incoming call: %w", err))
@@ -185,11 +185,11 @@ func handleCallback(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 	}
 
 	// load our contact
-	contact, err := models.LoadContact(ctx, rt.ReadonlyDB, oa, call.ContactID())
+	mc, err := models.LoadContact(ctx, rt.ReadonlyDB, oa, call.ContactID())
 	if err != nil {
 		return call, svc.WriteErrorResponse(w, fmt.Errorf("no such contact: %w", err))
 	}
-	if contact.Status() != models.ContactStatusActive {
+	if mc.Status() != models.ContactStatusActive {
 		return call, svc.WriteErrorResponse(w, fmt.Errorf("no contact with id: %d", call.ContactID()))
 	}
 
@@ -203,7 +203,7 @@ func handleCallback(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 
 	// make sure our URN is indeed present on our contact, no funny business
 	found := false
-	for _, u := range contact.URNs() {
+	for _, u := range mc.URNs() {
 		if u.ID == cu.ID {
 			found = true
 		}
@@ -217,9 +217,9 @@ func handleCallback(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 	// if this a start, start our contact
 	switch request.Action {
 	case ivr.ActionStart:
-		err = ivr.StartCall(ctx, rt, svc, resumeURL, oa, ch, call, contact, urn, r, w)
+		err = ivr.StartCall(ctx, rt, svc, resumeURL, oa, ch, call, mc, urn, r, w)
 	case ivr.ActionResume:
-		err = ivr.ResumeCall(ctx, rt, resumeURL, svc, oa, ch, call, contact, urn, r, w)
+		err = ivr.ResumeCall(ctx, rt, resumeURL, svc, oa, ch, call, mc, urn, r, w)
 	case ivr.ActionStatus:
 		err = ivr.HandleStatus(ctx, rt, oa, svc, call, r, w)
 

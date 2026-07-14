@@ -31,9 +31,9 @@ func StartSessions(t *testing.T, rt *runtime.Runtime, oa *models.OrgAssets, cont
 	}
 
 	scenes := make([]*runner.Scene, len(contacts))
-	for i, contact := range contacts {
-		mc, fc, _ := contact.Load(t, rt, oa)
-		scenes[i] = runner.NewScene(mc, fc)
+	for i, c := range contacts {
+		mc, contact, _ := c.Load(t, rt, oa)
+		scenes[i] = runner.NewScene(mc, contact)
 
 		err := scenes[i].StartSession(ctx, rt, oa, triggers[i], true)
 		require.NoError(t, err)
@@ -44,24 +44,24 @@ func StartSessions(t *testing.T, rt *runtime.Runtime, oa *models.OrgAssets, cont
 	return scenes
 }
 
-func ResumeSession(t *testing.T, rt *runtime.Runtime, oa *models.OrgAssets, contact *testdb.Contact, resume any) *runner.Scene {
+func ResumeSession(t *testing.T, rt *runtime.Runtime, oa *models.OrgAssets, c *testdb.Contact, resume any) *runner.Scene {
 	ctx := context.Background()
 
-	mc, fc, _ := contact.Load(t, rt, oa)
+	mc, contact, _ := c.Load(t, rt, oa)
 
 	require.NotEqual(t, core.SessionUUID(""), mc.CurrentSessionUUID(), "contact must have a waiting session")
 
 	modelSession, err := models.GetContactWaitingSession(ctx, rt, oa, mc)
 	require.NoError(t, err)
 
-	scene := runner.NewScene(mc, fc)
+	scene := runner.NewScene(mc, contact)
 
 	var r flows.Resume
 	switch typed := resume.(type) {
 	case flows.Resume:
 		r = typed
 	case string:
-		msg := core.NewMsgIn(contact.URN, nil, typed, nil, "")
+		msg := core.NewMsgIn(c.URN, nil, typed, nil, "")
 		r = resumes.NewMsg(events.NewMsgReceived(msg, ""))
 	default:
 		panic("invalid resume type")

@@ -51,10 +51,10 @@ func (t *WaitExpired) Perform(ctx context.Context, rt *runtime.Runtime, oa *mode
 		return nil
 	}
 
-	// build our flow contact
+	// build our engine contact
 	contact, err := mc.EngineContact(oa)
 	if err != nil {
-		return fmt.Errorf("error creating flow contact: %w", err)
+		return fmt.Errorf("error creating engine contact: %w", err)
 	}
 
 	evt := events.NewWaitExpired()

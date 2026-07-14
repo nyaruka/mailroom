@@ -76,7 +76,7 @@ var ContactToModelStatus = map[core.ContactStatus]ContactStatus{
 	core.ContactStatusArchived: ContactStatusArchived,
 }
 
-var contactToFlowStatus = map[ContactStatus]core.ContactStatus{
+var contactToEngineStatus = map[ContactStatus]core.ContactStatus{
 	ContactStatusActive:   core.ContactStatusActive,
 	ContactStatusBlocked:  core.ContactStatusBlocked,
 	ContactStatusStopped:  core.ContactStatusStopped,
@@ -214,14 +214,14 @@ func (c *Contact) EngineContact(oa *OrgAssets) (*core.Contact, error) {
 		tickets[i] = t.EngineTicket(oa)
 	}
 
-	// create our flow contact
+	// create our engine contact
 	contact, err := core.NewContact(
 		oa.SessionAssets(),
 		c.uuid,
 		core.ContactID(c.id),
 		c.name,
 		c.language,
-		contactToFlowStatus[c.Status()],
+		contactToEngineStatus[c.Status()],
 		oa.Env().Timezone(),
 		c.createdOn,
 		c.lastSeenOn,
@@ -232,7 +232,7 @@ func (c *Contact) EngineContact(oa *OrgAssets) (*core.Contact, error) {
 		assets.IgnoreMissing,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("error creating flow contact: %w", err)
+		return nil, fmt.Errorf("error creating engine contact: %w", err)
 	}
 
 	return contact, nil
@@ -562,22 +562,22 @@ func CreateContact(ctx context.Context, db DB, oa *OrgAssets, userID UserID, nam
 	}
 
 	// load a full contact so that we can calculate dynamic groups
-	contact, err := LoadContact(ctx, db, oa, contactID)
+	mc, err := LoadContact(ctx, db, oa, contactID)
 	if err != nil {
 		return nil, nil, fmt.Errorf("error loading new contact: %w", err)
 	}
 
-	flowContact, err := contact.EngineContact(oa)
+	contact, err := mc.EngineContact(oa)
 	if err != nil {
-		return nil, nil, fmt.Errorf("error creating flow contact: %w", err)
+		return nil, nil, fmt.Errorf("error creating engine contact: %w", err)
 	}
 
-	err = CalculateDynamicGroups(ctx, db, oa, []*core.Contact{flowContact})
+	err = CalculateDynamicGroups(ctx, db, oa, []*core.Contact{contact})
 	if err != nil {
 		return nil, nil, fmt.Errorf("error calculating dynamic groups: %w", err)
 	}
 
-	return contact, flowContact, nil
+	return mc, contact, nil
 }
 
 // GetOrCreateContact fetches or creates a new contact for the passed in org with the passed in URNs.
@@ -599,25 +599,25 @@ func GetOrCreateContact(ctx context.Context, db DB, oa *OrgAssets, userID UserID
 	}
 
 	// load a full contact so that we can calculate dynamic groups
-	contact, err := LoadContact(ctx, db, oa, contactID)
+	mc, err := LoadContact(ctx, db, oa, contactID)
 	if err != nil {
 		return nil, nil, false, fmt.Errorf("error loading new contact: %w", err)
 	}
 
-	flowContact, err := contact.EngineContact(oa)
+	contact, err := mc.EngineContact(oa)
 	if err != nil {
-		return nil, nil, false, fmt.Errorf("error creating flow contact: %w", err)
+		return nil, nil, false, fmt.Errorf("error creating engine contact: %w", err)
 	}
 
 	// calculate dynamic groups if contact was created
 	if created {
-		err := CalculateDynamicGroups(ctx, db, oa, []*core.Contact{flowContact})
+		err := CalculateDynamicGroups(ctx, db, oa, []*core.Contact{contact})
 		if err != nil {
 			return nil, nil, false, fmt.Errorf("error calculating dynamic groups: %w", err)
 		}
 	}
 
-	return contact, flowContact, created, nil
+	return mc, contact, created, nil
 }
 
 // GetOrCreateContactsFromURNs will fetch or create the contacts for the passed in URNs, returning a map of the fetched

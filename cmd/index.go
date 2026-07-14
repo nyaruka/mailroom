@@ -94,29 +94,29 @@ func indexAllContacts(ctx context.Context, rt *runtime.Runtime) error {
 				return fmt.Errorf("error loading org assets for org #%d: %w", orgID, err)
 			}
 
-			contacts, err := models.LoadContacts(ctx, rt.DB, oa, contactIDs)
+			mcs, err := models.LoadContacts(ctx, rt.DB, oa, contactIDs)
 			if err != nil {
 				return fmt.Errorf("error loading contacts for org #%d: %w", orgID, err)
 			}
 
-			flowContacts := make([]*core.Contact, 0, len(contacts))
-			currentFlows := make(map[models.ContactID]models.FlowID, len(contacts))
-			for _, c := range contacts {
-				fc, err := c.EngineContact(oa)
+			contacts := make([]*core.Contact, 0, len(mcs))
+			currentFlows := make(map[models.ContactID]models.FlowID, len(mcs))
+			for _, mc := range mcs {
+				contact, err := mc.EngineContact(oa)
 				if err != nil {
 					orgSkipped++
 					continue
 				}
-				flowContacts = append(flowContacts, fc)
-				currentFlows[c.ID()] = c.CurrentFlowID()
+				contacts = append(contacts, contact)
+				currentFlows[mc.ID()] = mc.CurrentFlowID()
 			}
 
-			if err := search.IndexContacts(ctx, rt, oa, flowContacts, currentFlows); err != nil {
+			if err := search.IndexContacts(ctx, rt, oa, contacts, currentFlows); err != nil {
 				return fmt.Errorf("error indexing contacts for org #%d: %w", orgID, err)
 			}
 
-			orgIndexed += len(flowContacts)
-			totalIndexed += len(flowContacts)
+			orgIndexed += len(contacts)
+			totalIndexed += len(contacts)
 			orgBatches++
 			afterID = contactIDs[len(contactIDs)-1]
 
