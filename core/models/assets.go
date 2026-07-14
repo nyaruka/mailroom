@@ -10,13 +10,13 @@ import (
 	"sync"
 	"time"
 
+	"github.com/nyaruka/gocommon/cache"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/envs"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/engine"
 	"github.com/nyaruka/mailroom/v26/core/goflow"
 	"github.com/nyaruka/mailroom/v26/runtime"
-	cache "github.com/patrickmn/go-cache"
 )
 
 // Refresh is our type for the pieces of org assets we want fresh (not cached)
@@ -109,39 +109,24 @@ type OrgAssets struct {
 
 var ErrNotFound = errors.New("not found")
 
-// we cache org objects for 5 seconds, cleanup every minute (gets never return expired items)
-var orgCache = cache.New(time.Second*5, time.Minute)
+// we cache org objects for 5 seconds (gets never return expired items)
+var orgCache *cache.Local[OrgID, *OrgAssets]
 
-// map of org id -> assetLoader used to make sure we only load an individual org once when expired
-var assetLoaders = sync.Map{}
-
-// represents a goroutine loading assets for an org, stores the loaded assets (and possible error) and
-// a channel to notify any listeners that the loading is complete
-type assetLoader struct {
-	done   chan struct{}
-	assets *OrgAssets
-	err    error
-}
-
-// loadOrgAssetsOnce is a thread safe method to create new org assets from the DB in a thread safe manner
-// that ensures only one goroutine is fetching the org at once. (others will block on the first completing)
-func loadOrgAssetsOnce(ctx context.Context, rt *runtime.Runtime, orgID OrgID) (*OrgAssets, error) {
-	loader := assetLoader{done: make(chan struct{})}
-	actual, inFlight := assetLoaders.LoadOrStore(orgID, &loader)
-	actualLoader := actual.(*assetLoader)
-	if inFlight {
-		<-actualLoader.done
-	} else {
-		actualLoader.assets, actualLoader.err = NewOrgAssets(ctx, rt, orgID, nil, RefreshAll)
-		close(actualLoader.done)
-		assetLoaders.Delete(orgID)
+// InitCache initializes the org assets cache which needs the runtime to load assets on cache misses
+func InitCache(rt *runtime.Runtime) {
+	if orgCache != nil {
+		orgCache.Stop()
 	}
-	return actualLoader.assets, actualLoader.err
+
+	orgCache = cache.NewLocal(func(ctx context.Context, orgID OrgID) (*OrgAssets, error) {
+		return NewOrgAssets(ctx, rt, orgID, nil, RefreshAll)
+	}, time.Second*5)
+	orgCache.Start()
 }
 
 // FlushCache clears our entire org cache
 func FlushCache() {
-	orgCache.Flush()
+	orgCache.Clear()
 }
 
 // NewOrgAssets creates and returns a new org assets objects, potentially using the previous
@@ -426,29 +411,15 @@ func GetOrgAssets(ctx context.Context, rt *runtime.Runtime, orgID OrgID) (*OrgAs
 
 // GetOrgAssetsWithRefresh creates or gets org assets for the passed in org refreshing the passed in assets
 func GetOrgAssetsWithRefresh(ctx context.Context, rt *runtime.Runtime, orgID OrgID, refresh Refresh) (*OrgAssets, error) {
-	// do we have a recent cache?
-	key := fmt.Sprintf("%d", orgID)
-	var cached *OrgAssets
-	c, found := orgCache.Get(key)
-	if found {
-		cached = c.(*OrgAssets)
+	// if nothing to refresh, return what we have cached, loading if necessary
+	if refresh == RefreshNone {
+		return orgCache.GetOrFetch(ctx, orgID)
 	}
 
-	// if found and nothing to refresh, return it
-	if found && refresh == RefreshNone {
-		return cached, nil
-	}
-
-	// if it wasn't found at all, reload it
-	if !found {
-		o, err := loadOrgAssetsOnce(ctx, rt, orgID)
-		if err != nil {
-			return nil, err
-		}
-
-		// cache it for the future
-		orgCache.SetDefault(key, o)
-		return o, nil
+	// if we don't have a cached version to refresh, do a complete load
+	cached := orgCache.Get(orgID)
+	if cached == nil {
+		return orgCache.GetOrFetch(ctx, orgID)
 	}
 
 	// otherwise we need to refresh only some parts, go do that
@@ -457,9 +428,8 @@ func GetOrgAssetsWithRefresh(ctx context.Context, rt *runtime.Runtime, orgID Org
 		return nil, err
 	}
 
-	orgCache.SetDefault(key, o)
+	orgCache.Set(orgID, o)
 
-	// return our assets
 	return o, nil
 }
 

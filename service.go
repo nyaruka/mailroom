@@ -14,6 +14,7 @@ import (
 	"github.com/nyaruka/gocommon/aws/cwatch"
 	"github.com/nyaruka/gocommon/aws/dynamo"
 	"github.com/nyaruka/mailroom/v26/core/crons"
+	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/runtime"
 	"github.com/nyaruka/mailroom/v26/web"
 )
@@ -127,6 +128,8 @@ func (s *Service) Start() error {
 	} else {
 		log.Info("runtime started")
 	}
+
+	models.InitCache(s.rt)
 
 	// init our foremen and start it
 	s.realtimeForeman.Start(s.workersWG)

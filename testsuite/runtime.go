@@ -121,6 +121,8 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 	err = rt.Start()
 	require.NoError(t, err, "error starting runtime")
 
+	models.InitCache(rt)
+
 	t.Cleanup(func() {
 		rt.Stop()
 

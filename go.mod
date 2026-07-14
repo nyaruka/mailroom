@@ -27,7 +27,6 @@ require (
 	github.com/nyaruka/null/v3 v3.0.0
 	github.com/nyaruka/vkutil v0.21.0
 	github.com/openai/openai-go v1.12.0
-	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/prometheus/client_model v0.6.2
 	github.com/prometheus/common v0.69.0
 	github.com/samber/slog-multi v1.8.0
@@ -104,6 +103,7 @@ require (
 	github.com/googleapis/gax-go/v2 v2.22.0 // indirect
 	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/invopop/jsonschema v0.14.0 // indirect
+	github.com/jellydator/ttlcache/v3 v3.4.1 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/muir/list v1.2.1 // indirect
 	github.com/muir/sqltoken v0.5.2 // indirect
