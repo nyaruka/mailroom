@@ -1,3 +1,10 @@
+v26.3.14 (2026-07-14)
+-------------------------
+ * Update to goflow v0.280.0
+ * Use consistent naming for model vs engine contacts
+ * Replace patrickmn/go-cache with gocommon's cache.Local for org assets
+ * Stop building darwin release binaries
+
 v26.3.13 (2026-07-13)
 -------------------------
  * Remove unused web endpoints
