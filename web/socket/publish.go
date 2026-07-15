@@ -107,8 +107,10 @@ func handlePublish(ctx context.Context, rt *runtime.Runtime, r *publishRequest) 
 		return nil, 0, fmt.Errorf("error loading org assets: %w", err)
 	}
 
-	// check that the publisher is a user in the org, and that the contact whose socket this is and the chat
-	// channel both belong to that org
+	// this handler is the sole publish authorizer: when a publish proxy is enabled centrifugo skips all of its
+	// built-in permission checks, including whether the publisher is even subscribed to the socket. So check that
+	// the publisher is a user in the org, and that the contact whose socket this is and the chat channel both
+	// belong to that org.
 	user := oa.UserByID(r.Meta.UserID)
 	if user == nil {
 		return deny("no such user")
