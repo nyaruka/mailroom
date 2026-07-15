@@ -22,7 +22,7 @@ require (
 	github.com/gorilla/schema v1.4.1
 	github.com/lib/pq v1.12.3
 	github.com/nyaruka/ezconf v0.6.1
-	github.com/nyaruka/gocommon v1.89.4
+	github.com/nyaruka/gocommon v1.89.5
 	github.com/nyaruka/goflow v0.280.1
 	github.com/nyaruka/null/v3 v3.0.0
 	github.com/nyaruka/vkutil v0.21.0
@@ -110,7 +110,7 @@ require (
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/naoina/go-stringutil v0.1.0 // indirect
 	github.com/naoina/toml v0.1.1 // indirect
-	github.com/nyaruka/phonenumbers/v2 v2.0.2 // indirect
+	github.com/nyaruka/phonenumbers/v2 v2.0.4 // indirect
 	github.com/pb33f/ordered-map/v2 v2.3.1 // indirect
 	github.com/planetscale/vtprotobuf v0.6.1-0.20240319094008-0393e58bdf10 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
