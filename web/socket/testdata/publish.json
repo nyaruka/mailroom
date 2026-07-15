@@ -92,6 +92,54 @@
         }
     },
     {
+        "label": "denied if socket contact UUID is malformed",
+        "method": "POST",
+        "path": "/mi/socket/publish",
+        "body": {
+            "channel": "history:not-a-uuid",
+            "data": {
+                "type": "typing_started",
+                "channel_uuid": "0f661e8b-ea9d-4bd3-9953-d368340acf91",
+                "urn": "facebook:12345"
+            },
+            "meta": {
+                "user_id": 3,
+                "user_uuid": "ad9fdf9f-56ab-422a-b77d-e3ec26091a25",
+                "org_id": 1,
+                "org_uuid": "bf0514a5-9407-44c9-b0f9-3f36f9c18414"
+            }
+        },
+        "status": 200,
+        "response": {
+            "error": {
+                "code": 403,
+                "message": "publishing not supported on this socket"
+            }
+        }
+    },
+    {
+        "label": "denied if publication data isn't an object",
+        "method": "POST",
+        "path": "/mi/socket/publish",
+        "body": {
+            "channel": "history:a393abc0-283d-4c9b-a1b3-641a035c34bf",
+            "data": "hello",
+            "meta": {
+                "user_id": 3,
+                "user_uuid": "ad9fdf9f-56ab-422a-b77d-e3ec26091a25",
+                "org_id": 1,
+                "org_uuid": "bf0514a5-9407-44c9-b0f9-3f36f9c18414"
+            }
+        },
+        "status": 200,
+        "response": {
+            "error": {
+                "code": 403,
+                "message": "invalid publication data"
+            }
+        }
+    },
+    {
         "label": "denied if publication data isn't a typing started event",
         "method": "POST",
         "path": "/mi/socket/publish",

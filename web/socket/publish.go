@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/nyaruka/gocommon/urns"
+	"github.com/nyaruka/gocommon/uuids"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/core/events"
@@ -88,7 +89,7 @@ func handlePublish(ctx context.Context, rt *runtime.Runtime, r *publishRequest) 
 
 	// only contact level history sockets accept publications, i.e. not ticket scoped ones
 	parts := strings.Split(r.Channel, ":")
-	if len(parts) != 2 || parts[0] != models.SocketHistoryNamespace {
+	if len(parts) != 2 || parts[0] != models.SocketHistoryNamespace || !uuids.Is(parts[1]) {
 		return deny("publishing not supported on this socket")
 	}
 	contactUUID := core.ContactUUID(parts[1])
