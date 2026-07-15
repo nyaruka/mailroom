@@ -66,24 +66,3 @@ func TestLoadUsers(t *testing.T) {
 	require.Len(t, users, 1)
 	require.Equal(t, testdb.Org2Admin.UUID, users[0].(*models.User).UUID())
 }
-
-func TestLoadUser(t *testing.T) {
-	ctx, rt := testsuite.Runtime(t)
-
-	user, err := models.LoadUser(ctx, rt.DB, testdb.Admin.ID)
-	require.NoError(t, err)
-	assert.Equal(t, testdb.Admin.UUID, user.UUID())
-	assert.Equal(t, "admin1@textit.com", user.Email())
-	assert.Equal(t, "Andy Admin", user.Name())
-
-	// loading isn't limited to any workspace's members but comes without a role or team
-	user, err = models.LoadUser(ctx, rt.DB, testdb.Org2Admin.ID)
-	require.NoError(t, err)
-	assert.Equal(t, testdb.Org2Admin.UUID, user.UUID())
-	assert.Nil(t, user.Team())
-
-	// no such user is a nil rather than an error
-	user, err = models.LoadUser(ctx, rt.DB, 1234567)
-	require.NoError(t, err)
-	assert.Nil(t, user)
-}

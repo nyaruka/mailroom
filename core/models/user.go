@@ -95,31 +95,6 @@ func loadUsers(ctx context.Context, db *sql.DB, orgID OrgID) ([]assets.User, err
 	return ScanJSONRows(rows, func() assets.User { return &User{} })
 }
 
-const sqlSelectUserByID = `
-SELECT ROW_TO_JSON(r) FROM (
-	SELECT u.id, u.uuid, u.email, u.first_name, u.last_name
-	  FROM users_user u
-	 WHERE u.id = $1 AND u.is_active = TRUE
-) r;`
-
-// LoadUser loads the user with the given ID regardless of workspace membership - and thus without a role or team.
-// Returns nil if no such user exists.
-func LoadUser(ctx context.Context, db Queryer, id UserID) (*User, error) {
-	rows, err := db.QueryContext(ctx, sqlSelectUserByID, id)
-	if err != nil && err != sql.ErrNoRows {
-		return nil, fmt.Errorf("error querying user #%d: %w", id, err)
-	}
-
-	users, err := ScanJSONRows(rows, func() *User { return &User{} })
-	if err != nil {
-		return nil, err
-	}
-	if len(users) == 0 {
-		return nil, nil
-	}
-	return users[0], nil
-}
-
 func GetSystemUserID(ctx context.Context, db *sql.DB) (UserID, error) {
 	var id UserID
 	err := db.QueryRowContext(ctx, "SELECT id FROM users_user WHERE email = 'system'").Scan(&id)

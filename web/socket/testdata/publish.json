@@ -192,11 +192,15 @@
         "response": {
             "result": {
                 "data": {
-                    "type": "agent_typing",
-                    "user": {
+                    "uuid": "01969b47-0583-76f8-ae7f-f8b243c49ff5",
+                    "type": "typing_started",
+                    "created_on": "2025-05-04T12:30:46.123456789Z",
+                    "_user": {
                         "uuid": "ad9fdf9f-56ab-422a-b77d-e3ec26091a25",
                         "name": "Andy Admin"
-                    }
+                    },
+                    "_via": "ui",
+                    "direction": "outgoing"
                 },
                 "skip_history": true
             }
@@ -225,18 +229,22 @@
         "response": {
             "result": {
                 "data": {
-                    "type": "agent_typing",
-                    "user": {
+                    "uuid": "01969b47-0d53-76f8-bd38-d266ec8d3716",
+                    "type": "typing_started",
+                    "created_on": "2025-05-04T12:30:48.123456789Z",
+                    "_user": {
                         "uuid": "ad9fdf9f-56ab-422a-b77d-e3ec26091a25",
                         "name": "Andy Admin"
-                    }
+                    },
+                    "_via": "ui",
+                    "direction": "outgoing"
                 },
                 "skip_history": true
             }
         }
     },
     {
-        "label": "publisher who isn't a workspace user is still attributed",
+        "label": "denied if publisher isn't a user in the org",
         "method": "POST",
         "path": "/mi/socket/publish",
         "body": {
@@ -256,14 +264,9 @@
         },
         "status": 200,
         "response": {
-            "result": {
-                "data": {
-                    "type": "agent_typing",
-                    "user": {
-                        "uuid": "a2afc5e7-e97b-45e5-9850-8896957fef54"
-                    }
-                },
-                "skip_history": true
+            "error": {
+                "code": 403,
+                "message": "no such user"
             }
         }
     }

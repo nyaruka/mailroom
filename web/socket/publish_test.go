@@ -19,7 +19,6 @@ func TestPublish(t *testing.T) {
 		"http://localhost:8080/ci/chat_action/send": {
 			httpx.NewMockResponse(200, nil, []byte(`{"supported": true, "interval": 4}`)),
 			httpx.NewMockResponse(500, nil, []byte(`{"error": "oops"}`)),
-			httpx.NewMockResponse(200, nil, []byte(`{"supported": true, "interval": 4}`)),
 		},
 	})
 	rt.HTTP.Services.Transport = mocks
