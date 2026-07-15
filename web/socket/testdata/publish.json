@@ -1,0 +1,270 @@
+[
+    {
+        "label": "illegal method",
+        "method": "GET",
+        "path": "/mi/socket/publish",
+        "status": 405,
+        "response": {
+            "error": "illegal method: GET"
+        }
+    },
+    {
+        "label": "error if channel and data missing",
+        "method": "POST",
+        "path": "/mi/socket/publish",
+        "body": {},
+        "status": 400,
+        "response": {
+            "error": "request failed validation: field 'channel' is required, field 'data' is required"
+        }
+    },
+    {
+        "label": "denied if no connection meta",
+        "method": "POST",
+        "path": "/mi/socket/publish",
+        "body": {
+            "channel": "history:a393abc0-283d-4c9b-a1b3-641a035c34bf",
+            "data": {
+                "type": "typing_started",
+                "channel_uuid": "0f661e8b-ea9d-4bd3-9953-d368340acf91",
+                "urn": "facebook:12345",
+                "msg_external_id": "ex123"
+            }
+        },
+        "status": 200,
+        "response": {
+            "error": {
+                "code": 403,
+                "message": "no connection meta"
+            }
+        }
+    },
+    {
+        "label": "denied if socket isn't a history socket",
+        "method": "POST",
+        "path": "/mi/socket/publish",
+        "body": {
+            "channel": "notifications:bf0514a5-9407-44c9-b0f9-3f36f9c18414:ad9fdf9f-56ab-422a-b77d-e3ec26091a25",
+            "data": {
+                "type": "typing_started",
+                "channel_uuid": "0f661e8b-ea9d-4bd3-9953-d368340acf91",
+                "urn": "facebook:12345"
+            },
+            "meta": {
+                "user_id": 3,
+                "user_uuid": "ad9fdf9f-56ab-422a-b77d-e3ec26091a25",
+                "org_id": 1,
+                "org_uuid": "bf0514a5-9407-44c9-b0f9-3f36f9c18414"
+            }
+        },
+        "status": 200,
+        "response": {
+            "error": {
+                "code": 403,
+                "message": "publishing not supported on this socket"
+            }
+        }
+    },
+    {
+        "label": "denied if socket is a ticket scoped history socket",
+        "method": "POST",
+        "path": "/mi/socket/publish",
+        "body": {
+            "channel": "history:a393abc0-283d-4c9b-a1b3-641a035c34bf:01992f54-5ab6-717a-a39e-e8ca91fb7262",
+            "data": {
+                "type": "typing_started",
+                "channel_uuid": "0f661e8b-ea9d-4bd3-9953-d368340acf91",
+                "urn": "facebook:12345"
+            },
+            "meta": {
+                "user_id": 3,
+                "user_uuid": "ad9fdf9f-56ab-422a-b77d-e3ec26091a25",
+                "org_id": 1,
+                "org_uuid": "bf0514a5-9407-44c9-b0f9-3f36f9c18414"
+            }
+        },
+        "status": 200,
+        "response": {
+            "error": {
+                "code": 403,
+                "message": "publishing not supported on this socket"
+            }
+        }
+    },
+    {
+        "label": "denied if publication data isn't a typing started event",
+        "method": "POST",
+        "path": "/mi/socket/publish",
+        "body": {
+            "channel": "history:a393abc0-283d-4c9b-a1b3-641a035c34bf",
+            "data": {
+                "type": "typing_stopped",
+                "channel_uuid": "0f661e8b-ea9d-4bd3-9953-d368340acf91",
+                "urn": "facebook:12345"
+            },
+            "meta": {
+                "user_id": 3,
+                "user_uuid": "ad9fdf9f-56ab-422a-b77d-e3ec26091a25",
+                "org_id": 1,
+                "org_uuid": "bf0514a5-9407-44c9-b0f9-3f36f9c18414"
+            }
+        },
+        "status": 200,
+        "response": {
+            "error": {
+                "code": 403,
+                "message": "unsupported publication type: typing_stopped"
+            }
+        }
+    },
+    {
+        "label": "denied if contact belongs to a different org than the publisher",
+        "method": "POST",
+        "path": "/mi/socket/publish",
+        "body": {
+            "channel": "history:f6d20b72-f7d8-44dc-87f2-aae046dbff95",
+            "data": {
+                "type": "typing_started",
+                "channel_uuid": "0f661e8b-ea9d-4bd3-9953-d368340acf91",
+                "urn": "facebook:12345"
+            },
+            "meta": {
+                "user_id": 3,
+                "user_uuid": "ad9fdf9f-56ab-422a-b77d-e3ec26091a25",
+                "org_id": 1,
+                "org_uuid": "bf0514a5-9407-44c9-b0f9-3f36f9c18414"
+            }
+        },
+        "status": 200,
+        "response": {
+            "error": {
+                "code": 403,
+                "message": "no such contact"
+            }
+        }
+    },
+    {
+        "label": "denied if channel belongs to a different org than the publisher",
+        "method": "POST",
+        "path": "/mi/socket/publish",
+        "body": {
+            "channel": "history:a393abc0-283d-4c9b-a1b3-641a035c34bf",
+            "data": {
+                "type": "typing_started",
+                "channel_uuid": "a89bc872-3763-4b95-91d9-31d4e56c6651",
+                "urn": "facebook:12345"
+            },
+            "meta": {
+                "user_id": 3,
+                "user_uuid": "ad9fdf9f-56ab-422a-b77d-e3ec26091a25",
+                "org_id": 1,
+                "org_uuid": "bf0514a5-9407-44c9-b0f9-3f36f9c18414"
+            }
+        },
+        "status": 200,
+        "response": {
+            "error": {
+                "code": 403,
+                "message": "no such channel"
+            }
+        }
+    },
+    {
+        "label": "valid publication is rewritten with routing fields stripped and typist attributed",
+        "method": "POST",
+        "path": "/mi/socket/publish",
+        "body": {
+            "channel": "history:a393abc0-283d-4c9b-a1b3-641a035c34bf",
+            "data": {
+                "type": "typing_started",
+                "channel_uuid": "0f661e8b-ea9d-4bd3-9953-d368340acf91",
+                "urn": "facebook:12345",
+                "msg_external_id": "ex123"
+            },
+            "meta": {
+                "user_id": 3,
+                "user_uuid": "ad9fdf9f-56ab-422a-b77d-e3ec26091a25",
+                "org_id": 1,
+                "org_uuid": "bf0514a5-9407-44c9-b0f9-3f36f9c18414"
+            }
+        },
+        "status": 200,
+        "response": {
+            "result": {
+                "data": {
+                    "type": "agent_typing",
+                    "user": {
+                        "uuid": "ad9fdf9f-56ab-422a-b77d-e3ec26091a25",
+                        "name": "Andy Admin"
+                    }
+                },
+                "skip_history": true
+            }
+        }
+    },
+    {
+        "label": "courier failing doesn't deny the publication",
+        "method": "POST",
+        "path": "/mi/socket/publish",
+        "body": {
+            "channel": "history:a393abc0-283d-4c9b-a1b3-641a035c34bf",
+            "data": {
+                "type": "typing_started",
+                "channel_uuid": "0f661e8b-ea9d-4bd3-9953-d368340acf91",
+                "urn": "facebook:12345",
+                "msg_external_id": "ex123"
+            },
+            "meta": {
+                "user_id": 3,
+                "user_uuid": "ad9fdf9f-56ab-422a-b77d-e3ec26091a25",
+                "org_id": 1,
+                "org_uuid": "bf0514a5-9407-44c9-b0f9-3f36f9c18414"
+            }
+        },
+        "status": 200,
+        "response": {
+            "result": {
+                "data": {
+                    "type": "agent_typing",
+                    "user": {
+                        "uuid": "ad9fdf9f-56ab-422a-b77d-e3ec26091a25",
+                        "name": "Andy Admin"
+                    }
+                },
+                "skip_history": true
+            }
+        }
+    },
+    {
+        "label": "publisher who isn't a workspace user is still attributed",
+        "method": "POST",
+        "path": "/mi/socket/publish",
+        "body": {
+            "channel": "history:a393abc0-283d-4c9b-a1b3-641a035c34bf",
+            "data": {
+                "type": "typing_started",
+                "channel_uuid": "0f661e8b-ea9d-4bd3-9953-d368340acf91",
+                "urn": "facebook:12345",
+                "msg_external_id": "ex123"
+            },
+            "meta": {
+                "user_id": 6,
+                "user_uuid": "a2afc5e7-e97b-45e5-9850-8896957fef54",
+                "org_id": 1,
+                "org_uuid": "bf0514a5-9407-44c9-b0f9-3f36f9c18414"
+            }
+        },
+        "status": 200,
+        "response": {
+            "result": {
+                "data": {
+                    "type": "agent_typing",
+                    "user": {
+                        "uuid": "a2afc5e7-e97b-45e5-9850-8896957fef54"
+                    }
+                },
+                "skip_history": true
+            }
+        }
+    }
+]
