@@ -9,6 +9,7 @@ import (
 	"slices"
 	"time"
 
+	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/goflow/flows"
@@ -127,6 +128,30 @@ func (s *Scene) AddEvent(ctx context.Context, rt *runtime.Runtime, oa *models.Or
 	}
 
 	return nil
+}
+
+// SetCurrentFlow updates the contact's current flow (nil to clear) and if that's an actual change, adds a
+// contact_flow_changed event to the scene. It doesn't update the database - callers are responsible for arranging
+// that (e.g. via the update contact session hook or session interruption).
+func (s *Scene) SetCurrentFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, flow *models.Flow) (bool, error) {
+	flowID := models.NilFlowID
+	var flowRef *assets.FlowReference
+	if flow != nil {
+		flowID = flow.ID()
+		flowRef = flow.Reference()
+	}
+
+	if s.DBContact.CurrentFlowID() == flowID {
+		return false, nil
+	}
+
+	s.DBContact.SetCurrentFlowID(flowID)
+
+	if err := s.AddEvent(ctx, rt, oa, events.NewContactFlowChanged(flowRef), models.NilUserID, ""); err != nil {
+		return false, fmt.Errorf("error adding contact flow changed event: %w", err)
+	}
+
+	return true, nil
 }
 
 func (s *Scene) addSprint(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, ss flows.Session, sp flows.Sprint, resumed bool) error {

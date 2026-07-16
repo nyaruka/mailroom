@@ -21,14 +21,10 @@ func handleContactInterrupted(ctx context.Context, rt *runtime.Runtime, oa *mode
 
 	slog.Debug("contact interrupted", "contact", scene.ContactUUID())
 
-	// interruption takes the contact out of their current flow (the pre-commit hook below clears it in the database)
-	// so subscribers should see that change
-	if scene.DBContact.CurrentFlowID() != models.NilFlowID {
-		scene.DBContact.SetCurrentFlowID(models.NilFlowID)
-
-		if err := scene.AddEvent(ctx, rt, oa, events.NewContactFlowChanged(nil), models.NilUserID, ""); err != nil {
-			return fmt.Errorf("error adding contact flow changed event: %w", err)
-		}
+	// interruption takes the contact out of their current flow (the InterruptContacts hook clears it in the
+	// database) so subscribers should see that change
+	if _, err := scene.SetCurrentFlow(ctx, rt, oa, nil); err != nil {
+		return fmt.Errorf("error clearing contact current flow: %w", err)
 	}
 
 	scene.AttachPreCommitHook(hooks.InterruptContacts, event)
