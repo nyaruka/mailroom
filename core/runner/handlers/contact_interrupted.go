@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 
 	"github.com/nyaruka/goflow/core/events"
@@ -19,6 +20,16 @@ func handleContactInterrupted(ctx context.Context, rt *runtime.Runtime, oa *mode
 	event := e.(*runner.ContactInterruptedEvent)
 
 	slog.Debug("contact interrupted", "contact", scene.ContactUUID())
+
+	// interruption takes the contact out of their current flow (the pre-commit hook below clears it in the database)
+	// so subscribers should see that change
+	if scene.DBContact.CurrentFlowID() != models.NilFlowID {
+		scene.DBContact.SetCurrentFlowID(models.NilFlowID)
+
+		if err := scene.AddEvent(ctx, rt, oa, events.NewContactFlowChanged(nil), models.NilUserID, ""); err != nil {
+			return fmt.Errorf("error adding contact flow changed event: %w", err)
+		}
+	}
 
 	scene.AttachPreCommitHook(hooks.InterruptContacts, event)
 	scene.AttachPreCommitHook(hooks.UpdateContactModifiedOn, event)

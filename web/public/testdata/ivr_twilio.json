@@ -110,10 +110,10 @@
         "expected_history": [
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b47-99f3-76f8-8d9f-e51d30290005",
+                "SK": "evt#01969b47-a1c3-76f8-bec9-e032f4f9af5f",
                 "OrgID": 1,
                 "Data": {
-                    "created_on": "2025-05-04T12:31:24.123456789Z",
+                    "created_on": "2025-05-04T12:31:26.123456789Z",
                     "msg": {
                         "channel": {
                             "name": "Twilio",
@@ -146,7 +146,7 @@
             },
             {
                 "query": "SELECT last_seen_on::text FROM contacts_contact WHERE id = 10000",
-                "returns": "2025-05-04 12:31:57.123457+00"
+                "returns": "2025-05-04 12:31:59.123457+00"
             },
             {
                 "query": "SELECT count(*) FROM msgs_msg WHERE contact_id = 10000 AND direction = 'I'",
@@ -164,10 +164,10 @@
         "expected_history": [
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b47-ccbb-76f8-ba82-c15b24dd577f",
+                "SK": "evt#01969b47-d48b-76f8-ba7e-53c2263e32f8",
                 "OrgID": 1,
                 "Data": {
-                    "created_on": "2025-05-04T12:31:38.123456789Z",
+                    "created_on": "2025-05-04T12:31:40.123456789Z",
                     "msg": {
                         "channel": {
                             "name": "Twilio",
@@ -181,10 +181,10 @@
             },
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b47-f7b3-76f8-bef6-3979f99a96f9",
+                "SK": "evt#01969b47-ff83-76f8-ba91-c48ad8c50e6b",
                 "OrgID": 1,
                 "Data": {
-                    "created_on": "2025-05-04T12:31:48.123456789Z",
+                    "created_on": "2025-05-04T12:31:50.123456789Z",
                     "msg": {
                         "channel": {
                             "name": "Twilio",
@@ -231,10 +231,10 @@
         "expected_history": [
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b48-3633-76f8-9566-6fb2598c32d6",
+                "SK": "evt#01969b48-3e03-76f8-a8fd-1537ca860f97",
                 "OrgID": 1,
                 "Data": {
-                    "created_on": "2025-05-04T12:32:05.123456789Z",
+                    "created_on": "2025-05-04T12:32:07.123456789Z",
                     "msg": {
                         "channel": {
                             "name": "Twilio",
@@ -248,10 +248,10 @@
             },
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b48-612b-76f8-9803-f4a851d20f2b",
+                "SK": "evt#01969b48-68fb-76f8-8b56-5e92bbfe0e3f",
                 "OrgID": 1,
                 "Data": {
-                    "created_on": "2025-05-04T12:32:15.123456789Z",
+                    "created_on": "2025-05-04T12:32:17.123456789Z",
                     "msg": {
                         "channel": {
                             "name": "Twilio",
@@ -267,7 +267,7 @@
         ],
         "indexed_messages": [
             {
-                "_id": "01969b48-3633-76f8-9566-6fb2598c32d6",
+                "_id": "01969b48-3e03-76f8-a8fd-1537ca860f97",
                 "_routing": "1",
                 "contact_uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
                 "urn_path": "+16055741111",
@@ -307,10 +307,10 @@
         "expected_history": [
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b48-9fab-76f8-acdc-e181352d44cc",
+                "SK": "evt#01969b48-a77b-76f8-a09e-6806aab9f510",
                 "OrgID": 1,
                 "Data": {
-                    "created_on": "2025-05-04T12:32:32.123456789Z",
+                    "created_on": "2025-05-04T12:32:34.123456789Z",
                     "msg": {
                         "channel": {
                             "name": "Twilio",
@@ -324,10 +324,10 @@
             },
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b48-caa3-76f8-998e-ae5bd773804a",
+                "SK": "evt#01969b48-d273-76f8-87bc-209e78511534",
                 "OrgID": 1,
                 "Data": {
-                    "created_on": "2025-05-04T12:32:42.123456789Z",
+                    "created_on": "2025-05-04T12:32:44.123456789Z",
                     "msg": {
                         "channel": {
                             "name": "Twilio",
@@ -343,7 +343,7 @@
         ],
         "indexed_messages": [
             {
-                "_id": "01969b48-9fab-76f8-acdc-e181352d44cc",
+                "_id": "01969b48-a77b-76f8-a09e-6806aab9f510",
                 "_routing": "1",
                 "contact_uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
                 "urn_path": "+16055741111",
@@ -375,10 +375,10 @@
         "expected_history": [
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b49-341b-76f8-8c2c-eb689cc91cf8",
+                "SK": "evt#01969b49-3beb-76f8-92f0-b4a6fcc7080c",
                 "OrgID": 1,
                 "Data": {
-                    "created_on": "2025-05-04T12:33:09.123456789Z",
+                    "created_on": "2025-05-04T12:33:11.123456789Z",
                     "msg": {
                         "channel": {
                             "name": "Twilio",
@@ -393,10 +393,10 @@
             },
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b49-43bb-76f8-a52e-e58736ac73ba",
+                "SK": "evt#01969b49-4b8b-76f8-8556-4ba6c70c1678",
                 "OrgID": 1,
                 "Data": {
-                    "created_on": "2025-05-04T12:33:13.123456789Z",
+                    "created_on": "2025-05-04T12:33:15.123456789Z",
                     "msg": {
                         "channel": {
                             "name": "Twilio",
@@ -435,10 +435,10 @@
         "expected_history": [
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b49-8df3-76f8-88da-b2056ae679d2",
+                "SK": "evt#01969b49-95c3-76f8-9bd7-277a6a165264",
                 "OrgID": 1,
                 "Data": {
-                    "created_on": "2025-05-04T12:33:32.123456789Z",
+                    "created_on": "2025-05-04T12:33:34.123456789Z",
                     "msg": {
                         "channel": {
                             "name": "Twilio",
@@ -453,10 +453,10 @@
             },
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b49-99ab-76f8-9bd7-277a6a165264",
+                "SK": "evt#01969b49-a17b-76f8-b4c4-260cfebfde0b",
                 "OrgID": 1,
                 "Data": {
-                    "created_on": "2025-05-04T12:33:35.123456789Z",
+                    "created_on": "2025-05-04T12:33:37.123456789Z",
                     "flow": {
                         "name": "IVR Flow",
                         "revision": 1,
@@ -511,7 +511,7 @@
         "expected_history": [
             {
                 "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
-                "SK": "evt#01969b49-c0bb-76f8-88a2-a356de113e34",
+                "SK": "evt#01969b49-d05b-76f8-979e-17606f578787",
                 "OrgID": 1,
                 "Data": {
                     "call": {
@@ -522,32 +522,32 @@
                         "urn": "tel:+16055742222",
                         "uuid": "01969b47-2c93-76f8-8f41-6b2d9f33d623"
                     },
-                    "created_on": "2025-05-04T12:33:45.123456789Z",
+                    "created_on": "2025-05-04T12:33:49.123456789Z",
                     "type": "call_created"
                 }
             },
             {
                 "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
-                "SK": "evt#01969b49-d82b-76f8-b379-f167ef86d03e",
+                "SK": "evt#01969b49-e7cb-76f8-9741-d46beab654c1",
                 "OrgID": 1,
                 "Data": {
-                    "created_on": "2025-05-04T12:33:51.123456789Z",
+                    "created_on": "2025-05-04T12:33:55.123456789Z",
                     "flow": {
                         "name": "IVR Flow",
                         "revision": 1,
                         "uuid": "2f81d0ea-4d75-4843-9371-3f7465311cce"
                     },
                     "parent_uuid": "8bc73097-ac57-47fb-82e5-184f8ec6dbef",
-                    "run_uuid": "01969b49-d443-76f8-9869-2c286badfdad",
+                    "run_uuid": "01969b49-e3e3-76f8-9ea1-dbfb3ec798f1",
                     "type": "run_started"
                 }
             },
             {
                 "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
-                "SK": "evt#01969b49-ebb3-76f8-8e75-1c4d799cd67a",
+                "SK": "evt#01969b49-fb53-76f8-9b19-ce8a2dca70df",
                 "OrgID": 1,
                 "Data": {
-                    "created_on": "2025-05-04T12:33:56.123456789Z",
+                    "created_on": "2025-05-04T12:34:00.123456789Z",
                     "msg": {
                         "channel": {
                             "name": "Twilio",
@@ -582,10 +582,10 @@
         "expected_history": [
             {
                 "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
-                "SK": "evt#01969b4a-1e7b-76f8-8a45-573a4a7a0d0f",
+                "SK": "evt#01969b4a-35eb-76f8-8742-c1eff0201012",
                 "OrgID": 1,
                 "Data": {
-                    "created_on": "2025-05-04T12:34:10.123456789Z",
+                    "created_on": "2025-05-04T12:34:16.123456789Z",
                     "msg": {
                         "channel": {
                             "name": "Twilio",
@@ -599,10 +599,10 @@
             },
             {
                 "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
-                "SK": "evt#01969b4a-4d5b-76f8-8048-98e1606ea811",
+                "SK": "evt#01969b4a-64cb-76f8-bdf0-950b64bbbc6d",
                 "OrgID": 1,
                 "Data": {
-                    "created_on": "2025-05-04T12:34:21.123456789Z",
+                    "created_on": "2025-05-04T12:34:27.123456789Z",
                     "msg": {
                         "channel": {
                             "name": "Twilio",
@@ -618,7 +618,7 @@
         ],
         "indexed_messages": [
             {
-                "_id": "01969b4a-1e7b-76f8-8a45-573a4a7a0d0f",
+                "_id": "01969b4a-35eb-76f8-8742-c1eff0201012",
                 "_routing": "1",
                 "contact_uuid": "b699a406-7e44-49be-9f01-1a82893e8a10",
                 "urn_path": "+16055742222",
@@ -632,7 +632,7 @@
         "path": "/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=start&call=01969b47-401b-76f8-ba00-bd7f0d08e671",
         "body": "AnsweredBy=machine_start&CallStatus=in-progress",
         "status": 200,
-        "response": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Response><!--status updated: E, next_attempt: 2025-05-04 13:34:36.123456789 +0000 UTC--><Say>An error has occurred, please try again later.</Say><Hangup></Hangup></Response>",
+        "response": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Response><!--status updated: E, next_attempt: 2025-05-04 13:34:42.123456789 +0000 UTC--><Say>An error has occurred, please try again later.</Say><Hangup></Hangup></Response>",
         "db_assertions": [
             {
                 "query": "SELECT external_id, status FROM ivr_call",
@@ -668,7 +668,7 @@
         "path": "/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/incoming",
         "body": "CallSid=Call4&CallStatus=ringing&Caller=%2B16055741111",
         "status": 200,
-        "response": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Response>\n  <Gather numDigits=\"1\" timeout=\"30\" action=\"https://localhost:8190/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&amp;call=01969b4a-a733-76f8-9676-22cd6062f002&amp;wait_type=gather\">\n    <Say language=\"en-US\">Hello there. Please enter one or two.</Say>\n  </Gather>\n  <Redirect>https://localhost:8190/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&amp;call=01969b4a-a733-76f8-9676-22cd6062f002&amp;wait_type=gather&amp;timeout=true</Redirect>\n</Response>",
+        "response": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Response>\n  <Gather numDigits=\"1\" timeout=\"30\" action=\"https://localhost:8190/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&amp;call=01969b4a-bea3-76f8-b19f-d98753239d65&amp;wait_type=gather\">\n    <Say language=\"en-US\">Hello there. Please enter one or two.</Say>\n  </Gather>\n  <Redirect>https://localhost:8190/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&amp;call=01969b4a-bea3-76f8-b19f-d98753239d65&amp;wait_type=gather&amp;timeout=true</Redirect>\n</Response>",
         "db_assertions": [
             {
                 "query": "SELECT external_id, status FROM ivr_call",
@@ -683,11 +683,11 @@
         "expected_history": [
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b4a-ab1b-76f8-9c96-61ebc05df996",
+                "SK": "evt#01969b4a-c28b-76f8-9418-6d3e4ae5a100",
                 "OrgID": 1,
-                "TTL": "2026-05-04T12:34:45Z",
+                "TTL": "2026-05-04T12:34:51Z",
                 "Data": {
-                    "created_on": "2025-05-04T12:34:45.123456789Z",
+                    "created_on": "2025-05-04T12:34:51.123456789Z",
                     "type": "contact_urns_changed",
                     "urns": [
                         "tel:+16055741111?channel=74729f45-7f29-4868-9dc4-90e491e3c7d8"
@@ -696,7 +696,7 @@
             },
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b4a-b2eb-76f8-94b4-ef0c4720292f",
+                "SK": "evt#01969b4a-ca5b-76f8-b715-6b60849cfb2b",
                 "OrgID": 1,
                 "Data": {
                     "call": {
@@ -705,33 +705,33 @@
                             "uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8"
                         },
                         "urn": "tel:+16055741111",
-                        "uuid": "01969b4a-a733-76f8-9676-22cd6062f002"
+                        "uuid": "01969b4a-bea3-76f8-b19f-d98753239d65"
                     },
-                    "created_on": "2025-05-04T12:34:47.123456789Z",
+                    "created_on": "2025-05-04T12:34:53.123456789Z",
                     "type": "call_received"
                 }
             },
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b4a-ce43-76f8-b09a-ec8aca1372ed",
+                "SK": "evt#01969b4a-e5b3-76f8-a2a5-6b6ffeeada26",
                 "OrgID": 1,
                 "Data": {
-                    "created_on": "2025-05-04T12:34:54.123456789Z",
+                    "created_on": "2025-05-04T12:35:00.123456789Z",
                     "flow": {
                         "name": "IVR Flow",
                         "revision": 1,
                         "uuid": "2f81d0ea-4d75-4843-9371-3f7465311cce"
                     },
-                    "run_uuid": "01969b4a-ca5b-76f8-b715-6b60849cfb2b",
+                    "run_uuid": "01969b4a-e1cb-76f8-962a-76fbcac8bf7f",
                     "type": "run_started"
                 }
             },
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b4a-e1cb-76f8-a2a5-6b6ffeeada26",
+                "SK": "evt#01969b4a-f93b-76f8-aac5-484f64970a84",
                 "OrgID": 1,
                 "Data": {
-                    "created_on": "2025-05-04T12:34:59.123456789Z",
+                    "created_on": "2025-05-04T12:35:05.123456789Z",
                     "msg": {
                         "channel": {
                             "name": "Twilio",
@@ -749,10 +749,10 @@
     {
         "label": "handle resume with digits we're waiting for",
         "method": "POST",
-        "path": "/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&call=01969b4a-a733-76f8-9676-22cd6062f002",
+        "path": "/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&call=01969b4a-bea3-76f8-b19f-d98753239d65",
         "body": "CallStatus=in-progress&Digits=2&wait_type=gather",
         "status": 200,
-        "response": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Response>\n  <Gather timeout=\"30\" action=\"https://localhost:8190/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&amp;call=01969b4a-a733-76f8-9676-22cd6062f002&amp;wait_type=gather\">\n    <Say language=\"en-US\">Great! You said Two. Ok, now enter a number 1 to 100 then press pound.</Say>\n  </Gather>\n  <Redirect>https://localhost:8190/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&amp;call=01969b4a-a733-76f8-9676-22cd6062f002&amp;wait_type=gather&amp;timeout=true</Redirect>\n</Response>",
+        "response": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Response>\n  <Gather timeout=\"30\" action=\"https://localhost:8190/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&amp;call=01969b4a-bea3-76f8-b19f-d98753239d65&amp;wait_type=gather\">\n    <Say language=\"en-US\">Great! You said Two. Ok, now enter a number 1 to 100 then press pound.</Say>\n  </Gather>\n  <Redirect>https://localhost:8190/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&amp;call=01969b4a-bea3-76f8-b19f-d98753239d65&amp;wait_type=gather&amp;timeout=true</Redirect>\n</Response>",
         "db_assertions": [
             {
                 "query": "SELECT external_id, status FROM ivr_call",
@@ -771,10 +771,10 @@
         "expected_history": [
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b4b-204b-76f8-9ad9-7b76948880e3",
+                "SK": "evt#01969b4b-3f8b-76f8-9c41-cf3f881022fb",
                 "OrgID": 1,
                 "Data": {
-                    "created_on": "2025-05-04T12:35:16.123456789Z",
+                    "created_on": "2025-05-04T12:35:24.123456789Z",
                     "msg": {
                         "channel": {
                             "name": "Twilio",
@@ -788,10 +788,10 @@
             },
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b4b-4f2b-76f8-82ae-81542083c6c6",
+                "SK": "evt#01969b4b-6e6b-76f8-bdc4-de873c294fa4",
                 "OrgID": 1,
                 "Data": {
-                    "created_on": "2025-05-04T12:35:27.123456789Z",
+                    "created_on": "2025-05-04T12:35:35.123456789Z",
                     "msg": {
                         "channel": {
                             "name": "Twilio",
@@ -828,11 +828,11 @@
         "expected_history": [
             {
                 "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
-                "SK": "evt#01969b4b-9193-76f8-a8e1-fc82b887c3ff",
+                "SK": "evt#01969b4b-b0d3-76f8-b1ab-eaf1963053e5",
                 "OrgID": 1,
-                "TTL": "2026-05-04T12:35:44Z",
+                "TTL": "2026-05-04T12:35:52Z",
                 "Data": {
-                    "created_on": "2025-05-04T12:35:44.123456789Z",
+                    "created_on": "2025-05-04T12:35:52.123456789Z",
                     "type": "contact_urns_changed",
                     "urns": [
                         "tel:+16055742222?channel=74729f45-7f29-4868-9dc4-90e491e3c7d8"
@@ -841,7 +841,7 @@
             },
             {
                 "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
-                "SK": "evt#01969b4b-9963-76f8-a679-1ed579b6107a",
+                "SK": "evt#01969b4b-b8a3-76f8-953f-02873e472264",
                 "OrgID": 1,
                 "Data": {
                     "call": {
@@ -850,9 +850,9 @@
                             "uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8"
                         },
                         "urn": "tel:+16055742222",
-                        "uuid": "01969b4b-8dab-76f8-a261-a8a7a2e749fe"
+                        "uuid": "01969b4b-aceb-76f8-b7c0-f8febf09c836"
                     },
-                    "created_on": "2025-05-04T12:35:46.123456789Z",
+                    "created_on": "2025-05-04T12:35:54.123456789Z",
                     "type": "call_received"
                 }
             }

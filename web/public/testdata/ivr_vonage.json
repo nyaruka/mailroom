@@ -140,16 +140,16 @@
             },
             {
                 "query": "SELECT last_seen_on::text FROM contacts_contact WHERE id = 10000",
-                "returns": "2025-05-04 12:31:33.123457+00"
+                "returns": "2025-05-04 12:31:35.123457+00"
             }
         ],
         "expected_history": [
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b47-6b13-76f8-afcb-91a2073e5459",
+                "SK": "evt#01969b47-72e3-76f8-9654-8a7258fbaae4",
                 "OrgID": 1,
                 "Data": {
-                    "created_on": "2025-05-04T12:31:13.123456789Z",
+                    "created_on": "2025-05-04T12:31:15.123456789Z",
                     "msg": {
                         "channel": {
                             "name": "Vonage",
@@ -163,10 +163,10 @@
             },
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b47-99f3-76f8-8d9f-e51d30290005",
+                "SK": "evt#01969b47-a1c3-76f8-bec9-e032f4f9af5f",
                 "OrgID": 1,
                 "Data": {
-                    "created_on": "2025-05-04T12:31:24.123456789Z",
+                    "created_on": "2025-05-04T12:31:26.123456789Z",
                     "msg": {
                         "channel": {
                             "name": "Vonage",
@@ -213,10 +213,10 @@
         "expected_history": [
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b47-d873-76f8-ba7e-53c2263e32f8",
+                "SK": "evt#01969b47-e043-76f8-aaa3-04d3fbce5f9a",
                 "OrgID": 1,
                 "Data": {
-                    "created_on": "2025-05-04T12:31:41.123456789Z",
+                    "created_on": "2025-05-04T12:31:43.123456789Z",
                     "msg": {
                         "channel": {
                             "name": "Vonage",
@@ -230,10 +230,10 @@
             },
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b48-036b-76f8-ba91-c48ad8c50e6b",
+                "SK": "evt#01969b48-0b3b-76f8-be24-6164105d48f2",
                 "OrgID": 1,
                 "Data": {
-                    "created_on": "2025-05-04T12:31:51.123456789Z",
+                    "created_on": "2025-05-04T12:31:53.123456789Z",
                     "msg": {
                         "channel": {
                             "name": "Vonage",
@@ -280,10 +280,10 @@
         "expected_history": [
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b48-41eb-76f8-a8fd-1537ca860f97",
+                "SK": "evt#01969b48-49bb-76f8-977d-88574316827e",
                 "OrgID": 1,
                 "Data": {
-                    "created_on": "2025-05-04T12:32:08.123456789Z",
+                    "created_on": "2025-05-04T12:32:10.123456789Z",
                     "msg": {
                         "channel": {
                             "name": "Vonage",
@@ -297,10 +297,10 @@
             },
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b48-6ce3-76f8-8b56-5e92bbfe0e3f",
+                "SK": "evt#01969b48-74b3-76f8-a71b-fe4af29b871a",
                 "OrgID": 1,
                 "Data": {
-                    "created_on": "2025-05-04T12:32:18.123456789Z",
+                    "created_on": "2025-05-04T12:32:20.123456789Z",
                     "msg": {
                         "channel": {
                             "name": "Vonage",
@@ -316,7 +316,7 @@
         ],
         "indexed_messages": [
             {
-                "_id": "01969b48-41eb-76f8-a8fd-1537ca860f97",
+                "_id": "01969b48-49bb-76f8-977d-88574316827e",
                 "_routing": "1",
                 "contact_uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
                 "urn_path": "+16055741111",
@@ -347,7 +347,7 @@
                 "timeOut": 600,
                 "endOnSilence": 5,
                 "eventUrl": [
-                    "https://localhost:8190/mr/ivr/c/19012bfd-3ce3-4cae-9bb9-76cf92c73d49/handle?action=resume\u0026call=01969b47-190b-76f8-92a3-d648ab64bccb\u0026wait_type=recording_url\u0026recording_uuid=76c98188-cfe6-4072-bf05-63393fd408f5\u0026sig=PJYtnhezTMUWsi3VmusI25PA0no%3D"
+                    "https://localhost:8190/mr/ivr/c/19012bfd-3ce3-4cae-9bb9-76cf92c73d49/handle?action=resume\u0026call=01969b47-190b-76f8-92a3-d648ab64bccb\u0026wait_type=recording_url\u0026recording_uuid=e3895066-303a-4b1f-be22-6e6983962829\u0026sig=q3SPiCpo8iwalgbCsRmd6pNv8EY%3D"
                 ],
                 "eventMethod": "POST"
             },
@@ -356,7 +356,7 @@
                 "submitOnHash": true,
                 "timeOut": 1,
                 "eventUrl": [
-                    "https://localhost:8190/mr/ivr/c/19012bfd-3ce3-4cae-9bb9-76cf92c73d49/handle?action=resume\u0026call=01969b47-190b-76f8-92a3-d648ab64bccb\u0026wait_type=record\u0026recording_uuid=76c98188-cfe6-4072-bf05-63393fd408f5\u0026sig=fV18U%2BDGBUp1kd0A%2F%2BAxsBXFMaQ%3D"
+                    "https://localhost:8190/mr/ivr/c/19012bfd-3ce3-4cae-9bb9-76cf92c73d49/handle?action=resume\u0026call=01969b47-190b-76f8-92a3-d648ab64bccb\u0026wait_type=record\u0026recording_uuid=e3895066-303a-4b1f-be22-6e6983962829\u0026sig=Fan%2F1JYdkDtSZ7NaSF6Qwyf8CWA%3D"
                 ],
                 "eventMethod": "POST"
             }
@@ -364,10 +364,10 @@
         "expected_history": [
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b48-ab63-76f8-a09e-6806aab9f510",
+                "SK": "evt#01969b48-b333-76f8-a5ef-59cf4d9d7a5b",
                 "OrgID": 1,
                 "Data": {
-                    "created_on": "2025-05-04T12:32:35.123456789Z",
+                    "created_on": "2025-05-04T12:32:37.123456789Z",
                     "msg": {
                         "channel": {
                             "name": "Vonage",
@@ -381,10 +381,10 @@
             },
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b48-d65b-76f8-87bc-209e78511534",
+                "SK": "evt#01969b48-de2b-76f8-8a34-b008aed3f772",
                 "OrgID": 1,
                 "Data": {
-                    "created_on": "2025-05-04T12:32:45.123456789Z",
+                    "created_on": "2025-05-04T12:32:47.123456789Z",
                     "msg": {
                         "channel": {
                             "name": "Vonage",
@@ -400,7 +400,7 @@
         ],
         "indexed_messages": [
             {
-                "_id": "01969b48-ab63-76f8-a09e-6806aab9f510",
+                "_id": "01969b48-b333-76f8-a5ef-59cf4d9d7a5b",
                 "_routing": "1",
                 "contact_uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
                 "urn_path": "+16055741111",
@@ -448,7 +448,7 @@
             {
                 "action": "stream",
                 "streamUrl": [
-                    "http://localstack:4566/test-attachments/attachments/1/0196/9b49/01969b49-2093-76f8-88b2-5d345629f07f.1:50002?recording=true"
+                    "http://localstack:4566/test-attachments/attachments/1/0196/9b49/01969b49-2863-76f8-b8ba-60d66db82e39.1:50002?recording=true"
                 ]
             },
             {
@@ -457,19 +457,19 @@
             },
             {
                 "action": "conversation",
-                "name": "126a745b-b2f6-4dd2-88da-b2056ae679d2"
+                "name": "a08b46fc-f057-4e9a-9bd7-277a6a165264"
             }
         ],
         "expected_history": [
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b49-2093-76f8-88b2-5d345629f07f",
+                "SK": "evt#01969b49-2863-76f8-b8ba-60d66db82e39",
                 "OrgID": 1,
                 "Data": {
-                    "created_on": "2025-05-04T12:33:05.123456789Z",
+                    "created_on": "2025-05-04T12:33:07.123456789Z",
                     "msg": {
                         "attachments": [
-                            "audio:http://localstack:4566/test-attachments/attachments/1/0196/9b49/01969b49-2093-76f8-88b2-5d345629f07f.1:50002?recording=true"
+                            "audio:http://localstack:4566/test-attachments/attachments/1/0196/9b49/01969b49-2863-76f8-b8ba-60d66db82e39.1:50002?recording=true"
                         ],
                         "channel": {
                             "name": "Vonage",
@@ -483,10 +483,10 @@
             },
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b49-4b8b-76f8-8556-4ba6c70c1678",
+                "SK": "evt#01969b49-535b-76f8-956a-5bc98156b0ad",
                 "OrgID": 1,
                 "Data": {
-                    "created_on": "2025-05-04T12:33:15.123456789Z",
+                    "created_on": "2025-05-04T12:33:17.123456789Z",
                     "msg": {
                         "channel": {
                             "name": "Vonage",
@@ -501,13 +501,13 @@
             },
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b49-535b-76f8-956a-5bc98156b0ad",
+                "SK": "evt#01969b49-5b2b-76f8-874b-f17fb8365c22",
                 "OrgID": 1,
                 "Data": {
-                    "created_on": "2025-05-04T12:33:17.123456789Z",
+                    "created_on": "2025-05-04T12:33:19.123456789Z",
                     "msg": {
                         "attachments": [
-                            "audio:http://localstack:4566/test-attachments/attachments/1/0196/9b49/01969b49-2093-76f8-88b2-5d345629f07f.1:50002?recording=true"
+                            "audio:http://localstack:4566/test-attachments/attachments/1/0196/9b49/01969b49-2863-76f8-b8ba-60d66db82e39.1:50002?recording=true"
                         ],
                         "channel": {
                             "name": "Vonage",
@@ -522,10 +522,10 @@
             },
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b49-5b2b-76f8-874b-f17fb8365c22",
+                "SK": "evt#01969b49-62fb-76f8-a2d8-44b4f9caf25c",
                 "OrgID": 1,
                 "Data": {
-                    "created_on": "2025-05-04T12:33:19.123456789Z",
+                    "created_on": "2025-05-04T12:33:21.123456789Z",
                     "msg": {
                         "channel": {
                             "name": "Vonage",
@@ -600,10 +600,10 @@
         "expected_history": [
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b49-d82b-76f8-979e-17606f578787",
+                "SK": "evt#01969b49-dffb-76f8-9869-2c286badfdad",
                 "OrgID": 1,
                 "Data": {
-                    "created_on": "2025-05-04T12:33:51.123456789Z",
+                    "created_on": "2025-05-04T12:33:53.123456789Z",
                     "msg": {
                         "channel": {
                             "name": "Vonage",
@@ -618,10 +618,10 @@
             },
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b49-e3e3-76f8-9869-2c286badfdad",
+                "SK": "evt#01969b49-ebb3-76f8-b379-f167ef86d03e",
                 "OrgID": 1,
                 "Data": {
-                    "created_on": "2025-05-04T12:33:54.123456789Z",
+                    "created_on": "2025-05-04T12:33:56.123456789Z",
                     "flow": {
                         "name": "IVR Flow",
                         "revision": 1,
@@ -707,7 +707,7 @@
         "expected_history": [
             {
                 "PK": "con#cd024bcd-f473-4719-a00a-bd0bb1190135",
-                "SK": "evt#01969b4a-0af3-76f8-8e75-1c4d799cd67a",
+                "SK": "evt#01969b4a-1a93-76f8-9b19-ce8a2dca70df",
                 "OrgID": 1,
                 "Data": {
                     "call": {
@@ -718,31 +718,31 @@
                         "urn": "tel:+16055743333",
                         "uuid": "01969b47-2c93-76f8-8f41-6b2d9f33d623"
                     },
-                    "created_on": "2025-05-04T12:34:04.123456789Z",
+                    "created_on": "2025-05-04T12:34:08.123456789Z",
                     "type": "call_created"
                 }
             },
             {
                 "PK": "con#cd024bcd-f473-4719-a00a-bd0bb1190135",
-                "SK": "evt#01969b4a-2263-76f8-90a5-61a502fc0a9a",
+                "SK": "evt#01969b4a-3203-76f8-a8fa-2f769abd7608",
                 "OrgID": 1,
                 "Data": {
-                    "created_on": "2025-05-04T12:34:10.123456789Z",
+                    "created_on": "2025-05-04T12:34:14.123456789Z",
                     "flow": {
                         "name": "IVR Flow",
                         "revision": 1,
                         "uuid": "2f81d0ea-4d75-4843-9371-3f7465311cce"
                     },
-                    "run_uuid": "01969b4a-1e7b-76f8-a96d-a81d71a57f92",
+                    "run_uuid": "01969b4a-2e1b-76f8-8a45-573a4a7a0d0f",
                     "type": "run_started"
                 }
             },
             {
                 "PK": "con#cd024bcd-f473-4719-a00a-bd0bb1190135",
-                "SK": "evt#01969b4a-35eb-76f8-8704-ab259cb52a5d",
+                "SK": "evt#01969b4a-458b-76f8-bdca-2ca05d3bc6b3",
                 "OrgID": 1,
                 "Data": {
-                    "created_on": "2025-05-04T12:34:15.123456789Z",
+                    "created_on": "2025-05-04T12:34:19.123456789Z",
                     "msg": {
                         "channel": {
                             "name": "Vonage",
@@ -798,10 +798,10 @@
         "expected_history": [
             {
                 "PK": "con#cd024bcd-f473-4719-a00a-bd0bb1190135",
-                "SK": "evt#01969b4a-68b3-76f8-a1e8-f3d011def86a",
+                "SK": "evt#01969b4a-8023-76f8-ba1b-6cc3bea197e4",
                 "OrgID": 1,
                 "Data": {
-                    "created_on": "2025-05-04T12:34:29.123456789Z",
+                    "created_on": "2025-05-04T12:34:35.123456789Z",
                     "msg": {
                         "channel": {
                             "name": "Vonage",
@@ -815,10 +815,10 @@
             },
             {
                 "PK": "con#cd024bcd-f473-4719-a00a-bd0bb1190135",
-                "SK": "evt#01969b4a-9793-76f8-82a1-bfdfc82552e0",
+                "SK": "evt#01969b4a-af03-76f8-94b4-ef0c4720292f",
                 "OrgID": 1,
                 "Data": {
-                    "created_on": "2025-05-04T12:34:40.123456789Z",
+                    "created_on": "2025-05-04T12:34:46.123456789Z",
                     "msg": {
                         "channel": {
                             "name": "Vonage",
@@ -892,8 +892,8 @@
         ],
         "expected_history": [
             {
-                "PK": "con#4e4a3fcf-97f7-4cc8-b09a-ec8aca1372ed",
-                "SK": "evt#01969b4a-e99b-76f8-962a-76fbcac8bf7f",
+                "PK": "con#636bcfe8-1dd9-4bbd-a2a5-6b6ffeeada26",
+                "SK": "evt#01969b4b-010b-76f8-89c9-308c16612438",
                 "OrgID": 1,
                 "Data": {
                     "call": {
@@ -902,9 +902,9 @@
                             "uuid": "19012bfd-3ce3-4cae-9bb9-76cf92c73d49"
                         },
                         "urn": "tel:+12482780345",
-                        "uuid": "01969b4a-e5b3-76f8-a78c-f0fb1858f3a2"
+                        "uuid": "01969b4a-fd23-76f8-b038-6776a9290118"
                     },
-                    "created_on": "2025-05-04T12:35:01.123456789Z",
+                    "created_on": "2025-05-04T12:35:07.123456789Z",
                     "type": "call_received"
                 }
             }

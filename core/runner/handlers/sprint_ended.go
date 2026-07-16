@@ -2,11 +2,13 @@ package handlers
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"time"
 
 	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/random"
+	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/goflow/flows"
@@ -70,9 +72,11 @@ func handleSprintEnded(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 
 	// get flow that contact is now waiting in
 	waitingFlowID := models.NilFlowID
+	var waitingFlowRef *assets.FlowReference
 	for _, run := range scene.Session.Runs() {
 		if run.Status() == core.RunStatusWaiting {
 			waitingFlowID = run.Flow().Asset().(*models.Flow).ID()
+			waitingFlowRef = run.Flow().Reference(false)
 			break
 		}
 	}
@@ -86,6 +90,12 @@ func handleSprintEnded(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 
 		currentFlowChanged = event.Contact.CurrentFlowID() != waitingFlowID
 		scene.DBContact.SetCurrentFlowID(waitingFlowID)
+
+		if currentFlowChanged {
+			if err := scene.AddEvent(ctx, rt, oa, events.NewContactFlowChanged(waitingFlowRef), models.NilUserID, ""); err != nil {
+				return fmt.Errorf("error adding contact flow changed event: %w", err)
+			}
+		}
 
 		if event.Contact.CurrentSessionUUID() != waitingSessionUUID || currentFlowChanged {
 			scene.AttachPreCommitHook(hooks.UpdateContactSession, hooks.CurrentSessionUpdate{

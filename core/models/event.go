@@ -63,6 +63,18 @@ var eventPersistence = map[string]time.Duration{
 	events.TypeTicketTopicChanged:     eternity,
 }
 
+// events that are published to history sockets for live subscribers but never persisted to the history table -
+// they update UI state (e.g. last seen, current flow) rather than record history
+var eventEphemeralPublish = map[string]bool{
+	events.TypeContactFlowChanged:     true,
+	events.TypeContactLastSeenChanged: true,
+}
+
+// PublishEvent returns whether an event should be published to history sockets
+func PublishEvent(e events.Event) bool {
+	return PersistEvent(e) || eventEphemeralPublish[e.Type()]
+}
+
 // PersistEvent returns whether an event should be persisted
 func PersistEvent(e events.Event) bool {
 	switch typed := e.(type) {

@@ -48,6 +48,7 @@ type Scene struct {
 	postCommits   map[PostCommitHook][]any
 	rawEvents     []events.Event
 	persistEvents []*models.Event
+	publishEvents []events.Event
 	notifications []*models.Notification
 
 	// can be overridden by tests
@@ -119,6 +120,9 @@ func (s *Scene) AddEvent(ctx context.Context, rt *runtime.Runtime, oa *models.Or
 				OrgID:       oa.OrgID(),
 				ContactUUID: s.ContactUUID(),
 			})
+		}
+		if models.PublishEvent(e) {
+			s.publishEvents = append(s.publishEvents, e)
 		}
 	}
 
@@ -432,17 +436,16 @@ func BulkCommit(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, 
 	var order []string
 
 	for _, scene := range committed {
-		evts := make([]events.Event, len(scene.persistEvents))
-		for i, evt := range scene.persistEvents {
+		for _, evt := range scene.persistEvents {
 			if _, err := rt.Dynamo.History.Queue(evt); err != nil {
 				return fmt.Errorf("error queuing scene event to writer: %w", err)
 			}
-			evts[i] = evt.Event
 		}
 
-		// realtime delivery is best-effort - a publish failure shouldn't fail the commit when the events are
-		// already safely queued for persistence
-		if err := models.PublishToHistory(ctx, rt, scene.ContactUUID(), evts); err != nil {
+		// publish the persisted events plus the ephemeral-publishable ones (e.g. last seen / current flow changes
+		// which update UI state but aren't history). Realtime delivery is best-effort - a publish failure shouldn't
+		// fail the commit when the events are already safely queued for persistence
+		if err := models.PublishToHistory(ctx, rt, scene.ContactUUID(), scene.publishEvents); err != nil {
 			slog.Error("error publishing events to history channel", "error", err, "contact", scene.ContactUUID())
 		}
 
