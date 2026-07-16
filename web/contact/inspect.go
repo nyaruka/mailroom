@@ -85,24 +85,19 @@ func handleInspect(ctx context.Context, rt *runtime.Runtime, r *inspectRequest) 
 			return nil, 0, fmt.Errorf("error creating engine contact: %w", err)
 		}
 
-		// first add the URNs which have a corresponding channel (engine considers these sendable)
-		routes := contact.ResolveRoutes(true)
-		urnsSeen := make(map[string]bool, len(routes))
-		urnInfos := make([]urnInfo, 0, len(contact.URNs()))
+		// URNs which have a corresponding channel (engine considers these sendable) come first
+		channels := oa.SessionAssets().Channels()
+		sendable := make([]urnInfo, 0, len(contact.URNs()))
+		unsendable := make([]urnInfo, 0, len(contact.URNs()))
 
-		for _, r := range routes {
-			scheme, path, _, display := r.URN.ToParts()
-			urnInfos = append(urnInfos, urnInfo{Channel: r.Channel.Reference(), Scheme: scheme, Path: path, Display: display})
-			urnsSeen[scheme+":"+path] = true
-		}
-
-		// then the rest of the unsendable URNs
 		for _, u := range contact.URNs() {
-			scheme, path, display := u.Scheme, u.Path, u.Display
-			if !urnsSeen[scheme+":"+path] {
-				urnInfos = append(urnInfos, urnInfo{Channel: nil, Scheme: scheme, Path: path, Display: display})
+			if ch := channels.GetForURN(u, assets.ChannelRoleSend); ch != nil {
+				sendable = append(sendable, urnInfo{Channel: ch.Reference(), Scheme: u.Scheme, Path: u.Path})
+			} else {
+				unsendable = append(unsendable, urnInfo{Channel: nil, Scheme: u.Scheme, Path: u.Path, Display: u.Display})
 			}
 		}
+		urnInfos := append(sendable, unsendable...)
 
 		response[contact.ID()] = &contactInfo{URNs: urnInfos}
 	}

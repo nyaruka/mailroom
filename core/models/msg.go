@@ -883,11 +883,10 @@ func CreateMsgOut(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, c *co
 	urn := urns.NilURN
 	var channel *Channel
 	var channelRef *assets.ChannelReference
-	for _, r := range c.ResolveRoutes(false) {
+	if r := c.ResolveRoute(); r != nil {
 		urn = r.URN
 		channel = oa.ChannelByUUID(r.Channel.UUID())
 		channelRef = r.Channel.Reference()
-		break
 	}
 
 	// if there's an expressions context, evaluate text etc
