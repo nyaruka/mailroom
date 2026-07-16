@@ -1,3 +1,9 @@
+v26.3.15 (2026-07-16)
+-------------------------
+ * Add internal socket publish endpoint which authorizes agent typing publications as a centrifugo publish proxy and sends them to courier
+ * Update to goflow v0.281.0 which adds routing fields to typing events
+ * Update to gocommon v1.89.5
+
 v26.3.14 (2026-07-14)
 -------------------------
  * Update to goflow v0.280.0
