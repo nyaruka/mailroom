@@ -468,6 +468,34 @@ redis.call("EXPIRE", key, 300)
 return count
 `)
 
+// MsgRoute is where a contact last wrote from - the newest incoming message's channel, URN and platform identifier.
+// It's the routing for conversational things sent back to the contact that aren't messages, e.g. typing indicators.
+type MsgRoute struct {
+	ChannelID  ChannelID   `db:"channel_id"`
+	URN        urns.URN    `db:"urn"`
+	ExternalID null.String `db:"external_identifier"`
+}
+
+const sqlSelectLastIncomingMsgRoute = `
+  SELECT m.channel_id, u.identity AS urn, m.external_identifier
+    FROM msgs_msg m
+    JOIN contacts_contacturn u ON u.id = m.contact_urn_id
+   WHERE m.contact_id = $1 AND m.direction = 'I'
+ORDER BY m.created_on DESC
+   LIMIT 1`
+
+// GetLastIncomingMsgRoute returns where the given contact last wrote from, or nil if they have no incoming messages.
+func GetLastIncomingMsgRoute(ctx context.Context, db DBorTx, contactID ContactID) (*MsgRoute, error) {
+	r := &MsgRoute{}
+	if err := db.GetContext(ctx, r, sqlSelectLastIncomingMsgRoute, contactID); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("error querying last incoming msg route for contact #%d: %w", contactID, err)
+	}
+	return r, nil
+}
+
 // GetMsgRepetitions gets the number of repetitions of this msg text for the given contact in the current 5 minute window
 func GetMsgRepetitions(rp *valkey.Pool, contactID ContactID, msg *core.MsgContent) (int, error) {
 	vc := rp.Get()

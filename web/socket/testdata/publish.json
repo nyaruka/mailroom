@@ -25,12 +25,7 @@
         "body": {
             "channel": "history:a393abc0-283d-4c9b-a1b3-641a035c34bf",
             "data": {
-                "type": "typing_started",
-                "channel": {
-                    "uuid": "0f661e8b-ea9d-4bd3-9953-d368340acf91"
-                },
-                "urn": "facebook:12345",
-                "msg_external_id": "ex123"
+                "type": "typing_started"
             }
         },
         "status": 200,
@@ -48,11 +43,7 @@
         "body": {
             "channel": "notifications:bf0514a5-9407-44c9-b0f9-3f36f9c18414:ad9fdf9f-56ab-422a-b77d-e3ec26091a25",
             "data": {
-                "type": "typing_started",
-                "channel": {
-                    "uuid": "0f661e8b-ea9d-4bd3-9953-d368340acf91"
-                },
-                "urn": "facebook:12345"
+                "type": "typing_started"
             },
             "meta": {
                 "user_id": 3,
@@ -76,11 +67,7 @@
         "body": {
             "channel": "history:a393abc0-283d-4c9b-a1b3-641a035c34bf:01992f54-5ab6-717a-a39e-e8ca91fb7262",
             "data": {
-                "type": "typing_started",
-                "channel": {
-                    "uuid": "0f661e8b-ea9d-4bd3-9953-d368340acf91"
-                },
-                "urn": "facebook:12345"
+                "type": "typing_started"
             },
             "meta": {
                 "user_id": 3,
@@ -104,11 +91,7 @@
         "body": {
             "channel": "history:not-a-uuid",
             "data": {
-                "type": "typing_started",
-                "channel": {
-                    "uuid": "0f661e8b-ea9d-4bd3-9953-d368340acf91"
-                },
-                "urn": "facebook:12345"
+                "type": "typing_started"
             },
             "meta": {
                 "user_id": 3,
@@ -154,11 +137,7 @@
         "body": {
             "channel": "history:a393abc0-283d-4c9b-a1b3-641a035c34bf",
             "data": {
-                "type": "msg_created",
-                "channel": {
-                    "uuid": "0f661e8b-ea9d-4bd3-9953-d368340acf91"
-                },
-                "urn": "facebook:12345"
+                "type": "msg_created"
             },
             "meta": {
                 "user_id": 3,
@@ -182,11 +161,7 @@
         "body": {
             "channel": "history:f6d20b72-f7d8-44dc-87f2-aae046dbff95",
             "data": {
-                "type": "typing_started",
-                "channel": {
-                    "uuid": "0f661e8b-ea9d-4bd3-9953-d368340acf91"
-                },
-                "urn": "facebook:12345"
+                "type": "typing_started"
             },
             "meta": {
                 "user_id": 3,
@@ -204,21 +179,17 @@
         }
     },
     {
-        "label": "denied if channel belongs to a different org than the publisher",
+        "label": "denied if publisher isn't a user in the org",
         "method": "POST",
         "path": "/mi/socket/publish",
         "body": {
             "channel": "history:a393abc0-283d-4c9b-a1b3-641a035c34bf",
             "data": {
-                "type": "typing_started",
-                "channel": {
-                    "uuid": "a89bc872-3763-4b95-91d9-31d4e56c6651"
-                },
-                "urn": "facebook:12345"
+                "type": "typing_started"
             },
             "meta": {
-                "user_id": 3,
-                "user_uuid": "ad9fdf9f-56ab-422a-b77d-e3ec26091a25",
+                "user_id": 6,
+                "user_uuid": "a2afc5e7-e97b-45e5-9850-8896957fef54",
                 "org_id": 1,
                 "org_uuid": "bf0514a5-9407-44c9-b0f9-3f36f9c18414"
             }
@@ -227,23 +198,18 @@
         "response": {
             "error": {
                 "code": 403,
-                "message": "no such channel"
+                "message": "no such user"
             }
         }
     },
     {
-        "label": "valid publication is rewritten as a server-stamped event with the typist attributed",
+        "label": "valid publication is rewritten as a server-stamped event with resolved routing and the typist attributed",
         "method": "POST",
         "path": "/mi/socket/publish",
         "body": {
             "channel": "history:a393abc0-283d-4c9b-a1b3-641a035c34bf",
             "data": {
-                "type": "typing_started",
-                "channel": {
-                    "uuid": "0f661e8b-ea9d-4bd3-9953-d368340acf91"
-                },
-                "urn": "facebook:12345",
-                "msg_external_id": "ex123"
+                "type": "typing_started"
             },
             "meta": {
                 "user_id": 3,
@@ -269,8 +235,8 @@
                         "uuid": "0f661e8b-ea9d-4bd3-9953-d368340acf91",
                         "name": "Facebook"
                     },
-                    "urn": "facebook:12345",
-                    "msg_external_id": "ex123"
+                    "urn": "tel:+16055741111",
+                    "msg_external_id": "EX123"
                 },
                 "skip_history": true
             }
@@ -283,12 +249,7 @@
         "body": {
             "channel": "history:a393abc0-283d-4c9b-a1b3-641a035c34bf",
             "data": {
-                "type": "typing_started",
-                "channel": {
-                    "uuid": "0f661e8b-ea9d-4bd3-9953-d368340acf91"
-                },
-                "urn": "facebook:12345",
-                "msg_external_id": "ex123"
+                "type": "typing_started"
             },
             "meta": {
                 "user_id": 3,
@@ -314,8 +275,8 @@
                         "uuid": "0f661e8b-ea9d-4bd3-9953-d368340acf91",
                         "name": "Facebook"
                     },
-                    "urn": "facebook:12345",
-                    "msg_external_id": "ex123"
+                    "urn": "tel:+16055741111",
+                    "msg_external_id": "EX123"
                 },
                 "skip_history": true
             }
@@ -328,12 +289,7 @@
         "body": {
             "channel": "history:a393abc0-283d-4c9b-a1b3-641a035c34bf",
             "data": {
-                "type": "typing_stopped",
-                "channel": {
-                    "uuid": "0f661e8b-ea9d-4bd3-9953-d368340acf91"
-                },
-                "urn": "facebook:12345",
-                "msg_external_id": "ex123"
+                "type": "typing_stopped"
             },
             "meta": {
                 "user_id": 3,
@@ -359,39 +315,44 @@
                         "uuid": "0f661e8b-ea9d-4bd3-9953-d368340acf91",
                         "name": "Facebook"
                     },
-                    "urn": "facebook:12345",
-                    "msg_external_id": "ex123"
+                    "urn": "tel:+16055741111",
+                    "msg_external_id": "EX123"
                 },
                 "skip_history": true
             }
         }
     },
     {
-        "label": "denied if publisher isn't a user in the org",
+        "label": "contact with no incoming messages fans out without routing and skips the courier forward",
         "method": "POST",
         "path": "/mi/socket/publish",
         "body": {
-            "channel": "history:a393abc0-283d-4c9b-a1b3-641a035c34bf",
+            "channel": "history:b699a406-7e44-49be-9f01-1a82893e8a10",
             "data": {
-                "type": "typing_started",
-                "channel": {
-                    "uuid": "0f661e8b-ea9d-4bd3-9953-d368340acf91"
-                },
-                "urn": "facebook:12345",
-                "msg_external_id": "ex123"
+                "type": "typing_started"
             },
             "meta": {
-                "user_id": 6,
-                "user_uuid": "a2afc5e7-e97b-45e5-9850-8896957fef54",
+                "user_id": 3,
+                "user_uuid": "ad9fdf9f-56ab-422a-b77d-e3ec26091a25",
                 "org_id": 1,
                 "org_uuid": "bf0514a5-9407-44c9-b0f9-3f36f9c18414"
             }
         },
         "status": 200,
         "response": {
-            "error": {
-                "code": 403,
-                "message": "no such user"
+            "result": {
+                "data": {
+                    "uuid": "01969b47-1cf3-76f8-92a3-d648ab64bccb",
+                    "type": "typing_started",
+                    "created_on": "2025-05-04T12:30:52.123456789Z",
+                    "_user": {
+                        "uuid": "ad9fdf9f-56ab-422a-b77d-e3ec26091a25",
+                        "name": "Andy Admin"
+                    },
+                    "_via": "ui",
+                    "direction": "outgoing"
+                },
+                "skip_history": true
             }
         }
     }

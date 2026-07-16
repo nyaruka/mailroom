@@ -36,7 +36,7 @@ const courierTimeout = 2 * time.Second
 //	  "client": "9336a229-2400-4382-8d27-9ec18b28219c",
 //	  "user": "3",
 //	  "channel": "history:a393abc0-283d-4c9b-a1b3-641a035c34bf",
-//	  "data": {"type": "typing_started", "channel": {"uuid": "0f66..."}, "urn": "facebook:12345", "msg_external_id": "ex123"},
+//	  "data": {"type": "typing_started"},
 //	  "meta": {"user_id": 3, "user_uuid": "ad9f...", "org_id": 1, "org_uuid": "bf05..."}
 //	}
 type publishRequest struct {
@@ -53,15 +53,11 @@ type publishMeta struct {
 	OrgUUID  models.OrgUUID  `json:"org_uuid"`
 }
 
-// what agent clients publish to a contact's history socket - the event fields we read, ignoring anything else
-// (uuid, created_on, direction and user attribution are stamped server-side, not trusted from the client). The
-// channel/urn/msg_external_id routing fields tell us where the contact last wrote from so the typing indicator
-// can be forwarded to the right place.
+// what agent clients publish to a contact's history socket - only the event type is read; everything else on the
+// event (uuid, created_on, direction, routing, user attribution) is stamped server-side, never trusted from the
+// client.
 type typingData struct {
-	Type          string                   `json:"type"`
-	Channel       *assets.ChannelReference `json:"channel"`
-	URN           urns.URN                 `json:"urn"`
-	MsgExternalID string                   `json:"msg_external_id"`
+	Type string `json:"type"`
 }
 
 type publishResult struct {
@@ -124,22 +120,33 @@ func handlePublish(ctx context.Context, rt *runtime.Runtime, r *publishRequest) 
 	if len(contactIDs) == 0 {
 		return deny("no such contact")
 	}
-	var channel *models.Channel
-	if data.Channel != nil {
-		channel = oa.ChannelByUUID(data.Channel.UUID)
+
+	// resolve where the contact last wrote from - the destination for typing indicators. A contact with no
+	// incoming messages (or whose last channel no longer exists) has nowhere to send them, but the event still
+	// fans out to other users for co-presence.
+	route, err := models.GetLastIncomingMsgRoute(ctx, rt.DB, contactIDs[0])
+	if err != nil {
+		return nil, 0, fmt.Errorf("error resolving contact msg route: %w", err)
 	}
-	if channel == nil {
-		return deny("no such channel")
+	var channel *models.Channel
+	var channelRef *assets.ChannelReference
+	urn := urns.NilURN
+	extID := ""
+	if route != nil {
+		if channel = oa.ChannelByID(route.ChannelID); channel != nil {
+			channelRef = assets.NewChannelReference(channel.UUID(), channel.Name())
+			urn = route.URN
+			extID = string(route.ExternalID)
+		}
 	}
 
-	// rewrite the publication as a server-stamped event - same routing fields, but our own uuid, created_on and
-	// direction, the channel reference resolved from our assets, and the typist attributed
-	channelRef := assets.NewChannelReference(channel.UUID(), channel.Name())
+	// rewrite the publication as a server-stamped event - our own uuid, created_on and direction, the routing
+	// we resolved, and the typist attributed
 	var event events.Event
 	if data.Type == events.TypeTypingStarted {
-		event = events.NewTypingStarted(events.DirectionOutgoing, channelRef, data.URN, data.MsgExternalID)
+		event = events.NewTypingStarted(events.DirectionOutgoing, channelRef, urn, extID)
 	} else {
-		event = events.NewTypingStopped(events.DirectionOutgoing, channelRef, data.URN, data.MsgExternalID)
+		event = events.NewTypingStopped(events.DirectionOutgoing, channelRef, urn, extID)
 	}
 	event.SetUser(user.Reference(), string(models.ViaUI))
 
@@ -147,10 +154,12 @@ func handlePublish(ctx context.Context, rt *runtime.Runtime, r *publishRequest) 
 	// courier throttles platform sends per conversation itself so every pulse is forwarded as-is. Capability
 	// stays courier's concern: events it can't relay (e.g. typing_stopped on all channels today) just come back
 	// unsupported, and the fan-out to other users still has co-presence value.
-	fwdCtx, cancel := context.WithTimeout(ctx, courierTimeout)
-	defer cancel()
-	if _, err := courier.SendEvent(fwdCtx, rt, channel, event); err != nil {
-		slog.Error("error sending event to courier", "error", err, "channel", channel.UUID())
+	if channel != nil {
+		fwdCtx, cancel := context.WithTimeout(ctx, courierTimeout)
+		defer cancel()
+		if _, err := courier.SendEvent(fwdCtx, rt, channel, event); err != nil {
+			slog.Error("error sending event to courier", "error", err, "channel", channel.UUID())
+		}
 	}
 
 	// unlike everything else published to history sockets this event is ephemeral and never persisted, hence

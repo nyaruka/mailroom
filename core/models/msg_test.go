@@ -331,6 +331,28 @@ func TestDeleteMessages(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT visibility, text FROM msgs_msg WHERE id = $1`, out1.ID).Columns(map[string]any{"visibility": "V", "text": "hi"})
 }
 
+func TestGetLastIncomingMsgRoute(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	defer testsuite.Reset(t, rt, testsuite.ResetData)
+
+	// a contact with no incoming messages has no route
+	route, err := models.GetLastIncomingMsgRoute(ctx, rt.DB, testdb.Bob.ID)
+	require.NoError(t, err)
+	assert.Nil(t, route)
+
+	testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199bad8-d4be-76c7-8a5c-a12caae7aa87", testdb.TwilioChannel, testdb.Ann, "older", models.MsgStatusHandled, "")
+	msgIn2 := testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199bad9-9791-770d-a47d-8f4a6ea3ad13", testdb.FacebookChannel, testdb.Ann, "newer", models.MsgStatusHandled, "")
+	rt.DB.MustExec(`UPDATE msgs_msg SET external_identifier = 'EX123' WHERE id = $1`, msgIn2.ID)
+
+	// route is the newest incoming message's channel, URN and platform identifier
+	route, err = models.GetLastIncomingMsgRoute(ctx, rt.DB, testdb.Ann.ID)
+	require.NoError(t, err)
+	assert.Equal(t, testdb.FacebookChannel.ID, route.ChannelID)
+	assert.Equal(t, urns.URN("tel:+16055741111"), route.URN)
+	assert.Equal(t, "EX123", string(route.ExternalID))
+}
+
 func TestGetMsgRepetitions(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
 	vc := rt.VK.Get()
