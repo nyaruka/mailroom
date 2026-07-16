@@ -100,7 +100,7 @@ func handlePublish(ctx context.Context, rt *runtime.Runtime, r *publishRequest) 
 	if err := json.Unmarshal(r.Data, data); err != nil {
 		return deny("invalid publication data")
 	}
-	if data.Type != events.TypeTypingStarted {
+	if data.Type != events.TypeTypingStarted && data.Type != events.TypeTypingStopped {
 		return deny(fmt.Sprintf("unsupported publication type: %s", data.Type))
 	}
 
@@ -134,11 +134,19 @@ func handlePublish(ctx context.Context, rt *runtime.Runtime, r *publishRequest) 
 
 	// rewrite the publication as a server-stamped event - same routing fields, but our own uuid, created_on and
 	// direction, the channel reference resolved from our assets, and the typist attributed
-	event := events.NewTypingStarted(events.DirectionOutgoing, assets.NewChannelReference(channel.UUID(), channel.Name()), data.URN, data.MsgExternalID)
+	channelRef := assets.NewChannelReference(channel.UUID(), channel.Name())
+	var event events.Event
+	if data.Type == events.TypeTypingStarted {
+		event = events.NewTypingStarted(events.DirectionOutgoing, channelRef, data.URN, data.MsgExternalID)
+	} else {
+		event = events.NewTypingStopped(events.DirectionOutgoing, channelRef, data.URN, data.MsgExternalID)
+	}
 	event.SetUser(user.Reference(), string(models.ViaUI))
 
 	// forward to courier best effort - agent-to-agent co-presence is valid even if the platform call fails, and
-	// courier throttles platform sends per conversation itself so every pulse is forwarded as-is
+	// courier throttles platform sends per conversation itself so every pulse is forwarded as-is. Capability
+	// stays courier's concern: events it can't relay (e.g. typing_stopped on all channels today) just come back
+	// unsupported, and the fan-out to other users still has co-presence value.
 	fwdCtx, cancel := context.WithTimeout(ctx, courierTimeout)
 	defer cancel()
 	if _, err := courier.SendEvent(fwdCtx, rt, channel, event); err != nil {

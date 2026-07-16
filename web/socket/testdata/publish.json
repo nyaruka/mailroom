@@ -148,13 +148,13 @@
         }
     },
     {
-        "label": "denied if publication data isn't a typing started event",
+        "label": "denied if publication data isn't a typing event",
         "method": "POST",
         "path": "/mi/socket/publish",
         "body": {
             "channel": "history:a393abc0-283d-4c9b-a1b3-641a035c34bf",
             "data": {
-                "type": "typing_stopped",
+                "type": "msg_created",
                 "channel": {
                     "uuid": "0f661e8b-ea9d-4bd3-9953-d368340acf91"
                 },
@@ -171,7 +171,7 @@
         "response": {
             "error": {
                 "code": 403,
-                "message": "unsupported publication type: typing_stopped"
+                "message": "unsupported publication type: msg_created"
             }
         }
     },
@@ -304,6 +304,51 @@
                     "uuid": "01969b47-0d53-76f8-bd38-d266ec8d3716",
                     "type": "typing_started",
                     "created_on": "2025-05-04T12:30:48.123456789Z",
+                    "_user": {
+                        "uuid": "ad9fdf9f-56ab-422a-b77d-e3ec26091a25",
+                        "name": "Andy Admin"
+                    },
+                    "_via": "ui",
+                    "direction": "outgoing",
+                    "channel": {
+                        "uuid": "0f661e8b-ea9d-4bd3-9953-d368340acf91",
+                        "name": "Facebook"
+                    },
+                    "urn": "facebook:12345",
+                    "msg_external_id": "ex123"
+                },
+                "skip_history": true
+            }
+        }
+    },
+    {
+        "label": "typing stopped is fanned out even though no channel supports sending it",
+        "method": "POST",
+        "path": "/mi/socket/publish",
+        "body": {
+            "channel": "history:a393abc0-283d-4c9b-a1b3-641a035c34bf",
+            "data": {
+                "type": "typing_stopped",
+                "channel": {
+                    "uuid": "0f661e8b-ea9d-4bd3-9953-d368340acf91"
+                },
+                "urn": "facebook:12345",
+                "msg_external_id": "ex123"
+            },
+            "meta": {
+                "user_id": 3,
+                "user_uuid": "ad9fdf9f-56ab-422a-b77d-e3ec26091a25",
+                "org_id": 1,
+                "org_uuid": "bf0514a5-9407-44c9-b0f9-3f36f9c18414"
+            }
+        },
+        "status": 200,
+        "response": {
+            "result": {
+                "data": {
+                    "uuid": "01969b47-1523-76f8-9c0b-2014ddc77094",
+                    "type": "typing_stopped",
+                    "created_on": "2025-05-04T12:30:50.123456789Z",
                     "_user": {
                         "uuid": "ad9fdf9f-56ab-422a-b77d-e3ec26091a25",
                         "name": "Andy Admin"
