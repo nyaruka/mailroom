@@ -252,26 +252,54 @@ func TestBulkCommitPublishesEvents(t *testing.T) {
 	}
 	assert.Contains(t, types, "contact_flow_changed")
 
-	// but the ephemeral event is never persisted
+	// but ephemeral events are never persisted
 	rt.Dynamo.History.Flush()
-	persisted := len(types) - 1
-	dyntest.AssertCount(t, rt.Dynamo.History.Client(), "TestHistory", persisted)
-
-	// interrupting the session publishes a contact_flow_changed event with no flow
-	_, _, err = runner.InterruptWithLock(ctx, rt, oa, []models.ContactID{testdb.Ann.ID}, nil, flows.SessionStatusInterrupted)
-	require.NoError(t, err)
-
-	interruptSent := testsuite.CentrifugoHistory(t, rt, socket)[len(sent):]
-	var flowChanged map[string]any
-	for _, data := range interruptSent {
-		var decoded map[string]any
-		require.NoError(t, json.Unmarshal(data, &decoded))
-		if decoded["type"] == "contact_flow_changed" {
-			flowChanged = decoded
+	ephemeral := 0
+	for _, tp := range types {
+		if tp == "contact_flow_changed" || tp == "contact_last_seen_changed" {
+			ephemeral++
 		}
 	}
-	require.NotNil(t, flowChanged)
-	assert.Nil(t, flowChanged["flow"])
+	dyntest.AssertCount(t, rt.Dynamo.History.Client(), "TestHistory", len(types)-ephemeral)
+
+	// helper returning the contact_flow_changed events published since the last call
+	seen := len(sent)
+	flowChanges := func() []map[string]any {
+		sent := testsuite.CentrifugoHistory(t, rt, socket)
+		changes := []map[string]any{}
+		for _, data := range sent[seen:] {
+			var decoded map[string]any
+			require.NoError(t, json.Unmarshal(data, &decoded))
+			if decoded["type"] == "contact_flow_changed" {
+				changes = append(changes, decoded)
+			}
+		}
+		seen = len(sent)
+		return changes
+	}
+
+	// answering the first question keeps the contact in the same flow so no new contact_flow_changed
+	testsuite.ResumeSession(t, rt, oa, testdb.Ann, "yes")
+	assert.Len(t, flowChanges(), 0)
+
+	// answering the second question completes the session, publishing a contact_flow_changed with no flow
+	testsuite.ResumeSession(t, rt, oa, testdb.Ann, "yes")
+	changes := flowChanges()
+	require.Len(t, changes, 1)
+	assert.Nil(t, changes[0]["flow"])
+
+	// restarting the contact in the flow publishes a contact_flow_changed with that flow
+	testsuite.StartSessions(t, rt, oa, []*testdb.Contact{testdb.Ann}, trig)
+	changes = flowChanges()
+	require.Len(t, changes, 1)
+	assert.Equal(t, map[string]any{"uuid": string(flow.UUID), "name": "Two Questions"}, changes[0]["flow"])
+
+	// interrupting the session publishes a contact_flow_changed with no flow
+	_, _, err = runner.InterruptWithLock(ctx, rt, oa, []models.ContactID{testdb.Ann.ID}, nil, flows.SessionStatusInterrupted)
+	require.NoError(t, err)
+	changes = flowChanges()
+	require.Len(t, changes, 1)
+	assert.Nil(t, changes[0]["flow"])
 }
 
 func TestBulkCommitPublishesNotifications(t *testing.T) {
