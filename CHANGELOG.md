@@ -1,3 +1,8 @@
+v26.3.16 (2026-07-16)
+-------------------------
+ * Accept typing_stopped publications on history sockets
+ * Resolve typing indicator channel and URN server-side like reply routing, so clients only send the event type and msg external ID
+
 v26.3.15 (2026-07-16)
 -------------------------
  * Add internal socket publish endpoint which authorizes agent typing publications as a centrifugo publish proxy and sends them to courier
