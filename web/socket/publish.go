@@ -36,7 +36,7 @@ const courierTimeout = 2 * time.Second
 //	  "client": "9336a229-2400-4382-8d27-9ec18b28219c",
 //	  "user": "3",
 //	  "channel": "history:a393abc0-283d-4c9b-a1b3-641a035c34bf",
-//	  "data": {"type": "typing_started", "channel": {"uuid": "0f66..."}, "urn": "facebook:12345", "msg_external_id": "ex123"},
+//	  "data": {"type": "typing_started"},
 //	  "meta": {"user_id": 3, "user_uuid": "ad9f...", "org_id": 1, "org_uuid": "bf05..."}
 //	}
 type publishRequest struct {
@@ -53,15 +53,13 @@ type publishMeta struct {
 	OrgUUID  models.OrgUUID  `json:"org_uuid"`
 }
 
-// what agent clients publish to a contact's history socket - the event fields we read, ignoring anything else
-// (uuid, created_on, direction and user attribution are stamped server-side, not trusted from the client). The
-// channel/urn/msg_external_id routing fields tell us where the contact last wrote from so the typing indicator
-// can be forwarded to the right place.
+// what agent clients publish to a contact's history socket. Only the event type and msg_external_id are read -
+// everything else (uuid, created_on, direction, channel/urn routing, user attribution) is stamped server-side.
+// msg_external_id is the platform's own identifier of the newest incoming message, which only clients have at
+// hand (from msg_received events) and which some platforms require typing indicators to reference.
 type typingData struct {
-	Type          string                   `json:"type"`
-	Channel       *assets.ChannelReference `json:"channel"`
-	URN           urns.URN                 `json:"urn"`
-	MsgExternalID string                   `json:"msg_external_id"`
+	Type          string `json:"type"`
+	MsgExternalID string `json:"msg_external_id"`
 }
 
 type publishResult struct {
@@ -100,7 +98,7 @@ func handlePublish(ctx context.Context, rt *runtime.Runtime, r *publishRequest) 
 	if err := json.Unmarshal(r.Data, data); err != nil {
 		return deny("invalid publication data")
 	}
-	if data.Type != events.TypeTypingStarted {
+	if data.Type != events.TypeTypingStarted && data.Type != events.TypeTypingStopped {
 		return deny(fmt.Sprintf("unsupported publication type: %s", data.Type))
 	}
 
@@ -117,32 +115,51 @@ func handlePublish(ctx context.Context, rt *runtime.Runtime, r *publishRequest) 
 	if user == nil {
 		return deny("no such user")
 	}
-	contactIDs, err := models.GetContactIDsFromUUIDs(ctx, rt.DB, oa.OrgID(), []core.ContactUUID{contactUUID})
+	contacts, err := models.LoadContactsByUUID(ctx, rt.DB, oa, []core.ContactUUID{contactUUID})
 	if err != nil {
-		return nil, 0, fmt.Errorf("error looking up contact: %w", err)
+		return nil, 0, fmt.Errorf("error loading contact: %w", err)
 	}
-	if len(contactIDs) == 0 {
+	if len(contacts) == 0 {
 		return deny("no such contact")
 	}
-	var channel *models.Channel
-	if data.Channel != nil {
-		channel = oa.ChannelByUUID(data.Channel.UUID)
-	}
-	if channel == nil {
-		return deny("no such channel")
+	contact, err := contacts[0].EngineContact(oa)
+	if err != nil {
+		return nil, 0, fmt.Errorf("error creating engine contact: %w", err)
 	}
 
-	// rewrite the publication as a server-stamped event - same routing fields, but our own uuid, created_on and
-	// direction, the channel reference resolved from our assets, and the typist attributed
-	event := events.NewTypingStarted(events.DirectionOutgoing, assets.NewChannelReference(channel.UUID(), channel.Name()), data.URN, data.MsgExternalID)
+	// resolve channel + URN the same way a reply to this contact would route, so typing shows up in the same
+	// conversation the reply will land in. An unreachable contact has nowhere to send typing, but the event
+	// still fans out to other users for co-presence.
+	var channel *models.Channel
+	var channelRef *assets.ChannelReference
+	urn := urns.NilURN
+	for _, r := range contact.ResolveRoutes(false) {
+		channel = oa.ChannelByUUID(r.Channel.UUID())
+		channelRef = r.Channel.Reference()
+		urn = r.URN
+		break
+	}
+
+	// rewrite the publication as a server-stamped event - our own uuid, created_on and direction, the routing
+	// we resolved, and the typist attributed
+	var event events.Event
+	if data.Type == events.TypeTypingStarted {
+		event = events.NewTypingStarted(events.DirectionOutgoing, channelRef, urn, data.MsgExternalID)
+	} else {
+		event = events.NewTypingStopped(events.DirectionOutgoing, channelRef, urn, data.MsgExternalID)
+	}
 	event.SetUser(user.Reference(), string(models.ViaUI))
 
 	// forward to courier best effort - agent-to-agent co-presence is valid even if the platform call fails, and
-	// courier throttles platform sends per conversation itself so every pulse is forwarded as-is
-	fwdCtx, cancel := context.WithTimeout(ctx, courierTimeout)
-	defer cancel()
-	if _, err := courier.SendEvent(fwdCtx, rt, channel, event); err != nil {
-		slog.Error("error sending event to courier", "error", err, "channel", channel.UUID())
+	// courier throttles platform sends per conversation itself so every pulse is forwarded as-is. Capability
+	// stays courier's concern: events it can't relay (e.g. typing_stopped on all channels today) just come back
+	// unsupported, and the fan-out to other users still has co-presence value.
+	if channel != nil {
+		fwdCtx, cancel := context.WithTimeout(ctx, courierTimeout)
+		defer cancel()
+		if _, err := courier.SendEvent(fwdCtx, rt, channel, event); err != nil {
+			slog.Error("error sending event to courier", "error", err, "channel", channel.UUID())
+		}
 	}
 
 	// unlike everything else published to history sockets this event is ephemeral and never persisted, hence
