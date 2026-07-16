@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"time"
 
@@ -69,10 +70,10 @@ func handleSprintEnded(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 	currentFlowChanged := false
 
 	// get flow that contact is now waiting in
-	waitingFlowID := models.NilFlowID
+	var waitingFlow *models.Flow
 	for _, run := range scene.Session.Runs() {
 		if run.Status() == core.RunStatusWaiting {
-			waitingFlowID = run.Flow().Asset().(*models.Flow).ID()
+			waitingFlow = run.Flow().Asset().(*models.Flow)
 			break
 		}
 	}
@@ -84,14 +85,17 @@ func handleSprintEnded(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 			waitingSessionUUID = scene.Session.UUID()
 		}
 
-		currentFlowChanged = event.Contact.CurrentFlowID() != waitingFlowID
-		scene.DBContact.SetCurrentFlowID(waitingFlowID)
+		changed, err := scene.SetCurrentFlow(ctx, rt, oa, waitingFlow)
+		if err != nil {
+			return fmt.Errorf("error setting contact current flow: %w", err)
+		}
+		currentFlowChanged = changed
 
 		if event.Contact.CurrentSessionUUID() != waitingSessionUUID || currentFlowChanged {
 			scene.AttachPreCommitHook(hooks.UpdateContactSession, hooks.CurrentSessionUpdate{
 				ID:                 scene.ContactID(),
 				CurrentSessionUUID: null.String(waitingSessionUUID),
-				CurrentFlowID:      waitingFlowID,
+				CurrentFlowID:      scene.DBContact.CurrentFlowID(),
 			})
 		}
 	}

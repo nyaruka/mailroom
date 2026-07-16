@@ -81,9 +81,9 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 		fmt.Sprintf("S:%s", scBob.Session.UUID()): time.Date(2025, 3, 28, 9, 55, 36, 0, time.UTC),  // 30 days + rand(1 - 24 hours) in future
 	})
 	testsuite.AssertContactFires(t, rt, testdb.Dan.ID, map[string]time.Time{
-		fmt.Sprintf("T:%s", scDan.Session.UUID()): time.Date(2025, 2, 25, 16, 50, 28, 0, time.UTC), // 5 minutes in future
-		fmt.Sprintf("E:%s", scDan.Session.UUID()): time.Date(2025, 2, 25, 16, 55, 24, 0, time.UTC), // 10 minutes in future
-		fmt.Sprintf("S:%s", scDan.Session.UUID()): time.Date(2025, 3, 28, 12, 9, 24, 0, time.UTC),  // 30 days + rand(1 - 24 hours) in future
+		fmt.Sprintf("T:%s", scDan.Session.UUID()): time.Date(2025, 2, 25, 16, 50, 30, 0, time.UTC), // 5 minutes in future
+		fmt.Sprintf("E:%s", scDan.Session.UUID()): time.Date(2025, 2, 25, 16, 55, 25, 0, time.UTC), // 10 minutes in future
+		fmt.Sprintf("S:%s", scDan.Session.UUID()): time.Date(2025, 3, 28, 12, 9, 25, 0, time.UTC),  // 30 days + rand(1 - 24 hours) in future
 	})
 
 	scene := testsuite.ResumeSession(t, rt, oa, testdb.Bob, "no")
@@ -103,7 +103,7 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 
 	// check we have a new contact fire for wait expiration but not timeout (wait doesn't have a timeout)
 	testsuite.AssertContactFires(t, rt, testdb.Bob.ID, map[string]time.Time{
-		fmt.Sprintf("E:%s", scBob.Session.UUID()): time.Date(2025, 2, 25, 16, 55, 43, 0, time.UTC), // updated
+		fmt.Sprintf("E:%s", scBob.Session.UUID()): time.Date(2025, 2, 25, 16, 55, 45, 0, time.UTC), // updated
 		fmt.Sprintf("S:%s", scBob.Session.UUID()): time.Date(2025, 3, 28, 9, 55, 36, 0, time.UTC),  // unchanged
 	})
 
@@ -218,6 +218,88 @@ func TestSessionWithSubflows(t *testing.T) {
 
 	// check we have no contact fires for wait expiration or timeout
 	testsuite.AssertContactFires(t, rt, testdb.Ann.ID, map[string]time.Time{})
+}
+
+func TestBulkCommitPublishesEvents(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	defer testsuite.Reset(t, rt, testsuite.ResetValkey|testsuite.ResetData|testsuite.ResetDynamo)
+
+	testFlows := testdb.ImportFlows(t, rt, testdb.Org1, "testdata/session_test_flows.json")
+	flow := testFlows[0]
+
+	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshFlows)
+	require.NoError(t, err)
+
+	vc := rt.VK.Get()
+	defer vc.Close()
+
+	// someone is watching Ann's history socket
+	socket := models.HistorySocket(testdb.Ann.UUID)
+	_, err = vc.Do("SET", centrifugo.SubscriptionKey(socket), "1")
+	require.NoError(t, err)
+
+	trig := triggers.NewBuilder(flow.Reference()).Manual().Build()
+	testsuite.StartSessions(t, rt, oa, []*testdb.Contact{testdb.Ann}, trig)
+
+	// the subscribed socket received the persisted events plus the ephemeral contact_flow_changed
+	sent := testsuite.CentrifugoHistory(t, rt, socket)
+	types := make([]string, len(sent))
+	for i, data := range sent {
+		var decoded map[string]any
+		require.NoError(t, json.Unmarshal(data, &decoded))
+		types[i] = decoded["type"].(string)
+	}
+	assert.Contains(t, types, "contact_flow_changed")
+
+	// but ephemeral events are never persisted
+	rt.Dynamo.History.Flush()
+	ephemeral := 0
+	for _, tp := range types {
+		if tp == "contact_flow_changed" || tp == "contact_last_seen_changed" {
+			ephemeral++
+		}
+	}
+	dyntest.AssertCount(t, rt.Dynamo.History.Client(), "TestHistory", len(types)-ephemeral)
+
+	// helper returning the contact_flow_changed events published since the last call
+	seen := len(sent)
+	flowChanges := func() []map[string]any {
+		sent := testsuite.CentrifugoHistory(t, rt, socket)
+		changes := []map[string]any{}
+		for _, data := range sent[seen:] {
+			var decoded map[string]any
+			require.NoError(t, json.Unmarshal(data, &decoded))
+			if decoded["type"] == "contact_flow_changed" {
+				changes = append(changes, decoded)
+			}
+		}
+		seen = len(sent)
+		return changes
+	}
+
+	// answering the first question keeps the contact in the same flow so no new contact_flow_changed
+	testsuite.ResumeSession(t, rt, oa, testdb.Ann, "yes")
+	assert.Len(t, flowChanges(), 0)
+
+	// answering the second question completes the session, publishing a contact_flow_changed with no flow
+	testsuite.ResumeSession(t, rt, oa, testdb.Ann, "yes")
+	changes := flowChanges()
+	require.Len(t, changes, 1)
+	assert.Nil(t, changes[0]["flow"])
+
+	// restarting the contact in the flow publishes a contact_flow_changed with that flow
+	testsuite.StartSessions(t, rt, oa, []*testdb.Contact{testdb.Ann}, trig)
+	changes = flowChanges()
+	require.Len(t, changes, 1)
+	assert.Equal(t, map[string]any{"uuid": string(flow.UUID), "name": "Two Questions"}, changes[0]["flow"])
+
+	// interrupting the session publishes a contact_flow_changed with no flow
+	_, _, err = runner.InterruptWithLock(ctx, rt, oa, []models.ContactID{testdb.Ann.ID}, nil, flows.SessionStatusInterrupted)
+	require.NoError(t, err)
+	changes = flowChanges()
+	require.Len(t, changes, 1)
+	assert.Nil(t, changes[0]["flow"])
 }
 
 func TestBulkCommitPublishesNotifications(t *testing.T) {
