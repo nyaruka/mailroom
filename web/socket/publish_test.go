@@ -16,9 +16,8 @@ func TestPublish(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
-	// Ann's newest incoming message is where her typing indicators get routed (Bob has no incoming messages)
-	msgIn := testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199bad8-d4be-76c7-8a5c-a12caae7aa87", testdb.FacebookChannel, testdb.Ann, "hi there", models.MsgStatusHandled, "")
-	rt.DB.MustExec(`UPDATE msgs_msg SET external_identifier = 'EX123' WHERE id = $1`, msgIn.ID)
+	// a contact with no URNs has no route for typing indicators
+	testdb.InsertContact(t, rt, testdb.Org1, "f5e5c595-0cba-4eb9-b1e6-41d7f7f0add6", "Mr Unreachable", "eng", models.ContactStatusActive)
 
 	// mocks consumed in order by the test cases that get as far as forwarding to courier
 	mocks := httpx.WithMocks(http.DefaultTransport, map[string][]*httpx.MockResponse{

@@ -53,11 +53,13 @@ type publishMeta struct {
 	OrgUUID  models.OrgUUID  `json:"org_uuid"`
 }
 
-// what agent clients publish to a contact's history socket - only the event type is read; everything else on the
-// event (uuid, created_on, direction, routing, user attribution) is stamped server-side, never trusted from the
-// client.
+// what agent clients publish to a contact's history socket. Only the event type and msg_external_id are read -
+// everything else (uuid, created_on, direction, channel/urn routing, user attribution) is stamped server-side.
+// msg_external_id is the platform's own identifier of the newest incoming message, which only clients have at
+// hand (from msg_received events) and which some platforms require typing indicators to reference.
 type typingData struct {
-	Type string `json:"type"`
+	Type          string `json:"type"`
+	MsgExternalID string `json:"msg_external_id"`
 }
 
 type publishResult struct {
@@ -113,40 +115,38 @@ func handlePublish(ctx context.Context, rt *runtime.Runtime, r *publishRequest) 
 	if user == nil {
 		return deny("no such user")
 	}
-	contactIDs, err := models.GetContactIDsFromUUIDs(ctx, rt.DB, oa.OrgID(), []core.ContactUUID{contactUUID})
+	contacts, err := models.LoadContactsByUUID(ctx, rt.DB, oa, []core.ContactUUID{contactUUID})
 	if err != nil {
-		return nil, 0, fmt.Errorf("error looking up contact: %w", err)
+		return nil, 0, fmt.Errorf("error loading contact: %w", err)
 	}
-	if len(contactIDs) == 0 {
+	if len(contacts) == 0 {
 		return deny("no such contact")
 	}
-
-	// resolve where the contact last wrote from - the destination for typing indicators. A contact with no
-	// incoming messages (or whose last channel no longer exists) has nowhere to send them, but the event still
-	// fans out to other users for co-presence.
-	route, err := models.GetLastIncomingMsgRoute(ctx, rt.DB, contactIDs[0])
+	contact, err := contacts[0].EngineContact(oa)
 	if err != nil {
-		return nil, 0, fmt.Errorf("error resolving contact msg route: %w", err)
+		return nil, 0, fmt.Errorf("error creating engine contact: %w", err)
 	}
+
+	// resolve channel + URN the same way a reply to this contact would route, so typing shows up in the same
+	// conversation the reply will land in. An unreachable contact has nowhere to send typing, but the event
+	// still fans out to other users for co-presence.
 	var channel *models.Channel
 	var channelRef *assets.ChannelReference
 	urn := urns.NilURN
-	extID := ""
-	if route != nil {
-		if channel = oa.ChannelByID(route.ChannelID); channel != nil {
-			channelRef = assets.NewChannelReference(channel.UUID(), channel.Name())
-			urn = route.URN
-			extID = string(route.ExternalID)
-		}
+	for _, r := range contact.ResolveRoutes(false) {
+		channel = oa.ChannelByUUID(r.Channel.UUID())
+		channelRef = r.Channel.Reference()
+		urn = r.URN
+		break
 	}
 
 	// rewrite the publication as a server-stamped event - our own uuid, created_on and direction, the routing
 	// we resolved, and the typist attributed
 	var event events.Event
 	if data.Type == events.TypeTypingStarted {
-		event = events.NewTypingStarted(events.DirectionOutgoing, channelRef, urn, extID)
+		event = events.NewTypingStarted(events.DirectionOutgoing, channelRef, urn, data.MsgExternalID)
 	} else {
-		event = events.NewTypingStopped(events.DirectionOutgoing, channelRef, urn, extID)
+		event = events.NewTypingStopped(events.DirectionOutgoing, channelRef, urn, data.MsgExternalID)
 	}
 	event.SetUser(user.Reference(), string(models.ViaUI))
 
