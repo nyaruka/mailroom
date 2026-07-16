@@ -133,11 +133,10 @@ func handlePublish(ctx context.Context, rt *runtime.Runtime, r *publishRequest) 
 	var channel *models.Channel
 	var channelRef *assets.ChannelReference
 	urn := urns.NilURN
-	for _, r := range contact.ResolveRoutes(false) {
+	if r := contact.ResolveRoute(); r != nil {
 		channel = oa.ChannelByUUID(r.Channel.UUID())
 		channelRef = r.Channel.Reference()
 		urn = r.URN
-		break
 	}
 
 	// rewrite the publication as a server-stamped event - our own uuid, created_on and direction, the routing
