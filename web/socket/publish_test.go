@@ -16,7 +16,7 @@ func TestPublish(t *testing.T) {
 
 	// mocks consumed in order by the test cases that get as far as forwarding to courier
 	mocks := httpx.WithMocks(http.DefaultTransport, map[string][]*httpx.MockResponse{
-		"http://localhost:8080/ci/chat_action/send": {
+		"http://localhost:8080/ci/event/send": {
 			httpx.NewMockResponse(200, nil, []byte(`{"supported": true, "interval": 4}`)),
 			httpx.NewMockResponse(500, nil, []byte(`{"error": "oops"}`)),
 		},

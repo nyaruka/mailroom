@@ -36,7 +36,7 @@ const courierTimeout = 2 * time.Second
 //	  "client": "9336a229-2400-4382-8d27-9ec18b28219c",
 //	  "user": "3",
 //	  "channel": "history:a393abc0-283d-4c9b-a1b3-641a035c34bf",
-//	  "data": {"type": "typing_started", "channel_uuid": "0f66...", "urn": "facebook:12345", "msg_external_id": "ex123"},
+//	  "data": {"type": "typing_started", "channel": {"uuid": "0f66..."}, "urn": "facebook:12345", "msg_external_id": "ex123"},
 //	  "meta": {"user_id": 3, "user_uuid": "ad9f...", "org_id": 1, "org_uuid": "bf05..."}
 //	}
 type publishRequest struct {
@@ -53,13 +53,15 @@ type publishMeta struct {
 	OrgUUID  models.OrgUUID  `json:"org_uuid"`
 }
 
-// what agent clients publish to a contact's history socket - the routing fields tell us where the contact last
-// wrote from so the typing indicator can be forwarded to the right place
+// what agent clients publish to a contact's history socket - the event fields we read, ignoring anything else
+// (uuid, created_on, direction and user attribution are stamped server-side, not trusted from the client). The
+// channel/urn/msg_external_id routing fields tell us where the contact last wrote from so the typing indicator
+// can be forwarded to the right place.
 type typingData struct {
-	Type          string             `json:"type"`
-	ChannelUUID   assets.ChannelUUID `json:"channel_uuid"`
-	URN           urns.URN           `json:"urn"`
-	MsgExternalID string             `json:"msg_external_id"`
+	Type          string                   `json:"type"`
+	Channel       *assets.ChannelReference `json:"channel"`
+	URN           urns.URN                 `json:"urn"`
+	MsgExternalID string                   `json:"msg_external_id"`
 }
 
 type publishResult struct {
@@ -122,24 +124,28 @@ func handlePublish(ctx context.Context, rt *runtime.Runtime, r *publishRequest) 
 	if len(contactIDs) == 0 {
 		return deny("no such contact")
 	}
-	channel := oa.ChannelByUUID(data.ChannelUUID)
+	var channel *models.Channel
+	if data.Channel != nil {
+		channel = oa.ChannelByUUID(data.Channel.UUID)
+	}
 	if channel == nil {
 		return deny("no such channel")
 	}
+
+	// rewrite the publication as a server-stamped event - same routing fields, but our own uuid, created_on and
+	// direction, the channel reference resolved from our assets, and the typist attributed
+	event := events.NewTypingStarted(events.DirectionOutgoing, assets.NewChannelReference(channel.UUID(), channel.Name()), data.URN, data.MsgExternalID)
+	event.SetUser(user.Reference(), string(models.ViaUI))
 
 	// forward to courier best effort - agent-to-agent co-presence is valid even if the platform call fails, and
 	// courier throttles platform sends per conversation itself so every pulse is forwarded as-is
 	fwdCtx, cancel := context.WithTimeout(ctx, courierTimeout)
 	defer cancel()
-	if _, err := courier.SendChatAction(fwdCtx, rt, channel, courier.ChatActionTypingStarted, data.URN, data.MsgExternalID); err != nil {
-		slog.Error("error sending chat action to courier", "error", err, "channel", channel.UUID())
+	if _, err := courier.SendEvent(fwdCtx, rt, channel, event); err != nil {
+		slog.Error("error sending event to courier", "error", err, "channel", channel.UUID())
 	}
 
-	// rewrite the publication as an engine event so subscribers see the same shape as everything else on these
-	// sockets - routing fields stripped, typist attributed. Unlike other events it's ephemeral and never
-	// persisted, hence skip_history.
-	event := events.NewTypingStarted(events.DirectionOutgoing)
-	event.SetUser(user.Reference(), string(models.ViaUI))
-
+	// unlike everything else published to history sockets this event is ephemeral and never persisted, hence
+	// skip_history
 	return &publishResponse{Result: &publishResult{Data: event, SkipHistory: true}}, http.StatusOK, nil
 }
