@@ -15,7 +15,12 @@
         "body": {
             "org_id": 1234,
             "notifications": [
-                {"user_uuid": "ad9fdf9f-56ab-422a-b77d-e3ec26091a25", "data": {"type": "export:finished"}}
+                {
+                    "user_uuid": "ad9fdf9f-56ab-422a-b77d-e3ec26091a25",
+                    "data": {
+                        "type": "export:finished"
+                    }
+                }
             ]
         },
         "status": 500,
@@ -30,7 +35,14 @@
         "body": {
             "org_id": 1,
             "notifications": [
-                {"user_uuid": "ad9fdf9f-56ab-422a-b77d-e3ec26091a25", "data": {"type": "export:finished", "is_seen": false, "url": "/notification/read/123/"}}
+                {
+                    "user_uuid": "ad9fdf9f-56ab-422a-b77d-e3ec26091a25",
+                    "data": {
+                        "type": "export:finished",
+                        "is_seen": false,
+                        "url": "/notification/read/123/"
+                    }
+                }
             ]
         },
         "status": 200,
@@ -43,7 +55,14 @@
         "body": {
             "org_id": 1,
             "notifications": [
-                {"user_id": 3, "data": {"type": "export:finished", "is_seen": false, "url": "/notification/read/123/"}}
+                {
+                    "user_id": 3,
+                    "data": {
+                        "type": "export:finished",
+                        "is_seen": false,
+                        "url": "/notification/read/123/"
+                    }
+                }
             ]
         },
         "status": 200,
@@ -56,7 +75,14 @@
         "body": {
             "org_id": 1,
             "notifications": [
-                {"user_id": 12345678, "data": {"type": "export:finished", "is_seen": false, "url": "/notification/read/123/"}}
+                {
+                    "user_id": 12345678,
+                    "data": {
+                        "type": "export:finished",
+                        "is_seen": false,
+                        "url": "/notification/read/123/"
+                    }
+                }
             ]
         },
         "status": 200,
@@ -69,7 +95,11 @@
         "body": {
             "org_id": 1,
             "notifications": [
-                {"data": {"type": "export:finished"}}
+                {
+                    "data": {
+                        "type": "export:finished"
+                    }
+                }
             ]
         },
         "status": 400,

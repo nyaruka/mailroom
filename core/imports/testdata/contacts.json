@@ -23,7 +23,7 @@
         "expected_errors": [],
         "expected_contacts": [
             {
-                "uuid": "692926ea-09d6-4942-bd38-d266ec8d3716",
+                "uuid": "ad9bdcfa-5604-4542-98c7-1f0d5859f77e",
                 "name": "Ann",
                 "language": "",
                 "status": "active",
@@ -35,7 +35,7 @@
                 "_import_row": 0
             },
             {
-                "uuid": "8720f157-ca1c-432f-9c0b-2014ddc77094",
+                "uuid": "b26fcae1-abb6-49f8-95cf-9fca95f1c30a",
                 "name": "Bob",
                 "language": "",
                 "status": "active",
@@ -49,8 +49,8 @@
         ],
         "expected_history": [
             {
-                "PK": "con#692926ea-09d6-4942-bd38-d266ec8d3716",
-                "SK": "evt#01969b47-113b-76f8-92a3-d648ab64bccb",
+                "PK": "con#ad9bdcfa-5604-4542-98c7-1f0d5859f77e",
+                "SK": "evt#01969b47-113b-76f8-92ed-42cbd11a03fd",
                 "OrgID": 1,
                 "TTL": "2026-05-04T12:30:49Z",
                 "Data": {
@@ -65,8 +65,8 @@
                 }
             },
             {
-                "PK": "con#8720f157-ca1c-432f-9c0b-2014ddc77094",
-                "SK": "evt#01969b47-190b-76f8-8228-9728778b6c98",
+                "PK": "con#b26fcae1-abb6-49f8-95cf-9fca95f1c30a",
+                "SK": "evt#01969b47-190b-76f8-b20c-e3cb6203e029",
                 "OrgID": 1,
                 "TTL": "2026-05-04T12:30:51Z",
                 "Data": {
@@ -108,7 +108,7 @@
         "expected_errors": [],
         "expected_contacts": [
             {
-                "uuid": "692926ea-09d6-4942-bd38-d266ec8d3716",
+                "uuid": "ad9bdcfa-5604-4542-98c7-1f0d5859f77e",
                 "name": "Ann",
                 "language": "",
                 "status": "active",
@@ -120,7 +120,7 @@
                 "_import_row": 0
             },
             {
-                "uuid": "8720f157-ca1c-432f-9c0b-2014ddc77094",
+                "uuid": "b26fcae1-abb6-49f8-95cf-9fca95f1c30a",
                 "name": "Bob",
                 "language": "",
                 "status": "active",
@@ -132,7 +132,7 @@
                 "_import_row": 0
             },
             {
-                "uuid": "5ecda5fc-951c-437b-a17e-f85e49829fb9",
+                "uuid": "21ba4570-846e-4143-a7eb-cc4cc9ec3e6b",
                 "name": "Cat",
                 "language": "spa",
                 "status": "active",
@@ -153,8 +153,8 @@
         ],
         "expected_history": [
             {
-                "PK": "con#5ecda5fc-951c-437b-a17e-f85e49829fb9",
-                "SK": "evt#01969b47-2c93-76f8-ba00-bd7f0d08e671",
+                "PK": "con#21ba4570-846e-4143-a7eb-cc4cc9ec3e6b",
+                "SK": "evt#01969b47-2c93-76f8-aac5-d9d0ae409dbe",
                 "OrgID": 1,
                 "TTL": "2026-05-04T12:30:56Z",
                 "Data": {
@@ -169,8 +169,8 @@
                 }
             },
             {
-                "PK": "con#5ecda5fc-951c-437b-a17e-f85e49829fb9",
-                "SK": "evt#01969b47-3463-76f8-b86e-4b881f09a186",
+                "PK": "con#21ba4570-846e-4143-a7eb-cc4cc9ec3e6b",
+                "SK": "evt#01969b47-3463-76f8-9729-57745fb13b06",
                 "OrgID": 1,
                 "TTL": "2026-05-04T12:30:58Z",
                 "Data": {
@@ -185,8 +185,8 @@
                 }
             },
             {
-                "PK": "con#5ecda5fc-951c-437b-a17e-f85e49829fb9",
-                "SK": "evt#01969b47-401b-76f8-a691-235cbe720980",
+                "PK": "con#21ba4570-846e-4143-a7eb-cc4cc9ec3e6b",
+                "SK": "evt#01969b47-401b-76f8-9d79-c694bc69dcd1",
                 "OrgID": 1,
                 "TTL": "2026-05-04T12:31:01Z",
                 "Data": {
@@ -208,8 +208,8 @@
                 }
             },
             {
-                "PK": "con#5ecda5fc-951c-437b-a17e-f85e49829fb9",
-                "SK": "evt#01969b47-47eb-76f8-bebe-b4a1f677cf4c",
+                "PK": "con#21ba4570-846e-4143-a7eb-cc4cc9ec3e6b",
+                "SK": "evt#01969b47-47eb-76f8-8b42-056e0211d5b9",
                 "OrgID": 1,
                 "TTL": "2026-05-04T12:31:03Z",
                 "Data": {
@@ -225,8 +225,8 @@
                 }
             },
             {
-                "PK": "con#5ecda5fc-951c-437b-a17e-f85e49829fb9",
-                "SK": "evt#01969b47-4fbb-76f8-8dbf-00ecf5d03034",
+                "PK": "con#21ba4570-846e-4143-a7eb-cc4cc9ec3e6b",
+                "SK": "evt#01969b47-4fbb-76f8-89aa-1577771fa183",
                 "OrgID": 1,
                 "TTL": "2026-05-04T12:31:05Z",
                 "Data": {
@@ -282,7 +282,7 @@
         "expected_errors": [],
         "expected_contacts": [
             {
-                "uuid": "692926ea-09d6-4942-bd38-d266ec8d3716",
+                "uuid": "ad9bdcfa-5604-4542-98c7-1f0d5859f77e",
                 "name": "Ann",
                 "language": "",
                 "status": "active",
@@ -294,7 +294,7 @@
                 "_import_row": 0
             },
             {
-                "uuid": "8720f157-ca1c-432f-9c0b-2014ddc77094",
+                "uuid": "b26fcae1-abb6-49f8-95cf-9fca95f1c30a",
                 "name": "Bob",
                 "language": "",
                 "status": "active",
@@ -309,7 +309,7 @@
                 "_import_row": 0
             },
             {
-                "uuid": "5ecda5fc-951c-437b-a17e-f85e49829fb9",
+                "uuid": "21ba4570-846e-4143-a7eb-cc4cc9ec3e6b",
                 "name": "Cat",
                 "language": "spa",
                 "status": "active",
@@ -329,8 +329,8 @@
         ],
         "expected_history": [
             {
-                "PK": "con#5ecda5fc-951c-437b-a17e-f85e49829fb9",
-                "SK": "evt#01969b47-76cb-76f8-8e78-3bde7b3370ae",
+                "PK": "con#21ba4570-846e-4143-a7eb-cc4cc9ec3e6b",
+                "SK": "evt#01969b47-76cb-76f8-b3a5-b9dac4767740",
                 "OrgID": 1,
                 "TTL": "2026-05-04T12:31:15Z",
                 "Data": {
@@ -352,8 +352,8 @@
                 }
             },
             {
-                "PK": "con#5ecda5fc-951c-437b-a17e-f85e49829fb9",
-                "SK": "evt#01969b47-7e9b-76f8-b62c-3c781ca3b5da",
+                "PK": "con#21ba4570-846e-4143-a7eb-cc4cc9ec3e6b",
+                "SK": "evt#01969b47-7e9b-76f8-87c7-10f327cbfde2",
                 "OrgID": 1,
                 "TTL": "2026-05-04T12:31:17Z",
                 "Data": {
@@ -369,8 +369,8 @@
                 }
             },
             {
-                "PK": "con#8720f157-ca1c-432f-9c0b-2014ddc77094",
-                "SK": "evt#01969b47-5f5b-76f8-afcb-91a2073e5459",
+                "PK": "con#b26fcae1-abb6-49f8-95cf-9fca95f1c30a",
+                "SK": "evt#01969b47-5f5b-76f8-a943-ec055bbeb3b4",
                 "OrgID": 1,
                 "TTL": "2026-05-04T12:31:09Z",
                 "Data": {
@@ -388,8 +388,8 @@
                 }
             },
             {
-                "PK": "con#8720f157-ca1c-432f-9c0b-2014ddc77094",
-                "SK": "evt#01969b47-6b13-76f8-9654-8a7258fbaae4",
+                "PK": "con#b26fcae1-abb6-49f8-95cf-9fca95f1c30a",
+                "SK": "evt#01969b47-6b13-76f8-b384-a4094c3d60be",
                 "OrgID": 1,
                 "TTL": "2026-05-04T12:31:12Z",
                 "Data": {
@@ -461,7 +461,7 @@
         ],
         "expected_contacts": [
             {
-                "uuid": "692926ea-09d6-4942-bd38-d266ec8d3716",
+                "uuid": "ad9bdcfa-5604-4542-98c7-1f0d5859f77e",
                 "name": "Ann",
                 "language": "",
                 "status": "active",
@@ -473,7 +473,7 @@
                 "_import_row": 0
             },
             {
-                "uuid": "8720f157-ca1c-432f-9c0b-2014ddc77094",
+                "uuid": "b26fcae1-abb6-49f8-95cf-9fca95f1c30a",
                 "name": "Bob",
                 "language": "",
                 "status": "active",
@@ -489,7 +489,7 @@
                 "_import_row": 0
             },
             {
-                "uuid": "5ecda5fc-951c-437b-a17e-f85e49829fb9",
+                "uuid": "21ba4570-846e-4143-a7eb-cc4cc9ec3e6b",
                 "name": "Cat",
                 "language": "spa",
                 "status": "active",
@@ -510,8 +510,8 @@
         ],
         "expected_history": [
             {
-                "PK": "con#5ecda5fc-951c-437b-a17e-f85e49829fb9",
-                "SK": "evt#01969b47-960b-76f8-bec9-e032f4f9af5f",
+                "PK": "con#21ba4570-846e-4143-a7eb-cc4cc9ec3e6b",
+                "SK": "evt#01969b47-960b-76f8-bffe-b26e15b12b0f",
                 "OrgID": 1,
                 "TTL": "2026-05-04T12:31:23Z",
                 "Data": {
@@ -533,8 +533,8 @@
                 }
             },
             {
-                "PK": "con#8720f157-ca1c-432f-9c0b-2014ddc77094",
-                "SK": "evt#01969b47-8e3b-76f8-8d9f-e51d30290005",
+                "PK": "con#b26fcae1-abb6-49f8-95cf-9fca95f1c30a",
+                "SK": "evt#01969b47-8e3b-76f8-893f-6422e535ea8c",
                 "OrgID": 1,
                 "TTL": "2026-05-04T12:31:21Z",
                 "Data": {
@@ -561,12 +561,12 @@
         "label": "updating contacts by UUID (last UUID doesn't exist)",
         "specs": [
             {
-                "uuid": "692926ea-09d6-4942-bd38-d266ec8d3716",
+                "uuid": "ad9bdcfa-5604-4542-98c7-1f0d5859f77e",
                 "name": "Anne",
                 "_import_row": 1
             },
             {
-                "uuid": "8720f157-ca1c-432f-9c0b-2014ddc77094",
+                "uuid": "b26fcae1-abb6-49f8-95cf-9fca95f1c30a",
                 "language": "kin",
                 "urns": [
                     "tel:+16055700002"
@@ -591,7 +591,7 @@
         ],
         "expected_contacts": [
             {
-                "uuid": "692926ea-09d6-4942-bd38-d266ec8d3716",
+                "uuid": "ad9bdcfa-5604-4542-98c7-1f0d5859f77e",
                 "name": "Anne",
                 "language": "",
                 "status": "active",
@@ -603,7 +603,7 @@
                 "_import_row": 0
             },
             {
-                "uuid": "8720f157-ca1c-432f-9c0b-2014ddc77094",
+                "uuid": "b26fcae1-abb6-49f8-95cf-9fca95f1c30a",
                 "name": "Bob",
                 "language": "kin",
                 "status": "active",
@@ -619,7 +619,7 @@
                 "_import_row": 0
             },
             {
-                "uuid": "5ecda5fc-951c-437b-a17e-f85e49829fb9",
+                "uuid": "21ba4570-846e-4143-a7eb-cc4cc9ec3e6b",
                 "name": "Cat",
                 "language": "spa",
                 "status": "active",
@@ -640,8 +640,8 @@
         ],
         "expected_history": [
             {
-                "PK": "con#692926ea-09d6-4942-bd38-d266ec8d3716",
-                "SK": "evt#01969b47-a5ab-76f8-8ab7-4a517a86045c",
+                "PK": "con#ad9bdcfa-5604-4542-98c7-1f0d5859f77e",
+                "SK": "evt#01969b47-a5ab-76f8-9aeb-7faa667f1355",
                 "OrgID": 1,
                 "TTL": "2026-05-04T12:31:27Z",
                 "Data": {
@@ -656,8 +656,8 @@
                 }
             },
             {
-                "PK": "con#8720f157-ca1c-432f-9c0b-2014ddc77094",
-                "SK": "evt#01969b47-ad7b-76f8-97a3-ae27459a6be4",
+                "PK": "con#b26fcae1-abb6-49f8-95cf-9fca95f1c30a",
+                "SK": "evt#01969b47-ad7b-76f8-a58f-30ba497b0d21",
                 "OrgID": 1,
                 "TTL": "2026-05-04T12:31:29Z",
                 "Data": {
@@ -677,7 +677,7 @@
         "label": "stealing URNs not permitted",
         "specs": [
             {
-                "uuid": "692926ea-09d6-4942-bd38-d266ec8d3716",
+                "uuid": "ad9bdcfa-5604-4542-98c7-1f0d5859f77e",
                 "name": "Anne",
                 "urns": [
                     "tel:+16055700002"
@@ -697,7 +697,7 @@
         ],
         "expected_contacts": [
             {
-                "uuid": "692926ea-09d6-4942-bd38-d266ec8d3716",
+                "uuid": "ad9bdcfa-5604-4542-98c7-1f0d5859f77e",
                 "name": "Anne",
                 "language": "",
                 "status": "active",
@@ -709,7 +709,7 @@
                 "_import_row": 0
             },
             {
-                "uuid": "8720f157-ca1c-432f-9c0b-2014ddc77094",
+                "uuid": "b26fcae1-abb6-49f8-95cf-9fca95f1c30a",
                 "name": "Bob",
                 "language": "kin",
                 "status": "active",
@@ -725,7 +725,7 @@
                 "_import_row": 0
             },
             {
-                "uuid": "5ecda5fc-951c-437b-a17e-f85e49829fb9",
+                "uuid": "21ba4570-846e-4143-a7eb-cc4cc9ec3e6b",
                 "name": "Cat",
                 "language": "spa",
                 "status": "active",
@@ -767,7 +767,7 @@
         ],
         "expected_contacts": [
             {
-                "uuid": "692926ea-09d6-4942-bd38-d266ec8d3716",
+                "uuid": "ad9bdcfa-5604-4542-98c7-1f0d5859f77e",
                 "name": "Anne",
                 "language": "",
                 "status": "active",
@@ -779,7 +779,7 @@
                 "_import_row": 0
             },
             {
-                "uuid": "8720f157-ca1c-432f-9c0b-2014ddc77094",
+                "uuid": "b26fcae1-abb6-49f8-95cf-9fca95f1c30a",
                 "name": "Bob",
                 "language": "kin",
                 "status": "active",
@@ -795,7 +795,7 @@
                 "_import_row": 0
             },
             {
-                "uuid": "5ecda5fc-951c-437b-a17e-f85e49829fb9",
+                "uuid": "21ba4570-846e-4143-a7eb-cc4cc9ec3e6b",
                 "name": "Cat",
                 "language": "spa",
                 "status": "active",
@@ -846,7 +846,7 @@
         ],
         "expected_contacts": [
             {
-                "uuid": "692926ea-09d6-4942-bd38-d266ec8d3716",
+                "uuid": "ad9bdcfa-5604-4542-98c7-1f0d5859f77e",
                 "name": "Anne",
                 "language": "",
                 "status": "active",
@@ -859,7 +859,7 @@
                 "_import_row": 0
             },
             {
-                "uuid": "8720f157-ca1c-432f-9c0b-2014ddc77094",
+                "uuid": "b26fcae1-abb6-49f8-95cf-9fca95f1c30a",
                 "name": "Bob",
                 "language": "kin",
                 "status": "active",
@@ -875,7 +875,7 @@
                 "_import_row": 0
             },
             {
-                "uuid": "5ecda5fc-951c-437b-a17e-f85e49829fb9",
+                "uuid": "21ba4570-846e-4143-a7eb-cc4cc9ec3e6b",
                 "name": "Cat",
                 "language": "spa",
                 "status": "active",
@@ -896,8 +896,8 @@
         ],
         "expected_history": [
             {
-                "PK": "con#692926ea-09d6-4942-bd38-d266ec8d3716",
-                "SK": "evt#01969b47-d48b-76f8-9014-2c868db4022e",
+                "PK": "con#ad9bdcfa-5604-4542-98c7-1f0d5859f77e",
+                "SK": "evt#01969b47-d48b-76f8-ab7b-b7ab5b0dc119",
                 "OrgID": 1,
                 "TTL": "2026-05-04T12:31:39Z",
                 "Data": {
@@ -920,7 +920,7 @@
         "label": "contacts with non-active statuses",
         "specs": [
             {
-                "uuid": "692926ea-09d6-4942-bd38-d266ec8d3716",
+                "uuid": "ad9bdcfa-5604-4542-98c7-1f0d5859f77e",
                 "name": "Anne",
                 "status": "archived",
                 "_import_row": 1
@@ -954,7 +954,7 @@
         ],
         "expected_contacts": [
             {
-                "uuid": "692926ea-09d6-4942-bd38-d266ec8d3716",
+                "uuid": "ad9bdcfa-5604-4542-98c7-1f0d5859f77e",
                 "name": "Anne",
                 "language": "",
                 "status": "archived",
@@ -967,7 +967,7 @@
                 "_import_row": 0
             },
             {
-                "uuid": "8720f157-ca1c-432f-9c0b-2014ddc77094",
+                "uuid": "b26fcae1-abb6-49f8-95cf-9fca95f1c30a",
                 "name": "Bob",
                 "language": "kin",
                 "status": "active",
@@ -983,7 +983,7 @@
                 "_import_row": 0
             },
             {
-                "uuid": "5ecda5fc-951c-437b-a17e-f85e49829fb9",
+                "uuid": "21ba4570-846e-4143-a7eb-cc4cc9ec3e6b",
                 "name": "Cat",
                 "language": "spa",
                 "status": "active",
@@ -1002,7 +1002,7 @@
                 "_import_row": 0
             },
             {
-                "uuid": "229bd432-dac7-4a3f-ba91-c48ad8c50e6b",
+                "uuid": "b87ff1cf-63b4-427d-a851-494c098c6807",
                 "name": "Blake",
                 "language": "",
                 "status": "blocked",
@@ -1014,7 +1014,7 @@
                 "_import_row": 0
             },
             {
-                "uuid": "d659b893-76c5-4e9c-be24-6164105d48f2",
+                "uuid": "a57b9391-cd23-4136-99b2-e3c62e5695d5",
                 "name": "Ivan",
                 "language": "",
                 "status": "active",
@@ -1028,8 +1028,8 @@
         ],
         "expected_history": [
             {
-                "PK": "con#692926ea-09d6-4942-bd38-d266ec8d3716",
-                "SK": "evt#01969b47-ebfb-76f8-8768-7d0ba4d4f3e8",
+                "PK": "con#ad9bdcfa-5604-4542-98c7-1f0d5859f77e",
+                "SK": "evt#01969b47-ebfb-76f8-a96b-7a2ea92d0f00",
                 "OrgID": 1,
                 "Data": {
                     "_user": {
@@ -1043,8 +1043,24 @@
                 }
             },
             {
-                "PK": "con#229bd432-dac7-4a3f-ba91-c48ad8c50e6b",
-                "SK": "evt#01969b47-f3cb-76f8-b63d-c8dcc2fa9de0",
+                "PK": "con#a57b9391-cd23-4136-99b2-e3c62e5695d5",
+                "SK": "evt#01969b48-036b-76f8-9ea3-78702727831a",
+                "OrgID": 1,
+                "TTL": "2026-05-04T12:31:51Z",
+                "Data": {
+                    "_user": {
+                        "name": "Andy Admin",
+                        "uuid": "ad9fdf9f-56ab-422a-b77d-e3ec26091a25"
+                    },
+                    "_via": "import",
+                    "created_on": "2025-05-04T12:31:51.123456789Z",
+                    "name": "Ivan",
+                    "type": "contact_name_changed"
+                }
+            },
+            {
+                "PK": "con#b87ff1cf-63b4-427d-a851-494c098c6807",
+                "SK": "evt#01969b47-f3cb-76f8-88c7-56bcb29ae35a",
                 "OrgID": 1,
                 "TTL": "2026-05-04T12:31:47Z",
                 "Data": {
@@ -1059,8 +1075,8 @@
                 }
             },
             {
-                "PK": "con#229bd432-dac7-4a3f-ba91-c48ad8c50e6b",
-                "SK": "evt#01969b47-fb9b-76f8-8f9d-465efd6fbb5e",
+                "PK": "con#b87ff1cf-63b4-427d-a851-494c098c6807",
+                "SK": "evt#01969b47-fb9b-76f8-bc1e-a15dedcb8e98",
                 "OrgID": 1,
                 "Data": {
                     "_user": {
@@ -1071,22 +1087,6 @@
                     "created_on": "2025-05-04T12:31:49.123456789Z",
                     "status": "blocked",
                     "type": "contact_status_changed"
-                }
-            },
-            {
-                "PK": "con#d659b893-76c5-4e9c-be24-6164105d48f2",
-                "SK": "evt#01969b48-036b-76f8-9566-6fb2598c32d6",
-                "OrgID": 1,
-                "TTL": "2026-05-04T12:31:51Z",
-                "Data": {
-                    "_user": {
-                        "name": "Andy Admin",
-                        "uuid": "ad9fdf9f-56ab-422a-b77d-e3ec26091a25"
-                    },
-                    "_via": "import",
-                    "created_on": "2025-05-04T12:31:51.123456789Z",
-                    "name": "Ivan",
-                    "type": "contact_name_changed"
                 }
             }
         ]

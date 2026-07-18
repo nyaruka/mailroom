@@ -4,7 +4,7 @@
         "events": {
             "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
                 {
-                    "uuid": "01969b47-2c93-76f8-9654-8a7258fbaae4",
+                    "uuid": "01969b47-2c93-76f8-b384-a4094c3d60be",
                     "type": "broadcast_created",
                     "created_on": "2025-05-04T12:30:56.123456789Z",
                     "translations": {
@@ -33,7 +33,7 @@
                 {
                     "type": "send_broadcast",
                     "payload": {
-                        "broadcast_uuid": "01969b47-0583-76f8-ae7f-f8b243c49ff5",
+                        "broadcast_uuid": "01969b47-0583-76f8-924e-9de1a11831b3",
                         "org_id": 1,
                         "status": "P",
                         "translations": {

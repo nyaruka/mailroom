@@ -2,10 +2,10 @@
     {
         "label": "handle start on wired call",
         "method": "POST",
-        "path": "/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=start&call=01969b47-190b-76f8-92a3-d648ab64bccb",
+        "path": "/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=start&call=01969b47-190b-76f8-92ed-42cbd11a03fd",
         "body": "",
         "status": 200,
-        "response": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Response>\n  <Gather numDigits=\"1\" timeout=\"30\" action=\"https://localhost:8190/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&amp;call=01969b47-190b-76f8-92a3-d648ab64bccb&amp;wait_type=gather\">\n    <Say language=\"en-US\">Hello there. Please enter one or two.  This flow was triggered by Ann</Say>\n  </Gather>\n  <Redirect>https://localhost:8190/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&amp;call=01969b47-190b-76f8-92a3-d648ab64bccb&amp;wait_type=gather&amp;timeout=true</Redirect>\n</Response>",
+        "response": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Response>\n  <Gather numDigits=\"1\" timeout=\"30\" action=\"https://localhost:8190/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&amp;call=01969b47-190b-76f8-92ed-42cbd11a03fd&amp;wait_type=gather\">\n    <Say language=\"en-US\">Hello there. Please enter one or two.  This flow was triggered by Ann</Say>\n  </Gather>\n  <Redirect>https://localhost:8190/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&amp;call=01969b47-190b-76f8-92ed-42cbd11a03fd&amp;wait_type=gather&amp;timeout=true</Redirect>\n</Response>",
         "db_assertions": [
             {
                 "query": "SELECT external_id, status FROM ivr_call",
@@ -31,7 +31,7 @@
         "expected_history": [
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b47-0d53-76f8-bd38-d266ec8d3716",
+                "SK": "evt#01969b47-0d53-76f8-98c7-1f0d5859f77e",
                 "OrgID": 1,
                 "Data": {
                     "call": {
@@ -40,7 +40,7 @@
                             "uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8"
                         },
                         "urn": "tel:+16055741111",
-                        "uuid": "01969b47-190b-76f8-92a3-d648ab64bccb"
+                        "uuid": "01969b47-190b-76f8-92ed-42cbd11a03fd"
                     },
                     "created_on": "2025-05-04T12:30:48.123456789Z",
                     "type": "call_created"
@@ -48,7 +48,7 @@
             },
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b47-24c3-76f8-8f41-6b2d9f33d623",
+                "SK": "evt#01969b47-24c3-76f8-b774-0a98171a0712",
                 "OrgID": 1,
                 "Data": {
                     "created_on": "2025-05-04T12:30:54.123456789Z",
@@ -58,13 +58,13 @@
                         "uuid": "2f81d0ea-4d75-4843-9371-3f7465311cce"
                     },
                     "parent_uuid": "8bc73097-ac57-47fb-82e5-184f8ec6dbef",
-                    "run_uuid": "01969b47-20db-76f8-8228-9728778b6c98",
+                    "run_uuid": "01969b47-20db-76f8-b20c-e3cb6203e029",
                     "type": "run_started"
                 }
             },
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b47-384b-76f8-b86e-4b881f09a186",
+                "SK": "evt#01969b47-384b-76f8-9729-57745fb13b06",
                 "OrgID": 1,
                 "Data": {
                     "created_on": "2025-05-04T12:30:59.123456789Z",
@@ -85,10 +85,10 @@
     {
         "label": "handle resume without digits we're waiting for",
         "method": "POST",
-        "path": "/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&call=01969b47-190b-76f8-92a3-d648ab64bccb",
+        "path": "/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&call=01969b47-190b-76f8-92ed-42cbd11a03fd",
         "body": "CallStatus=in-progress&timeout=true&wait_type=gather",
         "status": 200,
-        "response": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Response>\n  <Gather numDigits=\"1\" timeout=\"30\" action=\"https://localhost:8190/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&amp;call=01969b47-190b-76f8-92a3-d648ab64bccb&amp;wait_type=gather\">\n    <Say language=\"en-US\">Sorry, that is not one or two, try again.</Say>\n  </Gather>\n  <Redirect>https://localhost:8190/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&amp;call=01969b47-190b-76f8-92a3-d648ab64bccb&amp;wait_type=gather&amp;timeout=true</Redirect>\n</Response>",
+        "response": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Response>\n  <Gather numDigits=\"1\" timeout=\"30\" action=\"https://localhost:8190/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&amp;call=01969b47-190b-76f8-92ed-42cbd11a03fd&amp;wait_type=gather\">\n    <Say language=\"en-US\">Sorry, that is not one or two, try again.</Say>\n  </Gather>\n  <Redirect>https://localhost:8190/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&amp;call=01969b47-190b-76f8-92ed-42cbd11a03fd&amp;wait_type=gather&amp;timeout=true</Redirect>\n</Response>",
         "db_assertions": [
             {
                 "query": "SELECT external_id, status FROM ivr_call",
@@ -110,7 +110,7 @@
         "expected_history": [
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b47-a1c3-76f8-bec9-e032f4f9af5f",
+                "SK": "evt#01969b47-a1c3-76f8-bffe-b26e15b12b0f",
                 "OrgID": 1,
                 "Data": {
                     "created_on": "2025-05-04T12:31:26.123456789Z",
@@ -131,10 +131,10 @@
     {
         "label": "handle resume with digits we're waiting for",
         "method": "POST",
-        "path": "/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&call=01969b47-190b-76f8-92a3-d648ab64bccb",
+        "path": "/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&call=01969b47-190b-76f8-92ed-42cbd11a03fd",
         "body": "CallStatus=in-progress&Digits=1&wait_type=gather",
         "status": 200,
-        "response": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Response>\n  <Gather timeout=\"30\" action=\"https://localhost:8190/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&amp;call=01969b47-190b-76f8-92a3-d648ab64bccb&amp;wait_type=gather\">\n    <Say language=\"en-US\">Great! You said One. Ok, now enter a number 1 to 100 then press pound.</Say>\n  </Gather>\n  <Redirect>https://localhost:8190/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&amp;call=01969b47-190b-76f8-92a3-d648ab64bccb&amp;wait_type=gather&amp;timeout=true</Redirect>\n</Response>",
+        "response": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Response>\n  <Gather timeout=\"30\" action=\"https://localhost:8190/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&amp;call=01969b47-190b-76f8-92ed-42cbd11a03fd&amp;wait_type=gather\">\n    <Say language=\"en-US\">Great! You said One. Ok, now enter a number 1 to 100 then press pound.</Say>\n  </Gather>\n  <Redirect>https://localhost:8190/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&amp;call=01969b47-190b-76f8-92ed-42cbd11a03fd&amp;wait_type=gather&amp;timeout=true</Redirect>\n</Response>",
         "db_assertions": [
             {
                 "query": "SELECT external_id, status FROM ivr_call",
@@ -164,7 +164,7 @@
         "expected_history": [
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b47-d48b-76f8-ba7e-53c2263e32f8",
+                "SK": "evt#01969b47-d48b-76f8-aab8-757fffa552e6",
                 "OrgID": 1,
                 "Data": {
                     "created_on": "2025-05-04T12:31:40.123456789Z",
@@ -181,7 +181,7 @@
             },
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b47-ff83-76f8-ba91-c48ad8c50e6b",
+                "SK": "evt#01969b47-ff83-76f8-a851-494c098c6807",
                 "OrgID": 1,
                 "Data": {
                     "created_on": "2025-05-04T12:31:50.123456789Z",
@@ -202,10 +202,10 @@
     {
         "label": "handle resume with digits that are out of range specified in flow",
         "method": "POST",
-        "path": "/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&call=01969b47-190b-76f8-92a3-d648ab64bccb",
+        "path": "/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&call=01969b47-190b-76f8-92ed-42cbd11a03fd",
         "body": "CallStatus=in-progress&Digits=101&wait_type=gather",
         "status": 200,
-        "response": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Response>\n  <Gather timeout=\"30\" action=\"https://localhost:8190/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&amp;call=01969b47-190b-76f8-92a3-d648ab64bccb&amp;wait_type=gather\">\n    <Say language=\"en-US\">Sorry, that&#39;s too big. Enter a number 1 to 100 then press pound.</Say>\n  </Gather>\n  <Redirect>https://localhost:8190/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&amp;call=01969b47-190b-76f8-92a3-d648ab64bccb&amp;wait_type=gather&amp;timeout=true</Redirect>\n</Response>",
+        "response": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Response>\n  <Gather timeout=\"30\" action=\"https://localhost:8190/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&amp;call=01969b47-190b-76f8-92ed-42cbd11a03fd&amp;wait_type=gather\">\n    <Say language=\"en-US\">Sorry, that&#39;s too big. Enter a number 1 to 100 then press pound.</Say>\n  </Gather>\n  <Redirect>https://localhost:8190/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&amp;call=01969b47-190b-76f8-92ed-42cbd11a03fd&amp;wait_type=gather&amp;timeout=true</Redirect>\n</Response>",
         "db_assertions": [
             {
                 "query": "SELECT external_id, status FROM ivr_call",
@@ -231,7 +231,7 @@
         "expected_history": [
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b48-3e03-76f8-a8fd-1537ca860f97",
+                "SK": "evt#01969b48-3e03-76f8-88a0-aff178d69252",
                 "OrgID": 1,
                 "Data": {
                     "created_on": "2025-05-04T12:32:07.123456789Z",
@@ -248,7 +248,7 @@
             },
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b48-68fb-76f8-8b56-5e92bbfe0e3f",
+                "SK": "evt#01969b48-68fb-76f8-b806-699460e5ca92",
                 "OrgID": 1,
                 "Data": {
                     "created_on": "2025-05-04T12:32:17.123456789Z",
@@ -267,7 +267,7 @@
         ],
         "indexed_messages": [
             {
-                "_id": "01969b48-3e03-76f8-a8fd-1537ca860f97",
+                "_id": "01969b48-3e03-76f8-88a0-aff178d69252",
                 "_routing": "1",
                 "contact_uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
                 "urn_path": "+16055741111",
@@ -278,10 +278,10 @@
     {
         "label": "handle resume with digits that are in range specified in flow",
         "method": "POST",
-        "path": "/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&call=01969b47-190b-76f8-92a3-d648ab64bccb",
+        "path": "/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&call=01969b47-190b-76f8-92ed-42cbd11a03fd",
         "body": "CallStatus=in-progress&Digits=56&wait_type=gather",
         "status": 200,
-        "response": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Response>\n  <Say language=\"en-US\">You picked the number 56, excellent choice. Ok now tell me briefly why you are happy today.</Say>\n  <Record action=\"https://localhost:8190/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&amp;call=01969b47-190b-76f8-92a3-d648ab64bccb&amp;wait_type=record\" maxLength=\"600\"></Record>\n  <Redirect>https://localhost:8190/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&amp;call=01969b47-190b-76f8-92a3-d648ab64bccb&amp;wait_type=record&amp;empty=true</Redirect>\n</Response>",
+        "response": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Response>\n  <Say language=\"en-US\">You picked the number 56, excellent choice. Ok now tell me briefly why you are happy today.</Say>\n  <Record action=\"https://localhost:8190/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&amp;call=01969b47-190b-76f8-92ed-42cbd11a03fd&amp;wait_type=record\" maxLength=\"600\"></Record>\n  <Redirect>https://localhost:8190/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&amp;call=01969b47-190b-76f8-92ed-42cbd11a03fd&amp;wait_type=record&amp;empty=true</Redirect>\n</Response>",
         "db_assertions": [
             {
                 "query": "SELECT external_id, status FROM ivr_call",
@@ -307,7 +307,7 @@
         "expected_history": [
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b48-a77b-76f8-a09e-6806aab9f510",
+                "SK": "evt#01969b48-a77b-76f8-9ad1-04953223c01c",
                 "OrgID": 1,
                 "Data": {
                     "created_on": "2025-05-04T12:32:34.123456789Z",
@@ -324,7 +324,7 @@
             },
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b48-d273-76f8-87bc-209e78511534",
+                "SK": "evt#01969b48-d273-76f8-a014-bfd905bd3906",
                 "OrgID": 1,
                 "Data": {
                     "created_on": "2025-05-04T12:32:44.123456789Z",
@@ -343,7 +343,7 @@
         ],
         "indexed_messages": [
             {
-                "_id": "01969b48-a77b-76f8-a09e-6806aab9f510",
+                "_id": "01969b48-a77b-76f8-9ad1-04953223c01c",
                 "_routing": "1",
                 "contact_uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
                 "urn_path": "+16055741111",
@@ -354,10 +354,10 @@
     {
         "label": "handle resume with missing recording that should start a call forward",
         "method": "POST",
-        "path": "/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&call=01969b47-190b-76f8-92a3-d648ab64bccb",
+        "path": "/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&call=01969b47-190b-76f8-92ed-42cbd11a03fd",
         "body": "CallStatus=in-progress&wait_type=record",
         "status": 200,
-        "response": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Response>\n  <Say language=\"en-US\">You said</Say>\n  <Say language=\"en-US\">I hope hearing that makes you feel better. Good day and good bye.</Say>\n  <Dial action=\"https://localhost:8190/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&amp;call=01969b47-190b-76f8-92a3-d648ab64bccb&amp;wait_type=dial\" timeout=\"60\" timeLimit=\"7200\">+12065551212</Dial>\n</Response>",
+        "response": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Response>\n  <Say language=\"en-US\">You said</Say>\n  <Say language=\"en-US\">I hope hearing that makes you feel better. Good day and good bye.</Say>\n  <Dial action=\"https://localhost:8190/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&amp;call=01969b47-190b-76f8-92ed-42cbd11a03fd&amp;wait_type=dial\" timeout=\"60\" timeLimit=\"7200\">+12065551212</Dial>\n</Response>",
         "db_assertions": [
             {
                 "query": "SELECT external_id, status FROM ivr_call",
@@ -375,7 +375,7 @@
         "expected_history": [
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b49-3beb-76f8-92f0-b4a6fcc7080c",
+                "SK": "evt#01969b49-3beb-76f8-a3c7-06ece10484c1",
                 "OrgID": 1,
                 "Data": {
                     "created_on": "2025-05-04T12:33:11.123456789Z",
@@ -393,7 +393,7 @@
             },
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b49-4b8b-76f8-8556-4ba6c70c1678",
+                "SK": "evt#01969b49-4b8b-76f8-9805-2814d9047b68",
                 "OrgID": 1,
                 "Data": {
                     "created_on": "2025-05-04T12:33:15.123456789Z",
@@ -414,7 +414,7 @@
     {
         "label": "handle resume call forwarding result",
         "method": "POST",
-        "path": "/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&call=01969b47-190b-76f8-92a3-d648ab64bccb",
+        "path": "/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&call=01969b47-190b-76f8-92ed-42cbd11a03fd",
         "body": "CallStatus=in-progress&DialCallStatus=answered&wait_type=dial",
         "status": 200,
         "response": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Response>\n  <Say language=\"en-US\">Great, they answered.</Say>\n  <Hangup></Hangup>\n</Response>",
@@ -435,7 +435,7 @@
         "expected_history": [
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b49-95c3-76f8-9bd7-277a6a165264",
+                "SK": "evt#01969b49-95c3-76f8-a0c4-2314fb7af950",
                 "OrgID": 1,
                 "Data": {
                     "created_on": "2025-05-04T12:33:34.123456789Z",
@@ -453,7 +453,7 @@
             },
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b49-a17b-76f8-b4c4-260cfebfde0b",
+                "SK": "evt#01969b49-a17b-76f8-b605-56ed66c7447b",
                 "OrgID": 1,
                 "Data": {
                     "created_on": "2025-05-04T12:33:37.123456789Z",
@@ -462,7 +462,7 @@
                         "revision": 1,
                         "uuid": "2f81d0ea-4d75-4843-9371-3f7465311cce"
                     },
-                    "run_uuid": "01969b47-20db-76f8-8228-9728778b6c98",
+                    "run_uuid": "01969b47-20db-76f8-b20c-e3cb6203e029",
                     "status": "completed",
                     "type": "run_ended"
                 }
@@ -490,10 +490,10 @@
     {
         "label": "start call 2",
         "method": "POST",
-        "path": "/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=start&call=01969b47-2c93-76f8-8f41-6b2d9f33d623",
+        "path": "/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=start&call=01969b47-2c93-76f8-b774-0a98171a0712",
         "body": "",
         "status": 200,
-        "response": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Response>\n  <Gather numDigits=\"1\" timeout=\"30\" action=\"https://localhost:8190/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&amp;call=01969b47-2c93-76f8-8f41-6b2d9f33d623&amp;wait_type=gather\">\n    <Say language=\"en-US\">Hello there. Please enter one or two.  This flow was triggered by Ann</Say>\n  </Gather>\n  <Redirect>https://localhost:8190/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&amp;call=01969b47-2c93-76f8-8f41-6b2d9f33d623&amp;wait_type=gather&amp;timeout=true</Redirect>\n</Response>",
+        "response": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Response>\n  <Gather numDigits=\"1\" timeout=\"30\" action=\"https://localhost:8190/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&amp;call=01969b47-2c93-76f8-b774-0a98171a0712&amp;wait_type=gather\">\n    <Say language=\"en-US\">Hello there. Please enter one or two.  This flow was triggered by Ann</Say>\n  </Gather>\n  <Redirect>https://localhost:8190/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&amp;call=01969b47-2c93-76f8-b774-0a98171a0712&amp;wait_type=gather&amp;timeout=true</Redirect>\n</Response>",
         "db_assertions": [
             {
                 "query": "SELECT external_id, status FROM ivr_call",
@@ -511,7 +511,7 @@
         "expected_history": [
             {
                 "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
-                "SK": "evt#01969b49-d05b-76f8-979e-17606f578787",
+                "SK": "evt#01969b49-d05b-76f8-9ffd-1f8b2a958d21",
                 "OrgID": 1,
                 "Data": {
                     "call": {
@@ -520,7 +520,7 @@
                             "uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8"
                         },
                         "urn": "tel:+16055742222",
-                        "uuid": "01969b47-2c93-76f8-8f41-6b2d9f33d623"
+                        "uuid": "01969b47-2c93-76f8-b774-0a98171a0712"
                     },
                     "created_on": "2025-05-04T12:33:49.123456789Z",
                     "type": "call_created"
@@ -528,7 +528,7 @@
             },
             {
                 "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
-                "SK": "evt#01969b49-e7cb-76f8-9741-d46beab654c1",
+                "SK": "evt#01969b49-e7cb-76f8-a98c-c3ed5728bb2f",
                 "OrgID": 1,
                 "Data": {
                     "created_on": "2025-05-04T12:33:55.123456789Z",
@@ -538,13 +538,13 @@
                         "uuid": "2f81d0ea-4d75-4843-9371-3f7465311cce"
                     },
                     "parent_uuid": "8bc73097-ac57-47fb-82e5-184f8ec6dbef",
-                    "run_uuid": "01969b49-e3e3-76f8-9ea1-dbfb3ec798f1",
+                    "run_uuid": "01969b49-e3e3-76f8-841c-357a2a8e03c4",
                     "type": "run_started"
                 }
             },
             {
                 "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
-                "SK": "evt#01969b49-fb53-76f8-9b19-ce8a2dca70df",
+                "SK": "evt#01969b49-fb53-76f8-a8a2-3807c9c3eb6a",
                 "OrgID": 1,
                 "Data": {
                     "created_on": "2025-05-04T12:34:00.123456789Z",
@@ -565,7 +565,7 @@
     {
         "label": "resume with status that says call completed on Twilio side",
         "method": "POST",
-        "path": "/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&call=01969b47-2c93-76f8-8f41-6b2d9f33d623",
+        "path": "/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&call=01969b47-2c93-76f8-b774-0a98171a0712",
         "body": "CallStatus=completed&Digits=56&wait_type=gather",
         "status": 200,
         "response": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Response><!--call completed--><Say>An error has occurred, please try again later.</Say><Hangup></Hangup></Response>",
@@ -582,7 +582,7 @@
         "expected_history": [
             {
                 "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
-                "SK": "evt#01969b4a-35eb-76f8-8742-c1eff0201012",
+                "SK": "evt#01969b4a-35eb-76f8-a1fe-775299733346",
                 "OrgID": 1,
                 "Data": {
                     "created_on": "2025-05-04T12:34:16.123456789Z",
@@ -599,7 +599,7 @@
             },
             {
                 "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
-                "SK": "evt#01969b4a-64cb-76f8-bdf0-950b64bbbc6d",
+                "SK": "evt#01969b4a-64cb-76f8-9d8a-f120e44f6e7e",
                 "OrgID": 1,
                 "Data": {
                     "created_on": "2025-05-04T12:34:27.123456789Z",
@@ -618,7 +618,7 @@
         ],
         "indexed_messages": [
             {
-                "_id": "01969b4a-35eb-76f8-8742-c1eff0201012",
+                "_id": "01969b4a-35eb-76f8-a1fe-775299733346",
                 "_routing": "1",
                 "contact_uuid": "b699a406-7e44-49be-9f01-1a82893e8a10",
                 "urn_path": "+16055742222",
@@ -629,7 +629,7 @@
     {
         "label": "call 3 started with answered_by telling us it's a machine",
         "method": "POST",
-        "path": "/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=start&call=01969b47-401b-76f8-ba00-bd7f0d08e671",
+        "path": "/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=start&call=01969b47-401b-76f8-aac5-d9d0ae409dbe",
         "body": "AnsweredBy=machine_start&CallStatus=in-progress",
         "status": 200,
         "response": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Response><!--status updated: E, next_attempt: 2025-05-04 13:34:42.123456789 +0000 UTC--><Say>An error has occurred, please try again later.</Say><Hangup></Hangup></Response>",
@@ -668,7 +668,7 @@
         "path": "/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/incoming",
         "body": "CallSid=Call4&CallStatus=ringing&Caller=%2B16055741111",
         "status": 200,
-        "response": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Response>\n  <Gather numDigits=\"1\" timeout=\"30\" action=\"https://localhost:8190/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&amp;call=01969b4a-bea3-76f8-b19f-d98753239d65&amp;wait_type=gather\">\n    <Say language=\"en-US\">Hello there. Please enter one or two.</Say>\n  </Gather>\n  <Redirect>https://localhost:8190/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&amp;call=01969b4a-bea3-76f8-b19f-d98753239d65&amp;wait_type=gather&amp;timeout=true</Redirect>\n</Response>",
+        "response": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Response>\n  <Gather numDigits=\"1\" timeout=\"30\" action=\"https://localhost:8190/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&amp;call=01969b4a-bea3-76f8-80a2-9fcfe8176188&amp;wait_type=gather\">\n    <Say language=\"en-US\">Hello there. Please enter one or two.</Say>\n  </Gather>\n  <Redirect>https://localhost:8190/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&amp;call=01969b4a-bea3-76f8-80a2-9fcfe8176188&amp;wait_type=gather&amp;timeout=true</Redirect>\n</Response>",
         "db_assertions": [
             {
                 "query": "SELECT external_id, status FROM ivr_call",
@@ -683,7 +683,7 @@
         "expected_history": [
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b4a-c28b-76f8-9418-6d3e4ae5a100",
+                "SK": "evt#01969b4a-c28b-76f8-9420-7dfb872f758a",
                 "OrgID": 1,
                 "TTL": "2026-05-04T12:34:51Z",
                 "Data": {
@@ -696,7 +696,7 @@
             },
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b4a-ca5b-76f8-b715-6b60849cfb2b",
+                "SK": "evt#01969b4a-ca5b-76f8-8e71-2881455dd0a1",
                 "OrgID": 1,
                 "Data": {
                     "call": {
@@ -705,7 +705,7 @@
                             "uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8"
                         },
                         "urn": "tel:+16055741111",
-                        "uuid": "01969b4a-bea3-76f8-b19f-d98753239d65"
+                        "uuid": "01969b4a-bea3-76f8-80a2-9fcfe8176188"
                     },
                     "created_on": "2025-05-04T12:34:53.123456789Z",
                     "type": "call_received"
@@ -713,7 +713,7 @@
             },
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b4a-e5b3-76f8-a2a5-6b6ffeeada26",
+                "SK": "evt#01969b4a-e5b3-76f8-97c4-496959aec522",
                 "OrgID": 1,
                 "Data": {
                     "created_on": "2025-05-04T12:35:00.123456789Z",
@@ -722,13 +722,13 @@
                         "revision": 1,
                         "uuid": "2f81d0ea-4d75-4843-9371-3f7465311cce"
                     },
-                    "run_uuid": "01969b4a-e1cb-76f8-962a-76fbcac8bf7f",
+                    "run_uuid": "01969b4a-e1cb-76f8-aa7e-cd90025a3a0a",
                     "type": "run_started"
                 }
             },
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b4a-f93b-76f8-aac5-484f64970a84",
+                "SK": "evt#01969b4a-f93b-76f8-ae98-2b6e4d9509bc",
                 "OrgID": 1,
                 "Data": {
                     "created_on": "2025-05-04T12:35:05.123456789Z",
@@ -749,10 +749,10 @@
     {
         "label": "handle resume with digits we're waiting for",
         "method": "POST",
-        "path": "/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&call=01969b4a-bea3-76f8-b19f-d98753239d65",
+        "path": "/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&call=01969b4a-bea3-76f8-80a2-9fcfe8176188",
         "body": "CallStatus=in-progress&Digits=2&wait_type=gather",
         "status": 200,
-        "response": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Response>\n  <Gather timeout=\"30\" action=\"https://localhost:8190/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&amp;call=01969b4a-bea3-76f8-b19f-d98753239d65&amp;wait_type=gather\">\n    <Say language=\"en-US\">Great! You said Two. Ok, now enter a number 1 to 100 then press pound.</Say>\n  </Gather>\n  <Redirect>https://localhost:8190/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&amp;call=01969b4a-bea3-76f8-b19f-d98753239d65&amp;wait_type=gather&amp;timeout=true</Redirect>\n</Response>",
+        "response": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Response>\n  <Gather timeout=\"30\" action=\"https://localhost:8190/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&amp;call=01969b4a-bea3-76f8-80a2-9fcfe8176188&amp;wait_type=gather\">\n    <Say language=\"en-US\">Great! You said Two. Ok, now enter a number 1 to 100 then press pound.</Say>\n  </Gather>\n  <Redirect>https://localhost:8190/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&amp;call=01969b4a-bea3-76f8-80a2-9fcfe8176188&amp;wait_type=gather&amp;timeout=true</Redirect>\n</Response>",
         "db_assertions": [
             {
                 "query": "SELECT external_id, status FROM ivr_call",
@@ -771,7 +771,7 @@
         "expected_history": [
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b4b-3f8b-76f8-9c41-cf3f881022fb",
+                "SK": "evt#01969b4b-3f8b-76f8-9507-15f7876c8be4",
                 "OrgID": 1,
                 "Data": {
                     "created_on": "2025-05-04T12:35:24.123456789Z",
@@ -788,7 +788,7 @@
             },
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b4b-6e6b-76f8-bdc4-de873c294fa4",
+                "SK": "evt#01969b4b-6e6b-76f8-91e4-de408a0ccdb2",
                 "OrgID": 1,
                 "Data": {
                     "created_on": "2025-05-04T12:35:35.123456789Z",
@@ -828,7 +828,7 @@
         "expected_history": [
             {
                 "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
-                "SK": "evt#01969b4b-b0d3-76f8-b1ab-eaf1963053e5",
+                "SK": "evt#01969b4b-b0d3-76f8-ab89-93324df1eb69",
                 "OrgID": 1,
                 "TTL": "2026-05-04T12:35:52Z",
                 "Data": {
@@ -841,7 +841,7 @@
             },
             {
                 "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
-                "SK": "evt#01969b4b-b8a3-76f8-953f-02873e472264",
+                "SK": "evt#01969b4b-b8a3-76f8-97e3-bf1ca02ffae6",
                 "OrgID": 1,
                 "Data": {
                     "call": {
@@ -850,7 +850,7 @@
                             "uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8"
                         },
                         "urn": "tel:+16055742222",
-                        "uuid": "01969b4b-aceb-76f8-b7c0-f8febf09c836"
+                        "uuid": "01969b4b-aceb-76f8-aba8-caa2ef205ed3"
                     },
                     "created_on": "2025-05-04T12:35:54.123456789Z",
                     "type": "call_received"

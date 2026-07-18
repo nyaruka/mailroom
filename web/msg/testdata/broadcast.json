@@ -97,7 +97,7 @@
                     "type": "send_broadcast",
                     "payload": {
                         "broadcast_id": 30000,
-                        "broadcast_uuid": "01969b47-0583-76f8-ae7f-f8b243c49ff5",
+                        "broadcast_uuid": "01969b47-0583-76f8-924e-9de1a11831b3",
                         "org_id": 1,
                         "status": "P",
                         "translations": {
@@ -166,7 +166,7 @@
                     "type": "send_broadcast",
                     "payload": {
                         "broadcast_id": 30001,
-                        "broadcast_uuid": "01969b47-0d53-76f8-bd38-d266ec8d3716",
+                        "broadcast_uuid": "01969b47-0d53-76f8-98c7-1f0d5859f77e",
                         "org_id": 1,
                         "status": "P",
                         "translations": {

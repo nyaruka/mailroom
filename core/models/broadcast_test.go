@@ -166,7 +166,7 @@ func TestBroadcastSend(t *testing.T) {
 			baseLanguage:    "eng",
 			expressions:     false,
 			expected: []byte(`{
-				"uuid": "01969b47-0d53-76f8-9c0b-2014ddc77094",
+				"uuid": "01969b47-0d53-76f8-95cf-9fca95f1c30a",
 				"type": "msg_created",
 				"created_on": "2025-05-04T12:30:48.123456789Z",
 				"msg": {
@@ -178,7 +178,7 @@ func TestBroadcastSend(t *testing.T) {
 					"text": "Hi @contact",
 					"locale": "eng-EC"
 				},
-				"broadcast_uuid": "01969b47-0583-76f8-bd38-d266ec8d3716"
+				"broadcast_uuid": "01969b47-0583-76f8-98c7-1f0d5859f77e"
 			}`),
 		},
 		{ // 1: contact language not set, uses base language
@@ -188,7 +188,7 @@ func TestBroadcastSend(t *testing.T) {
 			baseLanguage:    "eng",
 			expressions:     true,
 			expected: []byte(`{
-				"uuid": "01969b47-1cf3-76f8-8f41-6b2d9f33d623",
+				"uuid": "01969b47-1cf3-76f8-b774-0a98171a0712",
 				"type": "msg_created",
 				"created_on": "2025-05-04T12:30:52.123456789Z",
 				"msg": {
@@ -200,7 +200,7 @@ func TestBroadcastSend(t *testing.T) {
 					"text": "Hello Felix",
 					"locale": "eng-EC"
 				},
-				"broadcast_uuid": "01969b47-1523-76f8-8228-9728778b6c98"
+				"broadcast_uuid": "01969b47-1523-76f8-b20c-e3cb6203e029"
 			}`),
 		},
 		{ // 2: contact language iggnored if it isn't a valid org language, even if translation exists
@@ -210,7 +210,7 @@ func TestBroadcastSend(t *testing.T) {
 			baseLanguage:    "eng",
 			expressions:     true,
 			expected: []byte(`{
-				"uuid": "01969b47-2c93-76f8-b86e-4b881f09a186",
+				"uuid": "01969b47-2c93-76f8-9729-57745fb13b06",
 				"type": "msg_created",
 				"created_on": "2025-05-04T12:30:56.123456789Z",
 				"msg": {
@@ -222,7 +222,7 @@ func TestBroadcastSend(t *testing.T) {
 					"text": "Hello Felix",
 					"locale": "eng-EC"
 				},
-				"broadcast_uuid": "01969b47-24c3-76f8-ba00-bd7f0d08e671"
+				"broadcast_uuid": "01969b47-24c3-76f8-aac5-d9d0ae409dbe"
 			}`),
 		},
 		{ // 3: contact language used
@@ -235,7 +235,7 @@ func TestBroadcastSend(t *testing.T) {
 			baseLanguage: "eng",
 			expressions:  true,
 			expected: []byte(`{
-				"uuid": "01969b47-3c33-76f8-8dbf-00ecf5d03034",
+				"uuid": "01969b47-3c33-76f8-89aa-1577771fa183",
 				"type": "msg_created",
 				"created_on": "2025-05-04T12:31:00.123456789Z",
 				"msg": {
@@ -260,7 +260,7 @@ func TestBroadcastSend(t *testing.T) {
 					],
 					"locale": "fra-EC"
 				},
-				"broadcast_uuid": "01969b47-3463-76f8-bebe-b4a1f677cf4c"
+				"broadcast_uuid": "01969b47-3463-76f8-8b42-056e0211d5b9"
 			}`),
 		},
 		{ // 4: broadcast with template
@@ -272,7 +272,7 @@ func TestBroadcastSend(t *testing.T) {
 			templateID:        testdb.ReviveTemplate.ID,
 			templateVariables: []string{"@contact.name", "mice"},
 			expected: []byte(`{
-				"uuid": "01969b47-4bd3-76f8-9654-8a7258fbaae4",
+				"uuid": "01969b47-4bd3-76f8-b384-a4094c3d60be",
 				"type": "msg_created",
 				"created_on": "2025-05-04T12:31:04.123456789Z",
 				"msg": {
@@ -310,7 +310,7 @@ func TestBroadcastSend(t *testing.T) {
 					},
 					"locale": "eng-US"
 				},
-				"broadcast_uuid": "01969b47-4403-76f8-afcb-91a2073e5459"
+				"broadcast_uuid": "01969b47-4403-76f8-a943-ec055bbeb3b4"
 			}`),
 		},
 	}

@@ -4,11 +4,11 @@
         "events": {
             "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
                 {
-                    "uuid": "01969b47-307b-76f8-9853-0310d032b497",
+                    "uuid": "01969b47-307b-76f8-b4dd-bb13b355a627",
                     "type": "ticket_opened",
                     "created_on": "2025-05-04T12:30:57.123456789Z",
                     "ticket": {
-                        "uuid": "01969b47-2c93-76f8-bec9-e032f4f9af5f",
+                        "uuid": "01969b47-2c93-76f8-bffe-b26e15b12b0f",
                         "status": "open",
                         "topic": {
                             "uuid": "0a8f2e00-fef6-402c-bd79-d789446ec0e0",
@@ -21,7 +21,7 @@
                     }
                 },
                 {
-                    "uuid": "01969b47-384b-76f8-8ab7-4a517a86045c",
+                    "uuid": "01969b47-384b-76f8-9aeb-7faa667f1355",
                     "type": "contact_groups_changed",
                     "created_on": "2025-05-04T12:30:59.123456789Z",
                     "groups_added": [
@@ -34,11 +34,11 @@
             ],
             "b699a406-7e44-49be-9f01-1a82893e8a10": [
                 {
-                    "uuid": "01969b47-7e9b-76f8-8768-7d0ba4d4f3e8",
+                    "uuid": "01969b47-7e9b-76f8-a96b-7a2ea92d0f00",
                     "type": "ticket_opened",
                     "created_on": "2025-05-04T12:31:17.123456789Z",
                     "ticket": {
-                        "uuid": "01969b47-7ab3-76f8-be24-6164105d48f2",
+                        "uuid": "01969b47-7ab3-76f8-99b2-e3c62e5695d5",
                         "status": "open",
                         "topic": {
                             "uuid": "4307df2e-b00b-42b6-922b-4a1dcfc268d8",
@@ -47,7 +47,7 @@
                     }
                 },
                 {
-                    "uuid": "01969b47-866b-76f8-b63d-c8dcc2fa9de0",
+                    "uuid": "01969b47-866b-76f8-88c7-56bcb29ae35a",
                     "type": "contact_groups_changed",
                     "created_on": "2025-05-04T12:31:19.123456789Z",
                     "groups_added": [
@@ -94,7 +94,7 @@
         "expected_history": [
             {
                 "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
-                "SK": "evt#01969b47-7e9b-76f8-8768-7d0ba4d4f3e8",
+                "SK": "evt#01969b47-7e9b-76f8-a96b-7a2ea92d0f00",
                 "OrgID": 1,
                 "Data": {
                     "created_on": "2025-05-04T12:31:17.123456789Z",
@@ -104,14 +104,14 @@
                             "name": "General",
                             "uuid": "4307df2e-b00b-42b6-922b-4a1dcfc268d8"
                         },
-                        "uuid": "01969b47-7ab3-76f8-be24-6164105d48f2"
+                        "uuid": "01969b47-7ab3-76f8-99b2-e3c62e5695d5"
                     },
                     "type": "ticket_opened"
                 }
             },
             {
                 "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
-                "SK": "evt#01969b47-866b-76f8-b63d-c8dcc2fa9de0",
+                "SK": "evt#01969b47-866b-76f8-88c7-56bcb29ae35a",
                 "OrgID": 1,
                 "TTL": "2026-05-04T12:31:19Z",
                 "Data": {
@@ -127,7 +127,7 @@
             },
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b47-307b-76f8-9853-0310d032b497",
+                "SK": "evt#01969b47-307b-76f8-b4dd-bb13b355a627",
                 "OrgID": 1,
                 "Data": {
                     "created_on": "2025-05-04T12:30:57.123456789Z",
@@ -141,14 +141,14 @@
                             "name": "Support",
                             "uuid": "0a8f2e00-fef6-402c-bd79-d789446ec0e0"
                         },
-                        "uuid": "01969b47-2c93-76f8-bec9-e032f4f9af5f"
+                        "uuid": "01969b47-2c93-76f8-bffe-b26e15b12b0f"
                     },
                     "type": "ticket_opened"
                 }
             },
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b47-384b-76f8-8ab7-4a517a86045c",
+                "SK": "evt#01969b47-384b-76f8-9aeb-7faa667f1355",
                 "OrgID": 1,
                 "TTL": "2026-05-04T12:30:59Z",
                 "Data": {
