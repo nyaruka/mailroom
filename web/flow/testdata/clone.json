@@ -71,7 +71,7 @@
         "response": {
             "_ui": {
                 "nodes": {
-                    "d2f852ec-7b4e-457f-ae7f-f8b243c49ff5": {
+                    "1b2083ab-a0cb-48da-924e-9de1a11831b3": {
                         "position": {
                             "left": 100,
                             "top": 0
@@ -96,20 +96,20 @@
                                 }
                             ],
                             "type": "add_contact_groups",
-                            "uuid": "692926ea-09d6-4942-bd38-d266ec8d3716"
+                            "uuid": "ad9bdcfa-5604-4542-98c7-1f0d5859f77e"
                         },
                         {
                             "text": "Your birthdate is soon",
                             "type": "send_msg",
-                            "uuid": "8720f157-ca1c-432f-9c0b-2014ddc77094"
+                            "uuid": "b26fcae1-abb6-49f8-95cf-9fca95f1c30a"
                         }
                     ],
                     "exits": [
                         {
-                            "uuid": "c34b6c7d-fa06-4563-92a3-d648ab64bccb"
+                            "uuid": "5a66dd9c-356e-4287-92ed-42cbd11a03fd"
                         }
                     ],
-                    "uuid": "d2f852ec-7b4e-457f-ae7f-f8b243c49ff5"
+                    "uuid": "1b2083ab-a0cb-48da-924e-9de1a11831b3"
                 }
             ],
             "revision": 106,
@@ -213,24 +213,24 @@
                             "groups": [
                                 {
                                     "name": "Testers",
-                                    "uuid": "312d3af0-a565-4c96-ba00-bd7f0d08e671"
+                                    "uuid": "58807946-ec31-4051-aac5-d9d0ae409dbe"
                                 }
                             ],
                             "type": "add_contact_groups",
-                            "uuid": "5ecda5fc-951c-437b-a17e-f85e49829fb9"
+                            "uuid": "21ba4570-846e-4143-a7eb-cc4cc9ec3e6b"
                         },
                         {
                             "text": "Your birthdate is soon",
                             "type": "send_msg",
-                            "uuid": "a4d15ed4-5b24-407f-b86e-4b881f09a186"
+                            "uuid": "a5111699-b2f8-4a37-9729-57745fb13b06"
                         }
                     ],
                     "exits": [
                         {
-                            "uuid": "b88ce93d-4360-4455-a691-235cbe720980"
+                            "uuid": "75e76fb0-f35a-4a2c-9d79-c694bc69dcd1"
                         }
                     ],
-                    "uuid": "970b8069-50f5-4f6f-8f41-6b2d9f33d623"
+                    "uuid": "845e94fd-f9c4-48b0-b774-0a98171a0712"
                 }
             ],
             "revision": 106,

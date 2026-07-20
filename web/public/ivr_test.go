@@ -105,9 +105,9 @@ func TestTwilioIVR(t *testing.T) {
 		testdb.Cat.ID, models.CallStatusWired, "Call3").Returns(1)
 
 	// give calls known UUIDs
-	rt.DB.MustExec(`UPDATE ivr_call SET uuid = '01969b47-190b-76f8-92a3-d648ab64bccb' WHERE external_id = 'Call1'`)
-	rt.DB.MustExec(`UPDATE ivr_call SET uuid = '01969b47-2c93-76f8-8f41-6b2d9f33d623' WHERE external_id = 'Call2'`)
-	rt.DB.MustExec(`UPDATE ivr_call SET uuid = '01969b47-401b-76f8-ba00-bd7f0d08e671' WHERE external_id = 'Call3'`)
+	rt.DB.MustExec(`UPDATE ivr_call SET uuid = '01969b47-190b-76f8-92ed-42cbd11a03fd' WHERE external_id = 'Call1'`)
+	rt.DB.MustExec(`UPDATE ivr_call SET uuid = '01969b47-2c93-76f8-b774-0a98171a0712' WHERE external_id = 'Call2'`)
+	rt.DB.MustExec(`UPDATE ivr_call SET uuid = '01969b47-401b-76f8-aac5-d9d0ae409dbe' WHERE external_id = 'Call3'`)
 
 	testsuite.RunWebTests(t, rt, "./testdata/ivr_twilio.json")
 
@@ -206,8 +206,8 @@ func TestVonageIVR(t *testing.T) {
 		testdb.Cat.ID, models.CallStatusWired, "Call2").Returns(1)
 
 	// give calls known UUIDs
-	rt.DB.MustExec(`UPDATE ivr_call SET uuid = '01969b47-190b-76f8-92a3-d648ab64bccb' WHERE external_id = 'Call1'`)
-	rt.DB.MustExec(`UPDATE ivr_call SET uuid = '01969b47-2c93-76f8-8f41-6b2d9f33d623' WHERE external_id = 'Call2'`)
+	rt.DB.MustExec(`UPDATE ivr_call SET uuid = '01969b47-190b-76f8-92ed-42cbd11a03fd' WHERE external_id = 'Call1'`)
+	rt.DB.MustExec(`UPDATE ivr_call SET uuid = '01969b47-2c93-76f8-b774-0a98171a0712' WHERE external_id = 'Call2'`)
 
 	testsuite.RunWebTests(t, rt, "./testdata/ivr_vonage.json")
 

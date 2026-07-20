@@ -13,7 +13,7 @@ var transactionConfirmedResponse = `{
 	"creation_date": "2021-03-24T20:05:05.883561000Z",
 	"confirmation_date": "2021-03-24T20:05:06.111631000Z",
 	"credit_party_identifier": {"mobile_number": "+16055741111"},
-	"external_id": "01969b47-47eb-76f8-8e78-3bde7b3370ae",
+	"external_id": "01969b47-47eb-76f8-b3a5-b9dac4767740",
 	"id": 2237512891,
 	"status": {
 		"class": {"id": 2, "message": "CONFIRMED"},

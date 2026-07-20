@@ -4,13 +4,13 @@
         "events": {
             "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
                 {
-                    "uuid": "01969b47-2c93-76f8-9654-8a7258fbaae4",
+                    "uuid": "01969b47-2c93-76f8-b384-a4094c3d60be",
                     "type": "contact_status_changed",
                     "created_on": "2025-05-04T12:30:56.123456789Z",
                     "status": "blocked"
                 },
                 {
-                    "uuid": "01969b47-3463-76f8-8e78-3bde7b3370ae",
+                    "uuid": "01969b47-3463-76f8-b3a5-b9dac4767740",
                     "type": "contact_groups_changed",
                     "created_on": "2025-05-04T12:30:58.123456789Z",
                     "groups_removed": [
@@ -34,7 +34,7 @@
         "expected_history": [
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b47-2c93-76f8-9654-8a7258fbaae4",
+                "SK": "evt#01969b47-2c93-76f8-b384-a4094c3d60be",
                 "OrgID": 1,
                 "Data": {
                     "created_on": "2025-05-04T12:30:56.123456789Z",
@@ -44,7 +44,7 @@
             },
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b47-3463-76f8-8e78-3bde7b3370ae",
+                "SK": "evt#01969b47-3463-76f8-b3a5-b9dac4767740",
                 "OrgID": 1,
                 "TTL": "2026-05-04T12:30:58Z",
                 "Data": {
@@ -65,7 +65,7 @@
         "events": {
             "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
                 {
-                    "uuid": "01969b48-0f23-76f8-8c15-15a7c0c5228d",
+                    "uuid": "01969b48-0f23-76f8-9455-dca0efc034b0",
                     "type": "contact_status_changed",
                     "created_on": "2025-05-04T12:31:54.123456789Z",
                     "status": "stopped"
@@ -84,7 +84,7 @@
         "expected_history": [
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b48-0f23-76f8-8c15-15a7c0c5228d",
+                "SK": "evt#01969b48-0f23-76f8-9455-dca0efc034b0",
                 "OrgID": 1,
                 "Data": {
                     "created_on": "2025-05-04T12:31:54.123456789Z",
@@ -99,7 +99,7 @@
         "events": {
             "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
                 {
-                    "uuid": "01969b48-e9e3-76f8-8742-c1eff0201012",
+                    "uuid": "01969b48-e9e3-76f8-a1fe-775299733346",
                     "type": "contact_status_changed",
                     "created_on": "2025-05-04T12:32:50.123456789Z",
                     "status": "active"
@@ -115,7 +115,7 @@
         "expected_history": [
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b48-e9e3-76f8-8742-c1eff0201012",
+                "SK": "evt#01969b48-e9e3-76f8-a1fe-775299733346",
                 "OrgID": 1,
                 "Data": {
                     "created_on": "2025-05-04T12:32:50.123456789Z",

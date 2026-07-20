@@ -22,9 +22,6 @@
             ]
         },
         "dynamo": {
-            "PK": {
-                "S": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf"
-            },
             "SK": {
                 "S": "evt#0197b335-6ded-79a4-95a6-3af85b57f108"
             },
@@ -33,37 +30,16 @@
             },
             "Data": {
                 "M": {
-                    "type": {
-                        "S": "airtime_created"
-                    },
-                    "created_on": {
-                        "S": "2006-01-02T15:04:05Z"
+                    "currency": {
+                        "S": "RWF"
                     },
                     "amount": {
                         "N": "100"
-                    },
-                    "external_id": {
-                        "S": "12345678"
-                    },
-                    "sender": {
-                        "S": "tel:4748"
-                    },
-                    "recipient": {
-                        "S": "tel:+1242563637"
-                    },
-                    "currency": {
-                        "S": "RWF"
                     },
                     "http_logs": {
                         "L": [
                             {
                                 "M": {
-                                    "response": {
-                                        "S": "HTTP/1.1 200 OK\r\n\r\n{}"
-                                    },
-                                    "elapsed_ms": {
-                                        "N": "123"
-                                    },
                                     "retries": {
                                         "N": "0"
                                     },
@@ -78,18 +54,42 @@
                                     },
                                     "request": {
                                         "S": "POST /v1/sync/transactions HTTP/1.1\r\n\r\n{}"
+                                    },
+                                    "response": {
+                                        "S": "HTTP/1.1 200 OK\r\n\r\n{}"
+                                    },
+                                    "elapsed_ms": {
+                                        "N": "123"
                                     }
                                 }
                             }
                         ]
+                    },
+                    "type": {
+                        "S": "airtime_created"
+                    },
+                    "sender": {
+                        "S": "tel:4748"
+                    },
+                    "created_on": {
+                        "S": "2006-01-02T15:04:05Z"
+                    },
+                    "external_id": {
+                        "S": "12345678"
+                    },
+                    "recipient": {
+                        "S": "tel:+1242563637"
                     }
                 }
+            },
+            "PK": {
+                "S": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf"
             }
         }
     },
     {
         "event": {
-            "uuid": "01969b47-2c93-76f8-8f41-6b2d9f33d623",
+            "uuid": "01969b47-2c93-76f8-b774-0a98171a0712",
             "type": "contact_field_changed",
             "created_on": "2025-05-04T12:30:56.123456789Z",
             "field": {
@@ -105,7 +105,7 @@
                 "S": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf"
             },
             "SK": {
-                "S": "evt#01969b47-2c93-76f8-8f41-6b2d9f33d623"
+                "S": "evt#01969b47-2c93-76f8-b774-0a98171a0712"
             },
             "OrgID": {
                 "N": "1"
@@ -115,13 +115,16 @@
             },
             "Data": {
                 "M": {
+                    "created_on": {
+                        "S": "2025-05-04T12:30:56.123456789Z"
+                    },
                     "field": {
                         "M": {
-                            "key": {
-                                "S": "age"
-                            },
                             "name": {
                                 "S": "Age"
+                            },
+                            "key": {
+                                "S": "age"
                             }
                         }
                     },
@@ -134,9 +137,6 @@
                     },
                     "type": {
                         "S": "contact_field_changed"
-                    },
-                    "created_on": {
-                        "S": "2025-05-04T12:30:56.123456789Z"
                     }
                 }
             }
@@ -144,7 +144,7 @@
     },
     {
         "event": {
-            "uuid": "01969b47-3463-76f8-a17e-f85e49829fb9",
+            "uuid": "01969b47-3463-76f8-a7eb-cc4cc9ec3e6b",
             "type": "contact_groups_changed",
             "created_on": "2025-05-04T12:30:58.123456789Z",
             "groups_added": [
@@ -165,26 +165,20 @@
             ]
         },
         "dynamo": {
-            "OrgID": {
-                "N": "1"
-            },
             "TTL": {
                 "N": "1777897858"
             },
             "Data": {
                 "M": {
-                    "created_on": {
-                        "S": "2025-05-04T12:30:58.123456789Z"
-                    },
                     "groups_added": {
                         "L": [
                             {
                                 "M": {
-                                    "name": {
-                                        "S": "Males"
-                                    },
                                     "uuid": {
                                         "S": "0ec97956-c451-48a0-a180-1ce766623e31"
+                                    },
+                                    "name": {
+                                        "S": "Males"
                                     }
                                 }
                             },
@@ -216,6 +210,9 @@
                     },
                     "type": {
                         "S": "contact_groups_changed"
+                    },
+                    "created_on": {
+                        "S": "2025-05-04T12:30:58.123456789Z"
                     }
                 }
             },
@@ -223,27 +220,21 @@
                 "S": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf"
             },
             "SK": {
-                "S": "evt#01969b47-3463-76f8-a17e-f85e49829fb9"
+                "S": "evt#01969b47-3463-76f8-a7eb-cc4cc9ec3e6b"
+            },
+            "OrgID": {
+                "N": "1"
             }
         }
     },
     {
         "event": {
-            "uuid": "01969b47-28ab-76f8-8f41-6b2d9f33d623",
+            "uuid": "01969b47-28ab-76f8-b774-0a98171a0712",
             "type": "contact_language_changed",
             "created_on": "2025-05-04T12:30:55.123456789Z",
             "language": "spa"
         },
         "dynamo": {
-            "PK": {
-                "S": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf"
-            },
-            "SK": {
-                "S": "evt#01969b47-28ab-76f8-8f41-6b2d9f33d623"
-            },
-            "OrgID": {
-                "N": "1"
-            },
             "TTL": {
                 "N": "1777897855"
             },
@@ -259,20 +250,26 @@
                         "S": "spa"
                     }
                 }
+            },
+            "PK": {
+                "S": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf"
+            },
+            "SK": {
+                "S": "evt#01969b47-28ab-76f8-b774-0a98171a0712"
+            },
+            "OrgID": {
+                "N": "1"
             }
         }
     },
     {
         "event": {
-            "uuid": "01969b47-28ab-76f8-8f41-6b2d9f33d623",
+            "uuid": "01969b47-28ab-76f8-b774-0a98171a0712",
             "type": "contact_language_changed",
             "created_on": "2025-05-04T12:30:55.123456789Z",
             "language": ""
         },
         "dynamo": {
-            "SK": {
-                "S": "evt#01969b47-28ab-76f8-8f41-6b2d9f33d623"
-            },
             "OrgID": {
                 "N": "1"
             },
@@ -294,12 +291,15 @@
             },
             "PK": {
                 "S": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf"
+            },
+            "SK": {
+                "S": "evt#01969b47-28ab-76f8-b774-0a98171a0712"
             }
         }
     },
     {
         "event": {
-            "uuid": "01969b47-28ab-76f8-8f41-6b2d9f33d623",
+            "uuid": "01969b47-28ab-76f8-b774-0a98171a0712",
             "type": "contact_name_changed",
             "created_on": "2025-05-04T12:30:55.123456789Z",
             "_user": {
@@ -309,8 +309,11 @@
             "name": "Bryan"
         },
         "dynamo": {
+            "PK": {
+                "S": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf"
+            },
             "SK": {
-                "S": "evt#01969b47-28ab-76f8-8f41-6b2d9f33d623"
+                "S": "evt#01969b47-28ab-76f8-b774-0a98171a0712"
             },
             "OrgID": {
                 "N": "1"
@@ -340,15 +343,12 @@
                         "S": "Bryan"
                     }
                 }
-            },
-            "PK": {
-                "S": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf"
             }
         }
     },
     {
         "event": {
-            "uuid": "01969b47-3463-76f8-a17e-f85e49829fb9",
+            "uuid": "01969b47-3463-76f8-a7eb-cc4cc9ec3e6b",
             "type": "contact_urns_changed",
             "created_on": "2025-05-04T12:30:58.123456789Z",
             "urns": [
@@ -358,8 +358,11 @@
             ]
         },
         "dynamo": {
+            "PK": {
+                "S": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf"
+            },
             "SK": {
-                "S": "evt#01969b47-3463-76f8-a17e-f85e49829fb9"
+                "S": "evt#01969b47-3463-76f8-a7eb-cc4cc9ec3e6b"
             },
             "OrgID": {
                 "N": "1"
@@ -369,6 +372,12 @@
             },
             "Data": {
                 "M": {
+                    "type": {
+                        "S": "contact_urns_changed"
+                    },
+                    "created_on": {
+                        "S": "2025-05-04T12:30:58.123456789Z"
+                    },
                     "urns": {
                         "L": [
                             {
@@ -381,23 +390,14 @@
                                 "S": "mailto:bob@nyaruka.com"
                             }
                         ]
-                    },
-                    "type": {
-                        "S": "contact_urns_changed"
-                    },
-                    "created_on": {
-                        "S": "2025-05-04T12:30:58.123456789Z"
                     }
                 }
-            },
-            "PK": {
-                "S": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf"
             }
         }
     },
     {
         "event": {
-            "uuid": "01969b47-672b-76f8-bebe-b4a1f677cf4c",
+            "uuid": "01969b47-672b-76f8-8b42-056e0211d5b9",
             "type": "session_triggered",
             "created_on": "2025-05-04T12:31:11.123456789Z",
             "flow": {
@@ -480,15 +480,18 @@
                     }
                 },
                 "status": "active",
-                "uuid": "01969b47-113b-76f8-9c0b-2014ddc77094"
+                "uuid": "01969b47-113b-76f8-95cf-9fca95f1c30a"
             },
             "history": {
-                "parent_uuid": "01969b47-0583-76f8-ae7f-f8b243c49ff5",
+                "parent_uuid": "01969b47-0583-76f8-924e-9de1a11831b3",
                 "ancestors": 1,
                 "ancestors_since_input": 0
             }
         },
         "dynamo": {
+            "OrgID": {
+                "N": "1"
+            },
             "Data": {
                 "M": {
                     "type": {
@@ -497,22 +500,19 @@
                 }
             },
             "DataGZ": {
-                "B": "H4sIAAAAAAAA/6RVXY/dNBD9K5FficGfcZIntpUKCPGy9KHdUkVje3xrNddZEmc/Wt3/jpyb3i6loEpIeYjt0Zk5Z47HH8m6Rk96wnjXdFYZ2hhhqWlCSy1apFYBD40xLihHapIfb5H0ZMFliVMa8hwPB5zRk5q4GSGjH6ZEeiKY0JRpytRLLnrJe86/50Iq3Zi2uyE1CeN0T/pLemtcYL6VNHDXUcW5o10TPHWac1AuQNuUHAmOJf01HuKSZ8hxStWLgnSqiZtSBpcX0r+5wLaCBd0JSaVsCqxrqJXOUwjaGMesV7b9DPtssuT0tib44Ma18FtI//FUk3lNw7IejzA/lpL3RNvv3zkzRhmnjL9krN++jWnE0RckAi7Hu63oIU/vMZW9jA+Z9OTVq1f09evX9ObmpnAJcV7ycC7rEvMMUzmb4X7whX4817Cf/lKN8Q6rmKoDLGCnErpkyBvC/kOu7yF5qP5YGZNY/RoPMMbqecyPpbVnnH8POZ1qcpin9fYs8S7a7+t8h4/V1eojJoek/qS9APCCh4ZKZg1VwmlqvQmUWyOY41q13JBTfQF6kqr6DY8W5+UzmDchqNYI2gnZUqVFoJ2XLRVB6zYgtB2yrXclejdaTUZIhxUOBR3TgZSNJQ8LYrp0rNk6Jl5y3TPVM33zxA6Yqp+h+HvTp2i4LqQ/t7EQzfGIH6ZUYq+OOEcHP/y0wiP8ucaxlD4XA70hGcf+Oy5Yo7XmgoviCXBop+l9z7kQUiqlddMY0xYzHiGOeeotph+P4N6PeJzmLdt9zBnncjC8+1TW24tCFrrGBhOodQKoao2kYJyhQivPO2GcQrlZa794O8mrcayuXN7MfsFqHSjlWEdNxz1VWgLtTNdRMMx7KZmUrNmsiMs65s3bIoDL07xdCsh4mMpdIWUs7KthnByM8QP6ff8/x4Uw+7go/cCHPAPp0zqONYnpds1niJ2CeHFOXZM0eRx2DkFb21kD1FiNVGknaRsY0oZbhZ1GH5gkNbmDcS0gUjVSNUKpRmqhN6HgbppjxsFN4z+IXZ9H3te4XX/DNBTi2+m92Ouonm91/C+WZVKfTl/z8pfPAOdyfwY6xywVjCvvnTGsU0Wcd3HJ03kc3sKMKQ9fAjDdyjMAoAk0tFYo6VQXgiY1geSwICyk509WwxKTw2EXgZ1OfwUAAP//2W7dH6AGAAA="
+                "B": "H4sIAAAAAAAA/6RVy47cNhD8FYHXiAmfoqRT1gacBEEuGx/sdQyhSTbHhDXURqL2YWP+PaBGHm8cJzAQQAeJJKqrqoutj2Rdoyc9YbxrOqsMbYyw1DShpa1VgjLdIBOce207UpP8eIukJwsuS5zSkOd4OOCMntTEzQgZ/TAl0hPBhKZMU6ZectFL3nP+PRdS6ca03Q2pSRine9JfylvjAvOtpIG7jirOHe2a4KnTnINyAdqm1EhwLOWv8RCXPEOOU6peFKRTTdyUMri8kP7NBbYVLOhOSCplU2BdQ610nkLQxjhmvbLtZ9hnkyWntzXBBzeuRd9C+o+nmsxrGpb1eIT5sVDeC22vf9fMGGWcMv6SsX57NqURR1+QCLgc7zbSQ57eYyprGR8y6cmrV6/o69ev6c3NTdES4rzk4UzrcuYZprI3w/3gi/x45rDv/lKN8Q6rmKoDLGCncnTJkDeE/YVc30PyUP2xMiax+jUeYIzV85gfS2vPOP9+5HSqyWGe1tuzxbtpv6/zHT5WV6uPmByS+pP3AsALHhoqmTVUCaep9SZQbo1gjmvVckNO9QXoSanqNzxanJfPYN6EoFojaCdkS5UWgXZetlQErduA0HbItt6V03vQajJCOqxwKOiYDqQsLHlYENOlY83WMfGS656pnumbJ3HAVP0MJd+bP8XDdSH9uY1FaI5H/DClcvbqiHN08MNPKzzCn2scC/W5BOgNyTj233HBGq01F1yUTIBDO03ve86FkFIprZvGmLaE8QhxzFNvMf14BPd+xOM0b9XuY844l43h3Sdaby8OWegaG0yg1gmgqjWSgnGGCq0874RxCuUWrf3i7SKvxrG6cnkL+wWrdaCUYx01HfdUaQm0M11HwTDvpWRSsmaLIi7rmLdsiwAuT/N2KSDjYSp3hZSxsH8N4+RgjB/Q7+v/OS6E2cdF6Qc+5BlIn9ZxrElMt2s+Q+wSxItz6ZqkyeOwawja2s4aoMZqpEo7SdvAkDbcKuw0+sAkqckdjGsBkaqRqhFKNVILvRkFd9McMw5uGv8h7Po88r6m7fobpqEQ3y7vxc6jer7x+F8qy6Q+nb6W5S9/A5zL/TfQaRdoFxx0OnAnGRRz3sUlT+dxeAszpjx8CcB0K3cAoZB2Hjlw3kpuCyFIDgvCQnr+5GtYYnI47Caw0+mvAAAA//+Mw+wDoAYAAA=="
             },
             "PK": {
                 "S": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf"
             },
             "SK": {
-                "S": "evt#01969b47-672b-76f8-bebe-b4a1f677cf4c"
-            },
-            "OrgID": {
-                "N": "1"
+                "S": "evt#01969b47-672b-76f8-8b42-056e0211d5b9"
             }
         }
     },
     {
         "event": {
-            "uuid": "01969b47-672b-76f8-bebe-b4a1f677cf4c",
+            "uuid": "01969b47-672b-76f8-8b42-056e0211d5b9",
             "type": "session_triggered",
             "created_on": "2025-05-04T12:31:11.123456789Z",
             "_user": {
@@ -599,23 +599,20 @@
                     }
                 },
                 "status": "active",
-                "uuid": "01969b47-113b-76f8-9c0b-2014ddc77094"
+                "uuid": "01969b47-113b-76f8-95cf-9fca95f1c30a"
             },
             "history": {
-                "parent_uuid": "01969b47-0583-76f8-ae7f-f8b243c49ff5",
+                "parent_uuid": "01969b47-0583-76f8-924e-9de1a11831b3",
                 "ancestors": 1,
                 "ancestors_since_input": 0
             }
         },
         "dynamo": {
-            "DataGZ": {
-                "B": "H4sIAAAAAAAA/6SVz27cNhDGX0XgtWLLv6KkU50AaYuiFzeHxGkgDMnhhoiWciXKjhPsuxfUKms3TYsABXSQKOI3M998HH4i6xo96QnjXdNZZWhjhKWmCS21aJFaBTw0xrigHKlJfrhF0pMFlyVOachzPBxwRk9q4maEjH6YEumJYEJTpilTL7noJe85/54LqXRj2u6G1GRYF5xJf4mPogs+dIHqBixVQgC1xniKEp1oWMdBaFKTBMcS/yr5h+rKH2Mip5qEcbp/grLGBeZbSQN3HVWcO9o1wVOnOQflArSNf0Rd4yEueYYcp1S9KKRTTdyUMri8kP7NBdsKFnQnJJWyKVjXUCudpxC0MY5Zr2z7iH02WXJ6WxP84Ma1aLWQ/tOpJvOahmU9HmF+KCnvgbbXv+vHGGWcMv6SsX57imoh4ugLiYDL8W5LesjTe0xlLeOHTHry6tUr+vr1a3pzc7OpE+clD+e0Lnue4abcDPeDL+XHcw7731+qMd5hFVN1gAXsVLYuGfJG2F/I9T0kD9UfK2MSq1/jAcZYPY/5odjkzPn3LadTTQ7ztN6eJd5F+32d7/Chulp9xOSQ1J+1FwBe8NBQyayhSjhNrTeBcmsEc1yrlhtyqi+gJ6Gq3/BocV4eYd6EoFojaCdkS5UWgXZetlQErduA0HbItt6V3btpazJCOqxwKHRMB1IWljwsiOnSsWbrmHjJdc9Uz/TNEztgqn6GclY2fYqG60L6cxtLoTke8eOUNnMfcY4OfvhphQf4c41jSX0uBnpDMo79d1ywRmvNBRfFE+DQTtP7nnMhpFRK66Yxpi1mPEIc89RbTD8ewb0f8TjNW7T7mDPO5cfw7nNaby8KWegaG0yg1gmgqjWSgnGGCq0874RxCuXTg/f5VI5jdeXyZvYLq3WglGMdNR33VGkJtDNdR8Ew76VkUrJmsyIu65g3b4sALk/bdHCQ8TCVs0LKiNm/hnFyMMaP6Pf1/xw9wuyjp/QDP+QZSJ/WcaxJTLdrPiP2EsSLc+iapMnjsNcQtLWdNUCN1UiVdpK2gSFtuFXYafSBSVKTOxjXApGqkaoRSjVSC70JBXfTHDMObhr/Udj1eXx+rbbrb5isQnx7eS/2PKrnWx7/q8oy9U+nr3n5yyuFc7lfKZ1jlgrGlffOGNapIs67uOTpPA5vYcaUhy8BTLfyDAA0gYbWCiWd6kIodwIkh4WwkJ4/+RqWmBwOuwjsdPorAAD//7EFte/sBgAA"
-            },
             "PK": {
                 "S": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf"
             },
             "SK": {
-                "S": "evt#01969b47-672b-76f8-bebe-b4a1f677cf4c"
+                "S": "evt#01969b47-672b-76f8-8b42-056e0211d5b9"
             },
             "OrgID": {
                 "N": "1"
@@ -626,6 +623,9 @@
                         "S": "session_triggered"
                     }
                 }
+            },
+            "DataGZ": {
+                "B": "H4sIAAAAAAAA/6SVz27cNhDGX0XgtWLLv6KoU50AaYuiFzeHxGkgDMnhhohWciXKjhPsuxfUKms3TYsABXSQKOI3M998HH4i65oC6QjjtrFOGdoY4ahpYktbpwRlukEmOA/aWVKT/HCLpCMLLkuaxj7P6XDAGQOpiZ8RMoZ+GklHBBOaMk2ZeslFJ3nH+fdcSKUb09obUpN+XXAm3SU+ChtDtJHqBhxVQgB1xgSKEr1omOUgNKnJCMcS/2oMD9VVOKaRnGoSh+n+CcoZH1loJY3cW6o499Q2MVCvOQflI7RNeERd4yEteYacprF6UUinmvhpzODzQro3F2wrWNRWSCplU7C+oU76QCFqYzxzQbn2EftscuT0tib4wQ9r0Woh3adTTeZ17Jf1eIT5oaS8B9pe/64fY5RxyvhLxrrtKarFhEMoJAI+p7st6T5P73Esaxk/ZNKRV69e0devX9Obm5tNnTQvuT+nddnzDDflZrjvQyk/nXPY//5SDekOqzRWB1jATWXrkiFvhP2FXN/DGKD6Y2VMYvVrOsCQqucpPxSbnDn/vuV0qslhntbbs8S7aL+v8x0+VFdrSDh6JPVn7QVAEDw2VDJnqBJeUxdMpNwZwTzXquWGnOoL6Emo6jc8OpyXR1gwMarWCGqFbKnSIlIbZEtF1LqNCK1FtvWu7N5NW5MBxsMKh0LH8UDKwpL7BXG8dKzZOiZect0x1TF988QOOFY/Qzkrmz5Fw3Uh3bmNpdCcjvhxGjdzH3FOHn74aYUH+HNNQ0l9LgZ6QzIO3XdcsEZrzQUXxRPg0U3T+45zIaRUSuumMaYtZjxCGvLUORx/PIJ/P+Bxmrdo9ylnnMuP/t3ntN5eFHJgGxdNpM4LoKo1koLxhgqtArfCeIXy6cH7fCqHobryeTP7hdV6UMozS43lgSotgVpjLQXDQpCSScmazYq4rEPevC0i+Dxt08FDxsNUzgopI2b/6ofJw5A+YtjX/3P0CLOPntIP/JBnIN24DkNN0ni75jNiL0G8OIeuyTgF7PcaonbOOgPUOI1UaS9pGxnShjuFVmOITJKa3MGwFohUjVSNUKqRWuhNKLib5pSx99Pwj8Kuz+Pza7Vdf8NkFeLby3ux51E93/L4X1WWqX86fc3LX14pnMv9SrHaR2qjB6sj95JBEeddWvJ0Hoe3MOOY+y8BTLdyBwiF1AbkwHkruSsJweixEBbS8Sdf/ZJGj/0uAjud/goAAP//wbdjhOwGAAA="
             }
         }
     }

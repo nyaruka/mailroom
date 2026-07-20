@@ -49,7 +49,7 @@
                         },
                         "components": [
                             {
-                                "uuid": "e7187099-7d38-4f60-955c-325957214c42",
+                                "uuid": "4bb4b32b-a16d-4a14-aa72-7ad13dc3345c",
                                 "name": "body",
                                 "params": [
                                     "@contact.name"

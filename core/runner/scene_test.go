@@ -78,12 +78,12 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 
 	testsuite.AssertContactFires(t, rt, testdb.Bob.ID, map[string]time.Time{
 		fmt.Sprintf("E:%s", scBob.Session.UUID()): time.Date(2025, 2, 25, 16, 55, 10, 0, time.UTC), // 10 minutes in future
-		fmt.Sprintf("S:%s", scBob.Session.UUID()): time.Date(2025, 3, 28, 9, 55, 36, 0, time.UTC),  // 30 days + rand(1 - 24 hours) in future
+		fmt.Sprintf("S:%s", scBob.Session.UUID()): time.Date(2025, 3, 28, 13, 12, 19, 0, time.UTC), // 30 days + rand(1 - 24 hours) in future
 	})
 	testsuite.AssertContactFires(t, rt, testdb.Dan.ID, map[string]time.Time{
 		fmt.Sprintf("T:%s", scDan.Session.UUID()): time.Date(2025, 2, 25, 16, 50, 30, 0, time.UTC), // 5 minutes in future
 		fmt.Sprintf("E:%s", scDan.Session.UUID()): time.Date(2025, 2, 25, 16, 55, 25, 0, time.UTC), // 10 minutes in future
-		fmt.Sprintf("S:%s", scDan.Session.UUID()): time.Date(2025, 3, 28, 12, 9, 25, 0, time.UTC),  // 30 days + rand(1 - 24 hours) in future
+		fmt.Sprintf("S:%s", scDan.Session.UUID()): time.Date(2025, 3, 28, 2, 41, 9, 0, time.UTC),   // 30 days + rand(1 - 24 hours) in future
 	})
 
 	scene := testsuite.ResumeSession(t, rt, oa, testdb.Bob, "no")
@@ -104,7 +104,7 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 	// check we have a new contact fire for wait expiration but not timeout (wait doesn't have a timeout)
 	testsuite.AssertContactFires(t, rt, testdb.Bob.ID, map[string]time.Time{
 		fmt.Sprintf("E:%s", scBob.Session.UUID()): time.Date(2025, 2, 25, 16, 55, 45, 0, time.UTC), // updated
-		fmt.Sprintf("S:%s", scBob.Session.UUID()): time.Date(2025, 3, 28, 9, 55, 36, 0, time.UTC),  // unchanged
+		fmt.Sprintf("S:%s", scBob.Session.UUID()): time.Date(2025, 3, 28, 13, 12, 19, 0, time.UTC), // unchanged
 	})
 
 	scene = testsuite.ResumeSession(t, rt, oa, testdb.Bob, "yes")
@@ -196,7 +196,7 @@ func TestSessionWithSubflows(t *testing.T) {
 	// check we have a contact fire for wait expiration but not timeout
 	testsuite.AssertContactFires(t, rt, testdb.Ann.ID, map[string]time.Time{
 		fmt.Sprintf("E:%s", scene.Session.UUID()): time.Date(2025, 2, 25, 16, 55, 16, 0, time.UTC), // 10 minutes in future
-		fmt.Sprintf("S:%s", scene.Session.UUID()): time.Date(2025, 3, 28, 9, 55, 36, 0, time.UTC),  // 30 days + rand(1 - 24 hours) in future
+		fmt.Sprintf("S:%s", scene.Session.UUID()): time.Date(2025, 3, 28, 13, 12, 19, 0, time.UTC), // 30 days + rand(1 - 24 hours) in future
 	})
 
 	mc, contact, _ = testdb.Ann.Load(t, rt, oa)
@@ -429,7 +429,7 @@ func TestFlowStats(t *testing.T) {
 
 	// all 3 contacts went from first msg to the color split - no operands recorded for this segment
 	assertvk.ZRange(t, vc, "recent_contacts:5fd2e537-0534-4c12-8425-bef87af09d46:072b95b3-61c3-4e0e-8dd1-eb7481083f94", 0, -1,
-		[]string{"bzXDPJHreu|10001|", "PYVP90uqWA|10003|", "RtWDACk2SS|10002|"},
+		[]string{"GTMx3lXL/f|10001|", "olWKCThhRw|10003|", "rXq9q//T/j|10002|"},
 	)
 
 	testsuite.ResumeSession(t, rt, oa, testdb.Bob, "blue")
@@ -478,17 +478,17 @@ func TestFlowStats(t *testing.T) {
 
 	// check recent operands for color split :: Blue exit -> next node
 	assertvk.ZRange(t, vc, "recent_contacts:c02fc3ba-369a-4c87-9bc4-c3b376bda6d2:57b50d33-2b5a-4726-82de-9848c61eff6e", 0, -1,
-		[]string{"5dyuJzp6MB|10001|blue", "ZZ/N3THKKL|10003|BLUE"},
+		[]string{"rMHV0HyTSf|10001|blue", "KijgYoWRmT|10003|BLUE"},
 	)
 
 	// check recent operands for color split :: Other exit -> next node
 	assertvk.ZRange(t, vc, "recent_contacts:ea6c38dc-11e2-4616-9f3e-577e44765d44:8712db6b-25ff-4789-892c-581f24eeeb95", 0, -1,
-		[]string{"bPiuaeAX6V|10002|teal", "/MpdX9skhq|10002|azure"},
+		[]string{"lgugY4Zd6F|10002|teal", "Cd/nNWeyjN|10002|azure"},
 	)
 
 	// check recent operands for split by expression :: Other exit -> next node
 	assertvk.ZRange(t, vc, "recent_contacts:2b698218-87e5-4ab8-922e-e65f91d12c10:88d8bf00-51ce-4e5e-aae8-4f957a0761a0", 0, -1,
-		[]string{"QFoOgV99Av|10001|0", "nkcW6vAYAn|10003|0"},
+		[]string{"MNVFZUfmz8|10001|0", "jNgwl/7786|10003|0"},
 	)
 
 	testsuite.ResumeSession(t, rt, oa, testdb.Cat, "blue")
@@ -618,7 +618,7 @@ func TestBroadcastWithLock(t *testing.T) {
 			},
 			"OrgID": 1,
 			"PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
-			"SK": "evt#01969b47-1523-76f8-bd38-d266ec8d3716"
+			"SK": "evt#01969b47-1523-76f8-98c7-1f0d5859f77e"
 		},
 		{
 			"Data": {
@@ -637,7 +637,7 @@ func TestBroadcastWithLock(t *testing.T) {
 			},
 			"OrgID": 1,
 			"PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-			"SK": "evt#01969b47-096b-76f8-ae7f-f8b243c49ff5"
+			"SK": "evt#01969b47-096b-76f8-924e-9de1a11831b3"
 		}
 	]`), jsonx.MustMarshal(testsuite.GetHistoryItems(t, rt, false, time.Time{})))
 

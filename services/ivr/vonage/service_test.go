@@ -120,13 +120,13 @@ func TestResponseForSprint(t *testing.T) {
 				events.NewIVRCreated(core.NewIVRMsgOut(urn, channelRef, "say something", "", "")),
 				events.NewMsgWait(nil, expiresOn, hints.NewAudio()),
 			},
-			`[{"action":"talk","text":"say something"},{"action":"record","endOnKey":"#","timeOut":600,"endOnSilence":5,"eventUrl":["http://temba.io/resume?session=1\u0026wait_type=recording_url\u0026recording_uuid=3801aaca-eedf-4d5b-9066-64e8c0e4a771\u0026sig=S9SN7OELddL6zxiZTPZsCNfKFMw%3D"],"eventMethod":"POST"},{"action":"input","submitOnHash":true,"timeOut":1,"eventUrl":["http://temba.io/resume?session=1\u0026wait_type=record\u0026recording_uuid=3801aaca-eedf-4d5b-9066-64e8c0e4a771\u0026sig=YLz9dq5KiI3sVTC9O2vrgCSdAqc%3D"],"eventMethod":"POST"}]`,
+			`[{"action":"talk","text":"say something"},{"action":"record","endOnKey":"#","timeOut":600,"endOnSilence":5,"eventUrl":["http://temba.io/resume?session=1\u0026wait_type=recording_url\u0026recording_uuid=9e1d65f5-a4b2-40e2-a17f-8c61801ecd9c\u0026sig=SYVB5Lt%2Fs%2FYsbLBSD996EVtOrF4%3D"],"eventMethod":"POST"},{"action":"input","submitOnHash":true,"timeOut":1,"eventUrl":["http://temba.io/resume?session=1\u0026wait_type=record\u0026recording_uuid=9e1d65f5-a4b2-40e2-a17f-8c61801ecd9c\u0026sig=saarxK179hHX0OPqmVompOOfoXY%3D"],"eventMethod":"POST"}]`,
 		},
 		{ // 7
 			[]events.Event{
 				events.NewDialWait(urns.URN(`tel:+1234567890`), 60, 7200, expiresOn),
 			},
-			`[{"action":"conversation","name":"ece0b8b7-c196-4d91-8125-1b7c9c9ca520"}]`,
+			`[{"action":"conversation","name":"a0a95a53-1e96-44ee-a2e1-66cf9653c236"}]`,
 		},
 	}
 
