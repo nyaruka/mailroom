@@ -12,11 +12,11 @@ import (
 	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/core"
+	"github.com/nyaruka/goflow/excellent/types"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/testsuite"
 	"github.com/nyaruka/mailroom/v26/testsuite/testdb"
 	"github.com/nyaruka/mailroom/v26/utils/test"
-	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -80,7 +80,7 @@ func TestContacts(t *testing.T) {
 	assert.NotNil(t, bob.Tickets().LastOpen())
 
 	assert.Equal(t, "Cat", cat.Name())
-	assert.Equal(t, decimal.RequireFromString("30"), cat.Fields()["age"].QueryValue())
+	assert.Equal(t, types.NewXNumberFromInt(30), cat.Fields()["age"].QueryValue())
 	assert.Equal(t, 0, len(cat.URNs()))
 	assert.Equal(t, 0, cat.Groups().Count())
 	assert.Nil(t, cat.Tickets().LastOpen())
