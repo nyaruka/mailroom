@@ -1,3 +1,10 @@
+v26.3.17 (2026-07-21)
+-------------------------
+ * Update to goflow v0.283.1 and report expression:too_complex errors to Sentry
+ * Update to gocommon v1.89.7
+ * Publish ephemeral contact events to history sockets, incl new contact_flow_changed event
+ * Guard against warning events without a step in handleWarning
+
 v26.3.16 (2026-07-16)
 -------------------------
  * Accept typing_stopped publications on history sockets
