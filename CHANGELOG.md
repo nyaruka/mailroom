@@ -1,3 +1,7 @@
+v26.3.18 (2026-07-21)
+-------------------------
+ * Update to goflow v0.283.3
+
 v26.3.17 (2026-07-21)
 -------------------------
  * Update to goflow v0.283.1 and report expression:too_complex errors to Sentry
