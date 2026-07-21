@@ -893,18 +893,18 @@ func CreateMsgOut(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, c *co
 	if expressionsContext != nil {
 		ev := goflow.Engine(rt).Evaluator()
 
-		content.Text, _, _ = ev.Template(oa.Env(), expressionsContext, content.Text, nil)
+		content.Text, _, _ = ev.Template(ctx, oa.Env(), expressionsContext, content.Text, nil)
 		templateVariables = slices.Clone(templateVariables)
 
 		for i := range content.Attachments {
-			evaluated, _, _ := ev.Template(oa.Env(), expressionsContext, string(content.Attachments[i]), nil)
+			evaluated, _, _ := ev.Template(ctx, oa.Env(), expressionsContext, string(content.Attachments[i]), nil)
 			content.Attachments[i] = utils.Attachment(evaluated)
 		}
 		for i := range content.QuickReplies {
-			content.QuickReplies[i].Text, _, _ = ev.Template(oa.Env(), expressionsContext, content.QuickReplies[i].Text, nil)
+			content.QuickReplies[i].Text, _, _ = ev.Template(ctx, oa.Env(), expressionsContext, content.QuickReplies[i].Text, nil)
 		}
 		for i := range templateVariables {
-			templateVariables[i], _, _ = ev.Template(oa.Env(), expressionsContext, templateVariables[i], nil)
+			templateVariables[i], _, _ = ev.Template(ctx, oa.Env(), expressionsContext, templateVariables[i], nil)
 		}
 	}
 
