@@ -23,7 +23,8 @@ func init() {
 func handleWarning(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scene *runner.Scene, e events.Event, userID models.UserID) error {
 	event := e.(*events.Warning)
 
-	if rem, ok := strings.CutPrefix(event.Text, deprecatedContextWarningPrefix); ok {
+	// deprecated context warnings always come from the engine so will have a step, but check anyway
+	if rem, ok := strings.CutPrefix(event.Text, deprecatedContextWarningPrefix); ok && event.Step() != nil {
 		if strings.Contains(rem, ":") {
 			rem = rem[:strings.Index(rem, ":")]
 		}
