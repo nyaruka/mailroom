@@ -22,7 +22,6 @@ import (
 	_ "github.com/nyaruka/mailroom/v26/web/msg"
 	_ "github.com/nyaruka/mailroom/v26/web/notification"
 	_ "github.com/nyaruka/mailroom/v26/web/org"
-	_ "github.com/nyaruka/mailroom/v26/web/po"
 	_ "github.com/nyaruka/mailroom/v26/web/public"
 	_ "github.com/nyaruka/mailroom/v26/web/simulation"
 	_ "github.com/nyaruka/mailroom/v26/web/socket"
