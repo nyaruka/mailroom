@@ -1,3 +1,7 @@
+v26.3.22 (2026-07-22)
+-------------------------
+ * Remove unused PO translation import/export endpoints
+
 v26.3.21 (2026-07-22)
 -------------------------
  * Update to goflow v0.284.1
