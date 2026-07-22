@@ -16,12 +16,19 @@
                     "response": "HTTP/1.1 200 OK\r\n\r\n{}",
                     "elapsed_ms": 123,
                     "retries": 0,
+                    "sizes": {
+                        "request": 0,
+                        "response": 0
+                    },
                     "status": "success",
                     "created_on": "2006-01-02T15:04:05Z"
                 }
             ]
         },
         "dynamo": {
+            "PK": {
+                "S": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf"
+            },
             "SK": {
                 "S": "evt#0197b335-6ded-79a4-95a6-3af85b57f108"
             },
@@ -30,6 +37,21 @@
             },
             "Data": {
                 "M": {
+                    "recipient": {
+                        "S": "tel:+1242563637"
+                    },
+                    "type": {
+                        "S": "airtime_created"
+                    },
+                    "created_on": {
+                        "S": "2006-01-02T15:04:05Z"
+                    },
+                    "external_id": {
+                        "S": "12345678"
+                    },
+                    "sender": {
+                        "S": "tel:4748"
+                    },
                     "currency": {
                         "S": "RWF"
                     },
@@ -40,8 +62,27 @@
                         "L": [
                             {
                                 "M": {
+                                    "request": {
+                                        "S": "POST /v1/sync/transactions HTTP/1.1\r\n\r\n{}"
+                                    },
+                                    "response": {
+                                        "S": "HTTP/1.1 200 OK\r\n\r\n{}"
+                                    },
+                                    "elapsed_ms": {
+                                        "N": "123"
+                                    },
                                     "retries": {
                                         "N": "0"
+                                    },
+                                    "sizes": {
+                                        "M": {
+                                            "request": {
+                                                "N": "0"
+                                            },
+                                            "response": {
+                                                "N": "0"
+                                            }
+                                        }
                                     },
                                     "status": {
                                         "S": "success"
@@ -51,39 +92,12 @@
                                     },
                                     "url": {
                                         "S": "https://dvs-api.dtone.com/v1/sync/transactions"
-                                    },
-                                    "request": {
-                                        "S": "POST /v1/sync/transactions HTTP/1.1\r\n\r\n{}"
-                                    },
-                                    "response": {
-                                        "S": "HTTP/1.1 200 OK\r\n\r\n{}"
-                                    },
-                                    "elapsed_ms": {
-                                        "N": "123"
                                     }
                                 }
                             }
                         ]
-                    },
-                    "type": {
-                        "S": "airtime_created"
-                    },
-                    "sender": {
-                        "S": "tel:4748"
-                    },
-                    "created_on": {
-                        "S": "2006-01-02T15:04:05Z"
-                    },
-                    "external_id": {
-                        "S": "12345678"
-                    },
-                    "recipient": {
-                        "S": "tel:+1242563637"
                     }
                 }
-            },
-            "PK": {
-                "S": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf"
             }
         }
     },
@@ -115,16 +129,19 @@
             },
             "Data": {
                 "M": {
+                    "type": {
+                        "S": "contact_field_changed"
+                    },
                     "created_on": {
                         "S": "2025-05-04T12:30:56.123456789Z"
                     },
                     "field": {
                         "M": {
-                            "name": {
-                                "S": "Age"
-                            },
                             "key": {
                                 "S": "age"
+                            },
+                            "name": {
+                                "S": "Age"
                             }
                         }
                     },
@@ -134,9 +151,6 @@
                                 "S": "44"
                             }
                         }
-                    },
-                    "type": {
-                        "S": "contact_field_changed"
                     }
                 }
             }
@@ -170,6 +184,12 @@
             },
             "Data": {
                 "M": {
+                    "type": {
+                        "S": "contact_groups_changed"
+                    },
+                    "created_on": {
+                        "S": "2025-05-04T12:30:58.123456789Z"
+                    },
                     "groups_added": {
                         "L": [
                             {
@@ -207,12 +227,6 @@
                                 }
                             }
                         ]
-                    },
-                    "type": {
-                        "S": "contact_groups_changed"
-                    },
-                    "created_on": {
-                        "S": "2025-05-04T12:30:58.123456789Z"
                     }
                 }
             },
@@ -235,19 +249,16 @@
             "language": "spa"
         },
         "dynamo": {
-            "TTL": {
-                "N": "1777897855"
-            },
             "Data": {
                 "M": {
-                    "type": {
-                        "S": "contact_language_changed"
-                    },
                     "created_on": {
                         "S": "2025-05-04T12:30:55.123456789Z"
                     },
                     "language": {
                         "S": "spa"
+                    },
+                    "type": {
+                        "S": "contact_language_changed"
                     }
                 }
             },
@@ -259,6 +270,9 @@
             },
             "OrgID": {
                 "N": "1"
+            },
+            "TTL": {
+                "N": "1777897855"
             }
         }
     },
@@ -270,22 +284,19 @@
             "language": ""
         },
         "dynamo": {
-            "OrgID": {
-                "N": "1"
-            },
             "TTL": {
                 "N": "1777897855"
             },
             "Data": {
                 "M": {
-                    "language": {
-                        "S": ""
-                    },
                     "type": {
                         "S": "contact_language_changed"
                     },
                     "created_on": {
                         "S": "2025-05-04T12:30:55.123456789Z"
+                    },
+                    "language": {
+                        "S": ""
                     }
                 }
             },
@@ -294,6 +305,9 @@
             },
             "SK": {
                 "S": "evt#01969b47-28ab-76f8-b774-0a98171a0712"
+            },
+            "OrgID": {
+                "N": "1"
             }
         }
     },
@@ -323,6 +337,9 @@
             },
             "Data": {
                 "M": {
+                    "name": {
+                        "S": "Bryan"
+                    },
                     "type": {
                         "S": "contact_name_changed"
                     },
@@ -338,9 +355,6 @@
                                 "S": "Ed McEditor"
                             }
                         }
-                    },
-                    "name": {
-                        "S": "Bryan"
                     }
                 }
             }
@@ -489,9 +503,6 @@
             }
         },
         "dynamo": {
-            "OrgID": {
-                "N": "1"
-            },
             "Data": {
                 "M": {
                     "type": {
@@ -507,6 +518,9 @@
             },
             "SK": {
                 "S": "evt#01969b47-672b-76f8-8b42-056e0211d5b9"
+            },
+            "OrgID": {
+                "N": "1"
             }
         }
     },
@@ -608,15 +622,6 @@
             }
         },
         "dynamo": {
-            "PK": {
-                "S": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf"
-            },
-            "SK": {
-                "S": "evt#01969b47-672b-76f8-8b42-056e0211d5b9"
-            },
-            "OrgID": {
-                "N": "1"
-            },
             "Data": {
                 "M": {
                     "type": {
@@ -626,6 +631,15 @@
             },
             "DataGZ": {
                 "B": "H4sIAAAAAAAA/6SVz27cNhDGX0XgtWLLv6KoU50AaYuiFzeHxGkgDMnhhohWciXKjhPsuxfUKms3TYsABXSQKOI3M998HH4i65oC6QjjtrFOGdoY4ahpYktbpwRlukEmOA/aWVKT/HCLpCMLLkuaxj7P6XDAGQOpiZ8RMoZ+GklHBBOaMk2ZeslFJ3nH+fdcSKUb09obUpN+XXAm3SU+ChtDtJHqBhxVQgB1xgSKEr1omOUgNKnJCMcS/2oMD9VVOKaRnGoSh+n+CcoZH1loJY3cW6o499Q2MVCvOQflI7RNeERd4yEteYacprF6UUinmvhpzODzQro3F2wrWNRWSCplU7C+oU76QCFqYzxzQbn2EftscuT0tib4wQ9r0Woh3adTTeZ17Jf1eIT5oaS8B9pe/64fY5RxyvhLxrrtKarFhEMoJAI+p7st6T5P73Esaxk/ZNKRV69e0devX9Obm5tNnTQvuT+nddnzDDflZrjvQyk/nXPY//5SDekOqzRWB1jATWXrkiFvhP2FXN/DGKD6Y2VMYvVrOsCQqucpPxSbnDn/vuV0qslhntbbs8S7aL+v8x0+VFdrSDh6JPVn7QVAEDw2VDJnqBJeUxdMpNwZwTzXquWGnOoL6Emo6jc8OpyXR1gwMarWCGqFbKnSIlIbZEtF1LqNCK1FtvWu7N5NW5MBxsMKh0LH8UDKwpL7BXG8dKzZOiZect0x1TF988QOOFY/Qzkrmz5Fw3Uh3bmNpdCcjvhxGjdzH3FOHn74aYUH+HNNQ0l9LgZ6QzIO3XdcsEZrzQUXxRPg0U3T+45zIaRUSuumMaYtZjxCGvLUORx/PIJ/P+Bxmrdo9ylnnMuP/t3ntN5eFHJgGxdNpM4LoKo1koLxhgqtArfCeIXy6cH7fCqHobryeTP7hdV6UMozS43lgSotgVpjLQXDQpCSScmazYq4rEPevC0i+Dxt08FDxsNUzgopI2b/6ofJw5A+YtjX/3P0CLOPntIP/JBnIN24DkNN0ni75jNiL0G8OIeuyTgF7PcaonbOOgPUOI1UaS9pGxnShjuFVmOITJKa3MGwFohUjVSNUKqRWuhNKLib5pSx99Pwj8Kuz+Pza7Vdf8NkFeLby3ux51E93/L4X1WWqX86fc3LX14pnMv9SrHaR2qjB6sj95JBEeddWvJ0Hoe3MOOY+y8BTLdyBwiF1AbkwHkruSsJweixEBbS8Sdf/ZJGj/0uAjud/goAAP//wbdjhOwGAAA="
+            },
+            "PK": {
+                "S": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf"
+            },
+            "SK": {
+                "S": "evt#01969b47-672b-76f8-8b42-056e0211d5b9"
+            },
+            "OrgID": {
+                "N": "1"
             }
         }
     }
