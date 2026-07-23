@@ -535,7 +535,7 @@ ORDER BY c.id
 // CreateContact creates a new contact for the passed in org with the passed in URNs
 func CreateContact(ctx context.Context, db DB, oa *OrgAssets, userID UserID, name string, language i18n.Language, status ContactStatus, urnz []urns.URN) (*Contact, *core.Contact, error) {
 	// ensure all URNs are normalized and valid
-	urnz, err := nornalizeAndValidateURNs(urnz)
+	urnz, err := normalizeAndValidateURNs(urnz)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -588,7 +588,7 @@ func CreateContact(ctx context.Context, db DB, oa *OrgAssets, userID UserID, nam
 // * If URNs exists and belongs to multiple contacts it will return an error.
 func GetOrCreateContact(ctx context.Context, db DB, oa *OrgAssets, userID UserID, urnz []urns.URN, channelID ChannelID) (*Contact, *core.Contact, bool, error) {
 	// ensure all URNs are normalized and valid
-	urnz, err := nornalizeAndValidateURNs(urnz)
+	urnz, err := normalizeAndValidateURNs(urnz)
 	if err != nil {
 		return nil, nil, false, err
 	}
@@ -624,7 +624,7 @@ func GetOrCreateContact(ctx context.Context, db DB, oa *OrgAssets, userID UserID
 // contacts and another map of the created contacts.
 func GetOrCreateContactsFromURNs(ctx context.Context, db DB, oa *OrgAssets, userID UserID, urnz []urns.URN) (map[urns.URN]*Contact, map[urns.URN]*Contact, error) {
 	// ensure all URNs are normalized and valid
-	urnz, err := nornalizeAndValidateURNs(urnz)
+	urnz, err := normalizeAndValidateURNs(urnz)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -843,7 +843,7 @@ func insertContactAndURNs(ctx context.Context, db DBorTx, orgID OrgID, userID Us
 	return contactID, nil
 }
 
-func nornalizeAndValidateURNs(urnz []urns.URN) ([]urns.URN, error) {
+func normalizeAndValidateURNs(urnz []urns.URN) ([]urns.URN, error) {
 	norm := make([]urns.URN, len(urnz))
 	for i, urn := range urnz {
 		norm[i] = urn.Normalize()
