@@ -56,6 +56,32 @@ func TestCounter(t *testing.T) {
 	assert.Greater(t, ttl, 0)
 }
 
+func TestCounterExpiredKey(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+	vc := rt.VK.Get()
+	defer vc.Close()
+
+	defer testsuite.Reset(t, rt, testsuite.ResetValkey)
+
+	counter := tasks.NewCounter("test_counter_expired", time.Minute)
+
+	err := counter.Init(ctx, rt.VK, 2)
+	assert.NoError(t, err)
+
+	// simulate the key expiring mid run
+	vc.Do("DEL", "test_counter_expired")
+
+	// remaining decrements recreate the key below zero and never report done - the run is deliberately left
+	// unfinished rather than being prematurely completed
+	done, err := counter.Done(ctx, rt.VK)
+	assert.NoError(t, err)
+	assert.False(t, done)
+
+	done, err = counter.Done(ctx, rt.VK)
+	assert.NoError(t, err)
+	assert.False(t, done)
+}
+
 func TestCounterDoneSetsExpiry(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 	vc := rt.VK.Get()
