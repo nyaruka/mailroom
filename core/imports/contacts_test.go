@@ -10,6 +10,7 @@ import (
 
 	"github.com/nyaruka/gocommon/aws/dynamo"
 	"github.com/nyaruka/gocommon/dbutil"
+	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/goflow/assets"
@@ -151,6 +152,55 @@ func TestContactImports(t *testing.T) {
 		err = os.WriteFile("testdata/contacts.json", testJSON, 0600)
 		require.NoError(t, err)
 	}
+}
+
+func TestImportBatchOversizedURN(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetDynamo|testsuite.ResetValkey)
+
+	testdb.InsertContact(t, rt, testdb.Org1, "afe1a37f-a01d-4a02-b06a-25dc47db1b52", "Bob", "eng", models.ContactStatusActive)
+
+	// a URN with a path at the 255 char validation limit has an identity too long for the database
+	longURN := "ext:" + strings.Repeat("x", 255)
+
+	importID := testdb.InsertContactImport(t, rt, testdb.Org1, models.ImportStatusProcessing, testdb.Admin)
+	batchID := testdb.InsertContactImportBatch(t, rt, importID, jsonx.MustMarshal([]map[string]any{
+		{"uuid": "afe1a37f-a01d-4a02-b06a-25dc47db1b52", "name": "Bobby", "urns": []string{longURN}, "_import_row": 2},
+		{"name": "Ann", "urns": []string{longURN}, "_import_row": 3},
+		{"name": "Zephyrine", "urns": []string{"tel:+16055740021"}, "_import_row": 4},
+	}))
+
+	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshFields|models.RefreshGroups)
+	require.NoError(t, err)
+
+	batch, err := models.LoadContactImportBatch(ctx, rt.DB, batchID)
+	require.NoError(t, err)
+
+	// batch should complete rather than failing entirely because of the oversized URNs
+	err = imports.ImportBatch(ctx, rt, oa, batch, testdb.Admin.ID)
+	assert.NoError(t, err)
+
+	results := &struct {
+		Status     string          `db:"status"`
+		NumCreated int             `db:"num_created"`
+		NumErrored int             `db:"num_errored"`
+		Errors     json.RawMessage `db:"errors"`
+	}{}
+	err = rt.DB.Get(results, `SELECT status, num_created, num_errored, errors FROM contacts_contactimportbatch WHERE id = $1`, batchID)
+	require.NoError(t, err)
+
+	assert.Equal(t, "C", results.Status)
+	assert.Equal(t, 1, results.NumCreated) // Zephyrine
+	assert.Equal(t, 2, results.NumErrored)
+	test.AssertEqualJSON(t, []byte(`[
+		{"record": 0, "row": 2, "message": "URN 'ext:xxxxxxxxxxxxxxxxxxxxxxxxx...' is too long"},
+		{"record": 1, "row": 3, "message": "URN 'ext:xxxxxxxxxxxxxxxxxxxxxxxxx...' is too long"}
+	]`), results.Errors, "errors mismatch")
+
+	// the record referencing Bob by UUID errored so his name is unchanged
+	assertdb.Query(t, rt.DB, `SELECT name FROM contacts_contact WHERE uuid = 'afe1a37f-a01d-4a02-b06a-25dc47db1b52'`).Columns(map[string]any{"name": "Bob"})
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contact WHERE name = 'Zephyrine'`).Returns(1)
 }
 
 func TestContactSpecUnmarshal(t *testing.T) {

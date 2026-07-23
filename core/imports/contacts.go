@@ -4,9 +4,12 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/nyaruka/gocommon/i18n"
 	"github.com/nyaruka/gocommon/jsonx"
+	"github.com/nyaruka/gocommon/stringsx"
+	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/goflow/flows"
@@ -105,6 +108,13 @@ func getOrCreateContacts(ctx context.Context, db *sqlx.DB, oa *models.OrgAssets,
 		addError := func(s string, args ...any) { imp.errors = append(imp.errors, fmt.Sprintf(s, args...)) }
 		spec := imp.spec
 
+		// URN validation limits path length but identities (scheme:path) also have to fit in the database, and
+		// imports are one of the few places un-checked URNs can come from
+		if urn, ok := findOversizedURN(spec.URNs); ok {
+			addError("URN '%s' is too long", stringsx.TruncateEllipsis(string(urn.Identity()), 32))
+			continue
+		}
+
 		isActive := spec.Status == "" || spec.Status == core.ContactStatusActive
 
 		uuid := spec.UUID
@@ -178,6 +188,20 @@ func getOrCreateContacts(ctx context.Context, db *sqlx.DB, oa *models.OrgAssets,
 	}
 
 	return nil
+}
+
+// contacts_contacturn.identity is varchar(255) so URNs whose identities exceed that can't be saved
+const maxURNIdentityLength = 255
+
+// returns the first URN whose normalized identity is too long to be saved, if any
+func findOversizedURN(urnz []urns.URN) (urns.URN, bool) {
+	for _, urn := range urnz {
+		urn := urn.Normalize()
+		if utf8.RuneCountInString(string(urn.Identity())) > maxURNIdentityLength {
+			return urn, true
+		}
+	}
+	return urns.NilURN, false
 }
 
 // loads any import contacts for which we have UUIDs
