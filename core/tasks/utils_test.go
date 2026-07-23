@@ -45,6 +45,11 @@ func TestCounter(t *testing.T) {
 	assert.NoError(t, err)
 	assert.True(t, done)
 
+	// an extra decrement, e.g. from a re-queued task, shouldn't return true again
+	done, err = counter.Done(ctx, rt.VK)
+	assert.NoError(t, err)
+	assert.False(t, done)
+
 	// key should still exist with a TTL (not orphaned)
 	ttl, err = valkey.Int(vc.Do("TTL", "test_counter"))
 	assert.NoError(t, err)
