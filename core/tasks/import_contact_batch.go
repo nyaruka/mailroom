@@ -54,7 +54,7 @@ func (t *ImportContactBatch) Perform(ctx context.Context, rt *runtime.Runtime, o
 	// if any error occurs this batch should be marked as failed
 	if batchErr != nil {
 		if err := batch.SetFailed(ctx, rt.DB); err != nil {
-			slog.Error("error marking import batch as failed", "error", err, "batch_id", batch.ID)
+			slog.Error("error marking import batch as failed", "error", err, "import_id", batch.ImportID, "batch_id", batch.ID)
 		}
 	}
 
