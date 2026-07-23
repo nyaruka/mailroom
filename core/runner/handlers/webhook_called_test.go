@@ -89,7 +89,7 @@ func TestUnhealthyWebhookCalls(t *testing.T) {
 
 	// webhook service with a 2 second delay
 	svc := &failingWebhookService{delay: 2 * time.Second}
-	eng := engine.NewBuilder().WithWebhookServiceFactory(func(*http.Client, flows.SessionAssets) (flows.WebhookService, error) { return svc, nil }).Build()
+	eng := engine.NewBuilder().WithWebhookServiceFactory(func(flows.Engine, flows.SessionAssets) (flows.WebhookService, error) { return svc, nil }).Build()
 
 	runFlow := func() {
 		scene := runner.NewScene(mc, contact)
