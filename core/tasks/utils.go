@@ -28,15 +28,16 @@ func (c *Counter) Init(ctx context.Context, vk *valkey.Pool, val int) error {
 	return err
 }
 
-// Done decrements the counter by 1 and returns true if the counter has reached zero, i.e. all batches are done.
-// The TTL is always reset to prevent orphaned keys.
+// Done decrements the counter by 1 and returns true if the counter has reached exactly zero, i.e. all batches are
+// done. Requiring exactly zero means that extra decrements (e.g. a re-queued batch task) can't make completion fire
+// more than once. The TTL is always reset to prevent orphaned keys.
 func (c *Counter) Done(ctx context.Context, vk *valkey.Pool) (bool, error) {
 	val, err := c.decrement(ctx, vk, -1)
 	if err != nil {
 		return false, err
 	}
 
-	return val <= 0, nil
+	return val == 0, nil
 }
 
 // Value returns the current counter value, or 0 if the key doesn't exist.
