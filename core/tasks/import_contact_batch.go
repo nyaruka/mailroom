@@ -3,6 +3,7 @@ package tasks
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"slices"
 	"time"
 
@@ -52,7 +53,9 @@ func (t *ImportContactBatch) Perform(ctx context.Context, rt *runtime.Runtime, o
 
 	// if any error occurs this batch should be marked as failed
 	if batchErr != nil {
-		batch.SetFailed(ctx, rt.DB)
+		if err := batch.SetFailed(ctx, rt.DB); err != nil {
+			slog.Error("error marking import batch as failed", "error", err, "batch_id", batch.ID)
+		}
 	}
 
 	// decrement the counter to see if the overall import is now finished
