@@ -9,6 +9,7 @@ import (
 	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/core/events"
+	"github.com/nyaruka/goflow/excellent"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/engine"
 	"github.com/nyaruka/goflow/services/webhooks"
@@ -83,14 +84,17 @@ func Engine(rt *runtime.Runtime) flows.Engine {
 
 		eng = engine.NewBuilder().
 			WithHTTPClient(rt.HTTP.Engine).
-			WithWebhookServiceFactory(webhooks.NewServiceFactory(webhookHeaders, rt.Config.WebhooksMaxBodyBytes)).
+			WithWebhookServiceFactory(webhooks.NewServiceFactory(webhookHeaders)).
 			WithLLMServiceFactory(llmFactory(rt)).
 			WithEmailServiceFactory(emailFactory(rt)).
 			WithAirtimeServiceFactory(airtimeFactory(rt)).
+			WithEvaluationBudget(excellent.DefaultEvaluationBudget).
 			WithMaxStepsPerSprint(rt.Config.MaxStepsPerSprint).
 			WithMaxSprintsPerSession(rt.Config.MaxSprintsPerSession).
+			WithMaxNameChars(128).
 			WithMaxFieldChars(rt.Config.MaxValueLength).
 			WithMaxResultChars(rt.Config.MaxValueLength).
+			WithWebhookLimits(256*1024, rt.Config.WebhooksMaxBodyBytes).
 			WithLLMPrompts(llmPrompts).
 			WithCheckSendable(checkSendable(rt)).
 			WithClaimURN(claimURN(rt)).
@@ -110,14 +114,17 @@ func Simulator(ctx context.Context, rt *runtime.Runtime) flows.Engine {
 
 		simulator = engine.NewBuilder().
 			WithHTTPClient(rt.HTTP.Simulator).
-			WithWebhookServiceFactory(webhooks.NewServiceFactory(webhookHeaders, rt.Config.WebhooksMaxBodyBytes)).
+			WithWebhookServiceFactory(webhooks.NewServiceFactory(webhookHeaders)).
 			WithLLMServiceFactory(llmFactory(rt)).                     // simulated sessions do real LLM calls
 			WithEmailServiceFactory(simulatorEmailServiceFactory).     // but faked emails
 			WithAirtimeServiceFactory(simulatorAirtimeServiceFactory). // and faked airtime transfers
+			WithEvaluationBudget(excellent.DefaultEvaluationBudget).
 			WithMaxStepsPerSprint(rt.Config.MaxStepsPerSprint).
 			WithMaxSprintsPerSession(rt.Config.MaxSprintsPerSession).
+			WithMaxNameChars(128).
 			WithMaxFieldChars(rt.Config.MaxValueLength).
 			WithMaxResultChars(rt.Config.MaxValueLength).
+			WithWebhookLimits(256*1024, rt.Config.WebhooksMaxBodyBytes).
 			WithLLMPrompts(llmPrompts).
 			Build()
 	})
