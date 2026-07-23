@@ -82,4 +82,7 @@ func TestImportContactBatchFailure(t *testing.T) {
 	// batch and overall import should be marked as failed
 	assertdb.Query(t, rt.DB, `SELECT status FROM contacts_contactimportbatch WHERE id = $1`, batchID).Columns(map[string]any{"status": "F"})
 	assertdb.Query(t, rt.DB, `SELECT status FROM contacts_contactimport WHERE id = $1`, importID).Columns(map[string]any{"status": "F"})
+
+	// and the creator still notified that the import finished
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM notifications_notification WHERE contact_import_id = $1 AND notification_type = 'import:finished' AND user_id = $2`, importID, testdb.Admin.ID).Returns(1)
 }
