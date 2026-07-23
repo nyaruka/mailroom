@@ -1,3 +1,8 @@
+v26.3.23 (2026-07-23)
+-------------------------
+ * Update to goflow v0.284.3
+ * Report webhook size limit errors for operator visibility
+
 v26.3.22 (2026-07-22)
 -------------------------
  * Remove unused PO translation import/export endpoints
