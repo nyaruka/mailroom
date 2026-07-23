@@ -49,6 +49,9 @@ const (
 	defaultURNPriority = 0
 )
 
+// MaxContactNameLength is the maximum length we can save for a contact name
+const MaxContactNameLength = 128
+
 // nil versions of ID types
 const (
 	NilURNID     = URNID(0)
