@@ -56,12 +56,21 @@ func ImportBatch(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 	mods := make(map[models.ContactID][]flows.Modifier, len(imports))
 	for _, imp := range imports {
 		// ignore errored imports which couldn't get/create a contact
-		if imp.mc != nil {
-			mcs = append(mcs, imp.mc)
-			contacts = append(contacts, imp.contact)
-			mods[imp.mc.ID()] = imp.mods
-			importsByContact[imp.contact] = imp
+		if imp.mc == nil {
+			continue
 		}
+
+		// multiple records can resolve to the same contact, e.g. one record referencing it by UUID and another by a
+		// URN it owns, in which case we append to the modifiers of the contact rather than modifying it twice
+		if _, seen := mods[imp.mc.ID()]; seen {
+			mods[imp.mc.ID()] = append(mods[imp.mc.ID()], imp.mods...)
+			continue
+		}
+
+		mcs = append(mcs, imp.mc)
+		contacts = append(contacts, imp.contact)
+		mods[imp.mc.ID()] = imp.mods
+		importsByContact[imp.contact] = imp
 	}
 
 	// and apply in bulk
