@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"slices"
+	"strconv"
 	"time"
 
 	"github.com/nyaruka/mailroom/v26/core/imports"
@@ -55,11 +56,10 @@ func (t *ImportContactBatch) Perform(ctx context.Context, rt *runtime.Runtime, o
 		batch.SetFailed(ctx, rt.DB)
 	}
 
-	// decrement the counter to see if the overall import is now finished
-	counter := NewCounter(fmt.Sprintf("contact_import_batches_remaining:%d", batch.ImportID), 24*time.Hour)
-	done, err := counter.Done(ctx, rt.VK)
+	// mark this batch as done to see if the overall import is now finished
+	done, err := ContactImportTracker(batch.ImportID).Done(ctx, rt.VK, strconv.Itoa(int(t.ContactImportBatchID)))
 	if err != nil {
-		return fmt.Errorf("error decrementing import batch counter: %w", err)
+		return fmt.Errorf("error updating import batch tracker: %w", err)
 	}
 	if done {
 		// if any batch failed, then import is considered failed
@@ -79,4 +79,9 @@ func (t *ImportContactBatch) Perform(ctx context.Context, rt *runtime.Runtime, o
 	}
 
 	return nil
+}
+
+// ContactImportTracker returns a tracker for tracking import progress for the given contact import.
+func ContactImportTracker(importID models.ContactImportID) *Tracker {
+	return NewTracker(fmt.Sprintf("contact_import_batches_remaining:%d", importID), 24*time.Hour)
 }

@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"maps"
 	"slices"
+	"strconv"
 	"time"
 
 	"github.com/nyaruka/goflow/contactql"
@@ -135,18 +136,23 @@ func (t *PopulateGroup) Perform(ctx context.Context, rt *runtime.Runtime, oa *mo
 	// generate a random ID for this population run so batch tasks can track completion
 	populationID := utils.RandomBase64(10)
 
-	// set valkey counter which batch tasks can decrement to know when population has completed
-	counter := NewCounter(fmt.Sprintf(populateGroupBatchesRemainingKey, populationID), time.Hour)
-	if err := counter.Init(ctx, rt.VK, len(batches)); err != nil {
-		return fmt.Errorf("error setting populate group batch counter key: %w", err)
+	// set valkey tracker which batch tasks can mark themselves complete in to know when population has completed
+	batchIDs := make([]string, len(batches))
+	for i := range batches {
+		batchIDs[i] = strconv.Itoa(i)
+	}
+	tracker := NewTracker(fmt.Sprintf(populateGroupBatchesRemainingKey, populationID), time.Hour)
+	if err := tracker.Init(ctx, rt.VK, batchIDs); err != nil {
+		return fmt.Errorf("error setting populate group batch tracker key: %w", err)
 	}
 
-	for _, batch := range batches {
+	for i, batch := range batches {
 		task := &PopulateGroupBatch{
 			GroupID:      t.GroupID,
 			ContactIDs:   batch,
 			LockValue:    lock,
 			PopulationID: populationID,
+			BatchID:      batchIDs[i],
 		}
 		if err := Queue(ctx, rt, rt.Queues.Batch, oa.OrgID(), task, false); err != nil {
 			return fmt.Errorf("error queuing populate group batch task: %w", err)

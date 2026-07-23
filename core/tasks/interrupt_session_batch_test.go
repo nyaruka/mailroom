@@ -53,20 +53,22 @@ func TestInterruptSessionBatchDecrements(t *testing.T) {
 	s1UUID := testdb.InsertWaitingSession(t, rt, testdb.Org1, testdb.Ann, models.FlowTypeMessaging, nil, testdb.Favorites)
 	s2UUID := testdb.InsertWaitingSession(t, rt, testdb.Org1, testdb.Bob, models.FlowTypeMessaging, nil, testdb.Favorites)
 
-	// simulate the counter being set by InterruptFlow with a total of 3 batches
+	// simulate the tracker being set by InterruptFlow with a total of 3 batches
 	key := fmt.Sprintf("interrupt_flow_progress:%d", testdb.Favorites.ID)
-	vc.Do("SET", key, 3, "EX", 15*60)
+	vc.Do("SADD", key, "0", "1", "2")
+	vc.Do("EXPIRE", key, 15*60)
 
 	// queue and perform a batch task with FlowID set (as InterruptFlow would create it)
 	tasks.Queue(ctx, rt, rt.Queues.Batch, testdb.Org1.ID, &tasks.InterruptSessionBatch{
 		Sessions: []models.SessionRef{{UUID: s1UUID, ContactID: testdb.Ann.ID}, {UUID: s2UUID, ContactID: testdb.Bob.ID}},
 		Status:   flows.SessionStatusInterrupted,
 		FlowID:   testdb.Favorites.ID,
+		BatchID:  "1",
 	}, false)
 	testsuite.FlushTasks(t, rt)
 
-	// counter should have been decremented by 1 (one batch completed)
-	remaining, err := valkey.Int(vc.Do("GET", key))
+	// this batch should have been removed from the tracker (two batches remaining)
+	remaining, err := valkey.Strings(vc.Do("SMEMBERS", key))
 	assert.NoError(t, err)
-	assert.Equal(t, 2, remaining)
+	assert.ElementsMatch(t, []string{"0", "2"}, remaining)
 }
