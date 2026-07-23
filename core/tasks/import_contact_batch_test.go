@@ -10,6 +10,8 @@ import (
 	"github.com/nyaruka/mailroom/v26/core/tasks"
 	"github.com/nyaruka/mailroom/v26/testsuite"
 	"github.com/nyaruka/mailroom/v26/testsuite/testdb"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestImportContactBatch(t *testing.T) {
@@ -55,4 +57,29 @@ func TestImportContactBatch(t *testing.T) {
 			"scope":             fmt.Sprintf("contact:%d", importID),
 			"user_id":           int64(testdb.Admin.ID),
 		})
+}
+
+func TestImportContactBatchFailure(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+	vc := rt.VK.Get()
+	defer vc.Close()
+
+	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetDynamo|testsuite.ResetValkey)
+
+	importID := testdb.InsertContactImport(t, rt, testdb.Org1, models.ImportStatusProcessing, testdb.Admin)
+
+	// insert a batch with specs that can't be unmarshaled so that processing it fails
+	batchID := testdb.InsertContactImportBatch(t, rt, importID, []byte(`[{"urns": "should-be-an-array"}]`))
+
+	vc.Do("SETEX", fmt.Sprintf("contact_import_batches_remaining:%d", importID), 10, 1)
+
+	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
+	require.NoError(t, err)
+
+	task := &tasks.ImportContactBatch{ContactImportBatchID: batchID}
+	assert.Error(t, task.Perform(ctx, rt, oa))
+
+	// batch and overall import should be marked as failed
+	assertdb.Query(t, rt.DB, `SELECT status FROM contacts_contactimportbatch WHERE id = $1`, batchID).Columns(map[string]any{"status": "F"})
+	assertdb.Query(t, rt.DB, `SELECT status FROM contacts_contactimport WHERE id = $1`, importID).Columns(map[string]any{"status": "F"})
 }
