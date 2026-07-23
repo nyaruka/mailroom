@@ -7,6 +7,7 @@ import (
 
 	"github.com/nyaruka/gocommon/i18n"
 	"github.com/nyaruka/gocommon/jsonx"
+	"github.com/nyaruka/gocommon/stringsx"
 	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/goflow/flows"
@@ -136,7 +137,8 @@ func getOrCreateContacts(ctx context.Context, db *sqlx.DB, oa *models.OrgAssets,
 		addModifier(modifiers.NewURNs(spec.URNs, modifiers.URNsAppend))
 
 		if spec.Name != nil {
-			addModifier(modifiers.NewName(*spec.Name))
+			// truncate to what we can save so the name in the resulting event matches what is stored
+			addModifier(modifiers.NewName(stringsx.Truncate(*spec.Name, models.MaxContactNameLength)))
 		}
 		if spec.Language != nil {
 			lang, err := i18n.ParseLanguage(*spec.Language)

@@ -7,6 +7,7 @@ import (
 	"sort"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/nyaruka/gocommon/aws/dynamo"
 	"github.com/nyaruka/gocommon/dbutil"
@@ -151,6 +152,43 @@ func TestContactImports(t *testing.T) {
 		err = os.WriteFile("testdata/contacts.json", testJSON, 0600)
 		require.NoError(t, err)
 	}
+}
+
+func TestImportBatchLongName(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetDynamo|testsuite.ResetValkey)
+
+	longName := strings.Repeat("abcdefghij", 20) // 200 chars
+
+	importID := testdb.InsertContactImport(t, rt, testdb.Org1, models.ImportStatusProcessing, testdb.Admin)
+	batchID := testdb.InsertContactImportBatch(t, rt, importID, jsonx.MustMarshal([]map[string]any{
+		{"name": longName, "urns": []string{"tel:+16055740031"}, "_import_row": 2},
+	}))
+
+	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshFields|models.RefreshGroups)
+	require.NoError(t, err)
+
+	batch, err := models.LoadContactImportBatch(ctx, rt.DB, batchID)
+	require.NoError(t, err)
+
+	err = imports.ImportBatch(ctx, rt, oa, batch, testdb.Admin.ID)
+	require.NoError(t, err)
+
+	// name is truncated to what can be stored
+	truncated := longName[:models.MaxContactNameLength] // safe to slice by bytes because input is ASCII
+	var name string
+	require.NoError(t, rt.DB.Get(&name, `SELECT name FROM contacts_contact WHERE id = (SELECT contact_id FROM contacts_contacturn WHERE identity = 'tel:+16055740031')`))
+	assert.Equal(t, truncated, name)
+
+	// and the name changed event in the contact's history matches what was stored
+	eventName := ""
+	for _, item := range testsuite.GetHistoryItems(t, rt, false, time.Time{}) {
+		if item.Data["type"] == "contact_name_changed" {
+			eventName = item.Data["name"].(string)
+		}
+	}
+	assert.Equal(t, truncated, eventName)
 }
 
 func TestContactSpecUnmarshal(t *testing.T) {
