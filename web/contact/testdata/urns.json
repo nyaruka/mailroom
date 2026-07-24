@@ -54,7 +54,7 @@
                     "error": "unknown URN scheme"
                 },
                 {
-                    "normalized": ":abc",
+                    "normalized": "abc",
                     "error": "scheme or path cannot be empty"
                 }
             ]
