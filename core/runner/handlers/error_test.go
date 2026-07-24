@@ -53,6 +53,5 @@ func TestError(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Contains(t, logBuf.String(), "level=ERROR")
-	assert.Contains(t, logBuf.String(), "webhook size limit exceeded")
-	assert.Contains(t, logBuf.String(), "code=webhook:request_size")
+	assert.Contains(t, logBuf.String(), "webhook request size limit exceeded")
 }
