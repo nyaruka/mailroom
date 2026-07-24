@@ -138,7 +138,7 @@ func simulatorEmailServiceFactory(flows.SessionAssets) (flows.EmailService, erro
 
 type simulatorEmailService struct{}
 
-func (s *simulatorEmailService) Send(addresses []string, subject, body string) error {
+func (s *simulatorEmailService) Send(ctx context.Context, addresses []string, subject, body string) error {
 	return nil
 }
 

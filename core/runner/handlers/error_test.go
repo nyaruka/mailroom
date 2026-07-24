@@ -55,13 +55,4 @@ func TestError(t *testing.T) {
 	assert.Contains(t, logBuf.String(), "level=ERROR")
 	assert.Contains(t, logBuf.String(), "webhook size limit exceeded")
 	assert.Contains(t, logBuf.String(), "code=webhook:request_size")
-
-	// and a webhook response size error
-	logBuf.Reset()
-	err = scene.AddEvent(ctx, rt, oa, events.NewError("webhook response body exceeds 10000000 bytes limit", events.ErrorCodeWebhookResponseSize), models.NilUserID, "")
-	require.NoError(t, err)
-
-	assert.Contains(t, logBuf.String(), "level=ERROR")
-	assert.Contains(t, logBuf.String(), "webhook size limit exceeded")
-	assert.Contains(t, logBuf.String(), "code=webhook:response_size")
 }
