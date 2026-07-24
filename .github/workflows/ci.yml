@@ -52,6 +52,17 @@ jobs:
           echo "gocache=$(go env GOCACHE)" >> $GITHUB_OUTPUT
           echo "goversion=$(go env GOVERSION)" >> $GITHUB_OUTPUT
 
+      - name: Install Postgres client and zstd
+        # zstd must be installed before the cache step so actions/cache uses fast multithreaded
+        # zstd compression instead of falling back to single-threaded gzip
+        run: |
+          apt-get update
+          apt-get install -y wget gnupg2 lsb-release zstd
+          echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list
+          wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | tee /etc/apt/trusted.gpg.d/postgresql.asc > /dev/null
+          apt-get update
+          apt-get install -y --no-install-recommends postgresql-client-15
+
       - name: Cache Go modules and build cache
         uses: actions/cache@v5
         with:
@@ -62,15 +73,6 @@ jobs:
           restore-keys: |
             go-${{ steps.go-cache-paths.outputs.goversion }}-
             go-
-
-      - name: Install Postgres Client
-        run: |
-          apt-get update
-          apt-get install -y wget gnupg2 lsb-release
-          echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list
-          wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | tee /etc/apt/trusted.gpg.d/postgresql.asc > /dev/null
-          apt-get update
-          apt-get install -y --no-install-recommends postgresql-client-15
 
       - name: Initialize database
         # we create our test database with a different user so that we can drop everything owned by this user between tests
