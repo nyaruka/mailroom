@@ -1,3 +1,9 @@
+v26.3.24 (2026-07-27)
+-------------------------
+ * Update to goflow v0.285.0 and gocommon v1.91.1
+ * Update dependencies including golang-jwt/jwt v5 and openai-go v3
+ * Use distinct log message for webhook request size limit errors
+
 v26.3.23 (2026-07-23)
 -------------------------
  * Update to goflow v0.284.3
