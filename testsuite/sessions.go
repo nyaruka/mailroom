@@ -61,7 +61,7 @@ func ResumeSession(t *testing.T, rt *runtime.Runtime, oa *models.OrgAssets, c *t
 	case flows.Resume:
 		r = typed
 	case string:
-		msg := core.NewMsgIn(c.URN, nil, typed, nil, "")
+		msg := core.NewMsgIn(c.URN, nil, typed, nil, "", nil)
 		r = resumes.NewMsg(events.NewMsgReceived(msg, ""))
 	default:
 		panic("invalid resume type")

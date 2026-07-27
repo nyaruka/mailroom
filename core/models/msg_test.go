@@ -466,7 +466,7 @@ func TestNewIVRMessages(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT text, status, msg_type, flow_id FROM msgs_msg WHERE uuid = $1`, dbOut.UUID()).
 		Columns(map[string]any{"text": "Hello", "status": "W", "msg_type": "V", "flow_id": testdb.Favorites.ID})
 
-	flowIn := core.NewMsgIn(testdb.Ann.URN, vonage.Reference(), "1", nil, "")
+	flowIn := core.NewMsgIn(testdb.Ann.URN, vonage.Reference(), "1", nil, "", nil)
 	eventIn := events.NewMsgReceived(flowIn, "")
 	dbIn := models.NewIncomingIVR(rt.Config, testdb.Org1.ID, call, flow, eventIn)
 

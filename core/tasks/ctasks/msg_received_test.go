@@ -1,6 +1,7 @@
 package ctasks_test
 
 import (
+	"encoding/json"
 	"fmt"
 	"testing"
 	"time"
@@ -542,6 +543,44 @@ func TestMsgReceivedNewURN(t *testing.T) {
 			assert.Equal(t, tc.expectedURN, urnRows)
 		})
 	}
+}
+
+func TestMsgReceivedPayload(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetDynamo|testsuite.ResetElastic)
+
+	oa := testdb.Org1.Load(t, rt)
+	ann, _, _ := testdb.Ann.Load(t, rt, oa)
+
+	dbMsg := testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199bad8-f98d-75a3-b641-2718a25ac3f5", testdb.TwilioChannel, testdb.Ann, "", models.MsgStatusPending, "")
+
+	task := &ctasks.MsgReceived{
+		ChannelID: testdb.TwilioChannel.ID,
+		MsgUUID:   dbMsg.UUID,
+		URN:       testdb.Ann.URN,
+		URNID:     testdb.Ann.URNID,
+		Text:      "form submitted",
+		Payload:   json.RawMessage(`{"flow_token": "abc123", "answers": {"rating": "5"}}`),
+	}
+
+	err := task.Perform(ctx, rt, oa, ann)
+	require.NoError(t, err)
+
+	// check the payload made it onto the msg_received event in history
+	items := testsuite.GetHistoryItems(t, rt, false, time.Time{})
+	var msgEvent map[string]any
+	for _, item := range items {
+		data, err := item.GetData()
+		require.NoError(t, err)
+		if data["type"] == "msg_received" {
+			msgEvent = data
+		}
+	}
+	require.NotNil(t, msgEvent, "expected a msg_received event in history")
+
+	msg := msgEvent["msg"].(map[string]any)
+	assert.Equal(t, map[string]any{"flow_token": "abc123", "answers": map[string]any{"rating": "5"}}, msg["payload"])
 }
 
 func getLastSeenOn(t *testing.T, rt *runtime.Runtime, c *testdb.Contact) *time.Time {

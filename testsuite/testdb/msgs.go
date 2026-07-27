@@ -71,7 +71,7 @@ func InsertIncomingMsg(t *testing.T, rt *runtime.Runtime, org *Org, uuid events.
 	)
 	require.NoError(t, err)
 
-	fm := core.NewMsgIn(contact.URN, assets.NewChannelReference(channel.UUID, ""), text, nil, "")
+	fm := core.NewMsgIn(contact.URN, assets.NewChannelReference(channel.UUID, ""), text, nil, "", nil)
 	return &MsgIn{Msg: Msg{ID: id, UUID: uuid}, FlowMsg: fm}
 }
 

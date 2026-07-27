@@ -2,6 +2,7 @@ package ctasks
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/nyaruka/gocommon/dates"
@@ -35,6 +36,7 @@ type MsgReceived struct {
 	URNID         models.URNID     `json:"urn_id"`
 	Text          string           `json:"text"`
 	Attachments   []string         `json:"attachments,omitempty"`
+	Payload       json.RawMessage  `json:"payload,omitempty"`
 	NewContact    bool             `json:"new_contact"`
 	NewURN        *NewURNSpec      `json:"new_urn,omitempty"`
 }
@@ -86,7 +88,7 @@ func (t *MsgReceived) perform(ctx context.Context, rt *runtime.Runtime, oa *mode
 		ticketUUID = tks[len(tks)-1].UUID
 	}
 
-	msgIn := core.NewMsgIn(t.URN, channel.Reference(), t.Text, availableAttachments, string(t.MsgExternalID))
+	msgIn := core.NewMsgIn(t.URN, channel.Reference(), t.Text, availableAttachments, string(t.MsgExternalID), t.Payload)
 	msgEvent := events.NewMsgReceived(msgIn, ticketUUID)
 	msgEvent.UUID_ = t.MsgUUID
 

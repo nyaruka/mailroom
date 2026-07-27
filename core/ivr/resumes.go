@@ -101,7 +101,7 @@ func buildMsgResume(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 		attachments = []utils.Attachment{resume.Attachment}
 	}
 
-	msgIn := core.NewMsgIn(urn, channel.Reference(), resume.Input, attachments, "")
+	msgIn := core.NewMsgIn(urn, channel.Reference(), resume.Input, attachments, "", nil)
 	msgEvt := events.NewMsgReceived(msgIn, "")
 	msgEvt.UUID_ = msgUUID
 
