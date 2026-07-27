@@ -1,3 +1,10 @@
+v26.3.25 (2026-07-27)
+-------------------------
+ * Update to goflow v0.286.1 and pass payload of incoming messages to the engine
+ * Fix contact imports being marked complete even when batches failed
+ * Improve logging of contact import batch failures
+ * Report all modifier errors against contact import records
+
 v26.3.24 (2026-07-27)
 -------------------------
  * Update to goflow v0.285.0 and gocommon v1.91.1
