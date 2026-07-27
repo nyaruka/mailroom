@@ -3,6 +3,7 @@ package tasks
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"slices"
 	"time"
 
@@ -52,7 +53,9 @@ func (t *ImportContactBatch) Perform(ctx context.Context, rt *runtime.Runtime, o
 
 	// if any error occurs this batch should be marked as failed
 	if batchErr != nil {
-		batch.SetFailed(ctx, rt.DB)
+		if err := batch.SetFailed(ctx, rt.DB); err != nil {
+			slog.Error("error marking import batch as failed", "error", err, "import_id", batch.ImportID, "batch_id", batch.ID)
+		}
 	}
 
 	// decrement the counter to see if the overall import is now finished
@@ -62,6 +65,13 @@ func (t *ImportContactBatch) Perform(ctx context.Context, rt *runtime.Runtime, o
 		return fmt.Errorf("error decrementing import batch counter: %w", err)
 	}
 	if done {
+		// reload the import to get the final statuses of all batches - the statuses loaded before this batch was
+		// processed are stale by now
+		imp, err = models.LoadContactImport(ctx, rt.DB, batch.ImportID)
+		if err != nil {
+			return fmt.Errorf("error reloading contact import: %w", err)
+		}
+
 		// if any batch failed, then import is considered failed
 		success := !slices.Contains(imp.BatchStatuses, models.ImportStatusFailed)
 
