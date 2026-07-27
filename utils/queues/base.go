@@ -6,7 +6,7 @@ import (
 	"time"
 
 	valkey "github.com/gomodule/redigo/redis"
-	"github.com/nyaruka/vkutil/queues"
+	"github.com/nyaruka/gocommon/queues"
 )
 
 // Task is a wrapper for encoding a task
