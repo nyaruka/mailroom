@@ -70,14 +70,17 @@ func ImportBatch(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 		return fmt.Errorf("error applying modifiers: %w", err)
 	}
 
-	// extract certain errors from events
+	// extract errors from events so they can be reported against their records - e.g. invalid URNs which modifiers
+	// skip, or URNs already taken by other contacts
 	for contact, evts := range eventsByContact {
 		for _, evt := range evts {
 			switch typed := evt.(type) {
 			case *events.Error:
+				imp := importsByContact[contact]
 				if typed.Code == events.ErrorCodeURNTaken {
-					imp := importsByContact[contact]
 					imp.errors = append(imp.errors, fmt.Sprintf("URN %s already taken by another contact", typed.Extra["urn"]))
+				} else {
+					imp.errors = append(imp.errors, typed.Text)
 				}
 			}
 		}
