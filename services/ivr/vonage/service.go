@@ -20,7 +20,7 @@ import (
 	"time"
 
 	"github.com/buger/jsonparser"
-	"github.com/golang-jwt/jwt"
+	"github.com/golang-jwt/jwt/v5"
 	valkey "github.com/gomodule/redigo/redis"
 	"github.com/nyaruka/gocommon/httpx"
 	"github.com/nyaruka/gocommon/jsonx"
@@ -702,15 +702,15 @@ func (s *service) calculateSignature(u string) string {
 
 type jwtClaims struct {
 	ApplicationID string `json:"application_id"`
-	jwt.StandardClaims
+	jwt.RegisteredClaims
 }
 
 func (s *service) generateToken() (string, error) {
 	claims := jwtClaims{
 		s.appID,
-		jwt.StandardClaims{
-			Id:       strconv.Itoa(rand.Int()),
-			IssuedAt: time.Now().UTC().Unix(),
+		jwt.RegisteredClaims{
+			ID:       strconv.Itoa(rand.Int()),
+			IssuedAt: jwt.NewNumericDate(time.Now().UTC()),
 		},
 	}
 	token := jwt.NewWithClaims(jwt.GetSigningMethod("RS256"), claims)
