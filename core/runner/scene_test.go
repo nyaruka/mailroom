@@ -205,7 +205,7 @@ func TestSessionWithSubflows(t *testing.T) {
 	assert.Equal(t, scene.Session.UUID(), modelSession.UUID)
 	assert.Equal(t, child.UUID, modelSession.CurrentFlowUUID)
 
-	msg2 := core.NewMsgIn(testdb.Ann.URN, nil, "yes", nil, "")
+	msg2 := core.NewMsgIn(testdb.Ann.URN, nil, "yes", nil, "", nil)
 	scene = runner.NewScene(mc, contact)
 
 	err = scene.ResumeSession(ctx, rt, oa, modelSession, resumes.NewMsg(events.NewMsgReceived(msg2, "")))
