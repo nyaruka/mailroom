@@ -17,6 +17,9 @@ import (
 	"github.com/shopspring/decimal"
 )
 
+// MaxContactNameLength is the maximum length of a contact name (matches the database column)
+const MaxContactNameLength = 128
+
 var eng, simulator flows.Engine
 var engInit, simulatorInit sync.Once
 
@@ -91,7 +94,7 @@ func Engine(rt *runtime.Runtime) flows.Engine {
 			WithEvaluationBudget(excellent.DefaultEvaluationBudget).
 			WithMaxStepsPerSprint(rt.Config.MaxStepsPerSprint).
 			WithMaxSprintsPerSession(rt.Config.MaxSprintsPerSession).
-			WithMaxNameChars(128).
+			WithMaxNameChars(MaxContactNameLength).
 			WithMaxFieldChars(rt.Config.MaxValueLength).
 			WithMaxResultChars(rt.Config.MaxValueLength).
 			WithWebhookLimits(256*1024, rt.Config.WebhooksMaxBodyBytes).
@@ -121,7 +124,7 @@ func Simulator(ctx context.Context, rt *runtime.Runtime) flows.Engine {
 			WithEvaluationBudget(excellent.DefaultEvaluationBudget).
 			WithMaxStepsPerSprint(rt.Config.MaxStepsPerSprint).
 			WithMaxSprintsPerSession(rt.Config.MaxSprintsPerSession).
-			WithMaxNameChars(128).
+			WithMaxNameChars(MaxContactNameLength).
 			WithMaxFieldChars(rt.Config.MaxValueLength).
 			WithMaxResultChars(rt.Config.MaxValueLength).
 			WithWebhookLimits(256*1024, rt.Config.WebhooksMaxBodyBytes).
