@@ -87,6 +87,7 @@
                     "type": "start_flow",
                     "payload": {
                         "start_id": 30000,
+                        "uuid": "1b2083ab-a0cb-48da-924e-9de1a11831b3",
                         "org_id": 1,
                         "start_type": "M",
                         "created_by_id": 4,

@@ -58,6 +58,13 @@ func (t *StartFlow) Perform(ctx context.Context, rt *runtime.Runtime, oa *models
 
 // creates batches of flow starts for all the unique contacts
 func createFlowStartBatches(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, start *models.FlowStart, taskID TaskID) error {
+	// batches are identified as belonging to this run by the start's UUID, falling back to this task's ID for
+	// payloads queued before starts included their UUID
+	runID := TaskID(start.UUID)
+	if runID == "" {
+		runID = taskID
+	}
+
 	flow, err := oa.FlowByID(start.FlowID)
 	if err != nil {
 		return fmt.Errorf("error loading flow: %w", err)
@@ -119,7 +126,7 @@ func createFlowStartBatches(ctx context.Context, rt *runtime.Runtime, oa *models
 	for i, idBatch := range idBatches {
 		isFirst := (i == 0)
 		isLast := (i == len(idBatches)-1)
-		batchTask := &StartFlowBatch{BatchTask: BatchTask{ParentID: taskID}, FlowStartBatch: start.CreateBatch(idBatch, isFirst, isLast, len(contactIDs))}
+		batchTask := &StartFlowBatch{BatchTask: BatchTask{ParentID: runID}, FlowStartBatch: start.CreateBatch(idBatch, isFirst, isLast, len(contactIDs))}
 
 		if err := Queue(ctx, rt, q, start.OrgID, batchTask, false); err != nil {
 			if i == 0 {
