@@ -8,18 +8,18 @@ import (
 	valkey "github.com/gomodule/redigo/redis"
 	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/jsonx"
-	"github.com/nyaruka/vkutil/queues"
+	"github.com/nyaruka/gocommon/queues"
 )
 
 type FairV2 struct {
 	name string
-	base queues.Fair
+	base *queues.FairV2
 }
 
 func NewFair(name string, maxActivePerOwner int) *FairV2 {
 	return &FairV2{
 		name: name,
-		base: *queues.NewFair(fmt.Sprintf("tasks:%s", name), maxActivePerOwner),
+		base: queues.NewFairV2(fmt.Sprintf("tasks:%s", name), maxActivePerOwner),
 	}
 }
 

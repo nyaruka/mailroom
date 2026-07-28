@@ -1,7 +1,7 @@
 {
     "uuid": "502c3ee4-3249-4dee-8e71-c62070667d52",
     "name": "New",
-    "spec_version": "14.4.1",
+    "spec_version": "14.4.2",
     "type": "messaging",
     "language": "und",
     "expire_after_minutes": 20160,
@@ -64,7 +64,7 @@
             ],
             "router": {
                 "type": "switch",
-                "operand": "@webhook.status",
+                "operand": "@(default(webhook.status, 0))",
                 "cases": [
                     {
                         "uuid": "ff810df6-23c2-4dff-9be1-eebffae2bb9d",

@@ -223,7 +223,7 @@ func TestSessionWithSubflows(t *testing.T) {
 func TestBulkCommitPublishesEvents(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetValkey|testsuite.ResetData|testsuite.ResetDynamo)
+	defer testsuite.Reset(t, rt, testsuite.ResetAll) // modifies contacts
 
 	testFlows := testdb.ImportFlows(t, rt, testdb.Org1, "testdata/session_test_flows.json")
 	flow := testFlows[0]
@@ -342,6 +342,47 @@ func TestBulkCommitPublishesNotifications(t *testing.T) {
 	require.NoError(t, json.Unmarshal(sent[0], &decoded))
 	assert.Equal(t, "tickets:opened", decoded["type"])
 	assert.Equal(t, false, decoded["is_seen"])
+}
+
+func TestBulkCommitPublishesFlowActivity(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	defer testsuite.Reset(t, rt, testsuite.ResetValkey|testsuite.ResetData|testsuite.ResetDynamo)
+
+	testFlows := testdb.ImportFlows(t, rt, testdb.Org1, "testdata/session_test_flows.json")
+	other, parent, child := testFlows[1], testFlows[2], testFlows[3]
+
+	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshFlows)
+	require.NoError(t, err)
+
+	vc := rt.VK.Get()
+	defer vc.Close()
+
+	// all three flows are open in editors
+	parentSocket := models.FlowSocket(parent.UUID)
+	childSocket := models.FlowSocket(child.UUID)
+	otherSocket := models.FlowSocket(other.UUID)
+	for _, s := range []string{parentSocket, childSocket, otherSocket} {
+		_, err = vc.Do("SET", centrifugo.SubscriptionKey(s), "1")
+		require.NoError(t, err)
+	}
+
+	// start two contacts in a flow that enters a subflow, committed as a single batch
+	trig := triggers.NewBuilder(parent.Reference()).Manual().Build()
+	testsuite.StartSessions(t, rt, oa, []*testdb.Contact{testdb.Bob, testdb.Cat}, trig)
+
+	// both scenes' segments in the parent collapse to a single activity ping on its socket
+	parentSent := testsuite.CentrifugoHistory(t, rt, parentSocket)
+	require.Len(t, parentSent, 1)
+	assert.JSONEq(t, `{"type": "activity"}`, string(parentSent[0]))
+
+	// and traversing into the subflow pinged its socket too, again just once
+	childSent := testsuite.CentrifugoHistory(t, rt, childSocket)
+	require.Len(t, childSent, 1)
+	assert.JSONEq(t, `{"type": "activity"}`, string(childSent[0]))
+
+	// while the untraversed flow's socket got nothing
+	assert.Empty(t, testsuite.CentrifugoHistory(t, rt, otherSocket))
 }
 
 func TestSessionFailedStart(t *testing.T) {
@@ -535,7 +576,7 @@ func TestResumeSession(t *testing.T) {
 			expectedStatus:      models.SessionStatusWaiting,
 			expectedCurrentFlow: string(flow.UUID()),
 			expectedRunStatus:   models.RunStatusWaiting,
-			expectedNodeUUID:    "e61f4173-732f-48bb-a767-05899e15f03b",
+			expectedNodeUUID:    "dfdda3da-bf5a-43d4-a81a-349bd51cc035",
 			expectedMsgOut:      "Good choice, I like Red too! What is your favorite beer?",
 			expectedPathLength:  4,
 		},
@@ -544,7 +585,7 @@ func TestResumeSession(t *testing.T) {
 			expectedStatus:      models.SessionStatusWaiting,
 			expectedCurrentFlow: string(flow.UUID()),
 			expectedRunStatus:   models.RunStatusWaiting,
-			expectedNodeUUID:    "bd5996af-4fc0-4ff3-bb77-1ffd50faac7b",
+			expectedNodeUUID:    "65445d3d-25f9-490b-9649-0af057956e46",
 			expectedMsgOut:      "Mmmmm... delicious Mutzig. If only they made red Mutzig! Lastly, what is your name?",
 			expectedPathLength:  6,
 		},
