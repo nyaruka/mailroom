@@ -30,6 +30,19 @@ func HistorySocket(contactUUID core.ContactUUID, ticketUUID ...core.TicketUUID) 
 	return fmt.Sprintf("%s:%s", SocketHistoryNamespace, contactUUID)
 }
 
+// SocketFlowNamespace is the realtime pub/sub namespace for things happening to a specific flow that its editors care
+// about. A flow socket is addressed as "flow:<flow-uuid>" and carries typed payloads - currently just activity change
+// notifications, but it's deliberately per-flow rather than per-feature so that other flow level updates (e.g.
+// revisions, issues) can be published to the same socket later. Like the other namespaces it's a client subscription,
+// authorized per-session by the subscribe proxy, which records the same "socket-subs:" presence key - so mailroom
+// only publishes to it when someone actually has the flow open.
+const SocketFlowNamespace = "flow"
+
+// FlowSocket returns the realtime pub/sub socket for the given flow, addressed as "flow:<flow-uuid>".
+func FlowSocket(flowUUID assets.FlowUUID) string {
+	return fmt.Sprintf("%s:%s", SocketFlowNamespace, flowUUID)
+}
+
 // SocketNotificationsNamespace is the realtime pub/sub namespace for a user's notifications within a workspace. A
 // notification socket is addressed as "notifications:<org-uuid>:<user-uuid>". Like history sockets it's a client
 // subscription, authorized per-session by the subscribe proxy, which records the same "socket-subs:" presence key -
@@ -130,6 +143,30 @@ func PublishToHistory(ctx context.Context, rt *runtime.Runtime, contactUUID core
 
 	if err := rt.Centrifugo.Publish(ctx, pubs...); err != nil {
 		return fmt.Errorf("error publishing history events: %w", err)
+	}
+
+	return nil
+}
+
+// PublishFlowActivity publishes an activity change notification to each given flow's socket, telling any live
+// watchers (i.e. open editors) that the flow's activity counts have changed and are worth re-fetching. The payload is
+// deliberately just a typed ping rather than the counts themselves - the activity read endpoint stays the single
+// source of truth (it also includes state this code never sees, like node active counts), and watchers re-fetch from
+// it on their own debounced schedule. As with the other socket publishes it's best-effort and a no-op for any flow
+// that currently has no watchers - the centrifugo service resolves subscriber presence for the whole batch in a
+// single lookup, so in the overwhelmingly common case of nobody watching this costs one valkey round-trip.
+func PublishFlowActivity(ctx context.Context, rt *runtime.Runtime, flowUUIDs []assets.FlowUUID) error {
+	if len(flowUUIDs) == 0 {
+		return nil
+	}
+
+	pubs := make([]*centrifugo.Publication, len(flowUUIDs))
+	for i, flowUUID := range flowUUIDs {
+		pubs[i] = &centrifugo.Publication{Channel: FlowSocket(flowUUID), Data: json.RawMessage(`{"type":"activity"}`)}
+	}
+
+	if err := rt.Centrifugo.Publish(ctx, pubs...); err != nil {
+		return fmt.Errorf("error publishing flow activity: %w", err)
 	}
 
 	return nil

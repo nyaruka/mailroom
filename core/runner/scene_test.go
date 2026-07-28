@@ -344,6 +344,47 @@ func TestBulkCommitPublishesNotifications(t *testing.T) {
 	assert.Equal(t, false, decoded["is_seen"])
 }
 
+func TestBulkCommitPublishesFlowActivity(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	defer testsuite.Reset(t, rt, testsuite.ResetValkey|testsuite.ResetData|testsuite.ResetDynamo)
+
+	testFlows := testdb.ImportFlows(t, rt, testdb.Org1, "testdata/session_test_flows.json")
+	other, parent, child := testFlows[1], testFlows[2], testFlows[3]
+
+	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshFlows)
+	require.NoError(t, err)
+
+	vc := rt.VK.Get()
+	defer vc.Close()
+
+	// all three flows are open in editors
+	parentSocket := models.FlowSocket(parent.UUID)
+	childSocket := models.FlowSocket(child.UUID)
+	otherSocket := models.FlowSocket(other.UUID)
+	for _, s := range []string{parentSocket, childSocket, otherSocket} {
+		_, err = vc.Do("SET", centrifugo.SubscriptionKey(s), "1")
+		require.NoError(t, err)
+	}
+
+	// start two contacts in a flow that enters a subflow, committed as a single batch
+	trig := triggers.NewBuilder(parent.Reference()).Manual().Build()
+	testsuite.StartSessions(t, rt, oa, []*testdb.Contact{testdb.Bob, testdb.Cat}, trig)
+
+	// both scenes' segments in the parent collapse to a single activity ping on its socket
+	parentSent := testsuite.CentrifugoHistory(t, rt, parentSocket)
+	require.Len(t, parentSent, 1)
+	assert.JSONEq(t, `{"type": "activity"}`, string(parentSent[0]))
+
+	// and traversing into the subflow pinged its socket too, again just once
+	childSent := testsuite.CentrifugoHistory(t, rt, childSocket)
+	require.Len(t, childSent, 1)
+	assert.JSONEq(t, `{"type": "activity"}`, string(childSent[0]))
+
+	// while the untraversed flow's socket got nothing
+	assert.Empty(t, testsuite.CentrifugoHistory(t, rt, otherSocket))
+}
+
 func TestSessionFailedStart(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
