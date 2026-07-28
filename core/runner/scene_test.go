@@ -234,21 +234,13 @@ func TestBulkCommitPublishesEvents(t *testing.T) {
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	// someone is watching Ann's history socket, and someone has the flow open in an editor
+	// someone is watching Ann's history socket
 	socket := models.HistorySocket(testdb.Ann.UUID)
 	_, err = vc.Do("SET", centrifugo.SubscriptionKey(socket), "1")
-	require.NoError(t, err)
-	flowSocket := models.FlowSocket(flow.UUID)
-	_, err = vc.Do("SET", centrifugo.SubscriptionKey(flowSocket), "1")
 	require.NoError(t, err)
 
 	trig := triggers.NewBuilder(flow.Reference()).Manual().Build()
 	testsuite.StartSessions(t, rt, oa, []*testdb.Contact{testdb.Ann}, trig)
-
-	// the flow's subscribed socket received a single activity change ping for the commit
-	flowSent := testsuite.CentrifugoHistory(t, rt, flowSocket)
-	require.Len(t, flowSent, 1)
-	assert.JSONEq(t, `{"type": "activity"}`, string(flowSent[0]))
 
 	// the subscribed socket received the persisted events plus the ephemeral contact_flow_changed
 	sent := testsuite.CentrifugoHistory(t, rt, socket)
@@ -350,6 +342,47 @@ func TestBulkCommitPublishesNotifications(t *testing.T) {
 	require.NoError(t, json.Unmarshal(sent[0], &decoded))
 	assert.Equal(t, "tickets:opened", decoded["type"])
 	assert.Equal(t, false, decoded["is_seen"])
+}
+
+func TestBulkCommitPublishesFlowActivity(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	defer testsuite.Reset(t, rt, testsuite.ResetValkey|testsuite.ResetData|testsuite.ResetDynamo)
+
+	testFlows := testdb.ImportFlows(t, rt, testdb.Org1, "testdata/session_test_flows.json")
+	other, parent, child := testFlows[1], testFlows[2], testFlows[3]
+
+	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshFlows)
+	require.NoError(t, err)
+
+	vc := rt.VK.Get()
+	defer vc.Close()
+
+	// all three flows are open in editors
+	parentSocket := models.FlowSocket(parent.UUID)
+	childSocket := models.FlowSocket(child.UUID)
+	otherSocket := models.FlowSocket(other.UUID)
+	for _, s := range []string{parentSocket, childSocket, otherSocket} {
+		_, err = vc.Do("SET", centrifugo.SubscriptionKey(s), "1")
+		require.NoError(t, err)
+	}
+
+	// start two contacts in a flow that enters a subflow, committed as a single batch
+	trig := triggers.NewBuilder(parent.Reference()).Manual().Build()
+	testsuite.StartSessions(t, rt, oa, []*testdb.Contact{testdb.Bob, testdb.Cat}, trig)
+
+	// both scenes' segments in the parent collapse to a single activity ping on its socket
+	parentSent := testsuite.CentrifugoHistory(t, rt, parentSocket)
+	require.Len(t, parentSent, 1)
+	assert.JSONEq(t, `{"type": "activity"}`, string(parentSent[0]))
+
+	// and traversing into the subflow pinged its socket too, again just once
+	childSent := testsuite.CentrifugoHistory(t, rt, childSocket)
+	require.Len(t, childSent, 1)
+	assert.JSONEq(t, `{"type": "activity"}`, string(childSent[0]))
+
+	// while the untraversed flow's socket got nothing
+	assert.Empty(t, testsuite.CentrifugoHistory(t, rt, otherSocket))
 }
 
 func TestSessionFailedStart(t *testing.T) {
