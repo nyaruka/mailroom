@@ -13,6 +13,7 @@ import (
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/search"
 	"github.com/nyaruka/mailroom/v26/runtime"
+	"github.com/nyaruka/mailroom/v26/utils"
 	"github.com/nyaruka/vkutil/locks"
 )
 
@@ -131,8 +132,8 @@ func (t *PopulateGroup) Perform(ctx context.Context, rt *runtime.Runtime, oa *mo
 	// chunk contacts into batches and queue a task for each
 	batches := slices.Collect(slices.Chunk(recheckIDs, populateBatchSize))
 
-	// this task's ID identifies this population run so batch tasks can track completion
-	populationID := string(taskID)
+	// generate a random ID for this population run so batch tasks can track completion
+	populationID := utils.RandomBase64(10)
 
 	// set valkey counter which batch tasks can decrement to know when population has completed
 	counter := NewCounter(fmt.Sprintf(populateGroupBatchesRemainingKey, populationID), time.Hour)
@@ -146,6 +147,7 @@ func (t *PopulateGroup) Perform(ctx context.Context, rt *runtime.Runtime, oa *mo
 			ContactIDs:   batch,
 			LockValue:    lock,
 			PopulationID: populationID,
+			ParentID:     taskID,
 			BatchNum:     i,
 		}
 		if err := Queue(ctx, rt, rt.Queues.Batch, oa.OrgID(), task, false); err != nil {

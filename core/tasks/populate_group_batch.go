@@ -25,7 +25,10 @@ type PopulateGroupBatch struct {
 	ContactIDs   []models.ContactID `json:"contact_ids"`
 	LockValue    string             `json:"lock_value"`
 	PopulationID string             `json:"population_id"`
-	BatchNum     int                `json:"batch_num"` // not yet read, will identify this batch in completion tracking
+
+	// not yet read, will replace PopulationID as the completion tracker scope and identify this batch within it
+	ParentID TaskID `json:"parent_id"`
+	BatchNum int    `json:"batch_num"`
 }
 
 func (t *PopulateGroupBatch) Type() string {
