@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/nyaruka/goflow/core/events"
+	"github.com/nyaruka/mailroom/v26/core/goflow"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/runner"
 	"github.com/nyaruka/mailroom/v26/runtime"
@@ -25,7 +26,7 @@ func (h *updateContactName) Execute(ctx context.Context, rt *runtime.Runtime, tx
 	for s, args := range scenes {
 		// we only care about the last name change
 		event := args[len(args)-1].(*events.ContactNameChanged)
-		updates = append(updates, &nameUpdate{s.ContactID(), null.String(fmt.Sprintf("%.128s", event.Name))})
+		updates = append(updates, &nameUpdate{s.ContactID(), null.String(fmt.Sprintf("%.*s", goflow.MaxContactNameLength, event.Name))})
 	}
 
 	return models.BulkQuery(ctx, "updating contact name", tx, sqlUpdateContactName, updates)
