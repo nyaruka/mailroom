@@ -1,3 +1,10 @@
+v26.3.26 (2026-07-28)
+-------------------------
+ * Update to goflow v0.287.0 and remove handling of removed optin_requested event type
+ * Remove unreachable opt-in request handling from courier message creation
+ * Update to vkutil v0.22.0 and gocommon v1.92.0 which now provides the fair queue as queues.FairV2
+ * Update test database dump for latest rapidpro schema
+
 v26.3.25 (2026-07-27)
 -------------------------
  * Update to goflow v0.286.1 and pass payload of incoming messages to the engine
