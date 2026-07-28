@@ -36,7 +36,7 @@ func (t *InterruptContacts) WithAssets() models.Refresh {
 	return models.RefreshNone
 }
 
-func (t *InterruptContacts) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets) error {
+func (t *InterruptContacts) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, taskID TaskID) error {
 	if _, _, err := runner.InterruptWithLock(ctx, rt, oa, t.ContactIDs, nil, flows.SessionStatusInterrupted); err != nil {
 		return err
 	}

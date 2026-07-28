@@ -46,7 +46,7 @@ func (t *StartFlowBatch) WithAssets() models.Refresh {
 	return models.RefreshNone
 }
 
-func (t *StartFlowBatch) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets) error {
+func (t *StartFlowBatch) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, taskID TaskID) error {
 	var start *models.FlowStart
 	var err error
 

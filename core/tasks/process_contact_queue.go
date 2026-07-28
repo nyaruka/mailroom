@@ -42,7 +42,7 @@ func (t *ProcessContactQueue) WithAssets() models.Refresh {
 
 // Perform is called when an event comes in for a contact. To make sure we don't get into a situation of being off by one,
 // this task ingests and handles all the events for a contact, one by one.
-func (t *ProcessContactQueue) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets) error {
+func (t *ProcessContactQueue) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, taskID TaskID) error {
 	// try to get the lock for this contact, waiting up to 10 seconds
 	locks, _, err := clocks.TryToLock(ctx, rt, oa, []models.ContactID{t.ContactID}, time.Second*10)
 	if err != nil {

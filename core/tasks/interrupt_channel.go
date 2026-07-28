@@ -37,7 +37,7 @@ func (t *InterruptChannel) WithAssets() models.Refresh {
 }
 
 // Perform implements tasks.Task
-func (t *InterruptChannel) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets) error {
+func (t *InterruptChannel) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, taskID TaskID) error {
 	vc := rt.VK.Get()
 	defer vc.Close()
 

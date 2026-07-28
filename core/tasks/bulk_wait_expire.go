@@ -44,7 +44,7 @@ func (t *BulkWaitExpire) WithAssets() models.Refresh {
 }
 
 // Perform creates the actual task
-func (t *BulkWaitExpire) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets) error {
+func (t *BulkWaitExpire) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, taskID TaskID) error {
 	for _, e := range t.Expirations {
 		err := QueueContact(ctx, rt, oa.OrgID(), e.ContactID, &ctasks.WaitExpired{SessionUUID: e.SessionUUID, SprintUUID: e.SprintUUID})
 		if err != nil {

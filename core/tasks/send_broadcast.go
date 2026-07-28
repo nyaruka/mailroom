@@ -43,7 +43,7 @@ func (t *SendBroadcast) WithAssets() models.Refresh {
 }
 
 // Perform handles sending the broadcast by creating batches of broadcast sends for all the unique contacts
-func (t *SendBroadcast) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets) error {
+func (t *SendBroadcast) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, taskID TaskID) error {
 	if err := createBroadcastBatches(ctx, rt, oa, t.Broadcast); err != nil {
 		t.Broadcast.SetFailed(ctx, rt.DB)
 

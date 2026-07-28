@@ -77,7 +77,7 @@ func TestImportContactBatchFailure(t *testing.T) {
 	require.NoError(t, err)
 
 	task := &tasks.ImportContactBatch{ContactImportBatchID: batchID}
-	assert.Error(t, task.Perform(ctx, rt, oa))
+	assert.Error(t, task.Perform(ctx, rt, oa, testTaskID))
 
 	// batch and overall import should be marked as failed
 	assertdb.Query(t, rt.DB, `SELECT status FROM contacts_contactimportbatch WHERE id = $1`, batchID).Columns(map[string]any{"status": "F"})

@@ -9,6 +9,9 @@ import (
 	"github.com/nyaruka/gocommon/queues"
 )
 
+// TaskID is the unique ID assigned to a task when it's pushed
+type TaskID = queues.TaskID
+
 // Task is a wrapper for encoding a task
 type Task struct {
 	ID         queues.TaskID   `json:"-"`

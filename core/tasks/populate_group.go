@@ -49,7 +49,7 @@ func (t *PopulateGroup) WithAssets() models.Refresh {
 }
 
 // Perform figures out the membership for a query based group then queues batch tasks to repopulate it
-func (t *PopulateGroup) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets) error {
+func (t *PopulateGroup) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, taskID TaskID) error {
 	locker := locks.NewLocker(fmt.Sprintf(populateGroupLockKey, t.GroupID), time.Hour)
 	lock, err := locker.Grab(ctx, rt.VK, time.Minute*5)
 	if err != nil {

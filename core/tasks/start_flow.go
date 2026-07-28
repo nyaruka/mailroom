@@ -42,7 +42,7 @@ func (t *StartFlow) WithAssets() models.Refresh {
 	return models.RefreshNone
 }
 
-func (t *StartFlow) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets) error {
+func (t *StartFlow) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, taskID TaskID) error {
 	if err := createFlowStartBatches(ctx, rt, oa, t.FlowStart); err != nil {
 		t.FlowStart.SetFailed(ctx, rt.DB)
 

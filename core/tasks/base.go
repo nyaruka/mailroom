@@ -31,6 +31,9 @@ func RegisterType(name string, initFunc func() Task) {
 	registeredTypes[name] = initFunc
 }
 
+// TaskID is the unique ID assigned to a task when it's queued
+type TaskID = queues.TaskID
+
 // Task is the common interface for all task types
 type Task interface {
 	Type() string
@@ -40,8 +43,8 @@ type Task interface {
 
 	WithAssets() models.Refresh
 
-	// Perform performs the task
-	Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets) error
+	// Perform performs the task, and is passed the unique ID the task was queued with
+	Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, taskID TaskID) error
 }
 
 // Performs a raw task popped from a queue
@@ -62,7 +65,7 @@ func Perform(ctx context.Context, rt *runtime.Runtime, task *queues.Task) error 
 
 	start := time.Now()
 
-	err = typedTask.Perform(ctx, rt, oa)
+	err = typedTask.Perform(ctx, rt, oa, task.ID)
 
 	if duration := time.Since(start); duration >= slowThreshold(typedTask.Timeout()) {
 		slog.Error("task took longer than expected", "org", oa.OrgID(), "type", typedTask.Type(), "duration", duration, "timeout", typedTask.Timeout())

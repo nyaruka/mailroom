@@ -35,7 +35,7 @@ func (t *SendBroadcastBatch) WithAssets() models.Refresh {
 	return models.RefreshNone
 }
 
-func (t *SendBroadcastBatch) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets) error {
+func (t *SendBroadcastBatch) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, taskID TaskID) error {
 	var bcast *models.Broadcast
 	var err error
 

@@ -38,7 +38,7 @@ func (t *ScheduleCampaignPoint) WithAssets() models.Refresh {
 }
 
 // Perform creates the actual event fires to schedule the given campaign point
-func (t *ScheduleCampaignPoint) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets) error {
+func (t *ScheduleCampaignPoint) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, taskID TaskID) error {
 	locker := locks.NewLocker(fmt.Sprintf(scheduleLockKey, t.PointID), time.Hour)
 	lock, err := locker.Grab(ctx, rt.VK, time.Minute*5)
 	if err != nil {
