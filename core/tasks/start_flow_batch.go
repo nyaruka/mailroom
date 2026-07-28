@@ -30,6 +30,8 @@ func init() {
 
 // StartFlowBatch is the start flow batch task
 type StartFlowBatch struct {
+	BatchTask
+
 	*models.FlowStartBatch
 }
 

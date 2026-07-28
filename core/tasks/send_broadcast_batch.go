@@ -19,6 +19,8 @@ func init() {
 
 // SendBroadcastBatch is the task to send broadcast batches
 type SendBroadcastBatch struct {
+	BatchTask
+
 	*models.BroadcastBatch
 }
 

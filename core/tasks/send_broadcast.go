@@ -44,7 +44,7 @@ func (t *SendBroadcast) WithAssets() models.Refresh {
 
 // Perform handles sending the broadcast by creating batches of broadcast sends for all the unique contacts
 func (t *SendBroadcast) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, taskID TaskID) error {
-	if err := createBroadcastBatches(ctx, rt, oa, t.Broadcast); err != nil {
+	if err := createBroadcastBatches(ctx, rt, oa, t.Broadcast, taskID); err != nil {
 		t.Broadcast.SetFailed(ctx, rt.DB)
 
 		// if error is user created query error.. don't escalate error to sentry
@@ -57,7 +57,7 @@ func (t *SendBroadcast) Perform(ctx context.Context, rt *runtime.Runtime, oa *mo
 	return nil
 }
 
-func createBroadcastBatches(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, bcast *models.Broadcast) error {
+func createBroadcastBatches(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, bcast *models.Broadcast, taskID TaskID) error {
 	contactIDs, err := search.ResolveRecipients(ctx, rt, oa, bcast.CreatedByID, nil, &search.Recipients{
 		ContactIDs:      bcast.ContactIDs,
 		GroupIDs:        bcast.GroupIDs,
@@ -111,7 +111,7 @@ func createBroadcastBatches(ctx context.Context, rt *runtime.Runtime, oa *models
 		isLast := (i == len(idBatches)-1)
 
 		batch := bcast.CreateBatch(idBatch, isFirst, isLast)
-		err = Queue(ctx, rt, q, bcast.OrgID, &SendBroadcastBatch{BroadcastBatch: batch}, false)
+		err = Queue(ctx, rt, q, bcast.OrgID, &SendBroadcastBatch{BatchTask: BatchTask{ParentID: taskID}, BroadcastBatch: batch}, false)
 		if err != nil {
 			if i == 0 {
 				return fmt.Errorf("error queuing broadcast batch: %w", err)

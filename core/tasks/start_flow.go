@@ -43,7 +43,7 @@ func (t *StartFlow) WithAssets() models.Refresh {
 }
 
 func (t *StartFlow) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, taskID TaskID) error {
-	if err := createFlowStartBatches(ctx, rt, oa, t.FlowStart); err != nil {
+	if err := createFlowStartBatches(ctx, rt, oa, t.FlowStart, taskID); err != nil {
 		t.FlowStart.SetFailed(ctx, rt.DB)
 
 		// if error is user created query error.. don't escalate error to sentry
@@ -57,7 +57,7 @@ func (t *StartFlow) Perform(ctx context.Context, rt *runtime.Runtime, oa *models
 }
 
 // creates batches of flow starts for all the unique contacts
-func createFlowStartBatches(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, start *models.FlowStart) error {
+func createFlowStartBatches(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, start *models.FlowStart, taskID TaskID) error {
 	flow, err := oa.FlowByID(start.FlowID)
 	if err != nil {
 		return fmt.Errorf("error loading flow: %w", err)
@@ -119,7 +119,7 @@ func createFlowStartBatches(ctx context.Context, rt *runtime.Runtime, oa *models
 	for i, idBatch := range idBatches {
 		isFirst := (i == 0)
 		isLast := (i == len(idBatches)-1)
-		batchTask := &StartFlowBatch{FlowStartBatch: start.CreateBatch(idBatch, isFirst, isLast, len(contactIDs))}
+		batchTask := &StartFlowBatch{BatchTask: BatchTask{ParentID: taskID}, FlowStartBatch: start.CreateBatch(idBatch, isFirst, isLast, len(contactIDs))}
 
 		if err := Queue(ctx, rt, q, start.OrgID, batchTask, false); err != nil {
 			if i == 0 {
