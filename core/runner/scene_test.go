@@ -234,13 +234,21 @@ func TestBulkCommitPublishesEvents(t *testing.T) {
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	// someone is watching Ann's history socket
+	// someone is watching Ann's history socket, and someone has the flow open in an editor
 	socket := models.HistorySocket(testdb.Ann.UUID)
 	_, err = vc.Do("SET", centrifugo.SubscriptionKey(socket), "1")
+	require.NoError(t, err)
+	flowSocket := models.FlowSocket(flow.UUID)
+	_, err = vc.Do("SET", centrifugo.SubscriptionKey(flowSocket), "1")
 	require.NoError(t, err)
 
 	trig := triggers.NewBuilder(flow.Reference()).Manual().Build()
 	testsuite.StartSessions(t, rt, oa, []*testdb.Contact{testdb.Ann}, trig)
+
+	// the flow's subscribed socket received a single activity change ping for the commit
+	flowSent := testsuite.CentrifugoHistory(t, rt, flowSocket)
+	require.Len(t, flowSent, 1)
+	assert.JSONEq(t, `{"type": "activity"}`, string(flowSent[0]))
 
 	// the subscribed socket received the persisted events plus the ephemeral contact_flow_changed
 	sent := testsuite.CentrifugoHistory(t, rt, socket)

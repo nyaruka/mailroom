@@ -140,6 +140,7 @@ func handleSprintEnded(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 
 		scene.AttachPreCommitHook(hooks.InsertContactFires, hooks.FiresSet{Create: newFires, Delete: delFires})
 		scene.AttachPreCommitHook(hooks.InsertFlowStats, event)
+		scene.AttachPostCommitHook(hooks.PublishFlowActivity, event)
 	}
 	return nil
 }
