@@ -345,36 +345,6 @@ func NewOutgoingIVR(cfg *runtime.Config, orgID OrgID, call *Call, flow *Flow, ev
 	return msg
 }
 
-// NewOutgoingOptInMsg creates an outgoing optin message
-func NewOutgoingOptInMsg(rt *runtime.Runtime, orgID OrgID, contact *Contact, flow *Flow, optIn *OptIn, channel *Channel, event *events.OptInRequested, replyTo *MsgInRef) *MsgOut {
-	msg := &Msg{}
-	m := &msg.m
-	m.UUID = event.UUID()
-	m.OrgID = orgID
-	m.ContactID = contact.ID()
-	m.HighPriority = replyTo != nil
-	m.Direction = DirectionOut
-	m.Status = MsgStatusQueued
-	m.Visibility = VisibilityVisible
-	m.MsgType = MsgTypeOptIn
-	m.MsgCount = 1
-	m.CreatedOn = event.CreatedOn()
-
-	if urn := contact.FindURN(event.URN); urn != nil {
-		m.ContactURNID = urn.ID
-	}
-	msg.SetChannel(channel)
-
-	if flow != nil {
-		m.FlowID = flow.ID()
-	}
-	if optIn != nil {
-		m.OptInID = optIn.ID()
-	}
-
-	return &MsgOut{Msg: msg, Contact: contact, ReplyTo: replyTo}
-}
-
 // NewOutgoingFlowMsg creates an outgoing message for the passed in flow message
 func NewOutgoingFlowMsg(rt *runtime.Runtime, org *Org, channel *Channel, contact *Contact, flow *Flow, event *events.MsgCreated, replyTo *MsgInRef) (*MsgOut, error) {
 	highPriority := replyTo != nil

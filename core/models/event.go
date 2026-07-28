@@ -50,7 +50,6 @@ var eventPersistence = map[string]time.Duration{
 	events.TypeMsgCreated:             eternity,
 	events.TypeMsgDeleted:             time.Hour * 24, // 1 day
 	events.TypeMsgReceived:            eternity,
-	events.TypeOptInRequested:         eternity,
 	events.TypeOptInStarted:           eternity,
 	events.TypeOptInStopped:           eternity,
 	events.TypeRunEnded:               eternity,
