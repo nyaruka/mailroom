@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"slices"
+	"strconv"
 	"time"
 
 	"github.com/nyaruka/goflow/flows"
@@ -63,8 +64,8 @@ func (t *InterruptFlow) Perform(ctx context.Context, rt *runtime.Runtime, oa *mo
 		return fmt.Errorf("error setting flow interrupt batches remaining key: %w", err)
 	}
 
-	for _, batch := range batches {
-		task := &InterruptSessionBatch{Sessions: batch, Status: flows.SessionStatusInterrupted, FlowID: t.FlowID}
+	for i, batch := range batches {
+		task := &InterruptSessionBatch{Sessions: batch, Status: flows.SessionStatusInterrupted, FlowID: t.FlowID, BatchID: strconv.Itoa(i)}
 
 		if err := Queue(ctx, rt, rt.Queues.Batch, oa.OrgID(), task, false); err != nil {
 			return fmt.Errorf("error queueing interrupt session batch task: %w", err)
