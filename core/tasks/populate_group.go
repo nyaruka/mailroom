@@ -7,7 +7,6 @@ import (
 	"log/slog"
 	"maps"
 	"slices"
-	"strconv"
 	"time"
 
 	"github.com/nyaruka/goflow/contactql"
@@ -147,7 +146,7 @@ func (t *PopulateGroup) Perform(ctx context.Context, rt *runtime.Runtime, oa *mo
 			ContactIDs:   batch,
 			LockValue:    lock,
 			PopulationID: populationID,
-			BatchID:      strconv.Itoa(i),
+			BatchNum:     i,
 		}
 		if err := Queue(ctx, rt, rt.Queues.Batch, oa.OrgID(), task, false); err != nil {
 			return fmt.Errorf("error queuing populate group batch task: %w", err)

@@ -28,7 +28,7 @@ type InterruptSessionBatch struct {
 	Sessions []models.SessionRef `json:"sessions"           validate:"required"`
 	Status   flows.SessionStatus `json:"status"             validate:"required"`
 	FlowID   models.FlowID       `json:"flow_id,omitempty"`
-	BatchID  string              `json:"batch_id,omitempty"` // not yet read, will identify this batch in completion tracking
+	BatchNum int                 `json:"batch_num,omitempty"` // not yet read, will identify this batch in completion tracking
 }
 
 func (t *InterruptSessionBatch) Type() string {
