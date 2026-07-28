@@ -69,7 +69,6 @@ type MsgType string
 
 const (
 	MsgTypeText  = MsgType("T")
-	MsgTypeOptIn = MsgType("O")
 	MsgTypeVoice = MsgType("V")
 )
 
