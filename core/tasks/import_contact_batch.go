@@ -21,6 +21,8 @@ func init() {
 
 // ImportContactBatch is our task to import a batch of contacts
 type ImportContactBatch struct {
+	BatchTask
+
 	ContactImportBatchID models.ContactImportBatchID `json:"contact_import_batch_id"`
 }
 

@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/nyaruka/gocommon/uuids"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/tasks"
 	"github.com/nyaruka/mailroom/v26/runtime"
@@ -45,9 +46,12 @@ func handleImport(ctx context.Context, rt *runtime.Runtime, r *importRequest) (a
 		return nil, 0, fmt.Errorf("error setting import batch counter key: %w", err)
 	}
 
+	// generate an ID for this run of batches since unlike other batch tasks, these have no parent task
+	runID := tasks.TaskID(uuids.NewV7())
+
 	// create tasks for all batches
 	for _, bID := range imp.BatchIDs {
-		task := &tasks.ImportContactBatch{ContactImportBatchID: bID}
+		task := &tasks.ImportContactBatch{BatchTask: tasks.BatchTask{ParentID: runID}, ContactImportBatchID: bID}
 		if err := tasks.Queue(ctx, rt, rt.Queues.Batch, r.OrgID, task, false); err != nil {
 			return nil, 0, fmt.Errorf("error queuing import contact batch task: %w", err)
 		}

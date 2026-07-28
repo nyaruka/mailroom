@@ -21,14 +21,12 @@ func init() {
 
 // PopulateGroupBatch is our task to re-evaluate group membership for a batch of contacts
 type PopulateGroupBatch struct {
+	BatchTask
+
 	GroupID      models.GroupID     `json:"group_id"`
 	ContactIDs   []models.ContactID `json:"contact_ids"`
 	LockValue    string             `json:"lock_value"`
 	PopulationID string             `json:"population_id"`
-
-	// not yet read, will replace PopulationID as the completion tracker scope and identify this batch within it
-	ParentID TaskID `json:"parent_id"`
-	BatchNum int    `json:"batch_num"`
 }
 
 func (t *PopulateGroupBatch) Type() string {

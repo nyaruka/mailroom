@@ -141,14 +141,13 @@ func (t *PopulateGroup) Perform(ctx context.Context, rt *runtime.Runtime, oa *mo
 		return fmt.Errorf("error setting populate group batch counter key: %w", err)
 	}
 
-	for i, batch := range batches {
+	for _, batch := range batches {
 		task := &PopulateGroupBatch{
+			BatchTask:    BatchTask{ParentID: taskID},
 			GroupID:      t.GroupID,
 			ContactIDs:   batch,
 			LockValue:    lock,
 			PopulationID: populationID,
-			ParentID:     taskID,
-			BatchNum:     i,
 		}
 		if err := Queue(ctx, rt, rt.Queues.Batch, oa.OrgID(), task, false); err != nil {
 			return fmt.Errorf("error queuing populate group batch task: %w", err)

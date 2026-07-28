@@ -25,10 +25,11 @@ func init() {
 // InterruptSessionBatch is our task for interrupting a batch of specific sessions. The sessions will only be modified
 // if they are still the contact's waiting session when the task runs.
 type InterruptSessionBatch struct {
-	Sessions []models.SessionRef `json:"sessions"           validate:"required"`
-	Status   flows.SessionStatus `json:"status"             validate:"required"`
+	BatchTask
+
+	Sessions []models.SessionRef `json:"sessions"          validate:"required"`
+	Status   flows.SessionStatus `json:"status"            validate:"required"`
 	FlowID   models.FlowID       `json:"flow_id,omitempty"`
-	BatchNum int                 `json:"batch_num,omitempty"` // not yet read, will identify this batch in completion tracking
 }
 
 func (t *InterruptSessionBatch) Type() string {

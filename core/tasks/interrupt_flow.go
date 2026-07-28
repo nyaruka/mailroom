@@ -63,8 +63,8 @@ func (t *InterruptFlow) Perform(ctx context.Context, rt *runtime.Runtime, oa *mo
 		return fmt.Errorf("error setting flow interrupt batches remaining key: %w", err)
 	}
 
-	for i, batch := range batches {
-		task := &InterruptSessionBatch{Sessions: batch, Status: flows.SessionStatusInterrupted, FlowID: t.FlowID, BatchNum: i}
+	for _, batch := range batches {
+		task := &InterruptSessionBatch{BatchTask: BatchTask{ParentID: taskID}, Sessions: batch, Status: flows.SessionStatusInterrupted, FlowID: t.FlowID}
 
 		if err := Queue(ctx, rt, rt.Queues.Batch, oa.OrgID(), task, false); err != nil {
 			return fmt.Errorf("error queueing interrupt session batch task: %w", err)

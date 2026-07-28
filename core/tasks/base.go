@@ -34,6 +34,12 @@ func RegisterType(name string, initFunc func() Task) {
 // TaskID is the unique ID assigned to a task when it's queued
 type TaskID = queues.TaskID
 
+// BatchTask is embedded by tasks which are one batch of work within a run of batches, and records the ID of the
+// task (or endpoint generated run ID) that created the batch
+type BatchTask struct {
+	ParentID TaskID `json:"parent_id,omitempty"`
+}
+
 // Task is the common interface for all task types
 type Task interface {
 	Type() string
