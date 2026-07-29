@@ -115,9 +115,10 @@ func createBroadcastBatches(ctx context.Context, rt *runtime.Runtime, oa *models
 	// create tasks for batches of contacts
 	idBatches := slices.Collect(slices.Chunk(contactIDs, broadcastBatchSize))
 
-	// initialize the tracker that batches will record their completion in (not yet read)
+	// initialize the tracker that batches will record their completion in - failures logged rather than escalated
+	// since nothing reads the tracker yet
 	if err := NewBatchTracker(ownerUUID).Init(ctx, rt.VK, len(idBatches)); err != nil {
-		return fmt.Errorf("error initializing batch tracker: %w", err)
+		slog.Error("error initializing batch tracker", "error", err, "owner_uuid", ownerUUID)
 	}
 
 	for i, idBatch := range idBatches {

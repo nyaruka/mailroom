@@ -3,6 +3,7 @@ package contact
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"time"
 
@@ -49,9 +50,10 @@ func handleImport(ctx context.Context, rt *runtime.Runtime, r *importRequest) (a
 	// generate a UUID to own this set of batches since unlike other batch tasks, these have no parent task
 	ownerUUID := uuids.NewV7()
 
-	// initialize the tracker that batches will record their completion in (not yet read)
+	// initialize the tracker that batches will record their completion in - failures logged rather than escalated
+	// since nothing reads the tracker yet
 	if err := tasks.NewBatchTracker(ownerUUID).Init(ctx, rt.VK, len(imp.BatchIDs)); err != nil {
-		return nil, 0, fmt.Errorf("error initializing batch tracker: %w", err)
+		slog.Error("error initializing batch tracker", "error", err, "owner_uuid", ownerUUID)
 	}
 
 	// create tasks for all batches

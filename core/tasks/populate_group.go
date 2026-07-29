@@ -142,9 +142,10 @@ func (t *PopulateGroup) Perform(ctx context.Context, rt *runtime.Runtime, oa *mo
 		return fmt.Errorf("error setting populate group batch counter key: %w", err)
 	}
 
-	// initialize the tracker that batches will record their completion in (not yet read)
+	// initialize the tracker that batches will record their completion in - failures logged rather than escalated
+	// since nothing reads the tracker yet
 	if err := NewBatchTracker(uuids.UUID(taskID)).Init(ctx, rt.VK, len(batches)); err != nil {
-		return fmt.Errorf("error initializing batch tracker: %w", err)
+		slog.Error("error initializing batch tracker", "error", err, "owner_uuid", taskID)
 	}
 
 	for _, batch := range batches {
