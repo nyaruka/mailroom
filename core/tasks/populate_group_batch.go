@@ -53,13 +53,15 @@ func (t *PopulateGroupBatch) Perform(ctx context.Context, rt *runtime.Runtime, o
 		slog.Warn("failed to acquire locks for contacts during group population", "group_id", t.GroupID, "skipped", len(skipped))
 	}
 
-	t.RecordComplete(ctx, rt, taskID)
-
-	// decrement the counter to see if the overall population is now finished
-	counter := NewCounter(fmt.Sprintf(populateGroupBatchesRemainingKey, t.PopulationID), time.Hour)
-	done, err := counter.Done(ctx, rt.VK)
-	if err != nil {
-		return fmt.Errorf("error decrementing populate group batch counter: %w", err)
+	// mark this batch as complete and check if the overall population is now finished - falling back to the legacy
+	// counter for batches queued before completion tracking
+	done, known := t.RecordComplete(ctx, rt, taskID)
+	if !known {
+		counter := NewCounter(fmt.Sprintf(populateGroupBatchesRemainingKey, t.PopulationID), time.Hour)
+		done, err = counter.Done(ctx, rt.VK)
+		if err != nil {
+			return fmt.Errorf("error decrementing populate group batch counter: %w", err)
+		}
 	}
 	if done {
 		if err := models.UpdateGroupStatus(ctx, rt.DB, t.GroupID, models.GroupStatusReady); err != nil {

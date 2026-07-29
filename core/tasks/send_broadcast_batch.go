@@ -74,14 +74,14 @@ func (t *SendBroadcastBatch) Perform(ctx context.Context, rt *runtime.Runtime, o
 		slog.Warn("failed to acquire locks for contacts", "contacts", skipped)
 	}
 
-	// if this is our last batch, mark broadcast as done
-	if t.IsLast {
+	// mark broadcast as done if this was the last batch to complete - falling back to the queuing order flag for
+	// batches queued before completion tracking
+	last, known := t.RecordComplete(ctx, rt, taskID)
+	if (known && last) || (!known && t.IsLast) {
 		if err := bcast.SetCompleted(ctx, rt.DB); err != nil {
 			return fmt.Errorf("error marking broadcast as complete: %w", err)
 		}
 	}
-
-	t.RecordComplete(ctx, rt, taskID)
 
 	return nil
 }
