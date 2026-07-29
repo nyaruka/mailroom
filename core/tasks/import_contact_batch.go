@@ -21,6 +21,8 @@ func init() {
 
 // ImportContactBatch is our task to import a batch of contacts
 type ImportContactBatch struct {
+	BatchTask
+
 	ContactImportBatchID models.ContactImportBatchID `json:"contact_import_batch_id"`
 }
 
@@ -38,7 +40,7 @@ func (t *ImportContactBatch) WithAssets() models.Refresh {
 }
 
 // Perform figures out the membership for a query based group then repopulates it
-func (t *ImportContactBatch) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets) error {
+func (t *ImportContactBatch) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, taskID TaskID) error {
 	batch, err := models.LoadContactImportBatch(ctx, rt.DB, t.ContactImportBatchID)
 	if err != nil {
 		return fmt.Errorf("error loading contact import batch: %w", err)

@@ -138,6 +138,7 @@ func TestStartsBuilding(t *testing.T) {
 		},
 		"query": "language != \"\"",
 		"start_id": null,
-		"start_type": "M"
+		"start_type": "M",
+		"uuid": "72b553cc-c00b-44e6-bb48-4710e784acb8"
 	}`, testdb.Ann.ID, testdb.Bob.ID, testdb.TestersGroup.ID, testdb.Favorites.ID, testdb.DoctorsGroup.ID), marshalled)
 }

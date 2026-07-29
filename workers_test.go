@@ -20,7 +20,7 @@ type testTask struct{}
 func (t *testTask) Type() string               { return "test" }
 func (t *testTask) Timeout() time.Duration     { return 5 * time.Second }
 func (t *testTask) WithAssets() models.Refresh { return models.RefreshNone }
-func (t *testTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets) error {
+func (t *testTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, taskID tasks.TaskID) error {
 	time.Sleep(100 * time.Millisecond)
 	return nil
 }

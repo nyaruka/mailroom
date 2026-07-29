@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/nyaruka/gocommon/i18n"
+	"github.com/nyaruka/gocommon/uuids"
 	"github.com/nyaruka/goflow/contactql"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/search"
@@ -42,8 +43,8 @@ func (t *StartFlow) WithAssets() models.Refresh {
 	return models.RefreshNone
 }
 
-func (t *StartFlow) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets) error {
-	if err := createFlowStartBatches(ctx, rt, oa, t.FlowStart); err != nil {
+func (t *StartFlow) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, taskID TaskID) error {
+	if err := createFlowStartBatches(ctx, rt, oa, t.FlowStart, taskID); err != nil {
 		t.FlowStart.SetFailed(ctx, rt.DB)
 
 		// if error is user created query error.. don't escalate error to sentry
@@ -57,7 +58,15 @@ func (t *StartFlow) Perform(ctx context.Context, rt *runtime.Runtime, oa *models
 }
 
 // creates batches of flow starts for all the unique contacts
-func createFlowStartBatches(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, start *models.FlowStart) error {
+func createFlowStartBatches(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, start *models.FlowStart, taskID TaskID) error {
+	// batches are owned by the start, identified by its UUID
+	// TODO: fallback to task ID is a temporary workaround for tasks queued before start UUIDs were serialized,
+	// remove once this has been deployed and queues have cycled
+	ownerUUID := start.UUID
+	if ownerUUID == "" {
+		ownerUUID = uuids.UUID(taskID)
+	}
+
 	flow, err := oa.FlowByID(start.FlowID)
 	if err != nil {
 		return fmt.Errorf("error loading flow: %w", err)
@@ -119,7 +128,7 @@ func createFlowStartBatches(ctx context.Context, rt *runtime.Runtime, oa *models
 	for i, idBatch := range idBatches {
 		isFirst := (i == 0)
 		isLast := (i == len(idBatches)-1)
-		batchTask := &StartFlowBatch{FlowStartBatch: start.CreateBatch(idBatch, isFirst, isLast, len(contactIDs))}
+		batchTask := &StartFlowBatch{BatchTask: BatchTask{BatchOwnerUUID: ownerUUID}, FlowStartBatch: start.CreateBatch(idBatch, isFirst, isLast, len(contactIDs))}
 
 		if err := Queue(ctx, rt, q, start.OrgID, batchTask, false); err != nil {
 			if i == 0 {

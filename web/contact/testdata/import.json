@@ -26,13 +26,15 @@
                 {
                     "type": "import_contact_batch",
                     "payload": {
-                        "contact_import_batch_id": 30000
+                        "contact_import_batch_id": 30000,
+                        "batch_owner_uuid": "01969b47-0583-76f8-924e-9de1a11831b3"
                     }
                 },
                 {
                     "type": "import_contact_batch",
                     "payload": {
-                        "contact_import_batch_id": 30001
+                        "contact_import_batch_id": 30001,
+                        "batch_owner_uuid": "01969b47-0583-76f8-924e-9de1a11831b3"
                     }
                 }
             ]

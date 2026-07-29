@@ -36,7 +36,7 @@ func TestBulkCampaignTrigger(t *testing.T) {
 	}
 
 	oa := testdb.Org1.Load(t, rt)
-	err := task.Perform(ctx, rt, oa)
+	err := task.Perform(ctx, rt, oa, testTaskID)
 	assert.NoError(t, err)
 
 	testsuite.AssertContactInFlow(t, rt, testdb.Ann, testdb.IVRFlow) // event skipped Ann because she has a waiting session
@@ -53,7 +53,7 @@ func TestBulkCampaignTrigger(t *testing.T) {
 		FireVersion: 1,
 		ContactIDs:  []models.ContactID{testdb.Bob.ID, testdb.Ann.ID, testdb.Dan.ID},
 	}
-	err = task.Perform(ctx, rt, oa)
+	err = task.Perform(ctx, rt, oa, testTaskID)
 	assert.NoError(t, err)
 
 	// everyone still in the same flows
@@ -77,7 +77,7 @@ func TestBulkCampaignTrigger(t *testing.T) {
 		FireVersion: 1,
 		ContactIDs:  []models.ContactID{testdb.Bob.ID, testdb.Ann.ID, testdb.Dan.ID},
 	}
-	err = task.Perform(ctx, rt, oa)
+	err = task.Perform(ctx, rt, oa, testTaskID)
 	assert.NoError(t, err)
 
 	// everyone should be in campaign point flow
@@ -100,7 +100,7 @@ func TestBulkCampaignTrigger(t *testing.T) {
 		FireVersion: 1,
 		ContactIDs:  []models.ContactID{testdb.Bob.ID, testdb.Ann.ID, testdb.Dan.ID},
 	}
-	err = task.Perform(ctx, rt, oa)
+	err = task.Perform(ctx, rt, oa, testTaskID)
 	assert.NoError(t, err)
 
 	// task should be a noop, no new sessions created
@@ -121,7 +121,7 @@ func TestBulkCampaignTrigger(t *testing.T) {
 		ContactIDs:  []models.ContactID{testdb.Bob.ID, testdb.Ann.ID, testdb.Dan.ID},
 		FireVersion: 1,
 	}
-	err = task.Perform(ctx, rt, oa)
+	err = task.Perform(ctx, rt, oa, testTaskID)
 	assert.NoError(t, err)
 
 	// task should be a noop, no new sessions created
@@ -150,7 +150,7 @@ func TestBulkCampaignTriggerModes(t *testing.T) {
 		FireVersion: 1,
 		ContactIDs:  []models.ContactID{testdb.Ann.ID, testdb.Bob.ID, testdb.Cat.ID, testdb.Dan.ID},
 	}
-	err := task.Perform(ctx, rt, oa)
+	err := task.Perform(ctx, rt, oa, testTaskID)
 	assert.NoError(t, err)
 
 	testsuite.AssertContactInFlow(t, rt, testdb.Ann, testdb.Favorites)   // skipped, still in Favorites
@@ -167,7 +167,7 @@ func TestBulkCampaignTriggerModes(t *testing.T) {
 		FireVersion: 1,
 		ContactIDs:  []models.ContactID{testdb.Ann.ID, testdb.Bob.ID, testdb.Cat.ID, testdb.Dan.ID},
 	}
-	err = task.Perform(ctx, rt, oa)
+	err = task.Perform(ctx, rt, oa, testTaskID)
 	assert.NoError(t, err)
 
 	// all 4 contacts should have received messages
@@ -188,7 +188,7 @@ func TestBulkCampaignTriggerModes(t *testing.T) {
 		FireVersion: 1,
 		ContactIDs:  []models.ContactID{testdb.Ann.ID, testdb.Bob.ID, testdb.Cat.ID, testdb.Dan.ID},
 	}
-	err = task.Perform(ctx, rt, oa)
+	err = task.Perform(ctx, rt, oa, testTaskID)
 	assert.NoError(t, err)
 
 	// all 4 contacts have sessions so all should be skipped - no new messages
@@ -205,7 +205,7 @@ func TestBulkCampaignTriggerModes(t *testing.T) {
 		FireVersion: 1,
 		ContactIDs:  []models.ContactID{testdb.Ann.ID, testdb.Bob.ID, testdb.Cat.ID, testdb.Dan.ID},
 	}
-	err = task.Perform(ctx, rt, oa)
+	err = task.Perform(ctx, rt, oa, testTaskID)
 	assert.NoError(t, err)
 
 	// all contacts should have received messages (4 from step 2 + 4 new = 8)

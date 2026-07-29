@@ -21,6 +21,8 @@ func init() {
 
 // PopulateGroupBatch is our task to re-evaluate group membership for a batch of contacts
 type PopulateGroupBatch struct {
+	BatchTask
+
 	GroupID      models.GroupID     `json:"group_id"`
 	ContactIDs   []models.ContactID `json:"contact_ids"`
 	LockValue    string             `json:"lock_value"`
@@ -41,7 +43,7 @@ func (t *PopulateGroupBatch) WithAssets() models.Refresh {
 }
 
 // Perform re-evaluates group membership for a batch of contacts
-func (t *PopulateGroupBatch) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets) error {
+func (t *PopulateGroupBatch) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, taskID TaskID) error {
 	skipped, err := runner.ReevaluateGroupsWithLock(ctx, rt, oa, t.ContactIDs)
 	if err != nil {
 		return fmt.Errorf("error populating group membership: %w", err)

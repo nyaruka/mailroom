@@ -9,6 +9,7 @@ import (
 	"slices"
 	"time"
 
+	"github.com/nyaruka/gocommon/uuids"
 	"github.com/nyaruka/goflow/contactql"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/search"
@@ -49,7 +50,7 @@ func (t *PopulateGroup) WithAssets() models.Refresh {
 }
 
 // Perform figures out the membership for a query based group then queues batch tasks to repopulate it
-func (t *PopulateGroup) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets) error {
+func (t *PopulateGroup) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, taskID TaskID) error {
 	locker := locks.NewLocker(fmt.Sprintf(populateGroupLockKey, t.GroupID), time.Hour)
 	lock, err := locker.Grab(ctx, rt.VK, time.Minute*5)
 	if err != nil {
@@ -143,6 +144,7 @@ func (t *PopulateGroup) Perform(ctx context.Context, rt *runtime.Runtime, oa *mo
 
 	for _, batch := range batches {
 		task := &PopulateGroupBatch{
+			BatchTask:    BatchTask{BatchOwnerUUID: uuids.UUID(taskID)},
 			GroupID:      t.GroupID,
 			ContactIDs:   batch,
 			LockValue:    lock,

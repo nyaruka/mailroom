@@ -44,7 +44,7 @@ func (t *BulkWaitTimeout) WithAssets() models.Refresh {
 }
 
 // Perform creates the actual task
-func (t *BulkWaitTimeout) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets) error {
+func (t *BulkWaitTimeout) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, taskID TaskID) error {
 	for _, e := range t.Timeouts {
 		err := QueueContact(ctx, rt, oa.OrgID(), e.ContactID, &ctasks.WaitTimeout{SessionUUID: e.SessionUUID, SprintUUID: e.SprintUUID})
 		if err != nil {

@@ -45,7 +45,7 @@ func TestPopulateGroupTask(t *testing.T) {
 		GroupID: group1.ID,
 		Query:   "gender = F",
 	}
-	err = task1.Perform(ctx, rt, oa)
+	err = task1.Perform(ctx, rt, oa, testTaskID)
 	require.NoError(t, err)
 
 	// group should be evaluating after parent task completes
@@ -68,7 +68,7 @@ func TestPopulateGroupTask(t *testing.T) {
 		GroupID: group2.ID,
 		Query:   "!!!",
 	}
-	err = task2.Perform(ctx, rt, oa)
+	err = task2.Perform(ctx, rt, oa, testTaskID)
 	require.NoError(t, err)
 
 	assertdb.Query(t, rt.DB, `SELECT status FROM contacts_contactgroup WHERE id = $1`, group2.ID).Returns("X")

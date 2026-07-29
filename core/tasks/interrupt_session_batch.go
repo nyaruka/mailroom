@@ -43,7 +43,7 @@ func (t *InterruptSessionBatch) WithAssets() models.Refresh {
 	return models.RefreshNone
 }
 
-func (t *InterruptSessionBatch) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets) error {
+func (t *InterruptSessionBatch) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, taskID TaskID) error {
 	contactIDs := make([]models.ContactID, len(t.Sessions))
 	sessions := make(map[models.ContactID]core.SessionUUID, len(t.Sessions))
 	for i, s := range t.Sessions {

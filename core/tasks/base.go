@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/nyaruka/gocommon/uuids"
 	"github.com/nyaruka/goflow/utils"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/runtime"
@@ -31,6 +32,16 @@ func RegisterType(name string, initFunc func() Task) {
 	registeredTypes[name] = initFunc
 }
 
+// TaskID is the unique ID assigned to a task when it's queued
+type TaskID = queues.TaskID
+
+// BatchTask is embedded by tasks which are one batch of work split out from an owning task or object. BatchOwnerUUID
+// identifies that owner: the UUID of the parent object where there is one (flow start, broadcast), and otherwise the
+// ID of the creating task (group population) or a generated UUID (contact imports).
+type BatchTask struct {
+	BatchOwnerUUID uuids.UUID `json:"batch_owner_uuid,omitempty"`
+}
+
 // Task is the common interface for all task types
 type Task interface {
 	Type() string
@@ -40,8 +51,8 @@ type Task interface {
 
 	WithAssets() models.Refresh
 
-	// Perform performs the task
-	Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets) error
+	// Perform performs the task, and is passed the unique ID the task was queued with
+	Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, taskID TaskID) error
 }
 
 // Performs a raw task popped from a queue
@@ -62,7 +73,7 @@ func Perform(ctx context.Context, rt *runtime.Runtime, task *queues.Task) error 
 
 	start := time.Now()
 
-	err = typedTask.Perform(ctx, rt, oa)
+	err = typedTask.Perform(ctx, rt, oa, task.ID)
 
 	if duration := time.Since(start); duration >= slowThreshold(typedTask.Timeout()) {
 		slog.Error("task took longer than expected", "org", oa.OrgID(), "type", typedTask.Type(), "duration", duration, "timeout", typedTask.Timeout())

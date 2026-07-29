@@ -42,7 +42,7 @@ func (t *InterruptFlow) WithAssets() models.Refresh {
 	return models.RefreshNone
 }
 
-func (t *InterruptFlow) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets) error {
+func (t *InterruptFlow) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, taskID TaskID) error {
 	sessionRefs, err := models.GetWaitingSessionsForFlow(ctx, rt.DB, t.FlowID)
 	if err != nil {
 		return fmt.Errorf("error getting waiting sessions for flow: %w", err)
