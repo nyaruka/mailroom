@@ -58,7 +58,8 @@ func (t *SendBroadcast) Perform(ctx context.Context, rt *runtime.Runtime, oa *mo
 }
 
 func createBroadcastBatches(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, bcast *models.Broadcast, taskID TaskID) error {
-	// batches are identified as belonging to this run by the broadcast's UUID, falling back to this task's ID
+	// batches are identified as belonging to this run by the broadcast's UUID, tho unlike starts, broadcast UUIDs
+	// have always been serialized in task payloads so the fallback to task ID is just defensive
 	runID := TaskID(bcast.UUID)
 	if runID == "" {
 		runID = taskID

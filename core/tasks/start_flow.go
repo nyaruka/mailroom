@@ -58,8 +58,9 @@ func (t *StartFlow) Perform(ctx context.Context, rt *runtime.Runtime, oa *models
 
 // creates batches of flow starts for all the unique contacts
 func createFlowStartBatches(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, start *models.FlowStart, taskID TaskID) error {
-	// batches are identified as belonging to this run by the start's UUID, falling back to this task's ID for
-	// payloads queued before starts included their UUID
+	// batches are identified as belonging to this run by the start's UUID
+	// TODO: fallback to task ID is a temporary workaround for tasks queued before start UUIDs were serialized,
+	// remove once this has been deployed and queues have cycled
 	runID := TaskID(start.UUID)
 	if runID == "" {
 		runID = taskID
