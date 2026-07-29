@@ -280,7 +280,7 @@ func createTestFlow(t *testing.T, uuid assets.FlowUUID, actions ContactActionMap
 	exitNodes := make([]flows.Node, len(actions))
 	i = 0
 	for contactUUID, actions := range actions {
-		cases[i] = routers.NewCase(uuids.NewV4(), "has_any_word", []string{string(contactUUID)}, categoryUUIDs[i])
+		cases[i] = routers.NewCase(flows.CaseUUID(uuids.NewV4()), "has_any_word", []string{string(contactUUID)}, categoryUUIDs[i])
 
 		exitNodes[i] = definition.NewNode(
 			core.NewNodeUUID(),
