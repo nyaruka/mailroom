@@ -1,3 +1,7 @@
+v26.3.28 (2026-07-29)
+-------------------------
+ * Add batch trackers which record batch task completion but aren't yet read
+
 v26.3.27 (2026-07-29)
 -------------------------
  * Pass queued task IDs into task Perform methods and add owner UUIDs to batch tasks
