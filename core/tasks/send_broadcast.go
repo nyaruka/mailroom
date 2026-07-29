@@ -7,6 +7,7 @@ import (
 	"slices"
 	"time"
 
+	"github.com/nyaruka/gocommon/uuids"
 	"github.com/nyaruka/goflow/contactql"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/search"
@@ -60,9 +61,9 @@ func (t *SendBroadcast) Perform(ctx context.Context, rt *runtime.Runtime, oa *mo
 func createBroadcastBatches(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, bcast *models.Broadcast, taskID TaskID) error {
 	// batches are owned by the broadcast, identified by its UUID - tho unlike starts, broadcast UUIDs have always
 	// been serialized in task payloads so the fallback to task ID is just defensive
-	ownerID := TaskID(bcast.UUID)
-	if ownerID == "" {
-		ownerID = taskID
+	ownerUUID := uuids.UUID(bcast.UUID)
+	if ownerUUID == "" {
+		ownerUUID = uuids.UUID(taskID)
 	}
 
 	contactIDs, err := search.ResolveRecipients(ctx, rt, oa, bcast.CreatedByID, nil, &search.Recipients{
@@ -118,7 +119,7 @@ func createBroadcastBatches(ctx context.Context, rt *runtime.Runtime, oa *models
 		isLast := (i == len(idBatches)-1)
 
 		batch := bcast.CreateBatch(idBatch, isFirst, isLast)
-		err = Queue(ctx, rt, q, bcast.OrgID, &SendBroadcastBatch{BatchTask: BatchTask{BatchOwnerID: ownerID}, BroadcastBatch: batch}, false)
+		err = Queue(ctx, rt, q, bcast.OrgID, &SendBroadcastBatch{BatchTask: BatchTask{BatchOwnerUUID: ownerUUID}, BroadcastBatch: batch}, false)
 		if err != nil {
 			if i == 0 {
 				return fmt.Errorf("error queuing broadcast batch: %w", err)

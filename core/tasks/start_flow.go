@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/nyaruka/gocommon/i18n"
+	"github.com/nyaruka/gocommon/uuids"
 	"github.com/nyaruka/goflow/contactql"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/search"
@@ -61,9 +62,9 @@ func createFlowStartBatches(ctx context.Context, rt *runtime.Runtime, oa *models
 	// batches are owned by the start, identified by its UUID
 	// TODO: fallback to task ID is a temporary workaround for tasks queued before start UUIDs were serialized,
 	// remove once this has been deployed and queues have cycled
-	ownerID := TaskID(start.UUID)
-	if ownerID == "" {
-		ownerID = taskID
+	ownerUUID := start.UUID
+	if ownerUUID == "" {
+		ownerUUID = uuids.UUID(taskID)
 	}
 
 	flow, err := oa.FlowByID(start.FlowID)
@@ -127,7 +128,7 @@ func createFlowStartBatches(ctx context.Context, rt *runtime.Runtime, oa *models
 	for i, idBatch := range idBatches {
 		isFirst := (i == 0)
 		isLast := (i == len(idBatches)-1)
-		batchTask := &StartFlowBatch{BatchTask: BatchTask{BatchOwnerID: ownerID}, FlowStartBatch: start.CreateBatch(idBatch, isFirst, isLast, len(contactIDs))}
+		batchTask := &StartFlowBatch{BatchTask: BatchTask{BatchOwnerUUID: ownerUUID}, FlowStartBatch: start.CreateBatch(idBatch, isFirst, isLast, len(contactIDs))}
 
 		if err := Queue(ctx, rt, q, start.OrgID, batchTask, false); err != nil {
 			if i == 0 {

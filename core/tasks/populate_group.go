@@ -9,6 +9,7 @@ import (
 	"slices"
 	"time"
 
+	"github.com/nyaruka/gocommon/uuids"
 	"github.com/nyaruka/goflow/contactql"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/search"
@@ -143,7 +144,7 @@ func (t *PopulateGroup) Perform(ctx context.Context, rt *runtime.Runtime, oa *mo
 
 	for _, batch := range batches {
 		task := &PopulateGroupBatch{
-			BatchTask:    BatchTask{BatchOwnerID: taskID},
+			BatchTask:    BatchTask{BatchOwnerUUID: uuids.UUID(taskID)},
 			GroupID:      t.GroupID,
 			ContactIDs:   batch,
 			LockValue:    lock,

@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/nyaruka/gocommon/uuids"
 	"github.com/nyaruka/goflow/utils"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/runtime"
@@ -34,11 +35,11 @@ func RegisterType(name string, initFunc func() Task) {
 // TaskID is the unique ID assigned to a task when it's queued
 type TaskID = queues.TaskID
 
-// BatchTask is embedded by tasks which are one batch of work split out from an owning task or object. BatchOwnerID
+// BatchTask is embedded by tasks which are one batch of work split out from an owning task or object. BatchOwnerUUID
 // identifies that owner: the UUID of the parent object where there is one (flow start, broadcast), and otherwise the
-// ID of the creating task (group population) or a generated ID (contact imports).
+// ID of the creating task (group population) or a generated UUID (contact imports).
 type BatchTask struct {
-	BatchOwnerID TaskID `json:"batch_owner_id,omitempty"`
+	BatchOwnerUUID uuids.UUID `json:"batch_owner_uuid,omitempty"`
 }
 
 // Task is the common interface for all task types
