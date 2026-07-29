@@ -1,3 +1,10 @@
+v26.3.27 (2026-07-29)
+-------------------------
+ * Pass queued task IDs into task Perform methods and add owner UUIDs to batch tasks
+ * Publish flow activity change notifications to per-flow sockets
+ * Update to goflow v0.288.1
+ * Update test database dump for latest rapidpro schema
+
 v26.3.26 (2026-07-28)
 -------------------------
  * Update to goflow v0.287.0 and remove handling of removed optin_requested event type
