@@ -1,3 +1,7 @@
+v26.3.29 (2026-07-29)
+-------------------------
+ * Update to goflow v0.288.2
+
 v26.3.28 (2026-07-29)
 -------------------------
  * Add batch trackers which record batch task completion but aren't yet read
