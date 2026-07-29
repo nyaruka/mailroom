@@ -58,11 +58,11 @@ func (t *SendBroadcast) Perform(ctx context.Context, rt *runtime.Runtime, oa *mo
 }
 
 func createBroadcastBatches(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, bcast *models.Broadcast, taskID TaskID) error {
-	// batches are identified as belonging to this run by the broadcast's UUID, tho unlike starts, broadcast UUIDs
-	// have always been serialized in task payloads so the fallback to task ID is just defensive
-	runID := TaskID(bcast.UUID)
-	if runID == "" {
-		runID = taskID
+	// batches are owned by the broadcast, identified by its UUID - tho unlike starts, broadcast UUIDs have always
+	// been serialized in task payloads so the fallback to task ID is just defensive
+	ownerID := TaskID(bcast.UUID)
+	if ownerID == "" {
+		ownerID = taskID
 	}
 
 	contactIDs, err := search.ResolveRecipients(ctx, rt, oa, bcast.CreatedByID, nil, &search.Recipients{
@@ -118,7 +118,7 @@ func createBroadcastBatches(ctx context.Context, rt *runtime.Runtime, oa *models
 		isLast := (i == len(idBatches)-1)
 
 		batch := bcast.CreateBatch(idBatch, isFirst, isLast)
-		err = Queue(ctx, rt, q, bcast.OrgID, &SendBroadcastBatch{BatchTask: BatchTask{ParentID: runID}, BroadcastBatch: batch}, false)
+		err = Queue(ctx, rt, q, bcast.OrgID, &SendBroadcastBatch{BatchTask: BatchTask{BatchOwnerID: ownerID}, BroadcastBatch: batch}, false)
 		if err != nil {
 			if i == 0 {
 				return fmt.Errorf("error queuing broadcast batch: %w", err)

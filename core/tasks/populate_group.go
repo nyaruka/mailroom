@@ -143,7 +143,7 @@ func (t *PopulateGroup) Perform(ctx context.Context, rt *runtime.Runtime, oa *mo
 
 	for _, batch := range batches {
 		task := &PopulateGroupBatch{
-			BatchTask:    BatchTask{ParentID: taskID},
+			BatchTask:    BatchTask{BatchOwnerID: taskID},
 			GroupID:      t.GroupID,
 			ContactIDs:   batch,
 			LockValue:    lock,

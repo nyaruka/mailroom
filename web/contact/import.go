@@ -46,12 +46,12 @@ func handleImport(ctx context.Context, rt *runtime.Runtime, r *importRequest) (a
 		return nil, 0, fmt.Errorf("error setting import batch counter key: %w", err)
 	}
 
-	// generate an ID for this run of batches since unlike other batch tasks, these have no parent task
-	runID := tasks.TaskID(uuids.NewV7())
+	// generate an ID to own this set of batches since unlike other batch tasks, these have no parent task
+	ownerID := tasks.TaskID(uuids.NewV7())
 
 	// create tasks for all batches
 	for _, bID := range imp.BatchIDs {
-		task := &tasks.ImportContactBatch{BatchTask: tasks.BatchTask{ParentID: runID}, ContactImportBatchID: bID}
+		task := &tasks.ImportContactBatch{BatchTask: tasks.BatchTask{BatchOwnerID: ownerID}, ContactImportBatchID: bID}
 		if err := tasks.Queue(ctx, rt, rt.Queues.Batch, r.OrgID, task, false); err != nil {
 			return nil, 0, fmt.Errorf("error queuing import contact batch task: %w", err)
 		}
