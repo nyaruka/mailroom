@@ -37,9 +37,11 @@ type TaskID = queues.TaskID
 
 // BatchTask is embedded by tasks which are one batch of work split out from an owning task or object. BatchOwnerUUID
 // identifies that owner: the UUID of the parent object where there is one (flow start, broadcast), and otherwise the
-// ID of the creating task (group population) or a generated UUID (contact imports).
+// ID of the creating task (group population) or a generated UUID (contact imports). TotalBatches is the number of
+// batches in the set, carried by every batch so completion tracking needs no separate initialization.
 type BatchTask struct {
 	BatchOwnerUUID uuids.UUID `json:"batch_owner_uuid,omitempty"`
+	TotalBatches   int        `json:"total_batches,omitempty"`
 }
 
 // RecordComplete marks this batch as complete in its owner's tracker. The tracker isn't yet used to make completion
@@ -49,7 +51,7 @@ func (b *BatchTask) RecordComplete(ctx context.Context, rt *runtime.Runtime, tas
 		return // batch was queued before owner UUIDs were added
 	}
 
-	if _, _, err := NewBatchTracker(b.BatchOwnerUUID).Done(ctx, rt.VK, taskID); err != nil {
+	if _, _, err := NewBatchTracker(b.BatchOwnerUUID).Done(ctx, rt.VK, taskID, b.TotalBatches); err != nil {
 		slog.Error("error recording batch task completion", "error", err, "owner_uuid", b.BatchOwnerUUID)
 	}
 }
