@@ -60,6 +60,8 @@ func (t *ImportContactBatch) Perform(ctx context.Context, rt *runtime.Runtime, o
 		}
 	}
 
+	t.RecordComplete(ctx, rt, taskID)
+
 	// decrement the counter to see if the overall import is now finished
 	counter := NewCounter(fmt.Sprintf("contact_import_batches_remaining:%d", batch.ImportID), 24*time.Hour)
 	done, err := counter.Done(ctx, rt.VK)

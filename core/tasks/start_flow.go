@@ -125,6 +125,11 @@ func createFlowStartBatches(ctx context.Context, rt *runtime.Runtime, oa *models
 	// split the contact ids into batches to become batch tasks
 	idBatches := slices.Collect(slices.Chunk(contactIDs, FlowStartBatchSize))
 
+	// initialize the tracker that batches will record their completion in (not yet read)
+	if err := NewBatchTracker(ownerUUID).Init(ctx, rt.VK, len(idBatches)); err != nil {
+		return fmt.Errorf("error initializing batch tracker: %w", err)
+	}
+
 	for i, idBatch := range idBatches {
 		isFirst := (i == 0)
 		isLast := (i == len(idBatches)-1)

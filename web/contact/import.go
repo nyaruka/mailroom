@@ -49,6 +49,11 @@ func handleImport(ctx context.Context, rt *runtime.Runtime, r *importRequest) (a
 	// generate a UUID to own this set of batches since unlike other batch tasks, these have no parent task
 	ownerUUID := uuids.NewV7()
 
+	// initialize the tracker that batches will record their completion in (not yet read)
+	if err := tasks.NewBatchTracker(ownerUUID).Init(ctx, rt.VK, len(imp.BatchIDs)); err != nil {
+		return nil, 0, fmt.Errorf("error initializing batch tracker: %w", err)
+	}
+
 	// create tasks for all batches
 	for _, bID := range imp.BatchIDs {
 		task := &tasks.ImportContactBatch{BatchTask: tasks.BatchTask{BatchOwnerUUID: ownerUUID}, ContactImportBatchID: bID}

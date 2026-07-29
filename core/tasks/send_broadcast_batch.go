@@ -53,6 +53,7 @@ func (t *SendBroadcastBatch) Perform(ctx context.Context, rt *runtime.Runtime, o
 
 	// if this broadcast was interrupted, we're done
 	if bcast.Status == models.BroadcastStatusInterrupted {
+		t.RecordComplete(ctx, rt, taskID)
 		return nil
 	}
 
@@ -79,6 +80,8 @@ func (t *SendBroadcastBatch) Perform(ctx context.Context, rt *runtime.Runtime, o
 			return fmt.Errorf("error marking broadcast as complete: %w", err)
 		}
 	}
+
+	t.RecordComplete(ctx, rt, taskID)
 
 	return nil
 }

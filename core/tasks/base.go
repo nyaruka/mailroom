@@ -42,6 +42,18 @@ type BatchTask struct {
 	BatchOwnerUUID uuids.UUID `json:"batch_owner_uuid,omitempty"`
 }
 
+// RecordComplete marks this batch as complete in its owner's tracker. The tracker isn't yet used to make completion
+// decisions so any error here is logged rather than allowed to fail the batch.
+func (b *BatchTask) RecordComplete(ctx context.Context, rt *runtime.Runtime, taskID TaskID) {
+	if b.BatchOwnerUUID == "" {
+		return // batch was queued before owner UUIDs were added
+	}
+
+	if _, _, err := NewBatchTracker(b.BatchOwnerUUID).Done(ctx, rt.VK, taskID); err != nil {
+		slog.Error("error recording batch task completion", "error", err, "owner_uuid", b.BatchOwnerUUID)
+	}
+}
+
 // Task is the common interface for all task types
 type Task interface {
 	Type() string

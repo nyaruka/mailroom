@@ -64,6 +64,7 @@ func (t *StartFlowBatch) Perform(ctx context.Context, rt *runtime.Runtime, oa *m
 
 	// if this start was interrupted, we're done
 	if start.Status == models.StartStatusInterrupted {
+		t.RecordComplete(ctx, rt, taskID)
 		return nil
 	}
 
@@ -84,6 +85,8 @@ func (t *StartFlowBatch) Perform(ctx context.Context, rt *runtime.Runtime, oa *m
 			return fmt.Errorf("error marking start as complete: %w", err)
 		}
 	}
+
+	t.RecordComplete(ctx, rt, taskID)
 
 	return nil
 }
