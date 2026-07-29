@@ -53,6 +53,8 @@ func (t *PopulateGroupBatch) Perform(ctx context.Context, rt *runtime.Runtime, o
 		slog.Warn("failed to acquire locks for contacts during group population", "group_id", t.GroupID, "skipped", len(skipped))
 	}
 
+	t.RecordComplete(ctx, rt, taskID)
+
 	// decrement the counter to see if the overall population is now finished
 	counter := NewCounter(fmt.Sprintf(populateGroupBatchesRemainingKey, t.PopulationID), time.Hour)
 	done, err := counter.Done(ctx, rt.VK)

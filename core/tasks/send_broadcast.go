@@ -119,7 +119,11 @@ func createBroadcastBatches(ctx context.Context, rt *runtime.Runtime, oa *models
 		isLast := (i == len(idBatches)-1)
 
 		batch := bcast.CreateBatch(idBatch, isFirst, isLast)
-		err = Queue(ctx, rt, q, bcast.OrgID, &SendBroadcastBatch{BatchTask: BatchTask{BatchOwnerUUID: ownerUUID}, BroadcastBatch: batch}, false)
+		batchTask := &SendBroadcastBatch{
+			BatchTask:      BatchTask{BatchOwnerUUID: ownerUUID, TotalBatches: len(idBatches)},
+			BroadcastBatch: batch,
+		}
+		err = Queue(ctx, rt, q, bcast.OrgID, batchTask, false)
 		if err != nil {
 			if i == 0 {
 				return fmt.Errorf("error queuing broadcast batch: %w", err)

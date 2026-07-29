@@ -128,7 +128,10 @@ func createFlowStartBatches(ctx context.Context, rt *runtime.Runtime, oa *models
 	for i, idBatch := range idBatches {
 		isFirst := (i == 0)
 		isLast := (i == len(idBatches)-1)
-		batchTask := &StartFlowBatch{BatchTask: BatchTask{BatchOwnerUUID: ownerUUID}, FlowStartBatch: start.CreateBatch(idBatch, isFirst, isLast, len(contactIDs))}
+		batchTask := &StartFlowBatch{
+			BatchTask:      BatchTask{BatchOwnerUUID: ownerUUID, TotalBatches: len(idBatches)},
+			FlowStartBatch: start.CreateBatch(idBatch, isFirst, isLast, len(contactIDs)),
+		}
 
 		if err := Queue(ctx, rt, q, start.OrgID, batchTask, false); err != nil {
 			if i == 0 {

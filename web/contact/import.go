@@ -51,7 +51,10 @@ func handleImport(ctx context.Context, rt *runtime.Runtime, r *importRequest) (a
 
 	// create tasks for all batches
 	for _, bID := range imp.BatchIDs {
-		task := &tasks.ImportContactBatch{BatchTask: tasks.BatchTask{BatchOwnerUUID: ownerUUID}, ContactImportBatchID: bID}
+		task := &tasks.ImportContactBatch{
+			BatchTask:            tasks.BatchTask{BatchOwnerUUID: ownerUUID, TotalBatches: len(imp.BatchIDs)},
+			ContactImportBatchID: bID,
+		}
 		if err := tasks.Queue(ctx, rt, rt.Queues.Batch, r.OrgID, task, false); err != nil {
 			return nil, 0, fmt.Errorf("error queuing import contact batch task: %w", err)
 		}
