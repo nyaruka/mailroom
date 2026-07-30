@@ -1,5 +1,17 @@
 [
     {
+        "label": "event is required",
+        "method": "POST",
+        "path": "/mi/org/publish",
+        "body": {
+            "org_id": 1
+        },
+        "status": 400,
+        "response": {
+            "error": "request failed validation: field 'event' is required"
+        }
+    },
+    {
         "label": "event must be an object",
         "method": "POST",
         "path": "/mi/org/publish",

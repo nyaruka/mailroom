@@ -217,6 +217,12 @@ func PublishToHistory(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, c
 // Bulk publishes are harmless on a history socket - nobody has 100k contact pages open, so they're dropped for want of
 // a subscriber - but the workspace socket is subscribed by every open page of every member, so a large import would
 // otherwise fan a message per row to every connected browser in the workspace.
+//
+// The cost of the hard gate is that a rename made by a flow leaves other pages' cached label stale until they refetch
+// it (the contact's own history socket still gets the event either way). That's the deliberate trade: provenance is
+// only a proxy for the real criterion, which is cardinality. If interactive flow renames ever need to be live, the
+// place to relax this is BulkCommit, which knows how many scenes committed - gating on a single-scene commit would
+// admit them while still excluding every batched path, and without needing a throttle.
 func contactRenamedByUser(e events.Event) bool {
 	evt, ok := e.(*events.ContactNameChanged)
 	return ok && (evt.Via_ == string(ViaUI) || evt.Via_ == string(ViaAPI))

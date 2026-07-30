@@ -316,7 +316,7 @@ func GetOrgIDFromUUID(ctx context.Context, db *sql.DB, orgUUID OrgUUID) (OrgID, 
 // touch the asset cache, so it's for callers that need nothing about the workspace but how to address it.
 func GetOrgUUIDFromID(ctx context.Context, db DBorTx, orgID OrgID) (OrgUUID, error) {
 	var orgUUID OrgUUID
-	if err := db.GetContext(ctx, &orgUUID, `SELECT uuid FROM orgs_org WHERE id = $1`, orgID); err != nil {
+	if err := db.GetContext(ctx, &orgUUID, `SELECT uuid FROM orgs_org WHERE is_active = TRUE AND id = $1`, orgID); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return "", nil
 		}
