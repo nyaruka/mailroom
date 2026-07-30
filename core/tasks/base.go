@@ -44,6 +44,23 @@ type BatchTask struct {
 	TotalBatches   int        `json:"total_batches,omitempty"`
 }
 
+// RecordStarted marks processing of this batch's set as started in its owner's tracker and returns whether this was
+// the first batch of the set to start. Tracker errors are logged rather than escalated - the cost is just that the
+// owner is never marked as started.
+func (b *BatchTask) RecordStarted(ctx context.Context, rt *runtime.Runtime) bool {
+	if b.BatchOwnerUUID == "" {
+		return false // shouldn't happen but better than all such batches sharing a tracker
+	}
+
+	first, err := NewBatchTracker(b.BatchOwnerUUID).Started(ctx, rt.VK)
+	if err != nil {
+		slog.Error("error recording batch task start", "error", err, "owner_uuid", b.BatchOwnerUUID)
+		return false
+	}
+
+	return first
+}
+
 // RecordComplete marks this batch as complete in its owner's tracker and returns whether it was the last batch of its
 // set to complete. Tracker errors are logged rather than escalated since the batch's own work has already succeeded -
 // tho in that case completion of the set will never be detected.
@@ -52,13 +69,13 @@ func (b *BatchTask) RecordComplete(ctx context.Context, rt *runtime.Runtime, tas
 		return false // shouldn't happen but better than all such batches sharing a tracker
 	}
 
-	completed, total, err := NewBatchTracker(b.BatchOwnerUUID).Done(ctx, rt.VK, taskID, b.TotalBatches)
+	completed, err := NewBatchTracker(b.BatchOwnerUUID).Done(ctx, rt.VK, taskID)
 	if err != nil {
 		slog.Error("error recording batch task completion", "error", err, "owner_uuid", b.BatchOwnerUUID)
 		return false
 	}
 
-	return total > 0 && completed >= total
+	return b.TotalBatches > 0 && completed >= b.TotalBatches
 }
 
 // Task is the common interface for all task types

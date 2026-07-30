@@ -68,8 +68,8 @@ func (t *StartFlowBatch) Perform(ctx context.Context, rt *runtime.Runtime, oa *m
 		return nil
 	}
 
-	// if this is our first batch, mark as started
-	if t.IsFirst {
+	// if we're the first batch of the set to start, mark the start itself as started
+	if t.RecordStarted(ctx, rt) {
 		if err := start.SetStarted(ctx, rt.DB); err != nil {
 			return fmt.Errorf("error marking start as started: %w", err)
 		}

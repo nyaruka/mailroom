@@ -57,8 +57,8 @@ func (t *SendBroadcastBatch) Perform(ctx context.Context, rt *runtime.Runtime, o
 		return nil
 	}
 
-	// if this is our first batch, mark as started
-	if t.IsFirst {
+	// if we're the first batch of the set to start, mark the broadcast itself as started
+	if t.RecordStarted(ctx, rt) {
 		if err := bcast.SetStarted(ctx, rt.DB); err != nil {
 			return fmt.Errorf("error marking broadcast as started: %w", err)
 		}
