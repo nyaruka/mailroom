@@ -27,7 +27,7 @@ func TestPublish(t *testing.T) {
 
 	sent := testsuite.CentrifugoHistory(t, rt, orgSocket)
 	require.Len(t, sent, 1)
-	assert.JSONEq(t, `{"type":"asset_changed","asset":{"type":"flow","uuid":"9de3663f-c5c5-4c92-9f45-ecbc09abcc85","name":"Registration"}}`, string(sent[0]))
+	assert.JSONEq(t, `{"type":"asset_changed","asset":{"type":"group","uuid":"c153e265-f7c9-4539-9dbc-9b358714b638","name":"Physicians"}}`, string(sent[0]))
 }
 
 func TestDeindex(t *testing.T) {

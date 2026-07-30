@@ -22,7 +22,7 @@ func init() {
 // subscribers verbatim and unvalidated - the rendering is the caller's, so mailroom needs no knowledge of the event
 // types, and equally can't tell a client-actionable event from one no client will act on.
 //
-//	{"org_id": 1, "event": {"type": "asset_changed", "asset": {"type": "flow", "uuid": "...", "name": "Registration"}}}
+//	{"org_id": 1, "event": {"type": "asset_changed", "asset": {"type": "group", "uuid": "...", "name": "Physicians"}}}
 type publishRequest struct {
 	OrgID models.OrgID    `json:"org_id" validate:"required"`
 	Event json.RawMessage `json:"event"  validate:"required"`

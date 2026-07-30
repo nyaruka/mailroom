@@ -51,7 +51,7 @@ func TestPublishOrgEvent(t *testing.T) {
 	defer vc.Close()
 
 	socket := models.OrgSocket(oa.Org().UUID())
-	event := json.RawMessage(`{"type":"asset_changed","asset":{"type":"flow","uuid":"flow-1","name":"Registration"}}`)
+	event := json.RawMessage(`{"type":"asset_changed","asset":{"type":"group","uuid":"c153e265-f7c9-4539-9dbc-9b358714b638","name":"Physicians"}}`)
 
 	// an event that isn't a JSON object can't be dispatched on by any client, so it's rejected rather than sent
 	assert.EqualError(t, models.PublishOrgEvent(ctx, rt, oa, nil), "org event must be a JSON object")

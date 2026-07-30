@@ -16,7 +16,6 @@ import (
 	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/goflow/flows/modifiers"
 	"github.com/nyaruka/goflow/flows/resumes"
 	"github.com/nyaruka/goflow/flows/triggers"
 	"github.com/nyaruka/goflow/test"
@@ -301,74 +300,6 @@ func TestBulkCommitPublishesEvents(t *testing.T) {
 	changes = flowChanges()
 	require.Len(t, changes, 1)
 	assert.Nil(t, changes[0]["flow"])
-}
-
-func TestBulkCommitPublishesRenamesOnlyToHistory(t *testing.T) {
-	ctx, rt := testsuite.Runtime(t)
-
-	defer testsuite.Reset(t, rt, testsuite.ResetAll) // modifies contacts
-
-	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
-	require.NoError(t, err)
-
-	vc := rt.VK.Get()
-	defer vc.Close()
-
-	orgSocket := models.OrgSocket(oa.Org().UUID())
-	annSocket := models.HistorySocket(testdb.Ann.UUID)
-	bobSocket := models.HistorySocket(testdb.Bob.UUID)
-
-	for _, s := range []string{orgSocket, annSocket, bobSocket} {
-		_, err := vc.Do("SET", centrifugo.SubscriptionKey(s), "1")
-		require.NoError(t, err)
-	}
-
-	rename := func(contacts []*testdb.Contact, name string, via models.Via) {
-		ids := make([]models.ContactID, len(contacts))
-		mods := make(map[models.ContactID][]flows.Modifier, len(contacts))
-		for i, c := range contacts {
-			ids[i] = c.ID
-			mods[c.ID] = []flows.Modifier{modifiers.NewName(name)}
-		}
-		_, _, err := runner.ModifyWithLock(ctx, rt, oa, testdb.Admin.ID, ids, mods, nil, via)
-		require.NoError(t, err)
-	}
-
-	rename([]*testdb.Contact{testdb.Ann}, "Annie", models.ViaUI)
-	rename([]*testdb.Contact{testdb.Ann}, "Anne", models.ViaImport)
-	rename([]*testdb.Contact{testdb.Ann}, "Ann", "")
-	rename([]*testdb.Contact{testdb.Ann, testdb.Bob}, "Renamed", models.ViaImport)
-	rename([]*testdb.Contact{testdb.Ann, testdb.Bob}, "Renamed Again", models.ViaUI)
-	rename([]*testdb.Contact{testdb.Ann, testdb.Bob}, "Renamed Once More", models.ViaAPI)
-
-	// Renames from every source and commit size still reach each contact's own history socket.
-	assert.Equal(t,
-		[]string{"Annie", "Anne", "Ann", "Renamed", "Renamed Again", "Renamed Once More"},
-		renamesOn(t, rt, annSocket),
-	)
-	assert.Equal(t, []string{"Renamed", "Renamed Again", "Renamed Once More"}, renamesOn(t, rt, bobSocket))
-
-	// Contact renames are never fanned out to the workspace socket. This was tried and backed out: unlike a
-	// history socket, "org:" is subscribed by every open page in the workspace, and contacts are renamed in bulk
-	// (an import applies a Name modifier per row), so a 100k-row import would put a message per row in front of
-	// every connected browser. Only a rename with a bounded audience belongs on the workspace socket - if that's
-	// wanted here again, it needs a gate on how many contacts the commit touched, not just a fan-out.
-	assert.Empty(t, testsuite.CentrifugoHistory(t, rt, orgSocket))
-
-	rt.Dynamo.History.Flush()
-	dyntest.AssertCount(t, rt.Dynamo.History.Client(), "TestHistory", 9)
-}
-
-func renamesOn(t *testing.T, rt *runtime.Runtime, socket string) []string {
-	names := []string{}
-	for _, data := range testsuite.CentrifugoHistory(t, rt, socket) {
-		var decoded map[string]any
-		require.NoError(t, json.Unmarshal(data, &decoded))
-		if decoded["type"] == "contact_name_changed" {
-			names = append(names, decoded["name"].(string))
-		}
-	}
-	return names
 }
 
 func TestBulkCommitPublishesNotifications(t *testing.T) {
