@@ -1,3 +1,8 @@
+v26.3.32 (2026-07-30)
+-------------------------
+ * Make batch trackers also count completions recorded under pre-rename keys
+ * Update to goflow v0.288.3
+
 v26.3.31 (2026-07-30)
 -------------------------
  * Rework batch trackers to use per-owner started and batches keys
