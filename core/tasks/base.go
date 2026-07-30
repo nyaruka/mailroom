@@ -44,16 +44,26 @@ type BatchTask struct {
 	TotalBatches   int        `json:"total_batches,omitempty"`
 }
 
-// RecordComplete marks this batch as complete in its owner's tracker. The tracker isn't yet used to make completion
-// decisions so any error here is logged rather than allowed to fail the batch.
-func (b *BatchTask) RecordComplete(ctx context.Context, rt *runtime.Runtime, taskID TaskID) {
+// RecordComplete marks this batch as complete in its owner's tracker, and returns whether this was the last batch of
+// its set to complete, and whether that could actually be determined. It can't be determined for batches queued before
+// owner UUIDs and totals were added to payloads, or if the tracker can't be updated (logged rather than escalated
+// since the batch's own work has already succeeded) - in those cases the caller should fall back to a legacy
+// completion mechanism.
+func (b *BatchTask) RecordComplete(ctx context.Context, rt *runtime.Runtime, taskID TaskID) (bool, bool) {
 	if b.BatchOwnerUUID == "" {
-		return // batch was queued before owner UUIDs were added
+		return false, false // batch was queued before owner UUIDs were added
 	}
 
-	if _, _, err := NewBatchTracker(b.BatchOwnerUUID).Done(ctx, rt.VK, taskID, b.TotalBatches); err != nil {
+	completed, total, err := NewBatchTracker(b.BatchOwnerUUID).Done(ctx, rt.VK, taskID, b.TotalBatches)
+	if err != nil {
 		slog.Error("error recording batch task completion", "error", err, "owner_uuid", b.BatchOwnerUUID)
+		return false, false
 	}
+	if total == 0 {
+		return false, false // no batch in the set has reported the total
+	}
+
+	return completed >= total, true
 }
 
 // Task is the common interface for all task types

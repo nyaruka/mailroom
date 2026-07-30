@@ -59,6 +59,36 @@ func TestImportContactBatch(t *testing.T) {
 		})
 }
 
+func TestImportContactBatchTracked(t *testing.T) {
+	_, rt := testsuite.Runtime(t)
+
+	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetDynamo|testsuite.ResetValkey)
+
+	importID := testdb.InsertContactImport(t, rt, testdb.Org1, models.ImportStatusProcessing, testdb.Admin)
+	batch1ID := testdb.InsertContactImportBatch(t, rt, importID, []byte(`[
+		{"name": "Norbert", "language": "eng", "urns": ["tel:+16055740001"]}
+	]`))
+	batch2ID := testdb.InsertContactImportBatch(t, rt, importID, []byte(`[
+		{"name": "Leah", "urns": ["tel:+16055740002"]}
+	]`))
+
+	// batches carry an owner UUID and total as the import endpoint now creates them - no legacy counter needed
+	batchTask := tasks.BatchTask{BatchOwnerUUID: "440e0ac2-8607-42d3-9a30-cb27b29a5c95", TotalBatches: 2}
+
+	// perform first batch task... import still in progress
+	testsuite.QueueBatchTask(t, rt, testdb.Org1, &tasks.ImportContactBatch{BatchTask: batchTask, ContactImportBatchID: batch1ID})
+	testsuite.FlushTasks(t, rt)
+
+	assertdb.Query(t, rt.DB, `SELECT status FROM contacts_contactimport WHERE id = $1`, importID).Columns(map[string]any{"status": "O"})
+
+	// perform second batch task... import completes via the tracker
+	testsuite.QueueBatchTask(t, rt, testdb.Org1, &tasks.ImportContactBatch{BatchTask: batchTask, ContactImportBatchID: batch2ID})
+	testsuite.FlushTasks(t, rt)
+
+	assertdb.Query(t, rt.DB, `SELECT status FROM contacts_contactimport WHERE id = $1`, importID).Columns(map[string]any{"status": "C"})
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM notifications_notification WHERE contact_import_id = $1 AND notification_type = 'import:finished'`, importID).Returns(1)
+}
+
 func TestImportContactBatchFailure(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 	vc := rt.VK.Get()

@@ -60,13 +60,15 @@ func (t *ImportContactBatch) Perform(ctx context.Context, rt *runtime.Runtime, o
 		}
 	}
 
-	t.RecordComplete(ctx, rt, taskID)
-
-	// decrement the counter to see if the overall import is now finished
-	counter := NewCounter(fmt.Sprintf("contact_import_batches_remaining:%d", batch.ImportID), 24*time.Hour)
-	done, err := counter.Done(ctx, rt.VK)
-	if err != nil {
-		return fmt.Errorf("error decrementing import batch counter: %w", err)
+	// mark this batch as complete and check if the overall import is now finished - falling back to the legacy
+	// counter for batches queued before completion tracking
+	done, known := t.RecordComplete(ctx, rt, taskID)
+	if !known {
+		counter := NewCounter(fmt.Sprintf("contact_import_batches_remaining:%d", batch.ImportID), 24*time.Hour)
+		done, err = counter.Done(ctx, rt.VK)
+		if err != nil {
+			return fmt.Errorf("error decrementing import batch counter: %w", err)
+		}
 	}
 	if done {
 		// reload the import to get the final statuses of all batches - the statuses loaded before this batch was
