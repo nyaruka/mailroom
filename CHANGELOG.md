@@ -1,3 +1,9 @@
+v26.3.31 (2026-07-30)
+-------------------------
+ * Rework batch trackers to use per-owner started and batches keys
+ * Remove legacy batch completion mechanisms replaced by batch trackers
+ * Add workspace realtime socket for asset name changes
+
 v26.3.30 (2026-07-30)
 -------------------------
  * Use batch trackers to make completion decisions for starts, broadcasts, imports and group populations
