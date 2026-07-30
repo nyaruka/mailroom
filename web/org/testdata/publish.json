@@ -1,0 +1,94 @@
+[
+    {
+        "label": "event is required",
+        "method": "POST",
+        "path": "/mi/org/publish",
+        "body": {
+            "org_id": 1
+        },
+        "status": 400,
+        "response": {
+            "error": "request failed validation: field 'event' is required"
+        }
+    },
+    {
+        "label": "event must be an object",
+        "method": "POST",
+        "path": "/mi/org/publish",
+        "body": {
+            "org_id": 1,
+            "event": null
+        },
+        "status": 400,
+        "response": {
+            "error": "event must be a JSON object"
+        }
+    },
+    {
+        "label": "event must have a type",
+        "method": "POST",
+        "path": "/mi/org/publish",
+        "body": {
+            "org_id": 1,
+            "event": {
+                "asset": {
+                    "type": "group",
+                    "uuid": "c153e265-f7c9-4539-9dbc-9b358714b638",
+                    "name": "Physicians"
+                }
+            }
+        },
+        "status": 400,
+        "response": {
+            "error": "event must have a type"
+        }
+    },
+    {
+        "label": "event type must be a string",
+        "method": "POST",
+        "path": "/mi/org/publish",
+        "body": {
+            "org_id": 1,
+            "event": {
+                "type": 12345
+            }
+        },
+        "status": 400,
+        "response": {
+            "error": "event must have a type"
+        }
+    },
+    {
+        "label": "org must exist",
+        "method": "POST",
+        "path": "/mi/org/publish",
+        "body": {
+            "org_id": 1234567,
+            "event": {
+                "type": "asset_changed"
+            }
+        },
+        "status": 500,
+        "response": {
+            "error": "error loading org assets for org #1234567: error loading environment for org 1234567: no org with id: 1234567"
+        }
+    },
+    {
+        "label": "publish asset change",
+        "method": "POST",
+        "path": "/mi/org/publish",
+        "body": {
+            "org_id": 1,
+            "event": {
+                "type": "asset_changed",
+                "asset": {
+                    "type": "group",
+                    "uuid": "c153e265-f7c9-4539-9dbc-9b358714b638",
+                    "name": "Physicians"
+                }
+            }
+        },
+        "status": 200,
+        "response": {}
+    }
+]

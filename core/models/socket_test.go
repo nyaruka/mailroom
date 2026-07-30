@@ -33,6 +33,43 @@ func TestFlowSocket(t *testing.T) {
 	assert.Equal(t, "flow:9de3663f-c5c5-4c92-9f45-ecbc09abcc85", models.FlowSocket(flow))
 }
 
+func TestOrgSocket(t *testing.T) {
+	org := models.OrgUUID("bf0514a5-9407-44c9-b0f9-3f36f9c18414")
+
+	assert.Equal(t, "org:bf0514a5-9407-44c9-b0f9-3f36f9c18414", models.OrgSocket(org))
+}
+
+func TestPublishOrgEvent(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	defer testsuite.Reset(t, rt, testsuite.ResetValkey)
+
+	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
+	require.NoError(t, err)
+
+	vc := rt.VK.Get()
+	defer vc.Close()
+
+	socket := models.OrgSocket(oa.Org().UUID())
+	event := json.RawMessage(`{"type":"asset_changed","asset":{"type":"group","uuid":"c153e265-f7c9-4539-9dbc-9b358714b638","name":"Physicians"}}`)
+
+	// an event that isn't a JSON object can't be dispatched on by any client, so it's rejected rather than sent
+	assert.EqualError(t, models.PublishOrgEvent(ctx, rt, oa, nil), "org event must be a JSON object")
+	assert.EqualError(t, models.PublishOrgEvent(ctx, rt, oa, json.RawMessage(`null`)), "org event must be a JSON object")
+
+	// no subscribers so nothing is actually sent
+	require.NoError(t, models.PublishOrgEvent(ctx, rt, oa, event))
+	assert.Empty(t, testsuite.CentrifugoHistory(t, rt, socket))
+
+	_, err = vc.Do("SET", centrifugo.SubscriptionKey(socket), "1")
+	require.NoError(t, err)
+	require.NoError(t, models.PublishOrgEvent(ctx, rt, oa, event))
+
+	sent := testsuite.CentrifugoHistory(t, rt, socket)
+	require.Len(t, sent, 1)
+	assert.JSONEq(t, string(event), string(sent[0]))
+}
+
 func TestPublishFlowActivity(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 

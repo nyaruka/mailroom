@@ -3,6 +3,7 @@ package models
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 
@@ -41,6 +42,20 @@ const SocketFlowNamespace = "flow"
 // FlowSocket returns the realtime pub/sub socket for the given flow, addressed as "flow:<flow-uuid>".
 func FlowSocket(flowUUID assets.FlowUUID) string {
 	return fmt.Sprintf("%s:%s", SocketFlowNamespace, flowUUID)
+}
+
+// SocketOrgNamespace is the realtime pub/sub namespace for workspace-wide state changes shared by every open page. A
+// workspace socket is addressed as "org:<org-uuid>" and currently carries "asset_changed" payloads - an asset's
+// canonical name has changed, so any page caching that name should update it. These are produced on the platform's
+// Django side and published through the org publish endpoint. Like the other namespaces it's a client subscription,
+// authorized per-session by the subscribe proxy, which records the same "socket-subs:" presence key. Note this is the
+// one namespace any member of the workspace may subscribe to with no further permission check (unlike e.g. "flow:",
+// which requires flows.flow_editor), so anything published here is visible to every user in the workspace.
+const SocketOrgNamespace = "org"
+
+// OrgSocket returns the realtime pub/sub socket for the given workspace, addressed as "org:<org-uuid>".
+func OrgSocket(orgUUID OrgUUID) string {
+	return fmt.Sprintf("%s:%s", SocketOrgNamespace, orgUUID)
 }
 
 // SocketNotificationsNamespace is the realtime pub/sub namespace for a user's notifications within a workspace. A
@@ -113,6 +128,22 @@ func PublishNotificationData(ctx context.Context, rt *runtime.Runtime, oa *OrgAs
 		return fmt.Errorf("error publishing notifications: %w", err)
 	}
 
+	return nil
+}
+
+// PublishOrgEvent publishes an already-rendered workspace event verbatim to the workspace's socket. The event is
+// published as given - the rendering is the caller's, so mailroom needs no knowledge of the event types - but must be
+// a JSON object, since the realtime protocol assumes one and clients dispatch on its type. As with the other sockets
+// this is best-effort and a no-op when the workspace currently has no subscribers.
+func PublishOrgEvent(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, event json.RawMessage) error {
+	if len(event) == 0 || event[0] != '{' {
+		return errors.New("org event must be a JSON object")
+	}
+
+	pub := &centrifugo.Publication{Channel: OrgSocket(oa.Org().UUID()), Data: event}
+	if err := rt.Centrifugo.Publish(ctx, pub); err != nil {
+		return fmt.Errorf("error publishing org event: %w", err)
+	}
 	return nil
 }
 
