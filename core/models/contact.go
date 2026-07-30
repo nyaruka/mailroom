@@ -275,10 +275,11 @@ func ContactDisplay(env envs.Environment, c *core.Contact) string {
 // underlying reason is that gocommon's whatsapp scheme has no Format func; if it gains one and gocommon stops
 // preferring display, this function collapses back to a plain urn.Format() call.
 //
-// One known divergence remains, deliberately: for a whatsapp URN that isn't a phone number (a business-scoped user id)
-// and carries no display value, the platform renders "+US.abc123" - its URN.format prepends the + to the same variable
-// it later falls back to returning - where we render "US.abc123". That's a bug on that side, not an ordering we want to
-// reproduce, so fix it there rather than here.
+// One known divergence remains, deliberately: for a whatsapp URN whose path doesn't parse as a phone number - a
+// business-scoped user id, or a stored all-digit path that isn't E164, e.g. one with a leading zero - and which carries
+// no display value, the platform renders a stray leading + ("+US.abc123", "+0788123123") because its URN.format
+// prepends the + to the same variable it later falls back to returning, where we render the path as stored. That's a
+// bug on that side, not an ordering we want to reproduce, so fix it there rather than here.
 func formatURNForDisplay(urn urns.URN) string {
 	scheme, path, _, _ := urn.ToParts()
 

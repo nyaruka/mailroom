@@ -132,7 +132,8 @@ func TestContactDisplay(t *testing.T) {
 	assert.Equal(t, "biz", models.ContactDisplay(oa.Env(), newContact("", "whatsapp:US.abc123#biz")))
 
 	// ...and to the path when it has none. NB the platform renders this one as "+US.abc123", because its URN.format
-	// prepends the + to the path it later falls back to - see formatURNForDisplay for that known divergence.
+	// prepends the + to the path it later falls back to - see formatURNForDisplay for that known divergence, which
+	// covers any unparseable whatsapp path, not just business-scoped user ids.
 	assert.Equal(t, "US.abc123", models.ContactDisplay(oa.Env(), newContact("", "whatsapp:US.abc123")))
 
 	// a non-phone scheme is display, else path
