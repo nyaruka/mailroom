@@ -235,13 +235,13 @@ func TestPublishToHistory(t *testing.T) {
 	evt2 := events.NewContactLanguageChanged("spa")
 
 	// socket isn't subscribed yet, so nothing is published
-	require.NoError(t, models.PublishToHistory(ctx, rt, oa, ann, []events.Event{evt1}))
+	require.NoError(t, models.PublishToHistory(ctx, rt, oa, ann, []events.Event{evt1}, true))
 	assert.Empty(t, mock.Publications())
 
 	// mark the socket subscribed (as the authorizing service would) - empty event slice is still a no-op
 	_, err := vc.Do("SET", centrifugo.SubscriptionKey(socket), "1")
 	require.NoError(t, err)
-	require.NoError(t, models.PublishToHistory(ctx, rt, oa, ann, nil))
+	require.NoError(t, models.PublishToHistory(ctx, rt, oa, ann, nil, true))
 	assert.Empty(t, mock.Publications())
 
 	// subscribe to the workspace socket too, so contact name changes can update canonical-name caches on other pages
@@ -249,7 +249,7 @@ func TestPublishToHistory(t *testing.T) {
 	require.NoError(t, err)
 
 	// now that it's subscribed, each event is published to the contact's history socket as its full JSON
-	require.NoError(t, models.PublishToHistory(ctx, rt, oa, ann, []events.Event{evt1, evt2}))
+	require.NoError(t, models.PublishToHistory(ctx, rt, oa, ann, []events.Event{evt1, evt2}, true))
 
 	sent := testsuite.CentrifugoHistory(t, rt, socket)
 	require.Len(t, sent, 2)
@@ -292,7 +292,7 @@ func TestPublishToHistory(t *testing.T) {
 	lang := events.NewContactLanguageChanged("fra")                                                                                  // non-ticket -> contact socket
 
 	require.NoError(t,
-		models.PublishToHistory(ctx, rt, oa, ann, []events.Event{closed, noteA, assignB, lang}),
+		models.PublishToHistory(ctx, rt, oa, ann, []events.Event{closed, noteA, assignB, lang}, true),
 	)
 
 	// the contact socket got the basic ticket event and the non-ticket event in order, plus the two from before
@@ -331,7 +331,7 @@ func TestPublishToHistory(t *testing.T) {
 	renamed2.SetUser(nil, string(models.ViaUI))
 
 	require.NoError(t,
-		models.PublishToHistory(ctx, rt, oa, ann, []events.Event{noteA2, noteB, renamed1, renamed2}),
+		models.PublishToHistory(ctx, rt, oa, ann, []events.Event{noteA2, noteB, renamed1, renamed2}, true),
 	)
 
 	// each socket received exactly its own events
@@ -380,33 +380,34 @@ func TestPublishToHistoryOrgFanOut(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	renameVia := func(via string) events.Event {
-		e := events.NewContactNameChanged("Bob")
-		if via != "" {
-			e.SetUser(nil, via)
-		}
-		return e
-	}
-
-	// only renames a user made in the UI or through the API reach the workspace socket - those from an import or from
-	// a flow arrive in bulk, and unlike a history socket the workspace socket is subscribed by every open page
+	// a rename reaches the workspace socket only when the caller says it's worth broadcasting - see BulkCommit, which
+	// sets that for a commit touching a single contact. Provenance is deliberately not consulted: a flow renaming the
+	// one contact it's running against is as interactive as a user editing that contact in the UI.
 	tcs := []struct {
-		via      string
-		expected int
+		via       string
+		broadcast bool
+		expected  int
 	}{
-		{string(models.ViaUI), 1},
-		{string(models.ViaAPI), 1},
-		{string(models.ViaImport), 0},
-		{"", 0}, // engine i.e. a flow renaming contacts it reaches
+		{string(models.ViaUI), true, 1},
+		{string(models.ViaAPI), true, 1},
+		{"", true, 1}, // engine i.e. a flow renaming the contact it's running against
+		{string(models.ViaImport), false, 0},
+		{"", false, 0},
+		{string(models.ViaUI), false, 0},
 	}
 
 	published := 0
 	for i, tc := range tcs {
-		require.NoError(t, models.PublishToHistory(ctx, rt, oa, ann, []events.Event{renameVia(tc.via)}))
+		evt := events.NewContactNameChanged("Bob")
+		if tc.via != "" {
+			evt.SetUser(nil, tc.via)
+		}
+
+		require.NoError(t, models.PublishToHistory(ctx, rt, oa, ann, []events.Event{evt}, tc.broadcast))
 		published += tc.expected
 
-		// regardless of provenance the rename is always history
-		assert.Len(t, testsuite.CentrifugoHistory(t, rt, historySocket), i+1, "history mismatch for via=%q", tc.via)
-		assert.Len(t, testsuite.CentrifugoHistory(t, rt, orgSocket), published, "fan-out mismatch for via=%q", tc.via)
+		// whether or not it's broadcast, the rename is always history
+		assert.Len(t, testsuite.CentrifugoHistory(t, rt, historySocket), i+1, "history mismatch for via=%q broadcast=%v", tc.via, tc.broadcast)
+		assert.Len(t, testsuite.CentrifugoHistory(t, rt, orgSocket), published, "fan-out mismatch for via=%q broadcast=%v", tc.via, tc.broadcast)
 	}
 }

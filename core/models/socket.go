@@ -168,9 +168,9 @@ func newAssetChangedEvent(assetType, uuid, name string) *assetChangedEvent {
 
 // PublishToHistory publishes engine events to a contact's history sockets for any live subscribers. Each event is
 // sent as its full JSON, including its uuid - matching the shape clients fetch from the history table, save for the
-// hydration the fetch layer adds on read (e.g. resolving user avatars). A user-initiated rename is additionally
-// published as an asset change on the workspace socket, so any page caching that contact can update its canonical
-// name - see contactRenamedByUser for why only user-initiated ones.
+// hydration the fetch layer adds on read (e.g. resolving user avatars). When broadcastRename is set, a rename is
+// additionally published as an asset change on the workspace socket, so any page caching that contact can update its
+// canonical name - see BulkCommit for when a rename is worth broadcasting.
 //
 // Events are routed to mirror how the read API filters the same events: the per-ticket detail events (assignee, note
 // and topic changes) are filtered off the contact read page and so go only to that ticket's socket, while everything
@@ -183,7 +183,7 @@ func newAssetChangedEvent(assetType, uuid, name string) *assetChangedEvent {
 // pipelined request, so a commit costs one centrifugo round-trip no matter how many sockets it spans, and the whole
 // batch lands or fails together. Events are passed to the service unmarshaled, so in the common case where no
 // socket has a subscriber they're dropped without ever paying the marshaling cost.
-func PublishToHistory(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, contact *core.Contact, evts []events.Event) error {
+func PublishToHistory(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, contact *core.Contact, evts []events.Event, broadcastRename bool) error {
 	contactUUID := contact.UUID()
 
 	pubs := make([]*centrifugo.Publication, 0, len(evts)+1)
@@ -197,7 +197,7 @@ func PublishToHistory(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, c
 
 	// what we publish to the workspace socket is the contact's current display name rather than any one event's, so
 	// this belongs outside the loop: several renames in a single commit are one asset change, not several identical ones
-	if slices.ContainsFunc(evts, contactRenamedByUser) {
+	if broadcastRename && slices.ContainsFunc(evts, isContactRenamed) {
 		pubs = append(pubs, &centrifugo.Publication{
 			Channel: OrgSocket(oa.Org().UUID()),
 			Data:    newAssetChangedEvent("contact", string(contactUUID), ContactDisplay(oa.Env(), contact)),
@@ -211,21 +211,9 @@ func PublishToHistory(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, c
 	return nil
 }
 
-// contactRenamedByUser returns whether the event is a contact rename made by a user working in the UI or through the
-// API - the only renames that are fanned out to the workspace socket. Renames from anywhere else are excluded because
-// they arrive in bulk: an import applies a name modifier per row, and a flow can rename every contact it reaches.
-// Bulk publishes are harmless on a history socket - nobody has 100k contact pages open, so they're dropped for want of
-// a subscriber - but the workspace socket is subscribed by every open page of every member, so a large import would
-// otherwise fan a message per row to every connected browser in the workspace.
-//
-// The cost of the hard gate is that a rename made by a flow leaves other pages' cached label stale until they refetch
-// it (the contact's own history socket still gets the event either way). That's the deliberate trade: provenance is
-// only a proxy for the real criterion, which is cardinality. If interactive flow renames ever need to be live, the
-// place to relax this is BulkCommit, which knows how many scenes committed - gating on a single-scene commit would
-// admit them while still excluding every batched path, and without needing a throttle.
-func contactRenamedByUser(e events.Event) bool {
-	evt, ok := e.(*events.ContactNameChanged)
-	return ok && (evt.Via_ == string(ViaUI) || evt.Via_ == string(ViaAPI))
+func isContactRenamed(e events.Event) bool {
+	_, ok := e.(*events.ContactNameChanged)
+	return ok
 }
 
 // PublishFlowActivity publishes an activity change notification to each given flow's socket, telling any live

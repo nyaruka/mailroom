@@ -16,6 +16,7 @@ import (
 	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/flows/modifiers"
 	"github.com/nyaruka/goflow/flows/resumes"
 	"github.com/nyaruka/goflow/flows/triggers"
 	"github.com/nyaruka/goflow/test"
@@ -300,6 +301,59 @@ func TestBulkCommitPublishesEvents(t *testing.T) {
 	changes = flowChanges()
 	require.Len(t, changes, 1)
 	assert.Nil(t, changes[0]["flow"])
+}
+
+func TestBulkCommitBroadcastsRenamesForSingleContactCommits(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	defer testsuite.Reset(t, rt, testsuite.ResetAll) // modifies contacts
+
+	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
+	require.NoError(t, err)
+
+	vc := rt.VK.Get()
+	defer vc.Close()
+
+	orgSocket := models.OrgSocket(oa.Org().UUID())
+	annSocket := models.HistorySocket(testdb.Ann.UUID)
+	bobSocket := models.HistorySocket(testdb.Bob.UUID)
+
+	for _, s := range []string{orgSocket, annSocket, bobSocket} {
+		_, err := vc.Do("SET", centrifugo.SubscriptionKey(s), "1")
+		require.NoError(t, err)
+	}
+
+	rename := func(contacts []*testdb.Contact, name string, via models.Via) {
+		ids := make([]models.ContactID, len(contacts))
+		mods := make(map[models.ContactID][]flows.Modifier, len(contacts))
+		for i, c := range contacts {
+			ids[i] = c.ID
+			mods[c.ID] = []flows.Modifier{modifiers.NewName(name)}
+		}
+		_, _, err := runner.ModifyWithLock(ctx, rt, oa, testdb.Admin.ID, ids, mods, nil, via)
+		require.NoError(t, err)
+	}
+
+	// renaming a single contact is an interactive rename whatever its provenance, so it's broadcast to the workspace
+	rename([]*testdb.Contact{testdb.Ann}, "Annie", models.ViaUI)
+	assert.Len(t, testsuite.CentrifugoHistory(t, rt, orgSocket), 1)
+
+	// including when it comes from an import of one row, or from a flow
+	rename([]*testdb.Contact{testdb.Ann}, "Anne", models.ViaImport)
+	rename([]*testdb.Contact{testdb.Ann}, "Ann", "")
+	assert.Len(t, testsuite.CentrifugoHistory(t, rt, orgSocket), 3)
+
+	// but a commit spanning several contacts is a bulk operation - each contact's own history socket still gets its
+	// rename, while the workspace socket gets nothing, so one import can't fan a message per row to every open page
+	rename([]*testdb.Contact{testdb.Ann, testdb.Bob}, "Renamed", models.ViaImport)
+
+	assert.Len(t, testsuite.CentrifugoHistory(t, rt, orgSocket), 3)
+	assert.NotEmpty(t, testsuite.CentrifugoHistory(t, rt, annSocket))
+	assert.NotEmpty(t, testsuite.CentrifugoHistory(t, rt, bobSocket))
+
+	// nor when the bulk rename comes from the UI
+	rename([]*testdb.Contact{testdb.Ann, testdb.Bob}, "Renamed Again", models.ViaUI)
+	assert.Len(t, testsuite.CentrifugoHistory(t, rt, orgSocket), 3)
 }
 
 func TestBulkCommitPublishesNotifications(t *testing.T) {
