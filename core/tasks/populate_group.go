@@ -14,7 +14,6 @@ import (
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/search"
 	"github.com/nyaruka/mailroom/v26/runtime"
-	"github.com/nyaruka/mailroom/v26/utils"
 	"github.com/nyaruka/vkutil/locks"
 )
 
@@ -22,7 +21,6 @@ import (
 const TypePopulateGroup = "populate_group"
 
 const populateGroupLockKey = "lock:pop_dyn_group_%d"
-const populateGroupBatchesRemainingKey = "populate_group_batches_remaining:%s"
 const populateBatchSize = 100
 
 func init() {
@@ -130,25 +128,15 @@ func (t *PopulateGroup) Perform(ctx context.Context, rt *runtime.Runtime, oa *mo
 		return nil
 	}
 
-	// chunk contacts into batches and queue a task for each
+	// chunk contacts into batches and queue a task for each - batches are owned by this task, identified by its ID
 	batches := slices.Collect(slices.Chunk(recheckIDs, populateBatchSize))
-
-	// generate a random ID for this population run so batch tasks can track completion
-	populationID := utils.RandomBase64(10)
-
-	// set valkey counter which batch tasks can decrement to know when population has completed
-	counter := NewCounter(fmt.Sprintf(populateGroupBatchesRemainingKey, populationID), time.Hour)
-	if err := counter.Init(ctx, rt.VK, len(batches)); err != nil {
-		return fmt.Errorf("error setting populate group batch counter key: %w", err)
-	}
 
 	for _, batch := range batches {
 		task := &PopulateGroupBatch{
-			BatchTask:    BatchTask{BatchOwnerUUID: uuids.UUID(taskID), TotalBatches: len(batches)},
-			GroupID:      t.GroupID,
-			ContactIDs:   batch,
-			LockValue:    lock,
-			PopulationID: populationID,
+			BatchTask:  BatchTask{BatchOwnerUUID: uuids.UUID(taskID), TotalBatches: len(batches)},
+			GroupID:    t.GroupID,
+			ContactIDs: batch,
+			LockValue:  lock,
 		}
 		if err := Queue(ctx, rt, rt.Queues.Batch, oa.OrgID(), task, false); err != nil {
 			return fmt.Errorf("error queuing populate group batch task: %w", err)

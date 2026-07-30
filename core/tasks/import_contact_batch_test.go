@@ -16,8 +16,6 @@ import (
 
 func TestImportContactBatch(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
-	vc := rt.VK.Get()
-	defer vc.Close()
 
 	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetDynamo|testsuite.ResetValkey)
 
@@ -30,17 +28,18 @@ func TestImportContactBatch(t *testing.T) {
 		{"name": "Rowan", "language": "spa", "urns": ["tel:+16055740003"]}
 	]`))
 
-	vc.Do("SETEX", fmt.Sprintf("contact_import_batches_remaining:%d", importID), 10, 2)
+	// batches carry an owner UUID and total as the import endpoint creates them
+	batchTask := tasks.BatchTask{BatchOwnerUUID: "440e0ac2-8607-42d3-9a30-cb27b29a5c95", TotalBatches: 2}
 
 	// perform first batch task...
-	testsuite.QueueBatchTask(t, rt, testdb.Org1, &tasks.ImportContactBatch{ContactImportBatchID: batch1ID})
+	testsuite.QueueBatchTask(t, rt, testdb.Org1, &tasks.ImportContactBatch{BatchTask: batchTask, ContactImportBatchID: batch1ID})
 	testsuite.FlushTasks(t, rt)
 
 	// import is still in progress
 	assertdb.Query(t, rt.DB, `SELECT status FROM contacts_contactimport WHERE id = $1`, importID).Columns(map[string]any{"status": "O"})
 
 	// perform second batch task...
-	testsuite.QueueBatchTask(t, rt, testdb.Org1, &tasks.ImportContactBatch{ContactImportBatchID: batch2ID})
+	testsuite.QueueBatchTask(t, rt, testdb.Org1, &tasks.ImportContactBatch{BatchTask: batchTask, ContactImportBatchID: batch2ID})
 	testsuite.FlushTasks(t, rt)
 
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contact WHERE id >= 30000`).Returns(3)
@@ -59,40 +58,8 @@ func TestImportContactBatch(t *testing.T) {
 		})
 }
 
-func TestImportContactBatchTracked(t *testing.T) {
-	_, rt := testsuite.Runtime(t)
-
-	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetDynamo|testsuite.ResetValkey)
-
-	importID := testdb.InsertContactImport(t, rt, testdb.Org1, models.ImportStatusProcessing, testdb.Admin)
-	batch1ID := testdb.InsertContactImportBatch(t, rt, importID, []byte(`[
-		{"name": "Norbert", "language": "eng", "urns": ["tel:+16055740001"]}
-	]`))
-	batch2ID := testdb.InsertContactImportBatch(t, rt, importID, []byte(`[
-		{"name": "Leah", "urns": ["tel:+16055740002"]}
-	]`))
-
-	// batches carry an owner UUID and total as the import endpoint now creates them - no legacy counter needed
-	batchTask := tasks.BatchTask{BatchOwnerUUID: "440e0ac2-8607-42d3-9a30-cb27b29a5c95", TotalBatches: 2}
-
-	// perform first batch task... import still in progress
-	testsuite.QueueBatchTask(t, rt, testdb.Org1, &tasks.ImportContactBatch{BatchTask: batchTask, ContactImportBatchID: batch1ID})
-	testsuite.FlushTasks(t, rt)
-
-	assertdb.Query(t, rt.DB, `SELECT status FROM contacts_contactimport WHERE id = $1`, importID).Columns(map[string]any{"status": "O"})
-
-	// perform second batch task... import completes via the tracker
-	testsuite.QueueBatchTask(t, rt, testdb.Org1, &tasks.ImportContactBatch{BatchTask: batchTask, ContactImportBatchID: batch2ID})
-	testsuite.FlushTasks(t, rt)
-
-	assertdb.Query(t, rt.DB, `SELECT status FROM contacts_contactimport WHERE id = $1`, importID).Columns(map[string]any{"status": "C"})
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM notifications_notification WHERE contact_import_id = $1 AND notification_type = 'import:finished'`, importID).Returns(1)
-}
-
 func TestImportContactBatchFailure(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
-	vc := rt.VK.Get()
-	defer vc.Close()
 
 	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetDynamo|testsuite.ResetValkey)
 
@@ -101,12 +68,13 @@ func TestImportContactBatchFailure(t *testing.T) {
 	// insert a batch with specs that can't be unmarshaled so that processing it fails
 	batchID := testdb.InsertContactImportBatch(t, rt, importID, []byte(`[{"urns": "should-be-an-array"}]`))
 
-	vc.Do("SETEX", fmt.Sprintf("contact_import_batches_remaining:%d", importID), 10, 1)
-
 	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 	require.NoError(t, err)
 
-	task := &tasks.ImportContactBatch{ContactImportBatchID: batchID}
+	task := &tasks.ImportContactBatch{
+		BatchTask:            tasks.BatchTask{BatchOwnerUUID: "50aef7cc-8dbd-410b-b6b8-3f2b0bfb0a7b", TotalBatches: 1},
+		ContactImportBatchID: batchID,
+	}
 	assert.Error(t, task.Perform(ctx, rt, oa, testTaskID))
 
 	// batch and overall import should be marked as failed

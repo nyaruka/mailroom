@@ -18,42 +18,29 @@ func TestRecordComplete(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetValkey)
 
-	// batches queued before owner UUIDs were added can't determine completion
-	legacy := &tasks.BatchTask{}
-	last, known := legacy.RecordComplete(ctx, rt, "01981fa0-0001-7000-8000-000000000000")
-	assert.False(t, last)
-	assert.False(t, known)
+	// a batch without an owner UUID (shouldn't happen) is never the last of its set
+	noOwner := &tasks.BatchTask{}
+	assert.False(t, noOwner.RecordComplete(ctx, rt, "01981fa0-0001-7000-8000-000000000000"))
 
 	b := &tasks.BatchTask{BatchOwnerUUID: "8677d4ea-895c-40fd-b6d9-e1eccd7d8ed4", TotalBatches: 3}
 
-	last, known = b.RecordComplete(ctx, rt, "01981fa0-0001-7000-8000-000000000000")
-	assert.False(t, last)
-	assert.True(t, known)
+	assert.False(t, b.RecordComplete(ctx, rt, "01981fa0-0001-7000-8000-000000000000"))
 
 	// completing the same batch again changes nothing
-	last, known = b.RecordComplete(ctx, rt, "01981fa0-0001-7000-8000-000000000000")
-	assert.False(t, last)
-	assert.True(t, known)
+	assert.False(t, b.RecordComplete(ctx, rt, "01981fa0-0001-7000-8000-000000000000"))
 
-	last, known = b.RecordComplete(ctx, rt, "01981fa0-0002-7000-8000-000000000000")
-	assert.False(t, last)
-	assert.True(t, known)
+	assert.False(t, b.RecordComplete(ctx, rt, "01981fa0-0002-7000-8000-000000000000"))
 
 	// last batch of the set to complete
-	last, known = b.RecordComplete(ctx, rt, "01981fa0-0003-7000-8000-000000000000")
-	assert.True(t, last)
-	assert.True(t, known)
+	assert.True(t, b.RecordComplete(ctx, rt, "01981fa0-0003-7000-8000-000000000000"))
 
-	// a batch without a total still records completion but reports unknown until a batch with a total completes
+	// a batch without a total (shouldn't happen) still records completion but can't be considered the last, until a
+	// batch with a total completes
 	c1 := &tasks.BatchTask{BatchOwnerUUID: "50d61890-a760-4c00-bd85-c60bb0a5e5b7"}
-	last, known = c1.RecordComplete(ctx, rt, "01981fa0-0004-7000-8000-000000000000")
-	assert.False(t, last)
-	assert.False(t, known)
+	assert.False(t, c1.RecordComplete(ctx, rt, "01981fa0-0004-7000-8000-000000000000"))
 
 	c2 := &tasks.BatchTask{BatchOwnerUUID: "50d61890-a760-4c00-bd85-c60bb0a5e5b7", TotalBatches: 2}
-	last, known = c2.RecordComplete(ctx, rt, "01981fa0-0005-7000-8000-000000000000")
-	assert.True(t, last)
-	assert.True(t, known)
+	assert.True(t, c2.RecordComplete(ctx, rt, "01981fa0-0005-7000-8000-000000000000"))
 }
 
 func TestReadTask(t *testing.T) {

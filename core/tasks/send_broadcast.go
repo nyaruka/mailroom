@@ -45,7 +45,7 @@ func (t *SendBroadcast) WithAssets() models.Refresh {
 
 // Perform handles sending the broadcast by creating batches of broadcast sends for all the unique contacts
 func (t *SendBroadcast) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, taskID TaskID) error {
-	if err := createBroadcastBatches(ctx, rt, oa, t.Broadcast, taskID); err != nil {
+	if err := createBroadcastBatches(ctx, rt, oa, t.Broadcast); err != nil {
 		t.Broadcast.SetFailed(ctx, rt.DB)
 
 		// if error is user created query error.. don't escalate error to sentry
@@ -58,14 +58,7 @@ func (t *SendBroadcast) Perform(ctx context.Context, rt *runtime.Runtime, oa *mo
 	return nil
 }
 
-func createBroadcastBatches(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, bcast *models.Broadcast, taskID TaskID) error {
-	// batches are owned by the broadcast, identified by its UUID - tho unlike starts, broadcast UUIDs have always
-	// been serialized in task payloads so the fallback to task ID is just defensive
-	ownerUUID := uuids.UUID(bcast.UUID)
-	if ownerUUID == "" {
-		ownerUUID = uuids.UUID(taskID)
-	}
-
+func createBroadcastBatches(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, bcast *models.Broadcast) error {
 	contactIDs, err := search.ResolveRecipients(ctx, rt, oa, bcast.CreatedByID, nil, &search.Recipients{
 		ContactIDs:      bcast.ContactIDs,
 		GroupIDs:        bcast.GroupIDs,
@@ -116,11 +109,10 @@ func createBroadcastBatches(ctx context.Context, rt *runtime.Runtime, oa *models
 	idBatches := slices.Collect(slices.Chunk(contactIDs, broadcastBatchSize))
 	for i, idBatch := range idBatches {
 		isFirst := (i == 0)
-		isLast := (i == len(idBatches)-1)
 
-		batch := bcast.CreateBatch(idBatch, isFirst, isLast)
+		batch := bcast.CreateBatch(idBatch, isFirst)
 		batchTask := &SendBroadcastBatch{
-			BatchTask:      BatchTask{BatchOwnerUUID: ownerUUID, TotalBatches: len(idBatches)},
+			BatchTask:      BatchTask{BatchOwnerUUID: uuids.UUID(bcast.UUID), TotalBatches: len(idBatches)},
 			BroadcastBatch: batch,
 		}
 		err = Queue(ctx, rt, q, bcast.OrgID, batchTask, false)

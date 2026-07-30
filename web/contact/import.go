@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/nyaruka/gocommon/uuids"
 	"github.com/nyaruka/mailroom/v26/core/models"
@@ -38,12 +37,6 @@ func handleImport(ctx context.Context, rt *runtime.Runtime, r *importRequest) (a
 	}
 	if imp.Status != models.ImportStatusProcessing {
 		return nil, 0, fmt.Errorf("import is not processing")
-	}
-
-	// set valkey counter which batch tasks can decrement to know when import has completed
-	counter := tasks.NewCounter(fmt.Sprintf("contact_import_batches_remaining:%d", imp.ID), 24*time.Hour)
-	if err := counter.Init(ctx, rt.VK, len(imp.BatchIDs)); err != nil {
-		return nil, 0, fmt.Errorf("error setting import batch counter key: %w", err)
 	}
 
 	// generate a UUID to own this set of batches since unlike other batch tasks, these have no parent task

@@ -28,11 +28,12 @@ func TestStartFlowBatchTask(t *testing.T) {
 
 	assertdb.Query(t, rt.DB, `SELECT status FROM flows_flowstart WHERE id = $1`, start1.ID).Returns("P")
 
-	batch1 := start1.CreateBatch([]models.ContactID{testdb.Ann.ID, testdb.Bob.ID}, true, false, 4)
-	batch2 := start1.CreateBatch([]models.ContactID{testdb.Cat.ID, testdb.Dan.ID}, false, true, 4)
+	start1BatchTask := tasks.BatchTask{BatchOwnerUUID: start1.UUID, TotalBatches: 2}
+	batch1 := start1.CreateBatch([]models.ContactID{testdb.Ann.ID, testdb.Bob.ID}, true, 4)
+	batch2 := start1.CreateBatch([]models.ContactID{testdb.Cat.ID, testdb.Dan.ID}, false, 4)
 
 	// start the first batch...
-	err = tasks.Queue(ctx, rt, rt.Queues.Throttled, testdb.Org1.ID, &tasks.StartFlowBatch{FlowStartBatch: batch1}, false)
+	err = tasks.Queue(ctx, rt, rt.Queues.Throttled, testdb.Org1.ID, &tasks.StartFlowBatch{BatchTask: start1BatchTask, FlowStartBatch: batch1}, false)
 	assert.NoError(t, err)
 	testsuite.FlushTasks(t, rt)
 
@@ -51,7 +52,7 @@ func TestStartFlowBatchTask(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT status FROM flows_flowstart WHERE id = $1`, start1.ID).Returns("S")
 
 	// start the second and final batch...
-	err = tasks.Queue(ctx, rt, rt.Queues.Throttled, testdb.Org1.ID, &tasks.StartFlowBatch{FlowStartBatch: batch2}, false)
+	err = tasks.Queue(ctx, rt, rt.Queues.Throttled, testdb.Org1.ID, &tasks.StartFlowBatch{BatchTask: start1BatchTask, FlowStartBatch: batch2}, false)
 	assert.NoError(t, err)
 	testsuite.FlushTasks(t, rt)
 
@@ -64,11 +65,12 @@ func TestStartFlowBatchTask(t *testing.T) {
 	err = models.InsertFlowStart(ctx, rt.DB, start2)
 	require.NoError(t, err)
 
-	start2Batch1 := start2.CreateBatch([]models.ContactID{testdb.Ann.ID, testdb.Bob.ID}, true, false, 4)
-	start2Batch2 := start2.CreateBatch([]models.ContactID{testdb.Cat.ID, testdb.Dan.ID}, false, true, 4)
+	start2BatchTask := tasks.BatchTask{BatchOwnerUUID: start2.UUID, TotalBatches: 2}
+	start2Batch1 := start2.CreateBatch([]models.ContactID{testdb.Ann.ID, testdb.Bob.ID}, true, 4)
+	start2Batch2 := start2.CreateBatch([]models.ContactID{testdb.Cat.ID, testdb.Dan.ID}, false, 4)
 
 	// start the first batch...
-	err = tasks.Queue(ctx, rt, rt.Queues.Throttled, testdb.Org1.ID, &tasks.StartFlowBatch{FlowStartBatch: start2Batch1}, false)
+	err = tasks.Queue(ctx, rt, rt.Queues.Throttled, testdb.Org1.ID, &tasks.StartFlowBatch{BatchTask: start2BatchTask, FlowStartBatch: start2Batch1}, false)
 	assert.NoError(t, err)
 	testsuite.FlushTasks(t, rt)
 
@@ -78,7 +80,7 @@ func TestStartFlowBatchTask(t *testing.T) {
 	rt.DB.MustExec(`UPDATE flows_flowstart SET status = 'I' WHERE id = $1`, start2.ID)
 
 	// start the second batch...
-	err = tasks.Queue(ctx, rt, rt.Queues.Throttled, testdb.Org1.ID, &tasks.StartFlowBatch{FlowStartBatch: start2Batch2}, false)
+	err = tasks.Queue(ctx, rt, rt.Queues.Throttled, testdb.Org1.ID, &tasks.StartFlowBatch{BatchTask: start2BatchTask, FlowStartBatch: start2Batch2}, false)
 	assert.NoError(t, err)
 	testsuite.FlushTasks(t, rt)
 
@@ -90,16 +92,17 @@ func TestStartFlowBatchTask(t *testing.T) {
 func TestStartFlowBatchTaskNonPersistedStart(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetData)
+	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetValkey)
 
 	// create a start
 	start := models.NewFlowStart(models.OrgID(1), models.StartTypeManual, testdb.SingleMessage.ID).
 		WithContactIDs([]models.ContactID{testdb.Ann.ID, testdb.Bob.ID, testdb.Cat.ID, testdb.Dan.ID})
 
-	batch := start.CreateBatch([]models.ContactID{testdb.Ann.ID, testdb.Bob.ID}, true, true, 2)
+	batch := start.CreateBatch([]models.ContactID{testdb.Ann.ID, testdb.Bob.ID}, true, 2)
 
 	// start the first batch...
-	err := tasks.Queue(ctx, rt, rt.Queues.Throttled, testdb.Org1.ID, &tasks.StartFlowBatch{FlowStartBatch: batch}, false)
+	batchTask := tasks.BatchTask{BatchOwnerUUID: start.UUID, TotalBatches: 1}
+	err := tasks.Queue(ctx, rt, rt.Queues.Throttled, testdb.Org1.ID, &tasks.StartFlowBatch{BatchTask: batchTask, FlowStartBatch: batch}, false)
 	assert.NoError(t, err)
 	testsuite.FlushTasks(t, rt)
 
