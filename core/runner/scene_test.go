@@ -343,17 +343,36 @@ func TestBulkCommitBroadcastsRenamesForSingleContactCommits(t *testing.T) {
 	rename([]*testdb.Contact{testdb.Ann}, "Ann", "")
 	assert.Len(t, testsuite.CentrifugoHistory(t, rt, orgSocket), 3)
 
-	// but a commit spanning several contacts is a bulk operation - each contact's own history socket still gets its
-	// rename, while the workspace socket gets nothing, so one import can't fan a message per row to every open page
+	// but a commit spanning several contacts is a bulk operation, so the workspace socket gets nothing - one import
+	// can't fan a message per row to every open page
 	rename([]*testdb.Contact{testdb.Ann, testdb.Bob}, "Renamed", models.ViaImport)
-
 	assert.Len(t, testsuite.CentrifugoHistory(t, rt, orgSocket), 3)
-	assert.NotEmpty(t, testsuite.CentrifugoHistory(t, rt, annSocket))
-	assert.NotEmpty(t, testsuite.CentrifugoHistory(t, rt, bobSocket))
 
 	// nor when the bulk rename comes from the UI
 	rename([]*testdb.Contact{testdb.Ann, testdb.Bob}, "Renamed Again", models.ViaUI)
 	assert.Len(t, testsuite.CentrifugoHistory(t, rt, orgSocket), 3)
+
+	// gating the workspace fan-out must never affect history: a name change isn't ephemeral, so whatever its source
+	// and however many contacts the commit spanned, it's published to the contact's own history socket...
+	assert.Equal(t, []string{"Annie", "Anne", "Ann", "Renamed", "Renamed Again"}, renamesOn(t, rt, annSocket))
+	assert.Equal(t, []string{"Renamed", "Renamed Again"}, renamesOn(t, rt, bobSocket))
+
+	// ...and persisted to the history table
+	rt.Dynamo.History.Flush()
+	dyntest.AssertCount(t, rt.Dynamo.History.Client(), "TestHistory", 7)
+}
+
+// renamesOn returns the names carried by the contact_name_changed events published to the given history socket
+func renamesOn(t *testing.T, rt *runtime.Runtime, socket string) []string {
+	names := []string{}
+	for _, data := range testsuite.CentrifugoHistory(t, rt, socket) {
+		var decoded map[string]any
+		require.NoError(t, json.Unmarshal(data, &decoded))
+		if decoded["type"] == "contact_name_changed" {
+			names = append(names, decoded["name"].(string))
+		}
+	}
+	return names
 }
 
 func TestBulkCommitPublishesNotifications(t *testing.T) {
