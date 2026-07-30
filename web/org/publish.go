@@ -30,7 +30,8 @@ type publishRequest struct {
 
 func handlePublish(ctx context.Context, rt *runtime.Runtime, r *publishRequest) (any, int, error) {
 	// `validate:"required"` doesn't reject `null` or a non-object payload, but the realtime protocol assumes an
-	// object, so guard here rather than forwarding e.g. literal `null` to a subscriber's socket
+	// object, so guard here rather than forwarding e.g. literal `null` to a subscriber's socket. PublishOrgEvent
+	// rejects the same thing for in-process callers - we check first so a caller bug is a 400 and not a 500.
 	if len(r.Event) == 0 || r.Event[0] != '{' {
 		return errors.New("event must be a JSON object"), http.StatusBadRequest, nil
 	}
@@ -44,17 +45,12 @@ func handlePublish(ctx context.Context, rt *runtime.Runtime, r *publishRequest) 
 		return errors.New("event must have a type"), http.StatusBadRequest, nil
 	}
 
-	// the socket is addressed by UUID and we need nothing else about the workspace, so look that up directly rather
-	// than populating its whole asset cache
-	orgUUID, err := models.GetOrgUUIDFromID(ctx, rt.DB, r.OrgID)
+	oa, err := models.GetOrgAssets(ctx, rt, r.OrgID)
 	if err != nil {
-		return nil, 0, fmt.Errorf("error looking up org #%d: %w", r.OrgID, err)
-	}
-	if orgUUID == "" {
-		return fmt.Errorf("no such org with id %d", r.OrgID), http.StatusBadRequest, nil
+		return nil, 0, fmt.Errorf("error loading org assets for org #%d: %w", r.OrgID, err)
 	}
 
-	if err := models.PublishOrgEvent(ctx, rt, orgUUID, r.Event); err != nil {
+	if err := models.PublishOrgEvent(ctx, rt, oa, r.Event); err != nil {
 		return nil, 0, fmt.Errorf("error publishing event for org #%d: %w", r.OrgID, err)
 	}
 

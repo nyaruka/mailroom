@@ -44,20 +44,26 @@ func TestPublishOrgEvent(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetValkey)
 
+	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
+	require.NoError(t, err)
+
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	orgUUID := models.OrgUUID(testdb.Org1.UUID)
-	socket := models.OrgSocket(orgUUID)
+	socket := models.OrgSocket(oa.Org().UUID())
 	event := json.RawMessage(`{"type":"asset_changed","asset":{"type":"flow","uuid":"flow-1","name":"Registration"}}`)
 
-	require.NoError(t, models.PublishOrgEvent(ctx, rt, orgUUID, nil))
-	require.NoError(t, models.PublishOrgEvent(ctx, rt, orgUUID, event))
+	// an event that isn't a JSON object can't be dispatched on by any client, so it's rejected rather than sent
+	assert.EqualError(t, models.PublishOrgEvent(ctx, rt, oa, nil), "org event must be a JSON object")
+	assert.EqualError(t, models.PublishOrgEvent(ctx, rt, oa, json.RawMessage(`null`)), "org event must be a JSON object")
+
+	// no subscribers so nothing is actually sent
+	require.NoError(t, models.PublishOrgEvent(ctx, rt, oa, event))
 	assert.Empty(t, testsuite.CentrifugoHistory(t, rt, socket))
 
-	_, err := vc.Do("SET", centrifugo.SubscriptionKey(socket), "1")
+	_, err = vc.Do("SET", centrifugo.SubscriptionKey(socket), "1")
 	require.NoError(t, err)
-	require.NoError(t, models.PublishOrgEvent(ctx, rt, orgUUID, event))
+	require.NoError(t, models.PublishOrgEvent(ctx, rt, oa, event))
 
 	sent := testsuite.CentrifugoHistory(t, rt, socket)
 	require.Len(t, sent, 1)

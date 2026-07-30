@@ -68,9 +68,9 @@
                 "type": "asset_changed"
             }
         },
-        "status": 400,
+        "status": 500,
         "response": {
-            "error": "no such org with id 1234567"
+            "error": "error loading org assets for org #1234567: error loading environment for org 1234567: no org with id: 1234567"
         }
     },
     {

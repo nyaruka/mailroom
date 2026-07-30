@@ -3,6 +3,7 @@ package models
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 
@@ -130,14 +131,16 @@ func PublishNotificationData(ctx context.Context, rt *runtime.Runtime, oa *OrgAs
 	return nil
 }
 
-// PublishOrgEvent publishes an already-rendered workspace event verbatim to the workspace's socket. As with the other
-// sockets this is best-effort and a no-op when the workspace currently has no subscribers.
-func PublishOrgEvent(ctx context.Context, rt *runtime.Runtime, orgUUID OrgUUID, event json.RawMessage) error {
-	if len(event) == 0 {
-		return nil
+// PublishOrgEvent publishes an already-rendered workspace event verbatim to the workspace's socket. The event is
+// published as given - the rendering is the caller's, so mailroom needs no knowledge of the event types - but must be
+// a JSON object, since the realtime protocol assumes one and clients dispatch on its type. As with the other sockets
+// this is best-effort and a no-op when the workspace currently has no subscribers.
+func PublishOrgEvent(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, event json.RawMessage) error {
+	if len(event) == 0 || event[0] != '{' {
+		return errors.New("org event must be a JSON object")
 	}
 
-	pub := &centrifugo.Publication{Channel: OrgSocket(orgUUID), Data: event}
+	pub := &centrifugo.Publication{Channel: OrgSocket(oa.Org().UUID()), Data: event}
 	if err := rt.Centrifugo.Publish(ctx, pub); err != nil {
 		return fmt.Errorf("error publishing org event: %w", err)
 	}

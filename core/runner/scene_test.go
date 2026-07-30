@@ -348,7 +348,11 @@ func TestBulkCommitPublishesRenamesOnlyToHistory(t *testing.T) {
 	)
 	assert.Equal(t, []string{"Renamed", "Renamed Again", "Renamed Once More"}, renamesOn(t, rt, bobSocket))
 
-	// Contact renames are never fanned out to the workspace socket.
+	// Contact renames are never fanned out to the workspace socket. This was tried and backed out: unlike a
+	// history socket, "org:" is subscribed by every open page in the workspace, and contacts are renamed in bulk
+	// (an import applies a Name modifier per row), so a 100k-row import would put a message per row in front of
+	// every connected browser. Only a rename with a bounded audience belongs on the workspace socket - if that's
+	// wanted here again, it needs a gate on how many contacts the commit touched, not just a fan-out.
 	assert.Empty(t, testsuite.CentrifugoHistory(t, rt, orgSocket))
 
 	rt.Dynamo.History.Flush()
