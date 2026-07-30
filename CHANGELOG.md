@@ -1,3 +1,7 @@
+v26.3.30 (2026-07-30)
+-------------------------
+ * Use batch trackers to make completion decisions for starts, broadcasts, imports and group populations
+
 v26.3.29 (2026-07-29)
 -------------------------
  * Update to goflow v0.288.2
