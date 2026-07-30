@@ -460,17 +460,6 @@ func BulkCommit(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, 
 	latest := make(map[string]*models.Notification)
 	var order []string
 
-	// a rename is fanned out to the workspace socket only when this commit touched a single contact. Unlike a contact's
-	// history socket - which is subscribed only while that contact's page is open, so bulk publishes are dropped for
-	// want of a subscriber - the workspace socket is subscribed by every open page of every member, so a commit that
-	// spans many contacts would fan a message per contact to every connected browser. Committing a single contact is
-	// what an interactive rename looks like whatever its provenance: a user editing a contact, an API call, or a flow
-	// renaming the contact it's running against. Every batched path - imports creating or updating contacts, a flow
-	// start reaching many contacts - commits its scenes together and so is excluded. The cost is that a rename that is
-	// genuinely one of many leaves other pages' cached label stale until they refetch it; the contact's own history
-	// socket still gets the event either way.
-	broadcastRenames := len(committed) == 1
-
 	for _, scene := range committed {
 		for _, evt := range scene.persistEvents {
 			if _, err := rt.Dynamo.History.Queue(evt); err != nil {
@@ -481,7 +470,7 @@ func BulkCommit(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, 
 		// publish the persisted events plus the ephemeral-publishable ones (e.g. last seen / current flow changes
 		// which update UI state but aren't history). Realtime delivery is best-effort - a publish failure shouldn't
 		// fail the commit when the events are already safely queued for persistence
-		if err := models.PublishToHistory(ctx, rt, oa, scene.Contact, scene.publishEvents, broadcastRenames); err != nil {
+		if err := models.PublishToHistory(ctx, rt, scene.ContactUUID(), scene.publishEvents); err != nil {
 			slog.Error("error publishing events to history channel", "error", err, "contact", scene.ContactUUID())
 		}
 

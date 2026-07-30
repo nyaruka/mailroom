@@ -10,7 +10,6 @@ import (
 	"net/url"
 	"slices"
 	"strconv"
-	"strings"
 	"time"
 
 	valkey "github.com/gomodule/redigo/redis"
@@ -24,7 +23,6 @@ import (
 	"github.com/nyaruka/goflow/envs"
 	"github.com/nyaruka/goflow/excellent/types"
 	"github.com/nyaruka/goflow/flows"
-	"github.com/nyaruka/goflow/utils/obfuscate"
 	"github.com/nyaruka/mailroom/v26/core/goflow"
 	"github.com/nyaruka/mailroom/v26/runtime"
 	"github.com/nyaruka/null/v3"
@@ -238,68 +236,6 @@ func (c *Contact) EngineContact(oa *OrgAssets) (*core.Contact, error) {
 	}
 
 	return contact, nil
-}
-
-// ContactDisplay returns the single value to show for a contact where there's only room for one - its name if it has
-// one, otherwise a stand-in. This deliberately mirrors the platform's own Contact.get_display rather than simply using
-// goflow's Contact.Format, because the two are alternative sources for the same value a client caches (the realtime
-// asset change we publish here, and the assets endpoint that same client otherwise fetches from), so a name must not
-// depend on which path it arrived by - and a mismatch doesn't self-heal, it just flips the cached label back and forth.
-//
-// It differs from Contact.Format in two places, both fallbacks for a contact with no name: an anonymized workspace,
-// where Format gives the raw internal id that anonymization exists to hide, and URN formatting, where Format defers to
-// gocommon - see formatURNForDisplay.
-func ContactDisplay(env envs.Environment, c *core.Contact) string {
-	if c.Name() != "" {
-		return c.Name()
-	}
-
-	if env.RedactionPolicy() == envs.RedactionPolicyURNs {
-		ref, _ := obfuscate.EncodeID(int64(c.ID()), env.ObfuscationKey()) // only errors for an out of range id
-		return ref
-	}
-
-	urnz := c.URNs()
-	if len(urnz) == 0 {
-		return ""
-	}
-
-	return formatURNForDisplay(urnz[0].Encode())
-}
-
-// formatURNForDisplay formats a URN the way the platform's URN.format does, which is not quite what gocommon's
-// URN.Format does: the platform national-formats a phone number for both the tel and whatsapp schemes and only falls
-// back to the URN's display value when that fails, whereas gocommon prefers display outright and registers a formatter
-// for the tel scheme only. So without this a nameless WhatsApp contact - an entirely ordinary case - would show a bare
-// E164 path here while the platform's assets endpoint showed a national-formatted number for the same contact. The
-// underlying reason is that gocommon's whatsapp scheme has no Format func; if it gains one and gocommon stops
-// preferring display, this function collapses back to a plain urn.Format() call.
-//
-// One known divergence remains, deliberately: for a whatsapp URN whose path doesn't parse as a phone number - a
-// business-scoped user id, or a stored all-digit path that isn't E164, e.g. one with a leading zero - and which carries
-// no display value, the platform renders a stray leading + ("+US.abc123", "+0788123123") because its URN.format
-// prepends the + to the same variable it later falls back to returning, where we render the path as stored. That's a
-// bug on that side, not an ordering we want to reproduce, so fix it there rather than here.
-func formatURNForDisplay(urn urns.URN) string {
-	scheme, path, _, _ := urn.ToParts()
-
-	if scheme == urns.Phone.Prefix || scheme == urns.WhatsApp.Prefix {
-		e164 := path
-		if scheme == urns.WhatsApp.Prefix {
-			e164 = "+" + path // a whatsapp path is E164 without the leading +
-		}
-
-		// urns.Phone.Format national-formats an E164 number and returns its input unchanged when it can't parse one
-		// (e.g. a whatsapp business-scoped user id). Since a national format never keeps the leading +, an unchanged
-		// value is an unambiguous "didn't parse", and we fall through to display exactly as the platform does.
-		if strings.HasPrefix(e164, "+") {
-			if national := urns.Phone.Format(e164); national != e164 {
-				return national
-			}
-		}
-	}
-
-	return urn.Format() // display, else the scheme's own formatting, else the path
 }
 
 // LoadContact loads a contact from the passed in id

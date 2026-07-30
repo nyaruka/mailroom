@@ -303,7 +303,7 @@ func TestBulkCommitPublishesEvents(t *testing.T) {
 	assert.Nil(t, changes[0]["flow"])
 }
 
-func TestBulkCommitBroadcastsRenamesForSingleContactCommits(t *testing.T) {
+func TestBulkCommitPublishesRenamesOnlyToHistory(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, rt, testsuite.ResetAll) // modifies contacts
@@ -334,37 +334,27 @@ func TestBulkCommitBroadcastsRenamesForSingleContactCommits(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	// renaming a single contact is an interactive rename whatever its provenance, so it's broadcast to the workspace
 	rename([]*testdb.Contact{testdb.Ann}, "Annie", models.ViaUI)
-	assert.Len(t, testsuite.CentrifugoHistory(t, rt, orgSocket), 1)
-
-	// including when it comes from an import of one row, or from a flow
 	rename([]*testdb.Contact{testdb.Ann}, "Anne", models.ViaImport)
 	rename([]*testdb.Contact{testdb.Ann}, "Ann", "")
-	assert.Len(t, testsuite.CentrifugoHistory(t, rt, orgSocket), 3)
-
-	// but a commit spanning several contacts is a bulk operation, so the workspace socket gets nothing - one import
-	// can't fan a message per row to every open page
 	rename([]*testdb.Contact{testdb.Ann, testdb.Bob}, "Renamed", models.ViaImport)
-	assert.Len(t, testsuite.CentrifugoHistory(t, rt, orgSocket), 3)
-
-	// nor when the bulk rename comes from the UI, or from an API request carrying several contact_ids under one via -
-	// cardinality is what's checked, so no provenance can smuggle a bulk rename onto the workspace socket
 	rename([]*testdb.Contact{testdb.Ann, testdb.Bob}, "Renamed Again", models.ViaUI)
 	rename([]*testdb.Contact{testdb.Ann, testdb.Bob}, "Renamed Once More", models.ViaAPI)
-	assert.Len(t, testsuite.CentrifugoHistory(t, rt, orgSocket), 3)
 
-	// gating the workspace fan-out must never affect history: a name change isn't ephemeral, so whatever its source
-	// and however many contacts the commit spanned, it's published to the contact's own history socket...
-	assert.Equal(t, []string{"Annie", "Anne", "Ann", "Renamed", "Renamed Again", "Renamed Once More"}, renamesOn(t, rt, annSocket))
+	// Renames from every source and commit size still reach each contact's own history socket.
+	assert.Equal(t,
+		[]string{"Annie", "Anne", "Ann", "Renamed", "Renamed Again", "Renamed Once More"},
+		renamesOn(t, rt, annSocket),
+	)
 	assert.Equal(t, []string{"Renamed", "Renamed Again", "Renamed Once More"}, renamesOn(t, rt, bobSocket))
 
-	// ...and persisted to the history table
+	// Contact renames are never fanned out to the workspace socket.
+	assert.Empty(t, testsuite.CentrifugoHistory(t, rt, orgSocket))
+
 	rt.Dynamo.History.Flush()
 	dyntest.AssertCount(t, rt.Dynamo.History.Client(), "TestHistory", 9)
 }
 
-// renamesOn returns the names carried by the contact_name_changed events published to the given history socket
 func renamesOn(t *testing.T, rt *runtime.Runtime, socket string) []string {
 	names := []string{}
 	for _, data := range testsuite.CentrifugoHistory(t, rt, socket) {

@@ -4,7 +4,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/nyaruka/gocommon/centrifugo"
 	"github.com/nyaruka/gocommon/i18n"
 	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/goflow/assets"
@@ -136,11 +135,6 @@ func TestModify(t *testing.T) {
 	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
 	oa := testdb.Org1.Load(t, rt)
-	orgSocket := models.OrgSocket(oa.Org().UUID())
-	vc := rt.VK.Get()
-	defer vc.Close()
-	_, err := vc.Do("SET", centrifugo.SubscriptionKey(orgSocket), "1")
-	require.NoError(t, err)
 
 	// to be deterministic, update the creation date on Ann
 	rt.DB.MustExec(`UPDATE contacts_contact SET created_on = $1 WHERE id = $2`, time.Date(2018, 7, 6, 12, 30, 0, 123456789, time.UTC), testdb.Ann.ID)
@@ -165,29 +159,6 @@ func TestModify(t *testing.T) {
 	contact.ReturnContacts = true
 
 	testsuite.RunWebTests(t, rt, "testdata/modify.json")
-
-	// the name modifiers in the request fixture still land in contact history, and are additionally fanned out to the
-	// workspace socket so flow editors can refresh embedded contact references immediately. Note the third one clears
-	// Ann's name and so publishes the no-name fallback, which here is empty only because this test stripped her URNs
-	// above - see TestContactDisplay in core/models for what that fallback actually is.
-	sent := testsuite.CentrifugoHistory(t, rt, orgSocket)
-	require.Len(t, sent, 4)
-	assert.JSONEq(t,
-		`{"type":"asset_changed","asset":{"type":"contact","uuid":"a393abc0-283d-4c9b-a1b3-641a035c34bf","name":"Kathy"}}`,
-		string(sent[0]),
-	)
-	assert.JSONEq(t,
-		`{"type":"asset_changed","asset":{"type":"contact","uuid":"a393abc0-283d-4c9b-a1b3-641a035c34bf","name":"Nate"}}`,
-		string(sent[1]),
-	)
-	assert.JSONEq(t,
-		`{"type":"asset_changed","asset":{"type":"contact","uuid":"a393abc0-283d-4c9b-a1b3-641a035c34bf","name":""}}`,
-		string(sent[2]),
-	)
-	assert.JSONEq(t,
-		`{"type":"asset_changed","asset":{"type":"contact","uuid":"a393abc0-283d-4c9b-a1b3-641a035c34bf","name":"Juan"}}`,
-		string(sent[3]),
-	)
 }
 
 func TestInterrupt(t *testing.T) {

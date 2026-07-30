@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
-	"slices"
 
 	"github.com/nyaruka/gocommon/centrifugo"
 	"github.com/nyaruka/goflow/assets"
@@ -46,13 +45,11 @@ func FlowSocket(flowUUID assets.FlowUUID) string {
 
 // SocketOrgNamespace is the realtime pub/sub namespace for workspace-wide state changes shared by every open page. A
 // workspace socket is addressed as "org:<org-uuid>" and currently carries "asset_changed" payloads - an asset's
-// canonical name has changed, so any page caching that name should update it. Those come from two independent
-// producers: mailroom itself for contact renames, and the platform's Django side (via the org publish endpoint) for
-// the assets it owns, e.g. flow and group renames. Like the other namespaces it's a client subscription, authorized
-// per-session by the subscribe proxy, which records the same "socket-subs:" presence key. Note this is the one
-// namespace any member of the workspace may subscribe to with no further permission check (unlike e.g. "flow:", which
-// requires flows.flow_editor), so anything published here is visible to every user in the workspace - and publishing
-// to it reaches every page they have open, which is why bulk changes are deliberately kept off it.
+// canonical name has changed, so any page caching that name should update it. These are produced on the platform's
+// Django side and published through the org publish endpoint. Like the other namespaces it's a client subscription,
+// authorized per-session by the subscribe proxy, which records the same "socket-subs:" presence key. Note this is the
+// one namespace any member of the workspace may subscribe to with no further permission check (unlike e.g. "flow:",
+// which requires flows.flow_editor), so anything published here is visible to every user in the workspace.
 const SocketOrgNamespace = "org"
 
 // OrgSocket returns the realtime pub/sub socket for the given workspace, addressed as "org:<org-uuid>".
@@ -147,30 +144,9 @@ func PublishOrgEvent(ctx context.Context, rt *runtime.Runtime, orgUUID OrgUUID, 
 	return nil
 }
 
-// assetRef identifies an asset by type and UUID alongside its current name.
-type assetRef struct {
-	Type string `json:"type"`
-	UUID string `json:"uuid"`
-	Name string `json:"name"`
-}
-
-// assetChangedEvent is the workspace socket payload saying an asset's canonical name has changed, so any page caching
-// that name should update it. The platform's Django side builds the same shape for the assets it owns and pushes it
-// through the org publish endpoint, so the two must stay in sync.
-type assetChangedEvent struct {
-	Type  string   `json:"type"`
-	Asset assetRef `json:"asset"`
-}
-
-func newAssetChangedEvent(assetType, uuid, name string) *assetChangedEvent {
-	return &assetChangedEvent{Type: "asset_changed", Asset: assetRef{Type: assetType, UUID: uuid, Name: name}}
-}
-
 // PublishToHistory publishes engine events to a contact's history sockets for any live subscribers. Each event is
 // sent as its full JSON, including its uuid - matching the shape clients fetch from the history table, save for the
-// hydration the fetch layer adds on read (e.g. resolving user avatars). When broadcastRename is set, a rename is
-// additionally published as an asset change on the workspace socket, so any page caching that contact can update its
-// canonical name - see BulkCommit for when a rename is worth broadcasting.
+// hydration the fetch layer adds on read (e.g. resolving user avatars).
 //
 // Events are routed to mirror how the read API filters the same events: the per-ticket detail events (assignee, note
 // and topic changes) are filtered off the contact read page and so go only to that ticket's socket, while everything
@@ -183,25 +159,14 @@ func newAssetChangedEvent(assetType, uuid, name string) *assetChangedEvent {
 // pipelined request, so a commit costs one centrifugo round-trip no matter how many sockets it spans, and the whole
 // batch lands or fails together. Events are passed to the service unmarshaled, so in the common case where no
 // socket has a subscriber they're dropped without ever paying the marshaling cost.
-func PublishToHistory(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, contact *core.Contact, evts []events.Event, broadcastRename bool) error {
-	contactUUID := contact.UUID()
-
-	pubs := make([]*centrifugo.Publication, 0, len(evts)+1)
-	for _, e := range evts {
+func PublishToHistory(ctx context.Context, rt *runtime.Runtime, contactUUID core.ContactUUID, evts []events.Event) error {
+	pubs := make([]*centrifugo.Publication, len(evts))
+	for i, e := range evts {
 		socket := HistorySocket(contactUUID)
 		if ticketUUID, ok := ticketDetailEvent(e); ok {
 			socket = HistorySocket(contactUUID, ticketUUID)
 		}
-		pubs = append(pubs, &centrifugo.Publication{Channel: socket, Data: e})
-	}
-
-	// what we publish to the workspace socket is the contact's current display name rather than any one event's, so
-	// this belongs outside the loop: several renames in a single commit are one asset change, not several identical ones
-	if broadcastRename && slices.ContainsFunc(evts, isContactRenamed) {
-		pubs = append(pubs, &centrifugo.Publication{
-			Channel: OrgSocket(oa.Org().UUID()),
-			Data:    newAssetChangedEvent("contact", string(contactUUID), ContactDisplay(oa.Env(), contact)),
-		})
+		pubs[i] = &centrifugo.Publication{Channel: socket, Data: e}
 	}
 
 	if err := rt.Centrifugo.Publish(ctx, pubs...); err != nil {
@@ -209,11 +174,6 @@ func PublishToHistory(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, c
 	}
 
 	return nil
-}
-
-func isContactRenamed(e events.Event) bool {
-	_, ok := e.(*events.ContactNameChanged)
-	return ok
 }
 
 // PublishFlowActivity publishes an activity change notification to each given flow's socket, telling any live

@@ -12,9 +12,7 @@ import (
 	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/core"
-	"github.com/nyaruka/goflow/envs"
 	"github.com/nyaruka/goflow/excellent/types"
-	"github.com/nyaruka/goflow/utils/obfuscate"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/testsuite"
 	"github.com/nyaruka/mailroom/v26/testsuite/testdb"
@@ -86,76 +84,6 @@ func TestContacts(t *testing.T) {
 	assert.Equal(t, 0, len(cat.URNs()))
 	assert.Equal(t, 0, cat.Groups().Count())
 	assert.Nil(t, cat.Tickets().LastOpen())
-}
-
-func TestContactDisplay(t *testing.T) {
-	_, rt := testsuite.Runtime(t)
-
-	oa := testdb.Org1.Load(t, rt)
-
-	newContact := func(name string, urnz ...urns.URN) *core.Contact {
-		c, err := core.NewContact(
-			oa.SessionAssets(), testdb.Ann.UUID, core.ContactID(testdb.Ann.ID), name, i18n.NilLanguage,
-			core.ContactStatusActive, time.UTC, time.Now(), nil, urnz, nil, nil, nil, assets.IgnoreMissing,
-		)
-		require.NoError(t, err)
-		return c
-	}
-
-	// the production wiring for the obfuscation key: an org's environment carries the configured key, which has to be
-	// the same key the platform has as ID_OBFUSCATION_KEY or the refs below won't match the ones it renders
-	assert.Equal(t, rt.Config.IDObfuscationKeyParsed, oa.Env().ObfuscationKey())
-
-	// an anonymized workspace only differs in what we fall back to when there's no name. Deliberately built with a key
-	// that isn't the default, so a test pass can't come from both sides silently defaulting to the same one.
-	anonKey := [4]uint32{1, 2, 3, 4}
-	require.NotEqual(t, rt.Config.IDObfuscationKeyParsed, anonKey)
-	anon := envs.NewBuilder().WithRedactionPolicy(envs.RedactionPolicyURNs).WithObfuscationKey(anonKey).Build()
-
-	// a name is always the display, anonymized or not
-	assert.Equal(t, "Ann", models.ContactDisplay(oa.Env(), newContact("Ann", "tel:+16055741111")))
-	assert.Equal(t, "Ann", models.ContactDisplay(anon, newContact("Ann", "tel:+16055741111")))
-
-	// without a name we fall back to the highest priority URN, formatted as the platform's URN.format formats it
-	assert.Equal(t, "(605) 574-1111", models.ContactDisplay(oa.Env(), newContact("", "tel:+16055741111")))
-
-	// ...including for whatsapp, whose paths are E164 without the leading + and which gocommon has no formatter for,
-	// so this would otherwise be the bare path while the platform showed a national-formatted number
-	assert.Equal(t, "(605) 574-1111", models.ContactDisplay(oa.Env(), newContact("", "whatsapp:16055741111")))
-	assert.Equal(t, "0788 123 123", models.ContactDisplay(oa.Env(), newContact("", "whatsapp:250788123123")))
-
-	// ...and the number wins over any display value the URN carries, again as on the platform, where display is only
-	// reached when the path doesn't parse as a phone number
-	assert.Equal(t, "(605) 574-1111", models.ContactDisplay(oa.Env(), newContact("", "tel:+16055741111#mydisplay")))
-
-	// a whatsapp business-scoped user id isn't a phone number, so it falls through to the URN's display value...
-	assert.Equal(t, "biz", models.ContactDisplay(oa.Env(), newContact("", "whatsapp:US.abc123#biz")))
-
-	// ...and to the path when it has none. NB the platform renders this one as "+US.abc123", because its URN.format
-	// prepends the + to the path it later falls back to - see formatURNForDisplay for that known divergence, which
-	// covers any unparseable whatsapp path, not just business-scoped user ids.
-	assert.Equal(t, "US.abc123", models.ContactDisplay(oa.Env(), newContact("", "whatsapp:US.abc123")))
-
-	// a non-phone scheme is display, else path
-	assert.Equal(t, "ann", models.ContactDisplay(oa.Env(), newContact("", "twitterid:23145325#ann")))
-	assert.Equal(t, "bob@nyaruka.com", models.ContactDisplay(oa.Env(), newContact("", "mailto:bob@nyaruka.com")))
-
-	// ...and nothing at all if there's no URN either
-	assert.Equal(t, "", models.ContactDisplay(oa.Env(), newContact("")))
-
-	// in an anonymized workspace the fallback is the contact's obfuscated ref - never its raw internal id, which is
-	// what anonymization exists to hide, and which is what goflow's Contact.Format would give us here
-	assert.Equal(t, "UGL5XN", models.ContactDisplay(anon, newContact("", "tel:+16055741111")))
-	assert.Equal(t, "UGL5XN", models.ContactDisplay(anon, newContact(""))) // URNs are irrelevant to it
-
-	// and with the configured key it's the value the platform's Contact.ref renders for the same contact
-	anonDefault := envs.NewBuilder().WithRedactionPolicy(envs.RedactionPolicyURNs).
-		WithObfuscationKey(rt.Config.IDObfuscationKeyParsed).Build()
-	assert.Equal(t, "BNKHKU", models.ContactDisplay(anonDefault, newContact("")))
-
-	decoded, err := obfuscate.DecodeID("BNKHKU", rt.Config.IDObfuscationKeyParsed)
-	require.NoError(t, err)
-	assert.Equal(t, int64(testdb.Ann.ID), decoded)
 }
 
 func TestCreateContact(t *testing.T) {
