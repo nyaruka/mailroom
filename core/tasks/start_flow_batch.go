@@ -79,10 +79,8 @@ func (t *StartFlowBatch) Perform(ctx context.Context, rt *runtime.Runtime, oa *m
 		return err
 	}
 
-	// mark start as done if this was the last batch to complete - falling back to the queuing order flag for
-	// batches queued before completion tracking
-	last, known := t.RecordComplete(ctx, rt, taskID)
-	if (known && last) || (!known && t.IsLast) {
+	// mark start as done if this was the last batch to complete
+	if t.RecordComplete(ctx, rt, taskID) {
 		if err := start.SetCompleted(ctx, rt.DB); err != nil {
 			return fmt.Errorf("error marking start as complete: %w", err)
 		}
