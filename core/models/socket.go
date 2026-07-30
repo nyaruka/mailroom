@@ -43,6 +43,28 @@ func FlowSocket(flowUUID assets.FlowUUID) string {
 	return fmt.Sprintf("%s:%s", SocketFlowNamespace, flowUUID)
 }
 
+// SocketOrgNamespace is the realtime pub/sub namespace for workspace-wide state changes shared by all open pages.
+const SocketOrgNamespace = "org"
+
+// OrgSocket returns the realtime socket for the given workspace, addressed as "org:<org-uuid>".
+func OrgSocket(orgUUID OrgUUID) string {
+	return fmt.Sprintf("%s:%s", SocketOrgNamespace, orgUUID)
+}
+
+// PublishOrgEvent publishes an already-rendered workspace event verbatim. As with other sockets, this is best-effort
+// and a no-op when the workspace currently has no subscribers.
+func PublishOrgEvent(ctx context.Context, rt *runtime.Runtime, orgUUID OrgUUID, event json.RawMessage) error {
+	if len(event) == 0 {
+		return nil
+	}
+
+	pub := &centrifugo.Publication{Channel: OrgSocket(orgUUID), Data: event}
+	if err := rt.Centrifugo.Publish(ctx, pub); err != nil {
+		return fmt.Errorf("error publishing org event: %w", err)
+	}
+	return nil
+}
+
 // SocketNotificationsNamespace is the realtime pub/sub namespace for a user's notifications within a workspace. A
 // notification socket is addressed as "notifications:<org-uuid>:<user-uuid>". Like history sockets it's a client
 // subscription, authorized per-session by the subscribe proxy, which records the same "socket-subs:" presence key -
@@ -118,7 +140,8 @@ func PublishNotificationData(ctx context.Context, rt *runtime.Runtime, oa *OrgAs
 
 // PublishToHistory publishes engine events to a contact's history sockets for any live subscribers. Each event is
 // sent as its full JSON, including its uuid - matching the shape clients fetch from the history table, save for the
-// hydration the fetch layer adds on read (e.g. resolving user avatars).
+// hydration the fetch layer adds on read (e.g. resolving user avatars). Contact name changes are also published as
+// asset changes on the org socket so any page caching that contact can update its canonical name.
 //
 // Events are routed to mirror how the read API filters the same events: the per-ticket detail events (assignee, note
 // and topic changes) are filtered off the contact read page and so go only to that ticket's socket, while everything
@@ -131,14 +154,35 @@ func PublishNotificationData(ctx context.Context, rt *runtime.Runtime, oa *OrgAs
 // pipelined request, so a commit costs one centrifugo round-trip no matter how many sockets it spans, and the whole
 // batch lands or fails together. Events are passed to the service unmarshaled, so in the common case where no
 // socket has a subscriber they're dropped without ever paying the marshaling cost.
-func PublishToHistory(ctx context.Context, rt *runtime.Runtime, contactUUID core.ContactUUID, evts []events.Event) error {
-	pubs := make([]*centrifugo.Publication, len(evts))
-	for i, e := range evts {
+func PublishToHistory(
+	ctx context.Context,
+	rt *runtime.Runtime,
+	orgUUID OrgUUID,
+	contactUUID core.ContactUUID,
+	contactName string,
+	evts []events.Event,
+) error {
+	pubs := make([]*centrifugo.Publication, 0, len(evts)*2)
+	for _, e := range evts {
 		socket := HistorySocket(contactUUID)
 		if ticketUUID, ok := ticketDetailEvent(e); ok {
 			socket = HistorySocket(contactUUID, ticketUUID)
 		}
-		pubs[i] = &centrifugo.Publication{Channel: socket, Data: e}
+		pubs = append(pubs, &centrifugo.Publication{Channel: socket, Data: e})
+
+		if _, ok := e.(*events.ContactNameChanged); ok {
+			pubs = append(pubs, &centrifugo.Publication{
+				Channel: OrgSocket(orgUUID),
+				Data: map[string]any{
+					"type": "asset_changed",
+					"asset": map[string]any{
+						"type": "contact",
+						"uuid": contactUUID,
+						"name": contactName,
+					},
+				},
+			})
+		}
 	}
 
 	if err := rt.Centrifugo.Publish(ctx, pubs...); err != nil {

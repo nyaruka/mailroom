@@ -33,6 +33,37 @@ func TestFlowSocket(t *testing.T) {
 	assert.Equal(t, "flow:9de3663f-c5c5-4c92-9f45-ecbc09abcc85", models.FlowSocket(flow))
 }
 
+func TestOrgSocket(t *testing.T) {
+	org := models.OrgUUID("bf0514a5-9407-44c9-b0f9-3f36f9c18414")
+
+	assert.Equal(t, "org:bf0514a5-9407-44c9-b0f9-3f36f9c18414", models.OrgSocket(org))
+}
+
+func TestPublishOrgEvent(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	defer testsuite.Reset(t, rt, testsuite.ResetValkey)
+
+	vc := rt.VK.Get()
+	defer vc.Close()
+
+	orgUUID := models.OrgUUID(testdb.Org1.UUID)
+	socket := models.OrgSocket(orgUUID)
+	event := json.RawMessage(`{"type":"asset_changed","asset":{"type":"flow","uuid":"flow-1","name":"Registration"}}`)
+
+	require.NoError(t, models.PublishOrgEvent(ctx, rt, orgUUID, nil))
+	require.NoError(t, models.PublishOrgEvent(ctx, rt, orgUUID, event))
+	assert.Empty(t, testsuite.CentrifugoHistory(t, rt, socket))
+
+	_, err := vc.Do("SET", centrifugo.SubscriptionKey(socket), "1")
+	require.NoError(t, err)
+	require.NoError(t, models.PublishOrgEvent(ctx, rt, orgUUID, event))
+
+	sent := testsuite.CentrifugoHistory(t, rt, socket)
+	require.Len(t, sent, 1)
+	assert.JSONEq(t, string(event), string(sent[0]))
+}
+
 func TestPublishFlowActivity(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
@@ -191,6 +222,8 @@ func TestPublishToHistory(t *testing.T) {
 
 	mock := rt.Centrifugo.Client.(*centrifugo.MockClient)
 
+	org := models.OrgUUID(testdb.Org1.UUID)
+	orgSocket := models.OrgSocket(org)
 	contact := core.ContactUUID("a393abc0-283d-4c9b-a1b3-641a035c34bf")
 	socket := models.HistorySocket(contact)
 	evt1 := events.NewContactNameChanged("Bob")
@@ -198,17 +231,21 @@ func TestPublishToHistory(t *testing.T) {
 	evt2 := events.NewContactLanguageChanged("spa")
 
 	// socket isn't subscribed yet, so nothing is published
-	require.NoError(t, models.PublishToHistory(ctx, rt, contact, []events.Event{evt1}))
+	require.NoError(t, models.PublishToHistory(ctx, rt, org, contact, "Bob", []events.Event{evt1}))
 	assert.Empty(t, mock.Publications())
 
 	// mark the socket subscribed (as the authorizing service would) - empty event slice is still a no-op
 	_, err := vc.Do("SET", centrifugo.SubscriptionKey(socket), "1")
 	require.NoError(t, err)
-	require.NoError(t, models.PublishToHistory(ctx, rt, contact, nil))
+	require.NoError(t, models.PublishToHistory(ctx, rt, org, contact, "Bob", nil))
 	assert.Empty(t, mock.Publications())
 
+	// subscribe to the workspace socket too, so contact name changes can update canonical-name caches on other pages
+	_, err = vc.Do("SET", centrifugo.SubscriptionKey(orgSocket), "1")
+	require.NoError(t, err)
+
 	// now that it's subscribed, each event is published to the contact's history socket as its full JSON
-	require.NoError(t, models.PublishToHistory(ctx, rt, contact, []events.Event{evt1, evt2}))
+	require.NoError(t, models.PublishToHistory(ctx, rt, org, contact, "Bob", []events.Event{evt1, evt2}))
 
 	sent := testsuite.CentrifugoHistory(t, rt, socket)
 	require.Len(t, sent, 2)
@@ -224,6 +261,13 @@ func TestPublishToHistory(t *testing.T) {
 	require.NoError(t, json.Unmarshal(sent[1], &decoded))
 	assert.Equal(t, "contact_language_changed", decoded["type"])
 	assert.Equal(t, "spa", decoded["language"])
+
+	orgSent := testsuite.CentrifugoHistory(t, rt, orgSocket)
+	require.Len(t, orgSent, 1)
+	assert.JSONEq(t,
+		fmt.Sprintf(`{"type":"asset_changed","asset":{"type":"contact","uuid":%q,"name":"Bob"}}`, contact),
+		string(orgSent[0]),
+	)
 
 	// per-ticket detail events (assignee/note/topic changes) route to that ticket's socket rather than the contact
 	// socket, mirroring how the read API filters them off the contact page; the basic ticket lifecycle events
@@ -242,7 +286,9 @@ func TestPublishToHistory(t *testing.T) {
 	assignB := events.NewTicketAssigneeChanged(ticketB, assets.NewUserReference("0c78ef47-7d56-44d8-8f57-96e0f30e8f44", "Bob"), nil) // detail -> ticket B socket (unsubscribed)
 	lang := events.NewContactLanguageChanged("fra")                                                                                  // non-ticket -> contact socket
 
-	require.NoError(t, models.PublishToHistory(ctx, rt, contact, []events.Event{closed, noteA, assignB, lang}))
+	require.NoError(t,
+		models.PublishToHistory(ctx, rt, org, contact, "Bob", []events.Event{closed, noteA, assignB, lang}),
+	)
 
 	// the contact socket got the basic ticket event and the non-ticket event in order, plus the two from before
 	contactSent := testsuite.CentrifugoHistory(t, rt, socket)
@@ -261,6 +307,8 @@ func TestPublishToHistory(t *testing.T) {
 
 	// ticket B's socket wasn't subscribed, so nothing was published to it
 	assert.Empty(t, testsuite.CentrifugoHistory(t, rt, ticketBSocket))
+	// non-name history events aren't copied to the workspace socket
+	require.Len(t, testsuite.CentrifugoHistory(t, rt, orgSocket), 1)
 
 	// a commit can span several ticket sockets at once (e.g. a future bulk ticket operation) - subscribing ticket B
 	// too, a publish touching both tickets and the contact still routes each event to its own socket
@@ -271,7 +319,9 @@ func TestPublishToHistory(t *testing.T) {
 	noteB := events.NewTicketNoteAdded(ticketB, "now on B")   // detail -> ticket B socket
 	renamed := events.NewContactNameChanged("Bobby")          // non-ticket -> contact socket
 
-	require.NoError(t, models.PublishToHistory(ctx, rt, contact, []events.Event{noteA2, noteB, renamed}))
+	require.NoError(t,
+		models.PublishToHistory(ctx, rt, org, contact, "Bobby", []events.Event{noteA2, noteB, renamed}),
+	)
 
 	// each socket received exactly its own events
 	contactSent = testsuite.CentrifugoHistory(t, rt, socket)
@@ -288,4 +338,11 @@ func TestPublishToHistory(t *testing.T) {
 	require.Len(t, ticketBSent, 1) // noteB
 	require.NoError(t, json.Unmarshal(ticketBSent[0], &decoded))
 	assert.Equal(t, string(noteB.UUID()), decoded["uuid"])
+
+	orgSent = testsuite.CentrifugoHistory(t, rt, orgSocket)
+	require.Len(t, orgSent, 2)
+	assert.JSONEq(t,
+		fmt.Sprintf(`{"type":"asset_changed","asset":{"type":"contact","uuid":%q,"name":"Bobby"}}`, contact),
+		string(orgSent[1]),
+	)
 }

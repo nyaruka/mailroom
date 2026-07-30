@@ -1,0 +1,33 @@
+[
+    {
+        "label": "event must be an object",
+        "method": "POST",
+        "path": "/mi/org/publish",
+        "body": {
+            "org_id": 1,
+            "event": null
+        },
+        "status": 400,
+        "response": {
+            "error": "event must be a JSON object"
+        }
+    },
+    {
+        "label": "publish asset change",
+        "method": "POST",
+        "path": "/mi/org/publish",
+        "body": {
+            "org_id": 1,
+            "event": {
+                "type": "asset_changed",
+                "asset": {
+                    "type": "flow",
+                    "uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85",
+                    "name": "Registration"
+                }
+            }
+        },
+        "status": 200,
+        "response": {}
+    }
+]
