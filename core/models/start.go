@@ -316,10 +316,9 @@ const sqlInsertStartGroup = `
 INSERT INTO flows_flowstart_groups(flowstart_id, contactgroup_id) VALUES(:flowstart_id, :contactgroup_id)`
 
 // CreateBatch creates a batch for this start using the passed in contact ids
-func (s *FlowStart) CreateBatch(contactIDs []ContactID, isFirst bool, totalContacts int) *FlowStartBatch {
+func (s *FlowStart) CreateBatch(contactIDs []ContactID, totalContacts int) *FlowStartBatch {
 	b := &FlowStartBatch{
 		ContactIDs:    contactIDs,
-		IsFirst:       isFirst,
 		TotalContacts: totalContacts,
 	}
 
@@ -339,7 +338,6 @@ type FlowStartBatch struct {
 	Start   *FlowStart `json:"start,omitempty"`
 
 	ContactIDs    []ContactID `json:"contact_ids"`
-	IsFirst       bool        `json:"is_first"`
 	TotalContacts int         `json:"total_contacts"`
 }
 

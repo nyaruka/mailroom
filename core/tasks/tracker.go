@@ -21,7 +21,6 @@ const (
 type BatchTracker struct {
 	startedKey string
 	batchesKey string
-	legacyKey  string
 }
 
 // NewBatchTracker creates a tracker for the batches owned by the object or task with the given UUID.
@@ -29,7 +28,6 @@ func NewBatchTracker(ownerUUID uuids.UUID) *BatchTracker {
 	return &BatchTracker{
 		startedKey: fmt.Sprintf("%s:%s:started", batchTrackerKeyBase, ownerUUID),
 		batchesKey: fmt.Sprintf("%s:%s:batches", batchTrackerKeyBase, ownerUUID),
-		legacyKey:  fmt.Sprintf("task_batches:%s", ownerUUID), // TODO: remove once all sets tracked under it have drained
 	}
 }
 
@@ -51,19 +49,11 @@ func (t *BatchTracker) Done(ctx context.Context, vk *valkey.Pool, taskID TaskID)
 	vc := vk.Get()
 	defer vc.Close()
 
-	return valkey.Int(trackerDone.DoContext(ctx, vc, t.batchesKey, t.legacyKey, string(taskID), int(batchTrackerTTL/time.Second)))
+	return valkey.Int(trackerDone.DoContext(ctx, vc, t.batchesKey, string(taskID), int(batchTrackerTTL/time.Second)))
 }
 
-// completions recorded under the pre-rename key (a hash of task IDs plus a 'total' field) are counted too, so that
-// sets in flight when the rename deployed still complete - and its TTL is refreshed so it outlives even sets that
-// take days to drain from the queue
-var trackerDone = valkey.NewScript(2, `
+var trackerDone = valkey.NewScript(1, `
 redis.call('HSET', KEYS[1], ARGV[1], 1)
 redis.call('EXPIRE', KEYS[1], ARGV[2])
-local completed = redis.call('HLEN', KEYS[1])
-if redis.call('EXISTS', KEYS[2]) == 1 then
-	redis.call('EXPIRE', KEYS[2], ARGV[2])
-	completed = completed + redis.call('HLEN', KEYS[2]) - redis.call('HEXISTS', KEYS[2], 'total')
-end
-return completed
+return redis.call('HLEN', KEYS[1])
 `)

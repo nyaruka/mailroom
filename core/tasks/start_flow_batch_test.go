@@ -29,8 +29,8 @@ func TestStartFlowBatchTask(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT status FROM flows_flowstart WHERE id = $1`, start1.ID).Returns("P")
 
 	start1BatchTask := tasks.BatchTask{BatchOwnerUUID: start1.UUID, TotalBatches: 2}
-	batch1 := start1.CreateBatch([]models.ContactID{testdb.Ann.ID, testdb.Bob.ID}, true, 4)
-	batch2 := start1.CreateBatch([]models.ContactID{testdb.Cat.ID, testdb.Dan.ID}, false, 4)
+	batch1 := start1.CreateBatch([]models.ContactID{testdb.Ann.ID, testdb.Bob.ID}, 4)
+	batch2 := start1.CreateBatch([]models.ContactID{testdb.Cat.ID, testdb.Dan.ID}, 4)
 
 	// start the first batch...
 	err = tasks.Queue(ctx, rt, rt.Queues.Throttled, testdb.Org1.ID, &tasks.StartFlowBatch{BatchTask: start1BatchTask, FlowStartBatch: batch1}, false)
@@ -66,8 +66,8 @@ func TestStartFlowBatchTask(t *testing.T) {
 	require.NoError(t, err)
 
 	start2BatchTask := tasks.BatchTask{BatchOwnerUUID: start2.UUID, TotalBatches: 2}
-	start2Batch1 := start2.CreateBatch([]models.ContactID{testdb.Ann.ID, testdb.Bob.ID}, true, 4)
-	start2Batch2 := start2.CreateBatch([]models.ContactID{testdb.Cat.ID, testdb.Dan.ID}, false, 4)
+	start2Batch1 := start2.CreateBatch([]models.ContactID{testdb.Ann.ID, testdb.Bob.ID}, 4)
+	start2Batch2 := start2.CreateBatch([]models.ContactID{testdb.Cat.ID, testdb.Dan.ID}, 4)
 
 	// start the first batch...
 	err = tasks.Queue(ctx, rt, rt.Queues.Throttled, testdb.Org1.ID, &tasks.StartFlowBatch{BatchTask: start2BatchTask, FlowStartBatch: start2Batch1}, false)
@@ -98,7 +98,7 @@ func TestStartFlowBatchTaskNonPersistedStart(t *testing.T) {
 	start := models.NewFlowStart(models.OrgID(1), models.StartTypeManual, testdb.SingleMessage.ID).
 		WithContactIDs([]models.ContactID{testdb.Ann.ID, testdb.Bob.ID, testdb.Cat.ID, testdb.Dan.ID})
 
-	batch := start.CreateBatch([]models.ContactID{testdb.Ann.ID, testdb.Bob.ID}, true, 2)
+	batch := start.CreateBatch([]models.ContactID{testdb.Ann.ID, testdb.Bob.ID}, 2)
 
 	// start the first batch...
 	batchTask := tasks.BatchTask{BatchOwnerUUID: start.UUID, TotalBatches: 1}
