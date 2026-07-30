@@ -470,9 +470,7 @@ func BulkCommit(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, 
 		// publish the persisted events plus the ephemeral-publishable ones (e.g. last seen / current flow changes
 		// which update UI state but aren't history). Realtime delivery is best-effort - a publish failure shouldn't
 		// fail the commit when the events are already safely queued for persistence
-		if err := models.PublishToHistory(
-			ctx, rt, oa.Org().UUID(), scene.ContactUUID(), scene.Contact.Format(oa.Env()), scene.publishEvents,
-		); err != nil {
+		if err := models.PublishToHistory(ctx, rt, oa, scene.Contact, scene.publishEvents); err != nil {
 			slog.Error("error publishing events to history channel", "error", err, "contact", scene.ContactUUID())
 		}
 

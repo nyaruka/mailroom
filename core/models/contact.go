@@ -23,6 +23,7 @@ import (
 	"github.com/nyaruka/goflow/envs"
 	"github.com/nyaruka/goflow/excellent/types"
 	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/utils/obfuscate"
 	"github.com/nyaruka/mailroom/v26/core/goflow"
 	"github.com/nyaruka/mailroom/v26/runtime"
 	"github.com/nyaruka/null/v3"
@@ -236,6 +237,22 @@ func (c *Contact) EngineContact(oa *OrgAssets) (*core.Contact, error) {
 	}
 
 	return contact, nil
+}
+
+// ContactDisplay returns the single value to show for a contact where there's only room for one - its name if it has
+// one, otherwise a stand-in. This deliberately mirrors the platform's own Contact.get_display rather than simply using
+// goflow's Contact.Format, because the two are alternative sources for the same value a client caches (the realtime
+// asset change we publish here, and the assets endpoint that same client otherwise fetches from), so a name must not
+// depend on which path it arrived by. The one place they differ is an anonymized workspace, where Format falls back to
+// the contact's raw internal id: there we use the contact's obfuscated ref instead, since the raw id is exactly what
+// anonymization exists to hide.
+func ContactDisplay(env envs.Environment, c *core.Contact) string {
+	if c.Name() == "" && env.RedactionPolicy() == envs.RedactionPolicyURNs {
+		ref, _ := obfuscate.EncodeID(int64(c.ID()), env.ObfuscationKey()) // only errors for an out of range id
+		return ref
+	}
+
+	return c.Format(env)
 }
 
 // LoadContact loads a contact from the passed in id

@@ -222,22 +222,26 @@ func TestPublishToHistory(t *testing.T) {
 
 	mock := rt.Centrifugo.Client.(*centrifugo.MockClient)
 
-	org := models.OrgUUID(testdb.Org1.UUID)
-	orgSocket := models.OrgSocket(org)
-	contact := core.ContactUUID("a393abc0-283d-4c9b-a1b3-641a035c34bf")
+	oa := testdb.Org1.Load(t, rt)
+	_, ann, _ := testdb.Ann.Load(t, rt, oa)
+
+	orgSocket := models.OrgSocket(oa.Org().UUID())
+	contact := ann.UUID()
 	socket := models.HistorySocket(contact)
+
+	// the name we publish to the workspace socket is always the contact's current name, never any single event's
 	evt1 := events.NewContactNameChanged("Bob")
-	evt1.SetUser(assets.NewUserReference("eb9536d7-7b22-4ca6-9a1e-8e1f1effe7f3", "Ann Admin"), "ui")
+	evt1.SetUser(assets.NewUserReference("eb9536d7-7b22-4ca6-9a1e-8e1f1effe7f3", "Ann Admin"), string(models.ViaUI))
 	evt2 := events.NewContactLanguageChanged("spa")
 
 	// socket isn't subscribed yet, so nothing is published
-	require.NoError(t, models.PublishToHistory(ctx, rt, org, contact, "Bob", []events.Event{evt1}))
+	require.NoError(t, models.PublishToHistory(ctx, rt, oa, ann, []events.Event{evt1}))
 	assert.Empty(t, mock.Publications())
 
 	// mark the socket subscribed (as the authorizing service would) - empty event slice is still a no-op
 	_, err := vc.Do("SET", centrifugo.SubscriptionKey(socket), "1")
 	require.NoError(t, err)
-	require.NoError(t, models.PublishToHistory(ctx, rt, org, contact, "Bob", nil))
+	require.NoError(t, models.PublishToHistory(ctx, rt, oa, ann, nil))
 	assert.Empty(t, mock.Publications())
 
 	// subscribe to the workspace socket too, so contact name changes can update canonical-name caches on other pages
@@ -245,7 +249,7 @@ func TestPublishToHistory(t *testing.T) {
 	require.NoError(t, err)
 
 	// now that it's subscribed, each event is published to the contact's history socket as its full JSON
-	require.NoError(t, models.PublishToHistory(ctx, rt, org, contact, "Bob", []events.Event{evt1, evt2}))
+	require.NoError(t, models.PublishToHistory(ctx, rt, oa, ann, []events.Event{evt1, evt2}))
 
 	sent := testsuite.CentrifugoHistory(t, rt, socket)
 	require.Len(t, sent, 2)
@@ -262,10 +266,11 @@ func TestPublishToHistory(t *testing.T) {
 	assert.Equal(t, "contact_language_changed", decoded["type"])
 	assert.Equal(t, "spa", decoded["language"])
 
+	// the rename is also an asset change on the workspace socket, carrying the contact's current display name
 	orgSent := testsuite.CentrifugoHistory(t, rt, orgSocket)
 	require.Len(t, orgSent, 1)
 	assert.JSONEq(t,
-		fmt.Sprintf(`{"type":"asset_changed","asset":{"type":"contact","uuid":%q,"name":"Bob"}}`, contact),
+		fmt.Sprintf(`{"type":"asset_changed","asset":{"type":"contact","uuid":%q,"name":"Ann"}}`, contact),
 		string(orgSent[0]),
 	)
 
@@ -287,7 +292,7 @@ func TestPublishToHistory(t *testing.T) {
 	lang := events.NewContactLanguageChanged("fra")                                                                                  // non-ticket -> contact socket
 
 	require.NoError(t,
-		models.PublishToHistory(ctx, rt, org, contact, "Bob", []events.Event{closed, noteA, assignB, lang}),
+		models.PublishToHistory(ctx, rt, oa, ann, []events.Event{closed, noteA, assignB, lang}),
 	)
 
 	// the contact socket got the basic ticket event and the non-ticket event in order, plus the two from before
@@ -317,16 +322,24 @@ func TestPublishToHistory(t *testing.T) {
 
 	noteA2 := events.NewTicketNoteAdded(ticketA, "more on A") // detail -> ticket A socket
 	noteB := events.NewTicketNoteAdded(ticketB, "now on B")   // detail -> ticket B socket
-	renamed := events.NewContactNameChanged("Bobby")          // non-ticket -> contact socket
+
+	// two renames in the same commit: both are history, but they collapse to a single workspace asset change since
+	// what that carries is the contact's current name, not either event's
+	renamed1 := events.NewContactNameChanged("Bobby")
+	renamed1.SetUser(nil, string(models.ViaUI))
+	renamed2 := events.NewContactNameChanged("Bobbie")
+	renamed2.SetUser(nil, string(models.ViaUI))
 
 	require.NoError(t,
-		models.PublishToHistory(ctx, rt, org, contact, "Bobby", []events.Event{noteA2, noteB, renamed}),
+		models.PublishToHistory(ctx, rt, oa, ann, []events.Event{noteA2, noteB, renamed1, renamed2}),
 	)
 
 	// each socket received exactly its own events
 	contactSent = testsuite.CentrifugoHistory(t, rt, socket)
-	require.Len(t, contactSent, 5) // evt1, evt2, closed, lang, renamed
+	require.Len(t, contactSent, 6) // evt1, evt2, closed, lang, renamed1, renamed2
 	require.NoError(t, json.Unmarshal(contactSent[4], &decoded))
+	assert.Equal(t, "contact_name_changed", decoded["type"])
+	require.NoError(t, json.Unmarshal(contactSent[5], &decoded))
 	assert.Equal(t, "contact_name_changed", decoded["type"])
 
 	ticketASent = testsuite.CentrifugoHistory(t, rt, ticketASocket)
@@ -339,10 +352,61 @@ func TestPublishToHistory(t *testing.T) {
 	require.NoError(t, json.Unmarshal(ticketBSent[0], &decoded))
 	assert.Equal(t, string(noteB.UUID()), decoded["uuid"])
 
+	// ...and the two renames produced one workspace asset change, not two
 	orgSent = testsuite.CentrifugoHistory(t, rt, orgSocket)
 	require.Len(t, orgSent, 2)
 	assert.JSONEq(t,
-		fmt.Sprintf(`{"type":"asset_changed","asset":{"type":"contact","uuid":%q,"name":"Bobby"}}`, contact),
+		fmt.Sprintf(`{"type":"asset_changed","asset":{"type":"contact","uuid":%q,"name":"Ann"}}`, contact),
 		string(orgSent[1]),
 	)
+}
+
+func TestPublishToHistoryOrgFanOut(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	defer testsuite.Reset(t, rt, testsuite.ResetValkey)
+
+	vc := rt.VK.Get()
+	defer vc.Close()
+
+	oa := testdb.Org1.Load(t, rt)
+	_, ann, _ := testdb.Ann.Load(t, rt, oa)
+
+	orgSocket := models.OrgSocket(oa.Org().UUID())
+	historySocket := models.HistorySocket(ann.UUID())
+
+	for _, s := range []string{orgSocket, historySocket} {
+		_, err := vc.Do("SET", centrifugo.SubscriptionKey(s), "1")
+		require.NoError(t, err)
+	}
+
+	renameVia := func(via string) events.Event {
+		e := events.NewContactNameChanged("Bob")
+		if via != "" {
+			e.SetUser(nil, via)
+		}
+		return e
+	}
+
+	// only renames a user made in the UI or through the API reach the workspace socket - those from an import or from
+	// a flow arrive in bulk, and unlike a history socket the workspace socket is subscribed by every open page
+	tcs := []struct {
+		via      string
+		expected int
+	}{
+		{string(models.ViaUI), 1},
+		{string(models.ViaAPI), 1},
+		{string(models.ViaImport), 0},
+		{"", 0}, // engine i.e. a flow renaming contacts it reaches
+	}
+
+	published := 0
+	for i, tc := range tcs {
+		require.NoError(t, models.PublishToHistory(ctx, rt, oa, ann, []events.Event{renameVia(tc.via)}))
+		published += tc.expected
+
+		// regardless of provenance the rename is always history
+		assert.Len(t, testsuite.CentrifugoHistory(t, rt, historySocket), i+1, "history mismatch for via=%q", tc.via)
+		assert.Len(t, testsuite.CentrifugoHistory(t, rt, orgSocket), published, "fan-out mismatch for via=%q", tc.via)
+	}
 }

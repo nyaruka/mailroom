@@ -312,6 +312,20 @@ func GetOrgIDFromUUID(ctx context.Context, db *sql.DB, orgUUID OrgUUID) (OrgID, 
 	return orgID, nil
 }
 
+// GetOrgUUIDFromID gets an org UUID from an ID (returns an empty UUID if not found). Unlike GetOrgAssets this doesn't
+// touch the asset cache, so it's for callers that need nothing about the workspace but how to address it.
+func GetOrgUUIDFromID(ctx context.Context, db DBorTx, orgID OrgID) (OrgUUID, error) {
+	var orgUUID OrgUUID
+	if err := db.GetContext(ctx, &orgUUID, `SELECT uuid FROM orgs_org WHERE id = $1`, orgID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return "", nil
+		}
+		return "", fmt.Errorf("error getting org uuid by id: %w", err)
+	}
+
+	return orgUUID, nil
+}
+
 const sqlSelectActiveOrgIDs = `SELECT id FROM orgs_org WHERE is_active = TRUE ORDER BY id`
 
 // GetActiveOrgIDs returns the IDs of all active orgs

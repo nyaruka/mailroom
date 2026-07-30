@@ -12,7 +12,9 @@ import (
 	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/core"
+	"github.com/nyaruka/goflow/envs"
 	"github.com/nyaruka/goflow/excellent/types"
+	"github.com/nyaruka/goflow/utils/obfuscate"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/testsuite"
 	"github.com/nyaruka/mailroom/v26/testsuite/testdb"
@@ -84,6 +86,44 @@ func TestContacts(t *testing.T) {
 	assert.Equal(t, 0, len(cat.URNs()))
 	assert.Equal(t, 0, cat.Groups().Count())
 	assert.Nil(t, cat.Tickets().LastOpen())
+}
+
+func TestContactDisplay(t *testing.T) {
+	_, rt := testsuite.Runtime(t)
+
+	oa := testdb.Org1.Load(t, rt)
+
+	newContact := func(name string, urnz ...urns.URN) *core.Contact {
+		c, err := core.NewContact(
+			oa.SessionAssets(), testdb.Ann.UUID, core.ContactID(testdb.Ann.ID), name, i18n.NilLanguage,
+			core.ContactStatusActive, time.UTC, time.Now(), nil, urnz, nil, nil, nil, assets.IgnoreMissing,
+		)
+		require.NoError(t, err)
+		return c
+	}
+
+	// an anonymized workspace only differs in what we fall back to when there's no name
+	anon := envs.NewBuilder().WithRedactionPolicy(envs.RedactionPolicyURNs).Build()
+
+	// a name is always the display, anonymized or not
+	assert.Equal(t, "Ann", models.ContactDisplay(oa.Env(), newContact("Ann", "tel:+16055741111")))
+	assert.Equal(t, "Ann", models.ContactDisplay(anon, newContact("Ann", "tel:+16055741111")))
+
+	// without a name we fall back to the highest priority URN, formatted as the platform formats it
+	assert.Equal(t, "(605) 574-1111", models.ContactDisplay(oa.Env(), newContact("", "tel:+16055741111")))
+
+	// ...and to nothing at all if there's also no URN
+	assert.Equal(t, "", models.ContactDisplay(oa.Env(), newContact("")))
+
+	// in an anonymized workspace the fallback is the contact's obfuscated ref - never its raw internal id, which is
+	// what anonymization exists to hide, and which is what goflow's Contact.Format would give us here
+	ref := models.ContactDisplay(anon, newContact("", "tel:+16055741111"))
+	assert.NotEqual(t, "10000", ref)
+	assert.Equal(t, ref, models.ContactDisplay(anon, newContact(""))) // URNs are irrelevant to it
+
+	decoded, err := obfuscate.DecodeID(ref, anon.ObfuscationKey())
+	require.NoError(t, err)
+	assert.Equal(t, int64(testdb.Ann.ID), decoded)
 }
 
 func TestCreateContact(t *testing.T) {

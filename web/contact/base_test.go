@@ -166,9 +166,10 @@ func TestModify(t *testing.T) {
 
 	testsuite.RunWebTests(t, rt, "testdata/modify.json")
 
-	// the name modifiers in the request fixture still land in contact
-	// history, and are additionally fanned out to the workspace socket so
-	// flow editors can refresh embedded contact references immediately.
+	// the name modifiers in the request fixture still land in contact history, and are additionally fanned out to the
+	// workspace socket so flow editors can refresh embedded contact references immediately. Note the third one clears
+	// Ann's name and so publishes the no-name fallback, which here is empty only because this test stripped her URNs
+	// above - see TestContactDisplay in core/models for what that fallback actually is.
 	sent := testsuite.CentrifugoHistory(t, rt, orgSocket)
 	require.Len(t, sent, 4)
 	assert.JSONEq(t,
