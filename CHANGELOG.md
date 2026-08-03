@@ -1,3 +1,7 @@
+v26.3.36 (2026-08-03)
+-------------------------
+ * Remove unused tracking of deprecated context usage and make warning event handling a noop
+
 v26.3.35 (2026-08-03)
 -------------------------
  * Add runner.WrapEventHandler to allow extending of event handling
