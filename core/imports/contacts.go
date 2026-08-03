@@ -56,12 +56,25 @@ func ImportBatch(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 	mods := make(map[models.ContactID][]flows.Modifier, len(imports))
 	for _, imp := range imports {
 		// ignore errored imports which couldn't get/create a contact
-		if imp.mc != nil {
-			mcs = append(mcs, imp.mc)
-			contacts = append(contacts, imp.contact)
-			mods[imp.mc.ID()] = imp.mods
-			importsByContact[imp.contact] = imp
+		if imp.mc == nil {
+			continue
 		}
+
+		// multiple records in a batch can resolve to the same contact if one references it by UUID and another by a
+		// URN it owns - parse time validation can't detect that without database lookups. We append to the contact's
+		// modifiers so the later record isn't silently dropped, matching what already happens when such records fall
+		// into different batches. Note that errors from the later record's modifiers will be misattributed to the
+		// first record. Really such duplicates should be rejected up front, but that requires resolving all records
+		// against the database before batching, i.e. moving more of the import processing into this service.
+		if _, seen := mods[imp.mc.ID()]; seen {
+			mods[imp.mc.ID()] = append(mods[imp.mc.ID()], imp.mods...)
+			continue
+		}
+
+		mcs = append(mcs, imp.mc)
+		contacts = append(contacts, imp.contact)
+		mods[imp.mc.ID()] = imp.mods
+		importsByContact[imp.contact] = imp
 	}
 
 	// and apply in bulk
