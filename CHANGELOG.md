@@ -1,3 +1,9 @@
+v26.3.34 (2026-08-03)
+-------------------------
+ * Update to goflow v0.289.1
+ * Add WebhooksRestrictedDomains config option for webhook domains that should generate warnings
+ * Allow cmd entry points to take customized config defaults
+
 v26.3.33 (2026-08-03)
 -------------------------
  * Fix import records being dropped when two records resolve to the same contact
