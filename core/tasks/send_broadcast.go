@@ -108,9 +108,7 @@ func createBroadcastBatches(ctx context.Context, rt *runtime.Runtime, oa *models
 	// create tasks for batches of contacts
 	idBatches := slices.Collect(slices.Chunk(contactIDs, broadcastBatchSize))
 	for i, idBatch := range idBatches {
-		isFirst := (i == 0)
-
-		batch := bcast.CreateBatch(idBatch, isFirst)
+		batch := bcast.CreateBatch(idBatch)
 		batchTask := &SendBroadcastBatch{
 			BatchTask:      BatchTask{BatchOwnerUUID: uuids.UUID(bcast.UUID), TotalBatches: len(idBatches)},
 			BroadcastBatch: batch,

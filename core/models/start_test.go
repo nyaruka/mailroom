@@ -68,10 +68,9 @@ func TestStarts(t *testing.T) {
 	require.NoError(t, err)
 	assertdb.Query(t, rt.DB, `SELECT status, contact_count FROM flows_flowstart WHERE id = $1`, startID).Columns(map[string]any{"status": "Q", "contact_count": 5})
 
-	batch := start.CreateBatch([]models.ContactID{testdb.Ann.ID, testdb.Bob.ID}, true, 3)
+	batch := start.CreateBatch([]models.ContactID{testdb.Ann.ID, testdb.Bob.ID}, 3)
 	assert.Equal(t, startID, batch.StartID)
 	assert.Equal(t, []models.ContactID{testdb.Ann.ID, testdb.Bob.ID}, batch.ContactIDs)
-	assert.True(t, batch.IsFirst)
 	assert.Equal(t, 3, batch.TotalContacts)
 
 	history, err := models.ReadSessionHistory(start.SessionHistory)

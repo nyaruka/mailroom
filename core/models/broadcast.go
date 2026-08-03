@@ -137,13 +137,11 @@ type BroadcastBatch struct {
 	Broadcast   *Broadcast  `json:"broadcast,omitempty"`
 
 	ContactIDs []ContactID `json:"contact_ids"`
-	IsFirst    bool        `json:"is_first"`
 }
 
-func (b *Broadcast) CreateBatch(contactIDs []ContactID, isFirst bool) *BroadcastBatch {
+func (b *Broadcast) CreateBatch(contactIDs []ContactID) *BroadcastBatch {
 	bb := &BroadcastBatch{
 		ContactIDs: contactIDs,
-		IsFirst:    isFirst,
 	}
 
 	if b.ID != NilBroadcastID {

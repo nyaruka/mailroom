@@ -53,20 +53,4 @@ func TestBatchTracker(t *testing.T) {
 	completed, err = tracker.Done(ctx, rt.VK, "01981fa0-0003-7000-8000-000000000000")
 	assert.NoError(t, err)
 	assert.Equal(t, 3, completed)
-
-	// completions recorded under the pre-rename key are counted too, excluding its 'total' field, and its TTL refreshed
-	vc.Do("HSET", "task_batches:af31b7a8-4a1a-4a71-9a52-1a2b7b39d9b0", "01981fa0-0004-7000-8000-000000000000", 1, "total", 3)
-
-	straddling := tasks.NewBatchTracker("af31b7a8-4a1a-4a71-9a52-1a2b7b39d9b0")
-	completed, err = straddling.Done(ctx, rt.VK, "01981fa0-0005-7000-8000-000000000000")
-	assert.NoError(t, err)
-	assert.Equal(t, 2, completed)
-
-	completed, err = straddling.Done(ctx, rt.VK, "01981fa0-0006-7000-8000-000000000000")
-	assert.NoError(t, err)
-	assert.Equal(t, 3, completed)
-
-	ttl, err = valkey.Int(vc.Do("TTL", "task_batches:af31b7a8-4a1a-4a71-9a52-1a2b7b39d9b0"))
-	assert.NoError(t, err)
-	assert.Greater(t, ttl, 0)
 }

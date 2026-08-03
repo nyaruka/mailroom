@@ -633,8 +633,8 @@ func TestBroadcastWithLock(t *testing.T) {
 
 	test.MockUniverse()
 
-	batch1 := bcast.CreateBatch([]models.ContactID{testdb.Ann.ID, testdb.Bob.ID}, true)
-	batch2 := bcast.CreateBatch([]models.ContactID{testdb.Cat.ID}, false)
+	batch1 := bcast.CreateBatch([]models.ContactID{testdb.Ann.ID, testdb.Bob.ID})
+	batch2 := bcast.CreateBatch([]models.ContactID{testdb.Cat.ID})
 
 	scenes, skipped, err := runner.BroadcastWithLock(ctx, rt, oa, bcast, batch1, models.StartModeBackground)
 	assert.NoError(t, err)
@@ -700,7 +700,7 @@ func TestBroadcastWithLock(t *testing.T) {
 	bcast2, err := models.GetBroadcastByID(ctx, rt.DB, b2.ID)
 	require.NoError(t, err)
 
-	skipBatch := bcast2.CreateBatch([]models.ContactID{testdb.Ann.ID, testdb.Bob.ID, testdb.Cat.ID}, true)
+	skipBatch := bcast2.CreateBatch([]models.ContactID{testdb.Ann.ID, testdb.Bob.ID, testdb.Cat.ID})
 	scenes, skipped, err = runner.BroadcastWithLock(ctx, rt, oa, bcast2, skipBatch, models.StartModeSkip)
 	assert.NoError(t, err)
 	assert.Len(t, skipped, 0) // all contacts were locked successfully
@@ -723,7 +723,7 @@ func TestBroadcastWithLock(t *testing.T) {
 	bcast3, err := models.GetBroadcastByID(ctx, rt.DB, b3.ID)
 	require.NoError(t, err)
 
-	intBatch := bcast3.CreateBatch([]models.ContactID{testdb.Ann.ID, testdb.Bob.ID, testdb.Cat.ID}, true)
+	intBatch := bcast3.CreateBatch([]models.ContactID{testdb.Ann.ID, testdb.Bob.ID, testdb.Cat.ID})
 	scenes, skipped, err = runner.BroadcastWithLock(ctx, rt, oa, bcast3, intBatch, models.StartModeInterrupt)
 	assert.NoError(t, err)
 	assert.Len(t, skipped, 0)
