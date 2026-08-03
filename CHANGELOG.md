@@ -1,3 +1,7 @@
+v26.3.35 (2026-08-03)
+-------------------------
+ * Add runner.WrapEventHandler to allow extending of event handling
+
 v26.3.34 (2026-08-03)
 -------------------------
  * Update to goflow v0.289.1
