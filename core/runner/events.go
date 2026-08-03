@@ -26,6 +26,17 @@ func RegisterEventHandler(eventType string, handler EventHandler) {
 	eventHandlers[eventType] = handler
 }
 
+// WrapEventHandler replaces the handler for the given event type with the one returned by wrap,
+// which receives the current handler so it can delegate to it. This allows extensions to add
+// their own handling of an event type whilst deferring to the existing handler.
+func WrapEventHandler(eventType string, wrap func(base EventHandler) EventHandler) {
+	base := eventHandlers[eventType]
+	if base == nil {
+		panic(fmt.Errorf("no handler registered for type %s to wrap", eventType))
+	}
+	eventHandlers[eventType] = wrap(base)
+}
+
 // TypeContactInterrupted is a pseudo event that lets add hooks for session interruption
 const TypeContactInterrupted string = "contact_interrupted"
 
