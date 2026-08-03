@@ -24,7 +24,7 @@ func TestPersistEvent(t *testing.T) {
 	assert.True(t, models.PersistEvent(events.NewContactStatusChanged(core.ContactStatusBlocked)))
 	assert.True(t, models.PersistEvent(events.NewError("URN taken by another contact", events.ErrorCodeURNTaken)))
 	assert.False(t, models.PersistEvent(events.NewError("Bang", "bang")))
-	assert.False(t, models.PersistEvent(events.NewWarning("Don't do that")))
+	assert.False(t, models.PersistEvent(events.NewWarning("Don't do that", "")))
 
 	e := events.NewError("URN taken by another contact", events.ErrorCodeURNTaken)
 	e.SetUser(nil, string(models.ViaImport))
@@ -42,7 +42,7 @@ func TestPublishEvent(t *testing.T) {
 	assert.True(t, models.PublishEvent(events.NewContactFlowChanged(nil)))
 
 	// but not everything else
-	assert.False(t, models.PublishEvent(events.NewWarning("Don't do that")))
+	assert.False(t, models.PublishEvent(events.NewWarning("Don't do that", "")))
 }
 
 func TestEventToDynamo(t *testing.T) {

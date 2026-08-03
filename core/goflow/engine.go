@@ -87,7 +87,7 @@ func Engine(rt *runtime.Runtime) flows.Engine {
 
 		eng = engine.NewBuilder().
 			WithHTTPClient(rt.HTTP.Engine).
-			WithWebhookServiceFactory(webhooks.NewServiceFactory(webhookHeaders)).
+			WithWebhookServiceFactory(webhooks.NewServiceFactory(webhookHeaders, rt.Config.WebhooksRestrictedDomains)).
 			WithLLMServiceFactory(llmFactory(rt)).
 			WithEmailServiceFactory(emailFactory(rt)).
 			WithAirtimeServiceFactory(airtimeFactory(rt)).
@@ -117,7 +117,7 @@ func Simulator(ctx context.Context, rt *runtime.Runtime) flows.Engine {
 
 		simulator = engine.NewBuilder().
 			WithHTTPClient(rt.HTTP.Simulator).
-			WithWebhookServiceFactory(webhooks.NewServiceFactory(webhookHeaders)).
+			WithWebhookServiceFactory(webhooks.NewServiceFactory(webhookHeaders, rt.Config.WebhooksRestrictedDomains)).
 			WithLLMServiceFactory(llmFactory(rt)).                     // simulated sessions do real LLM calls
 			WithEmailServiceFactory(simulatorEmailServiceFactory).     // but faked emails
 			WithAirtimeServiceFactory(simulatorAirtimeServiceFactory). // and faked airtime transfers
