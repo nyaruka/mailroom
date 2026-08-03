@@ -26,6 +26,7 @@ func init() {
 	runner.RegisterEventHandler(events.TypeRunResultChanged, noopHandler)
 	runner.RegisterEventHandler(events.TypeWaitExpired, noopHandler)
 	runner.RegisterEventHandler(events.TypeWaitTimedOut, noopHandler)
+	runner.RegisterEventHandler(events.TypeWarning, noopHandler)
 }
 
 // our hook for events we ignore in a run
