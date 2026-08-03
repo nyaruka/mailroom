@@ -221,8 +221,8 @@ github.com/nyaruka/goflow v0.288.3 h1:CPG9hM6Xb+5NNNVf4znFDviyjFv997V+vpCmJjh3in
 github.com/nyaruka/goflow v0.288.3/go.mod h1:diNN3GR+vhek8Nv7ObDRa63FP0Oba+oCCaJpdhvsSGc=
 github.com/nyaruka/null/v3 v3.0.0 h1:JvOiNuKmRBFHxzZFt4sWii+ewmMkCQ1vO7X0clTNn6E=
 github.com/nyaruka/null/v3 v3.0.0/go.mod h1:Sus286RmC8P0VihFuQDDQPib/xJQ7++TsaPLdRuwgVc=
-github.com/nyaruka/phonenumbers/v2 v2.0.4 h1:yA1kw+TsRt1iLI+G8RoHGZHCQrzNfKfAVwKfUwUvPPM=
-github.com/nyaruka/phonenumbers/v2 v2.0.4/go.mod h1:pKu+U8m/6xzgPlYxQ9D89irpcWeB4/J7lKd3FbhQaqw=
+github.com/nyaruka/phonenumbers/v2 v2.0.6 h1:WVLrl6y54L2w/BUddRnUyWg5q6ouJMYL/UuIKYz/5es=
+github.com/nyaruka/phonenumbers/v2 v2.0.6/go.mod h1:pKu+U8m/6xzgPlYxQ9D89irpcWeB4/J7lKd3FbhQaqw=
 github.com/nyaruka/vkutil v0.22.0 h1:HczZwEyBhv3JAryGBNkygjgs+kaIR8kMYUI40RzSR/A=
 github.com/nyaruka/vkutil v0.22.0/go.mod h1:fp8Z1xA7C0daR0s/S26neij5uC+EwcGL8pGZQeOsobc=
 github.com/openai/openai-go/v3 v3.46.0 h1:9HzL4DOybwOHAAcsGpMQyELuw0e9OqynJOPV8SH8g5M=
