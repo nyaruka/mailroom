@@ -39,12 +39,13 @@ type Config struct {
 	WorkersThrottled int     `help:"the number of workers for the throttled task queue (set to 0 to disable processing of throttled tasks on this node)"`
 	WorkerOwnerLimit float64 `help:"the maximum number of workers, across nodes, available to a single owner, as a fraction of the per node worker counts"`
 
-	WebhooksTimeout              int     `help:"the timeout in milliseconds for webhook calls from engine"`
-	WebhooksMaxRetries           int     `help:"the number of times to retry a failed webhook call"`
-	WebhooksMaxBodyBytes         int     `help:"the maximum size of bytes to a webhook call response body"`
-	WebhooksInitialBackoff       int     `help:"the initial backoff in milliseconds when retrying a failed webhook call"`
-	WebhooksBackoffJitter        float64 `help:"the amount of jitter to apply to backoff times"`
-	WebhooksHealthyResponseLimit int     `help:"the limit in milliseconds for webhook response to be considered healthy"`
+	WebhooksTimeout              int      `help:"the timeout in milliseconds for webhook calls from engine"`
+	WebhooksMaxRetries           int      `help:"the number of times to retry a failed webhook call"`
+	WebhooksMaxBodyBytes         int      `help:"the maximum size of bytes to a webhook call response body"`
+	WebhooksInitialBackoff       int      `help:"the initial backoff in milliseconds when retrying a failed webhook call"`
+	WebhooksBackoffJitter        float64  `help:"the amount of jitter to apply to backoff times"`
+	WebhooksHealthyResponseLimit int      `help:"the limit in milliseconds for webhook response to be considered healthy"`
+	WebhooksRestrictedDomains    []string `help:"comma separated list of domains (including subdomains) which webhook calls shouldn't be made to directly, e.g. messaging provider APIs"`
 
 	SMTPServer           string   `help:"the default SMTP configuration for sending flow emails, e.g. smtp://user%40password@server:port/?from=foo%40gmail.com"`
 	DisallowedNetworks   []string `help:"comma separated list of IP addresses and networks which engine can't make HTTP calls to"`
@@ -148,8 +149,9 @@ func NewDefaultConfig() *Config {
 	}
 }
 
-func LoadConfig(args ...string) (*Config, error) {
-	c := NewDefaultConfig()
+// LoadConfig loads configuration from a config file, environment variables and command line args, on top of the
+// given base config, e.g. NewDefaultConfig().
+func LoadConfig(c *Config, args ...string) (*Config, error) {
 	loader := ezconf.NewLoader(c, "mailroom", "Mailroom - handler for RapidPro", []string{"mailroom.toml"})
 	if len(args) > 0 { // allow tests to pass in args
 		loader.SetArgs(args...)

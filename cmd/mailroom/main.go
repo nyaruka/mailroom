@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/nyaruka/mailroom/v26/cmd"
+	"github.com/nyaruka/mailroom/v26/runtime"
 
 	_ "github.com/nyaruka/mailroom/v26/core/runner/handlers"
 	_ "github.com/nyaruka/mailroom/v26/core/runner/hooks"
@@ -35,5 +36,5 @@ var (
 )
 
 func main() {
-	cmd.Run(cmd.Service(version, date))
+	cmd.Run(cmd.Service(runtime.NewDefaultConfig(), version, date))
 }

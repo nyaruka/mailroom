@@ -12,8 +12,7 @@ import (
 )
 
 const (
-	deprecatedContextWarningPrefix = "deprecated context value accessed: "
-	deprecatedUsagesKey            = "deprecated_context_usage"
+	deprecatedUsagesKey = "deprecated_context_usage"
 )
 
 func init() {
@@ -24,12 +23,12 @@ func handleWarning(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsset
 	event := e.(*events.Warning)
 
 	// deprecated context warnings always come from the engine so will have a step, but check anyway
-	if rem, ok := strings.CutPrefix(event.Text, deprecatedContextWarningPrefix); ok && event.Step() != nil {
-		if strings.Contains(rem, ":") {
-			rem = rem[:strings.Index(rem, ":")]
-		}
+	if event.Code == events.WarningCodeDeprecatedContext && event.Step() != nil {
+		// text is like "@contact.id is deprecated, use @contact.ref instead"
+		ref, _, _ := strings.Cut(event.Text, " ")
+		ref = strings.TrimPrefix(ref, "@")
 
-		key := fmt.Sprintf("%s/%s", event.Step().Flow.UUID, rem)
+		key := fmt.Sprintf("%s/%s", event.Step().Flow.UUID, ref)
 
 		vc := rt.VK.Get()
 		defer vc.Close()

@@ -1607,7 +1607,11 @@
                         "type": "error",
                         "created_on": "2025-05-04T12:31:31.123456789Z",
                         "_via": "ui",
-                        "text": "'xyz:12345' is not valid URN"
+                        "text": "'xyz:12345' is not valid URN",
+                        "code": "urn:invalid",
+                        "extra": {
+                            "urn": "xyz:12345"
+                        }
                     }
                 ]
             },

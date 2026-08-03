@@ -3,6 +3,7 @@ package handlers_test
 import (
 	"fmt"
 	"net/http"
+	"net/url"
 	"testing"
 	"time"
 
@@ -56,6 +57,8 @@ func TestWebhookCalled(t *testing.T) {
 type failingWebhookService struct {
 	delay time.Duration
 }
+
+func (s *failingWebhookService) IsRestricted(u *url.URL) bool { return false }
 
 func (s *failingWebhookService) Call(request *http.Request) (*httpx.Trace, error) {
 	return &httpx.Trace{

@@ -20,11 +20,12 @@ import (
 
 const indexBatchSize = 500
 
-// Index is the entry point for the mrindex command which re-indexes all contacts or messages.
-func Index() error {
-	cfg, err := runtime.LoadConfig()
+// Index is the entry point for the mrindex command which re-indexes all contacts or messages. Configuration is
+// loaded on top of the given defaults, e.g. runtime.NewDefaultConfig().
+func Index(defaults *runtime.Config) error {
+	cfg, err := runtime.LoadConfig(defaults)
 	if err != nil {
-		return fmt.Errorf("error loading config: %w", err)
+		return err
 	}
 
 	// only output ERROR logs
