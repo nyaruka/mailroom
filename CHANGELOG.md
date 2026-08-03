@@ -1,3 +1,10 @@
+v26.3.33 (2026-08-03)
+-------------------------
+ * Fix import records being dropped when two records resolve to the same contact
+ * Remove transitional batch tracker code no longer needed post deploy
+ * Update test database dump for latest rapidpro schema
+ * Update to phonenumbers v2.0.6
+
 v26.3.32 (2026-07-30)
 -------------------------
  * Make batch trackers also count completions recorded under pre-rename keys
