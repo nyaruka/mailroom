@@ -8,6 +8,7 @@ import (
 	"github.com/nyaruka/gocommon/i18n"
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/gocommon/urns"
+	"github.com/nyaruka/gocommon/uuids"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/mailroom/v26/core/models"
@@ -75,6 +76,10 @@ func InsertContact(t *testing.T, rt *runtime.Runtime, org *Org, uuid core.Contac
 
 // InsertContactGroup inserts a contact group
 func InsertContactGroup(t *testing.T, rt *runtime.Runtime, org *Org, uuid assets.GroupUUID, name, query string, contacts ...*Contact) *Group {
+	if uuid == "" {
+		uuid = assets.GroupUUID(uuids.NewV4())
+	}
+
 	status := models.GroupStatusReady
 	groupType := models.GroupTypeManual
 	if query != "" {
