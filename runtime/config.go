@@ -149,8 +149,9 @@ func NewDefaultConfig() *Config {
 	}
 }
 
-func LoadConfig(args ...string) (*Config, error) {
-	c := NewDefaultConfig()
+// LoadConfig loads configuration from a config file, environment variables and command line args, on top of the
+// given base config, e.g. NewDefaultConfig().
+func LoadConfig(c *Config, args ...string) (*Config, error) {
 	loader := ezconf.NewLoader(c, "mailroom", "Mailroom - handler for RapidPro", []string{"mailroom.toml"})
 	if len(args) > 0 { // allow tests to pass in args
 		loader.SetArgs(args...)
