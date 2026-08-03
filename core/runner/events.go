@@ -26,15 +26,21 @@ func RegisterEventHandler(eventType string, handler EventHandler) {
 	eventHandlers[eventType] = handler
 }
 
-// WrapEventHandler replaces the handler for the given event type with the one returned by wrap,
-// which receives the current handler so it can delegate to it. This allows extensions to add
-// their own handling of an event type whilst deferring to the existing handler.
-func WrapEventHandler(eventType string, wrap func(base EventHandler) EventHandler) {
+// WrappedEventHandler is like EventHandler but receives the handler it wrapped as its final
+// argument so it can delegate to it.
+type WrappedEventHandler func(context.Context, *runtime.Runtime, *models.OrgAssets, *Scene, events.Event, models.UserID, EventHandler) error
+
+// WrapEventHandler replaces the handler for the given event type with the given handler, which
+// receives the replaced handler as its final argument. This allows extensions to add their own
+// handling of an event type whilst deferring to the existing handler.
+func WrapEventHandler(eventType string, handler WrappedEventHandler) {
 	base := eventHandlers[eventType]
 	if base == nil {
 		panic(fmt.Errorf("no handler registered for type %s to wrap", eventType))
 	}
-	eventHandlers[eventType] = wrap(base)
+	eventHandlers[eventType] = func(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, s *Scene, e events.Event, userID models.UserID) error {
+		return handler(ctx, rt, oa, s, e, userID, base)
+	}
 }
 
 // TypeContactInterrupted is a pseudo event that lets add hooks for session interruption

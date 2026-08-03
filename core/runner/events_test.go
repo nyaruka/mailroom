@@ -19,11 +19,9 @@ func TestWrapEventHandler(t *testing.T) {
 	})
 	defer delete(eventHandlers, "test_wrap")
 
-	WrapEventHandler("test_wrap", func(base EventHandler) EventHandler {
-		return func(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, s *Scene, e events.Event, userID models.UserID) error {
-			calls = append(calls, "wrapper")
-			return base(ctx, rt, oa, s, e, userID)
-		}
+	WrapEventHandler("test_wrap", func(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, s *Scene, e events.Event, userID models.UserID, base EventHandler) error {
+		calls = append(calls, "wrapper")
+		return base(ctx, rt, oa, s, e, userID)
 	})
 
 	err := eventHandlers["test_wrap"](context.Background(), nil, nil, nil, nil, models.NilUserID)
@@ -32,6 +30,8 @@ func TestWrapEventHandler(t *testing.T) {
 
 	// wrapping a type with no registered handler is a bug
 	assert.Panics(t, func() {
-		WrapEventHandler("test_unregistered", func(base EventHandler) EventHandler { return base })
+		WrapEventHandler("test_unregistered", func(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, s *Scene, e events.Event, userID models.UserID, base EventHandler) error {
+			return base(ctx, rt, oa, s, e, userID)
+		})
 	})
 }
