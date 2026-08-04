@@ -28,16 +28,17 @@ type SearchResult struct {
 	Score         float64              `db:"score"          json:"score"`
 }
 
-// Sources mid-reindex stay searchable if they've been indexed before. Chunks are replaced transactionally, so a
-// source at 'I' is still serving its complete previous index - excluding it would blank an org's knowledge for the
-// duration of every sweep, which for shortcuts is every edit. Sources that have never completed an index have
-// nothing to serve, so a NULL last_indexed_on is still excluded.
+// A source that has completed an index before stays searchable whatever it's doing now. Chunks are only replaced
+// inside a transaction that opens after embedding succeeds, so a source that is mid-reindex ('I') or whose last
+// attempt failed ('F') is still serving its complete previous index - excluding either would blank an org's knowledge
+// over a sweep, or over an entire embeddings outage plus its retry backoff, while perfectly good chunks sat there.
+// Sources that have never completed an index have nothing to serve, so a NULL last_indexed_on is still excluded.
 const sqlSearchKnowledgeChunks = `
   SELECT k.uuid AS knowledge_uuid, c.item_key, c.item_name, c.item_url, c.text, 1 - (c.embedding <=> $2::vector) AS score
-    FROM tickets_knowledgechunk c
-    JOIN tickets_knowledge k ON k.id = c.knowledge_id
+    FROM knowledge_knowledgechunk c
+    JOIN knowledge_knowledge k ON k.id = c.knowledge_id
    WHERE k.org_id = $1 AND k.is_active
-     AND (k.status = 'R' OR (k.status = 'I' AND k.last_indexed_on IS NOT NULL))
+     AND (k.status = 'R' OR (k.status IN ('I', 'F') AND k.last_indexed_on IS NOT NULL))
 ORDER BY c.embedding <=> $2::vector
    LIMIT $3`
 

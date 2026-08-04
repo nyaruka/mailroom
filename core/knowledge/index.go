@@ -2,7 +2,9 @@ package knowledge
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/nyaruka/gocommon/dates"
@@ -131,6 +133,13 @@ func indexAuthored(
 
 	if err := k.SetReady(ctx, tx, indexedOn, numItems, numChunks); err != nil {
 		tx.Rollback()
+
+		// released mid-index isn't a failure - Django has purged this source and we simply throw away the chunks we
+		// were about to write for it. Marking it failed would resurrect a row that is on its way out.
+		if errors.Is(err, models.ErrKnowledgeReleased) {
+			slog.Info("knowledge source released while indexing, discarding", "knowledge_id", k.ID)
+			return nil
+		}
 		return err
 	}
 

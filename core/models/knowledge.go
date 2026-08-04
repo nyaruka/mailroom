@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"database/sql/driver"
+	"errors"
 	"fmt"
 	"time"
 
@@ -29,7 +30,7 @@ type KnowledgeType string
 
 const (
 	KnowledgeTypeShortcuts = KnowledgeType("shortcuts") // the org's shortcuts, read straight from tickets_shortcut
-	KnowledgeTypeHelpdesk  = KnowledgeType("helpdesk")  // the org's help articles, read from tickets_article
+	KnowledgeTypeHelpdesk  = KnowledgeType("helpdesk")  // the org's help articles, read from knowledge_article
 	KnowledgeTypeWebsite   = KnowledgeType("website")   // a crawled website
 	KnowledgeTypeDocuments = KnowledgeType("documents") // uploaded files
 )
@@ -74,7 +75,7 @@ type Knowledge struct {
 // FOR UPDATE SKIP LOCKED lets concurrent sweeps claim disjoint sources without blocking on each other.
 const sqlClaimStaleKnowledge = `
 SELECT id, uuid, org_id, name, knowledge_type, config, status, error, last_indexed_on, num_items, num_chunks
-  FROM tickets_knowledge k
+  FROM knowledge_knowledge k
  WHERE k.is_active AND k.knowledge_type = ANY($1) AND (
          k.status = 'P'
       OR (k.status = 'R' AND k.knowledge_type = 'shortcuts' AND EXISTS(
@@ -87,7 +88,7 @@ SELECT id, uuid, org_id, name, knowledge_type, config, status, error, last_index
    FOR UPDATE OF k SKIP LOCKED`
 
 const sqlMarkKnowledgeIndexing = `
-UPDATE tickets_knowledge SET status = 'I', modified_on = NOW() WHERE id = ANY($1)`
+UPDATE knowledge_knowledge SET status = 'I', modified_on = NOW() WHERE id = ANY($1)`
 
 // ClaimStaleKnowledge locks up to limit stale knowledge sources of the given types and marks them as indexing. The
 // claim is committed before returning so that the slow work of indexing doesn't hold row locks or a transaction open.
@@ -146,14 +147,25 @@ func ClaimStaleKnowledge(ctx context.Context, db *sqlx.DB, types []KnowledgeType
 // that already claimed it is still embedding. Without the guard that in-flight run would finalize the row back to 'R'
 // with non-zero counters after the purge had emptied it.
 const sqlSetKnowledgeReady = `
-UPDATE tickets_knowledge
+UPDATE knowledge_knowledge
    SET status = 'R', error = NULL, last_indexed_on = $2, num_items = $3, num_chunks = $4, modified_on = NOW()
  WHERE id = $1 AND is_active`
 
-// SetReady records a successful indexing of this source
+// ErrKnowledgeReleased is returned when finalizing a source that was deactivated while we were indexing it
+var ErrKnowledgeReleased = errors.New("knowledge source is no longer active")
+
+// SetReady records a successful indexing of this source. Returns ErrKnowledgeReleased if the source was deactivated
+// while we worked, so the caller can abandon the chunks it was about to write rather than repopulating a source
+// Django has already purged.
 func (k *Knowledge) SetReady(ctx context.Context, db DBorTx, indexedOn time.Time, numItems, numChunks int) error {
-	if _, err := db.ExecContext(ctx, sqlSetKnowledgeReady, k.ID, indexedOn, numItems, numChunks); err != nil {
+	res, err := db.ExecContext(ctx, sqlSetKnowledgeReady, k.ID, indexedOn, numItems, numChunks)
+	if err != nil {
 		return fmt.Errorf("error marking knowledge source as ready: %w", err)
+	}
+	if rows, err := res.RowsAffected(); err != nil {
+		return fmt.Errorf("error checking rows affected: %w", err)
+	} else if rows == 0 {
+		return ErrKnowledgeReleased
 	}
 
 	k.Status = KnowledgeStatusReady
@@ -165,7 +177,7 @@ func (k *Knowledge) SetReady(ctx context.Context, db DBorTx, indexedOn time.Time
 }
 
 const sqlSetKnowledgeFailed = `
-UPDATE tickets_knowledge SET status = 'F', error = $2, modified_on = NOW() WHERE id = $1`
+UPDATE knowledge_knowledge SET status = 'F', error = $2, modified_on = NOW() WHERE id = $1`
 
 // SetFailed records a failed indexing of this source
 func (k *Knowledge) SetFailed(ctx context.Context, db DBorTx, errMsg string) error {
@@ -206,7 +218,7 @@ type KnowledgeChunk struct {
 
 const sqlInsertKnowledgeChunk = `
 INSERT INTO
-  tickets_knowledgechunk( knowledge_id,  item_key,       item_name,  item_url,  text,  embedding)
+  knowledge_knowledgechunk( knowledge_id,  item_key,       item_name,  item_url,  text,  embedding)
                   VALUES(:knowledge_id, :item_key::uuid, :item_name, :item_url, :text, :embedding::vector)`
 
 // InsertKnowledgeChunks inserts the given chunks in batches of 100 - smaller than our usual 1000 because each row
@@ -224,7 +236,7 @@ func DeleteKnowledgeChunks(ctx context.Context, tx DBorTx, knowledgeID Knowledge
 		return nil
 	}
 
-	sql := `DELETE FROM tickets_knowledgechunk WHERE knowledge_id = $1 AND item_key = ANY($2)`
+	sql := `DELETE FROM knowledge_knowledgechunk WHERE knowledge_id = $1 AND item_key = ANY($2)`
 	if _, err := tx.ExecContext(ctx, sql, knowledgeID, pq.Array(itemKeys)); err != nil {
 		return fmt.Errorf("error deleting knowledge chunks: %w", err)
 	}
@@ -234,7 +246,7 @@ func DeleteKnowledgeChunks(ctx context.Context, tx DBorTx, knowledgeID Knowledge
 // CountKnowledgeChunks returns the total number of chunks of the given knowledge source
 func CountKnowledgeChunks(ctx context.Context, db DBorTx, knowledgeID KnowledgeID) (int, error) {
 	var count int
-	if err := db.GetContext(ctx, &count, `SELECT count(*) FROM tickets_knowledgechunk WHERE knowledge_id = $1`, knowledgeID); err != nil {
+	if err := db.GetContext(ctx, &count, `SELECT count(*) FROM knowledge_knowledgechunk WHERE knowledge_id = $1`, knowledgeID); err != nil {
 		return 0, fmt.Errorf("error counting knowledge chunks: %w", err)
 	}
 	return count, nil
