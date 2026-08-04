@@ -1,3 +1,7 @@
+v26.3.37 (2026-08-04)
+-------------------------
+ * Change WrapEventHandler to pass the wrapped handler as the final arg of the new handler
+
 v26.3.36 (2026-08-03)
 -------------------------
  * Remove unused tracking of deprecated context usage and make warning event handling a noop
