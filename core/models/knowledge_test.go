@@ -47,8 +47,13 @@ func TestClaimStaleKnowledge(t *testing.T) {
 	k4 := testdb.InsertKnowledge(t, rt, testdb.Org1, "b26e0a76-9d88-42d1-9bc9-5cf25e2ba18f", models.KnowledgeTypeShortcuts, "Fresh", models.KnowledgeStatusReady)
 	rt.DB.MustExec(`UPDATE tickets_knowledge SET last_indexed_on = NOW() WHERE id = $1`, k4.ID)
 
-	// failed source.. not claimable until Django flags it pending again
+	// source that failed recently.. not claimable yet, the retry interval is the backoff
 	k5 := testdb.InsertKnowledge(t, rt, testdb.Org1, "9f0b4b7c-3a17-4f5e-95a8-4d68f21e2a7d", models.KnowledgeTypeShortcuts, "Failed", models.KnowledgeStatusFailed)
+
+	// source that failed long enough ago.. claimable again, since nothing on the Django side ever re-pends a system
+	// source and without this a single embeddings outage would disable it permanently
+	k9 := testdb.InsertKnowledge(t, rt, testdb.Org1, "3c5f1e0e-2b4a-4f9c-8d1e-7a6b5c4d3e2f", models.KnowledgeTypeShortcuts, "FailedOld", models.KnowledgeStatusFailed)
+	rt.DB.MustExec(`UPDATE tickets_knowledge SET modified_on = NOW() - INTERVAL '30 minutes' WHERE id = $1`, k9.ID)
 
 	// source recently claimed by another instance.. not claimable
 	k6 := testdb.InsertKnowledge(t, rt, testdb.Org1, "0a1c6a9a-52ed-40cb-a921-1a29b9d8bc6f", models.KnowledgeTypeShortcuts, "Indexing", models.KnowledgeStatusIndexing)
@@ -77,12 +82,14 @@ func TestClaimStaleKnowledge(t *testing.T) {
 	// claiming again gets the remaining stale sources
 	claimed, err = models.ClaimStaleKnowledge(ctx, rt.DB, types, 10)
 	require.NoError(t, err)
-	require.Len(t, claimed, 2)
+	require.Len(t, claimed, 3)
 	assert.Equal(t, k3.ID, claimed[0].ID)
 	assert.Equal(t, k7.ID, claimed[1].ID)
+	assert.Equal(t, k9.ID, claimed[2].ID)
 
 	assertdb.Query(t, rt.DB, `SELECT status FROM tickets_knowledge WHERE id = $1`, k3.ID).Returns("I")
 	assertdb.Query(t, rt.DB, `SELECT status FROM tickets_knowledge WHERE id = $1`, k7.ID).Returns("I")
+	assertdb.Query(t, rt.DB, `SELECT status FROM tickets_knowledge WHERE id = $1`, k9.ID).Returns("I")
 
 	// nothing left to claim
 	claimed, err = models.ClaimStaleKnowledge(ctx, rt.DB, types, 10)

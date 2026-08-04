@@ -61,8 +61,16 @@ type Knowledge struct {
 
 // A source is stale and claimable when it's active, of a type we can index, and either 1) flagged as pending by
 // Django, 2) ready but an item in its Django owned table has been created, edited or soft-deleted (all of which bump
-// modified_on) since we last indexed it, or 3) stuck in indexing for over an hour - which can only mean the process
-// that claimed it died before recording an outcome, since claiming bumps modified_on and there is no task retry.
+// modified_on) since we last indexed it, 3) failed long enough ago to be worth retrying, or 4) stuck in indexing for
+// over an hour - which can only mean the process that claimed it died before recording an outcome, since claiming
+// bumps modified_on and there is no task retry.
+//
+// The retry branch is what keeps 'F' from being a dead end. Django only moves a source to 'P' on the paths that own
+// its config - uploading or deleting a document, editing a website - and there is no such path for the system
+// sources, so nothing outside this query would ever revive a failed shortcuts source and one embeddings outage would
+// disable an org's knowledge permanently. Recovery deliberately goes through this timed branch alone rather than
+// through the item-staleness branch above: claiming bumps modified_on, so the interval is a real backoff, whereas a
+// staleness-driven retry would spin every sweep for as long as the underlying failure lasted.
 // FOR UPDATE SKIP LOCKED lets concurrent sweeps claim disjoint sources without blocking on each other.
 const sqlClaimStaleKnowledge = `
 SELECT id, uuid, org_id, name, knowledge_type, config, status, error, last_indexed_on, num_items, num_chunks
@@ -71,6 +79,7 @@ SELECT id, uuid, org_id, name, knowledge_type, config, status, error, last_index
          k.status = 'P'
       OR (k.status = 'R' AND k.knowledge_type = 'shortcuts' AND EXISTS(
             SELECT 1 FROM tickets_shortcut s WHERE s.org_id = k.org_id AND s.modified_on > k.last_indexed_on))
+      OR (k.status = 'F' AND k.modified_on < NOW() - INTERVAL '15 minutes')
       OR (k.status = 'I' AND k.modified_on < NOW() - INTERVAL '1 hour')
        )
  ORDER BY k.id
@@ -104,6 +113,11 @@ func ClaimStaleKnowledge(ctx context.Context, db *sqlx.DB, types []KnowledgeType
 		}
 		claimed = append(claimed, k)
 	}
+	if err := rows.Err(); err != nil {
+		rows.Close()
+		tx.Rollback()
+		return nil, fmt.Errorf("error reading knowledge sources: %w", err)
+	}
 	rows.Close()
 
 	if len(claimed) > 0 {
@@ -128,10 +142,13 @@ func ClaimStaleKnowledge(ctx context.Context, db *sqlx.DB, types []KnowledgeType
 	return claimed, nil
 }
 
+// The is_active guard closes a race with release: Django can deactivate a source and purge its chunks while a sweep
+// that already claimed it is still embedding. Without the guard that in-flight run would finalize the row back to 'R'
+// with non-zero counters after the purge had emptied it.
 const sqlSetKnowledgeReady = `
 UPDATE tickets_knowledge
    SET status = 'R', error = NULL, last_indexed_on = $2, num_items = $3, num_chunks = $4, modified_on = NOW()
- WHERE id = $1`
+ WHERE id = $1 AND is_active`
 
 // SetReady records a successful indexing of this source
 func (k *Knowledge) SetReady(ctx context.Context, db DBorTx, indexedOn time.Time, numItems, numChunks int) error {
@@ -267,6 +284,11 @@ func LoadChangedShortcuts(ctx context.Context, db *sqlx.DB, orgID OrgID, since t
 			return nil, fmt.Errorf("error unmarshalling shortcut: %w", err)
 		}
 		shortcuts = append(shortcuts, s)
+	}
+	// a truncated read here would be silently destructive: we'd index only what we managed to read, then advance
+	// last_indexed_on past the modified_on of the ones we didn't, so their edits would never be picked up again
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error reading shortcuts for org: %d: %w", orgID, err)
 	}
 
 	return shortcuts, nil

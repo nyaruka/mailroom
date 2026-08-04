@@ -16,6 +16,9 @@ import (
 // IndexableTypes are the knowledge source types we can currently index
 var IndexableTypes = []models.KnowledgeType{models.KnowledgeTypeShortcuts}
 
+// how far back the last_indexed_on watermark is pulled to absorb skew between Django's clock and ours - see indexAuthored
+const watermarkMargin = 30 * time.Second
+
 // IndexSource indexes the given knowledge source - re-reading its changed content, chunking and embedding it, and
 // replacing the affected chunks. On success the source is left ready with its counters updated. On error the caller
 // is responsible for marking the source as failed - there is no task retry so that must always land in the database.
@@ -49,8 +52,13 @@ func indexAuthored(
 	countItems func(context.Context, models.DBorTx, models.OrgID) (int, error),
 ) error {
 	// the new last_indexed_on watermark is taken before we read, so items changed while we index are picked up as
-	// stale by a later sweep instead of being missed
-	indexedOn := dates.Now()
+	// stale by a later sweep instead of being missed.
+	//
+	// The margin covers the two clocks involved: modified_on is stamped by Django before its transaction commits,
+	// while this is mailroom's clock, so without it an item committing just after our read but stamped just before
+	// it would land under the new watermark and never be seen as stale again. Re-reading an item we already indexed
+	// is free - chunks are replaced by item_key - so erring earlier is strictly the safe direction.
+	indexedOn := dates.Now().Add(-watermarkMargin)
 
 	var since time.Time
 	if k.LastIndexedOn != nil {

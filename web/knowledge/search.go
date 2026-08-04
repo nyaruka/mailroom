@@ -51,9 +51,12 @@ func handleSearch(ctx context.Context, rt *runtime.Runtime, r *searchRequest) (a
 		return nil, 0, fmt.Errorf("error loading org assets: %w", err)
 	}
 
-	if r.Limit == 0 {
-		r.Limit = 10
+	// Search clamps too, but a request asking for something silly should be an obvious no-op here rather than
+	// something the primitive quietly reinterprets
+	if r.Limit <= 0 {
+		r.Limit = knowledge.DefaultSearchLimit
 	}
+	r.Limit = min(r.Limit, knowledge.MaxSearchLimit)
 
 	results, err := knowledge.Search(ctx, rt, oa, r.Query, r.Limit)
 	if err != nil {

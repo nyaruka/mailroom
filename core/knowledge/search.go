@@ -10,6 +10,14 @@ import (
 	"github.com/nyaruka/null/v3"
 )
 
+const (
+	// DefaultSearchLimit is how many chunks a search returns when the caller doesn't say
+	DefaultSearchLimit = 10
+
+	// MaxSearchLimit caps it - strict_order iterative scans over the shared HNSW index get expensive with a large limit
+	MaxSearchLimit = 100
+)
+
 // SearchResult is a chunk matching a knowledge search, scored by cosine similarity to the query (higher is better)
 type SearchResult struct {
 	KnowledgeUUID models.KnowledgeUUID `db:"knowledge_uuid" json:"knowledge_uuid"`
@@ -20,17 +28,29 @@ type SearchResult struct {
 	Score         float64              `db:"score"          json:"score"`
 }
 
+// Sources mid-reindex stay searchable if they've been indexed before. Chunks are replaced transactionally, so a
+// source at 'I' is still serving its complete previous index - excluding it would blank an org's knowledge for the
+// duration of every sweep, which for shortcuts is every edit. Sources that have never completed an index have
+// nothing to serve, so a NULL last_indexed_on is still excluded.
 const sqlSearchKnowledgeChunks = `
   SELECT k.uuid AS knowledge_uuid, c.item_key, c.item_name, c.item_url, c.text, 1 - (c.embedding <=> $2::vector) AS score
     FROM tickets_knowledgechunk c
     JOIN tickets_knowledge k ON k.id = c.knowledge_id
-   WHERE k.org_id = $1 AND k.is_active AND k.status = 'R'
+   WHERE k.org_id = $1 AND k.is_active
+     AND (k.status = 'R' OR (k.status = 'I' AND k.last_indexed_on IS NOT NULL))
 ORDER BY c.embedding <=> $2::vector
    LIMIT $3`
 
 // Search performs a semantic search over the org's ready knowledge sources, returning the closest chunks by cosine
 // distance. Returns no results if no embeddings service is configured since there can be nothing indexed.
 func Search(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, query string, limit int) ([]*SearchResult, error) {
+	// clamped here rather than only at the HTTP edge because this primitive is also called directly from Go, and will
+	// eventually back an LLM tool where the limit can be model-influenced
+	if limit <= 0 {
+		limit = DefaultSearchLimit
+	}
+	limit = min(limit, MaxSearchLimit)
+
 	results := make([]*SearchResult, 0, limit)
 
 	if rt.Config.EmbeddingsEndpoint == "" {
@@ -69,6 +89,11 @@ func Search(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, quer
 			return nil, fmt.Errorf("error unmarshalling search result: %w", err)
 		}
 		results = append(results, r)
+	}
+	if err := rows.Err(); err != nil {
+		rows.Close()
+		tx.Rollback()
+		return nil, fmt.Errorf("error reading knowledge chunks: %w", err)
 	}
 	rows.Close()
 
