@@ -92,6 +92,10 @@ func TestIndexKnowledge(t *testing.T) {
 		Columns(map[string]any{"status": "R", "num_items": 1, "num_chunks": 1})
 	assertdb.Query(t, rt.DB, `SELECT text FROM tickets_knowledgechunk WHERE knowledge_id = $1`, k1.ID).Returns("We no longer offer refunds.")
 
+	// age org1's shortcuts past the watermark margin so this sweep is only about org2 - without this they still fall
+	// inside the margin the indexer subtracts and org1's source would be re-claimed too
+	rt.DB.MustExec(`UPDATE tickets_shortcut SET modified_on = NOW() - INTERVAL '1 minute' WHERE org_id = $1`, testdb.Org1.ID)
+
 	// an error from the embeddings service must leave a source failed with its error recorded.. never stuck in indexing
 	rt.DB.MustExec(`UPDATE tickets_shortcut SET modified_on = NOW() WHERE org_id = $1`, testdb.Org2.ID)
 	rt.DB.MustExec(`UPDATE tickets_knowledge SET status = 'P' WHERE id = $1`, k2.ID)

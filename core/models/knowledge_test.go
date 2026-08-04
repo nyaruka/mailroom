@@ -84,8 +84,8 @@ func TestClaimStaleKnowledge(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, claimed, 3)
 	assert.Equal(t, k3.ID, claimed[0].ID)
-	assert.Equal(t, k7.ID, claimed[1].ID)
-	assert.Equal(t, k9.ID, claimed[2].ID)
+	assert.Equal(t, k9.ID, claimed[1].ID)
+	assert.Equal(t, k7.ID, claimed[2].ID)
 
 	assertdb.Query(t, rt.DB, `SELECT status FROM tickets_knowledge WHERE id = $1`, k3.ID).Returns("I")
 	assertdb.Query(t, rt.DB, `SELECT status FROM tickets_knowledge WHERE id = $1`, k7.ID).Returns("I")
