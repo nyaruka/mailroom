@@ -30,7 +30,7 @@ func TestIndexKnowledge(t *testing.T) {
 	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
 	// deactivate the system sources baked into the test database so only our test sources are swept
-	rt.DB.MustExec(`UPDATE tickets_knowledge SET is_active = FALSE`)
+	rt.DB.MustExec(`UPDATE knowledge_knowledge SET is_active = FALSE`)
 
 	cron := &crons.IndexKnowledgeCron{BatchSize: 25}
 
@@ -60,23 +60,23 @@ func TestIndexKnowledge(t *testing.T) {
 	// org2 has a shortcut and a source indexed since it changed
 	testdb.InsertShortcut(t, rt, testdb.Org2, "df22cbcb-e0e1-4e78-be9f-2e4fbea1b2c3", "Help", "Have you tried turning it off and on again?")
 	k2 := testdb.InsertKnowledge(t, rt, testdb.Org2, "78bee0eb-a3d1-4e2b-b91b-6ee1c2f1ab19", models.KnowledgeTypeShortcuts, "Test Shortcuts", models.KnowledgeStatusReady)
-	rt.DB.MustExec(`UPDATE tickets_knowledge SET last_indexed_on = NOW() WHERE id = $1`, k2.ID)
+	rt.DB.MustExec(`UPDATE knowledge_knowledge SET last_indexed_on = NOW() WHERE id = $1`, k2.ID)
 
 	// first sweep indexes org1's pending source - chunking and embedding its two active shortcuts
 	res, err = cron.Run(ctx, rt)
 	assert.NoError(t, err)
 	assert.Equal(t, map[string]any{"indexed": 1, "failed": 0}, res)
 
-	assertdb.Query(t, rt.DB, `SELECT status, error, num_items, num_chunks FROM tickets_knowledge WHERE id = $1`, k1.ID).
+	assertdb.Query(t, rt.DB, `SELECT status, error, num_items, num_chunks FROM knowledge_knowledge WHERE id = $1`, k1.ID).
 		Columns(map[string]any{"status": "R", "error": nil, "num_items": 2, "num_chunks": 2})
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM tickets_knowledge WHERE id = $1 AND last_indexed_on IS NOT NULL`, k1.ID).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM knowledge_knowledge WHERE id = $1 AND last_indexed_on IS NOT NULL`, k1.ID).Returns(1)
 
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM tickets_knowledgechunk WHERE knowledge_id = $1`, k1.ID).Returns(2)
-	assertdb.Query(t, rt.DB, `SELECT item_name, text FROM tickets_knowledgechunk WHERE knowledge_id = $1 AND item_key = $2`, k1.ID, s1.UUID).
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM knowledge_knowledgechunk WHERE knowledge_id = $1`, k1.ID).Returns(2)
+	assertdb.Query(t, rt.DB, `SELECT item_name, text FROM knowledge_knowledgechunk WHERE knowledge_id = $1 AND item_key = $2`, k1.ID, s1.UUID).
 		Columns(map[string]any{"item_name": "Refunds", "text": "We offer full refunds within 30 days."})
 
 	// org2's source was fresh so wasn't touched
-	assertdb.Query(t, rt.DB, `SELECT status, num_chunks FROM tickets_knowledge WHERE id = $1`, k2.ID).
+	assertdb.Query(t, rt.DB, `SELECT status, num_chunks FROM knowledge_knowledge WHERE id = $1`, k2.ID).
 		Columns(map[string]any{"status": "R", "num_chunks": 0})
 
 	// now edit one shortcut and release another..
@@ -88,9 +88,9 @@ func TestIndexKnowledge(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, map[string]any{"indexed": 1, "failed": 0}, res)
 
-	assertdb.Query(t, rt.DB, `SELECT status, num_items, num_chunks FROM tickets_knowledge WHERE id = $1`, k1.ID).
+	assertdb.Query(t, rt.DB, `SELECT status, num_items, num_chunks FROM knowledge_knowledge WHERE id = $1`, k1.ID).
 		Columns(map[string]any{"status": "R", "num_items": 1, "num_chunks": 1})
-	assertdb.Query(t, rt.DB, `SELECT text FROM tickets_knowledgechunk WHERE knowledge_id = $1`, k1.ID).Returns("We no longer offer refunds.")
+	assertdb.Query(t, rt.DB, `SELECT text FROM knowledge_knowledgechunk WHERE knowledge_id = $1`, k1.ID).Returns("We no longer offer refunds.")
 
 	// age org1's shortcuts past the watermark margin so this sweep is only about org2 - without this they still fall
 	// inside the margin the indexer subtracts and org1's source would be re-claimed too
@@ -98,13 +98,13 @@ func TestIndexKnowledge(t *testing.T) {
 
 	// an error from the embeddings service must leave a source failed with its error recorded.. never stuck in indexing
 	rt.DB.MustExec(`UPDATE tickets_shortcut SET modified_on = NOW() WHERE org_id = $1`, testdb.Org2.ID)
-	rt.DB.MustExec(`UPDATE tickets_knowledge SET status = 'P' WHERE id = $1`, k2.ID)
+	rt.DB.MustExec(`UPDATE knowledge_knowledge SET status = 'P' WHERE id = $1`, k2.ID)
 
 	res, err = cron.Run(ctx, rt)
 	assert.NoError(t, err)
 	assert.Equal(t, map[string]any{"indexed": 0, "failed": 1}, res)
 
-	assertdb.Query(t, rt.DB, `SELECT status, error FROM tickets_knowledge WHERE id = $1`, k2.ID).
+	assertdb.Query(t, rt.DB, `SELECT status, error FROM knowledge_knowledge WHERE id = $1`, k2.ID).
 		Columns(map[string]any{"status": "F", "error": `error embedding chunks: error calling embeddings endpoint, got non-200 status: {"error": "oops"}`})
 
 	assert.False(t, mocks.HasUnused())
