@@ -3,6 +3,7 @@ package testsuite
 import (
 	"context"
 	"fmt"
+	"sync"
 	"testing"
 
 	valkey "github.com/gomodule/redigo/redis"
@@ -30,6 +31,12 @@ func vkKey(n int) int64 {
 	return dbKey(fmt.Sprintf("valkey_%d", n))
 }
 
+// databases claimed by this binary. The advisory locks alone can't guard against concurrent claims within
+// this process (e.g. tests using t.Parallel) because they're re-entrant within our single owner session -
+// both claimers would be told they got the lock.
+var vkClaimed = make(map[int]bool)
+var vkClaimedMutex sync.Mutex
+
 // claimVKDB claims a valkey database for the duration of a test, flushes it, and returns its number.
 func claimVKDB(t *testing.T) int {
 	t.Helper()
@@ -40,11 +47,22 @@ func claimVKDB(t *testing.T) int {
 	require.NoError(t, err)
 
 	for n := vkTestDBMin; n <= vkTestDBMax; n++ {
+		vkClaimedMutex.Lock()
+		if vkClaimed[n] {
+			vkClaimedMutex.Unlock()
+			continue // in use by another test in this binary
+		}
+		vkClaimed[n] = true
+		vkClaimedMutex.Unlock()
+
 		var got bool
 		err := owner.QueryRowContext(ctx, `SELECT pg_try_advisory_lock($1)`, vkKey(n)).Scan(&got)
 		require.NoError(t, err, "error trying claim on valkey database")
 		if !got {
-			continue // in use by another test or a concurrently running binary
+			vkClaimedMutex.Lock()
+			delete(vkClaimed, n)
+			vkClaimedMutex.Unlock()
+			continue // in use by a concurrently running binary
 		}
 
 		flushVKDB(t, n)
@@ -54,6 +72,10 @@ func claimVKDB(t *testing.T) int {
 
 			_, err := owner.ExecContext(ctx, `SELECT pg_advisory_unlock($1)`, vkKey(n))
 			require.NoError(t, err)
+
+			vkClaimedMutex.Lock()
+			delete(vkClaimed, n)
+			vkClaimedMutex.Unlock()
 		})
 
 		return n
