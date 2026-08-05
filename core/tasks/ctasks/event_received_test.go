@@ -47,8 +47,6 @@ func TestEventReceived(t *testing.T) {
 	// add some channel event triggers
 	testdb.InsertNewConversationTrigger(t, rt, testdb.Org1, testdb.Favorites, testdb.FacebookChannel)
 	testdb.InsertReferralTrigger(t, rt, testdb.Org1, testdb.PickANumber, "", testdb.VonageChannel)
-	testdb.InsertOptInTrigger(t, rt, testdb.Org1, testdb.Favorites, testdb.VonageChannel)
-	testdb.InsertOptOutTrigger(t, rt, testdb.Org1, testdb.PickANumber, testdb.VonageChannel)
 
 	testdb.InsertOptIn(t, rt, testdb.Org1, "45aec4dd-945f-4511-878f-7d8516fbd336", "Polls")
 

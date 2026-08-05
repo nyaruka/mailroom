@@ -347,60 +347,6 @@ func TestFindMatchingReferralTrigger(t *testing.T) {
 	}
 }
 
-func TestFindMatchingOptInTrigger(t *testing.T) {
-	ctx, rt := testsuite.Runtime(t)
-
-	defer testsuite.Reset(t, rt, testsuite.ResetData)
-
-	twilioTriggerID := testdb.InsertOptInTrigger(t, rt, testdb.Org1, testdb.Favorites, testdb.TwilioChannel)
-	noChTriggerID := testdb.InsertOptInTrigger(t, rt, testdb.Org1, testdb.Favorites, nil)
-
-	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshTriggers)
-	require.NoError(t, err)
-
-	tcs := []struct {
-		channelID         models.ChannelID
-		expectedTriggerID models.TriggerID
-	}{
-		{testdb.TwilioChannel.ID, twilioTriggerID},
-		{testdb.VonageChannel.ID, noChTriggerID},
-	}
-
-	for i, tc := range tcs {
-		channel := oa.ChannelByID(tc.channelID)
-		trigger := models.FindMatchingOptInTrigger(oa, channel)
-
-		assertTrigger(t, tc.expectedTriggerID, trigger, "trigger mismatch in test case #%d", i)
-	}
-}
-
-func TestFindMatchingOptOutTrigger(t *testing.T) {
-	ctx, rt := testsuite.Runtime(t)
-
-	defer testsuite.Reset(t, rt, testsuite.ResetData)
-
-	twilioTriggerID := testdb.InsertOptOutTrigger(t, rt, testdb.Org1, testdb.Favorites, testdb.TwilioChannel)
-	noChTriggerID := testdb.InsertOptOutTrigger(t, rt, testdb.Org1, testdb.Favorites, nil)
-
-	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshTriggers)
-	require.NoError(t, err)
-
-	tcs := []struct {
-		channelID         models.ChannelID
-		expectedTriggerID models.TriggerID
-	}{
-		{testdb.TwilioChannel.ID, twilioTriggerID},
-		{testdb.VonageChannel.ID, noChTriggerID},
-	}
-
-	for i, tc := range tcs {
-		channel := oa.ChannelByID(tc.channelID)
-		trigger := models.FindMatchingOptOutTrigger(oa, channel)
-
-		assertTrigger(t, tc.expectedTriggerID, trigger, "trigger mismatch in test case #%d", i)
-	}
-}
-
 func TestArchiveContactTriggers(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
