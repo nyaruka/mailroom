@@ -914,17 +914,17 @@ func CreateOrClaimURN(ctx context.Context, db DBorTx, oa *OrgAssets, contactID C
 	return urn, nil
 }
 
-const sqlDetachShellContactURN = `
+const sqlReassignShellContactURN = `
 UPDATE contacts_contacturn
-   SET contact_id = NULL
+   SET contact_id = $3
  WHERE id = $1 AND contact_id = $2
    AND NOT EXISTS(SELECT 1 FROM contacts_contacturn o WHERE o.contact_id = $2 AND o.id != $1)`
 
-// DetachShellContactURN checks if the given URN identity is owned by a contact other than the given one, and if that
-// owner is a "shell" - a contact with no other URNs - detaches the URN so that it can be claimed by the given contact.
-// The shell contact keeps its history but is left without URNs, and has its modified_on bumped so it's re-indexed.
-// Returns the ID of the owning contact if there is a different owner, and whether the URN was detached from it.
-func DetachShellContactURN(ctx context.Context, db DBorTx, oa *OrgAssets, contactID ContactID, u urns.URN) (ContactID, bool, error) {
+// ReassignShellContactURN checks if the given URN identity is owned by a contact other than the given one, and if that
+// owner is a "shell" - a contact with no other URNs - reassigns the URN to the given contact. The shell contact keeps
+// its history but is left without URNs, and both contacts have modified_on bumped so they're re-indexed. Returns the
+// ID of the owning contact if there is a different owner, and whether the URN was reassigned from it.
+func ReassignShellContactURN(ctx context.Context, db DBorTx, oa *OrgAssets, contactID ContactID, u urns.URN) (ContactID, bool, error) {
 	rows, err := db.QueryxContext(ctx, sqlSelectURNByIdentity, u.Identity(), oa.OrgID())
 	if err != nil {
 		return NilContactID, false, fmt.Errorf("error selecting URN by identity: %s", u.Identity())
@@ -943,21 +943,21 @@ func DetachShellContactURN(ctx context.Context, db DBorTx, oa *OrgAssets, contac
 		return NilContactID, false, nil
 	}
 
-	// only detaches if the owner still has no other URNs
-	res, err := db.ExecContext(ctx, sqlDetachShellContactURN, urn.ID, urn.ContactID)
+	// only reassigns if the owner still has no other URNs
+	res, err := db.ExecContext(ctx, sqlReassignShellContactURN, urn.ID, urn.ContactID, contactID)
 	if err != nil {
-		return urn.ContactID, false, fmt.Errorf("error detaching URN from shell contact: %w", err)
+		return urn.ContactID, false, fmt.Errorf("error reassigning URN from shell contact: %w", err)
 	}
-	numDetached, err := res.RowsAffected()
+	numReassigned, err := res.RowsAffected()
 	if err != nil {
-		return urn.ContactID, false, fmt.Errorf("error getting number of detached URNs: %w", err)
+		return urn.ContactID, false, fmt.Errorf("error getting number of reassigned URNs: %w", err)
 	}
-	if numDetached == 0 {
+	if numReassigned == 0 {
 		return urn.ContactID, false, nil
 	}
 
-	if err := UpdateContactModifiedOn(ctx, db, []ContactID{urn.ContactID}); err != nil {
-		return urn.ContactID, true, fmt.Errorf("error updating modified_on for shell contact: %w", err)
+	if err := UpdateContactModifiedOn(ctx, db, []ContactID{urn.ContactID, contactID}); err != nil {
+		return urn.ContactID, true, fmt.Errorf("error updating modified_on for contacts: %w", err)
 	}
 
 	return urn.ContactID, true, nil

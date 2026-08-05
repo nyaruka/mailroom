@@ -88,13 +88,13 @@ type NewURNSpec struct {
 func (s *NewURNSpec) Apply(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scene *runner.Scene, channel *models.Channel) error {
 	// as WhatsApp identity transitions from phone numbers to BSUIDs, a BSUID being appended here may already be owned
 	// by a duplicate contact created from messages received with only that BSUID - if that contact has no other URNs
-	// we detach the URN from it so that it can be claimed by this contact
+	// we reassign the URN to this contact, which lets the append below proceed and set priority and channel affinity
 	if urns.IsWhatsAppBSUID(s.Value) {
-		ownerID, detached, err := models.DetachShellContactURN(ctx, rt.DB, oa, scene.ContactID(), s.Value)
+		ownerID, reassigned, err := models.ReassignShellContactURN(ctx, rt.DB, oa, scene.ContactID(), s.Value)
 		if err != nil {
-			return fmt.Errorf("error detaching URN from shell contact: %w", err)
+			return fmt.Errorf("error reassigning URN from shell contact: %w", err)
 		}
-		if ownerID != models.NilContactID && !detached {
+		if ownerID != models.NilContactID && !reassigned {
 			slog.Info("BSUID URN not appended because it belongs to a contact with other URNs", "urn", s.Value, "contact", scene.ContactUUID(), "owner_id", ownerID)
 		}
 	}
