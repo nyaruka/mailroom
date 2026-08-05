@@ -132,7 +132,7 @@ func TestBroadcastSend(t *testing.T) {
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshOptIns)
 	require.NoError(t, err)
 
-	test.MockUniverse()
+	defer test.MockUniverse()()
 
 	tcs := []struct {
 		contactLanguage   i18n.Language

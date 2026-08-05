@@ -17,6 +17,10 @@ func TestCron(t *testing.T) {
 	vc := rt.VK.Get()
 	defer vc.Close()
 
+	// cron locks and last-fire times live in the shared valkey, so start clean and leave clean
+	testsuite.Reset(t, rt, testsuite.ResetValkey)
+	defer testsuite.Reset(t, rt, testsuite.ResetValkey)
+
 	align := func() {
 		untilNextSecond := time.Nanosecond * time.Duration(1_000_000_000-time.Now().Nanosecond()) // time until next second boundary
 		time.Sleep(untilNextSecond)                                                               // wait until after second boundary
