@@ -236,7 +236,7 @@ func runTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 			tcs[i] = actual
 		}
 
-		testsuite.Reset(t, rt, testsuite.ResetElastic)
+		testsuite.ClearElastic(t, rt)
 	}
 
 	// update if we are meant to

@@ -16,7 +16,7 @@ import (
 func TestMsgDeleted(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetDynamo|testsuite.ResetElastic)
+	defer testsuite.Reset(t, rt, testsuite.ResetDynamo)
 
 	// asserts on the entire contents of the shared history table so can't inherit items leaked by other tests
 	testsuite.Reset(t, rt, testsuite.ResetDynamo)

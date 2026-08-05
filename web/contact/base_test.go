@@ -35,8 +35,6 @@ func TestCreate(t *testing.T) {
 func TestDeindex(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetElastic)
-
 	// index Bob and Cat into the v2 contacts index
 	oa := testdb.Org1.Load(t, rt)
 	mcs, err := models.LoadContacts(ctx, rt.DB, oa, []models.ContactID{testdb.Bob.ID, testdb.Cat.ID})
@@ -75,14 +73,11 @@ func TestDeindex(t *testing.T) {
 func TestReindex(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetElastic)
-
 	testsuite.RunWebTests(t, rt, "testdata/reindex.json")
 }
 
 func TestExport(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
-	defer testsuite.Reset(t, rt, testsuite.ResetElastic)
 
 	testsuite.IndexContacts(t, rt)
 
@@ -91,7 +86,6 @@ func TestExport(t *testing.T) {
 
 func TestExportPreview(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
-	defer testsuite.Reset(t, rt, testsuite.ResetElastic)
 
 	testsuite.IndexContacts(t, rt)
 
@@ -190,8 +184,6 @@ func TestParseQuery(t *testing.T) {
 func TestPopulateGroup(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetElastic)
-
 	testdb.InsertContactGroup(t, rt, testdb.Org1, "", "Dynamic", "age > 18")
 
 	testsuite.RunWebTests(t, rt, "testdata/populate_group.json")
@@ -199,7 +191,6 @@ func TestPopulateGroup(t *testing.T) {
 
 func TestSearch(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
-	defer testsuite.Reset(t, rt, testsuite.ResetElastic)
 
 	testsuite.IndexContacts(t, rt)
 

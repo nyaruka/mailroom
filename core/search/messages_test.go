@@ -17,7 +17,7 @@ import (
 func TestSearchMessages(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetElastic|testsuite.ResetDynamo)
+	defer testsuite.Reset(t, rt, testsuite.ResetDynamo)
 
 	// pin the clock to just after the message fixtures so they stay within the search's rolling time window
 	defer dates.SetNowFunc(time.Now)

@@ -55,7 +55,6 @@ func TestStart(t *testing.T) {
 
 func TestStartPreview(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
-	defer testsuite.Reset(t, rt, testsuite.ResetElastic)
 
 	testsuite.IndexContacts(t, rt)
 

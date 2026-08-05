@@ -20,7 +20,7 @@ func TestContactChanged(t *testing.T) {
 
 	// this test pops tasks without marking them done, inflating the org's active count in the fair queue,
 	// so it needs to reset valkey for the tests which come after it
-	defer testsuite.Reset(t, rt, testsuite.ResetDynamo|testsuite.ResetElastic)
+	defer testsuite.Reset(t, rt, testsuite.ResetDynamo)
 
 	type urnRow struct {
 		Identity  string            `db:"identity"`
