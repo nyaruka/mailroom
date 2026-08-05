@@ -16,7 +16,6 @@ import (
 
 func TestGetContactTotal(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
-	defer testsuite.Reset(t, rt, testsuite.ResetElastic)
 
 	testsuite.IndexContacts(t, rt)
 
@@ -60,7 +59,6 @@ func TestGetContactTotal(t *testing.T) {
 
 func TestGetContactUUIDsForQueryPage(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
-	defer testsuite.Reset(t, rt, testsuite.ResetElastic)
 
 	testsuite.IndexContacts(t, rt)
 
@@ -127,8 +125,6 @@ func TestGetContactUUIDsForQueryPage(t *testing.T) {
 
 func TestGetContactUUIDsForQuery(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
-
-	defer testsuite.Reset(t, rt, testsuite.ResetElastic)
 
 	oa, err := models.GetOrgAssets(ctx, rt, 1)
 	require.NoError(t, err)
@@ -255,8 +251,6 @@ func TestGetContactUUIDsForQuery(t *testing.T) {
 
 func TestGetContactIDsForQuery(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
-
-	defer testsuite.Reset(t, rt, testsuite.ResetElastic)
 
 	oa, err := models.GetOrgAssets(ctx, rt, 1)
 	require.NoError(t, err)

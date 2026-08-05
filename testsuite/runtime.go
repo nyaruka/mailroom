@@ -27,8 +27,9 @@ func testdataPath(file string) string {
 	return path.Join(path.Dir(thisFile), "testdata", file)
 }
 
-// Refresh is our type for the pieces of state we want fresh. Note that there are no flags for the database
-// or valkey because each test gets its own (see dbtemplate.go and valkey.go).
+// Refresh is our type for the pieces of state we want fresh. Note that there are no flags for the database,
+// valkey or elastic because each test starts with its own clean state (see dbtemplate.go, valkey.go and
+// elastic.go).
 type ResetFlag int
 
 // refresh bit masks
@@ -37,7 +38,6 @@ const (
 	ResetAll     = ResetFlag(^0)
 	ResetStorage = ResetFlag(1 << 0)
 	ResetDynamo  = ResetFlag(1 << 1)
-	ResetElastic = ResetFlag(1 << 2)
 )
 
 // Reset clears out the state shared between tests
@@ -47,11 +47,6 @@ func Reset(t *testing.T, rt *runtime.Runtime, what ResetFlag) {
 	}
 	if what&ResetDynamo > 0 {
 		resetDynamo(t, rt)
-	}
-
-	// comes last so that reindexing happens from reset data
-	if what&ResetElastic > 0 {
-		resetElastic(t, rt)
 	}
 }
 
@@ -70,6 +65,8 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 	cfg.InternalPort = 8191
 	cfg.DB = fmt.Sprintf(dbTestDSNFormat, dbName)
 	cfg.Valkey = fmt.Sprintf(vkTestDSNFormat, vkDB)
+	cfg.ElasticContactsIndex = esContactsIndex() // this binary's own indexes, cleared before every test
+	cfg.ElasticMessagesIndex = esMessagesIndex() // - see elastic.go
 
 	// AWS SDK default chain reads these — used by the localstack S3/Dynamo/Cloudwatch clients
 	t.Setenv("AWS_ACCESS_KEY_ID", "root")
@@ -81,8 +78,6 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 	cfg.S3PathStyle = true
 	cfg.DynamoEndpoint = "http://localstack:4566"
 	cfg.DynamoTablePrefix = "Test"
-	cfg.ElasticContactsIndex = "contacts-test"
-	cfg.ElasticMessagesIndex = "messages-test"
 	cfg.SpoolDir = absPath("./_test_spool")
 
 	err := cfg.Parse()
@@ -92,8 +87,7 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 	require.NoError(t, err)
 
 	createBucket(t, rt, rt.Config.S3AttachmentsBucket)
-	setupElasticContacts(t, rt)
-	setupElasticMessages(t, rt)
+	ensureElastic(t, rt)
 
 	// create Dynamo tables if necessary
 	dyntest.CreateTables(t, rt.Dynamo.Main.Client(), testdataPath("dynamo.json"), false)
@@ -105,6 +99,8 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 
 	err = rt.Start()
 	require.NoError(t, err, "error starting runtime")
+
+	ClearElastic(t, rt) // so every test starts with empty indexes (ES writer must be started for its flush)
 
 	models.InitCache(rt)
 
@@ -165,13 +161,6 @@ func createBucket(t *testing.T, rt *runtime.Runtime, bucket string) {
 		_, err = rt.S3.Client.CreateBucket(t.Context(), &s3.CreateBucketInput{Bucket: aws.String(bucket)})
 		require.NoError(t, err)
 	}
-}
-
-func resetElastic(t *testing.T, rt *runtime.Runtime) {
-	t.Helper()
-
-	rt.ES.Writer.Flush()
-	clearElasticIndexes(t, rt)
 }
 
 func resetDynamo(t *testing.T, rt *runtime.Runtime) {

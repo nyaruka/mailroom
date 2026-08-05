@@ -2,10 +2,14 @@ package testsuite
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
+	"os"
+	"regexp"
 	"slices"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -23,9 +27,150 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// IndexContacts indexes all contacts for the test orgs into Elasticsearch. The index is cleared first because
-// it's shared state - a test calling this is about to assert on index contents and can't inherit docs leaked
-// by tests in other binaries whose async indexing completed after their own elastic reset.
+// Each test binary gets its own elastic indexes (suffixed with its process identifier), so concurrently
+// running binaries - including other worktrees sharing an Elasticsearch - never see each other's documents.
+// Within a binary, ClearElastic runs at the start of every test so each starts with empty indexes - which
+// assumes tests run sequentially, as a t.Parallel() test would have its documents cleared by the next test
+// to start. As with the per-test databases, ownership is marked with a Postgres advisory lock held for the
+// binary's lifetime, and setup sweeps away the indexes of any run which has died.
+
+const (
+	esContactsPrefix = "contacts-test-"
+	esMessagesPrefix = "messages-test-"
+
+	// name and index pattern base of the shared message index template, which covers the per-binary
+	// message indexes of every binary
+	esMessagesTemplate = "messages-test"
+)
+
+// matches the process identifier segment of a per-binary index name
+var esProcIDRegex = regexp.MustCompile(`^[0-9a-f]{8}$`)
+
+// per-binary index names
+func esContactsIndex() string { return esContactsPrefix + dbProcID() }
+func esMessagesIndex() string { return esMessagesPrefix + dbProcID() }
+
+// esKey derives the advisory lock key which marks a binary's elastic indexes as in use
+func esKey(procID string) int64 {
+	return dbKey("elastic_" + procID)
+}
+
+var esSetup sync.Once
+var esSetupErr error
+
+// ensureElastic creates this binary's elastic indexes on first use
+func ensureElastic(t *testing.T, rt *runtime.Runtime) {
+	t.Helper()
+
+	esSetup.Do(func() { esSetupErr = setupElastic(rt) })
+	require.NoError(t, esSetupErr, "error setting up elastic indexes")
+}
+
+// setupElastic claims this binary's indexes, creates them, and sweeps those of dead runs
+func setupElastic(rt *runtime.Runtime) error {
+	ctx := context.Background()
+
+	owner, err := dbOwner()
+	if err != nil {
+		return err
+	}
+
+	// claim our indexes before they exist, so they're never visible to another binary's sweep unclaimed
+	if _, err := owner.ExecContext(ctx, `SELECT pg_advisory_lock($1)`, esKey(dbProcID())); err != nil {
+		return fmt.Errorf("error claiming elastic indexes: %w", err)
+	}
+
+	contactsBody, err := os.ReadFile(testdataPath("es_contacts.json"))
+	if err != nil {
+		return err
+	}
+	if _, err := rt.ES.Client.Indices.Create(esContactsIndex()).Raw(bytes.NewReader(contactsBody)).Do(ctx); err != nil {
+		return fmt.Errorf("error creating contacts index: %w", err)
+	}
+
+	messagesBody, err := os.ReadFile(testdataPath("es_messages.json"))
+	if err != nil {
+		return err
+	}
+	messagesBody = bytes.ReplaceAll(messagesBody, []byte("{{INDEX}}"), []byte(esMessagesTemplate))
+	if _, err := rt.ES.Client.Indices.PutIndexTemplate(esMessagesTemplate).Raw(bytes.NewReader(messagesBody)).Do(ctx); err != nil {
+		return fmt.Errorf("error creating messages index template: %w", err)
+	}
+
+	return sweepStaleElastic(ctx, rt)
+}
+
+// sweepStaleElastic deletes the indexes of binaries which are no longer running. An index still in use is
+// protected by its owner's advisory lock, so any process identifier we can lock ourselves belongs to a run
+// which is no longer around.
+func sweepStaleElastic(ctx context.Context, rt *runtime.Runtime) error {
+	admin, err := dbAdmin()
+	if err != nil {
+		return err
+	}
+	conn, err := admin.DB.Conn(ctx)
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+
+	indexes, err := rt.ES.Client.Cat.Indices().Index(esContactsPrefix + "*," + esMessagesPrefix + "*").Do(ctx)
+	if err != nil {
+		return fmt.Errorf("error listing test indexes: %w", err)
+	}
+
+	byProcID := make(map[string][]string)
+	for _, idx := range indexes {
+		if idx.Index == nil {
+			continue
+		}
+		rest := strings.TrimPrefix(strings.TrimPrefix(*idx.Index, esContactsPrefix), esMessagesPrefix)
+		procID, _, _ := strings.Cut(rest, "-")
+		if procID == dbProcID() || !esProcIDRegex.MatchString(procID) {
+			continue // ours, or not a per-binary test index
+		}
+		byProcID[procID] = append(byProcID[procID], *idx.Index)
+	}
+
+	for procID, names := range byProcID {
+		var got bool
+		if err := conn.QueryRowContext(ctx, `SELECT pg_try_advisory_lock($1)`, esKey(procID)).Scan(&got); err != nil {
+			return err
+		}
+		if !got {
+			continue // in use by a live run
+		}
+
+		for _, name := range names {
+			if _, err := rt.ES.Client.Indices.Delete(name).Do(ctx); err != nil {
+				return fmt.Errorf("error deleting stale index %s: %w", name, err)
+			}
+		}
+
+		conn.ExecContext(ctx, `SELECT pg_advisory_unlock($1)`, esKey(procID))
+	}
+
+	return nil
+}
+
+// ClearElastic clears out this binary's elastic indexes: all documents from the contacts index, and the
+// message indexes entirely. Runs at the start of every test, and can be called mid-test by tests which
+// assert on exact index contents across phases.
+func ClearElastic(t *testing.T, rt *runtime.Runtime) {
+	t.Helper()
+
+	rt.ES.Writer.Flush()
+
+	// refresh so that recently written documents are visible to the delete query
+	_, err := rt.ES.Client.Indices.Refresh().Index(rt.Config.ElasticContactsIndex).Do(t.Context())
+	require.NoError(t, err)
+
+	clearElasticContacts(t, rt)
+	clearElasticMessages(t, rt)
+}
+
+// IndexContacts indexes all contacts for the test orgs into Elasticsearch. The index is cleared first so
+// the result is exactly the indexable contacts in the database, regardless of what the test indexed before.
 func IndexContacts(t *testing.T, rt *runtime.Runtime) {
 	t.Helper()
 
@@ -206,15 +351,6 @@ type SearchAssertion struct {
 	Contacts []core.ContactUUID `json:"contacts"`
 }
 
-// removes all documents from the contacts index and deletes all message indexes.
-// Callers should flush the ES writer first if there may be buffered writes.
-func clearElasticIndexes(t *testing.T, rt *runtime.Runtime) {
-	t.Helper()
-
-	clearElasticContacts(t, rt)
-	clearElasticMessages(t, rt)
-}
-
 // removes all documents from the contacts index
 func clearElasticContacts(t *testing.T, rt *runtime.Runtime) {
 	t.Helper()
@@ -243,33 +379,6 @@ func clearElasticMessages(t *testing.T, rt *runtime.Runtime) {
 			require.NoError(t, err)
 		}
 	}
-}
-
-// setupElasticContacts creates the contacts index in Elastic if it doesn't already exist
-func setupElasticContacts(t *testing.T, rt *runtime.Runtime) {
-	t.Helper()
-
-	exists, err := rt.ES.Client.Indices.Exists(rt.Config.ElasticContactsIndex).IsSuccess(t.Context())
-	require.NoError(t, err)
-
-	if !exists {
-		contactsBody := ReadFile(t, testdataPath("es_contacts.json"))
-		_, err = rt.ES.Client.Indices.Create(rt.Config.ElasticContactsIndex).Raw(bytes.NewReader(contactsBody)).Do(t.Context())
-		require.NoError(t, err)
-	}
-}
-
-// setupElasticMessages creates the index template for messages in Elastic
-func setupElasticMessages(t *testing.T, rt *runtime.Runtime) {
-	t.Helper()
-
-	messagesBody := ReadFile(t, testdataPath("es_messages.json"))
-
-	// replace placeholder with actual index name for test
-	body := bytes.ReplaceAll(messagesBody, []byte("{{INDEX}}"), []byte(rt.Config.ElasticMessagesIndex))
-
-	_, err := rt.ES.Client.Indices.PutIndexTemplate(rt.Config.ElasticMessagesIndex).Raw(bytes.NewReader(body)).Do(t.Context())
-	require.NoError(t, err)
 }
 
 // indexes all active contacts for the given org into Elastic and refreshes the index so they're immediately searchable
