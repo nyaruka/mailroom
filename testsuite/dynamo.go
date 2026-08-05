@@ -1,7 +1,13 @@
 package testsuite
 
 import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"os"
 	"strconv"
+	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -14,6 +20,128 @@ import (
 	"github.com/nyaruka/mailroom/v26/runtime"
 	"github.com/stretchr/testify/require"
 )
+
+// Each test binary gets its own dynamo tables (prefixed with its process identifier), so concurrently
+// running binaries never see each other's items. Within a binary, ClearDynamo runs at the start of every
+// test so each starts with empty tables - assuming sequential tests, as elsewhere. Ownership is the same
+// per-binary advisory lock that marks the elastic indexes (see dbtemplate.go), and setup sweeps away the
+// tables of any run which has died.
+
+// per-binary prefix for dynamo table names, e.g. Testa1b2c3d4 -> Testa1b2c3d4Main
+func dynTablePrefix() string {
+	return "Test" + dbProcID()
+}
+
+var dynSetup sync.Once
+var dynSetupErr error
+
+// ensureDynamo creates this binary's dynamo tables on first use
+func ensureDynamo(t *testing.T, rt *runtime.Runtime) {
+	t.Helper()
+
+	dynSetup.Do(func() { dynSetupErr = setupDynamo(rt) })
+	require.NoError(t, dynSetupErr, "error setting up dynamo tables")
+}
+
+// setupDynamo claims this binary's tables, creates them, and sweeps those of dead runs
+func setupDynamo(rt *runtime.Runtime) error {
+	ctx := context.Background()
+
+	if err := claimBinary(); err != nil {
+		return err
+	}
+
+	tablesJSON, err := os.ReadFile(testdataPath("dynamo.json"))
+	if err != nil {
+		return err
+	}
+	inputs := []*dynamodb.CreateTableInput{}
+	if err := json.Unmarshal(tablesJSON, &inputs); err != nil {
+		return fmt.Errorf("error unmarshaling dynamo.json: %w", err)
+	}
+
+	client := rt.Dynamo.Main.Client()
+
+	for _, input := range inputs {
+		input.TableName = aws.String(rt.Config.DynamoTablePrefix + *input.TableName)
+
+		if _, err := client.CreateTable(ctx, input); err != nil {
+			return fmt.Errorf("error creating table %s: %w", *input.TableName, err)
+		}
+	}
+
+	return sweepStaleDynamo(ctx, client)
+}
+
+// sweepStaleDynamo deletes the tables of binaries which are no longer running - any process identifier
+// whose per-binary lock we can take ourselves belongs to a run which is no longer around.
+func sweepStaleDynamo(ctx context.Context, client *dynamodb.Client) error {
+	admin, err := dbAdmin()
+	if err != nil {
+		return err
+	}
+	conn, err := admin.DB.Conn(ctx)
+	if err != nil {
+		return err
+	}
+	defer conn.Close()
+
+	byProcID := make(map[string][]string)
+	var startFrom *string
+	for {
+		resp, err := client.ListTables(ctx, &dynamodb.ListTablesInput{ExclusiveStartTableName: startFrom})
+		if err != nil {
+			return fmt.Errorf("error listing tables: %w", err)
+		}
+		for _, name := range resp.TableNames {
+			rest := strings.TrimPrefix(name, "Test")
+			if len(rest) < 8 {
+				continue
+			}
+			procID := rest[:8]
+			if procID == dbProcID() || !binProcIDRegex.MatchString(procID) {
+				continue // ours, or not a per-binary test table
+			}
+			byProcID[procID] = append(byProcID[procID], name)
+		}
+		if resp.LastEvaluatedTableName == nil {
+			break
+		}
+		startFrom = resp.LastEvaluatedTableName
+	}
+
+	for procID, names := range byProcID {
+		var got bool
+		if err := conn.QueryRowContext(ctx, `SELECT pg_try_advisory_lock($1)`, binKey(procID)).Scan(&got); err != nil {
+			return err
+		}
+		if !got {
+			continue // in use by a live run
+		}
+
+		for _, name := range names {
+			if _, err := client.DeleteTable(ctx, &dynamodb.DeleteTableInput{TableName: aws.String(name)}); err != nil {
+				return fmt.Errorf("error deleting stale table %s: %w", name, err)
+			}
+		}
+
+		conn.ExecContext(ctx, `SELECT pg_advisory_unlock($1)`, binKey(procID))
+	}
+
+	return nil
+}
+
+// ClearDynamo clears out this binary's dynamo tables. Runs at the start of every test, and can be called
+// mid-test by tests which assert on exact table contents across phases.
+func ClearDynamo(t *testing.T, rt *runtime.Runtime) {
+	t.Helper()
+
+	rt.Dynamo.Main.Flush()
+	rt.Dynamo.History.Flush()
+
+	dyntest.Truncate(t, rt.Dynamo.Main.Client(), rt.Dynamo.Main.Table())
+	dyntest.Truncate(t, rt.Dynamo.History.Client(), rt.Dynamo.History.Table())
+}
 
 func GetHistoryItems(t *testing.T, rt *runtime.Runtime, clear bool, after time.Time) []*dynamo.Item {
 	t.Helper()

@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"regexp"
 	"slices"
 	"strings"
 	"sync"
@@ -43,17 +42,9 @@ const (
 	esMessagesTemplate = "messages-test"
 )
 
-// matches the process identifier segment of a per-binary index name
-var esProcIDRegex = regexp.MustCompile(`^[0-9a-f]{8}$`)
-
 // per-binary index names
 func esContactsIndex() string { return esContactsPrefix + dbProcID() }
 func esMessagesIndex() string { return esMessagesPrefix + dbProcID() }
-
-// esKey derives the advisory lock key which marks a binary's elastic indexes as in use
-func esKey(procID string) int64 {
-	return dbKey("elastic_" + procID)
-}
 
 var esSetup sync.Once
 var esSetupErr error
@@ -70,14 +61,8 @@ func ensureElastic(t *testing.T, rt *runtime.Runtime) {
 func setupElastic(rt *runtime.Runtime) error {
 	ctx := context.Background()
 
-	owner, err := dbOwner()
-	if err != nil {
+	if err := claimBinary(); err != nil {
 		return err
-	}
-
-	// claim our indexes before they exist, so they're never visible to another binary's sweep unclaimed
-	if _, err := owner.ExecContext(ctx, `SELECT pg_advisory_lock($1)`, esKey(dbProcID())); err != nil {
-		return fmt.Errorf("error claiming elastic indexes: %w", err)
 	}
 
 	contactsBody, err := os.ReadFile(testdataPath("es_contacts.json"))
@@ -126,7 +111,7 @@ func sweepStaleElastic(ctx context.Context, rt *runtime.Runtime) error {
 		}
 		rest := strings.TrimPrefix(strings.TrimPrefix(*idx.Index, esContactsPrefix), esMessagesPrefix)
 		procID, _, _ := strings.Cut(rest, "-")
-		if procID == dbProcID() || !esProcIDRegex.MatchString(procID) {
+		if procID == dbProcID() || !binProcIDRegex.MatchString(procID) {
 			continue // ours, or not a per-binary test index
 		}
 		byProcID[procID] = append(byProcID[procID], *idx.Index)
@@ -134,7 +119,7 @@ func sweepStaleElastic(ctx context.Context, rt *runtime.Runtime) error {
 
 	for procID, names := range byProcID {
 		var got bool
-		if err := conn.QueryRowContext(ctx, `SELECT pg_try_advisory_lock($1)`, esKey(procID)).Scan(&got); err != nil {
+		if err := conn.QueryRowContext(ctx, `SELECT pg_try_advisory_lock($1)`, binKey(procID)).Scan(&got); err != nil {
 			return err
 		}
 		if !got {
@@ -147,7 +132,7 @@ func sweepStaleElastic(ctx context.Context, rt *runtime.Runtime) error {
 			}
 		}
 
-		conn.ExecContext(ctx, `SELECT pg_advisory_unlock($1)`, esKey(procID))
+		conn.ExecContext(ctx, `SELECT pg_advisory_unlock($1)`, binKey(procID))
 	}
 
 	return nil

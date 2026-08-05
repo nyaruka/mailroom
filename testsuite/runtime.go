@@ -12,7 +12,6 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/nyaruka/gocommon/aws/dynamo/dyntest"
 	"github.com/nyaruka/gocommon/centrifugo"
 	"github.com/nyaruka/mailroom/v26/core/goflow"
 	"github.com/nyaruka/mailroom/v26/core/models"
@@ -28,8 +27,8 @@ func testdataPath(file string) string {
 }
 
 // Refresh is our type for the pieces of state we want fresh. Note that there are no flags for the database,
-// valkey or elastic because each test starts with its own clean state (see dbtemplate.go, valkey.go and
-// elastic.go).
+// valkey, elastic or dynamo because each test starts with its own clean state (see dbtemplate.go, valkey.go,
+// elastic.go and dynamo.go).
 type ResetFlag int
 
 // refresh bit masks
@@ -37,16 +36,12 @@ const (
 	ResetNone    = ResetFlag(0)
 	ResetAll     = ResetFlag(^0)
 	ResetStorage = ResetFlag(1 << 0)
-	ResetDynamo  = ResetFlag(1 << 1)
 )
 
 // Reset clears out the state shared between tests
 func Reset(t *testing.T, rt *runtime.Runtime, what ResetFlag) {
 	if what&ResetStorage > 0 {
 		resetStorage(t, rt)
-	}
-	if what&ResetDynamo > 0 {
-		resetDynamo(t, rt)
 	}
 }
 
@@ -77,7 +72,7 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 	cfg.S3AttachmentsBucket = "test-attachments"
 	cfg.S3PathStyle = true
 	cfg.DynamoEndpoint = "http://localstack:4566"
-	cfg.DynamoTablePrefix = "Test"
+	cfg.DynamoTablePrefix = dynTablePrefix() // this binary's own tables, cleared before every test - see dynamo.go
 	cfg.SpoolDir = absPath("./_test_spool")
 
 	err := cfg.Parse()
@@ -88,9 +83,7 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 
 	createBucket(t, rt, rt.Config.S3AttachmentsBucket)
 	ensureElastic(t, rt)
-
-	// create Dynamo tables if necessary
-	dyntest.CreateTables(t, rt.Dynamo.Main.Client(), testdataPath("dynamo.json"), false)
+	ensureDynamo(t, rt)
 
 	rt.FCM = &MockFCMClient{ValidTokens: []string{"FCMID3", "FCMID4", "FCMID5"}}
 	rt.Centrifugo = centrifugo.NewService(centrifugo.NewMockClient(), rt.VK)
@@ -100,7 +93,9 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 	err = rt.Start()
 	require.NoError(t, err, "error starting runtime")
 
-	ClearElastic(t, rt) // so every test starts with empty indexes (ES writer must be started for its flush)
+	// so every test starts with empty indexes and tables (the writers must be started for their flushes)
+	ClearElastic(t, rt)
+	ClearDynamo(t, rt)
 
 	models.InitCache(rt)
 
@@ -161,15 +156,6 @@ func createBucket(t *testing.T, rt *runtime.Runtime, bucket string) {
 		_, err = rt.S3.Client.CreateBucket(t.Context(), &s3.CreateBucketInput{Bucket: aws.String(bucket)})
 		require.NoError(t, err)
 	}
-}
-
-func resetDynamo(t *testing.T, rt *runtime.Runtime) {
-	t.Helper()
-
-	rt.Dynamo.Main.Flush()
-	rt.Dynamo.History.Flush()
-
-	dyntest.CreateTables(t, rt.Dynamo.Main.Client(), testdataPath("dynamo.json"), true)
 }
 
 func ReadFile(t *testing.T, path string) []byte {

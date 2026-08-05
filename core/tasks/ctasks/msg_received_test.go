@@ -441,7 +441,6 @@ func TestMsgReceivedNewURN(t *testing.T) {
 	defer vc.Close()
 
 	// pops tasks without marking them done, so needs to reset valkey for the tests which come after it
-	defer testsuite.Reset(t, rt, testsuite.ResetDynamo)
 
 	dbMsg := testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199bad8-f98d-75a3-b641-2718a25ac3f5", testdb.TwilioChannel, testdb.Bob, "", models.MsgStatusPending, "")
 
@@ -613,11 +612,6 @@ func TestMsgReceivedNewURN(t *testing.T) {
 
 func TestMsgReceivedPayload(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
-
-	defer testsuite.Reset(t, rt, testsuite.ResetDynamo)
-
-	// asserts on the entire contents of the shared history table so can't inherit items leaked by other tests
-	testsuite.Reset(t, rt, testsuite.ResetDynamo)
 
 	oa := testdb.Org1.Load(t, rt)
 	ann, _, _ := testdb.Ann.Load(t, rt, oa)
