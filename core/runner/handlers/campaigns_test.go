@@ -10,8 +10,6 @@ import (
 func TestCampaigns(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetAll)
-
 	// insert an event on our campaign that is based on created_on
 	testdb.InsertCampaignFlowPoint(t, rt, testdb.RemindersCampaign, testdb.Favorites, testdb.CreatedOnField, 1000, "W")
 

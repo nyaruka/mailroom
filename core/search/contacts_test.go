@@ -116,8 +116,6 @@ func TestNewContactDoc(t *testing.T) {
 func TestDeindexContacts(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetAll)
-
 	testsuite.IndexContacts(t, rt)
 
 	refreshV2 := func() {

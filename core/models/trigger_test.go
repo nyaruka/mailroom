@@ -17,8 +17,6 @@ import (
 func TestLoadTriggers(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetAll)
-
 	rt.DB.MustExec(`DELETE FROM triggers_trigger`)
 	farmersGroup := testdb.InsertContactGroup(t, rt, testdb.Org1, assets.GroupUUID(uuids.NewV4()), "Farmers", "")
 
@@ -137,8 +135,6 @@ func TestLoadTriggers(t *testing.T) {
 func TestFindMatchingMsgTrigger(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetAll)
-
 	rt.DB.MustExec(`DELETE FROM triggers_trigger`)
 
 	joinID := testdb.InsertKeywordTrigger(t, rt, testdb.Org1, testdb.Favorites, []string{"join"}, models.MatchFirst, nil, nil, nil)
@@ -208,8 +204,6 @@ func TestFindMatchingMsgTrigger(t *testing.T) {
 
 func TestFindMatchingIncomingCallTrigger(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
-
-	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
 	doctorsAndNotTestersTriggerID := testdb.InsertIncomingCallTrigger(t, rt, testdb.Org1, testdb.Favorites, []*testdb.Group{testdb.DoctorsGroup}, []*testdb.Group{testdb.TestersGroup}, nil)
 	doctorsTriggerID := testdb.InsertIncomingCallTrigger(t, rt, testdb.Org1, testdb.Favorites, []*testdb.Group{testdb.DoctorsGroup}, nil, nil)
@@ -343,8 +337,6 @@ func TestFindMatchingReferralTrigger(t *testing.T) {
 
 func TestArchiveContactTriggers(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
-
-	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
 	everybodyID := testdb.InsertKeywordTrigger(t, rt, testdb.Org1, testdb.Favorites, []string{"join"}, models.MatchFirst, nil, nil, nil)
 	annOnly1ID := testdb.InsertScheduledTrigger(t, rt, testdb.Org1, testdb.Favorites, testdb.InsertSchedule(t, rt, testdb.Org1, models.RepeatPeriodMonthly, time.Now()), nil, nil, []*testdb.Contact{testdb.Ann})

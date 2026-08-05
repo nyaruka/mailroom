@@ -23,7 +23,6 @@ import (
 
 func TestDTOneStatusCallback(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
-	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
 	wg := &sync.WaitGroup{}
 	server := web.NewServer(ctx, rt, wg)

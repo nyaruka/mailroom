@@ -23,8 +23,6 @@ import (
 func TestBroadcastsFromEvents(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetAll)
-
 	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 	require.NoError(t, err)
 
@@ -175,8 +173,6 @@ func TestSendBroadcastTask(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 	vc := rt.VK.Get()
 	defer vc.Close()
-
-	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
 	rt.DB.MustExec(`UPDATE orgs_org SET flow_languages = '{"eng", "spa"}' WHERE id = $1`, testdb.Org1.ID)
 

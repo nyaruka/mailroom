@@ -24,8 +24,6 @@ import (
 func TestContacts(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetAll)
-
 	// for now it's still possible to have more than one open ticket in the database
 	testdb.InsertOpenTicket(t, rt, "01992f54-5ab6-717a-a39e-e8ca91fb7262", testdb.Org1, testdb.Ann, testdb.SupportTopic, time.Now(), testdb.Agent)
 	testdb.InsertOpenTicket(t, rt, "01992f54-5ab6-725e-be9c-0c6407efd755", testdb.Org1, testdb.Ann, testdb.SalesTopic, time.Now(), nil)
@@ -457,8 +455,6 @@ func TestGetContactIDsPage(t *testing.T) {
 func TestUpdateContactLastSeenAndModifiedOn(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetAll)
-
 	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 	require.NoError(t, err)
 
@@ -491,8 +487,6 @@ func TestUpdateContactLastSeenAndModifiedOn(t *testing.T) {
 func TestUpdateContactStatus(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetAll)
-
 	err := models.UpdateContactStatus(ctx, rt.DB, []*models.ContactStatusChange{})
 	assert.NoError(t, err)
 
@@ -521,8 +515,6 @@ func TestUpdateContactStatus(t *testing.T) {
 
 func TestUpdateContactURNs(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
-
-	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
 	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 	assert.NoError(t, err)

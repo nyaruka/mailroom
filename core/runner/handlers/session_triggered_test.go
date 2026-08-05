@@ -10,8 +10,6 @@ import (
 func TestSessionTriggered(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetAll)
-
 	reset := test.MockUniverse()
 	defer reset()
 
@@ -20,8 +18,6 @@ func TestSessionTriggered(t *testing.T) {
 
 func TestSessionTriggeredByQuery(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
-
-	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
 	runTests(t, rt, "testdata/session_triggered_by_query.json")
 }

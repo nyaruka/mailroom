@@ -24,8 +24,6 @@ import (
 func TestCreate(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetAll)
-
 	// detach Ann's tel URN
 	rt.DB.MustExec(`UPDATE contacts_contacturn SET contact_id = NULL WHERE contact_id = $1`, testdb.Ann.ID)
 
@@ -122,8 +120,6 @@ func TestInspect(t *testing.T) {
 
 func TestModify(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
-
-	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
 	oa := testdb.Org1.Load(t, rt)
 

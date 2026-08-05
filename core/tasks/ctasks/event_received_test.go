@@ -26,8 +26,6 @@ func TestEventReceived(t *testing.T) {
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	defer testsuite.Reset(t, rt, testsuite.ResetAll)
-
 	oa := testdb.Org1.Load(t, rt)
 
 	// stop Bob so we can test that he gets un-stopped on new conversation

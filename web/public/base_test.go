@@ -23,8 +23,6 @@ func TestDocs(t *testing.T) {
 func TestMetrics(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetAll)
-
 	promToken := "2d26a50841ff48237238bbdd021150f6a33a4196"
 	rt.DB.MustExec(`UPDATE orgs_org SET prometheus_token = $1 WHERE id = $2`, promToken, testdb.Org1.ID)
 

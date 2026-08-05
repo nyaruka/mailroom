@@ -26,8 +26,6 @@ func TestAirtimeCreated(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
 	rt.Config.Domain = "mailroom.example.com"
 
-	defer testsuite.Reset(t, rt, testsuite.ResetAll)
-
 	// the in-sprint Create resolves the operator + product and submits the unconfirmed transaction; the
 	// post-commit hook then POSTs to /confirm with the provider id. HTTP logs surfaced inside the event are
 	// test data only and don't make real calls.

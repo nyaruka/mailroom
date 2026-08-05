@@ -15,8 +15,6 @@ import (
 func TestMsgCreated(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetAll)
-
 	rt.Config.AttachmentDomain = "foo.bar.com"
 	defer func() { rt.Config.AttachmentDomain = "" }()
 
@@ -46,8 +44,6 @@ func TestMsgCreated(t *testing.T) {
 
 func TestMsgCreatedNewURN(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
-
-	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
 	// switch our twitter channel to telegram
 	rt.DB.MustExec(`UPDATE channels_channel SET channel_type = 'TG', name = 'Telegram', schemes = ARRAY['telegram'] WHERE uuid = $1`, testdb.FacebookChannel.UUID)

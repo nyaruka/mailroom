@@ -17,8 +17,6 @@ import (
 func TestBulkCampaignTrigger(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetAll)
-
 	defer random.SetGenerator(random.DefaultGenerator)
 	random.SetGenerator(random.NewSeededGenerator(123))
 
@@ -135,8 +133,6 @@ func TestBulkCampaignTrigger(t *testing.T) {
 
 func TestBulkCampaignTriggerModes(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
-
-	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
 	// create waiting messaging sessions for Ann and Bob, Cat and Dan have no session
 	testdb.InsertWaitingSession(t, rt, testdb.Org1, testdb.Ann, models.FlowTypeMessaging, nil, testdb.Favorites)

@@ -13,8 +13,6 @@ import (
 func TestScheduleCampaignPoint(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetAll)
-
 	// set campaign point status to (S)CHEDULING (done by RP)
 	rt.DB.MustExec(`UPDATE campaigns_campaignevent SET status = 'S' WHERE id = $1`, testdb.RemindersPoint1.ID)
 

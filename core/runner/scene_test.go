@@ -38,7 +38,6 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 
 	defer dates.SetNowFunc(time.Now)
 	defer random.SetGenerator(random.DefaultGenerator)
-	defer testsuite.Reset(t, rt, testsuite.ResetAll) // modifies contacts
 
 	testFlows := testdb.ImportFlows(t, rt, testdb.Org1, "testdata/session_test_flows.json")
 	flow := testFlows[0]
@@ -219,8 +218,6 @@ func TestSessionWithSubflows(t *testing.T) {
 
 func TestBulkCommitPublishesEvents(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
-
-	defer testsuite.Reset(t, rt, testsuite.ResetAll) // modifies contacts
 
 	testFlows := testdb.ImportFlows(t, rt, testdb.Org1, "testdata/session_test_flows.json")
 	flow := testFlows[0]
@@ -529,8 +526,6 @@ func TestFlowStats(t *testing.T) {
 
 func TestResumeSession(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
-
-	defer testsuite.Reset(t, rt, testsuite.ResetStorage)
 
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshOrg)
 	require.NoError(t, err)
