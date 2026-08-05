@@ -449,9 +449,13 @@ func TestMsgReceivedNewURN(t *testing.T) {
 		ChannelID *models.ChannelID `db:"channel_id"`
 	}
 
+	var shell, other *testdb.Contact
+	var shellModifiedOn, bobModifiedOn time.Time
+
 	tcs := []struct {
 		label       string
 		preHook     func()
+		postHook    func(t *testing.T)
 		contact     *testdb.Contact
 		channel     *testdb.Channel
 		newURN      *ctasks.NewURNSpec
@@ -505,6 +509,63 @@ func TestMsgReceivedNewURN(t *testing.T) {
 				{Identity: "telegram:98765", ChannelID: nil},
 			},
 		},
+		{
+			label: "append WhatsApp BSUID URN owned by URN-less shell contact claims it",
+			preHook: func() {
+				rt.DB.MustExec(`DELETE FROM contacts_contacturn WHERE contact_id = $1 AND scheme != 'tel'`, testdb.Bob.ID)
+
+				// create a shell contact whose only URN is the BSUID
+				shell = testdb.InsertContact(t, rt, testdb.Org1, "778cb7bb-e6ef-4786-b8d0-a7e29e7cd7cd", "Shell", "eng", models.ContactStatusActive)
+				testdb.InsertContactURN(t, rt, testdb.Org1, shell, "whatsapp:US.SHELL1", 1000, nil)
+
+				require.NoError(t, rt.DB.Get(&shellModifiedOn, `SELECT modified_on FROM contacts_contact WHERE id = $1`, shell.ID))
+				require.NoError(t, rt.DB.Get(&bobModifiedOn, `SELECT modified_on FROM contacts_contact WHERE id = $1`, testdb.Bob.ID))
+			},
+			contact: testdb.Bob,
+			channel: testdb.TwilioChannel,
+			newURN: &ctasks.NewURNSpec{
+				Value:  "whatsapp:US.SHELL1",
+				Action: "append",
+			},
+			expectedURN: []urnRow{
+				{Identity: "tel:+16055742222", ChannelID: &testdb.TwilioChannel.ID},
+				{Identity: "whatsapp:US.SHELL1", ChannelID: &testdb.TwilioChannel.ID},
+			},
+			postHook: func(t *testing.T) {
+				// shell contact is left without URNs and both contacts have modified_on bumped for re-indexing
+				assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contacturn WHERE contact_id = $1`, shell.ID).Returns(0)
+
+				var newModifiedOn time.Time
+				require.NoError(t, rt.DB.Get(&newModifiedOn, `SELECT modified_on FROM contacts_contact WHERE id = $1`, shell.ID))
+				assert.True(t, newModifiedOn.After(shellModifiedOn), "shell contact modified_on should be bumped")
+				require.NoError(t, rt.DB.Get(&newModifiedOn, `SELECT modified_on FROM contacts_contact WHERE id = $1`, testdb.Bob.ID))
+				assert.True(t, newModifiedOn.After(bobModifiedOn), "message contact modified_on should be bumped")
+			},
+		},
+		{
+			label: "append WhatsApp BSUID URN owned by contact with other URNs isn't claimed",
+			preHook: func() {
+				rt.DB.MustExec(`DELETE FROM contacts_contacturn WHERE contact_id = $1 AND scheme != 'tel'`, testdb.Bob.ID)
+
+				// create a contact that owns the BSUID but also has a phone URN
+				other = testdb.InsertContact(t, rt, testdb.Org1, "d0d1a352-6e05-4a4c-9e07-2266a0dcfae7", "Other", "eng", models.ContactStatusActive)
+				testdb.InsertContactURN(t, rt, testdb.Org1, other, "tel:+16055749999", 1000, nil)
+				testdb.InsertContactURN(t, rt, testdb.Org1, other, "whatsapp:US.OTHER1", 999, nil)
+			},
+			contact: testdb.Bob,
+			channel: testdb.TwilioChannel,
+			newURN: &ctasks.NewURNSpec{
+				Value:  "whatsapp:US.OTHER1",
+				Action: "append",
+			},
+			expectedURN: []urnRow{
+				{Identity: "tel:+16055742222", ChannelID: &testdb.TwilioChannel.ID},
+			},
+			postHook: func(t *testing.T) {
+				// owning contact keeps both its URNs
+				assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contacturn WHERE contact_id = $1`, other.ID).Returns(2)
+			},
+		},
 	}
 
 	for _, tc := range tcs {
@@ -541,6 +602,10 @@ func TestMsgReceivedNewURN(t *testing.T) {
 			err = rt.DB.Select(&urnRows, `SELECT identity, channel_id FROM contacts_contacturn WHERE contact_id = $1 ORDER BY priority DESC`, tc.contact.ID)
 			require.NoError(t, err)
 			assert.Equal(t, tc.expectedURN, urnRows)
+
+			if tc.postHook != nil {
+				tc.postHook(t)
+			}
 		})
 	}
 }
