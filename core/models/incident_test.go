@@ -25,8 +25,6 @@ func TestIncidentWebhooksUnhealthy(t *testing.T) {
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	defer testsuite.Reset(t, rt, testsuite.ResetData)
-
 	oa := testdb.Org1.Load(t, rt)
 
 	id1, _, err := models.IncidentWebhooksUnhealthy(ctx, rt.DB, rt.VK, oa, []core.NodeUUID{"5a2e83f1-efa8-40ba-bc0c-8873c525de7d", "aba89043-6f0a-4ccf-ba7f-0e1674b90759"})
@@ -58,8 +56,6 @@ func TestIncidentWebhooksUnhealthy(t *testing.T) {
 
 func TestGetOpenIncidents(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
-
-	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
 	oa1 := testdb.Org1.Load(t, rt)
 	oa2 := testdb.Org2.Load(t, rt)

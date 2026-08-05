@@ -25,7 +25,7 @@ func TestEndIncidents(t *testing.T) {
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetValkey)
+	defer testsuite.Reset(t, rt, testsuite.ResetValkey)
 
 	oa1 := testdb.Org1.Load(t, rt)
 	oa2 := testdb.Org2.Load(t, rt)

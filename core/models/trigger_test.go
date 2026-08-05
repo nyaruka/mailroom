@@ -254,8 +254,6 @@ func TestFindMatchingIncomingCallTrigger(t *testing.T) {
 func TestFindMatchingMissedCallTrigger(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetData)
-
 	testdb.InsertCatchallTrigger(t, rt, testdb.Org1, testdb.SingleMessage, nil, nil, nil)
 
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshTriggers)
@@ -288,8 +286,6 @@ func TestFindMatchingMissedCallTrigger(t *testing.T) {
 func TestFindMatchingNewConversationTrigger(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetData)
-
 	twilioTriggerID := testdb.InsertNewConversationTrigger(t, rt, testdb.Org1, testdb.Favorites, testdb.TwilioChannel)
 	noChTriggerID := testdb.InsertNewConversationTrigger(t, rt, testdb.Org1, testdb.Favorites, nil)
 
@@ -314,8 +310,6 @@ func TestFindMatchingNewConversationTrigger(t *testing.T) {
 
 func TestFindMatchingReferralTrigger(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
-
-	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
 	fooID := testdb.InsertReferralTrigger(t, rt, testdb.Org1, testdb.Favorites, "foo", testdb.FacebookChannel)
 	barID := testdb.InsertReferralTrigger(t, rt, testdb.Org1, testdb.Favorites, "bar", nil)

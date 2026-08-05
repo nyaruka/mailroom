@@ -17,8 +17,6 @@ import (
 func TestInsertAndUpdateRuns(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetData)
-
 	sessionUUID := testdb.InsertFlowSession(t, rt, testdb.Ann, models.FlowTypeMessaging, models.SessionStatusWaiting, nil, testdb.Favorites)
 
 	t1 := time.Date(2024, 12, 3, 14, 29, 30, 0, time.UTC)
@@ -80,8 +78,6 @@ func TestInsertAndUpdateRuns(t *testing.T) {
 func TestGetContactIDsAtNode(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetData)
-
 	createRun := func(org *testdb.Org, contact *testdb.Contact, nodeUUID core.NodeUUID) {
 		sessionUUID := testdb.InsertFlowSession(t, rt, contact, models.FlowTypeMessaging, models.SessionStatusWaiting, nil, testdb.Favorites)
 		testdb.InsertFlowRun(t, rt, org, sessionUUID, contact, testdb.Favorites, models.RunStatusWaiting, nodeUUID)
@@ -99,8 +95,6 @@ func TestGetContactIDsAtNode(t *testing.T) {
 
 func TestGetActiveAndWaitingRuns(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
-
-	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
 	session1UUID := testdb.InsertWaitingSession(t, rt, testdb.Org1, testdb.Ann, models.FlowTypeMessaging, nil, testdb.Favorites, testdb.PickANumber)
 	session2UUID := testdb.InsertWaitingSession(t, rt, testdb.Org1, testdb.Bob, models.FlowTypeMessaging, nil, testdb.PickANumber)

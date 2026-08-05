@@ -55,8 +55,6 @@ func TestLLMs(t *testing.T) {
 func TestLLMRecordCall(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetData)
-
 	dates.SetNowFunc(dates.NewFixedNow(time.Date(2026, 5, 4, 13, 14, 30, 0, time.UTC)))
 	defer dates.SetNowFunc(time.Now)
 

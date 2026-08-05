@@ -13,8 +13,6 @@ import (
 func TestOptIns(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetData)
-
 	polls := testdb.InsertOptIn(t, rt, testdb.Org1, "45aec4dd-945f-4511-878f-7d8516fbd336", "Polls")
 	offers := testdb.InsertOptIn(t, rt, testdb.Org1, "7fda7c97-4484-445d-8418-66fed031f82d", "Offers")
 

@@ -114,7 +114,7 @@ func TestNotificationSocket(t *testing.T) {
 func TestPublishNotifications(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetValkey)
+	defer testsuite.Reset(t, rt, testsuite.ResetValkey)
 
 	vc := rt.VK.Get()
 	defer vc.Close()
@@ -174,7 +174,7 @@ func TestPublishNotifications(t *testing.T) {
 func TestPublishNotificationData(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetValkey)
+	defer testsuite.Reset(t, rt, testsuite.ResetValkey)
 
 	vc := rt.VK.Get()
 	defer vc.Close()

@@ -17,8 +17,6 @@ import (
 func TestLoadCampaigns(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetData)
-
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, 1, models.RefreshCampaigns)
 	require.NoError(t, err)
 
