@@ -620,6 +620,58 @@ func TestUpdateContactURNs(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contacturn`).Returns(numInitialURNs + 3)
 }
 
+func TestReassignShellContactURN(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	oa := testdb.Org1.Load(t, rt)
+
+	// create a shell contact with only a WhatsApp BSUID URN
+	shell := testdb.InsertContact(t, rt, testdb.Org1, "8b2b8b4c-8e6e-4c96-9e9c-bf6b56a04e37", "Shell", "eng", models.ContactStatusActive)
+	shellURNID := testdb.InsertContactURN(t, rt, testdb.Org1, shell, "whatsapp:US.A1B2C3", 1000, nil)
+
+	// and a contact with a BSUID URN as well as a phone URN
+	other := testdb.InsertContact(t, rt, testdb.Org1, "a5b62498-f593-4dd2-a390-e2ff5b6d3c5b", "Other", "eng", models.ContactStatusActive)
+	testdb.InsertContactURN(t, rt, testdb.Org1, other, "tel:+16055747777", 1000, nil)
+	otherURNID := testdb.InsertContactURN(t, rt, testdb.Org1, other, "whatsapp:US.D4E5F6", 999, nil)
+
+	var shellModifiedOn, annModifiedOn time.Time
+	require.NoError(t, rt.DB.Get(&shellModifiedOn, `SELECT modified_on FROM contacts_contact WHERE id = $1`, shell.ID))
+	require.NoError(t, rt.DB.Get(&annModifiedOn, `SELECT modified_on FROM contacts_contact WHERE id = $1`, testdb.Ann.ID))
+
+	// noop if URN doesn't exist
+	ownerID, reassigned, err := models.ReassignShellContactURN(ctx, rt.DB, oa, testdb.Ann.ID, "whatsapp:US.XXXXXX")
+	assert.NoError(t, err)
+	assert.Equal(t, models.NilContactID, ownerID)
+	assert.False(t, reassigned)
+
+	// noop if URN is already owned by the given contact
+	ownerID, reassigned, err = models.ReassignShellContactURN(ctx, rt.DB, oa, shell.ID, "whatsapp:US.A1B2C3")
+	assert.NoError(t, err)
+	assert.Equal(t, models.NilContactID, ownerID)
+	assert.False(t, reassigned)
+
+	// URN owned by a contact with other URNs isn't reassigned
+	ownerID, reassigned, err = models.ReassignShellContactURN(ctx, rt.DB, oa, testdb.Ann.ID, "whatsapp:US.D4E5F6")
+	assert.NoError(t, err)
+	assert.Equal(t, other.ID, ownerID)
+	assert.False(t, reassigned)
+	assertdb.Query(t, rt.DB, `SELECT contact_id FROM contacts_contacturn WHERE id = $1`, otherURNID).Returns(int64(other.ID))
+
+	// URN owned by a shell contact is reassigned and both contacts have modified_on bumped
+	ownerID, reassigned, err = models.ReassignShellContactURN(ctx, rt.DB, oa, testdb.Ann.ID, "whatsapp:US.A1B2C3")
+	assert.NoError(t, err)
+	assert.Equal(t, shell.ID, ownerID)
+	assert.True(t, reassigned)
+	assertdb.Query(t, rt.DB, `SELECT contact_id FROM contacts_contacturn WHERE id = $1`, shellURNID).Returns(int64(testdb.Ann.ID))
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contacturn WHERE contact_id = $1`, shell.ID).Returns(0)
+
+	var newModifiedOn time.Time
+	require.NoError(t, rt.DB.Get(&newModifiedOn, `SELECT modified_on FROM contacts_contact WHERE id = $1`, shell.ID))
+	assert.True(t, newModifiedOn.After(shellModifiedOn))
+	require.NoError(t, rt.DB.Get(&newModifiedOn, `SELECT modified_on FROM contacts_contact WHERE id = $1`, testdb.Ann.ID))
+	assert.True(t, newModifiedOn.After(annModifiedOn))
+}
+
 func TestLoadContactURNs(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
