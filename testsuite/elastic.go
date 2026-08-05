@@ -8,7 +8,6 @@ import (
 	"os"
 	"slices"
 	"strings"
-	"sync"
 	"testing"
 	"time"
 
@@ -30,8 +29,8 @@ import (
 // running binaries - including other worktrees sharing an Elasticsearch - never see each other's documents.
 // Within a binary, ClearElastic runs at the start of every test so each starts with empty indexes - which
 // assumes tests run sequentially, as a t.Parallel() test would have its documents cleared by the next test
-// to start. As with the per-test databases, ownership is marked with a Postgres advisory lock held for the
-// binary's lifetime, and setup sweeps away the indexes of any run which has died.
+// to start. Ownership and sweeping of dead runs' indexes works as for all per-binary resources - see
+// binary.go.
 
 const (
 	esContactsPrefix = "contacts-test-"
@@ -43,28 +42,11 @@ const (
 )
 
 // per-binary index names
-func esContactsIndex() string { return esContactsPrefix + dbProcID() }
-func esMessagesIndex() string { return esMessagesPrefix + dbProcID() }
+func esContactsIndex() string { return esContactsPrefix + binProcID() }
+func esMessagesIndex() string { return esMessagesPrefix + binProcID() }
 
-var esSetup sync.Once
-var esSetupErr error
-
-// ensureElastic creates this binary's elastic indexes on first use
-func ensureElastic(t *testing.T, rt *runtime.Runtime) {
-	t.Helper()
-
-	esSetup.Do(func() { esSetupErr = setupElastic(rt) })
-	require.NoError(t, esSetupErr, "error setting up elastic indexes")
-}
-
-// setupElastic claims this binary's indexes, creates them, and sweeps those of dead runs
-func setupElastic(rt *runtime.Runtime) error {
-	ctx := context.Background()
-
-	if err := claimBinary(); err != nil {
-		return err
-	}
-
+// setupElastic creates this binary's indexes and sweeps those of dead runs
+func setupElastic(ctx context.Context, rt *runtime.Runtime) error {
 	contactsBody, err := os.ReadFile(testdataPath("es_contacts.json"))
 	if err != nil {
 		return err
@@ -85,20 +67,8 @@ func setupElastic(rt *runtime.Runtime) error {
 	return sweepStaleElastic(ctx, rt)
 }
 
-// sweepStaleElastic deletes the indexes of binaries which are no longer running. An index still in use is
-// protected by its owner's advisory lock, so any process identifier we can lock ourselves belongs to a run
-// which is no longer around.
+// sweepStaleElastic deletes the indexes of binaries which are no longer running
 func sweepStaleElastic(ctx context.Context, rt *runtime.Runtime) error {
-	admin, err := dbAdmin()
-	if err != nil {
-		return err
-	}
-	conn, err := admin.DB.Conn(ctx)
-	if err != nil {
-		return err
-	}
-	defer conn.Close()
-
 	indexes, err := rt.ES.Client.Cat.Indices().Index(esContactsPrefix + "*," + esMessagesPrefix + "*").Do(ctx)
 	if err != nil {
 		return fmt.Errorf("error listing test indexes: %w", err)
@@ -111,32 +81,16 @@ func sweepStaleElastic(ctx context.Context, rt *runtime.Runtime) error {
 		}
 		rest := strings.TrimPrefix(strings.TrimPrefix(*idx.Index, esContactsPrefix), esMessagesPrefix)
 		procID, _, _ := strings.Cut(rest, "-")
-		if procID == dbProcID() || !binProcIDRegex.MatchString(procID) {
-			continue // ours, or not a per-binary test index
-		}
 		byProcID[procID] = append(byProcID[procID], *idx.Index)
 	}
 
-	for procID, names := range byProcID {
-		var got bool
-		if err := conn.QueryRowContext(ctx, `SELECT pg_try_advisory_lock($1)`, binKey(procID)).Scan(&got); err != nil {
-			return err
+	return sweepDeadBinaries(ctx, byProcID, func(name string) error {
+		// unavailable is fine - another live binary's sweep can get there first
+		if _, err := rt.ES.Client.Indices.Delete(name).IgnoreUnavailable(true).Do(ctx); err != nil {
+			return fmt.Errorf("error deleting stale index %s: %w", name, err)
 		}
-		if !got {
-			continue // in use by a live run
-		}
-
-		for _, name := range names {
-			// unavailable is fine - another live binary's sweep can get there first
-			if _, err := rt.ES.Client.Indices.Delete(name).IgnoreUnavailable(true).Do(ctx); err != nil {
-				return fmt.Errorf("error deleting stale index %s: %w", name, err)
-			}
-		}
-
-		conn.ExecContext(ctx, `SELECT pg_advisory_unlock($1)`, binKey(procID))
-	}
-
-	return nil
+		return nil
+	})
 }
 
 // ClearElastic clears out this binary's elastic indexes: all documents from the contacts index, and the
@@ -320,12 +274,7 @@ func GetIndexedMessages(t *testing.T, rt *runtime.Runtime, clear bool) []Indexed
 	slices.SortFunc(msgs, func(a, b IndexedMessage) int { return strings.Compare(a.ID, b.ID) })
 
 	if clear {
-		for _, idx := range indexes {
-			if idx.Index != nil {
-				_, err := rt.ES.Client.Indices.Delete(*idx.Index).Do(t.Context())
-				require.NoError(t, err)
-			}
-		}
+		clearElasticMessages(t, rt)
 	}
 
 	return msgs

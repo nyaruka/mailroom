@@ -2,15 +2,12 @@ package testsuite
 
 import (
 	"context"
-	"crypto/rand"
 	"crypto/sha256"
 	"database/sql"
-	"encoding/hex"
 	"fmt"
 	"hash/fnv"
 	"os"
 	"os/exec"
-	"regexp"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -45,36 +42,6 @@ const (
 )
 
 var dbCounter atomic.Int64
-
-// random per-binary identifier used in test database names. Can't use the pid because binaries run in
-// per-worktree containers which share a Postgres, so pids are neither unique nor observable across them.
-var dbProcID = sync.OnceValue(func() string {
-	b := make([]byte, 4)
-	rand.Read(b)
-	return hex.EncodeToString(b)
-})
-
-// matches a process identifier segment in a per-binary resource name
-var binProcIDRegex = regexp.MustCompile(`^[0-9a-f]{8}$`)
-
-// binKey derives the advisory lock key which marks a binary's per-binary resources - its elastic indexes,
-// dynamo tables and attachments bucket - as in use
-func binKey(procID string) int64 {
-	return dbKey("binary_" + procID)
-}
-
-// claimBinary takes the advisory lock which marks this binary's resources as in use, before any of them
-// exist, so they're never visible to another binary's sweep unclaimed. Held for the binary's lifetime.
-var claimBinary = sync.OnceValue(func() error {
-	owner, err := dbOwner()
-	if err != nil {
-		return err
-	}
-	if _, err := owner.ExecContext(context.Background(), `SELECT pg_advisory_lock($1)`, binKey(dbProcID())); err != nil {
-		return fmt.Errorf("error claiming binary resources: %w", err)
-	}
-	return nil
-})
 
 // admin pool is opened once per test binary and left open for its lifetime
 var dbAdmin = sync.OnceValues(func() (*sqlx.DB, error) {
@@ -274,7 +241,7 @@ func createTestDB(t *testing.T) string {
 	owner, err := dbOwner()
 	require.NoError(t, err)
 
-	name := fmt.Sprintf("%s%s_%d", dbTestPrefix, dbProcID(), dbCounter.Add(1))
+	name := fmt.Sprintf("%s%s_%d", dbTestPrefix, binProcID(), dbCounter.Add(1))
 
 	// claim the database before it exists, so that it's never visible to another binary's sweep unclaimed
 	_, err = owner.ExecContext(ctx, `SELECT pg_advisory_lock($1)`, dbKey(name))

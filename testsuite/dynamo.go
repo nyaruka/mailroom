@@ -8,7 +8,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"sync"
 	"testing"
 	"time"
 
@@ -24,34 +23,18 @@ import (
 
 // Each test binary gets its own dynamo tables (prefixed with its process identifier), so concurrently
 // running binaries never see each other's items. Within a binary, ClearDynamo runs at the start of every
-// test so each starts with empty tables - assuming sequential tests, as elsewhere. Ownership is the same
-// per-binary advisory lock that marks the elastic indexes (see dbtemplate.go), and setup sweeps away the
-// tables of any run which has died.
+// test so each starts with empty tables - assuming sequential tests, as elsewhere. Ownership and sweeping
+// of dead runs' tables works as for all per-binary resources - see binary.go.
+
+const dynTestPrefix = "Test"
 
 // per-binary prefix for dynamo table names, e.g. Testa1b2c3d4 -> Testa1b2c3d4Main
 func dynTablePrefix() string {
-	return "Test" + dbProcID()
+	return dynTestPrefix + binProcID()
 }
 
-var dynSetup sync.Once
-var dynSetupErr error
-
-// ensureDynamo creates this binary's dynamo tables on first use
-func ensureDynamo(t *testing.T, rt *runtime.Runtime) {
-	t.Helper()
-
-	dynSetup.Do(func() { dynSetupErr = setupDynamo(rt) })
-	require.NoError(t, dynSetupErr, "error setting up dynamo tables")
-}
-
-// setupDynamo claims this binary's tables, creates them, and sweeps those of dead runs
-func setupDynamo(rt *runtime.Runtime) error {
-	ctx := context.Background()
-
-	if err := claimBinary(); err != nil {
-		return err
-	}
-
+// setupDynamo creates this binary's tables and sweeps those of dead runs
+func setupDynamo(ctx context.Context, rt *runtime.Runtime) error {
 	tablesJSON, err := os.ReadFile(testdataPath("dynamo.json"))
 	if err != nil {
 		return err
@@ -82,19 +65,8 @@ func setupDynamo(rt *runtime.Runtime) error {
 	return sweepStaleDynamo(ctx, client)
 }
 
-// sweepStaleDynamo deletes the tables of binaries which are no longer running - any process identifier
-// whose per-binary lock we can take ourselves belongs to a run which is no longer around.
+// sweepStaleDynamo deletes the tables of binaries which are no longer running
 func sweepStaleDynamo(ctx context.Context, client *dynamodb.Client) error {
-	admin, err := dbAdmin()
-	if err != nil {
-		return err
-	}
-	conn, err := admin.DB.Conn(ctx)
-	if err != nil {
-		return err
-	}
-	defer conn.Close()
-
 	byProcID := make(map[string][]string)
 	var startFrom *string
 	for {
@@ -103,15 +75,10 @@ func sweepStaleDynamo(ctx context.Context, client *dynamodb.Client) error {
 			return fmt.Errorf("error listing tables: %w", err)
 		}
 		for _, name := range resp.TableNames {
-			rest := strings.TrimPrefix(name, "Test")
-			if len(rest) < 8 {
-				continue
+			rest := strings.TrimPrefix(name, dynTestPrefix)
+			if len(rest) >= 8 {
+				byProcID[rest[:8]] = append(byProcID[rest[:8]], name)
 			}
-			procID := rest[:8]
-			if procID == dbProcID() || !binProcIDRegex.MatchString(procID) {
-				continue // ours, or not a per-binary test table
-			}
-			byProcID[procID] = append(byProcID[procID], name)
 		}
 		if resp.LastEvaluatedTableName == nil {
 			break
@@ -119,27 +86,14 @@ func sweepStaleDynamo(ctx context.Context, client *dynamodb.Client) error {
 		startFrom = resp.LastEvaluatedTableName
 	}
 
-	for procID, names := range byProcID {
-		var got bool
-		if err := conn.QueryRowContext(ctx, `SELECT pg_try_advisory_lock($1)`, binKey(procID)).Scan(&got); err != nil {
-			return err
+	return sweepDeadBinaries(ctx, byProcID, func(name string) error {
+		// not found is fine - another live binary's sweep can get there first
+		var notFound *dbtypes.ResourceNotFoundException
+		if _, err := client.DeleteTable(ctx, &dynamodb.DeleteTableInput{TableName: aws.String(name)}); err != nil && !errors.As(err, &notFound) {
+			return fmt.Errorf("error deleting stale table %s: %w", name, err)
 		}
-		if !got {
-			continue // in use by a live run
-		}
-
-		for _, name := range names {
-			// not found is fine - another live binary's sweep can get there first
-			var notFound *dbtypes.ResourceNotFoundException
-			if _, err := client.DeleteTable(ctx, &dynamodb.DeleteTableInput{TableName: aws.String(name)}); err != nil && !errors.As(err, &notFound) {
-				return fmt.Errorf("error deleting stale table %s: %w", name, err)
-			}
-		}
-
-		conn.ExecContext(ctx, `SELECT pg_advisory_unlock($1)`, binKey(procID))
-	}
-
-	return nil
+		return nil
+	})
 }
 
 // ClearDynamo clears out this binary's dynamo tables. Runs at the start of every test, and can be called

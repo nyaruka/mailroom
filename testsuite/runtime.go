@@ -57,7 +57,7 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 	cfg.S3PathStyle = true
 	cfg.DynamoEndpoint = "http://localstack:4566"
 	cfg.DynamoTablePrefix = dynTablePrefix() // this binary's own tables, cleared before every test - see dynamo.go
-	cfg.SpoolDir = absPath("./_test_spool/" + dbProcID())
+	cfg.SpoolDir = t.TempDir()
 
 	err := cfg.Parse()
 	require.NoError(t, err)
@@ -65,9 +65,7 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 	rt, err := runtime.NewRuntime(cfg)
 	require.NoError(t, err)
 
-	ensureStorage(t, rt)
-	ensureElastic(t, rt)
-	ensureDynamo(t, rt)
+	ensureBinaryResources(t, rt) // creates those on first use and sweeps dead runs' - see binary.go
 
 	rt.FCM = &MockFCMClient{ValidTokens: []string{"FCMID3", "FCMID4", "FCMID5"}}
 	rt.Centrifugo = centrifugo.NewService(centrifugo.NewMockClient(), rt.VK)
@@ -98,20 +96,6 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 	})
 
 	return t.Context(), rt
-}
-
-// Converts a project root relative path to an absolute path usable in any test. This is needed because go tests
-// are run with a working directory set to the current module being tested.
-func absPath(p string) string {
-	// start in working directory and go up until we are in a directory containing go.mod
-	dir, _ := os.Getwd()
-	for dir != "/" {
-		if _, err := os.Stat(path.Join(dir, "go.mod")); err == nil {
-			break
-		}
-		dir = path.Dir(dir)
-	}
-	return path.Join(dir, p)
 }
 
 // CentrifugoHistory returns the JSON payloads published to the given Centrifugo channel, oldest first. The runtime's
