@@ -1,6 +1,7 @@
 package web_test
 
 import (
+	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -34,7 +35,7 @@ func TestListeners(t *testing.T) {
 	server.Start()
 	defer server.Stop()
 
-	for _, addr := range []string{"localhost:8190", "localhost:8191"} {
+	for _, addr := range []string{fmt.Sprintf("localhost:%d", rt.Config.InternetPort), fmt.Sprintf("localhost:%d", rt.Config.InternalPort)} {
 		require.Eventually(t, func() bool {
 			c, err := net.DialTimeout("tcp", addr, 50*time.Millisecond)
 			if err != nil {
@@ -45,8 +46,8 @@ func TestListeners(t *testing.T) {
 		}, 5*time.Second, 10*time.Millisecond, "listener at %s never came up", addr)
 	}
 
-	const internetURL = "http://localhost:8190"
-	const internalURL = "http://localhost:8191"
+	internetURL := fmt.Sprintf("http://localhost:%d", rt.Config.InternetPort)
+	internalURL := fmt.Sprintf("http://localhost:%d", rt.Config.InternalPort)
 
 	// don't follow redirects so we can assert on the 301 from /mr/docs
 	client := &http.Client{

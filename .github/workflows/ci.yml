@@ -84,15 +84,9 @@ jobs:
           psql -h postgres -U postgres --no-password -c "ALTER ROLE mailroom_test WITH SUPERUSER;"
           psql -h postgres -U postgres --no-password -c "CREATE DATABASE mailroom_test;"
 
-      - name: Compile tests
-        # pre-compiles all test binaries with default parallelism since -p=1 in the real run serializes
-        # compilation as well as test execution
-        run: |
-          go test -run '^$' -cover ./...
-
       - name: Run tests
         run: |
-          go test -p=1 -cover ./...
+          go test -cover ./...
 
   release:
     name: Release

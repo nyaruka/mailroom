@@ -72,9 +72,9 @@ func RunWebTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 
 	for i, tc := range tcs {
 		// route /mi/* requests to the internal listener and everything else to the internet listener
-		host := "http://localhost:8190"
+		host := fmt.Sprintf("http://localhost:%d", rt.Config.InternetPort)
 		if strings.HasPrefix(tc.Path, "/mi/") {
-			host = "http://localhost:8191"
+			host = fmt.Sprintf("http://localhost:%d", rt.Config.InternalPort)
 		}
 		testURL := host + tc.Path
 		var req *http.Request

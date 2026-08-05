@@ -35,9 +35,14 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 
 	cfg := runtime.NewDefaultConfig()
 	cfg.DeploymentID = "test"
-	cfg.InternetPort = 8190
-	cfg.InternalPort = 8191
+
+	// web server ports are derived from the valkey claim, which is already unique per running test, so
+	// tests in concurrently running binaries never contend for a port
+	cfg.InternetPort = 8200 + 2*(vkDB-vkTestDBMin)
+	cfg.InternalPort = cfg.InternetPort + 1
+
 	cfg.DB = fmt.Sprintf(dbTestDSNFormat, dbName)
+	cfg.DBPoolSize = 8 // tests need few connections, and concurrent binaries must share the server's limit
 	cfg.Valkey = fmt.Sprintf(vkTestDSNFormat, vkDB)
 	cfg.ElasticContactsIndex = esContactsIndex() // this binary's own indexes, cleared before every test
 	cfg.ElasticMessagesIndex = esMessagesIndex() // - see elastic.go
@@ -52,7 +57,7 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 	cfg.S3PathStyle = true
 	cfg.DynamoEndpoint = "http://localstack:4566"
 	cfg.DynamoTablePrefix = dynTablePrefix() // this binary's own tables, cleared before every test - see dynamo.go
-	cfg.SpoolDir = absPath("./_test_spool")
+	cfg.SpoolDir = absPath("./_test_spool/" + dbProcID())
 
 	err := cfg.Parse()
 	require.NoError(t, err)

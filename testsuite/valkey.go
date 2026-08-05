@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sync"
 	"testing"
+	"time"
 
 	valkey "github.com/gomodule/redigo/redis"
 	"github.com/stretchr/testify/require"
@@ -38,7 +39,25 @@ var vkClaimed = make(map[int]bool)
 var vkClaimedMutex sync.Mutex
 
 // claimVKDB claims a valkey database for the duration of a test, flushes it, and returns its number.
+// If every database is claimed - concurrently running binaries can saturate the pool - it waits for one
+// to free up, rather than failing.
 func claimVKDB(t *testing.T) int {
+	t.Helper()
+
+	deadline := time.Now().Add(time.Minute)
+	for {
+		if n := tryClaimVKDB(t); n != 0 {
+			return n
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("timed out waiting for an unclaimed valkey database in %d-%d", vkTestDBMin, vkTestDBMax)
+		}
+		time.Sleep(250 * time.Millisecond)
+	}
+}
+
+// tryClaimVKDB makes one pass over the pool, returning the claimed database number or zero if none is free
+func tryClaimVKDB(t *testing.T) int {
 	t.Helper()
 
 	ctx := context.Background()
@@ -81,7 +100,6 @@ func claimVKDB(t *testing.T) int {
 		return n
 	}
 
-	t.Fatalf("no unclaimed valkey database in %d-%d", vkTestDBMin, vkTestDBMax)
 	return 0
 }
 
