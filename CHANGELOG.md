@@ -1,3 +1,9 @@
+v26.3.39 (2026-08-05)
+-------------------------
+ * Re-index shell contact in Elastic after its URN is reassigned
+ * Update to goflow v0.290.1
+ * Run test packages in parallel, giving each test binary its own isolated valkey, elastic, dynamo and S3 state
+
 v26.3.38 (2026-08-05)
 -------------------------
  * Remove support for opt-in/opt-out triggers, channel events, and opt-ins on broadcasts and messages
