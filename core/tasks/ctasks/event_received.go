@@ -29,7 +29,6 @@ type EventReceived struct {
 	EventType  models.ChannelEventType `json:"event_type"`
 	ChannelID  models.ChannelID        `json:"channel_id"`
 	URNID      models.URNID            `json:"urn_id"`
-	OptInID    models.OptInID          `json:"optin_id"`
 	Extra      null.Map[any]           `json:"extra"`
 	NewContact bool                    `json:"new_contact"`
 }
@@ -75,11 +74,6 @@ func (t *EventReceived) handle(ctx context.Context, rt *runtime.Runtime, oa *mod
 		return nil, fmt.Errorf("error creating engine contact: %w", err)
 	}
 
-	var optIn *models.OptIn
-	if t.EventType == models.EventTypeOptIn || t.EventType == models.EventTypeOptOut {
-		optIn = oa.OptInByID(t.OptInID)
-	}
-
 	var flowCall *core.Call
 	if call != nil {
 		flowCall = core.NewCall(call.UUID(), oa.SessionAssets().Channels().Get(channel.UUID()), urn.Identity)
@@ -109,7 +103,7 @@ func (t *EventReceived) handle(ctx context.Context, rt *runtime.Runtime, oa *mod
 	}
 
 	// convert to real event
-	event := t.toEvent(channel, flowCall, optIn)
+	event := t.toEvent(channel, flowCall)
 	if event != nil {
 		if err := scene.AddEvent(ctx, rt, oa, event, models.NilUserID, ""); err != nil {
 			return nil, fmt.Errorf("error adding channel event to scene: %w", err)
@@ -153,7 +147,7 @@ func (t *EventReceived) handle(ctx context.Context, rt *runtime.Runtime, oa *mod
 }
 
 // convert to a real engine event
-func (t *EventReceived) toEvent(ch *models.Channel, call *core.Call, optIn *models.OptIn) events.Event {
+func (t *EventReceived) toEvent(ch *models.Channel, call *core.Call) events.Event {
 	switch t.EventType {
 	case models.EventTypeMissedCall:
 		return events.NewCallMissed(ch.Reference())
@@ -172,14 +166,6 @@ func (t *EventReceived) toEvent(ch *models.Channel, call *core.Call, optIn *mode
 			}
 		}
 		return events.NewChatStarted(ch.Reference(), params)
-	case models.EventTypeOptIn:
-		if optIn != nil {
-			return events.NewOptInStarted(optIn.Reference(), ch.Reference())
-		}
-	case models.EventTypeOptOut:
-		if optIn != nil {
-			return events.NewOptInStopped(optIn.Reference(), ch.Reference())
-		}
 	}
 	return nil
 }
@@ -198,8 +184,6 @@ func findEventTrigger(oa *models.OrgAssets, evt events.Event, ch *models.Channel
 		} else {
 			mtrig = models.FindMatchingNewConversationTrigger(oa, ch)
 		}
-	case *events.OptInStarted, *events.OptInStopped:
-		return nil, "", nil // no trigger types for these events
 	default:
 		panic(fmt.Sprintf("unknown event type: %T", evt))
 	}
