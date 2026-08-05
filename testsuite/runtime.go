@@ -30,20 +30,20 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 	dbName := createTestDB(t)
 	t.Cleanup(func() { dropTestDB(t, dbName) })
 
-	// and its own valkey database claimed from the server's pool - see valkey.go
-	vkDB := claimVKDB(t)
+	// this binary's slot gives it its own valkey database and web server ports - see slot.go
+	slot := claimSlot(t)
 
 	cfg := runtime.NewDefaultConfig()
 	cfg.DeploymentID = "test"
-
-	// web server ports are derived from the valkey claim, which is already unique per running test, so
-	// tests in concurrently running binaries never contend for a port
-	cfg.InternetPort = 8200 + 2*(vkDB-vkTestDBMin)
+	cfg.InternetPort = slotPortBase + 2*slot
 	cfg.InternalPort = cfg.InternetPort + 1
-
 	cfg.DB = fmt.Sprintf(dbTestDSNFormat, dbName)
-	cfg.DBPoolSize = 8 // tests need few connections, and concurrent binaries must share the server's limit
-	cfg.Valkey = fmt.Sprintf(vkTestDSNFormat, vkDB)
+
+	// a hard ceiling, not a hint - a test needing more concurrent connections will block on the pool -
+	// but tests need few, and concurrent binaries must share the server's connection limit
+	cfg.DBPoolSize = 8
+
+	cfg.Valkey = fmt.Sprintf(vkTestDSNFormat, slotVKDB(slot))
 	cfg.ElasticContactsIndex = esContactsIndex() // this binary's own indexes, cleared before every test
 	cfg.ElasticMessagesIndex = esMessagesIndex() // - see elastic.go
 
@@ -77,7 +77,9 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 	err = rt.Start()
 	require.NoError(t, err, "error starting runtime")
 
-	// so every test starts with empty indexes, tables and storage (writers must be started for their flushes)
+	// so every test starts with empty valkey, indexes, tables and storage (writers must be started for
+	// their flushes)
+	require.NoError(t, flushVKDB(slotVKDB(slot)))
 	ClearElastic(t, rt)
 	ClearDynamo(t, rt)
 	clearStorage(t, rt)
