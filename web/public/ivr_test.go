@@ -128,6 +128,26 @@ func TestTwilioIVR(t *testing.T) {
 	}
 }
 
+func TestTwilioIVRSuspendedOrg(t *testing.T) {
+	_, rt := testsuite.Runtime(t)
+
+	defer testsuite.Reset(t, rt, testsuite.ResetAll)
+
+	// start mocked API server
+	mockTwilio := test.NewHTTPServer(50001, http.HandlerFunc(mockTwilioHandler))
+	defer mockTwilio.Close()
+
+	twiml.BaseURL = mockTwilio.URL
+	twiml.IgnoreSignatures = true
+
+	// create a trigger which would match an incoming call from Ann if the org wasn't suspended
+	testdb.InsertIncomingCallTrigger(t, rt, testdb.Org1, testdb.IVRFlow, []*testdb.Group{testdb.DoctorsGroup}, nil, nil)
+
+	rt.DB.MustExec(`UPDATE orgs_org SET is_suspended = TRUE WHERE id = $1`, testdb.Org1.ID)
+
+	testsuite.RunWebTests(t, rt, "./testdata/ivr_twilio_suspended.json")
+}
+
 func mockVonageHandler(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Query().Get("recording") != "" {
 		w.WriteHeader(http.StatusOK)

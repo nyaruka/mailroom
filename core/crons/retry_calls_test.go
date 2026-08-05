@@ -55,7 +55,20 @@ func TestRetryCalls(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT COUNT(*) FROM ivr_call WHERE contact_id = $1 AND status = $2 AND external_id = $3`,
 		testdb.Ann.ID, models.CallStatusWired, "call1").Returns(1)
 
-	// back to retry and make the channel inactive
+	// back to retry and suspend the org
+	rt.DB.MustExec(`UPDATE ivr_call SET status = 'E', next_attempt = NOW() WHERE external_id = 'call1';`)
+	rt.DB.MustExec(`UPDATE orgs_org SET is_suspended = TRUE WHERE id = $1`, testdb.Org1.ID)
+
+	models.FlushCache()
+	_, err = cron.Run(ctx, rt)
+	assert.NoError(t, err)
+
+	// should be failed without being requested from the provider
+	assertdb.Query(t, rt.DB, `SELECT COUNT(*) FROM ivr_call WHERE contact_id = $1 AND status = $2 AND external_id = $3`,
+		testdb.Ann.ID, models.CallStatusFailed, "call1").Returns(1)
+
+	// unsuspend the org, back to retry and make the channel inactive
+	rt.DB.MustExec(`UPDATE orgs_org SET is_suspended = FALSE WHERE id = $1`, testdb.Org1.ID)
 	rt.DB.MustExec(`UPDATE ivr_call SET status = 'E', next_attempt = NOW() WHERE external_id = 'call1';`)
 	rt.DB.MustExec(`UPDATE channels_channel SET is_active = FALSE WHERE id = $1`, testdb.TwilioChannel.ID)
 

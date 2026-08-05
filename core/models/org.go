@@ -169,6 +169,11 @@ func (o *Org) ConfigValue(key string, def string) string {
 
 // EmailService returns the email service for this org
 func (o *Org) EmailService(ctx context.Context, rt *runtime.Runtime, retries *smtpx.RetryConfig) (flows.EmailService, error) {
+	// suspended orgs can't send emails
+	if o.Suspended() {
+		return nil, errors.New("workspace is suspended")
+	}
+
 	// first look for custom SMTP on this org
 	smtpURL := o.FlowSMTP()
 
