@@ -89,8 +89,6 @@ func TestContacts(t *testing.T) {
 func TestCreateContact(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetData)
-
 	testdb.InsertContactGroup(t, rt, testdb.Org1, "d636c966-79c1-4417-9f1c-82ad629773a2", "Kinyarwanda", "language = kin")
 
 	// add an orphaned URN
@@ -136,8 +134,6 @@ func TestCreateContact(t *testing.T) {
 func TestCreateContactRace(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetData)
-
 	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 	assert.NoError(t, err)
 
@@ -164,8 +160,6 @@ func TestCreateContactRace(t *testing.T) {
 
 func TestGetOrCreateContact(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
-
-	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
 	testdb.InsertContactGroup(t, rt, testdb.Org1, "dcc16d85-8274-4d19-a3c2-152d4ee99380", "Telegrammer", `telegram = 100001`)
 
@@ -292,8 +286,6 @@ func TestGetOrCreateContact(t *testing.T) {
 func TestGetOrCreateContactRace(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetData)
-
 	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 	assert.NoError(t, err)
 
@@ -320,8 +312,6 @@ func TestGetOrCreateContactRace(t *testing.T) {
 
 func TestGetOrCreateContactIDsFromURNs(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
-
-	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
 	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 	assert.NoError(t, err)
@@ -379,8 +369,6 @@ func TestGetOrCreateContactIDsFromURNs(t *testing.T) {
 
 func TestGetOrCreateContactsFromURNsRace(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
-
-	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
 	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 	assert.NoError(t, err)

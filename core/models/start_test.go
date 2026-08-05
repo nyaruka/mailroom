@@ -21,8 +21,6 @@ import (
 func TestStarts(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetData)
-
 	startID := testdb.InsertFlowStart(t, rt, testdb.Org1, testdb.Admin, testdb.SingleMessage, []*testdb.Contact{testdb.Ann, testdb.Bob})
 
 	startJSON := fmt.Appendf(nil, `{

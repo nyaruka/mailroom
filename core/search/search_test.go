@@ -128,7 +128,7 @@ func TestGetContactUUIDsForQueryPage(t *testing.T) {
 func TestGetContactUUIDsForQuery(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetElastic)
+	defer testsuite.Reset(t, rt, testsuite.ResetElastic)
 
 	oa, err := models.GetOrgAssets(ctx, rt, 1)
 	require.NoError(t, err)
@@ -256,7 +256,7 @@ func TestGetContactUUIDsForQuery(t *testing.T) {
 func TestGetContactIDsForQuery(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetElastic)
+	defer testsuite.Reset(t, rt, testsuite.ResetElastic)
 
 	oa, err := models.GetOrgAssets(ctx, rt, 1)
 	require.NoError(t, err)

@@ -17,7 +17,7 @@ func TestContactChanged(t *testing.T) {
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetDynamo|testsuite.ResetElastic)
+	defer testsuite.Reset(t, rt, testsuite.ResetDynamo|testsuite.ResetElastic)
 
 	type urnRow struct {
 		Identity  string            `db:"identity"`

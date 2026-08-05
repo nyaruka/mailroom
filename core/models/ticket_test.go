@@ -17,8 +17,6 @@ import (
 func TestTickets(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetData)
-
 	oa := testdb.Org1.Load(t, rt)
 	favorites := testdb.Favorites.Load(t, rt, oa)
 
@@ -76,8 +74,6 @@ func TestTickets(t *testing.T) {
 func TestUpdateTicketLastActivity(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetData)
-
 	now := time.Date(2021, 6, 22, 15, 59, 30, 123456000, time.UTC)
 
 	defer dates.SetNowFunc(time.Now)
@@ -95,8 +91,6 @@ func TestUpdateTicketLastActivity(t *testing.T) {
 
 func TestUpdateTickets(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
-
-	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
 	ticket1 := testdb.InsertClosedTicket(t, rt, "01992f54-5ab6-717a-a39e-e8ca91fb7262", testdb.Org1, testdb.Ann, testdb.SalesTopic, nil).Load(t, rt, testdb.Org1)
 	ticket2 := testdb.InsertOpenTicket(t, rt, "01992f54-5ab6-725e-be9c-0c6407efd755", testdb.Org1, testdb.Ann, testdb.SalesTopic, time.Now(), nil).Load(t, rt, testdb.Org1)
@@ -134,8 +128,6 @@ func TestUpdateTickets(t *testing.T) {
 
 func TestTicketRecordReply(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
-
-	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
 	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 	require.NoError(t, err)

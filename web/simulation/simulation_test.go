@@ -146,8 +146,6 @@ const (
 func TestServer(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetData)
-
 	wg := &sync.WaitGroup{}
 
 	server := web.NewServer(ctx, rt, wg)
