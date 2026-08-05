@@ -58,7 +58,5 @@ func TestMsgCreatedNewURN(t *testing.T) {
 func TestMsgCreatedLoop(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetValkey)
-
 	runTests(t, rt, "testdata/msg_created_loop.json")
 }

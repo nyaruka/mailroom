@@ -16,8 +16,6 @@ const testTaskID = tasks.TaskID("01981fa0-3c74-7d6c-8000-1a2b3c4d5e6f")
 func TestRecordStarted(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetValkey)
-
 	// a batch without an owner UUID (shouldn't happen) is never the first of its set
 	noOwner := &tasks.BatchTask{}
 	assert.False(t, noOwner.RecordStarted(ctx, rt))
@@ -33,8 +31,6 @@ func TestRecordStarted(t *testing.T) {
 
 func TestRecordComplete(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
-
-	defer testsuite.Reset(t, rt, testsuite.ResetValkey)
 
 	// a batch without an owner UUID (shouldn't happen) is never the last of its set
 	noOwner := &tasks.BatchTask{}

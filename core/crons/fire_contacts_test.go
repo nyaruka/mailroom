@@ -26,8 +26,6 @@ func TestFireContacts(t *testing.T) {
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	defer testsuite.Reset(t, rt, testsuite.ResetValkey)
-
 	testdb.InsertContactFire(t, rt, testdb.Org1, testdb.Ann, models.ContactFireTypeWaitTimeout, "", time.Now().Add(3*time.Second), "f72b48df-5f6d-4e4f-955a-f5fb29ccb97b")
 	testdb.InsertContactFire(t, rt, testdb.Org1, testdb.Ann, models.ContactFireTypeWaitExpiration, "", time.Now().Add(-1*time.Second), "f72b48df-5f6d-4e4f-955a-f5fb29ccb97b")
 	testdb.InsertContactFire(t, rt, testdb.Org1, testdb.Ann, models.ContactFireTypeSessionExpiration, "", time.Now().Add(-2*time.Second), "f72b48df-5f6d-4e4f-955a-f5fb29ccb97b")
@@ -106,8 +104,6 @@ func TestFireContactsCampaignBatching(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 	vc := rt.VK.Get()
 	defer vc.Close()
-
-	defer testsuite.Reset(t, rt, testsuite.ResetValkey)
 
 	campaign := testdb.InsertCampaign(t, rt, testdb.Org1, "Test", testdb.DoctorsGroup)
 	flowPoint := testdb.InsertCampaignFlowPoint(t, rt, campaign, testdb.Favorites, testdb.CreatedOnField, 5, "D")

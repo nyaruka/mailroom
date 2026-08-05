@@ -25,7 +25,7 @@ import (
 func TestNewCourierMsg(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetValkey|testsuite.ResetDynamo)
+	defer testsuite.Reset(t, rt, testsuite.ResetDynamo)
 
 	// create a new contact with a URN with an auth token
 	testFred := testdb.InsertContact(t, rt, testdb.Org1, "fed2d179-73ac-44fd-b838-7f866fef0a3a", "Fred", "eng", models.ContactStatusActive)
@@ -236,8 +236,6 @@ func TestQueueCourierMessages(t *testing.T) {
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	defer testsuite.Reset(t, rt, testsuite.ResetValkey)
-
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshOrg|models.RefreshChannels)
 	require.NoError(t, err)
 
@@ -279,8 +277,6 @@ func TestClearChannelCourierQueue(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 	vc := rt.VK.Get()
 	defer vc.Close()
-
-	defer testsuite.Reset(t, rt, testsuite.ResetValkey)
 
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshOrg|models.RefreshChannels)
 	require.NoError(t, err)
@@ -340,8 +336,6 @@ func TestPushCourierBatch(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 	vc := rt.VK.Get()
 	defer vc.Close()
-
-	defer testsuite.Reset(t, rt, testsuite.ResetValkey)
 
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshChannels)
 	require.NoError(t, err)

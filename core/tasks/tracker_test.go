@@ -14,8 +14,6 @@ func TestBatchTracker(t *testing.T) {
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	defer testsuite.Reset(t, rt, testsuite.ResetValkey)
-
 	tracker := tasks.NewBatchTracker("7de40d16-0286-4938-be6b-9974e12e1b0f")
 
 	// first batch to start

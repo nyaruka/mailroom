@@ -127,8 +127,6 @@ func TestNonPersistentBroadcasts(t *testing.T) {
 func TestBroadcastSend(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetValkey)
-
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshOptIns)
 	require.NoError(t, err)
 
