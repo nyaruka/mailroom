@@ -145,11 +145,6 @@ func NewCourierMsg(oa *models.OrgAssets, mo *models.MsgOut, ch *models.Channel) 
 		msg.Origin = MsgOriginChat
 	}
 
-	if mo.OptInID() != models.NilOptInID {
-		// an optin on a broadcast message means use it for authentication
-		msg.URNAuth = mo.URN.AuthTokens[fmt.Sprintf("optin:%d", mo.OptInID())]
-	}
-
 	if mo.Templating() != nil {
 		tpl := oa.TemplateByUUID(mo.Templating().Template.UUID)
 		if tpl != nil {

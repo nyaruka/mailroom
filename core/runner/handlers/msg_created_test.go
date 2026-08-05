@@ -30,7 +30,7 @@ func TestMsgCreated(t *testing.T) {
 	rt.DB.MustExec(`UPDATE contacts_contacturn SET identity = 'facebook:12345', path='12345', scheme='facebook' WHERE contact_id = $1`, testdb.Dan.ID)
 	rt.DB.MustExec(`UPDATE contacts_contact SET language='eng' WHERE id = $1`, testdb.Dan.ID)
 
-	testdb.InsertBroadcast(t, rt, testdb.Org1, "01999b42-f414-7161-8814-fbef26d9d0d3", "eng", map[i18n.Language]string{"eng": "Cats or dogs?"}, nil, models.NilScheduleID, nil, nil)
+	testdb.InsertBroadcast(t, rt, testdb.Org1, "01999b42-f414-7161-8814-fbef26d9d0d3", "eng", map[i18n.Language]string{"eng": "Cats or dogs?"}, models.NilScheduleID, nil, nil)
 
 	runTests(t, rt, "testdata/msg_created.json")
 

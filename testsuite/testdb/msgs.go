@@ -112,21 +112,16 @@ func insertOutgoingMsg(t *testing.T, rt *runtime.Runtime, org *Org, uuid events.
 	return &MsgOut{Msg: Msg{ID: id, UUID: uuid}, FlowMsg: fm}
 }
 
-func InsertBroadcast(t *testing.T, rt *runtime.Runtime, org *Org, uuid core.BroadcastUUID, baseLanguage i18n.Language, text map[i18n.Language]string, optIn *OptIn, schedID models.ScheduleID, contacts []*Contact, groups []*Group) *Broadcast {
+func InsertBroadcast(t *testing.T, rt *runtime.Runtime, org *Org, uuid core.BroadcastUUID, baseLanguage i18n.Language, text map[i18n.Language]string, schedID models.ScheduleID, contacts []*Contact, groups []*Group) *Broadcast {
 	translations := make(core.BroadcastTranslations)
 	for lang, t := range text {
 		translations[lang] = &core.MsgContent{Text: t}
 	}
 
-	var optInID models.OptInID
-	if optIn != nil {
-		optInID = optIn.ID
-	}
-
 	var id models.BroadcastID
 	err := rt.DB.Get(&id,
-		`INSERT INTO msgs_broadcast(uuid, org_id, base_language, translations, optin_id, schedule_id, status, created_on, modified_on, created_by_id, modified_by_id, is_active)
-		VALUES($1, $2, $3, $4, $5, $6, 'P', NOW(), NOW(), 1, 1, TRUE) RETURNING id`, uuid, org.ID, baseLanguage, models.JSONB[core.BroadcastTranslations]{V: translations}, optInID, schedID,
+		`INSERT INTO msgs_broadcast(uuid, org_id, base_language, translations, schedule_id, status, created_on, modified_on, created_by_id, modified_by_id, is_active)
+		VALUES($1, $2, $3, $4, $5, 'P', NOW(), NOW(), 1, 1, TRUE) RETURNING id`, uuid, org.ID, baseLanguage, models.JSONB[core.BroadcastTranslations]{V: translations}, schedID,
 	)
 	require.NoError(t, err)
 

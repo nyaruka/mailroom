@@ -27,7 +27,6 @@ func init() {
 //	  "user_id": 56,
 //	  "translations": {"eng": {"text": "Hello @contact"}, "spa": {"text": "Hola @contact"}},
 //	  "base_language": "eng",
-//	  "optin_id": 456,
 //	  "group_ids": [101, 102],
 //	  "contact_ids": [4646],
 //	  "urns": [4646],
@@ -42,7 +41,6 @@ type broadcastRequest struct {
 	UserID            models.UserID              `json:"user_id"       validate:"required"`
 	Translations      core.BroadcastTranslations `json:"translations"  validate:"required"`
 	BaseLanguage      i18n.Language              `json:"base_language" validate:"required"`
-	OptInID           models.OptInID             `json:"optin_id"`
 	TemplateID        models.TemplateID          `json:"template_id"`
 	TemplateVariables []string                   `json:"template_variables"`
 	GroupIDs          []models.GroupID           `json:"group_ids"`
@@ -81,7 +79,6 @@ func handleBroadcast(ctx context.Context, rt *runtime.Runtime, r *broadcastReque
 		Translations:      r.Translations,
 		BaseLanguage:      r.BaseLanguage,
 		Expressions:       true,
-		OptInID:           r.OptInID,
 		TemplateID:        r.TemplateID,
 		TemplateVariables: r.TemplateVariables,
 		GroupIDs:          r.GroupIDs,

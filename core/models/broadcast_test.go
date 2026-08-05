@@ -24,14 +24,11 @@ func TestBroadcasts(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
-	optIn := testdb.InsertOptIn(t, rt, testdb.Org1, "45aec4dd-945f-4511-878f-7d8516fbd336", "Polls")
-
 	bcast := models.NewBroadcast(
 		testdb.Org1.ID,
 		core.BroadcastTranslations{"eng": {Text: "Hi there"}},
 		"eng",
 		true,
-		optIn.ID,
 		[]models.GroupID{testdb.DoctorsGroup.ID},
 		[]models.ContactID{testdb.Dan.ID, testdb.Bob.ID, testdb.Ann.ID},
 		[]urns.URN{"tel:+593979012345"},
@@ -74,13 +71,12 @@ func TestInsertChildBroadcast(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
-	optIn := testdb.InsertOptIn(t, rt, testdb.Org1, "45aec4dd-945f-4511-878f-7d8516fbd336", "Polls")
 	schedID := testdb.InsertSchedule(t, rt, testdb.Org1, models.RepeatPeriodDaily, time.Now())
-	bcast := testdb.InsertBroadcast(t, rt, testdb.Org1, "0199877e-0ed2-790b-b474-35099cea401c", `eng`, map[i18n.Language]string{`eng`: "Hello"}, optIn, schedID, []*testdb.Contact{testdb.Bob, testdb.Ann}, nil)
+	bcast := testdb.InsertBroadcast(t, rt, testdb.Org1, "0199877e-0ed2-790b-b474-35099cea401c", `eng`, map[i18n.Language]string{`eng`: "Hello"}, schedID, []*testdb.Contact{testdb.Bob, testdb.Ann}, nil)
 
 	var bj json.RawMessage
 	err := rt.DB.GetContext(ctx, &bj, `SELECT ROW_TO_JSON(r) FROM (
-		SELECT id, org_id, translations, base_language, optin_id, template_id, template_variables, query, created_by_id, parent_id FROM msgs_broadcast WHERE id = $1
+		SELECT id, org_id, translations, base_language, template_id, template_variables, query, created_by_id, parent_id FROM msgs_broadcast WHERE id = $1
 	) r`, bcast.ID)
 	require.NoError(t, err)
 
@@ -92,7 +88,6 @@ func TestInsertChildBroadcast(t *testing.T) {
 	assert.Equal(t, parent.ID, child.ParentID)
 	assert.Equal(t, parent.OrgID, child.OrgID)
 	assert.Equal(t, parent.BaseLanguage, child.BaseLanguage)
-	assert.Equal(t, parent.OptInID, child.OptInID)
 	assert.Equal(t, parent.TemplateID, child.TemplateID)
 	assert.Equal(t, parent.TemplateVariables, child.TemplateVariables)
 }
@@ -103,7 +98,6 @@ func TestNonPersistentBroadcasts(t *testing.T) {
 	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
 	translations := core.BroadcastTranslations{"eng": {Text: "Hi there"}}
-	optIn := testdb.InsertOptIn(t, rt, testdb.Org1, "45aec4dd-945f-4511-878f-7d8516fbd336", "Polls")
 
 	// create a broadcast which doesn't actually exist in the DB
 	bcast := models.NewBroadcast(
@@ -111,7 +105,6 @@ func TestNonPersistentBroadcasts(t *testing.T) {
 		translations,
 		"eng",
 		true,
-		optIn.ID,
 		[]models.GroupID{testdb.DoctorsGroup.ID},
 		[]models.ContactID{testdb.Dan.ID, testdb.Bob.ID, testdb.Ann.ID},
 		[]urns.URN{"tel:+593979012345"},
@@ -124,7 +117,6 @@ func TestNonPersistentBroadcasts(t *testing.T) {
 	assert.Equal(t, testdb.Org1.ID, bcast.OrgID)
 	assert.Equal(t, i18n.Language("eng"), bcast.BaseLanguage)
 	assert.Equal(t, translations, bcast.Translations)
-	assert.Equal(t, optIn.ID, bcast.OptInID)
 	assert.Equal(t, []models.GroupID{testdb.DoctorsGroup.ID}, bcast.GroupIDs)
 	assert.Equal(t, []models.ContactID{testdb.Dan.ID, testdb.Bob.ID, testdb.Ann.ID}, bcast.ContactIDs)
 	assert.Equal(t, []urns.URN{"tel:+593979012345"}, bcast.URNs)
@@ -154,7 +146,6 @@ func TestBroadcastSend(t *testing.T) {
 		translations      core.BroadcastTranslations
 		baseLanguage      i18n.Language
 		expressions       bool
-		optInID           models.OptInID
 		templateID        models.TemplateID
 		templateVariables []string
 		expected          []byte
@@ -325,7 +316,6 @@ func TestBroadcastSend(t *testing.T) {
 			Translations:      tc.translations,
 			BaseLanguage:      tc.baseLanguage,
 			Expressions:       tc.expressions,
-			OptInID:           tc.optInID,
 			TemplateID:        tc.templateID,
 			TemplateVariables: tc.templateVariables,
 		}

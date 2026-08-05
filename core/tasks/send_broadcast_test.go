@@ -1,7 +1,6 @@
 package tasks_test
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
@@ -179,13 +178,9 @@ func TestSendBroadcastTask(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
-	// add an "Polls" optin and opt-in Bob
-	polls := testdb.InsertOptIn(t, rt, testdb.Org1, "45aec4dd-945f-4511-878f-7d8516fbd336", "Polls")
-	rt.DB.MustExec(fmt.Sprintf("UPDATE contacts_contacturn SET auth_tokens = '{\"optin:%d\": \"OPTIN1234\"}' WHERE contact_id = $1", polls.ID), testdb.Bob.ID)
-
 	rt.DB.MustExec(`UPDATE orgs_org SET flow_languages = '{"eng", "spa"}' WHERE id = $1`, testdb.Org1.ID)
 
-	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshOrg|models.RefreshOptIns)
+	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshOrg)
 	assert.NoError(t, err)
 
 	// add an extra URN for Ann, change Cat's language to Spanish, and mark Bob as seen recently
@@ -199,7 +194,6 @@ func TestSendBroadcastTask(t *testing.T) {
 		translations    core.BroadcastTranslations
 		baseLanguage    i18n.Language
 		expressions     bool
-		optIn           *testdb.OptIn
 		groupIDs        []models.GroupID
 		contactIDs      []models.ContactID
 		URNs            []urns.URN
@@ -216,7 +210,6 @@ func TestSendBroadcastTask(t *testing.T) {
 			},
 			baseLanguage:    "eng",
 			expressions:     false,
-			optIn:           polls,
 			groupIDs:        []models.GroupID{testdb.DoctorsGroup.ID},
 			contactIDs:      []models.ContactID{testdb.Ann.ID, testdb.Bob.ID},
 			exclusions:      models.NoExclusions,
@@ -270,12 +263,7 @@ func TestSendBroadcastTask(t *testing.T) {
 	time.Sleep(10 * time.Millisecond)
 
 	for i, tc := range tcs {
-		var optInID models.OptInID
-		if tc.optIn != nil {
-			optInID = tc.optIn.ID
-		}
-
-		bcast := models.NewBroadcast(oa.OrgID(), tc.translations, tc.baseLanguage, tc.expressions, optInID, tc.groupIDs, tc.contactIDs, tc.URNs, tc.query, tc.exclusions, tc.createdByID)
+		bcast := models.NewBroadcast(oa.OrgID(), tc.translations, tc.baseLanguage, tc.expressions, tc.groupIDs, tc.contactIDs, tc.URNs, tc.query, tc.exclusions, tc.createdByID)
 		err := models.InsertBroadcast(ctx, rt.DB, bcast)
 		assert.NoError(t, err)
 
@@ -302,10 +290,6 @@ func TestSendBroadcastTask(t *testing.T) {
 		}
 
 		assert.Equal(t, tc.expectedMsgs, actualMsgs, "%d: msg count mismatch", i)
-
-		if tc.optIn != nil {
-			assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE org_id = 1 AND created_on > $1 AND optin_id = $2`, lastNow, optInID)
-		}
 
 		lastNow = time.Now()
 		time.Sleep(5 * time.Millisecond)

@@ -164,7 +164,6 @@ type Msg struct {
 		Text         string                   `db:"text"`
 		Attachments  pq.StringArray           `db:"attachments"`
 		QuickReplies JSONB[[]core.QuickReply] `db:"quickreplies"`
-		OptInID      OptInID                  `db:"optin_id"`
 		Locale       i18n.Locale              `db:"locale"`
 		Templating   *Templating              `db:"templating"`
 
@@ -215,7 +214,6 @@ func (m *Msg) ExternalIdentifier() string    { return string(m.m.ExternalIdentif
 func (m *Msg) MsgCount() int                 { return m.m.MsgCount }
 func (m *Msg) ChannelID() ChannelID          { return m.m.ChannelID }
 func (m *Msg) OrgID() OrgID                  { return m.m.OrgID }
-func (m *Msg) OptInID() OptInID              { return m.m.OptInID }
 func (m *Msg) ContactID() ContactID          { return m.m.ContactID }
 
 func (m *Msg) ContactURNID() URNID         { return m.m.ContactURNID }
@@ -348,20 +346,20 @@ func NewOutgoingIVR(cfg *runtime.Config, orgID OrgID, call *Call, flow *Flow, ev
 func NewOutgoingFlowMsg(rt *runtime.Runtime, org *Org, channel *Channel, contact *Contact, flow *Flow, event *events.MsgCreated, replyTo *MsgInRef) (*MsgOut, error) {
 	highPriority := replyTo != nil
 
-	return newMsgOut(rt, org, channel, contact, event, flow, NilBroadcastID, NilOptInID, NilUserID, replyTo, highPriority)
+	return newMsgOut(rt, org, channel, contact, event, flow, NilBroadcastID, NilUserID, replyTo, highPriority)
 }
 
 // NewOutgoingBroadcastMsg creates an outgoing message which is part of a broadcast
 func NewOutgoingBroadcastMsg(rt *runtime.Runtime, org *Org, channel *Channel, contact *Contact, event *events.MsgCreated, b *Broadcast) (*MsgOut, error) {
-	return newMsgOut(rt, org, channel, contact, event, nil, b.ID, b.OptInID, b.CreatedByID, nil, false)
+	return newMsgOut(rt, org, channel, contact, event, nil, b.ID, b.CreatedByID, nil, false)
 }
 
 // NewOutgoingChatMsg creates an outgoing message from chat
 func NewOutgoingChatMsg(rt *runtime.Runtime, org *Org, channel *Channel, contact *Contact, event *events.MsgCreated, userID UserID) (*MsgOut, error) {
-	return newMsgOut(rt, org, channel, contact, event, nil, NilBroadcastID, NilOptInID, userID, nil, true)
+	return newMsgOut(rt, org, channel, contact, event, nil, NilBroadcastID, userID, nil, true)
 }
 
-func newMsgOut(rt *runtime.Runtime, org *Org, channel *Channel, contact *Contact, event *events.MsgCreated, flow *Flow, broadcastID BroadcastID, optInID OptInID, userID UserID, replyTo *MsgInRef, highPriority bool) (*MsgOut, error) {
+func newMsgOut(rt *runtime.Runtime, org *Org, channel *Channel, contact *Contact, event *events.MsgCreated, flow *Flow, broadcastID BroadcastID, userID UserID, replyTo *MsgInRef, highPriority bool) (*MsgOut, error) {
 	out := event.Msg
 
 	msg := &Msg{}
@@ -374,7 +372,6 @@ func newMsgOut(rt *runtime.Runtime, org *Org, channel *Channel, contact *Contact
 	m.Text = out.Text()
 	m.Locale = out.Locale()
 	m.QuickReplies = JSONB[[]core.QuickReply]{out.QuickReplies()}
-	m.OptInID = optInID
 	m.HighPriority = highPriority
 	m.Direction = DirectionOut
 	m.Status = MsgStatusQueued
@@ -454,7 +451,6 @@ SELECT
 	broadcast_id,
 	flow_id,
 	ticket_uuid,
-	optin_id,
 	text,
 	attachments,
 	quickreplies,
@@ -495,7 +491,6 @@ SELECT
 	m.broadcast_id,
 	m.flow_id,
 	m.ticket_uuid,
-	m.optin_id,
 	m.text,
 	m.attachments,
 	m.quickreplies,
@@ -585,10 +580,10 @@ const sqlInsertMsgSQL = `
 INSERT INTO
 msgs_msg(uuid, text, attachments, quickreplies, locale, templating, high_priority, created_on, modified_on, sent_on, direction, status,
 		 visibility, msg_type, msg_count, error_count, next_attempt, failed_reason, channel_id, is_android,
-		 contact_id, contact_urn_id, org_id, flow_id, broadcast_id, ticket_uuid, optin_id, created_by_id)
+		 contact_id, contact_urn_id, org_id, flow_id, broadcast_id, ticket_uuid, created_by_id)
   VALUES(:uuid, :text, :attachments, :quickreplies, :locale, :templating, :high_priority, :created_on, now(), :sent_on, :direction, :status,
 		 :visibility, :msg_type, :msg_count, :error_count, :next_attempt, :failed_reason, :channel_id, :is_android,
-		 :contact_id, :contact_urn_id, :org_id, :flow_id, :broadcast_id, :ticket_uuid, :optin_id, :created_by_id)
+		 :contact_id, :contact_urn_id, :org_id, :flow_id, :broadcast_id, :ticket_uuid, :created_by_id)
 RETURNING id, modified_on`
 
 // MarkMessageHandled updates a message after handling

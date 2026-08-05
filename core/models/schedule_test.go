@@ -90,12 +90,10 @@ func TestGetExpired(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
-	optIn := testdb.InsertOptIn(t, rt, testdb.Org1, "45aec4dd-945f-4511-878f-7d8516fbd336", "Polls")
-
 	// add a schedule and tie a broadcast to it
 	s1 := testdb.InsertSchedule(t, rt, testdb.Org1, models.RepeatPeriodNever, time.Now().Add(-24*time.Hour))
 
-	testdb.InsertBroadcast(t, rt, testdb.Org1, "0199877e-0ed2-790b-b474-35099cea401c", "eng", map[i18n.Language]string{"eng": "Test message", "fra": "Un Message"}, optIn, s1,
+	testdb.InsertBroadcast(t, rt, testdb.Org1, "0199877e-0ed2-790b-b474-35099cea401c", "eng", map[i18n.Language]string{"eng": "Test message", "fra": "Un Message"}, s1,
 		[]*testdb.Contact{testdb.Ann, testdb.Cat}, []*testdb.Group{testdb.DoctorsGroup},
 	)
 
@@ -134,7 +132,6 @@ func TestGetExpired(t *testing.T) {
 	assert.Equal(t, "Test message", bcast.Translations["eng"].Text)
 	assert.Equal(t, "Un Message", bcast.Translations["fra"].Text)
 	assert.True(t, bcast.Expressions)
-	assert.Equal(t, optIn.ID, bcast.OptInID)
 	assert.Equal(t, testdb.Org1.ID, bcast.OrgID)
 	assert.Equal(t, []models.ContactID{testdb.Ann.ID, testdb.Cat.ID}, bcast.ContactIDs)
 	assert.Equal(t, []models.GroupID{testdb.DoctorsGroup.ID}, bcast.GroupIDs)
