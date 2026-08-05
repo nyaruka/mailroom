@@ -73,6 +73,9 @@ type Config struct {
 	CentrifugoEndpoint string `help:"the endpoint of the Centrifugo server" validate:"url"`
 	CentrifugoKey      string `help:"the API key for the Centrifugo server"`
 
+	EmbeddingsEndpoint string `validate:"omitempty,http_url" help:"the base URL of an OpenAI compatible embeddings service, leave empty to disable knowledge indexing and search"`
+	EmbeddingsModel    string `help:"the model to request from the embeddings service"`
+
 	LatencyExcludedOrgs []int  `help:"comma separated list of org IDs to exclude from latency metrics"`
 	MetricsReporting    string `validate:"eq=off|eq=basic|eq=advanced"     help:"the level of metrics reporting"`
 	CloudwatchNamespace string `help:"the namespace to use for cloudwatch metrics"`
@@ -109,6 +112,9 @@ func NewDefaultConfig() *Config {
 		CourierEndpoint: "http://localhost:8080",
 
 		CentrifugoEndpoint: "http://localhost:8000/api",
+
+		EmbeddingsEndpoint: "", // empty disables knowledge indexing and search
+		EmbeddingsModel:    "intfloat/multilingual-e5-small",
 
 		WorkersRealtime:  32,
 		WorkersBatch:     8,
