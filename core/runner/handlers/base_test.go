@@ -106,7 +106,7 @@ func runTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 	assert.NoError(t, err)
 
-	test.MockUniverse()
+	defer test.MockUniverse()()
 
 	for i, tc := range tcs {
 		scenes := make([]*runner.Scene, 4)

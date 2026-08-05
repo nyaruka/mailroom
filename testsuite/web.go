@@ -62,7 +62,7 @@ func RunWebTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 	jsonx.MustUnmarshal(tcJSON, &tcs)
 	var err error
 
-	test.MockUniverse()
+	defer test.MockUniverse()()
 
 	// track which messages were already indexed before each test case so we only report new ones
 	prevIndexedIDs := make(map[string]bool)

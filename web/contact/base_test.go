@@ -9,6 +9,7 @@ import (
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/envs"
+	"github.com/nyaruka/goflow/test"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/runner/clocks"
 	_ "github.com/nyaruka/mailroom/v26/core/runner/handlers"
@@ -163,6 +164,9 @@ func TestInterrupt(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
 
 	defer testsuite.Reset(t, rt, testsuite.ResetValkey)
+
+	// mock the universe before inserting sessions so their generated UUIDs are deterministic
+	defer test.MockUniverse()()
 
 	var modifiedOn1 time.Time
 	rt.DB.Get(&modifiedOn1, `SELECT modified_on FROM contacts_contact WHERE id = $1`, testdb.Ann.ID)

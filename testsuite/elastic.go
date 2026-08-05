@@ -23,18 +23,25 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// IndexContacts indexes all contacts for the test orgs into Elasticsearch.
+// IndexContacts indexes all contacts for the test orgs into Elasticsearch. The index is cleared first because
+// it's shared state - a test calling this is about to assert on index contents and can't inherit docs leaked
+// by tests in other binaries whose async indexing completed after their own elastic reset.
 func IndexContacts(t *testing.T, rt *runtime.Runtime) {
 	t.Helper()
+
+	clearElasticContacts(t, rt)
 
 	indexOrgContacts(t, rt, testdb.Org1)
 	indexOrgContacts(t, rt, testdb.Org2)
 }
 
 // IndexMessages indexes all indexable messages from the database into Elasticsearch, then refreshes
-// the index so they're immediately searchable.
+// the index so they're immediately searchable. The message indexes are cleared first for the same reason
+// IndexContacts clears the contacts index.
 func IndexMessages(t *testing.T, rt *runtime.Runtime) {
 	t.Helper()
+
+	clearElasticMessages(t, rt)
 
 	ctx := t.Context()
 
@@ -204,7 +211,14 @@ type SearchAssertion struct {
 func clearElasticIndexes(t *testing.T, rt *runtime.Runtime) {
 	t.Helper()
 
-	// clear contacts
+	clearElasticContacts(t, rt)
+	clearElasticMessages(t, rt)
+}
+
+// removes all documents from the contacts index
+func clearElasticContacts(t *testing.T, rt *runtime.Runtime) {
+	t.Helper()
+
 	_, err := rt.ES.Client.DeleteByQuery(rt.Config.ElasticContactsIndex).
 		Conflicts(conflicts.Proceed).
 		Raw(strings.NewReader(`{"query": {"match_all": {}}}`)).Do(t.Context())
@@ -212,8 +226,12 @@ func clearElasticIndexes(t *testing.T, rt *runtime.Runtime) {
 
 	_, err = rt.ES.Client.Indices.Refresh().Index(rt.Config.ElasticContactsIndex).Do(t.Context())
 	require.NoError(t, err)
+}
 
-	// clear messages
+// deletes all message indexes
+func clearElasticMessages(t *testing.T, rt *runtime.Runtime) {
+	t.Helper()
+
 	pattern := rt.Config.ElasticMessagesIndex + "-*"
 
 	indexes, err := rt.ES.Client.Cat.Indices().Index(pattern).Do(t.Context())

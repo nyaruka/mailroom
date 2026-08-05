@@ -395,6 +395,9 @@ func TestSessionFailedStart(t *testing.T) {
 	defer random.SetGenerator(random.DefaultGenerator)
 	defer testsuite.Reset(t, rt, testsuite.ResetValkey|testsuite.ResetDynamo)
 
+	// asserts on the entire contents of the shared history table so can't inherit items leaked by other tests
+	testsuite.Reset(t, rt, testsuite.ResetDynamo)
+
 	testFlows := testdb.ImportFlows(t, rt, testdb.Org1, "testdata/ping_pong.json")
 	ping, pong := testFlows[0], testFlows[1]
 
@@ -432,6 +435,10 @@ func TestFlowStats(t *testing.T) {
 	defer vc.Close()
 
 	defer testsuite.Reset(t, rt, testsuite.ResetValkey|testsuite.ResetDynamo)
+
+	// this test asserts the exact set of recent contacts keys in valkey, and other tests in this package run
+	// flows without resetting valkey, so start from a clean slate
+	testsuite.Reset(t, rt, testsuite.ResetValkey)
 
 	defer random.SetGenerator(random.DefaultGenerator)
 	random.SetGenerator(random.NewSeededGenerator(123))
@@ -623,6 +630,9 @@ func TestBroadcastWithLock(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetDynamo)
 
+	// asserts on the entire contents of the shared history table so can't inherit items leaked by other tests
+	testsuite.Reset(t, rt, testsuite.ResetDynamo)
+
 	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 	require.NoError(t, err)
 
@@ -631,7 +641,7 @@ func TestBroadcastWithLock(t *testing.T) {
 	bcast, err := models.GetBroadcastByID(ctx, rt.DB, b1.ID)
 	require.NoError(t, err)
 
-	test.MockUniverse()
+	defer test.MockUniverse()()
 
 	batch1 := bcast.CreateBatch([]models.ContactID{testdb.Ann.ID, testdb.Bob.ID})
 	batch2 := bcast.CreateBatch([]models.ContactID{testdb.Cat.ID})

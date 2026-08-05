@@ -18,7 +18,9 @@ func TestContactChanged(t *testing.T) {
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	defer testsuite.Reset(t, rt, testsuite.ResetDynamo|testsuite.ResetElastic)
+	// this test pops tasks without marking them done, inflating the org's active count in the fair queue,
+	// so it needs to reset valkey for the tests which come after it
+	defer testsuite.Reset(t, rt, testsuite.ResetValkey|testsuite.ResetDynamo|testsuite.ResetElastic)
 
 	type urnRow struct {
 		Identity  string            `db:"identity"`
