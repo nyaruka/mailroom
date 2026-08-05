@@ -25,8 +25,6 @@ import (
 func TestNewCourierMsg(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetDynamo)
-
 	// create a new contact with a URN with an auth token
 	testFred := testdb.InsertContact(t, rt, testdb.Org1, "fed2d179-73ac-44fd-b838-7f866fef0a3a", "Fred", "eng", models.ContactStatusActive)
 	testdb.InsertContactURN(t, rt, testdb.Org1, testFred, "tel:+593979123456", 1000, map[string]string{"default": "sesame"})

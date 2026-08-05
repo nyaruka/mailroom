@@ -74,7 +74,7 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 
 	// check events were persisted to DynamoDB
 	rt.Dynamo.History.Flush()
-	dyntest.AssertCount(t, rt.Dynamo.History.Client(), "TestHistory", 6)
+	dyntest.AssertCount(t, rt.Dynamo.History.Client(), rt.Dynamo.History.Table(), 6)
 
 	testsuite.AssertContactFires(t, rt, testdb.Bob.ID, map[string]time.Time{
 		fmt.Sprintf("E:%s", scBob.Session.UUID()): time.Date(2025, 2, 25, 16, 55, 10, 0, time.UTC), // 10 minutes in future
@@ -128,8 +128,6 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 func TestSingleSprintSession(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetDynamo)
-
 	testFlows := testdb.ImportFlows(t, rt, testdb.Org1, "testdata/session_test_flows.json")
 	flow := testFlows[1]
 
@@ -160,7 +158,6 @@ func TestSessionWithSubflows(t *testing.T) {
 
 	defer dates.SetNowFunc(time.Now)
 	defer random.SetGenerator(random.DefaultGenerator)
-	defer testsuite.Reset(t, rt, testsuite.ResetDynamo)
 
 	testFlows := testdb.ImportFlows(t, rt, testdb.Org1, "testdata/session_test_flows.json")
 	parent, child := testFlows[2], testFlows[3]
@@ -260,7 +257,7 @@ func TestBulkCommitPublishesEvents(t *testing.T) {
 			ephemeral++
 		}
 	}
-	dyntest.AssertCount(t, rt.Dynamo.History.Client(), "TestHistory", len(types)-ephemeral)
+	dyntest.AssertCount(t, rt.Dynamo.History.Client(), rt.Dynamo.History.Table(), len(types)-ephemeral)
 
 	// helper returning the contact_flow_changed events published since the last call
 	seen := len(sent)
@@ -345,8 +342,6 @@ func TestBulkCommitPublishesNotifications(t *testing.T) {
 func TestBulkCommitPublishesFlowActivity(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetDynamo)
-
 	testFlows := testdb.ImportFlows(t, rt, testdb.Org1, "testdata/session_test_flows.json")
 	other, parent, child := testFlows[1], testFlows[2], testFlows[3]
 
@@ -391,10 +386,6 @@ func TestSessionFailedStart(t *testing.T) {
 
 	defer dates.SetNowFunc(time.Now)
 	defer random.SetGenerator(random.DefaultGenerator)
-	defer testsuite.Reset(t, rt, testsuite.ResetDynamo)
-
-	// asserts on the entire contents of the shared history table so can't inherit items leaked by other tests
-	testsuite.Reset(t, rt, testsuite.ResetDynamo)
 
 	testFlows := testdb.ImportFlows(t, rt, testdb.Org1, "testdata/ping_pong.json")
 	ping, pong := testFlows[0], testFlows[1]
@@ -431,8 +422,6 @@ func TestFlowStats(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 	vc := rt.VK.Get()
 	defer vc.Close()
-
-	defer testsuite.Reset(t, rt, testsuite.ResetDynamo)
 
 	defer random.SetGenerator(random.DefaultGenerator)
 	random.SetGenerator(random.NewSeededGenerator(123))
@@ -541,7 +530,7 @@ func TestFlowStats(t *testing.T) {
 func TestResumeSession(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetStorage|testsuite.ResetDynamo)
+	defer testsuite.Reset(t, rt, testsuite.ResetStorage)
 
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshOrg)
 	require.NoError(t, err)
@@ -621,11 +610,6 @@ func TestResumeSession(t *testing.T) {
 
 func TestBroadcastWithLock(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
-
-	defer testsuite.Reset(t, rt, testsuite.ResetDynamo)
-
-	// asserts on the entire contents of the shared history table so can't inherit items leaked by other tests
-	testsuite.Reset(t, rt, testsuite.ResetDynamo)
 
 	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 	require.NoError(t, err)

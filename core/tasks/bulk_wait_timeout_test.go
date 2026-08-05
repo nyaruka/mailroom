@@ -14,8 +14,6 @@ import (
 func TestBulkSessionTimeout(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetDynamo)
-
 	defer dates.SetNowFunc(time.Now)
 	dates.SetNowFunc(dates.NewFixedNow(time.Date(2024, 11, 15, 13, 59, 0, 0, time.UTC)))
 
