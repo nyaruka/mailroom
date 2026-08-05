@@ -14,8 +14,6 @@ import (
 func TestChannels(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetAll)
-
 	// add some tel specific config to channel 2
 	rt.DB.MustExec(`UPDATE channels_channel SET config = '{"matching_prefixes": ["250", "251"], "allow_international": true}' WHERE id = $1`, testdb.VonageChannel.ID)
 

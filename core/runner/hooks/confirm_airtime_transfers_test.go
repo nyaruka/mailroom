@@ -25,8 +25,6 @@ func TestConfirmAirtimeTransfers(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 	rt.Config.Domain = "mailroom.example.com"
 
-	defer testsuite.Reset(t, rt, testsuite.ResetAll)
-
 	rt.DB.MustExec(`UPDATE orgs_org SET config = '{"dtone_key": "key123", "dtone_secret": "sesame"}'::jsonb WHERE id = $1`, testdb.Org1.ID)
 
 	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)

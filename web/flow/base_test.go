@@ -46,10 +46,6 @@ func TestMigrate(t *testing.T) {
 func TestStart(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
 
-	// TODO TestTwilioIVR blows up without full reset so some prior test isn't cleaning up after itself. Can no
-	// longer be database state, so the culprit is valkey, dynamo or elastic.
-	defer testsuite.Reset(t, rt, testsuite.ResetAll)
-
 	testsuite.RunWebTests(t, rt, "testdata/start.json")
 }
 

@@ -127,6 +127,10 @@ func RunWebTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 		// some timestamps come from db NOW() which we can't mock, so we replace them with $recent_timestamp$
 		actual.actualResponse = overwriteRecentTimestamps(actual.actualResponse)
 
+		// attachment URLs contain this binary's own bucket name, so rewrite to the stable name snapshots use
+		actual.actualResponse = overwriteTestBucket(rt, actual.actualResponse)
+		actual.ExpectedHistory = overwriteTestBucketJSON(rt, actual.ExpectedHistory)
+
 		ClearTasks(t, rt)
 
 		if tc.ResponseFile != "" {
@@ -209,6 +213,19 @@ func RunWebTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 		err = os.WriteFile(truthFile, truth, 0644)
 		require.NoError(t, err, "failed to update truth file")
 	}
+}
+
+// overwriteTestBucket rewrites this binary's per-binary bucket name (see storage.go) to the stable
+// "test-attachments" so that snapshots don't vary by binary
+func overwriteTestBucket(rt *runtime.Runtime, b []byte) []byte {
+	return bytes.ReplaceAll(b, []byte(rt.Config.S3AttachmentsBucket), []byte("test-attachments"))
+}
+
+// overwriteTestBucketJSON is overwriteTestBucket applied through a JSON round trip of the given value
+func overwriteTestBucketJSON[T any](rt *runtime.Runtime, v T) T {
+	var out T
+	jsonx.MustUnmarshal(overwriteTestBucket(rt, jsonx.MustMarshal(v)), &out)
+	return out
 }
 
 var isoTimestampRegex = regexp.MustCompile(`\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{1,9}Z`)

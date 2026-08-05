@@ -3,6 +3,7 @@ package testsuite
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -128,7 +129,9 @@ func sweepStaleDynamo(ctx context.Context, client *dynamodb.Client) error {
 		}
 
 		for _, name := range names {
-			if _, err := client.DeleteTable(ctx, &dynamodb.DeleteTableInput{TableName: aws.String(name)}); err != nil {
+			// not found is fine - another live binary's sweep can get there first
+			var notFound *dbtypes.ResourceNotFoundException
+			if _, err := client.DeleteTable(ctx, &dynamodb.DeleteTableInput{TableName: aws.String(name)}); err != nil && !errors.As(err, &notFound) {
 				return fmt.Errorf("error deleting stale table %s: %w", name, err)
 			}
 		}

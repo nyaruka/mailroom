@@ -127,7 +127,8 @@ func sweepStaleElastic(ctx context.Context, rt *runtime.Runtime) error {
 		}
 
 		for _, name := range names {
-			if _, err := rt.ES.Client.Indices.Delete(name).Do(ctx); err != nil {
+			// unavailable is fine - another live binary's sweep can get there first
+			if _, err := rt.ES.Client.Indices.Delete(name).IgnoreUnavailable(true).Do(ctx); err != nil {
 				return fmt.Errorf("error deleting stale index %s: %w", name, err)
 			}
 		}

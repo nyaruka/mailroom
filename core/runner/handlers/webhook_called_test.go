@@ -27,8 +27,6 @@ import (
 func TestWebhookCalled(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetAll)
-
 	rt.HTTP.Engine.Transport = httpx.WithMocks(http.DefaultTransport, map[string][]*httpx.MockResponse{
 		"http://rapidpro.io/": {
 			httpx.NewMockResponse(200, nil, []byte("OK")),

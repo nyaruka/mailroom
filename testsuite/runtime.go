@@ -10,8 +10,6 @@ import (
 	goruntime "runtime"
 	"testing"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/nyaruka/gocommon/centrifugo"
 	"github.com/nyaruka/mailroom/v26/core/goflow"
 	"github.com/nyaruka/mailroom/v26/core/models"
@@ -24,25 +22,6 @@ import (
 func testdataPath(file string) string {
 	_, thisFile, _, _ := goruntime.Caller(0)
 	return path.Join(path.Dir(thisFile), "testdata", file)
-}
-
-// Refresh is our type for the pieces of state we want fresh. Note that there are no flags for the database,
-// valkey, elastic or dynamo because each test starts with its own clean state (see dbtemplate.go, valkey.go,
-// elastic.go and dynamo.go).
-type ResetFlag int
-
-// refresh bit masks
-const (
-	ResetNone    = ResetFlag(0)
-	ResetAll     = ResetFlag(^0)
-	ResetStorage = ResetFlag(1 << 0)
-)
-
-// Reset clears out the state shared between tests
-func Reset(t *testing.T, rt *runtime.Runtime, what ResetFlag) {
-	if what&ResetStorage > 0 {
-		resetStorage(t, rt)
-	}
 }
 
 // Runtime returns the various runtime things a test might need
@@ -69,7 +48,7 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 	t.Setenv("AWS_REGION", "us-east-1")
 
 	cfg.S3Endpoint = "http://localstack:4566"
-	cfg.S3AttachmentsBucket = "test-attachments"
+	cfg.S3AttachmentsBucket = s3AttachmentsBucket() // this binary's own bucket, emptied before every test - see storage.go
 	cfg.S3PathStyle = true
 	cfg.DynamoEndpoint = "http://localstack:4566"
 	cfg.DynamoTablePrefix = dynTablePrefix() // this binary's own tables, cleared before every test - see dynamo.go
@@ -81,7 +60,7 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 	rt, err := runtime.NewRuntime(cfg)
 	require.NoError(t, err)
 
-	createBucket(t, rt, rt.Config.S3AttachmentsBucket)
+	ensureStorage(t, rt)
 	ensureElastic(t, rt)
 	ensureDynamo(t, rt)
 
@@ -93,9 +72,10 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 	err = rt.Start()
 	require.NoError(t, err, "error starting runtime")
 
-	// so every test starts with empty indexes and tables (the writers must be started for their flushes)
+	// so every test starts with empty indexes, tables and storage (writers must be started for their flushes)
 	ClearElastic(t, rt)
 	ClearDynamo(t, rt)
+	clearStorage(t, rt)
 
 	models.InitCache(rt)
 
@@ -127,13 +107,6 @@ func absPath(p string) string {
 	return path.Join(dir, p)
 }
 
-func resetStorage(t *testing.T, rt *runtime.Runtime) {
-	t.Helper()
-
-	err := rt.S3.EmptyBucket(t.Context(), rt.Config.S3AttachmentsBucket)
-	require.NoError(t, err)
-}
-
 // CentrifugoHistory returns the JSON payloads published to the given Centrifugo channel, oldest first. The runtime's
 // Centrifugo client is a mock so this reads back what the test published rather than hitting a real server.
 func CentrifugoHistory(t *testing.T, rt *runtime.Runtime, channel string) []json.RawMessage {
@@ -146,16 +119,6 @@ func CentrifugoHistory(t *testing.T, rt *runtime.Runtime, channel string) []json
 		}
 	}
 	return history
-}
-
-func createBucket(t *testing.T, rt *runtime.Runtime, bucket string) {
-	t.Helper()
-
-	err := rt.S3.Test(t.Context(), bucket)
-	if err != nil {
-		_, err = rt.S3.Client.CreateBucket(t.Context(), &s3.CreateBucketInput{Bucket: aws.String(bucket)})
-		require.NoError(t, err)
-	}
 }
 
 func ReadFile(t *testing.T, path string) []byte {
