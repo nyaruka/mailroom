@@ -441,7 +441,7 @@ func TestMsgReceivedNewURN(t *testing.T) {
 	defer vc.Close()
 
 	// pops tasks without marking them done, so needs to reset valkey for the tests which come after it
-	defer testsuite.Reset(t, rt, testsuite.ResetValkey|testsuite.ResetDynamo|testsuite.ResetElastic)
+	defer testsuite.Reset(t, rt, testsuite.ResetDynamo|testsuite.ResetElastic)
 
 	dbMsg := testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199bad8-f98d-75a3-b641-2718a25ac3f5", testdb.TwilioChannel, testdb.Bob, "", models.MsgStatusPending, "")
 

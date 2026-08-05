@@ -10,15 +10,11 @@ import (
 func TestEvent(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetValkey)
-
 	testsuite.RunWebTests(t, rt, "testdata/event.json")
 }
 
 func TestMessage(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
-
-	defer testsuite.Reset(t, rt, testsuite.ResetValkey)
 
 	testsuite.RunWebTests(t, rt, "testdata/message.json")
 }

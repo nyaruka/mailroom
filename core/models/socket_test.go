@@ -42,8 +42,6 @@ func TestOrgSocket(t *testing.T) {
 func TestPublishOrgEvent(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetValkey)
-
 	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 	require.NoError(t, err)
 
@@ -72,8 +70,6 @@ func TestPublishOrgEvent(t *testing.T) {
 
 func TestPublishFlowActivity(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
-
-	defer testsuite.Reset(t, rt, testsuite.ResetValkey)
 
 	vc := rt.VK.Get()
 	defer vc.Close()
@@ -113,8 +109,6 @@ func TestNotificationSocket(t *testing.T) {
 
 func TestPublishNotifications(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
-
-	defer testsuite.Reset(t, rt, testsuite.ResetValkey)
 
 	vc := rt.VK.Get()
 	defer vc.Close()
@@ -174,8 +168,6 @@ func TestPublishNotifications(t *testing.T) {
 func TestPublishNotificationData(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetValkey)
-
 	vc := rt.VK.Get()
 	defer vc.Close()
 
@@ -220,8 +212,6 @@ func TestPublishNotificationData(t *testing.T) {
 
 func TestPublishToHistory(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
-
-	defer testsuite.Reset(t, rt, testsuite.ResetValkey)
 
 	vc := rt.VK.Get()
 	defer vc.Close()

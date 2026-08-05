@@ -17,7 +17,7 @@ import (
 func TestImportContactBatch(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetDynamo|testsuite.ResetValkey)
+	defer testsuite.Reset(t, rt, testsuite.ResetDynamo)
 
 	importID := testdb.InsertContactImport(t, rt, testdb.Org1, models.ImportStatusProcessing, testdb.Admin)
 	batch1ID := testdb.InsertContactImportBatch(t, rt, importID, []byte(`[
@@ -61,7 +61,7 @@ func TestImportContactBatch(t *testing.T) {
 func TestImportContactBatchFailure(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetDynamo|testsuite.ResetValkey)
+	defer testsuite.Reset(t, rt, testsuite.ResetDynamo)
 
 	importID := testdb.InsertContactImport(t, rt, testdb.Org1, models.ImportStatusProcessing, testdb.Admin)
 

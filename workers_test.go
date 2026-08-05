@@ -28,8 +28,6 @@ func (t *testTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.
 func TestForemanAndWorkers(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetValkey)
-
 	wg := &sync.WaitGroup{}
 	q := queues.NewFair("test", 10)
 
@@ -84,8 +82,6 @@ func TestForemanAndWorkers(t *testing.T) {
 
 func TestForemanWithZeroWorkers(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
-
-	defer testsuite.Reset(t, rt, testsuite.ResetValkey)
 
 	wg := &sync.WaitGroup{}
 	q := queues.NewFair("test", 0)

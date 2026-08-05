@@ -101,8 +101,6 @@ func TestExportPreview(t *testing.T) {
 func TestImport(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetValkey)
-
 	import1ID := testdb.InsertContactImport(t, rt, testdb.Org1, models.ImportStatusProcessing, testdb.Admin)
 	testdb.InsertContactImportBatch(t, rt, import1ID, []byte(`[
 		{"name": "Norbert", "language": "eng", "urns": ["tel:+16055740001"]},
@@ -163,8 +161,6 @@ func TestModify(t *testing.T) {
 func TestInterrupt(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetValkey)
-
 	// mock the universe before inserting sessions so their generated UUIDs are deterministic
 	defer test.MockUniverse()()
 
@@ -194,7 +190,7 @@ func TestParseQuery(t *testing.T) {
 func TestPopulateGroup(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetValkey|testsuite.ResetElastic)
+	defer testsuite.Reset(t, rt, testsuite.ResetElastic)
 
 	testdb.InsertContactGroup(t, rt, testdb.Org1, "", "Dynamic", "age > 18")
 

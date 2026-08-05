@@ -27,25 +27,21 @@ func testdataPath(file string) string {
 	return path.Join(path.Dir(thisFile), "testdata", file)
 }
 
-// Refresh is our type for the pieces of state we want fresh. Note that there's no flag for the database
-// because each test gets its own (see dbtemplate.go) which is dropped when it finishes.
+// Refresh is our type for the pieces of state we want fresh. Note that there are no flags for the database
+// or valkey because each test gets its own (see dbtemplate.go and valkey.go).
 type ResetFlag int
 
 // refresh bit masks
 const (
 	ResetNone    = ResetFlag(0)
 	ResetAll     = ResetFlag(^0)
-	ResetValkey  = ResetFlag(1 << 0)
-	ResetStorage = ResetFlag(1 << 1)
-	ResetDynamo  = ResetFlag(1 << 2)
-	ResetElastic = ResetFlag(1 << 3)
+	ResetStorage = ResetFlag(1 << 0)
+	ResetDynamo  = ResetFlag(1 << 1)
+	ResetElastic = ResetFlag(1 << 2)
 )
 
 // Reset clears out the state shared between tests
 func Reset(t *testing.T, rt *runtime.Runtime, what ResetFlag) {
-	if what&ResetValkey > 0 {
-		resetValkey(t, rt)
-	}
 	if what&ResetStorage > 0 {
 		resetStorage(t, rt)
 	}
@@ -65,12 +61,15 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 	dbName := createTestDB(t)
 	t.Cleanup(func() { dropTestDB(t, dbName) })
 
+	// and its own valkey database claimed from the server's pool - see valkey.go
+	vkDB := claimVKDB(t)
+
 	cfg := runtime.NewDefaultConfig()
 	cfg.DeploymentID = "test"
 	cfg.InternetPort = 8190
 	cfg.InternalPort = 8191
 	cfg.DB = fmt.Sprintf(dbTestDSNFormat, dbName)
-	cfg.Valkey = "valkey://valkey:6379/10" // use a different DB from the default so a locally-running courier can't pop from queues we're asserting on
+	cfg.Valkey = fmt.Sprintf(vkTestDSNFormat, vkDB)
 
 	// AWS SDK default chain reads these — used by the localstack S3/Dynamo/Cloudwatch clients
 	t.Setenv("AWS_ACCESS_KEY_ID", "root")
@@ -135,17 +134,6 @@ func absPath(p string) string {
 		dir = path.Dir(dir)
 	}
 	return path.Join(dir, p)
-}
-
-// resets our valkey database
-func resetValkey(t *testing.T, rt *runtime.Runtime) {
-	t.Helper()
-
-	vc := rt.VK.Get()
-	defer vc.Close()
-
-	_, err := vc.Do("FLUSHDB")
-	require.NoError(t, err, "error flushing valkey db")
 }
 
 func resetStorage(t *testing.T, rt *runtime.Runtime) {

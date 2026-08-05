@@ -18,8 +18,6 @@ func TestFireSchedules(t *testing.T) {
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	defer testsuite.Reset(t, rt, testsuite.ResetValkey)
-
 	// add a one-time schedule and tie a broadcast to it
 	s1 := testdb.InsertSchedule(t, rt, testdb.Org1, models.RepeatPeriodNever, time.Now().Add(-2*time.Hour))
 	b1 := testdb.InsertBroadcast(t, rt, testdb.Org1, "0199877e-0ed2-790b-b474-35099cea401c", "eng", map[i18n.Language]string{"eng": "Hi", "spa": "Hola"}, s1, []*testdb.Contact{testdb.Ann, testdb.Cat}, nil)
