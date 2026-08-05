@@ -47,7 +47,7 @@ func TestDTOneStatusCallback(t *testing.T) {
 	}
 
 	post := func(t *testing.T, body string) int {
-		req, err := http.NewRequest("POST", "http://localhost:8190"+callbackPath, strings.NewReader(body))
+		req, err := http.NewRequest("POST", fmt.Sprintf("http://localhost:%d", rt.Config.InternetPort)+callbackPath, strings.NewReader(body))
 		require.NoError(t, err)
 		req.Header.Set("Content-Type", "application/json")
 		resp, err := http.DefaultClient.Do(req)

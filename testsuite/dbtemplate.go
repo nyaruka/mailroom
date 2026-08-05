@@ -57,8 +57,8 @@ var dbProcID = sync.OnceValue(func() string {
 // matches a process identifier segment in a per-binary resource name
 var binProcIDRegex = regexp.MustCompile(`^[0-9a-f]{8}$`)
 
-// binKey derives the advisory lock key which marks a binary's per-binary resources - its elastic indexes
-// and dynamo tables - as in use
+// binKey derives the advisory lock key which marks a binary's per-binary resources - its elastic indexes,
+// dynamo tables and attachments bucket - as in use
 func binKey(procID string) int64 {
 	return dbKey("binary_" + procID)
 }
