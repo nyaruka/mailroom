@@ -19,8 +19,7 @@ func TestOptIns(t *testing.T) {
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshOptIns)
 	require.NoError(t, err)
 
-	optIns, err := oa.OptIns()
-	require.NoError(t, err)
+	optIns := oa.OptIns()
 
 	assert.Equal(t, 2, len(optIns))
 	assert.Equal(t, polls.UUID, optIns[0].UUID())

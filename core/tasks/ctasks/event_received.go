@@ -75,12 +75,9 @@ func (t *EventReceived) handle(ctx context.Context, rt *runtime.Runtime, oa *mod
 		return nil, fmt.Errorf("error creating engine contact: %w", err)
 	}
 
-	var flowOptIn *core.OptIn
+	var optIn *models.OptIn
 	if t.EventType == models.EventTypeOptIn || t.EventType == models.EventTypeOptOut {
-		optIn := oa.OptInByID(t.OptInID)
-		if optIn != nil {
-			flowOptIn = oa.SessionAssets().OptIns().Get(optIn.UUID())
-		}
+		optIn = oa.OptInByID(t.OptInID)
 	}
 
 	var flowCall *core.Call
@@ -112,7 +109,7 @@ func (t *EventReceived) handle(ctx context.Context, rt *runtime.Runtime, oa *mod
 	}
 
 	// convert to real event
-	event := t.toEvent(channel, flowCall, flowOptIn)
+	event := t.toEvent(channel, flowCall, optIn)
 	if event != nil {
 		if err := scene.AddEvent(ctx, rt, oa, event, models.NilUserID, ""); err != nil {
 			return nil, fmt.Errorf("error adding channel event to scene: %w", err)
@@ -156,7 +153,7 @@ func (t *EventReceived) handle(ctx context.Context, rt *runtime.Runtime, oa *mod
 }
 
 // convert to a real engine event
-func (t *EventReceived) toEvent(ch *models.Channel, call *core.Call, optIn *core.OptIn) events.Event {
+func (t *EventReceived) toEvent(ch *models.Channel, call *core.Call, optIn *models.OptIn) events.Event {
 	switch t.EventType {
 	case models.EventTypeMissedCall:
 		return events.NewCallMissed(ch.Reference())
