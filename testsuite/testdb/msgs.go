@@ -44,11 +44,6 @@ type Label struct {
 	UUID assets.LabelUUID
 }
 
-type OptIn struct {
-	ID   models.OptInID
-	UUID assets.OptInUUID
-}
-
 type Template struct {
 	ID   models.TemplateID
 	UUID assets.TemplateUUID
@@ -133,17 +128,6 @@ func InsertBroadcast(t *testing.T, rt *runtime.Runtime, org *Org, uuid core.Broa
 	}
 
 	return &Broadcast{ID: id, UUID: uuid}
-}
-
-// InsertOptIn inserts an opt in
-func InsertOptIn(t *testing.T, rt *runtime.Runtime, org *Org, uuid assets.OptInUUID, name string) *OptIn {
-	var id models.OptInID
-	err := rt.DB.Get(&id,
-		`INSERT INTO msgs_optin(uuid, org_id, name, created_on, modified_on, created_by_id, modified_by_id, is_active, is_system) 
-		VALUES($1, $2, $3, NOW(), NOW(), 1, 1, TRUE, FALSE) RETURNING id`, uuid, org.ID, name,
-	)
-	require.NoError(t, err)
-	return &OptIn{ID: id, UUID: uuid}
 }
 
 // InsertTemplate inserts a template

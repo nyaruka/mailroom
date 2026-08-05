@@ -36,7 +36,6 @@ const (
 	RefreshLabels    = Refresh(1 << 9)
 	RefreshLLMs      = Refresh(1 << 10)
 	RefreshLocations = Refresh(1 << 11)
-	RefreshOptIns    = Refresh(1 << 12)
 	RefreshResthooks = Refresh(1 << 13)
 	RefreshTemplates = Refresh(1 << 14)
 	RefreshTopics    = Refresh(1 << 15)
@@ -82,10 +81,6 @@ type OrgAssets struct {
 
 	llms     []assets.LLM
 	llmsByID map[LLMID]*LLM
-
-	optIns       []*OptIn
-	optInsByID   map[OptInID]*OptIn
-	optInsByUUID map[assets.OptInUUID]*OptIn
 
 	templates       []assets.Template
 	templatesByID   map[TemplateID]*Template
@@ -277,23 +272,6 @@ func NewOrgAssets(ctx context.Context, rt *runtime.Runtime, orgID OrgID, prev *O
 	} else {
 		oa.llms = prev.llms
 		oa.llmsByID = prev.llmsByID
-	}
-
-	if prev == nil || refresh&RefreshOptIns > 0 {
-		oa.optIns, err = loadAssetType(ctx, db, orgID, "optins", loadOptIns)
-		if err != nil {
-			return nil, fmt.Errorf("error loading optins for org %d: %w", orgID, err)
-		}
-		oa.optInsByID = make(map[OptInID]*OptIn)
-		oa.optInsByUUID = make(map[assets.OptInUUID]*OptIn)
-		for _, o := range oa.optIns {
-			oa.optInsByID[o.ID()] = o
-			oa.optInsByUUID[o.UUID()] = o
-		}
-	} else {
-		oa.optIns = prev.optIns
-		oa.optInsByID = prev.optInsByID
-		oa.optInsByUUID = prev.optInsByUUID
 	}
 
 	if prev == nil || refresh&RefreshResthooks > 0 {
@@ -608,18 +586,6 @@ func (a *OrgAssets) Triggers() []*Trigger {
 
 func (a *OrgAssets) Locations() ([]assets.LocationHierarchy, error) {
 	return a.locations, nil
-}
-
-func (a *OrgAssets) OptIns() []*OptIn {
-	return a.optIns
-}
-
-func (a *OrgAssets) OptInByID(id OptInID) *OptIn {
-	return a.optInsByID[id]
-}
-
-func (a *OrgAssets) OptInByUUID(uuid assets.OptInUUID) *OptIn {
-	return a.optInsByUUID[uuid]
 }
 
 func (a *OrgAssets) Resthooks() ([]assets.Resthook, error) {

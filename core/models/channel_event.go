@@ -24,8 +24,6 @@ const (
 	EventTypeMissedCall      ChannelEventType = "mo_miss"
 	EventTypeIncomingCall    ChannelEventType = "mo_call"
 	EventTypeStopContact     ChannelEventType = "stop_contact"
-	EventTypeOptIn           ChannelEventType = "optin"
-	EventTypeOptOut          ChannelEventType = "optout"
 	EventTypeDeleteContact   ChannelEventType = "delete_contact"
 
 	// channel event statuses
@@ -40,8 +38,6 @@ var ContactSeenEvents = map[ChannelEventType]bool{
 	EventTypeMissedCall:      true,
 	EventTypeIncomingCall:    true,
 	EventTypeStopContact:     true,
-	EventTypeOptIn:           true,
-	EventTypeOptOut:          true,
 }
 
 // ChannelEvent represents an event that occurred associated with a channel, such as a referral, missed call, etc..
@@ -54,15 +50,14 @@ type ChannelEvent struct {
 	ChannelID  ChannelID          `db:"channel_id"`
 	ContactID  ContactID          `db:"contact_id"`
 	URNID      URNID              `db:"contact_urn_id"`
-	OptInID    OptInID            `db:"optin_id"`
 	Extra      null.Map[any]      `db:"extra"`
 	OccurredOn time.Time          `db:"occurred_on"`
 	CreatedOn  time.Time          `db:"created_on"`
 }
 
 const sqlInsertChannelEvent = `
-INSERT INTO channels_channelevent(uuid, org_id,  event_type,  status,  channel_id,  contact_id,  contact_urn_id,  optin_id,  extra, created_on, occurred_on)
-	                       VALUES(:uuid, :org_id, :event_type, :status, :channel_id, :contact_id, :contact_urn_id, :optin_id, :extra, NOW(),     :occurred_on)
+INSERT INTO channels_channelevent(uuid, org_id,  event_type,  status,  channel_id,  contact_id,  contact_urn_id,  extra, created_on, occurred_on)
+	                       VALUES(:uuid, :org_id, :event_type, :status, :channel_id, :contact_id, :contact_urn_id, :extra, NOW(),     :occurred_on)
   RETURNING id, created_on`
 
 // Insert inserts this channel event to our DB. The ID of the channel event will be

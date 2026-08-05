@@ -129,7 +129,7 @@ func TestBroadcastSend(t *testing.T) {
 
 	defer testsuite.Reset(t, rt, testsuite.ResetValkey)
 
-	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshOptIns)
+	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshNone)
 	require.NoError(t, err)
 
 	defer test.MockUniverse()()
