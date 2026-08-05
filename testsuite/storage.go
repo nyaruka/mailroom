@@ -2,6 +2,7 @@ package testsuite
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -9,9 +10,16 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/smithy-go"
 	"github.com/nyaruka/mailroom/v26/runtime"
 	"github.com/stretchr/testify/require"
 )
+
+// isNoSuchBucket returns whether the given error is S3 telling us the bucket doesn't exist
+func isNoSuchBucket(err error) bool {
+	var ae smithy.APIError
+	return errors.As(err, &ae) && ae.ErrorCode() == "NoSuchBucket"
+}
 
 // Each test binary gets its own attachments bucket (suffixed with its process identifier), so concurrently
 // running binaries never see each other's files. Within a binary, clearStorage runs at the start of every
@@ -85,10 +93,11 @@ func sweepStaleStorage(ctx context.Context, rt *runtime.Runtime) error {
 			continue // in use by a live run
 		}
 
-		if err := rt.S3.EmptyBucket(ctx, name); err != nil {
+		// not found is fine - another live binary's sweep can get there first
+		if err := rt.S3.EmptyBucket(ctx, name); err != nil && !isNoSuchBucket(err) {
 			return fmt.Errorf("error emptying stale bucket %s: %w", name, err)
 		}
-		if _, err := rt.S3.Client.DeleteBucket(ctx, &s3.DeleteBucketInput{Bucket: aws.String(name)}); err != nil {
+		if _, err := rt.S3.Client.DeleteBucket(ctx, &s3.DeleteBucketInput{Bucket: aws.String(name)}); err != nil && !isNoSuchBucket(err) {
 			return fmt.Errorf("error deleting stale bucket %s: %w", name, err)
 		}
 
