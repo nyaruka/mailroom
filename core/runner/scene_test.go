@@ -626,7 +626,7 @@ func TestBroadcastWithLock(t *testing.T) {
 	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 	require.NoError(t, err)
 
-	b1 := testdb.InsertBroadcast(t, rt, testdb.Org1, "0199877e-0ed2-790b-b474-35099cea401c", "eng", map[i18n.Language]string{"eng": "Hi", "spa": "Hola"}, nil, models.NilScheduleID, []*testdb.Contact{testdb.Ann, testdb.Bob, testdb.Cat}, nil)
+	b1 := testdb.InsertBroadcast(t, rt, testdb.Org1, "0199877e-0ed2-790b-b474-35099cea401c", "eng", map[i18n.Language]string{"eng": "Hi", "spa": "Hola"}, models.NilScheduleID, []*testdb.Contact{testdb.Ann, testdb.Bob, testdb.Cat}, nil)
 
 	bcast, err := models.GetBroadcastByID(ctx, rt.DB, b1.ID)
 	require.NoError(t, err)
@@ -696,7 +696,7 @@ func TestBroadcastWithLock(t *testing.T) {
 	testdb.InsertWaitingSession(t, rt, testdb.Org1, testdb.Bob, models.FlowTypeMessaging, nil, testdb.Favorites)
 
 	// test skip mode: Ann and Bob have sessions so should be skipped, Cat should receive
-	b2 := testdb.InsertBroadcast(t, rt, testdb.Org1, "0199877e-0ed2-790b-b474-35099cea401d", "eng", map[i18n.Language]string{"eng": "Skippable"}, nil, models.NilScheduleID, []*testdb.Contact{testdb.Ann, testdb.Bob, testdb.Cat}, nil)
+	b2 := testdb.InsertBroadcast(t, rt, testdb.Org1, "0199877e-0ed2-790b-b474-35099cea401d", "eng", map[i18n.Language]string{"eng": "Skippable"}, models.NilScheduleID, []*testdb.Contact{testdb.Ann, testdb.Bob, testdb.Cat}, nil)
 	bcast2, err := models.GetBroadcastByID(ctx, rt.DB, b2.ID)
 	require.NoError(t, err)
 
@@ -719,7 +719,7 @@ func TestBroadcastWithLock(t *testing.T) {
 	testsuite.AssertContactInFlow(t, rt, testdb.Bob, testdb.Favorites)
 
 	// test interrupt mode: Ann and Bob have sessions which should be interrupted, all should receive
-	b3 := testdb.InsertBroadcast(t, rt, testdb.Org1, "0199877e-0ed2-790b-b474-35099cea401e", "eng", map[i18n.Language]string{"eng": "Interrupting"}, nil, models.NilScheduleID, []*testdb.Contact{testdb.Ann, testdb.Bob, testdb.Cat}, nil)
+	b3 := testdb.InsertBroadcast(t, rt, testdb.Org1, "0199877e-0ed2-790b-b474-35099cea401e", "eng", map[i18n.Language]string{"eng": "Interrupting"}, models.NilScheduleID, []*testdb.Contact{testdb.Ann, testdb.Bob, testdb.Cat}, nil)
 	bcast3, err := models.GetBroadcastByID(ctx, rt.DB, b3.ID)
 	require.NoError(t, err)
 
