@@ -32,7 +32,6 @@ func TestChannels(t *testing.T) {
 		address            string
 		schemes            []string
 		roles              []assets.ChannelRole
-		features           []assets.ChannelFeature
 		prefixes           []string
 		allowInternational bool
 	}{
@@ -43,7 +42,6 @@ func TestChannels(t *testing.T) {
 			"+13605551212",
 			[]string{"tel"},
 			[]assets.ChannelRole{"send", "receive", "call", "answer"},
-			[]assets.ChannelFeature{},
 			nil,
 			false,
 		},
@@ -54,7 +52,6 @@ func TestChannels(t *testing.T) {
 			"5789",
 			[]string{"tel"},
 			[]assets.ChannelRole{"send", "receive"},
-			[]assets.ChannelFeature{},
 			[]string{"250", "251"},
 			true,
 		},
@@ -65,7 +62,6 @@ func TestChannels(t *testing.T) {
 			"12345",
 			[]string{"facebook"},
 			[]assets.ChannelRole{"send", "receive"},
-			[]assets.ChannelFeature{"optins"},
 			nil,
 			false,
 		},
@@ -76,7 +72,6 @@ func TestChannels(t *testing.T) {
 			"+593123456789",
 			[]string{"tel"},
 			[]assets.ChannelRole{"send", "receive"},
-			[]assets.ChannelFeature{},
 			nil,
 			false,
 		},
@@ -90,7 +85,6 @@ func TestChannels(t *testing.T) {
 		assert.Equal(t, tc.name, channel.Name())
 		assert.Equal(t, tc.address, channel.Address())
 		assert.Equal(t, tc.roles, channel.Roles())
-		assert.Equal(t, tc.features, channel.Features())
 		assert.Equal(t, tc.schemes, channel.Schemes())
 		assert.Equal(t, tc.prefixes, channel.MatchPrefixes())
 		assert.Equal(t, tc.allowInternational, channel.AllowInternational())

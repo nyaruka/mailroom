@@ -42,7 +42,7 @@ func handleInspect(ctx context.Context, rt *runtime.Runtime, r *inspectRequest) 
 	if r.OrgID != models.NilOrgID {
 		refreshFlags := models.RefreshFields | models.RefreshFlows | models.RefreshGroups
 		if r.IsImport {
-			refreshFlags |= (models.RefreshGlobals | models.RefreshLabels | models.RefreshOptIns | models.RefreshTopics)
+			refreshFlags |= (models.RefreshGlobals | models.RefreshLabels | models.RefreshTopics)
 		}
 
 		oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, r.OrgID, refreshFlags)

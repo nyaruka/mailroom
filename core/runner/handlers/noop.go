@@ -20,8 +20,6 @@ func init() {
 	runner.RegisterEventHandler(events.TypeDialWait, noopHandler)
 	runner.RegisterEventHandler(events.TypeFailure, noopHandler)
 	runner.RegisterEventHandler(events.TypeMsgWait, noopHandler)
-	runner.RegisterEventHandler(events.TypeOptInStarted, noopHandler)
-	runner.RegisterEventHandler(events.TypeOptInStopped, noopHandler)
 	runner.RegisterEventHandler(events.TypeRunEnded, noopHandler)
 	runner.RegisterEventHandler(events.TypeRunResultChanged, noopHandler)
 	runner.RegisterEventHandler(events.TypeWaitExpired, noopHandler)
