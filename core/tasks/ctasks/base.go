@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"time"
 
 	valkey "github.com/gomodule/redigo/redis"
@@ -85,6 +86,19 @@ type NewURNSpec struct {
 
 // Apply appends the new URN to the contact, recording channel affinity for the given channel if set.
 func (s *NewURNSpec) Apply(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scene *runner.Scene, channel *models.Channel) error {
+	// as WhatsApp identity transitions from phone numbers to BSUIDs, a BSUID being appended here may already be owned
+	// by a duplicate contact created from messages received with only that BSUID - if that contact has no other URNs
+	// we detach the URN from it so that it can be claimed by this contact
+	if urns.IsWhatsAppBSUID(s.Value) {
+		ownerID, detached, err := models.DetachShellContactURN(ctx, rt.DB, oa, scene.ContactID(), s.Value)
+		if err != nil {
+			return fmt.Errorf("error detaching URN from shell contact: %w", err)
+		}
+		if ownerID != models.NilContactID && !detached {
+			slog.Info("BSUID URN not appended because it belongs to a contact with other URNs", "urn", s.Value, "contact", scene.ContactUUID(), "owner_id", ownerID)
+		}
+	}
+
 	var flowCh *core.Channel
 	if channel != nil {
 		flowCh = oa.SessionAssets().Channels().Get(channel.UUID())
