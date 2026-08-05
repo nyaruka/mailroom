@@ -70,6 +70,14 @@ func setupDynamo(rt *runtime.Runtime) error {
 		}
 	}
 
+	// wait for tables to be usable - localstack creates synchronously but real DynamoDB doesn't
+	waiter := dynamodb.NewTableExistsWaiter(client)
+	for _, input := range inputs {
+		if err := waiter.Wait(ctx, &dynamodb.DescribeTableInput{TableName: input.TableName}, 30*time.Second); err != nil {
+			return fmt.Errorf("error waiting for table %s: %w", *input.TableName, err)
+		}
+	}
+
 	return sweepStaleDynamo(ctx, client)
 }
 
