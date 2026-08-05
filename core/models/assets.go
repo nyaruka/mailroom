@@ -83,7 +83,7 @@ type OrgAssets struct {
 	llms     []assets.LLM
 	llmsByID map[LLMID]*LLM
 
-	optIns       []assets.OptIn
+	optIns       []*OptIn
 	optInsByID   map[OptInID]*OptIn
 	optInsByUUID map[assets.OptInUUID]*OptIn
 
@@ -287,12 +287,12 @@ func NewOrgAssets(ctx context.Context, rt *runtime.Runtime, orgID OrgID, prev *O
 		oa.optInsByID = make(map[OptInID]*OptIn)
 		oa.optInsByUUID = make(map[assets.OptInUUID]*OptIn)
 		for _, o := range oa.optIns {
-			optIn := o.(*OptIn)
-			oa.optInsByID[optIn.ID()] = optIn
-			oa.optInsByUUID[optIn.UUID()] = optIn
+			oa.optInsByID[o.ID()] = o
+			oa.optInsByUUID[o.UUID()] = o
 		}
 	} else {
 		oa.optIns = prev.optIns
+		oa.optInsByID = prev.optInsByID
 		oa.optInsByUUID = prev.optInsByUUID
 	}
 
@@ -610,8 +610,8 @@ func (a *OrgAssets) Locations() ([]assets.LocationHierarchy, error) {
 	return a.locations, nil
 }
 
-func (a *OrgAssets) OptIns() ([]assets.OptIn, error) {
-	return a.optIns, nil
+func (a *OrgAssets) OptIns() []*OptIn {
+	return a.optIns
 }
 
 func (a *OrgAssets) OptInByID(id OptInID) *OptIn {

@@ -31,6 +31,11 @@ func (o *OptIn) ID() OptInID            { return o.ID_ }
 func (o *OptIn) UUID() assets.OptInUUID { return o.UUID_ }
 func (o *OptIn) Name() string           { return o.Name_ }
 
+// Reference returns a reference to this optin
+func (o *OptIn) Reference() *assets.OptInReference {
+	return assets.NewOptInReference(o.UUID_, o.Name_)
+}
+
 const sqlSelectOptInsByOrg = `
 SELECT ROW_TO_JSON(r) FROM (
       SELECT id, uuid, name
@@ -40,11 +45,11 @@ SELECT ROW_TO_JSON(r) FROM (
 ) r;`
 
 // loads the optins for the passed in org
-func loadOptIns(ctx context.Context, db *sql.DB, orgID OrgID) ([]assets.OptIn, error) {
+func loadOptIns(ctx context.Context, db *sql.DB, orgID OrgID) ([]*OptIn, error) {
 	rows, err := db.QueryContext(ctx, sqlSelectOptInsByOrg, orgID)
 	if err != nil {
 		return nil, fmt.Errorf("error querying optins for org: %d: %w", orgID, err)
 	}
 
-	return ScanJSONRows(rows, func() assets.OptIn { return &OptIn{} })
+	return ScanJSONRows(rows, func() *OptIn { return &OptIn{} })
 }
