@@ -26,4 +26,13 @@ func TestOptIns(t *testing.T) {
 	assert.Equal(t, "Polls", optIns[0].Name())
 	assert.Equal(t, offers.UUID, optIns[1].UUID())
 	assert.Equal(t, "Offers", optIns[1].Name())
+
+	// check lookup maps are carried over by a refresh that doesn't reload optins
+	oa, err = models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshFields)
+	require.NoError(t, err)
+
+	require.NotNil(t, oa.OptInByID(polls.ID))
+	assert.Equal(t, polls.UUID, oa.OptInByID(polls.ID).UUID())
+	require.NotNil(t, oa.OptInByUUID(offers.UUID))
+	assert.Equal(t, "Offers", oa.OptInByUUID(offers.UUID).Name())
 }
