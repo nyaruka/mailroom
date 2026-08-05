@@ -440,7 +440,7 @@ func TestMsgReceivedNewURN(t *testing.T) {
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetDynamo|testsuite.ResetElastic)
+	defer testsuite.Reset(t, rt, testsuite.ResetDynamo|testsuite.ResetElastic)
 
 	dbMsg := testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199bad8-f98d-75a3-b641-2718a25ac3f5", testdb.TwilioChannel, testdb.Bob, "", models.MsgStatusPending, "")
 
@@ -613,7 +613,7 @@ func TestMsgReceivedNewURN(t *testing.T) {
 func TestMsgReceivedPayload(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetDynamo|testsuite.ResetElastic)
+	defer testsuite.Reset(t, rt, testsuite.ResetDynamo|testsuite.ResetElastic)
 
 	oa := testdb.Org1.Load(t, rt)
 	ann, _, _ := testdb.Ann.Load(t, rt, oa)

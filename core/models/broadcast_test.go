@@ -22,8 +22,6 @@ import (
 func TestBroadcasts(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetData)
-
 	bcast := models.NewBroadcast(
 		testdb.Org1.ID,
 		core.BroadcastTranslations{"eng": {Text: "Hi there"}},
@@ -69,8 +67,6 @@ func TestBroadcasts(t *testing.T) {
 func TestInsertChildBroadcast(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetData)
-
 	schedID := testdb.InsertSchedule(t, rt, testdb.Org1, models.RepeatPeriodDaily, time.Now())
 	bcast := testdb.InsertBroadcast(t, rt, testdb.Org1, "0199877e-0ed2-790b-b474-35099cea401c", `eng`, map[i18n.Language]string{`eng`: "Hello"}, schedID, []*testdb.Contact{testdb.Bob, testdb.Ann}, nil)
 
@@ -93,9 +89,7 @@ func TestInsertChildBroadcast(t *testing.T) {
 }
 
 func TestNonPersistentBroadcasts(t *testing.T) {
-	_, rt := testsuite.Runtime(t)
-
-	defer testsuite.Reset(t, rt, testsuite.ResetData)
+	testsuite.Runtime(t) // this test doesn't touch the database but still needs the runtime's global setup
 
 	translations := core.BroadcastTranslations{"eng": {Text: "Hi there"}}
 
@@ -133,7 +127,7 @@ func TestNonPersistentBroadcasts(t *testing.T) {
 func TestBroadcastSend(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetValkey)
+	defer testsuite.Reset(t, rt, testsuite.ResetValkey)
 
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshOptIns)
 	require.NoError(t, err)

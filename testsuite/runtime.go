@@ -27,22 +27,21 @@ func testdataPath(file string) string {
 	return path.Join(path.Dir(thisFile), "testdata", file)
 }
 
-// Refresh is our type for the pieces of org assets we want fresh (not cached)
+// Refresh is our type for the pieces of state we want fresh. Note that there's no flag for the database
+// because each test gets its own (see dbtemplate.go) which is dropped when it finishes.
 type ResetFlag int
 
 // refresh bit masks
 const (
 	ResetNone    = ResetFlag(0)
 	ResetAll     = ResetFlag(^0)
-	ResetDB      = ResetFlag(1 << 1)
-	ResetData    = ResetFlag(1 << 2)
-	ResetValkey  = ResetFlag(1 << 3)
-	ResetStorage = ResetFlag(1 << 4)
-	ResetDynamo  = ResetFlag(1 << 5)
-	ResetElastic = ResetFlag(1 << 6)
+	ResetValkey  = ResetFlag(1 << 0)
+	ResetStorage = ResetFlag(1 << 1)
+	ResetDynamo  = ResetFlag(1 << 2)
+	ResetElastic = ResetFlag(1 << 3)
 )
 
-// Reset clears out both our database and redis DB
+// Reset clears out the state shared between tests
 func Reset(t *testing.T, rt *runtime.Runtime, what ResetFlag) {
 	if what&ResetValkey > 0 {
 		resetValkey(t, rt)
@@ -54,10 +53,7 @@ func Reset(t *testing.T, rt *runtime.Runtime, what ResetFlag) {
 		resetDynamo(t, rt)
 	}
 
-	// ResetDB and ResetData are no-ops - each test gets its own database (see dbtemplate.go) which is
-	// dropped when it finishes, so there's nothing to reset
-
-	// comes after data/db reset so reindexing happens from reset data
+	// comes last so that reindexing happens from reset data
 	if what&ResetElastic > 0 {
 		resetElastic(t, rt)
 	}

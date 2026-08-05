@@ -20,7 +20,7 @@ import (
 func TestChannelLogsOutgoing(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetDynamo)
+	defer testsuite.Reset(t, rt, testsuite.ResetDynamo)
 
 	mocks := httpx.WithMocks(http.DefaultTransport, map[string][]*httpx.MockResponse{
 		"http://ivr.com/start":  {httpx.NewMockResponse(200, nil, []byte("OK"))},
