@@ -9,6 +9,7 @@ import (
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/mailroom/v26/core/ivr"
 	"github.com/nyaruka/mailroom/v26/core/models"
+	"github.com/nyaruka/mailroom/v26/core/search"
 	"github.com/nyaruka/mailroom/v26/core/tasks"
 	"github.com/nyaruka/mailroom/v26/core/tasks/ctasks"
 	"github.com/nyaruka/mailroom/v26/runtime"
@@ -536,6 +537,16 @@ func TestMsgReceivedNewURN(t *testing.T) {
 				assert.True(t, newModifiedOn.After(shellModifiedOn), "shell contact modified_on should be bumped")
 				require.NoError(t, rt.DB.Get(&newModifiedOn, `SELECT modified_on FROM contacts_contact WHERE id = $1`, testdb.Bob.ID))
 				assert.True(t, newModifiedOn.After(bobModifiedOn), "message contact modified_on should be bumped")
+
+				// shell contact isn't part of the scene so must have been explicitly re-indexed without the URN
+				rt.ES.Writer.Flush()
+				resp, err := rt.ES.Client.Get(rt.Config.ElasticContactsIndex, string(shell.UUID)).Routing(fmt.Sprintf("%d", testdb.Org1.ID)).Do(t.Context())
+				require.NoError(t, err)
+				require.True(t, resp.Found, "shell contact doc should be queued to ES writer")
+
+				var doc search.ContactDoc
+				require.NoError(t, json.Unmarshal(resp.Source_, &doc))
+				assert.Empty(t, doc.URNs, "shell contact doc should no longer have any URNs")
 			},
 		},
 		{
