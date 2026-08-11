@@ -47,7 +47,7 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 	cfg.ElasticContactsIndex = esContactsIndex() // this binary's own indexes, cleared before every test
 	cfg.ElasticMessagesIndex = esMessagesIndex() // - see elastic.go
 
-	// AWS SDK default chain reads these — used by the localstack S3/Dynamo/Cloudwatch clients
+	// AWS SDK default chain reads these — used by the S3/Dynamo/Cloudwatch clients
 	t.Setenv("AWS_ACCESS_KEY_ID", "root")
 	t.Setenv("AWS_SECRET_ACCESS_KEY", "tembatemba")
 	t.Setenv("AWS_REGION", "us-east-1")
@@ -55,7 +55,7 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 	cfg.S3Endpoint = "http://localstack:4566"
 	cfg.S3AttachmentsBucket = s3AttachmentsBucket() // this binary's own bucket, emptied before every test - see storage.go
 	cfg.S3PathStyle = true
-	cfg.DynamoEndpoint = "http://localstack:4566"
+	cfg.DynamoEndpoint = "http://dynamodb:8000"
 	cfg.DynamoTablePrefix = dynTablePrefix() // this binary's own tables, cleared before every test - see dynamo.go
 	cfg.SpoolDir = t.TempDir()
 
