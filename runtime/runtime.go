@@ -29,6 +29,7 @@ type Runtime struct {
 	Dynamo     *Dynamo
 	CW         *cwatch.Service
 	FCM        FCMClient
+	Embeddings Embedder
 	Centrifugo *centrifugo.Service
 
 	Queues *Queues
@@ -43,6 +44,15 @@ type Runtime struct {
 // FCMClient is an interface to allow mocking in tests
 type FCMClient interface {
 	Send(ctx context.Context, message ...*messaging.Message) (*messaging.BatchResponse, error)
+}
+
+// Embedder turns text into vector embeddings for knowledge base indexing and search. Nil when no embeddings
+// service is configured, which is how callers know the feature is disabled. An interface both to allow mocking
+// in tests and because embeddings are model specific - passages and queries are embedded differently, so
+// callers say which they have rather than knowing what the model needs.
+type Embedder interface {
+	EmbedPassages(ctx context.Context, texts []string) ([][]float32, error)
+	EmbedQuery(ctx context.Context, text string) ([]float32, error)
 }
 
 func NewRuntime(cfg *Config) (*Runtime, error) {

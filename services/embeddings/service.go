@@ -1,12 +1,11 @@
-// Package knowledge implements the knowledge base feature - chunking and embedding of source content so
-// that it can be indexed and searched semantically.
-package knowledge
+// Package embeddings implements a client for an OpenAI compatible embeddings service, used to turn text into
+// the vectors that knowledge base indexing and search are built on.
+package embeddings
 
 import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -14,8 +13,6 @@ import (
 	"strings"
 
 	"github.com/nyaruka/gocommon/jsonx"
-	"github.com/nyaruka/mailroom/v26/core/models"
-	"github.com/nyaruka/mailroom/v26/runtime"
 )
 
 // the e5 family of embedding models requires inputs to be prefixed according to their use
@@ -36,39 +33,47 @@ type embeddingsRequest struct {
 
 type embeddingsResponse struct {
 	Data []struct {
-		Index     int              `json:"index"`
-		Embedding models.Embedding `json:"embedding"`
+		Index     int       `json:"index"`
+		Embedding []float32 `json:"embedding"`
 	} `json:"data"`
+}
+
+// Service is a client for an OpenAI compatible embeddings service
+type Service struct {
+	httpClient *http.Client
+	endpoint   string
+	model      string
+}
+
+// NewService creates a new embeddings service client for the given endpoint and model
+func NewService(httpClient *http.Client, endpoint, model string) *Service {
+	return &Service{httpClient: httpClient, endpoint: strings.TrimRight(endpoint, "/"), model: model}
 }
 
 // EmbedPassages fetches embeddings for the given passages of source content being indexed, returned in the
 // same order. Inputs are sent in batches of at most requestBatchSize.
-func EmbedPassages(ctx context.Context, rt *runtime.Runtime, texts []string) ([]models.Embedding, error) {
-	return embed(ctx, rt, passagePrefix, texts)
+func (s *Service) EmbedPassages(ctx context.Context, texts []string) ([][]float32, error) {
+	return s.embed(ctx, passagePrefix, texts)
 }
 
 // EmbedQuery fetches the embedding for a search query.
-func EmbedQuery(ctx context.Context, rt *runtime.Runtime, text string) (models.Embedding, error) {
-	es, err := embed(ctx, rt, queryPrefix, []string{text})
+func (s *Service) EmbedQuery(ctx context.Context, text string) ([]float32, error) {
+	es, err := s.embed(ctx, queryPrefix, []string{text})
 	if err != nil {
 		return nil, err
 	}
 	return es[0], nil
 }
 
-func embed(ctx context.Context, rt *runtime.Runtime, prefix string, texts []string) ([]models.Embedding, error) {
-	if rt.Config.EmbeddingsEndpoint == "" {
-		return nil, errors.New("no embeddings service configured")
-	}
-
+func (s *Service) embed(ctx context.Context, prefix string, texts []string) ([][]float32, error) {
 	inputs := make([]string, len(texts))
 	for i := range texts {
 		inputs[i] = prefix + texts[i]
 	}
 
-	embeddings := make([]models.Embedding, 0, len(inputs))
+	embeddings := make([][]float32, 0, len(inputs))
 	for batch := range slices.Chunk(inputs, requestBatchSize) {
-		batchEmbeddings, err := request(ctx, rt, batch)
+		batchEmbeddings, err := s.request(ctx, batch)
 		if err != nil {
 			return nil, err
 		}
@@ -78,14 +83,14 @@ func embed(ctx context.Context, rt *runtime.Runtime, prefix string, texts []stri
 }
 
 // makes a single request to the embeddings service, returning the embeddings in input order
-func request(ctx context.Context, rt *runtime.Runtime, inputs []string) ([]models.Embedding, error) {
-	payload := jsonx.MustMarshal(&embeddingsRequest{Model: rt.Config.EmbeddingsModel, Input: inputs})
+func (s *Service) request(ctx context.Context, inputs []string) ([][]float32, error) {
+	payload := jsonx.MustMarshal(&embeddingsRequest{Model: s.model, Input: inputs})
 
-	req, _ := http.NewRequestWithContext(ctx, "POST", strings.TrimRight(rt.Config.EmbeddingsEndpoint, "/")+"/embeddings", bytes.NewReader(payload))
+	req, _ := http.NewRequestWithContext(ctx, "POST", s.endpoint+"/embeddings", bytes.NewReader(payload))
 	req.Header.Set("Content-Type", "application/json")
 
 	// this is an internal request to a fixed service whose trace we don't persist, so a plain fetch is enough
-	resp, err := rt.HTTP.Services.Do(req)
+	resp, err := s.httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("error calling embeddings endpoint: %w", err)
 	}
@@ -107,10 +112,15 @@ func request(ctx context.Context, rt *runtime.Runtime, inputs []string) ([]model
 		return nil, fmt.Errorf("embeddings response contains %d embeddings for %d inputs", len(er.Data), len(inputs))
 	}
 
-	embeddings := make([]models.Embedding, len(inputs))
+	// with the count checked above, rejecting out of range and repeated indexes is what guarantees every input
+	// got an embedding - otherwise a repeat would leave another input silently holding a nil one
+	embeddings := make([][]float32, len(inputs))
 	for _, d := range er.Data {
 		if d.Index < 0 || d.Index >= len(inputs) {
 			return nil, fmt.Errorf("embeddings response contains out of range index %d", d.Index)
+		}
+		if embeddings[d.Index] != nil {
+			return nil, fmt.Errorf("embeddings response contains duplicate index %d", d.Index)
 		}
 		embeddings[d.Index] = d.Embedding
 	}

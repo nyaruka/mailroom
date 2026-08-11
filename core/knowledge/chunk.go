@@ -1,3 +1,5 @@
+// Package knowledge implements the knowledge base feature - splitting source content into the chunks which get
+// embedded and indexed, and searching over those.
 package knowledge
 
 import (
