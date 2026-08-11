@@ -1,3 +1,8 @@
+v26.3.40 (2026-08-11)
+-------------------------
+ * Use dynamodb-local instead of localstack for DynamoDB in tests
+ * Update dependencies
+
 v26.3.39 (2026-08-05)
 -------------------------
  * Re-index shell contact in Elastic after its URN is reassigned
