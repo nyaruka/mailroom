@@ -30,8 +30,8 @@ func (c *RetryKnowledgeIndexingCron) Next(last time.Time) time.Time {
 }
 
 func (c *RetryKnowledgeIndexingCron) Run(ctx context.Context, rt *runtime.Runtime) (map[string]any, error) {
-	// no embeddings service configured means knowledge indexing is disabled
-	if rt.Config.EmbeddingsEndpoint == "" {
+	// no embeddings service means knowledge indexing is disabled
+	if rt.Embeddings == nil {
 		return map[string]any{"queued": 0}, nil
 	}
 

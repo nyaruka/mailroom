@@ -3,8 +3,6 @@ package knowledge_test
 import (
 	"testing"
 
-	"github.com/nyaruka/gocommon/httpx"
-	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/mailroom/v26/core/knowledge"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/testsuite"
@@ -13,18 +11,9 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// creates a 384 dimension embedding with the given components set from vals
+// creates an embedding with the given leading components, sized for the vector column chunks are stored in
 func testEmbedding(vals ...float32) models.Embedding {
-	e := make(models.Embedding, 384)
-	copy(e, vals)
-	return e
-}
-
-// creates a mock embeddings service response returning the given embedding for a single input
-func mockQueryResponse(e models.Embedding) *httpx.MockResponse {
-	return httpx.NewMockResponse(200, nil, jsonx.MustMarshal(map[string]any{
-		"data": []map[string]any{{"index": 0, "embedding": e}},
-	}))
+	return models.Embedding(testsuite.MockEmbedding(vals...))
 }
 
 func TestSearch(t *testing.T) {
@@ -32,12 +21,14 @@ func TestSearch(t *testing.T) {
 
 	oa := testdb.Org1.Load(t, rt)
 
-	// without an embeddings service configured search returns no results
+	// an instance without an embeddings service returns no results
 	results, err := knowledge.Search(ctx, rt, oa, "how do refunds work?", 10)
 	assert.NoError(t, err)
 	assert.Equal(t, []*knowledge.SearchResult{}, results)
 
-	rt.Config.EmbeddingsEndpoint = "http://embeddings:8095/v1"
+	// the query embeds to the same vector as the Refunds chunk so scores are predictable
+	embedder := &testsuite.MockEmbedder{Vectors: map[string][]float32{"how do refunds work?": testEmbedding(1, 0)}}
+	rt.Embeddings = embedder
 
 	// a ready source with chunks at right angles to each other so their scores are predictable
 	k1 := testdb.InsertKnowledge(t, rt, testdb.Org1, "5384b1c6-1099-4a5f-a005-9d3a4092c5c1", models.KnowledgeTypeShortcuts, "Test Shortcuts", models.KnowledgeStatusReady)
@@ -52,14 +43,6 @@ func TestSearch(t *testing.T) {
 	// and neither are chunks belonging to another org
 	k3 := testdb.InsertKnowledge(t, rt, testdb.Org2, "df22cbcb-e0e1-4e78-be9f-2e4fbea1b2c3", models.KnowledgeTypeShortcuts, "Other Org", models.KnowledgeStatusReady)
 	testdb.InsertKnowledgeChunk(t, rt, k3, "0a1c6a9a-52ed-40cb-a921-1a29b9d8bc6f", "Nope", "Other org's content.", testEmbedding(1, 0))
-
-	mocks := httpx.WithMocks(nil, map[string][]*httpx.MockResponse{
-		"http://embeddings:8095/v1/embeddings": {
-			mockQueryResponse(testEmbedding(1, 0)),
-			mockQueryResponse(testEmbedding(1, 0)),
-		},
-	})
-	rt.HTTP.Services.Transport = mocks
 
 	results, err = knowledge.Search(ctx, rt, oa, "how do refunds work?", 10)
 	require.NoError(t, err)
@@ -84,5 +67,7 @@ func TestSearch(t *testing.T) {
 	assert.Equal(t, "Refunds", results[0].ItemName)
 	assert.Equal(t, "Greeting", results[1].ItemName)
 
-	assert.False(t, mocks.HasUnused())
+	// the query was embedded as a query, not as a passage
+	assert.Equal(t, []string{"how do refunds work?", "how do refunds work?"}, embedder.Queries)
+	assert.Empty(t, embedder.Passages)
 }

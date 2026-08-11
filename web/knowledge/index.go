@@ -35,8 +35,8 @@ type indexRequest struct {
 // source was last indexed, so a task that ran while the edit was still uncommitted would advance that watermark
 // past it - and the watermark margin covers only the moments around a commit, not an entire open transaction.
 func handleIndex(ctx context.Context, rt *runtime.Runtime, r *indexRequest) (any, int, error) {
-	// no embeddings service configured means knowledge indexing is disabled, so there's nothing to queue
-	if rt.Config.EmbeddingsEndpoint == "" {
+	// no embeddings service means knowledge indexing is disabled, so there's nothing to queue
+	if rt.Embeddings == nil {
 		return map[string]any{"queued": false}, http.StatusOK, nil
 	}
 

@@ -1,13 +1,12 @@
 package tasks_test
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 	"time"
 
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
-	"github.com/nyaruka/gocommon/httpx"
-	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/tasks"
 	"github.com/nyaruka/mailroom/v26/testsuite"
@@ -16,17 +15,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-// creates a mock embeddings service response with the given number of 384 dimension embeddings
-func mockEmbeddingsResponse(count int) *httpx.MockResponse {
-	data := make([]map[string]any, count)
-	for i := range count {
-		embedding := make([]float32, 384)
-		embedding[i] = 1
-		data[i] = map[string]any{"index": i, "embedding": embedding}
-	}
-	return httpx.NewMockResponse(200, nil, jsonx.MustMarshal(map[string]any{"data": data}))
-}
 
 func TestIndexKnowledge(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
@@ -45,22 +33,14 @@ func TestIndexKnowledge(t *testing.T) {
 
 	task := &tasks.IndexKnowledge{KnowledgeUUID: k1.UUID}
 
-	// without an embeddings service configured the task is a no-op
+	// on an instance without an embeddings service the task is a no-op
 	err := task.Perform(ctx, rt, oa, testTaskID)
 	assert.NoError(t, err)
 
 	assertdb.Query(t, rt.DB, `SELECT status FROM knowledge_knowledge WHERE id = $1`, k1.ID).Returns("P")
 
-	rt.Config.EmbeddingsEndpoint = "http://embeddings:8095/v1"
-
-	mocks := httpx.WithMocks(nil, map[string][]*httpx.MockResponse{
-		"http://embeddings:8095/v1/embeddings": {
-			mockEmbeddingsResponse(2),
-			mockEmbeddingsResponse(1),
-			httpx.NewMockResponse(500, nil, []byte(`{"error": "oops"}`)),
-		},
-	})
-	rt.HTTP.Services.Transport = mocks
+	embedder := &testsuite.MockEmbedder{}
+	rt.Embeddings = embedder
 
 	// the source is chunked and embedded, leaving it ready and searchable
 	err = task.Perform(ctx, rt, oa, testTaskID)
@@ -74,12 +54,20 @@ func TestIndexKnowledge(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT item_name, text FROM knowledge_knowledgechunk WHERE knowledge_id = $1 AND item_key = $2`, k1.ID, s1.UUID).
 		Columns(map[string]any{"item_name": "Refunds", "text": "We offer full refunds within 30 days."})
 
+	// the shortcuts were embedded as passages, not as queries
+	assert.Equal(t, []string{"We offer full refunds within 30 days.", "Hello! How can we help?"}, embedder.Passages)
+	assert.Empty(t, embedder.Queries)
+
 	// age the shortcuts past the watermark margin the indexer subtracts, so that they're no longer changed
 	rt.DB.MustExec(`UPDATE tickets_shortcut SET modified_on = NOW() - INTERVAL '1 minute' WHERE org_id = $1`, testdb.Org1.ID)
 
 	// running again with nothing changed re-finalizes the source without embedding anything
+	embedder.Passages = nil
+
 	err = task.Perform(ctx, rt, oa, testTaskID)
 	assert.NoError(t, err)
+
+	assert.Empty(t, embedder.Passages)
 
 	assertdb.Query(t, rt.DB, `SELECT status, num_items, num_chunks FROM knowledge_knowledge WHERE id = $1`, k1.ID).
 		Columns(map[string]any{"status": "R", "num_items": 2, "num_chunks": 2})
@@ -113,12 +101,13 @@ func TestIndexKnowledge(t *testing.T) {
 
 	// an error from the embeddings service must leave the source failed with its error recorded.. never stuck indexing
 	rt.DB.MustExec(`UPDATE tickets_shortcut SET modified_on = NOW() WHERE id = $1`, s1.ID)
+	embedder.Error = errors.New("embeddings service is down")
 
 	err = task.Perform(ctx, rt, oa, testTaskID)
-	assert.EqualError(t, err, fmt.Sprintf(`error indexing knowledge source %d: error embedding chunks: error calling embeddings endpoint, got non-200 status: {"error": "oops"}`, k1.ID))
+	assert.EqualError(t, err, fmt.Sprintf(`error indexing knowledge source %d: error embedding chunks: embeddings service is down`, k1.ID))
 
 	assertdb.Query(t, rt.DB, `SELECT status, error FROM knowledge_knowledge WHERE id = $1`, k1.ID).
-		Columns(map[string]any{"status": "F", "error": `error embedding chunks: error calling embeddings endpoint, got non-200 status: {"error": "oops"}`})
+		Columns(map[string]any{"status": "F", "error": "error embedding chunks: embeddings service is down"})
 
 	// but the chunks from the last successful index are still there to be searched
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM knowledge_knowledgechunk WHERE knowledge_id = $1`, k1.ID).Returns(1)
@@ -136,6 +125,4 @@ func TestIndexKnowledge(t *testing.T) {
 
 	err = task.Perform(ctx, rt, oa, testTaskID)
 	assert.NoError(t, err)
-
-	require.False(t, mocks.HasUnused())
 }

@@ -49,8 +49,8 @@ func (t *IndexKnowledge) WithAssets() models.Refresh {
 
 // Perform implements tasks.Task
 func (t *IndexKnowledge) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, taskID TaskID) error {
-	// no embeddings service configured means knowledge indexing is disabled
-	if rt.Config.EmbeddingsEndpoint == "" {
+	// no embeddings service means knowledge indexing is disabled
+	if rt.Embeddings == nil {
 		return nil
 	}
 

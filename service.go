@@ -16,6 +16,7 @@ import (
 	"github.com/nyaruka/mailroom/v26/core/crons"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/runtime"
+	"github.com/nyaruka/mailroom/v26/services/embeddings/intfloat"
 	"github.com/nyaruka/mailroom/v26/web"
 )
 
@@ -114,6 +115,12 @@ func (s *Service) Start() error {
 		}
 	} else {
 		log.Warn("fcm not configured, no android syncing")
+	}
+
+	if c.EmbeddingsEndpoint != "" {
+		s.rt.Embeddings = intfloat.NewService(s.rt.HTTP.Services, c.EmbeddingsEndpoint, c.EmbeddingsModel)
+	} else {
+		log.Warn("embeddings not configured, no knowledge indexing or search")
 	}
 
 	// the Centrifugo client is built by the runtime; confirm here that the server is reachable and accepts our key

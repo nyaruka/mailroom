@@ -36,11 +36,19 @@ jobs:
         env:
           discovery.type: single-node
           xpack.security.enabled: false
+          # test indexes are created as the tests run and hold almost no data, but by then the runner's
+          # disk is past the default 90% high watermark, which leaves their primaries permanently
+          # unassigned and every search against them failing with a 503. Watermarks as free space rather
+          # than percentages keep allocation working on an otherwise full disk. (disk.threshold_enabled
+          # would be more direct but is only honoured via the cluster settings API, not from config.)
+          cluster.routing.allocation.disk.watermark.low: 1gb
+          cluster.routing.allocation.disk.watermark.high: 1gb
+          cluster.routing.allocation.disk.watermark.flood_stage: 1gb
         options: --health-cmd "curl http://localhost:9200/_cluster/health" --health-interval 10s --health-timeout 5s --health-retries 5
       localstack:
         image: localstack/localstack:4.14
         env:
-          SERVICES: s3,cloudwatch
+          SERVICES: s3
         ports:
           - 4566:4566
       dynamodb:

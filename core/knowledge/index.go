@@ -96,12 +96,12 @@ func indexAuthored(
 	for i, c := range chunks {
 		texts[i] = c.Text
 	}
-	embeddings, err := EmbedPassages(ctx, rt, texts)
+	embeddings, err := rt.Embeddings.EmbedPassages(ctx, texts)
 	if err != nil {
 		return fmt.Errorf("error embedding chunks: %w", err)
 	}
 	for i := range chunks {
-		chunks[i].Embedding = embeddings[i]
+		chunks[i].Embedding = models.Embedding(embeddings[i])
 	}
 
 	// replace the changed items' chunks and finalize the counters in a single transaction so searches never see a

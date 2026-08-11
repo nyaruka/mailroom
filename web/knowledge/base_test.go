@@ -9,7 +9,7 @@ import (
 func TestIndex(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
 
-	rt.Config.EmbeddingsEndpoint = "http://embeddings:8095/v1"
+	rt.Embeddings = &testsuite.MockEmbedder{}
 
 	testsuite.RunWebTests(t, rt, "testdata/index.json")
 }

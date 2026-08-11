@@ -19,12 +19,12 @@ func TestRetryKnowledgeIndexing(t *testing.T) {
 
 	cron := &crons.RetryKnowledgeIndexingCron{BatchSize: 25}
 
-	// without an embeddings service configured the cron is a no-op
+	// on an instance without an embeddings service the cron is a no-op
 	res, err := cron.Run(ctx, rt)
 	assert.NoError(t, err)
 	assert.Equal(t, map[string]any{"queued": 0}, res)
 
-	rt.Config.EmbeddingsEndpoint = "http://embeddings:8095/v1"
+	rt.Embeddings = &testsuite.MockEmbedder{}
 
 	// org1 has a pending source, and a source stuck in indexing since the worker that claimed it died
 	k1 := testdb.InsertKnowledge(t, rt, testdb.Org1, "5384b1c6-1099-4a5f-a005-9d3a4092c5c1", models.KnowledgeTypeShortcuts, "Test Shortcuts", models.KnowledgeStatusPending)

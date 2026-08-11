@@ -1,4 +1,4 @@
-package knowledge_test
+package intfloat_test
 
 import (
 	"context"
@@ -10,19 +10,16 @@ import (
 	"github.com/nyaruka/gocommon/httpx"
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/goflow/test"
-	"github.com/nyaruka/mailroom/v26/core/knowledge"
-	"github.com/nyaruka/mailroom/v26/core/models"
-	"github.com/nyaruka/mailroom/v26/runtime"
+	"github.com/nyaruka/mailroom/v26/services/embeddings/intfloat"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-// creates a runtime with just the config and HTTP services client that the embeddings client needs, so these
-// tests don't require a database
-func embeddingsRuntime(mocks *httpx.MocksTransport) *runtime.Runtime {
-	cfg := runtime.NewDefaultConfig()
-	cfg.EmbeddingsEndpoint = "http://embeddings:8095/v1"
-	return &runtime.Runtime{Config: cfg, HTTP: &runtime.HTTP{Services: &http.Client{Transport: mocks}}}
+const testModel = "intfloat/multilingual-e5-small"
+
+// creates a service talking to the given mocked transport - these tests need no database or runtime
+func testService(mocks *httpx.MocksTransport) *intfloat.Service {
+	return intfloat.NewService(&http.Client{Transport: mocks}, "http://embeddings:8095/v1", testModel)
 }
 
 // creates a response body of n single-value embeddings, [offset], [offset+1], ...
@@ -44,13 +41,13 @@ func TestEmbedQuery(t *testing.T) {
 			httpx.NewMockResponse(200, nil, []byte(`{"data": []}`)),
 		},
 	})
-	rt := embeddingsRuntime(mocks)
+	svc := testService(mocks)
 
-	e, err := knowledge.EmbedQuery(ctx, rt, "how do I reset my password?")
+	e, err := svc.EmbedQuery(ctx, "how do I reset my password?")
 	assert.NoError(t, err)
-	assert.Equal(t, models.Embedding{0.1, 0.2, 0.3}, e)
+	assert.Equal(t, []float32{0.1, 0.2, 0.3}, e)
 
-	// check the query prefix was added inside the client
+	// check the query prefix was added inside the service
 	body, err := io.ReadAll(mocks.Requests()[0].Body)
 	require.NoError(t, err)
 	test.AssertEqualJSON(t, []byte(`{
@@ -58,19 +55,14 @@ func TestEmbedQuery(t *testing.T) {
 		"input": ["query: how do I reset my password?"]
 	}`), body)
 
-	_, err = knowledge.EmbedQuery(ctx, rt, "hello")
+	_, err = svc.EmbedQuery(ctx, "hello")
 	assert.EqualError(t, err, `error calling embeddings endpoint, got non-200 status: {"error": "oops"}`)
 
 	// a response with the wrong number of embeddings is an error
-	_, err = knowledge.EmbedQuery(ctx, rt, "hello")
+	_, err = svc.EmbedQuery(ctx, "hello")
 	assert.EqualError(t, err, `embeddings response contains 0 embeddings for 1 inputs`)
 
 	assert.False(t, mocks.HasUnused())
-
-	// and without an endpoint configured, we error rather than make requests
-	rt.Config.EmbeddingsEndpoint = ""
-	_, err = knowledge.EmbedQuery(ctx, rt, "hello")
-	assert.EqualError(t, err, "no embeddings service configured")
 }
 
 func TestEmbedPassages(t *testing.T) {
@@ -82,13 +74,13 @@ func TestEmbedPassages(t *testing.T) {
 			httpx.NewMockResponse(200, nil, []byte(`{"data": [{"index": 1, "embedding": [2]}, {"index": 0, "embedding": [1]}]}`)),
 		},
 	})
-	rt := embeddingsRuntime(mocks)
+	svc := testService(mocks)
 
-	es, err := knowledge.EmbedPassages(ctx, rt, []string{"To reset your password...", "Our refund policy..."})
+	es, err := svc.EmbedPassages(ctx, []string{"To reset your password...", "Our refund policy..."})
 	assert.NoError(t, err)
-	assert.Equal(t, []models.Embedding{{1}, {2}}, es)
+	assert.Equal(t, [][]float32{{1}, {2}}, es)
 
-	// check the passage prefixes were added inside the client
+	// check the passage prefixes were added inside the service
 	body, err := io.ReadAll(mocks.Requests()[0].Body)
 	require.NoError(t, err)
 	test.AssertEqualJSON(t, []byte(`{
@@ -97,9 +89,32 @@ func TestEmbedPassages(t *testing.T) {
 	}`), body)
 
 	// no texts means no requests
-	es, err = knowledge.EmbedPassages(ctx, rt, nil)
+	es, err = svc.EmbedPassages(ctx, nil)
 	assert.NoError(t, err)
 	assert.Len(t, es, 0)
+
+	assert.False(t, mocks.HasUnused())
+}
+
+func TestEmbedPassagesBadIndexes(t *testing.T) {
+	ctx := context.Background()
+
+	mocks := httpx.WithMocks(nil, map[string][]*httpx.MockResponse{
+		"http://embeddings:8095/v1/embeddings": {
+			httpx.NewMockResponse(200, nil, []byte(`{"data": [{"index": 0, "embedding": [1]}, {"index": 2, "embedding": [2]}]}`)),
+			httpx.NewMockResponse(200, nil, []byte(`{"data": [{"index": 1, "embedding": [1]}, {"index": 1, "embedding": [2]}]}`)),
+		},
+	})
+	svc := testService(mocks)
+
+	texts := []string{"To reset your password...", "Our refund policy..."}
+
+	_, err := svc.EmbedPassages(ctx, texts)
+	assert.EqualError(t, err, `embeddings response contains out of range index 2`)
+
+	// a repeated index would otherwise leave an input with a nil embedding
+	_, err = svc.EmbedPassages(ctx, texts)
+	assert.EqualError(t, err, `embeddings response contains duplicate index 1`)
 
 	assert.False(t, mocks.HasUnused())
 }
@@ -115,19 +130,19 @@ func TestEmbedPassagesBatching(t *testing.T) {
 			httpx.NewMockResponse(200, nil, embeddingsBody(6, 64)),
 		},
 	})
-	rt := embeddingsRuntime(mocks)
+	svc := testService(mocks)
 
 	texts := make([]string, 70)
 	for i := range texts {
 		texts[i] = fmt.Sprintf("passage number %d", i)
 	}
 
-	es, err := knowledge.EmbedPassages(ctx, rt, texts)
+	es, err := svc.EmbedPassages(ctx, texts)
 	assert.NoError(t, err)
 	require.Len(t, es, 70)
-	assert.Equal(t, models.Embedding{0}, es[0])
-	assert.Equal(t, models.Embedding{33}, es[33])
-	assert.Equal(t, models.Embedding{69}, es[69])
+	assert.Equal(t, []float32{0}, es[0])
+	assert.Equal(t, []float32{33}, es[33])
+	assert.Equal(t, []float32{69}, es[69])
 
 	// check the batch sizes and that inputs stayed in order across batches
 	require.Len(t, mocks.Requests(), 3)
@@ -143,5 +158,20 @@ func TestEmbedPassagesBatching(t *testing.T) {
 	}
 	assert.Equal(t, []int{32, 32, 6}, sizes)
 
+	assert.False(t, mocks.HasUnused())
+}
+
+func TestTrailingSlashInEndpoint(t *testing.T) {
+	ctx := context.Background()
+
+	mocks := httpx.WithMocks(nil, map[string][]*httpx.MockResponse{
+		"http://embeddings:8095/v1/embeddings": {
+			httpx.NewMockResponse(200, nil, []byte(`{"data": [{"index": 0, "embedding": [1]}]}`)),
+		},
+	})
+	svc := intfloat.NewService(&http.Client{Transport: mocks}, "http://embeddings:8095/v1/", testModel)
+
+	_, err := svc.EmbedQuery(ctx, "hello")
+	assert.NoError(t, err)
 	assert.False(t, mocks.HasUnused())
 }
