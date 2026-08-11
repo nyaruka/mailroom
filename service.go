@@ -16,7 +16,7 @@ import (
 	"github.com/nyaruka/mailroom/v26/core/crons"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/runtime"
-	"github.com/nyaruka/mailroom/v26/services/embeddings/openai"
+	"github.com/nyaruka/mailroom/v26/services/embeddings/intfloat"
 	"github.com/nyaruka/mailroom/v26/web"
 )
 
@@ -118,7 +118,7 @@ func (s *Service) Start() error {
 	}
 
 	if c.EmbeddingsEndpoint != "" {
-		s.rt.Embeddings = openai.NewService(s.rt.HTTP.Services, c.EmbeddingsEndpoint, c.EmbeddingsModel)
+		s.rt.Embeddings = intfloat.NewService(s.rt.HTTP.Services, c.EmbeddingsEndpoint, c.EmbeddingsModel)
 	} else {
 		log.Warn("embeddings not configured, no knowledge indexing or search")
 	}

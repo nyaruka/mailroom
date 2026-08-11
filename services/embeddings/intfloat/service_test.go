@@ -1,4 +1,4 @@
-package openai_test
+package intfloat_test
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 	"github.com/nyaruka/gocommon/httpx"
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/goflow/test"
-	"github.com/nyaruka/mailroom/v26/services/embeddings/openai"
+	"github.com/nyaruka/mailroom/v26/services/embeddings/intfloat"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -18,8 +18,8 @@ import (
 const testModel = "intfloat/multilingual-e5-small"
 
 // creates a service talking to the given mocked transport - these tests need no database or runtime
-func testService(mocks *httpx.MocksTransport) *openai.Service {
-	return openai.NewService(&http.Client{Transport: mocks}, "http://embeddings:8095/v1", testModel)
+func testService(mocks *httpx.MocksTransport) *intfloat.Service {
+	return intfloat.NewService(&http.Client{Transport: mocks}, "http://embeddings:8095/v1", testModel)
 }
 
 // creates a response body of n single-value embeddings, [offset], [offset+1], ...
@@ -169,7 +169,7 @@ func TestTrailingSlashInEndpoint(t *testing.T) {
 			httpx.NewMockResponse(200, nil, []byte(`{"data": [{"index": 0, "embedding": [1]}]}`)),
 		},
 	})
-	svc := openai.NewService(&http.Client{Transport: mocks}, "http://embeddings:8095/v1/", testModel)
+	svc := intfloat.NewService(&http.Client{Transport: mocks}, "http://embeddings:8095/v1/", testModel)
 
 	_, err := svc.EmbedQuery(ctx, "hello")
 	assert.NoError(t, err)

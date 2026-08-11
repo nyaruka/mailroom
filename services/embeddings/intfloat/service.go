@@ -1,6 +1,6 @@
-// Package openai implements the embeddings service against an OpenAI compatible endpoint - which is what the
-// self hosted inference servers we run embedding models on speak.
-package openai
+// Package intfloat implements the embeddings service for intfloat's e5 models, which we run ourselves on an
+// inference server speaking the OpenAI compatible API.
+package intfloat
 
 import (
 	"bytes"
@@ -15,8 +15,7 @@ import (
 	"github.com/nyaruka/gocommon/jsonx"
 )
 
-// the e5 family of embedding models - what we currently run behind this endpoint - requires inputs to be
-// prefixed according to their use
+// e5 models require inputs to be prefixed according to their use
 const (
 	passagePrefix = "passage: " // for content being indexed
 	queryPrefix   = "query: "   // for search queries
