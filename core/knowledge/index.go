@@ -56,7 +56,7 @@ func indexAuthored(
 	countItems func(context.Context, models.DBorTx, models.OrgID) (int, error),
 ) error {
 	// the new last_indexed_on watermark is taken before we read, so items changed while we index leave the source
-	// stale for the next trigger or the recovery sweep to pick up instead of being missed.
+	// stale for the next trigger or the retry cron to pick up instead of being missed.
 	//
 	// The margin covers the two clocks involved: modified_on is stamped by Django before its transaction commits,
 	// while this is mailroom's clock, so without it an item committing just after our read but stamped just before

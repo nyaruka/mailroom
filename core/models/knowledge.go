@@ -63,7 +63,7 @@ type Knowledge struct {
 // A source is stale when it's active, of a type we can index, and either 1) flagged as pending by Django, 2) ready
 // but an item in its Django owned table has been created, edited or soft-deleted (all of which bump modified_on)
 // since we last indexed it, 3) failed long enough ago to be worth retrying, or 4) stuck in indexing for over an hour
-// - which can only mean the process that claimed it died before recording an outcome, since claiming bumps
+// - which can only mean the worker that started it died before recording an outcome, since starting bumps
 // modified_on and there is no task retry.
 //
 // Indexing is normally triggered by Django as an edit commits, so in a healthy system this finds nothing. It exists
@@ -71,8 +71,8 @@ type Knowledge struct {
 // config - uploading or deleting a document, editing a website - and there is no such path for the system sources,
 // so nothing else would ever revive a failed shortcuts source and one embeddings outage would disable an org's
 // knowledge permanently. Recovery from a failure deliberately goes through the timed branch alone rather than
-// through the item-staleness branch above: claiming bumps modified_on, so the interval is a real backoff, whereas a
-// staleness-driven retry would re-queue on every sweep for as long as the underlying failure lasted.
+// through the item-staleness branch above: starting an index bumps modified_on, so the interval is a real backoff,
+// whereas a staleness-driven retry would re-queue on every sweep for as long as the underlying failure lasted.
 const sqlSelectStaleKnowledge = `
 SELECT id, uuid, org_id, name, knowledge_type, config, status, error, last_indexed_on, num_items, num_chunks
   FROM knowledge_knowledge k
@@ -110,53 +110,38 @@ func GetStaleKnowledge(ctx context.Context, db *sqlx.DB, types []KnowledgeType, 
 	return stale, nil
 }
 
-// A source is claimable unless it's already being indexed - so triggers arriving for the same source while a worker
-// is working on it collapse into that one run. The exception is a source left in 'I' for longer than any index can
-// legitimately take, which means the worker that claimed it died without recording an outcome.
-//
-// FOR UPDATE SKIP LOCKED means two workers racing to claim the same source don't queue up behind each other: the
-// loser sees no row and no-ops, rather than blocking and then claiming a source that's just been indexed.
-const sqlClaimKnowledge = `
+const sqlSelectKnowledge = `
 SELECT id, uuid, org_id, name, knowledge_type, config, status, error, last_indexed_on, num_items, num_chunks
-  FROM knowledge_knowledge k
- WHERE k.org_id = $1 AND k.uuid = $2 AND k.is_active AND k.knowledge_type = ANY($3)
-   AND (k.status != 'I' OR k.modified_on < NOW() - INTERVAL '1 hour')
-   FOR UPDATE OF k SKIP LOCKED`
+  FROM knowledge_knowledge
+ WHERE org_id = $1 AND uuid = $2 AND is_active`
 
-const sqlMarkKnowledgeIndexing = `
-UPDATE knowledge_knowledge SET status = 'I', modified_on = NOW() WHERE id = $1`
-
-// ClaimKnowledge locks the given knowledge source and marks it as indexing, returning nil if it isn't there, isn't
-// of a type we can index, has been released, or is already being indexed by someone else. The claim is committed
-// before returning so that the slow work of indexing doesn't hold a row lock or a transaction open.
-func ClaimKnowledge(ctx context.Context, db *sqlx.DB, orgID OrgID, uuid KnowledgeUUID, types []KnowledgeType) (*Knowledge, error) {
-	tx, err := db.BeginTxx(ctx, nil)
-	if err != nil {
-		return nil, fmt.Errorf("error beginning transaction: %w", err)
-	}
-
+// GetKnowledge loads a knowledge source by UUID, returning nil if there's no such active source
+func GetKnowledge(ctx context.Context, db *sqlx.DB, orgID OrgID, uuid KnowledgeUUID) (*Knowledge, error) {
 	k := &Knowledge{}
-	if err := tx.GetContext(ctx, k, sqlClaimKnowledge, orgID, uuid, StringArray(types)); err != nil {
-		tx.Rollback()
-
+	if err := db.GetContext(ctx, k, sqlSelectKnowledge, orgID, uuid); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
 		return nil, fmt.Errorf("error querying knowledge source: %w", err)
 	}
 
-	if _, err := tx.ExecContext(ctx, sqlMarkKnowledgeIndexing, k.ID); err != nil {
-		tx.Rollback()
-		return nil, fmt.Errorf("error marking knowledge source as indexing: %w", err)
-	}
+	return k, nil
+}
 
-	if err := tx.Commit(); err != nil {
-		tx.Rollback()
-		return nil, fmt.Errorf("error committing transaction: %w", err)
+// is_active is guarded here for the same reason as in SetReady below - a source released since we picked up the
+// work is on its way out and shouldn't be given a new status
+const sqlSetKnowledgeIndexing = `
+UPDATE knowledge_knowledge SET status = 'I', modified_on = NOW() WHERE id = $1 AND is_active`
+
+// SetIndexing records that we've started indexing this source. Mutual exclusion between workers is the caller's
+// lock, not this - the status is what the UI shows and what the retry cron reads.
+func (k *Knowledge) SetIndexing(ctx context.Context, db DBorTx) error {
+	if _, err := db.ExecContext(ctx, sqlSetKnowledgeIndexing, k.ID); err != nil {
+		return fmt.Errorf("error marking knowledge source as indexing: %w", err)
 	}
 
 	k.Status = KnowledgeStatusIndexing
-	return k, nil
+	return nil
 }
 
 // The is_active guard closes a race with release: Django can deactivate a source and purge its chunks while the

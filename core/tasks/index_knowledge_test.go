@@ -3,6 +3,7 @@ package tasks_test
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/gocommon/httpx"
@@ -11,6 +12,7 @@ import (
 	"github.com/nyaruka/mailroom/v26/core/tasks"
 	"github.com/nyaruka/mailroom/v26/testsuite"
 	"github.com/nyaruka/mailroom/v26/testsuite/testdb"
+	"github.com/nyaruka/vkutil/locks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -60,7 +62,7 @@ func TestIndexKnowledge(t *testing.T) {
 	})
 	rt.HTTP.Services.Transport = mocks
 
-	// the source is claimed, chunked and embedded, leaving it ready and searchable
+	// the source is chunked and embedded, leaving it ready and searchable
 	err = task.Perform(ctx, rt, oa, testTaskID)
 	assert.NoError(t, err)
 
@@ -82,15 +84,20 @@ func TestIndexKnowledge(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT status, num_items, num_chunks FROM knowledge_knowledge WHERE id = $1`, k1.ID).
 		Columns(map[string]any{"status": "R", "num_items": 2, "num_chunks": 2})
 
-	// a trigger arriving while another worker is indexing the source is a no-op
-	rt.DB.MustExec(`UPDATE knowledge_knowledge SET status = 'I', modified_on = NOW() WHERE id = $1`, k1.ID)
+	// a trigger arriving while another worker holds the source's lock is a no-op
+	locker := locks.NewLocker(fmt.Sprintf("lock:knowledge:%s", k1.UUID), time.Minute)
+	lock, err := locker.Grab(ctx, rt.VK, 0)
+	require.NoError(t, err)
+	require.NotEmpty(t, lock)
+
+	rt.DB.MustExec(`UPDATE tickets_shortcut SET modified_on = NOW() WHERE id = $1`, s1.ID)
 
 	err = task.Perform(ctx, rt, oa, testTaskID)
 	assert.NoError(t, err)
 
-	assertdb.Query(t, rt.DB, `SELECT status FROM knowledge_knowledge WHERE id = $1`, k1.ID).Returns("I")
+	assertdb.Query(t, rt.DB, `SELECT status FROM knowledge_knowledge WHERE id = $1`, k1.ID).Returns("R")
 
-	rt.DB.MustExec(`UPDATE knowledge_knowledge SET status = 'R' WHERE id = $1`, k1.ID)
+	require.NoError(t, locker.Release(ctx, rt.VK, lock))
 
 	// now edit one shortcut and release another..
 	rt.DB.MustExec(`UPDATE tickets_shortcut SET text = 'We no longer offer refunds.', modified_on = NOW() WHERE id = $1`, s1.ID)
@@ -115,6 +122,20 @@ func TestIndexKnowledge(t *testing.T) {
 
 	// but the chunks from the last successful index are still there to be searched
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM knowledge_knowledgechunk WHERE knowledge_id = $1`, k1.ID).Returns(1)
+
+	// a source of a type we can't index yet is a no-op rather than an error
+	k2 := testdb.InsertKnowledge(t, rt, testdb.Org1, "78bee0eb-a3d1-4e2b-b91b-6ee1c2f1ab19", models.KnowledgeTypeWebsite, "Website", models.KnowledgeStatusPending)
+
+	err = (&tasks.IndexKnowledge{KnowledgeUUID: k2.UUID}).Perform(ctx, rt, oa, testTaskID)
+	assert.NoError(t, err)
+
+	assertdb.Query(t, rt.DB, `SELECT status FROM knowledge_knowledge WHERE id = $1`, k2.ID).Returns("P")
+
+	// as is one that's been released
+	rt.DB.MustExec(`UPDATE knowledge_knowledge SET is_active = FALSE WHERE id = $1`, k1.ID)
+
+	err = task.Perform(ctx, rt, oa, testTaskID)
+	assert.NoError(t, err)
 
 	require.False(t, mocks.HasUnused())
 }

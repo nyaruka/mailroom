@@ -56,7 +56,7 @@ func TestGetStaleKnowledge(t *testing.T) {
 	// source currently being indexed by a worker.. not stale
 	testdb.InsertKnowledge(t, rt, testdb.Org1, "0a1c6a9a-52ed-40cb-a921-1a29b9d8bc6f", models.KnowledgeTypeShortcuts, "Indexing", models.KnowledgeStatusIndexing)
 
-	// source stuck in indexing for over an hour.. stale, the worker that claimed it can only have died
+	// source stuck in indexing for over an hour.. stale, the worker that started it can only have died
 	k7 := testdb.InsertKnowledge(t, rt, testdb.Org1, "639a26a3-8e6e-4ad0-b4b9-6bf7c1cf42d1", models.KnowledgeTypeShortcuts, "Stuck", models.KnowledgeStatusIndexing)
 	rt.DB.MustExec(`UPDATE knowledge_knowledge SET modified_on = NOW() - INTERVAL '2 hours' WHERE id = $1`, k7.ID)
 
@@ -89,69 +89,69 @@ func TestGetStaleKnowledge(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT status FROM knowledge_knowledge WHERE id = $1`, k1.ID).Returns("P")
 }
 
-func TestClaimKnowledge(t *testing.T) {
+func TestGetKnowledge(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
 	rt.DB.MustExec(`UPDATE knowledge_knowledge SET is_active = FALSE`)
 
-	types := []models.KnowledgeType{models.KnowledgeTypeShortcuts}
+	k1 := testdb.InsertKnowledge(t, rt, testdb.Org1, "5384b1c6-1099-4a5f-a005-9d3a4092c5c1", models.KnowledgeTypeShortcuts, "Test Shortcuts", models.KnowledgeStatusPending)
 
-	k1 := testdb.InsertKnowledge(t, rt, testdb.Org1, "5384b1c6-1099-4a5f-a005-9d3a4092c5c1", models.KnowledgeTypeShortcuts, "Pending", models.KnowledgeStatusPending)
-
-	claimed, err := models.ClaimKnowledge(ctx, rt.DB, testdb.Org1.ID, k1.UUID, types)
+	k, err := models.GetKnowledge(ctx, rt.DB, testdb.Org1.ID, k1.UUID)
 	require.NoError(t, err)
-	require.NotNil(t, claimed)
-	assert.Equal(t, k1.ID, claimed.ID)
-	assert.Equal(t, k1.UUID, claimed.UUID)
-	assert.Equal(t, testdb.Org1.ID, claimed.OrgID)
-	assert.Equal(t, models.KnowledgeTypeShortcuts, claimed.Type)
-	assert.Equal(t, models.KnowledgeStatusIndexing, claimed.Status)
+	require.NotNil(t, k)
+	assert.Equal(t, k1.ID, k.ID)
+	assert.Equal(t, k1.UUID, k.UUID)
+	assert.Equal(t, testdb.Org1.ID, k.OrgID)
+	assert.Equal(t, "Test Shortcuts", k.Name)
+	assert.Equal(t, models.KnowledgeTypeShortcuts, k.Type)
+	assert.Equal(t, models.KnowledgeStatusPending, k.Status)
 
-	assertdb.Query(t, rt.DB, `SELECT status FROM knowledge_knowledge WHERE id = $1`, k1.ID).Returns("I")
-
-	// a second trigger for a source being indexed no-ops rather than indexing it twice
-	claimed, err = models.ClaimKnowledge(ctx, rt.DB, testdb.Org1.ID, k1.UUID, types)
-	require.NoError(t, err)
-	assert.Nil(t, claimed)
-
-	// unless the worker that claimed it died without recording an outcome
-	rt.DB.MustExec(`UPDATE knowledge_knowledge SET modified_on = NOW() - INTERVAL '2 hours' WHERE id = $1`, k1.ID)
-
-	claimed, err = models.ClaimKnowledge(ctx, rt.DB, testdb.Org1.ID, k1.UUID, types)
-	require.NoError(t, err)
-	require.NotNil(t, claimed)
-	assert.Equal(t, k1.ID, claimed.ID)
-
-	// a released source isn't claimable
+	// a released source is as good as gone
 	k2 := testdb.InsertKnowledge(t, rt, testdb.Org1, "78bee0eb-a3d1-4e2b-b91b-6ee1c2f1ab19", models.KnowledgeTypeShortcuts, "Released", models.KnowledgeStatusPending)
 	rt.DB.MustExec(`UPDATE knowledge_knowledge SET is_active = FALSE WHERE id = $1`, k2.ID)
 
-	claimed, err = models.ClaimKnowledge(ctx, rt.DB, testdb.Org1.ID, k2.UUID, types)
+	k, err = models.GetKnowledge(ctx, rt.DB, testdb.Org1.ID, k2.UUID)
 	require.NoError(t, err)
-	assert.Nil(t, claimed)
+	assert.Nil(t, k)
 
-	// nor is one of a type we can't index
-	k3 := testdb.InsertKnowledge(t, rt, testdb.Org1, "0e2e1c66-c221-4726-a08a-1a4bbabf05be", models.KnowledgeTypeWebsite, "Website", models.KnowledgeStatusPending)
+	// as is one belonging to a different org
+	k3 := testdb.InsertKnowledge(t, rt, testdb.Org2, "b26e0a76-9d88-42d1-9bc9-5cf25e2ba18f", models.KnowledgeTypeShortcuts, "Other Org", models.KnowledgeStatusPending)
 
-	claimed, err = models.ClaimKnowledge(ctx, rt.DB, testdb.Org1.ID, k3.UUID, types)
+	k, err = models.GetKnowledge(ctx, rt.DB, testdb.Org1.ID, k3.UUID)
 	require.NoError(t, err)
-	assert.Nil(t, claimed)
+	assert.Nil(t, k)
 
-	// nor one belonging to a different org
-	k4 := testdb.InsertKnowledge(t, rt, testdb.Org2, "b26e0a76-9d88-42d1-9bc9-5cf25e2ba18f", models.KnowledgeTypeShortcuts, "Other Org", models.KnowledgeStatusPending)
-
-	claimed, err = models.ClaimKnowledge(ctx, rt.DB, testdb.Org1.ID, k4.UUID, types)
+	// and one that doesn't exist at all isn't an error
+	k, err = models.GetKnowledge(ctx, rt.DB, testdb.Org1.ID, "9f0b4b7c-3a17-4f5e-95a8-4d68f21e2a7d")
 	require.NoError(t, err)
-	assert.Nil(t, claimed)
+	assert.Nil(t, k)
+}
 
-	// and a source that doesn't exist is just a no-op
-	claimed, err = models.ClaimKnowledge(ctx, rt.DB, testdb.Org1.ID, "9f0b4b7c-3a17-4f5e-95a8-4d68f21e2a7d", types)
+func TestSetIndexing(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	rt.DB.MustExec(`UPDATE knowledge_knowledge SET is_active = FALSE`)
+
+	k1 := testdb.InsertKnowledge(t, rt, testdb.Org1, "5384b1c6-1099-4a5f-a005-9d3a4092c5c1", models.KnowledgeTypeShortcuts, "Test Shortcuts", models.KnowledgeStatusPending)
+
+	k, err := models.GetKnowledge(ctx, rt.DB, testdb.Org1.ID, k1.UUID)
 	require.NoError(t, err)
-	assert.Nil(t, claimed)
+
+	err = k.SetIndexing(ctx, rt.DB)
+	assert.NoError(t, err)
+	assert.Equal(t, models.KnowledgeStatusIndexing, k.Status)
+
+	assertdb.Query(t, rt.DB, `SELECT status FROM knowledge_knowledge WHERE id = $1`, k1.ID).Returns("I")
+
+	// a source released since we picked up the work isn't given a new status
+	k2 := testdb.InsertKnowledge(t, rt, testdb.Org1, "78bee0eb-a3d1-4e2b-b91b-6ee1c2f1ab19", models.KnowledgeTypeShortcuts, "Released", models.KnowledgeStatusPending)
+	released := &models.Knowledge{ID: k2.ID}
+	rt.DB.MustExec(`UPDATE knowledge_knowledge SET is_active = FALSE WHERE id = $1`, k2.ID)
+
+	err = released.SetIndexing(ctx, rt.DB)
+	assert.NoError(t, err)
 
 	assertdb.Query(t, rt.DB, `SELECT status FROM knowledge_knowledge WHERE id = $1`, k2.ID).Returns("P")
-	assertdb.Query(t, rt.DB, `SELECT status FROM knowledge_knowledge WHERE id = $1`, k3.ID).Returns("P")
-	assertdb.Query(t, rt.DB, `SELECT status FROM knowledge_knowledge WHERE id = $1`, k4.ID).Returns("P")
 }
 
 func TestSetReadyAndSetFailed(t *testing.T) {
@@ -161,7 +161,7 @@ func TestSetReadyAndSetFailed(t *testing.T) {
 
 	k1 := testdb.InsertKnowledge(t, rt, testdb.Org1, "5384b1c6-1099-4a5f-a005-9d3a4092c5c1", models.KnowledgeTypeShortcuts, "Test", models.KnowledgeStatusPending)
 
-	k, err := models.ClaimKnowledge(ctx, rt.DB, testdb.Org1.ID, k1.UUID, []models.KnowledgeType{models.KnowledgeTypeShortcuts})
+	k, err := models.GetKnowledge(ctx, rt.DB, testdb.Org1.ID, k1.UUID)
 	require.NoError(t, err)
 	require.NotNil(t, k)
 
