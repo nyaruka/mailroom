@@ -1,6 +1,6 @@
-// Package embeddings implements a client for an OpenAI compatible embeddings service, used to turn text into
-// the vectors that knowledge base indexing and search are built on.
-package embeddings
+// Package openai implements the embeddings service against an OpenAI compatible endpoint - which is what the
+// self hosted inference servers we run embedding models on speak.
+package openai
 
 import (
 	"bytes"
@@ -15,7 +15,8 @@ import (
 	"github.com/nyaruka/gocommon/jsonx"
 )
 
-// the e5 family of embedding models requires inputs to be prefixed according to their use
+// the e5 family of embedding models - what we currently run behind this endpoint - requires inputs to be
+// prefixed according to their use
 const (
 	passagePrefix = "passage: " // for content being indexed
 	queryPrefix   = "query: "   // for search queries
