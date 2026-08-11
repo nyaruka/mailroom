@@ -15,8 +15,6 @@ import (
 func TestResolveRecipients(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetAll)
-
 	group1 := testdb.InsertContactGroup(t, rt, testdb.Org1, "a85acec9-3895-4ffd-87c1-c69a25781a85", "Group 1", "", testdb.Cat, testdb.Dan)
 	group2 := testdb.InsertContactGroup(t, rt, testdb.Org1, "eb578345-595e-4e36-a68b-6941e242cdbb", "Group 2", "", testdb.Cat)
 

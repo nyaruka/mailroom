@@ -55,8 +55,6 @@ func mockTwilioHandler(w http.ResponseWriter, r *http.Request) {
 func TestTwilioIVR(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetAll)
-
 	// start mocked API server
 	mockTwilio := test.NewHTTPServer(50001, http.HandlerFunc(mockTwilioHandler))
 	defer mockTwilio.Close()
@@ -168,8 +166,6 @@ func TestVonageIVR(t *testing.T) {
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	defer testsuite.Reset(t, rt, testsuite.ResetAll)
-
 	// deactivate our twilio channel
 	rt.DB.MustExec(`UPDATE channels_channel SET is_active = FALSE WHERE id = $1`, testdb.TwilioChannel.ID)
 
@@ -247,7 +243,7 @@ func getCallLogs(t *testing.T, rt *runtime.Runtime, ch *testdb.Channel) []*httpx
 
 	for _, logUUID := range logUUIDs {
 		key := dynamo.Key{PK: fmt.Sprintf("cha#%s#%s", ch.UUID, logUUID[35:36]), SK: fmt.Sprintf("log#%s", logUUID)}
-		item, err := dynamo.GetItem(t.Context(), rt.Dynamo.Main.Client(), "TestMain", key)
+		item, err := dynamo.GetItem(t.Context(), rt.Dynamo.Main.Client(), rt.Dynamo.Main.Table(), key)
 		require.NoError(t, err)
 		require.NotNil(t, item, "log item not found for key %s", key)
 

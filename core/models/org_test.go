@@ -2,6 +2,7 @@ package models_test
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"testing"
 	"time"
@@ -19,8 +20,6 @@ import (
 
 func TestLoadOrg(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
-
-	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
 	tz, _ := time.LoadLocation("America/Los_Angeles")
 
@@ -66,8 +65,6 @@ func TestLoadOrg(t *testing.T) {
 func TestGetOrgIDFromUUID(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetAll)
-
 	// mark org 2 deleted
 	rt.DB.MustExec(`UPDATE orgs_org SET is_active = FALSE WHERE id = $1`, testdb.Org2.ID)
 
@@ -83,8 +80,6 @@ func TestGetOrgIDFromUUID(t *testing.T) {
 
 func TestEmailService(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
-
-	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
 	// make org 2 a child of org 1
 	rt.DB.MustExec(`UPDATE orgs_org SET parent_id = $2 WHERE id = $1`, testdb.Org2.ID, testdb.Org1.ID)
@@ -126,8 +121,6 @@ func TestEmailService(t *testing.T) {
 func TestStoreAttachment(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetStorage)
-
 	image, err := os.Open("testdata/test.jpg")
 	require.NoError(t, err)
 
@@ -137,7 +130,8 @@ func TestStoreAttachment(t *testing.T) {
 	attachment, err := org.StoreAttachment(context.Background(), rt, "668383ba-387c-49bc-b164-1213ac0ea7aa.jpg", "image/jpeg", image)
 	require.NoError(t, err)
 
-	assert.Equal(t, utils.Attachment("image/jpeg:http://localstack:4566/test-attachments/attachments/1/6683/83ba/668383ba-387c-49bc-b164-1213ac0ea7aa.jpg"), attachment)
+	expectedURL := fmt.Sprintf("http://localstack:4566/%s/attachments/1/6683/83ba/668383ba-387c-49bc-b164-1213ac0ea7aa.jpg", rt.Config.S3AttachmentsBucket)
+	assert.Equal(t, utils.Attachment("image/jpeg:"+expectedURL), attachment)
 
 	// err trying to read from same reader again
 	_, err = org.StoreAttachment(context.Background(), rt, "668383ba-387c-49bc-b164-1213ac0ea7aa.jpg", "image/jpeg", image)
@@ -146,8 +140,6 @@ func TestStoreAttachment(t *testing.T) {
 
 func TestGetOutboxCounts(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
-
-	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
 	rt.DB.MustExec(`INSERT INTO orgs_itemcount(org_id, scope, count, is_squashed) VALUES ($1, 'msgs:folder:O', -1, FALSE)`, testdb.Org1.ID)
 	rt.DB.MustExec(`INSERT INTO orgs_itemcount(org_id, scope, count, is_squashed) VALUES ($1, 'msgs:folder:O', 2, FALSE)`, testdb.Org1.ID)

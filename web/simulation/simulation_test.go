@@ -3,6 +3,7 @@ package simulation
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -146,8 +147,6 @@ const (
 func TestServer(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetData)
-
 	wg := &sync.WaitGroup{}
 
 	server := web.NewServer(ctx, rt, wg)
@@ -202,7 +201,7 @@ func TestServer(t *testing.T) {
 			body = bytes.NewReader([]byte(bodyStr))
 		}
 
-		req, err := http.NewRequest(tc.Method, "http://localhost:8191"+tc.URL, body)
+		req, err := http.NewRequest(tc.Method, fmt.Sprintf("http://localhost:%d", rt.Config.InternalPort)+tc.URL, body)
 		assert.NoError(t, err, "%d: error creating request", i)
 
 		resp, err := http.DefaultClient.Do(req)

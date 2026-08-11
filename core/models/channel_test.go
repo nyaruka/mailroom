@@ -14,8 +14,6 @@ import (
 func TestChannels(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetAll)
-
 	// add some tel specific config to channel 2
 	rt.DB.MustExec(`UPDATE channels_channel SET config = '{"matching_prefixes": ["250", "251"], "allow_international": true}' WHERE id = $1`, testdb.VonageChannel.ID)
 
@@ -32,7 +30,6 @@ func TestChannels(t *testing.T) {
 		address            string
 		schemes            []string
 		roles              []assets.ChannelRole
-		features           []assets.ChannelFeature
 		prefixes           []string
 		allowInternational bool
 	}{
@@ -43,7 +40,6 @@ func TestChannels(t *testing.T) {
 			"+13605551212",
 			[]string{"tel"},
 			[]assets.ChannelRole{"send", "receive", "call", "answer"},
-			[]assets.ChannelFeature{},
 			nil,
 			false,
 		},
@@ -54,7 +50,6 @@ func TestChannels(t *testing.T) {
 			"5789",
 			[]string{"tel"},
 			[]assets.ChannelRole{"send", "receive"},
-			[]assets.ChannelFeature{},
 			[]string{"250", "251"},
 			true,
 		},
@@ -65,7 +60,6 @@ func TestChannels(t *testing.T) {
 			"12345",
 			[]string{"facebook"},
 			[]assets.ChannelRole{"send", "receive"},
-			[]assets.ChannelFeature{"optins"},
 			nil,
 			false,
 		},
@@ -76,7 +70,6 @@ func TestChannels(t *testing.T) {
 			"+593123456789",
 			[]string{"tel"},
 			[]assets.ChannelRole{"send", "receive"},
-			[]assets.ChannelFeature{},
 			nil,
 			false,
 		},
@@ -90,7 +83,6 @@ func TestChannels(t *testing.T) {
 		assert.Equal(t, tc.name, channel.Name())
 		assert.Equal(t, tc.address, channel.Address())
 		assert.Equal(t, tc.roles, channel.Roles())
-		assert.Equal(t, tc.features, channel.Features())
 		assert.Equal(t, tc.schemes, channel.Schemes())
 		assert.Equal(t, tc.prefixes, channel.MatchPrefixes())
 		assert.Equal(t, tc.allowInternational, channel.AllowInternational())
@@ -122,8 +114,6 @@ func TestGetChannelByID(t *testing.T) {
 
 func TestGetAndroidChannelsToSync(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
-
-	defer testsuite.Reset(t, rt, testsuite.ResetData)
 
 	testChannel1 := testdb.InsertChannel(t, rt, testdb.Org1, "A", "Android 1", "123", []string{"tel"}, "SR", map[string]any{"FCM_ID": ""})
 	testChannel2 := testdb.InsertChannel(t, rt, testdb.Org1, "A", "Android 2", "234", []string{"tel"}, "SR", map[string]any{"FCM_ID": "FCMID2"})

@@ -914,6 +914,55 @@ func CreateOrClaimURN(ctx context.Context, db DBorTx, oa *OrgAssets, contactID C
 	return urn, nil
 }
 
+const sqlReassignShellContactURN = `
+UPDATE contacts_contacturn
+   SET contact_id = $3
+ WHERE id = $1 AND contact_id = $2
+   AND NOT EXISTS(SELECT 1 FROM contacts_contacturn o WHERE o.contact_id = $2 AND o.id != $1)`
+
+// ReassignShellContactURN checks if the given URN identity is owned by a contact other than the given one, and if that
+// owner is a "shell" - a contact with no other URNs - reassigns the URN to the given contact. The shell contact keeps
+// its history but is left without URNs, and both contacts have modified_on bumped so they're re-indexed. Returns the
+// ID of the owning contact if there is a different owner, and whether the URN was reassigned from it.
+func ReassignShellContactURN(ctx context.Context, db DBorTx, oa *OrgAssets, contactID ContactID, u urns.URN) (ContactID, bool, error) {
+	rows, err := db.QueryxContext(ctx, sqlSelectURNByIdentity, u.Identity(), oa.OrgID())
+	if err != nil {
+		return NilContactID, false, fmt.Errorf("error selecting URN by identity: %s", u.Identity())
+	}
+	defer rows.Close()
+
+	if !rows.Next() {
+		return NilContactID, false, nil
+	}
+
+	urn := &ContactURN{}
+	if err := rows.StructScan(urn); err != nil {
+		return NilContactID, false, fmt.Errorf("error scanning contact urn: %w", err)
+	}
+	if urn.ContactID == NilContactID || urn.ContactID == contactID {
+		return NilContactID, false, nil
+	}
+
+	// only reassigns if the owner still has no other URNs
+	res, err := db.ExecContext(ctx, sqlReassignShellContactURN, urn.ID, urn.ContactID, contactID)
+	if err != nil {
+		return urn.ContactID, false, fmt.Errorf("error reassigning URN from shell contact: %w", err)
+	}
+	numReassigned, err := res.RowsAffected()
+	if err != nil {
+		return urn.ContactID, false, fmt.Errorf("error getting number of reassigned URNs: %w", err)
+	}
+	if numReassigned == 0 {
+		return urn.ContactID, false, nil
+	}
+
+	if err := UpdateContactModifiedOn(ctx, db, []ContactID{urn.ContactID, contactID}); err != nil {
+		return urn.ContactID, true, fmt.Errorf("error updating modified_on for contacts: %w", err)
+	}
+
+	return urn.ContactID, true, nil
+}
+
 // CalculateDynamicGroups recalculates all the dynamic groups for the passed in contact, recalculating
 // campaigns as necessary based on those group changes.
 func CalculateDynamicGroups(ctx context.Context, db DBorTx, oa *OrgAssets, contacts []*core.Contact) error {

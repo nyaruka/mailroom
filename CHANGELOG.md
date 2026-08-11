@@ -1,3 +1,16 @@
+v26.3.39 (2026-08-05)
+-------------------------
+ * Re-index shell contact in Elastic after its URN is reassigned
+ * Update to goflow v0.290.1
+ * Run test packages in parallel, giving each test binary its own isolated valkey, elastic, dynamo and S3 state
+
+v26.3.38 (2026-08-05)
+-------------------------
+ * Remove support for opt-in/opt-out triggers, channel events, and opt-ins on broadcasts and messages
+ * Update to goflow v0.290.0
+ * Claim WhatsApp BSUID URNs from shell contacts when appending to another contact
+ * Rework tests to use per-binary databases cloned from a template to prevent shared state issues
+
 v26.3.37 (2026-08-04)
 -------------------------
  * Change WrapEventHandler to pass the wrapped handler as the final arg of the new handler

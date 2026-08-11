@@ -20,8 +20,6 @@ import (
 func TestChannelLogsOutgoing(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetDynamo)
-
 	mocks := httpx.WithMocks(http.DefaultTransport, map[string][]*httpx.MockResponse{
 		"http://ivr.com/start":  {httpx.NewMockResponse(200, nil, []byte("OK"))},
 		"http://ivr.com/hangup": {httpx.NewMockResponse(400, nil, []byte("Oops"))},
@@ -58,10 +56,10 @@ func TestChannelLogsOutgoing(t *testing.T) {
 
 	rt.Dynamo.Main.Flush()
 
-	dyntest.AssertCount(t, rt.Dynamo.Main.Client(), "TestMain", 2)
+	dyntest.AssertCount(t, rt.Dynamo.Main.Client(), rt.Dynamo.Main.Table(), 2)
 
 	// read log back from DynamoDB
-	item, err := dynamo.GetItem(ctx, rt.Dynamo.Main.Client(), "TestMain", clog1.DynamoKey())
+	item, err := dynamo.GetItem(ctx, rt.Dynamo.Main.Client(), rt.Dynamo.Main.Table(), clog1.DynamoKey())
 	require.NoError(t, err)
 	if assert.NotNil(t, item) {
 		assert.Equal(t, string(models.ChannelLogTypeIVRStart), item.Data["type"])

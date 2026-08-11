@@ -17,8 +17,6 @@ import (
 func TestLoadFlows(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetAll)
-
 	rt.DB.MustExec(`UPDATE flows_flow SET ivr_retry = 30 WHERE id = $1`, testdb.IVRFlow.ID)
 	rt.DB.MustExec(`UPDATE flows_flow SET expires_after_minutes = 720 WHERE id = $1`, testdb.Favorites.ID)
 	rt.DB.MustExec(`UPDATE flows_flow SET expires_after_minutes = 1 WHERE id = $1`, testdb.PickANumber.ID)          // too small for messaging

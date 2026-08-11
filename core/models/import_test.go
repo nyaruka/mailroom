@@ -15,8 +15,6 @@ import (
 func TestLoadContactImport(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetData)
-
 	oa := testdb.Org1.Load(t, rt)
 
 	import1ID := testdb.InsertContactImport(t, rt, testdb.Org1, models.ImportStatusProcessing, testdb.Admin)

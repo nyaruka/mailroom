@@ -17,8 +17,6 @@ import (
 func TestProcessContactQueue(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetAll)
-
 	vc := rt.VK.Get()
 	defer vc.Close()
 

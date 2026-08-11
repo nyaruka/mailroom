@@ -9,6 +9,7 @@ import (
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/envs"
+	"github.com/nyaruka/goflow/test"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/runner/clocks"
 	_ "github.com/nyaruka/mailroom/v26/core/runner/handlers"
@@ -23,8 +24,6 @@ import (
 func TestCreate(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetAll)
-
 	// detach Ann's tel URN
 	rt.DB.MustExec(`UPDATE contacts_contacturn SET contact_id = NULL WHERE contact_id = $1`, testdb.Ann.ID)
 
@@ -33,8 +32,6 @@ func TestCreate(t *testing.T) {
 
 func TestDeindex(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
-
-	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetElastic)
 
 	// index Bob and Cat into the v2 contacts index
 	oa := testdb.Org1.Load(t, rt)
@@ -74,14 +71,11 @@ func TestDeindex(t *testing.T) {
 func TestReindex(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetElastic)
-
 	testsuite.RunWebTests(t, rt, "testdata/reindex.json")
 }
 
 func TestExport(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
-	defer testsuite.Reset(t, rt, testsuite.ResetElastic)
 
 	testsuite.IndexContacts(t, rt)
 
@@ -90,7 +84,6 @@ func TestExport(t *testing.T) {
 
 func TestExportPreview(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
-	defer testsuite.Reset(t, rt, testsuite.ResetElastic)
 
 	testsuite.IndexContacts(t, rt)
 
@@ -99,8 +92,6 @@ func TestExportPreview(t *testing.T) {
 
 func TestImport(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
-
-	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetValkey)
 
 	import1ID := testdb.InsertContactImport(t, rt, testdb.Org1, models.ImportStatusProcessing, testdb.Admin)
 	testdb.InsertContactImportBatch(t, rt, import1ID, []byte(`[
@@ -121,8 +112,6 @@ func TestImport(t *testing.T) {
 func TestInspect(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetData)
-
 	// give Ann an unsendable twitterid URN with a display value
 	testdb.InsertContactURN(t, rt, testdb.Org1, testdb.Ann, urns.URN("twitterid:23145325#ann"), 20000, nil)
 
@@ -131,8 +120,6 @@ func TestInspect(t *testing.T) {
 
 func TestModify(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
-
-	defer testsuite.Reset(t, rt, testsuite.ResetAll)
 
 	oa := testdb.Org1.Load(t, rt)
 
@@ -164,7 +151,8 @@ func TestModify(t *testing.T) {
 func TestInterrupt(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetValkey)
+	// mock the universe before inserting sessions so their generated UUIDs are deterministic
+	defer test.MockUniverse()()
 
 	var modifiedOn1 time.Time
 	rt.DB.Get(&modifiedOn1, `SELECT modified_on FROM contacts_contact WHERE id = $1`, testdb.Ann.ID)
@@ -192,8 +180,6 @@ func TestParseQuery(t *testing.T) {
 func TestPopulateGroup(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetValkey|testsuite.ResetElastic)
-
 	testdb.InsertContactGroup(t, rt, testdb.Org1, "", "Dynamic", "age > 18")
 
 	testsuite.RunWebTests(t, rt, "testdata/populate_group.json")
@@ -201,7 +187,6 @@ func TestPopulateGroup(t *testing.T) {
 
 func TestSearch(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
-	defer testsuite.Reset(t, rt, testsuite.ResetElastic)
 
 	testsuite.IndexContacts(t, rt)
 

@@ -16,8 +16,6 @@ func TestDeindexDeletedOrgsCron(t *testing.T) {
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	defer testsuite.Reset(t, rt, testsuite.ResetElastic|testsuite.ResetValkey)
-
 	cron := &crons.DeindexDeletedOrgsCron{}
 
 	assertRun := func(expected map[string]any) {

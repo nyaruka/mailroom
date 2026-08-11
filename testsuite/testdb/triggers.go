@@ -25,14 +25,6 @@ func InsertNewConversationTrigger(t *testing.T, rt *runtime.Runtime, org *Org, f
 	return insertTrigger(t, rt, org, models.NewConversationTriggerType, flow, nil, "", models.NilScheduleID, nil, nil, nil, "", channel)
 }
 
-func InsertOptInTrigger(t *testing.T, rt *runtime.Runtime, org *Org, flow *Flow, channel *Channel) models.TriggerID {
-	return insertTrigger(t, rt, org, models.OptInTriggerType, flow, nil, "", models.NilScheduleID, nil, nil, nil, "", channel)
-}
-
-func InsertOptOutTrigger(t *testing.T, rt *runtime.Runtime, org *Org, flow *Flow, channel *Channel) models.TriggerID {
-	return insertTrigger(t, rt, org, models.OptOutTriggerType, flow, nil, "", models.NilScheduleID, nil, nil, nil, "", channel)
-}
-
 func InsertReferralTrigger(t *testing.T, rt *runtime.Runtime, org *Org, flow *Flow, referrerID string, channel *Channel) models.TriggerID {
 	return insertTrigger(t, rt, org, models.ReferralTriggerType, flow, nil, "", models.NilScheduleID, nil, nil, nil, referrerID, channel)
 }

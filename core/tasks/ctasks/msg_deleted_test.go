@@ -16,8 +16,6 @@ import (
 func TestMsgDeleted(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetDynamo|testsuite.ResetElastic)
-
 	oa := testdb.Org1.Load(t, rt)
 
 	ann, _, _ := testdb.Ann.Load(t, rt, oa)

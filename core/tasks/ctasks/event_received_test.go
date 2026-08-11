@@ -26,8 +26,6 @@ func TestEventReceived(t *testing.T) {
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	defer testsuite.Reset(t, rt, testsuite.ResetAll)
-
 	oa := testdb.Org1.Load(t, rt)
 
 	// stop Bob so we can test that he gets un-stopped on new conversation
@@ -47,10 +45,6 @@ func TestEventReceived(t *testing.T) {
 	// add some channel event triggers
 	testdb.InsertNewConversationTrigger(t, rt, testdb.Org1, testdb.Favorites, testdb.FacebookChannel)
 	testdb.InsertReferralTrigger(t, rt, testdb.Org1, testdb.PickANumber, "", testdb.VonageChannel)
-	testdb.InsertOptInTrigger(t, rt, testdb.Org1, testdb.Favorites, testdb.VonageChannel)
-	testdb.InsertOptOutTrigger(t, rt, testdb.Org1, testdb.PickANumber, testdb.VonageChannel)
-
-	testdb.InsertOptIn(t, rt, testdb.Org1, "45aec4dd-945f-4511-878f-7d8516fbd336", "Polls")
 
 	// add a URN for Ann so we can test twitter URNs
 	testdb.InsertContactURN(t, rt, testdb.Org1, testdb.Bob, urns.URN("twitterid:123456"), 10, nil)

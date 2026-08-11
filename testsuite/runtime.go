@@ -6,14 +6,10 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
-	"os/exec"
 	"path"
 	goruntime "runtime"
 	"testing"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/service/s3"
-	"github.com/nyaruka/gocommon/aws/dynamo/dyntest"
 	"github.com/nyaruka/gocommon/centrifugo"
 	"github.com/nyaruka/mailroom/v26/core/goflow"
 	"github.com/nyaruka/mailroom/v26/core/models"
@@ -28,53 +24,28 @@ func testdataPath(file string) string {
 	return path.Join(path.Dir(thisFile), "testdata", file)
 }
 
-// Refresh is our type for the pieces of org assets we want fresh (not cached)
-type ResetFlag int
-
-// refresh bit masks
-const (
-	ResetNone    = ResetFlag(0)
-	ResetAll     = ResetFlag(^0)
-	ResetDB      = ResetFlag(1 << 1)
-	ResetData    = ResetFlag(1 << 2)
-	ResetValkey  = ResetFlag(1 << 3)
-	ResetStorage = ResetFlag(1 << 4)
-	ResetDynamo  = ResetFlag(1 << 5)
-	ResetElastic = ResetFlag(1 << 6)
-)
-
-// Reset clears out both our database and redis DB
-func Reset(t *testing.T, rt *runtime.Runtime, what ResetFlag) {
-	if what&ResetValkey > 0 {
-		resetValkey(t, rt)
-	}
-	if what&ResetStorage > 0 {
-		resetStorage(t, rt)
-	}
-	if what&ResetDynamo > 0 {
-		resetDynamo(t, rt)
-	}
-
-	if what&ResetDB > 0 {
-		resetDB(t, rt)
-	} else if what&ResetData > 0 {
-		resetData(t, rt)
-	}
-
-	// comes after data/db reset so reindexing happens from reset data
-	if what&ResetElastic > 0 {
-		resetElastic(t, rt)
-	}
-}
-
 // Runtime returns the various runtime things a test might need
 func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
+	// each test gets its own database cloned from a template built from our dump - see dbtemplate.go
+	dbName := createTestDB(t)
+	t.Cleanup(func() { dropTestDB(t, dbName) })
+
+	// this binary's slot gives it its own valkey database and web server ports - see slot.go
+	slot := claimSlot(t)
+
 	cfg := runtime.NewDefaultConfig()
 	cfg.DeploymentID = "test"
-	cfg.InternetPort = 8190
-	cfg.InternalPort = 8191
-	cfg.DB = "postgres://mailroom_test:temba@postgres/mailroom_test?sslmode=disable&Timezone=UTC"
-	cfg.Valkey = "valkey://valkey:6379/10" // use a different DB from the default so a locally-running courier can't pop from queues we're asserting on
+	cfg.InternetPort = slotPortBase + 2*slot
+	cfg.InternalPort = cfg.InternetPort + 1
+	cfg.DB = fmt.Sprintf(dbTestDSNFormat, dbName)
+
+	// a hard ceiling, not a hint - a test needing more concurrent connections will block on the pool -
+	// but tests need few, and concurrent binaries must share the server's connection limit
+	cfg.DBPoolSize = 8
+
+	cfg.Valkey = fmt.Sprintf(vkTestDSNFormat, slotVKDB(slot))
+	cfg.ElasticContactsIndex = esContactsIndex() // this binary's own indexes, cleared before every test
+	cfg.ElasticMessagesIndex = esMessagesIndex() // - see elastic.go
 
 	// AWS SDK default chain reads these — used by the localstack S3/Dynamo/Cloudwatch clients
 	t.Setenv("AWS_ACCESS_KEY_ID", "root")
@@ -82,13 +53,11 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 	t.Setenv("AWS_REGION", "us-east-1")
 
 	cfg.S3Endpoint = "http://localstack:4566"
-	cfg.S3AttachmentsBucket = "test-attachments"
+	cfg.S3AttachmentsBucket = s3AttachmentsBucket() // this binary's own bucket, emptied before every test - see storage.go
 	cfg.S3PathStyle = true
 	cfg.DynamoEndpoint = "http://localstack:4566"
-	cfg.DynamoTablePrefix = "Test"
-	cfg.ElasticContactsIndex = "contacts-test"
-	cfg.ElasticMessagesIndex = "messages-test"
-	cfg.SpoolDir = absPath("./_test_spool")
+	cfg.DynamoTablePrefix = dynTablePrefix() // this binary's own tables, cleared before every test - see dynamo.go
+	cfg.SpoolDir = t.TempDir()
 
 	err := cfg.Parse()
 	require.NoError(t, err)
@@ -96,22 +65,7 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 	rt, err := runtime.NewRuntime(cfg)
 	require.NoError(t, err)
 
-	createBucket(t, rt, rt.Config.S3AttachmentsBucket)
-	setupElasticContacts(t, rt)
-	setupElasticMessages(t, rt)
-
-	// create Postgres tables if necessary
-	_, err = rt.DB.Exec("SELECT * from orgs_org")
-	if err != nil {
-		loadTestDump(t)
-
-		// force re-connection
-		rt, err = runtime.NewRuntime(cfg)
-		require.NoError(t, err)
-	}
-
-	// create Dynamo tables if necessary
-	dyntest.CreateTables(t, rt.Dynamo.Main.Client(), testdataPath("dynamo.json"), false)
+	ensureBinaryResources(t, rt) // creates those on first use and sweeps dead runs' - see binary.go
 
 	rt.FCM = &MockFCMClient{ValidTokens: []string{"FCMID3", "FCMID4", "FCMID5"}}
 	rt.Centrifugo = centrifugo.NewService(centrifugo.NewMockClient(), rt.VK)
@@ -120,6 +74,13 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 
 	err = rt.Start()
 	require.NoError(t, err, "error starting runtime")
+
+	// so every test starts with empty valkey, indexes, tables and storage (writers must be started for
+	// their flushes)
+	require.NoError(t, flushVKDB(slotVKDB(slot)))
+	ClearElastic(t, rt)
+	ClearDynamo(t, rt)
+	clearStorage(t, rt)
 
 	models.InitCache(rt)
 
@@ -137,73 +98,6 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 	return t.Context(), rt
 }
 
-// resets our database to our base state from our RapidPro dump
-//
-// mailroom_test.dump can be regenerated by running:
-//
-//	% python manage.py mailroom_db
-//
-// then copying the mailroom_test.dump file to your mailroom root directory
-//
-//	% cp mailroom_test.dump ../mailroom
-func resetDB(t *testing.T, rt *runtime.Runtime) {
-	t.Helper()
-
-	rt.DB.MustExec("DROP OWNED BY mailroom_test CASCADE")
-
-	loadTestDump(t)
-}
-
-func loadTestDump(t *testing.T) {
-	t.Helper()
-
-	dump, err := os.Open(testdataPath("postgres.dump"))
-	require.NoError(t, err)
-
-	defer dump.Close()
-
-	cmd := exec.Command("pg_restore", "-h", "postgres", "-U", "mailroom_test", "-d", "mailroom_test", "--no-password")
-	cmd.Stdin = dump
-	cmd.Env = append(os.Environ(), "PGPASSWORD=temba")
-
-	output, err := cmd.CombinedOutput()
-	if err != nil {
-		panic(fmt.Sprintf("error restoring database: %s: %s", err, string(output)))
-	}
-}
-
-// Converts a project root relative path to an absolute path usable in any test. This is needed because go tests
-// are run with a working directory set to the current module being tested.
-func absPath(p string) string {
-	// start in working directory and go up until we are in a directory containing go.mod
-	dir, _ := os.Getwd()
-	for dir != "/" {
-		if _, err := os.Stat(path.Join(dir, "go.mod")); err == nil {
-			break
-		}
-		dir = path.Dir(dir)
-	}
-	return path.Join(dir, p)
-}
-
-// resets our valkey database
-func resetValkey(t *testing.T, rt *runtime.Runtime) {
-	t.Helper()
-
-	vc := rt.VK.Get()
-	defer vc.Close()
-
-	_, err := vc.Do("FLUSHDB")
-	require.NoError(t, err, "error flushing valkey db")
-}
-
-func resetStorage(t *testing.T, rt *runtime.Runtime) {
-	t.Helper()
-
-	err := rt.S3.EmptyBucket(t.Context(), rt.Config.S3AttachmentsBucket)
-	require.NoError(t, err)
-}
-
 // CentrifugoHistory returns the JSON payloads published to the given Centrifugo channel, oldest first. The runtime's
 // Centrifugo client is a mock so this reads back what the test published rather than hitting a real server.
 func CentrifugoHistory(t *testing.T, rt *runtime.Runtime, channel string) []json.RawMessage {
@@ -216,122 +110,6 @@ func CentrifugoHistory(t *testing.T, rt *runtime.Runtime, channel string) []json
 		}
 	}
 	return history
-}
-
-func createBucket(t *testing.T, rt *runtime.Runtime, bucket string) {
-	t.Helper()
-
-	err := rt.S3.Test(t.Context(), bucket)
-	if err != nil {
-		_, err = rt.S3.Client.CreateBucket(t.Context(), &s3.CreateBucketInput{Bucket: aws.String(bucket)})
-		require.NoError(t, err)
-	}
-}
-
-func resetElastic(t *testing.T, rt *runtime.Runtime) {
-	t.Helper()
-
-	rt.ES.Writer.Flush()
-	clearElasticIndexes(t, rt)
-}
-
-func resetDynamo(t *testing.T, rt *runtime.Runtime) {
-	t.Helper()
-
-	rt.Dynamo.Main.Flush()
-	rt.Dynamo.History.Flush()
-
-	dyntest.CreateTables(t, rt.Dynamo.Main.Client(), testdataPath("dynamo.json"), true)
-}
-
-var sqlResetTestData = `
-UPDATE contacts_contact SET last_seen_on = NULL, current_session_uuid = NULL, current_flow_id = NULL;
-
-DELETE FROM api_resthooksubscriber WHERE resthook_id >= 30000;
-DELETE FROM api_resthook WHERE id >= 30000;
-DELETE FROM notifications_notification;
-DELETE FROM notifications_incident;
-DELETE FROM request_logs_httplog;
-DELETE FROM knowledge_knowledgechunk;
-DELETE FROM knowledge_knowledge WHERE id >= 30000;
-UPDATE knowledge_knowledge SET status = 'P', error = NULL, last_indexed_on = NULL, num_items = 0, num_chunks = 0, is_active = TRUE;
-DELETE FROM tickets_shortcut WHERE id >= 30000;
-DELETE FROM tickets_ticket;
-DELETE FROM triggers_trigger_contacts WHERE trigger_id >= 30000;
-DELETE FROM triggers_trigger_groups WHERE trigger_id >= 30000;
-DELETE FROM triggers_trigger_exclude_groups WHERE trigger_id >= 30000;
-DELETE FROM triggers_trigger WHERE id >= 30000;
-DELETE FROM channels_channel WHERE id >= 30000;
-DELETE FROM channels_channelcount;
-DELETE FROM channels_channelevent;
-DELETE FROM msgs_msg;
-DELETE FROM flows_flowrun;
-DELETE FROM flows_flowactivitycount;
-DELETE FROM flows_flowresultcount;
-DELETE FROM flows_flowstartcount;
-DELETE FROM flows_flowstart_contacts;
-DELETE FROM flows_flowstart_groups;
-DELETE FROM flows_flowstart;
-DELETE FROM flows_flowsession;
-DELETE FROM flows_flowrevision WHERE flow_id >= 30000;
-DELETE FROM flows_flow WHERE id >= 30000;
-DELETE FROM ai_llmcount;
-DELETE FROM ai_llm WHERE id >= 30000;
-DELETE FROM ivr_call;
-DELETE FROM msgs_msg_labels;
-DELETE FROM msgs_msg;
-DELETE FROM msgs_broadcast_groups;
-DELETE FROM msgs_broadcast_contacts;
-DELETE FROM msgs_broadcastmsgcount;
-DELETE FROM msgs_broadcast;
-DELETE FROM msgs_optin;
-DELETE FROM templates_templatetranslation WHERE id >= 30000;
-DELETE FROM templates_template WHERE id >= 30000;
-DELETE FROM schedules_schedule;
-DELETE FROM campaigns_campaignevent WHERE id >= 30000;
-DELETE FROM campaigns_campaign WHERE id >= 30000;
-DELETE FROM contacts_contactfire;
-DELETE FROM contacts_contactimportbatch;
-DELETE FROM contacts_contactimport;
-DELETE FROM contacts_contacturn WHERE id >= 30000;
-DELETE FROM contacts_contactgroup_contacts WHERE id >= 30000;
-DELETE FROM contacts_contact WHERE id >= 30000;
-DELETE FROM contacts_contactgroupcount WHERE group_id >= 30000;
-DELETE FROM contacts_contactgroup WHERE id >= 30000;
-DELETE FROM orgs_itemcount;
-DELETE FROM orgs_dailycount;
-
-ALTER SEQUENCE ai_llm_id_seq RESTART WITH 30000;
-ALTER SEQUENCE api_resthook_id_seq RESTART WITH 30000;
-ALTER SEQUENCE api_resthooksubscriber_id_seq RESTART WITH 30000;
-ALTER SEQUENCE flows_flow_id_seq RESTART WITH 30000;
-ALTER SEQUENCE knowledge_knowledge_id_seq RESTART WITH 30000;
-ALTER SEQUENCE knowledge_knowledgechunk_id_seq RESTART WITH 30000;
-ALTER SEQUENCE tickets_shortcut_id_seq RESTART WITH 30000;
-ALTER SEQUENCE tickets_ticket_id_seq RESTART WITH 30000;
-ALTER SEQUENCE channels_channelevent_id_seq RESTART WITH 30000;
-ALTER SEQUENCE msgs_msg_id_seq RESTART WITH 30000;
-ALTER SEQUENCE msgs_optin_id_seq RESTART WITH 30000;
-ALTER SEQUENCE msgs_broadcast_id_seq RESTART WITH 30000;
-ALTER SEQUENCE flows_flowrun_id_seq RESTART WITH 30000;
-ALTER SEQUENCE flows_flowstart_id_seq RESTART WITH 30000;
-ALTER SEQUENCE flows_flowsession_id_seq RESTART WITH 30000;
-ALTER SEQUENCE contacts_contact_id_seq RESTART WITH 30000;
-ALTER SEQUENCE contacts_contacturn_id_seq RESTART WITH 30000;
-ALTER SEQUENCE contacts_contactfield_id_seq RESTART WITH 30000;
-ALTER SEQUENCE contacts_contactgroup_id_seq RESTART WITH 30000;
-ALTER SEQUENCE contacts_contactgroup_contacts_id_seq RESTART WITH 30000;
-ALTER SEQUENCE contacts_contactimport_id_seq RESTART WITH 30000;
-ALTER SEQUENCE contacts_contactimportbatch_id_seq RESTART WITH 30000;
-ALTER SEQUENCE campaigns_campaign_id_seq RESTART WITH 30000;
-ALTER SEQUENCE campaigns_campaignevent_id_seq RESTART WITH 30000;`
-
-// removes contact data not in the test database dump. Note that this function can't
-// undo changes made to the contact data in the test database dump.
-func resetData(t *testing.T, rt *runtime.Runtime) {
-	t.Helper()
-
-	rt.DB.MustExec(sqlResetTestData)
 }
 
 func ReadFile(t *testing.T, path string) []byte {

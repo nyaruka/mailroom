@@ -35,21 +35,20 @@ const (
 
 // Channel is the mailroom struct that represents channels
 type Channel struct {
-	ID_                 ChannelID               `json:"id"`
-	UUID_               assets.ChannelUUID      `json:"uuid"`
-	OrgID_              OrgID                   `json:"org_id"`
-	Name_               string                  `json:"name"`
-	Address_            string                  `json:"address"`
-	Type_               ChannelType             `json:"channel_type"`
-	TPS_                int                     `json:"tps"`
-	Country_            null.String             `json:"country"`
-	Schemes_            []string                `json:"schemes"`
-	Roles_              []assets.ChannelRole    `json:"roles"`
-	Features_           []assets.ChannelFeature `json:"features"`
-	MatchPrefixes_      []string                `json:"match_prefixes"`
-	AllowInternational_ bool                    `json:"allow_international"`
-	MachineDetection_   bool                    `json:"machine_detection"`
-	Config_             Config                  `json:"config"`
+	ID_                 ChannelID            `json:"id"`
+	UUID_               assets.ChannelUUID   `json:"uuid"`
+	OrgID_              OrgID                `json:"org_id"`
+	Name_               string               `json:"name"`
+	Address_            string               `json:"address"`
+	Type_               ChannelType          `json:"channel_type"`
+	TPS_                int                  `json:"tps"`
+	Country_            null.String          `json:"country"`
+	Schemes_            []string             `json:"schemes"`
+	Roles_              []assets.ChannelRole `json:"roles"`
+	MatchPrefixes_      []string             `json:"match_prefixes"`
+	AllowInternational_ bool                 `json:"allow_international"`
+	MachineDetection_   bool                 `json:"machine_detection"`
+	Config_             Config               `json:"config"`
 }
 
 // ID returns the id of this channel
@@ -84,9 +83,6 @@ func (c *Channel) Schemes() []string { return c.Schemes_ }
 
 // Roles returns the roles this channel supports
 func (c *Channel) Roles() []assets.ChannelRole { return c.Roles_ }
-
-// Features returns the features this channel supports
-func (c *Channel) Features() []assets.ChannelFeature { return c.Features_ }
 
 // MatchPrefixes returns the prefixes we should also match when determining channel affinity
 func (c *Channel) MatchPrefixes() []string { return c.MatchPrefixes_ }
@@ -172,7 +168,6 @@ SELECT ROW_TO_JSON(r) FROM (SELECT
       c.schemes,
       c.config,
       (SELECT ARRAY(SELECT CASE r WHEN 'R' THEN 'receive' WHEN 'S' THEN 'send' WHEN 'C' THEN 'call' WHEN 'A' THEN 'answer' END FROM unnest(regexp_split_to_array(c.role,'')) AS r)) AS roles,
-      CASE WHEN channel_type IN ('FBA') THEN '{"optins"}'::text[] ELSE '{}'::text[] END AS features,
       jsonb_extract_path(c.config, 'matching_prefixes') AS match_prefixes,
       jsonb_extract_path(c.config, 'allow_international') AS allow_international,
       jsonb_extract_path(c.config, 'machine_detection') AS machine_detection

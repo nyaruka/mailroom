@@ -32,8 +32,6 @@ func TestContactImports(t *testing.T) {
 	reset := test.MockUniverse()
 	defer reset()
 
-	defer testsuite.Reset(t, rt, testsuite.ResetAll)
-
 	// start with no contacts or URNs
 	rt.DB.MustExec(`DELETE FROM contacts_contacturn`)
 	rt.DB.MustExec(`DELETE FROM contacts_contactgroup_contacts`)

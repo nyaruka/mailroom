@@ -13,7 +13,7 @@ import (
 func TestLoadGroups(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshOptIns)
+	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshGroups)
 	require.NoError(t, err)
 
 	groups, err := oa.Groups()

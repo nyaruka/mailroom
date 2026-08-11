@@ -81,8 +81,8 @@ func TestCloneForSimulation(t *testing.T) {
 	require.NoError(t, err)
 
 	testChannels := []assets.Channel{
-		static.NewChannel("d7be3965-4c76-4abd-af78-ebc0b84ab621", "Test Channel 1", "1234567890", []string{"tel"}, nil, nil),
-		static.NewChannel("fd130d20-65f8-43fc-a3c5-a3fa4d1e4193", "Test Channel 2", "2345678901", []string{"tel"}, nil, nil),
+		static.NewChannel("d7be3965-4c76-4abd-af78-ebc0b84ab621", "Test Channel 1", "1234567890", []string{"tel"}, nil),
+		static.NewChannel("fd130d20-65f8-43fc-a3c5-a3fa4d1e4193", "Test Channel 2", "2345678901", []string{"tel"}, nil),
 	}
 
 	clone, err := oa.CloneForSimulation(ctx, rt, testChannels)

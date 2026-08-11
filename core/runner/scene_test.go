@@ -38,7 +38,6 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 
 	defer dates.SetNowFunc(time.Now)
 	defer random.SetGenerator(random.DefaultGenerator)
-	defer testsuite.Reset(t, rt, testsuite.ResetAll) // modifies contacts
 
 	testFlows := testdb.ImportFlows(t, rt, testdb.Org1, "testdata/session_test_flows.json")
 	flow := testFlows[0]
@@ -74,7 +73,7 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 
 	// check events were persisted to DynamoDB
 	rt.Dynamo.History.Flush()
-	dyntest.AssertCount(t, rt.Dynamo.History.Client(), "TestHistory", 6)
+	dyntest.AssertCount(t, rt.Dynamo.History.Client(), rt.Dynamo.History.Table(), 6)
 
 	testsuite.AssertContactFires(t, rt, testdb.Bob.ID, map[string]time.Time{
 		fmt.Sprintf("E:%s", scBob.Session.UUID()): time.Date(2025, 2, 25, 16, 55, 10, 0, time.UTC), // 10 minutes in future
@@ -128,8 +127,6 @@ func TestSessionCreationAndUpdating(t *testing.T) {
 func TestSingleSprintSession(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetValkey|testsuite.ResetData|testsuite.ResetDynamo)
-
 	testFlows := testdb.ImportFlows(t, rt, testdb.Org1, "testdata/session_test_flows.json")
 	flow := testFlows[1]
 
@@ -160,7 +157,6 @@ func TestSessionWithSubflows(t *testing.T) {
 
 	defer dates.SetNowFunc(time.Now)
 	defer random.SetGenerator(random.DefaultGenerator)
-	defer testsuite.Reset(t, rt, testsuite.ResetValkey|testsuite.ResetData|testsuite.ResetDynamo)
 
 	testFlows := testdb.ImportFlows(t, rt, testdb.Org1, "testdata/session_test_flows.json")
 	parent, child := testFlows[2], testFlows[3]
@@ -223,8 +219,6 @@ func TestSessionWithSubflows(t *testing.T) {
 func TestBulkCommitPublishesEvents(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetAll) // modifies contacts
-
 	testFlows := testdb.ImportFlows(t, rt, testdb.Org1, "testdata/session_test_flows.json")
 	flow := testFlows[0]
 
@@ -260,7 +254,7 @@ func TestBulkCommitPublishesEvents(t *testing.T) {
 			ephemeral++
 		}
 	}
-	dyntest.AssertCount(t, rt.Dynamo.History.Client(), "TestHistory", len(types)-ephemeral)
+	dyntest.AssertCount(t, rt.Dynamo.History.Client(), rt.Dynamo.History.Table(), len(types)-ephemeral)
 
 	// helper returning the contact_flow_changed events published since the last call
 	seen := len(sent)
@@ -305,8 +299,6 @@ func TestBulkCommitPublishesEvents(t *testing.T) {
 func TestBulkCommitPublishesNotifications(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetValkey)
-
 	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 	require.NoError(t, err)
 
@@ -346,8 +338,6 @@ func TestBulkCommitPublishesNotifications(t *testing.T) {
 
 func TestBulkCommitPublishesFlowActivity(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
-
-	defer testsuite.Reset(t, rt, testsuite.ResetValkey|testsuite.ResetData|testsuite.ResetDynamo)
 
 	testFlows := testdb.ImportFlows(t, rt, testdb.Org1, "testdata/session_test_flows.json")
 	other, parent, child := testFlows[1], testFlows[2], testFlows[3]
@@ -393,7 +383,6 @@ func TestSessionFailedStart(t *testing.T) {
 
 	defer dates.SetNowFunc(time.Now)
 	defer random.SetGenerator(random.DefaultGenerator)
-	defer testsuite.Reset(t, rt, testsuite.ResetValkey|testsuite.ResetData|testsuite.ResetDynamo)
 
 	testFlows := testdb.ImportFlows(t, rt, testdb.Org1, "testdata/ping_pong.json")
 	ping, pong := testFlows[0], testFlows[1]
@@ -430,8 +419,6 @@ func TestFlowStats(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 	vc := rt.VK.Get()
 	defer vc.Close()
-
-	defer testsuite.Reset(t, rt, testsuite.ResetValkey|testsuite.ResetData|testsuite.ResetDynamo)
 
 	defer random.SetGenerator(random.DefaultGenerator)
 	random.SetGenerator(random.NewSeededGenerator(123))
@@ -540,8 +527,6 @@ func TestFlowStats(t *testing.T) {
 func TestResumeSession(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetStorage|testsuite.ResetDynamo)
-
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshOrg)
 	require.NoError(t, err)
 
@@ -621,17 +606,15 @@ func TestResumeSession(t *testing.T) {
 func TestBroadcastWithLock(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetData|testsuite.ResetDynamo)
-
 	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 	require.NoError(t, err)
 
-	b1 := testdb.InsertBroadcast(t, rt, testdb.Org1, "0199877e-0ed2-790b-b474-35099cea401c", "eng", map[i18n.Language]string{"eng": "Hi", "spa": "Hola"}, nil, models.NilScheduleID, []*testdb.Contact{testdb.Ann, testdb.Bob, testdb.Cat}, nil)
+	b1 := testdb.InsertBroadcast(t, rt, testdb.Org1, "0199877e-0ed2-790b-b474-35099cea401c", "eng", map[i18n.Language]string{"eng": "Hi", "spa": "Hola"}, models.NilScheduleID, []*testdb.Contact{testdb.Ann, testdb.Bob, testdb.Cat}, nil)
 
 	bcast, err := models.GetBroadcastByID(ctx, rt.DB, b1.ID)
 	require.NoError(t, err)
 
-	test.MockUniverse()
+	defer test.MockUniverse()()
 
 	batch1 := bcast.CreateBatch([]models.ContactID{testdb.Ann.ID, testdb.Bob.ID})
 	batch2 := bcast.CreateBatch([]models.ContactID{testdb.Cat.ID})
@@ -696,7 +679,7 @@ func TestBroadcastWithLock(t *testing.T) {
 	testdb.InsertWaitingSession(t, rt, testdb.Org1, testdb.Bob, models.FlowTypeMessaging, nil, testdb.Favorites)
 
 	// test skip mode: Ann and Bob have sessions so should be skipped, Cat should receive
-	b2 := testdb.InsertBroadcast(t, rt, testdb.Org1, "0199877e-0ed2-790b-b474-35099cea401d", "eng", map[i18n.Language]string{"eng": "Skippable"}, nil, models.NilScheduleID, []*testdb.Contact{testdb.Ann, testdb.Bob, testdb.Cat}, nil)
+	b2 := testdb.InsertBroadcast(t, rt, testdb.Org1, "0199877e-0ed2-790b-b474-35099cea401d", "eng", map[i18n.Language]string{"eng": "Skippable"}, models.NilScheduleID, []*testdb.Contact{testdb.Ann, testdb.Bob, testdb.Cat}, nil)
 	bcast2, err := models.GetBroadcastByID(ctx, rt.DB, b2.ID)
 	require.NoError(t, err)
 
@@ -719,7 +702,7 @@ func TestBroadcastWithLock(t *testing.T) {
 	testsuite.AssertContactInFlow(t, rt, testdb.Bob, testdb.Favorites)
 
 	// test interrupt mode: Ann and Bob have sessions which should be interrupted, all should receive
-	b3 := testdb.InsertBroadcast(t, rt, testdb.Org1, "0199877e-0ed2-790b-b474-35099cea401e", "eng", map[i18n.Language]string{"eng": "Interrupting"}, nil, models.NilScheduleID, []*testdb.Contact{testdb.Ann, testdb.Bob, testdb.Cat}, nil)
+	b3 := testdb.InsertBroadcast(t, rt, testdb.Org1, "0199877e-0ed2-790b-b474-35099cea401e", "eng", map[i18n.Language]string{"eng": "Interrupting"}, models.NilScheduleID, []*testdb.Contact{testdb.Ann, testdb.Bob, testdb.Cat}, nil)
 	bcast3, err := models.GetBroadcastByID(ctx, rt.DB, b3.ID)
 	require.NoError(t, err)
 

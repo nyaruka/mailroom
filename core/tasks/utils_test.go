@@ -15,8 +15,6 @@ func TestCounter(t *testing.T) {
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	defer testsuite.Reset(t, rt, testsuite.ResetValkey)
-
 	counter := tasks.NewCounter("test_counter", time.Minute)
 
 	// init counter with 3 batches
@@ -55,8 +53,6 @@ func TestCounterDoneSetsExpiry(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 	vc := rt.VK.Get()
 	defer vc.Close()
-
-	defer testsuite.Reset(t, rt, testsuite.ResetValkey)
 
 	// simulate a key that was created by DECR without a TTL (the fragility we're fixing)
 	vc.Do("SET", "test_counter_orphan", 1)

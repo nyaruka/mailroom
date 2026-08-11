@@ -15,7 +15,6 @@ import (
 
 func TestStats(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
-	defer testsuite.Reset(t, rt, testsuite.ResetValkey)
 
 	vc := rt.VK.Get()
 	defer vc.Close()
@@ -84,7 +83,6 @@ func TestStats(t *testing.T) {
 
 func TestStatsLatencyExcludedOrgs(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
-	defer testsuite.Reset(t, rt, testsuite.ResetValkey)
 
 	vc := rt.VK.Get()
 	defer vc.Close()

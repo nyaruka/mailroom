@@ -23,8 +23,6 @@ func TestDocs(t *testing.T) {
 func TestMetrics(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetAll)
-
 	promToken := "2d26a50841ff48237238bbdd021150f6a33a4196"
 	rt.DB.MustExec(`UPDATE orgs_org SET prometheus_token = $1 WHERE id = $2`, promToken, testdb.Org1.ID)
 
@@ -46,35 +44,35 @@ func TestMetrics(t *testing.T) {
 	}{
 		{
 			Label:    "no auth provided",
-			URL:      fmt.Sprintf("http://localhost:8190/mr/org/%s/metrics", testdb.Org1.UUID),
+			URL:      fmt.Sprintf("http://localhost:%d/mr/org/%s/metrics", rt.Config.InternetPort, testdb.Org1.UUID),
 			Username: "",
 			Password: "",
 			Response: `{"error": "invalid authentication"}`,
 		},
 		{
 			Label:    "invalid password (token)",
-			URL:      fmt.Sprintf("http://localhost:8190/mr/org/%s/metrics", testdb.Org1.UUID),
+			URL:      fmt.Sprintf("http://localhost:%d/mr/org/%s/metrics", rt.Config.InternetPort, testdb.Org1.UUID),
 			Username: "metrics",
 			Password: "invalid",
 			Response: `{"error": "invalid authentication"}`,
 		},
 		{
 			Label:    "invalid username (always metrics)",
-			URL:      fmt.Sprintf("http://localhost:8190/mr/org/%s/metrics", testdb.Org1.UUID),
+			URL:      fmt.Sprintf("http://localhost:%d/mr/org/%s/metrics", rt.Config.InternetPort, testdb.Org1.UUID),
 			Username: "invalid",
 			Password: promToken,
 			Response: `{"error": "invalid authentication"}`,
 		},
 		{
 			Label:    "valid token but wrong org",
-			URL:      fmt.Sprintf("http://localhost:8190/mr/org/%s/metrics", testdb.Org2.UUID),
+			URL:      fmt.Sprintf("http://localhost:%d/mr/org/%s/metrics", rt.Config.InternetPort, testdb.Org2.UUID),
 			Username: "metrics",
 			Password: promToken,
 			Response: `{"error": "invalid authentication"}`,
 		},
 		{
 			Label:    "valid auth",
-			URL:      fmt.Sprintf("http://localhost:8190/mr/org/%s/metrics", testdb.Org1.UUID),
+			URL:      fmt.Sprintf("http://localhost:%d/mr/org/%s/metrics", rt.Config.InternetPort, testdb.Org1.UUID),
 			Username: "metrics",
 			Password: promToken,
 			Contains: []string{

@@ -10,8 +10,6 @@ import (
 func TestTranslate(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetData)
-
 	// LLM without the editing role - id will be 30000
 	testdb.InsertLLM(t, rt, testdb.Org1, "c69723d8-fb37-4cf6-9ec4-bc40cb36f2cc", "test", "gpt-4", "Engine Only", map[string]any{}, "F")
 
