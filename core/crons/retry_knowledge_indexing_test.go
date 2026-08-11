@@ -11,13 +11,13 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestIndexKnowledge(t *testing.T) {
+func TestRetryKnowledgeIndexing(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
 	// deactivate the system sources baked into the test database so only our test sources are swept
 	rt.DB.MustExec(`UPDATE knowledge_knowledge SET is_active = FALSE`)
 
-	cron := &crons.IndexKnowledgeCron{BatchSize: 25}
+	cron := &crons.RetryKnowledgeIndexingCron{BatchSize: 25}
 
 	// without an embeddings service configured the cron is a no-op
 	res, err := cron.Run(ctx, rt)

@@ -12,24 +12,24 @@ import (
 )
 
 func init() {
-	Register("index_knowledge", &IndexKnowledgeCron{BatchSize: 25})
+	Register("retry_knowledge_indexing", &RetryKnowledgeIndexingCron{BatchSize: 25})
 }
 
-// IndexKnowledgeCron is the recovery backstop for knowledge indexing, not its normal trigger: Django calls
+// RetryKnowledgeIndexingCron is the recovery backstop for knowledge indexing, not its normal trigger: Django calls
 // /mi/knowledge/index as an edit commits and that queues the indexing task, so indexing starts within seconds of a
 // change rather than on the next sweep. But batch tasks aren't retried, so a task that errors leaves its source
 // failed and a worker that dies mid-index leaves it stuck indexing, with nothing else to revive either - and a
 // trigger lost between Django and the queue would never be noticed at all. This sweep re-queues all of those, which
 // is why it can run slowly.
-type IndexKnowledgeCron struct {
+type RetryKnowledgeIndexingCron struct {
 	BatchSize int // the maximum number of sources to queue per run
 }
 
-func (c *IndexKnowledgeCron) Next(last time.Time) time.Time {
+func (c *RetryKnowledgeIndexingCron) Next(last time.Time) time.Time {
 	return Next(last, 5*time.Minute)
 }
 
-func (c *IndexKnowledgeCron) Run(ctx context.Context, rt *runtime.Runtime) (map[string]any, error) {
+func (c *RetryKnowledgeIndexingCron) Run(ctx context.Context, rt *runtime.Runtime) (map[string]any, error) {
 	// no embeddings service configured means knowledge indexing is disabled
 	if rt.Config.EmbeddingsEndpoint == "" {
 		return map[string]any{"queued": 0}, nil
