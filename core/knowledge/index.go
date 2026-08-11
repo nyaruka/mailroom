@@ -19,8 +19,8 @@ import (
 var IndexableTypes = []models.KnowledgeType{models.KnowledgeTypeShortcuts}
 
 // how far back the last_indexed_on watermark is pulled - see indexAuthored. Sized to cover clock skew between the
-// hosts plus the length of a Django write transaction, and no more: anything modified inside the margin is re-read on
-// the following sweep, so a margin approaching the sweep interval would re-embed every recent edit a second time.
+// hosts plus the length of a Django write transaction, and no more: anything modified inside the margin is read
+// again by the next run for this source, and re-reading means re-embedding.
 const watermarkMargin = 5 * time.Second
 
 // IndexSource indexes the given knowledge source - re-reading its changed content, chunking and embedding it, and
@@ -55,15 +55,15 @@ func indexAuthored(
 	loadChanged func(context.Context, *sqlx.DB, models.OrgID, time.Time) ([]*authoredItem, error),
 	countItems func(context.Context, models.DBorTx, models.OrgID) (int, error),
 ) error {
-	// the new last_indexed_on watermark is taken before we read, so items changed while we index are picked up as
-	// stale by a later sweep instead of being missed.
+	// the new last_indexed_on watermark is taken before we read, so items changed while we index leave the source
+	// stale for the next trigger or the recovery sweep to pick up instead of being missed.
 	//
 	// The margin covers the two clocks involved: modified_on is stamped by Django before its transaction commits,
 	// while this is mailroom's clock, so without it an item committing just after our read but stamped just before
 	// it would land under the new watermark and never be seen as stale again - a silently missed edit that only a
 	// later edit of the same item would heal. Re-reading an item we already indexed is harmless since chunks are
 	// replaced by item_key, so erring earlier is the safe direction - but it isn't free (it re-embeds), which is
-	// why the margin is small relative to the sweep interval.
+	// why the margin is no bigger than it needs to be.
 	indexedOn := dates.Now().Add(-watermarkMargin)
 
 	var since time.Time

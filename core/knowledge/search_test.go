@@ -30,8 +30,6 @@ func mockQueryResponse(e models.Embedding) *httpx.MockResponse {
 func TestSearch(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	defer testsuite.Reset(t, rt, testsuite.ResetData)
-
 	oa := testdb.Org1.Load(t, rt)
 
 	// without an embeddings service configured search returns no results
