@@ -1,3 +1,7 @@
+v26.3.42 (2026-08-12)
+-------------------------
+ * Use shared svclogs package and context-scoped HTTP tracing from gocommon
+
 v26.3.41 (2026-08-12)
 -------------------------
  * Add embeddings service and text chunker for the knowledge base
