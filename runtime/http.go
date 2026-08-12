@@ -12,7 +12,8 @@ import (
 // providers, airtime, IVR, and the courier service. Engine and Simulator are for the user-controlled webhook
 // calls made by the flow engine and simulator respectively — those apply the SSRF IP blocklist and route
 // through the configured webhook proxy. Tests can replace a client's Transport with a mocking transport to
-// intercept its calls.
+// intercept its calls — for Services that must be a transport which keeps the tracing, see
+// testsuite.MockTransport.
 type HTTP struct {
 	Services  *http.Client
 	Engine    *http.Client
@@ -33,9 +34,15 @@ func newHTTP(cfg *Config) *HTTP {
 // 1-minute timeout is generous enough for slower provider responses, and comfortably covers the airtime
 // client's retry sequence (DTOne retries within a single client.Do, so the timeout bounds all attempts plus
 // their backoffs).
+//
+// Its transport captures a trace of any request whose context carries an httpx.TraceCollector - see
+// utils.DoTraced - which is how callers get the trace to attach to a channel log. Tracing accumulates nothing
+// and costs nothing for a request made without a collector, so it belongs on the client rather than being
+// assembled per call. Note that HTTP.Engine and HTTP.Simulator deliberately don't get this: they're handed to
+// goflow's webhook service, which installs its own tracing on the transport it is given.
 func newServicesClient() *http.Client {
 	return &http.Client{
-		Transport: newBaseTransport(),
+		Transport: httpx.WithTraces(newBaseTransport()),
 		Timeout:   time.Minute,
 	}
 }

@@ -1,7 +1,6 @@
 package models_test
 
 import (
-	"net/http"
 	"testing"
 	"time"
 
@@ -9,10 +8,11 @@ import (
 	"github.com/nyaruka/gocommon/aws/dynamo/dyntest"
 	"github.com/nyaruka/gocommon/httpx"
 	"github.com/nyaruka/gocommon/jsonx"
+	"github.com/nyaruka/gocommon/svclogs"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/testsuite"
 	"github.com/nyaruka/mailroom/v26/testsuite/testdb"
-	"github.com/nyaruka/mailroom/v26/utils/svclogs"
+	"github.com/nyaruka/mailroom/v26/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -20,7 +20,7 @@ import (
 func TestChannelLogsOutgoing(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	mocks := httpx.WithMocks(http.DefaultTransport, map[string][]*httpx.MockResponse{
+	client, _ := testsuite.MockedHTTP(map[string][]*httpx.MockResponse{
 		"http://ivr.com/start":  {httpx.NewMockResponse(200, nil, []byte("OK"))},
 		"http://ivr.com/hangup": {httpx.NewMockResponse(400, nil, []byte("Oops"))},
 	})
@@ -35,14 +35,14 @@ func TestChannelLogsOutgoing(t *testing.T) {
 	clog2 := models.NewChannelLog(models.ChannelLogTypeIVRHangup, channel, []string{"sesame"})
 
 	req1, _ := httpx.NewRequest(ctx, "GET", "http://ivr.com/start", nil, map[string]string{"Authorization": "Token sesame"})
-	trace1, err := svclogs.TraceRequest(mocks, 0, req1)
+	trace1, _, err := utils.DoTraced(client, req1)
 	require.NoError(t, err)
 
 	clog1.HTTP(trace1)
 	clog1.End()
 
 	req2, _ := httpx.NewRequest(ctx, "GET", "http://ivr.com/hangup", nil, nil)
-	trace2, err := svclogs.TraceRequest(mocks, 0, req2)
+	trace2, _, err := utils.DoTraced(client, req2)
 	require.NoError(t, err)
 
 	clog2.HTTP(trace2)

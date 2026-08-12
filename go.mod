@@ -23,8 +23,8 @@ require (
 	github.com/gorilla/schema v1.4.1
 	github.com/lib/pq v1.12.3
 	github.com/nyaruka/ezconf v0.6.1
-	github.com/nyaruka/gocommon v1.92.1
-	github.com/nyaruka/goflow v0.290.1
+	github.com/nyaruka/gocommon v1.93.1
+	github.com/nyaruka/goflow v0.291.0
 	github.com/nyaruka/null/v3 v3.0.0
 	github.com/nyaruka/vkutil v0.22.0
 	github.com/openai/openai-go/v3 v3.50.0

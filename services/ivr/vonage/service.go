@@ -35,7 +35,7 @@ import (
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/runner"
 	"github.com/nyaruka/mailroom/v26/runtime"
-	"github.com/nyaruka/mailroom/v26/utils/svclogs"
+	mrutils "github.com/nyaruka/mailroom/v26/utils"
 )
 
 // IgnoreSignatures sets whether we ignore signatures (for unit tests)
@@ -656,7 +656,8 @@ func (s *service) makeRequest(method string, sendURL string, body any) (*httpx.T
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Content-Type", "application/json")
 
-	return svclogs.TraceRequest(s.httpClient.Transport, s.httpClient.Timeout, req)
+	trace, _, err := mrutils.DoTraced(s.httpClient, req)
+	return trace, err
 }
 
 // calculateSignature calculates a signature for the passed in URL

@@ -15,7 +15,6 @@ import (
 	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/goflow/core/hints"
 	"github.com/nyaruka/goflow/flows/triggers"
-	"github.com/nyaruka/goflow/test"
 	"github.com/nyaruka/mailroom/v26/core/ivr"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/testsuite"
@@ -29,7 +28,9 @@ func TestResponseForSprint(t *testing.T) {
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	client, mockVonage := test.MockedHTTP(map[string][]*httpx.MockResponse{
+	// the IVR services take the trace of each call from the tracing on the client they're given, so the mocks
+	// have to be installed behind that same tracing
+	client, mockVonage := testsuite.MockedHTTP(map[string][]*httpx.MockResponse{
 		"https://api.nexmo.com/v1/calls": {
 			httpx.NewMockResponse(201, nil, []byte(`{"uuid": "63f61863-4a51-4f6b-86e1-46edebcf9356", "status": "started", "direction": "outbound"}`)),
 		},

@@ -2,6 +2,7 @@ package dtone_test
 
 import (
 	"context"
+	"net/http"
 	"testing"
 	"time"
 
@@ -412,19 +413,33 @@ func TestClient(t *testing.T) {
 func TestClientRetries(t *testing.T) {
 	ctx := context.Background()
 
-	// products is a GET, so a 503 is retried; the second attempt succeeds
-	client, mocks := test.MockedHTTP(map[string][]*httpx.MockResponse{
-		"https://dvs-api.dtone.com/v1/products?type=FIXED_VALUE_RECHARGE&operator_id=1596&per_page=100": {
-			httpx.NewMockResponse(503, nil, []byte(`{}`)),
-			httpx.NewMockResponse(200, nil, []byte(productsResponse)),
-		},
-	})
+	// the client we're given is traced in production (it's runtime.HTTP.Services) but not in most of these tests,
+	// and the retry count has to survive either way
+	for _, tc := range []struct {
+		name string
+		wrap func(http.RoundTripper) http.RoundTripper
+	}{
+		{name: "plain client", wrap: func(rt http.RoundTripper) http.RoundTripper { return rt }},
+		{name: "already traced client", wrap: httpx.WithTraces},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			// products is a GET, so a 503 is retried; the second attempt succeeds
+			mocks := httpx.WithMocks(nil, map[string][]*httpx.MockResponse{
+				"https://dvs-api.dtone.com/v1/products?type=FIXED_VALUE_RECHARGE&operator_id=1596&per_page=100": {
+					httpx.NewMockResponse(503, nil, []byte(`{}`)),
+					httpx.NewMockResponse(200, nil, []byte(productsResponse)),
+				},
+			})
 
-	cl := dtone.NewClient(client, httpx.NewFixedRetries(time.Millisecond), "key123", "sesame")
+			client := &http.Client{Transport: tc.wrap(mocks)}
+			cl := dtone.NewClient(client, httpx.NewFixedRetries(time.Millisecond), "key123", "sesame")
 
-	products, trace, err := cl.Products(ctx, "FIXED_VALUE_RECHARGE", 1596)
-	assert.NoError(t, err)
-	assert.Equal(t, 2, len(products))
-	assert.Equal(t, 1, trace.Retries)
-	assert.False(t, mocks.HasUnused())
+			products, trace, err := cl.Products(ctx, "FIXED_VALUE_RECHARGE", 1596)
+			assert.NoError(t, err)
+			assert.Equal(t, 2, len(products))
+			assert.Equal(t, 1, trace.Retries)
+			assert.Equal(t, 200, trace.Response.StatusCode)
+			assert.False(t, mocks.HasUnused())
+		})
+	}
 }

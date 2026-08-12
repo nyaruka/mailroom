@@ -22,14 +22,14 @@ func TestSendEvent(t *testing.T) {
 
 	defer test.MockUniverse()()
 
-	mocks := httpx.WithMocks(nil, map[string][]*httpx.MockResponse{
+	transport, mocks := testsuite.MockTransport(map[string][]*httpx.MockResponse{
 		"http://localhost:8080/ci/event/send": {
 			httpx.NewMockResponse(200, nil, []byte(`{"supported": true, "interval": 4}`)),
 			httpx.NewMockResponse(200, nil, []byte(`{"supported": false}`)),
 			httpx.NewMockResponse(500, nil, []byte(`{"error": "oops"}`)),
 		},
 	})
-	rt.HTTP.Services.Transport = mocks
+	rt.HTTP.Services.Transport = transport
 
 	oa := testdb.Org1.Load(t, rt)
 	channel := oa.ChannelByUUID(testdb.FacebookChannel.UUID)
