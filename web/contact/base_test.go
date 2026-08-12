@@ -62,9 +62,9 @@ func TestDeindex(t *testing.T) {
 
 	testsuite.RunWebTests(t, rt, "testdata/deindex.json")
 
-	// Bob and Cat's messages should have been removed, Ann's should remain
-	msgs = testsuite.GetIndexedMessages(t, rt, false)
-	assert.Len(t, msgs, 1)
+	// Bob and Cat's messages should have been removed, Ann's should remain - message de-indexing happens
+	// via a delete-by-query which Elastic performs asynchronously, so we wait for it to be applied
+	msgs = testsuite.WaitForIndexedMessages(t, rt, 1)
 	assert.Equal(t, string(testdb.Ann.UUID), msgs[0].ContactUUID)
 }
 
