@@ -107,6 +107,9 @@ func startService(rt *runtime.Runtime) (*service, error) {
 	c := rt.Config
 	log := slog.With("comp", "mailroom")
 
+	// services which every deployment has, and which the runtime doesn't build for itself
+	rt.Embeddings = intfloat.NewService(rt.HTTP.Services, c.EmbeddingsEndpoint, c.EmbeddingsModel)
+
 	// log what we can and can't reach before we start doing anything with it
 	if err := testConnections(s.ctx, rt); err != nil {
 		return nil, err
@@ -123,12 +126,6 @@ func startService(rt *runtime.Runtime) (*service, error) {
 		}
 	} else {
 		log.Warn("fcm not configured, no android syncing")
-	}
-
-	if c.EmbeddingsEndpoint != "" {
-		rt.Embeddings = intfloat.NewService(rt.HTTP.Services, c.EmbeddingsEndpoint, c.EmbeddingsModel)
-	} else {
-		log.Warn("embeddings not configured, no knowledge indexing or search")
 	}
 
 	if err := rt.Start(); err != nil {
