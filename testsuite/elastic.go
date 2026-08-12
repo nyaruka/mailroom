@@ -240,6 +240,10 @@ type IndexedMessage struct {
 	Text        string `json:"text"`
 }
 
+// GetIndexedMessages returns the documents currently in this binary's message indexes. It refreshes the
+// indexes first so that writes which have already been applied are visible - but note that a refresh does
+// not wait for an in-flight delete-by-query task, so after an operation which de-indexes asynchronously
+// (e.g. search.DeindexMessagesByContact) use WaitForIndexedMessages instead.
 func GetIndexedMessages(t *testing.T, rt *runtime.Runtime, clear bool) []IndexedMessage {
 	t.Helper()
 
@@ -276,6 +280,32 @@ func GetIndexedMessages(t *testing.T, rt *runtime.Runtime, clear bool) []Indexed
 	if clear {
 		clearElasticMessages(t, rt)
 	}
+
+	return msgs
+}
+
+// WaitForIndexedMessages waits for this binary's message indexes to contain exactly count documents and
+// returns them, failing the test if that doesn't happen within a few seconds. Use this rather than
+// GetIndexedMessages when asserting on the result of an asynchronous de-index: Elastic runs a
+// delete-by-query issued with wait_for_completion=false as a background task, so the documents can still
+// be there when the request returns and refreshing the index doesn't wait for the task.
+func WaitForIndexedMessages(t *testing.T, rt *runtime.Runtime, count int) []IndexedMessage {
+	t.Helper()
+
+	const timeout = 10 * time.Second
+	const interval = 50 * time.Millisecond
+
+	var msgs []IndexedMessage
+
+	for deadline := time.Now().Add(timeout); ; {
+		msgs = GetIndexedMessages(t, rt, false)
+		if len(msgs) == count || time.Now().After(deadline) {
+			break
+		}
+		time.Sleep(interval)
+	}
+
+	require.Len(t, msgs, count, "timed out waiting for message index to contain %d document(s)", count)
 
 	return msgs
 }
