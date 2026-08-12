@@ -1,6 +1,7 @@
 package models_test
 
 import (
+	"net/http"
 	"testing"
 	"time"
 
@@ -9,7 +10,10 @@ import (
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/core/events"
+	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/test/services"
 	"github.com/nyaruka/mailroom/v26/core/models"
+	"github.com/nyaruka/mailroom/v26/runtime"
 	"github.com/nyaruka/mailroom/v26/testsuite"
 	"github.com/nyaruka/mailroom/v26/testsuite/testdb"
 	"github.com/stretchr/testify/assert"
@@ -50,6 +54,32 @@ func TestLLMs(t *testing.T) {
 
 	assert.Equal(t, "Claude", oa.LLMByID(testdb.Anthropic.ID).Name())
 	assert.Nil(t, oa.LLMByID(1235))
+}
+
+func TestLLMAsService(t *testing.T) {
+	_, rt := testsuite.Runtime(t)
+
+	// register a service type which records the client it's constructed with
+	var gotClient *http.Client
+	models.RegisterLLMService("test_capture", func(rt *runtime.Runtime, l *models.LLM, c *http.Client) (flows.LLMService, error) {
+		gotClient = c
+		return services.NewLLM(), nil
+	})
+
+	llm := &models.LLM{UUID_: "8b3d0b6f-1f45-4b8b-a0b1-2a1e63dc4c9e", Type_: "test_capture"}
+
+	svc, err := llm.AsService(rt)
+	require.NoError(t, err)
+	assert.NotNil(t, svc)
+
+	// services are always given the client for fixed outbound targets, never one of the caller's choosing,
+	// so they get its tracing, timeout and connection pooling
+	assert.Same(t, rt.HTTP.Services, gotClient)
+
+	unknown := &models.LLM{UUID_: "0dbf1d3e-2c0f-4c1f-9c6a-9f8c1e4d5b7a", Type_: "nope"}
+
+	_, err = unknown.AsService(rt)
+	assert.EqualError(t, err, "unknown type 'nope' for LLM: 0dbf1d3e-2c0f-4c1f-9c6a-9f8c1e4d5b7a")
 }
 
 func TestLLMRecordCall(t *testing.T) {
