@@ -47,7 +47,7 @@ func RegisterLLMService(typ string, fn func(*runtime.Runtime, *LLM, *http.Client
 
 func llmServiceFactory(rt *runtime.Runtime) engine.LLMServiceFactory {
 	return func(llm *core.LLM) (flows.LLMService, error) {
-		return llm.Asset().(*LLM).AsService(rt, rt.HTTP.Services)
+		return llm.Asset().(*LLM).AsService(rt)
 	}
 }
 
@@ -74,12 +74,16 @@ func (l *LLM) Config() Config          { return l.Config_ }
 func (l *LLM) MaxOutputTokens() int    { return min(l.MaxOutputTokens_, maxOutputTokensLimit) }
 func (l *LLM) Roles() []assets.LLMRole { return l.Roles_ }
 
-func (l *LLM) AsService(rt *runtime.Runtime, client *http.Client) (flows.LLMService, error) {
+// AsService constructs the service for this LLM. It's always given rt.HTTP.Services - the client for fixed
+// outbound targets - rather than letting the caller choose, because a caller which passes something else
+// (e.g. http.DefaultClient) silently loses that client's timeout, connection pooling and, since tracing
+// became a property of the client rather than of each call, its trace capture too.
+func (l *LLM) AsService(rt *runtime.Runtime) (flows.LLMService, error) {
 	fn := registeredLLMServices[l.Type()]
 	if fn == nil {
 		return nil, fmt.Errorf("unknown type '%s' for LLM: %s", l.Type(), l.UUID())
 	}
-	return fn(rt, l, client)
+	return fn(rt, l, rt.HTTP.Services)
 }
 
 // RecordCall records stats for an LLM call and returns the daily count rows to be inserted.
