@@ -13,6 +13,7 @@ import (
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/gocommon/httpx"
 	"github.com/nyaruka/gocommon/jsonx"
+	"github.com/nyaruka/gocommon/svclogs"
 	"github.com/nyaruka/goflow/test"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	_ "github.com/nyaruka/mailroom/v26/core/runner/handlers"
@@ -22,7 +23,6 @@ import (
 	"github.com/nyaruka/mailroom/v26/services/ivr/vonage"
 	"github.com/nyaruka/mailroom/v26/testsuite"
 	"github.com/nyaruka/mailroom/v26/testsuite/testdb"
-	"github.com/nyaruka/mailroom/v26/utils/svclogs"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

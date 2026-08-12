@@ -10,7 +10,7 @@ import (
 
 	"github.com/nyaruka/gocommon/httpx"
 	"github.com/nyaruka/gocommon/jsonx"
-	"github.com/nyaruka/mailroom/v26/utils/svclogs"
+	"github.com/nyaruka/mailroom/v26/utils"
 
 	"github.com/shopspring/decimal"
 )
@@ -33,15 +33,22 @@ const (
 
 // Client is a DTOne client, see https://dvs-api-doc.dtone.com/ for API docs
 type Client struct {
-	httpClient  *http.Client
-	httpRetries *httpx.RetryConfig
-	key         string
-	secret      string
+	httpClient *http.Client
+	key        string
+	secret     string
 }
 
-// NewClient creates a new DT One client
+// NewClient creates a new DT One client. Unlike the other service clients it doesn't call through the given client
+// as-is, but through a copy whose transport is WithTraces(WithRetries(...)). The retrier has to sit inside a tracer
+// for Trace.Retries - persisted as the log's number of retries - to be populated, and the given client's own tracing
+// is outside its transport, so composing retries onto that would put the retrier outside the only tracer and zero
+// that count. The given client's tracer, still in the chain below the retrier, records a trace per attempt which
+// utils.DoTraced discards by taking only the last.
 func NewClient(httpClient *http.Client, httpRetries *httpx.RetryConfig, key, secret string) *Client {
-	return &Client{httpClient: httpClient, httpRetries: httpRetries, key: key, secret: secret}
+	traced := *httpClient
+	traced.Transport = httpx.WithTraces(httpx.WithRetries(httpClient.Transport, httpRetries))
+
+	return &Client{httpClient: &traced, key: key, secret: secret}
 }
 
 // error response contains errors when a request fails
@@ -216,10 +223,9 @@ func (c *Client) request(ctx context.Context, method, endpoint string, payload a
 
 	req.SetBasicAuth(c.key, c.secret)
 
-	// trace a single request, retrying per the client's retry config. Composing the tracer outside the retrier
-	// (WithRetries is passed as the tracer's inner transport) captures one trace of the final attempt, with
-	// Trace.Retries set to the number of retries performed.
-	trace, err := svclogs.TraceRequest(httpx.WithRetries(c.httpClient.Transport, c.httpRetries), c.httpClient.Timeout, req)
+	// our client's tracer sits outside its retrier, so this captures one trace covering the final attempt, with
+	// Trace.Retries set to the number of retries performed
+	trace, _, err := utils.DoTraced(c.httpClient, req)
 	if err != nil {
 		return trace, err
 	}

@@ -18,14 +18,14 @@ import (
 func TestEngineWebhook(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
 
-	svc, err := goflow.Engine(rt).Services().Webhook(nil)
-	assert.NoError(t, err)
-
-	// the engine's webhook service re-reads client.Transport on each call, so mocking it after building the
-	// engine above still takes effect — order doesn't matter
+	// the webhook service layers its own concerns (a read limit, tracing) onto the transport of the client it's
+	// given, and does so when it's constructed — so the mocks have to be installed before that, not after
 	rt.HTTP.Engine.Transport = httpx.WithMocks(http.DefaultTransport, map[string][]*httpx.MockResponse{
 		"http://rapidpro.io": {httpx.NewMockResponse(200, nil, []byte("OK"))},
 	})
+
+	svc, err := goflow.Engine(rt).Services().Webhook(nil)
+	assert.NoError(t, err)
 
 	request, err := http.NewRequest("GET", "http://rapidpro.io", nil)
 	require.NoError(t, err)
@@ -61,12 +61,12 @@ func TestSimulatorAirtime(t *testing.T) {
 func TestSimulatorWebhook(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	svc, err := goflow.Simulator(ctx, rt).Services().Webhook(nil)
-	assert.NoError(t, err)
-
 	rt.HTTP.Simulator.Transport = httpx.WithMocks(http.DefaultTransport, map[string][]*httpx.MockResponse{
 		"http://rapidpro.io": {httpx.NewMockResponse(200, nil, []byte("OK"))},
 	})
+
+	svc, err := goflow.Simulator(ctx, rt).Services().Webhook(nil)
+	assert.NoError(t, err)
 
 	request, err := http.NewRequest("GET", "http://rapidpro.io", nil)
 	require.NoError(t, err)

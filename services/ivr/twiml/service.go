@@ -29,7 +29,7 @@ import (
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/runner"
 	"github.com/nyaruka/mailroom/v26/runtime"
-	"github.com/nyaruka/mailroom/v26/utils/svclogs"
+	mrutils "github.com/nyaruka/mailroom/v26/utils"
 )
 
 // IgnoreSignatures controls whether we ignore signatures (public for testing overriding)
@@ -453,7 +453,8 @@ func (s *service) postRequest(sendURL string, form url.Values) (*httpx.Trace, er
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("Accept", "application/json")
 
-	return svclogs.TraceRequest(s.httpClient.Transport, s.httpClient.Timeout, req)
+	trace, _, err := mrutils.DoTraced(s.httpClient, req)
+	return trace, err
 }
 
 // see https://www.twilio.com/docs/api/security
