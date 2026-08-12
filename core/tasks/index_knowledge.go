@@ -49,11 +49,6 @@ func (t *IndexKnowledge) WithAssets() models.Refresh {
 
 // Perform implements tasks.Task
 func (t *IndexKnowledge) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, taskID TaskID) error {
-	// no embeddings service means knowledge indexing is disabled
-	if rt.Embeddings == nil {
-		return nil
-	}
-
 	// one worker per source: rapid edits each queue a task and whichever gets the lock indexes for all of them,
 	// the rest no-op. That can't lose the later edits - the winner takes its watermark before it reads, so
 	// anything it didn't see leaves the source stale for the retry cron to re-queue.

@@ -19,13 +19,6 @@ func TestRetryKnowledgeIndexing(t *testing.T) {
 
 	cron := &crons.RetryKnowledgeIndexingCron{BatchSize: 25}
 
-	// on an instance without an embeddings service the cron is a no-op
-	res, err := cron.Run(ctx, rt)
-	assert.NoError(t, err)
-	assert.Equal(t, map[string]any{"queued": 0}, res)
-
-	rt.Embeddings = &testsuite.MockEmbedder{}
-
 	// org1 has a pending source, and a source stuck in indexing since the worker that claimed it died
 	k1 := testdb.InsertKnowledge(t, rt, testdb.Org1, "5384b1c6-1099-4a5f-a005-9d3a4092c5c1", models.KnowledgeTypeShortcuts, "Test Shortcuts", models.KnowledgeStatusPending)
 	k2 := testdb.InsertKnowledge(t, rt, testdb.Org1, "78bee0eb-a3d1-4e2b-b91b-6ee1c2f1ab19", models.KnowledgeTypeShortcuts, "Stuck", models.KnowledgeStatusIndexing)
@@ -36,7 +29,7 @@ func TestRetryKnowledgeIndexing(t *testing.T) {
 	k3 := testdb.InsertKnowledge(t, rt, testdb.Org2, "0e2e1c66-c221-4726-a08a-1a4bbabf05be", models.KnowledgeTypeShortcuts, "Test Shortcuts", models.KnowledgeStatusReady)
 	rt.DB.MustExec(`UPDATE knowledge_knowledge SET last_indexed_on = NOW() WHERE id = $1`, k3.ID)
 
-	res, err = cron.Run(ctx, rt)
+	res, err := cron.Run(ctx, rt)
 	assert.NoError(t, err)
 	assert.Equal(t, map[string]any{"queued": 2}, res)
 

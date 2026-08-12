@@ -30,11 +30,6 @@ func (c *RetryKnowledgeIndexingCron) Next(last time.Time) time.Time {
 }
 
 func (c *RetryKnowledgeIndexingCron) Run(ctx context.Context, rt *runtime.Runtime) (map[string]any, error) {
-	// no embeddings service means knowledge indexing is disabled
-	if rt.Embeddings == nil {
-		return map[string]any{"queued": 0}, nil
-	}
-
 	stale, err := models.GetStaleKnowledge(ctx, rt.DB, knowledge.IndexableTypes, c.BatchSize)
 	if err != nil {
 		return nil, fmt.Errorf("error getting stale knowledge sources: %w", err)

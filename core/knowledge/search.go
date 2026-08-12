@@ -43,7 +43,7 @@ ORDER BY c.embedding <=> $2::vector
    LIMIT $3`
 
 // Search performs a semantic search over the org's ready knowledge sources, returning the closest chunks by cosine
-// distance. Returns no results if the instance has no embeddings service since there can be nothing indexed.
+// distance.
 func Search(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, query string, limit int) ([]*SearchResult, error) {
 	// clamped here rather than only at the HTTP edge because this primitive is also called directly from Go, and will
 	// eventually back an LLM tool where the limit can be model-influenced
@@ -53,10 +53,6 @@ func Search(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, quer
 	limit = min(limit, MaxSearchLimit)
 
 	results := make([]*SearchResult, 0, limit)
-
-	if rt.Embeddings == nil {
-		return results, nil
-	}
 
 	queryEmbedding, err := rt.Embeddings.EmbedQuery(ctx, query)
 	if err != nil {

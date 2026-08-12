@@ -27,9 +27,7 @@
             "knowledge_uuid": "5384b1c6-1099-4a5f-a005-9d3a4092c5c1"
         },
         "status": 200,
-        "response": {
-            "queued": true
-        },
+        "response": {},
         "expected_tasks": {
             "batch/1": [
                 {

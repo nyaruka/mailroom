@@ -21,11 +21,6 @@ func TestSearch(t *testing.T) {
 
 	oa := testdb.Org1.Load(t, rt)
 
-	// an instance without an embeddings service returns no results
-	results, err := knowledge.Search(ctx, rt, oa, "how do refunds work?", 10)
-	assert.NoError(t, err)
-	assert.Equal(t, []*knowledge.SearchResult{}, results)
-
 	// the query embeds to the same vector as the Refunds chunk so scores are predictable
 	embedder := &testsuite.MockEmbedder{Vectors: map[string][]float32{"how do refunds work?": testEmbedding(1, 0)}}
 	rt.Embeddings = embedder
@@ -44,7 +39,7 @@ func TestSearch(t *testing.T) {
 	k3 := testdb.InsertKnowledge(t, rt, testdb.Org2, "df22cbcb-e0e1-4e78-be9f-2e4fbea1b2c3", models.KnowledgeTypeShortcuts, "Other Org", models.KnowledgeStatusReady)
 	testdb.InsertKnowledgeChunk(t, rt, k3, "0a1c6a9a-52ed-40cb-a921-1a29b9d8bc6f", "Nope", "Other org's content.", testEmbedding(1, 0))
 
-	results, err = knowledge.Search(ctx, rt, oa, "how do refunds work?", 10)
+	results, err := knowledge.Search(ctx, rt, oa, "how do refunds work?", 10)
 	require.NoError(t, err)
 	require.Len(t, results, 3)
 

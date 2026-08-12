@@ -9,15 +9,7 @@ import (
 func TestIndex(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
 
-	rt.Embeddings = &testsuite.MockEmbedder{}
-
 	testsuite.RunWebTests(t, rt, "testdata/index.json")
-}
-
-func TestIndexDisabled(t *testing.T) {
-	_, rt := testsuite.Runtime(t)
-
-	testsuite.RunWebTests(t, rt, "testdata/index_disabled.json")
 }
 
 func TestSearch(t *testing.T) {

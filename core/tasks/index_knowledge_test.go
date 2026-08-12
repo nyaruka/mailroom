@@ -33,17 +33,11 @@ func TestIndexKnowledge(t *testing.T) {
 
 	task := &tasks.IndexKnowledge{KnowledgeUUID: k1.UUID}
 
-	// on an instance without an embeddings service the task is a no-op
-	err := task.Perform(ctx, rt, oa, testTaskID)
-	assert.NoError(t, err)
-
-	assertdb.Query(t, rt.DB, `SELECT status FROM knowledge_knowledge WHERE id = $1`, k1.ID).Returns("P")
-
 	embedder := &testsuite.MockEmbedder{}
 	rt.Embeddings = embedder
 
 	// the source is chunked and embedded, leaving it ready and searchable
-	err = task.Perform(ctx, rt, oa, testTaskID)
+	err := task.Perform(ctx, rt, oa, testTaskID)
 	assert.NoError(t, err)
 
 	assertdb.Query(t, rt.DB, `SELECT status, error, num_items, num_chunks FROM knowledge_knowledge WHERE id = $1`, k1.ID).

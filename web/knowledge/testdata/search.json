@@ -19,7 +19,7 @@
         }
     },
     {
-        "label": "empty results if no embeddings service configured",
+        "label": "empty results if nothing indexed for the org",
         "method": "POST",
         "path": "/mi/knowledge/search",
         "body": {
