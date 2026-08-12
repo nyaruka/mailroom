@@ -1,3 +1,10 @@
+v26.3.41 (2026-08-12)
+-------------------------
+ * Add embeddings service and text chunker for the knowledge base
+ * Require an embeddings service to be configured
+ * Move service lifecycle and task workers out of the root package
+ * Fix flaky de-indexing test by waiting for asynchronous message deletion
+
 v26.3.40 (2026-08-11)
 -------------------------
  * Use dynamodb-local instead of localstack for DynamoDB in tests
