@@ -2,10 +2,12 @@ package bandwidth_test
 
 import (
 	"encoding/xml"
+	"io"
 	"net/http"
 	"testing"
 	"time"
 
+	"github.com/nyaruka/gocommon/httpx"
 	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/gocommon/uuids"
 	"github.com/nyaruka/goflow/assets"
@@ -18,6 +20,7 @@ import (
 	"github.com/nyaruka/mailroom/v26/testsuite"
 	"github.com/nyaruka/mailroom/v26/testsuite/testdb"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestResponseForSprint(t *testing.T) {
@@ -112,6 +115,39 @@ func TestResponseForSprint(t *testing.T) {
 		assert.NoError(t, err, "%d: unexpected error")
 		assert.Equal(t, xml.Header+tc.expected, response, "%d: unexpected response", i)
 	}
+}
+
+func TestDownloadMedia(t *testing.T) {
+	_, rt := testsuite.Runtime(t)
+
+	bwChannel := testdb.InsertChannel(t, rt, testdb.Org1, "BW", "Bandwidth", "123", []string{"tel"}, "CASR",
+		map[string]any{"username": "user", "password": "pass", "voice_application_id": "app-id", "account_id": "acc-id"})
+
+	oa := testdb.Org1.Load(t, rt)
+	ch := oa.ChannelByUUID(bwChannel.UUID)
+
+	client, mocks := testsuite.MockedHTTP(map[string][]*httpx.MockResponse{
+		"https://voice.bandwidth.com/recordings/foo.wav": {
+			httpx.NewMockResponse(200, nil, []byte(`AUDIO`)),
+		},
+	})
+
+	svc, err := bandwidth.NewServiceFromChannel(client, ch)
+	require.NoError(t, err)
+
+	resp, err := svc.DownloadMedia("https://voice.bandwidth.com/recordings/foo.wav")
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	assert.Equal(t, 200, resp.StatusCode)
+	body, _ := io.ReadAll(resp.Body)
+	assert.Equal(t, []byte(`AUDIO`), body)
+
+	// the download has to go via the service's own client, not http.DefaultClient
+	require.Len(t, mocks.Requests(), 1)
+	username, password, _ := mocks.Requests()[0].BasicAuth()
+	assert.Equal(t, "user", username)
+	assert.Equal(t, "pass", password)
 }
 
 func TestRedactValues(t *testing.T) {

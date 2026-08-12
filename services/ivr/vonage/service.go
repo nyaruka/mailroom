@@ -165,7 +165,7 @@ func (s *service) DownloadMedia(url string) (*http.Response, error) {
 	}
 
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
-	return http.DefaultClient.Do(req)
+	return s.httpClient.Do(req)
 }
 
 func (s *service) CheckStartRequest(r *http.Request) models.CallError {

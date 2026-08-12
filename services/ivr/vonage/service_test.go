@@ -144,6 +144,34 @@ func TestResponseForSprint(t *testing.T) {
 	assert.Equal(t, float64(7200), decodedBody["length_timer"])
 }
 
+func TestDownloadMedia(t *testing.T) {
+	_, rt := testsuite.Runtime(t)
+
+	oa := testdb.Org1.Load(t, rt)
+	ch := oa.ChannelByUUID(testdb.VonageChannel.UUID)
+
+	client, mocks := testsuite.MockedHTTP(map[string][]*httpx.MockResponse{
+		"https://api.nexmo.com/recordings/foo.wav": {
+			httpx.NewMockResponse(200, nil, []byte(`AUDIO`)),
+		},
+	})
+
+	svc, err := NewServiceFromChannel(client, ch)
+	require.NoError(t, err)
+
+	resp, err := svc.DownloadMedia("https://api.nexmo.com/recordings/foo.wav")
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	assert.Equal(t, 200, resp.StatusCode)
+	body, _ := io.ReadAll(resp.Body)
+	assert.Equal(t, []byte(`AUDIO`), body)
+
+	// the download has to go via the service's own client, not http.DefaultClient
+	require.Len(t, mocks.Requests(), 1)
+	assert.Regexp(t, `^Bearer \S+$`, mocks.Requests()[0].Header.Get("Authorization"))
+}
+
 func TestRedactValues(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
 

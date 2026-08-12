@@ -179,7 +179,7 @@ func NewService(httpClient *http.Client, accountSID string, authToken string) iv
 func (s *service) DownloadMedia(url string) (*http.Response, error) {
 	req, _ := http.NewRequest(http.MethodGet, url, nil)
 	req.SetBasicAuth(s.accountSID, s.authToken)
-	return http.DefaultClient.Do(req)
+	return s.httpClient.Do(req)
 }
 
 func (s *service) CheckStartRequest(r *http.Request) models.CallError {
