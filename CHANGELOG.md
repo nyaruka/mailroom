@@ -1,3 +1,8 @@
+v26.3.43 (2026-08-12)
+-------------------------
+ * Always construct LLM services with the runtime's services client
+ * Download IVR media with the service's own HTTP client
+
 v26.3.42 (2026-08-12)
 -------------------------
  * Use shared svclogs package and context-scoped HTTP tracing from gocommon
