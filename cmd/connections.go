@@ -70,6 +70,14 @@ func testConnections(ctx context.Context, rt *runtime.Runtime) error {
 		log.Info("centrifugo ok")
 	}
 
+	// embedding something trivial checks both that the service is reachable and that it serves the model we're
+	// configured for - a mismatch there wouldn't show up until the first thing we tried to index
+	if _, err := rt.Embeddings.EmbedQuery(ctx, "ping"); err != nil {
+		log.Error("embeddings not available", "error", err)
+	} else {
+		log.Info("embeddings ok")
+	}
+
 	return nil
 }
 
