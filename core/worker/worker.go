@@ -1,4 +1,4 @@
-package mailroom
+package worker
 
 import (
 	"context"

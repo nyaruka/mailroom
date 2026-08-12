@@ -1,4 +1,4 @@
-package mailroom_test
+package worker_test
 
 import (
 	"context"
@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/nyaruka/mailroom/v26"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/tasks"
+	"github.com/nyaruka/mailroom/v26/core/worker"
 	"github.com/nyaruka/mailroom/v26/runtime"
 	"github.com/nyaruka/mailroom/v26/testsuite"
 	"github.com/nyaruka/mailroom/v26/utils/queues"
@@ -48,7 +48,7 @@ func TestForemanAndWorkers(t *testing.T) {
 		q.Push(ctx, vc, "test", 2, &testTask{}, false)
 	}
 
-	fm := mailroom.NewForeman(rt, q, 2)
+	fm := worker.NewForeman(rt, q, 2)
 	fm.Start(wg)
 
 	// wait for queue to empty
@@ -94,7 +94,7 @@ func TestForemanWithZeroWorkers(t *testing.T) {
 	// queue a task - it should not be processed because there are no workers
 	q.Push(ctx, vc, "test", 1, &testTask{}, false)
 
-	fm := mailroom.NewForeman(rt, q, 0)
+	fm := worker.NewForeman(rt, q, 0)
 	fm.Start(wg) // must not spawn an Assign goroutine
 	fm.Stop()    // must not block waiting on a goroutine that was never started
 
