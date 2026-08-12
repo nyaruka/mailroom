@@ -148,7 +148,7 @@ func (s *service) CheckStartRequest(r *http.Request) models.CallError {
 func (s *service) DownloadMedia(url string) (*http.Response, error) {
 	req, _ := http.NewRequest(http.MethodGet, url, nil)
 	req.SetBasicAuth(s.username, s.password)
-	return http.DefaultClient.Do(req)
+	return s.httpClient.Do(req)
 }
 
 // HangupCall implements ivr.Service.

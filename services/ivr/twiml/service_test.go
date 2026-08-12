@@ -2,12 +2,14 @@ package twiml_test
 
 import (
 	"encoding/xml"
+	"io"
 	"net/http"
 	"strconv"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/nyaruka/gocommon/httpx"
 	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/gocommon/uuids"
 	"github.com/nyaruka/goflow/assets"
@@ -20,6 +22,7 @@ import (
 	"github.com/nyaruka/mailroom/v26/testsuite"
 	"github.com/nyaruka/mailroom/v26/testsuite/testdb"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestResponseForSprint(t *testing.T) {
@@ -137,6 +140,30 @@ func TestURNForRequest(t *testing.T) {
 
 	_, err = s.URNForRequest(makeRequest(`CallSid=12345&AccountSid=23456&To=%2B12029795079&Called=%2B12029795079&CallStatus=queued&ApiVersion=2010-04-01&Direction=inbound`))
 	assert.EqualError(t, err, "no Caller or From parameter found in request")
+}
+
+func TestDownloadMedia(t *testing.T) {
+	client, mocks := testsuite.MockedHTTP(map[string][]*httpx.MockResponse{
+		"https://api.twilio.com/recordings/foo.wav": {
+			httpx.NewMockResponse(200, nil, []byte(`AUDIO`)),
+		},
+	})
+
+	svc := twiml.NewService(client, "12345", "sesame")
+
+	resp, err := svc.DownloadMedia("https://api.twilio.com/recordings/foo.wav")
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	assert.Equal(t, 200, resp.StatusCode)
+	body, _ := io.ReadAll(resp.Body)
+	assert.Equal(t, []byte(`AUDIO`), body)
+
+	// the download has to go via the service's own client, not http.DefaultClient
+	require.Len(t, mocks.Requests(), 1)
+	username, password, _ := mocks.Requests()[0].BasicAuth()
+	assert.Equal(t, "12345", username)
+	assert.Equal(t, "sesame", password)
 }
 
 func TestRedactValues(t *testing.T) {
