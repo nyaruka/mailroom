@@ -17,7 +17,8 @@ import (
 // read error onto the handed-back body rather than returning it, so a caller which takes its bytes from the trace -
 // which is what all of ours do - would otherwise accept a truncated or short read as though it were complete.
 // Draining here surfaces that as the returned error instead, and is the reason to go through this rather than calling
-// client.Do directly.
+// client.Do directly. It does mean the returned response is good for its status and headers only - its body has been
+// read to the end and closed, so take the bytes from the trace's ResponseBody.
 //
 // A transport-level failure is returned with http.Client.Do's *url.Error wrapper removed, so that the message which
 // ends up in a service log is the underlying error rather than one prefixed with the method and full URL.
