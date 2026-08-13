@@ -47,12 +47,9 @@ type Config struct {
 	WebhooksHealthyResponseLimit int      `help:"the limit in milliseconds for webhook response to be considered healthy"`
 	WebhooksRestrictedDomains    []string `help:"comma separated list of domains (including subdomains) which webhook calls shouldn't be made to directly, e.g. messaging provider APIs"`
 
-	SMTPServer           string   `help:"the default SMTP configuration for sending flow emails, e.g. smtp://user%40password@server:port/?from=foo%40gmail.com"`
-	DisallowedNetworks   []string `help:"comma separated list of IP addresses and networks which engine can't make HTTP calls to"`
-	WebhookProxyURL      string   `validate:"omitempty,http_url" help:"optional URL of a forward HTTP proxy to use for user-controlled webhook calls, e.g. http://proxy.example.com:3128"`
-	MaxStepsPerSprint    int      `help:"the maximum number of steps allowed per engine sprint"`
-	MaxSprintsPerSession int      `help:"the maximum number of sprints allowed per engine session"`
-	MaxValueLength       int      `help:"the maximum size in characters for contact field values and run result values"`
+	SMTPServer         string   `help:"the default SMTP configuration for sending flow emails, e.g. smtp://user%40password@server:port/?from=foo%40gmail.com"`
+	DisallowedNetworks []string `help:"comma separated list of IP addresses and networks which engine can't make HTTP calls to"`
+	WebhookProxyURL    string   `validate:"omitempty,http_url" help:"optional URL of a forward HTTP proxy to use for user-controlled webhook calls, e.g. http://proxy.example.com:3128"`
 
 	ElasticEndpoint      string `validate:"url" help:"the URL of your ElasticSearch instance"`
 	ElasticUsername      string `help:"the username for ElasticSearch if using basic auth"`
@@ -125,11 +122,8 @@ func NewDefaultConfig() *Config {
 		WebhooksMaxBodyBytes:         256 * 1024, // 256 KiB
 		WebhooksHealthyResponseLimit: 10000,
 
-		SMTPServer:           "",
-		DisallowedNetworks:   []string{`127.0.0.0/8`, `::1`, `fe80::/10`, `fc00::/7`, `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `100.64.0.0/10`, `169.254.0.0/16`, `0.0.0.0/8`},
-		MaxStepsPerSprint:    250,
-		MaxSprintsPerSession: 250,
-		MaxValueLength:       640,
+		SMTPServer:         "",
+		DisallowedNetworks: []string{`127.0.0.0/8`, `::1`, `fe80::/10`, `fc00::/7`, `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, `100.64.0.0/10`, `169.254.0.0/16`, `0.0.0.0/8`},
 
 		ElasticEndpoint:      "http://elastic:9200",
 		ElasticUsername:      "",
