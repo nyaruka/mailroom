@@ -20,6 +20,13 @@ import (
 // MaxContactNameLength is the maximum length of a contact name (matches the database column)
 const MaxContactNameLength = 128
 
+const (
+	maxStepsPerSprint    = 250 // the maximum number of steps allowed per engine sprint
+	maxSprintsPerSession = 250 // the maximum number of sprints allowed per engine session
+	maxRunsPerSession    = 250 // the maximum number of runs allowed per engine session
+	maxValueLength       = 640 // the maximum size in characters for contact field values and run result values
+)
+
 var eng, simulator flows.Engine
 var engInit, simulatorInit sync.Once
 
@@ -92,11 +99,12 @@ func Engine(rt *runtime.Runtime) flows.Engine {
 			WithEmailServiceFactory(emailFactory(rt)).
 			WithAirtimeServiceFactory(airtimeFactory(rt)).
 			WithEvaluationBudget(excellent.DefaultEvaluationBudget).
-			WithMaxStepsPerSprint(rt.Config.MaxStepsPerSprint).
-			WithMaxSprintsPerSession(rt.Config.MaxSprintsPerSession).
+			WithMaxStepsPerSprint(maxStepsPerSprint).
+			WithMaxSprintsPerSession(maxSprintsPerSession).
+			WithMaxRunsPerSession(maxRunsPerSession).
 			WithMaxNameChars(MaxContactNameLength).
-			WithMaxFieldChars(rt.Config.MaxValueLength).
-			WithMaxResultChars(rt.Config.MaxValueLength).
+			WithMaxFieldChars(maxValueLength).
+			WithMaxResultChars(maxValueLength).
 			WithWebhookLimits(256*1024, rt.Config.WebhooksMaxBodyBytes).
 			WithLLMPrompts(llmPrompts).
 			WithCheckSendable(checkSendable(rt)).
@@ -122,11 +130,12 @@ func Simulator(ctx context.Context, rt *runtime.Runtime) flows.Engine {
 			WithEmailServiceFactory(simulatorEmailServiceFactory).     // but faked emails
 			WithAirtimeServiceFactory(simulatorAirtimeServiceFactory). // and faked airtime transfers
 			WithEvaluationBudget(excellent.DefaultEvaluationBudget).
-			WithMaxStepsPerSprint(rt.Config.MaxStepsPerSprint).
-			WithMaxSprintsPerSession(rt.Config.MaxSprintsPerSession).
+			WithMaxStepsPerSprint(maxStepsPerSprint).
+			WithMaxSprintsPerSession(maxSprintsPerSession).
+			WithMaxRunsPerSession(maxRunsPerSession).
 			WithMaxNameChars(MaxContactNameLength).
-			WithMaxFieldChars(rt.Config.MaxValueLength).
-			WithMaxResultChars(rt.Config.MaxValueLength).
+			WithMaxFieldChars(maxValueLength).
+			WithMaxResultChars(maxValueLength).
 			WithWebhookLimits(256*1024, rt.Config.WebhooksMaxBodyBytes).
 			WithLLMPrompts(llmPrompts).
 			Build()
