@@ -17,10 +17,10 @@ import (
 	"github.com/shopspring/decimal"
 )
 
-// MaxContactNameLength is the maximum length of a contact name (matches the database column)
-const MaxContactNameLength = 128
-
 const (
+	// MaxContactNameLength is the maximum length of a contact name (matches the database column)
+	MaxContactNameLength = 128
+
 	maxStepsPerSprint    = 250 // the maximum number of steps allowed per engine sprint
 	maxSprintsPerSession = 250 // the maximum number of sprints allowed per engine session
 	maxRunsPerSession    = 250 // the maximum number of runs allowed per engine session
