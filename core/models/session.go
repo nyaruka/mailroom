@@ -1,7 +1,9 @@
 package models
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"log/slog"
 	"time"
@@ -83,7 +85,19 @@ func NewSession(oa *OrgAssets, fs flows.Session, sprint flows.Sprint, call *Call
 
 // EngineSession creates a flow session for the passed in session object
 func (s *Session) EngineSession(ctx context.Context, rt *runtime.Runtime, sa flows.SessionAssets, env envs.Environment, contact *core.Contact, call *core.Call) (flows.Session, error) {
-	session, err := goflow.Engine(rt).ReadSession(sa, []byte(s.Output), env, contact, call, assets.IgnoreMissing)
+	output := s.Output
+
+	// non-voice sessions created by older versions can have a call attached which would make them unreadable without
+	// one, so strip that out (TODO: remove once all such sessions have ended)
+	if s.SessionType != FlowTypeVoice && call == nil && bytes.Contains(output, []byte(`"call_uuid"`)) {
+		var envelope map[string]json.RawMessage
+		if err := json.Unmarshal(output, &envelope); err == nil {
+			delete(envelope, "call_uuid")
+			output = jsonx.MustMarshal(envelope)
+		}
+	}
+
+	session, err := goflow.Engine(rt).ReadSession(sa, output, env, contact, call, assets.IgnoreMissing)
 	if err != nil {
 		return nil, fmt.Errorf("unable to unmarshal session: %w", err)
 	}
