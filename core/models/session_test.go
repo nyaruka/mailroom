@@ -121,6 +121,7 @@ func TestEngineSession(t *testing.T) {
 	jsonx.MustUnmarshal(session.Output, &envelope)
 	envelope["call_uuid"] = json.RawMessage(`"0199ba54-f47c-77a1-a3b0-a83bd7f6c6a5"`)
 	session.Output = jsonx.MustMarshal(envelope)
+	session.CallUUID = "0199ba54-f47c-77a1-a3b0-a83bd7f6c6a5"
 
 	// should still be readable without a call because the stored call is ignored for non-voice sessions
 	readSession, err := session.EngineSession(ctx, rt, oa.SessionAssets(), oa.Env(), flowSession.Contact(), nil)

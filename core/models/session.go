@@ -1,7 +1,6 @@
 package models
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -89,7 +88,7 @@ func (s *Session) EngineSession(ctx context.Context, rt *runtime.Runtime, sa flo
 
 	// non-voice sessions created by older versions can have a call attached which would make them unreadable without
 	// one, so strip that out (TODO: remove once all such sessions have ended)
-	if s.SessionType != FlowTypeVoice && call == nil && bytes.Contains(output, []byte(`"call_uuid"`)) {
+	if s.SessionType != FlowTypeVoice && call == nil && s.CallUUID != "" {
 		var envelope map[string]json.RawMessage
 		if err := json.Unmarshal(output, &envelope); err == nil {
 			delete(envelope, "call_uuid")
