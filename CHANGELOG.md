@@ -1,3 +1,8 @@
+v26.3.44 (2026-08-13)
+-------------------------
+ * Don't attach calls to non-voice sessions started by incoming call triggers
+ * Ignore calls attached to non-voice sessions when reading them
+
 v26.3.43 (2026-08-12)
 -------------------------
  * Always construct LLM services with the runtime's services client
