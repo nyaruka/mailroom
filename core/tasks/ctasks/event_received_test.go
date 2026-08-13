@@ -11,6 +11,7 @@ import (
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/goflow/core"
+	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/test"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/tasks"
@@ -151,4 +152,53 @@ func TestEventReceived(t *testing.T) {
 	// and she has no upcoming campaign events
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'C'`, testdb.Ann.ID).Returns(0)
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'C'`, testdb.Cat.ID).Returns(1)
+}
+
+func TestIncomingCallStartsMessagingFlow(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	// incoming call trigger pointing at a messaging flow
+	testdb.InsertIncomingCallTrigger(t, rt, testdb.Org1, testdb.Favorites, nil, nil, testdb.TwilioChannel)
+	models.FlushCache()
+
+	oa := testdb.Org1.Load(t, rt)
+
+	mcs, err := models.LoadContactsByUUID(ctx, rt.DB, oa, []core.ContactUUID{testdb.Ann.UUID})
+	require.NoError(t, err)
+	mc := mcs[0]
+
+	ch := oa.ChannelByID(testdb.TwilioChannel.ID)
+	call := models.NewIncomingCall(oa.OrgID(), ch, mc, testdb.Ann.URNID, "ext123")
+	require.NoError(t, models.InsertCalls(ctx, rt.DB, []*models.Call{call}))
+
+	// handle the incoming call event inline as the IVR web handler does
+	task := &ctasks.EventReceived{
+		EventType: models.EventTypeIncomingCall,
+		ChannelID: testdb.TwilioChannel.ID,
+		URNID:     testdb.Ann.URNID,
+	}
+	scene, err := task.Handle(ctx, rt, oa, mc, call)
+	require.NoError(t, err)
+	require.NotNil(t, scene.Session)
+	assert.Equal(t, flows.FlowTypeMessaging, scene.Session.Type())
+
+	// reload contact to pick up current_session_uuid
+	mcs, err = models.LoadContactsByUUID(ctx, rt.DB, oa, []core.ContactUUID{testdb.Ann.UUID})
+	require.NoError(t, err)
+	mc = mcs[0]
+
+	// check the messaging session was created without the call attached
+	session, err := models.GetContactWaitingSession(ctx, rt, oa, mc)
+	require.NoError(t, err)
+	require.NotNil(t, session)
+	assert.Equal(t, models.FlowTypeMessaging, session.SessionType)
+	assert.Equal(t, core.CallUUID(""), session.CallUUID)
+	assert.NotContains(t, string(session.Output), `"call_uuid"`)
+
+	// and thus can be resumed for expiration
+	exp := &ctasks.WaitExpired{SessionUUID: session.UUID, SprintUUID: session.LastSprintUUID}
+	err = exp.Perform(ctx, rt, oa, mc)
+	assert.NoError(t, err)
+
+	assertdb.Query(t, rt.DB, `SELECT status FROM flows_flowsession WHERE uuid = $1`, session.UUID).Returns("C")
 }

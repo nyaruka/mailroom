@@ -121,6 +121,13 @@ func (t *EventReceived) handle(ctx context.Context, rt *runtime.Runtime, oa *mod
 					return nil, fmt.Errorf("error requesting call: %w", err)
 				}
 			} else {
+				// an incoming call can trigger a non-voice flow, in which case the call will be
+				// rejected and shouldn't be attached to the session
+				if flowType != models.FlowTypeVoice {
+					scene.DBCall = nil
+					scene.Call = nil
+				}
+
 				if err := scene.StartSession(ctx, rt, oa, trig, flowType.Interrupts()); err != nil {
 					return nil, fmt.Errorf("error starting session: %w", err)
 				}
