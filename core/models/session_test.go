@@ -128,6 +128,9 @@ func TestEngineSession(t *testing.T) {
 	require.NoError(t, err)
 	assert.Nil(t, readSession.Call())
 
+	// and re-serializing it (as a subsequent update would) no longer includes the call
+	assert.NotContains(t, string(jsonx.MustMarshal(readSession)), `"call_uuid"`)
+
 	// but a voice session read without a matching call is still an error
 	session.SessionType = models.FlowTypeVoice
 	_, err = session.EngineSession(ctx, rt, oa.SessionAssets(), oa.Env(), flowSession.Contact(), nil)
