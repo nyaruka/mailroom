@@ -10,6 +10,7 @@ import (
 
 	"github.com/lib/pq"
 	"github.com/nyaruka/gocommon/dbutil"
+	"github.com/nyaruka/gocommon/uuids"
 	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/envs"
 	"github.com/nyaruka/goflow/flows/triggers"
@@ -24,6 +25,9 @@ type MatchType string
 
 // TriggerID is the type for trigger database IDs
 type TriggerID int
+
+// TriggerUUID is the type for trigger UUIDs
+type TriggerUUID uuids.UUID
 
 // trigger type constants
 const (
@@ -50,6 +54,7 @@ const NilTriggerID = TriggerID(0)
 type Trigger struct {
 	t struct {
 		ID              TriggerID      `json:"id"`
+		UUID            TriggerUUID    `json:"uuid"`
 		OrgID           OrgID          `json:"org_id"`
 		FlowID          FlowID         `json:"flow_id"`
 		TriggerType     TriggerType    `json:"trigger_type"`
@@ -65,6 +70,7 @@ type Trigger struct {
 
 // ID returns the id of this trigger
 func (t *Trigger) ID() TriggerID              { return t.t.ID }
+func (t *Trigger) UUID() TriggerUUID          { return t.t.UUID }
 func (t *Trigger) OrgID() OrgID               { return t.t.OrgID }
 func (t *Trigger) FlowID() FlowID             { return t.t.FlowID }
 func (t *Trigger) TriggerType() TriggerType   { return t.t.TriggerType }
@@ -305,6 +311,7 @@ const sqlSelectTriggersByOrg = `
 SELECT ROW_TO_JSON(r) FROM (
              SELECT
                     t.id,
+                    t.uuid,
                     t.org_id,
                     t.flow_id,
                     t.trigger_type,
