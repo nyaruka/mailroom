@@ -1,3 +1,8 @@
+v26.3.45 (2026-08-17)
+-------------------------
+ * Update to goflow v0.292.0 and compact sessions before persisting output
+ * Add engine limit on runs per session and make engine limits non-configurable
+
 v26.3.44 (2026-08-13)
 -------------------------
  * Don't attach calls to non-voice sessions started by incoming call triggers
