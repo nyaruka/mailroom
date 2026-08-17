@@ -10,6 +10,7 @@ import (
 	"mime"
 	"net/http"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"time"
 
@@ -24,6 +25,7 @@ import (
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/engine"
 	"github.com/nyaruka/goflow/services/email/smtp"
+	"github.com/nyaruka/goflow/services/webhooks"
 	"github.com/nyaruka/goflow/utils"
 	"github.com/nyaruka/mailroom/v26/core/goflow"
 	"github.com/nyaruka/mailroom/v26/runtime"
@@ -35,6 +37,22 @@ import (
 func init() {
 	goflow.RegisterEmailServiceFactory(emailServiceFactory)
 	goflow.RegisterAirtimeServiceFactory(airtimeServiceFactory)
+	goflow.RegisterWebhookServiceFactory(webhookServiceFactory)
+}
+
+// creates a webhook service for each session, so that which domains are blocked can vary by org. The engine
+// provides the HTTP client and response size limit, which are the same for every org.
+func webhookServiceFactory(rt *runtime.Runtime, defaultHeaders map[string]string) engine.WebhookServiceFactory {
+	return func(eng flows.Engine, sa flows.SessionAssets) (flows.WebhookService, error) {
+		blockedDomains := rt.Config.WebhooksRestrictedDomains
+
+		// orgs granted this feature are trusted to call these domains directly
+		if orgFromAssets(sa).HasFeature(FeatureUnrestrictedWebhooks) {
+			blockedDomains = nil
+		}
+
+		return webhooks.NewService(eng.HTTPClient(), defaultHeaders, blockedDomains, eng.Options().MaxResponseBytes), nil
+	}
 }
 
 func emailServiceFactory(rt *runtime.Runtime) engine.EmailServiceFactory {
@@ -86,6 +104,13 @@ const (
 	configDTOneSecret = "dtone_secret"
 )
 
+// features which can be enabled on an org - these are granted by staff and are a subset of the features
+// defined in the database layer, being only those which mailroom itself needs to know about
+const (
+	// FeatureUnrestrictedWebhooks allows an org's flows to call webhook URLs which are otherwise blocked
+	FeatureUnrestrictedWebhooks = "unrestricted_webhooks"
+)
+
 // Org is mailroom's type for RapidPro orgs. It also implements the envs.Environment interface for GoFlow
 type Org struct {
 	o struct {
@@ -94,6 +119,7 @@ type Org struct {
 		ParentID        OrgID         `json:"parent_id"`
 		Name            string        `json:"name"`
 		Suspended       bool          `json:"is_suspended"`
+		Features        []string      `json:"features"`
 		FlowSMTP        null.String   `json:"flow_smtp"`
 		PrometheusToken null.String   `json:"prometheus_token"`
 		Config          null.Map[any] `json:"config"`
@@ -128,6 +154,9 @@ func (o *Org) Name() string { return o.o.Name }
 
 // Suspended returns whether the org has been suspended
 func (o *Org) Suspended() bool { return o.o.Suspended }
+
+// HasFeature returns whether the given feature is enabled for this org
+func (o *Org) HasFeature(f string) bool { return slices.Contains(o.o.Features, f) }
 
 // FlowSMTP provides custom SMTP settings for flow sessions
 func (o *Org) FlowSMTP() string { return string(o.o.FlowSMTP) }
@@ -261,6 +290,7 @@ SELECT ROW_TO_JSON(o) FROM (SELECT
 	parent_id,
 	name,
 	is_suspended,
+	features,
 	flow_smtp,
 	prometheus_token,
 	o.config AS config,
