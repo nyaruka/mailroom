@@ -77,16 +77,24 @@ jobs:
           apt-get update
           apt-get install -y --no-install-recommends postgresql-client-15 zstd
 
-      - name: Cache Go modules and build cache
+      - name: Cache Go modules
         uses: actions/cache@v5
         with:
-          path: |
-            ${{ steps.go-cache-paths.outputs.gomodcache }}
-            ${{ steps.go-cache-paths.outputs.gocache }}
-          key: go-${{ steps.go-cache-paths.outputs.goversion }}-${{ hashFiles('go.sum') }}
+          path: ${{ steps.go-cache-paths.outputs.gomodcache }}
+          key: gomod-${{ hashFiles('go.sum') }}
           restore-keys: |
-            go-${{ steps.go-cache-paths.outputs.goversion }}-
-            go-
+            gomod-
+
+      - name: Cache Go build cache
+        # unlike the module cache, never restored across toolchain versions: a build cache from
+        # another compiler version is unusable dead weight, and restoring it alongside the full
+        # rebuild it forces can fill the runner disk
+        uses: actions/cache@v5
+        with:
+          path: ${{ steps.go-cache-paths.outputs.gocache }}
+          key: gobuild-${{ steps.go-cache-paths.outputs.goversion }}-${{ hashFiles('go.sum') }}
+          restore-keys: |
+            gobuild-${{ steps.go-cache-paths.outputs.goversion }}-
 
       - name: Initialize database
         # we create our test database with a different user so that we can drop everything owned by this user between tests
