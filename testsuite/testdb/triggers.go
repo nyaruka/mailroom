@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/lib/pq"
+	"github.com/nyaruka/gocommon/uuids"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/runtime"
 	"github.com/stretchr/testify/require"
@@ -49,9 +50,9 @@ func insertTrigger(t *testing.T, rt *runtime.Runtime, org *Org, triggerType mode
 
 	var id models.TriggerID
 	err := rt.DB.Get(&id,
-		`INSERT INTO triggers_trigger(is_active, created_on, modified_on, keywords, referrer_id, is_archived, 
+		`INSERT INTO triggers_trigger(uuid, is_active, created_on, modified_on, keywords, referrer_id, is_archived,
 									  flow_id, trigger_type, match_type, schedule_id, priority, created_by_id, modified_by_id, org_id, channel_id)
-		VALUES(TRUE, now(), now(), $1, $6, false, $2, $3, $4, $5, 1, 1, 1, $8, $7) RETURNING id`, pq.Array(keywords), flow.ID, triggerType, matchType, schedID, referrerID, channelID, org.ID,
+		VALUES($9, TRUE, now(), now(), $1, $6, false, $2, $3, $4, $5, 1, 1, 1, $8, $7) RETURNING id`, pq.Array(keywords), flow.ID, triggerType, matchType, schedID, referrerID, channelID, org.ID, models.TriggerUUID(uuids.NewV4()),
 	)
 	require.NoError(t, err)
 
