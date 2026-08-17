@@ -128,7 +128,7 @@ func TestEmailService(t *testing.T) {
 func TestWebhookServiceFactory(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	rt.Config.WebhooksRestrictedDomains = []string{"blocked.com"}
+	rt.Config.WebhooksBlockedDomains = []string{"blocked.com"}
 
 	blocked, _ := url.Parse("https://blocked.com/foo")
 	blockedSub, _ := url.Parse("https://api.blocked.com/foo")
@@ -140,7 +140,7 @@ func TestWebhookServiceFactory(t *testing.T) {
 		return svc
 	}
 
-	// by default an org can't call the restricted domains
+	// by default an org can't call the blocked domains
 	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 	require.NoError(t, err)
 

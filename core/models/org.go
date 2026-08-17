@@ -44,7 +44,7 @@ func init() {
 // provides the HTTP client and response size limit, which are the same for every org.
 func webhookServiceFactory(rt *runtime.Runtime, defaultHeaders map[string]string) engine.WebhookServiceFactory {
 	return func(eng flows.Engine, sa flows.SessionAssets) (flows.WebhookService, error) {
-		blockedDomains := rt.Config.WebhooksRestrictedDomains
+		blockedDomains := rt.Config.WebhooksBlockedDomains
 
 		// orgs granted this feature are trusted to call these domains directly
 		if orgFromAssets(sa).HasFeature(FeatureUnrestrictedWebhooks) {

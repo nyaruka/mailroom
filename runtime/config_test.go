@@ -13,22 +13,22 @@ func TestLoadConfig(t *testing.T) {
 	// caller can customize the base config..
 	base := runtime.NewDefaultConfig()
 	base.Domain = "example.com"
-	base.WebhooksRestrictedDomains = []string{"chat.example.com"}
+	base.WebhooksBlockedDomains = []string{"chat.example.com"}
 
 	cfg, err := runtime.LoadConfig(base, `--log-level=warn`)
 	assert.NoError(t, err)
 	assert.Equal(t, "example.com", cfg.Domain)
-	assert.Equal(t, []string{"chat.example.com"}, cfg.WebhooksRestrictedDomains)
+	assert.Equal(t, []string{"chat.example.com"}, cfg.WebhooksBlockedDomains)
 
 	// but explicitly set values still take precedence
 	base = runtime.NewDefaultConfig()
 	base.Domain = "example.com"
-	base.WebhooksRestrictedDomains = []string{"chat.example.com"}
+	base.WebhooksBlockedDomains = []string{"chat.example.com"}
 
 	cfg, err = runtime.LoadConfig(base, `--domain=temba.io`)
 	assert.NoError(t, err)
 	assert.Equal(t, "temba.io", cfg.Domain)
-	assert.Equal(t, []string{"chat.example.com"}, cfg.WebhooksRestrictedDomains)
+	assert.Equal(t, []string{"chat.example.com"}, cfg.WebhooksBlockedDomains)
 }
 
 func TestValidate(t *testing.T) {
