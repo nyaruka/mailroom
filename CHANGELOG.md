@@ -1,3 +1,10 @@
+v26.3.46 (2026-08-17)
+-------------------------
+ * Update to goflow v0.293.0 and block webhook calls to configured domains instead of allowing them with a warning
+ * Allow orgs with the unrestricted_webhooks feature to call otherwise blocked domains
+ * Rename WebhooksRestrictedDomains config to WebhooksBlockedDomains
+ * Add uuid field to Trigger model
+
 v26.3.45 (2026-08-17)
 -------------------------
  * Update to goflow v0.292.0 and compact sessions before persisting output
