@@ -145,8 +145,32 @@ func TestSingleSprintSession(t *testing.T) {
 			"contact_id": int64(testdb.Bob.ID), "status": "C", "responded": false, "current_node_uuid": nil,
 		})
 
+	// run exited in its final sprint but its full path should still have been written to the database
+	assertdb.Query(t, rt.DB, `SELECT array_to_string(path_nodes, ','), array_length(path_times, 1) FROM flows_flowrun WHERE session_uuid = $1`, scenes[0].SessionUUID()).
+		Columns(map[string]any{"array_to_string": "7e5c2d93-dfcd-4531-8048-8ec7aa5f6cd6", "array_length": int64(1)})
+
+	// but the session output should have been compacted so the exited run has no path
+	outputRuns := readSessionOutputRuns(t, rt, scenes[0].SessionUUID())
+	assert.Len(t, outputRuns, 1)
+	assert.NotContains(t, outputRuns[0], "path")
+	assert.NotContains(t, outputRuns[0], "locals")
+	assert.NotContains(t, outputRuns[0], "webhook")
+
 	// check we have no contact fires
 	testsuite.AssertContactFires(t, rt, testdb.Bob.ID, map[string]time.Time{})
+}
+
+// reads the stored output of the given session and returns its runs as raw JSON maps
+func readSessionOutputRuns(t *testing.T, rt *runtime.Runtime, sessionUUID core.SessionUUID) []map[string]json.RawMessage {
+	var output string
+	err := rt.DB.Get(&output, `SELECT output FROM flows_flowsession WHERE uuid = $1`, sessionUUID)
+	require.NoError(t, err)
+
+	envelope := struct {
+		Runs []map[string]json.RawMessage `json:"runs"`
+	}{}
+	require.NoError(t, json.Unmarshal([]byte(output), &envelope))
+	return envelope.Runs
 }
 
 func TestSessionWithSubflows(t *testing.T) {
@@ -189,6 +213,12 @@ func TestSessionWithSubflows(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT status FROM flows_flowrun WHERE session_uuid = $1 AND start_id IS NULL`, scene.SessionUUID()).
 		Columns(map[string]any{"status": "W"})
 
+	// neither run has exited so both should still have their paths in the session output
+	outputRuns := readSessionOutputRuns(t, rt, scene.SessionUUID())
+	assert.Len(t, outputRuns, 2)
+	assert.Contains(t, outputRuns[0], "path")
+	assert.Contains(t, outputRuns[1], "path")
+
 	// check we have a contact fire for wait expiration but not timeout
 	testsuite.AssertContactFires(t, rt, testdb.Ann.ID, map[string]time.Time{
 		fmt.Sprintf("E:%s", scene.Session.UUID()): time.Date(2025, 2, 25, 16, 55, 16, 0, time.UTC), // 10 minutes in future
@@ -211,6 +241,27 @@ func TestSessionWithSubflows(t *testing.T) {
 
 	assert.Equal(t, flows.SessionStatusCompleted, scene.Session.Status())
 	assert.Equal(t, time.Duration(0), scene.WaitTimeout) // flow has ended
+
+	// both runs exited in their final sprint but their full paths should still have been written to the database
+	assertdb.Query(t, rt.DB, `SELECT array_to_string(path_nodes, ','), array_length(path_times, 1) FROM flows_flowrun WHERE session_uuid = $1 AND start_id IS NOT NULL`, scene.SessionUUID()).
+		Columns(map[string]any{
+			"array_to_string": "69710037-4f39-495a-91b2-2eae89ca69f0,ef926afe-d42a-4d5b-8867-9dbfaeb5f176,2886a2a0-ad95-4811-81ed-f955c8e6f239",
+			"array_length":    int64(3),
+		})
+	assertdb.Query(t, rt.DB, `SELECT array_to_string(path_nodes, ','), array_length(path_times, 1) FROM flows_flowrun WHERE session_uuid = $1 AND start_id IS NULL`, scene.SessionUUID()).
+		Columns(map[string]any{
+			"array_to_string": "7525b836-b61c-4fbb-9b89-8539d75d7304,03068be2-4748-48e5-b19b-228b5412ebd5",
+			"array_length":    int64(2),
+		})
+
+	// but the session output should have been compacted so the exited runs have no paths
+	outputRuns = readSessionOutputRuns(t, rt, scene.SessionUUID())
+	assert.Len(t, outputRuns, 2)
+	for _, r := range outputRuns {
+		assert.NotContains(t, r, "path")
+		assert.NotContains(t, r, "locals")
+		assert.NotContains(t, r, "webhook")
+	}
 
 	// check we have no contact fires for wait expiration or timeout
 	testsuite.AssertContactFires(t, rt, testdb.Ann.ID, map[string]time.Time{})
