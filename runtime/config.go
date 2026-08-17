@@ -45,7 +45,7 @@ type Config struct {
 	WebhooksInitialBackoff       int      `help:"the initial backoff in milliseconds when retrying a failed webhook call"`
 	WebhooksBackoffJitter        float64  `help:"the amount of jitter to apply to backoff times"`
 	WebhooksHealthyResponseLimit int      `help:"the limit in milliseconds for webhook response to be considered healthy"`
-	WebhooksRestrictedDomains    []string `help:"comma separated list of domains (including subdomains) which webhook calls shouldn't be made to directly, e.g. messaging provider APIs"`
+	WebhooksBlockedDomains       []string `help:"comma separated list of domains (including subdomains) which flows can't make webhook calls to, e.g. messaging provider APIs"`
 
 	SMTPServer         string   `help:"the default SMTP configuration for sending flow emails, e.g. smtp://user%40password@server:port/?from=foo%40gmail.com"`
 	DisallowedNetworks []string `help:"comma separated list of IP addresses and networks which engine can't make HTTP calls to"`

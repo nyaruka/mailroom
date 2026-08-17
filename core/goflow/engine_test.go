@@ -10,6 +10,7 @@ import (
 	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/mailroom/v26/core/goflow"
 	"github.com/nyaruka/mailroom/v26/testsuite"
+	"github.com/nyaruka/mailroom/v26/testsuite/testdb"
 	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -24,7 +25,10 @@ func TestEngineWebhook(t *testing.T) {
 		"http://rapidpro.io": {httpx.NewMockResponse(200, nil, []byte("OK"))},
 	})
 
-	svc, err := goflow.Engine(rt).Services().Webhook(nil)
+	// the service is resolved per session because which domains are blocked depends on the org
+	oa := testdb.Org1.Load(t, rt)
+
+	svc, err := goflow.Engine(rt).Services().Webhook(oa.SessionAssets())
 	assert.NoError(t, err)
 
 	request, err := http.NewRequest("GET", "http://rapidpro.io", nil)
@@ -65,7 +69,9 @@ func TestSimulatorWebhook(t *testing.T) {
 		"http://rapidpro.io": {httpx.NewMockResponse(200, nil, []byte("OK"))},
 	})
 
-	svc, err := goflow.Simulator(ctx, rt).Services().Webhook(nil)
+	oa := testdb.Org1.Load(t, rt)
+
+	svc, err := goflow.Simulator(ctx, rt).Services().Webhook(oa.SessionAssets())
 	assert.NoError(t, err)
 
 	request, err := http.NewRequest("GET", "http://rapidpro.io", nil)

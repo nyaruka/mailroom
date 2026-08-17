@@ -56,7 +56,7 @@ type failingWebhookService struct {
 	delay time.Duration
 }
 
-func (s *failingWebhookService) IsRestricted(u *url.URL) bool { return false }
+func (s *failingWebhookService) IsBlocked(u *url.URL) bool { return false }
 
 func (s *failingWebhookService) Call(request *http.Request) (*httpx.Trace, error) {
 	return &httpx.Trace{
