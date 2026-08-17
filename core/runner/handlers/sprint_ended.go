@@ -33,7 +33,6 @@ func handleSprintEnded(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 	slog.Debug("sprint ended", "contact", scene.ContactUUID(), "session", scene.SessionUUID())
 
 	if !event.Resumed {
-		session := models.NewSession(oa, scene.Session, scene.Sprint, scene.DBCall)
 		runs := make([]*models.FlowRun, len(scene.Session.Runs()))
 
 		for i, r := range scene.Session.Runs() {
@@ -44,6 +43,12 @@ func handleSprintEnded(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 				runs[i].StartID = scene.StartID
 			}
 		}
+
+		// compact the session (clears state of exited runs) - must happen after runs are created above so they get
+		// their complete paths, and before the session output is marshaled below
+		scene.Session.Compact()
+
+		session := models.NewSession(oa, scene.Session, scene.Sprint, scene.DBCall)
 
 		scene.AttachPreCommitHook(hooks.InsertSessions, session)
 		scene.AttachPreCommitHook(hooks.InsertRuns, runs)
@@ -60,6 +65,10 @@ func handleSprintEnded(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 				updateRuns = append(updateRuns, models.NewRun(oa, scene.Session, r))
 			}
 		}
+
+		// compact the session (clears state of exited runs) - must happen after runs are created above so they get
+		// their complete paths, and before the session output is marshaled by the update sessions hook
+		scene.Session.Compact()
 
 		scene.AttachPreCommitHook(hooks.UpdateSessions, scene.DBSession)
 		scene.AttachPreCommitHook(hooks.InsertRuns, insertRuns)

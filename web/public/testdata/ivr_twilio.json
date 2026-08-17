@@ -64,7 +64,7 @@
             },
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b47-3c33-76f8-9729-57745fb13b06",
+                "SK": "evt#01969b47-3c33-76f8-aac5-d9d0ae409dbe",
                 "OrgID": 1,
                 "Data": {
                     "created_on": "2025-05-04T12:31:00.123456789Z",
@@ -110,7 +110,7 @@
         "expected_history": [
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b47-ad7b-76f8-bffe-b26e15b12b0f",
+                "SK": "evt#01969b47-ad7b-76f8-87c7-10f327cbfde2",
                 "OrgID": 1,
                 "Data": {
                     "created_on": "2025-05-04T12:31:29.123456789Z",
@@ -164,7 +164,7 @@
         "expected_history": [
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b47-e813-76f8-aab8-757fffa552e6",
+                "SK": "evt#01969b47-e813-76f8-b4dd-bb13b355a627",
                 "OrgID": 1,
                 "Data": {
                     "created_on": "2025-05-04T12:31:45.123456789Z",
@@ -181,7 +181,7 @@
             },
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b48-130b-76f8-a851-494c098c6807",
+                "SK": "evt#01969b48-130b-76f8-aab8-757fffa552e6",
                 "OrgID": 1,
                 "Data": {
                     "created_on": "2025-05-04T12:31:55.123456789Z",
@@ -231,7 +231,7 @@
         "expected_history": [
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b48-595b-76f8-88a0-aff178d69252",
+                "SK": "evt#01969b48-595b-76f8-a851-494c098c6807",
                 "OrgID": 1,
                 "Data": {
                     "created_on": "2025-05-04T12:32:14.123456789Z",
@@ -248,7 +248,7 @@
             },
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b48-8453-76f8-b806-699460e5ca92",
+                "SK": "evt#01969b48-8453-76f8-bc1e-a15dedcb8e98",
                 "OrgID": 1,
                 "Data": {
                     "created_on": "2025-05-04T12:32:24.123456789Z",
@@ -267,7 +267,7 @@
         ],
         "indexed_messages": [
             {
-                "_id": "01969b48-595b-76f8-88a0-aff178d69252",
+                "_id": "01969b48-595b-76f8-a851-494c098c6807",
                 "_routing": "1",
                 "contact_uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
                 "urn_path": "+16055741111",
@@ -307,7 +307,7 @@
         "expected_history": [
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b48-caa3-76f8-9ad1-04953223c01c",
+                "SK": "evt#01969b48-caa3-76f8-8e47-34e3393ba6d0",
                 "OrgID": 1,
                 "Data": {
                     "created_on": "2025-05-04T12:32:43.123456789Z",
@@ -324,7 +324,7 @@
             },
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b48-f59b-76f8-a014-bfd905bd3906",
+                "SK": "evt#01969b48-f59b-76f8-9170-73aa5f656389",
                 "OrgID": 1,
                 "Data": {
                     "created_on": "2025-05-04T12:32:53.123456789Z",
@@ -343,7 +343,7 @@
         ],
         "indexed_messages": [
             {
-                "_id": "01969b48-caa3-76f8-9ad1-04953223c01c",
+                "_id": "01969b48-caa3-76f8-8e47-34e3393ba6d0",
                 "_routing": "1",
                 "contact_uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
                 "urn_path": "+16055741111",
@@ -375,7 +375,7 @@
         "expected_history": [
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b49-66e3-76f8-a3c7-06ece10484c1",
+                "SK": "evt#01969b49-66e3-76f8-a014-bfd905bd3906",
                 "OrgID": 1,
                 "Data": {
                     "created_on": "2025-05-04T12:33:22.123456789Z",
@@ -393,7 +393,7 @@
             },
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b49-7683-76f8-9805-2814d9047b68",
+                "SK": "evt#01969b49-7683-76f8-9455-dca0efc034b0",
                 "OrgID": 1,
                 "Data": {
                     "created_on": "2025-05-04T12:33:26.123456789Z",
@@ -435,7 +435,7 @@
         "expected_history": [
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b49-c88b-76f8-a0c4-2314fb7af950",
+                "SK": "evt#01969b49-c88b-76f8-ac2d-fa7a34e99132",
                 "OrgID": 1,
                 "Data": {
                     "created_on": "2025-05-04T12:33:47.123456789Z",
@@ -453,7 +453,7 @@
             },
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b49-d443-76f8-b605-56ed66c7447b",
+                "SK": "evt#01969b49-d443-76f8-bb6f-b873752f885a",
                 "OrgID": 1,
                 "Data": {
                     "created_on": "2025-05-04T12:33:50.123456789Z",
@@ -511,7 +511,7 @@
         "expected_history": [
             {
                 "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
-                "SK": "evt#01969b4a-12c3-76f8-9ffd-1f8b2a958d21",
+                "SK": "evt#01969b4a-12c3-76f8-95ad-83cde7b92e80",
                 "OrgID": 1,
                 "Data": {
                     "call": {
@@ -528,7 +528,7 @@
             },
             {
                 "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
-                "SK": "evt#01969b4a-2a33-76f8-a98c-c3ed5728bb2f",
+                "SK": "evt#01969b4a-2a33-76f8-93bd-ee89de0c94c7",
                 "OrgID": 1,
                 "Data": {
                     "created_on": "2025-05-04T12:34:12.123456789Z",
@@ -538,13 +538,13 @@
                         "uuid": "2f81d0ea-4d75-4843-9371-3f7465311cce"
                     },
                     "parent_uuid": "8bc73097-ac57-47fb-82e5-184f8ec6dbef",
-                    "run_uuid": "01969b4a-264b-76f8-841c-357a2a8e03c4",
+                    "run_uuid": "01969b4a-264b-76f8-97ad-3aa8fbd702eb",
                     "type": "run_started"
                 }
             },
             {
                 "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
-                "SK": "evt#01969b4a-3dbb-76f8-a8a2-3807c9c3eb6a",
+                "SK": "evt#01969b4a-3dbb-76f8-bbab-41ae7be90048",
                 "OrgID": 1,
                 "Data": {
                     "created_on": "2025-05-04T12:34:17.123456789Z",
@@ -582,7 +582,7 @@
         "expected_history": [
             {
                 "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
-                "SK": "evt#01969b4a-8023-76f8-a1fe-775299733346",
+                "SK": "evt#01969b4a-8023-76f8-92e7-6bb1f58ce1eb",
                 "OrgID": 1,
                 "Data": {
                     "created_on": "2025-05-04T12:34:35.123456789Z",
@@ -599,7 +599,7 @@
             },
             {
                 "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
-                "SK": "evt#01969b4a-af03-76f8-9d8a-f120e44f6e7e",
+                "SK": "evt#01969b4a-af03-76f8-91f5-a92c2231e811",
                 "OrgID": 1,
                 "Data": {
                     "created_on": "2025-05-04T12:34:46.123456789Z",
@@ -618,7 +618,7 @@
         ],
         "indexed_messages": [
             {
-                "_id": "01969b4a-8023-76f8-a1fe-775299733346",
+                "_id": "01969b4a-8023-76f8-92e7-6bb1f58ce1eb",
                 "_routing": "1",
                 "contact_uuid": "b699a406-7e44-49be-9f01-1a82893e8a10",
                 "urn_path": "+16055742222",
@@ -668,7 +668,7 @@
         "path": "/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/incoming",
         "body": "CallSid=Call4&CallStatus=ringing&Caller=%2B16055741111",
         "status": 200,
-        "response": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Response>\n  <Gather numDigits=\"1\" timeout=\"30\" action=\"https://localhost:8190/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&amp;call=01969b4b-204b-76f8-80a2-9fcfe8176188&amp;wait_type=gather\">\n    <Say language=\"en-US\">Hello there. Please enter one or two.</Say>\n  </Gather>\n  <Redirect>https://localhost:8190/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&amp;call=01969b4b-204b-76f8-80a2-9fcfe8176188&amp;wait_type=gather&amp;timeout=true</Redirect>\n</Response>",
+        "response": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Response>\n  <Gather numDigits=\"1\" timeout=\"30\" action=\"https://localhost:8190/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&amp;call=01969b4b-204b-76f8-809a-c6ff6fcaed38&amp;wait_type=gather\">\n    <Say language=\"en-US\">Hello there. Please enter one or two.</Say>\n  </Gather>\n  <Redirect>https://localhost:8190/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&amp;call=01969b4b-204b-76f8-809a-c6ff6fcaed38&amp;wait_type=gather&amp;timeout=true</Redirect>\n</Response>",
         "db_assertions": [
             {
                 "query": "SELECT external_id, status FROM ivr_call",
@@ -683,7 +683,7 @@
         "expected_history": [
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b4b-2433-76f8-9420-7dfb872f758a",
+                "SK": "evt#01969b4b-2433-76f8-a966-b98cee34c80a",
                 "OrgID": 1,
                 "TTL": "2026-05-04T12:35:16Z",
                 "Data": {
@@ -696,7 +696,7 @@
             },
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b4b-2c03-76f8-8e71-2881455dd0a1",
+                "SK": "evt#01969b4b-2c03-76f8-8923-5011ee188a4d",
                 "OrgID": 1,
                 "Data": {
                     "call": {
@@ -705,7 +705,7 @@
                             "uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8"
                         },
                         "urn": "tel:+16055741111",
-                        "uuid": "01969b4b-204b-76f8-80a2-9fcfe8176188"
+                        "uuid": "01969b4b-204b-76f8-809a-c6ff6fcaed38"
                     },
                     "created_on": "2025-05-04T12:35:18.123456789Z",
                     "type": "call_received"
@@ -713,7 +713,7 @@
             },
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b4b-475b-76f8-97c4-496959aec522",
+                "SK": "evt#01969b4b-475b-76f8-8f4e-e2955c74585e",
                 "OrgID": 1,
                 "Data": {
                     "created_on": "2025-05-04T12:35:25.123456789Z",
@@ -722,13 +722,13 @@
                         "revision": 1,
                         "uuid": "2f81d0ea-4d75-4843-9371-3f7465311cce"
                     },
-                    "run_uuid": "01969b4b-4373-76f8-aa7e-cd90025a3a0a",
+                    "run_uuid": "01969b4b-4373-76f8-99a3-375b9e29205d",
                     "type": "run_started"
                 }
             },
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b4b-5ae3-76f8-ae98-2b6e4d9509bc",
+                "SK": "evt#01969b4b-5ae3-76f8-bf5f-e2c414a53431",
                 "OrgID": 1,
                 "Data": {
                     "created_on": "2025-05-04T12:35:30.123456789Z",
@@ -749,10 +749,10 @@
     {
         "label": "handle resume with digits we're waiting for",
         "method": "POST",
-        "path": "/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&call=01969b4b-204b-76f8-80a2-9fcfe8176188",
+        "path": "/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&call=01969b4b-204b-76f8-809a-c6ff6fcaed38",
         "body": "CallStatus=in-progress&Digits=2&wait_type=gather",
         "status": 200,
-        "response": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Response>\n  <Gather timeout=\"30\" action=\"https://localhost:8190/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&amp;call=01969b4b-204b-76f8-80a2-9fcfe8176188&amp;wait_type=gather\">\n    <Say language=\"en-US\">Great! You said Two. Ok, now enter a number 1 to 100 then press pound.</Say>\n  </Gather>\n  <Redirect>https://localhost:8190/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&amp;call=01969b4b-204b-76f8-80a2-9fcfe8176188&amp;wait_type=gather&amp;timeout=true</Redirect>\n</Response>",
+        "response": "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<Response>\n  <Gather timeout=\"30\" action=\"https://localhost:8190/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&amp;call=01969b4b-204b-76f8-809a-c6ff6fcaed38&amp;wait_type=gather\">\n    <Say language=\"en-US\">Great! You said Two. Ok, now enter a number 1 to 100 then press pound.</Say>\n  </Gather>\n  <Redirect>https://localhost:8190/mr/ivr/c/74729f45-7f29-4868-9dc4-90e491e3c7d8/handle?action=resume&amp;call=01969b4b-204b-76f8-809a-c6ff6fcaed38&amp;wait_type=gather&amp;timeout=true</Redirect>\n</Response>",
         "db_assertions": [
             {
                 "query": "SELECT external_id, status FROM ivr_call",
@@ -771,7 +771,7 @@
         "expected_history": [
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b4b-a903-76f8-9507-15f7876c8be4",
+                "SK": "evt#01969b4b-a903-76f8-a0ef-929154b7d563",
                 "OrgID": 1,
                 "Data": {
                     "created_on": "2025-05-04T12:35:51.123456789Z",
@@ -788,7 +788,7 @@
             },
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b4b-d7e3-76f8-91e4-de408a0ccdb2",
+                "SK": "evt#01969b4b-d7e3-76f8-9420-7dfb872f758a",
                 "OrgID": 1,
                 "Data": {
                     "created_on": "2025-05-04T12:36:02.123456789Z",
@@ -828,7 +828,7 @@
         "expected_history": [
             {
                 "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
-                "SK": "evt#01969b4c-221b-76f8-ab89-93324df1eb69",
+                "SK": "evt#01969b4c-221b-76f8-9a9f-243b49bf16eb",
                 "OrgID": 1,
                 "TTL": "2026-05-04T12:36:21Z",
                 "Data": {
@@ -841,7 +841,7 @@
             },
             {
                 "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
-                "SK": "evt#01969b4c-29eb-76f8-97e3-bf1ca02ffae6",
+                "SK": "evt#01969b4c-29eb-76f8-8167-f270578a41b1",
                 "OrgID": 1,
                 "Data": {
                     "call": {
@@ -850,7 +850,7 @@
                             "uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8"
                         },
                         "urn": "tel:+16055742222",
-                        "uuid": "01969b4c-1e33-76f8-aba8-caa2ef205ed3"
+                        "uuid": "01969b4c-1e33-76f8-97c4-496959aec522"
                     },
                     "created_on": "2025-05-04T12:36:23.123456789Z",
                     "type": "call_received"
