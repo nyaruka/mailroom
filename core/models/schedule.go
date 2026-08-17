@@ -315,8 +315,9 @@ SELECT ROW_TO_JSON(s) FROM (
         (SELECT ROW_TO_JSON(r) FROM (
             SELECT 
                 t.id,
+                t.uuid,
                 t.org_id,
-                t.flow_id, 
+                t.flow_id,
                 'S' AS trigger_type,
                 (SELECT ARRAY_AGG(tc.contact_id) FROM (SELECT contact_id FROM triggers_trigger_contacts WHERE trigger_id = t.id) tc) AS contact_ids,
                 (SELECT ARRAY_AGG(tg.contactgroup_id) FROM (SELECT contactgroup_id FROM triggers_trigger_groups WHERE trigger_id = t.id) tg) AS include_group_ids,

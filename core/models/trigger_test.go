@@ -120,6 +120,7 @@ func TestLoadTriggers(t *testing.T) {
 		actual := oa.Triggers()[i]
 
 		assert.Equal(t, tc.id, actual.ID(), "id mismatch in trigger #%d", i)
+		assert.NotEmpty(t, actual.UUID(), "uuid not set on trigger #%d", i)
 		assert.Equal(t, tc.type_, actual.TriggerType(), "type mismatch in trigger #%d", i)
 		assert.Equal(t, tc.flowID, actual.FlowID(), "flow id mismatch in trigger #%d", i)
 		assert.Equal(t, tc.keywords, actual.Keywords(), "keywords mismatch in trigger #%d", i)
