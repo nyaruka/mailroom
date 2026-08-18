@@ -72,12 +72,13 @@ func ImportBatch(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 
 		scene := runner.NewScene(imp.mc, imp.contact)
 
-		// contacts created by this batch aren't necessarily indexed by the modifier hooks - a record with only URNs
-		// produces no change events at all, because the contact is created with those URNs already on it - so attach
-		// the indexing hook explicitly. Scenes hold hooks in a map, so if a change event attaches it too the contact
-		// is still only indexed once.
+		// let event handlers add hooks for newly created contacts, e.g. indexing - which might not otherwise happen
+		// for a record with only URNs, because the contact is created with those URNs already on it and so produces
+		// no change events at all
 		if imp.created {
-			scene.AttachPostCommitHook(runner.IndexContacts, nil)
+			if err := scene.AddEvent(ctx, rt, oa, runner.NewContactCreatedEvent(), userID, models.ViaImport); err != nil {
+				return fmt.Errorf("error adding contact created event: %w", err)
+			}
 		}
 
 		scenes = append(scenes, scene)

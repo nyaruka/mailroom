@@ -111,7 +111,7 @@ func (s *Scene) AddEvent(ctx context.Context, rt *runtime.Runtime, oa *models.Or
 	e.SetUser(user.Reference(), string(via))
 
 	switch e.(type) {
-	case *ContactInterruptedEvent, *SprintEndedEvent: // our pseudo events aren't real...
+	case *ContactCreatedEvent, *ContactInterruptedEvent, *SprintEndedEvent: // our pseudo events aren't real...
 	default:
 		s.rawEvents = append(s.rawEvents, e)
 

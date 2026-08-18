@@ -55,7 +55,9 @@ func handleCreate(ctx context.Context, rt *runtime.Runtime, r *createRequest) (a
 	}
 
 	scene := runner.NewScene(mc, contact)
-	scene.AttachPostCommitHook(runner.IndexContacts, nil)
+	if err := scene.AddEvent(ctx, rt, oa, runner.NewContactCreatedEvent(), r.UserID, r.Via); err != nil {
+		return nil, 0, fmt.Errorf("error adding contact created event: %w", err)
+	}
 
 	modifiers := map[models.ContactID][]flows.Modifier{mc.ID(): c.Mods}
 	_, err = runner.ModifyWithoutLock(ctx, rt, oa, r.UserID, []*runner.Scene{scene}, modifiers, r.Via)
