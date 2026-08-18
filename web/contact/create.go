@@ -5,11 +5,9 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/runner"
-	"github.com/nyaruka/mailroom/v26/core/search"
 	"github.com/nyaruka/mailroom/v26/runtime"
 	"github.com/nyaruka/mailroom/v26/web"
 )
@@ -56,14 +54,13 @@ func handleCreate(ctx context.Context, rt *runtime.Runtime, r *createRequest) (a
 		return nil, 0, err
 	}
 
+	scene := runner.NewScene(mc, contact)
+	scene.AttachPostCommitHook(runner.IndexContacts, nil)
+
 	modifiers := map[models.ContactID][]flows.Modifier{mc.ID(): c.Mods}
-	_, err = runner.ModifyWithoutLock(ctx, rt, oa, r.UserID, []*models.Contact{mc}, []*core.Contact{contact}, modifiers, r.Via)
+	_, err = runner.ModifyWithoutLock(ctx, rt, oa, r.UserID, []*runner.Scene{scene}, modifiers, r.Via)
 	if err != nil {
 		return nil, 0, fmt.Errorf("error modifying new contact: %w", err)
-	}
-
-	if err := search.IndexContacts(ctx, rt, oa, []*core.Contact{contact}, nil); err != nil {
-		return nil, 0, fmt.Errorf("error indexing new contact: %w", err)
 	}
 
 	return map[string]any{"contact": contact}, http.StatusOK, nil
