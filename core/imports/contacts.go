@@ -105,15 +105,13 @@ func ImportBatch(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 	// them explicitly. Contacts that were updated rather than created already have a document, and any changes to
 	// them will have been indexed by the hooks.
 	created := make([]*core.Contact, 0, len(imports))
-	currentFlows := make(map[models.ContactID]models.FlowID, len(imports))
 	for _, imp := range imports {
 		if imp.created {
 			created = append(created, imp.contact)
-			currentFlows[imp.mc.ID()] = imp.mc.CurrentFlowID()
 		}
 	}
 
-	if err := search.IndexContacts(ctx, rt, oa, created, currentFlows); err != nil {
+	if err := search.IndexContacts(ctx, rt, oa, created, nil); err != nil {
 		return fmt.Errorf("error indexing new contacts: %w", err)
 	}
 
