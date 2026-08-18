@@ -1,6 +1,7 @@
 package imports_test
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"os"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/nyaruka/gocommon/aws/dynamo"
 	"github.com/nyaruka/gocommon/dbutil"
+	"github.com/nyaruka/gocommon/elastic"
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/goflow/assets"
@@ -148,6 +150,37 @@ func TestContactImports(t *testing.T) {
 
 		err = os.WriteFile("testdata/contacts.json", testJSON, 0600)
 		require.NoError(t, err)
+	}
+}
+
+func TestContactImportsIndexing(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	oa := testdb.Org1.Load(t, rt)
+
+	// records which change nothing about the contact they create - i.e. only URNs - produce no change events and so
+	// aren't indexed by the modifier hooks, but should still end up in Elastic
+	importID := testdb.InsertContactImport(t, rt, testdb.Org1, models.ImportStatusProcessing, testdb.Admin)
+	batchID := testdb.InsertContactImportBatch(t, rt, importID, []byte(`[
+		{"name": "Norbert", "urns": ["tel:+16055740001"]},
+		{"urns": ["tel:+16055740002"]},
+		{"urns": ["tel:+16055740003"], "fields": {"age": "39"}}
+	]`))
+
+	batch, err := models.LoadContactImportBatch(ctx, rt.DB, batchID)
+	require.NoError(t, err)
+
+	require.NoError(t, imports.ImportBatch(ctx, rt, oa, batch, testdb.Admin.ID))
+
+	rt.ES.Writer.Flush()
+	_, err = rt.ES.Client.Indices.Refresh().Index(rt.Config.ElasticContactsIndex).Do(ctx)
+	require.NoError(t, err)
+
+	for _, path := range []string{"+16055740001", "+16055740002", "+16055740003"} {
+		src := map[string]any{"query": elastic.Nested("urns", elastic.Term("urns.path.keyword", path))}
+		resp, err := rt.ES.Client.Count().Index(rt.Config.ElasticContactsIndex).Raw(bytes.NewReader(jsonx.MustMarshal(src))).Do(ctx)
+		require.NoError(t, err)
+		assert.Equal(t, int64(1), resp.Count, "expected new contact with URN %s to be indexed", path)
 	}
 }
 
