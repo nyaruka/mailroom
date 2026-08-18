@@ -110,6 +110,19 @@ func ResolveRecipients(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 			matches = append(matches, c.ID())
 			createdIDs = append(createdIDs, c.ID())
 		}
+	} else if len(createdContacts) > 0 {
+		// excluded created contacts aren't returned to the caller so nothing downstream will index them - do it here
+		contacts := make([]*core.Contact, 0, len(createdContacts))
+		for _, c := range createdContacts {
+			contact, err := c.EngineContact(oa)
+			if err != nil {
+				return nil, nil, fmt.Errorf("error creating engine contact for %s: %w", c.UUID(), err)
+			}
+			contacts = append(contacts, contact)
+		}
+		if err := IndexContacts(ctx, rt, oa, contacts, nil); err != nil {
+			return nil, nil, fmt.Errorf("error indexing created contacts: %w", err)
+		}
 	}
 
 	return matches, createdIDs, nil
