@@ -19,14 +19,16 @@ type Recipients struct {
 	ExcludeGroupIDs []models.GroupID
 }
 
-// ResolveRecipients resolves a set of contacts, groups, urns etc into a set of unique contacts
-func ResolveRecipients(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, userID models.UserID, flow *models.Flow, recipients *Recipients, limit int) ([]models.ContactID, error) {
+// ResolveRecipients resolves a set of contacts, groups, urns etc into a set of unique contacts. Also returns the ids
+// of any contacts created by resolving raw URNs - such contacts won't generate change events so callers may need to
+// arrange indexing for them.
+func ResolveRecipients(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, userID models.UserID, flow *models.Flow, recipients *Recipients, limit int) ([]models.ContactID, []models.ContactID, error) {
 	idsSeen := make(map[models.ContactID]bool)
 
 	// start by loading the explicitly listed contacts
 	includeContacts, err := models.LoadContacts(ctx, rt.DB, oa, recipients.ContactIDs)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	for _, c := range includeContacts {
 		idsSeen[c.ID()] = true
@@ -34,12 +36,13 @@ func ResolveRecipients(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 
 	// created contacts are handled separately because they won't be indexed
 	var createdContacts map[urns.URN]*models.Contact
+	var createdIDs []models.ContactID
 
 	// resolve any raw URNs
 	if len(recipients.URNs) > 0 {
 		fetchedByURN, createdByURN, err := models.GetOrCreateContactsFromURNs(ctx, rt.DB, oa, userID, recipients.URNs)
 		if err != nil {
-			return nil, fmt.Errorf("error getting contact ids from urns: %w", err)
+			return nil, nil, fmt.Errorf("error getting contact ids from urns: %w", err)
 		}
 		for _, c := range fetchedByURN {
 			if !idsSeen[c.ID()] {
@@ -77,8 +80,9 @@ func ResolveRecipients(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 		}
 		for _, c := range createdContacts {
 			matches = append(matches, c.ID())
+			createdIDs = append(createdIDs, c.ID())
 		}
-		return matches, nil
+		return matches, createdIDs, nil
 	}
 
 	if len(includeContacts) > 0 || len(includeGroups) > 0 || recipients.Query != "" {
@@ -90,12 +94,12 @@ func ResolveRecipients(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 
 		query, err := BuildRecipientsQuery(oa, flow, includeGroups, includeContactUUIDs, recipients.Query, recipients.Exclusions, excludeGroups)
 		if err != nil {
-			return nil, fmt.Errorf("error building query: %w", err)
+			return nil, nil, fmt.Errorf("error building query: %w", err)
 		}
 
 		matches, err = GetContactIDsForQuery(ctx, rt, oa, nil, models.ContactStatusActive, query, limit)
 		if err != nil {
-			return nil, fmt.Errorf("error performing contact search: %w", err)
+			return nil, nil, fmt.Errorf("error performing contact search: %w", err)
 		}
 	}
 
@@ -104,8 +108,22 @@ func ResolveRecipients(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 	if recipients.Exclusions.NotSeenSinceDays == 0 {
 		for _, c := range createdContacts {
 			matches = append(matches, c.ID())
+			createdIDs = append(createdIDs, c.ID())
+		}
+	} else if len(createdContacts) > 0 {
+		// excluded created contacts aren't returned to the caller so nothing downstream will index them - do it here
+		contacts := make([]*core.Contact, 0, len(createdContacts))
+		for _, c := range createdContacts {
+			contact, err := c.EngineContact(oa)
+			if err != nil {
+				return nil, nil, fmt.Errorf("error creating engine contact for %s: %w", c.UUID(), err)
+			}
+			contacts = append(contacts, contact)
+		}
+		if err := IndexContacts(ctx, rt, oa, contacts, nil); err != nil {
+			return nil, nil, fmt.Errorf("error indexing created contacts: %w", err)
 		}
 	}
 
-	return matches, nil
+	return matches, createdIDs, nil
 }

@@ -25,7 +25,20 @@ func BroadcastWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 		}
 	}
 
+	created := make(map[models.ContactID]bool, len(batch.CreatedContactIDs))
+	for _, id := range batch.CreatedContactIDs {
+		created[id] = true
+	}
+
 	for _, scene := range scenes {
+		// contacts created resolving the broadcast's URN recipients won't generate any change events so add a
+		// contact_created event to ensure they get indexed
+		if created[scene.ContactID()] {
+			if err := scene.AddEvent(ctx, rt, oa, NewContactCreatedEvent(), broadcast.CreatedByID, ""); err != nil {
+				return nil, nil, fmt.Errorf("error adding contact created event to broadcast scene: %w", err)
+			}
+		}
+
 		if mode == models.StartModeSkip && scene.DBContact.CurrentSessionUUID() != "" {
 			continue
 		}

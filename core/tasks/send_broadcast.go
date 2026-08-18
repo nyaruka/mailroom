@@ -59,7 +59,7 @@ func (t *SendBroadcast) Perform(ctx context.Context, rt *runtime.Runtime, oa *mo
 }
 
 func createBroadcastBatches(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, bcast *models.Broadcast) error {
-	contactIDs, err := search.ResolveRecipients(ctx, rt, oa, bcast.CreatedByID, nil, &search.Recipients{
+	contactIDs, createdContactIDs, err := search.ResolveRecipients(ctx, rt, oa, bcast.CreatedByID, nil, &search.Recipients{
 		ContactIDs:      bcast.ContactIDs,
 		GroupIDs:        bcast.GroupIDs,
 		URNs:            bcast.URNs,
@@ -105,10 +105,22 @@ func createBroadcastBatches(ctx context.Context, rt *runtime.Runtime, oa *models
 		q = rt.Queues.Realtime
 	}
 
+	createdIDs := make(map[models.ContactID]bool, len(createdContactIDs))
+	for _, id := range createdContactIDs {
+		createdIDs[id] = true
+	}
+
 	// create tasks for batches of contacts
 	idBatches := slices.Collect(slices.Chunk(contactIDs, broadcastBatchSize))
 	for i, idBatch := range idBatches {
-		batch := bcast.CreateBatch(idBatch)
+		var createdBatch []models.ContactID
+		for _, id := range idBatch {
+			if createdIDs[id] {
+				createdBatch = append(createdBatch, id)
+			}
+		}
+
+		batch := bcast.CreateBatch(idBatch, createdBatch)
 		batchTask := &SendBroadcastBatch{
 			BatchTask:      BatchTask{BatchOwnerUUID: uuids.UUID(bcast.UUID), TotalBatches: len(idBatches)},
 			BroadcastBatch: batch,
