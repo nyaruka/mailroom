@@ -43,6 +43,21 @@ func WrapEventHandler(eventType string, handler WrappedEventHandler) {
 	}
 }
 
+// TypeContactCreated is a pseudo event raised by callers that create contacts (e.g. imports) so that handlers can
+// add hooks for newly created contacts - which might not otherwise generate any events.
+const TypeContactCreated string = "contact_created"
+
+type ContactCreatedEvent struct {
+	events.BaseEvent
+}
+
+// NewContactCreatedEvent creates a new contact created event
+func NewContactCreatedEvent() *ContactCreatedEvent {
+	return &ContactCreatedEvent{
+		BaseEvent: events.NewBaseEvent(TypeContactCreated),
+	}
+}
+
 // TypeContactInterrupted is a pseudo event that lets add hooks for session interruption
 const TypeContactInterrupted string = "contact_interrupted"
 

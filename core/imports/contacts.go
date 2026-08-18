@@ -13,7 +13,6 @@ import (
 	"github.com/nyaruka/goflow/flows/modifiers"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/runner"
-	"github.com/nyaruka/mailroom/v26/core/search"
 	"github.com/nyaruka/mailroom/v26/runtime"
 	"github.com/vinovest/sqlx"
 )
@@ -51,9 +50,8 @@ func ImportBatch(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 		return fmt.Errorf("error getting and creating contacts: %w", err)
 	}
 
-	// gather up contacts and modifiers
-	mcs := make([]*models.Contact, 0, len(imports))
-	contacts := make([]*core.Contact, 0, len(imports))
+	// gather up scenes and modifiers
+	scenes := make([]*runner.Scene, 0, len(imports))
 	mods := make(map[models.ContactID][]flows.Modifier, len(imports))
 	for _, imp := range imports {
 		// ignore errored imports which couldn't get/create a contact
@@ -72,14 +70,24 @@ func ImportBatch(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 			continue
 		}
 
-		mcs = append(mcs, imp.mc)
-		contacts = append(contacts, imp.contact)
+		scene := runner.NewScene(imp.mc, imp.contact)
+
+		// let event handlers add hooks for newly created contacts, e.g. indexing - which might not otherwise happen
+		// for a record with only URNs, because the contact is created with those URNs already on it and so produces
+		// no change events at all
+		if imp.created {
+			if err := scene.AddEvent(ctx, rt, oa, runner.NewContactCreatedEvent(), userID, models.ViaImport); err != nil {
+				return fmt.Errorf("error adding contact created event: %w", err)
+			}
+		}
+
+		scenes = append(scenes, scene)
 		mods[imp.mc.ID()] = imp.mods
 		importsByContact[imp.contact] = imp
 	}
 
 	// and apply in bulk
-	eventsByContact, err := runner.ModifyWithoutLock(ctx, rt, oa, userID, mcs, contacts, mods, models.ViaImport)
+	eventsByContact, err := runner.ModifyWithoutLock(ctx, rt, oa, userID, scenes, mods, models.ViaImport)
 	if err != nil {
 		return fmt.Errorf("error applying modifiers: %w", err)
 	}
@@ -98,21 +106,6 @@ func ImportBatch(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 				}
 			}
 		}
-	}
-
-	// contacts created by this import aren't necessarily indexed by the modifier hooks - a record with only URNs
-	// produces no change events at all, because the contact is created with those URNs already on it - so index
-	// them explicitly. Contacts that were updated rather than created already have a document, and any changes to
-	// them will have been indexed by the hooks.
-	created := make([]*core.Contact, 0, len(imports))
-	for _, imp := range imports {
-		if imp.created {
-			created = append(created, imp.contact)
-		}
-	}
-
-	if err := search.IndexContacts(ctx, rt, oa, created, nil); err != nil {
-		return fmt.Errorf("error indexing new contacts: %w", err)
 	}
 
 	if err := markBatchComplete(ctx, rt.DB, b, imports); err != nil {
