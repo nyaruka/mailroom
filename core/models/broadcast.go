@@ -134,11 +134,16 @@ type BroadcastBatch struct {
 	Broadcast   *Broadcast  `json:"broadcast,omitempty"`
 
 	ContactIDs []ContactID `json:"contact_ids"`
+
+	// subset of contact_ids that were created resolving the broadcast's URN recipients - they won't generate change
+	// events so need to be explicitly indexed
+	CreatedContactIDs []ContactID `json:"created_contact_ids,omitempty"`
 }
 
-func (b *Broadcast) CreateBatch(contactIDs []ContactID) *BroadcastBatch {
+func (b *Broadcast) CreateBatch(contactIDs, createdContactIDs []ContactID) *BroadcastBatch {
 	bb := &BroadcastBatch{
-		ContactIDs: contactIDs,
+		ContactIDs:        contactIDs,
+		CreatedContactIDs: createdContactIDs,
 	}
 
 	if b.ID != NilBroadcastID {

@@ -117,11 +117,12 @@ func TestNonPersistentBroadcasts(t *testing.T) {
 	assert.Equal(t, "", bcast.Query)
 	assert.Equal(t, models.NoExclusions, bcast.Exclusions)
 
-	batch := bcast.CreateBatch([]models.ContactID{testdb.Dan.ID, testdb.Bob.ID})
+	batch := bcast.CreateBatch([]models.ContactID{testdb.Dan.ID, testdb.Bob.ID}, []models.ContactID{testdb.Dan.ID})
 
 	assert.Equal(t, models.NilBroadcastID, batch.BroadcastID)
 	assert.NotNil(t, testdb.Org1.ID, batch.Broadcast)
 	assert.Equal(t, []models.ContactID{testdb.Dan.ID, testdb.Bob.ID}, batch.ContactIDs)
+	assert.Equal(t, []models.ContactID{testdb.Dan.ID}, batch.CreatedContactIDs)
 }
 
 func TestBroadcastSend(t *testing.T) {

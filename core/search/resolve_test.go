@@ -22,10 +22,11 @@ func TestResolveRecipients(t *testing.T) {
 	require.NoError(t, err)
 
 	tcs := []struct {
-		flow        *testdb.Flow
-		recipients  *search.Recipients
-		limit       int
-		expectedIDs []models.ContactID
+		flow               *testdb.Flow
+		recipients         *search.Recipients
+		limit              int
+		expectedIDs        []models.ContactID
+		expectedCreatedIDs []models.ContactID
 	}{
 		{ // 0 nobody
 			recipients:  &search.Recipients{},
@@ -68,8 +69,9 @@ func TestResolveRecipients(t *testing.T) {
 				URNs:       []urns.URN{"tel:+1234000001", "tel:+1234000002"},
 				Exclusions: models.Exclusions{InAFlow: true},
 			},
-			limit:       -1,
-			expectedIDs: []models.ContactID{testdb.Bob.ID, 30000, 30001},
+			limit:              -1,
+			expectedIDs:        []models.ContactID{testdb.Bob.ID, 30000, 30001},
+			expectedCreatedIDs: []models.ContactID{30000, 30001},
 		},
 		{ // 6 new contacts not included if excluding based on last seen
 			recipients: &search.Recipients{
@@ -96,8 +98,9 @@ func TestResolveRecipients(t *testing.T) {
 			flow = tc.flow.Load(t, rt, oa)
 		}
 
-		actualIDs, err := search.ResolveRecipients(ctx, rt, oa, testdb.Admin.ID, flow, tc.recipients, tc.limit)
+		actualIDs, actualCreatedIDs, err := search.ResolveRecipients(ctx, rt, oa, testdb.Admin.ID, flow, tc.recipients, tc.limit)
 		assert.NoError(t, err)
 		assert.ElementsMatch(t, tc.expectedIDs, actualIDs, "contact ids mismatch in %d", i)
+		assert.ElementsMatch(t, tc.expectedCreatedIDs, actualCreatedIDs, "created contact ids mismatch in %d", i)
 	}
 }
