@@ -74,4 +74,15 @@ func TestBatchTracker(t *testing.T) {
 	first, err = tracker.Started(ctx, rt.VK)
 	assert.NoError(t, err)
 	assert.False(t, first)
+
+	// but a set which stalls for longer than the TTL loses its tracking rather than having it resurrected
+	vc.Do("DEL", startedKey)
+
+	completed, err = tracker.Done(ctx, rt.VK, "01981fa0-0005-7000-8000-000000000000")
+	assert.NoError(t, err)
+	assert.Equal(t, 5, completed)
+
+	exists, err := valkey.Int(vc.Do("EXISTS", startedKey))
+	assert.NoError(t, err)
+	assert.Equal(t, 0, exists)
 }
