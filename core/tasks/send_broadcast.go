@@ -7,6 +7,7 @@ import (
 	"slices"
 	"time"
 
+	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/uuids"
 	"github.com/nyaruka/goflow/contactql"
 	"github.com/nyaruka/mailroom/v26/core/models"
@@ -112,6 +113,15 @@ func createBroadcastBatches(ctx context.Context, rt *runtime.Runtime, oa *models
 
 	// create tasks for batches of contacts
 	idBatches := slices.Collect(slices.Chunk(contactIDs, broadcastBatchSize))
+
+	RecordQueued(ctx, rt, uuids.UUID(bcast.UUID), &BatchInfo{
+		Type:     TypeSendBroadcastBatch,
+		OrgID:    bcast.OrgID,
+		OrgName:  oa.Org().Name(),
+		Total:    len(idBatches),
+		QueuedOn: dates.Now(),
+	})
+
 	for i, idBatch := range idBatches {
 		var createdBatch []models.ContactID
 		for _, id := range idBatch {

@@ -1,0 +1,48 @@
+[
+    {
+        "label": "illegal method",
+        "method": "POST",
+        "path": "/mi/task/batches",
+        "status": 405,
+        "response": {
+            "error": "illegal method: POST"
+        }
+    },
+    {
+        "label": "sets listed least recently active first",
+        "method": "GET",
+        "path": "/mi/task/batches",
+        "status": 200,
+        "response": {
+            "sets": [
+                {
+                    "owner_uuid": "11111111-0000-7000-8000-000000000000",
+                    "info": {
+                        "type": "start_flow_batch",
+                        "org_id": 1,
+                        "org_name": "TextIt",
+                        "label": "Favorites",
+                        "total": 3,
+                        "queued_on": "2025-06-12T14:12:00Z"
+                    },
+                    "started": false,
+                    "completed": 0,
+                    "last_on": "2025-06-12T14:12:01Z"
+                },
+                {
+                    "owner_uuid": "22222222-0000-7000-8000-000000000000",
+                    "info": {
+                        "type": "import_contact_batch",
+                        "org_id": 2,
+                        "org_name": "Nyaruka",
+                        "total": 2,
+                        "queued_on": "2025-06-12T14:12:02Z"
+                    },
+                    "started": true,
+                    "completed": 1,
+                    "last_on": "2025-06-12T14:12:04Z"
+                }
+            ]
+        }
+    }
+]

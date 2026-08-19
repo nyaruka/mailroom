@@ -9,6 +9,7 @@ import (
 	"slices"
 	"time"
 
+	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/uuids"
 	"github.com/nyaruka/goflow/contactql"
 	"github.com/nyaruka/mailroom/v26/core/models"
@@ -130,6 +131,20 @@ func (t *PopulateGroup) Perform(ctx context.Context, rt *runtime.Runtime, oa *mo
 
 	// chunk contacts into batches and queue a task for each - batches are owned by this task, identified by its ID
 	batches := slices.Collect(slices.Chunk(recheckIDs, populateBatchSize))
+
+	var groupName string
+	if group := oa.GroupByID(t.GroupID); group != nil {
+		groupName = group.Name()
+	}
+
+	RecordQueued(ctx, rt, uuids.UUID(taskID), &BatchInfo{
+		Type:     TypePopulateGroupBatch,
+		OrgID:    oa.OrgID(),
+		OrgName:  oa.Org().Name(),
+		Label:    groupName,
+		Total:    len(batches),
+		QueuedOn: dates.Now(),
+	})
 
 	for _, batch := range batches {
 		task := &PopulateGroupBatch{
