@@ -373,6 +373,29 @@ func GetContactIDsFromUUIDs(ctx context.Context, db Queryer, orgID OrgID, uuids 
 	return ids, nil
 }
 
+// GetActiveContactUUIDs returns which of the given contact UUIDs belong to active (i.e. not released) contacts.
+func GetActiveContactUUIDs(ctx context.Context, db Queryer, uuids []core.ContactUUID) ([]core.ContactUUID, error) {
+	if len(uuids) == 0 {
+		return nil, nil
+	}
+
+	rows, err := db.QueryContext(ctx, `SELECT uuid FROM contacts_contact WHERE uuid = ANY($1) AND is_active = TRUE`, pq.Array(uuids))
+	if err != nil {
+		return nil, fmt.Errorf("error selecting contact uuids: %w", err)
+	}
+	defer rows.Close()
+
+	existing := make([]core.ContactUUID, 0, len(uuids))
+	for rows.Next() {
+		var uuid core.ContactUUID
+		if err := rows.Scan(&uuid); err != nil {
+			return nil, fmt.Errorf("error scanning contact uuid: %w", err)
+		}
+		existing = append(existing, uuid)
+	}
+	return existing, rows.Err()
+}
+
 const sqlSelectContactExists = `
 SELECT EXISTS(
 	SELECT 1 FROM contacts_contact

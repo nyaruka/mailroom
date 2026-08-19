@@ -6,5 +6,5 @@ import (
 )
 
 func main() {
-	cmd.Run(cmd.Index(runtime.NewDefaultConfig()))
+	cmd.Run(cmd.Elastic(runtime.NewDefaultConfig()))
 }
