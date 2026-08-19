@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/elastic/go-elasticsearch/v9/typedapi/types/enums/operationtype"
@@ -173,18 +174,25 @@ func IndexContacts(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsset
 
 // DeindexContactsByUUID de-indexes the contacts with the given UUIDs from Elastic
 func DeindexContactsByUUID(ctx context.Context, rt *runtime.Runtime, orgID models.OrgID, contactUUIDs []core.ContactUUID) (int, error) {
-	ids := make([]string, len(contactUUIDs))
-	for i, uuid := range contactUUIDs {
-		ids[i] = string(uuid)
+	routing := orgID.String()
+
+	return deindexContactDocs(ctx, rt, contactUUIDs, func(core.ContactUUID) string { return routing })
+}
+
+// deindexContactDocs bulk-deletes the given contact docs from Elastic. The index uses custom routing so each delete
+// must be routed to the org of the doc it's deleting.
+func deindexContactDocs(ctx context.Context, rt *runtime.Runtime, contactUUIDs []core.ContactUUID, routing func(core.ContactUUID) string) (int, error) {
+	if len(contactUUIDs) == 0 {
+		return 0, nil // ES rejects an empty bulk request
 	}
 
 	cmds := &bytes.Buffer{}
-	for _, id := range ids {
-		cmds.Write(jsonx.MustMarshal(map[string]any{"delete": map[string]any{"_id": id}}))
+	for _, uuid := range contactUUIDs {
+		cmds.Write(jsonx.MustMarshal(map[string]any{"delete": map[string]any{"_id": string(uuid), "routing": routing(uuid)}}))
 		cmds.WriteString("\n")
 	}
 
-	resp, err := rt.ES.Client.Bulk().Index(rt.Config.ElasticContactsIndex).Routing(orgID.String()).Raw(bytes.NewReader(cmds.Bytes())).Do(ctx)
+	resp, err := rt.ES.Client.Bulk().Index(rt.Config.ElasticContactsIndex).Raw(bytes.NewReader(cmds.Bytes())).Do(ctx)
 	if err != nil {
 		return 0, fmt.Errorf("error deindexing deleted contacts from elastic: %w", err)
 	}
@@ -197,6 +205,120 @@ func DeindexContactsByUUID(ctx context.Context, rt *runtime.Runtime, orgID model
 	}
 
 	return deleted, nil
+}
+
+const pruneBatchSize = 10_000
+
+// PruneCounts are the running totals reported by PruneContacts.
+type PruneCounts struct {
+	Scanned  int
+	Orphaned int
+	Deleted  int
+}
+
+// PruneContacts scans the entire contacts index for orphaned documents - docs whose contact no longer exists in the
+// database or has been released - and optionally deletes them. If progress is non-nil it is called with the running
+// totals after each scanned batch.
+func PruneContacts(ctx context.Context, rt *runtime.Runtime, del bool, progress func(PruneCounts)) (PruneCounts, error) {
+	counts := PruneCounts{}
+
+	pit, err := rt.ES.Client.OpenPointInTime(rt.Config.ElasticContactsIndex).KeepAlive("1m").Do(ctx)
+	if err != nil {
+		return counts, fmt.Errorf("error creating ES point-in-time: %w", err)
+	}
+	defer func() {
+		cctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if _, err := rt.ES.Client.ClosePointInTime().Id(pit.Id).Do(cctx); err != nil {
+			slog.Error("error closing ES point-in-time", "error", err)
+		}
+	}()
+
+	src := map[string]any{
+		"_source":          []string{"org_id"},
+		"sort":             []any{map[string]any{"_shard_doc": "asc"}},
+		"pit":              map[string]any{"id": pit.Id, "keep_alive": "1m"},
+		"size":             pruneBatchSize,
+		"track_total_hits": false,
+	}
+
+	for {
+		results, err := rt.ES.Client.Search().Raw(bytes.NewReader(jsonx.MustMarshal(src))).Do(ctx)
+		if err != nil {
+			return counts, fmt.Errorf("error searching ES index: %w", err)
+		}
+
+		if len(results.Hits.Hits) == 0 {
+			break
+		}
+
+		uuids := make([]core.ContactUUID, len(results.Hits.Hits))
+		routings := make(map[core.ContactUUID]string, len(results.Hits.Hits))
+		for i, hit := range results.Hits.Hits {
+			var doc struct {
+				OrgID models.OrgID `json:"org_id"`
+			}
+			if err := json.Unmarshal(hit.Source_, &doc); err != nil {
+				return counts, fmt.Errorf("error unmarshalling contact doc %s: %w", *hit.Id_, err)
+			}
+			uuids[i] = core.ContactUUID(*hit.Id_)
+			routings[uuids[i]] = doc.OrgID.String()
+		}
+
+		counts.Scanned += len(uuids)
+
+		orphans, err := getOrphanedUUIDs(ctx, rt, uuids)
+		if err != nil {
+			return counts, err
+		}
+
+		counts.Orphaned += len(orphans)
+
+		if del && len(orphans) > 0 {
+			// re-check against the database immediately before deleting
+			orphans, err = getOrphanedUUIDs(ctx, rt, orphans)
+			if err != nil {
+				return counts, err
+			}
+
+			deleted, err := deindexContactDocs(ctx, rt, orphans, func(uuid core.ContactUUID) string { return routings[uuid] })
+			if err != nil {
+				return counts, err
+			}
+
+			counts.Deleted += deleted
+		}
+
+		if progress != nil {
+			progress(counts)
+		}
+
+		lastHit := results.Hits.Hits[len(results.Hits.Hits)-1]
+		src["search_after"] = lastHit.Sort
+	}
+
+	return counts, nil
+}
+
+// getOrphanedUUIDs returns which of the given contact UUIDs don't belong to an active contact in the database
+func getOrphanedUUIDs(ctx context.Context, rt *runtime.Runtime, uuids []core.ContactUUID) ([]core.ContactUUID, error) {
+	existing, err := models.GetActiveContactUUIDs(ctx, rt.DB, uuids)
+	if err != nil {
+		return nil, fmt.Errorf("error checking contact UUIDs against database: %w", err)
+	}
+
+	existingSet := make(map[core.ContactUUID]bool, len(existing))
+	for _, uuid := range existing {
+		existingSet[uuid] = true
+	}
+
+	orphans := make([]core.ContactUUID, 0, len(uuids)-len(existing))
+	for _, uuid := range uuids {
+		if !existingSet[uuid] {
+			orphans = append(orphans, uuid)
+		}
+	}
+	return orphans, nil
 }
 
 // DeindexContactsByOrg de-indexes all contacts in the given org from Elastic

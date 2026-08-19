@@ -405,6 +405,25 @@ func TestGetContactIDsFromReferences(t *testing.T) {
 	assert.ElementsMatch(t, []models.ContactID{testdb.Ann.ID, testdb.Bob.ID}, ids)
 }
 
+func TestGetActiveContactUUIDs(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	rt.DB.MustExec(`UPDATE contacts_contact SET is_active = FALSE WHERE id = $1`, testdb.Bob.ID)
+
+	uuids, err := models.GetActiveContactUUIDs(ctx, rt.DB, []core.ContactUUID{
+		testdb.Ann.UUID,
+		testdb.Bob.UUID,                        // released
+		testdb.Org2Contact.UUID,                // other org but still active
+		"e0c261e1-c95f-4a04-92c6-e6d13ea16d1a", // no such contact
+	})
+	require.NoError(t, err)
+	assert.ElementsMatch(t, []core.ContactUUID{testdb.Ann.UUID, testdb.Org2Contact.UUID}, uuids)
+
+	uuids, err = models.GetActiveContactUUIDs(ctx, rt.DB, nil)
+	require.NoError(t, err)
+	assert.Empty(t, uuids)
+}
+
 func TestContactExists(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 

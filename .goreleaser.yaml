@@ -8,9 +8,9 @@ builds:
     goarch:
       - amd64
       - arm64
-  - id: mrindex
-    main: ./cmd/mrindex/main.go
-    binary: mrindex
+  - id: mrelastic
+    main: ./cmd/mrelastic/main.go
+    binary: mrelastic
     goos:
       - linux
     goarch:

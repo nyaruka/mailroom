@@ -20,9 +20,9 @@ import (
 
 const indexBatchSize = 500
 
-// Index is the entry point for the mrindex command which re-indexes all contacts or messages. Configuration is
+// Elastic is the entry point for the mrelastic command which manages the search indexes. Configuration is
 // loaded on top of the given defaults, e.g. runtime.NewDefaultConfig().
-func Index(defaults *runtime.Config) error {
+func Elastic(defaults *runtime.Config) error {
 	cfg, err := runtime.LoadConfig(defaults)
 	if err != nil {
 		return err
@@ -30,6 +30,18 @@ func Index(defaults *runtime.Config) error {
 
 	// only output ERROR logs
 	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelError})))
+
+	// parse verb and target from args
+	flags := flag.NewFlagSet("mrelastic", flag.ExitOnError)
+	startUUID := flags.String("start-uuid", "", "UUID to start from (index messages only, works backwards from here)")
+	del := flags.Bool("delete", false, "delete orphaned documents instead of just reporting them (prune contacts only)")
+	flags.Parse(os.Args[1:])
+
+	verb, target := flags.Arg(0), flags.Arg(1)
+	valid := (verb == "index" && (target == "contacts" || target == "messages")) || (verb == "prune" && target == "contacts")
+	if !valid {
+		return fmt.Errorf("usage: mrelastic [flags] <verb> <target> where valid combinations are 'index contacts', 'index messages' and 'prune contacts'")
+	}
 
 	rt, err := runtime.NewRuntime(cfg)
 	if err != nil {
@@ -43,23 +55,31 @@ func Index(defaults *runtime.Config) error {
 
 	models.InitCache(rt)
 
-	// parse mode from args
-	flags := flag.NewFlagSet("mrindex", flag.ExitOnError)
-	startUUID := flags.String("start-uuid", "", "UUID to start from (messages mode only, works backwards from here)")
-	flags.Parse(os.Args[1:])
-
-	mode := flags.Arg(0)
-	if mode != "contacts" && mode != "messages" {
-		return fmt.Errorf("usage: mrindex [--start-uuid UUID] <contacts|messages>")
-	}
-
 	ctx := context.TODO()
 
-	switch mode {
-	case "contacts":
-		return indexAllContacts(ctx, rt)
-	case "messages":
+	switch verb {
+	case "index":
+		if target == "contacts" {
+			return indexAllContacts(ctx, rt)
+		}
 		return indexAllMessages(ctx, rt, *startUUID)
+	case "prune":
+		return pruneAllContacts(ctx, rt, *del)
+	}
+	return nil
+}
+
+func pruneAllContacts(ctx context.Context, rt *runtime.Runtime, del bool) error {
+	counts, err := search.PruneContacts(ctx, rt, del, func(c search.PruneCounts) {
+		fmt.Printf(" > scanned %d docs (%d orphans found, %d deleted)\n", c.Scanned, c.Orphaned, c.Deleted)
+	})
+	if err != nil {
+		return err
+	}
+
+	fmt.Printf("Completed prune (%d docs scanned, %d orphans found, %d deleted)\n", counts.Scanned, counts.Orphaned, counts.Deleted)
+	if !del && counts.Orphaned > 0 {
+		fmt.Println("Re-run with --delete to delete orphaned documents.")
 	}
 	return nil
 }

@@ -130,8 +130,13 @@ func TestDeindexContacts(t *testing.T) {
 	assertSearchCountV2(t, rt, elastic.Term("org_id", testdb.Org1.ID), 124)
 	assertSearchCountV2(t, rt, elastic.Term("org_id", testdb.Org2.ID), 121)
 
+	// deindexing an empty set of UUIDs is a noop
+	deindexedByUUID, err := search.DeindexContactsByUUID(ctx, rt, testdb.Org1.ID, []core.ContactUUID{})
+	assert.NoError(t, err)
+	assert.Equal(t, 0, deindexedByUUID)
+
 	// DeindexContactsByUUID operates on the v3 index
-	deindexedByUUID, err := search.DeindexContactsByUUID(ctx, rt, testdb.Org1.ID, []core.ContactUUID{testdb.Bob.UUID, testdb.Cat.UUID})
+	deindexedByUUID, err = search.DeindexContactsByUUID(ctx, rt, testdb.Org1.ID, []core.ContactUUID{testdb.Bob.UUID, testdb.Cat.UUID})
 	assert.NoError(t, err)
 	assert.Equal(t, 2, deindexedByUUID)
 
@@ -162,6 +167,61 @@ func TestDeindexContacts(t *testing.T) {
 	deindexed, err = search.DeindexContactsByOrg(ctx, rt, testdb.Org1.ID, 100)
 	assert.NoError(t, err)
 	assert.Equal(t, 0, deindexed)
+}
+
+func TestPruneContacts(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	testsuite.IndexContacts(t, rt)
+
+	refresh := func() {
+		_, err := rt.ES.Client.Indices.Refresh().Index(rt.Config.ElasticContactsIndex).Do(ctx)
+		require.NoError(t, err)
+	}
+
+	// release Bob in the database without deindexing him
+	rt.DB.MustExec(`UPDATE contacts_contact SET is_active = FALSE WHERE id = $1`, testdb.Bob.ID)
+
+	// and index a doc for a contact which doesn't exist in the database at all
+	fakeUUID := core.ContactUUID("826a1421-2d51-45ca-a5a5-b26783d49e2c")
+	rt.ES.Writer.Queue(&elastic.Document{
+		Index:   rt.Config.ElasticContactsIndex,
+		ID:      string(fakeUUID),
+		Routing: testdb.Org2.ID.String(),
+		Body:    jsonx.MustMarshal(map[string]any{"id": 123456789, "org_id": testdb.Org2.ID}),
+	})
+	rt.ES.Writer.Flush()
+	refresh()
+
+	// default is report only.. no docs are deleted
+	counts, err := search.PruneContacts(ctx, rt, false, nil)
+	require.NoError(t, err)
+	assert.Equal(t, search.PruneCounts{Scanned: 246, Orphaned: 2, Deleted: 0}, counts)
+
+	refresh()
+	assertSearchCountV2(t, rt, elastic.Term("org_id", testdb.Org1.ID), 124)
+	assertSearchCountV2(t, rt, elastic.Term("org_id", testdb.Org2.ID), 122)
+
+	// with delete flag, orphaned docs are deleted
+	var progress []search.PruneCounts
+	counts, err = search.PruneContacts(ctx, rt, true, func(c search.PruneCounts) { progress = append(progress, c) })
+	require.NoError(t, err)
+	assert.Equal(t, search.PruneCounts{Scanned: 246, Orphaned: 2, Deleted: 2}, counts)
+	assert.Equal(t, []search.PruneCounts{{Scanned: 246, Orphaned: 2, Deleted: 2}}, progress)
+
+	refresh()
+	assertSearchCountV2(t, rt, elastic.Term("org_id", testdb.Org1.ID), 123)
+	assertSearchCountV2(t, rt, elastic.Term("org_id", testdb.Org2.ID), 121)
+
+	// Bob's doc and the fake doc are gone, other contacts are untouched
+	assertSearchCountV2(t, rt, elastic.Ids(string(testdb.Bob.UUID)), 0)
+	assertSearchCountV2(t, rt, elastic.Ids(string(fakeUUID)), 0)
+	assertSearchCountV2(t, rt, elastic.Ids(string(testdb.Ann.UUID)), 1)
+
+	// re-running finds nothing to prune
+	counts, err = search.PruneContacts(ctx, rt, true, nil)
+	require.NoError(t, err)
+	assert.Equal(t, search.PruneCounts{Scanned: 244, Orphaned: 0, Deleted: 0}, counts)
 }
 
 func assertSearchCountV2(t *testing.T, rt *runtime.Runtime, query elastic.Query, expected int) {
