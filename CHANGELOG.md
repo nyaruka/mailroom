@@ -1,3 +1,12 @@
+v26.3.47 (2026-08-19)
+-------------------------
+ * Add an index of in-flight batch task sets, readable via tasks.GetBatchTasks
+ * Refresh batch tracker keys as batches complete so sets which outlive the tracker TTL aren't re-marked as started
+ * Index contacts created from URN recipients even when excluded by not_seen_since
+ * Fix indexing of contacts created by sending a broadcast to raw URNs
+ * Index created contacts via a contact_created pseudo event to avoid duplicate ES writes
+ * Index contacts created by an import which produce no change events
+
 v26.3.46 (2026-08-17)
 -------------------------
  * Update to goflow v0.293.0 and block webhook calls to configured domains instead of allowing them with a warning
