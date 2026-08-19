@@ -182,6 +182,10 @@ func DeindexContactsByUUID(ctx context.Context, rt *runtime.Runtime, orgID model
 // deindexContactDocs bulk-deletes the given contact docs from Elastic. The index uses custom routing so each delete
 // must be routed to the org of the doc it's deleting.
 func deindexContactDocs(ctx context.Context, rt *runtime.Runtime, contactUUIDs []core.ContactUUID, routing func(core.ContactUUID) string) (int, error) {
+	if len(contactUUIDs) == 0 {
+		return 0, nil // ES rejects an empty bulk request
+	}
+
 	cmds := &bytes.Buffer{}
 	for _, uuid := range contactUUIDs {
 		cmds.Write(jsonx.MustMarshal(map[string]any{"delete": map[string]any{"_id": string(uuid), "routing": routing(uuid)}}))

@@ -130,8 +130,13 @@ func TestDeindexContacts(t *testing.T) {
 	assertSearchCountV2(t, rt, elastic.Term("org_id", testdb.Org1.ID), 124)
 	assertSearchCountV2(t, rt, elastic.Term("org_id", testdb.Org2.ID), 121)
 
+	// deindexing an empty set of UUIDs is a noop
+	deindexedByUUID, err := search.DeindexContactsByUUID(ctx, rt, testdb.Org1.ID, []core.ContactUUID{})
+	assert.NoError(t, err)
+	assert.Equal(t, 0, deindexedByUUID)
+
 	// DeindexContactsByUUID operates on the v3 index
-	deindexedByUUID, err := search.DeindexContactsByUUID(ctx, rt, testdb.Org1.ID, []core.ContactUUID{testdb.Bob.UUID, testdb.Cat.UUID})
+	deindexedByUUID, err = search.DeindexContactsByUUID(ctx, rt, testdb.Org1.ID, []core.ContactUUID{testdb.Bob.UUID, testdb.Cat.UUID})
 	assert.NoError(t, err)
 	assert.Equal(t, 2, deindexedByUUID)
 
