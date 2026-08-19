@@ -34,7 +34,7 @@ func TestBatchTracker(t *testing.T) {
 	tracker := tasks.NewBatchTracker("7de40d16-0286-4938-be6b-9974e12e1b0f")
 
 	err := tracker.Queued(ctx, rt.VK, &tasks.BatchInfo{
-		Type: tasks.TypeStartFlowBatch, OrgID: testdb.Org1.ID, OrgName: "TextIt", Label: "Favorites", Total: 5, QueuedOn: dates.Now(),
+		Type: tasks.TypeStartFlowBatch, OrgID: testdb.Org1.ID, Label: "Favorites", Total: 5, QueuedOn: dates.Now(),
 	})
 	assert.NoError(t, err)
 
@@ -45,7 +45,6 @@ func TestBatchTracker(t *testing.T) {
 	assert.NoError(t, err)
 	require.Len(t, statuses, 1)
 	assert.Equal(t, tasks.TypeStartFlowBatch, statuses[0].Info.Type)
-	assert.Equal(t, "TextIt", statuses[0].Info.OrgName)
 	assert.Equal(t, "Favorites", statuses[0].Info.Label)
 	assert.Equal(t, 5, statuses[0].Info.Total)
 	assert.False(t, statuses[0].Started)
@@ -137,9 +136,9 @@ func TestGetBatchTasks(t *testing.T) {
 	tracker2 := tasks.NewBatchTracker("22222222-0000-7000-8000-000000000000")
 	tracker3 := tasks.NewBatchTracker("33333333-0000-7000-8000-000000000000")
 
-	require.NoError(t, tracker1.Queued(ctx, rt.VK, &tasks.BatchInfo{Type: tasks.TypeSendBroadcastBatch, OrgID: testdb.Org1.ID, OrgName: "TextIt", Total: 2, QueuedOn: dates.Now()}))
-	require.NoError(t, tracker2.Queued(ctx, rt.VK, &tasks.BatchInfo{Type: tasks.TypeStartFlowBatch, OrgID: testdb.Org2.ID, OrgName: "Nyaruka", Label: "Favorites", Total: 3, QueuedOn: dates.Now()}))
-	require.NoError(t, tracker3.Queued(ctx, rt.VK, &tasks.BatchInfo{Type: tasks.TypeImportContactBatch, OrgID: testdb.Org1.ID, OrgName: "TextIt", Total: 4, QueuedOn: dates.Now()}))
+	require.NoError(t, tracker1.Queued(ctx, rt.VK, &tasks.BatchInfo{Type: tasks.TypeSendBroadcastBatch, OrgID: testdb.Org1.ID, Total: 2, QueuedOn: dates.Now()}))
+	require.NoError(t, tracker2.Queued(ctx, rt.VK, &tasks.BatchInfo{Type: tasks.TypeStartFlowBatch, OrgID: testdb.Org2.ID, Label: "Favorites", Total: 3, QueuedOn: dates.Now()}))
+	require.NoError(t, tracker3.Queued(ctx, rt.VK, &tasks.BatchInfo{Type: tasks.TypeImportContactBatch, OrgID: testdb.Org1.ID, Total: 4, QueuedOn: dates.Now()}))
 
 	// completing a batch of the first set rescores it to most recently active
 	_, err := tracker1.Done(ctx, rt.VK, "01981fa0-0001-7000-8000-000000000000", 2)

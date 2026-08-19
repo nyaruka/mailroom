@@ -140,7 +140,6 @@ func (t *PopulateGroup) Perform(ctx context.Context, rt *runtime.Runtime, oa *mo
 	RecordQueued(ctx, rt, uuids.UUID(taskID), &BatchInfo{
 		Type:     TypePopulateGroupBatch,
 		OrgID:    oa.OrgID(),
-		OrgName:  oa.Org().Name(),
 		Label:    groupName,
 		Total:    len(batches),
 		QueuedOn: dates.Now(),

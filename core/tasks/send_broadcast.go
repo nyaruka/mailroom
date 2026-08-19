@@ -117,7 +117,6 @@ func createBroadcastBatches(ctx context.Context, rt *runtime.Runtime, oa *models
 	RecordQueued(ctx, rt, uuids.UUID(bcast.UUID), &BatchInfo{
 		Type:     TypeSendBroadcastBatch,
 		OrgID:    bcast.OrgID,
-		OrgName:  oa.Org().Name(),
 		Total:    len(idBatches),
 		QueuedOn: dates.Now(),
 	})

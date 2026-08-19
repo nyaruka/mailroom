@@ -20,7 +20,6 @@
                     "info": {
                         "type": "start_flow_batch",
                         "org_id": 1,
-                        "org_name": "TextIt",
                         "label": "Favorites",
                         "total": 3,
                         "queued_on": "2025-06-12T14:12:00Z"
@@ -34,7 +33,6 @@
                     "info": {
                         "type": "import_contact_batch",
                         "org_id": 2,
-                        "org_name": "Nyaruka",
                         "total": 2,
                         "queued_on": "2025-06-12T14:12:02Z"
                     },

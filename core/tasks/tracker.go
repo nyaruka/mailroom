@@ -30,7 +30,6 @@ const (
 type BatchInfo struct {
 	Type     string       `json:"type"`
 	OrgID    models.OrgID `json:"org_id"`
-	OrgName  string       `json:"org_name"`
 	Label    string       `json:"label,omitempty"` // name of the owning asset where the set has one, e.g. a flow
 	Total    int          `json:"total"`
 	QueuedOn time.Time    `json:"queued_on"`

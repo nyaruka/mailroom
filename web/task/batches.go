@@ -23,7 +23,7 @@ const maxBatchSets = 100
 //	  "sets": [
 //	    {
 //	      "owner_uuid": "0199bcb8-4e12-7e7f-a4d2-fabbf9d69dbb",
-//	      "info": {"type": "start_flow_batch", "org_id": 1, "org_name": "TextIt", "label": "Favorites", "total": 40, "queued_on": "2025-06-12T14:12:00Z"},
+//	      "info": {"type": "start_flow_batch", "org_id": 1, "label": "Favorites", "total": 40, "queued_on": "2025-06-12T14:12:00Z"},
 //	      "started": true,
 //	      "completed": 12,
 //	      "last_on": "2025-06-12T15:30:45Z"

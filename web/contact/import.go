@@ -3,7 +3,6 @@ package contact
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"net/http"
 
 	"github.com/nyaruka/gocommon/dates"
@@ -44,18 +43,9 @@ func handleImport(ctx context.Context, rt *runtime.Runtime, r *importRequest) (a
 	// generate a UUID to own this set of batches since unlike other batch tasks, these have no parent task
 	ownerUUID := uuids.NewV7()
 
-	// tracking is best-effort, so an error getting the org name for it shouldn't fail the import
-	var orgName string
-	if oa, err := models.GetOrgAssets(ctx, rt, r.OrgID); err != nil {
-		slog.Error("error loading org assets for batch tracking", "error", err, "org_id", r.OrgID)
-	} else {
-		orgName = oa.Org().Name()
-	}
-
 	tasks.RecordQueued(ctx, rt, ownerUUID, &tasks.BatchInfo{
 		Type:     tasks.TypeImportContactBatch,
 		OrgID:    r.OrgID,
-		OrgName:  orgName,
 		Total:    len(imp.BatchIDs),
 		QueuedOn: dates.Now(),
 	})

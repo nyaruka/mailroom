@@ -21,10 +21,10 @@ func TestBatches(t *testing.T) {
 	tracker2 := tasks.NewBatchTracker("22222222-0000-7000-8000-000000000000")
 
 	require.NoError(t, tracker1.Queued(ctx, rt.VK, &tasks.BatchInfo{
-		Type: tasks.TypeStartFlowBatch, OrgID: testdb.Org1.ID, OrgName: "TextIt", Label: "Favorites", Total: 3, QueuedOn: dates.Now(),
+		Type: tasks.TypeStartFlowBatch, OrgID: testdb.Org1.ID, Label: "Favorites", Total: 3, QueuedOn: dates.Now(),
 	}))
 	require.NoError(t, tracker2.Queued(ctx, rt.VK, &tasks.BatchInfo{
-		Type: tasks.TypeImportContactBatch, OrgID: testdb.Org2.ID, OrgName: "Nyaruka", Total: 2, QueuedOn: dates.Now(),
+		Type: tasks.TypeImportContactBatch, OrgID: testdb.Org2.ID, Total: 2, QueuedOn: dates.Now(),
 	}))
 
 	_, err := tracker2.Started(ctx, rt.VK)

@@ -121,7 +121,6 @@ func createFlowStartBatches(ctx context.Context, rt *runtime.Runtime, oa *models
 	RecordQueued(ctx, rt, start.UUID, &BatchInfo{
 		Type:     TypeStartFlowBatch,
 		OrgID:    start.OrgID,
-		OrgName:  oa.Org().Name(),
 		Label:    flow.Name(),
 		Total:    len(idBatches),
 		QueuedOn: dates.Now(),
