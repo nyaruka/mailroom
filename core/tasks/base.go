@@ -44,6 +44,19 @@ type BatchTask struct {
 	TotalBatches   int        `json:"total_batches,omitempty"`
 }
 
+// RecordQueued records that a set of batch tasks has been queued, so that it's trackable as in-flight work before any
+// of its batches have run. Tracker errors are logged rather than escalated - the cost is just that the set won't be
+// listed as in-flight work.
+func RecordQueued(ctx context.Context, rt *runtime.Runtime, ownerUUID uuids.UUID, info *BatchInfo) {
+	if ownerUUID == "" {
+		return // shouldn't happen but better than all such sets sharing a tracker
+	}
+
+	if err := NewBatchTracker(ownerUUID).Queued(ctx, rt.VK, info); err != nil {
+		slog.Error("error recording batch tasks as queued", "error", err, "owner_uuid", ownerUUID)
+	}
+}
+
 // RecordStarted marks processing of this batch's set as started in its owner's tracker and returns whether this was
 // the first batch of the set to start. Tracker errors are logged rather than escalated - the cost is just that the
 // owner is never marked as started.
@@ -69,7 +82,7 @@ func (b *BatchTask) RecordComplete(ctx context.Context, rt *runtime.Runtime, tas
 		return false // shouldn't happen but better than all such batches sharing a tracker
 	}
 
-	completed, err := NewBatchTracker(b.BatchOwnerUUID).Done(ctx, rt.VK, taskID)
+	completed, err := NewBatchTracker(b.BatchOwnerUUID).Done(ctx, rt.VK, taskID, b.TotalBatches)
 	if err != nil {
 		slog.Error("error recording batch task completion", "error", err, "owner_uuid", b.BatchOwnerUUID)
 		return false

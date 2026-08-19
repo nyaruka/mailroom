@@ -7,6 +7,7 @@ import (
 	"slices"
 	"time"
 
+	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/i18n"
 	"github.com/nyaruka/goflow/contactql"
 	"github.com/nyaruka/mailroom/v26/core/models"
@@ -116,6 +117,14 @@ func createFlowStartBatches(ctx context.Context, rt *runtime.Runtime, oa *models
 
 	// split the contact ids into batches to become batch tasks
 	idBatches := slices.Collect(slices.Chunk(contactIDs, FlowStartBatchSize))
+
+	RecordQueued(ctx, rt, start.UUID, &BatchInfo{
+		Type:     TypeStartFlowBatch,
+		OrgID:    start.OrgID,
+		Label:    flow.Name(),
+		Total:    len(idBatches),
+		QueuedOn: dates.Now(),
+	})
 
 	for i, idBatch := range idBatches {
 		batchTask := &StartFlowBatch{

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/uuids"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/tasks"
@@ -41,6 +42,13 @@ func handleImport(ctx context.Context, rt *runtime.Runtime, r *importRequest) (a
 
 	// generate a UUID to own this set of batches since unlike other batch tasks, these have no parent task
 	ownerUUID := uuids.NewV7()
+
+	tasks.RecordQueued(ctx, rt, ownerUUID, &tasks.BatchInfo{
+		Type:     tasks.TypeImportContactBatch,
+		OrgID:    r.OrgID,
+		Total:    len(imp.BatchIDs),
+		QueuedOn: dates.Now(),
+	})
 
 	// create tasks for all batches
 	for _, bID := range imp.BatchIDs {
