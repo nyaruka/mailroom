@@ -1,3 +1,8 @@
+v26.3.48 (2026-08-24)
+-------------------------
+ * Delete channel logs of deleted messages from DynamoDB
+ * Restructure mrindex command into mrelastic and add contacts prune mode
+
 v26.3.47 (2026-08-19)
 -------------------------
  * Add an index of in-flight batch task sets, readable via tasks.GetBatchTasks
