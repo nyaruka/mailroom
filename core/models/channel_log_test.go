@@ -9,6 +9,7 @@ import (
 	"github.com/nyaruka/gocommon/httpx"
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/gocommon/svclogs"
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/testsuite"
 	"github.com/nyaruka/mailroom/v26/testsuite/testdb"
@@ -71,4 +72,43 @@ func TestChannelLogsOutgoing(t *testing.T) {
 
 		assert.NotContains(t, string(jsonx.MustMarshal(data)), "sesame", "redacted value should not be present in DynamoDB log")
 	}
+}
+
+func TestDeleteChannelLogsForMessages(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	putLog := func(logUUID svclogs.UUID) {
+		item := &dynamo.Item{
+			Key:   models.ChannelLogDynamoKey(testdb.TwilioChannel.UUID, logUUID),
+			OrgID: int(testdb.Org1.ID),
+			Data:  map[string]any{"type": "msg_receive"},
+		}
+		require.NoError(t, dynamo.PutItem(ctx, rt.Dynamo.Main.Client(), rt.Dynamo.Main.Table(), item))
+	}
+
+	log1 := svclogs.UUID("0199c4cb-0000-7000-8000-000000000001")
+	log2 := svclogs.UUID("0199c4cb-0000-7000-8000-000000000002")
+	log3 := svclogs.UUID("0199c4cb-0000-7000-8000-000000000003")
+	putLog(log1)
+	putLog(log2)
+	putLog(log3)
+
+	msg1 := testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199c4cb-f111-7ce8-9ce9-614d61a2c198", testdb.TwilioChannel, testdb.Ann, "hello world", models.MsgStatusHandled, "")
+	msg2 := testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199c4cf-486a-79af-9892-79254b6ac5b7", testdb.TwilioChannel, testdb.Ann, "goodbye world", models.MsgStatusHandled, "")
+	msg3 := testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199c4d0-93b6-7420-a8dc-b53c94e2f1d3", testdb.TwilioChannel, testdb.Ann, "no logs", models.MsgStatusHandled, "")
+
+	rt.DB.MustExec(`UPDATE msgs_msg SET log_uuids = ARRAY[$2, $3]::uuid[] WHERE id = $1`, msg1.ID, log1, log2)
+	rt.DB.MustExec(`UPDATE msgs_msg SET log_uuids = ARRAY[$2]::uuid[] WHERE id = $1`, msg2.ID, log3)
+
+	// deleting logs for msg1 and msg3 (no logs) should leave just msg2's log
+	err := models.DeleteChannelLogsForMessages(ctx, rt, testdb.Org1.ID, []events.EventUUID{msg1.UUID, msg3.UUID})
+	assert.NoError(t, err)
+
+	rt.Dynamo.Main.Flush()
+
+	dyntest.AssertCount(t, rt.Dynamo.Main.Client(), rt.Dynamo.Main.Table(), 1)
+
+	item, err := dynamo.GetItem(ctx, rt.Dynamo.Main.Client(), rt.Dynamo.Main.Table(), models.ChannelLogDynamoKey(testdb.TwilioChannel.UUID, log3))
+	require.NoError(t, err)
+	assert.NotNil(t, item)
 }
