@@ -4,7 +4,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/nyaruka/gocommon/aws/dynamo"
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
+	"github.com/nyaruka/gocommon/svclogs"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/tasks/ctasks"
 	"github.com/nyaruka/mailroom/v26/testsuite"
@@ -20,8 +22,21 @@ func TestMsgDeleted(t *testing.T) {
 
 	ann, _, _ := testdb.Ann.Load(t, rt, oa)
 
-	testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199c4cb-f111-7ce8-9ce9-614d61a2c198", testdb.TwilioChannel, testdb.Ann, "hello world", models.MsgStatusHandled, "")
-	testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199c4cf-486a-79af-9892-79254b6ac5b7", testdb.TwilioChannel, testdb.Ann, "goodbye world", models.MsgStatusHandled, "")
+	msg1 := testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199c4cb-f111-7ce8-9ce9-614d61a2c198", testdb.TwilioChannel, testdb.Ann, "hello world", models.MsgStatusHandled, "")
+	msg2 := testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199c4cf-486a-79af-9892-79254b6ac5b7", testdb.TwilioChannel, testdb.Ann, "goodbye world", models.MsgStatusHandled, "")
+
+	// give each message a channel log in DynamoDB
+	putLog := func(msg *testdb.MsgIn, logUUID svclogs.UUID) {
+		item := &dynamo.Item{
+			Key:   models.ChannelLogDynamoKey(testdb.TwilioChannel.UUID, logUUID),
+			OrgID: int(testdb.Org1.ID),
+			Data:  map[string]any{"type": "msg_receive"},
+		}
+		require.NoError(t, dynamo.PutItem(ctx, rt.Dynamo.Main.Client(), rt.Dynamo.Main.Table(), item))
+		rt.DB.MustExec(`UPDATE msgs_msg SET log_uuids = ARRAY[$2]::uuid[] WHERE id = $1`, msg.ID, logUUID)
+	}
+	putLog(msg1, "0199c4cb-0000-7000-8000-000000000001")
+	putLog(msg2, "0199c4cb-0000-7000-8000-000000000002")
 
 	rt.DB.MustExec(`UPDATE contacts_contact SET last_seen_on = NOW() WHERE id = $1`, testdb.Ann.ID)
 
@@ -46,6 +61,17 @@ func TestMsgDeleted(t *testing.T) {
 	msgs = testsuite.GetIndexedMessages(t, rt, false)
 	assert.Len(t, msgs, 1)
 	assert.Equal(t, "0199c4cf-486a-79af-9892-79254b6ac5b7", msgs[0].ID)
+
+	// deleted message's channel log should be deleted from DynamoDB, other should remain
+	rt.Dynamo.Main.Flush()
+
+	item, err := dynamo.GetItem(ctx, rt.Dynamo.Main.Client(), rt.Dynamo.Main.Table(), models.ChannelLogDynamoKey(testdb.TwilioChannel.UUID, "0199c4cb-0000-7000-8000-000000000001"))
+	require.NoError(t, err)
+	assert.Nil(t, item)
+
+	item, err = dynamo.GetItem(ctx, rt.Dynamo.Main.Client(), rt.Dynamo.Main.Table(), models.ChannelLogDynamoKey(testdb.TwilioChannel.UUID, "0199c4cb-0000-7000-8000-000000000002"))
+	require.NoError(t, err)
+	assert.NotNil(t, item)
 
 	items := testsuite.GetHistoryItems(t, rt, false, time.Time{})
 	if assert.Equal(t, 2, len(items)) {

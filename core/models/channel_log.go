@@ -1,12 +1,17 @@
 package models
 
 import (
+	"context"
 	"fmt"
 	"time"
 
+	"github.com/lib/pq"
 	"github.com/nyaruka/gocommon/aws/dynamo"
 	"github.com/nyaruka/gocommon/httpx"
 	"github.com/nyaruka/gocommon/svclogs"
+	"github.com/nyaruka/goflow/assets"
+	"github.com/nyaruka/goflow/core/events"
+	"github.com/nyaruka/mailroom/v26/runtime"
 )
 
 const (
@@ -43,11 +48,16 @@ func newChannelLog(t svclogs.Type, ch *Channel, r *httpx.Recorder, redactVals []
 	}
 }
 
-func (l *ChannelLog) DynamoKey() dynamo.Key {
+// ChannelLogDynamoKey returns the DynamoDB key for the channel log with the given UUID
+func ChannelLogDynamoKey(channelUUID assets.ChannelUUID, logUUID svclogs.UUID) dynamo.Key {
 	return dynamo.Key{
-		PK: fmt.Sprintf("cha#%s#%s", l.channel.UUID(), l.UUID[35:36]), // 16 buckets for each channel,
-		SK: fmt.Sprintf("log#%s", l.UUID),
+		PK: fmt.Sprintf("cha#%s#%s", channelUUID, logUUID[35:36]), // 16 buckets for each channel,
+		SK: fmt.Sprintf("log#%s", logUUID),
 	}
+}
+
+func (l *ChannelLog) DynamoKey() dynamo.Key {
+	return ChannelLogDynamoKey(l.channel.UUID(), l.UUID)
 }
 
 func (l *ChannelLog) MarshalDynamo() (*dynamo.Item, error) {
@@ -75,4 +85,34 @@ func (l *ChannelLog) MarshalDynamo() (*dynamo.Item, error) {
 		},
 		DataGZ: dataGZ,
 	}, nil
+}
+
+const sqlSelectMsgChannelLogs = `
+SELECT c.uuid, m.log_uuids
+  FROM msgs_msg m
+  JOIN channels_channel c ON c.id = m.channel_id
+ WHERE m.org_id = $1 AND m.uuid = ANY($2) AND cardinality(m.log_uuids) > 0`
+
+// DeleteChannelLogsForMessages deletes from DynamoDB the channel logs of the given messages
+func DeleteChannelLogsForMessages(ctx context.Context, rt *runtime.Runtime, orgID OrgID, msgUUIDs []events.EventUUID) error {
+	rows, err := rt.DB.QueryContext(ctx, sqlSelectMsgChannelLogs, orgID, pq.Array(msgUUIDs))
+	if err != nil {
+		return fmt.Errorf("error querying channel logs of messages: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var channelUUID assets.ChannelUUID
+		var logUUIDs pq.StringArray
+		if err := rows.Scan(&channelUUID, &logUUIDs); err != nil {
+			return fmt.Errorf("error scanning channel log row: %w", err)
+		}
+		for _, logUUID := range logUUIDs {
+			if _, err := rt.Dynamo.Main.QueueDelete(ChannelLogDynamoKey(channelUUID, svclogs.UUID(logUUID))); err != nil {
+				return fmt.Errorf("error queuing channel log deletion to writer: %w", err)
+			}
+		}
+	}
+
+	return rows.Err()
 }
