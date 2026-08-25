@@ -23,7 +23,6 @@ type Config struct {
 	ReadonlyDB string `validate:"omitempty,url,startswith=postgres:" help:"URL of optional connection to readonly database instance"`
 	DBPoolSize int    `                                              help:"the size of our db pool"`
 	Valkey     string `validate:"url,startswith=valkey:"             help:"URL for your Valkey instance"`
-	SentryDSN  string `                                              help:"the DSN used for logging errors to Sentry"`
 
 	InternetAddress  string `help:"the address to bind our internet facing web server to, empty means all interfaces"`
 	InternetPort     int    `help:"the port to bind our internet facing web server to"`

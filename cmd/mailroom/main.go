@@ -36,5 +36,5 @@ var (
 )
 
 func main() {
-	cmd.Run(cmd.Service(runtime.NewDefaultConfig(), version, date))
+	cmd.Run(cmd.Service(runtime.NewDefaultConfig(), version, date, cmd.LogHandler()))
 }

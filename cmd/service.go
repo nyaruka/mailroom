@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/appleboy/go-fcm"
-	"github.com/getsentry/sentry-go"
 	"github.com/nyaruka/gocommon/uuids"
 	"github.com/nyaruka/mailroom/v26/core/crons"
 	"github.com/nyaruka/mailroom/v26/core/models"
@@ -21,13 +20,12 @@ import (
 	"github.com/nyaruka/mailroom/v26/runtime"
 	"github.com/nyaruka/mailroom/v26/services/embeddings/intfloat"
 	"github.com/nyaruka/mailroom/v26/web"
-	slogmulti "github.com/samber/slog-multi"
-	slogsentry "github.com/samber/slog-sentry/v2"
 )
 
 // Service starts the mailroom service, blocks until a termination signal is received, then stops it. Configuration
-// is loaded on top of the given defaults, e.g. runtime.NewDefaultConfig().
-func Service(defaults *runtime.Config, version, date string) error {
+// is loaded on top of the given defaults, e.g. runtime.NewDefaultConfig(). All logging is sent to the given handler,
+// e.g. LogHandler(), whose level is set from the loaded config.
+func Service(defaults *runtime.Config, version, date string, logHandler slog.Handler) error {
 	cfg, err := runtime.LoadConfig(defaults)
 	if err != nil {
 		return err
@@ -35,25 +33,8 @@ func Service(defaults *runtime.Config, version, date string) error {
 	cfg.Version = version
 
 	// configure our logger
-	logHandler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: cfg.LogLevel})
+	logLevel.Set(cfg.LogLevel)
 	slog.SetDefault(slog.New(logHandler))
-
-	// if we have a DSN entry, try to initialize it
-	if cfg.SentryDSN != "" {
-		err := sentry.Init(sentry.ClientOptions{Dsn: cfg.SentryDSN, Release: version, AttachStacktrace: true})
-		if err != nil {
-			return err
-		}
-
-		defer sentry.Flush(2 * time.Second)
-
-		slog.SetDefault(slog.New(
-			slogmulti.Fanout(
-				logHandler,
-				slogsentry.Option{Level: slog.LevelError}.NewSentryHandler(),
-			),
-		))
-	}
 
 	log := slog.With("comp", "main")
 	log.Info("starting mailroom", "version", version, "released", date)

@@ -4,12 +4,11 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"runtime/debug"
 	"strconv"
 	"time"
 
-	"github.com/getsentry/sentry-go"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/nyaruka/mailroom/v26/runtime"
 )
 
 func requestLogger(listener string) func(http.Handler) http.Handler {
@@ -36,18 +35,13 @@ func requestLogger(listener string) func(http.Handler) http.Handler {
 	}
 }
 
-// recovers from panics, logs them to sentry and returns an HTTP 500 response
+// recovers from panics, reports them and returns an HTTP 500 response
 func panicRecovery(listener string) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			defer func() {
 				if panicVal := recover(); panicVal != nil {
-					debug.PrintStack()
-
-					sentry.CurrentHub().WithScope(func(scope *sentry.Scope) {
-						scope.SetTag("listener", listener)
-						sentry.CurrentHub().Recover(panicVal)
-					})
+					runtime.PanicHandler(panicVal, map[string]string{"listener": listener})
 
 					http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 				}

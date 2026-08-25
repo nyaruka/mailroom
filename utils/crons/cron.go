@@ -4,11 +4,9 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"runtime/debug"
 	"sync"
 	"time"
 
-	"github.com/getsentry/sentry-go"
 	"github.com/nyaruka/mailroom/v26/runtime"
 	"github.com/nyaruka/vkutil/locks"
 )
@@ -58,7 +56,7 @@ func Start(rt *runtime.Runtime, wg *sync.WaitGroup, name string, cronFunc Functi
 				}
 
 				// ok, got the lock, run our cron function
-				if err := fireCron(rt, cronFunc, timeout); err != nil {
+				if err := fireCron(rt, name, cronFunc, timeout); err != nil {
 					log.Error("error while running cron", "error", err)
 				}
 
@@ -78,16 +76,14 @@ func Start(rt *runtime.Runtime, wg *sync.WaitGroup, name string, cronFunc Functi
 
 // fireCron is just a wrapper around the cron function we will call for the purposes of
 // catching and logging panics
-func fireCron(rt *runtime.Runtime, cronFunc Function, timeout time.Duration) error {
+func fireCron(rt *runtime.Runtime, name string, cronFunc Function, timeout time.Duration) error {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
 
 	defer func() {
 		// catch any panics and recover
 		if panicVal := recover(); panicVal != nil {
-			debug.PrintStack()
-
-			sentry.CurrentHub().Recover(panicVal)
+			runtime.PanicHandler(panicVal, map[string]string{"cron": name})
 		}
 	}()
 
