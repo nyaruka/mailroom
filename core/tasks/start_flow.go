@@ -47,7 +47,7 @@ func (t *StartFlow) Perform(ctx context.Context, rt *runtime.Runtime, oa *models
 	if err := createFlowStartBatches(ctx, rt, oa, t.FlowStart); err != nil {
 		t.FlowStart.SetFailed(ctx, rt.DB)
 
-		// if error is user created query error.. don't escalate error to sentry
+		// if error is user created query error.. don't treat it as a task error
 		isQueryError, _ := contactql.IsQueryError(err)
 		if !isQueryError {
 			return err

@@ -49,7 +49,7 @@ func (t *SendBroadcast) Perform(ctx context.Context, rt *runtime.Runtime, oa *mo
 	if err := createBroadcastBatches(ctx, rt, oa, t.Broadcast); err != nil {
 		t.Broadcast.SetFailed(ctx, rt.DB)
 
-		// if error is user created query error.. don't escalate error to sentry
+		// if error is user created query error.. don't treat it as a task error
 		isQueryError, _ := contactql.IsQueryError(err)
 		if !isQueryError {
 			return err

@@ -27,11 +27,11 @@ func handleError(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 	switch event.Code {
 	case events.ErrorCodeExpressionTooComplex:
 		// exceeding the expression cost budget should be effectively impossible, so if it ever happens we want to know
-		// about it rather than let it silently degrade a message - error level is fanned out to sentry
+		// about it rather than let it silently degrade a message - hence logging at error level
 		log.Error("expression exceeded cost budget", "expression", event.Extra["expression"])
 	case events.ErrorCodeWebhookRequestSize:
 		// requests exceeding the size limit are never sent, which can silently break flows that previously worked,
-		// so we want to know when that's happening - error level is fanned out to sentry
+		// so we want to know when that's happening - hence logging at error level
 		log.Error("webhook request size limit exceeded")
 	default:
 		log.Debug("error event", "code", event.Code)
