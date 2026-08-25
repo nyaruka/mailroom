@@ -1,3 +1,8 @@
+v26.3.50 (2026-08-25)
+-------------------------
+ * Fix resent messages reporting pending status instead of queued
+ * Write and maintain the denormalized folder column on messages
+
 v26.3.49 (2026-08-25)
 -------------------------
  * Remove Sentry in favor of a panic handler hook and pluggable log handler
