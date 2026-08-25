@@ -174,9 +174,64 @@ func TestNewOutgoingFlowMsg(t *testing.T) {
 	// check nil failed reasons are saved as NULLs
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE failed_reason IS NOT NULL`).Returns(2)
 
+	// every message we insert gets a folder - queued messages go to the outbox, unsendable ones straight to failed
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE folder IS NULL`).Returns(0)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE status = 'Q' AND folder != 'O'`).Returns(0)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE status = 'F' AND folder != 'X'`).Returns(0)
+
 	// check writing of quick replies
 	assertdb.Query(t, rt.DB, `SELECT quickreplies::text FROM msgs_msg WHERE id = 30000`).Returns(`[{"text": "yes", "type": "text", "extra": "if you want"}, {"text": "no", "type": "text"}]`)
 	assertdb.Query(t, rt.DB, `SELECT quickreplies FROM msgs_msg WHERE id = 30001`).Returns(nil)
+}
+
+func TestDeriveMsgFolder(t *testing.T) {
+	const in, out = models.DirectionIn, models.DirectionOut
+	const visible, archived = models.VisibilityVisible, models.VisibilityArchived
+	const delUser, delSender = models.VisibilityDeletedByUser, models.VisibilityDeletedBySender
+
+	tcs := []struct {
+		direction  models.Direction
+		status     models.MsgStatus
+		visibility models.MsgVisibility
+		hasFlow    bool
+		expected   models.MsgFolder
+	}{
+		{in, models.MsgStatusHandled, visible, false, models.MsgFolderInbox},
+		{in, models.MsgStatusHandled, visible, true, models.MsgFolderHandled},
+		{in, models.MsgStatusHandled, archived, false, models.MsgFolderArchived},
+		{in, models.MsgStatusHandled, archived, true, models.MsgFolderArchived}, // flow is irrelevant once archived
+		{in, models.MsgStatusPending, visible, false, models.MsgFolderPending},
+		{out, models.MsgStatusInitializing, visible, false, models.MsgFolderOutbox},
+		{out, models.MsgStatusQueued, visible, false, models.MsgFolderOutbox},
+		{out, models.MsgStatusErrored, visible, false, models.MsgFolderOutbox},
+		{out, models.MsgStatusWired, visible, false, models.MsgFolderSent},
+		{out, models.MsgStatusSent, visible, false, models.MsgFolderSent},
+		{out, models.MsgStatusDelivered, visible, false, models.MsgFolderSent},
+		{out, models.MsgStatusRead, visible, false, models.MsgFolderSent},
+		{out, models.MsgStatusFailed, visible, false, models.MsgFolderFailed},
+
+		// deleted takes precedence over everything else
+		{in, models.MsgStatusHandled, delUser, false, models.MsgFolderDeleted},
+		{in, models.MsgStatusHandled, delSender, true, models.MsgFolderDeleted},
+		{in, models.MsgStatusPending, delUser, false, models.MsgFolderDeleted},   // deleted whilst still pending
+		{in, models.MsgStatusPending, delSender, false, models.MsgFolderDeleted}, // deleted whilst still pending
+		{out, models.MsgStatusSent, delUser, false, models.MsgFolderDeleted},
+
+		// pending takes precedence over the user facing folders, so an archived message which hasn't been handled
+		// yet is pending rather than archived
+		{in, models.MsgStatusPending, archived, false, models.MsgFolderPending},
+	}
+
+	for i, tc := range tcs {
+		actual := models.DeriveMsgFolder(tc.direction, tc.status, tc.visibility, tc.hasFlow)
+		assert.Equal(t, tc.expected, actual, "%d: folder mismatch for %s/%s/%s", i, tc.direction, tc.status, tc.visibility)
+	}
+
+	// states which shouldn't exist panic rather than leaving a message in no folder
+	assert.Panics(t, func() { models.DeriveMsgFolder(out, models.MsgStatusHandled, visible, false) })
+	assert.Panics(t, func() { models.DeriveMsgFolder(out, models.MsgStatusPending, visible, false) }) // incoming only status
+	assert.Panics(t, func() { models.DeriveMsgFolder(out, models.MsgStatusSent, archived, false) })
+	assert.Panics(t, func() { models.DeriveMsgFolder(in, models.MsgStatusErrored, visible, false) })
 }
 
 func TestGetMessagesByUUID(t *testing.T) {
@@ -255,16 +310,16 @@ func TestResendMessages(t *testing.T) {
 	assert.Equal(t, testdb.TwilioChannel.ID, resent[2].ChannelID()) // channel added
 	assert.NotNil(t, resent[2].URN)
 
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE status = 'Q' AND sent_on IS NULL`).Returns(3)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE status = 'Q' AND folder = 'O' AND sent_on IS NULL`).Returns(3)
 
-	assertdb.Query(t, rt.DB, `SELECT status, failed_reason FROM msgs_msg WHERE id = $1`, out4.ID).Columns(map[string]any{"status": "F", "failed_reason": "D"})
-	assertdb.Query(t, rt.DB, `SELECT status, failed_reason FROM msgs_msg WHERE id = $1`, out5.ID).Columns(map[string]any{"status": "F", "failed_reason": "D"})
+	assertdb.Query(t, rt.DB, `SELECT status, folder, failed_reason FROM msgs_msg WHERE id = $1`, out4.ID).Columns(map[string]any{"status": "F", "folder": "X", "failed_reason": "D"})
+	assertdb.Query(t, rt.DB, `SELECT status, folder, failed_reason FROM msgs_msg WHERE id = $1`, out5.ID).Columns(map[string]any{"status": "F", "folder": "X", "failed_reason": "D"})
 }
 
 func TestFailMessages(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	testdb.InsertOutgoingMsg(t, rt, testdb.Org1, "0199bad8-f98d-75a3-b641-2718a25ac3f5", testdb.TwilioChannel, testdb.Ann, "hi", nil, models.MsgStatusPending, false)
+	testdb.InsertOutgoingMsg(t, rt, testdb.Org1, "0199bad8-f98d-75a3-b641-2718a25ac3f5", testdb.TwilioChannel, testdb.Ann, "hi", nil, models.MsgStatusQueued, false)
 	testdb.InsertOutgoingMsg(t, rt, testdb.Org1, "0199bad9-9791-770d-a47d-8f4a6ea3ad13", testdb.TwilioChannel, testdb.Bob, "hi", nil, models.MsgStatusErrored, false)
 	out3 := testdb.InsertOutgoingMsg(t, rt, testdb.Org1, "0199bb93-ec0f-703e-9b5b-d26d4b6b133c", testdb.TwilioChannel, testdb.Ann, "hi", nil, models.MsgStatusFailed, false)
 	testdb.InsertOutgoingMsg(t, rt, testdb.Org1, "0199bb94-1134-75d6-91dc-8aee7787f703", testdb.TwilioChannel, testdb.Ann, "hi", nil, models.MsgStatusQueued, false)
@@ -278,6 +333,7 @@ func TestFailMessages(t *testing.T) {
 
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE status = 'F' AND modified_on > $1`, now).Returns(4)
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE status = 'F' AND failed_reason = 'R' AND modified_on > $1`, now).Returns(4)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE folder = 'X'`).Returns(5) // including the already failed one
 	assertdb.Query(t, rt.DB, `SELECT status, failed_reason FROM msgs_msg WHERE id = $1`, out3.ID).Columns(map[string]any{"status": "F", "failed_reason": nil})
 }
 
@@ -298,7 +354,7 @@ func TestDeleteMessages(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NoError(t, tx.Commit())
 
-	assertdb.Query(t, rt.DB, `SELECT visibility, text FROM msgs_msg WHERE id = $1`, in1.ID).Columns(map[string]any{"visibility": "X", "text": ""})
+	assertdb.Query(t, rt.DB, `SELECT visibility, folder, text FROM msgs_msg WHERE id = $1`, in1.ID).Columns(map[string]any{"visibility": "X", "folder": "D", "text": ""})
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg_labels WHERE msg_id = $1`, in1.ID).Returns(0)
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg_labels WHERE msg_id = $1`, in2.ID).Returns(2) // unchanged
 
@@ -308,8 +364,8 @@ func TestDeleteMessages(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NoError(t, tx.Commit())
 
-	assertdb.Query(t, rt.DB, `SELECT visibility, text FROM msgs_msg WHERE id = $1`, in3.ID).Columns(map[string]any{"visibility": "D", "text": ""})
-	assertdb.Query(t, rt.DB, `SELECT visibility, text FROM msgs_msg WHERE id = $1`, in4.ID).Columns(map[string]any{"visibility": "D", "text": ""})
+	assertdb.Query(t, rt.DB, `SELECT visibility, folder, text FROM msgs_msg WHERE id = $1`, in3.ID).Columns(map[string]any{"visibility": "D", "folder": "D", "text": ""})
+	assertdb.Query(t, rt.DB, `SELECT visibility, folder, text FROM msgs_msg WHERE id = $1`, in4.ID).Columns(map[string]any{"visibility": "D", "folder": "D", "text": ""})
 
 	tx = rt.DB.MustBegin()
 
@@ -318,7 +374,7 @@ func TestDeleteMessages(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NoError(t, tx.Commit())
 
-	assertdb.Query(t, rt.DB, `SELECT visibility, text FROM msgs_msg WHERE id = $1`, out1.ID).Columns(map[string]any{"visibility": "V", "text": "hi"})
+	assertdb.Query(t, rt.DB, `SELECT visibility, folder, text FROM msgs_msg WHERE id = $1`, out1.ID).Columns(map[string]any{"visibility": "V", "folder": "S", "text": "hi"})
 }
 
 func TestGetMsgRepetitions(t *testing.T) {
@@ -396,6 +452,7 @@ func TestMarkMessages(t *testing.T) {
 	models.MarkMessagesForRequeuing(ctx, rt.DB, []*models.Msg{msg1, msg2})
 
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE status = 'I'`).Returns(2)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE folder = 'O'`).Returns(3) // all still in outbox
 
 	// try running on database with BIGINT message ids
 	rt.DB.MustExec(`ALTER SEQUENCE "msgs_msg_id_seq" AS bigint;`)
@@ -419,6 +476,7 @@ func TestMarkMessages(t *testing.T) {
 
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE status = 'I'`).Returns(2)
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE status = 'Q'`).Returns(2)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE folder = 'O'`).Returns(4)
 }
 
 func TestNewIVRMessages(t *testing.T) {
@@ -450,8 +508,8 @@ func TestNewIVRMessages(t *testing.T) {
 	err = models.InsertMessages(ctx, rt.DB, []*models.Msg{dbOut})
 	require.NoError(t, err)
 
-	assertdb.Query(t, rt.DB, `SELECT text, status, msg_type, flow_id FROM msgs_msg WHERE uuid = $1`, dbOut.UUID()).
-		Columns(map[string]any{"text": "Hello", "status": "W", "msg_type": "V", "flow_id": testdb.Favorites.ID})
+	assertdb.Query(t, rt.DB, `SELECT text, status, folder, msg_type, flow_id FROM msgs_msg WHERE uuid = $1`, dbOut.UUID()).
+		Columns(map[string]any{"text": "Hello", "status": "W", "folder": "S", "msg_type": "V", "flow_id": testdb.Favorites.ID})
 
 	flowIn := core.NewMsgIn(testdb.Ann.URN, vonage.Reference(), "1", nil, "", nil)
 	eventIn := events.NewMsgReceived(flowIn, "")
@@ -465,8 +523,8 @@ func TestNewIVRMessages(t *testing.T) {
 	err = models.InsertMessages(ctx, rt.DB, []*models.Msg{dbIn})
 	require.NoError(t, err)
 
-	assertdb.Query(t, rt.DB, `SELECT text, status, msg_type, flow_id FROM msgs_msg WHERE uuid = $1`, dbIn.UUID()).
-		Columns(map[string]any{"text": "1", "status": "H", "msg_type": "V", "flow_id": testdb.Favorites.ID})
+	assertdb.Query(t, rt.DB, `SELECT text, status, folder, msg_type, flow_id FROM msgs_msg WHERE uuid = $1`, dbIn.UUID()).
+		Columns(map[string]any{"text": "1", "status": "H", "folder": "W", "msg_type": "V", "flow_id": testdb.Favorites.ID})
 }
 
 func TestCreateMsgOut(t *testing.T) {

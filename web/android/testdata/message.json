@@ -42,7 +42,7 @@
         },
         "db_assertions": [
             {
-                "query": "SELECT count(*) FROM msgs_msg WHERE direction = 'I' and contact_id = 10000 AND text = 'Hello'",
+                "query": "SELECT count(*) FROM msgs_msg WHERE direction = 'I' and contact_id = 10000 AND text = 'Hello' AND folder = 'P'",
                 "returns": 1
             }
         ],

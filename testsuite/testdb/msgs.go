@@ -61,8 +61,9 @@ func InsertIncomingMsg(t *testing.T, rt *runtime.Runtime, org *Org, uuid events.
 
 	var id models.MsgID
 	err = rt.DB.Get(&id,
-		`INSERT INTO msgs_msg(uuid, text, created_on, modified_on, direction, msg_type, status, visibility, msg_count, error_count, next_attempt, contact_id, contact_urn_id, org_id, channel_id, ticket_uuid, is_android)
-	  	 VALUES($1, $2, $3, NOW(), 'I', $4, $5, 'V', 1, 0, NOW(), $6, $7, $8, $9, $10, FALSE) RETURNING id`, uuid, text, createdOn, models.MsgTypeText, status, contact.ID, contact.URNID, org.ID, channel.ID, null.String(ticketUUID),
+		`INSERT INTO msgs_msg(uuid, text, created_on, modified_on, direction, msg_type, status, visibility, folder, msg_count, error_count, next_attempt, contact_id, contact_urn_id, org_id, channel_id, ticket_uuid, is_android)
+	  	 VALUES($1, $2, $3, NOW(), 'I', $4, $5, 'V', $6, 1, 0, NOW(), $7, $8, $9, $10, $11, FALSE) RETURNING id`, uuid, text, createdOn, models.MsgTypeText, status,
+		models.DeriveMsgFolder(models.DirectionIn, status, models.VisibilityVisible, false), contact.ID, contact.URNID, org.ID, channel.ID, null.String(ticketUUID),
 	)
 	require.NoError(t, err)
 
@@ -98,9 +99,10 @@ func insertOutgoingMsg(t *testing.T, rt *runtime.Runtime, org *Org, uuid events.
 
 	var id models.MsgID
 	err := rt.DB.Get(&id,
-		`INSERT INTO msgs_msg(uuid, text, attachments, locale, created_on, modified_on, direction, msg_type, status, visibility, contact_id, contact_urn_id, org_id, channel_id, sent_on, msg_count, error_count, next_attempt, high_priority, is_android)
-	  	 VALUES($1, $2, $3, $4, NOW(), NOW(), 'O', $5, $6, 'V', $7, $8, $9, $10, $11, 1, $12, $13, $14, FALSE) RETURNING id`,
-		uuid, text, pq.Array(attachments), locale, typ, status, contact.ID, contact.URNID, org.ID, channelID, sentOn, errorCount, nextAttempt, highPriority,
+		`INSERT INTO msgs_msg(uuid, text, attachments, locale, created_on, modified_on, direction, msg_type, status, visibility, folder, contact_id, contact_urn_id, org_id, channel_id, sent_on, msg_count, error_count, next_attempt, high_priority, is_android)
+	  	 VALUES($1, $2, $3, $4, NOW(), NOW(), 'O', $5, $6, 'V', $7, $8, $9, $10, $11, $12, 1, $13, $14, $15, FALSE) RETURNING id`,
+		uuid, text, pq.Array(attachments), locale, typ, status, models.DeriveMsgFolder(models.DirectionOut, status, models.VisibilityVisible, false),
+		contact.ID, contact.URNID, org.ID, channelID, sentOn, errorCount, nextAttempt, highPriority,
 	)
 	require.NoError(t, err)
 

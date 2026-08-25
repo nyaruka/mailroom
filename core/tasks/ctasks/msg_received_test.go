@@ -317,7 +317,7 @@ func TestMsgReceivedTask(t *testing.T) {
 		models.FlushCache()
 
 		// reset our dummy db message into an unhandled state
-		rt.DB.MustExec(`UPDATE msgs_msg SET status = 'P', flow_id = NULL WHERE id = $1`, dbMsg.ID)
+		rt.DB.MustExec(`UPDATE msgs_msg SET status = 'P', folder = 'P', flow_id = NULL WHERE id = $1`, dbMsg.ID)
 
 		// get current last_seeon_on for this contact
 		lastSeenOn := getLastSeenOn(t, rt, tc.contact)
@@ -342,9 +342,11 @@ func TestMsgReceivedTask(t *testing.T) {
 		}
 
 		if tc.contact != deleted {
-			// check that message is marked as handled
-			assertdb.Query(t, rt.DB, `SELECT status, visibility, msg_type, flow_id FROM msgs_msg WHERE id = $1`, dbMsg.ID).
-				Columns(map[string]any{"status": "H", "visibility": string(tc.expectedVisibility), "msg_type": "T", "flow_id": expectedFlowID}, "%d: msg state mismatch", i)
+			// check that message is marked as handled and moved into the right folder
+			expectedFolder := models.DeriveMsgFolder(models.DirectionIn, models.MsgStatusHandled, tc.expectedVisibility, tc.expectedFlow != nil)
+
+			assertdb.Query(t, rt.DB, `SELECT status, visibility, folder, msg_type, flow_id FROM msgs_msg WHERE id = $1`, dbMsg.ID).
+				Columns(map[string]any{"status": "H", "visibility": string(tc.expectedVisibility), "folder": string(expectedFolder), "msg_type": "T", "flow_id": expectedFlowID}, "%d: msg state mismatch", i)
 
 			// check that last_seen_on was updated
 			newLastSeenOn := getLastSeenOn(t, rt, tc.contact)
@@ -583,7 +585,7 @@ func TestMsgReceivedNewURN(t *testing.T) {
 				tc.preHook()
 			}
 
-			rt.DB.MustExec(`UPDATE msgs_msg SET status = 'P', flow_id = NULL WHERE id = $1`, dbMsg.ID)
+			rt.DB.MustExec(`UPDATE msgs_msg SET status = 'P', folder = 'P', flow_id = NULL WHERE id = $1`, dbMsg.ID)
 
 			task := &ctasks.MsgReceived{
 				ChannelID: tc.channel.ID,
