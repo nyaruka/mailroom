@@ -87,6 +87,58 @@ const (
 	MsgStatusFailed       = MsgStatus("F") // outgoing msg which has failed permanently
 )
 
+// MsgFolder is the denormalized folder that a message belongs to, stored on the message itself so that fetching a
+// folder's messages is a single equality. Every message belongs to exactly one folder - the last two codes exist so
+// that a null folder column means only "not yet written".
+type MsgFolder string
+
+const (
+	MsgFolderInbox    = MsgFolder("I") // incoming, visible, handled, no flow
+	MsgFolderHandled  = MsgFolder("W") // incoming, visible, handled, has flow
+	MsgFolderArchived = MsgFolder("A") // incoming, archived, handled
+	MsgFolderOutbox   = MsgFolder("O") // outgoing, visible, initializing/queued/errored
+	MsgFolderSent     = MsgFolder("S") // outgoing, visible, wired/sent/delivered/read
+	MsgFolderFailed   = MsgFolder("X") // outgoing, visible, failed
+	MsgFolderPending  = MsgFolder("P") // incoming, not yet handled
+	MsgFolderDeleted  = MsgFolder("D") // deleted by the user or by the sender
+)
+
+// DeriveMsgFolder derives the folder that a message belongs to. This is a port of Msg.derive_folder in the main
+// codebase and the precedence matters: a message can be archived or deleted whilst still pending, and such messages
+// must not appear in the archived folder. Panics for state combinations that shouldn't exist rather than returning
+// no folder, because a message without a folder can't be found by folder.
+func DeriveMsgFolder(direction Direction, status MsgStatus, visibility MsgVisibility, hasFlow bool) MsgFolder {
+	if visibility == VisibilityDeletedByUser || visibility == VisibilityDeletedBySender {
+		return MsgFolderDeleted
+	}
+
+	if direction == DirectionIn {
+		switch status {
+		case MsgStatusPending:
+			return MsgFolderPending
+		case MsgStatusHandled:
+			if visibility == VisibilityArchived {
+				return MsgFolderArchived
+			}
+			if hasFlow {
+				return MsgFolderHandled
+			}
+			return MsgFolderInbox
+		}
+	} else if visibility == VisibilityVisible {
+		switch status {
+		case MsgStatusInitializing, MsgStatusQueued, MsgStatusErrored:
+			return MsgFolderOutbox
+		case MsgStatusWired, MsgStatusSent, MsgStatusDelivered, MsgStatusRead:
+			return MsgFolderSent
+		case MsgStatusFailed:
+			return MsgFolderFailed
+		}
+	}
+
+	panic(fmt.Sprintf("unable to derive folder for msg with direction=%s status=%s visibility=%s", direction, status, visibility))
+}
+
 const (
 	UnsendableReasonOrgSuspended core.UnsendableReason = "org_suspended"
 	UnsendableReasonLooping      core.UnsendableReason = "looping"
@@ -171,6 +223,7 @@ type Msg struct {
 		Direction          Direction     `db:"direction"`
 		Status             MsgStatus     `db:"status"`
 		Visibility         MsgVisibility `db:"visibility"`
+		Folder             MsgFolder     `db:"folder"`
 		IsAndroid          bool          `db:"is_android"`
 		MsgType            MsgType       `db:"msg_type"`
 		MsgCount           int           `db:"msg_count"`
@@ -206,6 +259,7 @@ func (m *Msg) SentOn() *time.Time            { return m.m.SentOn }
 func (m *Msg) Direction() Direction          { return m.m.Direction }
 func (m *Msg) Status() MsgStatus             { return m.m.Status }
 func (m *Msg) Visibility() MsgVisibility     { return m.m.Visibility }
+func (m *Msg) Folder() MsgFolder             { return m.m.Folder }
 func (m *Msg) Type() MsgType                 { return m.m.MsgType }
 func (m *Msg) ErrorCount() int               { return m.m.ErrorCount }
 func (m *Msg) NextAttempt() *time.Time       { return m.m.NextAttempt }
@@ -570,7 +624,9 @@ func NormalizeAttachment(cfg *runtime.Config, attachment utils.Attachment) utils
 func InsertMessages(ctx context.Context, tx DBorTx, msgs []*Msg) error {
 	is := make([]any, len(msgs))
 	for i := range msgs {
-		is[i] = &msgs[i].m
+		m := &msgs[i].m
+		m.Folder = DeriveMsgFolder(m.Direction, m.Status, m.Visibility, m.FlowID != NilFlowID)
+		is[i] = m
 	}
 
 	return BulkQuery(ctx, "insert messages", tx, sqlInsertMsgSQL, is)
@@ -579,10 +635,10 @@ func InsertMessages(ctx context.Context, tx DBorTx, msgs []*Msg) error {
 const sqlInsertMsgSQL = `
 INSERT INTO
 msgs_msg(uuid, text, attachments, quickreplies, locale, templating, high_priority, created_on, modified_on, sent_on, direction, status,
-		 visibility, msg_type, msg_count, error_count, next_attempt, failed_reason, channel_id, is_android,
+		 visibility, folder, msg_type, msg_count, error_count, next_attempt, failed_reason, channel_id, is_android,
 		 contact_id, contact_urn_id, org_id, flow_id, broadcast_id, ticket_uuid, created_by_id)
   VALUES(:uuid, :text, :attachments, :quickreplies, :locale, :templating, :high_priority, :created_on, now(), :sent_on, :direction, :status,
-		 :visibility, :msg_type, :msg_count, :error_count, :next_attempt, :failed_reason, :channel_id, :is_android,
+		 :visibility, :folder, :msg_type, :msg_count, :error_count, :next_attempt, :failed_reason, :channel_id, :is_android,
 		 :contact_id, :contact_urn_id, :org_id, :flow_id, :broadcast_id, :ticket_uuid, :created_by_id)
 RETURNING id, modified_on`
 
@@ -598,9 +654,11 @@ func MarkMessageHandled(ctx context.Context, tx DBorTx, msgUUID events.EventUUID
 		ticketUUID = ticket.UUID
 	}
 
+	folder := DeriveMsgFolder(DirectionIn, status, visibility, flowID != NilFlowID)
+
 	_, err := tx.ExecContext(ctx,
-		`UPDATE msgs_msg SET status = $2, visibility = $3, flow_id = $4, ticket_uuid = $5, attachments = $6, log_uuids = array_cat(log_uuids, $7) WHERE uuid = $1`,
-		msgUUID, status, visibility, flowID, null.String(ticketUUID), pq.Array(attachments), pq.Array(logUUIDs),
+		`UPDATE msgs_msg SET status = $2, visibility = $3, folder = $4, flow_id = $5, ticket_uuid = $6, attachments = $7, log_uuids = array_cat(log_uuids, $8) WHERE uuid = $1`,
+		msgUUID, status, visibility, folder, flowID, null.String(ticketUUID), pq.Array(attachments), pq.Array(logUUIDs),
 	)
 	if err != nil {
 		return fmt.Errorf("error marking msg %s as handled: %w", msgUUID, err)
@@ -622,8 +680,8 @@ func MarkMessagesQueued(ctx context.Context, db DBorTx, msgs []*Msg) error {
 
 const sqlUpdateMsgStatus = `
 UPDATE msgs_msg
-   SET status = m.status, next_attempt = m.next_attempt
-  FROM (VALUES(:id::bigint, :status, :next_attempt::timestamptz)) AS m(id, status, next_attempt)
+   SET status = m.status, folder = m.folder, next_attempt = m.next_attempt
+  FROM (VALUES(:id::bigint, :status, :folder, :next_attempt::timestamptz)) AS m(id, status, folder, next_attempt)
  WHERE msgs_msg.id = m.id`
 
 func updateMessageStatus(ctx context.Context, db DBorTx, msgs []*Msg, status MsgStatus, nextAttempt *time.Time) error {
@@ -632,6 +690,7 @@ func updateMessageStatus(ctx context.Context, db DBorTx, msgs []*Msg, status Msg
 		m := &msg.m
 		m.Status = status
 		m.NextAttempt = nextAttempt
+		m.Folder = DeriveMsgFolder(m.Direction, m.Status, m.Visibility, m.FlowID != NilFlowID)
 		is[i] = m
 	}
 
@@ -724,13 +783,13 @@ func PrepareMessagesForRetry(ctx context.Context, db *sqlx.DB, msgs []*Msg) ([]*
 
 const sqlUpdateMsgForResending = `
 UPDATE msgs_msg m
-   SET channel_id = r.channel_id, status = 'Q', error_count = 0, failed_reason = NULL, sent_on = NULL, modified_on = NOW()
+   SET channel_id = r.channel_id, status = 'Q', folder = 'O', error_count = 0, failed_reason = NULL, sent_on = NULL, modified_on = NOW()
   FROM (VALUES(:id::bigint, :channel_id::int)) AS r(id, channel_id)
  WHERE m.id = r.id`
 
 const sqlUpdateMsgResendFailed = `
 UPDATE msgs_msg m
-   SET channel_id = NULL, status = 'F', error_count = 0, failed_reason = 'D', sent_on = NULL, modified_on = NOW()
+   SET channel_id = NULL, status = 'F', folder = 'X', error_count = 0, failed_reason = 'D', sent_on = NULL, modified_on = NOW()
  WHERE id = ANY($1)`
 
 // PrepareMessagesForResend prepares messages for resending by reselecting a channel and marking them as QUEUED
@@ -824,7 +883,7 @@ WITH rows AS (
 	WHERE org_id = $1 AND direction = 'O' AND channel_id = $2 AND status IN ('P', 'Q', 'E') 
 	LIMIT 1000
 )
-UPDATE msgs_msg SET status = 'F', failed_reason = $3, modified_on = NOW() WHERE id IN (SELECT id FROM rows)`
+UPDATE msgs_msg SET status = 'F', folder = 'X', failed_reason = $3, modified_on = NOW() WHERE id IN (SELECT id FROM rows)`
 
 func FailChannelMessages(ctx context.Context, db *sql.DB, orgID OrgID, channelID ChannelID, failedReason MsgFailedReason) error {
 	for {
@@ -922,7 +981,7 @@ func CreateMsgOut(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, c *co
 
 const sqlUpdateMsgDeleted = `
    UPDATE msgs_msg
-      SET visibility = $3, text = '', attachments = '{}'
+      SET visibility = $3, folder = 'D', text = '', attachments = '{}'
     WHERE org_id = $1 AND uuid = ANY($2) AND direction = 'I' AND visibility IN ('V', 'A')
 RETURNING id`
 

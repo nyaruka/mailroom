@@ -56,6 +56,10 @@ func TestMsgDeleted(t *testing.T) {
 		"0199c4cb-f111-7ce8-9ce9-614d61a2c198": "X",
 		"0199c4cf-486a-79af-9892-79254b6ac5b7": "V",
 	})
+	assertdb.Query(t, rt.DB, `SELECT uuid::text, folder FROM msgs_msg`).Map(map[string]any{
+		"0199c4cb-f111-7ce8-9ce9-614d61a2c198": "D",
+		"0199c4cf-486a-79af-9892-79254b6ac5b7": "I",
+	})
 
 	// deleted message should be de-indexed, other should remain
 	msgs = testsuite.GetIndexedMessages(t, rt, false)
