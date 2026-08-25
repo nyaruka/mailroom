@@ -310,6 +310,11 @@ func TestResendMessages(t *testing.T) {
 	assert.Equal(t, testdb.TwilioChannel.ID, resent[2].ChannelID()) // channel added
 	assert.NotNil(t, resent[2].URN)
 
+	// the returned messages should report the status they were actually written with
+	for i, m := range resent {
+		assert.Equal(t, models.MsgStatusQueued, m.Status(), "%d: status mismatch", i)
+	}
+
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE status = 'Q' AND folder = 'O' AND sent_on IS NULL`).Returns(3)
 
 	assertdb.Query(t, rt.DB, `SELECT status, folder, failed_reason FROM msgs_msg WHERE id = $1`, out4.ID).Columns(map[string]any{"status": "F", "folder": "X", "failed_reason": "D"})

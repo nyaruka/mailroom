@@ -839,7 +839,7 @@ func PrepareMessagesForResend(ctx context.Context, rt *runtime.Runtime, oa *OrgA
 
 		if ch != nil {
 			msg.m.ChannelID = ch.ID()
-			msg.m.Status = MsgStatusPending
+			msg.m.Status = MsgStatusQueued
 			msg.m.SentOn = nil
 			msg.m.ErrorCount = 0
 			msg.m.FailedReason = ""
