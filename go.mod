@@ -15,7 +15,6 @@ require (
 	github.com/aws/smithy-go v1.27.6
 	github.com/buger/jsonparser v1.6.1
 	github.com/elastic/go-elasticsearch/v9 v9.5.0
-	github.com/getsentry/sentry-go v0.48.0
 	github.com/go-chi/chi/v5 v5.3.1
 	github.com/go-playground/validator/v10 v10.30.3
 	github.com/golang-jwt/jwt/v5 v5.3.1
@@ -30,8 +29,6 @@ require (
 	github.com/openai/openai-go/v3 v3.50.0
 	github.com/prometheus/client_model v0.6.2
 	github.com/prometheus/common v0.70.1
-	github.com/samber/slog-multi v1.8.0
-	github.com/samber/slog-sentry/v2 v2.11.0
 	github.com/shopspring/decimal v1.4.0
 	github.com/stretchr/testify v1.11.1
 	github.com/vinovest/sqlx v1.7.2
@@ -113,8 +110,6 @@ require (
 	github.com/pb33f/ordered-map/v2 v2.3.1 // indirect
 	github.com/planetscale/vtprotobuf v0.6.1-0.20240319094008-0393e58bdf10 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
-	github.com/samber/lo v1.53.0 // indirect
-	github.com/samber/slog-common v0.22.0 // indirect
 	github.com/sergi/go-diff v1.4.0 // indirect
 	github.com/spiffe/go-spiffe/v2 v2.8.1 // indirect
 	github.com/standard-webhooks/standard-webhooks/libraries v0.0.1 // indirect
