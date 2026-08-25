@@ -1,3 +1,7 @@
+v26.3.49 (2026-08-25)
+-------------------------
+ * Remove Sentry in favor of a panic handler hook and pluggable log handler
+
 v26.3.48 (2026-08-24)
 -------------------------
  * Delete channel logs of deleted messages from DynamoDB
