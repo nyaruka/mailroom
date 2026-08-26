@@ -130,7 +130,7 @@ SELECT ROW_TO_JSON(r) FROM (
 // channels dark for longer stop getting FCM sync nudges, and outgoing messages older than this are failed rather
 // than left in the outbox forever. The two have to move together - failing messages sooner than we stop nudging
 // would permanently lose them if the relayer then came back, since only queued messages are offered to it.
-const AndroidGiveUpAge = 7 * 24 * time.Hour
+const AndroidGiveUpAge = 72 * time.Hour
 
 // GetAndroidChannelsToSync returns the android channels that have not synced between 15 min ago and AndroidGiveUpAge.
 //

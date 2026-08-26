@@ -19,7 +19,7 @@ func init() {
 
 type FailOldAndroidMessagesCron struct{}
 
-// Next runs this hourly rather than daily even though the messages it fails are a week old. Cron schedules here are
+// Next runs this hourly rather than daily even though the messages it fails are days old. Cron schedules here are
 // intervals measured from when the instance started rather than wall clock times, so a daily interval would only
 // ever fire on instances that stay up for a day, and messages could go unfailed for as long as we keep deploying.
 func (c *FailOldAndroidMessagesCron) Next(last time.Time) time.Time {
