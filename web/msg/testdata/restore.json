@@ -1,0 +1,69 @@
+[
+    {
+        "label": "illegal method",
+        "method": "GET",
+        "path": "/mi/msg/restore",
+        "status": 405,
+        "response": {
+            "error": "illegal method: GET"
+        }
+    },
+    {
+        "label": "error if msg_uuids not provided",
+        "method": "POST",
+        "path": "/mi/msg/restore",
+        "body": {
+            "org_id": 1
+        },
+        "status": 400,
+        "response": {
+            "error": "request failed validation: field 'msg_uuids' is required"
+        }
+    },
+    {
+        "label": "messages restored to the folder they came from",
+        "method": "POST",
+        "path": "/mi/msg/restore",
+        "body": {
+            "org_id": 1,
+            "msg_uuids": [
+                "0199bad8-f98d-75a3-b641-2718a25ac3f5",
+                "0199bad9-9791-770d-a47d-8f4a6ea3ad13",
+                "0199bad9-f0bc-7738-8af8-99712a6f8bff",
+                "0199bada-2b39-7cac-9714-827df9ec6b91"
+            ]
+        },
+        "status": 200,
+        "response": {},
+        "db_assertions": [
+            {
+                "query": "SELECT visibility, folder FROM msgs_msg WHERE uuid = '0199bad8-f98d-75a3-b641-2718a25ac3f5'",
+                "columns": {
+                    "visibility": "V",
+                    "folder": "I"
+                }
+            },
+            {
+                "query": "SELECT visibility, folder FROM msgs_msg WHERE uuid = '0199bad9-9791-770d-a47d-8f4a6ea3ad13'",
+                "columns": {
+                    "visibility": "V",
+                    "folder": "W"
+                }
+            },
+            {
+                "query": "SELECT visibility, folder FROM msgs_msg WHERE uuid = '0199bad9-f0bc-7738-8af8-99712a6f8bff'",
+                "columns": {
+                    "visibility": "V",
+                    "folder": "P"
+                }
+            },
+            {
+                "query": "SELECT visibility, folder FROM msgs_msg WHERE uuid = '0199bada-2b39-7cac-9714-827df9ec6b91'",
+                "columns": {
+                    "visibility": "V",
+                    "folder": "I"
+                }
+            }
+        ]
+    }
+]

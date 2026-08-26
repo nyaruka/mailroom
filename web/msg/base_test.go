@@ -47,6 +47,42 @@ func TestDelete(t *testing.T) {
 	assert.Equal(t, "0199bad9-f0bc-7738-8af8-99712a6f8bff", msgs[0].ID)
 }
 
+func TestArchive(t *testing.T) {
+	_, rt := testsuite.Runtime(t)
+
+	testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199bad8-f98d-75a3-b641-2718a25ac3f5", testdb.TwilioChannel, testdb.Ann, "in my inbox", models.MsgStatusHandled, "")
+	testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199bad9-9791-770d-a47d-8f4a6ea3ad13", testdb.TwilioChannel, testdb.Ann, "handled by a flow", models.MsgStatusHandled, "")
+	testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199bad9-f0bc-7738-8af8-99712a6f8bff", testdb.TwilioChannel, testdb.Ann, "not yet handled", models.MsgStatusPending, "")
+	testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199bada-2b39-7cac-9714-827df9ec6b91", testdb.TwilioChannel, testdb.Ann, "already deleted", models.MsgStatusHandled, "")
+	testdb.InsertIncomingMsg(t, rt, testdb.Org2, "0199bb09-f0e9-7489-a58e-69304a7941a0", testdb.Org2Channel, testdb.Org2Contact, "different org", models.MsgStatusHandled, "")
+
+	// second message was handled by a flow so it's in the handled folder rather than the inbox
+	rt.DB.MustExec(`UPDATE msgs_msg SET flow_id = $1, folder = 'W' WHERE uuid = '0199bad9-9791-770d-a47d-8f4a6ea3ad13'`, testdb.Favorites.ID)
+
+	// fourth message has already been deleted by the user
+	rt.DB.MustExec(`UPDATE msgs_msg SET visibility = 'D', folder = 'D', text = '' WHERE uuid = '0199bada-2b39-7cac-9714-827df9ec6b91'`)
+
+	testsuite.RunWebTests(t, rt, "testdata/archive.json")
+}
+
+func TestRestore(t *testing.T) {
+	_, rt := testsuite.Runtime(t)
+
+	testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199bad8-f98d-75a3-b641-2718a25ac3f5", testdb.TwilioChannel, testdb.Ann, "back to my inbox", models.MsgStatusHandled, "")
+	testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199bad9-9791-770d-a47d-8f4a6ea3ad13", testdb.TwilioChannel, testdb.Ann, "handled by a flow", models.MsgStatusHandled, "")
+	testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199bad9-f0bc-7738-8af8-99712a6f8bff", testdb.TwilioChannel, testdb.Ann, "not yet handled", models.MsgStatusPending, "")
+	testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199bada-2b39-7cac-9714-827df9ec6b91", testdb.TwilioChannel, testdb.Ann, "never archived", models.MsgStatusHandled, "")
+
+	// second message was handled by a flow so restoring it should put it back in the handled folder
+	rt.DB.MustExec(`UPDATE msgs_msg SET flow_id = $1 WHERE uuid = '0199bad9-9791-770d-a47d-8f4a6ea3ad13'`, testdb.Favorites.ID)
+
+	// archive all but the last message
+	rt.DB.MustExec(`UPDATE msgs_msg SET visibility = 'A', folder = CASE WHEN status = 'P' THEN 'P' ELSE 'A' END
+	                 WHERE uuid IN ('0199bad8-f98d-75a3-b641-2718a25ac3f5', '0199bad9-9791-770d-a47d-8f4a6ea3ad13', '0199bad9-f0bc-7738-8af8-99712a6f8bff')`)
+
+	testsuite.RunWebTests(t, rt, "testdata/restore.json")
+}
+
 func TestHandle(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
 

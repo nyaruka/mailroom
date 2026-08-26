@@ -979,6 +979,45 @@ func CreateMsgOut(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, c *co
 	return core.NewMsgOut(urn, channelRef, content, templating, locale, unsendableReason), nil
 }
 
+const sqlUpdateMsgVisibility = `
+UPDATE msgs_msg
+   SET visibility = m.visibility, folder = m.folder, modified_on = NOW()
+  FROM (VALUES(:id::bigint, :visibility, :folder)) AS m(id, visibility, folder)
+ WHERE msgs_msg.id = m.id`
+
+// ArchiveMessages archives the given incoming messages, ignoring any that aren't currently visible
+func ArchiveMessages(ctx context.Context, db DBorTx, msgs []*Msg) error {
+	return updateMessageVisibility(ctx, db, msgs, VisibilityVisible, VisibilityArchived)
+}
+
+// RestoreMessages un-archives the given incoming messages, ignoring any that aren't currently archived
+func RestoreMessages(ctx context.Context, db DBorTx, msgs []*Msg) error {
+	return updateMessageVisibility(ctx, db, msgs, VisibilityArchived, VisibilityVisible)
+}
+
+func updateMessageVisibility(ctx context.Context, db DBorTx, msgs []*Msg, from, to MsgVisibility) error {
+	is := make([]any, 0, len(msgs))
+
+	for _, msg := range msgs {
+		m := &msg.m
+
+		// ignore messages that aren't in the visibility we're transitioning from, which includes deleted messages
+		if m.Visibility != from {
+			continue
+		}
+
+		m.Visibility = to
+		m.Folder = DeriveMsgFolder(m.Direction, m.Status, m.Visibility, m.FlowID != NilFlowID)
+		is = append(is, m)
+	}
+
+	if len(is) == 0 {
+		return nil
+	}
+
+	return BulkQuery(ctx, "updating message visibility", db, sqlUpdateMsgVisibility, is)
+}
+
 const sqlUpdateMsgDeleted = `
    UPDATE msgs_msg
       SET visibility = $3, folder = 'D', text = '', attachments = '{}'

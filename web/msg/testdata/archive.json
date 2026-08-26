@@ -1,0 +1,97 @@
+[
+    {
+        "label": "illegal method",
+        "method": "GET",
+        "path": "/mi/msg/archive",
+        "status": 405,
+        "response": {
+            "error": "illegal method: GET"
+        }
+    },
+    {
+        "label": "error if msg_uuids not provided",
+        "method": "POST",
+        "path": "/mi/msg/archive",
+        "body": {
+            "org_id": 1
+        },
+        "status": 400,
+        "response": {
+            "error": "request failed validation: field 'msg_uuids' is required"
+        }
+    },
+    {
+        "label": "messages archived, folder updated to match their new visibility",
+        "method": "POST",
+        "path": "/mi/msg/archive",
+        "body": {
+            "org_id": 1,
+            "msg_uuids": [
+                "0199bad8-f98d-75a3-b641-2718a25ac3f5",
+                "0199bad9-9791-770d-a47d-8f4a6ea3ad13",
+                "0199bad9-f0bc-7738-8af8-99712a6f8bff",
+                "0199bada-2b39-7cac-9714-827df9ec6b91",
+                "0199bb09-f0e9-7489-a58e-69304a7941a0"
+            ]
+        },
+        "status": 200,
+        "response": {},
+        "db_assertions": [
+            {
+                "query": "SELECT visibility, folder FROM msgs_msg WHERE uuid = '0199bad8-f98d-75a3-b641-2718a25ac3f5'",
+                "columns": {
+                    "visibility": "A",
+                    "folder": "A"
+                }
+            },
+            {
+                "query": "SELECT visibility, folder FROM msgs_msg WHERE uuid = '0199bad9-9791-770d-a47d-8f4a6ea3ad13'",
+                "columns": {
+                    "visibility": "A",
+                    "folder": "A"
+                }
+            },
+            {
+                "query": "SELECT visibility, folder FROM msgs_msg WHERE uuid = '0199bad9-f0bc-7738-8af8-99712a6f8bff'",
+                "columns": {
+                    "visibility": "A",
+                    "folder": "P"
+                }
+            },
+            {
+                "query": "SELECT visibility, folder FROM msgs_msg WHERE uuid = '0199bada-2b39-7cac-9714-827df9ec6b91'",
+                "columns": {
+                    "visibility": "D",
+                    "folder": "D"
+                }
+            },
+            {
+                "query": "SELECT visibility, folder FROM msgs_msg WHERE uuid = '0199bb09-f0e9-7489-a58e-69304a7941a0'",
+                "columns": {
+                    "visibility": "V",
+                    "folder": "I"
+                }
+            }
+        ]
+    },
+    {
+        "label": "archiving an already archived message is a noop",
+        "method": "POST",
+        "path": "/mi/msg/archive",
+        "body": {
+            "org_id": 1,
+            "msg_uuids": ["0199bad8-f98d-75a3-b641-2718a25ac3f5"]
+        },
+        "status": 200,
+        "response": {},
+        "db_assertions": [
+            {
+                "query": "SELECT visibility, folder FROM msgs_msg WHERE uuid = '0199bad8-f98d-75a3-b641-2718a25ac3f5'",
+                "columns": {
+                    "visibility": "A",
+                    "folder": "A"
+                }
+            }
+        ]
+    }
+]
