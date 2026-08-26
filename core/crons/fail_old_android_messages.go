@@ -10,13 +10,8 @@ import (
 	"github.com/nyaruka/mailroom/v26/runtime"
 )
 
-const (
-	// how old an outgoing Android message has to be before we give up on its relayer ever syncing
-	failOldAndroidMessagesAge = 7 * 24 * time.Hour
-
-	// how many messages we fail per query, so that a large backlog doesn't become one long transaction
-	failOldAndroidMessagesBatchSize = 1000
-)
+// how many messages we fail per query, so that a large backlog doesn't become one long transaction
+const failOldAndroidMessagesBatchSize = 1000
 
 func init() {
 	Register("fail_old_android_messages", &FailOldAndroidMessagesCron{})
@@ -32,7 +27,9 @@ func (c *FailOldAndroidMessagesCron) Next(last time.Time) time.Time {
 }
 
 func (c *FailOldAndroidMessagesCron) Run(ctx context.Context, rt *runtime.Runtime) (map[string]any, error) {
-	olderThan := dates.Now().Add(-failOldAndroidMessagesAge)
+	// give up at the same age that sync_android_channels stops nudging the channel's relayer - failing sooner
+	// would permanently lose messages whose relayer we're still trying to bring back
+	olderThan := dates.Now().Add(-models.AndroidGiveUpAge)
 	numFailed := 0
 
 	for {
