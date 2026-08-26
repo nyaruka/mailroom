@@ -141,6 +141,53 @@ func TestEventTagToDynamo(t *testing.T) {
 	}
 }
 
+func TestNewMsgStatusTag(t *testing.T) {
+	// every status a message can be in when we tag it must map to a non-empty external name (consumed as the
+	// event's _status by clients) - an unmapped one would silently write `"status": ""` and render as an empty
+	// badge with no error. These names are shared with courier, which writes the same tag for the statuses it
+	// records, so they can't be changed on one side alone.
+	names := map[models.MsgStatus]string{
+		models.MsgStatusWired:     "wired",
+		models.MsgStatusSent:      "sent",
+		models.MsgStatusDelivered: "delivered",
+		models.MsgStatusRead:      "read",
+		models.MsgStatusErrored:   "errored",
+		models.MsgStatusFailed:    "failed",
+	}
+
+	for status, name := range names {
+		tag := models.NewMsgStatusTag(testdb.Org1.ID, testdb.Ann.UUID, "0197b335-6ded-79a4-95a6-3af85b57f108", status, models.NilMsgFailedReason)
+		assert.Equal(t, testdb.Org1.ID, tag.OrgID)
+		assert.Equal(t, testdb.Ann.UUID, tag.ContactUUID)
+		assert.Equal(t, events.EventUUID("0197b335-6ded-79a4-95a6-3af85b57f108"), tag.EventUUID)
+		assert.Equal(t, "sts", tag.Tag)
+		assert.Equal(t, name, tag.Data["status"], "unexpected name for status %q", status)
+		assert.NotContains(t, tag.Data, "reason")
+	}
+
+	// only the failure reasons which aren't already recorded on the originating event get a reason
+	reasons := map[models.MsgFailedReason]string{
+		models.MsgFailedErrorLimit:     "error_limit",
+		models.MsgFailedTooOld:         "too_old",
+		models.MsgFailedChannelRemoved: "channel_removed",
+		models.MsgFailedNoDestination:  "",
+		models.MsgFailedContact:        "",
+		models.MsgFailedSuspended:      "",
+		models.MsgFailedLooping:        "",
+	}
+
+	for failedReason, expected := range reasons {
+		tag := models.NewMsgStatusTag(testdb.Org1.ID, testdb.Ann.UUID, "0197b335-6ded-79a4-95a6-3af85b57f108", models.MsgStatusFailed, failedReason)
+		assert.Equal(t, "failed", tag.Data["status"])
+
+		if expected == "" {
+			assert.NotContains(t, tag.Data, "reason", "unexpected reason for failed reason %q", failedReason)
+		} else {
+			assert.Equal(t, expected, tag.Data["reason"], "unexpected reason for failed reason %q", failedReason)
+		}
+	}
+}
+
 func TestEventTags(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
 

@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"fmt"
+	"time"
 
 	"github.com/nyaruka/gocommon/dbutil"
 	"github.com/nyaruka/gocommon/i18n"
@@ -125,11 +126,17 @@ SELECT ROW_TO_JSON(r) FROM (
      WHERE c.id = $1
 ) r;`
 
-// GetAndroidChannelsToSync returns the android channels that have not synced between 15 min ago up to 7 days.
+// AndroidGiveUpAge is how long an Android channel can go unseen before we give up on its relayer ever syncing:
+// channels dark for longer stop getting FCM sync nudges, and outgoing messages older than this are failed rather
+// than left in the outbox forever. The two have to move together - failing messages sooner than we stop nudging
+// would permanently lose them if the relayer then came back, since only queued messages are offered to it.
+const AndroidGiveUpAge = 7 * 24 * time.Hour
+
+// GetAndroidChannelsToSync returns the android channels that have not synced between 15 min ago and AndroidGiveUpAge.
 //
 // NOTE that this function returns a "lite" channel with only sending related fields.
 func GetAndroidChannelsToSync(ctx context.Context, db DBorTx) ([]Channel, error) {
-	rows, err := db.QueryContext(ctx, sqlSelectAndroidChannelsToSync)
+	rows, err := db.QueryContext(ctx, sqlSelectAndroidChannelsToSync, time.Now().Add(-AndroidGiveUpAge))
 	if err != nil {
 		return nil, fmt.Errorf("error querying old seen android channels: %w", err)
 	}
@@ -141,7 +148,7 @@ const sqlSelectAndroidChannelsToSync = `
 SELECT ROW_TO_JSON(r) FROM (
     SELECT c.id, c.uuid, c.org_id, c.channel_type, c.name, c.address, COALESCE(c.tps, 10) AS tps, c.config
       FROM channels_channel c
-     WHERE c.channel_type = 'A' AND c.last_seen >= NOW() - INTERVAL '7 days' AND c.last_seen <  NOW() - INTERVAL '15 minutes' AND c.is_active = TRUE AND c.is_enabled = TRUE
+     WHERE c.channel_type = 'A' AND c.last_seen >= $1 AND c.last_seen <  NOW() - INTERVAL '15 minutes' AND c.is_active = TRUE AND c.is_enabled = TRUE
   ORDER BY c.last_seen DESC, c.id DESC
 ) r;`
 

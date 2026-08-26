@@ -73,20 +73,28 @@ func InsertIncomingMsg(t *testing.T, rt *runtime.Runtime, org *Org, uuid events.
 
 // InsertOutgoingMsg inserts an outgoing text message
 func InsertOutgoingMsg(t *testing.T, rt *runtime.Runtime, org *Org, uuid events.EventUUID, channel *Channel, contact *Contact, text string, attachments []utils.Attachment, status models.MsgStatus, highPriority bool) *MsgOut {
-	return insertOutgoingMsg(t, rt, org, uuid, channel, contact, text, attachments, i18n.Locale(`eng-US`), models.MsgTypeText, status, highPriority, 0, nil)
+	return insertOutgoingMsg(t, rt, org, uuid, channel, contact, text, attachments, i18n.Locale(`eng-US`), models.MsgTypeText, status, highPriority, 0, nil, nil)
+}
+
+// InsertOutgoingMsgCreatedOn inserts an outgoing text message created at the given time. Messages have a trigger
+// which rejects any change to created_on, so tests that need an old message have to insert it as one.
+func InsertOutgoingMsgCreatedOn(t *testing.T, rt *runtime.Runtime, org *Org, uuid events.EventUUID, channel *Channel, contact *Contact, text string, status models.MsgStatus, createdOn time.Time) *MsgOut {
+	return insertOutgoingMsg(t, rt, org, uuid, channel, contact, text, nil, i18n.Locale(`eng-US`), models.MsgTypeText, status, false, 0, nil, &createdOn)
 }
 
 // InsertErroredOutgoingMsg inserts an ERRORED(E) outgoing text message
 func InsertErroredOutgoingMsg(t *testing.T, rt *runtime.Runtime, org *Org, channel *Channel, contact *Contact, text string, errorCount int, nextAttempt time.Time, highPriority bool) *MsgOut {
-	return insertOutgoingMsg(t, rt, org, events.NewEventUUID(), channel, contact, text, nil, i18n.NilLocale, models.MsgTypeText, models.MsgStatusErrored, highPriority, errorCount, &nextAttempt)
+	return insertOutgoingMsg(t, rt, org, events.NewEventUUID(), channel, contact, text, nil, i18n.NilLocale, models.MsgTypeText, models.MsgStatusErrored, highPriority, errorCount, &nextAttempt, nil)
 }
 
-func insertOutgoingMsg(t *testing.T, rt *runtime.Runtime, org *Org, uuid events.EventUUID, channel *Channel, contact *Contact, text string, attachments []utils.Attachment, locale i18n.Locale, typ models.MsgType, status models.MsgStatus, highPriority bool, errorCount int, nextAttempt *time.Time) *MsgOut {
+func insertOutgoingMsg(t *testing.T, rt *runtime.Runtime, org *Org, uuid events.EventUUID, channel *Channel, contact *Contact, text string, attachments []utils.Attachment, locale i18n.Locale, typ models.MsgType, status models.MsgStatus, highPriority bool, errorCount int, nextAttempt *time.Time, createdOn *time.Time) *MsgOut {
 	var channelRef *assets.ChannelReference
 	var channelID models.ChannelID
+	var isAndroid bool
 	if channel != nil {
 		channelRef = assets.NewChannelReference(channel.UUID, "")
 		channelID = channel.ID
+		isAndroid = channel.Type == models.ChannelTypeAndroid
 	}
 
 	var sentOn *time.Time
@@ -100,9 +108,9 @@ func insertOutgoingMsg(t *testing.T, rt *runtime.Runtime, org *Org, uuid events.
 	var id models.MsgID
 	err := rt.DB.Get(&id,
 		`INSERT INTO msgs_msg(uuid, text, attachments, locale, created_on, modified_on, direction, msg_type, status, visibility, folder, contact_id, contact_urn_id, org_id, channel_id, sent_on, msg_count, error_count, next_attempt, high_priority, is_android)
-	  	 VALUES($1, $2, $3, $4, NOW(), NOW(), 'O', $5, $6, 'V', $7, $8, $9, $10, $11, $12, 1, $13, $14, $15, FALSE) RETURNING id`,
+	  	 VALUES($1, $2, $3, $4, COALESCE($17, NOW()), NOW(), 'O', $5, $6, 'V', $7, $8, $9, $10, $11, $12, 1, $13, $14, $15, $16) RETURNING id`,
 		uuid, text, pq.Array(attachments), locale, typ, status, models.DeriveMsgFolder(models.DirectionOut, status, models.VisibilityVisible, false),
-		contact.ID, contact.URNID, org.ID, channelID, sentOn, errorCount, nextAttempt, highPriority,
+		contact.ID, contact.URNID, org.ID, channelID, sentOn, errorCount, nextAttempt, highPriority, isAndroid, createdOn,
 	)
 	require.NoError(t, err)
 
