@@ -1,3 +1,7 @@
+v26.3.51 (2026-08-26)
+-------------------------
+ * Add msg/archive and msg/restore endpoints
+
 v26.3.50 (2026-08-25)
 -------------------------
  * Fix resent messages reporting pending status instead of queued
