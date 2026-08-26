@@ -1,3 +1,9 @@
+v26.3.52 (2026-08-26)
+-------------------------
+ * Add cron to fail old Android messages that are still waiting to be sent
+ * Reduce Android give-up age from 7 days to 72 hours
+ * Update to gocommon v1.94.2
+
 v26.3.51 (2026-08-26)
 -------------------------
  * Add msg/archive and msg/restore endpoints
