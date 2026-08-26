@@ -979,6 +979,53 @@ func CreateMsgOut(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, c *co
 	return core.NewMsgOut(urn, channelRef, content, templating, locale, unsendableReason), nil
 }
 
+// the from_visibility check is what makes this safe against a message being deleted between being loaded and being
+// updated here - without it we'd resurrect a message whose content has already been cleared
+const sqlUpdateMsgVisibility = `
+UPDATE msgs_msg
+   SET visibility = m.visibility, folder = m.folder, modified_on = NOW()
+  FROM (VALUES(:id::bigint, :visibility, :folder, :from_visibility)) AS m(id, visibility, folder, from_visibility)
+ WHERE msgs_msg.id = m.id AND msgs_msg.visibility = m.from_visibility`
+
+type msgVisibilityUpdate struct {
+	ID             MsgID         `db:"id"`
+	Visibility     MsgVisibility `db:"visibility"`
+	Folder         MsgFolder     `db:"folder"`
+	FromVisibility MsgVisibility `db:"from_visibility"`
+}
+
+// ArchiveMessages archives the given incoming messages, ignoring any that aren't currently visible
+func ArchiveMessages(ctx context.Context, db DBorTx, msgs []*Msg) error {
+	return updateMessageVisibility(ctx, db, msgs, VisibilityVisible, VisibilityArchived)
+}
+
+// RestoreMessages un-archives the given incoming messages, ignoring any that aren't currently archived
+func RestoreMessages(ctx context.Context, db DBorTx, msgs []*Msg) error {
+	return updateMessageVisibility(ctx, db, msgs, VisibilityArchived, VisibilityVisible)
+}
+
+func updateMessageVisibility(ctx context.Context, db DBorTx, msgs []*Msg, from, to MsgVisibility) error {
+	updates := make([]*msgVisibilityUpdate, 0, len(msgs))
+
+	for _, msg := range msgs {
+		m := &msg.m
+
+		// ignore messages that aren't in the visibility we're transitioning from, which includes deleted messages
+		if m.Visibility != from {
+			continue
+		}
+
+		updates = append(updates, &msgVisibilityUpdate{
+			ID:             m.ID,
+			Visibility:     to,
+			Folder:         DeriveMsgFolder(m.Direction, m.Status, to, m.FlowID != NilFlowID),
+			FromVisibility: from,
+		})
+	}
+
+	return BulkQuery(ctx, "updating message visibility", db, sqlUpdateMsgVisibility, updates)
+}
+
 const sqlUpdateMsgDeleted = `
    UPDATE msgs_msg
       SET visibility = $3, folder = 'D', text = '', attachments = '{}'

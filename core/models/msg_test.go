@@ -342,6 +342,67 @@ func TestFailMessages(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT status, failed_reason FROM msgs_msg WHERE id = $1`, out3.ID).Columns(map[string]any{"status": "F", "failed_reason": nil})
 }
 
+func TestArchiveAndRestoreMessages(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	in1 := testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199bad8-f98d-75a3-b641-2718a25ac3f5", testdb.TwilioChannel, testdb.Ann, "hi", models.MsgStatusHandled, "")
+	in2 := testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199bad9-9791-770d-a47d-8f4a6ea3ad13", testdb.TwilioChannel, testdb.Ann, "bye", models.MsgStatusHandled, "")
+	in3 := testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199bad9-f0bc-7738-8af8-99712a6f8bff", testdb.TwilioChannel, testdb.Ann, "not handled yet", models.MsgStatusPending, "")
+
+	// second message was handled by a flow so it's in the handled folder rather than the inbox
+	rt.DB.MustExec(`UPDATE msgs_msg SET flow_id = $1, folder = 'W' WHERE id = $2`, testdb.Favorites.ID, in2.ID)
+
+	load := func(uuids ...events.EventUUID) []*models.Msg {
+		msgs, err := models.GetMessagesByUUID(ctx, rt.DB, testdb.Org1.ID, models.DirectionIn, uuids)
+		require.NoError(t, err)
+		return msgs
+	}
+
+	err := models.ArchiveMessages(ctx, rt.DB, load(in1.UUID, in2.UUID, in3.UUID))
+	assert.NoError(t, err)
+
+	assertdb.Query(t, rt.DB, `SELECT visibility, folder FROM msgs_msg WHERE id = $1`, in1.ID).Columns(map[string]any{"visibility": "A", "folder": "A"})
+	assertdb.Query(t, rt.DB, `SELECT visibility, folder FROM msgs_msg WHERE id = $1`, in2.ID).Columns(map[string]any{"visibility": "A", "folder": "A"})
+	assertdb.Query(t, rt.DB, `SELECT visibility, folder FROM msgs_msg WHERE id = $1`, in3.ID).Columns(map[string]any{"visibility": "A", "folder": "P"})
+
+	// archiving again is a noop
+	err = models.ArchiveMessages(ctx, rt.DB, load(in1.UUID))
+	assert.NoError(t, err)
+
+	assertdb.Query(t, rt.DB, `SELECT visibility, folder FROM msgs_msg WHERE id = $1`, in1.ID).Columns(map[string]any{"visibility": "A", "folder": "A"})
+
+	// restoring puts each message back in the folder it came from
+	err = models.RestoreMessages(ctx, rt.DB, load(in1.UUID, in2.UUID, in3.UUID))
+	assert.NoError(t, err)
+
+	assertdb.Query(t, rt.DB, `SELECT visibility, folder FROM msgs_msg WHERE id = $1`, in1.ID).Columns(map[string]any{"visibility": "V", "folder": "I"})
+	assertdb.Query(t, rt.DB, `SELECT visibility, folder FROM msgs_msg WHERE id = $1`, in2.ID).Columns(map[string]any{"visibility": "V", "folder": "W"})
+	assertdb.Query(t, rt.DB, `SELECT visibility, folder FROM msgs_msg WHERE id = $1`, in3.ID).Columns(map[string]any{"visibility": "V", "folder": "P"})
+
+	// restoring a message that isn't archived is a noop
+	err = models.RestoreMessages(ctx, rt.DB, load(in1.UUID))
+	assert.NoError(t, err)
+
+	assertdb.Query(t, rt.DB, `SELECT visibility, folder FROM msgs_msg WHERE id = $1`, in1.ID).Columns(map[string]any{"visibility": "V", "folder": "I"})
+
+	// a message deleted after being loaded but before being updated stays deleted
+	loaded := load(in2.UUID)
+	rt.DB.MustExec(`UPDATE msgs_msg SET visibility = 'D', folder = 'D', text = '' WHERE id = $1`, in2.ID)
+
+	err = models.ArchiveMessages(ctx, rt.DB, loaded)
+	assert.NoError(t, err)
+
+	assertdb.Query(t, rt.DB, `SELECT visibility, folder, text FROM msgs_msg WHERE id = $1`, in2.ID).Columns(map[string]any{"visibility": "D", "folder": "D", "text": ""})
+
+	// deleted messages can't be archived
+	rt.DB.MustExec(`UPDATE msgs_msg SET visibility = 'D', folder = 'D' WHERE id = $1`, in1.ID)
+
+	err = models.ArchiveMessages(ctx, rt.DB, load(in1.UUID))
+	assert.NoError(t, err)
+
+	assertdb.Query(t, rt.DB, `SELECT visibility, folder FROM msgs_msg WHERE id = $1`, in1.ID).Columns(map[string]any{"visibility": "D", "folder": "D"})
+}
+
 func TestDeleteMessages(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
