@@ -385,6 +385,15 @@ func TestArchiveAndRestoreMessages(t *testing.T) {
 
 	assertdb.Query(t, rt.DB, `SELECT visibility, folder FROM msgs_msg WHERE id = $1`, in1.ID).Columns(map[string]any{"visibility": "V", "folder": "I"})
 
+	// a message deleted after being loaded but before being updated stays deleted
+	loaded := load(in2.UUID)
+	rt.DB.MustExec(`UPDATE msgs_msg SET visibility = 'D', folder = 'D', text = '' WHERE id = $1`, in2.ID)
+
+	err = models.ArchiveMessages(ctx, rt.DB, loaded)
+	assert.NoError(t, err)
+
+	assertdb.Query(t, rt.DB, `SELECT visibility, folder, text FROM msgs_msg WHERE id = $1`, in2.ID).Columns(map[string]any{"visibility": "D", "folder": "D", "text": ""})
+
 	// deleted messages can't be archived
 	rt.DB.MustExec(`UPDATE msgs_msg SET visibility = 'D', folder = 'D' WHERE id = $1`, in1.ID)
 
