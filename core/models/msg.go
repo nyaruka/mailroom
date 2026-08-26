@@ -900,6 +900,49 @@ func FailChannelMessages(ctx context.Context, db *sql.DB, orgID OrgID, channelID
 	return nil
 }
 
+// the WHERE on the update repeats the status check from the CTE so that a message which was sent, failed or
+// retried between the two can't be clobbered. The join to contacts_contact is only for the contact UUID needed by
+// the event tags - msgs_msg.contact_id is a non-null protected FK so it never excludes a row, which is what lets
+// callers loop until this returns nothing.
+const sqlFailOldAndroidMessages = `
+WITH rows AS (
+	SELECT id FROM msgs_msg
+	WHERE direction = 'O' AND is_android = TRUE AND status IN ('I', 'Q', 'E') AND created_on <= $1
+	LIMIT $2
+)
+   UPDATE msgs_msg SET status = 'F', folder = $3, failed_reason = $4, modified_on = NOW()
+     FROM rows, contacts_contact c
+    WHERE msgs_msg.id = rows.id AND msgs_msg.status IN ('I', 'Q', 'E') AND c.id = msgs_msg.contact_id
+RETURNING msgs_msg.org_id AS org_id, msgs_msg.uuid AS msg_uuid, c.uuid AS contact_uuid`
+
+// FailOldAndroidMessages fails up to limit outgoing Android messages created on or before the given time which are
+// still waiting to be sent, i.e. their relayer hasn't synced and they'd otherwise sit in the outbox forever. Only
+// Android messages are failed this way because messages on other channel types are still in courier's queue.
+//
+// It returns an event tag recording the change for each message failed (to be queued to the history table), so
+// callers should keep calling until it returns nothing.
+func FailOldAndroidMessages(ctx context.Context, db DBorTx, olderThan time.Time, limit int) ([]*EventTag, error) {
+	// outgoing messages are always visible, so the failed folder follows from the status alone
+	folder := DeriveMsgFolder(DirectionOut, MsgStatusFailed, VisibilityVisible, false)
+
+	rows := []*struct {
+		OrgID       OrgID            `db:"org_id"`
+		MsgUUID     events.EventUUID `db:"msg_uuid"`
+		ContactUUID core.ContactUUID `db:"contact_uuid"`
+	}{}
+
+	if err := db.SelectContext(ctx, &rows, sqlFailOldAndroidMessages, olderThan, limit, folder, MsgFailedTooOld); err != nil {
+		return nil, fmt.Errorf("error failing old android messages: %w", err)
+	}
+
+	tags := make([]*EventTag, len(rows))
+	for i, r := range rows {
+		tags[i] = NewMsgStatusTag(r.OrgID, r.ContactUUID, r.MsgUUID, MsgStatusFailed, MsgFailedTooOld)
+	}
+
+	return tags, nil
+}
+
 // CreateMsgOut creates a new outgoing message to the given contact, resolving the destination etc
 func CreateMsgOut(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, c *core.Contact, content *core.MsgContent, templateID TemplateID, templateVariables []string, locale i18n.Locale, expressionsContext *types.XObject) (*core.MsgOut, error) {
 	// resolve URN + channel for this contact

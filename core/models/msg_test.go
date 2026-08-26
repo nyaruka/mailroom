@@ -1,6 +1,8 @@
 package models_test
 
 import (
+	"maps"
+	"slices"
 	"testing"
 	"time"
 
@@ -340,6 +342,80 @@ func TestFailMessages(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE status = 'F' AND failed_reason = 'R' AND modified_on > $1`, now).Returns(4)
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE folder = 'X'`).Returns(5) // including the already failed one
 	assertdb.Query(t, rt.DB, `SELECT status, failed_reason FROM msgs_msg WHERE id = $1`, out3.ID).Columns(map[string]any{"status": "F", "failed_reason": nil})
+}
+
+func TestFailOldAndroidMessages(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	fortnightAgo := time.Now().Add(-14 * 24 * time.Hour)
+	yesterday := time.Now().Add(-24 * time.Hour)
+
+	// stale android messages still waiting to be sent
+	out1 := testdb.InsertOutgoingMsgCreatedOn(t, rt, testdb.Org1, "0199bad8-f98d-75a3-b641-2718a25ac3f5", testdb.AndroidChannel, testdb.Ann, "hi", models.MsgStatusInitializing, fortnightAgo)
+	out2 := testdb.InsertOutgoingMsgCreatedOn(t, rt, testdb.Org1, "0199bad9-9791-770d-a47d-8f4a6ea3ad13", testdb.AndroidChannel, testdb.Bob, "hi", models.MsgStatusQueued, fortnightAgo)
+	out3 := testdb.InsertOutgoingMsgCreatedOn(t, rt, testdb.Org1, "0199bb93-ec0f-703e-9b5b-d26d4b6b133c", testdb.AndroidChannel, testdb.Cat, "hi", models.MsgStatusErrored, fortnightAgo)
+
+	// an equally old android message that already reached the channel, and one that already failed
+	out4 := testdb.InsertOutgoingMsgCreatedOn(t, rt, testdb.Org1, "0199bb94-1134-75d6-91dc-8aee7787f703", testdb.AndroidChannel, testdb.Ann, "hi", models.MsgStatusWired, fortnightAgo)
+	out5 := testdb.InsertOutgoingMsgCreatedOn(t, rt, testdb.Org1, "0199bb96-3c4c-72f2-bacc-4b6ae4c592b3", testdb.AndroidChannel, testdb.Ann, "hi", models.MsgStatusFailed, fortnightAgo)
+
+	// a stale queued message on a non-android channel - still in courier's queue so not ours to fail
+	out6 := testdb.InsertOutgoingMsgCreatedOn(t, rt, testdb.Org1, "0199bb97-6d69-7e33-9f9e-1bd9dbd9f68e", testdb.TwilioChannel, testdb.Ann, "hi", models.MsgStatusQueued, fortnightAgo)
+
+	// a stale android message in another workspace
+	out7 := testdb.InsertOutgoingMsgCreatedOn(t, rt, testdb.Org2, "0199bb98-98e1-7b6c-b8a7-8b2f5d0f7e9c", testdb.Org2Channel, testdb.Org2Contact, "hi", models.MsgStatusQueued, fortnightAgo)
+	rt.DB.MustExec(`UPDATE msgs_msg SET is_android = TRUE WHERE id = $1`, out7.ID) // org 2 has no android channel
+
+	// and one that's only a day old so its relayer may yet sync
+	out8 := testdb.InsertOutgoingMsgCreatedOn(t, rt, testdb.Org1, "0199bb99-d64d-7bb1-9a1e-9d3c4f6ae3c1", testdb.AndroidChannel, testdb.Ann, "hi", models.MsgStatusQueued, yesterday)
+
+	olderThan := time.Now().Add(-7 * 24 * time.Hour)
+
+	// messages are failed in batches of the given size
+	tags1, err := models.FailOldAndroidMessages(ctx, rt.DB, olderThan, 2)
+	assert.NoError(t, err)
+	assert.Len(t, tags1, 2)
+
+	tags2, err := models.FailOldAndroidMessages(ctx, rt.DB, olderThan, 2)
+	assert.NoError(t, err)
+	assert.Len(t, tags2, 2)
+
+	// and then there's nothing left to fail
+	tags3, err := models.FailOldAndroidMessages(ctx, rt.DB, olderThan, 2)
+	assert.NoError(t, err)
+	assert.Len(t, tags3, 0)
+
+	// each failure is tagged against the message's own event, for the message's contact
+	byMsg := make(map[events.EventUUID]*models.EventTag, 4)
+	for _, tag := range append(tags1, tags2...) {
+		byMsg[tag.EventUUID] = tag
+	}
+	assert.ElementsMatch(t, []events.EventUUID{out1.UUID, out2.UUID, out3.UUID, out7.UUID}, slices.Collect(maps.Keys(byMsg)))
+
+	if assert.Contains(t, byMsg, events.EventUUID(out7.UUID)) {
+		tag := byMsg[out7.UUID]
+		assert.Equal(t, testdb.Org2.ID, tag.OrgID)
+		assert.Equal(t, testdb.Org2Contact.UUID, tag.ContactUUID)
+		assert.Equal(t, "sts", tag.Tag)
+		assert.Equal(t, "failed", tag.Data["status"])
+		assert.Equal(t, "too_old", tag.Data["reason"])
+	}
+
+	// the stale outbox messages are now failed and moved to the failed folder
+	for _, m := range []*testdb.MsgOut{out1, out2, out3, out7} {
+		assertdb.Query(t, rt.DB, `SELECT status, folder, failed_reason FROM msgs_msg WHERE id = $1`, m.ID).
+			Columns(map[string]any{"status": "F", "folder": "X", "failed_reason": "O"})
+	}
+
+	// but nothing else was touched
+	assertdb.Query(t, rt.DB, `SELECT status, folder, failed_reason FROM msgs_msg WHERE id = $1`, out4.ID).
+		Columns(map[string]any{"status": "W", "folder": "S", "failed_reason": nil})
+	assertdb.Query(t, rt.DB, `SELECT status, folder, failed_reason FROM msgs_msg WHERE id = $1`, out5.ID).
+		Columns(map[string]any{"status": "F", "folder": "X", "failed_reason": nil})
+	assertdb.Query(t, rt.DB, `SELECT status, folder, failed_reason FROM msgs_msg WHERE id = $1`, out6.ID).
+		Columns(map[string]any{"status": "Q", "folder": "O", "failed_reason": nil})
+	assertdb.Query(t, rt.DB, `SELECT status, folder, failed_reason FROM msgs_msg WHERE id = $1`, out8.ID).
+		Columns(map[string]any{"status": "Q", "folder": "O", "failed_reason": nil})
 }
 
 func TestArchiveAndRestoreMessages(t *testing.T) {

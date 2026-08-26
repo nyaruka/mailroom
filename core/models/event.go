@@ -184,3 +184,42 @@ func NewMsgDeletionTag(orgID OrgID, contactUUID core.ContactUUID, msgUUID events
 		Data:        data,
 	}
 }
+
+// the client facing names of the message statuses, as used in history items and published events. These have to
+// match what courier writes for the same status changes since clients can't tell which service recorded one.
+var msgStatusNames = map[MsgStatus]string{
+	MsgStatusWired:     "wired",
+	MsgStatusSent:      "sent",
+	MsgStatusDelivered: "delivered",
+	MsgStatusRead:      "read",
+	MsgStatusErrored:   "errored",
+	MsgStatusFailed:    "failed",
+}
+
+// the client facing reasons for a status change, for the failure reasons that are recorded on the status tag rather
+// than as the originating event's unsendable_reason (those are set when the message is created, not when it fails).
+var msgStatusReasons = map[MsgFailedReason]string{
+	MsgFailedErrorLimit:     "error_limit",
+	MsgFailedTooOld:         "too_old",
+	MsgFailedChannelRemoved: "channel_removed",
+}
+
+// NewMsgStatusTag creates the history-table event tag that records an outgoing message's status change. Like the
+// airtime equivalent it's keyed by the same UUID as the message's msg_created event and shares a sort key across
+// changes, so the latest overwrites, allowing clients to inject the current _status when rendering that event.
+// failedReason may be NilMsgFailedReason, and only the reasons in msgStatusReasons appear on the tag.
+func NewMsgStatusTag(orgID OrgID, contactUUID core.ContactUUID, msgUUID events.EventUUID, status MsgStatus, failedReason MsgFailedReason) *EventTag {
+	data := map[string]any{"created_on": dates.Now(), "status": msgStatusNames[status]}
+
+	if reason := msgStatusReasons[failedReason]; reason != "" {
+		data["reason"] = reason
+	}
+
+	return &EventTag{
+		OrgID:       orgID,
+		ContactUUID: contactUUID,
+		EventUUID:   msgUUID,
+		Tag:         eventTagStatus,
+		Data:        data,
+	}
+}
