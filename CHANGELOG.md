@@ -1,3 +1,10 @@
+v26.3.53 (2026-08-27)
+-------------------------
+ * Add endpoint for Android relayer syncs
+ * Add endpoint for applying message status changes reported by Android relayers
+ * Move test phone numbers onto the range reserved for fiction
+ * Update to goflow v0.293.1
+
 v26.3.52 (2026-08-26)
 -------------------------
  * Add cron to fail old Android messages that are still waiting to be sent
