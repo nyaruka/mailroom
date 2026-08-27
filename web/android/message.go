@@ -43,27 +43,38 @@ func handleMessage(ctx context.Context, rt *runtime.Runtime, r *messageRequest) 
 		return nil, 0, fmt.Errorf("error loading org assets: %w", err)
 	}
 
-	cu, err := resolveContact(ctx, rt, oa, r.ChannelID, r.Phone)
+	msgID, duplicate, err := createIncomingMsg(ctx, rt, oa, r.ChannelID, r.Phone, r.Text, r.ReceivedOn)
 	if err != nil {
-		return nil, 0, fmt.Errorf("error resolving contact: %w", err)
+		return nil, 0, err
 	}
 
-	text := dbutil.ToValidUTF8(stringsx.Truncate(r.Text, 640))
+	return map[string]any{"id": msgID, "duplicate": duplicate}, http.StatusOK, nil
+}
 
-	existingID, err := checkDuplicate(ctx, rt, text, cu.contactID, r.ReceivedOn)
+// createIncomingMsg creates an incoming message reported by an Android relayer, returning the id of the new message -
+// or of the existing one if the relayer has already reported it, which it does when an earlier sync wasn't acked.
+func createIncomingMsg(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, channelID models.ChannelID, phone, text string, receivedOn time.Time) (models.MsgID, bool, error) {
+	cu, err := resolveContact(ctx, rt, oa, channelID, phone)
 	if err != nil {
-		return nil, 0, fmt.Errorf("error checking for duplicate message: %w", err)
+		return models.NilMsgID, false, fmt.Errorf("error resolving contact: %w", err)
+	}
+
+	text = dbutil.ToValidUTF8(stringsx.Truncate(text, 640))
+
+	existingID, err := checkDuplicate(ctx, rt, text, cu.contactID, receivedOn)
+	if err != nil {
+		return models.NilMsgID, false, fmt.Errorf("error checking for duplicate message: %w", err)
 	}
 	if existingID != models.NilMsgID {
-		return map[string]any{"id": existingID, "duplicate": true}, http.StatusOK, nil
+		return existingID, true, nil
 	}
 
-	m := models.NewIncomingAndroid(r.OrgID, r.ChannelID, cu.contactID, cu.urnID, text, r.ReceivedOn)
+	m := models.NewIncomingAndroid(oa.OrgID(), channelID, cu.contactID, cu.urnID, text, receivedOn)
 	if err := models.InsertMessages(ctx, rt.DB, []*models.Msg{m}); err != nil {
-		return nil, 0, fmt.Errorf("error inserting message: %w", err)
+		return models.NilMsgID, false, fmt.Errorf("error inserting message: %w", err)
 	}
 
-	err = tasks.QueueContact(ctx, rt, r.OrgID, m.ContactID(), &ctasks.MsgReceived{
+	err = tasks.QueueContact(ctx, rt, oa.OrgID(), m.ContactID(), &ctasks.MsgReceived{
 		ChannelID:     m.ChannelID(),
 		MsgUUID:       m.UUID(),
 		MsgExternalID: m.ExternalIdentifier(),
@@ -73,10 +84,10 @@ func handleMessage(ctx context.Context, rt *runtime.Runtime, r *messageRequest) 
 		NewContact:    cu.newContact,
 	})
 	if err != nil {
-		return nil, 0, fmt.Errorf("error queueing handle task: %w", err)
+		return models.NilMsgID, false, fmt.Errorf("error queueing handle task: %w", err)
 	}
 
-	return map[string]any{"id": m.ID(), "duplicate": false}, http.StatusOK, nil
+	return m.ID(), false, nil
 }
 
 func checkDuplicate(ctx context.Context, rt *runtime.Runtime, text string, contactID models.ContactID, sentOn time.Time) (models.MsgID, error) {

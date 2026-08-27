@@ -69,67 +69,88 @@ func handleStatus(ctx context.Context, rt *runtime.Runtime, r *statusRequest) (a
 
 	// whether each command was applied, so that the caller can tell the relayer which ones to stop resending
 	handled := make([]bool, len(r.Commands))
-
-	// a sync can report more than one change for the same message, e.g. sent and then delivered, and they all have
-	// to be folded into a single update because they're applied in one statement
-	updates := make([]*models.AndroidStatusUpdate, 0, len(r.Commands))
-	updatesByID := make(map[models.MsgID]*models.AndroidStatusUpdate, len(r.Commands))
+	batch := &statusBatch{}
 
 	for i, c := range r.Commands {
-		ref := refs[c.MsgID]
-		if ref == nil {
-			continue
-		}
-
-		// incoming messages have no status for a relayer to report but it shouldn't keep resending the command
-		if ref.Direction == models.DirectionIn {
-			handled[i] = true
-			continue
-		}
-
-		status, exists := statusCommands[c.Cmd]
-		if !exists {
-			continue
-		}
-
-		u := updatesByID[c.MsgID]
-		if u == nil {
-			u = &models.AndroidStatusUpdate{MsgUUID: ref.UUID}
-			updates = append(updates, u)
-			updatesByID[c.MsgID] = u
-		}
-
-		u.Status = status
-
-		switch c.Cmd {
-		case "mt_sent":
-			// this is the definitive report of when the message left the phone
-			u.SentOn = &c.Ts
-			u.OverwriteSentOn = true
-		case "mt_dlvd":
-			// delivery only tells us when the message arrived, so it stands in for sent_on only if no sent report
-			// ever arrived - either earlier in this sync or on the message already
-			if u.SentOn == nil {
-				u.SentOn = &c.Ts
-			}
-		}
-
-		handled[i] = true
+		handled[i] = batch.add(refs[c.MsgID], c.Cmd, c.Ts)
 	}
 
-	tags, err := models.UpdateAndroidMessageStatuses(ctx, rt.DB, r.OrgID, updates)
-	if err != nil {
-		return nil, 0, fmt.Errorf("error updating message statuses: %w", err)
-	}
-
-	// record each change in the contact's history so that clients rendering the message see its new status
-	for _, tag := range tags {
-		if _, err := rt.Dynamo.History.Queue(tag); err != nil {
-			return nil, 0, fmt.Errorf("error queuing status tag to writer: %w", err)
-		}
+	if err := batch.apply(ctx, rt, r.OrgID); err != nil {
+		return nil, 0, err
 	}
 
 	return map[string]any{"handled": handled}, http.StatusOK, nil
+}
+
+// statusBatch accumulates the status changes a relayer reports across one sync. A sync can report more than one
+// change for the same message, e.g. sent and then delivered, so they're folded into a single update per message -
+// they're applied in one statement, and replaying them sequentially is what preserves the sent_on semantics.
+type statusBatch struct {
+	updates   []*models.AndroidStatusUpdate
+	byMsgUUID map[events.EventUUID]*models.AndroidStatusUpdate
+}
+
+// add records a status command for the given message, returning whether the relayer should consider it handled. A
+// nil ref means we have no such message, and an unrecognized command leaves the message alone - in both cases the
+// relayer keeps the command and reports it again on its next sync.
+func (b *statusBatch) add(ref *msgRef, cmd string, ts time.Time) bool {
+	if ref == nil {
+		return false
+	}
+
+	// incoming messages have no status for a relayer to report but it shouldn't keep resending the command
+	if ref.Direction == models.DirectionIn {
+		return true
+	}
+
+	status, exists := statusCommands[cmd]
+	if !exists {
+		return false
+	}
+
+	u := b.byMsgUUID[ref.UUID]
+	if u == nil {
+		u = &models.AndroidStatusUpdate{MsgUUID: ref.UUID}
+		b.updates = append(b.updates, u)
+		if b.byMsgUUID == nil {
+			b.byMsgUUID = make(map[events.EventUUID]*models.AndroidStatusUpdate)
+		}
+		b.byMsgUUID[ref.UUID] = u
+	}
+
+	u.Status = status
+
+	switch cmd {
+	case "mt_sent":
+		// this is the definitive report of when the message left the phone
+		u.SentOn = &ts
+		u.OverwriteSentOn = true
+	case "mt_dlvd":
+		// delivery only tells us when the message arrived, so it stands in for sent_on only if no sent report ever
+		// arrived - either earlier in this sync or on the message already
+		if u.SentOn == nil {
+			u.SentOn = &ts
+		}
+	}
+
+	return true
+}
+
+// apply writes the accumulated changes and records each one in the contact's history so that clients rendering the
+// message see its new status.
+func (b *statusBatch) apply(ctx context.Context, rt *runtime.Runtime, orgID models.OrgID) error {
+	tags, err := models.UpdateAndroidMessageStatuses(ctx, rt.DB, orgID, b.updates)
+	if err != nil {
+		return fmt.Errorf("error updating message statuses: %w", err)
+	}
+
+	for _, tag := range tags {
+		if _, err := rt.Dynamo.History.Queue(tag); err != nil {
+			return fmt.Errorf("error queuing status tag to writer: %w", err)
+		}
+	}
+
+	return nil
 }
 
 type msgRef struct {

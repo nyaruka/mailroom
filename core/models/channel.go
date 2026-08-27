@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"database/sql/driver"
+	"errors"
 	"fmt"
 	"time"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/nyaruka/gocommon/i18n"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/null/v3"
+	"github.com/vinovest/sqlx"
 )
 
 // ChannelID is the type for channel IDs
@@ -151,6 +153,115 @@ SELECT ROW_TO_JSON(r) FROM (
      WHERE c.channel_type = 'A' AND c.last_seen >= $1 AND c.last_seen <  NOW() - INTERVAL '15 minutes' AND c.is_active = TRUE AND c.is_enabled = TRUE
   ORDER BY c.last_seen DESC, c.id DESC
 ) r;`
+
+// AndroidChannel is the view of an Android channel needed to service a relayer sync. It's separate from the channel
+// assets because a sync needs columns the assets don't carry (the shared secret, the claim code, last_seen) and needs
+// them before we know which org's assets to load - and because a relayer can sync a channel that's been released or
+// isn't claimed yet, neither of which appear in assets at all.
+type AndroidChannel struct {
+	ID        ChannelID          `json:"id"`
+	UUID      assets.ChannelUUID `json:"uuid"`
+	OrgID     OrgID              `json:"org_id"` // zero if the channel hasn't been claimed
+	IsActive  bool               `json:"is_active"`
+	Secret    string             `json:"secret"`
+	ClaimCode string             `json:"claim_code"`
+	Config    Config             `json:"config"`
+	LastSeen  *time.Time         `json:"last_seen"`
+	Device    string             `json:"device"`
+	OS        string             `json:"os"`
+}
+
+const sqlSelectAndroidChannel = `
+SELECT ROW_TO_JSON(r) FROM (
+    SELECT c.id, c.uuid, c.org_id, c.is_active, c.secret, c.claim_code, c.config, c.last_seen, c.device, c.os
+      FROM channels_channel c
+     WHERE c.id = $1 AND c.channel_type = 'A'
+) r;`
+
+// GetAndroidChannel fetches the Android channel with the given id, including released and unclaimed ones. Returns
+// ErrNotFound if there's no such channel, which for a syncing relayer means it should stop.
+func GetAndroidChannel(ctx context.Context, db *sqlx.DB, id ChannelID) (*AndroidChannel, error) {
+	row := db.QueryRowContext(ctx, sqlSelectAndroidChannel, id)
+	ch := &AndroidChannel{}
+
+	if err := dbutil.ScanJSON(row, ch); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+		return nil, fmt.Errorf("error fetching android channel by id %d: %w", id, err)
+	}
+
+	return ch, nil
+}
+
+// UpdateAndroidChannelSeen records that the channel's relayer has just synced.
+func UpdateAndroidChannelSeen(ctx context.Context, db DBorTx, id ChannelID) error {
+	_, err := db.ExecContext(ctx, `UPDATE channels_channel SET last_seen = NOW() WHERE id = $1`, id)
+	if err != nil {
+		return fmt.Errorf("error updating channel last seen: %w", err)
+	}
+	return nil
+}
+
+// UpdateAndroidChannelApp records the FCM registration id and UUID a relayer reports for itself. The UUID is only
+// written when the relayer actually sent one, because an older relayer omits it and mustn't be allowed to clear it.
+func UpdateAndroidChannelApp(ctx context.Context, db DBorTx, id ChannelID, fcmID string, uuid assets.ChannelUUID) error {
+	_, err := db.ExecContext(ctx,
+		`UPDATE channels_channel SET config = config || jsonb_build_object($2::text, $3::text), uuid = COALESCE($4, uuid), modified_on = NOW() WHERE id = $1`,
+		id, ChannelConfigFCMID, fcmID, null.String(uuid),
+	)
+	if err != nil {
+		return fmt.Errorf("error updating channel app config: %w", err)
+	}
+	return nil
+}
+
+// UpdateAndroidChannelDevice records the device and OS a relayer reports for itself.
+func UpdateAndroidChannelDevice(ctx context.Context, db DBorTx, id ChannelID, device, os string) error {
+	_, err := db.ExecContext(ctx,
+		`UPDATE channels_channel SET device = $2, os = $3, modified_on = NOW() WHERE id = $1`, id, null.String(device), null.String(os),
+	)
+	if err != nil {
+		return fmt.Errorf("error updating channel device: %w", err)
+	}
+	return nil
+}
+
+// ReleaseAndroidChannel deactivates a channel whose relayer has asked to be reset. It deliberately does less than
+// releasing a channel from the UI does: it deactivates the channel and its triggers and ends its incidents here, and
+// leaves interrupting sessions and failing queued messages to the interrupt channel task the caller queues. The rest
+// of what the UI does either doesn't apply to Android channels (deactivating with a provider, template translations)
+// or is recalculated anyway (flow dependency issues).
+func ReleaseAndroidChannel(ctx context.Context, db *sqlx.DB, ch *AndroidChannel) error {
+	tx, err := db.BeginTxx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("error beginning transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	if _, err := tx.ExecContext(ctx, `UPDATE channels_channel SET is_active = FALSE, modified_on = NOW() WHERE id = $1`, ch.ID); err != nil {
+		return fmt.Errorf("error deactivating channel: %w", err)
+	}
+
+	// archive and release the channel's triggers, the same pair of changes the UI makes
+	if _, err := tx.ExecContext(ctx,
+		`UPDATE triggers_trigger SET is_archived = TRUE, is_active = FALSE, schedule_id = NULL, modified_on = NOW() WHERE channel_id = $1 AND is_active = TRUE`, ch.ID,
+	); err != nil {
+		return fmt.Errorf("error releasing channel triggers: %w", err)
+	}
+
+	if _, err := tx.ExecContext(ctx,
+		`UPDATE notifications_incident SET ended_on = NOW() WHERE channel_id = $1 AND ended_on IS NULL`, ch.ID,
+	); err != nil {
+		return fmt.Errorf("error ending channel incidents: %w", err)
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("error committing channel release: %w", err)
+	}
+
+	return nil
+}
 
 // loadChannels loads all the channels for the passed in org
 func loadChannels(ctx context.Context, db *sql.DB, orgID OrgID) ([]assets.Channel, error) {

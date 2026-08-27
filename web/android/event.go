@@ -43,26 +43,36 @@ func handleEvent(ctx context.Context, rt *runtime.Runtime, r *eventRequest) (any
 		return nil, 0, fmt.Errorf("error loading org assets: %w", err)
 	}
 
-	cu, err := resolveContact(ctx, rt, oa, r.ChannelID, r.Phone)
+	e, err := createChannelEvent(ctx, rt, oa, r.ChannelID, r.Phone, r.EventType, r.Extra, r.OccurredOn)
 	if err != nil {
-		return nil, 0, fmt.Errorf("error resolving contact: %w", err)
+		return nil, 0, err
+	}
+
+	return map[string]any{"id": e.ID}, http.StatusOK, nil
+}
+
+// createChannelEvent creates a channel event reported by an Android relayer, queueing it for handling if it needs it.
+func createChannelEvent(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, channelID models.ChannelID, phone string, eventType models.ChannelEventType, extra null.Map[any], occurredOn time.Time) (*models.ChannelEvent, error) {
+	cu, err := resolveContact(ctx, rt, oa, channelID, phone)
+	if err != nil {
+		return nil, fmt.Errorf("error resolving contact: %w", err)
 	}
 
 	// only missed call events from Android relayers need handling, rest are just historical records
-	needsHandling := r.EventType == models.EventTypeMissedCall
+	needsHandling := eventType == models.EventTypeMissedCall
 
 	status := models.EventStatusHandled
 	if needsHandling {
 		status = models.EventStatusPending
 	}
 
-	e := models.NewChannelEvent(r.OrgID, r.EventType, r.ChannelID, cu.contactID, cu.urnID, status, r.Extra, r.OccurredOn)
+	e := models.NewChannelEvent(oa.OrgID(), eventType, channelID, cu.contactID, cu.urnID, status, extra, occurredOn)
 	if err := e.Insert(ctx, rt.DB); err != nil {
-		return nil, 0, fmt.Errorf("error inserting event: %w", err)
+		return nil, fmt.Errorf("error inserting event: %w", err)
 	}
 
 	if needsHandling {
-		err = tasks.QueueContact(ctx, rt, r.OrgID, e.ContactID, &ctasks.EventReceived{
+		err = tasks.QueueContact(ctx, rt, oa.OrgID(), e.ContactID, &ctasks.EventReceived{
 			EventUUID:  e.UUID,
 			EventType:  e.EventType,
 			ChannelID:  e.ChannelID,
@@ -71,9 +81,9 @@ func handleEvent(ctx context.Context, rt *runtime.Runtime, r *eventRequest) (any
 			NewContact: cu.newContact,
 		})
 		if err != nil {
-			return nil, 0, fmt.Errorf("error queueing handle task: %w", err)
+			return nil, fmt.Errorf("error queueing handle task: %w", err)
 		}
 	}
 
-	return map[string]any{"id": e.ID}, http.StatusOK, nil
+	return e, nil
 }
