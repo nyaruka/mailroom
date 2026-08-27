@@ -38,7 +38,7 @@ func relayerSync(t *testing.T, rt *runtime.Runtime, channelID models.ChannelID, 
 		tweak(q)
 	}
 
-	url := fmt.Sprintf("http://localhost:%d/mr/relayer/sync/%d?ts=%s&signature=%s", rt.Config.InternetPort, channelID, q.ts, q.signature)
+	url := fmt.Sprintf("http://localhost:%d/mr/relayer/sync/%d%s?ts=%s&signature=%s", rt.Config.InternetPort, channelID, q.suffix, q.ts, q.signature)
 	req, err := http.NewRequest("POST", url, strings.NewReader(body))
 	require.NoError(t, err)
 	req.Header.Set("Content-Type", "application/json")
@@ -59,6 +59,7 @@ func relayerSync(t *testing.T, rt *runtime.Runtime, channelID models.ChannelID, 
 type relayerQuery struct {
 	ts        string
 	signature string
+	suffix    string
 }
 
 // starts a web server for the duration of the test
@@ -111,9 +112,9 @@ func TestRelayerSyncAuth(t *testing.T) {
 	assert.Equal(t, float64(3), resp["error_id"])
 	assert.Equal(t, "Old Request", resp["error"])
 
-	// and one with no ts at all
+	// a request with no readable ts at all is broken rather than merely old
 	status, _ = relayerSync(t, rt, testdb.AndroidChannel.ID, relayerSecret, fcm, func(q *relayerQuery) { q.ts = "" })
-	assert.Equal(t, 401, status)
+	assert.Equal(t, 500, status)
 
 	// a body that doesn't start with an fcm command is rejected
 	status, resp = relayerSync(t, rt, testdb.AndroidChannel.ID, relayerSecret, `{"cmds":[{"cmd":"status","p_lvl":80}]}`, nil)
@@ -122,6 +123,11 @@ func TestRelayerSyncAuth(t *testing.T) {
 
 	// a valid sync is accepted, and records that we've seen the device
 	status, resp = relayerSync(t, rt, testdb.AndroidChannel.ID, relayerSecret, fcm, nil)
+	assert.Equal(t, 200, status)
+	assert.Equal(t, []any{}, resp["cmds"])
+
+	// the app's own URL has a trailing slash, so that has to work too
+	status, resp = relayerSync(t, rt, testdb.AndroidChannel.ID, relayerSecret, fcm, func(q *relayerQuery) { q.suffix = "/" })
 	assert.Equal(t, 200, status)
 	assert.Equal(t, []any{}, resp["cmds"])
 
@@ -340,4 +346,76 @@ func TestRelayerSyncOutdatedApp(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM notifications_incident WHERE incident_type = 'channel:outdated_app' AND channel_id = $1 AND ended_on IS NULL`, testdb.AndroidChannel.ID).Returns(0)
 
 	_ = ctx
+}
+
+func TestRelayerSyncDialects(t *testing.T) {
+	_, rt := testsuite.Runtime(t)
+	startServer(t, rt)
+	claimAndroidChannel(t, rt)
+
+	out1 := testdb.InsertOutgoingMsg(t, rt, testdb.Org1, "0199bad8-f98d-75a3-b641-2718a25ac3f5", testdb.AndroidChannel, testdb.Ann, "hi", nil, models.MsgStatusQueued, false)
+
+	// the app has sent numbers as numbers, as strings and as floats, and has used long field names - none of which
+	// may reject the sync, because a device stuck on one dialect would then never deliver anything again
+	body := fmt.Sprintf(`{"cmds":[
+		{"cmd":"fcm","fcm_id":"FCM123"},
+		{"cmd":"mt_sent","msg_id":"%d","ts":1746361847000.0,"p_id":"7"},
+		{"cmd":"status","power_source":"USB","power_status":"FUL","power_level":"55","network_type":"LTE","pending_messages":[],"retry_messages":[]}
+	]}`, out1.ID)
+
+	status, resp := relayerSync(t, rt, testdb.AndroidChannel.ID, relayerSecret, body, nil)
+	assert.Equal(t, 200, status)
+
+	// the p_id is echoed back exactly as the device sent it, since that's what it matches its pending commands on
+	test.AssertEqualJSON(t, []byte(`{"cmds":[{"cmd":"ack","p_id":"7"}]}`), jsonx.MustMarshal(resp), "unexpected ack")
+
+	assertdb.Query(t, rt.DB, `SELECT status, folder FROM msgs_msg WHERE id = $1`, out1.ID).
+		Columns(map[string]any{"status": "S", "folder": "S"})
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE id = $1 AND sent_on = '2025-05-04T12:30:47Z'`, out1.ID).Returns(1)
+
+	// the long field names are read the same as the short ones
+	assertdb.Query(t, rt.DB, `SELECT power_source, power_status, power_level, network_type FROM channels_syncevent WHERE channel_id = $1`, testdb.AndroidChannel.ID).
+		Columns(map[string]any{"power_source": "USB", "power_status": "FUL", "power_level": 55, "network_type": "LTE"})
+
+	// and a value we can't make any sense of doesn't take the rest of the sync down with it
+	body = `{"cmds":[{"cmd":"fcm","fcm_id":"FCM123"},{"cmd":"status","p_src":"BAT","p_sts":"CHA","p_lvl":"eighty","net":"WIFI","pending":[],"retry":[]}]}`
+	status, _ = relayerSync(t, rt, testdb.AndroidChannel.ID, relayerSecret, body, nil)
+	assert.Equal(t, 200, status)
+
+	assertdb.Query(t, rt.DB, `SELECT power_level FROM channels_syncevent ORDER BY id DESC LIMIT 1`).Returns(0)
+
+	// a device reporting itself in workspace 0 is still told where it actually is
+	body = `{"cmds":[{"cmd":"fcm","fcm_id":"FCM123"},{"cmd":"status","p_src":"BAT","p_sts":"CHA","p_lvl":80,"net":"WIFI","pending":[],"retry":[],"org_id":0}]}`
+	_, resp = relayerSync(t, rt, testdb.AndroidChannel.ID, relayerSecret, body, nil)
+	test.AssertEqualJSON(t, []byte(fmt.Sprintf(`{"cmds":[{"cmd":"claim","org_id":%d}]}`, testdb.Org1.ID)), jsonx.MustMarshal(resp), "unexpected claim command")
+
+	// an empty short-form list means empty, rather than falling back to the long-form one
+	body = fmt.Sprintf(`{"cmds":[{"cmd":"fcm","fcm_id":"FCM123"},{"cmd":"status","p_src":"BAT","p_sts":"CHA","p_lvl":80,"net":"WIFI","pending":[],"retry":[],"pending_messages":[%d]}]}`, out1.ID)
+	_, resp = relayerSync(t, rt, testdb.AndroidChannel.ID, relayerSecret, body, nil)
+	assertdb.Query(t, rt.DB, `SELECT pending_message_count FROM channels_syncevent ORDER BY id DESC LIMIT 1`).Returns(0)
+}
+
+func TestRelayerSyncPreservesStatusesOnFailure(t *testing.T) {
+	_, rt := testsuite.Runtime(t)
+	startServer(t, rt)
+	claimAndroidChannel(t, rt)
+
+	out1 := testdb.InsertOutgoingMsg(t, rt, testdb.Org1, "0199bad8-f98d-75a3-b641-2718a25ac3f5", testdb.AndroidChannel, testdb.Ann, "hi", nil, models.MsgStatusQueued, false)
+
+	// the channel is disabled, so it isn't in assets and anything needing a contact will fail
+	rt.DB.MustExec(`UPDATE channels_channel SET is_enabled = FALSE WHERE id = $1`, testdb.AndroidChannel.ID)
+	models.FlushCache()
+
+	body := fmt.Sprintf(`{"cmds":[
+		{"cmd":"fcm","fcm_id":"FCM123"},
+		{"cmd":"mt_sent","msg_id":%d,"ts":1746361847000,"p_id":1},
+		{"cmd":"mo_sms","phone":"+593979000111","msg":"incoming!","ts":1746361848000,"p_id":2}
+	]}`, out1.ID)
+
+	status, _ := relayerSync(t, rt, testdb.AndroidChannel.ID, relayerSecret, body, nil)
+	assert.Equal(t, 500, status)
+
+	// the status change we'd already accepted was still written, so the device isn't asked to send it again
+	assertdb.Query(t, rt.DB, `SELECT status, folder FROM msgs_msg WHERE id = $1`, out1.ID).
+		Columns(map[string]any{"status": "S", "folder": "S"})
 }

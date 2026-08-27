@@ -17,7 +17,13 @@ type contactAndURN struct {
 }
 
 func resolveContact(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, channelID models.ChannelID, phone string) (*contactAndURN, error) {
-	urn, err := urns.ParsePhone(phone, oa.ChannelByID(channelID).Country(), true, true)
+	// a channel that's been disabled or released is still one an Android relayer can be syncing
+	channel := oa.ChannelByID(channelID)
+	if channel == nil {
+		return nil, fmt.Errorf("no active channel with id %d", channelID)
+	}
+
+	urn, err := urns.ParsePhone(phone, channel.Country(), true, true)
 	if err != nil {
 		return nil, models.NewURNInvalidError(0, err)
 	}

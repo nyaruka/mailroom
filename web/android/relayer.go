@@ -25,6 +25,7 @@ import (
 
 func init() {
 	web.InternetRoute(http.MethodPost, "/relayer/sync/{id:[0-9]+}", handleRelayerSync)
+	web.InternetRoute(http.MethodPost, "/relayer/sync/{id:[0-9]+}/", handleRelayerSync)
 }
 
 // how far out of step with us a relayer's clock is allowed to be before we reject its request
@@ -33,6 +34,10 @@ const relayerRequestMaxAge = 15 * time.Minute
 // how long a relayer can go without syncing before we bump its last_seen again - it syncs far more often than this
 // and every sync would otherwise be a write to the channel
 const relayerSeenInterval = 5 * time.Minute
+
+// the most we'll read from a relayer before authenticating it - the signature is over the whole body so we can't
+// truncate, and a device has no reason to send us anything near this
+const relayerMaxBodyBytes = 1 << 20
 
 // the most messages we'll offer a relayer in a single sync. There's no limit on how many can be queued for it, but a
 // relayer syncs continuously so a huge response just delays the first send - it'll come back for the rest.
@@ -67,12 +72,10 @@ const (
 //
 //	{"cmds": [{"cmd": "ack", "p_id": 1}, {"cmd": "mt_bcast", "to": [{"phone": "+593979...", "id": 123}], "msg": "hi"}]}
 func handleRelayerSync(ctx context.Context, rt *runtime.Runtime, r *http.Request, w http.ResponseWriter) error {
-	channelID := models.ChannelID(0)
-	if id, err := strconv.Atoi(r.PathValue("id")); err == nil {
-		channelID = models.ChannelID(id)
-	}
+	relayerID, _ := strconv.Atoi(r.PathValue("id"))
+	channelID := models.ChannelID(relayerID)
 
-	body, err := io.ReadAll(r.Body)
+	body, err := io.ReadAll(http.MaxBytesReader(w, r.Body, relayerMaxBodyBytes))
 	if err != nil {
 		return fmt.Errorf("error reading request body: %w", err)
 	}
@@ -84,7 +87,7 @@ func handleRelayerSync(ctx context.Context, rt *runtime.Runtime, r *http.Request
 
 	// a channel we don't have, or that's been released, tells its relayer to stop
 	if channel == nil || !channel.IsActive {
-		return writeSyncResponse(w, []any{map[string]any{"cmd": "rel", "relayer_id": channelID}})
+		return writeSyncResponse(w, []any{map[string]any{"cmd": "rel", "relayer_id": relayerID}})
 	}
 
 	// a channel without a secret was never claimed and can't have signed anything
@@ -94,7 +97,10 @@ func handleRelayerSync(ctx context.Context, rt *runtime.Runtime, r *http.Request
 
 	requestTS := r.URL.Query().Get("ts")
 	ts, err := strconv.ParseInt(requestTS, 10, 64)
-	if err != nil || absDuration(time.Since(time.Unix(ts, 0))) > relayerRequestMaxAge {
+	if err != nil {
+		return fmt.Errorf("unreadable ts on relayer sync: %s", requestTS)
+	}
+	if absDuration(time.Since(time.Unix(ts, 0))) > relayerRequestMaxAge {
 		return writeSyncError(w, errorIDOldRequest, "Old Request")
 	}
 
@@ -115,7 +121,7 @@ func handleRelayerSync(ctx context.Context, rt *runtime.Runtime, r *http.Request
 			Commands []*syncCommand `json:"cmds"`
 		}{}
 		if err := json.Unmarshal(body, payload); err != nil {
-			return writeSyncError(w, errorIDUnclaimed, "Missing FCM command")
+			return fmt.Errorf("unparseable relayer sync body: %w", err)
 		}
 
 		// every valid sync starts by telling us how to reach the device
@@ -133,7 +139,7 @@ func handleRelayerSync(ctx context.Context, rt *runtime.Runtime, r *http.Request
 				"cmd":                "reg",
 				"relayer_claim_code": channel.ClaimCode,
 				"relayer_secret":     channel.Secret,
-				"relayer_id":         channel.ID,
+				"relayer_id":         relayerID,
 			}})
 		}
 		return writeSyncError(w, errorIDUnclaimed, "Can't sync unclaimed channel")
@@ -166,6 +172,10 @@ func processRelayerSync(ctx context.Context, rt *runtime.Runtime, w http.Respons
 	var syncEvent *models.SyncEvent
 	var outboxExclude []models.MsgID
 
+	// a command failing partway through mustn't discard the status changes we've already accepted, so the loop
+	// records the failure and breaks rather than returning - the batch is applied either way below
+	var loopErr error
+
 	for _, c := range cmds {
 		if c.Command == "" {
 			continue
@@ -187,7 +197,7 @@ func processRelayerSync(ctx context.Context, rt *runtime.Runtime, w http.Respons
 				if err != nil {
 					// a phone number we can't parse isn't something the relayer can fix by sending it again
 					if !isInvalidURN(err) {
-						return fmt.Errorf("error creating incoming message: %w", err)
+						loopErr = fmt.Errorf("error creating incoming message: %w", err)
 					}
 				} else {
 					extra = map[string]any{"msg_id": msgID}
@@ -205,7 +215,7 @@ func processRelayerSync(ctx context.Context, rt *runtime.Runtime, w http.Respons
 			if c.Phone != "" && validType && !seenCalls[call] {
 				_, err := createChannelEvent(ctx, rt, oa, channel.ID, c.Phone, eventType, null.Map[any]{"duration": int(c.Duration)}, c.Timestamp())
 				if err != nil && !isInvalidURN(err) {
-					return fmt.Errorf("error creating channel event: %w", err)
+					loopErr = fmt.Errorf("error creating channel event: %w", err)
 				}
 				seenCalls[call] = true
 			}
@@ -214,30 +224,38 @@ func processRelayerSync(ctx context.Context, rt *runtime.Runtime, w http.Respons
 			// this is how we reach the device to ask it to sync, so it's never acked - the relayer includes it in
 			// every sync and we want the latest
 			if err := updateChannelApp(ctx, rt, channel, c); err != nil {
-				return err
+				loopErr = err
 			}
 
 		case c.Command == "reset":
 			if err := releaseChannel(ctx, rt, channel); err != nil {
-				return err
+				loopErr = err
+			} else {
+				handled = true
 			}
-			handled = true
 
 		case c.Command == "status":
 			// the device's own report of itself, always included in a sync so never acked
 			syncEvent, err = recordSyncEvent(ctx, rt, oa, channel, c, len(cmds))
 			if err != nil {
-				return err
+				loopErr = err
+				break
 			}
-			outboxExclude = append(append(outboxExclude, c.PendingMessages()...), c.RetryMessages()...)
+			outboxExclude = append(c.PendingMessages(), c.RetryMessages()...)
 
 			// the channel has been moved to a different workspace than the device thinks it's in
-			if c.OrgID != 0 && models.OrgID(c.OrgID) != channel.OrgID {
+			if c.OrgID != nil && models.OrgID(*c.OrgID) != channel.OrgID {
 				resp = append(resp, map[string]any{"cmd": "claim", "org_id": channel.OrgID})
 			}
 		}
 
+		if loopErr != nil {
+			break
+		}
+
 		if c.PID != nil && handled {
+			// echo the id back exactly as it was sent rather than re-encoding it, since the device matches its
+			// pending commands against what it gave us
 			ack := map[string]any{"cmd": "ack", "p_id": *c.PID}
 			if extra != nil {
 				ack["extra"] = extra
@@ -248,6 +266,9 @@ func processRelayerSync(ctx context.Context, rt *runtime.Runtime, w http.Respons
 
 	if err := batch.apply(ctx, rt, channel.OrgID); err != nil {
 		return err
+	}
+	if loopErr != nil {
+		return loopErr
 	}
 
 	outbox, err := buildOutboxCommands(ctx, rt, channel.ID, outboxExclude)
@@ -410,7 +431,7 @@ func writeSyncResponse(w http.ResponseWriter, cmds []any) error {
 }
 
 func writeSyncError(w http.ResponseWriter, errorID int, message string) error {
-	slog.Info("relayer sync rejected", "error_id", errorID, "error", message)
+	slog.Debug("relayer sync rejected", "error_id", errorID, "error", message)
 
 	return web.WriteMarshalled(w, http.StatusUnauthorized, map[string]any{"error_id": errorID, "error": message, "cmds": []any{}})
 }
@@ -442,8 +463,8 @@ func absDuration(d time.Duration) time.Duration {
 // this is the union of their fields - and because it's a frozen client that has spoken several dialects over the
 // years, numbers are read leniently and the older long-form field names are still accepted.
 type syncCommand struct {
-	Command string   `json:"cmd"`
-	PID     *flexInt `json:"p_id"`
+	Command string           `json:"cmd"`
+	PID     *json.RawMessage `json:"p_id"`
 
 	// commands about a specific message
 	MsgID flexInt `json:"msg_id"`
@@ -460,22 +481,22 @@ type syncCommand struct {
 	UUID  string `json:"uuid"`
 
 	// the status command
-	Dev             string    `json:"dev"`
-	OSName          string    `json:"os"`
-	AppVersion      string    `json:"app_version"`
-	OrgID           flexInt   `json:"org_id"`
-	PSrc            string    `json:"p_src"`
-	PowerSourceLong string    `json:"power_source"`
-	PSts            string    `json:"p_sts"`
-	PowerStatusLong string    `json:"power_status"`
-	PLvl            flexInt   `json:"p_lvl"`
-	PowerLevelLong  flexInt   `json:"power_level"`
-	Net             string    `json:"net"`
-	NetworkTypeLong string    `json:"network_type"`
-	Pending         []flexInt `json:"pending"`
-	PendingLong     []flexInt `json:"pending_messages"`
-	Retry           []flexInt `json:"retry"`
-	RetryLong       []flexInt `json:"retry_messages"`
+	Dev             string     `json:"dev"`
+	OSName          string     `json:"os"`
+	AppVersion      string     `json:"app_version"`
+	OrgID           *flexInt   `json:"org_id"`
+	PSrc            *string    `json:"p_src"`
+	PowerSourceLong *string    `json:"power_source"`
+	PSts            *string    `json:"p_sts"`
+	PowerStatusLong *string    `json:"power_status"`
+	PLvl            *flexInt   `json:"p_lvl"`
+	PowerLevelLong  *flexInt   `json:"power_level"`
+	Net             *string    `json:"net"`
+	NetworkTypeLong *string    `json:"network_type"`
+	Pending         *[]flexInt `json:"pending"`
+	PendingLong     *[]flexInt `json:"pending_messages"`
+	Retry           *[]flexInt `json:"retry"`
+	RetryLong       *[]flexInt `json:"retry_messages"`
 }
 
 // MessageID is the message this command is about. Older relayers hold message ids in a signed 32 bit integer, so an
@@ -496,67 +517,75 @@ func (c *syncCommand) Timestamp() time.Time {
 
 func (c *syncCommand) Device() string      { return c.Dev }
 func (c *syncCommand) OS() string          { return c.OSName }
-func (c *syncCommand) PowerSource() string { return firstOf(c.PSrc, c.PowerSourceLong) }
-func (c *syncCommand) PowerStatus() string { return firstOf(c.PSts, c.PowerStatusLong) }
-func (c *syncCommand) NetworkType() string { return firstOf(c.Net, c.NetworkTypeLong) }
+func (c *syncCommand) PowerSource() string { return derefStr(c.PSrc, c.PowerSourceLong) }
+func (c *syncCommand) PowerStatus() string { return derefStr(c.PSts, c.PowerStatusLong) }
+func (c *syncCommand) NetworkType() string { return derefStr(c.Net, c.NetworkTypeLong) }
 
 func (c *syncCommand) PowerLevel() int {
-	if c.PLvl != 0 {
-		return int(c.PLvl)
+	if v := derefInt(c.PLvl, c.PowerLevelLong); v != nil {
+		return int(*v)
 	}
-	return int(c.PowerLevelLong)
+	return 0
 }
 
 func (c *syncCommand) PendingMessages() []models.MsgID { return msgIDs(c.Pending, c.PendingLong) }
 func (c *syncCommand) RetryMessages() []models.MsgID   { return msgIDs(c.Retry, c.RetryLong) }
 
-func msgIDs(short, long []flexInt) []models.MsgID {
+// the device has used both a short and a long name for these fields over the years, and which one it sent is what
+// decides the value - a short name sent as empty means empty, not "fall back to the long one"
+func derefStr(short, long *string) string {
+	if short != nil {
+		return *short
+	}
+	if long != nil {
+		return *long
+	}
+	return ""
+}
+
+func derefInt(short, long *flexInt) *flexInt {
+	if short != nil {
+		return short
+	}
+	return long
+}
+
+func msgIDs(short, long *[]flexInt) []models.MsgID {
 	vals := short
-	if len(vals) == 0 {
+	if vals == nil {
 		vals = long
 	}
+	if vals == nil {
+		return nil
+	}
 
-	ids := make([]models.MsgID, len(vals))
-	for i, v := range vals {
+	ids := make([]models.MsgID, len(*vals))
+	for i, v := range *vals {
 		ids[i] = models.MsgID(v)
 	}
 	return ids
 }
 
-func firstOf(vals ...string) string {
-	for _, v := range vals {
-		if v != "" {
-			return v
-		}
-	}
-	return ""
-}
-
-// flexInt is an integer that the relayer might send as a JSON number or as a string, both of which the Python
-// implementation this replaces accepted.
+// flexInt is an integer field from a relayer, which over the years has sent numbers as JSON numbers, as floats and
+// as strings. It never reports an error: these all arrive in one document, so failing on a single odd value would
+// reject the entire sync - and would do so for every sync that device ever sends, with no way to debug it in the
+// field. Anything we can't read is left as zero, which is how the callers treat a field the device didn't send.
 type flexInt int64
 
 func (i *flexInt) UnmarshalJSON(b []byte) error {
-	if len(b) > 0 && b[0] == '"' {
-		var s string
-		if err := jsonx.Unmarshal(b, &s); err != nil {
-			return err
-		}
-		if s == "" {
-			return nil
-		}
-		v, err := strconv.ParseInt(s, 10, 64)
-		if err != nil {
-			return err
-		}
-		*i = flexInt(v)
+	var raw any
+	if err := jsonx.Unmarshal(b, &raw); err != nil {
 		return nil
 	}
 
-	var v int64
-	if err := jsonx.Unmarshal(b, &v); err != nil {
-		return err
+	switch v := raw.(type) {
+	case float64:
+		*i = flexInt(int64(v))
+	case string:
+		if f, err := strconv.ParseFloat(v, 64); err == nil {
+			*i = flexInt(int64(f))
+		}
 	}
-	*i = flexInt(v)
+
 	return nil
 }

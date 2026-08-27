@@ -23,20 +23,25 @@ var latestAppVersion struct {
 // one. Every syncing relayer needs this to know whether its own version is outdated, so it's cached in process.
 func GetLatestAndroidAppVersion(ctx context.Context, db DBorTx) (string, error) {
 	latestAppVersion.Lock()
-	defer latestAppVersion.Unlock()
+	cached, fresh := latestAppVersion.version, time.Since(latestAppVersion.fetchedAt) < latestAppVersionTTL
+	latestAppVersion.Unlock()
 
-	if time.Since(latestAppVersion.fetchedAt) < latestAppVersionTTL {
-		return latestAppVersion.version, nil
+	if fresh {
+		return cached, nil
 	}
 
+	// deliberately not holding the lock across the query - every relayer sync asks for this, and the cost of two
+	// of them occasionally making the same query is far less than serializing all of them behind one
 	var version string
 	err := db.GetContext(ctx, &version, `SELECT version FROM apks_apk WHERE apk_type = 'R' ORDER BY created_on DESC LIMIT 1`)
 	if err != nil && err != sql.ErrNoRows {
 		return "", fmt.Errorf("error fetching latest android app version: %w", err)
 	}
 
+	latestAppVersion.Lock()
 	latestAppVersion.version = version
 	latestAppVersion.fetchedAt = time.Now()
+	latestAppVersion.Unlock()
 
 	return version, nil
 }
