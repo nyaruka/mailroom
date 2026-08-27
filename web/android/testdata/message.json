@@ -64,7 +64,7 @@
         "body": {
             "org_id": 1,
             "channel_id": 10000,
-            "phone": "+16055748888",
+            "phone": "+16055550132",
             "text": "Hola",
             "received_on": "2024-04-01T12:00:00Z"
         },
@@ -97,7 +97,7 @@
         "body": {
             "org_id": 1,
             "channel_id": 10000,
-            "phone": "+16055748888",
+            "phone": "+16055550132",
             "text": "Hola",
             "received_on": "2024-04-01T12:00:00Z"
         },

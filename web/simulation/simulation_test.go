@@ -31,7 +31,7 @@ const (
 			"language": "eng",
 			"timezone": "America/Guayaquil",
 			"urns": [
-				"tel:+12065551212"
+				"tel:+12065550100"
 			],
 			"fields": {},
 			"created_on": "2000-01-01T00:00:00.000000000-00:00"
@@ -57,7 +57,7 @@ const (
 			"language": "eng",
 			"timezone": "America/Guayaquil",
 			"urns": [
-				"tel:+12065551212"
+				"tel:+12065550100"
 			],
 			"fields": {},
 			"created_on": "2000-01-01T00:00:00.000000000-00:00"
@@ -73,7 +73,7 @@ const (
 						"uuid": "0f661e8b-ea9d-4bd3-9953-d368340acf91"
 					},
 					"text": "$$MESSAGE$$",
-					"urn": "tel:+12065551212"
+					"urn": "tel:+12065550100"
 				}
 			},
             "resumed_on": "2000-01-01T00:00:00.000000000-00:00",
@@ -84,7 +84,7 @@ const (
 				{
 					"uuid": "440099cf-200c-4d45-a8e7-4a564f4a0e8b",
 					"name": "Test Channel",
-					"address": "+18005551212",
+					"address": "+12065550101",
 					"schemes": ["tel"],
 					"roles": ["send", "receive", "call"],
 					"country": "US"
@@ -105,7 +105,7 @@ const (
 			"language": "eng",
 			"timezone": "America/Guayaquil",
 			"urns": [
-				"tel:+12065551212"
+				"tel:+12065550100"
 			],
 			"fields": {},
 			"created_on": "2000-01-01T00:00:00.000000000-00:00"
@@ -118,7 +118,7 @@ const (
 				"msg": {
 					"uuid": "2d611e17-fb22-457f-b802-b8f7ec5cda5b",
 					"channel": {"uuid": "440099cf-200c-4d45-a8e7-4a564f4a0e8b", "name": "Test Channel"},
-					"urn": "tel:+12065551212",
+					"urn": "tel:+12065550100",
 					"text": "hi there"
 				}
 			},
@@ -134,7 +134,7 @@ const (
 				{
 					"uuid": "440099cf-200c-4d45-a8e7-4a564f4a0e8b",
 					"name": "Test Channel",
-					"address": "+12065551441",
+					"address": "+12065550101",
 					"schemes": ["tel"],
 					"roles": ["send", "receive", "call"],
 					"country": "US"

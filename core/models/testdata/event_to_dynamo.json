@@ -6,7 +6,7 @@
             "created_on": "2006-01-02T15:04:05Z",
             "external_id": "12345678",
             "sender": "tel:4748",
-            "recipient": "tel:+1242563637",
+            "recipient": "tel:+12425550100",
             "currency": "RWF",
             "amount": 100,
             "http_logs": [
@@ -26,31 +26,10 @@
             ]
         },
         "dynamo": {
-            "PK": {
-                "S": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf"
-            },
-            "SK": {
-                "S": "evt#0197b335-6ded-79a4-95a6-3af85b57f108"
-            },
-            "OrgID": {
-                "N": "1"
-            },
             "Data": {
                 "M": {
                     "recipient": {
-                        "S": "tel:+1242563637"
-                    },
-                    "type": {
-                        "S": "airtime_created"
-                    },
-                    "created_on": {
-                        "S": "2006-01-02T15:04:05Z"
-                    },
-                    "external_id": {
-                        "S": "12345678"
-                    },
-                    "sender": {
-                        "S": "tel:4748"
+                        "S": "tel:+12425550100"
                     },
                     "currency": {
                         "S": "RWF"
@@ -62,6 +41,9 @@
                         "L": [
                             {
                                 "M": {
+                                    "url": {
+                                        "S": "https://dvs-api.dtone.com/v1/sync/transactions"
+                                    },
                                     "request": {
                                         "S": "POST /v1/sync/transactions HTTP/1.1\r\n\r\n{}"
                                     },
@@ -89,15 +71,33 @@
                                     },
                                     "created_on": {
                                         "S": "2006-01-02T15:04:05Z"
-                                    },
-                                    "url": {
-                                        "S": "https://dvs-api.dtone.com/v1/sync/transactions"
                                     }
                                 }
                             }
                         ]
+                    },
+                    "type": {
+                        "S": "airtime_created"
+                    },
+                    "sender": {
+                        "S": "tel:4748"
+                    },
+                    "created_on": {
+                        "S": "2006-01-02T15:04:05Z"
+                    },
+                    "external_id": {
+                        "S": "12345678"
                     }
                 }
+            },
+            "PK": {
+                "S": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf"
+            },
+            "SK": {
+                "S": "evt#0197b335-6ded-79a4-95a6-3af85b57f108"
+            },
+            "OrgID": {
+                "N": "1"
             }
         }
     },
@@ -115,9 +115,6 @@
             }
         },
         "dynamo": {
-            "PK": {
-                "S": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf"
-            },
             "SK": {
                 "S": "evt#01969b47-2c93-76f8-b774-0a98171a0712"
             },
@@ -153,6 +150,9 @@
                         }
                     }
                 }
+            },
+            "PK": {
+                "S": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf"
             }
         }
     },
@@ -179,6 +179,15 @@
             ]
         },
         "dynamo": {
+            "PK": {
+                "S": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf"
+            },
+            "SK": {
+                "S": "evt#01969b47-3463-76f8-a7eb-cc4cc9ec3e6b"
+            },
+            "OrgID": {
+                "N": "1"
+            },
             "TTL": {
                 "N": "1777897858"
             },
@@ -229,15 +238,6 @@
                         ]
                     }
                 }
-            },
-            "PK": {
-                "S": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf"
-            },
-            "SK": {
-                "S": "evt#01969b47-3463-76f8-a7eb-cc4cc9ec3e6b"
-            },
-            "OrgID": {
-                "N": "1"
             }
         }
     },
@@ -249,16 +249,22 @@
             "language": "spa"
         },
         "dynamo": {
+            "OrgID": {
+                "N": "1"
+            },
+            "TTL": {
+                "N": "1777897855"
+            },
             "Data": {
                 "M": {
+                    "type": {
+                        "S": "contact_language_changed"
+                    },
                     "created_on": {
                         "S": "2025-05-04T12:30:55.123456789Z"
                     },
                     "language": {
                         "S": "spa"
-                    },
-                    "type": {
-                        "S": "contact_language_changed"
                     }
                 }
             },
@@ -267,12 +273,6 @@
             },
             "SK": {
                 "S": "evt#01969b47-28ab-76f8-b774-0a98171a0712"
-            },
-            "OrgID": {
-                "N": "1"
-            },
-            "TTL": {
-                "N": "1777897855"
             }
         }
     },
@@ -284,6 +284,12 @@
             "language": ""
         },
         "dynamo": {
+            "SK": {
+                "S": "evt#01969b47-28ab-76f8-b774-0a98171a0712"
+            },
+            "OrgID": {
+                "N": "1"
+            },
             "TTL": {
                 "N": "1777897855"
             },
@@ -302,12 +308,6 @@
             },
             "PK": {
                 "S": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf"
-            },
-            "SK": {
-                "S": "evt#01969b47-28ab-76f8-b774-0a98171a0712"
-            },
-            "OrgID": {
-                "N": "1"
             }
         }
     },
@@ -323,23 +323,8 @@
             "name": "Bryan"
         },
         "dynamo": {
-            "PK": {
-                "S": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf"
-            },
-            "SK": {
-                "S": "evt#01969b47-28ab-76f8-b774-0a98171a0712"
-            },
-            "OrgID": {
-                "N": "1"
-            },
-            "TTL": {
-                "N": "1777897855"
-            },
             "Data": {
                 "M": {
-                    "name": {
-                        "S": "Bryan"
-                    },
                     "type": {
                         "S": "contact_name_changed"
                     },
@@ -355,8 +340,23 @@
                                 "S": "Ed McEditor"
                             }
                         }
+                    },
+                    "name": {
+                        "S": "Bryan"
                     }
                 }
+            },
+            "PK": {
+                "S": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf"
+            },
+            "SK": {
+                "S": "evt#01969b47-28ab-76f8-b774-0a98171a0712"
+            },
+            "OrgID": {
+                "N": "1"
+            },
+            "TTL": {
+                "N": "1777897855"
             }
         }
     },
@@ -366,15 +366,12 @@
             "type": "contact_urns_changed",
             "created_on": "2025-05-04T12:30:58.123456789Z",
             "urns": [
-                "tel:+12065551212?channel=57f1078f-88aa-46f4-a59a-948a5739c03d&id=123",
+                "tel:+12065550100?channel=57f1078f-88aa-46f4-a59a-948a5739c03d&id=123",
                 "twitterid:54784326227#nyaruka",
                 "mailto:bob@nyaruka.com"
             ]
         },
         "dynamo": {
-            "PK": {
-                "S": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf"
-            },
             "SK": {
                 "S": "evt#01969b47-3463-76f8-a7eb-cc4cc9ec3e6b"
             },
@@ -395,7 +392,7 @@
                     "urns": {
                         "L": [
                             {
-                                "S": "tel:+12065551212?channel=57f1078f-88aa-46f4-a59a-948a5739c03d&id=123"
+                                "S": "tel:+12065550100?channel=57f1078f-88aa-46f4-a59a-948a5739c03d&id=123"
                             },
                             {
                                 "S": "twitterid:54784326227#nyaruka"
@@ -406,6 +403,9 @@
                         ]
                     }
                 }
+            },
+            "PK": {
+                "S": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf"
             }
         }
     },
@@ -460,7 +460,7 @@
                     "status": "active",
                     "timezone": "America/Guayaquil",
                     "urns": [
-                        "tel:+12065551212",
+                        "tel:+12065550100",
                         "facebook:1122334455667788",
                         "mailto:ben@macklemore",
                         "twitter:ben_haggerty"
@@ -503,16 +503,6 @@
             }
         },
         "dynamo": {
-            "Data": {
-                "M": {
-                    "type": {
-                        "S": "session_triggered"
-                    }
-                }
-            },
-            "DataGZ": {
-                "B": "H4sIAAAAAAAA/6RVy47cNhD8FYHXiAmfoqRT1gacBEEuGx/sdQyhSTbHhDXURqL2YWP+PaBGHm8cJzAQQAeJJKqrqoutj2Rdoyc9YbxrOqsMbYyw1DShpa1VgjLdIBOce207UpP8eIukJwsuS5zSkOd4OOCMntTEzQgZ/TAl0hPBhKZMU6ZectFL3nP+PRdS6ca03Q2pSRine9JfylvjAvOtpIG7jirOHe2a4KnTnINyAdqm1EhwLOWv8RCXPEOOU6peFKRTTdyUMri8kP7NBbYVLOhOSCplU2BdQ610nkLQxjhmvbLtZ9hnkyWntzXBBzeuRd9C+o+nmsxrGpb1eIT5sVDeC22vf9fMGGWcMv6SsX57NqURR1+QCLgc7zbSQ57eYyprGR8y6cmrV6/o69ev6c3NTdES4rzk4UzrcuYZprI3w/3gi/x45rDv/lKN8Q6rmKoDLGCncnTJkDeE/YVc30PyUP2xMiax+jUeYIzV85gfS2vPOP9+5HSqyWGe1tuzxbtpv6/zHT5WV6uPmByS+pP3AsALHhoqmTVUCaep9SZQbo1gjmvVckNO9QXoSanqNzxanJfPYN6EoFojaCdkS5UWgXZetlQErduA0HbItt6V03vQajJCOqxwKOiYDqQsLHlYENOlY83WMfGS656pnumbJ3HAVP0MJd+bP8XDdSH9uY1FaI5H/DClcvbqiHN08MNPKzzCn2scC/W5BOgNyTj233HBGq01F1yUTIBDO03ve86FkFIprZvGmLaE8QhxzFNvMf14BPd+xOM0b9XuY844l43h3Sdaby8OWegaG0yg1gmgqjWSgnGGCq0874RxCuUWrf3i7SKvxrG6cnkL+wWrdaCUYx01HfdUaQm0M11HwTDvpWRSsmaLIi7rmLdsiwAuT/N2KSDjYSp3hZSxsH8N4+RgjB/Q7+v/OS6E2cdF6Qc+5BlIn9ZxrElMt2s+Q+wSxItz6ZqkyeOwawja2s4aoMZqpEo7SdvAkDbcKuw0+sAkqckdjGsBkaqRqhFKNVILvRkFd9McMw5uGv8h7Po88r6m7fobpqEQ3y7vxc6jer7x+F8qy6Q+nb6W5S9/A5zL/TfQaRdoFxx0OnAnGRRz3sUlT+dxeAszpjx8CcB0K3cAoZB2Hjlw3kpuCyFIDgvCQnr+5GtYYnI47Caw0+mvAAAA//+Mw+wDoAYAAA=="
-            },
             "PK": {
                 "S": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf"
             },
@@ -521,6 +511,16 @@
             },
             "OrgID": {
                 "N": "1"
+            },
+            "Data": {
+                "M": {
+                    "type": {
+                        "S": "session_triggered"
+                    }
+                }
+            },
+            "DataGZ": {
+                "B": "H4sIAAAAAAAA/6RVy47cNhD8FYHXiAmfoqRT1gacBEEuGx/sdQyhSTbHhDXURqL2YWP+PaBGHm8cJzAQQAeJJKqrqoutj2Rdoyc9YbxrOqsMbYyw1DShpa1VgjLdIBOce207UpP8eIukJwsuS5zSkOd4OOCMntTEzQgZ/TAl0hPBhKZMU6ZectFL3nP+PRdS6ca03Q2pSRine9JfylvjAvOtpIG7jirOHe2a4KnTnINyAdqm1EhwLOWv8RCXPEOOU6peFKRTTdyUMri8kP7NBbYVLOhOSCplU2BdQ610nkLQxjhmvbLtZ9hnkyWntzXBBzeuRd9C+o+nmsxrGpb1eIT5sVDeC22vf9fMGGWcMv6SsX57NqURR1+QCLgc7zbSQ57eYyprGR8y6cmrV6/o69ev6c3NTdES4rzk4UzrcuYZprI3w/3gi/x45rDv/lKN8Q6rmKoDLGCncnTJkDeE/YVc30PyUP2xMiax+jUeYIzV85gfS2vPOP9+5HSqyWGe1tuzxbtpv6/zHT5WV6uPmByS+pP3AsALHhoqmTVUCaep9SZQbo1gjmvVckNO9QXoSanqNzxanJfPYN6EoFojaCdkS5UWgXZetlQErduA0HbItt6V03vQajJCOqxwKOiYDqQsLHlYENOlY83WMfGS656pnumbJ3HAVP0MJd+bP8XDdSH9uY1FaI5H/DClcvbqiHN08MNPKzzCn2scC/W5BOgNyTj233HBGq0144yVTIBDO03ve86FkFIprZvGmLaE8QhxzFNvMf14BPd+xOM0b9XuY844l43h3Sdaby8OWegaG0yg1gmgqjWSgnGGCq0874RxCuUWrf3i7SKvxrG6cnkL+wWrdaCUYx01HfdUaQm0M11HwTDvpWRSsmaLIi7rmLdsiwAuT/N2KSDjYSp3hZSxsH8N4+RgjB/Q7+v/OS6E2cdF6Qc+5BlIn9ZxrElMt2s+Q+wSxItz6ZqkyeOwawja2s4aoMZqpEo7SdvAkDbcKuw0+sAkqckdjGsBkaqRqhFKNVILvRkFd9McMw5uGv8h7Po88r6m7fobpqEQ3y7vxc6jer7x+F8qy6Q+nb6W5S9/A5zL/TfQaRdoFxx0OnAnGRRz3sUlT+dxeAszpjx8CcB0K3cAoZB2Hjlw3kpuCyFIDgvCQnr+5GtYYnI47Caw0+mvAAAA///pucBVoAYAAA=="
             }
         }
     },
@@ -579,7 +579,7 @@
                     "status": "active",
                     "timezone": "America/Guayaquil",
                     "urns": [
-                        "tel:+12065551212",
+                        "tel:+12065550100",
                         "facebook:1122334455667788",
                         "mailto:ben@macklemore",
                         "twitter:ben_haggerty"
@@ -622,16 +622,6 @@
             }
         },
         "dynamo": {
-            "Data": {
-                "M": {
-                    "type": {
-                        "S": "session_triggered"
-                    }
-                }
-            },
-            "DataGZ": {
-                "B": "H4sIAAAAAAAA/6SVz27cNhDGX0XgtWLLv6KoU50AaYuiFzeHxGkgDMnhhohWciXKjhPsuxfUKms3TYsABXSQKOI3M998HH4i65oC6QjjtrFOGdoY4ahpYktbpwRlukEmOA/aWVKT/HCLpCMLLkuaxj7P6XDAGQOpiZ8RMoZ+GklHBBOaMk2ZeslFJ3nH+fdcSKUb09obUpN+XXAm3SU+ChtDtJHqBhxVQgB1xgSKEr1omOUgNKnJCMcS/2oMD9VVOKaRnGoSh+n+CcoZH1loJY3cW6o499Q2MVCvOQflI7RNeERd4yEteYacprF6UUinmvhpzODzQro3F2wrWNRWSCplU7C+oU76QCFqYzxzQbn2EftscuT0tib4wQ9r0Woh3adTTeZ17Jf1eIT5oaS8B9pe/64fY5RxyvhLxrrtKarFhEMoJAI+p7st6T5P73Esaxk/ZNKRV69e0devX9Obm5tNnTQvuT+nddnzDDflZrjvQyk/nXPY//5SDekOqzRWB1jATWXrkiFvhP2FXN/DGKD6Y2VMYvVrOsCQqucpPxSbnDn/vuV0qslhntbbs8S7aL+v8x0+VFdrSDh6JPVn7QVAEDw2VDJnqBJeUxdMpNwZwTzXquWGnOoL6Emo6jc8OpyXR1gwMarWCGqFbKnSIlIbZEtF1LqNCK1FtvWu7N5NW5MBxsMKh0LH8UDKwpL7BXG8dKzZOiZect0x1TF988QOOFY/Qzkrmz5Fw3Uh3bmNpdCcjvhxGjdzH3FOHn74aYUH+HNNQ0l9LgZ6QzIO3XdcsEZrzQUXxRPg0U3T+45zIaRUSuumMaYtZjxCGvLUORx/PIJ/P+Bxmrdo9ylnnMuP/t3ntN5eFHJgGxdNpM4LoKo1koLxhgqtArfCeIXy6cH7fCqHobryeTP7hdV6UMozS43lgSotgVpjLQXDQpCSScmazYq4rEPevC0i+Dxt08FDxsNUzgopI2b/6ofJw5A+YtjX/3P0CLOPntIP/JBnIN24DkNN0ni75jNiL0G8OIeuyTgF7PcaonbOOgPUOI1UaS9pGxnShjuFVmOITJKa3MGwFohUjVSNUKqRWuhNKLib5pSx99Pwj8Kuz+Pza7Vdf8NkFeLby3ux51E93/L4X1WWqX86fc3LX14pnMv9SrHaR2qjB6sj95JBEeddWvJ0Hoe3MOOY+y8BTLdyBwiF1AbkwHkruSsJweixEBbS8Sdf/ZJGj/0uAjud/goAAP//wbdjhOwGAAA="
-            },
             "PK": {
                 "S": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf"
             },
@@ -640,6 +630,16 @@
             },
             "OrgID": {
                 "N": "1"
+            },
+            "Data": {
+                "M": {
+                    "type": {
+                        "S": "session_triggered"
+                    }
+                }
+            },
+            "DataGZ": {
+                "B": "H4sIAAAAAAAA/6SVz27cNhDGX0XgtWLLv6KoU50AaYuiFzeHxGkgDMnhhohWciXKjhPsuxfUKms3TYsABXSQKOI3M998HH4i65oC6QjjtrFOGdoY4ahpYktbpwRlukEmOA/aWVKT/HCLpCMLLkuaxj7P6XDAGQOpiZ8RMoZ+GklHBBOaMk2ZeslFJ3nH+fdcSKUb09obUpN+XXAm3SU+ChtDtJHqBhxVQgB1xgSKEr1omOUgNKnJCMcS/2oMD9VVOKaRnGoSh+n+CcoZH1loJY3cW6o499Q2MVCvOQflI7RNeERd4yEteYacprF6UUinmvhpzODzQro3F2wrWNRWSCplU7C+oU76QCFqYzxzQbn2EftscuT0tib4wQ9r0Woh3adTTeZ17Jf1eIT5oaS8B9pe/64fY5RxyvhLxrrtKarFhEMoJAI+p7st6T5P73Esaxk/ZNKRV69e0devX9Obm5tNnTQvuT+nddnzDDflZrjvQyk/nXPY//5SDekOqzRWB1jATWXrkiFvhP2FXN/DGKD6Y2VMYvVrOsCQqucpPxSbnDn/vuV0qslhntbbs8S7aL+v8x0+VFdrSDh6JPVn7QVAEDw2VDJnqBJeUxdMpNwZwTzXquWGnOoL6Emo6jc8OpyXR1gwMarWCGqFbKnSIlIbZEtF1LqNCK1FtvWu7N5NW5MBxsMKh0LH8UDKwpL7BXG8dKzZOiZect0x1TF988QOOFY/Qzkrmz5Fw3Uh3bmNpdCcjvhxGjdzH3FOHn74aYUH+HNNQ0l9LgZ6QzIO3XdcsEZrzThjxRPg0U3T+45zIaRUSuumMaYtZjxCGvLUORx/PIJ/P+Bxmrdo9ylnnMuP/t3ntN5eFHJgGxdNpM4LoKo1koLxhgqtArfCeIXy6cH7fCqHobryeTP7hdV6UMozS43lgSotgVpjLQXDQpCSScmazYq4rEPevC0i+Dxt08FDxsNUzgopI2b/6ofJw5A+YtjX/3P0CLOPntIP/JBnIN24DkNN0ni75jNiL0G8OIeuyTgF7PcaonbOOgPUOI1UaS9pGxnShjuFVmOITJKa3MGwFohUjVSNUKqRWuhNKLib5pSx99Pwj8Kuz+Pza7Vdf8NkFeLby3ux51E93/L4X1WWqX86fc3LX14pnMv9SrHaR2qjB6sj95JBEeddWvJ0Hoe3MOOY+y8BTLdyBwiF1AbkwHkruSsJweixEBbS8Sdf/ZJGj/0uAjud/goAAP//pM1P0uwGAAA="
             }
         }
     }

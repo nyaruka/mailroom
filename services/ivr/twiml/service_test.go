@@ -28,7 +28,7 @@ import (
 func TestResponseForSprint(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
 
-	urn := urns.URN("tel:+12067799294")
+	urn := urns.URN("tel:+12065550103")
 	expiresOn := time.Now().Add(time.Hour)
 	channelRef := assets.NewChannelReference(assets.ChannelUUID(uuids.NewV4()), "Twilio Channel")
 	env := envs.NewBuilder().WithAllowedLanguages("eng", "spa").WithDefaultCountry("US").Build()
@@ -106,9 +106,9 @@ func TestResponseForSprint(t *testing.T) {
 		{
 			// dial wait
 			events: []events.Event{
-				events.NewDialWait(urns.URN(`tel:+1234567890`), 60, 7200, expiresOn),
+				events.NewDialWait(urns.URN(`tel:+12345550100`), 60, 7200, expiresOn),
 			},
-			expected: `<Response><Dial action="http://temba.io/resume?session=1&amp;wait_type=dial" timeout="60" timeLimit="7200">+1234567890</Dial></Response>`,
+			expected: `<Response><Dial action="http://temba.io/resume?session=1&amp;wait_type=dial" timeout="60" timeLimit="7200">+12345550100</Dial></Response>`,
 		},
 	}
 
@@ -129,16 +129,16 @@ func TestURNForRequest(t *testing.T) {
 		return r
 	}
 
-	urn, err := s.URNForRequest(makeRequest(`CallSid=12345&AccountSid=23456&Caller=%2B12064871234&To=%2B12029795079&Called=%2B12029795079&CallStatus=queued&ApiVersion=2010-04-01&Direction=inbound`))
+	urn, err := s.URNForRequest(makeRequest(`CallSid=12345&AccountSid=23456&Caller=%2B12065550102&To=%2B12025550100&Called=%2B12025550100&CallStatus=queued&ApiVersion=2010-04-01&Direction=inbound`))
 	assert.NoError(t, err)
-	assert.Equal(t, urns.URN(`tel:+12064871234`), urn)
+	assert.Equal(t, urns.URN(`tel:+12065550102`), urn)
 
 	// SignalWire uses From instead of Caller
-	urn, err = s.URNForRequest(makeRequest(`CallSid=12345&AccountSid=23456&From=%2B12064871234&To=%2B12029795079&Called=%2B12029795079&CallStatus=queued&ApiVersion=2010-04-01&Direction=inbound`))
+	urn, err = s.URNForRequest(makeRequest(`CallSid=12345&AccountSid=23456&From=%2B12065550102&To=%2B12025550100&Called=%2B12025550100&CallStatus=queued&ApiVersion=2010-04-01&Direction=inbound`))
 	assert.NoError(t, err)
-	assert.Equal(t, urns.URN(`tel:+12064871234`), urn)
+	assert.Equal(t, urns.URN(`tel:+12065550102`), urn)
 
-	_, err = s.URNForRequest(makeRequest(`CallSid=12345&AccountSid=23456&To=%2B12029795079&Called=%2B12029795079&CallStatus=queued&ApiVersion=2010-04-01&Direction=inbound`))
+	_, err = s.URNForRequest(makeRequest(`CallSid=12345&AccountSid=23456&To=%2B12025550100&Called=%2B12025550100&CallStatus=queued&ApiVersion=2010-04-01&Direction=inbound`))
 	assert.EqualError(t, err, "no Caller or From parameter found in request")
 }
 

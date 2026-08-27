@@ -162,9 +162,9 @@ func TestContactImportsIndexing(t *testing.T) {
 	// aren't indexed by the modifier hooks, but should still end up in Elastic
 	importID := testdb.InsertContactImport(t, rt, testdb.Org1, models.ImportStatusProcessing, testdb.Admin)
 	batchID := testdb.InsertContactImportBatch(t, rt, importID, []byte(`[
-		{"name": "Norbert", "urns": ["tel:+16055740001"]},
-		{"urns": ["tel:+16055740002"]},
-		{"urns": ["tel:+16055740003"], "fields": {"age": "39"}}
+		{"name": "Norbert", "urns": ["tel:+16055550121"]},
+		{"urns": ["tel:+16055550122"]},
+		{"urns": ["tel:+16055550123"], "fields": {"age": "39"}}
 	]`))
 
 	batch, err := models.LoadContactImportBatch(ctx, rt.DB, batchID)
@@ -176,7 +176,7 @@ func TestContactImportsIndexing(t *testing.T) {
 	_, err = rt.ES.Client.Indices.Refresh().Index(rt.Config.ElasticContactsIndex).Do(ctx)
 	require.NoError(t, err)
 
-	for _, path := range []string{"+16055740001", "+16055740002", "+16055740003"} {
+	for _, path := range []string{"+16055550121", "+16055550122", "+16055550123"} {
 		src := map[string]any{"query": elastic.Nested("urns", elastic.Term("urns.path.keyword", path))}
 		resp, err := rt.ES.Client.Count().Index(rt.Config.ElasticContactsIndex).Raw(bytes.NewReader(jsonx.MustMarshal(src))).Do(ctx)
 		require.NoError(t, err)
@@ -200,7 +200,7 @@ func TestContactSpecUnmarshal(t *testing.T) {
 		"uuid": "8e879527-7e6d-4bff-abc8-b1d41cd4f702", 
 		"name": "Bob", 
 		"language": "spa",
-		"urns": ["tel:+1234567890"],
+		"urns": ["tel:+12345550100"],
 		"fields": {"age": "39"},
 		"groups": ["3972dcc2-6749-4761-a896-7880d6165f2c"]
 	}`), s)
@@ -208,7 +208,7 @@ func TestContactSpecUnmarshal(t *testing.T) {
 	assert.Equal(t, core.ContactUUID("8e879527-7e6d-4bff-abc8-b1d41cd4f702"), s.UUID)
 	assert.Equal(t, "Bob", *s.Name)
 	assert.Equal(t, "spa", *s.Language)
-	assert.Equal(t, []urns.URN{"tel:+1234567890"}, s.URNs)
+	assert.Equal(t, []urns.URN{"tel:+12345550100"}, s.URNs)
 	assert.Equal(t, map[string]string{"age": "39"}, s.Fields)
 	assert.Equal(t, []assets.GroupUUID{"3972dcc2-6749-4761-a896-7880d6165f2c"}, s.Groups)
 }

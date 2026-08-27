@@ -5,14 +5,14 @@
             {
                 "name": "Ann",
                 "urns": [
-                    "tel:+1 605 570 0001"
+                    "tel:+1 605 555 0111"
                 ],
                 "_import_row": 1
             },
             {
                 "name": "Bob",
                 "urns": [
-                    "tel:+16055700002"
+                    "tel:+16055550112"
                 ],
                 "_import_row": 2
             }
@@ -28,7 +28,7 @@
                 "language": "",
                 "status": "active",
                 "urns": [
-                    "tel:+16055700001"
+                    "tel:+16055550111"
                 ],
                 "fields": {},
                 "groups": [],
@@ -40,7 +40,7 @@
                 "language": "",
                 "status": "active",
                 "urns": [
-                    "tel:+16055700002"
+                    "tel:+16055550112"
                 ],
                 "fields": {},
                 "groups": [],
@@ -89,7 +89,7 @@
                 "name": "Cat",
                 "language": "spa",
                 "urns": [
-                    "tel:+16055700003",
+                    "tel:+16055550113",
                     "tel:+593979000001"
                 ],
                 "fields": {
@@ -113,7 +113,7 @@
                 "language": "",
                 "status": "active",
                 "urns": [
-                    "tel:+16055700001"
+                    "tel:+16055550111"
                 ],
                 "fields": {},
                 "groups": [],
@@ -125,7 +125,7 @@
                 "language": "",
                 "status": "active",
                 "urns": [
-                    "tel:+16055700002"
+                    "tel:+16055550112"
                 ],
                 "fields": {},
                 "groups": [],
@@ -137,7 +137,7 @@
                 "language": "spa",
                 "status": "active",
                 "urns": [
-                    "tel:+16055700003",
+                    "tel:+16055550113",
                     "tel:+593979000001"
                 ],
                 "fields": {
@@ -257,7 +257,7 @@
             {
                 "name": "Bob",
                 "urns": [
-                    "tel:+16055700002",
+                    "tel:+16055550112",
                     "tel:+593 979 000002"
                 ],
                 "fields": {
@@ -268,7 +268,7 @@
             {
                 "name": "Cat",
                 "urns": [
-                    "tel:+16055700003"
+                    "tel:+16055550113"
                 ],
                 "fields": {
                     "age": "39"
@@ -287,7 +287,7 @@
                 "language": "",
                 "status": "active",
                 "urns": [
-                    "tel:+16055700001"
+                    "tel:+16055550111"
                 ],
                 "fields": {},
                 "groups": [],
@@ -299,7 +299,7 @@
                 "language": "",
                 "status": "active",
                 "urns": [
-                    "tel:+16055700002",
+                    "tel:+16055550112",
                     "tel:+593979000002"
                 ],
                 "fields": {
@@ -314,7 +314,7 @@
                 "language": "spa",
                 "status": "active",
                 "urns": [
-                    "tel:+16055700003",
+                    "tel:+16055550113",
                     "tel:+593979000001"
                 ],
                 "fields": {
@@ -382,7 +382,7 @@
                     "created_on": "2025-05-04T12:31:15.123456789Z",
                     "type": "contact_urns_changed",
                     "urns": [
-                        "tel:+16055700002",
+                        "tel:+16055550112",
                         "tel:+593979000002"
                     ]
                 }
@@ -418,7 +418,7 @@
             {
                 "name": "Ann",
                 "urns": [
-                    "tel:+16055700001",
+                    "tel:+16055550111",
                     "tel:+593979000001"
                 ],
                 "fields": {
@@ -429,7 +429,7 @@
             {
                 "name": "Bob",
                 "urns": [
-                    "tel:+16055700002",
+                    "tel:+16055550112",
                     "tel:+593979000002"
                 ],
                 "fields": {
@@ -441,7 +441,7 @@
                 "name": "Cat",
                 "urns": [
                     "tel:+593979000001",
-                    "tel:+16055700003"
+                    "tel:+16055550113"
                 ],
                 "fields": {
                     "joined": "2020-02-01T17:15:30Z"
@@ -456,7 +456,7 @@
             {
                 "row": 1,
                 "record": 0,
-                "message": "Unable to find or create contact with URNs tel:+16055700001, tel:+593979000001"
+                "message": "Unable to find or create contact with URNs tel:+16055550111, tel:+593979000001"
             }
         ],
         "expected_contacts": [
@@ -466,7 +466,7 @@
                 "language": "",
                 "status": "active",
                 "urns": [
-                    "tel:+16055700001"
+                    "tel:+16055550111"
                 ],
                 "fields": {},
                 "groups": [],
@@ -478,7 +478,7 @@
                 "language": "",
                 "status": "active",
                 "urns": [
-                    "tel:+16055700002",
+                    "tel:+16055550112",
                     "tel:+593979000002"
                 ],
                 "fields": {
@@ -494,7 +494,7 @@
                 "language": "spa",
                 "status": "active",
                 "urns": [
-                    "tel:+16055700003",
+                    "tel:+16055550113",
                     "tel:+593979000001"
                 ],
                 "fields": {
@@ -569,7 +569,7 @@
                 "uuid": "b26fcae1-abb6-49f8-95cf-9fca95f1c30a",
                 "language": "kin",
                 "urns": [
-                    "tel:+16055700002"
+                    "tel:+16055550112"
                 ],
                 "_import_row": 2
             },
@@ -596,7 +596,7 @@
                 "language": "",
                 "status": "active",
                 "urns": [
-                    "tel:+16055700001"
+                    "tel:+16055550111"
                 ],
                 "fields": {},
                 "groups": [],
@@ -608,7 +608,7 @@
                 "language": "kin",
                 "status": "active",
                 "urns": [
-                    "tel:+16055700002",
+                    "tel:+16055550112",
                     "tel:+593979000002"
                 ],
                 "fields": {
@@ -624,7 +624,7 @@
                 "language": "spa",
                 "status": "active",
                 "urns": [
-                    "tel:+16055700003",
+                    "tel:+16055550113",
                     "tel:+593979000001"
                 ],
                 "fields": {
@@ -680,7 +680,7 @@
                 "uuid": "ad9bdcfa-5604-4542-98c7-1f0d5859f77e",
                 "name": "Anne",
                 "urns": [
-                    "tel:+16055700002"
+                    "tel:+16055550112"
                 ],
                 "_import_row": 1
             }
@@ -692,7 +692,7 @@
             {
                 "row": 1,
                 "record": 0,
-                "message": "URN tel:+16055700002 already taken by another contact"
+                "message": "URN tel:+16055550112 already taken by another contact"
             }
         ],
         "expected_contacts": [
@@ -702,7 +702,7 @@
                 "language": "",
                 "status": "active",
                 "urns": [
-                    "tel:+16055700001"
+                    "tel:+16055550111"
                 ],
                 "fields": {},
                 "groups": [],
@@ -714,7 +714,7 @@
                 "language": "kin",
                 "status": "active",
                 "urns": [
-                    "tel:+16055700002",
+                    "tel:+16055550112",
                     "tel:+593979000002"
                 ],
                 "fields": {
@@ -730,7 +730,7 @@
                 "language": "spa",
                 "status": "active",
                 "urns": [
-                    "tel:+16055700003",
+                    "tel:+16055550113",
                     "tel:+593979000001"
                 ],
                 "fields": {
@@ -772,7 +772,7 @@
                 "language": "",
                 "status": "active",
                 "urns": [
-                    "tel:+16055700001"
+                    "tel:+16055550111"
                 ],
                 "fields": {},
                 "groups": [],
@@ -784,7 +784,7 @@
                 "language": "kin",
                 "status": "active",
                 "urns": [
-                    "tel:+16055700002",
+                    "tel:+16055550112",
                     "tel:+593979000002"
                 ],
                 "fields": {
@@ -800,7 +800,7 @@
                 "language": "spa",
                 "status": "active",
                 "urns": [
-                    "tel:+16055700003",
+                    "tel:+16055550113",
                     "tel:+593979000001"
                 ],
                 "fields": {
@@ -821,8 +821,8 @@
             {
                 "name": "Anne",
                 "urns": [
-                    "tel:16055700001",
-                    "tel:16055700005"
+                    "tel:16055550111",
+                    "tel:16055550115"
                 ],
                 "_import_row": 1
             },
@@ -851,8 +851,8 @@
                 "language": "",
                 "status": "active",
                 "urns": [
-                    "tel:+16055700001",
-                    "tel:+16055700005"
+                    "tel:+16055550111",
+                    "tel:+16055550115"
                 ],
                 "fields": {},
                 "groups": [],
@@ -864,7 +864,7 @@
                 "language": "kin",
                 "status": "active",
                 "urns": [
-                    "tel:+16055700002",
+                    "tel:+16055550112",
                     "tel:+593979000002"
                 ],
                 "fields": {
@@ -880,7 +880,7 @@
                 "language": "spa",
                 "status": "active",
                 "urns": [
-                    "tel:+16055700003",
+                    "tel:+16055550113",
                     "tel:+593979000001"
                 ],
                 "fields": {
@@ -909,8 +909,8 @@
                     "created_on": "2025-05-04T12:31:45.123456789Z",
                     "type": "contact_urns_changed",
                     "urns": [
-                        "tel:+16055700001",
-                        "tel:+16055700005"
+                        "tel:+16055550111",
+                        "tel:+16055550115"
                     ]
                 }
             }
@@ -928,7 +928,7 @@
             {
                 "name": "Blake",
                 "urns": [
-                    "tel:+16055700007"
+                    "tel:+16055550117"
                 ],
                 "status": "blocked",
                 "_import_row": 2
@@ -936,7 +936,7 @@
             {
                 "name": "Ivan",
                 "urns": [
-                    "tel:+16055700008"
+                    "tel:+16055550118"
                 ],
                 "status": "invalid",
                 "_import_row": 3
@@ -959,8 +959,8 @@
                 "language": "",
                 "status": "archived",
                 "urns": [
-                    "tel:+16055700001",
-                    "tel:+16055700005"
+                    "tel:+16055550111",
+                    "tel:+16055550115"
                 ],
                 "fields": {},
                 "groups": [],
@@ -972,7 +972,7 @@
                 "language": "kin",
                 "status": "active",
                 "urns": [
-                    "tel:+16055700002",
+                    "tel:+16055550112",
                     "tel:+593979000002"
                 ],
                 "fields": {
@@ -988,7 +988,7 @@
                 "language": "spa",
                 "status": "active",
                 "urns": [
-                    "tel:+16055700003",
+                    "tel:+16055550113",
                     "tel:+593979000001"
                 ],
                 "fields": {
@@ -1007,7 +1007,7 @@
                 "language": "",
                 "status": "blocked",
                 "urns": [
-                    "tel:+16055700007"
+                    "tel:+16055550117"
                 ],
                 "fields": {},
                 "groups": [],
@@ -1019,7 +1019,7 @@
                 "language": "",
                 "status": "active",
                 "urns": [
-                    "tel:+16055700008"
+                    "tel:+16055550118"
                 ],
                 "fields": {},
                 "groups": [],
@@ -1120,8 +1120,8 @@
                 "language": "",
                 "status": "archived",
                 "urns": [
-                    "tel:+16055700001",
-                    "tel:+16055700005"
+                    "tel:+16055550111",
+                    "tel:+16055550115"
                 ],
                 "fields": {},
                 "groups": [],
@@ -1133,7 +1133,7 @@
                 "language": "kin",
                 "status": "active",
                 "urns": [
-                    "tel:+16055700002",
+                    "tel:+16055550112",
                     "tel:+593979000002"
                 ],
                 "fields": {
@@ -1149,7 +1149,7 @@
                 "language": "spa",
                 "status": "active",
                 "urns": [
-                    "tel:+16055700003",
+                    "tel:+16055550113",
                     "tel:+593979000001"
                 ],
                 "fields": {
@@ -1168,7 +1168,7 @@
                 "language": "",
                 "status": "blocked",
                 "urns": [
-                    "tel:+16055700007"
+                    "tel:+16055550117"
                 ],
                 "fields": {},
                 "groups": [],
@@ -1180,7 +1180,7 @@
                 "language": "",
                 "status": "active",
                 "urns": [
-                    "tel:+16055700008"
+                    "tel:+16055550118"
                 ],
                 "fields": {},
                 "groups": [],
@@ -1216,7 +1216,7 @@
             },
             {
                 "urns": [
-                    "tel:+16055700001"
+                    "tel:+16055550111"
                 ],
                 "language": "kin",
                 "_import_row": 2
@@ -1233,8 +1233,8 @@
                 "language": "kin",
                 "status": "archived",
                 "urns": [
-                    "tel:+16055700001",
-                    "tel:+16055700005"
+                    "tel:+16055550111",
+                    "tel:+16055550115"
                 ],
                 "fields": {},
                 "groups": [],
@@ -1246,7 +1246,7 @@
                 "language": "kin",
                 "status": "active",
                 "urns": [
-                    "tel:+16055700002",
+                    "tel:+16055550112",
                     "tel:+593979000002"
                 ],
                 "fields": {
@@ -1262,7 +1262,7 @@
                 "language": "spa",
                 "status": "active",
                 "urns": [
-                    "tel:+16055700003",
+                    "tel:+16055550113",
                     "tel:+593979000001"
                 ],
                 "fields": {
@@ -1281,7 +1281,7 @@
                 "language": "",
                 "status": "blocked",
                 "urns": [
-                    "tel:+16055700007"
+                    "tel:+16055550117"
                 ],
                 "fields": {},
                 "groups": [],
@@ -1293,7 +1293,7 @@
                 "language": "",
                 "status": "active",
                 "urns": [
-                    "tel:+16055700008"
+                    "tel:+16055550118"
                 ],
                 "fields": {},
                 "groups": [],

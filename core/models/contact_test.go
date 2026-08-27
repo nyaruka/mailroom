@@ -581,22 +581,22 @@ func TestUpdateContactURNs(t *testing.T) {
 	assertURNs(testdb.Cat, []string{"tel:+16055743333"})
 
 	updateURNs(map[*testdb.Contact][]urns.URN{
-		testdb.Ann: {"tel:+16055700001", "tel:+16055741111"}, // give Ann a new lower priority URN
-		testdb.Bob: {"tel:+16055742222", "tel:+16055700002"}, // give Bob a new lower priority URN
+		testdb.Ann: {"tel:+16055550111", "tel:+16055741111"}, // give Ann a new lower priority URN
+		testdb.Bob: {"tel:+16055742222", "tel:+16055550112"}, // give Bob a new lower priority URN
 	})
 
-	assertURNs(testdb.Ann, []string{"tel:+16055700001", "tel:+16055741111"})
-	assertURNs(testdb.Bob, []string{"tel:+16055742222", "tel:+16055700002"})
+	assertURNs(testdb.Ann, []string{"tel:+16055550111", "tel:+16055741111"})
+	assertURNs(testdb.Bob, []string{"tel:+16055742222", "tel:+16055550112"})
 	assertURNs(testdb.Cat, []string{"tel:+16055743333"})
 	assertURNs(nil, []string{})                                                                      // no orphan URNs
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contacturn`).Returns(numInitialURNs + 2) // but 2 new URNs
 
 	updateURNs(map[*testdb.Contact][]urns.URN{
-		testdb.Ann: {"tel:+16055700001"}, // remove a URN from Ann
+		testdb.Ann: {"tel:+16055550111"}, // remove a URN from Ann
 	})
 
-	assertURNs(testdb.Ann, []string{"tel:+16055700001"})
-	assertURNs(testdb.Bob, []string{"tel:+16055742222", "tel:+16055700002"})
+	assertURNs(testdb.Ann, []string{"tel:+16055550111"})
+	assertURNs(testdb.Bob, []string{"tel:+16055742222", "tel:+16055550112"})
 	assertURNs(testdb.Cat, []string{"tel:+16055743333"})
 	assertURNs(nil, []string{"tel:+16055741111"}) // now orphaned
 
@@ -607,23 +607,23 @@ func TestUpdateContactURNs(t *testing.T) {
 	assertURNs(testdb.Bob, []string{})
 
 	updateURNs(map[*testdb.Contact][]urns.URN{ // give Bob's URNs to Ann and Dan
-		testdb.Ann: {"tel:+16055700001", "tel:+16055700002"},
+		testdb.Ann: {"tel:+16055550111", "tel:+16055550112"},
 		testdb.Cat: {"tel:+16055743333"},
 		testdb.Dan: {"tel:+16055742222"},
 	})
 
-	assertURNs(testdb.Ann, []string{"tel:+16055700001", "tel:+16055700002"})
+	assertURNs(testdb.Ann, []string{"tel:+16055550111", "tel:+16055550112"})
 	assertURNs(testdb.Bob, []string{})
 	assertURNs(testdb.Cat, []string{"tel:+16055743333"})
 	assertURNs(testdb.Dan, []string{"tel:+16055742222"})
 
 	// add new URN to Ann and don't change anything for Cat
 	updateURNs(map[*testdb.Contact][]urns.URN{
-		testdb.Ann: {"tel:+16055700001", "tel:+16055700002", "tel:+16055700003"},
+		testdb.Ann: {"tel:+16055550111", "tel:+16055550112", "tel:+16055550113"},
 		testdb.Cat: {"tel:+16055743333"},
 	})
 
-	assertURNs(testdb.Ann, []string{"tel:+16055700001", "tel:+16055700002", "tel:+16055700003"})
+	assertURNs(testdb.Ann, []string{"tel:+16055550111", "tel:+16055550112", "tel:+16055550113"})
 	assertURNs(testdb.Bob, []string{})
 	assertURNs(testdb.Cat, []string{"tel:+16055743333"})
 	assertURNs(testdb.Dan, []string{"tel:+16055742222"})
@@ -642,7 +642,7 @@ func TestReassignShellContactURN(t *testing.T) {
 
 	// and a contact with a BSUID URN as well as a phone URN
 	other := testdb.InsertContact(t, rt, testdb.Org1, "a5b62498-f593-4dd2-a390-e2ff5b6d3c5b", "Other", "eng", models.ContactStatusActive)
-	testdb.InsertContactURN(t, rt, testdb.Org1, other, "tel:+16055747777", 1000, nil)
+	testdb.InsertContactURN(t, rt, testdb.Org1, other, "tel:+16055550131", 1000, nil)
 	otherURNID := testdb.InsertContactURN(t, rt, testdb.Org1, other, "whatsapp:US.D4E5F6", 999, nil)
 
 	var shellModifiedOn, annModifiedOn time.Time

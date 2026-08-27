@@ -558,7 +558,7 @@ func TestMsgReceivedNewURN(t *testing.T) {
 
 				// create a contact that owns the BSUID but also has a phone URN
 				other = testdb.InsertContact(t, rt, testdb.Org1, "d0d1a352-6e05-4a4c-9e07-2266a0dcfae7", "Other", "eng", models.ContactStatusActive)
-				testdb.InsertContactURN(t, rt, testdb.Org1, other, "tel:+16055749999", 1000, nil)
+				testdb.InsertContactURN(t, rt, testdb.Org1, other, "tel:+16055550133", 1000, nil)
 				testdb.InsertContactURN(t, rt, testdb.Org1, other, "whatsapp:US.OTHER1", 999, nil)
 			},
 			contact: testdb.Bob,

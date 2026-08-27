@@ -95,15 +95,15 @@ func TestImport(t *testing.T) {
 
 	import1ID := testdb.InsertContactImport(t, rt, testdb.Org1, models.ImportStatusProcessing, testdb.Admin)
 	testdb.InsertContactImportBatch(t, rt, import1ID, []byte(`[
-		{"name": "Norbert", "language": "eng", "urns": ["tel:+16055740001"]},
-		{"name": "Leah", "urns": ["tel:+16055740002"]}
+		{"name": "Norbert", "language": "eng", "urns": ["tel:+16055550121"]},
+		{"name": "Leah", "urns": ["tel:+16055550122"]}
 	]`))
 	testdb.InsertContactImportBatch(t, rt, import1ID, []byte(`[
-		{"name": "Rowan", "language": "spa", "urns": ["tel:+16055740003"]}
+		{"name": "Rowan", "language": "spa", "urns": ["tel:+16055550123"]}
 	]`))
 	import2ID := testdb.InsertContactImport(t, rt, testdb.Org1, models.ImportStatusProcessing, testdb.Editor)
 	testdb.InsertContactImportBatch(t, rt, import2ID, []byte(`[
-		{"name": "Gloria", "urns": ["tel:+16055740003"]}
+		{"name": "Gloria", "urns": ["tel:+16055550123"]}
 	]`))
 
 	testsuite.RunWebTests(t, rt, "testdata/import.json")

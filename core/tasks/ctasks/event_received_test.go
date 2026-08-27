@@ -47,7 +47,7 @@ func TestEventReceived(t *testing.T) {
 	testdb.InsertNewConversationTrigger(t, rt, testdb.Org1, testdb.Favorites, testdb.FacebookChannel)
 	testdb.InsertReferralTrigger(t, rt, testdb.Org1, testdb.PickANumber, "", testdb.VonageChannel)
 
-	// add a URN for Ann so we can test twitter URNs
+	// add a URN for Bob so we can test twitter URNs
 	testdb.InsertContactURN(t, rt, testdb.Org1, testdb.Bob, urns.URN("twitterid:123456"), 10, nil)
 
 	// add facebook URNs for Ann and Bob so that Facebook new_conversation events have a matching URN
