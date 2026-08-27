@@ -961,7 +961,7 @@ type AndroidStatusUpdate struct {
 // after we read it can't be given a folder that doesn't match its actual state.
 const sqlUpdateAndroidMsgStatuses = `
    UPDATE msgs_msg
-      SET status = u.status, folder = u.folder,
+      SET status = u.status, folder = u.folder, modified_on = NOW(),
           sent_on = CASE WHEN u.overwrite_sent_on THEN u.sent_on ELSE COALESCE(msgs_msg.sent_on, u.sent_on) END
      FROM UNNEST($2::uuid[], $3::text[], $4::text[], $5::timestamptz[], $6::bool[]) AS u(uuid, status, folder, sent_on, overwrite_sent_on), contacts_contact c
     WHERE msgs_msg.uuid = u.uuid AND msgs_msg.org_id = $1 AND msgs_msg.direction = 'O' AND msgs_msg.visibility = 'V' AND c.id = msgs_msg.contact_id
