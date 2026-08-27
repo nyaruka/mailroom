@@ -943,6 +943,86 @@ func FailOldAndroidMessages(ctx context.Context, db DBorTx, olderThan time.Time,
 	return tags, nil
 }
 
+// AndroidStatusUpdate is a status change reported by an Android relayer during a sync, for one of the outgoing
+// messages it was asked to send.
+type AndroidStatusUpdate struct {
+	MsgUUID events.EventUUID
+	Status  MsgStatus
+
+	// the time to record as the message's sent_on, or nil to leave it as it is
+	SentOn *time.Time
+
+	// whether SentOn replaces an existing sent_on, rather than only filling in a missing one
+	OverwriteSentOn bool
+}
+
+// like sqlFailOldAndroidMessages the join to contacts_contact is only for the contact UUID needed by the event tags.
+// The direction and visibility checks are in the WHERE rather than only in the caller so that a message which changed
+// after we read it can't be given a folder that doesn't match its actual state.
+const sqlUpdateAndroidMsgStatuses = `
+   UPDATE msgs_msg
+      SET status = u.status, folder = u.folder, modified_on = NOW(),
+          sent_on = CASE WHEN u.overwrite_sent_on THEN u.sent_on ELSE COALESCE(msgs_msg.sent_on, u.sent_on) END
+     FROM UNNEST($2::uuid[], $3::text[], $4::text[], $5::timestamptz[], $6::bool[]) AS u(uuid, status, folder, sent_on, overwrite_sent_on), contacts_contact c
+    WHERE msgs_msg.uuid = u.uuid AND msgs_msg.org_id = $1 AND msgs_msg.direction = 'O' AND msgs_msg.visibility = 'V' AND c.id = msgs_msg.contact_id
+RETURNING msgs_msg.uuid AS msg_uuid, msgs_msg.status AS status, c.uuid AS contact_uuid`
+
+// UpdateAndroidMessageStatuses applies status changes reported by an Android relayer to the given org's messages,
+// ignoring any which aren't outgoing and visible. Because they're all applied in a single statement, two updates for
+// the same message would silently overwrite each other, so callers have to fold those into one first.
+//
+// It returns an event tag recording the change for each message actually updated, to be queued to the history table
+// by the caller, because nothing else records these transitions.
+func UpdateAndroidMessageStatuses(ctx context.Context, db DBorTx, orgID OrgID, updates []*AndroidStatusUpdate) ([]*EventTag, error) {
+	if len(updates) == 0 {
+		return nil, nil
+	}
+
+	uuids := make([]events.EventUUID, len(updates))
+	statuses := make([]MsgStatus, len(updates))
+	folders := make([]MsgFolder, len(updates))
+	sentOns := make([]*time.Time, len(updates))
+	overwriteSentOns := make([]bool, len(updates))
+	seen := make(map[events.EventUUID]bool, len(updates))
+
+	for i, u := range updates {
+		if seen[u.MsgUUID] {
+			return nil, fmt.Errorf("more than one update for message %s", u.MsgUUID)
+		}
+		seen[u.MsgUUID] = true
+
+		uuids[i] = u.MsgUUID
+		statuses[i] = u.Status
+		// the folder of an outgoing message follows from its status alone, and the WHERE only touches rows which are
+		// actually outgoing and visible
+		folders[i] = DeriveMsgFolder(DirectionOut, u.Status, VisibilityVisible, false)
+		sentOns[i] = u.SentOn
+		// there's nothing to overwrite sent_on with if there's no new value, and clearing it would break the
+		// constraint that a sent message has a sent_on
+		overwriteSentOns[i] = u.OverwriteSentOn && u.SentOn != nil
+	}
+
+	rows := []*struct {
+		MsgUUID     events.EventUUID `db:"msg_uuid"`
+		Status      MsgStatus        `db:"status"`
+		ContactUUID core.ContactUUID `db:"contact_uuid"`
+	}{}
+
+	err := db.SelectContext(ctx, &rows, sqlUpdateAndroidMsgStatuses, orgID,
+		pq.Array(uuids), pq.Array(statuses), pq.Array(folders), pq.Array(sentOns), pq.Array(overwriteSentOns),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("error updating android message statuses: %w", err)
+	}
+
+	tags := make([]*EventTag, len(rows))
+	for i, r := range rows {
+		tags[i] = NewMsgStatusTag(orgID, r.ContactUUID, r.MsgUUID, r.Status, NilMsgFailedReason)
+	}
+
+	return tags, nil
+}
+
 // CreateMsgOut creates a new outgoing message to the given contact, resolving the destination etc
 func CreateMsgOut(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, c *core.Contact, content *core.MsgContent, templateID TemplateID, templateVariables []string, locale i18n.Locale, expressionsContext *types.XObject) (*core.MsgOut, error) {
 	// resolve URN + channel for this contact
