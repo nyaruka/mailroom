@@ -14,7 +14,10 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/nyaruka/gocommon/dbutil"
 	"github.com/nyaruka/gocommon/jsonx"
+	"github.com/nyaruka/gocommon/stringsx"
+	"github.com/nyaruka/gocommon/uuids"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/tasks"
@@ -38,6 +41,21 @@ const relayerSeenInterval = 5 * time.Minute
 // the most we'll read from a relayer before authenticating it - the signature is over the whole body so we can't
 // truncate, and a device has no reason to send us anything near this
 const relayerMaxBodyBytes = 1 << 20
+
+// what the columns a relayer's own report is written into will accept. Nothing stops a device sending us more than
+// this, and a value the database rejects would fail that device's sync permanently, so they're clamped rather than
+// allowed to reach the insert.
+const (
+	maxDeviceLen      = 255
+	maxOSLen          = 255
+	maxNetworkTypeLen = 128
+	maxPowerSourceLen = 64
+	maxPowerStatusLen = 64
+
+	// the most ids we'll take from one sync's pending and retry lists, so that a device can't turn its own status
+	// report into an enormous query
+	maxReportedMsgIDs = 10000
+)
 
 // the most messages we'll offer a relayer in a single sync. There's no limit on how many can be queued for it, but a
 // relayer syncs continuously so a huge response just delays the first send - it'll come back for the rest.
@@ -290,7 +308,14 @@ func processRelayerSync(ctx context.Context, rt *runtime.Runtime, w http.Respons
 // updateChannelApp records the FCM id and UUID the device reports for itself, so that we can reach it to trigger a
 // sync and so a re-installed app can re-attach itself to this channel.
 func updateChannelApp(ctx context.Context, rt *runtime.Runtime, channel *models.AndroidChannel, c *syncCommand) error {
+	// the column is a real uuid type, so anything else would be rejected by the database and take every later sync
+	// from this device down with it - we'd rather carry on with the uuid we already have
 	uuid := assets.ChannelUUID(c.UUID)
+	if uuid != "" && !uuids.Is(string(uuid)) {
+		slog.Warn("ignoring unusable uuid from relayer", "channel_id", channel.ID, "uuid", uuid)
+		uuid = ""
+	}
+
 	if channel.Config.GetString(models.ChannelConfigFCMID, "") == c.FCMID && (uuid == "" || uuid == channel.UUID) {
 		return nil
 	}
@@ -310,18 +335,19 @@ func updateChannelApp(ctx context.Context, rt *runtime.Runtime, channel *models.
 // recordSyncEvent stores what the device reported about itself, and raises or clears the incident for a device
 // running an app older than the one we're distributing.
 func recordSyncEvent(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, channel *models.AndroidChannel, c *syncCommand, numCmds int) (*models.SyncEvent, error) {
-	if c.Device() != channel.Device || c.OS() != channel.OS {
-		if err := models.UpdateAndroidChannelDevice(ctx, rt.DB, channel.ID, c.Device(), c.OS()); err != nil {
+	device, os := clean(c.Device(), maxDeviceLen), clean(c.OS(), maxOSLen)
+	if device != channel.Device || os != channel.OS {
+		if err := models.UpdateAndroidChannelDevice(ctx, rt.DB, channel.ID, device, os); err != nil {
 			return nil, err
 		}
 	}
 
 	e := &models.SyncEvent{
 		ChannelID:           channel.ID,
-		PowerSource:         c.PowerSource(),
-		PowerStatus:         c.PowerStatus(),
+		PowerSource:         clean(c.PowerSource(), maxPowerSourceLen),
+		PowerStatus:         clean(c.PowerStatus(), maxPowerStatusLen),
 		PowerLevel:          c.PowerLevel(),
-		NetworkType:         c.NetworkType(),
+		NetworkType:         clean(c.NetworkType(), maxNetworkTypeLen),
 		PendingMessageCount: len(c.PendingMessages()),
 		RetryMessageCount:   len(c.RetryMessages()),
 
@@ -452,6 +478,12 @@ func isInvalidURN(err error) bool {
 	return errors.As(err, &urnErr) && urnErr.Code == "invalid"
 }
 
+// clean makes a string the device reported safe to store: valid UTF-8, no null bytes, and short enough for the
+// column it's going into.
+func clean(s string, limit int) string {
+	return stringsx.Truncate(dbutil.ToValidUTF8(s), limit)
+}
+
 func absDuration(d time.Duration) time.Duration {
 	if d < 0 {
 		return -d
@@ -533,11 +565,14 @@ func (c *syncCommand) PowerSource() string { return derefStr(c.PSrc, c.PowerSour
 func (c *syncCommand) PowerStatus() string { return derefStr(c.PSts, c.PowerStatusLong) }
 func (c *syncCommand) NetworkType() string { return derefStr(c.Net, c.NetworkTypeLong) }
 
+// PowerLevel is the battery percentage the device reports, or -1 when it doesn't know. It's clamped because it goes
+// into an integer column and is only ever meaningful as a percentage.
 func (c *syncCommand) PowerLevel() int {
-	if v := derefInt(c.PLvl, c.PowerLevelLong); v != nil {
-		return int(*v)
+	v := derefInt(c.PLvl, c.PowerLevelLong)
+	if v == nil {
+		return 0
 	}
-	return 0
+	return min(max(int(*v), -1), 100)
 }
 
 func (c *syncCommand) PendingMessages() []models.MsgID { return msgIDs(c.Pending, c.PendingLong) }
@@ -571,8 +606,13 @@ func msgIDs(short, long *[]flexInt) []models.MsgID {
 		return nil
 	}
 
-	ids := make([]models.MsgID, len(*vals))
-	for i, v := range *vals {
+	capped := *vals
+	if len(capped) > maxReportedMsgIDs {
+		capped = capped[:maxReportedMsgIDs]
+	}
+
+	ids := make([]models.MsgID, len(capped))
+	for i, v := range capped {
 		ids[i] = msgID(v)
 	}
 	return ids

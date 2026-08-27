@@ -427,3 +427,36 @@ func TestRelayerSyncPreservesStatusesOnFailure(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT status, folder FROM msgs_msg WHERE id = $1`, out1.ID).
 		Columns(map[string]any{"status": "S", "folder": "S"})
 }
+
+func TestRelayerSyncHostilePayload(t *testing.T) {
+	_, rt := testsuite.Runtime(t)
+	startServer(t, rt)
+	claimAndroidChannel(t, rt)
+
+	// every one of these fields goes into a column that would reject it, and a rejected insert would fail this
+	// device's syncs permanently rather than just losing the odd value
+	body := fmt.Sprintf(`{"cmds":[
+		{"cmd":"fcm","fcm_id":"FCM123","uuid":"not-a-uuid"},
+		{"cmd":"status","p_src":"%s","p_sts":"%s","p_lvl":99999999999,"net":"%s","dev":"%s","os":"%s\u0000","pending":[],"retry":[]}
+	]}`, strings.Repeat("S", 200), strings.Repeat("T", 200), strings.Repeat("N", 300), strings.Repeat("D", 500), strings.Repeat("O", 500))
+
+	status, resp := relayerSync(t, rt, testdb.AndroidChannel.ID, relayerSecret, body, nil)
+	assert.Equal(t, 200, status)
+	assert.Equal(t, []any{}, resp["cmds"])
+
+	// the values were clamped to what the columns take rather than blowing up the sync
+	assertdb.Query(t, rt.DB, `SELECT length(power_source) AS src, length(power_status) AS sts, power_level, length(network_type) AS net FROM channels_syncevent WHERE channel_id = $1`, testdb.AndroidChannel.ID).
+		Columns(map[string]any{"src": 64, "sts": 64, "power_level": 100, "net": 128})
+
+	// the unusable uuid was ignored rather than written, and the fcm id it came with still landed
+	assertdb.Query(t, rt.DB, `SELECT uuid::text FROM channels_channel WHERE id = $1`, testdb.AndroidChannel.ID).Returns(string(testdb.AndroidChannel.UUID))
+	assertdb.Query(t, rt.DB, `SELECT config->>'FCM_ID' FROM channels_channel WHERE id = $1`, testdb.AndroidChannel.ID).Returns("FCM123")
+
+	// the null byte in the os string didn't reach the column either
+	assertdb.Query(t, rt.DB, `SELECT length(device) AS dev, length(os) AS os FROM channels_channel WHERE id = $1`, testdb.AndroidChannel.ID).
+		Columns(map[string]any{"dev": 255, "os": 255})
+
+	// and the device is still able to sync afterwards
+	status, _ = relayerSync(t, rt, testdb.AndroidChannel.ID, relayerSecret, `{"cmds":[{"cmd":"fcm","fcm_id":"FCM123"}]}`, nil)
+	assert.Equal(t, 200, status)
+}
