@@ -499,10 +499,16 @@ type syncCommand struct {
 	RetryLong       *[]flexInt `json:"retry_messages"`
 }
 
-// MessageID is the message this command is about. Older relayers hold message ids in a signed 32 bit integer, so an
-// id past that range comes back to us as a negative number and has to be wrapped back around.
+// MessageID is the message this command is about.
 func (c *syncCommand) MessageID() models.MsgID {
-	id := int64(c.MsgID)
+	return msgID(c.MsgID)
+}
+
+// msgID reads a message id as reported by a relayer. Older relayers hold message ids in a signed 32 bit integer, so
+// an id past that range comes back to us as a negative number and has to be wrapped back around. This applies to
+// every id they send us, not just the one a status command is about.
+func msgID(v flexInt) models.MsgID {
+	id := int64(v)
 	if id < 0 {
 		id += 1 << 32
 	}
@@ -561,7 +567,7 @@ func msgIDs(short, long *[]flexInt) []models.MsgID {
 
 	ids := make([]models.MsgID, len(*vals))
 	for i, v := range *vals {
-		ids[i] = models.MsgID(v)
+		ids[i] = msgID(v)
 	}
 	return ids
 }

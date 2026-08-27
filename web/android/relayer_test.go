@@ -276,6 +276,14 @@ func TestRelayerSyncOutbox(t *testing.T) {
 	test.AssertEqualJSON(t, []byte(expected), jsonx.MustMarshal(resp), "unexpected outbox commands")
 
 	assertdb.Query(t, rt.DB, `SELECT pending_message_count FROM channels_syncevent ORDER BY id DESC LIMIT 1`).Returns(2)
+
+	// an older relayer reports the ids it holds as negative numbers too, so those have to be wrapped back around
+	// before they'll match anything - otherwise it's offered messages it already has and sends them twice
+	body = fmt.Sprintf(`{"cmds":[{"cmd":"fcm","fcm_id":"FCM123"},{"cmd":"status","p_src":"BAT","p_sts":"CHA","p_lvl":80,"net":"WIFI","pending":[%d,%d],"retry":[%d]}]}`,
+		int64(out1.ID)-(1<<32), int64(out2.ID)-(1<<32), int64(out3.ID)-(1<<32))
+	status, resp = relayerSync(t, rt, testdb.AndroidChannel.ID, relayerSecret, body, nil)
+	assert.Equal(t, 200, status)
+	assert.Equal(t, []any{}, resp["cmds"])
 }
 
 func TestRelayerSyncClaimAndReset(t *testing.T) {
