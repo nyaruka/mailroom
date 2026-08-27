@@ -2,16 +2,12 @@ package android
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"net/http"
 	"time"
 
-	"github.com/nyaruka/gocommon/dbutil"
-	"github.com/nyaruka/gocommon/stringsx"
+	"github.com/nyaruka/mailroom/v26/core/android"
 	"github.com/nyaruka/mailroom/v26/core/models"
-	"github.com/nyaruka/mailroom/v26/core/tasks"
-	"github.com/nyaruka/mailroom/v26/core/tasks/ctasks"
 	"github.com/nyaruka/mailroom/v26/runtime"
 	"github.com/nyaruka/mailroom/v26/web"
 )
@@ -43,50 +39,10 @@ func handleMessage(ctx context.Context, rt *runtime.Runtime, r *messageRequest) 
 		return nil, 0, fmt.Errorf("error loading org assets: %w", err)
 	}
 
-	cu, err := resolveContact(ctx, rt, oa, r.ChannelID, r.Phone)
+	msgID, duplicate, err := android.CreateMessage(ctx, rt, oa, r.ChannelID, r.Phone, r.Text, r.ReceivedOn)
 	if err != nil {
-		return nil, 0, fmt.Errorf("error resolving contact: %w", err)
+		return nil, 0, err
 	}
 
-	text := dbutil.ToValidUTF8(stringsx.Truncate(r.Text, 640))
-
-	existingID, err := checkDuplicate(ctx, rt, text, cu.contactID, r.ReceivedOn)
-	if err != nil {
-		return nil, 0, fmt.Errorf("error checking for duplicate message: %w", err)
-	}
-	if existingID != models.NilMsgID {
-		return map[string]any{"id": existingID, "duplicate": true}, http.StatusOK, nil
-	}
-
-	m := models.NewIncomingAndroid(r.OrgID, r.ChannelID, cu.contactID, cu.urnID, text, r.ReceivedOn)
-	if err := models.InsertMessages(ctx, rt.DB, []*models.Msg{m}); err != nil {
-		return nil, 0, fmt.Errorf("error inserting message: %w", err)
-	}
-
-	err = tasks.QueueContact(ctx, rt, r.OrgID, m.ContactID(), &ctasks.MsgReceived{
-		ChannelID:     m.ChannelID(),
-		MsgUUID:       m.UUID(),
-		MsgExternalID: m.ExternalIdentifier(),
-		URN:           cu.urn,
-		URNID:         m.ContactURNID(),
-		Text:          m.Text(),
-		NewContact:    cu.newContact,
-	})
-	if err != nil {
-		return nil, 0, fmt.Errorf("error queueing handle task: %w", err)
-	}
-
-	return map[string]any{"id": m.ID(), "duplicate": false}, http.StatusOK, nil
-}
-
-func checkDuplicate(ctx context.Context, rt *runtime.Runtime, text string, contactID models.ContactID, sentOn time.Time) (models.MsgID, error) {
-	row := rt.DB.QueryRowContext(ctx, `SELECT id FROM msgs_msg WHERE direction = 'I' AND text = $1 AND contact_id = $2 AND sent_on = $3 LIMIT 1`, text, contactID, sentOn)
-
-	var id models.MsgID
-	err := row.Scan(&id)
-	if err != nil && err != sql.ErrNoRows {
-		return models.NilMsgID, fmt.Errorf("error checking for duplicate message: %w", err)
-	}
-
-	return id, nil
+	return map[string]any{"id": msgID, "duplicate": duplicate}, http.StatusOK, nil
 }

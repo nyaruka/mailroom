@@ -498,6 +498,45 @@ func TestUpdateAndroidMessageStatuses(t *testing.T) {
 	assert.Len(t, tags, 0)
 }
 
+func TestGetAndroidOutbox(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	out1 := testdb.InsertOutgoingMsg(t, rt, testdb.Org1, "0199bad8-f98d-75a3-b641-2718a25ac3f5", testdb.AndroidChannel, testdb.Ann, "hello", nil, models.MsgStatusQueued, false)
+	out2 := testdb.InsertOutgoingMsg(t, rt, testdb.Org1, "0199bad9-9791-770d-a47d-8f4a6ea3ad13", testdb.AndroidChannel, testdb.Bob, "hello", nil, models.MsgStatusQueued, false)
+	out3 := testdb.InsertOutgoingMsg(t, rt, testdb.Org1, "0199bad9-f0bc-7738-8af8-99712a6f8bff", testdb.AndroidChannel, testdb.Cat, "goodbye", nil, models.MsgStatusQueued, false)
+
+	// messages that have already been sent or failed aren't offered again, nor are those on other channels
+	testdb.InsertOutgoingMsg(t, rt, testdb.Org1, "0199bada-2b39-7cac-9714-827df9ec6b91", testdb.AndroidChannel, testdb.Ann, "sent", nil, models.MsgStatusSent, false)
+	testdb.InsertOutgoingMsg(t, rt, testdb.Org1, "0199bb09-f0e9-7489-a58e-69304a7941a0", testdb.AndroidChannel, testdb.Ann, "errored", nil, models.MsgStatusErrored, false)
+	testdb.InsertOutgoingMsg(t, rt, testdb.Org1, "0199bb93-ec0f-703e-9b5b-d26d4b6b133c", testdb.TwilioChannel, testdb.Ann, "other channel", nil, models.MsgStatusQueued, false)
+
+	msgs, err := models.GetAndroidOutbox(ctx, rt.DB, testdb.AndroidChannel.ID, nil, 100)
+	assert.NoError(t, err)
+	assert.Len(t, msgs, 3)
+	assert.Equal(t, out1.ID, msgs[0].ID)
+	assert.Equal(t, "hello", msgs[0].Text)
+	assert.Equal(t, "+16055741111", msgs[0].Phone)
+	assert.Equal(t, out2.ID, msgs[1].ID)
+	assert.Equal(t, out3.ID, msgs[2].ID)
+
+	// messages the relayer says it already has are excluded
+	msgs, err = models.GetAndroidOutbox(ctx, rt.DB, testdb.AndroidChannel.ID, []models.MsgID{out1.ID, out3.ID}, 100)
+	assert.NoError(t, err)
+	assert.Len(t, msgs, 1)
+	assert.Equal(t, out2.ID, msgs[0].ID)
+
+	// and we never offer more than the caller asked for
+	msgs, err = models.GetAndroidOutbox(ctx, rt.DB, testdb.AndroidChannel.ID, nil, 2)
+	assert.NoError(t, err)
+	assert.Len(t, msgs, 2)
+
+	// a message without a URN can't be sent by a relayer so isn't offered at all
+	rt.DB.MustExec(`UPDATE msgs_msg SET contact_urn_id = NULL WHERE id = $1`, out1.ID)
+	msgs, err = models.GetAndroidOutbox(ctx, rt.DB, testdb.AndroidChannel.ID, nil, 100)
+	assert.NoError(t, err)
+	assert.Len(t, msgs, 2)
+}
+
 func TestArchiveAndRestoreMessages(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 

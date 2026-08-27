@@ -14,6 +14,7 @@
         "path": "/mi/android/status",
         "body": {
             "org_id": 1,
+            "channel_id": 10003,
             "commands": []
         },
         "status": 200,
@@ -27,6 +28,7 @@
         "path": "/mi/android/status",
         "body": {
             "org_id": 1,
+            "channel_id": 10003,
             "commands": [
                 {"msg_id": 30000, "cmd": "mt_error", "ts": "2025-05-04T12:31:00Z"},
                 {"msg_id": 30001, "cmd": "mt_fail", "ts": "2025-05-04T12:31:01Z"},
@@ -129,6 +131,7 @@
         "path": "/mi/android/status",
         "body": {
             "org_id": 1,
+            "channel_id": 10003,
             "commands": [
                 {"msg_id": 30000, "cmd": "mt_sent", "ts": "2025-05-04T12:32:00Z"},
                 {"msg_id": 30000, "cmd": "mt_dlvd", "ts": "2025-05-04T12:32:30Z"}
@@ -166,6 +169,7 @@
         "path": "/mi/android/status",
         "body": {
             "org_id": 1,
+            "channel_id": 10003,
             "commands": [
                 {"msg_id": 30001, "cmd": "mt_dlvd", "ts": "2025-05-04T12:33:30Z"},
                 {"msg_id": 30001, "cmd": "mt_sent", "ts": "2025-05-04T12:33:00Z"}
@@ -208,7 +212,7 @@
         },
         "status": 400,
         "response": {
-            "error": "request failed validation: field 'org_id' is required"
+            "error": "request failed validation: field 'org_id' is required, field 'channel_id' is required"
         }
     }
 ]

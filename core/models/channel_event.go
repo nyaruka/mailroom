@@ -23,6 +23,8 @@ const (
 	EventTypeReferral        ChannelEventType = "referral"
 	EventTypeMissedCall      ChannelEventType = "mo_miss"
 	EventTypeIncomingCall    ChannelEventType = "mo_call"
+	EventTypeOutgoingCall    ChannelEventType = "mt_call"
+	EventTypeMissedOutgoing  ChannelEventType = "mt_miss"
 	EventTypeStopContact     ChannelEventType = "stop_contact"
 	EventTypeDeleteContact   ChannelEventType = "delete_contact"
 

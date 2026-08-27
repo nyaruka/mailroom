@@ -1,8 +1,10 @@
 package models_test
 
 import (
+	"fmt"
 	"testing"
 
+	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/testsuite"
@@ -135,4 +137,81 @@ func TestGetAndroidChannelsToSync(t *testing.T) {
 	assert.Equal(t, testChannel2.ID, oldSeenAndroidChannels[1].ID())
 	assert.Equal(t, testChannel1.ID, oldSeenAndroidChannels[2].ID())
 
+}
+
+func TestGetAndroidChannel(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	rt.DB.MustExec(`UPDATE channels_channel SET secret = 'sesame', claim_code = 'CLAIM1', device = 'Nexus', os = '7.0' WHERE id = $1`, testdb.AndroidChannel.ID)
+
+	ch, err := models.GetAndroidChannel(ctx, rt.DB, testdb.AndroidChannel.ID)
+	assert.NoError(t, err)
+	assert.Equal(t, testdb.AndroidChannel.ID, ch.ID)
+	assert.Equal(t, testdb.AndroidChannel.UUID, ch.UUID)
+	assert.Equal(t, testdb.Org1.ID, ch.OrgID)
+	assert.True(t, ch.IsActive)
+	assert.Equal(t, "sesame", ch.Secret)
+	assert.Equal(t, "CLAIM1", ch.ClaimCode)
+	assert.Equal(t, "Nexus", ch.Device)
+	assert.Equal(t, "7.0", ch.OS)
+
+	// released channels are still returned, because their relayer needs telling to stop
+	rt.DB.MustExec(`UPDATE channels_channel SET is_active = FALSE WHERE id = $1`, testdb.AndroidChannel.ID)
+	ch, err = models.GetAndroidChannel(ctx, rt.DB, testdb.AndroidChannel.ID)
+	assert.NoError(t, err)
+	assert.False(t, ch.IsActive)
+
+	// but channels that aren't android, or don't exist, aren't
+	_, err = models.GetAndroidChannel(ctx, rt.DB, testdb.TwilioChannel.ID)
+	assert.ErrorIs(t, err, models.ErrNotFound)
+
+	_, err = models.GetAndroidChannel(ctx, rt.DB, models.ChannelID(1234567))
+	assert.ErrorIs(t, err, models.ErrNotFound)
+}
+
+func TestUpdateAndroidChannel(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	rt.DB.MustExec(`UPDATE channels_channel SET last_seen = NULL WHERE id = $1`, testdb.AndroidChannel.ID)
+
+	err := models.UpdateAndroidChannelSeen(ctx, rt.DB, testdb.AndroidChannel.ID)
+	assert.NoError(t, err)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM channels_channel WHERE id = $1 AND last_seen > NOW() - INTERVAL '1 minute'`, testdb.AndroidChannel.ID).Returns(1)
+
+	newUUID := assets.ChannelUUID("f3d5ccd0-fee0-4955-bcb7-21d9f1b0d5f1")
+	err = models.UpdateAndroidChannelApp(ctx, rt.DB, testdb.AndroidChannel.ID, "FCM123", newUUID)
+	assert.NoError(t, err)
+	assertdb.Query(t, rt.DB, `SELECT config->>'FCM_ID', uuid::text FROM channels_channel WHERE id = $1`, testdb.AndroidChannel.ID).
+		Columns(map[string]any{"?column?": "FCM123", "uuid": string(newUUID)})
+
+	// an older relayer doesn't report a uuid, and mustn't be allowed to clear the one we have
+	err = models.UpdateAndroidChannelApp(ctx, rt.DB, testdb.AndroidChannel.ID, "FCM456", "")
+	assert.NoError(t, err)
+	assertdb.Query(t, rt.DB, `SELECT uuid::text FROM channels_channel WHERE id = $1`, testdb.AndroidChannel.ID).Returns(string(newUUID))
+
+	err = models.UpdateAndroidChannelDevice(ctx, rt.DB, testdb.AndroidChannel.ID, "Pixel", "13")
+	assert.NoError(t, err)
+	assertdb.Query(t, rt.DB, `SELECT device, os FROM channels_channel WHERE id = $1`, testdb.AndroidChannel.ID).
+		Columns(map[string]any{"device": "Pixel", "os": "13"})
+}
+
+func TestReleaseAndroidChannel(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	testdb.InsertIncomingCallTrigger(t, rt, testdb.Org1, testdb.Favorites, nil, nil, testdb.AndroidChannel)
+	rt.DB.MustExec(`INSERT INTO notifications_incident(org_id, incident_type, scope, started_on, channel_id) VALUES($1, 'channel:outdated_app', $2, NOW(), $3)`, testdb.Org1.ID, fmt.Sprint(testdb.AndroidChannel.ID), testdb.AndroidChannel.ID)
+
+	// a trigger on a different channel that shouldn't be touched
+	testdb.InsertIncomingCallTrigger(t, rt, testdb.Org1, testdb.Favorites, nil, nil, testdb.TwilioChannel)
+
+	ch, err := models.GetAndroidChannel(ctx, rt.DB, testdb.AndroidChannel.ID)
+	require.NoError(t, err)
+
+	assert.NoError(t, models.ReleaseAndroidChannel(ctx, rt.DB, ch))
+
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM channels_channel WHERE id = $1 AND is_active = FALSE`, testdb.AndroidChannel.ID).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM triggers_trigger WHERE channel_id = $1 AND is_active = FALSE AND is_archived = TRUE`, testdb.AndroidChannel.ID).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM notifications_incident WHERE channel_id = $1 AND ended_on IS NULL`, testdb.AndroidChannel.ID).Returns(0)
+
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM triggers_trigger WHERE channel_id = $1 AND is_active = TRUE`, testdb.TwilioChannel.ID).Returns(1)
 }

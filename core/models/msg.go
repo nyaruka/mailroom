@@ -1023,6 +1023,41 @@ func UpdateAndroidMessageStatuses(ctx context.Context, db DBorTx, orgID OrgID, u
 	return tags, nil
 }
 
+// AndroidOutboxMsg is a queued outgoing message being offered to a channel's relayer, with the phone number to send
+// it to.
+type AndroidOutboxMsg struct {
+	ID    MsgID  `db:"id"`
+	Text  string `db:"text"`
+	Phone string `db:"phone"`
+}
+
+// the relayer is given messages that are still queued, i.e. not yet claimed as sent by any earlier sync. Messages
+// without a URN can't be sent by a relayer at all so they're excluded rather than offered and silently dropped.
+const sqlSelectAndroidOutbox = `
+    SELECT m.id, m.text, u.path AS phone
+      FROM msgs_msg m
+INNER JOIN contacts_contacturn u ON u.id = m.contact_urn_id
+     WHERE m.channel_id = $1 AND m.direction = 'O' AND m.status = 'Q' AND NOT (m.id = ANY($2))
+  ORDER BY m.created_on ASC
+     LIMIT $3`
+
+// GetAndroidOutbox returns the queued outgoing messages to offer to a channel's relayer, oldest first, excluding any
+// the relayer has told us it already holds.
+func GetAndroidOutbox(ctx context.Context, db DBorTx, channelID ChannelID, exclude []MsgID, limit int) ([]*AndroidOutboxMsg, error) {
+	msgs := []*AndroidOutboxMsg{}
+
+	// a nil slice becomes a NULL array, and everything compared against that is NULL rather than excluded
+	if exclude == nil {
+		exclude = []MsgID{}
+	}
+
+	if err := db.SelectContext(ctx, &msgs, sqlSelectAndroidOutbox, channelID, pq.Array(exclude), limit); err != nil {
+		return nil, fmt.Errorf("error selecting android outbox messages: %w", err)
+	}
+
+	return msgs, nil
+}
+
 // CreateMsgOut creates a new outgoing message to the given contact, resolving the destination etc
 func CreateMsgOut(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, c *core.Contact, content *core.MsgContent, templateID TemplateID, templateVariables []string, locale i18n.Locale, expressionsContext *types.XObject) (*core.MsgOut, error) {
 	// resolve URN + channel for this contact
