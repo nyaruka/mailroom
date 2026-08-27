@@ -418,27 +418,6 @@ func TestFailOldAndroidMessages(t *testing.T) {
 		Columns(map[string]any{"status": "Q", "folder": "O", "failed_reason": nil})
 }
 
-func TestGetMessagesByID(t *testing.T) {
-	ctx, rt := testsuite.Runtime(t)
-
-	in1 := testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199bad8-f98d-75a3-b641-2718a25ac3f5", testdb.AndroidChannel, testdb.Ann, "hi", models.MsgStatusHandled, "")
-	out1 := testdb.InsertOutgoingMsg(t, rt, testdb.Org1, "0199bad9-9791-770d-a47d-8f4a6ea3ad13", testdb.AndroidChannel, testdb.Ann, "hi", nil, models.MsgStatusQueued, false)
-	out2 := testdb.InsertOutgoingMsg(t, rt, testdb.Org2, "0199bad9-f0bc-7738-8af8-99712a6f8bff", testdb.Org2Channel, testdb.Org2Contact, "hi", nil, models.MsgStatusQueued, false)
-
-	// both directions are returned, and messages in other orgs aren't
-	msgs, err := models.GetMessagesByID(ctx, rt.DB, testdb.Org1.ID, []models.MsgID{in1.ID, out1.ID, out2.ID, 12345678})
-	assert.NoError(t, err)
-	assert.Len(t, msgs, 2)
-	assert.Equal(t, in1.ID, msgs[0].ID())
-	assert.Equal(t, models.DirectionIn, msgs[0].Direction())
-	assert.Equal(t, out1.ID, msgs[1].ID())
-	assert.Equal(t, models.DirectionOut, msgs[1].Direction())
-
-	msgs, err = models.GetMessagesByID(ctx, rt.DB, testdb.Org1.ID, []models.MsgID{})
-	assert.NoError(t, err)
-	assert.Len(t, msgs, 0)
-}
-
 func TestUpdateAndroidMessageStatuses(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
@@ -460,16 +439,23 @@ func TestUpdateAndroidMessageStatuses(t *testing.T) {
 	out6 := testdb.InsertOutgoingMsg(t, rt, testdb.Org2, "0199bb94-1134-75d6-91dc-8aee7787f703", testdb.Org2Channel, testdb.Org2Contact, "hi", nil, models.MsgStatusQueued, false)
 
 	tags, err := models.UpdateAndroidMessageStatuses(ctx, rt.DB, testdb.Org1.ID, []*models.AndroidStatusUpdate{
-		{MsgID: out1.ID, Status: models.MsgStatusErrored},
-		{MsgID: out2.ID, Status: models.MsgStatusFailed},
-		{MsgID: out3.ID, Status: models.MsgStatusSent, SentOn: &sentOn, OverwriteSentOn: true},
-		{MsgID: out4.ID, Status: models.MsgStatusDelivered, SentOn: &dlvdOn},
-		{MsgID: out5.ID, Status: models.MsgStatusDelivered, SentOn: &dlvdOn},
-		{MsgID: in1.ID, Status: models.MsgStatusSent, SentOn: &sentOn, OverwriteSentOn: true},
-		{MsgID: out6.ID, Status: models.MsgStatusFailed},
-		{MsgID: 12345678, Status: models.MsgStatusFailed},
+		{MsgUUID: out1.UUID, Status: models.MsgStatusErrored},
+		{MsgUUID: out2.UUID, Status: models.MsgStatusFailed},
+		{MsgUUID: out3.UUID, Status: models.MsgStatusSent, SentOn: &sentOn, OverwriteSentOn: true},
+		{MsgUUID: out4.UUID, Status: models.MsgStatusDelivered, SentOn: &dlvdOn},
+		{MsgUUID: out5.UUID, Status: models.MsgStatusDelivered, SentOn: &dlvdOn},
+		{MsgUUID: in1.UUID, Status: models.MsgStatusSent, SentOn: &sentOn, OverwriteSentOn: true},
+		{MsgUUID: out6.UUID, Status: models.MsgStatusFailed},
+		{MsgUUID: "0199bb96-3c4c-72f2-bacc-4b6ae4c592b3", Status: models.MsgStatusFailed},
 	})
 	assert.NoError(t, err)
+
+	// two updates for the same message is a coding error
+	_, err = models.UpdateAndroidMessageStatuses(ctx, rt.DB, testdb.Org1.ID, []*models.AndroidStatusUpdate{
+		{MsgUUID: out1.UUID, Status: models.MsgStatusSent, SentOn: &sentOn},
+		{MsgUUID: out1.UUID, Status: models.MsgStatusDelivered, SentOn: &dlvdOn},
+	})
+	assert.EqualError(t, err, "more than one update for message 0199bad8-f98d-75a3-b641-2718a25ac3f5")
 
 	// errored messages stay in the outbox, and only the messages we could update are tagged
 	assertdb.Query(t, rt.DB, `SELECT status, folder, sent_on FROM msgs_msg WHERE id = $1`, out1.ID).

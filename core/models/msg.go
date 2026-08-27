@@ -498,7 +498,8 @@ func GetMsgRepetitions(rp *valkey.Pool, contactID ContactID, msg *core.MsgConten
 	return valkey.Int(msgRepetitionsScript.Do(vc, key, contactID, msg.Text))
 }
 
-const sqlSelectMessageColumns = `
+var sqlSelectMessagesByUUID = `
+SELECT 
 	id,
 	uuid,
 	broadcast_id,
@@ -522,10 +523,7 @@ const sqlSelectMessageColumns = `
 	channel_id,
 	contact_id,
 	contact_urn_id,
-	org_id`
-
-var sqlSelectMessagesByUUID = `
-SELECT ` + sqlSelectMessageColumns + `
+	org_id
 FROM
 	msgs_msg
 WHERE
@@ -538,22 +536,6 @@ ORDER BY
 // GetMessagesByUUID fetches the messages with the given UUIDs
 func GetMessagesByUUID(ctx context.Context, db *sqlx.DB, orgID OrgID, direction Direction, msgUUIDs []events.EventUUID) ([]*Msg, error) {
 	return loadMessages(ctx, db, sqlSelectMessagesByUUID, orgID, direction, pq.Array(msgUUIDs))
-}
-
-var sqlSelectMessagesByID = `
-SELECT ` + sqlSelectMessageColumns + `
-FROM
-	msgs_msg
-WHERE
-	org_id = $1 AND
-	id = ANY($2)
-ORDER BY
-	id ASC`
-
-// GetMessagesByID fetches the messages with the given ids. Unlike GetMessagesByUUID it doesn't filter by direction
-// because its only caller needs to tell a message it should ignore from one that doesn't exist.
-func GetMessagesByID(ctx context.Context, db *sqlx.DB, orgID OrgID, msgIDs []MsgID) ([]*Msg, error) {
-	return loadMessages(ctx, db, sqlSelectMessagesByID, orgID, pq.Array(msgIDs))
 }
 
 var sqlSelectMessagesForRetry = `
@@ -964,8 +946,8 @@ func FailOldAndroidMessages(ctx context.Context, db DBorTx, olderThan time.Time,
 // AndroidStatusUpdate is a status change reported by an Android relayer during a sync, for one of the outgoing
 // messages it was asked to send.
 type AndroidStatusUpdate struct {
-	MsgID  MsgID
-	Status MsgStatus
+	MsgUUID events.EventUUID
+	Status  MsgStatus
 
 	// the time to record as the message's sent_on, or nil to leave it as it is
 	SentOn *time.Time
@@ -981,8 +963,8 @@ const sqlUpdateAndroidMsgStatuses = `
    UPDATE msgs_msg
       SET status = u.status, folder = u.folder,
           sent_on = CASE WHEN u.overwrite_sent_on THEN u.sent_on ELSE COALESCE(msgs_msg.sent_on, u.sent_on) END
-     FROM UNNEST($2::bigint[], $3::text[], $4::text[], $5::timestamptz[], $6::bool[]) AS u(id, status, folder, sent_on, overwrite_sent_on), contacts_contact c
-    WHERE msgs_msg.id = u.id AND msgs_msg.org_id = $1 AND msgs_msg.direction = 'O' AND msgs_msg.visibility = 'V' AND c.id = msgs_msg.contact_id
+     FROM UNNEST($2::uuid[], $3::text[], $4::text[], $5::timestamptz[], $6::bool[]) AS u(uuid, status, folder, sent_on, overwrite_sent_on), contacts_contact c
+    WHERE msgs_msg.uuid = u.uuid AND msgs_msg.org_id = $1 AND msgs_msg.direction = 'O' AND msgs_msg.visibility = 'V' AND c.id = msgs_msg.contact_id
 RETURNING msgs_msg.uuid AS msg_uuid, msgs_msg.status AS status, c.uuid AS contact_uuid`
 
 // UpdateAndroidMessageStatuses applies status changes reported by an Android relayer to the given org's messages,
@@ -996,20 +978,20 @@ func UpdateAndroidMessageStatuses(ctx context.Context, db DBorTx, orgID OrgID, u
 		return nil, nil
 	}
 
-	ids := make([]MsgID, len(updates))
+	uuids := make([]events.EventUUID, len(updates))
 	statuses := make([]MsgStatus, len(updates))
 	folders := make([]MsgFolder, len(updates))
 	sentOns := make([]*time.Time, len(updates))
 	overwriteSentOns := make([]bool, len(updates))
-	seen := make(map[MsgID]bool, len(updates))
+	seen := make(map[events.EventUUID]bool, len(updates))
 
 	for i, u := range updates {
-		if seen[u.MsgID] {
-			return nil, fmt.Errorf("more than one update for message %d", u.MsgID)
+		if seen[u.MsgUUID] {
+			return nil, fmt.Errorf("more than one update for message %s", u.MsgUUID)
 		}
-		seen[u.MsgID] = true
+		seen[u.MsgUUID] = true
 
-		ids[i] = u.MsgID
+		uuids[i] = u.MsgUUID
 		statuses[i] = u.Status
 		// the folder of an outgoing message follows from its status alone, and the WHERE only touches rows which are
 		// actually outgoing and visible
@@ -1027,7 +1009,7 @@ func UpdateAndroidMessageStatuses(ctx context.Context, db DBorTx, orgID OrgID, u
 	}{}
 
 	err := db.SelectContext(ctx, &rows, sqlUpdateAndroidMsgStatuses, orgID,
-		pq.Array(ids), pq.Array(statuses), pq.Array(folders), pq.Array(sentOns), pq.Array(overwriteSentOns),
+		pq.Array(uuids), pq.Array(statuses), pq.Array(folders), pq.Array(sentOns), pq.Array(overwriteSentOns),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("error updating android message statuses: %w", err)

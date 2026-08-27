@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/lib/pq"
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/runtime"
 	"github.com/nyaruka/mailroom/v26/web"
@@ -60,14 +62,9 @@ func handleStatus(ctx context.Context, rt *runtime.Runtime, r *statusRequest) (a
 		msgIDs[i] = c.MsgID
 	}
 
-	msgs, err := models.GetMessagesByID(ctx, rt.DB, r.OrgID, msgIDs)
+	refs, err := getMessageRefs(ctx, rt, r.OrgID, msgIDs)
 	if err != nil {
-		return nil, 0, fmt.Errorf("error loading messages to update: %w", err)
-	}
-
-	msgsByID := make(map[models.MsgID]*models.Msg, len(msgs))
-	for _, m := range msgs {
-		msgsByID[m.ID()] = m
+		return nil, 0, fmt.Errorf("error resolving messages to update: %w", err)
 	}
 
 	// whether each command was applied, so that the caller can tell the relayer which ones to stop resending
@@ -79,13 +76,13 @@ func handleStatus(ctx context.Context, rt *runtime.Runtime, r *statusRequest) (a
 	updatesByID := make(map[models.MsgID]*models.AndroidStatusUpdate, len(r.Commands))
 
 	for i, c := range r.Commands {
-		m := msgsByID[c.MsgID]
-		if m == nil {
+		ref := refs[c.MsgID]
+		if ref == nil {
 			continue
 		}
 
 		// incoming messages have no status for a relayer to report but it shouldn't keep resending the command
-		if m.Direction() == models.DirectionIn {
+		if ref.Direction == models.DirectionIn {
 			handled[i] = true
 			continue
 		}
@@ -97,7 +94,7 @@ func handleStatus(ctx context.Context, rt *runtime.Runtime, r *statusRequest) (a
 
 		u := updatesByID[c.MsgID]
 		if u == nil {
-			u = &models.AndroidStatusUpdate{MsgID: c.MsgID}
+			u = &models.AndroidStatusUpdate{MsgUUID: ref.UUID}
 			updates = append(updates, u)
 			updatesByID[c.MsgID] = u
 		}
@@ -133,4 +130,26 @@ func handleStatus(ctx context.Context, rt *runtime.Runtime, r *statusRequest) (a
 	}
 
 	return map[string]any{"handled": handled}, http.StatusOK, nil
+}
+
+type msgRef struct {
+	ID        models.MsgID     `db:"id"`
+	UUID      events.EventUUID `db:"uuid"`
+	Direction models.Direction `db:"direction"`
+}
+
+// resolves the ids a relayer knows its messages by to the UUIDs everything else keys messages by - along with the
+// direction, because the caller has to tell a message it should ignore from one that doesn't exist
+func getMessageRefs(ctx context.Context, rt *runtime.Runtime, orgID models.OrgID, msgIDs []models.MsgID) (map[models.MsgID]*msgRef, error) {
+	rows := []*msgRef{}
+	err := rt.DB.SelectContext(ctx, &rows, `SELECT id, uuid, direction FROM msgs_msg WHERE org_id = $1 AND id = ANY($2)`, orgID, pq.Array(msgIDs))
+	if err != nil {
+		return nil, err
+	}
+
+	refs := make(map[models.MsgID]*msgRef, len(rows))
+	for _, r := range rows {
+		refs[r.ID] = r
+	}
+	return refs, nil
 }
