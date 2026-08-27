@@ -504,9 +504,13 @@ func (c *syncCommand) MessageID() models.MsgID {
 	return msgID(c.MsgID)
 }
 
-// msgID reads a message id as reported by a relayer. Older relayers hold message ids in a signed 32 bit integer, so
-// an id past that range comes back to us as a negative number and has to be wrapped back around. This applies to
-// every id they send us, not just the one a status command is about.
+// msgID reads a message id as reported by a relayer. Our ids are 64 bit, but the app holds them in a signed 32 bit
+// integer, so an id past that range comes back to us as a negative number and has to be reinterpreted as unsigned.
+// Note this only recovers ids below 2^32 - past that the app has lost bits we can't reconstruct.
+//
+// The implementation this replaces only did this for the id a status command is about, and compared the pending and
+// retry lists raw. Doing it for those too is a deliberate difference: ids are never legitimately negative, so it's
+// inert below 2^31, and above it stops us re-offering a message the device already told us it holds.
 func msgID(v flexInt) models.MsgID {
 	id := int64(v)
 	if id < 0 {
