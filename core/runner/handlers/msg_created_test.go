@@ -19,7 +19,7 @@ func TestMsgCreated(t *testing.T) {
 	defer func() { rt.Config.AttachmentDomain = "" }()
 
 	// add a URN for Ann so we can test all urn sends
-	testdb.InsertContactURN(t, rt, testdb.Org1, testdb.Ann, urns.URN("tel:+12065551212"), 10, nil)
+	testdb.InsertContactURN(t, rt, testdb.Org1, testdb.Ann, urns.URN("tel:+12065550100"), 10, nil)
 
 	// delete all URNs for bob
 	rt.DB.MustExec(`DELETE FROM contacts_contacturn WHERE contact_id = $1`, testdb.Bob.ID)
@@ -45,7 +45,7 @@ func TestMsgCreated(t *testing.T) {
 func TestMsgCreatedNewURN(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
 
-	// switch our twitter channel to telegram
+	// switch our facebook channel to telegram
 	rt.DB.MustExec(`UPDATE channels_channel SET channel_type = 'TG', name = 'Telegram', schemes = ARRAY['telegram'] WHERE uuid = $1`, testdb.FacebookChannel.UUID)
 
 	runTests(t, rt, "testdata/msg_created_with_new_urn.json")

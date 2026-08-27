@@ -64,7 +64,7 @@
                 10003
             ],
             "urns": [
-                "tel:+1234567890"
+                "tel:+12345550100"
             ],
             "query": "age > 20",
             "template_id": 10000,
@@ -78,7 +78,7 @@
         },
         "db_assertions": [
             {
-                "query": "SELECT count(*) FROM msgs_broadcast WHERE status = 'P' AND translations-\u003e'eng'-\u003e\u003e'text' = 'Hello' AND base_language = 'eng' AND urns = '{\"tel:+1234567890\"}' AND query = 'age \u003e 20' AND template_id = 10000 AND template_variables = '{\"@contact\"}'",
+                "query": "SELECT count(*) FROM msgs_broadcast WHERE status = 'P' AND translations-\u003e'eng'-\u003e\u003e'text' = 'Hello' AND base_language = 'eng' AND urns = '{\"tel:+12345550100\"}' AND query = 'age \u003e 20' AND template_id = 10000 AND template_variables = '{\"@contact\"}'",
                 "returns": 1
             },
             {
@@ -118,7 +118,7 @@
                             10003
                         ],
                         "urns": [
-                            "tel:+1234567890"
+                            "tel:+12345550100"
                         ],
                         "query": "age > 20",
                         "exclusions": {

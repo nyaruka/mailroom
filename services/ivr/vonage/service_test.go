@@ -36,7 +36,7 @@ func TestResponseForSprint(t *testing.T) {
 		},
 	})
 
-	urn := urns.URN("tel:+12067799294")
+	urn := urns.URN("tel:+12065550103")
 	expiresOn := time.Now().Add(time.Hour)
 	channelRef := assets.NewChannelReference(testdb.VonageChannel.UUID, "Vonage Channel")
 
@@ -123,7 +123,7 @@ func TestResponseForSprint(t *testing.T) {
 		},
 		{ // 7
 			[]events.Event{
-				events.NewDialWait(urns.URN(`tel:+1234567890`), 60, 7200, expiresOn),
+				events.NewDialWait(urns.URN(`tel:+12345550100`), 60, 7200, expiresOn),
 			},
 			`[{"action":"conversation","name":"a0a95a53-1e96-44ee-a2e1-66cf9653c236"}]`,
 		},

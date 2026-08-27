@@ -69,7 +69,7 @@ func TestResolveRecipients(t *testing.T) {
 		{ // 5 create new contacts from URNs
 			recipients: &search.Recipients{
 				ContactIDs: []models.ContactID{testdb.Bob.ID},
-				URNs:       []urns.URN{"tel:+1234000001", "tel:+1234000002"},
+				URNs:       []urns.URN{"tel:+12345550101", "tel:+12345550102"},
 				Exclusions: models.Exclusions{InAFlow: true},
 			},
 			limit:              -1,
@@ -78,7 +78,7 @@ func TestResolveRecipients(t *testing.T) {
 		},
 		{ // 6 new contacts not included if excluding based on last seen
 			recipients: &search.Recipients{
-				URNs:       []urns.URN{"tel:+1234000003"},
+				URNs:       []urns.URN{"tel:+12345550103"},
 				Exclusions: models.Exclusions{NotSeenSinceDays: 10},
 			},
 			limit:       -1,
@@ -86,7 +86,7 @@ func TestResolveRecipients(t *testing.T) {
 		},
 		{ // 7 new contacts is now an existing contact that can be searched
 			recipients: &search.Recipients{
-				URNs: []urns.URN{"tel:+1234000003"},
+				URNs: []urns.URN{"tel:+12345550103"},
 			},
 			limit:       -1,
 			expectedIDs: []models.ContactID{30002},
@@ -116,7 +116,7 @@ func TestResolveRecipientsIndexesExcludedCreatedContacts(t *testing.T) {
 
 	// resolve a raw URN with a last seen exclusion which the created contact can't satisfy
 	matches, createdIDs, err := search.ResolveRecipients(ctx, rt, oa, testdb.Admin.ID, nil, &search.Recipients{
-		URNs:       []urns.URN{"tel:+1234000099"},
+		URNs:       []urns.URN{"tel:+12345550199"},
 		Exclusions: models.Exclusions{NotSeenSinceDays: 10},
 	}, -1)
 	require.NoError(t, err)
@@ -128,7 +128,7 @@ func TestResolveRecipientsIndexesExcludedCreatedContacts(t *testing.T) {
 	_, err = rt.ES.Client.Indices.Refresh().Index(rt.Config.ElasticContactsIndex).Do(ctx)
 	require.NoError(t, err)
 
-	src := map[string]any{"query": elastic.Nested("urns", elastic.Term("urns.path.keyword", "+1234000099"))}
+	src := map[string]any{"query": elastic.Nested("urns", elastic.Term("urns.path.keyword", "+12345550199"))}
 	resp, err := rt.ES.Client.Count().Index(rt.Config.ElasticContactsIndex).Raw(bytes.NewReader(jsonx.MustMarshal(src))).Do(ctx)
 	require.NoError(t, err)
 	assert.Equal(t, int64(1), resp.Count, "expected excluded created contact to be indexed")

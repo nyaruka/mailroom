@@ -9,7 +9,7 @@
                     "created_on": "2026-01-13T15:18:40.473533Z",
                     "urns": [
                         "tel:+16055741111",
-                        "tel:+12065551212"
+                        "tel:+12065550100"
                     ]
                 },
                 {
@@ -18,7 +18,7 @@
                     "created_on": "2026-01-13T15:18:41.473533Z",
                     "urns": [
                         "tel:+16055741111",
-                        "tel:+12065551212",
+                        "tel:+12065550100",
                         "telegram:11551"
                     ]
                 }
@@ -37,7 +37,7 @@
                 "query": "SELECT identity FROM contacts_contacturn WHERE contact_id = 10000 ORDER BY priority DESC",
                 "list": [
                     "tel:+16055741111",
-                    "tel:+12065551212",
+                    "tel:+12065550100",
                     "telegram:11551"
                 ]
             },
@@ -68,7 +68,7 @@
                     "type": "contact_urns_changed",
                     "urns": [
                         "tel:+16055741111",
-                        "tel:+12065551212"
+                        "tel:+12065550100"
                     ]
                 }
             },
@@ -82,7 +82,7 @@
                     "type": "contact_urns_changed",
                     "urns": [
                         "tel:+16055741111",
-                        "tel:+12065551212",
+                        "tel:+12065550100",
                         "telegram:11551"
                     ]
                 }
@@ -147,7 +147,7 @@
                     "type": "contact_urns_changed",
                     "created_on": "2026-01-13T15:18:45.473533Z",
                     "urns": [
-                        "tel:+12065551212"
+                        "tel:+12065550100"
                     ]
                 }
             ]
@@ -163,7 +163,7 @@
             {
                 "query": "SELECT identity FROM contacts_contacturn WHERE contact_id = 10001 ORDER BY priority DESC",
                 "list": [
-                    "tel:+12065551212"
+                    "tel:+12065550100"
                 ]
             }
         ],
@@ -177,7 +177,7 @@
                     "created_on": "2026-01-13T15:18:45.473533Z",
                     "type": "contact_urns_changed",
                     "urns": [
-                        "tel:+12065551212"
+                        "tel:+12065550100"
                     ]
                 }
             },

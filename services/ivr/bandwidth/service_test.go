@@ -26,7 +26,7 @@ import (
 func TestResponseForSprint(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
 
-	urn := urns.URN("tel:+12067799294")
+	urn := urns.URN("tel:+12065550103")
 	expiresOn := time.Now().Add(time.Hour)
 	channelRef := assets.NewChannelReference(assets.ChannelUUID(uuids.NewV4()), "Bandwidth Channel")
 	env := envs.NewBuilder().WithAllowedLanguages("eng", "spa").WithDefaultCountry("US").Build()
@@ -104,9 +104,9 @@ func TestResponseForSprint(t *testing.T) {
 		{
 			// dial wait
 			events: []events.Event{
-				events.NewDialWait(urns.URN(`tel:+1234567890`), 60, 7200, expiresOn),
+				events.NewDialWait(urns.URN(`tel:+12345550100`), 60, 7200, expiresOn),
 			},
-			expected: `<Response><Transfer transferCompleteUrl="http://temba.io/resume?session=1&amp;wait_type=dial" callTimeout="60" timeLimit="7200"><PhoneNumber>+1234567890</PhoneNumber></Transfer></Response>`,
+			expected: `<Response><Transfer transferCompleteUrl="http://temba.io/resume?session=1&amp;wait_type=dial" callTimeout="60" timeLimit="7200"><PhoneNumber>+12345550100</PhoneNumber></Transfer></Response>`,
 		},
 	}
 

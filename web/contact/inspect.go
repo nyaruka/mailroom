@@ -39,7 +39,7 @@ type inspectRequest struct {
 //	      {
 //	        "channel": {"uuid": "b7aa1c23-b989-4e33-bd4c-1a8511259683", "name": "Vonage"},
 //	        "scheme": "tel",
-//	        "path": "+1234567890",
+//	        "path": "+12345550100",
 //	        "display": ""
 //	      },
 //	      {

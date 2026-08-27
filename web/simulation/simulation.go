@@ -23,7 +23,7 @@ import (
 )
 
 const (
-	testURN         = urns.URN("tel:+12065551212")
+	testURN         = urns.URN("tel:+12065550100")
 	testChannelUUID = assets.ChannelUUID("440099cf-200c-4d45-a8e7-4a564f4a0e8b")
 	testCallUUID    = core.CallUUID("01979e0b-3072-7345-ae19-879750caaaf6")
 )
