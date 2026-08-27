@@ -179,7 +179,7 @@ func processRelayerSync(ctx context.Context, rt *runtime.Runtime, w http.Respons
 			msgIDs = append(msgIDs, c.MessageID())
 		}
 	}
-	refs, err := getMessageRefs(ctx, rt, channel.OrgID, msgIDs)
+	refs, err := getMessageRefs(ctx, rt, channel.OrgID, channel.ID, msgIDs)
 	if err != nil {
 		return fmt.Errorf("error resolving messages to update: %w", err)
 	}
@@ -532,25 +532,15 @@ type syncCommand struct {
 }
 
 // MessageID is the message this command is about.
-func (c *syncCommand) MessageID() models.MsgID {
-	return msgID(c.MsgID)
-}
-
-// msgID reads a message id as reported by a relayer. Our ids are 64 bit, but the app held them in a signed 32 bit int
-// until v1.9.9 - it parsed the id we send it with getInt() - so an id past that range comes back from an older device
-// as a negative number and has to be reinterpreted as unsigned. This only recovers ids below 2^32; past that the app
-// has lost bits we can't reconstruct.
 //
-// The implementation this replaces only did this for the id a status command is about, and compared the pending and
-// retry lists raw. Those carry the same truncated ids, so an older device was re-offered messages it had already told
-// us it holds, and sent them twice. Applying it to every id is a deliberate difference that fixes that: ids are never
-// legitimately negative, so it's inert for any device on v1.9.9 or later.
-func msgID(v flexInt) models.MsgID {
-	id := int64(v)
-	if id < 0 {
-		id += 1 << 32
-	}
-	return models.MsgID(id)
+// Note we deliberately do not try to undo the truncation an app older than v1.9.9 does to our ids - it held them in
+// a signed 32 bit int, and the implementation this replaces mapped a negative id back by adding 2^32. That's only
+// correct while a workspace's ids sit between 2^31 and 2^32. Below that nothing is ever truncated, and above it the
+// app has lost high bits that no arithmetic recovers, so the mapping produces a valid id belonging to a different
+// message - turning a harmless no-match into a status written against the wrong message. An id we can't make sense
+// of is left to match nothing.
+func (c *syncCommand) MessageID() models.MsgID {
+	return models.MsgID(c.MsgID)
 }
 
 // Timestamp is when the device says this command happened. It's in milliseconds, and truncated rather than rounded
@@ -613,7 +603,7 @@ func msgIDs(short, long *[]flexInt) []models.MsgID {
 
 	ids := make([]models.MsgID, len(capped))
 	for i, v := range capped {
-		ids[i] = msgID(v)
+		ids[i] = models.MsgID(v)
 	}
 	return ids
 }

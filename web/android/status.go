@@ -38,8 +38,9 @@ func init() {
 // ever knows the ids it was given in its sync payload, and resolving those to UUIDs first would mean an extra query
 // that still has to preserve which ids didn't resolve.
 type statusRequest struct {
-	OrgID    models.OrgID     `json:"org_id"   validate:"required"`
-	Commands []*statusCommand `json:"commands" validate:"required,dive"`
+	OrgID     models.OrgID     `json:"org_id"     validate:"required"`
+	ChannelID models.ChannelID `json:"channel_id" validate:"required"`
+	Commands  []*statusCommand `json:"commands"   validate:"required,dive"`
 }
 
 type statusCommand struct {
@@ -62,7 +63,7 @@ func handleStatus(ctx context.Context, rt *runtime.Runtime, r *statusRequest) (a
 		msgIDs[i] = c.MsgID
 	}
 
-	refs, err := getMessageRefs(ctx, rt, r.OrgID, msgIDs)
+	refs, err := getMessageRefs(ctx, rt, r.OrgID, r.ChannelID, msgIDs)
 	if err != nil {
 		return nil, 0, fmt.Errorf("error resolving messages to update: %w", err)
 	}
@@ -160,10 +161,14 @@ type msgRef struct {
 }
 
 // resolves the ids a relayer knows its messages by to the UUIDs everything else keys messages by - along with the
-// direction, because the caller has to tell a message it should ignore from one that doesn't exist
-func getMessageRefs(ctx context.Context, rt *runtime.Runtime, orgID models.OrgID, msgIDs []models.MsgID) (map[models.MsgID]*msgRef, error) {
+// direction, because the caller has to tell a message it should ignore from one that doesn't exist.
+//
+// Scoped to the channel rather than just the workspace: a relayer can only have been given messages on its own
+// channel, so anything else it names is either a mistake or an id it has mangled, and either way isn't something we
+// want it deciding the status of.
+func getMessageRefs(ctx context.Context, rt *runtime.Runtime, orgID models.OrgID, channelID models.ChannelID, msgIDs []models.MsgID) (map[models.MsgID]*msgRef, error) {
 	rows := []*msgRef{}
-	err := rt.DB.SelectContext(ctx, &rows, `SELECT id, uuid, direction FROM msgs_msg WHERE org_id = $1 AND id = ANY($2)`, orgID, pq.Array(msgIDs))
+	err := rt.DB.SelectContext(ctx, &rows, `SELECT id, uuid, direction FROM msgs_msg WHERE org_id = $1 AND channel_id = $2 AND id = ANY($3)`, orgID, channelID, pq.Array(msgIDs))
 	if err != nil {
 		return nil, err
 	}

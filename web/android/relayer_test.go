@@ -184,8 +184,9 @@ func TestRelayerSyncCommands(t *testing.T) {
 		{"cmd":"mt_sent","msg_id":987654,"ts":1746361850000,"p_id":7},
 		{"cmd":"unknown","p_id":8},
 		{"cmd":"mt_fail","msg_id":%d,"ts":1746361851000,"p_id":0},
+		{"cmd":"mt_fail","msg_id":%d,"ts":1746361852000,"p_id":10},
 		{"cmd":"status","p_src":"BAT","p_sts":"CHA","p_lvl":80,"net":"WIFI","pending":[],"retry":[],"dev":"Nexus","os":"7.0","app_version":"1.2.3"}
-	]}`, out1.ID, out1.ID, out2.ID, int64(out3.ID)-(1<<32))
+	]}`, out1.ID, out1.ID, out2.ID, out3.ID, int64(out3.ID)-(1<<32))
 
 	status, resp := relayerSync(t, rt, testdb.AndroidChannel.ID, relayerSecret, body, nil)
 	assert.Equal(t, 200, status)
@@ -198,8 +199,8 @@ func TestRelayerSyncCommands(t *testing.T) {
 		}
 	}
 
-	// fcm and status are never acked, the unknown command and the one for a message we don't have aren't handled.
-	// p_id 0 is a real id the device is waiting on, so it gets acked like any other.
+	// fcm and status are never acked, and the unknown command, the one for a message we don't have and the one
+	// naming a truncated negative id all go unhandled. p_id 0 is a real id the device is waiting on, so it's acked.
 	assert.Equal(t, []float64{2, 3, 4, 5, 6, 0}, acked)
 
 	// the incoming message was created and its id reported back so the device can match it up
@@ -224,13 +225,13 @@ func TestRelayerSyncCommands(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT status, folder FROM msgs_msg WHERE id = $1`, out2.ID).
 		Columns(map[string]any{"status": "E", "folder": "O"})
 
-	// an older relayer reports ids past 2^31 as negative numbers, which we wrap back around
+	// out3 was failed by the command naming it properly; the one naming it as a truncated negative matched nothing
 	assertdb.Query(t, rt.DB, `SELECT status, folder FROM msgs_msg WHERE id = $1`, out3.ID).
 		Columns(map[string]any{"status": "F", "folder": "X"})
 
 	// the device's own report was recorded
 	assertdb.Query(t, rt.DB, `SELECT power_source, power_status, power_level, network_type, incoming_command_count FROM channels_syncevent WHERE channel_id = $1`, testdb.AndroidChannel.ID).
-		Columns(map[string]any{"power_source": "BAT", "power_status": "CHA", "power_level": 80, "network_type": "WIFI", "incoming_command_count": 8})
+		Columns(map[string]any{"power_source": "BAT", "power_status": "CHA", "power_level": 80, "network_type": "WIFI", "incoming_command_count": 9})
 	assertdb.Query(t, rt.DB, `SELECT device, os FROM channels_channel WHERE id = $1`, testdb.AndroidChannel.ID).
 		Columns(map[string]any{"device": "Nexus", "os": "7.0"})
 
@@ -277,13 +278,31 @@ func TestRelayerSyncOutbox(t *testing.T) {
 
 	assertdb.Query(t, rt.DB, `SELECT pending_message_count FROM channels_syncevent ORDER BY id DESC LIMIT 1`).Returns(2)
 
-	// an older relayer reports the ids it holds as negative numbers too, so those have to be wrapped back around
-	// before they'll match anything - otherwise it's offered messages it already has and sends them twice
+	// ids an old relayer has mangled into negatives exclude nothing rather than being mapped onto some other
+	// message - it'll be re-offered what it already holds, which is the harmless end of that trade
 	body = fmt.Sprintf(`{"cmds":[{"cmd":"fcm","fcm_id":"FCM123"},{"cmd":"status","p_src":"BAT","p_sts":"CHA","p_lvl":80,"net":"WIFI","pending":[%d,%d],"retry":[%d]}]}`,
 		int64(out1.ID)-(1<<32), int64(out2.ID)-(1<<32), int64(out3.ID)-(1<<32))
 	status, resp = relayerSync(t, rt, testdb.AndroidChannel.ID, relayerSecret, body, nil)
 	assert.Equal(t, 200, status)
+	assert.Len(t, resp["cmds"], 2)
+}
+
+func TestRelayerSyncOnlyItsOwnMessages(t *testing.T) {
+	_, rt := testsuite.Runtime(t)
+	startServer(t, rt)
+	claimAndroidChannel(t, rt)
+
+	// a message in the same workspace but on a different channel, which this relayer was never given
+	other := testdb.InsertOutgoingMsg(t, rt, testdb.Org1, "0199bad8-f98d-75a3-b641-2718a25ac3f5", testdb.TwilioChannel, testdb.Ann, "not yours", nil, models.MsgStatusQueued, false)
+
+	body := fmt.Sprintf(`{"cmds":[{"cmd":"fcm","fcm_id":"FCM123"},{"cmd":"mt_sent","msg_id":%d,"ts":1746361847000,"p_id":1}]}`, other.ID)
+	status, resp := relayerSync(t, rt, testdb.AndroidChannel.ID, relayerSecret, body, nil)
+	assert.Equal(t, 200, status)
+
+	// not acked, and left alone - a relayer only gets to decide the status of messages on its own channel
 	assert.Equal(t, []any{}, resp["cmds"])
+	assertdb.Query(t, rt.DB, `SELECT status, folder FROM msgs_msg WHERE id = $1`, other.ID).
+		Columns(map[string]any{"status": "Q", "folder": "O"})
 }
 
 func TestRelayerSyncClaimAndReset(t *testing.T) {
