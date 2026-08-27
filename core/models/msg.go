@@ -498,8 +498,7 @@ func GetMsgRepetitions(rp *valkey.Pool, contactID ContactID, msg *core.MsgConten
 	return valkey.Int(msgRepetitionsScript.Do(vc, key, contactID, msg.Text))
 }
 
-var sqlSelectMessagesByUUID = `
-SELECT 
+const sqlSelectMessageColumns = `
 	id,
 	uuid,
 	broadcast_id,
@@ -523,7 +522,10 @@ SELECT
 	channel_id,
 	contact_id,
 	contact_urn_id,
-	org_id
+	org_id`
+
+var sqlSelectMessagesByUUID = `
+SELECT ` + sqlSelectMessageColumns + `
 FROM
 	msgs_msg
 WHERE
@@ -536,6 +538,22 @@ ORDER BY
 // GetMessagesByUUID fetches the messages with the given UUIDs
 func GetMessagesByUUID(ctx context.Context, db *sqlx.DB, orgID OrgID, direction Direction, msgUUIDs []events.EventUUID) ([]*Msg, error) {
 	return loadMessages(ctx, db, sqlSelectMessagesByUUID, orgID, direction, pq.Array(msgUUIDs))
+}
+
+var sqlSelectMessagesByID = `
+SELECT ` + sqlSelectMessageColumns + `
+FROM
+	msgs_msg
+WHERE
+	org_id = $1 AND
+	id = ANY($2)
+ORDER BY
+	id ASC`
+
+// GetMessagesByID fetches the messages with the given ids. Unlike GetMessagesByUUID it doesn't filter by direction
+// because its only caller needs to tell a message it should ignore from one that doesn't exist.
+func GetMessagesByID(ctx context.Context, db *sqlx.DB, orgID OrgID, msgIDs []MsgID) ([]*Msg, error) {
+	return loadMessages(ctx, db, sqlSelectMessagesByID, orgID, pq.Array(msgIDs))
 }
 
 var sqlSelectMessagesForRetry = `
@@ -938,6 +956,86 @@ func FailOldAndroidMessages(ctx context.Context, db DBorTx, olderThan time.Time,
 	tags := make([]*EventTag, len(rows))
 	for i, r := range rows {
 		tags[i] = NewMsgStatusTag(r.OrgID, r.ContactUUID, r.MsgUUID, MsgStatusFailed, MsgFailedTooOld)
+	}
+
+	return tags, nil
+}
+
+// AndroidStatusUpdate is a status change reported by an Android relayer during a sync, for one of the outgoing
+// messages it was asked to send.
+type AndroidStatusUpdate struct {
+	MsgID  MsgID
+	Status MsgStatus
+
+	// the time to record as the message's sent_on, or nil to leave it as it is
+	SentOn *time.Time
+
+	// whether SentOn replaces an existing sent_on, rather than only filling in a missing one
+	OverwriteSentOn bool
+}
+
+// like sqlFailOldAndroidMessages the join to contacts_contact is only for the contact UUID needed by the event tags.
+// The direction and visibility checks are in the WHERE rather than only in the caller so that a message which changed
+// after we read it can't be given a folder that doesn't match its actual state.
+const sqlUpdateAndroidMsgStatuses = `
+   UPDATE msgs_msg
+      SET status = u.status, folder = u.folder,
+          sent_on = CASE WHEN u.overwrite_sent_on THEN u.sent_on ELSE COALESCE(msgs_msg.sent_on, u.sent_on) END
+     FROM UNNEST($2::bigint[], $3::text[], $4::text[], $5::timestamptz[], $6::bool[]) AS u(id, status, folder, sent_on, overwrite_sent_on), contacts_contact c
+    WHERE msgs_msg.id = u.id AND msgs_msg.org_id = $1 AND msgs_msg.direction = 'O' AND msgs_msg.visibility = 'V' AND c.id = msgs_msg.contact_id
+RETURNING msgs_msg.uuid AS msg_uuid, msgs_msg.status AS status, c.uuid AS contact_uuid`
+
+// UpdateAndroidMessageStatuses applies status changes reported by an Android relayer to the given org's messages,
+// ignoring any which aren't outgoing and visible. Because they're all applied in a single statement, two updates for
+// the same message would silently overwrite each other, so callers have to fold those into one first.
+//
+// It returns an event tag recording the change for each message actually updated, to be queued to the history table
+// by the caller, because nothing else records these transitions.
+func UpdateAndroidMessageStatuses(ctx context.Context, db DBorTx, orgID OrgID, updates []*AndroidStatusUpdate) ([]*EventTag, error) {
+	if len(updates) == 0 {
+		return nil, nil
+	}
+
+	ids := make([]MsgID, len(updates))
+	statuses := make([]MsgStatus, len(updates))
+	folders := make([]MsgFolder, len(updates))
+	sentOns := make([]*time.Time, len(updates))
+	overwriteSentOns := make([]bool, len(updates))
+	seen := make(map[MsgID]bool, len(updates))
+
+	for i, u := range updates {
+		if seen[u.MsgID] {
+			return nil, fmt.Errorf("more than one update for message %d", u.MsgID)
+		}
+		seen[u.MsgID] = true
+
+		ids[i] = u.MsgID
+		statuses[i] = u.Status
+		// the folder of an outgoing message follows from its status alone, and the WHERE only touches rows which are
+		// actually outgoing and visible
+		folders[i] = DeriveMsgFolder(DirectionOut, u.Status, VisibilityVisible, false)
+		sentOns[i] = u.SentOn
+		// there's nothing to overwrite sent_on with if there's no new value, and clearing it would break the
+		// constraint that a sent message has a sent_on
+		overwriteSentOns[i] = u.OverwriteSentOn && u.SentOn != nil
+	}
+
+	rows := []*struct {
+		MsgUUID     events.EventUUID `db:"msg_uuid"`
+		Status      MsgStatus        `db:"status"`
+		ContactUUID core.ContactUUID `db:"contact_uuid"`
+	}{}
+
+	err := db.SelectContext(ctx, &rows, sqlUpdateAndroidMsgStatuses, orgID,
+		pq.Array(ids), pq.Array(statuses), pq.Array(folders), pq.Array(sentOns), pq.Array(overwriteSentOns),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("error updating android message statuses: %w", err)
+	}
+
+	tags := make([]*EventTag, len(rows))
+	for i, r := range rows {
+		tags[i] = NewMsgStatusTag(orgID, r.ContactUUID, r.MsgUUID, r.Status, NilMsgFailedReason)
 	}
 
 	return tags, nil
