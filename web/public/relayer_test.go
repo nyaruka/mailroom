@@ -1,4 +1,4 @@
-package android_test
+package public_test
 
 import (
 	"crypto/hmac"
