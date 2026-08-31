@@ -55,6 +55,14 @@ func (c *RetryCallsCron) Run(ctx context.Context, rt *runtime.Runtime) (map[stri
 			continue
 		}
 
+		// org may have been suspended after the call was created
+		if oa.Org().Suspended() {
+			if err := call.SetFailed(ctx, rt.DB); err != nil {
+				log.Error("error marking call as failed due to suspended org", "error", err, "org_id", call.OrgID())
+			}
+			continue
+		}
+
 		// and the associated channel
 		channel := oa.ChannelByID(call.ChannelID())
 		if channel == nil {
