@@ -1,6 +1,6 @@
 // Package android implements the domain side of Android relayer channels: parsing the commands a relayer sends
-// during a sync, applying them, and building the response that tells it what to do next. The HTTP endpoints that
-// terminate relayer traffic live in web/android and call into here.
+// during a sync, applying them, and building the response that tells it what to do next. The endpoint that
+// terminates relayer traffic lives in web/public and calls into here.
 package android
 
 import (
