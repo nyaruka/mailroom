@@ -1,3 +1,7 @@
+v26.3.54 (2026-08-31)
+-------------------------
+ * Move relayer sync endpoint to web/public with the other internet-facing endpoints
+
 v26.3.53 (2026-08-27)
 -------------------------
  * Add endpoint for Android relayer syncs
