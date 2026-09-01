@@ -277,9 +277,11 @@ func TestMarkMessageHandled(t *testing.T) {
 	in2 := testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199bad9-9791-770d-a47d-8f4a6ea3ad13", testdb.TwilioChannel, testdb.Ann, "hi", models.MsgStatusPending, "")
 	in3 := testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199bad9-f0bc-7738-8af8-99712a6f8bff", testdb.TwilioChannel, testdb.Ann, "hi", models.MsgStatusPending, "")
 
-	// a message deleted by the user whilst it was still waiting to be handled
+	// a message deleted by the user whilst it was still waiting to be handled, and one deleted by its sender
 	in4 := testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199bada-2b39-7cac-9714-827df9ec6b91", testdb.TwilioChannel, testdb.Ann, "hi", models.MsgStatusPending, "")
 	rt.DB.MustExec(`UPDATE msgs_msg SET visibility = 'D', folder = 'D', text = '' WHERE id = $1`, in4.ID)
+	in5 := testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199bb0a-4c2e-7a51-8f3d-1c6b5e9d0a72", testdb.TwilioChannel, testdb.Ann, "hi", models.MsgStatusPending, "")
+	rt.DB.MustExec(`UPDATE msgs_msg SET visibility = 'X', folder = 'D', text = '' WHERE id = $1`, in5.ID)
 
 	// a message handled outside of a flow ends up in the inbox
 	err = models.MarkMessageHandled(ctx, rt.DB, in1.UUID, models.MsgStatusHandled, models.VisibilityVisible, nil, nil, nil, nil)
@@ -293,8 +295,10 @@ func TestMarkMessageHandled(t *testing.T) {
 	err = models.MarkMessageHandled(ctx, rt.DB, in3.UUID, models.MsgStatusHandled, models.VisibilityArchived, nil, nil, nil, nil)
 	assert.NoError(t, err)
 
-	// handling a message deleted whilst it was pending doesn't resurrect it
+	// handling a message deleted whilst it was pending doesn't resurrect it, however it was deleted
 	err = models.MarkMessageHandled(ctx, rt.DB, in4.UUID, models.MsgStatusHandled, models.VisibilityVisible, nil, nil, nil, nil)
+	assert.NoError(t, err)
+	err = models.MarkMessageHandled(ctx, rt.DB, in5.UUID, models.MsgStatusHandled, models.VisibilityVisible, nil, nil, nil, nil)
 	assert.NoError(t, err)
 
 	assertdb.Query(t, rt.DB, `SELECT status, visibility, folder, flow_id FROM msgs_msg WHERE id = $1`, in1.ID).
@@ -305,6 +309,8 @@ func TestMarkMessageHandled(t *testing.T) {
 		Columns(map[string]any{"status": "H", "visibility": "A", "folder": "A", "flow_id": nil})
 	assertdb.Query(t, rt.DB, `SELECT status, visibility, folder, text FROM msgs_msg WHERE id = $1`, in4.ID).
 		Columns(map[string]any{"status": "P", "visibility": "D", "folder": "D", "text": ""})
+	assertdb.Query(t, rt.DB, `SELECT status, visibility, folder, text FROM msgs_msg WHERE id = $1`, in5.ID).
+		Columns(map[string]any{"status": "P", "visibility": "X", "folder": "D", "text": ""})
 }
 
 func TestResendMessages(t *testing.T) {
