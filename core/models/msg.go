@@ -889,12 +889,14 @@ func PrepareMessagesForResend(ctx context.Context, rt *runtime.Runtime, oa *OrgA
 	return resent, nil
 }
 
-// like sqlUpdateMsgForResending the failed folder is hardcoded because it follows from the status alone for a
-// visible outgoing message, which is what the visibility check restricts this to
+// selects by folder rather than direction/status/visibility so that it's served by the folder index (org, folder, uuid)
+// rather than a scan of everything the channel ever sent - the outbox folder is exactly the visible outgoing messages
+// still to be sent. The failed folder is hardcoded because, like sqlUpdateMsgForResending, it follows from the status
+// alone for such a message.
 const sqlFailChannelMessages = `
 WITH rows AS (
 	SELECT id FROM msgs_msg
-	WHERE org_id = $1 AND direction = 'O' AND channel_id = $2 AND status IN ('I', 'Q', 'E') AND visibility = 'V'
+	WHERE org_id = $1 AND folder = 'O' AND channel_id = $2
 	LIMIT 1000
 )
 UPDATE msgs_msg SET status = 'F', folder = 'X', failed_reason = $3, modified_on = NOW() WHERE id IN (SELECT id FROM rows)`
