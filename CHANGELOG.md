@@ -1,3 +1,11 @@
+v26.3.55 (2026-09-01)
+-------------------------
+ * Don't let message status updates clobber messages which have been deleted
+ * Fix mrelastic flags never being seen because the config loader parses the command line first
+ * Remove mrelastic's -start-uuid flag
+ * Update dependencies
+ * Remove internal Android endpoints that are no longer called
+
 v26.3.54 (2026-08-31)
 -------------------------
  * Move relayer sync endpoint to web/public with the other internet-facing endpoints
