@@ -31,7 +31,7 @@ environment variables and parameters and for more details on each option.
 - `MAILROOM_ATTACHMENT_DOMAIN`: domain that will be used for relative attachments in flows
 - `MAILROOM_DB`: URL describing how to connect to the RapidPro database
 - `MAILROOM_READONLY_DB`: URL for an additional database connection for read-only operations (optional)
-- `MAILROOM_VALKEY`: URL describing how to connect to Valkey
+- `MAILROOM_VALKEY`: URL describing how to connect to Valkey (e.g. `valkey://valkey:6379/15`). Use the `valkeys://` scheme for a TLS connection, and include a username to authenticate with an ACL user (e.g. `valkeys://user:pass@valkey:6379/15`)
 - `MAILROOM_SMTP_SERVER`: SMTP configuration for sending emails (e.g. smtp://user%40password@server:port/?from=foo%40gmail.com)
 - `MAILROOM_ANDROID_FCM_SERVICE_ACCOUNT_FILE`: FCM Service Account Credentials JSON File path used to notify Android relayers to sync
 - `MAILROOM_ELASTIC_USERNAME`: ElasticSearch username for Basic Auth

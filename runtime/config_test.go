@@ -1,9 +1,11 @@
 package runtime_test
 
 import (
+	"flag"
 	"net"
 	"testing"
 
+	"github.com/nyaruka/ezconf"
 	"github.com/nyaruka/mailroom/v26/runtime"
 
 	"github.com/stretchr/testify/assert"
@@ -36,7 +38,31 @@ func TestValidate(t *testing.T) {
 	assert.EqualError(t, err, "invalid configuration: field 'DB' is not a valid URL, field 'ReadonlyDB' is not a valid URL, field 'Valkey' is not a valid URL, field 'ElasticEndpoint' is not a valid URL")
 
 	_, err = runtime.LoadConfig(runtime.NewDefaultConfig(), []string{`--db=mysql://temba:temba@postgres/temba`, `--valkey=bluedis://valkey:6379/15`})
-	assert.EqualError(t, err, "invalid configuration: field 'DB' must start with 'postgres:', field 'Valkey' must start with 'valkey:'")
+	assert.EqualError(t, err, "invalid configuration: field 'DB' must start with 'postgres:', field 'Valkey' must start with 'valkey:' or 'valkeys:'")
+
+	// redis:// is a valid Valkey URL as far as the pool is concerned, but our config surface is Valkey named
+	_, err = runtime.LoadConfig(runtime.NewDefaultConfig(), []string{`--valkey=redis://valkey:6379/15`})
+	assert.EqualError(t, err, "invalid configuration: field 'Valkey' must start with 'valkey:' or 'valkeys:'")
+
+	// valkeys:// selects a TLS connection
+	cfg, err := runtime.LoadConfig(runtime.NewDefaultConfig(), []string{`--valkey=valkeys://valkey:6379/15`})
+	assert.NoError(t, err)
+	assert.Equal(t, "valkeys://valkey:6379/15", cfg.Valkey)
+}
+
+func TestLoadConfigHelp(t *testing.T) {
+	// asking for usage isn't a config error - usage has been shown and the sentinel tells the caller to exit cleanly
+	_, err := runtime.LoadConfig(runtime.NewDefaultConfig(), []string{`--help`})
+	assert.ErrorIs(t, err, ezconf.ErrHelp)
+	assert.ErrorIs(t, err, flag.ErrHelp)
+
+	_, err = runtime.LoadConfig(runtime.NewDefaultConfig(), []string{`-h`})
+	assert.ErrorIs(t, err, ezconf.ErrHelp)
+
+	// whereas an unknown flag comes back from ezconf as a real error rather than exiting the process
+	_, err = runtime.LoadConfig(runtime.NewDefaultConfig(), []string{`--not-a-flag`})
+	assert.EqualError(t, err, "error loading configuration: flag provided but not defined: -not-a-flag")
+	assert.NotErrorIs(t, err, ezconf.ErrHelp)
 }
 
 func TestDisallowedNetworksParsing(t *testing.T) {
