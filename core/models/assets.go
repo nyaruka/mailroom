@@ -115,7 +115,7 @@ func InitCache(rt *runtime.Runtime) {
 
 	orgCache = cache.NewLocal(func(ctx context.Context, orgID OrgID) (*OrgAssets, error) {
 		return NewOrgAssets(ctx, rt, orgID, nil, RefreshAll)
-	}, time.Second*5)
+	}, time.Second*5, 0) // unbounded as org IDs are ours and the short TTL limits growth
 	orgCache.Start()
 }
 
