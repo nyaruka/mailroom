@@ -26,7 +26,7 @@ import (
 // is loaded on top of the given defaults, e.g. runtime.NewDefaultConfig(). All logging is sent to the given handler,
 // e.g. LogHandler(), whose level is set from the loaded config.
 func Service(defaults *runtime.Config, version, date string, logHandler slog.Handler) error {
-	cfg, err := runtime.LoadConfig(defaults)
+	cfg, err := runtime.LoadConfig(defaults, os.Args[1:])
 	if err != nil {
 		return err
 	}

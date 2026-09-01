@@ -15,7 +15,7 @@ func TestLoadConfig(t *testing.T) {
 	base.Domain = "example.com"
 	base.WebhooksBlockedDomains = []string{"chat.example.com"}
 
-	cfg, err := runtime.LoadConfig(base, `--log-level=warn`)
+	cfg, err := runtime.LoadConfig(base, []string{`--log-level=warn`})
 	assert.NoError(t, err)
 	assert.Equal(t, "example.com", cfg.Domain)
 	assert.Equal(t, []string{"chat.example.com"}, cfg.WebhooksBlockedDomains)
@@ -25,23 +25,23 @@ func TestLoadConfig(t *testing.T) {
 	base.Domain = "example.com"
 	base.WebhooksBlockedDomains = []string{"chat.example.com"}
 
-	cfg, err = runtime.LoadConfig(base, `--domain=temba.io`)
+	cfg, err = runtime.LoadConfig(base, []string{`--domain=temba.io`})
 	assert.NoError(t, err)
 	assert.Equal(t, "temba.io", cfg.Domain)
 	assert.Equal(t, []string{"chat.example.com"}, cfg.WebhooksBlockedDomains)
 }
 
 func TestValidate(t *testing.T) {
-	_, err := runtime.LoadConfig(runtime.NewDefaultConfig(), `--db=??`, `--readonly-db=??`, `--valkey=??`, `--elastic-endpoint=??`)
+	_, err := runtime.LoadConfig(runtime.NewDefaultConfig(), []string{`--db=??`, `--readonly-db=??`, `--valkey=??`, `--elastic-endpoint=??`})
 	assert.EqualError(t, err, "invalid configuration: field 'DB' is not a valid URL, field 'ReadonlyDB' is not a valid URL, field 'Valkey' is not a valid URL, field 'ElasticEndpoint' is not a valid URL")
 
-	_, err = runtime.LoadConfig(runtime.NewDefaultConfig(), `--db=mysql://temba:temba@postgres/temba`, `--valkey=bluedis://valkey:6379/15`)
+	_, err = runtime.LoadConfig(runtime.NewDefaultConfig(), []string{`--db=mysql://temba:temba@postgres/temba`, `--valkey=bluedis://valkey:6379/15`})
 	assert.EqualError(t, err, "invalid configuration: field 'DB' must start with 'postgres:', field 'Valkey' must start with 'valkey:'")
 }
 
 func TestDisallowedNetworksParsing(t *testing.T) {
 	// check default value
-	cfg, err := runtime.LoadConfig(runtime.NewDefaultConfig(), `--log-level=warn`)
+	cfg, err := runtime.LoadConfig(runtime.NewDefaultConfig(), []string{`--log-level=warn`})
 	assert.NoError(t, err)
 
 	mustParseCIDR := func(s string) *net.IPNet {
@@ -65,11 +65,11 @@ func TestDisallowedNetworksParsing(t *testing.T) {
 	}, ipNets)
 
 	// test with invalid CSV
-	_, err = runtime.LoadConfig(runtime.NewDefaultConfig(), `--disallowed-networks="127.0.0.1`)
+	_, err = runtime.LoadConfig(runtime.NewDefaultConfig(), []string{`--disallowed-networks="127.0.0.1`})
 	assert.Error(t, err)
 
 	// test with single IP
-	cfg, err = runtime.LoadConfig(runtime.NewDefaultConfig(), `--disallowed-networks="127.0.0.1"`)
+	cfg, err = runtime.LoadConfig(runtime.NewDefaultConfig(), []string{`--disallowed-networks="127.0.0.1"`})
 	assert.NoError(t, err)
 
 	ips, ipNets = cfg.DisallowedIPs, cfg.DisallowedNets
@@ -80,15 +80,15 @@ func TestDisallowedNetworksParsing(t *testing.T) {
 
 func TestIDObfuscationKeyParsing(t *testing.T) {
 	// check default value
-	cfg, err := runtime.LoadConfig(runtime.NewDefaultConfig(), "--log-level=warn")
+	cfg, err := runtime.LoadConfig(runtime.NewDefaultConfig(), []string{"--log-level=warn"})
 	assert.NoError(t, err)
 	assert.Equal(t, [4]uint32{0x000A3B1C, 0x000D2E3F, 0x0001A2B3, 0x00C0FFEE}, cfg.IDObfuscationKeyParsed)
 
-	cfg, err = runtime.LoadConfig(runtime.NewDefaultConfig(), "--id-obfuscation-key=00000000000000000000000000000000")
+	cfg, err = runtime.LoadConfig(runtime.NewDefaultConfig(), []string{"--id-obfuscation-key=00000000000000000000000000000000"})
 	assert.NoError(t, err)
 	assert.Equal(t, [4]uint32{0, 0, 0, 0}, cfg.IDObfuscationKeyParsed)
 
-	cfg, err = runtime.LoadConfig(runtime.NewDefaultConfig(), "--id-obfuscation-key=FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF")
+	cfg, err = runtime.LoadConfig(runtime.NewDefaultConfig(), []string{"--id-obfuscation-key=FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF"})
 	assert.NoError(t, err)
 	assert.Equal(t, [4]uint32{0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF, 0xFFFFFFFF}, cfg.IDObfuscationKeyParsed)
 }

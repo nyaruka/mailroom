@@ -148,13 +148,12 @@ func NewDefaultConfig() *Config {
 	}
 }
 
-// LoadConfig loads configuration from a config file, environment variables and command line args, on top of the
-// given base config, e.g. NewDefaultConfig().
-func LoadConfig(c *Config, args ...string) (*Config, error) {
+// LoadConfig loads configuration from a config file, environment variables and the given command line args, on top
+// of the given base config, e.g. NewDefaultConfig(). Args are passed in explicitly rather than read from os.Args
+// because commands with their own flags have to take those out of the command line first, see SplitArgs.
+func LoadConfig(c *Config, args []string) (*Config, error) {
 	loader := ezconf.NewLoader(c, "mailroom", "Mailroom - handler for RapidPro", []string{"mailroom.toml"})
-	if len(args) > 0 { // allow tests to pass in args
-		loader.SetArgs(args...)
-	}
+	loader.SetArgs(args...)
 	if err := loader.Load(); err != nil {
 		return nil, fmt.Errorf("error loading configuration: %w", err)
 	}

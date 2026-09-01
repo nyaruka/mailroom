@@ -3,10 +3,13 @@ package cmd
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
+	"slices"
 	"time"
 
 	"github.com/nyaruka/gocommon/elastic"
@@ -20,10 +23,32 @@ import (
 
 const indexBatchSize = 500
 
+const elasticUsage = "usage: mrelastic [flags] <verb> <target> where valid combinations are 'index contacts', 'index messages' and 'prune contacts'"
+
 // Elastic is the entry point for the mrelastic command which manages the search indexes. Configuration is
 // loaded on top of the given defaults, e.g. runtime.NewDefaultConfig().
 func Elastic(defaults *runtime.Config) error {
-	cfg, err := runtime.LoadConfig(defaults)
+	// our own flags have to come out of the command line before the rest of it is loaded as configuration
+	flags := flag.NewFlagSet("mrelastic", flag.ContinueOnError)
+	flags.SetOutput(io.Discard) // we report parse errors ourselves rather than having them printed with usage
+	startUUID := flags.String("start-uuid", "", "UUID to start from (index messages only, works backwards from here)")
+	del := flags.Bool("delete", false, "delete orphaned documents instead of just reporting them (prune contacts only)")
+
+	cmdArgs, cfgArgs, positional := runtime.SplitArgs(flags, os.Args[1:])
+
+	if err := flags.Parse(cmdArgs); err != nil {
+		return err
+	}
+
+	// the config loader shows usage for the config flags, so we show usage for ours just before it does
+	if slices.Contains(cfgArgs, "-h") || slices.Contains(cfgArgs, "-help") || slices.Contains(cfgArgs, "--help") {
+		fmt.Fprintln(os.Stderr, elasticUsage)
+		flags.SetOutput(os.Stderr)
+		flags.PrintDefaults()
+		fmt.Fprintln(os.Stderr)
+	}
+
+	cfg, err := runtime.LoadConfig(defaults, cfgArgs)
 	if err != nil {
 		return err
 	}
@@ -31,16 +56,17 @@ func Elastic(defaults *runtime.Config) error {
 	// only output ERROR logs
 	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelError})))
 
-	// parse verb and target from args
-	flags := flag.NewFlagSet("mrelastic", flag.ExitOnError)
-	startUUID := flags.String("start-uuid", "", "UUID to start from (index messages only, works backwards from here)")
-	del := flags.Bool("delete", false, "delete orphaned documents instead of just reporting them (prune contacts only)")
-	flags.Parse(os.Args[1:])
+	var verb, target string
+	if len(positional) > 0 {
+		verb = positional[0]
+	}
+	if len(positional) > 1 {
+		target = positional[1]
+	}
 
-	verb, target := flags.Arg(0), flags.Arg(1)
 	valid := (verb == "index" && (target == "contacts" || target == "messages")) || (verb == "prune" && target == "contacts")
 	if !valid {
-		return fmt.Errorf("usage: mrelastic [flags] <verb> <target> where valid combinations are 'index contacts', 'index messages' and 'prune contacts'")
+		return errors.New(elasticUsage)
 	}
 
 	rt, err := runtime.NewRuntime(cfg)
