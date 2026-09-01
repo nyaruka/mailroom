@@ -2,6 +2,7 @@ package runtime
 
 import (
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net"
@@ -15,6 +16,11 @@ import (
 
 func init() {
 	utils.RegisterValidatorAlias("session_storage", "eq=db|eq=s3", func(e validator.FieldError) string { return "is not a valid session storage mode" })
+
+	// valkey:// is plaintext, valkeys:// is TLS - both are accepted, redis:// isn't, as our config surface is Valkey named
+	utils.RegisterValidatorAlias("valkey_url", "startswith=valkey:|startswith=valkeys:", func(e validator.FieldError) string {
+		return "must start with 'valkey:' or 'valkeys:'"
+	})
 }
 
 // Config is our top level configuration object
@@ -22,7 +28,7 @@ type Config struct {
 	DB         string `validate:"url,startswith=postgres:"           help:"URL for your Postgres database"`
 	ReadonlyDB string `validate:"omitempty,url,startswith=postgres:" help:"URL of optional connection to readonly database instance"`
 	DBPoolSize int    `                                              help:"the size of our db pool"`
-	Valkey     string `validate:"url,startswith=valkey:"             help:"URL for your Valkey instance"`
+	Valkey     string `validate:"url,valkey_url"                     help:"URL for your Valkey instance, valkeys:// for TLS"`
 
 	InternetAddress  string `help:"the address to bind our internet facing web server to, empty means all interfaces"`
 	InternetPort     int    `help:"the port to bind our internet facing web server to"`
@@ -156,6 +162,13 @@ func LoadConfig(c *Config, args ...string) (*Config, error) {
 		loader.SetArgs(args...)
 	}
 	if err := loader.Load(); err != nil {
+		// Load never writes to stdout or stderr itself, so a request for usage comes back as ErrHelp for us to act
+		// on here, where we still have the loader to show it with. The sentinel is passed up unwrapped so that the
+		// caller can tell an explicit -help from a genuine config failure.
+		if errors.Is(err, ezconf.ErrHelp) {
+			loader.Usage()
+			return nil, err
+		}
 		return nil, fmt.Errorf("error loading configuration: %w", err)
 	}
 
