@@ -10,9 +10,9 @@ import (
 
 func TestSplitArgs(t *testing.T) {
 	newFlags := func() *flag.FlagSet {
-		fs := flag.NewFlagSet("mrelastic", flag.ContinueOnError)
-		fs.String("start-uuid", "", "UUID to start from")
-		fs.Bool("delete", false, "delete orphaned documents")
+		fs := flag.NewFlagSet("cmd", flag.ContinueOnError)
+		fs.String("since", "", "a command flag which takes a value")
+		fs.Bool("delete", false, "a command flag which doesn't")
 		return fs
 	}
 
@@ -34,13 +34,13 @@ func TestSplitArgs(t *testing.T) {
 			positional: []string{"prune", "contacts"},
 		},
 		{ // our own flag with a value, in both forms
-			args:       []string{"--start-uuid=8720f157", "index", "messages"},
-			cmdArgs:    []string{"--start-uuid=8720f157"},
+			args:       []string{"--since=yesterday", "index", "messages"},
+			cmdArgs:    []string{"--since=yesterday"},
 			positional: []string{"index", "messages"},
 		},
 		{
-			args:       []string{"-start-uuid", "8720f157", "index", "messages"},
-			cmdArgs:    []string{"-start-uuid", "8720f157"},
+			args:       []string{"-since", "yesterday", "index", "messages"},
+			cmdArgs:    []string{"-since", "yesterday"},
 			positional: []string{"index", "messages"},
 		},
 		{ // config flags are left for the config loader, including their values
@@ -74,8 +74,8 @@ func TestSplitArgs(t *testing.T) {
 			cfgArgs: []string{"-help"},
 		},
 		{ // a flag needing a value but not given one is left for the flag set to report
-			args:    []string{"-start-uuid"},
-			cmdArgs: []string{"-start-uuid"},
+			args:    []string{"-since"},
+			cmdArgs: []string{"-since"},
 		},
 		{ // -- terminates flag parsing
 			args:       []string{"-delete", "--", "prune", "-contacts"},

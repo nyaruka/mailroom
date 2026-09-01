@@ -31,7 +31,6 @@ func Elastic(defaults *runtime.Config) error {
 	// our own flags have to come out of the command line before the rest of it is loaded as configuration
 	flags := flag.NewFlagSet("mrelastic", flag.ContinueOnError)
 	flags.SetOutput(io.Discard) // we report parse errors ourselves rather than having them printed with usage
-	startUUID := flags.String("start-uuid", "", "UUID to start from (index messages only, works backwards from here)")
 	del := flags.Bool("delete", false, "delete orphaned documents instead of just reporting them (prune contacts only)")
 
 	cmdArgs, cfgArgs, positional := runtime.SplitArgs(flags, os.Args[1:])
@@ -88,7 +87,7 @@ func Elastic(defaults *runtime.Config) error {
 		if target == "contacts" {
 			return indexAllContacts(ctx, rt)
 		}
-		return indexAllMessages(ctx, rt, *startUUID)
+		return indexAllMessages(ctx, rt)
 	case "prune":
 		return pruneAllContacts(ctx, rt, *del)
 	}
@@ -198,10 +197,9 @@ SELECT m.uuid, m.org_id, m.text, m.created_on, m.ticket_uuid, c.uuid AS contact_
  ORDER BY m.uuid DESC
  LIMIT $2`
 
-func indexAllMessages(ctx context.Context, rt *runtime.Runtime, startUUID string) error {
-	if startUUID == "" {
-		startUUID = "ffffffff-ffff-ffff-ffff-ffffffffffff"
-	}
+func indexAllMessages(ctx context.Context, rt *runtime.Runtime) error {
+	// messages are indexed newest first, so we start above the highest possible UUID and work backwards
+	startUUID := "ffffffff-ffff-ffff-ffff-ffffffffffff"
 
 	numIndexed := 0
 	lastUUID := ""
