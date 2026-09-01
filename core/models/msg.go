@@ -656,8 +656,10 @@ func MarkMessageHandled(ctx context.Context, tx DBorTx, msgUUID events.EventUUID
 
 	folder := DeriveMsgFolder(DirectionIn, status, visibility, flowID != NilFlowID)
 
+	// the visibility check leaves alone a message which was deleted whilst it was still waiting to be handled -
+	// without it we'd put a message whose content has already been cleared back in the inbox
 	_, err := tx.ExecContext(ctx,
-		`UPDATE msgs_msg SET status = $2, visibility = $3, folder = $4, flow_id = $5, ticket_uuid = $6, attachments = $7, log_uuids = array_cat(log_uuids, $8) WHERE uuid = $1`,
+		`UPDATE msgs_msg SET status = $2, visibility = $3, folder = $4, flow_id = $5, ticket_uuid = $6, attachments = $7, log_uuids = array_cat(log_uuids, $8) WHERE uuid = $1 AND visibility NOT IN ('D', 'X')`,
 		msgUUID, status, visibility, folder, flowID, null.String(ticketUUID), pq.Array(attachments), pq.Array(logUUIDs),
 	)
 	if err != nil {
@@ -781,18 +783,21 @@ func PrepareMessagesForRetry(ctx context.Context, db *sqlx.DB, msgs []*Msg) ([]*
 	return retries, nil
 }
 
+// the folders here are hardcoded because an outgoing message's folder follows from its status alone - the visibility
+// check is what makes that true, by only touching rows which are actually visible
 const sqlUpdateMsgForResending = `
 UPDATE msgs_msg m
    SET channel_id = r.channel_id, status = 'Q', folder = 'O', error_count = 0, failed_reason = NULL, sent_on = NULL, modified_on = NOW()
   FROM (VALUES(:id::bigint, :channel_id::int)) AS r(id, channel_id)
- WHERE m.id = r.id`
+ WHERE m.id = r.id AND m.visibility = 'V'`
 
 const sqlUpdateMsgResendFailed = `
 UPDATE msgs_msg m
    SET channel_id = NULL, status = 'F', folder = 'X', error_count = 0, failed_reason = 'D', sent_on = NULL, modified_on = NOW()
- WHERE id = ANY($1)`
+ WHERE id = ANY($1) AND visibility = 'V'`
 
-// PrepareMessagesForResend prepares messages for resending by reselecting a channel and marking them as QUEUED
+// PrepareMessagesForResend prepares messages for resending by reselecting a channel and marking them as QUEUED,
+// ignoring any which are no longer visible
 func PrepareMessagesForResend(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, msgs []*Msg) ([]*MsgOut, error) {
 	channels := oa.SessionAssets().Channels()
 
@@ -813,6 +818,11 @@ func PrepareMessagesForResend(ctx context.Context, rt *runtime.Runtime, oa *OrgA
 	resent := make([]*MsgOut, 0, len(msgs))
 
 	for _, msg := range msgs {
+		// ignore messages which aren't visible, i.e. have been deleted since they were loaded
+		if msg.m.Visibility != VisibilityVisible {
+			continue
+		}
+
 		urnID := msg.ContactURNID()
 		var ch *Channel
 		var cu *ContactURN
@@ -840,6 +850,7 @@ func PrepareMessagesForResend(ctx context.Context, rt *runtime.Runtime, oa *OrgA
 		if ch != nil {
 			msg.m.ChannelID = ch.ID()
 			msg.m.Status = MsgStatusQueued
+			msg.m.Folder = MsgFolderOutbox
 			msg.m.SentOn = nil
 			msg.m.ErrorCount = 0
 			msg.m.FailedReason = ""
@@ -855,6 +866,7 @@ func PrepareMessagesForResend(ctx context.Context, rt *runtime.Runtime, oa *OrgA
 			// if we don't have channel or a URN, fail again
 			msg.m.ChannelID = NilChannelID
 			msg.m.Status = MsgStatusFailed
+			msg.m.Folder = MsgFolderFailed
 			msg.m.SentOn = nil
 			msg.m.ErrorCount = 0
 			msg.m.FailedReason = MsgFailedNoDestination
@@ -877,10 +889,12 @@ func PrepareMessagesForResend(ctx context.Context, rt *runtime.Runtime, oa *OrgA
 	return resent, nil
 }
 
+// like sqlUpdateMsgForResending the failed folder is hardcoded because it follows from the status alone for a
+// visible outgoing message, which is what the visibility check restricts this to
 const sqlFailChannelMessages = `
 WITH rows AS (
 	SELECT id FROM msgs_msg
-	WHERE org_id = $1 AND direction = 'O' AND channel_id = $2 AND status IN ('P', 'Q', 'E') 
+	WHERE org_id = $1 AND direction = 'O' AND channel_id = $2 AND status IN ('I', 'Q', 'E') AND visibility = 'V'
 	LIMIT 1000
 )
 UPDATE msgs_msg SET status = 'F', folder = 'X', failed_reason = $3, modified_on = NOW() WHERE id IN (SELECT id FROM rows)`
@@ -900,19 +914,19 @@ func FailChannelMessages(ctx context.Context, db *sql.DB, orgID OrgID, channelID
 	return nil
 }
 
-// the WHERE on the update repeats the status check from the CTE so that a message which was sent, failed or
-// retried between the two can't be clobbered. The join to contacts_contact is only for the contact UUID needed by
-// the event tags - msgs_msg.contact_id is a non-null protected FK so it never excludes a row, which is what lets
-// callers loop until this returns nothing.
+// the WHERE on the update repeats the status and visibility checks from the CTE so that a message which was sent,
+// failed or retried between the two can't be clobbered. The join to contacts_contact is only for the contact UUID
+// needed by the event tags - msgs_msg.contact_id is a non-null protected FK so it never excludes a row, which is
+// what lets callers loop until this returns nothing.
 const sqlFailOldAndroidMessages = `
 WITH rows AS (
 	SELECT id FROM msgs_msg
-	WHERE direction = 'O' AND is_android = TRUE AND status IN ('I', 'Q', 'E') AND created_on <= $1
+	WHERE direction = 'O' AND is_android = TRUE AND status IN ('I', 'Q', 'E') AND visibility = 'V' AND created_on <= $1
 	LIMIT $2
 )
    UPDATE msgs_msg SET status = 'F', folder = $3, failed_reason = $4, modified_on = NOW()
      FROM rows, contacts_contact c
-    WHERE msgs_msg.id = rows.id AND msgs_msg.status IN ('I', 'Q', 'E') AND c.id = msgs_msg.contact_id
+    WHERE msgs_msg.id = rows.id AND msgs_msg.status IN ('I', 'Q', 'E') AND msgs_msg.visibility = 'V' AND c.id = msgs_msg.contact_id
 RETURNING msgs_msg.org_id AS org_id, msgs_msg.uuid AS msg_uuid, c.uuid AS contact_uuid`
 
 // FailOldAndroidMessages fails up to limit outgoing Android messages created on or before the given time which are
@@ -922,7 +936,7 @@ RETURNING msgs_msg.org_id AS org_id, msgs_msg.uuid AS msg_uuid, c.uuid AS contac
 // It returns an event tag recording the change for each message failed (to be queued to the history table), so
 // callers should keep calling until it returns nothing.
 func FailOldAndroidMessages(ctx context.Context, db DBorTx, olderThan time.Time, limit int) ([]*EventTag, error) {
-	// outgoing messages are always visible, so the failed folder follows from the status alone
+	// the query only touches visible messages, so the failed folder follows from the status alone
 	folder := DeriveMsgFolder(DirectionOut, MsgStatusFailed, VisibilityVisible, false)
 
 	rows := []*struct {
