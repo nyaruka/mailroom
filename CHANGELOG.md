@@ -1,3 +1,8 @@
+v26.3.56 (2026-09-02)
+-------------------------
+ * Fail messages for a removed channel by folder so the query is served by the folder index
+ * Update to gocommon v1.94.4
+
 v26.3.55 (2026-09-01)
 -------------------------
  * Don't let message status updates clobber messages which have been deleted
