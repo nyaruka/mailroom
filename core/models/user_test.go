@@ -94,7 +94,7 @@ func TestLoadUsers(t *testing.T) {
 	assert.Equal(t, models.UserRoleAdministrator, globalAdmin.Role())
 	assert.Nil(t, globalAdmin.Team())
 
-	// but an explicit membership takes precedence
+	// and their global admin status overrides any explicit membership
 	rt.DB.MustExec(
 		`INSERT INTO orgs_orgmembership(org_id, user_id, role_code, can_assign, can_reply_non_own) VALUES($1, $2, 'T', TRUE, TRUE)`,
 		testdb.Org1.ID, globalAdminID,
@@ -109,5 +109,6 @@ func TestLoadUsers(t *testing.T) {
 
 	globalAdmin = oa.UserByID(globalAdminID)
 	require.NotNil(t, globalAdmin)
-	assert.Equal(t, models.UserRoleAgent, globalAdmin.Role())
+	assert.Equal(t, models.UserRoleAdministrator, globalAdmin.Role())
+	assert.Nil(t, globalAdmin.Team())
 }
