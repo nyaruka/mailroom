@@ -89,7 +89,7 @@ const (
 
 // MsgFolder is the denormalized folder that a message belongs to, stored on the message itself so that fetching a
 // folder's messages is a single equality. Every message belongs to exactly one folder - the last two codes exist so
-// that a null folder column means only "not yet written".
+// that messages outside the user facing folders still have one.
 type MsgFolder string
 
 const (
