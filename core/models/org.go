@@ -143,7 +143,7 @@ type Org struct {
 		Features        []string       `json:"features"`
 		FlowSMTP        null.String    `json:"flow_smtp"`
 		PrometheusToken null.String    `json:"prometheus_token"`
-		Config          null.Map[any]  `json:"config"`
+		Config          map[string]any `json:"config"`
 		Limits          map[string]int `json:"limits"`
 	}
 	env envs.Environment
