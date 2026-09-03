@@ -32,7 +32,8 @@ func TestLoadOrg(t *testing.T) {
 	rt.DB.MustExec(`UPDATE orgs_org SET flow_languages = '{"fra", "eng"}' WHERE id = $1`, testdb.Org1.ID)
 	rt.DB.MustExec(`UPDATE orgs_org SET flow_smtp = 'smtp://foo:bar' WHERE id = $1`, testdb.Org1.ID)
 	rt.DB.MustExec(`UPDATE orgs_org SET features = '{"unrestricted_webhooks"}' WHERE id = $1`, testdb.Org1.ID)
-	rt.DB.MustExec(`UPDATE orgs_org SET is_suspended = TRUE, suspended_on = NOW() WHERE id = $1`, testdb.Org2.ID)
+	rt.DB.MustExec(`UPDATE orgs_org SET limits = '{"contacts": 1000}' WHERE id = $1`, testdb.Org1.ID)
+	rt.DB.MustExec(`UPDATE orgs_org SET is_suspended = TRUE, suspended_on = NOW(), limits = '{"groups": 250}' WHERE id = $1`, testdb.Org2.ID)
 	rt.DB.MustExec(`UPDATE orgs_org SET flow_languages = '{}' WHERE id = $1`, testdb.Org2.ID)
 	rt.DB.MustExec(`UPDATE orgs_org SET date_format = 'M' WHERE id = $1`, testdb.Org2.ID)
 
@@ -44,6 +45,7 @@ func TestLoadOrg(t *testing.T) {
 	assert.True(t, org.HasFeature(models.FeatureUnrestrictedWebhooks))
 	assert.False(t, org.HasFeature("teams"))
 	assert.Equal(t, "smtp://foo:bar", org.FlowSMTP())
+	assert.Equal(t, 1000, org.ContactLimit())
 	assert.Equal(t, envs.DateFormatDayMonthYear, org.Environment().DateFormat())
 	assert.Equal(t, envs.TimeFormatHourMinute, org.Environment().TimeFormat())
 	assert.Equal(t, envs.RedactionPolicyNone, org.Environment().RedactionPolicy())
@@ -59,6 +61,7 @@ func TestLoadOrg(t *testing.T) {
 	assert.True(t, org.Suspended())
 	assert.False(t, org.HasFeature(models.FeatureUnrestrictedWebhooks))
 	assert.Equal(t, "", org.FlowSMTP())
+	assert.Equal(t, models.NoLimit, org.ContactLimit()) // limits set but no contacts key
 	assert.Equal(t, envs.DateFormatMonthDayYear, org.Environment().DateFormat())
 	assert.Equal(t, []i18n.Language{}, org.Environment().AllowedLanguages())
 	assert.Equal(t, i18n.NilLanguage, org.Environment().DefaultLanguage())

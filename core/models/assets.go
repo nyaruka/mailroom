@@ -100,6 +100,10 @@ type OrgAssets struct {
 	users       []assets.User
 	usersByID   map[UserID]*User
 	usersByUUID map[assets.UserUUID]*User
+
+	contactCount       int
+	contactCountLoaded bool
+	contactCountLock   sync.Mutex
 }
 
 var ErrNotFound = errors.New("not found")
@@ -418,6 +422,37 @@ func (a *OrgAssets) Env() envs.Environment { return a.org.env }
 func (a *OrgAssets) Org() *Org { return a.org }
 
 func (a *OrgAssets) SessionAssets() flows.SessionAssets { return a.sessionAssets }
+
+// ContactCount returns the total number of contacts in this org, regardless of status. It's read from the squashed
+// group counts maintained by the database rather than counted live, and is memoized on this instance - so it can be
+// stale by the lifetime of these assets (normally 5 seconds) plus however far behind the read replica is. That's
+// acceptable for enforcing a ceiling where being approximate at the boundary doesn't matter.
+func (a *OrgAssets) ContactCount(ctx context.Context) (int, error) {
+	a.contactCountLock.Lock()
+	defer a.contactCountLock.Unlock()
+
+	if !a.contactCountLoaded {
+		count, err := getOrgContactCount(ctx, a.rt.ReadonlyDB, a.orgID)
+		if err != nil {
+			return 0, err
+		}
+		a.contactCount = count
+		a.contactCountLoaded = true
+	}
+
+	return a.contactCount, nil
+}
+
+// records that contacts have been created in this org so that our memoized count doesn't let a single bulk operation
+// run away past the org's limit before the count is next reloaded
+func (a *OrgAssets) contactsCreated(num int) {
+	a.contactCountLock.Lock()
+	defer a.contactCountLock.Unlock()
+
+	if a.contactCountLoaded {
+		a.contactCount += num
+	}
+}
 
 func (a *OrgAssets) Campaigns() ([]assets.Campaign, error) {
 	return a.campaigns, nil

@@ -3,6 +3,7 @@ package models_test
 import (
 	"testing"
 
+	"github.com/nyaruka/gocommon/i18n"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/assets/static"
 	"github.com/nyaruka/mailroom/v26/core/models"
@@ -101,4 +102,42 @@ func TestCloneForSimulation(t *testing.T) {
 	// original assets doesn't have the test channels
 	testChannel1 = oa.SessionAssets().Channels().Get("d7be3965-4c76-4abd-af78-ebc0b84ab621")
 	assert.Nil(t, testChannel1)
+}
+
+func TestContactCount(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	defer models.FlushCache()
+
+	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
+	require.NoError(t, err)
+
+	count, err := oa.ContactCount(ctx)
+	assert.NoError(t, err)
+	assert.Equal(t, 124, count)
+
+	// counts include contacts of every status
+	testdb.InsertContact(t, rt, testdb.Org1, "e6e6c2e7-df6b-4a41-b5a1-08b3ca1e1e2b", "Zed", i18n.NilLanguage, models.ContactStatusBlocked)
+
+	// but our assets have memoized the previous count
+	count, err = oa.ContactCount(ctx)
+	assert.NoError(t, err)
+	assert.Equal(t, 124, count)
+
+	models.FlushCache()
+
+	oa, err = models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
+	require.NoError(t, err)
+
+	count, err = oa.ContactCount(ctx)
+	assert.NoError(t, err)
+	assert.Equal(t, 125, count)
+
+	// counts are per org
+	oa2, err := models.GetOrgAssets(ctx, rt, testdb.Org2.ID)
+	require.NoError(t, err)
+
+	count, err = oa2.ContactCount(ctx)
+	assert.NoError(t, err)
+	assert.Equal(t, 121, count)
 }

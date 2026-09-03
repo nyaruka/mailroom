@@ -694,3 +694,106 @@ func TestLoadContactURNs(t *testing.T) {
 	assert.NoError(t, err)
 	assert.ElementsMatch(t, []*models.ContactURN{annURNs[0], bobURNs[0]}, urns)
 }
+
+func TestContactLimit(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	defer models.FlushCache()
+
+	// org 1 starts with 124 contacts so give it room for 2 more
+	rt.DB.MustExec(`UPDATE orgs_org SET limits = '{"contacts": 126}' WHERE id = $1`, testdb.Org1.ID)
+
+	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
+	require.NoError(t, err)
+
+	// fetching an existing contact is never affected by the limit
+	_, _, created, err := models.GetOrCreateContact(ctx, rt.DB, oa, testdb.Admin.ID, []urns.URN{testdb.Ann.URN}, models.NilChannelID)
+	assert.NoError(t, err)
+	assert.False(t, created)
+
+	_, _, err = models.CreateContact(ctx, rt.DB, oa, testdb.Admin.ID, "Zed", i18n.NilLanguage, models.ContactStatusActive, []urns.URN{"telegram:100001"})
+	assert.NoError(t, err)
+
+	_, _, created, err = models.GetOrCreateContact(ctx, rt.DB, oa, testdb.Admin.ID, []urns.URN{"telegram:100002"}, models.NilChannelID)
+	assert.NoError(t, err)
+	assert.True(t, created)
+
+	// we're now at the limit so creating another fails
+	_, _, err = models.CreateContact(ctx, rt.DB, oa, testdb.Admin.ID, "Yan", i18n.NilLanguage, models.ContactStatusActive, []urns.URN{"telegram:100003"})
+	assert.EqualError(t, err, "workspace has reached its limit of 126 contacts")
+
+	var lerr *models.LimitReachedError
+	if assert.ErrorAs(t, err, &lerr) {
+		assert.Equal(t, "contacts", lerr.Limit)
+		assert.Equal(t, 126, lerr.Max)
+	}
+
+	_, _, _, err = models.GetOrCreateContact(ctx, rt.DB, oa, testdb.Admin.ID, []urns.URN{"telegram:100004"}, models.NilChannelID)
+	assert.ErrorAs(t, err, &lerr)
+
+	// but fetching an existing contact still works
+	_, _, created, err = models.GetOrCreateContact(ctx, rt.DB, oa, testdb.Admin.ID, []urns.URN{"telegram:100001"}, models.NilChannelID)
+	assert.NoError(t, err)
+	assert.False(t, created)
+
+	// and so does a bulk fetch which doesn't need to create anything
+	fetched, cr, err := models.GetOrCreateContactsFromURNs(ctx, rt.DB, oa, testdb.Admin.ID, []urns.URN{testdb.Ann.URN, "telegram:100001"})
+	assert.NoError(t, err)
+	assert.Len(t, fetched, 2)
+	assert.Len(t, cr, 0)
+
+	// a bulk call which would need to create is rejected up front and creates nothing
+	_, _, err = models.GetOrCreateContactsFromURNs(ctx, rt.DB, oa, testdb.Admin.ID, []urns.URN{testdb.Ann.URN, "telegram:100005"})
+	assert.ErrorAs(t, err, &lerr)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contacturn WHERE identity = 'telegram:100005'`).Returns(0)
+
+	// raise the limit but not enough for a bulk call that needs 2 new contacts
+	rt.DB.MustExec(`UPDATE orgs_org SET limits = '{"contacts": 127}' WHERE id = $1`, testdb.Org1.ID)
+	models.FlushCache()
+
+	oa, err = models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
+	require.NoError(t, err)
+
+	_, _, err = models.GetOrCreateContactsFromURNs(ctx, rt.DB, oa, testdb.Admin.ID, []urns.URN{"telegram:100005", "telegram:100006"})
+	assert.ErrorAs(t, err, &lerr)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contacturn WHERE identity IN ('telegram:100005', 'telegram:100006')`).Returns(0)
+
+	// with room for one, that one is created
+	_, cr, err = models.GetOrCreateContactsFromURNs(ctx, rt.DB, oa, testdb.Admin.ID, []urns.URN{"telegram:100005"})
+	assert.NoError(t, err)
+	assert.Len(t, cr, 1)
+
+	// an org with no explicit limit falls back to the configured default
+	rt.DB.MustExec(`UPDATE orgs_org SET limits = '{}' WHERE id = $1`, testdb.Org1.ID)
+	models.FlushCache()
+
+	oa, err = models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
+	require.NoError(t, err)
+	assert.Equal(t, models.NoLimit, oa.Org().ContactLimit())
+
+	rt.Config.DefaultContactLimit = 127
+	_, _, err = models.CreateContact(ctx, rt.DB, oa, testdb.Admin.ID, "Yan", i18n.NilLanguage, models.ContactStatusActive, []urns.URN{"telegram:100007"})
+	assert.ErrorAs(t, err, &lerr)
+	assert.Equal(t, 127, lerr.Max)
+
+	// which an explicit limit on the workspace overrides
+	rt.DB.MustExec(`UPDATE orgs_org SET limits = '{"contacts": 200}' WHERE id = $1`, testdb.Org1.ID)
+	models.FlushCache()
+
+	oa, err = models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
+	require.NoError(t, err)
+
+	_, _, err = models.CreateContact(ctx, rt.DB, oa, testdb.Admin.ID, "Yan", i18n.NilLanguage, models.ContactStatusActive, []urns.URN{"telegram:100007"})
+	assert.NoError(t, err)
+
+	// a default of zero means no limit
+	rt.DB.MustExec(`UPDATE orgs_org SET limits = '{}' WHERE id = $1`, testdb.Org1.ID)
+	rt.Config.DefaultContactLimit = 0
+	models.FlushCache()
+
+	oa, err = models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
+	require.NoError(t, err)
+
+	_, _, err = models.CreateContact(ctx, rt.DB, oa, testdb.Admin.ID, "Xu", i18n.NilLanguage, models.ContactStatusActive, []urns.URN{"telegram:100008"})
+	assert.NoError(t, err)
+}
