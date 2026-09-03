@@ -75,8 +75,9 @@ func (u *User) Team() *Team {
 
 var _ assets.User = (*User)(nil)
 
-// name of the auth group whose members have an administrator role in every org, overriding any explicit membership
-const globalAdminsGroup = "Global Administrators"
+// users directly in the Administrators auth group are global administrators, i.e. have the administrator role in every
+// org, overriding any explicit membership
+const globalAdminsGroup = "Administrators"
 
 const sqlSelectUsersByOrg = `
 SELECT ROW_TO_JSON(r) FROM (

@@ -66,9 +66,9 @@ func TestLoadUsers(t *testing.T) {
 	require.Len(t, users, 1)
 	require.Equal(t, testdb.Org2Admin.UUID, users[0].(*models.User).UUID())
 
-	// create a global admin user who isn't a member of any org
+	// create a global admin user (directly in the Administrators group) who isn't a member of any org
 	var globalAdminID models.UserID
-	rt.DB.MustExec(`INSERT INTO auth_group(name) VALUES('Global Administrators')`)
+	rt.DB.MustExec(`INSERT INTO auth_group(name) VALUES('Administrators') ON CONFLICT (name) DO NOTHING`)
 	err = rt.DB.Get(&globalAdminID, `INSERT INTO users_user(
 		password, is_superuser, uuid, first_name, last_name, email, language, date_joined, is_system, is_staff, is_active, settings
 	) VALUES(
@@ -76,7 +76,7 @@ func TestLoadUsers(t *testing.T) {
 	) RETURNING id`)
 	require.NoError(t, err)
 	rt.DB.MustExec(
-		`INSERT INTO users_user_groups(user_id, group_id) SELECT $1, id FROM auth_group WHERE name = 'Global Administrators'`,
+		`INSERT INTO users_user_groups(user_id, group_id) SELECT $1, id FROM auth_group WHERE name = 'Administrators'`,
 		globalAdminID,
 	)
 
