@@ -44,6 +44,8 @@ type Config struct {
 	WorkersThrottled int     `help:"the number of workers for the throttled task queue (set to 0 to disable processing of throttled tasks on this node)"`
 	WorkerOwnerLimit float64 `help:"the maximum number of workers, across nodes, available to a single owner, as a fraction of the per node worker counts"`
 
+	DefaultContactLimit int `help:"the maximum number of contacts a workspace can have, when not set on the workspace itself, zero means no limit"`
+
 	WebhooksTimeout              int      `help:"the timeout in milliseconds for webhook calls from engine"`
 	WebhooksMaxRetries           int      `help:"the number of times to retry a failed webhook call"`
 	WebhooksMaxBodyBytes         int      `help:"the maximum size of bytes to a webhook call response body"`
@@ -122,6 +124,8 @@ func NewDefaultConfig() *Config {
 		WorkersBatch:     8,
 		WorkersThrottled: 8,
 		WorkerOwnerLimit: 0.5,
+
+		DefaultContactLimit: 50_000_000,
 
 		WebhooksTimeout:              15000,
 		WebhooksMaxBodyBytes:         256 * 1024, // 256 KiB

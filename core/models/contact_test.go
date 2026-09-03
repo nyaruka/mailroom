@@ -763,7 +763,7 @@ func TestContactLimit(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, cr, 1)
 
-	// an org with no configured contacts limit is unlimited
+	// an org with no explicit limit falls back to the configured default
 	rt.DB.MustExec(`UPDATE orgs_org SET limits = '{}' WHERE id = $1`, testdb.Org1.ID)
 	models.FlushCache()
 
@@ -771,6 +771,29 @@ func TestContactLimit(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, models.NoLimit, oa.Org().Limit(models.LimitContacts))
 
+	rt.Config.DefaultContactLimit = 127
 	_, _, err = models.CreateContact(ctx, rt.DB, oa, testdb.Admin.ID, "Yan", i18n.NilLanguage, models.ContactStatusActive, []urns.URN{"telegram:100007"})
+	assert.ErrorAs(t, err, &lerr)
+	assert.Equal(t, 127, lerr.Max)
+
+	// which an explicit limit on the workspace overrides
+	rt.DB.MustExec(`UPDATE orgs_org SET limits = '{"contacts": 200}' WHERE id = $1`, testdb.Org1.ID)
+	models.FlushCache()
+
+	oa, err = models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
+	require.NoError(t, err)
+
+	_, _, err = models.CreateContact(ctx, rt.DB, oa, testdb.Admin.ID, "Yan", i18n.NilLanguage, models.ContactStatusActive, []urns.URN{"telegram:100007"})
+	assert.NoError(t, err)
+
+	// a default of zero means no limit
+	rt.DB.MustExec(`UPDATE orgs_org SET limits = '{}' WHERE id = $1`, testdb.Org1.ID)
+	rt.Config.DefaultContactLimit = 0
+	models.FlushCache()
+
+	oa, err = models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
+	require.NoError(t, err)
+
+	_, _, err = models.CreateContact(ctx, rt.DB, oa, testdb.Admin.ID, "Xu", i18n.NilLanguage, models.ContactStatusActive, []urns.URN{"telegram:100008"})
 	assert.NoError(t, err)
 }

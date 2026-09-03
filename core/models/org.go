@@ -180,9 +180,9 @@ func (o *Org) Suspended() bool { return o.o.Suspended }
 // HasFeature returns whether the given feature is enabled for this org
 func (o *Org) HasFeature(f string) bool { return slices.Contains(o.o.Features, f) }
 
-// Limit returns the value of the given limit for this org, or -1 if it isn't set. Defaults for limits live in the
-// database layer's settings which we deliberately don't try to read here - so an unset limit means unlimited as far
-// as mailroom is concerned.
+// Limit returns the value of the given limit for this org, or NoLimit if it isn't set. Most workspaces don't have
+// explicit limits and rely on defaults, but those live in the database layer's settings which we deliberately don't
+// try to read here - so it's up to the caller to fall back to the equivalent mailroom config setting.
 func (o *Org) Limit(l string) int {
 	if v, ok := o.o.Limits[l]; ok {
 		return v
