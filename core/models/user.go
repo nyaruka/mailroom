@@ -75,8 +75,8 @@ func (u *User) Team() *Team {
 
 var _ assets.User = (*User)(nil)
 
-// users directly in the Administrators auth group are global administrators, i.e. have the administrator role in every
-// org, overriding any explicit membership
+// when global administrators are enabled for this deployment, users directly in the Administrators auth group have
+// the administrator role in every org, overriding any explicit membership
 const globalAdminsGroup = "Administrators"
 
 const sqlSelectUsersByOrg = `
@@ -86,19 +86,19 @@ SELECT ROW_TO_JSON(r) FROM (
        INNER JOIN users_user u ON u.id = m.user_id
 LEFT JOIN LATERAL (SELECT id, uuid, name FROM tickets_team WHERE tickets_team.id = m.team_id) AS team_struct ON True
             WHERE m.org_id = $1 AND u.is_active = TRUE
-              AND NOT EXISTS (SELECT 1 FROM users_user_groups ug INNER JOIN auth_group g ON g.id = ug.group_id WHERE ug.user_id = u.id AND g.name = $2)
+              AND NOT ($2 AND EXISTS (SELECT 1 FROM users_user_groups ug INNER JOIN auth_group g ON g.id = ug.group_id WHERE ug.user_id = u.id AND g.name = $3))
         UNION ALL
            SELECT u.id, u.uuid, u.email, u.first_name, u.last_name, 'A' AS role_code, NULL::json AS team
              FROM users_user u
        INNER JOIN users_user_groups ug ON ug.user_id = u.id
        INNER JOIN auth_group g ON g.id = ug.group_id
-            WHERE g.name = $2 AND u.is_active = TRUE
+            WHERE $2 AND g.name = $3 AND u.is_active = TRUE
          ORDER BY email ASC
 ) r;`
 
-// loadUsers loads all the users for the passed in org
-func loadUsers(ctx context.Context, db *sql.DB, orgID OrgID) ([]assets.User, error) {
-	rows, err := db.QueryContext(ctx, sqlSelectUsersByOrg, orgID, globalAdminsGroup)
+// loadUsers loads all the users for the passed in org, including global administrators if those are enabled
+func loadUsers(ctx context.Context, db *sql.DB, orgID OrgID, globalAdmins bool) ([]assets.User, error) {
+	rows, err := db.QueryContext(ctx, sqlSelectUsersByOrg, orgID, globalAdmins, globalAdminsGroup)
 	if err != nil && err != sql.ErrNoRows {
 		return nil, fmt.Errorf("error querying users for org: %d: %w", orgID, err)
 	}

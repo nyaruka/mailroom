@@ -66,7 +66,7 @@ func TestLoadUsers(t *testing.T) {
 	require.Len(t, users, 1)
 	require.Equal(t, testdb.Org2Admin.UUID, users[0].(*models.User).UUID())
 
-	// create a global admin user (directly in the Administrators group) who isn't a member of any org
+	// create a user directly in the Administrators group who isn't a member of any org
 	var globalAdminID models.UserID
 	rt.DB.MustExec(`INSERT INTO auth_group(name) VALUES('Administrators') ON CONFLICT (name) DO NOTHING`)
 	err = rt.DB.Get(&globalAdminID, `INSERT INTO users_user(
@@ -80,7 +80,19 @@ func TestLoadUsers(t *testing.T) {
 		globalAdminID,
 	)
 
-	// they should appear as an administrator in org 2 despite having no membership
+	// which has no effect unless global administrators are enabled for this deployment
+	oa, err = models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org2.ID, models.RefreshUsers)
+	require.NoError(t, err)
+
+	users, err = oa.Users()
+	require.NoError(t, err)
+	require.Len(t, users, 1)
+	assert.Nil(t, oa.UserByID(globalAdminID))
+
+	rt.Config.GlobalAdministrators = true
+	defer func() { rt.Config.GlobalAdministrators = false }()
+
+	// in which case they should appear as an administrator in org 2 despite having no membership
 	oa, err = models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org2.ID, models.RefreshUsers)
 	require.NoError(t, err)
 

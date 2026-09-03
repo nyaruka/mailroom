@@ -357,7 +357,9 @@ func NewOrgAssets(ctx context.Context, rt *runtime.Runtime, orgID OrgID, prev *O
 	}
 
 	if prev == nil || refresh&RefreshUsers > 0 {
-		oa.users, err = loadAssetType(ctx, db, orgID, "users", loadUsers)
+		oa.users, err = loadAssetType(ctx, db, orgID, "users", func(ctx context.Context, db *sql.DB, orgID OrgID) ([]assets.User, error) {
+			return loadUsers(ctx, db, orgID, rt.Config.GlobalAdministrators)
+		})
 		if err != nil {
 			return nil, fmt.Errorf("error loading user assets for org %d: %w", orgID, err)
 		}
