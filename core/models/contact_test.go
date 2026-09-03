@@ -724,7 +724,7 @@ func TestContactLimit(t *testing.T) {
 
 	var lerr *models.LimitReachedError
 	if assert.ErrorAs(t, err, &lerr) {
-		assert.Equal(t, models.LimitContacts, lerr.Limit)
+		assert.Equal(t, "contacts", lerr.Limit)
 		assert.Equal(t, 126, lerr.Max)
 	}
 
@@ -769,7 +769,7 @@ func TestContactLimit(t *testing.T) {
 
 	oa, err = models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 	require.NoError(t, err)
-	assert.Equal(t, models.NoLimit, oa.Org().Limit(models.LimitContacts))
+	assert.Equal(t, models.NoLimit, oa.Org().ContactLimit())
 
 	rt.Config.DefaultContactLimit = 127
 	_, _, err = models.CreateContact(ctx, rt.DB, oa, testdb.Admin.ID, "Yan", i18n.NilLanguage, models.ContactStatusActive, []urns.URN{"telegram:100007"})

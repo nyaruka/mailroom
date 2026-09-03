@@ -826,7 +826,7 @@ func getOrgContactCount(ctx context.Context, db *sql.DB, orgID OrgID) (int, erro
 // checks that the given org has room to create the given number of new contacts
 func checkContactLimit(ctx context.Context, oa *OrgAssets, num int) error {
 	// workspaces don't usually have an explicit limit, in which case we fall back to the configured default
-	limit := oa.Org().Limit(LimitContacts)
+	limit := oa.Org().ContactLimit()
 	if limit == NoLimit {
 		limit = oa.rt.Config.DefaultContactLimit
 	}
@@ -841,7 +841,7 @@ func checkContactLimit(ctx context.Context, oa *OrgAssets, num int) error {
 	}
 
 	if count+num > limit {
-		return &LimitReachedError{Limit: LimitContacts, Max: limit}
+		return &LimitReachedError{Limit: "contacts", Max: limit}
 	}
 
 	return nil

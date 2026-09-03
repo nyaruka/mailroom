@@ -35,7 +35,7 @@ func TestErrorToResponse(t *testing.T) {
 	assert.JSONEq(t, `{"error": "mismatched input '$' expecting {'(', STRING, PROPERTY, TEXT}", "code": "query:syntax"}`, string(er2JSON))
 
 	// create a limit reached error
-	resp, status = web.ErrorToResponse(&models.LimitReachedError{Limit: models.LimitContacts, Max: 50000000})
+	resp, status = web.ErrorToResponse(&models.LimitReachedError{Limit: "contacts", Max: 50000000})
 	assert.Equal(t, "workspace has reached its limit of 50000000 contacts", resp.Error)
 	assert.Equal(t, "limit:contacts", resp.Code)
 	assert.Equal(t, 422, status)

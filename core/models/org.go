@@ -104,13 +104,6 @@ const (
 	configDTOneSecret = "dtone_secret"
 )
 
-// limits which can be configured for an org in the orgs_org.limits column - these are a subset of the limit types
-// defined in the database layer, being only those which mailroom itself needs to enforce
-const (
-	// LimitContacts is the maximum number of contacts an org can have
-	LimitContacts = "contacts"
-)
-
 // NoLimit is returned for a limit which isn't configured for an org
 const NoLimit = -1
 
@@ -180,11 +173,12 @@ func (o *Org) Suspended() bool { return o.o.Suspended }
 // HasFeature returns whether the given feature is enabled for this org
 func (o *Org) HasFeature(f string) bool { return slices.Contains(o.o.Features, f) }
 
-// Limit returns the value of the given limit for this org, or NoLimit if it isn't set. Most workspaces don't have
-// explicit limits and rely on defaults, but those live in the database layer's settings which we deliberately don't
-// try to read here - so it's up to the caller to fall back to the equivalent mailroom config setting.
-func (o *Org) Limit(l string) int {
-	if v, ok := o.o.Limits[l]; ok {
+// ContactLimit returns the maximum number of contacts this org can have, or NoLimit if it isn't set. Most workspaces
+// don't have explicit limits and rely on defaults, but those live in the database layer's settings which we
+// deliberately don't try to read here - so it's up to the caller to fall back to the equivalent mailroom config
+// setting. The limits column can hold other limit types but contacts is the only one mailroom enforces.
+func (o *Org) ContactLimit() int {
+	if v, ok := o.o.Limits["contacts"]; ok {
 		return v
 	}
 	return NoLimit
