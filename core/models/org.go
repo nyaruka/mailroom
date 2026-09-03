@@ -104,6 +104,27 @@ const (
 	configDTOneSecret = "dtone_secret"
 )
 
+// limits which can be configured for an org in the orgs_org.limits column - these are a subset of the limit types
+// defined in the database layer, being only those which mailroom itself needs to enforce
+const (
+	// LimitContacts is the maximum number of contacts an org can have
+	LimitContacts = "contacts"
+)
+
+// NoLimit is returned for a limit which isn't configured for an org
+const NoLimit = -1
+
+// LimitReachedError is returned when an operation can't be performed because it would take the org over one of its
+// configured limits.
+type LimitReachedError struct {
+	Limit string
+	Max   int
+}
+
+func (e *LimitReachedError) Error() string {
+	return fmt.Sprintf("workspace has reached its limit of %d %s", e.Max, e.Limit)
+}
+
 // features which can be enabled on an org - these are granted by staff and are a subset of the features
 // defined in the database layer, being only those which mailroom itself needs to know about
 const (
@@ -114,15 +135,16 @@ const (
 // Org is mailroom's type for RapidPro orgs. It also implements the envs.Environment interface for GoFlow
 type Org struct {
 	o struct {
-		UUID            OrgUUID       `json:"uuid"`
-		ID              OrgID         `json:"id"`
-		ParentID        OrgID         `json:"parent_id"`
-		Name            string        `json:"name"`
-		Suspended       bool          `json:"is_suspended"`
-		Features        []string      `json:"features"`
-		FlowSMTP        null.String   `json:"flow_smtp"`
-		PrometheusToken null.String   `json:"prometheus_token"`
-		Config          null.Map[any] `json:"config"`
+		UUID            OrgUUID        `json:"uuid"`
+		ID              OrgID          `json:"id"`
+		ParentID        OrgID          `json:"parent_id"`
+		Name            string         `json:"name"`
+		Suspended       bool           `json:"is_suspended"`
+		Features        []string       `json:"features"`
+		FlowSMTP        null.String    `json:"flow_smtp"`
+		PrometheusToken null.String    `json:"prometheus_token"`
+		Config          null.Map[any]  `json:"config"`
+		Limits          map[string]int `json:"limits"`
 	}
 	env envs.Environment
 }
@@ -157,6 +179,16 @@ func (o *Org) Suspended() bool { return o.o.Suspended }
 
 // HasFeature returns whether the given feature is enabled for this org
 func (o *Org) HasFeature(f string) bool { return slices.Contains(o.o.Features, f) }
+
+// Limit returns the value of the given limit for this org, or -1 if it isn't set. Defaults for limits live in the
+// database layer's settings which we deliberately don't try to read here - so an unset limit means unlimited as far
+// as mailroom is concerned.
+func (o *Org) Limit(l string) int {
+	if v, ok := o.o.Limits[l]; ok {
+		return v
+	}
+	return NoLimit
+}
 
 // FlowSMTP provides custom SMTP settings for flow sessions
 func (o *Org) FlowSMTP() string { return string(o.o.FlowSMTP) }
@@ -294,6 +326,7 @@ SELECT ROW_TO_JSON(o) FROM (SELECT
 	flow_smtp,
 	prometheus_token,
 	o.config AS config,
+	o.limits AS limits,
 	(SELECT CASE date_format WHEN 'D' THEN 'DD-MM-YYYY' WHEN 'M' THEN 'MM-DD-YYYY' ELSE 'YYYY-MM-DD' END) AS date_format, 
 	'tt:mm' AS time_format,
 	timezone,

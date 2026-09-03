@@ -7,6 +7,7 @@ import (
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/goflow/contactql/parse"
 	"github.com/nyaruka/goflow/envs"
+	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/web"
 	"github.com/stretchr/testify/assert"
 )
@@ -32,4 +33,14 @@ func TestErrorToResponse(t *testing.T) {
 	er2JSON, err := jsonx.Marshal(resp)
 	assert.NoError(t, err)
 	assert.JSONEq(t, `{"error": "mismatched input '$' expecting {'(', STRING, PROPERTY, TEXT}", "code": "query:syntax"}`, string(er2JSON))
+
+	// create a limit reached error
+	resp, status = web.ErrorToResponse(&models.LimitReachedError{Limit: models.LimitContacts, Max: 50000000})
+	assert.Equal(t, "workspace has reached its limit of 50000000 contacts", resp.Error)
+	assert.Equal(t, "limit:contacts", resp.Code)
+	assert.Equal(t, 422, status)
+
+	er3JSON, err := jsonx.Marshal(resp)
+	assert.NoError(t, err)
+	assert.JSONEq(t, `{"error": "workspace has reached its limit of 50000000 contacts", "code": "limit:contacts", "extra": {"limit": 50000000}}`, string(er3JSON))
 }
