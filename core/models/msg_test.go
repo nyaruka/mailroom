@@ -627,33 +627,41 @@ func TestArchiveAndRestoreMessages(t *testing.T) {
 		require.NoError(t, err)
 		return msgs
 	}
+	assertFolder := func(m *testdb.MsgIn, visibility, folder string) {
+		t.Helper()
+		assertdb.Query(t, rt.DB, `SELECT visibility, folder FROM msgs_msg WHERE id = $1`, m.ID).
+			Columns(map[string]any{"visibility": visibility, "folder": folder})
+	}
 
 	err := models.ArchiveMessages(ctx, rt.DB, load(in1.UUID, in2.UUID, in3.UUID))
 	assert.NoError(t, err)
 
-	assertdb.Query(t, rt.DB, `SELECT visibility, folder FROM msgs_msg WHERE id = $1`, in1.ID).Columns(map[string]any{"visibility": "A", "folder": "A"})
-	assertdb.Query(t, rt.DB, `SELECT visibility, folder FROM msgs_msg WHERE id = $1`, in2.ID).Columns(map[string]any{"visibility": "A", "folder": "A"})
-	assertdb.Query(t, rt.DB, `SELECT visibility, folder FROM msgs_msg WHERE id = $1`, in3.ID).Columns(map[string]any{"visibility": "A", "folder": "P"})
+	// archiving moves a message out of the inbox or the handled folder
+	assertFolder(in1, "A", "A")
+	assertFolder(in2, "A", "A")
+
+	// but a message that hasn't been handled yet isn't in either of those folders so archiving it is a noop
+	assertFolder(in3, "V", "P")
 
 	// archiving again is a noop
 	err = models.ArchiveMessages(ctx, rt.DB, load(in1.UUID))
 	assert.NoError(t, err)
 
-	assertdb.Query(t, rt.DB, `SELECT visibility, folder FROM msgs_msg WHERE id = $1`, in1.ID).Columns(map[string]any{"visibility": "A", "folder": "A"})
+	assertFolder(in1, "A", "A")
 
-	// restoring puts each message back in the folder it came from
+	// restoring puts each message back in the folder its state implies
 	err = models.RestoreMessages(ctx, rt.DB, load(in1.UUID, in2.UUID, in3.UUID))
 	assert.NoError(t, err)
 
-	assertdb.Query(t, rt.DB, `SELECT visibility, folder FROM msgs_msg WHERE id = $1`, in1.ID).Columns(map[string]any{"visibility": "V", "folder": "I"})
-	assertdb.Query(t, rt.DB, `SELECT visibility, folder FROM msgs_msg WHERE id = $1`, in2.ID).Columns(map[string]any{"visibility": "V", "folder": "W"})
-	assertdb.Query(t, rt.DB, `SELECT visibility, folder FROM msgs_msg WHERE id = $1`, in3.ID).Columns(map[string]any{"visibility": "V", "folder": "P"})
+	assertFolder(in1, "V", "I")
+	assertFolder(in2, "V", "W")
+	assertFolder(in3, "V", "P")
 
 	// restoring a message that isn't archived is a noop
 	err = models.RestoreMessages(ctx, rt.DB, load(in1.UUID))
 	assert.NoError(t, err)
 
-	assertdb.Query(t, rt.DB, `SELECT visibility, folder FROM msgs_msg WHERE id = $1`, in1.ID).Columns(map[string]any{"visibility": "V", "folder": "I"})
+	assertFolder(in1, "V", "I")
 
 	// a message deleted after being loaded but before being updated stays deleted
 	loaded := load(in2.UUID)
@@ -662,7 +670,8 @@ func TestArchiveAndRestoreMessages(t *testing.T) {
 	err = models.ArchiveMessages(ctx, rt.DB, loaded)
 	assert.NoError(t, err)
 
-	assertdb.Query(t, rt.DB, `SELECT visibility, folder, text FROM msgs_msg WHERE id = $1`, in2.ID).Columns(map[string]any{"visibility": "D", "folder": "D", "text": ""})
+	assertdb.Query(t, rt.DB, `SELECT visibility, folder, text FROM msgs_msg WHERE id = $1`, in2.ID).
+		Columns(map[string]any{"visibility": "D", "folder": "D", "text": ""})
 
 	// deleted messages can't be archived
 	rt.DB.MustExec(`UPDATE msgs_msg SET visibility = 'D', folder = 'D' WHERE id = $1`, in1.ID)
@@ -670,7 +679,7 @@ func TestArchiveAndRestoreMessages(t *testing.T) {
 	err = models.ArchiveMessages(ctx, rt.DB, load(in1.UUID))
 	assert.NoError(t, err)
 
-	assertdb.Query(t, rt.DB, `SELECT visibility, folder FROM msgs_msg WHERE id = $1`, in1.ID).Columns(map[string]any{"visibility": "D", "folder": "D"})
+	assertFolder(in1, "D", "D")
 }
 
 func TestDeleteMessages(t *testing.T) {
