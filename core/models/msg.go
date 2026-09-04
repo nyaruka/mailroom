@@ -514,6 +514,7 @@ SELECT
 	direction,
 	status,
 	visibility,
+	folder,
 	msg_count,
 	error_count,
 	next_attempt,
@@ -554,6 +555,7 @@ SELECT
 	m.direction,
 	m.status,
 	m.visibility,
+	m.folder,
 	m.msg_count,
 	m.error_count,
 	m.next_attempt,
@@ -1153,57 +1155,73 @@ func CreateMsgOut(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, c *co
 	return core.NewMsgOut(urn, channelRef, content, templating, locale, unsendableReason), nil
 }
 
-// the from_visibility check is what makes this safe against a message being deleted between being loaded and being
-// updated here - without it we'd resurrect a message whose content has already been cleared
-const sqlUpdateMsgVisibility = `
+// the from_folder check is what makes this safe against a message being moved between being loaded and being updated
+// here - in particular against one deleted in that window, which we'd otherwise resurrect into a user facing folder
+// with its content already cleared
+const sqlUpdateMsgFolder = `
 UPDATE msgs_msg
    SET visibility = m.visibility, folder = m.folder, modified_on = NOW()
-  FROM (VALUES(:id::bigint, :visibility, :folder, :from_visibility)) AS m(id, visibility, folder, from_visibility)
- WHERE msgs_msg.id = m.id AND msgs_msg.visibility = m.from_visibility`
+  FROM (VALUES(:id::bigint, :visibility, :folder, :from_folder)) AS m(id, visibility, folder, from_folder)
+ WHERE msgs_msg.id = m.id AND msgs_msg.folder = m.from_folder`
 
-type msgVisibilityUpdate struct {
-	ID             MsgID         `db:"id"`
-	Visibility     MsgVisibility `db:"visibility"`
-	Folder         MsgFolder     `db:"folder"`
-	FromVisibility MsgVisibility `db:"from_visibility"`
+type msgFolderUpdate struct {
+	ID         MsgID         `db:"id"`
+	Visibility MsgVisibility `db:"visibility"`
+	Folder     MsgFolder     `db:"folder"`
+	FromFolder MsgFolder     `db:"from_folder"`
 }
 
-// ArchiveMessages archives the given incoming messages, ignoring any that aren't currently visible
+// ArchiveMessages moves the given incoming messages into the archived folder, ignoring any that aren't in the inbox
+// or the handled folder. Archiving isn't a state a message can be in as well as being pending or deleted - it's a
+// move out of the folders a user can archive from.
 func ArchiveMessages(ctx context.Context, db DBorTx, msgs []*Msg) error {
-	return updateMessageVisibility(ctx, db, msgs, VisibilityVisible, VisibilityArchived)
-}
-
-// RestoreMessages un-archives the given incoming messages, ignoring any that aren't currently archived
-func RestoreMessages(ctx context.Context, db DBorTx, msgs []*Msg) error {
-	return updateMessageVisibility(ctx, db, msgs, VisibilityArchived, VisibilityVisible)
-}
-
-func updateMessageVisibility(ctx context.Context, db DBorTx, msgs []*Msg, from, to MsgVisibility) error {
-	updates := make([]*msgVisibilityUpdate, 0, len(msgs))
+	updates := make([]*msgFolderUpdate, 0, len(msgs))
 
 	for _, msg := range msgs {
 		m := &msg.m
 
-		// ignore messages that aren't in the visibility we're transitioning from, which includes deleted messages
-		if m.Visibility != from {
+		if m.Folder != MsgFolderInbox && m.Folder != MsgFolderHandled {
 			continue
 		}
 
-		updates = append(updates, &msgVisibilityUpdate{
-			ID:             m.ID,
-			Visibility:     to,
-			Folder:         DeriveMsgFolder(m.Direction, m.Status, to, m.FlowID != NilFlowID),
-			FromVisibility: from,
+		updates = append(updates, &msgFolderUpdate{
+			ID:         m.ID,
+			Visibility: VisibilityArchived,
+			Folder:     MsgFolderArchived,
+			FromFolder: m.Folder,
 		})
 	}
 
-	return BulkQuery(ctx, "updating message visibility", db, sqlUpdateMsgVisibility, updates)
+	return BulkQuery(ctx, "archiving messages", db, sqlUpdateMsgFolder, updates)
+}
+
+// RestoreMessages moves the given incoming messages out of the archived folder and back into the folder their state
+// implies, ignoring any that aren't archived
+func RestoreMessages(ctx context.Context, db DBorTx, msgs []*Msg) error {
+	updates := make([]*msgFolderUpdate, 0, len(msgs))
+
+	for _, msg := range msgs {
+		m := &msg.m
+
+		if m.Folder != MsgFolderArchived {
+			continue
+		}
+
+		updates = append(updates, &msgFolderUpdate{
+			ID:         m.ID,
+			Visibility: VisibilityVisible,
+			Folder:     DeriveMsgFolder(m.Direction, m.Status, VisibilityVisible, m.FlowID != NilFlowID),
+			FromFolder: MsgFolderArchived,
+		})
+	}
+
+	return BulkQuery(ctx, "restoring messages", db, sqlUpdateMsgFolder, updates)
 }
 
 const sqlUpdateMsgDeleted = `
    UPDATE msgs_msg
       SET visibility = $3, folder = 'D', text = '', attachments = '{}'
-    WHERE org_id = $1 AND uuid = ANY($2) AND direction = 'I' AND visibility IN ('V', 'A')
+    WHERE org_id = $1 AND uuid = ANY($2) AND direction = 'I' AND visibility NOT IN ('D', 'X')
 RETURNING id`
 
 func DeleteMessages(ctx context.Context, tx *sqlx.Tx, orgID OrgID, uuids []events.EventUUID, visibility MsgVisibility) error {

@@ -21,7 +21,7 @@
         }
     },
     {
-        "label": "messages restored to the folder they came from",
+        "label": "messages moved back into the folder their state implies",
         "method": "POST",
         "path": "/mi/msg/restore",
         "body": {
