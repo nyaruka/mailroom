@@ -72,6 +72,7 @@ func TestRestore(t *testing.T) {
 	testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199bad9-9791-770d-a47d-8f4a6ea3ad13", testdb.TwilioChannel, testdb.Ann, "handled by a flow", models.MsgStatusHandled, "")
 	testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199bad9-f0bc-7738-8af8-99712a6f8bff", testdb.TwilioChannel, testdb.Ann, "not yet handled", models.MsgStatusPending, "")
 	testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199bada-2b39-7cac-9714-827df9ec6b91", testdb.TwilioChannel, testdb.Ann, "never archived", models.MsgStatusHandled, "")
+	testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199bb0a-4c2e-7a51-8f3d-1c6b5e9d0a72", testdb.TwilioChannel, testdb.Ann, "archived a long time ago", models.MsgStatusHandled, "")
 
 	// second message was handled by a flow so restoring it should put it back in the handled folder
 	rt.DB.MustExec(`UPDATE msgs_msg SET flow_id = $1 WHERE uuid = '0199bad9-9791-770d-a47d-8f4a6ea3ad13'`, testdb.Favorites.ID)
@@ -79,6 +80,9 @@ func TestRestore(t *testing.T) {
 	// archive the two handled messages - the pending one can't be archived so stays where it is
 	rt.DB.MustExec(`UPDATE msgs_msg SET folder = 'A'
 	                 WHERE uuid IN ('0199bad8-f98d-75a3-b641-2718a25ac3f5', '0199bad9-9791-770d-a47d-8f4a6ea3ad13')`)
+
+	// the last message was archived back when archiving still wrote the visibility, so it carries that value too
+	rt.DB.MustExec(`UPDATE msgs_msg SET visibility = 'A', folder = 'A' WHERE uuid = '0199bb0a-4c2e-7a51-8f3d-1c6b5e9d0a72'`)
 
 	testsuite.RunWebTests(t, rt, "testdata/restore.json")
 }

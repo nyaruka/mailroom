@@ -77,31 +77,28 @@ func TestMsgReceivedTask(t *testing.T) {
 		channel             *testdb.Channel
 		contact             *testdb.Contact
 		text                string
-		expectedVisibility  models.MsgVisibility
+		expectedArchived    bool
 		expectedReplyText   string
 		expectedReplyStatus models.MsgStatus
 		expectedFlow        *testdb.Flow
 	}{
 		{ // 0: no trigger match, inbox message
-			org:                testdb.Org1,
-			channel:            testdb.TwilioChannel,
-			contact:            testdb.Ann,
-			text:               "noop",
-			expectedVisibility: models.VisibilityVisible,
+			org:     testdb.Org1,
+			channel: testdb.TwilioChannel,
+			contact: testdb.Ann,
+			text:    "noop",
 		},
 		{ // 1: no trigger match, inbox message (trigger is keyword only)
-			org:                testdb.Org1,
-			channel:            testdb.TwilioChannel,
-			contact:            testdb.Ann,
-			text:               "start other",
-			expectedVisibility: models.VisibilityVisible,
+			org:     testdb.Org1,
+			channel: testdb.TwilioChannel,
+			contact: testdb.Ann,
+			text:    "start other",
 		},
 		{ // 2: keyword trigger match, flow message
 			org:                 testdb.Org1,
 			channel:             testdb.TwilioChannel,
 			contact:             testdb.Ann,
 			text:                "start",
-			expectedVisibility:  models.VisibilityVisible,
 			expectedReplyText:   "What is your favorite color?",
 			expectedReplyStatus: models.MsgStatusQueued,
 			expectedFlow:        testdb.Favorites,
@@ -111,7 +108,6 @@ func TestMsgReceivedTask(t *testing.T) {
 			channel:             testdb.TwilioChannel,
 			contact:             testdb.Ann,
 			text:                "purple",
-			expectedVisibility:  models.VisibilityVisible,
 			expectedReplyText:   "I don't know that color. Try again.",
 			expectedReplyStatus: models.MsgStatusQueued,
 			expectedFlow:        testdb.Favorites,
@@ -121,7 +117,6 @@ func TestMsgReceivedTask(t *testing.T) {
 			channel:             testdb.TwilioChannel,
 			contact:             testdb.Ann,
 			text:                "blue",
-			expectedVisibility:  models.VisibilityVisible,
 			expectedReplyText:   "Good choice, I like Blue too! What is your favorite beer?",
 			expectedReplyStatus: models.MsgStatusQueued,
 			expectedFlow:        testdb.Favorites,
@@ -131,7 +126,6 @@ func TestMsgReceivedTask(t *testing.T) {
 			channel:             testdb.TwilioChannel,
 			contact:             testdb.Ann,
 			text:                "MUTZIG",
-			expectedVisibility:  models.VisibilityVisible,
 			expectedReplyText:   "Mmmmm... delicious Mutzig. If only they made blue Mutzig! Lastly, what is your name?",
 			expectedReplyStatus: models.MsgStatusQueued,
 			expectedFlow:        testdb.Favorites,
@@ -141,24 +135,21 @@ func TestMsgReceivedTask(t *testing.T) {
 			channel:             testdb.TwilioChannel,
 			contact:             testdb.Ann,
 			text:                "Ann",
-			expectedVisibility:  models.VisibilityVisible,
 			expectedReplyText:   "Thanks Ann, we are all done!",
 			expectedReplyStatus: models.MsgStatusQueued,
 			expectedFlow:        testdb.Favorites,
 		},
 		{ // 7:
-			org:                testdb.Org1,
-			channel:            testdb.TwilioChannel,
-			contact:            testdb.Ann,
-			text:               "noop",
-			expectedVisibility: models.VisibilityVisible,
+			org:     testdb.Org1,
+			channel: testdb.TwilioChannel,
+			contact: testdb.Ann,
+			text:    "noop",
 		},
 		{ // 8:
 			org:                 testdb.Org2,
 			channel:             testdb.Org2Channel,
 			contact:             testdb.Org2Contact,
 			text:                "other",
-			expectedVisibility:  models.VisibilityVisible,
 			expectedReplyText:   "Hey, how are you?",
 			expectedReplyStatus: models.MsgStatusQueued,
 			expectedFlow:        testdb.Org2SingleMessage,
@@ -168,7 +159,6 @@ func TestMsgReceivedTask(t *testing.T) {
 			channel:             testdb.Org2Channel,
 			contact:             testdb.Org2Contact,
 			text:                "start",
-			expectedVisibility:  models.VisibilityVisible,
 			expectedReplyText:   "What is your favorite color?",
 			expectedReplyStatus: models.MsgStatusQueued,
 			expectedFlow:        testdb.Org2Favorites,
@@ -178,7 +168,6 @@ func TestMsgReceivedTask(t *testing.T) {
 			channel:             testdb.Org2Channel,
 			contact:             testdb.Org2Contact,
 			text:                "green",
-			expectedVisibility:  models.VisibilityVisible,
 			expectedReplyText:   "Good choice, I like Green too! What is your favorite beer?",
 			expectedReplyStatus: models.MsgStatusQueued,
 			expectedFlow:        testdb.Org2Favorites,
@@ -188,7 +177,6 @@ func TestMsgReceivedTask(t *testing.T) {
 			channel:             testdb.Org2Channel,
 			contact:             testdb.Org2Contact,
 			text:                "primus",
-			expectedVisibility:  models.VisibilityVisible,
 			expectedReplyText:   "Mmmmm... delicious Primus. If only they made green Primus! Lastly, what is your name?",
 			expectedReplyStatus: models.MsgStatusQueued,
 			expectedFlow:        testdb.Org2Favorites,
@@ -198,7 +186,6 @@ func TestMsgReceivedTask(t *testing.T) {
 			channel:             testdb.Org2Channel,
 			contact:             testdb.Org2Contact,
 			text:                "cat",
-			expectedVisibility:  models.VisibilityVisible,
 			expectedReplyText:   "Thanks cat, we are all done!",
 			expectedReplyStatus: models.MsgStatusQueued,
 			expectedFlow:        testdb.Org2Favorites,
@@ -208,17 +195,15 @@ func TestMsgReceivedTask(t *testing.T) {
 			channel:             testdb.Org2Channel,
 			contact:             testdb.Org2Contact,
 			text:                "blargh",
-			expectedVisibility:  models.VisibilityVisible,
 			expectedReplyText:   "Hey, how are you?",
 			expectedReplyStatus: models.MsgStatusQueued,
 			expectedFlow:        testdb.Org2SingleMessage,
 		},
 		{ // 14:
-			org:                testdb.Org1,
-			channel:            testdb.TwilioChannel,
-			contact:            testdb.Bob,
-			text:               "ivr",
-			expectedVisibility: models.VisibilityVisible,
+			org:     testdb.Org1,
+			channel: testdb.TwilioChannel,
+			contact: testdb.Bob,
+			text:    "ivr",
 		},
 		{ // 15: stopped contact should be unstopped
 			preHook: func() {
@@ -228,7 +213,6 @@ func TestMsgReceivedTask(t *testing.T) {
 			channel:             testdb.TwilioChannel,
 			contact:             testdb.Cat,
 			text:                "start",
-			expectedVisibility:  models.VisibilityVisible,
 			expectedReplyText:   "What is your favorite color?",
 			expectedReplyStatus: models.MsgStatusQueued,
 			expectedFlow:        testdb.Favorites,
@@ -238,7 +222,6 @@ func TestMsgReceivedTask(t *testing.T) {
 			channel:             testdb.TwilioChannel,
 			contact:             testdb.Dan,
 			text:                "start",
-			expectedVisibility:  models.VisibilityVisible,
 			expectedReplyText:   "What is your favorite color?",
 			expectedReplyStatus: models.MsgStatusFailed,
 			expectedFlow:        testdb.Favorites,
@@ -248,7 +231,6 @@ func TestMsgReceivedTask(t *testing.T) {
 			channel:             testdb.Org2Channel,
 			contact:             testdb.Org2Contact,
 			text:                "start",
-			expectedVisibility:  models.VisibilityVisible,
 			expectedReplyText:   "What is your favorite color?",
 			expectedReplyStatus: models.MsgStatusQueued,
 			expectedFlow:        testdb.Org2Favorites,
@@ -261,7 +243,6 @@ func TestMsgReceivedTask(t *testing.T) {
 			channel:             testdb.Org2Channel,
 			contact:             testdb.Org2Contact,
 			text:                "red",
-			expectedVisibility:  models.VisibilityVisible,
 			expectedReplyText:   "Hey, how are you?",
 			expectedReplyStatus: models.MsgStatusQueued,
 			expectedFlow:        testdb.Org2SingleMessage,
@@ -274,7 +255,6 @@ func TestMsgReceivedTask(t *testing.T) {
 			channel:             testdb.Org2Channel,
 			contact:             testdb.Org2Contact,
 			text:                "start",
-			expectedVisibility:  models.VisibilityVisible,
 			expectedReplyText:   "What is your favorite color?",
 			expectedReplyStatus: models.MsgStatusQueued,
 			expectedFlow:        testdb.Org2Favorites,
@@ -286,18 +266,18 @@ func TestMsgReceivedTask(t *testing.T) {
 			text:    "start",
 		},
 		{ // 21: blocked contact
-			org:                testdb.Org1,
-			channel:            testdb.TwilioChannel,
-			contact:            blocked,
-			text:               "start",
-			expectedVisibility: models.VisibilityArchived,
+			org:              testdb.Org1,
+			channel:          testdb.TwilioChannel,
+			contact:          blocked,
+			text:             "start",
+			expectedArchived: true,
 		},
 		{ // 22: disabled channel
-			org:                testdb.Org1,
-			channel:            disabled,
-			contact:            testdb.Ann,
-			text:               "start",
-			expectedVisibility: models.VisibilityArchived,
+			org:              testdb.Org1,
+			channel:          disabled,
+			contact:          testdb.Ann,
+			text:             "start",
+			expectedArchived: true,
 		},
 	}
 
@@ -343,10 +323,13 @@ func TestMsgReceivedTask(t *testing.T) {
 
 		if tc.contact != deleted {
 			// check that message is marked as handled and moved into the right folder
-			expectedFolder := models.DeriveMsgFolder(models.DirectionIn, models.MsgStatusHandled, tc.expectedVisibility, tc.expectedFlow != nil)
+			expectedFolder := models.DeriveMsgFolder(models.DirectionIn, models.MsgStatusHandled, models.VisibilityVisible, tc.expectedFlow != nil)
+			if tc.expectedArchived {
+				expectedFolder = models.MsgFolderArchived
+			}
 
 			assertdb.Query(t, rt.DB, `SELECT status, visibility, folder, msg_type, flow_id FROM msgs_msg WHERE id = $1`, dbMsg.ID).
-				Columns(map[string]any{"status": "H", "visibility": string(tc.expectedVisibility), "folder": string(expectedFolder), "msg_type": "T", "flow_id": expectedFlowID}, "%d: msg state mismatch", i)
+				Columns(map[string]any{"status": "H", "visibility": "V", "folder": string(expectedFolder), "msg_type": "T", "flow_id": expectedFlowID}, "%d: msg state mismatch", i)
 
 			// check that last_seen_on was updated
 			newLastSeenOn := getLastSeenOn(t, rt, tc.contact)

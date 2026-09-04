@@ -188,7 +188,7 @@ func TestNewOutgoingFlowMsg(t *testing.T) {
 
 func TestDeriveMsgFolder(t *testing.T) {
 	const in, out = models.DirectionIn, models.DirectionOut
-	const visible, archived = models.VisibilityVisible, models.VisibilityArchived
+	const visible = models.VisibilityVisible
 	const delUser, delSender = models.VisibilityDeletedByUser, models.VisibilityDeletedBySender
 
 	tcs := []struct {
@@ -200,8 +200,6 @@ func TestDeriveMsgFolder(t *testing.T) {
 	}{
 		{in, models.MsgStatusHandled, visible, false, models.MsgFolderInbox},
 		{in, models.MsgStatusHandled, visible, true, models.MsgFolderHandled},
-		{in, models.MsgStatusHandled, archived, false, models.MsgFolderArchived},
-		{in, models.MsgStatusHandled, archived, true, models.MsgFolderArchived}, // flow is irrelevant once archived
 		{in, models.MsgStatusPending, visible, false, models.MsgFolderPending},
 		{out, models.MsgStatusInitializing, visible, false, models.MsgFolderOutbox},
 		{out, models.MsgStatusQueued, visible, false, models.MsgFolderOutbox},
@@ -218,10 +216,6 @@ func TestDeriveMsgFolder(t *testing.T) {
 		{in, models.MsgStatusPending, delUser, false, models.MsgFolderDeleted},   // deleted whilst still pending
 		{in, models.MsgStatusPending, delSender, false, models.MsgFolderDeleted}, // deleted whilst still pending
 		{out, models.MsgStatusSent, delUser, false, models.MsgFolderDeleted},
-
-		// pending takes precedence over the user facing folders, so an archived message which hasn't been handled
-		// yet is pending rather than archived
-		{in, models.MsgStatusPending, archived, false, models.MsgFolderPending},
 	}
 
 	for i, tc := range tcs {
@@ -232,7 +226,6 @@ func TestDeriveMsgFolder(t *testing.T) {
 	// states which shouldn't exist panic rather than leaving a message in no folder
 	assert.Panics(t, func() { models.DeriveMsgFolder(out, models.MsgStatusHandled, visible, false) })
 	assert.Panics(t, func() { models.DeriveMsgFolder(out, models.MsgStatusPending, visible, false) }) // incoming only status
-	assert.Panics(t, func() { models.DeriveMsgFolder(out, models.MsgStatusSent, archived, false) })
 	assert.Panics(t, func() { models.DeriveMsgFolder(in, models.MsgStatusErrored, visible, false) })
 }
 
@@ -284,21 +277,21 @@ func TestMarkMessageHandled(t *testing.T) {
 	rt.DB.MustExec(`UPDATE msgs_msg SET visibility = 'X', folder = 'D', text = '' WHERE id = $1`, in5.ID)
 
 	// a message handled outside of a flow ends up in the inbox
-	err = models.MarkMessageHandled(ctx, rt.DB, in1.UUID, models.MsgStatusHandled, models.VisibilityVisible, nil, nil, nil, nil)
+	err = models.MarkMessageHandled(ctx, rt.DB, in1.UUID, models.MsgStatusHandled, false, nil, nil, nil, nil)
 	assert.NoError(t, err)
 
 	// one handled by a flow ends up in the handled folder
-	err = models.MarkMessageHandled(ctx, rt.DB, in2.UUID, models.MsgStatusHandled, models.VisibilityVisible, flow, nil, nil, nil)
+	err = models.MarkMessageHandled(ctx, rt.DB, in2.UUID, models.MsgStatusHandled, false, flow, nil, nil, nil)
 	assert.NoError(t, err)
 
-	// and one from a blocked contact or an inactive channel is archived
-	err = models.MarkMessageHandled(ctx, rt.DB, in3.UUID, models.MsgStatusHandled, models.VisibilityArchived, nil, nil, nil, nil)
+	// and one from a blocked contact or an inactive channel is filed straight into the archived folder
+	err = models.MarkMessageHandled(ctx, rt.DB, in3.UUID, models.MsgStatusHandled, true, nil, nil, nil, nil)
 	assert.NoError(t, err)
 
 	// handling a message deleted whilst it was pending doesn't resurrect it, however it was deleted
-	err = models.MarkMessageHandled(ctx, rt.DB, in4.UUID, models.MsgStatusHandled, models.VisibilityVisible, nil, nil, nil, nil)
+	err = models.MarkMessageHandled(ctx, rt.DB, in4.UUID, models.MsgStatusHandled, false, nil, nil, nil, nil)
 	assert.NoError(t, err)
-	err = models.MarkMessageHandled(ctx, rt.DB, in5.UUID, models.MsgStatusHandled, models.VisibilityVisible, nil, nil, nil, nil)
+	err = models.MarkMessageHandled(ctx, rt.DB, in5.UUID, models.MsgStatusHandled, false, nil, nil, nil, nil)
 	assert.NoError(t, err)
 
 	assertdb.Query(t, rt.DB, `SELECT status, visibility, folder, flow_id FROM msgs_msg WHERE id = $1`, in1.ID).
@@ -306,7 +299,7 @@ func TestMarkMessageHandled(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT status, visibility, folder, flow_id FROM msgs_msg WHERE id = $1`, in2.ID).
 		Columns(map[string]any{"status": "H", "visibility": "V", "folder": "W", "flow_id": testdb.Favorites.ID})
 	assertdb.Query(t, rt.DB, `SELECT status, visibility, folder, flow_id FROM msgs_msg WHERE id = $1`, in3.ID).
-		Columns(map[string]any{"status": "H", "visibility": "A", "folder": "A", "flow_id": nil})
+		Columns(map[string]any{"status": "H", "visibility": "V", "folder": "A", "flow_id": nil})
 	assertdb.Query(t, rt.DB, `SELECT status, visibility, folder, text FROM msgs_msg WHERE id = $1`, in4.ID).
 		Columns(map[string]any{"status": "P", "visibility": "D", "folder": "D", "text": ""})
 	assertdb.Query(t, rt.DB, `SELECT status, visibility, folder, text FROM msgs_msg WHERE id = $1`, in5.ID).
@@ -636,9 +629,9 @@ func TestArchiveAndRestoreMessages(t *testing.T) {
 	err := models.ArchiveMessages(ctx, rt.DB, load(in1.UUID, in2.UUID, in3.UUID))
 	assert.NoError(t, err)
 
-	// archiving moves a message out of the inbox or the handled folder
-	assertFolder(in1, "A", "A")
-	assertFolder(in2, "A", "A")
+	// archiving moves a message out of the inbox or the handled folder and leaves its visibility alone
+	assertFolder(in1, "V", "A")
+	assertFolder(in2, "V", "A")
 
 	// but a message that hasn't been handled yet isn't in either of those folders so archiving it is a noop
 	assertFolder(in3, "V", "P")
@@ -647,7 +640,7 @@ func TestArchiveAndRestoreMessages(t *testing.T) {
 	err = models.ArchiveMessages(ctx, rt.DB, load(in1.UUID))
 	assert.NoError(t, err)
 
-	assertFolder(in1, "A", "A")
+	assertFolder(in1, "V", "A")
 
 	// restoring puts each message back in the folder its state implies
 	err = models.RestoreMessages(ctx, rt.DB, load(in1.UUID, in2.UUID, in3.UUID))
@@ -680,6 +673,23 @@ func TestArchiveAndRestoreMessages(t *testing.T) {
 	assert.NoError(t, err)
 
 	assertFolder(in1, "D", "D")
+
+	// nor can a deleted message whose folder is stale with respect to its visibility, as rows predating the folder
+	// column can be - the visibility is what records the deletion
+	rt.DB.MustExec(`UPDATE msgs_msg SET visibility = 'D', folder = 'W', text = '' WHERE id = $1`, in2.ID)
+
+	err = models.ArchiveMessages(ctx, rt.DB, load(in2.UUID))
+	assert.NoError(t, err)
+
+	assertFolder(in2, "D", "W")
+
+	// messages archived before archiving stopped writing visibility still restore to the right folder
+	rt.DB.MustExec(`UPDATE msgs_msg SET status = 'H', visibility = 'A', folder = 'A' WHERE id = $1`, in3.ID)
+
+	err = models.RestoreMessages(ctx, rt.DB, load(in3.UUID))
+	assert.NoError(t, err)
+
+	assertFolder(in3, "A", "I")
 }
 
 func TestDeleteMessages(t *testing.T) {
