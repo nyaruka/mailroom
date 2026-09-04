@@ -69,6 +69,8 @@ type Config struct {
 	S3AttachmentsBucket string `help:"S3 bucket to write attachments to"`
 	S3PathStyle         bool   `help:"S3 should use path style URLs"`
 
+	GlobalAdministrators bool `help:"whether users directly in the Administrators group are administrators of every org"`
+
 	CourierEndpoint  string `help:"the base URL used for internal calls to courier" validate:"url"`
 	CourierAuthToken string `help:"the authentication token used for requests to Courier"`
 

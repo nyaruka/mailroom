@@ -65,4 +65,62 @@ func TestLoadUsers(t *testing.T) {
 
 	require.Len(t, users, 1)
 	require.Equal(t, testdb.Org2Admin.UUID, users[0].(*models.User).UUID())
+
+	// create a user directly in the Administrators group who isn't a member of any org
+	var globalAdminID models.UserID
+	rt.DB.MustExec(`INSERT INTO auth_group(name) VALUES('Administrators') ON CONFLICT (name) DO NOTHING`)
+	err = rt.DB.Get(&globalAdminID, `INSERT INTO users_user(
+		password, is_superuser, uuid, first_name, last_name, email, language, date_joined, is_system, is_staff, is_active, settings
+	) VALUES(
+		'', FALSE, 'b2b1f7a8-9a1c-4e2f-8d3a-5c6e7f8a9b0c', 'Gloria', 'Global', 'gloria@textit.com', 'en-us', NOW(), FALSE, FALSE, TRUE, '{}'
+	) RETURNING id`)
+	require.NoError(t, err)
+	rt.DB.MustExec(
+		`INSERT INTO users_user_groups(user_id, group_id) SELECT $1, id FROM auth_group WHERE name = 'Administrators'`,
+		globalAdminID,
+	)
+
+	// which has no effect unless global administrators are enabled for this deployment
+	oa, err = models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org2.ID, models.RefreshUsers)
+	require.NoError(t, err)
+
+	users, err = oa.Users()
+	require.NoError(t, err)
+	require.Len(t, users, 1)
+	assert.Nil(t, oa.UserByID(globalAdminID))
+
+	rt.Config.GlobalAdministrators = true
+	defer func() { rt.Config.GlobalAdministrators = false }()
+
+	// in which case they should appear as an administrator in org 2 despite having no membership
+	oa, err = models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org2.ID, models.RefreshUsers)
+	require.NoError(t, err)
+
+	users, err = oa.Users()
+	require.NoError(t, err)
+	require.Len(t, users, 2)
+
+	globalAdmin := oa.UserByID(globalAdminID)
+	require.NotNil(t, globalAdmin)
+	assert.Equal(t, "gloria@textit.com", globalAdmin.Email())
+	assert.Equal(t, models.UserRoleAdministrator, globalAdmin.Role())
+	assert.Nil(t, globalAdmin.Team())
+
+	// and their global admin status overrides any explicit membership
+	rt.DB.MustExec(
+		`INSERT INTO orgs_orgmembership(org_id, user_id, role_code, can_assign, can_reply_non_own) VALUES($1, $2, 'T', TRUE, TRUE)`,
+		testdb.Org1.ID, globalAdminID,
+	)
+
+	oa, err = models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshUsers)
+	require.NoError(t, err)
+
+	users, err = oa.Users()
+	require.NoError(t, err)
+	require.Len(t, users, 4)
+
+	globalAdmin = oa.UserByID(globalAdminID)
+	require.NotNil(t, globalAdmin)
+	assert.Equal(t, models.UserRoleAdministrator, globalAdmin.Role())
+	assert.Nil(t, globalAdmin.Team())
 }
