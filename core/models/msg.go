@@ -1156,13 +1156,14 @@ func CreateMsgOut(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, c *co
 }
 
 // the from_folder check is what makes this safe against a message being moved between being loaded and being updated
-// here - in particular against one deleted in that window, which we'd otherwise resurrect into a user facing folder
-// with its content already cleared
+// here. The visibility check covers the case that leaves - a row whose folder is stale with respect to it - because
+// deletion is recorded on the visibility and the folder only follows from it; a message whose content has already
+// been cleared must not be moved into a user facing folder whatever its folder says.
 const sqlUpdateMsgFolder = `
 UPDATE msgs_msg
    SET folder = m.folder, modified_on = NOW()
   FROM (VALUES(:id::bigint, :folder, :from_folder)) AS m(id, folder, from_folder)
- WHERE msgs_msg.id = m.id AND msgs_msg.folder = m.from_folder`
+ WHERE msgs_msg.id = m.id AND msgs_msg.folder = m.from_folder AND msgs_msg.visibility NOT IN ('D', 'X')`
 
 type msgFolderUpdate struct {
 	ID         MsgID     `db:"id"`

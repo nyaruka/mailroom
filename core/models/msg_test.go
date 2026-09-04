@@ -674,6 +674,15 @@ func TestArchiveAndRestoreMessages(t *testing.T) {
 
 	assertFolder(in1, "D", "D")
 
+	// nor can a deleted message whose folder is stale with respect to its visibility, as rows predating the folder
+	// column can be - the visibility is what records the deletion
+	rt.DB.MustExec(`UPDATE msgs_msg SET visibility = 'D', folder = 'W', text = '' WHERE id = $1`, in2.ID)
+
+	err = models.ArchiveMessages(ctx, rt.DB, load(in2.UUID))
+	assert.NoError(t, err)
+
+	assertFolder(in2, "D", "W")
+
 	// messages archived before archiving stopped writing visibility still restore to the right folder
 	rt.DB.MustExec(`UPDATE msgs_msg SET status = 'H', visibility = 'A', folder = 'A' WHERE id = $1`, in3.ID)
 
