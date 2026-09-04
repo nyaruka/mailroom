@@ -21,7 +21,7 @@
         }
     },
     {
-        "label": "messages moved back into the folder their state implies",
+        "label": "messages moved back into the folder their state implies, visibility left alone",
         "method": "POST",
         "path": "/mi/msg/restore",
         "body": {

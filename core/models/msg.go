@@ -60,7 +60,6 @@ type MsgVisibility string
 
 const (
 	VisibilityVisible         = MsgVisibility("V")
-	VisibilityArchived        = MsgVisibility("A")
 	VisibilityDeletedByUser   = MsgVisibility("D")
 	VisibilityDeletedBySender = MsgVisibility("X")
 )
@@ -95,7 +94,7 @@ type MsgFolder string
 const (
 	MsgFolderInbox    = MsgFolder("I") // incoming, visible, handled, no flow
 	MsgFolderHandled  = MsgFolder("W") // incoming, visible, handled, has flow
-	MsgFolderArchived = MsgFolder("A") // incoming, archived, handled
+	MsgFolderArchived = MsgFolder("A") // incoming, handled, filed here rather than derived from state
 	MsgFolderOutbox   = MsgFolder("O") // outgoing, visible, initializing/queued/errored
 	MsgFolderSent     = MsgFolder("S") // outgoing, visible, wired/sent/delivered/read
 	MsgFolderFailed   = MsgFolder("X") // outgoing, visible, failed
@@ -103,10 +102,10 @@ const (
 	MsgFolderDeleted  = MsgFolder("D") // deleted by the user or by the sender
 )
 
-// DeriveMsgFolder derives the folder that a message belongs to. This is a port of Msg.derive_folder in the main
-// codebase and the precedence matters: a message can be archived or deleted whilst still pending, and such messages
-// must not appear in the archived folder. Panics for state combinations that shouldn't exist rather than returning
-// no folder, because a message without a folder can't be found by folder.
+// DeriveMsgFolder derives the folder implied by a message's state. Archived isn't such a folder - a message is moved
+// into it and out of it by a user, and nothing about its state says it's there - so this never returns it, and it's
+// what restoring uses to decide which folder a message goes back to. Panics for state combinations that shouldn't
+// exist rather than returning no folder, because a message without a folder can't be found by folder.
 func DeriveMsgFolder(direction Direction, status MsgStatus, visibility MsgVisibility, hasFlow bool) MsgFolder {
 	if visibility == VisibilityDeletedByUser || visibility == VisibilityDeletedBySender {
 		return MsgFolderDeleted
@@ -117,9 +116,6 @@ func DeriveMsgFolder(direction Direction, status MsgStatus, visibility MsgVisibi
 		case MsgStatusPending:
 			return MsgFolderPending
 		case MsgStatusHandled:
-			if visibility == VisibilityArchived {
-				return MsgFolderArchived
-			}
 			if hasFlow {
 				return MsgFolderHandled
 			}
@@ -644,8 +640,9 @@ msgs_msg(uuid, text, attachments, quickreplies, locale, templating, high_priorit
 		 :contact_id, :contact_urn_id, :org_id, :flow_id, :broadcast_id, :ticket_uuid, :created_by_id)
 RETURNING id, modified_on`
 
-// MarkMessageHandled updates a message after handling
-func MarkMessageHandled(ctx context.Context, tx DBorTx, msgUUID events.EventUUID, status MsgStatus, visibility MsgVisibility, flow *Flow, ticket *Ticket, attachments []utils.Attachment, logUUIDs []svclogs.UUID) error {
+// MarkMessageHandled updates a message after handling. Passing archived files it straight into the archived folder
+// instead of the folder its state implies.
+func MarkMessageHandled(ctx context.Context, tx DBorTx, msgUUID events.EventUUID, status MsgStatus, archived bool, flow *Flow, ticket *Ticket, attachments []utils.Attachment, logUUIDs []svclogs.UUID) error {
 	flowID := NilFlowID
 	if flow != nil {
 		flowID = flow.ID()
@@ -656,13 +653,16 @@ func MarkMessageHandled(ctx context.Context, tx DBorTx, msgUUID events.EventUUID
 		ticketUUID = ticket.UUID
 	}
 
-	folder := DeriveMsgFolder(DirectionIn, status, visibility, flowID != NilFlowID)
+	folder := DeriveMsgFolder(DirectionIn, status, VisibilityVisible, flowID != NilFlowID)
+	if archived {
+		folder = MsgFolderArchived
+	}
 
 	// the visibility check leaves alone a message which was deleted whilst it was still waiting to be handled -
 	// without it we'd put a message whose content has already been cleared back in the inbox
 	_, err := tx.ExecContext(ctx,
-		`UPDATE msgs_msg SET status = $2, visibility = $3, folder = $4, flow_id = $5, ticket_uuid = $6, attachments = $7, log_uuids = array_cat(log_uuids, $8) WHERE uuid = $1 AND visibility NOT IN ('D', 'X')`,
-		msgUUID, status, visibility, folder, flowID, null.String(ticketUUID), pq.Array(attachments), pq.Array(logUUIDs),
+		`UPDATE msgs_msg SET status = $2, folder = $3, flow_id = $4, ticket_uuid = $5, attachments = $6, log_uuids = array_cat(log_uuids, $7) WHERE uuid = $1 AND visibility NOT IN ('D', 'X')`,
+		msgUUID, status, folder, flowID, null.String(ticketUUID), pq.Array(attachments), pq.Array(logUUIDs),
 	)
 	if err != nil {
 		return fmt.Errorf("error marking msg %s as handled: %w", msgUUID, err)
@@ -1160,15 +1160,14 @@ func CreateMsgOut(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, c *co
 // with its content already cleared
 const sqlUpdateMsgFolder = `
 UPDATE msgs_msg
-   SET visibility = m.visibility, folder = m.folder, modified_on = NOW()
-  FROM (VALUES(:id::bigint, :visibility, :folder, :from_folder)) AS m(id, visibility, folder, from_folder)
+   SET folder = m.folder, modified_on = NOW()
+  FROM (VALUES(:id::bigint, :folder, :from_folder)) AS m(id, folder, from_folder)
  WHERE msgs_msg.id = m.id AND msgs_msg.folder = m.from_folder`
 
 type msgFolderUpdate struct {
-	ID         MsgID         `db:"id"`
-	Visibility MsgVisibility `db:"visibility"`
-	Folder     MsgFolder     `db:"folder"`
-	FromFolder MsgFolder     `db:"from_folder"`
+	ID         MsgID     `db:"id"`
+	Folder     MsgFolder `db:"folder"`
+	FromFolder MsgFolder `db:"from_folder"`
 }
 
 // ArchiveMessages moves the given incoming messages into the archived folder, ignoring any that aren't in the inbox
@@ -1184,12 +1183,7 @@ func ArchiveMessages(ctx context.Context, db DBorTx, msgs []*Msg) error {
 			continue
 		}
 
-		updates = append(updates, &msgFolderUpdate{
-			ID:         m.ID,
-			Visibility: VisibilityArchived,
-			Folder:     MsgFolderArchived,
-			FromFolder: m.Folder,
-		})
+		updates = append(updates, &msgFolderUpdate{ID: m.ID, Folder: MsgFolderArchived, FromFolder: m.Folder})
 	}
 
 	return BulkQuery(ctx, "archiving messages", db, sqlUpdateMsgFolder, updates)
@@ -1209,8 +1203,7 @@ func RestoreMessages(ctx context.Context, db DBorTx, msgs []*Msg) error {
 
 		updates = append(updates, &msgFolderUpdate{
 			ID:         m.ID,
-			Visibility: VisibilityVisible,
-			Folder:     DeriveMsgFolder(m.Direction, m.Status, VisibilityVisible, m.FlowID != NilFlowID),
+			Folder:     DeriveMsgFolder(m.Direction, m.Status, m.Visibility, m.FlowID != NilFlowID),
 			FromFolder: MsgFolderArchived,
 		})
 	}
