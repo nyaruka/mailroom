@@ -68,6 +68,7 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 	ensureBinaryResources(t, rt) // creates those on first use and sweeps dead runs' - see binary.go
 
 	rt.FCM = &MockFCMClient{ValidTokens: []string{"FCMID3", "FCMID4", "FCMID5"}}
+	rt.Embeddings = &MockEmbedder{} // tests needing particular vectors replace this with their own
 	rt.Centrifugo = centrifugo.NewService(centrifugo.NewMockClient(), rt.VK)
 
 	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo})))
