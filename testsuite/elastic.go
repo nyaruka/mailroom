@@ -137,7 +137,7 @@ func IndexMessages(t *testing.T, rt *runtime.Runtime) {
 	  LEFT JOIN contacts_contacturn u ON u.id = m.contact_urn_id
 	 WHERE c.last_seen_on IS NOT NULL
 	   AND LENGTH(m.text) >= $1
-	   AND m.visibility IN ('V', 'A')
+	   AND m.visibility NOT IN ('D', 'X')
 	 ORDER BY m.uuid`
 
 	rows, err := rt.DB.QueryContext(ctx, query, search.MessageTextMinLength)
@@ -191,7 +191,7 @@ func WriteMessageHistory(t *testing.T, rt *runtime.Runtime) {
 	  JOIN contacts_contact c ON c.id = m.contact_id
 	 WHERE c.last_seen_on IS NOT NULL
 	   AND LENGTH(m.text) >= $1
-	   AND m.visibility IN ('V', 'A')
+	   AND m.visibility NOT IN ('D', 'X')
 	 ORDER BY m.uuid`
 
 	rows, err := rt.DB.QueryContext(ctx, query, search.MessageTextMinLength)

@@ -21,7 +21,7 @@
         }
     },
     {
-        "label": "messages archived, folder updated to match their new visibility",
+        "label": "messages moved into the archived folder",
         "method": "POST",
         "path": "/mi/msg/archive",
         "body": {
@@ -54,7 +54,7 @@
             {
                 "query": "SELECT visibility, folder FROM msgs_msg WHERE uuid = '0199bad9-f0bc-7738-8af8-99712a6f8bff'",
                 "columns": {
-                    "visibility": "A",
+                    "visibility": "V",
                     "folder": "P"
                 }
             },
@@ -80,7 +80,9 @@
         "path": "/mi/msg/archive",
         "body": {
             "org_id": 1,
-            "msg_uuids": ["0199bad8-f98d-75a3-b641-2718a25ac3f5"]
+            "msg_uuids": [
+                "0199bad8-f98d-75a3-b641-2718a25ac3f5"
+            ]
         },
         "status": 200,
         "response": {},
