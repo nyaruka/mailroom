@@ -1,3 +1,8 @@
+v26.3.58 (2026-09-08)
+-------------------------
+ * Load members of an org's admin groups as administrators of that org
+ * Update from Go 1.26 to 1.27
+
 v26.3.57 (2026-09-04)
 -------------------------
  * Read archived state of messages from folder rather than visibility
