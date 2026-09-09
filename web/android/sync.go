@@ -25,13 +25,9 @@ func handleSync(ctx context.Context, rt *runtime.Runtime, r *syncRequest) (any, 
 		return nil, 0, fmt.Errorf("error resolving channel: %w", err)
 	}
 
-	channelFCMID := channel.Config().GetString(models.ChannelConfigFCMID, "")
-	if channelFCMID == "" {
-		return nil, 0, fmt.Errorf("missing android channel registration id")
-	}
-
-	err = msgio.SyncAndroidChannel(ctx, rt, channel)
-	if err != nil {
+	// a channel that has never reported an FCM registration id (e.g. one that predates FCM) can't be nudged, and
+	// SyncAndroidChannel treats that as a no-op rather than an error
+	if err := msgio.SyncAndroidChannel(ctx, rt, channel); err != nil {
 		return nil, 0, fmt.Errorf("error syncing android channel: %w", err)
 	}
 

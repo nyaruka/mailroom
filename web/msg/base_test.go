@@ -76,9 +76,9 @@ func TestRestore(t *testing.T) {
 	// second message was handled by a flow so restoring it should put it back in the handled folder
 	rt.DB.MustExec(`UPDATE msgs_msg SET flow_id = $1 WHERE uuid = '0199bad9-9791-770d-a47d-8f4a6ea3ad13'`, testdb.Favorites.ID)
 
-	// archive all but the last message
-	rt.DB.MustExec(`UPDATE msgs_msg SET visibility = 'A', folder = CASE WHEN status = 'P' THEN 'P' ELSE 'A' END
-	                 WHERE uuid IN ('0199bad8-f98d-75a3-b641-2718a25ac3f5', '0199bad9-9791-770d-a47d-8f4a6ea3ad13', '0199bad9-f0bc-7738-8af8-99712a6f8bff')`)
+	// archive the two handled messages - the pending one can't be archived so stays where it is
+	rt.DB.MustExec(`UPDATE msgs_msg SET folder = 'A'
+	                 WHERE uuid IN ('0199bad8-f98d-75a3-b641-2718a25ac3f5', '0199bad9-9791-770d-a47d-8f4a6ea3ad13')`)
 
 	testsuite.RunWebTests(t, rt, "testdata/restore.json")
 }
