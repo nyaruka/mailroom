@@ -1,3 +1,9 @@
+v26.3.59 (2026-09-09)
+-------------------------
+ * Add enforcement of per-workspace contact limit, falling back to a configured default when a workspace has no explicit limit
+ * Make Android sync endpoint a no-op for channels without an FCM registration id
+ * Update to goflow v0.293.3
+
 v26.3.58 (2026-09-08)
 -------------------------
  * Load members of an org's admin groups as administrators of that org
