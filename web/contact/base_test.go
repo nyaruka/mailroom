@@ -30,6 +30,15 @@ func TestCreate(t *testing.T) {
 	testsuite.RunWebTests(t, rt, "testdata/create.json")
 }
 
+func TestCreateAtContactLimit(t *testing.T) {
+	_, rt := testsuite.Runtime(t)
+
+	// org 1 has 124 contacts so this leaves it with no room for more
+	rt.DB.MustExec(`UPDATE orgs_org SET limits = '{"contacts": 124}' WHERE id = $1`, testdb.Org1.ID)
+
+	testsuite.RunWebTests(t, rt, "testdata/create_limited.json")
+}
+
 func TestDeindex(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 

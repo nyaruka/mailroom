@@ -36,6 +36,15 @@ func ErrorToResponse(err error) (*ErrorResponse, int) {
 		}, http.StatusUnprocessableEntity
 	}
 
+	var lerr *models.LimitReachedError
+	if errors.As(err, &lerr) {
+		return &ErrorResponse{
+			Error: lerr.Error(),
+			Code:  "limit:" + lerr.Limit,
+			Extra: map[string]any{"limit": lerr.Max},
+		}, http.StatusUnprocessableEntity
+	}
+
 	var ferr *goflow.FlowDefError
 	if errors.As(err, &ferr) {
 		return &ErrorResponse{

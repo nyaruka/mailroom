@@ -1,0 +1,32 @@
+[
+    {
+        "label": "create rejected when org is at its contacts limit",
+        "method": "POST",
+        "path": "/mi/contact/create",
+        "body": {
+            "org_id": 1,
+            "user_id": 1,
+            "contact": {
+                "name": "Zed",
+                "urns": [
+                    "telegram:100001"
+                ]
+            },
+            "via": "api"
+        },
+        "status": 422,
+        "response": {
+            "error": "workspace has reached its limit of 124 contacts",
+            "code": "limit:contacts",
+            "extra": {
+                "limit": 124
+            }
+        },
+        "db_assertions": [
+            {
+                "query": "SELECT count(*) FROM contacts_contact WHERE name = 'Zed'",
+                "returns": 0
+            }
+        ]
+    }
+]
