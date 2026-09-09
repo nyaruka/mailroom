@@ -125,7 +125,7 @@ func NewDefaultConfig() *Config {
 		WorkersThrottled: 8,
 		WorkerOwnerLimit: 0.5,
 
-		DefaultContactLimit: 50_000_000,
+		DefaultContactLimit: 10_000_000,
 
 		WebhooksTimeout:              15000,
 		WebhooksMaxBodyBytes:         256 * 1024, // 256 KiB
