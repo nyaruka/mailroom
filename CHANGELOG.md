@@ -1,3 +1,8 @@
+v26.3.60 (2026-09-09)
+-------------------------
+ * Lower the default contact limit to 10 million
+ * Update to gocommon v1.95.0 and goflow v0.293.4
+
 v26.3.59 (2026-09-09)
 -------------------------
  * Add enforcement of per-workspace contact limit, falling back to a configured default when a workspace has no explicit limit
