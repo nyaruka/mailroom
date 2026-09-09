@@ -23,7 +23,7 @@ require (
 	github.com/lib/pq v1.12.3
 	github.com/nyaruka/ezconf v0.7.0
 	github.com/nyaruka/gocommon v1.94.4
-	github.com/nyaruka/goflow v0.293.2
+	github.com/nyaruka/goflow v0.293.3
 	github.com/nyaruka/null/v3 v3.1.0
 	github.com/nyaruka/vkutil v0.23.0
 	github.com/openai/openai-go/v3 v3.50.0
