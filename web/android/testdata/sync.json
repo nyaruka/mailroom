@@ -21,15 +21,27 @@
         }
     },
     {
-        "label": "valid channel sync",
+        "label": "channel without FCM id is a no-op",
         "method": "POST",
         "path": "/mi/android/sync",
         "body": {
             "channel_id": 30000
         },
-        "status": 500,
+        "status": 200,
         "response": {
-            "error": "missing android channel registration id"
+            "id": 30000
+        }
+    },
+    {
+        "label": "channel with FCM id is synced",
+        "method": "POST",
+        "path": "/mi/android/sync",
+        "body": {
+            "channel_id": 30001
+        },
+        "status": 200,
+        "response": {
+            "id": 30001
         }
     }
 ]
