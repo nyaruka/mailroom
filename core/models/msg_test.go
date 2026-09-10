@@ -332,6 +332,9 @@ func TestResendMessages(t *testing.T) {
 	// failed message with URN which we no longer have a channel for
 	out5 := testdb.InsertOutgoingMsg(t, rt, testdb.Org1, "0199bb96-3c4c-72f2-bacc-4b6ae4c592b3", nil, testdb.Cat, "hi", nil, models.MsgStatusFailed, false)
 	rt.DB.MustExec(`UPDATE msgs_msg SET failed_reason = 'E' WHERE id = $1`, out5.ID)
+
+	// two of the failed messages were left with the retry they had before failing
+	rt.DB.MustExec(`UPDATE msgs_msg SET next_attempt = NOW() WHERE id IN ($1, $2)`, out1.ID, out5.ID)
 	rt.DB.MustExec(`UPDATE contacts_contacturn SET scheme = 'viber', path = '1234', identity = 'viber:1234' WHERE id = $1`, testdb.Cat.URNID)
 
 	// failed message which has since been deleted
@@ -370,10 +373,11 @@ func TestResendMessages(t *testing.T) {
 		assert.Equal(t, models.MsgStatusQueued, m.Status(), "%d: status mismatch", i)
 	}
 
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE status = 'Q' AND folder = 'O' AND sent_on IS NULL`).Returns(3)
+	// and neither the resent nor the re-failed messages are left awaiting a retry
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE status = 'Q' AND folder = 'O' AND sent_on IS NULL AND next_attempt IS NULL`).Returns(3)
 
-	assertdb.Query(t, rt.DB, `SELECT status, folder, failed_reason FROM msgs_msg WHERE id = $1`, out4.ID).Columns(map[string]any{"status": "F", "folder": "X", "failed_reason": "D"})
-	assertdb.Query(t, rt.DB, `SELECT status, folder, failed_reason FROM msgs_msg WHERE id = $1`, out5.ID).Columns(map[string]any{"status": "F", "folder": "X", "failed_reason": "D"})
+	assertdb.Query(t, rt.DB, `SELECT status, folder, failed_reason, next_attempt FROM msgs_msg WHERE id = $1`, out4.ID).Columns(map[string]any{"status": "F", "folder": "X", "failed_reason": "D", "next_attempt": nil})
+	assertdb.Query(t, rt.DB, `SELECT status, folder, failed_reason, next_attempt FROM msgs_msg WHERE id = $1`, out5.ID).Columns(map[string]any{"status": "F", "folder": "X", "failed_reason": "D", "next_attempt": nil})
 
 	// the deleted message is left in the deleted folder rather than being resurrected
 	assertdb.Query(t, rt.DB, `SELECT status, folder, visibility FROM msgs_msg WHERE id = $1`, out6.ID).Columns(map[string]any{"status": "F", "folder": "D", "visibility": "D"})
@@ -383,7 +387,8 @@ func TestFailMessages(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
 	testdb.InsertOutgoingMsg(t, rt, testdb.Org1, "0199bad8-f98d-75a3-b641-2718a25ac3f5", testdb.TwilioChannel, testdb.Ann, "hi", nil, models.MsgStatusQueued, false)
-	testdb.InsertOutgoingMsg(t, rt, testdb.Org1, "0199bad9-9791-770d-a47d-8f4a6ea3ad13", testdb.TwilioChannel, testdb.Bob, "hi", nil, models.MsgStatusErrored, false)
+	out2 := testdb.InsertOutgoingMsg(t, rt, testdb.Org1, "0199bad9-9791-770d-a47d-8f4a6ea3ad13", testdb.TwilioChannel, testdb.Bob, "hi", nil, models.MsgStatusErrored, false)
+	rt.DB.MustExec(`UPDATE msgs_msg SET next_attempt = NOW() WHERE id = $1`, out2.ID) // awaiting a retry
 	out3 := testdb.InsertOutgoingMsg(t, rt, testdb.Org1, "0199bb93-ec0f-703e-9b5b-d26d4b6b133c", testdb.TwilioChannel, testdb.Ann, "hi", nil, models.MsgStatusFailed, false)
 	testdb.InsertOutgoingMsg(t, rt, testdb.Org1, "0199bb94-1134-75d6-91dc-8aee7787f703", testdb.TwilioChannel, testdb.Ann, "hi", nil, models.MsgStatusQueued, false)
 	testdb.InsertOutgoingMsg(t, rt, testdb.Org1, "0199bb96-3c4c-72f2-bacc-4b6ae4c592b3", testdb.TwilioChannel, testdb.Cat, "hi", nil, models.MsgStatusQueued, false)
@@ -406,6 +411,9 @@ func TestFailMessages(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE folder = 'X'`).Returns(6) // including the already failed one
 	assertdb.Query(t, rt.DB, `SELECT status, failed_reason FROM msgs_msg WHERE id = $1`, out3.ID).Columns(map[string]any{"status": "F", "failed_reason": nil})
 
+	// the errored message is no longer awaiting a retry
+	assertdb.Query(t, rt.DB, `SELECT status, folder, next_attempt FROM msgs_msg WHERE id = $1`, out2.ID).Columns(map[string]any{"status": "F", "folder": "X", "next_attempt": nil})
+
 	// the message that never reached courier is failed too
 	assertdb.Query(t, rt.DB, `SELECT status, folder FROM msgs_msg WHERE id = $1`, out6.ID).Columns(map[string]any{"status": "F", "folder": "X"})
 
@@ -423,6 +431,7 @@ func TestFailOldAndroidMessages(t *testing.T) {
 	out1 := testdb.InsertOutgoingMsgCreatedOn(t, rt, testdb.Org1, "0199bad8-f98d-75a3-b641-2718a25ac3f5", testdb.AndroidChannel, testdb.Ann, "hi", models.MsgStatusInitializing, fortnightAgo)
 	out2 := testdb.InsertOutgoingMsgCreatedOn(t, rt, testdb.Org1, "0199bad9-9791-770d-a47d-8f4a6ea3ad13", testdb.AndroidChannel, testdb.Bob, "hi", models.MsgStatusQueued, fortnightAgo)
 	out3 := testdb.InsertOutgoingMsgCreatedOn(t, rt, testdb.Org1, "0199bb93-ec0f-703e-9b5b-d26d4b6b133c", testdb.AndroidChannel, testdb.Cat, "hi", models.MsgStatusErrored, fortnightAgo)
+	rt.DB.MustExec(`UPDATE msgs_msg SET next_attempt = NOW() WHERE id = $1`, out3.ID) // awaiting a retry
 
 	// an equally old android message that already reached the channel, and one that already failed
 	out4 := testdb.InsertOutgoingMsgCreatedOn(t, rt, testdb.Org1, "0199bb94-1134-75d6-91dc-8aee7787f703", testdb.AndroidChannel, testdb.Ann, "hi", models.MsgStatusWired, fortnightAgo)
@@ -474,10 +483,10 @@ func TestFailOldAndroidMessages(t *testing.T) {
 		assert.Equal(t, "too_old", tag.Data["reason"])
 	}
 
-	// the stale outbox messages are now failed and moved to the failed folder
+	// the stale outbox messages are now failed and moved to the failed folder, and none is left awaiting a retry
 	for _, m := range []*testdb.MsgOut{out1, out2, out3, out7} {
-		assertdb.Query(t, rt.DB, `SELECT status, folder, failed_reason FROM msgs_msg WHERE id = $1`, m.ID).
-			Columns(map[string]any{"status": "F", "folder": "X", "failed_reason": "O"})
+		assertdb.Query(t, rt.DB, `SELECT status, folder, failed_reason, next_attempt FROM msgs_msg WHERE id = $1`, m.ID).
+			Columns(map[string]any{"status": "F", "folder": "X", "failed_reason": "O", "next_attempt": nil})
 	}
 
 	// but nothing else was touched
@@ -504,6 +513,7 @@ func TestUpdateAndroidMessageStatuses(t *testing.T) {
 	out2 := testdb.InsertOutgoingMsg(t, rt, testdb.Org1, "0199bad9-9791-770d-a47d-8f4a6ea3ad13", testdb.AndroidChannel, testdb.Bob, "hi", nil, models.MsgStatusQueued, false)
 	out3 := testdb.InsertOutgoingMsg(t, rt, testdb.Org1, "0199bad9-f0bc-7738-8af8-99712a6f8bff", testdb.AndroidChannel, testdb.Cat, "hi", nil, models.MsgStatusQueued, false)
 	out4 := testdb.InsertOutgoingMsg(t, rt, testdb.Org1, "0199bada-2b39-7cac-9714-827df9ec6b91", testdb.AndroidChannel, testdb.Ann, "hi", nil, models.MsgStatusQueued, false)
+	rt.DB.MustExec(`UPDATE msgs_msg SET next_attempt = NOW() WHERE id = $1`, out2.ID) // awaiting a retry
 
 	// a message which already has a sent_on, and one which is incoming
 	out5 := testdb.InsertOutgoingMsg(t, rt, testdb.Org1, "0199bb09-f0e9-7489-a58e-69304a7941a0", testdb.AndroidChannel, testdb.Ann, "hi", nil, models.MsgStatusSent, false)
@@ -535,8 +545,8 @@ func TestUpdateAndroidMessageStatuses(t *testing.T) {
 	// errored messages stay in the outbox, and only the messages we could update are tagged
 	assertdb.Query(t, rt.DB, `SELECT status, folder, sent_on FROM msgs_msg WHERE id = $1`, out1.ID).
 		Columns(map[string]any{"status": "E", "folder": "O", "sent_on": nil})
-	assertdb.Query(t, rt.DB, `SELECT status, folder, sent_on FROM msgs_msg WHERE id = $1`, out2.ID).
-		Columns(map[string]any{"status": "F", "folder": "X", "sent_on": nil})
+	assertdb.Query(t, rt.DB, `SELECT status, folder, sent_on, next_attempt FROM msgs_msg WHERE id = $1`, out2.ID).
+		Columns(map[string]any{"status": "F", "folder": "X", "sent_on": nil, "next_attempt": nil})
 	assertdb.Query(t, rt.DB, `SELECT status, folder, sent_on FROM msgs_msg WHERE id = $1`, out3.ID).
 		Columns(map[string]any{"status": "S", "folder": "S", "sent_on": sentOn})
 
@@ -796,7 +806,7 @@ func TestMarkMessages(t *testing.T) {
 
 	models.MarkMessagesForRequeuing(ctx, rt.DB, []*models.Msg{msg1, msg2})
 
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE status = 'I'`).Returns(2)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE status = 'I' AND next_attempt IS NOT NULL`).Returns(2)
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE folder = 'O'`).Returns(3) // all still in outbox
 
 	// try running on database with BIGINT message ids
@@ -821,6 +831,7 @@ func TestMarkMessages(t *testing.T) {
 
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE status = 'I'`).Returns(2)
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE status = 'Q'`).Returns(2)
+	assertdb.Query(t, rt.DB, `SELECT status, next_attempt FROM msgs_msg WHERE id = $1`, out4.ID).Columns(map[string]any{"status": "Q", "next_attempt": nil})
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE folder = 'O'`).Returns(4)
 }
 
