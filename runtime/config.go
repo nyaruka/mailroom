@@ -2,14 +2,12 @@ package runtime
 
 import (
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"log/slog"
 	"net"
 	"net/url"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/nyaruka/ezconf"
 	"github.com/nyaruka/gocommon/httpx"
 	"github.com/nyaruka/goflow/utils"
 )
@@ -158,30 +156,10 @@ func NewDefaultConfig() *Config {
 	}
 }
 
-// LoadConfig loads configuration from a config file, environment variables and the given command line args, on top
-// of the given base config, e.g. NewDefaultConfig(). Args are passed in explicitly rather than read from os.Args
-// because commands with their own flags have to take those out of the command line first, see SplitArgs.
-func LoadConfig(c *Config, args []string) (*Config, error) {
-	loader := ezconf.NewLoader(c, "mailroom", "Mailroom - handler for RapidPro", []string{"mailroom.toml"})
-	loader.SetArgs(args...)
-	if err := loader.Load(); err != nil {
-		// Load never writes to stdout or stderr itself, so a request for usage comes back as ErrHelp for us to act
-		// on here, where we still have the loader to show it with. The sentinel is passed up unwrapped so that the
-		// caller can tell an explicit -help from a genuine config failure.
-		if errors.Is(err, ezconf.ErrHelp) {
-			loader.Usage()
-			return nil, err
-		}
-		return nil, fmt.Errorf("error loading configuration: %w", err)
-	}
-
-	if err := c.Parse(); err != nil {
-		return nil, err
-	}
-
-	return c, nil
-}
-
+// Parse validates the config and fills in the values which can't be used in the form they're configured in. It's
+// called by cmd.LoadConfig, and a config built by other means (e.g. NewDefaultConfig in a test) must be parsed before
+// being handed to NewRuntime - the values it fills in have no meaningful zero value, so skipping it would silently
+// leave the SSRF blocklist empty rather than fail.
 func (c *Config) Parse() error {
 	// ensure config is valid
 	if err := utils.Validate(c); err != nil {
