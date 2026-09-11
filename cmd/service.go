@@ -22,14 +22,11 @@ import (
 	"github.com/nyaruka/mailroom/v26/web"
 )
 
-// Service starts the mailroom service, blocks until a termination signal is received, then stops it. Configuration
-// is loaded on top of the given defaults, e.g. runtime.NewDefaultConfig(). All logging is sent to the given handler,
-// e.g. LogHandler(), whose level is set from the loaded config.
-func Service(defaults *runtime.Config, version, date string, logHandler slog.Handler) error {
-	cfg, err := runtime.LoadConfig(defaults, os.Args[1:])
-	if err != nil {
-		return err
-	}
+// Service starts the mailroom service, blocks until a termination signal is received, then stops it. The config
+// must already be loaded, e.g. with LoadConfig - an app built on top of mailroom with settings of its own loads its
+// struct embedding runtime.Config and passes the embedded value here. All logging is sent to the given handler,
+// e.g. LogHandler(), whose level is set from the config.
+func Service(cfg *runtime.Config, version, date string, logHandler slog.Handler) error {
 	cfg.Version = version
 
 	// configure our logger

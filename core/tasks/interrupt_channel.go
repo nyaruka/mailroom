@@ -15,6 +15,9 @@ import (
 // TypeInterruptChannel is the type of the interruption of a channel
 const TypeInterruptChannel = "interrupt_channel"
 
+// how many of a channel's messages we fail per query
+const failChannelMessagesBatchSize = 1000
+
 func init() {
 	RegisterType(TypeInterruptChannel, func() Task { return &InterruptChannel{} })
 }
@@ -56,9 +59,22 @@ func (t *InterruptChannel) Perform(ctx context.Context, rt *runtime.Runtime, oa 
 		return fmt.Errorf("error clearing courier queues: %w", err)
 	}
 
-	err = models.FailChannelMessages(ctx, rt.DB.DB, oa.OrgID(), t.ChannelID, models.MsgFailedChannelRemoved)
-	if err != nil {
-		return fmt.Errorf("error failing channel messages: %w", err)
+	// fail the channel's outbox in batches so that a large one doesn't become one long transaction
+	for {
+		tags, err := models.FailChannelMessages(ctx, rt.DB, oa.OrgID(), t.ChannelID, models.MsgFailedChannelRemoved, failChannelMessagesBatchSize)
+		if err != nil {
+			return fmt.Errorf("error failing channel messages: %w", err)
+		}
+		if len(tags) == 0 {
+			break
+		}
+
+		// record each failure in the contact's history so that clients rendering the message see it as failed
+		for _, tag := range tags {
+			if _, err := rt.Dynamo.History.Queue(tag); err != nil {
+				return fmt.Errorf("error queuing status tag to writer: %w", err)
+			}
+		}
 	}
 
 	return nil

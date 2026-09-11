@@ -1,3 +1,34 @@
+v26.3.62 (2026-09-11)
+-------------------------
+ * Write each outgoing message status to the history table as its own immutable item
+ * Record messages failed by channel removal or a failed resend in contact history
+ * Delete a message's previous failed and errored history items when it's resent
+
+v26.3.61 (2026-09-11)
+-------------------------
+ * Move config loading into cmd.LoadConfig so apps built on top of mailroom can embed runtime.Config
+ * Update to gocommon v1.95.1 and goflow v0.293.5
+
+v26.3.60 (2026-09-09)
+-------------------------
+ * Lower the default contact limit to 10 million
+ * Update to gocommon v1.95.0 and goflow v0.293.4
+
+v26.3.59 (2026-09-09)
+-------------------------
+ * Add enforcement of per-workspace contact limit, falling back to a configured default when a workspace has no explicit limit
+ * Make Android sync endpoint a no-op for channels without an FCM registration id
+ * Update to goflow v0.293.3
+
+v26.3.58 (2026-09-08)
+-------------------------
+ * Load members of an org's admin groups as administrators of that org
+ * Update from Go 1.26 to 1.27
+
+v26.3.57 (2026-09-04)
+-------------------------
+ * Read archived state of messages from folder rather than visibility
+
 v26.3.56 (2026-09-02)
 -------------------------
  * Fail messages for a removed channel by folder so the query is served by the folder index

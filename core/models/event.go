@@ -32,6 +32,21 @@ const (
 	eventTagStatus   = "sts"
 )
 
+// how long the history item for each outgoing message status is kept. Readers reduce a message's status items to its
+// latest state and treat a message with no status items as sent, so expiring an item can only ever under-claim what
+// happened to a message. Failed is the exception - a message that never reached the contact would be shown as sent -
+// so failed items are kept forever. Read is the most common terminal state so keeping it for a year rather than
+// forever is the bulk of the saving. These have to match courier which writes the same items for the statuses it
+// records.
+var msgStatusTagTTLs = map[MsgStatus]time.Duration{
+	MsgStatusWired:     90 * 24 * time.Hour,
+	MsgStatusSent:      90 * 24 * time.Hour,
+	MsgStatusDelivered: 90 * 24 * time.Hour,
+	MsgStatusErrored:   90 * 24 * time.Hour,
+	MsgStatusRead:      365 * 24 * time.Hour,
+	MsgStatusFailed:    eternity,
+}
+
 var eventPersistence = map[string]time.Duration{
 	events.TypeAirtimeCreated:         eternity,
 	events.TypeCallCreated:            eternity,
@@ -145,24 +160,33 @@ func (e *Event) MarshalDynamo() (*dynamo.Item, error) {
 	}, nil
 }
 
-// EventTag is a record of additional information associated with an existing event
+// EventTag is a record of additional information associated with an existing event. A tag without a qualifier is
+// a single item per event that later writes overwrite, whereas a qualified tag is one item per qualifier value so
+// writes for the same event can't clobber each other. TTL is nil for tags that should never expire.
 type EventTag struct {
 	OrgID       OrgID
 	ContactUUID core.ContactUUID
 	EventUUID   events.EventUUID
 	Tag         string
+	Qualifier   string
 	Data        map[string]any
+	TTL         *time.Time
 }
 
 // DynamoKey returns the PK+SK combo used for persistence
 func (t *EventTag) DynamoKey() dynamo.Key {
-	return dynamo.Key{PK: fmt.Sprintf("con#%s", t.ContactUUID), SK: fmt.Sprintf("evt#%s#%s", t.EventUUID, t.Tag)}
+	sk := fmt.Sprintf("evt#%s#%s", t.EventUUID, t.Tag)
+	if t.Qualifier != "" {
+		sk += "#" + t.Qualifier
+	}
+	return dynamo.Key{PK: fmt.Sprintf("con#%s", t.ContactUUID), SK: sk}
 }
 
 func (t *EventTag) MarshalDynamo() (*dynamo.Item, error) {
 	return &dynamo.Item{
 		Key:   t.DynamoKey(),
 		OrgID: int(t.OrgID),
+		TTL:   t.TTL,
 		Data:  t.Data,
 	}, nil
 }
@@ -198,21 +222,41 @@ var msgStatusNames = map[MsgStatus]string{
 
 // the client facing reasons for a status change, for the failure reasons that are recorded on the status tag rather
 // than as the originating event's unsendable_reason (those are set when the message is created, not when it fails).
+// No destination is both: a message created without one is unsendable from the start, but a failed message being
+// resent can also find it no longer has one, and that is a status change.
 var msgStatusReasons = map[MsgFailedReason]string{
 	MsgFailedErrorLimit:     "error_limit",
 	MsgFailedTooOld:         "too_old",
 	MsgFailedChannelRemoved: "channel_removed",
+	MsgFailedNoDestination:  "no_destination",
 }
 
-// NewMsgStatusTag creates the history-table event tag that records an outgoing message's status change. Like the
-// airtime equivalent it's keyed by the same UUID as the message's msg_created event and shares a sort key across
-// changes, so the latest overwrites, allowing clients to inject the current _status when rendering that event.
-// failedReason may be NilMsgFailedReason, and only the reasons in msgStatusReasons appear on the tag.
+// MsgStatusTagKey returns the key of the history item that NewMsgStatusTag writes for the given message and status,
+// for callers that need to delete one.
+func MsgStatusTagKey(contactUUID core.ContactUUID, msgUUID events.EventUUID, status MsgStatus) dynamo.Key {
+	t := &EventTag{ContactUUID: contactUUID, EventUUID: msgUUID, Tag: eventTagStatus, Qualifier: string(status)}
+	return t.DynamoKey()
+}
+
+// NewMsgStatusTag creates the history-table event tag that records an outgoing message's status change. It's keyed
+// by the same UUID as the message's msg_created event, qualified by the status, so each status a message reaches
+// is its own immutable item. Status changes for a message can be written by different instances (of this service
+// and of courier) which each batch their own writes and replay any that failed, so a write for an older status can
+// land after one for a newer status - overwriting a single item would then leave it showing the older status.
+// Readers reduce the items to the message's latest state using the status in the data, not the key. failedReason
+// may be NilMsgFailedReason, and only the reasons in msgStatusReasons appear on the tag.
 func NewMsgStatusTag(orgID OrgID, contactUUID core.ContactUUID, msgUUID events.EventUUID, status MsgStatus, failedReason MsgFailedReason) *EventTag {
-	data := map[string]any{"created_on": dates.Now(), "status": msgStatusNames[status]}
+	createdOn := dates.Now()
+	data := map[string]any{"created_on": createdOn, "status": msgStatusNames[status]}
 
 	if reason := msgStatusReasons[failedReason]; reason != "" {
 		data["reason"] = reason
+	}
+
+	var ttl *time.Time
+	if persistence := msgStatusTagTTLs[status]; persistence > 0 {
+		t := createdOn.Add(persistence)
+		ttl = &t
 	}
 
 	return &EventTag{
@@ -220,6 +264,8 @@ func NewMsgStatusTag(orgID OrgID, contactUUID core.ContactUUID, msgUUID events.E
 		ContactUUID: contactUUID,
 		EventUUID:   msgUUID,
 		Tag:         eventTagStatus,
+		Qualifier:   string(status),
 		Data:        data,
+		TTL:         ttl,
 	}
 }

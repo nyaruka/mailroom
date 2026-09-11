@@ -575,6 +575,10 @@ func CreateContact(ctx context.Context, db DB, oa *OrgAssets, userID UserID, nam
 		}
 	}
 
+	if err := checkContactLimit(ctx, oa, 1); err != nil {
+		return nil, nil, err
+	}
+
 	contactID, err := tryInsertContactAndURNs(ctx, db, oa.OrgID(), userID, name, language, status, urnz, NilChannelID)
 	if err != nil {
 		// always possible that another thread created a contact with these URNs after we checked above
@@ -583,6 +587,8 @@ func CreateContact(ctx context.Context, db DB, oa *OrgAssets, userID UserID, nam
 		}
 		return nil, nil, err
 	}
+
+	oa.contactsCreated(1)
 
 	// load a full contact so that we can calculate dynamic groups
 	mc, err := LoadContact(ctx, db, oa, contactID)
@@ -616,7 +622,7 @@ func GetOrCreateContact(ctx context.Context, db DB, oa *OrgAssets, userID UserID
 		return nil, nil, false, err
 	}
 
-	contactID, created, err := getOrCreateContact(ctx, db, oa.OrgID(), userID, urnz, channelID)
+	contactID, created, err := getOrCreateContact(ctx, db, oa, userID, urnz, channelID)
 	if err != nil {
 		return nil, nil, false, err
 	}
@@ -656,6 +662,18 @@ func GetOrCreateContactsFromURNs(ctx context.Context, db DB, oa *OrgAssets, user
 	owners, err := contactsFromURNs(ctx, db, oa, urnz)
 	if err != nil {
 		return nil, nil, fmt.Errorf("error looking up contacts for URNs: %w", err)
+	}
+
+	// count how many contacts we'd have to create and check up front that the org has room for all of them, so that
+	// we don't create some of them and then fail part way through
+	numMissing := 0
+	for _, contact := range owners {
+		if contact == nil {
+			numMissing++
+		}
+	}
+	if err := checkContactLimit(ctx, oa, numMissing); err != nil {
+		return nil, nil, err
 	}
 
 	fetched := make(map[urns.URN]*Contact, len(urnz))
@@ -741,7 +759,9 @@ func contactsFromURNs(ctx context.Context, db Queryer, oa *OrgAssets, urnz []urn
 	return byURN, nil
 }
 
-func getOrCreateContact(ctx context.Context, db DB, orgID OrgID, userID UserID, urnz []urns.URN, channelID ChannelID) (ContactID, bool, error) {
+func getOrCreateContact(ctx context.Context, db DB, oa *OrgAssets, userID UserID, urnz []urns.URN, channelID ChannelID) (ContactID, bool, error) {
+	orgID := oa.OrgID()
+
 	// find current owners of these URNs
 	owners, err := GetContactIDsFromURNs(ctx, db, orgID, urnz)
 	if err != nil {
@@ -755,8 +775,14 @@ func getOrCreateContact(ctx context.Context, db DB, orgID OrgID, userID UserID, 
 		return uniqueOwners[0], false, nil
 	}
 
+	// none of these URNs belong to an existing contact so we're about to create one
+	if err := checkContactLimit(ctx, oa, 1); err != nil {
+		return NilContactID, false, err
+	}
+
 	contactID, err := tryInsertContactAndURNs(ctx, db, orgID, userID, "", i18n.NilLanguage, ContactStatusActive, urnz, channelID)
 	if err == nil {
+		oa.contactsCreated(1)
 		return contactID, true, nil
 	}
 
@@ -779,6 +805,46 @@ func getOrCreateContact(ctx context.Context, db DB, orgID OrgID, userID UserID, 
 	}
 
 	return NilContactID, false, err
+}
+
+const sqlSelectOrgContactCount = `
+SELECT COALESCE(SUM(c.count), 0)
+  FROM contacts_contactgroup g
+ INNER JOIN contacts_contactgroupcount c ON c.group_id = g.id
+ WHERE g.org_id = $1 AND g.group_type IN ('A', 'B', 'S', 'V')`
+
+// gets the total number of contacts in the given org by summing the squashed counts of its status groups, which are
+// maintained by database triggers. Counts are stored as deltas which are periodically squashed so we have to sum them.
+func getOrgContactCount(ctx context.Context, db *sql.DB, orgID OrgID) (int, error) {
+	var count int
+	if err := db.QueryRowContext(ctx, sqlSelectOrgContactCount, orgID).Scan(&count); err != nil {
+		return 0, fmt.Errorf("error getting contact count for org #%d: %w", orgID, err)
+	}
+	return count, nil
+}
+
+// checks that the given org has room to create the given number of new contacts
+func checkContactLimit(ctx context.Context, oa *OrgAssets, num int) error {
+	// workspaces don't usually have an explicit limit, in which case we fall back to the configured default
+	limit := oa.Org().ContactLimit()
+	if limit == NoLimit {
+		limit = oa.rt.Config.DefaultContactLimit
+	}
+
+	if limit <= 0 || num == 0 {
+		return nil
+	}
+
+	count, err := oa.ContactCount(ctx)
+	if err != nil {
+		return fmt.Errorf("error getting contact count: %w", err)
+	}
+
+	if count+num > limit {
+		return &LimitReachedError{Limit: "contacts", Max: limit}
+	}
+
+	return nil
 }
 
 // utility to extract non-nil unique contact IDs from the given URN map

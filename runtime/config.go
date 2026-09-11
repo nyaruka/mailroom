@@ -2,14 +2,12 @@ package runtime
 
 import (
 	"encoding/hex"
-	"errors"
 	"fmt"
 	"log/slog"
 	"net"
 	"net/url"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/nyaruka/ezconf"
 	"github.com/nyaruka/gocommon/httpx"
 	"github.com/nyaruka/goflow/utils"
 )
@@ -43,6 +41,8 @@ type Config struct {
 	WorkersBatch     int     `help:"the number of workers for the batch task queue (set to 0 to disable processing of batch tasks on this node)"`
 	WorkersThrottled int     `help:"the number of workers for the throttled task queue (set to 0 to disable processing of throttled tasks on this node)"`
 	WorkerOwnerLimit float64 `help:"the maximum number of workers, across nodes, available to a single owner, as a fraction of the per node worker counts"`
+
+	DefaultContactLimit int `help:"the maximum number of contacts a workspace can have, when not set on the workspace itself, zero means no limit"`
 
 	WebhooksTimeout              int      `help:"the timeout in milliseconds for webhook calls from engine"`
 	WebhooksMaxRetries           int      `help:"the number of times to retry a failed webhook call"`
@@ -123,6 +123,8 @@ func NewDefaultConfig() *Config {
 		WorkersThrottled: 8,
 		WorkerOwnerLimit: 0.5,
 
+		DefaultContactLimit: 10_000_000,
+
 		WebhooksTimeout:              15000,
 		WebhooksMaxBodyBytes:         256 * 1024, // 256 KiB
 		WebhooksHealthyResponseLimit: 10000,
@@ -154,30 +156,10 @@ func NewDefaultConfig() *Config {
 	}
 }
 
-// LoadConfig loads configuration from a config file, environment variables and the given command line args, on top
-// of the given base config, e.g. NewDefaultConfig(). Args are passed in explicitly rather than read from os.Args
-// because commands with their own flags have to take those out of the command line first, see SplitArgs.
-func LoadConfig(c *Config, args []string) (*Config, error) {
-	loader := ezconf.NewLoader(c, "mailroom", "Mailroom - handler for RapidPro", []string{"mailroom.toml"})
-	loader.SetArgs(args...)
-	if err := loader.Load(); err != nil {
-		// Load never writes to stdout or stderr itself, so a request for usage comes back as ErrHelp for us to act
-		// on here, where we still have the loader to show it with. The sentinel is passed up unwrapped so that the
-		// caller can tell an explicit -help from a genuine config failure.
-		if errors.Is(err, ezconf.ErrHelp) {
-			loader.Usage()
-			return nil, err
-		}
-		return nil, fmt.Errorf("error loading configuration: %w", err)
-	}
-
-	if err := c.Parse(); err != nil {
-		return nil, err
-	}
-
-	return c, nil
-}
-
+// Parse validates the config and fills in the values which can't be used in the form they're configured in. It's
+// called by cmd.LoadConfig, and a config built by other means (e.g. NewDefaultConfig in a test) must be parsed before
+// being handed to NewRuntime - the values it fills in have no meaningful zero value, so skipping it would silently
+// leave the SSRF blocklist empty rather than fail.
 func (c *Config) Parse() error {
 	// ensure config is valid
 	if err := utils.Validate(c); err != nil {
