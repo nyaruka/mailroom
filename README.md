@@ -1,13 +1,8 @@
 # 📬 Mailroom
 
-[![tag](https://img.shields.io/github/tag/nyaruka/mailroom.svg)](https://github.com/nyaruka/mailroom/releases)
 [![Build Status](https://github.com/nyaruka/mailroom/workflows/CI/badge.svg)](https://github.com/nyaruka/mailroom/actions?query=workflow%3ACI)
 
-Task processor and web service for [RapidPro](https://rapidpro.io) and [TextIt](https://textit.com).
-
-## Deploying
-
-It compiles to a binary and can find bundles for each platform in the [releases directory](https://github.com/nyaruka/mailroom/releases).
+Task processing service for [RapidPro](https://rapidpro.io) and [TextIt](https://textit.com).
 
 ## Configuration
 
