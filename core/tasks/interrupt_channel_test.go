@@ -1,6 +1,8 @@
 package tasks_test
 
 import (
+	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -9,6 +11,7 @@ import (
 	"github.com/nyaruka/mailroom/v26/core/crons"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/tasks"
+	"github.com/nyaruka/mailroom/v26/runtime"
 	"github.com/nyaruka/mailroom/v26/testsuite"
 	"github.com/nyaruka/mailroom/v26/testsuite/testdb"
 	"github.com/stretchr/testify/assert"
@@ -58,6 +61,11 @@ func TestInterruptChannel(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE status = 'F' and failed_reason = 'R' and channel_id = $1`, testdb.TwilioChannel.ID).Returns(1)
 	assertdb.Query(t, rt.DB, `SELECT folder FROM msgs_msg WHERE id = $1`, out1.ID).Returns("X")
 
+	// and the failure is recorded in the contact's history
+	assert.Equal(t, map[string]string{
+		fmt.Sprintf("con#%s|evt#%s#sts#F", testdb.Ann.UUID, out1.UUID): "channel_removed",
+	}, getStatusTags(t, rt))
+
 	assertdb.Query(t, rt.DB, `SELECT status FROM flows_flowsession WHERE uuid = $1`, sessionUUID1).Returns("W")
 	assertdb.Query(t, rt.DB, `SELECT status FROM flows_flowsession WHERE uuid = $1`, sessionUUID2).Returns("W")
 	assertdb.Query(t, rt.DB, `SELECT status FROM flows_flowsession WHERE uuid = $1`, sessionUUID3).Returns("I")
@@ -86,6 +94,10 @@ func TestInterruptChannel(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE status = 'F' and channel_id = $1`, testdb.VonageChannel.ID).Returns(7)
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE status = 'F' and failed_reason = 'R' and channel_id = $1`, testdb.TwilioChannel.ID).Returns(1)
 
+	// every message failed this way has a status tag, including the errored ones which were retrying, and none of
+	// them expire
+	assert.Len(t, getStatusTags(t, rt), 7)
+
 	assertdb.Query(t, rt.DB, `SELECT status FROM flows_flowsession WHERE uuid = $1`, sessionUUID1).Returns("W")
 	assertdb.Query(t, rt.DB, `SELECT status FROM flows_flowsession WHERE uuid = $1`, sessionUUID2).Returns("I")
 	assertdb.Query(t, rt.DB, `SELECT status FROM flows_flowsession WHERE uuid = $1`, sessionUUID3).Returns("I")
@@ -104,4 +116,17 @@ func TestInterruptChannel(t *testing.T) {
 	var catModifiedOn2 time.Time
 	require.NoError(t, rt.DB.Get(&catModifiedOn2, `SELECT modified_on FROM contacts_contact WHERE id = $1`, testdb.Cat.ID))
 	assert.Greater(t, catModifiedOn2, catModifiedOn1)
+}
+
+// returns the message status tags in the history table as <PK>|<SK> to the reason recorded on each
+func getStatusTags(t *testing.T, rt *runtime.Runtime) map[string]string {
+	tags := make(map[string]string)
+	for _, item := range testsuite.GetHistoryItems(t, rt, false, time.Time{}) {
+		if strings.Contains(item.SK, "#sts#") {
+			assert.Nil(t, item.TTL, "status tag %s should not expire", item.SK)
+			assert.Equal(t, "failed", item.Data["status"])
+			tags[item.PK+"|"+item.SK], _ = item.Data["reason"].(string)
+		}
+	}
+	return tags
 }

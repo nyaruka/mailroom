@@ -222,10 +222,13 @@ var msgStatusNames = map[MsgStatus]string{
 
 // the client facing reasons for a status change, for the failure reasons that are recorded on the status tag rather
 // than as the originating event's unsendable_reason (those are set when the message is created, not when it fails).
+// No destination is both: a message created without one is unsendable from the start, but a failed message being
+// resent can also find it no longer has one, and that is a status change.
 var msgStatusReasons = map[MsgFailedReason]string{
 	MsgFailedErrorLimit:     "error_limit",
 	MsgFailedTooOld:         "too_old",
 	MsgFailedChannelRemoved: "channel_removed",
+	MsgFailedNoDestination:  "no_destination",
 }
 
 // NewMsgStatusTag creates the history-table event tag that records an outgoing message's status change. It's keyed

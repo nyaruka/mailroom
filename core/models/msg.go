@@ -2,7 +2,6 @@ package models
 
 import (
 	"context"
-	"database/sql"
 	"database/sql/driver"
 	"encoding/json"
 	"errors"
@@ -794,13 +793,16 @@ UPDATE msgs_msg m
  WHERE m.id = r.id AND m.visibility = 'V'`
 
 const sqlUpdateMsgResendFailed = `
-UPDATE msgs_msg m
-   SET channel_id = NULL, status = 'F', folder = 'X', error_count = 0, failed_reason = 'D', sent_on = NULL, modified_on = NOW()
- WHERE id = ANY($1) AND visibility = 'V'`
+   UPDATE msgs_msg m
+      SET channel_id = NULL, status = 'F', folder = 'X', error_count = 0, failed_reason = 'D', sent_on = NULL, modified_on = NOW()
+    WHERE id = ANY($1) AND visibility = 'V'
+RETURNING uuid`
 
 // PrepareMessagesForResend prepares messages for resending by reselecting a channel and marking them as QUEUED,
-// ignoring any which are no longer visible
-func PrepareMessagesForResend(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, msgs []*Msg) ([]*MsgOut, error) {
+// ignoring any which are no longer visible. Messages which can't be resent because they no longer have a
+// destination are failed again, and an event tag recording that is returned for each one to be queued to the
+// history table by the caller.
+func PrepareMessagesForResend(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, msgs []*Msg) ([]*MsgOut, []*EventTag, error) {
 	channels := oa.SessionAssets().Channels()
 
 	contactIDs := make([]ContactID, len(msgs))
@@ -810,12 +812,13 @@ func PrepareMessagesForResend(ctx context.Context, rt *runtime.Runtime, oa *OrgA
 
 	contactsByID, err := loadContactsForSending(ctx, rt.DB, contactIDs)
 	if err != nil {
-		return nil, fmt.Errorf("error looking up contacts for retries: %w", err)
+		return nil, nil, fmt.Errorf("error looking up contacts for retries: %w", err)
 	}
 
 	// for the bulk db updates
 	resends := make([]any, 0, len(msgs))
 	refails := make([]MsgID, 0, len(msgs))
+	refailContacts := make(map[events.EventUUID]core.ContactUUID, len(msgs))
 
 	resent := make([]*MsgOut, 0, len(msgs))
 
@@ -835,13 +838,13 @@ func PrepareMessagesForResend(ctx context.Context, rt *runtime.Runtime, oa *OrgA
 			// reselect channel for this message's URN
 			cu, err = LoadContactURN(ctx, rt.DB, urnID)
 			if err != nil {
-				return nil, fmt.Errorf("error loading URN: %w", err)
+				return nil, nil, fmt.Errorf("error loading URN: %w", err)
 			}
 
 			urn, _ := cu.Encode(oa)
 			fu, err := core.ParseURN(channels, urn, assets.IgnoreMissing)
 			if err != nil {
-				return nil, fmt.Errorf("error parsing URN: %w", err)
+				return nil, nil, fmt.Errorf("error parsing URN: %w", err)
 			}
 
 			if fch := channels.GetForURN(fu, assets.ChannelRoleSend); fch != nil {
@@ -874,48 +877,69 @@ func PrepareMessagesForResend(ctx context.Context, rt *runtime.Runtime, oa *OrgA
 			msg.m.FailedReason = MsgFailedNoDestination
 
 			refails = append(refails, MsgID(msg.m.ID))
+			refailContacts[msg.UUID()] = contactsByID[msg.m.ContactID].UUID()
 		}
 	}
 
 	// update the messages that can be resent
 	if err := BulkQuery(ctx, "updating messages for resending", rt.DB, sqlUpdateMsgForResending, resends); err != nil {
-		return nil, fmt.Errorf("error updating messages for resending: %w", err)
+		return nil, nil, fmt.Errorf("error updating messages for resending: %w", err)
 	}
 
-	// and update the messages that can't be
-	_, err = rt.DB.ExecContext(ctx, sqlUpdateMsgResendFailed, pq.Array(refails))
-	if err != nil {
-		return nil, fmt.Errorf("error updating non-resendable messages: %w", err)
+	// and update the messages that can't be, recording each failure in the contact's history
+	var refailed []events.EventUUID
+	if err := rt.DB.SelectContext(ctx, &refailed, sqlUpdateMsgResendFailed, pq.Array(refails)); err != nil {
+		return nil, nil, fmt.Errorf("error updating non-resendable messages: %w", err)
 	}
 
-	return resent, nil
+	tags := make([]*EventTag, len(refailed))
+	for i, msgUUID := range refailed {
+		tags[i] = NewMsgStatusTag(oa.OrgID(), refailContacts[msgUUID], msgUUID, MsgStatusFailed, MsgFailedNoDestination)
+	}
+
+	return resent, tags, nil
 }
 
 // selects by folder rather than direction/status/visibility so that it's served by the folder index (org, folder, uuid)
 // rather than a scan of everything the channel ever sent - the outbox folder is exactly the visible outgoing messages
 // still to be sent. The failed folder is hardcoded because, like sqlUpdateMsgForResending, it follows from the status
-// alone for such a message.
+// alone for such a message. The join to contacts_contact is only for the contact UUID needed by the event tags.
 const sqlFailChannelMessages = `
 WITH rows AS (
 	SELECT id FROM msgs_msg
 	WHERE org_id = $1 AND folder = 'O' AND channel_id = $2
 	LIMIT 1000
 )
-UPDATE msgs_msg SET status = 'F', folder = 'X', failed_reason = $3, modified_on = NOW() WHERE id IN (SELECT id FROM rows)`
+   UPDATE msgs_msg SET status = 'F', folder = 'X', failed_reason = $3, modified_on = NOW()
+     FROM rows, contacts_contact c
+    WHERE msgs_msg.id = rows.id AND c.id = msgs_msg.contact_id
+RETURNING msgs_msg.uuid AS msg_uuid, c.uuid AS contact_uuid`
 
-func FailChannelMessages(ctx context.Context, db *sql.DB, orgID OrgID, channelID ChannelID, failedReason MsgFailedReason) error {
+// FailChannelMessages fails all the messages still waiting to be sent on the given channel, in batches until there
+// are none left. It returns an event tag recording the change for each message failed, to be queued to the history
+// table by the caller, because nothing else records these transitions.
+func FailChannelMessages(ctx context.Context, db DBorTx, orgID OrgID, channelID ChannelID, failedReason MsgFailedReason) ([]*EventTag, error) {
+	tags := make([]*EventTag, 0, 100)
+
 	for {
-		// and update the messages as FAILED
-		res, err := db.ExecContext(ctx, sqlFailChannelMessages, orgID, channelID, failedReason)
-		if err != nil {
-			return err
+		rows := []*struct {
+			MsgUUID     events.EventUUID `db:"msg_uuid"`
+			ContactUUID core.ContactUUID `db:"contact_uuid"`
+		}{}
+
+		if err := db.SelectContext(ctx, &rows, sqlFailChannelMessages, orgID, channelID, failedReason); err != nil {
+			return nil, fmt.Errorf("error failing channel messages: %w", err)
 		}
-		rows, _ := res.RowsAffected()
-		if rows == 0 {
+		if len(rows) == 0 {
 			break
 		}
+
+		for _, r := range rows {
+			tags = append(tags, NewMsgStatusTag(orgID, r.ContactUUID, r.MsgUUID, MsgStatusFailed, failedReason))
+		}
 	}
-	return nil
+
+	return tags, nil
 }
 
 // the WHERE on the update repeats the status and visibility checks from the CTE so that a message which was sent,

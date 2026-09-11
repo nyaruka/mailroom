@@ -39,12 +39,19 @@ func handleResend(ctx context.Context, rt *runtime.Runtime, r *resendRequest) (a
 		return nil, 0, fmt.Errorf("error loading messages to resend: %w", err)
 	}
 
-	resends, err := models.PrepareMessagesForResend(ctx, rt, oa, msgs)
+	resends, tags, err := models.PrepareMessagesForResend(ctx, rt, oa, msgs)
 	if err != nil {
 		return nil, 0, fmt.Errorf("error resending messages: %w", err)
 	}
 
 	msgio.QueueMessages(ctx, rt, resends)
+
+	// record the messages that failed again in their contacts' history
+	for _, tag := range tags {
+		if _, err := rt.Dynamo.History.Queue(tag); err != nil {
+			return nil, 0, fmt.Errorf("error queuing status tag to writer: %w", err)
+		}
+	}
 
 	// response is the UUIDs of the messages that were actually resent
 	resentUUIDs := make([]events.EventUUID, len(resends))

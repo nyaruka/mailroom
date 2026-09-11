@@ -56,9 +56,16 @@ func (t *InterruptChannel) Perform(ctx context.Context, rt *runtime.Runtime, oa 
 		return fmt.Errorf("error clearing courier queues: %w", err)
 	}
 
-	err = models.FailChannelMessages(ctx, rt.DB.DB, oa.OrgID(), t.ChannelID, models.MsgFailedChannelRemoved)
+	tags, err := models.FailChannelMessages(ctx, rt.DB, oa.OrgID(), t.ChannelID, models.MsgFailedChannelRemoved)
 	if err != nil {
 		return fmt.Errorf("error failing channel messages: %w", err)
+	}
+
+	// record each failure in the contact's history so that clients rendering the message see it as failed
+	for _, tag := range tags {
+		if _, err := rt.Dynamo.History.Queue(tag); err != nil {
+			return fmt.Errorf("error queuing status tag to writer: %w", err)
+		}
 	}
 
 	return nil

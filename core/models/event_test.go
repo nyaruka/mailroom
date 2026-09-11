@@ -209,12 +209,12 @@ func TestNewMsgStatusTag(t *testing.T) {
 		}
 	}
 
-	// only the failure reasons which aren't already recorded on the originating event get a reason
+	// only the failure reasons which can be set after the message is created get a reason
 	reasons := map[models.MsgFailedReason]string{
 		models.MsgFailedErrorLimit:     "error_limit",
 		models.MsgFailedTooOld:         "too_old",
 		models.MsgFailedChannelRemoved: "channel_removed",
-		models.MsgFailedNoDestination:  "",
+		models.MsgFailedNoDestination:  "no_destination",
 		models.MsgFailedContact:        "",
 		models.MsgFailedSuspended:      "",
 		models.MsgFailedLooping:        "",
