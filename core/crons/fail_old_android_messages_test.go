@@ -59,13 +59,14 @@ func TestFailOldAndroidMessages(t *testing.T) {
 		t.Helper()
 
 		item, err := dynamo.GetItem(ctx, rt.Dynamo.History.Client(), rt.Dynamo.History.Table(),
-			dynamo.Key{PK: fmt.Sprintf("con#%s", contactUUID), SK: fmt.Sprintf("evt#%s#sts", msgUUID)})
+			dynamo.Key{PK: fmt.Sprintf("con#%s", contactUUID), SK: fmt.Sprintf("evt#%s#sts#F", msgUUID)})
 		require.NoError(t, err)
 
 		if assert.NotNil(t, item, "no status tag written for msg %s", msgUUID) {
 			assert.Equal(t, int(testdb.Org1.ID), item.OrgID)
 			assert.Equal(t, "failed", item.Data["status"])
 			assert.Equal(t, "too_old", item.Data["reason"])
+			assert.Nil(t, item.TTL, "failed status items are kept forever")
 		}
 	}
 
