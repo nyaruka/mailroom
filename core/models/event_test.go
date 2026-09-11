@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
+	"github.com/nyaruka/gocommon/aws/dynamo"
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/core"
@@ -209,12 +210,12 @@ func TestNewMsgStatusTag(t *testing.T) {
 		}
 	}
 
-	// only the failure reasons which aren't already recorded on the originating event get a reason
+	// only the failure reasons which can be set after the message is created get a reason
 	reasons := map[models.MsgFailedReason]string{
 		models.MsgFailedErrorLimit:     "error_limit",
 		models.MsgFailedTooOld:         "too_old",
 		models.MsgFailedChannelRemoved: "channel_removed",
-		models.MsgFailedNoDestination:  "",
+		models.MsgFailedNoDestination:  "no_destination",
 		models.MsgFailedContact:        "",
 		models.MsgFailedSuspended:      "",
 		models.MsgFailedLooping:        "",
@@ -230,6 +231,15 @@ func TestNewMsgStatusTag(t *testing.T) {
 			assert.Equal(t, expected, tag.Data["reason"], "unexpected reason for failed reason %q", failedReason)
 		}
 	}
+}
+
+func TestMsgStatusTagKey(t *testing.T) {
+	// the key matches what NewMsgStatusTag writes for the same status, so it can be used to delete that item
+	key := models.MsgStatusTagKey(testdb.Ann.UUID, "0197b335-6ded-79a4-95a6-3af85b57f108", models.MsgStatusErrored)
+	assert.Equal(t, dynamo.Key{PK: "con#" + string(testdb.Ann.UUID), SK: "evt#0197b335-6ded-79a4-95a6-3af85b57f108#sts#E"}, key)
+
+	tag := models.NewMsgStatusTag(testdb.Org1.ID, testdb.Ann.UUID, "0197b335-6ded-79a4-95a6-3af85b57f108", models.MsgStatusErrored, models.NilMsgFailedReason)
+	assert.Equal(t, tag.DynamoKey(), key)
 }
 
 func TestEventTags(t *testing.T) {

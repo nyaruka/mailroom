@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/nyaruka/gocommon/aws/dynamo"
 	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/gocommon/i18n"
@@ -349,7 +350,7 @@ func TestResendMessages(t *testing.T) {
 	require.NoError(t, err)
 
 	// resend both msgs
-	resent, err := models.PrepareMessagesForResend(ctx, rt, oa, msgs)
+	resent, tags, deletes, err := models.PrepareMessagesForResend(ctx, rt, oa, msgs)
 	require.NoError(t, err)
 
 	assert.Len(t, resent, 3) // only #1, #2 and #3 can be resent
@@ -377,16 +378,44 @@ func TestResendMessages(t *testing.T) {
 
 	// the deleted message is left in the deleted folder rather than being resurrected
 	assertdb.Query(t, rt.DB, `SELECT status, folder, visibility FROM msgs_msg WHERE id = $1`, out6.ID).Columns(map[string]any{"status": "F", "folder": "D", "visibility": "D"})
+
+	// the messages which failed again are tagged as such in their contacts' history, but not the deleted one
+	byMsg := make(map[events.EventUUID]*models.EventTag, len(tags))
+	for _, tag := range tags {
+		byMsg[tag.EventUUID] = tag
+	}
+	assert.ElementsMatch(t, []events.EventUUID{out4.UUID, out5.UUID}, slices.Collect(maps.Keys(byMsg)))
+
+	if assert.Contains(t, byMsg, events.EventUUID(out5.UUID)) {
+		tag := byMsg[out5.UUID]
+		assert.Equal(t, testdb.Org1.ID, tag.OrgID)
+		assert.Equal(t, testdb.Cat.UUID, tag.ContactUUID)
+		assert.Equal(t, "sts", tag.Tag)
+		assert.Equal(t, "F", tag.Qualifier)
+		assert.Equal(t, "failed", tag.Data["status"])
+		assert.Equal(t, "no_destination", tag.Data["reason"])
+		assert.Nil(t, tag.TTL)
+	}
+
+	// and the messages being resent have the failed and errored items from their previous attempt deleted
+	assert.ElementsMatch(t, []dynamo.Key{
+		{PK: "con#" + string(testdb.Ann.UUID), SK: "evt#" + string(out1.UUID) + "#sts#F"},
+		{PK: "con#" + string(testdb.Ann.UUID), SK: "evt#" + string(out1.UUID) + "#sts#E"},
+		{PK: "con#" + string(testdb.Bob.UUID), SK: "evt#" + string(out2.UUID) + "#sts#F"},
+		{PK: "con#" + string(testdb.Bob.UUID), SK: "evt#" + string(out2.UUID) + "#sts#E"},
+		{PK: "con#" + string(testdb.Ann.UUID), SK: "evt#" + string(out3.UUID) + "#sts#F"},
+		{PK: "con#" + string(testdb.Ann.UUID), SK: "evt#" + string(out3.UUID) + "#sts#E"},
+	}, deletes)
 }
 
 func TestFailMessages(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	testdb.InsertOutgoingMsg(t, rt, testdb.Org1, "0199bad8-f98d-75a3-b641-2718a25ac3f5", testdb.TwilioChannel, testdb.Ann, "hi", nil, models.MsgStatusQueued, false)
-	testdb.InsertOutgoingMsg(t, rt, testdb.Org1, "0199bad9-9791-770d-a47d-8f4a6ea3ad13", testdb.TwilioChannel, testdb.Bob, "hi", nil, models.MsgStatusErrored, false)
+	out1 := testdb.InsertOutgoingMsg(t, rt, testdb.Org1, "0199bad8-f98d-75a3-b641-2718a25ac3f5", testdb.TwilioChannel, testdb.Ann, "hi", nil, models.MsgStatusQueued, false)
+	out2 := testdb.InsertOutgoingMsg(t, rt, testdb.Org1, "0199bad9-9791-770d-a47d-8f4a6ea3ad13", testdb.TwilioChannel, testdb.Bob, "hi", nil, models.MsgStatusErrored, false)
 	out3 := testdb.InsertOutgoingMsg(t, rt, testdb.Org1, "0199bb93-ec0f-703e-9b5b-d26d4b6b133c", testdb.TwilioChannel, testdb.Ann, "hi", nil, models.MsgStatusFailed, false)
-	testdb.InsertOutgoingMsg(t, rt, testdb.Org1, "0199bb94-1134-75d6-91dc-8aee7787f703", testdb.TwilioChannel, testdb.Ann, "hi", nil, models.MsgStatusQueued, false)
-	testdb.InsertOutgoingMsg(t, rt, testdb.Org1, "0199bb96-3c4c-72f2-bacc-4b6ae4c592b3", testdb.TwilioChannel, testdb.Cat, "hi", nil, models.MsgStatusQueued, false)
+	out4 := testdb.InsertOutgoingMsg(t, rt, testdb.Org1, "0199bb94-1134-75d6-91dc-8aee7787f703", testdb.TwilioChannel, testdb.Ann, "hi", nil, models.MsgStatusQueued, false)
+	out5 := testdb.InsertOutgoingMsg(t, rt, testdb.Org1, "0199bb96-3c4c-72f2-bacc-4b6ae4c592b3", testdb.TwilioChannel, testdb.Cat, "hi", nil, models.MsgStatusQueued, false)
 
 	// a message which never made it into courier's queue
 	out6 := testdb.InsertOutgoingMsg(t, rt, testdb.Org1, "0199bb97-6d69-7e33-9f9e-1bd9dbd9f68e", testdb.TwilioChannel, testdb.Ann, "hi", nil, models.MsgStatusInitializing, false)
@@ -397,9 +426,21 @@ func TestFailMessages(t *testing.T) {
 
 	now := dates.Now()
 
-	// fail the msgs
-	err := models.FailChannelMessages(ctx, rt.DB.DB, testdb.Org1.ID, testdb.TwilioChannel.ID, models.MsgFailedChannelRemoved)
+	// messages are failed in batches of the given size
+	tags1, err := models.FailChannelMessages(ctx, rt.DB, testdb.Org1.ID, testdb.TwilioChannel.ID, models.MsgFailedChannelRemoved, 3)
 	require.NoError(t, err)
+	assert.Len(t, tags1, 3)
+
+	tags2, err := models.FailChannelMessages(ctx, rt.DB, testdb.Org1.ID, testdb.TwilioChannel.ID, models.MsgFailedChannelRemoved, 3)
+	require.NoError(t, err)
+	assert.Len(t, tags2, 2)
+
+	// and then there's nothing left to fail
+	tags3, err := models.FailChannelMessages(ctx, rt.DB, testdb.Org1.ID, testdb.TwilioChannel.ID, models.MsgFailedChannelRemoved, 3)
+	require.NoError(t, err)
+	assert.Len(t, tags3, 0)
+
+	tags := append(tags1, tags2...)
 
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE status = 'F' AND modified_on > $1`, now).Returns(5)
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE status = 'F' AND failed_reason = 'R' AND modified_on > $1`, now).Returns(5)
@@ -411,6 +452,24 @@ func TestFailMessages(t *testing.T) {
 
 	// but the deleted one is left alone
 	assertdb.Query(t, rt.DB, `SELECT status, folder FROM msgs_msg WHERE id = $1`, out7.ID).Columns(map[string]any{"status": "Q", "folder": "D"})
+
+	// each failure is tagged against the message's own event, for the message's contact
+	byMsg := make(map[events.EventUUID]*models.EventTag, len(tags))
+	for _, tag := range tags {
+		byMsg[tag.EventUUID] = tag
+	}
+	assert.ElementsMatch(t, []events.EventUUID{out1.UUID, out2.UUID, out4.UUID, out5.UUID, out6.UUID}, slices.Collect(maps.Keys(byMsg)))
+
+	if assert.Contains(t, byMsg, events.EventUUID(out2.UUID)) {
+		tag := byMsg[out2.UUID]
+		assert.Equal(t, testdb.Org1.ID, tag.OrgID)
+		assert.Equal(t, testdb.Bob.UUID, tag.ContactUUID)
+		assert.Equal(t, "sts", tag.Tag)
+		assert.Equal(t, "F", tag.Qualifier)
+		assert.Equal(t, "failed", tag.Data["status"])
+		assert.Equal(t, "channel_removed", tag.Data["reason"])
+		assert.Nil(t, tag.TTL)
+	}
 }
 
 func TestFailOldAndroidMessages(t *testing.T) {
