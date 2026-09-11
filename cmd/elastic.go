@@ -26,9 +26,9 @@ const indexBatchSize = 500
 const elasticUsage = "usage: mrelastic [flags] <verb> <target> where valid combinations are 'index contacts', 'index messages' and 'prune contacts'"
 
 // Elastic is the entry point for the mrelastic command which manages the search indexes. Unlike Service, it loads
-// the configuration itself, on top of the given defaults, e.g. runtime.NewDefaultConfig(), because its own flags
+// the configuration itself, on top of the given base config, e.g. runtime.NewDefaultConfig(), because its own flags
 // have to come out of the command line before the rest of it can be loaded.
-func Elastic(defaults *runtime.Config) error {
+func Elastic(cfg *runtime.Config) error {
 	// our own flags have to come out of the command line before the rest of it is loaded as configuration
 	flags := flag.NewFlagSet("mrelastic", flag.ContinueOnError)
 	flags.SetOutput(io.Discard) // we report parse errors ourselves rather than having them printed with usage
@@ -48,10 +48,9 @@ func Elastic(defaults *runtime.Config) error {
 		fmt.Fprintln(os.Stderr)
 	}
 
-	if err := loadConfig(defaults, cfgArgs); err != nil {
+	if err := loadConfig(cfg, cfgArgs); err != nil {
 		return err
 	}
-	cfg := defaults
 
 	// only output ERROR logs
 	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelError})))
