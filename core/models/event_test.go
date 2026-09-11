@@ -99,7 +99,9 @@ func TestEventTagToDynamo(t *testing.T) {
 	tcs := []struct {
 		EventUUID events.EventUUID `json:"event_uuid"`
 		Tag       string           `json:"tag"`
+		Qualifier string           `json:"qualifier,omitempty"`
 		Data      map[string]any   `json:"data"`
+		TTL       *time.Time       `json:"ttl,omitempty"`
 		Dynamo    json.RawMessage  `json:"dynamo"`
 	}{}
 
@@ -112,7 +114,9 @@ func TestEventTagToDynamo(t *testing.T) {
 			ContactUUID: testdb.Ann.UUID,
 			EventUUID:   tc.EventUUID,
 			Tag:         tc.Tag,
+			Qualifier:   tc.Qualifier,
 			Data:        tc.Data,
+			TTL:         tc.TTL,
 		}
 
 		actual := tc
@@ -142,27 +146,67 @@ func TestEventTagToDynamo(t *testing.T) {
 }
 
 func TestNewMsgStatusTag(t *testing.T) {
-	// every status a message can be in when we tag it must map to a non-empty external name (consumed as the
-	// event's _status by clients) - an unmapped one would silently write `"status": ""` and render as an empty
-	// badge with no error. These names are shared with courier, which writes the same tag for the statuses it
-	// records, so they can't be changed on one side alone.
-	names := map[models.MsgStatus]string{
-		models.MsgStatusWired:     "wired",
-		models.MsgStatusSent:      "sent",
-		models.MsgStatusDelivered: "delivered",
-		models.MsgStatusRead:      "read",
-		models.MsgStatusErrored:   "errored",
-		models.MsgStatusFailed:    "failed",
+	reset := test.MockUniverse()
+	defer reset()
+
+	// each status is its own item, keyed by the status code, so that writes for the same message from different
+	// instances can't overwrite each other. Non-terminal statuses expire after 90 days, read after a year and
+	// failed never - a message with no status items is rendered as sent, so only failed would be misrepresented.
+	tag := models.NewMsgStatusTag(testdb.Org1.ID, testdb.Ann.UUID, "0197b335-6ded-79a4-95a6-3af85b57f108", models.MsgStatusSent, models.NilMsgFailedReason)
+	assert.Equal(t, testdb.Org1.ID, tag.OrgID)
+	assert.Equal(t, testdb.Ann.UUID, tag.ContactUUID)
+	assert.Equal(t, events.EventUUID("0197b335-6ded-79a4-95a6-3af85b57f108"), tag.EventUUID)
+	assert.Equal(t, "sts", tag.Tag)
+	assert.Equal(t, "S", tag.Qualifier)
+	assert.Equal(t, "evt#0197b335-6ded-79a4-95a6-3af85b57f108#sts#S", tag.DynamoKey().SK)
+	assert.Equal(t, map[string]any{
+		"created_on": time.Date(2025, time.May, 4, 12, 30, 45, 123456789, time.UTC),
+		"status":     "sent",
+	}, tag.Data)
+	if assert.NotNil(t, tag.TTL) {
+		assert.Equal(t, time.Date(2025, time.August, 2, 12, 30, 45, 123456789, time.UTC), *tag.TTL) // created_on + 90 days
 	}
 
-	for status, name := range names {
+	tag = models.NewMsgStatusTag(testdb.Org1.ID, testdb.Ann.UUID, "0197b335-6ded-79a4-95a6-3af85b57f108", models.MsgStatusFailed, models.MsgFailedTooOld)
+	assert.Equal(t, "sts", tag.Tag)
+	assert.Equal(t, "F", tag.Qualifier)
+	assert.Equal(t, "evt#0197b335-6ded-79a4-95a6-3af85b57f108#sts#F", tag.DynamoKey().SK)
+	assert.Equal(t, map[string]any{
+		"created_on": time.Date(2025, time.May, 4, 12, 30, 46, 123456789, time.UTC),
+		"status":     "failed",
+		"reason":     "too_old",
+	}, tag.Data)
+	assert.Nil(t, tag.TTL)
+
+	// every status a message can be in when we tag it must map to a non-empty external name (consumed as the
+	// event's _status by clients) - an unmapped one would silently write `"status": ""` and render as an empty
+	// badge with no error. These names, and the TTLs, are shared with courier, which writes the same items for the
+	// statuses it records, so they can't be changed on one side alone.
+	statuses := map[models.MsgStatus]struct {
+		name string
+		ttl  time.Duration
+	}{
+		models.MsgStatusWired:     {"wired", 90 * 24 * time.Hour},
+		models.MsgStatusSent:      {"sent", 90 * 24 * time.Hour},
+		models.MsgStatusDelivered: {"delivered", 90 * 24 * time.Hour},
+		models.MsgStatusRead:      {"read", 365 * 24 * time.Hour},
+		models.MsgStatusErrored:   {"errored", 90 * 24 * time.Hour},
+		models.MsgStatusFailed:    {"failed", 0},
+	}
+
+	for status, expected := range statuses {
 		tag := models.NewMsgStatusTag(testdb.Org1.ID, testdb.Ann.UUID, "0197b335-6ded-79a4-95a6-3af85b57f108", status, models.NilMsgFailedReason)
-		assert.Equal(t, testdb.Org1.ID, tag.OrgID)
-		assert.Equal(t, testdb.Ann.UUID, tag.ContactUUID)
-		assert.Equal(t, events.EventUUID("0197b335-6ded-79a4-95a6-3af85b57f108"), tag.EventUUID)
 		assert.Equal(t, "sts", tag.Tag)
-		assert.Equal(t, name, tag.Data["status"], "unexpected name for status %q", status)
+		assert.Equal(t, string(status), tag.Qualifier)
+		assert.Equal(t, "evt#0197b335-6ded-79a4-95a6-3af85b57f108#sts#"+string(status), tag.DynamoKey().SK)
+		assert.Equal(t, expected.name, tag.Data["status"], "unexpected name for status %q", status)
 		assert.NotContains(t, tag.Data, "reason")
+
+		if expected.ttl == 0 {
+			assert.Nil(t, tag.TTL, "unexpected TTL for status %q", status)
+		} else if assert.NotNil(t, tag.TTL, "expected TTL for status %q", status) {
+			assert.Equal(t, tag.Data["created_on"].(time.Time).Add(expected.ttl), *tag.TTL, "unexpected TTL for status %q", status)
+		}
 	}
 
 	// only the failure reasons which aren't already recorded on the originating event get a reason
@@ -211,8 +255,12 @@ func TestEventTags(t *testing.T) {
 		"by_contact": true,
 	}, tag.Data)
 
+	// airtime status tags are unchanged: a single unqualified item per transfer that the latest change overwrites
 	tag = models.NewAirtimeStatusTag(testdb.Org1.ID, testdb.Ann.UUID, "0197b335-6ded-79a4-95a6-3af85b57f108", models.AirtimeTransferStatusCompleted)
 	assert.Equal(t, "sts", tag.Tag)
+	assert.Equal(t, "", tag.Qualifier)
+	assert.Equal(t, "evt#0197b335-6ded-79a4-95a6-3af85b57f108#sts", tag.DynamoKey().SK)
+	assert.Nil(t, tag.TTL)
 	assert.Equal(t, map[string]any{
 		"created_on": time.Date(2025, time.May, 4, 12, 30, 47, 123456789, time.UTC),
 		"status":     "completed",
