@@ -1,13 +1,21 @@
 package msg_test
 
 import (
+	"fmt"
+	"net/http"
+	"strings"
+	"sync"
 	"testing"
 	"time"
 
+	"github.com/nyaruka/gocommon/aws/dynamo"
+	"github.com/nyaruka/gocommon/aws/dynamo/dyntest"
 	"github.com/nyaruka/goflow/core"
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/testsuite"
 	"github.com/nyaruka/mailroom/v26/testsuite/testdb"
+	"github.com/nyaruka/mailroom/v26/web"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -103,6 +111,62 @@ func TestResend(t *testing.T) {
 	rt.DB.MustExec(`UPDATE msgs_msg SET contact_urn_id = NULL WHERE id = $1`, catOut.ID)
 
 	testsuite.RunWebTests(t, rt, "testdata/resend.json")
+}
+
+func TestResendClearsPreviousStatus(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	// a message which errored, then failed, and one which failed because it has no URN
+	bobOut := testdb.InsertOutgoingMsg(t, rt, testdb.Org1, "0199bb93-ec0f-703e-9b5b-d26d4b6b133c", testdb.VonageChannel, testdb.Bob, "this failed", nil, models.MsgStatusFailed, false)
+	catOut := testdb.InsertOutgoingMsg(t, rt, testdb.Org1, "0199bb94-1134-75d6-91dc-8aee7787f703", testdb.VonageChannel, testdb.Cat, "no URN", nil, models.MsgStatusFailed, false)
+	rt.DB.MustExec(`UPDATE msgs_msg SET contact_urn_id = NULL WHERE id = $1`, catOut.ID)
+
+	for _, tag := range []*models.EventTag{
+		models.NewMsgStatusTag(testdb.Org1.ID, testdb.Bob.UUID, bobOut.UUID, models.MsgStatusErrored, models.NilMsgFailedReason),
+		models.NewMsgStatusTag(testdb.Org1.ID, testdb.Bob.UUID, bobOut.UUID, models.MsgStatusFailed, models.MsgFailedErrorLimit),
+		models.NewMsgStatusTag(testdb.Org1.ID, testdb.Cat.UUID, catOut.UUID, models.MsgStatusFailed, models.MsgFailedErrorLimit),
+	} {
+		_, err := rt.Dynamo.History.Queue(tag)
+		require.NoError(t, err)
+	}
+	rt.Dynamo.History.Flush()
+	dyntest.AssertCount(t, rt.Dynamo.History.Client(), rt.Dynamo.History.Table(), 3)
+
+	wg := &sync.WaitGroup{}
+	server := web.NewServer(ctx, rt, wg)
+	server.Start()
+	defer server.Stop()
+
+	time.Sleep(100 * time.Millisecond) // give server time to start
+
+	body := fmt.Sprintf(`{"org_id": 1, "msg_uuids": ["%s", "%s"]}`, bobOut.UUID, catOut.UUID)
+	req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("http://localhost:%d/mi/msg/resend", rt.Config.InternalPort), strings.NewReader(body))
+	require.NoError(t, err)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	rt.Dynamo.History.Flush()
+
+	getStatusItem := func(contactUUID core.ContactUUID, msgUUID events.EventUUID, status models.MsgStatus) *dynamo.Item {
+		item, err := dynamo.GetItem(ctx, rt.Dynamo.History.Client(), rt.Dynamo.History.Table(), models.MsgStatusTagKey(contactUUID, msgUUID, status))
+		require.NoError(t, err)
+		return item
+	}
+
+	// the resent message's previous statuses are gone so the new attempt's will show
+	assert.Nil(t, getStatusItem(testdb.Bob.UUID, bobOut.UUID, models.MsgStatusErrored))
+	assert.Nil(t, getStatusItem(testdb.Bob.UUID, bobOut.UUID, models.MsgStatusFailed))
+
+	// whereas the message that couldn't be resent has its failed item replaced with one for the new failure
+	if item := getStatusItem(testdb.Cat.UUID, catOut.UUID, models.MsgStatusFailed); assert.NotNil(t, item) {
+		assert.Equal(t, "failed", item.Data["status"])
+		assert.Equal(t, "no_destination", item.Data["reason"])
+	}
+	dyntest.AssertCount(t, rt.Dynamo.History.Client(), rt.Dynamo.History.Table(), 1)
 }
 
 func TestBroadcast(t *testing.T) {

@@ -13,6 +13,7 @@ import (
 
 	valkey "github.com/gomodule/redigo/redis"
 	"github.com/lib/pq"
+	"github.com/nyaruka/gocommon/aws/dynamo"
 	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/dbutil"
 	"github.com/nyaruka/gocommon/gsm7"
@@ -800,9 +801,15 @@ RETURNING uuid`
 
 // PrepareMessagesForResend prepares messages for resending by reselecting a channel and marking them as QUEUED,
 // ignoring any which are no longer visible. Messages which can't be resent because they no longer have a
-// destination are failed again, and an event tag recording that is returned for each one to be queued to the
-// history table by the caller.
-func PrepareMessagesForResend(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, msgs []*Msg) ([]*MsgOut, []*EventTag, error) {
+// destination are failed again.
+//
+// It also returns the changes the caller should make to the history table: an event tag recording the failure for
+// each message failed again, and the keys of the status items to delete for each message being resent. A resent
+// message keeps its original msg_created event, and readers reduce its status items to the latest state with
+// failed ranking above everything (since nothing but a resend can follow it), so the failed and errored items from
+// the previous attempt have to go for the new attempt's statuses to show. Nothing else can be there because only
+// failed messages can be resent.
+func PrepareMessagesForResend(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, msgs []*Msg) ([]*MsgOut, []*EventTag, []dynamo.Key, error) {
 	channels := oa.SessionAssets().Channels()
 
 	contactIDs := make([]ContactID, len(msgs))
@@ -812,7 +819,7 @@ func PrepareMessagesForResend(ctx context.Context, rt *runtime.Runtime, oa *OrgA
 
 	contactsByID, err := loadContactsForSending(ctx, rt.DB, contactIDs)
 	if err != nil {
-		return nil, nil, fmt.Errorf("error looking up contacts for retries: %w", err)
+		return nil, nil, nil, fmt.Errorf("error looking up contacts for retries: %w", err)
 	}
 
 	// for the bulk db updates
@@ -821,6 +828,7 @@ func PrepareMessagesForResend(ctx context.Context, rt *runtime.Runtime, oa *OrgA
 	refailContacts := make(map[events.EventUUID]core.ContactUUID, len(msgs))
 
 	resent := make([]*MsgOut, 0, len(msgs))
+	deletes := make([]dynamo.Key, 0, len(msgs)*2)
 
 	for _, msg := range msgs {
 		// ignore messages which aren't visible, i.e. have been deleted since they were loaded
@@ -838,13 +846,13 @@ func PrepareMessagesForResend(ctx context.Context, rt *runtime.Runtime, oa *OrgA
 			// reselect channel for this message's URN
 			cu, err = LoadContactURN(ctx, rt.DB, urnID)
 			if err != nil {
-				return nil, nil, fmt.Errorf("error loading URN: %w", err)
+				return nil, nil, nil, fmt.Errorf("error loading URN: %w", err)
 			}
 
 			urn, _ := cu.Encode(oa)
 			fu, err := core.ParseURN(channels, urn, assets.IgnoreMissing)
 			if err != nil {
-				return nil, nil, fmt.Errorf("error parsing URN: %w", err)
+				return nil, nil, nil, fmt.Errorf("error parsing URN: %w", err)
 			}
 
 			if fch := channels.GetForURN(fu, assets.ChannelRoleSend); fch != nil {
@@ -860,13 +868,19 @@ func PrepareMessagesForResend(ctx context.Context, rt *runtime.Runtime, oa *OrgA
 			msg.m.ErrorCount = 0
 			msg.m.FailedReason = ""
 
+			contact := contactsByID[msg.m.ContactID]
+
 			resends = append(resends, msg.m)
 			resent = append(resent, &MsgOut{
 				Msg:      msg,
 				URN:      cu,
-				Contact:  contactsByID[msg.m.ContactID],
+				Contact:  contact,
 				IsResend: true,
 			})
+			deletes = append(deletes,
+				MsgStatusTagKey(contact.UUID(), msg.UUID(), MsgStatusFailed),
+				MsgStatusTagKey(contact.UUID(), msg.UUID(), MsgStatusErrored),
+			)
 		} else {
 			// if we don't have channel or a URN, fail again
 			msg.m.ChannelID = NilChannelID
@@ -883,13 +897,13 @@ func PrepareMessagesForResend(ctx context.Context, rt *runtime.Runtime, oa *OrgA
 
 	// update the messages that can be resent
 	if err := BulkQuery(ctx, "updating messages for resending", rt.DB, sqlUpdateMsgForResending, resends); err != nil {
-		return nil, nil, fmt.Errorf("error updating messages for resending: %w", err)
+		return nil, nil, nil, fmt.Errorf("error updating messages for resending: %w", err)
 	}
 
 	// and update the messages that can't be, recording each failure in the contact's history
 	var refailed []events.EventUUID
 	if err := rt.DB.SelectContext(ctx, &refailed, sqlUpdateMsgResendFailed, pq.Array(refails)); err != nil {
-		return nil, nil, fmt.Errorf("error updating non-resendable messages: %w", err)
+		return nil, nil, nil, fmt.Errorf("error updating non-resendable messages: %w", err)
 	}
 
 	tags := make([]*EventTag, len(refailed))
@@ -897,7 +911,7 @@ func PrepareMessagesForResend(ctx context.Context, rt *runtime.Runtime, oa *OrgA
 		tags[i] = NewMsgStatusTag(oa.OrgID(), refailContacts[msgUUID], msgUUID, MsgStatusFailed, MsgFailedNoDestination)
 	}
 
-	return resent, tags, nil
+	return resent, tags, deletes, nil
 }
 
 // selects by folder rather than direction/status/visibility so that it's served by the folder index (org, folder, uuid)

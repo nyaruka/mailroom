@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/nyaruka/gocommon/aws/dynamo"
 	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/gocommon/i18n"
@@ -349,7 +350,7 @@ func TestResendMessages(t *testing.T) {
 	require.NoError(t, err)
 
 	// resend both msgs
-	resent, tags, err := models.PrepareMessagesForResend(ctx, rt, oa, msgs)
+	resent, tags, deletes, err := models.PrepareMessagesForResend(ctx, rt, oa, msgs)
 	require.NoError(t, err)
 
 	assert.Len(t, resent, 3) // only #1, #2 and #3 can be resent
@@ -395,6 +396,16 @@ func TestResendMessages(t *testing.T) {
 		assert.Equal(t, "no_destination", tag.Data["reason"])
 		assert.Nil(t, tag.TTL)
 	}
+
+	// and the messages being resent have the failed and errored items from their previous attempt deleted
+	assert.ElementsMatch(t, []dynamo.Key{
+		{PK: "con#" + string(testdb.Ann.UUID), SK: "evt#" + string(out1.UUID) + "#sts#F"},
+		{PK: "con#" + string(testdb.Ann.UUID), SK: "evt#" + string(out1.UUID) + "#sts#E"},
+		{PK: "con#" + string(testdb.Bob.UUID), SK: "evt#" + string(out2.UUID) + "#sts#F"},
+		{PK: "con#" + string(testdb.Bob.UUID), SK: "evt#" + string(out2.UUID) + "#sts#E"},
+		{PK: "con#" + string(testdb.Ann.UUID), SK: "evt#" + string(out3.UUID) + "#sts#F"},
+		{PK: "con#" + string(testdb.Ann.UUID), SK: "evt#" + string(out3.UUID) + "#sts#E"},
+	}, deletes)
 }
 
 func TestFailMessages(t *testing.T) {

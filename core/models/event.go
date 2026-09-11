@@ -231,6 +231,13 @@ var msgStatusReasons = map[MsgFailedReason]string{
 	MsgFailedNoDestination:  "no_destination",
 }
 
+// MsgStatusTagKey returns the key of the history item that NewMsgStatusTag writes for the given message and status,
+// for callers that need to delete one.
+func MsgStatusTagKey(contactUUID core.ContactUUID, msgUUID events.EventUUID, status MsgStatus) dynamo.Key {
+	t := &EventTag{ContactUUID: contactUUID, EventUUID: msgUUID, Tag: eventTagStatus, Qualifier: string(status)}
+	return t.DynamoKey()
+}
+
 // NewMsgStatusTag creates the history-table event tag that records an outgoing message's status change. It's keyed
 // by the same UUID as the message's msg_created event, qualified by the status, so each status a message reaches
 // is its own immutable item. Status changes for a message can be written by different instances (of this service

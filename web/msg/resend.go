@@ -39,14 +39,22 @@ func handleResend(ctx context.Context, rt *runtime.Runtime, r *resendRequest) (a
 		return nil, 0, fmt.Errorf("error loading messages to resend: %w", err)
 	}
 
-	resends, tags, err := models.PrepareMessagesForResend(ctx, rt, oa, msgs)
+	resends, tags, deletes, err := models.PrepareMessagesForResend(ctx, rt, oa, msgs)
 	if err != nil {
 		return nil, 0, fmt.Errorf("error resending messages: %w", err)
 	}
 
+	// clear the previous attempt's status from the history of each message being resent, before it's queued so the
+	// deletes can't be ordered after the new attempt's statuses
+	for _, key := range deletes {
+		if _, err := rt.Dynamo.History.QueueDelete(key); err != nil {
+			return nil, 0, fmt.Errorf("error queuing status tag delete to writer: %w", err)
+		}
+	}
+
 	msgio.QueueMessages(ctx, rt, resends)
 
-	// record the messages that failed again in their contacts' history
+	// and record the messages that failed again in their contacts' history
 	for _, tag := range tags {
 		if _, err := rt.Dynamo.History.Queue(tag); err != nil {
 			return nil, 0, fmt.Errorf("error queuing status tag to writer: %w", err)
