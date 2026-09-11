@@ -576,7 +576,9 @@ ORDER BY
     m.next_attempt ASC, m.created_on ASC
 LIMIT 5000`
 
-// GetMessagesForRetry gets errored outgoing messages scheduled for retry, with an active channel
+// GetMessagesForRetry gets errored outgoing messages scheduled for retry, with an active channel. Only messages
+// awaiting a retry have a next_attempt - every other status change clears it - and that's what the index is on, so
+// the status check is only a guard against rows written before that held.
 func GetMessagesForRetry(ctx context.Context, db *sqlx.DB) ([]*Msg, error) {
 	return loadMessages(ctx, db, sqlSelectMessagesForRetry)
 }
@@ -789,13 +791,13 @@ func PrepareMessagesForRetry(ctx context.Context, db *sqlx.DB, msgs []*Msg) ([]*
 // check is what makes that true, by only touching rows which are actually visible
 const sqlUpdateMsgForResending = `
 UPDATE msgs_msg m
-   SET channel_id = r.channel_id, status = 'Q', folder = 'O', error_count = 0, failed_reason = NULL, sent_on = NULL, modified_on = NOW()
+   SET channel_id = r.channel_id, status = 'Q', folder = 'O', error_count = 0, failed_reason = NULL, next_attempt = NULL, sent_on = NULL, modified_on = NOW()
   FROM (VALUES(:id::bigint, :channel_id::int)) AS r(id, channel_id)
  WHERE m.id = r.id AND m.visibility = 'V'`
 
 const sqlUpdateMsgResendFailed = `
 UPDATE msgs_msg m
-   SET channel_id = NULL, status = 'F', folder = 'X', error_count = 0, failed_reason = 'D', sent_on = NULL, modified_on = NOW()
+   SET channel_id = NULL, status = 'F', folder = 'X', error_count = 0, failed_reason = 'D', next_attempt = NULL, sent_on = NULL, modified_on = NOW()
  WHERE id = ANY($1) AND visibility = 'V'`
 
 // PrepareMessagesForResend prepares messages for resending by reselecting a channel and marking them as QUEUED,
@@ -901,7 +903,7 @@ WITH rows AS (
 	WHERE org_id = $1 AND folder = 'O' AND channel_id = $2
 	LIMIT 1000
 )
-UPDATE msgs_msg SET status = 'F', folder = 'X', failed_reason = $3, modified_on = NOW() WHERE id IN (SELECT id FROM rows)`
+UPDATE msgs_msg SET status = 'F', folder = 'X', failed_reason = $3, next_attempt = NULL, modified_on = NOW() WHERE id IN (SELECT id FROM rows)`
 
 func FailChannelMessages(ctx context.Context, db *sql.DB, orgID OrgID, channelID ChannelID, failedReason MsgFailedReason) error {
 	for {
@@ -918,19 +920,23 @@ func FailChannelMessages(ctx context.Context, db *sql.DB, orgID OrgID, channelID
 	return nil
 }
 
-// the WHERE on the update repeats the status and visibility checks from the CTE so that a message which was sent,
-// failed or retried between the two can't be clobbered. The join to contacts_contact is only for the contact UUID
-// needed by the event tags - msgs_msg.contact_id is a non-null protected FK so it never excludes a row, which is
-// what lets callers loop until this returns nothing.
+// selects by folder because the outbox is exactly the visible outgoing messages still waiting to be sent, and is what
+// the index on old Android messages is on. The status list is implied by the folder and is only there so that the
+// query also satisfies the predicate of the index this one replaced, which had status in it rather than folder.
+//
+// The WHERE on the update repeats the folder check from the CTE so that a message which was sent, failed or retried
+// between the two can't be clobbered. The join to contacts_contact is only for the contact UUID needed by the event
+// tags - msgs_msg.contact_id is a non-null protected FK so it never excludes a row, which is what lets callers loop
+// until this returns nothing.
 const sqlFailOldAndroidMessages = `
 WITH rows AS (
 	SELECT id FROM msgs_msg
-	WHERE direction = 'O' AND is_android = TRUE AND status IN ('I', 'Q', 'E') AND visibility = 'V' AND created_on <= $1
+	WHERE direction = 'O' AND is_android = TRUE AND folder = 'O' AND status IN ('I', 'Q', 'E') AND created_on <= $1
 	LIMIT $2
 )
-   UPDATE msgs_msg SET status = 'F', folder = $3, failed_reason = $4, modified_on = NOW()
+   UPDATE msgs_msg SET status = 'F', folder = $3, failed_reason = $4, next_attempt = NULL, modified_on = NOW()
      FROM rows, contacts_contact c
-    WHERE msgs_msg.id = rows.id AND msgs_msg.status IN ('I', 'Q', 'E') AND msgs_msg.visibility = 'V' AND c.id = msgs_msg.contact_id
+    WHERE msgs_msg.id = rows.id AND msgs_msg.folder = 'O' AND c.id = msgs_msg.contact_id
 RETURNING msgs_msg.org_id AS org_id, msgs_msg.uuid AS msg_uuid, c.uuid AS contact_uuid`
 
 // FailOldAndroidMessages fails up to limit outgoing Android messages created on or before the given time which are
@@ -979,7 +985,7 @@ type AndroidStatusUpdate struct {
 // after we read it can't be given a folder that doesn't match its actual state.
 const sqlUpdateAndroidMsgStatuses = `
    UPDATE msgs_msg
-      SET status = u.status, folder = u.folder, modified_on = NOW(),
+      SET status = u.status, folder = u.folder, next_attempt = NULL, modified_on = NOW(),
           sent_on = CASE WHEN u.overwrite_sent_on THEN u.sent_on ELSE COALESCE(msgs_msg.sent_on, u.sent_on) END
      FROM UNNEST($2::uuid[], $3::text[], $4::text[], $5::timestamptz[], $6::bool[]) AS u(uuid, status, folder, sent_on, overwrite_sent_on), contacts_contact c
     WHERE msgs_msg.uuid = u.uuid AND msgs_msg.org_id = $1 AND msgs_msg.direction = 'O' AND msgs_msg.visibility = 'V' AND c.id = msgs_msg.contact_id
