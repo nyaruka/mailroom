@@ -1,3 +1,9 @@
+v26.3.62 (2026-09-11)
+-------------------------
+ * Write each outgoing message status to the history table as its own immutable item
+ * Record messages failed by channel removal or a failed resend in contact history
+ * Delete a message's previous failed and errored history items when it's resent
+
 v26.3.61 (2026-09-11)
 -------------------------
  * Move config loading into cmd.LoadConfig so apps built on top of mailroom can embed runtime.Config
