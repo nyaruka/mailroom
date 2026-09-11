@@ -1,3 +1,8 @@
+v26.3.61 (2026-09-11)
+-------------------------
+ * Move config loading into cmd.LoadConfig so apps built on top of mailroom can embed runtime.Config
+ * Update to gocommon v1.95.1 and goflow v0.293.5
+
 v26.3.60 (2026-09-09)
 -------------------------
  * Lower the default contact limit to 10 million
