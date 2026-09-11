@@ -4,6 +4,7 @@ import (
 	"flag"
 	"testing"
 
+	"github.com/nyaruka/ezconf"
 	"github.com/nyaruka/mailroom/v26/runtime"
 	"github.com/stretchr/testify/assert"
 )
@@ -99,7 +100,9 @@ func TestSplitArgs(t *testing.T) {
 	assert.Equal(t, "true", flags.Lookup("delete").Value.String())
 	assert.Equal(t, []string{"prune", "contacts"}, positional)
 
-	cfg, err := runtime.LoadConfig(runtime.NewDefaultConfig(), cfgArgs)
-	assert.NoError(t, err)
+	cfg := runtime.NewDefaultConfig()
+	loader := ezconf.NewLoader(cfg, "mailroom", "", nil)
+	loader.SetArgs(cfgArgs...)
+	assert.NoError(t, loader.Load())
 	assert.Equal(t, "postgres://temba@localhost/temba", cfg.DB)
 }

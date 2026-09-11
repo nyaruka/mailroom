@@ -479,8 +479,10 @@ func TestFailOldAndroidMessages(t *testing.T) {
 		assert.Equal(t, testdb.Org2.ID, tag.OrgID)
 		assert.Equal(t, testdb.Org2Contact.UUID, tag.ContactUUID)
 		assert.Equal(t, "sts", tag.Tag)
+		assert.Equal(t, "F", tag.Qualifier)
 		assert.Equal(t, "failed", tag.Data["status"])
 		assert.Equal(t, "too_old", tag.Data["reason"])
+		assert.Nil(t, tag.TTL)
 	}
 
 	// the stale outbox messages are now failed and moved to the failed folder, and none is left awaiting a retry
@@ -573,8 +575,21 @@ func TestUpdateAndroidMessageStatuses(t *testing.T) {
 		assert.Equal(t, testdb.Org1.ID, tag.OrgID)
 		assert.Equal(t, testdb.Bob.UUID, tag.ContactUUID)
 		assert.Equal(t, "sts", tag.Tag)
+		assert.Equal(t, "F", tag.Qualifier)
 		assert.Equal(t, "failed", tag.Data["status"])
 		assert.NotContains(t, tag.Data, "reason")
+		assert.Nil(t, tag.TTL)
+	}
+
+	// each status the relayer reports is tagged as its own item, and non-terminal ones expire
+	if assert.Contains(t, byMsg, events.EventUUID(out3.UUID)) {
+		tag := byMsg[out3.UUID]
+		assert.Equal(t, "sts", tag.Tag)
+		assert.Equal(t, "S", tag.Qualifier)
+		assert.Equal(t, "sent", tag.Data["status"])
+		if assert.NotNil(t, tag.TTL) {
+			assert.Equal(t, tag.Data["created_on"].(time.Time).Add(90*24*time.Hour), *tag.TTL)
+		}
 	}
 
 	// nothing to do is not an error
