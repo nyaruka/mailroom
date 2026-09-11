@@ -917,40 +917,37 @@ func PrepareMessagesForResend(ctx context.Context, rt *runtime.Runtime, oa *OrgA
 // selects by folder rather than direction/status/visibility so that it's served by the folder index (org, folder, uuid)
 // rather than a scan of everything the channel ever sent - the outbox folder is exactly the visible outgoing messages
 // still to be sent. The failed folder is hardcoded because, like sqlUpdateMsgForResending, it follows from the status
-// alone for such a message. The join to contacts_contact is only for the contact UUID needed by the event tags.
+// alone for such a message. The join to contacts_contact is only for the contact UUID needed by the event tags -
+// msgs_msg.contact_id is a non-null protected FK so it never excludes a row, which is what lets callers loop until
+// this returns nothing.
 const sqlFailChannelMessages = `
 WITH rows AS (
 	SELECT id FROM msgs_msg
 	WHERE org_id = $1 AND folder = 'O' AND channel_id = $2
-	LIMIT 1000
+	LIMIT $3
 )
-   UPDATE msgs_msg SET status = 'F', folder = 'X', failed_reason = $3, modified_on = NOW()
+   UPDATE msgs_msg SET status = 'F', folder = 'X', failed_reason = $4, modified_on = NOW()
      FROM rows, contacts_contact c
     WHERE msgs_msg.id = rows.id AND c.id = msgs_msg.contact_id
 RETURNING msgs_msg.uuid AS msg_uuid, c.uuid AS contact_uuid`
 
-// FailChannelMessages fails all the messages still waiting to be sent on the given channel, in batches until there
-// are none left. It returns an event tag recording the change for each message failed, to be queued to the history
-// table by the caller, because nothing else records these transitions.
-func FailChannelMessages(ctx context.Context, db DBorTx, orgID OrgID, channelID ChannelID, failedReason MsgFailedReason) ([]*EventTag, error) {
-	tags := make([]*EventTag, 0, 100)
+// FailChannelMessages fails up to limit of the messages still waiting to be sent on the given channel.
+//
+// It returns an event tag recording the change for each message failed (to be queued to the history table), so
+// callers should keep calling until it returns nothing.
+func FailChannelMessages(ctx context.Context, db DBorTx, orgID OrgID, channelID ChannelID, failedReason MsgFailedReason, limit int) ([]*EventTag, error) {
+	rows := []*struct {
+		MsgUUID     events.EventUUID `db:"msg_uuid"`
+		ContactUUID core.ContactUUID `db:"contact_uuid"`
+	}{}
 
-	for {
-		rows := []*struct {
-			MsgUUID     events.EventUUID `db:"msg_uuid"`
-			ContactUUID core.ContactUUID `db:"contact_uuid"`
-		}{}
+	if err := db.SelectContext(ctx, &rows, sqlFailChannelMessages, orgID, channelID, limit, failedReason); err != nil {
+		return nil, fmt.Errorf("error failing channel messages: %w", err)
+	}
 
-		if err := db.SelectContext(ctx, &rows, sqlFailChannelMessages, orgID, channelID, failedReason); err != nil {
-			return nil, fmt.Errorf("error failing channel messages: %w", err)
-		}
-		if len(rows) == 0 {
-			break
-		}
-
-		for _, r := range rows {
-			tags = append(tags, NewMsgStatusTag(orgID, r.ContactUUID, r.MsgUUID, MsgStatusFailed, failedReason))
-		}
+	tags := make([]*EventTag, len(rows))
+	for i, r := range rows {
+		tags[i] = NewMsgStatusTag(orgID, r.ContactUUID, r.MsgUUID, MsgStatusFailed, failedReason)
 	}
 
 	return tags, nil

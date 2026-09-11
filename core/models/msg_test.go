@@ -426,9 +426,21 @@ func TestFailMessages(t *testing.T) {
 
 	now := dates.Now()
 
-	// fail the msgs
-	tags, err := models.FailChannelMessages(ctx, rt.DB, testdb.Org1.ID, testdb.TwilioChannel.ID, models.MsgFailedChannelRemoved)
+	// messages are failed in batches of the given size
+	tags1, err := models.FailChannelMessages(ctx, rt.DB, testdb.Org1.ID, testdb.TwilioChannel.ID, models.MsgFailedChannelRemoved, 3)
 	require.NoError(t, err)
+	assert.Len(t, tags1, 3)
+
+	tags2, err := models.FailChannelMessages(ctx, rt.DB, testdb.Org1.ID, testdb.TwilioChannel.ID, models.MsgFailedChannelRemoved, 3)
+	require.NoError(t, err)
+	assert.Len(t, tags2, 2)
+
+	// and then there's nothing left to fail
+	tags3, err := models.FailChannelMessages(ctx, rt.DB, testdb.Org1.ID, testdb.TwilioChannel.ID, models.MsgFailedChannelRemoved, 3)
+	require.NoError(t, err)
+	assert.Len(t, tags3, 0)
+
+	tags := append(tags1, tags2...)
 
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE status = 'F' AND modified_on > $1`, now).Returns(5)
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE status = 'F' AND failed_reason = 'R' AND modified_on > $1`, now).Returns(5)
@@ -458,11 +470,6 @@ func TestFailMessages(t *testing.T) {
 		assert.Equal(t, "channel_removed", tag.Data["reason"])
 		assert.Nil(t, tag.TTL)
 	}
-
-	// nothing to fail is not an error
-	tags, err = models.FailChannelMessages(ctx, rt.DB, testdb.Org1.ID, testdb.TwilioChannel.ID, models.MsgFailedChannelRemoved)
-	require.NoError(t, err)
-	assert.Len(t, tags, 0)
 }
 
 func TestFailOldAndroidMessages(t *testing.T) {
