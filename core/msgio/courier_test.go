@@ -357,12 +357,13 @@ func TestPushCourierBatch(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(queued))
 
-	unmarshaled, err := jsonx.DecodeGeneric(queued[0])
+	var unmarshaled []map[string]any
+	err = jsonx.Unmarshal(queued[0], &unmarshaled)
 	assert.NoError(t, err)
-	assert.Equal(t, 2, len(unmarshaled.([]any)))
+	assert.Equal(t, 2, len(unmarshaled))
 
-	item1UUID := unmarshaled.([]any)[0].(map[string]any)["uuid"].(string)
-	item2UUID := unmarshaled.([]any)[1].(map[string]any)["uuid"].(string)
+	item1UUID := unmarshaled[0]["uuid"].(string)
+	item2UUID := unmarshaled[1]["uuid"].(string)
 	assert.Equal(t, msg1.UUID(), events.EventUUID(item1UUID))
 	assert.Equal(t, msg2.UUID(), events.EventUUID(item2UUID))
 
