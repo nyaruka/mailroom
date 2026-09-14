@@ -1,3 +1,8 @@
+v26.3.65 (2026-09-14)
+-------------------------
+ * Select old Android messages to fail by folder rather than by status and visibility
+ * Update to goflow v0.293.6
+
 v26.3.64 (2026-09-14)
 -------------------------
  * Remove support for broadcasts to contacts at a flow node
