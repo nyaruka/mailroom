@@ -1,3 +1,8 @@
+v26.3.63 (2026-09-14)
+-------------------------
+ * Stop writing archived visibility on messages and let the folder column be the only record of a message being archived
+ * Don't move a deleted message between folders whatever its folder says
+
 v26.3.62 (2026-09-11)
 -------------------------
  * Write each outgoing message status to the history table as its own immutable item
