@@ -49,7 +49,6 @@ type Broadcast struct {
 	ContactIDs        []ContactID                `json:"contact_ids,omitempty"`
 	URNs              []urns.URN                 `json:"urns,omitempty"`
 	Query             string                     `json:"query,omitempty"`
-	NodeUUID          core.NodeUUID              `json:"node_uuid,omitempty"`
 	Exclusions        Exclusions                 `json:"exclusions,omitempty"`
 	CreatedByID       UserID                     `json:"created_by_id,omitempty"`
 	ScheduleID        ScheduleID                 `json:"schedule_id,omitempty"`
@@ -67,7 +66,6 @@ type dbBroadcast struct {
 	TemplateVariables pq.StringArray                    `db:"template_variables"`
 	URNs              pq.StringArray                    `db:"urns"`
 	Query             null.String                       `db:"query"`
-	NodeUUID          null.String                       `db:"node_uuid"`
 	Exclusions        Exclusions                        `db:"exclusions"`
 	CreatedByID       UserID                            `db:"created_by_id"`
 	ScheduleID        ScheduleID                        `db:"schedule_id"`
@@ -210,7 +208,6 @@ func InsertBroadcast(ctx context.Context, db DBorTx, bcast *Broadcast) error {
 		TemplateVariables: StringArray(bcast.TemplateVariables),
 		URNs:              StringArray(bcast.URNs),
 		Query:             null.String(bcast.Query),
-		NodeUUID:          null.String(string(bcast.NodeUUID)),
 		Exclusions:        bcast.Exclusions,
 		CreatedByID:       bcast.CreatedByID,
 		ScheduleID:        bcast.ScheduleID,
@@ -283,8 +280,8 @@ type broadcastGroup struct {
 
 const sqlInsertBroadcast = `
 INSERT INTO
-	msgs_broadcast( uuid,  org_id,  parent_id, created_on, modified_on,  status,  translations,  base_language,  template_id,  template_variables,  urns,  query,  node_uuid,  exclusions,  schedule_id, is_active)
-			VALUES(:uuid, :org_id, :parent_id, NOW()     , NOW(),       :status, :translations, :base_language, :template_id, :template_variables, :urns, :query, :node_uuid, :exclusions, :schedule_id,      TRUE)
+	msgs_broadcast( uuid,  org_id,  parent_id, created_on, modified_on,  status,  translations,  base_language,  template_id,  template_variables,  urns,  query,  exclusions,  schedule_id, is_active)
+			VALUES(:uuid, :org_id, :parent_id, NOW()     , NOW(),       :status, :translations, :base_language, :template_id, :template_variables, :urns, :query, :exclusions, :schedule_id,      TRUE)
 RETURNING id`
 
 const sqlInsertBroadcastContacts = `INSERT INTO msgs_broadcast_contacts(broadcast_id, contact_id) VALUES(:broadcast_id, :contact_id)`

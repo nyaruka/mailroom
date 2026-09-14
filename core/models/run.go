@@ -2,7 +2,6 @@ package models
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"time"
 
@@ -139,29 +138,6 @@ func UpdateRuns(ctx context.Context, tx *sqlx.Tx, runs []*FlowRun) error {
 		return fmt.Errorf("error updating runs: %w", err)
 	}
 	return nil
-}
-
-// GetContactIDsAtNode returns the ids of contacts currently waiting or active at the given flow node
-func GetContactIDsAtNode(ctx context.Context, rt *runtime.Runtime, orgID OrgID, nodeUUID core.NodeUUID) ([]ContactID, error) {
-	rows, err := rt.ReadonlyDB.QueryContext(ctx,
-		`SELECT contact_id FROM flows_flowrun WHERE org_id = $1 AND current_node_uuid = $2 AND status IN ('A' , 'W')`, orgID, nodeUUID,
-	)
-	if err != nil && err != sql.ErrNoRows {
-		return nil, fmt.Errorf("error querying contacts at node: %w", err)
-	}
-	defer rows.Close()
-
-	contactIDs := make([]ContactID, 0, 10)
-
-	for rows.Next() {
-		var id ContactID
-		if err := rows.Scan(&id); err != nil {
-			return nil, fmt.Errorf("error scanning contact id: %w", err)
-		}
-		contactIDs = append(contactIDs, id)
-	}
-
-	return contactIDs, nil
 }
 
 const sqlSelectContactFlowHistory = `

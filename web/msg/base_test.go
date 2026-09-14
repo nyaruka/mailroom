@@ -176,15 +176,6 @@ func TestResendClearsPreviousStatus(t *testing.T) {
 func TestBroadcast(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
 
-	createRun := func(org *testdb.Org, contact *testdb.Contact, nodeUUID core.NodeUUID) {
-		sessionUUID := testdb.InsertFlowSession(t, rt, contact, models.FlowTypeMessaging, models.SessionStatusWaiting, nil, testdb.Favorites)
-		testdb.InsertFlowRun(t, rt, org, sessionUUID, contact, testdb.Favorites, models.RunStatusWaiting, nodeUUID)
-	}
-
-	// put Bob and Cat in a flows at different nodes
-	createRun(testdb.Org1, testdb.Bob, "dd79811e-a88a-4e67-bb47-a132fe8ce3f2")
-	createRun(testdb.Org1, testdb.Cat, "a52a9e6d-34bb-4be1-8034-99e33d0862c6")
-
 	testsuite.RunWebTests(t, rt, "testdata/broadcast.json")
 }
 

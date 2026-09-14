@@ -134,60 +134,6 @@
         }
     },
     {
-        "label": "create broadcast for flow node uuid",
-        "method": "POST",
-        "path": "/mi/msg/broadcast",
-        "body": {
-            "org_id": 1,
-            "user_id": 4,
-            "translations": {
-                "eng": {
-                    "text": "Hurry up!"
-                }
-            },
-            "base_language": "eng",
-            "node_uuid": "dd79811e-a88a-4e67-bb47-a132fe8ce3f2"
-        },
-        "status": 200,
-        "response": {
-            "id": 30001
-        },
-        "db_assertions": [
-            {
-                "query": "SELECT count(*) FROM msgs_broadcast WHERE translations-\u003e'eng'-\u003e\u003e'text' = 'Hurry up!' AND base_language = 'eng' AND node_uuid = 'dd79811e-a88a-4e67-bb47-a132fe8ce3f2'",
-                "returns": 1
-            }
-        ],
-        "expected_tasks": {
-            "batch/1": [
-                {
-                    "type": "send_broadcast",
-                    "payload": {
-                        "broadcast_id": 30001,
-                        "broadcast_uuid": "01969b47-0d53-76f8-98c7-1f0d5859f77e",
-                        "org_id": 1,
-                        "status": "P",
-                        "translations": {
-                            "eng": {
-                                "text": "Hurry up!"
-                            }
-                        },
-                        "base_language": "eng",
-                        "expressions": true,
-                        "node_uuid": "dd79811e-a88a-4e67-bb47-a132fe8ce3f2",
-                        "exclusions": {
-                            "non_active": false,
-                            "in_a_flow": false,
-                            "started_previously": false,
-                            "not_seen_since_days": 0
-                        },
-                        "created_by_id": 4
-                    }
-                }
-            ]
-        }
-    },
-    {
         "label": "create a one off scheduled broadcast",
         "method": "POST",
         "path": "/mi/msg/broadcast",
@@ -210,7 +156,7 @@
         },
         "status": 200,
         "response": {
-            "id": 30002
+            "id": 30001
         },
         "db_assertions": [
             {
@@ -246,7 +192,7 @@
         },
         "status": 200,
         "response": {
-            "id": 30003
+            "id": 30002
         },
         "db_assertions": [
             {
@@ -283,7 +229,7 @@
         },
         "status": 200,
         "response": {
-            "id": 30004
+            "id": 30003
         },
         "db_assertions": [
             {
@@ -319,7 +265,7 @@
         },
         "status": 200,
         "response": {
-            "id": 30005
+            "id": 30004
         },
         "db_assertions": [
             {

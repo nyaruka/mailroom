@@ -47,7 +47,6 @@ type broadcastRequest struct {
 	ContactIDs        []models.ContactID         `json:"contact_ids"`
 	URNs              []urns.URN                 `json:"urns"`
 	Query             string                     `json:"query"`
-	NodeUUID          core.NodeUUID              `json:"node_uuid"`
 	Exclude           models.Exclusions          `json:"exclude"`
 	Schedule          *struct {
 		Start            time.Time           `json:"start"`
@@ -63,7 +62,7 @@ func handleBroadcast(ctx context.Context, rt *runtime.Runtime, r *broadcastReque
 		return nil, 0, fmt.Errorf("error loading org assets: %w", err)
 	}
 
-	if len(r.ContactIDs) == 0 && len(r.GroupIDs) == 0 && len(r.URNs) == 0 && r.Query == "" && r.NodeUUID == "" {
+	if len(r.ContactIDs) == 0 && len(r.GroupIDs) == 0 && len(r.URNs) == 0 && r.Query == "" {
 		return errors.New("can't create broadcast with no recipients"), http.StatusBadRequest, nil
 	}
 
@@ -85,7 +84,6 @@ func handleBroadcast(ctx context.Context, rt *runtime.Runtime, r *broadcastReque
 		ContactIDs:        r.ContactIDs,
 		URNs:              r.URNs,
 		Query:             r.Query,
-		NodeUUID:          r.NodeUUID,
 		Exclusions:        r.Exclude,
 		CreatedByID:       r.UserID,
 	}
