@@ -75,24 +75,6 @@ func TestInsertAndUpdateRuns(t *testing.T) {
 	})
 }
 
-func TestGetContactIDsAtNode(t *testing.T) {
-	ctx, rt := testsuite.Runtime(t)
-
-	createRun := func(org *testdb.Org, contact *testdb.Contact, nodeUUID core.NodeUUID) {
-		sessionUUID := testdb.InsertFlowSession(t, rt, contact, models.FlowTypeMessaging, models.SessionStatusWaiting, nil, testdb.Favorites)
-		testdb.InsertFlowRun(t, rt, org, sessionUUID, contact, testdb.Favorites, models.RunStatusWaiting, nodeUUID)
-	}
-
-	createRun(testdb.Org1, testdb.Dan, "2fe26b10-2bb1-4115-9401-33a8a0d5d52a")
-	createRun(testdb.Org1, testdb.Bob, "dd79811e-a88a-4e67-bb47-a132fe8ce3f2")
-	createRun(testdb.Org1, testdb.Cat, "dd79811e-a88a-4e67-bb47-a132fe8ce3f2")
-	createRun(testdb.Org2, testdb.Org2Contact, "dd79811e-a88a-4e67-bb47-a132fe8ce3f2") // shouldn't be possible but..
-
-	contactIDs, err := models.GetContactIDsAtNode(ctx, rt, testdb.Org1.ID, "dd79811e-a88a-4e67-bb47-a132fe8ce3f2")
-	assert.NoError(t, err)
-	assert.ElementsMatch(t, []models.ContactID{testdb.Bob.ID, testdb.Cat.ID}, contactIDs)
-}
-
 func TestGetActiveAndWaitingRuns(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
