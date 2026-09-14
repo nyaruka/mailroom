@@ -1,3 +1,7 @@
+v26.3.66 (2026-09-14)
+-------------------------
+ * Keep next_attempt set only whilst a message awaits a retry
+
 v26.3.65 (2026-09-14)
 -------------------------
  * Select old Android messages to fail by folder rather than by status and visibility
