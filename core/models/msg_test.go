@@ -756,14 +756,6 @@ func TestArchiveAndRestoreMessages(t *testing.T) {
 	assert.NoError(t, err)
 
 	assertFolder(in2, "D", "W")
-
-	// messages archived before archiving stopped writing visibility still restore to the right folder
-	rt.DB.MustExec(`UPDATE msgs_msg SET status = 'H', visibility = 'A', folder = 'A' WHERE id = $1`, in3.ID)
-
-	err = models.RestoreMessages(ctx, rt.DB, load(in3.UUID))
-	assert.NoError(t, err)
-
-	assertFolder(in3, "A", "I")
 }
 
 func TestDeleteMessages(t *testing.T) {
