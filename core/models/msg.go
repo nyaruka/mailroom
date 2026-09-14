@@ -953,19 +953,26 @@ func FailChannelMessages(ctx context.Context, db DBorTx, orgID OrgID, channelID 
 	return tags, nil
 }
 
-// the WHERE on the update repeats the status and visibility checks from the CTE so that a message which was sent,
-// failed or retried between the two can't be clobbered. The join to contacts_contact is only for the contact UUID
-// needed by the event tags - msgs_msg.contact_id is a non-null protected FK so it never excludes a row, which is
-// what lets callers loop until this returns nothing.
+// selects by folder because the outbox is exactly the visible outgoing messages still waiting to be sent, and is what
+// the index on old Android messages is on. Selecting by status instead can't use that index: Postgres only uses a
+// partial index when it can prove the query's WHERE implies the index predicate, and it reasons within a single
+// column, so it can't derive folder = 'O' from the statuses even though that holds by construction. The status list
+// is kept because it's implied by the folder and lets the query also satisfy the predicate of the older index, so
+// this can be deployed before that one is dropped.
+//
+// The WHERE on the update repeats the folder check from the CTE so that a message which was sent, failed or retried
+// between the two can't be clobbered. The join to contacts_contact is only for the contact UUID needed by the event
+// tags - msgs_msg.contact_id is a non-null protected FK so it never excludes a row, which is what lets callers loop
+// until this returns nothing.
 const sqlFailOldAndroidMessages = `
 WITH rows AS (
 	SELECT id FROM msgs_msg
-	WHERE direction = 'O' AND is_android = TRUE AND status IN ('I', 'Q', 'E') AND visibility = 'V' AND created_on <= $1
+	WHERE direction = 'O' AND is_android = TRUE AND folder = 'O' AND status IN ('I', 'Q', 'E') AND created_on <= $1
 	LIMIT $2
 )
    UPDATE msgs_msg SET status = 'F', folder = $3, failed_reason = $4, modified_on = NOW()
      FROM rows, contacts_contact c
-    WHERE msgs_msg.id = rows.id AND msgs_msg.status IN ('I', 'Q', 'E') AND msgs_msg.visibility = 'V' AND c.id = msgs_msg.contact_id
+    WHERE msgs_msg.id = rows.id AND msgs_msg.folder = 'O' AND c.id = msgs_msg.contact_id
 RETURNING msgs_msg.org_id AS org_id, msgs_msg.uuid AS msg_uuid, c.uuid AS contact_uuid`
 
 // FailOldAndroidMessages fails up to limit outgoing Android messages created on or before the given time which are
