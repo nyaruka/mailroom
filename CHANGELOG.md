@@ -1,3 +1,7 @@
+v26.3.64 (2026-09-14)
+-------------------------
+ * Remove support for broadcasts to contacts at a flow node
+
 v26.3.63 (2026-09-14)
 -------------------------
  * Stop writing archived visibility on messages and let the folder column be the only record of a message being archived
