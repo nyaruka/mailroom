@@ -21,7 +21,7 @@
         }
     },
     {
-        "label": "messages moved into the archived folder",
+        "label": "messages moved into the archived folder, visibility left alone",
         "method": "POST",
         "path": "/mi/msg/archive",
         "body": {
@@ -40,14 +40,14 @@
             {
                 "query": "SELECT visibility, folder FROM msgs_msg WHERE uuid = '0199bad8-f98d-75a3-b641-2718a25ac3f5'",
                 "columns": {
-                    "visibility": "A",
+                    "visibility": "V",
                     "folder": "A"
                 }
             },
             {
                 "query": "SELECT visibility, folder FROM msgs_msg WHERE uuid = '0199bad9-9791-770d-a47d-8f4a6ea3ad13'",
                 "columns": {
-                    "visibility": "A",
+                    "visibility": "V",
                     "folder": "A"
                 }
             },
@@ -90,7 +90,7 @@
             {
                 "query": "SELECT visibility, folder FROM msgs_msg WHERE uuid = '0199bad8-f98d-75a3-b641-2718a25ac3f5'",
                 "columns": {
-                    "visibility": "A",
+                    "visibility": "V",
                     "folder": "A"
                 }
             }

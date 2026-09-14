@@ -30,17 +30,16 @@ func (h *updateMessageHandled) Execute(ctx context.Context, rt *runtime.Runtime,
 			flow = scene.Sprint.Flows()[0].Asset().(*models.Flow)
 		}
 
-		visibility := models.VisibilityVisible
-		if contactBlocked || evt.Msg.Channel() == nil {
-			visibility = models.VisibilityArchived
-		}
+		// a message from a blocked contact, or one that arrived without a channel, is filed straight into the
+		// archived folder rather than being put in front of the user
+		archived := contactBlocked || evt.Msg.Channel() == nil
 
 		var ticket *models.Ticket
 		if evt.TicketUUID != "" {
 			ticket = scene.DBContact.FindTicket(evt.TicketUUID)
 		}
 
-		err := models.MarkMessageHandled(ctx, tx, msgIn.UUID, models.MsgStatusHandled, visibility, flow, ticket, msgIn.Attachments, msgIn.LogUUIDs)
+		err := models.MarkMessageHandled(ctx, tx, msgIn.UUID, models.MsgStatusHandled, archived, flow, ticket, msgIn.Attachments, msgIn.LogUUIDs)
 		if err != nil {
 			return fmt.Errorf("error marking message as handled: %w", err)
 		}
