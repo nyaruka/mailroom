@@ -1,3 +1,7 @@
+v26.3.68 (2026-09-15)
+-------------------------
+ * Add internal endpoint to add or remove a label on incoming messages
+
 v26.3.67 (2026-09-15)
 -------------------------
  * Run tests against SeaweedFS instead of localstack
