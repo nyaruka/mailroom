@@ -52,7 +52,7 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 	t.Setenv("AWS_SECRET_ACCESS_KEY", "tembatemba")
 	t.Setenv("AWS_REGION", "us-east-1")
 
-	cfg.S3Endpoint = "http://localstack:4566"
+	cfg.S3Endpoint = "http://s3:8333"
 	cfg.S3AttachmentsBucket = s3AttachmentsBucket() // this binary's own bucket, emptied before every test - see storage.go
 	cfg.S3PathStyle = true
 	cfg.DynamoEndpoint = "http://dynamodb:8000"

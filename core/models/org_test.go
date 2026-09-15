@@ -183,7 +183,7 @@ func TestStoreAttachment(t *testing.T) {
 	attachment, err := org.StoreAttachment(context.Background(), rt, "668383ba-387c-49bc-b164-1213ac0ea7aa.jpg", "image/jpeg", image)
 	require.NoError(t, err)
 
-	expectedURL := fmt.Sprintf("http://localstack:4566/%s/attachments/1/6683/83ba/668383ba-387c-49bc-b164-1213ac0ea7aa.jpg", rt.Config.S3AttachmentsBucket)
+	expectedURL := fmt.Sprintf("http://s3:8333/%s/attachments/1/6683/83ba/668383ba-387c-49bc-b164-1213ac0ea7aa.jpg", rt.Config.S3AttachmentsBucket)
 	assert.Equal(t, utils.Attachment("image/jpeg:"+expectedURL), attachment)
 
 	// err trying to read from same reader again
