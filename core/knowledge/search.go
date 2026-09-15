@@ -36,7 +36,7 @@ type SearchResult struct {
 const sqlSearchKnowledgeChunks = `
   SELECT k.uuid AS knowledge_uuid, c.item_key, c.item_name, c.item_url, c.text, 1 - (c.embedding <=> $2::vector) AS score
     FROM knowledge_knowledgechunk c
-    JOIN knowledge_knowledge k ON k.id = c.knowledge_id
+    JOIN knowledge_knowledgesource k ON k.id = c.source_id
    WHERE k.org_id = $1 AND k.is_active
      AND (k.status = 'R' OR (k.status IN ('I', 'F') AND k.last_indexed_on IS NOT NULL))
 ORDER BY c.embedding <=> $2::vector
