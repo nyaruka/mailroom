@@ -686,6 +686,24 @@ func TestGetAndroidOutbox(t *testing.T) {
 	assert.Len(t, msgs, 2)
 }
 
+func TestUpdateMessagesModifiedOn(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	msg1 := testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199bad8-f98d-75a3-b641-2718a25ac3f5", testdb.TwilioChannel, testdb.Ann, "hi", models.MsgStatusHandled, "")
+	msg2 := testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199bad9-9791-770d-a47d-8f4a6ea3ad13", testdb.TwilioChannel, testdb.Ann, "hello", models.MsgStatusHandled, "")
+	rt.DB.MustExec(`UPDATE msgs_msg SET modified_on = '2020-01-01 00:00:00+00'`)
+
+	err := models.UpdateMessagesModifiedOn(ctx, rt.DB, []models.MsgID{msg1.ID})
+	require.NoError(t, err)
+
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE id = $1 AND modified_on > '2021-01-01'`, msg1.ID).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE id = $1 AND modified_on > '2021-01-01'`, msg2.ID).Returns(0)
+
+	// empty list is a noop
+	err = models.UpdateMessagesModifiedOn(ctx, rt.DB, nil)
+	require.NoError(t, err)
+}
+
 func TestArchiveAndRestoreMessages(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 

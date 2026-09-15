@@ -1215,6 +1215,17 @@ type msgFolderUpdate struct {
 	FromFolder MsgFolder `db:"from_folder"`
 }
 
+// UpdateMessagesModifiedOn bumps modified_on on the given messages
+func UpdateMessagesModifiedOn(ctx context.Context, db DBorTx, ids []MsgID) error {
+	if len(ids) == 0 {
+		return nil
+	}
+	if _, err := db.ExecContext(ctx, `UPDATE msgs_msg SET modified_on = NOW() WHERE id = ANY($1)`, pq.Array(ids)); err != nil {
+		return fmt.Errorf("error updating modified_on for messages: %w", err)
+	}
+	return nil
+}
+
 // ArchiveMessages moves the given incoming messages into the archived folder, ignoring any that aren't in the inbox
 // or the handled folder. Archiving isn't a state a message can be in as well as being pending or deleted - it's a
 // move out of the folders a user can archive from.

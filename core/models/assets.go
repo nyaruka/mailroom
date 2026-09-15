@@ -77,6 +77,7 @@ type OrgAssets struct {
 	groupsByUUID map[assets.GroupUUID]*Group
 
 	labels       []assets.Label
+	labelsByID   map[LabelID]*Label
 	labelsByUUID map[assets.LabelUUID]*Label
 
 	llms     []assets.LLM
@@ -255,12 +256,16 @@ func NewOrgAssets(ctx context.Context, rt *runtime.Runtime, orgID OrgID, prev *O
 		if err != nil {
 			return nil, fmt.Errorf("error loading labels for org %d: %w", orgID, err)
 		}
-		oa.labelsByUUID = make(map[assets.LabelUUID]*Label)
+		oa.labelsByID = make(map[LabelID]*Label, len(oa.labels))
+		oa.labelsByUUID = make(map[assets.LabelUUID]*Label, len(oa.labels))
 		for _, l := range oa.labels {
-			oa.labelsByUUID[l.UUID()] = l.(*Label)
+			label := l.(*Label)
+			oa.labelsByID[label.ID()] = label
+			oa.labelsByUUID[label.UUID()] = label
 		}
 	} else {
 		oa.labels = prev.labels
+		oa.labelsByID = prev.labelsByID
 		oa.labelsByUUID = prev.labelsByUUID
 	}
 
@@ -601,6 +606,10 @@ func (a *OrgAssets) GroupByUUID(groupUUID assets.GroupUUID) *Group {
 
 func (a *OrgAssets) Labels() ([]assets.Label, error) {
 	return a.labels, nil
+}
+
+func (a *OrgAssets) LabelByID(id LabelID) *Label {
+	return a.labelsByID[id]
 }
 
 func (a *OrgAssets) LabelByUUID(uuid assets.LabelUUID) *Label {
