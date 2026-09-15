@@ -17,8 +17,9 @@ func init() {
 	web.InternalRoute(http.MethodPost, "/msg/label", web.JSONPayload(handleLabel))
 }
 
-// Adds or removes a label on the given incoming messages. Messages which already have or don't have the label are
-// left alone, and only messages whose labelling actually changed have their modified_on updated.
+// Adds or removes a label on the given incoming messages. Messages which aren't currently visible are ignored, messages
+// which already have or don't have the label are left alone, and only messages whose labelling actually changed have
+// their modified_on updated.
 //
 //	{
 //	  "org_id": 1,
@@ -58,18 +59,22 @@ func handleLabel(ctx context.Context, rt *runtime.Runtime, r *labelRequest) (any
 	var changed []models.MsgID
 
 	if r.Add {
-		adds := make([]*models.MsgLabelAdd, len(msgs))
-		for i, m := range msgs {
-			adds[i] = &models.MsgLabelAdd{MsgUUID: m.UUID(), LabelID: label.ID()}
+		adds := make([]*models.MsgLabelAdd, 0, len(msgs))
+		for _, m := range msgs {
+			if m.Visibility() == models.VisibilityVisible {
+				adds = append(adds, &models.MsgLabelAdd{MsgUUID: m.UUID(), LabelID: label.ID()})
+			}
 		}
 		changed, err = models.AddMsgLabels(ctx, tx, adds)
 		if err != nil {
 			return nil, 0, fmt.Errorf("error adding label to messages: %w", err)
 		}
 	} else {
-		ids := make([]models.MsgID, len(msgs))
-		for i, m := range msgs {
-			ids[i] = m.ID()
+		ids := make([]models.MsgID, 0, len(msgs))
+		for _, m := range msgs {
+			if m.Visibility() == models.VisibilityVisible {
+				ids = append(ids, m.ID())
+			}
 		}
 		changed, err = models.RemoveMsgLabels(ctx, tx, label.ID(), ids)
 		if err != nil {
