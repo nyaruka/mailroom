@@ -1,3 +1,7 @@
+v26.3.67 (2026-09-15)
+-------------------------
+ * Run tests against SeaweedFS instead of localstack
+
 v26.3.66 (2026-09-14)
 -------------------------
  * Keep next_attempt set only whilst a message awaits a retry
