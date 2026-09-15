@@ -33,7 +33,7 @@ func (h *addMessageLabels) Execute(ctx context.Context, rt *runtime.Runtime, tx 
 		}
 	}
 
-	if err := models.AddMsgLabels(ctx, tx, adds); err != nil {
+	if _, err := models.AddMsgLabels(ctx, tx, adds); err != nil {
 		return fmt.Errorf("error adding message labels: %w", err)
 	}
 

@@ -1,0 +1,173 @@
+[
+    {
+        "label": "illegal method",
+        "method": "GET",
+        "path": "/mi/msg/label",
+        "status": 405,
+        "response": {
+            "error": "illegal method: GET"
+        }
+    },
+    {
+        "label": "error if label_uuid not provided",
+        "method": "POST",
+        "path": "/mi/msg/label",
+        "body": {
+            "org_id": 1,
+            "msg_uuids": [
+                "0199bad8-f98d-75a3-b641-2718a25ac3f5"
+            ],
+            "add": true
+        },
+        "status": 400,
+        "response": {
+            "error": "request failed validation: field 'label_uuid' is required"
+        }
+    },
+    {
+        "label": "error if label belongs to a different org",
+        "method": "POST",
+        "path": "/mi/msg/label",
+        "body": {
+            "org_id": 2,
+            "label_uuid": "a6338cdc-7938-4437-8b05-2d5d785e3a08",
+            "msg_uuids": [
+                "0199bb09-f0e9-7489-a58e-69304a7941a0"
+            ],
+            "add": true
+        },
+        "status": 400,
+        "response": {
+            "error": "no such label"
+        },
+        "db_assertions": [
+            {
+                "query": "SELECT count(*) FROM msgs_msg_labels WHERE label_id = 10001",
+                "returns": 1
+            },
+            {
+                "query": "SELECT count(*) FROM msgs_msg WHERE modified_on > '2021-01-01'",
+                "returns": 0
+            }
+        ]
+    },
+    {
+        "label": "label added to visible incoming messages, already labelled, deleted and outgoing messages untouched",
+        "method": "POST",
+        "path": "/mi/msg/label",
+        "body": {
+            "org_id": 1,
+            "label_uuid": "a6338cdc-7938-4437-8b05-2d5d785e3a08",
+            "msg_uuids": [
+                "0199bad8-f98d-75a3-b641-2718a25ac3f5",
+                "0199bad9-9791-770d-a47d-8f4a6ea3ad13",
+                "0199bada-2b39-7cac-9714-827df9ec6b91",
+                "0199bb93-ec0f-703e-9b5b-d26d4b6b133c",
+                "0199bb09-f0e9-7489-a58e-69304a7941a0"
+            ],
+            "add": true
+        },
+        "status": 200,
+        "response": {},
+        "db_assertions": [
+            {
+                "query": "SELECT m.uuid::text FROM msgs_msg_labels l INNER JOIN msgs_msg m ON m.id = l.msg_id WHERE l.label_id = 10001",
+                "set": [
+                    "0199bad8-f98d-75a3-b641-2718a25ac3f5",
+                    "0199bad9-9791-770d-a47d-8f4a6ea3ad13"
+                ]
+            },
+            {
+                "query": "SELECT uuid::text FROM msgs_msg WHERE modified_on > '2021-01-01'",
+                "set": [
+                    "0199bad8-f98d-75a3-b641-2718a25ac3f5"
+                ]
+            }
+        ]
+    },
+    {
+        "label": "re-adding an already applied label is a noop",
+        "method": "POST",
+        "path": "/mi/msg/label",
+        "body": {
+            "org_id": 1,
+            "label_uuid": "a6338cdc-7938-4437-8b05-2d5d785e3a08",
+            "msg_uuids": [
+                "0199bad8-f98d-75a3-b641-2718a25ac3f5",
+                "0199bad9-9791-770d-a47d-8f4a6ea3ad13"
+            ],
+            "add": true
+        },
+        "status": 200,
+        "response": {},
+        "db_assertions": [
+            {
+                "query": "SELECT count(*) FROM msgs_msg_labels WHERE label_id = 10001",
+                "returns": 2
+            },
+            {
+                "query": "SELECT uuid::text FROM msgs_msg WHERE modified_on > '2021-01-01'",
+                "set": [
+                    "0199bad8-f98d-75a3-b641-2718a25ac3f5"
+                ]
+            }
+        ]
+    },
+    {
+        "label": "label removed from messages that have it, others untouched",
+        "method": "POST",
+        "path": "/mi/msg/label",
+        "body": {
+            "org_id": 1,
+            "label_uuid": "a6338cdc-7938-4437-8b05-2d5d785e3a08",
+            "msg_uuids": [
+                "0199bad9-9791-770d-a47d-8f4a6ea3ad13",
+                "0199bad9-f0bc-7738-8af8-99712a6f8bff",
+                "0199bb93-ec0f-703e-9b5b-d26d4b6b133c"
+            ],
+            "add": false
+        },
+        "status": 200,
+        "response": {},
+        "db_assertions": [
+            {
+                "query": "SELECT m.uuid::text FROM msgs_msg_labels l INNER JOIN msgs_msg m ON m.id = l.msg_id WHERE l.label_id = 10001",
+                "set": [
+                    "0199bad8-f98d-75a3-b641-2718a25ac3f5"
+                ]
+            },
+            {
+                "query": "SELECT uuid::text FROM msgs_msg WHERE modified_on > '2021-01-01'",
+                "set": [
+                    "0199bad8-f98d-75a3-b641-2718a25ac3f5",
+                    "0199bad9-9791-770d-a47d-8f4a6ea3ad13"
+                ]
+            }
+        ]
+    },
+    {
+        "label": "removing a label a message doesn't have is a noop",
+        "method": "POST",
+        "path": "/mi/msg/label",
+        "body": {
+            "org_id": 1,
+            "label_uuid": "a6338cdc-7938-4437-8b05-2d5d785e3a08",
+            "msg_uuids": [
+                "0199bad9-9791-770d-a47d-8f4a6ea3ad13"
+            ],
+            "add": false
+        },
+        "status": 200,
+        "response": {},
+        "db_assertions": [
+            {
+                "query": "SELECT count(*) FROM msgs_msg_labels WHERE label_id = 10001",
+                "returns": 1
+            },
+            {
+                "query": "SELECT count(*) FROM msgs_msg WHERE modified_on > '2021-01-01'",
+                "returns": 2
+            }
+        ]
+    }
+]
