@@ -30,7 +30,7 @@ type MsgIn struct {
 
 func (m *MsgIn) Label(rt *runtime.Runtime, labels ...*Label) {
 	for _, l := range labels {
-		rt.DB.MustExec(`INSERT INTO msgs_msg_labels(msg_id, label_id) VALUES($1, $2)`, m.ID, l.ID)
+		rt.DB.MustExec(`INSERT INTO msgs_msg_labels(msg_id, msg_uuid, label_id) VALUES($1, $2, $3)`, m.ID, m.UUID, l.ID)
 	}
 }
 
