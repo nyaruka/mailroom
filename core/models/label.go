@@ -66,8 +66,8 @@ func AddMsgLabels(ctx context.Context, tx DBorTx, adds []*MsgLabelAdd) ([]MsgID,
 }
 
 const sqlInsertMsgLabels = `
-INSERT INTO msgs_msg_labels(msg_id, label_id) 
-SELECT msgs_msg.id, r.label_id
+INSERT INTO msgs_msg_labels(msg_id, msg_uuid, label_id)
+SELECT msgs_msg.id, msgs_msg.uuid, r.label_id
 FROM (VALUES(:msg_uuid::uuid, :label_id::int)) AS r(msg_uuid, label_id)
 INNER JOIN msgs_msg ON msgs_msg.uuid = r.msg_uuid
 ON CONFLICT DO NOTHING
