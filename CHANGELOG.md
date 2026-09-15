@@ -1,3 +1,7 @@
+v26.3.69 (2026-09-15)
+-------------------------
+ * Write msg_uuid when adding labels to messages
+
 v26.3.68 (2026-09-15)
 -------------------------
  * Add internal endpoint to add or remove a label on incoming messages
