@@ -19,6 +19,7 @@ import (
 	_ "github.com/nyaruka/mailroom/v26/web/channel"
 	_ "github.com/nyaruka/mailroom/v26/web/contact"
 	_ "github.com/nyaruka/mailroom/v26/web/flow"
+	_ "github.com/nyaruka/mailroom/v26/web/knowledge"
 	_ "github.com/nyaruka/mailroom/v26/web/llm"
 	_ "github.com/nyaruka/mailroom/v26/web/msg"
 	_ "github.com/nyaruka/mailroom/v26/web/notification"
