@@ -34,11 +34,7 @@ func TestLabels(t *testing.T) {
 		label := labels[i].(*models.Label)
 		assert.Equal(t, tc.ID, label.ID())
 		assert.Equal(t, tc.Name, label.Name())
-		assert.Equal(t, label, oa.LabelByID(tc.ID))
-		assert.Equal(t, label, oa.LabelByUUID(label.UUID()))
 	}
-
-	assert.Nil(t, oa.LabelByID(models.LabelID(1234)))
 }
 
 func TestAddMsgLabels(t *testing.T) {

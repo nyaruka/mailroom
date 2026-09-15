@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/runtime"
@@ -21,15 +22,15 @@ func init() {
 //
 //	{
 //	  "org_id": 1,
-//	  "label_id": 12,
+//	  "label_uuid": "a6338cdc-7938-4437-8b05-2d5d785e3a08",
 //	  "msg_uuids": ["0199bada-2b39-7cac-9714-827df9ec6b91", "0199bb09-f0e9-7489-a58e-69304a7941a0"],
 //	  "add": true
 //	}
 type labelRequest struct {
-	OrgID    models.OrgID       `json:"org_id"    validate:"required"`
-	LabelID  models.LabelID     `json:"label_id"  validate:"required"`
-	MsgUUIDs []events.EventUUID `json:"msg_uuids" validate:"required"`
-	Add      bool               `json:"add"`
+	OrgID     models.OrgID       `json:"org_id"     validate:"required"`
+	LabelUUID assets.LabelUUID   `json:"label_uuid" validate:"required"`
+	MsgUUIDs  []events.EventUUID `json:"msg_uuids"  validate:"required"`
+	Add       bool               `json:"add"`
 }
 
 func handleLabel(ctx context.Context, rt *runtime.Runtime, r *labelRequest) (any, int, error) {
@@ -38,7 +39,7 @@ func handleLabel(ctx context.Context, rt *runtime.Runtime, r *labelRequest) (any
 		return nil, 0, fmt.Errorf("error loading org assets: %w", err)
 	}
 
-	label := oa.LabelByID(r.LabelID)
+	label := oa.LabelByUUID(r.LabelUUID)
 	if label == nil {
 		return errors.New("no such label"), http.StatusBadRequest, nil
 	}

@@ -9,7 +9,7 @@
         }
     },
     {
-        "label": "error if label_id not provided",
+        "label": "error if label_uuid not provided",
         "method": "POST",
         "path": "/mi/msg/label",
         "body": {
@@ -21,7 +21,7 @@
         },
         "status": 400,
         "response": {
-            "error": "request failed validation: field 'label_id' is required"
+            "error": "request failed validation: field 'label_uuid' is required"
         }
     },
     {
@@ -30,7 +30,7 @@
         "path": "/mi/msg/label",
         "body": {
             "org_id": 2,
-            "label_id": 10001,
+            "label_uuid": "a6338cdc-7938-4437-8b05-2d5d785e3a08",
             "msg_uuids": [
                 "0199bb09-f0e9-7489-a58e-69304a7941a0"
             ],
@@ -57,7 +57,7 @@
         "path": "/mi/msg/label",
         "body": {
             "org_id": 1,
-            "label_id": 10001,
+            "label_uuid": "a6338cdc-7938-4437-8b05-2d5d785e3a08",
             "msg_uuids": [
                 "0199bad8-f98d-75a3-b641-2718a25ac3f5",
                 "0199bad9-9791-770d-a47d-8f4a6ea3ad13",
@@ -90,7 +90,7 @@
         "path": "/mi/msg/label",
         "body": {
             "org_id": 1,
-            "label_id": 10001,
+            "label_uuid": "a6338cdc-7938-4437-8b05-2d5d785e3a08",
             "msg_uuids": [
                 "0199bad8-f98d-75a3-b641-2718a25ac3f5",
                 "0199bad9-9791-770d-a47d-8f4a6ea3ad13"
@@ -118,7 +118,7 @@
         "path": "/mi/msg/label",
         "body": {
             "org_id": 1,
-            "label_id": 10001,
+            "label_uuid": "a6338cdc-7938-4437-8b05-2d5d785e3a08",
             "msg_uuids": [
                 "0199bad9-9791-770d-a47d-8f4a6ea3ad13",
                 "0199bad9-f0bc-7738-8af8-99712a6f8bff",
@@ -150,7 +150,7 @@
         "path": "/mi/msg/label",
         "body": {
             "org_id": 1,
-            "label_id": 10001,
+            "label_uuid": "a6338cdc-7938-4437-8b05-2d5d785e3a08",
             "msg_uuids": [
                 "0199bad9-9791-770d-a47d-8f4a6ea3ad13"
             ],
