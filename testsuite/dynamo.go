@@ -54,7 +54,7 @@ func setupDynamo(ctx context.Context, rt *runtime.Runtime) error {
 		}
 	}
 
-	// wait for tables to be usable - localstack creates synchronously but real DynamoDB doesn't
+	// wait for tables to be usable - the local emulator creates synchronously but real DynamoDB doesn't
 	waiter := dynamodb.NewTableExistsWaiter(client)
 	for _, input := range inputs {
 		if err := waiter.Wait(ctx, &dynamodb.DescribeTableInput{TableName: input.TableName}, 30*time.Second); err != nil {
