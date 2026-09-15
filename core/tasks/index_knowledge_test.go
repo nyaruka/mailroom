@@ -20,7 +20,7 @@ func TestIndexKnowledge(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
 	// deactivate the system sources baked into the test database so only our test sources are indexable
-	rt.DB.MustExec(`UPDATE knowledge_knowledge SET is_active = FALSE`)
+	rt.DB.MustExec(`UPDATE knowledge_knowledgesource SET is_active = FALSE`)
 
 	oa := testdb.Org1.Load(t, rt)
 
@@ -40,12 +40,12 @@ func TestIndexKnowledge(t *testing.T) {
 	err := task.Perform(ctx, rt, oa, testTaskID)
 	assert.NoError(t, err)
 
-	assertdb.Query(t, rt.DB, `SELECT status, error, num_items, num_chunks FROM knowledge_knowledge WHERE id = $1`, k1.ID).
+	assertdb.Query(t, rt.DB, `SELECT status, error, num_items, num_chunks FROM knowledge_knowledgesource WHERE id = $1`, k1.ID).
 		Columns(map[string]any{"status": "R", "error": nil, "num_items": 2, "num_chunks": 2})
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM knowledge_knowledge WHERE id = $1 AND last_indexed_on IS NOT NULL`, k1.ID).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM knowledge_knowledgesource WHERE id = $1 AND last_indexed_on IS NOT NULL`, k1.ID).Returns(1)
 
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM knowledge_knowledgechunk WHERE knowledge_id = $1`, k1.ID).Returns(2)
-	assertdb.Query(t, rt.DB, `SELECT item_name, text FROM knowledge_knowledgechunk WHERE knowledge_id = $1 AND item_key = $2`, k1.ID, s1.UUID).
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM knowledge_knowledgechunk WHERE source_id = $1`, k1.ID).Returns(2)
+	assertdb.Query(t, rt.DB, `SELECT item_name, text FROM knowledge_knowledgechunk WHERE source_id = $1 AND item_key = $2`, k1.ID, s1.UUID).
 		Columns(map[string]any{"item_name": "Refunds", "text": "We offer full refunds within 30 days."})
 
 	// the shortcuts were embedded as passages, not as queries
@@ -63,7 +63,7 @@ func TestIndexKnowledge(t *testing.T) {
 
 	assert.Empty(t, embedder.Passages)
 
-	assertdb.Query(t, rt.DB, `SELECT status, num_items, num_chunks FROM knowledge_knowledge WHERE id = $1`, k1.ID).
+	assertdb.Query(t, rt.DB, `SELECT status, num_items, num_chunks FROM knowledge_knowledgesource WHERE id = $1`, k1.ID).
 		Columns(map[string]any{"status": "R", "num_items": 2, "num_chunks": 2})
 
 	// a trigger arriving while another worker holds the source's lock is a no-op
@@ -77,7 +77,7 @@ func TestIndexKnowledge(t *testing.T) {
 	err = task.Perform(ctx, rt, oa, testTaskID)
 	assert.NoError(t, err)
 
-	assertdb.Query(t, rt.DB, `SELECT status FROM knowledge_knowledge WHERE id = $1`, k1.ID).Returns("R")
+	assertdb.Query(t, rt.DB, `SELECT status FROM knowledge_knowledgesource WHERE id = $1`, k1.ID).Returns("R")
 
 	require.NoError(t, locker.Release(ctx, rt.VK, lock))
 
@@ -89,9 +89,9 @@ func TestIndexKnowledge(t *testing.T) {
 	err = task.Perform(ctx, rt, oa, testTaskID)
 	assert.NoError(t, err)
 
-	assertdb.Query(t, rt.DB, `SELECT status, num_items, num_chunks FROM knowledge_knowledge WHERE id = $1`, k1.ID).
+	assertdb.Query(t, rt.DB, `SELECT status, num_items, num_chunks FROM knowledge_knowledgesource WHERE id = $1`, k1.ID).
 		Columns(map[string]any{"status": "R", "num_items": 1, "num_chunks": 1})
-	assertdb.Query(t, rt.DB, `SELECT text FROM knowledge_knowledgechunk WHERE knowledge_id = $1`, k1.ID).Returns("We no longer offer refunds.")
+	assertdb.Query(t, rt.DB, `SELECT text FROM knowledge_knowledgechunk WHERE source_id = $1`, k1.ID).Returns("We no longer offer refunds.")
 
 	// an error from the embeddings service must leave the source failed with its error recorded.. never stuck indexing
 	rt.DB.MustExec(`UPDATE tickets_shortcut SET modified_on = NOW() WHERE id = $1`, s1.ID)
@@ -100,11 +100,11 @@ func TestIndexKnowledge(t *testing.T) {
 	err = task.Perform(ctx, rt, oa, testTaskID)
 	assert.EqualError(t, err, fmt.Sprintf(`error indexing knowledge source %d: error embedding chunks: embeddings service is down`, k1.ID))
 
-	assertdb.Query(t, rt.DB, `SELECT status, error FROM knowledge_knowledge WHERE id = $1`, k1.ID).
+	assertdb.Query(t, rt.DB, `SELECT status, error FROM knowledge_knowledgesource WHERE id = $1`, k1.ID).
 		Columns(map[string]any{"status": "F", "error": "error embedding chunks: embeddings service is down"})
 
 	// but the chunks from the last successful index are still there to be searched
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM knowledge_knowledgechunk WHERE knowledge_id = $1`, k1.ID).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM knowledge_knowledgechunk WHERE source_id = $1`, k1.ID).Returns(1)
 
 	// a source of a type we can't index yet is a no-op rather than an error
 	k2 := testdb.InsertKnowledge(t, rt, testdb.Org1, "78bee0eb-a3d1-4e2b-b91b-6ee1c2f1ab19", models.KnowledgeTypeWebsite, "Website", models.KnowledgeStatusPending)
@@ -112,10 +112,10 @@ func TestIndexKnowledge(t *testing.T) {
 	err = (&tasks.IndexKnowledge{KnowledgeUUID: k2.UUID}).Perform(ctx, rt, oa, testTaskID)
 	assert.NoError(t, err)
 
-	assertdb.Query(t, rt.DB, `SELECT status FROM knowledge_knowledge WHERE id = $1`, k2.ID).Returns("P")
+	assertdb.Query(t, rt.DB, `SELECT status FROM knowledge_knowledgesource WHERE id = $1`, k2.ID).Returns("P")
 
 	// as is one that's been released
-	rt.DB.MustExec(`UPDATE knowledge_knowledge SET is_active = FALSE WHERE id = $1`, k1.ID)
+	rt.DB.MustExec(`UPDATE knowledge_knowledgesource SET is_active = FALSE WHERE id = $1`, k1.ID)
 
 	err = task.Perform(ctx, rt, oa, testTaskID)
 	assert.NoError(t, err)

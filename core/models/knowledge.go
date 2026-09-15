@@ -51,7 +51,7 @@ type Knowledge struct {
 	UUID          KnowledgeUUID   `db:"uuid"`
 	OrgID         OrgID           `db:"org_id"`
 	Name          string          `db:"name"`
-	Type          KnowledgeType   `db:"knowledge_type"`
+	Type          KnowledgeType   `db:"source_type"`
 	Config        JSONB[Config]   `db:"config"`
 	Status        KnowledgeStatus `db:"status"`
 	Error         null.String     `db:"error"`
@@ -74,11 +74,11 @@ type Knowledge struct {
 // through the item-staleness branch above: starting an index bumps modified_on, so the interval is a real backoff,
 // whereas a staleness-driven retry would re-queue on every sweep for as long as the underlying failure lasted.
 const sqlSelectStaleKnowledge = `
-SELECT id, uuid, org_id, name, knowledge_type, config, status, error, last_indexed_on, num_items, num_chunks
-  FROM knowledge_knowledge k
- WHERE k.is_active AND k.knowledge_type = ANY($1) AND (
+SELECT id, uuid, org_id, name, source_type, config, status, error, last_indexed_on, num_items, num_chunks
+  FROM knowledge_knowledgesource k
+ WHERE k.is_active AND k.source_type = ANY($1) AND (
          k.status = 'P'
-      OR (k.status = 'R' AND k.knowledge_type = 'shortcuts' AND EXISTS(
+      OR (k.status = 'R' AND k.source_type = 'shortcuts' AND EXISTS(
             SELECT 1 FROM tickets_shortcut s WHERE s.org_id = k.org_id AND s.modified_on > k.last_indexed_on))
       OR (k.status = 'F' AND k.modified_on < NOW() - INTERVAL '15 minutes')
       OR (k.status = 'I' AND k.modified_on < NOW() - INTERVAL '1 hour')
@@ -111,8 +111,8 @@ func GetStaleKnowledge(ctx context.Context, db *sqlx.DB, types []KnowledgeType, 
 }
 
 const sqlSelectKnowledge = `
-SELECT id, uuid, org_id, name, knowledge_type, config, status, error, last_indexed_on, num_items, num_chunks
-  FROM knowledge_knowledge
+SELECT id, uuid, org_id, name, source_type, config, status, error, last_indexed_on, num_items, num_chunks
+  FROM knowledge_knowledgesource
  WHERE org_id = $1 AND uuid = $2 AND is_active`
 
 // GetKnowledge loads a knowledge source by UUID, returning nil if there's no such active source
@@ -131,7 +131,7 @@ func GetKnowledge(ctx context.Context, db *sqlx.DB, orgID OrgID, uuid KnowledgeU
 // is_active is guarded here for the same reason as in SetReady below - a source released since we picked up the
 // work is on its way out and shouldn't be given a new status
 const sqlSetKnowledgeIndexing = `
-UPDATE knowledge_knowledge SET status = 'I', modified_on = NOW() WHERE id = $1 AND is_active`
+UPDATE knowledge_knowledgesource SET status = 'I', modified_on = NOW() WHERE id = $1 AND is_active`
 
 // SetIndexing records that we've started indexing this source. Mutual exclusion between workers is the caller's
 // lock, not this - the status is what the UI shows and what the retry cron reads.
@@ -148,7 +148,7 @@ func (k *Knowledge) SetIndexing(ctx context.Context, db DBorTx) error {
 // worker that claimed it is still embedding. Without the guard that in-flight run would finalize the row back to 'R'
 // with non-zero counters after the purge had emptied it.
 const sqlSetKnowledgeReady = `
-UPDATE knowledge_knowledge
+UPDATE knowledge_knowledgesource
    SET status = 'R', error = NULL, last_indexed_on = $2, num_items = $3, num_chunks = $4, modified_on = NOW()
  WHERE id = $1 AND is_active`
 
@@ -178,7 +178,7 @@ func (k *Knowledge) SetReady(ctx context.Context, db DBorTx, indexedOn time.Time
 }
 
 const sqlSetKnowledgeFailed = `
-UPDATE knowledge_knowledge SET status = 'F', error = $2, modified_on = NOW() WHERE id = $1`
+UPDATE knowledge_knowledgesource SET status = 'F', error = $2, modified_on = NOW() WHERE id = $1`
 
 // SetFailed records a failed indexing of this source
 func (k *Knowledge) SetFailed(ctx context.Context, db DBorTx, errMsg string) error {
@@ -209,7 +209,7 @@ func (i KnowledgeChunkID) MarshalJSON() ([]byte, error)  { return null.MarshalIn
 // from - for shortcuts that's tickets_shortcut.uuid - letting us replace an item's chunks without per-item state.
 type KnowledgeChunk struct {
 	ID          KnowledgeChunkID `db:"id"`
-	KnowledgeID KnowledgeID      `db:"knowledge_id"`
+	KnowledgeID KnowledgeID      `db:"source_id"`
 	ItemKey     uuids.UUID       `db:"item_key"`
 	ItemName    string           `db:"item_name"`
 	ItemURL     null.String      `db:"item_url"`
@@ -219,8 +219,8 @@ type KnowledgeChunk struct {
 
 const sqlInsertKnowledgeChunk = `
 INSERT INTO
-  knowledge_knowledgechunk( knowledge_id,  item_key,       item_name,  item_url,  text,  embedding)
-                  VALUES(:knowledge_id, :item_key::uuid, :item_name, :item_url, :text, :embedding::vector)`
+  knowledge_knowledgechunk( source_id,  item_key,       item_name,  item_url,  text,  embedding)
+                  VALUES(:source_id, :item_key::uuid, :item_name, :item_url, :text, :embedding::vector)`
 
 // InsertKnowledgeChunks inserts the given chunks in batches of 100 - smaller than our usual 1000 because each row
 // carries a 384 float embedding
@@ -237,7 +237,7 @@ func DeleteKnowledgeChunks(ctx context.Context, tx DBorTx, knowledgeID Knowledge
 		return nil
 	}
 
-	sql := `DELETE FROM knowledge_knowledgechunk WHERE knowledge_id = $1 AND item_key = ANY($2)`
+	sql := `DELETE FROM knowledge_knowledgechunk WHERE source_id = $1 AND item_key = ANY($2)`
 	if _, err := tx.ExecContext(ctx, sql, knowledgeID, pq.Array(itemKeys)); err != nil {
 		return fmt.Errorf("error deleting knowledge chunks: %w", err)
 	}
@@ -247,7 +247,7 @@ func DeleteKnowledgeChunks(ctx context.Context, tx DBorTx, knowledgeID Knowledge
 // CountKnowledgeChunks returns the total number of chunks of the given knowledge source
 func CountKnowledgeChunks(ctx context.Context, db DBorTx, knowledgeID KnowledgeID) (int, error) {
 	var count int
-	if err := db.GetContext(ctx, &count, `SELECT count(*) FROM knowledge_knowledgechunk WHERE knowledge_id = $1`, knowledgeID); err != nil {
+	if err := db.GetContext(ctx, &count, `SELECT count(*) FROM knowledge_knowledgechunk WHERE source_id = $1`, knowledgeID); err != nil {
 		return 0, fmt.Errorf("error counting knowledge chunks: %w", err)
 	}
 	return count, nil
