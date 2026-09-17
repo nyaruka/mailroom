@@ -4,6 +4,7 @@ const (
 	ErrorCredentials = "credentials"
 	ErrorRateLimit   = "ratelimit"
 	ErrorReasoning   = "reasoning"
+	ErrorTimeout     = "timeout"
 	ErrorUnknown     = "unknown"
 )
 
