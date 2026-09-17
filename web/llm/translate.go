@@ -129,7 +129,7 @@ func handleTranslate(ctx context.Context, rt *runtime.Runtime, r *translateReque
 		if errors.Is(callCtx.Err(), context.DeadlineExceeded) {
 			return nil, 0, &ai.ServiceError{
 				Message:      fmt.Sprintf("LLM took longer than %s to respond", CallTimeout),
-				Code:         ai.ErrorUnknown,
+				Code:         ai.ErrorTimeout,
 				Instructions: instructions,
 				Input:        string(inputBytes),
 			}
