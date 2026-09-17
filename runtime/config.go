@@ -85,7 +85,6 @@ type Config struct {
 
 	AndroidCredentialsFile string `help:"path to JSON file with FCM service account credentials used to sync Android relayers"`
 	IDObfuscationKey       string `help:"key used to decode obfuscated IDs, as 4 comma separated integers" validate:"omitempty,hexadecimal,len=32"`
-	ShutdownTimeout        int    `help:"the number of seconds to allow for a graceful shutdown before exiting hard, should be below the orchestrator's stop timeout"`
 
 	LogLevel slog.Level `help:"the logging level courier should use"`
 	UUIDSeed int        `help:"seed to use for UUID generation in a testing environment"`
@@ -150,7 +149,6 @@ func NewDefaultConfig() *Config {
 		DeploymentID:        "dev",
 
 		IDObfuscationKey: "000A3B1C000D2E3F0001A2B300C0FFEE",
-		ShutdownTimeout:  110,
 
 		LogLevel: slog.LevelWarn,
 		UUIDSeed: 0,
