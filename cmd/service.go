@@ -176,6 +176,16 @@ func handleSignals(svc *service) {
 			ulog.Printf("\n%s", buf[:stacklen])
 		case syscall.SIGINT, syscall.SIGTERM:
 			log.Info("received exit signal, exiting")
+
+			// shutdown waits for in-flight tasks and requests to finish, so a wedged component would otherwise leave us
+			// hanging until the orchestrator kills us without a record of why. Exit hard with an error instead.
+			shutdownTimeout := time.Duration(svc.rt.Config.ShutdownTimeout) * time.Second
+			watchdog := time.AfterFunc(shutdownTimeout, func() {
+				log.Error("shutdown timed out, exiting", "timeout", shutdownTimeout)
+				os.Exit(1)
+			})
+			defer watchdog.Stop()
+
 			svc.stop()
 			return
 		}
