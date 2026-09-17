@@ -1,3 +1,9 @@
+v26.3.70 (2026-09-17)
+-------------------------
+ * Add a shutdown watchdog that exits hard if graceful shutdown wedges
+ * Give LLM translate calls a deadline below the server write timeout
+ * Update test database dump for the rename of knowledge sources
+
 v26.3.69 (2026-09-15)
 -------------------------
  * Write msg_uuid when adding labels to messages
