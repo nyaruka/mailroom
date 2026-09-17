@@ -205,6 +205,9 @@ func TestSearch(t *testing.T) {
 func TestURNs(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
 
+	// give our org a country by setting country on a channel
+	rt.DB.MustExec(`UPDATE channels_channel SET country = 'US' WHERE id = $1`, testdb.TwilioChannel.ID)
+
 	testsuite.RunWebTests(t, rt, "testdata/urns.json")
 }
 

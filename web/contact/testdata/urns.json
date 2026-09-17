@@ -10,7 +10,7 @@
         }
     },
     {
-        "label": "normalizes, validates and resolves urns",
+        "label": "normalizes, validates and resolves urns, parsing phone numbers with the org's country (US)",
         "method": "POST",
         "path": "/mi/contact/urns",
         "body": {
@@ -19,6 +19,9 @@
                 "tel:+16055741111",
                 "tel:+1 (605) 574 2222",
                 "tel:+1-6055550131",
+                "tel:(605) 574-2222",
+                "tel:6055550131",
+                "tel:+593 979 123456",
                 "tel:1234",
                 "tel:[[[",
                 "xyz:2345",
@@ -43,6 +46,19 @@
                     "e164": true
                 },
                 {
+                    "normalized": "tel:+16055742222",
+                    "contact_id": 10001,
+                    "e164": true
+                },
+                {
+                    "normalized": "tel:+16055550131",
+                    "e164": true
+                },
+                {
+                    "normalized": "tel:+593979123456",
+                    "e164": true
+                },
+                {
                     "normalized": "tel:1234"
                 },
                 {
@@ -56,6 +72,37 @@
                 {
                     "normalized": "abc",
                     "error": "scheme or path cannot be empty"
+                }
+            ]
+        }
+    },
+    {
+        "label": "validate_only skips resolving owners",
+        "method": "POST",
+        "path": "/mi/contact/urns",
+        "body": {
+            "org_id": 1,
+            "urns": [
+                "tel:+16055741111",
+                "tel:6055742222",
+                "xyz:2345"
+            ],
+            "validate_only": true
+        },
+        "status": 200,
+        "response": {
+            "urns": [
+                {
+                    "normalized": "tel:+16055741111",
+                    "e164": true
+                },
+                {
+                    "normalized": "tel:+16055742222",
+                    "e164": true
+                },
+                {
+                    "normalized": "xyz:2345",
+                    "error": "unknown URN scheme"
                 }
             ]
         }
