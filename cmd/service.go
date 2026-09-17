@@ -22,6 +22,12 @@ import (
 	"github.com/nyaruka/mailroom/v26/web"
 )
 
+// shutdownTimeout is how long we allow for a graceful shutdown before exiting hard. Shutdown waits for in-flight
+// tasks to finish, and the longest a task should normally run is well under this (see tasks.maxNormalDuration). Past
+// this budget something is genuinely wedged, and it's better to exit with a record of why than be killed by the
+// process supervisor or orchestrator. Their stop timeouts should be set a bit above this so the watchdog fires first.
+const shutdownTimeout = 9 * time.Minute
+
 // Service starts the mailroom service, blocks until a termination signal is received, then stops it. The config
 // must already be loaded, e.g. with LoadConfig - an app built on top of mailroom with settings of its own loads its
 // struct embedding runtime.Config and passes the embedded value here. All logging is sent to the given handler,
@@ -176,6 +182,13 @@ func handleSignals(svc *service) {
 			ulog.Printf("\n%s", buf[:stacklen])
 		case syscall.SIGINT, syscall.SIGTERM:
 			log.Info("received exit signal, exiting")
+
+			watchdog := time.AfterFunc(shutdownTimeout, func() {
+				log.Error("shutdown timed out, exiting", "timeout", shutdownTimeout)
+				os.Exit(1)
+			})
+			defer watchdog.Stop()
+
 			svc.stop()
 			return
 		}
