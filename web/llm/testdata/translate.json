@@ -193,5 +193,30 @@
                 "instructions": ""
             }
         }
+    },
+    {
+        "label": "LLM too slow to respond returns 422",
+        "method": "POST",
+        "path": "/mi/llm/translate",
+        "body": {
+            "org_id": 1,
+            "llm_id": 30001,
+            "source": "eng",
+            "target": "spa",
+            "items": {
+                "a1f0e2c4-5b3e-4d7a-9c2f-1e8d6a4b7c35:text": [
+                    "Hello"
+                ]
+            }
+        },
+        "status": 422,
+        "response": {
+            "error": "LLM took longer than 100ms to respond",
+            "code": "ai:unknown",
+            "extra": {
+                "input": "",
+                "instructions": ""
+            }
+        }
     }
 ]

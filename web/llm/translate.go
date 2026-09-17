@@ -25,6 +25,11 @@ func init() {
 	web.InternalRoute(http.MethodPost, "/llm/translate", web.JSONPayload(handleTranslate))
 }
 
+// CallTimeout is how long we give the LLM to respond. It needs to stay under the web server's write timeout,
+// because a handler which outlives that has its connection closed without any response being written, leaving
+// the caller with nothing better than a bad gateway error from whatever proxy sits in between.
+var CallTimeout = 25 * time.Second
+
 // Performs batch translation using an LLM. Items is a map keyed by a
 // caller-supplied opaque id; each entry holds the array of strings to
 // translate together. The id is passed through to the LLM as the key of a
@@ -89,8 +94,11 @@ func handleTranslate(ctx context.Context, rt *runtime.Runtime, r *translateReque
 		return nil, 0, fmt.Errorf("error marshaling input: %w", err)
 	}
 
+	callCtx, cancelCall := context.WithTimeout(ctx, CallTimeout)
+	defer cancelCall()
+
 	callStart := time.Now()
-	resp, err := llmSvc.Response(ctx, instructions, string(inputBytes), llm.MaxOutputTokens())
+	resp, err := llmSvc.Response(callCtx, instructions, string(inputBytes), llm.MaxOutputTokens())
 	if resp == nil {
 		resp = &core.LLMResponse{}
 	}
@@ -106,7 +114,12 @@ func handleTranslate(ctx context.Context, rt *runtime.Runtime, r *translateReque
 	// An error from the LLM service itself (bad credentials, rate limit, model unavailable, etc.)
 	// is reported as 422 because LLMs are user-configured — it's not necessarily our fault.
 	if err != nil {
-		// context cancellation/deadline is a client/timeout issue, not an LLM config failure
+		// if it was our own deadline that expired, rather than the request's, then the LLM was too slow and that's
+		// reported like any other LLM failure - checked on the contexts because services wrap their errors
+		if ctx.Err() == nil && errors.Is(callCtx.Err(), context.DeadlineExceeded) {
+			return nil, 0, &ai.ServiceError{Message: fmt.Sprintf("LLM took longer than %s to respond", CallTimeout), Code: ai.ErrorUnknown}
+		}
+		// any other context cancellation/deadline is a client/timeout issue, not an LLM config failure
 		if errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
 			return nil, 0, err
 		}
