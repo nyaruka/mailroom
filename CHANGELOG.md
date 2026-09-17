@@ -1,3 +1,7 @@
+v26.3.71 (2026-09-17)
+-------------------------
+ * Parse phone URNs with the org's default country in the URNs endpoint and contact imports
+
 v26.3.70 (2026-09-17)
 -------------------------
  * Add a shutdown watchdog that exits hard if graceful shutdown wedges
