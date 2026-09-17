@@ -11,7 +11,9 @@ import (
 
 	"github.com/nyaruka/gocommon/aws/dynamo"
 	"github.com/nyaruka/gocommon/dbutil"
+	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/gocommon/elastic"
+	"github.com/nyaruka/gocommon/i18n"
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/goflow/assets"
@@ -151,6 +153,44 @@ func TestContactImports(t *testing.T) {
 		err = os.WriteFile("testdata/contacts.json", testJSON, 0600)
 		require.NoError(t, err)
 	}
+}
+
+func TestContactImportsWithoutCountry(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	// org has no channels with a country so has no default country to interpret local phone numbers with
+	oa := testdb.Org1.Load(t, rt)
+	require.Equal(t, i18n.NilCountry, oa.Env().DefaultCountry())
+
+	importID := testdb.InsertContactImport(t, rt, testdb.Org1, models.ImportStatusProcessing, testdb.Admin)
+	batchID := testdb.InsertContactImportBatch(t, rt, importID, []byte(`[
+		{"name": "Ann", "urns": ["tel:+1 605 555 0121"], "_import_row": 2},
+		{"name": "Bob", "urns": ["tel:(605) 555-0122"], "_import_row": 3},
+		{"name": "Cat", "urns": ["tel:1234"], "_import_row": 4}
+	]`))
+
+	batch, err := models.LoadContactImportBatch(ctx, rt.DB, batchID)
+	require.NoError(t, err)
+
+	require.NoError(t, imports.ImportBatch(ctx, rt, oa, batch, testdb.Admin.ID))
+
+	results := &struct {
+		NumCreated int             `db:"num_created"`
+		NumErrored int             `db:"num_errored"`
+		Errors     json.RawMessage `db:"errors"`
+	}{}
+	require.NoError(t, rt.DB.Get(results, `SELECT num_created, num_errored, errors FROM contacts_contactimportbatch WHERE id = $1`, batchID))
+
+	// only the number with an explicit country code can be imported
+	assert.Equal(t, 1, results.NumCreated)
+	assert.Equal(t, 2, results.NumErrored)
+	test.AssertEqualJSON(t, []byte(`[
+		{"record": 1, "row": 3, "message": "'(605) 555-0122' is not a valid phone number, ensure it includes a country code"},
+		{"record": 2, "row": 4, "message": "'1234' is not a valid phone number, ensure it includes a country code"}
+	]`), results.Errors)
+
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contacturn WHERE identity = 'tel:+16055550121'`).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contacturn WHERE path LIKE '%6055550122' OR path = '1234'`).Returns(0)
 }
 
 func TestContactImportsIndexing(t *testing.T) {

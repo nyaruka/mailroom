@@ -841,7 +841,7 @@
             {
                 "row": 2,
                 "record": 1,
-                "message": "Unable to find or create contact with URNs xyz:1234567"
+                "message": "'xyz:1234567' is not a valid URN"
             }
         ],
         "expected_contacts": [
@@ -1104,19 +1104,19 @@
             }
         ],
         "num_created": 0,
-        "num_updated": 1,
-        "num_errored": 0,
+        "num_updated": 0,
+        "num_errored": 1,
         "expected_errors": [
             {
                 "row": 2,
                 "record": 0,
-                "message": "'tel:7777777777777777777777777777777777777777777777777777777777777777777777' is not valid URN"
+                "message": "'tel:7777777777777777777777777777777777777777777777777777777777777777777777' is not a valid URN"
             }
         ],
         "expected_contacts": [
             {
                 "uuid": "ad9bdcfa-5604-4542-98c7-1f0d5859f77e",
-                "name": "Anne III",
+                "name": "Anne",
                 "language": "",
                 "status": "archived",
                 "urns": [
@@ -1185,24 +1185,6 @@
                 "fields": {},
                 "groups": [],
                 "_import_row": 0
-            }
-        ],
-        "expected_history": [
-            {
-                "PK": "con#ad9bdcfa-5604-4542-98c7-1f0d5859f77e",
-                "SK": "evt#01969b48-41eb-76f8-9170-73aa5f656389",
-                "OrgID": 1,
-                "TTL": "2026-05-04T12:32:07Z",
-                "Data": {
-                    "_user": {
-                        "name": "Andy Admin",
-                        "uuid": "ad9fdf9f-56ab-422a-b77d-e3ec26091a25"
-                    },
-                    "_via": "import",
-                    "created_on": "2025-05-04T12:32:07.123456789Z",
-                    "name": "Anne III",
-                    "type": "contact_name_changed"
-                }
             }
         ]
     },
@@ -1303,34 +1285,206 @@
         "expected_history": [
             {
                 "PK": "con#ad9bdcfa-5604-4542-98c7-1f0d5859f77e",
-                "SK": "evt#01969b48-518b-76f8-af42-abb6278d787f",
+                "SK": "evt#01969b48-41eb-76f8-9170-73aa5f656389",
                 "OrgID": 1,
-                "TTL": "2026-05-04T12:32:11Z",
+                "TTL": "2026-05-04T12:32:07Z",
                 "Data": {
                     "_user": {
                         "name": "Andy Admin",
                         "uuid": "ad9fdf9f-56ab-422a-b77d-e3ec26091a25"
                     },
                     "_via": "import",
-                    "created_on": "2025-05-04T12:32:11.123456789Z",
+                    "created_on": "2025-05-04T12:32:07.123456789Z",
                     "name": "Annie",
                     "type": "contact_name_changed"
                 }
             },
             {
                 "PK": "con#ad9bdcfa-5604-4542-98c7-1f0d5859f77e",
-                "SK": "evt#01969b48-595b-76f8-a284-24686e628a7b",
+                "SK": "evt#01969b48-49bb-76f8-a150-3428ae2cd5bf",
                 "OrgID": 1,
-                "TTL": "2026-05-04T12:32:13Z",
+                "TTL": "2026-05-04T12:32:09Z",
                 "Data": {
                     "_user": {
                         "name": "Andy Admin",
                         "uuid": "ad9fdf9f-56ab-422a-b77d-e3ec26091a25"
                     },
                     "_via": "import",
-                    "created_on": "2025-05-04T12:32:13.123456789Z",
+                    "created_on": "2025-05-04T12:32:09.123456789Z",
                     "language": "kin",
                     "type": "contact_language_changed"
+                }
+            }
+        ]
+    },
+    {
+        "label": "phone numbers parsed with the org's country (US), and records with invalid or non-E164 phone numbers rejected",
+        "specs": [
+            {
+                "name": "Dan",
+                "urns": [
+                    "tel:(605) 555-0131"
+                ],
+                "_import_row": 2
+            },
+            {
+                "name": "Eve",
+                "urns": [
+                    "tel:12"
+                ],
+                "_import_row": 3
+            },
+            {
+                "name": "Fay",
+                "urns": [
+                    "tel:SHORTCODE"
+                ],
+                "_import_row": 4
+            },
+            {
+                "uuid": "ad9bdcfa-5604-4542-98c7-1f0d5859f77e",
+                "name": "Anne IV",
+                "urns": [
+                    "tel:+250 788 383 383",
+                    "tel:1234"
+                ],
+                "_import_row": 5
+            },
+            {
+                "name": "Gus",
+                "urns": [
+                    "tel:+250 788 383 383",
+                    "xyz:1234567"
+                ],
+                "_import_row": 6
+            }
+        ],
+        "num_created": 1,
+        "num_updated": 0,
+        "num_errored": 4,
+        "expected_errors": [
+            {
+                "row": 3,
+                "record": 1,
+                "message": "'12' is not a valid phone number, ensure it includes a country code"
+            },
+            {
+                "row": 4,
+                "record": 2,
+                "message": "'SHORTCODE' is not a valid phone number, ensure it includes a country code"
+            },
+            {
+                "row": 5,
+                "record": 3,
+                "message": "'1234' is not a valid phone number, ensure it includes a country code"
+            },
+            {
+                "row": 6,
+                "record": 4,
+                "message": "'xyz:1234567' is not a valid URN"
+            }
+        ],
+        "expected_contacts": [
+            {
+                "uuid": "ad9bdcfa-5604-4542-98c7-1f0d5859f77e",
+                "name": "Annie",
+                "language": "kin",
+                "status": "archived",
+                "urns": [
+                    "tel:+16055550111",
+                    "tel:+16055550115"
+                ],
+                "fields": {},
+                "groups": [],
+                "_import_row": 0
+            },
+            {
+                "uuid": "b26fcae1-abb6-49f8-95cf-9fca95f1c30a",
+                "name": "Bob",
+                "language": "kin",
+                "status": "active",
+                "urns": [
+                    "tel:+16055550112",
+                    "tel:+593979000002"
+                ],
+                "fields": {
+                    "age": "28",
+                    "joined": "2020-01-01T10:45:30.000000Z"
+                },
+                "groups": [],
+                "_import_row": 0
+            },
+            {
+                "uuid": "a5111699-b2f8-4a37-9729-57745fb13b06",
+                "name": "Cat",
+                "language": "spa",
+                "status": "active",
+                "urns": [
+                    "tel:+16055550113",
+                    "tel:+593979000001"
+                ],
+                "fields": {
+                    "age": "39",
+                    "joined": "2020-02-01T17:15:30.000000Z"
+                },
+                "groups": [
+                    "5e9d8fab-5e7e-4f51-b533-261af5dea70d",
+                    "c153e265-f7c9-4539-9dbc-9b358714b638"
+                ],
+                "_import_row": 0
+            },
+            {
+                "uuid": "307bd433-68df-49b3-88c7-56bcb29ae35a",
+                "name": "Blake",
+                "language": "",
+                "status": "blocked",
+                "urns": [
+                    "tel:+16055550117"
+                ],
+                "fields": {},
+                "groups": [],
+                "_import_row": 0
+            },
+            {
+                "uuid": "317951ec-a790-4cf9-bc1e-a15dedcb8e98",
+                "name": "Ivan",
+                "language": "",
+                "status": "active",
+                "urns": [
+                    "tel:+16055550118"
+                ],
+                "fields": {},
+                "groups": [],
+                "_import_row": 0
+            },
+            {
+                "uuid": "c38a0d3d-5da4-4217-a284-24686e628a7b",
+                "name": "Dan",
+                "language": "",
+                "status": "active",
+                "urns": [
+                    "tel:+16055550131"
+                ],
+                "fields": {},
+                "groups": [],
+                "_import_row": 0
+            }
+        ],
+        "expected_history": [
+            {
+                "PK": "con#c38a0d3d-5da4-4217-a284-24686e628a7b",
+                "SK": "evt#01969b48-6513-76f8-9e32-5b7ee54bb315",
+                "OrgID": 1,
+                "TTL": "2026-05-04T12:32:16Z",
+                "Data": {
+                    "_user": {
+                        "name": "Andy Admin",
+                        "uuid": "ad9fdf9f-56ab-422a-b77d-e3ec26091a25"
+                    },
+                    "_via": "import",
+                    "created_on": "2025-05-04T12:32:16.123456789Z",
+                    "name": "Dan",
+                    "type": "contact_name_changed"
                 }
             }
         ]

@@ -7,6 +7,7 @@ import (
 
 	"github.com/nyaruka/gocommon/i18n"
 	"github.com/nyaruka/gocommon/jsonx"
+	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/goflow/flows"
@@ -132,6 +133,14 @@ func getOrCreateContacts(ctx context.Context, db *sqlx.DB, oa *models.OrgAssets,
 
 		isActive := spec.Status == "" || spec.Status == core.ContactStatusActive
 
+		// normalize URNs using the org's country so local phone numbers become E164, rejecting the whole record if
+		// any URN is invalid or is a phone number that still isn't E164, so that imports can't create non-E164 tel URNs
+		urnz, errMsg := normalizeURNs(spec.URNs, oa.Env().DefaultCountry())
+		if errMsg != "" {
+			addError("%s", errMsg)
+			continue
+		}
+
 		uuid := spec.UUID
 		if uuid != "" {
 			imp.mc = contactsByUUID[uuid]
@@ -146,11 +155,11 @@ func getOrCreateContacts(ctx context.Context, db *sqlx.DB, oa *models.OrgAssets,
 			}
 
 		} else {
-			imp.mc, imp.contact, imp.created, err = models.GetOrCreateContact(ctx, db, oa, userID, spec.URNs, models.NilChannelID)
+			imp.mc, imp.contact, imp.created, err = models.GetOrCreateContact(ctx, db, oa, userID, urnz, models.NilChannelID)
 			if err != nil {
-				urnStrs := make([]string, len(spec.URNs))
-				for i := range spec.URNs {
-					urnStrs[i] = string(spec.URNs[i].Identity())
+				urnStrs := make([]string, len(urnz))
+				for i := range urnz {
+					urnStrs[i] = string(urnz[i].Identity())
 				}
 
 				addError("Unable to find or create contact with URNs %s", strings.Join(urnStrs, ", "))
@@ -158,7 +167,7 @@ func getOrCreateContacts(ctx context.Context, db *sqlx.DB, oa *models.OrgAssets,
 			}
 		}
 
-		addModifier(modifiers.NewURNs(spec.URNs, modifiers.URNsAppend))
+		addModifier(modifiers.NewURNs(urnz, modifiers.URNsAppend))
 
 		if spec.Name != nil {
 			addModifier(modifiers.NewName(*spec.Name))
@@ -203,6 +212,23 @@ func getOrCreateContacts(ctx context.Context, db *sqlx.DB, oa *models.OrgAssets,
 	}
 
 	return nil
+}
+
+// normalizes the given URNs in the context of the given country, returning an error message if any is invalid or is a
+// phone number which isn't E164
+func normalizeURNs(urnz []urns.URN, country i18n.Country) ([]urns.URN, string) {
+	normalized := make([]urns.URN, len(urnz))
+	for i, urn := range urnz {
+		norm, e164, err := models.NormalizeURN(urn, country)
+		if err != nil {
+			return nil, fmt.Sprintf("'%s' is not a valid URN", urn)
+		}
+		if norm.Scheme() == urns.Phone.Prefix && !e164 {
+			return nil, fmt.Sprintf("'%s' is not a valid phone number, ensure it includes a country code", urn.Path())
+		}
+		normalized[i] = norm
+	}
+	return normalized, ""
 }
 
 // loads any import contacts for which we have UUIDs
