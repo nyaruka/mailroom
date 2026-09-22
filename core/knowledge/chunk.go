@@ -164,9 +164,9 @@ func markdownSections(md string) []markdownSection {
 	sections := make([]markdownSection, 0, 8)
 	current := markdownSection{}
 	body := &strings.Builder{}
-	path := make([]string, 0, 6) // the heading at each level above us
-	fence := ""                  // the marker of the code fence we're inside, if any
-	lastBlank := true            // whether the last line written was blank, so runs of them can be collapsed
+	var levels [6]string // the heading at each level above us, indexed by level so a skipped level is just empty
+	fence := ""          // the marker of the code fence we're inside, if any
+	lastBlank := true    // whether the last line written was blank, so runs of them can be collapsed
 
 	flush := func() {
 		if strings.TrimSpace(body.String()) != "" {
@@ -201,8 +201,19 @@ func markdownSections(md string) []markdownSection {
 		if m := mdHeading.FindStringSubmatch(line); m != nil {
 			flush()
 
+			// a heading replaces everything at its level and below - which is by level rather than by position, so
+			// that an article whose headings start at ## has siblings rather than a chain of descendants
 			level := len(m[1])
-			path = append(path[:min(level-1, len(path))], stripInline(strings.TrimSpace(m[2])))
+			levels[level-1] = stripInline(strings.TrimSpace(m[2]))
+			for i := level; i < len(levels); i++ {
+				levels[i] = ""
+			}
+			path := make([]string, 0, level)
+			for _, h := range levels[:level] {
+				if h != "" {
+					path = append(path, h)
+				}
+			}
 			current = markdownSection{path: strings.Join(path, headingSep)}
 			continue
 		}

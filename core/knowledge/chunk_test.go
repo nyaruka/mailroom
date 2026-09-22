@@ -111,6 +111,16 @@ func TestChunkMarkdown(t *testing.T) {
 			},
 		},
 		{
+			name:     "headings below the top level are siblings of each other, not a chain",
+			md:       "## Refunds\n\naaa\n\n## Exchanges\n\nbbb\n\n### Timing\n\nccc\n\n## Returns\n\nddd",
+			expected: []string{"Refunds\n\naaa\n\nExchanges\n\nbbb\n\nExchanges > Timing\n\nccc\n\nReturns\n\nddd"},
+		},
+		{
+			name:     "a skipped level leaves no gap in the path",
+			md:       "# Billing\n\n### Refunds\n\naaa\n\n## Invoices\n\nbbb",
+			expected: []string{"Billing > Refunds\n\naaa\n\nBilling > Invoices\n\nbbb"},
+		},
+		{
 			name:     "a heading with no body still contributes to the path",
 			md:       "# Billing\n## Refunds\nRefunds take 5 days.",
 			expected: []string{"Billing > Refunds\n\nRefunds take 5 days."},
