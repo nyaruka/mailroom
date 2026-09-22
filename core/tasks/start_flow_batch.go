@@ -107,6 +107,12 @@ func publishStartProgress(ctx context.Context, rt *runtime.Runtime, oa *models.O
 		return // flow is no longer active so nobody has it open
 	}
 
+	// the publish itself is a no-op without watchers but the count below isn't free, so check first
+	socket := models.FlowSocket(flow.UUID())
+	if subscribed, err := rt.Centrifugo.Subscribed(ctx, socket); err != nil || !subscribed[socket] {
+		return
+	}
+
 	current, err := start.RunCount(ctx, rt.DB)
 	if err != nil {
 		slog.Error("error getting start progress", "error", err, "start_id", start.ID)
