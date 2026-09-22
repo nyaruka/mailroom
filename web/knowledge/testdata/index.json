@@ -1,0 +1,42 @@
+[
+    {
+        "label": "illegal method",
+        "method": "GET",
+        "path": "/mi/knowledge/index",
+        "status": 405,
+        "response": {
+            "error": "illegal method: GET"
+        }
+    },
+    {
+        "label": "error if missing required fields",
+        "method": "POST",
+        "path": "/mi/knowledge/index",
+        "body": {},
+        "status": 400,
+        "response": {
+            "error": "request failed validation: field 'org_id' is required, field 'knowledge_uuid' is required"
+        }
+    },
+    {
+        "label": "queues an indexing task for the source",
+        "method": "POST",
+        "path": "/mi/knowledge/index",
+        "body": {
+            "org_id": 1,
+            "knowledge_uuid": "5384b1c6-1099-4a5f-a005-9d3a4092c5c1"
+        },
+        "status": 200,
+        "response": {},
+        "expected_tasks": {
+            "batch/1": [
+                {
+                    "type": "index_knowledge",
+                    "payload": {
+                        "knowledge_uuid": "5384b1c6-1099-4a5f-a005-9d3a4092c5c1"
+                    }
+                }
+            ]
+        }
+    }
+]
