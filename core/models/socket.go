@@ -203,6 +203,36 @@ func PublishFlowActivity(ctx context.Context, rt *runtime.Runtime, flowUUIDs []a
 	return nil
 }
 
+// startProgressEvent is what a flow's socket carries as a start of that flow makes progress, so that an open editor
+// can follow it without polling. Unlike activity it carries the numbers themselves, since they're cheap to know and
+// it's published exactly when they change: on queuing (the total is now known), as each batch completes, and when the
+// start ends. Status is the start's status code and progress mirrors the status endpoint - current is runs created,
+// total is contacts to start.
+type startProgressEvent struct {
+	Type     string      `json:"type"`
+	StartID  StartID     `json:"start_id"`
+	Status   StartStatus `json:"status"`
+	Progress struct {
+		Current int `json:"current"`
+		Total   int `json:"total"`
+	} `json:"progress"`
+}
+
+// PublishStartProgress publishes the progress of the given start to its flow's socket for any live watchers. As with
+// the other socket publishes it's best-effort and a no-op when nobody has the flow open.
+func PublishStartProgress(ctx context.Context, rt *runtime.Runtime, flowUUID assets.FlowUUID, start *FlowStart, current, total int) error {
+	event := &startProgressEvent{Type: "start_progress", StartID: start.ID, Status: start.Status}
+	event.Progress.Current = current
+	event.Progress.Total = total
+
+	pub := &centrifugo.Publication{Channel: FlowSocket(flowUUID), Data: event}
+	if err := rt.Centrifugo.Publish(ctx, pub); err != nil {
+		return fmt.Errorf("error publishing start progress: %w", err)
+	}
+
+	return nil
+}
+
 // ticketDetailEvent returns the ticket UUID and true if the event is a per-ticket detail event - one the read API
 // includes on the ticket page but filters off the contact page (assignee/note/topic changes). Everything else,
 // including the basic ticket lifecycle events (opened/closed/reopened), belongs on the contact socket.
