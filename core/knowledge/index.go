@@ -16,7 +16,7 @@ import (
 )
 
 // IndexableTypes are the knowledge source types we can currently index
-var IndexableTypes = []models.KnowledgeType{models.KnowledgeTypeShortcuts}
+var IndexableTypes = []models.KnowledgeType{models.KnowledgeTypeShortcuts, models.KnowledgeTypeHelpdesk}
 
 // how far back the last_indexed_on watermark is pulled - see indexAuthored. Sized to cover clock skew between the
 // hosts plus the length of a Django write transaction, and no more: anything modified inside the margin is read
@@ -29,32 +29,41 @@ const watermarkMargin = 5 * time.Second
 func IndexSource(ctx context.Context, rt *runtime.Runtime, k *models.Knowledge) error {
 	switch k.Type {
 	case models.KnowledgeTypeShortcuts:
-		return indexAuthored(ctx, rt, k, changedShortcutItems, models.CountActiveShortcuts)
+		return indexAuthored(ctx, rt, k, shortcutsSource)
+	case models.KnowledgeTypeHelpdesk:
+		return indexAuthored(ctx, rt, k, helpdeskSource)
 	default:
 		return fmt.Errorf("unsupported knowledge type '%s'", k.Type)
 	}
 }
 
-// an item of an authored source - content in its own Django owned table (shortcuts, later helpdesk articles) which
-// mailroom reads but never writes. An inactive item is a tombstone: its chunks are deleted and nothing re-indexed.
+// an item of an authored source - content in its own Django owned table (shortcuts, helpdesk articles) which mailroom
+// reads but never writes. An item that isn't indexable is a tombstone: its chunks are deleted and nothing re-indexed.
 type authoredItem struct {
-	key    uuids.UUID
-	name   string
-	url    null.String
-	text   string
-	active bool
+	key       uuids.UUID
+	name      string
+	url       null.String
+	text      string
+	indexable bool
 }
+
+// how to read and chunk one kind of authored source. Everything type specific lives here so that indexAuthored itself
+// - which is where the watermark and the replace-and-finalize transaction live - stays the same for every source.
+type authoredSource struct {
+	loadChanged func(context.Context, *sqlx.DB, *models.Knowledge, time.Time) ([]*authoredItem, error)
+	countItems  func(context.Context, models.DBorTx, *models.Knowledge) (int, error)
+	chunkItem   func(*authoredItem) []string
+}
+
+var (
+	shortcutsSource = &authoredSource{loadChanged: changedShortcutItems, countItems: countShortcutItems, chunkItem: chunkShortcut}
+	helpdeskSource  = &authoredSource{loadChanged: changedArticleItems, countItems: countArticleItems, chunkItem: chunkArticle}
+)
 
 // indexAuthored indexes an authored source: a delta on modified_on since we last indexed catches creates, edits and
 // soft-deletes alike because Django bumps modified_on for all three. A source never indexed (last_indexed_on null)
 // deltas from the zero time, i.e. reads everything.
-func indexAuthored(
-	ctx context.Context,
-	rt *runtime.Runtime,
-	k *models.Knowledge,
-	loadChanged func(context.Context, *sqlx.DB, models.OrgID, time.Time) ([]*authoredItem, error),
-	countItems func(context.Context, models.DBorTx, models.OrgID) (int, error),
-) error {
+func indexAuthored(ctx context.Context, rt *runtime.Runtime, k *models.Knowledge, src *authoredSource) error {
 	// the new last_indexed_on watermark is taken before we read, so items changed while we index leave the source
 	// stale for the next trigger or the retry cron to pick up instead of being missed.
 	//
@@ -71,20 +80,20 @@ func indexAuthored(
 		since = *k.LastIndexedOn
 	}
 
-	changed, err := loadChanged(ctx, rt.DB, k.OrgID, since)
+	changed, err := src.loadChanged(ctx, rt.DB, k, since)
 	if err != nil {
 		return fmt.Errorf("error loading changed items: %w", err)
 	}
 
-	// chunk the still active items - inactive ones only contribute their key to the chunk deletion
+	// chunk the still indexable items - the rest only contribute their key to the chunk deletion
 	itemKeys := make([]uuids.UUID, len(changed))
 	chunks := make([]*models.KnowledgeChunk, 0, len(changed))
 	for i, item := range changed {
 		itemKeys[i] = item.key
-		if !item.active {
+		if !item.indexable {
 			continue
 		}
-		for _, text := range ChunkText(item.text) {
+		for _, text := range src.chunkItem(item) {
 			chunks = append(chunks, &models.KnowledgeChunk{
 				KnowledgeID: k.ID, ItemKey: item.key, ItemName: item.name, ItemURL: item.url, Text: text,
 			})
@@ -120,7 +129,7 @@ func indexAuthored(
 		return err
 	}
 
-	numItems, err := countItems(ctx, tx, k.OrgID)
+	numItems, err := src.countItems(ctx, tx, k)
 	if err != nil {
 		tx.Rollback()
 		return err
@@ -151,15 +160,62 @@ func indexAuthored(
 }
 
 // loads the org's shortcuts changed since the given time as authored items keyed by the shortcut's UUID
-func changedShortcutItems(ctx context.Context, db *sqlx.DB, orgID models.OrgID, since time.Time) ([]*authoredItem, error) {
-	shortcuts, err := models.LoadChangedShortcuts(ctx, db, orgID, since)
+func changedShortcutItems(ctx context.Context, db *sqlx.DB, k *models.Knowledge, since time.Time) ([]*authoredItem, error) {
+	shortcuts, err := models.LoadChangedShortcuts(ctx, db, k.OrgID, since)
 	if err != nil {
 		return nil, err
 	}
 
 	items := make([]*authoredItem, len(shortcuts))
 	for i, s := range shortcuts {
-		items[i] = &authoredItem{key: s.UUID, name: s.Name, text: s.Text, active: s.IsActive}
+		items[i] = &authoredItem{key: s.UUID, name: s.Name, text: s.Text, indexable: s.IsActive}
 	}
 	return items, nil
+}
+
+func countShortcutItems(ctx context.Context, db models.DBorTx, k *models.Knowledge) (int, error) {
+	return models.CountActiveShortcuts(ctx, db, k.OrgID)
+}
+
+// a shortcut's text is plain prose written to be sent as-is, so it chunks as plain text
+func chunkShortcut(item *authoredItem) []string {
+	return ChunkText(item.text)
+}
+
+// loads the helpdesk's articles changed since the given time as authored items keyed by the article's UUID. Only
+// published, active articles are indexable - see models.Article.Indexable - so an unpublish reaches us as a tombstone
+// exactly like a delete does.
+//
+// ItemURL is deliberately left null even though the helpdesk may have a public site: an article's address there is
+// its section's slug, its own slug and the site's domain, and a section rename or a domain change alters it without
+// bumping the article's modified_on - so a URL baked into a chunk would go stale with no way of noticing. Whoever
+// shows a hit resolves the article by its key instead, which is always right as of that moment.
+func changedArticleItems(ctx context.Context, db *sqlx.DB, k *models.Knowledge, since time.Time) ([]*authoredItem, error) {
+	articles, err := models.LoadChangedArticles(ctx, db, k.ID, since)
+	if err != nil {
+		return nil, err
+	}
+
+	items := make([]*authoredItem, len(articles))
+	for i, a := range articles {
+		items[i] = &authoredItem{key: a.UUID, name: a.Title, text: a.Body, indexable: a.Indexable()}
+	}
+	return items, nil
+}
+
+func countArticleItems(ctx context.Context, db models.DBorTx, k *models.Knowledge) (int, error) {
+	return models.CountPublishedArticles(ctx, db, k.ID)
+}
+
+// an article body is authored markdown, so it chunks on its headings. Every chunk is then prefixed with the article's
+// title rather than just the first one: a chunk from halfway down a long article is otherwise anonymous both to the
+// embedding and to whoever reads a citation of it, and a title costs little next to a chunk of a thousand runes.
+// Shortcuts deliberately don't do this - a shortcut is short enough to be one chunk and its name is a filing label
+// ("Greeting"), not a subject the text is about.
+func chunkArticle(item *authoredItem) []string {
+	chunks := ChunkMarkdown(item.text)
+	for i := range chunks {
+		chunks[i] = item.name + "\n\n" + chunks[i]
+	}
+	return chunks
 }

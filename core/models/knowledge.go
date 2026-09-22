@@ -61,10 +61,10 @@ type Knowledge struct {
 }
 
 // A source is stale when it's active, of a type we can index, and either 1) flagged as pending by Django, 2) ready
-// but an item in its Django owned table has been created, edited or soft-deleted (all of which bump modified_on)
-// since we last indexed it, 3) failed long enough ago to be worth retrying, or 4) stuck in indexing for over an hour
-// - which can only mean the worker that started it died before recording an outcome, since starting bumps
-// modified_on and there is no task retry.
+// but an item in its Django owned table has been created, edited, unpublished or soft-deleted (all of which bump
+// modified_on) since we last indexed it, 3) failed long enough ago to be worth retrying, or 4) stuck in indexing for
+// over an hour - which can only mean the worker that started it died before recording an outcome, since starting
+// bumps modified_on and there is no task retry.
 //
 // Indexing is normally triggered by Django as an edit commits, so in a healthy system this finds nothing. It exists
 // because 'F' and 'I' would otherwise be dead ends: Django only moves a source to 'P' on the paths that own its
@@ -80,6 +80,8 @@ SELECT id, uuid, org_id, name, source_type, config, status, error, last_indexed_
          k.status = 'P'
       OR (k.status = 'R' AND k.source_type = 'shortcuts' AND EXISTS(
             SELECT 1 FROM tickets_shortcut s WHERE s.org_id = k.org_id AND s.modified_on > k.last_indexed_on))
+      OR (k.status = 'R' AND k.source_type = 'helpdesk' AND EXISTS(
+            SELECT 1 FROM knowledge_article a WHERE a.source_id = k.id AND a.modified_on > k.last_indexed_on))
       OR (k.status = 'F' AND k.modified_on < NOW() - INTERVAL '15 minutes')
       OR (k.status = 'I' AND k.modified_on < NOW() - INTERVAL '1 hour')
        )
@@ -312,6 +314,92 @@ func CountActiveShortcuts(ctx context.Context, db DBorTx, orgID OrgID) (int, err
 	var count int
 	if err := db.GetContext(ctx, &count, `SELECT count(*) FROM tickets_shortcut WHERE org_id = $1 AND is_active`, orgID); err != nil {
 		return 0, fmt.Errorf("error counting active shortcuts for org: %d: %w", orgID, err)
+	}
+	return count, nil
+}
+
+type ArticleID int
+
+// NilArticleID is our constant for a nil article id
+const NilArticleID = ArticleID(0)
+
+func (i *ArticleID) Scan(value any) error         { return null.ScanInt(value, i) }
+func (i ArticleID) Value() (driver.Value, error)  { return null.IntValue(i) }
+func (i *ArticleID) UnmarshalJSON(b []byte) error { return null.UnmarshalInt(b, i) }
+func (i ArticleID) MarshalJSON() ([]byte, error)  { return null.MarshalInt(i) }
+
+type ArticleStatus string
+
+const (
+	ArticleStatusDraft     = ArticleStatus("D") // never published, or pulled back
+	ArticleStatusPublished = ArticleStatus("P")
+)
+
+// Article is an article in an org's helpdesk, owned entirely by Django - mailroom only reads them to index them. Like
+// shortcuts they're soft-deleted, so a released article is a visible tombstone: it stays in the table with
+// is_active = FALSE and a bumped modified_on. Unpublishing leaves the same kind of tombstone, just with a status of
+// draft, which is why Indexable and not IsActive is what decides whether an article has content for us.
+type Article struct {
+	ID         ArticleID     `db:"id"`
+	UUID       uuids.UUID    `db:"uuid"`
+	SourceID   KnowledgeID   `db:"source_id"`
+	Title      string        `db:"title"`
+	Body       string        `db:"body"`
+	Status     ArticleStatus `db:"status"`
+	IsActive   bool          `db:"is_active"`
+	ModifiedOn time.Time     `db:"modified_on"`
+}
+
+// Indexable is the single definition of which articles have content we're allowed to embed - and thus the only thing
+// callers should ever branch on. Everything else is a tombstone which can only cause a chunk deletion: a draft has
+// either never been published or has been pulled back, and in both cases its text must not be searchable, so a caller
+// checking is_active alone would silently publish unreviewed writing into an org's knowledge.
+func (a *Article) Indexable() bool {
+	return a.IsActive && a.Status == ArticleStatusPublished
+}
+
+const sqlSelectChangedArticles = `
+SELECT id, uuid, source_id, title, body, status, is_active, modified_on
+  FROM knowledge_article
+ WHERE source_id = $1 AND modified_on > $2
+ ORDER BY modified_on`
+
+// LoadChangedArticles loads the helpdesk's articles modified since the given time - creates, edits, unpublishes and
+// soft-deletes alike since all of those bump modified_on. Scoped by source rather than by org because articles belong
+// to a helpdesk, not to the org directly.
+func LoadChangedArticles(ctx context.Context, db *sqlx.DB, sourceID KnowledgeID, since time.Time) ([]*Article, error) {
+	rows, err := db.QueryxContext(ctx, sqlSelectChangedArticles, sourceID, since)
+	if err != nil && err != sql.ErrNoRows {
+		return nil, fmt.Errorf("error loading changed articles for knowledge source: %d: %w", sourceID, err)
+	}
+	defer rows.Close()
+
+	articles := make([]*Article, 0, 10)
+	for rows.Next() {
+		a := &Article{}
+		if err := rows.StructScan(a); err != nil {
+			return nil, fmt.Errorf("error unmarshalling article: %w", err)
+		}
+		articles = append(articles, a)
+	}
+	// a truncated read here would be silently destructive: we'd index only what we managed to read, then advance
+	// last_indexed_on past the modified_on of the ones we didn't, so their edits would never be picked up again
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error reading articles for knowledge source: %d: %w", sourceID, err)
+	}
+
+	return articles, nil
+}
+
+// CountPublishedArticles returns the number of active published articles in the given helpdesk - i.e. the ones that
+// actually contribute chunks, so that a helpdesk full of drafts doesn't report itself as indexed content. A root of
+// the tree is a section - a heading over the articles under it, with a description rather than a body - so it isn't
+// counted as content, though it's still read and (as an empty body) contributes no chunks.
+func CountPublishedArticles(ctx context.Context, db DBorTx, sourceID KnowledgeID) (int, error) {
+	var count int
+	sql := `SELECT count(*) FROM knowledge_article WHERE source_id = $1 AND parent_id IS NOT NULL AND is_active AND status = 'P'`
+	if err := db.GetContext(ctx, &count, sql, sourceID); err != nil {
+		return 0, fmt.Errorf("error counting published articles for knowledge source: %d: %w", sourceID, err)
 	}
 	return count, nil
 }

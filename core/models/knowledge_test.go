@@ -63,11 +63,28 @@ func TestGetStaleKnowledge(t *testing.T) {
 	// pending source of a type we don't support.. not stale
 	testdb.InsertKnowledge(t, rt, testdb.Org2, "df22cbcb-e0e1-4e78-be9f-2e4fbea1b2c3", models.KnowledgeTypeWebsite, "Website", models.KnowledgeStatusPending)
 
-	types := []models.KnowledgeType{models.KnowledgeTypeShortcuts}
+	// ready helpdesk with an article changed since it was indexed.. stale
+	k10 := testdb.InsertKnowledge(t, rt, testdb.Org1, "6d4c2b1a-0f9e-4c8d-b7a6-5e4f3d2c1b0a", models.KnowledgeTypeHelpdesk, "Stale Helpdesk", models.KnowledgeStatusReady)
+	k10s := testdb.InsertSection(t, rt, k10, "a1b2c3d4-0010-4000-8000-000000000010", "General")
+	rt.DB.MustExec(`UPDATE knowledge_knowledgesource SET last_indexed_on = NOW() - INTERVAL '2 hours' WHERE id = $1`, k10.ID)
+	testdb.InsertArticle(t, rt, k10, k10s, "1e59a5a9-56b0-4f4a-8a9a-1b31b6e4b0f7", "Refunds", "Refunds take 5 days.", models.ArticleStatusPublished)
+
+	// ready helpdesk indexed after its last article change.. not stale. A draft or released article is a change like
+	// any other here - the point of the branch is that its chunks have to go.
+	k11 := testdb.InsertKnowledge(t, rt, testdb.Org1, "b0f7c6d5-4e3a-42b1-9c8d-7a6b5e4f3d2c", models.KnowledgeTypeHelpdesk, "Fresh Helpdesk", models.KnowledgeStatusReady)
+	k11s := testdb.InsertSection(t, rt, k11, "a1b2c3d4-0011-4000-8000-000000000011", "General")
+	testdb.InsertArticle(t, rt, k11, k11s, "d2c1b0a9-8f7e-4d6c-b5a4-3e2d1c0b9a87", "Shipping", "Ships in 2 days.", models.ArticleStatusDraft)
+	rt.DB.MustExec(`UPDATE knowledge_knowledgesource SET last_indexed_on = NOW() WHERE id = $1`, k11.ID)
+
+	// a helpdesk's articles don't make another org's shortcuts source stale
+	k12 := testdb.InsertKnowledge(t, rt, testdb.Org2, "3f2e1d0c-9b8a-4796-8584-73625140fedc", models.KnowledgeTypeShortcuts, "Other Org", models.KnowledgeStatusReady)
+	rt.DB.MustExec(`UPDATE knowledge_knowledgesource SET last_indexed_on = NOW() - INTERVAL '2 hours' WHERE id = $1`, k12.ID)
+
+	types := []models.KnowledgeType{models.KnowledgeTypeShortcuts, models.KnowledgeTypeHelpdesk}
 
 	stale, err := models.GetStaleKnowledge(ctx, rt.DB, types, 10)
 	require.NoError(t, err)
-	require.Len(t, stale, 4)
+	require.Len(t, stale, 5)
 	assert.Equal(t, k1.ID, stale[0].ID)
 	assert.Equal(t, k1.UUID, stale[0].UUID)
 	assert.Equal(t, testdb.Org1.ID, stale[0].OrgID)
@@ -76,6 +93,13 @@ func TestGetStaleKnowledge(t *testing.T) {
 	assert.Equal(t, k3.ID, stale[1].ID)
 	assert.Equal(t, k9.ID, stale[2].ID)
 	assert.Equal(t, k7.ID, stale[3].ID)
+	assert.Equal(t, k10.ID, stale[4].ID)
+	assert.Equal(t, models.KnowledgeTypeHelpdesk, stale[4].Type)
+
+	// asking only for shortcuts leaves the helpdesk out
+	stale, err = models.GetStaleKnowledge(ctx, rt.DB, []models.KnowledgeType{models.KnowledgeTypeShortcuts}, 10)
+	require.NoError(t, err)
+	require.Len(t, stale, 4)
 
 	// the limit is honoured, taking the lowest ids
 	stale, err = models.GetStaleKnowledge(ctx, rt.DB, types, 2)
@@ -87,6 +111,7 @@ func TestGetStaleKnowledge(t *testing.T) {
 	// and nothing was claimed or otherwise modified by looking
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM knowledge_knowledgesource WHERE status = 'I'`).Returns(2)
 	assertdb.Query(t, rt.DB, `SELECT status FROM knowledge_knowledgesource WHERE id = $1`, k1.ID).Returns("P")
+	assertdb.Query(t, rt.DB, `SELECT status FROM knowledge_knowledgesource WHERE id = $1`, k11.ID).Returns("R")
 }
 
 func TestGetKnowledge(t *testing.T) {
@@ -265,6 +290,66 @@ func TestLoadChangedShortcuts(t *testing.T) {
 	assert.Equal(t, s2.UUID, shortcuts[0].UUID)
 
 	count, err := models.CountActiveShortcuts(ctx, rt.DB, testdb.Org1.ID)
+	assert.NoError(t, err)
+	assert.Equal(t, 1, count)
+}
+
+func TestLoadChangedArticles(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	k1 := testdb.InsertKnowledge(t, rt, testdb.Org1, "5384b1c6-1099-4a5f-a005-9d3a4092c5c1", models.KnowledgeTypeHelpdesk, "Test Helpdesk", models.KnowledgeStatusReady)
+	k1s := testdb.InsertSection(t, rt, k1, "a1b2c3d4-0001-4000-8000-000000000001", "General")
+	rt.DB.MustExec(`UPDATE knowledge_article SET modified_on = NOW() - INTERVAL '3 hours' WHERE id = $1`, k1s.ID)
+	k2 := testdb.InsertKnowledge(t, rt, testdb.Org2, "78bee0eb-a3d1-4e2b-b91b-6ee1c2f1ab19", models.KnowledgeTypeHelpdesk, "Other Helpdesk", models.KnowledgeStatusReady)
+	k2s := testdb.InsertSection(t, rt, k2, "a1b2c3d4-0002-4000-8000-000000000002", "General")
+
+	a1 := testdb.InsertArticle(t, rt, k1, k1s, "8d40e9ab-c5f1-4b24-b60f-bc42cf65a9f5", "Refunds", "Refunds take 5 days.", models.ArticleStatusPublished)
+	rt.DB.MustExec(`UPDATE knowledge_article SET modified_on = NOW() - INTERVAL '2 hours' WHERE id = $1`, a1.ID)
+
+	a2 := testdb.InsertArticle(t, rt, k1, k1s, "0e2e1c66-c221-4726-a08a-1a4bbabf05be", "Shipping", "Ships in 2 days.", models.ArticleStatusDraft)
+	a3 := testdb.InsertArticle(t, rt, k1, k1s, "b26e0a76-9d88-42d1-9bc9-5cf25e2ba18f", "Hours", "We're open 9 to 5.", models.ArticleStatusPublished)
+	rt.DB.MustExec(`UPDATE knowledge_article SET is_active = FALSE, modified_on = NOW() WHERE id = $1`, a3.ID) // released
+
+	testdb.InsertArticle(t, rt, k2, k2s, "df22cbcb-e0e1-4e78-be9f-2e4fbea1b2c3", "Other", "Another helpdesk's article.", models.ArticleStatusPublished)
+
+	// loading since the zero time returns all of the helpdesk's articles - the section, drafts and released ones
+	// included - oldest change first
+	articles, err := models.LoadChangedArticles(ctx, rt.DB, k1.ID, time.Time{})
+	require.NoError(t, err)
+	require.Len(t, articles, 4)
+	assert.Equal(t, k1s.UUID, articles[0].UUID)
+	assert.Equal(t, "", articles[0].Body) // a section is described rather than written, so has nothing to embed
+	assert.True(t, articles[0].Indexable())
+
+	assert.Equal(t, a1.UUID, articles[1].UUID)
+	assert.Equal(t, k1.ID, articles[1].SourceID)
+	assert.Equal(t, "Refunds", articles[1].Title)
+	assert.Equal(t, "Refunds take 5 days.", articles[1].Body)
+	assert.True(t, articles[1].Indexable())
+
+	// a draft is a tombstone even though it's still active..
+	assert.Equal(t, a2.UUID, articles[2].UUID)
+	assert.True(t, articles[2].IsActive)
+	assert.False(t, articles[2].Indexable())
+
+	// ..as is a released one that was published
+	assert.Equal(t, a3.UUID, articles[3].UUID)
+	assert.Equal(t, models.ArticleStatusPublished, articles[3].Status)
+	assert.False(t, articles[3].Indexable())
+
+	// loading since an hour ago only returns the recently changed articles
+	articles, err = models.LoadChangedArticles(ctx, rt.DB, k1.ID, dates.Now().Add(-time.Hour))
+	require.NoError(t, err)
+	require.Len(t, articles, 2)
+	assert.Equal(t, a2.UUID, articles[0].UUID)
+	assert.Equal(t, a3.UUID, articles[1].UUID)
+
+	// only active published articles count as items - not the draft, the released one or the section
+	count, err := models.CountPublishedArticles(ctx, rt.DB, k1.ID)
+	assert.NoError(t, err)
+	assert.Equal(t, 1, count)
+
+	count, err = models.CountPublishedArticles(ctx, rt.DB, k2.ID)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, count)
 }
