@@ -8,6 +8,7 @@ import (
 	"log/slog"
 
 	"github.com/nyaruka/gocommon/centrifugo"
+	"github.com/nyaruka/gocommon/uuids"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/core/events"
@@ -32,9 +33,9 @@ func HistorySocket(contactUUID core.ContactUUID, ticketUUID ...core.TicketUUID) 
 }
 
 // SocketFlowNamespace is the realtime pub/sub namespace for things happening to a specific flow that its editors care
-// about. A flow socket is addressed as "flow:<flow-uuid>" and carries typed payloads - currently just activity change
-// notifications, but it's deliberately per-flow rather than per-feature so that other flow level updates (e.g.
-// revisions, issues) can be published to the same socket later. Like the other namespaces it's a client subscription,
+// about. A flow socket is addressed as "flow:<flow-uuid>" and carries typed payloads, e.g. activity change
+// notifications. It's deliberately per-flow rather than per-feature so that any flow level update can be published to
+// the same socket. Like the other namespaces it's a client subscription,
 // authorized per-session by the subscribe proxy, which records the same "socket-subs:" presence key - so mailroom
 // only publishes to it when someone actually has the flow open.
 const SocketFlowNamespace = "flow"
@@ -203,16 +204,24 @@ func PublishFlowActivity(ctx context.Context, rt *runtime.Runtime, flowUUIDs []a
 	return nil
 }
 
+// startProgressStatuses are the names the API uses for start statuses, which editors already understand
+var startProgressStatuses = map[StartStatus]string{
+	StartStatusPending:     "pending",
+	StartStatusQueued:      "queued",
+	StartStatusStarted:     "started",
+	StartStatusCompleted:   "completed",
+	StartStatusFailed:      "failed",
+	StartStatusInterrupted: "interrupted",
+}
+
 // startProgressEvent is what a flow's socket carries as a start of that flow makes progress, so that an open editor
-// can follow it without polling. Unlike activity it carries the numbers themselves, since they're cheap to know and
-// it's published exactly when they change: on queuing (the total is now known), as each batch completes, and when the
-// start ends. Status is the start's status code and progress mirrors the status endpoint - current is runs created,
-// total is contacts to start.
+// can follow it without polling. Unlike activity it carries the numbers themselves since they're cheap to know.
+// Progress mirrors the status endpoint - current is runs created, total is contacts to start.
 type startProgressEvent struct {
-	Type     string      `json:"type"`
-	StartID  StartID     `json:"start_id"`
-	Status   StartStatus `json:"status"`
-	Progress struct {
+	Type      string     `json:"type"`
+	StartUUID uuids.UUID `json:"start_uuid"`
+	Status    string     `json:"status"`
+	Progress  struct {
 		Current int `json:"current"`
 		Total   int `json:"total"`
 	} `json:"progress"`
@@ -221,7 +230,7 @@ type startProgressEvent struct {
 // PublishStartProgress publishes the progress of the given start to its flow's socket for any live watchers. As with
 // the other socket publishes it's best-effort and a no-op when nobody has the flow open.
 func PublishStartProgress(ctx context.Context, rt *runtime.Runtime, flowUUID assets.FlowUUID, start *FlowStart, current, total int) error {
-	event := &startProgressEvent{Type: "start_progress", StartID: start.ID, Status: start.Status}
+	event := &startProgressEvent{Type: "start_progress", StartUUID: start.UUID, Status: startProgressStatuses[start.Status]}
 	event.Progress.Current = current
 	event.Progress.Total = total
 

@@ -124,7 +124,7 @@ func TestPublishStartProgress(t *testing.T) {
 
 	sent := testsuite.CentrifugoHistory(t, rt, models.FlowSocket(testdb.SingleMessage.UUID))
 	require.Len(t, sent, 1)
-	assert.JSONEq(t, fmt.Sprintf(`{"type": "start_progress", "start_id": %d, "status": "Q", "progress": {"current": 25, "total": 100}}`, start.ID), string(sent[0]))
+	assert.JSONEq(t, fmt.Sprintf(`{"type": "start_progress", "start_uuid": "%s", "status": "queued", "progress": {"current": 25, "total": 100}}`, start.UUID), string(sent[0]))
 }
 
 func TestNotificationSocket(t *testing.T) {

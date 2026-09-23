@@ -28,7 +28,7 @@ func TestStartFlowBatchTask(t *testing.T) {
 	require.NoError(t, err)
 
 	progress := func(start *models.FlowStart, status string, current int) string {
-		return fmt.Sprintf(`{"type": "start_progress", "start_id": %d, "status": %q, "progress": {"current": %d, "total": 4}}`, start.ID, status, current)
+		return fmt.Sprintf(`{"type": "start_progress", "start_uuid": "%s", "status": %q, "progress": {"current": %d, "total": 4}}`, start.UUID, status, current)
 	}
 	assertPublished := func(expected ...string) {
 		sent := testsuite.CentrifugoHistory(t, rt, models.FlowSocket(testdb.SingleMessage.UUID))
@@ -70,7 +70,7 @@ func TestStartFlowBatchTask(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT status FROM flows_flowstart WHERE id = $1`, start1.ID).Returns("S")
 
 	// watchers were told the start began and then how far the first batch took it
-	assertPublished(progress(start1, "S", 0), progress(start1, "S", 2))
+	assertPublished(progress(start1, "started", 0), progress(start1, "started", 2))
 
 	// start the second and final batch...
 	err = tasks.Queue(ctx, rt, rt.Queues.Throttled, testdb.Org1.ID, &tasks.StartFlowBatch{BatchTask: start1BatchTask, FlowStartBatch: batch2}, false)
@@ -81,7 +81,7 @@ func TestStartFlowBatchTask(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT status FROM flows_flowstart WHERE id = $1`, start1.ID).Returns("C")
 
 	// and that it finished
-	assertPublished(progress(start1, "S", 0), progress(start1, "S", 2), progress(start1, "C", 4))
+	assertPublished(progress(start1, "started", 0), progress(start1, "started", 2), progress(start1, "completed", 4))
 
 	// create a second start
 	start2 := models.NewFlowStart(models.OrgID(1), models.StartTypeManual, testdb.SingleMessage.ID).
@@ -114,8 +114,8 @@ func TestStartFlowBatchTask(t *testing.T) {
 
 	// watchers of the second start saw it begin, progress and then get interrupted
 	assertPublished(
-		progress(start1, "S", 0), progress(start1, "S", 2), progress(start1, "C", 4),
-		progress(start2, "S", 0), progress(start2, "S", 2), progress(start2, "I", 2),
+		progress(start1, "started", 0), progress(start1, "started", 2), progress(start1, "completed", 4),
+		progress(start2, "started", 0), progress(start2, "started", 2), progress(start2, "interrupted", 2),
 	)
 }
 

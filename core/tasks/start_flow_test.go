@@ -57,7 +57,7 @@ func TestStartFlowTask(t *testing.T) {
 			expectedStatus:           models.StartStatusCompleted,
 			expectedActiveRuns:       map[models.FlowID]int{testdb.Favorites.ID: 1, testdb.PickANumber.ID: 0, testdb.BackgroundFlow.ID: 0},
 			expectedProgress: []string{
-				`{"type": "start_progress", "start_id": %d, "status": "C", "progress": {"current": 0, "total": 0}}`,
+				`{"type": "start_progress", "start_uuid": "%s", "status": "completed", "progress": {"current": 0, "total": 0}}`,
 			},
 		},
 		{ // 1: single group
@@ -168,7 +168,7 @@ func TestStartFlowTask(t *testing.T) {
 			expectedStatus:           models.StartStatusFailed,
 			expectedActiveRuns:       map[models.FlowID]int{testdb.Favorites.ID: 123, testdb.PickANumber.ID: 0, testdb.BackgroundFlow.ID: 0},
 			expectedProgress: []string{
-				`{"type": "start_progress", "start_id": %d, "status": "F", "progress": {"current": 0, "total": 0}}`,
+				`{"type": "start_progress", "start_uuid": "%s", "status": "failed", "progress": {"current": 0, "total": 0}}`,
 			},
 		},
 		{ // 10: new contact
@@ -265,7 +265,7 @@ func TestStartFlowTask(t *testing.T) {
 		if tc.expectedProgress != nil {
 			require.Len(t, sent[published:], len(tc.expectedProgress), "%d: published event count mismatch", i)
 			for j, e := range tc.expectedProgress {
-				assert.JSONEq(t, fmt.Sprintf(e, start.ID), string(sent[published+j]), "%d: published event %d mismatch", i, j)
+				assert.JSONEq(t, fmt.Sprintf(e, start.UUID), string(sent[published+j]), "%d: published event %d mismatch", i, j)
 			}
 		}
 		published = len(sent)
