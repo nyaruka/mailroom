@@ -25,13 +25,13 @@ func TestIndexKnowledge(t *testing.T) {
 	oa := testdb.Org1.Load(t, rt)
 
 	// org1 has a pending shortcuts source, two active shortcuts and one already released
-	k1 := testdb.InsertKnowledge(t, rt, testdb.Org1, "5384b1c6-1099-4a5f-a005-9d3a4092c5c1", models.KnowledgeTypeShortcuts, "Test Shortcuts", models.KnowledgeStatusPending)
+	k1 := testdb.InsertKnowledgeSource(t, rt, testdb.Org1, "5384b1c6-1099-4a5f-a005-9d3a4092c5c1", models.KnowledgeSourceTypeShortcuts, "Test Shortcuts", models.KnowledgeSourceStatusPending)
 	s1 := testdb.InsertShortcut(t, rt, testdb.Org1, "8d40e9ab-c5f1-4b24-b60f-bc42cf65a9f5", "Refunds", "We offer full refunds within 30 days.")
 	s2 := testdb.InsertShortcut(t, rt, testdb.Org1, "0e2e1c66-c221-4726-a08a-1a4bbabf05be", "Greeting", "Hello! How can we help?")
 	s3 := testdb.InsertShortcut(t, rt, testdb.Org1, "b26e0a76-9d88-42d1-9bc9-5cf25e2ba18f", "Old", "This shortcut is gone.")
 	rt.DB.MustExec(`UPDATE tickets_shortcut SET is_active = FALSE, name = 'deleted-b26e0a76' WHERE id = $1`, s3.ID)
 
-	task := &tasks.IndexKnowledge{KnowledgeUUID: k1.UUID}
+	task := &tasks.IndexKnowledge{SourceUUID: k1.UUID}
 
 	embedder := &testsuite.MockEmbedder{}
 	rt.Embeddings = embedder
@@ -107,9 +107,9 @@ func TestIndexKnowledge(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM knowledge_knowledgechunk WHERE source_id = $1`, k1.ID).Returns(1)
 
 	// a source of a type we can't index yet is a no-op rather than an error
-	k2 := testdb.InsertKnowledge(t, rt, testdb.Org1, "78bee0eb-a3d1-4e2b-b91b-6ee1c2f1ab19", models.KnowledgeTypeWebsite, "Website", models.KnowledgeStatusPending)
+	k2 := testdb.InsertKnowledgeSource(t, rt, testdb.Org1, "78bee0eb-a3d1-4e2b-b91b-6ee1c2f1ab19", models.KnowledgeSourceTypeWebsite, "Website", models.KnowledgeSourceStatusPending)
 
-	err = (&tasks.IndexKnowledge{KnowledgeUUID: k2.UUID}).Perform(ctx, rt, oa, testTaskID)
+	err = (&tasks.IndexKnowledge{SourceUUID: k2.UUID}).Perform(ctx, rt, oa, testTaskID)
 	assert.NoError(t, err)
 
 	assertdb.Query(t, rt.DB, `SELECT status FROM knowledge_knowledgesource WHERE id = $1`, k2.ID).Returns("P")
@@ -130,18 +130,18 @@ func TestIndexKnowledgeHelpdesk(t *testing.T) {
 	oa := testdb.Org1.Load(t, rt)
 
 	// org1's helpdesk has two published articles and a draft
-	k1 := testdb.InsertKnowledge(t, rt, testdb.Org1, "5384b1c6-1099-4a5f-a005-9d3a4092c5c1", models.KnowledgeTypeHelpdesk, "Test Helpdesk", models.KnowledgeStatusPending)
+	k1 := testdb.InsertKnowledgeSource(t, rt, testdb.Org1, "5384b1c6-1099-4a5f-a005-9d3a4092c5c1", models.KnowledgeSourceTypeHelpdesk, "Test Helpdesk", models.KnowledgeSourceStatusPending)
 	k1s := testdb.InsertSection(t, rt, k1, "a1b2c3d4-0001-4000-8000-000000000001", "General")
 	a1 := testdb.InsertArticle(t, rt, k1, k1s, "8d40e9ab-c5f1-4b24-b60f-bc42cf65a9f5", "Refunds", "Refunds take 5 days.", models.ArticleStatusPublished)
 	a2 := testdb.InsertArticle(t, rt, k1, k1s, "0e2e1c66-c221-4726-a08a-1a4bbabf05be", "Shipping", "## Domestic\n\nShips in 2 days.", models.ArticleStatusPublished)
 	a3 := testdb.InsertArticle(t, rt, k1, k1s, "b26e0a76-9d88-42d1-9bc9-5cf25e2ba18f", "Returns", "Not written yet.", models.ArticleStatusDraft)
 
 	// articles in another org's helpdesk are never touched by this one
-	k2 := testdb.InsertKnowledge(t, rt, testdb.Org2, "78bee0eb-a3d1-4e2b-b91b-6ee1c2f1ab19", models.KnowledgeTypeHelpdesk, "Other Helpdesk", models.KnowledgeStatusPending)
+	k2 := testdb.InsertKnowledgeSource(t, rt, testdb.Org2, "78bee0eb-a3d1-4e2b-b91b-6ee1c2f1ab19", models.KnowledgeSourceTypeHelpdesk, "Other Helpdesk", models.KnowledgeSourceStatusPending)
 	k2s := testdb.InsertSection(t, rt, k2, "a1b2c3d4-0002-4000-8000-000000000002", "General")
 	testdb.InsertArticle(t, rt, k2, k2s, "df22cbcb-e0e1-4e78-be9f-2e4fbea1b2c3", "Other", "Another helpdesk's article.", models.ArticleStatusPublished)
 
-	task := &tasks.IndexKnowledge{KnowledgeUUID: k1.UUID}
+	task := &tasks.IndexKnowledge{SourceUUID: k1.UUID}
 
 	embedder := &testsuite.MockEmbedder{}
 	rt.Embeddings = embedder

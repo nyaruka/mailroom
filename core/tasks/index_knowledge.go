@@ -30,7 +30,7 @@ func init() {
 // and by the retry cron for sources left failed or stuck. The work is a delta on what's changed since we last
 // indexed the source, so the task is idempotent and re-running it costs nothing when nothing has changed.
 type IndexKnowledge struct {
-	KnowledgeUUID models.KnowledgeUUID `json:"knowledge_uuid" validate:"required"`
+	SourceUUID models.KnowledgeSourceUUID `json:"source_uuid" validate:"required"`
 }
 
 func (t *IndexKnowledge) Type() string {
@@ -56,20 +56,20 @@ func (t *IndexKnowledge) Perform(ctx context.Context, rt *runtime.Runtime, oa *m
 	// The lock is an efficiency guard rather than a correctness barrier, which is why valkey is enough: two
 	// workers indexing the same source would each replace whole items' chunks in their own transaction and write
 	// the same content, so the cost of losing a lock is duplicated embedding, not a corrupt index.
-	locker := locks.NewLocker(fmt.Sprintf(indexKnowledgeLockKey, t.KnowledgeUUID), indexKnowledgeLockTTL)
+	locker := locks.NewLocker(fmt.Sprintf(indexKnowledgeLockKey, t.SourceUUID), indexKnowledgeLockTTL)
 
 	lock, err := locker.Grab(ctx, rt.VK, 0) // no waiting - whoever holds it is covering this edit too
 	if err != nil {
-		return fmt.Errorf("error grabbing lock to index knowledge source %s: %w", t.KnowledgeUUID, err)
+		return fmt.Errorf("error grabbing lock to index knowledge source %s: %w", t.SourceUUID, err)
 	}
 	if lock == "" {
 		return nil
 	}
 	defer locker.Release(ctx, rt.VK, lock)
 
-	k, err := models.GetKnowledge(ctx, rt.DB, oa.OrgID(), t.KnowledgeUUID)
+	k, err := models.GetKnowledgeSource(ctx, rt.DB, oa.OrgID(), t.SourceUUID)
 	if err != nil {
-		return fmt.Errorf("error loading knowledge source %s: %w", t.KnowledgeUUID, err)
+		return fmt.Errorf("error loading knowledge source %s: %w", t.SourceUUID, err)
 	}
 
 	// the source is gone or has been released.. nothing to index
@@ -93,7 +93,7 @@ func (t *IndexKnowledge) Perform(ctx context.Context, rt *runtime.Runtime, oa *m
 		defer cancel()
 
 		if ferr := k.SetFailed(fctx, rt.DB, err.Error()); ferr != nil {
-			slog.Error("error marking knowledge source as failed", "error", ferr, "knowledge_id", k.ID)
+			slog.Error("error marking knowledge source as failed", "error", ferr, "source_id", k.ID)
 		}
 
 		return fmt.Errorf("error indexing knowledge source %d: %w", k.ID, err)

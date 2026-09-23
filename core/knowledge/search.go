@@ -21,12 +21,15 @@ const (
 
 // SearchResult is a chunk matching a knowledge search, scored by cosine similarity to the query (higher is better)
 type SearchResult struct {
-	KnowledgeUUID models.KnowledgeUUID `db:"knowledge_uuid" json:"knowledge_uuid"`
-	ItemKey       uuids.UUID           `db:"item_key"       json:"item_key"`
-	ItemName      string               `db:"item_name"      json:"item_name"`
-	ItemURL       null.String          `db:"item_url"       json:"item_url,omitempty"`
-	Text          string               `db:"text"           json:"text"`
-	Score         float64              `db:"score"          json:"score"`
+	SourceUUID models.KnowledgeSourceUUID `db:"source_uuid"    json:"source_uuid"`
+	ItemKey    uuids.UUID                 `db:"item_key"       json:"item_key"`
+	ItemName   string                     `db:"item_name"      json:"item_name"`
+	ItemURL    null.String                `db:"item_url"       json:"item_url,omitempty"`
+	Text       string                     `db:"text"           json:"text"`
+	Score      float64                    `db:"score"          json:"score"`
+
+	// Deprecated: the same as SourceUUID, under its old name for callers which haven't moved to that yet
+	KnowledgeUUID models.KnowledgeSourceUUID `db:"knowledge_uuid" json:"knowledge_uuid"`
 }
 
 // A source that has completed an index before stays searchable whatever it's doing now. Chunks are only replaced
@@ -35,7 +38,8 @@ type SearchResult struct {
 // over a sweep, or over an entire embeddings outage plus its retry backoff, while perfectly good chunks sat there.
 // Sources that have never completed an index have nothing to serve, so a NULL last_indexed_on is still excluded.
 const sqlSearchKnowledgeChunks = `
-  SELECT k.uuid AS knowledge_uuid, c.item_key, c.item_name, c.item_url, c.text, 1 - (c.embedding <=> $2::vector) AS score
+  SELECT k.uuid AS source_uuid, k.uuid AS knowledge_uuid, c.item_key, c.item_name, c.item_url, c.text,
+         1 - (c.embedding <=> $2::vector) AS score
     FROM knowledge_knowledgechunk c
     JOIN knowledge_knowledgesource k ON k.id = c.source_id
    WHERE k.org_id = $1 AND k.is_active
@@ -47,7 +51,7 @@ ORDER BY c.embedding <=> $2::vector
 // Search performs a semantic search over the org's ready knowledge sources, or only the given ones if any, returning
 // the closest chunks by cosine distance. Filtering here rather than in the caller means a search of one source isn't
 // crowded out of its limit by chunks from the org's others.
-func Search(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, query string, sources []models.KnowledgeUUID, limit int) ([]*SearchResult, error) {
+func Search(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, query string, sources []models.KnowledgeSourceUUID, limit int) ([]*SearchResult, error) {
 	// clamped here rather than only at the HTTP edge because this primitive is also called directly from Go, and will
 	// eventually back an LLM tool where the limit can be model-influenced
 	if limit <= 0 {

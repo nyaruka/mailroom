@@ -22,87 +22,87 @@ func testEmbedding(vals ...float32) models.Embedding {
 	return e
 }
 
-func TestGetStaleKnowledge(t *testing.T) {
+func TestGetStaleKnowledgeSources(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
 	// deactivate the system sources baked into the test database so only our test sources are seen
 	rt.DB.MustExec(`UPDATE knowledge_knowledgesource SET is_active = FALSE`)
 
 	// pending source.. stale
-	k1 := testdb.InsertKnowledge(t, rt, testdb.Org1, "5384b1c6-1099-4a5f-a005-9d3a4092c5c1", models.KnowledgeTypeShortcuts, "Pending", models.KnowledgeStatusPending)
+	k1 := testdb.InsertKnowledgeSource(t, rt, testdb.Org1, "5384b1c6-1099-4a5f-a005-9d3a4092c5c1", models.KnowledgeSourceTypeShortcuts, "Pending", models.KnowledgeSourceStatusPending)
 
 	// pending but released source.. not stale
-	k2 := testdb.InsertKnowledge(t, rt, testdb.Org1, "78bee0eb-a3d1-4e2b-b91b-6ee1c2f1ab19", models.KnowledgeTypeShortcuts, "Released", models.KnowledgeStatusPending)
+	k2 := testdb.InsertKnowledgeSource(t, rt, testdb.Org1, "78bee0eb-a3d1-4e2b-b91b-6ee1c2f1ab19", models.KnowledgeSourceTypeShortcuts, "Released", models.KnowledgeSourceStatusPending)
 	rt.DB.MustExec(`UPDATE knowledge_knowledgesource SET is_active = FALSE WHERE id = $1`, k2.ID)
 
 	// ready source whose org has a shortcut modified since it was indexed.. stale
-	k3 := testdb.InsertKnowledge(t, rt, testdb.Org1, "0e2e1c66-c221-4726-a08a-1a4bbabf05be", models.KnowledgeTypeShortcuts, "Stale", models.KnowledgeStatusReady)
+	k3 := testdb.InsertKnowledgeSource(t, rt, testdb.Org1, "0e2e1c66-c221-4726-a08a-1a4bbabf05be", models.KnowledgeSourceTypeShortcuts, "Stale", models.KnowledgeSourceStatusReady)
 	rt.DB.MustExec(`UPDATE knowledge_knowledgesource SET last_indexed_on = NOW() - INTERVAL '2 hours' WHERE id = $1`, k3.ID)
 
 	testdb.InsertShortcut(t, rt, testdb.Org1, "8d40e9ab-c5f1-4b24-b60f-bc42cf65a9f5", "Refunds", "We offer full refunds within 30 days.")
 
 	// ready source indexed after the org's last shortcut change.. not stale
-	k4 := testdb.InsertKnowledge(t, rt, testdb.Org1, "b26e0a76-9d88-42d1-9bc9-5cf25e2ba18f", models.KnowledgeTypeShortcuts, "Fresh", models.KnowledgeStatusReady)
+	k4 := testdb.InsertKnowledgeSource(t, rt, testdb.Org1, "b26e0a76-9d88-42d1-9bc9-5cf25e2ba18f", models.KnowledgeSourceTypeShortcuts, "Fresh", models.KnowledgeSourceStatusReady)
 	rt.DB.MustExec(`UPDATE knowledge_knowledgesource SET last_indexed_on = NOW() WHERE id = $1`, k4.ID)
 
 	// source that failed recently.. not stale yet, the retry interval is the backoff
-	testdb.InsertKnowledge(t, rt, testdb.Org1, "9f0b4b7c-3a17-4f5e-95a8-4d68f21e2a7d", models.KnowledgeTypeShortcuts, "Failed", models.KnowledgeStatusFailed)
+	testdb.InsertKnowledgeSource(t, rt, testdb.Org1, "9f0b4b7c-3a17-4f5e-95a8-4d68f21e2a7d", models.KnowledgeSourceTypeShortcuts, "Failed", models.KnowledgeSourceStatusFailed)
 
 	// source that failed long enough ago.. stale again, since nothing on the Django side ever re-pends a system
 	// source and without this a single embeddings outage would disable it permanently
-	k9 := testdb.InsertKnowledge(t, rt, testdb.Org1, "3c5f1e0e-2b4a-4f9c-8d1e-7a6b5c4d3e2f", models.KnowledgeTypeShortcuts, "FailedOld", models.KnowledgeStatusFailed)
+	k9 := testdb.InsertKnowledgeSource(t, rt, testdb.Org1, "3c5f1e0e-2b4a-4f9c-8d1e-7a6b5c4d3e2f", models.KnowledgeSourceTypeShortcuts, "FailedOld", models.KnowledgeSourceStatusFailed)
 	rt.DB.MustExec(`UPDATE knowledge_knowledgesource SET modified_on = NOW() - INTERVAL '30 minutes' WHERE id = $1`, k9.ID)
 
 	// source currently being indexed by a worker.. not stale
-	testdb.InsertKnowledge(t, rt, testdb.Org1, "0a1c6a9a-52ed-40cb-a921-1a29b9d8bc6f", models.KnowledgeTypeShortcuts, "Indexing", models.KnowledgeStatusIndexing)
+	testdb.InsertKnowledgeSource(t, rt, testdb.Org1, "0a1c6a9a-52ed-40cb-a921-1a29b9d8bc6f", models.KnowledgeSourceTypeShortcuts, "Indexing", models.KnowledgeSourceStatusIndexing)
 
 	// source stuck in indexing for over an hour.. stale, the worker that started it can only have died
-	k7 := testdb.InsertKnowledge(t, rt, testdb.Org1, "639a26a3-8e6e-4ad0-b4b9-6bf7c1cf42d1", models.KnowledgeTypeShortcuts, "Stuck", models.KnowledgeStatusIndexing)
+	k7 := testdb.InsertKnowledgeSource(t, rt, testdb.Org1, "639a26a3-8e6e-4ad0-b4b9-6bf7c1cf42d1", models.KnowledgeSourceTypeShortcuts, "Stuck", models.KnowledgeSourceStatusIndexing)
 	rt.DB.MustExec(`UPDATE knowledge_knowledgesource SET modified_on = NOW() - INTERVAL '2 hours' WHERE id = $1`, k7.ID)
 
 	// pending source of a type we don't support.. not stale
-	testdb.InsertKnowledge(t, rt, testdb.Org2, "df22cbcb-e0e1-4e78-be9f-2e4fbea1b2c3", models.KnowledgeTypeWebsite, "Website", models.KnowledgeStatusPending)
+	testdb.InsertKnowledgeSource(t, rt, testdb.Org2, "df22cbcb-e0e1-4e78-be9f-2e4fbea1b2c3", models.KnowledgeSourceTypeWebsite, "Website", models.KnowledgeSourceStatusPending)
 
 	// ready helpdesk with an article changed since it was indexed.. stale
-	k10 := testdb.InsertKnowledge(t, rt, testdb.Org1, "6d4c2b1a-0f9e-4c8d-b7a6-5e4f3d2c1b0a", models.KnowledgeTypeHelpdesk, "Stale Helpdesk", models.KnowledgeStatusReady)
+	k10 := testdb.InsertKnowledgeSource(t, rt, testdb.Org1, "6d4c2b1a-0f9e-4c8d-b7a6-5e4f3d2c1b0a", models.KnowledgeSourceTypeHelpdesk, "Stale Helpdesk", models.KnowledgeSourceStatusReady)
 	k10s := testdb.InsertSection(t, rt, k10, "a1b2c3d4-0010-4000-8000-000000000010", "General")
 	rt.DB.MustExec(`UPDATE knowledge_knowledgesource SET last_indexed_on = NOW() - INTERVAL '2 hours' WHERE id = $1`, k10.ID)
 	testdb.InsertArticle(t, rt, k10, k10s, "1e59a5a9-56b0-4f4a-8a9a-1b31b6e4b0f7", "Refunds", "Refunds take 5 days.", models.ArticleStatusPublished)
 
 	// ready helpdesk indexed after its last article change.. not stale. A draft or released article is a change like
 	// any other here - the point of the branch is that its chunks have to go.
-	k11 := testdb.InsertKnowledge(t, rt, testdb.Org1, "b0f7c6d5-4e3a-42b1-9c8d-7a6b5e4f3d2c", models.KnowledgeTypeHelpdesk, "Fresh Helpdesk", models.KnowledgeStatusReady)
+	k11 := testdb.InsertKnowledgeSource(t, rt, testdb.Org1, "b0f7c6d5-4e3a-42b1-9c8d-7a6b5e4f3d2c", models.KnowledgeSourceTypeHelpdesk, "Fresh Helpdesk", models.KnowledgeSourceStatusReady)
 	k11s := testdb.InsertSection(t, rt, k11, "a1b2c3d4-0011-4000-8000-000000000011", "General")
 	testdb.InsertArticle(t, rt, k11, k11s, "d2c1b0a9-8f7e-4d6c-b5a4-3e2d1c0b9a87", "Shipping", "Ships in 2 days.", models.ArticleStatusDraft)
 	rt.DB.MustExec(`UPDATE knowledge_knowledgesource SET last_indexed_on = NOW() WHERE id = $1`, k11.ID)
 
 	// a helpdesk's articles don't make another org's shortcuts source stale
-	k12 := testdb.InsertKnowledge(t, rt, testdb.Org2, "3f2e1d0c-9b8a-4796-8584-73625140fedc", models.KnowledgeTypeShortcuts, "Other Org", models.KnowledgeStatusReady)
+	k12 := testdb.InsertKnowledgeSource(t, rt, testdb.Org2, "3f2e1d0c-9b8a-4796-8584-73625140fedc", models.KnowledgeSourceTypeShortcuts, "Other Org", models.KnowledgeSourceStatusReady)
 	rt.DB.MustExec(`UPDATE knowledge_knowledgesource SET last_indexed_on = NOW() - INTERVAL '2 hours' WHERE id = $1`, k12.ID)
 
-	types := []models.KnowledgeType{models.KnowledgeTypeShortcuts, models.KnowledgeTypeHelpdesk}
+	types := []models.KnowledgeSourceType{models.KnowledgeSourceTypeShortcuts, models.KnowledgeSourceTypeHelpdesk}
 
-	stale, err := models.GetStaleKnowledge(ctx, rt.DB, types, 10)
+	stale, err := models.GetStaleKnowledgeSources(ctx, rt.DB, types, 10)
 	require.NoError(t, err)
 	require.Len(t, stale, 5)
 	assert.Equal(t, k1.ID, stale[0].ID)
 	assert.Equal(t, k1.UUID, stale[0].UUID)
 	assert.Equal(t, testdb.Org1.ID, stale[0].OrgID)
-	assert.Equal(t, models.KnowledgeTypeShortcuts, stale[0].Type)
-	assert.Equal(t, models.KnowledgeStatusPending, stale[0].Status)
+	assert.Equal(t, models.KnowledgeSourceTypeShortcuts, stale[0].Type)
+	assert.Equal(t, models.KnowledgeSourceStatusPending, stale[0].Status)
 	assert.Equal(t, k3.ID, stale[1].ID)
 	assert.Equal(t, k9.ID, stale[2].ID)
 	assert.Equal(t, k7.ID, stale[3].ID)
 	assert.Equal(t, k10.ID, stale[4].ID)
-	assert.Equal(t, models.KnowledgeTypeHelpdesk, stale[4].Type)
+	assert.Equal(t, models.KnowledgeSourceTypeHelpdesk, stale[4].Type)
 
 	// asking only for shortcuts leaves the helpdesk out
-	stale, err = models.GetStaleKnowledge(ctx, rt.DB, []models.KnowledgeType{models.KnowledgeTypeShortcuts}, 10)
+	stale, err = models.GetStaleKnowledgeSources(ctx, rt.DB, []models.KnowledgeSourceType{models.KnowledgeSourceTypeShortcuts}, 10)
 	require.NoError(t, err)
 	require.Len(t, stale, 4)
 
 	// the limit is honoured, taking the lowest ids
-	stale, err = models.GetStaleKnowledge(ctx, rt.DB, types, 2)
+	stale, err = models.GetStaleKnowledgeSources(ctx, rt.DB, types, 2)
 	require.NoError(t, err)
 	require.Len(t, stale, 2)
 	assert.Equal(t, k1.ID, stale[0].ID)
@@ -114,40 +114,40 @@ func TestGetStaleKnowledge(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT status FROM knowledge_knowledgesource WHERE id = $1`, k11.ID).Returns("R")
 }
 
-func TestGetKnowledge(t *testing.T) {
+func TestGetKnowledgeSource(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
 	rt.DB.MustExec(`UPDATE knowledge_knowledgesource SET is_active = FALSE`)
 
-	k1 := testdb.InsertKnowledge(t, rt, testdb.Org1, "5384b1c6-1099-4a5f-a005-9d3a4092c5c1", models.KnowledgeTypeShortcuts, "Test Shortcuts", models.KnowledgeStatusPending)
+	k1 := testdb.InsertKnowledgeSource(t, rt, testdb.Org1, "5384b1c6-1099-4a5f-a005-9d3a4092c5c1", models.KnowledgeSourceTypeShortcuts, "Test Shortcuts", models.KnowledgeSourceStatusPending)
 
-	k, err := models.GetKnowledge(ctx, rt.DB, testdb.Org1.ID, k1.UUID)
+	k, err := models.GetKnowledgeSource(ctx, rt.DB, testdb.Org1.ID, k1.UUID)
 	require.NoError(t, err)
 	require.NotNil(t, k)
 	assert.Equal(t, k1.ID, k.ID)
 	assert.Equal(t, k1.UUID, k.UUID)
 	assert.Equal(t, testdb.Org1.ID, k.OrgID)
 	assert.Equal(t, "Test Shortcuts", k.Name)
-	assert.Equal(t, models.KnowledgeTypeShortcuts, k.Type)
-	assert.Equal(t, models.KnowledgeStatusPending, k.Status)
+	assert.Equal(t, models.KnowledgeSourceTypeShortcuts, k.Type)
+	assert.Equal(t, models.KnowledgeSourceStatusPending, k.Status)
 
 	// a released source is as good as gone
-	k2 := testdb.InsertKnowledge(t, rt, testdb.Org1, "78bee0eb-a3d1-4e2b-b91b-6ee1c2f1ab19", models.KnowledgeTypeShortcuts, "Released", models.KnowledgeStatusPending)
+	k2 := testdb.InsertKnowledgeSource(t, rt, testdb.Org1, "78bee0eb-a3d1-4e2b-b91b-6ee1c2f1ab19", models.KnowledgeSourceTypeShortcuts, "Released", models.KnowledgeSourceStatusPending)
 	rt.DB.MustExec(`UPDATE knowledge_knowledgesource SET is_active = FALSE WHERE id = $1`, k2.ID)
 
-	k, err = models.GetKnowledge(ctx, rt.DB, testdb.Org1.ID, k2.UUID)
+	k, err = models.GetKnowledgeSource(ctx, rt.DB, testdb.Org1.ID, k2.UUID)
 	require.NoError(t, err)
 	assert.Nil(t, k)
 
 	// as is one belonging to a different org
-	k3 := testdb.InsertKnowledge(t, rt, testdb.Org2, "b26e0a76-9d88-42d1-9bc9-5cf25e2ba18f", models.KnowledgeTypeShortcuts, "Other Org", models.KnowledgeStatusPending)
+	k3 := testdb.InsertKnowledgeSource(t, rt, testdb.Org2, "b26e0a76-9d88-42d1-9bc9-5cf25e2ba18f", models.KnowledgeSourceTypeShortcuts, "Other Org", models.KnowledgeSourceStatusPending)
 
-	k, err = models.GetKnowledge(ctx, rt.DB, testdb.Org1.ID, k3.UUID)
+	k, err = models.GetKnowledgeSource(ctx, rt.DB, testdb.Org1.ID, k3.UUID)
 	require.NoError(t, err)
 	assert.Nil(t, k)
 
 	// and one that doesn't exist at all isn't an error
-	k, err = models.GetKnowledge(ctx, rt.DB, testdb.Org1.ID, "9f0b4b7c-3a17-4f5e-95a8-4d68f21e2a7d")
+	k, err = models.GetKnowledgeSource(ctx, rt.DB, testdb.Org1.ID, "9f0b4b7c-3a17-4f5e-95a8-4d68f21e2a7d")
 	require.NoError(t, err)
 	assert.Nil(t, k)
 }
@@ -157,20 +157,20 @@ func TestSetIndexing(t *testing.T) {
 
 	rt.DB.MustExec(`UPDATE knowledge_knowledgesource SET is_active = FALSE`)
 
-	k1 := testdb.InsertKnowledge(t, rt, testdb.Org1, "5384b1c6-1099-4a5f-a005-9d3a4092c5c1", models.KnowledgeTypeShortcuts, "Test Shortcuts", models.KnowledgeStatusPending)
+	k1 := testdb.InsertKnowledgeSource(t, rt, testdb.Org1, "5384b1c6-1099-4a5f-a005-9d3a4092c5c1", models.KnowledgeSourceTypeShortcuts, "Test Shortcuts", models.KnowledgeSourceStatusPending)
 
-	k, err := models.GetKnowledge(ctx, rt.DB, testdb.Org1.ID, k1.UUID)
+	k, err := models.GetKnowledgeSource(ctx, rt.DB, testdb.Org1.ID, k1.UUID)
 	require.NoError(t, err)
 
 	err = k.SetIndexing(ctx, rt.DB)
 	assert.NoError(t, err)
-	assert.Equal(t, models.KnowledgeStatusIndexing, k.Status)
+	assert.Equal(t, models.KnowledgeSourceStatusIndexing, k.Status)
 
 	assertdb.Query(t, rt.DB, `SELECT status FROM knowledge_knowledgesource WHERE id = $1`, k1.ID).Returns("I")
 
 	// a source released since we picked up the work isn't given a new status
-	k2 := testdb.InsertKnowledge(t, rt, testdb.Org1, "78bee0eb-a3d1-4e2b-b91b-6ee1c2f1ab19", models.KnowledgeTypeShortcuts, "Released", models.KnowledgeStatusPending)
-	released := &models.Knowledge{ID: k2.ID}
+	k2 := testdb.InsertKnowledgeSource(t, rt, testdb.Org1, "78bee0eb-a3d1-4e2b-b91b-6ee1c2f1ab19", models.KnowledgeSourceTypeShortcuts, "Released", models.KnowledgeSourceStatusPending)
+	released := &models.KnowledgeSource{ID: k2.ID}
 	rt.DB.MustExec(`UPDATE knowledge_knowledgesource SET is_active = FALSE WHERE id = $1`, k2.ID)
 
 	err = released.SetIndexing(ctx, rt.DB)
@@ -184,16 +184,16 @@ func TestSetReadyAndSetFailed(t *testing.T) {
 
 	rt.DB.MustExec(`UPDATE knowledge_knowledgesource SET is_active = FALSE`)
 
-	k1 := testdb.InsertKnowledge(t, rt, testdb.Org1, "5384b1c6-1099-4a5f-a005-9d3a4092c5c1", models.KnowledgeTypeShortcuts, "Test", models.KnowledgeStatusPending)
+	k1 := testdb.InsertKnowledgeSource(t, rt, testdb.Org1, "5384b1c6-1099-4a5f-a005-9d3a4092c5c1", models.KnowledgeSourceTypeShortcuts, "Test", models.KnowledgeSourceStatusPending)
 
-	k, err := models.GetKnowledge(ctx, rt.DB, testdb.Org1.ID, k1.UUID)
+	k, err := models.GetKnowledgeSource(ctx, rt.DB, testdb.Org1.ID, k1.UUID)
 	require.NoError(t, err)
 	require.NotNil(t, k)
 
 	indexedOn := dates.Now().In(time.UTC).Truncate(time.Millisecond)
 	err = k.SetReady(ctx, rt.DB, indexedOn, 3, 7)
 	assert.NoError(t, err)
-	assert.Equal(t, models.KnowledgeStatusReady, k.Status)
+	assert.Equal(t, models.KnowledgeSourceStatusReady, k.Status)
 	assert.Equal(t, 3, k.NumItems)
 	assert.Equal(t, 7, k.NumChunks)
 
@@ -203,7 +203,7 @@ func TestSetReadyAndSetFailed(t *testing.T) {
 
 	err = k.SetFailed(ctx, rt.DB, "it went wrong")
 	assert.NoError(t, err)
-	assert.Equal(t, models.KnowledgeStatusFailed, k.Status)
+	assert.Equal(t, models.KnowledgeSourceStatusFailed, k.Status)
 
 	assertdb.Query(t, rt.DB, `SELECT status, error FROM knowledge_knowledgesource WHERE id = $1`, k1.ID).
 		Columns(map[string]any{"status": "F", "error": "it went wrong"})
@@ -218,7 +218,7 @@ func TestSetReadyAndSetFailed(t *testing.T) {
 	rt.DB.MustExec(`UPDATE knowledge_knowledgesource SET is_active = FALSE WHERE id = $1`, k1.ID)
 
 	err = k.SetReady(ctx, rt.DB, dates.Now(), 3, 7)
-	assert.ErrorIs(t, err, models.ErrKnowledgeReleased)
+	assert.ErrorIs(t, err, models.ErrKnowledgeSourceReleased)
 
 	assertdb.Query(t, rt.DB, `SELECT status FROM knowledge_knowledgesource WHERE id = $1`, k1.ID).Returns("F")
 }
@@ -226,15 +226,15 @@ func TestSetReadyAndSetFailed(t *testing.T) {
 func TestKnowledgeChunks(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	k1 := testdb.InsertKnowledge(t, rt, testdb.Org1, "5384b1c6-1099-4a5f-a005-9d3a4092c5c1", models.KnowledgeTypeShortcuts, "Test", models.KnowledgeStatusPending)
+	k1 := testdb.InsertKnowledgeSource(t, rt, testdb.Org1, "5384b1c6-1099-4a5f-a005-9d3a4092c5c1", models.KnowledgeSourceTypeShortcuts, "Test", models.KnowledgeSourceStatusPending)
 
 	item1 := uuids.UUID("8d40e9ab-c5f1-4b24-b60f-bc42cf65a9f5")
 	item2 := uuids.UUID("0e2e1c66-c221-4726-a08a-1a4bbabf05be")
 
 	err := models.InsertKnowledgeChunks(ctx, rt.DB, []*models.KnowledgeChunk{
-		{KnowledgeID: k1.ID, ItemKey: item1, ItemName: "Refunds", Text: "We offer full refunds..", Embedding: testEmbedding(1)},
-		{KnowledgeID: k1.ID, ItemKey: item1, ItemName: "Refunds", Text: "..within 30 days.", Embedding: testEmbedding(0, 1)},
-		{KnowledgeID: k1.ID, ItemKey: item2, ItemName: "Greeting", Text: "Hello! How can we help?", Embedding: testEmbedding(0, 0, 1)},
+		{SourceID: k1.ID, ItemKey: item1, ItemName: "Refunds", Text: "We offer full refunds..", Embedding: testEmbedding(1)},
+		{SourceID: k1.ID, ItemKey: item1, ItemName: "Refunds", Text: "..within 30 days.", Embedding: testEmbedding(0, 1)},
+		{SourceID: k1.ID, ItemKey: item2, ItemName: "Greeting", Text: "Hello! How can we help?", Embedding: testEmbedding(0, 0, 1)},
 	})
 	assert.NoError(t, err)
 
@@ -297,10 +297,10 @@ func TestLoadChangedShortcuts(t *testing.T) {
 func TestLoadChangedArticles(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	k1 := testdb.InsertKnowledge(t, rt, testdb.Org1, "5384b1c6-1099-4a5f-a005-9d3a4092c5c1", models.KnowledgeTypeHelpdesk, "Test Helpdesk", models.KnowledgeStatusReady)
+	k1 := testdb.InsertKnowledgeSource(t, rt, testdb.Org1, "5384b1c6-1099-4a5f-a005-9d3a4092c5c1", models.KnowledgeSourceTypeHelpdesk, "Test Helpdesk", models.KnowledgeSourceStatusReady)
 	k1s := testdb.InsertSection(t, rt, k1, "a1b2c3d4-0001-4000-8000-000000000001", "General")
 	rt.DB.MustExec(`UPDATE knowledge_article SET modified_on = NOW() - INTERVAL '3 hours' WHERE id = $1`, k1s.ID)
-	k2 := testdb.InsertKnowledge(t, rt, testdb.Org2, "78bee0eb-a3d1-4e2b-b91b-6ee1c2f1ab19", models.KnowledgeTypeHelpdesk, "Other Helpdesk", models.KnowledgeStatusReady)
+	k2 := testdb.InsertKnowledgeSource(t, rt, testdb.Org2, "78bee0eb-a3d1-4e2b-b91b-6ee1c2f1ab19", models.KnowledgeSourceTypeHelpdesk, "Other Helpdesk", models.KnowledgeSourceStatusReady)
 	k2s := testdb.InsertSection(t, rt, k2, "a1b2c3d4-0002-4000-8000-000000000002", "General")
 
 	a1 := testdb.InsertArticle(t, rt, k1, k1s, "8d40e9ab-c5f1-4b24-b60f-bc42cf65a9f5", "Refunds", "Refunds take 5 days.", models.ArticleStatusPublished)
