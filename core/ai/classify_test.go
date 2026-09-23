@@ -1,6 +1,8 @@
 package ai_test
 
 import (
+	"context"
+	"errors"
 	"math"
 	"testing"
 
@@ -50,4 +52,37 @@ func TestNewClassification(t *testing.T) {
 			assert.Equal(t, &core.Classification{Option: tc.option, Confidence: tc.confidence, TokensInput: 34, TokensOutput: 5}, cls, "classification mismatch for output %q", tc.output)
 		}
 	}
+}
+
+type promptService struct {
+	output string
+	err    error
+}
+
+func (s *promptService) Response(ctx context.Context, instructions, input string, maxTokens int) (*core.ModelResponse, error) {
+	if s.err != nil {
+		return nil, s.err
+	}
+	return &core.ModelResponse{Output: s.output, TokensInput: 34, TokensOutput: 2}, nil
+}
+
+func (s *promptService) Classify(ctx context.Context, input string, options []*core.ClassifierOption) (*core.Classification, error) {
+	return ai.ClassifyByPrompt(ctx, s, input, options)
+}
+
+func TestClassifyByPrompt(t *testing.T) {
+	ctx := context.Background()
+	options := []*core.ClassifierOption{{Name: "Flights"}, {Name: "Hotels"}}
+
+	cls, err := ai.ClassifyByPrompt(ctx, &promptService{output: "Hotels"}, "I need a room", options)
+	assert.NoError(t, err)
+	assert.Equal(t, &core.Classification{Option: "Hotels", Confidence: ai.UnscoredConfidence, TokensInput: 34, TokensOutput: 2}, cls)
+
+	cls, err = ai.ClassifyByPrompt(ctx, &promptService{output: "<CANT>"}, "What's the weather?", options)
+	assert.EqualError(t, err, "no option fits input")
+	assert.Nil(t, cls)
+
+	cls, err = ai.ClassifyByPrompt(ctx, &promptService{err: errors.New("boom")}, "I need a room", options)
+	assert.EqualError(t, err, "boom")
+	assert.Nil(t, cls)
 }
