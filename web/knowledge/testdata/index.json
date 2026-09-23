@@ -15,11 +15,32 @@
         "body": {},
         "status": 400,
         "response": {
-            "error": "request failed validation: field 'org_id' is required, field 'knowledge_uuid' is required"
+            "error": "request failed validation: field 'org_id' is required, field 'source_uuid' failed tag 'required_without'"
         }
     },
     {
         "label": "queues an indexing task for the source",
+        "method": "POST",
+        "path": "/mi/knowledge/index",
+        "body": {
+            "org_id": 1,
+            "source_uuid": "5384b1c6-1099-4a5f-a005-9d3a4092c5c1"
+        },
+        "status": 200,
+        "response": {},
+        "expected_tasks": {
+            "batch/1": [
+                {
+                    "type": "index_knowledge",
+                    "payload": {
+                        "source_uuid": "5384b1c6-1099-4a5f-a005-9d3a4092c5c1"
+                    }
+                }
+            ]
+        }
+    },
+    {
+        "label": "still accepts the source by its old name",
         "method": "POST",
         "path": "/mi/knowledge/index",
         "body": {
@@ -33,7 +54,7 @@
                 {
                     "type": "index_knowledge",
                     "payload": {
-                        "knowledge_uuid": "5384b1c6-1099-4a5f-a005-9d3a4092c5c1"
+                        "source_uuid": "5384b1c6-1099-4a5f-a005-9d3a4092c5c1"
                     }
                 }
             ]

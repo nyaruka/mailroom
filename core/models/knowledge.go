@@ -14,50 +14,50 @@ import (
 	"github.com/vinovest/sqlx"
 )
 
-type KnowledgeID int64
+type KnowledgeSourceID int64
 
-// NilKnowledgeID is our constant for a nil knowledge id
-const NilKnowledgeID = KnowledgeID(0)
+// NilKnowledgeSourceID is our constant for a nil knowledge id
+const NilKnowledgeSourceID = KnowledgeSourceID(0)
 
-func (i *KnowledgeID) Scan(value any) error         { return null.ScanInt(value, i) }
-func (i KnowledgeID) Value() (driver.Value, error)  { return null.IntValue(i) }
-func (i *KnowledgeID) UnmarshalJSON(b []byte) error { return null.UnmarshalInt(b, i) }
-func (i KnowledgeID) MarshalJSON() ([]byte, error)  { return null.MarshalInt(i) }
+func (i *KnowledgeSourceID) Scan(value any) error         { return null.ScanInt(value, i) }
+func (i KnowledgeSourceID) Value() (driver.Value, error)  { return null.IntValue(i) }
+func (i *KnowledgeSourceID) UnmarshalJSON(b []byte) error { return null.UnmarshalInt(b, i) }
+func (i KnowledgeSourceID) MarshalJSON() ([]byte, error)  { return null.MarshalInt(i) }
 
-type KnowledgeUUID uuids.UUID
+type KnowledgeSourceUUID uuids.UUID
 
-type KnowledgeType string
-
-const (
-	KnowledgeTypeShortcuts = KnowledgeType("shortcuts") // the org's shortcuts, read straight from tickets_shortcut
-	KnowledgeTypeHelpdesk  = KnowledgeType("helpdesk")  // the org's help articles, read from knowledge_article
-	KnowledgeTypeWebsite   = KnowledgeType("website")   // a crawled website
-	KnowledgeTypeDocuments = KnowledgeType("documents") // uploaded files
-)
-
-type KnowledgeStatus string
+type KnowledgeSourceType string
 
 const (
-	KnowledgeStatusPending  = KnowledgeStatus("P") // needs (re)indexing, flagged by Django
-	KnowledgeStatusIndexing = KnowledgeStatus("I") // being indexed
-	KnowledgeStatusReady    = KnowledgeStatus("R") // indexed and searchable
-	KnowledgeStatusFailed   = KnowledgeStatus("F") // last indexing attempt failed, see error
+	KnowledgeSourceTypeShortcuts = KnowledgeSourceType("shortcuts") // the org's shortcuts, read from tickets_shortcut
+	KnowledgeSourceTypeHelpdesk  = KnowledgeSourceType("helpdesk")  // the org's help articles, read from knowledge_article
+	KnowledgeSourceTypeWebsite   = KnowledgeSourceType("website")   // a crawled website
+	KnowledgeSourceTypeDocuments = KnowledgeSourceType("documents") // uploaded files
 )
 
-// Knowledge is a source of knowledge that AI and human agents can search semantically. Django owns the schema and the
-// CRUD but the status, error, counters and chunks are only ever written by mailroom as it indexes.
-type Knowledge struct {
-	ID            KnowledgeID     `db:"id"`
-	UUID          KnowledgeUUID   `db:"uuid"`
-	OrgID         OrgID           `db:"org_id"`
-	Name          string          `db:"name"`
-	Type          KnowledgeType   `db:"source_type"`
-	Config        JSONB[Config]   `db:"config"`
-	Status        KnowledgeStatus `db:"status"`
-	Error         null.String     `db:"error"`
-	LastIndexedOn *time.Time      `db:"last_indexed_on"`
-	NumItems      int             `db:"num_items"`
-	NumChunks     int             `db:"num_chunks"`
+type KnowledgeSourceStatus string
+
+const (
+	KnowledgeSourceStatusPending  = KnowledgeSourceStatus("P") // needs (re)indexing, flagged by Django
+	KnowledgeSourceStatusIndexing = KnowledgeSourceStatus("I") // being indexed
+	KnowledgeSourceStatusReady    = KnowledgeSourceStatus("R") // indexed and searchable
+	KnowledgeSourceStatusFailed   = KnowledgeSourceStatus("F") // last indexing attempt failed, see error
+)
+
+// KnowledgeSource is a source of knowledge that AI and human agents can search semantically. Django owns the schema and
+// the CRUD but the status, error, counters and chunks are only ever written by mailroom as it indexes.
+type KnowledgeSource struct {
+	ID            KnowledgeSourceID     `db:"id"`
+	UUID          KnowledgeSourceUUID   `db:"uuid"`
+	OrgID         OrgID                 `db:"org_id"`
+	Name          string                `db:"name"`
+	Type          KnowledgeSourceType   `db:"source_type"`
+	Config        JSONB[Config]         `db:"config"`
+	Status        KnowledgeSourceStatus `db:"status"`
+	Error         null.String           `db:"error"`
+	LastIndexedOn *time.Time            `db:"last_indexed_on"`
+	NumItems      int                   `db:"num_items"`
+	NumChunks     int                   `db:"num_chunks"`
 }
 
 // A source is stale when it's active, of a type we can index, and either 1) flagged as pending by Django, 2) ready
@@ -73,7 +73,7 @@ type Knowledge struct {
 // knowledge permanently. Recovery from a failure deliberately goes through the timed branch alone rather than
 // through the item-staleness branch above: starting an index bumps modified_on, so the interval is a real backoff,
 // whereas a staleness-driven retry would re-queue on every sweep for as long as the underlying failure lasted.
-const sqlSelectStaleKnowledge = `
+const sqlSelectStaleKnowledgeSources = `
 SELECT id, uuid, org_id, name, source_type, config, status, error, last_indexed_on, num_items, num_chunks
   FROM knowledge_knowledgesource k
  WHERE k.is_active AND k.source_type = ANY($1) AND (
@@ -88,18 +88,18 @@ SELECT id, uuid, org_id, name, source_type, config, status, error, last_indexed_
  ORDER BY k.id
  LIMIT $2`
 
-// GetStaleKnowledge returns up to limit knowledge sources of the given types which need (re)indexing. Nothing is
+// GetStaleKnowledgeSources returns up to limit knowledge sources of the given types which need (re)indexing. Nothing is
 // locked or updated here - the caller queues an indexing task per source and the task claims it.
-func GetStaleKnowledge(ctx context.Context, db *sqlx.DB, types []KnowledgeType, limit int) ([]*Knowledge, error) {
-	rows, err := db.QueryxContext(ctx, sqlSelectStaleKnowledge, StringArray(types), limit)
+func GetStaleKnowledgeSources(ctx context.Context, db *sqlx.DB, types []KnowledgeSourceType, limit int) ([]*KnowledgeSource, error) {
+	rows, err := db.QueryxContext(ctx, sqlSelectStaleKnowledgeSources, StringArray(types), limit)
 	if err != nil && err != sql.ErrNoRows {
 		return nil, fmt.Errorf("error querying stale knowledge sources: %w", err)
 	}
 	defer rows.Close()
 
-	stale := make([]*Knowledge, 0, 4)
+	stale := make([]*KnowledgeSource, 0, 4)
 	for rows.Next() {
-		k := &Knowledge{}
+		k := &KnowledgeSource{}
 		if err := rows.StructScan(k); err != nil {
 			return nil, fmt.Errorf("error unmarshalling knowledge source: %w", err)
 		}
@@ -112,15 +112,15 @@ func GetStaleKnowledge(ctx context.Context, db *sqlx.DB, types []KnowledgeType, 
 	return stale, nil
 }
 
-const sqlSelectKnowledge = `
+const sqlSelectKnowledgeSource = `
 SELECT id, uuid, org_id, name, source_type, config, status, error, last_indexed_on, num_items, num_chunks
   FROM knowledge_knowledgesource
  WHERE org_id = $1 AND uuid = $2 AND is_active`
 
-// GetKnowledge loads a knowledge source by UUID, returning nil if there's no such active source
-func GetKnowledge(ctx context.Context, db *sqlx.DB, orgID OrgID, uuid KnowledgeUUID) (*Knowledge, error) {
-	k := &Knowledge{}
-	if err := db.GetContext(ctx, k, sqlSelectKnowledge, orgID, uuid); err != nil {
+// GetKnowledgeSource loads a knowledge source by UUID, returning nil if there's no such active source
+func GetKnowledgeSource(ctx context.Context, db *sqlx.DB, orgID OrgID, uuid KnowledgeSourceUUID) (*KnowledgeSource, error) {
+	k := &KnowledgeSource{}
+	if err := db.GetContext(ctx, k, sqlSelectKnowledgeSource, orgID, uuid); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
@@ -137,12 +137,12 @@ UPDATE knowledge_knowledgesource SET status = 'I', modified_on = NOW() WHERE id 
 
 // SetIndexing records that we've started indexing this source. Mutual exclusion between workers is the caller's
 // lock, not this - the status is what the UI shows and what the retry cron reads.
-func (k *Knowledge) SetIndexing(ctx context.Context, db DBorTx) error {
+func (k *KnowledgeSource) SetIndexing(ctx context.Context, db DBorTx) error {
 	if _, err := db.ExecContext(ctx, sqlSetKnowledgeIndexing, k.ID); err != nil {
 		return fmt.Errorf("error marking knowledge source as indexing: %w", err)
 	}
 
-	k.Status = KnowledgeStatusIndexing
+	k.Status = KnowledgeSourceStatusIndexing
 	return nil
 }
 
@@ -154,13 +154,13 @@ UPDATE knowledge_knowledgesource
    SET status = 'R', error = NULL, last_indexed_on = $2, num_items = $3, num_chunks = $4, modified_on = NOW()
  WHERE id = $1 AND is_active`
 
-// ErrKnowledgeReleased is returned when finalizing a source that was deactivated while we were indexing it
-var ErrKnowledgeReleased = errors.New("knowledge source is no longer active")
+// ErrKnowledgeSourceReleased is returned when finalizing a source that was deactivated while we were indexing it
+var ErrKnowledgeSourceReleased = errors.New("knowledge source is no longer active")
 
-// SetReady records a successful indexing of this source. Returns ErrKnowledgeReleased if the source was deactivated
-// while we worked, so the caller can abandon the chunks it was about to write rather than repopulating a source
-// Django has already purged.
-func (k *Knowledge) SetReady(ctx context.Context, db DBorTx, indexedOn time.Time, numItems, numChunks int) error {
+// SetReady records a successful indexing of this source. Returns ErrKnowledgeSourceReleased if the source was
+// deactivated while we worked, so the caller can abandon the chunks it was about to write rather than repopulating a
+// source Django has already purged.
+func (k *KnowledgeSource) SetReady(ctx context.Context, db DBorTx, indexedOn time.Time, numItems, numChunks int) error {
 	res, err := db.ExecContext(ctx, sqlSetKnowledgeReady, k.ID, indexedOn, numItems, numChunks)
 	if err != nil {
 		return fmt.Errorf("error marking knowledge source as ready: %w", err)
@@ -168,10 +168,10 @@ func (k *Knowledge) SetReady(ctx context.Context, db DBorTx, indexedOn time.Time
 	if rows, err := res.RowsAffected(); err != nil {
 		return fmt.Errorf("error checking rows affected: %w", err)
 	} else if rows == 0 {
-		return ErrKnowledgeReleased
+		return ErrKnowledgeSourceReleased
 	}
 
-	k.Status = KnowledgeStatusReady
+	k.Status = KnowledgeSourceStatusReady
 	k.Error = ""
 	k.LastIndexedOn = &indexedOn
 	k.NumItems = numItems
@@ -183,7 +183,7 @@ const sqlSetKnowledgeFailed = `
 UPDATE knowledge_knowledgesource SET status = 'F', error = $2, modified_on = NOW() WHERE id = $1`
 
 // SetFailed records a failed indexing of this source
-func (k *Knowledge) SetFailed(ctx context.Context, db DBorTx, errMsg string) error {
+func (k *KnowledgeSource) SetFailed(ctx context.Context, db DBorTx, errMsg string) error {
 	if runes := []rune(errMsg); len(runes) > 255 { // error column is varchar(255)
 		errMsg = string(runes[:255])
 	}
@@ -192,7 +192,7 @@ func (k *Knowledge) SetFailed(ctx context.Context, db DBorTx, errMsg string) err
 		return fmt.Errorf("error marking knowledge source as failed: %w", err)
 	}
 
-	k.Status = KnowledgeStatusFailed
+	k.Status = KnowledgeSourceStatusFailed
 	k.Error = null.String(errMsg)
 	return nil
 }
@@ -210,13 +210,13 @@ func (i KnowledgeChunkID) MarshalJSON() ([]byte, error)  { return null.MarshalIn
 // KnowledgeChunk is an embedded chunk of a knowledge source's content. Its item_key is the UUID of the item it came
 // from - for shortcuts that's tickets_shortcut.uuid - letting us replace an item's chunks without per-item state.
 type KnowledgeChunk struct {
-	ID          KnowledgeChunkID `db:"id"`
-	KnowledgeID KnowledgeID      `db:"source_id"`
-	ItemKey     uuids.UUID       `db:"item_key"`
-	ItemName    string           `db:"item_name"`
-	ItemURL     null.String      `db:"item_url"`
-	Text        string           `db:"text"`
-	Embedding   Embedding        `db:"embedding"`
+	ID        KnowledgeChunkID  `db:"id"`
+	SourceID  KnowledgeSourceID `db:"source_id"`
+	ItemKey   uuids.UUID        `db:"item_key"`
+	ItemName  string            `db:"item_name"`
+	ItemURL   null.String       `db:"item_url"`
+	Text      string            `db:"text"`
+	Embedding Embedding         `db:"embedding"`
 }
 
 const sqlInsertKnowledgeChunk = `
@@ -234,22 +234,22 @@ func InsertKnowledgeChunks(ctx context.Context, tx DBorTx, chunks []*KnowledgeCh
 }
 
 // DeleteKnowledgeChunks deletes the chunks of the given items of the given knowledge source
-func DeleteKnowledgeChunks(ctx context.Context, tx DBorTx, knowledgeID KnowledgeID, itemKeys []uuids.UUID) error {
+func DeleteKnowledgeChunks(ctx context.Context, tx DBorTx, sourceID KnowledgeSourceID, itemKeys []uuids.UUID) error {
 	if len(itemKeys) == 0 {
 		return nil
 	}
 
 	sql := `DELETE FROM knowledge_knowledgechunk WHERE source_id = $1 AND item_key = ANY($2)`
-	if _, err := tx.ExecContext(ctx, sql, knowledgeID, pq.Array(itemKeys)); err != nil {
+	if _, err := tx.ExecContext(ctx, sql, sourceID, pq.Array(itemKeys)); err != nil {
 		return fmt.Errorf("error deleting knowledge chunks: %w", err)
 	}
 	return nil
 }
 
 // CountKnowledgeChunks returns the total number of chunks of the given knowledge source
-func CountKnowledgeChunks(ctx context.Context, db DBorTx, knowledgeID KnowledgeID) (int, error) {
+func CountKnowledgeChunks(ctx context.Context, db DBorTx, sourceID KnowledgeSourceID) (int, error) {
 	var count int
-	if err := db.GetContext(ctx, &count, `SELECT count(*) FROM knowledge_knowledgechunk WHERE source_id = $1`, knowledgeID); err != nil {
+	if err := db.GetContext(ctx, &count, `SELECT count(*) FROM knowledge_knowledgechunk WHERE source_id = $1`, sourceID); err != nil {
 		return 0, fmt.Errorf("error counting knowledge chunks: %w", err)
 	}
 	return count, nil
@@ -343,15 +343,15 @@ const (
 // A root of the tree - one with no parent - is a section: a heading over the articles filed under it, described in
 // a line rather than written as an article.
 type Article struct {
-	ID         ArticleID     `db:"id"`
-	UUID       uuids.UUID    `db:"uuid"`
-	SourceID   KnowledgeID   `db:"source_id"`
-	ParentID   ArticleID     `db:"parent_id"`
-	Title      string        `db:"title"`
-	Body       string        `db:"body"`
-	Status     ArticleStatus `db:"status"`
-	IsActive   bool          `db:"is_active"`
-	ModifiedOn time.Time     `db:"modified_on"`
+	ID         ArticleID         `db:"id"`
+	UUID       uuids.UUID        `db:"uuid"`
+	SourceID   KnowledgeSourceID `db:"source_id"`
+	ParentID   ArticleID         `db:"parent_id"`
+	Title      string            `db:"title"`
+	Body       string            `db:"body"`
+	Status     ArticleStatus     `db:"status"`
+	IsActive   bool              `db:"is_active"`
+	ModifiedOn time.Time         `db:"modified_on"`
 }
 
 // IsSection returns whether this is a section rather than an article - see Article
@@ -378,7 +378,7 @@ SELECT id, uuid, source_id, parent_id, title, body, status, is_active, modified_
 // LoadChangedArticles loads the helpdesk's articles modified since the given time - creates, edits, unpublishes and
 // soft-deletes alike since all of those bump modified_on. Scoped by source rather than by org because articles belong
 // to a helpdesk, not to the org directly.
-func LoadChangedArticles(ctx context.Context, db *sqlx.DB, sourceID KnowledgeID, since time.Time) ([]*Article, error) {
+func LoadChangedArticles(ctx context.Context, db *sqlx.DB, sourceID KnowledgeSourceID, since time.Time) ([]*Article, error) {
 	rows, err := db.QueryxContext(ctx, sqlSelectChangedArticles, sourceID, since)
 	if err != nil && err != sql.ErrNoRows {
 		return nil, fmt.Errorf("error loading changed articles for knowledge source: %d: %w", sourceID, err)
@@ -405,7 +405,7 @@ func LoadChangedArticles(ctx context.Context, db *sqlx.DB, sourceID KnowledgeID,
 // CountPublishedArticles returns the number of indexable articles in the given helpdesk - active, published and not
 // a section, exactly as Article.Indexable decides it - so that a helpdesk full of drafts doesn't report itself as
 // indexed content.
-func CountPublishedArticles(ctx context.Context, db DBorTx, sourceID KnowledgeID) (int, error) {
+func CountPublishedArticles(ctx context.Context, db DBorTx, sourceID KnowledgeSourceID) (int, error) {
 	var count int
 	sql := `SELECT count(*) FROM knowledge_article WHERE source_id = $1 AND parent_id IS NOT NULL AND is_active AND status = 'P'`
 	if err := db.GetContext(ctx, &count, sql, sourceID); err != nil {

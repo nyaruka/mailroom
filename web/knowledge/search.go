@@ -24,10 +24,10 @@ func init() {
 //	  "limit": 10
 //	}
 type searchRequest struct {
-	OrgID       models.OrgID           `json:"org_id"       validate:"required"`
-	Query       string                 `json:"query"        validate:"required"`
-	SourceUUIDs []models.KnowledgeUUID `json:"source_uuids" validate:"dive,uuid"`
-	Limit       int                    `json:"limit"`
+	OrgID       models.OrgID                 `json:"org_id"       validate:"required"`
+	Query       string                       `json:"query"        validate:"required"`
+	SourceUUIDs []models.KnowledgeSourceUUID `json:"source_uuids" validate:"dive,uuid"`
+	Limit       int                          `json:"limit"`
 }
 
 // Response is the matching chunks, best first.
@@ -35,7 +35,7 @@ type searchRequest struct {
 //	{
 //	  "results": [
 //	    {
-//	      "knowledge_uuid": "97180291-8d95-4a6b-8a1a-63c44bb84b77",
+//	      "source_uuid": "97180291-8d95-4a6b-8a1a-63c44bb84b77",
 //	      "item_key": "e0d47f61-9531-46a5-89dd-8e8437bee883",
 //	      "item_name": "Refunds",
 //	      "text": "We offer full refunds within 30 days...",

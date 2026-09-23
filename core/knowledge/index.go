@@ -16,7 +16,7 @@ import (
 )
 
 // IndexableTypes are the knowledge source types we can currently index
-var IndexableTypes = []models.KnowledgeType{models.KnowledgeTypeShortcuts, models.KnowledgeTypeHelpdesk}
+var IndexableTypes = []models.KnowledgeSourceType{models.KnowledgeSourceTypeShortcuts, models.KnowledgeSourceTypeHelpdesk}
 
 // how far back the last_indexed_on watermark is pulled - see indexAuthored. Sized to cover clock skew between the
 // hosts plus the length of a Django write transaction, and no more: anything modified inside the margin is read
@@ -26,11 +26,11 @@ const watermarkMargin = 5 * time.Second
 // IndexSource indexes the given knowledge source - re-reading its changed content, chunking and embedding it, and
 // replacing the affected chunks. On success the source is left ready with its counters updated. On error the caller
 // is responsible for marking the source as failed - there is no task retry so that must always land in the database.
-func IndexSource(ctx context.Context, rt *runtime.Runtime, k *models.Knowledge) error {
+func IndexSource(ctx context.Context, rt *runtime.Runtime, k *models.KnowledgeSource) error {
 	switch k.Type {
-	case models.KnowledgeTypeShortcuts:
+	case models.KnowledgeSourceTypeShortcuts:
 		return indexAuthored(ctx, rt, k, shortcutsSource)
-	case models.KnowledgeTypeHelpdesk:
+	case models.KnowledgeSourceTypeHelpdesk:
 		return indexAuthored(ctx, rt, k, helpdeskSource)
 	default:
 		return fmt.Errorf("unsupported knowledge type '%s'", k.Type)
@@ -50,8 +50,8 @@ type authoredItem struct {
 // how to read and chunk one kind of authored source. Everything type specific lives here so that indexAuthored itself
 // - which is where the watermark and the replace-and-finalize transaction live - stays the same for every source.
 type authoredSource struct {
-	loadChanged func(context.Context, *sqlx.DB, *models.Knowledge, time.Time) ([]*authoredItem, error)
-	countItems  func(context.Context, models.DBorTx, *models.Knowledge) (int, error)
+	loadChanged func(context.Context, *sqlx.DB, *models.KnowledgeSource, time.Time) ([]*authoredItem, error)
+	countItems  func(context.Context, models.DBorTx, *models.KnowledgeSource) (int, error)
 	chunkItem   func(*authoredItem) []string
 }
 
@@ -63,7 +63,7 @@ var (
 // indexAuthored indexes an authored source: a delta on modified_on since we last indexed catches creates, edits and
 // soft-deletes alike because Django bumps modified_on for all three. A source never indexed (last_indexed_on null)
 // deltas from the zero time, i.e. reads everything.
-func indexAuthored(ctx context.Context, rt *runtime.Runtime, k *models.Knowledge, src *authoredSource) error {
+func indexAuthored(ctx context.Context, rt *runtime.Runtime, k *models.KnowledgeSource, src *authoredSource) error {
 	// the new last_indexed_on watermark is taken before we read, so items changed while we index leave the source
 	// stale for the next trigger or the retry cron to pick up instead of being missed.
 	//
@@ -95,7 +95,7 @@ func indexAuthored(ctx context.Context, rt *runtime.Runtime, k *models.Knowledge
 		}
 		for _, text := range src.chunkItem(item) {
 			chunks = append(chunks, &models.KnowledgeChunk{
-				KnowledgeID: k.ID, ItemKey: item.key, ItemName: item.name, ItemURL: item.url, Text: text,
+				SourceID: k.ID, ItemKey: item.key, ItemName: item.name, ItemURL: item.url, Text: text,
 			})
 		}
 	}
@@ -145,8 +145,8 @@ func indexAuthored(ctx context.Context, rt *runtime.Runtime, k *models.Knowledge
 
 		// released mid-index isn't a failure - Django has purged this source and we simply throw away the chunks we
 		// were about to write for it. Marking it failed would resurrect a row that is on its way out.
-		if errors.Is(err, models.ErrKnowledgeReleased) {
-			slog.Info("knowledge source released while indexing, discarding", "knowledge_id", k.ID)
+		if errors.Is(err, models.ErrKnowledgeSourceReleased) {
+			slog.Info("knowledge source released while indexing, discarding", "source_id", k.ID)
 			return nil
 		}
 		return err
@@ -160,7 +160,7 @@ func indexAuthored(ctx context.Context, rt *runtime.Runtime, k *models.Knowledge
 }
 
 // loads the org's shortcuts changed since the given time as authored items keyed by the shortcut's UUID
-func changedShortcutItems(ctx context.Context, db *sqlx.DB, k *models.Knowledge, since time.Time) ([]*authoredItem, error) {
+func changedShortcutItems(ctx context.Context, db *sqlx.DB, k *models.KnowledgeSource, since time.Time) ([]*authoredItem, error) {
 	shortcuts, err := models.LoadChangedShortcuts(ctx, db, k.OrgID, since)
 	if err != nil {
 		return nil, err
@@ -173,7 +173,7 @@ func changedShortcutItems(ctx context.Context, db *sqlx.DB, k *models.Knowledge,
 	return items, nil
 }
 
-func countShortcutItems(ctx context.Context, db models.DBorTx, k *models.Knowledge) (int, error) {
+func countShortcutItems(ctx context.Context, db models.DBorTx, k *models.KnowledgeSource) (int, error) {
 	return models.CountActiveShortcuts(ctx, db, k.OrgID)
 }
 
@@ -190,7 +190,7 @@ func chunkShortcut(item *authoredItem) []string {
 // its section's slug, its own slug and the site's domain, and a section rename or a domain change alters it without
 // bumping the article's modified_on - so a URL baked into a chunk would go stale with no way of noticing. Whoever
 // shows a hit resolves the article by its key instead, which is always right as of that moment.
-func changedArticleItems(ctx context.Context, db *sqlx.DB, k *models.Knowledge, since time.Time) ([]*authoredItem, error) {
+func changedArticleItems(ctx context.Context, db *sqlx.DB, k *models.KnowledgeSource, since time.Time) ([]*authoredItem, error) {
 	articles, err := models.LoadChangedArticles(ctx, db, k.ID, since)
 	if err != nil {
 		return nil, err
@@ -203,7 +203,7 @@ func changedArticleItems(ctx context.Context, db *sqlx.DB, k *models.Knowledge, 
 	return items, nil
 }
 
-func countArticleItems(ctx context.Context, db models.DBorTx, k *models.Knowledge) (int, error) {
+func countArticleItems(ctx context.Context, db models.DBorTx, k *models.KnowledgeSource) (int, error) {
 	return models.CountPublishedArticles(ctx, db, k.ID)
 }
 

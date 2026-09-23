@@ -30,14 +30,15 @@ func (c *RetryKnowledgeIndexingCron) Next(last time.Time) time.Time {
 }
 
 func (c *RetryKnowledgeIndexingCron) Run(ctx context.Context, rt *runtime.Runtime) (map[string]any, error) {
-	stale, err := models.GetStaleKnowledge(ctx, rt.DB, knowledge.IndexableTypes, c.BatchSize)
+	stale, err := models.GetStaleKnowledgeSources(ctx, rt.DB, knowledge.IndexableTypes, c.BatchSize)
 	if err != nil {
 		return nil, fmt.Errorf("error getting stale knowledge sources: %w", err)
 	}
 
 	for _, k := range stale {
 		// queued without priority, unlike the endpoint's tasks - nobody is waiting on a recovery
-		if err := tasks.Queue(ctx, rt, rt.Queues.Batch, k.OrgID, &tasks.IndexKnowledge{KnowledgeUUID: k.UUID}, false); err != nil {
+		task := &tasks.IndexKnowledge{SourceUUID: k.UUID}
+		if err := tasks.Queue(ctx, rt, rt.Queues.Batch, k.OrgID, task, false); err != nil {
 			return nil, fmt.Errorf("error queueing index knowledge task for source %d: %w", k.ID, err)
 		}
 	}
