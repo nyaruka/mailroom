@@ -1,0 +1,88 @@
+[
+    {
+        "label": "LLM and classifier calls recorded in daily counts",
+        "events": {},
+        "actions": {
+            "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                {
+                    "type": "call_llm",
+                    "uuid": "5d3a2f40-7c1b-4c2e-9a4e-1f0c8b2d6e71",
+                    "llm": {
+                        "uuid": "e5d8900a-ef54-4d2a-8214-ff7d3e903502",
+                        "name": "Test"
+                    },
+                    "instructions": "Say hi",
+                    "input": "Hello",
+                    "output_local": "_llm_output"
+                },
+                {
+                    "type": "call_classifier",
+                    "uuid": "8e0d4a6b-3b8f-4f4e-bb9a-2c6d1e7f9a02",
+                    "model": {
+                        "uuid": "e5d8900a-ef54-4d2a-8214-ff7d3e903502",
+                        "name": "Test"
+                    },
+                    "input": "I need a room",
+                    "options": [
+                        {
+                            "name": "Flights"
+                        },
+                        {
+                            "name": "Hotels",
+                            "description": "Booking hotel rooms"
+                        }
+                    ],
+                    "output_local": "_category",
+                    "confidence_local": "_confidence"
+                }
+            ]
+        },
+        "db_assertions": [
+            {
+                "query": "SELECT SUM(count)::int FROM ai_llmcount WHERE llm_id = 10002 AND scope = 'calls'",
+                "returns": 2
+            },
+            {
+                "query": "SELECT SUM(count)::int FROM ai_llmcount WHERE llm_id = 10002 AND scope = 'tokens:in'",
+                "returns": 79
+            },
+            {
+                "query": "SELECT SUM(count)::int FROM ai_llmcount WHERE llm_id = 10002 AND scope = 'tokens:out'",
+                "returns": 83
+            }
+        ],
+        "expected_history": [
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01969b47-190b-76f8-89aa-1577771fa183",
+                "OrgID": 1,
+                "Data": {
+                    "created_on": "2025-05-04T12:30:51.123456789Z",
+                    "flow": {
+                        "name": "Test Flow",
+                        "revision": 1,
+                        "uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85"
+                    },
+                    "run_uuid": "01969b47-1523-76f8-8b42-056e0211d5b9",
+                    "type": "run_started"
+                }
+            },
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01969b47-4fbb-76f8-b384-a4094c3d60be",
+                "OrgID": 1,
+                "Data": {
+                    "created_on": "2025-05-04T12:31:05.123456789Z",
+                    "flow": {
+                        "name": "Test Flow",
+                        "revision": 1,
+                        "uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85"
+                    },
+                    "run_uuid": "01969b47-1523-76f8-8b42-056e0211d5b9",
+                    "status": "completed",
+                    "type": "run_ended"
+                }
+            }
+        ]
+    }
+]

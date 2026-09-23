@@ -39,7 +39,7 @@ type service struct {
 	model  string
 }
 
-func New(rt *runtime.Runtime, m *models.LLM, c *http.Client) (flows.LLMService, error) {
+func New(rt *runtime.Runtime, m *models.LLM, c *http.Client) (flows.ModelService, error) {
 	apiKey := m.Config().GetString(configAPIKey, "")
 	endpoint := m.Config().GetString(configEndpoint, "")
 	parsedEndpoint, err := url.Parse(endpoint)
@@ -69,8 +69,23 @@ func New(rt *runtime.Runtime, m *models.LLM, c *http.Client) (flows.LLMService, 
 	}, nil
 }
 
-func (s *service) Response(ctx context.Context, instructions, input string, maxTokens int) (*core.LLMResponse, error) {
-	resp, err := s.client.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
+func (s *service) Response(ctx context.Context, instructions, input string, maxTokens int) (*core.ModelResponse, error) {
+	resp, _, err := s.respond(ctx, instructions, input, maxTokens, false)
+	return resp, err
+}
+
+func (s *service) Classify(ctx context.Context, input string, options []*core.ClassifierOption) (*core.Classification, error) {
+	resp, logprobs, err := s.respond(ctx, ai.ClassifyInstructions(options), input, ai.ClassifyMaxTokens, true)
+	if err != nil {
+		return nil, err
+	}
+
+	return ai.NewClassification(resp, logprobs, options)
+}
+
+// generates a response, optionally with the logprobs of its output tokens
+func (s *service) respond(ctx context.Context, instructions, input string, maxTokens int, withLogprobs bool) (*core.ModelResponse, []float64, error) {
+	params := openai.ChatCompletionNewParams{
 		Model: shared.ChatModel(s.model),
 		Messages: []openai.ChatCompletionMessageParamUnion{
 			openai.SystemMessage(instructions),
@@ -78,16 +93,26 @@ func (s *service) Response(ctx context.Context, instructions, input string, maxT
 		},
 		Temperature: openai.Float(0.000001),
 		MaxTokens:   openai.Int(int64(maxTokens)),
-	})
-	if err != nil {
-		return nil, s.error(err, instructions, input)
+	}
+	if withLogprobs {
+		params.Logprobs = openai.Bool(true)
 	}
 
-	return &core.LLMResponse{
+	resp, err := s.client.Chat.Completions.New(ctx, params)
+	if err != nil {
+		return nil, nil, s.error(err, instructions, input)
+	}
+
+	var logprobs []float64
+	for _, lp := range resp.Choices[0].Logprobs.Content {
+		logprobs = append(logprobs, lp.Logprob)
+	}
+
+	return &core.ModelResponse{
 		Output:       strings.TrimSpace(resp.Choices[0].Message.Content),
 		TokensInput:  resp.Usage.PromptTokens,
 		TokensOutput: resp.Usage.CompletionTokens,
-	}, nil
+	}, logprobs, nil
 }
 
 func (s *service) error(err error, instructions, input string) error {

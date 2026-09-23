@@ -79,7 +79,7 @@ type OrgAssets struct {
 	labels       []assets.Label
 	labelsByUUID map[assets.LabelUUID]*Label
 
-	llms     []assets.LLM
+	llms     []assets.Model
 	llmsByID map[LLMID]*LLM
 
 	templates       []assets.Template
@@ -607,7 +607,7 @@ func (a *OrgAssets) LabelByUUID(uuid assets.LabelUUID) *Label {
 	return a.labelsByUUID[uuid]
 }
 
-func (a *OrgAssets) LLMs() ([]assets.LLM, error) {
+func (a *OrgAssets) Models() ([]assets.Model, error) {
 	return a.llms, nil
 }
 

@@ -1,15 +1,18 @@
 package openai_test
 
 import (
+	"io"
 	"testing"
 
 	"github.com/nyaruka/gocommon/httpx"
+	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/test"
 	"github.com/nyaruka/mailroom/v26/core/ai"
 	"github.com/nyaruka/mailroom/v26/services/llm/openai"
 	"github.com/nyaruka/mailroom/v26/testsuite"
 	"github.com/nyaruka/mailroom/v26/testsuite/testdb"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestService(t *testing.T) {
@@ -112,4 +115,49 @@ func TestService(t *testing.T) {
 	assert.Equal(t, "Hola mundo", resp.Output)
 	assert.Equal(t, int64(36), resp.TokensInput)
 	assert.Equal(t, int64(87), resp.TokensOutput)
+}
+
+func TestClassify(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	llm := testdb.InsertLLM(t, rt, testdb.Org1, "b86966fd-206e-4bdd-a962-06faa3af1182", "openai", "gpt-4", "Good", map[string]any{"api_key": "sesame"}, "TF")
+	oa := testdb.Org1.Load(t, rt)
+
+	mkResp := func(text, logprobs string) *httpx.MockResponse {
+		return httpx.NewMockResponse(200, map[string]string{"Content-type": "application/json"}, []byte(`{"id":"resp_1","object":"response","status":"completed","output":[{"type":"message","id":"msg_1","status":"completed","role":"assistant","content":[{"type":"output_text","text":"`+text+`","annotations":[],"logprobs":`+logprobs+`}]}],"usage":{"input_tokens":34,"output_tokens":2}}`))
+	}
+
+	client, mocks := test.MockedHTTP(map[string][]*httpx.MockResponse{
+		"https://api.openai.com/v1/responses": {
+			mkResp("Hotels", `[{"token":"Hot","logprob":-0.1,"top_logprobs":[]},{"token":"els","logprob":-0.05,"top_logprobs":[]}]`),
+			mkResp("Hotels", `[]`),
+			mkResp("<CANT>", `[]`),
+		},
+	})
+
+	svc, err := openai.New(rt, oa.LLMByID(llm.ID), client)
+	require.NoError(t, err)
+
+	cls, err := svc.Classify(ctx, "I need a room", []*core.ClassifierOption{{Name: "Flights"}, {Name: "Hotels"}})
+	require.NoError(t, err)
+	assert.Equal(t, "Hotels", cls.Option)
+	assert.InDelta(t, 0.8607, cls.Confidence, 0.0001)
+	assert.Equal(t, int64(34), cls.TokensInput)
+	assert.Equal(t, int64(2), cls.TokensOutput)
+
+	body, err := mocks.Requests()[0].GetBody()
+	require.NoError(t, err)
+	reqBody, err := io.ReadAll(body)
+	require.NoError(t, err)
+	assert.Contains(t, string(reqBody), `"include":["message.output_text.logprobs"]`)
+
+	// no logprobs returned
+	cls, err = svc.Classify(ctx, "I need a room", []*core.ClassifierOption{{Name: "Flights"}, {Name: "Hotels"}})
+	require.NoError(t, err)
+	assert.Equal(t, "Hotels", cls.Option)
+	assert.Equal(t, ai.UnscoredConfidence, cls.Confidence)
+
+	cls, err = svc.Classify(ctx, "What's the weather?", []*core.ClassifierOption{{Name: "Flights"}, {Name: "Hotels"}})
+	assert.EqualError(t, err, "no option fits input")
+	assert.Nil(t, cls)
 }

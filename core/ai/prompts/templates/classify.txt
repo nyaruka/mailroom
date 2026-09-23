@@ -1,0 +1,6 @@
+Classify the input text as one of the following options:
+{{ range .Options }}
+- {{ .Name }}{{ if .Description }}: {{ .Description }}{{ end }}{{ end }}
+
+Return only the name of the most appropriate option.
+Return "<CANT>" if none of the options fit.

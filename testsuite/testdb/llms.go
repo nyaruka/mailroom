@@ -11,11 +11,11 @@ import (
 
 type LLM struct {
 	ID   models.LLMID
-	UUID assets.LLMUUID
+	UUID assets.ModelUUID
 }
 
 // InsertLLM inserts an LLM
-func InsertLLM(t *testing.T, rt *runtime.Runtime, org *Org, uuid assets.LLMUUID, typ string, model, name string, config map[string]any, roles string) *LLM {
+func InsertLLM(t *testing.T, rt *runtime.Runtime, org *Org, uuid assets.ModelUUID, typ string, model, name string, config map[string]any, roles string) *LLM {
 	var id models.LLMID
 	err := rt.DB.Get(&id,
 		`INSERT INTO ai_llm(org_id, uuid, llm_type, model, name, config, max_output_tokens, roles, is_system, is_active, created_on, modified_on, created_by_id, modified_by_id)

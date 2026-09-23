@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/nyaruka/gocommon/httpx"
+	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/test"
 	"github.com/nyaruka/mailroom/v26/core/ai"
 	"github.com/nyaruka/mailroom/v26/services/llm/anthropic"
@@ -99,4 +100,30 @@ func TestThinking(t *testing.T) {
 			assert.NotContains(t, string(reqBody), `"thinking"`)
 		}
 	}
+}
+
+func TestClassify(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	llm := testdb.InsertLLM(t, rt, testdb.Org1, "b86966fd-206e-4bdd-a962-06faa3af1182", "anthropic", "claude", "Good", map[string]any{"api_key": "sesame"}, "TF")
+	oa := testdb.Org1.Load(t, rt)
+
+	mkResp := func(text string) *httpx.MockResponse {
+		return httpx.NewMockResponse(200, map[string]string{"Content-type": "application/json"}, []byte(`{"id":"msg_x","type":"message","role":"assistant","content":[{"type":"text","text":"`+text+`"}],"model":"claude","stop_reason":"end_turn","usage":{"input_tokens":34,"output_tokens":2}}`))
+	}
+
+	client, _ := test.MockedHTTP(map[string][]*httpx.MockResponse{
+		"https://api.anthropic.com/v1/messages": {mkResp("Hotels"), mkResp("<CANT>")},
+	})
+
+	svc, err := anthropic.New(rt, oa.LLMByID(llm.ID), client)
+	require.NoError(t, err)
+
+	cls, err := svc.Classify(ctx, "I need a room", []*core.ClassifierOption{{Name: "Flights"}, {Name: "Hotels"}})
+	require.NoError(t, err)
+	assert.Equal(t, &core.Classification{Option: "Hotels", Confidence: ai.UnscoredConfidence, TokensInput: 34, TokensOutput: 2}, cls)
+
+	cls, err = svc.Classify(ctx, "What's the weather?", []*core.ClassifierOption{{Name: "Flights"}, {Name: "Hotels"}})
+	assert.EqualError(t, err, "no option fits input")
+	assert.Nil(t, cls)
 }

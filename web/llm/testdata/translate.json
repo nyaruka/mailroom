@@ -186,7 +186,7 @@
         },
         "status": 422,
         "response": {
-            "error": "simulated LLM error",
+            "error": "simulated model error",
             "code": "ai:unknown",
             "extra": {
                 "input": "{\"a1f0e2c4-5b3e-4d7a-9c2f-1e8d6a4b7c35:text\":[\"error\"]}",

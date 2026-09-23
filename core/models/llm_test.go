@@ -8,7 +8,6 @@ import (
 	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/goflow/assets"
-	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/test/services"
@@ -26,19 +25,19 @@ func TestLLMs(t *testing.T) {
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshLLMs)
 	require.NoError(t, err)
 
-	llms, err := oa.LLMs()
+	llms, err := oa.Models()
 	require.NoError(t, err)
 
 	tcs := []struct {
 		id    models.LLMID
-		uuid  assets.LLMUUID
+		uuid  assets.ModelUUID
 		name  string
 		typ   string
-		roles []assets.LLMRole
+		roles []assets.ModelRole
 	}{
-		{testdb.OpenAI.ID, testdb.OpenAI.UUID, "GPT-4o", "openai", []assets.LLMRole{assets.LLMRoleEditing, assets.LLMRoleEngine}},
-		{testdb.Anthropic.ID, testdb.Anthropic.UUID, "Claude", "anthropic", []assets.LLMRole{assets.LLMRoleEditing, assets.LLMRoleEngine}},
-		{testdb.TestLLM.ID, testdb.TestLLM.UUID, "Test", "test", []assets.LLMRole{assets.LLMRoleEditing, assets.LLMRoleEngine}},
+		{testdb.OpenAI.ID, testdb.OpenAI.UUID, "GPT-4o", "openai", []assets.ModelRole{assets.ModelRoleEditing, assets.ModelRoleEngine}},
+		{testdb.Anthropic.ID, testdb.Anthropic.UUID, "Claude", "anthropic", []assets.ModelRole{assets.ModelRoleEditing, assets.ModelRoleEngine}},
+		{testdb.TestLLM.ID, testdb.TestLLM.UUID, "Test", "test", []assets.ModelRole{assets.ModelRoleEditing, assets.ModelRoleEngine}},
 	}
 
 	assert.Equal(t, len(tcs), len(llms))
@@ -61,9 +60,9 @@ func TestLLMAsService(t *testing.T) {
 
 	// register a service type which records the client it's constructed with
 	var gotClient *http.Client
-	models.RegisterLLMService("test_capture", func(rt *runtime.Runtime, l *models.LLM, c *http.Client) (flows.LLMService, error) {
+	models.RegisterLLMService("test_capture", func(rt *runtime.Runtime, l *models.LLM, c *http.Client) (flows.ModelService, error) {
 		gotClient = c
-		return services.NewLLM(), nil
+		return services.NewModel(), nil
 	})
 
 	llm := &models.LLM{UUID_: "8b3d0b6f-1f45-4b8b-a0b1-2a1e63dc4c9e", Type_: "test_capture"}
@@ -94,18 +93,18 @@ func TestLLMRecordCall(t *testing.T) {
 	llm := oa.LLMByID(testdb.OpenAI.ID)
 	require.NotNil(t, llm)
 
-	mkEvent := func(in, out int64) *events.LLMCalled {
-		return events.NewLLMCalled(core.NewLLM(llm).Reference(), "instructions", "input", &core.LLMResponse{Output: "output", TokensInput: in, TokensOutput: out}, 250*time.Millisecond)
+	record := func(in, out int64) []*models.LLMDailyCount {
+		return llm.RecordCall(rt, oa, 250*time.Millisecond, events.ModelTokens{Input: in, Output: out})
 	}
 
-	assert.Len(t, llm.RecordCall(rt, oa, mkEvent(120, 340)), 3)
-	assert.Len(t, llm.RecordCall(rt, oa, mkEvent(80, 200)), 3)
-	assert.Len(t, llm.RecordCall(rt, oa, mkEvent(0, 0)), 1)
+	assert.Len(t, record(120, 340), 3)
+	assert.Len(t, record(80, 200), 3)
+	assert.Len(t, record(0, 0), 1)
 
 	var allCounts []*models.LLMDailyCount
-	allCounts = append(allCounts, llm.RecordCall(rt, oa, mkEvent(120, 340))...)
-	allCounts = append(allCounts, llm.RecordCall(rt, oa, mkEvent(80, 200))...)
-	allCounts = append(allCounts, llm.RecordCall(rt, oa, mkEvent(0, 0))...)
+	allCounts = append(allCounts, record(120, 340)...)
+	allCounts = append(allCounts, record(80, 200)...)
+	allCounts = append(allCounts, record(0, 0)...)
 
 	require.NoError(t, models.InsertLLMDailyCounts(ctx, rt.DB, allCounts))
 
