@@ -83,7 +83,7 @@ func handleTranslate(ctx context.Context, rt *runtime.Runtime, r *translateReque
 	if llm == nil {
 		return nil, 0, fmt.Errorf("no such LLM with ID %d", r.LLMID)
 	}
-	if !slices.Contains(llm.Roles(), assets.LLMRoleEditing) {
+	if !slices.Contains(llm.Roles(), assets.ModelRoleEditing) {
 		return nil, 0, fmt.Errorf("LLM with ID %d does not support editing", r.LLMID)
 	}
 
@@ -109,9 +109,9 @@ func handleTranslate(ctx context.Context, rt *runtime.Runtime, r *translateReque
 	callStart := time.Now()
 	resp, err := llmSvc.Response(callCtx, instructions, string(inputBytes), llm.MaxOutputTokens())
 	if resp == nil {
-		resp = &core.LLMResponse{}
+		resp = &core.ModelResponse{}
 	}
-	counts := llm.RecordCall(rt, oa, time.Since(callStart), events.LLMTokens{Input: resp.TokensInput, Output: resp.TokensOutput})
+	counts := llm.RecordCall(rt, oa, time.Since(callStart), events.ModelTokens{Input: resp.TokensInput, Output: resp.TokensOutput})
 
 	// detach from the request context so a client-side timeout during the LLM call doesn't prevent us from recording usage someone may have paid for
 	recCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), RecordTimeout)

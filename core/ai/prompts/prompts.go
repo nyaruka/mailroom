@@ -11,6 +11,9 @@ import (
 //go:embed templates/categorize.txt
 var categorize string
 
+//go:embed templates/classify.txt
+var classify string
+
 //go:embed templates/translate.txt
 var translate string
 
@@ -19,6 +22,7 @@ var translateUnknownFrom string
 
 var templates = map[string]*template.Template{
 	"categorize":             template.Must(template.New("").Parse(categorize)),
+	"classify":               template.Must(template.New("").Parse(classify)),
 	"translate":              template.Must(template.New("").Parse(translate)),
 	"translate_unknown_from": template.Must(template.New("").Parse(translateUnknownFrom)),
 }

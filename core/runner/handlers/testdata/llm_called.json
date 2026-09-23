@@ -23,9 +23,14 @@
                         "name": "Test"
                     },
                     "input": "I need a room",
-                    "categories": [
-                        "Flights",
-                        "Hotels"
+                    "options": [
+                        {
+                            "name": "Flights"
+                        },
+                        {
+                            "name": "Hotels",
+                            "description": "Booking hotel rooms"
+                        }
                     ],
                     "output_local": "_category",
                     "confidence_local": "_confidence"

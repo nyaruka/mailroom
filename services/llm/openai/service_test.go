@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/nyaruka/gocommon/httpx"
+	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/test"
 	"github.com/nyaruka/mailroom/v26/core/ai"
 	"github.com/nyaruka/mailroom/v26/services/llm/openai"
@@ -137,9 +138,9 @@ func TestClassify(t *testing.T) {
 	svc, err := openai.New(rt, oa.LLMByID(llm.ID), client)
 	require.NoError(t, err)
 
-	cls, err := svc.Classify(ctx, "I need a room", []string{"Flights", "Hotels"})
+	cls, err := svc.Classify(ctx, "I need a room", []*core.ClassifierOption{{Name: "Flights"}, {Name: "Hotels"}})
 	require.NoError(t, err)
-	assert.Equal(t, "Hotels", cls.Category)
+	assert.Equal(t, "Hotels", cls.Option)
 	assert.InDelta(t, 0.8607, cls.Confidence, 0.0001)
 	assert.Equal(t, int64(34), cls.TokensInput)
 	assert.Equal(t, int64(2), cls.TokensOutput)
@@ -151,12 +152,12 @@ func TestClassify(t *testing.T) {
 	assert.Contains(t, string(reqBody), `"include":["message.output_text.logprobs"]`)
 
 	// no logprobs returned
-	cls, err = svc.Classify(ctx, "I need a room", []string{"Flights", "Hotels"})
+	cls, err = svc.Classify(ctx, "I need a room", []*core.ClassifierOption{{Name: "Flights"}, {Name: "Hotels"}})
 	require.NoError(t, err)
-	assert.Equal(t, "Hotels", cls.Category)
+	assert.Equal(t, "Hotels", cls.Option)
 	assert.Equal(t, ai.UnscoredConfidence, cls.Confidence)
 
-	cls, err = svc.Classify(ctx, "What's the weather?", []string{"Flights", "Hotels"})
-	assert.EqualError(t, err, "no category fits input")
+	cls, err = svc.Classify(ctx, "What's the weather?", []*core.ClassifierOption{{Name: "Flights"}, {Name: "Hotels"}})
+	assert.EqualError(t, err, "no option fits input")
 	assert.Nil(t, cls)
 }

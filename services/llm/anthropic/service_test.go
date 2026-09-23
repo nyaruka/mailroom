@@ -119,11 +119,11 @@ func TestClassify(t *testing.T) {
 	svc, err := anthropic.New(rt, oa.LLMByID(llm.ID), client)
 	require.NoError(t, err)
 
-	cls, err := svc.Classify(ctx, "I need a room", []string{"Flights", "Hotels"})
+	cls, err := svc.Classify(ctx, "I need a room", []*core.ClassifierOption{{Name: "Flights"}, {Name: "Hotels"}})
 	require.NoError(t, err)
-	assert.Equal(t, &core.LLMClassification{Category: "Hotels", Confidence: ai.UnscoredConfidence, TokensInput: 34, TokensOutput: 2}, cls)
+	assert.Equal(t, &core.Classification{Option: "Hotels", Confidence: ai.UnscoredConfidence, TokensInput: 34, TokensOutput: 2}, cls)
 
-	cls, err = svc.Classify(ctx, "What's the weather?", []string{"Flights", "Hotels"})
-	assert.EqualError(t, err, "no category fits input")
+	cls, err = svc.Classify(ctx, "What's the weather?", []*core.ClassifierOption{{Name: "Flights"}, {Name: "Hotels"}})
+	assert.EqualError(t, err, "no option fits input")
 	assert.Nil(t, cls)
 }

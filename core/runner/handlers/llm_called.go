@@ -36,8 +36,8 @@ func handleClassifierCalled(ctx context.Context, rt *runtime.Runtime, oa *models
 	return nil
 }
 
-func recordLLMCall(rt *runtime.Runtime, oa *models.OrgAssets, scene *runner.Scene, ref *assets.LLMReference, elapsedMS int64, tokens events.LLMTokens) {
-	llm := oa.SessionAssets().LLMs().Get(ref.UUID)
+func recordLLMCall(rt *runtime.Runtime, oa *models.OrgAssets, scene *runner.Scene, ref *assets.ModelReference, elapsedMS int64, tokens events.ModelTokens) {
+	llm := oa.SessionAssets().Models().Get(ref.UUID)
 	if llm != nil {
 		m := llm.Asset().(*models.LLM)
 		scene.AttachPreCommitHook(hooks.InsertLLMDailyCounts, m.RecordCall(rt, oa, time.Duration(elapsedMS)*time.Millisecond, tokens))

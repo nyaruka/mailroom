@@ -29,56 +29,56 @@ const NilLLMID = LLMID(0)
 // maxOutputTokensLimit is the hard ceiling we apply to any LLM's configured max_output_tokens.
 const maxOutputTokensLimit = 16000
 
-var registeredLLMServices = map[string]func(*runtime.Runtime, *LLM, *http.Client) (flows.LLMService, error){}
+var registeredLLMServices = map[string]func(*runtime.Runtime, *LLM, *http.Client) (flows.ModelService, error){}
 
 // Register a LLM service factory with the engine
 func init() {
-	RegisterLLMService("test", func(*runtime.Runtime, *LLM, *http.Client) (flows.LLMService, error) {
-		return services.NewLLM(), nil
+	RegisterLLMService("test", func(*runtime.Runtime, *LLM, *http.Client) (flows.ModelService, error) {
+		return services.NewModel(), nil
 	})
 
 	goflow.RegisterLLMServiceFactory(llmServiceFactory)
 }
 
 // RegisterLLMService registers a LLM service for the given type code
-func RegisterLLMService(typ string, fn func(*runtime.Runtime, *LLM, *http.Client) (flows.LLMService, error)) {
+func RegisterLLMService(typ string, fn func(*runtime.Runtime, *LLM, *http.Client) (flows.ModelService, error)) {
 	registeredLLMServices[typ] = fn
 }
 
-func llmServiceFactory(rt *runtime.Runtime) engine.LLMServiceFactory {
-	return func(llm *core.LLM) (flows.LLMService, error) {
+func llmServiceFactory(rt *runtime.Runtime) engine.ModelServiceFactory {
+	return func(llm *core.Model) (flows.ModelService, error) {
 		return llm.Asset().(*LLM).AsService(rt)
 	}
 }
 
 // LLM is our type for a large language model
 type LLM struct {
-	ID_              LLMID            `json:"id"`
-	UUID_            assets.LLMUUID   `json:"uuid"`
-	OrgID_           OrgID            `json:"org_id"`
-	Type_            string           `json:"llm_type"`
-	Model_           string           `json:"model"`
-	Name_            string           `json:"name"`
-	Config_          Config           `json:"config"`
-	MaxOutputTokens_ int              `json:"max_output_tokens"`
-	Roles_           []assets.LLMRole `json:"roles"`
+	ID_              LLMID              `json:"id"`
+	UUID_            assets.ModelUUID   `json:"uuid"`
+	OrgID_           OrgID              `json:"org_id"`
+	Type_            string             `json:"llm_type"`
+	Model_           string             `json:"model"`
+	Name_            string             `json:"name"`
+	Config_          Config             `json:"config"`
+	MaxOutputTokens_ int                `json:"max_output_tokens"`
+	Roles_           []assets.ModelRole `json:"roles"`
 }
 
-func (l *LLM) ID() LLMID               { return l.ID_ }
-func (l *LLM) OrgID() OrgID            { return l.OrgID_ }
-func (l *LLM) UUID() assets.LLMUUID    { return l.UUID_ }
-func (l *LLM) Name() string            { return l.Name_ }
-func (l *LLM) Type() string            { return l.Type_ }
-func (l *LLM) Model() string           { return l.Model_ }
-func (l *LLM) Config() Config          { return l.Config_ }
-func (l *LLM) MaxOutputTokens() int    { return min(l.MaxOutputTokens_, maxOutputTokensLimit) }
-func (l *LLM) Roles() []assets.LLMRole { return l.Roles_ }
+func (l *LLM) ID() LLMID                 { return l.ID_ }
+func (l *LLM) OrgID() OrgID              { return l.OrgID_ }
+func (l *LLM) UUID() assets.ModelUUID    { return l.UUID_ }
+func (l *LLM) Name() string              { return l.Name_ }
+func (l *LLM) Type() string              { return l.Type_ }
+func (l *LLM) Model() string             { return l.Model_ }
+func (l *LLM) Config() Config            { return l.Config_ }
+func (l *LLM) MaxOutputTokens() int      { return min(l.MaxOutputTokens_, maxOutputTokensLimit) }
+func (l *LLM) Roles() []assets.ModelRole { return l.Roles_ }
 
 // AsService constructs the service for this LLM. It's always given rt.HTTP.Services - the client for fixed
 // outbound targets - rather than letting the caller choose, because a caller which passes something else
 // (e.g. http.DefaultClient) silently loses that client's timeout, connection pooling and, since tracing
 // became a property of the client rather than of each call, its trace capture too.
-func (l *LLM) AsService(rt *runtime.Runtime) (flows.LLMService, error) {
+func (l *LLM) AsService(rt *runtime.Runtime) (flows.ModelService, error) {
 	fn := registeredLLMServices[l.Type()]
 	if fn == nil {
 		return nil, fmt.Errorf("unknown type '%s' for LLM: %s", l.Type(), l.UUID())
@@ -87,7 +87,7 @@ func (l *LLM) AsService(rt *runtime.Runtime) (flows.LLMService, error) {
 }
 
 // RecordCall records stats for an LLM call and returns the daily count rows to be inserted.
-func (l *LLM) RecordCall(rt *runtime.Runtime, oa *OrgAssets, elapsed time.Duration, tokens events.LLMTokens) []*LLMDailyCount {
+func (l *LLM) RecordCall(rt *runtime.Runtime, oa *OrgAssets, elapsed time.Duration, tokens events.ModelTokens) []*LLMDailyCount {
 	rt.Stats.RecordLLMCall(l.Type(), l.Model(), elapsed)
 
 	day := dates.ExtractDate(dates.Now().In(oa.Env().Timezone()))
@@ -119,13 +119,13 @@ func InsertLLMDailyCounts(ctx context.Context, tx DBorTx, counts []*LLMDailyCoun
 }
 
 // loads the LLMs for the passed in org
-func loadLLMs(ctx context.Context, db *sql.DB, orgID OrgID) ([]assets.LLM, error) {
+func loadLLMs(ctx context.Context, db *sql.DB, orgID OrgID) ([]assets.Model, error) {
 	rows, err := db.QueryContext(ctx, sqlSelectLLMs, orgID)
 	if err != nil {
 		return nil, fmt.Errorf("error querying LLMs for org: %d: %w", orgID, err)
 	}
 
-	return ScanJSONRows(rows, func() assets.LLM { return &LLM{} })
+	return ScanJSONRows(rows, func() assets.Model { return &LLM{} })
 }
 
 const sqlSelectLLMs = `

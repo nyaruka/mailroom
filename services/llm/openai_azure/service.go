@@ -39,7 +39,7 @@ type service struct {
 	model  string
 }
 
-func New(rt *runtime.Runtime, m *models.LLM, c *http.Client) (flows.LLMService, error) {
+func New(rt *runtime.Runtime, m *models.LLM, c *http.Client) (flows.ModelService, error) {
 	apiKey := m.Config().GetString(configAPIKey, "")
 	endpoint := m.Config().GetString(configEndpoint, "")
 	parsedEndpoint, err := url.Parse(endpoint)
@@ -69,22 +69,22 @@ func New(rt *runtime.Runtime, m *models.LLM, c *http.Client) (flows.LLMService, 
 	}, nil
 }
 
-func (s *service) Response(ctx context.Context, instructions, input string, maxTokens int) (*core.LLMResponse, error) {
+func (s *service) Response(ctx context.Context, instructions, input string, maxTokens int) (*core.ModelResponse, error) {
 	resp, _, err := s.respond(ctx, instructions, input, maxTokens, false)
 	return resp, err
 }
 
-func (s *service) Classify(ctx context.Context, input string, categories []string) (*core.LLMClassification, error) {
-	resp, logprobs, err := s.respond(ctx, ai.ClassifyInstructions(categories), input, ai.ClassifyMaxTokens, true)
+func (s *service) Classify(ctx context.Context, input string, options []*core.ClassifierOption) (*core.Classification, error) {
+	resp, logprobs, err := s.respond(ctx, ai.ClassifyInstructions(options), input, ai.ClassifyMaxTokens, true)
 	if err != nil {
 		return nil, err
 	}
 
-	return ai.NewClassification(resp, logprobs, categories)
+	return ai.NewClassification(resp, logprobs, options)
 }
 
 // generates a response, optionally with the logprobs of its output tokens
-func (s *service) respond(ctx context.Context, instructions, input string, maxTokens int, withLogprobs bool) (*core.LLMResponse, []float64, error) {
+func (s *service) respond(ctx context.Context, instructions, input string, maxTokens int, withLogprobs bool) (*core.ModelResponse, []float64, error) {
 	params := openai.ChatCompletionNewParams{
 		Model: shared.ChatModel(s.model),
 		Messages: []openai.ChatCompletionMessageParamUnion{
@@ -108,7 +108,7 @@ func (s *service) respond(ctx context.Context, instructions, input string, maxTo
 		logprobs = append(logprobs, lp.Logprob)
 	}
 
-	return &core.LLMResponse{
+	return &core.ModelResponse{
 		Output:       strings.TrimSpace(resp.Choices[0].Message.Content),
 		TokensInput:  resp.Usage.PromptTokens,
 		TokensOutput: resp.Usage.CompletionTokens,

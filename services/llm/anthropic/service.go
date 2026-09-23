@@ -39,7 +39,7 @@ type service struct {
 	model  string
 }
 
-func New(rt *runtime.Runtime, m *models.LLM, c *http.Client) (flows.LLMService, error) {
+func New(rt *runtime.Runtime, m *models.LLM, c *http.Client) (flows.ModelService, error) {
 	apiKey := m.Config().GetString(configAPIKey, "")
 	if apiKey == "" {
 		return nil, fmt.Errorf("config incomplete for LLM: %s", m.UUID())
@@ -51,7 +51,7 @@ func New(rt *runtime.Runtime, m *models.LLM, c *http.Client) (flows.LLMService, 
 	}, nil
 }
 
-func (s *service) Response(ctx context.Context, instructions, input string, maxTokens int) (*core.LLMResponse, error) {
+func (s *service) Response(ctx context.Context, instructions, input string, maxTokens int) (*core.ModelResponse, error) {
 	params := anthropic.MessageNewParams{
 		Model:  anthropic.Model(s.model),
 		System: []anthropic.TextBlockParam{{Text: instructions}},
@@ -85,21 +85,21 @@ func (s *service) Response(ctx context.Context, instructions, input string, maxT
 		}
 	}
 
-	return &core.LLMResponse{
+	return &core.ModelResponse{
 		Output:       s.cleanOutput(output.String()),
 		TokensInput:  resp.Usage.InputTokens,
 		TokensOutput: resp.Usage.OutputTokens,
 	}, nil
 }
 
-// Classify uses the categorize prompt, and as the API doesn't provide logprobs, the confidence is approximated.
-func (s *service) Classify(ctx context.Context, input string, categories []string) (*core.LLMClassification, error) {
-	resp, err := s.Response(ctx, ai.ClassifyInstructions(categories), input, ai.ClassifyMaxTokens)
+// Classify prompts the model, and as the API doesn't provide logprobs, the confidence is approximated.
+func (s *service) Classify(ctx context.Context, input string, options []*core.ClassifierOption) (*core.Classification, error) {
+	resp, err := s.Response(ctx, ai.ClassifyInstructions(options), input, ai.ClassifyMaxTokens)
 	if err != nil {
 		return nil, err
 	}
 
-	return ai.NewClassification(resp, nil, categories)
+	return ai.NewClassification(resp, nil, options)
 }
 
 func (s *service) error(err error, instructions, input string) error {

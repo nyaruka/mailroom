@@ -25,19 +25,19 @@ func TestLLMs(t *testing.T) {
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshLLMs)
 	require.NoError(t, err)
 
-	llms, err := oa.LLMs()
+	llms, err := oa.Models()
 	require.NoError(t, err)
 
 	tcs := []struct {
 		id    models.LLMID
-		uuid  assets.LLMUUID
+		uuid  assets.ModelUUID
 		name  string
 		typ   string
-		roles []assets.LLMRole
+		roles []assets.ModelRole
 	}{
-		{testdb.OpenAI.ID, testdb.OpenAI.UUID, "GPT-4o", "openai", []assets.LLMRole{assets.LLMRoleEditing, assets.LLMRoleEngine}},
-		{testdb.Anthropic.ID, testdb.Anthropic.UUID, "Claude", "anthropic", []assets.LLMRole{assets.LLMRoleEditing, assets.LLMRoleEngine}},
-		{testdb.TestLLM.ID, testdb.TestLLM.UUID, "Test", "test", []assets.LLMRole{assets.LLMRoleEditing, assets.LLMRoleEngine}},
+		{testdb.OpenAI.ID, testdb.OpenAI.UUID, "GPT-4o", "openai", []assets.ModelRole{assets.ModelRoleEditing, assets.ModelRoleEngine}},
+		{testdb.Anthropic.ID, testdb.Anthropic.UUID, "Claude", "anthropic", []assets.ModelRole{assets.ModelRoleEditing, assets.ModelRoleEngine}},
+		{testdb.TestLLM.ID, testdb.TestLLM.UUID, "Test", "test", []assets.ModelRole{assets.ModelRoleEditing, assets.ModelRoleEngine}},
 	}
 
 	assert.Equal(t, len(tcs), len(llms))
@@ -60,9 +60,9 @@ func TestLLMAsService(t *testing.T) {
 
 	// register a service type which records the client it's constructed with
 	var gotClient *http.Client
-	models.RegisterLLMService("test_capture", func(rt *runtime.Runtime, l *models.LLM, c *http.Client) (flows.LLMService, error) {
+	models.RegisterLLMService("test_capture", func(rt *runtime.Runtime, l *models.LLM, c *http.Client) (flows.ModelService, error) {
 		gotClient = c
-		return services.NewLLM(), nil
+		return services.NewModel(), nil
 	})
 
 	llm := &models.LLM{UUID_: "8b3d0b6f-1f45-4b8b-a0b1-2a1e63dc4c9e", Type_: "test_capture"}
@@ -94,7 +94,7 @@ func TestLLMRecordCall(t *testing.T) {
 	require.NotNil(t, llm)
 
 	record := func(in, out int64) []*models.LLMDailyCount {
-		return llm.RecordCall(rt, oa, 250*time.Millisecond, events.LLMTokens{Input: in, Output: out})
+		return llm.RecordCall(rt, oa, 250*time.Millisecond, events.ModelTokens{Input: in, Output: out})
 	}
 
 	assert.Len(t, record(120, 340), 3)
