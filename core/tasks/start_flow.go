@@ -46,6 +46,7 @@ func (t *StartFlow) WithAssets() models.Refresh {
 func (t *StartFlow) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, taskID TaskID) error {
 	if err := createFlowStartBatches(ctx, rt, oa, t.FlowStart); err != nil {
 		t.FlowStart.SetFailed(ctx, rt.DB)
+		publishStartProgress(ctx, rt, oa, t.FlowStart, 0)
 
 		// if error is user created query error.. don't treat it as a task error
 		isQueryError, _ := contactql.IsQueryError(err)
@@ -106,6 +107,12 @@ func createFlowStartBatches(ctx context.Context, rt *runtime.Runtime, oa *models
 		if err := start.SetCompleted(ctx, rt.DB); err != nil {
 			return fmt.Errorf("error marking start as complete: %w", err)
 		}
+	}
+
+	// watchers now know how many contacts this start will reach
+	publishStartProgress(ctx, rt, oa, start, len(contactIDs))
+
+	if len(contactIDs) == 0 {
 		return nil
 	}
 

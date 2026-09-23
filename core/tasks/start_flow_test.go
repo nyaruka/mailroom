@@ -1,8 +1,10 @@
 package tasks_test
 
 import (
+	"fmt"
 	"testing"
 
+	"github.com/nyaruka/gocommon/centrifugo"
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	_ "github.com/nyaruka/mailroom/v26/core/runner/handlers"
@@ -11,12 +13,21 @@ import (
 	"github.com/nyaruka/mailroom/v26/testsuite/testdb"
 	"github.com/nyaruka/mailroom/v26/utils/queues"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestStartFlowTask(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
 	testdb.InsertWaitingSession(t, rt, testdb.Org1, testdb.Cat, models.FlowTypeMessaging, nil, testdb.Favorites)
+
+	vc := rt.VK.Get()
+	defer vc.Close()
+
+	// someone has the favorites flow open in the editor, so its starts publish their progress
+	_, err := vc.Do("SET", centrifugo.SubscriptionKey(models.FlowSocket(testdb.Favorites.UUID)), "1")
+	require.NoError(t, err)
+	published := 0
 
 	tcs := []struct {
 		flowID                   models.FlowID
@@ -33,6 +44,7 @@ func TestStartFlowTask(t *testing.T) {
 		expectedTotalCount       int
 		expectedStatus           models.StartStatus
 		expectedActiveRuns       map[models.FlowID]int
+		expectedProgress         []string // events published to the favorites socket, if asserted
 	}{
 		{ // 0: empty flow start
 			flowID:                   testdb.Favorites.ID,
@@ -44,6 +56,9 @@ func TestStartFlowTask(t *testing.T) {
 			expectedTotalCount:       0,
 			expectedStatus:           models.StartStatusCompleted,
 			expectedActiveRuns:       map[models.FlowID]int{testdb.Favorites.ID: 1, testdb.PickANumber.ID: 0, testdb.BackgroundFlow.ID: 0},
+			expectedProgress: []string{
+				`{"type": "start_progress", "start_uuid": "%s", "status": "completed", "progress": {"current": 0, "total": 0}}`,
+			},
 		},
 		{ // 1: single group
 			flowID:                   testdb.Favorites.ID,
@@ -152,6 +167,9 @@ func TestStartFlowTask(t *testing.T) {
 			expectedTotalCount:       0,
 			expectedStatus:           models.StartStatusFailed,
 			expectedActiveRuns:       map[models.FlowID]int{testdb.Favorites.ID: 123, testdb.PickANumber.ID: 0, testdb.BackgroundFlow.ID: 0},
+			expectedProgress: []string{
+				`{"type": "start_progress", "start_uuid": "%s", "status": "failed", "progress": {"current": 0, "total": 0}}`,
+			},
 		},
 		{ // 10: new contact
 			flowID:               testdb.Favorites.ID,
@@ -215,7 +233,7 @@ func TestStartFlowTask(t *testing.T) {
 			WithExcludeStartedPreviously(tc.excludeStartedPreviously).
 			WithCreateContact(tc.createContact)
 
-		err := models.InsertFlowStart(ctx, rt.DB, start)
+		err = models.InsertFlowStart(ctx, rt.DB, start)
 		assert.NoError(t, err, "%d: failed to insert start", i)
 
 		err = tasks.Queue(ctx, rt, tc.queue, testdb.Org1.ID, &tasks.StartFlow{FlowStart: start}, false)
@@ -241,6 +259,16 @@ func TestStartFlowTask(t *testing.T) {
 		for flowID, activeRuns := range tc.expectedActiveRuns {
 			assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowrun WHERE status = 'W' AND flow_id = $1`, flowID).Returns(activeRuns, "%d: active runs mismatch for flow #%d", i, flowID)
 		}
+
+		// assert what this start published to the favorites socket, where the case says
+		sent := testsuite.CentrifugoHistory(t, rt, models.FlowSocket(testdb.Favorites.UUID))
+		if tc.expectedProgress != nil {
+			require.Len(t, sent[published:], len(tc.expectedProgress), "%d: published event count mismatch", i)
+			for j, e := range tc.expectedProgress {
+				assert.JSONEq(t, fmt.Sprintf(e, start.UUID), string(sent[published+j]), "%d: published event %d mismatch", i, j)
+			}
+		}
+		published = len(sent)
 	}
 }
 

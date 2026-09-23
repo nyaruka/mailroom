@@ -101,6 +101,25 @@ func TestStarts(t *testing.T) {
 	assert.Equal(t, testdb.SingleMessage.ID, start.FlowID)
 }
 
+func TestFlowStartRunCount(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	startID := testdb.InsertFlowStart(t, rt, testdb.Org1, testdb.Admin, testdb.SingleMessage, []*testdb.Contact{testdb.Ann, testdb.Bob})
+	start, err := models.GetFlowStartByID(ctx, rt.DB, startID)
+	require.NoError(t, err)
+
+	count, err := start.RunCount(ctx, rt.DB)
+	require.NoError(t, err)
+	assert.Equal(t, 0, count)
+
+	// the count is the sum of what the run insert trigger has recorded, squashed or not
+	rt.DB.MustExec(`INSERT INTO flows_flowstartcount(start_id, count, is_squashed) VALUES ($1, 3, TRUE), ($1, 2, FALSE)`, startID)
+
+	count, err = start.RunCount(ctx, rt.DB)
+	require.NoError(t, err)
+	assert.Equal(t, 5, count)
+}
+
 func TestStartsBuilding(t *testing.T) {
 	uuids.SetGenerator(uuids.NewSeededGenerator(12345, time.Now))
 	defer uuids.SetGenerator(uuids.DefaultGenerator)

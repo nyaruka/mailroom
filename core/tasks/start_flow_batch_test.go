@@ -1,9 +1,11 @@
 package tasks_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/lib/pq"
+	"github.com/nyaruka/gocommon/centrifugo"
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/mailroom/v26/core/models"
@@ -18,10 +20,28 @@ import (
 func TestStartFlowBatchTask(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
+	vc := rt.VK.Get()
+	defer vc.Close()
+
+	// someone has the flow open in the editor, so progress is published to its socket
+	_, err := vc.Do("SET", centrifugo.SubscriptionKey(models.FlowSocket(testdb.SingleMessage.UUID)), "1")
+	require.NoError(t, err)
+
+	progress := func(start *models.FlowStart, status string, current int) string {
+		return fmt.Sprintf(`{"type": "start_progress", "start_uuid": "%s", "status": %q, "progress": {"current": %d, "total": 4}}`, start.UUID, status, current)
+	}
+	assertPublished := func(expected ...string) {
+		sent := testsuite.CentrifugoHistory(t, rt, models.FlowSocket(testdb.SingleMessage.UUID))
+		require.Len(t, sent, len(expected))
+		for i, e := range expected {
+			assert.JSONEq(t, e, string(sent[i]), "published event %d mismatch", i)
+		}
+	}
+
 	// create a start
 	start1 := models.NewFlowStart(models.OrgID(1), models.StartTypeManual, testdb.SingleMessage.ID).
 		WithContactIDs([]models.ContactID{testdb.Ann.ID, testdb.Bob.ID, testdb.Cat.ID, testdb.Dan.ID})
-	err := models.InsertFlowStart(ctx, rt.DB, start1)
+	err = models.InsertFlowStart(ctx, rt.DB, start1)
 	require.NoError(t, err)
 
 	assertdb.Query(t, rt.DB, `SELECT status FROM flows_flowstart WHERE id = $1`, start1.ID).Returns("P")
@@ -49,6 +69,9 @@ func TestStartFlowBatchTask(t *testing.T) {
 
 	assertdb.Query(t, rt.DB, `SELECT status FROM flows_flowstart WHERE id = $1`, start1.ID).Returns("S")
 
+	// watchers were told the start began and then how far the first batch took it
+	assertPublished(progress(start1, "started", 0), progress(start1, "started", 2))
+
 	// start the second and final batch...
 	err = tasks.Queue(ctx, rt, rt.Queues.Throttled, testdb.Org1.ID, &tasks.StartFlowBatch{BatchTask: start1BatchTask, FlowStartBatch: batch2}, false)
 	assert.NoError(t, err)
@@ -56,6 +79,9 @@ func TestStartFlowBatchTask(t *testing.T) {
 
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowrun WHERE start_id = $1`, start1.ID).Returns(4)
 	assertdb.Query(t, rt.DB, `SELECT status FROM flows_flowstart WHERE id = $1`, start1.ID).Returns("C")
+
+	// and that it finished
+	assertPublished(progress(start1, "started", 0), progress(start1, "started", 2), progress(start1, "completed", 4))
 
 	// create a second start
 	start2 := models.NewFlowStart(models.OrgID(1), models.StartTypeManual, testdb.SingleMessage.ID).
@@ -85,6 +111,12 @@ func TestStartFlowBatchTask(t *testing.T) {
 	// check that second batch didn't create any runs and start status is still interrupted
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowrun WHERE start_id = $1`, start2.ID).Returns(2)
 	assertdb.Query(t, rt.DB, `SELECT status FROM flows_flowstart WHERE id = $1`, start2.ID).Returns("I")
+
+	// watchers of the second start saw it begin, progress and then get interrupted
+	assertPublished(
+		progress(start1, "started", 0), progress(start1, "started", 2), progress(start1, "completed", 4),
+		progress(start2, "started", 0), progress(start2, "started", 2), progress(start2, "interrupted", 2),
+	)
 }
 
 func TestStartFlowBatchTaskNonPersistedStart(t *testing.T) {
