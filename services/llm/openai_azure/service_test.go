@@ -1,6 +1,7 @@
 package openai_azure_test
 
 import (
+	"io"
 	"testing"
 
 	"github.com/nyaruka/gocommon/httpx"
@@ -10,6 +11,7 @@ import (
 	"github.com/nyaruka/mailroom/v26/testsuite"
 	"github.com/nyaruka/mailroom/v26/testsuite/testdb"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestService(t *testing.T) {
@@ -54,4 +56,42 @@ func TestService(t *testing.T) {
 		assert.Equal(t, ai.ErrorRateLimit, serr.Code)
 	}
 	assert.Nil(t, resp)
+}
+
+func TestClassify(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	llm := testdb.InsertLLM(t, rt, testdb.Org1, "b86966fd-206e-4bdd-a962-06faa3af1182", "openai_azure", "gpt-4", "Good", map[string]any{"api_key": "sesame", "endpoint": "http://azure.com/ai"}, "TF")
+	oa := testdb.Org1.Load(t, rt)
+
+	mkResp := func(content, logprobs string) *httpx.MockResponse {
+		return httpx.NewMockResponse(200, map[string]string{"Content-type": "application/json"}, []byte(`{"id":"chatcmpl-1","object":"chat.completion","created":1741476542,"model":"gpt-4","choices":[{"index":0,"message":{"role":"assistant","content":"`+content+`"},"logprobs":`+logprobs+`,"finish_reason":"stop"}],"usage":{"prompt_tokens":34,"completion_tokens":2,"total_tokens":36}}`))
+	}
+
+	client, mocks := test.MockedHTTP(map[string][]*httpx.MockResponse{
+		"http://azure.com/ai/openai/deployments/gpt-4/chat/completions?api-version=2025-03-01-preview": {
+			mkResp("Hotels", `{"content":[{"token":"Hot","logprob":-0.1,"bytes":null,"top_logprobs":[]},{"token":"els","logprob":-0.05,"bytes":null,"top_logprobs":[]}],"refusal":null}`),
+			mkResp("<CANT>", `null`),
+		},
+	})
+
+	svc, err := openai_azure.New(rt, oa.LLMByID(llm.ID), client)
+	require.NoError(t, err)
+
+	cls, err := svc.Classify(ctx, "I need a room", []string{"Flights", "Hotels"})
+	require.NoError(t, err)
+	assert.Equal(t, "Hotels", cls.Category)
+	assert.InDelta(t, 0.8607, cls.Confidence, 0.0001)
+	assert.Equal(t, int64(34), cls.TokensInput)
+	assert.Equal(t, int64(2), cls.TokensOutput)
+
+	body, err := mocks.Requests()[0].GetBody()
+	require.NoError(t, err)
+	reqBody, err := io.ReadAll(body)
+	require.NoError(t, err)
+	assert.Contains(t, string(reqBody), `"logprobs":true`)
+
+	cls, err = svc.Classify(ctx, "What's the weather?", []string{"Flights", "Hotels"})
+	assert.EqualError(t, err, "no category fits input")
+	assert.Nil(t, cls)
 }

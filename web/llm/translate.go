@@ -111,7 +111,7 @@ func handleTranslate(ctx context.Context, rt *runtime.Runtime, r *translateReque
 	if resp == nil {
 		resp = &core.LLMResponse{}
 	}
-	counts := llm.RecordCall(rt, oa, events.NewLLMCalled(core.NewLLM(llm).Reference(), instructions, string(inputBytes), resp, time.Since(callStart)))
+	counts := llm.RecordCall(rt, oa, time.Since(callStart), events.LLMTokens{Input: resp.TokensInput, Output: resp.TokensOutput})
 
 	// detach from the request context so a client-side timeout during the LLM call doesn't prevent us from recording usage someone may have paid for
 	recCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), RecordTimeout)

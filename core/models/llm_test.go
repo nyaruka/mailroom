@@ -8,7 +8,6 @@ import (
 	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/goflow/assets"
-	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/test/services"
@@ -94,18 +93,18 @@ func TestLLMRecordCall(t *testing.T) {
 	llm := oa.LLMByID(testdb.OpenAI.ID)
 	require.NotNil(t, llm)
 
-	mkEvent := func(in, out int64) *events.LLMCalled {
-		return events.NewLLMCalled(core.NewLLM(llm).Reference(), "instructions", "input", &core.LLMResponse{Output: "output", TokensInput: in, TokensOutput: out}, 250*time.Millisecond)
+	record := func(in, out int64) []*models.LLMDailyCount {
+		return llm.RecordCall(rt, oa, 250*time.Millisecond, events.LLMTokens{Input: in, Output: out})
 	}
 
-	assert.Len(t, llm.RecordCall(rt, oa, mkEvent(120, 340)), 3)
-	assert.Len(t, llm.RecordCall(rt, oa, mkEvent(80, 200)), 3)
-	assert.Len(t, llm.RecordCall(rt, oa, mkEvent(0, 0)), 1)
+	assert.Len(t, record(120, 340), 3)
+	assert.Len(t, record(80, 200), 3)
+	assert.Len(t, record(0, 0), 1)
 
 	var allCounts []*models.LLMDailyCount
-	allCounts = append(allCounts, llm.RecordCall(rt, oa, mkEvent(120, 340))...)
-	allCounts = append(allCounts, llm.RecordCall(rt, oa, mkEvent(80, 200))...)
-	allCounts = append(allCounts, llm.RecordCall(rt, oa, mkEvent(0, 0))...)
+	allCounts = append(allCounts, record(120, 340)...)
+	allCounts = append(allCounts, record(80, 200)...)
+	allCounts = append(allCounts, record(0, 0)...)
 
 	require.NoError(t, models.InsertLLMDailyCounts(ctx, rt.DB, allCounts))
 

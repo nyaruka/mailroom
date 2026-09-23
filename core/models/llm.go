@@ -87,16 +87,16 @@ func (l *LLM) AsService(rt *runtime.Runtime) (flows.LLMService, error) {
 }
 
 // RecordCall records stats for an LLM call and returns the daily count rows to be inserted.
-func (l *LLM) RecordCall(rt *runtime.Runtime, oa *OrgAssets, e *events.LLMCalled) []*LLMDailyCount {
-	rt.Stats.RecordLLMCall(l.Type(), l.Model(), time.Duration(e.ElapsedMS)*time.Millisecond)
+func (l *LLM) RecordCall(rt *runtime.Runtime, oa *OrgAssets, elapsed time.Duration, tokens events.LLMTokens) []*LLMDailyCount {
+	rt.Stats.RecordLLMCall(l.Type(), l.Model(), elapsed)
 
 	day := dates.ExtractDate(dates.Now().In(oa.Env().Timezone()))
 	counts := []*LLMDailyCount{{LLMID: l.ID(), Day: day, Scope: "calls", Count: 1}}
-	if e.Tokens.Input > 0 {
-		counts = append(counts, &LLMDailyCount{LLMID: l.ID(), Day: day, Scope: "tokens:in", Count: e.Tokens.Input})
+	if tokens.Input > 0 {
+		counts = append(counts, &LLMDailyCount{LLMID: l.ID(), Day: day, Scope: "tokens:in", Count: tokens.Input})
 	}
-	if e.Tokens.Output > 0 {
-		counts = append(counts, &LLMDailyCount{LLMID: l.ID(), Day: day, Scope: "tokens:out", Count: e.Tokens.Output})
+	if tokens.Output > 0 {
+		counts = append(counts, &LLMDailyCount{LLMID: l.ID(), Day: day, Scope: "tokens:out", Count: tokens.Output})
 	}
 	return counts
 }

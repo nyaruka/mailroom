@@ -1,0 +1,13 @@
+package handlers_test
+
+import (
+	"testing"
+
+	"github.com/nyaruka/mailroom/v26/testsuite"
+)
+
+func TestLLMCalled(t *testing.T) {
+	_, rt := testsuite.Runtime(t)
+
+	runTests(t, rt, "testdata/llm_called.json")
+}

@@ -47,7 +47,22 @@ func New(rt *runtime.Runtime, m *models.LLM, c *http.Client) (flows.LLMService, 
 }
 
 func (s *service) Response(ctx context.Context, instructions, input string, maxTokens int) (*core.LLMResponse, error) {
-	resp, err := s.client.Responses.New(ctx, responses.ResponseNewParams{
+	resp, _, err := s.respond(ctx, instructions, input, maxTokens, false)
+	return resp, err
+}
+
+func (s *service) Classify(ctx context.Context, input string, categories []string) (*core.LLMClassification, error) {
+	resp, logprobs, err := s.respond(ctx, ai.ClassifyInstructions(categories), input, ai.ClassifyMaxTokens, true)
+	if err != nil {
+		return nil, err
+	}
+
+	return ai.NewClassification(resp, logprobs, categories)
+}
+
+// generates a response, optionally with the logprobs of its output tokens
+func (s *service) respond(ctx context.Context, instructions, input string, maxTokens int, withLogprobs bool) (*core.LLMResponse, []float64, error) {
+	params := responses.ResponseNewParams{
 		Model:        shared.ResponsesModel(s.model),
 		Instructions: openai.String(instructions),
 		Input: responses.ResponseNewParamsInputUnion{
@@ -55,16 +70,30 @@ func (s *service) Response(ctx context.Context, instructions, input string, maxT
 		},
 		Temperature:     openai.Float(0.000001),
 		MaxOutputTokens: openai.Int(int64(maxTokens)),
-	})
+	}
+	if withLogprobs {
+		params.Include = []responses.ResponseIncludable{responses.ResponseIncludableMessageOutputTextLogprobs}
+	}
+
+	resp, err := s.client.Responses.New(ctx, params)
 	if err != nil {
-		return nil, s.error(err, instructions, input)
+		return nil, nil, s.error(err, instructions, input)
+	}
+
+	var logprobs []float64
+	for _, item := range resp.Output {
+		for _, content := range item.Content {
+			for _, lp := range content.Logprobs {
+				logprobs = append(logprobs, lp.Logprob)
+			}
+		}
 	}
 
 	return &core.LLMResponse{
 		Output:       strings.TrimSpace(resp.OutputText()),
 		TokensInput:  resp.Usage.InputTokens,
 		TokensOutput: resp.Usage.OutputTokens,
-	}, nil
+	}, logprobs, nil
 }
 
 func (s *service) error(err error, instructions, input string) error {

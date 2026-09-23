@@ -23,6 +23,11 @@ func (s *slowLLMService) Response(ctx context.Context, instructions, input strin
 	return nil, ctx.Err()
 }
 
+func (s *slowLLMService) Classify(ctx context.Context, input string, categories []string) (*core.LLMClassification, error) {
+	<-ctx.Done()
+	return nil, ctx.Err()
+}
+
 func TestTranslate(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
 

@@ -70,7 +70,22 @@ func New(rt *runtime.Runtime, m *models.LLM, c *http.Client) (flows.LLMService, 
 }
 
 func (s *service) Response(ctx context.Context, instructions, input string, maxTokens int) (*core.LLMResponse, error) {
-	resp, err := s.client.Chat.Completions.New(ctx, openai.ChatCompletionNewParams{
+	resp, _, err := s.respond(ctx, instructions, input, maxTokens, false)
+	return resp, err
+}
+
+func (s *service) Classify(ctx context.Context, input string, categories []string) (*core.LLMClassification, error) {
+	resp, logprobs, err := s.respond(ctx, ai.ClassifyInstructions(categories), input, ai.ClassifyMaxTokens, true)
+	if err != nil {
+		return nil, err
+	}
+
+	return ai.NewClassification(resp, logprobs, categories)
+}
+
+// generates a response, optionally with the logprobs of its output tokens
+func (s *service) respond(ctx context.Context, instructions, input string, maxTokens int, withLogprobs bool) (*core.LLMResponse, []float64, error) {
+	params := openai.ChatCompletionNewParams{
 		Model: shared.ChatModel(s.model),
 		Messages: []openai.ChatCompletionMessageParamUnion{
 			openai.SystemMessage(instructions),
@@ -78,16 +93,26 @@ func (s *service) Response(ctx context.Context, instructions, input string, maxT
 		},
 		Temperature: openai.Float(0.000001),
 		MaxTokens:   openai.Int(int64(maxTokens)),
-	})
+	}
+	if withLogprobs {
+		params.Logprobs = openai.Bool(true)
+	}
+
+	resp, err := s.client.Chat.Completions.New(ctx, params)
 	if err != nil {
-		return nil, s.error(err, instructions, input)
+		return nil, nil, s.error(err, instructions, input)
+	}
+
+	var logprobs []float64
+	for _, lp := range resp.Choices[0].Logprobs.Content {
+		logprobs = append(logprobs, lp.Logprob)
 	}
 
 	return &core.LLMResponse{
 		Output:       strings.TrimSpace(resp.Choices[0].Message.Content),
 		TokensInput:  resp.Usage.PromptTokens,
 		TokensOutput: resp.Usage.CompletionTokens,
-	}, nil
+	}, logprobs, nil
 }
 
 func (s *service) error(err error, instructions, input string) error {
