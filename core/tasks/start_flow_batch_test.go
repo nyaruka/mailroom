@@ -117,6 +117,20 @@ func TestStartFlowBatchTask(t *testing.T) {
 		progress(start1, "started", 0), progress(start1, "started", 2), progress(start1, "completed", 4),
 		progress(start2, "started", 0), progress(start2, "started", 2), progress(start2, "interrupted", 2),
 	)
+
+	// starts from scheduled triggers aren't seen by users so their progress isn't published
+	start3 := models.NewFlowStart(models.OrgID(1), models.StartTypeTrigger, testdb.SingleMessage.ID).
+		WithContactIDs([]models.ContactID{testdb.Ann.ID, testdb.Bob.ID})
+	err = models.InsertFlowStart(ctx, rt.DB, start3)
+	require.NoError(t, err)
+
+	start3Batch := start3.CreateBatch([]models.ContactID{testdb.Ann.ID, testdb.Bob.ID}, 2)
+	err = tasks.Queue(ctx, rt, rt.Queues.Throttled, testdb.Org1.ID, &tasks.StartFlowBatch{BatchTask: tasks.BatchTask{BatchOwnerUUID: start3.UUID, TotalBatches: 1}, FlowStartBatch: start3Batch}, false)
+	assert.NoError(t, err)
+	testsuite.FlushTasks(t, rt)
+
+	assertdb.Query(t, rt.DB, `SELECT status FROM flows_flowstart WHERE id = $1`, start3.ID).Returns("C")
+	assert.Len(t, testsuite.CentrifugoHistory(t, rt, models.FlowSocket(testdb.SingleMessage.UUID)), 6)
 }
 
 func TestStartFlowBatchTaskNonPersistedStart(t *testing.T) {
