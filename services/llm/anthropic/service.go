@@ -22,6 +22,13 @@ const (
 	configAPIKey = "api_key"
 )
 
+// models which think by default but accept thinking being disabled. Later models don't allow disabling thinking
+// at all and earlier models don't think unless asked to.
+var thinksByDefault = map[string]bool{
+	"claude-opus-5":   true,
+	"claude-sonnet-5": true,
+}
+
 func init() {
 	models.RegisterLLMService(TypeAnthropic, New)
 }
@@ -45,7 +52,7 @@ func New(rt *runtime.Runtime, m *models.LLM, c *http.Client) (flows.LLMService, 
 }
 
 func (s *service) Response(ctx context.Context, instructions, input string, maxTokens int) (*core.LLMResponse, error) {
-	resp, err := s.client.Messages.New(ctx, anthropic.MessageNewParams{
+	params := anthropic.MessageNewParams{
 		Model:  anthropic.Model(s.model),
 		System: []anthropic.TextBlockParam{{Text: instructions}},
 		Messages: []anthropic.MessageParam{
@@ -59,7 +66,14 @@ func (s *service) Response(ctx context.Context, instructions, input string, maxT
 			},
 		},
 		MaxTokens: int64(maxTokens),
-	})
+	}
+
+	// thinking adds latency and its tokens count against MaxTokens, which can truncate what are short responses
+	if thinksByDefault[s.model] {
+		params.Thinking = anthropic.ThinkingConfigParamUnion{OfDisabled: &anthropic.ThinkingConfigDisabledParam{}}
+	}
+
+	resp, err := s.client.Messages.New(ctx, params)
 	if err != nil {
 		return nil, s.error(err, instructions, input)
 	}
