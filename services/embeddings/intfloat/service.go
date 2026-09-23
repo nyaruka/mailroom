@@ -21,10 +21,10 @@ const (
 	queryPrefix   = "query: "   // for search queries
 )
 
-// requestBatchSize is the maximum number of inputs sent to the embeddings service in a single request. In
-// production the service sits behind a shared load balancer with latency alarms, so we prefer more smaller
-// requests over fewer large slow ones.
-const requestBatchSize = 32
+// requestBatchSize is the maximum number of inputs sent to the embeddings service in a single request. It matches the
+// batch a CPU backed inference server processes at once - anything more just queues inside the request, and a request
+// of long passages on a busy server can then outlast the idle timeout of a load balancer in front of it.
+const requestBatchSize = 8
 
 type embeddingsRequest struct {
 	Model string   `json:"model"`
