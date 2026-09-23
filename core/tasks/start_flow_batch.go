@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"slices"
 	"time"
 
 	"github.com/nyaruka/goflow/core"
@@ -94,11 +95,14 @@ func (t *StartFlowBatch) Perform(ctx context.Context, rt *runtime.Runtime, oa *m
 	return nil
 }
 
+// visibleStartTypes are the types of start that users see and so may follow the progress of
+var visibleStartTypes = []models.StartType{models.StartTypeManual, models.StartTypeAPI, models.StartTypeAPIZapier}
+
 // publishStartProgress publishes a start's status and progress to its flow's socket so that open editors can follow it
 // without polling. It's best-effort: failures are logged rather than failing the task whose work has already
-// succeeded. Non-persisted starts (from flow actions) have no status to follow so aren't published.
+// succeeded. Only starts that users can see are published - not those from flow actions or scheduled triggers.
 func publishStartProgress(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, start *models.FlowStart, total int) {
-	if start.ID == models.NilStartID {
+	if !slices.Contains(visibleStartTypes, start.StartType) {
 		return
 	}
 
