@@ -23,10 +23,7 @@ func init() {
 //	}
 type indexRequest struct {
 	OrgID      models.OrgID               `json:"org_id"      validate:"required"`
-	SourceUUID models.KnowledgeSourceUUID `json:"source_uuid" validate:"required_without=KnowledgeUUID"`
-
-	// Deprecated: the old name for source_uuid, still accepted from callers which haven't moved to that yet
-	KnowledgeUUID models.KnowledgeSourceUUID `json:"knowledge_uuid"`
+	SourceUUID models.KnowledgeSourceUUID `json:"source_uuid" validate:"required"`
 }
 
 // handles a request to index a knowledge source. Indexing happens in a task rather than inline because chunking and
@@ -38,12 +35,7 @@ type indexRequest struct {
 // source was last indexed, so a task that ran while the edit was still uncommitted would advance that watermark
 // past it - and the watermark margin covers only the moments around a commit, not an entire open transaction.
 func handleIndex(ctx context.Context, rt *runtime.Runtime, r *indexRequest) (any, int, error) {
-	sourceUUID := r.SourceUUID
-	if sourceUUID == "" {
-		sourceUUID = r.KnowledgeUUID
-	}
-
-	task := &tasks.IndexKnowledge{SourceUUID: sourceUUID}
+	task := &tasks.IndexKnowledge{SourceUUID: r.SourceUUID}
 
 	if err := tasks.Queue(ctx, rt, rt.Queues.Batch, r.OrgID, task, true); err != nil {
 		return nil, 0, fmt.Errorf("error queueing index knowledge task: %w", err)
