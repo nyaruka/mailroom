@@ -3,7 +3,6 @@ package web
 import (
 	"context"
 	"crypto/subtle"
-	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -33,10 +32,9 @@ func JSONPayload[T any](handler JSONHandler[T]) Handler {
 // timeout as a proper response.
 func WriteDeadline(d time.Duration, handler Handler) Handler {
 	return func(ctx context.Context, rt *runtime.Runtime, r *http.Request, w http.ResponseWriter) error {
-		err := http.NewResponseController(w).SetWriteDeadline(time.Now().Add(d))
-
-		// test recorders don't support deadlines and don't need them
-		if err != nil && !errors.Is(err, http.ErrNotSupported) {
+		// fails if any middleware wraps the writer without exposing the connection underneath, in which case the
+		// route can't do what it promises and should fail loudly rather than fall back to the server's timeout
+		if err := http.NewResponseController(w).SetWriteDeadline(time.Now().Add(d)); err != nil {
 			return fmt.Errorf("error setting write deadline: %w", err)
 		}
 
