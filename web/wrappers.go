@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/nyaruka/mailroom/v26/runtime"
 )
@@ -22,6 +23,23 @@ func JSONPayload[T any](handler JSONHandler[T]) Handler {
 
 		return handler(ctx, rt, payload)
 	})
+}
+
+// WriteDeadline wraps a handler to give it its own write deadline in place of the server's write timeout, so that a
+// route which waits on an external service can be given longer without the server-wide timeout being raised for
+// everything else. A handler which outlives its deadline has its connection closed without any response being
+// written, so the wrapped handler should still enforce a shorter deadline on whatever it waits on and report a
+// timeout as a proper response.
+func WriteDeadline(d time.Duration, handler Handler) Handler {
+	return func(ctx context.Context, rt *runtime.Runtime, r *http.Request, w http.ResponseWriter) error {
+		// fails if any middleware wraps the writer without exposing the connection underneath, in which case the
+		// route can't do what it promises and should fail loudly rather than fall back to the server's timeout
+		if err := http.NewResponseController(w).SetWriteDeadline(time.Now().Add(d)); err != nil {
+			return fmt.Errorf("error setting write deadline: %w", err)
+		}
+
+		return handler(ctx, rt, r, w)
+	}
 }
 
 type MarshaledHandler func(context.Context, *runtime.Runtime, *http.Request) (any, int, error)

@@ -100,6 +100,33 @@ func TestPublishFlowActivity(t *testing.T) {
 	assert.Empty(t, testsuite.CentrifugoHistory(t, rt, models.FlowSocket(flow2)))
 }
 
+func TestPublishStartProgress(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	vc := rt.VK.Get()
+	defer vc.Close()
+
+	mock := rt.Centrifugo.Client.(*centrifugo.MockClient)
+
+	start := models.NewFlowStart(testdb.Org1.ID, models.StartTypeManual, testdb.SingleMessage.ID)
+	require.NoError(t, models.InsertFlowStart(ctx, rt.DB, start))
+	require.NoError(t, start.SetQueued(ctx, rt.DB, 100))
+
+	// nobody has the flow open, so nothing is published
+	require.NoError(t, models.PublishStartProgress(ctx, rt, testdb.SingleMessage.UUID, start, 0, 100))
+	assert.Empty(t, mock.Publications())
+
+	// mark the flow's socket subscribed (as the authorizing service would) - now it receives the start's progress
+	_, err := vc.Do("SET", centrifugo.SubscriptionKey(models.FlowSocket(testdb.SingleMessage.UUID)), "1")
+	require.NoError(t, err)
+
+	require.NoError(t, models.PublishStartProgress(ctx, rt, testdb.SingleMessage.UUID, start, 25, 100))
+
+	sent := testsuite.CentrifugoHistory(t, rt, models.FlowSocket(testdb.SingleMessage.UUID))
+	require.Len(t, sent, 1)
+	assert.JSONEq(t, fmt.Sprintf(`{"type": "start_progress", "start_uuid": "%s", "status": "queued", "progress": {"current": 25, "total": 100}}`, start.UUID), string(sent[0]))
+}
+
 func TestNotificationSocket(t *testing.T) {
 	org := models.OrgUUID("bf0514a5-9407-44c9-b0f9-3f36f9c18414")
 	user := assets.UserUUID("ad9fdf9f-56ab-422a-b77d-e3ec26091a25")

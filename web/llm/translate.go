@@ -22,14 +22,18 @@ import (
 )
 
 func init() {
-	web.InternalRoute(http.MethodPost, "/llm/translate", web.JSONPayload(handleTranslate))
+	web.InternalRoute(http.MethodPost, "/llm/translate", web.WriteDeadline(writeTimeout, web.JSONPayload(handleTranslate)))
 }
 
-// CallTimeout is how long we give the LLM to respond. Together with RecordTimeout it needs to stay under the web
-// server's write timeout, because a handler which outlives that has its connection closed without any response
-// being written, leaving the caller with nothing better than a bad gateway error from whatever proxy sits in
-// between.
-var CallTimeout = 25 * time.Second
+// writeTimeout is how long the whole request gets, in place of the server's write timeout which is too short for a
+// large batch of strings on a slow model. It stays under the minute or so that proxies between the editor and us
+// typically allow a request, since a longer wait here would just move where the request is cut off.
+const writeTimeout = 55 * time.Second
+
+// CallTimeout is how long we give the LLM to respond. Together with RecordTimeout it needs to stay under
+// writeTimeout, so that the LLM being too slow is reported as a proper error response rather than a dropped
+// connection.
+var CallTimeout = 50 * time.Second
 
 // RecordTimeout is how long we allow for recording the call afterwards. It only has to cover a single small
 // insert so is kept short to leave as much of the write timeout as possible for the LLM.

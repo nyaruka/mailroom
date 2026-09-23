@@ -199,6 +199,16 @@ func (s *FlowStart) SetCompleted(ctx context.Context, db DBorTx) error {
 	return s.setStatus(ctx, db, StartStatusCompleted)
 }
 
+// RunCount returns how many runs this start has created so far, from the counts a trigger maintains as runs are
+// inserted - the same number the status endpoint reports as progress.
+func (s *FlowStart) RunCount(ctx context.Context, db DBorTx) (int, error) {
+	var count int
+	if err := db.GetContext(ctx, &count, `SELECT COALESCE(SUM(count), 0) FROM flows_flowstartcount WHERE start_id = $1`, s.ID); err != nil {
+		return 0, fmt.Errorf("error getting run count for start #%d: %w", s.ID, err)
+	}
+	return count, nil
+}
+
 // SetFailed sets the status of this start to FAILED, if it's not already set to INTERRUPTED
 func (s *FlowStart) SetFailed(ctx context.Context, db DBorTx) error {
 	return s.setStatus(ctx, db, StartStatusFailed)
