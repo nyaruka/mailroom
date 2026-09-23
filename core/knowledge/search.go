@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/lib/pq"
 	"github.com/nyaruka/gocommon/uuids"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/runtime"
@@ -39,12 +40,14 @@ const sqlSearchKnowledgeChunks = `
     JOIN knowledge_knowledgesource k ON k.id = c.source_id
    WHERE k.org_id = $1 AND k.is_active
      AND (k.status = 'R' OR (k.status IN ('I', 'F') AND k.last_indexed_on IS NOT NULL))
+     AND (COALESCE(cardinality($4::uuid[]), 0) = 0 OR k.uuid = ANY($4::uuid[]))
 ORDER BY c.embedding <=> $2::vector
    LIMIT $3`
 
-// Search performs a semantic search over the org's ready knowledge sources, returning the closest chunks by cosine
-// distance.
-func Search(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, query string, limit int) ([]*SearchResult, error) {
+// Search performs a semantic search over the org's ready knowledge sources, or only the given ones if any, returning
+// the closest chunks by cosine distance. Filtering here rather than in the caller means a search of one source isn't
+// crowded out of its limit by chunks from the org's others.
+func Search(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, query string, sources []models.KnowledgeUUID, limit int) ([]*SearchResult, error) {
 	// clamped here rather than only at the HTTP edge because this primitive is also called directly from Go, and will
 	// eventually back an LLM tool where the limit can be model-influenced
 	if limit <= 0 {
@@ -73,7 +76,7 @@ func Search(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, quer
 		return nil, fmt.Errorf("error enabling iterative scans: %w", err)
 	}
 
-	rows, err := tx.QueryxContext(ctx, sqlSearchKnowledgeChunks, oa.OrgID(), embedding, limit)
+	rows, err := tx.QueryxContext(ctx, sqlSearchKnowledgeChunks, oa.OrgID(), embedding, limit, pq.Array(sources))
 	if err != nil {
 		tx.Rollback()
 		return nil, fmt.Errorf("error querying knowledge chunks: %w", err)

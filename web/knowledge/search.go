@@ -15,17 +15,19 @@ func init() {
 	web.InternalRoute(http.MethodPost, "/knowledge/search", web.JSONPayload(handleSearch))
 }
 
-// Searches the org's knowledge sources semantically.
+// Searches the org's knowledge sources semantically, or only the given ones if any.
 //
 //	{
 //	  "org_id": 1,
 //	  "query": "how do I get a refund?",
+//	  "source_uuids": ["97180291-8d95-4a6b-8a1a-63c44bb84b77"],
 //	  "limit": 10
 //	}
 type searchRequest struct {
-	OrgID models.OrgID `json:"org_id" validate:"required"`
-	Query string       `json:"query"  validate:"required"`
-	Limit int          `json:"limit"`
+	OrgID       models.OrgID           `json:"org_id"       validate:"required"`
+	Query       string                 `json:"query"        validate:"required"`
+	SourceUUIDs []models.KnowledgeUUID `json:"source_uuids" validate:"dive,uuid"`
+	Limit       int                    `json:"limit"`
 }
 
 // Response is the matching chunks, best first.
@@ -58,7 +60,7 @@ func handleSearch(ctx context.Context, rt *runtime.Runtime, r *searchRequest) (a
 	}
 	r.Limit = min(r.Limit, knowledge.MaxSearchLimit)
 
-	results, err := knowledge.Search(ctx, rt, oa, r.Query, r.Limit)
+	results, err := knowledge.Search(ctx, rt, oa, r.Query, r.SourceUUIDs, r.Limit)
 	if err != nil {
 		return nil, 0, fmt.Errorf("error searching knowledge: %w", err)
 	}
