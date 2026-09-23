@@ -318,11 +318,13 @@ func TestLoadChangedArticles(t *testing.T) {
 	require.NoError(t, err)
 	require.Len(t, articles, 4)
 	assert.Equal(t, k1s.UUID, articles[0].UUID)
-	assert.Equal(t, "", articles[0].Body) // a section is described rather than written, so has nothing to embed
-	assert.True(t, articles[0].Indexable())
+	assert.True(t, articles[0].IsSection())
+	assert.False(t, articles[0].Indexable()) // a section is described rather than written, so is never content
 
 	assert.Equal(t, a1.UUID, articles[1].UUID)
 	assert.Equal(t, k1.ID, articles[1].SourceID)
+	assert.Equal(t, k1s.ID, articles[1].ParentID)
+	assert.False(t, articles[1].IsSection())
 	assert.Equal(t, "Refunds", articles[1].Title)
 	assert.Equal(t, "Refunds take 5 days.", articles[1].Body)
 	assert.True(t, articles[1].Indexable())

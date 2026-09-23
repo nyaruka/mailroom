@@ -184,7 +184,7 @@ func chunkShortcut(item *authoredItem) []string {
 
 // loads the helpdesk's articles changed since the given time as authored items keyed by the article's UUID. Only
 // published, active articles are indexable - see models.Article.Indexable - so an unpublish reaches us as a tombstone
-// exactly like a delete does.
+// exactly like a delete does, and so does a section, which is described rather than written.
 //
 // ItemURL is deliberately left null even though the helpdesk may have a public site: an article's address there is
 // its section's slug, its own slug and the site's domain, and a section rename or a domain change alters it without
@@ -212,6 +212,9 @@ func countArticleItems(ctx context.Context, db models.DBorTx, k *models.Knowledg
 // embedding and to whoever reads a citation of it, and a title costs little next to a chunk of a thousand runes.
 // Shortcuts deliberately don't do this - a shortcut is short enough to be one chunk and its name is a filing label
 // ("Greeting"), not a subject the text is about.
+//
+// The title is the item's name followed by a blank line, and that's a contract: whatever shows a chunk as a search
+// snippet (the help sites service, temba) strips exactly that prefix, since a result already shows the title.
 func chunkArticle(item *authoredItem) []string {
 	chunks := ChunkMarkdown(item.text)
 	for i := range chunks {

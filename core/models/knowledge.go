@@ -339,10 +339,14 @@ const (
 // shortcuts they're soft-deleted, so a released article is a visible tombstone: it stays in the table with
 // is_active = FALSE and a bumped modified_on. Unpublishing leaves the same kind of tombstone, just with a status of
 // draft, which is why Indexable and not IsActive is what decides whether an article has content for us.
+//
+// A root of the tree - one with no parent - is a section: a heading over the articles filed under it, described in
+// a line rather than written as an article.
 type Article struct {
 	ID         ArticleID     `db:"id"`
 	UUID       uuids.UUID    `db:"uuid"`
 	SourceID   KnowledgeID   `db:"source_id"`
+	ParentID   ArticleID     `db:"parent_id"`
 	Title      string        `db:"title"`
 	Body       string        `db:"body"`
 	Status     ArticleStatus `db:"status"`
@@ -350,16 +354,23 @@ type Article struct {
 	ModifiedOn time.Time     `db:"modified_on"`
 }
 
+// IsSection returns whether this is a section rather than an article - see Article
+func (a *Article) IsSection() bool {
+	return a.ParentID == NilArticleID
+}
+
 // Indexable is the single definition of which articles have content we're allowed to embed - and thus the only thing
-// callers should ever branch on. Everything else is a tombstone which can only cause a chunk deletion: a draft has
-// either never been published or has been pulled back, and in both cases its text must not be searchable, so a caller
-// checking is_active alone would silently publish unreviewed writing into an org's knowledge.
+// callers should ever branch on, and the same definition CountPublishedArticles counts by. Everything else is a
+// tombstone which can only cause a chunk deletion: a draft has either never been published or has been pulled back,
+// and in both cases its text must not be searchable, so a caller checking is_active alone would silently publish
+// unreviewed writing into an org's knowledge; and a section is described rather than written, so whatever its body
+// holds isn't content either.
 func (a *Article) Indexable() bool {
-	return a.IsActive && a.Status == ArticleStatusPublished
+	return a.IsActive && a.Status == ArticleStatusPublished && !a.IsSection()
 }
 
 const sqlSelectChangedArticles = `
-SELECT id, uuid, source_id, title, body, status, is_active, modified_on
+SELECT id, uuid, source_id, parent_id, title, body, status, is_active, modified_on
   FROM knowledge_article
  WHERE source_id = $1 AND modified_on > $2
  ORDER BY modified_on`
@@ -391,10 +402,9 @@ func LoadChangedArticles(ctx context.Context, db *sqlx.DB, sourceID KnowledgeID,
 	return articles, nil
 }
 
-// CountPublishedArticles returns the number of active published articles in the given helpdesk - i.e. the ones that
-// actually contribute chunks, so that a helpdesk full of drafts doesn't report itself as indexed content. A root of
-// the tree is a section - a heading over the articles under it, with a description rather than a body - so it isn't
-// counted as content, though it's still read and (as an empty body) contributes no chunks.
+// CountPublishedArticles returns the number of indexable articles in the given helpdesk - active, published and not
+// a section, exactly as Article.Indexable decides it - so that a helpdesk full of drafts doesn't report itself as
+// indexed content.
 func CountPublishedArticles(ctx context.Context, db DBorTx, sourceID KnowledgeID) (int, error) {
 	var count int
 	sql := `SELECT count(*) FROM knowledge_article WHERE source_id = $1 AND parent_id IS NOT NULL AND is_active AND status = 'P'`
