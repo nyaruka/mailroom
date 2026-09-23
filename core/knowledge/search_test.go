@@ -44,7 +44,6 @@ func TestSearch(t *testing.T) {
 	require.Len(t, results, 3)
 
 	assert.Equal(t, models.KnowledgeSourceUUID("5384b1c6-1099-4a5f-a005-9d3a4092c5c1"), results[0].SourceUUID)
-	assert.Equal(t, results[0].SourceUUID, results[0].KnowledgeUUID) // still under its old name too
 	assert.Equal(t, "8d40e9ab-c5f1-4b24-b60f-bc42cf65a9f5", string(results[0].ItemKey))
 	assert.Equal(t, "Refunds", results[0].ItemName)
 	assert.Equal(t, "We offer full refunds within 30 days.", results[0].Text)

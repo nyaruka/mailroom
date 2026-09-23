@@ -21,15 +21,12 @@ const (
 
 // SearchResult is a chunk matching a knowledge search, scored by cosine similarity to the query (higher is better)
 type SearchResult struct {
-	SourceUUID models.KnowledgeSourceUUID `db:"source_uuid"    json:"source_uuid"`
-	ItemKey    uuids.UUID                 `db:"item_key"       json:"item_key"`
-	ItemName   string                     `db:"item_name"      json:"item_name"`
-	ItemURL    null.String                `db:"item_url"       json:"item_url,omitempty"`
-	Text       string                     `db:"text"           json:"text"`
-	Score      float64                    `db:"score"          json:"score"`
-
-	// Deprecated: the same as SourceUUID, under its old name for callers which haven't moved to that yet
-	KnowledgeUUID models.KnowledgeSourceUUID `db:"knowledge_uuid" json:"knowledge_uuid"`
+	SourceUUID models.KnowledgeSourceUUID `db:"source_uuid" json:"source_uuid"`
+	ItemKey    uuids.UUID                 `db:"item_key"    json:"item_key"`
+	ItemName   string                     `db:"item_name"   json:"item_name"`
+	ItemURL    null.String                `db:"item_url"    json:"item_url,omitempty"`
+	Text       string                     `db:"text"        json:"text"`
+	Score      float64                    `db:"score"       json:"score"`
 }
 
 // A source that has completed an index before stays searchable whatever it's doing now. Chunks are only replaced
@@ -38,7 +35,7 @@ type SearchResult struct {
 // over a sweep, or over an entire embeddings outage plus its retry backoff, while perfectly good chunks sat there.
 // Sources that have never completed an index have nothing to serve, so a NULL last_indexed_on is still excluded.
 const sqlSearchKnowledgeChunks = `
-  SELECT k.uuid AS source_uuid, k.uuid AS knowledge_uuid, c.item_key, c.item_name, c.item_url, c.text,
+  SELECT k.uuid AS source_uuid, c.item_key, c.item_name, c.item_url, c.text,
          1 - (c.embedding <=> $2::vector) AS score
     FROM knowledge_knowledgechunk c
     JOIN knowledge_knowledgesource k ON k.id = c.source_id
