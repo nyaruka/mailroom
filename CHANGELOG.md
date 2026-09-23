@@ -1,3 +1,9 @@
+v26.3.75 (2026-09-23)
+-------------------------
+ * Add knowledge indexing and search for shortcuts and helpdesk articles
+ * Allow knowledge searches to be limited to specific sources
+ * Rename Knowledge to KnowledgeSource and knowledge_uuid to source_uuid
+
 v26.3.74 (2026-09-23)
 -------------------------
  * Remove Google LLM service
