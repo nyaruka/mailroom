@@ -37,7 +37,7 @@ func init() {
 		return services.NewModel(), nil
 	})
 
-	goflow.RegisterLLMServiceFactory(llmServiceFactory)
+	goflow.RegisterModelServiceFactory(modelServiceFactory)
 }
 
 // RegisterLLMService registers a LLM service for the given type code
@@ -45,7 +45,7 @@ func RegisterLLMService(typ string, fn func(*runtime.Runtime, *LLM, *http.Client
 	registeredLLMServices[typ] = fn
 }
 
-func llmServiceFactory(rt *runtime.Runtime) engine.ModelServiceFactory {
+func modelServiceFactory(rt *runtime.Runtime) engine.ModelServiceFactory {
 	return func(llm *core.Model) (flows.ModelService, error) {
 		return llm.Asset().(*LLM).AsService(rt)
 	}

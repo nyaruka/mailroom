@@ -32,7 +32,7 @@ var engInit, simulatorInit sync.Once
 var checkSendable func(*runtime.Runtime) flows.CheckSendableCallback
 var claimURN func(*runtime.Runtime) flows.ClaimURNCallback
 var emailFactory func(*runtime.Runtime) engine.EmailServiceFactory
-var llmFactory func(*runtime.Runtime) engine.ModelServiceFactory
+var modelFactory func(*runtime.Runtime) engine.ModelServiceFactory
 var airtimeFactory func(*runtime.Runtime) engine.AirtimeServiceFactory
 var webhookFactory func(*runtime.Runtime, map[string]string) engine.WebhookServiceFactory
 var llmPrompts map[string]*template.Template
@@ -56,10 +56,10 @@ func RegisterEmailServiceFactory(f func(*runtime.Runtime) engine.EmailServiceFac
 	emailFactory = f
 }
 
-// RegisterLLMServiceFactory can be used by outside callers to register an LLM service factory
+// RegisterModelServiceFactory can be used by outside callers to register a model service factory
 // for use by the engine
-func RegisterLLMServiceFactory(f func(*runtime.Runtime) engine.ModelServiceFactory) {
-	llmFactory = f
+func RegisterModelServiceFactory(f func(*runtime.Runtime) engine.ModelServiceFactory) {
+	modelFactory = f
 }
 
 // RegisterAirtimeServiceFactory can be used by outside callers to register a airtime serivce factory
@@ -101,7 +101,7 @@ func Engine(rt *runtime.Runtime) flows.Engine {
 		eng = engine.NewBuilder().
 			WithHTTPClient(rt.HTTP.Engine).
 			WithWebhookServiceFactory(webhookFactory(rt, webhookHeaders)).
-			WithModelServiceFactory(llmFactory(rt)).
+			WithModelServiceFactory(modelFactory(rt)).
 			WithEmailServiceFactory(emailFactory(rt)).
 			WithAirtimeServiceFactory(airtimeFactory(rt)).
 			WithEvaluationBudget(excellent.DefaultEvaluationBudget).
@@ -132,7 +132,7 @@ func Simulator(ctx context.Context, rt *runtime.Runtime) flows.Engine {
 		simulator = engine.NewBuilder().
 			WithHTTPClient(rt.HTTP.Simulator).
 			WithWebhookServiceFactory(webhookFactory(rt, webhookHeaders)).
-			WithModelServiceFactory(llmFactory(rt)).                   // simulated sessions do real LLM calls
+			WithModelServiceFactory(modelFactory(rt)).                 // simulated sessions do real LLM calls
 			WithEmailServiceFactory(simulatorEmailServiceFactory).     // but faked emails
 			WithAirtimeServiceFactory(simulatorAirtimeServiceFactory). // and faked airtime transfers
 			WithEvaluationBudget(excellent.DefaultEvaluationBudget).
