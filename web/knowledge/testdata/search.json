@@ -32,17 +32,17 @@
         }
     },
     {
-        "label": "error if a knowledge source isn't a UUID",
+        "label": "error if a source isn't a UUID",
         "method": "POST",
         "path": "/mi/knowledge/search",
         "body": {
             "org_id": 1,
             "query": "how do refunds work?",
-            "knowledge_uuids": ["xyz"]
+            "source_uuids": ["xyz"]
         },
         "status": 400,
         "response": {
-            "error": "request failed validation: field 'knowledge_uuids[0]' must be a valid UUID"
+            "error": "request failed validation: field 'source_uuids[0]' must be a valid UUID"
         }
     },
     {
@@ -52,7 +52,7 @@
         "body": {
             "org_id": 1,
             "query": "how do refunds work?",
-            "knowledge_uuids": ["5384b1c6-1099-4a5f-a005-9d3a4092c5c1"]
+            "source_uuids": ["5384b1c6-1099-4a5f-a005-9d3a4092c5c1"]
         },
         "status": 200,
         "response": {
