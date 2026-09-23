@@ -39,7 +39,7 @@ func TestSearch(t *testing.T) {
 	k3 := testdb.InsertKnowledge(t, rt, testdb.Org2, "df22cbcb-e0e1-4e78-be9f-2e4fbea1b2c3", models.KnowledgeTypeShortcuts, "Other Org", models.KnowledgeStatusReady)
 	testdb.InsertKnowledgeChunk(t, rt, k3, "0a1c6a9a-52ed-40cb-a921-1a29b9d8bc6f", "Nope", "Other org's content.", testEmbedding(1, 0))
 
-	results, err := knowledge.Search(ctx, rt, oa, "how do refunds work?", 10)
+	results, err := knowledge.Search(ctx, rt, oa, "how do refunds work?", nil, 10)
 	require.NoError(t, err)
 	require.Len(t, results, 3)
 
@@ -56,13 +56,41 @@ func TestSearch(t *testing.T) {
 	assert.InDelta(t, 0.0, results[2].Score, 0.001)
 
 	// limit caps the number of results
-	results, err = knowledge.Search(ctx, rt, oa, "how do refunds work?", 2)
+	results, err = knowledge.Search(ctx, rt, oa, "how do refunds work?", nil, 2)
 	require.NoError(t, err)
 	require.Len(t, results, 2)
 	assert.Equal(t, "Refunds", results[0].ItemName)
 	assert.Equal(t, "Greeting", results[1].ItemName)
 
+	// a second ready source whose chunk scores higher than anything in the first
+	k4 := testdb.InsertKnowledge(t, rt, testdb.Org1, "c1f5d6a3-8e2b-4f7c-9a0d-3b6e1f2a4c5d", models.KnowledgeTypeHelpdesk, "Test Helpdesk", models.KnowledgeStatusReady)
+	testdb.InsertKnowledgeChunk(t, rt, k4, "e7a2b9c4-1d3f-4e5a-8b6c-9d0e1f2a3b4c", "Refund Policy", "Refunds take 5 days.", testEmbedding(1, 0))
+
+	results, err = knowledge.Search(ctx, rt, oa, "how do refunds work?", nil, 10)
+	require.NoError(t, err)
+	assert.Len(t, results, 4)
+
+	// searching only the first source leaves out the second's chunks
+	results, err = knowledge.Search(ctx, rt, oa, "how do refunds work?", []models.KnowledgeUUID{k1.UUID}, 10)
+	require.NoError(t, err)
+	require.Len(t, results, 3)
+	for _, r := range results {
+		assert.Equal(t, k1.UUID, r.KnowledgeUUID)
+	}
+
+	// and searching only the second leaves out the first's
+	results, err = knowledge.Search(ctx, rt, oa, "how do refunds work?", []models.KnowledgeUUID{k4.UUID}, 10)
+	require.NoError(t, err)
+	require.Len(t, results, 1)
+	assert.Equal(t, "Refund Policy", results[0].ItemName)
+
+	// naming a source that isn't searchable - here one that isn't ready, or is another org's - doesn't widen the search
+	results, err = knowledge.Search(ctx, rt, oa, "how do refunds work?", []models.KnowledgeUUID{k2.UUID, k3.UUID}, 10)
+	require.NoError(t, err)
+	assert.Empty(t, results)
+
 	// the query was embedded as a query, not as a passage
-	assert.Equal(t, []string{"how do refunds work?", "how do refunds work?"}, embedder.Queries)
+	assert.Len(t, embedder.Queries, 6)
+	assert.Equal(t, "how do refunds work?", embedder.Queries[0])
 	assert.Empty(t, embedder.Passages)
 }
