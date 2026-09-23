@@ -92,14 +92,8 @@ func (s *service) Response(ctx context.Context, instructions, input string, maxT
 	}, nil
 }
 
-// Classify prompts the model, and as the API doesn't provide logprobs, the confidence is approximated.
 func (s *service) Classify(ctx context.Context, input string, options []*core.ClassifierOption) (*core.Classification, error) {
-	resp, err := s.Response(ctx, ai.ClassifyInstructions(options), input, ai.ClassifyMaxTokens)
-	if err != nil {
-		return nil, err
-	}
-
-	return ai.NewClassification(resp, nil, options)
+	return ai.ClassifyByPrompt(ctx, s, input, options)
 }
 
 func (s *service) error(err error, instructions, input string) error {

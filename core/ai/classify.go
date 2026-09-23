@@ -1,11 +1,13 @@
 package ai
 
 import (
+	"context"
 	"errors"
 	"math"
 	"strings"
 
 	"github.com/nyaruka/goflow/core"
+	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/v26/core/ai/prompts"
 )
 
@@ -38,6 +40,17 @@ func NewClassification(resp *core.ModelResponse, logprobs []float64, options []*
 		TokensInput:  resp.TokensInput,
 		TokensOutput: resp.TokensOutput,
 	}, nil
+}
+
+// ClassifyByPrompt classifies input by prompting the given service with the classify instructions, for services whose
+// API doesn't provide logprobs, so the confidence is approximated.
+func ClassifyByPrompt(ctx context.Context, svc flows.ModelService, input string, options []*core.ClassifierOption) (*core.Classification, error) {
+	resp, err := svc.Response(ctx, ClassifyInstructions(options), input, ClassifyMaxTokens)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewClassification(resp, nil, options)
 }
 
 // matches the output of the classify instructions against the option names, returning empty if there's no match,
