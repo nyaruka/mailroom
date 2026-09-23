@@ -1,3 +1,8 @@
+v26.3.74 (2026-09-23)
+-------------------------
+ * Remove Google LLM service
+ * Disable thinking for Anthropic models which think by default
+
 v26.3.73 (2026-09-23)
 -------------------------
  * Give the LLM translate endpoint its own write deadline so slow models get more time
