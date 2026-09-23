@@ -1,3 +1,8 @@
+v26.3.76 (2026-09-23)
+-------------------------
+ * Update to goflow v0.294.1 and implement model classification
+ * Lower embeddings request batch size to 8
+
 v26.3.75 (2026-09-23)
 -------------------------
  * Add knowledge indexing and search for shortcuts and helpdesk articles
