@@ -1,3 +1,7 @@
+v26.3.72 (2026-09-23)
+-------------------------
+ * Publish flow start progress to the flow's socket as batches complete, but only for starts users can see and only when someone is watching
+
 v26.3.71 (2026-09-17)
 -------------------------
  * Parse phone URNs with the org's default country in the URNs endpoint and contact imports
