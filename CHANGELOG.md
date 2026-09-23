@@ -1,3 +1,7 @@
+v26.3.73 (2026-09-23)
+-------------------------
+ * Give the LLM translate endpoint its own write deadline so slow models get more time
+
 v26.3.72 (2026-09-23)
 -------------------------
  * Publish flow start progress to the flow's socket as batches complete, but only for starts users can see and only when someone is watching
