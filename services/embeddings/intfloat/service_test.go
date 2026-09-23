@@ -122,27 +122,27 @@ func TestEmbedPassagesBadIndexes(t *testing.T) {
 func TestEmbedPassagesBatching(t *testing.T) {
 	ctx := context.Background()
 
-	// 70 passages should be sent as 3 requests of 32 + 32 + 6 inputs
+	// 20 passages should be sent as 3 requests of 8 + 8 + 4 inputs
 	mocks := httpx.WithMocks(nil, map[string][]*httpx.MockResponse{
 		"http://embeddings:8095/v1/embeddings": {
-			httpx.NewMockResponse(200, nil, embeddingsBody(32, 0)),
-			httpx.NewMockResponse(200, nil, embeddingsBody(32, 32)),
-			httpx.NewMockResponse(200, nil, embeddingsBody(6, 64)),
+			httpx.NewMockResponse(200, nil, embeddingsBody(8, 0)),
+			httpx.NewMockResponse(200, nil, embeddingsBody(8, 8)),
+			httpx.NewMockResponse(200, nil, embeddingsBody(4, 16)),
 		},
 	})
 	svc := testService(mocks)
 
-	texts := make([]string, 70)
+	texts := make([]string, 20)
 	for i := range texts {
 		texts[i] = fmt.Sprintf("passage number %d", i)
 	}
 
 	es, err := svc.EmbedPassages(ctx, texts)
 	assert.NoError(t, err)
-	require.Len(t, es, 70)
+	require.Len(t, es, 20)
 	assert.Equal(t, []float32{0}, es[0])
-	assert.Equal(t, []float32{33}, es[33])
-	assert.Equal(t, []float32{69}, es[69])
+	assert.Equal(t, []float32{9}, es[9])
+	assert.Equal(t, []float32{19}, es[19])
 
 	// check the batch sizes and that inputs stayed in order across batches
 	require.Len(t, mocks.Requests(), 3)
@@ -156,7 +156,7 @@ func TestEmbedPassagesBatching(t *testing.T) {
 		jsonx.MustUnmarshal(body, payload)
 		sizes[i] = len(payload.Input)
 	}
-	assert.Equal(t, []int{32, 32, 6}, sizes)
+	assert.Equal(t, []int{8, 8, 4}, sizes)
 
 	assert.False(t, mocks.HasUnused())
 }
