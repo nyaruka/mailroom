@@ -1,6 +1,7 @@
 package anthropic_test
 
 import (
+	"io"
 	"testing"
 
 	"github.com/nyaruka/gocommon/httpx"
@@ -10,6 +11,7 @@ import (
 	"github.com/nyaruka/mailroom/v26/testsuite"
 	"github.com/nyaruka/mailroom/v26/testsuite/testdb"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestService(t *testing.T) {
@@ -54,4 +56,47 @@ func TestService(t *testing.T) {
 		assert.Equal(t, ai.ErrorRateLimit, serr.Code)
 	}
 	assert.Nil(t, resp)
+}
+
+func TestThinking(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	sonnet5 := testdb.InsertLLM(t, rt, testdb.Org1, "b86966fd-206e-4bdd-a962-06faa3af1182", "anthropic", "claude-sonnet-5", "Sonnet 5", map[string]any{"api_key": "sesame"}, "TF")
+	opus55 := testdb.InsertLLM(t, rt, testdb.Org1, "2f5a1b56-6f4c-4c67-8d0f-1f2e9a3b7c41", "anthropic", "claude-opus-5-5", "Opus 5.5", map[string]any{"api_key": "sesame"}, "TF")
+	oa := testdb.Org1.Load(t, rt)
+
+	okResp := []byte(`{"id":"msg_x","type":"message","role":"assistant","content":[{"type":"text","text":"Hola mundo"}],"model":"claude","stop_reason":"end_turn","usage":{"input_tokens":10,"output_tokens":3}}`)
+
+	tcs := []struct {
+		llm      *testdb.LLM
+		disabled bool
+	}{
+		{sonnet5, true}, // thinks by default so we disable it
+		{opus55, false}, // can't disable thinking so we leave it alone
+	}
+
+	for _, tc := range tcs {
+		client, mocks := test.MockedHTTP(map[string][]*httpx.MockResponse{
+			"https://api.anthropic.com/v1/messages": {httpx.NewMockResponse(200, map[string]string{"Content-type": "application/json"}, okResp)},
+		})
+
+		svc, err := anthropic.New(rt, oa.LLMByID(tc.llm.ID), client)
+		require.NoError(t, err)
+
+		resp, err := svc.Response(ctx, "translate to Spanish", "Hello world", 1000)
+		require.NoError(t, err)
+		assert.Equal(t, "Hola mundo", resp.Output)
+
+		require.Len(t, mocks.Requests(), 1)
+		body, err := mocks.Requests()[0].GetBody()
+		require.NoError(t, err)
+		reqBody, err := io.ReadAll(body)
+		require.NoError(t, err)
+
+		if tc.disabled {
+			assert.Contains(t, string(reqBody), `"thinking":{"type":"disabled"}`)
+		} else {
+			assert.NotContains(t, string(reqBody), `"thinking"`)
+		}
+	}
 }
