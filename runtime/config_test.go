@@ -53,7 +53,7 @@ func TestConfigParse(t *testing.T) {
 
 	cfg = runtime.NewDefaultConfig()
 	cfg.AndroidCredentials = `{"type": "service_account"`
-	assert.EqualError(t, cfg.Parse(), "invalid configuration: field 'AndroidCredentials' is not valid JSON")
+	assert.EqualError(t, cfg.Parse(), "invalid configuration: field 'AndroidCredentials' failed tag 'json'")
 }
 
 func TestDisallowedNetworksParsing(t *testing.T) {

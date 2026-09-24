@@ -19,7 +19,6 @@ func init() {
 	utils.RegisterValidatorAlias("valkey_url", "startswith=valkey:|startswith=valkeys:", func(e validator.FieldError) string {
 		return "must start with 'valkey:' or 'valkeys:'"
 	})
-	utils.RegisterValidatorAlias("json_doc", "json", func(e validator.FieldError) string { return "is not valid JSON" })
 
 	// the FCM credentials can be given inline or as a file, but a deployment setting both is ambiguous
 	utils.RegisterStructValidator(func(sl validator.StructLevel) {
@@ -92,7 +91,7 @@ type Config struct {
 	CloudwatchNamespace string `help:"the namespace to use for cloudwatch metrics"`
 	DeploymentID        string `help:"the deployment identifier to use for metrics"`
 
-	AndroidCredentials     string `help:"FCM service account credentials JSON used to sync Android relayers" validate:"omitempty,json_doc"`
+	AndroidCredentials     string `help:"FCM service account credentials JSON used to sync Android relayers" validate:"omitempty,json"`
 	AndroidCredentialsFile string `help:"path to a JSON file to read the FCM service account credentials from instead"`
 	IDObfuscationKey       string `help:"key used to decode obfuscated IDs, as 4 comma separated integers" validate:"omitempty,hexadecimal,len=32"`
 
