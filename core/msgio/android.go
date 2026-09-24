@@ -52,14 +52,7 @@ func SyncAndroidChannel(ctx context.Context, rt *runtime.Runtime, channel *model
 }
 
 func VerifyFCMID(ctx context.Context, rt *runtime.Runtime, channel *models.Channel, fcmID string) error {
-	var creds option.ClientOption
-	if rt.Config.AndroidCredentials != "" {
-		creds = option.WithCredentialsJSON([]byte(rt.Config.AndroidCredentials))
-	} else {
-		creds = option.WithCredentialsFile(rt.Config.AndroidCredentialsFile)
-	}
-
-	app, err := firebase.NewApp(ctx, nil, creds)
+	app, err := firebase.NewApp(ctx, nil, option.WithCredentialsJSON([]byte(rt.Config.AndroidCredentials)))
 	if err != nil {
 		return err
 	}
