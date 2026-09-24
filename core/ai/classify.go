@@ -34,7 +34,7 @@ func ClassifyInstructions(options []*core.ClassifierOption) string {
 }
 
 // NewClassification creates a classification from the response to the classify instructions. The token logprobs of
-// the output are used for the confidence.
+// the output are used for the confidence. Options can't be empty, which flows ensure.
 func NewClassification(resp *core.ModelResponse, logprobs []float64, options []*core.ClassifierOption) (*core.Classification, error) {
 	cls := &core.Classification{Option: options[0].Name, TokensInput: resp.TokensInput, TokensOutput: resp.TokensOutput}
 
@@ -55,7 +55,7 @@ func NewClassification(resp *core.ModelResponse, logprobs []float64, options []*
 
 // ClassifyByPrompt classifies input by prompting the given service to state the probability of each option, for
 // services whose API doesn't provide logprobs. Stated probabilities aren't well calibrated but do preserve the order of
-// the model's preferences.
+// the model's preferences. Options can't be empty, which flows ensure.
 func ClassifyByPrompt(ctx context.Context, svc flows.ModelService, input string, options []*core.ClassifierOption) (*core.Classification, error) {
 	instructions := prompts.Render("classify_scored", map[string]any{"Options": options})
 
