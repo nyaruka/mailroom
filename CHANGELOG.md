@@ -1,3 +1,8 @@
+v26.3.78 (2026-09-24)
+-------------------------
+ * Classify by prompt with stated probabilities and never error when no option fits
+ * Allow FCM service account credentials to be given inline as JSON
+
 v26.3.77 (2026-09-24)
 -------------------------
  * Add ai.ClassifyByPrompt for services without logprobs
