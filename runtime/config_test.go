@@ -34,6 +34,26 @@ func TestConfigParse(t *testing.T) {
 	cfg = runtime.NewDefaultConfig()
 	cfg.Valkey = "valkeys://valkey:6379/15"
 	assert.NoError(t, cfg.Parse())
+
+	// FCM credentials can be given inline..
+	cfg = runtime.NewDefaultConfig()
+	cfg.AndroidCredentials = `{"type": "service_account", "project_id": "foo"}`
+	assert.NoError(t, cfg.Parse())
+
+	// ..or as a file path
+	cfg = runtime.NewDefaultConfig()
+	cfg.AndroidCredentialsFile = "/etc/mailroom/fcm.json"
+	assert.NoError(t, cfg.Parse())
+
+	// but not both, and inline credentials must at least be JSON
+	cfg = runtime.NewDefaultConfig()
+	cfg.AndroidCredentials = `{"type": "service_account", "project_id": "foo"}`
+	cfg.AndroidCredentialsFile = "/etc/mailroom/fcm.json"
+	assert.EqualError(t, cfg.Parse(), "invalid configuration: field 'AndroidCredentials' is mutually exclusive with 'AndroidCredentialsFile'")
+
+	cfg = runtime.NewDefaultConfig()
+	cfg.AndroidCredentials = `{"type": "service_account"`
+	assert.EqualError(t, cfg.Parse(), "invalid configuration: field 'AndroidCredentials' is not valid JSON")
 }
 
 func TestDisallowedNetworksParsing(t *testing.T) {
