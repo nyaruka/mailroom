@@ -1,3 +1,7 @@
+v26.3.77 (2026-09-24)
+-------------------------
+ * Add ai.ClassifyByPrompt for services without logprobs
+
 v26.3.76 (2026-09-23)
 -------------------------
  * Update to goflow v0.294.1 and implement model classification
