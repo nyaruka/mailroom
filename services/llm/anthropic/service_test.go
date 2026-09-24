@@ -113,7 +113,10 @@ func TestClassify(t *testing.T) {
 	}
 
 	client, _ := test.MockedHTTP(map[string][]*httpx.MockResponse{
-		"https://api.anthropic.com/v1/messages": {mkResp("Hotels"), mkResp("<CANT>")},
+		"https://api.anthropic.com/v1/messages": {
+			mkResp(`{\"Flights\": 0.1, \"Hotels\": 0.85}`),
+			mkResp(`{\"Flights\": 0, \"Hotels\": 0}`),
+		},
 	})
 
 	svc, err := anthropic.New(rt, oa.LLMByID(llm.ID), client)
@@ -121,9 +124,9 @@ func TestClassify(t *testing.T) {
 
 	cls, err := svc.Classify(ctx, "I need a room", []*core.ClassifierOption{{Name: "Flights"}, {Name: "Hotels"}})
 	require.NoError(t, err)
-	assert.Equal(t, &core.Classification{Option: "Hotels", Confidence: ai.UnscoredConfidence, TokensInput: 34, TokensOutput: 2}, cls)
+	assert.Equal(t, &core.Classification{Option: "Hotels", Confidence: 0.85, Probabilities: map[string]float64{"Flights": 0.1, "Hotels": 0.85}, TokensInput: 34, TokensOutput: 2}, cls)
 
 	cls, err = svc.Classify(ctx, "What's the weather?", []*core.ClassifierOption{{Name: "Flights"}, {Name: "Hotels"}})
-	assert.EqualError(t, err, "no option fits input")
-	assert.Nil(t, cls)
+	require.NoError(t, err)
+	assert.Equal(t, &core.Classification{Option: "Flights", Probabilities: map[string]float64{"Flights": 0, "Hotels": 0}, TokensInput: 34, TokensOutput: 2}, cls)
 }

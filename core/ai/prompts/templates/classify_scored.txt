@@ -1,0 +1,8 @@
+Classify the input text as one of the following options:
+{{ range .Options }}
+- {{ .Name }}{{ if .Description }}: {{ .Description }}{{ end }}{{ end }}
+
+For each option, estimate the probability between 0 and 1 that it is the correct classification of the input.
+The probabilities should add up to less than 1 if the input might not fit any of the options, and all be 0 if it clearly doesn't.
+
+Return only a JSON object with each option name as a key and its probability as the value.
