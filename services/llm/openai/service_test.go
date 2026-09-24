@@ -157,7 +157,8 @@ func TestClassify(t *testing.T) {
 	assert.Equal(t, "Hotels", cls.Option)
 	assert.Equal(t, ai.UnscoredConfidence, cls.Confidence)
 
+	// none of the options fit
 	cls, err = svc.Classify(ctx, "What's the weather?", []*core.ClassifierOption{{Name: "Flights"}, {Name: "Hotels"}})
-	assert.EqualError(t, err, "no option fits input")
-	assert.Nil(t, cls)
+	require.NoError(t, err)
+	assert.Equal(t, &core.Classification{Option: "Flights", TokensInput: 34, TokensOutput: 2}, cls)
 }
