@@ -19,6 +19,14 @@ func init() {
 	utils.RegisterValidatorAlias("valkey_url", "startswith=valkey:|startswith=valkeys:", func(e validator.FieldError) string {
 		return "must start with 'valkey:' or 'valkeys:'"
 	})
+
+	// the FCM credentials can be given inline or as a file, but a deployment setting both is ambiguous
+	utils.RegisterStructValidator(func(sl validator.StructLevel) {
+		c := sl.Current().Interface().(Config)
+		if c.AndroidCredentials != "" && c.AndroidCredentialsFile != "" {
+			sl.ReportError(c.AndroidCredentials, "AndroidCredentials", "AndroidCredentials", "mutually_exclusive", "AndroidCredentialsFile")
+		}
+	}, Config{})
 }
 
 // Config is our top level configuration object
@@ -83,7 +91,8 @@ type Config struct {
 	CloudwatchNamespace string `help:"the namespace to use for cloudwatch metrics"`
 	DeploymentID        string `help:"the deployment identifier to use for metrics"`
 
-	AndroidCredentialsFile string `help:"path to JSON file with FCM service account credentials used to sync Android relayers"`
+	AndroidCredentials     string `help:"FCM service account credentials JSON used to sync Android relayers" validate:"omitempty,json"`
+	AndroidCredentialsFile string `help:"path to a JSON file to read the FCM service account credentials from instead"`
 	IDObfuscationKey       string `help:"key used to decode obfuscated IDs, as 4 comma separated integers" validate:"omitempty,hexadecimal,len=32"`
 
 	LogLevel slog.Level `help:"the logging level courier should use"`
