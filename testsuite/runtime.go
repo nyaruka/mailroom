@@ -14,6 +14,7 @@ import (
 	"github.com/nyaruka/mailroom/v26/core/goflow"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/runtime"
+	"github.com/nyaruka/vkutil/assertvk"
 	"github.com/stretchr/testify/require"
 )
 
@@ -30,12 +31,12 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 	dbName := createTestDB(t)
 	t.Cleanup(func() { dropTestDB(t, dbName) })
 
-	// this binary's slot gives it its own valkey database and web server ports - see slot.go
-	slot := claimSlot(t)
+	// this binary's own valkey database, which also gives it its own web server ports - see valkey.go
+	vkDSN, vkDB := testVKDB(t)
 
 	cfg := runtime.NewDefaultConfig()
 	cfg.DeploymentID = "test"
-	cfg.InternetPort = slotPortBase + 2*slot
+	cfg.InternetPort = portBase + 2*vkDB
 	cfg.InternalPort = cfg.InternetPort + 1
 	cfg.DB = fmt.Sprintf(dbTestDSNFormat, dbName)
 
@@ -43,7 +44,7 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 	// but tests need few, and concurrent binaries must share the server's connection limit
 	cfg.DBPoolSize = 8
 
-	cfg.Valkey = fmt.Sprintf(vkTestDSNFormat, slotVKDB(slot))
+	cfg.Valkey = vkDSN
 	cfg.ElasticContactsIndex = esContactsIndex() // this binary's own indexes, cleared before every test
 	cfg.ElasticMessagesIndex = esMessagesIndex() // - see elastic.go
 
@@ -78,7 +79,7 @@ func Runtime(t *testing.T) (context.Context, *runtime.Runtime) {
 
 	// so every test starts with empty valkey, indexes, tables and storage (writers must be started for
 	// their flushes)
-	require.NoError(t, flushVKDB(slotVKDB(slot)))
+	assertvk.FlushDB()
 	ClearElastic(t, rt)
 	ClearDynamo(t, rt)
 	clearStorage(t, rt)
