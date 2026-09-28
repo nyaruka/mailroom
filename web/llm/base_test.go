@@ -38,13 +38,13 @@ func TestTranslate(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
 
 	// LLM without the translation role - id will be 30000
-	testdb.InsertLLM(t, rt, testdb.Org1, "c69723d8-fb37-4cf6-9ec4-bc40cb36f2cc", "test", "gpt-4", "Generation Only", map[string]any{}, "F")
+	testdb.InsertLLM(t, rt, testdb.Org1, "c69723d8-fb37-4cf6-9ec4-bc40cb36f2cc", "test", "gpt-4", "Generation Only", map[string]any{}, "G")
 
 	// LLM which is too slow to respond - id will be 30001
 	models.RegisterLLMService("slow", func(*runtime.Runtime, *models.LLM, *http.Client) (flows.ModelService, error) {
 		return &slowLLMService{}, nil
 	})
-	testdb.InsertLLM(t, rt, testdb.Org1, "0e4d2ef0-6a4c-4f6a-a5a2-1f3a0f0a3c5e", "slow", "sloth-1", "Slow", map[string]any{}, "TF")
+	testdb.InsertLLM(t, rt, testdb.Org1, "0e4d2ef0-6a4c-4f6a-a5a2-1f3a0f0a3c5e", "slow", "sloth-1", "Slow", map[string]any{}, "TGC")
 
 	defer func(d time.Duration) { llm.CallTimeout = d }(llm.CallTimeout)
 	llm.CallTimeout = 100 * time.Millisecond

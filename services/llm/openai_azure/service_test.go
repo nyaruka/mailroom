@@ -18,8 +18,8 @@ import (
 func TestService(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	bad := testdb.InsertLLM(t, rt, testdb.Org1, "c69723d8-fb37-4cf6-9ec4-bc40cb36f2cc", "openai_azure", "gpt-4", "Bad Config", map[string]any{}, "TF")
-	good := testdb.InsertLLM(t, rt, testdb.Org1, "b86966fd-206e-4bdd-a962-06faa3af1182", "openai_azure", "gpt-4", "Good", map[string]any{"endpoint": "http://azure.com/ai", "api_key": "sesame"}, "TF")
+	bad := testdb.InsertLLM(t, rt, testdb.Org1, "c69723d8-fb37-4cf6-9ec4-bc40cb36f2cc", "openai_azure", "gpt-4", "Bad Config", map[string]any{}, "TGC")
+	good := testdb.InsertLLM(t, rt, testdb.Org1, "b86966fd-206e-4bdd-a962-06faa3af1182", "openai_azure", "gpt-4", "Good", map[string]any{"endpoint": "http://azure.com/ai", "api_key": "sesame"}, "TGC")
 
 	oa := testdb.Org1.Load(t, rt)
 	badLLM := oa.LLMByID(bad.ID)
@@ -62,7 +62,7 @@ func TestService(t *testing.T) {
 func TestClassify(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	llm := testdb.InsertLLM(t, rt, testdb.Org1, "b86966fd-206e-4bdd-a962-06faa3af1182", "openai_azure", "gpt-4", "Good", map[string]any{"api_key": "sesame", "endpoint": "http://azure.com/ai"}, "TF")
+	llm := testdb.InsertLLM(t, rt, testdb.Org1, "b86966fd-206e-4bdd-a962-06faa3af1182", "openai_azure", "gpt-4", "Good", map[string]any{"api_key": "sesame", "endpoint": "http://azure.com/ai"}, "TGC")
 	oa := testdb.Org1.Load(t, rt)
 
 	mkResp := func(content, logprobs string) *httpx.MockResponse {
