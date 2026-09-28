@@ -12,7 +12,7 @@ import (
 )
 
 // Each test binary claims a slot - a small dense number which multiplexes the resources that are bounded
-// rather than namespaceable: its valkey database (16 + slot, in the 16-31 band reserved for tests) and its
+// rather than namespaceable: its valkey database (in the band reserved for mailroom tests) and its
 // web server ports (8200/8201 + 2*slot). The claim is an advisory lock in Postgres held for the binary's
 // lifetime, so it evaporates when the run that owns it dies - and the slot's valkey database is flushed on
 // claim, clearing anything a dead run left behind. If every slot is taken - concurrently running binaries
@@ -21,7 +21,7 @@ import (
 const (
 	slotCount = 16
 
-	slotVKDBBase = 16   // valkey databases 16-31
+	slotVKDBBase = 48   // valkey databases 48-63
 	slotPortBase = 8200 // web server ports 8200-8231
 
 	// DSN format for a slot's valkey database
