@@ -22,10 +22,10 @@ require (
 	github.com/gorilla/schema v1.4.1
 	github.com/lib/pq v1.12.3
 	github.com/nyaruka/ezconf v0.8.0
-	github.com/nyaruka/gocommon v1.95.1
+	github.com/nyaruka/gocommon v1.96.1
 	github.com/nyaruka/goflow v0.295.0
 	github.com/nyaruka/null/v3 v3.1.0
-	github.com/nyaruka/vkutil v0.24.0
+	github.com/nyaruka/vkutil v0.26.0
 	github.com/openai/openai-go/v3 v3.50.0
 	github.com/prometheus/client_model v0.6.2
 	github.com/prometheus/common v0.70.1
