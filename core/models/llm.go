@@ -118,7 +118,7 @@ func InsertLLMDailyCounts(ctx context.Context, tx DBorTx, counts []*LLMDailyCoun
 }
 
 // loads the LLMs for the passed in org. Roles are stored as codes: T (translation), G (generation), C (classification)
-// and F which is both generation and classification.
+// and F, a legacy code for both generation and classification which will be replaced by GC and can then be dropped here.
 func loadLLMs(ctx context.Context, db *sql.DB, orgID OrgID) ([]assets.Model, error) {
 	rows, err := db.QueryContext(ctx, sqlSelectLLMs, orgID)
 	if err != nil {
