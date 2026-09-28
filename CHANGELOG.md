@@ -1,3 +1,9 @@
+v26.3.80 (2026-09-28)
+-------------------------
+ * Drop support for legacy F LLM role code
+ * Claim test valkey databases per test with assertvk.ClaimDB, coordinated across other projects' tests
+ * Update test database dump for temba v26.3.114
+
 v26.3.79 (2026-09-28)
 -------------------------
  * Update to goflow v0.295.0, noting the F role code will be replaced by GC
