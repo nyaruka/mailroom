@@ -1,3 +1,8 @@
+v26.3.79 (2026-09-28)
+-------------------------
+ * Update to goflow v0.295.0, noting the F role code will be replaced by GC
+ * Remove the android-credentials-file setting
+
 v26.3.78 (2026-09-24)
 -------------------------
  * Classify by prompt with stated probabilities and never error when no option fits
