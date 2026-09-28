@@ -24,7 +24,7 @@ func TestLLMs(t *testing.T) {
 
 	gen := testdb.InsertLLM(t, rt, testdb.Org1, "0b4a8ff3-5ab1-4d1c-8e2e-4c5d1f1ec5a1", "test", "gpt-4", "Generation", map[string]any{}, "G")
 	cls := testdb.InsertLLM(t, rt, testdb.Org1, "5c7d3f0e-1b8a-4a8c-9f3d-2e6b7a9c1d42", "test", "gpt-4", "Classification", map[string]any{}, "C")
-	ovr := testdb.InsertLLM(t, rt, testdb.Org1, "9e2f6a1b-3c4d-4e5f-8a7b-6c5d4e3f2a13", "test", "gpt-4", "Overlapping", map[string]any{}, "FG")
+	both := testdb.InsertLLM(t, rt, testdb.Org1, "9e2f6a1b-3c4d-4e5f-8a7b-6c5d4e3f2a13", "test", "gpt-4", "Both", map[string]any{}, "GC")
 	unk := testdb.InsertLLM(t, rt, testdb.Org1, "d4c3b2a1-9f8e-4d7c-8b6a-5f4e3d2c1b04", "test", "gpt-4", "Unknown", map[string]any{}, "TX")
 
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshLLMs)
@@ -45,7 +45,7 @@ func TestLLMs(t *testing.T) {
 		{testdb.TestLLM.ID, testdb.TestLLM.UUID, "Test", "test", []assets.ModelRole{assets.ModelRoleTranslation, assets.ModelRoleGeneration, assets.ModelRoleClassification}},
 		{gen.ID, gen.UUID, "Generation", "test", []assets.ModelRole{assets.ModelRoleGeneration}},
 		{cls.ID, cls.UUID, "Classification", "test", []assets.ModelRole{assets.ModelRoleClassification}},
-		{ovr.ID, ovr.UUID, "Overlapping", "test", []assets.ModelRole{assets.ModelRoleGeneration, assets.ModelRoleClassification}},
+		{both.ID, both.UUID, "Both", "test", []assets.ModelRole{assets.ModelRoleGeneration, assets.ModelRoleClassification}},
 		{unk.ID, unk.UUID, "Unknown", "test", []assets.ModelRole{assets.ModelRoleTranslation}},
 	}
 

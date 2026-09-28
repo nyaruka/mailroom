@@ -18,8 +18,8 @@ import (
 func TestService(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	bad := testdb.InsertLLM(t, rt, testdb.Org1, "c69723d8-fb37-4cf6-9ec4-bc40cb36f2cc", "anthropic", "claude", "Bad Config", map[string]any{}, "TF")
-	good := testdb.InsertLLM(t, rt, testdb.Org1, "b86966fd-206e-4bdd-a962-06faa3af1182", "anthropic", "claude", "Good", map[string]any{"api_key": "sesame"}, "TF")
+	bad := testdb.InsertLLM(t, rt, testdb.Org1, "c69723d8-fb37-4cf6-9ec4-bc40cb36f2cc", "anthropic", "claude", "Bad Config", map[string]any{}, "TGC")
+	good := testdb.InsertLLM(t, rt, testdb.Org1, "b86966fd-206e-4bdd-a962-06faa3af1182", "anthropic", "claude", "Good", map[string]any{"api_key": "sesame"}, "TGC")
 
 	oa := testdb.Org1.Load(t, rt)
 	badLLM := oa.LLMByID(bad.ID)
@@ -62,8 +62,8 @@ func TestService(t *testing.T) {
 func TestThinking(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	sonnet5 := testdb.InsertLLM(t, rt, testdb.Org1, "b86966fd-206e-4bdd-a962-06faa3af1182", "anthropic", "claude-sonnet-5", "Sonnet 5", map[string]any{"api_key": "sesame"}, "TF")
-	opus55 := testdb.InsertLLM(t, rt, testdb.Org1, "2f5a1b56-6f4c-4c67-8d0f-1f2e9a3b7c41", "anthropic", "claude-opus-5-5", "Opus 5.5", map[string]any{"api_key": "sesame"}, "TF")
+	sonnet5 := testdb.InsertLLM(t, rt, testdb.Org1, "b86966fd-206e-4bdd-a962-06faa3af1182", "anthropic", "claude-sonnet-5", "Sonnet 5", map[string]any{"api_key": "sesame"}, "TGC")
+	opus55 := testdb.InsertLLM(t, rt, testdb.Org1, "2f5a1b56-6f4c-4c67-8d0f-1f2e9a3b7c41", "anthropic", "claude-opus-5-5", "Opus 5.5", map[string]any{"api_key": "sesame"}, "TGC")
 	oa := testdb.Org1.Load(t, rt)
 
 	okResp := []byte(`{"id":"msg_x","type":"message","role":"assistant","content":[{"type":"text","text":"Hola mundo"}],"model":"claude","stop_reason":"end_turn","usage":{"input_tokens":10,"output_tokens":3}}`)
@@ -105,7 +105,7 @@ func TestThinking(t *testing.T) {
 func TestClassify(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	llm := testdb.InsertLLM(t, rt, testdb.Org1, "b86966fd-206e-4bdd-a962-06faa3af1182", "anthropic", "claude", "Good", map[string]any{"api_key": "sesame"}, "TF")
+	llm := testdb.InsertLLM(t, rt, testdb.Org1, "b86966fd-206e-4bdd-a962-06faa3af1182", "anthropic", "claude", "Good", map[string]any{"api_key": "sesame"}, "TGC")
 	oa := testdb.Org1.Load(t, rt)
 
 	mkResp := func(text string) *httpx.MockResponse {
