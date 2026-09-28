@@ -74,8 +74,8 @@ func insertArticle(t *testing.T, rt *runtime.Runtime, source *KnowledgeSource, p
 
 	var id models.ArticleID
 	err := rt.DB.Get(&id,
-		`INSERT INTO knowledge_article(source_id, uuid, parent_id, sort_order, title, slug, body, description, language, status, published_on, is_active, created_on, modified_on, created_by_id, modified_by_id)
-		VALUES($1, $2, $3, 0, $4, $5, $6, '', 'eng', $7::varchar, CASE WHEN $7::varchar = 'P' THEN NOW() END, TRUE, NOW(), NOW(), 1, 1) RETURNING id`,
+		`INSERT INTO knowledge_article(source_id, uuid, parent_id, sort_order, title, slug, body, body_html, headings, description, language, status, published_on, is_active, created_on, modified_on, created_by_id, modified_by_id)
+		VALUES($1, $2, $3, 0, $4, $5, $6, '', '[]', '', 'eng', $7::varchar, CASE WHEN $7::varchar = 'P' THEN NOW() END, TRUE, NOW(), NOW(), 1, 1) RETURNING id`,
 		source.ID, uuid, parentID, title, slug, body, status,
 	)
 	require.NoError(t, err)
