@@ -36,7 +36,7 @@ func ClassifyInstructions(options []*core.ClassifierOption) string {
 // NewClassification creates a classification from the response to the classify instructions. The token logprobs of
 // the output are used for the confidence. Options can't be empty, which flows ensure.
 func NewClassification(resp *core.ModelResponse, logprobs []float64, options []*core.ClassifierOption) (*core.Classification, error) {
-	cls := &core.Classification{Option: options[0].Name, TokensInput: resp.TokensInput, TokensOutput: resp.TokensOutput}
+	cls := &core.Classification{Option: options[0].Name, Tokens: resp.Tokens}
 
 	// the model can't tell us which option comes closest so we can only give zero confidence in any of them
 	if normalizeOption(resp.Output) == cantOutput {
@@ -70,7 +70,7 @@ func ClassifyByPrompt(ctx context.Context, svc flows.ModelService, input string,
 		return nil, err
 	}
 
-	cls := &core.Classification{Option: options[0].Name, Probabilities: probs, TokensInput: resp.TokensInput, TokensOutput: resp.TokensOutput}
+	cls := &core.Classification{Option: options[0].Name, Probabilities: probs, Tokens: resp.Tokens}
 	for _, o := range options {
 		if probs[o.Name] > cls.Confidence {
 			cls.Option, cls.Confidence = o.Name, probs[o.Name]

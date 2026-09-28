@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/nyaruka/goflow/assets"
+	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/runner"
@@ -36,7 +37,7 @@ func handleClassifierCalled(ctx context.Context, rt *runtime.Runtime, oa *models
 	return nil
 }
 
-func recordLLMCall(rt *runtime.Runtime, oa *models.OrgAssets, scene *runner.Scene, ref *assets.ModelReference, elapsedMS int64, tokens events.ModelTokens) {
+func recordLLMCall(rt *runtime.Runtime, oa *models.OrgAssets, scene *runner.Scene, ref *assets.ModelReference, elapsedMS int64, tokens core.ModelTokens) {
 	llm := oa.SessionAssets().Models().Get(ref.UUID)
 	if llm != nil {
 		m := llm.Asset().(*models.LLM)

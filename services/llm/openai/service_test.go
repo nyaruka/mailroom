@@ -113,8 +113,8 @@ func TestService(t *testing.T) {
 	resp, err = svc.Response(ctx, "translate to Spanish", "Hello world", 1000)
 	assert.NoError(t, err)
 	assert.Equal(t, "Hola mundo", resp.Output)
-	assert.Equal(t, int64(36), resp.TokensInput)
-	assert.Equal(t, int64(87), resp.TokensOutput)
+	assert.Equal(t, int64(36), resp.Tokens.Input)
+	assert.Equal(t, int64(87), resp.Tokens.Output)
 }
 
 func TestClassify(t *testing.T) {
@@ -142,8 +142,8 @@ func TestClassify(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, "Hotels", cls.Option)
 	assert.InDelta(t, 0.8607, cls.Confidence, 0.0001)
-	assert.Equal(t, int64(34), cls.TokensInput)
-	assert.Equal(t, int64(2), cls.TokensOutput)
+	assert.Equal(t, int64(34), cls.Tokens.Input)
+	assert.Equal(t, int64(2), cls.Tokens.Output)
 
 	body, err := mocks.Requests()[0].GetBody()
 	require.NoError(t, err)
@@ -160,5 +160,5 @@ func TestClassify(t *testing.T) {
 	// none of the options fit
 	cls, err = svc.Classify(ctx, "What's the weather?", []*core.ClassifierOption{{Name: "Flights"}, {Name: "Hotels"}})
 	require.NoError(t, err)
-	assert.Equal(t, &core.Classification{Option: "Flights", TokensInput: 34, TokensOutput: 2}, cls)
+	assert.Equal(t, &core.Classification{Option: "Flights", Tokens: core.ModelTokens{Input: 34, Output: 2}}, cls)
 }
