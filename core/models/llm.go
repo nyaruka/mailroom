@@ -11,7 +11,6 @@ import (
 	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/core"
-	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/engine"
 	"github.com/nyaruka/goflow/test/services"
@@ -87,7 +86,7 @@ func (l *LLM) AsService(rt *runtime.Runtime) (flows.ModelService, error) {
 }
 
 // RecordCall records stats for an LLM call and returns the daily count rows to be inserted.
-func (l *LLM) RecordCall(rt *runtime.Runtime, oa *OrgAssets, elapsed time.Duration, tokens events.ModelTokens) []*LLMDailyCount {
+func (l *LLM) RecordCall(rt *runtime.Runtime, oa *OrgAssets, elapsed time.Duration, tokens core.ModelTokens) []*LLMDailyCount {
 	rt.Stats.RecordLLMCall(l.Type(), l.Model(), elapsed)
 
 	day := dates.ExtractDate(dates.Now().In(oa.Env().Timezone()))
@@ -118,7 +117,8 @@ func InsertLLMDailyCounts(ctx context.Context, tx DBorTx, counts []*LLMDailyCoun
 	return BulkQuery(ctx, "inserted llm daily counts", tx, sqlInsertLLMDailyCount, counts)
 }
 
-// loads the LLMs for the passed in org
+// loads the LLMs for the passed in org. Roles are stored as codes: T (translation), G (generation), C (classification)
+// and F which is both generation and classification.
 func loadLLMs(ctx context.Context, db *sql.DB, orgID OrgID) ([]assets.Model, error) {
 	rows, err := db.QueryContext(ctx, sqlSelectLLMs, orgID)
 	if err != nil {
@@ -131,7 +131,11 @@ func loadLLMs(ctx context.Context, db *sql.DB, orgID OrgID) ([]assets.Model, err
 const sqlSelectLLMs = `
 SELECT ROW_TO_JSON(r) FROM (
       SELECT l.id, l.uuid, l.org_id, l.llm_type, l.model, l.name, l.config, l.max_output_tokens,
-             (SELECT ARRAY(SELECT CASE r WHEN 'T' THEN 'editing' WHEN 'F' THEN 'engine' END FROM unnest(regexp_split_to_array(l.roles,'')) AS r)) AS roles
+             ARRAY_REMOVE(ARRAY[
+                 CASE WHEN l.roles ~ 'T' THEN 'translation' END,
+                 CASE WHEN l.roles ~ '[FG]' THEN 'generation' END,
+                 CASE WHEN l.roles ~ '[FC]' THEN 'classification' END
+             ], NULL) AS roles
         FROM ai_llm l
        WHERE l.org_id = $1 AND l.is_active
     ORDER BY l.created_on ASC

@@ -13,9 +13,7 @@ import (
 	"github.com/nyaruka/gocommon/i18n"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/core"
-	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/mailroom/v26/core/ai"
-	"github.com/nyaruka/mailroom/v26/core/ai/prompts"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/runtime"
 	"github.com/nyaruka/mailroom/v26/web"
@@ -83,8 +81,8 @@ func handleTranslate(ctx context.Context, rt *runtime.Runtime, r *translateReque
 	if llm == nil {
 		return nil, 0, fmt.Errorf("no such LLM with ID %d", r.LLMID)
 	}
-	if !slices.Contains(llm.Roles(), assets.ModelRoleEditing) {
-		return nil, 0, fmt.Errorf("LLM with ID %d does not support editing", r.LLMID)
+	if !slices.Contains(llm.Roles(), assets.ModelRoleTranslation) {
+		return nil, 0, fmt.Errorf("LLM with ID %d does not support translation", r.LLMID)
 	}
 
 	llmSvc, err := llm.AsService(rt)
@@ -92,26 +90,15 @@ func handleTranslate(ctx context.Context, rt *runtime.Runtime, r *translateReque
 		return nil, 0, fmt.Errorf("error creating LLM service: %w", err)
 	}
 
-	instructionsTpl := "translate"
-	if r.Source == "und" || r.Source == "mul" {
-		instructionsTpl = "translate_unknown_from"
-	}
-	instructions := prompts.Render(instructionsTpl, r)
-
-	inputBytes, err := json.Marshal(r.Items)
-	if err != nil {
-		return nil, 0, fmt.Errorf("error marshaling input: %w", err)
-	}
-
 	callCtx, cancelCall := context.WithTimeout(ctx, CallTimeout)
 	defer cancelCall()
 
 	callStart := time.Now()
-	resp, err := llmSvc.Response(callCtx, instructions, string(inputBytes), llm.MaxOutputTokens())
-	if resp == nil {
-		resp = &core.ModelResponse{}
+	trans, err := llmSvc.Translate(callCtx, r.Source, r.Target, r.Items)
+	if trans == nil {
+		trans = &core.Translation{}
 	}
-	counts := llm.RecordCall(rt, oa, time.Since(callStart), events.ModelTokens{Input: resp.TokensInput, Output: resp.TokensOutput})
+	counts := llm.RecordCall(rt, oa, time.Since(callStart), trans.Tokens)
 
 	// detach from the request context so a client-side timeout during the LLM call doesn't prevent us from recording usage someone may have paid for
 	recCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), RecordTimeout)
@@ -128,46 +115,31 @@ func handleTranslate(ctx context.Context, rt *runtime.Runtime, r *translateReque
 		if ctx.Err() != nil {
 			return nil, 0, ctx.Err()
 		}
+
+		// services which prompt a model wrap their errors as *ai.ServiceError with the prompt they sent; wrap
+		// anything else (e.g. from the test service) so the handler response is consistently a 422
+		aerr, ok := errors.AsType[*ai.ServiceError](err)
+		if !ok {
+			input, _ := json.Marshal(r.Items)
+			aerr = &ai.ServiceError{Message: err.Error(), Code: ai.ErrorUnknown, Input: string(input)}
+		}
+
 		// but if it was our deadline that expired then the LLM was too slow and that's reported like any other
 		// LLM failure
 		if errors.Is(callCtx.Err(), context.DeadlineExceeded) {
 			return nil, 0, &ai.ServiceError{
 				Message:      fmt.Sprintf("LLM took longer than %s to respond", CallTimeout),
 				Code:         ai.ErrorTimeout,
-				Instructions: instructions,
-				Input:        string(inputBytes),
+				Instructions: aerr.Instructions,
+				Input:        aerr.Input,
 			}
 		}
-		// real LLM services wrap their errors as *ai.ServiceError already; wrap anything else
-		// (e.g. from the test service) so the handler response is consistently a 422.
-		var aerr *ai.ServiceError
-		if !errors.As(err, &aerr) {
-			err = &ai.ServiceError{Message: err.Error(), Code: ai.ErrorUnknown, Instructions: instructions, Input: string(inputBytes)}
-		}
-		return nil, 0, err
+		return nil, 0, aerr
 	}
 
-	// A <CANT> response or anything unparseable means nothing was translatable;
-	// return an empty items map. The LLM can also signal per-item untranslatability
-	// by returning "<CANT>" in place of an individual string or by omitting the key
-	// entirely — either drops that whole key from the response.
-	items := make(map[string][]string)
-	if resp.Output == "<CANT>" {
-		return translateResponse{Items: items}, http.StatusOK, nil
-	}
-
-	var translated map[string][]string
-	if err := json.Unmarshal([]byte(resp.Output), &translated); err != nil {
-		slog.Warn("translate: failed to parse LLM output", "error", err, "output", resp.Output, "llm_id", r.LLMID)
-		return translateResponse{Items: items}, http.StatusOK, nil
-	}
-
-	for id, vals := range r.Items {
-		tvals, ok := translated[id]
-		if !ok || len(tvals) != len(vals) || slices.Contains(tvals, "<CANT>") {
-			continue
-		}
-		items[id] = tvals
+	items := trans.Items
+	if items == nil {
+		items = map[string][]string{}
 	}
 
 	return translateResponse{Items: items}, http.StatusOK, nil

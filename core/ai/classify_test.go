@@ -6,6 +6,7 @@ import (
 	"math"
 	"testing"
 
+	"github.com/nyaruka/gocommon/i18n"
 	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/mailroom/v26/core/ai"
 	"github.com/stretchr/testify/assert"
@@ -45,12 +46,12 @@ func TestNewClassification(t *testing.T) {
 	}
 
 	for _, tc := range tcs {
-		cls, err := ai.NewClassification(&core.ModelResponse{Output: tc.output, TokensInput: 34, TokensOutput: 5}, tc.logprobs, options)
+		cls, err := ai.NewClassification(&core.ModelResponse{Output: tc.output, Tokens: core.ModelTokens{Input: 34, Output: 5}}, tc.logprobs, options)
 		if tc.err != "" {
 			assert.EqualError(t, err, tc.err, "error mismatch for output %q", tc.output)
 			assert.Nil(t, cls)
 		} else if assert.NoError(t, err, "unexpected error for output %q", tc.output) {
-			assert.Equal(t, &core.Classification{Option: tc.option, Confidence: tc.confidence, TokensInput: 34, TokensOutput: 5}, cls, "classification mismatch for output %q", tc.output)
+			assert.Equal(t, &core.Classification{Option: tc.option, Confidence: tc.confidence, Tokens: core.ModelTokens{Input: 34, Output: 5}}, cls, "classification mismatch for output %q", tc.output)
 		}
 	}
 }
@@ -67,11 +68,15 @@ func (s *promptService) Response(ctx context.Context, instructions, input string
 	if s.err != nil {
 		return nil, s.err
 	}
-	return &core.ModelResponse{Output: s.output, TokensInput: 34, TokensOutput: 2}, nil
+	return &core.ModelResponse{Output: s.output, Tokens: core.ModelTokens{Input: 34, Output: 2}}, nil
 }
 
 func (s *promptService) Classify(ctx context.Context, input string, options []*core.ClassifierOption) (*core.Classification, error) {
 	return ai.ClassifyByPrompt(ctx, s, input, options)
+}
+
+func (s *promptService) Translate(ctx context.Context, source, target i18n.Language, items map[string][]string) (*core.Translation, error) {
+	return ai.TranslateByPrompt(ctx, s, source, target, items, 1000)
 }
 
 func TestClassifyByPrompt(t *testing.T) {
@@ -85,8 +90,7 @@ func TestClassifyByPrompt(t *testing.T) {
 		Option:        "Hotels",
 		Confidence:    0.85,
 		Probabilities: map[string]float64{"Flights": 0.1, "Hotels": 0.85, "Car Rental": 0.05},
-		TokensInput:   34,
-		TokensOutput:  2,
+		Tokens:        core.ModelTokens{Input: 34, Output: 2},
 	}, cls)
 	assert.Equal(t, `Classify the input text as one of the following options:
 

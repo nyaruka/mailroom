@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/nyaruka/gocommon/i18n"
 	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/v26/core/ai"
@@ -30,8 +31,9 @@ func init() {
 
 // an LLM service implementation for OpenAI
 type service struct {
-	client openai.Client
-	model  string
+	client          openai.Client
+	model           string
+	maxOutputTokens int
 }
 
 func New(rt *runtime.Runtime, m *models.LLM, c *http.Client) (flows.ModelService, error) {
@@ -41,8 +43,9 @@ func New(rt *runtime.Runtime, m *models.LLM, c *http.Client) (flows.ModelService
 	}
 
 	return &service{
-		client: openai.NewClient(option.WithAPIKey(apiKey), option.WithHTTPClient(c)),
-		model:  m.Model(),
+		client:          openai.NewClient(option.WithAPIKey(apiKey), option.WithHTTPClient(c)),
+		model:           m.Model(),
+		maxOutputTokens: m.MaxOutputTokens(),
 	}, nil
 }
 
@@ -58,6 +61,10 @@ func (s *service) Classify(ctx context.Context, input string, options []*core.Cl
 	}
 
 	return ai.NewClassification(resp, logprobs, options)
+}
+
+func (s *service) Translate(ctx context.Context, source, target i18n.Language, items map[string][]string) (*core.Translation, error) {
+	return ai.TranslateByPrompt(ctx, s, source, target, items, s.maxOutputTokens)
 }
 
 // generates a response, optionally with the logprobs of its output tokens
@@ -90,9 +97,8 @@ func (s *service) respond(ctx context.Context, instructions, input string, maxTo
 	}
 
 	return &core.ModelResponse{
-		Output:       strings.TrimSpace(resp.OutputText()),
-		TokensInput:  resp.Usage.InputTokens,
-		TokensOutput: resp.Usage.OutputTokens,
+		Output: strings.TrimSpace(resp.OutputText()),
+		Tokens: core.ModelTokens{Input: resp.Usage.InputTokens, Output: resp.Usage.OutputTokens},
 	}, logprobs, nil
 }
 

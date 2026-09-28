@@ -9,6 +9,7 @@ import (
 
 	"github.com/anthropics/anthropic-sdk-go"
 	"github.com/anthropics/anthropic-sdk-go/option"
+	"github.com/nyaruka/gocommon/i18n"
 	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/v26/core/ai"
@@ -35,8 +36,9 @@ func init() {
 
 // an LLM service implementation for Anthropic
 type service struct {
-	client anthropic.Client
-	model  string
+	client          anthropic.Client
+	model           string
+	maxOutputTokens int
 }
 
 func New(rt *runtime.Runtime, m *models.LLM, c *http.Client) (flows.ModelService, error) {
@@ -46,8 +48,9 @@ func New(rt *runtime.Runtime, m *models.LLM, c *http.Client) (flows.ModelService
 	}
 
 	return &service{
-		client: anthropic.NewClient(option.WithAPIKey(apiKey), option.WithHTTPClient(c)),
-		model:  m.Model(),
+		client:          anthropic.NewClient(option.WithAPIKey(apiKey), option.WithHTTPClient(c)),
+		model:           m.Model(),
+		maxOutputTokens: m.MaxOutputTokens(),
 	}, nil
 }
 
@@ -86,14 +89,17 @@ func (s *service) Response(ctx context.Context, instructions, input string, maxT
 	}
 
 	return &core.ModelResponse{
-		Output:       s.cleanOutput(output.String()),
-		TokensInput:  resp.Usage.InputTokens,
-		TokensOutput: resp.Usage.OutputTokens,
+		Output: s.cleanOutput(output.String()),
+		Tokens: core.ModelTokens{Input: resp.Usage.InputTokens, Output: resp.Usage.OutputTokens},
 	}, nil
 }
 
 func (s *service) Classify(ctx context.Context, input string, options []*core.ClassifierOption) (*core.Classification, error) {
 	return ai.ClassifyByPrompt(ctx, s, input, options)
+}
+
+func (s *service) Translate(ctx context.Context, source, target i18n.Language, items map[string][]string) (*core.Translation, error) {
+	return ai.TranslateByPrompt(ctx, s, source, target, items, s.maxOutputTokens)
 }
 
 func (s *service) error(err error, instructions, input string) error {

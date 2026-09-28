@@ -124,9 +124,9 @@ func TestClassify(t *testing.T) {
 
 	cls, err := svc.Classify(ctx, "I need a room", []*core.ClassifierOption{{Name: "Flights"}, {Name: "Hotels"}})
 	require.NoError(t, err)
-	assert.Equal(t, &core.Classification{Option: "Hotels", Confidence: 0.85, Probabilities: map[string]float64{"Flights": 0.1, "Hotels": 0.85}, TokensInput: 34, TokensOutput: 2}, cls)
+	assert.Equal(t, &core.Classification{Option: "Hotels", Confidence: 0.85, Probabilities: map[string]float64{"Flights": 0.1, "Hotels": 0.85}, Tokens: core.ModelTokens{Input: 34, Output: 2}}, cls)
 
 	cls, err = svc.Classify(ctx, "What's the weather?", []*core.ClassifierOption{{Name: "Flights"}, {Name: "Hotels"}})
 	require.NoError(t, err)
-	assert.Equal(t, &core.Classification{Option: "Flights", Probabilities: map[string]float64{"Flights": 0, "Hotels": 0}, TokensInput: 34, TokensOutput: 2}, cls)
+	assert.Equal(t, &core.Classification{Option: "Flights", Probabilities: map[string]float64{"Flights": 0, "Hotels": 0}, Tokens: core.ModelTokens{Input: 34, Output: 2}}, cls)
 }
