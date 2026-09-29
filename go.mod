@@ -5,7 +5,7 @@ go 1.27.0
 require (
 	firebase.google.com/go/v4 v4.21.0
 	github.com/Masterminds/semver/v3 v3.5.0
-	github.com/anthropics/anthropic-sdk-go v1.61.0
+	github.com/anthropics/anthropic-sdk-go v1.76.0
 	github.com/appleboy/go-fcm v1.2.11
 	github.com/aws/aws-sdk-go-v2 v1.43.4
 	github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue v1.20.59
