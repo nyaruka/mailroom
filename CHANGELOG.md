@@ -1,3 +1,9 @@
+## v26.3.82 (2026-09-29)
+ * Update to goflow v0.295.2 which adds the 14.6.0 flow migration
+ * Update test database dump for new contact email fields
+ * Lease popped tasks so slots held by dead workers are released
+ * Vendor the fair queue implementation into utils/queues
+
 ## v26.3.81 (2026-09-29)
  * Update to goflow v0.295.1
 
