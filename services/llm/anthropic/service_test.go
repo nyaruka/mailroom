@@ -63,6 +63,7 @@ func TestThinking(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
 	sonnet5 := testdb.InsertLLM(t, rt, testdb.Org1, "b86966fd-206e-4bdd-a962-06faa3af1182", "anthropic", "claude-sonnet-5", "Sonnet 5", map[string]any{"api_key": "sesame"}, "TGC")
+	sonnet55 := testdb.InsertLLM(t, rt, testdb.Org1, "5c0e7d2a-9b3f-4a61-8e2d-7f4b1c6a9e53", "anthropic", "claude-sonnet-5-5", "Sonnet 5.5", map[string]any{"api_key": "sesame"}, "TGC")
 	opus55 := testdb.InsertLLM(t, rt, testdb.Org1, "2f5a1b56-6f4c-4c67-8d0f-1f2e9a3b7c41", "anthropic", "claude-opus-5-5", "Opus 5.5", map[string]any{"api_key": "sesame"}, "TGC")
 	oa := testdb.Org1.Load(t, rt)
 
@@ -70,10 +71,11 @@ func TestThinking(t *testing.T) {
 
 	tcs := []struct {
 		llm      *testdb.LLM
-		disabled bool
+		thinking string
 	}{
-		{sonnet5, true}, // thinks by default so we disable it
-		{opus55, false}, // can't disable thinking so we leave it alone
+		{sonnet5, `{"type":"disabled"}`},       // thinks by default so we disable it
+		{sonnet55, `{"type":"between_tools"}`}, // rejects disabled so we use between_tools
+		{opus55, ""},                           // can't disable thinking so we leave it alone
 	}
 
 	for _, tc := range tcs {
@@ -94,8 +96,8 @@ func TestThinking(t *testing.T) {
 		reqBody, err := io.ReadAll(body)
 		require.NoError(t, err)
 
-		if tc.disabled {
-			assert.Contains(t, string(reqBody), `"thinking":{"type":"disabled"}`)
+		if tc.thinking != "" {
+			assert.Contains(t, string(reqBody), `"thinking":`+tc.thinking)
 		} else {
 			assert.NotContains(t, string(reqBody), `"thinking"`)
 		}

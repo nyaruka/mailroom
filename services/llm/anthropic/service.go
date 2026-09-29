@@ -23,11 +23,13 @@ const (
 	configAPIKey = "api_key"
 )
 
-// models which think by default but accept thinking being disabled. Later models don't allow disabling thinking
-// at all and earlier models don't think unless asked to.
-var thinksByDefault = map[string]bool{
-	"claude-opus-5":   true,
-	"claude-sonnet-5": true,
+// how to turn off thinking for models which think by default. Thinking adds latency and its tokens count against
+// MaxTokens, which can truncate what are short responses. Models not listed either don't think unless asked to or
+// don't allow thinking to be turned off.
+var thinkingOff = map[string]anthropic.ThinkingConfigParamUnion{
+	"claude-opus-5":     {OfDisabled: &anthropic.ThinkingConfigDisabledParam{}},
+	"claude-sonnet-5":   {OfDisabled: &anthropic.ThinkingConfigDisabledParam{}},
+	"claude-sonnet-5-5": {OfBetweenTools: &anthropic.ThinkingConfigBetweenToolsParam{}},
 }
 
 func init() {
@@ -71,9 +73,8 @@ func (s *service) Response(ctx context.Context, instructions, input string, maxT
 		MaxTokens: int64(maxTokens),
 	}
 
-	// thinking adds latency and its tokens count against MaxTokens, which can truncate what are short responses
-	if thinksByDefault[s.model] {
-		params.Thinking = anthropic.ThinkingConfigParamUnion{OfDisabled: &anthropic.ThinkingConfigDisabledParam{}}
+	if thinking, ok := thinkingOff[s.model]; ok {
+		params.Thinking = thinking
 	}
 
 	resp, err := s.client.Messages.New(ctx, params)
