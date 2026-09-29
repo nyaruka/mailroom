@@ -8,18 +8,17 @@ import (
 	valkey "github.com/gomodule/redigo/redis"
 	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/jsonx"
-	"github.com/nyaruka/gocommon/queues"
 )
 
 type FairV2 struct {
 	name string
-	base *queues.FairV2
+	base *fair
 }
 
 func NewFair(name string, maxActivePerOwner int) *FairV2 {
 	return &FairV2{
 		name: name,
-		base: queues.NewFairV2(fmt.Sprintf("tasks:%s", name), maxActivePerOwner),
+		base: newFair(fmt.Sprintf("tasks:%s", name), maxActivePerOwner),
 	}
 }
 
@@ -27,17 +26,17 @@ func (q *FairV2) String() string {
 	return q.name
 }
 
-func (q *FairV2) Push(ctx context.Context, vc valkey.Conn, taskType string, ownerID int, task any, priority bool) (queues.TaskID, error) {
+func (q *FairV2) Push(ctx context.Context, vc valkey.Conn, taskType string, ownerID int, task any, priority bool) (TaskID, error) {
 	taskJSON := jsonx.MustMarshal(task)
 
 	wrapper := &Task{Type: taskType, OwnerID: ownerID, Task: taskJSON, QueuedOn: dates.Now()}
 	raw := jsonx.MustMarshal(wrapper)
 
-	return q.base.Push(ctx, vc, queues.OwnerID(fmt.Sprint(ownerID)), priority, raw)
+	return q.base.push(ctx, vc, OwnerID(fmt.Sprint(ownerID)), priority, raw)
 }
 
 func (q *FairV2) Pop(ctx context.Context, vc valkey.Conn) (*Task, error) {
-	taskID, ownerID, raw, err := q.base.Pop(ctx, vc)
+	taskID, ownerID, raw, err := q.base.pop(ctx, vc)
 	if err != nil {
 		return nil, fmt.Errorf("error popping task: %w", err)
 	}
@@ -58,11 +57,11 @@ func (q *FairV2) Pop(ctx context.Context, vc valkey.Conn) (*Task, error) {
 }
 
 func (q *FairV2) Done(ctx context.Context, vc valkey.Conn, ownerID int) error {
-	return q.base.Done(ctx, vc, queues.OwnerID(fmt.Sprint(ownerID)))
+	return q.base.done(ctx, vc, OwnerID(fmt.Sprint(ownerID)))
 }
 
 func (q *FairV2) Queued(ctx context.Context, vc valkey.Conn) ([]int, error) {
-	strs, err := q.base.Queued(ctx, vc)
+	strs, err := q.base.queued(ctx, vc)
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +76,7 @@ func (q *FairV2) Queued(ctx context.Context, vc valkey.Conn) ([]int, error) {
 }
 
 func (q *FairV2) Paused(ctx context.Context, vc valkey.Conn) ([]int, error) {
-	strs, err := q.base.Paused(ctx, vc)
+	strs, err := q.base.paused(ctx, vc)
 	if err != nil {
 		return nil, err
 	}
@@ -92,14 +91,14 @@ func (q *FairV2) Paused(ctx context.Context, vc valkey.Conn) ([]int, error) {
 }
 
 func (q *FairV2) Size(ctx context.Context, vc valkey.Conn) (int, error) {
-	owners, err := q.base.Queued(ctx, vc)
+	owners, err := q.base.queued(ctx, vc)
 	if err != nil {
 		return 0, fmt.Errorf("error getting queued task owners: %w", err)
 	}
 
 	total := 0
 	for _, owner := range owners {
-		size, err := q.base.Size(ctx, vc, owner)
+		size, err := q.base.size(ctx, vc, owner)
 		if err != nil {
 			return 0, fmt.Errorf("error getting size for owner %s: %w", owner, err)
 		}
@@ -110,15 +109,15 @@ func (q *FairV2) Size(ctx context.Context, vc valkey.Conn) (int, error) {
 }
 
 func (q *FairV2) Pause(ctx context.Context, vc valkey.Conn, ownerID int) error {
-	return q.base.Pause(ctx, vc, queues.OwnerID(fmt.Sprint(ownerID)))
+	return q.base.pause(ctx, vc, OwnerID(fmt.Sprint(ownerID)))
 }
 
 func (q *FairV2) Resume(ctx context.Context, vc valkey.Conn, ownerID int) error {
-	return q.base.Resume(ctx, vc, queues.OwnerID(fmt.Sprint(ownerID)))
+	return q.base.resume(ctx, vc, OwnerID(fmt.Sprint(ownerID)))
 }
 
 func (q *FairV2) Dump(ctx context.Context, vc valkey.Conn) ([]byte, error) {
-	return q.base.Dump(ctx, vc)
+	return q.base.dump(ctx, vc)
 }
 
 var _ Fair = (*FairV2)(nil)

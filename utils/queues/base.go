@@ -6,15 +6,14 @@ import (
 	"time"
 
 	valkey "github.com/gomodule/redigo/redis"
-	"github.com/nyaruka/gocommon/queues"
 )
 
 // TaskID is the unique ID assigned to a task when it's pushed
-type TaskID = queues.TaskID
+type TaskID string
 
 // Task is a wrapper for encoding a task
 type Task struct {
-	ID         queues.TaskID   `json:"-"`
+	ID         TaskID          `json:"-"`
 	OwnerID    int             `json:"-"`
 	Type       string          `json:"type"`
 	Task       json.RawMessage `json:"task"`
@@ -24,7 +23,7 @@ type Task struct {
 
 // Fair is a queue that supports fair distribution of tasks between owners
 type Fair interface {
-	Push(ctx context.Context, vc valkey.Conn, taskType string, ownerID int, task any, priority bool) (queues.TaskID, error)
+	Push(ctx context.Context, vc valkey.Conn, taskType string, ownerID int, task any, priority bool) (TaskID, error)
 	Pop(ctx context.Context, vc valkey.Conn) (*Task, error)
 	Done(ctx context.Context, vc valkey.Conn, ownerID int) error
 	Pause(ctx context.Context, vc valkey.Conn, ownerID int) error
