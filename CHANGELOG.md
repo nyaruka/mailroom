@@ -1,3 +1,6 @@
+## v26.3.84 (2026-09-29)
+ * Parse translate output wrapped in code fences
+
 ## v26.3.83 (2026-09-29)
  * Turn off thinking on Claude Sonnet 5.5 with between_tools
 
