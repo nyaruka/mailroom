@@ -26,6 +26,10 @@ func TestTranslateByPrompt(t *testing.T) {
 			output:   `{"a:text": ["Hola"], "a:quick_replies": ["Sí"], "b:arguments": ["<CANT>"], "c:text": ["Adiós"]}`,
 			expected: map[string][]string{"a:text": {"Hola"}},
 		},
+		{ // wrapped in a code fence
+			output:   "```json\n{\"a:text\": [\"Hola\"]}\n```",
+			expected: map[string][]string{"a:text": {"Hola"}},
+		},
 		{output: `<CANT>`, expected: map[string][]string{}},
 		{output: `not JSON`, expected: map[string][]string{}},
 	}
