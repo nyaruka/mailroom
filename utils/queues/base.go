@@ -25,7 +25,7 @@ type Task struct {
 type Fair interface {
 	Push(ctx context.Context, vc valkey.Conn, taskType string, ownerID int, task any, priority bool) (TaskID, error)
 	Pop(ctx context.Context, vc valkey.Conn) (*Task, error)
-	Done(ctx context.Context, vc valkey.Conn, ownerID int) error
+	Done(ctx context.Context, vc valkey.Conn, task *Task) error
 	Pause(ctx context.Context, vc valkey.Conn, ownerID int) error
 	Resume(ctx context.Context, vc valkey.Conn, ownerID int) error
 	Queued(ctx context.Context, vc valkey.Conn) ([]int, error)

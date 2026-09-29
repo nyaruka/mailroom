@@ -30,7 +30,7 @@ func TestFair(t *testing.T) {
 	}
 	defer func() { newTaskID = defaultNewTaskID }()
 
-	q := newFair("test", 3)
+	q := newFair("test", 3, time.Minute)
 
 	assertQueued := func(expected map[OwnerID]int) {
 		actualStrings, err := valkey.StringMap(vc.Do("ZRANGE", "{test}:queued", 0, -1, "WITHSCORES"))
@@ -63,6 +63,20 @@ func TestFair(t *testing.T) {
 		assert.Equal(t, expected, actual)
 	}
 
+	assertLeases := func(expected map[TaskID]OwnerID) {
+		actual, err := valkey.StringMap(vc.Do("HGETALL", "{test}:leases"))
+		require.NoError(t, err)
+
+		expectedStrs := make(map[string]string, len(expected))
+		for id, owner := range expected {
+			expectedStrs[string(id)] = string(owner)
+		}
+		assert.Equal(t, expectedStrs, actual)
+
+		// and every lease has an expiry
+		assertvk.ZCard(t, vc, "{test}:expires", len(expected))
+	}
+
 	assertTasks := func(owner OwnerID, expected0, expected1 []string) {
 		actual0, err := valkey.Strings(vc.Do("LRANGE", "{test}:o:"+owner+"/0", 0, -1))
 		require.NoError(t, err)
@@ -88,7 +102,7 @@ func TestFair(t *testing.T) {
 	assertActive(map[OwnerID]int{})
 	assertTasks("owner1", []string{}, []string{})
 	assertTasks("owner2", []string{}, []string{})
-	assertDump(`{"queued": {}, "active": {}, "paused": {}}`)
+	assertDump(`{"queued": {}, "active": {}, "paused": {}, "leased": {}}`)
 
 	task1UUID := assertPush(t, q, vc, "owner1", false, []byte(`task1`))
 	task2UUID := assertPush(t, q, vc, "owner1", true, []byte(`task2`))
@@ -115,11 +129,13 @@ func TestFair(t *testing.T) {
 	assertActive(map[OwnerID]int{"owner1": 2, "owner2": 1})
 	assertTasks("owner1", []string{"01980000-0000-7000-8000-000000000004|task4"}, []string{})
 	assertTasks("owner2", []string{"01980000-0000-7000-8000-000000000003|task3"}, []string{})
-	assertDump(`{"queued": {"owner1": 1, "owner2": 1}, "active": {"owner1": 2, "owner2": 1}, "paused": {}}`)
+	assertLeases(map[TaskID]OwnerID{task2UUID: "owner1", task5UUID: "owner2", task1UUID: "owner1"})
+	assertDump(`{"queued": {"owner1": 1, "owner2": 1}, "active": {"owner1": 2, "owner2": 1}, "paused": {}, "leased": {"owner1": 2, "owner2": 1}}`)
 
 	// mark task2 and task1 (owner1) as complete
-	q.done(ctx, vc, "owner1")
-	q.done(ctx, vc, "owner1")
+	assertDone(t, q, vc, task2UUID, true)
+	assertDone(t, q, vc, task1UUID, true)
+	assertLeases(map[TaskID]OwnerID{task5UUID: "owner2"})
 
 	assertQueued(map[OwnerID]int{"owner1": 1, "owner2": 1})
 	assertActive(map[OwnerID]int{"owner2": 1})
@@ -140,9 +156,10 @@ func TestFair(t *testing.T) {
 	assertActive(map[OwnerID]int{"owner1": 1, "owner2": 2})
 
 	// mark remaining tasks as complete
-	q.done(ctx, vc, "owner1")
-	q.done(ctx, vc, "owner2")
-	q.done(ctx, vc, "owner2")
+	assertDone(t, q, vc, task4UUID, true)
+	assertDone(t, q, vc, task3UUID, true)
+	assertDone(t, q, vc, task5UUID, true)
+	assertLeases(map[TaskID]OwnerID{})
 
 	assertQueued(map[OwnerID]int{})
 	assertActive(map[OwnerID]int{})
@@ -159,7 +176,7 @@ func TestFair(t *testing.T) {
 
 	assertQueued(map[OwnerID]int{"owner1": 1, "owner2": 2})
 	assertActive(map[OwnerID]int{"owner1": 1})
-	assertDump(`{"queued": {"owner1": 1, "owner2": 2}, "active": {"owner1": 1}, "paused": {"owner1": 1}}`)
+	assertDump(`{"queued": {"owner1": 1, "owner2": 2}, "active": {"owner1": 1}, "paused": {"owner1": 1}, "leased": {"owner1": 1}}`)
 
 	paused, err := q.paused(ctx, vc)
 	assert.NoError(t, err)
@@ -181,10 +198,10 @@ func TestFair(t *testing.T) {
 
 	assertPop(t, q, vc, task7UUID, "owner1", "task7")
 
-	q.done(ctx, vc, "owner1")
-	q.done(ctx, vc, "owner1")
-	q.done(ctx, vc, "owner2")
-	q.done(ctx, vc, "owner2")
+	assertDone(t, q, vc, task6UUID, true)
+	assertDone(t, q, vc, task7UUID, true)
+	assertDone(t, q, vc, task8UUID, true)
+	assertDone(t, q, vc, task9UUID, true)
 
 	assertQueued(map[OwnerID]int{})
 	assertActive(map[OwnerID]int{})
@@ -206,11 +223,12 @@ func TestFair(t *testing.T) {
 	assertQueued(map[OwnerID]int{})
 	assertActive(map[OwnerID]int{"owner2": 1})
 
-	// if we somehow call done too many times, we never get negative workers
-	q.done(ctx, vc, "owner2")
-	q.done(ctx, vc, "owner2")
+	// marking a task done more than once is a no-op
+	assertDone(t, q, vc, task11UUID, true)
+	assertDone(t, q, vc, task11UUID, false)
 
 	assertActive(map[OwnerID]int{})
+	assertLeases(map[TaskID]OwnerID{})
 }
 
 func TestFairTaskPayloads(t *testing.T) {
@@ -218,7 +236,7 @@ func TestFairTaskPayloads(t *testing.T) {
 	vc := vp.Get()
 	defer vc.Close()
 
-	q := newFair("test", 2)
+	q := newFair("test", 2, time.Minute)
 
 	task1UUID := assertPush(t, q, vc, "owner1", true, []byte(`{"foo": "|"}`))
 	task2UUID := assertPush(t, q, vc, "owner1", true, []byte(`task2`))
@@ -228,12 +246,11 @@ func TestFairTaskPayloads(t *testing.T) {
 }
 
 func TestFairMaxActivePerOwner(t *testing.T) {
-	ctx := t.Context()
 	vp := assertvk.ClaimDB(t).Pool()
 	vc := vp.Get()
 	defer vc.Close()
 
-	q := newFair("test", 2)
+	q := newFair("test", 2, time.Minute)
 
 	task1UUID := assertPush(t, q, vc, "owner1", false, []byte(`task1`))
 	task2UUID := assertPush(t, q, vc, "owner1", true, []byte(`task2`))
@@ -243,9 +260,56 @@ func TestFairMaxActivePerOwner(t *testing.T) {
 	assertPop(t, q, vc, task1UUID, "owner1", "task1")
 	assertPop(t, q, vc, "", "", "") // owner1 has reached max active tasks
 
-	q.done(ctx, vc, "owner1")
+	assertDone(t, q, vc, task2UUID, true)
 
 	assertPop(t, q, vc, task3UUID, "owner1", "task3") // now we can pop task3
+}
+
+func TestFairLeaseExpiry(t *testing.T) {
+	ctx := t.Context()
+	vp := assertvk.ClaimDB(t).Pool()
+	vc := vp.Get()
+	defer vc.Close()
+
+	q := newFair("test", 1, 200*time.Millisecond)
+
+	task1UUID := assertPush(t, q, vc, "owner1", false, []byte(`task1`))
+	task2UUID := assertPush(t, q, vc, "owner1", false, []byte(`task2`))
+	task3UUID := assertPush(t, q, vc, "owner1", false, []byte(`task3`))
+
+	assertPop(t, q, vc, task1UUID, "owner1", "task1")
+	assertPop(t, q, vc, "", "", "") // owner1 has reached max active tasks
+
+	// consumer of task1 dies without marking it done.. once its lease expires, a pop releases its slot
+	time.Sleep(250 * time.Millisecond)
+
+	id, owner, task, expired, err := q.pop(ctx, vc)
+	require.NoError(t, err)
+	assert.Equal(t, task2UUID, id)
+	assert.Equal(t, OwnerID("owner1"), owner)
+	assert.Equal(t, "task2", string(task))
+	assert.Equal(t, []expiredLease{{ID: task1UUID, Owner: "owner1"}}, expired)
+
+	assertvk.ZGetAll(t, vc, "{test}:active", map[string]float64{"owner1": 1})
+	assertvk.HGetAll(t, vc, "{test}:leases", map[string]string{string(task2UUID): "owner1"})
+
+	// the consumer of task1 was actually just slow.. marking it done now is a no-op
+	assertDone(t, q, vc, task1UUID, false)
+	assertvk.ZGetAll(t, vc, "{test}:active", map[string]float64{"owner1": 1})
+
+	// a lease expiring doesn't require there to be a task to pop
+	assertDone(t, q, vc, task2UUID, true)
+	assertPop(t, q, vc, task3UUID, "owner1", "task3")
+	time.Sleep(250 * time.Millisecond)
+
+	id, _, _, expired, err = q.pop(ctx, vc)
+	require.NoError(t, err)
+	assert.Equal(t, TaskID(""), id)
+	assert.Equal(t, []expiredLease{{ID: task3UUID, Owner: "owner1"}}, expired)
+
+	assertvk.ZGetAll(t, vc, "{test}:active", map[string]float64{})
+	assertvk.HLen(t, vc, "{test}:leases", 0)
+	assertvk.ZCard(t, vc, "{test}:expires", 0)
 }
 
 func TestFairConcurrency(t *testing.T) {
@@ -254,7 +318,7 @@ func TestFairConcurrency(t *testing.T) {
 	vc := vp.Get()
 	defer vc.Close()
 
-	q := newFair("test", 5) // one owner can only occupy 5 of the 10 consumers at a time
+	q := newFair("test", 5, time.Minute) // one owner can only occupy 5 of the 10 consumers at a time
 
 	type ownerAndTask struct {
 		owner OwnerID
@@ -314,14 +378,15 @@ func TestFairConcurrency(t *testing.T) {
 			defer vc.Close()
 
 			for {
-				_, owner, task, err := q.pop(ctx, vc)
+				id, owner, task, _, err := q.pop(ctx, vc)
 				assert.NoError(t, err, "Consumer %d failed to pop task", i)
 
-				if task != nil {
+				if id != "" {
 					time.Sleep(time.Duration(rand.IntN(5)) * time.Millisecond)
 
-					err = q.done(ctx, vc, owner)
+					released, err := q.done(ctx, vc, id)
 					assert.NoError(t, err, "Consumer %d failed to mark task done", i)
+					assert.True(t, released, "Consumer %d found task %s already released", i, id)
 
 					recordTaskProcessed(owner, string(task))
 				}
@@ -346,11 +411,89 @@ func TestFairConcurrency(t *testing.T) {
 
 	assertvk.ZGetAll(t, vc, "{test}:queued", map[string]float64{})
 	assertvk.ZGetAll(t, vc, "{test}:active", map[string]float64{})
+	assertvk.HLen(t, vc, "{test}:leases", 0)
+	assertvk.ZCard(t, vc, "{test}:expires", 0)
 
 	for i := range 5 {
 		assertvk.LGetAll(t, vc, fmt.Sprintf("{test}:o:owner%d/0", i+1), []string{})
 		assertvk.LGetAll(t, vc, fmt.Sprintf("{test}:o:owner%d/1", i+1), []string{})
 	}
+}
+
+func TestFairConcurrencyWithDeaths(t *testing.T) {
+	ctx := t.Context()
+	vp := assertvk.ClaimDB(t).Pool()
+	vc := vp.Get()
+	defer vc.Close()
+
+	// short lease (real time) so slots of tasks abandoned by dead consumers are released quickly
+	q := newFair("test", 3, 300*time.Millisecond)
+
+	numTasks := 300
+	for range numTasks {
+		owner := OwnerID(fmt.Sprintf("owner%d", rand.IntN(3)+1))
+		_, err := q.push(ctx, vc, owner, false, []byte(string(uuids.NewV7())))
+		require.NoError(t, err)
+	}
+
+	var wg sync.WaitGroup
+	var mutex sync.Mutex
+	popped, abandoned := 0, 0
+
+	// start 10 consumers which "die" on ~20% of tasks, i.e. never mark them done
+	for i := range 10 {
+		wg.Go(func() {
+			vc := vp.Get()
+			defer vc.Close()
+
+			for {
+				id, _, _, _, err := q.pop(ctx, vc)
+				assert.NoError(t, err, "Consumer %d failed to pop task", i)
+
+				mutex.Lock()
+				if id != "" {
+					popped++
+				}
+				allPopped := popped >= numTasks
+				mutex.Unlock()
+
+				if id != "" {
+					if rand.IntN(5) == 0 {
+						mutex.Lock()
+						abandoned++
+						mutex.Unlock()
+					} else {
+						_, err := q.done(ctx, vc, id)
+						assert.NoError(t, err, "Consumer %d failed to mark task done", i)
+					}
+				}
+
+				if allPopped {
+					return
+				}
+				time.Sleep(time.Millisecond)
+			}
+		})
+	}
+
+	wg.Wait()
+
+	assert.Equal(t, numTasks, popped)
+	assert.Greater(t, abandoned, 0)
+
+	// once remaining leases expire, the next pop releases every slot still held by abandoned tasks
+	time.Sleep(350 * time.Millisecond)
+
+	for range numTasks / reapLimit {
+		id, _, _, _, err := q.pop(ctx, vc)
+		require.NoError(t, err)
+		assert.Equal(t, TaskID(""), id)
+	}
+
+	assertvk.ZGetAll(t, vc, "{test}:queued", map[string]float64{})
+	assertvk.ZGetAll(t, vc, "{test}:active", map[string]float64{})
+	assertvk.HLen(t, vc, "{test}:leases", 0)
+	assertvk.ZCard(t, vc, "{test}:expires", 0)
 }
 
 // assertPush is a helper function that asserts the result of a Push operation
@@ -362,17 +505,23 @@ func assertPush(t *testing.T, q *fair, vc valkey.Conn, owner OwnerID, priority b
 	return id
 }
 
-// assertPop is a helper function that asserts the result of a Pop operation
+// assertPop is a helper function that asserts the result of a pop operation
 func assertPop(t *testing.T, q *fair, vc valkey.Conn, expectedID TaskID, expectedOwner OwnerID, expectedTask string) {
-	ctx := t.Context()
-
-	uuid, owner, task, err := q.pop(ctx, vc)
+	id, owner, task, _, err := q.pop(t.Context(), vc)
 	require.NoError(t, err)
 	if expectedTask != "" {
-		assert.Equal(t, expectedID, uuid)
+		assert.Equal(t, expectedID, id)
 		assert.Equal(t, expectedOwner, owner)
 		assert.Equal(t, expectedTask, string(task))
 	} else {
+		assert.Equal(t, TaskID(""), id)
 		assert.Nil(t, task)
 	}
+}
+
+// assertDone is a helper function that asserts the result of a done operation
+func assertDone(t *testing.T, q *fair, vc valkey.Conn, id TaskID, expectedReleased bool) {
+	released, err := q.done(t.Context(), vc, id)
+	require.NoError(t, err)
+	assert.Equal(t, expectedReleased, released, "released mismatch for task %s", id)
 }

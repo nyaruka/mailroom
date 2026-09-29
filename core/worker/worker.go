@@ -179,7 +179,7 @@ func (w *Worker) handleTask(task *queues.Task) {
 
 		// mark our task as complete
 		vc := w.foreman.rt.VK.Get()
-		err := w.foreman.queue.Done(context.TODO(), vc, task.OwnerID)
+		err := w.foreman.queue.Done(context.TODO(), vc, task)
 		if err != nil {
 			log.Error("unable to mark task as complete", "error", err)
 		}

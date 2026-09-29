@@ -8,6 +8,7 @@ import (
 	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/mailroom/v26/testsuite"
 	"github.com/nyaruka/mailroom/v26/utils/queues"
+	"github.com/nyaruka/vkutil/assertvk"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -20,10 +21,10 @@ func TestFairV2(t *testing.T) {
 	dates.SetNowFunc(dates.NewSequentialNow(time.Date(2022, 1, 1, 12, 1, 2, 123456789, time.UTC), time.Second))
 	defer dates.SetNowFunc(time.Now)
 
-	var q queues.Fair = queues.NewFair("test", 10)
+	var q queues.Fair = queues.NewFair("test", 10, time.Minute)
 	assert.Equal(t, "test", fmt.Sprint(q))
 
-	assertPop := func(expectedOwnerID int, expectedBody string) {
+	assertPop := func(expectedOwnerID int, expectedBody string) *queues.Task {
 		task, err := q.Pop(ctx, vc)
 		require.NoError(t, err)
 		if expectedBody != "" {
@@ -32,6 +33,7 @@ func TestFairV2(t *testing.T) {
 		} else {
 			assert.Nil(t, task)
 		}
+		return task
 	}
 
 	assertSize := func(expecting int) {
@@ -56,19 +58,19 @@ func TestFairV2(t *testing.T) {
 
 	assertSize(5)
 
-	assertPop(1, `"task2"`) // because it's highest priority for owner 1
-	assertPop(2, `"task5"`) // because it's highest priority for owner 2
-	assertPop(1, `"task1"`)
+	task2 := assertPop(1, `"task2"`) // because it's highest priority for owner 1
+	task5 := assertPop(2, `"task5"`) // because it's highest priority for owner 2
+	task1 := assertPop(1, `"task1"`)
 
 	assertOwners([]int{1, 2})
 	assertSize(2)
 
 	// mark task2 and task1 (owner 1) as complete
-	q.Done(ctx, vc, 1)
-	q.Done(ctx, vc, 1)
+	assert.NoError(t, q.Done(ctx, vc, task2))
+	assert.NoError(t, q.Done(ctx, vc, task1))
 
-	assertPop(1, `"task4"`)
-	assertPop(2, `"task3"`)
+	task4 := assertPop(1, `"task4"`)
+	task3 := assertPop(2, `"task3"`)
 	assertPop(0, "") // no more tasks
 
 	assertSize(0)
@@ -78,15 +80,15 @@ func TestFairV2(t *testing.T) {
 	q.Push(ctx, vc, "type1", 2, "task8", false)
 	q.Push(ctx, vc, "type1", 2, "task9", false)
 
-	assertPop(1, `"task6"`)
+	task6 := assertPop(1, `"task6"`)
 
 	q.Pause(ctx, vc, 1)
 	q.Pause(ctx, vc, 1) // no-op if already paused
 
 	assertOwners([]int{1, 2})
 
-	assertPop(2, `"task8"`)
-	assertPop(2, `"task9"`)
+	task8 := assertPop(2, `"task8"`)
+	task9 := assertPop(2, `"task9"`)
 	assertPop(0, "") // no more tasks
 
 	q.Resume(ctx, vc, 1)
@@ -94,10 +96,12 @@ func TestFairV2(t *testing.T) {
 
 	assertOwners([]int{1})
 
-	assertPop(1, `"task7"`)
+	task7 := assertPop(1, `"task7"`)
 
-	q.Done(ctx, vc, 1)
-	q.Done(ctx, vc, 1)
-	q.Done(ctx, vc, 2)
-	q.Done(ctx, vc, 2)
+	for _, task := range []*queues.Task{task3, task4, task5, task6, task7, task8, task9} {
+		assert.NoError(t, q.Done(ctx, vc, task))
+	}
+
+	assertvk.ZGetAll(t, vc, "{tasks:test}:active", map[string]float64{})
+	assertvk.HLen(t, vc, "{tasks:test}:leases", 0)
 }

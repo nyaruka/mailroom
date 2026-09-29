@@ -3,7 +3,9 @@ package queues
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"strconv"
+	"time"
 
 	valkey "github.com/gomodule/redigo/redis"
 	"github.com/nyaruka/gocommon/dates"
@@ -15,10 +17,10 @@ type FairV2 struct {
 	base *fair
 }
 
-func NewFair(name string, maxActivePerOwner int) *FairV2 {
+func NewFair(name string, maxActivePerOwner int, lease time.Duration) *FairV2 {
 	return &FairV2{
 		name: name,
-		base: newFair(fmt.Sprintf("tasks:%s", name), maxActivePerOwner),
+		base: newFair(fmt.Sprintf("tasks:%s", name), maxActivePerOwner, lease),
 	}
 }
 
@@ -36,17 +38,22 @@ func (q *FairV2) Push(ctx context.Context, vc valkey.Conn, taskType string, owne
 }
 
 func (q *FairV2) Pop(ctx context.Context, vc valkey.Conn) (*Task, error) {
-	taskID, ownerID, raw, err := q.base.pop(ctx, vc)
+	taskID, ownerID, raw, expired, err := q.base.pop(ctx, vc)
+
+	for _, e := range expired {
+		slog.Warn("task lease expired, releasing its slot", "queue", q.name, "task_id", e.ID, "org", e.Owner)
+	}
+
 	if err != nil {
 		return nil, fmt.Errorf("error popping task: %w", err)
 	}
-
-	if ownerID == "" || raw == nil {
+	if taskID == "" {
 		return nil, nil // no task available
 	}
 
 	task := &Task{}
 	if err := jsonx.Unmarshal(raw, task); err != nil {
+		q.base.done(ctx, vc, taskID) // release its slot now rather than when its lease expires
 		return nil, fmt.Errorf("error unmarshaling task %s: %w", taskID, err)
 	}
 
@@ -56,8 +63,15 @@ func (q *FairV2) Pop(ctx context.Context, vc valkey.Conn) (*Task, error) {
 	return task, nil
 }
 
-func (q *FairV2) Done(ctx context.Context, vc valkey.Conn, ownerID int) error {
-	return q.base.done(ctx, vc, OwnerID(fmt.Sprint(ownerID)))
+func (q *FairV2) Done(ctx context.Context, vc valkey.Conn, task *Task) error {
+	released, err := q.base.done(ctx, vc, task.ID)
+	if err != nil {
+		return err
+	}
+	if !released {
+		slog.Warn("task completed after its lease expired", "queue", q.name, "task_id", task.ID, "org", task.OwnerID, "type", task.Type)
+	}
+	return nil
 }
 
 func (q *FairV2) Queued(ctx context.Context, vc valkey.Conn) ([]int, error) {
