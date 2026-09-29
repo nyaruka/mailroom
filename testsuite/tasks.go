@@ -151,7 +151,7 @@ func drainTasks(t *testing.T, rt *runtime.Runtime, perform bool, qnames ...strin
 			require.NoError(t, err, "unexpected error performing task %s", task.Type)
 		}
 
-		err = q.Done(t.Context(), vc, task.OwnerID)
+		err = q.Done(t.Context(), vc, task)
 		require.NoError(t, err, "unexpected error marking task %s as done", task.Type)
 	}
 	return counts

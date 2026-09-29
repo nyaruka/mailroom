@@ -29,7 +29,7 @@ func TestForemanAndWorkers(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
 	wg := &sync.WaitGroup{}
-	q := queues.NewFair("test", 10)
+	q := queues.NewFair("test", 10, time.Minute)
 
 	vc := rt.VK.Get()
 	defer vc.Close()
@@ -78,13 +78,15 @@ func TestForemanAndWorkers(t *testing.T) {
 	wg.Wait()
 
 	assertvk.ZGetAll(t, vc, "{tasks:test}:active", map[string]float64{})
+	assertvk.HLen(t, vc, "{tasks:test}:leases", 0)
+	assertvk.ZCard(t, vc, "{tasks:test}:expires", 0)
 }
 
 func TestForemanWithZeroWorkers(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
 	wg := &sync.WaitGroup{}
-	q := queues.NewFair("test", 0)
+	q := queues.NewFair("test", 0, time.Minute)
 
 	vc := rt.VK.Get()
 	defer vc.Close()

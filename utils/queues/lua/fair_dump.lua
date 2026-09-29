@@ -19,13 +19,24 @@ local function dumpSet(key)
     return table
 end
 
+-- counts leased tasks per owner, which comparing with active counts shows slots held without leases
+local function dumpLeased(key)
+    local table = {}
+    for _, owner in ipairs(redis.call("HVALS", key)) do
+        table[owner] = (table[owner] or 0) + 1
+    end
+    return table
+end
+
 local queuedKey = KEYS[1]
 local activeKey = KEYS[2]
 local pausedKey = KEYS[3]
+local leasesKey = KEYS[4]
 
 local result = {}
 result["queued"] = dumpZSet(queuedKey)
 result["active"] = dumpZSet(activeKey)
-result["paused"] = dumpSet(pausedKey) 
+result["paused"] = dumpSet(pausedKey)
+result["leased"] = dumpLeased(leasesKey)
 
 return cjson.encode(result)

@@ -6,6 +6,7 @@ import (
 	_ "embed"
 	"fmt"
 	"regexp"
+	"time"
 	"uuid"
 
 	valkey "github.com/gomodule/redigo/redis"
@@ -21,17 +22,22 @@ func defaultNewTaskID() TaskID {
 	return TaskID(uuid.NewV7().String())
 }
 
-// fair implements a fair queue where tasks are distributed evenly across owners. A popped task only exists as an
-// active count against its owner, which consumers decrement by calling done, so a consumer dying mid-task loses the
-// task.
+// fair implements a fair queue where tasks are distributed evenly across owners, each of which can only have a limited
+// number of active tasks at a time. A popped task holds one of its owner's active slots under a lease until the
+// consumer marks it done. If the consumer dies without doing so, the lease eventually expires and the slot is released
+// by a later pop, so owners can't be starved of slots by tasks which will never complete. The task itself is lost.
 //
 // Other services push tasks directly onto these queues using their own implementation of push, so the key layout,
-// payload framing and push behaviour must remain compatible with that.
+// payload framing and push behaviour must remain compatible with that. Older versions of this implementation, which
+// pop without leases and mark tasks done by owner, may also still be consuming from the same queues - so owners' active
+// counts may include slots held without leases.
 //
 // A queue with base key "foo" and owners "owner1" and "owner2" will have the following keys:
 //   - {foo}:queued - set of owners scored by number of queued tasks
 //   - {foo}:active - set of owners scored by number of active tasks
 //   - {foo}:paused - set of paused owners
+//   - {foo}:leases - hash of leased task IDs to their owners
+//   - {foo}:expires - set of leased task IDs scored by lease expiry time (millis)
 //   - {foo}:temp - used internally
 //   - {foo}:o:owner1/0 - e.g. list of tasks for owner1 with priority 0 (low)
 //   - {foo}:o:owner1/1 - e.g. list of tasks for owner1 with priority 1 (high)
@@ -42,11 +48,18 @@ func defaultNewTaskID() TaskID {
 // our push and pop scripts require atomic changes to the queued/active sets and the task lists.
 type fair struct {
 	keyBase           string
-	maxActivePerOwner int // max number of active tasks per owner
+	maxActivePerOwner int           // max number of active tasks per owner
+	lease             time.Duration // how long a popped task holds its owner's slot unless marked done
 }
 
-func newFair(keyBase string, maxActivePerOwner int) *fair {
-	return &fair{keyBase: keyBase, maxActivePerOwner: maxActivePerOwner}
+func newFair(keyBase string, maxActivePerOwner int, lease time.Duration) *fair {
+	return &fair{keyBase: keyBase, maxActivePerOwner: maxActivePerOwner, lease: lease}
+}
+
+// expiredLease is a task whose lease expired and had its owner's slot released
+type expiredLease struct {
+	ID    TaskID
+	Owner OwnerID
 }
 
 //go:embed lua/fair_push.lua
@@ -72,56 +85,71 @@ func (q *fair) push(ctx context.Context, vc valkey.Conn, owner OwnerID, priority
 	return id, nil
 }
 
-//go:embed lua/fair_pop_owner.lua
-var luaFairPopOwner string
-var scriptFairPopOwner = valkey.NewScript(4, luaFairPopOwner)
+//go:embed lua/fair_pop.lua
+var luaFairPop string
+var scriptFairPop = valkey.NewScript(6, luaFairPop)
 
-//go:embed lua/fair_pop_task.lua
-var luaFairPopTask string
-var scriptFairPopTask = valkey.NewScript(3, luaFairPopTask)
+// max number of expired leases released by each pop
+const reapLimit = 100
 
-// pop pops the next task off our queue
-func (q *fair) pop(ctx context.Context, vc valkey.Conn) (TaskID, OwnerID, []byte, error) {
+// pop pops the next task off our queue, returning an empty ID if there are no tasks available. It also returns any
+// expired leases it released.
+func (q *fair) pop(ctx context.Context, vc valkey.Conn) (TaskID, OwnerID, []byte, []expiredLease, error) {
+	var expired []expiredLease
+
 	for {
-		// Select an owner with queued tasks
-		owner, err := valkey.String(scriptFairPopOwner.DoContext(ctx, vc, q.queuedKey(), q.activeKey(), q.pausedKey(), q.tempKey(), q.maxActivePerOwner))
+		vals, err := valkey.Values(scriptFairPop.DoContext(ctx, vc,
+			q.queuedKey(), q.activeKey(), q.pausedKey(), q.tempKey(), q.leasesKey(), q.expiresKey(),
+			q.keyBase, q.maxActivePerOwner, q.lease.Milliseconds(), reapLimit,
+		))
 		if err != nil {
-			return "", "", nil, fmt.Errorf("error selecting task owner: %w", err)
-		}
-		if owner == "" { // None found so no tasks to pop
-			return "", "", nil, nil
+			return "", "", nil, expired, fmt.Errorf("error popping task: %w", err)
 		}
 
-		// Pop a task for the owner
-		queueKeys := q.queueKeys(OwnerID(owner))
-		payload, err := valkey.String(scriptFairPopTask.DoContext(ctx, vc, q.activeKey(), queueKeys[0], queueKeys[1], owner))
-		if err != nil {
-			return "", "", nil, fmt.Errorf("error popping task for owner %s: %w", owner, err)
+		var status, id, owner string
+		var task []byte
+		var reapedVals []any
+		if _, err := valkey.Scan(vals, &status, &id, &owner, &task, &reapedVals); err != nil {
+			return "", "", nil, expired, fmt.Errorf("error reading popped task: %w", err)
 		}
-		if payload != "" {
-			id, task, err := parsePayload([]byte(payload))
-			if err != nil {
-				return "", "", nil, fmt.Errorf("error parsing task payload for owner %s: %w", owner, err)
+		reaped, err := valkey.Strings(reapedVals, nil)
+		if err != nil {
+			return "", "", nil, expired, fmt.Errorf("error reading expired leases: %w", err)
+		}
+
+		for i := 0; i < len(reaped); i += 2 {
+			expired = append(expired, expiredLease{ID: TaskID(reaped[i]), Owner: OwnerID(reaped[i+1])})
+		}
+
+		switch status {
+		case "task":
+			if !idRegex.MatchString(id) {
+				q.done(ctx, vc, TaskID(id)) // release its slot now rather than when its lease expires
+				return "", "", nil, expired, fmt.Errorf("invalid task ID for owner %s: %s", owner, id)
 			}
-
-			return id, OwnerID(owner), task, nil
+			return TaskID(id), OwnerID(owner), task, expired, nil
+		case "none":
+			return "", "", nil, expired, nil
+		case "invalid":
+			return "", "", nil, expired, fmt.Errorf("invalid task payload for owner %s: %s", owner, task)
 		}
 
-		// It's possible that we selected an owner with no tasks, so go back around again
+		// selected owner turned out to have no queued tasks, so go back around again
 	}
 }
 
 //go:embed lua/fair_done.lua
 var luaFairDone string
-var scriptFairDone = valkey.NewScript(1, luaFairDone)
+var scriptFairDone = valkey.NewScript(3, luaFairDone)
 
-// done marks the passed in task as complete. Callers must call this in order to maintain fair workers across owners
-func (q *fair) done(ctx context.Context, vc valkey.Conn, owner OwnerID) error {
-	_, err := scriptFairDone.Do(vc, q.activeKey(), owner)
+// done marks the given task as complete, releasing its owner's slot. Returns false if the task's lease had already
+// expired, in which case its slot was already released.
+func (q *fair) done(ctx context.Context, vc valkey.Conn, id TaskID) (bool, error) {
+	released, err := valkey.Bool(scriptFairDone.DoContext(ctx, vc, q.activeKey(), q.leasesKey(), q.expiresKey(), string(id)))
 	if err != nil {
-		return fmt.Errorf("error marking task done for owner %s: %w", owner, err)
+		return false, fmt.Errorf("error marking task %s done: %w", id, err)
 	}
-	return nil
+	return released, nil
 }
 
 // pause marks the given owner as paused, disabling processing of their tasks
@@ -183,10 +211,10 @@ func (q *fair) size(ctx context.Context, vc valkey.Conn, owner OwnerID) (int, er
 
 //go:embed lua/fair_dump.lua
 var luaFairDump string
-var scriptFairDump = valkey.NewScript(3, luaFairDump)
+var scriptFairDump = valkey.NewScript(4, luaFairDump)
 
 func (q *fair) dump(ctx context.Context, vc valkey.Conn) ([]byte, error) {
-	dump, err := valkey.Bytes(scriptFairDump.Do(vc, q.queuedKey(), q.activeKey(), q.pausedKey()))
+	dump, err := valkey.Bytes(scriptFairDump.Do(vc, q.queuedKey(), q.activeKey(), q.pausedKey(), q.leasesKey()))
 	if err != nil {
 		return nil, fmt.Errorf("error dumping queue state: %w", err)
 	}
@@ -206,6 +234,14 @@ func (q *fair) pausedKey() string {
 	return fmt.Sprintf("{%s}:paused", q.keyBase)
 }
 
+func (q *fair) leasesKey() string {
+	return fmt.Sprintf("{%s}:leases", q.keyBase)
+}
+
+func (q *fair) expiresKey() string {
+	return fmt.Sprintf("{%s}:expires", q.keyBase)
+}
+
 func (q *fair) tempKey() string {
 	return fmt.Sprintf("{%s}:temp", q.keyBase)
 }
@@ -218,16 +254,3 @@ func (q *fair) queueKeys(owner OwnerID) [2]string {
 }
 
 var idRegex = regexp.MustCompile(`^[0-9a-f]{8}-[0-9a-f]{4}-[1-7][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$`)
-
-func parsePayload(raw []byte) (TaskID, []byte, error) {
-	if len(raw) == 0 {
-		return "", nil, fmt.Errorf("empty task payload")
-	}
-
-	parts := bytes.SplitN(raw, []byte{'|'}, 2)
-	if len(parts) != 2 || !idRegex.Match(parts[0]) {
-		return "", nil, fmt.Errorf("invalid task payload: %s", raw)
-	}
-
-	return TaskID(parts[0]), parts[1], nil
-}
