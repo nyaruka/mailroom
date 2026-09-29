@@ -1,3 +1,7 @@
+v26.3.81 (2026-09-29)
+-------------------------
+ * Update to goflow v0.295.1
+
 v26.3.80 (2026-09-28)
 -------------------------
  * Drop support for legacy F LLM role code
