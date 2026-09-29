@@ -1,3 +1,6 @@
+## v26.3.83 (2026-09-29)
+ * Turn off thinking on Claude Sonnet 5.5 with between_tools
+
 ## v26.3.82 (2026-09-29)
  * Update to goflow v0.295.2 which adds the 14.6.0 flow migration
  * Update test database dump for new contact email fields
