@@ -24,6 +24,8 @@ func TestNewContactDoc(t *testing.T) {
 
 	oa := testdb.Org1.Load(t, rt)
 
+	rt.DB.MustExec(`UPDATE contacts_contact SET email = 'cat@example.com' WHERE id = $1`, testdb.Cat.ID)
+
 	mcs, err := models.LoadContacts(ctx, rt.DB, oa, []models.ContactID{testdb.Ann.ID, testdb.Cat.ID})
 	require.NoError(t, err)
 	require.Len(t, mcs, 2)
@@ -49,6 +51,7 @@ func TestNewContactDoc(t *testing.T) {
 	assert.Equal(t, testdb.Ann.UUID, doc.UUID)
 	assert.Equal(t, "Ann", doc.Name)
 	assert.Equal(t, models.ContactStatusActive, doc.Status)
+	assert.Equal(t, "", doc.Email)
 	assert.NotEmpty(t, doc.CreatedOn)
 	assert.Equal(t, testdb.Favorites.ID, doc.FlowID)
 	assert.Equal(t, []models.FlowID{testdb.Favorites.ID, testdb.PickANumber.ID}, doc.FlowHistoryIDs)
@@ -94,6 +97,7 @@ func TestNewContactDoc(t *testing.T) {
 	assert.Equal(t, testdb.Cat.UUID, doc.UUID)
 	assert.Equal(t, "Cat", doc.Name)
 	assert.Equal(t, models.ContactStatusActive, doc.Status)
+	assert.Equal(t, "cat@example.com", doc.Email)
 	assert.Equal(t, models.NilFlowID, doc.FlowID)
 	assert.Nil(t, doc.FlowHistoryIDs)
 

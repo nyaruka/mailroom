@@ -140,6 +140,12 @@ func TestGetContactUUIDsForQuery(t *testing.T) {
 	testdb.InsertContact(t, rt, testdb.Org2, core.NewContactUUID(), "Bob", i18n.NilLanguage, models.ContactStatusActive)
 	testdb.InsertContact(t, rt, testdb.Org2, core.NewContactUUID(), "Cylon 0", i18n.NilLanguage, models.ContactStatusActive)
 
+	// contacts with the same email address in each org, to be sure we're filtering by org
+	fay := testdb.InsertContact(t, rt, testdb.Org1, core.NewContactUUID(), "Fay", i18n.NilLanguage, models.ContactStatusActive)
+	rt.DB.MustExec(`UPDATE contacts_contact SET email = 'fay@example.com' WHERE id = $1`, fay.ID)
+	fay2 := testdb.InsertContact(t, rt, testdb.Org2, core.NewContactUUID(), "Fay", i18n.NilLanguage, models.ContactStatusActive)
+	rt.DB.MustExec(`UPDATE contacts_contact SET email = 'fay@example.com' WHERE id = $1`, fay2.ID)
+
 	testsuite.IndexContacts(t, rt)
 
 	// created after indexing so only visible to UUID queries which are resolved from the database
@@ -201,6 +207,48 @@ func TestGetContactUUIDsForQuery(t *testing.T) {
 			query:            "name has cylon",
 			limit:            -1,
 			expectedContacts: cylonUUIDs,
+		},
+		{
+			group:            nil,
+			status:           models.ContactStatusActive,
+			query:            "email = Fay@Example.com", // exact match is case insensitive
+			limit:            -1,
+			expectedContacts: []core.ContactUUID{fay.UUID},
+		},
+		{
+			group:            nil,
+			status:           models.ContactStatusActive,
+			query:            "email ~ example",
+			limit:            -1,
+			expectedContacts: []core.ContactUUID{fay.UUID},
+		},
+		{
+			group:            nil,
+			status:           models.ContactStatusActive,
+			query:            `email != ""`,
+			limit:            -1,
+			expectedContacts: []core.ContactUUID{fay.UUID},
+		},
+		{
+			group:            nil,
+			status:           models.ContactStatusActive,
+			query:            `name = fay AND email = ""`,
+			limit:            -1,
+			expectedContacts: []core.ContactUUID{},
+		},
+		{
+			group:            nil,
+			status:           models.ContactStatusActive,
+			query:            `name = ann AND email = ""`,
+			limit:            -1,
+			expectedContacts: []core.ContactUUID{testdb.Ann.UUID},
+		},
+		{
+			group:         nil,
+			status:        models.ContactStatusActive,
+			query:         "email ~ ex",
+			limit:         -1,
+			expectedError: "error parsing query: email ~ ex: contains operator on email requires value of minimum length 3",
 		},
 		{
 			group:            nil,
