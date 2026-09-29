@@ -45,7 +45,7 @@ func parseTranslated(output string, items map[string][]string) map[string][]stri
 	}
 
 	var translated map[string][]string
-	if err := json.Unmarshal([]byte(output), &translated); err != nil {
+	if err := json.Unmarshal([]byte(jsonObject(output)), &translated); err != nil {
 		slog.Warn("failed to parse translate output", "error", err, "output", output)
 		return translatable
 	}

@@ -79,17 +79,20 @@ func ClassifyByPrompt(ctx context.Context, svc flows.ModelService, input string,
 	return cls, nil
 }
 
+// extracts the JSON object from model output, as models sometimes wrap JSON in code fences or other text
+func jsonObject(output string) string {
+	start, end := strings.Index(output, "{"), strings.LastIndex(output, "}")
+	if start < 0 || end < start {
+		return ""
+	}
+	return output[start : end+1]
+}
+
 // parses the JSON object of option probabilities from the output of the scored classify instructions, filling in any
 // missing options as zero and scaling them down if they add up to more than 1
 func parseProbabilities(output string, options []*core.ClassifierOption) (map[string]float64, error) {
-	// models sometimes wrap JSON in code fences or other text
-	start, end := strings.Index(output, "{"), strings.LastIndex(output, "}")
-	if start < 0 || end < start {
-		return nil, fmt.Errorf("model returned invalid probabilities '%s'", output)
-	}
-
 	var stated map[string]float64
-	if err := json.Unmarshal([]byte(output[start:end+1]), &stated); err != nil {
+	if err := json.Unmarshal([]byte(jsonObject(output)), &stated); err != nil {
 		return nil, fmt.Errorf("model returned invalid probabilities '%s'", output)
 	}
 
