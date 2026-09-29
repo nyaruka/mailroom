@@ -81,7 +81,7 @@ func handleTranslate(ctx context.Context, rt *runtime.Runtime, r *translateReque
 	if llm == nil {
 		return nil, 0, fmt.Errorf("no such LLM with ID %d", r.LLMID)
 	}
-	if !slices.Contains(llm.Roles(), assets.ModelRoleTranslation) {
+	if !slices.Contains(llm.Roles(), assets.ModelRoleTranslate) {
 		return nil, 0, fmt.Errorf("LLM with ID %d does not support translation", r.LLMID)
 	}
 

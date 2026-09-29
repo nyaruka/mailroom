@@ -40,13 +40,13 @@ func TestLLMs(t *testing.T) {
 		typ   string
 		roles []assets.ModelRole
 	}{
-		{testdb.OpenAI.ID, testdb.OpenAI.UUID, "GPT-4o", "openai", []assets.ModelRole{assets.ModelRoleTranslation, assets.ModelRoleGeneration, assets.ModelRoleClassification}},
-		{testdb.Anthropic.ID, testdb.Anthropic.UUID, "Claude", "anthropic", []assets.ModelRole{assets.ModelRoleTranslation, assets.ModelRoleGeneration, assets.ModelRoleClassification}},
-		{testdb.TestLLM.ID, testdb.TestLLM.UUID, "Test", "test", []assets.ModelRole{assets.ModelRoleTranslation, assets.ModelRoleGeneration, assets.ModelRoleClassification}},
-		{gen.ID, gen.UUID, "Generation", "test", []assets.ModelRole{assets.ModelRoleGeneration}},
-		{cls.ID, cls.UUID, "Classification", "test", []assets.ModelRole{assets.ModelRoleClassification}},
-		{both.ID, both.UUID, "Both", "test", []assets.ModelRole{assets.ModelRoleGeneration, assets.ModelRoleClassification}},
-		{unk.ID, unk.UUID, "Unknown", "test", []assets.ModelRole{assets.ModelRoleTranslation}},
+		{testdb.OpenAI.ID, testdb.OpenAI.UUID, "GPT-4o", "openai", []assets.ModelRole{assets.ModelRoleTranslate, assets.ModelRoleGenerate, assets.ModelRoleClassify}},
+		{testdb.Anthropic.ID, testdb.Anthropic.UUID, "Claude", "anthropic", []assets.ModelRole{assets.ModelRoleTranslate, assets.ModelRoleGenerate, assets.ModelRoleClassify}},
+		{testdb.TestLLM.ID, testdb.TestLLM.UUID, "Test", "test", []assets.ModelRole{assets.ModelRoleTranslate, assets.ModelRoleGenerate, assets.ModelRoleClassify}},
+		{gen.ID, gen.UUID, "Generation", "test", []assets.ModelRole{assets.ModelRoleGenerate}},
+		{cls.ID, cls.UUID, "Classification", "test", []assets.ModelRole{assets.ModelRoleClassify}},
+		{both.ID, both.UUID, "Both", "test", []assets.ModelRole{assets.ModelRoleGenerate, assets.ModelRoleClassify}},
+		{unk.ID, unk.UUID, "Unknown", "test", []assets.ModelRole{assets.ModelRoleTranslate}},
 	}
 
 	assert.Equal(t, len(tcs), len(llms))
