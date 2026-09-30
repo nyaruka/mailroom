@@ -28,13 +28,14 @@ func TestBuildRecipientsQuery(t *testing.T) {
 	testers := oa.GroupByID(testdb.TestersGroup.ID)
 
 	tcs := []struct {
-		groups        []*models.Group
-		contactUUIDs  []core.ContactUUID
-		userQuery     string
-		exclusions    models.Exclusions
-		excludeGroups []*models.Group
-		expected      string
-		err           string
+		groups          []*models.Group
+		contactUUIDs    []core.ContactUUID
+		userQuery       string
+		exclusions      models.Exclusions
+		excludeGroups   []*models.Group
+		excludeTicketed bool
+		expected        string
+		err             string
 	}{
 		{ // 0
 			groups:       []*models.Group{doctors, testers},
@@ -97,16 +98,38 @@ func TestBuildRecipientsQuery(t *testing.T) {
 			expected: `(name ~ "ben" OR name ~ "eric") AND last_seen_on > "21-03-2022"`,
 		},
 		{ // 7
+			contactUUIDs:    []core.ContactUUID{testdb.Ann.UUID},
+			exclusions:      models.Exclusions{},
+			excludeTicketed: true,
+			expected:        `uuid = "a393abc0-283d-4c9b-a1b3-641a035c34bf" AND tickets = 0`,
+		},
+		{ // 8
+			groups:    []*models.Group{doctors},
+			userQuery: `gender = "M"`,
+			exclusions: models.Exclusions{
+				NonActive: true,
+				InAFlow:   true,
+			},
+			excludeGroups:   []*models.Group{testers},
+			excludeTicketed: true,
+			expected:        `(group = "Doctors" OR fields.gender = "M") AND status = "active" AND flow = "" AND tickets = 0 AND group != "Testers"`,
+		},
+		{ // 9 nobody included so nobody matches
+			exclusions:      models.Exclusions{},
+			excludeTicketed: true,
+			expected:        ``,
+		},
+		{ // 10
 			userQuery:  `name ~`, // syntactically invalid user query
 			exclusions: models.Exclusions{},
 			err:        "invalid user query: mismatched input '<EOF>' expecting {STRING, PROPERTY, TEXT}",
 		},
-		{ // 8
+		{ // 11
 			userQuery:  `goats > 14`, // no such field
 			exclusions: models.Exclusions{},
 			err:        "invalid user query: can't resolve 'goats' to attribute, scheme or field",
 		},
-		{ // 9
+		{ // 12
 			userQuery:  `fields.goats > 14`, // type prefix but no such field
 			exclusions: models.Exclusions{},
 			err:        "invalid user query: can't resolve 'goats' to attribute, scheme or field",
@@ -114,7 +137,7 @@ func TestBuildRecipientsQuery(t *testing.T) {
 	}
 
 	for i, tc := range tcs {
-		actual, err := search.BuildRecipientsQuery(oa, flow, tc.groups, tc.contactUUIDs, tc.userQuery, tc.exclusions, tc.excludeGroups)
+		actual, err := search.BuildRecipientsQuery(oa, flow, tc.groups, tc.contactUUIDs, tc.userQuery, tc.exclusions, tc.excludeGroups, tc.excludeTicketed)
 		if tc.err != "" {
 			assert.Equal(t, "", actual)
 			assert.EqualError(t, err, tc.err, "%d: error mismatch", i)
@@ -122,5 +145,29 @@ func TestBuildRecipientsQuery(t *testing.T) {
 			assert.Equal(t, tc.expected, actual, "%d: query mismatch", i)
 			assert.NoError(t, err)
 		}
+	}
+}
+
+func TestBuildRecipientsQueryForStartsExcludesTicketed(t *testing.T) {
+	_, rt := testsuite.Runtime(t)
+
+	oa := testdb.Org1.Load(t, rt)
+
+	tcs := []struct {
+		flow     *testdb.Flow
+		expected string
+	}{
+		{testdb.Favorites, `uuid = "a393abc0-283d-4c9b-a1b3-641a035c34bf" AND tickets = 0`}, // messaging
+		{testdb.IVRFlow, `uuid = "a393abc0-283d-4c9b-a1b3-641a035c34bf" AND tickets = 0`},   // voice
+		{testdb.BackgroundFlow, `uuid = "a393abc0-283d-4c9b-a1b3-641a035c34bf"`},            // background
+	}
+
+	for _, tc := range tcs {
+		flow := tc.flow.Load(t, rt, oa)
+		excludeTicketed := models.StartTypeManual.ExcludesTicketed(flow)
+
+		actual, err := search.BuildRecipientsQuery(oa, flow, nil, []core.ContactUUID{testdb.Ann.UUID}, "", models.NoExclusions, nil, excludeTicketed)
+		assert.NoError(t, err)
+		assert.Equal(t, tc.expected, actual, "query mismatch for flow %s", flow.Name())
 	}
 }

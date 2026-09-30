@@ -140,7 +140,7 @@ func (t *BulkCampaignTrigger) triggerFlow(ctx context.Context, rt *runtime.Runti
 			started = append(started, mc.ID())
 		}
 	} else {
-		scenes, skipped, err := runner.StartWithLock(ctx, rt, oa, contactIDs, triggerBuilder, p.StartMode, models.NilStartID)
+		scenes, skipped, err := runner.StartWithLock(ctx, rt, oa, contactIDs, triggerBuilder, p.StartMode, models.NilStartID, nil)
 		if err != nil {
 			return nil, fmt.Errorf("error starting flow for campaign point #%d: %w", p.ID, err)
 		}

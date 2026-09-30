@@ -38,6 +38,18 @@ const (
 	StartTypeTrigger    = StartType("T")
 )
 
+// ExcludesTicketed returns whether starts of this type into the given flow leave out contacts with open tickets. That's
+// the case for starts by users (in the UI or via the API) of flows that would interrupt the conversation they're having
+// on the ticket.
+func (t StartType) ExcludesTicketed(flow *Flow) bool {
+	byUser := t == StartTypeManual || t == StartTypeAPI || t == StartTypeAPIZapier
+
+	return byUser && flow.FlowType().Interrupts()
+}
+
+// DailyCountStartTicketExcluded is the daily count scope for contacts left out of flow starts for having an open ticket
+const DailyCountStartTicketExcluded = "flowstarts:ticketexcluded"
+
 // StartStatus is the type for the status of a start
 type StartStatus string
 

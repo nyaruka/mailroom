@@ -120,6 +120,27 @@ func TestFlowStartRunCount(t *testing.T) {
 	assert.Equal(t, 5, count)
 }
 
+func TestStartTypeExcludesTicketed(t *testing.T) {
+	_, rt := testsuite.Runtime(t)
+
+	oa := testdb.Org1.Load(t, rt)
+	messaging := testdb.Favorites.Load(t, rt, oa)
+	voice := testdb.IVRFlow.Load(t, rt, oa)
+	background := testdb.BackgroundFlow.Load(t, rt, oa)
+
+	for _, st := range []models.StartType{models.StartTypeManual, models.StartTypeAPI, models.StartTypeAPIZapier} {
+		assert.True(t, st.ExcludesTicketed(messaging), "expected %s start of messaging flow to exclude", st)
+		assert.True(t, st.ExcludesTicketed(voice), "expected %s start of voice flow to exclude", st)
+		assert.False(t, st.ExcludesTicketed(background), "expected %s start of background flow not to exclude", st)
+	}
+
+	// starts from flow actions and triggers aren't affected
+	for _, st := range []models.StartType{models.StartTypeFlowAction, models.StartTypeTrigger} {
+		assert.False(t, st.ExcludesTicketed(messaging), "expected %s start of messaging flow not to exclude", st)
+		assert.False(t, st.ExcludesTicketed(voice), "expected %s start of voice flow not to exclude", st)
+	}
+}
+
 func TestStartsBuilding(t *testing.T) {
 	uuids.SetGenerator(uuids.NewSeededGenerator(12345, time.Now))
 	defer uuids.SetGenerator(uuids.DefaultGenerator)

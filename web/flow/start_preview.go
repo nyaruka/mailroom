@@ -74,7 +74,10 @@ func handleStartPreview(ctx context.Context, rt *runtime.Runtime, r *previewRequ
 		}
 	}
 
-	query, err := search.BuildRecipientsQuery(oa, flow, groups, r.Include.ContactUUIDs, r.Include.Query, r.Exclude, nil)
+	// previews are of manual starts so apply the same open ticket exclusion as those
+	excludeTicketed := models.StartTypeManual.ExcludesTicketed(flow)
+
+	query, err := search.BuildRecipientsQuery(oa, flow, groups, r.Include.ContactUUIDs, r.Include.Query, r.Exclude, nil, excludeTicketed)
 	if err != nil {
 		return nil, 0, fmt.Errorf("error building query: %w", err)
 	}

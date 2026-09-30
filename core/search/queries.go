@@ -12,8 +12,9 @@ import (
 	"github.com/nyaruka/mailroom/v26/core/models"
 )
 
-// BuildRecipientsQuery builds a query from a set of inclusions/exclusions (i.e. a flow start or broadcast)
-func BuildRecipientsQuery(oa *models.OrgAssets, flow *models.Flow, groups []*models.Group, contactUUIDs []core.ContactUUID, userQuery string, excs models.Exclusions, excGroups []*models.Group) (string, error) {
+// BuildRecipientsQuery builds a query from a set of inclusions/exclusions (i.e. a flow start or broadcast). If
+// excludeTicketed is true then contacts with open tickets are also excluded.
+func BuildRecipientsQuery(oa *models.OrgAssets, flow *models.Flow, groups []*models.Group, contactUUIDs []core.ContactUUID, userQuery string, excs models.Exclusions, excGroups []*models.Group, excludeTicketed bool) (string, error) {
 	var parsedQuery *contactql.ContactQuery
 	var err error
 
@@ -24,10 +25,10 @@ func BuildRecipientsQuery(oa *models.OrgAssets, flow *models.Flow, groups []*mod
 		}
 	}
 
-	return contactql.Stringify(buildRecipientsQuery(oa.Env(), flow, groups, contactUUIDs, parsedQuery, excs, excGroups)), nil
+	return contactql.Stringify(buildRecipientsQuery(oa.Env(), flow, groups, contactUUIDs, parsedQuery, excs, excGroups, excludeTicketed)), nil
 }
 
-func buildRecipientsQuery(env envs.Environment, flow *models.Flow, groups []*models.Group, contactUUIDs []core.ContactUUID, userQuery *contactql.ContactQuery, excs models.Exclusions, excGroups []*models.Group) contactql.QueryNode {
+func buildRecipientsQuery(env envs.Environment, flow *models.Flow, groups []*models.Group, contactUUIDs []core.ContactUUID, userQuery *contactql.ContactQuery, excs models.Exclusions, excGroups []*models.Group, excludeTicketed bool) contactql.QueryNode {
 	inclusions := make([]contactql.QueryNode, 0, 10)
 
 	for _, group := range groups {
@@ -46,6 +47,10 @@ func buildRecipientsQuery(env envs.Environment, flow *models.Flow, groups []*mod
 	}
 	if excs.InAFlow {
 		exclusions = append(exclusions, contactql.NewCondition(contactql.PropertyTypeAttribute, "flow", contactql.OpEqual, ""))
+	}
+	if excludeTicketed && len(inclusions) > 0 {
+		// starting a contact with an open ticket would interrupt the conversation they're having on that ticket
+		exclusions = append(exclusions, contactql.NewCondition(contactql.PropertyTypeAttribute, "tickets", contactql.OpEqual, "0"))
 	}
 	if excs.StartedPreviously && flow != nil {
 		exclusions = append(exclusions, contactql.NewCondition(contactql.PropertyTypeAttribute, "history", contactql.OpNotEqual, flow.Name()))

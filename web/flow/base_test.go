@@ -3,6 +3,7 @@ package flow_test
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/nyaruka/mailroom/v26/testsuite"
 	"github.com/nyaruka/mailroom/v26/testsuite/testdb"
@@ -51,6 +52,9 @@ func TestStart(t *testing.T) {
 
 func TestStartPreview(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
+
+	// contacts with open tickets are excluded from starts of messaging and voice flows
+	testdb.InsertOpenTicket(t, rt, "01992f54-5ab6-717a-a39e-e8ca91fb7262", testdb.Org1, testdb.Ann, testdb.DefaultTopic, time.Now(), nil)
 
 	testsuite.IndexContacts(t, rt)
 

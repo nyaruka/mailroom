@@ -3,7 +3,9 @@ package search_test
 import (
 	"bytes"
 	"testing"
+	"time"
 
+	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/elastic"
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/gocommon/urns"
@@ -106,6 +108,62 @@ func TestResolveRecipients(t *testing.T) {
 		assert.ElementsMatch(t, tc.expectedIDs, actualIDs, "contact ids mismatch in %d", i)
 		assert.ElementsMatch(t, tc.expectedCreatedIDs, actualCreatedIDs, "created contact ids mismatch in %d", i)
 	}
+}
+
+func TestResolveRecipientsExcludesTicketed(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	dates.SetNowFunc(dates.NewFixedNow(time.Date(2026, 9, 30, 12, 0, 0, 0, time.UTC)))
+	defer dates.SetNowFunc(time.Now)
+
+	group1 := testdb.InsertContactGroup(t, rt, testdb.Org1, "a85acec9-3895-4ffd-87c1-c69a25781a85", "Group 1", "", testdb.Cat, testdb.Dan)
+
+	testdb.InsertOpenTicket(t, rt, "01992f54-5ab6-717a-a39e-e8ca91fb7262", testdb.Org1, testdb.Cat, testdb.DefaultTopic, time.Now(), nil)
+	testdb.InsertClosedTicket(t, rt, "01992f54-5ab6-725e-be9c-0c6407efd755", testdb.Org1, testdb.Dan, testdb.DefaultTopic, nil)
+
+	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshGroups)
+	require.NoError(t, err)
+
+	testsuite.IndexContacts(t, rt)
+
+	tcs := []struct {
+		recipients  *search.Recipients
+		expectedIDs []models.ContactID
+	}{
+		{ // 0 only explicit contacts so checked without a search
+			recipients:  &search.Recipients{ContactIDs: []models.ContactID{testdb.Bob.ID, testdb.Cat.ID}, ExcludeTicketed: true},
+			expectedIDs: []models.ContactID{testdb.Bob.ID},
+		},
+		{ // 1 same but not excluding
+			recipients:  &search.Recipients{ContactIDs: []models.ContactID{testdb.Bob.ID, testdb.Cat.ID}},
+			expectedIDs: []models.ContactID{testdb.Bob.ID, testdb.Cat.ID},
+		},
+		{ // 2 explicit contacts with other exclusions
+			recipients: &search.Recipients{
+				ContactIDs:      []models.ContactID{testdb.Bob.ID, testdb.Cat.ID},
+				Exclusions:      models.Exclusions{NonActive: true},
+				ExcludeTicketed: true,
+			},
+			expectedIDs: []models.ContactID{testdb.Bob.ID},
+		},
+		{ // 3 group
+			recipients:  &search.Recipients{GroupIDs: []models.GroupID{group1.ID}, ExcludeTicketed: true},
+			expectedIDs: []models.ContactID{testdb.Dan.ID},
+		},
+		{ // 4 query
+			recipients:  &search.Recipients{Query: `name = "Cat" OR name = "Dan"`, ExcludeTicketed: true},
+			expectedIDs: []models.ContactID{testdb.Dan.ID},
+		},
+	}
+
+	for i, tc := range tcs {
+		actualIDs, _, err := search.ResolveRecipients(ctx, rt, oa, testdb.Admin.ID, nil, tc.recipients, -1)
+		assert.NoError(t, err)
+		assert.ElementsMatch(t, tc.expectedIDs, actualIDs, "contact ids mismatch in %d", i)
+	}
+
+	// Cat was excluded by each resolve that was excluding contacts with open tickets
+	testsuite.AssertDailyCounts(t, rt, testdb.Org1, map[string]int{"2026-09-30/flowstarts:ticketexcluded": 4})
 }
 
 func TestResolveRecipientsIndexesExcludedCreatedContacts(t *testing.T) {

@@ -7,6 +7,7 @@ import (
 	"slices"
 	"time"
 
+	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/excellent/types"
 	"github.com/nyaruka/goflow/flows"
@@ -183,10 +184,26 @@ func (t *StartFlowBatch) start(ctx context.Context, rt *runtime.Runtime, oa *mod
 		return tb.WithUser(flowUser).WithOrigin(startTypeToOrigin[start.StartType]).Build()
 	}
 
+	// contacts may have opened tickets since the start's recipients were resolved, so check again at start time
+	var exclude func(*models.Contact) bool
+	ticketed := 0
+	if start.StartType.ExcludesTicketed(flow) {
+		exclude = func(c *models.Contact) bool {
+			if len(c.Tickets()) > 0 {
+				ticketed++
+				return true
+			}
+			return false
+		}
+	}
+
 	if flow.FlowType() == models.FlowTypeVoice {
 		mcs, err := models.LoadContacts(ctx, rt.ReadonlyDB, oa, t.ContactIDs)
 		if err != nil {
 			return fmt.Errorf("error loading contacts: %w", err)
+		}
+		if exclude != nil {
+			mcs = slices.DeleteFunc(mcs, exclude)
 		}
 
 		// for each contact, request a call start
@@ -209,13 +226,20 @@ func (t *StartFlowBatch) start(ctx context.Context, rt *runtime.Runtime, oa *mod
 			mode = models.StartModeInterrupt
 		}
 
-		_, skipped, err := runner.StartWithLock(ctx, rt, oa, t.ContactIDs, triggerBuilder, mode, t.StartID)
+		_, skipped, err := runner.StartWithLock(ctx, rt, oa, t.ContactIDs, triggerBuilder, mode, t.StartID, exclude)
 		if err != nil {
 			return fmt.Errorf("error starting flow batch: %w", err)
 		}
 
 		if len(skipped) > 0 {
 			slog.Warn("failed to acquire locks for contacts", "contacts", skipped)
+		}
+	}
+
+	// contacts have been started so don't fail the batch if we can't record this
+	if ticketed > 0 {
+		if err := models.InsertDailyCounts(ctx, rt.DB, oa, dates.Now(), map[string]int{models.DailyCountStartTicketExcluded: ticketed}); err != nil {
+			slog.Error("error recording ticket excluded count", "error", err, "start_id", start.ID)
 		}
 	}
 

@@ -91,6 +91,7 @@ func createFlowStartBatches(ctx context.Context, rt *runtime.Runtime, oa *models
 			Query:           string(start.Query),
 			Exclusions:      start.Exclusions,
 			ExcludeGroupIDs: start.ExcludeGroupIDs,
+			ExcludeTicketed: start.StartType.ExcludesTicketed(flow),
 		}, limit)
 		if err != nil {
 			return fmt.Errorf("error resolving start recipients: %w", err)

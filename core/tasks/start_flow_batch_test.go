@@ -3,9 +3,11 @@ package tasks_test
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/lib/pq"
 	"github.com/nyaruka/gocommon/centrifugo"
+	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/mailroom/v26/core/models"
@@ -149,4 +151,48 @@ func TestStartFlowBatchTaskNonPersistedStart(t *testing.T) {
 	testsuite.FlushTasks(t, rt)
 
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowrun`).Returns(2)
+}
+
+func TestStartFlowBatchTaskExcludesTicketed(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	dates.SetNowFunc(dates.NewFixedNow(time.Date(2026, 9, 30, 12, 0, 0, 0, time.UTC)))
+	defer dates.SetNowFunc(time.Now)
+
+	// Bob is waiting in a flow
+	bobSessionUUID := testdb.InsertWaitingSession(t, rt, testdb.Org1, testdb.Bob, models.FlowTypeMessaging, nil, testdb.Favorites)
+
+	start1 := models.NewFlowStart(models.OrgID(1), models.StartTypeManual, testdb.SingleMessage.ID).
+		WithContactIDs([]models.ContactID{testdb.Ann.ID, testdb.Bob.ID})
+	require.NoError(t, models.InsertFlowStart(ctx, rt.DB, start1))
+
+	// Bob opens a ticket after the start was created
+	testdb.InsertOpenTicket(t, rt, "01992f54-5ab6-717a-a39e-e8ca91fb7262", testdb.Org1, testdb.Bob, testdb.DefaultTopic, time.Now(), nil)
+
+	batch1 := start1.CreateBatch([]models.ContactID{testdb.Ann.ID, testdb.Bob.ID}, 2)
+	err := tasks.Queue(ctx, rt, rt.Queues.Throttled, testdb.Org1.ID, &tasks.StartFlowBatch{BatchTask: tasks.BatchTask{BatchOwnerUUID: start1.UUID, TotalBatches: 1}, FlowStartBatch: batch1}, false)
+	require.NoError(t, err)
+	testsuite.FlushTasks(t, rt)
+
+	// only Ann was started and Bob's session wasn't interrupted
+	assertdb.Query(t, rt.DB, `SELECT contact_id FROM flows_flowrun WHERE start_id = $1`, start1.ID).Returns(int64(testdb.Ann.ID))
+	assertdb.Query(t, rt.DB, `SELECT status FROM flows_flowsession WHERE uuid = $1`, bobSessionUUID).Returns("W")
+	assertdb.Query(t, rt.DB, `SELECT current_session_uuid::text FROM contacts_contact WHERE id = $1`, testdb.Bob.ID).Returns(string(bobSessionUUID))
+	assertdb.Query(t, rt.DB, `SELECT status FROM flows_flowstart WHERE id = $1`, start1.ID).Returns("C")
+
+	testsuite.AssertDailyCounts(t, rt, testdb.Org1, map[string]int{"2026-09-30/flowstarts:ticketexcluded": 1})
+
+	// background flows don't interrupt so contacts with open tickets can still be started in them
+	start2 := models.NewFlowStart(models.OrgID(1), models.StartTypeManual, testdb.BackgroundFlow.ID).
+		WithContactIDs([]models.ContactID{testdb.Ann.ID, testdb.Bob.ID})
+	require.NoError(t, models.InsertFlowStart(ctx, rt.DB, start2))
+
+	batch2 := start2.CreateBatch([]models.ContactID{testdb.Ann.ID, testdb.Bob.ID}, 2)
+	err = tasks.Queue(ctx, rt, rt.Queues.Throttled, testdb.Org1.ID, &tasks.StartFlowBatch{BatchTask: tasks.BatchTask{BatchOwnerUUID: start2.UUID, TotalBatches: 1}, FlowStartBatch: batch2}, false)
+	require.NoError(t, err)
+	testsuite.FlushTasks(t, rt)
+
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowrun WHERE start_id = $1`, start2.ID).Returns(2)
+
+	testsuite.AssertDailyCounts(t, rt, testdb.Org1, map[string]int{"2026-09-30/flowstarts:ticketexcluded": 1})
 }
