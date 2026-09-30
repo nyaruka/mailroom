@@ -14,7 +14,7 @@ import (
 
 // helpers for classifying with a generative model by prompting it, for model types which don't have a native
 // classification model. Like a native classifier, they always choose one of the options and leave it to flows to decide
-// whether the confidence is high enough, so a model that judges that none of the options fit gives zero confidence in
+// whether the confidence is high enough, so a model that judges that none of the options fit gives no confidence in
 // the first option rather than an error.
 
 // ClassifyMaxTokens is the output limit for the classify instructions, which only needs to fit an option name.
@@ -22,7 +22,27 @@ const ClassifyMaxTokens = 50
 
 // UnscoredConfidence is the confidence given to an option chosen by a model which was expected to provide logprobs
 // but didn't. The model could have declined to choose so its choice is taken as likely, but not as certain.
-const UnscoredConfidence = 0.8
+const UnscoredConfidence = core.ClassifierConfidenceMedium
+
+// minimum probabilities for each confidence level, in descending order
+var confidenceThresholds = []struct {
+	level core.ClassifierConfidence
+	min   float64
+}{
+	{core.ClassifierConfidenceHigh, 0.9},
+	{core.ClassifierConfidenceMedium, 0.7},
+	{core.ClassifierConfidenceLow, 0.4},
+}
+
+// ConfidenceLevel maps the probability of a classification onto a confidence level
+func ConfidenceLevel(p float64) core.ClassifierConfidence {
+	for _, t := range confidenceThresholds {
+		if p >= t.min {
+			return t.level
+		}
+	}
+	return core.ClassifierConfidenceNone
+}
 
 // the model's reply to the classify instructions when none of the options fit
 const cantOutput = "<CANT>"
@@ -36,9 +56,9 @@ func ClassifyInstructions(options []*core.ClassifierOption) string {
 // NewClassification creates a classification from the response to the classify instructions. The token logprobs of
 // the output are used for the confidence. Options can't be empty, which flows ensure.
 func NewClassification(resp *core.ModelResponse, logprobs []float64, options []*core.ClassifierOption) (*core.Classification, error) {
-	cls := &core.Classification{Option: options[0].Name, Tokens: resp.Tokens}
+	cls := &core.Classification{Option: options[0].Name, Confidence: core.ClassifierConfidenceNone, Tokens: resp.Tokens}
 
-	// the model can't tell us which option comes closest so we can only give zero confidence in any of them
+	// the model can't tell us which option comes closest so we can only give no confidence in any of them
 	if normalizeOption(resp.Output) == cantOutput {
 		return cls, nil
 	}
@@ -70,13 +90,13 @@ func ClassifyByPrompt(ctx context.Context, svc flows.ModelService, input string,
 		return nil, err
 	}
 
-	cls := &core.Classification{Option: options[0].Name, Probabilities: probs, Tokens: resp.Tokens}
+	option, best := options[0].Name, 0.0
 	for _, o := range options {
-		if probs[o.Name] > cls.Confidence {
-			cls.Option, cls.Confidence = o.Name, probs[o.Name]
+		if probs[o.Name] > best {
+			option, best = o.Name, probs[o.Name]
 		}
 	}
-	return cls, nil
+	return &core.Classification{Option: option, Confidence: ConfidenceLevel(best), Probabilities: probs, Tokens: resp.Tokens}, nil
 }
 
 // extracts the JSON object from model output, as models sometimes wrap JSON in code fences or other text
@@ -135,8 +155,9 @@ func matchOption(output string, options []*core.ClassifierOption) string {
 	return ""
 }
 
-// the probability of the model generating the whole output, i.e. the product of its token probabilities
-func confidence(logprobs []float64) float64 {
+// the confidence level of the probability of the model generating the whole output, i.e. the product of its token
+// probabilities
+func confidence(logprobs []float64) core.ClassifierConfidence {
 	if len(logprobs) == 0 {
 		return UnscoredConfidence
 	}
@@ -144,5 +165,5 @@ func confidence(logprobs []float64) float64 {
 	for _, lp := range logprobs {
 		sum += lp
 	}
-	return math.Exp(sum)
+	return ConfidenceLevel(math.Exp(sum))
 }
