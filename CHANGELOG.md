@@ -1,3 +1,6 @@
+## v26.3.86 (2026-09-30)
+ * Update to goflow v0.297.0 and map classifier confidence onto levels
+
 ## v26.3.85 (2026-09-30)
  * Add support for contact email addresses, including the email modifier and contact_email_changed events (bump goflow to v0.296.1)
  * Include contact email in messages queued to courier
