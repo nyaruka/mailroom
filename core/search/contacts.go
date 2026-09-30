@@ -47,6 +47,7 @@ type ContactDoc struct {
 	Name           string               `json:"name,omitempty"`
 	Status         models.ContactStatus `json:"status"`
 	Language       i18n.Language        `json:"language,omitempty"`
+	Email          string               `json:"email,omitempty"`
 	Fields         []*ContactDocField   `json:"fields,omitempty"`
 	URNs           []*ContactDocURN     `json:"urns,omitempty"`
 	GroupIDs       []models.GroupID     `json:"group_ids,omitempty"`
@@ -67,6 +68,7 @@ func NewContactDoc(oa *models.OrgAssets, c *core.Contact, currentFlowID models.F
 		Name:           c.Name(),
 		Status:         models.ContactToModelStatus[c.Status()],
 		Language:       c.Language(),
+		Email:          c.Email(),
 		CreatedOn:      c.CreatedOn(),
 		LastSeenOn:     c.LastSeenOn(),
 		Tickets:        c.Tickets().Open().Count(),

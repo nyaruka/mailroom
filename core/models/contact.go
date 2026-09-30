@@ -107,6 +107,7 @@ type Contact struct {
 	name               string
 	urns               []*ContactURN
 	language           i18n.Language
+	email              string
 	status             ContactStatus
 	fields             map[string]*core.Value
 	groups             []*Group
@@ -122,6 +123,7 @@ func (c *Contact) ID() ContactID                        { return c.id }
 func (c *Contact) UUID() core.ContactUUID               { return c.uuid }
 func (c *Contact) Name() string                         { return c.name }
 func (c *Contact) Language() i18n.Language              { return c.language }
+func (c *Contact) Email() string                        { return c.email }
 func (c *Contact) Status() ContactStatus                { return c.status }
 func (c *Contact) Fields() map[string]*core.Value       { return c.fields }
 func (c *Contact) Groups() []*Group                     { return c.groups }
@@ -221,6 +223,7 @@ func (c *Contact) EngineContact(oa *OrgAssets) (*core.Contact, error) {
 		core.ContactID(c.id),
 		c.name,
 		c.language,
+		c.email,
 		contactToEngineStatus[c.Status()],
 		oa.Env().Timezone(),
 		c.createdOn,
@@ -280,6 +283,7 @@ func LoadContacts(ctx context.Context, db Queryer, oa *OrgAssets, ids []ContactI
 			name:               e.Name,
 			urns:               e.URNs,
 			language:           e.Language,
+			email:              e.Email,
 			status:             e.Status,
 			createdOn:          e.CreatedOn,
 			modifiedOn:         e.ModifiedOn,
@@ -479,6 +483,7 @@ type contactEnvelope struct {
 	Name     string           `json:"name"`
 	URNs     []*ContactURN    `json:"urns"`
 	Language i18n.Language    `json:"language"`
+	Email    string           `json:"email"`
 	Status   ContactStatus    `json:"status"`
 	Fields   map[assets.FieldUUID]struct {
 		Text     *types.XText      `json:"text"`
@@ -509,6 +514,7 @@ SELECT ROW_TO_JSON(r) FROM (SELECT
 	uuid,
 	name,
 	language,
+	email,
 	status,
 	fields,
 	g.groups AS group_ids,

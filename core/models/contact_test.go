@@ -37,6 +37,7 @@ func TestContacts(t *testing.T) {
 	rt.DB.MustExec(`DELETE FROM contacts_contacturn WHERE contact_id = $1`, testdb.Cat.ID)
 	rt.DB.MustExec(`DELETE FROM contacts_contactgroup_contacts WHERE contact_id = $1`, testdb.Cat.ID)
 	rt.DB.MustExec(`UPDATE contacts_contact SET is_active = FALSE WHERE id = $1`, testdb.Dan.ID)
+	rt.DB.MustExec(`UPDATE contacts_contact SET email = 'bob@example.com' WHERE id = $1`, testdb.Bob.ID)
 
 	mcs, err := models.LoadContacts(ctx, rt.DB, org, []models.ContactID{testdb.Ann.ID, testdb.Bob.ID, testdb.Cat.ID, testdb.Dan.ID})
 	require.NoError(t, err)
@@ -55,6 +56,7 @@ func TestContacts(t *testing.T) {
 	ann, bob, cat := contacts[0], contacts[1], contacts[2]
 
 	assert.Equal(t, "Ann", ann.Name())
+	assert.Equal(t, "", ann.Email())
 	assert.Len(t, ann.URNs(), 1)
 	assert.Equal(t, urns.URN("tel:+16055741111"), ann.URNs()[0].Encode())
 	assert.Equal(t, 1, ann.Groups().Count())
@@ -70,6 +72,7 @@ func TestContacts(t *testing.T) {
 	assert.Equal(t, (*core.FieldValue)(nil), ann.Fields()["age"])
 
 	assert.Equal(t, "Bob", bob.Name())
+	assert.Equal(t, "bob@example.com", bob.Email())
 	assert.NotNil(t, bob.Fields()["joined"].QueryValue())
 	assert.Len(t, bob.URNs(), 2)
 	assert.Equal(t, urns.URN("tel:+16055742222"), bob.URNs()[0].Encode())

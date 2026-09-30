@@ -314,6 +314,76 @@
     {
         "event": {
             "uuid": "01969b47-28ab-76f8-b774-0a98171a0712",
+            "type": "contact_email_changed",
+            "created_on": "2025-05-04T12:30:55.123456789Z",
+            "email": "ann@example.com"
+        },
+        "dynamo": {
+            "OrgID": {
+                "N": "1"
+            },
+            "TTL": {
+                "N": "1777897855"
+            },
+            "Data": {
+                "M": {
+                    "type": {
+                        "S": "contact_email_changed"
+                    },
+                    "created_on": {
+                        "S": "2025-05-04T12:30:55.123456789Z"
+                    },
+                    "email": {
+                        "S": "ann@example.com"
+                    }
+                }
+            },
+            "PK": {
+                "S": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf"
+            },
+            "SK": {
+                "S": "evt#01969b47-28ab-76f8-b774-0a98171a0712"
+            }
+        }
+    },
+    {
+        "event": {
+            "uuid": "01969b47-28ab-76f8-b774-0a98171a0712",
+            "type": "contact_email_changed",
+            "created_on": "2025-05-04T12:30:55.123456789Z",
+            "email": ""
+        },
+        "dynamo": {
+            "SK": {
+                "S": "evt#01969b47-28ab-76f8-b774-0a98171a0712"
+            },
+            "OrgID": {
+                "N": "1"
+            },
+            "TTL": {
+                "N": "1777897855"
+            },
+            "Data": {
+                "M": {
+                    "type": {
+                        "S": "contact_email_changed"
+                    },
+                    "created_on": {
+                        "S": "2025-05-04T12:30:55.123456789Z"
+                    },
+                    "email": {
+                        "S": ""
+                    }
+                }
+            },
+            "PK": {
+                "S": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf"
+            }
+        }
+    },
+    {
+        "event": {
+            "uuid": "01969b47-28ab-76f8-b774-0a98171a0712",
             "type": "contact_name_changed",
             "created_on": "2025-05-04T12:30:55.123456789Z",
             "_user": {

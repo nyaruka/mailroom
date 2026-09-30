@@ -98,6 +98,16 @@
                 "type": "keyword",
                 "normalizer": "lowercase"
             },
+            "email": {
+                "type": "text",
+                "analyzer": "trigrams",
+                "fields": {
+                    "keyword": {
+                        "type": "keyword",
+                        "normalizer": "lowercase"
+                    }
+                }
+            },
             "fields": {
                 "type": "nested",
                 "properties": {
