@@ -82,7 +82,7 @@ func TestClassify(t *testing.T) {
 	cls, err := svc.Classify(ctx, "I need a room", []*core.ClassifierOption{{Name: "Flights"}, {Name: "Hotels"}})
 	require.NoError(t, err)
 	assert.Equal(t, "Hotels", cls.Option)
-	assert.InDelta(t, 0.8607, cls.Confidence, 0.0001)
+	assert.Equal(t, core.ClassifierConfidenceMedium, cls.Confidence)
 	assert.Equal(t, int64(34), cls.Tokens.Input)
 	assert.Equal(t, int64(2), cls.Tokens.Output)
 
@@ -95,5 +95,5 @@ func TestClassify(t *testing.T) {
 	// none of the options fit
 	cls, err = svc.Classify(ctx, "What's the weather?", []*core.ClassifierOption{{Name: "Flights"}, {Name: "Hotels"}})
 	require.NoError(t, err)
-	assert.Equal(t, &core.Classification{Option: "Flights", Tokens: core.ModelTokens{Input: 34, Output: 2}}, cls)
+	assert.Equal(t, &core.Classification{Option: "Flights", Confidence: core.ClassifierConfidenceNone, Tokens: core.ModelTokens{Input: 34, Output: 2}}, cls)
 }
