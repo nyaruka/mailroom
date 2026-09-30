@@ -2470,5 +2470,273 @@
                 }
             }
         ]
+    },
+    {
+        "label": "set email",
+        "method": "POST",
+        "path": "/mi/contact/modify",
+        "body": {
+            "org_id": 1,
+            "user_id": 1,
+            "contact_ids": [
+                10000
+            ],
+            "modifiers": [
+                {
+                    "type": "email",
+                    "email": "  Ann@Example.COM "
+                }
+            ],
+            "via": "ui"
+        },
+        "status": 200,
+        "response": {
+            "events": {
+                "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                    {
+                        "uuid": "01969b48-2693-76f8-9ea3-78702727831a",
+                        "type": "contact_email_changed",
+                        "created_on": "2025-05-04T12:32:00.123456789Z",
+                        "_via": "ui",
+                        "email": "ann@example.com"
+                    }
+                ]
+            },
+            "skipped": [],
+            "contacts": [
+                {
+                    "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                    "id": 10000,
+                    "name": "Juan",
+                    "language": "eng",
+                    "email": "ann@example.com",
+                    "status": "active",
+                    "timezone": "America/Los_Angeles",
+                    "created_on": "2018-07-06T12:30:00.123457Z",
+                    "urns": [
+                        "tel:+255788555111"
+                    ],
+                    "groups": [
+                        {
+                            "uuid": "361838c4-2866-495a-8990-9f3c222a7604",
+                            "name": "Open Tickets"
+                        },
+                        {
+                            "uuid": "5e9d8fab-5e7e-4f51-b533-261af5dea70d",
+                            "name": "Testers"
+                        }
+                    ],
+                    "tickets": [
+                        {
+                            "uuid": "01969b47-dc5b-76f8-95d6-85696b970f6a",
+                            "status": "open",
+                            "topic": {
+                                "uuid": "0a8f2e00-fef6-402c-bd79-d789446ec0e0",
+                                "name": "Support"
+                            },
+                            "assignee": {
+                                "uuid": "ad9fdf9f-56ab-422a-b77d-e3ec26091a25",
+                                "name": "Andy Admin"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        "db_assertions": [
+            {
+                "query": "SELECT email FROM contacts_contact WHERE id = 10000",
+                "returns": "ann@example.com"
+            }
+        ],
+        "expected_history": [
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01969b48-2693-76f8-9ea3-78702727831a",
+                "OrgID": 1,
+                "TTL": "2026-05-04T12:32:00Z",
+                "Data": {
+                    "_via": "ui",
+                    "created_on": "2025-05-04T12:32:00.123456789Z",
+                    "email": "ann@example.com",
+                    "type": "contact_email_changed"
+                }
+            }
+        ]
+    },
+    {
+        "label": "set invalid email",
+        "method": "POST",
+        "path": "/mi/contact/modify",
+        "body": {
+            "org_id": 1,
+            "user_id": 1,
+            "contact_ids": [
+                10000
+            ],
+            "modifiers": [
+                {
+                    "type": "email",
+                    "email": "not-an-email"
+                }
+            ],
+            "via": "ui"
+        },
+        "status": 200,
+        "response": {
+            "events": {
+                "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                    {
+                        "uuid": "01969b48-2e63-76f8-88a0-aff178d69252",
+                        "type": "error",
+                        "created_on": "2025-05-04T12:32:02.123456789Z",
+                        "_via": "ui",
+                        "text": "'not-an-email' is not a valid email address",
+                        "code": "email:invalid",
+                        "extra": {
+                            "email": "not-an-email"
+                        }
+                    }
+                ]
+            },
+            "skipped": [],
+            "contacts": [
+                {
+                    "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                    "id": 10000,
+                    "name": "Juan",
+                    "language": "eng",
+                    "email": "ann@example.com",
+                    "status": "active",
+                    "timezone": "America/Los_Angeles",
+                    "created_on": "2018-07-06T12:30:00.123457Z",
+                    "urns": [
+                        "tel:+255788555111"
+                    ],
+                    "groups": [
+                        {
+                            "uuid": "361838c4-2866-495a-8990-9f3c222a7604",
+                            "name": "Open Tickets"
+                        },
+                        {
+                            "uuid": "5e9d8fab-5e7e-4f51-b533-261af5dea70d",
+                            "name": "Testers"
+                        }
+                    ],
+                    "tickets": [
+                        {
+                            "uuid": "01969b47-dc5b-76f8-95d6-85696b970f6a",
+                            "status": "open",
+                            "topic": {
+                                "uuid": "0a8f2e00-fef6-402c-bd79-d789446ec0e0",
+                                "name": "Support"
+                            },
+                            "assignee": {
+                                "uuid": "ad9fdf9f-56ab-422a-b77d-e3ec26091a25",
+                                "name": "Andy Admin"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        "db_assertions": [
+            {
+                "query": "SELECT email FROM contacts_contact WHERE id = 10000",
+                "returns": "ann@example.com"
+            }
+        ]
+    },
+    {
+        "label": "clear email",
+        "method": "POST",
+        "path": "/mi/contact/modify",
+        "body": {
+            "org_id": 1,
+            "user_id": 1,
+            "contact_ids": [
+                10000
+            ],
+            "modifiers": [
+                {
+                    "type": "email",
+                    "email": ""
+                }
+            ],
+            "via": "ui"
+        },
+        "status": 200,
+        "response": {
+            "events": {
+                "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                    {
+                        "uuid": "01969b48-3633-76f8-aa6f-a957c6de8daa",
+                        "type": "contact_email_changed",
+                        "created_on": "2025-05-04T12:32:04.123456789Z",
+                        "_via": "ui",
+                        "email": ""
+                    }
+                ]
+            },
+            "skipped": [],
+            "contacts": [
+                {
+                    "uuid": "a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                    "id": 10000,
+                    "name": "Juan",
+                    "language": "eng",
+                    "status": "active",
+                    "timezone": "America/Los_Angeles",
+                    "created_on": "2018-07-06T12:30:00.123457Z",
+                    "urns": [
+                        "tel:+255788555111"
+                    ],
+                    "groups": [
+                        {
+                            "uuid": "361838c4-2866-495a-8990-9f3c222a7604",
+                            "name": "Open Tickets"
+                        },
+                        {
+                            "uuid": "5e9d8fab-5e7e-4f51-b533-261af5dea70d",
+                            "name": "Testers"
+                        }
+                    ],
+                    "tickets": [
+                        {
+                            "uuid": "01969b47-dc5b-76f8-95d6-85696b970f6a",
+                            "status": "open",
+                            "topic": {
+                                "uuid": "0a8f2e00-fef6-402c-bd79-d789446ec0e0",
+                                "name": "Support"
+                            },
+                            "assignee": {
+                                "uuid": "ad9fdf9f-56ab-422a-b77d-e3ec26091a25",
+                                "name": "Andy Admin"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        "db_assertions": [
+            {
+                "query": "SELECT email FROM contacts_contact WHERE id = 10000",
+                "returns": null
+            }
+        ],
+        "expected_history": [
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01969b48-3633-76f8-aa6f-a957c6de8daa",
+                "OrgID": 1,
+                "TTL": "2026-05-04T12:32:04Z",
+                "Data": {
+                    "_via": "ui",
+                    "created_on": "2025-05-04T12:32:04.123456789Z",
+                    "email": "",
+                    "type": "contact_email_changed"
+                }
+            }
+        ]
     }
 ]
