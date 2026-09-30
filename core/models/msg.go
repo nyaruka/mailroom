@@ -709,6 +709,7 @@ const sqlSelectContactsForSending = `
 SELECT ROW_TO_JSON(r) FROM (SELECT
 	c.id,
 	c.uuid,
+	c.email,
 	c.last_seen_on,
 	u.urns AS urns
 FROM
@@ -739,7 +740,7 @@ func loadContactsForSending(ctx context.Context, db *sqlx.DB, contactIDs []Conta
 			return nil, fmt.Errorf("error scanning contact json: %w", err)
 		}
 
-		contactsByID[e.ID] = &Contact{id: e.ID, uuid: e.UUID, lastSeenOn: e.LastSeenOn, urns: e.URNs}
+		contactsByID[e.ID] = &Contact{id: e.ID, uuid: e.UUID, email: e.Email, lastSeenOn: e.LastSeenOn, urns: e.URNs}
 	}
 
 	return contactsByID, nil
