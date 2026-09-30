@@ -44,6 +44,7 @@ const (
 type Contact struct {
 	ID         models.ContactID `json:"id"`
 	UUID       core.ContactUUID `json:"uuid"`
+	Email      string           `json:"email,omitempty"`
 	LastSeenOn *time.Time       `json:"last_seen_on,omitempty"`
 	OtherURNs  []urns.URN       `json:"other_urns,omitempty"` // currently needed for WA handlers to know if contact already has a BSUID URN, may not be needed long term
 }
@@ -113,6 +114,7 @@ func NewCourierMsg(oa *models.OrgAssets, mo *models.MsgOut, ch *models.Channel) 
 		Contact: &Contact{
 			ID:         mo.ContactID(),
 			UUID:       mo.Contact.UUID(),
+			Email:      mo.Contact.Email(),
 			LastSeenOn: mo.Contact.LastSeenOn(),
 			OtherURNs:  otherURNs(mo),
 		},
