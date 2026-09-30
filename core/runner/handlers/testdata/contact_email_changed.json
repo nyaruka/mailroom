@@ -1,0 +1,111 @@
+[
+    {
+        "label": "email changed events from flow",
+        "modifiers": {
+            "0cc7e8ab-fa60-4ff8-9a2e-6c2c7e6c3e43": [
+                {
+                    "type": "email",
+                    "email": "not an email"
+                }
+            ],
+            "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                {
+                    "type": "email",
+                    "email": "ann@example.com"
+                },
+                {
+                    "type": "email",
+                    "email": " Ann <Annie@Example.com> "
+                }
+            ],
+            "b699a406-7e44-49be-9f01-1a82893e8a10": [
+                {
+                    "type": "email",
+                    "email": "bob@example.com"
+                },
+                {
+                    "type": "email",
+                    "email": ""
+                }
+            ]
+        },
+        "events": {},
+        "db_assertions": [
+            {
+                "label": "only last email change applied, normalized",
+                "query": "SELECT email FROM contacts_contact WHERE id = 10000",
+                "returns": "annie@example.com"
+            },
+            {
+                "label": "empty email becomes null",
+                "query": "SELECT email FROM contacts_contact WHERE id = 10001",
+                "returns": null
+            },
+            {
+                "label": "invalid email not applied",
+                "query": "SELECT email FROM contacts_contact WHERE id = 10002",
+                "returns": null
+            }
+        ],
+        "expected_history": [
+            {
+                "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
+                "SK": "evt#01969b47-1523-76f8-95cf-9fca95f1c30a",
+                "OrgID": 1,
+                "TTL": "2026-05-04T12:30:50Z",
+                "Data": {
+                    "created_on": "2025-05-04T12:30:50.123456789Z",
+                    "email": "bob@example.com",
+                    "type": "contact_email_changed"
+                }
+            },
+            {
+                "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
+                "SK": "evt#01969b47-1cf3-76f8-92ed-42cbd11a03fd",
+                "OrgID": 1,
+                "TTL": "2026-05-04T12:30:52Z",
+                "Data": {
+                    "created_on": "2025-05-04T12:30:52.123456789Z",
+                    "email": "",
+                    "type": "contact_email_changed"
+                }
+            },
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01969b47-0583-76f8-924e-9de1a11831b3",
+                "OrgID": 1,
+                "TTL": "2026-05-04T12:30:46Z",
+                "Data": {
+                    "created_on": "2025-05-04T12:30:46.123456789Z",
+                    "email": "ann@example.com",
+                    "type": "contact_email_changed"
+                }
+            },
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01969b47-0d53-76f8-98c7-1f0d5859f77e",
+                "OrgID": 1,
+                "TTL": "2026-05-04T12:30:48Z",
+                "Data": {
+                    "created_on": "2025-05-04T12:30:48.123456789Z",
+                    "email": "annie@example.com",
+                    "type": "contact_email_changed"
+                }
+            }
+        ],
+        "assert_search": [
+            {
+                "query": "email = annie@example.com",
+                "contacts": [
+                    "a393abc0-283d-4c9b-a1b3-641a035c34bf"
+                ]
+            },
+            {
+                "query": "email != \"\"",
+                "contacts": [
+                    "a393abc0-283d-4c9b-a1b3-641a035c34bf"
+                ]
+            }
+        ]
+    }
+]
