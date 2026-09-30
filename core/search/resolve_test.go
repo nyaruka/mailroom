@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/elastic"
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/gocommon/urns"
@@ -113,9 +112,6 @@ func TestResolveRecipients(t *testing.T) {
 func TestResolveRecipientsExcludesTicketed(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	dates.SetNowFunc(dates.NewFixedNow(time.Date(2026, 9, 30, 12, 0, 0, 0, time.UTC)))
-	defer dates.SetNowFunc(time.Now)
-
 	group1 := testdb.InsertContactGroup(t, rt, testdb.Org1, "a85acec9-3895-4ffd-87c1-c69a25781a85", "Group 1", "", testdb.Cat, testdb.Dan)
 
 	testdb.InsertOpenTicket(t, rt, "01992f54-5ab6-717a-a39e-e8ca91fb7262", testdb.Org1, testdb.Cat, testdb.DefaultTopic, time.Now(), nil)
@@ -161,9 +157,6 @@ func TestResolveRecipientsExcludesTicketed(t *testing.T) {
 		assert.NoError(t, err)
 		assert.ElementsMatch(t, tc.expectedIDs, actualIDs, "contact ids mismatch in %d", i)
 	}
-
-	// Cat was excluded by each resolve that was excluding contacts with open tickets
-	testsuite.AssertDailyCounts(t, rt, testdb.Org1, map[string]int{"2026-09-30/flowstarts:ticketexcluded": 4})
 }
 
 func TestResolveRecipientsIndexesExcludedCreatedContacts(t *testing.T) {

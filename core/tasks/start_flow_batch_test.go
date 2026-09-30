@@ -7,7 +7,6 @@ import (
 
 	"github.com/lib/pq"
 	"github.com/nyaruka/gocommon/centrifugo"
-	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/mailroom/v26/core/models"
@@ -156,9 +155,6 @@ func TestStartFlowBatchTaskNonPersistedStart(t *testing.T) {
 func TestStartFlowBatchTaskExcludesTicketed(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	dates.SetNowFunc(dates.NewFixedNow(time.Date(2026, 9, 30, 12, 0, 0, 0, time.UTC)))
-	defer dates.SetNowFunc(time.Now)
-
 	// Bob is waiting in a flow
 	bobSessionUUID := testdb.InsertWaitingSession(t, rt, testdb.Org1, testdb.Bob, models.FlowTypeMessaging, nil, testdb.Favorites)
 
@@ -180,8 +176,6 @@ func TestStartFlowBatchTaskExcludesTicketed(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT current_session_uuid::text FROM contacts_contact WHERE id = $1`, testdb.Bob.ID).Returns(string(bobSessionUUID))
 	assertdb.Query(t, rt.DB, `SELECT status FROM flows_flowstart WHERE id = $1`, start1.ID).Returns("C")
 
-	testsuite.AssertDailyCounts(t, rt, testdb.Org1, map[string]int{"2026-09-30/flowstarts:ticketexcluded": 1})
-
 	// background flows don't interrupt so contacts with open tickets can still be started in them
 	start2 := models.NewFlowStart(models.OrgID(1), models.StartTypeManual, testdb.BackgroundFlow.ID).
 		WithContactIDs([]models.ContactID{testdb.Ann.ID, testdb.Bob.ID})
@@ -193,6 +187,4 @@ func TestStartFlowBatchTaskExcludesTicketed(t *testing.T) {
 	testsuite.FlushTasks(t, rt)
 
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowrun WHERE start_id = $1`, start2.ID).Returns(2)
-
-	testsuite.AssertDailyCounts(t, rt, testdb.Org1, map[string]int{"2026-09-30/flowstarts:ticketexcluded": 1})
 }

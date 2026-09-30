@@ -7,7 +7,6 @@ import (
 	"slices"
 	"time"
 
-	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/excellent/types"
 	"github.com/nyaruka/goflow/flows"
@@ -186,15 +185,8 @@ func (t *StartFlowBatch) start(ctx context.Context, rt *runtime.Runtime, oa *mod
 
 	// contacts may have opened tickets since the start's recipients were resolved, so check again at start time
 	var exclude func(*models.Contact) bool
-	ticketed := 0
 	if start.StartType.ExcludesTicketed(flow) {
-		exclude = func(c *models.Contact) bool {
-			if len(c.Tickets()) > 0 {
-				ticketed++
-				return true
-			}
-			return false
-		}
+		exclude = func(c *models.Contact) bool { return len(c.Tickets()) > 0 }
 	}
 
 	if flow.FlowType() == models.FlowTypeVoice {
@@ -233,13 +225,6 @@ func (t *StartFlowBatch) start(ctx context.Context, rt *runtime.Runtime, oa *mod
 
 		if len(skipped) > 0 {
 			slog.Warn("failed to acquire locks for contacts", "contacts", skipped)
-		}
-	}
-
-	// contacts have been started so don't fail the batch if we can't record this
-	if ticketed > 0 {
-		if err := models.InsertDailyCounts(ctx, rt.DB, oa, dates.Now(), map[string]int{models.DailyCountStartTicketExcluded: ticketed}); err != nil {
-			slog.Error("error recording ticket excluded count", "error", err, "start_id", start.ID)
 		}
 	}
 

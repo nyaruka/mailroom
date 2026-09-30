@@ -47,9 +47,6 @@ func (t StartType) ExcludesTicketed(flow *Flow) bool {
 	return byUser && flow.FlowType().Interrupts()
 }
 
-// DailyCountStartTicketExcluded is the daily count scope for contacts left out of flow starts for having an open ticket
-const DailyCountStartTicketExcluded = "flowstarts:ticketexcluded"
-
 // StartStatus is the type for the status of a start
 type StartStatus string
 

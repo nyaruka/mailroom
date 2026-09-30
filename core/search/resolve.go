@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/mailroom/v26/core/models"
@@ -18,7 +17,7 @@ type Recipients struct {
 	Query           string
 	Exclusions      models.Exclusions
 	ExcludeGroupIDs []models.GroupID
-	ExcludeTicketed bool // contacts with open tickets, which are recorded as a daily count
+	ExcludeTicketed bool // contacts with open tickets
 }
 
 // ResolveRecipients resolves a set of contacts, groups, urns etc into a set of unique contacts. Also returns the ids
@@ -78,10 +77,8 @@ func ResolveRecipients(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 	// checking loaded contacts for open tickets rather than relying on the index
 	if len(includeGroups) == 0 && recipients.Query == "" && recipients.Exclusions == models.NoExclusions && len(excludeGroups) == 0 {
 		matches := make([]models.ContactID, 0, len(includeContacts)+len(createdContacts))
-		ticketed := 0
 		for _, c := range includeContacts {
 			if recipients.ExcludeTicketed && len(c.Tickets()) > 0 {
-				ticketed++
 				continue
 			}
 			matches = append(matches, c.ID())
@@ -90,11 +87,6 @@ func ResolveRecipients(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 			matches = append(matches, c.ID())
 			createdIDs = append(createdIDs, c.ID())
 		}
-
-		if err := recordTicketExcluded(ctx, rt, oa, ticketed); err != nil {
-			return nil, nil, err
-		}
-
 		return matches, createdIDs, nil
 	}
 
@@ -113,23 +105,6 @@ func ResolveRecipients(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 		matches, err = GetContactIDsForQuery(ctx, rt, oa, nil, models.ContactStatusActive, query, limit)
 		if err != nil {
 			return nil, nil, fmt.Errorf("error performing contact search: %w", err)
-		}
-
-		if recipients.ExcludeTicketed {
-			// count who the ticket condition alone excluded, i.e. active contacts who would match without it
-			baseQuery, err := BuildRecipientsQuery(oa, flow, includeGroups, includeContactUUIDs, recipients.Query, recipients.Exclusions, excludeGroups, false)
-			if err != nil {
-				return nil, nil, fmt.Errorf("error building query: %w", err)
-			}
-
-			_, ticketed, err := GetContactTotal(ctx, rt, oa, nil, fmt.Sprintf(`(%s) AND tickets > 0 AND status = "active"`, baseQuery))
-			if err != nil {
-				return nil, nil, fmt.Errorf("error counting contacts with open tickets: %w", err)
-			}
-
-			if err := recordTicketExcluded(ctx, rt, oa, int(ticketed)); err != nil {
-				return nil, nil, err
-			}
 		}
 	}
 
@@ -156,15 +131,4 @@ func ResolveRecipients(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 	}
 
 	return matches, createdIDs, nil
-}
-
-// records a daily count of contacts excluded from a start for having an open ticket
-func recordTicketExcluded(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, count int) error {
-	if count == 0 {
-		return nil
-	}
-	if err := models.InsertDailyCounts(ctx, rt.DB, oa, dates.Now(), map[string]int{models.DailyCountStartTicketExcluded: count}); err != nil {
-		return fmt.Errorf("error recording ticket excluded count: %w", err)
-	}
-	return nil
 }
