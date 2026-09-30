@@ -1,3 +1,7 @@
+## v26.3.85 (2026-09-30)
+ * Add support for contact email addresses, including the email modifier and contact_email_changed events (bump goflow to v0.296.1)
+ * Include contact email in messages queued to courier
+
 ## v26.3.84 (2026-09-29)
  * Parse translate output wrapped in code fences
 
