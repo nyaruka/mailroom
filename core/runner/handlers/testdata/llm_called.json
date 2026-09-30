@@ -33,7 +33,7 @@
                         }
                     ],
                     "output_local": "_category",
-                    "required_confidence": "any"
+                    "required_confidence": "none"
                 }
             ]
         },
