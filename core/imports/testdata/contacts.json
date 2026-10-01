@@ -1488,5 +1488,362 @@
                 }
             }
         ]
+    },
+    {
+        "label": "emails set, normalized and validated",
+        "specs": [
+            {
+                "uuid": "ad9bdcfa-5604-4542-98c7-1f0d5859f77e",
+                "email": " Ann@Example.COM ",
+                "_import_row": 2
+            },
+            {
+                "name": "Gus",
+                "urns": [
+                    "tel:+16055550141"
+                ],
+                "email": "gus@example.com",
+                "_import_row": 3
+            },
+            {
+                "name": "Hal",
+                "urns": [
+                    "tel:+16055550142"
+                ],
+                "email": "not an email",
+                "_import_row": 4
+            }
+        ],
+        "num_created": 2,
+        "num_updated": 1,
+        "num_errored": 0,
+        "expected_errors": [
+            {
+                "row": 4,
+                "record": 2,
+                "message": "'not an email' is not a valid email address"
+            }
+        ],
+        "expected_contacts": [
+            {
+                "uuid": "ad9bdcfa-5604-4542-98c7-1f0d5859f77e",
+                "name": "Annie",
+                "language": "kin",
+                "email": "ann@example.com",
+                "status": "archived",
+                "urns": [
+                    "tel:+16055550111",
+                    "tel:+16055550115"
+                ],
+                "fields": {},
+                "groups": [],
+                "_import_row": 0
+            },
+            {
+                "uuid": "b26fcae1-abb6-49f8-95cf-9fca95f1c30a",
+                "name": "Bob",
+                "language": "kin",
+                "status": "active",
+                "urns": [
+                    "tel:+16055550112",
+                    "tel:+593979000002"
+                ],
+                "fields": {
+                    "age": "28",
+                    "joined": "2020-01-01T10:45:30.000000Z"
+                },
+                "groups": [],
+                "_import_row": 0
+            },
+            {
+                "uuid": "a5111699-b2f8-4a37-9729-57745fb13b06",
+                "name": "Cat",
+                "language": "spa",
+                "status": "active",
+                "urns": [
+                    "tel:+16055550113",
+                    "tel:+593979000001"
+                ],
+                "fields": {
+                    "age": "39",
+                    "joined": "2020-02-01T17:15:30.000000Z"
+                },
+                "groups": [
+                    "5e9d8fab-5e7e-4f51-b533-261af5dea70d",
+                    "c153e265-f7c9-4539-9dbc-9b358714b638"
+                ],
+                "_import_row": 0
+            },
+            {
+                "uuid": "307bd433-68df-49b3-88c7-56bcb29ae35a",
+                "name": "Blake",
+                "language": "",
+                "status": "blocked",
+                "urns": [
+                    "tel:+16055550117"
+                ],
+                "fields": {},
+                "groups": [],
+                "_import_row": 0
+            },
+            {
+                "uuid": "317951ec-a790-4cf9-bc1e-a15dedcb8e98",
+                "name": "Ivan",
+                "language": "",
+                "status": "active",
+                "urns": [
+                    "tel:+16055550118"
+                ],
+                "fields": {},
+                "groups": [],
+                "_import_row": 0
+            },
+            {
+                "uuid": "c38a0d3d-5da4-4217-a284-24686e628a7b",
+                "name": "Dan",
+                "language": "",
+                "status": "active",
+                "urns": [
+                    "tel:+16055550131"
+                ],
+                "fields": {},
+                "groups": [],
+                "_import_row": 0
+            },
+            {
+                "uuid": "5e4b2252-f5fb-4e97-be3d-ee0d6d09117e",
+                "name": "Gus",
+                "language": "",
+                "email": "gus@example.com",
+                "status": "active",
+                "urns": [
+                    "tel:+16055550141"
+                ],
+                "fields": {},
+                "groups": [],
+                "_import_row": 0
+            },
+            {
+                "uuid": "21cc36be-0479-4e3a-8876-bd2f7154ab08",
+                "name": "Hal",
+                "language": "",
+                "status": "active",
+                "urns": [
+                    "tel:+16055550142"
+                ],
+                "fields": {},
+                "groups": [],
+                "_import_row": 0
+            }
+        ],
+        "expected_history": [
+            {
+                "PK": "con#5e4b2252-f5fb-4e97-be3d-ee0d6d09117e",
+                "SK": "evt#01969b48-93f3-76f8-85e2-056da0a5692a",
+                "OrgID": 1,
+                "TTL": "2026-05-04T12:32:28Z",
+                "Data": {
+                    "_user": {
+                        "name": "Andy Admin",
+                        "uuid": "ad9fdf9f-56ab-422a-b77d-e3ec26091a25"
+                    },
+                    "_via": "import",
+                    "created_on": "2025-05-04T12:32:28.123456789Z",
+                    "name": "Gus",
+                    "type": "contact_name_changed"
+                }
+            },
+            {
+                "PK": "con#5e4b2252-f5fb-4e97-be3d-ee0d6d09117e",
+                "SK": "evt#01969b48-9bc3-76f8-af38-c87f03f5f4d3",
+                "OrgID": 1,
+                "TTL": "2026-05-04T12:32:30Z",
+                "Data": {
+                    "_user": {
+                        "name": "Andy Admin",
+                        "uuid": "ad9fdf9f-56ab-422a-b77d-e3ec26091a25"
+                    },
+                    "_via": "import",
+                    "created_on": "2025-05-04T12:32:30.123456789Z",
+                    "email": "gus@example.com",
+                    "type": "contact_email_changed"
+                }
+            },
+            {
+                "PK": "con#ad9bdcfa-5604-4542-98c7-1f0d5859f77e",
+                "SK": "evt#01969b48-8c23-76f8-9455-dca0efc034b0",
+                "OrgID": 1,
+                "TTL": "2026-05-04T12:32:26Z",
+                "Data": {
+                    "_user": {
+                        "name": "Andy Admin",
+                        "uuid": "ad9fdf9f-56ab-422a-b77d-e3ec26091a25"
+                    },
+                    "_via": "import",
+                    "created_on": "2025-05-04T12:32:26.123456789Z",
+                    "email": "ann@example.com",
+                    "type": "contact_email_changed"
+                }
+            },
+            {
+                "PK": "con#21cc36be-0479-4e3a-8876-bd2f7154ab08",
+                "SK": "evt#01969b48-a393-76f8-8c88-29e9c787ac32",
+                "OrgID": 1,
+                "TTL": "2026-05-04T12:32:32Z",
+                "Data": {
+                    "_user": {
+                        "name": "Andy Admin",
+                        "uuid": "ad9fdf9f-56ab-422a-b77d-e3ec26091a25"
+                    },
+                    "_via": "import",
+                    "created_on": "2025-05-04T12:32:32.123456789Z",
+                    "name": "Hal",
+                    "type": "contact_name_changed"
+                }
+            }
+        ]
+    },
+    {
+        "label": "empty email clears it",
+        "specs": [
+            {
+                "uuid": "ad9bdcfa-5604-4542-98c7-1f0d5859f77e",
+                "email": "",
+                "_import_row": 2
+            }
+        ],
+        "num_created": 0,
+        "num_updated": 1,
+        "num_errored": 0,
+        "expected_errors": [],
+        "expected_contacts": [
+            {
+                "uuid": "ad9bdcfa-5604-4542-98c7-1f0d5859f77e",
+                "name": "Annie",
+                "language": "kin",
+                "status": "archived",
+                "urns": [
+                    "tel:+16055550111",
+                    "tel:+16055550115"
+                ],
+                "fields": {},
+                "groups": [],
+                "_import_row": 0
+            },
+            {
+                "uuid": "b26fcae1-abb6-49f8-95cf-9fca95f1c30a",
+                "name": "Bob",
+                "language": "kin",
+                "status": "active",
+                "urns": [
+                    "tel:+16055550112",
+                    "tel:+593979000002"
+                ],
+                "fields": {
+                    "age": "28",
+                    "joined": "2020-01-01T10:45:30.000000Z"
+                },
+                "groups": [],
+                "_import_row": 0
+            },
+            {
+                "uuid": "a5111699-b2f8-4a37-9729-57745fb13b06",
+                "name": "Cat",
+                "language": "spa",
+                "status": "active",
+                "urns": [
+                    "tel:+16055550113",
+                    "tel:+593979000001"
+                ],
+                "fields": {
+                    "age": "39",
+                    "joined": "2020-02-01T17:15:30.000000Z"
+                },
+                "groups": [
+                    "5e9d8fab-5e7e-4f51-b533-261af5dea70d",
+                    "c153e265-f7c9-4539-9dbc-9b358714b638"
+                ],
+                "_import_row": 0
+            },
+            {
+                "uuid": "307bd433-68df-49b3-88c7-56bcb29ae35a",
+                "name": "Blake",
+                "language": "",
+                "status": "blocked",
+                "urns": [
+                    "tel:+16055550117"
+                ],
+                "fields": {},
+                "groups": [],
+                "_import_row": 0
+            },
+            {
+                "uuid": "317951ec-a790-4cf9-bc1e-a15dedcb8e98",
+                "name": "Ivan",
+                "language": "",
+                "status": "active",
+                "urns": [
+                    "tel:+16055550118"
+                ],
+                "fields": {},
+                "groups": [],
+                "_import_row": 0
+            },
+            {
+                "uuid": "c38a0d3d-5da4-4217-a284-24686e628a7b",
+                "name": "Dan",
+                "language": "",
+                "status": "active",
+                "urns": [
+                    "tel:+16055550131"
+                ],
+                "fields": {},
+                "groups": [],
+                "_import_row": 0
+            },
+            {
+                "uuid": "5e4b2252-f5fb-4e97-be3d-ee0d6d09117e",
+                "name": "Gus",
+                "language": "",
+                "email": "gus@example.com",
+                "status": "active",
+                "urns": [
+                    "tel:+16055550141"
+                ],
+                "fields": {},
+                "groups": [],
+                "_import_row": 0
+            },
+            {
+                "uuid": "21cc36be-0479-4e3a-8876-bd2f7154ab08",
+                "name": "Hal",
+                "language": "",
+                "status": "active",
+                "urns": [
+                    "tel:+16055550142"
+                ],
+                "fields": {},
+                "groups": [],
+                "_import_row": 0
+            }
+        ],
+        "expected_history": [
+            {
+                "PK": "con#ad9bdcfa-5604-4542-98c7-1f0d5859f77e",
+                "SK": "evt#01969b48-bb03-76f8-ac2d-fa7a34e99132",
+                "OrgID": 1,
+                "TTL": "2026-05-04T12:32:38Z",
+                "Data": {
+                    "_user": {
+                        "name": "Andy Admin",
+                        "uuid": "ad9fdf9f-56ab-422a-b77d-e3ec26091a25"
+                    },
+                    "_via": "import",
+                    "created_on": "2025-05-04T12:32:38.123456789Z",
+                    "email": "",
+                    "type": "contact_email_changed"
+                }
+            }
+        ]
     }
 ]

@@ -186,6 +186,7 @@ type ContactSpec struct {
 	UUID     core.ContactUUID   `json:"uuid"`
 	Name     *string            `json:"name"`
 	Language *string            `json:"language"`
+	Email    *string            `json:"email,omitempty"`
 	Status   core.ContactStatus `json:"status"`
 	URNs     []urns.URN         `json:"urns"`
 	Fields   map[string]string  `json:"fields"`
