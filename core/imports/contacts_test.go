@@ -116,6 +116,9 @@ func TestContactImports(t *testing.T) {
 				Fields:   fields,
 				Groups:   groupUUIDs,
 			}
+			if email := contact.Email(); email != "" {
+				specs[i].Email = &email
+			}
 		}
 
 		actual := tc

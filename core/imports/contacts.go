@@ -180,6 +180,9 @@ func getOrCreateContacts(ctx context.Context, db *sqlx.DB, oa *models.OrgAssets,
 				addModifier(modifiers.NewLanguage(lang))
 			}
 		}
+		if spec.Email != nil {
+			addModifier(modifiers.NewEmail(*spec.Email))
+		}
 		if !isActive {
 			if spec.Status == core.ContactStatusArchived || spec.Status == core.ContactStatusBlocked || spec.Status == core.ContactStatusStopped {
 				addModifier(modifiers.NewStatus(spec.Status))
