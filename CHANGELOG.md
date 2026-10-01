@@ -1,3 +1,6 @@
+## v26.3.88 (2026-10-01)
+ * Support email field in contact creation and imports
+
 ## v26.3.87 (2026-09-30)
  * Update to goflow v0.297.1
 
