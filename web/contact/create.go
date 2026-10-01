@@ -24,6 +24,7 @@ func init() {
 //	  "contact": {
 //	    "name": "Joe Blow",
 //	    "language": "eng",
+//	    "email": "joe@example.com",
 //	    "urns": ["tel:+250788123123"],
 //	    "fields": {"age": "39"},
 //	    "groups": ["b0b778db-6657-430b-9272-989ad43a10db"]

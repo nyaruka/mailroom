@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"maps"
 	"slices"
+	"strings"
 
 	"github.com/nyaruka/gocommon/i18n"
 	"github.com/nyaruka/gocommon/urns"
@@ -51,6 +52,14 @@ func SpecToCreation(s *models.ContactSpec, env envs.Environment, sa flows.Sessio
 	}
 
 	validated.Mods = make([]flows.Modifier, 0, len(s.Fields))
+
+	if s.Email != nil && *s.Email != "" {
+		email, valid := core.NormalizeEmail(strings.TrimSpace(*s.Email))
+		if !valid {
+			return nil, fmt.Errorf("invalid email: %s", *s.Email)
+		}
+		validated.Mods = append(validated.Mods, modifiers.NewEmail(email))
+	}
 
 	for _, key := range slices.Sorted(maps.Keys(s.Fields)) { // for test determinism
 		field := sa.Fields().Get(key)

@@ -9,6 +9,8 @@ import (
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/envs"
+	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/flows/modifiers"
 	"github.com/nyaruka/goflow/test"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/runner/clocks"
@@ -234,6 +236,19 @@ func TestSpecToCreation(t *testing.T) {
 	s = &models.ContactSpec{Language: &lang}
 	_, err = contact.SpecToCreation(s, env, sa)
 	assert.EqualError(t, err, "invalid language: iso-639-3 codes must be 3 characters, got: xyzd")
+
+	// email is normalized
+	email := " Bob@Example.COM "
+	s = &models.ContactSpec{Email: &email}
+	c, err = contact.SpecToCreation(s, env, sa)
+	assert.NoError(t, err)
+	assert.Equal(t, []flows.Modifier{modifiers.NewEmail("bob@example.com")}, c.Mods)
+
+	// try to set invalid email
+	email = "bob"
+	s = &models.ContactSpec{Email: &email}
+	_, err = contact.SpecToCreation(s, env, sa)
+	assert.EqualError(t, err, "invalid email: bob")
 
 	// try to set non-existent contact field
 	s = &models.ContactSpec{Fields: map[string]string{"goats": "7"}}
