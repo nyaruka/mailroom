@@ -1,3 +1,7 @@
+## v26.3.89 (2026-10-05)
+ * Stop referencing removed audit fields on contact imports and boundary aliases
+ * Disable review progress tracking and bump the review model to Opus 5.5
+
 ## v26.3.88 (2026-10-01)
  * Support email field in contact creation and imports
 
