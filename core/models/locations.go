@@ -128,7 +128,6 @@ SELECT
 			locations_boundaryalias a
 		WHERE 
 			a.boundary_id = l.id AND
-			a.is_active = TRUE AND
 			a.org_id = $1
 		ORDER BY 
 			a.name

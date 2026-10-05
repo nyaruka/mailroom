@@ -17,10 +17,10 @@ func TestLocations(t *testing.T) {
 
 	defer rt.DB.MustExec(`DELETE FROM locations_boundaryalias WHERE created_by_id = 2`)
 
-	rt.DB.MustExec(`INSERT INTO locations_boundaryalias(is_active, created_on, modified_on, name, boundary_id, created_by_id, modified_by_id, org_id)
-											  VALUES(TRUE, NOW(), NOW(), 'Soko', 8148, 2, 1, 1);`)
-	rt.DB.MustExec(`INSERT INTO locations_boundaryalias(is_active, created_on, modified_on, name, boundary_id, created_by_id, modified_by_id, org_id)
-	                                          VALUES(TRUE, NOW(), NOW(), 'Sokoz', 8148, 2, 1, 2);`)
+	rt.DB.MustExec(`INSERT INTO locations_boundaryalias(created_on, name, boundary_id, created_by_id, org_id)
+											  VALUES(NOW(), 'Soko', 8148, 2, 1);`)
+	rt.DB.MustExec(`INSERT INTO locations_boundaryalias(created_on, name, boundary_id, created_by_id, org_id)
+	                                          VALUES(NOW(), 'Sokoz', 8148, 2, 2);`)
 
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshLocations)
 	require.NoError(t, err)
