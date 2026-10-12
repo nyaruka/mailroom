@@ -40,14 +40,21 @@ func TestTranslateByPrompt(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, &core.Translation{Items: tc.expected, Tokens: core.ModelTokens{Input: 34, Output: 2}}, trans, "translation mismatch for output %q", tc.output)
 		assert.Equal(t, 1234, svc.maxTokens)
-		assert.Contains(t, svc.instructions, `from the language with the ISO code "eng" to the language with the ISO code "spa"`)
+		assert.Contains(t, svc.instructions, `from English (ISO code "eng") to Spanish (ISO code "spa")`)
 	}
 
-	// unknown source language uses different instructions
+	// less common languages are named too, and languages without a name are described by their code alone
 	svc := &promptService{output: `{"a:text": ["Hola"]}`}
-	_, err := ai.TranslateByPrompt(ctx, svc, "und", "spa", map[string][]string{"a:text": {"Hello"}}, 1000)
+	_, err := ai.TranslateByPrompt(ctx, svc, "prd", "aar", map[string][]string{"a:text": {"Hello"}}, 1000)
+	assert.NoError(t, err)
+	assert.Contains(t, svc.instructions, `from the language with the ISO code "prd" to Afar (ISO code "aar")`)
+
+	// unknown source language uses different instructions
+	svc = &promptService{output: `{"a:text": ["Hola"]}`}
+	_, err = ai.TranslateByPrompt(ctx, svc, "und", "spa", map[string][]string{"a:text": {"Hello"}}, 1000)
 	assert.NoError(t, err)
 	assert.NotContains(t, svc.instructions, `"und"`)
+	assert.Contains(t, svc.instructions, `to Spanish (ISO code "spa")`)
 
 	svc = &promptService{err: errors.New("boom")}
 	trans, err := ai.TranslateByPrompt(ctx, svc, "eng", "spa", items, 1000)
