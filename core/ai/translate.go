@@ -11,7 +11,11 @@ import (
 	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/v26/core/ai/prompts"
+	"golang.org/x/text/language"
+	"golang.org/x/text/language/display"
 )
+
+var languageNames = display.English.Languages()
 
 // TranslateByPrompt translates items by prompting the given service to translate them as a JSON object, for model
 // types which don't have a native translation API. Items the model can't translate are omitted from the result.
@@ -20,7 +24,7 @@ func TranslateByPrompt(ctx context.Context, svc flows.ModelService, source, targ
 	if source == "und" || source == "mul" {
 		instructionsTpl = "translate_unknown_from"
 	}
-	instructions := prompts.Render(instructionsTpl, map[string]any{"Source": source, "Target": target})
+	instructions := prompts.Render(instructionsTpl, map[string]any{"Source": describeLanguage(source), "Target": describeLanguage(target)})
 
 	input, err := json.Marshal(items)
 	if err != nil {
@@ -33,6 +37,17 @@ func TranslateByPrompt(ctx context.Context, svc flows.ModelService, source, targ
 	}
 
 	return &core.Translation{Items: parseTranslated(resp.Output, items), Tokens: resp.Tokens}, nil
+}
+
+// describes a language for a prompt by its English name as well as its code, since a model may not recognize a
+// less common language from its code alone
+func describeLanguage(lang i18n.Language) string {
+	if base, err := language.ParseBase(string(lang)); err == nil {
+		if name := languageNames.Name(base); name != "" {
+			return fmt.Sprintf(`%s (ISO code "%s")`, name, lang)
+		}
+	}
+	return fmt.Sprintf(`the language with the ISO code "%s"`, lang)
 }
 
 // parses the output of the translate instructions. A <CANT> or anything unparseable means nothing was translatable.
