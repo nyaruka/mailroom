@@ -1,3 +1,6 @@
+## v26.3.90 (2026-10-12)
+ * Name languages in translate prompts
+
 ## v26.3.89 (2026-10-05)
  * Stop referencing removed audit fields on contact imports and boundary aliases
  * Disable review progress tracking and bump the review model to Opus 5.5
