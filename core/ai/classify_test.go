@@ -60,11 +60,12 @@ type promptService struct {
 	output       string
 	err          error
 	instructions string
+	input        string
 	maxTokens    int
 }
 
 func (s *promptService) Response(ctx context.Context, instructions, input string, maxTokens int) (*core.ModelResponse, error) {
-	s.instructions, s.maxTokens = instructions, maxTokens
+	s.instructions, s.input, s.maxTokens = instructions, input, maxTokens
 	if s.err != nil {
 		return nil, s.err
 	}

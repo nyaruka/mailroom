@@ -9,6 +9,7 @@ import (
 
 	"github.com/nyaruka/gocommon/i18n"
 	"github.com/nyaruka/goflow/core"
+	"github.com/nyaruka/goflow/excellent"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/v26/core/ai/prompts"
 	"golang.org/x/text/language"
@@ -26,17 +27,19 @@ func TranslateByPrompt(ctx context.Context, svc flows.ModelService, source, targ
 	}
 	instructions := prompts.Render(instructionsTpl, map[string]any{"Source": describeLanguage(source), "Target": describeLanguage(target)})
 
-	input, err := json.Marshal(items)
-	if err != nil {
-		return nil, fmt.Errorf("error marshaling input: %w", err)
-	}
+	return TranslateMasked(items, excellent.BracePlaceholders, func(masked map[string][]string) (*core.Translation, error) {
+		input, err := json.Marshal(masked)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling input: %w", err)
+		}
 
-	resp, err := svc.Response(ctx, instructions, string(input), maxTokens)
-	if err != nil {
-		return nil, err
-	}
+		resp, err := svc.Response(ctx, instructions, string(input), maxTokens)
+		if err != nil {
+			return nil, err
+		}
 
-	return &core.Translation{Items: parseTranslated(resp.Output, items), Tokens: resp.Tokens}, nil
+		return &core.Translation{Items: parseTranslated(resp.Output, masked), Tokens: resp.Tokens}, nil
+	})
 }
 
 // describes a language for a prompt by its English name as well as its code, since a model may not recognize a

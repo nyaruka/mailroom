@@ -56,8 +56,16 @@ func TestTranslateByPrompt(t *testing.T) {
 	assert.NotContains(t, svc.instructions, `"und"`)
 	assert.Contains(t, svc.instructions, `to Spanish (ISO code "spa")`)
 
+	// expressions are sent to the model as placeholders and restored in its translations
+	svc = &promptService{output: `{"a:text": ["Hola {{1}}, ¿{{2}}?"]}`}
+	trans, err := ai.TranslateByPrompt(ctx, svc, "eng", "spa", map[string][]string{"a:text": {"Hi @contact.name, @(upper(fields.city))?"}}, 1000)
+	assert.NoError(t, err)
+	assert.Equal(t, map[string][]string{"a:text": {"Hola @contact.name, ¿@(upper(fields.city))?"}}, trans.Items)
+	assert.JSONEq(t, `{"a:text": ["Hi {{1}}, {{2}}?"]}`, svc.input)
+	assert.Contains(t, svc.instructions, `Placeholders like {{1}} stand for values inserted later.`)
+
 	svc = &promptService{err: errors.New("boom")}
-	trans, err := ai.TranslateByPrompt(ctx, svc, "eng", "spa", items, 1000)
+	trans, err = ai.TranslateByPrompt(ctx, svc, "eng", "spa", items, 1000)
 	assert.EqualError(t, err, "boom")
 	assert.Nil(t, trans)
 }

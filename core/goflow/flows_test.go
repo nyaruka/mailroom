@@ -16,7 +16,7 @@ import (
 )
 
 func TestSpecVersion(t *testing.T) {
-	assert.Equal(t, semver.MustParse("14.6.0"), goflow.SpecVersion())
+	assert.Equal(t, semver.MustParse("14.7.0"), goflow.SpecVersion())
 }
 
 func TestReadFlow(t *testing.T) {
