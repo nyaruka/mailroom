@@ -94,7 +94,7 @@ func handleTranslate(ctx context.Context, rt *runtime.Runtime, r *translateReque
 	defer cancelCall()
 
 	callStart := time.Now()
-	trans, err := llmSvc.Translate(callCtx, r.Source, r.Target, r.Items)
+	trans, err := ai.Translate(callCtx, llmSvc, r.Source, r.Target, r.Items)
 	if trans == nil {
 		trans = &core.Translation{}
 	}

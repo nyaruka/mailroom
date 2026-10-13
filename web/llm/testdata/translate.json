@@ -114,7 +114,7 @@
                     "N0"
                 ],
                 "a1f0e2c4-5b3e-4d7a-9c2f-1e8d6a4b7c35:text": [
-                    "H1 @c0n74c7.n4m3"
+                    "H1 @contact.name"
                 ],
                 "b7d91a22-8e4f-4a1b-9d3c-2f7e5b8a9c10:arguments": [
                     "y35 y34h"
@@ -215,7 +215,7 @@
             "code": "ai:timeout",
             "extra": {
                 "input": "{\"a1f0e2c4-5b3e-4d7a-9c2f-1e8d6a4b7c35:text\":[\"Hello\"]}",
-                "instructions": "Translate each string value in the JSON object input from English (ISO code \"eng\") to Spanish (ISO code \"spa\").\nAn \"@\" character indicates a variable expression and must be left untranslated.\nPreserve the letter case of each input string in its translation (e.g. \":arguments\" and \":name\" values are often lowercase and should stay lowercase).\n\":text\" values must not exceed 10000 characters.\n\":quick_replies\" values must not exceed 1000 characters each.\nReturn a JSON object with the same keys, each mapping to an array of translated strings of the same length as its input array.\nIf any string under a given key cannot be translated, omit that whole key from the response. If none of the strings can be translated, return \"<CANT>\" instead of a JSON object.\nReturn only the JSON object or \"<CANT>\", with no additional text or explanation.\n"
+                "instructions": "Translate each string value in the JSON object input from English (ISO code \"eng\") to Spanish (ISO code \"spa\").\nTags like <x id=\"1\"/> are placeholders for values inserted later. Keep each tag exactly as it is, positioned where its value belongs in the translation.\nPreserve the letter case of each input string in its translation (e.g. \":arguments\" and \":name\" values are often lowercase and should stay lowercase).\n\":text\" values must not exceed 10000 characters.\n\":quick_replies\" values must not exceed 1000 characters each.\nReturn a JSON object with the same keys, each mapping to an array of translated strings of the same length as its input array.\nIf any string under a given key cannot be translated, omit that whole key from the response. If none of the strings can be translated, return \"<CANT>\" instead of a JSON object.\nReturn only the JSON object or \"<CANT>\", with no additional text or explanation.\n"
             }
         }
     }
