@@ -583,6 +583,30 @@
         }
     },
     {
+        "label": "any origin is allowed if channel isn't pinned to domains",
+        "method": "POST",
+        "path": "/mi/socket/publish",
+        "headers": {
+            "Origin": "https://anywhere.example.com"
+        },
+        "body": {
+            "channel": "chat:1e6b3c2d-7a4f-4b8e-a5d9-0c3f6e1b2a84:OpenChat0123456789abcdef",
+            "data": {
+                "type": "typing_started"
+            }
+        },
+        "status": 200,
+        "response": {
+            "result": {
+                "data": {
+                    "type": "typing_started",
+                    "created_on": "2025-05-04T12:30:54.123456789Z"
+                },
+                "skip_history": true
+            }
+        }
+    },
+    {
         "label": "visitor typing is fanned out to the contact's history and echoed back without a user",
         "method": "POST",
         "path": "/mi/socket/publish",
@@ -600,7 +624,7 @@
             "result": {
                 "data": {
                     "type": "typing_started",
-                    "created_on": "2025-05-04T12:30:54.123456789Z"
+                    "created_on": "2025-05-04T12:30:56.123456789Z"
                 },
                 "skip_history": true
             }
@@ -621,7 +645,7 @@
             "result": {
                 "data": {
                     "type": "typing_stopped",
-                    "created_on": "2025-05-04T12:30:56.123456789Z"
+                    "created_on": "2025-05-04T12:30:58.123456789Z"
                 },
                 "skip_history": true
             }
@@ -648,7 +672,7 @@
             "result": {
                 "data": {
                     "type": "typing_started",
-                    "created_on": "2025-05-04T12:30:58.123456789Z"
+                    "created_on": "2025-05-04T12:31:00.123456789Z"
                 },
                 "skip_history": true
             }

@@ -282,7 +282,12 @@ func publishToChat(ctx context.Context, rt *runtime.Runtime, r *publishRequest, 
 // origin is known, mirroring how the platform authorizes subscribing to the chat socket
 func originAllowed(channel *models.Channel, origin string) bool {
 	allowed, _ := channel.Config()[models.ChannelConfigAllowedDomains].([]any)
-	if len(allowed) == 0 || origin == "" {
+	if len(allowed) == 0 {
+		return true
+	}
+	if origin == "" {
+		// browsers always send one, so its absence more likely means the proxy isn't forwarding it
+		slog.Warn("webchat publication without origin, check that centrifugo publish proxy forwards the Origin header", "channel", channel.UUID())
 		return true
 	}
 
