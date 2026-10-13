@@ -1,3 +1,7 @@
+## v26.3.91 (2026-10-13)
+ * Accept typing publications from webchat visitors on their chat sockets
+ * Mask expressions as placeholders when translating
+
 ## v26.3.90 (2026-10-12)
  * Name languages in translate prompts
 
