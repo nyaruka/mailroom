@@ -1,3 +1,8 @@
+## v26.3.93 (2026-10-13)
+ * Turn off reasoning for known OpenAI reasoning models and error on empty truncated output
+ * Stop sending temperature to OpenAI LLM services
+ * Update to latest goflow
+
 ## v26.3.92 (2026-10-13)
  * Export runtime.NewServicesClient
 
