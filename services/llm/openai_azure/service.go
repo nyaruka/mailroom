@@ -98,8 +98,7 @@ func (s *service) respond(ctx context.Context, instructions, input string, maxTo
 			openai.SystemMessage(instructions),
 			openai.UserMessage(input),
 		},
-		Temperature: openai.Float(0.000001),
-		MaxTokens:   openai.Int(int64(maxTokens)),
+		MaxCompletionTokens: openai.Int(int64(maxTokens)),
 	}
 	if withLogprobs {
 		params.Logprobs = openai.Bool(true)
@@ -110,13 +109,19 @@ func (s *service) respond(ctx context.Context, instructions, input string, maxTo
 		return nil, nil, s.error(err, instructions, input)
 	}
 
+	output := strings.TrimSpace(resp.Choices[0].Message.Content)
+	if output == "" && resp.Choices[0].FinishReason == "length" {
+		msg := "response truncated with no output: token limit reached"
+		return nil, nil, &ai.ServiceError{Message: msg, Code: ai.ErrorUnknown, Instructions: instructions, Input: input}
+	}
+
 	var logprobs []float64
 	for _, lp := range resp.Choices[0].Logprobs.Content {
 		logprobs = append(logprobs, lp.Logprob)
 	}
 
 	return &core.ModelResponse{
-		Output: strings.TrimSpace(resp.Choices[0].Message.Content),
+		Output: output,
 		Tokens: core.ModelTokens{Input: resp.Usage.PromptTokens, Output: resp.Usage.CompletionTokens},
 	}, logprobs, nil
 }

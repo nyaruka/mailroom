@@ -65,14 +65,15 @@ func TestClassify(t *testing.T) {
 	llm := testdb.InsertLLM(t, rt, testdb.Org1, "b86966fd-206e-4bdd-a962-06faa3af1182", "openai_azure", "gpt-4", "Good", map[string]any{"api_key": "sesame", "endpoint": "http://azure.com/ai"}, "TGC")
 	oa := testdb.Org1.Load(t, rt)
 
-	mkResp := func(content, logprobs string) *httpx.MockResponse {
-		return httpx.NewMockResponse(200, map[string]string{"Content-type": "application/json"}, []byte(`{"id":"chatcmpl-1","object":"chat.completion","created":1741476542,"model":"gpt-4","choices":[{"index":0,"message":{"role":"assistant","content":"`+content+`"},"logprobs":`+logprobs+`,"finish_reason":"stop"}],"usage":{"prompt_tokens":34,"completion_tokens":2,"total_tokens":36}}`))
+	mkResp := func(content, logprobs, finishReason string) *httpx.MockResponse {
+		return httpx.NewMockResponse(200, map[string]string{"Content-type": "application/json"}, []byte(`{"id":"chatcmpl-1","object":"chat.completion","created":1741476542,"model":"gpt-4","choices":[{"index":0,"message":{"role":"assistant","content":"`+content+`"},"logprobs":`+logprobs+`,"finish_reason":"`+finishReason+`"}],"usage":{"prompt_tokens":34,"completion_tokens":2,"total_tokens":36}}`))
 	}
 
 	client, mocks := test.MockedHTTP(map[string][]*httpx.MockResponse{
 		"http://azure.com/ai/openai/deployments/gpt-4/chat/completions?api-version=2025-03-01-preview": {
-			mkResp("Hotels", `{"content":[{"token":"Hot","logprob":-0.1,"bytes":null,"top_logprobs":[]},{"token":"els","logprob":-0.05,"bytes":null,"top_logprobs":[]}],"refusal":null}`),
-			mkResp("<CANT>", `null`),
+			mkResp("Hotels", `{"content":[{"token":"Hot","logprob":-0.1,"bytes":null,"top_logprobs":[]},{"token":"els","logprob":-0.05,"bytes":null,"top_logprobs":[]}],"refusal":null}`, "stop"),
+			mkResp("<CANT>", `null`, "stop"),
+			mkResp("", `null`, "length"),
 		},
 	})
 
@@ -91,9 +92,21 @@ func TestClassify(t *testing.T) {
 	reqBody, err := io.ReadAll(body)
 	require.NoError(t, err)
 	assert.Contains(t, string(reqBody), `"logprobs":true`)
+	assert.Contains(t, string(reqBody), `"max_completion_tokens":50`)
+	assert.NotContains(t, string(reqBody), `"max_tokens"`)
+	assert.NotContains(t, string(reqBody), `"temperature"`)
 
 	// none of the options fit
 	cls, err = svc.Classify(ctx, "What's the weather?", []*core.ClassifierOption{{Name: "Flights"}, {Name: "Hotels"}})
 	require.NoError(t, err)
 	assert.Equal(t, &core.Classification{Option: "Flights", Confidence: core.ClassifierConfidenceNone, Tokens: core.ModelTokens{Input: 34, Output: 2}}, cls)
+
+	// output token limit reached before any output
+	cls, err = svc.Classify(ctx, "I need a room", []*core.ClassifierOption{{Name: "Flights"}, {Name: "Hotels"}})
+	assert.EqualError(t, err, "response truncated with no output: token limit reached")
+	var serr *ai.ServiceError
+	if assert.ErrorAs(t, err, &serr) {
+		assert.Equal(t, ai.ErrorUnknown, serr.Code)
+	}
+	assert.Nil(t, cls)
 }
