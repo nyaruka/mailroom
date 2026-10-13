@@ -10,8 +10,6 @@ import (
 	"strings"
 	"time"
 
-	valkey "github.com/gomodule/redigo/redis"
-
 	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/gocommon/uuids"
 	"github.com/nyaruka/goflow/assets"
@@ -21,6 +19,7 @@ import (
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/runtime"
 	"github.com/nyaruka/mailroom/v26/web"
+	"github.com/nyaruka/vkutil"
 )
 
 func init() {
@@ -31,12 +30,9 @@ func init() {
 // inside centrifugo's proxy timeout
 const courierTimeout = 2 * time.Second
 
-// visitors can publish this many typing events per chat per window (in seconds) - well above what a widget pulsing
-// while its visitor composes needs
-const (
-	chatTypingLimit  = 30
-	chatTypingWindow = 60
-)
+// visitors can publish this many typing events per chat per minute - well above what a widget pulsing while its
+// visitor composes needs
+var chatTypingLimiter = vkutil.NewRateLimiter("chat-typing", 30, time.Minute)
 
 // matches the chat sockets the platform lets visitors subscribe to, i.e. chat:<channel-uuid>:<chat-id>
 var chatSocketRegex = regexp.MustCompile(`^chat:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}):([a-zA-Z0-9]{24})$`)
@@ -233,7 +229,7 @@ func publishToChat(ctx context.Context, rt *runtime.Runtime, r *publishRequest) 
 	}
 
 	// throttled only once the chat is known to exist, so that made-up chat IDs can't create keys
-	if !allowRate(ctx, rt, fmt.Sprintf("chat-typing:%s|%s", channelUUID, chatID), chatTypingLimit, chatTypingWindow) {
+	if !allowChatTyping(ctx, rt, channelUUID, chatID) {
 		return deny(429, "too many publications")
 	}
 
@@ -269,21 +265,15 @@ func publishToChat(ctx context.Context, rt *runtime.Runtime, r *publishRequest) 
 	return &publishResponse{Result: &publishResult{Data: echo, SkipHistory: true}}, http.StatusOK, nil
 }
 
-// counts a request against the given key and returns whether it's within the given limit for a fixed window of the
-// given number of seconds, starting at the key's first request. Only setting the TTL when the key has none means steady
-// traffic can't keep extending the window. Fails open since a valkey problem shouldn't block real traffic.
-func allowRate(ctx context.Context, rt *runtime.Runtime, key string, limit, window int) bool {
+// fails open since a valkey problem shouldn't stop visitors' typing reaching agents
+func allowChatTyping(ctx context.Context, rt *runtime.Runtime, channelUUID assets.ChannelUUID, chatID string) bool {
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	count, err := valkey.Int(valkey.DoContext(vc, ctx, "INCR", key))
+	allowed, err := chatTypingLimiter.Allow(ctx, vc, fmt.Sprintf("%s|%s", channelUUID, chatID))
 	if err != nil {
-		slog.Error("error checking rate limit", "error", err, "key", key)
+		slog.Error("error checking chat typing rate limit", "error", err, "channel", channelUUID)
 		return true
 	}
-	if _, err := valkey.DoContext(vc, ctx, "EXPIRE", key, window, "NX"); err != nil {
-		slog.Error("error setting rate limit expiry", "error", err, "key", key)
-	}
-
-	return count <= limit
+	return allowed
 }
