@@ -121,11 +121,14 @@ func InitCache(rt *runtime.Runtime) {
 		return NewOrgAssets(ctx, rt, orgID, nil, RefreshAll)
 	}, time.Second*5, 0) // unbounded as org IDs are ours and the short TTL limits growth
 	orgCache.Start()
+
+	initWebChatCache(rt)
 }
 
-// FlushCache clears our entire org cache
+// FlushCache clears our entire org cache, and the webchat visitor cache
 func FlushCache() {
 	orgCache.Clear()
+	webChatCache.Clear()
 }
 
 // NewOrgAssets creates and returns a new org assets objects, potentially using the previous
