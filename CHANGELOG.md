@@ -1,3 +1,6 @@
+## v26.3.92 (2026-10-13)
+ * Export runtime.NewServicesClient
+
 ## v26.3.91 (2026-10-13)
  * Accept typing publications from webchat visitors on their chat sockets
  * Mask expressions as placeholders when translating
