@@ -37,6 +37,25 @@
         }
     },
     {
+        "label": "denied if connection is anonymous",
+        "method": "POST",
+        "path": "/mi/socket/publish",
+        "body": {
+            "channel": "history:a393abc0-283d-4c9b-a1b3-641a035c34bf",
+            "data": {
+                "type": "typing_started"
+            },
+            "meta": {}
+        },
+        "status": 200,
+        "response": {
+            "error": {
+                "code": 403,
+                "message": "anonymous connection"
+            }
+        }
+    },
+    {
         "label": "denied if socket isn't a history socket",
         "method": "POST",
         "path": "/mi/socket/publish",
@@ -356,6 +375,256 @@
                     "_via": "ui",
                     "direction": "outgoing",
                     "msg_external_id": "EX123"
+                },
+                "skip_history": true
+            }
+        }
+    },
+    {
+        "label": "denied if chat socket has no chat id",
+        "method": "POST",
+        "path": "/mi/socket/publish",
+        "body": {
+            "channel": "chat:8c3e4d2a-5b1f-4e6a-9c7d-2f0b1a3e5d47",
+            "data": {
+                "type": "typing_started"
+            }
+        },
+        "status": 200,
+        "response": {
+            "error": {
+                "code": 403,
+                "message": "publishing not supported on this socket"
+            }
+        }
+    },
+    {
+        "label": "denied if chat id is too short",
+        "method": "POST",
+        "path": "/mi/socket/publish",
+        "body": {
+            "channel": "chat:8c3e4d2a-5b1f-4e6a-9c7d-2f0b1a3e5d47:AbCdEf0123456789GhIjKlM",
+            "data": {
+                "type": "typing_started"
+            }
+        },
+        "status": 200,
+        "response": {
+            "error": {
+                "code": 403,
+                "message": "publishing not supported on this socket"
+            }
+        }
+    },
+    {
+        "label": "denied if chat id has illegal characters",
+        "method": "POST",
+        "path": "/mi/socket/publish",
+        "body": {
+            "channel": "chat:8c3e4d2a-5b1f-4e6a-9c7d-2f0b1a3e5d47:AbCdEf0123456789GhIjKlM-",
+            "data": {
+                "type": "typing_started"
+            }
+        },
+        "status": 200,
+        "response": {
+            "error": {
+                "code": 403,
+                "message": "publishing not supported on this socket"
+            }
+        }
+    },
+    {
+        "label": "denied if chat socket channel UUID isn't lowercase",
+        "method": "POST",
+        "path": "/mi/socket/publish",
+        "body": {
+            "channel": "chat:8C3E4D2A-5B1F-4E6A-9C7D-2F0B1A3E5D47:AbCdEf0123456789GhIjKlMn",
+            "data": {
+                "type": "typing_started"
+            }
+        },
+        "status": 200,
+        "response": {
+            "error": {
+                "code": 403,
+                "message": "publishing not supported on this socket"
+            }
+        }
+    },
+    {
+        "label": "denied if chat publication isn't a typing event",
+        "method": "POST",
+        "path": "/mi/socket/publish",
+        "body": {
+            "channel": "chat:8c3e4d2a-5b1f-4e6a-9c7d-2f0b1a3e5d47:AbCdEf0123456789GhIjKlMn",
+            "data": {
+                "type": "msg_in",
+                "text": "hi"
+            }
+        },
+        "status": 200,
+        "response": {
+            "error": {
+                "code": 403,
+                "message": "unsupported publication type: msg_in"
+            }
+        }
+    },
+    {
+        "label": "denied if chat is unknown",
+        "method": "POST",
+        "path": "/mi/socket/publish",
+        "body": {
+            "channel": "chat:8c3e4d2a-5b1f-4e6a-9c7d-2f0b1a3e5d47:Unknown01234567890123456",
+            "data": {
+                "type": "typing_started"
+            }
+        },
+        "status": 200,
+        "response": {
+            "error": {
+                "code": 403,
+                "message": "no such chat"
+            }
+        }
+    },
+    {
+        "label": "denied if chat's URN is attached to a different channel",
+        "method": "POST",
+        "path": "/mi/socket/publish",
+        "body": {
+            "channel": "chat:8c3e4d2a-5b1f-4e6a-9c7d-2f0b1a3e5d47:ZyXwVu9876543210TsRqPoNm",
+            "data": {
+                "type": "typing_started"
+            }
+        },
+        "status": 200,
+        "response": {
+            "error": {
+                "code": 403,
+                "message": "no such chat"
+            }
+        }
+    },
+    {
+        "label": "denied if channel isn't a webchat channel",
+        "method": "POST",
+        "path": "/mi/socket/publish",
+        "body": {
+            "channel": "chat:74729f45-7f29-4868-9dc4-90e491e3c7d8:ZyXwVu9876543210TsRqPoNm",
+            "data": {
+                "type": "typing_started"
+            }
+        },
+        "status": 200,
+        "response": {
+            "error": {
+                "code": 403,
+                "message": "no such chat"
+            }
+        }
+    },
+    {
+        "label": "denied if chat's contact is inactive",
+        "method": "POST",
+        "path": "/mi/socket/publish",
+        "body": {
+            "channel": "chat:8c3e4d2a-5b1f-4e6a-9c7d-2f0b1a3e5d47:InActive0123456789abcdef",
+            "data": {
+                "type": "typing_started"
+            }
+        },
+        "status": 200,
+        "response": {
+            "error": {
+                "code": 403,
+                "message": "no such chat"
+            }
+        }
+    },
+    {
+        "label": "denied if chat is throttled",
+        "method": "POST",
+        "path": "/mi/socket/publish",
+        "body": {
+            "channel": "chat:8c3e4d2a-5b1f-4e6a-9c7d-2f0b1a3e5d47:Throttled012345678901234",
+            "data": {
+                "type": "typing_started"
+            }
+        },
+        "status": 200,
+        "response": {
+            "error": {
+                "code": 429,
+                "message": "too many publications"
+            }
+        }
+    },
+    {
+        "label": "visitor typing is fanned out to the contact's history and echoed back without a user",
+        "method": "POST",
+        "path": "/mi/socket/publish",
+        "body": {
+            "channel": "chat:8c3e4d2a-5b1f-4e6a-9c7d-2f0b1a3e5d47:AbCdEf0123456789GhIjKlMn",
+            "data": {
+                "type": "typing_started"
+            }
+        },
+        "status": 200,
+        "response": {
+            "result": {
+                "data": {
+                    "type": "typing_started",
+                    "created_on": "2025-05-04T12:30:54.123456789Z"
+                },
+                "skip_history": true
+            }
+        }
+    },
+    {
+        "label": "visitor typing stopped is fanned out too",
+        "method": "POST",
+        "path": "/mi/socket/publish",
+        "body": {
+            "channel": "chat:8c3e4d2a-5b1f-4e6a-9c7d-2f0b1a3e5d47:AbCdEf0123456789GhIjKlMn",
+            "data": {
+                "type": "typing_stopped"
+            }
+        },
+        "status": 200,
+        "response": {
+            "result": {
+                "data": {
+                    "type": "typing_stopped",
+                    "created_on": "2025-05-04T12:30:56.123456789Z"
+                },
+                "skip_history": true
+            }
+        }
+    },
+    {
+        "label": "visitor publishing with agent connection meta is treated the same",
+        "method": "POST",
+        "path": "/mi/socket/publish",
+        "body": {
+            "channel": "chat:8c3e4d2a-5b1f-4e6a-9c7d-2f0b1a3e5d47:AbCdEf0123456789GhIjKlMn",
+            "data": {
+                "type": "typing_started"
+            },
+            "meta": {
+                "user_id": 3,
+                "user_uuid": "ad9fdf9f-56ab-422a-b77d-e3ec26091a25",
+                "org_id": 1,
+                "org_uuid": "bf0514a5-9407-44c9-b0f9-3f36f9c18414"
+            }
+        },
+        "status": 200,
+        "response": {
+            "result": {
+                "data": {
+                    "type": "typing_started",
+                    "created_on": "2025-05-04T12:30:58.123456789Z"
                 },
                 "skip_history": true
             }

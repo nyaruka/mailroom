@@ -1,0 +1,20 @@
+[
+    {
+        "label": "denied if channel has been disabled even though visitor is cached",
+        "method": "POST",
+        "path": "/mi/socket/publish",
+        "body": {
+            "channel": "chat:8c3e4d2a-5b1f-4e6a-9c7d-2f0b1a3e5d47:AbCdEf0123456789GhIjKlMn",
+            "data": {
+                "type": "typing_started"
+            }
+        },
+        "status": 200,
+        "response": {
+            "error": {
+                "code": 403,
+                "message": "no such chat"
+            }
+        }
+    }
+]

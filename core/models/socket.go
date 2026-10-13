@@ -32,6 +32,10 @@ func HistorySocket(contactUUID core.ContactUUID, ticketUUID ...core.TicketUUID) 
 	return fmt.Sprintf("%s:%s", SocketHistoryNamespace, contactUUID)
 }
 
+// SocketChatNamespace is the realtime pub/sub namespace for webchat visitors, addressed as
+// "chat:<channel-uuid>:<chat-id>". Courier publishes to these sockets, and visitors publish typing to them.
+const SocketChatNamespace = "chat"
+
 // SocketFlowNamespace is the realtime pub/sub namespace for things happening to a specific flow that its editors care
 // about. A flow socket is addressed as "flow:<flow-uuid>" and carries typed payloads, e.g. activity change
 // notifications. It's deliberately per-flow rather than per-feature so that any flow level update can be published to

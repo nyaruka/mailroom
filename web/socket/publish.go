@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 
@@ -18,6 +19,7 @@ import (
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/runtime"
 	"github.com/nyaruka/mailroom/v26/web"
+	"github.com/nyaruka/vkutil"
 )
 
 func init() {
@@ -28,8 +30,14 @@ func init() {
 // inside centrifugo's proxy timeout
 const courierTimeout = 2 * time.Second
 
-// Handles a client publication proxied by the centrifugo server. The connection meta is stamped server-side at
-// connect time and is what publications are authorized against. Domain denials are returned in-body with HTTP 200
+// visitors can publish this many typing events per chat per minute - well above what a widget pulsing while its
+// visitor composes needs
+var chatTypingLimiter = vkutil.NewRateLimiter("chat-typing", 30, time.Minute)
+
+// matches the chat sockets the platform lets visitors subscribe to, i.e. chat:<channel-uuid>:<chat-id>
+var chatSocketRegex = regexp.MustCompile(`^chat:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}):([a-zA-Z0-9]{24})$`)
+
+// Handles a client publication proxied by the centrifugo server. Domain denials are returned in-body with HTTP 200
 // as the proxy protocol requires.
 //
 //	{
@@ -77,29 +85,55 @@ type publishResponse struct {
 	Error  *publishError  `json:"error,omitempty"`
 }
 
-func handlePublish(ctx context.Context, rt *runtime.Runtime, r *publishRequest) (any, int, error) {
-	deny := func(msg string) (any, int, error) {
-		return &publishResponse{Error: &publishError{Code: 403, Message: msg}}, http.StatusOK, nil
-	}
+func deny(code int, msg string) (any, int, error) {
+	return &publishResponse{Error: &publishError{Code: code, Message: msg}}, http.StatusOK, nil
+}
 
+func handlePublish(ctx context.Context, rt *runtime.Runtime, r *publishRequest) (any, int, error) {
+	// this handler is the sole publish authorizer: when a publish proxy is enabled centrifugo skips all of its
+	// built-in permission checks, including whether the publisher is even subscribed to the socket
+	namespace, _, _ := strings.Cut(r.Channel, ":")
+	switch namespace {
+	case models.SocketHistoryNamespace:
+		return publishToHistory(ctx, rt, r)
+	case models.SocketChatNamespace:
+		return publishToChat(ctx, rt, r)
+	}
+	return deny(403, "publishing not supported on this socket")
+}
+
+func readTypingData(raw json.RawMessage) (*typingData, string) {
+	data := &typingData{}
+	if err := json.Unmarshal(raw, data); err != nil {
+		return nil, "invalid publication data"
+	}
+	if data.Type != events.TypeTypingStarted && data.Type != events.TypeTypingStopped {
+		return nil, fmt.Sprintf("unsupported publication type: %s", data.Type)
+	}
+	return data, ""
+}
+
+// handles agents publishing typing to a contact's history socket. Agents are authorized against the connection meta
+// stamped server-side at connect time.
+func publishToHistory(ctx context.Context, rt *runtime.Runtime, r *publishRequest) (any, int, error) {
 	if r.Meta == nil {
 		slog.Error("socket publication without connection meta, check that centrifugo proxy sets include_connection_meta")
-		return deny("no connection meta")
+		return deny(403, "no connection meta")
+	}
+	if r.Meta.UserID == models.NilUserID || r.Meta.OrgID == models.NilOrgID {
+		return deny(403, "anonymous connection")
 	}
 
 	// only contact level history sockets accept publications, i.e. not ticket scoped ones
 	parts := strings.Split(r.Channel, ":")
-	if len(parts) != 2 || parts[0] != models.SocketHistoryNamespace || !uuids.Is(parts[1]) {
-		return deny("publishing not supported on this socket")
+	if len(parts) != 2 || !uuids.Is(parts[1]) {
+		return deny(403, "publishing not supported on this socket")
 	}
 	contactUUID := core.ContactUUID(parts[1])
 
-	data := &typingData{}
-	if err := json.Unmarshal(r.Data, data); err != nil {
-		return deny("invalid publication data")
-	}
-	if data.Type != events.TypeTypingStarted && data.Type != events.TypeTypingStopped {
-		return deny(fmt.Sprintf("unsupported publication type: %s", data.Type))
+	data, msg := readTypingData(r.Data)
+	if data == nil {
+		return deny(403, msg)
 	}
 
 	oa, err := models.GetOrgAssets(ctx, rt, r.Meta.OrgID)
@@ -107,20 +141,18 @@ func handlePublish(ctx context.Context, rt *runtime.Runtime, r *publishRequest) 
 		return nil, 0, fmt.Errorf("error loading org assets: %w", err)
 	}
 
-	// this handler is the sole publish authorizer: when a publish proxy is enabled centrifugo skips all of its
-	// built-in permission checks, including whether the publisher is even subscribed to the socket. So check that
-	// the publisher is a user in the org, and that the contact whose socket this is and the chat channel both
-	// belong to that org.
+	// check that the publisher is a user in the org, and that the contact whose socket this is and the chat channel
+	// both belong to that org
 	user := oa.UserByID(r.Meta.UserID)
 	if user == nil {
-		return deny("no such user")
+		return deny(403, "no such user")
 	}
 	contacts, err := models.LoadContactsByUUID(ctx, rt.DB, oa, []core.ContactUUID{contactUUID})
 	if err != nil {
 		return nil, 0, fmt.Errorf("error loading contact: %w", err)
 	}
 	if len(contacts) == 0 {
-		return deny("no such contact")
+		return deny(403, "no such contact")
 	}
 	contact, err := contacts[0].EngineContact(oa)
 	if err != nil {
@@ -164,4 +196,84 @@ func handlePublish(ctx context.Context, rt *runtime.Runtime, r *publishRequest) 
 	// unlike everything else published to history sockets this event is ephemeral and never persisted, hence
 	// skip_history
 	return &publishResponse{Result: &publishResult{Data: event, SkipHistory: true}}, http.StatusOK, nil
+}
+
+// what the visitor's own chat socket carries back to its tabs - courier's typing shape, but without the user which
+// marks an agent typing, so that widgets can tell their own echo apart
+type chatTypingEcho struct {
+	Type      string    `json:"type"`
+	CreatedOn time.Time `json:"created_on"`
+}
+
+// handles webchat visitors publishing typing to their chat socket. Visitors connect anonymously, so as with
+// courier's webchat endpoints and the platform's authorization of chat socket subscriptions, possession of the chat
+// ID is the credential.
+func publishToChat(ctx context.Context, rt *runtime.Runtime, r *publishRequest) (any, int, error) {
+	match := chatSocketRegex.FindStringSubmatch(r.Channel)
+	if match == nil {
+		return deny(403, "publishing not supported on this socket")
+	}
+	channelUUID, chatID := assets.ChannelUUID(match[1]), match[2]
+
+	data, msg := readTypingData(r.Data)
+	if data == nil {
+		return deny(403, msg)
+	}
+
+	visitor, err := models.GetWebChatVisitor(ctx, channelUUID, chatID)
+	if err != nil {
+		return nil, 0, err
+	}
+	if visitor == nil {
+		return deny(403, "no such chat")
+	}
+
+	// throttled only once the chat is known to exist, so that made-up chat IDs can't create keys
+	if !allowChatTyping(ctx, rt, channelUUID, chatID) {
+		return deny(429, "too many publications")
+	}
+
+	oa, err := models.GetOrgAssets(ctx, rt, visitor.OrgID)
+	if err != nil {
+		return nil, 0, fmt.Errorf("error loading org assets: %w", err)
+	}
+
+	// org assets only include enabled channels, and are refreshed more often than visitors
+	channel := oa.ChannelByUUID(channelUUID)
+	if channel == nil {
+		return deny(403, "no such chat")
+	}
+
+	urn, err := urns.New(urns.WebChat, chatID)
+	if err != nil {
+		return deny(403, "no such chat")
+	}
+
+	var event events.Event
+	if data.Type == events.TypeTypingStarted {
+		event = events.NewTypingStarted(events.DirectionIncoming, channel.Reference(), urn, "")
+	} else {
+		event = events.NewTypingStopped(events.DirectionIncoming, channel.Reference(), urn, "")
+	}
+
+	// best effort like all history publishing - the visitor's publication still stands
+	if err := models.PublishToHistory(ctx, rt, visitor.ContactUUID, []events.Event{event}); err != nil {
+		slog.Error("error publishing visitor typing", "error", err, "contact", visitor.ContactUUID)
+	}
+
+	echo := &chatTypingEcho{Type: data.Type, CreatedOn: event.CreatedOn()}
+	return &publishResponse{Result: &publishResult{Data: echo, SkipHistory: true}}, http.StatusOK, nil
+}
+
+// fails open since a valkey problem shouldn't stop visitors' typing reaching agents
+func allowChatTyping(ctx context.Context, rt *runtime.Runtime, channelUUID assets.ChannelUUID, chatID string) bool {
+	vc := rt.VK.Get()
+	defer vc.Close()
+
+	allowed, err := chatTypingLimiter.Allow(ctx, vc, fmt.Sprintf("%s|%s", channelUUID, chatID))
+	if err != nil {
+		slog.Error("error checking chat typing rate limit", "error", err, "channel", channelUUID)
+		return true
+	}
+	return allowed
 }

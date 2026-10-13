@@ -27,6 +27,7 @@ type ChannelType string
 // channel type constants
 const (
 	ChannelTypeAndroid = ChannelType("A")
+	ChannelTypeWebChat = ChannelType("WCH")
 )
 
 // config key constants
