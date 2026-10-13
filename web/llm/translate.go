@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"maps"
 	"net/http"
 	"slices"
 	"time"
@@ -85,6 +86,21 @@ func handleTranslate(ctx context.Context, rt *runtime.Runtime, r *translateReque
 		return nil, 0, fmt.Errorf("LLM with ID %d does not support translation", r.LLMID)
 	}
 
+	// items with nothing to translate outside of their expressions are returned as they are, and if that's all of them
+	// there's no need to call the LLM
+	toTranslate := make(map[string][]string, len(r.Items))
+	unchanged := make(map[string][]string, len(r.Items))
+	for id, vals := range r.Items {
+		if ai.HasTranslatableText(vals) {
+			toTranslate[id] = vals
+		} else {
+			unchanged[id] = vals
+		}
+	}
+	if len(toTranslate) == 0 {
+		return translateResponse{Items: unchanged}, http.StatusOK, nil
+	}
+
 	llmSvc, err := llm.AsService(rt)
 	if err != nil {
 		return nil, 0, fmt.Errorf("error creating LLM service: %w", err)
@@ -94,7 +110,7 @@ func handleTranslate(ctx context.Context, rt *runtime.Runtime, r *translateReque
 	defer cancelCall()
 
 	callStart := time.Now()
-	trans, err := llmSvc.Translate(callCtx, r.Source, r.Target, r.Items)
+	trans, err := llmSvc.Translate(callCtx, r.Source, r.Target, toTranslate)
 	if trans == nil {
 		trans = &core.Translation{}
 	}
@@ -120,7 +136,7 @@ func handleTranslate(ctx context.Context, rt *runtime.Runtime, r *translateReque
 		// anything else (e.g. from the test service) so the handler response is consistently a 422
 		aerr, ok := errors.AsType[*ai.ServiceError](err)
 		if !ok {
-			input, _ := json.Marshal(r.Items)
+			input, _ := json.Marshal(toTranslate)
 			aerr = &ai.ServiceError{Message: err.Error(), Code: ai.ErrorUnknown, Input: string(input)}
 		}
 
@@ -137,12 +153,9 @@ func handleTranslate(ctx context.Context, rt *runtime.Runtime, r *translateReque
 		return nil, 0, aerr
 	}
 
-	items := trans.Items
-	if items == nil {
-		items = map[string][]string{}
-	}
+	maps.Copy(unchanged, trans.Items)
 
-	return translateResponse{Items: items}, http.StatusOK, nil
+	return translateResponse{Items: unchanged}, http.StatusOK, nil
 }
 
 // insertLLMCallCounts inserts the given LLM daily counts in a transaction.

@@ -1,5 +1,5 @@
 Translate each string value in the JSON object input from {{ .Source }} to {{ .Target }}.
-An "@" character indicates a variable expression and must be left untranslated.
+Placeholders like {{ "{{1}}" }} stand for values inserted later. Keep each one exactly as it is, positioned where its value belongs in the translation.
 Preserve the letter case of each input string in its translation (e.g. ":arguments" and ":name" values are often lowercase and should stay lowercase).
 ":text" values must not exceed 10000 characters.
 ":quick_replies" values must not exceed 1000 characters each.
