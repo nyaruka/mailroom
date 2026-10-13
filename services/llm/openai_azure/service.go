@@ -98,8 +98,7 @@ func (s *service) respond(ctx context.Context, instructions, input string, maxTo
 			openai.SystemMessage(instructions),
 			openai.UserMessage(input),
 		},
-		Temperature: openai.Float(0.000001),
-		MaxTokens:   openai.Int(int64(maxTokens)),
+		MaxCompletionTokens: openai.Int(int64(maxTokens)),
 	}
 	if withLogprobs {
 		params.Logprobs = openai.Bool(true)

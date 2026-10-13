@@ -75,7 +75,6 @@ func (s *service) respond(ctx context.Context, instructions, input string, maxTo
 		Input: responses.ResponseNewParamsInputUnion{
 			OfString: openai.String(input),
 		},
-		Temperature:     openai.Float(0.000001),
 		MaxOutputTokens: openai.Int(int64(maxTokens)),
 	}
 	if withLogprobs {

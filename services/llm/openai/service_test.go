@@ -150,6 +150,8 @@ func TestClassify(t *testing.T) {
 	reqBody, err := io.ReadAll(body)
 	require.NoError(t, err)
 	assert.Contains(t, string(reqBody), `"include":["message.output_text.logprobs"]`)
+	assert.Contains(t, string(reqBody), `"max_output_tokens":50`)
+	assert.NotContains(t, string(reqBody), `"temperature"`)
 
 	// no logprobs returned
 	cls, err = svc.Classify(ctx, "I need a room", []*core.ClassifierOption{{Name: "Flights"}, {Name: "Hotels"}})
