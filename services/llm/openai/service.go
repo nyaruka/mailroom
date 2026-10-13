@@ -25,6 +25,15 @@ const (
 	configAPIKey = "api_key"
 )
 
+// how to turn off reasoning for models which reason by default. Reasoning adds latency and its tokens count against
+// MaxOutputTokens, which can use up the budget of what are short responses. Models not listed either don't reason or
+// don't allow reasoning to be turned off.
+var reasoningOff = map[string]shared.ReasoningEffort{
+	"gpt-5.5":       shared.ReasoningEffortNone,
+	"gpt-5.6-luna":  shared.ReasoningEffortNone,
+	"gpt-5.6-terra": shared.ReasoningEffortNone,
+}
+
 func init() {
 	models.RegisterLLMService(TypeOpenAI, New)
 }
@@ -77,6 +86,9 @@ func (s *service) respond(ctx context.Context, instructions, input string, maxTo
 		},
 		MaxOutputTokens: openai.Int(int64(maxTokens)),
 	}
+	if effort, ok := reasoningOff[s.model]; ok {
+		params.Reasoning = shared.ReasoningParam{Effort: effort}
+	}
 	if withLogprobs {
 		params.Include = []responses.ResponseIncludable{responses.ResponseIncludableMessageOutputTextLogprobs}
 	}
@@ -84,6 +96,12 @@ func (s *service) respond(ctx context.Context, instructions, input string, maxTo
 	resp, err := s.client.Responses.New(ctx, params)
 	if err != nil {
 		return nil, nil, s.error(err, instructions, input)
+	}
+
+	output := strings.TrimSpace(resp.OutputText())
+	if output == "" && resp.Status == responses.ResponseStatusIncomplete {
+		msg := fmt.Sprintf("response incomplete with no output: %s", resp.IncompleteDetails.Reason)
+		return nil, nil, &ai.ServiceError{Message: msg, Code: ai.ErrorUnknown, Instructions: instructions, Input: input}
 	}
 
 	var logprobs []float64
@@ -96,7 +114,7 @@ func (s *service) respond(ctx context.Context, instructions, input string, maxTo
 	}
 
 	return &core.ModelResponse{
-		Output: strings.TrimSpace(resp.OutputText()),
+		Output: output,
 		Tokens: core.ModelTokens{Input: resp.Usage.InputTokens, Output: resp.Usage.OutputTokens},
 	}, logprobs, nil
 }

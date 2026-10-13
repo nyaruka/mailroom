@@ -152,6 +152,7 @@ func TestClassify(t *testing.T) {
 	assert.Contains(t, string(reqBody), `"include":["message.output_text.logprobs"]`)
 	assert.Contains(t, string(reqBody), `"max_output_tokens":50`)
 	assert.NotContains(t, string(reqBody), `"temperature"`)
+	assert.NotContains(t, string(reqBody), `"reasoning"`)
 
 	// no logprobs returned
 	cls, err = svc.Classify(ctx, "I need a room", []*core.ClassifierOption{{Name: "Flights"}, {Name: "Hotels"}})
@@ -163,4 +164,40 @@ func TestClassify(t *testing.T) {
 	cls, err = svc.Classify(ctx, "What's the weather?", []*core.ClassifierOption{{Name: "Flights"}, {Name: "Hotels"}})
 	require.NoError(t, err)
 	assert.Equal(t, &core.Classification{Option: "Flights", Confidence: core.ClassifierConfidenceNone, Tokens: core.ModelTokens{Input: 34, Output: 2}}, cls)
+}
+
+func TestReasoningModel(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	llm := testdb.InsertLLM(t, rt, testdb.Org1, "b86966fd-206e-4bdd-a962-06faa3af1182", "openai", "gpt-5.6-luna", "Good", map[string]any{"api_key": "sesame"}, "TGC")
+	oa := testdb.Org1.Load(t, rt)
+
+	client, mocks := test.MockedHTTP(map[string][]*httpx.MockResponse{
+		"https://api.openai.com/v1/responses": {
+			httpx.NewMockResponse(200, map[string]string{"Content-type": "application/json"}, []byte(`{"id":"resp_1","object":"response","status":"completed","output":[{"type":"message","id":"msg_1","status":"completed","role":"assistant","content":[{"type":"output_text","text":"Hola mundo","annotations":[]}]}],"usage":{"input_tokens":36,"output_tokens":3}}`)),
+			httpx.NewMockResponse(200, map[string]string{"Content-type": "application/json"}, []byte(`{"id":"resp_2","object":"response","status":"incomplete","incomplete_details":{"reason":"max_output_tokens"},"output":[{"type":"reasoning","id":"rs_1","summary":[]}],"usage":{"input_tokens":36,"output_tokens":50}}`)),
+		},
+	})
+
+	svc, err := openai.New(rt, oa.LLMByID(llm.ID), client)
+	require.NoError(t, err)
+
+	resp, err := svc.Response(ctx, "translate to Spanish", "Hello world", 1000)
+	require.NoError(t, err)
+	assert.Equal(t, "Hola mundo", resp.Output)
+
+	body, err := mocks.Requests()[0].GetBody()
+	require.NoError(t, err)
+	reqBody, err := io.ReadAll(body)
+	require.NoError(t, err)
+	assert.Contains(t, string(reqBody), `"reasoning":{"effort":"none"}`)
+
+	// output token limit reached before any output
+	resp, err = svc.Response(ctx, "translate to Spanish", "Hello world", 1000)
+	assert.EqualError(t, err, "response incomplete with no output: max_output_tokens")
+	var serr *ai.ServiceError
+	if assert.ErrorAs(t, err, &serr) {
+		assert.Equal(t, ai.ErrorUnknown, serr.Code)
+	}
+	assert.Nil(t, resp)
 }
