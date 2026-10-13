@@ -22,13 +22,13 @@ type HTTP struct {
 
 func newHTTP(cfg *Config) *HTTP {
 	return &HTTP{
-		Services:  newServicesClient(),
+		Services:  NewServicesClient(),
 		Engine:    newWebhookClient(cfg),
 		Simulator: newWebhookClient(cfg),
 	}
 }
 
-// newServicesClient builds the client for fixed (non-webhook) outbound targets — LLM providers, airtime, IVR,
+// NewServicesClient builds the client for fixed (non-webhook) outbound targets — LLM providers, airtime, IVR,
 // and courier. It does not apply the SSRF blocklist or the webhook proxy — those are reserved for
 // user-controlled webhook URLs. The
 // 1-minute timeout is generous enough for slower provider responses, and comfortably covers the airtime
@@ -40,7 +40,7 @@ func newHTTP(cfg *Config) *HTTP {
 // and costs nothing for a request made without a collector, so it belongs on the client rather than being
 // assembled per call. Note that HTTP.Engine and HTTP.Simulator deliberately don't get this: they're handed to
 // goflow's webhook service, which installs its own tracing on the transport it is given.
-func newServicesClient() *http.Client {
+func NewServicesClient() *http.Client {
 	return &http.Client{
 		Transport: httpx.WithTraces(newBaseTransport()),
 		Timeout:   time.Minute,
