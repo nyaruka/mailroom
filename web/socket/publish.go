@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"net/url"
 	"regexp"
 	"strings"
 	"time"
@@ -25,7 +24,7 @@ import (
 )
 
 func init() {
-	web.InternalRoute(http.MethodPost, "/socket/publish", web.MarshaledResponse(handlePublish))
+	web.InternalRoute(http.MethodPost, "/socket/publish", web.JSONPayload(handlePublish))
 }
 
 // how long we're willing to wait on courier before giving up on forwarding - the whole request has to fit
@@ -94,20 +93,15 @@ func deny(code int, msg string) (any, int, error) {
 	return &publishResponse{Error: &publishError{Code: code, Message: msg}}, http.StatusOK, nil
 }
 
-func handlePublish(ctx context.Context, rt *runtime.Runtime, r *http.Request) (any, int, error) {
-	req := &publishRequest{}
-	if err := web.ReadAndValidateJSON(r, req); err != nil {
-		return fmt.Errorf("request failed validation: %w", err), http.StatusBadRequest, nil
-	}
-
+func handlePublish(ctx context.Context, rt *runtime.Runtime, r *publishRequest) (any, int, error) {
 	// this handler is the sole publish authorizer: when a publish proxy is enabled centrifugo skips all of its
 	// built-in permission checks, including whether the publisher is even subscribed to the socket
-	namespace, _, _ := strings.Cut(req.Channel, ":")
+	namespace, _, _ := strings.Cut(r.Channel, ":")
 	switch namespace {
 	case models.SocketHistoryNamespace:
-		return publishToHistory(ctx, rt, req)
+		return publishToHistory(ctx, rt, r)
 	case models.SocketChatNamespace:
-		return publishToChat(ctx, rt, req, r.Header.Get("Origin"))
+		return publishToChat(ctx, rt, r)
 	}
 	return deny(403, "publishing not supported on this socket")
 }
@@ -218,7 +212,7 @@ type chatTypingEcho struct {
 // handles webchat visitors publishing typing to their chat socket. Visitors connect anonymously, so as with
 // courier's webchat endpoints and the platform's authorization of chat socket subscriptions, possession of the chat
 // ID is the credential.
-func publishToChat(ctx context.Context, rt *runtime.Runtime, r *publishRequest, origin string) (any, int, error) {
+func publishToChat(ctx context.Context, rt *runtime.Runtime, r *publishRequest) (any, int, error) {
 	match := chatSocketRegex.FindStringSubmatch(r.Channel)
 	if match == nil {
 		return deny(403, "publishing not supported on this socket")
@@ -230,17 +224,17 @@ func publishToChat(ctx context.Context, rt *runtime.Runtime, r *publishRequest, 
 		return deny(403, msg)
 	}
 
-	// every pulse costs us a lookup, so throttle per chat before doing any
-	if !allowRate(ctx, rt, fmt.Sprintf("chat-typing:%s|%s", channelUUID, chatID), chatTypingLimit, chatTypingWindow) {
-		return deny(429, "too many publications")
-	}
-
 	visitor, err := models.GetWebChatVisitor(ctx, channelUUID, chatID)
 	if err != nil {
 		return nil, 0, err
 	}
 	if visitor == nil {
 		return deny(403, "no such chat")
+	}
+
+	// throttled only once the chat is known to exist, so that made-up chat IDs can't create keys
+	if !allowRate(ctx, rt, fmt.Sprintf("chat-typing:%s|%s", channelUUID, chatID), chatTypingLimit, chatTypingWindow) {
+		return deny(429, "too many publications")
 	}
 
 	oa, err := models.GetOrgAssets(ctx, rt, visitor.OrgID)
@@ -252,9 +246,6 @@ func publishToChat(ctx context.Context, rt *runtime.Runtime, r *publishRequest, 
 	channel := oa.ChannelByUUID(channelUUID)
 	if channel == nil {
 		return deny(403, "no such chat")
-	}
-	if !originAllowed(channel, origin) {
-		return deny(403, "origin not allowed")
 	}
 
 	urn, err := urns.New(urns.WebChat, chatID)
@@ -276,33 +267,6 @@ func publishToChat(ctx context.Context, rt *runtime.Runtime, r *publishRequest, 
 
 	echo := &chatTypingEcho{Type: data.Type, CreatedOn: event.CreatedOn()}
 	return &publishResponse{Result: &publishResult{Data: echo, SkipHistory: true}}, http.StatusOK, nil
-}
-
-// checks the publisher's origin against the domains a webchat channel is pinned to, if it's pinned to any and the
-// origin is known, mirroring how the platform authorizes subscribing to the chat socket
-func originAllowed(channel *models.Channel, origin string) bool {
-	allowed, _ := channel.Config()[models.ChannelConfigAllowedDomains].([]any)
-	if len(allowed) == 0 {
-		return true
-	}
-	if origin == "" {
-		// browsers always send one, so its absence more likely means the proxy isn't forwarding it
-		slog.Warn("webchat publication without origin, check that centrifugo publish proxy forwards the Origin header", "channel", channel.UUID())
-		return true
-	}
-
-	u, err := url.Parse(origin)
-	if err != nil {
-		return false
-	}
-	host := strings.ToLower(u.Host)
-
-	for _, d := range allowed {
-		if s, ok := d.(string); ok && strings.ToLower(s) == host {
-			return true
-		}
-	}
-	return false
 }
 
 // counts a request against the given key and returns whether it's within the given limit for a fixed window of the

@@ -562,35 +562,11 @@
         }
     },
     {
-        "label": "denied if origin isn't one of the channel's allowed domains",
+        "label": "visitor typing is fanned out to the contact's history and echoed back without a user",
         "method": "POST",
         "path": "/mi/socket/publish",
-        "headers": {
-            "Origin": "https://attacker.example.com"
-        },
         "body": {
             "channel": "chat:8c3e4d2a-5b1f-4e6a-9c7d-2f0b1a3e5d47:AbCdEf0123456789GhIjKlMn",
-            "data": {
-                "type": "typing_started"
-            }
-        },
-        "status": 200,
-        "response": {
-            "error": {
-                "code": 403,
-                "message": "origin not allowed"
-            }
-        }
-    },
-    {
-        "label": "any origin is allowed if channel isn't pinned to domains",
-        "method": "POST",
-        "path": "/mi/socket/publish",
-        "headers": {
-            "Origin": "https://anywhere.example.com"
-        },
-        "body": {
-            "channel": "chat:1e6b3c2d-7a4f-4b8e-a5d9-0c3f6e1b2a84:OpenChat0123456789abcdef",
             "data": {
                 "type": "typing_started"
             }
@@ -607,31 +583,7 @@
         }
     },
     {
-        "label": "visitor typing is fanned out to the contact's history and echoed back without a user",
-        "method": "POST",
-        "path": "/mi/socket/publish",
-        "headers": {
-            "Origin": "https://Chat.Example.com"
-        },
-        "body": {
-            "channel": "chat:8c3e4d2a-5b1f-4e6a-9c7d-2f0b1a3e5d47:AbCdEf0123456789GhIjKlMn",
-            "data": {
-                "type": "typing_started"
-            }
-        },
-        "status": 200,
-        "response": {
-            "result": {
-                "data": {
-                    "type": "typing_started",
-                    "created_on": "2025-05-04T12:30:56.123456789Z"
-                },
-                "skip_history": true
-            }
-        }
-    },
-    {
-        "label": "visitor typing stopped without an origin",
+        "label": "visitor typing stopped is fanned out too",
         "method": "POST",
         "path": "/mi/socket/publish",
         "body": {
@@ -645,7 +597,7 @@
             "result": {
                 "data": {
                     "type": "typing_stopped",
-                    "created_on": "2025-05-04T12:30:58.123456789Z"
+                    "created_on": "2025-05-04T12:30:56.123456789Z"
                 },
                 "skip_history": true
             }
@@ -672,7 +624,7 @@
             "result": {
                 "data": {
                     "type": "typing_started",
-                    "created_on": "2025-05-04T12:31:00.123456789Z"
+                    "created_on": "2025-05-04T12:30:58.123456789Z"
                 },
                 "skip_history": true
             }

@@ -31,8 +31,8 @@ func TestPublish(t *testing.T) {
 	})
 	rt.HTTP.Services.Transport = transport
 
-	// a webchat channel pinned to a domain, with a fixed UUID as its sockets are named by it
-	wch := testdb.InsertChannel(t, rt, testdb.Org1, models.ChannelTypeWebChat, "Web Chat", "", []string{"webchat"}, "SR", map[string]any{"allowed_domains": []string{"chat.example.com"}})
+	// a webchat channel, with a fixed UUID as its sockets are named by it
+	wch := testdb.InsertChannel(t, rt, testdb.Org1, models.ChannelTypeWebChat, "Web Chat", "", []string{"webchat"}, "SR", map[string]any{})
 	rt.DB.MustExec(`UPDATE channels_channel SET uuid = '8c3e4d2a-5b1f-4e6a-9c7d-2f0b1a3e5d47' WHERE id = $1`, wch.ID)
 
 	insertVisitor := func(uuid core.ContactUUID, chatID string, channel *testdb.Channel) *testdb.Contact {
@@ -42,12 +42,8 @@ func TestPublish(t *testing.T) {
 		return contact
 	}
 
-	// and one that isn't pinned to any domains
-	openWCH := testdb.InsertChannel(t, rt, testdb.Org1, models.ChannelTypeWebChat, "Open Chat", "", []string{"webchat"}, "SR", map[string]any{})
-	rt.DB.MustExec(`UPDATE channels_channel SET uuid = '1e6b3c2d-7a4f-4b8e-a5d9-0c3f6e1b2a84' WHERE id = $1`, openWCH.ID)
-
 	visitor := insertVisitor("c5a1e1f7-3b4d-4f2e-8a6c-9d0b7e2f4a13", "AbCdEf0123456789GhIjKlMn", wch)
-	insertVisitor("a13c5a1e-1f73-4b4d-8f2e-8a6c9d0b7e2f", "OpenChat0123456789abcdef", openWCH)
+	insertVisitor("a13c5a1e-1f73-4b4d-8f2e-8a6c9d0b7e2f", "Throttled012345678901234", wch)
 	insertVisitor("0b7e2f4a-9d0b-4f2e-8a6c-c5a1e1f73b4d", "ZyXwVu9876543210TsRqPoNm", testdb.TwilioChannel)
 	gone := insertVisitor("4f2e8a6c-c5a1-4e1f-b3b4-9d0b7e2f4a13", "InActive0123456789abcdef", wch)
 	rt.DB.MustExec(`UPDATE contacts_contact SET is_active = FALSE WHERE id = $1`, gone.ID)
@@ -70,9 +66,9 @@ func TestPublish(t *testing.T) {
 	sent := testsuite.CentrifugoHistory(t, rt, historySocket)
 	if assert.Len(t, sent, 3) {
 		test.AssertEqualJSON(t, []byte(`{
-			"uuid": "01969b47-2c93-76f8-b774-0a98171a0712",
+			"uuid": "01969b47-24c3-76f8-b20c-e3cb6203e029",
 			"type": "typing_started",
-			"created_on": "2025-05-04T12:30:56.123456789Z",
+			"created_on": "2025-05-04T12:30:54.123456789Z",
 			"direction": "incoming",
 			"channel": {"uuid": "8c3e4d2a-5b1f-4e6a-9c7d-2f0b1a3e5d47", "name": "Web Chat"},
 			"urn": "webchat:AbCdEf0123456789GhIjKlMn"
