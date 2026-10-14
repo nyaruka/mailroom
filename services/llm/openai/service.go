@@ -23,15 +23,36 @@ const (
 	TypeOpenAI = "openai"
 
 	configAPIKey = "api_key"
+
+	// the reasoning effort of models which don't reason and so reject a reasoning param
+	reasoningEffortOmit shared.ReasoningEffort = ""
 )
 
-// how to turn off reasoning for models which reason by default. Reasoning adds latency and its tokens count against
-// MaxOutputTokens, which can use up the budget of what are short responses. Models not listed either don't reason or
-// don't allow reasoning to be turned off.
-var reasoningOff = map[string]shared.ReasoningEffort{
-	"gpt-5.5":       shared.ReasoningEffortNone,
-	"gpt-5.6-luna":  shared.ReasoningEffortNone,
+// the reasoning effort to use with each model. Reasoning adds latency and its tokens count against MaxOutputTokens,
+// which can use up the budget of what are short responses, so it's turned off where possible, which also keeps logprobs
+// available. Models which can't turn it off use their lowest effort, and unlisted models are assumed to be able to.
+var reasoningEfforts = map[string]shared.ReasoningEffort{
+	"gpt-6.1-sol":   shared.ReasoningEffortLow,
+	"gpt-6-astra":   shared.ReasoningEffortLow,
+	"gpt-6-sol":     shared.ReasoningEffortNone,
+	"gpt-6-luna":    shared.ReasoningEffortNone,
+	"gpt-5.6-sol":   shared.ReasoningEffortNone,
 	"gpt-5.6-terra": shared.ReasoningEffortNone,
+	"gpt-5.6-luna":  shared.ReasoningEffortNone,
+	"gpt-5.5":       shared.ReasoningEffortNone,
+	"gpt-5.4":       shared.ReasoningEffortNone,
+	"gpt-5.4-mini":  shared.ReasoningEffortNone,
+	"gpt-4.1":       reasoningEffortOmit,
+	"gpt-4.1-mini":  reasoningEffortOmit,
+	"gpt-4o":        reasoningEffortOmit,
+	"gpt-4o-mini":   reasoningEffortOmit,
+}
+
+func reasoningEffort(model string) shared.ReasoningEffort {
+	if effort, ok := reasoningEfforts[model]; ok {
+		return effort
+	}
+	return shared.ReasoningEffortNone
 }
 
 func init() {
@@ -64,6 +85,11 @@ func (s *service) Response(ctx context.Context, instructions, input string, maxT
 }
 
 func (s *service) Classify(ctx context.Context, input string, options []*core.ClassifierOption) (*core.Classification, error) {
+	// models which are reasoning can't provide logprobs
+	if effort := reasoningEffort(s.model); effort != shared.ReasoningEffortNone && effort != reasoningEffortOmit {
+		return ai.ClassifyByPrompt(ctx, s, input, options)
+	}
+
 	resp, logprobs, err := s.respond(ctx, ai.ClassifyInstructions(options), input, ai.ClassifyMaxTokens, true)
 	if err != nil {
 		return nil, err
@@ -86,7 +112,7 @@ func (s *service) respond(ctx context.Context, instructions, input string, maxTo
 		},
 		MaxOutputTokens: openai.Int(int64(maxTokens)),
 	}
-	if effort, ok := reasoningOff[s.model]; ok {
+	if effort := reasoningEffort(s.model); effort != reasoningEffortOmit {
 		params.Reasoning = shared.ReasoningParam{Effort: effort}
 	}
 	if withLogprobs {
