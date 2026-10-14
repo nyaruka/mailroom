@@ -12,8 +12,9 @@ const cantOutput = "<CANT>"
 
 var codeFenceRegex = regexp.MustCompile("(?s)^```(?:[\\w+-]*\\n)?(.*?)\\n?```$")
 
-// strips surrounding whitespace and any code fence enclosing the output, as models sometimes fence even plain replies
-func stripFence(output string) string {
+// StripFence strips surrounding whitespace and any code fence enclosing the output, as models sometimes fence even
+// plain replies
+func StripFence(output string) string {
 	output = strings.TrimSpace(output)
 	if m := codeFenceRegex.FindStringSubmatch(output); m != nil {
 		return strings.TrimSpace(m[1])

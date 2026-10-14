@@ -130,7 +130,7 @@ func parseProbabilities(output string, options []*core.ClassifierOption) (map[st
 	return probs, nil
 }
 
-func normalizeOption(s string) string { return strings.Trim(stripFence(s), `"'.`) }
+func normalizeOption(s string) string { return strings.Trim(StripFence(s), `"'.`) }
 
 // matches a model's output against the option names, returning empty if there's no match
 func matchOption(output string, options []*core.ClassifierOption) string {
