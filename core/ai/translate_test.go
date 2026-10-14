@@ -31,6 +31,9 @@ func TestTranslateByPrompt(t *testing.T) {
 			expected: map[string][]string{"a:text": {"Hola"}},
 		},
 		{output: `<CANT>`, expected: map[string][]string{}},
+		{output: ` "<CANT>"`, expected: map[string][]string{}},
+		{output: "```json\n\"<CANT>\"\n```", expected: map[string][]string{}},
+		{output: "```\n<CANT>\n```", expected: map[string][]string{}},
 		{output: `not JSON`, expected: map[string][]string{}},
 	}
 
@@ -49,6 +52,19 @@ func TestTranslateByPrompt(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Contains(t, svc.instructions, `from the language with the ISO code "prd" to Afar (ISO code "aar")`)
 
+	// unrecognized target languages aren't sent to the model
+	svc = &promptService{output: `{"a:text": ["Hola"]}`}
+	trans, err := ai.TranslateByPrompt(ctx, svc, "eng", "xxx", map[string][]string{"a:text": {"Hello"}}, 1000)
+	assert.NoError(t, err)
+	assert.Equal(t, &core.Translation{Items: map[string][]string{}}, trans)
+	assert.Equal(t, "", svc.instructions)
+
+	// as are codes which don't identify a particular language
+	trans, err = ai.TranslateByPrompt(ctx, svc, "eng", "und", map[string][]string{"a:text": {"Hello"}}, 1000)
+	assert.NoError(t, err)
+	assert.Equal(t, &core.Translation{Items: map[string][]string{}}, trans)
+	assert.Equal(t, "", svc.instructions)
+
 	// unknown source language uses different instructions
 	svc = &promptService{output: `{"a:text": ["Hola"]}`}
 	_, err = ai.TranslateByPrompt(ctx, svc, "und", "spa", map[string][]string{"a:text": {"Hello"}}, 1000)
@@ -58,7 +74,7 @@ func TestTranslateByPrompt(t *testing.T) {
 
 	// expressions are sent to the model as placeholders and restored in its translations
 	svc = &promptService{output: `{"a:text": ["Hola {{1}}, ¿{{2}}?"]}`}
-	trans, err := ai.TranslateByPrompt(ctx, svc, "eng", "spa", map[string][]string{"a:text": {"Hi @contact.name, @(upper(fields.city))?"}}, 1000)
+	trans, err = ai.TranslateByPrompt(ctx, svc, "eng", "spa", map[string][]string{"a:text": {"Hi @contact.name, @(upper(fields.city))?"}}, 1000)
 	assert.NoError(t, err)
 	assert.Equal(t, map[string][]string{"a:text": {"Hola @contact.name, ¿@(upper(fields.city))?"}}, trans.Items)
 	assert.JSONEq(t, `{"a:text": ["Hi {{1}}, {{2}}?"]}`, svc.input)
