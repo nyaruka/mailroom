@@ -1,3 +1,6 @@
+## v26.3.95 (2026-10-14)
+ * Update gocommon and OpenTelemetry SDK dependencies
+
 ## v26.3.94 (2026-10-14)
  * Set reasoning effort for every offered OpenAI model and classify by prompt when reasoning can't be turned off
 
