@@ -119,7 +119,7 @@ func TestService(t *testing.T) {
 
 func TestClassify(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
-	openai.ResetReasoningEfforts()
+	openai.ResetLearned()
 
 	llm := testdb.InsertLLM(t, rt, testdb.Org1, "b86966fd-206e-4bdd-a962-06faa3af1182", "openai", "gpt-5.5", "Good", map[string]any{"api_key": "sesame"}, "TGC")
 	oa := testdb.Org1.Load(t, rt)
@@ -166,7 +166,7 @@ func TestClassify(t *testing.T) {
 
 func TestReasoningModel(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
-	openai.ResetReasoningEfforts()
+	openai.ResetLearned()
 
 	llm := testdb.InsertLLM(t, rt, testdb.Org1, "b86966fd-206e-4bdd-a962-06faa3af1182", "openai", "gpt-5.6-luna", "Good", map[string]any{"api_key": "sesame"}, "TGC")
 	oa := testdb.Org1.Load(t, rt)
@@ -198,7 +198,7 @@ func TestReasoningModel(t *testing.T) {
 
 func TestReasoningCantBeTurnedOff(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
-	openai.ResetReasoningEfforts()
+	openai.ResetLearned()
 
 	llm := testdb.InsertLLM(t, rt, testdb.Org1, "b86966fd-206e-4bdd-a962-06faa3af1182", "openai", "gpt-6-astra", "Good", map[string]any{"api_key": "sesame"}, "TGC")
 	oa := testdb.Org1.Load(t, rt)
@@ -241,9 +241,56 @@ func TestReasoningCantBeTurnedOff(t *testing.T) {
 	assert.Contains(t, requestBody(t, mocks, 3), `"reasoning":{"effort":"low"}`)
 }
 
+func TestReasoningRejectsLowEffort(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+	openai.ResetLearned()
+
+	llm := testdb.InsertLLM(t, rt, testdb.Org1, "b86966fd-206e-4bdd-a962-06faa3af1182", "openai", "gpt-high-only", "Good", map[string]any{"api_key": "sesame"}, "TGC")
+	oa := testdb.Org1.Load(t, rt)
+
+	mkRejected := func(param, code string) *httpx.MockResponse {
+		return httpx.NewMockResponse(400, map[string]string{"Content-type": "application/json"}, []byte(`{"error":{"message":"Unsupported","type":"invalid_request_error","param":"`+param+`","code":"`+code+`"}}`))
+	}
+	mkResp := func(text string) *httpx.MockResponse {
+		return httpx.NewMockResponse(200, map[string]string{"Content-type": "application/json"}, []byte(`{"id":"resp_1","object":"response","status":"completed","output":[{"type":"message","id":"msg_1","status":"completed","role":"assistant","content":[{"type":"output_text","text":"`+text+`","annotations":[]}]}],"usage":{"input_tokens":34,"output_tokens":12}}`))
+	}
+
+	client, mocks := test.MockedHTTP(map[string][]*httpx.MockResponse{
+		"https://api.openai.com/v1/responses": {
+			mkRejected("reasoning.effort", "unsupported_value"),
+			mkRejected("reasoning.effort", "unsupported_value"),
+			mkRejected("include", "unsupported_parameter"),
+			mkResp(`{\"Flights\": 0.05, \"Hotels\": 0.95}`),
+			mkResp(`{\"Flights\": 0.8, \"Hotels\": 0.2}`),
+		},
+	})
+
+	svc, err := openai.New(rt, oa.LLMByID(llm.ID), client)
+	require.NoError(t, err)
+
+	// first classify learns to leave reasoning at the model's default and that it can't provide logprobs
+	cls, err := svc.Classify(ctx, "I need a room", []*core.ClassifierOption{{Name: "Flights"}, {Name: "Hotels"}})
+	require.NoError(t, err)
+	assert.Equal(t, "Hotels", cls.Option)
+
+	assert.Contains(t, requestBody(t, mocks, 0), `"reasoning":{"effort":"none"}`)
+	assert.Contains(t, requestBody(t, mocks, 1), `"reasoning":{"effort":"low"}`)
+	assert.NotContains(t, requestBody(t, mocks, 2), `"reasoning"`)
+	assert.Contains(t, requestBody(t, mocks, 2), `"include"`)
+	assert.NotContains(t, requestBody(t, mocks, 3), `"reasoning"`)
+	assert.NotContains(t, requestBody(t, mocks, 3), `"include"`)
+
+	// subsequent classifies go straight to classifying by prompt without a reasoning param
+	cls, err = svc.Classify(ctx, "I need a flight", []*core.ClassifierOption{{Name: "Flights"}, {Name: "Hotels"}})
+	require.NoError(t, err)
+	assert.Equal(t, "Flights", cls.Option)
+	assert.Len(t, mocks.Requests(), 5)
+	assert.NotContains(t, requestBody(t, mocks, 4), `"reasoning"`)
+}
+
 func TestNonReasoningModel(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
-	openai.ResetReasoningEfforts()
+	openai.ResetLearned()
 
 	llm := testdb.InsertLLM(t, rt, testdb.Org1, "b86966fd-206e-4bdd-a962-06faa3af1182", "openai", "gpt-4o", "Good", map[string]any{"api_key": "sesame"}, "TGC")
 	oa := testdb.Org1.Load(t, rt)

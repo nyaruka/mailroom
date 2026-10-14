@@ -25,7 +25,7 @@ const (
 
 	configAPIKey = "api_key"
 
-	// the reasoning effort of models which don't reason and so don't accept a reasoning param
+	// the reasoning effort of models which don't take a reasoning param, or reject all the efforts we try
 	reasoningEffortOmit shared.ReasoningEffort = ""
 )
 
@@ -34,8 +34,11 @@ var errLogprobsUnsupported = errors.New("logprobs not supported by model")
 // the reasoning effort to use with each model, learned from the API rejecting what we tried. Reasoning adds latency
 // and its tokens count against MaxOutputTokens, which can use up the budget of what are short responses, so we start
 // by trying to turn it off. Models which can't turn it off use the lowest effort that reasoning models generally
-// accept, and models which don't reason get no reasoning param at all.
+// accept, and models which don't reason or reject that too get no reasoning param at all.
 var reasoningEfforts sync.Map
+
+// models which have rejected requests for logprobs, which happens when they're reasoning
+var logprobsUnsupported sync.Map
 
 func reasoningEffort(model string) shared.ReasoningEffort {
 	if effort, ok := reasoningEfforts.Load(model); ok {
@@ -74,13 +77,13 @@ func (s *service) Response(ctx context.Context, instructions, input string, maxT
 }
 
 func (s *service) Classify(ctx context.Context, input string, options []*core.ClassifierOption) (*core.Classification, error) {
-	// models which are reasoning can't provide logprobs
-	if effort := reasoningEffort(s.model); effort != shared.ReasoningEffortNone && effort != reasoningEffortOmit {
+	if _, unsupported := logprobsUnsupported.Load(s.model); unsupported {
 		return ai.ClassifyByPrompt(ctx, s, input, options)
 	}
 
 	resp, logprobs, err := s.respond(ctx, ai.ClassifyInstructions(options), input, ai.ClassifyMaxTokens, true)
 	if errors.Is(err, errLogprobsUnsupported) {
+		logprobsUnsupported.Store(s.model, true)
 		return ai.ClassifyByPrompt(ctx, s, input, options)
 	} else if err != nil {
 		return nil, err
@@ -135,28 +138,27 @@ func (s *service) respond(ctx context.Context, instructions, input string, maxTo
 	}, logprobs, nil
 }
 
-// creates a response with the model's reasoning effort, retrying once if the API tells us that effort is wrong
+// creates a response with the model's reasoning effort, retrying with the next effort if the API rejects it
 func (s *service) newResponse(ctx context.Context, params responses.ResponseNewParams) (*responses.Response, error) {
 	effort := reasoningEffort(s.model)
-	if effort != reasoningEffortOmit {
-		params.Reasoning = shared.ReasoningParam{Effort: effort}
-	}
-
-	resp, err := s.client.Responses.New(ctx, params)
-	if !isUnsupported(err, "reasoning.effort") {
-		return resp, err
-	}
-
-	if aerr, _ := errors.AsType[*responses.Error](err); aerr.Code == "unsupported_value" && effort == shared.ReasoningEffortNone {
-		effort = shared.ReasoningEffortLow
-		params.Reasoning = shared.ReasoningParam{Effort: effort}
-	} else {
-		effort = reasoningEffortOmit
+	for {
 		params.Reasoning = shared.ReasoningParam{}
-	}
-	reasoningEfforts.Store(s.model, effort)
+		if effort != reasoningEffortOmit {
+			params.Reasoning = shared.ReasoningParam{Effort: effort}
+		}
 
-	return s.client.Responses.New(ctx, params)
+		resp, err := s.client.Responses.New(ctx, params)
+		if !isUnsupported(err, "reasoning.effort") || effort == reasoningEffortOmit {
+			return resp, err
+		}
+
+		if aerr, _ := errors.AsType[*responses.Error](err); aerr.Code == "unsupported_value" && effort == shared.ReasoningEffortNone {
+			effort = shared.ReasoningEffortLow
+		} else {
+			effort = reasoningEffortOmit
+		}
+		reasoningEfforts.Store(s.model, effort)
+	}
 }
 
 // whether the given error is the API rejecting the given request param as unsupported by the model

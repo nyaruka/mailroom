@@ -1,8 +1,7 @@
 package openai
 
-import "sync"
-
-// ResetReasoningEfforts forgets the reasoning efforts learned for models
-func ResetReasoningEfforts() {
-	reasoningEfforts = sync.Map{}
+// ResetLearned forgets what has been learned about models from the API rejecting requests
+func ResetLearned() {
+	reasoningEfforts.Clear()
+	logprobsUnsupported.Clear()
 }
