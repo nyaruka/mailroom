@@ -59,6 +59,12 @@ func TestTranslateByPrompt(t *testing.T) {
 	assert.Equal(t, &core.Translation{Items: map[string][]string{}}, trans)
 	assert.Equal(t, "", svc.instructions)
 
+	// as are codes which don't identify a particular language
+	trans, err = ai.TranslateByPrompt(ctx, svc, "eng", "und", map[string][]string{"a:text": {"Hello"}}, 1000)
+	assert.NoError(t, err)
+	assert.Equal(t, &core.Translation{Items: map[string][]string{}}, trans)
+	assert.Equal(t, "", svc.instructions)
+
 	// unknown source language uses different instructions
 	svc = &promptService{output: `{"a:text": ["Hola"]}`}
 	_, err = ai.TranslateByPrompt(ctx, svc, "und", "spa", map[string][]string{"a:text": {"Hello"}}, 1000)
