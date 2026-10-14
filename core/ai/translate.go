@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log/slog"
 	"slices"
+	"strings"
 
 	"github.com/nyaruka/gocommon/i18n"
 	"github.com/nyaruka/goflow/core"
@@ -21,6 +22,11 @@ var languageNames = display.English.Languages()
 // TranslateByPrompt translates items by prompting the given service to translate them as a JSON object, for model
 // types which don't have a native translation API. Items the model can't translate are omitted from the result.
 func TranslateByPrompt(ctx context.Context, svc flows.ModelService, source, target i18n.Language, items map[string][]string, maxTokens int) (*core.Translation, error) {
+	// given an unrecognized code, models tend to guess at a language rather than say they can't translate to it
+	if _, err := language.ParseBase(string(target)); err != nil {
+		return &core.Translation{Items: map[string][]string{}}, nil
+	}
+
 	instructionsTpl := "translate"
 	if source == "und" || source == "mul" {
 		instructionsTpl = "translate_unknown_from"
@@ -58,7 +64,7 @@ func describeLanguage(lang i18n.Language) string {
 // omitting it, either of which drops that item.
 func parseTranslated(output string, items map[string][]string) map[string][]string {
 	translatable := make(map[string][]string)
-	if output == cantOutput {
+	if isCant(output) {
 		return translatable
 	}
 
@@ -76,4 +82,13 @@ func parseTranslated(output string, items map[string][]string) map[string][]stri
 		translatable[id] = tvals
 	}
 	return translatable
+}
+
+// whether the output is <CANT>, allowing for it being quoted as a JSON string or wrapped in a code fence
+func isCant(output string) bool {
+	output = strings.TrimSpace(output)
+	if strings.HasPrefix(output, "```") && strings.HasSuffix(output, "```") {
+		output = strings.TrimSuffix(strings.TrimPrefix(strings.TrimPrefix(output, "```"), "json"), "```")
+	}
+	return normalizeOption(output) == cantOutput
 }
