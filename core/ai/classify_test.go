@@ -41,6 +41,9 @@ func TestNewClassification(t *testing.T) {
 		{output: "Car Rental", logprobs: []float64{-0.2, -0.1}, option: "Car Rental", confidence: core.ClassifierConfidenceMedium},
 		{output: "<CANT>", option: "Flights", confidence: core.ClassifierConfidenceNone},
 		{output: " <CANT>. ", option: "Flights", confidence: core.ClassifierConfidenceNone},
+		{output: "```\n\"<CANT>\"\n```", option: "Flights", confidence: core.ClassifierConfidenceNone},
+		{output: "```text\nHotels\n```", option: "Hotels", confidence: ai.UnscoredConfidence},
+		{output: "```Hotels```", option: "Hotels", confidence: ai.UnscoredConfidence},
 		{output: "Spaceships", err: "model returned unknown option 'Spaceships'"},
 		{output: "", err: "model returned unknown option ''"},
 	}

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log/slog"
 	"slices"
-	"strings"
 
 	"github.com/nyaruka/gocommon/i18n"
 	"github.com/nyaruka/goflow/core"
@@ -82,13 +81,4 @@ func parseTranslated(output string, items map[string][]string) map[string][]stri
 		translatable[id] = tvals
 	}
 	return translatable
-}
-
-// whether the output is <CANT>, allowing for it being quoted as a JSON string or wrapped in a code fence
-func isCant(output string) bool {
-	output = strings.TrimSpace(output)
-	if strings.HasPrefix(output, "```") && strings.HasSuffix(output, "```") {
-		output = strings.TrimSuffix(strings.TrimPrefix(strings.TrimPrefix(output, "```"), "json"), "```")
-	}
-	return normalizeOption(output) == cantOutput
 }

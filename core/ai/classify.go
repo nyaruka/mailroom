@@ -44,9 +44,6 @@ func ConfidenceLevel(p float64) core.ClassifierConfidence {
 	return core.ClassifierConfidenceNone
 }
 
-// the model's reply to the classify instructions when none of the options fit
-const cantOutput = "<CANT>"
-
 // ClassifyInstructions returns the instructions for prompting a generative model to reply with the name of an option,
 // for services whose API provides the logprobs of the reply.
 func ClassifyInstructions(options []*core.ClassifierOption) string {
@@ -59,7 +56,7 @@ func NewClassification(resp *core.ModelResponse, logprobs []float64, options []*
 	cls := &core.Classification{Option: options[0].Name, Confidence: core.ClassifierConfidenceNone, Tokens: resp.Tokens}
 
 	// the model can't tell us which option comes closest so we can only give no confidence in any of them
-	if normalizeOption(resp.Output) == cantOutput {
+	if isCant(resp.Output) {
 		return cls, nil
 	}
 
@@ -99,15 +96,6 @@ func ClassifyByPrompt(ctx context.Context, svc flows.ModelService, input string,
 	return &core.Classification{Option: option, Confidence: ConfidenceLevel(best), Probabilities: probs, Tokens: resp.Tokens}, nil
 }
 
-// extracts the JSON object from model output, as models sometimes wrap JSON in code fences or other text
-func jsonObject(output string) string {
-	start, end := strings.Index(output, "{"), strings.LastIndex(output, "}")
-	if start < 0 || end < start {
-		return ""
-	}
-	return output[start : end+1]
-}
-
 // parses the JSON object of option probabilities from the output of the scored classify instructions, filling in any
 // missing options as zero and scaling them down if they add up to more than 1
 func parseProbabilities(output string, options []*core.ClassifierOption) (map[string]float64, error) {
@@ -142,7 +130,7 @@ func parseProbabilities(output string, options []*core.ClassifierOption) (map[st
 	return probs, nil
 }
 
-func normalizeOption(s string) string { return strings.Trim(strings.TrimSpace(s), `"'.`) }
+func normalizeOption(s string) string { return strings.Trim(stripFence(s), `"'.`) }
 
 // matches a model's output against the option names, returning empty if there's no match
 func matchOption(output string, options []*core.ClassifierOption) string {
