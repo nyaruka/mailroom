@@ -1,3 +1,6 @@
+## v26.3.94 (2026-10-14)
+ * Set reasoning effort for every offered OpenAI model and classify by prompt when reasoning can't be turned off
+
 ## v26.3.93 (2026-10-13)
  * Turn off reasoning for known OpenAI reasoning models and error on empty truncated output
  * Stop sending temperature to OpenAI LLM services
