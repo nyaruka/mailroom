@@ -1,3 +1,7 @@
+## v26.3.96 (2026-10-14)
+ * Skip prompt-based translation to unrecognized languages and special codes like und and zxx, and accept quoted or fenced <CANT>
+ * Share code fence stripping across model output parsing and export it as StripFence for reuse by other services
+
 ## v26.3.95 (2026-10-14)
  * Update gocommon and OpenTelemetry SDK dependencies
 
