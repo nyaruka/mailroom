@@ -81,7 +81,7 @@ func NewClassification(resp *core.ModelResponse, logprobs []float64, options []*
 func ClassifyByPrompt(ctx context.Context, svc flows.ModelService, input string, options []*core.ClassifierOption) (*core.Classification, error) {
 	instructions := prompts.Render("classify_scored", map[string]any{"Options": options})
 
-	// allow for each option name, its probability and the JSON punctuation
+	// allow for a preamble, and each option name, its probability and the JSON punctuation
 	resp, err := svc.Response(ctx, instructions, input, classifyScoredMaxTokens+20*len(options))
 	if err != nil {
 		return nil, err

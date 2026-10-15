@@ -1,6 +1,7 @@
 package ai
 
 import (
+	"encoding/json"
 	"regexp"
 	"strings"
 )
@@ -25,11 +26,20 @@ func StripFence(output string) string {
 // whether the output is <CANT>, allowing for it being quoted or fenced
 func isCant(output string) bool { return normalizeOption(output) == cantOutput }
 
-// extracts the JSON object from model output, as models sometimes wrap JSON in code fences or other text
+// extracts the JSON object from model output, as models sometimes wrap JSON in code fences or other text, which can
+// itself contain braces, e.g. when quoting the input
 func jsonObject(output string) string {
-	start, end := strings.Index(output, "{"), strings.LastIndex(output, "}")
-	if start < 0 || end < start {
-		return ""
+	for i := strings.Index(output, "{"); i >= 0; {
+		var obj json.RawMessage
+		if err := json.NewDecoder(strings.NewReader(output[i:])).Decode(&obj); err == nil && obj[0] == '{' {
+			return string(obj)
+		}
+
+		next := strings.Index(output[i+1:], "{")
+		if next < 0 {
+			break
+		}
+		i += next + 1
 	}
-	return output[start : end+1]
+	return ""
 }

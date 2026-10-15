@@ -150,6 +150,18 @@ Return only a JSON object with each option name as a key and its probability as 
 			confidence: core.ClassifierConfidenceNone,
 			probs:      map[string]float64{"Flights": 0, "Hotels": 0, "Car Rental": 0},
 		},
+		{ // preceded by an explanation
+			output:     "I can't classify this input. {\"Flights\": 0, \"Hotels\": 0, \"Car Rental\": 0}",
+			option:     "Flights",
+			confidence: core.ClassifierConfidenceNone,
+			probs:      map[string]float64{"Flights": 0, "Hotels": 0, "Car Rental": 0},
+		},
+		{ // with braces in the text around it
+			output:     "The input \"{room}\" is about hotels: {\"Hotels\": 0.9} (not {flights})",
+			option:     "Hotels",
+			confidence: core.ClassifierConfidenceHigh,
+			probs:      map[string]float64{"Flights": 0, "Hotels": 0.9, "Car Rental": 0},
+		},
 		{output: `{"Flights": 0.5, "Spaceships": 0.5}`, err: "model returned unknown option 'Spaceships'"},
 		{output: `Hotels`, err: "model returned invalid probabilities 'Hotels'"},
 		{output: `{"Hotels": "high"}`, err: `model returned invalid probabilities '{"Hotels": "high"}'`},
