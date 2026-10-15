@@ -74,6 +74,26 @@ func (q *FairV2) Done(ctx context.Context, vc valkey.Conn, task *Task) error {
 	return nil
 }
 
+// Reconcile corrects owners' active counts to match their leased tasks, returning the numbers of slots released from
+// owners with too many and claimed for owners with too few
+func (q *FairV2) Reconcile(ctx context.Context, vc valkey.Conn) (int, int, error) {
+	changes, err := q.base.reconcile(ctx, vc)
+	if err != nil {
+		return 0, 0, err
+	}
+
+	released, claimed := 0, 0
+	for _, c := range changes {
+		slog.Warn("corrected active count for queue owner", "queue", q.name, "org", c.Owner, "old", c.Old, "new", c.New)
+		if c.Old > c.New {
+			released += c.Old - c.New
+		} else {
+			claimed += c.New - c.Old
+		}
+	}
+	return released, claimed, nil
+}
+
 func (q *FairV2) Queued(ctx context.Context, vc valkey.Conn) ([]int, error) {
 	strs, err := q.base.queued(ctx, vc)
 	if err != nil {
