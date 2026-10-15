@@ -40,7 +40,7 @@ func (t *slowTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.
 	slowTaskMaxActive = max(slowTaskMaxActive, slowTaskActive)
 	slowTaskMutex.Unlock()
 
-	time.Sleep(500 * time.Millisecond)
+	time.Sleep(time.Second)
 
 	slowTaskMutex.Lock()
 	slowTaskActive--
@@ -139,7 +139,7 @@ func TestWorkerLeaseExtension(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
 	wg := &sync.WaitGroup{}
-	q := queues.NewFair("test", 1, 50*time.Millisecond) // lease is much shorter than the tasks take
+	q := queues.NewFair("test", 1, 200*time.Millisecond) // lease is much shorter than the tasks take
 
 	vc := rt.VK.Get()
 	defer vc.Close()
