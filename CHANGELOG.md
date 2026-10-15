@@ -1,3 +1,6 @@
+## v26.3.99 (2026-10-15)
+ * Extend task leases while workers are still running them, and shorten the lease duration to 5 minutes
+
 ## v26.3.98 (2026-10-15)
  * Extract the first complete JSON object from model output so braces in surrounding text don't break scored classification
  * Give scored classify room for a preamble and ask for no text besides the JSON
