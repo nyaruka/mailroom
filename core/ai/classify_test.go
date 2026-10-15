@@ -116,8 +116,8 @@ func TestClassifyByPrompt(t *testing.T) {
 For each option, estimate the probability between 0 and 1 that it is the correct classification of the input.
 The probabilities should add up to less than 1 if the input might not fit any of the options, and all be 0 if it clearly doesn't.
 
-Return only a JSON object with each option name as a key and its probability as the value.`, svc.instructions)
-	assert.Equal(t, 110, svc.maxTokens)
+Return only a JSON object with each option name as a key and its probability as the value, and no other text.`, svc.instructions)
+	assert.Equal(t, 260, svc.maxTokens)
 
 	tcs := []struct {
 		output     string
@@ -149,6 +149,18 @@ Return only a JSON object with each option name as a key and its probability as 
 			option:     "Flights",
 			confidence: core.ClassifierConfidenceNone,
 			probs:      map[string]float64{"Flights": 0, "Hotels": 0, "Car Rental": 0},
+		},
+		{ // preceded by an explanation
+			output:     "I can't classify this input. {\"Flights\": 0, \"Hotels\": 0, \"Car Rental\": 0}",
+			option:     "Flights",
+			confidence: core.ClassifierConfidenceNone,
+			probs:      map[string]float64{"Flights": 0, "Hotels": 0, "Car Rental": 0},
+		},
+		{ // with braces in the text around it
+			output:     "The input \"{room}\" is about hotels: {\"Hotels\": 0.9} (not {flights})",
+			option:     "Hotels",
+			confidence: core.ClassifierConfidenceHigh,
+			probs:      map[string]float64{"Flights": 0, "Hotels": 0.9, "Car Rental": 0},
 		},
 		{output: `{"Flights": 0.5, "Spaceships": 0.5}`, err: "model returned unknown option 'Spaceships'"},
 		{output: `Hotels`, err: "model returned invalid probabilities 'Hotels'"},
