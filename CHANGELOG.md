@@ -1,3 +1,7 @@
+## v26.3.98 (2026-10-15)
+ * Extract the first complete JSON object from model output so braces in surrounding text don't break scored classification
+ * Give scored classify room for a preamble and ask for no text besides the JSON
+
 ## v26.3.97 (2026-10-15)
  * Add cron to reconcile task queues' active counts with their leases, reporting slots released and claimed separately
 
