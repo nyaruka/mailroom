@@ -1,3 +1,6 @@
+## v26.3.97 (2026-10-15)
+ * Add cron to reconcile task queues' active counts with their leases, reporting slots released and claimed separately
+
 ## v26.3.96 (2026-10-14)
  * Skip prompt-based translation to unrecognized languages and special codes like und and zxx, and accept quoted or fenced <CANT>
  * Share code fence stripping across model output parsing and export it as StripFence for reuse by other services
