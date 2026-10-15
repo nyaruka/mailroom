@@ -25,15 +25,16 @@ func (c *ReconcileQueuesCron) Run(ctx context.Context, rt *runtime.Runtime) (map
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	res := make(map[string]any, 3)
+	res := make(map[string]any, 6)
 	var errs []error
 
 	for _, q := range []queues.Fair{rt.Queues.Realtime, rt.Queues.Batch, rt.Queues.Throttled} {
-		released, err := q.Reconcile(ctx, vc)
+		released, claimed, err := q.Reconcile(ctx, vc)
 		if err != nil {
 			errs = append(errs, fmt.Errorf("error reconciling queue %s: %w", q, err))
 		}
 		res[fmt.Sprintf("%s_released", q)] = released
+		res[fmt.Sprintf("%s_claimed", q)] = claimed
 	}
 
 	return res, errors.Join(errs...)
