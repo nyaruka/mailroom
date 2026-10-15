@@ -6,9 +6,9 @@ import (
 	"github.com/nyaruka/mailroom/v26/utils/queues"
 )
 
-// taskLease is how long a popped task holds its org's slot before it's assumed lost and the slot released - it's set
-// above the longest task timeout so that it only expires for tasks whose workers died or overran their timeouts
-const taskLease = 65 * time.Minute
+// taskLease is how long a popped task holds its org's slot without its worker extending the lease, before it's assumed
+// lost and the slot released
+const taskLease = 5 * time.Minute
 
 type Queues struct {
 	Realtime  queues.Fair

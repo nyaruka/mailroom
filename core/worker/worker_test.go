@@ -13,6 +13,7 @@ import (
 	"github.com/nyaruka/mailroom/v26/testsuite"
 	"github.com/nyaruka/mailroom/v26/utils/queues"
 	"github.com/nyaruka/vkutil/assertvk"
+	"github.com/stretchr/testify/assert"
 )
 
 type testTask struct{}
@@ -22,6 +23,28 @@ func (t *testTask) Timeout() time.Duration     { return 5 * time.Second }
 func (t *testTask) WithAssets() models.Refresh { return models.RefreshNone }
 func (t *testTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, taskID tasks.TaskID) error {
 	time.Sleep(100 * time.Millisecond)
+	return nil
+}
+
+type slowTask struct{}
+
+var slowTaskActive, slowTaskMaxActive int
+var slowTaskMutex sync.Mutex
+
+func (t *slowTask) Type() string               { return "slow" }
+func (t *slowTask) Timeout() time.Duration     { return 5 * time.Second }
+func (t *slowTask) WithAssets() models.Refresh { return models.RefreshNone }
+func (t *slowTask) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, taskID tasks.TaskID) error {
+	slowTaskMutex.Lock()
+	slowTaskActive++
+	slowTaskMaxActive = max(slowTaskMaxActive, slowTaskActive)
+	slowTaskMutex.Unlock()
+
+	time.Sleep(time.Second)
+
+	slowTaskMutex.Lock()
+	slowTaskActive--
+	slowTaskMutex.Unlock()
 	return nil
 }
 
@@ -110,4 +133,39 @@ func TestForemanWithZeroWorkers(t *testing.T) {
 	if size != 1 {
 		t.Fatalf("expected queue size 1, got %d", size)
 	}
+}
+
+func TestWorkerLeaseExtension(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	wg := &sync.WaitGroup{}
+	q := queues.NewFair("test", 1, 200*time.Millisecond) // lease is much shorter than the tasks take
+
+	vc := rt.VK.Get()
+	defer vc.Close()
+
+	tasks.RegisterType("slow", func() tasks.Task { return &slowTask{} })
+	slowTaskMaxActive = 0
+
+	for range 2 {
+		q.Push(ctx, vc, "slow", 1, &slowTask{}, false)
+	}
+
+	fm := worker.NewForeman(rt, q, 2)
+	fm.Start(wg)
+
+	for {
+		if size, err := q.Size(ctx, vc); err != nil || size == 0 {
+			break
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+
+	fm.Stop()
+	wg.Wait()
+
+	// workers extended their tasks' leases so the org never had more than its 1 slot
+	assert.Equal(t, 1, slowTaskMaxActive)
+	assertvk.ZGetAll(t, vc, "{tasks:test}:active", map[string]float64{})
+	assertvk.HLen(t, vc, "{tasks:test}:leases", 0)
 }

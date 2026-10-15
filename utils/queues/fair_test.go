@@ -336,6 +336,42 @@ func TestFairLeaseExpiry(t *testing.T) {
 	assertvk.ZCard(t, vc, "{test}:expires", 0)
 }
 
+func TestFairLeaseExtension(t *testing.T) {
+	ctx := t.Context()
+	vc := assertvk.ClaimDB(t).Pool().Get()
+	defer vc.Close()
+
+	q := newFair("test", 1, 200*time.Millisecond)
+
+	task1UUID := assertPush(t, q, vc, "owner1", false, []byte(`task1`))
+	task2UUID := assertPush(t, q, vc, "owner1", false, []byte(`task2`))
+
+	assertPop(t, q, vc, task1UUID, "owner1", "task1")
+
+	// consumer keeps extending task1's lease beyond its original expiry, so it keeps its slot
+	for range 3 {
+		time.Sleep(100 * time.Millisecond)
+		assertExtend(t, q, vc, task1UUID, true)
+		assertPop(t, q, vc, "", "", "")
+	}
+
+	assertDone(t, q, vc, task1UUID, true)
+	assertExtend(t, q, vc, task1UUID, false) // can't extend a task that's done
+
+	// consumer of task2 stops extending its lease, so once it expires its slot is released and it can't be extended
+	assertPop(t, q, vc, task2UUID, "owner1", "task2")
+	time.Sleep(250 * time.Millisecond)
+
+	id, _, _, expired, err := q.pop(ctx, vc)
+	require.NoError(t, err)
+	assert.Equal(t, TaskID(""), id)
+	assert.Equal(t, []expiredLease{{ID: task2UUID, Owner: "owner1"}}, expired)
+
+	assertExtend(t, q, vc, task2UUID, false)
+	assertvk.HLen(t, vc, "{test}:leases", 0)
+	assertvk.ZCard(t, vc, "{test}:expires", 0)
+}
+
 func TestFairReconcile(t *testing.T) {
 	ctx := t.Context()
 	vc := assertvk.ClaimDB(t).Pool().Get()
@@ -591,4 +627,11 @@ func assertDone(t *testing.T, q *fair, vc valkey.Conn, id TaskID, expectedReleas
 	released, err := q.done(t.Context(), vc, id)
 	require.NoError(t, err)
 	assert.Equal(t, expectedReleased, released, "released mismatch for task %s", id)
+}
+
+// assertExtend is a helper function that asserts the result of an extend operation
+func assertExtend(t *testing.T, q *fair, vc valkey.Conn, id TaskID, expectedExtended bool) {
+	extended, err := q.extend(t.Context(), vc, id)
+	require.NoError(t, err)
+	assert.Equal(t, expectedExtended, extended, "extended mismatch for task %s", id)
 }
