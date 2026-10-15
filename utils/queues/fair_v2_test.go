@@ -65,9 +65,19 @@ func TestFairV2(t *testing.T) {
 	assertOwners([]int{1, 2})
 	assertSize(2)
 
+	assert.Equal(t, time.Minute, q.Lease())
+
+	extended, err := q.Extend(ctx, vc, task2)
+	assert.NoError(t, err)
+	assert.True(t, extended)
+
 	// mark task2 and task1 (owner 1) as complete
 	assert.NoError(t, q.Done(ctx, vc, task2))
 	assert.NoError(t, q.Done(ctx, vc, task1))
+
+	extended, err = q.Extend(ctx, vc, task2)
+	assert.NoError(t, err)
+	assert.False(t, extended)
 
 	task4 := assertPop(1, `"task4"`)
 	task3 := assertPop(2, `"task3"`)

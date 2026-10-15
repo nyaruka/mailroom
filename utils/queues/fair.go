@@ -24,8 +24,9 @@ func defaultNewTaskID() TaskID {
 
 // fair implements a fair queue where tasks are distributed evenly across owners, each of which can only have a limited
 // number of active tasks at a time. A popped task holds one of its owner's active slots under a lease until the
-// consumer marks it done. If the consumer dies without doing so, the lease eventually expires and the slot is released
-// by a later pop, so owners can't be starved of slots by tasks which will never complete. The task itself is lost.
+// consumer marks it done, extending the lease for as long as it's working on it. If the consumer dies without marking
+// it done, the lease expires and the slot is released by a later pop, so owners can't be starved of slots by tasks
+// which will never complete. The task itself is lost.
 //
 // Other services push tasks directly onto these queues using their own implementation of push, so the key layout,
 // payload framing and push behaviour must remain compatible with that. Older versions of this implementation, which
@@ -150,6 +151,20 @@ func (q *fair) done(ctx context.Context, vc valkey.Conn, id TaskID) (bool, error
 		return false, fmt.Errorf("error marking task %s done: %w", id, err)
 	}
 	return released, nil
+}
+
+//go:embed lua/fair_extend.lua
+var luaFairExtend string
+var scriptFairExtend = valkey.NewScript(2, luaFairExtend)
+
+// extend renews the given task's lease so that a consumer can keep its owner's slot for as long as it's working on it.
+// Returns false if the task's lease had already expired, in which case its slot was already released.
+func (q *fair) extend(ctx context.Context, vc valkey.Conn, id TaskID) (bool, error) {
+	extended, err := valkey.Bool(scriptFairExtend.DoContext(ctx, vc, q.leasesKey(), q.expiresKey(), string(id), q.lease.Milliseconds()))
+	if err != nil {
+		return false, fmt.Errorf("error extending lease of task %s: %w", id, err)
+	}
+	return extended, nil
 }
 
 //go:embed lua/fair_reconcile.lua

@@ -12,6 +12,10 @@ import (
 	"github.com/nyaruka/mailroom/v26/utils/queues"
 )
 
+// tasks' leases are only extended for this long so that hung tasks eventually release their slots - it's set above the
+// longest task timeout so that it only stops for tasks which have overrun their timeouts
+const leaseExtensionLimit = 65 * time.Minute
+
 // Foreman takes care of managing our set of workers and assigns msgs for each to send
 type Foreman struct {
 	rt               *runtime.Runtime
@@ -186,6 +190,10 @@ func (w *Worker) handleTask(task *queues.Task) {
 		vc.Close()
 	}()
 
+	// keep our task's lease alive while we work on it, stopping before we mark it done
+	stopExtending := w.extendLease(log, task)
+	defer stopExtending()
+
 	log.Info("task started")
 	start := time.Now()
 
@@ -195,4 +203,42 @@ func (w *Worker) handleTask(task *queues.Task) {
 
 	elapsed := time.Since(start)
 	log.Info("task complete", "elapsed", elapsed)
+}
+
+// extendLease periodically extends the given task's lease until the returned stop function is called
+func (w *Worker) extendLease(log *slog.Logger, task *queues.Task) func() {
+	stop, stopped := make(chan struct{}), make(chan struct{})
+
+	go func() {
+		defer close(stopped)
+
+		ticker := time.NewTicker(w.foreman.queue.Lease() / 5)
+		defer ticker.Stop()
+		limit := time.After(leaseExtensionLimit)
+
+		for {
+			select {
+			case <-stop:
+				return
+			case <-limit:
+				log.Error("task overran lease extension limit, no longer extending", "limit", leaseExtensionLimit)
+				return
+			case <-ticker.C:
+				vc := w.foreman.rt.VK.Get()
+				extended, err := w.foreman.queue.Extend(context.TODO(), vc, task)
+				vc.Close()
+
+				if err != nil {
+					log.Error("error extending task lease", "error", err)
+				} else if !extended {
+					return
+				}
+			}
+		}
+	}()
+
+	return func() {
+		close(stop)
+		<-stopped
+	}
 }
