@@ -245,6 +245,30 @@ func TestFairTaskPayloads(t *testing.T) {
 	assertPop(t, q, vc, task2UUID, "owner1", "task2")
 }
 
+func TestFairInvalidPayloads(t *testing.T) {
+	ctx := t.Context()
+	vc := assertvk.ClaimDB(t).Pool().Get()
+	defer vc.Close()
+
+	q := newFair("test", 2, time.Minute)
+
+	// payloads which can't have been pushed by us, i.e. missing an ID or with an invalid ID
+	for _, payload := range []string{`garbage`, `123|{}`} {
+		_, err := vc.Do("RPUSH", "{test}:o:owner1/0", payload)
+		require.NoError(t, err)
+		_, err = vc.Do("ZADD", "{test}:queued", 1, "owner1")
+		require.NoError(t, err)
+
+		_, _, _, _, err = q.pop(ctx, vc)
+		assert.Error(t, err)
+
+		// and they don't hold slots
+		assertvk.ZGetAll(t, vc, "{test}:active", map[string]float64{})
+		assertvk.HLen(t, vc, "{test}:leases", 0)
+		assertvk.ZCard(t, vc, "{test}:expires", 0)
+	}
+}
+
 func TestFairMaxActivePerOwner(t *testing.T) {
 	vp := assertvk.ClaimDB(t).Pool()
 	vc := vp.Get()
@@ -310,6 +334,49 @@ func TestFairLeaseExpiry(t *testing.T) {
 	assertvk.ZGetAll(t, vc, "{test}:active", map[string]float64{})
 	assertvk.HLen(t, vc, "{test}:leases", 0)
 	assertvk.ZCard(t, vc, "{test}:expires", 0)
+}
+
+func TestFairReconcile(t *testing.T) {
+	ctx := t.Context()
+	vc := assertvk.ClaimDB(t).Pool().Get()
+	defer vc.Close()
+
+	q := newFair("test", 5, time.Minute)
+
+	assertPush(t, q, vc, "owner1", false, []byte(`task1`))
+	assertPush(t, q, vc, "owner1", false, []byte(`task2`))
+	assertPush(t, q, vc, "owner2", false, []byte(`task3`))
+	for range 3 {
+		_, _, _, _, err := q.pop(ctx, vc)
+		require.NoError(t, err)
+	}
+
+	// nothing to correct
+	changes, err := q.reconcile(ctx, vc)
+	require.NoError(t, err)
+	assert.Equal(t, []activeChange{}, changes)
+
+	// simulate drift: slots held without leases for owner1 and owner3, and owner2's count lost
+	_, err = vc.Do("ZINCRBY", "{test}:active", 3, "owner1")
+	require.NoError(t, err)
+	_, err = vc.Do("ZADD", "{test}:active", 2, "owner3")
+	require.NoError(t, err)
+	_, err = vc.Do("ZREM", "{test}:active", "owner2")
+	require.NoError(t, err)
+
+	changes, err = q.reconcile(ctx, vc)
+	require.NoError(t, err)
+	assert.ElementsMatch(t, []activeChange{
+		{Owner: "owner1", Old: 5, New: 2},
+		{Owner: "owner3", Old: 2, New: 0},
+		{Owner: "owner2", Old: 0, New: 1},
+	}, changes)
+
+	assertvk.ZGetAll(t, vc, "{test}:active", map[string]float64{"owner1": 2, "owner2": 1})
+
+	changes, err = q.reconcile(ctx, vc)
+	require.NoError(t, err)
+	assert.Equal(t, []activeChange{}, changes)
 }
 
 func TestFairConcurrency(t *testing.T) {

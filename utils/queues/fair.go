@@ -152,6 +152,36 @@ func (q *fair) done(ctx context.Context, vc valkey.Conn, id TaskID) (bool, error
 	return released, nil
 }
 
+//go:embed lua/fair_reconcile.lua
+var luaFairReconcile string
+var scriptFairReconcile = valkey.NewScript(2, luaFairReconcile)
+
+// activeChange is a correction made to an owner's active count
+type activeChange struct {
+	Owner    OwnerID
+	Old, New int
+}
+
+// reconcile sets owners' active counts to their numbers of leased tasks, correcting any slots held without leases,
+// e.g. by older versions of this implementation which didn't lease tasks. It must not be used while such versions
+// are still consuming from the queue as it would release the slots of tasks they're processing.
+func (q *fair) reconcile(ctx context.Context, vc valkey.Conn) ([]activeChange, error) {
+	vals, err := valkey.Values(scriptFairReconcile.DoContext(ctx, vc, q.activeKey(), q.leasesKey()))
+	if err != nil {
+		return nil, fmt.Errorf("error reconciling active counts: %w", err)
+	}
+
+	changes := make([]activeChange, 0, len(vals)/3)
+	for len(vals) > 0 {
+		var c activeChange
+		if vals, err = valkey.Scan(vals, &c.Owner, &c.Old, &c.New); err != nil {
+			return nil, fmt.Errorf("error reading active count changes: %w", err)
+		}
+		changes = append(changes, c)
+	}
+	return changes, nil
+}
+
 // pause marks the given owner as paused, disabling processing of their tasks
 func (q *fair) pause(ctx context.Context, vc valkey.Conn, owner OwnerID) error {
 	_, err := valkey.DoContext(vc, ctx, "SADD", q.pausedKey(), owner)

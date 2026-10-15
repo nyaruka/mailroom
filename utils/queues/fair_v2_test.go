@@ -105,3 +105,23 @@ func TestFairV2(t *testing.T) {
 	assertvk.ZGetAll(t, vc, "{tasks:test}:active", map[string]float64{})
 	assertvk.HLen(t, vc, "{tasks:test}:leases", 0)
 }
+
+func TestFairV2UndecodableTask(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+	vc := rt.VK.Get()
+	defer vc.Close()
+
+	q := queues.NewFair("test", 10, time.Minute)
+
+	_, err := vc.Do("RPUSH", "{tasks:test}:o:1/0", "01980000-0000-7000-8000-000000000001|not json")
+	require.NoError(t, err)
+	_, err = vc.Do("ZADD", "{tasks:test}:queued", 1, "1")
+	require.NoError(t, err)
+
+	_, err = q.Pop(ctx, vc)
+	assert.Error(t, err)
+
+	// task doesn't hold a slot
+	assertvk.ZGetAll(t, vc, "{tasks:test}:active", map[string]float64{})
+	assertvk.HLen(t, vc, "{tasks:test}:leases", 0)
+}
