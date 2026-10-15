@@ -116,8 +116,8 @@ func TestClassifyByPrompt(t *testing.T) {
 For each option, estimate the probability between 0 and 1 that it is the correct classification of the input.
 The probabilities should add up to less than 1 if the input might not fit any of the options, and all be 0 if it clearly doesn't.
 
-Return only a JSON object with each option name as a key and its probability as the value.`, svc.instructions)
-	assert.Equal(t, 110, svc.maxTokens)
+Return only a JSON object with each option name as a key and its probability as the value, and no other text.`, svc.instructions)
+	assert.Equal(t, 260, svc.maxTokens)
 
 	tcs := []struct {
 		output     string

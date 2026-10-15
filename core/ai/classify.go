@@ -20,6 +20,11 @@ import (
 // ClassifyMaxTokens is the output limit for the classify instructions, which only needs to fit an option name.
 const ClassifyMaxTokens = 50
 
+// classifyScoredMaxTokens is the output limit for the scored classify instructions, before allowing for the options.
+// It leaves room for a model that writes a sentence or two before the JSON despite being told not to, which would
+// otherwise be cut off before the JSON is complete.
+const classifyScoredMaxTokens = 200
+
 // UnscoredConfidence is the confidence given to an option chosen by a model which was expected to provide logprobs
 // but didn't. The model could have declined to choose so its choice is taken as likely, but not as certain.
 const UnscoredConfidence = core.ClassifierConfidenceMedium
@@ -77,7 +82,7 @@ func ClassifyByPrompt(ctx context.Context, svc flows.ModelService, input string,
 	instructions := prompts.Render("classify_scored", map[string]any{"Options": options})
 
 	// allow for each option name, its probability and the JSON punctuation
-	resp, err := svc.Response(ctx, instructions, input, ClassifyMaxTokens+20*len(options))
+	resp, err := svc.Response(ctx, instructions, input, classifyScoredMaxTokens+20*len(options))
 	if err != nil {
 		return nil, err
 	}
