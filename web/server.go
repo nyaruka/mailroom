@@ -3,6 +3,7 @@ package web
 import (
 	"compress/flate"
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/lib/pq"
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/mailroom/v26/runtime"
 )
@@ -121,7 +123,11 @@ func (s *Server) WrapHandler(handler Handler) http.HandlerFunc {
 		resp, status := ErrorToResponse(err)
 
 		if status == http.StatusInternalServerError {
-			slog.Error("error handling request", "comp", "server", "request", r, "error", err)
+			if clientGone(r, err) {
+				slog.Debug("error handling request", "comp", "server", "request", r, "error", err)
+			} else {
+				slog.Error("error handling request", "comp", "server", "request", r, "error", err)
+			}
 		}
 
 		WriteMarshalled(w, status, resp)
@@ -129,6 +135,17 @@ func (s *Server) WrapHandler(handler Handler) http.HandlerFunc {
 }
 
 // Start starts our web server, listening for new requests
+// clientGone is whether a request failed only because its client went away mid-request, which cancels the request's
+// context and so fails whatever the handler was doing with it - that's not ours to fix. A query canceled while running
+// fails with the database's own error rather than the context's.
+func clientGone(r *http.Request, err error) bool {
+	if !errors.Is(r.Context().Err(), context.Canceled) {
+		return false
+	}
+	var pqErr *pq.Error
+	return errors.Is(err, context.Canceled) || (errors.As(err, &pqErr) && pqErr.Code == "57014")
+}
+
 func (s *Server) Start() {
 	s.wg.Add(2)
 
