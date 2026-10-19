@@ -52,9 +52,9 @@
                         "note": "please handle"
                     },
                     {
-                        "uuid": "01969b47-113b-76f8-98c7-1f0d5859f77e",
+                        "uuid": "01969b47-0d53-76f8-98c7-1f0d5859f77e",
                         "type": "ticket_note_added",
-                        "created_on": "2025-05-04T12:30:49.123456789Z",
+                        "created_on": "2025-05-04T12:30:48.123456789Z",
                         "_user": {
                             "uuid": "ed84a3d7-92e4-4a8b-b01f-db11ff83bbb6",
                             "name": "Ed McEditor"
@@ -70,6 +70,10 @@
             {
                 "query": "SELECT count(*) FROM notifications_notification",
                 "returns": 1
+            },
+            {
+                "query": "SELECT count(*) FROM tickets_ticket WHERE last_activity_on = '2021-01-01T00:00:00Z'",
+                "returns": 3
             }
         ],
         "expected_history": [
@@ -91,7 +95,7 @@
             },
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b47-113b-76f8-98c7-1f0d5859f77e",
+                "SK": "evt#01969b47-0d53-76f8-98c7-1f0d5859f77e",
                 "OrgID": 1,
                 "Data": {
                     "_user": {
@@ -99,7 +103,7 @@
                         "uuid": "ed84a3d7-92e4-4a8b-b01f-db11ff83bbb6"
                     },
                     "_via": "ui",
-                    "created_on": "2025-05-04T12:30:49.123456789Z",
+                    "created_on": "2025-05-04T12:30:48.123456789Z",
                     "note": "please handle",
                     "ticket_uuid": "01992f54-5ab6-717a-a39e-e8ca91fb7262",
                     "type": "ticket_note_added"

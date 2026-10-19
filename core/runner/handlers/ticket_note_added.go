@@ -4,7 +4,6 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/runner"
@@ -22,7 +21,6 @@ func handleTicketNoteAdded(ctx context.Context, rt *runtime.Runtime, oa *models.
 	slog.Debug("ticket note added", "contact", scene.ContactUUID(), "session", scene.SessionUUID(), "ticket", event.TicketUUID)
 
 	dbTicket := scene.DBContact.FindTicket(event.TicketUUID)
-	dbTicket.LastActivityOn = dates.Now()
 
 	scene.AttachPreCommitHook(hooks.UpdateTickets, dbTicket)
 

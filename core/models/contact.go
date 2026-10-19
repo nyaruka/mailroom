@@ -325,13 +325,14 @@ func LoadContacts(ctx context.Context, db Queryer, oa *OrgAssets, ids []ContactI
 		contact.tickets = make([]*Ticket, len(e.Tickets))
 		for i, t := range e.Tickets {
 			contact.tickets[i] = &Ticket{
-				ID:         t.ID,
-				UUID:       t.UUID,
-				OrgID:      oa.OrgID(),
-				ContactID:  contact.ID(),
-				Status:     TicketStatusOpen,
-				TopicID:    t.TopicID,
-				AssigneeID: t.AssigneeID,
+				ID:             t.ID,
+				UUID:           t.UUID,
+				OrgID:          oa.OrgID(),
+				ContactID:      contact.ID(),
+				Status:         TicketStatusOpen,
+				TopicID:        t.TopicID,
+				AssigneeID:     t.AssigneeID,
+				LastActivityOn: t.LastActivityOn,
 			}
 		}
 
@@ -495,10 +496,11 @@ type contactEnvelope struct {
 	} `json:"fields"`
 	GroupIDs []GroupID `json:"group_ids"`
 	Tickets  []struct {
-		ID         TicketID        `json:"id"`
-		UUID       core.TicketUUID `json:"uuid"`
-		TopicID    TopicID         `json:"topic_id"`
-		AssigneeID UserID          `json:"assignee_id"`
+		ID             TicketID        `json:"id"`
+		UUID           core.TicketUUID `json:"uuid"`
+		TopicID        TopicID         `json:"topic_id"`
+		AssigneeID     UserID          `json:"assignee_id"`
+		LastActivityOn time.Time       `json:"last_activity_on"`
 	} `json:"tickets"`
 	CurrentSessionUUID null.String `json:"current_session_uuid"`
 	CurrentFlowID      FlowID      `json:"current_flow_id"`
@@ -546,7 +548,9 @@ LEFT JOIN (
 	SELECT
 		contact_id,
 		array_agg(
-			json_build_object('id', t.id, 'uuid', t.uuid, 'topic_id', t.topic_id, 'assignee_id', t.assignee_id) ORDER BY t.opened_on
+			json_build_object(
+				'id', t.id, 'uuid', t.uuid, 'topic_id', t.topic_id, 'assignee_id', t.assignee_id, 'last_activity_on', t.last_activity_on
+			) ORDER BY t.opened_on
 		) as tickets
 	FROM
 		tickets_ticket t
