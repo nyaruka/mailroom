@@ -17,6 +17,8 @@ func TestTicketAddNote(t *testing.T) {
 
 	testdb.OpenTicketsGroup.Add(rt, testdb.Ann)
 
+	rt.DB.MustExec(`UPDATE tickets_ticket SET last_activity_on = '2021-01-01T00:00:00Z'`)
+
 	testsuite.RunWebTests(t, rt, "testdata/add_note.json")
 }
 
@@ -30,6 +32,8 @@ func TestTicketChangeAssignee(t *testing.T) {
 
 	testdb.OpenTicketsGroup.Add(rt, testdb.Ann)
 
+	rt.DB.MustExec(`UPDATE tickets_ticket SET last_activity_on = '2021-01-01T00:00:00Z'`)
+
 	testsuite.RunWebTests(t, rt, "testdata/change_assignee.json")
 }
 
@@ -41,6 +45,8 @@ func TestTicketChangeTopic(t *testing.T) {
 	testdb.InsertClosedTicket(t, rt, "01992f54-5ab6-7498-a7f2-6aa246e45cfe", testdb.Org1, testdb.Ann, testdb.SalesTopic, nil)
 
 	testdb.OpenTicketsGroup.Add(rt, testdb.Ann)
+
+	rt.DB.MustExec(`UPDATE tickets_ticket SET last_activity_on = '2021-01-01T00:00:00Z'`)
 
 	testsuite.RunWebTests(t, rt, "testdata/change_topic.json")
 }

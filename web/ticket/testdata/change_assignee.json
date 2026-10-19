@@ -63,6 +63,10 @@
             {
                 "query": "SELECT count(*) FROM tickets_ticket WHERE assignee_id = 5",
                 "returns": 3
+            },
+            {
+                "query": "SELECT count(*) FROM tickets_ticket WHERE last_activity_on = '2021-01-01T00:00:00Z'",
+                "returns": 4
             }
         ],
         "expected_history": [
@@ -153,6 +157,10 @@
             {
                 "query": "SELECT count(*) FROM tickets_ticket WHERE id = 30000 AND assignee_id IS NULL",
                 "returns": 1
+            },
+            {
+                "query": "SELECT count(*) FROM tickets_ticket WHERE last_activity_on = '2021-01-01T00:00:00Z'",
+                "returns": 4
             }
         ],
         "expected_history": [

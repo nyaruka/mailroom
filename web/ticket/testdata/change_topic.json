@@ -55,9 +55,9 @@
                         }
                     },
                     {
-                        "uuid": "01969b47-113b-76f8-98c7-1f0d5859f77e",
+                        "uuid": "01969b47-0d53-76f8-98c7-1f0d5859f77e",
                         "type": "ticket_topic_changed",
-                        "created_on": "2025-05-04T12:30:49.123456789Z",
+                        "created_on": "2025-05-04T12:30:48.123456789Z",
                         "_user": {
                             "uuid": "ad9fdf9f-56ab-422a-b77d-e3ec26091a25",
                             "name": "Andy Admin"
@@ -75,6 +75,10 @@
         "db_assertions": [
             {
                 "query": "SELECT count(*) FROM tickets_ticket WHERE topic_id = 10002",
+                "returns": 3
+            },
+            {
+                "query": "SELECT count(*) FROM tickets_ticket WHERE last_activity_on = '2021-01-01T00:00:00Z'",
                 "returns": 3
             }
         ],
@@ -100,7 +104,7 @@
             },
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b47-113b-76f8-98c7-1f0d5859f77e",
+                "SK": "evt#01969b47-0d53-76f8-98c7-1f0d5859f77e",
                 "OrgID": 1,
                 "Data": {
                     "_user": {
@@ -108,7 +112,7 @@
                         "uuid": "ad9fdf9f-56ab-422a-b77d-e3ec26091a25"
                     },
                     "_via": "ui",
-                    "created_on": "2025-05-04T12:30:49.123456789Z",
+                    "created_on": "2025-05-04T12:30:48.123456789Z",
                     "ticket_uuid": "01992f54-5ab6-717a-a39e-e8ca91fb7262",
                     "topic": {
                         "name": "Support",
