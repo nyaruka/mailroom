@@ -28,7 +28,11 @@ func handleTicketClosed(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 	dbTicket.LastActivityOn = dates.Now()
 
 	scene.AttachPreCommitHook(hooks.UpdateTickets, dbTicket)
-	scene.AttachPostCommitHook(hooks.QueueContactTask, ctasks.NewTicketClosed(event))
+
+	// only closes by a user fire closed ticket triggers, not automatic closes of inactive tickets
+	if userID != models.NilUserID {
+		scene.AttachPostCommitHook(hooks.QueueContactTask, ctasks.NewTicketClosed(event))
+	}
 
 	return nil
 }
