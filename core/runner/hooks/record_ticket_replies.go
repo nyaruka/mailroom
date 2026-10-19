@@ -22,7 +22,7 @@ type TicketReply struct {
 	When   time.Time
 }
 
-func (h *recordTicketReplies) Order() int { return 10 }
+func (h *recordTicketReplies) Order() int { return 11 } // after InsertTickets so tickets opened in the same scene have ids
 
 func (h *recordTicketReplies) Execute(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *models.OrgAssets, scenes map[*runner.Scene][]any) error {
 	for _, args := range scenes {
