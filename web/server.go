@@ -3,6 +3,7 @@ package web
 import (
 	"compress/flate"
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -120,8 +121,15 @@ func (s *Server) WrapHandler(handler Handler) http.HandlerFunc {
 
 		resp, status := ErrorToResponse(err)
 
+		// a client going away mid-request cancels the request's context and so fails whatever the handler was doing,
+		// which isn't ours to fix - we go by the context because a query canceled while running fails with the
+		// database's own error
 		if status == http.StatusInternalServerError {
-			slog.Error("error handling request", "comp", "server", "request", r, "error", err)
+			if errors.Is(r.Context().Err(), context.Canceled) {
+				slog.Debug("error handling request", "comp", "server", "request", r, "error", err)
+			} else {
+				slog.Error("error handling request", "comp", "server", "request", r, "error", err)
+			}
 		}
 
 		WriteMarshalled(w, status, resp)
