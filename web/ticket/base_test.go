@@ -32,6 +32,8 @@ func TestTicketChangeAssignee(t *testing.T) {
 
 	testdb.OpenTicketsGroup.Add(rt, testdb.Ann)
 
+	rt.DB.MustExec(`UPDATE tickets_ticket SET last_activity_on = '2021-01-01T00:00:00Z'`)
+
 	testsuite.RunWebTests(t, rt, "testdata/change_assignee.json")
 }
 
