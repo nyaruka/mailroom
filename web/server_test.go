@@ -2,6 +2,7 @@ package web_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -110,24 +111,34 @@ func TestWrapHandler(t *testing.T) {
 		_, err := rt.DB.ExecContext(ctx, `SELECT pg_sleep(5)`)
 		return err
 	})
-	serve := func(ctx context.Context) int {
+	slowFailure := server.WrapHandler(func(ctx context.Context, rt *runtime.Runtime, r *http.Request, w http.ResponseWriter) error {
+		time.Sleep(300 * time.Millisecond)
+		return errors.New("boom")
+	})
+	serve := func(handler http.HandlerFunc, ctx context.Context) int {
 		rec := httptest.NewRecorder()
-		slowQuery(rec, httptest.NewRequestWithContext(ctx, http.MethodGet, "/", nil))
+		handler(rec, httptest.NewRequestWithContext(ctx, http.MethodGet, "/", nil))
 		return rec.Code
 	}
 
 	// a request whose client goes away mid-query fails, but isn't an error of ours to report
 	reqCtx, cancel := context.WithCancel(ctx)
 	time.AfterFunc(200*time.Millisecond, cancel)
-	assert.Equal(t, http.StatusInternalServerError, serve(reqCtx))
+	assert.Equal(t, http.StatusInternalServerError, serve(slowQuery, reqCtx))
 	assert.Equal(t, []string{"error handling request"}, logs.messages(slog.LevelDebug))
 	assert.Empty(t, logs.messages(slog.LevelError))
 
-	// whereas a request that times out is
+	// whereas one that fails for some other reason after its client has gone is
+	reqCtx, cancel = context.WithCancel(ctx)
+	time.AfterFunc(100*time.Millisecond, cancel)
+	assert.Equal(t, http.StatusInternalServerError, serve(slowFailure, reqCtx))
+	assert.Equal(t, []string{"error handling request"}, logs.messages(slog.LevelError))
+
+	// as is one that times out
 	reqCtx, cancel = context.WithTimeout(ctx, 200*time.Millisecond)
 	defer cancel()
-	assert.Equal(t, http.StatusInternalServerError, serve(reqCtx))
-	assert.Equal(t, []string{"error handling request"}, logs.messages(slog.LevelError))
+	assert.Equal(t, http.StatusInternalServerError, serve(slowQuery, reqCtx))
+	assert.Equal(t, []string{"error handling request", "error handling request"}, logs.messages(slog.LevelError))
 }
 
 type capturingHandler struct {
