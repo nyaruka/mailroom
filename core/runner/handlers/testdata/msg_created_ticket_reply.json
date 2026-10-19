@@ -1,0 +1,185 @@
+[
+    {
+        "label": "user replies to an open ticket and a closed ticket",
+        "events": {
+            "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                {
+                    "uuid": "019a0f80-0000-7000-8000-000000000001",
+                    "type": "msg_created",
+                    "created_on": "2025-05-04T12:30:00Z",
+                    "_user": {
+                        "uuid": "aee44553-ab35-482b-a4d4-6f000ec611ab",
+                        "name": "Ann D'Agent"
+                    },
+                    "msg": {
+                        "urn": "tel:+16055741111",
+                        "channel": {
+                            "uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8",
+                            "name": "Twilio"
+                        },
+                        "text": "we can help"
+                    },
+                    "ticket_uuid": "01992f54-5ab6-717a-a39e-e8ca91fb7262"
+                }
+            ],
+            "b699a406-7e44-49be-9f01-1a82893e8a10": [
+                {
+                    "uuid": "019a0f80-0000-7000-8000-000000000002",
+                    "type": "msg_created",
+                    "created_on": "2025-05-04T12:30:00Z",
+                    "_user": {
+                        "uuid": "aee44553-ab35-482b-a4d4-6f000ec611ab",
+                        "name": "Ann D'Agent"
+                    },
+                    "msg": {
+                        "urn": "tel:+16055742222",
+                        "channel": {
+                            "uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8",
+                            "name": "Twilio"
+                        },
+                        "text": "one more thing"
+                    },
+                    "ticket_uuid": "019a0f6c-5e3b-7d1a-9b2e-3c4d5e6f7a8b"
+                }
+            ]
+        },
+        "user_id": 5,
+        "db_assertions": [
+            {
+                "query": "SELECT replied_on::text, last_activity_on::text FROM tickets_ticket WHERE uuid = '01992f54-5ab6-717a-a39e-e8ca91fb7262'",
+                "columns": {
+                    "last_activity_on": "2025-05-04 12:30:00+00",
+                    "replied_on": "2025-05-04 12:30:00+00"
+                }
+            },
+            {
+                "query": "SELECT replied_on::text, last_activity_on::text FROM tickets_ticket WHERE uuid = '019a0f6c-5e3b-7d1a-9b2e-3c4d5e6f7a8b'",
+                "columns": {
+                    "last_activity_on": "2015-01-02 12:30:45+00",
+                    "replied_on": null
+                }
+            },
+            {
+                "query": "SELECT scope, SUM(count)::int FROM orgs_dailycount GROUP BY 1",
+                "map": {
+                    "msgs:ticketreplies:10001:5": 1,
+                    "ticketresptime:count": 1,
+                    "ticketresptime:total": 3600
+                }
+            }
+        ],
+        "expected_history": [
+            {
+                "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
+                "SK": "evt#019a0f80-0000-7000-8000-000000000002",
+                "OrgID": 1,
+                "Data": {
+                    "_user": {
+                        "name": "Ann D'Agent",
+                        "uuid": "aee44553-ab35-482b-a4d4-6f000ec611ab"
+                    },
+                    "created_on": "2025-05-04T12:30:00Z",
+                    "msg": {
+                        "channel": {
+                            "name": "Twilio",
+                            "uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8"
+                        },
+                        "text": "one more thing",
+                        "urn": "tel:+16055742222"
+                    },
+                    "ticket_uuid": "019a0f6c-5e3b-7d1a-9b2e-3c4d5e6f7a8b",
+                    "type": "msg_created"
+                }
+            },
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#019a0f80-0000-7000-8000-000000000001",
+                "OrgID": 1,
+                "Data": {
+                    "_user": {
+                        "name": "Ann D'Agent",
+                        "uuid": "aee44553-ab35-482b-a4d4-6f000ec611ab"
+                    },
+                    "created_on": "2025-05-04T12:30:00Z",
+                    "msg": {
+                        "channel": {
+                            "name": "Twilio",
+                            "uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8"
+                        },
+                        "text": "we can help",
+                        "urn": "tel:+16055741111"
+                    },
+                    "ticket_uuid": "01992f54-5ab6-717a-a39e-e8ca91fb7262",
+                    "type": "msg_created"
+                }
+            }
+        ]
+    },
+    {
+        "label": "second reply to the open ticket only bumps last activity",
+        "events": {
+            "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                {
+                    "uuid": "019a0f80-0000-7000-8000-000000000003",
+                    "type": "msg_created",
+                    "created_on": "2025-05-04T12:45:00Z",
+                    "_user": {
+                        "uuid": "aee44553-ab35-482b-a4d4-6f000ec611ab",
+                        "name": "Ann D'Agent"
+                    },
+                    "msg": {
+                        "urn": "tel:+16055741111",
+                        "channel": {
+                            "uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8",
+                            "name": "Twilio"
+                        },
+                        "text": "what's the problem?"
+                    },
+                    "ticket_uuid": "01992f54-5ab6-717a-a39e-e8ca91fb7262"
+                }
+            ]
+        },
+        "user_id": 5,
+        "db_assertions": [
+            {
+                "query": "SELECT replied_on::text, last_activity_on::text FROM tickets_ticket WHERE uuid = '01992f54-5ab6-717a-a39e-e8ca91fb7262'",
+                "columns": {
+                    "last_activity_on": "2025-05-04 12:45:00+00",
+                    "replied_on": "2025-05-04 12:30:00+00"
+                }
+            },
+            {
+                "query": "SELECT scope, SUM(count)::int FROM orgs_dailycount GROUP BY 1",
+                "map": {
+                    "msgs:ticketreplies:10001:5": 2,
+                    "ticketresptime:count": 1,
+                    "ticketresptime:total": 3600
+                }
+            }
+        ],
+        "expected_history": [
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#019a0f80-0000-7000-8000-000000000003",
+                "OrgID": 1,
+                "Data": {
+                    "_user": {
+                        "name": "Ann D'Agent",
+                        "uuid": "aee44553-ab35-482b-a4d4-6f000ec611ab"
+                    },
+                    "created_on": "2025-05-04T12:45:00Z",
+                    "msg": {
+                        "channel": {
+                            "name": "Twilio",
+                            "uuid": "74729f45-7f29-4868-9dc4-90e491e3c7d8"
+                        },
+                        "text": "what's the problem?",
+                        "urn": "tel:+16055741111"
+                    },
+                    "ticket_uuid": "01992f54-5ab6-717a-a39e-e8ca91fb7262",
+                    "type": "msg_created"
+                }
+            }
+        ]
+    }
+]

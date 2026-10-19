@@ -212,36 +212,20 @@ const sqlUpdateTicketRepliedOn = `
    UPDATE tickets_ticket t1
       SET last_activity_on = $2, replied_on = LEAST(t1.replied_on, $2)
 	 FROM tickets_ticket t2
-    WHERE t1.id = t2.id AND t1.uuid = $1
+    WHERE t1.id = t2.id AND t1.id = $1
 RETURNING CASE WHEN t2.replied_on IS NULL THEN t1.opened_on ELSE NULL END`
 
-// TicketRecordReplied records a ticket as being replied to, updating last_activity_on. If this is the first reply
-// to this ticket then replied_on is updated and the function returns the time the ticket was opened.
-func TicketRecordReplied(ctx context.Context, db DBorTx, ticketUUID core.TicketUUID, when time.Time) (*time.Time, error) {
-	rows, err := db.QueryxContext(ctx, sqlUpdateTicketRepliedOn, ticketUUID, when)
-	if err != nil && err != sql.ErrNoRows {
-		return nil, err
-	}
-
-	defer rows.Close()
-
-	// if we didn't get anything back then we didn't change the ticket because it was already replied to
-	if err == sql.ErrNoRows || !rows.Next() {
-		return nil, nil
-	}
-
+// RecordTicketReply records a reply by a user to the given ticket, updating last_activity_on and, if this is the first
+// reply, replied_on. Also records the reply count and, for a first reply, the response time.
+func RecordTicketReply(ctx context.Context, db DBorTx, oa *OrgAssets, ticket *Ticket, userID UserID, when time.Time) error {
 	var openedOn *time.Time
-	if err := rows.Scan(&openedOn); err != nil {
-		return nil, err
+	if err := db.GetContext(ctx, &openedOn, sqlUpdateTicketRepliedOn, ticket.ID, when); err != nil {
+		return fmt.Errorf("error updating ticket replied_on: %w", err)
 	}
 
-	return openedOn, nil
-}
-
-func RecordTicketReply(ctx context.Context, db DBorTx, oa *OrgAssets, ticketUUID core.TicketUUID, userID UserID, when time.Time) error {
-	openedOn, err := TicketRecordReplied(ctx, db, ticketUUID, when)
-	if err != nil {
-		return err
+	ticket.LastActivityOn = when
+	if ticket.RepliedOn == nil || when.Before(*ticket.RepliedOn) {
+		ticket.RepliedOn = &when
 	}
 
 	teamID := NilTeamID

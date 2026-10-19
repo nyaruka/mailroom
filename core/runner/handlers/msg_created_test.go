@@ -3,6 +3,7 @@ package handlers_test
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/nyaruka/gocommon/i18n"
 	"github.com/nyaruka/gocommon/urns"
@@ -55,4 +56,14 @@ func TestMsgCreatedLoop(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
 
 	runTests(t, rt, "testdata/msg_created_loop.json")
+}
+
+func TestMsgCreatedTicketReply(t *testing.T) {
+	_, rt := testsuite.Runtime(t)
+
+	testdb.InsertOpenTicket(t, rt, "01992f54-5ab6-717a-a39e-e8ca91fb7262", testdb.Org1, testdb.Ann, testdb.DefaultTopic, time.Date(2025, 5, 4, 11, 30, 0, 0, time.UTC), nil)
+	closed := testdb.InsertOpenTicket(t, rt, "019a0f6c-5e3b-7d1a-9b2e-3c4d5e6f7a8b", testdb.Org1, testdb.Bob, testdb.DefaultTopic, time.Date(2015, 1, 1, 12, 30, 45, 0, time.UTC), nil)
+	rt.DB.MustExec(`UPDATE tickets_ticket SET status = 'C', closed_on = '2015-01-02T12:30:45Z', last_activity_on = '2015-01-02T12:30:45Z' WHERE id = $1`, closed.ID)
+
+	runTests(t, rt, "testdata/msg_created_ticket_reply.json")
 }
