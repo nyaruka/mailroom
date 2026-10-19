@@ -176,6 +176,32 @@ func InsertTickets(ctx context.Context, tx DBorTx, oa *OrgAssets, tickets []*Tic
 	return nil
 }
 
+// InactiveTicket is an open ticket that has had no activity since a given time
+type InactiveTicket struct {
+	ID             TicketID  `db:"id"`
+	OrgID          OrgID     `db:"org_id"`
+	ContactID      ContactID `db:"contact_id"`
+	LastActivityOn time.Time `db:"last_activity_on"`
+}
+
+const sqlSelectInactiveTickets = `
+    SELECT t.id, t.org_id, t.contact_id, t.last_activity_on
+      FROM tickets_ticket t
+INNER JOIN orgs_org o ON o.id = t.org_id
+     WHERE t.status = 'O' AND t.last_activity_on < $1 AND (t.last_activity_on, t.id) > ($2, $3) AND o.is_active
+  ORDER BY t.last_activity_on, t.id
+     LIMIT $4`
+
+// GetInactiveTickets gets a page of open tickets across all orgs that have had no activity since the given time,
+// ordered by last activity. Pass the last ticket of the previous page as afterOn and afterID to get the next page.
+func GetInactiveTickets(ctx context.Context, db DBorTx, olderThan, afterOn time.Time, afterID TicketID, limit int) ([]*InactiveTicket, error) {
+	tickets := make([]*InactiveTicket, 0, limit)
+	if err := db.SelectContext(ctx, &tickets, sqlSelectInactiveTickets, olderThan, afterOn, afterID, limit); err != nil {
+		return nil, fmt.Errorf("error selecting inactive tickets: %w", err)
+	}
+	return tickets, nil
+}
+
 // UpdateTicketLastActivity updates the last_activity_on of the given tickets to be now
 func UpdateTicketLastActivity(ctx context.Context, db DBorTx, tickets []*Ticket) error {
 	now := dates.Now()

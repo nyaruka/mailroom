@@ -185,3 +185,51 @@ func TestTicketRecordReply(t *testing.T) {
 		openYmd + "/ticketresptime:count":        1,
 	})
 }
+
+func TestGetInactiveTickets(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	longAgo := time.Now().Add(-30 * 24 * time.Hour)
+	recently := time.Now().Add(-1 * time.Hour)
+	olderThan := time.Now().Add(-14 * 24 * time.Hour)
+
+	ticket1 := testdb.InsertOpenTicket(t, rt, "01992f54-5ab6-717a-a39e-e8ca91fb7262", testdb.Org1, testdb.Ann, testdb.DefaultTopic, longAgo.Add(time.Hour), nil)
+	ticket2 := testdb.InsertOpenTicket(t, rt, "01992f54-5ab6-725e-be9c-0c6407efd755", testdb.Org1, testdb.Bob, testdb.DefaultTopic, longAgo, nil)
+	testdb.InsertOpenTicket(t, rt, "01992f54-5ab6-7498-a7f2-6aa246e45cfe", testdb.Org1, testdb.Cat, testdb.DefaultTopic, recently, nil)
+	testdb.InsertClosedTicket(t, rt, "01992f54-5ab6-7658-a5d4-bdb05863ec56", testdb.Org1, testdb.Dan, testdb.DefaultTopic, nil)
+
+	// ordered by last activity
+	tickets, err := models.GetInactiveTickets(ctx, rt.DB, olderThan, time.Time{}, models.NilTicketID, 10)
+	assert.NoError(t, err)
+	assert.Equal(t, []models.TicketID{ticket2.ID, ticket1.ID}, inactiveTicketIDs(tickets))
+	assert.Equal(t, testdb.Bob.ID, tickets[0].ContactID)
+	assert.Equal(t, testdb.Org1.ID, tickets[0].OrgID)
+
+	// paging
+	tickets, err = models.GetInactiveTickets(ctx, rt.DB, olderThan, time.Time{}, models.NilTicketID, 1)
+	assert.NoError(t, err)
+	assert.Equal(t, []models.TicketID{ticket2.ID}, inactiveTicketIDs(tickets))
+
+	tickets, err = models.GetInactiveTickets(ctx, rt.DB, olderThan, tickets[0].LastActivityOn, tickets[0].ID, 1)
+	assert.NoError(t, err)
+	assert.Equal(t, []models.TicketID{ticket1.ID}, inactiveTicketIDs(tickets))
+
+	tickets, err = models.GetInactiveTickets(ctx, rt.DB, olderThan, tickets[0].LastActivityOn, tickets[0].ID, 1)
+	assert.NoError(t, err)
+	assert.Len(t, tickets, 0)
+
+	// tickets in inactive orgs are ignored
+	rt.DB.MustExec(`UPDATE orgs_org SET is_active = FALSE WHERE id = $1`, testdb.Org1.ID)
+
+	tickets, err = models.GetInactiveTickets(ctx, rt.DB, olderThan, time.Time{}, models.NilTicketID, 10)
+	assert.NoError(t, err)
+	assert.Len(t, tickets, 0)
+}
+
+func inactiveTicketIDs(tickets []*models.InactiveTicket) []models.TicketID {
+	ids := make([]models.TicketID, len(tickets))
+	for i, t := range tickets {
+		ids[i] = t.ID
+	}
+	return ids
+}
