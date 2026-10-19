@@ -1,3 +1,9 @@
+## v26.3.100 (2026-10-19)
+ * Auto-close tickets that have been inactive for a configured number of days
+ * Record ticket replies in the msg scene transaction, only for open tickets
+ * Don't bump ticket last activity on topic changes or notes, and never let it move backwards when updating tickets
+ * Don't report a request failing because its client went away as an error
+
 ## v26.3.99 (2026-10-15)
  * Extend task leases while workers are still running them, and shorten the lease duration to 5 minutes
 
