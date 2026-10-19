@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/goflow/utils"
@@ -74,14 +73,6 @@ func handleSend(ctx context.Context, rt *runtime.Runtime, r *sendRequest) (any, 
 	}
 
 	msg := scene.OutgoingMsgs[0]
-
-	// TODO move this into event handler?
-	// if message was a ticket reply, update the ticket
-	if r.TicketUUID != "" {
-		if err := models.RecordTicketReply(ctx, rt.DB, oa, r.TicketUUID, r.UserID, dates.Now()); err != nil {
-			return nil, 0, fmt.Errorf("error recording ticket reply: %w", err)
-		}
-	}
 
 	return map[string]any{
 		"event":       event,

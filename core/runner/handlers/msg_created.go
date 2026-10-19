@@ -61,6 +61,14 @@ func handleMsgCreated(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAs
 
 	scene.OutgoingMsgs = append(scene.OutgoingMsgs, msg)
 
+	// a user reply on an open ticket counts as activity on that ticket
+	if event.TicketUUID != "" && userID != models.NilUserID {
+		ticket := scene.DBContact.FindTicket(event.TicketUUID)
+		if ticket != nil && ticket.Status == models.TicketStatusOpen {
+			scene.AttachPreCommitHook(hooks.RecordTicketReplies, hooks.TicketReply{Ticket: ticket, UserID: userID, When: event.CreatedOn()})
+		}
+	}
+
 	// index message to Elasticsearch if it has sufficient text
 	if len(event.Msg.Text()) >= search.MessageTextMinLength {
 		scene.AttachPostCommitHook(hooks.IndexMessages, &search.MessageDoc{
