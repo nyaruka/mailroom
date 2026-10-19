@@ -199,29 +199,21 @@ func TestGetInactiveTickets(t *testing.T) {
 	testdb.InsertClosedTicket(t, rt, "01992f54-5ab6-7658-a5d4-bdb05863ec56", testdb.Org1, testdb.Dan, testdb.DefaultTopic, nil)
 
 	// ordered by last activity
-	tickets, err := models.GetInactiveTickets(ctx, rt.DB, olderThan, time.Time{}, models.NilTicketID, 10)
+	tickets, err := models.GetInactiveTickets(ctx, rt.DB, olderThan, 10)
 	assert.NoError(t, err)
 	assert.Equal(t, []models.TicketID{ticket2.ID, ticket1.ID}, inactiveTicketIDs(tickets))
 	assert.Equal(t, testdb.Bob.ID, tickets[0].ContactID)
 	assert.Equal(t, testdb.Org1.ID, tickets[0].OrgID)
 
-	// paging
-	tickets, err = models.GetInactiveTickets(ctx, rt.DB, olderThan, time.Time{}, models.NilTicketID, 1)
+	// limited to the oldest
+	tickets, err = models.GetInactiveTickets(ctx, rt.DB, olderThan, 1)
 	assert.NoError(t, err)
 	assert.Equal(t, []models.TicketID{ticket2.ID}, inactiveTicketIDs(tickets))
-
-	tickets, err = models.GetInactiveTickets(ctx, rt.DB, olderThan, tickets[0].LastActivityOn, tickets[0].ID, 1)
-	assert.NoError(t, err)
-	assert.Equal(t, []models.TicketID{ticket1.ID}, inactiveTicketIDs(tickets))
-
-	tickets, err = models.GetInactiveTickets(ctx, rt.DB, olderThan, tickets[0].LastActivityOn, tickets[0].ID, 1)
-	assert.NoError(t, err)
-	assert.Len(t, tickets, 0)
 
 	// tickets in inactive orgs are ignored
 	rt.DB.MustExec(`UPDATE orgs_org SET is_active = FALSE WHERE id = $1`, testdb.Org1.ID)
 
-	tickets, err = models.GetInactiveTickets(ctx, rt.DB, olderThan, time.Time{}, models.NilTicketID, 10)
+	tickets, err = models.GetInactiveTickets(ctx, rt.DB, olderThan, 10)
 	assert.NoError(t, err)
 	assert.Len(t, tickets, 0)
 }

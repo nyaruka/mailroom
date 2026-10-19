@@ -21,7 +21,7 @@ func TestCloseInactiveTickets(t *testing.T) {
 	testdb.InsertOpenTicket(t, rt, "01992f54-5ab6-7498-a7f2-6aa246e45cfe", testdb.Org1, testdb.Bob, testdb.DefaultTopic, longAgo.Add(time.Minute), nil)
 	testdb.InsertOpenTicket(t, rt, "01992f54-5ab6-7658-a5d4-bdb05863ec56", testdb.Org1, testdb.Cat, testdb.DefaultTopic, recently, nil)
 
-	cron := &crons.CloseInactiveTicketsCron{FetchBatchSize: 2, TaskBatchSize: 1}
+	cron := &crons.CloseInactiveTicketsCron{MaxTickets: 2, TaskBatchSize: 1}
 
 	// disabled by default
 	res, err := cron.Run(ctx, rt)
@@ -31,12 +31,22 @@ func TestCloseInactiveTickets(t *testing.T) {
 
 	rt.Config.TicketMaxIdleDays = 14
 
+	// only the oldest two tickets are handled in a run, Ann's first and Bob's
+	res, err = cron.Run(ctx, rt)
+	assert.NoError(t, err)
+	assert.Equal(t, map[string]any{"tickets": 2}, res)
+	assert.Equal(t, map[string][]string{
+		"batch/1": {"close_inactive_tickets", "close_inactive_tickets"},
+	}, testsuite.GetQueuedTaskTypes(t, rt))
+
+	// contacts with several inactive tickets are only queued once
+	cron.MaxTickets = 10
+	testsuite.ClearTasks(t, rt)
+
 	res, err = cron.Run(ctx, rt)
 	assert.NoError(t, err)
 	assert.Equal(t, map[string]any{"tickets": 3}, res)
-
-	// Ann appears in both fetch batches so is queued twice, which is harmless as closing is idempotent
 	assert.Equal(t, map[string][]string{
-		"batch/1": {"close_inactive_tickets", "close_inactive_tickets", "close_inactive_tickets"},
+		"batch/1": {"close_inactive_tickets", "close_inactive_tickets"},
 	}, testsuite.GetQueuedTaskTypes(t, rt))
 }
