@@ -5,6 +5,7 @@ import (
 	"io"
 	"net"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -184,12 +185,14 @@ func TestForemanWithHungValkey(t *testing.T) {
 	require.NoError(t, err)
 	defer ln.Close()
 
+	var accepted atomic.Int32
 	go func() {
 		for {
 			conn, err := ln.Accept()
 			if err != nil {
 				return
 			}
+			accepted.Add(1)
 			go io.Copy(io.Discard, conn)
 		}
 	}()
@@ -207,7 +210,10 @@ func TestForemanWithHungValkey(t *testing.T) {
 	fm := worker.NewForeman(rt, queues.NewFair("test", 1, time.Minute), 2)
 	fm.Start(wg)
 
-	time.Sleep(500 * time.Millisecond) // long enough for several pops to time out
+	time.Sleep(time.Second) // long enough for several pops to time out
+
+	// each timed out pop closes its connection, so the foreman having dialed more than once means it retried
+	assert.Greater(t, accepted.Load(), int32(1))
 
 	// assignment isn't stuck in a pop so the foreman can still stop
 	stopped := make(chan struct{})

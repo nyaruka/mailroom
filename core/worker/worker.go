@@ -18,7 +18,7 @@ import (
 const leaseExtensionLimit = 65 * time.Minute
 
 // bounds both waiting for a pool connection and the queue operation itself, so that a hung connection can't stall task
-// assignment or a worker - it must be well under the lease extension interval
+// assignment or a worker - it must be well under the task lease so that a few timed out extensions can't let it expire
 var queueOpTimeout = 15 * time.Second
 
 // Foreman takes care of managing our set of workers and assigns msgs for each to send
