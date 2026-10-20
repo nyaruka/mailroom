@@ -215,8 +215,10 @@ func countArticleItems(ctx context.Context, db models.DBorTx, k *models.Knowledg
 //
 // The title is the item's name followed by a blank line, and that's a contract: whatever shows a chunk as a search
 // snippet (the help sites service, temba) strips exactly that prefix, since a result already shows the title.
+//
+// Notes authors leave in an article are stripped first, so that they're never retrieved or shown as part of it.
 func chunkArticle(item *authoredItem) []string {
-	chunks := ChunkMarkdown(item.text)
+	chunks := ChunkMarkdown(StripComments(item.text))
 	for i := range chunks {
 		chunks[i] = item.name + "\n\n" + chunks[i]
 	}

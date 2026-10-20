@@ -133,7 +133,7 @@ func TestIndexKnowledgeHelpdesk(t *testing.T) {
 	k1 := testdb.InsertKnowledgeSource(t, rt, testdb.Org1, "5384b1c6-1099-4a5f-a005-9d3a4092c5c1", models.KnowledgeSourceTypeHelpdesk, "Test Helpdesk", models.KnowledgeSourceStatusPending)
 	k1s := testdb.InsertSection(t, rt, k1, "a1b2c3d4-0001-4000-8000-000000000001", "General")
 	a1 := testdb.InsertArticle(t, rt, k1, k1s, "8d40e9ab-c5f1-4b24-b60f-bc42cf65a9f5", "Refunds", "Refunds take 5 days.", models.ArticleStatusPublished)
-	a2 := testdb.InsertArticle(t, rt, k1, k1s, "0e2e1c66-c221-4726-a08a-1a4bbabf05be", "Shipping", "## Domestic\n\nShips in 2 days.", models.ArticleStatusPublished)
+	a2 := testdb.InsertArticle(t, rt, k1, k1s, "0e2e1c66-c221-4726-a08a-1a4bbabf05be", "Shipping", "## Domestic\n\n/* is it still 2?\nask the warehouse */\n\nShips in 2 days.\n/* add international */", models.ArticleStatusPublished)
 	a3 := testdb.InsertArticle(t, rt, k1, k1s, "b26e0a76-9d88-42d1-9bc9-5cf25e2ba18f", "Returns", "Not written yet.", models.ArticleStatusDraft)
 
 	// articles in another org's helpdesk are never touched by this one
@@ -160,7 +160,7 @@ func TestIndexKnowledgeHelpdesk(t *testing.T) {
 		Columns(map[string]any{"status": "R", "error": nil, "num_items": 2, "num_chunks": 2})
 
 	// chunks are keyed by the article's UUID and named for its title, which is also prefixed onto the text along with
-	// the heading path of the section it came from
+	// the heading path of the section it came from - and the notes left in an article aren't part of them
 	assertdb.Query(t, rt.DB, `SELECT item_name, item_url, text FROM knowledge_knowledgechunk WHERE source_id = $1 AND item_key = $2`, k1.ID, a1.UUID).
 		Columns(map[string]any{"item_name": "Refunds", "item_url": nil, "text": "Refunds\n\nRefunds take 5 days."})
 	assertdb.Query(t, rt.DB, `SELECT text FROM knowledge_knowledgechunk WHERE source_id = $1 AND item_key = $2`, k1.ID, a2.UUID).
