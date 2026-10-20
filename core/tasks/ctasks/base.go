@@ -87,23 +87,21 @@ type NewURNSpec struct {
 
 // Apply appends the new URN to the contact, recording channel affinity for the given channel if set.
 func (s *NewURNSpec) Apply(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scene *runner.Scene, channel *models.Channel) error {
-	// as WhatsApp identity transitions from phone numbers to BSUIDs, a BSUID being appended here may already be owned
-	// by a duplicate contact created from messages received with only that BSUID - if that contact has no other URNs
-	// we reassign the URN to this contact, which lets the append below proceed and set priority and channel affinity
-	if urns.IsWhatsAppBSUID(s.Value) {
-		ownerID, reassigned, err := models.ReassignShellContactURN(ctx, rt.DB, oa, scene.ContactID(), s.Value)
-		if err != nil {
-			return fmt.Errorf("error reassigning URN from shell contact: %w", err)
+	// the URN may already be owned by a duplicate contact created from messages received with only that URN - e.g.
+	// a WhatsApp BSUID seen before the user's phone number - if that contact has no other URNs we reassign the URN to
+	// this contact, which lets the append below proceed and set priority and channel affinity
+	ownerID, reassigned, err := models.ReassignShellContactURN(ctx, rt.DB, oa, scene.ContactID(), s.Value)
+	if err != nil {
+		return fmt.Errorf("error reassigning URN from shell contact: %w", err)
+	}
+	if reassigned {
+		// the shell contact isn't part of this scene so won't be re-indexed by scene events - index it here so
+		// its ES doc no longer includes the URN it just lost
+		if err := indexContact(ctx, rt, oa, ownerID); err != nil {
+			return fmt.Errorf("error indexing shell contact after URN reassignment: %w", err)
 		}
-		if reassigned {
-			// the shell contact isn't part of this scene so won't be re-indexed by scene events - index it here so
-			// its ES doc no longer includes the URN it just lost
-			if err := indexContact(ctx, rt, oa, ownerID); err != nil {
-				return fmt.Errorf("error indexing shell contact after URN reassignment: %w", err)
-			}
-		} else if ownerID != models.NilContactID {
-			slog.Info("BSUID URN not appended because it belongs to a contact with other URNs", "urn", s.Value, "contact", scene.ContactUUID(), "owner_id", ownerID)
-		}
+	} else if ownerID != models.NilContactID {
+		slog.Info("URN not appended because it belongs to a contact with other URNs", "urn", s.Value, "contact", scene.ContactUUID(), "owner_id", ownerID)
 	}
 
 	var flowCh *core.Channel
