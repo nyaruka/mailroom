@@ -8,11 +8,9 @@ import (
 var mdBackticks = regexp.MustCompile("`+")
 
 // StripComments removes the notes authors leave for each other in an article's markdown, which are for whoever edits
-// it and never part of what it says. A note is either a line whose first non-blank characters are // (the whole line)
-// or a block opening with /* at the start of a line and running to the next */, across lines if need be - anything
-// after the */ on its line is kept. Markers inside code - fenced or indented blocks, or inline spans - are code, as
-// is a // partway through a line, which is how every URL is written. A /* that's never closed isn't a note, so that a
-// stray one can't swallow the rest of an article.
+// it and never part of what it says. A note opens with /* at the start of a line and runs to the next */, across lines
+// if need be - anything after the */ on its line is kept. Markers inside code - fenced or indented blocks, or inline
+// spans - are code. A /* that's never closed isn't a note, so that a stray one can't swallow the rest of an article.
 func StripComments(md string) string {
 	lines := strings.Split(md, "\n")
 	out := make([]string, 0, len(lines))
@@ -48,10 +46,6 @@ func StripComments(md string) string {
 				span = openSpan(line, span)
 			}
 			prevBlank, prevIndented = blank, indented
-			continue
-		}
-
-		if strings.HasPrefix(trimmed, "//") {
 			continue
 		}
 
