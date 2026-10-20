@@ -1,3 +1,7 @@
+## v26.3.101 (2026-10-20)
+ * Bound the worker's queue operations with deadlines and update to vkutil v0.30.0 for pool timeouts
+ * Strip /* */ author notes from articles before chunking them for the index
+
 ## v26.3.100 (2026-10-19)
  * Auto-close tickets that have been inactive for a configured number of days
  * Record ticket replies in the msg scene transaction, only for open tickets
