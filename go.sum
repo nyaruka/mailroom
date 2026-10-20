@@ -203,8 +203,8 @@ github.com/nyaruka/null/v3 v3.1.0 h1:YQsMXz8Nve0JTVduxpqwzMkTca5X+gwSMBkRcSwa2l8
 github.com/nyaruka/null/v3 v3.1.0/go.mod h1:vH2+lGf6XzKr4USjgfJHj+l87dhCiR+ajAuu515xENg=
 github.com/nyaruka/phonenumbers/v2 v2.0.14 h1:hgxmpkDTy/rvl/3yx5oPXiRHWZmkw8Tbd6WkBpavJBA=
 github.com/nyaruka/phonenumbers/v2 v2.0.14/go.mod h1:ch3CB5vKpdcQXyRLWm+ELlEdiUwagKR6pYvXgVXRiN0=
-github.com/nyaruka/vkutil v0.29.0 h1:+xuPfIjmOQ7dzxSiak2I0G3NkoFh+27KhG9jKgK3k/k=
-github.com/nyaruka/vkutil v0.29.0/go.mod h1:eh/L5J9IvZsV8qEhWmgC654vl1aEkX86lh8gU+YnKww=
+github.com/nyaruka/vkutil v0.30.0 h1:VVsn1wBLKx/kq3ovIhSAp/rgM6wmgHAoDNwQgDCglI0=
+github.com/nyaruka/vkutil v0.30.0/go.mod h1:eh/L5J9IvZsV8qEhWmgC654vl1aEkX86lh8gU+YnKww=
 github.com/openai/openai-go/v3 v3.50.0 h1:CXn+C8a10oQiI5CMyMbCiykhITVhVxhdHX8j3CfLa2U=
 github.com/openai/openai-go/v3 v3.50.0/go.mod h1:Ogjo0gDct+Jm7yCqaCjLGQGygeV8xNfNHV1/yKvCji0=
 github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c h1:+mdjkGKdHQG3305AYmdv1U2eRNDiU2ErMBj1gwrq8eQ=
