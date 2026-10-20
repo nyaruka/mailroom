@@ -29,6 +29,10 @@ func TestStripComments(t *testing.T) {
 		{"/* a note */ Then text.", "Then text."},
 		{"/* a note\nstill */ Then text.\nMore", "Then text.\nMore"},
 
+		// and checked for markers of its own
+		{"/* a */ /* b */ text", "text"},
+		{"/* a note\n*/ ```\n/* code */\n```", "```\n/* code */\n```"},
+
 		// a /* partway through a line isn't a note, nor is a lone */
 		{"Use a/*b*/c", "Use a/*b*/c"},
 		{"Type the **/start** command.", "Type the **/start** command."},
@@ -36,10 +40,19 @@ func TestStripComments(t *testing.T) {
 		// and an unclosed /* isn't one either, so it can't swallow what follows
 		{"One\n/* never closed\nTwo", "One\n/* never closed\nTwo"},
 
+		// nor is one only closed by a */ past a code fence, which would be code
+		{
+			"/* draft\n\nIntro\n\n```\nls src/**/*.go\n```\n/* note */",
+			"/* draft\n\nIntro\n\n```\nls src/**/*.go\n```",
+		},
+
 		// markers in a fenced code block are code
 		{"```\n/* code */\n```\n/* note */", "```\n/* code */\n```"},
 		{"~~~js\n/* code */\n~~~\nText", "~~~js\n/* code */\n~~~\nText"},
 		{"```\n~~~\n/* code */\n```", "```\n~~~\n/* code */\n```"},
+
+		// even when a stray backtick before it would otherwise have opened an inline span
+		{"Press the ` key\n```\n/* code */\n```\n/* note */", "Press the ` key\n```\n/* code */\n```"},
 
 		// as are those in an indented code block, which needs a blank line before it
 		{

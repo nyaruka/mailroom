@@ -10,7 +10,8 @@ var mdBackticks = regexp.MustCompile("`+")
 // StripComments removes the notes authors leave for each other in an article's markdown, which are for whoever edits
 // it and never part of what it says. A note opens with /* at the start of a line and runs to the next */, across lines
 // if need be - anything after the */ on its line is kept. Markers inside code - fenced or indented blocks, or inline
-// spans - are code. A /* that's never closed isn't a note, so that a stray one can't swallow the rest of an article.
+// spans - are code. A /* that's never closed before the next code fence isn't a note, so that a stray one can't
+// swallow the rest of an article, or be closed by a */ in its code.
 func StripComments(md string) string {
 	lines := strings.Split(md, "\n")
 	out := make([]string, 0, len(lines))
@@ -24,14 +25,15 @@ func StripComments(md string) string {
 		trimmed := strings.TrimLeft(line, " \t")
 		blank := trimmed == ""
 
-		if m := mdFence.FindStringSubmatch(line); m != nil && span == "" && (fence == "" || m[1] == fence) {
+		// fences are block structure, so they take precedence over an inline code span
+		if m := mdFence.FindStringSubmatch(line); m != nil && (fence == "" || m[1] == fence) {
 			if fence == "" {
 				fence = m[1]
 			} else {
 				fence = ""
 			}
 			out = append(out, line)
-			prevBlank, prevIndented = false, false
+			span, prevBlank, prevIndented = "", false, false
 			continue
 		}
 
@@ -51,11 +53,13 @@ func StripComments(md string) string {
 
 		if strings.HasPrefix(trimmed, "/*") {
 			if end, rest, ok := commentEnd(lines, i, len(line)-len(trimmed)+2); ok {
-				i = end
-				if strings.TrimSpace(rest) == "" {
-					continue
+				if strings.TrimSpace(rest) != "" {
+					// what follows the */ is processed as a line of its own, since it can hold another marker
+					lines[end] = strings.TrimLeft(rest, " \t")
+					end--
 				}
-				line = strings.TrimLeft(rest, " \t")
+				i = end
+				continue
 			}
 		}
 
@@ -73,12 +77,14 @@ func isIndentedCode(line string) bool {
 }
 
 // finds the */ closing a comment opened on line i just before the given byte offset - returning the index of the line
-// it's on and what follows it there - or reports that it's never closed
+// it's on and what follows it there - or reports that it's never closed before the next code fence
 func commentEnd(lines []string, i, from int) (int, string, bool) {
 	for j := i; j < len(lines); j++ {
 		text := lines[j]
 		if j == i {
 			text = text[from:]
+		} else if mdFence.MatchString(text) {
+			break
 		}
 		if k := strings.Index(text, "*/"); k >= 0 {
 			return j, text[k+2:], true
