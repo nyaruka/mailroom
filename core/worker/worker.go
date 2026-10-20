@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	valkey "github.com/gomodule/redigo/redis"
 	"github.com/nyaruka/mailroom/v26/core/tasks"
 	"github.com/nyaruka/mailroom/v26/runtime"
 	"github.com/nyaruka/mailroom/v26/utils/queues"
@@ -15,6 +16,10 @@ import (
 // tasks' leases are only extended for this long so that hung tasks eventually release their slots - it's set above the
 // longest task timeout so that it only stops for tasks which have overrun their timeouts
 const leaseExtensionLimit = 65 * time.Minute
+
+// bounds both waiting for a pool connection and the queue operation itself, so that a hung connection can't stall task
+// assignment or a worker - it must be well under the task lease so that a few timed out extensions can't let it expire
+var queueOpTimeout = 15 * time.Second
 
 // Foreman takes care of managing our set of workers and assigns msgs for each to send
 type Foreman struct {
@@ -97,9 +102,11 @@ func (f *Foreman) Assign() {
 		// otherwise, grab the next task and assign it to a worker
 		case worker := <-f.availableWorkers:
 			// see if we have a task to work on
-			vc := f.rt.VK.Get()
-			task, err := f.queue.Pop(context.TODO(), vc)
-			vc.Close()
+			var task *queues.Task
+			err := f.withQueue(func(ctx context.Context, vc valkey.Conn) (err error) {
+				task, err = f.queue.Pop(ctx, vc)
+				return err
+			})
 
 			if err == nil && task != nil {
 				// if so, assign it to our worker
@@ -121,6 +128,20 @@ func (f *Foreman) Assign() {
 			}
 		}
 	}
+}
+
+// withQueue calls fn with a pool connection and a context which bounds the whole operation
+func (f *Foreman) withQueue(fn func(context.Context, valkey.Conn) error) error {
+	ctx, cancel := context.WithTimeout(context.Background(), queueOpTimeout)
+	defer cancel()
+
+	vc, err := f.rt.VK.GetContext(ctx)
+	if err != nil {
+		return fmt.Errorf("error getting valkey connection: %w", err)
+	}
+	defer vc.Close()
+
+	return fn(ctx, vc)
 }
 
 // Worker is our type for a single goroutine that is handling queued events
@@ -182,12 +203,12 @@ func (w *Worker) handleTask(task *queues.Task) {
 		}
 
 		// mark our task as complete
-		vc := w.foreman.rt.VK.Get()
-		err := w.foreman.queue.Done(context.TODO(), vc, task)
+		err := w.foreman.withQueue(func(ctx context.Context, vc valkey.Conn) error {
+			return w.foreman.queue.Done(ctx, vc, task)
+		})
 		if err != nil {
 			log.Error("unable to mark task as complete", "error", err)
 		}
-		vc.Close()
 	}()
 
 	// keep our task's lease alive while we work on it, stopping before we mark it done
@@ -224,9 +245,11 @@ func (w *Worker) extendLease(log *slog.Logger, task *queues.Task) func() {
 				log.Error("task overran lease extension limit, no longer extending", "limit", leaseExtensionLimit)
 				return
 			case <-ticker.C:
-				vc := w.foreman.rt.VK.Get()
-				extended, err := w.foreman.queue.Extend(context.TODO(), vc, task)
-				vc.Close()
+				var extended bool
+				err := w.foreman.withQueue(func(ctx context.Context, vc valkey.Conn) (err error) {
+					extended, err = w.foreman.queue.Extend(ctx, vc, task)
+					return err
+				})
 
 				if err != nil {
 					log.Error("error extending task lease", "error", err)

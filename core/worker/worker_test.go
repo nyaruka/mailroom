@@ -2,10 +2,14 @@ package worker_test
 
 import (
 	"context"
+	"io"
+	"net"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
+	valkey "github.com/gomodule/redigo/redis"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/tasks"
 	"github.com/nyaruka/mailroom/v26/core/worker"
@@ -14,6 +18,7 @@ import (
 	"github.com/nyaruka/mailroom/v26/utils/queues"
 	"github.com/nyaruka/vkutil/assertvk"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type testTask struct{}
@@ -168,4 +173,59 @@ func TestWorkerLeaseExtension(t *testing.T) {
 	assert.Equal(t, 1, slowTaskMaxActive)
 	assertvk.ZGetAll(t, vc, "{tasks:test}:active", map[string]float64{})
 	assertvk.HLen(t, vc, "{tasks:test}:leases", 0)
+}
+
+func TestForemanWithHungValkey(t *testing.T) {
+	_, rt := testsuite.Runtime(t)
+
+	defer worker.SetQueueOpTimeout(100 * time.Millisecond)()
+
+	// a server which accepts connections but never replies, like a half-open connection
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	defer ln.Close()
+
+	var accepted atomic.Int32
+	go func() {
+		for {
+			conn, err := ln.Accept()
+			if err != nil {
+				return
+			}
+			accepted.Add(1)
+			go io.Copy(io.Discard, conn)
+		}
+	}()
+
+	// a pool without any timeouts of its own, so only the foreman's deadlines can unblock it
+	origVK := rt.VK
+	rt.VK = &valkey.Pool{
+		MaxActive: 1,
+		Wait:      true,
+		Dial:      func() (valkey.Conn, error) { return valkey.Dial("tcp", ln.Addr().String()) },
+	}
+	defer func() { rt.VK = origVK }()
+
+	wg := &sync.WaitGroup{}
+	fm := worker.NewForeman(rt, queues.NewFair("test", 1, time.Minute), 2)
+	fm.Start(wg)
+
+	time.Sleep(time.Second) // long enough for several pops to time out
+
+	// each timed out pop closes its connection, so the foreman having dialed more than once means it retried
+	assert.Greater(t, accepted.Load(), int32(1))
+
+	// assignment isn't stuck in a pop so the foreman can still stop
+	stopped := make(chan struct{})
+	go func() {
+		fm.Stop()
+		wg.Wait()
+		close(stopped)
+	}()
+
+	select {
+	case <-stopped:
+	case <-time.After(5 * time.Second):
+		t.Fatal("foreman didn't stop, assignment is stuck")
+	}
 }
