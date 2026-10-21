@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 
 	"github.com/nyaruka/gocommon/dates"
@@ -34,10 +35,36 @@ func handleTicketClosed(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 
 	scene.AttachPreCommitHook(hooks.UpdateTickets, dbTicket)
 
-	// automatic closes can come in large batches so avoid queuing tasks for contacts that won't match a trigger
-	if models.FindMatchingTicketClosedTrigger(oa, scene.Contact) != nil {
-		scene.AttachPostCommitHook(hooks.QueueContactTask, ctasks.NewTicketClosed(event))
+	// contacts shouldn't have more than one open ticket, but older data can, and if those tickets are closed together
+	// (e.g. by an automatic close of inactive tickets) only fire the trigger for the first of them
+	for _, prev := range scene.Events() {
+		if prev.Type() == events.TypeTicketClosed {
+			return nil
+		}
 	}
+
+	// automatic closes can come in large batches so avoid queuing tasks for contacts that won't match a trigger
+	trigger := models.FindMatchingTicketClosedTrigger(oa, scene.Contact)
+	if trigger == nil {
+		return nil
+	}
+
+	// closed ticket triggers should only use background flows, but don't rely on that for automatic closes which could
+	// otherwise interrupt or call large numbers of contacts
+	if userID == models.NilUserID {
+		flow, err := oa.FlowByID(trigger.FlowID())
+		if err == models.ErrNotFound {
+			return nil
+		}
+		if err != nil {
+			return fmt.Errorf("error loading flow for trigger: %w", err)
+		}
+		if flow.FlowType() != models.FlowTypeBackground {
+			return nil
+		}
+	}
+
+	scene.AttachPostCommitHook(hooks.QueueContactTask, ctasks.NewTicketClosed(event))
 
 	return nil
 }
