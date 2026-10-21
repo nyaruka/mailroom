@@ -190,9 +190,14 @@ func (t *MsgReceived) handleMsgEvent(ctx context.Context, rt *runtime.Runtime, o
 	// find any matching triggers
 	trigger, keyword := models.FindMatchingMsgTrigger(oa, channel, scene.Contact, t.Text)
 
-	// we found a trigger and their session is nil or doesn't ignore keywords
-	if (trigger != nil && trigger.TriggerType() != models.CatchallTriggerType && (flow == nil || !flow.IgnoreTriggers())) ||
-		(trigger != nil && trigger.TriggerType() == models.CatchallTriggerType && (flow == nil)) {
+	// a contact with an open ticket is treated as if they're in a flow which ignores triggers, so that their
+	// conversation with an agent isn't interrupted
+	hasTicket := len(scene.DBContact.Tickets()) > 0
+	ignoreKeywords := hasTicket || (flow != nil && flow.IgnoreTriggers())
+	ignoreCatchall := hasTicket || flow != nil
+
+	if (trigger != nil && trigger.TriggerType() != models.CatchallTriggerType && !ignoreKeywords) ||
+		(trigger != nil && trigger.TriggerType() == models.CatchallTriggerType && !ignoreCatchall) {
 
 		// load flow to check it's still accessible
 		flow, err = oa.FlowByID(trigger.FlowID())
