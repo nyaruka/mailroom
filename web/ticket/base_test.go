@@ -61,6 +61,8 @@ func TestTicketClose(t *testing.T) {
 
 	testdb.OpenTicketsGroup.Add(rt, testdb.Ann)
 
+	testdb.InsertTicketClosedTrigger(t, rt, testdb.Org1, testdb.Favorites)
+
 	testsuite.RunWebTests(t, rt, "testdata/close.json")
 }
 
