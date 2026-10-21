@@ -52,6 +52,7 @@ var eventPersistence = map[string]time.Duration{
 	events.TypeCallCreated:            eternity,
 	events.TypeCallMissed:             eternity,
 	events.TypeCallReceived:           eternity,
+	events.TypeCampaignSkipped:        time.Hour * 24 * 365, // 1 year
 	events.TypeChatStarted:            eternity,
 	events.TypeContactEmailChanged:    time.Hour * 24 * 365, // 1 year
 	events.TypeContactFieldChanged:    time.Hour * 24 * 365, // 1 year

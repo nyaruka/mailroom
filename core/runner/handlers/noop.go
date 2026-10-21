@@ -14,6 +14,7 @@ func init() {
 	runner.RegisterEventHandler(events.TypeCallCreated, noopHandler)
 	runner.RegisterEventHandler(events.TypeCallMissed, noopHandler)
 	runner.RegisterEventHandler(events.TypeCallReceived, noopHandler)
+	runner.RegisterEventHandler(events.TypeCampaignSkipped, noopHandler)
 	runner.RegisterEventHandler(events.TypeChatStarted, noopHandler)
 	runner.RegisterEventHandler(events.TypeContactFlowChanged, noopHandler) // db update happens via sprint ended or interruption
 	runner.RegisterEventHandler(events.TypeDialEnded, noopHandler)

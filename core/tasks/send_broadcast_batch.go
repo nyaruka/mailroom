@@ -65,7 +65,7 @@ func (t *SendBroadcastBatch) Perform(ctx context.Context, rt *runtime.Runtime, o
 	}
 
 	// create this batch of messages
-	_, skipped, err := runner.BroadcastWithLock(ctx, rt, oa, bcast, t.BroadcastBatch, models.StartModeBackground)
+	_, skipped, err := runner.BroadcastWithLock(ctx, rt, oa, bcast, t.BroadcastBatch, models.StartModeBackground, nil)
 	if err != nil {
 		return fmt.Errorf("error creating broadcast messages: %w", err)
 	}

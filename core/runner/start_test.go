@@ -2,10 +2,13 @@ package runner_test
 
 import (
 	"testing"
+	"time"
 
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/gocommon/i18n"
+	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/core"
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/triggers"
 	"github.com/nyaruka/mailroom/v26/core/models"
@@ -45,11 +48,30 @@ func TestStartFlowConcurrency(t *testing.T) {
 
 	// start each contact in the flow at the same time...
 	test.RunConcurrently(len(contacts), func(i int) {
-		scenes, _, err := runner.StartWithLock(ctx, rt, oa, []models.ContactID{contacts[i].ID}, triggerBuilder, models.StartModeInterrupt, models.NilStartID)
+		scenes, _, err := runner.StartWithLock(ctx, rt, oa, []models.ContactID{contacts[i].ID}, triggerBuilder, models.StartModeInterrupt, models.NilStartID, nil)
 		assert.NoError(t, err)
 		assert.Equal(t, 1, len(scenes))
 	})
 
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowrun`).Returns(len(contacts))
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession`).Returns(len(contacts))
+}
+
+func TestLogWithLock(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	oa := testdb.Org1.Load(t, rt)
+
+	eventBuilder := func() events.Event {
+		return events.NewCampaignSkipped(assets.NewCampaignReference(testdb.RemindersCampaign.UUID, "Doctor Reminders"), testdb.RemindersPoint1.UUID, events.CampaignSkippedReasonExistingSession)
+	}
+
+	skipped, err := runner.LogWithLock(ctx, rt, oa, []models.ContactID{testdb.Ann.ID, testdb.Bob.ID}, eventBuilder)
+	assert.NoError(t, err)
+	assert.Len(t, skipped, 0)
+
+	assert.Equal(t, map[core.ContactUUID][]string{
+		testdb.Ann.UUID: {"campaign_skipped"},
+		testdb.Bob.UUID: {"campaign_skipped"},
+	}, testsuite.GetHistoryEventTypes(t, rt, false, time.Time{}))
 }
