@@ -89,7 +89,7 @@ type Config struct {
 
 	LogLevel    slog.Level `help:"the logging level courier should use"`
 	UUIDSeed    int        `help:"seed to use for UUID generation in a testing environment"`
-	ClockOffset int        `help:"seconds to offset the clock by in a testing environment, e.g. to run at a fixed time of day"`
+	ClockOffset int        `help:"seconds to offset the clock by in a testing environment, whose database clock should be offset to match"`
 	Version     string     `help:"the version of this mailroom install"`
 
 	// parsed values that can't be set directly
