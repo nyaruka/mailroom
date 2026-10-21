@@ -85,19 +85,19 @@ func TestMsgReceivedTask(t *testing.T) {
 		{ // 0: no trigger match, inbox message
 			org:     testdb.Org1,
 			channel: testdb.TwilioChannel,
-			contact: testdb.Ann,
+			contact: testdb.Bob,
 			text:    "noop",
 		},
 		{ // 1: no trigger match, inbox message (trigger is keyword only)
 			org:     testdb.Org1,
 			channel: testdb.TwilioChannel,
-			contact: testdb.Ann,
+			contact: testdb.Bob,
 			text:    "start other",
 		},
 		{ // 2: keyword trigger match, flow message
 			org:                 testdb.Org1,
 			channel:             testdb.TwilioChannel,
-			contact:             testdb.Ann,
+			contact:             testdb.Bob,
 			text:                "start",
 			expectedReplyText:   "What is your favorite color?",
 			expectedReplyStatus: models.MsgStatusQueued,
@@ -106,7 +106,7 @@ func TestMsgReceivedTask(t *testing.T) {
 		{ // 3:
 			org:                 testdb.Org1,
 			channel:             testdb.TwilioChannel,
-			contact:             testdb.Ann,
+			contact:             testdb.Bob,
 			text:                "purple",
 			expectedReplyText:   "I don't know that color. Try again.",
 			expectedReplyStatus: models.MsgStatusQueued,
@@ -115,7 +115,7 @@ func TestMsgReceivedTask(t *testing.T) {
 		{ // 4:
 			org:                 testdb.Org1,
 			channel:             testdb.TwilioChannel,
-			contact:             testdb.Ann,
+			contact:             testdb.Bob,
 			text:                "blue",
 			expectedReplyText:   "Good choice, I like Blue too! What is your favorite beer?",
 			expectedReplyStatus: models.MsgStatusQueued,
@@ -124,7 +124,7 @@ func TestMsgReceivedTask(t *testing.T) {
 		{ // 5:
 			org:                 testdb.Org1,
 			channel:             testdb.TwilioChannel,
-			contact:             testdb.Ann,
+			contact:             testdb.Bob,
 			text:                "MUTZIG",
 			expectedReplyText:   "Mmmmm... delicious Mutzig. If only they made blue Mutzig! Lastly, what is your name?",
 			expectedReplyStatus: models.MsgStatusQueued,
@@ -133,16 +133,16 @@ func TestMsgReceivedTask(t *testing.T) {
 		{ // 6:
 			org:                 testdb.Org1,
 			channel:             testdb.TwilioChannel,
-			contact:             testdb.Ann,
-			text:                "Ann",
-			expectedReplyText:   "Thanks Ann, we are all done!",
+			contact:             testdb.Bob,
+			text:                "Bob",
+			expectedReplyText:   "Thanks Bob, we are all done!",
 			expectedReplyStatus: models.MsgStatusQueued,
 			expectedFlow:        testdb.Favorites,
 		},
 		{ // 7:
 			org:     testdb.Org1,
 			channel: testdb.TwilioChannel,
-			contact: testdb.Ann,
+			contact: testdb.Bob,
 			text:    "noop",
 		},
 		{ // 8:
@@ -279,6 +279,12 @@ func TestMsgReceivedTask(t *testing.T) {
 			text:             "start",
 			expectedArchived: true,
 		},
+		{ // 23: keyword trigger match but contact has open ticket so ignored
+			org:     testdb.Org1,
+			channel: testdb.TwilioChannel,
+			contact: testdb.Ann,
+			text:    "start",
+		},
 	}
 
 	makeMsgTask := func(channel *testdb.Channel, contact *testdb.Contact, text string) ctasks.Task {
@@ -412,6 +418,19 @@ func TestMsgReceivedTask(t *testing.T) {
 
 	// trigger should also not start a new session
 	tasks.QueueContact(ctx, rt, testdb.Org2.ID, testdb.Org2Contact.ID, makeMsgTask(testdb.Org2Channel, testdb.Org2Contact, "start"))
+	task, _ = rt.Queues.Realtime.Pop(ctx, vc)
+	err = tasks.Perform(ctx, rt, task)
+	assert.NoError(t, err)
+
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE contact_id = $1 AND direction = 'O' AND created_on > $2`, testdb.Org2Contact.ID, previous).Returns(0)
+
+	// catch all trigger should be ignored if contact has an open ticket
+	org2Topic := &testdb.Topic{}
+	require.NoError(t, rt.DB.QueryRow(`SELECT id, uuid FROM tickets_topic WHERE org_id = $1 AND is_default`, testdb.Org2.ID).Scan(&org2Topic.ID, &org2Topic.UUID))
+	testdb.InsertOpenTicket(t, rt, "01992f54-5ab6-7a1c-9b5e-3d6f0e1c2b4a", testdb.Org2, testdb.Org2Contact, org2Topic, time.Now(), nil)
+	models.FlushCache()
+
+	tasks.QueueContact(ctx, rt, testdb.Org2.ID, testdb.Org2Contact.ID, makeMsgTask(testdb.Org2Channel, testdb.Org2Contact, "blargh"))
 	task, _ = rt.Queues.Realtime.Pop(ctx, vc)
 	err = tasks.Perform(ctx, rt, task)
 	assert.NoError(t, err)
