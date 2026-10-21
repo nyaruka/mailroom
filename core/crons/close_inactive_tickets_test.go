@@ -23,7 +23,9 @@ func TestCloseInactiveTickets(t *testing.T) {
 
 	cron := &crons.CloseInactiveTicketsCron{MaxTickets: 2, TaskBatchSize: 1}
 
-	// disabled by default
+	// zero disables the cron
+	rt.Config.TicketMaxIdleDays = 0
+
 	res, err := cron.Run(ctx, rt)
 	assert.NoError(t, err)
 	assert.Equal(t, map[string]any{"tickets": 0}, res)

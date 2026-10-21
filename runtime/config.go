@@ -126,7 +126,7 @@ func NewDefaultConfig() *Config {
 		WorkerOwnerLimit: 0.5,
 
 		DefaultContactLimit: 10_000_000,
-		TicketMaxIdleDays:   0,
+		TicketMaxIdleDays:   30,
 
 		WebhooksTimeout:              15000,
 		WebhooksMaxBodyBytes:         256 * 1024, // 256 KiB
