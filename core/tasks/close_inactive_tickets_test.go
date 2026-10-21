@@ -19,7 +19,6 @@ func TestCloseInactiveTickets(t *testing.T) {
 	recently := time.Now().Add(-1 * time.Hour)
 	olderThan := time.Now().Add(-14 * 24 * time.Hour)
 
-	// automatic closes shouldn't fire closed ticket triggers
 	testdb.InsertTicketClosedTrigger(t, rt, testdb.Org1, testdb.Favorites)
 
 	ticket1 := testdb.InsertOpenTicket(t, rt, "01992f54-5ab6-717a-a39e-e8ca91fb7262", testdb.Org1, testdb.Ann, testdb.DefaultTopic, longAgo, nil)
@@ -34,7 +33,7 @@ func TestCloseInactiveTickets(t *testing.T) {
 	err := tasks.Queue(ctx, rt, rt.Queues.Batch, testdb.Org1.ID, task, false)
 	assert.NoError(t, err)
 
-	assert.Equal(t, map[string]int{"close_inactive_tickets": 1}, testsuite.FlushTasks(t, rt))
+	assert.Equal(t, map[string]int{"close_inactive_tickets": 1, "handle_contact_event": 1}, testsuite.FlushTasks(t, rt))
 
 	assertdb.Query(t, rt.DB, `SELECT uuid, status FROM tickets_ticket`).Map(map[string]any{
 		string(ticket1.UUID): "C",
@@ -42,5 +41,10 @@ func TestCloseInactiveTickets(t *testing.T) {
 		string(ticket3.UUID): "O",
 		string(ticket4.UUID): "O",
 	})
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession`).Returns(0)
+
+	// closing shouldn't count as activity
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM tickets_ticket WHERE id = $1 AND last_activity_on < $2`, ticket1.ID, olderThan).Returns(1)
+
+	// but should fire the closed ticket trigger
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE contact_uuid = $1`, testdb.Ann.UUID).Returns(1)
 }

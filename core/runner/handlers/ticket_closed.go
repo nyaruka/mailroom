@@ -25,12 +25,17 @@ func handleTicketClosed(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 	dbTicket := scene.DBContact.FindTicket(event.TicketUUID)
 	dbTicket.Status = models.TicketStatusClosed
 	dbTicket.ClosedOn = &event.CreatedOn_
-	dbTicket.LastActivityOn = dates.Now()
+
+	// automatic closes of inactive tickets aren't activity, and bumping them would put them ahead of tickets recently
+	// closed by users
+	if userID != models.NilUserID {
+		dbTicket.LastActivityOn = dates.Now()
+	}
 
 	scene.AttachPreCommitHook(hooks.UpdateTickets, dbTicket)
 
-	// only closes by a user fire closed ticket triggers, not automatic closes of inactive tickets
-	if userID != models.NilUserID {
+	// automatic closes can come in large batches so avoid queuing tasks for contacts that won't match a trigger
+	if models.FindMatchingTicketClosedTrigger(oa, scene.Contact) != nil {
 		scene.AttachPostCommitHook(hooks.QueueContactTask, ctasks.NewTicketClosed(event))
 	}
 
