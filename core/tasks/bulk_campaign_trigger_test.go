@@ -255,3 +255,41 @@ func assertCampaignSkips(t *testing.T, rt *runtime.Runtime, expected map[core.Co
 	}
 	assert.Equal(t, expected, actual)
 }
+
+func TestBulkCampaignTriggerVoice(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	vc := rt.VK.Get()
+	defer vc.Close()
+
+	// make point #3 (start mode SKIP) start the IVR flow
+	rt.DB.MustExec(`UPDATE campaigns_campaignevent SET flow_id = $2 WHERE id = $1`, testdb.RemindersPoint3.ID, testdb.IVRFlow.ID)
+
+	// Ann is already in a flow, Bob isn't
+	testdb.InsertWaitingSession(t, rt, testdb.Org1, testdb.Ann, models.FlowTypeMessaging, nil, testdb.Favorites)
+
+	oa := testdb.Org1.Load(t, rt)
+
+	task := &tasks.BulkCampaignTrigger{
+		PointID:     testdb.RemindersPoint3.ID,
+		FireVersion: 1,
+		ContactIDs:  []models.ContactID{testdb.Ann.ID, testdb.Bob.ID},
+	}
+	err := task.Perform(ctx, rt, oa, testTaskID)
+	assert.NoError(t, err)
+
+	// Bob gets a call created, Ann doesn't - but no IVR service is registered in tests so Bob's request fails
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM ivr_call WHERE contact_id = $1`, testdb.Ann.ID).Returns(0)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM ivr_call WHERE contact_id = $1`, testdb.Bob.ID).Returns(1)
+
+	// Ann's skip is recorded in her history and the recent fires
+	assertCampaignSkips(t, rt, map[core.ContactUUID]int{testdb.Ann.UUID: 1})
+
+	recent, err := vc.Do("ZRANGE", "recent_campaign_fires:10002", 0, -1)
+	assert.NoError(t, err)
+	members := make([]string, 0, 1)
+	for _, m := range recent.([]any) {
+		members = append(members, string(m.([]byte))[11:]) // trim off random prefix
+	}
+	assert.Equal(t, []string{"10000|skipped"}, members)
+}

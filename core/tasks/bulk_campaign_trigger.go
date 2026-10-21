@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"slices"
 	"time"
 
 	"github.com/nyaruka/gocommon/dates"
@@ -168,17 +169,21 @@ func (t *BulkCampaignTrigger) triggerFlow(ctx context.Context, rt *runtime.Runti
 			outcomes[mc.ID()] = fireOutcomeFired
 		}
 
+		// calls have already been requested so a failure to record skips shouldn't fail the task
 		if len(skipped) > 0 {
 			unlocked, err := runner.LogWithLock(ctx, rt, oa, skipped, skipEvent)
 			if err != nil {
-				return nil, fmt.Errorf("error logging skipped calls for campaign point #%d: %w", p.ID, err)
-			}
-			if len(unlocked) > 0 {
-				slog.Warn("failed to acquire locks for contacts", "contacts", unlocked)
-			}
+				slog.Error("error recording skipped calls for campaign point", "point", t.PointID, "error", err)
+			} else {
+				if len(unlocked) > 0 {
+					slog.Warn("failed to acquire locks for contacts", "contacts", unlocked)
+				}
 
-			for _, cid := range skipped {
-				outcomes[cid] = fireOutcomeSkipped
+				for _, cid := range skipped {
+					if !slices.Contains(unlocked, cid) {
+						outcomes[cid] = fireOutcomeSkipped
+					}
+				}
 			}
 		}
 	} else {
