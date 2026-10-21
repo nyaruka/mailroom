@@ -1,3 +1,9 @@
+## v26.3.103 (2026-10-21)
+ * Fire closed ticket triggers only once per contact, running background flows only for automatic closes and excluding those closes from counting as activity
+ * Ignore triggers for contacts with open tickets
+ * Update to goflow v0.302.0
+ * Let the clock be offset in a testing environment
+
 ## v26.3.102 (2026-10-21)
  * Record skipped campaign points in contact history and recent fires
 
