@@ -9,6 +9,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestNewDefaultConfig(t *testing.T) {
+	cfg := runtime.NewDefaultConfig()
+	assert.Equal(t, 30, cfg.TicketMaxIdleDays)
+}
+
 func TestConfigParse(t *testing.T) {
 	// the defaults are valid
 	assert.NoError(t, runtime.NewDefaultConfig().Parse())
