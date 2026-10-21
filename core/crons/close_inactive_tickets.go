@@ -19,14 +19,14 @@ func init() {
 // CloseInactiveTicketsCron finds open tickets which have gone without activity for longer than the configured maximum
 // and queues tasks to close them.
 type CloseInactiveTicketsCron struct {
-	// limits each run to the oldest tickets so that a large backlog drains over several runs rather than being
-	// re-queued in full every run while the tasks from previous runs are still waiting
+	// caps each run to the oldest tickets so that a large backlog drains over successive runs rather than being
+	// re-queued in full while tasks queued by earlier runs are still waiting
 	MaxTickets    int
 	TaskBatchSize int
 }
 
 func (c *CloseInactiveTicketsCron) Next(last time.Time) time.Time {
-	return Next(last, time.Hour)
+	return Next(last, 10*time.Minute)
 }
 
 func (c *CloseInactiveTicketsCron) Run(ctx context.Context, rt *runtime.Runtime) (map[string]any, error) {
