@@ -87,9 +87,10 @@ type Config struct {
 	AndroidCredentials string `help:"FCM service account credentials JSON used to sync Android relayers" validate:"omitempty,json"`
 	IDObfuscationKey   string `help:"key used to decode obfuscated IDs, as 4 comma separated integers" validate:"omitempty,hexadecimal,len=32"`
 
-	LogLevel slog.Level `help:"the logging level courier should use"`
-	UUIDSeed int        `help:"seed to use for UUID generation in a testing environment"`
-	Version  string     `help:"the version of this mailroom install"`
+	LogLevel    slog.Level `help:"the logging level courier should use"`
+	UUIDSeed    int        `help:"seed to use for UUID generation in a testing environment"`
+	ClockOffset int        `help:"seconds to offset the clock by in a testing environment, e.g. to run at a fixed time of day"`
+	Version     string     `help:"the version of this mailroom install"`
 
 	// parsed values that can't be set directly
 	DisallowedIPs          []net.IP

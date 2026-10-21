@@ -28,9 +28,10 @@ func TestLoadConfig(t *testing.T) {
 	cfg.Domain = "example.com"
 	cfg.WebhooksBlockedDomains = []string{"chat.example.com"}
 
-	require.NoError(t, loadConfig(cfg, []string{`--domain=temba.io`}))
+	require.NoError(t, loadConfig(cfg, []string{`--domain=temba.io`, `--clock-offset=-3600`}))
 	assert.Equal(t, "temba.io", cfg.Domain)
 	assert.Equal(t, []string{"chat.example.com"}, cfg.WebhooksBlockedDomains)
+	assert.Equal(t, -3600, cfg.ClockOffset)
 
 	// and the loaded config is parsed so it's ready to be used
 	assert.Len(t, cfg.DisallowedNets, 9)

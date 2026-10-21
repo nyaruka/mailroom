@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/appleboy/go-fcm"
+	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/uuids"
 	"github.com/nyaruka/mailroom/v26/core/crons"
 	"github.com/nyaruka/mailroom/v26/core/models"
@@ -45,6 +46,11 @@ func Service(cfg *runtime.Config, version, date string, logHandler slog.Handler)
 	if cfg.UUIDSeed != 0 {
 		uuids.SetGenerator(uuids.NewSeededGenerator(int64(cfg.UUIDSeed), time.Now))
 		log.Warn("using seeded UUID generation", "uuid-seed", cfg.UUIDSeed)
+	}
+	if cfg.ClockOffset != 0 {
+		offset := time.Duration(cfg.ClockOffset) * time.Second
+		dates.SetNowFunc(func() time.Time { return time.Now().Add(offset) })
+		log.Warn("using offset clock", "clock-offset", offset)
 	}
 
 	rt, err := runtime.NewRuntime(cfg)
