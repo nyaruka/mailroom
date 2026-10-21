@@ -670,7 +670,7 @@ func TestBroadcastWithLock(t *testing.T) {
 	batch1 := bcast.CreateBatch([]models.ContactID{testdb.Ann.ID, testdb.Bob.ID}, nil)
 	batch2 := bcast.CreateBatch([]models.ContactID{testdb.Cat.ID}, nil)
 
-	scenes, skipped, err := runner.BroadcastWithLock(ctx, rt, oa, bcast, batch1, models.StartModeBackground)
+	scenes, skipped, err := runner.BroadcastWithLock(ctx, rt, oa, bcast, batch1, models.StartModeBackground, nil)
 	assert.NoError(t, err)
 	assert.Len(t, scenes, 2)
 	assert.Len(t, skipped, 0)
@@ -718,7 +718,7 @@ func TestBroadcastWithLock(t *testing.T) {
 
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE broadcast_id = $1 AND created_by_id = $2`, bcast.ID, bcast.CreatedByID).Returns(2)
 
-	scenes, skipped, err = runner.BroadcastWithLock(ctx, rt, oa, bcast, batch2, models.StartModeBackground)
+	scenes, skipped, err = runner.BroadcastWithLock(ctx, rt, oa, bcast, batch2, models.StartModeBackground, nil)
 	assert.NoError(t, err)
 	assert.Len(t, scenes, 1)
 	assert.Len(t, skipped, 0)
@@ -735,7 +735,7 @@ func TestBroadcastWithLock(t *testing.T) {
 	require.NoError(t, err)
 
 	skipBatch := bcast2.CreateBatch([]models.ContactID{testdb.Ann.ID, testdb.Bob.ID, testdb.Cat.ID}, nil)
-	scenes, skipped, err = runner.BroadcastWithLock(ctx, rt, oa, bcast2, skipBatch, models.StartModeSkip)
+	scenes, skipped, err = runner.BroadcastWithLock(ctx, rt, oa, bcast2, skipBatch, models.StartModeSkip, nil)
 	assert.NoError(t, err)
 	assert.Len(t, skipped, 0) // all contacts were locked successfully
 	assert.Len(t, scenes, 3)
@@ -758,7 +758,7 @@ func TestBroadcastWithLock(t *testing.T) {
 	require.NoError(t, err)
 
 	intBatch := bcast3.CreateBatch([]models.ContactID{testdb.Ann.ID, testdb.Bob.ID, testdb.Cat.ID}, nil)
-	scenes, skipped, err = runner.BroadcastWithLock(ctx, rt, oa, bcast3, intBatch, models.StartModeInterrupt)
+	scenes, skipped, err = runner.BroadcastWithLock(ctx, rt, oa, bcast3, intBatch, models.StartModeInterrupt, nil)
 	assert.NoError(t, err)
 	assert.Len(t, skipped, 0)
 	assert.Len(t, scenes, 3)

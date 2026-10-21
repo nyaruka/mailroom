@@ -2,12 +2,15 @@ package tasks_test
 
 import (
 	"testing"
+	"time"
 
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/gocommon/random"
+	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	_ "github.com/nyaruka/mailroom/v26/core/runner/handlers"
 	"github.com/nyaruka/mailroom/v26/core/tasks"
+	"github.com/nyaruka/mailroom/v26/runtime"
 	"github.com/nyaruka/mailroom/v26/testsuite"
 	"github.com/nyaruka/mailroom/v26/testsuite/testdb"
 	"github.com/nyaruka/vkutil/assertvk"
@@ -41,9 +44,18 @@ func TestBulkCampaignTrigger(t *testing.T) {
 	testsuite.AssertContactInFlow(t, rt, testdb.Bob, testdb.PickANumber)
 	testsuite.AssertContactInFlow(t, rt, testdb.Dan, testdb.PickANumber)
 
+	// check Ann's history records the skip
+	skips := getCampaignSkips(t, rt)
+	assert.Len(t, skips, 1)
+	assert.Equal(t, map[string]any{
+		"campaign":   map[string]any{"uuid": string(testdb.RemindersCampaign.UUID), "name": "Doctor Reminders"},
+		"point_uuid": string(testdb.RemindersPoint3.UUID),
+		"reason":     "existing_session",
+	}, skips[testdb.Ann.UUID][0])
+
 	// check we recorded recent triggers for this event
 	assertvk.Keys(t, vc, "recent_campaign_fires:*", []string{"recent_campaign_fires:10002"})
-	assertvk.ZRange(t, vc, "recent_campaign_fires:10002", 0, -1, []string{"wrXq9q//T/|10001", "jrMHV0HyTS|10003"})
+	assertvk.ZRange(t, vc, "recent_campaign_fires:10002", 0, -1, []string{"wrXq9q//T/|10001", "jrMHV0HyTS|10000|skipped", "fXuirt6AsF|10003"})
 
 	// create task for event #2 (single message, start mode PASSIVE)
 	task = &tasks.BulkCampaignTrigger{
@@ -66,8 +78,8 @@ func TestBulkCampaignTrigger(t *testing.T) {
 
 	// check we recorded recent triggers for this event
 	assertvk.Keys(t, vc, "recent_campaign_fires:*", []string{"recent_campaign_fires:10001", "recent_campaign_fires:10002"})
-	assertvk.ZRange(t, vc, "recent_campaign_fires:10001", 0, -1, []string{"fXuirt6AsF|10000", "pMNVFZUfmz|10001", "8+iThNZAa4|10003"})
-	assertvk.ZRange(t, vc, "recent_campaign_fires:10002", 0, -1, []string{"wrXq9q//T/|10001", "jrMHV0HyTS|10003"})
+	assertvk.ZRange(t, vc, "recent_campaign_fires:10001", 0, -1, []string{"pMNVFZUfmz|10001", "8+iThNZAa4|10000", "FKijgYoWRm|10003"})
+	assertvk.ZRange(t, vc, "recent_campaign_fires:10002", 0, -1, []string{"wrXq9q//T/|10001", "jrMHV0HyTS|10000|skipped", "fXuirt6AsF|10003"})
 
 	// create task for event #1 (Favorites, start mode INTERRUPT)
 	task = &tasks.BulkCampaignTrigger{
@@ -157,6 +169,9 @@ func TestBulkCampaignTriggerModes(t *testing.T) {
 	// no sessions were interrupted (skip mode doesn't interrupt)
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE status = 'I'`).Returns(0)
 
+	// skipped contacts have that recorded in their history
+	assertCampaignSkips(t, rt, map[core.ContactUUID]int{testdb.Ann.UUID: 1, testdb.Bob.UUID: 1})
+
 	// 2. background mode with message point (#2) - sends to all regardless of session state
 	task = &tasks.BulkCampaignTrigger{
 		PointID:     testdb.RemindersPoint2.ID,
@@ -190,6 +205,7 @@ func TestBulkCampaignTriggerModes(t *testing.T) {
 	// all 4 contacts have sessions so all should be skipped - no new messages
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE text LIKE 'Hi %, it is time to consult%'`).Returns(4)
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE status = 'I'`).Returns(0)
+	assertCampaignSkips(t, rt, map[core.ContactUUID]int{testdb.Ann.UUID: 1, testdb.Bob.UUID: 1, testdb.Cat.UUID: 1, testdb.Dan.UUID: 1})
 
 	// 4. change point #2 to interrupt mode and fire - sessions interrupted, all get messages
 	rt.DB.MustExec(`UPDATE campaigns_campaignevent SET start_mode = 'I' WHERE id = $1`, testdb.RemindersPoint2.ID)
@@ -209,4 +225,71 @@ func TestBulkCampaignTriggerModes(t *testing.T) {
 
 	// all previous sessions should have been interrupted
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE status = 'I'`).Returns(4)
+}
+
+// getCampaignSkips returns and clears the campaign_skipped events in contact histories, minus their base fields
+func getCampaignSkips(t *testing.T, rt *runtime.Runtime) map[core.ContactUUID][]map[string]any {
+	t.Helper()
+
+	skips := make(map[core.ContactUUID][]map[string]any)
+	for _, item := range testsuite.GetHistoryItems(t, rt, true, time.Time{}) {
+		data, err := item.GetData()
+		assert.NoError(t, err)
+
+		if data["type"] == "campaign_skipped" {
+			delete(data, "type")
+			delete(data, "created_on")
+			contactUUID := core.ContactUUID(item.PK[4:]) // trim off con#
+			skips[contactUUID] = append(skips[contactUUID], data)
+		}
+	}
+	return skips
+}
+
+func assertCampaignSkips(t *testing.T, rt *runtime.Runtime, expected map[core.ContactUUID]int) {
+	t.Helper()
+
+	actual := make(map[core.ContactUUID]int)
+	for contactUUID, skips := range getCampaignSkips(t, rt) {
+		actual[contactUUID] = len(skips)
+	}
+	assert.Equal(t, expected, actual)
+}
+
+func TestBulkCampaignTriggerVoice(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	vc := rt.VK.Get()
+	defer vc.Close()
+
+	// make point #3 (start mode SKIP) start the IVR flow
+	rt.DB.MustExec(`UPDATE campaigns_campaignevent SET flow_id = $2 WHERE id = $1`, testdb.RemindersPoint3.ID, testdb.IVRFlow.ID)
+
+	// Ann is already in a flow, Bob isn't
+	testdb.InsertWaitingSession(t, rt, testdb.Org1, testdb.Ann, models.FlowTypeMessaging, nil, testdb.Favorites)
+
+	oa := testdb.Org1.Load(t, rt)
+
+	task := &tasks.BulkCampaignTrigger{
+		PointID:     testdb.RemindersPoint3.ID,
+		FireVersion: 1,
+		ContactIDs:  []models.ContactID{testdb.Ann.ID, testdb.Bob.ID},
+	}
+	err := task.Perform(ctx, rt, oa, testTaskID)
+	assert.NoError(t, err)
+
+	// Bob gets a call created, Ann doesn't - but no IVR service is registered in tests so Bob's request fails
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM ivr_call WHERE contact_id = $1`, testdb.Ann.ID).Returns(0)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM ivr_call WHERE contact_id = $1`, testdb.Bob.ID).Returns(1)
+
+	// Ann's skip is recorded in her history and the recent fires
+	assertCampaignSkips(t, rt, map[core.ContactUUID]int{testdb.Ann.UUID: 1})
+
+	recent, err := vc.Do("ZRANGE", "recent_campaign_fires:10002", 0, -1)
+	assert.NoError(t, err)
+	members := make([]string, 0, 1)
+	for _, m := range recent.([]any) {
+		members = append(members, string(m.([]byte))[11:]) // trim off random prefix
+	}
+	assert.Equal(t, []string{"10000|skipped"}, members)
 }

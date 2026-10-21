@@ -10,8 +10,9 @@ import (
 	"github.com/nyaruka/mailroom/v26/runtime"
 )
 
-// BroadcastWithLock sends out a broadcast to all contacts in the provided batch
-func BroadcastWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, broadcast *models.Broadcast, batch *models.BroadcastBatch, mode models.StartMode) ([]*Scene, []models.ContactID, error) {
+// BroadcastWithLock sends out a broadcast to all contacts in the provided batch. If skipEvent is provided, contacts
+// skipped because of the start mode get that event added to their history.
+func BroadcastWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, broadcast *models.Broadcast, batch *models.BroadcastBatch, mode models.StartMode, skipEvent EventBuilder) ([]*Scene, []models.ContactID, error) {
 	scenes, skipped, unlock, err := LockAndLoad(ctx, rt, oa, batch.ContactIDs, nil, time.Minute)
 	if err != nil {
 		return nil, nil, err
@@ -40,6 +41,9 @@ func BroadcastWithLock(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 		}
 
 		if mode == models.StartModeSkip && scene.DBContact.CurrentSessionUUID() != "" {
+			if err := addSkipEvent(ctx, rt, oa, scene, skipEvent); err != nil {
+				return nil, nil, err
+			}
 			continue
 		}
 
