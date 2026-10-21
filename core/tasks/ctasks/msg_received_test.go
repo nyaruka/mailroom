@@ -285,6 +285,18 @@ func TestMsgReceivedTask(t *testing.T) {
 			contact: testdb.Ann,
 			text:    "start",
 		},
+		{ // 24: contact waiting in a flow which doesn't ignore triggers but has open ticket so flow is resumed
+			preHook: func() {
+				openTickets[testdb.Cat] = append(openTickets[testdb.Cat], testdb.InsertOpenTicket(t, rt, "01992f54-5ab6-7b2d-8c6f-4e7a1f2d3c5b", testdb.Org1, testdb.Cat, testdb.DefaultTopic, time.Now(), nil))
+			},
+			org:                 testdb.Org1,
+			channel:             testdb.TwilioChannel,
+			contact:             testdb.Cat,
+			text:                "start",
+			expectedReplyText:   "I don't know that color. Try again.",
+			expectedReplyStatus: models.MsgStatusQueued,
+			expectedFlow:        testdb.Favorites,
+		},
 	}
 
 	makeMsgTask := func(channel *testdb.Channel, contact *testdb.Contact, text string) ctasks.Task {
@@ -374,7 +386,7 @@ func TestMsgReceivedTask(t *testing.T) {
 
 	// check messages queued to courier
 	testsuite.AssertCourierQueues(t, rt, map[string][]int{
-		fmt.Sprintf("msgs:%s|10/1", testdb.TwilioChannel.UUID): {1, 1, 1, 1, 1, 1},
+		fmt.Sprintf("msgs:%s|10/1", testdb.TwilioChannel.UUID): {1, 1, 1, 1, 1, 1, 1},
 		fmt.Sprintf("msgs:%s|10/1", testdb.Org2Channel.UUID):   {1, 1, 1, 1, 1, 1, 1, 1, 1},
 	})
 
@@ -425,9 +437,7 @@ func TestMsgReceivedTask(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE contact_id = $1 AND direction = 'O' AND created_on > $2`, testdb.Org2Contact.ID, previous).Returns(0)
 
 	// catch all trigger should be ignored if contact has an open ticket
-	org2Topic := &testdb.Topic{}
-	require.NoError(t, rt.DB.QueryRow(`SELECT id, uuid FROM tickets_topic WHERE org_id = $1 AND is_default`, testdb.Org2.ID).Scan(&org2Topic.ID, &org2Topic.UUID))
-	testdb.InsertOpenTicket(t, rt, "01992f54-5ab6-7a1c-9b5e-3d6f0e1c2b4a", testdb.Org2, testdb.Org2Contact, org2Topic, time.Now(), nil)
+	testdb.InsertOpenTicket(t, rt, "01992f54-5ab6-7a1c-9b5e-3d6f0e1c2b4a", testdb.Org2, testdb.Org2Contact, testdb.Org2DefaultTopic, time.Now(), nil)
 	models.FlushCache()
 
 	tasks.QueueContact(ctx, rt, testdb.Org2.ID, testdb.Org2Contact.ID, makeMsgTask(testdb.Org2Channel, testdb.Org2Contact, "blargh"))
