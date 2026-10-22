@@ -1,3 +1,6 @@
+## v26.3.106 (2026-10-22)
+ * Close inactive tickets via per-ticket contact fires using each workspace's idle limit
+
 ## v26.3.105 (2026-10-22)
  * Add ticket_triggers org feature to let triggers fire for contacts with open tickets
 
