@@ -131,16 +131,17 @@ const (
 // Org is mailroom's type for RapidPro orgs. It also implements the envs.Environment interface for GoFlow
 type Org struct {
 	o struct {
-		UUID            OrgUUID        `json:"uuid"`
-		ID              OrgID          `json:"id"`
-		ParentID        OrgID          `json:"parent_id"`
-		Name            string         `json:"name"`
-		Suspended       bool           `json:"is_suspended"`
-		Features        []string       `json:"features"`
-		FlowSMTP        null.String    `json:"flow_smtp"`
-		PrometheusToken null.String    `json:"prometheus_token"`
-		Config          map[string]any `json:"config"`
-		Limits          map[string]int `json:"limits"`
+		UUID              OrgUUID        `json:"uuid"`
+		ID                OrgID          `json:"id"`
+		ParentID          OrgID          `json:"parent_id"`
+		Name              string         `json:"name"`
+		Suspended         bool           `json:"is_suspended"`
+		Features          []string       `json:"features"`
+		FlowSMTP          null.String    `json:"flow_smtp"`
+		PrometheusToken   null.String    `json:"prometheus_token"`
+		Config            map[string]any `json:"config"`
+		Limits            map[string]int `json:"limits"`
+		MaxTicketIdleDays int            `json:"max_ticket_idle_days"`
 	}
 	env envs.Environment
 }
@@ -186,6 +187,10 @@ func (o *Org) ContactLimit() int {
 	}
 	return NoLimit
 }
+
+// MaxTicketIdleDays returns the number of days an open ticket can go without activity before it's closed
+// automatically, zero meaning never
+func (o *Org) MaxTicketIdleDays() int { return o.o.MaxTicketIdleDays }
 
 // FlowSMTP provides custom SMTP settings for flow sessions
 func (o *Org) FlowSMTP() string { return string(o.o.FlowSMTP) }
@@ -324,6 +329,7 @@ SELECT ROW_TO_JSON(o) FROM (SELECT
 	prometheus_token,
 	o.config AS config,
 	o.limits AS limits,
+	max_ticket_idle_days,
 	(SELECT CASE date_format WHEN 'D' THEN 'DD-MM-YYYY' WHEN 'M' THEN 'MM-DD-YYYY' ELSE 'YYYY-MM-DD' END) AS date_format, 
 	'tt:mm' AS time_format,
 	timezone,

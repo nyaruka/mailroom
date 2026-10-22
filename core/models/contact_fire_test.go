@@ -143,3 +143,38 @@ func TestCampaignContactFires(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT COUNT(*) FROM contacts_contactfire WHERE contact_id = $1`, testdb.Bob.ID).Returns(2)
 	assertdb.Query(t, rt.DB, `SELECT COUNT(*) FROM contacts_contactfire WHERE contact_id = $1`, testdb.Cat.ID).Returns(2)
 }
+
+func TestTicketCloseFires(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	ticket1 := &models.Ticket{UUID: "01992f54-5ab6-717a-a39e-e8ca91fb7262", OrgID: testdb.Org1.ID, ContactID: testdb.Ann.ID}
+	ticket2 := &models.Ticket{UUID: "01992f54-5ab6-725e-be9c-0c6407efd755", OrgID: testdb.Org1.ID, ContactID: testdb.Bob.ID}
+
+	err := models.UpsertTicketCloseFires(ctx, rt.DB, 7, []*models.Ticket{ticket1, ticket2})
+	assert.NoError(t, err)
+
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contactfire WHERE fire_type = 'K' AND fire_on BETWEEN NOW() + INTERVAL '7 days 59 minutes' AND NOW() + INTERVAL '7 days 1 hour'`).Returns(2)
+	assertdb.Query(t, rt.DB, `SELECT scope FROM contacts_contactfire WHERE contact_id = $1`, testdb.Ann.ID).Returns(string(ticket1.UUID))
+
+	// fires that are still at least the limit away aren't updated
+	rt.DB.MustExec(`UPDATE contacts_contactfire SET fire_on = NOW() + INTERVAL '7 days 30 minutes' WHERE contact_id = $1`, testdb.Ann.ID)
+	rt.DB.MustExec(`UPDATE contacts_contactfire SET fire_on = NOW() + INTERVAL '6 days' WHERE contact_id = $1`, testdb.Bob.ID)
+
+	err = models.UpsertTicketCloseFires(ctx, rt.DB, 7, []*models.Ticket{ticket1, ticket2})
+	assert.NoError(t, err)
+
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_on < NOW() + INTERVAL '7 days 31 minutes'`, testdb.Ann.ID).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_on > NOW() + INTERVAL '7 days 59 minutes'`, testdb.Bob.ID).Returns(1)
+
+	// reinserting a fire which already exists is a noop
+	err = models.InsertContactFires(ctx, rt.DB, []*models.ContactFire{models.NewContactFireForTicketClose(testdb.Org1.ID, testdb.Ann.ID, ticket1.UUID, time.Now())})
+	assert.NoError(t, err)
+
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contactfire WHERE fire_type = 'K'`).Returns(2)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_on > NOW() + INTERVAL '7 days'`, testdb.Ann.ID).Returns(1)
+
+	err = models.DeleteTicketCloseFires(ctx, rt.DB, []*models.Ticket{ticket1})
+	assert.NoError(t, err)
+
+	assertdb.Query(t, rt.DB, `SELECT contact_id FROM contacts_contactfire WHERE fire_type = 'K'`).Returns(int64(testdb.Bob.ID))
+}

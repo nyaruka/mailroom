@@ -41,6 +41,10 @@
             {
                 "query": "SELECT count(*) FROM tickets_ticket WHERE status = 'C'",
                 "returns": 2
+            },
+            {
+                "query": "SELECT scope FROM contacts_contactfire WHERE fire_type = 'K'",
+                "returns": "01992f54-5ab6-725e-be9c-0c6407efd755"
             }
         ],
         "expected_tasks": {

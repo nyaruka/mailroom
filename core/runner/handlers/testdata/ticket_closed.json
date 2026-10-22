@@ -15,6 +15,10 @@
             {
                 "query": "SELECT count(*) FROM tickets_ticket WHERE uuid = '01992f54-5ab6-717a-a39e-e8ca91fb7262' AND status = 'C' AND last_activity_on \u003e '2025-01-01T12:00:00Z'",
                 "returns": 1
+            },
+            {
+                "query": "SELECT scope FROM contacts_contactfire WHERE fire_type = 'K'",
+                "returns": "01992f54-5ab6-725e-be9c-0c6407efd755"
             }
         ],
         "expected_tasks": {
@@ -59,6 +63,10 @@
             {
                 "query": "SELECT count(*) FROM tickets_ticket WHERE uuid = '01992f54-5ab6-725e-be9c-0c6407efd755' AND status = 'C' AND last_activity_on = '2025-01-01T12:00:00Z'",
                 "returns": 1
+            },
+            {
+                "query": "SELECT count(*) FROM contacts_contactfire WHERE fire_type = 'K'",
+                "returns": 0
             }
         ],
         "expected_tasks": {

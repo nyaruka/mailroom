@@ -60,6 +60,10 @@
                 }
             },
             {
+                "query": "SELECT scope FROM contacts_contactfire WHERE fire_type = 'K' AND fire_on \u003e NOW() + INTERVAL '30 days 59 minutes'",
+                "returns": "01992f54-5ab6-717a-a39e-e8ca91fb7262"
+            },
+            {
                 "query": "SELECT scope, SUM(count)::int FROM orgs_dailycount GROUP BY 1",
                 "map": {
                     "msgs:ticketreplies:10001:5": 1,
