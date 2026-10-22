@@ -1,3 +1,6 @@
+## v26.3.108 (2026-10-22)
+ * Classify with OpenAI's Decisions API for models which support it
+
 ## v26.3.107 (2026-10-22)
  * Remove polling auto-close of inactive tickets
 
