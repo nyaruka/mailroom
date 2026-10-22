@@ -1,3 +1,6 @@
+## v26.3.105 (2026-10-22)
+ * Add ticket_triggers org feature to let triggers fire for contacts with open tickets
+
 ## v26.3.104 (2026-10-21)
  * Default TicketMaxIdleDays to 30
 
