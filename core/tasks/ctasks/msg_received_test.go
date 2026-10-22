@@ -399,6 +399,8 @@ func TestMsgReceivedTask(t *testing.T) {
 		last = time.Now()
 	}
 
+	rt.DB.MustExec(`UPDATE orgs_org SET features = '{}' WHERE id = $1`, testdb.Org1.ID)
+
 	// check messages queued to courier
 	testsuite.AssertCourierQueues(t, rt, map[string][]int{
 		fmt.Sprintf("msgs:%s|10/1", testdb.TwilioChannel.UUID): {1, 1, 1, 1, 1, 1, 1, 1},
@@ -461,6 +463,17 @@ func TestMsgReceivedTask(t *testing.T) {
 	assert.NoError(t, err)
 
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE contact_id = $1 AND direction = 'O' AND created_on > $2`, testdb.Org2Contact.ID, previous).Returns(0)
+
+	// unless the org has the ticket triggers feature
+	rt.DB.MustExec(`UPDATE orgs_org SET features = '{"ticket_triggers"}' WHERE id = $1`, testdb.Org2.ID)
+	models.FlushCache()
+
+	tasks.QueueContact(ctx, rt, testdb.Org2.ID, testdb.Org2Contact.ID, makeMsgTask(testdb.Org2Channel, testdb.Org2Contact, "blargh"))
+	task, _ = rt.Queues.Realtime.Pop(ctx, vc)
+	err = tasks.Perform(ctx, rt, task)
+	assert.NoError(t, err)
+
+	assertdb.Query(t, rt.DB, `SELECT text FROM msgs_msg WHERE contact_id = $1 AND direction = 'O' AND created_on > $2`, testdb.Org2Contact.ID, previous).Returns("Hey, how are you?")
 }
 
 func TestMsgReceivedNewURN(t *testing.T) {
