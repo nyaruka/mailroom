@@ -123,6 +123,9 @@ func (e *LimitReachedError) Error() string {
 const (
 	// FeatureUnrestrictedWebhooks allows an org's flows to call webhook URLs which are otherwise blocked
 	FeatureUnrestrictedWebhooks = "unrestricted_webhooks"
+
+	// FeatureTicketTriggers allows triggers to fire for contacts with open tickets
+	FeatureTicketTriggers = "ticket_triggers"
 )
 
 // Org is mailroom's type for RapidPro orgs. It also implements the envs.Environment interface for GoFlow
