@@ -207,6 +207,9 @@ func TestQueueMessagesOutsideWindow(t *testing.T) {
 	seenLongAgo.URN = "whatsapp:16055745555"
 	seenLongAgo.URNID = testdb.InsertContactURN(t, rt, testdb.Org1, seenLongAgo, seenLongAgo.URN, 1000, nil)
 	seenRecently := testdb.InsertContact(t, rt, testdb.Org1, "2a5e6c8f-9a12-4b0e-8c3d-5f7a1b2c3d44", "Recent", "eng", models.ContactStatusActive)
+	seenNearEdge := testdb.InsertContact(t, rt, testdb.Org1, "7b3c9d1e-5f2a-4e8b-9c0d-1a2b3c4d5e77", "Edge", "eng", models.ContactStatusActive)
+	seenNearEdge.URN = "whatsapp:16055747777"
+	seenNearEdge.URNID = testdb.InsertContactURN(t, rt, testdb.Org1, seenNearEdge, seenNearEdge.URN, 1000, nil)
 	seenRecently.URN = "whatsapp:16055746666"
 	seenRecently.URNID = testdb.InsertContactURN(t, rt, testdb.Org1, seenRecently, seenRecently.URN, 1000, nil)
 	testdb.InsertContactURN(t, rt, testdb.Org1, seenRecently, "tel:+16055746666", 999, nil)
@@ -215,9 +218,15 @@ func TestQueueMessagesOutsideWindow(t *testing.T) {
 	in1 := testdb.InsertIncomingMsg(t, rt, testdb.Org1, testdb.MsgUUIDAt(now.Add(-2*time.Hour)), wac2, seenRecently, "hi", models.MsgStatusHandled, "")
 	testdb.InsertIncomingMsg(t, rt, testdb.Org1, testdb.MsgUUIDAt(now.Add(-25*time.Hour)), wac1, seenRecently, "hi", models.MsgStatusHandled, "")
 
+	// the near edge contact messaged us on the first channel 23.5 hours ago, so the window is still open but inside
+	// the safety margin
+	testdb.InsertIncomingMsg(t, rt, testdb.Org1, testdb.MsgUUIDAt(now.Add(-23*time.Hour-30*time.Minute)), wac1, seenNearEdge, "hi", models.MsgStatusHandled, "")
+
 	never, _, neverURNs := neverSeen.Load(t, rt, oa)
 	longAgo, _, longAgoURNs := seenLongAgo.Load(t, rt, oa)
 	recent, _, recentURNs := seenRecently.Load(t, rt, oa)
+	nearEdge, _, nearEdgeURNs := seenNearEdge.Load(t, rt, oa)
+	require.NoError(t, nearEdge.UpdateLastSeenOn(ctx, rt.DB, now.Add(-23*time.Hour-30*time.Minute)))
 	require.NoError(t, longAgo.UpdateLastSeenOn(ctx, rt.DB, now.Add(-25*time.Hour)))
 	require.NoError(t, recent.UpdateLastSeenOn(ctx, rt.DB, now.Add(-2*time.Hour)))
 
@@ -251,6 +260,7 @@ func TestQueueMessagesOutsideWindow(t *testing.T) {
 		{"contact last seen 2 hours ago, incoming on this channel 2 hours ago", newFlowMsg(wac2, recent, recentURNs[0], nil, nil), false},
 		{"contact last seen 2 hours ago, incoming on this channel 25 hours ago", newFlowMsg(wac1, recent, recentURNs[0], nil, nil), true},
 		{"contact last seen 2 hours ago, no incoming on this channel", newFlowMsg(d3c, recent, recentURNs[0], nil, nil), true},
+		{"contact last seen 23.5 hours ago, incoming on this channel 23.5 hours ago", newFlowMsg(wac1, nearEdge, nearEdgeURNs[0], nil, nil), true},
 		{"reply to incoming message", newFlowMsg(wac1, never, neverURNs[0], nil, &models.MsgInRef{UUID: in1.UUID, ExtID: "EX123"}), false},
 		{"templated message", newFlowMsg(wac1, never, neverURNs[0], templating, nil), false},
 		{"chat message", chatMsg, false},
@@ -292,4 +302,21 @@ func TestQueueMessagesOutsideWindow(t *testing.T) {
 		require.Contains(t, queued, tc.msg.UUID(), "message not queued for '%s'", tc.description)
 		assert.Equal(t, tc.expected, queued[tc.msg.UUID()].OutsideWindow, "queued outside window mismatch for '%s'", tc.description)
 	}
+
+	// a retried message is rebuilt without its reply-to, so a reply to a contact with no recent incoming message on
+	// the channel is outside the window when retried
+	reply := tests[7].msg
+	require.NotNil(t, reply.ReplyTo)
+	rt.DB.MustExec(`UPDATE msgs_msg SET status = 'E', error_count = 1, next_attempt = $2 WHERE id = $1`, reply.ID(), now)
+
+	toRetry, err := models.GetMessagesForRetry(ctx, rt.DB)
+	require.NoError(t, err)
+	retries, err := models.PrepareMessagesForRetry(ctx, rt.DB, toRetry)
+	require.NoError(t, err)
+	require.Len(t, retries, 1)
+	assert.Equal(t, reply.UUID(), retries[0].UUID())
+
+	msgio.QueueMessages(ctx, rt, retries)
+
+	assert.True(t, retries[0].OutsideWindow)
 }

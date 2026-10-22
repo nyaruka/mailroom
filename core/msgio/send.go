@@ -131,9 +131,15 @@ func tryToQueueForOrg(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAs
 	return queued
 }
 
-// customerServiceWindow is how long after a contact's last incoming message that a WhatsApp channel can send them
-// free-form messages
-const customerServiceWindow = 24 * time.Hour
+const (
+	// customerServiceWindow is how long after a contact's last incoming message that a WhatsApp channel can send them
+	// free-form messages
+	customerServiceWindow = 24 * time.Hour
+
+	// customerServiceWindowMargin is how long before the window closes that we treat it as closed, since a message can
+	// wait in a channel's queue for a while before it's actually sent
+	customerServiceWindowMargin = time.Hour
+)
 
 // flagOutsideWindow sets OutsideWindow on the flow messages to WhatsApp Cloud API style channels whose contact hasn't
 // sent an incoming message on that channel within the customer service window. Only free-form (non-templated) flow
@@ -160,7 +166,7 @@ func flagOutsideWindow(ctx context.Context, rt *runtime.Runtime, msgs map[contac
 			continue
 		}
 		if since.IsZero() {
-			since = dates.Now().Add(-customerServiceWindow)
+			since = dates.Now().Add(-(customerServiceWindow - customerServiceWindowMargin))
 		}
 
 		// last seen on is updated by messages, channel events and calls on any channel, so if it's not recent then
