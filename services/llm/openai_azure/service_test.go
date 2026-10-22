@@ -19,14 +19,16 @@ func TestService(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
 	bad := testdb.InsertLLM(t, rt, testdb.Org1, "c69723d8-fb37-4cf6-9ec4-bc40cb36f2cc", "openai_azure", "gpt-4", "Bad Config", map[string]any{}, "TGC")
-	good := testdb.InsertLLM(t, rt, testdb.Org1, "b86966fd-206e-4bdd-a962-06faa3af1182", "openai_azure", "gpt-4", "Good", map[string]any{"endpoint": "http://azure.com/ai", "api_key": "sesame"}, "TGC")
+	insecure := testdb.InsertLLM(t, rt, testdb.Org1, "3f0c1b0e-7a52-4d1e-9a6b-0b4f6a2c8d11", "openai_azure", "gpt-4", "Insecure", map[string]any{"endpoint": "http://azure.com/ai", "api_key": "sesame"}, "TGC")
+	good := testdb.InsertLLM(t, rt, testdb.Org1, "b86966fd-206e-4bdd-a962-06faa3af1182", "openai_azure", "gpt-4", "Good", map[string]any{"endpoint": "https://azure.com/ai", "api_key": "sesame"}, "TGC")
 
 	oa := testdb.Org1.Load(t, rt)
 	badLLM := oa.LLMByID(bad.ID)
+	insecureLLM := oa.LLMByID(insecure.ID)
 	goodLLM := oa.LLMByID(good.ID)
 
 	client, _ := test.MockedHTTP(map[string][]*httpx.MockResponse{
-		"http://azure.com/ai/openai/deployments/gpt-4/chat/completions?api-version=2025-03-01-preview": {
+		"https://azure.com/ai/openai/deployments/gpt-4/chat/completions?api-version=2025-03-01-preview": {
 			httpx.NewMockResponse(401, map[string]string{"Content-type": "application/json"}, []byte(`{"message": "Incorrect API key provided", "type": "invalid_request_error", "param": null, "code": "invalid_api_key"}`)),
 			httpx.NewMockResponse(429, map[string]string{"Content-type": "application/json"}, []byte(`{"message": "Rate limit reached for your model", "type": "requests", "param": null, "code": "rate_limit_exceeded"}`)),
 			httpx.NewMockResponse(429, map[string]string{"Content-type": "application/json"}, []byte(`{"message": "Rate limit reached for your model", "type": "requests", "param": null, "code": "rate_limit_exceeded"}`)),
@@ -37,6 +39,10 @@ func TestService(t *testing.T) {
 	// can't create service with bad config
 	svc, err := openai_azure.New(rt, badLLM, client)
 	assert.EqualError(t, err, "config incomplete for LLM: c69723d8-fb37-4cf6-9ec4-bc40cb36f2cc")
+	assert.Nil(t, svc)
+
+	svc, err = openai_azure.New(rt, insecureLLM, client)
+	assert.EqualError(t, err, "endpoint must use HTTPS for LLM: 3f0c1b0e-7a52-4d1e-9a6b-0b4f6a2c8d11")
 	assert.Nil(t, svc)
 
 	svc, err = openai_azure.New(rt, goodLLM, client)
@@ -62,7 +68,7 @@ func TestService(t *testing.T) {
 func TestClassify(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	llm := testdb.InsertLLM(t, rt, testdb.Org1, "b86966fd-206e-4bdd-a962-06faa3af1182", "openai_azure", "gpt-4", "Good", map[string]any{"api_key": "sesame", "endpoint": "http://azure.com/ai"}, "TGC")
+	llm := testdb.InsertLLM(t, rt, testdb.Org1, "b86966fd-206e-4bdd-a962-06faa3af1182", "openai_azure", "gpt-4", "Good", map[string]any{"api_key": "sesame", "endpoint": "https://azure.com/ai"}, "TGC")
 	oa := testdb.Org1.Load(t, rt)
 
 	mkResp := func(content, logprobs, finishReason string) *httpx.MockResponse {
@@ -70,7 +76,7 @@ func TestClassify(t *testing.T) {
 	}
 
 	client, mocks := test.MockedHTTP(map[string][]*httpx.MockResponse{
-		"http://azure.com/ai/openai/deployments/gpt-4/chat/completions?api-version=2025-03-01-preview": {
+		"https://azure.com/ai/openai/deployments/gpt-4/chat/completions?api-version=2025-03-01-preview": {
 			mkResp("Hotels", `{"content":[{"token":"Hot","logprob":-0.1,"bytes":null,"top_logprobs":[]},{"token":"els","logprob":-0.05,"bytes":null,"top_logprobs":[]}],"refusal":null}`, "stop"),
 			mkResp("<CANT>", `null`, "stop"),
 			mkResp("", `null`, "length"),

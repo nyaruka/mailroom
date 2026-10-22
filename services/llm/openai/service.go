@@ -85,6 +85,11 @@ func (s *service) Response(ctx context.Context, instructions, input string, maxT
 }
 
 func (s *service) Classify(ctx context.Context, input string, options []*core.ClassifierOption) (*core.Classification, error) {
+	// checked first so that a decision model's entry in reasoningEfforts only applies to its other uses
+	if decisionModels[s.model] {
+		return s.classifyByDecision(ctx, input, options)
+	}
+
 	// models which are reasoning can't provide logprobs
 	if effort := reasoningEffort(s.model); effort != shared.ReasoningEffortNone && effort != reasoningEffortOmit {
 		return ai.ClassifyByPrompt(ctx, s, input, options)
