@@ -43,7 +43,6 @@ type Config struct {
 	WorkerOwnerLimit float64 `help:"the maximum number of workers, across nodes, available to a single owner, as a fraction of the per node worker counts"`
 
 	DefaultContactLimit int `help:"the maximum number of contacts a workspace can have, when not set on the workspace itself, zero means no limit"`
-	TicketMaxIdleDays   int `help:"the number of days an open ticket can go without activity before it's closed automatically, zero means never"`
 
 	WebhooksTimeout              int      `help:"the timeout in milliseconds for webhook calls from engine"`
 	WebhooksMaxRetries           int      `help:"the number of times to retry a failed webhook call"`
@@ -126,7 +125,6 @@ func NewDefaultConfig() *Config {
 		WorkerOwnerLimit: 0.5,
 
 		DefaultContactLimit: 10_000_000,
-		TicketMaxIdleDays:   30,
 
 		WebhooksTimeout:              15000,
 		WebhooksMaxBodyBytes:         256 * 1024, // 256 KiB
