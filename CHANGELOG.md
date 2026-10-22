@@ -1,3 +1,6 @@
+## v26.3.107 (2026-10-22)
+ * Remove polling auto-close of inactive tickets
+
 ## v26.3.106 (2026-10-22)
  * Close inactive tickets via per-ticket contact fires using each workspace's idle limit
 
