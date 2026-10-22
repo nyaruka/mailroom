@@ -176,11 +176,16 @@ func TestClassifyByDecision(t *testing.T) {
 	client, mocks := test.MockedHTTP(map[string][]*httpx.MockResponse{
 		"https://api.openai.com/v1/decisions": {
 			httpx.NewMockResponse(401, map[string]string{"Content-type": "application/json"}, []byte(`{"message": "Incorrect API key provided", "type": "invalid_request_error", "param": null, "code": "invalid_api_key"}`)),
-			mkResp(`{"type":"choice","name":"option","choice":"Hotels","confidence":0.8,"probabilities":[{"value":"Hotels","probability":0.8},{"value":"Flights","probability":0.2}]}`),
+			httpx.NewMockResponse(429, map[string]string{"Content-type": "application/json"}, []byte(`{"message": "Rate limit reached for your model", "type": "requests", "param": null, "code": "rate_limit_exceeded"}`)),
+			httpx.NewMockResponse(429, map[string]string{"Content-type": "application/json"}, []byte(`{"message": "Rate limit reached for your model", "type": "requests", "param": null, "code": "rate_limit_exceeded"}`)),
+			httpx.NewMockResponse(429, map[string]string{"Content-type": "application/json"}, []byte(`{"message": "Rate limit reached for your model", "type": "requests", "param": null, "code": "rate_limit_exceeded"}`)),
+			mkResp(`{"type":"choice","name":"option","choice":"Hotels","confidence":0.8,"probabilities":[{"value":"Hotels","probability":0.8},{"value":"Trains","probability":0.2}]}`),
 			mkResp(`{"type":"predicate","name":"option","probability":0.95}`),
-			mkResp(`{"type":"predicate","name":"option","probability":0.1}`),
+			mkResp(`{"type":"predicate","name":"option","probability":0.5}`),
+			mkResp(`{"type":"predicate","name":"option","probability":0.45}`),
 			mkResp(`{"type":"refusal","name":"option"}`),
 			mkResp(`{"type":"choice","name":"option","choice":"Trains","confidence":0.8,"probabilities":[{"value":"Trains","probability":0.8}]}`),
+			mkResp(`{"type":"score","name":"option","score":3,"confidence":0.8,"probabilities":[]}`),
 		},
 	})
 
@@ -189,37 +194,49 @@ func TestClassifyByDecision(t *testing.T) {
 
 	options := []*core.ClassifierOption{{Name: "Flights"}, {Name: "Hotels", Description: "Places to stay"}}
 
-	_, err = svc.Classify(ctx, "I need a room", options)
-	var serr *ai.ServiceError
-	if assert.ErrorAs(t, err, &serr) {
-		assert.Equal(t, ai.ErrorCredentials, serr.Code)
+	assertServiceError := func(err error, code, msg string) {
+		t.Helper()
+		var serr *ai.ServiceError
+		if assert.ErrorAs(t, err, &serr) {
+			assert.Equal(t, code, serr.Code)
+			assert.Equal(t, msg, serr.Message)
+		}
 	}
 
+	_, err = svc.Classify(ctx, "I need a room", options)
+	assertServiceError(err, ai.ErrorCredentials, "OpenAI API error: 401 Unauthorized")
+
+	_, err = svc.Classify(ctx, "I need a room", options)
+	assertServiceError(err, ai.ErrorRateLimit, "OpenAI API error: 429 Too Many Requests")
+
+	// probabilities are keyed by exactly the option names
 	cls, err := svc.Classify(ctx, "I need a room", options)
 	require.NoError(t, err)
 	assert.Equal(t, &core.Classification{
 		Option:        "Hotels",
 		Confidence:    core.ClassifierConfidenceMedium,
-		Probabilities: map[string]float64{"Hotels": 0.8, "Flights": 0.2},
+		Probabilities: map[string]float64{"Hotels": 0.8, "Flights": 0},
 		Tokens:        core.ModelTokens{Input: 42},
 	}, cls)
 	assert.JSONEq(t, `{
 		"model": "gpt-6-luna",
 		"input": "I need a room",
 		"questions": [{"type": "choice", "name": "option", "instructions": "Which option best fits this input?", "choices": [{"value": "Flights"}, {"value": "Hotels", "description": "Places to stay"}]}]
-	}`, requestBody(t, mocks, 1))
+	}`, requestBody(t, mocks, 4))
 
-	// a single option is asked as a predicate
+	// a single option is asked as a predicate, and a no is no confidence in it
 	cls, err = svc.Classify(ctx, "I need a room", options[1:])
 	require.NoError(t, err)
-	assert.Equal(t, "Hotels", cls.Option)
-	assert.Equal(t, core.ClassifierConfidenceHigh, cls.Confidence)
-	assert.Contains(t, requestBody(t, mocks, 2), `"instructions":"This input matches \"Hotels\" (Places to stay)."`)
+	assert.Equal(t, &core.Classification{Option: "Hotels", Confidence: core.ClassifierConfidenceHigh, Probabilities: map[string]float64{"Hotels": 0.95}, Tokens: core.ModelTokens{Input: 42}}, cls)
+	assert.Contains(t, requestBody(t, mocks, 5), `"instructions":"This input matches \"Hotels\" (Places to stay)."`)
+
+	cls, err = svc.Classify(ctx, "I need a room", options[1:])
+	require.NoError(t, err)
+	assert.Equal(t, &core.Classification{Option: "Hotels", Confidence: core.ClassifierConfidenceLow, Probabilities: map[string]float64{"Hotels": 0.5}, Tokens: core.ModelTokens{Input: 42}}, cls)
 
 	cls, err = svc.Classify(ctx, "I need a flight", options[1:])
 	require.NoError(t, err)
-	assert.Equal(t, "Hotels", cls.Option)
-	assert.Equal(t, core.ClassifierConfidenceNone, cls.Confidence)
+	assert.Equal(t, &core.Classification{Option: "Hotels", Confidence: core.ClassifierConfidenceNone, Probabilities: map[string]float64{"Hotels": 0.45}, Tokens: core.ModelTokens{Input: 42}}, cls)
 
 	// a refusal is no confidence in any option
 	cls, err = svc.Classify(ctx, "I need a room", options)
@@ -227,7 +244,10 @@ func TestClassifyByDecision(t *testing.T) {
 	assert.Equal(t, &core.Classification{Option: "Flights", Confidence: core.ClassifierConfidenceNone, Tokens: core.ModelTokens{Input: 42}}, cls)
 
 	_, err = svc.Classify(ctx, "I need a train", options)
-	assert.EqualError(t, err, "response has unknown choice: Trains")
+	assertServiceError(err, ai.ErrorUnknown, "response has unknown choice: Trains")
+
+	_, err = svc.Classify(ctx, "I need a train", options)
+	assertServiceError(err, ai.ErrorUnknown, "response has unexpected answer type: score")
 }
 
 func TestReasoningModel(t *testing.T) {

@@ -25,7 +25,7 @@ require (
 	github.com/nyaruka/goflow v0.302.0
 	github.com/nyaruka/null/v3 v3.1.0
 	github.com/nyaruka/vkutil v0.30.0
-	github.com/openai/openai-go/v3 v3.78.0
+	github.com/openai/openai-go/v3 v3.85.1
 	github.com/prometheus/client_model v0.6.2
 	github.com/prometheus/common v0.70.1
 	github.com/shopspring/decimal v1.5.0

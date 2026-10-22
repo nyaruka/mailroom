@@ -50,6 +50,11 @@ func New(rt *runtime.Runtime, m *models.LLM, c *http.Client) (flows.ModelService
 		return nil, fmt.Errorf("config incomplete for LLM: %s", m.UUID())
 	}
 
+	// the client won't send credentials over plain HTTP, so fail here rather than on every request
+	if parsedEndpoint.Scheme != "https" {
+		return nil, fmt.Errorf("endpoint must use HTTPS for LLM: %s", m.UUID())
+	}
+
 	// the azure middleware doesn't work with a endpoint that has a path so we strip that off
 	bareEndpoint := parsedEndpoint.Scheme + "://" + parsedEndpoint.Host
 	endpointPath := parsedEndpoint.Path

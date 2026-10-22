@@ -16,6 +16,10 @@ var decisionModels = map[string]bool{
 
 const decideQuestionName = "option"
 
+// the minimum probability of a predicate for it to be a yes. Below this it's a no, which is no confidence in the option
+// even if the probability would otherwise reach a confidence level.
+const predicateYesMin = 0.5
+
 // newDecideParams builds a request to classify the input. A choice question needs at least two choices, so a single
 // option is asked as a predicate instead.
 func newDecideParams(model, input string, options []*core.ClassifierOption) openai.DecisionNewParams {
@@ -85,7 +89,7 @@ func toClassification(resp *openai.Decision, options []*core.ClassifierOption) (
 	case openai.DecisionAnswerPredicate:
 		// a no is no confidence in the only option, so that flows route it to none
 		cls.Probabilities = map[string]float64{options[0].Name: ans.Probability}
-		if ans.Probability >= 0.5 {
+		if ans.Probability >= predicateYesMin {
 			cls.Confidence = ai.ConfidenceLevel(ans.Probability)
 		}
 	case openai.DecisionAnswerChoice:
@@ -100,9 +104,15 @@ func toClassification(resp *openai.Decision, options []*core.ClassifierOption) (
 
 		cls.Option = choice
 		cls.Confidence = ai.ConfidenceLevel(ans.Confidence)
-		cls.Probabilities = make(map[string]float64, len(ans.Probabilities))
+		// keyed by exactly the option names, like the other classify paths
+		cls.Probabilities = make(map[string]float64, len(options))
+		for _, o := range options {
+			cls.Probabilities[o.Name] = 0
+		}
 		for _, p := range ans.Probabilities {
-			cls.Probabilities[p.Value.AsString()] = p.Probability
+			if _, ok := cls.Probabilities[p.Value.AsString()]; ok {
+				cls.Probabilities[p.Value.AsString()] = p.Probability
+			}
 		}
 	default:
 		return nil, fmt.Errorf("response has unexpected answer type: %s", resp.Answers[0].Type)
