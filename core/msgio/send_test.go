@@ -7,6 +7,7 @@ import (
 	"time"
 
 	valkey "github.com/gomodule/redigo/redis"
+	"github.com/lib/pq"
 	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/gocommon/i18n"
@@ -199,36 +200,38 @@ func TestQueueMessagesOutsideWindow(t *testing.T) {
 	flow, _ := oa.FlowByID(testdb.Favorites.ID)
 	now := dates.Now()
 
-	// contacts with whatsapp URNs and different last seen on values
+	// a contact who has never messaged us
 	neverSeen := testdb.InsertContact(t, rt, testdb.Org1, "f4d8f6b4-1fbf-4c05-8a3e-a7f1d3e9e4c1", "Never", "eng", models.ContactStatusActive)
 	neverSeen.URN = "whatsapp:16055744444"
 	neverSeen.URNID = testdb.InsertContactURN(t, rt, testdb.Org1, neverSeen, neverSeen.URN, 1000, nil)
+	never, _, neverURNs := neverSeen.Load(t, rt, oa)
+
+	// a contact who messaged us on the first WhatsApp channel 25 hours ago
 	seenLongAgo := testdb.InsertContact(t, rt, testdb.Org1, "9f0a5c7a-3a65-4c8d-9b1c-0d7b4b8f2a11", "Long Ago", "eng", models.ContactStatusActive)
 	seenLongAgo.URN = "whatsapp:16055745555"
 	seenLongAgo.URNID = testdb.InsertContactURN(t, rt, testdb.Org1, seenLongAgo, seenLongAgo.URN, 1000, nil)
+	testdb.InsertIncomingMsg(t, rt, testdb.Org1, testdb.MsgUUIDAt(now.Add(-25*time.Hour)), wac1, seenLongAgo, "hi", models.MsgStatusHandled, "")
+	longAgo, _, longAgoURNs := seenLongAgo.Load(t, rt, oa)
+	require.NoError(t, longAgo.UpdateLastSeenOn(ctx, rt.DB, now.Add(-25*time.Hour)))
+
+	// a contact who messaged us on the second WhatsApp channel 2 hours ago, and on the first 25 hours ago
 	seenRecently := testdb.InsertContact(t, rt, testdb.Org1, "2a5e6c8f-9a12-4b0e-8c3d-5f7a1b2c3d44", "Recent", "eng", models.ContactStatusActive)
-	seenNearEdge := testdb.InsertContact(t, rt, testdb.Org1, "7b3c9d1e-5f2a-4e8b-9c0d-1a2b3c4d5e77", "Edge", "eng", models.ContactStatusActive)
-	seenNearEdge.URN = "whatsapp:16055747777"
-	seenNearEdge.URNID = testdb.InsertContactURN(t, rt, testdb.Org1, seenNearEdge, seenNearEdge.URN, 1000, nil)
 	seenRecently.URN = "whatsapp:16055746666"
 	seenRecently.URNID = testdb.InsertContactURN(t, rt, testdb.Org1, seenRecently, seenRecently.URN, 1000, nil)
 	testdb.InsertContactURN(t, rt, testdb.Org1, seenRecently, "tel:+16055746666", 999, nil)
-
-	// the recently seen contact messaged us on the second WhatsApp channel 2 hours ago and on the first 25 hours ago
 	in1 := testdb.InsertIncomingMsg(t, rt, testdb.Org1, testdb.MsgUUIDAt(now.Add(-2*time.Hour)), wac2, seenRecently, "hi", models.MsgStatusHandled, "")
 	testdb.InsertIncomingMsg(t, rt, testdb.Org1, testdb.MsgUUIDAt(now.Add(-25*time.Hour)), wac1, seenRecently, "hi", models.MsgStatusHandled, "")
-
-	// the near edge contact messaged us on the first channel 23.5 hours ago, so the window is still open but inside
-	// the safety margin
-	testdb.InsertIncomingMsg(t, rt, testdb.Org1, testdb.MsgUUIDAt(now.Add(-23*time.Hour-30*time.Minute)), wac1, seenNearEdge, "hi", models.MsgStatusHandled, "")
-
-	never, _, neverURNs := neverSeen.Load(t, rt, oa)
-	longAgo, _, longAgoURNs := seenLongAgo.Load(t, rt, oa)
 	recent, _, recentURNs := seenRecently.Load(t, rt, oa)
-	nearEdge, _, nearEdgeURNs := seenNearEdge.Load(t, rt, oa)
-	require.NoError(t, nearEdge.UpdateLastSeenOn(ctx, rt.DB, now.Add(-23*time.Hour-30*time.Minute)))
-	require.NoError(t, longAgo.UpdateLastSeenOn(ctx, rt.DB, now.Add(-25*time.Hour)))
 	require.NoError(t, recent.UpdateLastSeenOn(ctx, rt.DB, now.Add(-2*time.Hour)))
+
+	// a contact who messaged us on the first WhatsApp channel 23.5 hours ago, so the window is still open but we're
+	// inside the safety margin.. and whose last seen on is recent because of a channel event
+	seenNearEdge := testdb.InsertContact(t, rt, testdb.Org1, "7b3c9d1e-5f2a-4e8b-9c0d-1a2b3c4d5e77", "Edge", "eng", models.ContactStatusActive)
+	seenNearEdge.URN = "whatsapp:16055747777"
+	seenNearEdge.URNID = testdb.InsertContactURN(t, rt, testdb.Org1, seenNearEdge, seenNearEdge.URN, 1000, nil)
+	testdb.InsertIncomingMsg(t, rt, testdb.Org1, testdb.MsgUUIDAt(now.Add(-23*time.Hour-30*time.Minute)), wac1, seenNearEdge, "hi", models.MsgStatusHandled, "")
+	nearEdge, _, nearEdgeURNs := seenNearEdge.Load(t, rt, oa)
+	require.NoError(t, nearEdge.UpdateLastSeenOn(ctx, rt.DB, now.Add(-time.Hour)))
 
 	templating := core.NewMsgTemplating(
 		assets.NewTemplateReference(testdb.ReviveTemplate.UUID, "revive_issue"),
@@ -249,6 +252,10 @@ func TestQueueMessagesOutsideWindow(t *testing.T) {
 	require.NoError(t, err)
 	chatMsg.URN = neverURNs[0]
 
+	// replies to the recent contact's incoming message on the second channel, sent on that channel and on the first
+	sameChannelReply := newFlowMsg(wac2, recent, recentURNs[0], nil, &models.MsgInRef{UUID: in1.UUID, ExtID: "EX123"})
+	otherChannelReply := newFlowMsg(wac1, recent, recentURNs[0], nil, &models.MsgInRef{UUID: in1.UUID, ExtID: "EX123"})
+
 	tests := []struct {
 		description string
 		msg         *models.MsgOut
@@ -256,12 +263,13 @@ func TestQueueMessagesOutsideWindow(t *testing.T) {
 	}{
 		{"contact never seen", newFlowMsg(wac1, never, neverURNs[0], nil, nil), true},
 		{"contact never seen, D3C channel", newFlowMsg(d3c, never, neverURNs[0], nil, nil), true},
-		{"contact last seen 25 hours ago", newFlowMsg(wac1, longAgo, longAgoURNs[0], nil, nil), true},
-		{"contact last seen 2 hours ago, incoming on this channel 2 hours ago", newFlowMsg(wac2, recent, recentURNs[0], nil, nil), false},
-		{"contact last seen 2 hours ago, incoming on this channel 25 hours ago", newFlowMsg(wac1, recent, recentURNs[0], nil, nil), true},
-		{"contact last seen 2 hours ago, no incoming on this channel", newFlowMsg(d3c, recent, recentURNs[0], nil, nil), true},
-		{"contact last seen 23.5 hours ago, incoming on this channel 23.5 hours ago", newFlowMsg(wac1, nearEdge, nearEdgeURNs[0], nil, nil), true},
-		{"reply to incoming message", newFlowMsg(wac1, never, neverURNs[0], nil, &models.MsgInRef{UUID: in1.UUID, ExtID: "EX123"}), false},
+		{"incoming on this channel 25 hours ago", newFlowMsg(wac1, longAgo, longAgoURNs[0], nil, nil), true},
+		{"incoming on this channel 2 hours ago", newFlowMsg(wac2, recent, recentURNs[0], nil, nil), false},
+		{"incoming on this channel 25 hours ago, on another 2 hours ago", newFlowMsg(wac1, recent, recentURNs[0], nil, nil), true},
+		{"no incoming on this channel, on another 2 hours ago", newFlowMsg(d3c, recent, recentURNs[0], nil, nil), true},
+		{"incoming on this channel 23.5 hours ago", newFlowMsg(wac1, nearEdge, nearEdgeURNs[0], nil, nil), true},
+		{"reply to incoming on this channel", sameChannelReply, false},
+		{"reply to incoming on another channel", otherChannelReply, true},
 		{"templated message", newFlowMsg(wac1, never, neverURNs[0], templating, nil), false},
 		{"chat message", chatMsg, false},
 		{"non-WhatsApp channel", newFlowMsg(testdb.TwilioChannel, recent, recentURNs[1], nil, nil), false},
@@ -303,20 +311,18 @@ func TestQueueMessagesOutsideWindow(t *testing.T) {
 		assert.Equal(t, tc.expected, queued[tc.msg.UUID()].OutsideWindow, "queued outside window mismatch for '%s'", tc.description)
 	}
 
-	// a retried message is rebuilt without its reply-to, so a reply to a contact with no recent incoming message on
-	// the channel is outside the window when retried
-	reply := tests[7].msg
-	require.NotNil(t, reply.ReplyTo)
-	rt.DB.MustExec(`UPDATE msgs_msg SET status = 'E', error_count = 1, next_attempt = $2 WHERE id = $1`, reply.ID(), now)
+	// a retried message is rebuilt from the database, and still checked against the incoming messages on its channel
+	rt.DB.MustExec(`UPDATE msgs_msg SET status = 'E', error_count = 1, next_attempt = $2 WHERE id = ANY($1)`, pq.Array([]models.MsgID{sameChannelReply.ID(), otherChannelReply.ID()}), now)
 
 	toRetry, err := models.GetMessagesForRetry(ctx, rt.DB)
 	require.NoError(t, err)
 	retries, err := models.PrepareMessagesForRetry(ctx, rt.DB, toRetry)
 	require.NoError(t, err)
-	require.Len(t, retries, 1)
-	assert.Equal(t, reply.UUID(), retries[0].UUID())
+	require.Len(t, retries, 2)
 
 	msgio.QueueMessages(ctx, rt, retries)
 
-	assert.True(t, retries[0].OutsideWindow)
+	for _, r := range retries {
+		assert.Equal(t, r.UUID() == otherChannelReply.UUID(), r.OutsideWindow, "retry outside window mismatch for %s", r.UUID())
+	}
 }

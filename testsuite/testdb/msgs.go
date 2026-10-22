@@ -56,7 +56,7 @@ type Broadcast struct {
 
 // MsgUUIDAt returns a new v7 message UUID with the given timestamp, for use with InsertIncomingMsg
 func MsgUUIDAt(at time.Time) events.EventUUID {
-	return events.EventUUID(uuids.NewSeededGenerator(at.UnixNano(), dates.NewFixedNow(at)).NextV7())
+	return events.EventUUID(uuids.NewSeededGenerator(time.Now().UnixNano(), dates.NewFixedNow(at)).NextV7())
 }
 
 // InsertIncomingMsg inserts an incoming text message, deriving created_on from the v7 UUID timestamp
