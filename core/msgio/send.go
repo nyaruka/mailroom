@@ -139,7 +139,7 @@ const customerServiceWindow = 24 * time.Hour
 // sent an incoming message on that channel within the customer service window. Only free-form (non-templated) flow
 // messages which aren't replies to an incoming message are considered: a reply is always inside the window.
 func flagOutsideWindow(ctx context.Context, rt *runtime.Runtime, msgs map[contactAndChannel][]*models.MsgOut) error {
-	since := dates.Now().Add(-customerServiceWindow)
+	var since time.Time // only read the clock if there are candidates, as test clocks advance on every read
 
 	candidates := make(map[models.ContactChannel][]*models.MsgOut, len(msgs))
 	unknown := make([]models.ContactChannel, 0, len(msgs)) // pairs with a recent last seen on which could be from another channel
@@ -158,6 +158,9 @@ func flagOutsideWindow(ctx context.Context, rt *runtime.Runtime, msgs map[contac
 		}
 		if len(candidates[pair]) == 0 {
 			continue
+		}
+		if since.IsZero() {
+			since = dates.Now().Add(-customerServiceWindow)
 		}
 
 		// last seen on is updated by messages, channel events and calls on any channel, so if it's not recent then
