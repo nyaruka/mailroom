@@ -191,8 +191,8 @@ func (t *MsgReceived) handleMsgEvent(ctx context.Context, rt *runtime.Runtime, o
 	trigger, keyword := models.FindMatchingMsgTrigger(oa, channel, scene.Contact, t.Text)
 
 	// a contact with an open ticket is treated as if they're in a flow which ignores triggers, so that their
-	// conversation with an agent isn't interrupted
-	hasTicket := len(scene.DBContact.Tickets()) > 0
+	// conversation with an agent isn't interrupted, unless the org has opted out of that
+	hasTicket := len(scene.DBContact.Tickets()) > 0 && !oa.Org().HasFeature(models.FeatureTicketTriggers)
 	ignoreKeywords := hasTicket || (flow != nil && flow.IgnoreTriggers())
 	ignoreCatchall := hasTicket || flow != nil
 

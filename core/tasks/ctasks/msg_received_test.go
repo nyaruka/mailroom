@@ -297,6 +297,18 @@ func TestMsgReceivedTask(t *testing.T) {
 			expectedReplyStatus: models.MsgStatusQueued,
 			expectedFlow:        testdb.Favorites,
 		},
+		{ // 25: keyword trigger match and contact has open ticket but org has ticket triggers feature
+			preHook: func() {
+				rt.DB.MustExec(`UPDATE orgs_org SET features = '{"ticket_triggers"}' WHERE id = $1`, testdb.Org1.ID)
+			},
+			org:                 testdb.Org1,
+			channel:             testdb.TwilioChannel,
+			contact:             testdb.Ann,
+			text:                "start",
+			expectedReplyText:   "What is your favorite color?",
+			expectedReplyStatus: models.MsgStatusQueued,
+			expectedFlow:        testdb.Favorites,
+		},
 	}
 
 	makeMsgTask := func(channel *testdb.Channel, contact *testdb.Contact, text string) ctasks.Task {
@@ -333,6 +345,9 @@ func TestMsgReceivedTask(t *testing.T) {
 
 		err = tasks.Perform(ctx, rt, task)
 		assert.NoError(t, err, "%d: error when handling event", i)
+
+		// mark task done so the org doesn't hit the queue's owner limit
+		require.NoError(t, rt.Queues.Realtime.Done(ctx, vc, task))
 
 		var expectedFlowID any
 		if tc.expectedFlow != nil {
@@ -386,7 +401,7 @@ func TestMsgReceivedTask(t *testing.T) {
 
 	// check messages queued to courier
 	testsuite.AssertCourierQueues(t, rt, map[string][]int{
-		fmt.Sprintf("msgs:%s|10/1", testdb.TwilioChannel.UUID): {1, 1, 1, 1, 1, 1, 1},
+		fmt.Sprintf("msgs:%s|10/1", testdb.TwilioChannel.UUID): {1, 1, 1, 1, 1, 1, 1, 1},
 		fmt.Sprintf("msgs:%s|10/1", testdb.Org2Channel.UUID):   {1, 1, 1, 1, 1, 1, 1, 1, 1},
 	})
 
