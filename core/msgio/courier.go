@@ -91,6 +91,7 @@ type Msg struct {
 	UserID               models.UserID      `json:"user_id,omitempty"`
 	ResponseToExternalID string             `json:"response_to_external_id,omitempty"`
 	IsResend             bool               `json:"is_resend,omitempty"`
+	OutsideWindow        bool               `json:"outside_window,omitempty"`
 	PrevAttempts         int                `json:"prev_attempts,omitempty"`
 	Session              *Session           `json:"session,omitempty"`
 }
@@ -118,19 +119,20 @@ func NewCourierMsg(oa *models.OrgAssets, mo *models.MsgOut, ch *models.Channel) 
 			LastSeenOn: mo.Contact.LastSeenOn(),
 			OtherURNs:  otherURNs(mo),
 		},
-		Text:         mo.Text(),
-		Attachments:  mo.Attachments(),
-		QuickReplies: mo.QuickReplies(),
-		Locale:       mo.Locale(),
-		HighPriority: mo.HighPriority(),
-		MsgCount:     mo.MsgCount(),
-		CreatedOn:    mo.CreatedOn().In(time.UTC),
-		ChannelUUID:  ch.UUID(),
-		UserID:       mo.CreatedByID(),
-		URN:          mo.URN.Identity,
-		URNAuth:      string(mo.URN.AuthTokens["default"]),
-		IsResend:     mo.IsResend,
-		PrevAttempts: mo.ErrorCount(),
+		Text:          mo.Text(),
+		Attachments:   mo.Attachments(),
+		QuickReplies:  mo.QuickReplies(),
+		Locale:        mo.Locale(),
+		HighPriority:  mo.HighPriority(),
+		MsgCount:      mo.MsgCount(),
+		CreatedOn:     mo.CreatedOn().In(time.UTC),
+		ChannelUUID:   ch.UUID(),
+		UserID:        mo.CreatedByID(),
+		URN:           mo.URN.Identity,
+		URNAuth:       string(mo.URN.AuthTokens["default"]),
+		IsResend:      mo.IsResend,
+		OutsideWindow: mo.OutsideWindow,
+		PrevAttempts:  mo.ErrorCount(),
 	}
 
 	if mo.FlowID() != models.NilFlowID {

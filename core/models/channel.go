@@ -26,8 +26,10 @@ type ChannelType string
 
 // channel type constants
 const (
-	ChannelTypeAndroid = ChannelType("A")
-	ChannelTypeWebChat = ChannelType("WCH")
+	ChannelTypeAndroid       = ChannelType("A")
+	ChannelTypeWebChat       = ChannelType("WCH")
+	ChannelTypeWhatsAppCloud = ChannelType("WAC")
+	ChannelTypeD360Cloud     = ChannelType("D3C")
 )
 
 // config key constants
@@ -72,6 +74,12 @@ func (c *Channel) Type() ChannelType { return c.Type_ }
 
 // Type returns the channel type for this channel
 func (c *Channel) IsAndroid() bool { return c.Type_ == ChannelTypeAndroid }
+
+// IsWhatsAppCloud returns whether this channel is a WhatsApp Cloud API style channel, which only accepts free-form
+// messages inside the 24 hour customer service window
+func (c *Channel) IsWhatsAppCloud() bool {
+	return c.Type_ == ChannelTypeWhatsAppCloud || c.Type_ == ChannelTypeD360Cloud
+}
 
 // TPS returns the max number of transactions per second this channel supports
 func (c *Channel) TPS() int { return c.TPS_ }

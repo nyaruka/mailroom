@@ -258,6 +258,38 @@ func TestGetMessagesByUUID(t *testing.T) {
 	assert.Equal(t, "in 1", msgs[0].Text())
 }
 
+func TestGetContactChannelsWithInbound(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	since := dates.Now().Add(-time.Hour)
+
+	// Ann has a recent incoming message on Twilio, and an older one on Vonage
+	testdb.InsertIncomingMsg(t, rt, testdb.Org1, events.NewEventUUID(), testdb.TwilioChannel, testdb.Ann, "hi", models.MsgStatusHandled, "")
+	testdb.InsertIncomingMsg(t, rt, testdb.Org1, testdb.MsgUUIDAt(since.Add(-time.Hour)), testdb.VonageChannel, testdb.Ann, "hi", models.MsgStatusHandled, "")
+
+	// Bob only has a recent outgoing message on Twilio and a recent incoming on Vonage
+	testdb.InsertOutgoingMsg(t, rt, testdb.Org1, events.NewEventUUID(), testdb.TwilioChannel, testdb.Bob, "hi", nil, models.MsgStatusSent, false)
+	testdb.InsertIncomingMsg(t, rt, testdb.Org1, events.NewEventUUID(), testdb.VonageChannel, testdb.Bob, "hi", models.MsgStatusHandled, "")
+
+	annTwilio := models.ContactChannel{ContactID: testdb.Ann.ID, ChannelID: testdb.TwilioChannel.ID}
+	annVonage := models.ContactChannel{ContactID: testdb.Ann.ID, ChannelID: testdb.VonageChannel.ID}
+	bobTwilio := models.ContactChannel{ContactID: testdb.Bob.ID, ChannelID: testdb.TwilioChannel.ID}
+	bobVonage := models.ContactChannel{ContactID: testdb.Bob.ID, ChannelID: testdb.VonageChannel.ID}
+	catTwilio := models.ContactChannel{ContactID: testdb.Cat.ID, ChannelID: testdb.TwilioChannel.ID}
+
+	found, err := models.GetContactChannelsWithInbound(ctx, rt.DB, []models.ContactChannel{annTwilio, annVonage, bobTwilio, catTwilio}, since)
+	require.NoError(t, err)
+	assert.Equal(t, map[models.ContactChannel]bool{annTwilio: true}, found) // Bob+Vonage matches the query but wasn't asked for
+
+	found, err = models.GetContactChannelsWithInbound(ctx, rt.DB, []models.ContactChannel{bobVonage, bobVonage}, since)
+	require.NoError(t, err)
+	assert.Equal(t, map[models.ContactChannel]bool{bobVonage: true}, found)
+
+	found, err = models.GetContactChannelsWithInbound(ctx, rt.DB, nil, since)
+	require.NoError(t, err)
+	assert.Equal(t, map[models.ContactChannel]bool{}, found)
+}
+
 func TestMarkMessageHandled(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 

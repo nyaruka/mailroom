@@ -76,6 +76,7 @@ func TestNewCourierMsg(t *testing.T) {
 	msg1.URN = annURNs[0]
 	msg1.Session = session
 	msg1.SprintUUID = sprint.UUID()
+	msg1.OutsideWindow = true
 
 	createAndAssertCourierMsg(t, oa, msg1, fmt.Sprintf(`{
 		"attachments": [
@@ -89,6 +90,7 @@ func TestNewCourierMsg(t *testing.T) {
 		"locale": "eng-US",
 		"org_id": 1,
 		"origin": "flow",
+		"outside_window": true,
 		"quick_replies": [{"type": "text", "text": "yes", "extra": "if you really want"}, {"type": "text", "text": "no"}],
 		"session": {
 			"uuid": "%s",
