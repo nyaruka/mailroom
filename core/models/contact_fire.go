@@ -20,6 +20,7 @@ const (
 	ContactFireTypeWaitExpiration    ContactFireType = "E"
 	ContactFireTypeSessionExpiration ContactFireType = "S"
 	ContactFireTypeCampaignPoint     ContactFireType = "C"
+	ContactFireTypeTicketClose       ContactFireType = "K"
 )
 
 type ContactFire struct {
@@ -51,6 +52,11 @@ func NewFireForSession(orgID OrgID, contactID ContactID, sessionUUID core.Sessio
 
 func NewContactFireForCampaign(orgID OrgID, contactID ContactID, ce *CampaignPoint, fireOn time.Time) *ContactFire {
 	return newContactFire(orgID, contactID, ContactFireTypeCampaignPoint, fmt.Sprintf("%d:%d", ce.ID, ce.FireVersion), fireOn, "", "")
+}
+
+// NewContactFireForTicketClose creates a fire to close the given ticket if it's still inactive at the given time
+func NewContactFireForTicketClose(orgID OrgID, contactID ContactID, ticketUUID core.TicketUUID, fireOn time.Time) *ContactFire {
+	return newContactFire(orgID, contactID, ContactFireTypeTicketClose, string(ticketUUID), fireOn, "", "")
 }
 
 const sqlSelectDueContactFires = `
@@ -149,4 +155,48 @@ ON CONFLICT DO NOTHING`
 // InsertContactFires inserts the given contact fires (no error on conflict)
 func InsertContactFires(ctx context.Context, db DBorTx, fs []*ContactFire) error {
 	return BulkQueryBatches(ctx, "inserted contact fires", db, sqlInsertContactFires, 1000, fs)
+}
+
+type ticketCloseFireUpsert struct {
+	OrgID     OrgID           `db:"org_id"`
+	ContactID ContactID       `db:"contact_id"`
+	Scope     core.TicketUUID `db:"scope"`
+	IdleDays  int             `db:"idle_days"`
+}
+
+// existing fires are only updated once they're less than the idle limit away, so that most activity doesn't need a
+// write, at the cost of closing a ticket up to an hour after it reaches the limit
+const sqlUpsertTicketCloseFires = `
+INSERT INTO contacts_contactfire(org_id, contact_id, fire_type, scope, fire_on)
+     SELECT r.org_id, r.contact_id, 'K', r.scope, NOW() + make_interval(days => r.idle_days) + INTERVAL '1 hour'
+       FROM (VALUES(:org_id::int, :contact_id::int, :scope, :idle_days::int)) AS r(org_id, contact_id, scope, idle_days)
+ON CONFLICT (contact_id, fire_type, scope) DO UPDATE SET fire_on = EXCLUDED.fire_on
+      WHERE contacts_contactfire.fire_on < EXCLUDED.fire_on - INTERVAL '1 hour'`
+
+// UpsertTicketCloseFires schedules the given tickets to be closed once they've been inactive for the given number of
+// days, which callers should check isn't zero
+func UpsertTicketCloseFires(ctx context.Context, db DBorTx, idleDays int, tickets []*Ticket) error {
+	us := make([]*ticketCloseFireUpsert, len(tickets))
+	for i, t := range tickets {
+		us[i] = &ticketCloseFireUpsert{OrgID: t.OrgID, ContactID: t.ContactID, Scope: t.UUID, IdleDays: idleDays}
+	}
+
+	return BulkQueryBatches(ctx, "upserted ticket close fires", db, sqlUpsertTicketCloseFires, 1000, us)
+}
+
+// DeleteTicketCloseFires deletes the close fires for the given tickets
+func DeleteTicketCloseFires(ctx context.Context, db DBorTx, tickets []*Ticket) error {
+	contactIDs := make([]ContactID, len(tickets))
+	uuids := make([]core.TicketUUID, len(tickets))
+	for i, t := range tickets {
+		contactIDs[i] = t.ContactID
+		uuids[i] = t.UUID
+	}
+
+	_, err := db.ExecContext(ctx, `DELETE FROM contacts_contactfire WHERE contact_id = ANY($1) AND fire_type = 'K' AND scope = ANY($2)`, pq.Array(contactIDs), pq.Array(uuids))
+	if err != nil {
+		return fmt.Errorf("error deleting ticket close fires: %w", err)
+	}
+
+	return nil
 }

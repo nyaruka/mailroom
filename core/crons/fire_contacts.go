@@ -33,7 +33,7 @@ func (c *FireContactsCron) Next(last time.Time) time.Time {
 
 func (c *FireContactsCron) Run(ctx context.Context, rt *runtime.Runtime) (map[string]any, error) {
 	start := time.Now()
-	numWaitTimeouts, numWaitExpires, numSessionExpires, numCampaignPoints := 0, 0, 0, 0
+	numWaitTimeouts, numWaitExpires, numSessionExpires, numCampaignPoints, numTicketCloses := 0, 0, 0, 0, 0
 
 	for {
 		fires, err := models.LoadDueContactfires(ctx, rt, c.FetchBatchSize)
@@ -68,6 +68,8 @@ func (c *FireContactsCron) Run(ctx context.Context, rt *runtime.Runtime) (map[st
 
 				pointID, _ := c.parseCampaignFireScope(f.Scope)
 				pointIDs[pointID] = true
+			case models.ContactFireTypeTicketClose:
+				og.grouping = "ticket_closes"
 			default:
 				return nil, fmt.Errorf("unknown contact fire type: %s", f.Type)
 			}
@@ -118,6 +120,17 @@ func (c *FireContactsCron) Run(ctx context.Context, rt *runtime.Runtime) (map[st
 						return nil, fmt.Errorf("error queuing bulk session expire task for org #%d: %w", og.orgID, err)
 					}
 					numSessionExpires += len(batch)
+				} else if og.grouping == "ticket_closes" {
+					// turn ticket closes into bulk ticket inactive tasks
+					ts := make([]*tasks.InactiveTicketRef, len(batch))
+					for i, f := range batch {
+						ts[i] = &tasks.InactiveTicketRef{ContactID: f.ContactID, TicketUUID: core.TicketUUID(f.Scope)}
+					}
+
+					if err := tasks.Queue(ctx, rt, rt.Queues.Throttled, og.orgID, &tasks.BulkTicketInactive{Tickets: ts}, false); err != nil {
+						return nil, fmt.Errorf("error queuing bulk ticket inactive task for org #%d: %w", og.orgID, err)
+					}
+					numTicketCloses += len(batch)
 				} else if strings.HasPrefix(og.grouping, "campaign:") {
 					// turn campaign fires into bulk campaign tasks
 					cids := make([]models.ContactID, len(batch))
@@ -154,7 +167,7 @@ func (c *FireContactsCron) Run(ctx context.Context, rt *runtime.Runtime) (map[st
 		}
 	}
 
-	return map[string]any{"wait_timeouts": numWaitTimeouts, "wait_expires": numWaitExpires, "session_expires": numSessionExpires, "campaign_points": numCampaignPoints}, nil
+	return map[string]any{"wait_timeouts": numWaitTimeouts, "wait_expires": numWaitExpires, "session_expires": numSessionExpires, "campaign_points": numCampaignPoints, "ticket_closes": numTicketCloses}, nil
 }
 
 var campaignEventScopePattern = regexp.MustCompile(`^(\d+):(\d+)$`)

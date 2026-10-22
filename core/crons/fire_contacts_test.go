@@ -41,7 +41,7 @@ func TestFireContacts(t *testing.T) {
 	cron := &crons.FireContactsCron{FetchBatchSize: 3, TaskBatchSize: 5, FlowBatchSize: 2}
 	res, err := cron.Run(ctx, rt)
 	assert.NoError(t, err)
-	assert.Equal(t, map[string]any{"wait_timeouts": 2, "wait_expires": 2, "session_expires": 1, "campaign_points": 1}, res)
+	assert.Equal(t, map[string]any{"wait_timeouts": 2, "wait_expires": 2, "session_expires": 1, "campaign_points": 1, "ticket_closes": 0}, res)
 
 	// should have created 4 tasks in throttled queue.. unfortunately order is not guaranteed so we sort them
 	var ts []*queues.Task
@@ -97,7 +97,7 @@ func TestFireContacts(t *testing.T) {
 
 	res, err = cron.Run(ctx, rt)
 	assert.NoError(t, err)
-	assert.Equal(t, map[string]any{"wait_timeouts": 0, "wait_expires": 0, "session_expires": 0, "campaign_points": 0}, res)
+	assert.Equal(t, map[string]any{"wait_timeouts": 0, "wait_expires": 0, "session_expires": 0, "campaign_points": 0, "ticket_closes": 0}, res)
 }
 
 func TestFireContactsCampaignBatching(t *testing.T) {
@@ -122,7 +122,7 @@ func TestFireContactsCampaignBatching(t *testing.T) {
 	cron := &crons.FireContactsCron{FetchBatchSize: 100, TaskBatchSize: 100, FlowBatchSize: 2}
 	res, err := cron.Run(ctx, rt)
 	assert.NoError(t, err)
-	assert.Equal(t, map[string]any{"wait_timeouts": 0, "wait_expires": 0, "session_expires": 0, "campaign_points": 8}, res)
+	assert.Equal(t, map[string]any{"wait_timeouts": 0, "wait_expires": 0, "session_expires": 0, "campaign_points": 8, "ticket_closes": 0}, res)
 
 	// pop all tasks from throttled queue
 	var ts []*queues.Task
@@ -166,4 +166,33 @@ func TestFireContactsCampaignBatching(t *testing.T) {
 	assert.Len(t, d2.ContactIDs, 4)
 
 	assertdb.Query(t, rt.DB, `SELECT COUNT(*) FROM contacts_contactfire`).Returns(0)
+}
+
+func TestFireContactsTicketCloses(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+	vc := rt.VK.Get()
+	defer vc.Close()
+
+	testdb.InsertContactFire(t, rt, testdb.Org1, testdb.Ann, models.ContactFireTypeTicketClose, "01992f54-5ab6-717a-a39e-e8ca91fb7262", time.Now().Add(-time.Second), "")
+	testdb.InsertContactFire(t, rt, testdb.Org1, testdb.Bob, models.ContactFireTypeTicketClose, "01992f54-5ab6-725e-be9c-0c6407efd755", time.Now().Add(-2*time.Second), "")
+	testdb.InsertContactFire(t, rt, testdb.Org1, testdb.Cat, models.ContactFireTypeTicketClose, "01992f54-5ab6-7498-a7f2-6aa246e45cfe", time.Now().Add(time.Hour), "")
+
+	cron := &crons.FireContactsCron{FetchBatchSize: 100, TaskBatchSize: 100, FlowBatchSize: 2}
+	res, err := cron.Run(ctx, rt)
+	assert.NoError(t, err)
+	assert.Equal(t, map[string]any{"wait_timeouts": 0, "wait_expires": 0, "session_expires": 0, "campaign_points": 0, "ticket_closes": 2}, res)
+
+	task, err := rt.Queues.Throttled.Pop(ctx, vc)
+	assert.NoError(t, err)
+	assert.Equal(t, int(testdb.Org1.ID), task.OwnerID)
+	assert.Equal(t, "bulk_ticket_inactive", task.Type)
+
+	decoded := &tasks.BulkTicketInactive{}
+	jsonx.MustUnmarshal(task.Task, decoded)
+	assert.Equal(t, []*tasks.InactiveTicketRef{
+		{ContactID: testdb.Bob.ID, TicketUUID: "01992f54-5ab6-725e-be9c-0c6407efd755"},
+		{ContactID: testdb.Ann.ID, TicketUUID: "01992f54-5ab6-717a-a39e-e8ca91fb7262"},
+	}, decoded.Tickets)
+
+	assertdb.Query(t, rt.DB, `SELECT contact_id FROM contacts_contactfire`).Returns(int64(testdb.Cat.ID))
 }

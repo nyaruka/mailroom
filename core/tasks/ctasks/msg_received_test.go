@@ -391,6 +391,14 @@ func TestMsgReceivedTask(t *testing.T) {
 				Returns(numOpenTickets, "%d: not updated open ticket mismatch", i)
 		}
 
+		// and that it has a close fire unless contact is blocked
+		numCloseFires := numOpenTickets
+		if tc.contact == blocked {
+			numCloseFires = 0
+		}
+		assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'K'`, tc.contact.ID).
+			Returns(numCloseFires, "%d: close fires mismatch", i)
+
 		// check any closed tickets are unchanged
 		numClosedTickets := len(closedTickets[tc.contact])
 		assertdb.Query(t, rt.DB, `SELECT count(*) FROM tickets_ticket WHERE contact_id = $1 AND status = 'C' AND last_activity_on = '2021-01-01T00:00:00Z'`, tc.contact.ID).

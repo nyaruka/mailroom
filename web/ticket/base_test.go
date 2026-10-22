@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/testsuite"
 	"github.com/nyaruka/mailroom/v26/testsuite/testdb"
 )
@@ -58,6 +59,11 @@ func TestTicketClose(t *testing.T) {
 	testdb.InsertOpenTicket(t, rt, "01992f54-5ab6-717a-a39e-e8ca91fb7262", testdb.Org1, testdb.Ann, testdb.DefaultTopic, time.Now(), testdb.Admin)
 	testdb.InsertOpenTicket(t, rt, "01992f54-5ab6-725e-be9c-0c6407efd755", testdb.Org1, testdb.Ann, testdb.DefaultTopic, time.Now(), nil)
 	testdb.InsertClosedTicket(t, rt, "01992f54-5ab6-7498-a7f2-6aa246e45cfe", testdb.Org1, testdb.Ann, testdb.DefaultTopic, testdb.Editor)
+
+	// and close fires for the open tickets
+	for _, uuid := range []string{"01992f54-5ab6-717a-a39e-e8ca91fb7262", "01992f54-5ab6-725e-be9c-0c6407efd755"} {
+		testdb.InsertContactFire(t, rt, testdb.Org1, testdb.Ann, models.ContactFireTypeTicketClose, uuid, time.Now().Add(time.Hour), "")
+	}
 
 	testdb.OpenTicketsGroup.Add(rt, testdb.Ann)
 

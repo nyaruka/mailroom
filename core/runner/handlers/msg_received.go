@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 
+	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/runner"
@@ -25,6 +26,13 @@ func handleMsgReceived(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 	// update the message to be handled
 	if scene.IncomingMsg != nil && !scene.IncomingMsg.Handled {
 		scene.AttachPreCommitHook(hooks.UpdateMessageHandled, event)
+
+		// which also counts as activity on the ticket unless the contact is blocked
+		if event.TicketUUID != "" && scene.Contact.Status() != core.ContactStatusBlocked {
+			if ticket := scene.DBContact.FindTicket(event.TicketUUID); ticket != nil && ticket.Status == models.TicketStatusOpen {
+				scene.AttachPreCommitHook(hooks.UpdateTicketFires, ticket)
+			}
+		}
 	}
 
 	// index message to Elasticsearch if it has sufficient text
