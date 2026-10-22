@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"log/slog"
 	"slices"
+	"time"
 
+	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/runtime"
 )
@@ -94,6 +96,10 @@ func tryToQueueForOrg(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAs
 
 	// if there are courier messages to queue, do so
 	if len(courierMsgs) > 0 {
+		if err := flagOutsideWindow(ctx, rt, courierMsgs); err != nil {
+			slog.Error("error checking customer service windows", "error", err) // messages are still sent
+		}
+
 		vc := rt.VK.Get()
 		defer vc.Close()
 
@@ -123,6 +129,66 @@ func tryToQueueForOrg(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAs
 	}
 
 	return queued
+}
+
+// customerServiceWindow is how long after a contact's last incoming message that a WhatsApp channel can send them
+// free-form messages
+const customerServiceWindow = 24 * time.Hour
+
+// flagOutsideWindow sets OutsideWindow on the flow messages to WhatsApp Cloud API style channels whose contact hasn't
+// sent an incoming message on that channel within the customer service window. Only free-form (non-templated) flow
+// messages which aren't replies to an incoming message are considered: a reply is always inside the window.
+func flagOutsideWindow(ctx context.Context, rt *runtime.Runtime, msgs map[contactAndChannel][]*models.MsgOut) error {
+	since := dates.Now().Add(-customerServiceWindow)
+
+	candidates := make(map[models.ContactChannel][]*models.MsgOut, len(msgs))
+	unknown := make([]models.ContactChannel, 0, len(msgs)) // pairs with a recent last seen on which could be from another channel
+
+	for cc, ccMsgs := range msgs {
+		if !cc.channel.IsWhatsAppCloud() {
+			continue
+		}
+
+		pair := models.ContactChannel{ContactID: cc.contactID, ChannelID: cc.channel.ID()}
+
+		for _, m := range ccMsgs {
+			if m.FlowID() != models.NilFlowID && m.Templating() == nil && m.ReplyTo == nil && m.Contact != nil {
+				candidates[pair] = append(candidates[pair], m)
+			}
+		}
+		if len(candidates[pair]) == 0 {
+			continue
+		}
+
+		// last seen on is updated by messages, channel events and calls on any channel, so if it's not recent then
+		// there can't be a recent incoming message on this channel, but if it is we have to check the messages
+		lastSeenOn := candidates[pair][0].Contact.LastSeenOn()
+		if lastSeenOn == nil || lastSeenOn.Before(since) {
+			for _, m := range candidates[pair] {
+				m.OutsideWindow = true
+			}
+		} else {
+			unknown = append(unknown, pair)
+		}
+	}
+
+	if len(unknown) == 0 {
+		return nil
+	}
+
+	inside, err := models.GetContactChannelsWithInbound(ctx, rt.DB, unknown, since)
+	if err != nil {
+		return err
+	}
+
+	for _, pair := range unknown {
+		if !inside[pair] {
+			for _, m := range candidates[pair] {
+				m.OutsideWindow = true
+			}
+		}
+	}
+	return nil
 }
 
 func fetchMissingURNs(ctx context.Context, rt *runtime.Runtime, msgs []*models.MsgOut) error {

@@ -304,10 +304,52 @@ type MsgOut struct {
 	ReplyTo  *MsgInRef
 	IsResend bool
 
+	// whether the message falls outside the channel's customer service window (see msgio)
+	OutsideWindow bool
+
 	// info that courier needs to create a wait timeout fire
 	WaitTimeout  time.Duration
 	SprintUUID   flows.SprintUUID
 	LastInSprint bool
+}
+
+// ContactChannel is a contact and channel pair
+type ContactChannel struct {
+	ContactID ContactID `db:"contact_id"`
+	ChannelID ChannelID `db:"channel_id"`
+}
+
+// served by the index on (contact_id, created_on DESC) - channel_id is only a filter on the matching rows
+const sqlSelectContactChannelsWithInbound = `
+SELECT DISTINCT contact_id, channel_id FROM msgs_msg
+ WHERE contact_id = ANY($1) AND channel_id = ANY($2) AND direction = 'I' AND created_on > $3`
+
+// GetContactChannelsWithInbound returns which of the given contact+channel pairs have received an incoming message
+// since the given time.
+func GetContactChannelsWithInbound(ctx context.Context, db DBorTx, pairs []ContactChannel, since time.Time) (map[ContactChannel]bool, error) {
+	contactIDs := make([]ContactID, 0, len(pairs))
+	channelIDs := make([]ChannelID, 0, len(pairs))
+	wanted := make(map[ContactChannel]bool, len(pairs))
+	for _, p := range pairs {
+		if !wanted[p] {
+			contactIDs = append(contactIDs, p.ContactID)
+			channelIDs = append(channelIDs, p.ChannelID)
+			wanted[p] = true
+		}
+	}
+
+	rows := []ContactChannel{}
+	if err := db.SelectContext(ctx, &rows, sqlSelectContactChannelsWithInbound, pq.Array(contactIDs), pq.Array(channelIDs), since); err != nil {
+		return nil, fmt.Errorf("error selecting contact channels with inbound messages: %w", err)
+	}
+
+	found := make(map[ContactChannel]bool, len(rows))
+	for _, r := range rows {
+		if wanted[r] { // the query can also match other combinations of the given contacts and channels
+			found[r] = true
+		}
+	}
+	return found, nil
 }
 
 // NewIncomingAndroid creates a new incoming message from an Android relayer sync.
