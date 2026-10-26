@@ -19,7 +19,7 @@ type Recipients struct {
 	Exclusions      models.Exclusions
 	ExcludeGroupIDs []models.GroupID
 
-	// not a user exclusion because flow starts always exclude contacts with open tickets but broadcasts never do
+	// decided by the caller rather than the user, e.g. flow starts exclude these when the flow would interrupt them
 	ExcludeOpenTickets bool
 }
 

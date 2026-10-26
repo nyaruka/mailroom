@@ -132,6 +132,23 @@
         }
     },
     {
+        "label": "query inclusion, background flow",
+        "method": "POST",
+        "path": "/mi/flow/start_preview",
+        "body": {
+            "org_id": 1,
+            "flow_id": 10009,
+            "include": {
+                "query": "gender = M"
+            }
+        },
+        "status": 200,
+        "response": {
+            "query": "fields.gender = \"M\"",
+            "total": 0
+        }
+    },
+    {
         "label": "invalid query inclusion (bad syntax)",
         "method": "POST",
         "path": "/mi/flow/start_preview",

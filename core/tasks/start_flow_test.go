@@ -285,7 +285,17 @@ func TestStartFlowTaskExcludesOpenTickets(t *testing.T) {
 	assert.NoError(t, err)
 	testsuite.FlushTasks(t, rt)
 
-	assertdb.Query(t, rt.DB, `SELECT contact_id FROM flows_flowrun`).Returns(int64(testdb.Ann.ID))
+	assertdb.Query(t, rt.DB, `SELECT contact_id FROM flows_flowrun WHERE flow_id = $1`, testdb.SingleMessage.ID).Returns(int64(testdb.Ann.ID))
+
+	// background flows don't interrupt so contacts with open tickets aren't excluded
+	start = models.NewFlowStart(testdb.Org1.ID, models.StartTypeFlowAction, testdb.BackgroundFlow.ID).
+		WithContactIDs([]models.ContactID{testdb.Ann.ID, testdb.Bob.ID})
+
+	err = tasks.Queue(ctx, rt, rt.Queues.Batch, testdb.Org1.ID, &tasks.StartFlow{FlowStart: start}, false)
+	assert.NoError(t, err)
+	testsuite.FlushTasks(t, rt)
+
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowrun WHERE flow_id = $1`, testdb.BackgroundFlow.ID).Returns(2)
 }
 
 func TestStartFlowTaskNonPersistedStart(t *testing.T) {
