@@ -3,6 +3,7 @@ package search_test
 import (
 	"bytes"
 	"testing"
+	"time"
 
 	"github.com/nyaruka/gocommon/elastic"
 	"github.com/nyaruka/gocommon/jsonx"
@@ -20,6 +21,7 @@ func TestResolveRecipients(t *testing.T) {
 
 	group1 := testdb.InsertContactGroup(t, rt, testdb.Org1, "a85acec9-3895-4ffd-87c1-c69a25781a85", "Group 1", "", testdb.Cat, testdb.Dan)
 	group2 := testdb.InsertContactGroup(t, rt, testdb.Org1, "eb578345-595e-4e36-a68b-6941e242cdbb", "Group 2", "", testdb.Cat)
+	testdb.InsertOpenTicket(t, rt, "01992f54-5ab6-717a-a39e-e8ca91fb7262", testdb.Org1, testdb.Dan, testdb.DefaultTopic, time.Now(), nil)
 
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshGroups)
 	require.NoError(t, err)
@@ -59,14 +61,30 @@ func TestResolveRecipients(t *testing.T) {
 			limit:       -1,
 			expectedIDs: []models.ContactID{testdb.Bob.ID},
 		},
-		{ // 4 limit number returned
+		{ // 4 exclude contacts with open tickets from a group
+			recipients: &search.Recipients{
+				GroupIDs:           []models.GroupID{group1.ID},
+				ExcludeOpenTickets: true,
+			},
+			limit:       -1,
+			expectedIDs: []models.ContactID{testdb.Cat.ID},
+		},
+		{ // 5 exclude explicit contacts with open tickets
+			recipients: &search.Recipients{
+				ContactIDs:         []models.ContactID{testdb.Bob.ID, testdb.Dan.ID},
+				ExcludeOpenTickets: true,
+			},
+			limit:       -1,
+			expectedIDs: []models.ContactID{testdb.Bob.ID},
+		},
+		{ // 6 limit number returned
 			recipients: &search.Recipients{
 				Query: `name = "Ann" OR name = "Bob"`,
 			},
 			limit:       1,
 			expectedIDs: []models.ContactID{testdb.Ann.ID},
 		},
-		{ // 5 create new contacts from URNs
+		{ // 7 create new contacts from URNs
 			recipients: &search.Recipients{
 				ContactIDs: []models.ContactID{testdb.Bob.ID},
 				URNs:       []urns.URN{"tel:+12345550101", "tel:+12345550102"},
@@ -76,7 +94,7 @@ func TestResolveRecipients(t *testing.T) {
 			expectedIDs:        []models.ContactID{testdb.Bob.ID, 30000, 30001},
 			expectedCreatedIDs: []models.ContactID{30000, 30001},
 		},
-		{ // 6 new contacts not included if excluding based on last seen
+		{ // 8 new contacts not included if excluding based on last seen
 			recipients: &search.Recipients{
 				URNs:       []urns.URN{"tel:+12345550103"},
 				Exclusions: models.Exclusions{NotSeenSinceDays: 10},
@@ -84,7 +102,7 @@ func TestResolveRecipients(t *testing.T) {
 			limit:       -1,
 			expectedIDs: []models.ContactID{},
 		},
-		{ // 7 new contacts is now an existing contact that can be searched
+		{ // 9 new contacts is now an existing contact that can be searched
 			recipients: &search.Recipients{
 				URNs: []urns.URN{"tel:+12345550103"},
 			},

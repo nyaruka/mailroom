@@ -13,7 +13,12 @@ import (
 )
 
 // BuildRecipientsQuery builds a query from a set of inclusions/exclusions (i.e. a flow start or broadcast)
-func BuildRecipientsQuery(oa *models.OrgAssets, flow *models.Flow, groups []*models.Group, contactUUIDs []core.ContactUUID, userQuery string, excs models.Exclusions, excGroups []*models.Group) (string, error) {
+func BuildRecipientsQuery(oa *models.OrgAssets, flow *models.Flow, groups []*models.Group, contactUUIDs []core.ContactUUID, userQuery string, excs models.Exclusions, excGroups []*models.Group, excOpenTickets bool) (string, error) {
+	// exclusions alone would match everyone else
+	if len(groups) == 0 && len(contactUUIDs) == 0 && userQuery == "" {
+		return "", nil
+	}
+
 	var parsedQuery *contactql.ContactQuery
 	var err error
 
@@ -24,10 +29,10 @@ func BuildRecipientsQuery(oa *models.OrgAssets, flow *models.Flow, groups []*mod
 		}
 	}
 
-	return contactql.Stringify(buildRecipientsQuery(oa.Env(), flow, groups, contactUUIDs, parsedQuery, excs, excGroups)), nil
+	return contactql.Stringify(buildRecipientsQuery(oa.Env(), flow, groups, contactUUIDs, parsedQuery, excs, excGroups, excOpenTickets)), nil
 }
 
-func buildRecipientsQuery(env envs.Environment, flow *models.Flow, groups []*models.Group, contactUUIDs []core.ContactUUID, userQuery *contactql.ContactQuery, excs models.Exclusions, excGroups []*models.Group) contactql.QueryNode {
+func buildRecipientsQuery(env envs.Environment, flow *models.Flow, groups []*models.Group, contactUUIDs []core.ContactUUID, userQuery *contactql.ContactQuery, excs models.Exclusions, excGroups []*models.Group, excOpenTickets bool) contactql.QueryNode {
 	inclusions := make([]contactql.QueryNode, 0, 10)
 
 	for _, group := range groups {
@@ -53,6 +58,9 @@ func buildRecipientsQuery(env envs.Environment, flow *models.Flow, groups []*mod
 	if excs.NotSeenSinceDays > 0 {
 		seenSince := dates.Now().Add(-time.Hour * time.Duration(24*excs.NotSeenSinceDays))
 		exclusions = append(exclusions, contactql.NewCondition(contactql.PropertyTypeAttribute, "last_seen_on", contactql.OpGreaterThan, formatQueryDate(env, seenSince)))
+	}
+	if excOpenTickets {
+		exclusions = append(exclusions, contactql.NewCondition(contactql.PropertyTypeAttribute, "tickets", contactql.OpEqual, "0"))
 	}
 	for _, group := range excGroups {
 		exclusions = append(exclusions, contactql.NewCondition(contactql.PropertyTypeAttribute, "group", contactql.OpNotEqual, group.Name()))

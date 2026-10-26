@@ -28,13 +28,14 @@ func TestBuildRecipientsQuery(t *testing.T) {
 	testers := oa.GroupByID(testdb.TestersGroup.ID)
 
 	tcs := []struct {
-		groups        []*models.Group
-		contactUUIDs  []core.ContactUUID
-		userQuery     string
-		exclusions    models.Exclusions
-		excludeGroups []*models.Group
-		expected      string
-		err           string
+		groups             []*models.Group
+		contactUUIDs       []core.ContactUUID
+		userQuery          string
+		exclusions         models.Exclusions
+		excludeGroups      []*models.Group
+		excludeOpenTickets bool
+		expected           string
+		err                string
 	}{
 		{ // 0
 			groups:       []*models.Group{doctors, testers},
@@ -51,8 +52,9 @@ func TestBuildRecipientsQuery(t *testing.T) {
 				StartedPreviously: true,
 				NotSeenSinceDays:  90,
 			},
-			excludeGroups: []*models.Group{testers},
-			expected:      `(group = "Doctors" OR uuid = "a393abc0-283d-4c9b-a1b3-641a035c34bf") AND status = "active" AND flow = "" AND history != "Favorites" AND last_seen_on > "20-01-2022" AND group != "Testers"`,
+			excludeGroups:      []*models.Group{testers},
+			excludeOpenTickets: true,
+			expected:           `(group = "Doctors" OR uuid = "a393abc0-283d-4c9b-a1b3-641a035c34bf") AND status = "active" AND flow = "" AND history != "Favorites" AND last_seen_on > "20-01-2022" AND tickets = 0 AND group != "Testers"`,
 		},
 		{ // 2
 			contactUUIDs: []core.ContactUUID{testdb.Ann.UUID},
@@ -74,7 +76,8 @@ func TestBuildRecipientsQuery(t *testing.T) {
 				StartedPreviously: true,
 				NotSeenSinceDays:  30,
 			},
-			expected: `fields.gender = "M" AND status = "active" AND flow = "" AND history != "Favorites" AND last_seen_on > "21-03-2022"`,
+			excludeOpenTickets: true,
+			expected:           `fields.gender = "M" AND status = "active" AND flow = "" AND history != "Favorites" AND last_seen_on > "21-03-2022" AND tickets = 0`,
 		},
 		{ // 5
 			userQuery: `name ~ ben`,
@@ -114,7 +117,7 @@ func TestBuildRecipientsQuery(t *testing.T) {
 	}
 
 	for i, tc := range tcs {
-		actual, err := search.BuildRecipientsQuery(oa, flow, tc.groups, tc.contactUUIDs, tc.userQuery, tc.exclusions, tc.excludeGroups)
+		actual, err := search.BuildRecipientsQuery(oa, flow, tc.groups, tc.contactUUIDs, tc.userQuery, tc.exclusions, tc.excludeGroups, tc.excludeOpenTickets)
 		if tc.err != "" {
 			assert.Equal(t, "", actual)
 			assert.EqualError(t, err, tc.err, "%d: error mismatch", i)

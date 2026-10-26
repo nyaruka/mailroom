@@ -3,6 +3,7 @@ package search
 import (
 	"context"
 	"fmt"
+	"slices"
 
 	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/goflow/core"
@@ -17,6 +18,9 @@ type Recipients struct {
 	Query           string
 	Exclusions      models.Exclusions
 	ExcludeGroupIDs []models.GroupID
+
+	// not a user exclusion because flow starts always exclude contacts with open tickets but broadcasts never do
+	ExcludeOpenTickets bool
 }
 
 // ResolveRecipients resolves a set of contacts, groups, urns etc into a set of unique contacts. Also returns the ids
@@ -52,6 +56,11 @@ func ResolveRecipients(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 		}
 
 		createdContacts = createdByURN
+	}
+
+	// loaded contacts include their open tickets so we can exclude them without relying on the index
+	if recipients.ExcludeOpenTickets {
+		includeContacts = slices.DeleteFunc(includeContacts, func(c *models.Contact) bool { return len(c.Tickets()) > 0 })
 	}
 
 	includeGroups := make([]*models.Group, 0, len(recipients.GroupIDs))
@@ -92,7 +101,7 @@ func ResolveRecipients(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 			includeContactUUIDs[i] = contact.UUID()
 		}
 
-		query, err := BuildRecipientsQuery(oa, flow, includeGroups, includeContactUUIDs, recipients.Query, recipients.Exclusions, excludeGroups)
+		query, err := BuildRecipientsQuery(oa, flow, includeGroups, includeContactUUIDs, recipients.Query, recipients.Exclusions, excludeGroups, recipients.ExcludeOpenTickets)
 		if err != nil {
 			return nil, nil, fmt.Errorf("error building query: %w", err)
 		}

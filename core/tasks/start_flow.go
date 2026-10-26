@@ -85,12 +85,13 @@ func createFlowStartBatches(ctx context.Context, rt *runtime.Runtime, oa *models
 
 		// created contacts don't need explicit indexing here because starting them in a flow will index them
 		contactIDs, _, err = search.ResolveRecipients(ctx, rt, oa, start.CreatedByID, flow, &search.Recipients{
-			ContactIDs:      start.ContactIDs,
-			GroupIDs:        start.GroupIDs,
-			URNs:            start.URNs,
-			Query:           string(start.Query),
-			Exclusions:      start.Exclusions,
-			ExcludeGroupIDs: start.ExcludeGroupIDs,
+			ContactIDs:         start.ContactIDs,
+			GroupIDs:           start.GroupIDs,
+			URNs:               start.URNs,
+			Query:              string(start.Query),
+			Exclusions:         start.Exclusions,
+			ExcludeGroupIDs:    start.ExcludeGroupIDs,
+			ExcludeOpenTickets: true,
 		}, limit)
 		if err != nil {
 			return fmt.Errorf("error resolving start recipients: %w", err)
