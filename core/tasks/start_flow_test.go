@@ -3,6 +3,7 @@ package tasks_test
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/nyaruka/gocommon/centrifugo"
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
@@ -270,6 +271,31 @@ func TestStartFlowTask(t *testing.T) {
 		}
 		published = len(sent)
 	}
+}
+
+func TestStartFlowTaskExcludesOpenTickets(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	testdb.InsertOpenTicket(t, rt, "01992f54-5ab6-717a-a39e-e8ca91fb7262", testdb.Org1, testdb.Bob, testdb.DefaultTopic, time.Now(), nil)
+
+	start := models.NewFlowStart(testdb.Org1.ID, models.StartTypeFlowAction, testdb.SingleMessage.ID).
+		WithContactIDs([]models.ContactID{testdb.Ann.ID, testdb.Bob.ID})
+
+	err := tasks.Queue(ctx, rt, rt.Queues.Batch, testdb.Org1.ID, &tasks.StartFlow{FlowStart: start}, false)
+	assert.NoError(t, err)
+	testsuite.FlushTasks(t, rt)
+
+	assertdb.Query(t, rt.DB, `SELECT contact_id FROM flows_flowrun WHERE flow_id = $1`, testdb.SingleMessage.ID).Returns(int64(testdb.Ann.ID))
+
+	// background flows don't interrupt so contacts with open tickets aren't excluded
+	start = models.NewFlowStart(testdb.Org1.ID, models.StartTypeFlowAction, testdb.BackgroundFlow.ID).
+		WithContactIDs([]models.ContactID{testdb.Ann.ID, testdb.Bob.ID})
+
+	err = tasks.Queue(ctx, rt, rt.Queues.Batch, testdb.Org1.ID, &tasks.StartFlow{FlowStart: start}, false)
+	assert.NoError(t, err)
+	testsuite.FlushTasks(t, rt)
+
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowrun WHERE flow_id = $1`, testdb.BackgroundFlow.ID).Returns(2)
 }
 
 func TestStartFlowTaskNonPersistedStart(t *testing.T) {
