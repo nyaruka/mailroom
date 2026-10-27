@@ -1,3 +1,6 @@
+## v26.3.109 (2026-10-27)
+ * Exclude contacts with open tickets from non-background flow starts
+
 ## v26.3.108 (2026-10-22)
  * Classify with OpenAI's Decisions API for models which support it
 
