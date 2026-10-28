@@ -1,3 +1,7 @@
+## v26.3.110 (2026-10-28)
+ * Load contacts' pending and open tickets with their real status
+ * Update to goflow v0.303.1 and update other dependencies
+
 ## v26.3.109 (2026-10-27)
  * Exclude contacts with open tickets from non-background flow starts
 
