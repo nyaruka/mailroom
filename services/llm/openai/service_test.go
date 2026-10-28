@@ -200,6 +200,7 @@ func TestClassifyByDecision(t *testing.T) {
 		if assert.ErrorAs(t, err, &serr) {
 			assert.Equal(t, code, serr.Code)
 			assert.Equal(t, msg, serr.Message)
+			assert.Equal(t, "Which option best fits this input?", serr.Instructions)
 		}
 	}
 
