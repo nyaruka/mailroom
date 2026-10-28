@@ -24,12 +24,11 @@ import (
 func TestContacts(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	// for now it's still possible to have more than one open ticket in the database
-	testdb.InsertOpenTicket(t, rt, "01992f54-5ab6-717a-a39e-e8ca91fb7262", testdb.Org1, testdb.Ann, testdb.SupportTopic, time.Now(), testdb.Agent)
+	testdb.InsertClosedTicket(t, rt, "01992f54-5ab6-717a-a39e-e8ca91fb7262", testdb.Org1, testdb.Ann, testdb.SupportTopic, testdb.Agent)
 	testdb.InsertOpenTicket(t, rt, "01992f54-5ab6-725e-be9c-0c6407efd755", testdb.Org1, testdb.Ann, testdb.SalesTopic, time.Now(), nil)
 
 	testdb.InsertContactURN(t, rt, testdb.Org1, testdb.Bob, "whatsapp:250788373373", 999, nil)
-	testdb.InsertOpenTicket(t, rt, "01992f54-5ab6-7498-a7f2-6aa246e45cfe", testdb.Org1, testdb.Bob, testdb.DefaultTopic, time.Now(), testdb.Editor)
+	testdb.InsertPendingTicket(t, rt, "01992f54-5ab6-7498-a7f2-6aa246e45cfe", testdb.Org1, testdb.Bob, testdb.DefaultTopic, time.Now(), testdb.Editor)
 
 	org, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshAll)
 	assert.NoError(t, err)
@@ -60,9 +59,9 @@ func TestContacts(t *testing.T) {
 	assert.Len(t, ann.URNs(), 1)
 	assert.Equal(t, urns.URN("tel:+16055741111"), ann.URNs()[0].Encode())
 	assert.Equal(t, 1, ann.Groups().Count())
-	assert.Equal(t, 2, ann.Tickets().Open().Count())
+	assert.Len(t, ann.Tickets().All(), 1) // closed tickets aren't loaded
 
-	annTicket := ann.Tickets().LastOpen()
+	annTicket := ann.Tickets().Active()
 	assert.Equal(t, "Sales", annTicket.Topic().Name())
 	assert.Nil(t, annTicket.Assignee())
 
@@ -78,13 +77,22 @@ func TestContacts(t *testing.T) {
 	assert.Equal(t, urns.URN("tel:+16055742222"), bob.URNs()[0].Encode())
 	assert.Equal(t, urns.URN("whatsapp:250788373373"), bob.URNs()[1].Encode())
 	assert.Equal(t, 0, bob.Groups().Count())
-	assert.NotNil(t, bob.Tickets().LastOpen())
+	assert.NotNil(t, bob.Tickets().Active())
+	assert.Equal(t, core.TicketStatusOpen, bob.Tickets().Active().Status()) // engine has no pending status
+
+	// but the DB ticket keeps its real status, so saving changes to it doesn't make it open
+	bobTicket := mcs[1].Tickets()[0]
+	assert.Equal(t, models.TicketStatusPending, bobTicket.Status)
+
+	bobTicket.TopicID = testdb.SalesTopic.ID
+	require.NoError(t, models.UpdateTickets(ctx, rt.DB, []*models.Ticket{bobTicket}))
+	assertdb.Query(t, rt.DB, `SELECT status, topic_id FROM tickets_ticket WHERE id = $1`, bobTicket.ID).Columns(map[string]any{"status": "P", "topic_id": testdb.SalesTopic.ID})
 
 	assert.Equal(t, "Cat", cat.Name())
 	assert.Equal(t, types.NewXNumberFromInt(30), cat.Fields()["age"].QueryValue())
 	assert.Equal(t, 0, len(cat.URNs()))
 	assert.Equal(t, 0, cat.Groups().Count())
-	assert.Nil(t, cat.Tickets().LastOpen())
+	assert.Nil(t, cat.Tickets().Active())
 }
 
 func TestCreateContact(t *testing.T) {
