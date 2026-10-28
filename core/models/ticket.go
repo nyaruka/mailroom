@@ -27,13 +27,16 @@ func (i TicketID) MarshalJSON() ([]byte, error)  { return null.MarshalInt(i) }
 type TicketStatus string
 
 const (
-	TicketStatusOpen   = TicketStatus("O")
-	TicketStatusClosed = TicketStatus("C")
+	TicketStatusPending = TicketStatus("P")
+	TicketStatusOpen    = TicketStatus("O")
+	TicketStatusClosed  = TicketStatus("C")
 )
 
+// the engine has no pending status so pending tickets are open as far as it's concerned
 var ticketStatusMap = map[TicketStatus]core.TicketStatus{
-	TicketStatusOpen:   core.TicketStatusOpen,
-	TicketStatusClosed: core.TicketStatusClosed,
+	TicketStatusPending: core.TicketStatusOpen,
+	TicketStatusOpen:    core.TicketStatusOpen,
+	TicketStatusClosed:  core.TicketStatusClosed,
 }
 
 type Ticket struct {

@@ -35,6 +35,11 @@ func (k *Ticket) Load(t *testing.T, rt *runtime.Runtime, org *Org) *models.Ticke
 	return tickets[0]
 }
 
+// InsertPendingTicket inserts a pending ticket
+func InsertPendingTicket(t *testing.T, rt *runtime.Runtime, uuid core.TicketUUID, org *Org, contact *Contact, topic *Topic, openedOn time.Time, assignee *User) *Ticket {
+	return insertTicket(t, rt, uuid, org, contact, models.TicketStatusPending, topic, openedOn, assignee)
+}
+
 // InsertOpenTicket inserts an open ticket
 func InsertOpenTicket(t *testing.T, rt *runtime.Runtime, uuid core.TicketUUID, org *Org, contact *Contact, topic *Topic, openedOn time.Time, assignee *User) *Ticket {
 	return insertTicket(t, rt, uuid, org, contact, models.TicketStatusOpen, topic, openedOn, assignee)
