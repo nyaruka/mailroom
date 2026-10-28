@@ -21,16 +21,20 @@ const decideQuestionName = "option"
 const predicateYesMin = 0.5
 
 // newDecideParams builds a request to classify the input. A choice question needs at least two choices, so a single
-// option is asked as a predicate instead.
-func newDecideParams(model, input string, options []*core.ClassifierOption) openai.DecisionNewParams {
+// option is asked as a predicate instead. Also returns the question's instructions.
+func newDecideParams(model, input string, options []*core.ClassifierOption) (openai.DecisionNewParams, string) {
 	var q openai.DecisionNewParamsQuestionUnion
+	var instructions string
 	if len(options) == 1 {
 		o := options[0]
-		instructions := fmt.Sprintf("This input matches %q.", o.Name)
+		instructions = fmt.Sprintf("This input matches %q.", o.Name)
 		if o.Description != "" {
 			instructions = fmt.Sprintf("This input matches %q (%s).", o.Name, o.Description)
 		}
-		q.OfPredicate = &openai.DecisionNewParamsQuestionPredicate{Instructions: instructions, Name: openai.String(decideQuestionName)}
+		q.OfPredicate = &openai.DecisionNewParamsQuestionPredicate{
+			Instructions: openai.DecisionNewParamsQuestionPredicateInstructionsUnion{OfString: openai.String(instructions)},
+			Name:         openai.String(decideQuestionName),
+		}
 	} else {
 		choices := make([]openai.DecisionNewParamsQuestionChoiceChoice, len(options))
 		for i, o := range options {
@@ -41,8 +45,9 @@ func newDecideParams(model, input string, options []*core.ClassifierOption) open
 				choices[i].Description = openai.String(o.Description)
 			}
 		}
+		instructions = "Which option best fits this input?"
 		q.OfChoice = &openai.DecisionNewParamsQuestionChoice{
-			Instructions: "Which option best fits this input?",
+			Instructions: openai.DecisionNewParamsQuestionChoiceInstructionsUnion{OfString: openai.String(instructions)},
 			Choices:      choices,
 			Name:         openai.String(decideQuestionName),
 		}
@@ -52,12 +57,11 @@ func newDecideParams(model, input string, options []*core.ClassifierOption) open
 		Model:     model,
 		Input:     openai.DecisionNewParamsInputUnion{OfString: openai.String(input)},
 		Questions: []openai.DecisionNewParamsQuestionUnion{q},
-	}
+	}, instructions
 }
 
 func (s *service) classifyByDecision(ctx context.Context, input string, options []*core.ClassifierOption) (*core.Classification, error) {
-	params := newDecideParams(s.model, input, options)
-	instructions := *params.Questions[0].GetInstructions()
+	params, instructions := newDecideParams(s.model, input, options)
 
 	resp, err := s.client.Decisions.New(ctx, params)
 	if err != nil {
