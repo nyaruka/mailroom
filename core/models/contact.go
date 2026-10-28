@@ -555,7 +555,7 @@ LEFT JOIN (
 	FROM
 		tickets_ticket t
 	WHERE
-		t.status = 'O' AND t.contact_id = ANY($1)
+		t.status IN ('P', 'O') AND t.contact_id = ANY($1)
 	GROUP BY
 		contact_id
 ) t ON c.id = t.contact_id

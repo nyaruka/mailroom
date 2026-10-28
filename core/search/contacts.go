@@ -71,9 +71,12 @@ func NewContactDoc(oa *models.OrgAssets, c *core.Contact, currentFlowID models.F
 		Email:          c.Email(),
 		CreatedOn:      c.CreatedOn(),
 		LastSeenOn:     c.LastSeenOn(),
-		Tickets:        c.Tickets().Open().Count(),
 		FlowID:         currentFlowID,
 		FlowHistoryIDs: flowHistoryIDs,
+	}
+
+	if c.Tickets().Active() != nil {
+		doc.Tickets = 1
 	}
 
 	// build field docs from the engine contact's field values
