@@ -27,10 +27,11 @@ func TestNewContactDoc(t *testing.T) {
 
 	rt.DB.MustExec(`UPDATE contacts_contact SET email = 'cat@example.com' WHERE id = $1`, testdb.Cat.ID)
 	testdb.InsertOpenTicket(t, rt, "01992f54-5ab6-717a-a39e-e8ca91fb7262", testdb.Org1, testdb.Cat, testdb.DefaultTopic, time.Now(), nil)
+	testdb.InsertPendingTicket(t, rt, "01992f54-5ab6-7498-a7f2-6aa246e45cfe", testdb.Org1, testdb.Bob, testdb.DefaultTopic, time.Now(), nil)
 
-	mcs, err := models.LoadContacts(ctx, rt.DB, oa, []models.ContactID{testdb.Ann.ID, testdb.Cat.ID})
+	mcs, err := models.LoadContacts(ctx, rt.DB, oa, []models.ContactID{testdb.Ann.ID, testdb.Bob.ID, testdb.Cat.ID})
 	require.NoError(t, err)
-	require.Len(t, mcs, 2)
+	require.Len(t, mcs, 3)
 
 	sort.Slice(mcs, func(i, j int) bool { return mcs[i].ID() < mcs[j].ID() })
 
@@ -90,6 +91,13 @@ func TestNewContactDoc(t *testing.T) {
 	require.NotNil(t, wardField, "should have ward field")
 	assert.NotEmpty(t, wardField.Ward)
 	assert.NotEmpty(t, wardField.WardKeyword)
+
+	// Bob: has a pending ticket
+	doc = search.NewContactDoc(oa, contacts[testdb.Bob.ID], models.NilFlowID, nil)
+
+	assert.Equal(t, "pending", doc.Ticket)
+	assert.Equal(t, 1, doc.Tickets)
+	assert.Contains(t, string(jsonx.MustMarshal(doc)), `"ticket":"pending"`)
 
 	// Cat: has name, status=active, age=30, 1 URN, in Doctors group, an open ticket
 	cat := contacts[testdb.Cat.ID]
