@@ -67,8 +67,8 @@ type Field struct {
 func InsertContact(t *testing.T, rt *runtime.Runtime, org *Org, uuid core.ContactUUID, name string, language i18n.Language, status models.ContactStatus) *Contact {
 	var id models.ContactID
 	err := rt.DB.Get(&id,
-		`INSERT INTO contacts_contact (org_id, is_active, ticket_count, uuid, name, language, status, created_on, modified_on, created_by_id, modified_by_id) 
-		VALUES($1, TRUE, 0, $2, $3, $4, $5, NOW(), NOW(), 1, 1) RETURNING id`, org.ID, uuid, name, language, status,
+		`INSERT INTO contacts_contact (org_id, is_active, uuid, name, language, status, created_on, modified_on, created_by_id, modified_by_id) 
+		VALUES($1, TRUE, $2, $3, $4, $5, NOW(), NOW(), 1, 1) RETURNING id`, org.ID, uuid, name, language, status,
 	)
 	require.NoError(t, err)
 	return &Contact{id, uuid, "", models.NilURNID}
