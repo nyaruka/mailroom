@@ -442,6 +442,20 @@ func GetContactIDsPage(ctx context.Context, db Queryer, orgID OrgID, afterID Con
 	return queryContactIDs(ctx, db, sqlSelectContactIDsPage, orgID, int(afterID), limit)
 }
 
+// matches the predicate of the partial unique index on contact_id so that it can be used for ordering
+const sqlSelectContactIDsWithActiveTicketPage = `
+SELECT t.contact_id
+  FROM tickets_ticket t
+  JOIN contacts_contact c ON c.id = t.contact_id
+ WHERE t.org_id = $1 AND t.status IN ('P', 'O') AND t.contact_id > $2 AND c.is_active = TRUE
+ ORDER BY t.contact_id
+ LIMIT $3`
+
+// GetContactIDsWithActiveTicketPage is like GetContactIDsPage but only returns contacts with a pending or open ticket.
+func GetContactIDsWithActiveTicketPage(ctx context.Context, db Queryer, orgID OrgID, afterID ContactID, limit int) ([]ContactID, error) {
+	return queryContactIDs(ctx, db, sqlSelectContactIDsWithActiveTicketPage, orgID, int(afterID), limit)
+}
+
 type ContactURN struct {
 	ID         URNID            `json:"id"          db:"id"`
 	OrgID      OrgID            `                   db:"org_id"`

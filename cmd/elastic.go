@@ -33,6 +33,7 @@ func Elastic(cfg *runtime.Config) error {
 	flags := flag.NewFlagSet("mrelastic", flag.ContinueOnError)
 	flags.SetOutput(io.Discard) // we report parse errors ourselves rather than having them printed with usage
 	del := flags.Bool("delete", false, "delete orphaned documents instead of just reporting them (prune contacts only)")
+	tickets := flags.Bool("tickets", false, "only index contacts with a pending or open ticket (index contacts only)")
 
 	cmdArgs, cfgArgs, positional := runtime.SplitArgs(flags, os.Args[1:])
 
@@ -85,7 +86,7 @@ func Elastic(cfg *runtime.Config) error {
 	switch verb {
 	case "index":
 		if target == "contacts" {
-			return indexAllContacts(ctx, rt)
+			return indexAllContacts(ctx, rt, *tickets)
 		}
 		return indexAllMessages(ctx, rt)
 	case "prune":
@@ -109,7 +110,12 @@ func pruneAllContacts(ctx context.Context, rt *runtime.Runtime, del bool) error 
 	return nil
 }
 
-func indexAllContacts(ctx context.Context, rt *runtime.Runtime) error {
+func indexAllContacts(ctx context.Context, rt *runtime.Runtime, tickets bool) error {
+	getPage := models.GetContactIDsPage
+	if tickets {
+		getPage = models.GetContactIDsWithActiveTicketPage
+	}
+
 	orgIDs, err := models.GetActiveOrgIDs(ctx, rt.DB)
 	if err != nil {
 		return fmt.Errorf("error getting active org IDs: %w", err)
@@ -127,7 +133,7 @@ func indexAllContacts(ctx context.Context, rt *runtime.Runtime) error {
 		fmt.Printf(" > Indexing org #%d", orgID)
 
 		for {
-			contactIDs, err := models.GetContactIDsPage(ctx, rt.DB, orgID, afterID, indexBatchSize)
+			contactIDs, err := getPage(ctx, rt.DB, orgID, afterID, indexBatchSize)
 			if err != nil {
 				return fmt.Errorf("error getting contact IDs for org #%d: %w", orgID, err)
 			}
