@@ -58,10 +58,12 @@ func ResolveRecipients(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 		createdContacts = createdByURN
 	}
 
-	// loaded contacts include their open tickets so we can exclude them here, which means the shortcut below for
-	// explicit contacts still works - if we do search, the query also applies the condition to them
+	// loaded contacts include their active tickets so we can exclude open ones here, which means the shortcut below
+	// for explicit contacts still works - if we do search, the query also applies the condition to them
 	if recipients.ExcludeOpenTickets {
-		includeContacts = slices.DeleteFunc(includeContacts, func(c *models.Contact) bool { return len(c.Tickets()) > 0 })
+		includeContacts = slices.DeleteFunc(includeContacts, func(c *models.Contact) bool {
+			return slices.ContainsFunc(c.Tickets(), func(t *models.Ticket) bool { return t.Status == models.TicketStatusOpen })
+		})
 	}
 
 	includeGroups := make([]*models.Group, 0, len(recipients.GroupIDs))
