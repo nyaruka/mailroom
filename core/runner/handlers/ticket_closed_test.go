@@ -4,6 +4,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/nyaruka/goflow/core"
+	"github.com/nyaruka/goflow/flows/modifiers"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/testsuite"
 	"github.com/nyaruka/mailroom/v26/testsuite/testdb"
@@ -27,4 +29,19 @@ func TestTicketClosed(t *testing.T) {
 	testdb.InsertTicketClosedTrigger(t, rt, testdb.Org1, testdb.BackgroundFlow)
 
 	runTests(t, rt, "testdata/ticket_closed.json")
+}
+
+func TestTicketClosedIndexesContact(t *testing.T) {
+	_, rt := testsuite.Runtime(t)
+
+	testdb.InsertOpenTicket(t, rt, "01992f54-5ab6-717a-a39e-e8ca91fb7262", testdb.Org1, testdb.Ann, testdb.DefaultTopic, time.Now(), nil)
+
+	testsuite.IndexContacts(t, rt)
+	oa := disableOpenTicketsGroup(t, rt)
+
+	assertSearch(t, rt, oa, "tickets = 1", []core.ContactUUID{testdb.Ann.UUID})
+
+	applyModifiers(t, rt, oa, testdb.Ann, modifiers.NewTicketClose("01992f54-5ab6-717a-a39e-e8ca91fb7262"))
+
+	assertSearch(t, rt, oa, "tickets = 1", []core.ContactUUID{})
 }

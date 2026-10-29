@@ -28,6 +28,7 @@ func handleTicketReopened(ctx context.Context, rt *runtime.Runtime, oa *models.O
 
 	scene.AttachPreCommitHook(hooks.UpdateTickets, dbTicket)
 	scene.AttachPreCommitHook(hooks.UpdateTicketFires, dbTicket)
+	scene.AttachPostCommitHook(hooks.IndexContacts, event)
 
 	return nil
 }
