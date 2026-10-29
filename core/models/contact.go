@@ -442,6 +442,24 @@ func GetContactIDsPage(ctx context.Context, db Queryer, orgID OrgID, afterID Con
 	return queryContactIDs(ctx, db, sqlSelectContactIDsPage, orgID, int(afterID), limit)
 }
 
+// the CTE is materialized so that tickets are found via the org index - otherwise ordering by contact_id with a limit
+// can tempt the planner into walking the index on contact_id across every org's active tickets
+const sqlSelectContactIDsWithActiveTicketPage = `
+WITH active AS MATERIALIZED (
+    SELECT contact_id FROM tickets_ticket WHERE org_id = $1 AND status IN ('P', 'O')
+)
+SELECT a.contact_id
+  FROM active a
+  JOIN contacts_contact c ON c.id = a.contact_id
+ WHERE a.contact_id > $2 AND c.is_active = TRUE
+ ORDER BY a.contact_id
+ LIMIT $3`
+
+// GetContactIDsWithActiveTicketPage is like GetContactIDsPage but only returns contacts with a pending or open ticket.
+func GetContactIDsWithActiveTicketPage(ctx context.Context, db Queryer, orgID OrgID, afterID ContactID, limit int) ([]ContactID, error) {
+	return queryContactIDs(ctx, db, sqlSelectContactIDsWithActiveTicketPage, orgID, int(afterID), limit)
+}
+
 type ContactURN struct {
 	ID         URNID            `json:"id"          db:"id"`
 	OrgID      OrgID            `                   db:"org_id"`

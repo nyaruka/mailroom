@@ -482,6 +482,34 @@ func TestGetContactIDsPage(t *testing.T) {
 	}
 }
 
+func TestGetContactIDsWithActiveTicketPage(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	testdb.InsertClosedTicket(t, rt, "01992f54-5ab6-717a-a39e-e8ca91fb7262", testdb.Org1, testdb.Ann, testdb.DefaultTopic, nil)
+	testdb.InsertOpenTicket(t, rt, "01992f54-5ab6-725e-be9c-0c6407efd755", testdb.Org1, testdb.Bob, testdb.DefaultTopic, time.Now(), nil)
+	testdb.InsertPendingTicket(t, rt, "01992f54-5ab6-7498-a7f2-6aa246e45cfe", testdb.Org1, testdb.Cat, testdb.DefaultTopic, time.Now(), nil)
+	testdb.InsertOpenTicket(t, rt, "01992f54-5ab6-7a1c-8f9e-1b2c3d4e5f60", testdb.Org1, testdb.Dan, testdb.DefaultTopic, time.Now(), nil)
+	testdb.InsertOpenTicket(t, rt, "01992f54-5ab6-7b2d-9a0f-2c3d4e5f6071", testdb.Org2, testdb.Org2Contact, testdb.Org2DefaultTopic, time.Now(), nil)
+
+	rt.DB.MustExec(`UPDATE contacts_contact SET is_active = FALSE WHERE id = $1`, testdb.Dan.ID)
+
+	ids, err := models.GetContactIDsWithActiveTicketPage(ctx, rt.DB, testdb.Org1.ID, models.NilContactID, 1)
+	require.NoError(t, err)
+	assert.Equal(t, []models.ContactID{testdb.Bob.ID}, ids)
+
+	ids, err = models.GetContactIDsWithActiveTicketPage(ctx, rt.DB, testdb.Org1.ID, testdb.Bob.ID, 10)
+	require.NoError(t, err)
+	assert.Equal(t, []models.ContactID{testdb.Cat.ID}, ids)
+
+	ids, err = models.GetContactIDsWithActiveTicketPage(ctx, rt.DB, testdb.Org1.ID, testdb.Cat.ID, 10)
+	require.NoError(t, err)
+	assert.Len(t, ids, 0)
+
+	ids, err = models.GetContactIDsWithActiveTicketPage(ctx, rt.DB, testdb.Org2.ID, models.NilContactID, 10)
+	require.NoError(t, err)
+	assert.Equal(t, []models.ContactID{testdb.Org2Contact.ID}, ids)
+}
+
 func TestUpdateContactLastSeenAndModifiedOn(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
