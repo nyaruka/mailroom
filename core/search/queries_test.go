@@ -54,7 +54,7 @@ func TestBuildRecipientsQuery(t *testing.T) {
 			},
 			excludeGroups:      []*models.Group{testers},
 			excludeOpenTickets: true,
-			expected:           `(group = "Doctors" OR uuid = "a393abc0-283d-4c9b-a1b3-641a035c34bf") AND status = "active" AND flow = "" AND history != "Favorites" AND last_seen_on > "20-01-2022" AND tickets = 0 AND group != "Testers"`,
+			expected:           `(group = "Doctors" OR uuid = "a393abc0-283d-4c9b-a1b3-641a035c34bf") AND status = "active" AND flow = "" AND history != "Favorites" AND last_seen_on > "20-01-2022" AND ticket != "open" AND group != "Testers"`,
 		},
 		{ // 2
 			contactUUIDs: []core.ContactUUID{testdb.Ann.UUID},
@@ -77,7 +77,7 @@ func TestBuildRecipientsQuery(t *testing.T) {
 				NotSeenSinceDays:  30,
 			},
 			excludeOpenTickets: true,
-			expected:           `fields.gender = "M" AND status = "active" AND flow = "" AND history != "Favorites" AND last_seen_on > "21-03-2022" AND tickets = 0`,
+			expected:           `fields.gender = "M" AND status = "active" AND flow = "" AND history != "Favorites" AND last_seen_on > "21-03-2022" AND ticket != "open"`,
 		},
 		{ // 5
 			userQuery: `name ~ ben`,

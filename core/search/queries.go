@@ -60,7 +60,7 @@ func buildRecipientsQuery(env envs.Environment, flow *models.Flow, groups []*mod
 		exclusions = append(exclusions, contactql.NewCondition(contactql.PropertyTypeAttribute, "last_seen_on", contactql.OpGreaterThan, formatQueryDate(env, seenSince)))
 	}
 	if excOpenTickets {
-		exclusions = append(exclusions, contactql.NewCondition(contactql.PropertyTypeAttribute, "tickets", contactql.OpEqual, "0"))
+		exclusions = append(exclusions, contactql.NewCondition(contactql.PropertyTypeAttribute, contactql.AttributeTicket, contactql.OpNotEqual, "open"))
 	}
 	for _, group := range excGroups {
 		exclusions = append(exclusions, contactql.NewCondition(contactql.PropertyTypeAttribute, "group", contactql.OpNotEqual, group.Name()))

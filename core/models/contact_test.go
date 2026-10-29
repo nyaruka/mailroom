@@ -78,9 +78,9 @@ func TestContacts(t *testing.T) {
 	assert.Equal(t, urns.URN("whatsapp:250788373373"), bob.URNs()[1].Encode())
 	assert.Equal(t, 0, bob.Groups().Count())
 	assert.NotNil(t, bob.Tickets().Active())
-	assert.Equal(t, core.TicketStatusOpen, bob.Tickets().Active().Status()) // engine has no pending status
+	assert.Equal(t, core.TicketStatusPending, bob.Tickets().Active().Status())
 
-	// but the DB ticket keeps its real status, so saving changes to it doesn't make it open
+	// saving changes to the DB ticket doesn't change its status
 	bobTicket := mcs[1].Tickets()[0]
 	assert.Equal(t, models.TicketStatusPending, bobTicket.Status)
 

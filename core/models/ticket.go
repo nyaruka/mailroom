@@ -32,9 +32,8 @@ const (
 	TicketStatusClosed  = TicketStatus("C")
 )
 
-// the engine has no pending status so pending tickets are open as far as it's concerned
 var ticketStatusMap = map[TicketStatus]core.TicketStatus{
-	TicketStatusPending: core.TicketStatusOpen,
+	TicketStatusPending: core.TicketStatusPending,
 	TicketStatusOpen:    core.TicketStatusOpen,
 	TicketStatusClosed:  core.TicketStatusClosed,
 }
