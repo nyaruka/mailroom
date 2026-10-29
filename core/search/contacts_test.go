@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"sort"
 	"testing"
+	"time"
 
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/gocommon/elastic"
@@ -25,6 +26,7 @@ func TestNewContactDoc(t *testing.T) {
 	oa := testdb.Org1.Load(t, rt)
 
 	rt.DB.MustExec(`UPDATE contacts_contact SET email = 'cat@example.com' WHERE id = $1`, testdb.Cat.ID)
+	testdb.InsertOpenTicket(t, rt, "01992f54-5ab6-717a-a39e-e8ca91fb7262", testdb.Org1, testdb.Cat, testdb.DefaultTopic, time.Now(), nil)
 
 	mcs, err := models.LoadContacts(ctx, rt.DB, oa, []models.ContactID{testdb.Ann.ID, testdb.Cat.ID})
 	require.NoError(t, err)
@@ -65,7 +67,9 @@ func TestNewContactDoc(t *testing.T) {
 	assert.Contains(t, doc.GroupIDs, testdb.DoctorsGroup.ID)
 
 	// Ann has no open tickets by default in test fixtures
+	assert.Equal(t, "", doc.Ticket)
 	assert.Equal(t, 0, doc.Tickets)
+	assert.NotContains(t, string(jsonx.MustMarshal(doc)), `"ticket":`)
 
 	// Ann should have fields: gender, state, district, ward (not age since it's nil)
 	fieldsByUUID := make(map[assets.FieldUUID]*search.ContactDocField)
@@ -87,7 +91,7 @@ func TestNewContactDoc(t *testing.T) {
 	assert.NotEmpty(t, wardField.Ward)
 	assert.NotEmpty(t, wardField.WardKeyword)
 
-	// Cat: has name, status=active, age=30, 1 URN, in Doctors group, no tickets
+	// Cat: has name, status=active, age=30, 1 URN, in Doctors group, an open ticket
 	cat := contacts[testdb.Cat.ID]
 	require.NotNil(t, cat)
 
@@ -104,7 +108,9 @@ func TestNewContactDoc(t *testing.T) {
 	assert.Len(t, doc.URNs, 1)
 	assert.Equal(t, "tel", doc.URNs[0].Scheme)
 
-	assert.Equal(t, 0, doc.Tickets)
+	assert.Equal(t, "open", doc.Ticket)
+	assert.Equal(t, 1, doc.Tickets)
+	assert.Contains(t, string(jsonx.MustMarshal(doc)), `"ticket":"open"`)
 
 	// Cat should have age field with number
 	fieldsByUUID = make(map[assets.FieldUUID]*search.ContactDocField)

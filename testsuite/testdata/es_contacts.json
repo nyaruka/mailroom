@@ -180,6 +180,9 @@
             "flow_history_ids": {
                 "type": "keyword"
             },
+            "ticket": {
+                "type": "keyword"
+            },
             "tickets": {
                 "type": "integer"
             },
