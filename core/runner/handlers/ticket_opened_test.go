@@ -45,10 +45,10 @@ func TestTicketOpenedIndexesContact(t *testing.T) {
 	testsuite.IndexContacts(t, rt)
 	oa := disableOpenTicketsGroup(t, rt)
 
-	assertSearch(t, rt, oa, "tickets = 1", []core.ContactUUID{})
+	assertSearch(t, rt, oa, `ticket = "open"`, []core.ContactUUID{})
 
 	topic := oa.SessionAssets().Topics().Get(testdb.DefaultTopic.UUID)
 	applyModifiers(t, rt, oa, testdb.Ann, modifiers.NewTicketOpen(topic, nil, ""))
 
-	assertSearch(t, rt, oa, "tickets = 1", []core.ContactUUID{testdb.Ann.UUID})
+	assertSearch(t, rt, oa, `ticket = "open"`, []core.ContactUUID{testdb.Ann.UUID})
 }

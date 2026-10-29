@@ -21,7 +21,7 @@ func TestTicketReopened(t *testing.T) {
 	testsuite.IndexContacts(t, rt)
 	oa := disableOpenTicketsGroup(t, rt)
 
-	assertSearch(t, rt, oa, "tickets = 1", []core.ContactUUID{})
+	assertSearch(t, rt, oa, `ticket = "open"`, []core.ContactUUID{})
 
 	// contacts are loaded without their closed tickets so it has to be included explicitly
 	tickets, err := models.LoadTickets(ctx, rt.DB, testdb.Org1.ID, []core.TicketUUID{ticket.UUID})
@@ -34,5 +34,5 @@ func TestTicketReopened(t *testing.T) {
 
 	assertdb.Query(t, rt.DB, `SELECT status FROM tickets_ticket WHERE id = $1 AND closed_on IS NULL`, ticket.ID).Returns("O")
 
-	assertSearch(t, rt, oa, "tickets = 1", []core.ContactUUID{testdb.Ann.UUID})
+	assertSearch(t, rt, oa, `ticket = "open"`, []core.ContactUUID{testdb.Ann.UUID})
 }

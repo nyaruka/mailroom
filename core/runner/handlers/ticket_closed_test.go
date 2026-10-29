@@ -35,9 +35,9 @@ func TestTicketClosedIndexesContact(t *testing.T) {
 	testsuite.IndexContacts(t, rt)
 	oa := disableOpenTicketsGroup(t, rt)
 
-	assertSearch(t, rt, oa, "tickets = 1", []core.ContactUUID{testdb.Ann.UUID})
+	assertSearch(t, rt, oa, `ticket = "open"`, []core.ContactUUID{testdb.Ann.UUID})
 
 	applyModifiers(t, rt, oa, testdb.Ann, modifiers.NewTicketClose("01992f54-5ab6-717a-a39e-e8ca91fb7262"))
 
-	assertSearch(t, rt, oa, "tickets = 1", []core.ContactUUID{})
+	assertSearch(t, rt, oa, `ticket = "open"`, []core.ContactUUID{})
 }
