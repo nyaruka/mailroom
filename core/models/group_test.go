@@ -31,7 +31,7 @@ func TestLoadGroups(t *testing.T) {
 		{testdb.ActiveGroup, "\\Active", "", 124},
 		{testdb.BlockedGroup, "\\Blocked", "", 0},
 		{testdb.DoctorsGroup, "Doctors", "", 121},
-		{testdb.OpenTicketsGroup, "Open Tickets", "tickets > 0", 0},
+		{testdb.OpenTicketsGroup, "Open Tickets", `ticket = "open"`, 0},
 	}
 
 	for _, tc := range tcs {

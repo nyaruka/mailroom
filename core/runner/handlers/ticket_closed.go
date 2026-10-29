@@ -37,14 +37,6 @@ func handleTicketClosed(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 	scene.AttachPreCommitHook(hooks.UpdateTicketFires, dbTicket)
 	scene.AttachPostCommitHook(hooks.IndexContacts, event)
 
-	// contacts shouldn't have more than one open ticket, but older data can, and if those tickets are closed together
-	// (e.g. by an automatic close of inactive tickets) only fire the trigger for the first of them
-	for _, prev := range scene.Events() {
-		if prev.Type() == events.TypeTicketClosed {
-			return nil
-		}
-	}
-
 	// automatic closes can come in large batches so avoid queuing tasks for contacts that won't match a trigger
 	trigger := models.FindMatchingTicketClosedTrigger(oa, scene.Contact)
 	if trigger == nil {

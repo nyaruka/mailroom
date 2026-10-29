@@ -94,7 +94,7 @@ func TestUpdateTickets(t *testing.T) {
 
 	ticket1 := testdb.InsertClosedTicket(t, rt, "01992f54-5ab6-717a-a39e-e8ca91fb7262", testdb.Org1, testdb.Ann, testdb.SalesTopic, nil).Load(t, rt, testdb.Org1)
 	ticket2 := testdb.InsertOpenTicket(t, rt, "01992f54-5ab6-725e-be9c-0c6407efd755", testdb.Org1, testdb.Ann, testdb.SalesTopic, time.Now(), nil).Load(t, rt, testdb.Org1)
-	ticket3 := testdb.InsertOpenTicket(t, rt, "01992f54-5ab6-7498-a7f2-6aa246e45cfe", testdb.Org1, testdb.Ann, testdb.DefaultTopic, time.Now(), testdb.Admin).Load(t, rt, testdb.Org1)
+	ticket3 := testdb.InsertOpenTicket(t, rt, "01992f54-5ab6-7498-a7f2-6aa246e45cfe", testdb.Org1, testdb.Bob, testdb.DefaultTopic, time.Now(), testdb.Admin).Load(t, rt, testdb.Org1)
 
 	assertTicket := func(tk *models.Ticket, cols map[string]any) {
 		assertdb.Query(t, rt.DB, `SELECT status, assignee_id, topic_id FROM tickets_ticket WHERE id = $1`, tk.ID).Columns(cols)
