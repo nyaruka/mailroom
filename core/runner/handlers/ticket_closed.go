@@ -35,6 +35,7 @@ func handleTicketClosed(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 
 	scene.AttachPreCommitHook(hooks.UpdateTickets, dbTicket)
 	scene.AttachPreCommitHook(hooks.UpdateTicketFires, dbTicket)
+	scene.AttachPostCommitHook(hooks.IndexContacts, event)
 
 	// contacts shouldn't have more than one open ticket, but older data can, and if those tickets are closed together
 	// (e.g. by an automatic close of inactive tickets) only fire the trigger for the first of them

@@ -53,6 +53,7 @@ type ContactDoc struct {
 	GroupIDs       []models.GroupID     `json:"group_ids,omitempty"`
 	FlowID         models.FlowID        `json:"flow_id,omitempty"`
 	FlowHistoryIDs []models.FlowID      `json:"flow_history_ids,omitempty"`
+	Ticket         string               `json:"ticket,omitempty"`
 	Tickets        int                  `json:"tickets"`
 	CreatedOn      time.Time            `json:"created_on"`
 	LastSeenOn     *time.Time           `json:"last_seen_on,omitempty"`
@@ -75,7 +76,8 @@ func NewContactDoc(oa *models.OrgAssets, c *core.Contact, currentFlowID models.F
 		FlowHistoryIDs: flowHistoryIDs,
 	}
 
-	if c.Tickets().Active() != nil {
+	if active := c.Tickets().Active(); active != nil {
+		doc.Ticket = string(active.Status())
 		doc.Tickets = 1
 	}
 

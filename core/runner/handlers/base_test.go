@@ -323,3 +323,37 @@ func createTestFlow(t *testing.T, uuid assets.FlowUUID, actions ContactActionMap
 
 	return flow
 }
+
+// disableOpenTicketsGroup deactivates the smart group of contacts with open tickets, so that its membership changes
+// don't reindex contacts when their tickets change
+func disableOpenTicketsGroup(t *testing.T, rt *runtime.Runtime) *models.OrgAssets {
+	rt.DB.MustExec(`UPDATE contacts_contactgroup SET is_active = FALSE WHERE id = $1`, testdb.OpenTicketsGroup.ID)
+	models.FlushCache()
+
+	oa, err := models.GetOrgAssets(t.Context(), rt, testdb.Org1.ID)
+	require.NoError(t, err)
+	return oa
+}
+
+// applyModifiers applies the given modifiers to a contact and commits the changes
+func applyModifiers(t *testing.T, rt *runtime.Runtime, oa *models.OrgAssets, c *testdb.Contact, mods ...flows.Modifier) {
+	mc, contact, _ := c.Load(t, rt, oa)
+	scene := runner.NewScene(mc, contact)
+
+	for _, mod := range mods {
+		require.NoError(t, scene.ApplyModifier(t.Context(), rt, oa, mod, testdb.Admin.ID, ""))
+	}
+	require.NoError(t, scene.Commit(t.Context(), rt, oa))
+}
+
+// assertSearch asserts that a contact query against the contacts index returns the given contacts
+func assertSearch(t *testing.T, rt *runtime.Runtime, oa *models.OrgAssets, query string, expected []core.ContactUUID) {
+	rt.ES.Writer.Flush()
+
+	_, err := rt.ES.Client.Indices.Refresh().Index(rt.Config.ElasticContactsIndex).Do(t.Context())
+	require.NoError(t, err)
+
+	uuids, err := search.GetContactUUIDsForQuery(t.Context(), rt, oa, nil, models.ContactStatusActive, query, -1)
+	require.NoError(t, err)
+	assert.ElementsMatch(t, expected, uuids, "search query '%s' returned wrong contacts", query)
+}

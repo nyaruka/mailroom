@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
+	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/flows/modifiers"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/runner"
@@ -36,4 +37,18 @@ func TestTicketOpenedWithoutIdleLimit(t *testing.T) {
 
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM tickets_ticket WHERE contact_id = $1 AND status = 'O'`, testdb.Ann.ID).Returns(1)
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contactfire WHERE fire_type = 'K'`).Returns(0)
+}
+
+func TestTicketOpenedIndexesContact(t *testing.T) {
+	_, rt := testsuite.Runtime(t)
+
+	testsuite.IndexContacts(t, rt)
+	oa := disableOpenTicketsGroup(t, rt)
+
+	assertSearch(t, rt, oa, "tickets = 1", []core.ContactUUID{})
+
+	topic := oa.SessionAssets().Topics().Get(testdb.DefaultTopic.UUID)
+	applyModifiers(t, rt, oa, testdb.Ann, modifiers.NewTicketOpen(topic, nil, ""))
+
+	assertSearch(t, rt, oa, "tickets = 1", []core.ContactUUID{testdb.Ann.UUID})
 }

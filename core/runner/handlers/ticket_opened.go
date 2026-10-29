@@ -65,6 +65,7 @@ func handleTicketOpened(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 
 	scene.AttachPreCommitHook(hooks.InsertTickets, ticket)
 	scene.AttachPreCommitHook(hooks.UpdateTicketFires, ticket)
+	scene.AttachPostCommitHook(hooks.IndexContacts, event)
 
 	if assigneeID == models.NilUserID {
 		// ticket is unassigned so notify all possible assignees except the user who opened the ticket
