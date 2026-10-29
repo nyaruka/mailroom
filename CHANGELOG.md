@@ -1,3 +1,7 @@
+## v26.3.113 (2026-10-29)
+ * Update to goflow v0.303.2 and map pending tickets to the engine's pending status
+ * Only exclude explicit contacts with open tickets
+
 ## v26.3.112 (2026-10-29)
  * Add --tickets flag to mrelastic index contacts to only re-index contacts with active tickets
 
