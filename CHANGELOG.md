@@ -1,3 +1,7 @@
+## v26.3.111 (2026-10-29)
+ * Write active ticket status to contact docs as ticket field
+ * Reindex contacts when their tickets are opened, closed or reopened
+
 ## v26.3.110 (2026-10-28)
  * Load contacts' pending and open tickets with their real status
  * Update to goflow v0.303.1 and update other dependencies
