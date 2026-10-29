@@ -1,3 +1,8 @@
+## v26.3.114 (2026-10-29)
+ * Remove ticket closed trigger dedupe for contacts with multiple open tickets
+ * Stop writing contacts_contact.ticket_count when inserting contacts
+ * Regenerate test database dump and keep test contacts to one open ticket each
+
 ## v26.3.113 (2026-10-29)
  * Update to goflow v0.303.2 and map pending tickets to the engine's pending status
  * Only exclude explicit contacts with open tickets
