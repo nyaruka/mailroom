@@ -1,3 +1,6 @@
+## v26.3.112 (2026-10-29)
+ * Add --tickets flag to mrelastic index contacts to only re-index contacts with active tickets
+
 ## v26.3.111 (2026-10-29)
  * Write active ticket status to contact docs as ticket field
  * Reindex contacts when their tickets are opened, closed or reopened
