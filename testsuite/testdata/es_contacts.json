@@ -183,9 +183,6 @@
             "ticket": {
                 "type": "keyword"
             },
-            "tickets": {
-                "type": "integer"
-            },
             "created_on": {
                 "type": "date"
             },
