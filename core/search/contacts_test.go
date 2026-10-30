@@ -69,7 +69,6 @@ func TestNewContactDoc(t *testing.T) {
 
 	// Ann has no open tickets by default in test fixtures
 	assert.Equal(t, "", doc.Ticket)
-	assert.Equal(t, 0, doc.Tickets)
 	assert.NotContains(t, string(jsonx.MustMarshal(doc)), `"ticket":`)
 
 	// Ann should have fields: gender, state, district, ward (not age since it's nil)
@@ -96,7 +95,6 @@ func TestNewContactDoc(t *testing.T) {
 	doc = search.NewContactDoc(oa, contacts[testdb.Bob.ID], models.NilFlowID, nil)
 
 	assert.Equal(t, "pending", doc.Ticket)
-	assert.Equal(t, 1, doc.Tickets)
 	assert.Contains(t, string(jsonx.MustMarshal(doc)), `"ticket":"pending"`)
 
 	// Cat: has name, status=active, age=30, 1 URN, in Doctors group, an open ticket
@@ -117,8 +115,8 @@ func TestNewContactDoc(t *testing.T) {
 	assert.Equal(t, "tel", doc.URNs[0].Scheme)
 
 	assert.Equal(t, "open", doc.Ticket)
-	assert.Equal(t, 1, doc.Tickets)
 	assert.Contains(t, string(jsonx.MustMarshal(doc)), `"ticket":"open"`)
+	assert.NotContains(t, string(jsonx.MustMarshal(doc)), `"tickets":`)
 
 	// Cat should have age field with number
 	fieldsByUUID = make(map[assets.FieldUUID]*search.ContactDocField)
