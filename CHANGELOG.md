@@ -1,3 +1,6 @@
+## v26.3.116 (2026-10-30)
+ * Stop writing tickets count to contact search docs and remove tickets from test contacts index mapping
+
 ## v26.3.115 (2026-10-29)
  * Update to goflow v0.303.3
  * Use ticket condition instead of deprecated tickets in ticket handler tests
