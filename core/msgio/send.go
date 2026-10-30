@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"log/slog"
 	"slices"
+	"time"
 
+	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/runtime"
 )
@@ -94,6 +96,10 @@ func tryToQueueForOrg(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAs
 
 	// if there are courier messages to queue, do so
 	if len(courierMsgs) > 0 {
+		if err := flagOutsideWindow(ctx, rt, courierMsgs); err != nil {
+			slog.Error("error checking customer service windows", "error", err) // messages are still sent
+		}
+
 		vc := rt.VK.Get()
 		defer vc.Close()
 
@@ -123,6 +129,62 @@ func tryToQueueForOrg(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAs
 	}
 
 	return queued
+}
+
+const (
+	// customerServiceWindow is how long after a contact's last incoming message that a WhatsApp channel can send them
+	// free-form messages
+	customerServiceWindow = 24 * time.Hour
+
+	// customerServiceWindowMargin is how long before the window closes that we treat it as closed, since a message can
+	// wait in a channel's queue for a while before it's actually sent
+	customerServiceWindowMargin = time.Hour
+)
+
+// flagOutsideWindow sets OutsideWindow on the free-form (non-templated) flow messages to WhatsApp Cloud API style
+// channels whose contact hasn't sent an incoming message on that channel within the customer service window. The
+// contact's last seen on isn't used as a shortcut because it's only updated when an incoming message is handled, and
+// is also updated by channel events, calls and messages on other channels.
+func flagOutsideWindow(ctx context.Context, rt *runtime.Runtime, msgs map[contactAndChannel][]*models.MsgOut) error {
+	candidates := make(map[models.ContactChannel][]*models.MsgOut, len(msgs))
+	pairs := make([]models.ContactChannel, 0, len(msgs))
+
+	for cc, ccMsgs := range msgs {
+		if !cc.channel.IsWhatsAppCloud() {
+			continue
+		}
+
+		pair := models.ContactChannel{ContactID: cc.contactID, ChannelID: cc.channel.ID()}
+
+		for _, m := range ccMsgs {
+			if m.FlowID() != models.NilFlowID && m.Templating() == nil {
+				candidates[pair] = append(candidates[pair], m)
+			}
+		}
+		if len(candidates[pair]) > 0 {
+			pairs = append(pairs, pair)
+		}
+	}
+
+	if len(pairs) == 0 {
+		return nil
+	}
+
+	since := dates.Now().Add(-(customerServiceWindow - customerServiceWindowMargin))
+
+	inside, err := models.GetContactChannelsWithInbound(ctx, rt.DB, pairs, since)
+	if err != nil {
+		return err
+	}
+
+	for _, pair := range pairs {
+		if !inside[pair] {
+			for _, m := range candidates[pair] {
+				m.OutsideWindow = true
+			}
+		}
+	}
+	return nil
 }
 
 func fetchMissingURNs(ctx context.Context, rt *runtime.Runtime, msgs []*models.MsgOut) error {
