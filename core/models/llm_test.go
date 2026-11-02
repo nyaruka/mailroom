@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/nyaruka/gocommon/dates"
-	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/flows"
@@ -102,25 +101,14 @@ func TestLLMRecordCall(t *testing.T) {
 	llm := oa.LLMByID(testdb.OpenAI.ID)
 	require.NotNil(t, llm)
 
-	record := func(in, out int64) []*models.LLMDailyCount {
-		return llm.RecordCall(rt, oa, 250*time.Millisecond, core.ModelTokens{Input: in, Output: out})
-	}
+	assert.Equal(t, map[string]int64{
+		"llms/10000/calls/2026-05-04":      1,
+		"llms/10000/tokens:in/2026-05-04":  120,
+		"llms/10000/tokens:out/2026-05-04": 340,
+	}, llm.RecordCall(rt, 250*time.Millisecond, core.ModelTokens{Input: 120, Output: 340}))
 
-	assert.Len(t, record(120, 340), 3)
-	assert.Len(t, record(80, 200), 3)
-	assert.Len(t, record(0, 0), 1)
-
-	var allCounts []*models.LLMDailyCount
-	allCounts = append(allCounts, record(120, 340)...)
-	allCounts = append(allCounts, record(80, 200)...)
-	allCounts = append(allCounts, record(0, 0)...)
-
-	require.NoError(t, models.InsertLLMDailyCounts(ctx, rt.DB, allCounts))
-
-	assertdb.Query(t, rt.DB, `SELECT COUNT(*) FROM ai_llmcount WHERE llm_id = $1`, testdb.OpenAI.ID).Returns(7)
-	assertdb.Query(t, rt.DB, `SELECT COALESCE(SUM(count), 0)::bigint FROM ai_llmcount WHERE llm_id = $1 AND scope = 'calls'`, testdb.OpenAI.ID).Returns(int64(3))
-	assertdb.Query(t, rt.DB, `SELECT COALESCE(SUM(count), 0)::bigint FROM ai_llmcount WHERE llm_id = $1 AND scope = 'tokens:in'`, testdb.OpenAI.ID).Returns(int64(200))
-	assertdb.Query(t, rt.DB, `SELECT COALESCE(SUM(count), 0)::bigint FROM ai_llmcount WHERE llm_id = $1 AND scope = 'tokens:out'`, testdb.OpenAI.ID).Returns(int64(540))
+	// token counts are only tallied when the service reports them
+	assert.Equal(t, map[string]int64{"llms/10000/calls/2026-05-04": 1}, llm.RecordCall(rt, 250*time.Millisecond, core.ModelTokens{}))
 }
 
 func TestLLMMaxOutputTokens(t *testing.T) {

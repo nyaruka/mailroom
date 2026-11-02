@@ -152,13 +152,7 @@
                     "@contact.name!"
                 ]
             }
-        },
-        "db_assertions": [
-            {
-                "query": "SELECT count(*) FROM ai_llmcount WHERE llm_id = 10002 AND scope = 'calls'",
-                "returns": 1
-            }
-        ]
+        }
     },
     {
         "label": "partial - one item untranslatable",

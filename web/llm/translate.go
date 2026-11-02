@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/nyaruka/gocommon/i18n"
+	"github.com/nyaruka/gocommon/tallies"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/mailroom/v26/core/ai"
@@ -114,12 +115,12 @@ func handleTranslate(ctx context.Context, rt *runtime.Runtime, r *translateReque
 	if trans == nil {
 		trans = &core.Translation{}
 	}
-	counts := llm.RecordCall(rt, oa, time.Since(callStart), trans.Tokens)
+	amounts := llm.RecordCall(rt, time.Since(callStart), trans.Tokens)
 
 	// detach from the request context so a client-side timeout during the LLM call doesn't prevent us from recording usage someone may have paid for
 	recCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), RecordTimeout)
 	defer cancel()
-	if rerr := insertLLMCallCounts(recCtx, rt, counts); rerr != nil {
+	if rerr := incrementTallies(recCtx, rt, oa.OrgID(), amounts); rerr != nil {
 		slog.Error("error recording llm call", "error", rerr, "llm_id", r.LLMID)
 	}
 
@@ -158,15 +159,9 @@ func handleTranslate(ctx context.Context, rt *runtime.Runtime, r *translateReque
 	return translateResponse{Items: unchanged}, http.StatusOK, nil
 }
 
-// insertLLMCallCounts inserts the given LLM daily counts in a transaction.
-func insertLLMCallCounts(ctx context.Context, rt *runtime.Runtime, counts []*models.LLMDailyCount) error {
-	tx, err := rt.DB.BeginTxx(ctx, nil)
-	if err != nil {
-		return fmt.Errorf("error starting transaction: %w", err)
-	}
-	if err := models.InsertLLMDailyCounts(ctx, tx, counts); err != nil {
-		tx.Rollback()
-		return err
-	}
-	return tx.Commit()
+func incrementTallies(ctx context.Context, rt *runtime.Runtime, orgID models.OrgID, amounts map[string]int64) error {
+	vc := rt.VK.Get()
+	defer vc.Close()
+
+	return tallies.Increment(ctx, vc, tallies.OwnerID(orgID), amounts)
 }

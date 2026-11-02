@@ -41,6 +41,6 @@ func recordLLMCall(rt *runtime.Runtime, oa *models.OrgAssets, scene *runner.Scen
 	llm := oa.SessionAssets().Models().Get(ref.UUID)
 	if llm != nil {
 		m := llm.Asset().(*models.LLM)
-		scene.AttachPreCommitHook(hooks.InsertLLMDailyCounts, m.RecordCall(rt, oa, time.Duration(elapsedMS)*time.Millisecond, tokens))
+		scene.AttachPostCommitHook(hooks.IncrementTallies, m.RecordCall(rt, time.Duration(elapsedMS)*time.Millisecond, tokens))
 	}
 }

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/nyaruka/gocommon/dates"
+	"github.com/nyaruka/gocommon/tallies"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/flows"
@@ -85,36 +86,21 @@ func (l *LLM) AsService(rt *runtime.Runtime) (flows.ModelService, error) {
 	return fn(rt, l, rt.HTTP.Services)
 }
 
-// RecordCall records stats for an LLM call and returns the daily count rows to be inserted.
-func (l *LLM) RecordCall(rt *runtime.Runtime, oa *OrgAssets, elapsed time.Duration, tokens core.ModelTokens) []*LLMDailyCount {
+// RecordCall records stats for an LLM call and returns the amounts to add to the org's tallies.
+func (l *LLM) RecordCall(rt *runtime.Runtime, elapsed time.Duration, tokens core.ModelTokens) map[string]int64 {
 	rt.Stats.RecordLLMCall(l.Type(), l.Model(), elapsed)
 
-	day := dates.ExtractDate(dates.Now().In(oa.Env().Timezone()))
-	counts := []*LLMDailyCount{{LLMID: l.ID(), Day: day, Scope: "calls", Count: 1}}
+	now := dates.Now()
+	scope := func(name string) string { return tallies.Daily(fmt.Sprintf("%s/%d/%s", TallyLLMs, l.ID(), name), now) }
+
+	amounts := map[string]int64{scope("calls"): 1}
 	if tokens.Input > 0 {
-		counts = append(counts, &LLMDailyCount{LLMID: l.ID(), Day: day, Scope: "tokens:in", Count: tokens.Input})
+		amounts[scope("tokens:in")] = tokens.Input
 	}
 	if tokens.Output > 0 {
-		counts = append(counts, &LLMDailyCount{LLMID: l.ID(), Day: day, Scope: "tokens:out", Count: tokens.Output})
+		amounts[scope("tokens:out")] = tokens.Output
 	}
-	return counts
-}
-
-type LLMDailyCount struct {
-	LLMID LLMID      `db:"llm_id"`
-	Day   dates.Date `db:"day"`
-	Scope string     `db:"scope"`
-	Count int64      `db:"count"`
-}
-
-const sqlInsertLLMDailyCount = `INSERT INTO ai_llmcount(llm_id, scope, day, count, is_squashed) VALUES(:llm_id, :scope, :day, :count, FALSE)`
-
-// InsertLLMDailyCounts inserts the given LLM daily count rows.
-func InsertLLMDailyCounts(ctx context.Context, tx DBorTx, counts []*LLMDailyCount) error {
-	if len(counts) == 0 {
-		return nil
-	}
-	return BulkQuery(ctx, "inserted llm daily counts", tx, sqlInsertLLMDailyCount, counts)
+	return amounts
 }
 
 // loads the LLMs for the passed in org. Roles are stored as codes: T (translate), G (generate), C (classify)

@@ -20,12 +20,14 @@ func TestFlushTalliesCron(t *testing.T) {
 
 	cron := &crons.FlushTalliesCron{}
 
-	require.NoError(t, tallies.Increment(ctx, vc, tallies.OwnerID(testdb.Org1.ID), map[string]int64{"emails/shared/2025-05-04": 2}))
+	require.NoError(t, tallies.Increment(ctx, vc, tallies.OwnerID(testdb.Org1.ID), map[string]int64{"emails/shared/2025-05-04": 2, "llms/10000/calls/2025-05-04": 3}))
 
 	res, err := cron.Run(ctx, rt)
 	assert.NoError(t, err)
 	assert.Equal(t, map[string]any{"flushed": 1}, res)
 
 	assertdb.Query(t, rt.DB, `SELECT count, expires_on::text FROM orgs_tally WHERE org_id = $1 AND scope = 'emails/shared/2025-05-04'`, testdb.Org1.ID).
-		Columns(map[string]any{"count": int64(2), "expires_on": "2026-05-04"})
+		Columns(map[string]any{"count": int64(2), "expires_on": "2025-08-02"})
+	assertdb.Query(t, rt.DB, `SELECT count, expires_on::text FROM orgs_tally WHERE org_id = $1 AND scope = 'llms/10000/calls/2025-05-04'`, testdb.Org1.ID).
+		Columns(map[string]any{"count": int64(3), "expires_on": "2025-08-02"})
 }

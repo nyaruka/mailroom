@@ -1,6 +1,6 @@
 [
     {
-        "label": "LLM and classifier calls recorded in daily counts",
+        "label": "LLM and classifier calls are tallied",
         "events": {},
         "actions": {
             "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
@@ -37,20 +37,6 @@
                 }
             ]
         },
-        "db_assertions": [
-            {
-                "query": "SELECT SUM(count)::int FROM ai_llmcount WHERE llm_id = 10002 AND scope = 'calls'",
-                "returns": 2
-            },
-            {
-                "query": "SELECT SUM(count)::int FROM ai_llmcount WHERE llm_id = 10002 AND scope = 'tokens:in'",
-                "returns": 79
-            },
-            {
-                "query": "SELECT SUM(count)::int FROM ai_llmcount WHERE llm_id = 10002 AND scope = 'tokens:out'",
-                "returns": 83
-            }
-        ],
         "expected_history": [
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
