@@ -244,16 +244,21 @@ func (o *Org) EmailService(ctx context.Context, rt *runtime.Runtime, retries *sm
 		smtpURL = parent.Org().FlowSMTP()
 	}
 
-	// finally use config default
-	if smtpURL == "" {
-		smtpURL = rt.Config.SMTPServer
+	if smtpURL != "" {
+		return smtp.NewService(smtpURL, retries)
 	}
 
-	if smtpURL == "" {
+	// finally use config default
+	if rt.Config.SMTPServer == "" {
 		return nil, errors.New("missing SMTP configuration")
 	}
 
-	return smtp.NewService(smtpURL, retries)
+	svc, err := smtp.NewService(rt.Config.SMTPServer, retries)
+	if err != nil {
+		return nil, err
+	}
+
+	return &limitedEmailService{rt: rt, orgID: o.ID(), svc: svc}, nil
 }
 
 // AirtimeService returns the airtime service for this org if one is configured
