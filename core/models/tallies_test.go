@@ -80,6 +80,9 @@ func TestTallyStore(t *testing.T) {
 	require.NoError(t, rt.DB.GetContext(ctx, &notADateExpiry, `SELECT expires_on::text FROM orgs_tally WHERE org_id = $1 AND scope = 'daily/notadate'`, org1))
 	assert.Nil(t, notADateExpiry)
 
+	// the scope which records the generation can't be written as a tally
+	assert.EqualError(t, store.Write(ctx, org1, 3, map[string]int64{"_gen": 10}), "_gen is a reserved scope")
+
 	// writing a generation which has already been written does nothing
 	require.NoError(t, store.Write(ctx, org1, 2, map[string]int64{"foo/1": 10}))
 	assertTallies(org1, map[string]int{"foo/1": 4, "foo/2": 1, "daily/2025-05-04": 2, "daily/notadate": 1, "_gen": 2})

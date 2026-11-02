@@ -66,6 +66,10 @@ INSERT INTO orgs_tally AS t (org_id, scope, count)
 ON CONFLICT (org_id, scope) DO UPDATE SET count = excluded.count`
 
 func (s *TallyStore) Write(ctx context.Context, owner tallies.OwnerID, gen int64, amounts map[string]int64) error {
+	if _, ok := amounts[tallyGenerationScope]; ok {
+		return fmt.Errorf("%s is a reserved scope", tallyGenerationScope)
+	}
+
 	tx, err := s.db.BeginTxx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("error beginning transaction: %w", err)
