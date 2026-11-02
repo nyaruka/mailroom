@@ -230,25 +230,34 @@ func (o *Org) ConfigValue(key string, def string) string {
 	return def
 }
 
-// EmailService returns the email service for this org
-func (o *Org) EmailService(ctx context.Context, rt *runtime.Runtime, retries *smtpx.RetryConfig) (flows.EmailService, error) {
+// EmailSMTP returns the SMTP configuration URL for sending email from this org, and whether that's the shared default
+func (o *Org) EmailSMTP(ctx context.Context, rt *runtime.Runtime) (string, bool, error) {
 	// first look for custom SMTP on this org
-	smtpURL := o.FlowSMTP()
+	if smtpURL := o.FlowSMTP(); smtpURL != "" {
+		return smtpURL, false, nil
+	}
 
 	// secondly look on parent org if there is one
-	if smtpURL == "" && o.o.ParentID != NilOrgID {
+	if o.o.ParentID != NilOrgID {
 		parent, err := GetOrgAssets(ctx, rt, o.o.ParentID)
 		if err != nil {
-			return nil, fmt.Errorf("error loading parent org: %w", err)
+			return "", false, fmt.Errorf("error loading parent org: %w", err)
 		}
-		smtpURL = parent.Org().FlowSMTP()
+		if smtpURL := parent.Org().FlowSMTP(); smtpURL != "" {
+			return smtpURL, false, nil
+		}
 	}
 
 	// finally use config default
-	if smtpURL == "" {
-		smtpURL = rt.Config.SMTPServer
-	}
+	return rt.Config.SMTPServer, true, nil
+}
 
+// EmailService returns the email service for this org
+func (o *Org) EmailService(ctx context.Context, rt *runtime.Runtime, retries *smtpx.RetryConfig) (flows.EmailService, error) {
+	smtpURL, _, err := o.EmailSMTP(ctx, rt)
+	if err != nil {
+		return nil, err
+	}
 	if smtpURL == "" {
 		return nil, errors.New("missing SMTP configuration")
 	}
