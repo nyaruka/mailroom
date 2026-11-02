@@ -1,41 +1,38 @@
-package tallies_test
+package models_test
 
 import (
 	"testing"
 	"time"
 
+	"github.com/nyaruka/gocommon/tallies"
+	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/testsuite"
 	"github.com/nyaruka/mailroom/v26/testsuite/testdb"
-	"github.com/nyaruka/mailroom/v26/utils/tallies"
 	"github.com/nyaruka/vkutil/assertvk"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestDaily(t *testing.T) {
-	assert.Equal(t, "foo/2025-05-04", tallies.Daily("foo", time.Date(2025, 5, 4, 23, 59, 0, 0, time.UTC)))
-	assert.Equal(t, "foo/2025-05-05", tallies.Daily("foo", time.Date(2025, 5, 4, 23, 0, 0, 0, time.FixedZone("", -2*3600))))
-}
-
-func TestFlush(t *testing.T) {
+func TestTallyStore(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	org1, org2 := tallies.OrgID(testdb.Org1.ID), tallies.OrgID(testdb.Org2.ID)
-	flusher := tallies.NewFlusher([]tallies.Retention{{Prefix: "daily/", Period: 30 * 24 * time.Hour}}, 10)
+	org1, org2 := tallies.OwnerID(testdb.Org1.ID), tallies.OwnerID(testdb.Org2.ID)
+	store := models.NewTallyStore(rt.DB, []models.TallyRetention{{Prefix: "daily/", Period: 30 * 24 * time.Hour}})
+	flusher := tallies.NewFlusher(store, 10)
 
-	increment := func(orgID tallies.OrgID, amounts map[string]int) {
-		require.NoError(t, tallies.Increment(ctx, vc, orgID, amounts))
+	increment := func(owner tallies.OwnerID, amounts map[string]int64) {
+		require.NoError(t, tallies.Increment(ctx, vc, owner, amounts))
 	}
 	flush := func(expected int) {
-		flushed, err := flusher.Flush(ctx, rt.DB, vc)
+		flushed, err := flusher.Flush(ctx, vc)
 		require.NoError(t, err)
 		assert.Equal(t, expected, flushed)
 	}
-	assertTallies := func(orgID tallies.OrgID, expected map[string]int) {
-		rows, err := rt.DB.QueryContext(ctx, `SELECT scope, count FROM orgs_tally WHERE org_id = $1`, orgID)
+	assertTallies := func(owner tallies.OwnerID, expected map[string]int) {
+		rows, err := rt.DB.QueryContext(ctx, `SELECT scope, count FROM orgs_tally WHERE org_id = $1`, owner)
 		require.NoError(t, err)
 		defer rows.Close()
 
@@ -48,47 +45,52 @@ func TestFlush(t *testing.T) {
 		}
 		assert.Equal(t, expected, actual)
 	}
+	assertGeneration := func(owner tallies.OwnerID, expected int64) {
+		gen, err := store.LastGeneration(ctx, owner)
+		require.NoError(t, err)
+		assert.Equal(t, expected, gen)
+	}
 
-	// nothing to flush
-	flush(0)
+	assertGeneration(org1, 0)
 
-	increment(org1, map[string]int{})
-	assertvk.SMembers(t, vc, "tallies:pending", []string{})
-
-	err := tallies.Increment(ctx, vc, org1, map[string]int{"_gen": 1})
-	assert.EqualError(t, err, "_gen is a reserved scope")
-
-	increment(org1, map[string]int{"foo/1": 2, "daily/2025-05-04": 1})
-	increment(org1, map[string]int{"foo/1": 1})
-	increment(org2, map[string]int{"foo/1": 5})
-
-	assertvk.HGetAll(t, vc, "tallies:1", map[string]string{"foo/1": "3", "daily/2025-05-04": "1"})
-	assertvk.SMembers(t, vc, "tallies:pending", []string{"1", "2"})
+	increment(org1, map[string]int64{"foo/1": 2, "daily/2025-05-04": 1})
+	increment(org1, map[string]int64{"foo/1": 1})
+	increment(org2, map[string]int64{"foo/1": 5})
 
 	flush(2)
 
 	assertTallies(org1, map[string]int{"foo/1": 3, "daily/2025-05-04": 1, "_gen": 1})
 	assertTallies(org2, map[string]int{"foo/1": 5, "_gen": 1})
-	assertvk.NotExists(t, vc, "tallies:1")
-	assertvk.NotExists(t, vc, "tallies:1:flushing")
-	assertvk.SMembers(t, vc, "tallies:pending", []string{})
+	assertGeneration(org1, 1)
 
 	// only scopes matching a retention get an expiry, counted from their date
 	var expiresOn []string
 	require.NoError(t, rt.DB.SelectContext(ctx, &expiresOn, `SELECT COALESCE(expires_on::text, '') FROM orgs_tally WHERE org_id = $1 AND scope != '_gen' ORDER BY scope`, org1))
 	assert.Equal(t, []string{"2025-06-03", ""}, expiresOn)
 
-	increment(org1, map[string]int{"foo/1": 1, "foo/2": 1, "daily/2025-05-04": 1, "daily/notadate": 1})
+	increment(org1, map[string]int64{"foo/1": 1, "foo/2": 1, "daily/2025-05-04": 1, "daily/notadate": 1})
 
 	flush(1)
 
 	assertTallies(org1, map[string]int{"foo/1": 4, "foo/2": 1, "daily/2025-05-04": 2, "daily/notadate": 1, "_gen": 2})
 	assertTallies(org2, map[string]int{"foo/1": 5, "_gen": 1})
 
+	// a scope matching a retention but without a date gets no expiry
+	var notADateExpiry *string
+	require.NoError(t, rt.DB.GetContext(ctx, &notADateExpiry, `SELECT expires_on::text FROM orgs_tally WHERE org_id = $1 AND scope = 'daily/notadate'`, org1))
+	assert.Nil(t, notADateExpiry)
+
+	// the scope which records the generation can't be written as a tally
+	assert.EqualError(t, store.Write(ctx, org1, 3, map[string]int64{"_gen": 10}), "_gen is a reserved scope")
+
+	// writing a generation which has already been written does nothing
+	require.NoError(t, store.Write(ctx, org1, 2, map[string]int64{"foo/1": 10}))
+	assertTallies(org1, map[string]int{"foo/1": 4, "foo/2": 1, "daily/2025-05-04": 2, "daily/notadate": 1, "_gen": 2})
+
 	// a flush which committed but failed before deleting its hash leaves it behind, and it's discarded rather than
 	// written again
 	vc.Do("HSET", "tallies:1:flushing", "foo/1", 10, "_gen", 2)
-	increment(org1, map[string]int{"foo/1": 1})
+	increment(org1, map[string]int64{"foo/1": 1})
 
 	flush(1)
 
@@ -105,7 +107,7 @@ func TestFlush(t *testing.T) {
 	// nothing is written for a deleted org, including from a hash left over from a failed flush
 	rt.DB.MustExec(`UPDATE orgs_org SET deleted_on = NOW() WHERE id = $1`, org2)
 	vc.Do("HSET", "tallies:2:flushing", "foo/1", 10, "_gen", 2)
-	increment(org2, map[string]int{"foo/1": 1})
+	increment(org2, map[string]int64{"foo/1": 1})
 
 	flush(1)
 

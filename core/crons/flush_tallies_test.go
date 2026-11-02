@@ -4,10 +4,10 @@ import (
 	"testing"
 
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
+	"github.com/nyaruka/gocommon/tallies"
 	"github.com/nyaruka/mailroom/v26/core/crons"
 	"github.com/nyaruka/mailroom/v26/testsuite"
 	"github.com/nyaruka/mailroom/v26/testsuite/testdb"
-	"github.com/nyaruka/mailroom/v26/utils/tallies"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -20,7 +20,7 @@ func TestFlushTalliesCron(t *testing.T) {
 
 	cron := &crons.FlushTalliesCron{}
 
-	require.NoError(t, tallies.Increment(ctx, vc, tallies.OrgID(testdb.Org1.ID), map[string]int{"emails/shared/2025-05-04": 2}))
+	require.NoError(t, tallies.Increment(ctx, vc, tallies.OwnerID(testdb.Org1.ID), map[string]int64{"emails/shared/2025-05-04": 2}))
 
 	res, err := cron.Run(ctx, rt)
 	assert.NoError(t, err)
