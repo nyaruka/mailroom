@@ -6,11 +6,9 @@ import (
 	"time"
 
 	"github.com/nyaruka/goflow/assets"
-	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/runner"
-	"github.com/nyaruka/mailroom/v26/core/runner/hooks"
 	"github.com/nyaruka/mailroom/v26/runtime"
 )
 
@@ -24,7 +22,7 @@ func handleLLMCalled(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAss
 
 	slog.Debug("LLM called", "contact", scene.ContactUUID(), "session", scene.SessionUUID(), slog.Group("llm", "uuid", event.LLM.UUID, "name", event.LLM.Name), "elapsed_ms", event.ElapsedMS)
 
-	recordLLMCall(rt, oa, scene, event.LLM, event.CreatedOn(), event.ElapsedMS, event.Tokens)
+	recordLLMCall(rt, oa, event.LLM, event.ElapsedMS)
 	return nil
 }
 
@@ -33,14 +31,13 @@ func handleClassifierCalled(ctx context.Context, rt *runtime.Runtime, oa *models
 
 	slog.Debug("classifier called", "contact", scene.ContactUUID(), "session", scene.SessionUUID(), slog.Group("llm", "uuid", event.Model.UUID, "name", event.Model.Name), "elapsed_ms", event.ElapsedMS)
 
-	recordLLMCall(rt, oa, scene, event.Model, event.CreatedOn(), event.ElapsedMS, event.Tokens)
+	recordLLMCall(rt, oa, event.Model, event.ElapsedMS)
 	return nil
 }
 
-func recordLLMCall(rt *runtime.Runtime, oa *models.OrgAssets, scene *runner.Scene, ref *assets.ModelReference, when time.Time, elapsedMS int64, tokens core.ModelTokens) {
+func recordLLMCall(rt *runtime.Runtime, oa *models.OrgAssets, ref *assets.ModelReference, elapsedMS int64) {
 	llm := oa.SessionAssets().Models().Get(ref.UUID)
 	if llm != nil {
-		m := llm.Asset().(*models.LLM)
-		scene.AttachPostCommitHook(hooks.IncrementTallies, m.RecordCall(rt, when, time.Duration(elapsedMS)*time.Millisecond, tokens))
+		llm.Asset().(*models.LLM).RecordCall(rt, time.Duration(elapsedMS)*time.Millisecond)
 	}
 }

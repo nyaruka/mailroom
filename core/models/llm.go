@@ -8,7 +8,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/nyaruka/gocommon/tallies"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/flows"
@@ -85,20 +84,9 @@ func (l *LLM) AsService(rt *runtime.Runtime) (flows.ModelService, error) {
 	return fn(rt, l, rt.HTTP.Services)
 }
 
-// RecordCall records stats for an LLM call made at the given time and returns the amounts to add to the org's tallies.
-func (l *LLM) RecordCall(rt *runtime.Runtime, when time.Time, elapsed time.Duration, tokens core.ModelTokens) map[string]int64 {
+// RecordCall records stats for an LLM call.
+func (l *LLM) RecordCall(rt *runtime.Runtime, elapsed time.Duration) {
 	rt.Stats.RecordLLMCall(l.Type(), l.Model(), elapsed)
-
-	scope := func(name string) string { return tallies.Daily(fmt.Sprintf("%s/%d/%s", TallyLLMs, l.ID(), name), when) }
-
-	amounts := map[string]int64{scope("calls"): 1}
-	if tokens.Input > 0 {
-		amounts[scope("tokens:in")] = tokens.Input
-	}
-	if tokens.Output > 0 {
-		amounts[scope("tokens:out")] = tokens.Output
-	}
-	return amounts
 }
 
 // loads the LLMs for the passed in org. Roles are stored as codes: T (translate), G (generate), C (classify)
