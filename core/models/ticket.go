@@ -38,6 +38,26 @@ var ticketStatusMap = map[TicketStatus]core.TicketStatus{
 	TicketStatusClosed:  core.TicketStatusClosed,
 }
 
+// TicketOutcome is how a closed ticket ended
+type TicketOutcome string
+
+const (
+	NilTicketOutcome      = TicketOutcome("")
+	TicketOutcomeResolved = TicketOutcome("R")
+	TicketOutcomeIdle     = TicketOutcome("I")
+)
+
+var ticketOutcomeMap = map[core.TicketOutcome]TicketOutcome{
+	core.TicketOutcomeResolved: TicketOutcomeResolved,
+	core.TicketOutcomeIdle:     TicketOutcomeIdle,
+}
+
+// TicketOutcomeFromEngine converts an engine ticket outcome to its database value
+func TicketOutcomeFromEngine(o core.TicketOutcome) TicketOutcome { return ticketOutcomeMap[o] }
+
+func (o TicketOutcome) Value() (driver.Value, error) { return null.StringValue(o) }
+func (o *TicketOutcome) Scan(value any) error        { return null.ScanString(value, o) }
+
 type Ticket struct {
 	ID             TicketID        `db:"id"`
 	UUID           core.TicketUUID `db:"uuid"`
@@ -52,6 +72,7 @@ type Ticket struct {
 	RepliedOn      *time.Time      `db:"replied_on"`
 	ModifiedOn     time.Time       `db:"modified_on"`
 	ClosedOn       *time.Time      `db:"closed_on"`
+	Outcome        TicketOutcome   `db:"outcome"`
 	LastActivityOn time.Time       `db:"last_activity_on"`
 }
 
@@ -109,6 +130,7 @@ SELECT
   replied_on,
   modified_on,
   closed_on,
+  outcome,
   last_activity_on
     FROM tickets_ticket
    WHERE org_id = $1 AND uuid = ANY($2)
@@ -197,9 +219,10 @@ UPDATE tickets_ticket t
        assignee_id = r.assignee_id,
        topic_id = r.topic_id,
        last_activity_on = GREATEST(t.last_activity_on, r.last_activity_on),
-	   closed_on = r.closed_on,
+       closed_on = r.closed_on,
+       outcome = r.outcome,
        modified_on = NOW()
-  FROM (VALUES(:id::int, :status, :assignee_id::int, :topic_id::int, :last_activity_on::timestamptz, :closed_on::timestamptz)) AS r(id, status, assignee_id, topic_id, last_activity_on, closed_on)
+  FROM (VALUES(:id::int, :status, :assignee_id::int, :topic_id::int, :last_activity_on::timestamptz, :closed_on::timestamptz, :outcome)) AS r(id, status, assignee_id, topic_id, last_activity_on, closed_on, outcome)
  WHERE t.id = r.id`
 
 // UpdateTickets updates the passed in tickets in the database

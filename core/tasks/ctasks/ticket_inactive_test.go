@@ -44,7 +44,7 @@ func TestTicketInactive(t *testing.T) {
 	})
 
 	// closing shouldn't count as activity
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM tickets_ticket WHERE id = $1 AND last_activity_on = $2`, ticket1.ID, longAgo).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM tickets_ticket WHERE id = $1 AND outcome = 'I' AND last_activity_on = $2`, ticket1.ID, longAgo).Returns(1)
 
 	assertdb.Query(t, rt.DB, `SELECT scope FROM contacts_contactfire WHERE fire_type = 'K'`).Returns(string(ticket2.UUID))
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contactfire WHERE fire_type = 'K' AND fire_on = $1`, recently.Add(30*24*time.Hour+time.Hour)).Returns(1)

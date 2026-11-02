@@ -6,6 +6,7 @@ import (
 	"log/slog"
 
 	"github.com/nyaruka/gocommon/dates"
+	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/runner"
@@ -26,10 +27,13 @@ func handleTicketClosed(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 	dbTicket := scene.DBContact.FindTicket(event.TicketUUID)
 	dbTicket.Status = models.TicketStatusClosed
 	dbTicket.ClosedOn = &event.CreatedOn_
+	dbTicket.Outcome = models.TicketOutcomeFromEngine(event.Outcome)
+
+	automatic := event.Outcome == core.TicketOutcomeIdle
 
 	// automatic closes of inactive tickets aren't activity, and bumping them would put them ahead of tickets recently
 	// closed by users
-	if userID != models.NilUserID {
+	if !automatic {
 		dbTicket.LastActivityOn = dates.Now()
 	}
 
@@ -43,8 +47,8 @@ func handleTicketClosed(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 		return nil
 	}
 
-	// closed ticket triggers should only use background flows, but don't rely on that for automatic closes which could
-	// otherwise interrupt or call large numbers of contacts
+	// closed ticket triggers should only use background flows, but don't rely on that for closes not made by a user, which
+	// could otherwise interrupt or call large numbers of contacts
 	if userID == models.NilUserID {
 		flow, err := oa.FlowByID(trigger.FlowID())
 		if err == models.ErrNotFound {

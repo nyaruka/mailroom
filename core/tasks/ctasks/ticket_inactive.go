@@ -61,7 +61,7 @@ func (t *TicketInactive) Perform(ctx context.Context, rt *runtime.Runtime, oa *m
 	}
 
 	scene := runner.NewScene(mc, contact)
-	if err := scene.ApplyModifier(ctx, rt, oa, modifiers.NewTicketClose(ticket.UUID), models.NilUserID, ""); err != nil {
+	if err := scene.ApplyModifier(ctx, rt, oa, modifiers.NewTicketClose(ticket.UUID, core.TicketOutcomeIdle), models.NilUserID, ""); err != nil {
 		return fmt.Errorf("error closing ticket: %w", err)
 	}
 

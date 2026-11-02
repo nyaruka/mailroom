@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/modifiers"
 	"github.com/nyaruka/mailroom/v26/core/models"
@@ -34,7 +35,7 @@ func handleClose(ctx context.Context, rt *runtime.Runtime, r *closeRequest) (any
 	}
 
 	mod := func(t *models.Ticket) flows.Modifier {
-		return modifiers.NewTicketClose(t.UUID)
+		return modifiers.NewTicketClose(t.UUID, core.TicketOutcomeResolved)
 	}
 
 	eventsByContact, err := modifyTickets(ctx, rt, oa, r.UserID, r.TicketUUIDs, mod, r.Via)

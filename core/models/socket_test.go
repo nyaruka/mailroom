@@ -291,7 +291,7 @@ func TestPublishToHistory(t *testing.T) {
 	_, err = vc.Do("SET", centrifugo.SubscriptionKey(ticketASocket), "1")
 	require.NoError(t, err)
 
-	closed := events.NewTicketClosed(ticketA)                                                                                        // basic lifecycle -> contact socket
+	closed := events.NewTicketClosed(ticketA, core.TicketOutcomeResolved)                                                            // basic lifecycle -> contact socket
 	noteA := events.NewTicketNoteAdded(ticketA, "look at this")                                                                      // detail -> ticket A socket
 	assignB := events.NewTicketAssigneeChanged(ticketB, assets.NewUserReference("0c78ef47-7d56-44d8-8f57-96e0f30e8f44", "Bob"), nil) // detail -> ticket B socket (unsubscribed)
 	lang := events.NewContactLanguageChanged("fra")                                                                                  // non-ticket -> contact socket

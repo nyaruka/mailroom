@@ -17,6 +17,7 @@ func TestTicketReopened(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
 	ticket := testdb.InsertClosedTicket(t, rt, "01992f54-5ab6-717a-a39e-e8ca91fb7262", testdb.Org1, testdb.Ann, testdb.DefaultTopic, nil)
+	rt.DB.MustExec(`UPDATE tickets_ticket SET outcome = 'R' WHERE id = $1`, ticket.ID)
 
 	testsuite.IndexContacts(t, rt)
 	oa := disableOpenTicketsGroup(t, rt)
@@ -32,7 +33,7 @@ func TestTicketReopened(t *testing.T) {
 	require.NoError(t, scenes[0].ApplyModifier(ctx, rt, oa, modifiers.NewTicketReopen(ticket.UUID), testdb.Admin.ID, ""))
 	require.NoError(t, scenes[0].Commit(ctx, rt, oa))
 
-	assertdb.Query(t, rt.DB, `SELECT status FROM tickets_ticket WHERE id = $1 AND closed_on IS NULL`, ticket.ID).Returns("O")
+	assertdb.Query(t, rt.DB, `SELECT status FROM tickets_ticket WHERE id = $1 AND closed_on IS NULL AND outcome IS NULL`, ticket.ID).Returns("O")
 
 	assertSearch(t, rt, oa, `ticket = "open"`, []core.ContactUUID{testdb.Ann.UUID})
 }

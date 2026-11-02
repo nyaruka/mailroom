@@ -18,6 +18,7 @@ func TestTicketClosed(t *testing.T) {
 
 	testdb.InsertOpenTicket(t, rt, "01992f54-5ab6-717a-a39e-e8ca91fb7262", testdb.Org1, testdb.Ann, testdb.DefaultTopic, longAgo, nil)
 	testdb.InsertOpenTicket(t, rt, "01992f54-5ab6-725e-be9c-0c6407efd755", testdb.Org1, testdb.Bob, testdb.DefaultTopic, longAgo, nil)
+	testdb.InsertOpenTicket(t, rt, "01992f54-5ab6-7498-a7f2-6aa246e45cfe", testdb.Org1, testdb.Cat, testdb.DefaultTopic, longAgo, nil)
 
 	testdb.InsertContactFire(t, rt, testdb.Org1, testdb.Ann, models.ContactFireTypeTicketClose, "01992f54-5ab6-717a-a39e-e8ca91fb7262", longAgo, "")
 	testdb.InsertContactFire(t, rt, testdb.Org1, testdb.Bob, models.ContactFireTypeTicketClose, "01992f54-5ab6-725e-be9c-0c6407efd755", longAgo, "")
@@ -25,6 +26,17 @@ func TestTicketClosed(t *testing.T) {
 	testdb.InsertTicketClosedTrigger(t, rt, testdb.Org1, testdb.BackgroundFlow)
 
 	runTests(t, rt, "testdata/ticket_closed.json")
+}
+
+func TestTicketClosedNonBackgroundTrigger(t *testing.T) {
+	_, rt := testsuite.Runtime(t)
+
+	testdb.InsertOpenTicket(t, rt, "01992f54-5ab6-717a-a39e-e8ca91fb7262", testdb.Org1, testdb.Ann, testdb.DefaultTopic, time.Now(), nil)
+	testdb.InsertOpenTicket(t, rt, "01992f54-5ab6-725e-be9c-0c6407efd755", testdb.Org1, testdb.Bob, testdb.DefaultTopic, time.Now(), nil)
+
+	testdb.InsertTicketClosedTrigger(t, rt, testdb.Org1, testdb.Favorites)
+
+	runTests(t, rt, "testdata/ticket_closed_non_background.json")
 }
 
 func TestTicketClosedIndexesContact(t *testing.T) {
@@ -37,7 +49,7 @@ func TestTicketClosedIndexesContact(t *testing.T) {
 
 	assertSearch(t, rt, oa, `ticket = "open"`, []core.ContactUUID{testdb.Ann.UUID})
 
-	applyModifiers(t, rt, oa, testdb.Ann, modifiers.NewTicketClose("01992f54-5ab6-717a-a39e-e8ca91fb7262"))
+	applyModifiers(t, rt, oa, testdb.Ann, modifiers.NewTicketClose("01992f54-5ab6-717a-a39e-e8ca91fb7262", core.TicketOutcomeResolved))
 
 	assertSearch(t, rt, oa, `ticket = "open"`, []core.ContactUUID{})
 }
