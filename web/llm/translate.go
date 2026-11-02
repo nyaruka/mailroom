@@ -12,7 +12,6 @@ import (
 
 	"github.com/nyaruka/gocommon/i18n"
 	"github.com/nyaruka/goflow/assets"
-	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/mailroom/v26/core/ai"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/runtime"
@@ -28,8 +27,8 @@ func init() {
 // typically allow a request, since a longer wait here would just move where the request is cut off.
 const writeTimeout = 55 * time.Second
 
-// CallTimeout is how long we give the LLM to respond. It needs to stay under writeTimeout, so that the LLM being too slow is reported as a proper error response rather than a dropped
-// connection.
+// CallTimeout is how long we give the LLM to respond. It needs to stay under writeTimeout, so that the LLM being
+// too slow is reported as a proper error response rather than a dropped connection.
 var CallTimeout = 50 * time.Second
 
 // Performs batch translation using an LLM. Items is a map keyed by a
@@ -105,9 +104,6 @@ func handleTranslate(ctx context.Context, rt *runtime.Runtime, r *translateReque
 
 	callStart := time.Now()
 	trans, err := llmSvc.Translate(callCtx, r.Source, r.Target, toTranslate)
-	if trans == nil {
-		trans = &core.Translation{}
-	}
 	llm.RecordCall(rt, time.Since(callStart))
 
 	// An error from the LLM service itself (bad credentials, rate limit, model unavailable, etc.)
