@@ -120,6 +120,11 @@ func handleIncoming(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 		return nil, svc.WriteErrorResponse(w, fmt.Errorf("error inserting incoming call: %w", err))
 	}
 
+	// for suspended orgs we record the call but reject it without handling any triggers
+	if oa.Org().Suspended() {
+		return call, svc.WriteRejectResponse(w)
+	}
+
 	// create an incoming call "task" and handle it to see if we have a trigger
 	task := &ctasks.EventReceived{
 		EventType: models.EventTypeIncomingCall,
