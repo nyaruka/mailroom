@@ -1,3 +1,8 @@
+## v26.3.119 (2026-11-02)
+ * Use gocommon's tallies package with an orgs_tally store
+ * Reject the reserved generation scope in TallyStore.Write
+ * Tally LLM usage by the time of the call and keep daily tallies for 90 days
+
 ## v26.3.118 (2026-11-02)
  * Add Valkey-buffered tallies and count emails sent with the shared configuration
 
