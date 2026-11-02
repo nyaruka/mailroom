@@ -6,7 +6,7 @@
 //   - tallies:<org> - hash of scope to amount, incremented by writers
 //   - tallies:<org>:flushing - hash being flushed, with a _gen field holding its flush generation
 //
-// There must only be one flusher at a time.
+// There must only be one flusher at a time, so a flush must be cancelled before any lock which ensures that expires.
 package tallies
 
 import (
@@ -37,6 +37,9 @@ func Daily(scope string, t time.Time) string {
 func Increment(ctx context.Context, vc valkey.Conn, orgID OrgID, amounts map[string]int) error {
 	if len(amounts) == 0 {
 		return nil
+	}
+	if _, ok := amounts[generationField]; ok {
+		return fmt.Errorf("%s is a reserved scope", generationField)
 	}
 
 	vc.Send("MULTI")

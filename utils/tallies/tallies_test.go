@@ -55,6 +55,9 @@ func TestFlush(t *testing.T) {
 	increment(org1, map[string]int{})
 	assertvk.SMembers(t, vc, "tallies:pending", []string{})
 
+	err := tallies.Increment(ctx, vc, org1, map[string]int{"_gen": 1})
+	assert.EqualError(t, err, "_gen is a reserved scope")
+
 	increment(org1, map[string]int{"foo/1": 2, "daily/2025-05-04": 1})
 	increment(org1, map[string]int{"foo/1": 1})
 	increment(org2, map[string]int{"foo/1": 5})
@@ -99,13 +102,15 @@ func TestFlush(t *testing.T) {
 
 	assertTallies(org1, map[string]int{"foo/1": 15, "foo/2": 1, "daily/2025-05-04": 2, "daily/notadate": 1, "_gen": 4})
 
-	// nothing is written for a deleted org
+	// nothing is written for a deleted org, including from a hash left over from a failed flush
 	rt.DB.MustExec(`UPDATE orgs_org SET deleted_on = NOW() WHERE id = $1`, org2)
+	vc.Do("HSET", "tallies:2:flushing", "foo/1", 10, "_gen", 2)
 	increment(org2, map[string]int{"foo/1": 1})
 
 	flush(1)
 
 	assertTallies(org2, map[string]int{"foo/1": 5, "_gen": 1})
 	assertvk.NotExists(t, vc, "tallies:2")
+	assertvk.NotExists(t, vc, "tallies:2:flushing")
 	assertvk.SMembers(t, vc, "tallies:pending", []string{})
 }

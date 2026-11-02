@@ -2,12 +2,12 @@ package handlers
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 
 	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/runner"
+	"github.com/nyaruka/mailroom/v26/core/runner/hooks"
 	"github.com/nyaruka/mailroom/v26/runtime"
 	"github.com/nyaruka/mailroom/v26/utils/tallies"
 )
@@ -24,17 +24,10 @@ func handleEmailSent(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAss
 
 	_, shared, err := oa.Org().EmailSMTP(ctx, rt)
 	if err != nil {
-		return fmt.Errorf("error getting email configuration: %w", err)
-	}
-
-	if shared {
-		vc := rt.VK.Get()
-		defer vc.Close()
-
+		slog.Error("error getting email configuration for tallying", "error", err, "org_id", oa.OrgID())
+	} else if shared {
 		scope := tallies.Daily(models.TallyEmailsShared, event.CreatedOn())
-		if err := tallies.Increment(ctx, vc, tallies.OrgID(oa.OrgID()), map[string]int{scope: len(event.To)}); err != nil {
-			return err
-		}
+		scene.AttachPostCommitHook(hooks.IncrementTallies, map[string]int{scope: len(event.To)})
 	}
 
 	return nil
