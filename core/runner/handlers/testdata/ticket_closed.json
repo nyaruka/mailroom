@@ -5,7 +5,8 @@
             "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
                 {
                     "type": "ticket_close",
-                    "ticket_uuid": "01992f54-5ab6-717a-a39e-e8ca91fb7262"
+                    "ticket_uuid": "01992f54-5ab6-717a-a39e-e8ca91fb7262",
+                    "outcome": "resolved"
                 }
             ]
         },
@@ -13,7 +14,7 @@
         "user_id": 3,
         "db_assertions": [
             {
-                "query": "SELECT count(*) FROM tickets_ticket WHERE uuid = '01992f54-5ab6-717a-a39e-e8ca91fb7262' AND status = 'C' AND last_activity_on \u003e '2025-01-01T12:00:00Z'",
+                "query": "SELECT count(*) FROM tickets_ticket WHERE uuid = '01992f54-5ab6-717a-a39e-e8ca91fb7262' AND status = 'C' AND outcome = 'R' AND last_activity_on \u003e '2025-01-01T12:00:00Z'",
                 "returns": 1
             },
             {
@@ -42,6 +43,7 @@
                         "uuid": "ad9fdf9f-56ab-422a-b77d-e3ec26091a25"
                     },
                     "created_on": "2025-05-04T12:30:46.123456789Z",
+                    "outcome": "resolved",
                     "ticket_uuid": "01992f54-5ab6-717a-a39e-e8ca91fb7262",
                     "type": "ticket_closed"
                 }
@@ -49,19 +51,20 @@
         ]
     },
     {
-        "label": "automatic close leaves last activity unchanged and fires trigger",
+        "label": "idle close leaves last activity unchanged and fires trigger",
         "modifiers": {
             "b699a406-7e44-49be-9f01-1a82893e8a10": [
                 {
                     "type": "ticket_close",
-                    "ticket_uuid": "01992f54-5ab6-725e-be9c-0c6407efd755"
+                    "ticket_uuid": "01992f54-5ab6-725e-be9c-0c6407efd755",
+                    "outcome": "idle"
                 }
             ]
         },
         "events": {},
         "db_assertions": [
             {
-                "query": "SELECT count(*) FROM tickets_ticket WHERE uuid = '01992f54-5ab6-725e-be9c-0c6407efd755' AND status = 'C' AND last_activity_on = '2025-01-01T12:00:00Z'",
+                "query": "SELECT count(*) FROM tickets_ticket WHERE uuid = '01992f54-5ab6-725e-be9c-0c6407efd755' AND status = 'C' AND outcome = 'I' AND last_activity_on = '2025-01-01T12:00:00Z'",
                 "returns": 1
             },
             {
@@ -86,7 +89,50 @@
                 "OrgID": 1,
                 "Data": {
                     "created_on": "2025-05-04T12:30:51.123456789Z",
+                    "outcome": "idle",
                     "ticket_uuid": "01992f54-5ab6-725e-be9c-0c6407efd755",
+                    "type": "ticket_closed"
+                }
+            }
+        ]
+    },
+    {
+        "label": "resolved close without a user still updates last activity",
+        "modifiers": {
+            "cd024bcd-f473-4719-a00a-bd0bb1190135": [
+                {
+                    "type": "ticket_close",
+                    "ticket_uuid": "01992f54-5ab6-7498-a7f2-6aa246e45cfe",
+                    "outcome": "resolved"
+                }
+            ]
+        },
+        "events": {},
+        "db_assertions": [
+            {
+                "query": "SELECT count(*) FROM tickets_ticket WHERE uuid = '01992f54-5ab6-7498-a7f2-6aa246e45cfe' AND status = 'C' AND outcome = 'R' AND last_activity_on \u003e '2025-01-01T12:00:00Z'",
+                "returns": 1
+            }
+        ],
+        "expected_tasks": {
+            "realtime/1": [
+                {
+                    "type": "handle_contact_event",
+                    "payload": {
+                        "contact_id": 10002
+                    }
+                }
+            ]
+        },
+        "expected_history": [
+            {
+                "PK": "con#cd024bcd-f473-4719-a00a-bd0bb1190135",
+                "SK": "evt#01969b47-28ab-76f8-95cf-9fca95f1c30a",
+                "OrgID": 1,
+                "Data": {
+                    "created_on": "2025-05-04T12:30:55.123456789Z",
+                    "outcome": "resolved",
+                    "ticket_uuid": "01992f54-5ab6-7498-a7f2-6aa246e45cfe",
                     "type": "ticket_closed"
                 }
             }

@@ -24,6 +24,7 @@ func handleTicketReopened(ctx context.Context, rt *runtime.Runtime, oa *models.O
 	dbTicket := scene.DBContact.FindTicket(event.TicketUUID)
 	dbTicket.Status = models.TicketStatusOpen
 	dbTicket.ClosedOn = nil
+	dbTicket.Outcome = models.NilTicketOutcome
 	dbTicket.LastActivityOn = dates.Now()
 
 	scene.AttachPreCommitHook(hooks.UpdateTickets, dbTicket)

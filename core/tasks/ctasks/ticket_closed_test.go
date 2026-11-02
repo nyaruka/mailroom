@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
+	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/core/events"
 	_ "github.com/nyaruka/mailroom/v26/core/runner/handlers"
 	"github.com/nyaruka/mailroom/v26/core/tasks"
@@ -22,7 +23,7 @@ func TestTicketClosed(t *testing.T) {
 	testdb.InsertTicketClosedTrigger(t, rt, testdb.Org1, testdb.Favorites)
 
 	testdb.InsertClosedTicket(t, rt, "01992f54-5ab6-717a-a39e-e8ca91fb7262", testdb.Org1, testdb.Ann, testdb.DefaultTopic, nil)
-	evt := events.NewTicketClosed("01992f54-5ab6-717a-a39e-e8ca91fb7262")
+	evt := events.NewTicketClosed("01992f54-5ab6-717a-a39e-e8ca91fb7262", core.TicketOutcomeResolved)
 
 	err := tasks.QueueContact(ctx, rt, testdb.Org1.ID, testdb.Ann.ID, ctasks.NewTicketClosed(evt))
 	require.NoError(t, err)
