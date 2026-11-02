@@ -47,9 +47,9 @@ func handleTicketClosed(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 		return nil
 	}
 
-	// closed ticket triggers should only use background flows, but don't rely on that for automatic closes which could
-	// otherwise interrupt or call large numbers of contacts
-	if automatic {
+	// closed ticket triggers should only use background flows, but don't rely on that for closes not made by a user, which
+	// could otherwise interrupt or call large numbers of contacts
+	if userID == models.NilUserID {
 		flow, err := oa.FlowByID(trigger.FlowID())
 		if err == models.ErrNotFound {
 			return nil

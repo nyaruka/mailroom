@@ -28,6 +28,17 @@ func TestTicketClosed(t *testing.T) {
 	runTests(t, rt, "testdata/ticket_closed.json")
 }
 
+func TestTicketClosedNonBackgroundTrigger(t *testing.T) {
+	_, rt := testsuite.Runtime(t)
+
+	testdb.InsertOpenTicket(t, rt, "01992f54-5ab6-717a-a39e-e8ca91fb7262", testdb.Org1, testdb.Ann, testdb.DefaultTopic, time.Now(), nil)
+	testdb.InsertOpenTicket(t, rt, "01992f54-5ab6-725e-be9c-0c6407efd755", testdb.Org1, testdb.Bob, testdb.DefaultTopic, time.Now(), nil)
+
+	testdb.InsertTicketClosedTrigger(t, rt, testdb.Org1, testdb.Favorites)
+
+	runTests(t, rt, "testdata/ticket_closed_non_background.json")
+}
+
 func TestTicketClosedIndexesContact(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
 
