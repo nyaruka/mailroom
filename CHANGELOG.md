@@ -1,3 +1,6 @@
+## v26.3.120 (2026-11-02)
+ * Leave tallying of LLM usage to LLM services
+
 ## v26.3.119 (2026-11-02)
  * Use gocommon's tallies package with an orgs_tally store
  * Reject the reserved generation scope in TallyStore.Write
