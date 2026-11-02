@@ -15,7 +15,6 @@ import (
 	"github.com/nyaruka/mailroom/v26/testsuite"
 	"github.com/nyaruka/mailroom/v26/testsuite/testdb"
 	"github.com/nyaruka/mailroom/v26/web/llm"
-	"github.com/nyaruka/vkutil/assertvk"
 )
 
 // an LLM service which never responds, only returning once its context is done
@@ -51,15 +50,4 @@ func TestTranslate(t *testing.T) {
 	llm.CallTimeout = 100 * time.Millisecond
 
 	testsuite.RunWebTests(t, rt, "testdata/translate.json")
-
-	// calls are tallied whether or not they succeed, including the one which timed out
-	vc := rt.VK.Get()
-	defer vc.Close()
-
-	assertvk.HGetAll(t, vc, "tallies:1", map[string]string{
-		"llms/10002/calls/2025-05-04":      "4",
-		"llms/10002/tokens:in/2025-05-04":  "168",
-		"llms/10002/tokens:out/2025-05-04": "201",
-		"llms/30001/calls/2025-05-04":      "1",
-	})
 }

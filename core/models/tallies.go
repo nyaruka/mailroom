@@ -17,7 +17,7 @@ const (
 	// recipient of a send
 	TallyEmailsShared = "emails/shared"
 
-	// TallyLLMs prefixes the daily usage tallies of each LLM, e.g. llms/123/tokens:in/2026-11-02
+	// TallyLLMs prefixes the daily usage tallies which LLM services can record, e.g. llms/foo/tokens:in/2026-11-02
 	TallyLLMs = "llms"
 
 	// scope of the row which records the last flush generation written for an org
