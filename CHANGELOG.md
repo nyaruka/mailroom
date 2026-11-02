@@ -1,3 +1,6 @@
+## v26.3.118 (2026-11-02)
+ * Add Valkey-buffered tallies and count emails sent with the shared configuration
+
 ## v26.3.117 (2026-11-02)
  * Record outcome of closed tickets
  * Test that flow replies are queued with the contact's updated last seen on
