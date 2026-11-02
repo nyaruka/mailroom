@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/flows"
@@ -92,23 +91,22 @@ func TestLLMAsService(t *testing.T) {
 func TestLLMRecordCall(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	dates.SetNowFunc(dates.NewFixedNow(time.Date(2026, 5, 4, 13, 14, 30, 0, time.UTC)))
-	defer dates.SetNowFunc(time.Now)
-
 	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 	require.NoError(t, err)
 
 	llm := oa.LLMByID(testdb.OpenAI.ID)
 	require.NotNil(t, llm)
 
+	when := time.Date(2026, 5, 4, 23, 30, 0, 0, time.FixedZone("", -2*3600)) // already the 5th in UTC
+
 	assert.Equal(t, map[string]int64{
-		"llms/10000/calls/2026-05-04":      1,
-		"llms/10000/tokens:in/2026-05-04":  120,
-		"llms/10000/tokens:out/2026-05-04": 340,
-	}, llm.RecordCall(rt, 250*time.Millisecond, core.ModelTokens{Input: 120, Output: 340}))
+		"llms/10000/calls/2026-05-05":      1,
+		"llms/10000/tokens:in/2026-05-05":  120,
+		"llms/10000/tokens:out/2026-05-05": 340,
+	}, llm.RecordCall(rt, when, 250*time.Millisecond, core.ModelTokens{Input: 120, Output: 340}))
 
 	// token counts are only tallied when the service reports them
-	assert.Equal(t, map[string]int64{"llms/10000/calls/2026-05-04": 1}, llm.RecordCall(rt, 250*time.Millisecond, core.ModelTokens{}))
+	assert.Equal(t, map[string]int64{"llms/10000/calls/2026-05-05": 1}, llm.RecordCall(rt, when, 250*time.Millisecond, core.ModelTokens{}))
 }
 
 func TestLLMMaxOutputTokens(t *testing.T) {

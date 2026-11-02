@@ -11,6 +11,7 @@ import (
 	"slices"
 	"time"
 
+	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/i18n"
 	"github.com/nyaruka/gocommon/tallies"
 	"github.com/nyaruka/goflow/assets"
@@ -115,7 +116,7 @@ func handleTranslate(ctx context.Context, rt *runtime.Runtime, r *translateReque
 	if trans == nil {
 		trans = &core.Translation{}
 	}
-	amounts := llm.RecordCall(rt, time.Since(callStart), trans.Tokens)
+	amounts := llm.RecordCall(rt, dates.Now(), time.Since(callStart), trans.Tokens)
 
 	// detach from the request context so a client-side timeout during the LLM call doesn't prevent us from recording usage someone may have paid for
 	recCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), RecordTimeout)
