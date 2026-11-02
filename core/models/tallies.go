@@ -7,7 +7,8 @@ import (
 )
 
 const (
-	// TallyEmailsShared is the daily number of email recipients sent to using the shared email configuration
+	// TallyEmailsShared is the daily number of emails sent using the shared email configuration, counting each
+	// recipient of a send
 	TallyEmailsShared = "emails/shared"
 )
 
