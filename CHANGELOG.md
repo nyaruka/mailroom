@@ -1,3 +1,7 @@
+## v26.3.117 (2026-11-02)
+ * Record outcome of closed tickets
+ * Test that flow replies are queued with the contact's updated last seen on
+
 ## v26.3.116 (2026-10-30)
  * Stop writing tickets count to contact search docs and remove tickets from test contacts index mapping
 
