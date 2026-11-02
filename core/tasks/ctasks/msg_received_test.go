@@ -736,13 +736,11 @@ func TestMsgReceivedReplyLastSeenOn(t *testing.T) {
 	newLastSeenOn := getLastSeenOn(t, rt, testdb.Ann)
 	require.True(t, newLastSeenOn.After(*oldLastSeenOn))
 
-	queueKeys, err := valkey.Strings(vc.Do("KEYS", "msgs:"+string(testdb.TwilioChannel.UUID)+"|*"))
-	require.NoError(t, err)
-	require.Len(t, queueKeys, 1)
+	queueKey := fmt.Sprintf("msgs:%s|10/1", testdb.TwilioChannel.UUID)
+	testsuite.AssertCourierQueues(t, rt, map[string][]int{queueKey: {1}})
 
-	batches, err := valkey.ByteSlices(vc.Do("ZRANGE", queueKeys[0], 0, -1))
+	batches, err := valkey.ByteSlices(vc.Do("ZRANGE", queueKey, 0, -1))
 	require.NoError(t, err)
-	require.Len(t, batches, 1)
 
 	var msgs []struct {
 		Contact struct {
@@ -755,6 +753,7 @@ func TestMsgReceivedReplyLastSeenOn(t *testing.T) {
 
 	// the reply is queued after last_seen_on has been updated, so channels can use it to tell that the contact is
 	// within a messaging window, e.g. WhatsApp's customer service window
+	require.NotNil(t, msgs[0].Contact.LastSeenOn)
 	assert.WithinDuration(t, *newLastSeenOn, *msgs[0].Contact.LastSeenOn, time.Millisecond) // db stores microseconds
 	assert.Equal(t, "SM123", msgs[0].ResponseToExternalID)
 }
