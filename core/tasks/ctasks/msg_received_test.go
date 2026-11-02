@@ -6,7 +6,9 @@ import (
 	"testing"
 	"time"
 
+	valkey "github.com/gomodule/redigo/redis"
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
+	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/mailroom/v26/core/ivr"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/search"
@@ -701,6 +703,59 @@ func TestMsgReceivedPayload(t *testing.T) {
 
 	msg := msgEvent["msg"].(map[string]any)
 	assert.Equal(t, map[string]any{"flow_token": "abc123", "answers": map[string]any{"rating": "5"}}, msg["payload"])
+}
+
+func TestMsgReceivedReplyLastSeenOn(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+	vc := rt.VK.Get()
+	defer vc.Close()
+
+	testdb.InsertKeywordTrigger(t, rt, testdb.Org1, testdb.Favorites, []string{"start"}, models.MatchOnly, nil, nil, nil)
+
+	// Ann hasn't been seen for a few days
+	rt.DB.MustExec(`UPDATE contacts_contact SET last_seen_on = NOW() - INTERVAL '3 days' WHERE id = $1`, testdb.Ann.ID)
+	oldLastSeenOn := getLastSeenOn(t, rt, testdb.Ann)
+
+	oa := testdb.Org1.Load(t, rt)
+	ann, _, _ := testdb.Ann.Load(t, rt, oa)
+
+	dbMsg := testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199bad8-f98d-75a3-b641-2718a25ac3f5", testdb.TwilioChannel, testdb.Ann, "", models.MsgStatusPending, "")
+
+	task := &ctasks.MsgReceived{
+		ChannelID:     testdb.TwilioChannel.ID,
+		MsgUUID:       dbMsg.UUID,
+		MsgExternalID: "SM123",
+		URN:           testdb.Ann.URN,
+		URNID:         testdb.Ann.URNID,
+		Text:          "start",
+	}
+
+	err := task.Perform(ctx, rt, oa, ann)
+	require.NoError(t, err)
+
+	newLastSeenOn := getLastSeenOn(t, rt, testdb.Ann)
+	require.True(t, newLastSeenOn.After(*oldLastSeenOn))
+
+	queueKey := fmt.Sprintf("msgs:%s|10/1", testdb.TwilioChannel.UUID)
+	testsuite.AssertCourierQueues(t, rt, map[string][]int{queueKey: {1}})
+
+	batches, err := valkey.ByteSlices(vc.Do("ZRANGE", queueKey, 0, -1))
+	require.NoError(t, err)
+
+	var msgs []struct {
+		Contact struct {
+			LastSeenOn *time.Time `json:"last_seen_on"`
+		} `json:"contact"`
+		ResponseToExternalID string `json:"response_to_external_id"`
+	}
+	jsonx.MustUnmarshal(batches[0], &msgs)
+	require.Len(t, msgs, 1)
+
+	// the reply is queued after last_seen_on has been updated, so channels can use it to tell that the contact is
+	// within a messaging window, e.g. WhatsApp's customer service window
+	require.NotNil(t, msgs[0].Contact.LastSeenOn)
+	assert.WithinDuration(t, *newLastSeenOn, *msgs[0].Contact.LastSeenOn, time.Millisecond) // db stores microseconds
+	assert.Equal(t, "SM123", msgs[0].ResponseToExternalID)
 }
 
 func getLastSeenOn(t *testing.T, rt *runtime.Runtime, c *testdb.Contact) *time.Time {
