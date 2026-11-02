@@ -4,12 +4,12 @@ import (
 	"context"
 	"log/slog"
 
+	"github.com/nyaruka/gocommon/tallies"
 	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/runner"
 	"github.com/nyaruka/mailroom/v26/core/runner/hooks"
 	"github.com/nyaruka/mailroom/v26/runtime"
-	"github.com/nyaruka/mailroom/v26/utils/tallies"
 )
 
 func init() {
@@ -27,7 +27,7 @@ func handleEmailSent(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAss
 		slog.Error("error getting email configuration for tallying", "error", err, "org_id", oa.OrgID())
 	} else if shared {
 		scope := tallies.Daily(models.TallyEmailsShared, event.CreatedOn())
-		scene.AttachPostCommitHook(hooks.IncrementTallies, map[string]int{scope: len(event.To)})
+		scene.AttachPostCommitHook(hooks.IncrementTallies, map[string]int64{scope: int64(len(event.To))})
 	}
 
 	return nil

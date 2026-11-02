@@ -4,9 +4,9 @@ import (
 	"context"
 	"time"
 
+	"github.com/nyaruka/gocommon/tallies"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/runtime"
-	"github.com/nyaruka/mailroom/v26/utils/tallies"
 )
 
 func init() {
@@ -24,7 +24,7 @@ func (c *FlushTalliesCron) Run(ctx context.Context, rt *runtime.Runtime) (map[st
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	flushed, err := tallies.NewFlusher(models.TallyRetentions, 1000).Flush(ctx, rt.DB, vc)
+	flushed, err := tallies.NewFlusher(models.NewTallyStore(rt.DB, models.TallyRetentions), 1000).Flush(ctx, vc)
 
 	return map[string]any{"flushed": flushed}, err
 }

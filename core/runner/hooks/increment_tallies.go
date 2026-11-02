@@ -4,10 +4,10 @@ import (
 	"context"
 	"log/slog"
 
+	"github.com/nyaruka/gocommon/tallies"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/runner"
 	"github.com/nyaruka/mailroom/v26/runtime"
-	"github.com/nyaruka/mailroom/v26/utils/tallies"
 )
 
 // IncrementTallies is our hook for incrementing tallies once the changes they count are committed
@@ -18,10 +18,10 @@ type incrementTallies struct{}
 func (h *incrementTallies) Order() int { return 10 }
 
 func (h *incrementTallies) Execute(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scenes map[*runner.Scene][]any) error {
-	amounts := make(map[string]int)
+	amounts := make(map[string]int64)
 	for _, args := range scenes {
 		for _, a := range args {
-			for scope, amount := range a.(map[string]int) {
+			for scope, amount := range a.(map[string]int64) {
 				amounts[scope] += amount
 			}
 		}
@@ -30,7 +30,7 @@ func (h *incrementTallies) Execute(ctx context.Context, rt *runtime.Runtime, oa 
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	if err := tallies.Increment(ctx, vc, tallies.OrgID(oa.OrgID()), amounts); err != nil {
+	if err := tallies.Increment(ctx, vc, tallies.OwnerID(oa.OrgID()), amounts); err != nil {
 		slog.Error("error incrementing tallies", "error", err, "org_id", oa.OrgID())
 	}
 
