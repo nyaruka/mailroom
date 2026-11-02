@@ -1,0 +1,32 @@
+[
+    {
+        "label": "emails sent by Ann and Bob",
+        "events": {
+            "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
+                {
+                    "uuid": "01969b47-2c93-76f8-b384-a4094c3d60be",
+                    "type": "email_sent",
+                    "created_on": "2025-05-04T12:30:56.123456789Z",
+                    "to": [
+                        "a@example.com",
+                        "b@example.com"
+                    ],
+                    "subject": "Hi",
+                    "body": "Hello"
+                }
+            ],
+            "b699a406-7e44-49be-9f01-1a82893e8a10": [
+                {
+                    "uuid": "01969b47-307b-76f8-8f41-6b2d9f33d623",
+                    "type": "email_sent",
+                    "created_on": "2025-05-04T23:59:59.123456789Z",
+                    "to": [
+                        "c@example.com"
+                    ],
+                    "subject": "Hi",
+                    "body": "Hello"
+                }
+            ]
+        }
+    }
+]

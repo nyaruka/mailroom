@@ -113,6 +113,11 @@ func TestEmailService(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, svc)
 
+	smtpURL, shared, err := org1.EmailSMTP(ctx, rt)
+	assert.NoError(t, err)
+	assert.Equal(t, `smtp://foo:bar@example.com?from=foo%40example.com`, smtpURL)
+	assert.True(t, shared)
+
 	// set explicitly for org 1
 	rt.Config.SMTPServer = ""
 	rt.DB.MustExec(`UPDATE orgs_org SET flow_smtp = 'smtp://zed:123@flows.com?from=foo%40flows.com' WHERE id = $1`, testdb.Org1.ID)
@@ -129,6 +134,11 @@ func TestEmailService(t *testing.T) {
 	svc, err = org2.EmailService(ctx, rt, nil)
 	assert.NoError(t, err)
 	assert.NotNil(t, svc)
+
+	smtpURL, shared, err = org2.EmailSMTP(ctx, rt)
+	assert.NoError(t, err)
+	assert.Equal(t, `smtp://zed:123@flows.com?from=foo%40flows.com`, smtpURL)
+	assert.False(t, shared)
 }
 
 func TestWebhookServiceFactory(t *testing.T) {
