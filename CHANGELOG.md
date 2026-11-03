@@ -1,3 +1,8 @@
+## v26.3.121 (2026-11-03)
+ * Tally messages with a channel by channel, type, direction and day
+ * Skip tallying when there's nothing to count
+ * Update to gocommon v1.98.1
+
 ## v26.3.120 (2026-11-02)
  * Leave tallying of LLM usage to LLM services
 
