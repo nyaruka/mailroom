@@ -123,7 +123,7 @@ func TestTwilioIVR(t *testing.T) {
 		AND ((status = 'H' AND direction = 'I') OR (status = 'W' AND direction = 'O'))`, testdb.Bob.ID).Returns(2)
 
 	// voice messages in both directions are tallied
-	assertvk.HGetAll(t, vc, "tallies:1", map[string]string{
+	assertvk.HGetAll(t, vc, "{tallies}:1", map[string]string{
 		"channels/10000/voice:in@2025-05-04":  "5",
 		"channels/10000/voice:out@2025-05-04": "11",
 		"msgs/voice:in@2025-05-04":            "5",

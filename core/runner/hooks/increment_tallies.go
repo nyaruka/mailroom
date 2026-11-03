@@ -18,11 +18,11 @@ type incrementTallies struct{}
 func (h *incrementTallies) Order() int { return 10 }
 
 func (h *incrementTallies) Execute(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scenes map[*runner.Scene][]any) error {
-	amounts := make(map[string]int64)
+	amounts := make(map[tallies.Key]int64)
 	for _, args := range scenes {
 		for _, a := range args {
-			for scope, amount := range a.(map[string]int64) {
-				amounts[scope] += amount
+			for key, amount := range a.(map[tallies.Key]int64) {
+				amounts[key] += amount
 			}
 		}
 	}
@@ -30,7 +30,7 @@ func (h *incrementTallies) Execute(ctx context.Context, rt *runtime.Runtime, oa 
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	if err := tallies.Increment(ctx, vc, tallies.OwnerID(oa.OrgID()), amounts); err != nil {
+	if err := models.Tallies.Increment(ctx, vc, tallies.OwnerID(oa.OrgID()), amounts); err != nil {
 		slog.Error("error incrementing tallies", "error", err, "org_id", oa.OrgID())
 	}
 

@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/lib/pq"
@@ -12,46 +11,39 @@ import (
 	"github.com/vinovest/sqlx"
 )
 
+// Tallies are the per-org tallies, which must use the same key base as anything else which increments them
+var Tallies = tallies.New("tallies")
+
 const (
 	// TallyEmailsShared is the daily number of emails sent using the shared email configuration, counting each
 	// recipient of a send
-	TallyEmailsShared = "emails/shared"
+	TallyEmailsShared    = "emails/shared"
+	TallyEmailsSharedTTL = 90 * 24 * time.Hour
 
 	// TallyChannelMsgs prefixes the daily counts of messages (not segments) on each channel, e.g. channels/12/text:in@2026-11-03
-	TallyChannelMsgs = "channels"
+	TallyChannelMsgs    = "channels"
+	TallyChannelMsgsTTL = 2 * 365 * 24 * time.Hour
 
 	// TallyMsgs prefixes the daily counts of messages with a channel, e.g. msgs/voice:out@2026-11-03
-	TallyMsgs = "msgs"
+	TallyMsgs                  = "msgs"
+	TallyMsgsTTL time.Duration = 0 // kept forever
 
 	// TallyLLMs prefixes the daily usage tallies which LLM services can record, e.g. llms/foo/tokens:in@2026-11-02
-	TallyLLMs = "llms"
+	TallyLLMs    = "llms"
+	TallyLLMsTTL = 90 * 24 * time.Hour
 
 	// scope of the row which records the last flush generation written for an org
 	tallyGenerationScope = "_gen"
 )
 
-// TallyRetention is how long daily tallies whose base scope is the given prefix, or under it, are kept, counted from
-// their day. Tallies which match no retention are kept forever.
-type TallyRetention struct {
-	Prefix string
-	Period time.Duration
-}
-
-// TallyRetentions are how long daily tallies are kept
-var TallyRetentions = []TallyRetention{
-	{Prefix: TallyEmailsShared, Period: 90 * 24 * time.Hour},
-	{Prefix: TallyLLMs, Period: 90 * 24 * time.Hour},
-}
-
 // TallyStore is a tallies.Store which writes to the orgs_tally table. Nothing is written for a deleted org.
 type TallyStore struct {
-	db         *sqlx.DB
-	retentions []TallyRetention
+	db *sqlx.DB
 }
 
 // NewTallyStore creates a new tally store
-func NewTallyStore(db *sqlx.DB, retentions []TallyRetention) *TallyStore {
-	return &TallyStore{db: db, retentions: retentions}
+func NewTallyStore(db *sqlx.DB) *TallyStore {
+	return &TallyStore{db: db}
 }
 
 func (s *TallyStore) LastGeneration(ctx context.Context, owner tallies.OwnerID) (int64, error) {
@@ -75,7 +67,8 @@ INSERT INTO orgs_tally AS t (org_id, scope, count)
      SELECT $1, $2, $3 WHERE EXISTS (SELECT 1 FROM orgs_org WHERE id = $1 AND deleted_on IS NULL)
 ON CONFLICT (org_id, scope) DO UPDATE SET count = excluded.count`
 
-func (s *TallyStore) Write(ctx context.Context, owner tallies.OwnerID, gen int64, amounts map[string]int64) error {
+// Write adds the given amounts to an org's tallies, setting expiries only on tallies which don't exist yet
+func (s *TallyStore) Write(ctx context.Context, owner tallies.OwnerID, gen int64, amounts map[string]int64, expiries map[string]string) error {
 	if _, ok := amounts[tallyGenerationScope]; ok {
 		return fmt.Errorf("%s is a reserved scope", tallyGenerationScope)
 	}
@@ -101,7 +94,8 @@ func (s *TallyStore) Write(ctx context.Context, owner tallies.OwnerID, gen int64
 	for scope, count := range amounts {
 		scopes = append(scopes, scope)
 		counts = append(counts, count)
-		expiresOn = append(expiresOn, s.expiresOn(scope))
+		expiry, ok := expiries[scope]
+		expiresOn = append(expiresOn, sql.NullString{String: expiry, Valid: ok && expiry != ""})
 	}
 
 	if _, err := tx.ExecContext(ctx, sqlUpsertTallies, owner, pq.Array(scopes), pq.Array(counts), pq.Array(expiresOn)); err != nil {
@@ -115,18 +109,4 @@ func (s *TallyStore) Write(ctx context.Context, owner tallies.OwnerID, gen int64
 		return fmt.Errorf("error committing transaction: %w", err)
 	}
 	return nil
-}
-
-// expiresOn gets the expiry date of a tally from the first retention matching its scope
-func (s *TallyStore) expiresOn(scope string) sql.NullString {
-	base, day, ok := tallies.ParseDaily(scope)
-	if !ok {
-		return sql.NullString{}
-	}
-	for _, r := range s.retentions {
-		if base == r.Prefix || strings.HasPrefix(base, r.Prefix+"/") {
-			return sql.NullString{String: day.Add(r.Period).Format(time.DateOnly), Valid: true}
-		}
-	}
-	return sql.NullString{}
 }

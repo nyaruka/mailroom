@@ -10,6 +10,7 @@ import (
 	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/gocommon/i18n"
+	"github.com/nyaruka/gocommon/tallies"
 	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/core"
@@ -1111,11 +1112,22 @@ func TestMsgTallies(t *testing.T) {
 		models.NewIncomingAndroid(testdb.Org1.ID, models.NilChannelID, testdb.Cat.ID, testdb.Cat.URNID, "three", time.Now()),
 	}
 
-	assert.Equal(t, map[string]int64{"channels/10003/text:in@2026-11-04": 2, "msgs/text:in@2026-11-04": 2}, models.MsgTallies(msgs))
-	assert.Equal(t, map[string]int64{}, models.MsgTallies(msgs[2:]))
+	assert.Equal(t, map[tallies.Key]int64{
+		{Scope: "channels/10003/text:in@2026-11-04", ExpiresOn: "2028-11-03"}: 2,
+		{Scope: "msgs/text:in@2026-11-04"}:                                    2,
+	}, models.MsgTallies(msgs))
+	assert.Equal(t, map[tallies.Key]int64{}, models.MsgTallies(msgs[2:]))
 
 	models.IncrementMsgTallies(ctx, rt, testdb.Org1.ID, msgs)
 
-	assertvk.HGetAll(t, vc, "tallies:1", map[string]string{"channels/10003/text:in@2026-11-04": "2", "msgs/text:in@2026-11-04": "2"})
-	assertvk.SMembers(t, vc, "tallies:pending", []string{"1"})
+	assertvk.HGetAll(t, vc, "{tallies}:1", map[string]string{"channels/10003/text:in@2026-11-04": "2", "msgs/text:in@2026-11-04": "2"})
+	assertvk.SMembers(t, vc, "{tallies}:pending", []string{"1"})
+
+	// channel tallies expire but msg type tallies are kept forever
+	_, err := models.Tallies.Flush(ctx, vc, models.NewTallyStore(rt.DB), 10)
+	require.NoError(t, err)
+
+	assertdb.Query(t, rt.DB, `SELECT scope, expires_on::text FROM orgs_tally WHERE org_id = $1 AND scope != '_gen' ORDER BY scope`, testdb.Org1.ID).Map(
+		map[string]any{"channels/10003/text:in@2026-11-04": "2028-11-03", "msgs/text:in@2026-11-04": nil},
+	)
 }

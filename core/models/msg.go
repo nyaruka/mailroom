@@ -635,8 +635,8 @@ func InsertMessages(ctx context.Context, tx DBorTx, msgs []*Msg) error {
 
 // MsgTallies gets the tally amounts which count the given messages by their channel, type, direction and the UTC day
 // they were created on. Messages without a channel aren't counted.
-func MsgTallies(msgs []*Msg) map[string]int64 {
-	amounts := make(map[string]int64)
+func MsgTallies(msgs []*Msg) map[tallies.Key]int64 {
+	amounts := make(map[tallies.Key]int64)
 	for _, m := range msgs {
 		if m.ChannelID() == NilChannelID {
 			continue
@@ -650,8 +650,8 @@ func MsgTallies(msgs []*Msg) map[string]int64 {
 			dir = "in"
 		}
 
-		amounts[tallies.Daily(fmt.Sprintf("%s/%d/%s:%s", TallyChannelMsgs, m.ChannelID(), typ, dir), m.CreatedOn())]++
-		amounts[tallies.Daily(fmt.Sprintf("%s/%s:%s", TallyMsgs, typ, dir), m.CreatedOn())]++
+		amounts[tallies.Daily(fmt.Sprintf("%s/%d/%s:%s", TallyChannelMsgs, m.ChannelID(), typ, dir), m.CreatedOn(), TallyChannelMsgsTTL)]++
+		amounts[tallies.Daily(fmt.Sprintf("%s/%s:%s", TallyMsgs, typ, dir), m.CreatedOn(), TallyMsgsTTL)]++
 	}
 	return amounts
 }
@@ -667,7 +667,7 @@ func IncrementMsgTallies(ctx context.Context, rt *runtime.Runtime, orgID OrgID, 
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	if err := tallies.Increment(ctx, vc, tallies.OwnerID(orgID), amounts); err != nil {
+	if err := Tallies.Increment(ctx, vc, tallies.OwnerID(orgID), amounts); err != nil {
 		slog.Error("error incrementing msg tallies", "error", err, "org_id", orgID)
 	}
 }
