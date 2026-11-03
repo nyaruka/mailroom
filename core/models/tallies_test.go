@@ -116,3 +116,27 @@ func TestTallyStore(t *testing.T) {
 	assertvk.NotExists(t, vc, "tallies:2:flushing")
 	assertvk.SMembers(t, vc, "tallies:pending", []string{})
 }
+
+func TestTallyRetentions(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	vc := rt.VK.Get()
+	defer vc.Close()
+
+	defer rt.DB.MustExec(`DELETE FROM orgs_tally`)
+
+	flusher := tallies.NewFlusher(models.NewTallyStore(rt.DB, models.TallyRetentions), 10)
+
+	require.NoError(t, tallies.Increment(ctx, vc, tallies.OwnerID(testdb.Org1.ID), map[string]int64{
+		"channels/10/text:in@2026-11-03": 1,
+		"msgs/text:in@2026-11-03":        1,
+		"emails/shared@2026-11-03":       1,
+	}))
+	_, err := flusher.Flush(ctx, vc)
+	require.NoError(t, err)
+
+	// per-channel counts are kept for two years, workspace-level message counts forever
+	var expiresOn []string
+	require.NoError(t, rt.DB.SelectContext(ctx, &expiresOn, `SELECT COALESCE(expires_on::text, '') FROM orgs_tally WHERE org_id = $1 AND scope LIKE '%@2026-11-03' ORDER BY scope COLLATE "C"`, testdb.Org1.ID))
+	assert.Equal(t, []string{"2028-11-02", "2027-02-01", ""}, expiresOn) // channels, emails/shared, msgs
+}

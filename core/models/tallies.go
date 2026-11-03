@@ -41,6 +41,7 @@ type TallyRetention struct {
 var TallyRetentions = []TallyRetention{
 	{Prefix: TallyEmailsShared, Period: 90 * 24 * time.Hour},
 	{Prefix: TallyLLMs, Period: 90 * 24 * time.Hour},
+	{Prefix: TallyChannelMsgs, Period: 2 * 365 * 24 * time.Hour},
 }
 
 // TallyStore is a tallies.Store which writes to the orgs_tally table. Nothing is written for a deleted org.
