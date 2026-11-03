@@ -20,6 +20,7 @@ import (
 	"github.com/nyaruka/mailroom/v26/testsuite"
 	"github.com/nyaruka/mailroom/v26/testsuite/testdb"
 	"github.com/nyaruka/mailroom/v26/web"
+	"github.com/nyaruka/vkutil/assertvk"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -167,6 +168,9 @@ func TestRelayerSyncUnclaimed(t *testing.T) {
 
 func TestRelayerSyncCommands(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
+
+	vc := rt.VK.Get()
+	defer vc.Close()
 	startServer(t, rt)
 	claimAndroidChannel(t, rt)
 
@@ -215,6 +219,12 @@ func TestRelayerSyncCommands(t *testing.T) {
 
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE direction = 'I' AND text = 'incoming!' AND channel_id = $1`, testdb.AndroidChannel.ID).Returns(1)
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM channels_channelevent WHERE event_type = 'mo_miss' AND channel_id = $1`, testdb.AndroidChannel.ID).Returns(1)
+
+	today := time.Now().UTC().Format(time.DateOnly)
+	assertvk.HGetAll(t, vc, "tallies:1", map[string]string{
+		"channels/10003/text:in/" + today: "1",
+		"msgs/text:in/" + today:           "1",
+	})
 
 	// sent then delivered for the same message folds into one update keeping the sent timestamp
 	assertdb.Query(t, rt.DB, `SELECT status, folder FROM msgs_msg WHERE id = $1`, out1.ID).

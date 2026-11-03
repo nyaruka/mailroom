@@ -19,6 +19,7 @@ import (
 	"github.com/nyaruka/mailroom/v26/testsuite"
 	"github.com/nyaruka/mailroom/v26/testsuite/testdb"
 	"github.com/nyaruka/mailroom/v26/utils/queues"
+	"github.com/nyaruka/vkutil/assertvk"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -335,4 +336,12 @@ func TestSendBroadcastTask(t *testing.T) {
 		lastNow = time.Now()
 		time.Sleep(5 * time.Millisecond)
 	}
+
+	// every message with a channel is tallied
+	today := time.Now().UTC().Format(time.DateOnly)
+	assertvk.HGetAll(t, vc, "tallies:1", map[string]string{
+		"channels/10000/text:out/" + today: "7",
+		"channels/10003/text:out/" + today: "120",
+		"msgs/text:out/" + today:           "127",
+	})
 }

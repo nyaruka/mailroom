@@ -41,6 +41,7 @@ func handleIVRCreated(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAs
 
 	// register to have this message committed
 	scene.AttachPreCommitHook(hooks.InsertMessages, hooks.MsgAndURN{Msg: msg})
+	scene.AttachPostCommitHook(hooks.IncrementTallies, models.MsgTallies([]*models.Msg{msg}))
 
 	return nil
 }
