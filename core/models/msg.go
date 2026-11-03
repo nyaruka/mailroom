@@ -667,7 +667,7 @@ func IncrementMsgTallies(ctx context.Context, rt *runtime.Runtime, orgID OrgID, 
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	if err := Tallies.Increment(ctx, vc, tallies.OwnerID(orgID), amounts); err != nil {
+	if err := rt.Tallies.Increment(ctx, vc, tallies.OwnerID(orgID), amounts); err != nil {
 		slog.Error("error incrementing msg tallies", "error", err, "org_id", orgID)
 	}
 }

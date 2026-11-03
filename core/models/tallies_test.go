@@ -25,10 +25,10 @@ func TestTallyStore(t *testing.T) {
 	day := time.Date(2025, 5, 4, 12, 0, 0, 0, time.UTC)
 
 	increment := func(owner tallies.OwnerID, amounts map[tallies.Key]int64) {
-		require.NoError(t, models.Tallies.Increment(ctx, vc, owner, amounts))
+		require.NoError(t, rt.Tallies.Increment(ctx, vc, owner, amounts))
 	}
 	flush := func(expected int) {
-		flushed, err := models.Tallies.Flush(ctx, vc, store, 10)
+		flushed, err := rt.Tallies.Flush(ctx, vc, store, 10)
 		require.NoError(t, err)
 		assert.Equal(t, expected, flushed)
 	}

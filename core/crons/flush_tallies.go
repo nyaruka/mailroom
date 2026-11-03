@@ -23,7 +23,7 @@ func (c *FlushTalliesCron) Run(ctx context.Context, rt *runtime.Runtime) (map[st
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	flushed, err := models.Tallies.Flush(ctx, vc, models.NewTallyStore(rt.DB), 1000)
+	flushed, err := rt.Tallies.Flush(ctx, vc, models.NewTallyStore(rt.DB), 1000)
 
 	return map[string]any{"flushed": flushed}, err
 }

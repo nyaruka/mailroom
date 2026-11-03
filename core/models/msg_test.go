@@ -1124,7 +1124,7 @@ func TestMsgTallies(t *testing.T) {
 	assertvk.SMembers(t, vc, "{tallies}:pending", []string{"1"})
 
 	// channel tallies expire but msg type tallies are kept forever
-	_, err := models.Tallies.Flush(ctx, vc, models.NewTallyStore(rt.DB), 10)
+	_, err := rt.Tallies.Flush(ctx, vc, models.NewTallyStore(rt.DB), 10)
 	require.NoError(t, err)
 
 	assertdb.Query(t, rt.DB, `SELECT scope, expires_on::text FROM orgs_tally WHERE org_id = $1 AND scope != '_gen' ORDER BY scope`, testdb.Org1.ID).Map(

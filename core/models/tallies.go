@@ -11,9 +11,6 @@ import (
 	"github.com/vinovest/sqlx"
 )
 
-// Tallies are the per-org tallies, which must use the same key base as anything else which increments them
-var Tallies = tallies.New("tallies")
-
 const (
 	// TallyEmailsShared is the daily number of emails sent using the shared email configuration, counting each
 	// recipient of a send

@@ -30,7 +30,7 @@ func (h *incrementTallies) Execute(ctx context.Context, rt *runtime.Runtime, oa 
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	if err := models.Tallies.Increment(ctx, vc, tallies.OwnerID(oa.OrgID()), amounts); err != nil {
+	if err := rt.Tallies.Increment(ctx, vc, tallies.OwnerID(oa.OrgID()), amounts); err != nil {
 		slog.Error("error incrementing tallies", "error", err, "org_id", oa.OrgID())
 	}
 

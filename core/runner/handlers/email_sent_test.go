@@ -25,7 +25,7 @@ func TestEmailSent(t *testing.T) {
 	assertvk.HGetAll(t, vc, "{tallies}:1", map[string]string{"emails/shared@2025-05-04": "3"})
 	assertvk.SMembers(t, vc, "{tallies}:pending", []string{"1"})
 
-	_, err := models.Tallies.Flush(ctx, vc, models.NewTallyStore(rt.DB), 10)
+	_, err := rt.Tallies.Flush(ctx, vc, models.NewTallyStore(rt.DB), 10)
 	require.NoError(t, err)
 
 	assertdb.Query(t, rt.DB, `SELECT count, expires_on::text FROM orgs_tally WHERE org_id = $1 AND scope = 'emails/shared@2025-05-04'`, testdb.Org1.ID).
