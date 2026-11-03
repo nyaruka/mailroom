@@ -659,10 +659,15 @@ func MsgTallies(msgs []*Msg) map[string]int64 {
 // IncrementMsgTallies increments the tallies which count the given inserted messages of an org, logging rather than
 // failing on errors since the messages have already been written
 func IncrementMsgTallies(ctx context.Context, rt *runtime.Runtime, orgID OrgID, msgs []*Msg) {
+	amounts := MsgTallies(msgs)
+	if len(amounts) == 0 {
+		return
+	}
+
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	if err := tallies.Increment(ctx, vc, tallies.OwnerID(orgID), MsgTallies(msgs)); err != nil {
+	if err := tallies.Increment(ctx, vc, tallies.OwnerID(orgID), amounts); err != nil {
 		slog.Error("error incrementing msg tallies", "error", err, "org_id", orgID)
 	}
 }

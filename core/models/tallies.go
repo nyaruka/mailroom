@@ -17,7 +17,7 @@ const (
 	// recipient of a send
 	TallyEmailsShared = "emails/shared"
 
-	// TallyChannelMsgs prefixes the daily counts of messages on each channel, e.g. channels/12/text:in/2026-11-03
+	// TallyChannelMsgs prefixes the daily counts of messages (not segments) on each channel, e.g. channels/12/text:in/2026-11-03
 	TallyChannelMsgs = "channels"
 
 	// TallyMsgs prefixes the daily counts of messages with a channel, e.g. msgs/voice:out/2026-11-03

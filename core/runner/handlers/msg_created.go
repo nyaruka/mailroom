@@ -53,7 +53,9 @@ func handleMsgCreated(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAs
 
 	// commit this message in the transaction
 	scene.AttachPreCommitHook(hooks.InsertMessages, hooks.MsgAndURN{Msg: msg.Msg, URN: event.Msg.URN()})
-	scene.AttachPostCommitHook(hooks.IncrementTallies, models.MsgTallies([]*models.Msg{msg.Msg}))
+	if amounts := models.MsgTallies([]*models.Msg{msg.Msg}); len(amounts) > 0 {
+		scene.AttachPostCommitHook(hooks.IncrementTallies, amounts)
+	}
 
 	// and queue it to be sent after the transaction is complete
 	if event.Msg.UnsendableReason() == "" {
