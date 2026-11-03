@@ -1,3 +1,8 @@
+## v26.3.122 (2026-11-03)
+ * Move tallies instance onto the runtime
+ * Give each tally writer its own retention
+ * Update to gocommon v1.98.2
+
 ## v26.3.121 (2026-11-03)
  * Tally messages with a channel by channel, type, direction and day
  * Skip tallying when there's nothing to count
