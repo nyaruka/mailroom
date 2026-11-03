@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/gocommon/elastic"
 	"github.com/nyaruka/gocommon/i18n"
@@ -19,6 +20,7 @@ import (
 	"github.com/nyaruka/mailroom/v26/testsuite"
 	"github.com/nyaruka/mailroom/v26/testsuite/testdb"
 	"github.com/nyaruka/mailroom/v26/utils/queues"
+	"github.com/nyaruka/vkutil/assertvk"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -300,8 +302,10 @@ func TestSendBroadcastTask(t *testing.T) {
 		},
 	}
 
-	lastNow := time.Now()
-	time.Sleep(10 * time.Millisecond)
+	// tallies are by the UTC day messages are created on
+	now := time.Now()
+	dates.SetNowFunc(dates.NewFixedNow(now))
+	defer dates.SetNowFunc(time.Now)
 
 	for i, tc := range tcs {
 		bcast := models.NewBroadcast(oa.OrgID(), tc.translations, tc.baseLanguage, tc.expressions, tc.groupIDs, tc.contactIDs, tc.URNs, tc.query, tc.exclusions, tc.createdByID)
@@ -320,7 +324,7 @@ func TestSendBroadcastTask(t *testing.T) {
 
 		// assert our count of msgs created
 		actualMsgs := make(map[string]int)
-		rows, err := rt.DB.QueryContext(ctx, `SELECT text, count(*) FROM msgs_msg WHERE org_id = 1 AND created_on > $1 GROUP BY text`, lastNow)
+		rows, err := rt.DB.QueryContext(ctx, `SELECT text, count(*) FROM msgs_msg WHERE org_id = 1 AND broadcast_id = $1 GROUP BY text`, bcast.ID)
 		require.NoError(t, err)
 		defer rows.Close()
 		for rows.Next() {
@@ -331,8 +335,13 @@ func TestSendBroadcastTask(t *testing.T) {
 		}
 
 		assert.Equal(t, tc.expectedMsgs, actualMsgs, "%d: msg count mismatch", i)
-
-		lastNow = time.Now()
-		time.Sleep(5 * time.Millisecond)
 	}
+
+	// every message with a channel is tallied
+	today := now.UTC().Format(time.DateOnly)
+	assertvk.HGetAll(t, vc, "tallies:1", map[string]string{
+		"channels/10000/text:out@" + today: "7",
+		"channels/10003/text:out@" + today: "120",
+		"msgs/text:out@" + today:           "127",
+	})
 }

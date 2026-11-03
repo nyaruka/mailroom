@@ -41,6 +41,13 @@ func TestMsgCreated(t *testing.T) {
 
 	// One bulk for Cat
 	assertvk.ZCard(t, vc, fmt.Sprintf("msgs:%s|10/0", testdb.TwilioChannel.UUID), 1)
+
+	// messages with a channel are tallied
+	assertvk.HGetAll(t, vc, "tallies:1", map[string]string{
+		"channels/10000/text:out@2025-05-04": "2",
+		"channels/10002/text:out@2025-05-04": "1",
+		"msgs/text:out@2025-05-04":           "3",
+	})
 }
 
 func TestMsgCreatedNewURN(t *testing.T) {

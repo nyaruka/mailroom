@@ -19,6 +19,7 @@ import (
 	"github.com/nyaruka/gocommon/gsm7"
 	"github.com/nyaruka/gocommon/i18n"
 	"github.com/nyaruka/gocommon/svclogs"
+	"github.com/nyaruka/gocommon/tallies"
 	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/core"
@@ -630,6 +631,45 @@ func InsertMessages(ctx context.Context, tx DBorTx, msgs []*Msg) error {
 	}
 
 	return BulkQuery(ctx, "insert messages", tx, sqlInsertMsgSQL, is)
+}
+
+// MsgTallies gets the tally amounts which count the given messages by their channel, type, direction and the UTC day
+// they were created on. Messages without a channel aren't counted.
+func MsgTallies(msgs []*Msg) map[string]int64 {
+	amounts := make(map[string]int64)
+	for _, m := range msgs {
+		if m.ChannelID() == NilChannelID {
+			continue
+		}
+
+		typ, dir := "text", "out"
+		if m.Type() == MsgTypeVoice {
+			typ = "voice"
+		}
+		if m.Direction() == DirectionIn {
+			dir = "in"
+		}
+
+		amounts[tallies.Daily(fmt.Sprintf("%s/%d/%s:%s", TallyChannelMsgs, m.ChannelID(), typ, dir), m.CreatedOn())]++
+		amounts[tallies.Daily(fmt.Sprintf("%s/%s:%s", TallyMsgs, typ, dir), m.CreatedOn())]++
+	}
+	return amounts
+}
+
+// IncrementMsgTallies increments the tallies which count the given inserted messages of an org, logging rather than
+// failing on errors since the messages have already been written
+func IncrementMsgTallies(ctx context.Context, rt *runtime.Runtime, orgID OrgID, msgs []*Msg) {
+	amounts := MsgTallies(msgs)
+	if len(amounts) == 0 {
+		return
+	}
+
+	vc := rt.VK.Get()
+	defer vc.Close()
+
+	if err := tallies.Increment(ctx, vc, tallies.OwnerID(orgID), amounts); err != nil {
+		slog.Error("error incrementing msg tallies", "error", err, "org_id", orgID)
+	}
 }
 
 const sqlInsertMsgSQL = `

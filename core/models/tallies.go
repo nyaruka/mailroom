@@ -17,15 +17,21 @@ const (
 	// recipient of a send
 	TallyEmailsShared = "emails/shared"
 
-	// TallyLLMs prefixes the daily usage tallies which LLM services can record, e.g. llms/foo/tokens:in/2026-11-02
+	// TallyChannelMsgs prefixes the daily counts of messages (not segments) on each channel, e.g. channels/12/text:in@2026-11-03
+	TallyChannelMsgs = "channels"
+
+	// TallyMsgs prefixes the daily counts of messages with a channel, e.g. msgs/voice:out@2026-11-03
+	TallyMsgs = "msgs"
+
+	// TallyLLMs prefixes the daily usage tallies which LLM services can record, e.g. llms/foo/tokens:in@2026-11-02
 	TallyLLMs = "llms"
 
 	// scope of the row which records the last flush generation written for an org
 	tallyGenerationScope = "_gen"
 )
 
-// TallyRetention is how long tallies whose scopes have the given prefix are kept, counted from the date which ends
-// their scope. Tallies which match no retention are kept forever.
+// TallyRetention is how long daily tallies whose base scope is the given prefix, or under it, are kept, counted from
+// their day. Tallies which match no retention are kept forever.
 type TallyRetention struct {
 	Prefix string
 	Period time.Duration
@@ -33,8 +39,8 @@ type TallyRetention struct {
 
 // TallyRetentions are how long daily tallies are kept
 var TallyRetentions = []TallyRetention{
-	{Prefix: TallyEmailsShared + "/", Period: 90 * 24 * time.Hour},
-	{Prefix: TallyLLMs + "/", Period: 90 * 24 * time.Hour},
+	{Prefix: TallyEmailsShared, Period: 90 * 24 * time.Hour},
+	{Prefix: TallyLLMs, Period: 90 * 24 * time.Hour},
 }
 
 // TallyStore is a tallies.Store which writes to the orgs_tally table. Nothing is written for a deleted org.
@@ -113,12 +119,12 @@ func (s *TallyStore) Write(ctx context.Context, owner tallies.OwnerID, gen int64
 
 // expiresOn gets the expiry date of a tally from the first retention matching its scope
 func (s *TallyStore) expiresOn(scope string) sql.NullString {
+	base, day, ok := tallies.ParseDaily(scope)
+	if !ok {
+		return sql.NullString{}
+	}
 	for _, r := range s.retentions {
-		if strings.HasPrefix(scope, r.Prefix) {
-			day, err := time.Parse(time.DateOnly, scope[strings.LastIndexByte(scope, '/')+1:])
-			if err != nil {
-				return sql.NullString{}
-			}
+		if base == r.Prefix || strings.HasPrefix(base, r.Prefix+"/") {
 			return sql.NullString{String: day.Add(r.Period).Format(time.DateOnly), Valid: true}
 		}
 	}

@@ -23,6 +23,7 @@ import (
 	"github.com/nyaruka/mailroom/v26/services/ivr/vonage"
 	"github.com/nyaruka/mailroom/v26/testsuite"
 	"github.com/nyaruka/mailroom/v26/testsuite/testdb"
+	"github.com/nyaruka/vkutil/assertvk"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -54,6 +55,9 @@ func mockTwilioHandler(w http.ResponseWriter, r *http.Request) {
 
 func TestTwilioIVR(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
+
+	vc := rt.VK.Get()
+	defer vc.Close()
 
 	// start mocked API server
 	mockTwilio := test.NewHTTPServer(50001, http.HandlerFunc(mockTwilioHandler))
@@ -117,6 +121,14 @@ func TestTwilioIVR(t *testing.T) {
 
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE contact_id = $1 AND msg_type = 'V' 
 		AND ((status = 'H' AND direction = 'I') OR (status = 'W' AND direction = 'O'))`, testdb.Bob.ID).Returns(2)
+
+	// voice messages in both directions are tallied
+	assertvk.HGetAll(t, vc, "tallies:1", map[string]string{
+		"channels/10000/voice:in@2025-05-04":  "5",
+		"channels/10000/voice:out@2025-05-04": "11",
+		"msgs/voice:in@2025-05-04":            "5",
+		"msgs/voice:out@2025-05-04":           "11",
+	})
 
 	// check the generated channel logs
 	logs := getCallLogs(t, rt, testdb.TwilioChannel)

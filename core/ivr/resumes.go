@@ -115,6 +115,8 @@ func buildMsgResume(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 		return nil, nil, nil, fmt.Errorf("error committing new message: %w", err)
 	}
 
+	models.IncrementMsgTallies(ctx, rt, oa.OrgID(), []*models.Msg{msg})
+
 	// create our msg resume event
 	return &models.MsgInRef{UUID: msg.UUID(), Handled: true}, resumes.NewMsg(msgEvt), nil, nil
 }

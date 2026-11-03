@@ -39,6 +39,8 @@ func CreateMessage(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsset
 		return models.NilMsgID, false, fmt.Errorf("error inserting message: %w", err)
 	}
 
+	models.IncrementMsgTallies(ctx, rt, oa.OrgID(), []*models.Msg{m})
+
 	err = tasks.QueueContact(ctx, rt, oa.OrgID(), m.ContactID(), &ctasks.MsgReceived{
 		ChannelID:     m.ChannelID(),
 		MsgUUID:       m.UUID(),
