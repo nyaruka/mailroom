@@ -124,10 +124,10 @@ func TestTwilioIVR(t *testing.T) {
 
 	// voice messages in both directions are tallied
 	assertvk.HGetAll(t, vc, "tallies:1", map[string]string{
-		"channels/10000/voice:in/2025-05-04":  "5",
-		"channels/10000/voice:out/2025-05-04": "11",
-		"msgs/voice:in/2025-05-04":            "5",
-		"msgs/voice:out/2025-05-04":           "11",
+		"channels/10000/voice:in@2025-05-04":  "5",
+		"channels/10000/voice:out@2025-05-04": "11",
+		"msgs/voice:in@2025-05-04":            "5",
+		"msgs/voice:out@2025-05-04":           "11",
 	})
 
 	// check the generated channel logs

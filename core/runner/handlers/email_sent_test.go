@@ -20,7 +20,7 @@ func TestEmailSent(t *testing.T) {
 	runTests(t, rt, "testdata/email_sent.json")
 
 	// sends using the shared configuration are tallied by recipient
-	assertvk.HGetAll(t, vc, "tallies:1", map[string]string{"emails/shared/2025-05-04": "3"})
+	assertvk.HGetAll(t, vc, "tallies:1", map[string]string{"emails/shared@2025-05-04": "3"})
 	assertvk.SMembers(t, vc, "tallies:pending", []string{"1"})
 
 	// but not once the workspace has its own configuration
@@ -29,5 +29,5 @@ func TestEmailSent(t *testing.T) {
 
 	runTests(t, rt, "testdata/email_sent.json")
 
-	assertvk.HGetAll(t, vc, "tallies:1", map[string]string{"emails/shared/2025-05-04": "3"})
+	assertvk.HGetAll(t, vc, "tallies:1", map[string]string{"emails/shared@2025-05-04": "3"})
 }
