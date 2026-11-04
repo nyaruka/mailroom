@@ -7,7 +7,6 @@ import (
 
 	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
-	"github.com/nyaruka/gocommon/tallies"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/testsuite"
 	"github.com/nyaruka/mailroom/v26/testsuite/testdb"
@@ -15,13 +14,22 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func TestTallyField(t *testing.T) {
+	day := time.Date(2025, 5, 4, 23, 30, 0, 0, time.FixedZone("", -2*3600))
+
+	assert.Equal(t, "1|foo", models.TallyField(testdb.Org1.ID, "foo", time.Time{}))
+	assert.Equal(t, "1|emails/shared@2025-05-05", models.TallyField(testdb.Org1.ID, "emails/shared", day))
+	assert.Equal(t, "2|foo@bar", models.TallyField(testdb.Org2.ID, "foo@bar", time.Time{}))
+	assert.Panics(t, func() { models.TallyField(testdb.Org1.ID, "foo@bar", day) })
+}
+
 func TestTallyStore(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
 	defer dates.SetNowFunc(time.Now)
 	dates.SetNowFunc(dates.NewFixedNow(time.Date(2025, 5, 4, 23, 30, 0, 0, time.UTC)))
 
-	org1, org2 := tallies.OwnerID(testdb.Org1.ID), tallies.OwnerID(testdb.Org2.ID)
+	org1, org2 := testdb.Org1.ID, testdb.Org2.ID
 	store := models.NewTallyStore(rt.DB, "tallies")
 	other := models.NewTallyStore(rt.DB, "other")
 
@@ -30,26 +38,26 @@ func TestTallyStore(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, expected, lastBatch)
 	}
-	write := func(id int64, amounts []tallies.Amount, expected bool) {
+	write := func(id int64, amounts map[string]int64, expected bool) {
 		written, err := store.Write(ctx, id, amounts)
 		require.NoError(t, err)
 		assert.Equal(t, expected, written)
 	}
-	assertTallies := func(owner tallies.OwnerID, expected map[string]any) {
+	assertTallies := func(owner models.OrgID, expected map[string]any) {
 		assertdb.Query(t, rt.DB, `SELECT scope, count FROM orgs_tally WHERE org_id = $1`, owner).Map(expected)
 	}
-	assertExpiries := func(owner tallies.OwnerID, expected map[string]any) {
+	assertExpiries := func(owner models.OrgID, expected map[string]any) {
 		assertdb.Query(t, rt.DB, `SELECT scope, expires_on::text FROM orgs_tally WHERE org_id = $1`, owner).Map(expected)
 	}
 
 	assertLastBatch(store, 0)
 
-	write(1, []tallies.Amount{
-		{Owner: org1, Scope: "foo", Count: 3},
-		{Owner: org1, Scope: "emails/shared@2025-05-04", Count: 1},
-		{Owner: org1, Scope: "channels/12/text:in@2025-05-04", Count: 2},
-		{Owner: org1, Scope: "msgs/text:in@2025-05-04", Count: 2},
-		{Owner: org2, Scope: "foo", Count: 5},
+	write(1, map[string]int64{
+		models.TallyField(org1, "foo", time.Time{}):                            3,
+		models.TallyField(org1, "emails/shared@2025-05-04", time.Time{}):       1,
+		models.TallyField(org1, "channels/12/text:in@2025-05-04", time.Time{}): 2,
+		models.TallyField(org1, "msgs/text:in@2025-05-04", time.Time{}):        2,
+		models.TallyField(org2, "foo", time.Time{}):                            5,
 	}, true)
 
 	assertLastBatch(store, 1)
@@ -69,9 +77,9 @@ func TestTallyStore(t *testing.T) {
 	// and aren't changed by later writes
 	dates.SetNowFunc(dates.NewFixedNow(time.Date(2025, 5, 10, 12, 0, 0, 0, time.UTC)))
 
-	write(2, []tallies.Amount{
-		{Owner: org1, Scope: "emails/shared@2025-05-04", Count: 2},
-		{Owner: org1, Scope: "llms/foo/tokens:in@2025-05-10", Count: 100},
+	write(2, map[string]int64{
+		models.TallyField(org1, "emails/shared@2025-05-04", time.Time{}):      2,
+		models.TallyField(org1, "llms/foo/tokens:in@2025-05-10", time.Time{}): 100,
 	}, true)
 
 	assertTallies(org1, map[string]any{
@@ -84,24 +92,24 @@ func TestTallyStore(t *testing.T) {
 	})
 
 	// writing a batch which has already been written, or an earlier one, does nothing
-	write(2, []tallies.Amount{{Owner: org1, Scope: "foo", Count: 10}}, false)
-	write(1, []tallies.Amount{{Owner: org1, Scope: "foo", Count: 10}}, false)
+	write(2, map[string]int64{models.TallyField(org1, "foo", time.Time{}): 10}, false)
+	write(1, map[string]int64{models.TallyField(org1, "foo", time.Time{}): 10}, false)
 
 	assertLastBatch(store, 2)
 	assertTallies(org2, map[string]any{"foo": int64(5)})
 	assertdb.Query(t, rt.DB, `SELECT count FROM orgs_tally WHERE org_id = $1 AND scope = 'foo'`, org1).Returns(int64(3))
 
 	// batch ids can skip ahead
-	write(5, []tallies.Amount{{Owner: org1, Scope: "foo", Count: 1}}, true)
+	write(5, map[string]int64{models.TallyField(org1, "foo", time.Time{}): 1}, true)
 	assertLastBatch(store, 5)
 
 	// nothing is written for an org which isn't active, or doesn't exist, but the rest of the batch is
 	rt.DB.MustExec(`UPDATE orgs_org SET is_active = FALSE WHERE id = $1`, org2)
 
-	write(6, []tallies.Amount{
-		{Owner: org1, Scope: "foo", Count: 1},
-		{Owner: org2, Scope: "foo", Count: 1},
-		{Owner: 123456, Scope: "foo", Count: 1},
+	write(6, map[string]int64{
+		models.TallyField(org1, "foo", time.Time{}):   1,
+		models.TallyField(org2, "foo", time.Time{}):   1,
+		models.TallyField(123456, "foo", time.Time{}): 1,
 	}, true)
 
 	assertLastBatch(store, 6)
@@ -109,10 +117,20 @@ func TestTallyStore(t *testing.T) {
 	assertTallies(org2, map[string]any{"foo": int64(5)})
 
 	// a batch with nothing to write is still recorded
-	write(7, []tallies.Amount{{Owner: org2, Scope: "foo", Count: 1}}, true)
+	write(7, map[string]int64{models.TallyField(org2, "foo", time.Time{}): 1}, true)
 
 	assertLastBatch(store, 7)
 	assertTallies(org2, map[string]any{"foo": int64(5)})
+
+	// a field which can't be parsed fails the whole batch
+	for _, field := range []string{"foo", "x|foo"} {
+		written, err := store.Write(ctx, 8, map[string]int64{models.TallyField(org1, "foo", time.Time{}): 1, field: 1})
+		assert.EqualError(t, err, fmt.Sprintf("invalid tally field %q", field))
+		assert.False(t, written)
+	}
+
+	assertLastBatch(store, 7)
+	assertdb.Query(t, rt.DB, `SELECT count FROM orgs_tally WHERE org_id = $1 AND scope = 'foo'`, org1).Returns(int64(5))
 }
 
 func TestFlushTallies(t *testing.T) {
@@ -123,9 +141,10 @@ func TestFlushTallies(t *testing.T) {
 
 	store := models.NewTallyStore(rt.DB, rt.Tallies.KeyBase())
 
-	org1, org2 := tallies.OwnerID(testdb.Org1.ID), tallies.OwnerID(testdb.Org2.ID)
-	require.NoError(t, rt.Tallies.Increment(ctx, vc, org1, map[string]int64{"foo": 2, "bar": 1}))
-	require.NoError(t, rt.Tallies.Increment(ctx, vc, org2, map[string]int64{"foo": 3}))
+	org1, org2 := testdb.Org1.ID, testdb.Org2.ID
+	require.NoError(t, rt.Tallies.Increment(ctx, vc, map[string]int64{
+		models.TallyField(org1, "foo", time.Time{}): 2, models.TallyField(org1, "bar", time.Time{}): 1, models.TallyField(org2, "foo", time.Time{}): 3,
+	}))
 
 	flushed, err := rt.Tallies.Flush(ctx, vc, store, 2)
 	require.NoError(t, err)

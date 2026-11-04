@@ -12,7 +12,6 @@ import (
 	"github.com/nyaruka/gocommon/aws/cwatch"
 	"github.com/nyaruka/gocommon/aws/s3x"
 	"github.com/nyaruka/gocommon/centrifugo"
-	"github.com/nyaruka/gocommon/tallies"
 	"github.com/nyaruka/vkutil"
 	"github.com/vinovest/sqlx"
 )
@@ -35,7 +34,7 @@ type Runtime struct {
 
 	Queues  *Queues
 	Stats   *StatsCollector
-	Tallies *tallies.Tallies // key base must match anything else which increments the same tallies
+	Tallies *vkutil.Tallies // key base must match anything else which increments the same tallies
 
 	// HTTP holds the http.Clients for outbound calls — Services for fixed (non-webhook) targets (LLM
 	// providers, airtime, IVR, courier), and Engine / Simulator for user-controlled webhook calls (which
@@ -109,7 +108,7 @@ func NewRuntime(cfg *Config) (*Runtime, error) {
 
 	rt.Queues = newQueues(cfg)
 	rt.Stats = NewStatsCollector(rt.VK, cfg.LatencyExcludedOrgs)
-	rt.Tallies = tallies.New("tallies")
+	rt.Tallies = vkutil.NewTallies("tallies")
 	rt.HTTP = newHTTP(cfg)
 
 	return rt, nil

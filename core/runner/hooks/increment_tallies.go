@@ -4,7 +4,6 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/nyaruka/gocommon/tallies"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/runner"
 	"github.com/nyaruka/mailroom/v26/runtime"
@@ -21,8 +20,8 @@ func (h *incrementTallies) Execute(ctx context.Context, rt *runtime.Runtime, oa 
 	amounts := make(map[string]int64)
 	for _, args := range scenes {
 		for _, a := range args {
-			for scope, amount := range a.(map[string]int64) {
-				amounts[scope] += amount
+			for field, amount := range a.(map[string]int64) {
+				amounts[field] += amount
 			}
 		}
 	}
@@ -30,7 +29,7 @@ func (h *incrementTallies) Execute(ctx context.Context, rt *runtime.Runtime, oa 
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	if err := rt.Tallies.Increment(ctx, vc, tallies.OwnerID(oa.OrgID()), amounts); err != nil {
+	if err := rt.Tallies.Increment(ctx, vc, amounts); err != nil {
 		slog.Error("error incrementing tallies", "error", err, "org_id", oa.OrgID())
 	}
 
