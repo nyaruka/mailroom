@@ -325,10 +325,20 @@ func TestClearChannelCourierQueue(t *testing.T) {
 	vc.Do("ZADD", "msgs:active", 0, "msgs:74729f45-7f29-4868-9dc4-90e491e3c7d8|5")
 	vc.Do("ZADD", "msgs:19012bfd-3ce3-4cae-9bb9-76cf92c73d49|10/0", 1636557205.123456, `[{"id":3}]`)
 
+	// have the Twilio channel be waiting rather than ready
+	vc.Do("ZREM", "{msgs}:ready", "74729f45-7f29-4868-9dc4-90e491e3c7d8")
+	vc.Do("ZADD", "{msgs}:waiting", 1636557206, "74729f45-7f29-4868-9dc4-90e491e3c7d8")
+
 	twilioChannel := oa.ChannelByID(testdb.TwilioChannel.ID)
 	msgio.ClearCourierQueues(vc, twilioChannel)
 
 	assertvk.ZGetAll(t, vc, "{msgs}:ready", map[string]float64{"19012bfd-3ce3-4cae-9bb9-76cf92c73d49": 0})
+	assertvk.ZGetAll(t, vc, "{msgs}:waiting", map[string]float64{})
+
+	// the channel's state is left to expire
+	ttl, err := valkey.Int(vc.Do("TTL", "{msgs}:ch:74729f45-7f29-4868-9dc4-90e491e3c7d8"))
+	assert.NoError(t, err)
+	assert.Greater(t, ttl, 0)
 	assertvk.NotExists(t, vc, "msgs:74729f45-7f29-4868-9dc4-90e491e3c7d8|10/0")
 	assertvk.NotExists(t, vc, "msgs:74729f45-7f29-4868-9dc4-90e491e3c7d8|5/1")
 	assertvk.Exists(t, vc, "msgs:19012bfd-3ce3-4cae-9bb9-76cf92c73d49|10/0")
@@ -379,34 +389,46 @@ func TestPushCourierBatch(t *testing.T) {
 	assert.Equal(t, msg1.UUID(), events.EventUUID(item1UUID))
 	assert.Equal(t, msg2.UUID(), events.EventUUID(item2UUID))
 
-	// simulate courier having popped from the channel until it's used this second's TPS and parked it
+	// start at the beginning of a server second so that what follows happens within it
 	serverTime, err := valkey.Int64s(vc.Do("TIME"))
 	require.NoError(t, err)
+	time.Sleep(time.Second - time.Duration(serverTime[1])*time.Microsecond + 50*time.Millisecond)
+	serverTime, err = valkey.Int64s(vc.Do("TIME"))
+	require.NoError(t, err)
+
+	// simulate courier having popped from the channel until it's used this second's TPS, while it's still ready
 	vc.Do("HSET", "{msgs}:ch:74729f45-7f29-4868-9dc4-90e491e3c7d8", "sec", serverTime[0], "used", 10, "inflight", 2)
-	vc.Do("ZREM", "{msgs}:ready", "74729f45-7f29-4868-9dc4-90e491e3c7d8")
+	vc.Do("ZADD", "{msgs}:ready", 2, "74729f45-7f29-4868-9dc4-90e491e3c7d8")
 
 	msg3 := (&msgSpec{Channel: testdb.TwilioChannel, Contact: testdb.Ann}).createMsg(t, rt, oa)
 
 	err = msgio.PushCourierBatch(vc, oa, channel, []*models.MsgOut{{Msg: msg3, URN: annURNs[0], Contact: ann}})
 	require.NoError(t, err)
 
-	// check that channel waits until the next second rather than being made ready, unless that second has already come
-	afterTime, err := valkey.Int64s(vc.Do("TIME"))
-	require.NoError(t, err)
-	if afterTime[0] == serverTime[0] {
-		assertvk.ZGetAll(t, vc, "{msgs}:waiting", map[string]float64{"74729f45-7f29-4868-9dc4-90e491e3c7d8": float64(serverTime[0] + 1)})
-		assertvk.ZGetAll(t, vc, "{msgs}:ready", map[string]float64{})
-	}
+	// check that it stays ready, for courier to park
+	assertvk.ZGetAll(t, vc, "{msgs}:ready", map[string]float64{"74729f45-7f29-4868-9dc4-90e491e3c7d8": 2})
+	assertvk.ZGetAll(t, vc, "{msgs}:waiting", map[string]float64{})
 
-	// but msg was still added to queue
-	assertvk.ZCard(t, vc, "{msgs}:q:74729f45-7f29-4868-9dc4-90e491e3c7d8/0", 2)
+	// once courier has parked it, another push leaves it waiting until the next second
+	vc.Do("ZREM", "{msgs}:ready", "74729f45-7f29-4868-9dc4-90e491e3c7d8")
+
+	msg4 := (&msgSpec{Channel: testdb.TwilioChannel, Contact: testdb.Ann}).createMsg(t, rt, oa)
+
+	err = msgio.PushCourierBatch(vc, oa, channel, []*models.MsgOut{{Msg: msg4, URN: annURNs[0], Contact: ann}})
+	require.NoError(t, err)
+
+	assertvk.ZGetAll(t, vc, "{msgs}:ready", map[string]float64{})
+	assertvk.ZGetAll(t, vc, "{msgs}:waiting", map[string]float64{"74729f45-7f29-4868-9dc4-90e491e3c7d8": float64(serverTime[0] + 1)})
+
+	// but msgs were still added to queue
+	assertvk.ZCard(t, vc, "{msgs}:q:74729f45-7f29-4868-9dc4-90e491e3c7d8/0", 3)
 
 	// a push in a later second makes it ready with its sends in flight as its score
 	vc.Do("HSET", "{msgs}:ch:74729f45-7f29-4868-9dc4-90e491e3c7d8", "sec", serverTime[0]-1)
 
-	msg4 := (&msgSpec{Channel: testdb.TwilioChannel, Contact: testdb.Ann, HighPriority: true}).createMsg(t, rt, oa)
+	msg5 := (&msgSpec{Channel: testdb.TwilioChannel, Contact: testdb.Ann, HighPriority: true}).createMsg(t, rt, oa)
 
-	err = msgio.PushCourierBatch(vc, oa, channel, []*models.MsgOut{{Msg: msg4, URN: annURNs[0], Contact: ann}})
+	err = msgio.PushCourierBatch(vc, oa, channel, []*models.MsgOut{{Msg: msg5, URN: annURNs[0], Contact: ann}})
 	require.NoError(t, err)
 
 	assertvk.ZGetAll(t, vc, "{msgs}:ready", map[string]float64{"74729f45-7f29-4868-9dc4-90e491e3c7d8": 2})

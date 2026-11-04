@@ -184,7 +184,7 @@ func NewCourierMsg(oa *models.OrgAssets, mo *models.MsgOut, ch *models.Channel) 
 // courier's outgoing queues share this hash tag so that its scripts can use them together in cluster mode. Each channel
 // has a queue of high and bulk priority batches ({msgs}:q:<uuid>/1 and /0) and a hash of its state ({msgs}:ch:<uuid>),
 // and is either ready to be popped from ({msgs}:ready) or waiting until a time ({msgs}:waiting). Courier owns this
-// layout and the scripts here have to match its own.
+// layout and the scripts here have to match its own, e.g. the push script is courier's utils/queue/lua/push.lua.
 const courierKeyBase = "{msgs}"
 
 const (
@@ -311,7 +311,8 @@ redis.call("EXPIRE", KEYS[3], 60)
 `)
 
 // queues in the layout courier used before, named by channel and TPS, e.g. msgs:<uuid>|10, which may still hold
-// messages queued by older versions. A channel can have one for each TPS it's been queued with.
+// messages queued by older versions. A channel can have one for each TPS it's been queued with. Nothing queues to this
+// layout any more, so this can go once those queues have drained.
 var legacyQueueClearScript = valkey.NewScript(3, `
 -- KEYS: [Active, Throttled, Future]
 -- ARGV: [ChannelUUID, TPS]
