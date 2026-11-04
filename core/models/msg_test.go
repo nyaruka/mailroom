@@ -1123,6 +1123,6 @@ func TestMsgTallies(t *testing.T) {
 	require.NoError(t, err)
 
 	assertdb.Query(t, rt.DB, `SELECT scope, expires_on::text FROM orgs_tally WHERE org_id = $1 ORDER BY scope`, testdb.Org1.ID).Map(
-		map[string]any{"channels/10003/text:in@2026-11-04": "2028-11-03", "msgs/text:in@2026-11-04": nil},
+		map[string]any{"channels/10003/text:in@2026-11-04": "2027-12-09", "msgs/text:in@2026-11-04": nil},
 	)
 }

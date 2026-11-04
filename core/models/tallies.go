@@ -33,7 +33,7 @@ const (
 // as the msgs/ ones, are kept forever.
 var tallyRetention = map[string]time.Duration{
 	TallyEmailsShared + "@": 90 * 24 * time.Hour,
-	TallyChannelMsgs + "/":  2 * 365 * 24 * time.Hour,
+	TallyChannelMsgs + "/":  400 * 24 * time.Hour,
 	TallyLLMs + "/":         90 * 24 * time.Hour,
 }
 
