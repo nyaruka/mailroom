@@ -19,7 +19,6 @@ import (
 	"github.com/nyaruka/gocommon/gsm7"
 	"github.com/nyaruka/gocommon/i18n"
 	"github.com/nyaruka/gocommon/svclogs"
-	"github.com/nyaruka/gocommon/tallies"
 	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/core"
@@ -633,8 +632,8 @@ func InsertMessages(ctx context.Context, tx DBorTx, msgs []*Msg) error {
 	return BulkQuery(ctx, "insert messages", tx, sqlInsertMsgSQL, is)
 }
 
-// MsgTallies gets the tally amounts which count the given messages by their channel, type, direction and the UTC day
-// they were created on. Messages without a channel aren't counted.
+// MsgTallies gets the tally amounts by field which count the given messages by their org, channel, type, direction and
+// the UTC day they were created on. Messages without a channel aren't counted.
 func MsgTallies(msgs []*Msg) map[string]int64 {
 	amounts := make(map[string]int64)
 	for _, m := range msgs {
@@ -650,8 +649,9 @@ func MsgTallies(msgs []*Msg) map[string]int64 {
 			dir = "in"
 		}
 
-		amounts[tallies.Daily(fmt.Sprintf("%s/%d/%s:%s", TallyChannelMsgs, m.ChannelID(), typ, dir), m.CreatedOn())]++
-		amounts[tallies.Daily(fmt.Sprintf("%s/%s:%s", TallyMsgs, typ, dir), m.CreatedOn())]++
+		orgID, day := m.OrgID(), m.CreatedOn()
+		amounts[TallyField(orgID, fmt.Sprintf("%s/%d/%s:%s", TallyChannelMsgs, m.ChannelID(), typ, dir), day)]++
+		amounts[TallyField(orgID, fmt.Sprintf("%s/%s:%s", TallyMsgs, typ, dir), day)]++
 	}
 	return amounts
 }
@@ -667,7 +667,7 @@ func IncrementMsgTallies(ctx context.Context, rt *runtime.Runtime, orgID OrgID, 
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	if err := rt.Tallies.Increment(ctx, vc, tallies.OwnerID(orgID), amounts); err != nil {
+	if err := rt.Tallies.Increment(ctx, vc, amounts); err != nil {
 		slog.Error("error incrementing msg tallies", "error", err, "org_id", orgID)
 	}
 }

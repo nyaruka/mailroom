@@ -5,12 +5,12 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/lib/pq"
 	"github.com/nyaruka/gocommon/dates"
-	"github.com/nyaruka/gocommon/tallies"
 	"github.com/vinovest/sqlx"
 )
 
@@ -37,6 +37,28 @@ var tallyRetention = map[string]time.Duration{
 	TallyLLMs + "/":         90 * 24 * time.Hour,
 }
 
+// TallyField returns the field of the tally of the given scope for the given org, which if day isn't zero is the daily
+// tally for its UTC day. Panics if the scope contains @ as it's reserved for separating the day.
+func TallyField(orgID OrgID, scope string, day time.Time) string {
+	if !day.IsZero() {
+		if strings.Contains(scope, "@") {
+			panic(fmt.Sprintf("tally scope %q can't contain @", scope))
+		}
+		scope += "@" + day.UTC().Format(time.DateOnly)
+	}
+	return fmt.Sprintf("%d|%s", orgID, scope)
+}
+
+// parseTallyField parses a field created by TallyField into its org and scope
+func parseTallyField(field string) (OrgID, string, error) {
+	orgStr, scope, ok := strings.Cut(field, "|")
+	orgID, err := strconv.ParseInt(orgStr, 10, 64)
+	if !ok || err != nil {
+		return NilOrgID, "", fmt.Errorf("invalid tally field %q", field)
+	}
+	return OrgID(orgID), scope, nil
+}
+
 // tallyRetentionFor returns the retention of the longest prefix of the given scope which has one, or zero if none do
 func tallyRetentionFor(scope string) time.Duration {
 	var longest string
@@ -48,7 +70,7 @@ func tallyRetentionFor(scope string) time.Duration {
 	return tallyRetention[longest]
 }
 
-// TallyStore is a tallies.Store which writes to the orgs_tally table, recording the last batch written for its key
+// TallyStore is a vkutil.TallyStore which writes to the orgs_tally table, recording the last batch written for its key
 // base in orgs_tallyflush. Nothing is written for an org which isn't active.
 type TallyStore struct {
 	db      *sqlx.DB
@@ -83,9 +105,31 @@ INSERT INTO orgs_tally AS t (org_id, scope, count, expires_on)
    ORDER BY u.org_id, u.scope
 ON CONFLICT (org_id, scope) DO UPDATE SET count = t.count + excluded.count`
 
-// Write adds the given amounts to org tallies and records the batch, unless it has already been written, setting
-// expiries only on tallies which don't exist yet
-func (s *TallyStore) Write(ctx context.Context, id int64, amounts []tallies.Amount) (bool, error) {
+// Write adds the given amounts by field to org tallies and records the batch, unless it has already been written,
+// setting expiries only on tallies which don't exist yet
+func (s *TallyStore) Write(ctx context.Context, id int64, amounts map[string]int64) (bool, error) {
+	orgIDs := make([]int64, 0, len(amounts))
+	scopes := make([]string, 0, len(amounts))
+	counts := make([]int64, 0, len(amounts))
+	expiresOn := make([]sql.NullString, 0, len(amounts))
+	today := dates.Now().UTC().Truncate(24 * time.Hour)
+	for field, count := range amounts {
+		orgID, scope, err := parseTallyField(field)
+		if err != nil {
+			return false, err
+		}
+
+		var expires sql.NullString
+		if retention := tallyRetentionFor(scope); retention != 0 {
+			expires = sql.NullString{String: today.Add(retention).Format(time.DateOnly), Valid: true}
+		}
+
+		orgIDs = append(orgIDs, int64(orgID))
+		scopes = append(scopes, scope)
+		counts = append(counts, count)
+		expiresOn = append(expiresOn, expires)
+	}
+
 	tx, err := s.db.BeginTxx(ctx, nil)
 	if err != nil {
 		return false, fmt.Errorf("error beginning transaction: %w", err)
@@ -98,18 +142,6 @@ func (s *TallyStore) Write(ctx context.Context, id int64, amounts []tallies.Amou
 			return false, nil
 		}
 		return false, fmt.Errorf("error recording batch: %w", err)
-	}
-
-	today := dates.Now().UTC().Truncate(24 * time.Hour)
-	orgIDs := make([]int64, len(amounts))
-	scopes := make([]string, len(amounts))
-	counts := make([]int64, len(amounts))
-	expiresOn := make([]sql.NullString, len(amounts))
-	for i, a := range amounts {
-		orgIDs[i], scopes[i], counts[i] = int64(a.Owner), a.Scope, a.Count
-		if retention := tallyRetentionFor(a.Scope); retention != 0 {
-			expiresOn[i] = sql.NullString{String: today.Add(retention).Format(time.DateOnly), Valid: true}
-		}
 	}
 
 	_, err = tx.ExecContext(ctx, sqlUpsertTallies, pq.Array(orgIDs), pq.Array(scopes), pq.Array(counts), pq.Array(expiresOn))

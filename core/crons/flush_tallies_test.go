@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
-	"github.com/nyaruka/gocommon/tallies"
 	"github.com/nyaruka/mailroom/v26/core/crons"
+	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/testsuite"
 	"github.com/nyaruka/mailroom/v26/testsuite/testdb"
 	"github.com/stretchr/testify/assert"
@@ -22,9 +22,9 @@ func TestFlushTalliesCron(t *testing.T) {
 	cron := &crons.FlushTalliesCron{}
 
 	day := time.Date(2025, 5, 4, 12, 0, 0, 0, time.UTC)
-	require.NoError(t, rt.Tallies.Increment(ctx, vc, tallies.OwnerID(testdb.Org1.ID), map[string]int64{
-		tallies.Daily("emails/shared", day): 2,
-		"foo":                               3,
+	require.NoError(t, rt.Tallies.Increment(ctx, vc, map[string]int64{
+		models.TallyField(testdb.Org1.ID, "emails/shared", day): 2,
+		models.TallyField(testdb.Org1.ID, "foo", time.Time{}):   3,
 	}))
 
 	res, err := cron.Run(ctx, rt)
