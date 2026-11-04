@@ -1,3 +1,7 @@
+## v26.3.123 (2026-11-04)
+ * Flush tallies in batches across orgs and apply retention when writing them
+ * Regenerate test database dump and give closed test tickets an outcome
+
 ## v26.3.122 (2026-11-03)
  * Move tallies instance onto the runtime
  * Give each tally writer its own retention
