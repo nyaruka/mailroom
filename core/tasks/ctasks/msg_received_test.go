@@ -413,8 +413,8 @@ func TestMsgReceivedTask(t *testing.T) {
 
 	// check messages queued to courier
 	testsuite.AssertCourierQueues(t, rt, map[string][]int{
-		fmt.Sprintf("msgs:%s|10/1", testdb.TwilioChannel.UUID): {1, 1, 1, 1, 1, 1, 1, 1},
-		fmt.Sprintf("msgs:%s|10/1", testdb.Org2Channel.UUID):   {1, 1, 1, 1, 1, 1, 1, 1, 1},
+		fmt.Sprintf("{msgs}:q:%s/1", testdb.TwilioChannel.UUID): {1, 1, 1, 1, 1, 1, 1, 1},
+		fmt.Sprintf("{msgs}:q:%s/1", testdb.Org2Channel.UUID):   {1, 1, 1, 1, 1, 1, 1, 1, 1},
 	})
 
 	// Fred's sessions should not have a timeout because courier will set them
@@ -736,7 +736,7 @@ func TestMsgReceivedReplyLastSeenOn(t *testing.T) {
 	newLastSeenOn := getLastSeenOn(t, rt, testdb.Ann)
 	require.True(t, newLastSeenOn.After(*oldLastSeenOn))
 
-	queueKey := fmt.Sprintf("msgs:%s|10/1", testdb.TwilioChannel.UUID)
+	queueKey := fmt.Sprintf("{msgs}:q:%s/1", testdb.TwilioChannel.UUID)
 	testsuite.AssertCourierQueues(t, rt, map[string][]int{queueKey: {1}})
 
 	batches, err := valkey.ByteSlices(vc.Do("ZRANGE", queueKey, 0, -1))

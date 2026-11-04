@@ -51,8 +51,8 @@ func TestRetryErroredMessages(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE status = 'Q'`).Returns(4)
 
 	testsuite.AssertCourierQueues(t, rt, map[string][]int{
-		"msgs:74729f45-7f29-4868-9dc4-90e491e3c7d8|10/0": {1}, // twilio, bulk priority
-		"msgs:19012bfd-3ce3-4cae-9bb9-76cf92c73d49|10/0": {2}, // vonage, bulk priority
-		"msgs:19012bfd-3ce3-4cae-9bb9-76cf92c73d49|10/1": {1}, // vonage, high priority
+		"{msgs}:q:74729f45-7f29-4868-9dc4-90e491e3c7d8/0": {1}, // twilio, bulk priority
+		"{msgs}:q:19012bfd-3ce3-4cae-9bb9-76cf92c73d49/0": {2}, // vonage, bulk priority
+		"{msgs}:q:19012bfd-3ce3-4cae-9bb9-76cf92c73d49/1": {1}, // vonage, high priority
 	})
 }

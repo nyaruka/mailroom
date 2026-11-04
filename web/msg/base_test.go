@@ -32,7 +32,7 @@ func TestSend(t *testing.T) {
 
 	testsuite.RunWebTests(t, rt, "testdata/send.json")
 
-	testsuite.AssertCourierQueues(t, rt, map[string][]int{"msgs:74729f45-7f29-4868-9dc4-90e491e3c7d8|10/1": {1, 1, 1, 1, 1, 1}})
+	testsuite.AssertCourierQueues(t, rt, map[string][]int{"{msgs}:q:74729f45-7f29-4868-9dc4-90e491e3c7d8/1": {1, 1, 1, 1, 1, 1}})
 }
 
 func TestDelete(t *testing.T) {

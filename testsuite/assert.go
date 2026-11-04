@@ -25,7 +25,7 @@ func AssertCourierQueues(t *testing.T, rt *runtime.Runtime, expected map[string]
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	queueKeys, err := valkey.Strings(vc.Do("KEYS", "msgs:????????-*"))
+	queueKeys, err := valkey.Strings(vc.Do("KEYS", "{msgs}:q:*"))
 	require.NoError(t, err)
 
 	actual := make(map[string][]int, len(queueKeys))

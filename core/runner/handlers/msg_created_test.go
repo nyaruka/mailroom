@@ -37,10 +37,10 @@ func TestMsgCreated(t *testing.T) {
 	defer vc.Close()
 
 	// Ann should have 1 batch of queued messages at high priority
-	assertvk.ZCard(t, vc, fmt.Sprintf("msgs:%s|10/1", testdb.TwilioChannel.UUID), 1)
+	assertvk.ZCard(t, vc, fmt.Sprintf("{msgs}:q:%s/1", testdb.TwilioChannel.UUID), 1)
 
 	// One bulk for Cat
-	assertvk.ZCard(t, vc, fmt.Sprintf("msgs:%s|10/0", testdb.TwilioChannel.UUID), 1)
+	assertvk.ZCard(t, vc, fmt.Sprintf("{msgs}:q:%s/0", testdb.TwilioChannel.UUID), 1)
 
 	// messages with a channel are tallied
 	assertvk.HGetAll(t, vc, "{tallies}:live", map[string]string{

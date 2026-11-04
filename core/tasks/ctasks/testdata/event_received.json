@@ -96,11 +96,11 @@
         "expected_history": [
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b47-8a53-76f8-89aa-1577771fa183",
+                "SK": "evt#01969b47-866b-76f8-89aa-1577771fa183",
                 "OrgID": 1,
-                "TTL": "2026-05-04T12:31:20Z",
+                "TTL": "2026-05-04T12:31:19Z",
                 "Data": {
-                    "created_on": "2025-05-04T12:31:20.123456789Z",
+                    "created_on": "2025-05-04T12:31:19.123456789Z",
                     "type": "contact_urns_changed",
                     "urns": [
                         "tel:+16055741111?channel=19012bfd-3ce3-4cae-9bb9-76cf92c73d49",
@@ -110,14 +110,14 @@
             },
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b47-9223-76f8-8f55-b7788ac5e343",
+                "SK": "evt#01969b47-8e3b-76f8-8f55-b7788ac5e343",
                 "OrgID": 1,
                 "Data": {
                     "channel": {
                         "name": "Vonage",
                         "uuid": "19012bfd-3ce3-4cae-9bb9-76cf92c73d49"
                     },
-                    "created_on": "2025-05-04T12:31:22.123456789Z",
+                    "created_on": "2025-05-04T12:31:21.123456789Z",
                     "type": "chat_started"
                 }
             }
@@ -151,11 +151,11 @@
         "expected_history": [
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b47-c103-76f8-b3a5-b9dac4767740",
+                "SK": "evt#01969b47-bd1b-76f8-b3a5-b9dac4767740",
                 "OrgID": 1,
-                "TTL": "2026-05-04T12:31:34Z",
+                "TTL": "2026-05-04T12:31:33Z",
                 "Data": {
-                    "created_on": "2025-05-04T12:31:34.123456789Z",
+                    "created_on": "2025-05-04T12:31:33.123456789Z",
                     "type": "contact_urns_changed",
                     "urns": [
                         "facebook:1000000000001?channel=0f661e8b-ea9d-4bd3-9953-d368340acf91",
@@ -165,14 +165,14 @@
             },
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b47-c8d3-76f8-87c7-10f327cbfde2",
+                "SK": "evt#01969b47-c4eb-76f8-87c7-10f327cbfde2",
                 "OrgID": 1,
                 "Data": {
                     "channel": {
                         "name": "Facebook",
                         "uuid": "0f661e8b-ea9d-4bd3-9953-d368340acf91"
                     },
-                    "created_on": "2025-05-04T12:31:36.123456789Z",
+                    "created_on": "2025-05-04T12:31:35.123456789Z",
                     "params": {
                         "referrer_id": "123456"
                     },
@@ -197,11 +197,11 @@
         "expected_history": [
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b47-e42b-76f8-893f-6422e535ea8c",
+                "SK": "evt#01969b47-e043-76f8-893f-6422e535ea8c",
                 "OrgID": 1,
-                "TTL": "2026-05-04T12:31:43Z",
+                "TTL": "2026-05-04T12:31:42Z",
                 "Data": {
-                    "created_on": "2025-05-04T12:31:43.123456789Z",
+                    "created_on": "2025-05-04T12:31:42.123456789Z",
                     "type": "contact_urns_changed",
                     "urns": [
                         "tel:+16055741111?channel=19012bfd-3ce3-4cae-9bb9-76cf92c73d49",
@@ -211,14 +211,14 @@
             },
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b47-ebfb-76f8-bffe-b26e15b12b0f",
+                "SK": "evt#01969b47-e813-76f8-bffe-b26e15b12b0f",
                 "OrgID": 1,
                 "Data": {
                     "channel": {
                         "name": "Vonage",
                         "uuid": "19012bfd-3ce3-4cae-9bb9-76cf92c73d49"
                     },
-                    "created_on": "2025-05-04T12:31:45.123456789Z",
+                    "created_on": "2025-05-04T12:31:44.123456789Z",
                     "params": {
                         "referrer_id": "123456"
                     },
@@ -227,10 +227,10 @@
             },
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b48-0753-76f8-a58f-30ba497b0d21",
+                "SK": "evt#01969b48-036b-76f8-a58f-30ba497b0d21",
                 "OrgID": 1,
                 "Data": {
-                    "created_on": "2025-05-04T12:31:52.123456789Z",
+                    "created_on": "2025-05-04T12:31:51.123456789Z",
                     "flow": {
                         "name": "Favorites",
                         "uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85"
@@ -242,25 +242,25 @@
             },
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b48-1ec3-76f8-bbf4-9afbc59f7bb4",
+                "SK": "evt#01969b48-1adb-76f8-bbf4-9afbc59f7bb4",
                 "OrgID": 1,
                 "Data": {
-                    "created_on": "2025-05-04T12:31:58.123456789Z",
+                    "created_on": "2025-05-04T12:31:57.123456789Z",
                     "flow": {
                         "name": "Pick a Number",
                         "revision": 1,
                         "uuid": "5890fe3a-f204-4661-b74d-025be4ee019c"
                     },
-                    "run_uuid": "01969b48-1adb-76f8-95d6-85696b970f6a",
+                    "run_uuid": "01969b48-16f3-76f8-95d6-85696b970f6a",
                     "type": "run_started"
                 }
             },
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b48-2e63-76f8-ab7b-b7ab5b0dc119",
+                "SK": "evt#01969b48-2a7b-76f8-ab7b-b7ab5b0dc119",
                 "OrgID": 1,
                 "Data": {
-                    "created_on": "2025-05-04T12:32:02.123456789Z",
+                    "created_on": "2025-05-04T12:32:01.123456789Z",
                     "msg": {
                         "channel": {
                             "name": "Vonage",
@@ -291,14 +291,14 @@
         "expected_history": [
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b48-74b3-76f8-88c7-56bcb29ae35a",
+                "SK": "evt#01969b48-6ce3-76f8-88c7-56bcb29ae35a",
                 "OrgID": 1,
                 "Data": {
                     "channel": {
                         "name": "Vonage",
                         "uuid": "19012bfd-3ce3-4cae-9bb9-76cf92c73d49"
                     },
-                    "created_on": "2025-05-04T12:32:20.123456789Z",
+                    "created_on": "2025-05-04T12:32:18.123456789Z",
                     "type": "call_missed"
                 }
             }
@@ -326,21 +326,21 @@
         "expected_history": [
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b48-900b-76f8-9ea3-78702727831a",
+                "SK": "evt#01969b48-883b-76f8-9ea3-78702727831a",
                 "OrgID": 1,
                 "Data": {
-                    "created_on": "2025-05-04T12:32:27.123456789Z",
+                    "created_on": "2025-05-04T12:32:25.123456789Z",
                     "status": "stopped",
                     "type": "contact_status_changed"
                 }
             },
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b48-97db-76f8-88a0-aff178d69252",
+                "SK": "evt#01969b48-900b-76f8-88a0-aff178d69252",
                 "OrgID": 1,
-                "TTL": "2026-05-04T12:32:29Z",
+                "TTL": "2026-05-04T12:32:27Z",
                 "Data": {
-                    "created_on": "2025-05-04T12:32:29.123456789Z",
+                    "created_on": "2025-05-04T12:32:27.123456789Z",
                     "groups_removed": [
                         {
                             "name": "Doctors",
@@ -386,21 +386,21 @@
         "expected_history": [
             {
                 "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
-                "SK": "evt#01969b48-bb03-76f8-a502-6fb7f5d04e3f",
+                "SK": "evt#01969b48-b333-76f8-a502-6fb7f5d04e3f",
                 "OrgID": 1,
                 "Data": {
-                    "created_on": "2025-05-04T12:32:38.123456789Z",
+                    "created_on": "2025-05-04T12:32:36.123456789Z",
                     "status": "active",
                     "type": "contact_status_changed"
                 }
             },
             {
                 "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
-                "SK": "evt#01969b48-c2d3-76f8-8e47-34e3393ba6d0",
+                "SK": "evt#01969b48-bb03-76f8-8e47-34e3393ba6d0",
                 "OrgID": 1,
-                "TTL": "2026-05-04T12:32:40Z",
+                "TTL": "2026-05-04T12:32:38Z",
                 "Data": {
-                    "created_on": "2025-05-04T12:32:40.123456789Z",
+                    "created_on": "2025-05-04T12:32:38.123456789Z",
                     "type": "contact_urns_changed",
                     "urns": [
                         "facebook:1000000000002?channel=0f661e8b-ea9d-4bd3-9953-d368340acf91",
@@ -411,38 +411,38 @@
             },
             {
                 "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
-                "SK": "evt#01969b48-caa3-76f8-838e-7d5caf016400",
+                "SK": "evt#01969b48-c2d3-76f8-838e-7d5caf016400",
                 "OrgID": 1,
                 "Data": {
                     "channel": {
                         "name": "Facebook",
                         "uuid": "0f661e8b-ea9d-4bd3-9953-d368340acf91"
                     },
-                    "created_on": "2025-05-04T12:32:42.123456789Z",
+                    "created_on": "2025-05-04T12:32:40.123456789Z",
                     "type": "chat_started"
                 }
             },
             {
                 "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
-                "SK": "evt#01969b48-e5fb-76f8-a150-3428ae2cd5bf",
+                "SK": "evt#01969b48-de2b-76f8-a150-3428ae2cd5bf",
                 "OrgID": 1,
                 "Data": {
-                    "created_on": "2025-05-04T12:32:49.123456789Z",
+                    "created_on": "2025-05-04T12:32:47.123456789Z",
                     "flow": {
                         "name": "Favorites",
                         "revision": 1,
                         "uuid": "9de3663f-c5c5-4c92-9f45-ecbc09abcc85"
                     },
-                    "run_uuid": "01969b48-e213-76f8-9170-73aa5f656389",
+                    "run_uuid": "01969b48-da43-76f8-9170-73aa5f656389",
                     "type": "run_started"
                 }
             },
             {
                 "PK": "con#b699a406-7e44-49be-9f01-1a82893e8a10",
-                "SK": "evt#01969b48-f59b-76f8-af42-abb6278d787f",
+                "SK": "evt#01969b48-edcb-76f8-af42-abb6278d787f",
                 "OrgID": 1,
                 "Data": {
-                    "created_on": "2025-05-04T12:32:53.123456789Z",
+                    "created_on": "2025-05-04T12:32:51.123456789Z",
                     "msg": {
                         "channel": {
                             "name": "Facebook",

@@ -8,12 +8,10 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
 	valkey "github.com/gomodule/redigo/redis"
-	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/i18n"
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/gocommon/svclogs"
@@ -183,37 +181,58 @@ func NewCourierMsg(oa *models.OrgAssets, mo *models.MsgOut, ch *models.Channel) 
 	return msg, nil
 }
 
-var queuePushScript = valkey.NewScript(6, `
--- KEYS: [QueueType, QueueName, TPS, Priority, Items, EpochSecs]
-local queueType, queueName, tps, priority, items, epochSecs = KEYS[1], KEYS[2], tonumber(KEYS[3]), KEYS[4], KEYS[5], KEYS[6]
+// courier's outgoing queues share this hash tag so that its scripts can use them together in cluster mode. Each channel
+// has a queue of high and bulk priority batches ({msgs}:q:<uuid>/1 and /0) and a hash of its state ({msgs}:ch:<uuid>),
+// and is either ready to be popped from ({msgs}:ready) or waiting until a time ({msgs}:waiting). Courier owns this
+// layout and the scripts here have to match its own.
+const courierKeyBase = "{msgs}"
 
--- first construct the base key for this queue from the type + name + tps, e.g. "msgs:0a77a158-1dcb-4c06-9aee-e15bdf64653e|10"
-local queueKey = queueType .. ":" .. queueName .. "|" .. tps
+const (
+	courierReadyKey   = courierKeyBase + ":ready"
+	courierWaitingKey = courierKeyBase + ":waiting"
+)
 
--- each queue than has two sorted sets for bulk and high priority items, e.g. "msgs:0a77..653e|10/0" vs msgs:0a77..653e|10/1"
-local priorityQueueKey = queueKey .. "/" .. priority
+func courierQueueKey(ch *models.Channel, priority int) string {
+	return fmt.Sprintf("%s:q:%s/%d", courierKeyBase, ch.UUID(), priority)
+}
 
--- add the items to the sorted set using the full timestamp (e.g. 1636556789.123456) as the score
-redis.call("ZADD", priorityQueueKey, epochSecs, items)
+func courierChannelKey(ch *models.Channel) string {
+	return fmt.Sprintf("%s:ch:%s", courierKeyBase, ch.UUID())
+}
 
--- if we have a TPS limit, check the transaction counter for this epoch second to see if have already reached it
-local curr = -1
-if tps > 0 then
-  local tpsKey = queueKey .. ":tps:" .. math.floor(epochSecs) -- e.g. "msgs:0a77..4653e|10:tps:1636556789"
-  curr = tonumber(redis.call("GET", tpsKey))
-end
+var queuePushScript = valkey.NewScript(4, `
+-- KEYS: [Queue, Channel, Ready, Waiting]
+-- ARGV: [ChannelUUID, TPS, Items]
+local queueKey, channelKey, readyKey, waitingKey = KEYS[1], KEYS[2], KEYS[3], KEYS[4]
+local channelUUID, tps, items = ARGV[1], tonumber(ARGV[2]), ARGV[3]
 
--- if we haven't hit the limit, add this queue to set of active queues 
-if not curr or curr < tps then
-  redis.call("ZINCRBY", queueType .. ":active", 0, queueKey)
-  return 1
-else
+local time = redis.call("TIME")
+local nowSec = tonumber(time[1])
+local now = nowSec + tonumber(time[2]) / 1000000
+
+redis.call("ZADD", queueKey, now, items)
+
+-- the latest push sets the TPS for everything queued for this channel
+redis.call("HSET", channelKey, "tps", tps)
+redis.call("PERSIST", channelKey)
+
+-- a channel that's used up this second's TPS waits until the next, otherwise make it ready so that these items don't
+-- wait on whatever the channel was waiting for
+local state = redis.call("HMGET", channelKey, "sec", "used", "inflight")
+if tps > 0 and tonumber(state[1]) == nowSec and (tonumber(state[2]) or 0) >= tps then
+  if not redis.call("ZSCORE", readyKey, channelUUID) then
+    redis.call("ZADD", waitingKey, "LT", nowSec + 1, channelUUID)
+  end
   return 0
 end
+
+redis.call("ZREM", waitingKey, channelUUID)
+redis.call("ZADD", readyKey, tonumber(state[3]) or 0, channelUUID)
+return 1
 `)
 
 // PushCourierBatch pushes a batch of messages for a single contact and channel onto the appropriate courier queue
-func PushCourierBatch(vc valkey.Conn, oa *models.OrgAssets, ch *models.Channel, msgs []*models.MsgOut, timestamp string) error {
+func PushCourierBatch(vc valkey.Conn, oa *models.OrgAssets, ch *models.Channel, msgs []*models.MsgOut) error {
 	priority := bulkPriority
 	if msgs[0].HighPriority() {
 		priority = highPriority
@@ -230,7 +249,7 @@ func PushCourierBatch(vc valkey.Conn, oa *models.OrgAssets, ch *models.Channel, 
 
 	batchJSON := jsonx.MustMarshal(batch)
 
-	_, err := queuePushScript.Do(vc, "msgs", ch.UUID(), ch.TPS(), priority, batchJSON, timestamp)
+	_, err := queuePushScript.Do(vc, courierQueueKey(ch, priority), courierChannelKey(ch), courierReadyKey, courierWaitingKey, ch.UUID(), ch.TPS(), batchJSON)
 	return err
 }
 
@@ -239,11 +258,6 @@ func QueueCourierMessages(vc valkey.Conn, oa *models.OrgAssets, contactID models
 	if len(msgs) == 0 {
 		return nil
 	}
-
-	// get the time in seconds since the epoch as a floating point number
-	// e.g. 2021-11-10T15:10:49.123456+00:00 => "1636557205.123456"
-	now := dates.Now()
-	epochSeconds := strconv.FormatFloat(float64(now.UnixNano()/int64(time.Microsecond))/float64(1000000), 'f', 6, 64)
 
 	// we batch msgs by priority
 	batch := make([]*models.MsgOut, 0, len(msgs))
@@ -254,7 +268,7 @@ func QueueCourierMessages(vc valkey.Conn, oa *models.OrgAssets, contactID models
 	commitBatch := func() error {
 		if len(batch) > 0 {
 			start := time.Now()
-			err := PushCourierBatch(vc, oa, channel, batch, epochSeconds)
+			err := PushCourierBatch(vc, oa, channel, batch)
 			if err != nil {
 				return err
 			}
@@ -285,24 +299,44 @@ func QueueCourierMessages(vc valkey.Conn, oa *models.OrgAssets, contactID models
 	return commitBatch()
 }
 
-var queueClearScript = valkey.NewScript(3, `
--- KEYS: [QueueType, QueueName, TPS]
-local queueType, queueName, tps = KEYS[1], KEYS[2], tonumber(KEYS[3])
+var queueClearScript = valkey.NewScript(5, `
+-- KEYS: [HighQueue, BulkQueue, Channel, Ready, Waiting]
+-- ARGV: [ChannelUUID]
+redis.call("DEL", KEYS[1], KEYS[2])
+redis.call("ZREM", KEYS[4], ARGV[1])
+redis.call("ZREM", KEYS[5], ARGV[1])
 
--- first construct the base key for this queue from the type + name + tps, e.g. "msgs:0a77a158-1dcb-4c06-9aee-e15bdf64653e|10"
-local queueKey = queueType .. ":" .. queueName .. "|" .. tps
+-- the channel's state is kept for sends still in flight but with nothing queued it can expire
+redis.call("EXPIRE", KEYS[3], 60)
+`)
 
--- clear the sorted sets for the key
-redis.call("DEL", queueKey .. "/1")
-redis.call("DEL", queueKey .. "/0")
+// queues in the layout courier used before, named by channel and TPS, e.g. msgs:<uuid>|10, which may still hold
+// messages queued by older versions. A channel can have one for each TPS it's been queued with.
+var legacyQueueClearScript = valkey.NewScript(3, `
+-- KEYS: [Active, Throttled, Future]
+-- ARGV: [ChannelUUID, TPS]
+local prefix = "msgs:" .. ARGV[1] .. "|"
 
--- reset queue to zero
-redis.call("ZADD", queueType .. ":active", 0, queueKey)
+local queues = {prefix .. ARGV[2]}
+for _, set in ipairs(KEYS) do
+  for _, queue in ipairs(redis.call("ZRANGE", set, 0, -1)) do
+    if string.sub(queue, 1, #prefix) == prefix then
+      table.insert(queues, queue)
+    end
+  end
+end
+
+for _, queue in ipairs(queues) do
+  redis.call("DEL", queue .. "/1", queue .. "/0")
+end
 `)
 
 // ClearCourierQueues clears the courier queues (priority and bulk) for the given channel
 func ClearCourierQueues(vc valkey.Conn, ch *models.Channel) error {
-	_, err := queueClearScript.Do(vc, "msgs", ch.UUID(), ch.TPS())
+	if _, err := queueClearScript.Do(vc, courierQueueKey(ch, highPriority), courierQueueKey(ch, bulkPriority), courierChannelKey(ch), courierReadyKey, courierWaitingKey, ch.UUID()); err != nil {
+		return err
+	}
+	_, err := legacyQueueClearScript.Do(vc, "msgs:active", "msgs:throttled", "msgs:future", ch.UUID(), ch.TPS())
 	return err
 }
 
