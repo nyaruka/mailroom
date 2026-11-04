@@ -43,10 +43,10 @@ func TestMsgCreated(t *testing.T) {
 	assertvk.ZCard(t, vc, fmt.Sprintf("msgs:%s|10/0", testdb.TwilioChannel.UUID), 1)
 
 	// messages with a channel are tallied
-	assertvk.HGetAll(t, vc, "{tallies}:1", map[string]string{
-		"channels/10000/text:out@2025-05-04": "2",
-		"channels/10002/text:out@2025-05-04": "1",
-		"msgs/text:out@2025-05-04":           "3",
+	assertvk.HGetAll(t, vc, "{tallies}:live", map[string]string{
+		"1|channels/10000/text:out@2025-05-04": "2",
+		"1|channels/10002/text:out@2025-05-04": "1",
+		"1|msgs/text:out@2025-05-04":           "3",
 	})
 }
 

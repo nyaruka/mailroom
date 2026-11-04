@@ -2,7 +2,9 @@ package handlers_test
 
 import (
 	"testing"
+	"time"
 
+	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/testsuite"
@@ -22,10 +24,13 @@ func TestEmailSent(t *testing.T) {
 	runTests(t, rt, "testdata/email_sent.json")
 
 	// sends using the shared configuration are tallied by recipient
-	assertvk.HGetAll(t, vc, "{tallies}:1", map[string]string{"emails/shared@2025-05-04": "3"})
-	assertvk.SMembers(t, vc, "{tallies}:pending", []string{"1"})
+	assertvk.HGetAll(t, vc, "{tallies}:live", map[string]string{"1|emails/shared@2025-05-04": "3"})
 
-	_, err := rt.Tallies.Flush(ctx, vc, models.NewTallyStore(rt.DB), 10)
+	// expiries are from the day they're flushed
+	defer dates.SetNowFunc(time.Now)
+	dates.SetNowFunc(dates.NewFixedNow(time.Date(2025, 5, 4, 12, 0, 0, 0, time.UTC)))
+
+	_, err := rt.Tallies.Flush(ctx, vc, models.NewTallyStore(rt.DB, rt.Tallies.KeyBase()), 10)
 	require.NoError(t, err)
 
 	assertdb.Query(t, rt.DB, `SELECT count, expires_on::text FROM orgs_tally WHERE org_id = $1 AND scope = 'emails/shared@2025-05-04'`, testdb.Org1.ID).
@@ -37,5 +42,5 @@ func TestEmailSent(t *testing.T) {
 
 	runTests(t, rt, "testdata/email_sent.json")
 
-	assertvk.NotExists(t, vc, "{tallies}:1")
+	assertvk.NotExists(t, vc, "{tallies}:live")
 }

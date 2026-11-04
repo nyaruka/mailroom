@@ -26,8 +26,8 @@ func handleEmailSent(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAss
 	if err != nil {
 		slog.Error("error getting email configuration for tallying", "error", err, "org_id", oa.OrgID())
 	} else if shared {
-		key := tallies.Daily(models.TallyEmailsShared, event.CreatedOn(), models.TallyEmailsSharedTTL)
-		scene.AttachPostCommitHook(hooks.IncrementTallies, map[tallies.Key]int64{key: int64(len(event.To))})
+		scope := tallies.Daily(models.TallyEmailsShared, event.CreatedOn())
+		scene.AttachPostCommitHook(hooks.IncrementTallies, map[string]int64{scope: int64(len(event.To))})
 	}
 
 	return nil

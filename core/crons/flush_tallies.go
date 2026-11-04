@@ -15,7 +15,7 @@ func init() {
 type FlushTalliesCron struct{}
 
 func (c *FlushTalliesCron) Next(last time.Time) time.Time {
-	return Next(last, 30*time.Second)
+	return Next(last, 5*time.Minute)
 }
 
 // Run flushes tallies buffered in valkey to the database
@@ -23,7 +23,7 @@ func (c *FlushTalliesCron) Run(ctx context.Context, rt *runtime.Runtime) (map[st
 	vc := rt.VK.Get()
 	defer vc.Close()
 
-	flushed, err := rt.Tallies.Flush(ctx, vc, models.NewTallyStore(rt.DB), 1000)
+	flushed, err := rt.Tallies.Flush(ctx, vc, models.NewTallyStore(rt.DB, rt.Tallies.KeyBase()), 5000)
 
 	return map[string]any{"flushed": flushed}, err
 }
