@@ -56,7 +56,7 @@
                 "returns": 2
             },
             {
-                "query": "SELECT count(*) FROM tickets_ticket WHERE status = 'C' AND outcome = 'R'",
+                "query": "SELECT count(*) FROM tickets_ticket WHERE uuid = '01992f54-5ab6-717a-a39e-e8ca91fb7262' AND status = 'C' AND outcome = 'R'",
                 "returns": 1
             },
             {

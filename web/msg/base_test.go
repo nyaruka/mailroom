@@ -28,7 +28,7 @@ func TestSend(t *testing.T) {
 
 	testdb.InsertOpenTicket(t, rt, "01992f54-5ab6-717a-a39e-e8ca91fb7262", testdb.Org1, testdb.Ann, testdb.DefaultTopic, time.Date(2015, 1, 1, 12, 30, 45, 0, time.UTC), nil)
 	closed := testdb.InsertOpenTicket(t, rt, "019a0f6c-5e3b-7d1a-9b2e-3c4d5e6f7a8b", testdb.Org1, testdb.Bob, testdb.DefaultTopic, time.Date(2015, 1, 1, 12, 30, 45, 0, time.UTC), nil)
-	rt.DB.MustExec(`UPDATE tickets_ticket SET status = 'C', closed_on = '2015-01-02T12:30:45Z', last_activity_on = '2015-01-02T12:30:45Z' WHERE id = $1`, closed.ID)
+	rt.DB.MustExec(`UPDATE tickets_ticket SET status = 'C', outcome = 'R', closed_on = '2015-01-02T12:30:45Z', last_activity_on = '2015-01-02T12:30:45Z' WHERE id = $1`, closed.ID)
 
 	testsuite.RunWebTests(t, rt, "testdata/send.json")
 

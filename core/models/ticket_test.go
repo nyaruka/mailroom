@@ -117,6 +117,8 @@ func TestUpdateTickets(t *testing.T) {
 	ticket3.Status = models.TicketStatusClosed
 	ticket3.AssigneeID = models.NilUserID
 	ticket3.LastActivityOn = time.Date(2025, 9, 3, 16, 0, 0, 0, time.UTC)
+	ticket3.ClosedOn = &ticket3.LastActivityOn
+	ticket3.Outcome = models.TicketOutcomeResolved
 
 	err = models.UpdateTickets(ctx, rt.DB, []*models.Ticket{ticket1, ticket2, ticket3})
 	assert.NoError(t, err)
