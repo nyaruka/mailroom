@@ -107,6 +107,12 @@ func TestTallyStore(t *testing.T) {
 	assertLastBatch(store, 6)
 	assertdb.Query(t, rt.DB, `SELECT count FROM orgs_tally WHERE org_id = $1 AND scope = 'foo'`, org1).Returns(int64(5))
 	assertTallies(org2, map[string]any{"foo": int64(5)})
+
+	// a batch with nothing to write is still recorded
+	write(7, []tallies.Amount{{Owner: org2, Scope: "foo", Count: 1}}, true)
+
+	assertLastBatch(store, 7)
+	assertTallies(org2, map[string]any{"foo": int64(5)})
 }
 
 func TestFlushTallies(t *testing.T) {
