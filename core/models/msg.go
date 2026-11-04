@@ -635,8 +635,8 @@ func InsertMessages(ctx context.Context, tx DBorTx, msgs []*Msg) error {
 
 // MsgTallies gets the tally amounts which count the given messages by their channel, type, direction and the UTC day
 // they were created on. Messages without a channel aren't counted.
-func MsgTallies(msgs []*Msg) map[tallies.Key]int64 {
-	amounts := make(map[tallies.Key]int64)
+func MsgTallies(msgs []*Msg) map[string]int64 {
+	amounts := make(map[string]int64)
 	for _, m := range msgs {
 		if m.ChannelID() == NilChannelID {
 			continue
@@ -650,8 +650,8 @@ func MsgTallies(msgs []*Msg) map[tallies.Key]int64 {
 			dir = "in"
 		}
 
-		amounts[tallies.Daily(fmt.Sprintf("%s/%d/%s:%s", TallyChannelMsgs, m.ChannelID(), typ, dir), m.CreatedOn(), TallyChannelMsgsTTL)]++
-		amounts[tallies.Daily(fmt.Sprintf("%s/%s:%s", TallyMsgs, typ, dir), m.CreatedOn(), TallyMsgsTTL)]++
+		amounts[tallies.Daily(fmt.Sprintf("%s/%d/%s:%s", TallyChannelMsgs, m.ChannelID(), typ, dir), m.CreatedOn())]++
+		amounts[tallies.Daily(fmt.Sprintf("%s/%s:%s", TallyMsgs, typ, dir), m.CreatedOn())]++
 	}
 	return amounts
 }

@@ -53,16 +53,18 @@ func InsertClosedTicket(t *testing.T, rt *runtime.Runtime, uuid core.TicketUUID,
 func insertTicket(t *testing.T, rt *runtime.Runtime, uuid core.TicketUUID, org *Org, contact *Contact, status models.TicketStatus, topic *Topic, openedOn time.Time, assignee *User) *Ticket {
 	lastActivityOn := openedOn
 	var closedOn *time.Time
+	outcome := models.NilTicketOutcome
 	if status == models.TicketStatusClosed {
 		t := dates.Now()
 		lastActivityOn = t
 		closedOn = &t
+		outcome = models.TicketOutcomeResolved
 	}
 
 	var id models.TicketID
 	err := rt.DB.Get(&id,
-		`INSERT INTO tickets_ticket(uuid, org_id, contact_id, status, topic_id, opened_on, modified_on, closed_on, last_activity_on, assignee_id)
-		VALUES($1, $2, $3, $4, $5, $6, NOW(), $7, $8, $9) RETURNING id`, uuid, org.ID, contact.ID, status, topic.ID, openedOn, closedOn, lastActivityOn, assignee.SafeID(),
+		`INSERT INTO tickets_ticket(uuid, org_id, contact_id, status, topic_id, opened_on, modified_on, closed_on, outcome, last_activity_on, assignee_id)
+		VALUES($1, $2, $3, $4, $5, $6, NOW(), $7, $8, $9, $10) RETURNING id`, uuid, org.ID, contact.ID, status, topic.ID, openedOn, closedOn, outcome, lastActivityOn, assignee.SafeID(),
 	)
 	require.NoError(t, err)
 	return &Ticket{id, uuid}

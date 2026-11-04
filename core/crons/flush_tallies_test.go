@@ -22,17 +22,16 @@ func TestFlushTalliesCron(t *testing.T) {
 	cron := &crons.FlushTalliesCron{}
 
 	day := time.Date(2025, 5, 4, 12, 0, 0, 0, time.UTC)
-	require.NoError(t, rt.Tallies.Increment(ctx, vc, tallies.OwnerID(testdb.Org1.ID), map[tallies.Key]int64{
-		tallies.Daily("emails/shared", day, 90*24*time.Hour): 2,
-		tallies.Total("foo"): 3,
+	require.NoError(t, rt.Tallies.Increment(ctx, vc, tallies.OwnerID(testdb.Org1.ID), map[string]int64{
+		tallies.Daily("emails/shared", day): 2,
+		"foo":                               3,
 	}))
 
 	res, err := cron.Run(ctx, rt)
 	assert.NoError(t, err)
-	assert.Equal(t, map[string]any{"flushed": 1}, res)
+	assert.Equal(t, map[string]any{"flushed": 2}, res)
 
-	assertdb.Query(t, rt.DB, `SELECT count, expires_on::text FROM orgs_tally WHERE org_id = $1 AND scope = 'emails/shared@2025-05-04'`, testdb.Org1.ID).
-		Columns(map[string]any{"count": int64(2), "expires_on": "2025-08-02"})
-	assertdb.Query(t, rt.DB, `SELECT count, expires_on::text FROM orgs_tally WHERE org_id = $1 AND scope = 'foo'`, testdb.Org1.ID).
-		Columns(map[string]any{"count": int64(3), "expires_on": nil})
+	assertdb.Query(t, rt.DB, `SELECT scope, count FROM orgs_tally WHERE org_id = $1`, testdb.Org1.ID).
+		Map(map[string]any{"emails/shared@2025-05-04": int64(2), "foo": int64(3)})
+	assertdb.Query(t, rt.DB, `SELECT last_batch FROM orgs_tallyflush WHERE name = 'tallies'`).Returns(int64(1))
 }
