@@ -98,8 +98,8 @@ func TestQueueMessages(t *testing.T) {
 				},
 			},
 			QueueSizes: map[string][]int{
-				"msgs:74729f45-7f29-4868-9dc4-90e491e3c7d8|10/0": {2}, // 2 default priority messages for Ann
-				"msgs:74729f45-7f29-4868-9dc4-90e491e3c7d8|10/1": {1}, // 1 high priority message for Bob
+				"{msgs}:q:74729f45-7f29-4868-9dc4-90e491e3c7d8/0": {2}, // 2 default priority messages for Ann
+				"{msgs}:q:74729f45-7f29-4868-9dc4-90e491e3c7d8/1": {1}, // 1 high priority message for Bob
 			},
 			FCMTokensSynced: []string{"FCMID1"},
 			UnqueuedMsgs:    0,
