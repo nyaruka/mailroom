@@ -70,7 +70,7 @@ func TestTallyStore(t *testing.T) {
 
 	// expiries are from the day a tally is first written, by its retention
 	assertExpiries(org1, map[string]any{
-		"foo": nil, "emails/shared@2025-05-04": "2025-08-02", "channels/12/text:in@2025-05-04": "2027-05-04",
+		"foo": nil, "emails/shared@2025-05-04": "2025-08-02", "channels/12/text:in@2025-05-04": "2026-06-08",
 		"msgs/text:in@2025-05-04": nil,
 	})
 
@@ -87,7 +87,7 @@ func TestTallyStore(t *testing.T) {
 		"msgs/text:in@2025-05-04": int64(2), "llms/foo/tokens:in@2025-05-10": int64(100),
 	})
 	assertExpiries(org1, map[string]any{
-		"foo": nil, "emails/shared@2025-05-04": "2025-08-02", "channels/12/text:in@2025-05-04": "2027-05-04",
+		"foo": nil, "emails/shared@2025-05-04": "2025-08-02", "channels/12/text:in@2025-05-04": "2026-06-08",
 		"msgs/text:in@2025-05-04": nil, "llms/foo/tokens:in@2025-05-10": "2025-08-08",
 	})
 

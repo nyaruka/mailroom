@@ -64,7 +64,7 @@ func TestChannelLogsOutgoing(t *testing.T) {
 	require.NoError(t, err)
 	if assert.NotNil(t, item) {
 		assert.Equal(t, string(models.ChannelLogTypeIVRStart), item.Data["type"])
-		assert.Equal(t, clog1.CreatedOn.Truncate(time.Second).Add(time.Hour*24*400), *item.TTL)
+		assert.Equal(t, clog1.CreatedOn.Truncate(time.Second).Add(time.Hour*24*7), *item.TTL)
 
 		data, err := item.GetData()
 		require.NoError(t, err)
