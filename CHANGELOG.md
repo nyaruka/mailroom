@@ -1,3 +1,7 @@
+## v26.3.124 (2026-11-04)
+ * Use vkutil tallies with org fields built by models.TallyField and keep per-channel message tallies for 400 days and channel logs for 1 week
+ * Stop the review workflow adding Claude Code attribution
+
 ## v26.3.123 (2026-11-04)
  * Flush tallies in batches across orgs and apply retention when writing them
  * Regenerate test database dump and give closed test tickets an outcome
