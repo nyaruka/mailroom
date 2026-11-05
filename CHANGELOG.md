@@ -1,3 +1,6 @@
+## v26.3.127 (2026-11-05)
+ * Write tally batches to orgs_orgtally as well as orgs_tally
+
 ## v26.3.126 (2026-11-05)
  * Use gocommon's MsgsV2 queue to push and clear courier queues
 
