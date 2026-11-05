@@ -177,11 +177,8 @@ func NewCourierMsg(oa *models.OrgAssets, mo *models.MsgOut, ch *models.Channel) 
 	return msg, nil
 }
 
-// courier pops from this queue, so its key base has to match courier's
-var courierQueue = queues.NewMsgsV2("msgs")
-
 // PushCourierBatch pushes a batch of messages for a single contact and channel onto the appropriate courier queue
-func PushCourierBatch(ctx context.Context, vc valkey.Conn, oa *models.OrgAssets, ch *models.Channel, msgs []*models.MsgOut) error {
+func PushCourierBatch(ctx context.Context, rt *runtime.Runtime, vc valkey.Conn, oa *models.OrgAssets, ch *models.Channel, msgs []*models.MsgOut) error {
 	batch := make([]*Msg, len(msgs))
 	for i, s := range msgs {
 		var err error
@@ -193,11 +190,11 @@ func PushCourierBatch(ctx context.Context, vc valkey.Conn, oa *models.OrgAssets,
 
 	batchJSON := jsonx.MustMarshal(batch)
 
-	return courierQueue.Push(ctx, vc, queues.OwnerID(ch.UUID()), ch.TPS(), msgs[0].HighPriority(), batchJSON)
+	return rt.Queues.Courier.Push(ctx, vc, queues.OwnerID(ch.UUID()), ch.TPS(), msgs[0].HighPriority(), batchJSON)
 }
 
 // QueueCourierMessages queues messages for a single contact to Courier
-func QueueCourierMessages(ctx context.Context, vc valkey.Conn, oa *models.OrgAssets, contactID models.ContactID, channel *models.Channel, msgs []*models.MsgOut) error {
+func QueueCourierMessages(ctx context.Context, rt *runtime.Runtime, vc valkey.Conn, oa *models.OrgAssets, contactID models.ContactID, channel *models.Channel, msgs []*models.MsgOut) error {
 	if len(msgs) == 0 {
 		return nil
 	}
@@ -211,7 +208,7 @@ func QueueCourierMessages(ctx context.Context, vc valkey.Conn, oa *models.OrgAss
 	commitBatch := func() error {
 		if len(batch) > 0 {
 			start := time.Now()
-			err := PushCourierBatch(ctx, vc, oa, channel, batch)
+			err := PushCourierBatch(ctx, rt, vc, oa, channel, batch)
 			if err != nil {
 				return err
 			}
@@ -265,8 +262,8 @@ end
 `)
 
 // ClearCourierQueues clears the courier queues (priority and bulk) for the given channel
-func ClearCourierQueues(ctx context.Context, vc valkey.Conn, ch *models.Channel) error {
-	if err := courierQueue.Clear(ctx, vc, queues.OwnerID(ch.UUID())); err != nil {
+func ClearCourierQueues(ctx context.Context, rt *runtime.Runtime, vc valkey.Conn, ch *models.Channel) error {
+	if err := rt.Queues.Courier.Clear(ctx, vc, queues.OwnerID(ch.UUID())); err != nil {
 		return err
 	}
 	_, err := legacyQueueClearScript.Do(vc, "msgs:active", "msgs:throttled", "msgs:future", ch.UUID(), ch.TPS())

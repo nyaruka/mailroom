@@ -98,7 +98,7 @@ func tryToQueueForOrg(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAs
 		defer vc.Close()
 
 		for cc, contactMsgs := range courierMsgs {
-			err := QueueCourierMessages(ctx, vc, oa, cc.contactID, cc.channel, contactMsgs)
+			err := QueueCourierMessages(ctx, rt, vc, oa, cc.contactID, cc.channel, contactMsgs)
 
 			// just log the error and continue to try - messages that weren't queued will be retried later
 			if err != nil {
