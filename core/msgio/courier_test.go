@@ -389,15 +389,13 @@ func TestPushCourierBatch(t *testing.T) {
 	assert.Equal(t, msg1.UUID(), events.EventUUID(item1UUID))
 	assert.Equal(t, msg2.UUID(), events.EventUUID(item2UUID))
 
-	// start at the beginning of a server second so that what follows happens within it
-	serverTime, err := valkey.Int64s(vc.Do("TIME"))
-	require.NoError(t, err)
-	time.Sleep(time.Second - time.Duration(serverTime[1])*time.Microsecond + 50*time.Millisecond)
-	serverTime, err = valkey.Int64s(vc.Do("TIME"))
-	require.NoError(t, err)
+	// pushes take the current time from the client, so start at the beginning of a second so that what follows happens
+	// within it
+	time.Sleep(time.Second - time.Duration(time.Now().Nanosecond()) + 50*time.Millisecond)
+	nowSec := time.Now().Unix()
 
 	// simulate courier having popped from the channel until it's used this second's TPS, while it's still ready
-	vc.Do("HSET", "{msgs}:ch:74729f45-7f29-4868-9dc4-90e491e3c7d8", "sec", serverTime[0], "used", 10, "inflight", 2)
+	vc.Do("HSET", "{msgs}:ch:74729f45-7f29-4868-9dc4-90e491e3c7d8", "sec", nowSec, "used", 10, "inflight", 2)
 	vc.Do("ZADD", "{msgs}:ready", 2, "74729f45-7f29-4868-9dc4-90e491e3c7d8")
 
 	msg3 := (&msgSpec{Channel: testdb.TwilioChannel, Contact: testdb.Ann}).createMsg(t, rt, oa)
@@ -418,13 +416,13 @@ func TestPushCourierBatch(t *testing.T) {
 	require.NoError(t, err)
 
 	assertvk.ZGetAll(t, vc, "{msgs}:ready", map[string]float64{})
-	assertvk.ZGetAll(t, vc, "{msgs}:waiting", map[string]float64{"74729f45-7f29-4868-9dc4-90e491e3c7d8": float64(serverTime[0] + 1)})
+	assertvk.ZGetAll(t, vc, "{msgs}:waiting", map[string]float64{"74729f45-7f29-4868-9dc4-90e491e3c7d8": float64(nowSec + 1)})
 
 	// but msgs were still added to queue
 	assertvk.ZCard(t, vc, "{msgs}:q:74729f45-7f29-4868-9dc4-90e491e3c7d8/0", 3)
 
 	// a push in a later second makes it ready with its sends in flight as its score
-	vc.Do("HSET", "{msgs}:ch:74729f45-7f29-4868-9dc4-90e491e3c7d8", "sec", serverTime[0]-1)
+	vc.Do("HSET", "{msgs}:ch:74729f45-7f29-4868-9dc4-90e491e3c7d8", "sec", nowSec-1)
 
 	msg5 := (&msgSpec{Channel: testdb.TwilioChannel, Contact: testdb.Ann, HighPriority: true}).createMsg(t, rt, oa)
 
