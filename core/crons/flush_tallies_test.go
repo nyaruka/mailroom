@@ -33,5 +33,7 @@ func TestFlushTalliesCron(t *testing.T) {
 
 	assertdb.Query(t, rt.DB, `SELECT scope, count FROM orgs_tally WHERE org_id = $1`, testdb.Org1.ID).
 		Map(map[string]any{"emails/shared@2025-05-04": int64(2), "foo": int64(3)})
+	assertdb.Query(t, rt.DB, `SELECT scope, count FROM orgs_orgtally WHERE org_id = $1`, testdb.Org1.ID).
+		Map(map[string]any{"emails/shared@2025-05-04": int64(2), "foo": int64(3)})
 	assertdb.Query(t, rt.DB, `SELECT last_batch FROM orgs_tallyflush WHERE name = 'tallies'`).Returns(int64(1))
 }

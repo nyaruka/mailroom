@@ -70,8 +70,8 @@ func tallyRetentionFor(scope string) time.Duration {
 	return tallyRetention[longest]
 }
 
-// TallyStore is a vkutil.TallyStore which writes to the orgs_tally table, recording the last batch written for its key
-// base in orgs_tallyflush. Nothing is written for an org which isn't active.
+// TallyStore is a vkutil.TallyStore which writes to the orgs_tally and orgs_orgtally tables, recording the last batch
+// written for its key base in orgs_tallyflush. Nothing is written for an org which isn't active.
 type TallyStore struct {
 	db      *sqlx.DB
 	keyBase string
@@ -99,6 +99,16 @@ RETURNING 1`
 
 const sqlUpsertTallies = `
 INSERT INTO orgs_tally AS t (org_id, scope, count, expires_on)
+     SELECT u.org_id, u.scope, u.count, u.expires_on
+       FROM unnest($1::int[], $2::text[], $3::bigint[], $4::date[]) AS u(org_id, scope, count, expires_on)
+       JOIN orgs_org o ON o.id = u.org_id AND o.is_active
+   ORDER BY u.org_id, u.scope
+ON CONFLICT (org_id, scope) DO UPDATE SET count = t.count + excluded.count`
+
+// written in the same transaction as orgs_tally so the two tables can be compared, and in the same order so that row
+// locks are taken in the same order
+const sqlUpsertOrgTallies = `
+INSERT INTO orgs_orgtally AS t (org_id, scope, count, expires_on)
      SELECT u.org_id, u.scope, u.count, u.expires_on
        FROM unnest($1::int[], $2::text[], $3::bigint[], $4::date[]) AS u(org_id, scope, count, expires_on)
        JOIN orgs_org o ON o.id = u.org_id AND o.is_active
@@ -147,6 +157,11 @@ func (s *TallyStore) Write(ctx context.Context, id int64, amounts map[string]int
 	_, err = tx.ExecContext(ctx, sqlUpsertTallies, pq.Array(orgIDs), pq.Array(scopes), pq.Array(counts), pq.Array(expiresOn))
 	if err != nil {
 		return false, fmt.Errorf("error upserting tallies: %w", err)
+	}
+
+	_, err = tx.ExecContext(ctx, sqlUpsertOrgTallies, pq.Array(orgIDs), pq.Array(scopes), pq.Array(counts), pq.Array(expiresOn))
+	if err != nil {
+		return false, fmt.Errorf("error upserting org tallies: %w", err)
 	}
 
 	if err := tx.Commit(); err != nil {
