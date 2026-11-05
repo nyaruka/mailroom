@@ -70,8 +70,8 @@ func tallyRetentionFor(scope string) time.Duration {
 	return tallyRetention[longest]
 }
 
-// TallyStore is a vkutil.TallyStore which writes to the orgs_tally table, recording the last batch written for its key
-// base in orgs_tallyflush. Nothing is written for an org which isn't active.
+// TallyStore is a vkutil.TallyStore which writes to the orgs_tally and orgs_orgtally tables, recording the last batch
+// written for its key base in orgs_tallyflush. Nothing is written for an org which isn't active.
 type TallyStore struct {
 	db      *sqlx.DB
 	keyBase string
@@ -97,12 +97,20 @@ INSERT INTO orgs_tallyflush (name, last_batch) VALUES ($1, $2)
 ON CONFLICT (name) DO UPDATE SET last_batch = excluded.last_batch WHERE orgs_tallyflush.last_batch < excluded.last_batch
 RETURNING 1`
 
+// writes to orgs_tally and orgs_orgtally in one statement so that both see the same active orgs, and in the same order
+// so that row locks are taken in the same order
 const sqlUpsertTallies = `
-INSERT INTO orgs_tally AS t (org_id, scope, count, expires_on)
+WITH u AS (
      SELECT u.org_id, u.scope, u.count, u.expires_on
        FROM unnest($1::int[], $2::text[], $3::bigint[], $4::date[]) AS u(org_id, scope, count, expires_on)
        JOIN orgs_org o ON o.id = u.org_id AND o.is_active
-   ORDER BY u.org_id, u.scope
+), t1 AS (
+     INSERT INTO orgs_tally AS t (org_id, scope, count, expires_on)
+     SELECT org_id, scope, count, expires_on FROM u ORDER BY org_id, scope
+ON CONFLICT (org_id, scope) DO UPDATE SET count = t.count + excluded.count
+)
+INSERT INTO orgs_orgtally AS t (org_id, scope, count, expires_on)
+     SELECT org_id, scope, count, expires_on FROM u ORDER BY org_id, scope
 ON CONFLICT (org_id, scope) DO UPDATE SET count = t.count + excluded.count`
 
 // Write adds the given amounts by field to org tallies and records the batch, unless it has already been written,
