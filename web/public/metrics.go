@@ -10,7 +10,6 @@ import (
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/runtime"
 	"github.com/nyaruka/mailroom/v26/web"
-	"github.com/nyaruka/null/v3"
 	dto "github.com/prometheus/client_model/go"
 	"github.com/prometheus/common/expfmt"
 	"google.golang.org/protobuf/proto"
@@ -91,113 +90,51 @@ func calculateGroupCounts(ctx context.Context, rt *runtime.Runtime, org *models.
 	return family, err
 }
 
-const channelCountsSQL = `
-         SELECT ch.id, ch.uuid, ch.name, ch.role, ch.channel_type, c.scope, COALESCE(SUM(c.count), 0) as count 
-           FROM channels_channel ch 
-LEFT OUTER JOIN channels_channelcount c ON c.channel_id = ch.id 
-          WHERE ch.org_id = $1 AND ch.is_active = TRUE
-       GROUP BY ch.id, c.scope;`
+const channelsSQL = `
+SELECT uuid, name, role, channel_type
+  FROM channels_channel
+ WHERE org_id = $1 AND is_active = TRUE;`
 
-type channelCountRow struct {
-	ID          models.ChannelID   `db:"id"`
+type channelRow struct {
 	UUID        assets.ChannelUUID `db:"uuid"`
 	Name        string             `db:"name"`
 	Role        string             `db:"role"`
 	ChannelType string             `db:"channel_type"`
-	Scope       null.String        `db:"scope"`
-	Count       int64              `db:"count"`
 }
 
-type channelStats struct {
-	ID          models.ChannelID
-	UUID        assets.ChannelUUID
-	Name        string
-	Role        string
-	ChannelType string
-	Counts      map[string]int64
-}
-
-var channelCountScopeToType = map[string]string{
-	"text:in":   "IM",
-	"text:out":  "OM",
-	"voice:in":  "IV",
-	"voice:out": "OV",
-}
-
+// calculateChannelCounts returns a zero count for every message direction and type each channel supports. Counts are
+// no longer supported, but the metrics are kept so that existing scrapers and dashboards don't break.
 func calculateChannelCounts(ctx context.Context, rt *runtime.Runtime, org *models.Org) (*dto.MetricFamily, error) {
-	rows, err := rt.DB.QueryxContext(ctx, channelCountsSQL, org.ID())
+	rows, err := rt.DB.QueryxContext(ctx, channelsSQL, org.ID())
 	if err != nil {
-		return nil, fmt.Errorf("error querying channel counts for org: %w", err)
+		return nil, fmt.Errorf("error querying channels for org: %w", err)
 	}
 	defer rows.Close()
 
-	// we build an intermediate struct here of possible values because we always want to expose all
-	// possible metrics for a channel even if they aren't set. (IE, outgoing messages even if no messages
-	// have been sent yet) So we build a channel dictionarly that initializes possible values based on the
-	// role of the channel
-	channels := make(map[assets.ChannelUUID]*channelStats)
-	row := &channelCountRow{}
+	channels := make([]*channelRow, 0)
 	for rows.Next() {
-		err = rows.StructScan(row)
-		if err != nil {
-			return nil, fmt.Errorf("error scanning channel count row: %w", err)
+		channel := &channelRow{}
+		if err := rows.StructScan(channel); err != nil {
+			return nil, fmt.Errorf("error scanning channel row: %w", err)
 		}
-
-		channel, found := channels[row.UUID]
-		if !found {
-			channel = &channelStats{
-				ID:          row.ID,
-				UUID:        row.UUID,
-				Name:        row.Name,
-				Role:        row.Role,
-				ChannelType: row.ChannelType,
-				Counts:      make(map[string]int64),
-			}
-			channels[row.UUID] = channel
-
-			// populate expected stats
-			for _, role := range row.Role {
-				switch role {
-				case 'S':
-					channel.Counts["OM"] = 0
-				case 'R':
-					channel.Counts["IM"] = 0
-				case 'C':
-					channel.Counts["OV"] = 0
-				case 'A':
-					channel.Counts["IV"] = 0
-				}
-			}
-		}
-
-		if row.Scope != "" {
-			channel.Counts[channelCountScopeToType[string(row.Scope)]] = row.Count
-		}
+		channels = append(channels, channel)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error reading channel rows: %w", err)
 	}
 
-	// now convert our normalized channels into our family of metrics
 	family := &dto.MetricFamily{
 		Name:   proto.String("rapidpro_channel_msg_count"),
-		Help:   proto.String("the number of messages sent and received for a channel"),
+		Help:   proto.String("no longer supported and always 0"),
 		Type:   dto.MetricType_GAUGE.Enum(),
 		Metric: []*dto.Metric{},
 	}
 
 	for _, channel := range channels {
-		for countType, count := range channel.Counts {
-			// ignore channel log counts
-			if countType[0] == 'L' {
+		for _, role := range channel.Role {
+			direction, msgType, ok := channelRoleMetrics(role)
+			if !ok {
 				continue
-			}
-
-			direction := "in"
-			if countType[0] == 'O' {
-				direction = "out"
-			}
-
-			countType := "message"
-			if countType[1] == 'V' {
-				countType = "voice"
 			}
 
 			family.Metric = append(family.Metric,
@@ -221,7 +158,7 @@ func calculateChannelCounts(ctx context.Context, rt *runtime.Runtime, org *model
 						},
 						{
 							Name:  proto.String("msg_type"),
-							Value: proto.String(countType),
+							Value: proto.String(msgType),
 						},
 						{
 							Name:  proto.String("org"),
@@ -229,14 +166,29 @@ func calculateChannelCounts(ctx context.Context, rt *runtime.Runtime, org *model
 						},
 					},
 					Gauge: &dto.Gauge{
-						Value: proto.Float64(float64(count)),
+						Value: proto.Float64(0),
 					},
 				},
 			)
 		}
 	}
 
-	return family, err
+	return family, nil
+}
+
+// channelRoleMetrics returns the message direction and type of the count for the given channel role, if it has one
+func channelRoleMetrics(role rune) (string, string, bool) {
+	switch role {
+	case 'S':
+		return "out", "message", true
+	case 'R':
+		return "in", "message", true
+	case 'C':
+		return "out", "voice", true
+	case 'A':
+		return "in", "voice", true
+	}
+	return "", "", false
 }
 
 func handleMetrics(ctx context.Context, rt *runtime.Runtime, r *http.Request, rawW http.ResponseWriter) error {
