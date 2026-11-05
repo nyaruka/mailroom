@@ -97,22 +97,20 @@ INSERT INTO orgs_tallyflush (name, last_batch) VALUES ($1, $2)
 ON CONFLICT (name) DO UPDATE SET last_batch = excluded.last_batch WHERE orgs_tallyflush.last_batch < excluded.last_batch
 RETURNING 1`
 
+// writes to orgs_tally and orgs_orgtally in one statement so that both see the same active orgs, and in the same order
+// so that row locks are taken in the same order
 const sqlUpsertTallies = `
-INSERT INTO orgs_tally AS t (org_id, scope, count, expires_on)
+WITH u AS (
      SELECT u.org_id, u.scope, u.count, u.expires_on
        FROM unnest($1::int[], $2::text[], $3::bigint[], $4::date[]) AS u(org_id, scope, count, expires_on)
        JOIN orgs_org o ON o.id = u.org_id AND o.is_active
-   ORDER BY u.org_id, u.scope
-ON CONFLICT (org_id, scope) DO UPDATE SET count = t.count + excluded.count`
-
-// written in the same transaction as orgs_tally so the two tables can be compared, and in the same order so that row
-// locks are taken in the same order
-const sqlUpsertOrgTallies = `
+), t1 AS (
+     INSERT INTO orgs_tally AS t (org_id, scope, count, expires_on)
+     SELECT org_id, scope, count, expires_on FROM u ORDER BY org_id, scope
+ON CONFLICT (org_id, scope) DO UPDATE SET count = t.count + excluded.count
+)
 INSERT INTO orgs_orgtally AS t (org_id, scope, count, expires_on)
-     SELECT u.org_id, u.scope, u.count, u.expires_on
-       FROM unnest($1::int[], $2::text[], $3::bigint[], $4::date[]) AS u(org_id, scope, count, expires_on)
-       JOIN orgs_org o ON o.id = u.org_id AND o.is_active
-   ORDER BY u.org_id, u.scope
+     SELECT org_id, scope, count, expires_on FROM u ORDER BY org_id, scope
 ON CONFLICT (org_id, scope) DO UPDATE SET count = t.count + excluded.count`
 
 // Write adds the given amounts by field to org tallies and records the batch, unless it has already been written,
@@ -157,11 +155,6 @@ func (s *TallyStore) Write(ctx context.Context, id int64, amounts map[string]int
 	_, err = tx.ExecContext(ctx, sqlUpsertTallies, pq.Array(orgIDs), pq.Array(scopes), pq.Array(counts), pq.Array(expiresOn))
 	if err != nil {
 		return false, fmt.Errorf("error upserting tallies: %w", err)
-	}
-
-	_, err = tx.ExecContext(ctx, sqlUpsertOrgTallies, pq.Array(orgIDs), pq.Array(scopes), pq.Array(counts), pq.Array(expiresOn))
-	if err != nil {
-		return false, fmt.Errorf("error upserting org tallies: %w", err)
 	}
 
 	if err := tx.Commit(); err != nil {
