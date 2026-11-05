@@ -44,22 +44,10 @@ func TestTallyStore(t *testing.T) {
 		assert.Equal(t, expected, written)
 	}
 	assertTallies := func(owner models.OrgID, expected map[string]any) {
-		assertdb.Query(t, rt.DB, `SELECT scope, count FROM orgs_tally WHERE org_id = $1`, owner).Map(expected)
+		assertdb.Query(t, rt.DB, `SELECT scope, count FROM orgs_orgtally WHERE org_id = $1`, owner).Map(expected)
 	}
 	assertExpiries := func(owner models.OrgID, expected map[string]any) {
-		assertdb.Query(t, rt.DB, `SELECT scope, expires_on::text FROM orgs_tally WHERE org_id = $1`, owner).Map(expected)
-	}
-
-	// orgs_orgtally should always have the same rows as orgs_tally
-	assertTablesMatch := func() {
-		assertdb.Query(t, rt.DB, `
-		SELECT count(*) FROM (
-			(SELECT org_id, scope COLLATE "C", count, expires_on FROM orgs_tally
-			 EXCEPT SELECT org_id, scope COLLATE "C", count, expires_on FROM orgs_orgtally)
-			UNION ALL
-			(SELECT org_id, scope COLLATE "C", count, expires_on FROM orgs_orgtally
-			 EXCEPT SELECT org_id, scope COLLATE "C", count, expires_on FROM orgs_tally)
-		) d`).Returns(0)
+		assertdb.Query(t, rt.DB, `SELECT scope, expires_on::text FROM orgs_orgtally WHERE org_id = $1`, owner).Map(expected)
 	}
 
 	assertLastBatch(store, 0)
@@ -79,7 +67,6 @@ func TestTallyStore(t *testing.T) {
 		"msgs/text:in@2025-05-04": int64(2),
 	})
 	assertTallies(org2, map[string]any{"foo": int64(5)})
-	assertTablesMatch()
 
 	// expiries are from the day a tally is first written, by its retention
 	assertExpiries(org1, map[string]any{
@@ -103,7 +90,6 @@ func TestTallyStore(t *testing.T) {
 		"foo": nil, "emails/shared@2025-05-04": "2025-08-02", "channels/12/text:in@2025-05-04": "2026-06-08",
 		"msgs/text:in@2025-05-04": nil, "llms/foo/tokens:in@2025-05-10": "2025-08-08",
 	})
-	assertTablesMatch()
 
 	// writing a batch which has already been written, or an earlier one, does nothing
 	write(2, map[string]int64{models.TallyField(org1, "foo", time.Time{}): 10}, false)
@@ -111,8 +97,7 @@ func TestTallyStore(t *testing.T) {
 
 	assertLastBatch(store, 2)
 	assertTallies(org2, map[string]any{"foo": int64(5)})
-	assertdb.Query(t, rt.DB, `SELECT count FROM orgs_tally WHERE org_id = $1 AND scope = 'foo'`, org1).Returns(int64(3))
-	assertTablesMatch()
+	assertdb.Query(t, rt.DB, `SELECT count FROM orgs_orgtally WHERE org_id = $1 AND scope = 'foo'`, org1).Returns(int64(3))
 
 	// batch ids can skip ahead
 	write(5, map[string]int64{models.TallyField(org1, "foo", time.Time{}): 1}, true)
@@ -128,10 +113,8 @@ func TestTallyStore(t *testing.T) {
 	}, true)
 
 	assertLastBatch(store, 6)
-	assertdb.Query(t, rt.DB, `SELECT count FROM orgs_tally WHERE org_id = $1 AND scope = 'foo'`, org1).Returns(int64(5))
+	assertdb.Query(t, rt.DB, `SELECT count FROM orgs_orgtally WHERE org_id = $1 AND scope = 'foo'`, org1).Returns(int64(5))
 	assertTallies(org2, map[string]any{"foo": int64(5)})
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM orgs_orgtally WHERE org_id = 123456`).Returns(0)
-	assertTablesMatch()
 
 	// a batch with nothing to write is still recorded
 	write(7, map[string]int64{models.TallyField(org2, "foo", time.Time{}): 1}, true)
@@ -147,8 +130,7 @@ func TestTallyStore(t *testing.T) {
 	}
 
 	assertLastBatch(store, 7)
-	assertdb.Query(t, rt.DB, `SELECT count FROM orgs_tally WHERE org_id = $1 AND scope = 'foo'`, org1).Returns(int64(5))
-	assertTablesMatch()
+	assertdb.Query(t, rt.DB, `SELECT count FROM orgs_orgtally WHERE org_id = $1 AND scope = 'foo'`, org1).Returns(int64(5))
 }
 
 func TestFlushTallies(t *testing.T) {
@@ -168,11 +150,6 @@ func TestFlushTallies(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, 3, flushed)
 
-	assertdb.Query(t, rt.DB, `SELECT org_id || '|' || scope, count FROM orgs_tally`).Map(map[string]any{
-		fmt.Sprintf("%d|bar", testdb.Org1.ID): int64(1),
-		fmt.Sprintf("%d|foo", testdb.Org1.ID): int64(2),
-		fmt.Sprintf("%d|foo", testdb.Org2.ID): int64(3),
-	})
 	assertdb.Query(t, rt.DB, `SELECT org_id || '|' || scope, count FROM orgs_orgtally`).Map(map[string]any{
 		fmt.Sprintf("%d|bar", testdb.Org1.ID): int64(1),
 		fmt.Sprintf("%d|foo", testdb.Org1.ID): int64(2),

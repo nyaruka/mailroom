@@ -33,7 +33,7 @@ func TestEmailSent(t *testing.T) {
 	_, err := rt.Tallies.Flush(ctx, vc, models.NewTallyStore(rt.DB, rt.Tallies.KeyBase()), 10)
 	require.NoError(t, err)
 
-	assertdb.Query(t, rt.DB, `SELECT count, expires_on::text FROM orgs_tally WHERE org_id = $1 AND scope = 'emails/shared@2025-05-04'`, testdb.Org1.ID).
+	assertdb.Query(t, rt.DB, `SELECT count, expires_on::text FROM orgs_orgtally WHERE org_id = $1 AND scope = 'emails/shared@2025-05-04'`, testdb.Org1.ID).
 		Columns(map[string]any{"count": int64(3), "expires_on": "2025-08-02"})
 
 	// but not once the workspace has its own configuration
