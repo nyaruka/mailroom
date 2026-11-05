@@ -55,7 +55,7 @@ func (t *InterruptChannel) Perform(ctx context.Context, rt *runtime.Runtime, oa 
 		return fmt.Errorf("error interrupting sessions: %w", err)
 	}
 
-	if err = msgio.ClearCourierQueues(vc, channel); err != nil {
+	if err = msgio.ClearCourierQueues(ctx, vc, channel); err != nil {
 		return fmt.Errorf("error clearing courier queues: %w", err)
 	}
 
