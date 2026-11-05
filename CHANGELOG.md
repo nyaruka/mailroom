@@ -1,3 +1,6 @@
+## v26.3.126 (2026-11-05)
+ * Use gocommon's MsgsV2 queue to push and clear courier queues
+
 ## v26.3.125 (2026-11-04)
  * Queue messages to courier in its per-channel queue layout and add tests for pushes within one server second and for pushes and clears that leave a channel ready or waiting
 
