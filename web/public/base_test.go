@@ -78,6 +78,9 @@ func TestMetrics(t *testing.T) {
 			Contains: []string{
 				`rapidpro_group_contact_count{group_name="Active",group_uuid="b97f69f7-5edf-45c7-9fda-d37066eae91d",group_type="system",org="TextIt"} 124`,
 				`rapidpro_group_contact_count{group_name="Doctors",group_uuid="c153e265-f7c9-4539-9dbc-9b358714b638",group_type="user",org="TextIt"} 121`,
+				`# HELP rapidpro_channel_msg_count no longer supported and always 0`,
+				`rapidpro_channel_msg_count{channel_name="Twilio",channel_uuid="74729f45-7f29-4868-9dc4-90e491e3c7d8",channel_type="T",msg_direction="in",msg_type="message",org="TextIt"} 0`,
+				`rapidpro_channel_msg_count{channel_name="Twilio",channel_uuid="74729f45-7f29-4868-9dc4-90e491e3c7d8",channel_type="T",msg_direction="out",msg_type="voice",org="TextIt"} 0`,
 				`rapidpro_channel_msg_count{channel_name="Vonage",channel_uuid="19012bfd-3ce3-4cae-9bb9-76cf92c73d49",channel_type="NX",msg_direction="out",msg_type="message",org="TextIt"} 0`,
 			},
 		},
