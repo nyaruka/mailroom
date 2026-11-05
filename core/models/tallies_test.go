@@ -115,6 +115,7 @@ func TestTallyStore(t *testing.T) {
 	assertLastBatch(store, 6)
 	assertdb.Query(t, rt.DB, `SELECT count FROM orgs_orgtally WHERE org_id = $1 AND scope = 'foo'`, org1).Returns(int64(5))
 	assertTallies(org2, map[string]any{"foo": int64(5)})
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM orgs_orgtally WHERE org_id = 123456`).Returns(0)
 
 	// a batch with nothing to write is still recorded
 	write(7, map[string]int64{models.TallyField(org2, "foo", time.Time{}): 1}, true)
