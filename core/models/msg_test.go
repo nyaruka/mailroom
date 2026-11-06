@@ -1122,7 +1122,7 @@ func TestMsgTallies(t *testing.T) {
 	_, err := rt.Tallies.Flush(ctx, vc, models.NewTallyStore(rt.DB, rt.Tallies.KeyBase()), 10)
 	require.NoError(t, err)
 
-	assertdb.Query(t, rt.DB, `SELECT scope, expires_on::text FROM orgs_tally WHERE org_id = $1 ORDER BY scope`, testdb.Org1.ID).Map(
+	assertdb.Query(t, rt.DB, `SELECT scope, expires_on::text FROM orgs_orgtally WHERE org_id = $1 ORDER BY scope`, testdb.Org1.ID).Map(
 		map[string]any{"channels/10003/text:in@2026-11-04": "2027-12-09", "msgs/text:in@2026-11-04": nil},
 	)
 }
