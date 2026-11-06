@@ -1,3 +1,7 @@
+## v26.3.128 (2026-11-06)
+ * Stop writing tallies to orgs_tally
+ * Report channel msg counts in org metrics as always 0
+
 ## v26.3.127 (2026-11-05)
  * Write tally batches to orgs_orgtally as well as orgs_tally
 
