@@ -38,7 +38,8 @@ var tallyRetention = map[string]time.Duration{
 }
 
 // TallyField returns the field of the tally of the given scope for the given org, which if day isn't zero is the daily
-// tally for its UTC day. Panics if the scope contains @ as it's reserved for separating the day.
+// tally for its UTC day. The org is prefixed with O so that tallies of other owners can be told apart by their own
+// prefixes. Panics if the scope contains @ as it's reserved for separating the day.
 func TallyField(orgID OrgID, scope string, day time.Time) string {
 	if !day.IsZero() {
 		if strings.Contains(scope, "@") {
@@ -46,11 +47,11 @@ func TallyField(orgID OrgID, scope string, day time.Time) string {
 		}
 		scope += "@" + day.UTC().Format(time.DateOnly)
 	}
-	return fmt.Sprintf("%d|%s", orgID, scope)
+	return fmt.Sprintf("O%d|%s", orgID, scope)
 }
 
-// parseTallyField parses a field created by TallyField into its org and scope. The org may be prefixed with O, which
-// is accepted ahead of writers using it, so that tallies of other owners can be told apart by their own prefixes.
+// parseTallyField parses a field created by TallyField into its org and scope. The org may also be unprefixed, as
+// written by older writers.
 func parseTallyField(field string) (OrgID, string, error) {
 	orgStr, scope, ok := strings.Cut(field, "|")
 	orgID, err := strconv.ParseInt(strings.TrimPrefix(orgStr, "O"), 10, 64)

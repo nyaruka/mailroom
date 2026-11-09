@@ -340,8 +340,8 @@ func TestSendBroadcastTask(t *testing.T) {
 	// every message with a channel is tallied
 	today := now.UTC().Format(time.DateOnly)
 	assertvk.HGetAll(t, vc, "{tallies}:live", map[string]string{
-		"1|channels/10000/text:out@" + today: "7",
-		"1|channels/10003/text:out@" + today: "120",
-		"1|msgs/text:out@" + today:           "127",
+		"O1|channels/10000/text:out@" + today: "7",
+		"O1|channels/10003/text:out@" + today: "120",
+		"O1|msgs/text:out@" + today:           "127",
 	})
 }

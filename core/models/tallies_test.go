@@ -17,9 +17,9 @@ import (
 func TestTallyField(t *testing.T) {
 	day := time.Date(2025, 5, 4, 23, 30, 0, 0, time.FixedZone("", -2*3600))
 
-	assert.Equal(t, "1|foo", models.TallyField(testdb.Org1.ID, "foo", time.Time{}))
-	assert.Equal(t, "1|emails/shared@2025-05-05", models.TallyField(testdb.Org1.ID, "emails/shared", day))
-	assert.Equal(t, "2|foo@bar", models.TallyField(testdb.Org2.ID, "foo@bar", time.Time{}))
+	assert.Equal(t, "O1|foo", models.TallyField(testdb.Org1.ID, "foo", time.Time{}))
+	assert.Equal(t, "O1|emails/shared@2025-05-05", models.TallyField(testdb.Org1.ID, "emails/shared", day))
+	assert.Equal(t, "O2|foo@bar", models.TallyField(testdb.Org2.ID, "foo@bar", time.Time{}))
 	assert.Panics(t, func() { models.TallyField(testdb.Org1.ID, "foo@bar", day) })
 }
 
@@ -99,13 +99,13 @@ func TestTallyStore(t *testing.T) {
 	assertTallies(org2, map[string]any{"foo": int64(5)})
 	assertdb.Query(t, rt.DB, `SELECT count FROM orgs_orgtally WHERE org_id = $1 AND scope = 'foo'`, org1).Returns(int64(3))
 
-	// batch ids can skip ahead, and orgs can be prefixed with O
-	write(5, map[string]int64{fmt.Sprintf("O%d|foo", org1): 1}, true)
+	// batch ids can skip ahead, and orgs can be unprefixed
+	write(5, map[string]int64{fmt.Sprintf("%d|foo", org1): 1}, true)
 	assertLastBatch(store, 5)
 	assertdb.Query(t, rt.DB, `SELECT count FROM orgs_orgtally WHERE org_id = $1 AND scope = 'foo'`, org1).Returns(int64(4))
 
-	// including in the same batch as the unprefixed form of the same tally
-	write(6, map[string]int64{models.TallyField(org1, "foo", time.Time{}): 2, fmt.Sprintf("O%d|foo", org1): 3}, true)
+	// including in the same batch as the prefixed form of the same tally
+	write(6, map[string]int64{fmt.Sprintf("%d|foo", org1): 2, models.TallyField(org1, "foo", time.Time{}): 3}, true)
 	assertLastBatch(store, 6)
 	assertdb.Query(t, rt.DB, `SELECT count FROM orgs_orgtally WHERE org_id = $1 AND scope = 'foo'`, org1).Returns(int64(9))
 
