@@ -123,12 +123,13 @@ func TestTwilioIVR(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE contact_id = $1 AND msg_type = 'V' 
 		AND ((status = 'H' AND direction = 'I') OR (status = 'W' AND direction = 'O'))`, testdb.Bob.ID).Returns(2)
 
-	// voice messages in both directions are tallied, as are the flow segments taken
+	// voice messages in both directions are tallied, as are the flow segments taken and the incoming messages for the flow
 	tallies, err := valkey.StringMap(vc.Do("HGETALL", "{tallies}:live"))
 	require.NoError(t, err)
 	segments := maps.Clone(tallies)
 	maps.DeleteFunc(segments, func(f, _ string) bool { return !strings.HasPrefix(f, fmt.Sprintf("F%d|segment:", testdb.IVRFlow.ID)) })
 	assert.NotEmpty(t, segments)
+	assert.Equal(t, "5", tallies[fmt.Sprintf("F%d|msgsin:date:2025-05-04", testdb.IVRFlow.ID)])
 	maps.DeleteFunc(tallies, func(f, _ string) bool { return !strings.HasPrefix(f, "O") })
 	assert.Equal(t, map[string]string{
 		"O1|channels/10000/voice:in@2025-05-04":  "5",
