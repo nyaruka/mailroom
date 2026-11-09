@@ -91,7 +91,7 @@ func (h *insertFlowStats) Execute(ctx context.Context, rt *runtime.Runtime, tx *
 		if count != 0 {
 			activityCounts = append(activityCounts, &models.FlowActivityCount{
 				FlowID: seg.flowID,
-				Scope:  fmt.Sprintf("segment:%s:%s", seg.exitUUID, seg.destUUID),
+				Scope:  models.FlowSegmentTallyScope(seg.exitUUID, seg.destUUID),
 				Count:  count,
 			})
 		}
