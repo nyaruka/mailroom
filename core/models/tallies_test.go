@@ -68,13 +68,13 @@ func TestTallyStore(t *testing.T) {
 	})
 	assertTallies(org2, map[string]any{"foo": int64(5)})
 
-	// expiries are from the day a tally is first written, by its retention
+	// expiries are from the day of a daily tally, by its retention
 	assertExpiries(org1, map[string]any{
 		"foo": nil, "emails/shared@2025-05-04": "2025-08-02", "channels/12/text:in@2025-05-04": "2026-06-08",
 		"msgs/text:in@2025-05-04": nil,
 	})
 
-	// and aren't changed by later writes
+	// so don't depend on when it's written
 	dates.SetNowFunc(dates.NewFixedNow(time.Date(2025, 5, 10, 12, 0, 0, 0, time.UTC)))
 
 	write(2, map[string]int64{
@@ -135,15 +135,15 @@ func TestTallyStore(t *testing.T) {
 
 	// zero totals aren't kept - a zero amount writes nothing and a decrement to zero deletes the tally
 	write(8, map[string]int64{
-		models.TallyField(org1, "foo", time.Time{}):                      -5,
-		models.TallyField(org1, "bar", time.Time{}):                      0,
-		models.TallyField(org1, "emails/shared@2025-05-04", time.Time{}): -1,
+		models.TallyField(org1, "foo", time.Time{}):                            -5,
+		models.TallyField(org1, "bar", time.Time{}):                            0,
+		models.TallyField(org1, "emails/shared@2025-05-04", time.Time{}):       -1,
+		models.TallyField(org1, "channels/12/text:in@2025-05-04", time.Time{}): -2,
 	}, true)
 
 	assertLastBatch(store, 8)
 	assertTallies(org1, map[string]any{
-		"emails/shared@2025-05-04": int64(2), "channels/12/text:in@2025-05-04": int64(2),
-		"msgs/text:in@2025-05-04": int64(2), "llms/foo/tokens:in@2025-05-10": int64(100),
+		"emails/shared@2025-05-04": int64(2), "msgs/text:in@2025-05-04": int64(2), "llms/foo/tokens:in@2025-05-10": int64(100),
 	})
 
 	// a batch which is all zeros is still recorded
@@ -151,6 +151,14 @@ func TestTallyStore(t *testing.T) {
 
 	assertLastBatch(store, 9)
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM orgs_orgtally WHERE org_id = $1 AND scope = 'bar'`, org1).Returns(0)
+
+	// a deleted tally which is written again gets the same expiry
+	write(10, map[string]int64{models.TallyField(org1, "channels/12/text:in@2025-05-04", time.Time{}): 1}, true)
+
+	assertExpiries(org1, map[string]any{
+		"emails/shared@2025-05-04": "2025-08-02", "channels/12/text:in@2025-05-04": "2026-06-08",
+		"msgs/text:in@2025-05-04": nil, "llms/foo/tokens:in@2025-05-10": "2025-08-08",
+	})
 }
 
 func TestFlushTallies(t *testing.T) {

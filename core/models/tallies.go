@@ -70,6 +70,18 @@ func tallyRetentionFor(scope string) time.Duration {
 	return tallyRetention[longest]
 }
 
+// tallyDay returns the day of a daily tally scope, or the given default if the scope isn't a daily one. Expiries are
+// counted from it so that they don't depend on when a tally happens to be written, and an undated tally's expiry is
+// extended by each write.
+func tallyDay(scope string, def time.Time) time.Time {
+	if i := strings.LastIndex(scope, "@"); i >= 0 {
+		if day, err := time.Parse(time.DateOnly, scope[i+1:]); err == nil {
+			return day
+		}
+	}
+	return def
+}
+
 // TallyStore is a vkutil.TallyStore which writes to the orgs_orgtally table, recording the last batch written for its
 // key base in orgs_tallyflush. Nothing is written for an org which isn't active, and tallies with a total of zero
 // aren't kept.
@@ -104,7 +116,7 @@ INSERT INTO orgs_orgtally AS t (org_id, scope, count, expires_on)
        FROM unnest($1::int[], $2::text[], $3::bigint[], $4::date[]) AS u(org_id, scope, count, expires_on)
        JOIN orgs_org o ON o.id = u.org_id AND o.is_active
    ORDER BY u.org_id, u.scope
-ON CONFLICT (org_id, scope) DO UPDATE SET count = t.count + excluded.count`
+ON CONFLICT (org_id, scope) DO UPDATE SET count = t.count + excluded.count, expires_on = excluded.expires_on`
 
 // a separate statement because a data-modifying CTE can't safely delete rows which the same statement's upsert modified
 const sqlDeleteZeroTallies = `
@@ -112,8 +124,8 @@ DELETE FROM orgs_orgtally t
       USING unnest($1::int[], $2::text[]) AS u(org_id, scope)
       WHERE t.org_id = u.org_id AND t.scope = u.scope AND t.count = 0`
 
-// Write adds the given amounts by field to org tallies and records the batch, unless it has already been written,
-// setting expiries only on tallies which don't exist yet. Tallies which the batch brings to zero are deleted.
+// Write adds the given amounts by field to org tallies and records the batch, unless it has already been written.
+// Tallies which the batch brings to zero are deleted.
 func (s *TallyStore) Write(ctx context.Context, id int64, amounts map[string]int64) (bool, error) {
 	orgIDs := make([]int64, 0, len(amounts))
 	scopes := make([]string, 0, len(amounts))
@@ -137,7 +149,7 @@ func (s *TallyStore) Write(ctx context.Context, id int64, amounts map[string]int
 
 		var expires sql.NullString
 		if retention := tallyRetentionFor(scope); retention != 0 {
-			expires = sql.NullString{String: today.Add(retention).Format(time.DateOnly), Valid: true}
+			expires = sql.NullString{String: tallyDay(scope, today).Add(retention).Format(time.DateOnly), Valid: true}
 		}
 
 		orgIDs = append(orgIDs, int64(orgID))
