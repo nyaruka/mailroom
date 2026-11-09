@@ -12,6 +12,14 @@ import (
 	"github.com/vinovest/sqlx"
 )
 
+// HandlingFlow returns the flow which handled the scene's incoming message, if any
+func HandlingFlow(scene *runner.Scene) *models.Flow {
+	if scene.Sprint != nil && len(scene.Sprint.Flows()) > 0 {
+		return scene.Sprint.Flows()[0].Asset().(*models.Flow)
+	}
+	return nil
+}
+
 // UpdateMessageHandled is our hook for updating incoming messages
 var UpdateMessageHandled runner.PreCommitHook = &updateMessageHandled{}
 
@@ -25,10 +33,7 @@ func (h *updateMessageHandled) Execute(ctx context.Context, rt *runtime.Runtime,
 		msgIn := scene.IncomingMsg
 		contactBlocked := scene.Contact.Status() == core.ContactStatusBlocked
 
-		var flow *models.Flow
-		if scene.Sprint != nil && len(scene.Sprint.Flows()) > 0 {
-			flow = scene.Sprint.Flows()[0].Asset().(*models.Flow)
-		}
+		flow := HandlingFlow(scene)
 
 		// a message from a blocked contact, or one that arrived without a channel, is filed straight into the
 		// archived folder rather than being put in front of the user

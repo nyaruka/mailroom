@@ -42,8 +42,10 @@ func TestMsgCreated(t *testing.T) {
 	// One bulk for Cat
 	assertvk.ZCard(t, vc, fmt.Sprintf("{msgs}:q:%s/0", testdb.TwilioChannel.UUID), 1)
 
-	// messages with a channel are tallied, as are the flow segments taken
+	// messages with a channel are tallied, as are the flow segments taken and the incoming message handled by a flow
 	assertvk.HGetAll(t, vc, "{tallies}:live", map[string]string{
+		"F10000|msgsin:date:2025-05-04": "1",
+		"F10000|msgsin:hour:12":         "1",
 		"F10000|segment:21ba4570-846e-4143-a7eb-cc4cc9ec3e6b:2dceef06-e669-4bdc-893f-6422e535ea8c": "1",
 		"F10000|segment:59ad8481-1332-4457-b20c-e3cb6203e029:c7e91e47-648c-4373-b3a5-b9dac4767740": "1",
 		"F10000|segment:a5111699-b2f8-4a37-9729-57745fb13b06:ac67e9eb-b541-43e4-9aeb-7faa667f1355": "1",
