@@ -49,10 +49,11 @@ func TallyField(orgID OrgID, scope string, day time.Time) string {
 	return fmt.Sprintf("%d|%s", orgID, scope)
 }
 
-// parseTallyField parses a field created by TallyField into its org and scope
+// parseTallyField parses a field created by TallyField into its org and scope. The org may be prefixed with O, which
+// is accepted ahead of writers using it, so that tallies of other owners can be told apart by their own prefixes.
 func parseTallyField(field string) (OrgID, string, error) {
 	orgStr, scope, ok := strings.Cut(field, "|")
-	orgID, err := strconv.ParseInt(orgStr, 10, 64)
+	orgID, err := strconv.ParseInt(strings.TrimPrefix(orgStr, "O"), 10, 64)
 	if !ok || err != nil {
 		return NilOrgID, "", fmt.Errorf("invalid tally field %q", field)
 	}

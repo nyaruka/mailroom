@@ -99,9 +99,10 @@ func TestTallyStore(t *testing.T) {
 	assertTallies(org2, map[string]any{"foo": int64(5)})
 	assertdb.Query(t, rt.DB, `SELECT count FROM orgs_orgtally WHERE org_id = $1 AND scope = 'foo'`, org1).Returns(int64(3))
 
-	// batch ids can skip ahead
-	write(5, map[string]int64{models.TallyField(org1, "foo", time.Time{}): 1}, true)
+	// batch ids can skip ahead, and orgs can be prefixed with O
+	write(5, map[string]int64{fmt.Sprintf("O%d|foo", org1): 1}, true)
 	assertLastBatch(store, 5)
+	assertdb.Query(t, rt.DB, `SELECT count FROM orgs_orgtally WHERE org_id = $1 AND scope = 'foo'`, org1).Returns(int64(4))
 
 	// nothing is written for an org which isn't active, or doesn't exist, but the rest of the batch is
 	rt.DB.MustExec(`UPDATE orgs_org SET is_active = FALSE WHERE id = $1`, org2)
@@ -124,7 +125,7 @@ func TestTallyStore(t *testing.T) {
 	assertTallies(org2, map[string]any{"foo": int64(5)})
 
 	// a field which can't be parsed fails the whole batch
-	for _, field := range []string{"foo", "x|foo"} {
+	for _, field := range []string{"foo", "x|foo", "O|foo", "Ox|foo", "OO1|foo", "F1|foo"} {
 		written, err := store.Write(ctx, 8, map[string]int64{models.TallyField(org1, "foo", time.Time{}): 1, field: 1})
 		assert.EqualError(t, err, fmt.Sprintf("invalid tally field %q", field))
 		assert.False(t, written)
