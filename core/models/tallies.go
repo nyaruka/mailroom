@@ -29,7 +29,7 @@ const (
 	TallyLLMs = "llms"
 )
 
-// tallyRetention is how long tallies are kept after they're first written, by scope prefix. Tallies without one, such
+// tallyRetention is how long org tallies are kept after they're first written, by scope prefix. Tallies without one, such
 // as the msgs/ ones, are kept forever.
 var tallyRetention = map[string]time.Duration{
 	TallyEmailsShared + "@": 90 * 24 * time.Hour,
@@ -38,8 +38,7 @@ var tallyRetention = map[string]time.Duration{
 }
 
 // TallyField returns the field of the tally of the given scope for the given org, which if day isn't zero is the daily
-// tally for its UTC day. The org is prefixed with O so that tallies of other owners can be told apart by their own
-// prefixes. Panics if the scope contains @ as it's reserved for separating the day.
+// tally for its UTC day. Panics if the scope contains @ as it's reserved for separating the day.
 func TallyField(orgID OrgID, scope string, day time.Time) string {
 	if !day.IsZero() {
 		if strings.Contains(scope, "@") {
@@ -47,18 +46,29 @@ func TallyField(orgID OrgID, scope string, day time.Time) string {
 		}
 		scope += "@" + day.UTC().Format(time.DateOnly)
 	}
-	return fmt.Sprintf("O%d|%s", orgID, scope)
+	return fmt.Sprintf("%c%d|%s", tallyOwnerOrg, orgID, scope)
 }
 
-// parseTallyField parses a field created by TallyField into its org and scope. The org may also be unprefixed, as
-// written by older writers.
-func parseTallyField(field string) (OrgID, string, error) {
-	orgStr, scope, ok := strings.Cut(field, "|")
-	orgID, err := strconv.ParseInt(strings.TrimPrefix(orgStr, "O"), 10, 64)
-	if !ok || err != nil {
-		return NilOrgID, "", fmt.Errorf("invalid tally field %q", field)
+// tallyOwner is the type of thing a tally belongs to, which prefixes its id in a tally field
+type tallyOwner byte
+
+const (
+	tallyOwnerOrg  tallyOwner = 'O'
+	tallyOwnerFlow tallyOwner = 'F'
+)
+
+// parseTallyField parses a tally field into its owner type, owner id and scope. Fields are <owner><id>|<scope>, where
+// owner is O for an org tally or F for a flow tally, e.g. O123|msgs/text:in@2026-11-03 or F45|segment:<exit>:<node>.
+func parseTallyField(field string) (tallyOwner, int64, string, error) {
+	ownerStr, scope, ok := strings.Cut(field, "|")
+	if ok && len(ownerStr) > 1 {
+		owner := tallyOwner(ownerStr[0])
+		id, err := strconv.ParseUint(ownerStr[1:], 10, 63)
+		if (owner == tallyOwnerOrg || owner == tallyOwnerFlow) && err == nil && id > 0 {
+			return owner, int64(id), scope, nil
+		}
 	}
-	return OrgID(orgID), scope, nil
+	return 0, 0, "", fmt.Errorf("invalid tally field %q", field)
 }
 
 // tallyRetentionFor returns the retention of the longest prefix of the given scope which has one, or zero if none do
@@ -83,9 +93,9 @@ func tallyDay(scope string, def time.Time) time.Time {
 	return def
 }
 
-// TallyStore is a vkutil.TallyStore which writes to the orgs_orgtally table, recording the last batch written for its
-// key base in orgs_tallyflush. Nothing is written for an org which isn't active, and tallies with a total of zero
-// aren't kept.
+// TallyStore is a vkutil.TallyStore which writes org tallies to the orgs_orgtally table and flow tallies to the
+// flows_flowtally table, recording the last batch written for its key base in orgs_tallyflush. Nothing is written for
+// an org or flow which isn't active, and tallies with a total of zero aren't kept.
 type TallyStore struct {
 	db      *sqlx.DB
 	keyBase string
@@ -111,69 +121,118 @@ INSERT INTO orgs_tallyflush (name, last_batch) VALUES ($1, $2)
 ON CONFLICT (name) DO UPDATE SET last_batch = excluded.last_batch WHERE orgs_tallyflush.last_batch < excluded.last_batch
 RETURNING 1`
 
-// expiry is set by every write so that an undated tally's is extended by each one
-const sqlUpsertTallies = `
-INSERT INTO orgs_orgtally AS t (org_id, scope, count, expires_on)
-     SELECT u.org_id, u.scope, u.count, u.expires_on
-       FROM unnest($1::int[], $2::text[], $3::bigint[], $4::date[]) AS u(org_id, scope, count, expires_on)
-       JOIN orgs_org o ON o.id = u.org_id AND o.is_active
-   ORDER BY u.org_id, u.scope
-ON CONFLICT (org_id, scope) DO UPDATE SET count = t.count + excluded.count, expires_on = excluded.expires_on`
-
-// a separate statement because a data-modifying CTE can't safely delete rows which the same statement's upsert modified
-const sqlDeleteZeroTallies = `
-DELETE FROM orgs_orgtally t
-      USING unnest($1::int[], $2::text[]) AS u(org_id, scope), orgs_org o
-      WHERE t.org_id = u.org_id AND t.scope = u.scope AND t.count = 0 AND o.id = t.org_id AND o.is_active`
-
-type tallyKey struct {
-	orgID OrgID
-	scope string
+// tallyTable is a table of tallies for one owner type, keyed by owner and scope
+type tallyTable struct {
+	sqlUpsert     string
+	sqlDeleteZero string
 }
 
-// Write adds the given amounts by field to org tallies and records the batch, unless it has already been written.
-// Tallies which the batch brings to zero are deleted.
+func newTallyTable(table, ownerCol, ownerTable string) *tallyTable {
+	return &tallyTable{
+		// expiry is set by every write so that an undated tally's is extended by each one
+		sqlUpsert: fmt.Sprintf(`
+INSERT INTO %[1]s AS t (%[2]s, scope, count, expires_on)
+     SELECT u.owner_id, u.scope, u.count, u.expires_on
+       FROM unnest($1::bigint[], $2::text[], $3::bigint[], $4::date[]) AS u(owner_id, scope, count, expires_on)
+       JOIN %[3]s o ON o.id = u.owner_id AND o.is_active
+   ORDER BY u.owner_id, u.scope
+ON CONFLICT (%[2]s, scope) DO UPDATE SET count = t.count + excluded.count, expires_on = excluded.expires_on`, table, ownerCol, ownerTable),
+
+		// a separate statement because a data-modifying CTE can't safely delete rows which the same statement's upsert
+		// modified
+		sqlDeleteZero: fmt.Sprintf(`
+DELETE FROM %[1]s t
+      USING unnest($1::bigint[], $2::text[]) AS u(owner_id, scope), %[3]s o
+      WHERE t.%[2]s = u.owner_id AND t.scope = u.scope AND t.count = 0 AND o.id = t.%[2]s AND o.is_active`, table, ownerCol, ownerTable),
+	}
+}
+
+// the table of each owner type, in the order they're written so that concurrent writes lock rows in the same order
+var tallyTables = []struct {
+	owner tallyOwner
+	table *tallyTable
+}{
+	{tallyOwnerOrg, newTallyTable("orgs_orgtally", "org_id", "orgs_org")},
+	{tallyOwnerFlow, newTallyTable("flows_flowtally", "flow_id", "flows_flow")},
+}
+
+// tallyRows are the amounts to write to a tally table
+type tallyRows struct {
+	ownerIDs    []int64
+	scopes      []string
+	counts      []int64
+	expiresOn   []sql.NullString
+	decOwnerIDs []int64 // only a decrement can bring a tally to zero
+	decScopes   []string
+}
+
+func (r *tallyRows) add(ownerID int64, scope string, count int64, expires sql.NullString) {
+	r.ownerIDs = append(r.ownerIDs, ownerID)
+	r.scopes = append(r.scopes, scope)
+	r.counts = append(r.counts, count)
+	r.expiresOn = append(r.expiresOn, expires)
+	if count < 0 {
+		r.decOwnerIDs = append(r.decOwnerIDs, ownerID)
+		r.decScopes = append(r.decScopes, scope)
+	}
+}
+
+func (t *tallyTable) write(ctx context.Context, tx *sqlx.Tx, r *tallyRows) error {
+	if len(r.ownerIDs) == 0 {
+		return nil
+	}
+	if _, err := tx.ExecContext(ctx, t.sqlUpsert, pq.Array(r.ownerIDs), pq.Array(r.scopes), pq.Array(r.counts), pq.Array(r.expiresOn)); err != nil {
+		return fmt.Errorf("error upserting tallies: %w", err)
+	}
+	if len(r.decOwnerIDs) > 0 {
+		if _, err := tx.ExecContext(ctx, t.sqlDeleteZero, pq.Array(r.decOwnerIDs), pq.Array(r.decScopes)); err != nil {
+			return fmt.Errorf("error deleting zero tallies: %w", err)
+		}
+	}
+	return nil
+}
+
+type tallyKey struct {
+	owner   tallyOwner
+	ownerID int64
+	scope   string
+}
+
+// Write adds the given amounts by field to tallies and records the batch, unless it has already been written. Tallies
+// which the batch brings to zero are deleted.
 func (s *TallyStore) Write(ctx context.Context, id int64, amounts map[string]int64) (bool, error) {
-	// different fields can be the same tally, e.g. 1|foo and O1|foo, and an upsert can't affect a row twice
 	byKey := make(map[tallyKey]int64, len(amounts))
 	for field, count := range amounts {
-		orgID, scope, err := parseTallyField(field)
+		owner, ownerID, scope, err := parseTallyField(field)
 		if err != nil {
 			return false, err
 		}
-		byKey[tallyKey{orgID, scope}] += count
+		byKey[tallyKey{owner, ownerID, scope}] += count
 	}
 
-	orgIDs := make([]int64, 0, len(byKey))
-	scopes := make([]string, 0, len(byKey))
-	counts := make([]int64, 0, len(byKey))
-	expiresOn := make([]sql.NullString, 0, len(byKey))
-	var decOrgIDs []int64 // only a decrement can bring a tally to zero
-	var decScopes []string
+	rows := make(map[tallyOwner]*tallyRows, len(tallyTables))
+	for _, tt := range tallyTables {
+		rows[tt.owner] = &tallyRows{}
+	}
 	today := dates.Now().UTC().Truncate(24 * time.Hour)
+
 	for key, count := range byKey {
-		orgID, scope := key.orgID, key.scope
 		if count == 0 {
 			continue
 		}
-		if count < 0 {
-			decOrgIDs = append(decOrgIDs, int64(orgID))
-			decScopes = append(decScopes, scope)
-		}
 
 		var expires sql.NullString
-		if retention := tallyRetentionFor(scope); retention != 0 {
-			expiry := tallyDay(scope, today).Add(retention)
-			if expiry.Before(today) {
-				continue // already past retention
+		if key.owner == tallyOwnerOrg {
+			if retention := tallyRetentionFor(key.scope); retention != 0 {
+				expiry := tallyDay(key.scope, today).Add(retention)
+				if expiry.Before(today) {
+					continue // already past retention
+				}
+				expires = sql.NullString{String: expiry.Format(time.DateOnly), Valid: true}
 			}
-			expires = sql.NullString{String: expiry.Format(time.DateOnly), Valid: true}
 		}
 
-		orgIDs = append(orgIDs, int64(orgID))
-		scopes = append(scopes, scope)
-		counts = append(counts, count)
-		expiresOn = append(expiresOn, expires)
+		rows[key.owner].add(key.ownerID, key.scope, count, expires)
 	}
 
 	tx, err := s.db.BeginTxx(ctx, nil)
@@ -190,14 +249,9 @@ func (s *TallyStore) Write(ctx context.Context, id int64, amounts map[string]int
 		return false, fmt.Errorf("error recording batch: %w", err)
 	}
 
-	_, err = tx.ExecContext(ctx, sqlUpsertTallies, pq.Array(orgIDs), pq.Array(scopes), pq.Array(counts), pq.Array(expiresOn))
-	if err != nil {
-		return false, fmt.Errorf("error upserting tallies: %w", err)
-	}
-
-	if len(decOrgIDs) > 0 {
-		if _, err := tx.ExecContext(ctx, sqlDeleteZeroTallies, pq.Array(decOrgIDs), pq.Array(decScopes)); err != nil {
-			return false, fmt.Errorf("error deleting zero tallies: %w", err)
+	for _, tt := range tallyTables {
+		if err := tt.table.write(ctx, tx, rows[tt.owner]); err != nil {
+			return false, err
 		}
 	}
 
