@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"maps"
 	"net/http"
 	"strings"
 	"testing"
 
+	valkey "github.com/gomodule/redigo/redis"
 	"github.com/nyaruka/gocommon/aws/dynamo"
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/gocommon/httpx"
@@ -23,7 +25,6 @@ import (
 	"github.com/nyaruka/mailroom/v26/services/ivr/vonage"
 	"github.com/nyaruka/mailroom/v26/testsuite"
 	"github.com/nyaruka/mailroom/v26/testsuite/testdb"
-	"github.com/nyaruka/vkutil/assertvk"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -122,13 +123,19 @@ func TestTwilioIVR(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE contact_id = $1 AND msg_type = 'V' 
 		AND ((status = 'H' AND direction = 'I') OR (status = 'W' AND direction = 'O'))`, testdb.Bob.ID).Returns(2)
 
-	// voice messages in both directions are tallied
-	assertvk.HGetAll(t, vc, "{tallies}:live", map[string]string{
+	// voice messages in both directions are tallied, as are the flow segments taken
+	tallies, err := valkey.StringMap(vc.Do("HGETALL", "{tallies}:live"))
+	require.NoError(t, err)
+	segments := maps.Clone(tallies)
+	maps.DeleteFunc(segments, func(f, _ string) bool { return !strings.HasPrefix(f, fmt.Sprintf("F%d|segment:", testdb.IVRFlow.ID)) })
+	assert.NotEmpty(t, segments)
+	maps.DeleteFunc(tallies, func(f, _ string) bool { return !strings.HasPrefix(f, "O") })
+	assert.Equal(t, map[string]string{
 		"O1|channels/10000/voice:in@2025-05-04":  "5",
 		"O1|channels/10000/voice:out@2025-05-04": "11",
 		"O1|msgs/voice:in@2025-05-04":            "5",
 		"O1|msgs/voice:out@2025-05-04":           "11",
-	})
+	}, tallies)
 
 	// check the generated channel logs
 	logs := getCallLogs(t, rt, testdb.TwilioChannel)

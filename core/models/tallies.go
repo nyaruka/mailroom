@@ -11,6 +11,8 @@ import (
 
 	"github.com/lib/pq"
 	"github.com/nyaruka/gocommon/dates"
+	"github.com/nyaruka/goflow/core"
+	"github.com/nyaruka/goflow/flows"
 	"github.com/vinovest/sqlx"
 )
 
@@ -47,6 +49,16 @@ func TallyField(orgID OrgID, scope string, day time.Time) string {
 		scope += "@" + day.UTC().Format(time.DateOnly)
 	}
 	return fmt.Sprintf("%c%d|%s", tallyOwnerOrg, orgID, scope)
+}
+
+// FlowTallyField returns the field of the tally of the given scope for the given flow
+func FlowTallyField(flowID FlowID, scope string) string {
+	return fmt.Sprintf("%c%d|%s", tallyOwnerFlow, flowID, scope)
+}
+
+// FlowSegmentTallyScope returns the scope of the tally which counts contacts taking the given exit to the given node
+func FlowSegmentTallyScope(exitUUID flows.ExitUUID, destUUID core.NodeUUID) string {
+	return fmt.Sprintf("segment:%s:%s", exitUUID, destUUID)
 }
 
 // tallyOwner is the type of thing a tally belongs to, which prefixes its id in a tally field

@@ -149,9 +149,22 @@ func handleSprintEnded(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 
 		scene.AttachPreCommitHook(hooks.InsertContactFires, hooks.FiresSet{Create: newFires, Delete: delFires})
 		scene.AttachPreCommitHook(hooks.InsertFlowStats, event)
+		if amounts := segmentTallies(scene.Sprint); len(amounts) > 0 {
+			scene.AttachPostCommitHook(hooks.IncrementTallies, amounts)
+		}
 		scene.AttachPostCommitHook(hooks.PublishFlowActivity, event)
 	}
 	return nil
+}
+
+// segmentTallies gets the tally amounts which count the flow segments taken in the given sprint
+func segmentTallies(sprint flows.Sprint) map[string]int64 {
+	amounts := make(map[string]int64)
+	for _, seg := range sprint.Segments() {
+		flowID := seg.Flow().Asset().(*models.Flow).ID()
+		amounts[models.FlowTallyField(flowID, models.FlowSegmentTallyScope(seg.Exit().UUID(), seg.Destination().UUID()))]++
+	}
+	return amounts
 }
 
 // Calculates the fires needed for the given session - returns timeout separately if this session will queue messages to
