@@ -104,35 +104,40 @@ func TestTallyStore(t *testing.T) {
 	assertLastBatch(store, 5)
 	assertdb.Query(t, rt.DB, `SELECT count FROM orgs_orgtally WHERE org_id = $1 AND scope = 'foo'`, org1).Returns(int64(4))
 
+	// including in the same batch as the unprefixed form of the same tally
+	write(6, map[string]int64{models.TallyField(org1, "foo", time.Time{}): 2, fmt.Sprintf("O%d|foo", org1): 3}, true)
+	assertLastBatch(store, 6)
+	assertdb.Query(t, rt.DB, `SELECT count FROM orgs_orgtally WHERE org_id = $1 AND scope = 'foo'`, org1).Returns(int64(9))
+
 	// nothing is written for an org which isn't active, or doesn't exist, but the rest of the batch is
 	rt.DB.MustExec(`UPDATE orgs_org SET is_active = FALSE WHERE id = $1`, org2)
 
-	write(6, map[string]int64{
+	write(7, map[string]int64{
 		models.TallyField(org1, "foo", time.Time{}):   1,
 		models.TallyField(org2, "foo", time.Time{}):   1,
 		models.TallyField(123456, "foo", time.Time{}): 1,
 	}, true)
 
-	assertLastBatch(store, 6)
-	assertdb.Query(t, rt.DB, `SELECT count FROM orgs_orgtally WHERE org_id = $1 AND scope = 'foo'`, org1).Returns(int64(5))
+	assertLastBatch(store, 7)
+	assertdb.Query(t, rt.DB, `SELECT count FROM orgs_orgtally WHERE org_id = $1 AND scope = 'foo'`, org1).Returns(int64(10))
 	assertTallies(org2, map[string]any{"foo": int64(5)})
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM orgs_orgtally WHERE org_id = 123456`).Returns(0)
 
 	// a batch with nothing to write is still recorded
-	write(7, map[string]int64{models.TallyField(org2, "foo", time.Time{}): 1}, true)
+	write(8, map[string]int64{models.TallyField(org2, "foo", time.Time{}): 1}, true)
 
-	assertLastBatch(store, 7)
+	assertLastBatch(store, 8)
 	assertTallies(org2, map[string]any{"foo": int64(5)})
 
 	// a field which can't be parsed fails the whole batch
 	for _, field := range []string{"foo", "x|foo", "O|foo", "Ox|foo", "OO1|foo", "F1|foo"} {
-		written, err := store.Write(ctx, 8, map[string]int64{models.TallyField(org1, "foo", time.Time{}): 1, field: 1})
+		written, err := store.Write(ctx, 9, map[string]int64{models.TallyField(org1, "foo", time.Time{}): 1, field: 1})
 		assert.EqualError(t, err, fmt.Sprintf("invalid tally field %q", field))
 		assert.False(t, written)
 	}
 
-	assertLastBatch(store, 7)
-	assertdb.Query(t, rt.DB, `SELECT count FROM orgs_orgtally WHERE org_id = $1 AND scope = 'foo'`, org1).Returns(int64(5))
+	assertLastBatch(store, 8)
+	assertdb.Query(t, rt.DB, `SELECT count FROM orgs_orgtally WHERE org_id = $1 AND scope = 'foo'`, org1).Returns(int64(10))
 }
 
 func TestFlushTallies(t *testing.T) {

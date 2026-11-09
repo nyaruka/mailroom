@@ -106,19 +106,31 @@ INSERT INTO orgs_orgtally AS t (org_id, scope, count, expires_on)
    ORDER BY u.org_id, u.scope
 ON CONFLICT (org_id, scope) DO UPDATE SET count = t.count + excluded.count`
 
+type tallyKey struct {
+	orgID OrgID
+	scope string
+}
+
 // Write adds the given amounts by field to org tallies and records the batch, unless it has already been written,
 // setting expiries only on tallies which don't exist yet
 func (s *TallyStore) Write(ctx context.Context, id int64, amounts map[string]int64) (bool, error) {
-	orgIDs := make([]int64, 0, len(amounts))
-	scopes := make([]string, 0, len(amounts))
-	counts := make([]int64, 0, len(amounts))
-	expiresOn := make([]sql.NullString, 0, len(amounts))
-	today := dates.Now().UTC().Truncate(24 * time.Hour)
+	// different fields can be the same tally, e.g. 1|foo and O1|foo, and an upsert can't affect a row twice
+	byKey := make(map[tallyKey]int64, len(amounts))
 	for field, count := range amounts {
 		orgID, scope, err := parseTallyField(field)
 		if err != nil {
 			return false, err
 		}
+		byKey[tallyKey{orgID, scope}] += count
+	}
+
+	orgIDs := make([]int64, 0, len(byKey))
+	scopes := make([]string, 0, len(byKey))
+	counts := make([]int64, 0, len(byKey))
+	expiresOn := make([]sql.NullString, 0, len(byKey))
+	today := dates.Now().UTC().Truncate(24 * time.Hour)
+	for key, count := range byKey {
+		orgID, scope := key.orgID, key.scope
 
 		var expires sql.NullString
 		if retention := tallyRetentionFor(scope); retention != 0 {
