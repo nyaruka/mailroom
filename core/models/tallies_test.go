@@ -99,61 +99,67 @@ func TestTallyStore(t *testing.T) {
 	assertTallies(org2, map[string]any{"foo": int64(5)})
 	assertdb.Query(t, rt.DB, `SELECT count FROM orgs_orgtally WHERE org_id = $1 AND scope = 'foo'`, org1).Returns(int64(3))
 
-	// batch ids can skip ahead
-	write(5, map[string]int64{models.TallyField(org1, "foo", time.Time{}): 1}, true)
+	// batch ids can skip ahead, and orgs can be prefixed with O
+	write(5, map[string]int64{fmt.Sprintf("O%d|foo", org1): 1}, true)
 	assertLastBatch(store, 5)
+	assertdb.Query(t, rt.DB, `SELECT count FROM orgs_orgtally WHERE org_id = $1 AND scope = 'foo'`, org1).Returns(int64(4))
+
+	// including in the same batch as the unprefixed form of the same tally
+	write(6, map[string]int64{models.TallyField(org1, "foo", time.Time{}): 2, fmt.Sprintf("O%d|foo", org1): 3}, true)
+	assertLastBatch(store, 6)
+	assertdb.Query(t, rt.DB, `SELECT count FROM orgs_orgtally WHERE org_id = $1 AND scope = 'foo'`, org1).Returns(int64(9))
 
 	// nothing is written for an org which isn't active, or doesn't exist, but the rest of the batch is
 	rt.DB.MustExec(`UPDATE orgs_org SET is_active = FALSE WHERE id = $1`, org2)
 
-	write(6, map[string]int64{
+	write(7, map[string]int64{
 		models.TallyField(org1, "foo", time.Time{}):   1,
 		models.TallyField(org2, "foo", time.Time{}):   1,
 		models.TallyField(123456, "foo", time.Time{}): 1,
 	}, true)
 
-	assertLastBatch(store, 6)
-	assertdb.Query(t, rt.DB, `SELECT count FROM orgs_orgtally WHERE org_id = $1 AND scope = 'foo'`, org1).Returns(int64(5))
+	assertLastBatch(store, 7)
+	assertdb.Query(t, rt.DB, `SELECT count FROM orgs_orgtally WHERE org_id = $1 AND scope = 'foo'`, org1).Returns(int64(10))
 	assertTallies(org2, map[string]any{"foo": int64(5)})
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM orgs_orgtally WHERE org_id = 123456`).Returns(0)
 
 	// a batch with nothing to write is still recorded
-	write(7, map[string]int64{models.TallyField(org2, "foo", time.Time{}): 1}, true)
+	write(8, map[string]int64{models.TallyField(org2, "foo", time.Time{}): 1}, true)
 
-	assertLastBatch(store, 7)
+	assertLastBatch(store, 8)
 	assertTallies(org2, map[string]any{"foo": int64(5)})
 
 	// a field which can't be parsed fails the whole batch
-	for _, field := range []string{"foo", "x|foo"} {
-		written, err := store.Write(ctx, 8, map[string]int64{models.TallyField(org1, "foo", time.Time{}): 1, field: 1})
+	for _, field := range []string{"foo", "x|foo", "O|foo", "Ox|foo", "OO1|foo", "F1|foo"} {
+		written, err := store.Write(ctx, 9, map[string]int64{models.TallyField(org1, "foo", time.Time{}): 1, field: 1})
 		assert.EqualError(t, err, fmt.Sprintf("invalid tally field %q", field))
 		assert.False(t, written)
 	}
 
-	assertLastBatch(store, 7)
-	assertdb.Query(t, rt.DB, `SELECT count FROM orgs_orgtally WHERE org_id = $1 AND scope = 'foo'`, org1).Returns(int64(5))
+	assertLastBatch(store, 8)
+	assertdb.Query(t, rt.DB, `SELECT count FROM orgs_orgtally WHERE org_id = $1 AND scope = 'foo'`, org1).Returns(int64(10))
 
 	// zero totals aren't kept - a zero amount writes nothing and a decrement to zero deletes the tally
-	write(8, map[string]int64{
-		models.TallyField(org1, "foo", time.Time{}):                            -5,
+	write(9, map[string]int64{
+		models.TallyField(org1, "foo", time.Time{}):                            -10,
 		models.TallyField(org1, "bar", time.Time{}):                            0,
 		models.TallyField(org1, "emails/shared@2025-05-04", time.Time{}):       -1,
 		models.TallyField(org1, "channels/12/text:in@2025-05-04", time.Time{}): -2,
 	}, true)
 
-	assertLastBatch(store, 8)
+	assertLastBatch(store, 9)
 	assertTallies(org1, map[string]any{
 		"emails/shared@2025-05-04": int64(2), "msgs/text:in@2025-05-04": int64(2), "llms/foo/tokens:in@2025-05-10": int64(100),
 	})
 
-	// a batch which is all zeros is still recorded
-	write(9, map[string]int64{models.TallyField(org1, "bar", time.Time{}): 0}, true)
+	// as does a batch whose fields for the same tally net to zero, and it's still recorded
+	write(10, map[string]int64{models.TallyField(org1, "bar", time.Time{}): 2, fmt.Sprintf("O%d|bar", org1): -2}, true)
 
-	assertLastBatch(store, 9)
+	assertLastBatch(store, 10)
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM orgs_orgtally WHERE org_id = $1 AND scope = 'bar'`, org1).Returns(0)
 
 	// a deleted tally which is written again gets the same expiry
-	write(10, map[string]int64{models.TallyField(org1, "channels/12/text:in@2025-05-04", time.Time{}): 1}, true)
+	write(11, map[string]int64{models.TallyField(org1, "channels/12/text:in@2025-05-04", time.Time{}): 1}, true)
 
 	assertExpiries(org1, map[string]any{
 		"emails/shared@2025-05-04": "2025-08-02", "channels/12/text:in@2025-05-04": "2026-06-08",

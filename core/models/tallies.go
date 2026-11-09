@@ -49,10 +49,11 @@ func TallyField(orgID OrgID, scope string, day time.Time) string {
 	return fmt.Sprintf("%d|%s", orgID, scope)
 }
 
-// parseTallyField parses a field created by TallyField into its org and scope
+// parseTallyField parses a field created by TallyField into its org and scope. The org may be prefixed with O, which
+// is accepted ahead of writers using it, so that tallies of other owners can be told apart by their own prefixes.
 func parseTallyField(field string) (OrgID, string, error) {
 	orgStr, scope, ok := strings.Cut(field, "|")
-	orgID, err := strconv.ParseInt(orgStr, 10, 64)
+	orgID, err := strconv.ParseInt(strings.TrimPrefix(orgStr, "O"), 10, 64)
 	if !ok || err != nil {
 		return NilOrgID, "", fmt.Errorf("invalid tally field %q", field)
 	}
@@ -124,21 +125,33 @@ DELETE FROM orgs_orgtally t
       USING unnest($1::int[], $2::text[]) AS u(org_id, scope)
       WHERE t.org_id = u.org_id AND t.scope = u.scope AND t.count = 0`
 
+type tallyKey struct {
+	orgID OrgID
+	scope string
+}
+
 // Write adds the given amounts by field to org tallies and records the batch, unless it has already been written.
 // Tallies which the batch brings to zero are deleted.
 func (s *TallyStore) Write(ctx context.Context, id int64, amounts map[string]int64) (bool, error) {
-	orgIDs := make([]int64, 0, len(amounts))
-	scopes := make([]string, 0, len(amounts))
-	counts := make([]int64, 0, len(amounts))
-	expiresOn := make([]sql.NullString, 0, len(amounts))
-	var decOrgIDs []int64 // only a decrement can bring a tally to zero
-	var decScopes []string
-	today := dates.Now().UTC().Truncate(24 * time.Hour)
+	// different fields can be the same tally, e.g. 1|foo and O1|foo, and an upsert can't affect a row twice
+	byKey := make(map[tallyKey]int64, len(amounts))
 	for field, count := range amounts {
 		orgID, scope, err := parseTallyField(field)
 		if err != nil {
 			return false, err
 		}
+		byKey[tallyKey{orgID, scope}] += count
+	}
+
+	orgIDs := make([]int64, 0, len(byKey))
+	scopes := make([]string, 0, len(byKey))
+	counts := make([]int64, 0, len(byKey))
+	expiresOn := make([]sql.NullString, 0, len(byKey))
+	var decOrgIDs []int64 // only a decrement can bring a tally to zero
+	var decScopes []string
+	today := dates.Now().UTC().Truncate(24 * time.Hour)
+	for key, count := range byKey {
+		orgID, scope := key.orgID, key.scope
 		if count == 0 {
 			continue
 		}
