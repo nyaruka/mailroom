@@ -1,3 +1,6 @@
+## v26.3.129 (2026-11-09)
+ * Accept O prefix on org in tally fields
+
 ## v26.3.128 (2026-11-06)
  * Stop writing tallies to orgs_tally
  * Report channel msg counts in org metrics as always 0
