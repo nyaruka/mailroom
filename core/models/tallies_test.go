@@ -165,6 +165,18 @@ func TestTallyStore(t *testing.T) {
 		"emails/shared@2025-05-04": "2025-08-02", "channels/12/text:in@2025-05-04": "2026-06-08",
 		"msgs/text:in@2025-05-04": nil, "llms/foo/tokens:in@2025-05-10": "2025-08-08",
 	})
+
+	// nothing is written for a daily tally which is already past its retention
+	write(12, map[string]int64{models.TallyField(org1, "emails/shared@2025-01-01", time.Time{}): 1}, true)
+
+	assertLastBatch(store, 12)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM orgs_orgtally WHERE org_id = $1 AND scope = 'emails/shared@2025-01-01'`, org1).Returns(0)
+	// or deleted for an org which isn't active
+	rt.DB.MustExec(`INSERT INTO orgs_orgtally (org_id, scope, count) VALUES ($1, 'bar', 0)`, org2)
+
+	write(13, map[string]int64{models.TallyField(org2, "bar", time.Time{}): -1}, true)
+
+	assertTallies(org2, map[string]any{"foo": int64(5), "bar": int64(0)})
 }
 
 func TestFlushTallies(t *testing.T) {

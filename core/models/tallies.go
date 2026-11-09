@@ -72,8 +72,7 @@ func tallyRetentionFor(scope string) time.Duration {
 }
 
 // tallyDay returns the day of a daily tally scope, or the given default if the scope isn't a daily one. Expiries are
-// counted from it so that they don't depend on when a tally happens to be written, and an undated tally's expiry is
-// extended by each write.
+// counted from it so that they don't depend on when a tally happens to be written.
 func tallyDay(scope string, def time.Time) time.Time {
 	if i := strings.LastIndex(scope, "@"); i >= 0 {
 		if day, err := time.Parse(time.DateOnly, scope[i+1:]); err == nil {
@@ -111,6 +110,7 @@ INSERT INTO orgs_tallyflush (name, last_batch) VALUES ($1, $2)
 ON CONFLICT (name) DO UPDATE SET last_batch = excluded.last_batch WHERE orgs_tallyflush.last_batch < excluded.last_batch
 RETURNING 1`
 
+// expiry is set by every write so that an undated tally's is extended by each one
 const sqlUpsertTallies = `
 INSERT INTO orgs_orgtally AS t (org_id, scope, count, expires_on)
      SELECT u.org_id, u.scope, u.count, u.expires_on
@@ -122,8 +122,8 @@ ON CONFLICT (org_id, scope) DO UPDATE SET count = t.count + excluded.count, expi
 // a separate statement because a data-modifying CTE can't safely delete rows which the same statement's upsert modified
 const sqlDeleteZeroTallies = `
 DELETE FROM orgs_orgtally t
-      USING unnest($1::int[], $2::text[]) AS u(org_id, scope)
-      WHERE t.org_id = u.org_id AND t.scope = u.scope AND t.count = 0`
+      USING unnest($1::int[], $2::text[]) AS u(org_id, scope), orgs_org o
+      WHERE t.org_id = u.org_id AND t.scope = u.scope AND t.count = 0 AND o.id = t.org_id AND o.is_active`
 
 type tallyKey struct {
 	orgID OrgID
@@ -162,7 +162,11 @@ func (s *TallyStore) Write(ctx context.Context, id int64, amounts map[string]int
 
 		var expires sql.NullString
 		if retention := tallyRetentionFor(scope); retention != 0 {
-			expires = sql.NullString{String: tallyDay(scope, today).Add(retention).Format(time.DateOnly), Valid: true}
+			expiry := tallyDay(scope, today).Add(retention)
+			if expiry.Before(today) {
+				continue // already past retention
+			}
+			expires = sql.NullString{String: expiry.Format(time.DateOnly), Valid: true}
 		}
 
 		orgIDs = append(orgIDs, int64(orgID))
