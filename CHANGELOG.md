@@ -1,3 +1,9 @@
+## v26.3.131 (2026-11-09)
+ * Require owner prefixes on tally fields
+ * Write flow segment tallies to flows_flowtally
+ * Drop tallies for owner ids beyond int32 range
+ * Regenerate test database dump
+
 ## v26.3.130 (2026-11-09)
  * Write O prefix on org in tally fields
  * Don't keep zero tallies and count expiries from the tally's day
