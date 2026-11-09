@@ -1,3 +1,7 @@
+## v26.3.130 (2026-11-09)
+ * Write O prefix on org in tally fields
+ * Don't keep zero tallies and count expiries from the tally's day
+
 ## v26.3.129 (2026-11-09)
  * Accept O prefix on org in tally fields
 
