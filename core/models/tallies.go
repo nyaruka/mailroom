@@ -71,8 +71,20 @@ func tallyRetentionFor(scope string) time.Duration {
 	return tallyRetention[longest]
 }
 
+// tallyDay returns the day of a daily tally scope, or the given default if the scope isn't a daily one. Expiries are
+// counted from it so that they don't depend on when a tally happens to be written.
+func tallyDay(scope string, def time.Time) time.Time {
+	if i := strings.LastIndex(scope, "@"); i >= 0 {
+		if day, err := time.Parse(time.DateOnly, scope[i+1:]); err == nil {
+			return day
+		}
+	}
+	return def
+}
+
 // TallyStore is a vkutil.TallyStore which writes to the orgs_orgtally table, recording the last batch written for its
-// key base in orgs_tallyflush. Nothing is written for an org which isn't active.
+// key base in orgs_tallyflush. Nothing is written for an org which isn't active, and tallies with a total of zero
+// aren't kept.
 type TallyStore struct {
 	db      *sqlx.DB
 	keyBase string
@@ -98,21 +110,28 @@ INSERT INTO orgs_tallyflush (name, last_batch) VALUES ($1, $2)
 ON CONFLICT (name) DO UPDATE SET last_batch = excluded.last_batch WHERE orgs_tallyflush.last_batch < excluded.last_batch
 RETURNING 1`
 
+// expiry is set by every write so that an undated tally's is extended by each one
 const sqlUpsertTallies = `
 INSERT INTO orgs_orgtally AS t (org_id, scope, count, expires_on)
      SELECT u.org_id, u.scope, u.count, u.expires_on
        FROM unnest($1::int[], $2::text[], $3::bigint[], $4::date[]) AS u(org_id, scope, count, expires_on)
        JOIN orgs_org o ON o.id = u.org_id AND o.is_active
    ORDER BY u.org_id, u.scope
-ON CONFLICT (org_id, scope) DO UPDATE SET count = t.count + excluded.count`
+ON CONFLICT (org_id, scope) DO UPDATE SET count = t.count + excluded.count, expires_on = excluded.expires_on`
+
+// a separate statement because a data-modifying CTE can't safely delete rows which the same statement's upsert modified
+const sqlDeleteZeroTallies = `
+DELETE FROM orgs_orgtally t
+      USING unnest($1::int[], $2::text[]) AS u(org_id, scope), orgs_org o
+      WHERE t.org_id = u.org_id AND t.scope = u.scope AND t.count = 0 AND o.id = t.org_id AND o.is_active`
 
 type tallyKey struct {
 	orgID OrgID
 	scope string
 }
 
-// Write adds the given amounts by field to org tallies and records the batch, unless it has already been written,
-// setting expiries only on tallies which don't exist yet
+// Write adds the given amounts by field to org tallies and records the batch, unless it has already been written.
+// Tallies which the batch brings to zero are deleted.
 func (s *TallyStore) Write(ctx context.Context, id int64, amounts map[string]int64) (bool, error) {
 	// different fields can be the same tally, e.g. 1|foo and O1|foo, and an upsert can't affect a row twice
 	byKey := make(map[tallyKey]int64, len(amounts))
@@ -128,13 +147,26 @@ func (s *TallyStore) Write(ctx context.Context, id int64, amounts map[string]int
 	scopes := make([]string, 0, len(byKey))
 	counts := make([]int64, 0, len(byKey))
 	expiresOn := make([]sql.NullString, 0, len(byKey))
+	var decOrgIDs []int64 // only a decrement can bring a tally to zero
+	var decScopes []string
 	today := dates.Now().UTC().Truncate(24 * time.Hour)
 	for key, count := range byKey {
 		orgID, scope := key.orgID, key.scope
+		if count == 0 {
+			continue
+		}
+		if count < 0 {
+			decOrgIDs = append(decOrgIDs, int64(orgID))
+			decScopes = append(decScopes, scope)
+		}
 
 		var expires sql.NullString
 		if retention := tallyRetentionFor(scope); retention != 0 {
-			expires = sql.NullString{String: today.Add(retention).Format(time.DateOnly), Valid: true}
+			expiry := tallyDay(scope, today).Add(retention)
+			if expiry.Before(today) {
+				continue // already past retention
+			}
+			expires = sql.NullString{String: expiry.Format(time.DateOnly), Valid: true}
 		}
 
 		orgIDs = append(orgIDs, int64(orgID))
@@ -160,6 +192,12 @@ func (s *TallyStore) Write(ctx context.Context, id int64, amounts map[string]int
 	_, err = tx.ExecContext(ctx, sqlUpsertTallies, pq.Array(orgIDs), pq.Array(scopes), pq.Array(counts), pq.Array(expiresOn))
 	if err != nil {
 		return false, fmt.Errorf("error upserting tallies: %w", err)
+	}
+
+	if len(decOrgIDs) > 0 {
+		if _, err := tx.ExecContext(ctx, sqlDeleteZeroTallies, pq.Array(decOrgIDs), pq.Array(decScopes)); err != nil {
+			return false, fmt.Errorf("error deleting zero tallies: %w", err)
+		}
 	}
 
 	if err := tx.Commit(); err != nil {

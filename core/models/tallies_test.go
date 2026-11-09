@@ -68,13 +68,13 @@ func TestTallyStore(t *testing.T) {
 	})
 	assertTallies(org2, map[string]any{"foo": int64(5)})
 
-	// expiries are from the day a tally is first written, by its retention
+	// expiries are from the day of a daily tally, by its retention
 	assertExpiries(org1, map[string]any{
 		"foo": nil, "emails/shared@2025-05-04": "2025-08-02", "channels/12/text:in@2025-05-04": "2026-06-08",
 		"msgs/text:in@2025-05-04": nil,
 	})
 
-	// and aren't changed by later writes
+	// so don't depend on when it's written
 	dates.SetNowFunc(dates.NewFixedNow(time.Date(2025, 5, 10, 12, 0, 0, 0, time.UTC)))
 
 	write(2, map[string]int64{
@@ -138,6 +138,45 @@ func TestTallyStore(t *testing.T) {
 
 	assertLastBatch(store, 8)
 	assertdb.Query(t, rt.DB, `SELECT count FROM orgs_orgtally WHERE org_id = $1 AND scope = 'foo'`, org1).Returns(int64(10))
+
+	// zero totals aren't kept - a zero amount writes nothing and a decrement to zero deletes the tally
+	write(9, map[string]int64{
+		models.TallyField(org1, "foo", time.Time{}):                            -10,
+		models.TallyField(org1, "bar", time.Time{}):                            0,
+		models.TallyField(org1, "emails/shared@2025-05-04", time.Time{}):       -1,
+		models.TallyField(org1, "channels/12/text:in@2025-05-04", time.Time{}): -2,
+	}, true)
+
+	assertLastBatch(store, 9)
+	assertTallies(org1, map[string]any{
+		"emails/shared@2025-05-04": int64(2), "msgs/text:in@2025-05-04": int64(2), "llms/foo/tokens:in@2025-05-10": int64(100),
+	})
+
+	// as does a batch whose fields for the same tally net to zero, and it's still recorded
+	write(10, map[string]int64{models.TallyField(org1, "bar", time.Time{}): 2, fmt.Sprintf("O%d|bar", org1): -2}, true)
+
+	assertLastBatch(store, 10)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM orgs_orgtally WHERE org_id = $1 AND scope = 'bar'`, org1).Returns(0)
+
+	// a deleted tally which is written again gets the same expiry
+	write(11, map[string]int64{models.TallyField(org1, "channels/12/text:in@2025-05-04", time.Time{}): 1}, true)
+
+	assertExpiries(org1, map[string]any{
+		"emails/shared@2025-05-04": "2025-08-02", "channels/12/text:in@2025-05-04": "2026-06-08",
+		"msgs/text:in@2025-05-04": nil, "llms/foo/tokens:in@2025-05-10": "2025-08-08",
+	})
+
+	// nothing is written for a daily tally which is already past its retention
+	write(12, map[string]int64{models.TallyField(org1, "emails/shared@2025-01-01", time.Time{}): 1}, true)
+
+	assertLastBatch(store, 12)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM orgs_orgtally WHERE org_id = $1 AND scope = 'emails/shared@2025-01-01'`, org1).Returns(0)
+	// or deleted for an org which isn't active
+	rt.DB.MustExec(`INSERT INTO orgs_orgtally (org_id, scope, count) VALUES ($1, 'bar', 0)`, org2)
+
+	write(13, map[string]int64{models.TallyField(org2, "bar", time.Time{}): -1}, true)
+
+	assertTallies(org2, map[string]any{"foo": int64(5), "bar": int64(0)})
 }
 
 func TestFlushTallies(t *testing.T) {
