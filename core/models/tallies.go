@@ -71,7 +71,8 @@ func tallyRetentionFor(scope string) time.Duration {
 }
 
 // TallyStore is a vkutil.TallyStore which writes to the orgs_orgtally table, recording the last batch written for its
-// key base in orgs_tallyflush. Nothing is written for an org which isn't active.
+// key base in orgs_tallyflush. Nothing is written for an org which isn't active, and tallies with a total of zero
+// aren't kept.
 type TallyStore struct {
 	db      *sqlx.DB
 	keyBase string
@@ -105,18 +106,33 @@ INSERT INTO orgs_orgtally AS t (org_id, scope, count, expires_on)
    ORDER BY u.org_id, u.scope
 ON CONFLICT (org_id, scope) DO UPDATE SET count = t.count + excluded.count`
 
+// a separate statement because a data-modifying CTE can't safely delete rows which the same statement's upsert modified
+const sqlDeleteZeroTallies = `
+DELETE FROM orgs_orgtally t
+      USING unnest($1::int[], $2::text[]) AS u(org_id, scope)
+      WHERE t.org_id = u.org_id AND t.scope = u.scope AND t.count = 0`
+
 // Write adds the given amounts by field to org tallies and records the batch, unless it has already been written,
-// setting expiries only on tallies which don't exist yet
+// setting expiries only on tallies which don't exist yet. Tallies which the batch brings to zero are deleted.
 func (s *TallyStore) Write(ctx context.Context, id int64, amounts map[string]int64) (bool, error) {
 	orgIDs := make([]int64, 0, len(amounts))
 	scopes := make([]string, 0, len(amounts))
 	counts := make([]int64, 0, len(amounts))
 	expiresOn := make([]sql.NullString, 0, len(amounts))
+	var decOrgIDs []int64 // only a decrement can bring a tally to zero
+	var decScopes []string
 	today := dates.Now().UTC().Truncate(24 * time.Hour)
 	for field, count := range amounts {
 		orgID, scope, err := parseTallyField(field)
 		if err != nil {
 			return false, err
+		}
+		if count == 0 {
+			continue
+		}
+		if count < 0 {
+			decOrgIDs = append(decOrgIDs, int64(orgID))
+			decScopes = append(decScopes, scope)
 		}
 
 		var expires sql.NullString
@@ -147,6 +163,12 @@ func (s *TallyStore) Write(ctx context.Context, id int64, amounts map[string]int
 	_, err = tx.ExecContext(ctx, sqlUpsertTallies, pq.Array(orgIDs), pq.Array(scopes), pq.Array(counts), pq.Array(expiresOn))
 	if err != nil {
 		return false, fmt.Errorf("error upserting tallies: %w", err)
+	}
+
+	if len(decOrgIDs) > 0 {
+		if _, err := tx.ExecContext(ctx, sqlDeleteZeroTallies, pq.Array(decOrgIDs), pq.Array(decScopes)); err != nil {
+			return false, fmt.Errorf("error deleting zero tallies: %w", err)
+		}
 	}
 
 	if err := tx.Commit(); err != nil {

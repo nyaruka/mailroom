@@ -132,6 +132,25 @@ func TestTallyStore(t *testing.T) {
 
 	assertLastBatch(store, 7)
 	assertdb.Query(t, rt.DB, `SELECT count FROM orgs_orgtally WHERE org_id = $1 AND scope = 'foo'`, org1).Returns(int64(5))
+
+	// zero totals aren't kept - a zero amount writes nothing and a decrement to zero deletes the tally
+	write(8, map[string]int64{
+		models.TallyField(org1, "foo", time.Time{}):                      -5,
+		models.TallyField(org1, "bar", time.Time{}):                      0,
+		models.TallyField(org1, "emails/shared@2025-05-04", time.Time{}): -1,
+	}, true)
+
+	assertLastBatch(store, 8)
+	assertTallies(org1, map[string]any{
+		"emails/shared@2025-05-04": int64(2), "channels/12/text:in@2025-05-04": int64(2),
+		"msgs/text:in@2025-05-04": int64(2), "llms/foo/tokens:in@2025-05-10": int64(100),
+	})
+
+	// a batch which is all zeros is still recorded
+	write(9, map[string]int64{models.TallyField(org1, "bar", time.Time{}): 0}, true)
+
+	assertLastBatch(store, 9)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM orgs_orgtally WHERE org_id = $1 AND scope = 'bar'`, org1).Returns(0)
 }
 
 func TestFlushTallies(t *testing.T) {
