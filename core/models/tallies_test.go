@@ -26,6 +26,15 @@ func TestTallyField(t *testing.T) {
 		models.FlowTallyField(testdb.Favorites.ID, models.FlowSegmentTallyScope("5fd2e537-0534-4c12-8425-bef87af09d46", "072b95b3-61c3-4e0e-8dd1-eb7481083f94")))
 }
 
+func TestFlowMsgsInTallies(t *testing.T) {
+	handled := time.Date(2025, 5, 4, 23, 30, 0, 0, time.FixedZone("", -2*3600))
+
+	assert.Equal(t, map[string]int64{
+		"F10000|msgsin:hour:1":          1,
+		"F10000|msgsin:date:2025-05-05": 1,
+	}, models.FlowMsgsInTallies(testdb.Favorites.ID, handled))
+}
+
 func TestTallyStore(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 

@@ -61,6 +61,16 @@ func FlowSegmentTallyScope(exitUUID flows.ExitUUID, destUUID core.NodeUUID) stri
 	return fmt.Sprintf("segment:%s:%s", exitUUID, destUUID)
 }
 
+// FlowMsgsInTallies gets the tally amounts which count an incoming message handled by the given flow at the given time,
+// by its UTC hour of day and its UTC day
+func FlowMsgsInTallies(flowID FlowID, t time.Time) map[string]int64 {
+	t = t.UTC()
+	return map[string]int64{
+		FlowTallyField(flowID, fmt.Sprintf("msgsin:hour:%d", t.Hour())):                1,
+		FlowTallyField(flowID, fmt.Sprintf("msgsin:date:%s", t.Format(time.DateOnly))): 1,
+	}
+}
+
 // tallyOwner is the type of thing a tally belongs to, which prefixes its id in a tally field
 type tallyOwner byte
 
