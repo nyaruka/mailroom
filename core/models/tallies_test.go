@@ -30,6 +30,7 @@ func TestTallyStore(t *testing.T) {
 	dates.SetNowFunc(dates.NewFixedNow(time.Date(2025, 5, 4, 23, 30, 0, 0, time.UTC)))
 
 	org1, org2 := testdb.Org1.ID, testdb.Org2.ID
+	flow1, flow2 := testdb.Favorites.ID, testdb.PickANumber.ID
 	store := models.NewTallyStore(rt.DB, "tallies")
 	other := models.NewTallyStore(rt.DB, "other")
 
@@ -48,6 +49,10 @@ func TestTallyStore(t *testing.T) {
 	}
 	assertExpiries := func(owner models.OrgID, expected map[string]any) {
 		assertdb.Query(t, rt.DB, `SELECT scope, expires_on::text FROM orgs_orgtally WHERE org_id = $1`, owner).Map(expected)
+	}
+	flowField := func(flowID models.FlowID, scope string) string { return fmt.Sprintf("F%d|%s", flowID, scope) }
+	assertFlowTallies := func(flowID models.FlowID, expected map[string]any) {
+		assertdb.Query(t, rt.DB, `SELECT scope, count FROM flows_flowtally WHERE flow_id = $1`, flowID).Map(expected)
 	}
 
 	assertLastBatch(store, 0)
@@ -99,15 +104,27 @@ func TestTallyStore(t *testing.T) {
 	assertTallies(org2, map[string]any{"foo": int64(5)})
 	assertdb.Query(t, rt.DB, `SELECT count FROM orgs_orgtally WHERE org_id = $1 AND scope = 'foo'`, org1).Returns(int64(3))
 
-	// batch ids can skip ahead, and orgs can be unprefixed
-	write(5, map[string]int64{fmt.Sprintf("%d|foo", org1): 1}, true)
+	// batch ids can skip ahead
+	write(5, map[string]int64{models.TallyField(org1, "foo", time.Time{}): 1}, true)
 	assertLastBatch(store, 5)
 	assertdb.Query(t, rt.DB, `SELECT count FROM orgs_orgtally WHERE org_id = $1 AND scope = 'foo'`, org1).Returns(int64(4))
 
-	// including in the same batch as the prefixed form of the same tally
-	write(6, map[string]int64{fmt.Sprintf("%d|foo", org1): 2, models.TallyField(org1, "foo", time.Time{}): 3}, true)
+	// flow tallies are written to their own table, without expiries, in the same batch as org tallies
+	write(6, map[string]int64{
+		models.TallyField(org1, "foo", time.Time{}):         5,
+		flowField(flow1, "segment:a:b"):                     3,
+		flowField(flow1, "emails/shared@2025-05-04"):        2,
+		flowField(flow2, "segment:a:b"):                     1,
+		models.TallyField(org2, "segment:a:b", time.Time{}): 4,
+	}, true)
 	assertLastBatch(store, 6)
 	assertdb.Query(t, rt.DB, `SELECT count FROM orgs_orgtally WHERE org_id = $1 AND scope = 'foo'`, org1).Returns(int64(9))
+	assertdb.Query(t, rt.DB, `SELECT count FROM orgs_orgtally WHERE org_id = $1 AND scope = 'segment:a:b'`, org2).Returns(int64(4))
+	assertFlowTallies(flow1, map[string]any{"segment:a:b": int64(3), "emails/shared@2025-05-04": int64(2)})
+	assertFlowTallies(flow2, map[string]any{"segment:a:b": int64(1)})
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowtally WHERE expires_on IS NOT NULL`).Returns(0)
+	assertTallies(org2, map[string]any{"foo": int64(5), "segment:a:b": int64(4)})
+	rt.DB.MustExec(`DELETE FROM orgs_orgtally WHERE org_id = $1 AND scope = 'segment:a:b'`, org2)
 
 	// nothing is written for an org which isn't active, or doesn't exist, but the rest of the batch is
 	rt.DB.MustExec(`UPDATE orgs_org SET is_active = FALSE WHERE id = $1`, org2)
@@ -130,7 +147,9 @@ func TestTallyStore(t *testing.T) {
 	assertTallies(org2, map[string]any{"foo": int64(5)})
 
 	// a field which can't be parsed fails the whole batch
-	for _, field := range []string{"foo", "x|foo", "O|foo", "Ox|foo", "OO1|foo", "F1|foo"} {
+	for _, field := range []string{
+		"foo", "1|foo", "x|foo", "X1|foo", "O|foo", "Ox|foo", "OO1|foo", "O-1|foo", "O0|foo", "F|foo", "Fx|foo", "FF1|foo", "F-1|foo",
+	} {
 		written, err := store.Write(ctx, 9, map[string]int64{models.TallyField(org1, "foo", time.Time{}): 1, field: 1})
 		assert.EqualError(t, err, fmt.Sprintf("invalid tally field %q", field))
 		assert.False(t, written)
@@ -152,8 +171,8 @@ func TestTallyStore(t *testing.T) {
 		"emails/shared@2025-05-04": int64(2), "msgs/text:in@2025-05-04": int64(2), "llms/foo/tokens:in@2025-05-10": int64(100),
 	})
 
-	// as does a batch whose fields for the same tally net to zero, and it's still recorded
-	write(10, map[string]int64{models.TallyField(org1, "bar", time.Time{}): 2, fmt.Sprintf("O%d|bar", org1): -2}, true)
+	// as does a batch whose fields for the same tally (here with a leading zero) net to zero, and it's still recorded
+	write(10, map[string]int64{models.TallyField(org1, "bar", time.Time{}): 2, fmt.Sprintf("O0%d|bar", org1): -2}, true)
 
 	assertLastBatch(store, 10)
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM orgs_orgtally WHERE org_id = $1 AND scope = 'bar'`, org1).Returns(0)
@@ -177,6 +196,26 @@ func TestTallyStore(t *testing.T) {
 	write(13, map[string]int64{models.TallyField(org2, "bar", time.Time{}): -1}, true)
 
 	assertTallies(org2, map[string]any{"foo": int64(5), "bar": int64(0)})
+
+	// a flow tally decremented to zero is deleted, and nothing is written for a flow which isn't active or doesn't
+	// exist, or an owner id beyond the range of the table's key, but the rest of the batch is
+	rt.DB.MustExec(`UPDATE flows_flow SET is_active = FALSE WHERE id = $1`, flow2)
+
+	write(14, map[string]int64{
+		flowField(flow1, "segment:a:b"):              -3,
+		flowField(flow1, "emails/shared@2025-05-04"): 1,
+		flowField(flow2, "segment:a:b"):              1,
+		flowField(123456, "segment:a:b"):             1,
+		flowField(1<<40, "segment:a:b"):              -1,
+		models.TallyField(1<<40, "foo", time.Time{}): 1,
+		models.TallyField(org1, "foo", time.Time{}):  1,
+	}, true)
+
+	assertLastBatch(store, 14)
+	assertFlowTallies(flow1, map[string]any{"emails/shared@2025-05-04": int64(3)})
+	assertFlowTallies(flow2, map[string]any{"segment:a:b": int64(1)})
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowtally WHERE flow_id = 123456`).Returns(0)
+	assertdb.Query(t, rt.DB, `SELECT count FROM orgs_orgtally WHERE org_id = $1 AND scope = 'foo'`, org1).Returns(int64(1))
 }
 
 func TestFlushTallies(t *testing.T) {
@@ -190,16 +229,20 @@ func TestFlushTallies(t *testing.T) {
 	org1, org2 := testdb.Org1.ID, testdb.Org2.ID
 	require.NoError(t, rt.Tallies.Increment(ctx, vc, map[string]int64{
 		models.TallyField(org1, "foo", time.Time{}): 2, models.TallyField(org1, "bar", time.Time{}): 1, models.TallyField(org2, "foo", time.Time{}): 3,
+		fmt.Sprintf("F%d|segment:a:b", testdb.Favorites.ID): 4,
 	}))
 
 	flushed, err := rt.Tallies.Flush(ctx, vc, store, 2)
 	require.NoError(t, err)
-	assert.Equal(t, 3, flushed)
+	assert.Equal(t, 4, flushed)
 
 	assertdb.Query(t, rt.DB, `SELECT org_id || '|' || scope, count FROM orgs_orgtally`).Map(map[string]any{
 		fmt.Sprintf("%d|bar", testdb.Org1.ID): int64(1),
 		fmt.Sprintf("%d|foo", testdb.Org1.ID): int64(2),
 		fmt.Sprintf("%d|foo", testdb.Org2.ID): int64(3),
+	})
+	assertdb.Query(t, rt.DB, `SELECT flow_id || '|' || scope, count FROM flows_flowtally`).Map(map[string]any{
+		fmt.Sprintf("%d|segment:a:b", testdb.Favorites.ID): int64(4),
 	})
 	assertdb.Query(t, rt.DB, `SELECT last_batch FROM orgs_tallyflush WHERE name = 'tallies'`).Returns(int64(2))
 }
