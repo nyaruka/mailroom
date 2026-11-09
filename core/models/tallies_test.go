@@ -198,7 +198,7 @@ func TestTallyStore(t *testing.T) {
 	assertTallies(org2, map[string]any{"foo": int64(5), "bar": int64(0)})
 
 	// a flow tally decremented to zero is deleted, and nothing is written for a flow which isn't active or doesn't
-	// exist, but the rest of the batch is
+	// exist, or an owner id beyond the range of the table's key, but the rest of the batch is
 	rt.DB.MustExec(`UPDATE flows_flow SET is_active = FALSE WHERE id = $1`, flow2)
 
 	write(14, map[string]int64{
@@ -206,6 +206,8 @@ func TestTallyStore(t *testing.T) {
 		flowField(flow1, "emails/shared@2025-05-04"): 1,
 		flowField(flow2, "segment:a:b"):              1,
 		flowField(123456, "segment:a:b"):             1,
+		flowField(1<<40, "segment:a:b"):              -1,
+		models.TallyField(1<<40, "foo", time.Time{}): 1,
 		models.TallyField(org1, "foo", time.Time{}):  1,
 	}, true)
 
