@@ -24,7 +24,7 @@ func TestEmailSent(t *testing.T) {
 	runTests(t, rt, "testdata/email_sent.json")
 
 	// sends using the shared configuration are tallied by recipient
-	assertvk.HGetAll(t, vc, "{tallies}:live", map[string]string{"1|emails/shared@2025-05-04": "3"})
+	assertvk.HGetAll(t, vc, "{tallies}:live", map[string]string{"O1|emails/shared@2025-05-04": "3"})
 
 	// expiries are from the day they're flushed
 	defer dates.SetNowFunc(time.Now)

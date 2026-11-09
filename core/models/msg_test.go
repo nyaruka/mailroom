@@ -1111,12 +1111,12 @@ func TestMsgTallies(t *testing.T) {
 		models.NewIncomingAndroid(testdb.Org1.ID, models.NilChannelID, testdb.Cat.ID, testdb.Cat.URNID, "three", time.Now()),
 	}
 
-	assert.Equal(t, map[string]int64{"1|channels/10003/text:in@2026-11-04": 2, "1|msgs/text:in@2026-11-04": 2}, models.MsgTallies(msgs))
+	assert.Equal(t, map[string]int64{"O1|channels/10003/text:in@2026-11-04": 2, "O1|msgs/text:in@2026-11-04": 2}, models.MsgTallies(msgs))
 	assert.Equal(t, map[string]int64{}, models.MsgTallies(msgs[2:]))
 
 	models.IncrementMsgTallies(ctx, rt, testdb.Org1.ID, msgs)
 
-	assertvk.HGetAll(t, vc, "{tallies}:live", map[string]string{"1|channels/10003/text:in@2026-11-04": "2", "1|msgs/text:in@2026-11-04": "2"})
+	assertvk.HGetAll(t, vc, "{tallies}:live", map[string]string{"O1|channels/10003/text:in@2026-11-04": "2", "O1|msgs/text:in@2026-11-04": "2"})
 
 	// channel tallies expire but msg type tallies are kept forever
 	_, err := rt.Tallies.Flush(ctx, vc, models.NewTallyStore(rt.DB, rt.Tallies.KeyBase()), 10)

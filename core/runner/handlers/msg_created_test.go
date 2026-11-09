@@ -44,9 +44,9 @@ func TestMsgCreated(t *testing.T) {
 
 	// messages with a channel are tallied
 	assertvk.HGetAll(t, vc, "{tallies}:live", map[string]string{
-		"1|channels/10000/text:out@2025-05-04": "2",
-		"1|channels/10002/text:out@2025-05-04": "1",
-		"1|msgs/text:out@2025-05-04":           "3",
+		"O1|channels/10000/text:out@2025-05-04": "2",
+		"O1|channels/10002/text:out@2025-05-04": "1",
+		"O1|msgs/text:out@2025-05-04":           "3",
 	})
 }
 
