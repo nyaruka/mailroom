@@ -153,7 +153,7 @@ func TestTallyStore(t *testing.T) {
 	})
 
 	// as does a batch whose fields for the same tally net to zero, and it's still recorded
-	write(10, map[string]int64{models.TallyField(org1, "bar", time.Time{}): 2, fmt.Sprintf("O%d|bar", org1): -2}, true)
+	write(10, map[string]int64{fmt.Sprintf("%d|bar", org1): 2, fmt.Sprintf("O%d|bar", org1): -2}, true)
 
 	assertLastBatch(store, 10)
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM orgs_orgtally WHERE org_id = $1 AND scope = 'bar'`, org1).Returns(0)
