@@ -24,7 +24,8 @@ const (
 	// TallyChannelMsgs prefixes the daily counts of messages (not segments) on each channel, e.g. channels/12/text:in@2026-11-03
 	TallyChannelMsgs = "channels"
 
-	// TallyMsgs prefixes the daily counts of messages with a channel, e.g. msgs/voice:out@2026-11-03
+	// TallyMsgs prefixes the daily counts of messages with a channel, e.g. msgs/voice:out@2026-11-03, and of messages
+	// which failed for having no destination, e.g. msgs/text:nodest@2026-11-03
 	TallyMsgs = "msgs"
 
 	// TallyLLMs prefixes the daily usage tallies which LLM services can record, e.g. llms/foo/tokens:in@2026-11-02
