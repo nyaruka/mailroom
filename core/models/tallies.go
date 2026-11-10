@@ -113,10 +113,13 @@ func tallyRetentionFor(owner tallyOwner, scope string) time.Duration {
 	return tallyRetention[owner][longest]
 }
 
+// tallyDaySeparator is what precedes the day which a daily tally scope ends with, by owner type
+var tallyDaySeparator = map[tallyOwner]string{tallyOwnerOrg: "@", tallyOwnerFlow: ":"}
+
 // tallyDay returns the day which a daily tally scope ends with, or the given default if the scope isn't a daily one.
 // Expiries are counted from it so that they don't depend on when a tally happens to be written.
-func tallyDay(scope string, def time.Time) time.Time {
-	if i := strings.LastIndexAny(scope, "@:"); i >= 0 {
+func tallyDay(owner tallyOwner, scope string, def time.Time) time.Time {
+	if i := strings.LastIndex(scope, tallyDaySeparator[owner]); i >= 0 {
 		if day, err := time.Parse(time.DateOnly, scope[i+1:]); err == nil {
 			return day
 		}
@@ -254,7 +257,7 @@ func (s *TallyStore) Write(ctx context.Context, id int64, amounts map[string]int
 
 		var expires sql.NullString
 		if retention := tallyRetentionFor(key.owner, key.scope); retention != 0 {
-			expiry := tallyDay(key.scope, today).Add(retention)
+			expiry := tallyDay(key.owner, key.scope, today).Add(retention)
 			if expiry.Before(today) {
 				continue // already past retention
 			}

@@ -97,16 +97,18 @@ func TestTallyStore(t *testing.T) {
 	write(2, map[string]int64{
 		models.TallyField(org1, "emails/shared@2025-05-04", time.Time{}):      2,
 		models.TallyField(org1, "llms/foo/tokens:in@2025-05-10", time.Time{}): 100,
+		models.TallyField(org1, "llms/foo/x:2025-01-01", time.Time{}):         1, // not a day as it's not after @
 	}, true)
 
 	assertTallies(org1, map[string]any{
 		"foo": int64(3), "emails/shared@2025-05-04": int64(3), "channels/12/text:in@2025-05-04": int64(2),
-		"msgs/text:in@2025-05-04": int64(2), "llms/foo/tokens:in@2025-05-10": int64(100),
+		"msgs/text:in@2025-05-04": int64(2), "llms/foo/tokens:in@2025-05-10": int64(100), "llms/foo/x:2025-01-01": int64(1),
 	})
 	assertExpiries(org1, map[string]any{
 		"foo": nil, "emails/shared@2025-05-04": "2025-08-02", "channels/12/text:in@2025-05-04": "2026-06-08",
-		"msgs/text:in@2025-05-04": nil, "llms/foo/tokens:in@2025-05-10": "2025-08-08",
+		"msgs/text:in@2025-05-04": nil, "llms/foo/tokens:in@2025-05-10": "2025-08-08", "llms/foo/x:2025-01-01": "2025-08-08",
 	})
+	rt.DB.MustExec(`DELETE FROM orgs_orgtally WHERE org_id = $1 AND scope = 'llms/foo/x:2025-01-01'`, org1)
 
 	// writing a batch which has already been written, or an earlier one, does nothing
 	write(2, map[string]int64{models.TallyField(org1, "foo", time.Time{}): 10}, false)
