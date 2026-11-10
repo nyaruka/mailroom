@@ -1114,7 +1114,7 @@ func TestMsgTallies(t *testing.T) {
 	assert.Equal(t, map[string]int64{"O1|channels/10003/text:in@2026-11-04": 2, "O1|msgs/text:in@2026-11-04": 2}, models.MsgTallies(msgs))
 	assert.Equal(t, map[string]int64{}, models.MsgTallies(msgs[2:]))
 
-	// of channel-less messages, those which failed for having no destination are counted
+	// of channel-less messages, only those which failed for having no destination are counted
 	oa := testdb.Org1.Load(t, rt)
 	flow, err := oa.FlowByID(testdb.Favorites.ID)
 	require.NoError(t, err)
@@ -1125,7 +1125,14 @@ func TestMsgTallies(t *testing.T) {
 	require.Equal(t, models.MsgFailedNoDestination, out.FailedReason())
 	msgs = append(msgs, out.Msg)
 
+	stopped := events.NewMsgCreated(core.NewMsgOut(urns.NilURN, nil, &core.MsgContent{Text: "five"}, nil, "", core.UnsendableReasonContactStopped), "", "")
+	out, err = models.NewOutgoingFlowMsg(rt, oa.Org(), nil, mc, flow, stopped, nil)
+	require.NoError(t, err)
+	require.Equal(t, models.MsgFailedContact, out.FailedReason())
+	msgs = append(msgs, out.Msg)
+
 	assert.Equal(t, map[string]int64{"O1|msgs/text:nodest@2026-11-04": 1}, models.MsgTallies(msgs[2:]))
+	assert.Equal(t, map[string]int64{}, models.MsgTallies(msgs[4:]))
 
 	models.IncrementMsgTallies(ctx, rt, testdb.Org1.ID, msgs)
 
