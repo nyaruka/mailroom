@@ -385,13 +385,10 @@ func TestPushCourierBatch(t *testing.T) {
 	assert.Equal(t, msg1.UUID(), events.EventUUID(item1UUID))
 	assert.Equal(t, msg2.UUID(), events.EventUUID(item2UUID))
 
-	// pushes take the current time from the client, so start at the beginning of a second so that what follows happens
-	// within it
-	time.Sleep(time.Second - time.Duration(time.Now().Nanosecond()) + 50*time.Millisecond)
 	nowSec := time.Now().Unix()
 
-	// simulate courier having popped from the channel until it's used this second's TPS, while it's still ready
-	vc.Do("HSET", "{msgs}:ch:74729f45-7f29-4868-9dc4-90e491e3c7d8", "sec", nowSec, "used", 10, "inflight", 2)
+	// simulate courier having popped from the channel until it's in debt, while it's still ready
+	vc.Do("HSET", "{msgs}:ch:74729f45-7f29-4868-9dc4-90e491e3c7d8", "debt_until", nowSec+2, "inflight", 2)
 	vc.Do("ZADD", "{msgs}:ready", 2, "74729f45-7f29-4868-9dc4-90e491e3c7d8")
 
 	msg3 := (&msgSpec{Channel: testdb.TwilioChannel, Contact: testdb.Ann}).createMsg(t, rt, oa)
@@ -403,7 +400,7 @@ func TestPushCourierBatch(t *testing.T) {
 	assertvk.ZGetAll(t, vc, "{msgs}:ready", map[string]float64{"74729f45-7f29-4868-9dc4-90e491e3c7d8": 2})
 	assertvk.ZGetAll(t, vc, "{msgs}:waiting", map[string]float64{})
 
-	// once courier has parked it, another push leaves it waiting until the next second
+	// once courier has parked it, another push leaves it waiting until its debt allows a send
 	vc.Do("ZREM", "{msgs}:ready", "74729f45-7f29-4868-9dc4-90e491e3c7d8")
 
 	msg4 := (&msgSpec{Channel: testdb.TwilioChannel, Contact: testdb.Ann}).createMsg(t, rt, oa)
@@ -412,13 +409,13 @@ func TestPushCourierBatch(t *testing.T) {
 	require.NoError(t, err)
 
 	assertvk.ZGetAll(t, vc, "{msgs}:ready", map[string]float64{})
-	assertvk.ZGetAll(t, vc, "{msgs}:waiting", map[string]float64{"74729f45-7f29-4868-9dc4-90e491e3c7d8": float64(nowSec + 1)})
+	assertvk.ZGetAll(t, vc, "{msgs}:waiting", map[string]float64{"74729f45-7f29-4868-9dc4-90e491e3c7d8": float64(nowSec+2) + 1.0/10 - 1})
 
 	// but msgs were still added to queue
 	assertvk.ZCard(t, vc, "{msgs}:q:74729f45-7f29-4868-9dc4-90e491e3c7d8/0", 3)
 
-	// a push in a later second makes it ready with its sends in flight as its score
-	vc.Do("HSET", "{msgs}:ch:74729f45-7f29-4868-9dc4-90e491e3c7d8", "sec", nowSec-1)
+	// a push once its debt has drained makes it ready with its sends in flight as its score
+	vc.Do("HSET", "{msgs}:ch:74729f45-7f29-4868-9dc4-90e491e3c7d8", "debt_until", nowSec-1)
 
 	msg5 := (&msgSpec{Channel: testdb.TwilioChannel, Contact: testdb.Ann, HighPriority: true}).createMsg(t, rt, oa)
 
