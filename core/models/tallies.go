@@ -31,13 +31,21 @@ const (
 	TallyLLMs = "llms"
 )
 
-// tallyRetention is how long org tallies are kept after they're first written, by scope prefix. Tallies without one, such
-// as the msgs/ ones, are kept forever.
-var tallyRetention = map[string]time.Duration{
-	TallyEmailsShared + "@": 90 * 24 * time.Hour,
-	TallyChannelMsgs + "/":  400 * 24 * time.Hour,
-	TallyLLMs + "/":         90 * 24 * time.Hour,
+// tallyRetention is how long tallies are kept after they're first written, by owner type and scope prefix. Tallies
+// without one, such as the org msgs/ ones, are kept forever.
+var tallyRetention = map[tallyOwner]map[string]time.Duration{
+	tallyOwnerOrg: {
+		TallyEmailsShared + "@": 90 * 24 * time.Hour,
+		TallyChannelMsgs + "/":  400 * 24 * time.Hour,
+		TallyLLMs + "/":         90 * 24 * time.Hour,
+	},
+	tallyOwnerFlow: {
+		flowMsgsInDateScope: 365 * 24 * time.Hour,
+	},
 }
+
+// flowMsgsInDateScope prefixes the daily counts of incoming messages handled by a flow, e.g. msgsin:date:2026-11-03
+const flowMsgsInDateScope = "msgsin:date:"
 
 // TallyField returns the field of the tally of the given scope for the given org, which if day isn't zero is the daily
 // tally for its UTC day. Panics if the scope contains @ as it's reserved for separating the day.
@@ -66,8 +74,8 @@ func FlowSegmentTallyScope(exitUUID flows.ExitUUID, destUUID core.NodeUUID) stri
 func FlowMsgsInTallies(flowID FlowID, t time.Time) map[string]int64 {
 	t = t.UTC()
 	return map[string]int64{
-		FlowTallyField(flowID, fmt.Sprintf("msgsin:hour:%d", t.Hour())):                1,
-		FlowTallyField(flowID, fmt.Sprintf("msgsin:date:%s", t.Format(time.DateOnly))): 1,
+		FlowTallyField(flowID, fmt.Sprintf("msgsin:hour:%d", t.Hour())):     1,
+		FlowTallyField(flowID, flowMsgsInDateScope+t.Format(time.DateOnly)): 1,
 	}
 }
 
@@ -93,21 +101,25 @@ func parseTallyField(field string) (tallyOwner, int64, string, error) {
 	return 0, 0, "", fmt.Errorf("invalid tally field %q", field)
 }
 
-// tallyRetentionFor returns the retention of the longest prefix of the given scope which has one, or zero if none do
-func tallyRetentionFor(scope string) time.Duration {
+// tallyRetentionFor returns the retention of the longest prefix of the given owner type's scope which has one, or zero
+// if none do
+func tallyRetentionFor(owner tallyOwner, scope string) time.Duration {
 	var longest string
-	for prefix := range tallyRetention {
+	for prefix := range tallyRetention[owner] {
 		if strings.HasPrefix(scope, prefix) && len(prefix) > len(longest) {
 			longest = prefix
 		}
 	}
-	return tallyRetention[longest]
+	return tallyRetention[owner][longest]
 }
 
-// tallyDay returns the day of a daily tally scope, or the given default if the scope isn't a daily one. Expiries are
-// counted from it so that they don't depend on when a tally happens to be written.
-func tallyDay(scope string, def time.Time) time.Time {
-	if i := strings.LastIndex(scope, "@"); i >= 0 {
+// tallyDaySeparator is what precedes the day which a daily tally scope ends with, by owner type
+var tallyDaySeparator = map[tallyOwner]string{tallyOwnerOrg: "@", tallyOwnerFlow: ":"}
+
+// tallyDay returns the day which a daily tally scope ends with, or the given default if the scope isn't a daily one.
+// Expiries are counted from it so that they don't depend on when a tally happens to be written.
+func tallyDay(owner tallyOwner, scope string, def time.Time) time.Time {
+	if i := strings.LastIndex(scope, tallyDaySeparator[owner]); i >= 0 {
 		if day, err := time.Parse(time.DateOnly, scope[i+1:]); err == nil {
 			return day
 		}
@@ -244,14 +256,12 @@ func (s *TallyStore) Write(ctx context.Context, id int64, amounts map[string]int
 		}
 
 		var expires sql.NullString
-		if key.owner == tallyOwnerOrg {
-			if retention := tallyRetentionFor(key.scope); retention != 0 {
-				expiry := tallyDay(key.scope, today).Add(retention)
-				if expiry.Before(today) {
-					continue // already past retention
-				}
-				expires = sql.NullString{String: expiry.Format(time.DateOnly), Valid: true}
+		if retention := tallyRetentionFor(key.owner, key.scope); retention != 0 {
+			expiry := tallyDay(key.owner, key.scope, today).Add(retention)
+			if expiry.Before(today) {
+				continue // already past retention
 			}
+			expires = sql.NullString{String: expiry.Format(time.DateOnly), Valid: true}
 		}
 
 		rows[key.owner].add(key.ownerID, key.scope, count, expires)
