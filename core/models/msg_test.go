@@ -486,7 +486,7 @@ func TestFailOldAndroidMessages(t *testing.T) {
 	out4 := testdb.InsertOutgoingMsgCreatedOn(t, rt, testdb.Org1, "0199bb94-1134-75d6-91dc-8aee7787f703", testdb.AndroidChannel, testdb.Ann, "hi", models.MsgStatusWired, fortnightAgo)
 	out5 := testdb.InsertOutgoingMsgCreatedOn(t, rt, testdb.Org1, "0199bb96-3c4c-72f2-bacc-4b6ae4c592b3", testdb.AndroidChannel, testdb.Ann, "hi", models.MsgStatusFailed, fortnightAgo)
 
-	// a stale queued message on a non-android channel - still in courier's queue so not ours to fail
+	// a stale queued message on a non-android channel - which isn't given up on at the same age
 	out6 := testdb.InsertOutgoingMsgCreatedOn(t, rt, testdb.Org1, "0199bb97-6d69-7e33-9f9e-1bd9dbd9f68e", testdb.TwilioChannel, testdb.Ann, "hi", models.MsgStatusQueued, fortnightAgo)
 
 	// a stale android message in another workspace
@@ -1125,4 +1125,88 @@ func TestMsgTallies(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT scope, expires_on::text FROM orgs_orgtally WHERE org_id = $1 ORDER BY scope`, testdb.Org1.ID).Map(
 		map[string]any{"channels/10003/text:in@2026-11-04": "2027-12-09", "msgs/text:in@2026-11-04": nil},
 	)
+}
+
+func TestFailOldMessages(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	fortnightAgo := time.Now().Add(-14 * 24 * time.Hour)
+	yesterday := time.Now().Add(-24 * time.Hour)
+
+	// stale messages still waiting to be sent, on any kind of channel
+	out1 := testdb.InsertOutgoingMsgCreatedOn(t, rt, testdb.Org1, "0199bad8-f98d-75a3-b641-2718a25ac3f5", testdb.TwilioChannel, testdb.Ann, "hi", models.MsgStatusInitializing, fortnightAgo)
+	out2 := testdb.InsertOutgoingMsgCreatedOn(t, rt, testdb.Org1, "0199bad9-9791-770d-a47d-8f4a6ea3ad13", testdb.TwilioChannel, testdb.Bob, "hi", models.MsgStatusQueued, fortnightAgo)
+	out3 := testdb.InsertOutgoingMsgCreatedOn(t, rt, testdb.Org1, "0199bb93-ec0f-703e-9b5b-d26d4b6b133c", testdb.AndroidChannel, testdb.Cat, "hi", models.MsgStatusErrored, fortnightAgo)
+	rt.DB.MustExec(`UPDATE msgs_msg SET next_attempt = NOW() WHERE id = $1`, out3.ID) // awaiting a retry
+
+	// equally old messages that were sent, or already failed
+	out4 := testdb.InsertOutgoingMsgCreatedOn(t, rt, testdb.Org1, "0199bb94-1134-75d6-91dc-8aee7787f703", testdb.TwilioChannel, testdb.Ann, "hi", models.MsgStatusWired, fortnightAgo)
+	out5 := testdb.InsertOutgoingMsgCreatedOn(t, rt, testdb.Org1, "0199bb96-3c4c-72f2-bacc-4b6ae4c592b3", testdb.TwilioChannel, testdb.Ann, "hi", models.MsgStatusFailed, fortnightAgo)
+
+	// a stale message in another workspace
+	out6 := testdb.InsertOutgoingMsgCreatedOn(t, rt, testdb.Org2, "0199bb98-98e1-7b6c-b8a7-8b2f5d0f7e9c", testdb.Org2Channel, testdb.Org2Contact, "hi", models.MsgStatusQueued, fortnightAgo)
+
+	// one that's only a day old, with an old uuid and with one generated when it was created
+	out7 := testdb.InsertOutgoingMsgCreatedOn(t, rt, testdb.Org1, "0199bb99-d64d-7bb1-9a1e-9d3c4f6ae3c1", testdb.TwilioChannel, testdb.Ann, "hi", models.MsgStatusQueued, yesterday)
+	out8 := testdb.InsertOutgoingMsgCreatedOn(t, rt, testdb.Org1, events.NewEventUUID(), testdb.TwilioChannel, testdb.Ann, "hi", models.MsgStatusQueued, yesterday)
+
+	// a stale message which has since been deleted
+	out9 := testdb.InsertOutgoingMsgCreatedOn(t, rt, testdb.Org1, "0199bb9a-8a56-7c48-b1e8-6a5f0d1c8b47", testdb.TwilioChannel, testdb.Ann, "hi", models.MsgStatusQueued, fortnightAgo)
+	rt.DB.MustExec(`UPDATE msgs_msg SET visibility = 'D', folder = 'D', text = '' WHERE id = $1`, out9.ID)
+
+	olderThan := time.Now().Add(-7 * 24 * time.Hour)
+
+	// messages are failed in batches of the given size
+	tags1, err := models.FailOldMessages(ctx, rt.DB, testdb.Org1.ID, olderThan, 2)
+	assert.NoError(t, err)
+	assert.Len(t, tags1, 2)
+
+	tags2, err := models.FailOldMessages(ctx, rt.DB, testdb.Org1.ID, olderThan, 2)
+	assert.NoError(t, err)
+	assert.Len(t, tags2, 1)
+
+	// and then there's nothing left to fail
+	tags3, err := models.FailOldMessages(ctx, rt.DB, testdb.Org1.ID, olderThan, 2)
+	assert.NoError(t, err)
+	assert.Len(t, tags3, 0)
+
+	// each failure is tagged against the message's own event, for the message's contact
+	byMsg := make(map[events.EventUUID]*models.EventTag, 3)
+	for _, tag := range append(tags1, tags2...) {
+		byMsg[tag.EventUUID] = tag
+	}
+	assert.ElementsMatch(t, []events.EventUUID{out1.UUID, out2.UUID, out3.UUID}, slices.Collect(maps.Keys(byMsg)))
+
+	if assert.Contains(t, byMsg, events.EventUUID(out3.UUID)) {
+		tag := byMsg[out3.UUID]
+		assert.Equal(t, testdb.Org1.ID, tag.OrgID)
+		assert.Equal(t, testdb.Cat.UUID, tag.ContactUUID)
+		assert.Equal(t, "sts", tag.Tag)
+		assert.Equal(t, "F", tag.Qualifier)
+		assert.Equal(t, "failed", tag.Data["status"])
+		assert.Equal(t, "too_old", tag.Data["reason"])
+		assert.Nil(t, tag.TTL)
+	}
+
+	for _, m := range []*testdb.MsgOut{out1, out2, out3} {
+		assertdb.Query(t, rt.DB, `SELECT status, folder, failed_reason, next_attempt FROM msgs_msg WHERE id = $1`, m.ID).
+			Columns(map[string]any{"status": "F", "folder": "X", "failed_reason": "O", "next_attempt": nil})
+	}
+
+	// everything else is untouched, including the other workspace's message
+	assertdb.Query(t, rt.DB, `SELECT status, folder FROM msgs_msg WHERE id = $1`, out4.ID).Columns(map[string]any{"status": "W", "folder": "S"})
+	assertdb.Query(t, rt.DB, `SELECT status, failed_reason FROM msgs_msg WHERE id = $1`, out5.ID).Columns(map[string]any{"status": "F", "failed_reason": nil})
+	assertdb.Query(t, rt.DB, `SELECT status, folder FROM msgs_msg WHERE id = $1`, out6.ID).Columns(map[string]any{"status": "Q", "folder": "O"})
+	assertdb.Query(t, rt.DB, `SELECT status, folder FROM msgs_msg WHERE id = $1`, out7.ID).Columns(map[string]any{"status": "Q", "folder": "O"})
+	assertdb.Query(t, rt.DB, `SELECT status, folder FROM msgs_msg WHERE id = $1`, out8.ID).Columns(map[string]any{"status": "Q", "folder": "O"})
+	assertdb.Query(t, rt.DB, `SELECT status, folder FROM msgs_msg WHERE id = $1`, out9.ID).Columns(map[string]any{"status": "Q", "folder": "D"})
+
+	// until it's that workspace's turn
+	tags4, err := models.FailOldMessages(ctx, rt.DB, testdb.Org2.ID, olderThan, 2)
+	assert.NoError(t, err)
+	if assert.Len(t, tags4, 1) {
+		assert.Equal(t, events.EventUUID(out6.UUID), tags4[0].EventUUID)
+		assert.Equal(t, testdb.Org2.ID, tags4[0].OrgID)
+		assert.Equal(t, testdb.Org2Contact.UUID, tags4[0].ContactUUID)
+	}
 }

@@ -404,6 +404,29 @@ func GetActiveOrgIDs(ctx context.Context, db Queryer) ([]OrgID, error) {
 	return ids, nil
 }
 
+const sqlSelectOrgIDsWithOutbox = `
+  SELECT org_id
+    FROM orgs_itemcount
+   WHERE scope = 'msgs:folder:O'
+GROUP BY org_id
+  HAVING SUM(count) > 0
+ORDER BY org_id`
+
+// GetOrgIDsWithOutbox returns the IDs of the orgs which have messages in their outbox, going by their folder counts
+func GetOrgIDsWithOutbox(ctx context.Context, db Queryer) ([]OrgID, error) {
+	rows, err := db.QueryContext(ctx, sqlSelectOrgIDsWithOutbox)
+	if err != nil {
+		return nil, fmt.Errorf("error querying org IDs with an outbox: %w", err)
+	}
+	defer rows.Close()
+
+	ids, err := dbutil.ScanAllSlice(rows, make([]OrgID, 0, 100))
+	if err != nil {
+		return nil, fmt.Errorf("error scanning org IDs with an outbox: %w", err)
+	}
+	return ids, nil
+}
+
 const sqlSelectOutboxCounts = `
   SELECT org_id, SUM(count) 
     FROM orgs_itemcount 

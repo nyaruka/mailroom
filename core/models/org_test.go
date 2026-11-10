@@ -217,3 +217,22 @@ func TestGetOutboxCounts(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, map[models.OrgID]int{testdb.Org1.ID: 4, testdb.Org2.ID: 2}, counts)
 }
+
+func TestGetOrgIDsWithOutbox(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	orgIDs, err := models.GetOrgIDsWithOutbox(ctx, rt.DB)
+	assert.NoError(t, err)
+	assert.Empty(t, orgIDs)
+
+	// org 1's outbox counts net to zero, org 2's don't
+	rt.DB.MustExec(`INSERT INTO orgs_itemcount(org_id, scope, count, is_squashed) VALUES ($1, 'msgs:folder:O', 2, FALSE)`, testdb.Org1.ID)
+	rt.DB.MustExec(`INSERT INTO orgs_itemcount(org_id, scope, count, is_squashed) VALUES ($1, 'msgs:folder:O', -2, FALSE)`, testdb.Org1.ID)
+	rt.DB.MustExec(`INSERT INTO orgs_itemcount(org_id, scope, count, is_squashed) VALUES ($1, 'msgs:folder:S', 3, FALSE)`, testdb.Org1.ID)
+	rt.DB.MustExec(`INSERT INTO orgs_itemcount(org_id, scope, count, is_squashed) VALUES ($1, 'msgs:folder:O', 3, FALSE)`, testdb.Org2.ID)
+	rt.DB.MustExec(`INSERT INTO orgs_itemcount(org_id, scope, count, is_squashed) VALUES ($1, 'msgs:folder:O', -1, FALSE)`, testdb.Org2.ID)
+
+	orgIDs, err = models.GetOrgIDsWithOutbox(ctx, rt.DB)
+	assert.NoError(t, err)
+	assert.Equal(t, []models.OrgID{testdb.Org2.ID}, orgIDs)
+}

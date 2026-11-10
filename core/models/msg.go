@@ -1026,8 +1026,9 @@ WITH rows AS (
 RETURNING msgs_msg.org_id AS org_id, msgs_msg.uuid AS msg_uuid, c.uuid AS contact_uuid`
 
 // FailOldAndroidMessages fails up to limit outgoing Android messages created on or before the given time which are
-// still waiting to be sent, i.e. their relayer hasn't synced and they'd otherwise sit in the outbox forever. Only
-// Android messages are failed this way because messages on other channel types are still in courier's queue.
+// still waiting to be sent, i.e. their relayer hasn't synced and they'd otherwise sit in the outbox forever. This
+// is specific to Android because how long to wait is tied to how long we keep trying to reach a relayer - see
+// FailOldMessages for what catches messages on any kind of channel.
 //
 // It returns an event tag recording the change for each message failed (to be queued to the history table), so
 // callers should keep calling until it returns nothing.
@@ -1048,6 +1049,63 @@ func FailOldAndroidMessages(ctx context.Context, db DBorTx, olderThan time.Time,
 	tags := make([]*EventTag, len(rows))
 	for i, r := range rows {
 		tags[i] = NewMsgStatusTag(r.OrgID, r.ContactUUID, r.MsgUUID, MsgStatusFailed, MsgFailedTooOld)
+	}
+
+	return tags, nil
+}
+
+// MsgGiveUpAge is how long an outgoing message can wait to be sent before we give up on it. Nothing legitimately
+// waits this long - it's far beyond the retries of a failed send, and the time a large send takes to drain through a
+// throttled channel - so a message which has is one that nothing is going to send: it was lost between being
+// created and queued, lost by a sender that died with it, or is awaiting a retry on a channel that can no longer
+// send.
+const MsgGiveUpAge = 7 * 24 * time.Hour
+
+// selects by org and folder, bounded by uuid, so that it's served by the folder index (org, folder, uuid) and only
+// reads the part of an outbox which is old enough - message uuids are v7 and so time ordered. A message's uuid isn't
+// generated from its created_on, so the uuid bound is padded to be a superset and created_on is what's honored.
+//
+// Like sqlFailOldAndroidMessages the WHERE on the update repeats the folder check so that a message which was sent
+// or failed between the two can't be clobbered, and the join to contacts_contact is only for the contact UUID.
+const sqlFailOldMessages = `
+WITH rows AS (
+	SELECT id FROM msgs_msg
+	WHERE org_id = $1 AND folder = 'O' AND uuid < $2 AND created_on <= $3
+	LIMIT $4
+)
+   UPDATE msgs_msg SET status = 'F', folder = $5, failed_reason = $6, next_attempt = NULL, modified_on = NOW()
+     FROM rows, contacts_contact c
+    WHERE msgs_msg.id = rows.id AND msgs_msg.folder = 'O' AND c.id = msgs_msg.contact_id
+RETURNING msgs_msg.uuid AS msg_uuid, c.uuid AS contact_uuid`
+
+// how far past the given time the uuid bound of sqlFailOldMessages reaches
+const failOldMessagesUUIDPadding = time.Minute
+
+// FailOldMessages fails up to limit of the given org's outgoing messages, on any kind of channel, which were created
+// on or before the given time and are still waiting to be sent.
+//
+// It returns an event tag recording the change for each message failed (to be queued to the history table), so
+// callers should keep calling until it returns nothing.
+func FailOldMessages(ctx context.Context, db DBorTx, orgID OrgID, olderThan time.Time, limit int) ([]*EventTag, error) {
+	// the query only touches visible messages, so the failed folder follows from the status alone
+	folder := DeriveMsgFolder(DirectionOut, MsgStatusFailed, VisibilityVisible, false)
+
+	// the smallest v7 uuid of the millisecond the padded bound falls in
+	ms := olderThan.Add(failOldMessagesUUIDPadding).UnixMilli()
+	uuidBound := fmt.Sprintf("%08x-%04x-7000-8000-000000000000", ms>>16, ms&0xffff)
+
+	rows := []*struct {
+		MsgUUID     events.EventUUID `db:"msg_uuid"`
+		ContactUUID core.ContactUUID `db:"contact_uuid"`
+	}{}
+
+	if err := db.SelectContext(ctx, &rows, sqlFailOldMessages, orgID, uuidBound, olderThan, limit, folder, MsgFailedTooOld); err != nil {
+		return nil, fmt.Errorf("error failing old messages: %w", err)
+	}
+
+	tags := make([]*EventTag, len(rows))
+	for i, r := range rows {
+		tags[i] = NewMsgStatusTag(orgID, r.ContactUUID, r.MsgUUID, MsgStatusFailed, MsgFailedTooOld)
 	}
 
 	return tags, nil
