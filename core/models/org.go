@@ -405,14 +405,16 @@ func GetActiveOrgIDs(ctx context.Context, db Queryer) ([]OrgID, error) {
 }
 
 const sqlSelectOrgIDsWithOutbox = `
-  SELECT org_id
-    FROM orgs_itemcount
-   WHERE scope = 'msgs:folder:O'
-GROUP BY org_id
-  HAVING SUM(count) > 0
-ORDER BY org_id`
+  SELECT c.org_id
+    FROM orgs_itemcount c
+    JOIN orgs_org o ON o.id = c.org_id
+   WHERE c.scope = 'msgs:folder:O' AND o.is_active = TRUE
+GROUP BY c.org_id
+  HAVING SUM(c.count) > 0
+ORDER BY c.org_id`
 
-// GetOrgIDsWithOutbox returns the IDs of the orgs which have messages in their outbox, going by their folder counts
+// GetOrgIDsWithOutbox returns the IDs of the active orgs which have messages in their outbox, going by their folder
+// counts - so an org whose count has somehow come to understate its outbox as empty isn't included
 func GetOrgIDsWithOutbox(ctx context.Context, db Queryer) ([]OrgID, error) {
 	rows, err := db.QueryContext(ctx, sqlSelectOrgIDsWithOutbox)
 	if err != nil {

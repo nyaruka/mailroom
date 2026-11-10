@@ -235,4 +235,11 @@ func TestGetOrgIDsWithOutbox(t *testing.T) {
 	orgIDs, err = models.GetOrgIDsWithOutbox(ctx, rt.DB)
 	assert.NoError(t, err)
 	assert.Equal(t, []models.OrgID{testdb.Org2.ID}, orgIDs)
+
+	// an org which is no longer active isn't included
+	rt.DB.MustExec(`UPDATE orgs_org SET is_active = FALSE WHERE id = $1`, testdb.Org2.ID)
+
+	orgIDs, err = models.GetOrgIDsWithOutbox(ctx, rt.DB)
+	assert.NoError(t, err)
+	assert.Empty(t, orgIDs)
 }

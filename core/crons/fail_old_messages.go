@@ -3,9 +3,11 @@ package crons
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/nyaruka/gocommon/dates"
+	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/runtime"
 )
@@ -37,26 +39,62 @@ func (c *FailOldMessagesCron) Run(ctx context.Context, rt *runtime.Runtime) (map
 		return nil, fmt.Errorf("error getting orgs with an outbox: %w", err)
 	}
 
+	// an org we can't do is left for the next run rather than stopping us getting to the rest
+	var firstErr error
+	numErrored := 0
+
 	for _, orgID := range orgIDs {
-		for {
-			tags, err := models.FailOldMessages(ctx, rt.DB, orgID, olderThan, failOldMessagesBatchSize)
-			if err != nil {
+		n, err := c.failForOrg(ctx, rt, orgID, olderThan)
+		numFailed += n
+
+		if err != nil {
+			// unless we're out of time, in which case nothing else is going to work either
+			if ctx.Err() != nil {
 				return nil, fmt.Errorf("error failing old messages for org %d: %w", orgID, err)
 			}
-			if len(tags) == 0 {
-				break
-			}
 
-			// record each change in the contact's history so that clients rendering the message see it as failed
-			for _, tag := range tags {
-				if _, err := rt.Dynamo.History.Queue(tag); err != nil {
-					return nil, fmt.Errorf("error queuing status tag to writer: %w", err)
-				}
+			slog.Error("error failing old messages", "org_id", orgID, "error", err)
+			numErrored++
+			if firstErr == nil {
+				firstErr = fmt.Errorf("error failing old messages for org %d: %w", orgID, err)
 			}
-
-			numFailed += len(tags)
 		}
 	}
 
+	if firstErr != nil {
+		return nil, fmt.Errorf("unable to fail old messages for %d orgs, the first being: %w", numErrored, firstErr)
+	}
+
 	return map[string]any{"failed": numFailed}, nil
+}
+
+// fails the old messages of a single org, a batch at a time, returning how many were failed
+func (c *FailOldMessagesCron) failForOrg(ctx context.Context, rt *runtime.Runtime, orgID models.OrgID, olderThan time.Time) (int, error) {
+	numFailed := 0
+	before := events.EventUUID("")
+
+	for {
+		tags, err := models.FailOldMessages(ctx, rt.DB, orgID, olderThan, before, failOldMessagesBatchSize)
+		if err != nil {
+			return numFailed, err
+		}
+
+		// record each change in the contact's history so that clients rendering the message see it as failed
+		for _, tag := range tags {
+			if _, err := rt.Dynamo.History.Queue(tag); err != nil {
+				return numFailed, fmt.Errorf("error queuing status tag to writer: %w", err)
+			}
+
+			// the next batch carries on from the oldest message of this one
+			if before == "" || tag.EventUUID < before {
+				before = tag.EventUUID
+			}
+		}
+
+		numFailed += len(tags)
+
+		if len(tags) < failOldMessagesBatchSize {
+			return numFailed, nil
+		}
+	}
 }

@@ -37,6 +37,9 @@ func TestFailOldMessages(t *testing.T) {
 	out3 := testdb.InsertOutgoingMsgCreatedOn(t, rt, testdb.Org1, "0199bb93-ec0f-703e-9b5b-d26d4b6b133c", testdb.TwilioChannel, testdb.Ann, "hi", models.MsgStatusQueued, recently)
 	out4 := testdb.InsertOutgoingMsgCreatedOn(t, rt, testdb.Org1, "0199bb94-1134-75d6-91dc-8aee7787f703", testdb.TwilioChannel, testdb.Ann, "hi", models.MsgStatusWired, longAgo)
 
+	// which nothing has happened to since
+	rt.DB.MustExec(`UPDATE msgs_msg SET modified_on = created_on WHERE direction = 'O'`)
+
 	res, err = cron.Run(ctx, rt)
 	assert.NoError(t, err)
 	assert.Equal(t, map[string]any{"failed": 2}, res)
