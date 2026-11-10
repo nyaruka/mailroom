@@ -76,7 +76,6 @@ type Msg struct {
 	Locale               i18n.Locale        `json:"locale,omitempty"`
 	Templating           *Templating        `json:"templating,omitempty"`
 	HighPriority         bool               `json:"high_priority"`
-	MsgCount             int                `json:"tps_cost"`
 	CreatedOn            time.Time          `json:"created_on"`
 	ChannelUUID          assets.ChannelUUID `json:"channel_uuid"`
 	URN                  urns.URN           `json:"urn"`
@@ -117,7 +116,6 @@ func NewCourierMsg(oa *models.OrgAssets, mo *models.MsgOut, ch *models.Channel) 
 		QuickReplies: mo.QuickReplies(),
 		Locale:       mo.Locale(),
 		HighPriority: mo.HighPriority(),
-		MsgCount:     mo.MsgCount(),
 		CreatedOn:    mo.CreatedOn().In(time.UTC),
 		ChannelUUID:  ch.UUID(),
 		UserID:       mo.CreatedByID(),

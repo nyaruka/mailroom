@@ -105,7 +105,6 @@ func TestNewCourierMsg(t *testing.T) {
 			"language": "en_US"
 		},
 		"text": "Hi there",
-		"tps_cost": 2,
 		"urn": "tel:+16055741111",
 		"uuid": "%s"
 	}`, string(jsonx.MustMarshal(msgEvent1.CreatedOn().In(time.UTC))), session.UUID(), sprint.UUID(), msg1.UUID()))
@@ -146,7 +145,6 @@ func TestNewCourierMsg(t *testing.T) {
 			"sprint_uuid": "%s"
         },
 		"text": "Hi there",
-		"tps_cost": 1,
 		"urn": "tel:+16055741111",
 		"uuid": "%s"
 	}`, string(jsonx.MustMarshal(msgEvent2.CreatedOn().In(time.UTC))), session.UUID(), sprint.UUID(), msg2.UUID()))
@@ -174,7 +172,6 @@ func TestNewCourierMsg(t *testing.T) {
 		"org_id": 1,
 		"origin": "broadcast",
 		"text": "Blast",
-		"tps_cost": 1,
 		"urn": "tel:+593979123456",
 		"urn_auth": "sesame",
 		"user_id": %d,
@@ -214,7 +211,6 @@ func TestNewCourierMsg(t *testing.T) {
 			"language": "en_US"
 		},
 		"text": "Hi there",
-		"tps_cost": 2,
 		"urn": "tel:+16055741111",
 		"uuid": "%s"
 	}`, string(jsonx.MustMarshal(msgEvent1.CreatedOn().In(time.UTC).Round(time.Microsecond))), msg1.UUID()))
