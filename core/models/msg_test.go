@@ -1114,15 +1114,43 @@ func TestMsgTallies(t *testing.T) {
 	assert.Equal(t, map[string]int64{"O1|channels/10003/text:in@2026-11-04": 2, "O1|msgs/text:in@2026-11-04": 2}, models.MsgTallies(msgs))
 	assert.Equal(t, map[string]int64{}, models.MsgTallies(msgs[2:]))
 
+	// of channel-less messages, only those which failed for having no destination are counted
+	oa := testdb.Org1.Load(t, rt)
+	flow, err := oa.FlowByID(testdb.Favorites.ID)
+	require.NoError(t, err)
+	mc, _, _ := testdb.Ann.Load(t, rt, oa)
+	noDest := events.NewMsgCreated(core.NewMsgOut(urns.NilURN, nil, &core.MsgContent{Text: "four"}, nil, "", core.UnsendableReasonNoRoute), "", "")
+	out, err := models.NewOutgoingFlowMsg(rt, oa.Org(), nil, mc, flow, noDest, nil)
+	require.NoError(t, err)
+	require.Equal(t, models.MsgFailedNoDestination, out.FailedReason())
+	msgs = append(msgs, out.Msg)
+
+	stopped := events.NewMsgCreated(core.NewMsgOut(urns.NilURN, nil, &core.MsgContent{Text: "five"}, nil, "", core.UnsendableReasonContactStopped), "", "")
+	out, err = models.NewOutgoingFlowMsg(rt, oa.Org(), nil, mc, flow, stopped, nil)
+	require.NoError(t, err)
+	require.Equal(t, models.MsgFailedContact, out.FailedReason())
+	msgs = append(msgs, out.Msg)
+
+	assert.Equal(t, map[string]int64{"O1|msgs/text:nodest@2026-11-04": 1}, models.MsgTallies(msgs[2:]))
+	assert.Equal(t, map[string]int64{}, models.MsgTallies(msgs[4:]))
+
 	models.IncrementMsgTallies(ctx, rt, testdb.Org1.ID, msgs)
 
-	assertvk.HGetAll(t, vc, "{tallies}:live", map[string]string{"O1|channels/10003/text:in@2026-11-04": "2", "O1|msgs/text:in@2026-11-04": "2"})
+	assertvk.HGetAll(t, vc, "{tallies}:live", map[string]string{
+		"O1|channels/10003/text:in@2026-11-04": "2",
+		"O1|msgs/text:in@2026-11-04":           "2",
+		"O1|msgs/text:nodest@2026-11-04":       "1",
+	})
 
 	// channel tallies expire but msg type tallies are kept forever
-	_, err := rt.Tallies.Flush(ctx, vc, models.NewTallyStore(rt.DB, rt.Tallies.KeyBase()), 10)
+	_, err = rt.Tallies.Flush(ctx, vc, models.NewTallyStore(rt.DB, rt.Tallies.KeyBase()), 10)
 	require.NoError(t, err)
 
 	assertdb.Query(t, rt.DB, `SELECT scope, expires_on::text FROM orgs_orgtally WHERE org_id = $1 ORDER BY scope`, testdb.Org1.ID).Map(
-		map[string]any{"channels/10003/text:in@2026-11-04": "2027-12-09", "msgs/text:in@2026-11-04": nil},
+		map[string]any{
+			"channels/10003/text:in@2026-11-04": "2027-12-09",
+			"msgs/text:in@2026-11-04":           nil,
+			"msgs/text:nodest@2026-11-04":       nil,
+		},
 	)
 }
