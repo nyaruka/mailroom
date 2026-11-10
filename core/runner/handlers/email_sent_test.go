@@ -20,6 +20,8 @@ func TestEmailSent(t *testing.T) {
 	defer vc.Close()
 
 	rt.Config.SMTPServer = `smtp://foo:bar@example.com?from=foo%40example.com`
+	rt.DB.MustExec(`UPDATE orgs_org SET features = '{"shared_email"}' WHERE id = $1`, testdb.Org1.ID)
+	models.FlushCache()
 
 	runTests(t, rt, "testdata/email_sent.json")
 
