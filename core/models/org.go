@@ -127,7 +127,8 @@ const (
 	// FeatureTicketTriggers allows triggers to fire for contacts with open tickets
 	FeatureTicketTriggers = "ticket_triggers"
 
-	// FeatureSharedEmail allows an org's flows, and those of its children, to send email using the shared configuration
+	// FeatureSharedEmail allows an org's flows to send email using the shared configuration. It isn't inherited by
+	// child orgs.
 	FeatureSharedEmail = "shared_email"
 )
 
@@ -244,8 +245,6 @@ func (o *Org) EmailSMTP(ctx context.Context, rt *runtime.Runtime) (string, bool,
 		return smtpURL, false, nil
 	}
 
-	sharedAllowed := o.HasFeature(FeatureSharedEmail)
-
 	// secondly look on parent org if there is one
 	if o.o.ParentID != NilOrgID {
 		parent, err := GetOrgAssets(ctx, rt, o.o.ParentID)
@@ -255,12 +254,10 @@ func (o *Org) EmailSMTP(ctx context.Context, rt *runtime.Runtime) (string, bool,
 		if smtpURL := parent.Org().FlowSMTP(); smtpURL != "" {
 			return smtpURL, false, nil
 		}
-
-		sharedAllowed = sharedAllowed || parent.Org().HasFeature(FeatureSharedEmail)
 	}
 
-	// finally use config default if this org can
-	if sharedAllowed && rt.Config.SMTPServer != "" {
+	// finally use config default if this org has itself been granted it
+	if o.HasFeature(FeatureSharedEmail) && rt.Config.SMTPServer != "" {
 		return rt.Config.SMTPServer, true, nil
 	}
 
