@@ -1,3 +1,6 @@
+## v26.3.132 (2026-11-10)
+ * Tally incoming messages handled by flows, including IVR messages, to flows_flowtally
+
 ## v26.3.131 (2026-11-09)
  * Require owner prefixes on tally fields
  * Write flow segment tallies to flows_flowtally
