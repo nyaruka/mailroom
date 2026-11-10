@@ -388,7 +388,7 @@ func TestPushCourierBatch(t *testing.T) {
 	nowSec := time.Now().Unix()
 
 	// simulate courier having popped from the channel until it's in debt, while it's still ready
-	vc.Do("HSET", "{msgs}:ch:74729f45-7f29-4868-9dc4-90e491e3c7d8", "debt_until", nowSec+2, "inflight", 2)
+	vc.Do("HSET", "{msgs}:ch:74729f45-7f29-4868-9dc4-90e491e3c7d8", "debt_until", nowSec+5, "inflight", 2)
 	vc.Do("ZADD", "{msgs}:ready", 2, "74729f45-7f29-4868-9dc4-90e491e3c7d8")
 
 	msg3 := (&msgSpec{Channel: testdb.TwilioChannel, Contact: testdb.Ann}).createMsg(t, rt, oa)
@@ -409,7 +409,7 @@ func TestPushCourierBatch(t *testing.T) {
 	require.NoError(t, err)
 
 	assertvk.ZGetAll(t, vc, "{msgs}:ready", map[string]float64{})
-	assertvk.ZGetAll(t, vc, "{msgs}:waiting", map[string]float64{"74729f45-7f29-4868-9dc4-90e491e3c7d8": float64(nowSec+2) + 1.0/10 - 1})
+	assertvk.ZGetAll(t, vc, "{msgs}:waiting", map[string]float64{"74729f45-7f29-4868-9dc4-90e491e3c7d8": float64(nowSec+5) + 1.0/10 - 1})
 
 	// but msgs were still added to queue
 	assertvk.ZCard(t, vc, "{msgs}:q:74729f45-7f29-4868-9dc4-90e491e3c7d8/0", 3)
