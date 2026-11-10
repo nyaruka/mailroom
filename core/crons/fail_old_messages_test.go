@@ -24,7 +24,7 @@ func TestFailOldMessages(t *testing.T) {
 	// nothing to fail
 	res, err := cron.Run(ctx, rt)
 	assert.NoError(t, err)
-	assert.Equal(t, map[string]any{"failed": 0}, res)
+	assert.Equal(t, map[string]any{"failed": 0, "errored": 0}, res)
 
 	longAgo := time.Now().Add(-30 * 24 * time.Hour)
 	recently := time.Now().Add(-3 * 24 * time.Hour)
@@ -42,7 +42,7 @@ func TestFailOldMessages(t *testing.T) {
 
 	res, err = cron.Run(ctx, rt)
 	assert.NoError(t, err)
-	assert.Equal(t, map[string]any{"failed": 2}, res)
+	assert.Equal(t, map[string]any{"failed": 2, "errored": 0}, res)
 
 	assertdb.Query(t, rt.DB, `SELECT status, folder, failed_reason FROM msgs_msg WHERE id = $1`, out1.ID).
 		Columns(map[string]any{"status": "F", "folder": "X", "failed_reason": "O"})
@@ -79,5 +79,5 @@ func TestFailOldMessages(t *testing.T) {
 	// running again is a no-op
 	res, err = cron.Run(ctx, rt)
 	assert.NoError(t, err)
-	assert.Equal(t, map[string]any{"failed": 0}, res)
+	assert.Equal(t, map[string]any{"failed": 0, "errored": 0}, res)
 }

@@ -40,8 +40,13 @@ func (c *FailOldMessagesCron) Run(ctx context.Context, rt *runtime.Runtime) (map
 	}
 
 	// an org we can't do is left for the next run rather than stopping us getting to the rest
-	var firstErr error
+	var orgErr error
 	numErrored := 0
+
+	// what we got done is reported even when we return an error
+	results := func() map[string]any {
+		return map[string]any{"failed": numFailed, "errored": numErrored}
+	}
 
 	for _, orgID := range orgIDs {
 		n, err := c.failForOrg(ctx, rt, orgID, olderThan)
@@ -50,22 +55,20 @@ func (c *FailOldMessagesCron) Run(ctx context.Context, rt *runtime.Runtime) (map
 		if err != nil {
 			// unless we're out of time, in which case nothing else is going to work either
 			if ctx.Err() != nil {
-				return nil, fmt.Errorf("error failing old messages for org %d: %w", orgID, err)
+				return results(), fmt.Errorf("error failing old messages for org %d: %w", orgID, err)
 			}
 
-			slog.Error("error failing old messages", "org_id", orgID, "error", err)
+			// only the first is returned, to be logged by our caller, so log the others here
 			numErrored++
-			if firstErr == nil {
-				firstErr = fmt.Errorf("error failing old messages for org %d: %w", orgID, err)
+			if orgErr == nil {
+				orgErr = fmt.Errorf("error failing old messages for org %d: %w", orgID, err)
+			} else {
+				slog.Error("error failing old messages", "org_id", orgID, "error", err)
 			}
 		}
 	}
 
-	if firstErr != nil {
-		return nil, fmt.Errorf("unable to fail old messages for %d orgs, the first being: %w", numErrored, firstErr)
-	}
-
-	return map[string]any{"failed": numFailed}, nil
+	return results(), orgErr
 }
 
 // fails the old messages of a single org, a batch at a time, returning how many were failed

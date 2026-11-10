@@ -1182,25 +1182,28 @@ func TestFailOldMessages(t *testing.T) {
 		assert.ElementsMatch(t, []events.EventUUID{out10.UUID, out3.UUID}, []events.EventUUID{tags1[0].EventUUID, tags1[1].EventUUID})
 	}
 
-	// carrying on from the oldest message of the previous batch
-	tags2, err := models.FailOldMessages(ctx, rt.DB, testdb.Org1.ID, olderThan, out3.UUID, 2)
+	// only messages before the given one are considered, so this leaves the second oldest even though it's eligible
+	tags2, err := models.FailOldMessages(ctx, rt.DB, testdb.Org1.ID, olderThan, out2.UUID, 2)
 	assert.NoError(t, err)
-	if assert.Len(t, tags2, 2) {
-		assert.ElementsMatch(t, []events.EventUUID{out2.UUID, out1.UUID}, []events.EventUUID{tags2[0].EventUUID, tags2[1].EventUUID})
+	if assert.Len(t, tags2, 1) {
+		assert.Equal(t, events.EventUUID(out1.UUID), tags2[0].EventUUID)
 	}
 
-	// and then there's nothing left to fail, from there or from the start
-	tags3, err := models.FailOldMessages(ctx, rt.DB, testdb.Org1.ID, olderThan, out1.UUID, 2)
+	// until we start from the top again
+	tags3, err := models.FailOldMessages(ctx, rt.DB, testdb.Org1.ID, olderThan, "", 2)
 	assert.NoError(t, err)
-	assert.Len(t, tags3, 0)
+	if assert.Len(t, tags3, 1) {
+		assert.Equal(t, events.EventUUID(out2.UUID), tags3[0].EventUUID)
+	}
 
-	tags3, err = models.FailOldMessages(ctx, rt.DB, testdb.Org1.ID, olderThan, "", 2)
+	// and then there's nothing left to fail
+	tags0, err := models.FailOldMessages(ctx, rt.DB, testdb.Org1.ID, olderThan, "", 2)
 	assert.NoError(t, err)
-	assert.Len(t, tags3, 0)
+	assert.Len(t, tags0, 0)
 
 	// each failure is tagged against the message's own event, for the message's contact
 	byMsg := make(map[events.EventUUID]*models.EventTag, 4)
-	for _, tag := range append(tags1, tags2...) {
+	for _, tag := range slices.Concat(tags1, tags2, tags3) {
 		byMsg[tag.EventUUID] = tag
 	}
 

@@ -1055,16 +1055,17 @@ func FailOldAndroidMessages(ctx context.Context, db DBorTx, olderThan time.Time,
 }
 
 // MsgGiveUpAge is how long an outgoing message can wait to be sent, with nothing happening to it, before we give up
-// on it. That's far beyond the retries of a failed send, and the time a large send takes to drain through a throttled
-// channel, so a message which nothing has touched in this long is one that nothing is going to send: it was lost
-// between being created and queued, lost by a sender that died with it, or is awaiting a retry on a channel that can
-// no longer send.
+// on it. It's chosen to be well beyond the retries of a failed send, and the time a send normally takes to drain
+// through a throttled channel, so that a message which nothing has touched in this long is almost always one that
+// nothing is going to send: it was lost between being created and queued, lost by a sender that died with it, or is
+// awaiting a retry on a channel that can no longer send. A message that is somehow still queued to be sent at this
+// age is failed all the same, and stays failed if it's then sent.
 const MsgGiveUpAge = 7 * 24 * time.Hour
 
 // selects by org and folder, bounded by uuid, so that it's served by the folder index (org, folder, uuid) and only
-// reads the part of an outbox which is old enough - message uuids are v7 and so time ordered, and one which isn't
-// won't generally be reached. A message's uuid isn't generated from its created_on, so the uuid bound is padded to be
-// a superset and created_on is what's honored.
+// reads the part of an outbox which is old enough - message uuids are v7 and so time ordered. A message whose uuid
+// isn't v7 isn't covered, because its uuid almost certainly sorts after the bound. A message's uuid isn't generated
+// from its created_on, so the uuid bound is padded to be a superset and created_on is what's honored.
 //
 // The check on modified_on is what leaves alone a message which is old but has only just been put back in the outbox
 // by being resent, which keeps its uuid and created_on - failing it would have it shown as failed and then sent
@@ -1075,7 +1076,8 @@ const MsgGiveUpAge = 7 * 24 * time.Hour
 // the messages already failed.
 //
 // Like sqlFailOldAndroidMessages the WHERE on the update repeats the folder check so that a message which was sent
-// or failed between the two can't be clobbered, and the join to contacts_contact is only for the contact UUID.
+// or failed between the two can't be clobbered - and here the modified_on check too, so that neither can one which
+// a send was attempted for. The join to contacts_contact is only for the contact UUID.
 const sqlFailOldMessages = `
 WITH rows AS (
 	SELECT id FROM msgs_msg
@@ -1085,7 +1087,7 @@ WITH rows AS (
 )
    UPDATE msgs_msg SET status = 'F', folder = $5, failed_reason = $6, next_attempt = NULL, modified_on = NOW()
      FROM rows, contacts_contact c
-    WHERE msgs_msg.id = rows.id AND msgs_msg.folder = 'O' AND c.id = msgs_msg.contact_id
+    WHERE msgs_msg.id = rows.id AND msgs_msg.folder = 'O' AND msgs_msg.modified_on <= $3 AND c.id = msgs_msg.contact_id
 RETURNING msgs_msg.uuid AS msg_uuid, c.uuid AS contact_uuid`
 
 // how far past the given time the uuid bound of sqlFailOldMessages reaches
@@ -1095,9 +1097,10 @@ const failOldMessagesUUIDPadding = time.Minute
 // on or before the given time, haven't been modified since, and are still waiting to be sent. Passing the uuid of a
 // message as before only considers those which come before it, for paging through an outbox.
 //
-// It returns an event tag recording the change for each message failed (to be queued to the history table). Fewer
-// than limit means there's nothing more to fail - otherwise callers should call again with before as the smallest
-// message uuid, i.e. event UUID, of those returned.
+// It returns an event tag recording the change for each message failed (to be queued to the history table). If
+// that's as many as limit then there may be more to fail, and callers should call again with before as the smallest
+// message uuid, i.e. event UUID, of those returned. Fewer generally means there's nothing more, though it can also
+// mean that messages changed whilst being failed, leaving any beyond them for another time.
 func FailOldMessages(ctx context.Context, db DBorTx, orgID OrgID, olderThan time.Time, before events.EventUUID, limit int) ([]*EventTag, error) {
 	// the query only touches visible messages, so the failed folder follows from the status alone
 	folder := DeriveMsgFolder(DirectionOut, MsgStatusFailed, VisibilityVisible, false)
