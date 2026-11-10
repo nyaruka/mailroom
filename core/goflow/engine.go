@@ -31,7 +31,7 @@ var engInit, simulatorInit sync.Once
 
 var checkSendable func(*runtime.Runtime) flows.CheckSendableCallback
 var claimURN func(*runtime.Runtime) flows.ClaimURNCallback
-var emailFactory func(*runtime.Runtime) engine.EmailServiceFactory
+var emailFactory func(*runtime.Runtime, bool) engine.EmailServiceFactory
 var modelFactory func(*runtime.Runtime) engine.ModelServiceFactory
 var airtimeFactory func(*runtime.Runtime) engine.AirtimeServiceFactory
 var webhookFactory func(*runtime.Runtime, map[string]string) engine.WebhookServiceFactory
@@ -51,8 +51,8 @@ func RegisterClaimURN(f func(*runtime.Runtime) flows.ClaimURNCallback) {
 }
 
 // RegisterEmailServiceFactory can be used by outside callers to register a email service factory
-// for use by the engine
-func RegisterEmailServiceFactory(f func(*runtime.Runtime) engine.EmailServiceFactory) {
+// for use by the engine. It takes whether the engine is the simulator as simulated sessions only fake sending.
+func RegisterEmailServiceFactory(f func(*runtime.Runtime, bool) engine.EmailServiceFactory) {
 	emailFactory = f
 }
 
@@ -102,7 +102,7 @@ func Engine(rt *runtime.Runtime) flows.Engine {
 			WithHTTPClient(rt.HTTP.Engine).
 			WithWebhookServiceFactory(webhookFactory(rt, webhookHeaders)).
 			WithModelServiceFactory(modelFactory(rt)).
-			WithEmailServiceFactory(emailFactory(rt)).
+			WithEmailServiceFactory(emailFactory(rt, false)).
 			WithAirtimeServiceFactory(airtimeFactory(rt)).
 			WithEvaluationBudget(excellent.DefaultEvaluationBudget).
 			WithMaxStepsPerSprint(maxStepsPerSprint).
@@ -133,7 +133,7 @@ func Simulator(ctx context.Context, rt *runtime.Runtime) flows.Engine {
 			WithHTTPClient(rt.HTTP.Simulator).
 			WithWebhookServiceFactory(webhookFactory(rt, webhookHeaders)).
 			WithModelServiceFactory(modelFactory(rt)).                 // simulated sessions do real LLM calls
-			WithEmailServiceFactory(simulatorEmailServiceFactory).     // but faked emails
+			WithEmailServiceFactory(emailFactory(rt, true)).           // but faked emails
 			WithAirtimeServiceFactory(simulatorAirtimeServiceFactory). // and faked airtime transfers
 			WithEvaluationBudget(excellent.DefaultEvaluationBudget).
 			WithMaxStepsPerSprint(maxStepsPerSprint).
@@ -148,16 +148,6 @@ func Simulator(ctx context.Context, rt *runtime.Runtime) flows.Engine {
 	})
 
 	return simulator
-}
-
-func simulatorEmailServiceFactory(flows.SessionAssets) (flows.EmailService, error) {
-	return &simulatorEmailService{}, nil
-}
-
-type simulatorEmailService struct{}
-
-func (s *simulatorEmailService) Send(ctx context.Context, addresses []string, subject, body string) error {
-	return nil
 }
 
 func simulatorAirtimeServiceFactory(flows.SessionAssets) (flows.AirtimeService, error) {
