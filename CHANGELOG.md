@@ -1,3 +1,6 @@
+## v26.3.135 (2026-11-10)
+ * Only use the shared email configuration for workspaces with the shared_email feature
+
 ## v26.3.134 (2026-11-10)
  * Stop setting tps_cost on messages queued for courier
 
