@@ -133,21 +133,26 @@ func TestEmailService(t *testing.T) {
 	assertSMTP(org1, "", false)
 	assertSMTP(org2, "", false)
 
-	// unless granted the feature, which children inherit
+	// unless granted the feature, which children don't inherit
 	rt.DB.MustExec(`UPDATE orgs_org SET features = '{"shared_email"}' WHERE id = $1`, testdb.Org1.ID)
 
 	org1, org2 = loadOrgs()
 	assertSMTP(org1, `smtp://foo:bar@example.com?from=foo%40example.com`, true)
-	assertSMTP(org2, `smtp://foo:bar@example.com?from=foo%40example.com`, true)
+	assertSMTP(org2, "", false)
 
 	// but not if there's no shared configuration
 	rt.Config.SMTPServer = ""
 	assertSMTP(org1, "", false)
 	rt.Config.SMTPServer = `smtp://foo:bar@example.com?from=foo%40example.com`
 
-	// a child can be granted the feature without its parent
-	rt.DB.MustExec(`UPDATE orgs_org SET features = '{}' WHERE id = $1`, testdb.Org1.ID)
+	// a child can be granted the feature itself, with or without its parent having it
 	rt.DB.MustExec(`UPDATE orgs_org SET features = '{"shared_email"}' WHERE id = $1`, testdb.Org2.ID)
+
+	org1, org2 = loadOrgs()
+	assertSMTP(org1, `smtp://foo:bar@example.com?from=foo%40example.com`, true)
+	assertSMTP(org2, `smtp://foo:bar@example.com?from=foo%40example.com`, true)
+
+	rt.DB.MustExec(`UPDATE orgs_org SET features = '{}' WHERE id = $1`, testdb.Org1.ID)
 
 	org1, org2 = loadOrgs()
 	assertSMTP(org1, "", false)
