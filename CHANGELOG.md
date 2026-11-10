@@ -1,3 +1,6 @@
+## v26.3.134 (2026-11-10)
+ * Stop setting tps_cost on messages queued for courier
+
 ## v26.3.133 (2026-11-10)
  * Expire daily flow msgs in tallies after 365 days
 
