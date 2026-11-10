@@ -1,3 +1,8 @@
+## v26.3.136 (2026-11-10)
+ * Tally messages which failed for having no destination
+ * Stop inheriting the shared_email feature from the parent org
+ * Update dependencies
+
 ## v26.3.135 (2026-11-10)
  * Only use the shared email configuration for workspaces with the shared_email feature
 
