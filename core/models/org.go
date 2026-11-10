@@ -277,11 +277,16 @@ func (o *Org) EmailService(ctx context.Context, rt *runtime.Runtime, retries *sm
 	if smtpURL == "" {
 		return nil, ErrNoEmailConfig
 	}
+
+	svc, err := smtp.NewService(smtpURL, retries)
+	if err != nil {
+		return nil, err
+	}
 	if simulated {
 		return &simulatedEmailService{}, nil
 	}
 
-	return smtp.NewService(smtpURL, retries)
+	return svc, nil
 }
 
 type simulatedEmailService struct{}

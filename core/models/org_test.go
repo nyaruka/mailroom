@@ -153,6 +153,15 @@ func TestEmailService(t *testing.T) {
 	assertSMTP(org1, "", false)
 	assertSMTP(org2, `smtp://foo:bar@example.com?from=foo%40example.com`, true)
 
+	// a malformed configuration errors in simulated sessions too
+	rt.DB.MustExec(`UPDATE orgs_org SET flow_smtp = 'xyz://zed' WHERE id = $1`, testdb.Org1.ID)
+
+	org1, _ = loadOrgs()
+	for _, simulated := range []bool{false, true} {
+		_, err := org1.EmailService(ctx, rt, nil, simulated)
+		assert.EqualError(t, err, "connection URL must use SMTP scheme")
+	}
+
 	// an org's own configuration is used ahead of the shared one, and children inherit it
 	rt.DB.MustExec(`UPDATE orgs_org SET flow_smtp = 'smtp://zed:123@flows.com?from=foo%40flows.com' WHERE id = $1`, testdb.Org1.ID)
 
