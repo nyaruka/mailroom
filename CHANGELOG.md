@@ -1,3 +1,6 @@
+## v26.3.133 (2026-11-10)
+ * Expire daily flow msgs in tallies after 365 days
+
 ## v26.3.132 (2026-11-10)
  * Tally incoming messages handled by flows, including IVR messages, to flows_flowtally
 
