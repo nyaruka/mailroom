@@ -3,11 +3,13 @@ package models
 import (
 	"context"
 	"database/sql"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"strconv"
 	"strings"
 	"time"
+	"uuid"
 
 	"github.com/lib/pq"
 	"github.com/nyaruka/gocommon/dates"
@@ -65,9 +67,12 @@ func FlowTallyField(flowID FlowID, scope string) string {
 	return fmt.Sprintf("%c%d|%s", tallyOwnerFlow, flowID, scope)
 }
 
-// FlowSegmentTallyScope returns the scope of the tally which counts contacts taking the given exit to the given node
+// FlowSegmentTallyScope returns the scope of the tally which counts contacts taking the given exit to the given node,
+// which is the raw bytes of the two UUIDs encoded as unpadded base64url to keep keys of the tallies table compact. The
+// UUIDs must be valid, as the flow definitions they come from are validated.
 func FlowSegmentTallyScope(exitUUID flows.ExitUUID, destUUID core.NodeUUID) string {
-	return fmt.Sprintf("segment:%s:%s", exitUUID, destUUID)
+	exit, dest := uuid.MustParse(string(exitUUID)), uuid.MustParse(string(destUUID))
+	return "segment:" + base64.RawURLEncoding.EncodeToString(append(exit[:], dest[:]...))
 }
 
 // FlowMsgsInTallies gets the tally amounts which count an incoming message handled by the given flow at the given time,
@@ -89,7 +94,7 @@ const (
 )
 
 // parseTallyField parses a tally field into its owner type, owner id and scope. Fields are <owner><id>|<scope>, where
-// owner is O for an org tally or F for a flow tally, e.g. O123|msgs/text:in@2026-11-03 or F45|segment:<exit>:<node>.
+// owner is O for an org tally or F for a flow tally, e.g. O123|msgs/text:in@2026-11-03 or F45|segment:Qq9uGVPvT9mCMvICo-oCKx1PJbLGSEbMgRa-Dsa200o.
 func parseTallyField(field string) (tallyOwner, int64, string, error) {
 	ownerStr, scope, ok := strings.Cut(field, "|")
 	if ok && len(ownerStr) > 1 {

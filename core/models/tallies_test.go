@@ -7,6 +7,8 @@ import (
 
 	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
+	"github.com/nyaruka/goflow/core"
+	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/testsuite"
 	"github.com/nyaruka/mailroom/v26/testsuite/testdb"
@@ -22,8 +24,25 @@ func TestTallyField(t *testing.T) {
 	assert.Equal(t, "O2|foo@bar", models.TallyField(testdb.Org2.ID, "foo@bar", time.Time{}))
 	assert.Panics(t, func() { models.TallyField(testdb.Org1.ID, "foo@bar", day) })
 
-	assert.Equal(t, "F10000|segment:5fd2e537-0534-4c12-8425-bef87af09d46:072b95b3-61c3-4e0e-8dd1-eb7481083f94",
+	assert.Equal(t, "F10000|segment:X9LlNwU0TBKEJb74evCdRgcrlbNhw04OjdHrdIEIP5Q",
 		models.FlowTallyField(testdb.Favorites.ID, models.FlowSegmentTallyScope("5fd2e537-0534-4c12-8425-bef87af09d46", "072b95b3-61c3-4e0e-8dd1-eb7481083f94")))
+}
+
+func TestFlowSegmentTallyScope(t *testing.T) {
+	// same vectors as temba's tests so that both sides agree on the encoding
+	tcs := []struct {
+		exit     flows.ExitUUID
+		dest     core.NodeUUID
+		expected string
+	}{
+		{"42af6e19-53ef-4fd9-8232-f202a3ea022b", "1d4f25b2-c648-46cc-8116-be0ec6b6d34a", "segment:Qq9uGVPvT9mCMvICo-oCKx1PJbLGSEbMgRa-Dsa200o"},
+		{"2d7177e0-6bae-427f-9630-3823e2b8f1b2", "46681864-8389-4875-8b88-2f9fe241ea3f", "segment:LXF34GuuQn-WMDgj4rjxskZoGGSDiUh1i4gvn-JB6j8"},
+		{"00000000-0000-0000-0000-000000000000", "ffffffff-ffff-ffff-ffff-ffffffffffff", "segment:AAAAAAAAAAAAAAAAAAAAAP____________________8"},
+		{"fbfffbff-fbff-fbff-fbff-fbfffbfffbff", "3e3f3e3f-3e3f-3e3f-3e3f-3e3f3e3f3e3f", "segment:-__7__v_-__7__v_-__7_z4_Pj8-Pz4_Pj8-Pz4_Pj8"},
+	}
+	for _, tc := range tcs {
+		assert.Equal(t, tc.expected, models.FlowSegmentTallyScope(tc.exit, tc.dest), "scope mismatch for %s -> %s", tc.exit, tc.dest)
+	}
 }
 
 func TestFlowMsgsInTallies(t *testing.T) {
