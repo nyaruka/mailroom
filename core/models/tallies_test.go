@@ -187,6 +187,7 @@ func TestTallyStore(t *testing.T) {
 	// a field which can't be parsed fails the whole batch
 	for _, field := range []string{
 		"foo", "1|foo", "x|foo", "X1|foo", "O|foo", "Ox|foo", "OO1|foo", "O-1|foo", "O0|foo", "F|foo", "Fx|foo", "FF1|foo", "F-1|foo",
+		"C|foo", "C0|foo",
 	} {
 		written, err := store.Write(ctx, 9, map[string]int64{models.TallyField(org1, "foo", time.Time{}): 1, field: 1})
 		assert.EqualError(t, err, fmt.Sprintf("invalid tally field %q", field))
@@ -254,6 +255,42 @@ func TestTallyStore(t *testing.T) {
 	assertFlowTallies(flow2, map[string]any{"segment:a:b": int64(1), "msgsin:hour:12": int64(2), "msgsin:date:2025-05-04": int64(2)})
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowtally WHERE flow_id = 123456`).Returns(0)
 	assertdb.Query(t, rt.DB, `SELECT count FROM orgs_orgtally WHERE org_id = $1 AND scope = 'foo'`, org1).Returns(int64(1))
+
+	// channel tallies are written to their own table, all with the same retention from their day, and nothing is
+	// written for a channel which isn't active or doesn't exist
+	chField := func(id models.ChannelID, scope string) string { return fmt.Sprintf("C%d|%s", id, scope) }
+	ch1, ch2, ch3 := testdb.TwilioChannel.ID, testdb.VonageChannel.ID, testdb.Org2Channel.ID
+	assertChannelTallies := func(expected map[string]any) {
+		assertdb.Query(t, rt.DB, `SELECT channel_id || '|' || scope || '|' || coalesce(expires_on::text, ''), count FROM channels_channeltally`).Map(expected)
+	}
+	rt.DB.MustExec(`UPDATE channels_channel SET is_active = FALSE WHERE id = $1`, ch2)
+
+	write(15, map[string]int64{
+		chField(ch1, "text:in@2025-05-04"):    3,
+		chField(ch1, "text:out@2025-05-04"):   2,
+		chField(ch1, "text:in@2024-01-01"):    1, // already past retention
+		chField(ch1, "foo"):                   1,
+		chField(ch2, "text:in@2025-05-04"):    1,
+		chField(ch3, "voice:in@2025-05-04"):   4,
+		chField(123456, "text:in@2025-05-04"): 1,
+	}, true)
+
+	assertLastBatch(store, 15)
+	assertChannelTallies(map[string]any{
+		fmt.Sprintf("%d|text:in@2025-05-04|2026-06-08", ch1):  int64(3),
+		fmt.Sprintf("%d|text:out@2025-05-04|2026-06-08", ch1): int64(2),
+		fmt.Sprintf("%d|foo|2026-06-14", ch1):                 int64(1),
+		fmt.Sprintf("%d|voice:in@2025-05-04|2026-06-08", ch3): int64(4),
+	})
+
+	// and a channel tally decremented to zero is deleted
+	write(16, map[string]int64{chField(ch1, "text:in@2025-05-04"): -3, chField(ch3, "voice:in@2025-05-04"): 1}, true)
+
+	assertChannelTallies(map[string]any{
+		fmt.Sprintf("%d|text:out@2025-05-04|2026-06-08", ch1): int64(2),
+		fmt.Sprintf("%d|foo|2026-06-14", ch1):                 int64(1),
+		fmt.Sprintf("%d|voice:in@2025-05-04|2026-06-08", ch3): int64(5),
+	})
 }
 
 func TestFlushTallies(t *testing.T) {
@@ -268,11 +305,12 @@ func TestFlushTallies(t *testing.T) {
 	require.NoError(t, rt.Tallies.Increment(ctx, vc, map[string]int64{
 		models.TallyField(org1, "foo", time.Time{}): 2, models.TallyField(org1, "bar", time.Time{}): 1, models.TallyField(org2, "foo", time.Time{}): 3,
 		fmt.Sprintf("F%d|segment:a:b", testdb.Favorites.ID): 4,
+		fmt.Sprintf("C%d|foo", testdb.TwilioChannel.ID):     5,
 	}))
 
 	flushed, err := rt.Tallies.Flush(ctx, vc, store, 2)
 	require.NoError(t, err)
-	assert.Equal(t, 4, flushed)
+	assert.Equal(t, 5, flushed)
 
 	assertdb.Query(t, rt.DB, `SELECT org_id || '|' || scope, count FROM orgs_orgtally`).Map(map[string]any{
 		fmt.Sprintf("%d|bar", testdb.Org1.ID): int64(1),
@@ -282,5 +320,8 @@ func TestFlushTallies(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT flow_id || '|' || scope, count FROM flows_flowtally`).Map(map[string]any{
 		fmt.Sprintf("%d|segment:a:b", testdb.Favorites.ID): int64(4),
 	})
-	assertdb.Query(t, rt.DB, `SELECT last_batch FROM orgs_tallyflush WHERE name = 'tallies'`).Returns(int64(2))
+	assertdb.Query(t, rt.DB, `SELECT channel_id || '|' || scope, count FROM channels_channeltally`).Map(map[string]any{
+		fmt.Sprintf("%d|foo", testdb.TwilioChannel.ID): int64(5),
+	})
+	assertdb.Query(t, rt.DB, `SELECT last_batch FROM orgs_tallyflush WHERE name = 'tallies'`).Returns(int64(3))
 }
