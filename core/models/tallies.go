@@ -45,6 +45,9 @@ var tallyRetention = map[tallyOwner]map[string]time.Duration{
 	tallyOwnerFlow: {
 		flowMsgsInDateScope: 365 * 24 * time.Hour,
 	},
+	tallyOwnerChannel: {
+		"": 400 * 24 * time.Hour,
+	},
 }
 
 // flowMsgsInDateScope prefixes the daily counts of incoming messages handled by a flow, e.g. msgsin:date:2026-11-03
@@ -89,18 +92,20 @@ func FlowMsgsInTallies(flowID FlowID, t time.Time) map[string]int64 {
 type tallyOwner byte
 
 const (
-	tallyOwnerOrg  tallyOwner = 'O'
-	tallyOwnerFlow tallyOwner = 'F'
+	tallyOwnerOrg     tallyOwner = 'O'
+	tallyOwnerFlow    tallyOwner = 'F'
+	tallyOwnerChannel tallyOwner = 'C'
 )
 
 // parseTallyField parses a tally field into its owner type, owner id and scope. Fields are <owner><id>|<scope>, where
-// owner is O for an org tally or F for a flow tally, e.g. O123|msgs/text:in@2026-11-03 or F45|segment:Qq9uGVPvT9mCMvICo-oCKx1PJbLGSEbMgRa-Dsa200o.
+// owner is O for an org tally, F for a flow tally or C for a channel tally, e.g. O123|msgs/text:in@2026-11-03,
+// F45|segment:Qq9uGVPvT9mCMvICo-oCKx1PJbLGSEbMgRa-Dsa200o or C67|text:in@2026-11-03.
 func parseTallyField(field string) (tallyOwner, int64, string, error) {
 	ownerStr, scope, ok := strings.Cut(field, "|")
 	if ok && len(ownerStr) > 1 {
 		owner := tallyOwner(ownerStr[0])
 		id, err := strconv.ParseUint(ownerStr[1:], 10, 63)
-		if (owner == tallyOwnerOrg || owner == tallyOwnerFlow) && err == nil && id > 0 {
+		if (owner == tallyOwnerOrg || owner == tallyOwnerFlow || owner == tallyOwnerChannel) && err == nil && id > 0 {
 			return owner, int64(id), scope, nil
 		}
 	}
@@ -120,7 +125,7 @@ func tallyRetentionFor(owner tallyOwner, scope string) time.Duration {
 }
 
 // tallyDaySeparator is what precedes the day which a daily tally scope ends with, by owner type
-var tallyDaySeparator = map[tallyOwner]string{tallyOwnerOrg: "@", tallyOwnerFlow: ":"}
+var tallyDaySeparator = map[tallyOwner]string{tallyOwnerOrg: "@", tallyOwnerFlow: ":", tallyOwnerChannel: "@"}
 
 // tallyDay returns the day which a daily tally scope ends with, or the given default if the scope isn't a daily one.
 // Expiries are counted from it so that they don't depend on when a tally happens to be written.
@@ -133,9 +138,9 @@ func tallyDay(owner tallyOwner, scope string, def time.Time) time.Time {
 	return def
 }
 
-// TallyStore is a vkutil.TallyStore which writes org tallies to the orgs_orgtally table and flow tallies to the
-// flows_flowtally table, recording the last batch written for its key base in orgs_tallyflush. Nothing is written for
-// an org or flow which isn't active, and tallies with a total of zero aren't kept.
+// TallyStore is a vkutil.TallyStore which writes each owner type's tallies to its own table, e.g. org tallies to
+// orgs_orgtally, recording the last batch written for its key base in orgs_tallyflush. Nothing is written for an owner
+// which isn't active, and tallies with a total of zero aren't kept.
 type TallyStore struct {
 	db      *sqlx.DB
 	keyBase string
@@ -194,6 +199,7 @@ var tallyTables = []struct {
 }{
 	{tallyOwnerOrg, newTallyTable("orgs_orgtally", "org_id", "orgs_org")},
 	{tallyOwnerFlow, newTallyTable("flows_flowtally", "flow_id", "flows_flow")},
+	{tallyOwnerChannel, newTallyTable("channels_channeltally", "channel_id", "channels_channel")},
 }
 
 // tallyRows are the amounts to write to a tally table
