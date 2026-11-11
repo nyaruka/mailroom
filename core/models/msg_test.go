@@ -1111,7 +1111,7 @@ func TestMsgTallies(t *testing.T) {
 		models.NewIncomingAndroid(testdb.Org1.ID, models.NilChannelID, testdb.Cat.ID, testdb.Cat.URNID, "three", time.Now()),
 	}
 
-	assert.Equal(t, map[string]int64{"O1|channels/10003/text:in@2026-11-04": 2, "O1|msgs/text:in@2026-11-04": 2}, models.MsgTallies(msgs))
+	assert.Equal(t, map[string]int64{"C10003|text:in@2026-11-04": 2, "O1|msgs/text:in@2026-11-04": 2}, models.MsgTallies(msgs))
 	assert.Equal(t, map[string]int64{}, models.MsgTallies(msgs[2:]))
 
 	// of channel-less messages, only those which failed for having no destination are counted
@@ -1137,9 +1137,9 @@ func TestMsgTallies(t *testing.T) {
 	models.IncrementMsgTallies(ctx, rt, testdb.Org1.ID, msgs)
 
 	assertvk.HGetAll(t, vc, "{tallies}:live", map[string]string{
-		"O1|channels/10003/text:in@2026-11-04": "2",
-		"O1|msgs/text:in@2026-11-04":           "2",
-		"O1|msgs/text:nodest@2026-11-04":       "1",
+		"C10003|text:in@2026-11-04":      "2",
+		"O1|msgs/text:in@2026-11-04":     "2",
+		"O1|msgs/text:nodest@2026-11-04": "1",
 	})
 
 	// channel tallies expire but msg type tallies are kept forever
@@ -1148,9 +1148,11 @@ func TestMsgTallies(t *testing.T) {
 
 	assertdb.Query(t, rt.DB, `SELECT scope, expires_on::text FROM orgs_orgtally WHERE org_id = $1 ORDER BY scope`, testdb.Org1.ID).Map(
 		map[string]any{
-			"channels/10003/text:in@2026-11-04": "2027-12-09",
-			"msgs/text:in@2026-11-04":           nil,
-			"msgs/text:nodest@2026-11-04":       nil,
+			"msgs/text:in@2026-11-04":     nil,
+			"msgs/text:nodest@2026-11-04": nil,
 		},
+	)
+	assertdb.Query(t, rt.DB, `SELECT scope, expires_on::text FROM channels_channeltally WHERE channel_id = $1`, testdb.AndroidChannel.ID).Map(
+		map[string]any{"text:in@2026-11-04": "2027-12-09"},
 	)
 }

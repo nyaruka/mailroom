@@ -23,9 +23,6 @@ const (
 	// recipient of a send
 	TallyEmailsShared = "emails/shared"
 
-	// TallyChannelMsgs prefixes the daily counts of messages (not segments) on each channel, e.g. channels/12/text:in@2026-11-03
-	TallyChannelMsgs = "channels"
-
 	// TallyMsgs prefixes the daily counts of messages with a channel, e.g. msgs/voice:out@2026-11-03, and of messages
 	// which failed for having no destination, e.g. msgs/text:nodest@2026-11-03
 	TallyMsgs = "msgs"
@@ -34,19 +31,23 @@ const (
 	TallyLLMs = "llms"
 )
 
+// legacyTallyChannelMsgs prefixes the org tallies which counted messages on each channel before they became channel
+// tallies, e.g. channels/12/text:in@2026-11-03, which may still need flushing
+const legacyTallyChannelMsgs = "channels"
+
 // tallyRetention is how long tallies are kept after they're first written, by owner type and scope prefix. Tallies
 // without one, such as the org msgs/ ones, are kept forever.
 var tallyRetention = map[tallyOwner]map[string]time.Duration{
 	tallyOwnerOrg: {
-		TallyEmailsShared + "@": 90 * 24 * time.Hour,
-		TallyChannelMsgs + "/":  400 * 24 * time.Hour,
-		TallyLLMs + "/":         90 * 24 * time.Hour,
+		TallyEmailsShared + "@":      90 * 24 * time.Hour,
+		legacyTallyChannelMsgs + "/": 400 * 24 * time.Hour,
+		TallyLLMs + "/":              90 * 24 * time.Hour,
 	},
 	tallyOwnerFlow: {
 		flowMsgsInDateScope: 365 * 24 * time.Hour,
 	},
 	tallyOwnerChannel: {
-		"": 400 * 24 * time.Hour,
+		"": 400 * 24 * time.Hour, // e.g. text:in@2026-11-03
 	},
 }
 
@@ -56,13 +57,24 @@ const flowMsgsInDateScope = "msgsin:date:"
 // TallyField returns the field of the tally of the given scope for the given org, which if day isn't zero is the daily
 // tally for its UTC day. Panics if the scope contains @ as it's reserved for separating the day.
 func TallyField(orgID OrgID, scope string, day time.Time) string {
+	return fmt.Sprintf("%c%d|%s", tallyOwnerOrg, orgID, datedTallyScope(scope, day))
+}
+
+// ChannelTallyField returns the field of the tally of the given scope for the given channel, which if day isn't zero is
+// the daily tally for its UTC day, e.g. C12|text:in@2026-11-03. Panics if the scope contains @ as it's reserved for
+// separating the day.
+func ChannelTallyField(channelID ChannelID, scope string, day time.Time) string {
+	return fmt.Sprintf("%c%d|%s", tallyOwnerChannel, channelID, datedTallyScope(scope, day))
+}
+
+func datedTallyScope(scope string, day time.Time) string {
 	if !day.IsZero() {
 		if strings.Contains(scope, "@") {
 			panic(fmt.Sprintf("tally scope %q can't contain @", scope))
 		}
 		scope += "@" + day.UTC().Format(time.DateOnly)
 	}
-	return fmt.Sprintf("%c%d|%s", tallyOwnerOrg, orgID, scope)
+	return scope
 }
 
 // FlowTallyField returns the field of the tally of the given scope for the given flow

@@ -662,7 +662,7 @@ func MsgTallies(msgs []*Msg) map[string]int64 {
 			continue
 		}
 
-		amounts[TallyField(orgID, fmt.Sprintf("%s/%d/%s:%s", TallyChannelMsgs, m.ChannelID(), typ, dir), day)]++
+		amounts[ChannelTallyField(m.ChannelID(), typ+":"+dir, day)]++
 		amounts[TallyField(orgID, fmt.Sprintf("%s/%s:%s", TallyMsgs, typ, dir), day)]++
 	}
 	return amounts
