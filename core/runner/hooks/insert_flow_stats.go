@@ -38,7 +38,6 @@ type insertFlowStats struct{}
 func (h *insertFlowStats) Order() int { return 10 }
 
 func (h *insertFlowStats) Execute(ctx context.Context, rt *runtime.Runtime, tx *sqlx.Tx, oa *models.OrgAssets, scenes map[*runner.Scene][]any) error {
-	countsBySegment := make(map[segmentInfo]int, 10)
 	recentBySegment := make(map[segmentInfo][]*segmentRecentContact, 10)
 	categoryChanges := make(map[resultInfo]int, 10)
 	nodeTypeCache := make(map[core.NodeUUID]string)
@@ -53,8 +52,6 @@ func (h *insertFlowStats) Execute(ctx context.Context, rt *runtime.Runtime, tx *
 				exitUUID: seg.Exit().UUID(),
 				destUUID: seg.Destination().UUID(),
 			}
-
-			countsBySegment[segID]++
 
 			// only store recent contact if we have less than the cap
 			if len(recentBySegment[segID]) < recentContactsCap {
@@ -84,21 +81,6 @@ func (h *insertFlowStats) Execute(ctx context.Context, rt *runtime.Runtime, tx *
 				categoryChanges[resultInfo{flowID: flow.ID(), result: resultKey, category: typed.Category}]++
 			}
 		}
-	}
-
-	activityCounts := make([]*models.FlowActivityCount, 0, len(countsBySegment))
-	for seg, count := range countsBySegment {
-		if count != 0 {
-			activityCounts = append(activityCounts, &models.FlowActivityCount{
-				FlowID: seg.flowID,
-				Scope:  models.FlowSegmentTallyScope(seg.exitUUID, seg.destUUID),
-				Count:  count,
-			})
-		}
-	}
-
-	if err := models.InsertFlowActivityCounts(ctx, tx, activityCounts); err != nil {
-		return fmt.Errorf("error inserting flow activity counts: %w", err)
 	}
 
 	resultCounts := make([]*models.FlowResultCount, 0, len(categoryChanges))

@@ -409,17 +409,14 @@ func TestMsgReceivedTask(t *testing.T) {
 		last = time.Now()
 	}
 
-	// incoming messages handled by flows are tallied the same as the database counts them
+	// incoming messages handled by flows are tallied by hour and by date
 	_, err := rt.Tallies.Flush(ctx, vc, models.NewTallyStore(rt.DB, rt.Tallies.KeyBase()), 100)
 	require.NoError(t, err)
 
-	var activityCounts, tallies []string
-	err = rt.DB.SelectContext(ctx, &activityCounts, `SELECT flow_id || '|' || scope || '=' || SUM(count) FROM flows_flowactivitycount WHERE scope LIKE 'msgsin:%' GROUP BY flow_id, scope ORDER BY 1`)
-	require.NoError(t, err)
-	err = rt.DB.SelectContext(ctx, &tallies, `SELECT flow_id || '|' || scope || '=' || count FROM flows_flowtally WHERE scope LIKE 'msgsin:%' ORDER BY 1`)
-	require.NoError(t, err)
-	assert.NotEmpty(t, activityCounts)
-	assert.Equal(t, activityCounts, tallies)
+	for _, prefix := range []string{"msgsin:hour:", "msgsin:date:"} {
+		assertdb.Query(t, rt.DB, `SELECT flow_id, SUM(count)::int FROM flows_flowtally WHERE scope LIKE $1 GROUP BY flow_id`, prefix+"%").
+			Map(map[string]any{"10000": 9, "20000": 6, "20001": 3}, "%s tallies mismatch", prefix)
+	}
 
 	rt.DB.MustExec(`UPDATE orgs_org SET features = '{}' WHERE id = $1`, testdb.Org1.ID)
 
