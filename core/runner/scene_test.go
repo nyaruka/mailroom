@@ -483,21 +483,11 @@ func TestFlowStats(t *testing.T) {
 	trig := triggers.NewBuilder(flow.Reference()).Manual().Build()
 	testsuite.StartSessions(t, rt, oa, []*testdb.Contact{testdb.Bob, testdb.Dan, testdb.Cat}, trig)
 
-	// should have a single record of all 3 contacts going through the first segment
-	var activityCounts []*models.FlowActivityCount
-	err = rt.DB.SelectContext(ctx, &activityCounts, "SELECT flow_id, scope, count FROM flows_flowactivitycount ORDER BY flow_id, scope")
-	require.NoError(t, err)
-	assert.Len(t, activityCounts, 3)
-	assert.Equal(t, &models.FlowActivityCount{FlowID: flow.ID, Scope: "node:072b95b3-61c3-4e0e-8dd1-eb7481083f94", Count: 3}, activityCounts[0])
-	assert.Equal(t, &models.FlowActivityCount{FlowID: flow.ID, Scope: "segment:5fd2e537-0534-4c12-8425-bef87af09d46:072b95b3-61c3-4e0e-8dd1-eb7481083f94", Count: 3}, activityCounts[1])
-	assert.Equal(t, &models.FlowActivityCount{FlowID: flow.ID, Scope: "status:W", Count: 3}, activityCounts[2])
-
 	// should have no result counts yet
 	assertdb.Query(t, rt.DB, "SELECT count(*) FROM flows_flowresultcount").Returns(0)
 
-	assertFlowActivityCounts(t, rt, flow.ID, map[string]int{
-		"node:072b95b3-61c3-4e0e-8dd1-eb7481083f94":                                         3,
-		"segment:5fd2e537-0534-4c12-8425-bef87af09d46:072b95b3-61c3-4e0e-8dd1-eb7481083f94": 3,
+	assertFlowActivityCounts(t, rt, flow.ID, map[string]any{
+		"node:072b95b3-61c3-4e0e-8dd1-eb7481083f94": 3,
 		"status:W": 3,
 	})
 	assertFlowSegmentTallies(t, rt, flow.ID, map[string]any{
@@ -518,15 +508,8 @@ func TestFlowStats(t *testing.T) {
 	testsuite.ResumeSession(t, rt, oa, testdb.Dan, "BLUE")
 	testsuite.ResumeSession(t, rt, oa, testdb.Cat, "teal")
 
-	assertFlowActivityCounts(t, rt, flow.ID, map[string]int{
-		"node:072b95b3-61c3-4e0e-8dd1-eb7481083f94":                                         1,
-		"segment:5fd2e537-0534-4c12-8425-bef87af09d46:072b95b3-61c3-4e0e-8dd1-eb7481083f94": 3, // "what's your fav color" -> color split
-		"segment:c02fc3ba-369a-4c87-9bc4-c3b376bda6d2:57b50d33-2b5a-4726-82de-9848c61eff6e": 2, // color split :: Blue exit -> next node
-		"segment:ea6c38dc-11e2-4616-9f3e-577e44765d44:8712db6b-25ff-4789-892c-581f24eeeb95": 1, // color split :: Other exit -> next node
-		"segment:2b698218-87e5-4ab8-922e-e65f91d12c10:88d8bf00-51ce-4e5e-aae8-4f957a0761a0": 2, // split by expression :: Other exit -> next node
-		"segment:0a4f2ea9-c47f-4e9c-a242-89ae5b38d679:072b95b3-61c3-4e0e-8dd1-eb7481083f94": 1, // "sorry I don't know that color" -> color split
-		"segment:97cd44ce-dec2-4e19-8ca2-4e20db51dc08:0e1fe072-6f03-4f29-98aa-7bedbe930dab": 2, // "X is a great color" -> split by expression
-		"segment:614e7451-e0bd-43d9-b317-2aded3c8d790:a1e649db-91e0-47c4-ab14-eba0d1475116": 2, // "you have X tickets" -> group split
+	assertFlowActivityCounts(t, rt, flow.ID, map[string]any{
+		"node:072b95b3-61c3-4e0e-8dd1-eb7481083f94": 1,
 		"status:C": 2,
 		"status:W": 1,
 	})
@@ -543,15 +526,8 @@ func TestFlowStats(t *testing.T) {
 
 	testsuite.ResumeSession(t, rt, oa, testdb.Cat, "azure")
 
-	assertFlowActivityCounts(t, rt, flow.ID, map[string]int{
-		"node:072b95b3-61c3-4e0e-8dd1-eb7481083f94":                                         1,
-		"segment:5fd2e537-0534-4c12-8425-bef87af09d46:072b95b3-61c3-4e0e-8dd1-eb7481083f94": 3, // "what's your fav color" -> color split
-		"segment:c02fc3ba-369a-4c87-9bc4-c3b376bda6d2:57b50d33-2b5a-4726-82de-9848c61eff6e": 2, // color split :: Blue exit -> next node
-		"segment:ea6c38dc-11e2-4616-9f3e-577e44765d44:8712db6b-25ff-4789-892c-581f24eeeb95": 2, // color split :: Other exit -> next node
-		"segment:2b698218-87e5-4ab8-922e-e65f91d12c10:88d8bf00-51ce-4e5e-aae8-4f957a0761a0": 2, // split by expression :: Other exit -> next node
-		"segment:0a4f2ea9-c47f-4e9c-a242-89ae5b38d679:072b95b3-61c3-4e0e-8dd1-eb7481083f94": 2, // "sorry I don't know that color" -> color split
-		"segment:97cd44ce-dec2-4e19-8ca2-4e20db51dc08:0e1fe072-6f03-4f29-98aa-7bedbe930dab": 2, // "X is a great color" -> split by expression
-		"segment:614e7451-e0bd-43d9-b317-2aded3c8d790:a1e649db-91e0-47c4-ab14-eba0d1475116": 2, // "you have X tickets" -> group split
+	assertFlowActivityCounts(t, rt, flow.ID, map[string]any{
+		"node:072b95b3-61c3-4e0e-8dd1-eb7481083f94": 1,
 		"status:C": 2,
 		"status:W": 1,
 	})
@@ -796,17 +772,8 @@ func TestBroadcastWithLock(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE contact_uuid = $1 AND status = 'I'`, testdb.Bob.UUID).Returns(1)
 }
 
-func assertFlowActivityCounts(t *testing.T, rt *runtime.Runtime, flowID models.FlowID, expected map[string]int) {
-	var counts []*models.FlowActivityCount
-	err := rt.DB.Select(&counts, "SELECT flow_id, scope, SUM(count) AS count FROM flows_flowactivitycount WHERE flow_id = $1 GROUP BY flow_id, scope", flowID)
-	require.NoError(t, err)
-
-	actual := make(map[string]int)
-	for _, c := range counts {
-		actual[c.Scope] = c.Count
-	}
-
-	assert.Equal(t, expected, actual)
+func assertFlowActivityCounts(t *testing.T, rt *runtime.Runtime, flowID models.FlowID, expected map[string]any) {
+	assertdb.Query(t, rt.DB, `SELECT scope, SUM(count)::int FROM flows_flowactivitycount WHERE flow_id = $1 GROUP BY scope`, flowID).Map(expected)
 }
 
 func assertFlowSegmentTallies(t *testing.T, rt *runtime.Runtime, flowID models.FlowID, expected map[string]any) {

@@ -21,8 +21,8 @@ type publishFlowActivity struct{}
 func (h *publishFlowActivity) Order() int { return 10 }
 
 func (h *publishFlowActivity) Execute(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scenes map[*runner.Scene][]any) error {
-	// gather the distinct flows traversed by the committed sprints - the same segments the insert flow stats hook
-	// counts, so a notification goes out exactly when there are new counts to see
+	// gather the distinct flows traversed by the committed sprints - the same segments which are tallied, so a
+	// notification goes out exactly when there are new counts to see
 	seen := make(map[assets.FlowUUID]bool, 10)
 	for scene := range scenes {
 		for _, seg := range scene.Sprint.Segments() {
