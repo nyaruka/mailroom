@@ -1,3 +1,6 @@
+## v26.3.139 (2026-11-11)
+ * Write per-channel message tallies as channel tallies
+
 ## v26.3.138 (2026-11-11)
  * Flush channel tallies to channels_channeltally
  * Update to gocommon v1.100.2
