@@ -1,3 +1,8 @@
+## v26.3.138 (2026-11-11)
+ * Flush channel tallies to channels_channeltally
+ * Update to gocommon v1.100.2
+ * Regenerate test database dump
+
 ## v26.3.137 (2026-11-11)
  * Write flow segment tally scopes as base64url of the raw exit and node UUIDs
  * Stop writing segment counts to flow activity counts
