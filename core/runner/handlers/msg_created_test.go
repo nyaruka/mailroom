@@ -51,8 +51,8 @@ func TestMsgCreated(t *testing.T) {
 		"F10000|segment:Wa2EgRMyRFeyDOPLYgPgKcfpHkdkjENzs6W52sR2d0A": "1",
 		"F10000|segment:pREWmbL4SjeXKVd0X7E7Bqxn6eu1QUPkmut_qmZ_E1U": "1",
 		"F10000|segment:sm_K4au2SfiVz5_KlfHDCgOrXkFFpEbOj1W3eIrF40M": "1",
-		"O1|channels/10000/text:out@2025-05-04":                      "2",
-		"O1|channels/10002/text:out@2025-05-04":                      "1",
+		"C10000|text:out@2025-05-04":                                 "2",
+		"C10002|text:out@2025-05-04":                                 "1",
 		"O1|msgs/text:nodest@2025-05-04":                             "1",
 		"O1|msgs/text:out@2025-05-04":                                "3",
 	})

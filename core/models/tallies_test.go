@@ -24,6 +24,10 @@ func TestTallyField(t *testing.T) {
 	assert.Equal(t, "O2|foo@bar", models.TallyField(testdb.Org2.ID, "foo@bar", time.Time{}))
 	assert.Panics(t, func() { models.TallyField(testdb.Org1.ID, "foo@bar", day) })
 
+	assert.Equal(t, "C10000|foo", models.ChannelTallyField(testdb.TwilioChannel.ID, "foo", time.Time{}))
+	assert.Equal(t, "C10000|text:in@2025-05-05", models.ChannelTallyField(testdb.TwilioChannel.ID, "text:in", day))
+	assert.Panics(t, func() { models.ChannelTallyField(testdb.TwilioChannel.ID, "foo@bar", day) })
+
 	assert.Equal(t, "F10000|segment:X9LlNwU0TBKEJb74evCdRgcrlbNhw04OjdHrdIEIP5Q",
 		models.FlowTallyField(testdb.Favorites.ID, models.FlowSegmentTallyScope("5fd2e537-0534-4c12-8425-bef87af09d46", "072b95b3-61c3-4e0e-8dd1-eb7481083f94")))
 }

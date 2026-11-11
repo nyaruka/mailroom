@@ -130,12 +130,12 @@ func TestTwilioIVR(t *testing.T) {
 	maps.DeleteFunc(segments, func(f, _ string) bool { return !strings.HasPrefix(f, fmt.Sprintf("F%d|segment:", testdb.IVRFlow.ID)) })
 	assert.NotEmpty(t, segments)
 	assert.Equal(t, "5", tallies[fmt.Sprintf("F%d|msgsin:date:2025-05-04", testdb.IVRFlow.ID)])
-	maps.DeleteFunc(tallies, func(f, _ string) bool { return !strings.HasPrefix(f, "O") })
+	maps.DeleteFunc(tallies, func(f, _ string) bool { return strings.HasPrefix(f, "F") })
 	assert.Equal(t, map[string]string{
-		"O1|channels/10000/voice:in@2025-05-04":  "5",
-		"O1|channels/10000/voice:out@2025-05-04": "11",
-		"O1|msgs/voice:in@2025-05-04":            "5",
-		"O1|msgs/voice:out@2025-05-04":           "11",
+		"C10000|voice:in@2025-05-04":   "5",
+		"C10000|voice:out@2025-05-04":  "11",
+		"O1|msgs/voice:in@2025-05-04":  "5",
+		"O1|msgs/voice:out@2025-05-04": "11",
 	}, tallies)
 
 	// check the generated channel logs
