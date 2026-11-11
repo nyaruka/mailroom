@@ -1,3 +1,7 @@
+## v26.3.137 (2026-11-11)
+ * Write flow segment tally scopes as base64url of the raw exit and node UUIDs
+ * Stop writing segment counts to flow activity counts
+
 ## v26.3.136 (2026-11-10)
  * Tally messages which failed for having no destination
  * Stop inheriting the shared_email feature from the parent org
