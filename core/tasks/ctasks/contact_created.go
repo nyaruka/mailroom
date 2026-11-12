@@ -16,7 +16,7 @@ func init() {
 }
 
 // ContactCreated is queued for a contact created outside of message or event handling (e.g. by a channel
-// registering a contact) so that it gets the same new contact processing.
+// registering a contact) so that its query based groups are evaluated.
 type ContactCreated struct {
 	ChannelID models.ChannelID `json:"channel_id,omitempty"`
 }
