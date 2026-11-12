@@ -50,7 +50,12 @@ func handleCreate(ctx context.Context, rt *runtime.Runtime, r *createRequest) (a
 		return err, http.StatusBadRequest, nil
 	}
 
-	mc, contact, err := models.CreateContact(ctx, rt.DB, oa, r.UserID, models.ContactSourceUser, c.Name, c.Language, c.Status, c.URNs)
+	source := models.ContactSourceUI
+	if r.Via == models.ViaAPI {
+		source = models.ContactSourceAPI
+	}
+
+	mc, contact, err := models.CreateContact(ctx, rt.DB, oa, r.UserID, source, c.Name, c.Language, c.Status, c.URNs)
 	if err != nil {
 		return nil, 0, err
 	}

@@ -93,24 +93,24 @@ func TestTallyStore(t *testing.T) {
 	assertLastBatch(store, 0)
 
 	write(1, map[string]int64{
-		models.TallyField(org1, "foo", time.Time{}):                            3,
-		models.TallyField(org1, "emails/shared@2025-05-04", time.Time{}):       1,
-		models.TallyField(org1, "channels/12/text:in@2025-05-04", time.Time{}): 2,
-		models.TallyField(org1, "msgs/text:in@2025-05-04", time.Time{}):        2,
-		models.TallyField(org2, "foo", time.Time{}):                            5,
+		models.TallyField(org1, "foo", time.Time{}):                             3,
+		models.TallyField(org1, "emails/shared@2025-05-04", time.Time{}):        1,
+		models.TallyField(org1, "contacts/new:inbound@2025-05-04", time.Time{}): 2,
+		models.TallyField(org1, "msgs/text:in@2025-05-04", time.Time{}):         2,
+		models.TallyField(org2, "foo", time.Time{}):                             5,
 	}, true)
 
 	assertLastBatch(store, 1)
 	assertLastBatch(other, 0)
 	assertTallies(org1, map[string]any{
-		"foo": int64(3), "emails/shared@2025-05-04": int64(1), "channels/12/text:in@2025-05-04": int64(2),
+		"foo": int64(3), "emails/shared@2025-05-04": int64(1), "contacts/new:inbound@2025-05-04": int64(2),
 		"msgs/text:in@2025-05-04": int64(2),
 	})
 	assertTallies(org2, map[string]any{"foo": int64(5)})
 
 	// expiries are from the day of a daily tally, by its retention
 	assertExpiries(org1, map[string]any{
-		"foo": nil, "emails/shared@2025-05-04": "2025-08-02", "channels/12/text:in@2025-05-04": "2026-06-08",
+		"foo": nil, "emails/shared@2025-05-04": "2025-08-02", "contacts/new:inbound@2025-05-04": "2026-06-08",
 		"msgs/text:in@2025-05-04": nil,
 	})
 
@@ -124,11 +124,11 @@ func TestTallyStore(t *testing.T) {
 	}, true)
 
 	assertTallies(org1, map[string]any{
-		"foo": int64(3), "emails/shared@2025-05-04": int64(3), "channels/12/text:in@2025-05-04": int64(2),
+		"foo": int64(3), "emails/shared@2025-05-04": int64(3), "contacts/new:inbound@2025-05-04": int64(2),
 		"msgs/text:in@2025-05-04": int64(2), "llms/foo/tokens:in@2025-05-10": int64(100), "llms/foo/x:2025-01-01": int64(1),
 	})
 	assertExpiries(org1, map[string]any{
-		"foo": nil, "emails/shared@2025-05-04": "2025-08-02", "channels/12/text:in@2025-05-04": "2026-06-08",
+		"foo": nil, "emails/shared@2025-05-04": "2025-08-02", "contacts/new:inbound@2025-05-04": "2026-06-08",
 		"msgs/text:in@2025-05-04": nil, "llms/foo/tokens:in@2025-05-10": "2025-08-08", "llms/foo/x:2025-01-01": "2025-08-08",
 	})
 	rt.DB.MustExec(`DELETE FROM orgs_orgtally WHERE org_id = $1 AND scope = 'llms/foo/x:2025-01-01'`, org1)
@@ -154,7 +154,7 @@ func TestTallyStore(t *testing.T) {
 		flowField(flow2, "segment:a:b"):                     1,
 		flowField(flow2, "msgsin:hour:12"):                  2,
 		flowField(flow2, "msgsin:date:2025-05-04"):          2,
-		flowField(flow2, "msgsin:date:2024-05-04"):          1, // already past retention
+		flowField(flow2, "msgsin:date:2024-04-04"):          1, // already past retention
 		models.TallyField(org2, "segment:a:b", time.Time{}): 4,
 	}, true)
 	assertLastBatch(store, 6)
@@ -163,7 +163,7 @@ func TestTallyStore(t *testing.T) {
 	assertFlowTallies(flow1, map[string]any{"segment:a:b": int64(3), "emails/shared@2025-05-04": int64(2)})
 	assertFlowTallies(flow2, map[string]any{"segment:a:b": int64(1), "msgsin:hour:12": int64(2), "msgsin:date:2025-05-04": int64(2)})
 	assertdb.Query(t, rt.DB, `SELECT scope, expires_on::text FROM flows_flowtally WHERE expires_on IS NOT NULL`).Map(map[string]any{
-		"msgsin:date:2025-05-04": "2026-05-04",
+		"msgsin:date:2025-05-04": "2026-06-08",
 	})
 	assertTallies(org2, map[string]any{"foo": int64(5), "segment:a:b": int64(4)})
 	rt.DB.MustExec(`DELETE FROM orgs_orgtally WHERE org_id = $1 AND scope = 'segment:a:b'`, org2)
@@ -203,10 +203,10 @@ func TestTallyStore(t *testing.T) {
 
 	// zero totals aren't kept - a zero amount writes nothing and a decrement to zero deletes the tally
 	write(9, map[string]int64{
-		models.TallyField(org1, "foo", time.Time{}):                            -10,
-		models.TallyField(org1, "bar", time.Time{}):                            0,
-		models.TallyField(org1, "emails/shared@2025-05-04", time.Time{}):       -1,
-		models.TallyField(org1, "channels/12/text:in@2025-05-04", time.Time{}): -2,
+		models.TallyField(org1, "foo", time.Time{}):                             -10,
+		models.TallyField(org1, "bar", time.Time{}):                             0,
+		models.TallyField(org1, "emails/shared@2025-05-04", time.Time{}):        -1,
+		models.TallyField(org1, "contacts/new:inbound@2025-05-04", time.Time{}): -2,
 	}, true)
 
 	assertLastBatch(store, 9)
@@ -221,10 +221,10 @@ func TestTallyStore(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM orgs_orgtally WHERE org_id = $1 AND scope = 'bar'`, org1).Returns(0)
 
 	// a deleted tally which is written again gets the same expiry
-	write(11, map[string]int64{models.TallyField(org1, "channels/12/text:in@2025-05-04", time.Time{}): 1}, true)
+	write(11, map[string]int64{models.TallyField(org1, "contacts/new:inbound@2025-05-04", time.Time{}): 1}, true)
 
 	assertExpiries(org1, map[string]any{
-		"emails/shared@2025-05-04": "2025-08-02", "channels/12/text:in@2025-05-04": "2026-06-08",
+		"emails/shared@2025-05-04": "2025-08-02", "contacts/new:inbound@2025-05-04": "2026-06-08",
 		"msgs/text:in@2025-05-04": nil, "llms/foo/tokens:in@2025-05-10": "2025-08-08",
 	})
 

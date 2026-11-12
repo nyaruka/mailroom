@@ -589,7 +589,8 @@ type ContactSource string
 
 const (
 	ContactSourceInbound ContactSource = "inbound" // reached the workspace on a channel
-	ContactSourceUser    ContactSource = "user"    // created by a user
+	ContactSourceUI      ContactSource = "ui"      // created by a user in the UI
+	ContactSourceAPI     ContactSource = "api"     // created by a user via the API
 	ContactSourceImport  ContactSource = "import"  // created by an import
 	ContactSourceOther   ContactSource = "other"   // anything else, e.g. a broadcast or flow start to a new URN
 )
