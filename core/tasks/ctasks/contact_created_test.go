@@ -43,3 +43,17 @@ func TestContactCreated(t *testing.T) {
 
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contactgroup_contacts WHERE contactgroup_id = $1 AND contact_id = $2`, group.ID, newbie.ID).Returns(1)
 }
+
+func TestContactCreatedFlagAliases(t *testing.T) {
+	for _, data := range []string{`{"new_contact": true}`, `{"contact_created": true}`} {
+		task, err := ctasks.ReadTask("msg_received", []byte(data))
+		require.NoError(t, err)
+		mr := task.(*ctasks.MsgReceived)
+		assert.True(t, mr.NewContact || mr.ContactCreated, "msg_received: %s", data)
+
+		task, err = ctasks.ReadTask("event_received", []byte(data))
+		require.NoError(t, err)
+		er := task.(*ctasks.EventReceived)
+		assert.True(t, er.NewContact || er.ContactCreated, "event_received: %s", data)
+	}
+}
