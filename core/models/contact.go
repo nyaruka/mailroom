@@ -608,6 +608,9 @@ func IncrementContactTallies(ctx context.Context, rt *runtime.Runtime, orgID Org
 	vc := rt.VK.Get()
 	defer vc.Close()
 
+	// the contacts exist whatever has since happened to the request or task which created them
+	ctx = context.WithoutCancel(ctx)
+
 	if err := rt.Tallies.Increment(ctx, vc, ContactTallies(orgID, source, count, t)); err != nil {
 		slog.Error("error incrementing contact tallies", "error", err, "org_id", orgID)
 	}
