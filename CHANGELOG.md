@@ -1,3 +1,6 @@
+## v26.3.141 (2026-11-12)
+ * Add daily per-workspace tally of new contacts by how they were created, counting them even if the creating context is cancelled
+
 ## v26.3.140 (2026-11-12)
  * Add contact_created contact task to evaluate query groups for externally created contacts
  * Accept contact_created as an alias of new_contact in msg_received and event_received tasks
