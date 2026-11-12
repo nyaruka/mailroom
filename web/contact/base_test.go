@@ -30,6 +30,9 @@ func TestCreate(t *testing.T) {
 	rt.DB.MustExec(`UPDATE contacts_contacturn SET contact_id = NULL WHERE contact_id = $1`, testdb.Ann.ID)
 
 	testsuite.RunWebTests(t, rt, "testdata/create.json")
+
+	// only the contacts which were created are counted
+	testsuite.AssertNewContactTallies(t, rt, map[string]int{"O1|contacts/new:user": 4})
 }
 
 func TestCreateAtContactLimit(t *testing.T) {
@@ -39,6 +42,8 @@ func TestCreateAtContactLimit(t *testing.T) {
 	rt.DB.MustExec(`UPDATE orgs_org SET limits = '{"contacts": 124}' WHERE id = $1`, testdb.Org1.ID)
 
 	testsuite.RunWebTests(t, rt, "testdata/create_limited.json")
+
+	testsuite.AssertNewContactTallies(t, rt, map[string]int{})
 }
 
 func TestDeindex(t *testing.T) {

@@ -16,7 +16,7 @@ func init() {
 }
 
 // ContactCreated is queued for a contact created outside of message or event handling (e.g. by a channel
-// registering a contact) so that its query based groups are evaluated.
+// registering a contact) so that its query based groups are evaluated and it's counted.
 type ContactCreated struct {
 	ChannelID models.ChannelID `json:"channel_id,omitempty"`
 }
@@ -40,6 +40,8 @@ func (t *ContactCreated) Perform(ctx context.Context, rt *runtime.Runtime, oa *m
 	if err := scene.Commit(ctx, rt, oa); err != nil {
 		return fmt.Errorf("error committing scene: %w", err)
 	}
+
+	countCreatedContact(ctx, rt, oa, mc)
 
 	return nil
 }

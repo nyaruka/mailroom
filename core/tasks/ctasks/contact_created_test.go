@@ -53,6 +53,8 @@ func TestContactCreated(t *testing.T) {
 	assertMemberships(newbie, matching, 1)
 	assertMemberships(newbie, nonMatching, 0)
 
+	testsuite.AssertNewContactTallies(t, rt, map[string]int{"O1|contacts/new:inbound": 1})
+
 	// running again is a noop
 	perform(newbie)
 	assertMemberships(newbie, matching, 1)
@@ -75,4 +77,62 @@ func TestContactCreatedFlagAliases(t *testing.T) {
 		er := task.(*ctasks.EventReceived)
 		assert.True(t, er.NewContact || er.ContactCreated, "event_received: %s", data)
 	}
+}
+
+func TestCreatedContactsCounted(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+	vc := rt.VK.Get()
+	defer vc.Close()
+
+	dbMsg := testdb.InsertIncomingMsg(t, rt, testdb.Org1, "0199bad8-f98d-75a3-b641-2718a25ac3f5", testdb.TwilioChannel, testdb.Ann, "hi", models.MsgStatusPending, "")
+	testdb.InsertChannelEvent(t, rt, testdb.Org1, "019ae4fc-56c6-7a94-b757-dcf0640e5ebc", models.EventTypeMissedCall, testdb.TwilioChannel, testdb.Bob, models.EventStatusPending)
+
+	msgTask := func(newContact, contactCreated bool) ctasks.Task {
+		return &ctasks.MsgReceived{
+			ChannelID:      testdb.TwilioChannel.ID,
+			MsgUUID:        dbMsg.UUID,
+			URN:            testdb.Ann.URN,
+			URNID:          testdb.Ann.URNID,
+			Text:           "hi",
+			NewContact:     newContact,
+			ContactCreated: contactCreated,
+		}
+	}
+	eventTask := func(newContact, contactCreated bool) ctasks.Task {
+		return &ctasks.EventReceived{
+			EventUUID:      "019ae4fc-56c6-7a94-b757-dcf0640e5ebc",
+			EventType:      models.EventTypeMissedCall,
+			ChannelID:      testdb.TwilioChannel.ID,
+			URNID:          testdb.Bob.URNID,
+			NewContact:     newContact,
+			ContactCreated: contactCreated,
+		}
+	}
+
+	perform := func(contact *testdb.Contact, task ctasks.Task) {
+		require.NoError(t, tasks.QueueContact(ctx, rt, testdb.Org1.ID, contact.ID, task))
+
+		queued, err := rt.Queues.Realtime.Pop(ctx, vc)
+		require.NoError(t, err)
+		require.NotNil(t, queued)
+		require.NoError(t, tasks.Perform(ctx, rt, queued))
+	}
+
+	// messages and events for contacts which already existed aren't counted
+	perform(testdb.Ann, msgTask(false, false))
+	perform(testdb.Bob, eventTask(false, false))
+	testsuite.AssertNewContactTallies(t, rt, map[string]int{})
+
+	// but those which report their contact as created are, by either flag
+	perform(testdb.Ann, msgTask(true, false))
+	testsuite.AssertNewContactTallies(t, rt, map[string]int{"O1|contacts/new:inbound": 1})
+
+	perform(testdb.Ann, msgTask(false, true))
+	testsuite.AssertNewContactTallies(t, rt, map[string]int{"O1|contacts/new:inbound": 2})
+
+	perform(testdb.Bob, eventTask(true, false))
+	testsuite.AssertNewContactTallies(t, rt, map[string]int{"O1|contacts/new:inbound": 3})
+
+	perform(testdb.Bob, eventTask(false, true))
+	testsuite.AssertNewContactTallies(t, rt, map[string]int{"O1|contacts/new:inbound": 4})
 }

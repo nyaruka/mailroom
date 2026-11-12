@@ -44,7 +44,14 @@ func (t *EventReceived) Perform(ctx context.Context, rt *runtime.Runtime, oa *mo
 		return fmt.Errorf("error handling channel event %s: %w", t.EventUUID, err)
 	}
 
-	return models.MarkChannelEventHandled(ctx, rt.DB, t.EventUUID)
+	if err := models.MarkChannelEventHandled(ctx, rt.DB, t.EventUUID); err != nil {
+		return err
+	}
+
+	if t.NewContact || t.ContactCreated {
+		countCreatedContact(ctx, rt, oa, mc)
+	}
+	return nil
 }
 
 // Handle let's us reuse this task's code for handling incoming calls.. which we need to perform inline in the IVR web

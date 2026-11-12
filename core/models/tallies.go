@@ -27,6 +27,10 @@ const (
 	// which failed for having no destination, e.g. msgs/text:nodest@2026-11-03
 	TallyMsgs = "msgs"
 
+	// TallyContactsNew prefixes the daily counts of contacts created, by how they came to exist, e.g.
+	// contacts/new:inbound@2026-11-03. Deleting a contact doesn't reduce them.
+	TallyContactsNew = "contacts/new"
+
 	// TallyLLMs prefixes the daily usage tallies which LLM services can record, e.g. llms/foo/tokens:in@2026-11-02
 	TallyLLMs = "llms"
 )

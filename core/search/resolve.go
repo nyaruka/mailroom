@@ -44,7 +44,7 @@ func ResolveRecipients(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 
 	// resolve any raw URNs
 	if len(recipients.URNs) > 0 {
-		fetchedByURN, createdByURN, err := models.GetOrCreateContactsFromURNs(ctx, rt.DB, oa, userID, recipients.URNs)
+		fetchedByURN, createdByURN, err := models.GetOrCreateContactsFromURNs(ctx, rt.DB, oa, userID, models.ContactSourceOther, recipients.URNs)
 		if err != nil {
 			return nil, nil, fmt.Errorf("error getting contact ids from urns: %w", err)
 		}

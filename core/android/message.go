@@ -48,7 +48,6 @@ func CreateMessage(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsset
 		URN:           cu.urn,
 		URNID:         m.ContactURNID(),
 		Text:          m.Text(),
-		NewContact:    cu.newContact,
 	})
 	if err != nil {
 		return models.NilMsgID, false, fmt.Errorf("error queueing handle task: %w", err)
@@ -70,10 +69,9 @@ func checkDuplicate(ctx context.Context, rt *runtime.Runtime, text string, conta
 }
 
 type contactAndURN struct {
-	contactID  models.ContactID
-	urnID      models.URNID
-	urn        urns.URN
-	newContact bool
+	contactID models.ContactID
+	urnID     models.URNID
+	urn       urns.URN
 }
 
 func resolveContact(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, channelID models.ChannelID, phone string) (*contactAndURN, error) {
@@ -97,7 +95,9 @@ func resolveContact(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 		return nil, fmt.Errorf("error getting system user id: %w", err)
 	}
 
-	mc, _, created, err := models.GetOrCreateContact(ctx, rt.DB, oa, userID, []urns.URN{urn}, channelID)
+	// a contact this creates isn't reported as created to the tasks queued for it, because creating it here has
+	// already evaluated its groups and counted it
+	mc, _, _, err := models.GetOrCreateContact(ctx, rt.DB, oa, userID, models.ContactSourceInbound, []urns.URN{urn}, channelID)
 	if err != nil {
 		return nil, fmt.Errorf("error getting or creating contact: %w", err)
 	}
@@ -108,7 +108,7 @@ func resolveContact(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 		urnID = cu.ID
 	}
 
-	return &contactAndURN{contactID: mc.ID(), urnID: urnID, urn: urn, newContact: created}, nil
+	return &contactAndURN{contactID: mc.ID(), urnID: urnID, urn: urn}, nil
 }
 
 // isInvalidURN reports whether the error is the device having given us a phone number we can't make sense of.
