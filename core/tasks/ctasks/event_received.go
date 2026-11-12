@@ -25,12 +25,13 @@ func init() {
 }
 
 type EventReceived struct {
-	EventUUID  models.ChannelEventUUID `json:"event_uuid"`
-	EventType  models.ChannelEventType `json:"event_type"`
-	ChannelID  models.ChannelID        `json:"channel_id"`
-	URNID      models.URNID            `json:"urn_id"`
-	Extra      null.Map[any]           `json:"extra"`
-	NewContact bool                    `json:"new_contact"`
+	EventUUID      models.ChannelEventUUID `json:"event_uuid"`
+	EventType      models.ChannelEventType `json:"event_type"`
+	ChannelID      models.ChannelID        `json:"channel_id"`
+	URNID          models.URNID            `json:"urn_id"`
+	Extra          null.Map[any]           `json:"extra"`
+	NewContact     bool                    `json:"new_contact"` // deprecated alias of contact_created
+	ContactCreated bool                    `json:"contact_created,omitempty"`
 }
 
 func (t *EventReceived) Type() string {
@@ -83,7 +84,7 @@ func (t *EventReceived) handle(ctx context.Context, rt *runtime.Runtime, oa *mod
 	scene.DBCall = call
 	scene.Call = flowCall
 
-	if t.NewContact {
+	if t.NewContact || t.ContactCreated {
 		if err := scene.ReevaluateGroups(ctx, rt, oa); err != nil {
 			return nil, fmt.Errorf("error calculating groups for new contact: %w", err)
 		}
