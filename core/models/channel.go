@@ -124,7 +124,7 @@ func GetChannelByID(ctx context.Context, db *sql.DB, id ChannelID) (*Channel, er
 
 const sqlSelectChannelByID = `
 SELECT ROW_TO_JSON(r) FROM (
-    SELECT c.id, c.uuid, c.org_id, c.channel_type, c.name, c.address, COALESCE(c.tps, 10) AS tps, c.config
+    SELECT c.id, c.uuid, c.org_id, c.channel_type, c.name, c.address, c.tps, c.config
       FROM channels_channel c
      WHERE c.id = $1
 ) r;`
@@ -149,7 +149,7 @@ func GetAndroidChannelsToSync(ctx context.Context, db DBorTx) ([]Channel, error)
 
 const sqlSelectAndroidChannelsToSync = `
 SELECT ROW_TO_JSON(r) FROM (
-    SELECT c.id, c.uuid, c.org_id, c.channel_type, c.name, c.address, COALESCE(c.tps, 10) AS tps, c.config
+    SELECT c.id, c.uuid, c.org_id, c.channel_type, c.name, c.address, c.tps, c.config
       FROM channels_channel c
      WHERE c.channel_type = 'A' AND c.last_seen >= $1 AND c.last_seen <  NOW() - INTERVAL '15 minutes' AND c.is_active = TRUE AND c.is_enabled = TRUE
   ORDER BY c.last_seen DESC, c.id DESC
@@ -281,7 +281,7 @@ SELECT ROW_TO_JSON(r) FROM (SELECT
       c.org_id,
       c.name,
       c.channel_type,
-      COALESCE(c.tps, 10) AS tps,
+      c.tps,
       c.country,
       c.address,
       c.schemes,
