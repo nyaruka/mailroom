@@ -35,20 +35,16 @@ const (
 	TallyLLMs = "llms"
 )
 
-// legacyTallyChannelMsgs prefixes the org tallies which counted messages on each channel before they became channel
-// tallies, e.g. channels/12/text:in@2026-11-03, which may still need flushing
-const legacyTallyChannelMsgs = "channels"
-
 // tallyRetention is how long tallies are kept after they're first written, by owner type and scope prefix. Tallies
 // without one, such as the org msgs/ ones, are kept forever.
 var tallyRetention = map[tallyOwner]map[string]time.Duration{
 	tallyOwnerOrg: {
-		TallyEmailsShared + "@":      90 * 24 * time.Hour,
-		legacyTallyChannelMsgs + "/": 400 * 24 * time.Hour,
-		TallyLLMs + "/":              90 * 24 * time.Hour,
+		TallyEmailsShared + "@": 90 * 24 * time.Hour,
+		TallyContactsNew + ":":  400 * 24 * time.Hour,
+		TallyLLMs + "/":         90 * 24 * time.Hour,
 	},
 	tallyOwnerFlow: {
-		flowMsgsInDateScope: 365 * 24 * time.Hour,
+		flowMsgsInDateScope: 400 * 24 * time.Hour,
 	},
 	tallyOwnerChannel: {
 		"": 400 * 24 * time.Hour, // e.g. text:in@2026-11-03

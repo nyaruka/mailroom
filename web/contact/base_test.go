@@ -32,7 +32,7 @@ func TestCreate(t *testing.T) {
 	testsuite.RunWebTests(t, rt, "testdata/create.json")
 
 	// only the contacts which were created are counted
-	testsuite.AssertNewContactTallies(t, rt, map[string]int{"O1|contacts/new:user": 4})
+	testsuite.AssertNewContactTallies(t, rt, map[string]int{"O1|contacts/new:ui": 2, "O1|contacts/new:api": 2})
 }
 
 func TestCreateAtContactLimit(t *testing.T) {
