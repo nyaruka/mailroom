@@ -1,3 +1,7 @@
+## v26.3.143 (2026-11-12)
+ * Load channel TPS as stored instead of defaulting NULL to 10
+ * Set tps when inserting test channels and regenerate test dump for non-null channel tps
+
 ## v26.3.142 (2026-11-12)
  * Expire new contact and flow daily tallies after 400 days
  * Split user-created contacts into ui and api in the daily new contact tally
