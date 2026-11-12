@@ -1,3 +1,7 @@
+## v26.3.142 (2026-11-12)
+ * Expire new contact and flow daily tallies after 400 days
+ * Split user-created contacts into ui and api in the daily new contact tally
+
 ## v26.3.141 (2026-11-12)
  * Add daily per-workspace tally of new contacts by how they were created, counting them even if the creating context is cancelled
 
