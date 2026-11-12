@@ -47,7 +47,14 @@ func (t *MsgReceived) Type() string {
 }
 
 func (t *MsgReceived) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, mc *models.Contact) error {
-	return t.perform(ctx, rt, oa, mc)
+	if err := t.perform(ctx, rt, oa, mc); err != nil {
+		return err
+	}
+
+	if t.NewContact || t.ContactCreated {
+		countCreatedContact(ctx, rt, oa, mc)
+	}
+	return nil
 }
 
 func (t *MsgReceived) perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, mc *models.Contact) error {

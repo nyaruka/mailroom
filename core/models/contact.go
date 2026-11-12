@@ -584,8 +584,40 @@ ORDER BY c.id
 ) r;
 `
 
+// ContactSource is how a contact came to exist, which new contacts are tallied by
+type ContactSource string
+
+const (
+	ContactSourceInbound ContactSource = "inbound" // reached the workspace on a channel
+	ContactSourceUser    ContactSource = "user"    // created by a user
+	ContactSourceImport  ContactSource = "import"  // created by an import
+	ContactSourceOther   ContactSource = "other"   // anything else, e.g. a broadcast or flow start to a new URN
+)
+
+// ContactTallies gets the tally amounts by field which count the given number of contacts created from the given
+// source in the given org, by the UTC day of the given time
+func ContactTallies(orgID OrgID, source ContactSource, count int, t time.Time) map[string]int64 {
+	return map[string]int64{TallyField(orgID, fmt.Sprintf("%s:%s", TallyContactsNew, source), t): int64(count)}
+}
+
+// IncrementContactTallies increments the tallies which count contacts created at the given time in the given org,
+// logging rather than failing on errors since the contacts have already been written. Contacts created by CreateContact
+// and the GetOrCreate functions are counted by those, so this is only for contacts created elsewhere, e.g. by a channel
+// service.
+func IncrementContactTallies(ctx context.Context, rt *runtime.Runtime, orgID OrgID, source ContactSource, count int, t time.Time) {
+	vc := rt.VK.Get()
+	defer vc.Close()
+
+	// the contacts exist whatever has since happened to the request or task which created them
+	ctx = context.WithoutCancel(ctx)
+
+	if err := rt.Tallies.Increment(ctx, vc, ContactTallies(orgID, source, count, t)); err != nil {
+		slog.Error("error incrementing contact tallies", "error", err, "org_id", orgID)
+	}
+}
+
 // CreateContact creates a new contact for the passed in org with the passed in URNs
-func CreateContact(ctx context.Context, db DB, oa *OrgAssets, userID UserID, name string, language i18n.Language, status ContactStatus, urnz []urns.URN) (*Contact, *core.Contact, error) {
+func CreateContact(ctx context.Context, db DB, oa *OrgAssets, userID UserID, source ContactSource, name string, language i18n.Language, status ContactStatus, urnz []urns.URN) (*Contact, *core.Contact, error) {
 	// ensure all URNs are normalized and valid
 	urnz, err := normalizeAndValidateURNs(urnz)
 	if err != nil {
@@ -608,7 +640,7 @@ func CreateContact(ctx context.Context, db DB, oa *OrgAssets, userID UserID, nam
 		return nil, nil, err
 	}
 
-	contactID, err := tryInsertContactAndURNs(ctx, db, oa.OrgID(), userID, name, language, status, urnz, NilChannelID)
+	contactID, err := tryInsertContactAndURNs(ctx, db, oa, userID, source, name, language, status, urnz, NilChannelID)
 	if err != nil {
 		// always possible that another thread created a contact with these URNs after we checked above
 		if dbutil.IsUniqueViolation(err) {
@@ -616,8 +648,6 @@ func CreateContact(ctx context.Context, db DB, oa *OrgAssets, userID UserID, nam
 		}
 		return nil, nil, err
 	}
-
-	oa.contactsCreated(1)
 
 	// load a full contact so that we can calculate dynamic groups
 	mc, err := LoadContact(ctx, db, oa, contactID)
@@ -644,14 +674,14 @@ func CreateContact(ctx context.Context, db DB, oa *OrgAssets, userID UserID, nam
 // * If URNs exist but are orphaned it creates a new contact and assigns those URNs to them.
 // * If URNs exists and belongs to a single contact it returns that contact (other URNs are not assigned to the contact).
 // * If URNs exists and belongs to multiple contacts it will return an error.
-func GetOrCreateContact(ctx context.Context, db DB, oa *OrgAssets, userID UserID, urnz []urns.URN, channelID ChannelID) (*Contact, *core.Contact, bool, error) {
+func GetOrCreateContact(ctx context.Context, db DB, oa *OrgAssets, userID UserID, source ContactSource, urnz []urns.URN, channelID ChannelID) (*Contact, *core.Contact, bool, error) {
 	// ensure all URNs are normalized and valid
 	urnz, err := normalizeAndValidateURNs(urnz)
 	if err != nil {
 		return nil, nil, false, err
 	}
 
-	contactID, created, err := getOrCreateContact(ctx, db, oa, userID, urnz, channelID)
+	contactID, created, err := getOrCreateContact(ctx, db, oa, userID, source, urnz, channelID)
 	if err != nil {
 		return nil, nil, false, err
 	}
@@ -680,7 +710,7 @@ func GetOrCreateContact(ctx context.Context, db DB, oa *OrgAssets, userID UserID
 
 // GetOrCreateContactsFromURNs will fetch or create the contacts for the passed in URNs, returning a map of the fetched
 // contacts and another map of the created contacts.
-func GetOrCreateContactsFromURNs(ctx context.Context, db DB, oa *OrgAssets, userID UserID, urnz []urns.URN) (map[urns.URN]*Contact, map[urns.URN]*Contact, error) {
+func GetOrCreateContactsFromURNs(ctx context.Context, db DB, oa *OrgAssets, userID UserID, source ContactSource, urnz []urns.URN) (map[urns.URN]*Contact, map[urns.URN]*Contact, error) {
 	// ensure all URNs are normalized and valid
 	urnz, err := normalizeAndValidateURNs(urnz)
 	if err != nil {
@@ -711,7 +741,7 @@ func GetOrCreateContactsFromURNs(ctx context.Context, db DB, oa *OrgAssets, user
 	// create any contacts that are missing
 	for urn, contact := range owners {
 		if contact == nil {
-			contact, _, _, err := GetOrCreateContact(ctx, db, oa, userID, []urns.URN{urn}, NilChannelID)
+			contact, _, _, err := GetOrCreateContact(ctx, db, oa, userID, source, []urns.URN{urn}, NilChannelID)
 			if err != nil {
 				return nil, nil, fmt.Errorf("error creating contact: %w", err)
 			}
@@ -788,7 +818,7 @@ func contactsFromURNs(ctx context.Context, db Queryer, oa *OrgAssets, urnz []urn
 	return byURN, nil
 }
 
-func getOrCreateContact(ctx context.Context, db DB, oa *OrgAssets, userID UserID, urnz []urns.URN, channelID ChannelID) (ContactID, bool, error) {
+func getOrCreateContact(ctx context.Context, db DB, oa *OrgAssets, userID UserID, source ContactSource, urnz []urns.URN, channelID ChannelID) (ContactID, bool, error) {
 	orgID := oa.OrgID()
 
 	// find current owners of these URNs
@@ -809,9 +839,8 @@ func getOrCreateContact(ctx context.Context, db DB, oa *OrgAssets, userID UserID
 		return NilContactID, false, err
 	}
 
-	contactID, err := tryInsertContactAndURNs(ctx, db, orgID, userID, "", i18n.NilLanguage, ContactStatusActive, urnz, channelID)
+	contactID, err := tryInsertContactAndURNs(ctx, db, oa, userID, source, "", i18n.NilLanguage, ContactStatusActive, urnz, channelID)
 	if err == nil {
-		oa.contactsCreated(1)
 		return contactID, true, nil
 	}
 
@@ -891,14 +920,16 @@ func uniqueContactIDs(urnMap map[urns.URN]ContactID) []ContactID {
 
 // Tries to create a new contact for the passed in org with the passed in validated URNs. Returned error can be tested
 // with `dbutil.IsUniqueViolation` to determine if problem was one or more of the URNs already exist and are assigned to
-// other contacts.
-func tryInsertContactAndURNs(ctx context.Context, db DB, orgID OrgID, userID UserID, name string, language i18n.Language, status ContactStatus, urnz []urns.URN, channelID ChannelID) (ContactID, error) {
+// other contacts. As the only way contacts are inserted, this is also where they're counted.
+func tryInsertContactAndURNs(ctx context.Context, db DB, oa *OrgAssets, userID UserID, source ContactSource, name string, language i18n.Language, status ContactStatus, urnz []urns.URN, channelID ChannelID) (ContactID, error) {
 	tx, err := db.BeginTxx(ctx, nil)
 	if err != nil {
 		return NilContactID, fmt.Errorf("error beginning transaction: %w", err)
 	}
 
-	contactID, err := insertContactAndURNs(ctx, tx, orgID, userID, name, language, status, urnz, channelID)
+	createdOn := dates.Now()
+
+	contactID, err := insertContactAndURNs(ctx, tx, oa.OrgID(), userID, name, language, status, createdOn, urnz, channelID)
 	if err != nil {
 		tx.Rollback()
 		return NilContactID, err
@@ -910,10 +941,13 @@ func tryInsertContactAndURNs(ctx context.Context, db DB, orgID OrgID, userID Use
 		return NilContactID, fmt.Errorf("error committing transaction: %w", err)
 	}
 
+	oa.contactsCreated(1)
+	IncrementContactTallies(ctx, oa.rt, oa.OrgID(), source, 1, createdOn)
+
 	return contactID, nil
 }
 
-func insertContactAndURNs(ctx context.Context, db DBorTx, orgID OrgID, userID UserID, name string, language i18n.Language, status ContactStatus, urnz []urns.URN, channelID ChannelID) (ContactID, error) {
+func insertContactAndURNs(ctx context.Context, db DBorTx, orgID OrgID, userID UserID, name string, language i18n.Language, status ContactStatus, createdOn time.Time, urnz []urns.URN, channelID ChannelID) (ContactID, error) {
 	if userID == NilUserID {
 		userID = UserID(1)
 	}
@@ -924,7 +958,7 @@ func insertContactAndURNs(ctx context.Context, db DBorTx, orgID OrgID, userID Us
 		`INSERT INTO contacts_contact (org_id, is_active, uuid, name, language, status, created_on, modified_on, created_by_id, modified_by_id) 
 		VALUES($1, TRUE, $2, $3, $4, $5, $6, $6, $7, $7)
 		RETURNING id`,
-		orgID, core.NewContactUUID(), null.String(name), null.String(string(language)), status, dates.Now(), userID,
+		orgID, core.NewContactUUID(), null.String(name), null.String(string(language)), status, createdOn, userID,
 	)
 	if err != nil {
 		return NilContactID, fmt.Errorf("error inserting new contact: %w", err)

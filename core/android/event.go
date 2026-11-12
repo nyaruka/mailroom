@@ -34,12 +34,11 @@ func CreateEvent(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 
 	if needsHandling {
 		err = tasks.QueueContact(ctx, rt, oa.OrgID(), e.ContactID, &ctasks.EventReceived{
-			EventUUID:  e.UUID,
-			EventType:  e.EventType,
-			ChannelID:  e.ChannelID,
-			URNID:      e.URNID,
-			Extra:      e.Extra,
-			NewContact: cu.newContact,
+			EventUUID: e.UUID,
+			EventType: e.EventType,
+			ChannelID: e.ChannelID,
+			URNID:     e.URNID,
+			Extra:     e.Extra,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("error queueing handle task: %w", err)

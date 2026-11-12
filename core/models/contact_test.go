@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/gocommon/i18n"
 	"github.com/nyaruka/gocommon/urns"
@@ -17,6 +18,7 @@ import (
 	"github.com/nyaruka/mailroom/v26/testsuite"
 	"github.com/nyaruka/mailroom/v26/testsuite/testdb"
 	"github.com/nyaruka/mailroom/v26/utils/test"
+	"github.com/nyaruka/vkutil/assertvk"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -106,7 +108,7 @@ func TestCreateContact(t *testing.T) {
 	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 	require.NoError(t, err)
 
-	mc, contact, err := models.CreateContact(ctx, rt.DB, oa, models.UserID(1), "Rich", `kin`, models.ContactStatusActive, []urns.URN{urns.URN("telegram:200001"), urns.URN("telegram:200002")})
+	mc, contact, err := models.CreateContact(ctx, rt.DB, oa, models.UserID(1), models.ContactSourceUser, "Rich", `kin`, models.ContactStatusActive, []urns.URN{urns.URN("telegram:200001"), urns.URN("telegram:200002")})
 	assert.NoError(t, err)
 
 	assert.Equal(t, "Rich", mc.Name())
@@ -123,7 +125,7 @@ func TestCreateContact(t *testing.T) {
 	assert.Len(t, contact.Groups().All(), 1)
 	assert.Equal(t, assets.GroupUUID("d636c966-79c1-4417-9f1c-82ad629773a2"), contact.Groups().All()[0].UUID())
 
-	_, _, err = models.CreateContact(ctx, rt.DB, oa, models.UserID(1), "Rich", `kin`, models.ContactStatusActive, []urns.URN{urns.URN("telegram:200001")})
+	_, _, err = models.CreateContact(ctx, rt.DB, oa, models.UserID(1), models.ContactSourceUser, "Rich", `kin`, models.ContactStatusActive, []urns.URN{urns.URN("telegram:200001")})
 	assert.EqualError(t, err, "URN 0 in use by other contacts")
 
 	var uerr *models.URNError
@@ -133,7 +135,7 @@ func TestCreateContact(t *testing.T) {
 	}
 
 	// new blocked contact won't be added to smart groups
-	mc, contact, err = models.CreateContact(ctx, rt.DB, oa, models.UserID(1), "Bob", `kin`, models.ContactStatusBlocked, []urns.URN{urns.URN("telegram:200003")})
+	mc, contact, err = models.CreateContact(ctx, rt.DB, oa, models.UserID(1), models.ContactSourceUser, "Bob", `kin`, models.ContactStatusBlocked, []urns.URN{urns.URN("telegram:200003")})
 	assert.NoError(t, err)
 	assert.Equal(t, models.ContactStatusBlocked, mc.Status())
 	assert.Equal(t, core.ContactStatusBlocked, contact.Status())
@@ -159,7 +161,7 @@ func TestCreateContactRace(t *testing.T) {
 	var errs [2]error
 
 	test.RunConcurrently(2, func(i int) {
-		contacts[i], _, errs[i] = models.CreateContact(ctx, mdb, oa, models.UserID(1), "", i18n.NilLanguage, models.ContactStatusActive, []urns.URN{urns.URN("telegram:100007")})
+		contacts[i], _, errs[i] = models.CreateContact(ctx, mdb, oa, models.UserID(1), models.ContactSourceUser, "", i18n.NilLanguage, models.ContactStatusActive, []urns.URN{urns.URN("telegram:100007")})
 	})
 
 	// one should return a contact, the other should error
@@ -276,7 +278,7 @@ func TestGetOrCreateContact(t *testing.T) {
 	}
 
 	for i, tc := range tcs {
-		mc, contact, created, err := models.GetOrCreateContact(ctx, rt.DB, oa, testdb.Admin.ID, tc.URNs, tc.ChannelID)
+		mc, contact, created, err := models.GetOrCreateContact(ctx, rt.DB, oa, testdb.Admin.ID, models.ContactSourceOther, tc.URNs, tc.ChannelID)
 		assert.NoError(t, err, "%d: error creating contact", i)
 
 		assert.Equal(t, tc.ContactID, mc.ID(), "%d: contact id mismatch", i)
@@ -311,7 +313,7 @@ func TestGetOrCreateContactRace(t *testing.T) {
 	var errs [2]error
 
 	test.RunConcurrently(2, func(i int) {
-		contacts[i], _, _, errs[i] = models.GetOrCreateContact(ctx, mdb, oa, testdb.Admin.ID, []urns.URN{urns.URN("telegram:100007")}, models.NilChannelID)
+		contacts[i], _, _, errs[i] = models.GetOrCreateContact(ctx, mdb, oa, testdb.Admin.ID, models.ContactSourceOther, []urns.URN{urns.URN("telegram:100007")}, models.NilChannelID)
 	})
 
 	require.NoError(t, errs[0])
@@ -369,7 +371,7 @@ func TestGetOrCreateContactIDsFromURNs(t *testing.T) {
 	}
 
 	for i, tc := range tcs {
-		fetched, created, err := models.GetOrCreateContactsFromURNs(ctx, rt.DB, oa, testdb.Admin.ID, tc.urns)
+		fetched, created, err := models.GetOrCreateContactsFromURNs(ctx, rt.DB, oa, testdb.Admin.ID, models.ContactSourceOther, tc.urns)
 		assert.NoError(t, err, "%d: error getting contact ids", i)
 		assert.Equal(t, tc.fetched, fetched, "%d: fetched contacts mismatch", i)
 		assert.Equal(t, tc.created, slices.AppendSeq([]urns.URN{}, maps.Keys(created)), "%d: created contacts mismatch", i)
@@ -396,7 +398,7 @@ func TestGetOrCreateContactsFromURNsRace(t *testing.T) {
 
 	test.RunConcurrently(2, func(i int) {
 		var created map[urns.URN]*models.Contact
-		_, created, errs[i] = models.GetOrCreateContactsFromURNs(ctx, mdb, oa, testdb.Admin.ID, []urns.URN{urns.URN("telegram:100007")})
+		_, created, errs[i] = models.GetOrCreateContactsFromURNs(ctx, mdb, oa, testdb.Admin.ID, models.ContactSourceOther, []urns.URN{urns.URN("telegram:100007")})
 		contacts[i] = created[urns.URN("telegram:100007")]
 	})
 
@@ -746,19 +748,19 @@ func TestContactLimit(t *testing.T) {
 	require.NoError(t, err)
 
 	// fetching an existing contact is never affected by the limit
-	_, _, created, err := models.GetOrCreateContact(ctx, rt.DB, oa, testdb.Admin.ID, []urns.URN{testdb.Ann.URN}, models.NilChannelID)
+	_, _, created, err := models.GetOrCreateContact(ctx, rt.DB, oa, testdb.Admin.ID, models.ContactSourceOther, []urns.URN{testdb.Ann.URN}, models.NilChannelID)
 	assert.NoError(t, err)
 	assert.False(t, created)
 
-	_, _, err = models.CreateContact(ctx, rt.DB, oa, testdb.Admin.ID, "Zed", i18n.NilLanguage, models.ContactStatusActive, []urns.URN{"telegram:100001"})
+	_, _, err = models.CreateContact(ctx, rt.DB, oa, testdb.Admin.ID, models.ContactSourceUser, "Zed", i18n.NilLanguage, models.ContactStatusActive, []urns.URN{"telegram:100001"})
 	assert.NoError(t, err)
 
-	_, _, created, err = models.GetOrCreateContact(ctx, rt.DB, oa, testdb.Admin.ID, []urns.URN{"telegram:100002"}, models.NilChannelID)
+	_, _, created, err = models.GetOrCreateContact(ctx, rt.DB, oa, testdb.Admin.ID, models.ContactSourceOther, []urns.URN{"telegram:100002"}, models.NilChannelID)
 	assert.NoError(t, err)
 	assert.True(t, created)
 
 	// we're now at the limit so creating another fails
-	_, _, err = models.CreateContact(ctx, rt.DB, oa, testdb.Admin.ID, "Yan", i18n.NilLanguage, models.ContactStatusActive, []urns.URN{"telegram:100003"})
+	_, _, err = models.CreateContact(ctx, rt.DB, oa, testdb.Admin.ID, models.ContactSourceUser, "Yan", i18n.NilLanguage, models.ContactStatusActive, []urns.URN{"telegram:100003"})
 	assert.EqualError(t, err, "workspace has reached its limit of 126 contacts")
 
 	var lerr *models.LimitReachedError
@@ -767,22 +769,22 @@ func TestContactLimit(t *testing.T) {
 		assert.Equal(t, 126, lerr.Max)
 	}
 
-	_, _, _, err = models.GetOrCreateContact(ctx, rt.DB, oa, testdb.Admin.ID, []urns.URN{"telegram:100004"}, models.NilChannelID)
+	_, _, _, err = models.GetOrCreateContact(ctx, rt.DB, oa, testdb.Admin.ID, models.ContactSourceOther, []urns.URN{"telegram:100004"}, models.NilChannelID)
 	assert.ErrorAs(t, err, &lerr)
 
 	// but fetching an existing contact still works
-	_, _, created, err = models.GetOrCreateContact(ctx, rt.DB, oa, testdb.Admin.ID, []urns.URN{"telegram:100001"}, models.NilChannelID)
+	_, _, created, err = models.GetOrCreateContact(ctx, rt.DB, oa, testdb.Admin.ID, models.ContactSourceOther, []urns.URN{"telegram:100001"}, models.NilChannelID)
 	assert.NoError(t, err)
 	assert.False(t, created)
 
 	// and so does a bulk fetch which doesn't need to create anything
-	fetched, cr, err := models.GetOrCreateContactsFromURNs(ctx, rt.DB, oa, testdb.Admin.ID, []urns.URN{testdb.Ann.URN, "telegram:100001"})
+	fetched, cr, err := models.GetOrCreateContactsFromURNs(ctx, rt.DB, oa, testdb.Admin.ID, models.ContactSourceOther, []urns.URN{testdb.Ann.URN, "telegram:100001"})
 	assert.NoError(t, err)
 	assert.Len(t, fetched, 2)
 	assert.Len(t, cr, 0)
 
 	// a bulk call which would need to create is rejected up front and creates nothing
-	_, _, err = models.GetOrCreateContactsFromURNs(ctx, rt.DB, oa, testdb.Admin.ID, []urns.URN{testdb.Ann.URN, "telegram:100005"})
+	_, _, err = models.GetOrCreateContactsFromURNs(ctx, rt.DB, oa, testdb.Admin.ID, models.ContactSourceOther, []urns.URN{testdb.Ann.URN, "telegram:100005"})
 	assert.ErrorAs(t, err, &lerr)
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contacturn WHERE identity = 'telegram:100005'`).Returns(0)
 
@@ -793,12 +795,12 @@ func TestContactLimit(t *testing.T) {
 	oa, err = models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 	require.NoError(t, err)
 
-	_, _, err = models.GetOrCreateContactsFromURNs(ctx, rt.DB, oa, testdb.Admin.ID, []urns.URN{"telegram:100005", "telegram:100006"})
+	_, _, err = models.GetOrCreateContactsFromURNs(ctx, rt.DB, oa, testdb.Admin.ID, models.ContactSourceOther, []urns.URN{"telegram:100005", "telegram:100006"})
 	assert.ErrorAs(t, err, &lerr)
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contacturn WHERE identity IN ('telegram:100005', 'telegram:100006')`).Returns(0)
 
 	// with room for one, that one is created
-	_, cr, err = models.GetOrCreateContactsFromURNs(ctx, rt.DB, oa, testdb.Admin.ID, []urns.URN{"telegram:100005"})
+	_, cr, err = models.GetOrCreateContactsFromURNs(ctx, rt.DB, oa, testdb.Admin.ID, models.ContactSourceOther, []urns.URN{"telegram:100005"})
 	assert.NoError(t, err)
 	assert.Len(t, cr, 1)
 
@@ -811,7 +813,7 @@ func TestContactLimit(t *testing.T) {
 	assert.Equal(t, models.NoLimit, oa.Org().ContactLimit())
 
 	rt.Config.DefaultContactLimit = 127
-	_, _, err = models.CreateContact(ctx, rt.DB, oa, testdb.Admin.ID, "Yan", i18n.NilLanguage, models.ContactStatusActive, []urns.URN{"telegram:100007"})
+	_, _, err = models.CreateContact(ctx, rt.DB, oa, testdb.Admin.ID, models.ContactSourceUser, "Yan", i18n.NilLanguage, models.ContactStatusActive, []urns.URN{"telegram:100007"})
 	assert.ErrorAs(t, err, &lerr)
 	assert.Equal(t, 127, lerr.Max)
 
@@ -822,7 +824,7 @@ func TestContactLimit(t *testing.T) {
 	oa, err = models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 	require.NoError(t, err)
 
-	_, _, err = models.CreateContact(ctx, rt.DB, oa, testdb.Admin.ID, "Yan", i18n.NilLanguage, models.ContactStatusActive, []urns.URN{"telegram:100007"})
+	_, _, err = models.CreateContact(ctx, rt.DB, oa, testdb.Admin.ID, models.ContactSourceUser, "Yan", i18n.NilLanguage, models.ContactStatusActive, []urns.URN{"telegram:100007"})
 	assert.NoError(t, err)
 
 	// a default of zero means no limit
@@ -833,6 +835,71 @@ func TestContactLimit(t *testing.T) {
 	oa, err = models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 	require.NoError(t, err)
 
-	_, _, err = models.CreateContact(ctx, rt.DB, oa, testdb.Admin.ID, "Xu", i18n.NilLanguage, models.ContactStatusActive, []urns.URN{"telegram:100008"})
+	_, _, err = models.CreateContact(ctx, rt.DB, oa, testdb.Admin.ID, models.ContactSourceUser, "Xu", i18n.NilLanguage, models.ContactStatusActive, []urns.URN{"telegram:100008"})
 	assert.NoError(t, err)
+}
+
+func TestContactTallies(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+	vc := rt.VK.Get()
+	defer vc.Close()
+
+	// tallies are by the UTC day contacts are created on
+	dates.SetNowFunc(dates.NewFixedNow(time.Date(2026, 11, 3, 23, 30, 0, 0, time.FixedZone("", -2*3600))))
+	defer dates.SetNowFunc(time.Now)
+
+	assert.Equal(t, map[string]int64{"O1|contacts/new:inbound@2026-11-04": 3}, models.ContactTallies(testdb.Org1.ID, models.ContactSourceInbound, 3, dates.Now()))
+
+	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
+	require.NoError(t, err)
+
+	_, _, err = models.CreateContact(ctx, rt.DB, oa, testdb.Admin.ID, models.ContactSourceUser, "Zed", i18n.NilLanguage, models.ContactStatusActive, []urns.URN{"telegram:100001"})
+	require.NoError(t, err)
+
+	// a contact which couldn't be created isn't counted
+	_, _, err = models.CreateContact(ctx, rt.DB, oa, testdb.Admin.ID, models.ContactSourceUser, "Yan", i18n.NilLanguage, models.ContactStatusActive, []urns.URN{"telegram:100001"})
+	require.Error(t, err)
+
+	// and neither is a contact which already existed
+	for _, urn := range []urns.URN{"telegram:100001", testdb.Ann.URN} {
+		_, _, created, err := models.GetOrCreateContact(ctx, rt.DB, oa, testdb.Admin.ID, models.ContactSourceInbound, []urns.URN{urn}, models.NilChannelID)
+		require.NoError(t, err)
+		assert.False(t, created)
+	}
+
+	assertvk.HGetAll(t, vc, "{tallies}:live", map[string]string{"O1|contacts/new:user@2026-11-04": "1"})
+
+	for _, urn := range []urns.URN{"telegram:100002", "telegram:100003"} {
+		_, _, created, err := models.GetOrCreateContact(ctx, rt.DB, oa, testdb.Admin.ID, models.ContactSourceInbound, []urns.URN{urn}, testdb.TwilioChannel.ID)
+		require.NoError(t, err)
+		assert.True(t, created)
+	}
+
+	_, _, created, err := models.GetOrCreateContact(ctx, rt.DB, oa, testdb.Admin.ID, models.ContactSourceImport, []urns.URN{"telegram:100004"}, models.NilChannelID)
+	require.NoError(t, err)
+	assert.True(t, created)
+
+	// only the URNs which don't have a contact are counted
+	fetchedByURN, createdByURN, err := models.GetOrCreateContactsFromURNs(ctx, rt.DB, oa, testdb.Admin.ID, models.ContactSourceOther, []urns.URN{testdb.Bob.URN, "telegram:100004", "telegram:100005"})
+	require.NoError(t, err)
+	assert.Len(t, fetchedByURN, 2)
+	assert.Len(t, createdByURN, 1)
+
+	// contacts created elsewhere can be counted explicitly
+	models.IncrementContactTallies(ctx, rt, testdb.Org2.ID, models.ContactSourceInbound, 1, dates.Now())
+
+	assertvk.HGetAll(t, vc, "{tallies}:live", map[string]string{
+		"O1|contacts/new:user@2026-11-04":    "1",
+		"O1|contacts/new:inbound@2026-11-04": "2",
+		"O1|contacts/new:import@2026-11-04":  "1",
+		"O1|contacts/new:other@2026-11-04":   "1",
+		"O2|contacts/new:inbound@2026-11-04": "1",
+	})
+
+	// they're kept forever
+	_, err = rt.Tallies.Flush(ctx, vc, models.NewTallyStore(rt.DB, rt.Tallies.KeyBase()), 10)
+	require.NoError(t, err)
+
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM orgs_orgtally WHERE scope LIKE 'contacts/new:%' AND expires_on IS NULL`).Returns(5)
+	assertdb.Query(t, rt.DB, `SELECT count FROM orgs_orgtally WHERE org_id = 1 AND scope = 'contacts/new:inbound@2026-11-04'`).Returns(2)
 }

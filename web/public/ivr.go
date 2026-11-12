@@ -104,7 +104,7 @@ func handleIncoming(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 	}
 
 	// get the contact for this URN
-	mc, _, _, err := models.GetOrCreateContact(ctx, rt.DB, oa, userID, []urns.URN{urn}, ch.ID())
+	mc, _, _, err := models.GetOrCreateContact(ctx, rt.DB, oa, userID, models.ContactSourceInbound, []urns.URN{urn}, ch.ID())
 	if err != nil {
 		return nil, svc.WriteErrorResponse(w, fmt.Errorf("unable to get contact by urn: %w", err))
 	}

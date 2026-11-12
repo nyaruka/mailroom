@@ -226,8 +226,9 @@ func TestRelayerSyncCommands(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM channels_channelevent WHERE event_type = 'mo_miss' AND channel_id = $1`, testdb.AndroidChannel.ID).Returns(1)
 
 	assertvk.HGetAll(t, vc, "{tallies}:live", map[string]string{
-		"C10003|text:in@2026-11-04":  "1",
-		"O1|msgs/text:in@2026-11-04": "1",
+		"C10003|text:in@2026-11-04":          "1",
+		"O1|msgs/text:in@2026-11-04":         "1",
+		"O1|contacts/new:inbound@2026-11-04": "1", // the message and the missed call are from the same new contact
 	})
 
 	// sent then delivered for the same message folds into one update keeping the sent timestamp
