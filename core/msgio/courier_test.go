@@ -354,6 +354,8 @@ func TestPushCourierBatch(t *testing.T) {
 	vc := rt.VK.Get()
 	defer vc.Close()
 
+	rt.DB.MustExec(`UPDATE channels_channel SET tps = 25 WHERE id = $1`, testdb.TwilioChannel.ID)
+
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshChannels)
 	require.NoError(t, err)
 
@@ -368,7 +370,7 @@ func TestPushCourierBatch(t *testing.T) {
 
 	// check that channel is ready and has its TPS set
 	assertvk.ZGetAll(t, vc, "{msgs}:ready", map[string]float64{"74729f45-7f29-4868-9dc4-90e491e3c7d8": 0})
-	assertvk.HGetAll(t, vc, "{msgs}:ch:74729f45-7f29-4868-9dc4-90e491e3c7d8", map[string]string{"tps": "10"})
+	assertvk.HGetAll(t, vc, "{msgs}:ch:74729f45-7f29-4868-9dc4-90e491e3c7d8", map[string]string{"tps": "25"})
 
 	// and that msgs were added as single batch to bulk priority (0) queue
 	queued, err := valkey.ByteSlices(vc.Do("ZRANGE", "{msgs}:q:74729f45-7f29-4868-9dc4-90e491e3c7d8/0", 0, -1))
@@ -409,7 +411,7 @@ func TestPushCourierBatch(t *testing.T) {
 	require.NoError(t, err)
 
 	assertvk.ZGetAll(t, vc, "{msgs}:ready", map[string]float64{})
-	assertvk.ZGetAll(t, vc, "{msgs}:waiting", map[string]float64{"74729f45-7f29-4868-9dc4-90e491e3c7d8": float64(nowSec+5) + 1.0/10 - 1})
+	assertvk.ZGetAll(t, vc, "{msgs}:waiting", map[string]float64{"74729f45-7f29-4868-9dc4-90e491e3c7d8": float64(nowSec+5) + 1.0/25 - 1})
 
 	// but msgs were still added to queue
 	assertvk.ZCard(t, vc, "{msgs}:q:74729f45-7f29-4868-9dc4-90e491e3c7d8/0", 3)
