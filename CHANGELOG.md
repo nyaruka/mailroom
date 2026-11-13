@@ -1,3 +1,6 @@
+## v26.3.144 (2026-11-13)
+ * Tally calls by org, channel and direction
+
 ## v26.3.143 (2026-11-12)
  * Load channel TPS as stored instead of defaulting NULL to 10
  * Set tps when inserting test channels and regenerate test dump for non-null channel tps
