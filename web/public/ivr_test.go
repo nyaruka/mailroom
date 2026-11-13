@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 
 	valkey "github.com/gomodule/redigo/redis"
 	"github.com/nyaruka/gocommon/aws/dynamo"
@@ -123,7 +124,8 @@ func TestTwilioIVR(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE contact_id = $1 AND msg_type = 'V' 
 		AND ((status = 'H' AND direction = 'I') OR (status = 'W' AND direction = 'O'))`, testdb.Bob.ID).Returns(2)
 
-	// voice messages in both directions are tallied, as are the flow segments taken and the incoming messages for the flow
+	// calls and voice messages in both directions are tallied, as are the flow segments taken and the incoming messages
+	// for the flow
 	tallies, err := valkey.StringMap(vc.Do("HGETALL", "{tallies}:live"))
 	require.NoError(t, err)
 	segments := maps.Clone(tallies)
@@ -131,9 +133,14 @@ func TestTwilioIVR(t *testing.T) {
 	assert.NotEmpty(t, segments)
 	assert.Equal(t, "5", tallies[fmt.Sprintf("F%d|msgsin:date:2025-05-04", testdb.IVRFlow.ID)])
 	maps.DeleteFunc(tallies, func(f, _ string) bool { return strings.HasPrefix(f, "F") })
+	today := time.Now().UTC().Format(time.DateOnly) // calls are created by the database's clock
 	assert.Equal(t, map[string]string{
+		"C10000|calls:in@" + today:     "2",
+		"C10000|calls:out@" + today:    "3",
 		"C10000|voice:in@2025-05-04":   "5",
 		"C10000|voice:out@2025-05-04":  "11",
+		"O1|calls/in@" + today:         "2",
+		"O1|calls/out@" + today:        "3",
 		"O1|msgs/voice:in@2025-05-04":  "5",
 		"O1|msgs/voice:out@2025-05-04": "11",
 	}, tallies)

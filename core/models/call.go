@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql/driver"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/nyaruka/gocommon/dates"
@@ -12,6 +13,7 @@ import (
 	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/goflow/flows/triggers"
+	"github.com/nyaruka/mailroom/v26/runtime"
 	"github.com/nyaruka/null/v3"
 	"github.com/vinovest/sqlx"
 )
@@ -143,6 +145,33 @@ func InsertCalls(ctx context.Context, db DBorTx, calls []*Call) error {
 	}
 
 	return BulkQueryBatches(ctx, "inserted IVR calls", db, sqlInsertCall, 1000, is)
+}
+
+// CallTallies gets the tally amounts by field which count the given calls by their org, channel, direction and the UTC
+// day they were created on
+func CallTallies(calls []*Call) map[string]int64 {
+	amounts := make(map[string]int64)
+	for _, c := range calls {
+		dir := "out"
+		if c.Direction() == DirectionIn {
+			dir = "in"
+		}
+
+		amounts[ChannelTallyField(c.ChannelID(), "calls:"+dir, c.c.CreatedOn)]++
+		amounts[TallyField(c.OrgID(), TallyCalls+"/"+dir, c.c.CreatedOn)]++
+	}
+	return amounts
+}
+
+// IncrementCallTallies increments the tallies which count the given inserted calls, logging rather than failing on
+// errors since the calls have already been written
+func IncrementCallTallies(ctx context.Context, rt *runtime.Runtime, calls []*Call) {
+	vc := rt.VK.Get()
+	defer vc.Close()
+
+	if err := rt.Tallies.Increment(ctx, vc, CallTallies(calls)); err != nil {
+		slog.Error("error incrementing call tallies", "error", err)
+	}
 }
 
 const sqlSelectCallByUUID = `
