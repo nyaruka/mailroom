@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/goflow/flows/triggers"
 	"github.com/nyaruka/mailroom/v26/core/models"
@@ -69,6 +70,10 @@ func TestCallTallies(t *testing.T) {
 	defer vc.Close()
 
 	defer rt.DB.MustExec(`DELETE FROM ivr_call`)
+	defer dates.SetNowFunc(time.Now)
+
+	// tallies are by the UTC day the call was created on
+	dates.SetNowFunc(dates.NewFixedNow(time.Date(2026, 11, 3, 23, 30, 0, 0, time.FixedZone("", -2*3600))))
 
 	oa := testdb.Org1.Load(t, rt)
 	ann, _, annURNs := testdb.Ann.Load(t, rt, oa)
@@ -82,16 +87,15 @@ func TestCallTallies(t *testing.T) {
 	}
 	require.NoError(t, models.InsertCalls(ctx, rt.DB, calls))
 
-	models.IncrementCallTallies(ctx, rt, calls)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM ivr_call WHERE created_on = '2026-11-04T01:30:00Z'`).Returns(3)
 
-	// tallies are by the UTC day the call was created on
-	day := time.Now().UTC().Format(time.DateOnly)
+	models.IncrementCallTallies(ctx, rt, testdb.Org1.ID, calls)
 
 	assertvk.HGetAll(t, vc, "{tallies}:live", map[string]string{
-		fmt.Sprintf("C%d|calls:in@%s", testdb.TwilioChannel.ID, day):  "1",
-		fmt.Sprintf("C%d|calls:out@%s", testdb.TwilioChannel.ID, day): "1",
-		fmt.Sprintf("C%d|calls:in@%s", testdb.VonageChannel.ID, day):  "1",
-		"O1|calls/in@" + day:  "2",
-		"O1|calls/out@" + day: "1",
+		fmt.Sprintf("C%d|calls:in@2026-11-04", testdb.TwilioChannel.ID):  "1",
+		fmt.Sprintf("C%d|calls:out@2026-11-04", testdb.TwilioChannel.ID): "1",
+		fmt.Sprintf("C%d|calls:in@2026-11-04", testdb.VonageChannel.ID):  "1",
+		"O1|calls/in@2026-11-04":  "2",
+		"O1|calls/out@2026-11-04": "1",
 	})
 }

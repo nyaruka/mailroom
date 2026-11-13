@@ -893,7 +893,7 @@
         "expected_history": [
             {
                 "PK": "con#df192ea9-2399-451f-8f4e-e2955c74585e",
-                "SK": "evt#01969b4b-7253-76f8-bf5f-e2c414a53431",
+                "SK": "evt#01969b4b-763b-76f8-bf5f-e2c414a53431",
                 "OrgID": 1,
                 "Data": {
                     "call": {
@@ -904,7 +904,7 @@
                         "urn": "tel:+12485550100",
                         "uuid": "01969b4b-6e6b-76f8-a4d8-bab6c01e389e"
                     },
-                    "created_on": "2025-05-04T12:35:36.123456789Z",
+                    "created_on": "2025-05-04T12:35:37.123456789Z",
                     "type": "call_received"
                 }
             }

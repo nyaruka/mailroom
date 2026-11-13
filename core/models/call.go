@@ -114,6 +114,7 @@ func NewIncomingCall(orgID OrgID, ch *Channel, contact *Contact, urnID URNID, ex
 	c.Direction = DirectionIn
 	c.Status = CallStatusInProgress
 	c.ExternalID = externalID
+	c.CreatedOn = dates.Now()
 	return call
 }
 
@@ -129,13 +130,14 @@ func NewOutgoingCall(orgID OrgID, ch *Channel, contact *Contact, urnID URNID, tr
 	c.Direction = DirectionOut
 	c.Status = CallStatusPending
 	c.Trigger = null.JSON(jsonx.MustMarshal(trigger))
+	c.CreatedOn = dates.Now()
 	return call
 }
 
 const sqlInsertCall = `
 INSERT INTO ivr_call( uuid,  org_id,  channel_id,  contact_id,  contact_urn_id, created_on, modified_on,  external_id,  status,  direction,  trigger, duration, error_count)
-              VALUES(:uuid, :org_id, :channel_id, :contact_id, :contact_urn_id, NOW(),      NOW(),       :external_id, :status, :direction, :trigger, 0,        0)
-  RETURNING id, created_on, modified_on;`
+              VALUES(:uuid, :org_id, :channel_id, :contact_id, :contact_urn_id, :created_on, NOW(),       :external_id, :status, :direction, :trigger, 0,        0)
+  RETURNING id, modified_on;`
 
 // InsertCalls creates a new IVR call for the passed in org, channel and contact, inserting it
 func InsertCalls(ctx context.Context, db DBorTx, calls []*Call) error {
@@ -163,14 +165,17 @@ func CallTallies(calls []*Call) map[string]int64 {
 	return amounts
 }
 
-// IncrementCallTallies increments the tallies which count the given inserted calls, logging rather than failing on
-// errors since the calls have already been written
-func IncrementCallTallies(ctx context.Context, rt *runtime.Runtime, calls []*Call) {
+// IncrementCallTallies increments the tallies which count the given inserted calls of an org, logging rather than
+// failing on errors since the calls have already been written
+func IncrementCallTallies(ctx context.Context, rt *runtime.Runtime, orgID OrgID, calls []*Call) {
 	vc := rt.VK.Get()
 	defer vc.Close()
 
+	// the calls exist whatever has since happened to the request or task which created them
+	ctx = context.WithoutCancel(ctx)
+
 	if err := rt.Tallies.Increment(ctx, vc, CallTallies(calls)); err != nil {
-		slog.Error("error incrementing call tallies", "error", err)
+		slog.Error("error incrementing call tallies", "error", err, "org_id", orgID)
 	}
 }
 

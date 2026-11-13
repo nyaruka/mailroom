@@ -140,7 +140,7 @@ func RequestCall(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 		return nil, fmt.Errorf("error creating outgoing call: %w", err)
 	}
 
-	models.IncrementCallTallies(ctx, rt, []*models.Call{call})
+	models.IncrementCallTallies(ctx, rt, oa.OrgID(), []*models.Call{call})
 
 	clog, err := RequestCallStart(ctx, rt, channel, telURN.Identity, call)
 
