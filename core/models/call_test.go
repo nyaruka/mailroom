@@ -1,14 +1,19 @@
 package models_test
 
 import (
+	"fmt"
 	"testing"
+	"time"
 
+	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/goflow/flows/triggers"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/testsuite"
 	"github.com/nyaruka/mailroom/v26/testsuite/testdb"
+	"github.com/nyaruka/vkutil/assertvk"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestCalls(t *testing.T) {
@@ -56,4 +61,41 @@ func TestCalls(t *testing.T) {
 	call, err = models.GetCallByExternalID(ctx, rt.DB, testdb.TwilioChannel.ID, "EXT345")
 	assert.NoError(t, err)
 	assert.Equal(t, "EXT345", call.ExternalID())
+}
+
+func TestCallTallies(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	vc := rt.VK.Get()
+	defer vc.Close()
+
+	defer rt.DB.MustExec(`DELETE FROM ivr_call`)
+	defer dates.SetNowFunc(time.Now)
+
+	// tallies are by the UTC day the call was created on
+	dates.SetNowFunc(dates.NewFixedNow(time.Date(2026, 11, 3, 23, 30, 0, 0, time.FixedZone("", -2*3600))))
+
+	oa := testdb.Org1.Load(t, rt)
+	ann, _, annURNs := testdb.Ann.Load(t, rt, oa)
+	twilio, vonage := oa.ChannelByUUID(testdb.TwilioChannel.UUID), oa.ChannelByUUID(testdb.VonageChannel.UUID)
+	trigger := triggers.NewBuilder(testdb.Favorites.Reference()).Manual().Build()
+
+	calls := []*models.Call{
+		models.NewIncomingCall(testdb.Org1.ID, twilio, ann, annURNs[0].ID, "EXT1"),
+		models.NewIncomingCall(testdb.Org1.ID, vonage, ann, annURNs[0].ID, "EXT2"),
+		models.NewOutgoingCall(testdb.Org1.ID, twilio, ann, annURNs[0].ID, trigger),
+	}
+	require.NoError(t, models.InsertCalls(ctx, rt.DB, calls))
+
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM ivr_call WHERE created_on = '2026-11-04T01:30:00Z'`).Returns(3)
+
+	models.IncrementCallTallies(ctx, rt, testdb.Org1.ID, calls)
+
+	assertvk.HGetAll(t, vc, "{tallies}:live", map[string]string{
+		fmt.Sprintf("C%d|calls:in@2026-11-04", testdb.TwilioChannel.ID):  "1",
+		fmt.Sprintf("C%d|calls:out@2026-11-04", testdb.TwilioChannel.ID): "1",
+		fmt.Sprintf("C%d|calls:in@2026-11-04", testdb.VonageChannel.ID):  "1",
+		"O1|calls/in@2026-11-04":  "2",
+		"O1|calls/out@2026-11-04": "1",
+	})
 }

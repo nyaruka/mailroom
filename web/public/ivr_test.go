@@ -9,9 +9,11 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 
 	valkey "github.com/gomodule/redigo/redis"
 	"github.com/nyaruka/gocommon/aws/dynamo"
+	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/gocommon/httpx"
 	"github.com/nyaruka/gocommon/jsonx"
@@ -94,6 +96,10 @@ func TestTwilioIVR(t *testing.T) {
 		WithContactIDs([]models.ContactID{testdb.Ann.ID, testdb.Bob.ID, testdb.Cat.ID}).
 		WithParentSummary(parentSummary)
 
+	// on the day the web tests run on, so that the calls are tallied on it too
+	dates.SetNowFunc(dates.NewFixedNow(time.Date(2025, 5, 4, 12, 0, 0, 0, time.UTC)))
+	defer dates.SetNowFunc(time.Now)
+
 	err := tasks.Queue(ctx, rt, rt.Queues.Batch, testdb.Org1.ID, &tasks.StartFlow{FlowStart: start}, false)
 	require.NoError(t, err)
 
@@ -123,7 +129,8 @@ func TestTwilioIVR(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE contact_id = $1 AND msg_type = 'V' 
 		AND ((status = 'H' AND direction = 'I') OR (status = 'W' AND direction = 'O'))`, testdb.Bob.ID).Returns(2)
 
-	// voice messages in both directions are tallied, as are the flow segments taken and the incoming messages for the flow
+	// calls and voice messages in both directions are tallied, as are the flow segments taken and the incoming messages
+	// for the flow
 	tallies, err := valkey.StringMap(vc.Do("HGETALL", "{tallies}:live"))
 	require.NoError(t, err)
 	segments := maps.Clone(tallies)
@@ -132,8 +139,12 @@ func TestTwilioIVR(t *testing.T) {
 	assert.Equal(t, "5", tallies[fmt.Sprintf("F%d|msgsin:date:2025-05-04", testdb.IVRFlow.ID)])
 	maps.DeleteFunc(tallies, func(f, _ string) bool { return strings.HasPrefix(f, "F") })
 	assert.Equal(t, map[string]string{
+		"C10000|calls:in@2025-05-04":   "2",
+		"C10000|calls:out@2025-05-04":  "3",
 		"C10000|voice:in@2025-05-04":   "5",
 		"C10000|voice:out@2025-05-04":  "11",
+		"O1|calls/in@2025-05-04":       "2",
+		"O1|calls/out@2025-05-04":      "3",
 		"O1|msgs/voice:in@2025-05-04":  "5",
 		"O1|msgs/voice:out@2025-05-04": "11",
 	}, tallies)

@@ -27,6 +27,10 @@ const (
 	// which failed for having no destination, e.g. msgs/text:nodest@2026-11-03
 	TallyMsgs = "msgs"
 
+	// TallyCalls prefixes the daily counts of calls with a channel, by direction, e.g. calls/out@2026-11-03. Each call
+	// is counted once when it's created, whether or not it's answered, and retrying it doesn't count it again.
+	TallyCalls = "calls"
+
 	// TallyContactsNew prefixes the daily counts of contacts created, by how they came to exist, e.g.
 	// contacts/new:inbound@2026-11-03. Deleting a contact doesn't reduce them.
 	TallyContactsNew = "contacts/new"

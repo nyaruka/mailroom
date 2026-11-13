@@ -120,6 +120,8 @@ func handleIncoming(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 		return nil, svc.WriteErrorResponse(w, fmt.Errorf("error inserting incoming call: %w", err))
 	}
 
+	models.IncrementCallTallies(ctx, rt, oa.OrgID(), []*models.Call{call})
+
 	// create an incoming call "task" and handle it to see if we have a trigger
 	task := &ctasks.EventReceived{
 		EventType: models.EventTypeIncomingCall,
