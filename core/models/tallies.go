@@ -94,6 +94,13 @@ func FlowSegmentTallyScope(exitUUID flows.ExitUUID, destUUID core.NodeUUID) stri
 	return "segment:" + base64.RawURLEncoding.EncodeToString(append(exit[:], dest[:]...))
 }
 
+// FlowNodeTallyScope returns the scope of the tally which counts the active and waiting runs currently at the given
+// node, which is the raw bytes of its UUID encoded as unpadded base64url, like segment scopes
+func FlowNodeTallyScope(nodeUUID core.NodeUUID) string {
+	node := uuid.MustParse(string(nodeUUID))
+	return "node:" + base64.RawURLEncoding.EncodeToString(node[:])
+}
+
 // FlowMsgsInTallies gets the tally amounts which count an incoming message handled by the given flow at the given time,
 // by its UTC hour of day and its UTC day
 func FlowMsgsInTallies(flowID FlowID, t time.Time) map[string]int64 {

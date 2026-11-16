@@ -218,7 +218,8 @@ UPDATE flows_flowsession
 const sqlInterruptSessionRuns = `
 UPDATE flows_flowrun
    SET exited_on = NOW(), status = $2, modified_on = NOW()
- WHERE session_uuid = ANY($1) AND status IN ('A', 'W')`
+ WHERE session_uuid = ANY($1) AND status IN ('A', 'W')
+RETURNING contact_id, flow_id, current_node_uuid`
 
 const sqlInterruptSessionContacts = `
 UPDATE contacts_contact 
@@ -226,8 +227,9 @@ UPDATE contacts_contact
  WHERE id = ANY($1) AND current_session_uuid = ANY($2)`
 
 // InterruptContacts interrupts the waiting sessions for the given contacts. It's on the caller to only call this for
-// contacts that have waiting sessions and to ensure they are batched appropriately.
-func InterruptContacts(ctx context.Context, tx *sqlx.Tx, contacts []*Contact, status flows.SessionStatus) error {
+// contacts that have waiting sessions and to ensure they are batched appropriately. Returns by contact the tally amounts
+// which remove the exited runs from the nodes they were at, to be incremented once the transaction is committed.
+func InterruptContacts(ctx context.Context, tx *sqlx.Tx, contacts []*Contact, status flows.SessionStatus) (map[ContactID]map[string]int64, error) {
 	dbStatus := sessionStatusMap[status]
 	runStatus := RunStatus(dbStatus) // session status codes are subset of run status codes
 
@@ -243,25 +245,53 @@ func InterruptContacts(ctx context.Context, tx *sqlx.Tx, contacts []*Contact, st
 
 	// first update the sessions themselves
 	if _, err := tx.ExecContext(ctx, sqlInterruptSessions, pq.Array(sessionUUIDs), dbStatus); err != nil {
-		return fmt.Errorf("error exiting sessions: %w", err)
+		return nil, fmt.Errorf("error exiting sessions: %w", err)
 	}
 
 	// then the runs that belong to these sessions
-	if _, err := tx.ExecContext(ctx, sqlInterruptSessionRuns, pq.Array(sessionUUIDs), runStatus); err != nil {
-		return fmt.Errorf("error exiting session runs: %w", err)
+	nodeTallies, err := exitSessionRuns(ctx, tx, sessionUUIDs, runStatus)
+	if err != nil {
+		return nil, fmt.Errorf("error exiting session runs: %w", err)
 	}
 
 	// then the contacts from each session
 	if _, err := tx.ExecContext(ctx, sqlInterruptSessionContacts, pq.Array(contactIDs), pq.Array(sessionUUIDs)); err != nil {
-		return fmt.Errorf("error updating interrupted contacts: %w", err)
+		return nil, fmt.Errorf("error updating interrupted contacts: %w", err)
 	}
 
 	// finally any session related fires for these contacts
 	if _, err := DeleteSessionFires(ctx, tx, contactIDs, true); err != nil {
-		return fmt.Errorf("error deleting session contact fires: %w", err)
+		return nil, fmt.Errorf("error deleting session contact fires: %w", err)
 	}
 
-	return nil
+	return nodeTallies, nil
+}
+
+// exitSessionRuns exits the active and waiting runs of the given sessions, returning by contact the tally amounts which
+// remove them from the nodes they were at
+func exitSessionRuns(ctx context.Context, tx *sqlx.Tx, sessionUUIDs []core.SessionUUID, status RunStatus) (map[ContactID]map[string]int64, error) {
+	rows, err := tx.QueryContext(ctx, sqlInterruptSessionRuns, pq.Array(sessionUUIDs), status)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	amounts := make(map[ContactID]map[string]int64)
+	for rows.Next() {
+		var contactID ContactID
+		var flowID FlowID
+		var nodeUUID null.String
+		if err := rows.Scan(&contactID, &flowID, &nodeUUID); err != nil {
+			return nil, err
+		}
+		if nodeUUID != "" {
+			if amounts[contactID] == nil {
+				amounts[contactID] = make(map[string]int64)
+			}
+			amounts[contactID][FlowTallyField(flowID, FlowNodeTallyScope(core.NodeUUID(nodeUUID)))]--
+		}
+	}
+	return amounts, rows.Err()
 }
 
 // SessionRef is a reference to a specific session for a contact. Since it's used for some task payloads, we use short

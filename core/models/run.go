@@ -91,11 +91,46 @@ func NewRun(oa *OrgAssets, fs flows.Session, fr flows.Run) *FlowRun {
 		Responded:   fr.HadInput(),
 	}
 
-	if len(pathNodes) > 0 && (fr.Status() == core.RunStatusActive || fr.Status() == core.RunStatusWaiting) {
-		r.CurrentNodeUUID = null.String(pathNodes[len(pathNodes)-1])
+	if node := RunCurrentNode(fr); node != "" {
+		r.CurrentNodeUUID = null.String(node)
 	}
 
 	return r
+}
+
+// RunCurrentNode returns the node which the given run is at, if it's active or waiting
+func RunCurrentNode(fr flows.Run) core.NodeUUID {
+	path := fr.Path()
+	if len(path) > 0 && (fr.Status() == core.RunStatusActive || fr.Status() == core.RunStatusWaiting) {
+		return path[len(path)-1].NodeUUID()
+	}
+	return ""
+}
+
+// FlowNodeTallies gets the tally amounts which move each of the given runs from the node it was at before a sprint, if
+// any, to the node it's at now, if any
+func FlowNodeTallies(runs []flows.Run, priorNodes map[core.RunUUID]core.NodeUUID) map[string]int64 {
+	amounts := make(map[string]int64)
+	for _, fr := range runs {
+		if fr.Flow() == nil {
+			continue // flow has since been deleted along with its tallies
+		}
+		flowID := fr.Flow().Asset().(*Flow).ID()
+
+		if prior := priorNodes[fr.UUID()]; prior != "" {
+			amounts[FlowTallyField(flowID, FlowNodeTallyScope(prior))]--
+		}
+		if node := RunCurrentNode(fr); node != "" {
+			amounts[FlowTallyField(flowID, FlowNodeTallyScope(node))]++
+		}
+	}
+
+	for field, amount := range amounts {
+		if amount == 0 {
+			delete(amounts, field)
+		}
+	}
+	return amounts
 }
 
 const sqlInsertRun = `

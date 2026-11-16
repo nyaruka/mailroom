@@ -43,6 +43,7 @@ type Scene struct {
 	Sprint              flows.Sprint
 	WaitTimeout         time.Duration
 	PriorRunModifiedOns map[core.RunUUID]time.Time
+	PriorRunNodes       map[core.RunUUID]core.NodeUUID
 	OutgoingMsgs        []*models.MsgOut
 
 	preCommits    map[PreCommitHook][]any
@@ -249,8 +250,12 @@ func (s *Scene) ResumeSession(ctx context.Context, rt *runtime.Runtime, oa *mode
 	// record run modified times prior to resuming so we can figure out which runs are new or updated
 	s.DBSession = session
 	s.PriorRunModifiedOns = make(map[core.RunUUID]time.Time, len(fs.Runs()))
+	s.PriorRunNodes = make(map[core.RunUUID]core.NodeUUID, len(fs.Runs()))
 	for _, r := range fs.Runs() {
 		s.PriorRunModifiedOns[r.UUID()] = r.ModifiedOn()
+		if node := models.RunCurrentNode(r); node != "" {
+			s.PriorRunNodes[r.UUID()] = node
+		}
 	}
 
 	sprint, err := fs.Resume(ctx, resume)
