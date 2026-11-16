@@ -15,13 +15,13 @@ import (
 // InterruptContacts is our hook for interrupting contacts
 var InterruptContacts runner.PreCommitHook = &interruptContacts{}
 
-// ContactInterruption is the item for the InterruptContacts hook. NodeTallies is filled with the tally amounts which
-// remove the contact's exited runs from their nodes, and should also be attached to IncrementTallies so that they're
-// only incremented if the scene commits. It's refilled rather than added to, as a failed bulk commit re-runs this hook
+// ContactInterruption is the item for the InterruptContacts hook. Tallies is filled with the tally amounts which remove
+// the contact's exited runs from their nodes and move them to their new status, and should also be attached to
+// IncrementTallies so that they're only incremented if the scene commits. It's refilled rather than added to, as a failed bulk commit re-runs this hook
 // for each scene.
 type ContactInterruption struct {
-	Status      flows.SessionStatus
-	NodeTallies map[string]int64
+	Status  flows.SessionStatus
+	Tallies map[string]int64
 }
 
 type interruptContacts struct{}
@@ -40,15 +40,15 @@ func (h *interruptContacts) Execute(ctx context.Context, rt *runtime.Runtime, tx
 	}
 
 	for status, contacts := range byStatus {
-		nodeTallies, err := models.InterruptContacts(ctx, tx, contacts, status)
+		tallies, err := models.InterruptContacts(ctx, tx, contacts, status)
 		if err != nil {
 			return fmt.Errorf("error interrupting contacts: %w", err)
 		}
 
 		for _, c := range contacts {
 			i := byContact[c.ID()]
-			clear(i.NodeTallies)
-			maps.Copy(i.NodeTallies, nodeTallies[c.ID()])
+			clear(i.Tallies)
+			maps.Copy(i.Tallies, tallies[c.ID()])
 		}
 	}
 

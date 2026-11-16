@@ -101,6 +101,12 @@ func FlowNodeTallyScope(nodeUUID core.NodeUUID) string {
 	return "node:" + base64.RawURLEncoding.EncodeToString(node[:])
 }
 
+// FlowStatusTallyScope returns the scope of the tally which counts the runs with the given status. Exited runs are
+// never removed from it, even when they're deleted.
+func FlowStatusTallyScope(status RunStatus) string {
+	return "status:" + string(status)
+}
+
 // FlowMsgsInTallies gets the tally amounts which count an incoming message handled by the given flow at the given time,
 // by its UTC hour of day and its UTC day
 func FlowMsgsInTallies(flowID FlowID, t time.Time) map[string]int64 {
