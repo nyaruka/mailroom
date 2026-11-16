@@ -321,7 +321,9 @@ func (s *Scene) Commit(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 
 // CreateScenes creates scenes for the given contact ids
 func CreateScenes(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contactIDs []models.ContactID, extraTickets map[models.ContactID][]*models.Ticket) ([]*Scene, error) {
-	mcs, err := models.LoadContacts(ctx, rt.ReadonlyDB, oa, contactIDs)
+	// contacts are loaded from the primary database because they've just been locked, and a replica may not yet
+	// reflect the changes of the previous lock holder, e.g. a session it started that we'd then fail to interrupt
+	mcs, err := models.LoadContacts(ctx, rt.DB, oa, contactIDs)
 	if err != nil {
 		return nil, fmt.Errorf("error loading contacts for new scenes: %w", err)
 	}
