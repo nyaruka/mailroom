@@ -1,3 +1,6 @@
+## v26.3.145 (2026-11-16)
+ * Tally the runs at each flow node
+
 ## v26.3.144 (2026-11-13)
  * Tally calls by org, channel and direction
 
