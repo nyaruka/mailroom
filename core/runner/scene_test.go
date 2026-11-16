@@ -487,7 +487,6 @@ func TestFlowStats(t *testing.T) {
 	assertdb.Query(t, rt.DB, "SELECT count(*) FROM flows_flowresultcount").Returns(0)
 
 	assertFlowActivityCounts(t, rt, flow.ID, map[string]any{
-		"node:072b95b3-61c3-4e0e-8dd1-eb7481083f94": 3,
 		"status:W": 3,
 	})
 	assertFlowNodeTallies(t, rt, flow.ID, map[core.NodeUUID]int{"072b95b3-61c3-4e0e-8dd1-eb7481083f94": 3})
@@ -510,7 +509,6 @@ func TestFlowStats(t *testing.T) {
 	testsuite.ResumeSession(t, rt, oa, testdb.Cat, "teal")
 
 	assertFlowActivityCounts(t, rt, flow.ID, map[string]any{
-		"node:072b95b3-61c3-4e0e-8dd1-eb7481083f94": 1,
 		"status:C": 2,
 		"status:W": 1,
 	})
@@ -529,7 +527,6 @@ func TestFlowStats(t *testing.T) {
 	testsuite.ResumeSession(t, rt, oa, testdb.Cat, "azure")
 
 	assertFlowActivityCounts(t, rt, flow.ID, map[string]any{
-		"node:072b95b3-61c3-4e0e-8dd1-eb7481083f94": 1,
 		"status:C": 2,
 		"status:W": 1,
 	})
@@ -574,7 +571,7 @@ func TestFlowStats(t *testing.T) {
 
 	assertFlowResultCounts(t, rt, flow.ID, map[string]int{"color/Blue": 3, "color/Other": 0})
 
-	assertFlowActivityCounts(t, rt, flow.ID, map[string]any{"node:072b95b3-61c3-4e0e-8dd1-eb7481083f94": 0, "status:C": 3, "status:W": 0})
+	assertFlowActivityCounts(t, rt, flow.ID, map[string]any{"status:C": 3, "status:W": 0})
 	assertFlowNodeTallies(t, rt, flow.ID, map[core.NodeUUID]int{})
 
 	// a new session puts Ann on a node, and interrupting her takes her off it again
@@ -584,7 +581,7 @@ func TestFlowStats(t *testing.T) {
 	_, _, err = runner.InterruptWithLock(ctx, rt, oa, []models.ContactID{testdb.Ann.ID}, nil, flows.SessionStatusInterrupted)
 	require.NoError(t, err)
 
-	assertFlowActivityCounts(t, rt, flow.ID, map[string]any{"node:072b95b3-61c3-4e0e-8dd1-eb7481083f94": 0, "status:C": 3, "status:I": 1, "status:W": 0})
+	assertFlowActivityCounts(t, rt, flow.ID, map[string]any{"status:C": 3, "status:I": 1, "status:W": 0})
 	assertFlowNodeTallies(t, rt, flow.ID, map[core.NodeUUID]int{})
 }
 

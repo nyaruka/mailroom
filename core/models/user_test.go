@@ -107,7 +107,7 @@ func TestLoadUsers(t *testing.T) {
 	// and being in an admin group overrides any explicit membership in that org
 	rt.DB.MustExec(`INSERT INTO orgs_org_admin_groups(org_id, group_id) VALUES($1, $2)`, testdb.Org1.ID, groupID)
 	rt.DB.MustExec(
-		`INSERT INTO orgs_orgmembership(org_id, user_id, role_code, can_assign, can_reply_non_own) VALUES($1, $2, 'T', TRUE, TRUE)`,
+		`INSERT INTO orgs_orgmembership(org_id, user_id, role_code, can_assign, can_reply_non_own, email_notifications) VALUES($1, $2, 'T', TRUE, TRUE, TRUE)`,
 		testdb.Org1.ID, globalAdminID,
 	)
 
