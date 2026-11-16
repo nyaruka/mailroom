@@ -8,6 +8,7 @@ import (
 	"maps"
 	"net/http"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -20,6 +21,7 @@ import (
 	"github.com/nyaruka/gocommon/svclogs"
 	"github.com/nyaruka/goflow/test"
 	"github.com/nyaruka/mailroom/v26/core/models"
+	"github.com/nyaruka/mailroom/v26/core/runner/clocks"
 	_ "github.com/nyaruka/mailroom/v26/core/runner/handlers"
 	"github.com/nyaruka/mailroom/v26/core/tasks"
 	"github.com/nyaruka/mailroom/v26/runtime"
@@ -27,6 +29,7 @@ import (
 	"github.com/nyaruka/mailroom/v26/services/ivr/vonage"
 	"github.com/nyaruka/mailroom/v26/testsuite"
 	"github.com/nyaruka/mailroom/v26/testsuite/testdb"
+	"github.com/nyaruka/mailroom/v26/web"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -155,6 +158,60 @@ func TestTwilioIVR(t *testing.T) {
 	for _, log := range logs {
 		assert.NotContains(t, string(jsonx.MustMarshal(log)), "sesame") // auth token redacted
 	}
+}
+
+func TestIVRCallbackLocksContact(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	mockTwilio := test.NewHTTPServer(50001, http.HandlerFunc(mockTwilioHandler))
+	defer mockTwilio.Close()
+
+	twiml.BaseURL = mockTwilio.URL
+	twiml.IgnoreSignatures = true
+
+	start := models.NewFlowStart(testdb.Org1.ID, models.StartTypeManual, testdb.IVRFlow.ID).WithContactIDs([]models.ContactID{testdb.Ann.ID})
+	require.NoError(t, tasks.Queue(ctx, rt, rt.Queues.Batch, testdb.Org1.ID, &tasks.StartFlow{FlowStart: start}, false))
+	testsuite.FlushTasks(t, rt)
+
+	var callUUID string
+	require.NoError(t, rt.DB.Get(&callUUID, `SELECT uuid FROM ivr_call WHERE contact_id = $1 AND status = 'W'`, testdb.Ann.ID))
+
+	server := web.NewServer(ctx, rt, &sync.WaitGroup{})
+	server.Start()
+	defer server.Stop()
+
+	// something else is handling Ann
+	oa := testdb.Org1.Load(t, rt)
+	locks, _, err := clocks.TryToLock(ctx, rt, oa, []models.ContactID{testdb.Ann.ID}, time.Second)
+	require.NoError(t, err)
+	require.Len(t, locks, 1)
+
+	// the provider requests the start of the call
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+
+		url := fmt.Sprintf("http://localhost:%d/mr/ivr/c/%s/handle?action=start&call=%s", rt.Config.InternetPort, testdb.TwilioChannel.UUID, callUUID)
+		req, _ := http.NewRequest(http.MethodPost, url, strings.NewReader(""))
+		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		resp, err := http.DefaultClient.Do(req)
+		if assert.NoError(t, err) {
+			assert.Equal(t, http.StatusOK, resp.StatusCode)
+			resp.Body.Close()
+		}
+	}()
+
+	// before releasing the lock, the other handler starts a messaging session
+	time.Sleep(500 * time.Millisecond)
+	msgSession := testdb.InsertWaitingSession(t, rt, testdb.Org1, testdb.Ann, models.FlowTypeMessaging, nil, testdb.Favorites)
+	require.NoError(t, clocks.Unlock(ctx, rt, oa, locks))
+
+	<-done
+
+	// which the voice session then interrupts, rather than leaving it waiting without being the contact's current session
+	assertdb.Query(t, rt.DB, `SELECT status FROM flows_flowsession WHERE uuid = $1`, msgSession).Returns("I")
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowrun WHERE session_uuid = $1 AND status = 'W'`, msgSession).Returns(0)
+	assertdb.Query(t, rt.DB, `SELECT s.session_type FROM contacts_contact c JOIN flows_flowsession s ON s.uuid = c.current_session_uuid WHERE c.id = $1`, testdb.Ann.ID).Returns("V")
 }
 
 func mockVonageHandler(w http.ResponseWriter, r *http.Request) {

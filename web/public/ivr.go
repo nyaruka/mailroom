@@ -16,10 +16,14 @@ import (
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/v26/core/ivr"
 	"github.com/nyaruka/mailroom/v26/core/models"
+	"github.com/nyaruka/mailroom/v26/core/runner/clocks"
 	"github.com/nyaruka/mailroom/v26/core/tasks/ctasks"
 	"github.com/nyaruka/mailroom/v26/runtime"
 	"github.com/nyaruka/mailroom/v26/web"
 )
+
+// how long an IVR request waits for the contact lock, short enough to leave time to respond before the provider gives up
+const contactLockWait = 5 * time.Second
 
 func init() {
 	web.InternetRoute(http.MethodPost, "/ivr/c/{uuid:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}}/handle", newIVRHandler(handleCallback, models.ChannelLogTypeIVRCallback))
@@ -108,6 +112,13 @@ func handleIncoming(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 	if err != nil {
 		return nil, svc.WriteErrorResponse(w, fmt.Errorf("unable to get contact by urn: %w", err))
 	}
+
+	mc, unlock, err := lockAndLoadContact(ctx, rt, oa, mc.ID())
+	if err != nil {
+		return nil, svc.WriteErrorResponse(w, err)
+	}
+	defer unlock()
+
 	cu := mc.FindURN(urn)
 
 	externalID, err := svc.CallIDForRequest(r)
@@ -158,6 +169,34 @@ func handleIncoming(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 	return call, svc.WriteEmptyResponse(w, "missed call handled")
 }
 
+// lockAndLoadContact locks the given contact, as every other path that starts or resumes sessions does, so that the
+// sessions changed by this request can't race with theirs. Otherwise a session started concurrently elsewhere can lose
+// its fires and stop being the contact's current session, leaving it waiting forever. The contact is loaded from the
+// primary database because a replica may not yet reflect the changes of the previous lock holder.
+func lockAndLoadContact(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contactID models.ContactID) (*models.Contact, func(), error) {
+	locks, _, err := clocks.TryToLock(ctx, rt, oa, []models.ContactID{contactID}, contactLockWait)
+	if err != nil {
+		return nil, nil, fmt.Errorf("error locking contact: %w", err)
+	}
+	if len(locks) == 0 {
+		return nil, nil, fmt.Errorf("timed out waiting for lock on contact #%d", contactID)
+	}
+
+	unlock := func() {
+		if err := clocks.Unlock(context.Background(), rt, oa, locks); err != nil {
+			slog.Error("error unlocking contact", "error", err, "contact", contactID)
+		}
+	}
+
+	mc, err := models.LoadContact(ctx, rt.DB, oa, contactID)
+	if err != nil {
+		unlock()
+		return nil, nil, fmt.Errorf("no such contact: %w", err)
+	}
+
+	return mc, unlock, nil
+}
+
 // writeGenericErrorResponse is just a small utility method to write out a simple JSON error when we don't have a client yet
 func writeGenericErrorResponse(w http.ResponseWriter, err error) error {
 	return web.WriteMarshalled(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
@@ -186,11 +225,12 @@ func handleCallback(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 		return nil, fmt.Errorf("unable to load call with UUID %s: %w", request.CallUUID, err)
 	}
 
-	// load our contact
-	mc, err := models.LoadContact(ctx, rt.ReadonlyDB, oa, call.ContactID())
+	mc, unlock, err := lockAndLoadContact(ctx, rt, oa, call.ContactID())
 	if err != nil {
-		return call, svc.WriteErrorResponse(w, fmt.Errorf("no such contact: %w", err))
+		return call, svc.WriteErrorResponse(w, err)
 	}
+	defer unlock()
+
 	if mc.Status() != models.ContactStatusActive {
 		return call, svc.WriteErrorResponse(w, fmt.Errorf("no contact with id: %d", call.ContactID()))
 	}
