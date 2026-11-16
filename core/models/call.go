@@ -154,15 +154,54 @@ func InsertCalls(ctx context.Context, db DBorTx, calls []*Call) error {
 func CallTallies(calls []*Call) map[string]int64 {
 	amounts := make(map[string]int64)
 	for _, c := range calls {
-		dir := "out"
-		if c.Direction() == DirectionIn {
-			dir = "in"
-		}
-
+		dir := c.tallyDirection()
 		amounts[ChannelTallyField(c.ChannelID(), "calls:"+dir, c.c.CreatedOn)]++
 		amounts[TallyField(c.OrgID(), TallyCalls+"/"+dir, c.c.CreatedOn)]++
 	}
 	return amounts
+}
+
+// CallMinsTallies gets the tally amounts which add the minutes of the given call's duration, rounded up, which its
+// duration has gained since it was the given previous duration, by its org, channel and direction. The minutes are
+// tallied on the UTC day the call was created on so that they're on the same day as the call is counted.
+func CallMinsTallies(c *Call, prevDuration int) map[string]int64 {
+	mins := durationMins(c.c.Duration) - durationMins(prevDuration)
+	if mins <= 0 {
+		return nil
+	}
+	dir := c.tallyDirection()
+	return map[string]int64{
+		ChannelTallyField(c.ChannelID(), "callmins:"+dir, c.c.CreatedOn): mins,
+		TallyField(c.OrgID(), TallyCalls+"/mins:"+dir, c.c.CreatedOn):    mins,
+	}
+}
+
+// IncrementCallMinsTallies increments the tallies which add up the minutes of the given call whose duration has been
+// updated from the given previous one, logging rather than failing on errors since the call has already been written
+func IncrementCallMinsTallies(ctx context.Context, rt *runtime.Runtime, c *Call, prevDuration int) {
+	amounts := CallMinsTallies(c, prevDuration)
+	if len(amounts) == 0 {
+		return
+	}
+
+	vc := rt.VK.Get()
+	defer vc.Close()
+
+	if err := rt.Tallies.Increment(context.WithoutCancel(ctx), vc, amounts); err != nil {
+		slog.Error("error incrementing call minutes tallies", "error", err, "org_id", c.OrgID(), "call_id", c.ID())
+	}
+}
+
+func (c *Call) tallyDirection() string {
+	if c.Direction() == DirectionIn {
+		return "in"
+	}
+	return "out"
+}
+
+// durationMins converts a call duration in seconds to minutes, rounding up as providers usually bill
+func durationMins(secs int) int64 {
+	return (int64(secs) + 59) / 60
 }
 
 // IncrementCallTallies increments the tallies which count the given inserted calls of an org, logging rather than
@@ -379,24 +418,40 @@ func (c *Call) SetThrottled(ctx context.Context, db DBorTx) error {
 }
 
 // UpdateStatus updates the status for this call
-func (c *Call) UpdateStatus(ctx context.Context, db DBorTx, status CallStatus, duration int, now time.Time) error {
+func (c *Call) UpdateStatus(ctx context.Context, db DBorTx, status CallStatus) error {
 	c.c.Status = status
-	var err error
 
-	// only write a duration if it is greater than 0
-	if duration > 0 {
-		c.c.Duration = duration
-		c.c.EndedOn = &now
-		_, err = db.ExecContext(ctx, `UPDATE ivr_call SET status = $2, duration = $3, ended_on = $4, modified_on = NOW() WHERE id = $1`, c.c.ID, c.c.Status, c.c.Duration, c.c.EndedOn)
-	} else {
-		_, err = db.ExecContext(ctx, `UPDATE ivr_call SET status = $2, modified_on = NOW() WHERE id = $1`, c.c.ID, c.c.Status)
-	}
-
+	_, err := db.ExecContext(ctx, `UPDATE ivr_call SET status = $2, modified_on = NOW() WHERE id = $1`, c.c.ID, c.c.Status)
 	if err != nil {
 		return fmt.Errorf("error updating status for call: %d: %w", c.c.ID, err)
 	}
 
 	return nil
+}
+
+// the previous duration is read under a row lock so that concurrent updates each see what the other wrote, and the
+// duration never goes backwards
+const sqlUpdateCallStatusAndDuration = `
+   UPDATE ivr_call c
+      SET status = $2, duration = GREATEST(c.duration, $3), ended_on = $4, modified_on = NOW()
+     FROM (SELECT id, duration FROM ivr_call WHERE id = $1 FOR UPDATE) prev
+    WHERE c.id = prev.id
+RETURNING prev.duration AS prev, c.duration AS new`
+
+// UpdateStatusAndDuration updates the status and duration of this call, returning its previous duration as stored
+func (c *Call) UpdateStatusAndDuration(ctx context.Context, db DBorTx, status CallStatus, duration int, now time.Time) (int, error) {
+	var r struct {
+		Prev int `db:"prev"`
+		New  int `db:"new"`
+	}
+	if err := db.GetContext(ctx, &r, sqlUpdateCallStatusAndDuration, c.c.ID, status, duration, now); err != nil {
+		return 0, fmt.Errorf("error updating status and duration for call: %d: %w", c.c.ID, err)
+	}
+
+	c.c.Status = status
+	c.c.Duration = r.New
+	c.c.EndedOn = &now
+	return r.Prev, nil
 }
 
 func (c *Call) AttachLog(ctx context.Context, db DBorTx, clog *ChannelLog) error {

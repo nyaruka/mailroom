@@ -3,7 +3,6 @@ package hooks
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/runner"
@@ -29,7 +28,7 @@ func (h *updateCallStatus) Execute(ctx context.Context, rt *runtime.Runtime, tx 
 				return fmt.Errorf("error updating call to in progress: %w", err)
 			}
 		} else {
-			if err := scene.DBCall.UpdateStatus(ctx, tx, status, 0, time.Now()); err != nil {
+			if err := scene.DBCall.UpdateStatus(ctx, tx, status); err != nil {
 				return fmt.Errorf("error updating call status: %w", err)
 			}
 		}

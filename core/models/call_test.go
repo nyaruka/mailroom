@@ -98,4 +98,34 @@ func TestCallTallies(t *testing.T) {
 		"O1|calls/in@2026-11-04":  "2",
 		"O1|calls/out@2026-11-04": "1",
 	})
+
+	// minutes are rounded up per call and only what a call's duration has gained since is added
+	assert.Nil(t, models.CallMinsTallies(calls[0], 0))
+	prev, err := calls[0].UpdateStatusAndDuration(ctx, rt.DB, models.CallStatusCompleted, 61, time.Now())
+	require.NoError(t, err)
+	assert.Equal(t, 0, prev)
+	assert.Equal(t, map[string]int64{
+		fmt.Sprintf("C%d|callmins:in@2026-11-04", testdb.TwilioChannel.ID): 2,
+		"O1|calls/mins:in@2026-11-04":                                      2,
+	}, models.CallMinsTallies(calls[0], 0))
+	assert.Equal(t, map[string]int64{
+		fmt.Sprintf("C%d|callmins:in@2026-11-04", testdb.TwilioChannel.ID): 1,
+		"O1|calls/mins:in@2026-11-04":                                      1,
+	}, models.CallMinsTallies(calls[0], 30))
+	assert.Nil(t, models.CallMinsTallies(calls[0], 61))
+	assert.Nil(t, models.CallMinsTallies(calls[0], 120))
+
+	// a smaller duration doesn't overwrite a larger one
+	prev, err = calls[0].UpdateStatusAndDuration(ctx, rt.DB, models.CallStatusCompleted, 30, time.Now())
+	require.NoError(t, err)
+	assert.Equal(t, 61, prev)
+	assert.Nil(t, models.CallMinsTallies(calls[0], prev))
+	assertdb.Query(t, rt.DB, `SELECT duration FROM ivr_call WHERE id = $1`, calls[0].ID()).Returns(61)
+
+	_, err = calls[2].UpdateStatusAndDuration(ctx, rt.DB, models.CallStatusCompleted, 25, time.Now())
+	require.NoError(t, err)
+	assert.Equal(t, map[string]int64{
+		fmt.Sprintf("C%d|callmins:out@2026-11-04", testdb.TwilioChannel.ID): 1,
+		"O1|calls/mins:out@2026-11-04":                                      1,
+	}, models.CallMinsTallies(calls[2], 0))
 }

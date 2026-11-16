@@ -141,19 +141,23 @@ func TestTwilioIVR(t *testing.T) {
 	assert.Equal(t, "5", tallies[fmt.Sprintf("F%d|msgsin:date:2025-05-04", testdb.IVRFlow.ID)])
 	maps.DeleteFunc(tallies, func(f, _ string) bool { return strings.HasPrefix(f, "F") })
 	assert.Equal(t, map[string]string{
-		"C10000|calls:in@2025-05-04":   "2",
-		"C10000|calls:out@2025-05-04":  "3",
-		"C10000|voice:in@2025-05-04":   "5",
-		"C10000|voice:out@2025-05-04":  "11",
-		"O1|calls/in@2025-05-04":       "2",
-		"O1|calls/out@2025-05-04":      "3",
-		"O1|msgs/voice:in@2025-05-04":  "5",
-		"O1|msgs/voice:out@2025-05-04": "11",
+		"C10000|callmins:in@2025-05-04":  "2",
+		"C10000|callmins:out@2025-05-04": "2",
+		"C10000|calls:in@2025-05-04":     "2",
+		"C10000|calls:out@2025-05-04":    "3",
+		"C10000|voice:in@2025-05-04":     "5",
+		"C10000|voice:out@2025-05-04":    "11",
+		"O1|calls/in@2025-05-04":         "2",
+		"O1|calls/out@2025-05-04":        "3",
+		"O1|calls/mins:in@2025-05-04":    "2",
+		"O1|calls/mins:out@2025-05-04":   "2",
+		"O1|msgs/voice:in@2025-05-04":    "5",
+		"O1|msgs/voice:out@2025-05-04":   "11",
 	}, tallies)
 
 	// check the generated channel logs
 	logs := getCallLogs(t, rt, testdb.TwilioChannel)
-	assert.Len(t, logs, 19)
+	assert.Len(t, logs, 23)
 	for _, log := range logs {
 		assert.NotContains(t, string(jsonx.MustMarshal(log)), "sesame") // auth token redacted
 	}
