@@ -20,6 +20,7 @@ import (
 	"github.com/nyaruka/gocommon/svclogs"
 	"github.com/nyaruka/goflow/test"
 	"github.com/nyaruka/mailroom/v26/core/models"
+	"github.com/nyaruka/mailroom/v26/core/runner/clocks"
 	_ "github.com/nyaruka/mailroom/v26/core/runner/handlers"
 	"github.com/nyaruka/mailroom/v26/core/tasks"
 	"github.com/nyaruka/mailroom/v26/runtime"
@@ -27,6 +28,7 @@ import (
 	"github.com/nyaruka/mailroom/v26/services/ivr/vonage"
 	"github.com/nyaruka/mailroom/v26/testsuite"
 	"github.com/nyaruka/mailroom/v26/testsuite/testdb"
+	"github.com/nyaruka/mailroom/v26/web/public"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -155,6 +157,60 @@ func TestTwilioIVR(t *testing.T) {
 	for _, log := range logs {
 		assert.NotContains(t, string(jsonx.MustMarshal(log)), "sesame") // auth token redacted
 	}
+}
+
+func TestLockAndLoadContact(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	oa := testdb.Org1.Load(t, rt)
+
+	type result struct {
+		mc     *models.Contact
+		unlock func()
+		err    error
+	}
+	lockAndLoad := func() chan result {
+		ch := make(chan result, 1)
+		go func() {
+			mc, unlock, err := public.LockAndLoadContact(ctx, rt, oa, testdb.Ann.ID)
+			ch <- result{mc, unlock, err}
+		}()
+		return ch
+	}
+
+	// something else is handling Ann
+	locks, _, err := clocks.TryToLock(ctx, rt, oa, []models.ContactID{testdb.Ann.ID}, time.Second)
+	require.NoError(t, err)
+	require.Len(t, locks, 1)
+
+	loaded := lockAndLoad()
+
+	select {
+	case <-loaded:
+		t.Fatal("contact loaded while another holder had the lock")
+	case <-time.After(500 * time.Millisecond):
+	}
+
+	// before releasing the lock, the other handler starts a session for Ann
+	sessionUUID := testdb.InsertWaitingSession(t, rt, testdb.Org1, testdb.Ann, models.FlowTypeMessaging, nil, testdb.Favorites)
+	require.NoError(t, clocks.Unlock(ctx, rt, oa, locks))
+
+	// which the contact we then load sees as its current session
+	res := <-loaded
+	require.NoError(t, res.err)
+	assert.Equal(t, sessionUUID, res.mc.CurrentSessionUUID())
+
+	// we now hold the lock, so the next attempt gives up waiting for it
+	defer public.SetContactLockWait(time.Second)()
+
+	res2 := <-lockAndLoad()
+	assert.EqualError(t, res2.err, fmt.Sprintf("timed out waiting for lock on contact #%d", testdb.Ann.ID))
+
+	res.unlock()
+
+	res3 := <-lockAndLoad()
+	require.NoError(t, res3.err)
+	res3.unlock()
 }
 
 func mockVonageHandler(w http.ResponseWriter, r *http.Request) {
