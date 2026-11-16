@@ -92,7 +92,6 @@ func (c *Call) ExternalID() string            { return c.c.ExternalID }
 func (c *Call) ErrorReason() CallError        { return CallError(c.c.ErrorReason) }
 func (c *Call) ErrorCount() int               { return c.c.ErrorCount }
 func (c *Call) NextAttempt() *time.Time       { return c.c.NextAttempt }
-func (c *Call) Duration() int                 { return c.c.Duration }
 
 func (c *Call) EngineTrigger(oa *OrgAssets) (flows.Trigger, error) {
 	trigger, err := triggers.Read(oa.SessionAssets(), c.c.Trigger, assets.IgnoreMissing)
@@ -419,24 +418,40 @@ func (c *Call) SetThrottled(ctx context.Context, db DBorTx) error {
 }
 
 // UpdateStatus updates the status for this call
-func (c *Call) UpdateStatus(ctx context.Context, db DBorTx, status CallStatus, duration int, now time.Time) error {
+func (c *Call) UpdateStatus(ctx context.Context, db DBorTx, status CallStatus) error {
 	c.c.Status = status
-	var err error
 
-	// only write a duration if it is greater than 0
-	if duration > 0 {
-		c.c.Duration = duration
-		c.c.EndedOn = &now
-		_, err = db.ExecContext(ctx, `UPDATE ivr_call SET status = $2, duration = $3, ended_on = $4, modified_on = NOW() WHERE id = $1`, c.c.ID, c.c.Status, c.c.Duration, c.c.EndedOn)
-	} else {
-		_, err = db.ExecContext(ctx, `UPDATE ivr_call SET status = $2, modified_on = NOW() WHERE id = $1`, c.c.ID, c.c.Status)
-	}
-
+	_, err := db.ExecContext(ctx, `UPDATE ivr_call SET status = $2, modified_on = NOW() WHERE id = $1`, c.c.ID, c.c.Status)
 	if err != nil {
 		return fmt.Errorf("error updating status for call: %d: %w", c.c.ID, err)
 	}
 
 	return nil
+}
+
+// the previous duration is read under a row lock so that concurrent updates each see what the other wrote, and the
+// duration never goes backwards
+const sqlUpdateCallStatusAndDuration = `
+   UPDATE ivr_call c
+      SET status = $2, duration = GREATEST(c.duration, $3), ended_on = $4, modified_on = NOW()
+     FROM (SELECT id, duration FROM ivr_call WHERE id = $1 FOR UPDATE) prev
+    WHERE c.id = prev.id
+RETURNING prev.duration AS prev, c.duration AS new`
+
+// UpdateStatusAndDuration updates the status and duration of this call, returning its previous duration as stored
+func (c *Call) UpdateStatusAndDuration(ctx context.Context, db DBorTx, status CallStatus, duration int, now time.Time) (int, error) {
+	var r struct {
+		Prev int `db:"prev"`
+		New  int `db:"new"`
+	}
+	if err := db.GetContext(ctx, &r, sqlUpdateCallStatusAndDuration, c.c.ID, status, duration, now); err != nil {
+		return 0, fmt.Errorf("error updating status and duration for call: %d: %w", c.c.ID, err)
+	}
+
+	c.c.Status = status
+	c.c.Duration = r.New
+	c.c.EndedOn = &now
+	return r.Prev, nil
 }
 
 func (c *Call) AttachLog(ctx context.Context, db DBorTx, clog *ChannelLog) error {
