@@ -483,10 +483,14 @@ func HandleStatus(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets
 		call.SetFailed(ctx, rt.DB)
 	} else {
 		if status != call.Status() || duration > 0 {
+			prevDuration := call.Duration()
+
 			err := call.UpdateStatus(ctx, rt.DB, status, duration, time.Now())
 			if err != nil {
 				return fmt.Errorf("error updating call status: %w", err)
 			}
+
+			models.IncrementCallMinsTallies(ctx, rt, call, prevDuration)
 		}
 	}
 

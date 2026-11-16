@@ -98,4 +98,24 @@ func TestCallTallies(t *testing.T) {
 		"O1|calls/in@2026-11-04":  "2",
 		"O1|calls/out@2026-11-04": "1",
 	})
+
+	// minutes are rounded up per call and only what a call's duration has gained since is added
+	assert.Nil(t, models.CallMinsTallies(calls[0], 0))
+	require.NoError(t, calls[0].UpdateStatus(ctx, rt.DB, models.CallStatusCompleted, 61, time.Now()))
+	assert.Equal(t, map[string]int64{
+		fmt.Sprintf("C%d|callmins:in@2026-11-04", testdb.TwilioChannel.ID): 2,
+		"O1|calls/mins:in@2026-11-04":                                      2,
+	}, models.CallMinsTallies(calls[0], 0))
+	assert.Equal(t, map[string]int64{
+		fmt.Sprintf("C%d|callmins:in@2026-11-04", testdb.TwilioChannel.ID): 1,
+		"O1|calls/mins:in@2026-11-04":                                      1,
+	}, models.CallMinsTallies(calls[0], 30))
+	assert.Nil(t, models.CallMinsTallies(calls[0], 61))
+	assert.Nil(t, models.CallMinsTallies(calls[0], 120))
+
+	require.NoError(t, calls[2].UpdateStatus(ctx, rt.DB, models.CallStatusCompleted, 25, time.Now()))
+	assert.Equal(t, map[string]int64{
+		fmt.Sprintf("C%d|callmins:out@2026-11-04", testdb.TwilioChannel.ID): 1,
+		"O1|calls/mins:out@2026-11-04":                                      1,
+	}, models.CallMinsTallies(calls[2], 0))
 }

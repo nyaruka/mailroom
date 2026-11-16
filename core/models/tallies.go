@@ -28,7 +28,8 @@ const (
 	TallyMsgs = "msgs"
 
 	// TallyCalls prefixes the daily counts of calls with a channel, by direction, e.g. calls/out@2026-11-03. Each call
-	// is counted once when it's created, whether or not it's answered, and retrying it doesn't count it again.
+	// is counted once when it's created, whether or not it's answered, and retrying it doesn't count it again. The
+	// minutes of calls are added up the same way, e.g. calls/mins:out@2026-11-03, with each call's rounded up.
 	TallyCalls = "calls"
 
 	// TallyContactsNew prefixes the daily counts of contacts created, by how they came to exist, e.g.

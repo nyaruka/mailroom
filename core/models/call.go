@@ -92,6 +92,7 @@ func (c *Call) ExternalID() string            { return c.c.ExternalID }
 func (c *Call) ErrorReason() CallError        { return CallError(c.c.ErrorReason) }
 func (c *Call) ErrorCount() int               { return c.c.ErrorCount }
 func (c *Call) NextAttempt() *time.Time       { return c.c.NextAttempt }
+func (c *Call) Duration() int                 { return c.c.Duration }
 
 func (c *Call) EngineTrigger(oa *OrgAssets) (flows.Trigger, error) {
 	trigger, err := triggers.Read(oa.SessionAssets(), c.c.Trigger, assets.IgnoreMissing)
@@ -154,15 +155,54 @@ func InsertCalls(ctx context.Context, db DBorTx, calls []*Call) error {
 func CallTallies(calls []*Call) map[string]int64 {
 	amounts := make(map[string]int64)
 	for _, c := range calls {
-		dir := "out"
-		if c.Direction() == DirectionIn {
-			dir = "in"
-		}
-
+		dir := c.tallyDirection()
 		amounts[ChannelTallyField(c.ChannelID(), "calls:"+dir, c.c.CreatedOn)]++
 		amounts[TallyField(c.OrgID(), TallyCalls+"/"+dir, c.c.CreatedOn)]++
 	}
 	return amounts
+}
+
+// CallMinsTallies gets the tally amounts which add the minutes of the given call's duration, rounded up, which its
+// duration has gained since it was the given previous duration, by its org, channel and direction. The minutes are
+// tallied on the UTC day the call was created on so that they're on the same day as the call is counted.
+func CallMinsTallies(c *Call, prevDuration int) map[string]int64 {
+	mins := durationMins(c.c.Duration) - durationMins(prevDuration)
+	if mins <= 0 {
+		return nil
+	}
+	dir := c.tallyDirection()
+	return map[string]int64{
+		ChannelTallyField(c.ChannelID(), "callmins:"+dir, c.c.CreatedOn): mins,
+		TallyField(c.OrgID(), TallyCalls+"/mins:"+dir, c.c.CreatedOn):    mins,
+	}
+}
+
+// IncrementCallMinsTallies increments the tallies which add up the minutes of the given call whose duration has been
+// updated from the given previous one, logging rather than failing on errors since the call has already been written
+func IncrementCallMinsTallies(ctx context.Context, rt *runtime.Runtime, c *Call, prevDuration int) {
+	amounts := CallMinsTallies(c, prevDuration)
+	if len(amounts) == 0 {
+		return
+	}
+
+	vc := rt.VK.Get()
+	defer vc.Close()
+
+	if err := rt.Tallies.Increment(context.WithoutCancel(ctx), vc, amounts); err != nil {
+		slog.Error("error incrementing call minutes tallies", "error", err, "org_id", c.OrgID(), "call_id", c.ID())
+	}
+}
+
+func (c *Call) tallyDirection() string {
+	if c.Direction() == DirectionIn {
+		return "in"
+	}
+	return "out"
+}
+
+// durationMins converts a call duration in seconds to minutes, rounding up as providers usually bill
+func durationMins(secs int) int64 {
+	return (int64(secs) + 59) / 60
 }
 
 // IncrementCallTallies increments the tallies which count the given inserted calls of an org, logging rather than
