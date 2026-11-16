@@ -1,3 +1,8 @@
+## v26.3.146 (2026-11-16)
+ * Tally call minutes by org and channel
+ * Lock the contact when handling IVR callbacks, loading it from the primary database
+ * Mark calls failed when the contact lock can't be taken and don't lock for status updates
+
 ## v26.3.145 (2026-11-16)
  * Tally the runs at each flow node
 
