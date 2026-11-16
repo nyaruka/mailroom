@@ -23,7 +23,7 @@ import (
 )
 
 // how long an IVR request waits for the contact lock, short enough to leave time to respond before the provider gives up
-const contactLockWait = 5 * time.Second
+var contactLockWait = 5 * time.Second
 
 func init() {
 	web.InternetRoute(http.MethodPost, "/ivr/c/{uuid:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}}/handle", newIVRHandler(handleCallback, models.ChannelLogTypeIVRCallback))
@@ -225,9 +225,18 @@ func handleCallback(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 		return nil, fmt.Errorf("unable to load call with UUID %s: %w", request.CallUUID, err)
 	}
 
+	// status updates only touch the call so don't need the contact
+	if request.Action == ivr.ActionStatus {
+		if err := ivr.HandleStatus(ctx, rt, oa, svc, call, r, w); err != nil {
+			slog.Error("error while handling IVR", "error", err, "http_request", r)
+			return call, ivr.HandleAsFailure(ctx, rt.DB, svc, call, w, err)
+		}
+		return call, nil
+	}
+
 	mc, unlock, err := lockAndLoadContact(ctx, rt, oa, call.ContactID())
 	if err != nil {
-		return call, svc.WriteErrorResponse(w, err)
+		return call, ivr.HandleAsFailure(ctx, rt.DB, svc, call, w, err)
 	}
 	defer unlock()
 
@@ -262,9 +271,6 @@ func handleCallback(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 		err = ivr.StartCall(ctx, rt, svc, resumeURL, oa, ch, call, mc, urn, r, w)
 	case ivr.ActionResume:
 		err = ivr.ResumeCall(ctx, rt, resumeURL, svc, oa, ch, call, mc, urn, r, w)
-	case ivr.ActionStatus:
-		err = ivr.HandleStatus(ctx, rt, oa, svc, call, r, w)
-
 	default:
 		err = svc.WriteErrorResponse(w, fmt.Errorf("unknown action: %s", request.Action))
 	}
