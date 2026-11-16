@@ -49,6 +49,22 @@ func TestFlowSegmentTallyScope(t *testing.T) {
 	}
 }
 
+func TestFlowNodeTallyScope(t *testing.T) {
+	// same vectors as temba's tests so that both sides agree on the encoding
+	tcs := []struct {
+		node     core.NodeUUID
+		expected string
+	}{
+		{"1d4f25b2-c648-46cc-8116-be0ec6b6d34a", "node:HU8lssZIRsyBFr4OxrbTSg"},
+		{"00000000-0000-0000-0000-000000000000", "node:AAAAAAAAAAAAAAAAAAAAAA"},
+		{"ffffffff-ffff-ffff-ffff-ffffffffffff", "node:_____________________w"},
+		{"fbfffbff-fbff-fbff-fbff-fbfffbfffbff", "node:-__7__v_-__7__v_-__7_w"},
+	}
+	for _, tc := range tcs {
+		assert.Equal(t, tc.expected, models.FlowNodeTallyScope(tc.node), "scope mismatch for %s", tc.node)
+	}
+}
+
 func TestFlowMsgsInTallies(t *testing.T) {
 	handled := time.Date(2025, 5, 4, 23, 30, 0, 0, time.FixedZone("", -2*3600))
 

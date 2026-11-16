@@ -490,6 +490,7 @@ func TestFlowStats(t *testing.T) {
 		"node:072b95b3-61c3-4e0e-8dd1-eb7481083f94": 3,
 		"status:W": 3,
 	})
+	assertFlowNodeTallies(t, rt, flow.ID, map[core.NodeUUID]int{"072b95b3-61c3-4e0e-8dd1-eb7481083f94": 3})
 	assertFlowSegmentTallies(t, rt, flow.ID, map[string]any{
 		"segment:X9LlNwU0TBKEJb74evCdRgcrlbNhw04OjdHrdIEIP5Q": 3,
 	})
@@ -513,6 +514,7 @@ func TestFlowStats(t *testing.T) {
 		"status:C": 2,
 		"status:W": 1,
 	})
+	assertFlowNodeTallies(t, rt, flow.ID, map[core.NodeUUID]int{"072b95b3-61c3-4e0e-8dd1-eb7481083f94": 1})
 	assertFlowSegmentTallies(t, rt, flow.ID, map[string]any{
 		"segment:X9LlNwU0TBKEJb74evCdRgcrlbNhw04OjdHrdIEIP5Q": 3, // "what's your fav color" -> color split
 		"segment:wC_DujaaTIebxMOzdr2m0le1DTMrWkcmgt6YSMYe_24": 2, // color split :: Blue exit -> next node
@@ -531,6 +533,7 @@ func TestFlowStats(t *testing.T) {
 		"status:C": 2,
 		"status:W": 1,
 	})
+	assertFlowNodeTallies(t, rt, flow.ID, map[core.NodeUUID]int{"072b95b3-61c3-4e0e-8dd1-eb7481083f94": 1})
 	assertFlowSegmentTallies(t, rt, flow.ID, map[string]any{
 		"segment:X9LlNwU0TBKEJb74evCdRgcrlbNhw04OjdHrdIEIP5Q": 3, // "what's your fav color" -> color split
 		"segment:wC_DujaaTIebxMOzdr2m0le1DTMrWkcmgt6YSMYe_24": 2, // color split :: Blue exit -> next node
@@ -570,6 +573,19 @@ func TestFlowStats(t *testing.T) {
 	testsuite.ResumeSession(t, rt, oa, testdb.Cat, "blue")
 
 	assertFlowResultCounts(t, rt, flow.ID, map[string]int{"color/Blue": 3, "color/Other": 0})
+
+	assertFlowActivityCounts(t, rt, flow.ID, map[string]any{"node:072b95b3-61c3-4e0e-8dd1-eb7481083f94": 0, "status:C": 3, "status:W": 0})
+	assertFlowNodeTallies(t, rt, flow.ID, map[core.NodeUUID]int{})
+
+	// a new session puts Ann on a node, and interrupting her takes her off it again
+	testsuite.StartSessions(t, rt, oa, []*testdb.Contact{testdb.Ann}, trig)
+	assertFlowNodeTallies(t, rt, flow.ID, map[core.NodeUUID]int{"072b95b3-61c3-4e0e-8dd1-eb7481083f94": 1})
+
+	_, _, err = runner.InterruptWithLock(ctx, rt, oa, []models.ContactID{testdb.Ann.ID}, nil, flows.SessionStatusInterrupted)
+	require.NoError(t, err)
+
+	assertFlowActivityCounts(t, rt, flow.ID, map[string]any{"node:072b95b3-61c3-4e0e-8dd1-eb7481083f94": 0, "status:C": 3, "status:I": 1, "status:W": 0})
+	assertFlowNodeTallies(t, rt, flow.ID, map[core.NodeUUID]int{})
 }
 
 func TestResumeSession(t *testing.T) {
@@ -784,6 +800,22 @@ func assertFlowSegmentTallies(t *testing.T, rt *runtime.Runtime, flowID models.F
 	require.NoError(t, err)
 
 	assertdb.Query(t, rt.DB, `SELECT scope, count FROM flows_flowtally WHERE flow_id = $1 AND scope LIKE 'segment:%'`, flowID).Map(expected)
+}
+
+// assertFlowNodeTallies flushes tallies and asserts the flow's node tallies by node UUID
+func assertFlowNodeTallies(t *testing.T, rt *runtime.Runtime, flowID models.FlowID, expected map[core.NodeUUID]int) {
+	vc := rt.VK.Get()
+	defer vc.Close()
+
+	_, err := rt.Tallies.Flush(t.Context(), vc, models.NewTallyStore(rt.DB, rt.Tallies.KeyBase()), 100)
+	require.NoError(t, err)
+
+	expectedByScope := make(map[string]any, len(expected))
+	for node, count := range expected {
+		expectedByScope[models.FlowNodeTallyScope(node)] = int64(count)
+	}
+
+	assertdb.Query(t, rt.DB, `SELECT scope, count FROM flows_flowtally WHERE flow_id = $1 AND scope LIKE 'node:%'`, flowID).Map(expectedByScope)
 }
 
 func assertFlowResultCounts(t *testing.T, rt *runtime.Runtime, flowID models.FlowID, expected map[string]int) {
