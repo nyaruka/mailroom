@@ -31,16 +31,15 @@ func TestNewOutgoingFlowMsg(t *testing.T) {
 	blakeURNID := testdb.InsertContactURN(t, rt, testdb.Org1, blake, "tel:+250700000007", 1, nil)
 
 	tcs := []struct {
-		Channel      *testdb.Channel
-		Contact      *testdb.Contact
-		URN          urns.URN
-		Content      *core.MsgContent
-		Templating   *core.MsgTemplating
-		Locale       i18n.Locale
-		Unsendable   core.UnsendableReason
-		Flow         *testdb.Flow
-		ResponseTo   *models.MsgInRef
-		SuspendedOrg bool
+		Channel    *testdb.Channel
+		Contact    *testdb.Contact
+		URN        urns.URN
+		Content    *core.MsgContent
+		Templating *core.MsgTemplating
+		Locale     i18n.Locale
+		Unsendable core.UnsendableReason
+		Flow       *testdb.Flow
+		ResponseTo *models.MsgInRef
 
 		ExpectedURNID        models.URNID
 		ExpectedStatus       models.MsgStatus
@@ -115,8 +114,6 @@ func TestNewOutgoingFlowMsg(t *testing.T) {
 	now := time.Now()
 
 	for i, tc := range tcs {
-		rt.DB.MustExec(`UPDATE orgs_org SET is_suspended = $1, suspended_on = CASE WHEN $1 THEN NOW() END WHERE id = $2`, tc.SuspendedOrg, testdb.Org1.ID)
-
 		oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshOrg|models.RefreshFlows)
 		require.NoError(t, err)
 
@@ -1044,6 +1041,24 @@ func TestCreateMsgOut(t *testing.T) {
 	assert.Equal(t, urns.NilURN, out.URN())
 	assert.Nil(t, out.Channel())
 	assert.Equal(t, core.UnsendableReasonNoRoute, out.UnsendableReason())
+
+	_, bob, _ = testdb.Bob.Load(t, rt, oa)
+
+	// messages can't be sent by a suspended workspace...
+	testdb.Org1.SetStatus(t, rt, models.OrgStatusSuspended)
+	oa = testdb.Org1.Load(t, rt)
+
+	out, err = models.CreateMsgOut(ctx, rt, oa, bob, &core.MsgContent{Text: "hello"}, models.NilTemplateID, nil, `eng-US`, nil)
+	assert.NoError(t, err)
+	assert.Equal(t, models.UnsendableReasonOrgSuspended, out.UnsendableReason())
+
+	// ...but can by a restricted one
+	testdb.Org1.SetStatus(t, rt, models.OrgStatusRestricted)
+	oa = testdb.Org1.Load(t, rt)
+
+	out, err = models.CreateMsgOut(ctx, rt, oa, bob, &core.MsgContent{Text: "hello"}, models.NilTemplateID, nil, `eng-US`, nil)
+	assert.NoError(t, err)
+	assert.Equal(t, core.UnsendableReason(""), out.UnsendableReason())
 }
 
 func TestMsgTemplating(t *testing.T) {

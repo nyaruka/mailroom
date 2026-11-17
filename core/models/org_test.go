@@ -34,7 +34,8 @@ func TestLoadOrg(t *testing.T) {
 	rt.DB.MustExec(`UPDATE orgs_org SET features = '{"unrestricted_webhooks"}' WHERE id = $1`, testdb.Org1.ID)
 	rt.DB.MustExec(`UPDATE orgs_org SET limits = '{"contacts": 1000}' WHERE id = $1`, testdb.Org1.ID)
 	rt.DB.MustExec(`UPDATE orgs_org SET max_ticket_idle_days = 14 WHERE id = $1`, testdb.Org1.ID)
-	rt.DB.MustExec(`UPDATE orgs_org SET is_suspended = TRUE, suspended_on = NOW(), limits = '{"groups": 250}' WHERE id = $1`, testdb.Org2.ID)
+	rt.DB.MustExec(`UPDATE orgs_org SET limits = '{"groups": 250}' WHERE id = $1`, testdb.Org2.ID)
+	testdb.Org2.SetStatus(t, rt, models.OrgStatusSuspended)
 	rt.DB.MustExec(`UPDATE orgs_org SET flow_languages = '{}' WHERE id = $1`, testdb.Org2.ID)
 	rt.DB.MustExec(`UPDATE orgs_org SET date_format = 'M' WHERE id = $1`, testdb.Org2.ID)
 
@@ -42,7 +43,8 @@ func TestLoadOrg(t *testing.T) {
 	assert.NoError(t, err)
 
 	assert.Equal(t, models.OrgID(1), org.ID())
-	assert.False(t, org.Suspended())
+	assert.Equal(t, models.OrgStatusActive, org.Status())
+	assert.False(t, org.IsSuspended())
 	assert.True(t, org.HasFeature(models.FeatureUnrestrictedWebhooks))
 	assert.False(t, org.HasFeature("teams"))
 	assert.Equal(t, "smtp://foo:bar", org.FlowSMTP())
@@ -60,7 +62,8 @@ func TestLoadOrg(t *testing.T) {
 
 	org, err = models.LoadOrg(ctx, rt.Config, rt.DB.DB, testdb.Org2.ID)
 	assert.NoError(t, err)
-	assert.True(t, org.Suspended())
+	assert.Equal(t, models.OrgStatusSuspended, org.Status())
+	assert.True(t, org.IsSuspended())
 	assert.False(t, org.HasFeature(models.FeatureUnrestrictedWebhooks))
 	assert.Equal(t, "", org.FlowSMTP())
 	assert.Equal(t, models.NoLimit, org.ContactLimit()) // limits set but no contacts key

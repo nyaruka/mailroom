@@ -22,6 +22,16 @@ func (o *Org) Load(t *testing.T, rt *runtime.Runtime) *models.OrgAssets {
 	return oa
 }
 
+// SetStatus sets the status of the org, keeping the legacy suspended flag consistent with it, and clears the org
+// assets cache so the change is seen
+func (o *Org) SetStatus(t *testing.T, rt *runtime.Runtime, status models.OrgStatus) {
+	suspended := status == models.OrgStatusSuspended
+	_, err := rt.DB.Exec(`UPDATE orgs_org SET status = $2, is_suspended = $3, suspended_on = CASE WHEN $3 THEN NOW() END WHERE id = $1`, o.ID, status, suspended)
+	require.NoError(t, err)
+
+	models.FlushCache()
+}
+
 type User struct {
 	ID   models.UserID
 	UUID assets.UserUUID
