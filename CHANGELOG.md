@@ -1,3 +1,7 @@
+## v26.3.147 (2026-11-17)
+ * Read org status instead of is_suspended
+ * Update test database dump for latest schema
+
 ## v26.3.146 (2026-11-16)
  * Tally call minutes by org and channel
  * Lock the contact when handling IVR callbacks, loading it from the primary database
