@@ -57,15 +57,6 @@ func (t *SendBroadcastBatch) Perform(ctx context.Context, rt *runtime.Runtime, o
 		return nil
 	}
 
-	// if the workspace has been suspended since the broadcast was queued, it fails
-	if oa.Org().IsSuspended() {
-		if err := bcast.SetFailed(ctx, rt.DB); err != nil {
-			return fmt.Errorf("error marking broadcast as failed: %w", err)
-		}
-		t.RecordComplete(ctx, rt, taskID)
-		return nil
-	}
-
 	// if we're the first batch of the set to start, mark the broadcast itself as started
 	if t.RecordStarted(ctx, rt) {
 		if err := bcast.SetStarted(ctx, rt.DB); err != nil {

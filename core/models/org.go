@@ -138,11 +138,9 @@ type OrgStatus string
 const (
 	OrgStatusActive = OrgStatus("A")
 
-	// users can't start sends themselves but automated processing carries on, so a workspace has time to fix a
-	// problem without its programs breaking - that's enforced by the database layer so to us it's the same as active
+	// users can't start sends themselves, which the database layer enforces, so to us it's the same as active
 	OrgStatusRestricted = OrgStatus("R")
 
-	// all processing stops, tho incoming messages are still stored
 	OrgStatusSuspended = OrgStatus("S")
 )
 
@@ -195,7 +193,7 @@ func (o *Org) Name() string { return o.o.Name }
 // Status returns the status of the org
 func (o *Org) Status() OrgStatus { return o.o.Status }
 
-// IsSuspended returns whether the org has been suspended, in which case nothing should be processed for it
+// IsSuspended returns whether the org has been suspended
 func (o *Org) IsSuspended() bool { return o.o.Status == OrgStatusSuspended }
 
 // HasFeature returns whether the given feature is enabled for this org

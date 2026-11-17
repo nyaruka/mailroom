@@ -167,12 +167,6 @@ func (t *MsgReceived) handleMsgEvent(ctx context.Context, rt *runtime.Runtime, o
 		return nil
 	}
 
-	// a suspended workspace still receives messages but they don't trigger or resume flows, and any waiting session
-	// is left as it is so that the contact can carry on if the workspace is reactivated
-	if oa.Org().IsSuspended() {
-		return nil
-	}
-
 	// look for a waiting session for this contact
 	session, err := models.GetContactWaitingSession(ctx, rt, oa, scene.DBContact)
 	if err != nil {

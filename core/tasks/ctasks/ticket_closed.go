@@ -35,11 +35,6 @@ func (t *TicketClosed) Type() string {
 }
 
 func (t *TicketClosed) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, mc *models.Contact) error {
-	// the only thing this does is trigger a flow, which a suspended workspace doesn't do
-	if oa.Org().IsSuspended() {
-		return nil
-	}
-
 	// load our ticket
 	tickets, err := models.LoadTickets(ctx, rt.DB, oa.OrgID(), []core.TicketUUID{t.Event.TicketUUID})
 	if err != nil {

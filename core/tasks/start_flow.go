@@ -44,14 +44,6 @@ func (t *StartFlow) WithAssets() models.Refresh {
 }
 
 func (t *StartFlow) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, taskID TaskID) error {
-	if oa.Org().IsSuspended() {
-		if err := t.FlowStart.SetFailed(ctx, rt.DB); err != nil {
-			return fmt.Errorf("error marking start as failed: %w", err)
-		}
-		publishStartProgress(ctx, rt, oa, t.FlowStart, 0)
-		return nil
-	}
-
 	if err := createFlowStartBatches(ctx, rt, oa, t.FlowStart); err != nil {
 		t.FlowStart.SetFailed(ctx, rt.DB)
 		publishStartProgress(ctx, rt, oa, t.FlowStart, 0)

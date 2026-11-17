@@ -7,8 +7,6 @@ import (
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/gocommon/random"
 	"github.com/nyaruka/goflow/core"
-	"github.com/nyaruka/goflow/flows/triggers"
-	"github.com/nyaruka/mailroom/v26/core/ivr"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	_ "github.com/nyaruka/mailroom/v26/core/runner/handlers"
 	"github.com/nyaruka/mailroom/v26/core/tasks"
@@ -294,41 +292,4 @@ func TestBulkCampaignTriggerVoice(t *testing.T) {
 		members = append(members, string(m.([]byte))[11:]) // trim off random prefix
 	}
 	assert.Equal(t, []string{"10000|skipped"}, members)
-}
-
-func TestBulkCampaignTriggerSuspendedOrg(t *testing.T) {
-	ctx, rt := testsuite.Runtime(t)
-
-	vc := rt.VK.Get()
-	defer vc.Close()
-
-	flowPoint := &tasks.BulkCampaignTrigger{PointID: testdb.RemindersPoint3.ID, FireVersion: 1, ContactIDs: []models.ContactID{testdb.Bob.ID}}
-	msgPoint := &tasks.BulkCampaignTrigger{PointID: testdb.RemindersPoint2.ID, FireVersion: 1, ContactIDs: []models.ContactID{testdb.Bob.ID}}
-
-	// nothing fires for a suspended workspace
-	testdb.Org1.SetStatus(t, rt, models.OrgStatusSuspended)
-	oa := testdb.Org1.Load(t, rt)
-
-	assert.NoError(t, flowPoint.Perform(ctx, rt, oa, testTaskID))
-	assert.NoError(t, msgPoint.Perform(ctx, rt, oa, testTaskID))
-
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE contact_uuid = $1`, testdb.Bob.UUID).Returns(0)
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE contact_id = $1 AND direction = 'O'`, testdb.Bob.ID).Returns(0)
-	assertvk.Keys(t, vc, "recent_campaign_fires:*", []string{})
-
-	// and calls can't be requested from anywhere else either
-	mc, _, _ := testdb.Bob.Load(t, rt, oa)
-	call, err := ivr.RequestCall(ctx, rt, oa, mc, triggers.NewBuilder(testdb.IVRFlow.Reference()).Manual().Build())
-	assert.NoError(t, err)
-	assert.Nil(t, call)
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM ivr_call`).Returns(0)
-
-	// but does for a restricted one
-	testdb.Org1.SetStatus(t, rt, models.OrgStatusRestricted)
-	oa = testdb.Org1.Load(t, rt)
-
-	assert.NoError(t, flowPoint.Perform(ctx, rt, oa, testTaskID))
-
-	testsuite.AssertContactInFlow(t, rt, testdb.Bob, testdb.PickANumber)
-	assertvk.Keys(t, vc, "recent_campaign_fires:*", []string{"recent_campaign_fires:10002"})
 }

@@ -34,12 +34,6 @@ func (t *WaitTimeout) Type() string {
 func (t *WaitTimeout) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, mc *models.Contact) error {
 	log := slog.With("ctask", "wait_timeout", "contact_id", mc.ID(), "session_uuid", t.SessionUUID)
 
-	// a timeout would advance the flow, so for a suspended workspace the session is left waiting - it can still expire
-	if oa.Org().IsSuspended() {
-		log.Debug("skipping as workspace is suspended")
-		return nil
-	}
-
 	// if contact's current session has already changed, noop
 	if mc.CurrentSessionUUID() != t.SessionUUID {
 		log.Debug("skipping as contact's current session has changed")

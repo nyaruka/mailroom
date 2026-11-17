@@ -117,14 +117,9 @@ func (t *EventReceived) handle(ctx context.Context, rt *runtime.Runtime, oa *mod
 			return nil, fmt.Errorf("error adding channel event to scene: %w", err)
 		}
 
-		// a suspended workspace still records channel events but they don't trigger flows
-		var trig flows.Trigger
-		var flowType models.FlowType
-		if !oa.Org().IsSuspended() {
-			trig, flowType, err = findEventTrigger(oa, event, channel, contact)
-			if err != nil {
-				return nil, err
-			}
+		trig, flowType, err := findEventTrigger(oa, event, channel, contact)
+		if err != nil {
+			return nil, err
 		}
 
 		if trig != nil {

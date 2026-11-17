@@ -86,17 +86,6 @@ func (t *WaitExpired) Perform(ctx context.Context, rt *runtime.Runtime, oa *mode
 		return scene.Commit(ctx, rt, oa)
 	}
 
-	// resuming would let the flow carry on down its expiration path, so for a suspended workspace the session is just
-	// ended as expired
-	if oa.Org().IsSuspended() {
-		scene := runner.NewScene(mc, contact)
-		if err := scene.InterruptWaiting(ctx, rt, oa, flows.SessionStatusExpired); err != nil {
-			return fmt.Errorf("error expiring session for suspended workspace: %w", err)
-		}
-
-		return scene.Commit(ctx, rt, oa)
-	}
-
 	scene := runner.NewScene(mc, contact)
 	if err := scene.AddEvent(ctx, rt, oa, evt, models.NilUserID, ""); err != nil {
 		return fmt.Errorf("error adding wait expired event to scene: %w", err)

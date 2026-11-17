@@ -63,12 +63,6 @@ func (t *BulkCampaignTrigger) WithAssets() models.Refresh {
 }
 
 func (t *BulkCampaignTrigger) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, taskID TaskID) error {
-	// the fires have already been deleted so a suspended workspace won't get a backlog of them if it's reactivated
-	if oa.Org().IsSuspended() {
-		slog.Info("skipping campaign trigger for suspended workspace", "point", t.PointID)
-		return nil
-	}
-
 	p := oa.CampaignPointByID(t.PointID)
 	if p == nil || p.FireVersion != t.FireVersion {
 		slog.Info("skipping campaign trigger for point that no longer exists or has been updated", "point", t.PointID, "fire_version", t.FireVersion)
