@@ -36,7 +36,7 @@ func TestNewCourierMsg(t *testing.T) {
 
 	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 	require.NoError(t, err)
-	require.False(t, oa.Org().Suspended())
+	require.False(t, oa.Org().IsSuspended())
 
 	ann, _, annURNs := testdb.Ann.Load(t, rt, oa)
 	fred, _, fredURNs := testFred.Load(t, rt, oa)

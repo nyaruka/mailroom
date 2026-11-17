@@ -132,6 +132,20 @@ const (
 	FeatureSharedEmail = "shared_email"
 )
 
+// OrgStatus is the status of an org
+type OrgStatus string
+
+const (
+	OrgStatusActive = OrgStatus("A")
+
+	// users can't start sends themselves but automated processing carries on, so a workspace has time to fix a
+	// problem without its programs breaking - that's enforced by the database layer so to us it's the same as active
+	OrgStatusRestricted = OrgStatus("R")
+
+	// all processing stops, tho incoming messages are still stored
+	OrgStatusSuspended = OrgStatus("S")
+)
+
 // ErrNoEmailConfig is returned when an org has no SMTP configuration for sending email
 var ErrNoEmailConfig = errors.New("workspace has no SMTP settings for sending email")
 
@@ -142,7 +156,7 @@ type Org struct {
 		ID                OrgID          `json:"id"`
 		ParentID          OrgID          `json:"parent_id"`
 		Name              string         `json:"name"`
-		Suspended         bool           `json:"is_suspended"`
+		Status            OrgStatus      `json:"status"`
 		Features          []string       `json:"features"`
 		FlowSMTP          null.String    `json:"flow_smtp"`
 		PrometheusToken   null.String    `json:"prometheus_token"`
@@ -178,8 +192,11 @@ func (o *Org) UUID() OrgUUID { return o.o.UUID }
 // Name returns the name of the org
 func (o *Org) Name() string { return o.o.Name }
 
-// Suspended returns whether the org has been suspended
-func (o *Org) Suspended() bool { return o.o.Suspended }
+// Status returns the status of the org
+func (o *Org) Status() OrgStatus { return o.o.Status }
+
+// IsSuspended returns whether the org has been suspended, in which case nothing should be processed for it
+func (o *Org) IsSuspended() bool { return o.o.Status == OrgStatusSuspended }
 
 // HasFeature returns whether the given feature is enabled for this org
 func (o *Org) HasFeature(f string) bool { return slices.Contains(o.o.Features, f) }
@@ -359,7 +376,7 @@ SELECT ROW_TO_JSON(o) FROM (SELECT
 	id,
 	parent_id,
 	name,
-	is_suspended,
+	status,
 	features,
 	flow_smtp,
 	prometheus_token,

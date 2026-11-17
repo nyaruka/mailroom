@@ -314,3 +314,47 @@ func TestStartFlowTaskNonPersistedStart(t *testing.T) {
 
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowrun`).Returns(2)
 }
+
+func TestStartFlowTaskSuspendedOrg(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	newStart := func() *models.FlowStart {
+		start := models.NewFlowStart(testdb.Org1.ID, models.StartTypeManual, testdb.SingleMessage.ID).
+			WithContactIDs([]models.ContactID{testdb.Ann.ID, testdb.Bob.ID})
+		require.NoError(t, models.InsertFlowStart(ctx, rt.DB, start))
+		return start
+	}
+
+	// a start for a suspended workspace fails without creating any batches
+	testdb.Org1.SetStatus(t, rt, models.OrgStatusSuspended)
+
+	start1 := newStart()
+	testsuite.QueueBatchTask(t, rt, testdb.Org1, &tasks.StartFlow{FlowStart: start1})
+	assert.Equal(t, map[string]int{"start_flow": 1}, testsuite.FlushTasks(t, rt))
+
+	assertdb.Query(t, rt.DB, `SELECT status FROM flows_flowstart WHERE id = $1`, start1.ID).Returns("F")
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowrun WHERE start_id = $1`, start1.ID).Returns(0)
+
+	// as does one whose batches were queued before the workspace was suspended
+	testdb.Org1.SetStatus(t, rt, models.OrgStatusActive)
+
+	start2 := newStart()
+	err := (&tasks.StartFlow{FlowStart: start2}).Perform(ctx, rt, testdb.Org1.Load(t, rt), testTaskID)
+	require.NoError(t, err)
+
+	testdb.Org1.SetStatus(t, rt, models.OrgStatusSuspended)
+	assert.Equal(t, map[string]int{"start_flow_batch": 1}, testsuite.FlushTasks(t, rt))
+
+	assertdb.Query(t, rt.DB, `SELECT status FROM flows_flowstart WHERE id = $1`, start2.ID).Returns("F")
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowrun WHERE start_id = $1`, start2.ID).Returns(0)
+
+	// a restricted workspace starts flows as normal
+	testdb.Org1.SetStatus(t, rt, models.OrgStatusRestricted)
+
+	start3 := newStart()
+	testsuite.QueueBatchTask(t, rt, testdb.Org1, &tasks.StartFlow{FlowStart: start3})
+	assert.Equal(t, map[string]int{"start_flow": 1, "start_flow_batch": 1}, testsuite.FlushTasks(t, rt))
+
+	assertdb.Query(t, rt.DB, `SELECT status FROM flows_flowstart WHERE id = $1`, start3.ID).Returns("C")
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowrun WHERE start_id = $1`, start3.ID).Returns(2)
+}

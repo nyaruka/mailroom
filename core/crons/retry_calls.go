@@ -55,6 +55,14 @@ func (c *RetryCallsCron) Run(ctx context.Context, rt *runtime.Runtime) (map[stri
 			continue
 		}
 
+		// a suspended workspace doesn't make calls, and retrying them once it's reactivated would be a backlog
+		if oa.Org().IsSuspended() {
+			if err := call.SetFailed(ctx, rt.DB); err != nil {
+				log.Error("error marking call as failed due to suspended workspace", "error", err)
+			}
+			continue
+		}
+
 		// and the associated channel
 		channel := oa.ChannelByID(call.ChannelID())
 		if channel == nil {

@@ -164,3 +164,119 @@ func TestTimedEvents(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'E'`, testdb.Ann.ID).Returns(1)
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contactfire WHERE contact_id = $1 AND fire_type = 'T'`, testdb.Ann.ID).Returns(0)
 }
+
+func TestTimedEventsSuspendedOrg(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+	vc := rt.VK.Get()
+	defer vc.Close()
+
+	testdb.InsertKeywordTrigger(t, rt, testdb.Org1, testdb.Favorites, []string{"start"}, models.MatchOnly, nil, nil, nil)
+
+	contact := testdb.Ann
+
+	tcs := []struct {
+		orgStatus        models.OrgStatus
+		eventType        string
+		messageIn        string
+		expectedResponse string
+		expectedFlow     *testdb.Flow
+		expectedSession  models.SessionStatus // status of the latest session
+	}{
+		// 0: a suspended workspace doesn't fire triggers
+		{models.OrgStatusSuspended, ctasks.TypeMsgReceived, "start", "", nil, ""},
+
+		// 1: but a restricted one does
+		{models.OrgStatusRestricted, ctasks.TypeMsgReceived, "start", "What is your favorite color?", testdb.Favorites, models.SessionStatusWaiting},
+
+		// 2: messages to a suspended workspace don't resume the flow but leave the session waiting
+		{models.OrgStatusSuspended, ctasks.TypeMsgReceived, "red", "", testdb.Favorites, models.SessionStatusWaiting},
+
+		// 3: and neither do timeouts
+		{models.OrgStatusSuspended, ctasks.TypeWaitTimeout, "", "", testdb.Favorites, models.SessionStatusWaiting},
+
+		// 4: so if it's reactivated, the contact carries on from where they were
+		{models.OrgStatusActive, ctasks.TypeMsgReceived, "red", "Good choice, I like Red too! What is your favorite beer?", testdb.Favorites, models.SessionStatusWaiting},
+
+		// 5: start the parent expiration flow
+		{models.OrgStatusActive, ctasks.TypeMsgReceived, "parent", "Child", testdb.ChildTimeoutFlow, models.SessionStatusWaiting},
+
+		// 6: expiring the child in a suspended workspace ends the session without the parent carrying on
+		{models.OrgStatusSuspended, ctasks.TypeWaitExpired, "", "", nil, models.SessionStatusExpired},
+
+		// 7: start the parent expiration flow again
+		{models.OrgStatusActive, ctasks.TypeMsgReceived, "parent", "Child", testdb.ChildTimeoutFlow, models.SessionStatusWaiting},
+
+		// 8: and in a restricted workspace the parent carries on as normal
+		{models.OrgStatusRestricted, ctasks.TypeWaitExpired, "", "Expired", testdb.ParentTimeoutFlow, models.SessionStatusWaiting},
+
+		// 9: start our favorite flow again
+		{models.OrgStatusActive, ctasks.TypeMsgReceived, "start", "What is your favorite color?", testdb.Favorites, models.SessionStatusWaiting},
+
+		// 10: and a restricted workspace times out as normal
+		{models.OrgStatusRestricted, ctasks.TypeWaitTimeout, "", "Sorry you can't participate right now, I'll try again later.", nil, models.SessionStatusCompleted},
+	}
+
+	last := time.Now()
+	var sessionUUID core.SessionUUID
+	var sprintUUID flows.SprintUUID
+
+	for i, tc := range tcs {
+		time.Sleep(50 * time.Millisecond)
+
+		testdb.Org1.SetStatus(t, rt, tc.orgStatus)
+
+		var ctask ctasks.Task
+		if tc.eventType == ctasks.TypeMsgReceived {
+			ctask = &ctasks.MsgReceived{
+				ChannelID: testdb.FacebookChannel.ID,
+				MsgUUID:   events.NewEventUUID(),
+				URN:       contact.URN,
+				URNID:     contact.URNID,
+				Text:      tc.messageIn,
+			}
+		} else if tc.eventType == ctasks.TypeWaitExpired {
+			ctask = &ctasks.WaitExpired{SessionUUID: sessionUUID, SprintUUID: sprintUUID}
+		} else if tc.eventType == ctasks.TypeWaitTimeout {
+			ctask = &ctasks.WaitTimeout{SessionUUID: sessionUUID, SprintUUID: sprintUUID}
+		}
+
+		err := tasks.QueueContact(ctx, rt, testdb.Org1.ID, contact.ID, ctask)
+		require.NoError(t, err, "%d: error adding task", i)
+
+		task, err := rt.Queues.Realtime.Pop(ctx, vc)
+		require.NoError(t, err, "%d: error popping next task", i)
+
+		err = tasks.Perform(ctx, rt, task)
+		require.NoError(t, err, "%d: error when handling event", i)
+
+		require.NoError(t, rt.Queues.Realtime.Done(ctx, vc, task))
+
+		if tc.expectedResponse != "" {
+			assertdb.Query(t, rt.DB, `SELECT text FROM msgs_msg WHERE contact_id = $1 AND direction = 'O' AND created_on > $2 ORDER BY id DESC LIMIT 1`, contact.ID, last).
+				Returns(tc.expectedResponse, "%d: response: mismatch", i)
+		} else {
+			assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE contact_id = $1 AND direction = 'O' AND created_on > $2`, contact.ID, last).
+				Returns(0, "%d: unexpected response", i)
+		}
+
+		if tc.expectedFlow != nil {
+			assertdb.Query(t, rt.DB, `SELECT current_flow_id FROM contacts_contact WHERE id = $1`, contact.ID).Returns(int64(tc.expectedFlow.ID), "%d: flow: mismatch", i)
+		} else {
+			assertdb.Query(t, rt.DB, `SELECT current_flow_id FROM contacts_contact WHERE id = $1`, contact.ID).Returns(nil, "%d: flow: mismatch", i)
+		}
+
+		if tc.expectedSession != "" {
+			assertdb.Query(t, rt.DB, `SELECT status FROM flows_flowsession WHERE contact_uuid = $1 ORDER BY id DESC LIMIT 1`, contact.UUID).
+				Returns(string(tc.expectedSession), "%d: session status mismatch", i)
+
+			err = rt.DB.Get(&sessionUUID, `SELECT uuid FROM flows_flowsession WHERE contact_uuid = $1 ORDER BY id DESC LIMIT 1`, contact.UUID)
+			require.NoError(t, err)
+			err = rt.DB.Get(&sprintUUID, `SELECT last_sprint_uuid FROM flows_flowsession WHERE contact_uuid = $1 ORDER BY id DESC LIMIT 1`, contact.UUID)
+			require.NoError(t, err)
+		} else {
+			assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE contact_uuid = $1`, contact.UUID).Returns(0, "%d: unexpected session", i)
+		}
+
+		last = time.Now()
+	}
+}

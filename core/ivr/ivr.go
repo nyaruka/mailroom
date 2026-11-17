@@ -93,6 +93,11 @@ func HangupCall(ctx context.Context, rt *runtime.Runtime, call *models.Call) (*m
 
 // RequestCall creates a new outgoing call and makes a request to the service to start it
 func RequestCall(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, mc *models.Contact, trigger flows.Trigger) (*models.Call, error) {
+	// a suspended workspace doesn't make calls
+	if oa.Org().IsSuspended() {
+		return nil, nil
+	}
+
 	// find a tel URL for the contact
 	var telURN *models.ContactURN
 	for _, u := range mc.URNs() {

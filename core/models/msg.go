@@ -1342,7 +1342,7 @@ func DeleteMessages(ctx context.Context, tx *sqlx.Tx, orgID OrgID, uuids []event
 }
 
 func msgCheckSendable(ctx context.Context, rt *runtime.Runtime, org *Org, contactID ContactID, content *core.MsgContent) (core.UnsendableReason, error) {
-	if org.Suspended() {
+	if org.IsSuspended() {
 		return UnsendableReasonOrgSuspended, nil
 	}
 

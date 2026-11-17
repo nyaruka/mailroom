@@ -311,6 +311,15 @@ func TestMsgReceivedTask(t *testing.T) {
 			expectedReplyStatus: models.MsgStatusQueued,
 			expectedFlow:        testdb.Favorites,
 		},
+		{ // 26: keyword trigger match but workspace is suspended so message is just handled into the inbox
+			preHook: func() {
+				testdb.Org1.SetStatus(t, rt, models.OrgStatusSuspended)
+			},
+			org:     testdb.Org1,
+			channel: testdb.TwilioChannel,
+			contact: testdb.Cat,
+			text:    "start",
+		},
 	}
 
 	makeMsgTask := func(channel *testdb.Channel, contact *testdb.Contact, text string) ctasks.Task {
