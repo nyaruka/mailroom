@@ -1,6 +1,7 @@
 package models_test
 
 import (
+	"database/sql"
 	"testing"
 
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
@@ -56,4 +57,57 @@ func TestCalls(t *testing.T) {
 	call, err = models.GetCallByExternalID(ctx, rt.DB, testdb.TwilioChannel.ID, "EXT345")
 	assert.NoError(t, err)
 	assert.Equal(t, "EXT345", call.ExternalID())
+}
+
+func TestGetActiveOutgoingCallByURN(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	oa := testdb.Org1.Load(t, rt)
+	ann, _, annURNs := testdb.Ann.Load(t, rt, oa)
+	twilio := oa.ChannelByUUID(testdb.TwilioChannel.UUID)
+
+	// an incoming call from the URN isn't a match
+	callIn := models.NewIncomingCall(testdb.Org1.ID, twilio, ann, annURNs[0].ID, "EXT123")
+	err := models.InsertCalls(ctx, rt.DB, []*models.Call{callIn})
+	assert.NoError(t, err)
+
+	_, err = models.GetActiveOutgoingCallByURN(ctx, rt.DB, testdb.TwilioChannel.ID, testdb.Ann.URN)
+	assert.ErrorIs(t, err, sql.ErrNoRows)
+
+	// nor is an outgoing call that hasn't been requested yet
+	trigger := triggers.NewBuilder(testdb.Favorites.Reference()).Manual().Build()
+	callOut1 := models.NewOutgoingCall(testdb.Org1.ID, twilio, ann, annURNs[0].ID, trigger)
+	callOut2 := models.NewOutgoingCall(testdb.Org1.ID, twilio, ann, annURNs[0].ID, trigger)
+	err = models.InsertCalls(ctx, rt.DB, []*models.Call{callOut1, callOut2})
+	assert.NoError(t, err)
+
+	_, err = models.GetActiveOutgoingCallByURN(ctx, rt.DB, testdb.TwilioChannel.ID, testdb.Ann.URN)
+	assert.ErrorIs(t, err, sql.ErrNoRows)
+
+	// once wired it is, and the newest one wins
+	assert.NoError(t, callOut1.UpdateExternalID(ctx, rt.DB, "EXT234"))
+
+	call, err := models.GetActiveOutgoingCallByURN(ctx, rt.DB, testdb.TwilioChannel.ID, testdb.Ann.URN)
+	assert.NoError(t, err)
+	assert.Equal(t, callOut1.UUID(), call.UUID())
+
+	assert.NoError(t, callOut2.UpdateExternalID(ctx, rt.DB, "EXT345"))
+
+	call, err = models.GetActiveOutgoingCallByURN(ctx, rt.DB, testdb.TwilioChannel.ID, testdb.Ann.URN)
+	assert.NoError(t, err)
+	assert.Equal(t, callOut2.UUID(), call.UUID())
+
+	// but only on the same channel and for the same URN
+	_, err = models.GetActiveOutgoingCallByURN(ctx, rt.DB, testdb.VonageChannel.ID, testdb.Ann.URN)
+	assert.ErrorIs(t, err, sql.ErrNoRows)
+
+	_, err = models.GetActiveOutgoingCallByURN(ctx, rt.DB, testdb.TwilioChannel.ID, testdb.Bob.URN)
+	assert.ErrorIs(t, err, sql.ErrNoRows)
+
+	// and not once ended
+	assert.NoError(t, callOut2.SetFailed(ctx, rt.DB))
+
+	call, err = models.GetActiveOutgoingCallByURN(ctx, rt.DB, testdb.TwilioChannel.ID, testdb.Ann.URN)
+	assert.NoError(t, err)
+	assert.Equal(t, callOut1.UUID(), call.UUID())
 }

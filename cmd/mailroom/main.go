@@ -8,6 +8,7 @@ import (
 	_ "github.com/nyaruka/mailroom/v26/core/runner/hooks"
 	_ "github.com/nyaruka/mailroom/v26/services/airtime/dtone"
 	_ "github.com/nyaruka/mailroom/v26/services/ivr/bandwidth"
+	_ "github.com/nyaruka/mailroom/v26/services/ivr/mnotify"
 	_ "github.com/nyaruka/mailroom/v26/services/ivr/twiml"
 	_ "github.com/nyaruka/mailroom/v26/services/ivr/vonage"
 	_ "github.com/nyaruka/mailroom/v26/services/llm/openai"

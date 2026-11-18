@@ -1,0 +1,236 @@
+[
+    {
+        "label": "end of playback gets next queued action",
+        "method": "GET",
+        "path": "/mr/ivr/c/a2b5d3cf-8a0c-4a0f-9a35-6a1e0d0f7b11/callback?token=sesame&CallerId=16055550000&Extension=16055741111&SequenceID=1001&context=outgoing&IsStarting=false&action=playback",
+        "status": 200,
+        "response": {
+            "actions": {
+                "playback": {
+                    "url": "https://example.com/2.wav"
+                }
+            }
+        },
+        "db_assertions": [
+            {
+                "query": "SELECT contact_id::text, status || '/' || external_id || '/' || COALESCE(error_reason, '') FROM ivr_call",
+                "map": {
+                    "10000": "I/1001/",
+                    "10001": "W/01969b47-2c93-76f8-b774-0a98171a0712/",
+                    "10003": "I/Other1/"
+                }
+            }
+        ]
+    },
+    {
+        "label": "end of next playback gets last queued action",
+        "method": "GET",
+        "path": "/mr/ivr/c/a2b5d3cf-8a0c-4a0f-9a35-6a1e0d0f7b11/callback?token=sesame&CallerId=16055550000&Extension=16055741111&SequenceID=1001&context=outgoing&IsStarting=false&action=playback",
+        "status": 200,
+        "response": {
+            "actions": {
+                "get_digits": {
+                    "url": "https://example.com/3.wav",
+                    "num_digits": 1
+                }
+            }
+        },
+        "db_assertions": [
+            {
+                "query": "SELECT contact_id::text, status || '/' || external_id || '/' || COALESCE(error_reason, '') FROM ivr_call",
+                "map": {
+                    "10000": "I/1001/",
+                    "10001": "W/01969b47-2c93-76f8-b774-0a98171a0712/",
+                    "10003": "I/Other1/"
+                }
+            }
+        ]
+    },
+    {
+        "label": "callback that isn't recognized is ignored",
+        "method": "GET",
+        "path": "/mr/ivr/c/a2b5d3cf-8a0c-4a0f-9a35-6a1e0d0f7b11/callback?token=sesame&CallerId=16055550000&Extension=16055741111&SequenceID=1001&context=outgoing&IsStarting=false&action=dial",
+        "status": 200,
+        "response": {
+            "actions": {
+                "hangup": {}
+            },
+            "message": "unrecognized callback, ignoring"
+        },
+        "db_assertions": [
+            {
+                "query": "SELECT contact_id::text, status || '/' || external_id || '/' || COALESCE(error_reason, '') FROM ivr_call",
+                "map": {
+                    "10000": "I/1001/",
+                    "10001": "W/01969b47-2c93-76f8-b774-0a98171a0712/",
+                    "10003": "I/Other1/"
+                }
+            }
+        ]
+    },
+    {
+        "label": "our UUID for a call on another channel isn't used",
+        "method": "GET",
+        "path": "/mr/ivr/c/a2b5d3cf-8a0c-4a0f-9a35-6a1e0d0f7b11/callback?token=sesame&uniqueId=01969b47-401b-76f8-aac5-d9d0ae409dbe&SequenceID=9998&disposition=BUSY",
+        "status": 200,
+        "response": {
+            "actions": {
+                "hangup": {}
+            },
+            "message": "unknown call, ignoring"
+        },
+        "db_assertions": [
+            {
+                "query": "SELECT contact_id::text, status || '/' || external_id || '/' || COALESCE(error_reason, '') FROM ivr_call",
+                "map": {
+                    "10000": "I/1001/",
+                    "10001": "W/01969b47-2c93-76f8-b774-0a98171a0712/",
+                    "10003": "I/Other1/"
+                }
+            }
+        ]
+    },
+    {
+        "label": "status of unanswered call found by our UUID",
+        "method": "GET",
+        "path": "/mr/ivr/c/a2b5d3cf-8a0c-4a0f-9a35-6a1e0d0f7b11/callback?token=sesame&uniqueId=01969b47-2c93-76f8-b774-0a98171a0712&disposition=BUSY",
+        "status": 200,
+        "response": {
+            "actions": {
+                "hangup": {}
+            },
+            "message": "status updated: E, next_attempt: 2025-05-04 13:31:08.123456789 +0000 UTC"
+        },
+        "db_assertions": [
+            {
+                "query": "SELECT contact_id::text, status || '/' || external_id || '/' || COALESCE(error_reason, '') FROM ivr_call",
+                "map": {
+                    "10000": "I/1001/",
+                    "10001": "E/01969b47-2c93-76f8-b774-0a98171a0712/B",
+                    "10003": "I/Other1/"
+                }
+            }
+        ]
+    },
+    {
+        "label": "our UUID for unknown call falls back to provider id",
+        "method": "GET",
+        "path": "/mr/ivr/c/a2b5d3cf-8a0c-4a0f-9a35-6a1e0d0f7b11/callback?token=sesame&uniqueId=01969b47-ffff-76f8-b774-0a98171a0712&SequenceID=1001&disposition=ANSWERED&duration=25",
+        "status": 200,
+        "response": {
+            "actions": {
+                "hangup": {}
+            },
+            "message": "status updated: D"
+        },
+        "db_assertions": [
+            {
+                "query": "SELECT contact_id::text, status || '/' || external_id || '/' || COALESCE(error_reason, '') FROM ivr_call",
+                "map": {
+                    "10000": "D/1001/",
+                    "10001": "E/01969b47-2c93-76f8-b774-0a98171a0712/B",
+                    "10003": "I/Other1/"
+                }
+            }
+        ]
+    },
+    {
+        "label": "end of playback on ended call doesn't get queued action",
+        "method": "GET",
+        "path": "/mr/ivr/c/a2b5d3cf-8a0c-4a0f-9a35-6a1e0d0f7b11/callback?token=sesame&CallerId=16055550000&Extension=16055741111&SequenceID=1001&context=outgoing&IsStarting=false&action=playback",
+        "status": 200,
+        "response": {
+            "actions": {
+                "hangup": {}
+            },
+            "message": "call already completed, ignoring"
+        },
+        "db_assertions": [
+            {
+                "query": "SELECT contact_id::text, status || '/' || external_id || '/' || COALESCE(error_reason, '') FROM ivr_call",
+                "map": {
+                    "10000": "D/1001/",
+                    "10001": "E/01969b47-2c93-76f8-b774-0a98171a0712/B",
+                    "10003": "I/Other1/"
+                }
+            }
+        ]
+    },
+    {
+        "label": "status of unknown call is ignored",
+        "method": "GET",
+        "path": "/mr/ivr/c/a2b5d3cf-8a0c-4a0f-9a35-6a1e0d0f7b11/callback?token=sesame&SequenceID=9999&CallerId=16055550000&Extension=16055749999&disposition=ANSWERED",
+        "status": 200,
+        "response": {
+            "actions": {
+                "hangup": {}
+            },
+            "message": "unknown call, ignoring"
+        },
+        "db_assertions": [
+            {
+                "query": "SELECT contact_id::text, status || '/' || external_id || '/' || COALESCE(error_reason, '') FROM ivr_call",
+                "map": {
+                    "10000": "D/1001/",
+                    "10001": "E/01969b47-2c93-76f8-b774-0a98171a0712/B",
+                    "10003": "I/Other1/"
+                }
+            }
+        ]
+    },
+    {
+        "label": "incoming call without a trigger",
+        "method": "GET",
+        "path": "/mr/ivr/c/a2b5d3cf-8a0c-4a0f-9a35-6a1e0d0f7b11/callback?token=sesame&CallerId=16055743333&Extension=16055550000&SequenceID=2001&IsStarting=true&context=incoming",
+        "status": 200,
+        "response": {
+            "actions": {
+                "hangup": {}
+            },
+            "message": "missed call handled"
+        },
+        "db_assertions": [
+            {
+                "query": "SELECT contact_id::text, status || '/' || external_id || '/' || COALESCE(error_reason, '') FROM ivr_call",
+                "map": {
+                    "10000": "D/1001/",
+                    "10001": "E/01969b47-2c93-76f8-b774-0a98171a0712/B",
+                    "10002": "D/2001/",
+                    "10003": "I/Other1/"
+                }
+            }
+        ],
+        "expected_history": [
+            {
+                "PK": "con#cd024bcd-f473-4719-a00a-bd0bb1190135",
+                "SK": "evt#01969b47-b54b-76f8-8b42-056e0211d5b9",
+                "OrgID": 1,
+                "TTL": "2026-05-04T12:31:31Z",
+                "Data": {
+                    "created_on": "2025-05-04T12:31:31.123456789Z",
+                    "type": "contact_urns_changed",
+                    "urns": [
+                        "tel:+16055743333?channel=a2b5d3cf-8a0c-4a0f-9a35-6a1e0d0f7b11"
+                    ]
+                }
+            },
+            {
+                "PK": "con#cd024bcd-f473-4719-a00a-bd0bb1190135",
+                "SK": "evt#01969b47-bd1b-76f8-89aa-1577771fa183",
+                "OrgID": 1,
+                "Data": {
+                    "call": {
+                        "channel": {
+                            "name": "mNotify",
+                            "uuid": "a2b5d3cf-8a0c-4a0f-9a35-6a1e0d0f7b11"
+                        },
+                        "urn": "tel:+16055743333",
+                        "uuid": "01969b47-b163-76f8-9d79-c694bc69dcd1"
+                    },
+                    "created_on": "2025-05-04T12:31:33.123456789Z",
+                    "type": "call_received"
+                }
+            }
+        ]
+    }
+]

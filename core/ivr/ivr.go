@@ -34,9 +34,11 @@ const (
 	// ErrorMessage that is spoken to an IVR user if an error occurs
 	ErrorMessage = "An error has occurred, please try again later."
 
-	ActionStart  = "start"
-	ActionResume = "resume"
-	ActionStatus = "status"
+	ActionStart    = "start"
+	ActionResume   = "resume"
+	ActionStatus   = "status"
+	ActionIncoming = "incoming"
+	ActionNone     = "none"
 )
 
 // CallbackParams is our form for what fields we expect in IVR callbacks

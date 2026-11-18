@@ -1,0 +1,267 @@
+[
+    {
+        "label": "start of call that has errored doesn't restart it",
+        "method": "GET",
+        "path": "/mr/ivr/c/a2b5d3cf-8a0c-4a0f-9a35-6a1e0d0f7b11/callback?token=sesame&uniqueId=01969b47-2c93-76f8-b774-0a98171a0712&SequenceID=3001&context=outgoing&IsStarting=true",
+        "status": 200,
+        "response": {
+            "actions": {
+                "hangup": {}
+            },
+            "message": "call no longer active, ignoring"
+        },
+        "db_assertions": [
+            {
+                "query": "SELECT id::text, contact_id || '/' || status || '/' || external_id || '/' || COALESCE(error_reason, '') FROM ivr_call",
+                "map": {
+                    "30000": "10000/D/1001/",
+                    "30001": "10001/E/01969b47-2c93-76f8-b774-0a98171a0712/B",
+                    "30002": "10003/I/Other1/",
+                    "30003": "10002/D/2001/",
+                    "30004": "10002/W/Wired1/",
+                    "30005": "10003/W/Wired2/"
+                }
+            }
+        ]
+    },
+    {
+        "label": "start with reused provider id is matched by number called instead",
+        "method": "GET",
+        "path": "/mr/ivr/c/a2b5d3cf-8a0c-4a0f-9a35-6a1e0d0f7b11/callback?token=sesame&CallerId=16055550000&Extension=16055743333&SequenceID=1001&context=outgoing&IsStarting=true",
+        "status": 200,
+        "response": {
+            "actions": {
+                "get_digits": {
+                    "num_digits": 1,
+                    "timeout": 30000,
+                    "skip_audio": true
+                }
+            }
+        },
+        "db_assertions": [
+            {
+                "query": "SELECT id::text, contact_id || '/' || status || '/' || external_id || '/' || COALESCE(error_reason, '') FROM ivr_call",
+                "map": {
+                    "30000": "10000/D/1001/",
+                    "30001": "10001/E/01969b47-2c93-76f8-b774-0a98171a0712/B",
+                    "30002": "10003/I/Other1/",
+                    "30003": "10002/D/2001/",
+                    "30004": "10002/I/1001/",
+                    "30005": "10003/W/Wired2/"
+                }
+            }
+        ],
+        "expected_history": [
+            {
+                "PK": "con#cd024bcd-f473-4719-a00a-bd0bb1190135",
+                "SK": "evt#01969b47-24c3-76f8-95cf-9fca95f1c30a",
+                "OrgID": 1,
+                "Data": {
+                    "call": {
+                        "channel": {
+                            "name": "mNotify",
+                            "uuid": "a2b5d3cf-8a0c-4a0f-9a35-6a1e0d0f7b11"
+                        },
+                        "urn": "tel:+16055743333",
+                        "uuid": "01969b47-5c2b-76f8-8d1e-3b7f6a1c9e20"
+                    },
+                    "created_on": "2025-05-04T12:30:54.123456789Z",
+                    "type": "call_created"
+                }
+            },
+            {
+                "PK": "con#cd024bcd-f473-4719-a00a-bd0bb1190135",
+                "SK": "evt#01969b47-3c33-76f8-a7eb-cc4cc9ec3e6b",
+                "OrgID": 1,
+                "Data": {
+                    "created_on": "2025-05-04T12:31:00.123456789Z",
+                    "flow": {
+                        "name": "IVR Flow",
+                        "revision": 1,
+                        "uuid": "2f81d0ea-4d75-4843-9371-3f7465311cce"
+                    },
+                    "run_uuid": "01969b47-384b-76f8-b774-0a98171a0712",
+                    "type": "run_started"
+                }
+            },
+            {
+                "PK": "con#cd024bcd-f473-4719-a00a-bd0bb1190135",
+                "SK": "evt#01969b47-4fbb-76f8-9729-57745fb13b06",
+                "OrgID": 1,
+                "Data": {
+                    "created_on": "2025-05-04T12:31:05.123456789Z",
+                    "msg": {
+                        "channel": {
+                            "name": "mNotify",
+                            "uuid": "a2b5d3cf-8a0c-4a0f-9a35-6a1e0d0f7b11"
+                        },
+                        "locale": "und-US",
+                        "text": "Hello there. Please enter one or two.",
+                        "urn": "tel:+16055743333"
+                    },
+                    "type": "ivr_created"
+                }
+            }
+        ]
+    },
+    {
+        "label": "status of unanswered call to blocked contact found by number called",
+        "method": "GET",
+        "path": "/mr/ivr/c/a2b5d3cf-8a0c-4a0f-9a35-6a1e0d0f7b11/callback?token=sesame&CallerId=16055550000&Extension=593999123456&disposition=NO+ANSWER",
+        "status": 200,
+        "response": {
+            "actions": {
+                "hangup": {}
+            },
+            "message": "status updated: E, next_attempt: 2025-05-04 13:31:21.123456789 +0000 UTC"
+        },
+        "db_assertions": [
+            {
+                "query": "SELECT id::text, contact_id || '/' || status || '/' || external_id || '/' || COALESCE(error_reason, '') FROM ivr_call",
+                "map": {
+                    "30000": "10000/D/1001/",
+                    "30001": "10001/E/01969b47-2c93-76f8-b774-0a98171a0712/B",
+                    "30002": "10003/I/Other1/",
+                    "30003": "10002/D/2001/",
+                    "30004": "10002/I/1001/",
+                    "30005": "10003/E/Wired2/N"
+                }
+            }
+        ]
+    },
+    {
+        "label": "incoming call with context set by provider starts flow of trigger",
+        "method": "GET",
+        "path": "/mr/ivr/c/a2b5d3cf-8a0c-4a0f-9a35-6a1e0d0f7b11/callback?token=sesame&CallerId=16055741111&Extension=16055550000&SequenceID=4001&IsStarting=true&context=from-trunk",
+        "status": 200,
+        "response": {
+            "actions": {
+                "get_digits": {
+                    "num_digits": 1,
+                    "timeout": 30000,
+                    "skip_audio": true
+                }
+            }
+        },
+        "db_assertions": [
+            {
+                "query": "SELECT id::text, contact_id || '/' || status || '/' || external_id || '/' || COALESCE(error_reason, '') FROM ivr_call",
+                "map": {
+                    "30000": "10000/D/1001/",
+                    "30001": "10001/E/01969b47-2c93-76f8-b774-0a98171a0712/B",
+                    "30002": "10003/I/Other1/",
+                    "30003": "10002/D/2001/",
+                    "30004": "10002/I/1001/",
+                    "30005": "10003/E/Wired2/N",
+                    "30006": "10000/I/4001/"
+                }
+            }
+        ],
+        "expected_history": [
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01969b47-ad7b-76f8-b3a5-b9dac4767740",
+                "OrgID": 1,
+                "TTL": "2026-05-04T12:31:29Z",
+                "Data": {
+                    "created_on": "2025-05-04T12:31:29.123456789Z",
+                    "type": "contact_urns_changed",
+                    "urns": [
+                        "tel:+16055741111?channel=a2b5d3cf-8a0c-4a0f-9a35-6a1e0d0f7b11"
+                    ]
+                }
+            },
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01969b47-b54b-76f8-87c7-10f327cbfde2",
+                "OrgID": 1,
+                "Data": {
+                    "call": {
+                        "channel": {
+                            "name": "mNotify",
+                            "uuid": "a2b5d3cf-8a0c-4a0f-9a35-6a1e0d0f7b11"
+                        },
+                        "urn": "tel:+16055741111",
+                        "uuid": "01969b47-a993-76f8-b384-a4094c3d60be"
+                    },
+                    "created_on": "2025-05-04T12:31:31.123456789Z",
+                    "type": "call_received"
+                }
+            },
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01969b47-d0a3-76f8-bffe-b26e15b12b0f",
+                "OrgID": 1,
+                "Data": {
+                    "created_on": "2025-05-04T12:31:38.123456789Z",
+                    "flow": {
+                        "name": "IVR Flow",
+                        "uuid": "2f81d0ea-4d75-4843-9371-3f7465311cce"
+                    },
+                    "run_uuid": "01969b47-28ab-76f8-b20c-e3cb6203e029",
+                    "status": "interrupted",
+                    "type": "run_ended"
+                }
+            },
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01969b47-e813-76f8-a8c9-d76ecec32717",
+                "OrgID": 1,
+                "Data": {
+                    "created_on": "2025-05-04T12:31:44.123456789Z",
+                    "flow": {
+                        "name": "IVR Flow",
+                        "revision": 1,
+                        "uuid": "2f81d0ea-4d75-4843-9371-3f7465311cce"
+                    },
+                    "run_uuid": "01969b47-e42b-76f8-a58f-30ba497b0d21",
+                    "type": "run_started"
+                }
+            },
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01969b47-fb9b-76f8-95d6-85696b970f6a",
+                "OrgID": 1,
+                "Data": {
+                    "created_on": "2025-05-04T12:31:49.123456789Z",
+                    "msg": {
+                        "channel": {
+                            "name": "mNotify",
+                            "uuid": "a2b5d3cf-8a0c-4a0f-9a35-6a1e0d0f7b11"
+                        },
+                        "locale": "und-US",
+                        "text": "Hello there. Please enter one or two.",
+                        "urn": "tel:+16055741111"
+                    },
+                    "type": "ivr_created"
+                }
+            }
+        ]
+    },
+    {
+        "label": "status of incoming call that has ended",
+        "method": "GET",
+        "path": "/mr/ivr/c/a2b5d3cf-8a0c-4a0f-9a35-6a1e0d0f7b11/callback?token=sesame&SequenceID=4001&disposition=ANSWERED&duration=12",
+        "status": 200,
+        "response": {
+            "actions": {
+                "hangup": {}
+            },
+            "message": "status updated: D"
+        },
+        "db_assertions": [
+            {
+                "query": "SELECT id::text, contact_id || '/' || status || '/' || external_id || '/' || COALESCE(error_reason, '') FROM ivr_call",
+                "map": {
+                    "30000": "10000/D/1001/",
+                    "30001": "10001/E/01969b47-2c93-76f8-b774-0a98171a0712/B",
+                    "30002": "10003/I/Other1/",
+                    "30003": "10002/D/2001/",
+                    "30004": "10002/I/1001/",
+                    "30005": "10003/E/Wired2/N",
+                    "30006": "10000/D/4001/"
+                }
+            }
+        ]
+    }
+]
