@@ -3,6 +3,8 @@ package handlers_test
 import (
 	"testing"
 
+	"github.com/nyaruka/vkutil/assertvk"
+
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/flows/modifiers"
@@ -17,6 +19,15 @@ func TestTicketOpened(t *testing.T) {
 	_, rt := testsuite.Runtime(t)
 
 	runTests(t, rt, "testdata/ticket_opened.json")
+
+	vc := rt.VK.Get()
+	defer vc.Close()
+
+	assertvk.HGetAll(t, vc, "{tallies}:live", map[string]string{
+		"O1|tickets/assigned:3@2025-05-04":   "1",
+		"O1|tickets/opened:10000@2025-05-04": "1",
+		"O1|tickets/opened:10002@2025-05-04": "1",
+	})
 }
 
 func TestTicketOpenedWithoutIdleLimit(t *testing.T) {

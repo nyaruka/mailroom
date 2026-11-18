@@ -200,6 +200,25 @@ func InsertTickets(ctx context.Context, tx DBorTx, oa *OrgAssets, tickets []*Tic
 	return nil
 }
 
+// TicketOpenedTallies gets the tally amounts which count the given tickets being opened at the given time, by topic, and
+// for those opened with an assignee, being assigned
+func TicketOpenedTallies(oa *OrgAssets, tickets []*Ticket, t time.Time) map[string]int64 {
+	amounts := make(map[string]int64, len(tickets))
+	for _, tk := range tickets {
+		amounts[TallyField(oa.OrgID(), fmt.Sprintf("%s/opened:%d", TallyTickets, tk.TopicID), t)]++
+
+		if tk.AssigneeID != NilUserID && oa.UserByID(tk.AssigneeID) != nil {
+			amounts[TallyField(oa.OrgID(), fmt.Sprintf("%s/assigned:%d", TallyTickets, tk.AssigneeID), t)]++
+		}
+	}
+	return amounts
+}
+
+// TicketAssignedTallies gets the tally amounts which count a ticket being assigned to the given user at the given time
+func TicketAssignedTallies(orgID OrgID, assigneeID UserID, t time.Time) map[string]int64 {
+	return map[string]int64{TallyField(orgID, fmt.Sprintf("%s/assigned:%d", TallyTickets, assigneeID), t): 1}
+}
+
 // UpdateTicketLastActivity updates the last_activity_on of the given tickets to be now
 func UpdateTicketLastActivity(ctx context.Context, db DBorTx, tickets []*Ticket) error {
 	now := dates.Now()
@@ -241,11 +260,13 @@ const sqlUpdateTicketRepliedOn = `
 RETURNING CASE WHEN t2.replied_on IS NULL THEN t1.opened_on ELSE NULL END`
 
 // RecordTicketReply records a reply by a user to the given ticket, updating last_activity_on and, if this is the first
-// reply, replied_on. Also records the reply count and, for a first reply, the response time.
-func RecordTicketReply(ctx context.Context, db DBorTx, oa *OrgAssets, ticket *Ticket, userID UserID, when time.Time) error {
+// reply, replied_on. Also records the reply count and, for a first reply, the response time, returning the tally
+// amounts which count them, to be incremented once committed. Replies are tallied by the user's team and by the user on
+// the day of the reply, and response times as a total of seconds and a count on the day the ticket was opened.
+func RecordTicketReply(ctx context.Context, db DBorTx, oa *OrgAssets, ticket *Ticket, userID UserID, when time.Time) (map[string]int64, error) {
 	var openedOn *time.Time
 	if err := db.GetContext(ctx, &openedOn, sqlUpdateTicketRepliedOn, ticket.ID, when); err != nil {
-		return fmt.Errorf("error updating ticket replied_on: %w", err)
+		return nil, fmt.Errorf("error updating ticket replied_on: %w", err)
 	}
 
 	ticket.LastActivityOn = when
@@ -267,7 +288,12 @@ func RecordTicketReply(ctx context.Context, db DBorTx, oa *OrgAssets, ticket *Ti
 	dailyCounts := map[string]int{fmt.Sprintf("msgs:ticketreplies:%d:%d", teamID, userID): 1}
 
 	if err := InsertDailyCounts(ctx, db, oa, when, dailyCounts); err != nil {
-		return fmt.Errorf("error inserting daily counts: %w", err)
+		return nil, fmt.Errorf("error inserting daily counts: %w", err)
+	}
+
+	tallies := map[string]int64{
+		TallyField(oa.OrgID(), fmt.Sprintf("%s/teamreplies:%d", TallyTickets, teamID), when): 1,
+		TallyField(oa.OrgID(), fmt.Sprintf("%s/userreplies:%d", TallyTickets, userID), when): 1,
 	}
 
 	// if this is the first reply to the ticket then record the ticket response time
@@ -276,9 +302,12 @@ func RecordTicketReply(ctx context.Context, db DBorTx, oa *OrgAssets, ticket *Ti
 		timingCounts := map[string]int{"ticketresptime:total": respSeconds, "ticketresptime:count": 1}
 
 		if err := InsertDailyCounts(ctx, db, oa, *openedOn, timingCounts); err != nil {
-			return fmt.Errorf("error inserting daily counts: %w", err)
+			return nil, fmt.Errorf("error inserting daily counts: %w", err)
 		}
+
+		tallies[TallyField(oa.OrgID(), TallyTickets+"/resptime:total", *openedOn)] = int64(respSeconds)
+		tallies[TallyField(oa.OrgID(), TallyTickets+"/resptime:count", *openedOn)] = 1
 	}
 
-	return nil
+	return tallies, nil
 }

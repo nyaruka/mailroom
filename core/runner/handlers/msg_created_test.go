@@ -82,4 +82,17 @@ func TestMsgCreatedTicketReply(t *testing.T) {
 	rt.DB.MustExec(`UPDATE tickets_ticket SET status = 'C', outcome = 'R', closed_on = '2015-01-02T12:30:45Z', last_activity_on = '2015-01-02T12:30:45Z' WHERE id = $1`, closed.ID)
 
 	runTests(t, rt, "testdata/msg_created_ticket_reply.json")
+
+	vc := rt.VK.Get()
+	defer vc.Close()
+
+	// replies to open tickets are tallied, and the first one's response time on the day the ticket was opened
+	assertvk.HGetAll(t, vc, "{tallies}:live", map[string]string{
+		"C10000|text:out@2025-05-04":              "3",
+		"O1|msgs/text:out@2025-05-04":             "3",
+		"O1|tickets/resptime:count@2025-05-04":    "1",
+		"O1|tickets/resptime:total@2025-05-04":    "3600",
+		"O1|tickets/teamreplies:10001@2025-05-04": "2",
+		"O1|tickets/userreplies:5@2025-05-04":     "2",
+	})
 }

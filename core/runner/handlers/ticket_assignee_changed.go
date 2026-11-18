@@ -50,6 +50,7 @@ func handleTicketAssigneeChanged(ctx context.Context, rt *runtime.Runtime, oa *m
 		scene.AttachPreCommitHook(hooks.InsertDailyCounts, map[string]int{
 			fmt.Sprintf("tickets:assigned:%d:%d", teamID, assignee.ID()): 1,
 		})
+		scene.AttachPostCommitHook(hooks.IncrementTallies, models.TicketAssignedTallies(oa.OrgID(), assignee.ID(), e.CreatedOn()))
 	}
 
 	return nil
