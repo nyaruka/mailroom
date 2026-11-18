@@ -1,3 +1,6 @@
+## v26.3.148 (2026-11-18)
+ * Tally the runs in each status of each flow
+
 ## v26.3.147 (2026-11-17)
  * Read org status instead of is_suspended
  * Update test database dump for latest schema
