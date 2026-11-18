@@ -464,8 +464,8 @@ func TestSessionFailedStart(t *testing.T) {
 	assertFlowStatusTallies(t, rt, pong.ID, map[models.RunStatus]int{"F": 125})
 
 	// check the contact
-	assertdb.Query(t, rt.DB, `SELECT current_session_uuid, current_flow_id, current_flow_uuid FROM contacts_contact WHERE id = $1`, testdb.Ann.ID).Columns(map[string]any{
-		"current_session_uuid": nil, "current_flow_id": nil, "current_flow_uuid": nil,
+	assertdb.Query(t, rt.DB, `SELECT current_session_uuid, current_flow_uuid FROM contacts_contact WHERE id = $1`, testdb.Ann.ID).Columns(map[string]any{
+		"current_session_uuid": nil, "current_flow_uuid": nil,
 	})
 
 	assert.Equal(t, []string{"failure"}, testsuite.GetHistoryEventTypes(t, rt, false, time.Time{})[testdb.Ann.UUID])
