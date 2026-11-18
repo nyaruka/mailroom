@@ -129,6 +129,39 @@ func TestNewContactDoc(t *testing.T) {
 	assert.NotNil(t, ageField.Number)
 }
 
+func TestIndexContactsCurrentFlow(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	testsuite.IndexContacts(t, rt)
+
+	oa := testdb.Org1.Load(t, rt)
+
+	mcs, err := models.LoadContacts(ctx, rt.DB, oa, []models.ContactID{testdb.Ann.ID, testdb.Bob.ID, testdb.Cat.ID})
+	require.NoError(t, err)
+
+	contacts := make([]*core.Contact, len(mcs))
+	for i, mc := range mcs {
+		contacts[i], err = mc.EngineContact(oa)
+		require.NoError(t, err)
+	}
+
+	// Bob's flow UUID doesn't resolve to a flow so he's indexed as not being in a flow
+	err = search.IndexContacts(ctx, rt, oa, contacts, map[models.ContactID]assets.FlowUUID{
+		testdb.Ann.ID: testdb.Favorites.UUID,
+		testdb.Bob.ID: "1b0aa2c3-6f4f-4ad8-9c2e-0e8c5b0f3d9a",
+	})
+	require.NoError(t, err)
+
+	rt.ES.Writer.Flush()
+	_, err = rt.ES.Client.Indices.Refresh().Index(rt.Config.ElasticContactsIndex).Do(ctx)
+	require.NoError(t, err)
+
+	assertSearchCountV2(t, rt, elastic.Term("flow_id", testdb.Favorites.ID), 1)
+	assertSearchCountV2(t, rt, elastic.All(elastic.Term("id", testdb.Ann.ID), elastic.Term("flow_id", testdb.Favorites.ID)), 1)
+	assertSearchCountV2(t, rt, elastic.All(elastic.Term("id", testdb.Bob.ID), elastic.Exists("flow_id")), 0)
+	assertSearchCountV2(t, rt, elastic.Term("id", testdb.Bob.ID), 1)
+}
+
 func TestDeindexContacts(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 

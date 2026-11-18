@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/search"
@@ -39,14 +40,14 @@ func handleReindex(ctx context.Context, rt *runtime.Runtime, r *reindexRequest) 
 	}
 
 	contacts := make([]*core.Contact, 0, len(mcs))
-	currentFlows := make(map[models.ContactID]models.FlowID, len(mcs))
+	currentFlows := make(map[models.ContactID]assets.FlowUUID, len(mcs))
 	for _, mc := range mcs {
 		contact, err := mc.EngineContact(oa)
 		if err != nil {
 			return nil, 0, fmt.Errorf("error creating engine contact: %w", err)
 		}
 		contacts = append(contacts, contact)
-		currentFlows[mc.ID()] = mc.CurrentFlowID()
+		currentFlows[mc.ID()] = mc.CurrentFlowUUID()
 	}
 
 	if err := search.IndexContacts(ctx, rt, oa, contacts, currentFlows); err != nil {

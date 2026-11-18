@@ -373,7 +373,7 @@ func indexOrgContacts(t *testing.T, rt *runtime.Runtime, org *testdb.Org) {
 			contacts = append(contacts, contact)
 		}
 
-		err = search.IndexContacts(ctx, rt, oa, contacts, map[models.ContactID]models.FlowID{})
+		err = search.IndexContacts(ctx, rt, oa, contacts, nil)
 		require.NoError(t, err)
 
 		afterID = contactIDs[len(contactIDs)-1]

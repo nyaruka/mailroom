@@ -136,18 +136,18 @@ func (s *Scene) AddEvent(ctx context.Context, rt *runtime.Runtime, oa *models.Or
 // contact_flow_changed event to the scene. It doesn't update the database - callers are responsible for arranging
 // that (e.g. via the update contact session hook or session interruption).
 func (s *Scene) SetCurrentFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, flow *models.Flow) (bool, error) {
-	flowID := models.NilFlowID
+	var flowUUID assets.FlowUUID
 	var flowRef *assets.FlowReference
 	if flow != nil {
-		flowID = flow.ID()
+		flowUUID = flow.UUID()
 		flowRef = flow.Reference()
 	}
 
-	if s.DBContact.CurrentFlowID() == flowID {
+	if s.DBContact.CurrentFlowUUID() == flowUUID {
 		return false, nil
 	}
 
-	s.DBContact.SetCurrentFlowID(flowID)
+	s.DBContact.SetCurrentFlowUUID(flowUUID)
 
 	if err := s.AddEvent(ctx, rt, oa, events.NewContactFlowChanged(flowRef), models.NilUserID, ""); err != nil {
 		return false, fmt.Errorf("error adding contact flow changed event: %w", err)

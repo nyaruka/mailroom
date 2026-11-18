@@ -58,7 +58,7 @@ func TestDeindex(t *testing.T) {
 		contacts[i], err = mc.EngineContact(oa)
 		require.NoError(t, err)
 	}
-	err = search.IndexContacts(ctx, rt, oa, contacts, map[models.ContactID]models.FlowID{})
+	err = search.IndexContacts(ctx, rt, oa, contacts, nil)
 	require.NoError(t, err)
 	rt.ES.Writer.Flush()
 	_, err = rt.ES.Client.Indices.Refresh().Index(rt.Config.ElasticContactsIndex).Do(ctx)
