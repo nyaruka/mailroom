@@ -44,6 +44,7 @@ type Scene struct {
 	WaitTimeout         time.Duration
 	PriorRunModifiedOns map[core.RunUUID]time.Time
 	PriorRunNodes       map[core.RunUUID]core.NodeUUID
+	PriorRunStatuses    map[core.RunUUID]core.RunStatus
 	OutgoingMsgs        []*models.MsgOut
 
 	preCommits    map[PreCommitHook][]any
@@ -251,8 +252,10 @@ func (s *Scene) ResumeSession(ctx context.Context, rt *runtime.Runtime, oa *mode
 	s.DBSession = session
 	s.PriorRunModifiedOns = make(map[core.RunUUID]time.Time, len(fs.Runs()))
 	s.PriorRunNodes = make(map[core.RunUUID]core.NodeUUID, len(fs.Runs()))
+	s.PriorRunStatuses = make(map[core.RunUUID]core.RunStatus, len(fs.Runs()))
 	for _, r := range fs.Runs() {
 		s.PriorRunModifiedOns[r.UUID()] = r.ModifiedOn()
+		s.PriorRunStatuses[r.UUID()] = r.Status()
 		if node := models.RunCurrentNode(r); node != "" {
 			s.PriorRunNodes[r.UUID()] = node
 		}

@@ -65,6 +65,11 @@ func TestFlowNodeTallyScope(t *testing.T) {
 	}
 }
 
+func TestFlowStatusTallyScope(t *testing.T) {
+	assert.Equal(t, "status:W", models.FlowStatusTallyScope(models.RunStatusWaiting))
+	assert.Equal(t, "status:I", models.FlowStatusTallyScope(models.RunStatusInterrupted))
+}
+
 func TestFlowMsgsInTallies(t *testing.T) {
 	handled := time.Date(2025, 5, 4, 23, 30, 0, 0, time.FixedZone("", -2*3600))
 

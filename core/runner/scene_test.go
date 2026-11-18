@@ -458,6 +458,11 @@ func TestSessionFailedStart(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowrun WHERE flow_id = $1`, pong.ID).Returns(125)
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowrun WHERE status = 'F' AND exited_on IS NOT NULL`).Returns(250)
 
+	assertFlowActivityCounts(t, rt, ping.ID, map[string]any{"status:F": 125})
+	assertFlowStatusTallies(t, rt, ping.ID, map[models.RunStatus]int{"F": 125})
+	assertFlowActivityCounts(t, rt, pong.ID, map[string]any{"status:F": 125})
+	assertFlowStatusTallies(t, rt, pong.ID, map[models.RunStatus]int{"F": 125})
+
 	// check the contact
 	assertdb.Query(t, rt.DB, `SELECT current_session_uuid, current_flow_id FROM contacts_contact WHERE id = $1`, testdb.Ann.ID).Columns(map[string]any{
 		"current_session_uuid": nil, "current_flow_id": nil,
@@ -490,6 +495,7 @@ func TestFlowStats(t *testing.T) {
 		"status:W": 3,
 	})
 	assertFlowNodeTallies(t, rt, flow.ID, map[core.NodeUUID]int{"072b95b3-61c3-4e0e-8dd1-eb7481083f94": 3})
+	assertFlowStatusTallies(t, rt, flow.ID, map[models.RunStatus]int{"W": 3})
 	assertFlowSegmentTallies(t, rt, flow.ID, map[string]any{
 		"segment:X9LlNwU0TBKEJb74evCdRgcrlbNhw04OjdHrdIEIP5Q": 3,
 	})
@@ -513,6 +519,7 @@ func TestFlowStats(t *testing.T) {
 		"status:W": 1,
 	})
 	assertFlowNodeTallies(t, rt, flow.ID, map[core.NodeUUID]int{"072b95b3-61c3-4e0e-8dd1-eb7481083f94": 1})
+	assertFlowStatusTallies(t, rt, flow.ID, map[models.RunStatus]int{"C": 2, "W": 1})
 	assertFlowSegmentTallies(t, rt, flow.ID, map[string]any{
 		"segment:X9LlNwU0TBKEJb74evCdRgcrlbNhw04OjdHrdIEIP5Q": 3, // "what's your fav color" -> color split
 		"segment:wC_DujaaTIebxMOzdr2m0le1DTMrWkcmgt6YSMYe_24": 2, // color split :: Blue exit -> next node
@@ -531,6 +538,7 @@ func TestFlowStats(t *testing.T) {
 		"status:W": 1,
 	})
 	assertFlowNodeTallies(t, rt, flow.ID, map[core.NodeUUID]int{"072b95b3-61c3-4e0e-8dd1-eb7481083f94": 1})
+	assertFlowStatusTallies(t, rt, flow.ID, map[models.RunStatus]int{"C": 2, "W": 1})
 	assertFlowSegmentTallies(t, rt, flow.ID, map[string]any{
 		"segment:X9LlNwU0TBKEJb74evCdRgcrlbNhw04OjdHrdIEIP5Q": 3, // "what's your fav color" -> color split
 		"segment:wC_DujaaTIebxMOzdr2m0le1DTMrWkcmgt6YSMYe_24": 2, // color split :: Blue exit -> next node
@@ -573,16 +581,21 @@ func TestFlowStats(t *testing.T) {
 
 	assertFlowActivityCounts(t, rt, flow.ID, map[string]any{"status:C": 3, "status:W": 0})
 	assertFlowNodeTallies(t, rt, flow.ID, map[core.NodeUUID]int{})
+	assertFlowStatusTallies(t, rt, flow.ID, map[models.RunStatus]int{"C": 3})
 
 	// a new session puts Ann on a node, and interrupting her takes her off it again
 	testsuite.StartSessions(t, rt, oa, []*testdb.Contact{testdb.Ann}, trig)
+
+	assertFlowActivityCounts(t, rt, flow.ID, map[string]any{"status:C": 3, "status:W": 1})
 	assertFlowNodeTallies(t, rt, flow.ID, map[core.NodeUUID]int{"072b95b3-61c3-4e0e-8dd1-eb7481083f94": 1})
+	assertFlowStatusTallies(t, rt, flow.ID, map[models.RunStatus]int{"C": 3, "W": 1})
 
 	_, _, err = runner.InterruptWithLock(ctx, rt, oa, []models.ContactID{testdb.Ann.ID}, nil, flows.SessionStatusInterrupted)
 	require.NoError(t, err)
 
 	assertFlowActivityCounts(t, rt, flow.ID, map[string]any{"status:C": 3, "status:I": 1, "status:W": 0})
 	assertFlowNodeTallies(t, rt, flow.ID, map[core.NodeUUID]int{})
+	assertFlowStatusTallies(t, rt, flow.ID, map[models.RunStatus]int{"C": 3, "I": 1})
 }
 
 func TestResumeSession(t *testing.T) {
@@ -813,6 +826,23 @@ func assertFlowNodeTallies(t *testing.T, rt *runtime.Runtime, flowID models.Flow
 	}
 
 	assertdb.Query(t, rt.DB, `SELECT scope, count FROM flows_flowtally WHERE flow_id = $1 AND scope LIKE 'node:%'`, flowID).Map(expectedByScope)
+}
+
+// assertFlowStatusTallies flushes tallies and asserts the flow's status tallies by run status, which should match the
+// status activity counts
+func assertFlowStatusTallies(t *testing.T, rt *runtime.Runtime, flowID models.FlowID, expected map[models.RunStatus]int) {
+	vc := rt.VK.Get()
+	defer vc.Close()
+
+	_, err := rt.Tallies.Flush(t.Context(), vc, models.NewTallyStore(rt.DB, rt.Tallies.KeyBase()), 100)
+	require.NoError(t, err)
+
+	expectedByScope := make(map[string]any, len(expected))
+	for status, count := range expected {
+		expectedByScope[models.FlowStatusTallyScope(status)] = int64(count)
+	}
+
+	assertdb.Query(t, rt.DB, `SELECT scope, count FROM flows_flowtally WHERE flow_id = $1 AND scope LIKE 'status:%'`, flowID).Map(expectedByScope)
 }
 
 func assertFlowResultCounts(t *testing.T, rt *runtime.Runtime, flowID models.FlowID, expected map[string]int) {

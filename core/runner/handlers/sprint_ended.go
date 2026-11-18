@@ -32,8 +32,12 @@ func handleSprintEnded(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 
 	slog.Debug("sprint ended", "contact", scene.ContactUUID(), "session", scene.SessionUUID())
 
-	// computed before the session is compacted below, from the nodes that runs were at before this sprint, if resumed
+	// computed before the session is compacted below, from the nodes and statuses that runs had before this sprint, if
+	// resumed
 	if amounts := models.FlowNodeTallies(scene.Session.Runs(), scene.PriorRunNodes); len(amounts) > 0 {
+		scene.AttachPostCommitHook(hooks.IncrementTallies, amounts)
+	}
+	if amounts := models.FlowStatusTallies(scene.Session.Runs(), scene.PriorRunStatuses); len(amounts) > 0 {
 		scene.AttachPostCommitHook(hooks.IncrementTallies, amounts)
 	}
 

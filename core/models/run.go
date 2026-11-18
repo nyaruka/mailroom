@@ -133,6 +133,28 @@ func FlowNodeTallies(runs []flows.Run, priorNodes map[core.RunUUID]core.NodeUUID
 	return amounts
 }
 
+// FlowStatusTallies gets the tally amounts which move each of the given runs from the status it had before a sprint to
+// the status it has now, or count it in its status if it didn't exist before the sprint
+func FlowStatusTallies(runs []flows.Run, priorStatuses map[core.RunUUID]core.RunStatus) map[string]int64 {
+	amounts := make(map[string]int64)
+	for _, fr := range runs {
+		if fr.Flow() == nil {
+			continue // flow has since been deleted along with its tallies
+		}
+		flowID := fr.Flow().Asset().(*Flow).ID()
+
+		prior, existed := priorStatuses[fr.UUID()]
+		if existed && prior == fr.Status() {
+			continue
+		}
+		if existed {
+			amounts[FlowTallyField(flowID, FlowStatusTallyScope(runStatusMap[prior]))]--
+		}
+		amounts[FlowTallyField(flowID, FlowStatusTallyScope(runStatusMap[fr.Status()]))]++
+	}
+	return amounts
+}
+
 const sqlInsertRun = `
 INSERT INTO
 flows_flowrun(uuid, created_on, modified_on, exited_on, status, responded, results, path_nodes, path_times,

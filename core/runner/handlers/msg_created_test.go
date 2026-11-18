@@ -42,11 +42,12 @@ func TestMsgCreated(t *testing.T) {
 	// One bulk for Cat
 	assertvk.ZCard(t, vc, fmt.Sprintf("{msgs}:q:%s/0", testdb.TwilioChannel.UUID), 1)
 
-	// messages with a channel or which failed for having no destination are tallied, as are the flow segments taken and
-	// the incoming message handled by a flow
+	// messages with a channel or which failed for having no destination are tallied, as are the flow segments taken, the
+	// completed runs and the incoming message handled by a flow
 	assertvk.HGetAll(t, vc, "{tallies}:live", map[string]string{
-		"F10000|msgsin:date:2025-05-04":                              "1",
-		"F10000|msgsin:hour:12":                                      "1",
+		"F10000|msgsin:date:2025-05-04": "1",
+		"F10000|msgsin:hour:12":         "1",
+		"F10000|status:C":               "4",
 		"F10000|segment:IbpFcIRuQUOn68xMyew-ay3O7wbmaUvciT9kIuU16ow": "1",
 		"F10000|segment:Wa2EgRMyRFeyDOPLYgPgKcfpHkdkjENzs6W52sR2d0A": "1",
 		"F10000|segment:pREWmbL4SjeXKVd0X7E7Bqxn6eu1QUPkmut_qmZ_E1U": "1",
