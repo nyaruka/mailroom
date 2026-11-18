@@ -143,11 +143,13 @@ func TestTimedEvents(t *testing.T) {
 		if tc.expectedFlow != nil {
 			// check current_flow is set correctly on the contact
 			assertdb.Query(t, rt.DB, `SELECT current_flow_id FROM contacts_contact WHERE id = $1`, contact.ID).Returns(int64(tc.expectedFlow.ID), "%d: flow: mismatch", i)
+			assertdb.Query(t, rt.DB, `SELECT current_flow_uuid::text FROM contacts_contact WHERE id = $1`, contact.ID).Returns(string(tc.expectedFlow.UUID), "%d: flow uuid: mismatch", i)
 
 			// check that we have a waiting session
 			assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE contact_uuid = $1 AND status = 'W' AND last_sprint_uuid IS NOT NULL`, contact.UUID).Returns(1, "%d: session: mismatch", i)
 		} else {
 			assertdb.Query(t, rt.DB, `SELECT current_flow_id FROM contacts_contact WHERE id = $1`, contact.ID).Returns(nil, "%d: flow: mismatch", i)
+			assertdb.Query(t, rt.DB, `SELECT current_flow_uuid FROM contacts_contact WHERE id = $1`, contact.ID).Returns(nil, "%d: flow uuid: mismatch", i)
 		}
 
 		err = rt.DB.Get(&sessionUUID, `SELECT uuid FROM flows_flowsession WHERE contact_uuid = $1 ORDER BY id DESC LIMIT 1`, contact.UUID)

@@ -142,7 +142,7 @@ func InsertWaitingSession(t *testing.T, rt *runtime.Runtime, org *Org, contact *
 		InsertFlowRun(t, rt, org, uuid, contact, flow, status, core.NodeUUID(uuids.NewV4()))
 	}
 
-	rt.DB.MustExec(`UPDATE contacts_contact SET current_session_uuid = $2, current_flow_id = $3 WHERE id = $1`, contact.ID, uuid, currentFlow.ID)
+	rt.DB.MustExec(`UPDATE contacts_contact SET current_session_uuid = $2, current_flow_id = $3, current_flow_uuid = $4 WHERE id = $1`, contact.ID, uuid, currentFlow.ID, currentFlow.UUID)
 	return uuid
 }
 

@@ -34,10 +34,11 @@ type CurrentSessionUpdate struct {
 	ID                 models.ContactID `db:"id"`
 	CurrentSessionUUID null.String      `db:"current_session_uuid"`
 	CurrentFlowID      models.FlowID    `db:"current_flow_id"`
+	CurrentFlowUUID    null.String      `db:"current_flow_uuid"`
 }
 
 const sqlUpdateContactCurrentSession = `
 UPDATE contacts_contact c
-   SET current_session_uuid = r.current_session_uuid, current_flow_id = r.current_flow_id
-  FROM (VALUES(:id::int, :current_session_uuid::uuid, :current_flow_id::int)) AS r(id, current_session_uuid, current_flow_id)
+   SET current_session_uuid = r.current_session_uuid, current_flow_id = r.current_flow_id, current_flow_uuid = r.current_flow_uuid
+  FROM (VALUES(:id::int, :current_session_uuid::uuid, :current_flow_id::int, :current_flow_uuid::uuid)) AS r(id, current_session_uuid, current_flow_id, current_flow_uuid)
  WHERE c.id = r.id`

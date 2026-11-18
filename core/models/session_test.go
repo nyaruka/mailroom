@@ -218,7 +218,7 @@ func TestInterruptContacts(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession WHERE ended_on IS NOT NULL AND current_flow_uuid IS NULL AND uuid = $1 AND status = 'I'`, session3UUID).Returns(1)
 	assertdb.Query(t, rt.DB, `SELECT status FROM flows_flowrun WHERE uuid = $1`, run2UUID).Columns(map[string]any{"status": "F"})
 	assertdb.Query(t, rt.DB, `SELECT status FROM flows_flowrun WHERE uuid = $1`, run3UUID).Columns(map[string]any{"status": "I"})
-	assertdb.Query(t, rt.DB, `SELECT current_session_uuid, current_flow_id FROM contacts_contact WHERE id = $1`, testdb.Ann.ID).Columns(map[string]any{"current_session_uuid": nil, "current_flow_id": nil})
+	assertdb.Query(t, rt.DB, `SELECT current_session_uuid, current_flow_id, current_flow_uuid FROM contacts_contact WHERE id = $1`, testdb.Ann.ID).Columns(map[string]any{"current_session_uuid": nil, "current_flow_id": nil, "current_flow_uuid": nil})
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contactfire`).Returns(1)
 
 	assert.Equal(t, core.SessionUUID(""), ann.CurrentSessionUUID())
@@ -233,7 +233,7 @@ func insertSessionAndRun(t *testing.T, rt *runtime.Runtime, contact *testdb.Cont
 
 	if status == models.SessionStatusWaiting {
 		// mark contact as being in that flow
-		rt.DB.MustExec(`UPDATE contacts_contact SET current_session_uuid = $2, current_flow_id = $3 WHERE id = $1`, contact.ID, sessionUUID, flow.ID)
+		rt.DB.MustExec(`UPDATE contacts_contact SET current_session_uuid = $2, current_flow_id = $3, current_flow_uuid = $4 WHERE id = $1`, contact.ID, sessionUUID, flow.ID, flow.UUID)
 
 		// add expiration fire
 		testdb.InsertContactFire(t, rt, testdb.Org1, contact, models.ContactFireTypeSessionExpiration, "", time.Now().Add(10*time.Minute), sessionUUID)
