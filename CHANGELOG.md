@@ -1,3 +1,7 @@
+## v26.3.149 (2026-11-18)
+ * Write contacts_contact.current_flow_uuid alongside current_flow_id
+ * Regenerate test dump for new org status fields and constraint
+
 ## v26.3.148 (2026-11-18)
  * Tally the runs in each status of each flow
 
