@@ -9,10 +9,12 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/lib/pq"
 	"github.com/nyaruka/gocommon/dbutil"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/null/v3"
+	"github.com/vinovest/sqlx"
 )
 
 // FlowID is the type for flow IDs
@@ -191,3 +193,31 @@ func (i *FlowID) Scan(value any) error         { return null.ScanInt(value, i) }
 func (i FlowID) Value() (driver.Value, error)  { return null.IntValue(i) }
 func (i *FlowID) UnmarshalJSON(b []byte) error { return null.UnmarshalInt(b, i) }
 func (i FlowID) MarshalJSON() ([]byte, error)  { return null.MarshalInt(i) }
+
+const sqlSelectFlowIDsByUUID = `SELECT id, uuid FROM flows_flow WHERE org_id = $1 AND uuid = ANY($2)`
+
+// GetFlowIDsByUUID maps the given flow UUIDs to IDs, including archived and deleted flows. UUIDs with no flow are
+// omitted from the result.
+func GetFlowIDsByUUID(ctx context.Context, db *sqlx.DB, orgID OrgID, uuids []assets.FlowUUID) (map[assets.FlowUUID]FlowID, error) {
+	result := make(map[assets.FlowUUID]FlowID, len(uuids))
+	if len(uuids) == 0 {
+		return result, nil
+	}
+
+	rows, err := db.QueryContext(ctx, sqlSelectFlowIDsByUUID, orgID, pq.Array(uuids))
+	if err != nil {
+		return nil, fmt.Errorf("error querying flow IDs: %w", err)
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var id FlowID
+		var uuid assets.FlowUUID
+		if err := rows.Scan(&id, &uuid); err != nil {
+			return nil, fmt.Errorf("error scanning flow ID: %w", err)
+		}
+		result[uuid] = id
+	}
+
+	return result, rows.Err()
+}

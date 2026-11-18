@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"log/slog"
 	"time"
@@ -157,14 +156,21 @@ func IndexContacts(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsset
 		return fmt.Errorf("error loading flow history IDs: %w", err)
 	}
 
+	// a contact's current flow is a soft reference which can outlive its flow, in which case it's indexed as no flow
+	currentFlowUUIDs := make([]assets.FlowUUID, 0, len(currentFlows))
+	for _, flowUUID := range currentFlows {
+		if flowUUID != "" {
+			currentFlowUUIDs = append(currentFlowUUIDs, flowUUID)
+		}
+	}
+	flowIDsByUUID, err := models.GetFlowIDsByUUID(ctx, rt.DB, oa.OrgID(), currentFlowUUIDs)
+	if err != nil {
+		return fmt.Errorf("error loading current flow IDs: %w", err)
+	}
+
 	for _, c := range contacts {
 		contactID := models.ContactID(c.ID())
-		currentFlowID, err := resolveFlowID(oa, currentFlows[contactID])
-		if err != nil {
-			return fmt.Errorf("error resolving current flow for contact %s: %w", c.UUID(), err)
-		}
-
-		doc := NewContactDoc(oa, c, currentFlowID, flowHistoryByContact[contactID])
+		doc := NewContactDoc(oa, c, flowIDsByUUID[currentFlows[contactID]], flowHistoryByContact[contactID])
 
 		body, err := json.Marshal(doc)
 		if err != nil {
@@ -345,21 +351,4 @@ func DeindexContactsByOrg(ctx context.Context, rt *runtime.Runtime, orgID models
 	}
 
 	return int(*resp.Deleted), nil
-}
-
-// resolveFlowID maps a flow UUID to its ID. A contact's current flow is a soft reference which can outlive its flow,
-// so an unknown flow resolves to no flow.
-func resolveFlowID(oa *models.OrgAssets, flowUUID assets.FlowUUID) (models.FlowID, error) {
-	if flowUUID == "" {
-		return models.NilFlowID, nil
-	}
-
-	flow, err := oa.FlowByUUID(flowUUID)
-	if errors.Is(err, models.ErrNotFound) {
-		return models.NilFlowID, nil
-	} else if err != nil {
-		return models.NilFlowID, err
-	}
-
-	return flow.(*models.Flow).ID(), nil
 }
