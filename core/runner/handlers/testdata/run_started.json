@@ -21,6 +21,13 @@
                     10001
                 ],
                 "returns": 1
+            },
+            {
+                "query": "SELECT count(*) FROM contacts_contact WHERE current_flow_uuid = $1",
+                "args": [
+                    "5890fe3a-f204-4661-b74d-025be4ee019c"
+                ],
+                "returns": 1
             }
         ],
         "expected_history": [
