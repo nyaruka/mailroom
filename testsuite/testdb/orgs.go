@@ -22,17 +22,15 @@ func (o *Org) Load(t *testing.T, rt *runtime.Runtime) *models.OrgAssets {
 	return oa
 }
 
-// SetStatus sets the status of the org, with the restriction and suspension fields the database requires for that
-// status (using a staff reason for non-active statuses), and clears the org assets cache so the change is seen
+// SetStatus sets the status of the org, with the status fields the database requires for that status (using a staff
+// reason for non-active statuses), and clears the org assets cache so the change is seen
 func (o *Org) SetStatus(t *testing.T, rt *runtime.Runtime, status models.OrgStatus) {
 	_, err := rt.DB.Exec(`
 	UPDATE orgs_org SET
 		status = $2::text,
 		status_reason = CASE WHEN $2::text = 'A' THEN NULL ELSE 'S' END,
 		status_changed_on = NOW(),
-		restricted_reason = CASE WHEN $2::text = 'R' THEN 'S' END,
-		suspends_on = CASE WHEN $2::text = 'R' THEN NOW() + INTERVAL '14 days' END,
-		suspended_on = CASE WHEN $2::text = 'S' THEN NOW() END
+		suspends_on = CASE WHEN $2::text = 'R' THEN NOW() + INTERVAL '14 days' END
 	WHERE id = $1`, o.ID, status)
 	require.NoError(t, err)
 
