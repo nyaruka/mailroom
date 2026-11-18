@@ -243,7 +243,7 @@ func InterruptContacts(ctx context.Context, tx *sqlx.Tx, contacts []*Contact, st
 		contactIDs[i] = c.ID()
 
 		c.currentSessionUUID = ""
-		c.currentFlowID = 0
+		c.currentFlowUUID = ""
 	}
 
 	// first update the sessions themselves

@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/nyaruka/gocommon/elastic"
+	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/mailroom/v26/core/models"
@@ -154,7 +155,7 @@ func indexAllContacts(ctx context.Context, rt *runtime.Runtime, tickets bool) er
 			}
 
 			contacts := make([]*core.Contact, 0, len(mcs))
-			currentFlows := make(map[models.ContactID]models.FlowID, len(mcs))
+			currentFlows := make(map[models.ContactID]assets.FlowUUID, len(mcs))
 			for _, mc := range mcs {
 				contact, err := mc.EngineContact(oa)
 				if err != nil {
@@ -162,7 +163,7 @@ func indexAllContacts(ctx context.Context, rt *runtime.Runtime, tickets bool) er
 					continue
 				}
 				contacts = append(contacts, contact)
-				currentFlows[mc.ID()] = mc.CurrentFlowID()
+				currentFlows[mc.ID()] = mc.CurrentFlowUUID()
 			}
 
 			if err := search.IndexContacts(ctx, rt, oa, contacts, currentFlows); err != nil {

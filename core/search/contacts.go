@@ -141,7 +141,7 @@ func NewContactDoc(oa *models.OrgAssets, c *core.Contact, currentFlowID models.F
 }
 
 // IndexContacts builds contact documents and queues them for indexing in Elastic.
-func IndexContacts(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contacts []*core.Contact, currentFlows map[models.ContactID]models.FlowID) error {
+func IndexContacts(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contacts []*core.Contact, currentFlows map[models.ContactID]assets.FlowUUID) error {
 	if len(contacts) == 0 {
 		return nil
 	}
@@ -156,9 +156,21 @@ func IndexContacts(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsset
 		return fmt.Errorf("error loading flow history IDs: %w", err)
 	}
 
+	// a contact's current flow is a soft reference which can outlive its flow, in which case it's indexed as no flow
+	currentFlowUUIDs := make([]assets.FlowUUID, 0, len(currentFlows))
+	for _, flowUUID := range currentFlows {
+		if flowUUID != "" {
+			currentFlowUUIDs = append(currentFlowUUIDs, flowUUID)
+		}
+	}
+	flowIDsByUUID, err := models.GetFlowIDsByUUID(ctx, rt.DB, oa.OrgID(), currentFlowUUIDs)
+	if err != nil {
+		return fmt.Errorf("error loading current flow IDs: %w", err)
+	}
+
 	for _, c := range contacts {
 		contactID := models.ContactID(c.ID())
-		doc := NewContactDoc(oa, c, currentFlows[contactID], flowHistoryByContact[contactID])
+		doc := NewContactDoc(oa, c, flowIDsByUUID[currentFlows[contactID]], flowHistoryByContact[contactID])
 
 		body, err := json.Marshal(doc)
 		if err != nil {
