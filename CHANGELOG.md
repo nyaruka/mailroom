@@ -1,3 +1,6 @@
+## v26.3.153 (2026-11-19)
+ * Flush help site article tallies to knowledge_articletally
+
 ## v26.3.152 (2026-11-19)
  * Stop writing ticket daily counts
 
