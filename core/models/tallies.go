@@ -58,6 +58,9 @@ var tallyRetention = map[tallyOwner]map[string]time.Duration{
 	tallyOwnerChannel: {
 		"": 400 * 24 * time.Hour, // e.g. text:in@2026-11-03
 	},
+	tallyOwnerArticle: {
+		"": 90 * 24 * time.Hour, // e.g. views@2026-11-03
+	},
 }
 
 // flowMsgsInDateScope prefixes the daily counts of incoming messages handled by a flow, e.g. msgsin:date:2026-11-03
@@ -129,17 +132,20 @@ const (
 	tallyOwnerOrg     tallyOwner = 'O'
 	tallyOwnerFlow    tallyOwner = 'F'
 	tallyOwnerChannel tallyOwner = 'C'
+	tallyOwnerArticle tallyOwner = 'A'
 )
 
 // parseTallyField parses a tally field into its owner type, owner id and scope. Fields are <owner><id>|<scope>, where
-// owner is O for an org tally, F for a flow tally or C for a channel tally, e.g. O123|msgs/text:in@2026-11-03,
-// F45|segment:Qq9uGVPvT9mCMvICo-oCKx1PJbLGSEbMgRa-Dsa200o or C67|text:in@2026-11-03.
+// owner is O for an org tally, F for a flow tally, C for a channel tally or A for a help site article tally, e.g.
+// O123|msgs/text:in@2026-11-03, F45|segment:Qq9uGVPvT9mCMvICo-oCKx1PJbLGSEbMgRa-Dsa200o, C67|text:in@2026-11-03 or
+// A89|views@2026-11-03.
 func parseTallyField(field string) (tallyOwner, int64, string, error) {
 	ownerStr, scope, ok := strings.Cut(field, "|")
 	if ok && len(ownerStr) > 1 {
 		owner := tallyOwner(ownerStr[0])
 		id, err := strconv.ParseUint(ownerStr[1:], 10, 63)
-		if (owner == tallyOwnerOrg || owner == tallyOwnerFlow || owner == tallyOwnerChannel) && err == nil && id > 0 {
+		known := owner == tallyOwnerOrg || owner == tallyOwnerFlow || owner == tallyOwnerChannel || owner == tallyOwnerArticle
+		if known && err == nil && id > 0 {
 			return owner, int64(id), scope, nil
 		}
 	}
@@ -159,7 +165,7 @@ func tallyRetentionFor(owner tallyOwner, scope string) time.Duration {
 }
 
 // tallyDaySeparator is what precedes the day which a daily tally scope ends with, by owner type
-var tallyDaySeparator = map[tallyOwner]string{tallyOwnerOrg: "@", tallyOwnerFlow: ":", tallyOwnerChannel: "@"}
+var tallyDaySeparator = map[tallyOwner]string{tallyOwnerOrg: "@", tallyOwnerFlow: ":", tallyOwnerChannel: "@", tallyOwnerArticle: "@"}
 
 // tallyDay returns the day which a daily tally scope ends with, or the given default if the scope isn't a daily one.
 // Expiries are counted from it so that they don't depend on when a tally happens to be written.
@@ -234,6 +240,7 @@ var tallyTables = []struct {
 	{tallyOwnerOrg, newTallyTable("orgs_orgtally", "org_id", "orgs_org")},
 	{tallyOwnerFlow, newTallyTable("flows_flowtally", "flow_id", "flows_flow")},
 	{tallyOwnerChannel, newTallyTable("channels_channeltally", "channel_id", "channels_channel")},
+	{tallyOwnerArticle, newTallyTable("knowledge_articletally", "article_id", "knowledge_article")},
 }
 
 // tallyRows are the amounts to write to a tally table
