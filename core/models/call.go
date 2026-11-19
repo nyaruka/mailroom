@@ -40,10 +40,11 @@ const (
 	CallStatusErrored    = CallStatus("E") // temporary failure (will be retried)
 	CallStatusFailed     = CallStatus("F") // permanent failure
 
-	CallErrorProvider = CallError("P")
-	CallErrorBusy     = CallError("B")
-	CallErrorNoAnswer = CallError("N")
-	CallErrorMachine  = CallError("M")
+	CallErrorProvider  = CallError("P")
+	CallErrorBusy      = CallError("B")
+	CallErrorNoAnswer  = CallError("N")
+	CallErrorMachine   = CallError("M")
+	CallErrorSuspended = CallError("S") // never requested because the workspace is suspended
 
 	CallMaxRetries = 3
 
@@ -395,6 +396,26 @@ func (c *Call) SetFailed(ctx context.Context, db DBorTx) error {
 	c.c.EndedOn = &now
 
 	_, err := db.ExecContext(ctx, `UPDATE ivr_call SET status = $2, ended_on = $3, modified_on = NOW() WHERE id = $1`, c.c.ID, c.c.Status, c.c.EndedOn)
+	if err != nil {
+		return fmt.Errorf("error setting call #%d failed: %w", c.c.ID, err)
+	}
+
+	return nil
+}
+
+// SetFailedWithReason sets this call to be failed with the given error reason, updating status and ended time
+func (c *Call) SetFailedWithReason(ctx context.Context, db DBorTx, reason CallError) error {
+	now := dates.Now()
+
+	c.c.Status = CallStatusFailed
+	c.c.EndedOn = &now
+	c.c.ErrorReason = null.String(reason)
+	c.c.NextAttempt = nil
+
+	_, err := db.ExecContext(ctx,
+		`UPDATE ivr_call SET status = $2, ended_on = $3, error_reason = $4, next_attempt = NULL, modified_on = NOW() WHERE id = $1`,
+		c.c.ID, c.c.Status, c.c.EndedOn, c.c.ErrorReason,
+	)
 	if err != nil {
 		return fmt.Errorf("error setting call #%d failed: %w", c.c.ID, err)
 	}

@@ -55,6 +55,13 @@ func (c *RetryCallsCron) Run(ctx context.Context, rt *runtime.Runtime) (map[stri
 			continue
 		}
 
+		if oa.Org().IsSuspended() {
+			if err := call.SetFailedWithReason(ctx, rt.DB, models.CallErrorSuspended); err != nil {
+				log.Error("error failing call for suspended workspace", "error", err)
+			}
+			continue
+		}
+
 		// and the associated channel
 		channel := oa.ChannelByID(call.ChannelID())
 		if channel == nil {

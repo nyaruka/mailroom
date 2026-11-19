@@ -53,6 +53,21 @@ func TestRetryCalls(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT COUNT(*) FROM ivr_call WHERE contact_id = $1 AND status = $2 AND external_id = $3`,
 		testdb.Ann.ID, models.CallStatusWired, "call1").Returns(1)
 
+	// a suspended workspace's calls are failed rather than requested again
+	rt.DB.MustExec(`UPDATE ivr_call SET status = 'E', next_attempt = NOW() WHERE external_id = 'call1';`)
+	testdb.Org1.SetStatus(t, rt, models.OrgStatusSuspended)
+	testsuite.IVRService.CallID = ivr.CallID("call2")
+
+	res, err = cron.Run(ctx, rt)
+	assert.NoError(t, err)
+	assert.Equal(t, map[string]any{"retried": 1}, res)
+
+	assertdb.Query(t, rt.DB, `SELECT status, error_reason, next_attempt FROM ivr_call WHERE external_id = 'call1'`).
+		Columns(map[string]any{"status": "F", "error_reason": "S", "next_attempt": nil})
+
+	testdb.Org1.SetStatus(t, rt, models.OrgStatusActive)
+	testsuite.IVRService.CallID = ivr.CallID("call1")
+
 	// back to retry and make the channel inactive
 	rt.DB.MustExec(`UPDATE ivr_call SET status = 'E', next_attempt = NOW() WHERE external_id = 'call1';`)
 	rt.DB.MustExec(`UPDATE channels_channel SET is_active = FALSE WHERE id = $1`, testdb.TwilioChannel.ID)

@@ -147,6 +147,9 @@ const (
 // ErrNoEmailConfig is returned when an org has no SMTP configuration for sending email
 var ErrNoEmailConfig = errors.New("workspace has no SMTP settings for sending email")
 
+// ErrOrgSuspended is returned when a suspended org tries to use a service which it's not allowed to
+var ErrOrgSuspended = errors.New("workspace is suspended")
+
 // Org is mailroom's type for RapidPro orgs. It also implements the envs.Environment interface for GoFlow
 type Org struct {
 	o struct {
@@ -282,6 +285,10 @@ func (o *Org) EmailSMTP(ctx context.Context, rt *runtime.Runtime) (string, bool,
 // EmailService returns the email service for this org, or a fake one for simulated sessions which still requires the
 // org to have an SMTP configuration so that users find out about a missing one when testing
 func (o *Org) EmailService(ctx context.Context, rt *runtime.Runtime, retries *smtpx.RetryConfig, simulated bool) (flows.EmailService, error) {
+	if o.IsSuspended() {
+		return nil, ErrOrgSuspended
+	}
+
 	smtpURL, _, err := o.EmailSMTP(ctx, rt)
 	if err != nil {
 		return nil, err
