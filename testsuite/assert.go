@@ -122,19 +122,6 @@ func AssertContactFires(t *testing.T, rt *runtime.Runtime, contactID models.Cont
 	assert.Equal(t, expected, actual)
 }
 
-func AssertDailyCounts(t *testing.T, rt *runtime.Runtime, org *testdb.Org, expected map[string]int) {
-	var counts []models.DailyCount
-	err := rt.DB.Select(&counts, `SELECT day, scope, SUM(count) AS count FROM orgs_dailycount WHERE org_id = $1 GROUP BY day, scope`, org.ID)
-	require.NoError(t, err)
-
-	actual := make(map[string]int, len(counts))
-	for _, count := range counts {
-		actual[fmt.Sprintf("%s/%s", count.Day.String(), count.Scope)] = int(count.Count)
-	}
-
-	assert.Equal(t, expected, actual)
-}
-
 // AssertNewContactTallies asserts the unflushed tallies of new contacts by their fields without the day, e.g.
 // O1|contacts/new:inbound
 func AssertNewContactTallies(t *testing.T, rt *runtime.Runtime, expected map[string]int, msgAndArgs ...any) {

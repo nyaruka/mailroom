@@ -233,14 +233,6 @@
                     "last_activity_on": "2025-05-04 12:30:53.123457+00",
                     "replied_on": "2025-05-04 12:30:53.123457+00"
                 }
-            },
-            {
-                "query": "SELECT scope, SUM(count)::int FROM orgs_dailycount GROUP BY 1",
-                "map": {
-                    "msgs:ticketreplies:0:4": 1,
-                    "ticketresptime:count": 1,
-                    "ticketresptime:total": 326246408
-                }
             }
         ],
         "expected_history": [
@@ -322,14 +314,6 @@
                 "columns": {
                     "last_activity_on": "2025-05-04 12:30:56.123457+00",
                     "replied_on": "2025-05-04 12:30:53.123457+00"
-                }
-            },
-            {
-                "query": "SELECT scope, SUM(count)::int FROM orgs_dailycount GROUP BY 1",
-                "map": {
-                    "msgs:ticketreplies:0:4": 2,
-                    "ticketresptime:count": 1,
-                    "ticketresptime:total": 326246408
                 }
             }
         ],
@@ -575,14 +559,6 @@
                 "columns": {
                     "last_activity_on": "2015-01-02 12:30:45+00",
                     "replied_on": null
-                }
-            },
-            {
-                "query": "SELECT scope, SUM(count)::int FROM orgs_dailycount GROUP BY 1",
-                "map": {
-                    "msgs:ticketreplies:0:4": 2,
-                    "ticketresptime:count": 1,
-                    "ticketresptime:total": 326246408
                 }
             }
         ],

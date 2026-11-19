@@ -167,34 +167,13 @@ INSERT INTO
 RETURNING id, opened_on`
 
 // InsertTickets inserts the passed in tickets, setting their ids and opened_on, returning any errors encountered
-func InsertTickets(ctx context.Context, tx DBorTx, oa *OrgAssets, tickets []*Ticket) error {
+func InsertTickets(ctx context.Context, tx DBorTx, tickets []*Ticket) error {
 	if len(tickets) == 0 {
 		return nil
 	}
 
-	dailyCounts := make(map[string]int, len(tickets))
-
-	for _, t := range tickets {
-		dailyCounts[fmt.Sprintf("tickets:opened:%d", t.TopicID)]++
-
-		if t.AssigneeID != NilUserID {
-			assignee := oa.UserByID(t.AssigneeID)
-			if assignee != nil {
-				teamID := NilTeamID
-				if assignee.Team() != nil {
-					teamID = assignee.Team().ID
-				}
-				dailyCounts[fmt.Sprintf("tickets:assigned:%d:%d", teamID, assignee.ID())]++
-			}
-		}
-	}
-
 	if err := BulkQuery(ctx, "inserted tickets", tx, sqlInsertTicket, tickets); err != nil {
 		return fmt.Errorf("error inserting tickets: %w", err)
-	}
-
-	if err := InsertDailyCounts(ctx, tx, oa, dates.Now(), dailyCounts); err != nil {
-		return fmt.Errorf("error inserting daily counts: %w", err)
 	}
 
 	return nil
@@ -284,13 +263,6 @@ func RecordTicketReply(ctx context.Context, db DBorTx, oa *OrgAssets, ticket *Ti
 		}
 	}
 
-	// record reply count that encodes team + user
-	dailyCounts := map[string]int{fmt.Sprintf("msgs:ticketreplies:%d:%d", teamID, userID): 1}
-
-	if err := InsertDailyCounts(ctx, db, oa, when, dailyCounts); err != nil {
-		return nil, fmt.Errorf("error inserting daily counts: %w", err)
-	}
-
 	tallies := map[string]int64{
 		TallyField(oa.OrgID(), fmt.Sprintf("%s/teamreplies:%d", TallyTickets, teamID), when): 1,
 		TallyField(oa.OrgID(), fmt.Sprintf("%s/userreplies:%d", TallyTickets, userID), when): 1,
@@ -299,12 +271,6 @@ func RecordTicketReply(ctx context.Context, db DBorTx, oa *OrgAssets, ticket *Ti
 	// if this is the first reply to the ticket then record the ticket response time
 	if openedOn != nil {
 		respSeconds := int(when.Sub(*openedOn) / time.Second)
-		timingCounts := map[string]int{"ticketresptime:total": respSeconds, "ticketresptime:count": 1}
-
-		if err := InsertDailyCounts(ctx, db, oa, *openedOn, timingCounts); err != nil {
-			return nil, fmt.Errorf("error inserting daily counts: %w", err)
-		}
-
 		tallies[TallyField(oa.OrgID(), TallyTickets+"/resptime:total", *openedOn)] = int64(respSeconds)
 		tallies[TallyField(oa.OrgID(), TallyTickets+"/resptime:count", *openedOn)] = 1
 	}
