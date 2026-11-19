@@ -7,6 +7,7 @@ import (
 
 	"github.com/nyaruka/gocommon/httpx"
 	"github.com/nyaruka/gocommon/urns"
+	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/runner"
 	"github.com/nyaruka/mailroom/v26/runtime"
@@ -67,4 +68,16 @@ type Service interface {
 	CallIDForRequest(r *http.Request) (string, error)
 
 	RedactValues(*models.Channel) []string
+}
+
+// CallbackRouter is implemented by services whose provider sends every callback for a channel to a single URL,
+// rather than to URLs we give it per call, which leaves it to us to work out what each callback is and which call
+// it's for.
+type CallbackRouter interface {
+	// CallbackAction returns what the request is: ActionIncoming, ActionStart, ActionResume or ActionStatus, or
+	// ActionNone if it's not something to act on
+	CallbackAction(r *http.Request) string
+
+	// CallUUIDForRequest returns the UUID of the call the request is for, if the request has it
+	CallUUIDForRequest(r *http.Request) core.CallUUID
 }

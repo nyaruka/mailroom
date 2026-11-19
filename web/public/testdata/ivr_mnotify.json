@@ -1,0 +1,210 @@
+[
+    {
+        "label": "request with wrong token is rejected",
+        "method": "GET",
+        "path": "/mr/ivr/c/a2b5d3cf-8a0c-4a0f-9a35-6a1e0d0f7b11/callback?token=wrong&CallerId=16055550000&Extension=16055741111&SequenceID=1001&context=outgoing&IsStarting=true",
+        "status": 200,
+        "response": {
+            "actions": {
+                "hangup": {}
+            },
+            "message": "request failed signature validation: invalid token"
+        },
+        "db_assertions": [
+            {
+                "query": "SELECT contact_id::text, status || '/' || external_id || '/' || COALESCE(error_reason, '') FROM ivr_call",
+                "map": {
+                    "10000": "W/01969b47-190b-76f8-92ed-42cbd11a03fd/",
+                    "10001": "W/01969b47-2c93-76f8-b774-0a98171a0712/",
+                    "10003": "I/Other1/"
+                }
+            }
+        ]
+    },
+    {
+        "label": "start of outgoing call found by number called",
+        "method": "GET",
+        "path": "/mr/ivr/c/a2b5d3cf-8a0c-4a0f-9a35-6a1e0d0f7b11/callback?token=sesame&CallerId=16055550000&Extension=16055741111&SequenceID=1001&context=outgoing&IsStarting=true",
+        "status": 200,
+        "response": {
+            "actions": {
+                "get_digits": {
+                    "num_digits": 1,
+                    "timeout": 30000,
+                    "skip_audio": true
+                }
+            }
+        },
+        "db_assertions": [
+            {
+                "query": "SELECT contact_id::text, status || '/' || external_id || '/' || COALESCE(error_reason, '') FROM ivr_call",
+                "map": {
+                    "10000": "I/1001/",
+                    "10001": "W/01969b47-2c93-76f8-b774-0a98171a0712/",
+                    "10003": "I/Other1/"
+                }
+            }
+        ],
+        "expected_history": [
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01969b47-1523-76f8-98c7-1f0d5859f77e",
+                "OrgID": 1,
+                "Data": {
+                    "call": {
+                        "channel": {
+                            "name": "mNotify",
+                            "uuid": "a2b5d3cf-8a0c-4a0f-9a35-6a1e0d0f7b11"
+                        },
+                        "urn": "tel:+16055741111",
+                        "uuid": "01969b47-190b-76f8-92ed-42cbd11a03fd"
+                    },
+                    "created_on": "2025-05-04T12:30:50.123456789Z",
+                    "type": "call_created"
+                }
+            },
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01969b47-2c93-76f8-b774-0a98171a0712",
+                "OrgID": 1,
+                "Data": {
+                    "created_on": "2025-05-04T12:30:56.123456789Z",
+                    "flow": {
+                        "name": "IVR Flow",
+                        "revision": 1,
+                        "uuid": "2f81d0ea-4d75-4843-9371-3f7465311cce"
+                    },
+                    "run_uuid": "01969b47-28ab-76f8-b20c-e3cb6203e029",
+                    "type": "run_started"
+                }
+            },
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01969b47-401b-76f8-aac5-d9d0ae409dbe",
+                "OrgID": 1,
+                "Data": {
+                    "created_on": "2025-05-04T12:31:01.123456789Z",
+                    "msg": {
+                        "channel": {
+                            "name": "mNotify",
+                            "uuid": "a2b5d3cf-8a0c-4a0f-9a35-6a1e0d0f7b11"
+                        },
+                        "locale": "und-US",
+                        "text": "Hello there. Please enter one or two.",
+                        "urn": "tel:+16055741111"
+                    },
+                    "type": "ivr_created"
+                }
+            }
+        ]
+    },
+    {
+        "label": "resume with digit found by provider id",
+        "method": "GET",
+        "path": "/mr/ivr/c/a2b5d3cf-8a0c-4a0f-9a35-6a1e0d0f7b11/callback?token=sesame&CallerId=16055550000&Extension=16055741111&SequenceID=1001&context=outgoing&IsStarting=false&action=get_digits&DTMF=1",
+        "status": 200,
+        "response": {
+            "actions": {
+                "get_digits": {
+                    "num_digits": 32,
+                    "timeout": 30000,
+                    "finish_on_key": "#",
+                    "skip_audio": true
+                }
+            }
+        },
+        "db_assertions": [
+            {
+                "query": "SELECT contact_id::text, status || '/' || external_id || '/' || COALESCE(error_reason, '') FROM ivr_call",
+                "map": {
+                    "10000": "I/1001/",
+                    "10001": "W/01969b47-2c93-76f8-b774-0a98171a0712/",
+                    "10003": "I/Other1/"
+                }
+            }
+        ],
+        "expected_history": [
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01969b47-8283-76f8-8f55-b7788ac5e343",
+                "OrgID": 1,
+                "Data": {
+                    "created_on": "2025-05-04T12:31:19.123456789Z",
+                    "msg": {
+                        "channel": {
+                            "name": "mNotify",
+                            "uuid": "a2b5d3cf-8a0c-4a0f-9a35-6a1e0d0f7b11"
+                        },
+                        "text": "1",
+                        "urn": "tel:+16055741111"
+                    },
+                    "type": "msg_received"
+                }
+            },
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01969b47-b163-76f8-87c7-10f327cbfde2",
+                "OrgID": 1,
+                "Data": {
+                    "created_on": "2025-05-04T12:31:30.123456789Z",
+                    "msg": {
+                        "channel": {
+                            "name": "mNotify",
+                            "uuid": "a2b5d3cf-8a0c-4a0f-9a35-6a1e0d0f7b11"
+                        },
+                        "locale": "und-US",
+                        "text": "Great! You said One. Ok, now enter a number 1 to 100 then press pound.",
+                        "urn": "tel:+16055741111"
+                    },
+                    "type": "ivr_created"
+                }
+            }
+        ]
+    },
+    {
+        "label": "resume with timeout",
+        "method": "GET",
+        "path": "/mr/ivr/c/a2b5d3cf-8a0c-4a0f-9a35-6a1e0d0f7b11/callback?token=sesame&CallerId=16055550000&Extension=16055741111&SequenceID=1001&context=outgoing&IsStarting=false&action=get_digits",
+        "status": 200,
+        "response": {
+            "actions": {
+                "get_digits": {
+                    "num_digits": 32,
+                    "timeout": 30000,
+                    "finish_on_key": "#",
+                    "skip_audio": true
+                }
+            }
+        },
+        "db_assertions": [
+            {
+                "query": "SELECT contact_id::text, status || '/' || external_id || '/' || COALESCE(error_reason, '') FROM ivr_call",
+                "map": {
+                    "10000": "I/1001/",
+                    "10001": "W/01969b47-2c93-76f8-b774-0a98171a0712/",
+                    "10003": "I/Other1/"
+                }
+            }
+        ],
+        "expected_history": [
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01969b48-22ab-76f8-95d6-85696b970f6a",
+                "OrgID": 1,
+                "Data": {
+                    "created_on": "2025-05-04T12:31:59.123456789Z",
+                    "msg": {
+                        "channel": {
+                            "name": "mNotify",
+                            "uuid": "a2b5d3cf-8a0c-4a0f-9a35-6a1e0d0f7b11"
+                        },
+                        "locale": "und-US",
+                        "text": "Sorry, that's too big. Enter a number 1 to 100 then press pound.",
+                        "urn": "tel:+16055741111"
+                    },
+                    "type": "ivr_created"
+                }
+            }
+        ]
+    }
+]
