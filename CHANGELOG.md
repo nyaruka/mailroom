@@ -1,3 +1,7 @@
+## v26.3.154 (2026-11-19)
+ * Publish tickets_changed events to an org tickets socket channel from each ticket handler
+ * Don't send flow emails or make outgoing calls for suspended workspaces
+
 ## v26.3.153 (2026-11-19)
  * Flush help site article tallies to knowledge_articletally
 
