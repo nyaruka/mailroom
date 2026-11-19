@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 
 	"github.com/nyaruka/goflow/core/events"
@@ -42,14 +41,6 @@ func handleTicketAssigneeChanged(ctx context.Context, rt *runtime.Runtime, oa *m
 
 	// if this is an initial assignment record count for user
 	if event.Previous == nil && assignee != nil {
-		teamID := models.NilTeamID
-		if assignee.Team() != nil {
-			teamID = assignee.Team().ID
-		}
-
-		scene.AttachPreCommitHook(hooks.InsertDailyCounts, map[string]int{
-			fmt.Sprintf("tickets:assigned:%d:%d", teamID, assignee.ID()): 1,
-		})
 		scene.AttachPostCommitHook(hooks.IncrementTallies, models.TicketAssignedTallies(oa.OrgID(), assignee.ID(), e.CreatedOn()))
 	}
 

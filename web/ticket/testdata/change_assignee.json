@@ -135,9 +135,9 @@
             "events": {
                 "a393abc0-283d-4c9b-a1b3-641a035c34bf": [
                     {
-                        "uuid": "01969b47-190b-76f8-95cf-9fca95f1c30a",
+                        "uuid": "01969b47-1523-76f8-95cf-9fca95f1c30a",
                         "type": "ticket_assignee_changed",
-                        "created_on": "2025-05-04T12:30:51.123456789Z",
+                        "created_on": "2025-05-04T12:30:50.123456789Z",
                         "_user": {
                             "uuid": "ad9fdf9f-56ab-422a-b77d-e3ec26091a25",
                             "name": "Andy Admin"
@@ -166,7 +166,7 @@
         "expected_history": [
             {
                 "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
-                "SK": "evt#01969b47-190b-76f8-95cf-9fca95f1c30a",
+                "SK": "evt#01969b47-1523-76f8-95cf-9fca95f1c30a",
                 "OrgID": 1,
                 "Data": {
                     "_user": {
@@ -175,7 +175,7 @@
                     },
                     "_via": "ui",
                     "assignee": null,
-                    "created_on": "2025-05-04T12:30:51.123456789Z",
+                    "created_on": "2025-05-04T12:30:50.123456789Z",
                     "previous": {
                         "name": "Ann D'Agent",
                         "uuid": "aee44553-ab35-482b-a4d4-6f000ec611ab"

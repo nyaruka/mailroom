@@ -60,16 +60,6 @@ func TestTickets(t *testing.T) {
 	// check all tickets were created
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM tickets_ticket WHERE status = 'O' AND closed_on IS NULL`).Returns(3)
 
-	// check counts were added
-	today := time.Now().In(oa.Env().Timezone()).Format("2006-01-02")
-	testsuite.AssertDailyCounts(t, rt, testdb.Org1, map[string]int{
-		today + "/tickets:opened:10000": 1,
-		today + "/tickets:opened:10001": 1,
-		today + "/tickets:opened:10002": 1,
-		today + "/tickets:assigned:0:3": 2,
-	})
-	testsuite.AssertDailyCounts(t, rt, testdb.Org2, map[string]int{})
-
 	// opened_on is set from the database, and dates the tallies of the tickets being opened
 	assert.False(t, ticket1.OpenedOn.IsZero())
 	assertdb.Query(t, rt.DB, `SELECT opened_on FROM tickets_ticket WHERE id = $1`, ticket1.ID).Returns(ticket1.OpenedOn)
@@ -180,16 +170,6 @@ func TestTicketRecordReply(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT replied_on FROM tickets_ticket WHERE id = $1`, ticket.ID).Returns(repliedOn)
 	assertdb.Query(t, rt.DB, `SELECT last_activity_on FROM tickets_ticket WHERE id = $1`, ticket.ID).Returns(repliedOn)
 
-	// check counts were added
-	openYmd := openedOn.In(oa.Env().Timezone()).Format("2006-01-02")
-	replyYmd := repliedOn.In(oa.Env().Timezone()).Format("2006-01-02")
-	testsuite.AssertDailyCounts(t, rt, testdb.Org1, map[string]int{
-		replyYmd + "/msgs:ticketreplies:10001:5": 1,
-		openYmd + "/ticketresptime:total":        88740,
-		openYmd + "/ticketresptime:count":        1,
-	})
-	testsuite.AssertDailyCounts(t, rt, testdb.Org2, map[string]int{})
-
 	repliedAgainOn := time.Date(2022, 5, 18, 15, 5, 0, 0, time.UTC)
 
 	// if we call it again, it won't change replied_on again but it will update last_activity_on
@@ -210,9 +190,4 @@ func TestTicketRecordReply(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT replied_on FROM tickets_ticket WHERE id = $1`, ticket.ID).Returns(repliedOn)
 	assertdb.Query(t, rt.DB, `SELECT last_activity_on FROM tickets_ticket WHERE id = $1`, ticket.ID).Returns(repliedAgainOn)
 
-	testsuite.AssertDailyCounts(t, rt, testdb.Org1, map[string]int{
-		replyYmd + "/msgs:ticketreplies:10001:5": 2,
-		openYmd + "/ticketresptime:total":        88740,
-		openYmd + "/ticketresptime:count":        1,
-	})
 }
