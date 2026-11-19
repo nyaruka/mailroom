@@ -164,9 +164,9 @@ const sqlInsertTicket = `
 INSERT INTO 
   tickets_ticket(uuid,  org_id,  contact_id,  status,  topic_id,  assignee_id,  opened_on, opened_by_id,  opened_in_id,  modified_on, last_activity_on)
   VALUES(       :uuid, :org_id, :contact_id, :status, :topic_id, :assignee_id,  NOW(),    :opened_by_id, :opened_in_id,  NOW()      , NOW())
-RETURNING id`
+RETURNING id, opened_on`
 
-// InsertTickets inserts the passed in tickets returning any errors encountered
+// InsertTickets inserts the passed in tickets, setting their ids and opened_on, returning any errors encountered
 func InsertTickets(ctx context.Context, tx DBorTx, oa *OrgAssets, tickets []*Ticket) error {
 	if len(tickets) == 0 {
 		return nil
@@ -200,15 +200,15 @@ func InsertTickets(ctx context.Context, tx DBorTx, oa *OrgAssets, tickets []*Tic
 	return nil
 }
 
-// TicketOpenedTallies gets the tally amounts which count the given tickets being opened at the given time, by topic, and
-// for those opened with an assignee, being assigned
-func TicketOpenedTallies(oa *OrgAssets, tickets []*Ticket, t time.Time) map[string]int64 {
+// TicketOpenedTallies gets the tally amounts which count the given inserted tickets being opened, by topic, and for those
+// opened with an assignee, being assigned. They're dated by opened_on, as response times are.
+func TicketOpenedTallies(oa *OrgAssets, tickets []*Ticket) map[string]int64 {
 	amounts := make(map[string]int64, len(tickets))
 	for _, tk := range tickets {
-		amounts[TallyField(oa.OrgID(), fmt.Sprintf("%s/opened:%d", TallyTickets, tk.TopicID), t)]++
+		amounts[TallyField(oa.OrgID(), fmt.Sprintf("%s/opened:%d", TallyTickets, tk.TopicID), tk.OpenedOn)]++
 
 		if tk.AssigneeID != NilUserID && oa.UserByID(tk.AssigneeID) != nil {
-			amounts[TallyField(oa.OrgID(), fmt.Sprintf("%s/assigned:%d", TallyTickets, tk.AssigneeID), t)]++
+			amounts[TallyField(oa.OrgID(), fmt.Sprintf("%s/assigned:%d", TallyTickets, tk.AssigneeID), tk.OpenedOn)]++
 		}
 	}
 	return amounts

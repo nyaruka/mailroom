@@ -2,6 +2,7 @@ package handlers_test
 
 import (
 	"testing"
+	"time"
 
 	"github.com/nyaruka/vkutil/assertvk"
 
@@ -23,10 +24,12 @@ func TestTicketOpened(t *testing.T) {
 	vc := rt.VK.Get()
 	defer vc.Close()
 
+	// dated by opened_on, which the database sets
+	today := time.Now().UTC().Format(time.DateOnly)
 	assertvk.HGetAll(t, vc, "{tallies}:live", map[string]string{
-		"O1|tickets/assigned:3@2025-05-04":   "1",
-		"O1|tickets/opened:10000@2025-05-04": "1",
-		"O1|tickets/opened:10002@2025-05-04": "1",
+		"O1|tickets/assigned:3@" + today:   "1",
+		"O1|tickets/opened:10000@" + today: "1",
+		"O1|tickets/opened:10002@" + today: "1",
 	})
 }
 
