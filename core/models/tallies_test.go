@@ -212,7 +212,7 @@ func TestTallyStore(t *testing.T) {
 	// a field which can't be parsed fails the whole batch
 	for _, field := range []string{
 		"foo", "1|foo", "x|foo", "X1|foo", "O|foo", "Ox|foo", "OO1|foo", "O-1|foo", "O0|foo", "F|foo", "Fx|foo", "FF1|foo", "F-1|foo",
-		"C|foo", "C0|foo",
+		"C|foo", "C0|foo", "A|foo", "A0|foo",
 	} {
 		written, err := store.Write(ctx, 9, map[string]int64{models.TallyField(org1, "foo", time.Time{}): 1, field: 1})
 		assert.EqualError(t, err, fmt.Sprintf("invalid tally field %q", field))
@@ -316,6 +316,37 @@ func TestTallyStore(t *testing.T) {
 		fmt.Sprintf("%d|foo|2026-06-14", ch1):                 int64(1),
 		fmt.Sprintf("%d|voice:in@2025-05-04|2026-06-08", ch3): int64(5),
 	})
+
+	// article tallies are written to their own table, all with the same retention from their day, and nothing is
+	// written for an article which isn't active or doesn't exist
+	source := testdb.InsertKnowledgeSource(t, rt, testdb.Org1, "b3e5a1d2-6c4f-4e8a-9d1b-2f7c3a5e8b90", models.KnowledgeSourceTypeHelpdesk, "Help", models.KnowledgeSourceStatusReady)
+	section := testdb.InsertSection(t, rt, source, "2a4c6e8f-1b3d-4f5a-8c7e-9d0b2a4c6e8f", "Getting Started")
+	art1 := testdb.InsertArticle(t, rt, source, section, "5f7a9c1e-3b5d-4a6c-8e0f-1a3b5c7d9e2f", "Welcome", "Hello", models.ArticleStatusPublished).ID
+	art2 := testdb.InsertArticle(t, rt, source, section, "8c0e2a4b-6d8f-4b1c-9e3a-5b7d9f1c3e5a", "Old", "Bye", models.ArticleStatusPublished).ID
+	artField := func(id models.ArticleID, scope string) string { return fmt.Sprintf("A%d|%s", id, scope) }
+	assertArticleTallies := func(expected map[string]any) {
+		assertdb.Query(t, rt.DB, `SELECT article_id || '|' || scope || '|' || coalesce(expires_on::text, ''), count FROM knowledge_articletally`).Map(expected)
+	}
+	rt.DB.MustExec(`UPDATE knowledge_article SET is_active = FALSE WHERE id = $1`, art2)
+
+	write(17, map[string]int64{
+		artField(art1, "views@2025-05-04"):   3,
+		artField(art1, "views@2025-01-01"):   1, // already past retention
+		artField(art1, "foo"):                1,
+		artField(art2, "views@2025-05-04"):   1,
+		artField(123456, "views@2025-05-04"): 1,
+	}, true)
+
+	assertLastBatch(store, 17)
+	assertArticleTallies(map[string]any{
+		fmt.Sprintf("%d|views@2025-05-04|2025-08-02", art1): int64(3),
+		fmt.Sprintf("%d|foo|2025-08-08", art1):              int64(1),
+	})
+
+	// and an article tally decremented to zero is deleted
+	write(18, map[string]int64{artField(art1, "views@2025-05-04"): -3}, true)
+
+	assertArticleTallies(map[string]any{fmt.Sprintf("%d|foo|2025-08-08", art1): int64(1)})
 }
 
 func TestFlushTallies(t *testing.T) {
@@ -326,16 +357,21 @@ func TestFlushTallies(t *testing.T) {
 
 	store := models.NewTallyStore(rt.DB, rt.Tallies.KeyBase())
 
+	source := testdb.InsertKnowledgeSource(t, rt, testdb.Org1, "b3e5a1d2-6c4f-4e8a-9d1b-2f7c3a5e8b90", models.KnowledgeSourceTypeHelpdesk, "Help", models.KnowledgeSourceStatusReady)
+	section := testdb.InsertSection(t, rt, source, "2a4c6e8f-1b3d-4f5a-8c7e-9d0b2a4c6e8f", "Getting Started")
+	article := testdb.InsertArticle(t, rt, source, section, "5f7a9c1e-3b5d-4a6c-8e0f-1a3b5c7d9e2f", "Welcome", "Hello", models.ArticleStatusPublished)
+
 	org1, org2 := testdb.Org1.ID, testdb.Org2.ID
 	require.NoError(t, rt.Tallies.Increment(ctx, vc, map[string]int64{
 		models.TallyField(org1, "foo", time.Time{}): 2, models.TallyField(org1, "bar", time.Time{}): 1, models.TallyField(org2, "foo", time.Time{}): 3,
 		fmt.Sprintf("F%d|segment:a:b", testdb.Favorites.ID): 4,
 		fmt.Sprintf("C%d|foo", testdb.TwilioChannel.ID):     5,
+		fmt.Sprintf("A%d|foo", article.ID):                  6,
 	}))
 
 	flushed, err := rt.Tallies.Flush(ctx, vc, store, 2)
 	require.NoError(t, err)
-	assert.Equal(t, 5, flushed)
+	assert.Equal(t, 6, flushed)
 
 	assertdb.Query(t, rt.DB, `SELECT org_id || '|' || scope, count FROM orgs_orgtally`).Map(map[string]any{
 		fmt.Sprintf("%d|bar", testdb.Org1.ID): int64(1),
@@ -347,6 +383,9 @@ func TestFlushTallies(t *testing.T) {
 	})
 	assertdb.Query(t, rt.DB, `SELECT channel_id || '|' || scope, count FROM channels_channeltally`).Map(map[string]any{
 		fmt.Sprintf("%d|foo", testdb.TwilioChannel.ID): int64(5),
+	})
+	assertdb.Query(t, rt.DB, `SELECT article_id || '|' || scope, count FROM knowledge_articletally`).Map(map[string]any{
+		fmt.Sprintf("%d|foo", article.ID): int64(6),
 	})
 	assertdb.Query(t, rt.DB, `SELECT last_batch FROM orgs_tallyflush WHERE name = 'tallies'`).Returns(int64(3))
 }
