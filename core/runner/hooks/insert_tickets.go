@@ -40,7 +40,7 @@ func (h *insertTickets) Execute(ctx context.Context, rt *runtime.Runtime, tx *sq
 	}
 
 	// insert the tickets
-	if err := models.InsertTickets(ctx, tx, oa, tickets); err != nil {
+	if err := models.InsertTickets(ctx, tx, tickets); err != nil {
 		return fmt.Errorf("error inserting tickets: %w", err)
 	}
 

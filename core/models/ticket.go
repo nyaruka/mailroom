@@ -167,7 +167,7 @@ INSERT INTO
 RETURNING id, opened_on`
 
 // InsertTickets inserts the passed in tickets, setting their ids and opened_on, returning any errors encountered
-func InsertTickets(ctx context.Context, tx DBorTx, oa *OrgAssets, tickets []*Ticket) error {
+func InsertTickets(ctx context.Context, tx DBorTx, tickets []*Ticket) error {
 	if len(tickets) == 0 {
 		return nil
 	}

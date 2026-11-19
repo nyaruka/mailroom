@@ -54,7 +54,7 @@ func TestTickets(t *testing.T) {
 	assert.Equal(t, testdb.DefaultTopic.ID, ticket1.TopicID)
 	assert.Equal(t, testdb.Admin.ID, ticket1.AssigneeID)
 
-	err := models.InsertTickets(ctx, rt.DB, oa, []*models.Ticket{ticket1, ticket2, ticket3})
+	err := models.InsertTickets(ctx, rt.DB, []*models.Ticket{ticket1, ticket2, ticket3})
 	assert.NoError(t, err)
 
 	// check all tickets were created
