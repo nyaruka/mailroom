@@ -68,7 +68,9 @@ func handleMsgCreated(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAs
 	if event.TicketUUID != "" && userID != models.NilUserID {
 		ticket := scene.DBContact.FindTicket(event.TicketUUID)
 		if ticket != nil && ticket.Status == models.TicketStatusOpen {
-			scene.AttachPreCommitHook(hooks.RecordTicketReplies, hooks.TicketReply{Ticket: ticket, UserID: userID, When: event.CreatedOn()})
+			reply := hooks.TicketReply{Ticket: ticket, UserID: userID, When: event.CreatedOn(), Tallies: make(map[string]int64)}
+			scene.AttachPreCommitHook(hooks.RecordTicketReplies, reply)
+			scene.AttachPostCommitHook(hooks.IncrementTallies, reply.Tallies)
 			scene.AttachPreCommitHook(hooks.UpdateTicketFires, ticket)
 		}
 	}

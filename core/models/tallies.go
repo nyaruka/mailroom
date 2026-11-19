@@ -36,6 +36,10 @@ const (
 	// contacts/new:inbound@2026-11-03. Deleting a contact doesn't reduce them.
 	TallyContactsNew = "contacts/new"
 
+	// TallyTickets prefixes the daily counts of ticket activity, e.g. tickets/opened:<topic>@2026-11-03. See
+	// TicketOpenedTallies, TicketAssignedTallies and RecordTicketReply for what's counted.
+	TallyTickets = "tickets"
+
 	// TallyLLMs prefixes the daily usage tallies which LLM services can record, e.g. llms/foo/tokens:in@2026-11-02
 	TallyLLMs = "llms"
 )
