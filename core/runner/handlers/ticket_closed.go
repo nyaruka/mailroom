@@ -38,9 +38,9 @@ func handleTicketClosed(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 	}
 
 	scene.AttachPreCommitHook(hooks.UpdateTickets, dbTicket)
-	scene.AttachPostCommitHook(hooks.PublishTicketsChanged, event.TicketUUID)
 	scene.AttachPreCommitHook(hooks.UpdateTicketFires, dbTicket)
 	scene.AttachPostCommitHook(hooks.IndexContacts, event)
+	scene.AttachPostCommitHook(hooks.PublishTicketsChanged, event.TicketUUID)
 
 	// automatic closes can come in large batches so avoid queuing tasks for contacts that won't match a trigger
 	trigger := models.FindMatchingTicketClosedTrigger(oa, scene.Contact)

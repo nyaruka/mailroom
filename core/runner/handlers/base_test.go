@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/nyaruka/gocommon/aws/dynamo"
+	"github.com/nyaruka/gocommon/centrifugo"
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/gocommon/uuids"
@@ -92,6 +93,7 @@ type TestCase struct {
 	ExpectedHistory []*dynamo.Item                  `json:"expected_history,omitempty"`
 	IndexedMessages []testsuite.IndexedMessage      `json:"indexed_messages,omitempty"`
 	AssertSearch    []testsuite.SearchAssertion     `json:"assert_search,omitempty"`
+	TicketsChanged  []core.TicketUUID               `json:"tickets_changed,omitempty"`
 }
 
 func runTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
@@ -108,7 +110,11 @@ func runTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 
 	defer test.MockUniverse()()
 
+	subscribeTickets(t, rt)
+
 	for i, tc := range tcs {
+		ticketsPubs := len(testsuite.CentrifugoHistory(t, rt, models.OrgTicketsSocket(models.OrgUUID(testdb.Org1.UUID))))
+
 		scenes := make([]*runner.Scene, 4)
 		msgEvents := make([]*events.MsgReceived, 4)
 
@@ -188,6 +194,7 @@ func runTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 		actual.ExpectedTasks = testsuite.GetQueuedTasks(t, rt)
 		actual.ExpectedHistory = testsuite.GetHistoryItems(t, rt, true, test.MockStartTime)
 		actual.IndexedMessages = testsuite.GetIndexedMessages(t, rt, true)
+		actual.TicketsChanged = ticketsChangedSince(t, rt, ticketsPubs)
 
 		actual.DBAssertions = make([]*assertdb.Assert, len(tc.DBAssertions))
 		for i, dba := range tc.DBAssertions {
@@ -219,6 +226,8 @@ func runTests(t *testing.T, rt *runtime.Runtime, truthFile string) {
 				actual.IndexedMessages = []testsuite.IndexedMessage{}
 			}
 			test.AssertEqualJSON(t, jsonx.MustMarshal(tc.IndexedMessages), jsonx.MustMarshal(actual.IndexedMessages), "%s: indexed messages mismatch", tc.Label)
+
+			assert.Equal(t, tc.TicketsChanged, actual.TicketsChanged, "%s: tickets changed mismatch", tc.Label)
 
 			if len(tc.AssertSearch) > 0 {
 				rt.ES.Writer.Flush()
@@ -344,6 +353,28 @@ func applyModifiers(t *testing.T, rt *runtime.Runtime, oa *models.OrgAssets, c *
 		require.NoError(t, scene.ApplyModifier(t.Context(), rt, oa, mod, testdb.Admin.ID, ""))
 	}
 	require.NoError(t, scene.Commit(t.Context(), rt, oa))
+}
+
+// subscribeTickets marks the org's tickets socket as having a subscriber so that tickets_changed events are published
+func subscribeTickets(t *testing.T, rt *runtime.Runtime) {
+	vc := rt.VK.Get()
+	defer vc.Close()
+
+	_, err := vc.Do("SET", centrifugo.SubscriptionKey(models.OrgTicketsSocket(models.OrgUUID(testdb.Org1.UUID))), "1")
+	require.NoError(t, err)
+}
+
+// ticketsChangedSince returns the tickets named by tickets_changed events published after the first n
+func ticketsChangedSince(t *testing.T, rt *runtime.Runtime, n int) []core.TicketUUID {
+	var changed []core.TicketUUID
+	for _, data := range testsuite.CentrifugoHistory(t, rt, models.OrgTicketsSocket(models.OrgUUID(testdb.Org1.UUID)))[n:] {
+		var event struct {
+			Tickets []core.TicketUUID `json:"tickets"`
+		}
+		jsonx.MustUnmarshal(data, &event)
+		changed = append(changed, event.Tickets...)
+	}
+	return changed
 }
 
 // assertSearch asserts that a contact query against the contacts index returns the given contacts

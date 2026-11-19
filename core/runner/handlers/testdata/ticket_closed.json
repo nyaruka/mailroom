@@ -48,6 +48,9 @@
                     "type": "ticket_closed"
                 }
             }
+        ],
+        "tickets_changed": [
+            "01992f54-5ab6-717a-a39e-e8ca91fb7262"
         ]
     },
     {
@@ -94,6 +97,9 @@
                     "type": "ticket_closed"
                 }
             }
+        ],
+        "tickets_changed": [
+            "01992f54-5ab6-725e-be9c-0c6407efd755"
         ]
     },
     {
@@ -136,6 +142,9 @@
                     "type": "ticket_closed"
                 }
             }
+        ],
+        "tickets_changed": [
+            "01992f54-5ab6-7498-a7f2-6aa246e45cfe"
         ]
     }
 ]

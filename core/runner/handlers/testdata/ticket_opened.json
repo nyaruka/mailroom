@@ -166,6 +166,10 @@
                     "type": "contact_groups_changed"
                 }
             }
+        ],
+        "tickets_changed": [
+            "01969b47-2c93-76f8-bffe-b26e15b12b0f",
+            "01969b47-7ab3-76f8-99b2-e3c62e5695d5"
         ]
     }
 ]

@@ -52,8 +52,8 @@ func FlowSocket(flowUUID assets.FlowUUID) string {
 // SocketOrgNamespace is the realtime pub/sub namespace for workspace-wide state changes. A workspace socket is
 // addressed as "org:<org-uuid>" and carries "asset_changed" payloads - an asset's canonical name has changed, so any
 // page caching that name should update it. These are produced on the platform's Django side and published through
-// the org publish endpoint. Every open page holds it, so state that only some pages care about gets a socket of its
-// own within the namespace, e.g. "org:<org-uuid>:tickets", held only while the tickets page is open. Like the other namespaces it's a client subscription,
+// the org publish endpoint. Every open page holds that socket, so state only some pages care about gets its own
+// socket within the namespace (e.g. OrgTicketsSocket). Like the other namespaces it's a client subscription,
 // authorized per-session by the subscribe proxy, which records the same "socket-subs:" presence key. Note this is the
 // one namespace any member of the workspace may subscribe to with no further permission check (unlike e.g. "flow:",
 // which requires flows.flow_editor), so anything published here is visible to every user in the workspace.
@@ -65,8 +65,7 @@ func OrgSocket(orgUUID OrgUUID) string {
 }
 
 // OrgTicketsSocket returns the realtime pub/sub socket for changes to the given workspace's tickets, addressed as
-// "org:<org-uuid>:tickets". Only the tickets page subscribes, so it has no subscribers - and nothing is published to
-// it - while no one has that page open.
+// "org:<org-uuid>:tickets".
 func OrgTicketsSocket(orgUUID OrgUUID) string {
 	return fmt.Sprintf("%s:%s:tickets", SocketOrgNamespace, orgUUID)
 }
@@ -169,11 +168,10 @@ type ticketsChangedEvent struct {
 	Tickets []core.TicketUUID `json:"tickets,omitempty"`
 }
 
-// PublishTicketsChanged tells the workspace's open tickets pages that the given tickets changed - opened, closed, reopened,
-// reassigned, moved topic or had new activity. The socket is open to every member of the workspace, but not every
-// member can see every ticket, so the event names the tickets only by UUID: a ticket list reads them again over http,
-// scoped to what that user can see, which also tells it which have left its folder. When there are too many to name
-// the event names none, and clients reload instead. Best-effort and a no-op when the workspace has no subscribers.
+// PublishTicketsChanged tells the workspace's open ticket lists that the given tickets changed. The socket is open to
+// every member of the workspace, but not every member can see every ticket, so the event names the tickets only by
+// UUID: a ticket list reads them again over http, scoped to what that user can see, which also tells it which have
+// left its folder.
 func PublishTicketsChanged(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, ticketUUIDs []core.TicketUUID) error {
 	if len(ticketUUIDs) == 0 {
 		return nil

@@ -10,6 +10,7 @@ import (
 	"github.com/nyaruka/mailroom/v26/core/runner"
 	"github.com/nyaruka/mailroom/v26/testsuite"
 	"github.com/nyaruka/mailroom/v26/testsuite/testdb"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -28,6 +29,8 @@ func TestTicketReopened(t *testing.T) {
 	tickets, err := models.LoadTickets(ctx, rt.DB, testdb.Org1.ID, []core.TicketUUID{ticket.UUID})
 	require.NoError(t, err)
 
+	subscribeTickets(t, rt)
+
 	scenes, err := runner.CreateScenes(ctx, rt, oa, []models.ContactID{testdb.Ann.ID}, map[models.ContactID][]*models.Ticket{testdb.Ann.ID: tickets})
 	require.NoError(t, err)
 	require.NoError(t, scenes[0].ApplyModifier(ctx, rt, oa, modifiers.NewTicketReopen(ticket.UUID), testdb.Admin.ID, ""))
@@ -36,4 +39,5 @@ func TestTicketReopened(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT status FROM tickets_ticket WHERE id = $1 AND closed_on IS NULL AND outcome IS NULL`, ticket.ID).Returns("O")
 
 	assertSearch(t, rt, oa, `ticket = "open"`, []core.ContactUUID{testdb.Ann.UUID})
+	assert.Equal(t, []core.TicketUUID{ticket.UUID}, ticketsChangedSince(t, rt, 0))
 }

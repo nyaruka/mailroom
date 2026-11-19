@@ -4,10 +4,12 @@ import (
 	"testing"
 	"time"
 
+	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/flows/modifiers"
 	"github.com/nyaruka/mailroom/v26/testsuite"
 	"github.com/nyaruka/mailroom/v26/testsuite/testdb"
 	"github.com/nyaruka/vkutil/assertvk"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestTicketAssigneeChanged(t *testing.T) {
@@ -20,9 +22,13 @@ func TestTicketAssigneeChanged(t *testing.T) {
 	oa := testdb.Org1.Load(t, rt)
 	agent := oa.SessionAssets().Users().Get(testdb.Agent.UUID)
 
+	subscribeTickets(t, rt)
+
 	// a first assignment is tallied on the day it's made, but a reassignment isn't
 	applyModifiers(t, rt, oa, testdb.Ann, modifiers.NewTicketAssignee("01992f54-5ab6-717a-a39e-e8ca91fb7262", agent))
 	applyModifiers(t, rt, oa, testdb.Bob, modifiers.NewTicketAssignee("01992f54-5ab6-725e-be9c-0c6407efd755", agent))
+
+	assert.Equal(t, []core.TicketUUID{"01992f54-5ab6-717a-a39e-e8ca91fb7262", "01992f54-5ab6-725e-be9c-0c6407efd755"}, ticketsChangedSince(t, rt, 0))
 
 	vc := rt.VK.Get()
 	defer vc.Close()
