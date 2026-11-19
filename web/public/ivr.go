@@ -18,10 +18,14 @@ import (
 	"github.com/nyaruka/goflow/flows"
 	"github.com/nyaruka/mailroom/v26/core/ivr"
 	"github.com/nyaruka/mailroom/v26/core/models"
+	"github.com/nyaruka/mailroom/v26/core/runner/clocks"
 	"github.com/nyaruka/mailroom/v26/core/tasks/ctasks"
 	"github.com/nyaruka/mailroom/v26/runtime"
 	"github.com/nyaruka/mailroom/v26/web"
 )
+
+// how long an IVR request waits for the contact lock, short enough to leave time to respond before the provider gives up
+var contactLockWait = 5 * time.Second
 
 func init() {
 	web.InternetRoute(http.MethodPost, "/ivr/c/{uuid:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}}/handle", newIVRHandler(handleCallback, models.ChannelLogTypeIVRCallback))
@@ -109,10 +113,17 @@ func handleIncoming(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 	}
 
 	// get the contact for this URN
-	mc, _, _, err := models.GetOrCreateContact(ctx, rt.DB, oa, userID, []urns.URN{urn}, ch.ID())
+	mc, _, _, err := models.GetOrCreateContact(ctx, rt.DB, oa, userID, models.ContactSourceInbound, []urns.URN{urn}, ch.ID())
 	if err != nil {
 		return nil, svc.WriteErrorResponse(w, fmt.Errorf("unable to get contact by urn: %w", err))
 	}
+
+	mc, unlock, err := lockAndLoadContact(ctx, rt, oa, mc.ID())
+	if err != nil {
+		return nil, svc.WriteErrorResponse(w, err)
+	}
+	defer unlock()
+
 	cu := mc.FindURN(urn)
 
 	externalID, err := svc.CallIDForRequest(r)
@@ -124,6 +135,8 @@ func handleIncoming(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 	if err := models.InsertCalls(ctx, rt.DB, []*models.Call{call}); err != nil {
 		return nil, svc.WriteErrorResponse(w, fmt.Errorf("error inserting incoming call: %w", err))
 	}
+
+	models.IncrementCallTallies(ctx, rt, oa.OrgID(), []*models.Call{call})
 
 	// create an incoming call "task" and handle it to see if we have a trigger
 	task := &ctasks.EventReceived{
@@ -161,6 +174,34 @@ func handleIncoming(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 	return call, svc.WriteEmptyResponse(w, "missed call handled")
 }
 
+// lockAndLoadContact locks the given contact, as every other path that starts or resumes sessions does, so that the
+// sessions changed by this request can't race with theirs. Otherwise a session started concurrently elsewhere can lose
+// its fires and stop being the contact's current session, leaving it waiting forever. The contact is loaded from the
+// primary database because a replica may not yet reflect the changes of the previous lock holder.
+func lockAndLoadContact(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contactID models.ContactID) (*models.Contact, func(), error) {
+	locks, _, err := clocks.TryToLock(ctx, rt, oa, []models.ContactID{contactID}, contactLockWait)
+	if err != nil {
+		return nil, nil, fmt.Errorf("error locking contact: %w", err)
+	}
+	if len(locks) == 0 {
+		return nil, nil, fmt.Errorf("timed out waiting for lock on contact #%d", contactID)
+	}
+
+	unlock := func() {
+		if err := clocks.Unlock(context.Background(), rt, oa, locks); err != nil {
+			slog.Error("error unlocking contact", "error", err, "contact", contactID)
+		}
+	}
+
+	mc, err := models.LoadContact(ctx, rt.DB, oa, contactID)
+	if err != nil {
+		unlock()
+		return nil, nil, fmt.Errorf("no such contact: %w", err)
+	}
+
+	return mc, unlock, nil
+}
+
 // writeGenericErrorResponse is just a small utility method to write out a simple JSON error when we don't have a client yet
 func writeGenericErrorResponse(w http.ResponseWriter, err error) error {
 	return web.WriteMarshalled(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
@@ -189,6 +230,15 @@ func handleCallback(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 		return nil, fmt.Errorf("unable to load call with UUID %s: %w", request.CallUUID, err)
 	}
 
+	// status updates only touch the call so don't need the contact
+	if request.Action == ivr.ActionStatus {
+		if err := ivr.HandleStatus(ctx, rt, oa, svc, call, r, w); err != nil {
+			slog.Error("error while handling IVR", "error", err, "http_request", loggable(r, svc.RedactValues(ch)))
+			return call, ivr.HandleAsFailure(ctx, rt.DB, svc, call, w, err)
+		}
+		return call, nil
+	}
+
 	return handleCallAction(ctx, rt, oa, ch, svc, call, request.Action, r, w)
 }
 
@@ -209,7 +259,7 @@ func handleRouted(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets
 
 		// a call that didn't start a flow has been told to hang up, and that's the last we need hear of it
 		if call != nil && call.SessionUUID() == "" && call.Status() == models.CallStatusInProgress {
-			if err := call.UpdateStatus(ctx, rt.DB, models.CallStatusCompleted, 0, time.Now()); err != nil {
+			if err := call.UpdateStatus(ctx, rt.DB, models.CallStatusCompleted); err != nil {
 				slog.Error("error completing incoming call", "error", err, "call", call.UUID())
 			}
 		}
@@ -309,13 +359,14 @@ func loggable(r *http.Request, redact []string) *http.Request {
 	return c
 }
 
-// handleCallAction performs the given action on a call
+// handleCallAction starts or resumes a call, which is done with its contact locked
 func handleCallAction(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, ch *models.Channel, svc ivr.Service, call *models.Call, action string, r *http.Request, w http.ResponseWriter) (*models.Call, error) {
-	// load our contact
-	mc, err := models.LoadContact(ctx, rt.ReadonlyDB, oa, call.ContactID())
+	mc, unlock, err := lockAndLoadContact(ctx, rt, oa, call.ContactID())
 	if err != nil {
-		return call, svc.WriteErrorResponse(w, fmt.Errorf("no such contact: %w", err))
+		return call, ivr.HandleAsFailure(ctx, rt.DB, svc, call, w, err)
 	}
+	defer unlock()
+
 	if mc.Status() != models.ContactStatusActive {
 		return call, svc.WriteErrorResponse(w, fmt.Errorf("no contact with id: %d", call.ContactID()))
 	}

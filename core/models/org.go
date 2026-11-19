@@ -55,14 +55,14 @@ func webhookServiceFactory(rt *runtime.Runtime, defaultHeaders map[string]string
 	}
 }
 
-func emailServiceFactory(rt *runtime.Runtime) engine.EmailServiceFactory {
+func emailServiceFactory(rt *runtime.Runtime, simulated bool) engine.EmailServiceFactory {
 	var emailRetries = smtpx.NewFixedRetries(time.Second*3, time.Second*6)
 
 	return func(sa flows.SessionAssets) (flows.EmailService, error) {
 		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 		defer cancel()
 
-		return orgFromAssets(sa).EmailService(ctx, rt, emailRetries)
+		return orgFromAssets(sa).EmailService(ctx, rt, emailRetries, simulated)
 	}
 }
 
@@ -126,7 +126,26 @@ const (
 
 	// FeatureTicketTriggers allows triggers to fire for contacts with open tickets
 	FeatureTicketTriggers = "ticket_triggers"
+
+	// FeatureSharedEmail allows an org's flows to send email using the shared configuration. It isn't inherited by
+	// child orgs.
+	FeatureSharedEmail = "shared_email"
 )
+
+// OrgStatus is the status of an org
+type OrgStatus string
+
+const (
+	OrgStatusActive = OrgStatus("A")
+
+	// users can't start sends themselves, which the database layer enforces, so to us it's the same as active
+	OrgStatusRestricted = OrgStatus("R")
+
+	OrgStatusSuspended = OrgStatus("S")
+)
+
+// ErrNoEmailConfig is returned when an org has no SMTP configuration for sending email
+var ErrNoEmailConfig = errors.New("workspace has no SMTP settings for sending email")
 
 // Org is mailroom's type for RapidPro orgs. It also implements the envs.Environment interface for GoFlow
 type Org struct {
@@ -135,7 +154,7 @@ type Org struct {
 		ID                OrgID          `json:"id"`
 		ParentID          OrgID          `json:"parent_id"`
 		Name              string         `json:"name"`
-		Suspended         bool           `json:"is_suspended"`
+		Status            OrgStatus      `json:"status"`
 		Features          []string       `json:"features"`
 		FlowSMTP          null.String    `json:"flow_smtp"`
 		PrometheusToken   null.String    `json:"prometheus_token"`
@@ -171,8 +190,11 @@ func (o *Org) UUID() OrgUUID { return o.o.UUID }
 // Name returns the name of the org
 func (o *Org) Name() string { return o.o.Name }
 
-// Suspended returns whether the org has been suspended
-func (o *Org) Suspended() bool { return o.o.Suspended }
+// Status returns the status of the org
+func (o *Org) Status() OrgStatus { return o.o.Status }
+
+// IsSuspended returns whether the org has been suspended
+func (o *Org) IsSuspended() bool { return o.o.Status == OrgStatusSuspended }
 
 // HasFeature returns whether the given feature is enabled for this org
 func (o *Org) HasFeature(f string) bool { return slices.Contains(o.o.Features, f) }
@@ -230,7 +252,8 @@ func (o *Org) ConfigValue(key string, def string) string {
 	return def
 }
 
-// EmailSMTP returns the SMTP configuration URL for sending email from this org, and whether that's the shared default
+// EmailSMTP returns the SMTP configuration URL for sending email from this org, and whether that's the shared default.
+// The URL is empty if the org has no configuration of its own or from its parent, and hasn't been granted the shared one.
 func (o *Org) EmailSMTP(ctx context.Context, rt *runtime.Runtime) (string, bool, error) {
 	// first look for custom SMTP on this org
 	if smtpURL := o.FlowSMTP(); smtpURL != "" {
@@ -248,21 +271,40 @@ func (o *Org) EmailSMTP(ctx context.Context, rt *runtime.Runtime) (string, bool,
 		}
 	}
 
-	// finally use config default
-	return rt.Config.SMTPServer, true, nil
+	// finally use config default if this org has itself been granted it
+	if o.HasFeature(FeatureSharedEmail) && rt.Config.SMTPServer != "" {
+		return rt.Config.SMTPServer, true, nil
+	}
+
+	return "", false, nil
 }
 
-// EmailService returns the email service for this org
-func (o *Org) EmailService(ctx context.Context, rt *runtime.Runtime, retries *smtpx.RetryConfig) (flows.EmailService, error) {
+// EmailService returns the email service for this org, or a fake one for simulated sessions which still requires the
+// org to have an SMTP configuration so that users find out about a missing one when testing
+func (o *Org) EmailService(ctx context.Context, rt *runtime.Runtime, retries *smtpx.RetryConfig, simulated bool) (flows.EmailService, error) {
 	smtpURL, _, err := o.EmailSMTP(ctx, rt)
 	if err != nil {
 		return nil, err
 	}
 	if smtpURL == "" {
-		return nil, errors.New("missing SMTP configuration")
+		return nil, ErrNoEmailConfig
 	}
 
-	return smtp.NewService(smtpURL, retries)
+	svc, err := smtp.NewService(smtpURL, retries)
+	if err != nil {
+		return nil, err
+	}
+	if simulated {
+		return &simulatedEmailService{}, nil
+	}
+
+	return svc, nil
+}
+
+type simulatedEmailService struct{}
+
+func (s *simulatedEmailService) Send(ctx context.Context, addresses []string, subject, body string) error {
+	return nil
 }
 
 // AirtimeService returns the airtime service for this org if one is configured
@@ -332,7 +374,7 @@ SELECT ROW_TO_JSON(o) FROM (SELECT
 	id,
 	parent_id,
 	name,
-	is_suspended,
+	status,
 	features,
 	flow_smtp,
 	prometheus_token,

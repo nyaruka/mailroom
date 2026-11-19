@@ -633,12 +633,16 @@ func InsertMessages(ctx context.Context, tx DBorTx, msgs []*Msg) error {
 }
 
 // MsgTallies gets the tally amounts by field which count the given messages by their org, channel, type, direction and
-// the UTC day they were created on. Messages without a channel aren't counted.
+// the UTC day they were created on. Of messages without a channel, only those which failed for having no destination
+// are counted. Incoming messages which are inserted already handled by a flow, such as IVR input, are also counted for
+// that flow.
 func MsgTallies(msgs []*Msg) map[string]int64 {
 	amounts := make(map[string]int64)
 	for _, m := range msgs {
-		if m.ChannelID() == NilChannelID {
-			continue
+		if m.Direction() == DirectionIn && m.FlowID() != NilFlowID {
+			for field, amount := range FlowMsgsInTallies(m.FlowID(), m.CreatedOn()) {
+				amounts[field] += amount
+			}
 		}
 
 		typ, dir := "text", "out"
@@ -650,7 +654,15 @@ func MsgTallies(msgs []*Msg) map[string]int64 {
 		}
 
 		orgID, day := m.OrgID(), m.CreatedOn()
-		amounts[TallyField(orgID, fmt.Sprintf("%s/%d/%s:%s", TallyChannelMsgs, m.ChannelID(), typ, dir), day)]++
+
+		if m.ChannelID() == NilChannelID {
+			if m.FailedReason() == MsgFailedNoDestination {
+				amounts[TallyField(orgID, fmt.Sprintf("%s/%s:nodest", TallyMsgs, typ), day)]++
+			}
+			continue
+		}
+
+		amounts[ChannelTallyField(m.ChannelID(), typ+":"+dir, day)]++
 		amounts[TallyField(orgID, fmt.Sprintf("%s/%s:%s", TallyMsgs, typ, dir), day)]++
 	}
 	return amounts
@@ -1330,7 +1342,7 @@ func DeleteMessages(ctx context.Context, tx *sqlx.Tx, orgID OrgID, uuids []event
 }
 
 func msgCheckSendable(ctx context.Context, rt *runtime.Runtime, org *Org, contactID ContactID, content *core.MsgContent) (core.UnsendableReason, error) {
-	if org.Suspended() {
+	if org.IsSuspended() {
 		return UnsendableReasonOrgSuspended, nil
 	}
 

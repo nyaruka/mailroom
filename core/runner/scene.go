@@ -43,6 +43,8 @@ type Scene struct {
 	Sprint              flows.Sprint
 	WaitTimeout         time.Duration
 	PriorRunModifiedOns map[core.RunUUID]time.Time
+	PriorRunNodes       map[core.RunUUID]core.NodeUUID
+	PriorRunStatuses    map[core.RunUUID]core.RunStatus
 	OutgoingMsgs        []*models.MsgOut
 
 	preCommits    map[PreCommitHook][]any
@@ -134,18 +136,18 @@ func (s *Scene) AddEvent(ctx context.Context, rt *runtime.Runtime, oa *models.Or
 // contact_flow_changed event to the scene. It doesn't update the database - callers are responsible for arranging
 // that (e.g. via the update contact session hook or session interruption).
 func (s *Scene) SetCurrentFlow(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, flow *models.Flow) (bool, error) {
-	flowID := models.NilFlowID
+	var flowUUID assets.FlowUUID
 	var flowRef *assets.FlowReference
 	if flow != nil {
-		flowID = flow.ID()
+		flowUUID = flow.UUID()
 		flowRef = flow.Reference()
 	}
 
-	if s.DBContact.CurrentFlowID() == flowID {
+	if s.DBContact.CurrentFlowUUID() == flowUUID {
 		return false, nil
 	}
 
-	s.DBContact.SetCurrentFlowID(flowID)
+	s.DBContact.SetCurrentFlowUUID(flowUUID)
 
 	if err := s.AddEvent(ctx, rt, oa, events.NewContactFlowChanged(flowRef), models.NilUserID, ""); err != nil {
 		return false, fmt.Errorf("error adding contact flow changed event: %w", err)
@@ -249,8 +251,14 @@ func (s *Scene) ResumeSession(ctx context.Context, rt *runtime.Runtime, oa *mode
 	// record run modified times prior to resuming so we can figure out which runs are new or updated
 	s.DBSession = session
 	s.PriorRunModifiedOns = make(map[core.RunUUID]time.Time, len(fs.Runs()))
+	s.PriorRunNodes = make(map[core.RunUUID]core.NodeUUID, len(fs.Runs()))
+	s.PriorRunStatuses = make(map[core.RunUUID]core.RunStatus, len(fs.Runs()))
 	for _, r := range fs.Runs() {
 		s.PriorRunModifiedOns[r.UUID()] = r.ModifiedOn()
+		s.PriorRunStatuses[r.UUID()] = r.Status()
+		if node := models.RunCurrentNode(r); node != "" {
+			s.PriorRunNodes[r.UUID()] = node
+		}
 	}
 
 	sprint, err := fs.Resume(ctx, resume)
@@ -316,7 +324,9 @@ func (s *Scene) Commit(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 
 // CreateScenes creates scenes for the given contact ids
 func CreateScenes(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contactIDs []models.ContactID, extraTickets map[models.ContactID][]*models.Ticket) ([]*Scene, error) {
-	mcs, err := models.LoadContacts(ctx, rt.ReadonlyDB, oa, contactIDs)
+	// contacts are loaded from the primary database because they've just been locked, and a replica may not yet
+	// reflect the changes of the previous lock holder, e.g. a session it started that we'd then fail to interrupt
+	mcs, err := models.LoadContacts(ctx, rt.DB, oa, contactIDs)
 	if err != nil {
 		return nil, fmt.Errorf("error loading contacts for new scenes: %w", err)
 	}

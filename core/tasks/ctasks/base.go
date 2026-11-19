@@ -12,6 +12,7 @@ import (
 	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/gocommon/urns"
+	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/flows/modifiers"
 	"github.com/nyaruka/goflow/utils"
@@ -130,11 +131,17 @@ func indexContact(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets
 		return fmt.Errorf("error creating engine contact: %w", err)
 	}
 
-	currentFlows := map[models.ContactID]models.FlowID{mc.ID(): mc.CurrentFlowID()}
+	currentFlows := map[models.ContactID]assets.FlowUUID{mc.ID(): mc.CurrentFlowUUID()}
 	if err := search.IndexContacts(ctx, rt, oa, []*core.Contact{contact}, currentFlows); err != nil {
 		return fmt.Errorf("error indexing contact: %w", err)
 	}
 	return nil
+}
+
+// countCreatedContact counts a contact which a task reports as created by whatever queued it, i.e. a channel service.
+// Tasks call this once they've succeeded so that a retried task doesn't count its contact again.
+func countCreatedContact(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, mc *models.Contact) {
+	models.IncrementContactTallies(ctx, rt, oa.OrgID(), models.ContactSourceInbound, 1, mc.CreatedOn())
 }
 
 func Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, contactID models.ContactID, task Task) error {

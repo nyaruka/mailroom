@@ -155,7 +155,7 @@ func getOrCreateContacts(ctx context.Context, db *sqlx.DB, oa *models.OrgAssets,
 			}
 
 		} else {
-			imp.mc, imp.contact, imp.created, err = models.GetOrCreateContact(ctx, db, oa, userID, urnz, models.NilChannelID)
+			imp.mc, imp.contact, imp.created, err = models.GetOrCreateContact(ctx, db, oa, userID, models.ContactSourceImport, urnz, models.NilChannelID)
 			if err != nil {
 				urnStrs := make([]string, len(urnz))
 				for i := range urnz {

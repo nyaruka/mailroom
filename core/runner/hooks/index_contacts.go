@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/runner"
@@ -20,10 +21,10 @@ func (h *indexContacts) Order() int { return 10 }
 
 func (h *indexContacts) Execute(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scenes map[*runner.Scene][]any) error {
 	contacts := make([]*core.Contact, 0, len(scenes))
-	currentFlows := make(map[models.ContactID]models.FlowID, len(scenes))
+	currentFlows := make(map[models.ContactID]assets.FlowUUID, len(scenes))
 	for scene := range scenes {
 		contacts = append(contacts, scene.Contact)
-		currentFlows[scene.ContactID()] = scene.DBContact.CurrentFlowID()
+		currentFlows[scene.ContactID()] = scene.DBContact.CurrentFlowUUID()
 	}
 
 	if err := search.IndexContacts(ctx, rt, oa, contacts, currentFlows); err != nil {

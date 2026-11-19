@@ -34,7 +34,8 @@ func TestLoadOrg(t *testing.T) {
 	rt.DB.MustExec(`UPDATE orgs_org SET features = '{"unrestricted_webhooks"}' WHERE id = $1`, testdb.Org1.ID)
 	rt.DB.MustExec(`UPDATE orgs_org SET limits = '{"contacts": 1000}' WHERE id = $1`, testdb.Org1.ID)
 	rt.DB.MustExec(`UPDATE orgs_org SET max_ticket_idle_days = 14 WHERE id = $1`, testdb.Org1.ID)
-	rt.DB.MustExec(`UPDATE orgs_org SET is_suspended = TRUE, suspended_on = NOW(), limits = '{"groups": 250}' WHERE id = $1`, testdb.Org2.ID)
+	rt.DB.MustExec(`UPDATE orgs_org SET limits = '{"groups": 250}' WHERE id = $1`, testdb.Org2.ID)
+	testdb.Org2.SetStatus(t, rt, models.OrgStatusSuspended)
 	rt.DB.MustExec(`UPDATE orgs_org SET flow_languages = '{}' WHERE id = $1`, testdb.Org2.ID)
 	rt.DB.MustExec(`UPDATE orgs_org SET date_format = 'M' WHERE id = $1`, testdb.Org2.ID)
 
@@ -42,7 +43,8 @@ func TestLoadOrg(t *testing.T) {
 	assert.NoError(t, err)
 
 	assert.Equal(t, models.OrgID(1), org.ID())
-	assert.False(t, org.Suspended())
+	assert.Equal(t, models.OrgStatusActive, org.Status())
+	assert.False(t, org.IsSuspended())
 	assert.True(t, org.HasFeature(models.FeatureUnrestrictedWebhooks))
 	assert.False(t, org.HasFeature("teams"))
 	assert.Equal(t, "smtp://foo:bar", org.FlowSMTP())
@@ -60,7 +62,8 @@ func TestLoadOrg(t *testing.T) {
 
 	org, err = models.LoadOrg(ctx, rt.Config, rt.DB.DB, testdb.Org2.ID)
 	assert.NoError(t, err)
-	assert.True(t, org.Suspended())
+	assert.Equal(t, models.OrgStatusSuspended, org.Status())
+	assert.True(t, org.IsSuspended())
 	assert.False(t, org.HasFeature(models.FeatureUnrestrictedWebhooks))
 	assert.Equal(t, "", org.FlowSMTP())
 	assert.Equal(t, models.NoLimit, org.ContactLimit()) // limits set but no contacts key
@@ -94,51 +97,85 @@ func TestGetOrgIDFromUUID(t *testing.T) {
 func TestEmailService(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
+	rt.Config.SMTPServer = `smtp://foo:bar@example.com?from=foo%40example.com`
+
 	// make org 2 a child of org 1
 	rt.DB.MustExec(`UPDATE orgs_org SET parent_id = $2 WHERE id = $1`, testdb.Org2.ID, testdb.Org1.ID)
 
-	org1, err := models.LoadOrg(ctx, rt.Config, rt.DB.DB, testdb.Org1.ID)
-	require.NoError(t, err)
-	org2, err := models.LoadOrg(ctx, rt.Config, rt.DB.DB, testdb.Org2.ID)
-	require.NoError(t, err)
+	loadOrgs := func() (*models.Org, *models.Org) {
+		models.FlushCache()
+		org1, err := models.LoadOrg(ctx, rt.Config, rt.DB.DB, testdb.Org1.ID)
+		require.NoError(t, err)
+		org2, err := models.LoadOrg(ctx, rt.Config, rt.DB.DB, testdb.Org2.ID)
+		require.NoError(t, err)
+		return org1, org2
+	}
 
-	// no SMTP config by default.. no email service
-	_, err = org1.EmailService(ctx, rt, nil)
-	assert.EqualError(t, err, "missing SMTP configuration")
+	assertSMTP := func(org *models.Org, expectedURL string, expectedShared bool) {
+		t.Helper()
 
+		smtpURL, shared, err := org.EmailSMTP(ctx, rt)
+		assert.NoError(t, err)
+		assert.Equal(t, expectedURL, smtpURL)
+		assert.Equal(t, expectedShared, shared)
+
+		for _, simulated := range []bool{false, true} {
+			svc, err := org.EmailService(ctx, rt, nil, simulated)
+			if expectedURL == "" {
+				assert.Equal(t, models.ErrNoEmailConfig, err)
+				assert.Nil(t, svc)
+			} else {
+				assert.NoError(t, err)
+				assert.NotNil(t, svc)
+			}
+		}
+	}
+
+	// orgs without their own configuration can't use the shared one by default
+	org1, org2 := loadOrgs()
+	assertSMTP(org1, "", false)
+	assertSMTP(org2, "", false)
+
+	// unless granted the feature, which children don't inherit
+	rt.DB.MustExec(`UPDATE orgs_org SET features = '{"shared_email"}' WHERE id = $1`, testdb.Org1.ID)
+
+	org1, org2 = loadOrgs()
+	assertSMTP(org1, `smtp://foo:bar@example.com?from=foo%40example.com`, true)
+	assertSMTP(org2, "", false)
+
+	// but not if there's no shared configuration
+	rt.Config.SMTPServer = ""
+	assertSMTP(org1, "", false)
 	rt.Config.SMTPServer = `smtp://foo:bar@example.com?from=foo%40example.com`
 
-	// construct one from the config setting
-	svc, err := org1.EmailService(ctx, rt, nil)
-	assert.NoError(t, err)
-	assert.NotNil(t, svc)
+	// a child can be granted the feature itself, with or without its parent having it
+	rt.DB.MustExec(`UPDATE orgs_org SET features = '{"shared_email"}' WHERE id = $1`, testdb.Org2.ID)
 
-	smtpURL, shared, err := org1.EmailSMTP(ctx, rt)
-	assert.NoError(t, err)
-	assert.Equal(t, `smtp://foo:bar@example.com?from=foo%40example.com`, smtpURL)
-	assert.True(t, shared)
+	org1, org2 = loadOrgs()
+	assertSMTP(org1, `smtp://foo:bar@example.com?from=foo%40example.com`, true)
+	assertSMTP(org2, `smtp://foo:bar@example.com?from=foo%40example.com`, true)
 
-	// set explicitly for org 1
-	rt.Config.SMTPServer = ""
+	rt.DB.MustExec(`UPDATE orgs_org SET features = '{}' WHERE id = $1`, testdb.Org1.ID)
+
+	org1, org2 = loadOrgs()
+	assertSMTP(org1, "", false)
+	assertSMTP(org2, `smtp://foo:bar@example.com?from=foo%40example.com`, true)
+
+	// a malformed configuration errors in simulated sessions too
+	rt.DB.MustExec(`UPDATE orgs_org SET flow_smtp = 'xyz://zed' WHERE id = $1`, testdb.Org1.ID)
+
+	org1, _ = loadOrgs()
+	for _, simulated := range []bool{false, true} {
+		_, err := org1.EmailService(ctx, rt, nil, simulated)
+		assert.EqualError(t, err, "connection URL must use SMTP scheme")
+	}
+
+	// an org's own configuration is used ahead of the shared one, and children inherit it
 	rt.DB.MustExec(`UPDATE orgs_org SET flow_smtp = 'smtp://zed:123@flows.com?from=foo%40flows.com' WHERE id = $1`, testdb.Org1.ID)
-	models.FlushCache()
 
-	org1, err = models.LoadOrg(ctx, rt.Config, rt.DB.DB, testdb.Org1.ID)
-	require.NoError(t, err)
-
-	svc, err = org1.EmailService(ctx, rt, nil)
-	assert.NoError(t, err)
-	assert.NotNil(t, svc)
-
-	// org 2 should inherit its from org 1
-	svc, err = org2.EmailService(ctx, rt, nil)
-	assert.NoError(t, err)
-	assert.NotNil(t, svc)
-
-	smtpURL, shared, err = org2.EmailSMTP(ctx, rt)
-	assert.NoError(t, err)
-	assert.Equal(t, `smtp://zed:123@flows.com?from=foo%40flows.com`, smtpURL)
-	assert.False(t, shared)
+	org1, org2 = loadOrgs()
+	assertSMTP(org1, `smtp://zed:123@flows.com?from=foo%40flows.com`, false)
+	assertSMTP(org2, `smtp://zed:123@flows.com?from=foo%40flows.com`, false)
 }
 
 func TestWebhookServiceFactory(t *testing.T) {

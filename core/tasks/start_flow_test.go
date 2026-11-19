@@ -271,6 +271,9 @@ func TestStartFlowTask(t *testing.T) {
 		}
 		published = len(sent)
 	}
+
+	// only the start which creates a contact added one
+	testsuite.AssertNewContactTallies(t, rt, map[string]int{"O1|contacts/new:other": 1})
 }
 
 func TestStartFlowTaskExcludesOpenTickets(t *testing.T) {

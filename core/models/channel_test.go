@@ -16,8 +16,8 @@ import (
 func TestChannels(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
-	// add some tel specific config to channel 2
-	rt.DB.MustExec(`UPDATE channels_channel SET config = '{"matching_prefixes": ["250", "251"], "allow_international": true}' WHERE id = $1`, testdb.VonageChannel.ID)
+	// add some tel specific config and a non-default TPS to channel 2
+	rt.DB.MustExec(`UPDATE channels_channel SET config = '{"matching_prefixes": ["250", "251"], "allow_international": true}', tps = 25 WHERE id = $1`, testdb.VonageChannel.ID)
 
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, 1, models.RefreshChannels)
 	require.NoError(t, err)
@@ -30,6 +30,7 @@ func TestChannels(t *testing.T) {
 		uuid               assets.ChannelUUID
 		name               string
 		address            string
+		tps                int
 		schemes            []string
 		roles              []assets.ChannelRole
 		prefixes           []string
@@ -40,6 +41,7 @@ func TestChannels(t *testing.T) {
 			testdb.TwilioChannel.UUID,
 			"Twilio",
 			"+13605551212",
+			10,
 			[]string{"tel"},
 			[]assets.ChannelRole{"send", "receive", "call", "answer"},
 			nil,
@@ -50,6 +52,7 @@ func TestChannels(t *testing.T) {
 			testdb.VonageChannel.UUID,
 			"Vonage",
 			"5789",
+			25,
 			[]string{"tel"},
 			[]assets.ChannelRole{"send", "receive"},
 			[]string{"250", "251"},
@@ -60,6 +63,7 @@ func TestChannels(t *testing.T) {
 			testdb.FacebookChannel.UUID,
 			"Facebook",
 			"12345",
+			10,
 			[]string{"facebook"},
 			[]assets.ChannelRole{"send", "receive"},
 			nil,
@@ -70,6 +74,7 @@ func TestChannels(t *testing.T) {
 			testdb.AndroidChannel.UUID,
 			"Android",
 			"+593123456789",
+			10,
 			[]string{"tel"},
 			[]assets.ChannelRole{"send", "receive"},
 			nil,
@@ -84,6 +89,7 @@ func TestChannels(t *testing.T) {
 		assert.Equal(t, tc.id, channel.ID())
 		assert.Equal(t, tc.name, channel.Name())
 		assert.Equal(t, tc.address, channel.Address())
+		assert.Equal(t, tc.tps, channel.TPS())
 		assert.Equal(t, tc.roles, channel.Roles())
 		assert.Equal(t, tc.schemes, channel.Schemes())
 		assert.Equal(t, tc.prefixes, channel.MatchPrefixes())
@@ -96,10 +102,13 @@ func TestGetChannelByID(t *testing.T) {
 
 	defer rt.DB.MustExec(`UPDATE channels_channel SET is_active = TRUE WHERE id = $1`, testdb.VonageChannel.ID)
 
+	rt.DB.MustExec(`UPDATE channels_channel SET tps = 25 WHERE id = $1`, testdb.TwilioChannel.ID)
+
 	ch, err := models.GetChannelByID(ctx, rt.DB.DB, testdb.TwilioChannel.ID)
 	assert.NoError(t, err)
 	assert.Equal(t, testdb.TwilioChannel.ID, ch.ID())
 	assert.Equal(t, testdb.TwilioChannel.UUID, ch.UUID())
+	assert.Equal(t, 25, ch.TPS())
 
 	// test when channel is deleted
 	rt.DB.MustExec(`UPDATE channels_channel SET is_active = FALSE WHERE id = $1`, testdb.VonageChannel.ID)
@@ -126,7 +135,7 @@ func TestGetAndroidChannelsToSync(t *testing.T) {
 	rt.DB.MustExec(`UPDATE channels_channel SET last_seen = NOW() - INTERVAL '30 minutes' WHERE id = $1`, testChannel1.ID)
 	rt.DB.MustExec(`UPDATE channels_channel SET last_seen = NOW() - INTERVAL '30 minutes' WHERE id = $1`, testChannel2.ID)
 	rt.DB.MustExec(`UPDATE channels_channel SET last_seen = NOW() WHERE id = $1`, testChannel3.ID)
-	rt.DB.MustExec(`UPDATE channels_channel SET last_seen = NOW() - INTERVAL '20 minutes' WHERE id = $1`, testChannel4.ID)
+	rt.DB.MustExec(`UPDATE channels_channel SET last_seen = NOW() - INTERVAL '20 minutes', tps = 25 WHERE id = $1`, testChannel4.ID)
 	rt.DB.MustExec(`UPDATE channels_channel SET last_seen = NOW() - INTERVAL '10 days' WHERE id = $1`, testChannel5.ID)
 
 	oldSeenAndroidChannels, err := models.GetAndroidChannelsToSync(ctx, rt.DB)
@@ -134,6 +143,7 @@ func TestGetAndroidChannelsToSync(t *testing.T) {
 	assert.Equal(t, 3, len(oldSeenAndroidChannels))
 
 	assert.Equal(t, testChannel4.ID, oldSeenAndroidChannels[0].ID())
+	assert.Equal(t, 25, oldSeenAndroidChannels[0].TPS())
 	assert.Equal(t, testChannel2.ID, oldSeenAndroidChannels[1].ID())
 	assert.Equal(t, testChannel1.ID, oldSeenAndroidChannels[2].ID())
 

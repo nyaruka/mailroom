@@ -142,6 +142,8 @@ func RequestCall(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 		return nil, fmt.Errorf("error creating outgoing call: %w", err)
 	}
 
+	models.IncrementCallTallies(ctx, rt, oa.OrgID(), []*models.Call{call})
+
 	clog, err := RequestCallStart(ctx, rt, channel, telURN.Identity, call)
 
 	// log any error inserting our channel log, but continue
@@ -203,7 +205,7 @@ func RequestCallStart(ctx context.Context, rt *runtime.Runtime, channel *models.
 		clog.Error(&svclogs.Error{Message: err.Error()})
 
 		// set our status as errored
-		err := call.UpdateStatus(ctx, rt.DB, models.CallStatusFailed, 0, time.Now())
+		err := call.UpdateStatus(ctx, rt.DB, models.CallStatusFailed)
 		if err != nil {
 			return clog, fmt.Errorf("error setting errored status on session: %w", err)
 		}
@@ -360,7 +362,7 @@ func ResumeCall(
 	// make sure our call is still happening
 	status, _, _ := svc.StatusForRequest(r)
 	if status != models.CallStatusInProgress {
-		err := call.UpdateStatus(ctx, rt.DB, status, 0, time.Now())
+		err := call.UpdateStatus(ctx, rt.DB, status)
 		if err != nil {
 			return fmt.Errorf("error updating status: %w", err)
 		}
@@ -482,9 +484,15 @@ func HandleStatus(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets
 	} else if status == models.CallStatusFailed {
 		call.SetFailed(ctx, rt.DB)
 	} else {
-		if status != call.Status() || duration > 0 {
-			err := call.UpdateStatus(ctx, rt.DB, status, duration, time.Now())
+		if duration > 0 {
+			prevDuration, err := call.UpdateStatusAndDuration(ctx, rt.DB, status, duration, time.Now())
 			if err != nil {
+				return fmt.Errorf("error updating call status: %w", err)
+			}
+
+			models.IncrementCallMinsTallies(ctx, rt, call, prevDuration)
+		} else if status != call.Status() {
+			if err := call.UpdateStatus(ctx, rt.DB, status); err != nil {
 				return fmt.Errorf("error updating call status: %w", err)
 			}
 		}

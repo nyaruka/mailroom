@@ -203,11 +203,11 @@
         "expected_history": [
             {
                 "PK": "con#cd024bcd-f473-4719-a00a-bd0bb1190135",
-                "SK": "evt#01969b47-b54b-76f8-8b42-056e0211d5b9",
+                "SK": "evt#01969b47-b933-76f8-8b42-056e0211d5b9",
                 "OrgID": 1,
-                "TTL": "2026-05-04T12:31:31Z",
+                "TTL": "2026-05-04T12:31:32Z",
                 "Data": {
-                    "created_on": "2025-05-04T12:31:31.123456789Z",
+                    "created_on": "2025-05-04T12:31:32.123456789Z",
                     "type": "contact_urns_changed",
                     "urns": [
                         "tel:+16055743333?channel=a2b5d3cf-8a0c-4a0f-9a35-6a1e0d0f7b11"
@@ -216,7 +216,7 @@
             },
             {
                 "PK": "con#cd024bcd-f473-4719-a00a-bd0bb1190135",
-                "SK": "evt#01969b47-bd1b-76f8-89aa-1577771fa183",
+                "SK": "evt#01969b47-c103-76f8-89aa-1577771fa183",
                 "OrgID": 1,
                 "Data": {
                     "call": {
@@ -227,7 +227,7 @@
                         "urn": "tel:+16055743333",
                         "uuid": "01969b47-b163-76f8-9d79-c694bc69dcd1"
                     },
-                    "created_on": "2025-05-04T12:31:33.123456789Z",
+                    "created_on": "2025-05-04T12:31:34.123456789Z",
                     "type": "call_received"
                 }
             }

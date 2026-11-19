@@ -1,3 +1,86 @@
+## v26.3.150 (2026-11-18)
+ * Read contacts_contact.current_flow_uuid instead of current_flow_id and resolve current flow IDs for indexing with one batched query
+ * Regenerate test dump without legacy org status columns
+
+## v26.3.149 (2026-11-18)
+ * Write contacts_contact.current_flow_uuid alongside current_flow_id
+ * Regenerate test dump for new org status fields and constraint
+
+## v26.3.148 (2026-11-18)
+ * Tally the runs in each status of each flow
+
+## v26.3.147 (2026-11-17)
+ * Read org status instead of is_suspended
+ * Update test database dump for latest schema
+
+## v26.3.146 (2026-11-16)
+ * Tally call minutes by org and channel
+ * Lock the contact when handling IVR callbacks, loading it from the primary database
+ * Mark calls failed when the contact lock can't be taken and don't lock for status updates
+
+## v26.3.145 (2026-11-16)
+ * Tally the runs at each flow node
+
+## v26.3.144 (2026-11-13)
+ * Tally calls by org, channel and direction
+
+## v26.3.143 (2026-11-12)
+ * Load channel TPS as stored instead of defaulting NULL to 10
+ * Set tps when inserting test channels and regenerate test dump for non-null channel tps
+
+## v26.3.142 (2026-11-12)
+ * Expire new contact and flow daily tallies after 400 days
+ * Split user-created contacts into ui and api in the daily new contact tally
+
+## v26.3.141 (2026-11-12)
+ * Add daily per-workspace tally of new contacts by how they were created, counting them even if the creating context is cancelled
+
+## v26.3.140 (2026-11-12)
+ * Add contact_created contact task to evaluate query groups for externally created contacts
+ * Accept contact_created as an alias of new_contact in msg_received and event_received tasks
+
+## v26.3.139 (2026-11-11)
+ * Write per-channel message tallies as channel tallies
+
+## v26.3.138 (2026-11-11)
+ * Flush channel tallies to channels_channeltally
+ * Update to gocommon v1.100.2
+ * Regenerate test database dump
+
+## v26.3.137 (2026-11-11)
+ * Write flow segment tally scopes as base64url of the raw exit and node UUIDs
+ * Stop writing segment counts to flow activity counts
+
+## v26.3.136 (2026-11-10)
+ * Tally messages which failed for having no destination
+ * Stop inheriting the shared_email feature from the parent org
+ * Update dependencies
+
+## v26.3.135 (2026-11-10)
+ * Only use the shared email configuration for workspaces with the shared_email feature
+
+## v26.3.134 (2026-11-10)
+ * Stop setting tps_cost on messages queued for courier
+
+## v26.3.133 (2026-11-10)
+ * Expire daily flow msgs in tallies after 365 days
+
+## v26.3.132 (2026-11-10)
+ * Tally incoming messages handled by flows, including IVR messages, to flows_flowtally
+
+## v26.3.131 (2026-11-09)
+ * Require owner prefixes on tally fields
+ * Write flow segment tallies to flows_flowtally
+ * Drop tallies for owner ids beyond int32 range
+ * Regenerate test database dump
+
+## v26.3.130 (2026-11-09)
+ * Write O prefix on org in tally fields
+ * Don't keep zero tallies and count expiries from the tally's day
+
+## v26.3.129 (2026-11-09)
+ * Accept O prefix on org in tally fields
+
 ## v26.3.128 (2026-11-06)
  * Stop writing tallies to orgs_tally
  * Report channel msg counts in org metrics as always 0

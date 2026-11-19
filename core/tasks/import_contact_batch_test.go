@@ -41,6 +41,7 @@ func TestImportContactBatch(t *testing.T) {
 	testsuite.FlushTasks(t, rt)
 
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contact WHERE id >= 30000`).Returns(3)
+	testsuite.AssertNewContactTallies(t, rt, map[string]int{"O1|contacts/new:import": 3})
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contact WHERE name = 'Norbert' AND language = 'eng'`).Returns(1)
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contact WHERE name = 'Leah' AND language IS NULL`).Returns(1)
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contact WHERE name = 'Rowan' AND language = 'spa'`).Returns(1)

@@ -26,6 +26,7 @@ func handleMsgReceived(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 	// update the message to be handled
 	if scene.IncomingMsg != nil && !scene.IncomingMsg.Handled {
 		scene.AttachPreCommitHook(hooks.UpdateMessageHandled, event)
+		scene.AttachPostCommitHook(hooks.IncrementFlowMsgTallies, event)
 
 		// which also counts as activity on the ticket unless the contact is blocked
 		if event.TicketUUID != "" && scene.Contact.Status() != core.ContactStatusBlocked {

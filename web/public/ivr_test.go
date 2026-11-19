@@ -5,17 +5,22 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"maps"
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 
+	valkey "github.com/gomodule/redigo/redis"
 	"github.com/nyaruka/gocommon/aws/dynamo"
+	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/gocommon/httpx"
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/gocommon/svclogs"
 	"github.com/nyaruka/goflow/test"
 	"github.com/nyaruka/mailroom/v26/core/models"
+	"github.com/nyaruka/mailroom/v26/core/runner/clocks"
 	_ "github.com/nyaruka/mailroom/v26/core/runner/handlers"
 	"github.com/nyaruka/mailroom/v26/core/tasks"
 	"github.com/nyaruka/mailroom/v26/runtime"
@@ -24,6 +29,7 @@ import (
 	"github.com/nyaruka/mailroom/v26/services/ivr/vonage"
 	"github.com/nyaruka/mailroom/v26/testsuite"
 	"github.com/nyaruka/mailroom/v26/testsuite/testdb"
+	"github.com/nyaruka/mailroom/v26/web/public"
 	"github.com/nyaruka/vkutil/assertvk"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -94,6 +100,10 @@ func TestTwilioIVR(t *testing.T) {
 		WithContactIDs([]models.ContactID{testdb.Ann.ID, testdb.Bob.ID, testdb.Cat.ID}).
 		WithParentSummary(parentSummary)
 
+	// on the day the web tests run on, so that the calls are tallied on it too
+	dates.SetNowFunc(dates.NewFixedNow(time.Date(2025, 5, 4, 12, 0, 0, 0, time.UTC)))
+	defer dates.SetNowFunc(time.Now)
+
 	err := tasks.Queue(ctx, rt, rt.Queues.Batch, testdb.Org1.ID, &tasks.StartFlow{FlowStart: start}, false)
 	require.NoError(t, err)
 
@@ -123,20 +133,90 @@ func TestTwilioIVR(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE contact_id = $1 AND msg_type = 'V' 
 		AND ((status = 'H' AND direction = 'I') OR (status = 'W' AND direction = 'O'))`, testdb.Bob.ID).Returns(2)
 
-	// voice messages in both directions are tallied
-	assertvk.HGetAll(t, vc, "{tallies}:live", map[string]string{
-		"1|channels/10000/voice:in@2025-05-04":  "5",
-		"1|channels/10000/voice:out@2025-05-04": "11",
-		"1|msgs/voice:in@2025-05-04":            "5",
-		"1|msgs/voice:out@2025-05-04":           "11",
-	})
+	// calls and voice messages in both directions are tallied, as are the flow segments taken and the incoming messages
+	// for the flow
+	tallies, err := valkey.StringMap(vc.Do("HGETALL", "{tallies}:live"))
+	require.NoError(t, err)
+	segments := maps.Clone(tallies)
+	maps.DeleteFunc(segments, func(f, _ string) bool { return !strings.HasPrefix(f, fmt.Sprintf("F%d|segment:", testdb.IVRFlow.ID)) })
+	assert.NotEmpty(t, segments)
+	assert.Equal(t, "5", tallies[fmt.Sprintf("F%d|msgsin:date:2025-05-04", testdb.IVRFlow.ID)])
+	maps.DeleteFunc(tallies, func(f, _ string) bool { return strings.HasPrefix(f, "F") })
+	assert.Equal(t, map[string]string{
+		"C10000|callmins:in@2025-05-04":  "2",
+		"C10000|callmins:out@2025-05-04": "2",
+		"C10000|calls:in@2025-05-04":     "2",
+		"C10000|calls:out@2025-05-04":    "3",
+		"C10000|voice:in@2025-05-04":     "5",
+		"C10000|voice:out@2025-05-04":    "11",
+		"O1|calls/in@2025-05-04":         "2",
+		"O1|calls/out@2025-05-04":        "3",
+		"O1|calls/mins:in@2025-05-04":    "2",
+		"O1|calls/mins:out@2025-05-04":   "2",
+		"O1|msgs/voice:in@2025-05-04":    "5",
+		"O1|msgs/voice:out@2025-05-04":   "11",
+	}, tallies)
 
 	// check the generated channel logs
 	logs := getCallLogs(t, rt, testdb.TwilioChannel)
-	assert.Len(t, logs, 19)
+	assert.Len(t, logs, 23)
 	for _, log := range logs {
 		assert.NotContains(t, string(jsonx.MustMarshal(log)), "sesame") // auth token redacted
 	}
+}
+
+func TestLockAndLoadContact(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	oa := testdb.Org1.Load(t, rt)
+
+	type result struct {
+		mc     *models.Contact
+		unlock func()
+		err    error
+	}
+	lockAndLoad := func() chan result {
+		ch := make(chan result, 1)
+		go func() {
+			mc, unlock, err := public.LockAndLoadContact(ctx, rt, oa, testdb.Ann.ID)
+			ch <- result{mc, unlock, err}
+		}()
+		return ch
+	}
+
+	// something else is handling Ann
+	locks, _, err := clocks.TryToLock(ctx, rt, oa, []models.ContactID{testdb.Ann.ID}, time.Second)
+	require.NoError(t, err)
+	require.Len(t, locks, 1)
+
+	loaded := lockAndLoad()
+
+	select {
+	case <-loaded:
+		t.Fatal("contact loaded while another holder had the lock")
+	case <-time.After(500 * time.Millisecond):
+	}
+
+	// before releasing the lock, the other handler starts a session for Ann
+	sessionUUID := testdb.InsertWaitingSession(t, rt, testdb.Org1, testdb.Ann, models.FlowTypeMessaging, nil, testdb.Favorites)
+	require.NoError(t, clocks.Unlock(ctx, rt, oa, locks))
+
+	// which the contact we then load sees as its current session
+	res := <-loaded
+	require.NoError(t, res.err)
+	assert.Equal(t, sessionUUID, res.mc.CurrentSessionUUID())
+
+	// we now hold the lock, so the next attempt gives up waiting for it
+	defer public.SetContactLockWait(time.Second)()
+
+	res2 := <-lockAndLoad()
+	assert.EqualError(t, res2.err, fmt.Sprintf("timed out waiting for lock on contact #%d", testdb.Ann.ID))
+
+	res.unlock()
+
+	res3 := <-lockAndLoad()
+	require.NoError(t, res3.err)
+	res3.unlock()
 }
 
 func mockVonageHandler(w http.ResponseWriter, r *http.Request) {
@@ -219,6 +299,9 @@ func TestVonageIVR(t *testing.T) {
 	rt.DB.MustExec(`UPDATE ivr_call SET uuid = '01969b47-2c93-76f8-b774-0a98171a0712' WHERE external_id = 'Call2'`)
 
 	testsuite.RunWebTests(t, rt, "./testdata/ivr_vonage.json")
+
+	// the incoming call was from a new contact
+	testsuite.AssertNewContactTallies(t, rt, map[string]int{"O1|contacts/new:inbound": 1})
 
 	// check our final state of sessions, runs, calls, msgs
 	assertdb.Query(t, rt.DB, `SELECT format('%s/%s', contact_uuid, status), count(*) FROM flows_flowsession GROUP BY 1`).

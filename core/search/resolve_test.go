@@ -125,6 +125,9 @@ func TestResolveRecipients(t *testing.T) {
 		assert.ElementsMatch(t, tc.expectedIDs, actualIDs, "contact ids mismatch in %d", i)
 		assert.ElementsMatch(t, tc.expectedCreatedIDs, actualCreatedIDs, "created contact ids mismatch in %d", i)
 	}
+
+	// each URN which didn't have a contact was counted once, when its contact was created
+	testsuite.AssertNewContactTallies(t, rt, map[string]int{"O1|contacts/new:other": 3})
 }
 
 func TestResolveRecipientsIndexesExcludedCreatedContacts(t *testing.T) {

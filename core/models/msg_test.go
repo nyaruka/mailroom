@@ -31,16 +31,15 @@ func TestNewOutgoingFlowMsg(t *testing.T) {
 	blakeURNID := testdb.InsertContactURN(t, rt, testdb.Org1, blake, "tel:+250700000007", 1, nil)
 
 	tcs := []struct {
-		Channel      *testdb.Channel
-		Contact      *testdb.Contact
-		URN          urns.URN
-		Content      *core.MsgContent
-		Templating   *core.MsgTemplating
-		Locale       i18n.Locale
-		Unsendable   core.UnsendableReason
-		Flow         *testdb.Flow
-		ResponseTo   *models.MsgInRef
-		SuspendedOrg bool
+		Channel    *testdb.Channel
+		Contact    *testdb.Contact
+		URN        urns.URN
+		Content    *core.MsgContent
+		Templating *core.MsgTemplating
+		Locale     i18n.Locale
+		Unsendable core.UnsendableReason
+		Flow       *testdb.Flow
+		ResponseTo *models.MsgInRef
 
 		ExpectedURNID        models.URNID
 		ExpectedStatus       models.MsgStatus
@@ -115,8 +114,6 @@ func TestNewOutgoingFlowMsg(t *testing.T) {
 	now := time.Now()
 
 	for i, tc := range tcs {
-		rt.DB.MustExec(`UPDATE orgs_org SET is_suspended = $1, suspended_on = CASE WHEN $1 THEN NOW() END WHERE id = $2`, tc.SuspendedOrg, testdb.Org1.ID)
-
 		oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshOrg|models.RefreshFlows)
 		require.NoError(t, err)
 
@@ -1044,6 +1041,24 @@ func TestCreateMsgOut(t *testing.T) {
 	assert.Equal(t, urns.NilURN, out.URN())
 	assert.Nil(t, out.Channel())
 	assert.Equal(t, core.UnsendableReasonNoRoute, out.UnsendableReason())
+
+	_, bob, _ = testdb.Bob.Load(t, rt, oa)
+
+	// messages can't be sent by a suspended workspace...
+	testdb.Org1.SetStatus(t, rt, models.OrgStatusSuspended)
+	oa = testdb.Org1.Load(t, rt)
+
+	out, err = models.CreateMsgOut(ctx, rt, oa, bob, &core.MsgContent{Text: "hello"}, models.NilTemplateID, nil, `eng-US`, nil)
+	assert.NoError(t, err)
+	assert.Equal(t, models.UnsendableReasonOrgSuspended, out.UnsendableReason())
+
+	// ...but can by a restricted one
+	testdb.Org1.SetStatus(t, rt, models.OrgStatusRestricted)
+	oa = testdb.Org1.Load(t, rt)
+
+	out, err = models.CreateMsgOut(ctx, rt, oa, bob, &core.MsgContent{Text: "hello"}, models.NilTemplateID, nil, `eng-US`, nil)
+	assert.NoError(t, err)
+	assert.Equal(t, core.UnsendableReason(""), out.UnsendableReason())
 }
 
 func TestMsgTemplating(t *testing.T) {
@@ -1111,18 +1126,48 @@ func TestMsgTallies(t *testing.T) {
 		models.NewIncomingAndroid(testdb.Org1.ID, models.NilChannelID, testdb.Cat.ID, testdb.Cat.URNID, "three", time.Now()),
 	}
 
-	assert.Equal(t, map[string]int64{"1|channels/10003/text:in@2026-11-04": 2, "1|msgs/text:in@2026-11-04": 2}, models.MsgTallies(msgs))
+	assert.Equal(t, map[string]int64{"C10003|text:in@2026-11-04": 2, "O1|msgs/text:in@2026-11-04": 2}, models.MsgTallies(msgs))
 	assert.Equal(t, map[string]int64{}, models.MsgTallies(msgs[2:]))
+
+	// of channel-less messages, only those which failed for having no destination are counted
+	oa := testdb.Org1.Load(t, rt)
+	flow, err := oa.FlowByID(testdb.Favorites.ID)
+	require.NoError(t, err)
+	mc, _, _ := testdb.Ann.Load(t, rt, oa)
+	noDest := events.NewMsgCreated(core.NewMsgOut(urns.NilURN, nil, &core.MsgContent{Text: "four"}, nil, "", core.UnsendableReasonNoRoute), "", "")
+	out, err := models.NewOutgoingFlowMsg(rt, oa.Org(), nil, mc, flow, noDest, nil)
+	require.NoError(t, err)
+	require.Equal(t, models.MsgFailedNoDestination, out.FailedReason())
+	msgs = append(msgs, out.Msg)
+
+	stopped := events.NewMsgCreated(core.NewMsgOut(urns.NilURN, nil, &core.MsgContent{Text: "five"}, nil, "", core.UnsendableReasonContactStopped), "", "")
+	out, err = models.NewOutgoingFlowMsg(rt, oa.Org(), nil, mc, flow, stopped, nil)
+	require.NoError(t, err)
+	require.Equal(t, models.MsgFailedContact, out.FailedReason())
+	msgs = append(msgs, out.Msg)
+
+	assert.Equal(t, map[string]int64{"O1|msgs/text:nodest@2026-11-04": 1}, models.MsgTallies(msgs[2:]))
+	assert.Equal(t, map[string]int64{}, models.MsgTallies(msgs[4:]))
 
 	models.IncrementMsgTallies(ctx, rt, testdb.Org1.ID, msgs)
 
-	assertvk.HGetAll(t, vc, "{tallies}:live", map[string]string{"1|channels/10003/text:in@2026-11-04": "2", "1|msgs/text:in@2026-11-04": "2"})
+	assertvk.HGetAll(t, vc, "{tallies}:live", map[string]string{
+		"C10003|text:in@2026-11-04":      "2",
+		"O1|msgs/text:in@2026-11-04":     "2",
+		"O1|msgs/text:nodest@2026-11-04": "1",
+	})
 
 	// channel tallies expire but msg type tallies are kept forever
-	_, err := rt.Tallies.Flush(ctx, vc, models.NewTallyStore(rt.DB, rt.Tallies.KeyBase()), 10)
+	_, err = rt.Tallies.Flush(ctx, vc, models.NewTallyStore(rt.DB, rt.Tallies.KeyBase()), 10)
 	require.NoError(t, err)
 
 	assertdb.Query(t, rt.DB, `SELECT scope, expires_on::text FROM orgs_orgtally WHERE org_id = $1 ORDER BY scope`, testdb.Org1.ID).Map(
-		map[string]any{"channels/10003/text:in@2026-11-04": "2027-12-09", "msgs/text:in@2026-11-04": nil},
+		map[string]any{
+			"msgs/text:in@2026-11-04":     nil,
+			"msgs/text:nodest@2026-11-04": nil,
+		},
+	)
+	assertdb.Query(t, rt.DB, `SELECT scope, expires_on::text FROM channels_channeltally WHERE channel_id = $1`, testdb.AndroidChannel.ID).Map(
+		map[string]any{"text:in@2026-11-04": "2027-12-09"},
 	)
 }

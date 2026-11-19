@@ -32,6 +32,15 @@ func handleSprintEnded(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 
 	slog.Debug("sprint ended", "contact", scene.ContactUUID(), "session", scene.SessionUUID())
 
+	// computed before the session is compacted below, from the nodes and statuses that runs had before this sprint, if
+	// resumed
+	if amounts := models.FlowNodeTallies(scene.Session.Runs(), scene.PriorRunNodes); len(amounts) > 0 {
+		scene.AttachPostCommitHook(hooks.IncrementTallies, amounts)
+	}
+	if amounts := models.FlowStatusTallies(scene.Session.Runs(), scene.PriorRunStatuses); len(amounts) > 0 {
+		scene.AttachPostCommitHook(hooks.IncrementTallies, amounts)
+	}
+
 	if !event.Resumed {
 		runs := make([]*models.FlowRun, len(scene.Session.Runs()))
 
@@ -101,10 +110,18 @@ func handleSprintEnded(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 		currentFlowChanged = changed
 
 		if event.Contact.CurrentSessionUUID() != waitingSessionUUID || currentFlowChanged {
+			waitingFlowID := models.NilFlowID
+			var waitingFlowUUID null.String
+			if waitingFlow != nil {
+				waitingFlowID = waitingFlow.ID()
+				waitingFlowUUID = null.String(waitingFlow.UUID())
+			}
+
 			scene.AttachPreCommitHook(hooks.UpdateContactSession, hooks.CurrentSessionUpdate{
 				ID:                 scene.ContactID(),
 				CurrentSessionUUID: null.String(waitingSessionUUID),
-				CurrentFlowID:      scene.DBContact.CurrentFlowID(),
+				CurrentFlowID:      waitingFlowID,
+				CurrentFlowUUID:    waitingFlowUUID,
 			})
 		}
 	}
@@ -149,9 +166,22 @@ func handleSprintEnded(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 
 		scene.AttachPreCommitHook(hooks.InsertContactFires, hooks.FiresSet{Create: newFires, Delete: delFires})
 		scene.AttachPreCommitHook(hooks.InsertFlowStats, event)
+		if amounts := segmentTallies(scene.Sprint); len(amounts) > 0 {
+			scene.AttachPostCommitHook(hooks.IncrementTallies, amounts)
+		}
 		scene.AttachPostCommitHook(hooks.PublishFlowActivity, event)
 	}
 	return nil
+}
+
+// segmentTallies gets the tally amounts which count the flow segments taken in the given sprint
+func segmentTallies(sprint flows.Sprint) map[string]int64 {
+	amounts := make(map[string]int64)
+	for _, seg := range sprint.Segments() {
+		flowID := seg.Flow().Asset().(*models.Flow).ID()
+		amounts[models.FlowTallyField(flowID, models.FlowSegmentTallyScope(seg.Exit().UUID(), seg.Destination().UUID()))]++
+	}
+	return amounts
 }
 
 // Calculates the fires needed for the given session - returns timeout separately if this session will queue messages to

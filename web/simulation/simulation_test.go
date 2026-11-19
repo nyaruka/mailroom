@@ -229,3 +229,79 @@ func TestServer(t *testing.T) {
 		assert.Contains(t, string(content), tc.ExpectedResponse, "%d: did not find expected response content", i)
 	}
 }
+
+func TestSimulateEmail(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	wg := &sync.WaitGroup{}
+	server := web.NewServer(ctx, rt, wg)
+	server.Start()
+	time.Sleep(time.Second)
+	defer server.Stop()
+
+	flow := testdb.InsertFlow(t, rt, testdb.Org1, []byte(`{
+		"uuid": "4c1f6b77-6f4f-4c33-9a3a-7b0e2d3c4a11",
+		"name": "Email",
+		"spec_version": "13.1.0",
+		"language": "eng",
+		"type": "messaging",
+		"nodes": [
+			{
+				"uuid": "8c3b2f5e-1d0a-4b6e-9f7c-2a1d3e4f5b60",
+				"actions": [
+					{
+						"uuid": "a1b2c3d4-e5f6-4a7b-8c9d-0e1f2a3b4c5d",
+						"type": "send_email",
+						"addresses": ["bob@example.com"],
+						"subject": "Hi",
+						"body": "Hello"
+					}
+				],
+				"exits": [{"uuid": "f0e1d2c3-b4a5-4968-8776-655443322110"}]
+			}
+		]
+	}`))
+
+	body := strings.Replace(startBody, "9de3663f-c5c5-4c92-9f45-ecbc09abcc85", string(flow.UUID), 1)
+
+	simulate := func() []map[string]any {
+		resp, err := http.Post(fmt.Sprintf("http://localhost:%d/mi/sim/start", rt.Config.InternalPort), "application/json", strings.NewReader(body))
+		assert.NoError(t, err)
+		assert.Equal(t, 200, resp.StatusCode)
+
+		content, err := io.ReadAll(resp.Body)
+		assert.NoError(t, err)
+
+		parsed := struct {
+			Events []map[string]any `json:"events"`
+		}{}
+		jsonx.MustUnmarshal(content, &parsed)
+		return parsed.Events
+	}
+
+	findEvent := func(evts []map[string]any, typ string) map[string]any {
+		for _, e := range evts {
+			if e["type"] == typ {
+				return e
+			}
+		}
+		return nil
+	}
+
+	rt.Config.SMTPServer = `smtp://foo:bar@example.com?from=foo%40example.com`
+
+	// workspace without its own SMTP settings or the shared email feature gets an error event
+	evts := simulate()
+	assert.Nil(t, findEvent(evts, "email_sent"))
+	if errEvt := findEvent(evts, "error"); assert.NotNil(t, errEvt) {
+		assert.Equal(t, "workspace has no SMTP settings for sending email", errEvt["text"])
+	}
+
+	// once granted the feature, sending is faked
+	rt.DB.MustExec(`UPDATE orgs_org SET features = '{"shared_email"}' WHERE id = $1`, testdb.Org1.ID)
+	models.FlushCache()
+
+	evts = simulate()
+	assert.Nil(t, findEvent(evts, "error"))
+	assert.NotNil(t, findEvent(evts, "email_sent"))
+}

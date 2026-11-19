@@ -36,7 +36,7 @@ func TestNewCourierMsg(t *testing.T) {
 
 	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
 	require.NoError(t, err)
-	require.False(t, oa.Org().Suspended())
+	require.False(t, oa.Org().IsSuspended())
 
 	ann, _, annURNs := testdb.Ann.Load(t, rt, oa)
 	fred, _, fredURNs := testFred.Load(t, rt, oa)
@@ -105,7 +105,6 @@ func TestNewCourierMsg(t *testing.T) {
 			"language": "en_US"
 		},
 		"text": "Hi there",
-		"tps_cost": 2,
 		"urn": "tel:+16055741111",
 		"uuid": "%s"
 	}`, string(jsonx.MustMarshal(msgEvent1.CreatedOn().In(time.UTC))), session.UUID(), sprint.UUID(), msg1.UUID()))
@@ -146,7 +145,6 @@ func TestNewCourierMsg(t *testing.T) {
 			"sprint_uuid": "%s"
         },
 		"text": "Hi there",
-		"tps_cost": 1,
 		"urn": "tel:+16055741111",
 		"uuid": "%s"
 	}`, string(jsonx.MustMarshal(msgEvent2.CreatedOn().In(time.UTC))), session.UUID(), sprint.UUID(), msg2.UUID()))
@@ -174,7 +172,6 @@ func TestNewCourierMsg(t *testing.T) {
 		"org_id": 1,
 		"origin": "broadcast",
 		"text": "Blast",
-		"tps_cost": 1,
 		"urn": "tel:+593979123456",
 		"urn_auth": "sesame",
 		"user_id": %d,
@@ -214,7 +211,6 @@ func TestNewCourierMsg(t *testing.T) {
 			"language": "en_US"
 		},
 		"text": "Hi there",
-		"tps_cost": 2,
 		"urn": "tel:+16055741111",
 		"uuid": "%s"
 	}`, string(jsonx.MustMarshal(msgEvent1.CreatedOn().In(time.UTC).Round(time.Microsecond))), msg1.UUID()))
@@ -358,6 +354,8 @@ func TestPushCourierBatch(t *testing.T) {
 	vc := rt.VK.Get()
 	defer vc.Close()
 
+	rt.DB.MustExec(`UPDATE channels_channel SET tps = 25 WHERE id = $1`, testdb.TwilioChannel.ID)
+
 	oa, err := models.GetOrgAssetsWithRefresh(ctx, rt, testdb.Org1.ID, models.RefreshChannels)
 	require.NoError(t, err)
 
@@ -372,7 +370,7 @@ func TestPushCourierBatch(t *testing.T) {
 
 	// check that channel is ready and has its TPS set
 	assertvk.ZGetAll(t, vc, "{msgs}:ready", map[string]float64{"74729f45-7f29-4868-9dc4-90e491e3c7d8": 0})
-	assertvk.HGetAll(t, vc, "{msgs}:ch:74729f45-7f29-4868-9dc4-90e491e3c7d8", map[string]string{"tps": "10"})
+	assertvk.HGetAll(t, vc, "{msgs}:ch:74729f45-7f29-4868-9dc4-90e491e3c7d8", map[string]string{"tps": "25"})
 
 	// and that msgs were added as single batch to bulk priority (0) queue
 	queued, err := valkey.ByteSlices(vc.Do("ZRANGE", "{msgs}:q:74729f45-7f29-4868-9dc4-90e491e3c7d8/0", 0, -1))
@@ -389,13 +387,10 @@ func TestPushCourierBatch(t *testing.T) {
 	assert.Equal(t, msg1.UUID(), events.EventUUID(item1UUID))
 	assert.Equal(t, msg2.UUID(), events.EventUUID(item2UUID))
 
-	// pushes take the current time from the client, so start at the beginning of a second so that what follows happens
-	// within it
-	time.Sleep(time.Second - time.Duration(time.Now().Nanosecond()) + 50*time.Millisecond)
 	nowSec := time.Now().Unix()
 
-	// simulate courier having popped from the channel until it's used this second's TPS, while it's still ready
-	vc.Do("HSET", "{msgs}:ch:74729f45-7f29-4868-9dc4-90e491e3c7d8", "sec", nowSec, "used", 10, "inflight", 2)
+	// simulate courier having popped from the channel until it's in debt, while it's still ready
+	vc.Do("HSET", "{msgs}:ch:74729f45-7f29-4868-9dc4-90e491e3c7d8", "debt_until", nowSec+5, "inflight", 2)
 	vc.Do("ZADD", "{msgs}:ready", 2, "74729f45-7f29-4868-9dc4-90e491e3c7d8")
 
 	msg3 := (&msgSpec{Channel: testdb.TwilioChannel, Contact: testdb.Ann}).createMsg(t, rt, oa)
@@ -407,7 +402,7 @@ func TestPushCourierBatch(t *testing.T) {
 	assertvk.ZGetAll(t, vc, "{msgs}:ready", map[string]float64{"74729f45-7f29-4868-9dc4-90e491e3c7d8": 2})
 	assertvk.ZGetAll(t, vc, "{msgs}:waiting", map[string]float64{})
 
-	// once courier has parked it, another push leaves it waiting until the next second
+	// once courier has parked it, another push leaves it waiting until its debt allows a send
 	vc.Do("ZREM", "{msgs}:ready", "74729f45-7f29-4868-9dc4-90e491e3c7d8")
 
 	msg4 := (&msgSpec{Channel: testdb.TwilioChannel, Contact: testdb.Ann}).createMsg(t, rt, oa)
@@ -416,13 +411,13 @@ func TestPushCourierBatch(t *testing.T) {
 	require.NoError(t, err)
 
 	assertvk.ZGetAll(t, vc, "{msgs}:ready", map[string]float64{})
-	assertvk.ZGetAll(t, vc, "{msgs}:waiting", map[string]float64{"74729f45-7f29-4868-9dc4-90e491e3c7d8": float64(nowSec + 1)})
+	assertvk.ZGetAll(t, vc, "{msgs}:waiting", map[string]float64{"74729f45-7f29-4868-9dc4-90e491e3c7d8": float64(nowSec+5) + 1.0/25 - 1})
 
 	// but msgs were still added to queue
 	assertvk.ZCard(t, vc, "{msgs}:q:74729f45-7f29-4868-9dc4-90e491e3c7d8/0", 3)
 
-	// a push in a later second makes it ready with its sends in flight as its score
-	vc.Do("HSET", "{msgs}:ch:74729f45-7f29-4868-9dc4-90e491e3c7d8", "sec", nowSec-1)
+	// a push once its debt has drained makes it ready with its sends in flight as its score
+	vc.Do("HSET", "{msgs}:ch:74729f45-7f29-4868-9dc4-90e491e3c7d8", "debt_until", nowSec-1)
 
 	msg5 := (&msgSpec{Channel: testdb.TwilioChannel, Contact: testdb.Ann, HighPriority: true}).createMsg(t, rt, oa)
 

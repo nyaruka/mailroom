@@ -29,16 +29,17 @@ func init() {
 }
 
 type MsgReceived struct {
-	MsgUUID       events.EventUUID `json:"msg_uuid"`
-	MsgExternalID string           `json:"msg_external_id"`
-	ChannelID     models.ChannelID `json:"channel_id"`
-	URN           urns.URN         `json:"urn"`
-	URNID         models.URNID     `json:"urn_id"`
-	Text          string           `json:"text"`
-	Attachments   []string         `json:"attachments,omitempty"`
-	Payload       json.RawMessage  `json:"payload,omitempty"`
-	NewContact    bool             `json:"new_contact"`
-	NewURN        *NewURNSpec      `json:"new_urn,omitempty"`
+	MsgUUID        events.EventUUID `json:"msg_uuid"`
+	MsgExternalID  string           `json:"msg_external_id"`
+	ChannelID      models.ChannelID `json:"channel_id"`
+	URN            urns.URN         `json:"urn"`
+	URNID          models.URNID     `json:"urn_id"`
+	Text           string           `json:"text"`
+	Attachments    []string         `json:"attachments,omitempty"`
+	Payload        json.RawMessage  `json:"payload,omitempty"`
+	NewContact     bool             `json:"new_contact"` // deprecated alias of contact_created
+	ContactCreated bool             `json:"contact_created,omitempty"`
+	NewURN         *NewURNSpec      `json:"new_urn,omitempty"`
 }
 
 func (t *MsgReceived) Type() string {
@@ -46,7 +47,14 @@ func (t *MsgReceived) Type() string {
 }
 
 func (t *MsgReceived) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, mc *models.Contact) error {
-	return t.perform(ctx, rt, oa, mc)
+	if err := t.perform(ctx, rt, oa, mc); err != nil {
+		return err
+	}
+
+	if t.NewContact || t.ContactCreated {
+		countCreatedContact(ctx, rt, oa, mc)
+	}
+	return nil
 }
 
 func (t *MsgReceived) perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, mc *models.Contact) error {
@@ -106,7 +114,7 @@ func (t *MsgReceived) perform(ctx context.Context, rt *runtime.Runtime, oa *mode
 		LogUUIDs:    logUUIDs,
 	}
 
-	if t.NewContact {
+	if t.NewContact || t.ContactCreated {
 		if err := scene.ReevaluateGroups(ctx, rt, oa); err != nil {
 			return fmt.Errorf("error calculating groups for new contact: %w", err)
 		}

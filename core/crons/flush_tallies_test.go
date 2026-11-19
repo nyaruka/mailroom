@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/mailroom/v26/core/crons"
 	"github.com/nyaruka/mailroom/v26/core/models"
@@ -22,6 +23,9 @@ func TestFlushTalliesCron(t *testing.T) {
 	cron := &crons.FlushTalliesCron{}
 
 	day := time.Date(2025, 5, 4, 12, 0, 0, 0, time.UTC)
+	defer dates.SetNowFunc(time.Now)
+	dates.SetNowFunc(dates.NewFixedNow(day))
+
 	require.NoError(t, rt.Tallies.Increment(ctx, vc, map[string]int64{
 		models.TallyField(testdb.Org1.ID, "emails/shared", day): 2,
 		models.TallyField(testdb.Org1.ID, "foo", time.Time{}):   3,

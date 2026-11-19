@@ -27,9 +27,12 @@ func handleContactInterrupted(ctx context.Context, rt *runtime.Runtime, oa *mode
 		return fmt.Errorf("error clearing contact current flow: %w", err)
 	}
 
-	scene.AttachPreCommitHook(hooks.InterruptContacts, event)
+	interruption := &hooks.ContactInterruption{Status: event.Status, Tallies: make(map[string]int64)}
+
+	scene.AttachPreCommitHook(hooks.InterruptContacts, interruption)
 	scene.AttachPreCommitHook(hooks.UpdateContactModifiedOn, event)
 	scene.AttachPostCommitHook(hooks.IndexContacts, event)
+	scene.AttachPostCommitHook(hooks.IncrementTallies, interruption.Tallies)
 
 	return nil
 }
