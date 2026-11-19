@@ -1,3 +1,6 @@
+## v26.3.152 (2026-11-19)
+ * Stop writing ticket daily counts
+
 ## v26.3.151 (2026-11-19)
  * Tally ticket openings by opened_on, assignments, replies and response times
  * Stop writing contacts_contact.current_flow_id
