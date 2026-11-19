@@ -109,6 +109,9 @@
                     "type": "msg_created"
                 }
             }
+        ],
+        "tickets_changed": [
+            "01992f54-5ab6-717a-a39e-e8ca91fb7262"
         ]
     },
     {
@@ -168,6 +171,9 @@
                     "type": "msg_created"
                 }
             }
+        ],
+        "tickets_changed": [
+            "01992f54-5ab6-717a-a39e-e8ca91fb7262"
         ]
     }
 ]

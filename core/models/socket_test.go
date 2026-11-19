@@ -39,6 +39,12 @@ func TestOrgSocket(t *testing.T) {
 	assert.Equal(t, "org:bf0514a5-9407-44c9-b0f9-3f36f9c18414", models.OrgSocket(org))
 }
 
+func TestOrgTicketsSocket(t *testing.T) {
+	org := models.OrgUUID("bf0514a5-9407-44c9-b0f9-3f36f9c18414")
+
+	assert.Equal(t, "org:bf0514a5-9407-44c9-b0f9-3f36f9c18414:tickets", models.OrgTicketsSocket(org))
+}
+
 func TestPublishOrgEvent(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
@@ -66,6 +72,47 @@ func TestPublishOrgEvent(t *testing.T) {
 	sent := testsuite.CentrifugoHistory(t, rt, socket)
 	require.Len(t, sent, 1)
 	assert.JSONEq(t, string(event), string(sent[0]))
+}
+
+func TestPublishTicketsChanged(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
+	require.NoError(t, err)
+
+	vc := rt.VK.Get()
+	defer vc.Close()
+
+	socket := models.OrgTicketsSocket(oa.Org().UUID())
+	tickets := []core.TicketUUID{"019905d4-5f7b-71b8-bcb8-6a68de2d91d2", "019905d4-5f7b-71b8-bcb8-6a68de2d91d3"}
+
+	// no subscribers so nothing is actually sent
+	require.NoError(t, models.PublishTicketsChanged(ctx, rt, oa, tickets))
+	assert.Empty(t, testsuite.CentrifugoHistory(t, rt, socket))
+
+	_, err = vc.Do("SET", centrifugo.SubscriptionKey(socket), "1")
+	require.NoError(t, err)
+
+	// no tickets means nothing changed
+	require.NoError(t, models.PublishTicketsChanged(ctx, rt, oa, nil))
+	assert.Empty(t, testsuite.CentrifugoHistory(t, rt, socket))
+
+	require.NoError(t, models.PublishTicketsChanged(ctx, rt, oa, tickets))
+
+	sent := testsuite.CentrifugoHistory(t, rt, socket)
+	require.Len(t, sent, 1)
+	assert.JSONEq(t, `{"type": "tickets_changed", "tickets": ["019905d4-5f7b-71b8-bcb8-6a68de2d91d2", "019905d4-5f7b-71b8-bcb8-6a68de2d91d3"]}`, string(sent[0]))
+
+	// too many to name, so it names none
+	many := make([]core.TicketUUID, models.TicketsChangedMax+1)
+	for i := range many {
+		many[i] = core.TicketUUID(fmt.Sprintf("019905d4-5f7b-71b8-bcb8-%012d", i))
+	}
+	require.NoError(t, models.PublishTicketsChanged(ctx, rt, oa, many))
+
+	sent = testsuite.CentrifugoHistory(t, rt, socket)
+	require.Len(t, sent, 2)
+	assert.JSONEq(t, `{"type": "tickets_changed"}`, string(sent[1]))
 }
 
 func TestPublishFlowActivity(t *testing.T) {

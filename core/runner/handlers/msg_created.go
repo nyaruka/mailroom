@@ -72,6 +72,7 @@ func handleMsgCreated(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAs
 			scene.AttachPreCommitHook(hooks.RecordTicketReplies, reply)
 			scene.AttachPostCommitHook(hooks.IncrementTallies, reply.Tallies)
 			scene.AttachPreCommitHook(hooks.UpdateTicketFires, ticket)
+			scene.AttachPostCommitHook(hooks.PublishTicketsChanged, ticket.UUID)
 		}
 	}
 
