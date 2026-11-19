@@ -110,17 +110,14 @@ func handleSprintEnded(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 		currentFlowChanged = changed
 
 		if event.Contact.CurrentSessionUUID() != waitingSessionUUID || currentFlowChanged {
-			waitingFlowID := models.NilFlowID
 			var waitingFlowUUID null.String
 			if waitingFlow != nil {
-				waitingFlowID = waitingFlow.ID()
 				waitingFlowUUID = null.String(waitingFlow.UUID())
 			}
 
 			scene.AttachPreCommitHook(hooks.UpdateContactSession, hooks.CurrentSessionUpdate{
 				ID:                 scene.ContactID(),
 				CurrentSessionUUID: null.String(waitingSessionUUID),
-				CurrentFlowID:      waitingFlowID,
 				CurrentFlowUUID:    waitingFlowUUID,
 			})
 		}

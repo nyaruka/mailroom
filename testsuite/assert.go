@@ -99,7 +99,6 @@ func AssertContactInFlow(t *testing.T, rt *runtime.Runtime, contact *testdb.Cont
 
 	// check flow of the waiting session and contact is correct
 	assertdb.Query(t, rt.DB, `SELECT current_flow_uuid::text FROM flows_flowsession WHERE contact_uuid = $1 AND status = 'W'`, contact.UUID).Returns(string(flow.UUID))
-	assertdb.Query(t, rt.DB, `SELECT current_flow_id FROM contacts_contact WHERE id = $1`, contact.ID).Returns(int64(flow.ID))
 	assertdb.Query(t, rt.DB, `SELECT current_flow_uuid::text FROM contacts_contact WHERE id = $1`, contact.ID).Returns(string(flow.UUID))
 }
 
