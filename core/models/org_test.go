@@ -161,6 +161,18 @@ func TestEmailService(t *testing.T) {
 	assertSMTP(org1, "", false)
 	assertSMTP(org2, `smtp://foo:bar@example.com?from=foo%40example.com`, true)
 
+	// a suspended workspace can't send email, whatever its configuration
+	testdb.Org1.SetStatus(t, rt, models.OrgStatusSuspended)
+
+	org1, _ = loadOrgs()
+	for _, simulated := range []bool{false, true} {
+		svc, err := org1.EmailService(ctx, rt, nil, simulated)
+		assert.Equal(t, models.ErrOrgSuspended, err)
+		assert.Nil(t, svc)
+	}
+
+	testdb.Org1.SetStatus(t, rt, models.OrgStatusActive)
+
 	// a malformed configuration errors in simulated sessions too
 	rt.DB.MustExec(`UPDATE orgs_org SET flow_smtp = 'xyz://zed' WHERE id = $1`, testdb.Org1.ID)
 

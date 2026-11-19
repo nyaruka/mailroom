@@ -142,6 +142,13 @@ func RequestCall(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 
 	models.IncrementCallTallies(ctx, rt, oa.OrgID(), []*models.Call{call})
 
+	if oa.Org().IsSuspended() {
+		if err := call.SetFailedWithReason(ctx, rt.DB, models.CallErrorSuspended); err != nil {
+			return call, fmt.Errorf("error failing call for suspended workspace: %w", err)
+		}
+		return call, nil
+	}
+
 	clog, err := RequestCallStart(ctx, rt, channel, telURN.Identity, call)
 
 	// log any error inserting our channel log, but continue
