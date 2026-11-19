@@ -63,10 +63,12 @@ func handleTicketOpened(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 	// by ticket note events for that same ticket
 	scene.DBContact.IncludeTickets([]*models.Ticket{ticket})
 
-	scene.AttachPreCommitHook(hooks.InsertTickets, ticket)
-	scene.AttachPostCommitHook(hooks.PublishTicketsChanged, event.Ticket.UUID)
+	opening := &hooks.TicketOpening{Ticket: ticket, Tallies: make(map[string]int64)}
+	scene.AttachPreCommitHook(hooks.InsertTickets, opening)
+	scene.AttachPostCommitHook(hooks.IncrementTallies, opening.Tallies)
 	scene.AttachPreCommitHook(hooks.UpdateTicketFires, ticket)
 	scene.AttachPostCommitHook(hooks.IndexContacts, event)
+	scene.AttachPostCommitHook(hooks.PublishTicketsChanged, event.Ticket.UUID)
 
 	if assigneeID == models.NilUserID {
 		// ticket is unassigned so notify all possible assignees except the user who opened the ticket

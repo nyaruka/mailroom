@@ -1,3 +1,15 @@
+## v26.3.151 (2026-11-19)
+ * Tally ticket openings by opened_on, assignments, replies and response times
+ * Stop writing contacts_contact.current_flow_id
+
+## v26.3.150 (2026-11-18)
+ * Read contacts_contact.current_flow_uuid instead of current_flow_id and resolve current flow IDs for indexing with one batched query
+ * Regenerate test dump without legacy org status columns
+
+## v26.3.149 (2026-11-18)
+ * Write contacts_contact.current_flow_uuid alongside current_flow_id
+ * Regenerate test dump for new org status fields and constraint
+
 ## v26.3.148 (2026-11-18)
  * Tally the runs in each status of each flow
 

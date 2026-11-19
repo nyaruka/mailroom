@@ -54,16 +54,16 @@
                 }
             },
             {
-                "query": "SELECT current_session_uuid::text, current_flow_id FROM contacts_contact WHERE uuid = 'a393abc0-283d-4c9b-a1b3-641a035c34bf'",
+                "query": "SELECT current_session_uuid::text, current_flow_uuid::text FROM contacts_contact WHERE uuid = 'a393abc0-283d-4c9b-a1b3-641a035c34bf'",
                 "columns": {
-                    "current_flow_id": null,
+                    "current_flow_uuid": null,
                     "current_session_uuid": null
                 }
             },
             {
-                "query": "SELECT current_session_uuid::text, current_flow_id FROM contacts_contact WHERE uuid = 'b699a406-7e44-49be-9f01-1a82893e8a10'",
+                "query": "SELECT current_session_uuid::text, current_flow_uuid::text FROM contacts_contact WHERE uuid = 'b699a406-7e44-49be-9f01-1a82893e8a10'",
                 "columns": {
-                    "current_flow_id": 10001,
+                    "current_flow_uuid": "5890fe3a-f204-4661-b74d-025be4ee019c",
                     "current_session_uuid": "01969b47-113b-76f8-b774-0a98171a0712"
                 }
             }

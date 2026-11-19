@@ -225,7 +225,7 @@ RETURNING r.contact_id, r.flow_id, r.current_node_uuid, o.status`
 
 const sqlInterruptSessionContacts = `
 UPDATE contacts_contact 
-   SET current_session_uuid = NULL, current_flow_id = NULL
+   SET current_session_uuid = NULL, current_flow_uuid = NULL
  WHERE id = ANY($1) AND current_session_uuid = ANY($2)`
 
 // InterruptContacts interrupts the waiting sessions for the given contacts. It's on the caller to only call this for
@@ -243,7 +243,7 @@ func InterruptContacts(ctx context.Context, tx *sqlx.Tx, contacts []*Contact, st
 		contactIDs[i] = c.ID()
 
 		c.currentSessionUUID = ""
-		c.currentFlowID = 0
+		c.currentFlowUUID = ""
 	}
 
 	// first update the sessions themselves

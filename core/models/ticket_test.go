@@ -69,6 +69,25 @@ func TestTickets(t *testing.T) {
 		today + "/tickets:assigned:0:3": 2,
 	})
 	testsuite.AssertDailyCounts(t, rt, testdb.Org2, map[string]int{})
+
+	// opened_on is set from the database, and dates the tallies of the tickets being opened
+	assert.False(t, ticket1.OpenedOn.IsZero())
+	assertdb.Query(t, rt.DB, `SELECT opened_on FROM tickets_ticket WHERE id = $1`, ticket1.ID).Returns(ticket1.OpenedOn)
+
+	ticket1.OpenedOn = time.Date(2026, 11, 18, 23, 30, 0, 0, time.UTC)
+	ticket2.OpenedOn = time.Date(2026, 11, 19, 0, 30, 0, 0, time.UTC)
+	ticket3.OpenedOn = time.Date(2026, 11, 19, 1, 30, 0, 0, time.UTC)
+
+	assert.Equal(t, map[string]int64{
+		"O1|tickets/opened:10000@2026-11-18": 1,
+		"O1|tickets/opened:10001@2026-11-19": 1,
+		"O1|tickets/opened:10002@2026-11-19": 1,
+		"O1|tickets/assigned:3@2026-11-18":   1,
+		"O1|tickets/assigned:3@2026-11-19":   1,
+	}, models.TicketOpenedTallies(oa, []*models.Ticket{ticket1, ticket2, ticket3}))
+
+	day := time.Date(2026, 11, 18, 23, 30, 0, 0, time.UTC)
+	assert.Equal(t, map[string]int64{"O1|tickets/assigned:3@2026-11-18": 1}, models.TicketAssignedTallies(testdb.Org1.ID, testdb.Admin.ID, day))
 }
 
 func TestUpdateTicketLastActivity(t *testing.T) {
@@ -141,8 +160,14 @@ func TestTicketRecordReply(t *testing.T) {
 
 	modelTicket := ticket.Load(t, rt, testdb.Org1)
 
-	err = models.RecordTicketReply(ctx, rt.DB, oa, modelTicket, testdb.Agent.ID, repliedOn)
+	tallies, err := models.RecordTicketReply(ctx, rt.DB, oa, modelTicket, testdb.Agent.ID, repliedOn)
 	assert.NoError(t, err)
+	assert.Equal(t, map[string]int64{
+		"O1|tickets/teamreplies:10001@2022-05-18": 1,
+		"O1|tickets/userreplies:5@2022-05-18":     1,
+		"O1|tickets/resptime:total@2022-05-17":    88740,
+		"O1|tickets/resptime:count@2022-05-17":    1,
+	}, tallies)
 
 	// in-memory ticket is updated
 	assert.Equal(t, repliedOn, *modelTicket.RepliedOn)
@@ -168,8 +193,12 @@ func TestTicketRecordReply(t *testing.T) {
 	repliedAgainOn := time.Date(2022, 5, 18, 15, 5, 0, 0, time.UTC)
 
 	// if we call it again, it won't change replied_on again but it will update last_activity_on
-	err = models.RecordTicketReply(ctx, rt.DB, oa, modelTicket, testdb.Agent.ID, repliedAgainOn)
+	tallies, err = models.RecordTicketReply(ctx, rt.DB, oa, modelTicket, testdb.Agent.ID, repliedAgainOn)
 	assert.NoError(t, err)
+	assert.Equal(t, map[string]int64{
+		"O1|tickets/teamreplies:10001@2022-05-18": 1,
+		"O1|tickets/userreplies:5@2022-05-18":     1,
+	}, tallies)
 
 	assert.Equal(t, repliedOn, *modelTicket.RepliedOn)
 	assert.Equal(t, repliedAgainOn, modelTicket.LastActivityOn)

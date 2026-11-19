@@ -115,7 +115,7 @@ type Contact struct {
 	modifiedOn         time.Time
 	lastSeenOn         *time.Time
 	currentSessionUUID core.SessionUUID
-	currentFlowID      FlowID
+	currentFlowUUID    assets.FlowUUID
 	tickets            []*Ticket
 }
 
@@ -131,8 +131,8 @@ func (c *Contact) URNs() []*ContactURN                  { return c.urns }
 func (c *Contact) CreatedOn() time.Time                 { return c.createdOn }
 func (c *Contact) ModifiedOn() time.Time                { return c.modifiedOn }
 func (c *Contact) LastSeenOn() *time.Time               { return c.lastSeenOn }
-func (c *Contact) CurrentFlowID() FlowID                { return c.currentFlowID }
-func (c *Contact) SetCurrentFlowID(id FlowID)           { c.currentFlowID = id }
+func (c *Contact) CurrentFlowUUID() assets.FlowUUID     { return c.currentFlowUUID }
+func (c *Contact) SetCurrentFlowUUID(u assets.FlowUUID) { c.currentFlowUUID = u }
 func (c *Contact) CurrentSessionUUID() core.SessionUUID { return c.currentSessionUUID }
 func (c *Contact) Tickets() []*Ticket                   { return c.tickets }
 
@@ -289,7 +289,7 @@ func LoadContacts(ctx context.Context, db Queryer, oa *OrgAssets, ids []ContactI
 			modifiedOn:         e.ModifiedOn,
 			lastSeenOn:         e.LastSeenOn,
 			currentSessionUUID: core.SessionUUID(e.CurrentSessionUUID),
-			currentFlowID:      e.CurrentFlowID,
+			currentFlowUUID:    e.CurrentFlowUUID,
 		}
 
 		// load our real groups (exclude status groups)
@@ -521,11 +521,11 @@ type contactEnvelope struct {
 		AssigneeID     UserID          `json:"assignee_id"`
 		LastActivityOn time.Time       `json:"last_activity_on"`
 	} `json:"tickets"`
-	CurrentSessionUUID null.String `json:"current_session_uuid"`
-	CurrentFlowID      FlowID      `json:"current_flow_id"`
-	LastSeenOn         *time.Time  `json:"last_seen_on" db:"last_seen_on"`
-	CreatedOn          time.Time   `json:"created_on"`
-	ModifiedOn         time.Time   `json:"modified_on"`
+	CurrentSessionUUID null.String     `json:"current_session_uuid"`
+	CurrentFlowUUID    assets.FlowUUID `json:"current_flow_uuid"`
+	LastSeenOn         *time.Time      `json:"last_seen_on" db:"last_seen_on"`
+	CreatedOn          time.Time       `json:"created_on"`
+	ModifiedOn         time.Time       `json:"modified_on"`
 }
 
 const sqlSelectContact = `
@@ -542,7 +542,7 @@ SELECT ROW_TO_JSON(r) FROM (SELECT
 	u.urns AS urns,
 	t.tickets AS tickets,
 	current_session_uuid,
-	current_flow_id,
+	current_flow_uuid,
 	last_seen_on,
 	created_on,
 	modified_on
