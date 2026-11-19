@@ -32,6 +32,7 @@ func handleMsgReceived(ctx context.Context, rt *runtime.Runtime, oa *models.OrgA
 		if event.TicketUUID != "" && scene.Contact.Status() != core.ContactStatusBlocked {
 			if ticket := scene.DBContact.FindTicket(event.TicketUUID); ticket != nil && ticket.Status == models.TicketStatusOpen {
 				scene.AttachPreCommitHook(hooks.UpdateTicketFires, ticket)
+				scene.AttachPostCommitHook(hooks.PublishTicketsChanged, ticket.UUID)
 			}
 		}
 	}

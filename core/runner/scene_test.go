@@ -16,6 +16,7 @@ import (
 	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/goflow/flows"
+	"github.com/nyaruka/goflow/flows/modifiers"
 	"github.com/nyaruka/goflow/flows/resumes"
 	"github.com/nyaruka/goflow/flows/triggers"
 	"github.com/nyaruka/goflow/test"
@@ -424,6 +425,56 @@ func TestBulkCommitPublishesFlowActivity(t *testing.T) {
 
 	// while the untraversed flow's socket got nothing
 	assert.Empty(t, testsuite.CentrifugoHistory(t, rt, otherSocket))
+}
+
+func TestBulkCommitPublishesTicketsChanged(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	oa, err := models.GetOrgAssets(ctx, rt, testdb.Org1.ID)
+	require.NoError(t, err)
+
+	vc := rt.VK.Get()
+	defer vc.Close()
+
+	// someone has the tickets page open
+	socket := models.OrgTicketsSocket(oa.Org().UUID())
+	_, err = vc.Do("SET", centrifugo.SubscriptionKey(socket), "1")
+	require.NoError(t, err)
+
+	topic := oa.SessionAssets().Topics().Get(testdb.DefaultTopic.UUID)
+
+	// a change that touches no ticket publishes nothing
+	scenes, err := runner.CreateScenes(ctx, rt, oa, []models.ContactID{testdb.Bob.ID}, nil)
+	require.NoError(t, err)
+	require.NoError(t, scenes[0].ApplyModifier(ctx, rt, oa, modifiers.NewName("Robert"), testdb.Admin.ID, ""))
+	require.NoError(t, runner.BulkCommit(ctx, rt, oa, scenes))
+	assert.Empty(t, testsuite.CentrifugoHistory(t, rt, socket))
+
+	// opening tickets for two contacts in a single batch publishes a single tickets_changed
+	scenes, err = runner.CreateScenes(ctx, rt, oa, []models.ContactID{testdb.Bob.ID, testdb.Cat.ID}, nil)
+	require.NoError(t, err)
+	for _, scene := range scenes {
+		require.NoError(t, scene.ApplyModifier(ctx, rt, oa, modifiers.NewTicketOpen(topic, nil, ""), testdb.Admin.ID, ""))
+	}
+	require.NoError(t, runner.BulkCommit(ctx, rt, oa, scenes))
+
+	// naming both of the opened tickets
+	lastTicket := func(s *runner.Scene) core.TicketUUID {
+		tickets := s.DBContact.Tickets()
+		return tickets[len(tickets)-1].UUID
+	}
+	bobTicket, catTicket := lastTicket(scenes[0]), lastTicket(scenes[1])
+
+	sent := testsuite.CentrifugoHistory(t, rt, socket)
+	require.Len(t, sent, 1)
+
+	var event struct {
+		Type    string            `json:"type"`
+		Tickets []core.TicketUUID `json:"tickets"`
+	}
+	require.NoError(t, json.Unmarshal(sent[0], &event))
+	assert.Equal(t, "tickets_changed", event.Type)
+	assert.ElementsMatch(t, []core.TicketUUID{bobTicket, catTicket}, event.Tickets)
 }
 
 func TestSessionFailedStart(t *testing.T) {

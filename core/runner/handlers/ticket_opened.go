@@ -64,6 +64,7 @@ func handleTicketOpened(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 	scene.DBContact.IncludeTickets([]*models.Ticket{ticket})
 
 	scene.AttachPreCommitHook(hooks.InsertTickets, ticket)
+	scene.AttachPostCommitHook(hooks.PublishTicketsChanged, event.Ticket.UUID)
 	scene.AttachPreCommitHook(hooks.UpdateTicketFires, ticket)
 	scene.AttachPostCommitHook(hooks.IndexContacts, event)
 

@@ -49,10 +49,11 @@ func FlowSocket(flowUUID assets.FlowUUID) string {
 	return fmt.Sprintf("%s:%s", SocketFlowNamespace, flowUUID)
 }
 
-// SocketOrgNamespace is the realtime pub/sub namespace for workspace-wide state changes shared by every open page. A
-// workspace socket is addressed as "org:<org-uuid>" and currently carries "asset_changed" payloads - an asset's
-// canonical name has changed, so any page caching that name should update it. These are produced on the platform's
-// Django side and published through the org publish endpoint. Like the other namespaces it's a client subscription,
+// SocketOrgNamespace is the realtime pub/sub namespace for workspace-wide state changes. A workspace socket is
+// addressed as "org:<org-uuid>" and carries "asset_changed" payloads - an asset's canonical name has changed, so any
+// page caching that name should update it. These are produced on the platform's Django side and published through
+// the org publish endpoint. Every open page holds it, so state that only some pages care about gets a socket of its
+// own within the namespace, e.g. "org:<org-uuid>:tickets", held only while the tickets page is open. Like the other namespaces it's a client subscription,
 // authorized per-session by the subscribe proxy, which records the same "socket-subs:" presence key. Note this is the
 // one namespace any member of the workspace may subscribe to with no further permission check (unlike e.g. "flow:",
 // which requires flows.flow_editor), so anything published here is visible to every user in the workspace.
@@ -61,6 +62,13 @@ const SocketOrgNamespace = "org"
 // OrgSocket returns the realtime pub/sub socket for the given workspace, addressed as "org:<org-uuid>".
 func OrgSocket(orgUUID OrgUUID) string {
 	return fmt.Sprintf("%s:%s", SocketOrgNamespace, orgUUID)
+}
+
+// OrgTicketsSocket returns the realtime pub/sub socket for changes to the given workspace's tickets, addressed as
+// "org:<org-uuid>:tickets". Only the tickets page subscribes, so it has no subscribers - and nothing is published to
+// it - while no one has that page open.
+func OrgTicketsSocket(orgUUID OrgUUID) string {
+	return fmt.Sprintf("%s:%s:tickets", SocketOrgNamespace, orgUUID)
 }
 
 // SocketNotificationsNamespace is the realtime pub/sub namespace for a user's notifications within a workspace. A
@@ -148,6 +156,37 @@ func PublishOrgEvent(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, ev
 	pub := &centrifugo.Publication{Channel: OrgSocket(oa.Org().UUID()), Data: event}
 	if err := rt.Centrifugo.Publish(ctx, pub); err != nil {
 		return fmt.Errorf("error publishing org event: %w", err)
+	}
+	return nil
+}
+
+// TicketsChangedMax is the most tickets a tickets_changed event names - beyond that it names none, and clients reload
+const TicketsChangedMax = 100
+
+// ticketsChangedEvent is what a workspace's socket carries when some of its tickets changed
+type ticketsChangedEvent struct {
+	Type    string            `json:"type"`
+	Tickets []core.TicketUUID `json:"tickets,omitempty"`
+}
+
+// PublishTicketsChanged tells the workspace's open tickets pages that the given tickets changed - opened, closed, reopened,
+// reassigned, moved topic or had new activity. The socket is open to every member of the workspace, but not every
+// member can see every ticket, so the event names the tickets only by UUID: a ticket list reads them again over http,
+// scoped to what that user can see, which also tells it which have left its folder. When there are too many to name
+// the event names none, and clients reload instead. Best-effort and a no-op when the workspace has no subscribers.
+func PublishTicketsChanged(ctx context.Context, rt *runtime.Runtime, oa *OrgAssets, ticketUUIDs []core.TicketUUID) error {
+	if len(ticketUUIDs) == 0 {
+		return nil
+	}
+
+	event := &ticketsChangedEvent{Type: "tickets_changed"}
+	if len(ticketUUIDs) <= TicketsChangedMax {
+		event.Tickets = ticketUUIDs
+	}
+
+	pub := &centrifugo.Publication{Channel: OrgTicketsSocket(oa.Org().UUID()), Data: event}
+	if err := rt.Centrifugo.Publish(ctx, pub); err != nil {
+		return fmt.Errorf("error publishing tickets changed: %w", err)
 	}
 	return nil
 }

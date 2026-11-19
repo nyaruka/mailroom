@@ -38,6 +38,7 @@ func handleTicketClosed(ctx context.Context, rt *runtime.Runtime, oa *models.Org
 	}
 
 	scene.AttachPreCommitHook(hooks.UpdateTickets, dbTicket)
+	scene.AttachPostCommitHook(hooks.PublishTicketsChanged, event.TicketUUID)
 	scene.AttachPreCommitHook(hooks.UpdateTicketFires, dbTicket)
 	scene.AttachPostCommitHook(hooks.IndexContacts, event)
 

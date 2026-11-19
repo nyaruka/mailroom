@@ -29,6 +29,7 @@ func handleTicketTopicChanged(ctx context.Context, rt *runtime.Runtime, oa *mode
 	dbTicket.TopicID = topic.ID()
 
 	scene.AttachPreCommitHook(hooks.UpdateTickets, dbTicket)
+	scene.AttachPostCommitHook(hooks.PublishTicketsChanged, event.TicketUUID)
 
 	return nil
 }
