@@ -1,3 +1,8 @@
+## v26.3.155 (2026-11-20)
+ * Discard database connections that get read-only errors
+ * Claim contact fires in a transaction before queuing their tasks
+ * Run CI against PostgreSQL 18 and regenerate the test database dump with pg_dump 18
+
 ## v26.3.154 (2026-11-19)
  * Publish tickets_changed events to an org tickets socket channel from each ticket handler
  * Don't send flow emails or make outgoing calls for suspended workspaces
