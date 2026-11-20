@@ -87,19 +87,32 @@ func LoadDueContactfires(ctx context.Context, rt *runtime.Runtime, limit int) ([
 	return fires, nil
 }
 
-// DeleteContactFires deletes the given contact fires
-func DeleteContactFires(ctx context.Context, rt *runtime.Runtime, fires []*ContactFire) error {
+// DeleteContactFires deletes the given contact fires and returns those which were actually deleted, so that a caller
+// doing this in a transaction can treat it as claiming them.
+func DeleteContactFires(ctx context.Context, db DBorTx, fires []*ContactFire) ([]*ContactFire, error) {
 	ids := make([]ContactFireID, len(fires))
 	for i, f := range fires {
 		ids[i] = f.ID
 	}
 
-	_, err := rt.DB.ExecContext(ctx, `DELETE FROM contacts_contactfire WHERE id = ANY($1)`, pq.Array(ids))
-	if err != nil {
-		return fmt.Errorf("error deleting contact fires: %w", err)
+	var deletedIDs []ContactFireID
+	if err := db.SelectContext(ctx, &deletedIDs, `DELETE FROM contacts_contactfire WHERE id = ANY($1) RETURNING id`, pq.Array(ids)); err != nil {
+		return nil, fmt.Errorf("error deleting contact fires: %w", err)
 	}
 
-	return nil
+	wasDeleted := make(map[ContactFireID]bool, len(deletedIDs))
+	for _, id := range deletedIDs {
+		wasDeleted[id] = true
+	}
+
+	deleted := make([]*ContactFire, 0, len(deletedIDs))
+	for _, f := range fires {
+		if wasDeleted[f.ID] {
+			deleted = append(deleted, f)
+		}
+	}
+
+	return deleted, nil
 }
 
 // DeleteSessionFires deletes session wait/timeout fires for the given contacts

@@ -45,10 +45,18 @@ func TestContactFires(t *testing.T) {
 	assert.Len(t, fires, 3)
 	assert.Equal(t, testdb.Ann.ID, fires[0].ContactID)
 
-	err = models.DeleteContactFires(ctx, rt, []*models.ContactFire{fires[0], fires[1]})
+	deleted, err := models.DeleteContactFires(ctx, rt.DB, []*models.ContactFire{fires[0], fires[1]})
 	assert.NoError(t, err)
+	assert.Equal(t, []*models.ContactFire{fires[0], fires[1]}, deleted)
 
-	assertdb.Query(t, rt.DB, `SELECT COUNT(*) FROM contacts_contactfire`, 2)
+	assertdb.Query(t, rt.DB, `SELECT COUNT(*) FROM contacts_contactfire`).Returns(3)
+
+	// deleting again only returns the fires which still existed
+	deleted, err = models.DeleteContactFires(ctx, rt.DB, []*models.ContactFire{fires[1], fires[2]})
+	assert.NoError(t, err)
+	assert.Equal(t, []*models.ContactFire{fires[2]}, deleted)
+
+	assertdb.Query(t, rt.DB, `SELECT COUNT(*) FROM contacts_contactfire`).Returns(2)
 }
 
 func TestSessionContactFires(t *testing.T) {

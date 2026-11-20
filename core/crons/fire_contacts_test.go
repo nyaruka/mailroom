@@ -2,11 +2,14 @@ package crons_test
 
 import (
 	"cmp"
+	"context"
+	"errors"
 	"fmt"
 	"slices"
 	"testing"
 	"time"
 
+	valkey "github.com/gomodule/redigo/redis"
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/goflow/core"
@@ -15,10 +18,12 @@ import (
 	"github.com/nyaruka/mailroom/v26/core/models"
 	_ "github.com/nyaruka/mailroom/v26/core/runner/handlers"
 	"github.com/nyaruka/mailroom/v26/core/tasks"
+	"github.com/nyaruka/mailroom/v26/runtime"
 	"github.com/nyaruka/mailroom/v26/testsuite"
 	"github.com/nyaruka/mailroom/v26/testsuite/testdb"
 	"github.com/nyaruka/mailroom/v26/utils/queues"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestFireContacts(t *testing.T) {
@@ -195,4 +200,80 @@ func TestFireContactsTicketCloses(t *testing.T) {
 	}, decoded.Tickets)
 
 	assertdb.Query(t, rt.DB, `SELECT contact_id FROM contacts_contactfire`).Returns(int64(testdb.Cat.ID))
+}
+
+func TestFireContactsDeleteFails(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	testdb.InsertContactFire(t, rt, testdb.Org1, testdb.Dan, models.ContactFireTypeCampaignPoint, fmt.Sprintf("%d:1", testdb.RemindersPoint2.ID), time.Now().Add(-time.Second), "")
+
+	// make deleting fires fail like it does on a server which has become read-only
+	rt.DB.MustExec(`CREATE FUNCTION fail_delete() RETURNS trigger AS $$
+	BEGIN RAISE EXCEPTION 'cannot execute DELETE in a read-only transaction' USING ERRCODE = '25006'; END;
+	$$ LANGUAGE plpgsql`)
+	rt.DB.MustExec(`CREATE TRIGGER fail_delete BEFORE DELETE ON contacts_contactfire FOR EACH STATEMENT EXECUTE FUNCTION fail_delete()`)
+
+	cron := &crons.FireContactsCron{FetchBatchSize: 100, TaskBatchSize: 100, FlowBatchSize: 100}
+
+	for range 3 {
+		_, err := cron.Run(ctx, rt)
+		assert.ErrorContains(t, err, "read-only transaction")
+	}
+
+	// nothing should have been queued and the fire is still there
+	assertThrottledTasks(t, rt, 0)
+	assertdb.Query(t, rt.DB, `SELECT COUNT(*) FROM contacts_contactfire`).Returns(1)
+
+	rt.DB.MustExec(`DROP TRIGGER fail_delete ON contacts_contactfire`)
+
+	res, err := cron.Run(ctx, rt)
+	assert.NoError(t, err)
+	assert.Equal(t, 1, res["campaign_points"])
+
+	assertThrottledTasks(t, rt, 1)
+	assertdb.Query(t, rt.DB, `SELECT COUNT(*) FROM contacts_contactfire`).Returns(0)
+}
+
+type failingQueue struct {
+	queues.Fair
+}
+
+func (q *failingQueue) Push(ctx context.Context, vc valkey.Conn, taskType string, ownerID int, task any, priority bool) (queues.TaskID, error) {
+	return "", errors.New("boom")
+}
+
+func TestFireContactsQueueFails(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	testdb.InsertContactFire(t, rt, testdb.Org1, testdb.Dan, models.ContactFireTypeCampaignPoint, fmt.Sprintf("%d:1", testdb.RemindersPoint2.ID), time.Now().Add(-time.Second), "")
+
+	throttled := rt.Queues.Throttled
+	rt.Queues.Throttled = &failingQueue{throttled}
+
+	cron := &crons.FireContactsCron{FetchBatchSize: 100, TaskBatchSize: 100, FlowBatchSize: 100}
+	_, err := cron.Run(ctx, rt)
+	assert.ErrorContains(t, err, "boom")
+
+	// fire should still be there to be retried
+	assertdb.Query(t, rt.DB, `SELECT COUNT(*) FROM contacts_contactfire`).Returns(1)
+
+	rt.Queues.Throttled = throttled
+
+	res, err := cron.Run(ctx, rt)
+	assert.NoError(t, err)
+	assert.Equal(t, 1, res["campaign_points"])
+
+	assertThrottledTasks(t, rt, 1)
+	assertdb.Query(t, rt.DB, `SELECT COUNT(*) FROM contacts_contactfire`).Returns(0)
+}
+
+func assertThrottledTasks(t *testing.T, rt *runtime.Runtime, expected int) {
+	t.Helper()
+
+	vc := rt.VK.Get()
+	defer vc.Close()
+
+	size, err := rt.Queues.Throttled.Size(t.Context(), vc)
+	require.NoError(t, err)
+	assert.Equal(t, expected, size)
 }
