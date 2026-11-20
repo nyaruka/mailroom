@@ -132,7 +132,8 @@ func (g fireGroup) campaignPoint() (models.PointID, int, bool) {
 // commits. Campaign tasks aren't idempotent, so a fire must never be queued again after its task was queued: if the
 // delete fails nothing is queued, and if queuing fails the rollback leaves the fires to be retried.
 func (c *FireContactsCron) fireBatch(ctx context.Context, rt *runtime.Runtime, g fireGroup, batch []*models.ContactFire) (int, error) {
-	tx, err := rt.DB.BeginTxx(ctx, nil)
+	// a transaction is rolled back when its context is cancelled, which would let the fires be queued again
+	tx, err := rt.DB.BeginTxx(context.WithoutCancel(ctx), nil)
 	if err != nil {
 		return 0, fmt.Errorf("error beginning transaction to claim contact fires: %w", err)
 	}
