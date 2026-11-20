@@ -3,15 +3,17 @@ package runtime
 import (
 	"context"
 	"database/sql"
+	"database/sql/driver"
 	"fmt"
 	"time"
 
 	"firebase.google.com/go/v4/messaging"
 	valkey "github.com/gomodule/redigo/redis"
-	_ "github.com/lib/pq"
+	"github.com/lib/pq"
 	"github.com/nyaruka/gocommon/aws/cwatch"
 	"github.com/nyaruka/gocommon/aws/s3x"
 	"github.com/nyaruka/gocommon/centrifugo"
+	"github.com/nyaruka/gocommon/dbutil"
 	"github.com/nyaruka/vkutil"
 	"github.com/vinovest/sqlx"
 )
@@ -63,13 +65,13 @@ func NewRuntime(cfg *Config) (*Runtime, error) {
 
 	var err error
 
-	rt.DB, err = createPostgresPool(cfg.DB, cfg.DBPoolSize)
+	rt.DB, err = createPostgresPool(cfg.DB, cfg.DBPoolSize, true)
 	if err != nil {
 		return nil, fmt.Errorf("error creating Postgres connection pool: %w", err)
 	}
 
 	if cfg.ReadonlyDB != "" {
-		roDB, err := createPostgresPool(cfg.ReadonlyDB, cfg.DBPoolSize)
+		roDB, err := createPostgresPool(cfg.ReadonlyDB, cfg.DBPoolSize, false)
 		if err != nil {
 			return nil, fmt.Errorf("error creating readonly Postgres connection pool: %w", err)
 		}
@@ -129,15 +131,24 @@ func (r *Runtime) Stop() {
 	r.ES.stop()
 }
 
-func createPostgresPool(url string, maxOpenConns int) (*sqlx.DB, error) {
-	db, err := sqlx.Open("postgres", url)
+// createPostgresPool creates a pool for the given URL. A pool used for writes discards connections which turn out to
+// be to a read-only server.
+func createPostgresPool(url string, maxOpenConns int, forWrites bool) (*sqlx.DB, error) {
+	var connector driver.Connector
+	var err error
+	if forWrites {
+		connector, err = dbutil.NewWriteConnector(url)
+	} else {
+		connector, err = pq.NewConnector(url)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("unable to open database connection: '%s': %w", url, err)
 	}
 
+	db := sqlx.NewDb(sql.OpenDB(connector), "postgres")
 	db.SetMaxIdleConns(8)
 	db.SetMaxOpenConns(maxOpenConns)
-	db.SetConnMaxLifetime(time.Minute * 30)
+	db.SetConnMaxLifetime(10 * time.Minute)
 
 	return db, nil
 }
