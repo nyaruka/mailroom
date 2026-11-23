@@ -152,6 +152,7 @@ SELECT ROW_TO_JSON(r) FROM (
     SELECT c.id, c.uuid, c.org_id, c.channel_type, c.name, c.address, c.tps, c.config
       FROM channels_channel c
      WHERE c.channel_type = 'A' AND c.last_seen >= $1 AND c.last_seen <  NOW() - INTERVAL '15 minutes' AND c.is_active = TRUE AND c.is_enabled = TRUE
+       AND NOT EXISTS (SELECT 1 FROM orgs_org o WHERE o.id = c.org_id AND o.status = 'S')
   ORDER BY c.last_seen DESC, c.id DESC
 ) r;`
 
@@ -176,11 +177,11 @@ const sqlSelectAndroidChannel = `
 SELECT ROW_TO_JSON(r) FROM (
     SELECT c.id, c.uuid, c.org_id, c.is_active, c.secret, c.claim_code, c.config, c.last_seen, c.device, c.os
       FROM channels_channel c
-     WHERE c.id = $1 AND c.channel_type = 'A'
+     WHERE c.id = $1 AND c.channel_type = 'A' AND NOT EXISTS (SELECT 1 FROM orgs_org o WHERE o.id = c.org_id AND o.status = 'S')
 ) r;`
 
 // GetAndroidChannel fetches the Android channel with the given id, including released and unclaimed ones. Returns
-// ErrNotFound if there's no such channel, which for a syncing relayer means it should stop.
+// ErrNotFound if there's no such channel or its workspace is suspended, which for a syncing relayer means it should stop.
 func GetAndroidChannel(ctx context.Context, db *sqlx.DB, id ChannelID) (*AndroidChannel, error) {
 	row := db.QueryRowContext(ctx, sqlSelectAndroidChannel, id)
 	ch := &AndroidChannel{}

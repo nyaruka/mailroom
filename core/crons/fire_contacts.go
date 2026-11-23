@@ -44,6 +44,11 @@ func (c *FireContactsCron) Run(ctx context.Context, rt *runtime.Runtime) (map[st
 			break
 		}
 
+		fires, err = c.skipSuspended(ctx, rt, fires)
+		if err != nil {
+			return nil, err
+		}
+
 		// organize fires by the bulk tasks they'll be batched into
 		grouped := make(map[fireGroup][]*models.ContactFire, 25)
 
@@ -105,6 +110,26 @@ func (c *FireContactsCron) Run(ctx context.Context, rt *runtime.Runtime) (map[st
 		res[k] = v
 	}
 	return res, nil
+}
+
+// skipSuspended deletes fires for suspended workspaces without firing them, and returns the remaining fires
+func (c *FireContactsCron) skipSuspended(ctx context.Context, rt *runtime.Runtime, fires []*models.ContactFire) ([]*models.ContactFire, error) {
+	var skip, remaining []*models.ContactFire
+	for _, f := range fires {
+		if f.OrgSuspended {
+			skip = append(skip, f)
+		} else {
+			remaining = append(remaining, f)
+		}
+	}
+
+	if len(skip) > 0 {
+		if _, err := models.DeleteContactFires(ctx, rt.DB, skip); err != nil {
+			return nil, fmt.Errorf("error deleting fires for suspended orgs: %w", err)
+		}
+	}
+
+	return remaining, nil
 }
 
 type fireGroup struct {

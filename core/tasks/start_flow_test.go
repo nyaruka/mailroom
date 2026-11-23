@@ -314,3 +314,23 @@ func TestStartFlowTaskNonPersistedStart(t *testing.T) {
 
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowrun`).Returns(2)
 }
+
+func TestStartFlowTaskSuspended(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	testdb.Org1.SetStatus(t, rt, models.OrgStatusSuspended)
+
+	start := models.NewFlowStart(testdb.Org1.ID, models.StartTypeManual, testdb.SingleMessage.ID).
+		WithContactIDs([]models.ContactID{testdb.Ann.ID, testdb.Bob.ID})
+	err := models.InsertFlowStart(ctx, rt.DB, start)
+	require.NoError(t, err)
+
+	err = tasks.Queue(ctx, rt, rt.Queues.Batch, testdb.Org1.ID, &tasks.StartFlow{FlowStart: start}, false)
+	require.NoError(t, err)
+
+	taskCounts := testsuite.FlushTasks(t, rt)
+	assert.Equal(t, map[string]int{"start_flow": 1}, taskCounts)
+
+	assertdb.Query(t, rt.DB, `SELECT status FROM flows_flowstart WHERE id = $1`, start.ID).Returns("F")
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession`).Returns(0)
+}

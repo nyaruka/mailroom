@@ -350,3 +350,27 @@ func getCallLogs(t *testing.T, rt *runtime.Runtime, ch *testdb.Channel) []*httpx
 
 	return logs
 }
+
+func TestIVRIncomingSuspended(t *testing.T) {
+	_, rt := testsuite.Runtime(t)
+	startServer(t, rt)
+
+	twiml.IgnoreSignatures = true
+	defer func() { twiml.IgnoreSignatures = false }()
+
+	testdb.InsertIncomingCallTrigger(t, rt, testdb.Org1, testdb.IVRFlow, nil, nil, nil)
+	testdb.Org1.SetStatus(t, rt, models.OrgStatusSuspended)
+
+	url := fmt.Sprintf("http://localhost:%d/mr/ivr/c/%s/incoming", rt.Config.InternetPort, testdb.TwilioChannel.UUID)
+	resp, err := http.Post(url, "application/x-www-form-urlencoded", strings.NewReader("CallSid=Call1&CallStatus=ringing&Caller=%2B16055741111"))
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
+	assert.Equal(t, 200, resp.StatusCode)
+	assert.Contains(t, string(body), "<Reject")
+
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM ivr_call`).Returns(0)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession`).Returns(0)
+}

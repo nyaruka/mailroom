@@ -494,3 +494,19 @@ func TestRelayerSyncHostilePayload(t *testing.T) {
 	status, _ = relayerSync(t, rt, testdb.AndroidChannel.ID, relayerSecret, `{"cmds":[{"cmd":"fcm","fcm_id":"FCM123"}]}`, nil)
 	assert.Equal(t, 200, status)
 }
+
+func TestRelayerSyncSuspended(t *testing.T) {
+	_, rt := testsuite.Runtime(t)
+	startServer(t, rt)
+	claimAndroidChannel(t, rt)
+
+	testdb.Org1.SetStatus(t, rt, models.OrgStatusSuspended)
+
+	// a suspended workspace's channel is treated as not found, so its relayer is told to stop
+	body := `{"cmds":[{"cmd":"fcm","fcm_id":"FCM123"},{"cmd":"mo_sms","p_id":1,"phone":"+16055741111","msg":"hi","ts":1638000000000}]}`
+	status, resp := relayerSync(t, rt, testdb.AndroidChannel.ID, relayerSecret, body, nil)
+	assert.Equal(t, 200, status)
+	test.AssertEqualJSON(t, []byte(fmt.Sprintf(`{"cmds":[{"cmd":"rel","relayer_id":%d}]}`, testdb.AndroidChannel.ID)), jsonx.MustMarshal(resp), "unexpected response for suspended workspace")
+
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE direction = 'I'`).Returns(0)
+}

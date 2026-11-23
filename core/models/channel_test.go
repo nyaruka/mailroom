@@ -147,6 +147,12 @@ func TestGetAndroidChannelsToSync(t *testing.T) {
 	assert.Equal(t, testChannel2.ID, oldSeenAndroidChannels[1].ID())
 	assert.Equal(t, testChannel1.ID, oldSeenAndroidChannels[2].ID())
 
+	// channels of suspended workspaces aren't synced
+	testdb.Org1.SetStatus(t, rt, models.OrgStatusSuspended)
+
+	oldSeenAndroidChannels, err = models.GetAndroidChannelsToSync(ctx, rt.DB)
+	assert.NoError(t, err)
+	assert.Len(t, oldSeenAndroidChannels, 0)
 }
 
 func TestGetAndroidChannel(t *testing.T) {
@@ -176,6 +182,12 @@ func TestGetAndroidChannel(t *testing.T) {
 	assert.ErrorIs(t, err, models.ErrNotFound)
 
 	_, err = models.GetAndroidChannel(ctx, rt.DB, models.ChannelID(1234567))
+	assert.ErrorIs(t, err, models.ErrNotFound)
+
+	// nor are channels of suspended workspaces
+	testdb.Org1.SetStatus(t, rt, models.OrgStatusSuspended)
+
+	_, err = models.GetAndroidChannel(ctx, rt.DB, testdb.AndroidChannel.ID)
 	assert.ErrorIs(t, err, models.ErrNotFound)
 }
 

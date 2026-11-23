@@ -44,6 +44,7 @@ func TestContactFires(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, fires, 3)
 	assert.Equal(t, testdb.Ann.ID, fires[0].ContactID)
+	assert.False(t, fires[0].OrgSuspended)
 
 	deleted, err := models.DeleteContactFires(ctx, rt.DB, []*models.ContactFire{fires[0], fires[1]})
 	assert.NoError(t, err)
@@ -57,6 +58,15 @@ func TestContactFires(t *testing.T) {
 	assert.Equal(t, []*models.ContactFire{fires[2]}, deleted)
 
 	assertdb.Query(t, rt.DB, `SELECT COUNT(*) FROM contacts_contactfire`).Returns(2)
+
+	// due fires are loaded with whether their workspace is suspended
+	testdb.Org2.SetStatus(t, rt, models.OrgStatusSuspended)
+
+	fires, err = models.LoadDueContactfires(ctx, rt, 3)
+	assert.NoError(t, err)
+	assert.Len(t, fires, 1)
+	assert.Equal(t, testdb.Org2.ID, fires[0].OrgID)
+	assert.True(t, fires[0].OrgSuspended)
 }
 
 func TestSessionContactFires(t *testing.T) {

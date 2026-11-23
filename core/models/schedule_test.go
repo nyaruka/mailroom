@@ -133,6 +133,13 @@ func TestGetExpired(t *testing.T) {
 	assert.Equal(t, testdb.Org1.ID, bcast.OrgID)
 	assert.Equal(t, []models.ContactID{testdb.Ann.ID, testdb.Cat.ID}, bcast.ContactIDs)
 	assert.Equal(t, []models.GroupID{testdb.DoctorsGroup.ID}, bcast.GroupIDs)
+
+	// schedules of suspended workspaces aren't returned
+	testdb.Org1.SetStatus(t, rt, models.OrgStatusSuspended)
+
+	schedules, err = models.GetUnfiredSchedules(ctx, rt.DB.DB)
+	assert.NoError(t, err)
+	assert.Len(t, schedules, 0)
 }
 
 func TestGetNextFire(t *testing.T) {

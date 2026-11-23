@@ -32,6 +32,8 @@ type ContactFire struct {
 	FireOn      time.Time       `db:"fire_on"`
 	SessionUUID null.String     `db:"session_uuid"`
 	SprintUUID  null.String     `db:"sprint_uuid"` // set for wait expirations and timeouts
+
+	OrgSuspended bool `db:"org_suspended"` // only set when loaded as due
 }
 
 func newContactFire(orgID OrgID, contactID ContactID, typ ContactFireType, scope string, fireOn time.Time, sessionUUID core.SessionUUID, sprintUUID flows.SprintUUID) *ContactFire {
@@ -60,10 +62,11 @@ func NewContactFireForTicketClose(orgID OrgID, contactID ContactID, ticketUUID c
 }
 
 const sqlSelectDueContactFires = `
-  SELECT id, org_id, contact_id, fire_type, scope, session_uuid, sprint_uuid, fire_on
-    FROM contacts_contactfire
-   WHERE fire_on < NOW()
-ORDER BY fire_on ASC
+  SELECT f.id, f.org_id, f.contact_id, f.fire_type, f.scope, f.session_uuid, f.sprint_uuid, f.fire_on, o.status = 'S' AS org_suspended
+    FROM contacts_contactfire f
+    JOIN orgs_org o ON o.id = f.org_id
+   WHERE f.fire_on < NOW()
+ORDER BY f.fire_on ASC
    LIMIT $1`
 
 // LoadDueContactfires returns up to 10,000 contact fires that are due to be fired.

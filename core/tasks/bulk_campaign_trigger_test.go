@@ -293,3 +293,20 @@ func TestBulkCampaignTriggerVoice(t *testing.T) {
 	}
 	assert.Equal(t, []string{"10000|skipped"}, members)
 }
+
+func TestBulkCampaignTriggerSuspended(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	testdb.Org1.SetStatus(t, rt, models.OrgStatusSuspended)
+
+	task := &tasks.BulkCampaignTrigger{
+		PointID:     testdb.RemindersPoint3.ID,
+		FireVersion: 1,
+		ContactIDs:  []models.ContactID{testdb.Bob.ID, testdb.Dan.ID},
+	}
+
+	err := task.Perform(ctx, rt, testdb.Org1.Load(t, rt), testTaskID)
+	assert.NoError(t, err)
+
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession`).Returns(0)
+}
