@@ -1,3 +1,6 @@
+## v26.3.156 (2026-11-23)
+ * Use v7 UUIDs for flow starts
+
 ## v26.3.155 (2026-11-20)
  * Discard database connections that get read-only errors
  * Claim contact fires in a transaction before queuing their tasks
