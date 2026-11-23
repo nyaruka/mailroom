@@ -217,7 +217,7 @@ func TestNewMsgStatusTag(t *testing.T) {
 		models.MsgFailedChannelRemoved: "channel_removed",
 		models.MsgFailedNoDestination:  "no_destination",
 		models.MsgFailedContact:        "",
-		models.MsgFailedSuspended:      "",
+		models.MsgFailedSuspended:      "org_suspended",
 		models.MsgFailedLooping:        "",
 	}
 

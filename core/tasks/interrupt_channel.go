@@ -59,9 +59,15 @@ func (t *InterruptChannel) Perform(ctx context.Context, rt *runtime.Runtime, oa 
 		return fmt.Errorf("error clearing courier queues: %w", err)
 	}
 
+	// channels are also interrupted when their workspace is suspended
+	reason := models.MsgFailedChannelRemoved
+	if oa.Org().IsSuspended() {
+		reason = models.MsgFailedSuspended
+	}
+
 	// fail the channel's outbox in batches so that a large one doesn't become one long transaction
 	for {
-		tags, err := models.FailChannelMessages(ctx, rt.DB, oa.OrgID(), t.ChannelID, models.MsgFailedChannelRemoved, failChannelMessagesBatchSize)
+		tags, err := models.FailChannelMessages(ctx, rt.DB, oa.OrgID(), t.ChannelID, reason, failChannelMessagesBatchSize)
 		if err != nil {
 			return fmt.Errorf("error failing channel messages: %w", err)
 		}
