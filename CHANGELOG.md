@@ -1,3 +1,6 @@
+## v26.3.158 (2026-11-23)
+ * Let channel interrupts say why the channel's messages are failed
+
 ## v26.3.157 (2026-11-23)
  * Stop running flows for suspended workspaces
  * Update phonenumbers to v2.1.0
