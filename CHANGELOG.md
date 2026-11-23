@@ -1,3 +1,8 @@
+## v26.3.157 (2026-11-23)
+ * Stop running flows for suspended workspaces
+ * Update phonenumbers to v2.1.0
+ * Regenerate test database dump without orgs_org.is_flagged
+
 ## v26.3.156 (2026-11-23)
  * Use v7 UUIDs for flow starts
 
