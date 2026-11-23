@@ -54,7 +54,7 @@ func handleStart(ctx context.Context, rt *runtime.Runtime, r *startRequest) (any
 	}
 
 	start := &models.FlowStart{
-		UUID:        uuids.NewV4(),
+		UUID:        uuids.NewV7(),
 		OrgID:       r.OrgID,
 		Status:      models.StartStatusPending,
 		StartType:   r.Type,

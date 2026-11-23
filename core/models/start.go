@@ -117,7 +117,7 @@ type dbFlowStart struct {
 
 // NewFlowStart creates a new flow start objects for the passed in parameters
 func NewFlowStart(orgID OrgID, startType StartType, flowID FlowID) *FlowStart {
-	return &FlowStart{UUID: uuids.NewV4(), OrgID: orgID, StartType: startType, FlowID: flowID}
+	return &FlowStart{UUID: uuids.NewV7(), OrgID: orgID, StartType: startType, FlowID: flowID}
 }
 
 func (s *FlowStart) WithGroupIDs(groupIDs []GroupID) *FlowStart {
