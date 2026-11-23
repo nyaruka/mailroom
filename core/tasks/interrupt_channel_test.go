@@ -131,17 +131,15 @@ func getStatusTags(t *testing.T, rt *runtime.Runtime) map[string]string {
 	return tags
 }
 
-func TestInterruptChannelSuspended(t *testing.T) {
+func TestInterruptChannelWithReason(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
 	out1 := testdb.InsertOutgoingMsg(t, rt, testdb.Org1, "0199bad8-f98d-75a3-b641-2718a25ac3f5", testdb.TwilioChannel, testdb.Ann, "how can we help", nil, models.MsgStatusQueued, false)
 
-	testdb.Org1.SetStatus(t, rt, models.OrgStatusSuspended)
-
-	tasks.Queue(ctx, rt, rt.Queues.Batch, testdb.Org1.ID, &tasks.InterruptChannel{ChannelID: testdb.TwilioChannel.ID}, false)
+	tasks.Queue(ctx, rt, rt.Queues.Batch, testdb.Org1.ID, &tasks.InterruptChannel{ChannelID: testdb.TwilioChannel.ID, Reason: models.MsgFailedSuspended}, false)
 	testsuite.FlushTasks(t, rt)
 
-	// the channel's messages are failed because the workspace is suspended
+	// the channel's messages are failed with the given reason
 	assertdb.Query(t, rt.DB, `SELECT status, failed_reason FROM msgs_msg WHERE id = $1`, out1.ID).Columns(map[string]any{"status": "F", "failed_reason": "S"})
 
 	assert.Equal(t, map[string]string{

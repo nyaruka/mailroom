@@ -24,7 +24,8 @@ func init() {
 
 // InterruptChannel is our task to interrupt a channel
 type InterruptChannel struct {
-	ChannelID models.ChannelID `json:"channel_id"`
+	ChannelID models.ChannelID       `json:"channel_id"`
+	Reason    models.MsgFailedReason `json:"reason,omitempty"` // why messages are failed, defaults to channel removed
 }
 
 func (t *InterruptChannel) Type() string {
@@ -59,10 +60,9 @@ func (t *InterruptChannel) Perform(ctx context.Context, rt *runtime.Runtime, oa 
 		return fmt.Errorf("error clearing courier queues: %w", err)
 	}
 
-	// channels are also interrupted when their workspace is suspended
-	reason := models.MsgFailedChannelRemoved
-	if oa.Org().IsSuspended() {
-		reason = models.MsgFailedSuspended
+	reason := t.Reason
+	if reason == models.NilMsgFailedReason {
+		reason = models.MsgFailedChannelRemoved
 	}
 
 	// fail the channel's outbox in batches so that a large one doesn't become one long transaction
