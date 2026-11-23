@@ -15,19 +15,22 @@ func init() {
 	web.InternalRoute(http.MethodPost, "/channel/interrupt", web.JSONPayload(handleInterrupt))
 }
 
-// Request that a channel is interrupted. Used as part of channel deletion.
+// Request that a channel is interrupted, because it's being deleted or its workspace suspended. The reason its queued
+// messages are failed with defaults to the channel being removed.
 //
 //	{
 //	  "org_id": 1,
-//	  "channel_id": 235
+//	  "channel_id": 235,
+//	  "reason": "S"
 //	}
 type interruptRequest struct {
-	OrgID     models.OrgID     `json:"org_id"     validate:"required"`
-	ChannelID models.ChannelID `json:"channel_id" validate:"required"`
+	OrgID     models.OrgID           `json:"org_id"     validate:"required"`
+	ChannelID models.ChannelID       `json:"channel_id" validate:"required"`
+	Reason    models.MsgFailedReason `json:"reason"     validate:"omitempty,oneof=R S"`
 }
 
 func handleInterrupt(ctx context.Context, rt *runtime.Runtime, r *interruptRequest) (any, int, error) {
-	task := &tasks.InterruptChannel{ChannelID: r.ChannelID}
+	task := &tasks.InterruptChannel{ChannelID: r.ChannelID, Reason: r.Reason}
 	if err := tasks.Queue(ctx, rt, rt.Queues.Batch, r.OrgID, task, true); err != nil {
 		return nil, 0, fmt.Errorf("error queuing interrupt channel task: %w", err)
 	}

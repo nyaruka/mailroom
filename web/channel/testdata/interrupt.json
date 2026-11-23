@@ -28,5 +28,42 @@
                 }
             ]
         }
+    },
+    {
+        "label": "reason can be given",
+        "method": "POST",
+        "path": "/mi/channel/interrupt",
+        "body": {
+            "org_id": 1,
+            "channel_id": 10000,
+            "reason": "S"
+        },
+        "status": 200,
+        "response": {},
+        "expected_tasks": {
+            "batch/1": [
+                {
+                    "type": "interrupt_channel",
+                    "payload": {
+                        "channel_id": 10000,
+                        "reason": "S"
+                    }
+                }
+            ]
+        }
+    },
+    {
+        "label": "but only a reason a channel interruption can have",
+        "method": "POST",
+        "path": "/mi/channel/interrupt",
+        "body": {
+            "org_id": 1,
+            "channel_id": 10000,
+            "reason": "L"
+        },
+        "status": 400,
+        "response": {
+            "error": "request failed validation: field 'reason' failed tag 'oneof'"
+        }
     }
 ]
