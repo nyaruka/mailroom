@@ -115,19 +115,6 @@ func DeleteContactFires(ctx context.Context, db DBorTx, fires []*ContactFire) ([
 	return deleted, nil
 }
 
-// PostponeContactFires moves the given contact fires to fire at the given time instead
-func PostponeContactFires(ctx context.Context, db DBorTx, fires []*ContactFire, fireOn time.Time) error {
-	ids := make([]ContactFireID, len(fires))
-	for i, f := range fires {
-		ids[i] = f.ID
-	}
-
-	if _, err := db.ExecContext(ctx, `UPDATE contacts_contactfire SET fire_on = $2 WHERE id = ANY($1)`, pq.Array(ids), fireOn); err != nil {
-		return fmt.Errorf("error postponing contact fires: %w", err)
-	}
-	return nil
-}
-
 // DeleteSessionFires deletes session wait/timeout fires for the given contacts
 func DeleteSessionFires(ctx context.Context, db DBorTx, contactIDs []ContactID, incSessionExpiration bool) (int, error) {
 	types := []ContactFireType{ContactFireTypeWaitTimeout, ContactFireTypeWaitExpiration}

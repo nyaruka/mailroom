@@ -47,6 +47,10 @@ func ProcessSync(ctx context.Context, rt *runtime.Runtime, channel *models.Andro
 		return nil, fmt.Errorf("error resolving messages to update: %w", err)
 	}
 
+	// a suspended workspace's relayer still reports on itself, but its incoming messages and calls aren't acked so the
+	// device holds onto them, and it isn't given anything to send
+	suspended := oa.Org().IsSuspended()
+
 	resp := make([]any, 0, len(cmds))
 	batch := &StatusBatch{}
 	seenCalls := make(map[string]bool, len(cmds))
@@ -69,6 +73,9 @@ func ProcessSync(ctx context.Context, rt *runtime.Runtime, channel *models.Andro
 		// any command carrying a message id is about that message, whatever else it says
 		case c.MsgID != 0:
 			handled = batch.Add(refs[c.MessageID()], c.Cmd, c.Timestamp())
+
+		case (c.Cmd == "mo_sms" || c.Cmd == "call") && suspended:
+			// not handled so not acked
 
 		case c.Cmd == "mo_sms":
 			handled = true
@@ -152,11 +159,13 @@ func ProcessSync(ctx context.Context, rt *runtime.Runtime, channel *models.Andro
 		return nil, loopErr
 	}
 
-	outbox, err := buildOutboxCommands(ctx, rt, channel.ID, outboxExclude)
-	if err != nil {
-		return nil, err
+	if !suspended {
+		outbox, err := buildOutboxCommands(ctx, rt, channel.ID, outboxExclude)
+		if err != nil {
+			return nil, err
+		}
+		resp = append(resp, outbox...)
 	}
-	resp = append(resp, outbox...)
 
 	if syncEvent != nil {
 		// acks aren't work we did for the device, so they don't count as commands we sent it

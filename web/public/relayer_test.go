@@ -504,12 +504,17 @@ func TestRelayerSyncSuspended(t *testing.T) {
 
 	testdb.Org1.SetStatus(t, rt, models.OrgStatusSuspended)
 
-	// an incoming message isn't acknowledged, so the relayer holds onto it, and nothing is sent back
-	body := `{"cmds":[{"cmd":"fcm","fcm_id":"FCM123"},{"cmd":"mo_sms","p_id":1,"phone":"+16055741111","msg":"hi","ts":1638000000000}]}`
+	// the device's report of itself is still recorded, but its incoming message and call aren't acknowledged so it holds
+	// onto them, and it isn't sent the queued message
+	body := `{"cmds":[{"cmd":"fcm","fcm_id":"FCM456"},{"cmd":"status","p_src":"BAT","p_sts":"CHA","p_lvl":80,"net":"WIFI","pending":[],"retry":[]},` +
+		`{"cmd":"mo_sms","p_id":1,"phone":"+16055741111","msg":"hi","ts":1638000000000},{"cmd":"call","p_id":2,"phone":"+16055741111","type":"mo_miss","dur":0,"ts":1638000000000}]}`
 	status, resp := relayerSync(t, rt, testdb.AndroidChannel.ID, relayerSecret, body, nil)
 	assert.Equal(t, 200, status)
 	test.AssertEqualJSON(t, []byte(`{"cmds":[]}`), jsonx.MustMarshal(resp), "unexpected response for suspended workspace")
 
+	assertdb.Query(t, rt.DB, `SELECT config->>'FCM_ID' FROM channels_channel WHERE id = $1`, testdb.AndroidChannel.ID).Returns("FCM456")
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM channels_syncevent WHERE channel_id = $1`, testdb.AndroidChannel.ID).Returns(1)
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE direction = 'I'`).Returns(0)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM channels_channelevent`).Returns(0)
 	assertdb.Query(t, rt.DB, `SELECT status FROM msgs_msg WHERE id = $1`, out1.ID).Returns("Q")
 }

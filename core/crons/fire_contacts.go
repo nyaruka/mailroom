@@ -21,10 +21,6 @@ func init() {
 	Register("contact_fires", &FireContactsCron{FetchBatchSize: 5_000, TaskBatchSize: 100, FlowBatchSize: tasks.FlowStartBatchSize})
 }
 
-// fires for suspended workspaces are pushed back by this much rather than fired, so that they still fire if the
-// workspace is reactivated, without being reloaded on every run in the meantime
-const suspendedFireDelay = time.Hour
-
 type FireContactsCron struct {
 	FetchBatchSize int
 	TaskBatchSize  int
@@ -48,7 +44,7 @@ func (c *FireContactsCron) Run(ctx context.Context, rt *runtime.Runtime) (map[st
 			break
 		}
 
-		fires, err = c.postponeSuspended(ctx, rt, fires)
+		fires, err = c.skipSuspended(ctx, rt, fires)
 		if err != nil {
 			return nil, err
 		}
@@ -116,8 +112,8 @@ func (c *FireContactsCron) Run(ctx context.Context, rt *runtime.Runtime) (map[st
 	return res, nil
 }
 
-// postponeSuspended postpones fires for suspended workspaces and returns the remaining fires
-func (c *FireContactsCron) postponeSuspended(ctx context.Context, rt *runtime.Runtime, fires []*models.ContactFire) ([]*models.ContactFire, error) {
+// skipSuspended deletes fires for suspended workspaces without firing them, and returns the remaining fires
+func (c *FireContactsCron) skipSuspended(ctx context.Context, rt *runtime.Runtime, fires []*models.ContactFire) ([]*models.ContactFire, error) {
 	orgIDs := make(map[models.OrgID]bool, 10)
 	for _, f := range fires {
 		orgIDs[f.OrgID] = true
@@ -131,17 +127,17 @@ func (c *FireContactsCron) postponeSuspended(ctx context.Context, rt *runtime.Ru
 		return fires, nil
 	}
 
-	var postpone, remaining []*models.ContactFire
+	var skip, remaining []*models.ContactFire
 	for _, f := range fires {
 		if slices.Contains(suspended, f.OrgID) {
-			postpone = append(postpone, f)
+			skip = append(skip, f)
 		} else {
 			remaining = append(remaining, f)
 		}
 	}
 
-	if err := models.PostponeContactFires(ctx, rt.DB, postpone, time.Now().Add(suspendedFireDelay)); err != nil {
-		return nil, err
+	if _, err := models.DeleteContactFires(ctx, rt.DB, skip); err != nil {
+		return nil, fmt.Errorf("error deleting fires for suspended orgs: %w", err)
 	}
 
 	return remaining, nil

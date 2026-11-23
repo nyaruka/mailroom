@@ -59,27 +59,6 @@ func TestContactFires(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT COUNT(*) FROM contacts_contactfire`).Returns(2)
 }
 
-func TestPostponeContactFires(t *testing.T) {
-	ctx, rt := testsuite.Runtime(t)
-
-	testdb.InsertContactFire(t, rt, testdb.Org1, testdb.Ann, models.ContactFireTypeWaitExpiration, "", time.Now().Add(-5*time.Second), "46aa1e25-9c01-44d7-8223-e43036627505")
-	testdb.InsertContactFire(t, rt, testdb.Org1, testdb.Bob, models.ContactFireTypeWaitExpiration, "", time.Now().Add(-4*time.Second), "531e84a7-d883-40a0-8e7a-b4dde4428ce1")
-
-	fires, err := models.LoadDueContactfires(ctx, rt, 10)
-	require.NoError(t, err)
-	require.Len(t, fires, 2)
-
-	err = models.PostponeContactFires(ctx, rt.DB, fires[:1], time.Now().Add(time.Hour))
-	assert.NoError(t, err)
-
-	assertdb.Query(t, rt.DB, `SELECT contact_id FROM contacts_contactfire WHERE fire_on > NOW() + INTERVAL '59 minutes'`).Returns(int64(testdb.Ann.ID))
-
-	fires, err = models.LoadDueContactfires(ctx, rt, 10)
-	assert.NoError(t, err)
-	assert.Len(t, fires, 1)
-	assert.Equal(t, testdb.Bob.ID, fires[0].ContactID)
-}
-
 func TestSessionContactFires(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
