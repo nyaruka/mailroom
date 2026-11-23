@@ -70,6 +70,14 @@ func (t *StartFlowBatch) Perform(ctx context.Context, rt *runtime.Runtime, oa *m
 		return nil
 	}
 
+	// if the workspace has been suspended since this start was queued, fail it rather than start anyone
+	if oa.Org().IsSuspended() {
+		err := start.SetFailed(ctx, rt.DB)
+		t.RecordComplete(ctx, rt, taskID)
+		publishStartProgress(ctx, rt, oa, start, t.TotalContacts)
+		return err
+	}
+
 	// if we're the first batch of the set to start, mark the start itself as started
 	if t.RecordStarted(ctx, rt) {
 		if err := start.SetStarted(ctx, rt.DB); err != nil {

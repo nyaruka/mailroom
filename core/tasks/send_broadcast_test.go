@@ -11,6 +11,7 @@ import (
 	"github.com/nyaruka/gocommon/i18n"
 	"github.com/nyaruka/gocommon/jsonx"
 	"github.com/nyaruka/gocommon/urns"
+	"github.com/nyaruka/gocommon/uuids"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/core/events"
@@ -344,4 +345,34 @@ func TestSendBroadcastTask(t *testing.T) {
 		"C10003|text:out@" + today:  "120",
 		"O1|msgs/text:out@" + today: "127",
 	})
+}
+
+func TestSendBroadcastTaskSuspended(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	newBroadcast := func() *models.Broadcast {
+		bcast := models.NewBroadcast(testdb.Org1.ID, core.BroadcastTranslations{"eng": {Text: "hi"}}, "eng", false, nil, []models.ContactID{testdb.Ann.ID, testdb.Bob.ID}, nil, "", models.NoExclusions, testdb.Admin.ID)
+		require.NoError(t, models.InsertBroadcast(ctx, rt.DB, bcast))
+		return bcast
+	}
+
+	// a broadcast whose batch was queued before the workspace was suspended
+	bcast1 := newBroadcast()
+	batch := bcast1.CreateBatch([]models.ContactID{testdb.Ann.ID, testdb.Bob.ID}, nil)
+	err := tasks.Queue(ctx, rt, rt.Queues.Batch, testdb.Org1.ID, &tasks.SendBroadcastBatch{BatchTask: tasks.BatchTask{BatchOwnerUUID: uuids.UUID(bcast1.UUID), TotalBatches: 1}, BroadcastBatch: batch}, false)
+	require.NoError(t, err)
+
+	testdb.Org1.SetStatus(t, rt, models.OrgStatusSuspended)
+
+	// and one created after
+	bcast2 := newBroadcast()
+	err = tasks.Queue(ctx, rt, rt.Queues.Batch, testdb.Org1.ID, &tasks.SendBroadcast{Broadcast: bcast2}, false)
+	require.NoError(t, err)
+
+	taskCounts := testsuite.FlushTasks(t, rt)
+	assert.Equal(t, map[string]int{"send_broadcast": 1, "send_broadcast_batch": 1}, taskCounts)
+
+	assertdb.Query(t, rt.DB, `SELECT status FROM msgs_broadcast WHERE id = $1`, bcast1.ID).Returns("F")
+	assertdb.Query(t, rt.DB, `SELECT status FROM msgs_broadcast WHERE id = $1`, bcast2.ID).Returns("F")
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg`).Returns(0)
 }

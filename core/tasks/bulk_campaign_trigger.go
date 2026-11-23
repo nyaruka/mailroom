@@ -63,6 +63,12 @@ func (t *BulkCampaignTrigger) WithAssets() models.Refresh {
 }
 
 func (t *BulkCampaignTrigger) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, taskID TaskID) error {
+	// fires for suspended workspaces are postponed, so this was queued before the suspension
+	if oa.Org().IsSuspended() {
+		slog.Info("skipping campaign trigger for suspended workspace", "point", t.PointID, "contacts", len(t.ContactIDs))
+		return nil
+	}
+
 	p := oa.CampaignPointByID(t.PointID)
 	if p == nil || p.FireVersion != t.FireVersion {
 		slog.Info("skipping campaign trigger for point that no longer exists or has been updated", "point", t.PointID, "fire_version", t.FireVersion)

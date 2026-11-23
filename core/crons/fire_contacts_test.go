@@ -105,6 +105,37 @@ func TestFireContacts(t *testing.T) {
 	assert.Equal(t, map[string]any{"wait_timeouts": 0, "wait_expires": 0, "session_expires": 0, "campaign_points": 0, "ticket_closes": 0}, res)
 }
 
+func TestFireContactsSuspended(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+	vc := rt.VK.Get()
+	defer vc.Close()
+
+	testdb.InsertContactFire(t, rt, testdb.Org1, testdb.Ann, models.ContactFireTypeWaitExpiration, "", time.Now().Add(-time.Second), "f72b48df-5f6d-4e4f-955a-f5fb29ccb97b")
+	testdb.InsertContactFire(t, rt, testdb.Org1, testdb.Dan, models.ContactFireTypeCampaignPoint, fmt.Sprintf("%d:123", testdb.RemindersPoint2.ID), time.Now().Add(-time.Second), "")
+	testdb.InsertContactFire(t, rt, testdb.Org2, testdb.Org2Contact, models.ContactFireTypeWaitTimeout, "", time.Now().Add(-time.Second), "8edf3b3c-0081-4d31-b199-1502b3190eb7")
+
+	testdb.Org1.SetStatus(t, rt, models.OrgStatusSuspended)
+
+	cron := &crons.FireContactsCron{FetchBatchSize: 2, TaskBatchSize: 5, FlowBatchSize: 2}
+	res, err := cron.Run(ctx, rt)
+	assert.NoError(t, err)
+	assert.Equal(t, map[string]any{"wait_timeouts": 1, "wait_expires": 0, "session_expires": 0, "campaign_points": 0, "ticket_closes": 0}, res)
+
+	// only org 2's fire was queued as a task
+	task, err := rt.Queues.Throttled.Pop(ctx, vc)
+	require.NoError(t, err)
+	assert.Equal(t, int(testdb.Org2.ID), task.OwnerID)
+	assert.Equal(t, "bulk_wait_timeout", task.Type)
+
+	task, err = rt.Queues.Throttled.Pop(ctx, vc)
+	assert.NoError(t, err)
+	assert.Nil(t, task)
+
+	// and org 1's fires have been pushed back rather than deleted
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contactfire WHERE org_id = $1 AND fire_on > NOW() + INTERVAL '59 minutes'`, testdb.Org1.ID).Returns(2)
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM contacts_contactfire WHERE org_id = $1`, testdb.Org2.ID).Returns(0)
+}
+
 func TestFireContactsCampaignBatching(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 	vc := rt.VK.Get()

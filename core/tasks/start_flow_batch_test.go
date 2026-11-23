@@ -150,3 +150,24 @@ func TestStartFlowBatchTaskNonPersistedStart(t *testing.T) {
 
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowrun`).Returns(2)
 }
+
+func TestStartFlowBatchTaskSuspended(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	start := models.NewFlowStart(testdb.Org1.ID, models.StartTypeManual, testdb.SingleMessage.ID).
+		WithContactIDs([]models.ContactID{testdb.Ann.ID, testdb.Bob.ID})
+	err := models.InsertFlowStart(ctx, rt.DB, start)
+	require.NoError(t, err)
+
+	// workspace is suspended after the start's batches were queued
+	batch := start.CreateBatch([]models.ContactID{testdb.Ann.ID, testdb.Bob.ID}, 2)
+	err = tasks.Queue(ctx, rt, rt.Queues.Throttled, testdb.Org1.ID, &tasks.StartFlowBatch{BatchTask: tasks.BatchTask{BatchOwnerUUID: start.UUID, TotalBatches: 1}, FlowStartBatch: batch}, false)
+	require.NoError(t, err)
+
+	testdb.Org1.SetStatus(t, rt, models.OrgStatusSuspended)
+
+	testsuite.FlushTasks(t, rt)
+
+	assertdb.Query(t, rt.DB, `SELECT status FROM flows_flowstart WHERE id = $1`, start.ID).Returns("F")
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM flows_flowsession`).Returns(0)
+}

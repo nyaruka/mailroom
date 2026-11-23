@@ -96,6 +96,10 @@ func newIVRHandler(handler ivrHandlerFn, logType svclogs.Type) web.Handler {
 }
 
 func handleIncoming(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, ch *models.Channel, svc ivr.Service, r *http.Request, w http.ResponseWriter) (*models.Call, error) {
+	if oa.Org().IsSuspended() {
+		return nil, svc.WriteRejectResponse(w)
+	}
+
 	// lookup the URN of the caller
 	urn, err := svc.URNForRequest(r)
 	if err != nil {

@@ -57,6 +57,12 @@ func (t *SendBroadcastBatch) Perform(ctx context.Context, rt *runtime.Runtime, o
 		return nil
 	}
 
+	// if the workspace has been suspended since this broadcast was queued, fail it rather than create messages
+	if oa.Org().IsSuspended() {
+		t.RecordComplete(ctx, rt, taskID)
+		return bcast.SetFailed(ctx, rt.DB)
+	}
+
 	// if we're the first batch of the set to start, mark the broadcast itself as started
 	if t.RecordStarted(ctx, rt) {
 		if err := bcast.SetStarted(ctx, rt.DB); err != nil {

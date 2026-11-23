@@ -21,6 +21,10 @@ func init() {
 	Register("contact_fires", &FireContactsCron{FetchBatchSize: 5_000, TaskBatchSize: 100, FlowBatchSize: tasks.FlowStartBatchSize})
 }
 
+// fires for suspended workspaces are pushed back by this much rather than fired, so that they still fire if the
+// workspace is reactivated, without being reloaded on every run in the meantime
+const suspendedFireDelay = time.Hour
+
 type FireContactsCron struct {
 	FetchBatchSize int
 	TaskBatchSize  int
@@ -42,6 +46,11 @@ func (c *FireContactsCron) Run(ctx context.Context, rt *runtime.Runtime) (map[st
 		}
 		if len(fires) == 0 {
 			break
+		}
+
+		fires, err = c.postponeSuspended(ctx, rt, fires)
+		if err != nil {
+			return nil, err
 		}
 
 		// organize fires by the bulk tasks they'll be batched into
@@ -105,6 +114,37 @@ func (c *FireContactsCron) Run(ctx context.Context, rt *runtime.Runtime) (map[st
 		res[k] = v
 	}
 	return res, nil
+}
+
+// postponeSuspended postpones fires for suspended workspaces and returns the remaining fires
+func (c *FireContactsCron) postponeSuspended(ctx context.Context, rt *runtime.Runtime, fires []*models.ContactFire) ([]*models.ContactFire, error) {
+	orgIDs := make(map[models.OrgID]bool, 10)
+	for _, f := range fires {
+		orgIDs[f.OrgID] = true
+	}
+
+	suspended, err := models.GetSuspendedOrgIDs(ctx, rt.DB, slices.Collect(maps.Keys(orgIDs)))
+	if err != nil {
+		return nil, fmt.Errorf("error looking up suspended orgs: %w", err)
+	}
+	if len(suspended) == 0 {
+		return fires, nil
+	}
+
+	var postpone, remaining []*models.ContactFire
+	for _, f := range fires {
+		if slices.Contains(suspended, f.OrgID) {
+			postpone = append(postpone, f)
+		} else {
+			remaining = append(remaining, f)
+		}
+	}
+
+	if err := models.PostponeContactFires(ctx, rt.DB, postpone, time.Now().Add(suspendedFireDelay)); err != nil {
+		return nil, err
+	}
+
+	return remaining, nil
 }
 
 type fireGroup struct {

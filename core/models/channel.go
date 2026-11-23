@@ -163,6 +163,7 @@ type AndroidChannel struct {
 	ID        ChannelID          `json:"id"`
 	UUID      assets.ChannelUUID `json:"uuid"`
 	OrgID     OrgID              `json:"org_id"` // zero if the channel hasn't been claimed
+	OrgStatus OrgStatus          `json:"org_status"`
 	IsActive  bool               `json:"is_active"`
 	Secret    string             `json:"secret"`
 	ClaimCode string             `json:"claim_code"`
@@ -174,8 +175,9 @@ type AndroidChannel struct {
 
 const sqlSelectAndroidChannel = `
 SELECT ROW_TO_JSON(r) FROM (
-    SELECT c.id, c.uuid, c.org_id, c.is_active, c.secret, c.claim_code, c.config, c.last_seen, c.device, c.os
+    SELECT c.id, c.uuid, c.org_id, o.status AS org_status, c.is_active, c.secret, c.claim_code, c.config, c.last_seen, c.device, c.os
       FROM channels_channel c
+ LEFT JOIN orgs_org o ON o.id = c.org_id
      WHERE c.id = $1 AND c.channel_type = 'A'
 ) r;`
 

@@ -132,6 +132,11 @@ func handleRelayerSync(ctx context.Context, rt *runtime.Runtime, r *http.Request
 		return writeSyncError(w, errorIDUnclaimed, "Can't sync unclaimed channel")
 	}
 
+	// a suspended workspace's relayer gets nothing acknowledged or sent, so it keeps its messages and retries later
+	if channel.OrgStatus == models.OrgStatusSuspended {
+		return writeSyncResponse(w, nil)
+	}
+
 	resp, err := android.ProcessSync(ctx, rt, channel, cmds)
 	if err != nil {
 		return err

@@ -494,3 +494,22 @@ func TestRelayerSyncHostilePayload(t *testing.T) {
 	status, _ = relayerSync(t, rt, testdb.AndroidChannel.ID, relayerSecret, `{"cmds":[{"cmd":"fcm","fcm_id":"FCM123"}]}`, nil)
 	assert.Equal(t, 200, status)
 }
+
+func TestRelayerSyncSuspended(t *testing.T) {
+	_, rt := testsuite.Runtime(t)
+	startServer(t, rt)
+	claimAndroidChannel(t, rt)
+
+	out1 := testdb.InsertOutgoingMsg(t, rt, testdb.Org1, "0199bad8-f98d-75a3-b641-2718a25ac3f5", testdb.AndroidChannel, testdb.Ann, "hello", nil, models.MsgStatusQueued, false)
+
+	testdb.Org1.SetStatus(t, rt, models.OrgStatusSuspended)
+
+	// an incoming message isn't acknowledged, so the relayer holds onto it, and nothing is sent back
+	body := `{"cmds":[{"cmd":"fcm","fcm_id":"FCM123"},{"cmd":"mo_sms","p_id":1,"phone":"+16055741111","msg":"hi","ts":1638000000000}]}`
+	status, resp := relayerSync(t, rt, testdb.AndroidChannel.ID, relayerSecret, body, nil)
+	assert.Equal(t, 200, status)
+	test.AssertEqualJSON(t, []byte(`{"cmds":[]}`), jsonx.MustMarshal(resp), "unexpected response for suspended workspace")
+
+	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE direction = 'I'`).Returns(0)
+	assertdb.Query(t, rt.DB, `SELECT status FROM msgs_msg WHERE id = $1`, out1.ID).Returns("Q")
+}
