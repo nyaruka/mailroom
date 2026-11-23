@@ -4,11 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"testing"
-	"time"
 
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/gocommon/jsonx"
-	"github.com/nyaruka/gocommon/uuids"
 	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/test"
 	"github.com/nyaruka/mailroom/v26/core/models"
@@ -121,8 +119,7 @@ func TestFlowStartRunCount(t *testing.T) {
 }
 
 func TestStartsBuilding(t *testing.T) {
-	uuids.SetGenerator(uuids.NewSeededGenerator(12345, time.Now))
-	defer uuids.SetGenerator(uuids.DefaultGenerator)
+	defer test.MockUniverse()()
 
 	start := models.NewFlowStart(testdb.Org1.ID, models.StartTypeManual, testdb.Favorites.ID).
 		WithGroupIDs([]models.GroupID{testdb.DoctorsGroup.ID}).
@@ -155,6 +152,6 @@ func TestStartsBuilding(t *testing.T) {
 		"query": "language != \"\"",
 		"start_id": null,
 		"start_type": "M",
-		"uuid": "72b553cc-c00b-44e6-bb48-4710e784acb8"
+		"uuid": "01969b47-0583-76f8-924e-9de1a11831b3"
 	}`, testdb.Ann.ID, testdb.Bob.ID, testdb.TestersGroup.ID, testdb.Favorites.ID, testdb.DoctorsGroup.ID), marshalled)
 }

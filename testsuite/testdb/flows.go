@@ -83,7 +83,7 @@ func InsertFlowStart(t *testing.T, rt *runtime.Runtime, org *Org, user *User, fl
 	var id models.StartID
 	err := rt.DB.Get(&id,
 		`INSERT INTO flows_flowstart(uuid, org_id, flow_id, start_type, exclusions, created_on, modified_on, contact_count, status, created_by_id)
-		 VALUES($1, $2, $3, 'M', '{}', NOW(), NOW(), 2, 'P', $4) RETURNING id`, uuids.NewV4(), org.ID, flow.ID, user.ID,
+		 VALUES($1, $2, $3, 'M', '{}', NOW(), NOW(), 2, 'P', $4) RETURNING id`, uuids.NewV7(), org.ID, flow.ID, user.ID,
 	)
 	require.NoError(t, err)
 
