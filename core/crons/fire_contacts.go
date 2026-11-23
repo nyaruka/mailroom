@@ -114,30 +114,19 @@ func (c *FireContactsCron) Run(ctx context.Context, rt *runtime.Runtime) (map[st
 
 // skipSuspended deletes fires for suspended workspaces without firing them, and returns the remaining fires
 func (c *FireContactsCron) skipSuspended(ctx context.Context, rt *runtime.Runtime, fires []*models.ContactFire) ([]*models.ContactFire, error) {
-	orgIDs := make(map[models.OrgID]bool, 10)
-	for _, f := range fires {
-		orgIDs[f.OrgID] = true
-	}
-
-	suspended, err := models.GetSuspendedOrgIDs(ctx, rt.DB, slices.Collect(maps.Keys(orgIDs)))
-	if err != nil {
-		return nil, fmt.Errorf("error looking up suspended orgs: %w", err)
-	}
-	if len(suspended) == 0 {
-		return fires, nil
-	}
-
 	var skip, remaining []*models.ContactFire
 	for _, f := range fires {
-		if slices.Contains(suspended, f.OrgID) {
+		if f.OrgSuspended {
 			skip = append(skip, f)
 		} else {
 			remaining = append(remaining, f)
 		}
 	}
 
-	if _, err := models.DeleteContactFires(ctx, rt.DB, skip); err != nil {
-		return nil, fmt.Errorf("error deleting fires for suspended orgs: %w", err)
+	if len(skip) > 0 {
+		if _, err := models.DeleteContactFires(ctx, rt.DB, skip); err != nil {
+			return nil, fmt.Errorf("error deleting fires for suspended orgs: %w", err)
+		}
 	}
 
 	return remaining, nil

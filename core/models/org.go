@@ -453,23 +453,6 @@ func GetActiveOrgIDs(ctx context.Context, db Queryer) ([]OrgID, error) {
 	return ids, nil
 }
 
-const sqlSelectSuspendedOrgIDs = `SELECT id FROM orgs_org WHERE id = ANY($1) AND status = 'S' ORDER BY id`
-
-// GetSuspendedOrgIDs returns which of the given orgs are suspended
-func GetSuspendedOrgIDs(ctx context.Context, db Queryer, orgIDs []OrgID) ([]OrgID, error) {
-	rows, err := db.QueryContext(ctx, sqlSelectSuspendedOrgIDs, pq.Array(orgIDs))
-	if err != nil {
-		return nil, fmt.Errorf("error querying suspended org IDs: %w", err)
-	}
-	defer rows.Close()
-
-	ids, err := dbutil.ScanAllSlice(rows, make([]OrgID, 0, 10))
-	if err != nil {
-		return nil, fmt.Errorf("error scanning suspended org IDs: %w", err)
-	}
-	return ids, nil
-}
-
 const sqlSelectOutboxCounts = `
   SELECT org_id, SUM(count) 
     FROM orgs_itemcount 

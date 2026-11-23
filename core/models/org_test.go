@@ -266,17 +266,3 @@ func TestGetOutboxCounts(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, map[models.OrgID]int{testdb.Org1.ID: 4, testdb.Org2.ID: 2}, counts)
 }
-
-func TestGetSuspendedOrgIDs(t *testing.T) {
-	ctx, rt := testsuite.Runtime(t)
-
-	testdb.Org2.SetStatus(t, rt, models.OrgStatusSuspended)
-
-	ids, err := models.GetSuspendedOrgIDs(ctx, rt.DB, []models.OrgID{testdb.Org1.ID, testdb.Org2.ID, 345})
-	assert.NoError(t, err)
-	assert.Equal(t, []models.OrgID{testdb.Org2.ID}, ids)
-
-	ids, err = models.GetSuspendedOrgIDs(ctx, rt.DB, []models.OrgID{testdb.Org1.ID})
-	assert.NoError(t, err)
-	assert.Empty(t, ids)
-}
