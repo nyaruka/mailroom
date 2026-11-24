@@ -293,7 +293,7 @@ func TestRelayerSyncOutbox(t *testing.T) {
 	rt.Dynamo.Main.Flush()
 	items := dyntest.ScanAll(t, rt.Dynamo.Main.Client(), rt.Dynamo.Main.Table())
 	require.Len(t, items, 1)
-	assert.Equal(t, "chs#"+string(testdb.AndroidChannel.UUID), items[0].PK)
+	assert.Equal(t, "cha#"+string(testdb.AndroidChannel.UUID), items[0].PK)
 	assert.True(t, strings.HasPrefix(items[0].SK, "syn#"))
 	assert.Equal(t, int(testdb.Org1.ID), items[0].OrgID)
 	assert.Equal(t, "BAT", items[0].Data["power_source"])
