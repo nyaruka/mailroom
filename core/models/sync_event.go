@@ -58,13 +58,13 @@ type SyncEvent struct {
 const sqlInsertSyncEvent = `
 INSERT INTO channels_syncevent(channel_id, power_source, power_status, power_level, network_type, pending_message_count,
                                retry_message_count, incoming_command_count, outgoing_command_count, created_on)
-     VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
+     VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
   RETURNING id`
 
 // Insert writes this sync event, filling in its id.
 func (e *SyncEvent) Insert(ctx context.Context, db DBorTx) error {
 	err := db.GetContext(ctx, &e.ID, sqlInsertSyncEvent, e.ChannelID, e.PowerSource, e.PowerStatus, e.PowerLevel,
-		e.NetworkType, e.PendingMessageCount, e.RetryMessageCount, e.IncomingCommandCount, e.OutgoingCommandCount)
+		e.NetworkType, e.PendingMessageCount, e.RetryMessageCount, e.IncomingCommandCount, e.OutgoingCommandCount, e.SyncedOn)
 	if err != nil {
 		return fmt.Errorf("error inserting sync event: %w", err)
 	}
@@ -87,7 +87,7 @@ func (e *SyncEvent) UpdateOutgoingCommandCount(ctx context.Context, db DBorTx, c
 const sqlUpdateAndroidSyncState = `
 UPDATE channels_channel
    SET sync_state = COALESCE(sync_state, '{}') || jsonb_build_object('android', jsonb_build_object(
-           'synced_on', NOW(),
+           'synced_on', $10::timestamptz,
            'power_source', $2::text,
            'power_status', $3::text,
            'power_level', $4::int,
@@ -102,7 +102,7 @@ UPDATE channels_channel
 // UpdateChannelSyncState records this sync as its channel's latest Android sync.
 func (e *SyncEvent) UpdateChannelSyncState(ctx context.Context, db DBorTx) error {
 	_, err := db.ExecContext(ctx, sqlUpdateAndroidSyncState, e.ChannelID, e.PowerSource, e.PowerStatus, e.PowerLevel,
-		e.NetworkType, e.PendingMessageCount, e.RetryMessageCount, e.IncomingCommandCount, e.OutgoingCommandCount)
+		e.NetworkType, e.PendingMessageCount, e.RetryMessageCount, e.IncomingCommandCount, e.OutgoingCommandCount, e.SyncedOn)
 	if err != nil {
 		return fmt.Errorf("error updating channel android sync state: %w", err)
 	}
