@@ -163,6 +163,10 @@ func ProcessSync(ctx context.Context, rt *runtime.Runtime, channel *models.Andro
 		if err := syncEvent.UpdateOutgoingCommandCount(ctx, rt.DB, len(resp)-countAcks(resp)); err != nil {
 			return nil, err
 		}
+		// only bookkeeping, so failing here would make the device resend everything just for a status display
+		if err := syncEvent.UpdateChannelSyncState(ctx, rt.DB); err != nil {
+			slog.Error("error updating channel sync state", "channel_id", channel.ID, "error", err)
+		}
 	}
 
 	return resp, nil
