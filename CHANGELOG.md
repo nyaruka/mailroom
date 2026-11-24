@@ -1,3 +1,7 @@
+## v26.3.163 (2026-11-24)
+ * Stop writing Android syncs as SyncEvent rows (#1424)
+ * Interrupt IVR sessions when the contact hangs up mid-flow (#1426)
+
 ## v26.3.162 (2026-11-24)
  * Add templates services to sync channel templates from their providers
 
