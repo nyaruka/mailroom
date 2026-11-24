@@ -24,9 +24,6 @@ const (
 	// the same key as temba's own template sync, so that the two never sync a channel at the same time
 	syncLockKey = "refresh_channel_templates_%d"
 	syncLockTTL = 10 * time.Minute
-
-	// how many syncs in a row have to fail before we open an incident
-	failuresForIncident = 5
 )
 
 // ErrSyncInProgress is returned when another sync of the channel's templates is already running
@@ -42,7 +39,7 @@ func (e *FetchError) Unwrap() error { return e.err }
 
 // SyncChannel fetches the given channel's templates from its provider and updates its translations to match,
 // returning how many translations it has.
-func SyncChannel(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, channel *models.Channel) (int, error) {
+func SyncChannel(ctx context.Context, rt *runtime.Runtime, channel *models.Channel) (int, error) {
 	svc, err := GetService(rt.Config, rt.HTTP.Services, channel)
 	if err != nil {
 		return 0, err
@@ -75,7 +72,8 @@ func SyncChannel(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 
 	if fetchErr != nil {
 		// the fetch may have failed because our context is done, but we still want to record that
-		if err := recordFailure(context.WithoutCancel(ctx), rt, oa, channel); err != nil {
+		recordCtx := context.WithoutCancel(ctx)
+		if err := models.UpdateChannelTemplatesSyncState(recordCtx, rt.DB, channel.ID(), dates.Now(), true); err != nil {
 			return 0, err
 		}
 		return 0, &FetchError{fetchErr}
@@ -87,24 +85,6 @@ func SyncChannel(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets,
 	}
 
 	return numTranslations, nil
-}
-
-func recordFailure(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, channel *models.Channel) error {
-	failures, err := models.UpdateChannelTemplatesSyncState(ctx, rt.DB, channel.ID(), dates.Now(), false)
-	if err != nil {
-		return err
-	}
-
-	if failures >= failuresForIncident {
-		_, notifications, err := models.IncidentChannelTemplatesFailed(ctx, rt.DB, oa, channel.ID())
-		if err != nil {
-			return fmt.Errorf("error creating templates failed incident: %w", err)
-		}
-		if err := models.PublishNotifications(ctx, rt, oa, notifications); err != nil {
-			return fmt.Errorf("error publishing incident notifications: %w", err)
-		}
-	}
-	return nil
 }
 
 func recordSuccess(ctx context.Context, rt *runtime.Runtime, channel *models.Channel, trs []*Translation) (int, error) {
@@ -119,11 +99,7 @@ func recordSuccess(ctx context.Context, rt *runtime.Runtime, channel *models.Cha
 		return 0, err
 	}
 
-	if _, err := models.UpdateChannelTemplatesSyncState(ctx, tx, channel.ID(), dates.Now(), true); err != nil {
-		return 0, err
-	}
-
-	if err := models.EndChannelTemplatesFailedIncidents(ctx, tx, channel.ID()); err != nil {
+	if err := models.UpdateChannelTemplatesSyncState(ctx, tx, channel.ID(), dates.Now(), false); err != nil {
 		return 0, err
 	}
 

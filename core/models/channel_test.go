@@ -248,23 +248,18 @@ func TestUpdateChannelTemplatesSyncState(t *testing.T) {
 	rt.DB.MustExec(`ALTER TABLE channels_channel ALTER COLUMN sync_state DROP NOT NULL`)
 	rt.DB.MustExec(`UPDATE channels_channel SET sync_state = NULL WHERE id = $1`, testdb.FacebookChannel.ID)
 
-	failures, err := models.UpdateChannelTemplatesSyncState(ctx, rt.DB, testdb.FacebookChannel.ID, syncedOn, false)
+	err := models.UpdateChannelTemplatesSyncState(ctx, rt.DB, testdb.FacebookChannel.ID, syncedOn, true)
 	assert.NoError(t, err)
-	assert.Equal(t, 1, failures)
-
-	failures, err = models.UpdateChannelTemplatesSyncState(ctx, rt.DB, testdb.FacebookChannel.ID, syncedOn, false)
-	assert.NoError(t, err)
-	assert.Equal(t, 2, failures)
 
 	assertdb.Query(t, rt.DB, `SELECT (sync_state->'templates'->>'synced_on')::timestamptz FROM channels_channel WHERE id = $1`, testdb.FacebookChannel.ID).Returns(syncedOn)
+	assertdb.Query(t, rt.DB, `SELECT sync_state->'templates'->>'failed' FROM channels_channel WHERE id = $1`, testdb.FacebookChannel.ID).Returns("true")
 
 	// other kinds of sync state are left alone
 	rt.DB.MustExec(`UPDATE channels_channel SET sync_state = sync_state || '{"android": {"power_level": 50}}' WHERE id = $1`, testdb.FacebookChannel.ID)
 
-	failures, err = models.UpdateChannelTemplatesSyncState(ctx, rt.DB, testdb.FacebookChannel.ID, syncedOn, true)
+	err = models.UpdateChannelTemplatesSyncState(ctx, rt.DB, testdb.FacebookChannel.ID, syncedOn, false)
 	assert.NoError(t, err)
-	assert.Equal(t, 0, failures)
 
-	assertdb.Query(t, rt.DB, `SELECT (sync_state->'templates'->>'failures')::int FROM channels_channel WHERE id = $1`, testdb.FacebookChannel.ID).Returns(0)
+	assertdb.Query(t, rt.DB, `SELECT sync_state->'templates'->>'failed' FROM channels_channel WHERE id = $1`, testdb.FacebookChannel.ID).Returns("false")
 	assertdb.Query(t, rt.DB, `SELECT sync_state->'android'->>'power_level' FROM channels_channel WHERE id = $1`, testdb.FacebookChannel.ID).Returns("50")
 }

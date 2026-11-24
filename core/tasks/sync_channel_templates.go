@@ -44,7 +44,7 @@ func (t *SyncChannelTemplates) Perform(ctx context.Context, rt *runtime.Runtime,
 		return nil
 	}
 
-	_, err := templates.SyncChannel(ctx, rt, oa, channel)
+	_, err := templates.SyncChannel(ctx, rt, channel)
 
 	// a failed fetch is recorded on the channel, and a sync already in progress covers this one
 	var fetchErr *templates.FetchError

@@ -62,7 +62,7 @@ func handleSyncTemplates(ctx context.Context, rt *runtime.Runtime, r *syncTempla
 	ctx, cancel := context.WithTimeout(ctx, SyncTemplatesTimeout)
 	defer cancel()
 
-	num, err := templates.SyncChannel(ctx, rt, oa, channel)
+	num, err := templates.SyncChannel(ctx, rt, channel)
 	if err != nil {
 		var fetchErr *templates.FetchError
 		if errors.As(err, &fetchErr) {

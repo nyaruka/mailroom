@@ -39,8 +39,8 @@
         },
         "db_assertions": [
             {
-                "query": "SELECT (sync_state->'templates'->>'failures')::int FROM channels_channel WHERE id = 30000",
-                "returns": 1
+                "query": "SELECT sync_state->'templates'->>'failed' FROM channels_channel WHERE id = 30000",
+                "returns": "true"
             }
         ]
     },
@@ -62,8 +62,8 @@
                 "returns": 2
             },
             {
-                "query": "SELECT (sync_state->'templates'->>'failures')::int FROM channels_channel WHERE id = 30000",
-                "returns": 0
+                "query": "SELECT sync_state->'templates'->>'failed' FROM channels_channel WHERE id = 30000",
+                "returns": "false"
             }
         ]
     }

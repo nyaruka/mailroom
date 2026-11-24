@@ -135,32 +135,3 @@ func TestWebhookNode(t *testing.T) {
 	assert.NoError(t, err)
 	assert.False(t, healthy)
 }
-
-func TestIncidentChannelTemplatesFailed(t *testing.T) {
-	ctx, rt := testsuite.Runtime(t)
-
-	oa := testdb.Org1.Load(t, rt)
-
-	id1, notifications, err := models.IncidentChannelTemplatesFailed(ctx, rt.DB, oa, testdb.FacebookChannel.ID)
-	require.NoError(t, err)
-	assert.NotZero(t, id1)
-	assert.NotEmpty(t, notifications)
-
-	// calling again returns the same open incident without notifying again
-	id2, notifications, err := models.IncidentChannelTemplatesFailed(ctx, rt.DB, oa, testdb.FacebookChannel.ID)
-	require.NoError(t, err)
-	assert.Equal(t, id1, id2)
-	assert.Len(t, notifications, 0)
-
-	assertdb.Query(t, rt.DB, `SELECT incident_type, scope, channel_id FROM notifications_incident WHERE id = $1`, id1).
-		Columns(map[string]any{"incident_type": "channel:templates_failed", "scope": fmt.Sprint(testdb.FacebookChannel.ID), "channel_id": int64(testdb.FacebookChannel.ID)})
-
-	// ending only ends incidents of that type on that channel
-	_, _, err = models.IncidentChannelOutdatedApp(ctx, rt.DB, oa, testdb.FacebookChannel.ID)
-	require.NoError(t, err)
-
-	err = models.EndChannelTemplatesFailedIncidents(ctx, rt.DB, testdb.FacebookChannel.ID)
-	require.NoError(t, err)
-
-	assertdb.Query(t, rt.DB, `SELECT incident_type FROM notifications_incident WHERE ended_on IS NULL`).Returns("channel:outdated_app")
-}

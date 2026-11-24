@@ -90,7 +90,7 @@ func TestSyncChannel(t *testing.T) {
 	}
 	resetModifiedOn()
 
-	num, err := templates.SyncChannel(ctx, rt, oa, channel)
+	num, err := templates.SyncChannel(ctx, rt, channel)
 	assert.NoError(t, err)
 	assert.Equal(t, 4, num)
 
@@ -100,7 +100,7 @@ func TestSyncChannel(t *testing.T) {
 	assertModified("revive_issue,welcome")
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM templates_template t JOIN orgs_org o ON o.id = t.org_id
 		WHERE t.name = 'welcome' AND NOT t.is_system AND t.created_by_id = o.created_by_id AND t.modified_by_id = o.created_by_id`).Returns(1)
-	assertdb.Query(t, rt.DB, `SELECT (sync_state->'templates'->>'failures')::int FROM channels_channel WHERE id = $1`, ch.ID).Returns(0)
+	assertdb.Query(t, rt.DB, `SELECT sync_state->'templates'->>'failed' FROM channels_channel WHERE id = $1`, ch.ID).Returns("false")
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM channels_channel WHERE id = $1 AND (sync_state->'templates'->>'synced_on')::timestamptz > NOW() - INTERVAL '1 minute'`, ch.ID).Returns(1)
 
 	// the sync is logged to the channel
@@ -110,7 +110,7 @@ func TestSyncChannel(t *testing.T) {
 	// syncing the same again changes nothing
 	resetModifiedOn()
 
-	num, err = templates.SyncChannel(ctx, rt, oa, channel)
+	num, err = templates.SyncChannel(ctx, rt, channel)
 	assert.NoError(t, err)
 	assert.Equal(t, 4, num)
 	assertTranslations("revive_issue:eng-US:true:false,revive_issue:spa:false:false,welcome:eng:true:true,welcome:fra:false:false")
@@ -124,7 +124,7 @@ func TestSyncChannel(t *testing.T) {
 	}
 	resetModifiedOn()
 
-	num, err = templates.SyncChannel(ctx, rt, oa, channel)
+	num, err = templates.SyncChannel(ctx, rt, channel)
 	assert.NoError(t, err)
 	assert.Equal(t, 3, num)
 	assertTranslations("revive_issue:eng-US:true:false,revive_issue:spa:true:false,welcome:fra:true:true")
@@ -137,49 +137,34 @@ func TestSyncChannel(t *testing.T) {
 	svc.translations = []*templates.Translation{newTranslation("revive_issue", "eng-US", 2)}
 	resetModifiedOn()
 
-	num, err = templates.SyncChannel(ctx, rt, oa, channel)
+	num, err = templates.SyncChannel(ctx, rt, channel)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, num)
 	assertTranslations("revive_issue:eng-US:true:false")
 	assertModified("revive_issue,welcome")
 	assertdb.Query(t, rt.DB, `SELECT base_translation_id FROM templates_template WHERE name = 'welcome'`).Returns(nil)
 
-	// fetching fails 4 times...
+	// a failed fetch leaves existing translations alone and is recorded on the channel
 	svc.err = errors.New("boom")
-	for range 4 {
-		_, err = templates.SyncChannel(ctx, rt, oa, channel)
-		assert.EqualError(t, err, "error fetching templates: boom")
-	}
-
-	// existing translations are left alone, and there's no incident yet
-	assertTranslations("revive_issue:eng-US:true:false")
-	assertdb.Query(t, rt.DB, `SELECT (sync_state->'templates'->>'failures')::int FROM channels_channel WHERE id = $1`, ch.ID).Returns(4)
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM notifications_incident WHERE incident_type = 'channel:templates_failed'`).Returns(0)
-
-	// a 5th failure creates an incident
-	_, err = templates.SyncChannel(ctx, rt, oa, channel)
+	_, err = templates.SyncChannel(ctx, rt, channel)
 	assert.EqualError(t, err, "error fetching templates: boom")
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM notifications_incident WHERE incident_type = 'channel:templates_failed' AND channel_id = $1 AND scope = $2 AND ended_on IS NULL`, ch.ID, fmt.Sprint(ch.ID)).Returns(1)
 
-	// and a 6th doesn't create another
-	_, err = templates.SyncChannel(ctx, rt, oa, channel)
-	assert.Error(t, err)
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM notifications_incident WHERE incident_type = 'channel:templates_failed'`).Returns(1)
+	assertTranslations("revive_issue:eng-US:true:false")
+	assertdb.Query(t, rt.DB, `SELECT sync_state->'templates'->>'failed' FROM channels_channel WHERE id = $1`, ch.ID).Returns("true")
 
 	// failures are logged to the channel too
 	rt.Dynamo.Main.Flush()
-	dyntest.AssertCount(t, rt.Dynamo.Main.Client(), rt.Dynamo.Main.Table(), 10)
+	dyntest.AssertCount(t, rt.Dynamo.Main.Client(), rt.Dynamo.Main.Table(), 5)
 
-	// a success resets the count and ends the incident
+	// and the next success clears it
 	svc.err = nil
-	_, err = templates.SyncChannel(ctx, rt, oa, channel)
+	_, err = templates.SyncChannel(ctx, rt, channel)
 	assert.NoError(t, err)
-	assertdb.Query(t, rt.DB, `SELECT (sync_state->'templates'->>'failures')::int FROM channels_channel WHERE id = $1`, ch.ID).Returns(0)
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM notifications_incident WHERE incident_type = 'channel:templates_failed' AND ended_on IS NULL`).Returns(0)
+	assertdb.Query(t, rt.DB, `SELECT sync_state->'templates'->>'failed' FROM channels_channel WHERE id = $1`, ch.ID).Returns("false")
 
 	// state of other syncs is left alone
 	rt.DB.MustExec(`UPDATE channels_channel SET sync_state = sync_state || '{"android": {"power_level": 50}}' WHERE id = $1`, ch.ID)
-	_, err = templates.SyncChannel(ctx, rt, oa, channel)
+	_, err = templates.SyncChannel(ctx, rt, channel)
 	assert.NoError(t, err)
 	assertdb.Query(t, rt.DB, `SELECT sync_state->'android'->>'power_level' FROM channels_channel WHERE id = $1`, ch.ID).Returns("50")
 
@@ -188,12 +173,12 @@ func TestSyncChannel(t *testing.T) {
 	lock, err := locker.Grab(ctx, rt.VK, 0)
 	require.NoError(t, err)
 
-	_, err = templates.SyncChannel(ctx, rt, oa, channel)
+	_, err = templates.SyncChannel(ctx, rt, channel)
 	assert.ErrorIs(t, err, templates.ErrSyncInProgress)
 
 	locker.Release(ctx, rt.VK, lock)
 
 	// channel type without a service
-	_, err = templates.SyncChannel(ctx, rt, oa, oa.ChannelByID(testdb.TwilioChannel.ID))
+	_, err = templates.SyncChannel(ctx, rt, oa.ChannelByID(testdb.TwilioChannel.ID))
 	assert.EqualError(t, err, "no registered templates service for channel type: T")
 }

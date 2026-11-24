@@ -32,7 +32,7 @@ func TestSyncChannelTemplates(t *testing.T) {
 	testsuite.QueueBatchTask(t, rt, testdb.Org1, &tasks.SyncChannelTemplates{ChannelID: ch.ID})
 	testsuite.FlushTasks(t, rt)
 
-	assertdb.Query(t, rt.DB, `SELECT (sync_state->'templates'->>'failures')::int FROM channels_channel WHERE id = $1`, ch.ID).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT sync_state->'templates'->>'failed' FROM channels_channel WHERE id = $1`, ch.ID).Returns("true")
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM templates_templatetranslation WHERE channel_id = $1`, ch.ID).Returns(1)
 
 	// channels without templates are ignored
