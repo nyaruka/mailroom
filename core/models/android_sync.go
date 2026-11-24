@@ -52,7 +52,7 @@ type AndroidSync struct {
 const sqlUpdateAndroidSyncState = `
 UPDATE channels_channel
    SET sync_state = COALESCE(sync_state, '{}') || jsonb_build_object('android', jsonb_build_object(
-           'synced_on', NOW(),
+           'synced_on', $10::timestamptz,
            'power_source', $2::text,
            'power_status', $3::text,
            'power_level', $4::int,
@@ -67,7 +67,7 @@ UPDATE channels_channel
 // UpdateChannelSyncState records this sync as its channel's latest Android sync.
 func (s *AndroidSync) UpdateChannelSyncState(ctx context.Context, db DBorTx) error {
 	_, err := db.ExecContext(ctx, sqlUpdateAndroidSyncState, s.ChannelID, s.PowerSource, s.PowerStatus, s.PowerLevel,
-		s.NetworkType, s.PendingMessageCount, s.RetryMessageCount, s.IncomingCommandCount, s.OutgoingCommandCount)
+		s.NetworkType, s.PendingMessageCount, s.RetryMessageCount, s.IncomingCommandCount, s.OutgoingCommandCount, s.SyncedOn)
 	if err != nil {
 		return fmt.Errorf("error updating channel android sync state: %w", err)
 	}

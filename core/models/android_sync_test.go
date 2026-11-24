@@ -16,8 +16,10 @@ import (
 func TestAndroidSyncState(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
+	syncedOn := time.Date(2026, 11, 24, 12, 30, 0, 0, time.UTC)
 	s := &models.AndroidSync{
 		ChannelID:            testdb.AndroidChannel.ID,
+		SyncedOn:             syncedOn,
 		PowerSource:          models.SyncSourceBattery,
 		PowerStatus:          models.SyncStatusDischarging,
 		PowerLevel:           64,
@@ -36,7 +38,7 @@ func TestAndroidSyncState(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT (sync_state->'templates')::text FROM channels_channel WHERE id = $1`, testdb.AndroidChannel.ID).Returns(`{"failures": 2}`)
 	assertdb.Query(t, rt.DB, `SELECT ((sync_state->'android') - 'synced_on')::text FROM channels_channel WHERE id = $1`, testdb.AndroidChannel.ID).
 		Returns(`{"power_level": 64, "network_type": "WIFI", "power_source": "BAT", "power_status": "DIS", "retry_message_count": 1, "pending_message_count": 3, "incoming_command_count": 5, "outgoing_command_count": 7}`)
-	assertdb.Query(t, rt.DB, `SELECT count(*) FROM channels_channel WHERE id = $1 AND (sync_state->'android'->>'synced_on')::timestamptz > NOW() - INTERVAL '1 minute'`, testdb.AndroidChannel.ID).Returns(1)
+	assertdb.Query(t, rt.DB, `SELECT (sync_state->'android'->>'synced_on')::timestamptz FROM channels_channel WHERE id = $1`, testdb.AndroidChannel.ID).Returns(syncedOn)
 
 	// a later sync replaces it
 	s.PowerLevel = 50
