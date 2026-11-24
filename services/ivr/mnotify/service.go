@@ -44,16 +44,21 @@ const (
 	// how long the actions of a sprint that are still to be sent stay queued
 	queueTTL = 60 * 60
 
-	// callback parameters
-	paramCallerID     = "CallerId"
-	paramExtension    = "Extension"
-	paramSequenceID   = "SequenceID"
-	paramIsStarting   = "IsStarting"
-	paramDTMF         = "DTMF"
+	// callback parameters, which are matched ignoring case and underscores as the provider isn't consistent in how
+	// it writes them, e.g. CallerId, callerId and caller_id
+	paramCallerID     = "callerid"
+	paramExtension    = "extension"
+	paramSequenceID   = "sequenceid"
+	paramIsStarting   = "isstarting"
+	paramDTMF         = "dtmf"
 	paramAction       = "action"
 	paramContext      = "context"
-	paramRecordingURL = "recordingUrl"
+	paramRecordingURL = "recordingurl"
 	paramToken        = "token"
+
+	// the tracking id we gave when starting a call. Whether callbacks carry it isn't in the provider's published
+	// reference.
+	paramUniqueID = "uniqueid"
 
 	// the outcome of a call that has ended. These aren't in the provider's published reference, so are assumptions
 	// until we've seen real callbacks.
@@ -69,9 +74,20 @@ const (
 	contextOutgoing = "outgoing"
 )
 
-// the tracking id we gave when starting a call. Whether callbacks carry it, and under what name, isn't in the
-// provider's published reference either.
-var paramsUniqueID = []string{"uniqueId", "uniqueid", "UniqueId"}
+// params are the parameters of a callback, keyed by name without case or underscores
+type params map[string]string
+
+func requestParams(r *http.Request) params {
+	ps := make(params)
+	for name, values := range r.URL.Query() {
+		if len(values) > 0 {
+			ps[strings.ToLower(strings.ReplaceAll(name, "_", ""))] = values[0]
+		}
+	}
+	return ps
+}
+
+func (p params) Get(name string) string { return p[name] }
 
 type service struct {
 	httpClient *http.Client
@@ -147,10 +163,14 @@ func (s *service) HangupCall(externalID string) (*httpx.Trace, error) {
 
 // CallbackAction implements ivr.CallbackRouter
 func (s *service) CallbackAction(r *http.Request) string {
-	q := r.URL.Query()
+	q := requestParams(r)
 
 	if q.Get(paramDisposition) != "" || q.Get(paramAction) == actionHangup {
 		return ivr.ActionStatus
+	}
+	if q.Get(paramDTMF) != "" {
+		// digits are an answer to something we asked for, whatever else the callback says
+		return ivr.ActionResume
 	}
 	if isTrue(q.Get(paramIsStarting)) {
 		// the context of a call we started is one we chose, that of any other call is set on the provider side
@@ -171,18 +191,12 @@ func (s *service) CallbackAction(r *http.Request) string {
 
 // CallUUIDForRequest implements ivr.CallbackRouter
 func (s *service) CallUUIDForRequest(r *http.Request) core.CallUUID {
-	q := r.URL.Query()
-	for _, p := range paramsUniqueID {
-		if v := q.Get(p); v != "" {
-			return core.CallUUID(v)
-		}
-	}
-	return ""
+	return core.CallUUID(requestParams(r).Get(paramUniqueID))
 }
 
 // StatusForRequest implements ivr.Service
 func (s *service) StatusForRequest(r *http.Request) (models.CallStatus, models.CallError, int) {
-	q := r.URL.Query()
+	q := requestParams(r)
 	duration, _ := strconv.Atoi(q.Get(paramDuration))
 
 	switch strings.ToUpper(strings.TrimSpace(q.Get(paramDisposition))) {
@@ -207,12 +221,16 @@ func (s *service) StatusForRequest(r *http.Request) (models.CallStatus, models.C
 
 // ResumeForRequest implements ivr.Service
 func (s *service) ResumeForRequest(r *http.Request) (ivr.Resume, error) {
-	q := r.URL.Query()
+	q := requestParams(r)
+
+	if q.Get(paramDTMF) != "" {
+		return ivr.InputResume{Input: q.Get(paramDTMF)}, nil
+	}
 
 	switch q.Get(paramAction) {
 	case actionGetDigits, actionBackground:
 		// no digits is a timeout, which is an empty input
-		return ivr.InputResume{Input: q.Get(paramDTMF)}, nil
+		return ivr.InputResume{}, nil
 
 	case actionRecord:
 		recordingURL := q.Get(paramRecordingURL)
@@ -234,7 +252,7 @@ func (s *service) CheckStartRequest(r *http.Request) models.CallError {
 // PreprocessResume implements ivr.Service. If this callback is the end of a playback, then there are more actions
 // from the last sprint queued and the next one is our response rather than anything from the flow.
 func (s *service) PreprocessResume(ctx context.Context, rt *runtime.Runtime, call *models.Call, r *http.Request) ([]byte, error) {
-	if r.URL.Query().Get(paramAction) != actionPlayback {
+	if requestParams(r).Get(paramAction) != actionPlayback {
 		return nil, nil
 	}
 
@@ -263,7 +281,7 @@ func (s *service) PreprocessStatus(ctx context.Context, rt *runtime.Runtime, r *
 // ValidateRequestSignature implements ivr.Service. Callbacks aren't signed, so instead the callback URL configured
 // for the channel's number carries a secret.
 func (s *service) ValidateRequestSignature(r *http.Request) error {
-	if subtle.ConstantTimeCompare([]byte(r.URL.Query().Get(paramToken)), []byte(s.secret)) != 1 {
+	if subtle.ConstantTimeCompare([]byte(requestParams(r).Get(paramToken)), []byte(s.secret)) != 1 {
 		return errors.New("invalid token")
 	}
 	return nil
@@ -280,7 +298,7 @@ func (s *service) DownloadMedia(url string) (*http.Response, error) {
 
 // URNForRequest implements ivr.Service. The contact is whichever party isn't the channel's own number.
 func (s *service) URNForRequest(r *http.Request) (urns.URN, error) {
-	q := r.URL.Query()
+	q := requestParams(r)
 
 	number := q.Get(paramCallerID)
 	if number == "" || sameNumber(number, s.channel.Address()) {
@@ -300,9 +318,9 @@ func (s *service) URNForRequest(r *http.Request) (urns.URN, error) {
 
 // CallIDForRequest implements ivr.Service
 func (s *service) CallIDForRequest(r *http.Request) (string, error) {
-	id := r.URL.Query().Get(paramSequenceID)
+	id := requestParams(r).Get(paramSequenceID)
 	if id == "" {
-		return "", errors.New("no SequenceID set on call")
+		return "", errors.New("no sequence id set on call")
 	}
 	return id, nil
 }

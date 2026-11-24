@@ -140,6 +140,28 @@ func TestService(t *testing.T) {
 	assert.Equal(t, ivr.ActionStart, router.CallbackAction(request("IsStarting=true&uniqueId=0199bad8-f98d-75a3-b641-2718a25ac3f5")))
 	assert.Equal(t, ivr.ActionResume, router.CallbackAction(request("IsStarting=false&context=outgoing&action=get_digits&DTMF=1")))
 	assert.Equal(t, ivr.ActionStatus, router.CallbackAction(request("disposition=BUSY")))
+
+	// parameter names are matched ignoring case and underscores
+	started := "callerId=233541234567&extension=0501234567&sequenceId=a9b282e4-c53f-435c-a1b2-e4487683a1c7&timestamp=2026-10-11T15%3A29%3A47%2B00%3A00&isStarting=1&context=outgoing"
+	digits := "caller_id=233541234567&extension=0501234567&dtmf=1&sequenceId=a9b282e4-c53f-435c-a1b2-e4487683a1c7&isStarting=1&context=outgoing"
+	assert.Equal(t, ivr.ActionStart, router.CallbackAction(request(started)))
+
+	// and digits are always a resume
+	assert.Equal(t, ivr.ActionResume, router.CallbackAction(request(digits)))
+
+	for _, query := range []string{started, digits} {
+		urn, err := svc.URNForRequest(request(query))
+		assert.NoError(t, err)
+		assert.Equal(t, urns.URN("tel:+233541234567"), urn)
+
+		callID, err := svc.CallIDForRequest(request(query))
+		assert.NoError(t, err)
+		assert.Equal(t, "a9b282e4-c53f-435c-a1b2-e4487683a1c7", callID)
+	}
+
+	resume, err := svc.ResumeForRequest(request(digits))
+	assert.NoError(t, err)
+	assert.Equal(t, ivr.InputResume{Input: "1"}, resume)
 	assert.Equal(t, ivr.ActionStatus, router.CallbackAction(request("action=hangup")))
 	assert.Equal(t, ivr.ActionResume, router.CallbackAction(request("action=playback")))
 	assert.Equal(t, ivr.ActionResume, router.CallbackAction(request("action=record&recordingUrl=http%3A%2F%2Fx.com%2Fa.wav")))
@@ -192,7 +214,7 @@ func TestService(t *testing.T) {
 	}
 
 	// resumes come from the action that ended
-	resume, err := svc.ResumeForRequest(request("action=get_digits&DTMF=0123"))
+	resume, err = svc.ResumeForRequest(request("action=get_digits&DTMF=0123"))
 	assert.NoError(t, err)
 	assert.Equal(t, ivr.InputResume{Input: "0123"}, resume)
 
