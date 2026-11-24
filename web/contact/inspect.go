@@ -71,8 +71,8 @@ func handleInspect(ctx context.Context, rt *runtime.Runtime, r *inspectRequest) 
 		return nil, 0, fmt.Errorf("error loading org assets: %w", err)
 	}
 
-	// load our contacts
-	contacts, err := models.LoadContacts(ctx, rt.ReadonlyDB, oa, r.ContactIDs)
+	// load our contacts from the primary database because callers inspect contacts they've just modified
+	contacts, err := models.LoadContacts(ctx, rt.DB, oa, r.ContactIDs)
 	if err != nil {
 		return nil, 0, fmt.Errorf("error loading contact: %w", err)
 	}

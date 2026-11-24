@@ -86,8 +86,11 @@ func calculateGroupCounts(ctx context.Context, rt *runtime.Runtime, org *models.
 			},
 		)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error reading group count rows: %w", err)
+	}
 
-	return family, err
+	return family, nil
 }
 
 const channelsSQL = `
