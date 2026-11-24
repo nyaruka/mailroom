@@ -1,3 +1,8 @@
+## v26.3.159 (2026-11-24)
+ * Read org metrics from the readonly database
+ * Update test database dump
+ * Only sweep pending, failed and stuck knowledge sources
+
 ## v26.3.158 (2026-11-23)
  * Let channel interrupts say why the channel's messages are failed
 
