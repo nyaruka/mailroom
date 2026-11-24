@@ -1,3 +1,6 @@
+## v26.3.162 (2026-11-24)
+ * Add templates services to sync channel templates from their providers
+
 ## v26.3.161 (2026-11-24)
  * Add each Android sync to its channel's sync history in DynamoDB, keyed under the channel's cha# partition
 
