@@ -17,6 +17,7 @@ import (
 	"github.com/nyaruka/mailroom/v26/core/ivr"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/runner/clocks"
+	"github.com/nyaruka/mailroom/v26/core/tasks"
 	"github.com/nyaruka/mailroom/v26/core/tasks/ctasks"
 	"github.com/nyaruka/mailroom/v26/runtime"
 	"github.com/nyaruka/mailroom/v26/web"
@@ -229,12 +230,13 @@ func handleCallback(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAsse
 		return nil, fmt.Errorf("unable to load call with UUID %s: %w", request.CallUUID, err)
 	}
 
-	// status updates only touch the call so don't need the contact
+	// status updates don't lock the contact, so that a resume holding the lock can't delay our response
 	if request.Action == ivr.ActionStatus {
 		if err := ivr.HandleStatus(ctx, rt, oa, svc, call, r, w); err != nil {
 			slog.Error("error while handling IVR", "error", err, "http_request", r)
 			return call, ivr.HandleAsFailure(ctx, rt.DB, svc, call, w, err)
 		}
+		interruptHungUpSession(ctx, rt, oa, call)
 		return call, nil
 	}
 
@@ -328,5 +330,34 @@ func handleStatus(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets
 		return call, ivr.HandleAsFailure(ctx, rt.DB, svc, call, w, err)
 	}
 
+	interruptHungUpSession(ctx, rt, oa, call)
+
 	return call, nil
+}
+
+// interruptHungUpSession queues interruption of the call's session if the call has completed while that session is
+// still waiting, i.e. the contact hung up mid-flow. Otherwise the session would wait until it expires. Failures are only
+// logged because the expiry will still end the session.
+func interruptHungUpSession(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, call *models.Call) {
+	if call.Status() != models.CallStatusCompleted || call.SessionUUID() == "" {
+		return
+	}
+
+	// most calls complete after their flow has ended, so check cheaply before queueing anything
+	current, err := models.IsCurrentSession(ctx, rt.DB, call.ContactID(), call.SessionUUID())
+	if err != nil {
+		slog.Error("error checking session of completed call", "error", err, "call", call.UUID())
+		return
+	}
+	if !current {
+		return
+	}
+
+	task := &tasks.InterruptSessionBatch{
+		Sessions: []models.SessionRef{{UUID: call.SessionUUID(), ContactID: call.ContactID()}},
+		Status:   flows.SessionStatusInterrupted,
+	}
+	if err := tasks.Queue(ctx, rt, rt.Queues.Realtime, oa.OrgID(), task, false); err != nil {
+		slog.Error("error queueing interrupt of session for completed call", "error", err, "call", call.UUID())
+	}
 }

@@ -3,6 +3,7 @@ package tasks
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"github.com/nyaruka/goflow/core"
@@ -51,8 +52,12 @@ func (t *InterruptSessionBatch) Perform(ctx context.Context, rt *runtime.Runtime
 		sessions[s.ContactID] = s.UUID
 	}
 
-	if _, _, err := runner.InterruptWithLock(ctx, rt, oa, contactIDs, sessions, t.Status); err != nil {
+	_, skipped, err := runner.InterruptWithLock(ctx, rt, oa, contactIDs, sessions, t.Status)
+	if err != nil {
 		return fmt.Errorf("error interrupting batch of sessions: %w", err)
+	}
+	if len(skipped) > 0 {
+		slog.Warn("unable to lock contacts to interrupt their sessions", "contacts", skipped, "status", t.Status)
 	}
 
 	// if this batch was created as part of a flow interruption, decrement the remaining batches counter

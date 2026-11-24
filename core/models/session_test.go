@@ -153,6 +153,26 @@ func TestGetContactWaitingSession(t *testing.T) {
 	assert.Equal(t, sessionUUID, session.UUID)
 }
 
+func TestIsCurrentSession(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	waitingUUID := testdb.InsertWaitingSession(t, rt, testdb.Org1, testdb.Ann, models.FlowTypeVoice, nil, testdb.IVRFlow)
+	completedUUID := testdb.InsertFlowSession(t, rt, testdb.Ann, models.FlowTypeVoice, models.SessionStatusCompleted, nil, testdb.IVRFlow)
+
+	current, err := models.IsCurrentSession(ctx, rt.DB, testdb.Ann.ID, waitingUUID)
+	assert.NoError(t, err)
+	assert.True(t, current)
+
+	current, err = models.IsCurrentSession(ctx, rt.DB, testdb.Ann.ID, completedUUID)
+	assert.NoError(t, err)
+	assert.False(t, current)
+
+	// another contact's session
+	current, err = models.IsCurrentSession(ctx, rt.DB, testdb.Cat.ID, waitingUUID)
+	assert.NoError(t, err)
+	assert.False(t, current)
+}
+
 func TestInterruptContacts(t *testing.T) {
 	ctx, rt := testsuite.Runtime(t)
 
