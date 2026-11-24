@@ -60,28 +60,22 @@ type KnowledgeSource struct {
 	NumChunks     int                   `db:"num_chunks"`
 }
 
-// A source is stale when it's active, of a type we can index, and either 1) flagged as pending by Django, 2) ready
-// but an item in its Django owned table has been created, edited, unpublished or soft-deleted (all of which bump
-// modified_on) since we last indexed it, 3) failed long enough ago to be worth retrying, or 4) stuck in indexing for
-// over an hour - which can only mean the worker that started it died before recording an outcome, since starting
-// bumps modified_on and there is no task retry.
+// A source is stale when it's active, of a type we can index, and either 1) flagged as pending by Django, which it
+// does in the same transaction as any change to what the source's index is derived from, 2) failed long enough ago
+// to be worth retrying, or 3) stuck in indexing for over an hour - which can only mean the worker that started it
+// died before recording an outcome, since starting bumps modified_on and there is no task retry.
 //
-// Indexing is normally triggered by Django as an edit commits, so in a healthy system this finds nothing. It exists
-// because 'F' and 'I' would otherwise be dead ends: Django only moves a source to 'P' on the paths that own its
-// config - uploading or deleting a document, editing a website - and there is no such path for the system sources,
-// so nothing else would ever revive a failed shortcuts source and one embeddings outage would disable an org's
-// knowledge permanently. Recovery from a failure deliberately goes through the timed branch alone rather than
-// through the item-staleness branch above: starting an index bumps modified_on, so the interval is a real backoff,
-// whereas a staleness-driven retry would re-queue on every sweep for as long as the underlying failure lasted.
+// Indexing is normally triggered by Django as an edit commits, so in a healthy system this finds nothing - and finds
+// it from a partial index over the sources that aren't ready, without reading the ready majority. It exists because
+// a trigger can be lost, an edit made while we index leaves the source pending (see SetReady), and 'F' and 'I' would
+// otherwise be dead ends until the source's next edit, so one embeddings outage would disable an org's knowledge
+// indefinitely. Recovery from a failure is timed because starting an index bumps modified_on, so the interval is a
+// real backoff rather than a re-queue on every sweep for as long as the underlying failure lasts.
 const sqlSelectStaleKnowledgeSources = `
 SELECT id, uuid, org_id, name, source_type, config, status, error, last_indexed_on, num_items, num_chunks
   FROM knowledge_knowledgesource k
  WHERE k.is_active AND k.source_type = ANY($1) AND (
          k.status = 'P'
-      OR (k.status = 'R' AND k.source_type = 'shortcuts' AND EXISTS(
-            SELECT 1 FROM tickets_shortcut s WHERE s.org_id = k.org_id AND s.modified_on > k.last_indexed_on))
-      OR (k.status = 'R' AND k.source_type = 'helpdesk' AND EXISTS(
-            SELECT 1 FROM knowledge_article a WHERE a.source_id = k.id AND a.modified_on > k.last_indexed_on))
       OR (k.status = 'F' AND k.modified_on < NOW() - INTERVAL '15 minutes')
       OR (k.status = 'I' AND k.modified_on < NOW() - INTERVAL '1 hour')
        )
@@ -146,13 +140,18 @@ func (k *KnowledgeSource) SetIndexing(ctx context.Context, db DBorTx) error {
 	return nil
 }
 
+// A source Django flagged as pending while we worked stays pending: the change may have committed after we read, and
+// the flag is all that records it for the retry cron. Waiting on the row lock of an uncommitted flag means we see it.
+//
 // The is_active guard closes a race with release: Django can deactivate a source and purge its chunks while the
 // worker that claimed it is still embedding. Without the guard that in-flight run would finalize the row back to 'R'
 // with non-zero counters after the purge had emptied it.
 const sqlSetKnowledgeReady = `
 UPDATE knowledge_knowledgesource
-   SET status = 'R', error = NULL, last_indexed_on = $2, num_items = $3, num_chunks = $4, modified_on = NOW()
- WHERE id = $1 AND is_active`
+   SET status = CASE WHEN status = 'P' THEN 'P' ELSE 'R' END, error = NULL, last_indexed_on = $2, num_items = $3,
+       num_chunks = $4, modified_on = NOW()
+ WHERE id = $1 AND is_active
+ RETURNING status`
 
 // ErrKnowledgeSourceReleased is returned when finalizing a source that was deactivated while we were indexing it
 var ErrKnowledgeSourceReleased = errors.New("knowledge source is no longer active")
@@ -161,17 +160,15 @@ var ErrKnowledgeSourceReleased = errors.New("knowledge source is no longer activ
 // deactivated while we worked, so the caller can abandon the chunks it was about to write rather than repopulating a
 // source Django has already purged.
 func (k *KnowledgeSource) SetReady(ctx context.Context, db DBorTx, indexedOn time.Time, numItems, numChunks int) error {
-	res, err := db.ExecContext(ctx, sqlSetKnowledgeReady, k.ID, indexedOn, numItems, numChunks)
-	if err != nil {
+	var status KnowledgeSourceStatus
+	if err := db.GetContext(ctx, &status, sqlSetKnowledgeReady, k.ID, indexedOn, numItems, numChunks); err != nil {
+		if err == sql.ErrNoRows {
+			return ErrKnowledgeSourceReleased
+		}
 		return fmt.Errorf("error marking knowledge source as ready: %w", err)
 	}
-	if rows, err := res.RowsAffected(); err != nil {
-		return fmt.Errorf("error checking rows affected: %w", err)
-	} else if rows == 0 {
-		return ErrKnowledgeSourceReleased
-	}
 
-	k.Status = KnowledgeSourceStatusReady
+	k.Status = status
 	k.Error = ""
 	k.LastIndexedOn = &indexedOn
 	k.NumItems = numItems
@@ -179,6 +176,8 @@ func (k *KnowledgeSource) SetReady(ctx context.Context, db DBorTx, indexedOn tim
 	return nil
 }
 
+// Unlike SetReady this overwrites a pending flag set while we worked: a failure is retried on the cron's backoff from
+// the old watermark, which covers that change too, whereas keeping 'P' would re-queue on every sweep during an outage.
 const sqlSetKnowledgeFailed = `
 UPDATE knowledge_knowledgesource SET status = 'F', error = $2, modified_on = NOW() WHERE id = $1`
 

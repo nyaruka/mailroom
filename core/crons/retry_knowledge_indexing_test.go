@@ -42,8 +42,9 @@ func TestRetryKnowledgeIndexing(t *testing.T) {
 
 	testsuite.ClearTasks(t, rt)
 
-	// org2's source becomes stale when one of its shortcuts changes
+	// org2's source becomes stale when one of its shortcuts changes, as Django flags it pending
 	rt.DB.MustExec(`UPDATE tickets_shortcut SET text = 'Have you tried turning it on and off again?', modified_on = NOW() WHERE org_id = $1`, testdb.Org2.ID)
+	rt.DB.MustExec(`UPDATE knowledge_knowledgesource SET status = 'P' WHERE id = $1`, k3.ID)
 
 	res, err = cron.Run(ctx, rt)
 	assert.NoError(t, err)
