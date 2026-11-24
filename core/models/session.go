@@ -160,6 +160,16 @@ func InsertSessions(ctx context.Context, tx *sqlx.Tx, sessions []*Session) error
 	return insertDatabaseSessions(ctx, tx, sessions)
 }
 
+// IsCurrentSession returns whether the given session is the given contact's current session
+func IsCurrentSession(ctx context.Context, db DBorTx, contactID ContactID, sessionUUID core.SessionUUID) (bool, error) {
+	var current bool
+	err := db.GetContext(ctx, &current, `SELECT EXISTS(SELECT 1 FROM contacts_contact WHERE id = $1 AND current_session_uuid = $2)`, contactID, sessionUUID)
+	if err != nil {
+		return false, fmt.Errorf("error checking current session of contact #%d: %w", contactID, err)
+	}
+	return current, nil
+}
+
 const sqlSelectSessionByUUID = `
 SELECT uuid, contact_uuid, session_type, status, last_sprint_uuid, current_flow_uuid, output, created_on, ended_on, call_uuid
   FROM flows_flowsession fs

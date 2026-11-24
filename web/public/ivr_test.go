@@ -303,9 +303,9 @@ func TestVonageIVR(t *testing.T) {
 
 	// check our final state of sessions, runs, calls, msgs
 	assertdb.Query(t, rt.DB, `SELECT format('%s/%s', contact_uuid, status), count(*) FROM flows_flowsession GROUP BY 1`).
-		Map(map[string]any{"a393abc0-283d-4c9b-a1b3-641a035c34bf/C": 1, "cd024bcd-f473-4719-a00a-bd0bb1190135/I": 1})
+		Map(map[string]any{"a393abc0-283d-4c9b-a1b3-641a035c34bf/C": 1, "cd024bcd-f473-4719-a00a-bd0bb1190135/W": 1})
 	assertdb.Query(t, rt.DB, `SELECT format('%s/%s', contact_id, status), count(*) FROM flows_flowrun GROUP BY 1`).
-		Map(map[string]any{"10000/C": 1, "10002/I": 1})
+		Map(map[string]any{"10000/C": 1, "10002/W": 1})
 	assertdb.Query(t, rt.DB, `SELECT format('%s/%s', contact_id, status), count(*) FROM ivr_call GROUP BY 1`).
 		Map(map[string]any{"10000/D": 1, "10002/D": 1, "30000/F": 1})
 

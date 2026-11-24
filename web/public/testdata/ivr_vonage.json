@@ -865,23 +865,22 @@
                 }
             }
         ],
-        "expected_history": [
-            {
-                "PK": "con#cd024bcd-f473-4719-a00a-bd0bb1190135",
-                "SK": "evt#01969b4b-669b-76f8-a4d8-bab6c01e389e",
-                "OrgID": 1,
-                "Data": {
-                    "created_on": "2025-05-04T12:35:33.123456789Z",
-                    "flow": {
-                        "name": "IVR Flow",
-                        "uuid": "2f81d0ea-4d75-4843-9371-3f7465311cce"
-                    },
-                    "run_uuid": "01969b4a-87f3-76f8-a9ec-0e9b7527217f",
-                    "status": "interrupted",
-                    "type": "run_ended"
+        "expected_tasks": {
+            "realtime/1": [
+                {
+                    "type": "interrupt_session_batch",
+                    "payload": {
+                        "sessions": [
+                            {
+                                "s": "01969b4a-7c3b-76f8-b605-56ed66c7447b",
+                                "c": 10002
+                            }
+                        ],
+                        "status": "interrupted"
+                    }
                 }
-            }
-        ]
+            ]
+        }
     },
     {
         "label": "incoming call",
@@ -909,8 +908,8 @@
         ],
         "expected_history": [
             {
-                "PK": "con#737bf2e3-9434-4adf-9d8a-f120e44f6e7e",
-                "SK": "evt#01969b4b-8dab-76f8-8451-42ed7f9f8e9f",
+                "PK": "con#df192ea9-2399-451f-8f4e-e2955c74585e",
+                "SK": "evt#01969b4b-7a23-76f8-bf5f-e2c414a53431",
                 "OrgID": 1,
                 "Data": {
                     "call": {
@@ -919,9 +918,9 @@
                             "uuid": "19012bfd-3ce3-4cae-9bb9-76cf92c73d49"
                         },
                         "urn": "tel:+12485550100",
-                        "uuid": "01969b4b-85db-76f8-8bf2-1cda6c90eec9"
+                        "uuid": "01969b4b-7253-76f8-a4d8-bab6c01e389e"
                     },
-                    "created_on": "2025-05-04T12:35:43.123456789Z",
+                    "created_on": "2025-05-04T12:35:38.123456789Z",
                     "type": "call_received"
                 }
             }

@@ -501,15 +501,6 @@ func HandleStatus(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets
 				return fmt.Errorf("error updating call status: %w", err)
 			}
 		}
-
-		// if the contact hung up mid-flow, end the session now rather than leaving it waiting until it expires
-		if status == models.CallStatusCompleted && call.SessionUUID() != "" {
-			sessions := map[models.ContactID]core.SessionUUID{call.ContactID(): call.SessionUUID()}
-			if _, _, err := runner.InterruptWithLock(ctx, rt, oa, []models.ContactID{call.ContactID()}, sessions, flows.SessionStatusInterrupted); err != nil {
-				// session will still end when its wait expires
-				slog.Error("error interrupting session for completed call", "error", err, "call", call.UUID())
-			}
-		}
 	}
 
 	return svc.WriteEmptyResponse(w, fmt.Sprintf("status updated: %s", status))
