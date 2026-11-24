@@ -176,6 +176,8 @@ func (k *KnowledgeSource) SetReady(ctx context.Context, db DBorTx, indexedOn tim
 	return nil
 }
 
+// Unlike SetReady this overwrites a pending flag set while we worked: a failure is retried on the cron's backoff from
+// the old watermark, which covers that change too, whereas keeping 'P' would re-queue on every sweep during an outage.
 const sqlSetKnowledgeFailed = `
 UPDATE knowledge_knowledgesource SET status = 'F', error = $2, modified_on = NOW() WHERE id = $1`
 

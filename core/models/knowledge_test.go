@@ -59,6 +59,12 @@ func TestGetStaleKnowledgeSources(t *testing.T) {
 	// pending source of a type we don't support.. not stale
 	testdb.InsertKnowledgeSource(t, rt, testdb.Org2, "df22cbcb-e0e1-4e78-be9f-2e4fbea1b2c3", models.KnowledgeSourceTypeWebsite, "Website", models.KnowledgeSourceStatusPending)
 
+	// ready helpdesk with an article changed since it was indexed.. not stale either, for the same reason
+	k11 := testdb.InsertKnowledgeSource(t, rt, testdb.Org1, "b0f7c6d5-4e3a-42b1-9c8d-7a6b5e4f3d2c", models.KnowledgeSourceTypeHelpdesk, "Ready Helpdesk", models.KnowledgeSourceStatusReady)
+	k11s := testdb.InsertSection(t, rt, k11, "a1b2c3d4-0011-4000-8000-000000000011", "General")
+	rt.DB.MustExec(`UPDATE knowledge_knowledgesource SET last_indexed_on = NOW() - INTERVAL '2 hours' WHERE id = $1`, k11.ID)
+	testdb.InsertArticle(t, rt, k11, k11s, "1e59a5a9-56b0-4f4a-8a9a-1b31b6e4b0f7", "Refunds", "Refunds take 5 days.", models.ArticleStatusPublished)
+
 	// pending helpdesk.. stale
 	k10 := testdb.InsertKnowledgeSource(t, rt, testdb.Org1, "6d4c2b1a-0f9e-4c8d-b7a6-5e4f3d2c1b0a", models.KnowledgeSourceTypeHelpdesk, "Pending Helpdesk", models.KnowledgeSourceStatusPending)
 
@@ -93,6 +99,7 @@ func TestGetStaleKnowledgeSources(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM knowledge_knowledgesource WHERE status = 'I'`).Returns(2)
 	assertdb.Query(t, rt.DB, `SELECT status FROM knowledge_knowledgesource WHERE id = $1`, k1.ID).Returns("P")
 	assertdb.Query(t, rt.DB, `SELECT status FROM knowledge_knowledgesource WHERE id = $1`, k3.ID).Returns("R")
+	assertdb.Query(t, rt.DB, `SELECT status FROM knowledge_knowledgesource WHERE id = $1`, k11.ID).Returns("R")
 }
 
 func TestGetKnowledgeSource(t *testing.T) {
