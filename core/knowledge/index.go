@@ -64,8 +64,8 @@ var (
 // soft-deletes alike because Django bumps modified_on for all three. A source never indexed (last_indexed_on null)
 // deltas from the zero time, i.e. reads everything.
 func indexAuthored(ctx context.Context, rt *runtime.Runtime, k *models.KnowledgeSource, src *authoredSource) error {
-	// the new last_indexed_on watermark is taken before we read, so items changed while we index leave the source
-	// stale for the next trigger or the retry cron to pick up instead of being missed.
+	// the new last_indexed_on watermark is taken before we read, so items changed while we index are read again by
+	// the index that their edit's pending flag leads to, instead of being missed.
 	//
 	// The margin covers the two clocks involved: modified_on is stamped by Django before its transaction commits,
 	// while this is mailroom's clock, so without it an item committing just after our read but stamped just before

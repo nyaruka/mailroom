@@ -51,7 +51,7 @@ func (t *IndexKnowledge) WithAssets() models.Refresh {
 func (t *IndexKnowledge) Perform(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, taskID TaskID) error {
 	// one worker per source: rapid edits each queue a task and whichever gets the lock indexes for all of them,
 	// the rest no-op. That can't lose the later edits - the winner takes its watermark before it reads, so
-	// anything it didn't see leaves the source stale for the retry cron to re-queue.
+	// anything it didn't see leaves the source pending for the retry cron to re-queue.
 	//
 	// The lock is an efficiency guard rather than a correctness barrier, which is why valkey is enough: two
 	// workers indexing the same source would each replace whole items' chunks in their own transaction and write
