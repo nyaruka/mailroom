@@ -1,3 +1,6 @@
+## v26.3.161 (2026-11-24)
+ * Add each Android sync to its channel's sync history in DynamoDB, keyed under the channel's cha# partition
+
 ## v26.3.160 (2026-11-24)
  * Record each Android channel's latest sync in sync_state.android
  * Update test database dump to drop orgs_org.is_flagged
