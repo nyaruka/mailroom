@@ -27,15 +27,15 @@ LEFT OUTER JOIN contacts_contactgroupcount c ON c.group_id = g.id
        GROUP BY g.id;`
 
 type groupCountRow struct {
-	ID       models.GroupID   `db:"id"`
-	Name     string           `db:"name"`
-	UUID     assets.GroupUUID `db:"uuid"`
-	IsSystem bool             `db:"is_system"`
-	Count    int64            `db:"count"`
+	ID       models.GroupID
+	Name     string
+	UUID     assets.GroupUUID
+	IsSystem bool
+	Count    int64
 }
 
 func calculateGroupCounts(ctx context.Context, rt *runtime.Runtime, org *models.Org) (*dto.MetricFamily, error) {
-	rows, err := rt.DB.QueryxContext(ctx, groupCountsSQL, org.ID())
+	rows, err := rt.ReadonlyDB.QueryContext(ctx, groupCountsSQL, org.ID())
 	if err != nil {
 		return nil, fmt.Errorf("error querying group counts for org: %w", err)
 	}
@@ -50,7 +50,7 @@ func calculateGroupCounts(ctx context.Context, rt *runtime.Runtime, org *models.
 
 	row := &groupCountRow{}
 	for rows.Next() {
-		err = rows.StructScan(row)
+		err = rows.Scan(&row.ID, &row.Name, &row.UUID, &row.IsSystem, &row.Count)
 		if err != nil {
 			return nil, fmt.Errorf("error scanning group count row: %w", err)
 		}
@@ -86,8 +86,11 @@ func calculateGroupCounts(ctx context.Context, rt *runtime.Runtime, org *models.
 			},
 		)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error reading group count rows: %w", err)
+	}
 
-	return family, err
+	return family, nil
 }
 
 const channelsSQL = `
@@ -96,16 +99,16 @@ SELECT uuid, name, role, channel_type
  WHERE org_id = $1 AND is_active = TRUE;`
 
 type channelRow struct {
-	UUID        assets.ChannelUUID `db:"uuid"`
-	Name        string             `db:"name"`
-	Role        string             `db:"role"`
-	ChannelType string             `db:"channel_type"`
+	UUID        assets.ChannelUUID
+	Name        string
+	Role        string
+	ChannelType string
 }
 
 // calculateChannelCounts returns a zero count for every message direction and type each channel supports. Counts are
 // no longer supported, but the metrics are kept so that existing scrapers and dashboards don't break.
 func calculateChannelCounts(ctx context.Context, rt *runtime.Runtime, org *models.Org) (*dto.MetricFamily, error) {
-	rows, err := rt.DB.QueryxContext(ctx, channelsSQL, org.ID())
+	rows, err := rt.ReadonlyDB.QueryContext(ctx, channelsSQL, org.ID())
 	if err != nil {
 		return nil, fmt.Errorf("error querying channels for org: %w", err)
 	}
@@ -114,7 +117,7 @@ func calculateChannelCounts(ctx context.Context, rt *runtime.Runtime, org *model
 	channels := make([]*channelRow, 0)
 	for rows.Next() {
 		channel := &channelRow{}
-		if err := rows.StructScan(channel); err != nil {
+		if err := rows.Scan(&channel.UUID, &channel.Name, &channel.Role, &channel.ChannelType); err != nil {
 			return nil, fmt.Errorf("error scanning channel row: %w", err)
 		}
 		channels = append(channels, channel)
@@ -200,7 +203,7 @@ func handleMetrics(ctx context.Context, rt *runtime.Runtime, r *http.Request, ra
 		return nil
 	}
 
-	orgID, err := models.GetOrgIDFromUUID(ctx, rt.DB.DB, models.OrgUUID(r.PathValue("uuid")))
+	orgID, err := models.GetOrgIDFromUUID(ctx, rt.ReadonlyDB, models.OrgUUID(r.PathValue("uuid")))
 	if err != nil {
 		return fmt.Errorf("error looking up org by UUID: %w", err)
 	}

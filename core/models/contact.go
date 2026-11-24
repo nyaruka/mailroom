@@ -338,6 +338,9 @@ func LoadContacts(ctx context.Context, db Queryer, oa *OrgAssets, ids []ContactI
 
 		contacts = append(contacts, contact)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error reading contact rows: %w", err)
+	}
 
 	slog.Debug("loaded contacts", "elapsed", time.Since(start), "count", len(contacts))
 
