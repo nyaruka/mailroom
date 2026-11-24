@@ -163,6 +163,9 @@ func ProcessSync(ctx context.Context, rt *runtime.Runtime, channel *models.Andro
 		if err := syncEvent.UpdateOutgoingCommandCount(ctx, rt.DB, len(resp)-countAcks(resp)); err != nil {
 			return nil, err
 		}
+		if err := syncEvent.UpdateChannelSyncState(ctx, rt.DB); err != nil {
+			return nil, err
+		}
 	}
 
 	return resp, nil

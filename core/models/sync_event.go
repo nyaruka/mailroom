@@ -70,3 +70,29 @@ func (e *SyncEvent) UpdateOutgoingCommandCount(ctx context.Context, db DBorTx, c
 	}
 	return nil
 }
+
+// merged in under its own key so it never clobbers the state of another kind of sync
+const sqlUpdateAndroidSyncState = `
+UPDATE channels_channel
+   SET sync_state = COALESCE(sync_state, '{}') || jsonb_build_object('android', jsonb_build_object(
+           'synced_on', NOW(),
+           'power_source', $2::text,
+           'power_status', $3::text,
+           'power_level', $4::int,
+           'network_type', $5::text,
+           'pending_message_count', $6::int,
+           'retry_message_count', $7::int,
+           'incoming_command_count', $8::int,
+           'outgoing_command_count', $9::int
+       ))
+ WHERE id = $1`
+
+// UpdateChannelSyncState records this sync as its channel's latest Android sync.
+func (e *SyncEvent) UpdateChannelSyncState(ctx context.Context, db DBorTx) error {
+	_, err := db.ExecContext(ctx, sqlUpdateAndroidSyncState, e.ChannelID, e.PowerSource, e.PowerStatus, e.PowerLevel,
+		e.NetworkType, e.PendingMessageCount, e.RetryMessageCount, e.IncomingCommandCount, e.OutgoingCommandCount)
+	if err != nil {
+		return fmt.Errorf("error updating channel android sync state: %w", err)
+	}
+	return nil
+}

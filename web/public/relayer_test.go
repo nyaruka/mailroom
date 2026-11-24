@@ -247,6 +247,8 @@ func TestRelayerSyncCommands(t *testing.T) {
 	// the device's own report was recorded
 	assertdb.Query(t, rt.DB, `SELECT power_source, power_status, power_level, network_type, incoming_command_count FROM channels_syncevent WHERE channel_id = $1`, testdb.AndroidChannel.ID).
 		Columns(map[string]any{"power_source": "BAT", "power_status": "CHA", "power_level": 80, "network_type": "WIFI", "incoming_command_count": 9})
+	assertdb.Query(t, rt.DB, `SELECT ((sync_state->'android') - 'synced_on')::text FROM channels_channel WHERE id = $1`, testdb.AndroidChannel.ID).
+		Returns(`{"power_level": 80, "network_type": "WIFI", "power_source": "BAT", "power_status": "CHA", "retry_message_count": 0, "pending_message_count": 0, "incoming_command_count": 9, "outgoing_command_count": 0}`)
 	assertdb.Query(t, rt.DB, `SELECT device, os FROM channels_channel WHERE id = $1`, testdb.AndroidChannel.ID).
 		Columns(map[string]any{"device": "Nexus", "os": "7.0"})
 
@@ -282,6 +284,9 @@ func TestRelayerSyncOutbox(t *testing.T) {
 
 	// the sync event records how many commands we sent back, not counting acks
 	assertdb.Query(t, rt.DB, `SELECT outgoing_command_count FROM channels_syncevent WHERE channel_id = $1`, testdb.AndroidChannel.ID).Returns(2)
+
+	// and so does the channel's latest sync state, which is only written once that's known
+	assertdb.Query(t, rt.DB, `SELECT sync_state->'android'->>'outgoing_command_count' FROM channels_channel WHERE id = $1`, testdb.AndroidChannel.ID).Returns(`2`)
 
 	// messages the device tells us it already holds aren't offered again
 	body = fmt.Sprintf(`{"cmds":[{"cmd":"fcm","fcm_id":"FCM123"},{"cmd":"status","p_src":"BAT","p_sts":"CHA","p_lvl":80,"net":"WIFI","pending":[%d,%d],"retry":[]}]}`, out1.ID, out2.ID)
