@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/uuids"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/mailroom/v26/core/models"
@@ -167,6 +168,9 @@ func ProcessSync(ctx context.Context, rt *runtime.Runtime, channel *models.Andro
 		if err := syncEvent.UpdateChannelSyncState(ctx, rt.DB); err != nil {
 			slog.Error("error updating channel sync state", "channel_id", channel.ID, "error", err)
 		}
+		if _, err := rt.Dynamo.Main.Queue(syncEvent); err != nil {
+			slog.Error("error queuing sync event to writer", "channel_id", channel.ID, "error", err)
+		}
 	}
 
 	return resp, nil
@@ -210,7 +214,11 @@ func recordSyncEvent(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAss
 	}
 
 	e := &models.SyncEvent{
+		UUID:                uuids.NewV7(),
+		OrgID:               channel.OrgID,
 		ChannelID:           channel.ID,
+		ChannelUUID:         channel.UUID,
+		SyncedOn:            dates.Now(),
 		PowerSource:         clean(c.PowerSource(), maxPowerSourceLen),
 		PowerStatus:         clean(c.PowerStatus(), maxPowerStatusLen),
 		PowerLevel:          c.PowerLevel(),
