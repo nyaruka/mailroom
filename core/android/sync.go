@@ -51,8 +51,16 @@ func ProcessSync(ctx context.Context, rt *runtime.Runtime, channel *models.Andro
 	resp := make([]any, 0, len(cmds))
 	batch := &StatusBatch{}
 	seenCalls := make(map[string]bool, len(cmds))
-	var syncEvent *models.SyncEvent
+	var sync *models.AndroidSync
 	var outboxExclude []models.MsgID
+
+	// a sync that fails partway is still recorded, since what the device reported is most useful when its syncs are
+	// failing - its outgoing command count is only known if we got as far as building the response
+	defer func() {
+		if sync != nil {
+			saveSync(ctx, rt, channel, sync)
+		}
+	}()
 
 	// a command failing partway through mustn't discard the status changes we've already accepted, so the loop
 	// records the failure and breaks rather than returning - the batch is applied either way below
@@ -118,7 +126,7 @@ func ProcessSync(ctx context.Context, rt *runtime.Runtime, channel *models.Andro
 
 		case c.Cmd == "status":
 			// the device's own report of itself, always included in a sync so never acked
-			syncEvent, err = recordSyncEvent(ctx, rt, oa, channel, c, len(cmds))
+			sync, err = recordSync(ctx, rt, oa, channel, c, len(cmds))
 			if err != nil {
 				loopErr = err
 				break
@@ -159,21 +167,23 @@ func ProcessSync(ctx context.Context, rt *runtime.Runtime, channel *models.Andro
 	}
 	resp = append(resp, outbox...)
 
-	if syncEvent != nil {
+	if sync != nil {
 		// acks aren't work we did for the device, so they don't count as commands we sent it
-		if err := syncEvent.UpdateOutgoingCommandCount(ctx, rt.DB, len(resp)-countAcks(resp)); err != nil {
-			return nil, err
-		}
-		// only bookkeeping, so failing here would make the device resend everything just for a status display
-		if err := syncEvent.UpdateChannelSyncState(ctx, rt.DB); err != nil {
-			slog.Error("error updating channel sync state", "channel_id", channel.ID, "error", err)
-		}
-		if _, err := rt.Dynamo.Main.Queue(syncEvent); err != nil {
-			slog.Error("error queuing sync event to writer", "channel_id", channel.ID, "error", err)
-		}
+		sync.OutgoingCommandCount = len(resp) - countAcks(resp)
 	}
 
 	return resp, nil
+}
+
+// saveSync records a sync as its channel's latest and adds it to the channel's history. It's only bookkeeping, so a
+// failure is logged rather than failing the sync, which would make the device resend everything.
+func saveSync(ctx context.Context, rt *runtime.Runtime, channel *models.AndroidChannel, sync *models.AndroidSync) {
+	if err := sync.UpdateChannelSyncState(ctx, rt.DB); err != nil {
+		slog.Error("error updating channel sync state", "channel_id", channel.ID, "error", err)
+	}
+	if _, err := rt.Dynamo.Main.Queue(sync); err != nil {
+		slog.Error("error queuing android sync to writer", "channel_id", channel.ID, "error", err)
+	}
 }
 
 // updateChannelApp records the FCM id and UUID the device reports for itself, so that we can reach it to trigger a
@@ -203,9 +213,9 @@ func updateChannelApp(ctx context.Context, rt *runtime.Runtime, channel *models.
 	return nil
 }
 
-// recordSyncEvent stores what the device reported about itself, and raises or clears the incident for a device
+// recordSync takes what the device reported about itself, and raises or clears the incident for a device
 // running an app older than the one we're distributing.
-func recordSyncEvent(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, channel *models.AndroidChannel, c *Command, numCmds int) (*models.SyncEvent, error) {
+func recordSync(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, channel *models.AndroidChannel, c *Command, numCmds int) (*models.AndroidSync, error) {
 	device, os := clean(c.Device(), maxDeviceLen), clean(c.OS(), maxOSLen)
 	if device != channel.Device || os != channel.OS {
 		if err := models.UpdateAndroidChannelDevice(ctx, rt.DB, channel.ID, device, os); err != nil {
@@ -213,7 +223,7 @@ func recordSyncEvent(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAss
 		}
 	}
 
-	e := &models.SyncEvent{
+	s := &models.AndroidSync{
 		UUID:                uuids.NewV7(),
 		OrgID:               channel.OrgID,
 		ChannelID:           channel.ID,
@@ -229,15 +239,11 @@ func recordSyncEvent(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAss
 		// the fcm and status commands are in every sync, so they aren't work the device is reporting
 		IncomingCommandCount: max(numCmds-2, 0),
 	}
-	if err := e.Insert(ctx, rt.DB); err != nil {
-		return nil, err
-	}
-
 	if err := checkAppVersion(ctx, rt, oa, channel, c.AppVersion); err != nil {
 		return nil, err
 	}
 
-	return e, nil
+	return s, nil
 }
 
 func checkAppVersion(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, channel *models.AndroidChannel, reported string) error {

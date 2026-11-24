@@ -246,8 +246,6 @@ func TestRelayerSyncCommands(t *testing.T) {
 		Columns(map[string]any{"status": "F", "folder": "X"})
 
 	// the device's own report was recorded
-	assertdb.Query(t, rt.DB, `SELECT power_source, power_status, power_level, network_type, incoming_command_count FROM channels_syncevent WHERE channel_id = $1`, testdb.AndroidChannel.ID).
-		Columns(map[string]any{"power_source": "BAT", "power_status": "CHA", "power_level": 80, "network_type": "WIFI", "incoming_command_count": 9})
 	assertdb.Query(t, rt.DB, `SELECT ((sync_state->'android') - 'synced_on')::text FROM channels_channel WHERE id = $1`, testdb.AndroidChannel.ID).
 		Returns(`{"power_level": 80, "network_type": "WIFI", "power_source": "BAT", "power_status": "CHA", "retry_message_count": 0, "pending_message_count": 0, "incoming_command_count": 9, "outgoing_command_count": 0}`)
 	assertdb.Query(t, rt.DB, `SELECT device, os FROM channels_channel WHERE id = $1`, testdb.AndroidChannel.ID).
@@ -283,10 +281,7 @@ func TestRelayerSyncOutbox(t *testing.T) {
 	]}`, out1.ID, out2.ID, out3.ID)
 	test.AssertEqualJSON(t, []byte(expected), jsonx.MustMarshal(resp), "unexpected outbox commands")
 
-	// the sync event records how many commands we sent back, not counting acks
-	assertdb.Query(t, rt.DB, `SELECT outgoing_command_count FROM channels_syncevent WHERE channel_id = $1`, testdb.AndroidChannel.ID).Returns(2)
-
-	// and so does the channel's latest sync state, which is only written once that's known
+	// the channel's latest sync state records how many commands we sent back, not counting acks
 	assertdb.Query(t, rt.DB, `SELECT sync_state->'android'->>'outgoing_command_count' FROM channels_channel WHERE id = $1`, testdb.AndroidChannel.ID).Returns(`2`)
 
 	// and the sync is added to the channel's history
@@ -308,7 +303,7 @@ func TestRelayerSyncOutbox(t *testing.T) {
 	expected = fmt.Sprintf(`{"cmds":[{"cmd":"mt_bcast","msg":"goodbye","to":[{"phone":"+16055743333","id":%d}]}]}`, out3.ID)
 	test.AssertEqualJSON(t, []byte(expected), jsonx.MustMarshal(resp), "unexpected outbox commands")
 
-	assertdb.Query(t, rt.DB, `SELECT pending_message_count FROM channels_syncevent ORDER BY id DESC LIMIT 1`).Returns(2)
+	assertdb.Query(t, rt.DB, `SELECT (sync_state->'android'->>'pending_message_count')::int FROM channels_channel WHERE id = $1`, testdb.AndroidChannel.ID).Returns(2)
 
 	// ids an old relayer has mangled into negatives exclude nothing rather than being mapped onto some other
 	// message - it'll be re-offered what it already holds, which is the harmless end of that trade
@@ -433,7 +428,7 @@ func TestRelayerSyncDialects(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM msgs_msg WHERE id = $1 AND sent_on = '2025-05-04T12:30:47Z'`, out1.ID).Returns(1)
 
 	// the long field names are read the same as the short ones
-	assertdb.Query(t, rt.DB, `SELECT power_source, power_status, power_level, network_type FROM channels_syncevent WHERE channel_id = $1`, testdb.AndroidChannel.ID).
+	assertdb.Query(t, rt.DB, `SELECT sync_state->'android'->>'power_source' AS power_source, sync_state->'android'->>'power_status' AS power_status, (sync_state->'android'->>'power_level')::int AS power_level, sync_state->'android'->>'network_type' AS network_type FROM channels_channel WHERE id = $1`, testdb.AndroidChannel.ID).
 		Columns(map[string]any{"power_source": "USB", "power_status": "FUL", "power_level": 55, "network_type": "LTE"})
 
 	// and a value we can't make any sense of doesn't take the rest of the sync down with it
@@ -441,7 +436,7 @@ func TestRelayerSyncDialects(t *testing.T) {
 	status, _ = relayerSync(t, rt, testdb.AndroidChannel.ID, relayerSecret, body, nil)
 	assert.Equal(t, 200, status)
 
-	assertdb.Query(t, rt.DB, `SELECT power_level FROM channels_syncevent ORDER BY id DESC LIMIT 1`).Returns(0)
+	assertdb.Query(t, rt.DB, `SELECT (sync_state->'android'->>'power_level')::int FROM channels_channel WHERE id = $1`, testdb.AndroidChannel.ID).Returns(0)
 
 	// a device reporting itself in workspace 0 is still told where it actually is
 	body = `{"cmds":[{"cmd":"fcm","fcm_id":"FCM123"},{"cmd":"status","p_src":"BAT","p_sts":"CHA","p_lvl":80,"net":"WIFI","pending":[],"retry":[],"org_id":0}]}`
@@ -451,7 +446,7 @@ func TestRelayerSyncDialects(t *testing.T) {
 	// an empty short-form list means empty, rather than falling back to the long-form one
 	body = fmt.Sprintf(`{"cmds":[{"cmd":"fcm","fcm_id":"FCM123"},{"cmd":"status","p_src":"BAT","p_sts":"CHA","p_lvl":80,"net":"WIFI","pending":[],"retry":[],"pending_messages":[%d]}]}`, out1.ID)
 	_, resp = relayerSync(t, rt, testdb.AndroidChannel.ID, relayerSecret, body, nil)
-	assertdb.Query(t, rt.DB, `SELECT pending_message_count FROM channels_syncevent ORDER BY id DESC LIMIT 1`).Returns(0)
+	assertdb.Query(t, rt.DB, `SELECT (sync_state->'android'->>'pending_message_count')::int FROM channels_channel WHERE id = $1`, testdb.AndroidChannel.ID).Returns(0)
 }
 
 func TestRelayerSyncPreservesStatusesOnFailure(t *testing.T) {
@@ -467,6 +462,7 @@ func TestRelayerSyncPreservesStatusesOnFailure(t *testing.T) {
 
 	body := fmt.Sprintf(`{"cmds":[
 		{"cmd":"fcm","fcm_id":"FCM123"},
+		{"cmd":"status","p_src":"BAT","p_sts":"DIS","p_lvl":15,"net":"WIFI","pending":[],"retry":[]},
 		{"cmd":"mt_sent","msg_id":%d,"ts":1746361847000,"p_id":1},
 		{"cmd":"mo_sms","phone":"+593979000111","msg":"incoming!","ts":1746361848000,"p_id":2}
 	]}`, out1.ID)
@@ -477,6 +473,13 @@ func TestRelayerSyncPreservesStatusesOnFailure(t *testing.T) {
 	// the status change we'd already accepted was still written, so the device isn't asked to send it again
 	assertdb.Query(t, rt.DB, `SELECT status, folder FROM msgs_msg WHERE id = $1`, out1.ID).
 		Columns(map[string]any{"status": "S", "folder": "S"})
+
+	// and so was what the device reported about itself, with no response for it to count
+	assertdb.Query(t, rt.DB, `SELECT (sync_state->'android'->>'power_level')::int AS power_level, (sync_state->'android'->>'outgoing_command_count')::int AS outgoing FROM channels_channel WHERE id = $1`, testdb.AndroidChannel.ID).
+		Columns(map[string]any{"power_level": 15, "outgoing": 0})
+
+	rt.Dynamo.Main.Flush()
+	dyntest.AssertCount(t, rt.Dynamo.Main.Client(), rt.Dynamo.Main.Table(), 1)
 }
 
 func TestRelayerSyncHostilePayload(t *testing.T) {
@@ -495,8 +498,8 @@ func TestRelayerSyncHostilePayload(t *testing.T) {
 	assert.Equal(t, 200, status)
 	assert.Equal(t, []any{}, resp["cmds"])
 
-	// the values were clamped to what the columns take rather than blowing up the sync
-	assertdb.Query(t, rt.DB, `SELECT length(power_source) AS src, length(power_status) AS sts, power_level, length(network_type) AS net FROM channels_syncevent WHERE channel_id = $1`, testdb.AndroidChannel.ID).
+	// the values were clamped to their limits rather than blowing up the sync
+	assertdb.Query(t, rt.DB, `SELECT length(sync_state->'android'->>'power_source') AS src, length(sync_state->'android'->>'power_status') AS sts, (sync_state->'android'->>'power_level')::int AS power_level, length(sync_state->'android'->>'network_type') AS net FROM channels_channel WHERE id = $1`, testdb.AndroidChannel.ID).
 		Columns(map[string]any{"src": 64, "sts": 64, "power_level": 100, "net": 128})
 
 	// the unusable uuid was ignored rather than written, and the fcm id it came with still landed
