@@ -310,3 +310,17 @@ func (i *ChannelID) Scan(value any) error         { return null.ScanInt(value, i
 func (i ChannelID) Value() (driver.Value, error)  { return null.IntValue(i) }
 func (i *ChannelID) UnmarshalJSON(b []byte) error { return null.UnmarshalInt(b, i) }
 func (i ChannelID) MarshalJSON() ([]byte, error)  { return null.MarshalInt(i) }
+
+// merged in under its own key so it never clobbers the state of another kind of sync
+const sqlUpdateTemplatesSyncState = `
+UPDATE channels_channel
+   SET sync_state = COALESCE(sync_state, '{}') || jsonb_build_object('templates', jsonb_build_object('synced_on', $2::timestamptz, 'failed', $3::bool))
+ WHERE id = $1`
+
+// UpdateChannelTemplatesSyncState records the outcome of the latest sync of the given channel's templates
+func UpdateChannelTemplatesSyncState(ctx context.Context, db DBorTx, channelID ChannelID, syncedOn time.Time, failed bool) error {
+	if _, err := db.ExecContext(ctx, sqlUpdateTemplatesSyncState, channelID, syncedOn, failed); err != nil {
+		return fmt.Errorf("error updating channel templates sync state: %w", err)
+	}
+	return nil
+}

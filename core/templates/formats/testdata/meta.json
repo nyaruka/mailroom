@@ -1,0 +1,566 @@
+[
+    {
+        "raw": {
+            "name": "hello",
+            "components": [
+                {
+                    "type": "BODY",
+                    "text": "Hello {{1}}"
+                }
+            ],
+            "language": "en",
+            "status": "PENDING",
+            "category": "ISSUE_RESOLUTION",
+            "id": "1234"
+        },
+        "expected": {
+            "name": "hello",
+            "locale": "eng",
+            "external_locale": "en",
+            "external_id": "1234",
+            "namespace": "default_namespace",
+            "status": "P",
+            "components": [
+                {
+                    "name": "body",
+                    "type": "body/text",
+                    "content": "Hello {{1}}",
+                    "variables": {
+                        "1": 0
+                    }
+                }
+            ],
+            "variables": [
+                {
+                    "type": "text"
+                }
+            ],
+            "is_supported": true
+        }
+    },
+    {
+        "raw": {
+            "name": "order_template",
+            "components": [
+                {
+                    "type": "HEADER",
+                    "format": "TEXT",
+                    "text": "Your order!"
+                },
+                {
+                    "type": "BODY",
+                    "text": "Sorry your order {{1}} took longer to deliver than expected.\nWe'll notify you about updates in the next {{2}} days.\n\nDo you have more question?",
+                    "example": {
+                        "body_text": [
+                            [
+                                "#123 for shoes",
+                                "3"
+                            ]
+                        ]
+                    }
+                },
+                {
+                    "type": "FOOTER",
+                    "text": "Thanks for your patience"
+                },
+                {
+                    "type": "BUTTONS",
+                    "buttons": [
+                        {
+                            "type": "QUICK_REPLY",
+                            "text": "Yes {{1}}"
+                        },
+                        {
+                            "type": "QUICK_REPLY",
+                            "text": "No"
+                        },
+                        {
+                            "type": "PHONE_NUMBER",
+                            "text": "Call center",
+                            "phone_number": "+1234"
+                        },
+                        {
+                            "type": "URL",
+                            "text": "Check website",
+                            "url": "https:\\/\\/example.com\\/?wa_customer={{1}}",
+                            "example": [
+                                "https:\\/\\/example.com\\/?wa_customer=id_123"
+                            ]
+                        },
+                        {
+                            "type": "URL",
+                            "text": "Check website",
+                            "url": "https:\\/\\/example.com\\/help",
+                            "example": [
+                                "https:\\/\\/example.com\\/help"
+                            ]
+                        }
+                    ]
+                }
+            ],
+            "language": "en",
+            "status": "APPROVED",
+            "rejected_reason": "NONE",
+            "category": "UTILITY"
+        },
+        "expected": {
+            "name": "order_template",
+            "locale": "eng",
+            "external_locale": "en",
+            "external_id": null,
+            "namespace": "default_namespace",
+            "status": "A",
+            "components": [
+                {
+                    "name": "header",
+                    "type": "header/text",
+                    "content": "Your order!",
+                    "variables": {}
+                },
+                {
+                    "name": "body",
+                    "type": "body/text",
+                    "content": "Sorry your order {{1}} took longer to deliver than expected.\nWe'll notify you about updates in the next {{2}} days.\n\nDo you have more question?",
+                    "variables": {
+                        "1": 0,
+                        "2": 1
+                    }
+                },
+                {
+                    "name": "footer",
+                    "type": "footer/text",
+                    "content": "Thanks for your patience",
+                    "variables": {}
+                },
+                {
+                    "name": "button.0",
+                    "type": "button/quick_reply",
+                    "content": "Yes {{1}}",
+                    "variables": {
+                        "1": 2
+                    }
+                },
+                {
+                    "name": "button.1",
+                    "type": "button/quick_reply",
+                    "content": "No",
+                    "variables": {}
+                },
+                {
+                    "name": "button.2",
+                    "type": "button/phone_number",
+                    "content": "+1234",
+                    "display": "Call center",
+                    "variables": {}
+                },
+                {
+                    "name": "button.3",
+                    "type": "button/url",
+                    "content": "https:\\/\\/example.com\\/?wa_customer={{1}}",
+                    "display": "Check website",
+                    "variables": {
+                        "1": 3
+                    }
+                },
+                {
+                    "name": "button.4",
+                    "type": "button/url",
+                    "content": "https:\\/\\/example.com\\/help",
+                    "display": "Check website",
+                    "variables": {}
+                }
+            ],
+            "variables": [
+                {
+                    "type": "text"
+                },
+                {
+                    "type": "text"
+                },
+                {
+                    "type": "text"
+                },
+                {
+                    "type": "text"
+                }
+            ],
+            "is_supported": true
+        }
+    },
+    {
+        "raw": {
+            "name": "order_template",
+            "components": [
+                {
+                    "type": "FOOTER",
+                    "text": "Thanks for your patience"
+                },
+                {
+                    "type": "BODY",
+                    "text": "Sorry your order {{1}} took longer to deliver than expected.\nWe'll notify you about updates in the next {{2}} days.\n\nDo you have more question?",
+                    "example": {
+                        "body_text": [
+                            [
+                                "#123 for shoes",
+                                "3"
+                            ]
+                        ]
+                    }
+                },
+                {
+                    "type": "BUTTONS",
+                    "buttons": [
+                        {
+                            "type": "QUICK_REPLY",
+                            "text": "Yes {{1}}"
+                        },
+                        {
+                            "type": "QUICK_REPLY",
+                            "text": "No"
+                        },
+                        {
+                            "type": "PHONE_NUMBER",
+                            "text": "Call center",
+                            "phone_number": "+1234"
+                        },
+                        {
+                            "type": "URL",
+                            "text": "Check website",
+                            "url": "https:\\/\\/example.com\\/?wa_customer={{1}}",
+                            "example": [
+                                "https:\\/\\/example.com\\/?wa_customer=id_123"
+                            ]
+                        },
+                        {
+                            "type": "URL",
+                            "text": "Check website",
+                            "url": "https:\\/\\/example.com\\/help",
+                            "example": [
+                                "https:\\/\\/example.com\\/help"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "type": "HEADER",
+                    "format": "TEXT",
+                    "text": "Your order!"
+                }
+            ],
+            "language": "en",
+            "status": "APPROVED",
+            "rejected_reason": "NONE",
+            "category": "UTILITY"
+        },
+        "expected": {
+            "name": "order_template",
+            "locale": "eng",
+            "external_locale": "en",
+            "external_id": null,
+            "namespace": "default_namespace",
+            "status": "A",
+            "components": [
+                {
+                    "name": "header",
+                    "type": "header/text",
+                    "content": "Your order!",
+                    "variables": {}
+                },
+                {
+                    "name": "body",
+                    "type": "body/text",
+                    "content": "Sorry your order {{1}} took longer to deliver than expected.\nWe'll notify you about updates in the next {{2}} days.\n\nDo you have more question?",
+                    "variables": {
+                        "1": 0,
+                        "2": 1
+                    }
+                },
+                {
+                    "name": "footer",
+                    "type": "footer/text",
+                    "content": "Thanks for your patience",
+                    "variables": {}
+                },
+                {
+                    "name": "button.0",
+                    "type": "button/quick_reply",
+                    "content": "Yes {{1}}",
+                    "variables": {
+                        "1": 2
+                    }
+                },
+                {
+                    "name": "button.1",
+                    "type": "button/quick_reply",
+                    "content": "No",
+                    "variables": {}
+                },
+                {
+                    "name": "button.2",
+                    "type": "button/phone_number",
+                    "content": "+1234",
+                    "display": "Call center",
+                    "variables": {}
+                },
+                {
+                    "name": "button.3",
+                    "type": "button/url",
+                    "content": "https:\\/\\/example.com\\/?wa_customer={{1}}",
+                    "display": "Check website",
+                    "variables": {
+                        "1": 3
+                    }
+                },
+                {
+                    "name": "button.4",
+                    "type": "button/url",
+                    "content": "https:\\/\\/example.com\\/help",
+                    "display": "Check website",
+                    "variables": {}
+                }
+            ],
+            "variables": [
+                {
+                    "type": "text"
+                },
+                {
+                    "type": "text"
+                },
+                {
+                    "type": "text"
+                },
+                {
+                    "type": "text"
+                }
+            ],
+            "is_supported": true
+        }
+    },
+    {
+        "raw": {
+            "name": "order_template",
+            "components": [
+                {
+                    "type": "HEADER",
+                    "format": "IMAGE"
+                },
+                {
+                    "type": "BODY",
+                    "text": "Cat facts!"
+                }
+            ],
+            "language": "en",
+            "status": "APPROVED",
+            "rejected_reason": "NONE",
+            "category": "UTILITY"
+        },
+        "expected": {
+            "name": "order_template",
+            "locale": "eng",
+            "external_locale": "en",
+            "external_id": null,
+            "namespace": "default_namespace",
+            "status": "A",
+            "components": [
+                {
+                    "name": "header",
+                    "type": "header/media",
+                    "content": "",
+                    "variables": {
+                        "1": 0
+                    }
+                },
+                {
+                    "name": "body",
+                    "type": "body/text",
+                    "content": "Cat facts!",
+                    "variables": {}
+                }
+            ],
+            "variables": [
+                {
+                    "type": "image"
+                }
+            ],
+            "is_supported": true
+        }
+    },
+    {
+        "raw": {
+            "name": "invalid_status",
+            "components": [
+                {
+                    "type": "BODY",
+                    "text": "Hello {{1}}"
+                }
+            ],
+            "language": "en",
+            "status": "TOOCRAZY"
+        },
+        "expected": null
+    },
+    {
+        "raw": {
+            "name": "invalid_component",
+            "components": [
+                {
+                    "type": "BODY",
+                    "text": "Hello {{1}}"
+                },
+                {
+                    "type": "RANDOM",
+                    "text": "Yikes {{1}}"
+                }
+            ],
+            "language": "en",
+            "status": "APPROVED",
+            "category": "ISSUE_RESOLUTION",
+            "id": "1233"
+        },
+        "expected": {
+            "name": "invalid_component",
+            "locale": "eng",
+            "external_locale": "en",
+            "external_id": "1233",
+            "namespace": "default_namespace",
+            "status": "A",
+            "components": [
+                {
+                    "name": "body",
+                    "type": "body/text",
+                    "content": "Hello {{1}}",
+                    "variables": {
+                        "1": 0
+                    }
+                }
+            ],
+            "variables": [
+                {
+                    "type": "text"
+                }
+            ],
+            "is_supported": false
+        }
+    },
+    {
+        "raw": {
+            "name": "invalid_component",
+            "components": [
+                {
+                    "type": "HEADER",
+                    "format": "TIKTOK",
+                    "example": {
+                        "header_handle": [
+                            "FOO"
+                        ]
+                    }
+                }
+            ],
+            "language": "en",
+            "status": "APPROVED",
+            "category": "ISSUE_RESOLUTION",
+            "id": "1233"
+        },
+        "expected": {
+            "name": "invalid_component",
+            "locale": "eng",
+            "external_locale": "en",
+            "external_id": "1233",
+            "namespace": "default_namespace",
+            "status": "A",
+            "components": [
+                {
+                    "name": "header",
+                    "type": "header/unknown",
+                    "content": "",
+                    "variables": {}
+                }
+            ],
+            "variables": [],
+            "is_supported": false
+        }
+    },
+    {
+        "raw": {
+            "category": "UTILITY",
+            "components": [
+                {
+                    "type": "BODY",
+                    "text": "Hello"
+                },
+                {
+                    "type": "BUTTONS",
+                    "buttons": [
+                        {
+                            "otp_type": "COPY_CODE",
+                            "text": "copy",
+                            "type": "OTP"
+                        }
+                    ]
+                }
+            ],
+            "language": "fr",
+            "name": "login",
+            "status": "approved",
+            "id": "9030"
+        },
+        "expected": {
+            "name": "login",
+            "locale": "fra",
+            "external_locale": "fr",
+            "external_id": "9030",
+            "namespace": "default_namespace",
+            "status": "A",
+            "components": [
+                {
+                    "name": "body",
+                    "type": "body/text",
+                    "content": "Hello",
+                    "variables": {}
+                }
+            ],
+            "variables": [],
+            "is_supported": false
+        }
+    },
+    {
+        "raw": {
+            "name": "hello",
+            "components": [
+                {
+                    "type": "BODY",
+                    "text": "Hello {{1}}"
+                }
+            ],
+            "language": "en",
+            "status": "pending",
+            "namespace": "foo_namespace",
+            "rejected_reason": "NONE",
+            "category": "ISSUE_RESOLUTION"
+        },
+        "expected": {
+            "name": "hello",
+            "locale": "eng",
+            "external_locale": "en",
+            "external_id": null,
+            "namespace": "foo_namespace",
+            "status": "P",
+            "components": [
+                {
+                    "name": "body",
+                    "type": "body/text",
+                    "content": "Hello {{1}}",
+                    "variables": {
+                        "1": 0
+                    }
+                }
+            ],
+            "variables": [
+                {
+                    "type": "text"
+                }
+            ],
+            "is_supported": true
+        }
+    }
+]

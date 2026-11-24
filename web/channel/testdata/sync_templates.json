@@ -1,0 +1,70 @@
+[
+    {
+        "label": "channel must exist",
+        "method": "POST",
+        "path": "/mi/channel/sync_templates",
+        "body": {
+            "org_id": 1,
+            "channel_id": 123456
+        },
+        "status": 400,
+        "response": {
+            "error": "no such channel"
+        }
+    },
+    {
+        "label": "channel type must have templates",
+        "method": "POST",
+        "path": "/mi/channel/sync_templates",
+        "body": {
+            "org_id": 1,
+            "channel_id": 10000
+        },
+        "status": 400,
+        "response": {
+            "error": "channel type doesn't support templates"
+        }
+    },
+    {
+        "label": "provider errors are returned",
+        "method": "POST",
+        "path": "/mi/channel/sync_templates",
+        "body": {
+            "org_id": 1,
+            "channel_id": 30000
+        },
+        "status": 422,
+        "response": {
+            "error": "error fetching templates: received non-2XX response: 401"
+        },
+        "db_assertions": [
+            {
+                "query": "SELECT sync_state->'templates'->>'failed' FROM channels_channel WHERE id = 30000",
+                "returns": "true"
+            }
+        ]
+    },
+    {
+        "label": "returns the number of translations on success",
+        "method": "POST",
+        "path": "/mi/channel/sync_templates",
+        "body": {
+            "org_id": 1,
+            "channel_id": 30000
+        },
+        "status": 200,
+        "response": {
+            "translations": 2
+        },
+        "db_assertions": [
+            {
+                "query": "SELECT count(*) FROM templates_templatetranslation WHERE channel_id = 30000",
+                "returns": 2
+            },
+            {
+                "query": "SELECT sync_state->'templates'->>'failed' FROM channels_channel WHERE id = 30000",
+                "returns": "false"
+            }
+        ]
+    }
+]

@@ -3,6 +3,7 @@ package models_test
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/goflow/assets"
@@ -236,4 +237,29 @@ func TestReleaseAndroidChannel(t *testing.T) {
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM notifications_incident WHERE channel_id = $1 AND ended_on IS NULL`, testdb.AndroidChannel.ID).Returns(0)
 
 	assertdb.Query(t, rt.DB, `SELECT count(*) FROM triggers_trigger WHERE channel_id = $1 AND is_active = TRUE`, testdb.TwilioChannel.ID).Returns(1)
+}
+
+func TestUpdateChannelTemplatesSyncState(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	syncedOn := time.Date(2026, 11, 24, 12, 30, 0, 0, time.UTC)
+
+	// a NULL sync_state is treated as empty
+	rt.DB.MustExec(`ALTER TABLE channels_channel ALTER COLUMN sync_state DROP NOT NULL`)
+	rt.DB.MustExec(`UPDATE channels_channel SET sync_state = NULL WHERE id = $1`, testdb.FacebookChannel.ID)
+
+	err := models.UpdateChannelTemplatesSyncState(ctx, rt.DB, testdb.FacebookChannel.ID, syncedOn, true)
+	assert.NoError(t, err)
+
+	assertdb.Query(t, rt.DB, `SELECT (sync_state->'templates'->>'synced_on')::timestamptz FROM channels_channel WHERE id = $1`, testdb.FacebookChannel.ID).Returns(syncedOn)
+	assertdb.Query(t, rt.DB, `SELECT sync_state->'templates'->>'failed' FROM channels_channel WHERE id = $1`, testdb.FacebookChannel.ID).Returns("true")
+
+	// other kinds of sync state are left alone
+	rt.DB.MustExec(`UPDATE channels_channel SET sync_state = sync_state || '{"android": {"power_level": 50}}' WHERE id = $1`, testdb.FacebookChannel.ID)
+
+	err = models.UpdateChannelTemplatesSyncState(ctx, rt.DB, testdb.FacebookChannel.ID, syncedOn, false)
+	assert.NoError(t, err)
+
+	assertdb.Query(t, rt.DB, `SELECT sync_state->'templates'->>'failed' FROM channels_channel WHERE id = $1`, testdb.FacebookChannel.ID).Returns("false")
+	assertdb.Query(t, rt.DB, `SELECT sync_state->'android'->>'power_level' FROM channels_channel WHERE id = $1`, testdb.FacebookChannel.ID).Returns("50")
 }
