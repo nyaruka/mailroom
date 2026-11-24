@@ -37,6 +37,7 @@ func init() {
 
 type service struct {
 	httpClient  *http.Client
+	domain      string
 	url         string
 	accessToken string
 	namespace   string
@@ -57,17 +58,22 @@ func New(cfg *runtime.Config, httpClient *http.Client, channel *models.Channel) 
 
 	return &service{
 		httpClient:  httpClient,
+		domain:      domain,
 		url:         fmt.Sprintf(templatesURLFormat, domain, version, url.PathEscape(businessID)),
 		accessToken: accessToken,
 		namespace:   c.GetString(configNamespace, ""),
 	}, nil
 }
 
-func (s *service) FetchTemplates(ctx context.Context, clog *models.ChannelLog) ([]*templates.Translation, error) {
+func (s *service) FetchTemplates(ctx context.Context, clog *models.ChannelLog) (*templates.Fetched, error) {
 	next := s.url + "?" + url.Values{"access_token": {s.accessToken}, "limit": {"255"}}.Encode()
 	raws := make([]*formats.MetaTemplate, 0)
 
 	for next != "" {
+		if err := templates.CheckHost(next, s.domain); err != nil {
+			return nil, err
+		}
+
 		body, err := templates.Get(ctx, s.httpClient, clog, next, nil)
 		if err != nil {
 			return nil, err
@@ -82,10 +88,7 @@ func (s *service) FetchTemplates(ctx context.Context, clog *models.ChannelLog) (
 		next = page.Paging.Next
 	}
 
-	translations, errs := formats.ParseMetaTemplates(raws, s.namespace)
-	templates.LogErrors(clog, errs)
-
-	return translations, nil
+	return formats.ParseMetaTemplates(raws, s.namespace), nil
 }
 
 func (s *service) RedactValues(ch *models.Channel) []string {

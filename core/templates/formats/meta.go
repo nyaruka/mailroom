@@ -49,26 +49,26 @@ type MetaButton struct {
 	PhoneNumber string `json:"phone_number"`
 }
 
-// ParseMetaTemplates parses templates in Meta's format. Templates which can't be parsed are returned as errors rather
+// ParseMetaTemplates parses templates in Meta's format. Templates which can't be parsed are returned as invalid rather
 // than failing the rest.
-func ParseMetaTemplates(raws []*MetaTemplate, defaultNamespace string) ([]*templates.Translation, []error) {
-	translations := make([]*templates.Translation, 0, len(raws))
-	var errs []error
+func ParseMetaTemplates(raws []*MetaTemplate, defaultNamespace string) *templates.Fetched {
+	fetched := &templates.Fetched{Translations: make([]*templates.Translation, 0, len(raws))}
 
 	for _, raw := range raws {
 		tr, err := ParseMetaTemplate(raw, defaultNamespace)
 		if err != nil {
-			errs = append(errs, err)
+			fetched.Invalid = append(fetched.Invalid, err.(*templates.InvalidTemplateError))
 		} else if tr != nil {
-			translations = append(translations, tr)
+			fetched.Translations = append(fetched.Translations, tr)
 		}
 	}
 
-	return translations, errs
+	return fetched
 }
 
 // ParseMetaTemplate parses a template in Meta's format, returning nil if it has a status we don't store. Channels
 // that don't include a namespace on each template provide a default one.
+// A template which can't be parsed is returned as a *templates.InvalidTemplateError.
 func ParseMetaTemplate(t *MetaTemplate, defaultNamespace string) (*templates.Translation, error) {
 	status, ok := ParseStatus(t.Status)
 	if !ok {
@@ -77,7 +77,7 @@ func ParseMetaTemplate(t *MetaTemplate, defaultNamespace string) (*templates.Tra
 
 	locale, err := ParseLanguage(t.Language)
 	if err != nil {
-		return nil, fmt.Errorf("error parsing template %s: %w", t.Name, err)
+		return nil, &templates.InvalidTemplateError{Name: t.Name, Err: err}
 	}
 
 	namespace := defaultNamespace

@@ -32,7 +32,7 @@ func TestService(t *testing.T) {
 			httpx.NewMockResponse(200, nil, []byte(`{"data": [{"name": "goodbye", "language": "sw", "status": "PAUSED", "components": [{"type": "BODY", "text": "Kwaheri"}]}]}`)),
 		},
 		"https://turn.example.com/v16.0/1234/message_templates?access_token=sesame&limit=255": {
-			httpx.NewMockResponse(200, nil, []byte(`{"data": []}`)),
+			httpx.NewMockResponse(200, nil, []byte(`{"data": [], "paging": {"next": "https://graph.facebook.com/v16.0/1234/message_templates?after=abc"}}`)),
 		},
 	})
 
@@ -44,9 +44,9 @@ func TestService(t *testing.T) {
 	assert.EqualError(t, err, "received non-2XX response: 500")
 
 	clog = models.NewChannelLog(models.ChannelLogTypeTemplateSync, channel, svc.RedactValues(channel))
-	translations, err := svc.FetchTemplates(ctx, clog)
+	fetched, err := svc.FetchTemplates(ctx, clog)
 	assert.NoError(t, err)
-	assert.Equal(t, []string{"hello/eng/A/ns1", "goodbye/swa/U/ns1"}, summarize(translations))
+	assert.Equal(t, []string{"hello/eng/A/ns1", "goodbye/swa/U/ns1"}, summarize(fetched.Translations))
 	assert.Len(t, clog.HttpLogs, 2)
 	assert.NotContains(t, string(jsonx.MustMarshal(clog.HttpLogs)), "sesame")
 	assert.Equal(t, []string{"sesame", "pass123", "Ym9iOnBhc3MxMjM="}, svc.RedactValues(channel))
@@ -57,9 +57,9 @@ func TestService(t *testing.T) {
 	svc, err = templates.GetService(&runtime.Config{}, client, channel)
 	require.NoError(t, err)
 
-	translations, err = svc.FetchTemplates(ctx, models.NewChannelLog(models.ChannelLogTypeTemplateSync, channel, nil))
-	assert.NoError(t, err)
-	assert.Len(t, translations, 0)
+	// and we only follow pages on that domain
+	_, err = svc.FetchTemplates(ctx, models.NewChannelLog(models.ChannelLogTypeTemplateSync, channel, nil))
+	assert.EqualError(t, err, "provider returned URL not on turn.example.com: https://graph.facebook.com/v16.0/1234/message_templates?after=abc")
 
 	_, err = templates.GetService(&runtime.Config{}, client, &models.Channel{Type_: "TRN", Config_: models.Config{"fb_business_id": "1234"}})
 	assert.EqualError(t, err, "missing fb_business_id or fb_access_token in channel config")

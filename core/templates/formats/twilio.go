@@ -42,16 +42,16 @@ type twilioAction struct {
 }
 
 // ParseTwilioContent parses a template in Twilio's format. Its approval status comes from a separate call so is
-// passed in.
+// passed in. A template which can't be parsed is returned as a *templates.InvalidTemplateError.
 func ParseTwilioContent(c *TwilioContent, status templates.TranslationStatus) (*templates.Translation, error) {
 	locale, err := ParseLanguage(c.Language)
 	if err != nil {
-		return nil, fmt.Errorf("error parsing template %s: %w", c.FriendlyName, err)
+		return nil, &templates.InvalidTemplateError{Name: c.FriendlyName, Err: err}
 	}
 
 	components, variables, supported, err := extractTwilioTypes(c.Types)
 	if err != nil {
-		return nil, fmt.Errorf("error parsing template %s: %w", c.FriendlyName, err)
+		return nil, &templates.InvalidTemplateError{Name: c.FriendlyName, Err: err}
 	}
 
 	return &templates.Translation{

@@ -33,7 +33,7 @@ func TestService(t *testing.T) {
 		},
 		"https://content.twilio.com/v1/Content?PageSize=50&Page=1": {
 			httpx.NewMockResponse(200, nil, []byte(`{
-				"contents": [`+content("HX3", "deleted", "en")+`, `+content("HX4", "unknown", "en")+`],
+				"contents": [`+content("HX3", "deleted", "en")+`, `+content("HX4", "unknown", "en")+`, {"sid": "HX5", "friendly_name": "elsewhere", "language": "en", "types": {"twilio/text": {"body": "Hi"}}, "links": {"approval_fetch": "https://evil.example.com/HX5"}}],
 				"meta": {"next_page_url": null}
 			}`)),
 		},
@@ -50,14 +50,16 @@ func TestService(t *testing.T) {
 	_, err = svc.FetchTemplates(ctx, clog)
 	assert.EqualError(t, err, "received non-2XX response: 400")
 
-	// a template whose approval can't be fetched is kept as pending, and one with a status we don't store is left out
+	// a template whose approval can't be fetched has an unknown status, one with no WhatsApp status is pending, and one
+	// with a status we don't store is left out. Approvals are only fetched from Twilio.
 	clog = models.NewChannelLog(models.ChannelLogTypeTemplateSync, channel, svc.RedactValues(channel))
-	translations, err := svc.FetchTemplates(ctx, clog)
+	fetched, err := svc.FetchTemplates(ctx, clog)
 	assert.NoError(t, err)
-	assert.Equal(t, []string{"hello/eng/A/HX1", "goodbye/spa/P/HX2", "unknown/eng/P/HX4"}, summarize(translations))
+	assert.Equal(t, []string{"hello/eng/A/HX1", "goodbye/spa//HX2", "unknown/eng/P/HX4", "elsewhere/eng//HX5"}, summarize(fetched.Translations))
 	assert.Len(t, clog.HttpLogs, 6)
-	assert.Len(t, clog.Errors, 1)
+	assert.Len(t, clog.Errors, 2)
 	assert.Equal(t, "error fetching approval of template goodbye: received non-2XX response: 500", clog.Errors[0].Message)
+	assert.Equal(t, "error fetching approval of template elsewhere: provider returned URL not on content.twilio.com: https://evil.example.com/HX5", clog.Errors[1].Message)
 	assert.Equal(t, "Basic QUMxMjM6c2VzYW1l", mocks.Requests()[1].Header.Get("Authorization"))
 	assert.NotContains(t, string(jsonx.MustMarshal(clog.HttpLogs)), "sesame")
 	assert.NotContains(t, string(jsonx.MustMarshal(clog.HttpLogs)), "QUMxMjM6c2VzYW1l")

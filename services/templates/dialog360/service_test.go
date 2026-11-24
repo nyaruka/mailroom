@@ -40,9 +40,9 @@ func TestService(t *testing.T) {
 	assert.EqualError(t, err, "received non-2XX response: 401")
 
 	clog = models.NewChannelLog(models.ChannelLogTypeTemplateSync, channel, svc.RedactValues(channel))
-	translations, err := svc.FetchTemplates(ctx, clog)
+	fetched, err := svc.FetchTemplates(ctx, clog)
 	assert.NoError(t, err)
-	assert.Equal(t, []string{"hello/eng/A/ns1", "goodbye/por-BR/R/"}, summarize(translations))
+	assert.Equal(t, []string{"hello/eng/A/ns1", "goodbye/por-BR/R/"}, summarize(fetched.Translations))
 	assert.Len(t, clog.HttpLogs, 1)
 	assert.Equal(t, "sesame", mocks.Requests()[0].Header.Get("D360-API-KEY"))
 	assert.NotContains(t, string(jsonx.MustMarshal(clog.HttpLogs)), "sesame")

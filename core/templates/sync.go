@@ -2,6 +2,7 @@ package templates
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"slices"
@@ -24,6 +25,9 @@ const (
 	// the same key as temba's own template sync, so that the two never sync a channel at the same time
 	syncLockKey = "refresh_channel_templates_%d"
 	syncLockTTL = 10 * time.Minute
+
+	// how long we give recording the outcome, which happens even if the context we were given is done
+	recordTimeout = 15 * time.Second
 )
 
 // ErrSyncInProgress is returned when another sync of the channel's templates is already running
@@ -57,11 +61,15 @@ func SyncChannel(ctx context.Context, rt *runtime.Runtime, channel *models.Chann
 
 	clog := models.NewChannelLog(models.ChannelLogTypeTemplateSync, channel, svc.RedactValues(channel))
 
-	translations, fetchErr := svc.FetchTemplates(ctx, clog)
+	fetched, fetchErr := svc.FetchTemplates(ctx, clog)
 	if fetchErr != nil {
 		clog.Error(&svclogs.Error{Message: fetchErr.Error()})
 	} else {
-		translations = validTranslations(clog, translations)
+		removeTooLong(fetched)
+
+		for _, invalid := range fetched.Invalid {
+			clog.Error(&svclogs.Error{Message: invalid.Error()})
+		}
 	}
 
 	clog.End()
@@ -70,16 +78,18 @@ func SyncChannel(ctx context.Context, rt *runtime.Runtime, channel *models.Chann
 		return 0, fmt.Errorf("error queuing templates sync channel log: %w", err)
 	}
 
+	// the fetch may have used up our context, e.g. a request's deadline, but we still want to record the outcome
+	recordCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), recordTimeout)
+	defer cancel()
+
 	if fetchErr != nil {
-		// the fetch may have failed because our context is done, but we still want to record that
-		recordCtx := context.WithoutCancel(ctx)
 		if err := models.UpdateChannelTemplatesSyncState(recordCtx, rt.DB, channel.ID(), dates.Now(), true); err != nil {
 			return 0, err
 		}
 		return 0, &FetchError{fetchErr}
 	}
 
-	numTranslations, err := recordSuccess(ctx, rt, channel, translations)
+	numTranslations, err := recordSuccess(recordCtx, rt, channel, fetched)
 	if err != nil {
 		return 0, err
 	}
@@ -87,14 +97,14 @@ func SyncChannel(ctx context.Context, rt *runtime.Runtime, channel *models.Chann
 	return numTranslations, nil
 }
 
-func recordSuccess(ctx context.Context, rt *runtime.Runtime, channel *models.Channel, trs []*Translation) (int, error) {
+func recordSuccess(ctx context.Context, rt *runtime.Runtime, channel *models.Channel, fetched *Fetched) (int, error) {
 	tx, err := rt.DB.BeginTxx(ctx, nil)
 	if err != nil {
 		return 0, fmt.Errorf("error starting transaction: %w", err)
 	}
 	defer tx.Rollback()
 
-	numTranslations, err := updateTranslations(ctx, tx, channel, trs)
+	numTranslations, err := updateTranslations(ctx, tx, channel, fetched)
 	if err != nil {
 		return 0, err
 	}
@@ -110,14 +120,13 @@ func recordSuccess(ctx context.Context, rt *runtime.Runtime, channel *models.Cha
 	return numTranslations, nil
 }
 
-// validTranslations filters out translations which won't fit in the database, logging each as an error, so that one
-// odd template doesn't fail the whole sync
-func validTranslations(clog *models.ChannelLog, translations []*Translation) []*Translation {
-	return slices.DeleteFunc(translations, func(tr *Translation) bool {
+// removeTooLong moves translations which won't fit in the database to the invalid templates
+func removeTooLong(fetched *Fetched) {
+	fetched.Translations = slices.DeleteFunc(fetched.Translations, func(tr *Translation) bool {
 		if utf8.RuneCountInString(tr.Name) > 512 || len(tr.Locale) > 6 || utf8.RuneCountInString(tr.ExternalLocale) > 6 ||
 			utf8.RuneCountInString(tr.Namespace) > 36 || utf8.RuneCountInString(tr.ExternalID) > 64 {
-			msg := fmt.Sprintf("ignoring template %s/%s which has a field that is too long", tr.Name, tr.ExternalLocale)
-			clog.Error(&svclogs.Error{Message: msg})
+			err := fmt.Errorf("translation %s has a field that is too long", tr.ExternalLocale)
+			fetched.Invalid = append(fetched.Invalid, &InvalidTemplateError{Name: tr.Name, Err: err})
 			return true
 		}
 		return false
@@ -136,20 +145,24 @@ SELECT id FROM created
 SELECT id FROM templates_template WHERE org_id = $2 AND name = $3
  LIMIT 1`
 
-// updates a translation that has changed, and returns its id and whether it was created or changed
+// if another transaction created the template while we were trying to, the statement above can't see it
+const sqlSelectTemplate = `SELECT id FROM templates_template WHERE org_id = $1 AND name = $2`
+
+// updates a translation that has changed, and returns its id and whether it was created or changed. An empty status
+// keeps the stored one.
 const sqlUpsertTranslation = `
 WITH upserted AS (
     INSERT INTO templates_templatetranslation AS t(template_id, channel_id, locale, components, variables, status, namespace,
                                                    external_id, external_locale, is_supported, is_compatible)
-         VALUES($1, $2, $3, $4::jsonb, $5::jsonb, $6, $7, $8, $9, $10, TRUE)
+         VALUES($1, $2, $3, $4::jsonb, $5::jsonb, COALESCE(NULLIF($6, ''), 'P'), $7, $8, $9, $10, TRUE)
     ON CONFLICT (template_id, channel_id, locale) DO UPDATE
-            SET components = EXCLUDED.components, variables = EXCLUDED.variables, status = EXCLUDED.status,
-                namespace = EXCLUDED.namespace, external_id = EXCLUDED.external_id,
+            SET components = EXCLUDED.components, variables = EXCLUDED.variables,
+                status = COALESCE(NULLIF($6, ''), t.status), namespace = EXCLUDED.namespace, external_id = EXCLUDED.external_id,
                 external_locale = EXCLUDED.external_locale, is_supported = EXCLUDED.is_supported
           WHERE (t.components, t.variables, t.status, t.namespace, t.external_id, t.external_locale, t.is_supported)
                 IS DISTINCT FROM
-                (EXCLUDED.components, EXCLUDED.variables, EXCLUDED.status, EXCLUDED.namespace, EXCLUDED.external_id,
-                 EXCLUDED.external_locale, EXCLUDED.is_supported)
+                (EXCLUDED.components, EXCLUDED.variables, COALESCE(NULLIF($6, ''), t.status), EXCLUDED.namespace,
+                 EXCLUDED.external_id, EXCLUDED.external_locale, EXCLUDED.is_supported)
       RETURNING id
 )
 SELECT id, TRUE AS changed FROM upserted
@@ -158,14 +171,19 @@ SELECT id, FALSE AS changed
   FROM templates_templatetranslation
  WHERE template_id = $1 AND channel_id = $2 AND locale = $3 AND NOT EXISTS (SELECT 1 FROM upserted)`
 
+// the channel's translations we didn't see, leaving those of templates we couldn't parse
+const sqlUnseenTranslations = `
+SELECT tr.id
+  FROM templates_templatetranslation tr
+  JOIN templates_template t ON t.id = tr.template_id
+ WHERE tr.channel_id = $1 AND NOT (tr.id = ANY($2)) AND NOT (t.name = ANY($3))`
+
 // templates can't keep a base translation that we're about to delete
 const sqlClearDeletedBases = `
-UPDATE templates_template
-   SET base_translation_id = NULL
- WHERE base_translation_id IN (SELECT id FROM templates_templatetranslation WHERE channel_id = $1 AND NOT (id = ANY($2)))`
+UPDATE templates_template SET base_translation_id = NULL WHERE base_translation_id = ANY($1)`
 
-const sqlDeleteUnseenTranslations = `
-DELETE FROM templates_templatetranslation WHERE channel_id = $1 AND NOT (id = ANY($2)) RETURNING template_id`
+const sqlDeleteTranslations = `
+DELETE FROM templates_templatetranslation WHERE id = ANY($1) RETURNING template_id`
 
 // a template's base translation is the one in the workspace's primary language, otherwise its oldest
 const sqlUpdateMissingBases = `
@@ -197,22 +215,23 @@ UPDATE templates_template SET modified_on = NOW() WHERE id IN (SELECT template_i
 const sqlTouchTemplates = `UPDATE templates_template SET modified_on = NOW() WHERE id = ANY($1)`
 
 // updates the channel's translations to match those fetched, returning how many it has
-func updateTranslations(ctx context.Context, tx *sqlx.Tx, channel *models.Channel, trs []*Translation) (int, error) {
+func updateTranslations(ctx context.Context, tx *sqlx.Tx, channel *models.Channel, fetched *Fetched) (int, error) {
+	trs := fetched.Translations
 	seen := make([]int64, 0, len(trs))
 	touched := make([]int64, 0, len(trs)) // templates whose translations we've seen or deleted
 	changed := make([]int64, 0)           // templates whose translations we've changed
 
 	for _, tr := range trs {
-		var templateID int64
-		if err := tx.GetContext(ctx, &templateID, sqlGetOrCreateTemplate, uuids.NewV4(), channel.OrgID(), tr.Name); err != nil {
-			return 0, fmt.Errorf("error getting or creating template %s: %w", tr.Name, err)
+		templateID, err := getOrCreateTemplate(ctx, tx, channel.OrgID(), tr.Name)
+		if err != nil {
+			return 0, err
 		}
 
 		var row struct {
 			ID      int64 `db:"id"`
 			Changed bool  `db:"changed"`
 		}
-		err := tx.GetContext(ctx, &row, sqlUpsertTranslation,
+		err = tx.GetContext(ctx, &row, sqlUpsertTranslation,
 			templateID, channel.ID(), tr.Locale, string(jsonx.MustMarshal(tr.Components)), string(jsonx.MustMarshal(tr.Variables)),
 			tr.Status, tr.Namespace, null.String(tr.ExternalID), tr.ExternalLocale, tr.IsSupported,
 		)
@@ -227,12 +246,22 @@ func updateTranslations(ctx context.Context, tx *sqlx.Tx, channel *models.Channe
 		}
 	}
 
-	if _, err := tx.ExecContext(ctx, sqlClearDeletedBases, channel.ID(), pq.Array(seen)); err != nil {
+	invalidNames := make([]string, len(fetched.Invalid))
+	for i, invalid := range fetched.Invalid {
+		invalidNames[i] = invalid.Name
+	}
+
+	var unseen []int64
+	err := tx.SelectContext(ctx, &unseen, sqlUnseenTranslations, channel.ID(), pq.Array(seen), pq.Array(invalidNames))
+	if err != nil {
+		return 0, fmt.Errorf("error selecting unseen translations: %w", err)
+	}
+	if _, err := tx.ExecContext(ctx, sqlClearDeletedBases, pq.Array(unseen)); err != nil {
 		return 0, fmt.Errorf("error clearing base translations: %w", err)
 	}
 
 	var deletedFrom []int64
-	if err := tx.SelectContext(ctx, &deletedFrom, sqlDeleteUnseenTranslations, channel.ID(), pq.Array(seen)); err != nil {
+	if err := tx.SelectContext(ctx, &deletedFrom, sqlDeleteTranslations, pq.Array(unseen)); err != nil {
 		return 0, fmt.Errorf("error deleting translations: %w", err)
 	}
 	touched = append(touched, deletedFrom...)
@@ -250,4 +279,16 @@ func updateTranslations(ctx context.Context, tx *sqlx.Tx, channel *models.Channe
 
 	slices.Sort(seen)
 	return len(slices.Compact(seen)), nil
+}
+
+func getOrCreateTemplate(ctx context.Context, tx *sqlx.Tx, orgID models.OrgID, name string) (int64, error) {
+	var id int64
+	err := tx.GetContext(ctx, &id, sqlGetOrCreateTemplate, uuids.NewV4(), orgID, name)
+	if errors.Is(err, sql.ErrNoRows) {
+		err = tx.GetContext(ctx, &id, sqlSelectTemplate, orgID, name)
+	}
+	if err != nil {
+		return 0, fmt.Errorf("error getting or creating template %s: %w", name, err)
+	}
+	return id, nil
 }

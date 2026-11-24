@@ -31,6 +31,7 @@ func TestService(t *testing.T) {
 				],
 				"paging": {"next": "https://graph.facebook.com/v25.0/1234/message_templates?limit=255&after=abc"}
 			}`)),
+			httpx.NewMockResponse(200, nil, []byte(`{"data": [], "paging": {"next": "https://evil.example.com/next"}}`)),
 		},
 		"https://graph.facebook.com/v25.0/1234/message_templates?limit=255&after=abc": {
 			httpx.NewMockResponse(200, nil, []byte(`{
@@ -52,16 +53,20 @@ func TestService(t *testing.T) {
 	assert.Len(t, clog.HttpLogs, 1)
 
 	clog = models.NewChannelLog(models.ChannelLogTypeTemplateSync, channel, svc.RedactValues(channel))
-	translations, err := svc.FetchTemplates(ctx, clog)
+	fetched, err := svc.FetchTemplates(ctx, clog)
 	assert.NoError(t, err)
-	assert.Equal(t, []string{"hello/eng-US/A/ns1/111", "goodbye/spa/P/ns2/444"}, summarize(translations))
+	assert.Equal(t, []string{"hello/eng-US/A/ns1/111", "goodbye/spa/P/ns2/444"}, summarize(fetched.Translations))
 	assert.Len(t, clog.HttpLogs, 2)
 	assert.Equal(t, "Bearer sesame", mocks.Requests()[0].Header.Get("Authorization"))
 	assert.NotContains(t, string(jsonx.MustMarshal(clog.HttpLogs)), "sesame")
 
-	// unparseable templates are logged as errors
-	assert.Len(t, clog.Errors, 1)
-	assert.Equal(t, "error parsing template weird: unrecognized language code: xx", clog.Errors[0].Message)
+	// templates that can't be parsed are returned as invalid
+	assert.Len(t, fetched.Invalid, 1)
+	assert.Equal(t, "invalid template weird: unrecognized language code: xx", fetched.Invalid[0].Error())
+
+	// we only follow pages on the Graph API
+	_, err = svc.FetchTemplates(ctx, clog)
+	assert.EqualError(t, err, "provider returned URL not on graph.facebook.com: https://evil.example.com/next")
 
 	// need a WABA and a token
 	_, err = templates.GetService(cfg, client, &models.Channel{Type_: "WAC", Config_: models.Config{}})

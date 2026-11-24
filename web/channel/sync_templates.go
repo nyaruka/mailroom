@@ -23,9 +23,9 @@ func init() {
 // proxies between the caller and us typically allow
 const syncTemplatesWriteTimeout = 55 * time.Second
 
-// SyncTemplatesTimeout is how long the sync itself gets, which stays under the write timeout so that running out of
-// time is reported as a proper error response
-var SyncTemplatesTimeout = 50 * time.Second
+// SyncTemplatesTimeout is how long fetching from the provider gets. It leaves room under the write timeout for the
+// sync to record its outcome, so that running out of time is reported as a proper error response.
+var SyncTemplatesTimeout = 40 * time.Second
 
 // Syncs a channel's templates from its provider, returning how many translations it now has.
 //

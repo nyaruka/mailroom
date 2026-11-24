@@ -4,10 +4,10 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
 
 	"github.com/nyaruka/gocommon/httpx"
 	"github.com/nyaruka/gocommon/i18n"
-	"github.com/nyaruka/gocommon/svclogs"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/runtime"
 	"github.com/nyaruka/mailroom/v26/utils"
@@ -42,7 +42,7 @@ func GetService(cfg *runtime.Config, httpClient *http.Client, channel *models.Ch
 // Service is what each provider implements to fetch a channel's templates
 type Service interface {
 	// FetchTemplates fetches all of the channel's templates, recording each provider call on the log
-	FetchTemplates(ctx context.Context, clog *models.ChannelLog) ([]*Translation, error)
+	FetchTemplates(ctx context.Context, clog *models.ChannelLog) (*Fetched, error)
 
 	RedactValues(*models.Channel) []string
 }
@@ -57,7 +57,30 @@ const (
 	StatusPaused   TranslationStatus = "U"
 	StatusDisabled TranslationStatus = "D"
 	StatusInAppeal TranslationStatus = "I"
+
+	// StatusUnknown is for a translation whose status couldn't be fetched, which keeps its stored status, or is
+	// pending if new
+	StatusUnknown TranslationStatus = ""
 )
+
+// Fetched is what a service fetched for a channel
+type Fetched struct {
+	Translations []*Translation
+
+	// templates that couldn't be parsed, whose stored translations are left as they are rather than deleted
+	Invalid []*InvalidTemplateError
+}
+
+// InvalidTemplateError is a template from a provider that we can't store
+type InvalidTemplateError struct {
+	Name string
+	Err  error
+}
+
+func (e *InvalidTemplateError) Error() string {
+	return fmt.Sprintf("invalid template %s: %s", e.Name, e.Err)
+}
+func (e *InvalidTemplateError) Unwrap() error { return e.Err }
 
 // Translation is a template translation as fetched from a provider, normalized into what we store
 type Translation struct {
@@ -90,10 +113,10 @@ type Variable struct {
 
 // Get makes a GET request to a provider, recording it on the channel log, and returns the response body. A non-2XX
 // response is an error.
-func Get(ctx context.Context, client *http.Client, clog *models.ChannelLog, url string, headers map[string]string) (
+func Get(ctx context.Context, client *http.Client, clog *models.ChannelLog, u string, headers map[string]string) (
 	[]byte, error,
 ) {
-	req, err := httpx.NewRequest(ctx, http.MethodGet, url, nil, headers)
+	req, err := httpx.NewRequest(ctx, http.MethodGet, u, nil, headers)
 	if err != nil {
 		return nil, err
 	}
@@ -112,9 +135,12 @@ func Get(ctx context.Context, client *http.Client, clog *models.ChannelLog, url 
 	return trace.ResponseBody, nil
 }
 
-// LogErrors records errors parsing individual templates on the channel log
-func LogErrors(clog *models.ChannelLog, errs []error) {
-	for _, err := range errs {
-		clog.Error(&svclogs.Error{Message: err.Error()})
+// CheckHost returns an error if a URL we've been given by a provider, e.g. for its next page of templates, isn't on
+// the expected host, since requests to it carry the channel's credentials
+func CheckHost(rawURL, host string) error {
+	u, err := url.Parse(rawURL)
+	if err != nil || u.Scheme != "https" || u.Host != host {
+		return fmt.Errorf("provider returned URL not on %s: %s", host, rawURL)
 	}
+	return nil
 }

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 
 	"github.com/nyaruka/gocommon/httpx"
 	"github.com/nyaruka/gocommon/svclogs"
@@ -31,6 +32,7 @@ func init() {
 
 type service struct {
 	httpClient *http.Client
+	host       string
 	authToken  string
 	headers    map[string]string
 }
@@ -43,18 +45,28 @@ func New(cfg *runtime.Config, httpClient *http.Client, channel *models.Channel) 
 		return nil, fmt.Errorf("missing %s or %s in channel config", configAccountSID, configAuthToken)
 	}
 
+	base, err := url.Parse(BaseURL)
+	if err != nil {
+		return nil, fmt.Errorf("invalid base URL: %w", err)
+	}
+
 	return &service{
 		httpClient: httpClient,
+		host:       base.Host,
 		authToken:  authToken,
 		headers:    map[string]string{"Authorization": "Basic " + httpx.BasicAuth(accountSID, authToken)},
 	}, nil
 }
 
-func (s *service) FetchTemplates(ctx context.Context, clog *models.ChannelLog) ([]*templates.Translation, error) {
+func (s *service) FetchTemplates(ctx context.Context, clog *models.ChannelLog) (*templates.Fetched, error) {
 	next := BaseURL + "/Content"
 	contents := make([]*formats.TwilioContent, 0)
 
 	for next != "" {
+		if err := templates.CheckHost(next, s.host); err != nil {
+			return nil, err
+		}
+
 		body, err := templates.Get(ctx, s.httpClient, clog, next, s.headers)
 		if err != nil {
 			return nil, err
@@ -74,8 +86,7 @@ func (s *service) FetchTemplates(ctx context.Context, clog *models.ChannelLog) (
 		next = page.Meta.NextPageURL
 	}
 
-	translations := make([]*templates.Translation, 0, len(contents))
-	var errs []error
+	fetched := &templates.Fetched{Translations: make([]*templates.Translation, 0, len(contents))}
 
 	for _, c := range contents {
 		status, ok := s.fetchStatus(ctx, clog, c)
@@ -85,26 +96,29 @@ func (s *service) FetchTemplates(ctx context.Context, clog *models.ChannelLog) (
 
 		tr, err := formats.ParseTwilioContent(c, status)
 		if err != nil {
-			errs = append(errs, err)
+			fetched.Invalid = append(fetched.Invalid, err.(*templates.InvalidTemplateError))
 		} else {
-			translations = append(translations, tr)
+			fetched.Translations = append(fetched.Translations, tr)
 		}
 	}
 
-	templates.LogErrors(clog, errs)
-
-	return translations, nil
+	return fetched, nil
 }
 
 // fetchStatus fetches the WhatsApp approval status of a template, returning false if it's one we don't store. If it
-// can't be fetched, the template is kept as pending rather than failing the sync.
+// can't be fetched, the status is unknown so the stored one is kept, rather than failing the sync.
 func (s *service) fetchStatus(ctx context.Context, clog *models.ChannelLog, c *formats.TwilioContent) (
 	templates.TranslationStatus, bool,
 ) {
-	body, err := templates.Get(ctx, s.httpClient, clog, c.Links.ApprovalFetch, s.headers)
+	err := templates.CheckHost(c.Links.ApprovalFetch, s.host)
+
+	var body []byte
+	if err == nil {
+		body, err = templates.Get(ctx, s.httpClient, clog, c.Links.ApprovalFetch, s.headers)
+	}
 	if err != nil {
 		clog.Error(&svclogs.Error{Message: fmt.Sprintf("error fetching approval of template %s: %s", c.FriendlyName, err)})
-		return templates.StatusPending, true
+		return templates.StatusUnknown, true
 	}
 
 	var approval struct {
