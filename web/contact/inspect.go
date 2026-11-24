@@ -72,7 +72,7 @@ func handleInspect(ctx context.Context, rt *runtime.Runtime, r *inspectRequest) 
 	}
 
 	// load our contacts
-	contacts, err := models.LoadContacts(ctx, rt.DB, oa, r.ContactIDs)
+	contacts, err := models.LoadContacts(ctx, rt.ReadonlyDB, oa, r.ContactIDs)
 	if err != nil {
 		return nil, 0, fmt.Errorf("error loading contact: %w", err)
 	}
