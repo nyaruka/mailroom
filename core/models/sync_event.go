@@ -74,7 +74,7 @@ func (e *SyncEvent) UpdateOutgoingCommandCount(ctx context.Context, db DBorTx, c
 // merged in under its own key so it never clobbers the state of another kind of sync
 const sqlUpdateAndroidSyncState = `
 UPDATE channels_channel
-   SET sync_state = COALESCE(sync_state, '{}') || jsonb_build_object('android', jsonb_build_object(
+   SET sync_state = sync_state || jsonb_build_object('android', jsonb_build_object(
            'synced_on', NOW(),
            'power_source', $2::text,
            'power_status', $3::text,
