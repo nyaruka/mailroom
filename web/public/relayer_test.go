@@ -462,6 +462,7 @@ func TestRelayerSyncPreservesStatusesOnFailure(t *testing.T) {
 
 	body := fmt.Sprintf(`{"cmds":[
 		{"cmd":"fcm","fcm_id":"FCM123"},
+		{"cmd":"status","p_src":"BAT","p_sts":"DIS","p_lvl":15,"net":"WIFI","pending":[],"retry":[]},
 		{"cmd":"mt_sent","msg_id":%d,"ts":1746361847000,"p_id":1},
 		{"cmd":"mo_sms","phone":"+593979000111","msg":"incoming!","ts":1746361848000,"p_id":2}
 	]}`, out1.ID)
@@ -472,6 +473,13 @@ func TestRelayerSyncPreservesStatusesOnFailure(t *testing.T) {
 	// the status change we'd already accepted was still written, so the device isn't asked to send it again
 	assertdb.Query(t, rt.DB, `SELECT status, folder FROM msgs_msg WHERE id = $1`, out1.ID).
 		Columns(map[string]any{"status": "S", "folder": "S"})
+
+	// and so was what the device reported about itself, with no response for it to count
+	assertdb.Query(t, rt.DB, `SELECT (sync_state->'android'->>'power_level')::int AS power_level, (sync_state->'android'->>'outgoing_command_count')::int AS outgoing FROM channels_channel WHERE id = $1`, testdb.AndroidChannel.ID).
+		Columns(map[string]any{"power_level": 15, "outgoing": 0})
+
+	rt.Dynamo.Main.Flush()
+	dyntest.AssertCount(t, rt.Dynamo.Main.Client(), rt.Dynamo.Main.Table(), 1)
 }
 
 func TestRelayerSyncHostilePayload(t *testing.T) {

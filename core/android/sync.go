@@ -54,6 +54,14 @@ func ProcessSync(ctx context.Context, rt *runtime.Runtime, channel *models.Andro
 	var sync *models.AndroidSync
 	var outboxExclude []models.MsgID
 
+	// a sync that fails partway is still recorded, since what the device reported is most useful when its syncs are
+	// failing - its outgoing command count is only known if we got as far as building the response
+	defer func() {
+		if sync != nil {
+			saveSync(ctx, rt, channel, sync)
+		}
+	}()
+
 	// a command failing partway through mustn't discard the status changes we've already accepted, so the loop
 	// records the failure and breaks rather than returning - the batch is applied either way below
 	var loopErr error
@@ -162,17 +170,20 @@ func ProcessSync(ctx context.Context, rt *runtime.Runtime, channel *models.Andro
 	if sync != nil {
 		// acks aren't work we did for the device, so they don't count as commands we sent it
 		sync.OutgoingCommandCount = len(resp) - countAcks(resp)
-
-		// only bookkeeping, so failing here would make the device resend everything just for a status display
-		if err := sync.UpdateChannelSyncState(ctx, rt.DB); err != nil {
-			slog.Error("error updating channel sync state", "channel_id", channel.ID, "error", err)
-		}
-		if _, err := rt.Dynamo.Main.Queue(sync); err != nil {
-			slog.Error("error queuing android sync to writer", "channel_id", channel.ID, "error", err)
-		}
 	}
 
 	return resp, nil
+}
+
+// saveSync records a sync as its channel's latest and adds it to the channel's history. It's only bookkeeping, so a
+// failure is logged rather than failing the sync, which would make the device resend everything.
+func saveSync(ctx context.Context, rt *runtime.Runtime, channel *models.AndroidChannel, sync *models.AndroidSync) {
+	if err := sync.UpdateChannelSyncState(ctx, rt.DB); err != nil {
+		slog.Error("error updating channel sync state", "channel_id", channel.ID, "error", err)
+	}
+	if _, err := rt.Dynamo.Main.Queue(sync); err != nil {
+		slog.Error("error queuing android sync to writer", "channel_id", channel.ID, "error", err)
+	}
 }
 
 // updateChannelApp records the FCM id and UUID the device reports for itself, so that we can reach it to trigger a
