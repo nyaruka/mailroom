@@ -69,7 +69,7 @@ func TestAndroidSyncDynamo(t *testing.T) {
 
 	ttl := syncedOn.Add(7 * 24 * time.Hour)
 	assert.Equal(t, &dynamo.Item{
-		Key:   dynamo.Key{PK: "chs#" + string(testdb.AndroidChannel.UUID), SK: "syn#019ab5e3-4f2a-7c00-8d00-123456789abc"},
+		Key:   dynamo.Key{PK: "cha#" + string(testdb.AndroidChannel.UUID), SK: "syn#019ab5e3-4f2a-7c00-8d00-123456789abc"},
 		OrgID: int(testdb.Org1.ID),
 		TTL:   &ttl,
 		Data: map[string]any{

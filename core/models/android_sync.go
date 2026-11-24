@@ -77,7 +77,7 @@ func (s *AndroidSync) UpdateChannelSyncState(ctx context.Context, db DBorTx) err
 // AndroidSyncDynamoKey returns the DynamoDB key of a sync in its channel's history, which sorts by time since the UUID
 // is a V7.
 func AndroidSyncDynamoKey(channelUUID assets.ChannelUUID, uuid uuids.UUID) dynamo.Key {
-	return dynamo.Key{PK: fmt.Sprintf("chs#%s", channelUUID), SK: fmt.Sprintf("syn#%s", uuid)}
+	return dynamo.Key{PK: fmt.Sprintf("cha#%s", channelUUID), SK: fmt.Sprintf("syn#%s", uuid)}
 }
 
 func (s *AndroidSync) DynamoKey() dynamo.Key {
