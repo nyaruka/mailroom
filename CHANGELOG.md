@@ -1,3 +1,7 @@
+## v26.3.160 (2026-11-24)
+ * Record each Android channel's latest sync in sync_state.android
+ * Update test database dump to drop orgs_org.is_flagged
+
 ## v26.3.159 (2026-11-24)
  * Read org metrics from the readonly database
  * Update test database dump
