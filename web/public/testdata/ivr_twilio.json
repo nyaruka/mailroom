@@ -939,6 +939,31 @@
                 "map": {
                     "Call4": 90
                 }
+            },
+            {
+                "query": "SELECT s.status FROM flows_flowsession s JOIN ivr_call c ON c.session_uuid = s.uuid WHERE c.external_id = 'Call4'",
+                "returns": "I"
+            },
+            {
+                "query": "SELECT count(*) FROM contacts_contact WHERE id = 10000 AND current_session_uuid IS NULL",
+                "returns": 1
+            }
+        ],
+        "expected_history": [
+            {
+                "PK": "con#a393abc0-283d-4c9b-a1b3-641a035c34bf",
+                "SK": "evt#01969b4c-ba73-76f8-90c5-3f98e9ebd03c",
+                "OrgID": 1,
+                "Data": {
+                    "created_on": "2025-05-04T12:37:00.123456789Z",
+                    "flow": {
+                        "name": "IVR Flow",
+                        "uuid": "2f81d0ea-4d75-4843-9371-3f7465311cce"
+                    },
+                    "run_uuid": "01969b4b-475b-76f8-99a3-375b9e29205d",
+                    "status": "interrupted",
+                    "type": "run_ended"
+                }
             }
         ]
     }
