@@ -34,6 +34,8 @@ const (
 	IncidentTypeOrgFlagged         IncidentType = "org:flagged"
 	IncidentTypeWebhooksUnhealthy  IncidentType = "webhooks:unhealthy"
 	IncidentTypeChannelOutdatedApp IncidentType = "channel:outdated_app"
+
+	IncidentTypeChannelTemplatesFailed IncidentType = "channel:templates_failed"
 )
 
 type Incident struct {
@@ -103,12 +105,34 @@ func IncidentChannelOutdatedApp(ctx context.Context, db DBorTx, oa *OrgAssets, c
 // EndChannelOutdatedAppIncidents ends any open outdated app incidents for the given channel, i.e. its device has been
 // updated.
 func EndChannelOutdatedAppIncidents(ctx context.Context, db DBorTx, channelID ChannelID) error {
+	return endChannelIncidents(ctx, db, IncidentTypeChannelOutdatedApp, channelID)
+}
+
+// IncidentChannelTemplatesFailed ensures there is an open incident for a channel whose templates have repeatedly
+// failed to sync. It returns any notifications created for a newly started incident so the caller can publish them.
+func IncidentChannelTemplatesFailed(ctx context.Context, db DBorTx, oa *OrgAssets, channelID ChannelID) (IncidentID, []*Notification, error) {
+	return getOrCreateIncident(ctx, db, oa, &Incident{
+		OrgID:     oa.OrgID(),
+		Type:      IncidentTypeChannelTemplatesFailed,
+		StartedOn: dates.Now(),
+		Scope:     fmt.Sprintf("%d", channelID),
+		ChannelID: channelID,
+	})
+}
+
+// EndChannelTemplatesFailedIncidents ends any open templates failed incidents for the given channel, i.e. its
+// templates have synced again.
+func EndChannelTemplatesFailedIncidents(ctx context.Context, db DBorTx, channelID ChannelID) error {
+	return endChannelIncidents(ctx, db, IncidentTypeChannelTemplatesFailed, channelID)
+}
+
+func endChannelIncidents(ctx context.Context, db DBorTx, typ IncidentType, channelID ChannelID) error {
 	_, err := db.ExecContext(ctx,
 		`UPDATE notifications_incident SET ended_on = NOW() WHERE incident_type = $1 AND channel_id = $2 AND ended_on IS NULL`,
-		IncidentTypeChannelOutdatedApp, channelID,
+		typ, channelID,
 	)
 	if err != nil {
-		return fmt.Errorf("error ending channel outdated app incidents: %w", err)
+		return fmt.Errorf("error ending channel %s incidents: %w", typ, err)
 	}
 	return nil
 }

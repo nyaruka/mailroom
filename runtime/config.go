@@ -83,8 +83,9 @@ type Config struct {
 	CloudwatchNamespace string `help:"the namespace to use for cloudwatch metrics"`
 	DeploymentID        string `help:"the deployment identifier to use for metrics"`
 
-	AndroidCredentials string `help:"FCM service account credentials JSON used to sync Android relayers" validate:"omitempty,json"`
-	IDObfuscationKey   string `help:"key used to decode obfuscated IDs, as 4 comma separated integers" validate:"omitempty,hexadecimal,len=32"`
+	AndroidCredentials           string `help:"FCM service account credentials JSON used to sync Android relayers" validate:"omitempty,json"`
+	IDObfuscationKey             string `help:"key used to decode obfuscated IDs, as 4 comma separated integers" validate:"omitempty,hexadecimal,len=32"`
+	WhatsappAdminSystemUserToken string `help:"the token of the admin system user for WhatsApp, used to sync templates"`
 
 	LogLevel    slog.Level `help:"the logging level courier should use"`
 	UUIDSeed    int        `help:"seed to use for UUID generation in a testing environment"`

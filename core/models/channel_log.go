@@ -21,6 +21,8 @@ const (
 	ChannelLogTypeIVRStatus   svclogs.Type = "ivr_status"
 	ChannelLogTypeIVRHangup   svclogs.Type = "ivr_hangup"
 
+	ChannelLogTypeTemplateSync svclogs.Type = "template_sync"
+
 	channelLogDynamoTTL = time.Hour * 24 * 7 // 1 week
 )
 
