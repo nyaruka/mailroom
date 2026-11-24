@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/nyaruka/gocommon/aws/dynamo/dyntest"
 	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/dbutil/assertdb"
 	"github.com/nyaruka/gocommon/jsonx"
@@ -287,6 +288,17 @@ func TestRelayerSyncOutbox(t *testing.T) {
 
 	// and so does the channel's latest sync state, which is only written once that's known
 	assertdb.Query(t, rt.DB, `SELECT sync_state->'android'->>'outgoing_command_count' FROM channels_channel WHERE id = $1`, testdb.AndroidChannel.ID).Returns(`2`)
+
+	// and the sync is added to the channel's history
+	rt.Dynamo.Main.Flush()
+	items := dyntest.ScanAll(t, rt.Dynamo.Main.Client(), rt.Dynamo.Main.Table())
+	require.Len(t, items, 1)
+	assert.Equal(t, "cha#"+string(testdb.AndroidChannel.UUID), items[0].PK)
+	assert.True(t, strings.HasPrefix(items[0].SK, "syn#"))
+	assert.Equal(t, int(testdb.Org1.ID), items[0].OrgID)
+	assert.Equal(t, "BAT", items[0].Data["power_source"])
+	assert.EqualValues(t, 80, items[0].Data["power_level"])
+	assert.EqualValues(t, 2, items[0].Data["outgoing_command_count"])
 
 	// messages the device tells us it already holds aren't offered again
 	body = fmt.Sprintf(`{"cmds":[{"cmd":"fcm","fcm_id":"FCM123"},{"cmd":"status","p_src":"BAT","p_sts":"CHA","p_lvl":80,"net":"WIFI","pending":[%d,%d],"retry":[]}]}`, out1.ID, out2.ID)

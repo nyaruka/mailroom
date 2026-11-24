@@ -3,7 +3,15 @@ package models
 import (
 	"context"
 	"fmt"
+	"time"
+
+	"github.com/nyaruka/gocommon/aws/dynamo"
+	"github.com/nyaruka/gocommon/uuids"
+	"github.com/nyaruka/goflow/assets"
 )
+
+// how long a channel's sync history is kept, which only needs to be long enough to see how its phone has been doing
+const syncEventDynamoTTL = time.Hour * 24 * 7
 
 // SyncEventID is the type for sync event IDs
 type SyncEventID int
@@ -31,28 +39,32 @@ const (
 // SyncEvent is the record of a single sync by an Android channel's relayer, holding what the device reported about
 // itself and how much work the sync did.
 type SyncEvent struct {
-	ID                   SyncEventID `db:"id"`
-	ChannelID            ChannelID   `db:"channel_id"`
-	PowerSource          string      `db:"power_source"`
-	PowerStatus          string      `db:"power_status"`
-	PowerLevel           int         `db:"power_level"`
-	NetworkType          string      `db:"network_type"`
-	PendingMessageCount  int         `db:"pending_message_count"`
-	RetryMessageCount    int         `db:"retry_message_count"`
-	IncomingCommandCount int         `db:"incoming_command_count"`
-	OutgoingCommandCount int         `db:"outgoing_command_count"`
+	ID                   SyncEventID        `db:"id"`
+	UUID                 uuids.UUID         `db:"-"`
+	OrgID                OrgID              `db:"-"`
+	ChannelID            ChannelID          `db:"channel_id"`
+	ChannelUUID          assets.ChannelUUID `db:"-"`
+	SyncedOn             time.Time          `db:"-"`
+	PowerSource          string             `db:"power_source"`
+	PowerStatus          string             `db:"power_status"`
+	PowerLevel           int                `db:"power_level"`
+	NetworkType          string             `db:"network_type"`
+	PendingMessageCount  int                `db:"pending_message_count"`
+	RetryMessageCount    int                `db:"retry_message_count"`
+	IncomingCommandCount int                `db:"incoming_command_count"`
+	OutgoingCommandCount int                `db:"outgoing_command_count"`
 }
 
 const sqlInsertSyncEvent = `
 INSERT INTO channels_syncevent(channel_id, power_source, power_status, power_level, network_type, pending_message_count,
                                retry_message_count, incoming_command_count, outgoing_command_count, created_on)
-     VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
+     VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
   RETURNING id`
 
 // Insert writes this sync event, filling in its id.
 func (e *SyncEvent) Insert(ctx context.Context, db DBorTx) error {
 	err := db.GetContext(ctx, &e.ID, sqlInsertSyncEvent, e.ChannelID, e.PowerSource, e.PowerStatus, e.PowerLevel,
-		e.NetworkType, e.PendingMessageCount, e.RetryMessageCount, e.IncomingCommandCount, e.OutgoingCommandCount)
+		e.NetworkType, e.PendingMessageCount, e.RetryMessageCount, e.IncomingCommandCount, e.OutgoingCommandCount, e.SyncedOn)
 	if err != nil {
 		return fmt.Errorf("error inserting sync event: %w", err)
 	}
@@ -75,7 +87,7 @@ func (e *SyncEvent) UpdateOutgoingCommandCount(ctx context.Context, db DBorTx, c
 const sqlUpdateAndroidSyncState = `
 UPDATE channels_channel
    SET sync_state = COALESCE(sync_state, '{}') || jsonb_build_object('android', jsonb_build_object(
-           'synced_on', NOW(),
+           'synced_on', $10::timestamptz,
            'power_source', $2::text,
            'power_status', $3::text,
            'power_level', $4::int,
@@ -90,9 +102,41 @@ UPDATE channels_channel
 // UpdateChannelSyncState records this sync as its channel's latest Android sync.
 func (e *SyncEvent) UpdateChannelSyncState(ctx context.Context, db DBorTx) error {
 	_, err := db.ExecContext(ctx, sqlUpdateAndroidSyncState, e.ChannelID, e.PowerSource, e.PowerStatus, e.PowerLevel,
-		e.NetworkType, e.PendingMessageCount, e.RetryMessageCount, e.IncomingCommandCount, e.OutgoingCommandCount)
+		e.NetworkType, e.PendingMessageCount, e.RetryMessageCount, e.IncomingCommandCount, e.OutgoingCommandCount, e.SyncedOn)
 	if err != nil {
 		return fmt.Errorf("error updating channel android sync state: %w", err)
 	}
 	return nil
+}
+
+// SyncEventDynamoKey returns the DynamoDB key of a sync in its channel's history, which sorts by time since the UUID
+// is a V7.
+func SyncEventDynamoKey(channelUUID assets.ChannelUUID, uuid uuids.UUID) dynamo.Key {
+	return dynamo.Key{PK: fmt.Sprintf("cha#%s", channelUUID), SK: fmt.Sprintf("syn#%s", uuid)}
+}
+
+func (e *SyncEvent) DynamoKey() dynamo.Key {
+	return SyncEventDynamoKey(e.ChannelUUID, e.UUID)
+}
+
+// MarshalDynamo marshals this sync as an item in its channel's history, with the same values as its sync state.
+func (e *SyncEvent) MarshalDynamo() (*dynamo.Item, error) {
+	ttl := e.SyncedOn.Add(syncEventDynamoTTL)
+
+	return &dynamo.Item{
+		Key:   e.DynamoKey(),
+		OrgID: int(e.OrgID),
+		TTL:   &ttl,
+		Data: map[string]any{
+			"synced_on":              e.SyncedOn,
+			"power_source":           e.PowerSource,
+			"power_status":           e.PowerStatus,
+			"power_level":            e.PowerLevel,
+			"network_type":           e.NetworkType,
+			"pending_message_count":  e.PendingMessageCount,
+			"retry_message_count":    e.RetryMessageCount,
+			"incoming_command_count": e.IncomingCommandCount,
+			"outgoing_command_count": e.OutgoingCommandCount,
+		},
+	}, nil
 }
