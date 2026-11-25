@@ -53,13 +53,6 @@
                     10000
                 ],
                 "returns": 1
-            },
-            {
-                "query": "select count(*) from request_logs_httplog where org_id = $1 AND airtime_transfer_id IS NOT NULL AND is_error = FALSE AND url LIKE 'https://dvs-api.dtone.com/v1/%'",
-                "args": [
-                    1
-                ],
-                "returns": 3
             }
         ],
         "expected_history": [

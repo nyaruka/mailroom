@@ -31,18 +31,5 @@ func (h *insertAirtimeTransfers) Execute(ctx context.Context, rt *runtime.Runtim
 		return fmt.Errorf("error inserting airtime transfers: %w", err)
 	}
 
-	// gather all our logs and set the newly inserted transfer IDs on them
-	logs := make([]*models.HTTPLog, 0, len(scenes))
-	for _, t := range transfers {
-		for _, l := range t.Logs {
-			l.SetAirtimeTransferID(t.ID())
-			logs = append(logs, l)
-		}
-	}
-
-	if err := models.InsertHTTPLogs(ctx, tx, logs); err != nil {
-		return fmt.Errorf("error inserting airtime transfer logs: %w", err)
-	}
-
 	return nil
 }

@@ -3,9 +3,7 @@ package handlers
 import (
 	"context"
 	"log/slog"
-	"time"
 
-	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/core/events"
 	"github.com/nyaruka/mailroom/v26/core/models"
 	"github.com/nyaruka/mailroom/v26/core/runner"
@@ -35,20 +33,6 @@ func handleAirtimeCreated(ctx context.Context, rt *runtime.Runtime, oa *models.O
 	slog.Debug("airtime created", "contact", scene.ContactUUID(), "session", scene.SessionUUID(), "sender", event.Sender, "recipient", event.Recipient, "currency", event.Currency, "amount", event.Amount.String())
 
 	transfer := models.NewAirtimeTransfer(oa.OrgID(), scene.ContactID(), event)
-
-	for _, httpLog := range event.HTTPLogs {
-		transfer.AddLog(models.NewAirtimeTransferredLog(
-			oa.OrgID(),
-			httpLog.URL,
-			httpLog.StatusCode,
-			httpLog.Request,
-			httpLog.Response,
-			httpLog.Status != core.CallStatusSuccess,
-			time.Duration(httpLog.ElapsedMS)*time.Millisecond,
-			httpLog.Retries,
-			httpLog.CreatedOn,
-		))
-	}
 
 	scene.AttachPreCommitHook(hooks.InsertAirtimeTransfers, transfer)
 	scene.AttachPostCommitHook(hooks.ConfirmAirtimeTransfers, transfer)

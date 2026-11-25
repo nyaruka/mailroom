@@ -88,7 +88,8 @@ type AirtimeTransfer struct {
 		CreatedOn     time.Time             `db:"created_on"`
 	}
 
-	Logs []*HTTPLog
+	// the log of the provider calls made to create the transfer
+	CreateLog *AirtimeLog
 }
 
 // NewAirtimeTransfer creates a new airtime transfer in the pending state, with the provider's transaction id
@@ -106,6 +107,7 @@ func NewAirtimeTransfer(orgID OrgID, contactID ContactID, event *events.AirtimeC
 	t.t.DesiredAmount = event.Amount
 	t.t.ActualAmount = event.Amount
 	t.t.CreatedOn = event.CreatedOn()
+	t.CreateLog = NewAirtimeLog(AirtimeLogTypeCreate, orgID, event.UUID(), event.HTTPLogs, nil)
 	return t
 }
 
@@ -123,10 +125,6 @@ func (t *AirtimeTransfer) ExternalID() string {
 
 func (t *AirtimeTransfer) Status() AirtimeTransferStatus {
 	return t.t.Status
-}
-
-func (t *AirtimeTransfer) AddLog(l *HTTPLog) {
-	t.Logs = append(t.Logs, l)
 }
 
 const sqlInsertAirtimeTransfers = `

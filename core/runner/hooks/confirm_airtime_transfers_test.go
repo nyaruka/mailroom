@@ -3,7 +3,7 @@ package hooks_test
 import (
 	"testing"
 
-	"github.com/nyaruka/gocommon/dbutil/assertdb"
+	"github.com/nyaruka/gocommon/aws/dynamo/dyntest"
 	"github.com/nyaruka/gocommon/httpx"
 	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/goflow/core"
@@ -30,7 +30,7 @@ func TestConfirmAirtimeTransfers(t *testing.T) {
 	require.NoError(t, err)
 
 	seed := func() *models.AirtimeTransfer {
-		rt.DB.MustExec(`DELETE FROM request_logs_httplog WHERE airtime_transfer_id IS NOT NULL`)
+		testsuite.ClearDynamo(t, rt)
 		rt.DB.MustExec(`DELETE FROM airtime_airtimetransfer`)
 		uuid := events.NewEventUUID()
 		tr := models.NewAirtimeTransfer(testdb.Org1.ID, testdb.Ann.ID, events.NewAirtimeCreated(uuid, &core.AirtimeTransfer{
@@ -60,32 +60,37 @@ func TestConfirmAirtimeTransfers(t *testing.T) {
 	confirmOK := `{"id":2237512891,"status":{"class":{"id":2,"message":"CONFIRMED"}}}`
 	confirmErr := `{"errors":[{"code":1003001,"message":"Transaction not found"}]}`
 
-	// the hook never mutates the row directly — it triggers Confirm and attaches HTTP logs. Status
+	// the hook never mutates the row directly — it triggers Confirm and logs the HTTP calls. Status
 	// transitions out of Created happen via the provider's status callback (handled in web/public).
 	cases := []struct {
-		name    string
-		mocks   []*httpx.MockResponse
-		expLogs int
+		name       string
+		mocks      []*httpx.MockResponse
+		expHTTP    int
+		expIsError bool
 	}{
 		{
-			name:    "200 success",
-			mocks:   []*httpx.MockResponse{httpx.NewMockResponse(200, nil, []byte(confirmOK))},
-			expLogs: 1,
+			name:       "200 success",
+			mocks:      []*httpx.MockResponse{httpx.NewMockResponse(200, nil, []byte(confirmOK))},
+			expHTTP:    1,
+			expIsError: false,
 		},
 		{
-			name:    "4xx provider rejection",
-			mocks:   []*httpx.MockResponse{httpx.NewMockResponse(400, nil, []byte(confirmErr))},
-			expLogs: 1,
+			name:       "4xx provider rejection",
+			mocks:      []*httpx.MockResponse{httpx.NewMockResponse(400, nil, []byte(confirmErr))},
+			expHTTP:    1,
+			expIsError: true,
 		},
 		{
-			name:    "5xx retried then given up",
-			mocks:   []*httpx.MockResponse{httpx.NewMockResponse(500, nil, []byte(confirmErr)), httpx.NewMockResponse(500, nil, []byte(confirmErr)), httpx.NewMockResponse(500, nil, []byte(confirmErr))},
-			expLogs: 1,
+			name:       "5xx retried then given up",
+			mocks:      []*httpx.MockResponse{httpx.NewMockResponse(500, nil, []byte(confirmErr)), httpx.NewMockResponse(500, nil, []byte(confirmErr)), httpx.NewMockResponse(500, nil, []byte(confirmErr))},
+			expHTTP:    1,
+			expIsError: true,
 		},
 		{
-			name:    "connection error",
-			mocks:   []*httpx.MockResponse{httpx.MockConnectionError, httpx.MockConnectionError, httpx.MockConnectionError},
-			expLogs: 1,
+			name:       "connection error",
+			mocks:      []*httpx.MockResponse{httpx.MockConnectionError, httpx.MockConnectionError, httpx.MockConnectionError},
+			expHTTP:    1,
+			expIsError: true,
 		},
 	}
 
@@ -99,7 +104,19 @@ func TestConfirmAirtimeTransfers(t *testing.T) {
 
 			// every branch leaves the row in Created — callback is the source of truth for transitions
 			assert.Equal(t, models.AirtimeTransferStatusCreated, rowStatus(tr.UUID()))
-			assertdb.Query(t, rt.DB, `SELECT count(*) FROM request_logs_httplog WHERE airtime_transfer_id = $1`, tr.ID()).Returns(tc.expLogs)
+
+			// the seeded transfer has no create calls so the only log is the confirm one
+			rt.Dynamo.Main.Flush()
+			items := dyntest.ScanAll(t, rt.Dynamo.Main.Client(), rt.Dynamo.Main.Table())
+			if assert.Len(t, items, 1) {
+				assert.Equal(t, "att#"+string(tr.UUID()), items[0].PK)
+				assert.Equal(t, "confirm", items[0].Data["type"])
+				assert.Equal(t, tc.expIsError, items[0].Data["is_error"])
+
+				data, err := items[0].GetData()
+				require.NoError(t, err)
+				assert.Len(t, data["http_logs"], tc.expHTTP)
+			}
 		})
 	}
 }
