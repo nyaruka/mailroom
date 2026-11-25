@@ -57,7 +57,7 @@
         },
         "status": 422,
         "response": {
-            "error": "can't convert '1--' to a number",
+            "error": "'1--' is not a valid contact ID",
             "code": "query:invalid_number",
             "extra": {
                 "value": "1--"
