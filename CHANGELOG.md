@@ -1,3 +1,8 @@
+## v26.3.164 (2026-11-25)
+ * Write airtime transfer logs to DynamoDB instead of request_logs_httplog
+ * Regenerate test database dump without api_apitoken.is_active
+ * Regenerate test database dump without channels_syncevent
+
 ## v26.3.163 (2026-11-24)
  * Stop writing Android syncs as SyncEvent rows (#1424)
  * Interrupt IVR sessions when the contact hangs up mid-flow (#1426)
