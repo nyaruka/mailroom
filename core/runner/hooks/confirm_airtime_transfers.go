@@ -25,6 +25,13 @@ func (h *confirmAirtimeTransfers) Order() int { return 10 }
 var confirmHTTPRetries = httpx.NewFixedRetries(time.Second*5, time.Second*10)
 
 func (h *confirmAirtimeTransfers) Execute(ctx context.Context, rt *runtime.Runtime, oa *models.OrgAssets, scenes map[*runner.Scene][]any) error {
+	// queued here rather than pre-commit so we don't write logs for transfers that never got committed
+	for _, args := range scenes {
+		for _, arg := range args {
+			queueAirtimeLog(rt, arg.(*models.AirtimeTransfer).CreateLog)
+		}
+	}
+
 	// hoist the airtime service out of the per-transfer loop — the org is constant for this hook invocation
 	svc, err := oa.Org().AirtimeService(rt, rt.HTTP.Services, confirmHTTPRetries)
 	if err != nil {
@@ -41,10 +48,6 @@ func (h *confirmAirtimeTransfers) Execute(ctx context.Context, rt *runtime.Runti
 		return nil
 	}
 
-	// collect all HTTP logs across all transfers and insert in a single batch at the end rather than
-	// one round-trip per transfer
-	var logs []*models.HTTPLog
-
 	for _, args := range scenes {
 		for _, arg := range args {
 			transfer := arg.(*models.AirtimeTransfer)
@@ -52,21 +55,7 @@ func (h *confirmAirtimeTransfers) Execute(ctx context.Context, rt *runtime.Runti
 			logger := &core.HTTPLogger{}
 			confirmErr := svc.Confirm(ctx, &core.AirtimeTransfer{ExternalID: transfer.ExternalID()}, logger.Log)
 
-			for _, l := range logger.Logs {
-				log := models.NewAirtimeTransferredLog(
-					oa.OrgID(),
-					l.URL,
-					l.StatusCode,
-					l.Request,
-					l.Response,
-					l.Status != core.CallStatusSuccess,
-					time.Duration(l.ElapsedMS)*time.Millisecond,
-					l.Retries,
-					l.CreatedOn,
-				)
-				log.SetAirtimeTransferID(transfer.ID())
-				logs = append(logs, log)
-			}
+			queueAirtimeLog(rt, models.NewAirtimeLog(models.AirtimeLogTypeConfirm, oa.OrgID(), transfer.UUID(), logger.Logs, confirmErr))
 
 			if confirmErr != nil {
 				slog.Warn("airtime transfer failed to confirm, leaving pending", "transfer", transfer.UUID(), "error", confirmErr)
@@ -74,11 +63,15 @@ func (h *confirmAirtimeTransfers) Execute(ctx context.Context, rt *runtime.Runti
 		}
 	}
 
-	if len(logs) > 0 {
-		if err := models.InsertHTTPLogs(ctx, rt.DB, logs); err != nil {
-			slog.Error("error inserting airtime transfer http logs", "count", len(logs), "error", err)
-		}
-	}
-
 	return nil
+}
+
+// queueAirtimeLog queues the given log to DynamoDB if it recorded anything. Failure to log doesn't fail the transfer.
+func queueAirtimeLog(rt *runtime.Runtime, l *models.AirtimeLog) {
+	if l == nil || (len(l.HttpLogs) == 0 && len(l.Errors) == 0) {
+		return
+	}
+	if _, err := rt.Dynamo.Main.Queue(l); err != nil {
+		slog.Error("error queuing airtime log", "transfer", l.DynamoKey().PK, "error", err)
+	}
 }

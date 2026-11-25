@@ -3,9 +3,11 @@ package handlers_test
 import (
 	"testing"
 
+	"github.com/nyaruka/gocommon/aws/dynamo/dyntest"
 	"github.com/nyaruka/gocommon/httpx"
 	"github.com/nyaruka/mailroom/v26/testsuite"
 	"github.com/nyaruka/mailroom/v26/testsuite/testdb"
+	"github.com/stretchr/testify/assert"
 )
 
 var transactionConfirmedResponse = `{
@@ -37,4 +39,15 @@ func TestAirtimeCreated(t *testing.T) {
 	rt.DB.MustExec(`UPDATE orgs_org SET config = '{"dtone_key": "key123", "dtone_secret": "sesame"}'::jsonb WHERE id = $1`, testdb.Org1.ID)
 
 	runTests(t, rt, "testdata/airtime_created.json")
+
+	// the create and confirm calls are logged against the transfer
+	rt.Dynamo.Main.Flush()
+	items := dyntest.ScanAll(t, rt.Dynamo.Main.Client(), rt.Dynamo.Main.Table())
+	types := make([]any, len(items))
+	for i, item := range items {
+		assert.Equal(t, "att#01969b47-47eb-76f8-b3a5-b9dac4767740", item.PK)
+		assert.Equal(t, false, item.Data["is_error"])
+		types[i] = item.Data["type"]
+	}
+	assert.ElementsMatch(t, []any{"create", "confirm"}, types)
 }
