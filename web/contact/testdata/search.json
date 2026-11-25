@@ -46,6 +46,139 @@
         }
     },
     {
+        "label": "query error if id isn't an integer",
+        "method": "POST",
+        "path": "/mi/contact/search",
+        "body": {
+            "org_id": 1,
+            "query": "id = 1--",
+            "sort": "",
+            "group_id": 10000
+        },
+        "status": 422,
+        "response": {
+            "error": "can't convert '1--' to a number",
+            "code": "query:invalid_number",
+            "extra": {
+                "value": "1--"
+            }
+        }
+    },
+    {
+        "label": "query error if sort is unknown: 1",
+        "method": "POST",
+        "path": "/mi/contact/search",
+        "body": {
+            "org_id": 1,
+            "query": "",
+            "sort": "1",
+            "group_id": 10000
+        },
+        "status": 422,
+        "response": {
+            "error": "can't resolve '1' to attribute or field",
+            "code": "query:unknown_property",
+            "extra": {
+                "property": "1"
+            }
+        }
+    },
+    {
+        "label": "query error if sort is unknown: name;",
+        "method": "POST",
+        "path": "/mi/contact/search",
+        "body": {
+            "org_id": 1,
+            "query": "",
+            "sort": "name;",
+            "group_id": 10000
+        },
+        "status": 422,
+        "response": {
+            "error": "can't resolve 'name;' to attribute or field",
+            "code": "query:unknown_property",
+            "extra": {
+                "property": "name;"
+            }
+        }
+    },
+    {
+        "label": "query error if sort is unknown: name'",
+        "method": "POST",
+        "path": "/mi/contact/search",
+        "body": {
+            "org_id": 1,
+            "query": "",
+            "sort": "name'",
+            "group_id": 10000
+        },
+        "status": 422,
+        "response": {
+            "error": "can't resolve 'name'' to attribute or field",
+            "code": "query:unknown_property",
+            "extra": {
+                "property": "name'"
+            }
+        }
+    },
+    {
+        "label": "query error if sort is unknown: (select 1)",
+        "method": "POST",
+        "path": "/mi/contact/search",
+        "body": {
+            "org_id": 1,
+            "query": "",
+            "sort": "(select 1)",
+            "group_id": 10000
+        },
+        "status": 422,
+        "response": {
+            "error": "can't resolve '(select 1)' to attribute or field",
+            "code": "query:unknown_property",
+            "extra": {
+                "property": "(select 1)"
+            }
+        }
+    },
+    {
+        "label": "query error if sort is unknown: upper(name)",
+        "method": "POST",
+        "path": "/mi/contact/search",
+        "body": {
+            "org_id": 1,
+            "query": "",
+            "sort": "upper(name)",
+            "group_id": 10000
+        },
+        "status": 422,
+        "response": {
+            "error": "can't resolve 'upper(name)' to attribute or field",
+            "code": "query:unknown_property",
+            "extra": {
+                "property": "upper(name)"
+            }
+        }
+    },
+    {
+        "label": "query error if sort is unknown: case when 1=1 then name else id end",
+        "method": "POST",
+        "path": "/mi/contact/search",
+        "body": {
+            "org_id": 1,
+            "query": "",
+            "sort": "case when 1=1 then name else id end",
+            "group_id": 10000
+        },
+        "status": 422,
+        "response": {
+            "error": "can't resolve 'case when 1=1 then name else id end' to attribute or field",
+            "code": "query:unknown_property",
+            "extra": {
+                "property": "case when 1=1 then name else id end"
+            }
+        }
+    },
+    {
         "label": "valid unstructured query",
         "method": "POST",
         "path": "/mi/contact/search",
