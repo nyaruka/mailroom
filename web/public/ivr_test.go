@@ -24,11 +24,13 @@ import (
 	_ "github.com/nyaruka/mailroom/v26/core/runner/handlers"
 	"github.com/nyaruka/mailroom/v26/core/tasks"
 	"github.com/nyaruka/mailroom/v26/runtime"
+	"github.com/nyaruka/mailroom/v26/services/ivr/mnotify"
 	"github.com/nyaruka/mailroom/v26/services/ivr/twiml"
 	"github.com/nyaruka/mailroom/v26/services/ivr/vonage"
 	"github.com/nyaruka/mailroom/v26/testsuite"
 	"github.com/nyaruka/mailroom/v26/testsuite/testdb"
 	"github.com/nyaruka/mailroom/v26/web/public"
+	"github.com/nyaruka/vkutil/assertvk"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -318,6 +320,98 @@ func TestVonageIVR(t *testing.T) {
 	assert.Len(t, logs, 16)
 	for _, log := range logs {
 		assert.NotContains(t, string(jsonx.MustMarshal(log)), "BEGIN PRIVATE KEY") // private key redacted
+	}
+}
+
+func TestMNotifyIVR(t *testing.T) {
+	ctx, rt := testsuite.Runtime(t)
+
+	// deactivate our twilio channel and add an mNotify channel
+	rt.DB.MustExec(`UPDATE channels_channel SET is_active = FALSE WHERE id = $1`, testdb.TwilioChannel.ID)
+
+	channel := testdb.InsertChannel(t, rt, testdb.Org1, "MN", "mNotify", "+16055550000", []string{"tel"}, "CA", map[string]any{
+		"api_key":         "key123",
+		"secret":          "sesame",
+		"callback_domain": "localhost:8190",
+	})
+	rt.DB.MustExec(`UPDATE channels_channel SET uuid = 'a2b5d3cf-8a0c-4a0f-9a35-6a1e0d0f7b11' WHERE id = $1`, channel.ID)
+	channel.UUID = "a2b5d3cf-8a0c-4a0f-9a35-6a1e0d0f7b11"
+
+	// start mocked API server
+	mockMNotify := test.NewHTTPServer(50003, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, _ := io.ReadAll(r.Body)
+		slog.Info("test server called", "method", r.Method, "url", r.URL.String(), "body", body)
+
+		assert.Equal(t, "key123", r.URL.Query().Get("key"))
+		w.Write([]byte(`{"success": true, "message": "New record created successfully"}`))
+	}))
+	defer mockMNotify.Close()
+
+	mnotify.BaseURL = mockMNotify.URL
+
+	testdb.InsertIncomingCallTrigger(t, rt, testdb.Org1, testdb.IVRFlow, []*testdb.Group{testdb.DoctorsGroup}, nil, nil)
+
+	// create a flow start for Ann and Bob
+	start := models.NewFlowStart(testdb.Org1.ID, models.StartTypeTrigger, testdb.IVRFlow.ID).
+		WithContactIDs([]models.ContactID{testdb.Ann.ID, testdb.Bob.ID})
+
+	err := tasks.Queue(ctx, rt, rt.Queues.Batch, testdb.Org1.ID, &tasks.StartFlow{FlowStart: start}, false)
+	require.NoError(t, err)
+
+	testsuite.FlushTasks(t, rt)
+
+	// both have wired calls which until they're answered have our UUID as their external id
+	assertdb.Query(t, rt.DB, `SELECT COUNT(*) FROM ivr_call WHERE status = 'W' AND external_id = uuid::text AND channel_id = $1`, channel.ID).Returns(2)
+
+	// give calls known UUIDs
+	rt.DB.MustExec(`UPDATE ivr_call SET uuid = '01969b47-190b-76f8-92ed-42cbd11a03fd', external_id = '01969b47-190b-76f8-92ed-42cbd11a03fd' WHERE contact_id = $1`, testdb.Ann.ID)
+	rt.DB.MustExec(`UPDATE ivr_call SET uuid = '01969b47-2c93-76f8-b774-0a98171a0712', external_id = '01969b47-2c93-76f8-b774-0a98171a0712' WHERE contact_id = $1`, testdb.Bob.ID)
+
+	// and a call on another channel that callbacks to this one shouldn't be able to touch
+	other := testdb.InsertCall(t, rt, testdb.Org1, testdb.VonageChannel, testdb.Dan)
+	rt.DB.MustExec(`UPDATE ivr_call SET uuid = '01969b47-401b-76f8-aac5-d9d0ae409dbe', external_id = 'Other1' WHERE id = $1`, other.ID)
+
+	testsuite.RunWebTests(t, rt, "./testdata/ivr_mnotify.json")
+
+	// the test flow has no audio so its responses are never more than one action - queue up some more for Ann's
+	// call as if they'd come from a sprint, including one more than should ever be reached
+	vc := rt.VK.Get()
+	defer vc.Close()
+
+	_, err = vc.Do("RPUSH", "mnotify:actions:01969b47-190b-76f8-92ed-42cbd11a03fd",
+		`{"actions":{"playback":{"url":"https://example.com/2.wav"}}}`,
+		`{"actions":{"get_digits":{"url":"https://example.com/3.wav","num_digits":1}}}`,
+		`{"actions":{"playback":{"url":"https://example.com/4.wav"}}}`,
+	)
+	require.NoError(t, err)
+
+	testsuite.RunWebTests(t, rt, "./testdata/ivr_mnotify_queued.json")
+
+	// what was queued for a call that ended is left alone
+	assertvk.LLen(t, vc, "mnotify:actions:01969b47-190b-76f8-92ed-42cbd11a03fd", 1)
+
+	// wire calls to Cat and Dan, and then block Dan
+	start = models.NewFlowStart(testdb.Org1.ID, models.StartTypeTrigger, testdb.IVRFlow.ID).
+		WithContactIDs([]models.ContactID{testdb.Cat.ID, testdb.Dan.ID})
+
+	err = tasks.Queue(ctx, rt, rt.Queues.Batch, testdb.Org1.ID, &tasks.StartFlow{FlowStart: start}, false)
+	require.NoError(t, err)
+
+	testsuite.FlushTasks(t, rt)
+
+	assertdb.Query(t, rt.DB, `SELECT COUNT(*) FROM ivr_call WHERE status = 'W' AND channel_id = $1`, channel.ID).Returns(2)
+
+	rt.DB.MustExec(`UPDATE ivr_call SET uuid = '01969b47-5c2b-76f8-8d1e-3b7f6a1c9e20', external_id = 'Wired1' WHERE status = 'W' AND contact_id = $1`, testdb.Cat.ID)
+	rt.DB.MustExec(`UPDATE ivr_call SET uuid = '01969b47-6f43-76f8-a3c4-91d2e8b7f055', external_id = 'Wired2' WHERE status = 'W' AND contact_id = $1`, testdb.Dan.ID)
+	rt.DB.MustExec(`UPDATE contacts_contact SET status = 'B' WHERE id = $1`, testdb.Dan.ID)
+
+	testsuite.RunWebTests(t, rt, "./testdata/ivr_mnotify_late.json")
+
+	// check the generated channel logs
+	logs := getCallLogs(t, rt, channel)
+	for _, log := range logs {
+		assert.NotContains(t, string(jsonx.MustMarshal(log)), "key123") // API key redacted
+		assert.NotContains(t, string(jsonx.MustMarshal(log)), "sesame") // callback secret redacted
 	}
 }
 

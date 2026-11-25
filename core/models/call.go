@@ -9,6 +9,7 @@ import (
 
 	"github.com/nyaruka/gocommon/dates"
 	"github.com/nyaruka/gocommon/jsonx"
+	"github.com/nyaruka/gocommon/urns"
 	"github.com/nyaruka/goflow/assets"
 	"github.com/nyaruka/goflow/core"
 	"github.com/nyaruka/goflow/flows"
@@ -497,3 +498,42 @@ func (i *CallID) Scan(value any) error         { return null.ScanInt(value, i) }
 func (i CallID) Value() (driver.Value, error)  { return null.IntValue(i) }
 func (i *CallID) UnmarshalJSON(b []byte) error { return null.UnmarshalInt(b, i) }
 func (i CallID) MarshalJSON() ([]byte, error)  { return null.MarshalInt(i) }
+
+const sqlSelectActiveOutgoingCallByURN = `
+SELECT
+    c.id,
+    c.uuid,
+    c.org_id,
+    c.created_on,
+    c.modified_on,
+    c.external_id,
+    c.status,
+    c.direction,
+    c.started_on,
+    c.ended_on,
+    c.duration,
+    c.error_reason,
+    c.error_count,
+    c.next_attempt,
+    c.channel_id,
+    c.contact_id,
+    c.contact_urn_id,
+    c.session_uuid,
+    c.trigger
+           FROM ivr_call c
+           JOIN contacts_contacturn u ON u.id = c.contact_urn_id
+          WHERE c.channel_id = $1 AND u.identity = $2 AND c.direction = 'O' AND c.status IN ('W', 'I')
+       ORDER BY c.id DESC
+          LIMIT 1`
+
+// GetActiveOutgoingCallByURN loads the newest outgoing call on a channel to the given URN that is wired or in
+// progress. It's for providers whose callbacks don't always identify the call they're for, and is a guess when
+// there's more than one such call: an older one that the provider never reports on stays wired, and so keeps
+// counting towards the channel's concurrent calls.
+func GetActiveOutgoingCallByURN(ctx context.Context, db DBorTx, channelID ChannelID, urn urns.URN) (*Call, error) {
+	c := &Call{}
+	if err := db.GetContext(ctx, &c.c, sqlSelectActiveOutgoingCallByURN, channelID, string(urn.Identity())); err != nil {
+		return nil, fmt.Errorf("error loading active call to %s: %w", urn.Identity(), err)
+	}
+	return c, nil
+}
