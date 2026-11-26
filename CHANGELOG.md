@@ -1,3 +1,7 @@
+## v26.3.165 (2026-11-26)
+ * Return query errors from contact search for non-integer ids and unknown sorts
+ * Update test database dump
+
 ## v26.3.164 (2026-11-25)
  * Write airtime transfer logs to DynamoDB instead of request_logs_httplog
  * Regenerate test database dump without api_apitoken.is_active
