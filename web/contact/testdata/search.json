@@ -179,6 +179,25 @@
         }
     },
     {
+        "label": "query error if descending sort is unknown",
+        "method": "POST",
+        "path": "/mi/contact/search",
+        "body": {
+            "org_id": 1,
+            "query": "",
+            "sort": "-Foo",
+            "group_id": 10000
+        },
+        "status": 422,
+        "response": {
+            "error": "can't resolve 'foo' to attribute or field",
+            "code": "query:unknown_property",
+            "extra": {
+                "property": "foo"
+            }
+        }
+    },
+    {
         "label": "valid unstructured query",
         "method": "POST",
         "path": "/mi/contact/search",
